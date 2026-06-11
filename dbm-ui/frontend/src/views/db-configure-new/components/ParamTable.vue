@@ -12,267 +12,294 @@
 -->
 
 <template>
-  <BkLoading :loading="loading">
-    <div class="param-operations mb-16">
-      <div class="param-operations-left">
-        <BkButton
-          theme="primary"
-          @click="handleAddParam">
-          {{ t('添加参数') }}
-        </BkButton>
-        <BkButton
-          v-if="selectable"
-          :disabled="selectedRows.length === 0"
-          @click="handleBatchEdit">
-          {{ t('批量编辑') }}
-        </BkButton>
-        <BkButton
-          v-bk-tooltips="{
-            content: t('请勾选参数'),
-            disabled: selectedRows.length > 0,
-          }"
-          :disabled="selectedRows.length === 0"
-          @click="handleShowBatchRestoreInfoBox">
-          {{ t('恢复默认') }}
-        </BkButton>
+  <ApplyPermissionCatch>
+    <BkLoading :loading="loading">
+      <div class="param-operations mb-16">
+        <div class="param-operations-left">
+          <AuthButton
+            :action-id="actionId"
+            :permission="permissions[actionId]"
+            :resource="resourceId"
+            theme="primary"
+            @click="handleAddParam">
+            {{ t('添加参数') }}
+          </AuthButton>
+          <AuthButton
+            v-if="selectable"
+            :action-id="actionId"
+            :disabled="selectedRows.length === 0"
+            :permission="permissions[actionId]"
+            :resource="resourceId"
+            @click="handleBatchEdit">
+            {{ t('批量编辑') }}
+          </AuthButton>
+          <AuthButton
+            v-bk-tooltips="{
+              content: t('请勾选参数'),
+              disabled: selectedRows.length > 0,
+            }"
+            :action-id="actionId"
+            :disabled="selectedRows.length === 0"
+            :permission="permissions[actionId]"
+            :resource="resourceId"
+            @click="handleShowBatchRestoreInfoBox">
+            {{ t('恢复默认') }}
+          </AuthButton>
+        </div>
+        <div class="param-operations-right">
+          <BkCheckbox
+            v-model="showCustomOnly"
+            @change="refreshTable">
+            {{ t('仅显示自定义') }}
+          </BkCheckbox>
+          <DbQuickSearch
+            v-model="searchValue"
+            :data="quickSearchData"
+            :placeholder="t('搜索参数名_当前值_允许值_重启生效')"
+            style="width: 500px"
+            @change="refreshTable" />
+        </div>
       </div>
-      <div class="param-operations-right">
-        <BkCheckbox
-          v-model="showCustomOnly"
-          @change="refreshTable">
-          {{ t('仅显示自定义') }}
-        </BkCheckbox>
-        <DbQuickSearch
-          v-model="searchValue"
-          :data="quickSearchData"
-          :placeholder="t('搜索参数名_当前值_允许值_重启生效')"
-          style="width: 500px"
-          @change="refreshTable" />
-      </div>
-    </div>
-    <DbTable
-      ref="paramTableRef"
-      :data-source="paramDataSource"
-      :default-limit="100"
-      :filter-value="searchValue"
-      :fixed-pagination="fixedPagination"
-      :row-key="rowKey"
-      :selectable="selectable"
-      @clear-search="refreshTable"
-      @filter-change="handleFilterChange"
-      @request-success="initDescriptionTippy"
-      @selection="handleSelectionChange">
-      <TableColumn
-        col-key="conf_name"
-        fixed="left"
-        :min-width="300"
-        :title="t('参数名')"
-        :width="300">
-        <template #default="{ row, rowIndex }">
-          <template v-if="rowIndex === 0 && isAddingRow">
-            <BkSelect
-              v-model="newRow.conf_name"
-              :clearable="false"
-              filterable
-              :placeholder="t('请选择参数')">
-              <BkOption
-                v-for="param of availableParams"
-                :key="param.conf_name"
-                :label="param.conf_name"
-                :value="param.conf_name" />
-            </BkSelect>
-          </template>
-          <template v-else>
-            {{ row.conf_name }}
-            <DbIcon
-              v-if="row.description"
-              class="param-desc-icon ml-4"
-              :data-conf-name="row.conf_name"
-              :data-description="row.description"
-              type="bk-dbm-icon db-icon-attention" />
-            <BkTag
-              v-if="row.op_type === 'add'"
-              class="ml-8"
-              size="small"
-              theme="success">
-              NEW
-            </BkTag>
-          </template>
-        </template>
-      </TableColumn>
-      <TableColumn
-        col-key="conf_value"
-        :title="t('当前值')"
-        :width="300">
-        <template #default="{ row, rowIndex }">
-          <!-- 新增行 -->
-          <template v-if="rowIndex === 0 && isAddingRow">
-            <div class="inline-edit-cell">
-              <ValueEditor
-                v-model="newRow.conf_value"
-                :disabled="!selectedParamInfo"
-                :value-allowed="selectedParamInfo?.value_allowed || ''"
-                :value-default="selectedParamInfo?.value_default || ''"
-                :value-type-sub="selectedParamInfo?.value_type_sub || ''" />
-              <BkButton
-                class="inline-edit-cell-confirm"
+      <DbTable
+        ref="paramTableRef"
+        :data-source="paramDataSource"
+        :default-limit="100"
+        :filter-value="searchValue"
+        :fixed-pagination="fixedPagination"
+        :row-key="rowKey"
+        :selectable="selectable"
+        @clear-search="refreshTable"
+        @filter-change="handleFilterChange"
+        @request-success="initDescriptionTippy"
+        @selection="handleSelectionChange">
+        <TableColumn
+          col-key="conf_name"
+          fixed="left"
+          :min-width="300"
+          :title="t('参数名')"
+          :width="300">
+          <template #default="{ row, rowIndex }">
+            <template v-if="rowIndex === 0 && isAddingRow">
+              <BkSelect
+                v-model="newRow.conf_name"
+                :clearable="false"
+                filterable
+                :placeholder="t('请选择参数')">
+                <BkOption
+                  v-for="param of availableParams"
+                  :key="param.conf_name"
+                  :label="param.conf_name"
+                  :value="param.conf_name" />
+              </BkSelect>
+            </template>
+            <template v-else>
+              {{ row.conf_name }}
+              <DbIcon
+                v-if="row.description"
+                class="param-desc-icon ml-4"
+                :data-conf-name="row.conf_name"
+                :data-description="row.description"
+                type="bk-dbm-icon db-icon-attention" />
+              <BkTag
+                v-if="row.op_type === 'add'"
+                class="ml-8"
                 size="small"
-                theme="primary"
-                @click="handleConfirmAdd">
-                <DbIcon type="check-line" />
-              </BkButton>
-              <BkButton
-                class="inline-edit-cell-cancel"
-                size="small"
-                @click="handleCancelAdd">
-                <DbIcon type="close" />
-              </BkButton>
-            </div>
+                theme="success">
+                NEW
+              </BkTag>
+            </template>
           </template>
-          <!-- 编辑模式 -->
-          <template v-else-if="editingRowKey === row[rowKey]">
-            <div class="inline-edit-cell">
-              <ValueEditor
-                v-model="editingValue"
-                :is-encrypted="row.flag_encrypt === 1"
-                :value-allowed="row.value_allowed || ''"
-                :value-type-sub="row.value_type_sub || ''" />
-              <BkButton
-                class="inline-edit-cell-confirm"
-                :loading="saveLoading"
-                size="small"
-                theme="primary"
-                @click="handleConfirmEdit">
-                <DbIcon type="check-line" />
-              </BkButton>
-              <BkButton
-                class="inline-edit-cell-cancel"
-                size="small"
-                @click="handleCancelEdit">
-                <DbIcon type="close" />
-              </BkButton>
-            </div>
-          </template>
-          <template v-else>
-            <span class="value-cell">
-              <span
-                v-if="row.conf_value === ''"
-                class="no-constraint-text">
-                {{ t('空字符串') }}
-              </span>
-              <template v-else>
-                <span
-                  v-bk-tooltips="{
-                    content: row.flag_encrypt === 1 ? '******' : (row.conf_value ?? '--'),
-                    disabled: !row.conf_value || !overflowStates[row.conf_name],
-                    extCls: 'param-table-value-tooltip',
-                  }"
-                  class="value-cell-text"
-                  @mouseenter="handleCellMouseEnter($event, row)">
-                  {{ row.flag_encrypt === 1 ? '******' : (row.conf_value ?? '--') }}
-                </span>
-                <BkTag
-                  v-if="row.level_name === levelName || row.op_type === 'add'"
+        </TableColumn>
+        <TableColumn
+          col-key="conf_value"
+          :title="t('当前值')"
+          :width="300">
+          <template #default="{ row, rowIndex }">
+            <!-- 新增行 -->
+            <template v-if="rowIndex === 0 && isAddingRow">
+              <div class="inline-edit-cell">
+                <ValueEditor
+                  v-model="newRow.conf_value"
+                  :disabled="!selectedParamInfo"
+                  :value-allowed="selectedParamInfo?.value_allowed || ''"
+                  :value-default="selectedParamInfo?.value_default || ''"
+                  :value-type-sub="selectedParamInfo?.value_type_sub || ''" />
+                <BkButton
+                  class="inline-edit-cell-confirm"
                   size="small"
-                  theme="warning">
-                  {{ t('自定义') }}
-                </BkTag>
-                <DbIcon
-                  v-if="row.flag_readonly !== 1"
-                  v-bk-tooltips="{ content: t('编辑参数') }"
-                  class="value-cell-edit"
-                  type="bk-dbm-icon db-icon-edit"
-                  @click="handleStartEdit(row)" />
+                  theme="primary"
+                  @click="handleConfirmAdd">
+                  <DbIcon type="check-line" />
+                </BkButton>
+                <BkButton
+                  class="inline-edit-cell-cancel"
+                  size="small"
+                  @click="handleCancelAdd">
+                  <DbIcon type="close" />
+                </BkButton>
+              </div>
+            </template>
+            <!-- 编辑模式 -->
+            <template v-else-if="editingRowKey === row[rowKey]">
+              <div class="inline-edit-cell">
+                <ValueEditor
+                  v-model="editingValue"
+                  :is-encrypted="row.flag_encrypt === 1"
+                  :value-allowed="row.value_allowed || ''"
+                  :value-type-sub="row.value_type_sub || ''" />
+                <BkButton
+                  class="inline-edit-cell-confirm"
+                  :loading="saveLoading"
+                  size="small"
+                  theme="primary"
+                  @click="handleConfirmEdit">
+                  <DbIcon type="check-line" />
+                </BkButton>
+                <BkButton
+                  class="inline-edit-cell-cancel"
+                  size="small"
+                  @click="handleCancelEdit">
+                  <DbIcon type="close" />
+                </BkButton>
+              </div>
+            </template>
+            <template v-else>
+              <span class="value-cell">
+                <span
+                  v-if="row.conf_value === ''"
+                  class="no-constraint-text">
+                  {{ t('空字符串') }}
+                </span>
+                <template v-else>
+                  <span
+                    v-bk-tooltips="{
+                      content: row.flag_encrypt === 1 ? '******' : (row.conf_value ?? '--'),
+                      disabled: !row.conf_value || !overflowStates[row.conf_name],
+                      extCls: 'param-table-value-tooltip',
+                    }"
+                    class="value-cell-text"
+                    @mouseenter="handleCellMouseEnter($event, row)">
+                    {{ row.flag_encrypt === 1 ? '******' : (row.conf_value ?? '--') }}
+                  </span>
+                  <BkTag
+                    v-if="row.level_name === levelName || row.op_type === 'add'"
+                    size="small"
+                    theme="warning">
+                    {{ t('自定义') }}
+                  </BkTag>
+                  <AuthTemplate
+                    v-if="row.flag_readonly !== 1"
+                    :action-id="actionId"
+                    :permission="permissions[actionId]"
+                    :resource="resourceId">
+                    <template #default="{ permission }">
+                      <DbIcon
+                        v-if="permission"
+                        v-bk-tooltips="{ content: t('编辑参数') }"
+                        class="value-cell-edit"
+                        type="bk-dbm-icon db-icon-edit"
+                        @click="handleStartEdit(row)" />
+                    </template>
+                  </AuthTemplate>
+                </template>
+              </span>
+            </template>
+          </template>
+        </TableColumn>
+        <TableColumn
+          col-key="value_allowed"
+          ellipsis
+          :title="t('允许值')"
+          :width="300">
+          <template #default="{ row, rowIndex }">
+            <!-- 新增行 -->
+            <template v-if="rowIndex === 0 && isAddingRow">
+              <template v-if="selectedParamInfo?.value_type_sub && selectedParamInfo?.value_type_sub !== 'STRING'">
+                <BkTag>{{ selectedParamInfo.value_type_sub }}</BkTag>
+                <span class="ml-4">{{ selectedParamInfo.value_allowed || '--' }}</span>
               </template>
-            </span>
-          </template>
-        </template>
-      </TableColumn>
-      <TableColumn
-        col-key="value_allowed"
-        ellipsis
-        :title="t('允许值')"
-        :width="300">
-        <template #default="{ row, rowIndex }">
-          <!-- 新增行 -->
-          <template v-if="rowIndex === 0 && isAddingRow">
-            <template v-if="selectedParamInfo?.value_type_sub && selectedParamInfo?.value_type_sub !== 'STRING'">
-              <BkTag>{{ selectedParamInfo.value_type_sub }}</BkTag>
-              <span class="ml-4">{{ selectedParamInfo.value_allowed || '--' }}</span>
+              <span
+                v-else
+                class="no-constraint-text">
+                {{ t('无约束') }}
+              </span>
             </template>
-            <span
-              v-else
-              class="no-constraint-text">
-              {{ t('无约束') }}
-            </span>
-          </template>
-          <!-- 普通行 -->
-          <template v-else>
-            <template v-if="row.value_type_sub && row.value_type_sub !== 'STRING'">
-              <BkTag>{{ row.value_type_sub }}</BkTag>
-              <span class="ml-4">{{ row.value_allowed || '--' }}</span>
+            <!-- 普通行 -->
+            <template v-else>
+              <template v-if="row.value_type_sub && row.value_type_sub !== 'STRING'">
+                <BkTag>{{ row.value_type_sub }}</BkTag>
+                <span class="ml-4">{{ row.value_allowed || '--' }}</span>
+              </template>
+              <span
+                v-else
+                class="no-constraint-text">
+                {{ t('无约束') }}
+              </span>
             </template>
-            <span
-              v-else
-              class="no-constraint-text">
-              {{ t('无约束') }}
-            </span>
           </template>
-        </template>
-      </TableColumn>
-      <TableColumn
-        col-key="need_restart"
-        :filter="needRestartFilter"
-        :title="t('重启生效')"
-        :width="100">
-        <template #default="{ row, rowIndex }">
-          <template v-if="rowIndex === 0 && isAddingRow">
-            {{ selectedParamInfo?.need_restart === 1 ? t('是') : t('否') }}
+        </TableColumn>
+        <TableColumn
+          col-key="need_restart"
+          :filter="needRestartFilter"
+          :title="t('重启生效')"
+          :width="100">
+          <template #default="{ row, rowIndex }">
+            <template v-if="rowIndex === 0 && isAddingRow">
+              {{ selectedParamInfo?.need_restart === 1 ? t('是') : t('否') }}
+            </template>
+            <template v-else>
+              {{ row.need_restart === 1 ? t('是') : t('否') }}
+            </template>
           </template>
-          <template v-else>
-            {{ row.need_restart === 1 ? t('是') : t('否') }}
+        </TableColumn>
+        <TableColumn
+          col-key="operation"
+          fixed="right"
+          :title="t('操作')"
+          :width="150">
+          <template #default="{ row, rowIndex }: { row: ConfItem, rowIndex: number }">
+            <!-- 编辑/新增状态下不显示操作按钮（已移至当前值列） -->
+            <template v-if="(isAddingRow && rowIndex === 0) || editingRowKey === String(row[rowKeyField])">
+              --
+            </template>
+            <template v-else-if="row.flag_readonly !== 1 || row.level_name === levelName">
+              <!-- 编辑按钮：非只读参数可编辑 -->
+              <AuthButton
+                v-if="row.flag_readonly !== 1"
+                :action-id="actionId"
+                class="mr-16"
+                :permission="permissions[actionId]"
+                :resource="resourceId"
+                text
+                theme="primary"
+                @click="handleStartEdit(row)">
+                {{ t('编辑') }}
+              </AuthButton>
+              <!-- 恢复按钮：自定义参数（level_name === levelName 即「自定义」）可恢复 -->
+              <AuthButton
+                v-if="row.level_name === levelName && row.flag_readonly !== 1"
+                :action-id="actionId"
+                :permission="permissions[actionId]"
+                :resource="resourceId"
+                text
+                theme="primary"
+                @click="handleShowRestoreInfoBox(row)">
+                {{ isCancelUseParam(row) ? t('取消使用') : t('恢复默认') }}
+              </AuthButton>
+            </template>
+            <template v-else> -- </template>
           </template>
-        </template>
-      </TableColumn>
-      <TableColumn
-        col-key="operation"
-        fixed="right"
-        :title="t('操作')"
-        :width="150">
-        <template #default="{ row, rowIndex }: { row: ConfItem, rowIndex: number }">
-          <!-- 编辑/新增状态下不显示操作按钮（已移至当前值列） -->
-          <template v-if="(isAddingRow && rowIndex === 0) || editingRowKey === String(row[rowKeyField])"> -- </template>
-          <template v-else-if="row.flag_readonly !== 1 || row.level_name === levelName">
-            <!-- 编辑按钮：非只读参数可编辑 -->
-            <BkButton
-              v-if="row.flag_readonly !== 1"
-              class="mr-16"
-              text
-              theme="primary"
-              @click="handleStartEdit(row)">
-              {{ t('编辑') }}
-            </BkButton>
-            <!-- 恢复按钮：自定义参数（level_name === levelName 即「自定义」）可恢复 -->
-            <BkButton
-              v-if="row.level_name === levelName && row.flag_readonly !== 1"
-              text
-              theme="primary"
-              @click="handleShowRestoreInfoBox(row)">
-              {{ isCancelUseParam(row) ? t('取消使用') : t('恢复默认') }}
-            </BkButton>
-          </template>
-          <template v-else> -- </template>
-        </template>
-      </TableColumn>
-    </DbTable>
+        </TableColumn>
+      </DbTable>
 
-    <!-- 批量编辑侧滑 -->
-    <BatchEditSideslider
-      v-model:is-show="batchEditConfig.isShow"
-      :data="selectedRows"
-      :fetch-params="fetchParams"
-      @saved="emit('change')" />
-  </BkLoading>
+      <!-- 批量编辑侧滑 -->
+      <BatchEditSideslider
+        v-model:is-show="batchEditConfig.isShow"
+        :data="selectedRows"
+        :fetch-params="fetchParams"
+        @saved="emit('change')" />
+    </BkLoading>
+  </ApplyPermissionCatch>
 </template>
 
 <script setup lang="tsx">
@@ -292,9 +319,11 @@
 
   import { useGlobalBizs } from '@stores';
 
-  import { ConfLevels } from '@common/const';
+  import { ClusterTypes, ConfLevels } from '@common/const';
+  import { clusterTypeInfos } from '@common/const/clusterTypesInfos';
   import { dbTippy } from '@common/tippy';
 
+  import ApplyPermissionCatch from '@components/apply-permission/Catch.vue';
   import MultipleSelect from '@components/db-table/components/MultipleSelect.vue';
   import DbTable from '@components/db-table/IndexNew.vue';
 
@@ -308,6 +337,8 @@
   export type ConfItem = LevelConfigResult['conf_items'][number];
 
   export interface Props {
+    /** 集群 ID（用于集群级权限 Resource ID） */
+    clusterId?: number | string;
     clusterType: string;
     /** 配置名称（用于保存时） */
     configName?: string;
@@ -328,6 +359,7 @@
   }
 
   const props = withDefaults(defineProps<Props>(), {
+    clusterId: undefined,
     configName: '',
     fixedPagination: false,
     levelInfo: undefined,
@@ -349,6 +381,27 @@
   const originConfItems = ref<ConfItem[]>([]);
   // 可添加的参数
   const availableParams = ref<ConfItem[]>([]);
+  // 权限
+  const permissions = ref<ServiceReturnType<typeof getLevelConfig>['permission']>({
+    dbconfig_edit: false,
+  });
+
+  /** 根据层级和集群类型计算权限 actionId */
+  const actionId = computed(() => {
+    if (props.levelName === 'cluster') {
+      const dbType = clusterTypeInfos[props.clusterType as ClusterTypes]?.dbType;
+      return `${dbType}_dbconfig_edit`;
+    }
+    return 'dbconfig_edit';
+  });
+
+  /** 根据层级计算权限 resourceId */
+  const resourceId = computed(() => {
+    if (props.levelName === 'cluster') {
+      return props.clusterId;
+    }
+    return clusterTypeInfos[props.clusterType as ClusterTypes]?.dbType;
+  });
 
   // 行唯一标识字段
   const rowKeyField = computed(() => props.rowKey as keyof ConfItem);
@@ -564,6 +617,7 @@
   const { loading, run: fetchLevelConfig } = useRequest(getLevelConfig, {
     manual: true,
     onSuccess(res) {
+      permissions.value = res.permission;
       allConfItems.value = res.conf_items || [];
       originConfItems.value = _.cloneDeep(res.conf_items || []);
       nextTick(() => {

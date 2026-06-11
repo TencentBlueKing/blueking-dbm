@@ -34,6 +34,7 @@
             theme="info"
             :title="t('集群配置参数说明')" />
           <ParamTable
+            :cluster-id="cluster.id"
             :cluster-type="cluster.cluster_type"
             :conf-type="tab.conf_type"
             :config-name="tab.name"

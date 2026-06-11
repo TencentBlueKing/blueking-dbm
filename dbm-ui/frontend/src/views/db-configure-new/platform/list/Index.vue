@@ -16,28 +16,30 @@
     <ClusterTab
       v-model="activeClusterType"
       :excludes="[ClusterTypes.ORACLE_SINGLE_NONE, ClusterTypes.ORACLE_PRIMARY_STANDBY]" />
-    <div class="platform-config-content">
-      <BkTab
-        v-if="activeClusterType"
-        v-model:active="activeConfType"
-        class="platform-config-tab"
-        type="card-tab">
-        <BkTabPanel
-          v-for="tab of confTypeTabs"
-          :key="tab.conf_type"
-          :label="tab.name"
-          :name="tab.conf_type"
-          render-directive="if">
-          <OperationRecord
-            v-if="tab.conf_type === 'operationRecord'"
-            :cluster-type="activeClusterType" />
-          <ConfigDatabase
-            v-else
-            :cluster-type="activeClusterType"
-            :conf-type="tab.conf_type" />
-        </BkTabPanel>
-      </BkTab>
-    </div>
+    <ApplyPermissionCatch :key="activeClusterType">
+      <div class="platform-config-content">
+        <BkTab
+          v-if="activeClusterType"
+          v-model:active="activeConfType"
+          class="platform-config-tab"
+          type="card-tab">
+          <BkTabPanel
+            v-for="tab of confTypeTabs"
+            :key="tab.conf_type"
+            :label="tab.name"
+            :name="tab.conf_type"
+            render-directive="if">
+            <OperationRecord
+              v-if="tab.conf_type === 'operationRecord'"
+              :cluster-type="activeClusterType" />
+            <ConfigDatabase
+              v-else
+              :cluster-type="activeClusterType"
+              :conf-type="tab.conf_type" />
+          </BkTabPanel>
+        </BkTab>
+      </div>
+    </ApplyPermissionCatch>
   </div>
 </template>
 
@@ -49,6 +51,7 @@
 
   import { ClusterTypes } from '@common/const';
 
+  import ApplyPermissionCatch from '@components/apply-permission/Catch.vue';
   import ClusterTab from '@components/cluster-tab/Index.vue';
 
   import ConfigDatabase from './components/ConfigDatabase.vue';

@@ -12,29 +12,31 @@
 -->
 
 <template>
-  <div class="config-detail-page">
-    <div class="config-detail-page-content db-scroll-y">
-      <!-- 参数信息 -->
-      <DbCard>
-        <BkAlert
-          class="mb-16"
-          closable
-          theme="info"
-          :title="t('业务配置参数说明')" />
-        <ParamTable
-          :cluster-type="clusterType"
-          :conf-type="confType"
-          :config-name="configName"
-          :level-info="levelParams.level_info"
-          :level-name="levelParams.level_name"
-          :level-value="levelParams.level_value"
-          selectable
-          :version="version"
-          @change="handleParamChange">
-        </ParamTable>
-      </DbCard>
+  <ApplyPermissionCatch>
+    <div class="config-detail-page">
+      <div class="config-detail-page-content db-scroll-y">
+        <!-- 参数信息 -->
+        <DbCard>
+          <BkAlert
+            class="mb-16"
+            closable
+            theme="info"
+            :title="t('业务配置参数说明')" />
+          <ParamTable
+            :cluster-type="clusterType"
+            :conf-type="confType"
+            :config-name="configName"
+            :level-info="levelParams.level_info"
+            :level-name="levelParams.level_name"
+            :level-value="levelParams.level_value"
+            selectable
+            :version="version"
+            @change="handleParamChange">
+          </ParamTable>
+        </DbCard>
+      </div>
     </div>
-  </div>
+  </ApplyPermissionCatch>
   <Teleport to="#dbContentTitleAppend">
     <div class="config-detail-header">
       <span class="config-detail-nav-title">
@@ -60,6 +62,8 @@
   import { getLevelConfig, getListConfTypes } from '@services/source/configs';
 
   import { type ClusterTypes, ConfLevels } from '@common/const';
+
+  import ApplyPermissionCatch from '@components/apply-permission/Catch.vue';
 
   import ParamTable from '@views/db-configure-new/components/ParamTable.vue';
   import { useLevelParams } from '@views/db-configure-new/hooks/useLevelParams';

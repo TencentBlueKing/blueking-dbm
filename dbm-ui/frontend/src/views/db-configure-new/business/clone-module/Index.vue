@@ -12,16 +12,20 @@
 -->
 
 <template>
-  <Component
-    :is="viewComponents[clusterType]"
-    :key="clusterType"
-    @router-back="routerBack" />
+  <ApplyPermissionCatch>
+    <Component
+      :is="viewComponents[clusterType]"
+      :key="clusterType"
+      @router-back="routerBack" />
+  </ApplyPermissionCatch>
 </template>
 
 <script setup lang="ts">
   import { useRoute } from 'vue-router';
 
   import { ClusterTypes } from '@common/const';
+
+  import ApplyPermissionCatch from '@components/apply-permission/Catch.vue';
 
   import MySql from './com-factory/MySql.vue';
   import SqlServer from './com-factory/SqlServer.vue';

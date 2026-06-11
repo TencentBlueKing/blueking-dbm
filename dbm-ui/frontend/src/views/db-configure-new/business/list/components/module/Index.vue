@@ -27,12 +27,14 @@
             <BkTag theme="info">
               {{ t('模块配置') }}
             </BkTag>
-            <BkButton
+            <AuthButton
+              action-id="dbconfig_edit"
+              :resource="dbType"
               size="small"
               theme="primary"
               @click="handleCloneModule">
               {{ t('克隆') }}
-            </BkButton>
+            </AuthButton>
             <BkPopConfirm
               :cancel-text="t('取消')"
               :confirm-config="{ theme: 'danger' } as any"
@@ -55,15 +57,17 @@
                 </div>
               </template>
               <span @click.stop>
-                <BkButton
+                <AuthButton
                   v-bk-tooltips="{
                     content: t('关联集群不为空，不能删除'),
                     disabled: moduleInfo.relatedClusterCount <= 0,
                   }"
+                  action-id="dbconfig_edit"
                   :disabled="moduleInfo.relatedClusterCount > 0"
+                  :resource="dbType"
                   size="small">
                   {{ t('删除') }}
-                </BkButton>
+                </AuthButton>
               </span>
             </BkPopConfirm>
           </div>
@@ -143,7 +147,7 @@
   const treeNode = inject<ComputedRef<TreeData>>('treeNode');
 
   const clusterType = computed(() => (route.params.clusterType as ClusterTypes) || ClusterTypes.TENDBSINGLE);
-  const dbType = computed(() => clusterTypeInfos[clusterType.value].dbType);
+  const dbType = computed(() => clusterTypeInfos[clusterType.value]?.dbType || DBTypes.MYSQL);
 
   const moduleInfo: ModuleInfo = reactive({
     bufferPercent: '', // 内存分片比率 (SqlServer)

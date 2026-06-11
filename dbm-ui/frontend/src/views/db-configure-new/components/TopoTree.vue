@@ -46,15 +46,17 @@
               class="config-tree-name text-overflow">
               {{ item.name }}
             </span>
-            <BkButton
+            <AuthButton
               v-if="item.levelType === ConfLevels.APP && isShowAddBtn"
               v-bk-tooltips="t('新建DB模块')"
+              action-id="dbconfig_edit"
               class="config-tree-add-btn"
+              :resource="dbType"
               size="small"
               theme="primary"
               @click.stop="createModule">
               <DbIcon type="add" />
-            </BkButton>
+            </AuthButton>
           </div>
         </template>
         <template #empty>
@@ -75,6 +77,7 @@
 
   import { clusterTypeInfos, ClusterTypes, ConfLevels, DBTypes } from '@common/const';
 
+  import AuthButton from '@components/auth-component/button.vue';
   import EmptyStatus from '@components/empty-status/EmptyStatus.vue';
 
   import type { TreeData, TreeState } from '@views/db-configure-new/common/types';
@@ -94,10 +97,10 @@
     useTreeData(treeState);
 
   const clusterType = computed(() => (route.params.clusterType as ClusterTypes) || ClusterTypes.TENDBSINGLE);
+  const dbType = computed(() => clusterTypeInfos[clusterType.value as ClusterTypes]?.dbType || DBTypes.MYSQL);
 
   const isShowAddBtn = computed(() => {
-    const { dbType } = clusterTypeInfos[clusterType.value as ClusterTypes];
-    return [DBTypes.MYSQL, DBTypes.SQLSERVER, DBTypes.TENDBCLUSTER].includes(dbType);
+    return dbType.value ? [DBTypes.MYSQL, DBTypes.SQLSERVER, DBTypes.TENDBCLUSTER].includes(dbType.value) : false;
   });
 
   const getIconText = (item: TreeData) => {

@@ -121,6 +121,7 @@ export function getLevelConfig(
     conf_items: ParameterConfigItem[];
     description: string;
     name: string;
+    permission: Record<string, boolean>;
     updated_at?: string;
     updated_by?: string;
     version: string;
@@ -165,7 +166,7 @@ export function getBusinessConfigList(
     .get<
       {
         name: string;
-        permission: Record<'dbconfig_edit', boolean>;
+        permission: Record<string, boolean>;
         updated_at: string;
         updated_by: string;
         version: string;
@@ -489,6 +490,7 @@ export interface BackupConfigRow {
   bk_cloud_id: string;
   bk_cloud_name: string;
   conf_items: BackupConfigItem[];
+  permission: Record<string, boolean>;
   updated_at: string;
   updated_by: string;
 }
