@@ -297,7 +297,9 @@
 
   defineExpose<Expose>({
     getValue() {
-      return Promise.resolve({ script_files: Object.values(uploadFileDataMap.value).map((item) => item.realFilePath) });
+      return Promise.resolve({
+        script_files: uploadFileNameList.value.map((fileName) => uploadFileDataMap.value[fileName].realFilePath),
+      });
     },
   });
 </script>
