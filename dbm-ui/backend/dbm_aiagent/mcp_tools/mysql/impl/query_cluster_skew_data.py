@@ -234,11 +234,16 @@ def query_cluster_skew_data(cluster_obj: Cluster, from_date: datetime, to_date: 
     Gini 判定在写入侧完成；查询侧按绝对值阈值过滤低影响倾斜，并输出 value/mean/pct/abs_dev。
     """
     tz = cluster_obj.time_zone
+    from_dt = _ensure_aware(from_date)
+    to_dt = _ensure_aware(to_date)
+
     rows = list(
         ClusterSkewDetection.objects.using("doris")
         .filter(
             cluster_domain=cluster_obj.immute_domain,
-            dt__range=(_to_date(from_date, tz), _to_date(to_date, tz)),
+            dt__range=(_to_date(from_dt, tz), _to_date(to_dt, tz)),
+            detect_time__gte=from_dt,
+            detect_time__lte=to_dt,
         )
         .values(
             "detect_time",
@@ -253,7 +258,11 @@ def query_cluster_skew_data(cluster_obj: Cluster, from_date: datetime, to_date: 
         .order_by("metric_name", "instance_role", "detect_time", "node")
     )
 
-    period = {"from": _to_date(from_date, tz).isoformat(), "to": _to_date(to_date, tz).isoformat(), "time_zone": tz}
+    period = {
+        "from": _format_detect_time(from_dt, tz, "%Y-%m-%d %H:%M"),
+        "to": _format_detect_time(to_dt, tz, "%Y-%m-%d %H:%M"),
+        "time_zone": tz,
+    }
     empty_result = {
         "has_skew": False,
         "cluster": cluster_obj.immute_domain,

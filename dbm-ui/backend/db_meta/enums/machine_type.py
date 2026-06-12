@@ -19,6 +19,8 @@ class MachineType(StrStructuredEnum):
     PROXY = EnumField("proxy", _("proxy"))
     BACKEND = EnumField("backend", _("backend"))
     SINGLE = EnumField("single", _("single"))
+    MYSQL_DTS_MASTER = EnumField("mysql_dts_master", _("mysql_dts_master"))
+    MYSQL_DTS_WORKER = EnumField("mysql_dts_worker", "mysql_dts_worker")
 
     PREDIXY = EnumField("predixy", _("predixy"))
     TWEMPROXY = EnumField("twemproxy", _("twemproxy"))

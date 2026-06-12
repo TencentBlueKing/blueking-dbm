@@ -29,6 +29,10 @@ class InstanceRole(StrStructuredEnum):
     REMOTE_REPEATER = EnumField("remote_repeater", _("Remote Repeater"))
     REMOTE_SLAVE = EnumField("remote_slave", _("Remote Slave"))
 
+    # mysql dts
+    MYSQL_DTS_MASTER_MASTER = EnumField("mysql_dts_master_master", "mysql dts master master")
+    MYSQL_DTS_WORKER_MASTER = EnumField("mysql_dts_worker_master", "mysql dts worker master")
+
     # Redis
     REDIS_PROXY = EnumField("proxy", _("Proxy"))
     REDIS_MASTER = EnumField("redis_master", _("Master"))

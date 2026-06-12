@@ -308,6 +308,7 @@ DATABASES = {
 DATABASE_ROUTERS = [
     "backend.db_report.database_router.ReportRouter",
     "backend.db_report.database_router.StatsRouter",
+    "backend.db_report.database_router.SkipMigrateRouter",
 ]
 
 # Cache - 缓存后端采用redis

@@ -4,6 +4,7 @@ import (
 	"dbm-services/mysql/db-remote-service/pkg/service/handler_rpc"
 	mysqlRpc "dbm-services/mysql/db-remote-service/pkg/v2/mysql/rpc"
 	mysqlWs "dbm-services/mysql/db-remote-service/pkg/v2/mysql/websocket"
+	mysqlDtsRpc "dbm-services/mysql/db-remote-service/pkg/v2/mysql_dts/rpc"
 	proxyRpc "dbm-services/mysql/db-remote-service/pkg/v2/proxy/rpc"
 	sqlserverRpc "dbm-services/mysql/db-remote-service/pkg/v2/sqlserver/rpc"
 	sqlserverWs "dbm-services/mysql/db-remote-service/pkg/v2/sqlserver/websocket"
@@ -50,6 +51,9 @@ func v2Group(engine *gin.Engine) {
 	mysql.POST("/rpc", mysqlRpc.AdminHandler)
 	mysql.POST("/complex-rpc", mysqlRpc.ComplexHandler)
 	mysql.GET("/ws", mysqlWs.AdminHandler)
+
+	mysqlDts := v2.Group("/mysql-dts")
+	mysqlDts.POST("/rpc", mysqlDtsRpc.Handler)
 
 	webconsole := v2.Group("/webconsole")
 	webconsole.POST("/rpc", mysqlRpc.WebConsoleHandler)
