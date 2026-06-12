@@ -117,8 +117,8 @@
 
   const resourceList = [
     {
-      id: 'entry',
-      name: t('访问入口（域名 / CLB / 北极星）'),
+      id: 'cluster',
+      name: t('集群（域名 / CLB / 北极星 / 标签）'),
     },
     {
       id: 'instance',
