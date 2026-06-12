@@ -112,7 +112,7 @@
   const QUICK_SEARCH_NO_LONGER_PROMPT = 'QUICK_SEARCH_NO_LONGER_PROMPT';
 
   const resultTypeTextMap: Record<ResultKeys, string> = {
-    entry: t('访问入口'),
+    cluster: t('集群'),
     instance: t('实例'),
     machine: t('主机'),
     task: t('任务'),
@@ -315,7 +315,7 @@
     .filter-wrapper {
       padding: 10px 12px;
       border-left: 1px solid #dcdee5;
-      flex: 0 0 230px;
+      flex: 0 0 240px;
     }
   }
 </style>

@@ -31,83 +31,94 @@
         <BkTable
           class="search-result-table mt-14 mb-8"
           :data="item.dataList"
-          :pagination="pagination[index]">
+          :pagination="pagination[index]"
+          :row-config="{
+            useKey: true,
+            keyField: 'id',
+          }"
+          :show-overflow="false">
           <BkTableColumn
-            field="ip_port"
-            :label="t('实例')"
-            :min-width="220">
-            <template #default="{data: rowData}: {data: QuickSearchInstanceModel}">
-              <TextOverflowLayout v-if="rowData.ip_port">
+            field="entry"
+            fixed="left"
+            :label="t('集群')"
+            :min-width="250">
+            <template #default="{data: rowData}: {data: QuickSearchClusterModel}">
+              <TextOverflowLayout>
                 <BkButton
                   text
                   theme="primary"
-                  @click="() => handleToInstance(rowData)">
+                  @click="() => handleToCluster(rowData)">
                   <TextHighlight
                     high-light-color="#FF9C01"
-                    :keyword="keyword"
-                    :text="rowData.ip_port" />
+                    :keyword="formattedKeyword"
+                    :text="rowData.master_domain" />
                 </BkButton>
                 <template #append>
                   <BkButton
-                    class="ml-4"
+                    class="copy-btn ml-4"
                     text
                     theme="primary"
-                    @click="() => handleCopy(rowData.ip_port)">
+                    @click="() => handleCopy(rowData.master_domain)">
                     <DbIcon type="copy" />
                   </BkButton>
                 </template>
               </TextOverflowLayout>
-              <span v-else>--</span>
             </template>
           </BkTableColumn>
+          <TagColumn :keyword="keyword" />
+          <ClusterEnrtyColumn :keyword="keyword" />
           <BkTableColumn
-            field="status"
-            :label="t('状态')">
-            <template #default="{data: rowData}: {data: QuickSearchInstanceModel}">
-              <ClusterInstanceStatus :data="rowData.status" />
-            </template>
-          </BkTableColumn>
-          <BkTableColumn
-            field="cluster_domain"
-            :label="t('所属集群')"
-            :min-width="250">
-            <template #default="{data: rowData}: {data: QuickSearchInstanceModel}">
-              {{ rowData.cluster_domain || '--' }}
+            field="cluster_status"
+            :label="t('状态')"
+            :width="100">
+            <template #default="{data: rowData}: {data: QuickSearchClusterModel}">
+              <RenderClusterStatus :data="rowData.status" />
             </template>
           </BkTableColumn>
           <BkTableColumn
             field="cluster_type"
-            :label="t('架构类型')">
-            <template #default="{data: rowData}: {data: QuickSearchInstanceModel}">
+            :label="t('架构类型')"
+            :width="150">
+            <template #default="{data: rowData}: {data: QuickSearchClusterModel}">
               {{ rowData.cluster_type || '--' }}
             </template>
           </BkTableColumn>
           <BkTableColumn
-            field="role"
-            :label="t('部署角色')">
-            <template #default="{data: rowData}: {data: QuickSearchInstanceModel}">
-              {{ rowData.role || '--' }}
+            field="major_version"
+            :label="t('版本')"
+            :width="150">
+            <template #default="{data: rowData}: {data: QuickSearchClusterModel}">
+              {{ rowData.major_version || '--' }}
             </template>
           </BkTableColumn>
           <BkTableColumn
-            field="bk_sub_zone"
-            :label="t('园区')">
-            <template #default="{data: rowData}: {data: QuickSearchInstanceModel}">
-              {{ rowData.bk_sub_zone || '--' }}
+            field="region"
+            :label="t('地域')"
+            :width="150">
+            <template #default="{data: rowData}: {data: QuickSearchClusterModel}">
+              {{ rowData.region || '--' }}
             </template>
           </BkTableColumn>
           <BkTableColumn
             field="bk_biz_id"
-            :label="t('所属业务')">
-            <template #default="{data: rowData}: {data: QuickSearchInstanceModel}">
+            :label="t('所属业务')"
+            :width="150">
+            <template #default="{data: rowData}: {data: QuickSearchClusterModel}">
               {{ rowData.bk_biz_id ? bizIdNameMap[rowData.bk_biz_id] : '--' }}
+            </template>
+          </BkTableColumn>
+          <BkTableColumn
+            field="disaster_tolerance_level"
+            :label="t('容灾要求')">
+            <template #default="{data: rowData}: {data: QuickSearchClusterModel}">
+              {{ rowData.disasterToleranceLevelName || '--' }}
             </template>
           </BkTableColumn>
           <BkTableColumn
             field="creator"
             :label="t('主 DBA')"
             sortable>
-            <template #default="{data: rowData}: {data: QuickSearchInstanceModel}">
+            <template #default="{data: rowData}: {data: QuickSearchClusterModel}">
               {{ rowData.dba || '--' }}
             </template>
           </BkTableColumn>
@@ -127,9 +138,11 @@
 <script setup lang="tsx">
   import { useI18n } from 'vue-i18n';
 
-  import QuickSearchInstanceModel from '@services/model/quiker-search/quick-search-instance';
+  import QuickSearchClusterModel from '@services/model/quiker-search/quick-search-cluster';
 
-  import ClusterInstanceStatus from '@components/cluster-instance-status/Index.vue';
+  import { batchSplitRegex } from '@common/regex';
+
+  import RenderClusterStatus from '@components/cluster-status/Index.vue';
   import EmptyStatus from '@components/empty-status/EmptyStatus.vue';
   import { useRedirect } from '@components/system-search/hooks/useRedirect';
   import TextHighlight from '@components/text-highlight/Index.vue';
@@ -137,11 +150,14 @@
 
   import { execCopy, exportExcelFile } from '@utils';
 
-  import { groupByDbType } from '../common/utils';
+  import { groupByDbType } from '../utils';
+
+  import ClusterEnrtyColumn from './components/ClusterEnrtyColumn.vue';
+  import TagColumn from './components/TagColumn.vue';
 
   interface Props {
     bizIdNameMap: Record<number, string>;
-    data: QuickSearchInstanceModel[];
+    data: QuickSearchClusterModel[];
     isAnomalies: boolean;
     isSearching: boolean;
     keyword: string;
@@ -163,17 +179,32 @@
     {
       count: number;
       limit: number;
+      remote: false;
     }[]
   >([]);
 
-  const renderData = computed(() => groupByDbType<QuickSearchInstanceModel>(props.data));
+  const formattedKeyword = computed(() =>
+    props.keyword
+      .split(batchSplitRegex)
+      .map((item) => {
+        if (item.includes(':')) {
+          return item.split(':')[0];
+        }
+        return item;
+      })
+      .join(' '),
+  );
+
+  const renderData = computed(() => groupByDbType<QuickSearchClusterModel>(props.data));
 
   watch(
     renderData,
     (newRenderData) => {
       pagination.value = newRenderData.dataList.map((dataItem) => ({
         count: dataItem.dataList.length,
+        current: 1,
         limit: 10,
+        remote: false,
       }));
     },
     {
@@ -181,36 +212,33 @@
     },
   );
 
-  const handleExport = (clusterType: string, dataList: QuickSearchInstanceModel[]) => {
-    const formatData = dataList.map((dataItem) => ({
-      ['IP']: dataItem.ip,
-      [t('IP端口')]: String(dataItem.port),
-      [t('业务ID')]: String(dataItem.bk_biz_id),
-      [t('业务名称')]: props.bizIdNameMap[dataItem.bk_biz_id],
-      [t('主 DBA')]: dataItem.dba,
-      [t('主域名')]: dataItem.cluster_domain,
-      [t('主版本')]: dataItem.major_version,
-      [t('城市')]: dataItem.bk_idc_area,
-      [t('实例角色')]: dataItem.role,
-      [t('机房')]: dataItem.bk_idc_name,
-      [t('集群ID')]: dataItem.cluster_id,
-      [t('集群类型')]: dataItem.cluster_type,
-    }));
+  const handleExport = (clusterType: string, dataList: QuickSearchClusterModel[]) => {
+    const formatData = dataList.map((dataItem) =>
+      Object.fromEntries(
+        [
+          { label: t('集群'), value: dataItem.master_domain },
+          { label: t('标签'), value: dataItem.tags.map((tagItem) => `${tagItem.key}:${tagItem.value}`).join('\n') },
+          { label: t('访问入口'), value: dataItem.dispalyEntryList.map((entryItem) => entryItem.entry).join('\n') },
+          { label: t('架构类型'), value: dataItem.cluster_type },
+          { label: t('版本'), value: dataItem.major_version },
+          { label: t('地域'), value: dataItem.region },
+          { label: t('所属业务'), value: String(dataItem.bk_biz_id) },
+          { label: t('业务名称'), value: props.bizIdNameMap[dataItem.bk_biz_id] },
+          { label: t('容灾要求'), value: dataItem.disasterToleranceLevelName },
+          { label: t('主 DBA'), value: dataItem.dba },
+        ].map(({ label, value }) => [label, value]),
+      ),
+    );
     const colsWidths = [
-      { width: 10 },
-      { width: 10 },
-      { width: 16 },
       { width: 24 },
-      { width: 20 },
-      { width: 10 },
-      { width: 10 },
-      { width: 10 },
-      { width: 16 },
       { width: 16 },
       { width: 24 },
       { width: 24 },
+      { width: 24 },
       { width: 16 },
-      { width: 10 },
+      { width: 16 },
+      { width: 16 },
+      { width: 16 },
       { width: 16 },
     ];
 
@@ -221,15 +249,16 @@
     execCopy(content, t('复制成功，共n条', { n: 1 }));
   };
 
-  const handleToInstance = (data: QuickSearchInstanceModel) => {
+  const handleToCluster = (data: QuickSearchClusterModel) => {
     handleRedirect(
       data.cluster_type,
       {
-        instance: data.instance,
+        domain: data.master_domain,
       },
       data.bk_biz_id,
     );
   };
+
   const handleRefresh = () => {
     emits('refresh');
   };
@@ -240,7 +269,7 @@
 </script>
 
 <style lang="less" scoped>
-  @import '../style/table-card.less';
+  @import '../table-card.less';
 
   .search-result-cluster {
     .export-button-icon {
@@ -250,6 +279,18 @@
     .export-button-text {
       margin-left: 4px;
       font-size: 12px;
+    }
+
+    tr {
+      .copy-btn {
+        display: none;
+      }
+
+      &:hover {
+        .copy-btn {
+          display: inline-block;
+        }
+      }
     }
   }
 </style>

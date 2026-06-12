@@ -108,7 +108,7 @@
 
   const handlePaste = () => {
     setTimeout(() => {
-      serach.value = serach.value.replace(batchSplitRegex, '|');
+      serach.value = serach.value.replace(/\s*:\s*/g, ':').replace(batchSplitRegex, '|');
     });
   };
 
