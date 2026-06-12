@@ -12,7 +12,7 @@
  */
 
 import FaultOrRecycleMachineModel from '@services/model/db-resource/FaultOrRecycleMachine';
-import QuickSearchEntryModel from '@services/model/quiker-search/quick-search-entry';
+import QuickSearchClusterModel from '@services/model/quiker-search/quick-search-cluster';
 import QuickSearchInstanceModel from '@services/model/quiker-search/quick-search-instance';
 import TaskFlowModel from '@services/model/taskflow/taskflow';
 import TicketModel from '@services/model/ticket/ticket';
@@ -35,7 +35,7 @@ export function quickSearch(params: {
 }) {
   return http
     .post<{
-      entry: QuickSearchEntryModel[];
+      cluster: QuickSearchClusterModel[];
       instance: QuickSearchInstanceModel[];
       keyword: string;
       machine: FaultOrRecycleMachineModel[];
@@ -45,7 +45,7 @@ export function quickSearch(params: {
     }>('/apis/quick_search/search/', params)
     .then((res) => ({
       ...res,
-      entry: (res.entry || []).map((item) => new QuickSearchEntryModel(item)),
+      cluster: (res.cluster || []).map((item) => new QuickSearchClusterModel(item)),
       instance: (res.instance || []).map((item) => new QuickSearchInstanceModel(item)),
       machine: (res.machine || []).map((item) => new FaultOrRecycleMachineModel(item)),
       task: (res.task || []).map((item) => new TaskFlowModel(item)),

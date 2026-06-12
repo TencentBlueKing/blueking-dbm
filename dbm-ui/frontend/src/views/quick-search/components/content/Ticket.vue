@@ -2,9 +2,9 @@
   <div>
     <DbCard
       v-if="data.length"
-      class="search-result-task search-result-card"
+      class="search-result-ticket search-result-card"
       mode="collapse"
-      :title="t('任务')">
+      :title="t('单据')">
       <template #desc>
         <I18nT
           class="ml-8"
@@ -20,9 +20,7 @@
         class="mt-14 mb-8"
         :columns="columns"
         :data="data"
-        :pagination="pagination"
-        :settings="tableSetting"
-        @setting-change="updateTableSettings" />
+        :pagination="pagination" />
     </DbCard>
     <EmptyStatus
       v-else
@@ -37,19 +35,17 @@
 <script setup lang="tsx">
   import { useI18n } from 'vue-i18n';
 
-  import TaskFlowModel from '@services/model/taskflow/taskflow';
+  import TicketModel from '@services/model/ticket/ticket';
 
-  import { useLocation, useTableSettings } from '@hooks';
+  import { useLocation } from '@hooks';
 
-  import { UserPersonalSettings } from '@common/const';
-
-  import DbStatus from '@components/db-status/index.vue';
   import EmptyStatus from '@components/empty-status/EmptyStatus.vue';
   import TextHighlight from '@components/text-highlight/Index.vue';
+  import TicketStatusTag from '@components/ticket-status-tag/Index.vue';
 
   interface Props {
     bizIdNameMap: Record<number, string>;
-    data: TaskFlowModel[];
+    data: TicketModel[];
     isAnomalies: boolean;
     isSearching: boolean;
     keyword: string;
@@ -64,7 +60,6 @@
   const emits = defineEmits<Emits>();
 
   const { t } = useI18n();
-  const router = useRouter();
   const location = useLocation();
 
   const pagination = ref({
@@ -93,21 +88,21 @@
 
   const columns = computed(() => [
     {
-      field: 'root_id',
-      label: 'ID',
-      render: ({ data }: { data: TaskFlowModel }) => (
+      field: 'id',
+      label: t('单号'),
+      render: ({ data }: { data: TicketModel }) => (
         <bk-button
-          theme='primary'
           text
-          onclick={() => handleToTask(data)}>
+          theme='primary'
+          onclick={() => handleToTicket(data)}>
           <TextHighlight
             keyword={props.keyword}
             highLightColor='#FF9C01'
-            text={data.root_id}
+            text={String(data.id)}
           />
         </bk-button>
       ),
-      width: 160,
+      width: 150,
     },
     {
       field: 'ticket_type_display',
@@ -117,20 +112,14 @@
           value: ticketTypeItem,
         })),
       },
-      label: t('任务类型'),
-      render: ({ data }: { data: TaskFlowModel }) => data.ticket_type_display || '--',
-      width: 200,
+      label: t('单据类型'),
+      render: ({ data }: { data: TicketModel }) => data.ticket_type_display || '--',
     },
     {
       field: 'status',
-      label: t('状态'),
-      render: ({ data }: { data: TaskFlowModel }) => (
-        <DbStatus
-          theme={data.statusTheme}
-          type='linear'>
-          {t(data.statusText)}
-        </DbStatus>
-      ),
+      label: t('单据状态'),
+      render: ({ data }: { data: TicketModel }) => <TicketStatusTag data={data} />,
+      sort: true,
     },
     {
       field: 'bk_biz_id',
@@ -141,76 +130,37 @@
         })),
       },
       label: t('业务'),
-      render: ({ data }: { data: TaskFlowModel }) => filterMap.value.bizNameMap[data.bk_biz_id] || '--',
-    },
-    {
-      field: 'bk_idc_name',
-      label: t('关联单据'),
-      render: ({ data }: { data: TaskFlowModel }) => (
-        <bk-button
-          theme='primary'
-          text
-          onClick={() => handleToTicket(data.uid)}>
-          {data.uid}
-        </bk-button>
-      ),
-    },
-    {
-      field: 'created_by',
-      label: t('执行人'),
-      render: ({ data }: { data: TaskFlowModel }) => data.created_by || '--',
-      sort: true,
-    },
-    {
-      field: 'created_at',
-      label: t('执行时间'),
-      render: ({ data }: { data: TaskFlowModel }) => data.createAtDisplay,
-      sort: true,
+      render: ({ data }: { data: TicketModel }) => filterMap.value.bizNameMap[data.bk_biz_id] || '--',
     },
     // {
     //   label: t('耗时'),
     //   field: 'bk_idc_name',
-    //   render: ({ data }: { data: TaskFlowModel }) => data.bk_idc_name || '--',
+    //   render: ({ data }: { data: TicketModel }) => data.bk_idc_name || '--',
     // },
+    {
+      field: 'creator',
+      label: t('申请人'),
+      render: ({ data }: { data: TicketModel }) => data.creator || '--',
+      sort: true,
+    },
+    {
+      field: 'create_at',
+      label: t('申请时间'),
+      render: ({ data }: { data: TicketModel }) => data.createAtDisplay || '--',
+      sort: true,
+    },
   ]);
 
-  // 设置用户个人表头信息
-  const defaultSettings = {
-    checked: ['root_id', 'ticket_type_display', 'status', 'bk_biz_id', 'bk_idc_name', 'created_by', 'created_at'],
-    fields: (columns.value || [])
-      .filter((item) => item.field)
-      .map((item) => ({
-        disabled: item.field === 'root_id',
-        field: item.field as string,
-        label: item.label as string,
-      })),
-  };
-
-  const { settings: tableSetting, updateTableSettings } = useTableSettings(
-    UserPersonalSettings.QUICK_SEARCH_TASK,
-    defaultSettings,
-  );
-
-  const handleToTask = (data: Props['data'][number]) => {
+  const handleToTicket = (data: Props['data'][number]) => {
     location(
       {
-        name: 'taskHistoryDetail',
+        name: 'bizTicketManage',
         params: {
-          root_id: data.root_id,
+          ticketId: data.id,
         },
       },
       data.bk_biz_id,
     );
-  };
-
-  const handleToTicket = (id: string) => {
-    const url = router.resolve({
-      name: 'bizTicketManage',
-      params: {
-        ticketId: id,
-      },
-    });
-    window.open(url.href, '_blank');
   };
 
   const handleRefresh = () => {
@@ -223,5 +173,5 @@
 </script>
 
 <style lang="less" scoped>
-  @import '../style/table-card.less';
+  @import './table-card.less';
 </style>
