@@ -140,7 +140,7 @@
 
   const handlePaste = () => {
     setTimeout(() => {
-      modelValue.value = modelValue.value.replace(batchSplitRegex, '\n');
+      modelValue.value = modelValue.value.replace(/\s*:\s*/g, ':').replace(batchSplitRegex, '\n');
     });
   };
 

@@ -184,5 +184,5 @@
 </script>
 
 <style lang="less" scoped>
-  @import '../style/table-card.less';
+  @import './table-card.less';
 </style>
