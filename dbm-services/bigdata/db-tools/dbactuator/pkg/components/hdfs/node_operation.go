@@ -39,7 +39,7 @@ func (i *NodeOperationService) StopAllProcess() (err error) {
 // StopHaProxy TODO
 func (i *NodeOperationService) StopHaProxy() (err error) {
 	// 停止进程
-	extraCmd := "service stop haproxy"
+	extraCmd := "service haproxy stop"
 	logger.Info("停止HaProxy, [%s]", extraCmd)
 	if _, err = osutil.ExecShellCommand(false, extraCmd); err != nil {
 		logger.Error("[%s] execute failed, %v", extraCmd, err)
@@ -66,9 +66,16 @@ func (i *NodeOperationService) CleanData() (err error) {
 			return err
 		}
 	}
+	// 缩容流程里退役节点后未停止服务，再次调用 supervisorctl stop all
+	// 此处刻意不阻断后续清理流程：即使 supervisorctl 已经被卸载/异常，也要继续走 kill 兜底
+	if err = SupervisorCommand(Stop, All); err != nil {
+		logger.Warn("supervisorctl stop all failed, %v", err)
+		err = nil
+	}
 
-	// 强杀进程
-	extraCmd := `ps -ef | grep -E 'supervisord|telegraf|consul'|grep -v grep |awk {'print "kill -9 " $2'}|sh`
+	// 强杀进程：使用 hadoop 关键字匹配 HDFS 相关 Java 进程，避免误杀同机其它 Java 进程
+	// 假定本机为 HDFS 专用节点（不与 YARN/HBase/业务 Java 服务混部），否则需进一步收窄到 daemon 主类
+	extraCmd := `ps -ef | grep -E 'supervisord|telegraf|consul|hadoop'|grep -v grep |awk {'print "kill -9 " $2'}|sh`
 	logger.Info("强杀进程, [%s]", extraCmd)
 	if _, err = osutil.ExecShellCommand(false, extraCmd); err != nil {
 		logger.Error("[%s] execute failed, %v", extraCmd, err)
@@ -84,12 +91,12 @@ func (i *NodeOperationService) CleanData() (err error) {
 
 	// clean profile
 	extraCmd = `sed -i '/hdfsProfile/d' /etc/profile`
-	logger.Info("clean provile, [%s]", extraCmd)
+	logger.Info("clean profile, [%s]", extraCmd)
 	if _, err = osutil.ExecShellCommand(false, extraCmd); err != nil {
 		logger.Error("[%s] execute failed, %v", extraCmd, err)
 		return err
 	}
-	// 删除hadoopenv
+	// 删除hadoopenv 服务目录
 	extraCmd = `rm -rf /data/hadoopenv`
 	logger.Info("hadoopenv, [%s]", extraCmd)
 	if _, err = osutil.ExecShellCommand(false, extraCmd); err != nil {
@@ -98,13 +105,18 @@ func (i *NodeOperationService) CleanData() (err error) {
 	}
 
 	// 删除数据目录 fix
-	// 大目录删除数据耗时，且块数据无法重新找回，
-	extraCmdFormat := `df |grep data|grep -vw '/data'|awk '{print $NF}'|while read line;do mv $line/%s $line/%s;done`
-	extraCmd = fmt.Sprintf(extraCmdFormat, "hadoopdata", "bak_hadoopdata")
+	// 大目录删除数据耗时，且块数据无法重新找回，使用 mv 替代 rm 保留兜底数据。
+	// 单盘 mv 失败（如磁盘故障只读、目标已存在）时仅打印警告，不终止循环也不阻断后续清理流程。
+	extraCmd = `df |grep data|grep -vw '/data'|awk '{print $NF}'|while read line;do ` +
+		`if [ -e "$line/hadoopdata" ]; then ` +
+		`mv "$line/hadoopdata" "$line/bak_hadoopdata.$(date +%s)" || ` +
+		`echo "WARN: failed to rename $line/hadoopdata, skipped"; ` +
+		`fi;done`
 	logger.Info("rename hadoopdata dir, [%s]", extraCmd)
 	if _, err = osutil.ExecShellCommand(false, extraCmd); err != nil {
-		logger.Error("[%s] execute failed, %v", extraCmd, err)
-		return err
+		// 仅打印告警日志：保留排障线索，但不影响后续步骤继续执行
+		logger.Warn("rename hadoopdata dir partially failed, continue cleanup: %v", err)
+		err = nil
 	}
 	// 删除用户
 	extraCmd = `userdel -f hadoop; rm -rf /home/hadoop; rm -f /var/spool/mail/hadoop`
@@ -112,6 +124,19 @@ func (i *NodeOperationService) CleanData() (err error) {
 		// 只打印错误日志 不返回失败
 		logger.Error("[%s] execute failed, %v", extraCmd, err)
 	}
+	// 删除额外权限用户
+	for _, user := range ExtraCleanUsers {
+		if user == "" {
+			continue
+		}
+		extraCmd = fmt.Sprintf("userdel -f %s; rm -rf /home/%s; rm -f /var/spool/mail/%s", user, user, user)
+		logger.Info("删除额外权限用户 %s, [%s]", user, extraCmd)
+		if _, err = osutil.ExecShellCommand(false, extraCmd); err != nil {
+			// 只打印错误日志 不返回失败
+			logger.Error("[%s] execute failed, %v", extraCmd, err)
+		}
+	}
+
 	return nil
 }
 

@@ -57,3 +57,7 @@ const (
 	// Remove TODO
 	Remove = "remove"
 )
+
+// ExtraCleanUsers 清理 HDFS 节点时需同步删除的额外业务用户列表。
+// 注意：Go 切片不支持 const，使用 var 声明，请勿在运行时修改其内容。
+var ExtraCleanUsers = []string{"bkbase", "dataflow"}

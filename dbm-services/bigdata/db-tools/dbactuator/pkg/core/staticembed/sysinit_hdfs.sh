@@ -28,9 +28,9 @@ then
 fi
 
 mkdir -p /data/hadoopenv
-chown -R hadoop.root /data/hadoopenv
+chown -R hadoop:root /data/hadoopenv
 mkdir -p /data/hadoopdata
-chown -R hadoop.root /data/hadoopdata
+chown -R hadoop:root /data/hadoopdata
 
 
 cat << 'EOF' > /data/hadoopenv/hdfsProfile
