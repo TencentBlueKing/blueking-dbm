@@ -12,230 +12,95 @@
 -->
 
 <template>
-  <ApplyPermissionCatch>
-    <BkResizeLayout
-      :border="false"
-      class="database-content"
-      collapsible
-      initial-divide="312px"
-      :max="500"
-      :min="312">
-      <template #aside>
-        <BkLoading
-          :loading="treeState.loading"
-          style="height: 100%"
-          :z-index="12">
-          <div class="content-tree">
-            <div class="content-tree-search">
-              <BkInput
-                v-model="treeState.search"
-                :placeholder="$t('请输入节点名称')"
-                type="search" />
-            </div>
-            <BkTree
-              ref="treeRef"
-              :data="treeState.data"
-              :indent="16"
-              label="name"
-              :node-content-action="['click']"
-              node-key="treeId"
-              :offset-left="24"
-              :prefix-icon="treePrefixIcon"
-              :search="treeSearchConfig"
-              :selected="treeState.selected"
-              virtual-render
-              @node-click="handleSelectedTreeNode">
-              <template #node="item">
-                <div class="content-tree-node">
-                  <span class="content-tree-tag">
-                    {{ getIconText(item) }}
-                  </span>
-                  <span
-                    v-overflow-tips="{ content: item.name, placement: 'right' }"
-                    class="content-tree-name text-overflow">
-                    {{ item.name }}
-                  </span>
-                  <BkButton
-                    v-if="hasModules && item.levelType === ConfLevels.APP"
-                    v-bk-tooltips="$t('新建DB模块')"
-                    size="small"
-                    theme="primary"
-                    @click.stop="createModule">
-                    <DbIcon type="add" />
-                  </BkButton>
-                </div>
-              </template>
-              <template #empty>
-                <EmptyStatus
-                  :is-anomalies="treeState.isAnomalies"
-                  :is-searching="!!treeState.search"
-                  @clear-search="handleClearSearch"
-                  @refresh="handleRefresh" />
-              </template>
-            </BkTree>
-          </div>
-        </BkLoading>
-      </template>
-      <template #main>
-        <div
-          v-if="treeState.activeNode"
-          :key="treeState.activeNode.id"
-          class="content-details">
-          <div class="content-details-title">
-            <strong class="content-details-title-name">
-              {{ treeState.activeNode.name }}
-            </strong>
-            <BkTag theme="info">
-              {{ treeState.activeNode.tag }}
-            </BkTag>
-            <BkTag v-if="treeState.activeNode.version">
-              {{ treeState.activeNode.version }}
-            </BkTag>
-          </div>
-          <Component :is="activeComponent" />
-        </div>
-      </template>
-    </BkResizeLayout>
-  </ApplyPermissionCatch>
+  <BkResizeLayout
+    :border="false"
+    class="database-content"
+    collapsible
+    initial-divide="312px"
+    :max="500"
+    :min="312">
+    <template #aside>
+      <ConfigTree ref="configTreeRef" />
+    </template>
+    <template #main>
+      <div
+        v-if="configTreeRef?.treeState?.activeNode"
+        :key="configTreeRef.treeState.activeNode.id"
+        class="content-details">
+        <Component
+          :is="activeComponent"
+          :cluster-type="clusterType" />
+      </div>
+    </template>
+  </BkResizeLayout>
 </template>
 <script setup lang="ts">
-  import { useRoute, useRouter } from 'vue-router';
+  import { useRequest } from 'vue-request';
+  import { useRoute } from 'vue-router';
 
-  import { clusterTypeInfos, ClusterTypes, ConfLevels, TicketTypes } from '@common/const';
+  import { getListClusterModuleConfFiles } from '@services/source/configs.ts';
 
-  import ApplyPermissionCatch from '@components/apply-permission/Catch.vue';
-  import EmptyStatus from '@components/empty-status/EmptyStatus.vue';
+  import { ClusterTypes, ConfLevels } from '@common/const';
+
+  import ConfigTree from '@views/db-configure/components/TopoTree.vue';
 
   import ConfigBusiness from './biz/Index.vue';
-  import ConfigCluster from './cluster/Index.vue';
-  import { useTreeData } from './hooks/useTreeData';
   import ConfigModule from './module/Index.vue';
-  import type { TreeData, TreeState } from './types';
 
   const route = useRoute();
-  const router = useRouter();
 
-  const treeState = reactive<TreeState>({
-    data: [],
-    isAnomalies: false,
-    loading: false,
-    search: '',
-  });
-  const { fetchBusinessTopoTree, handleSelectedTreeNode, treePrefixIcon, treeRef, treeSearchConfig } =
-    useTreeData(treeState);
-  // 可创建模块
+  const configTreeRef = ref<InstanceType<typeof ConfigTree>>();
+  // 提供配置文件列表给子组件
+  const confTabs = ref<ServiceReturnType<typeof getListClusterModuleConfFiles>>([]);
+  provide('confTabs', confTabs);
+
+  // 将当前选中的树节点 provide 给子组件（biz/module）
+  const activeTreeNode = computed(() => configTreeRef.value?.treeState?.activeNode);
+  provide('treeNode', readonly(activeTreeNode));
+
+  // 提供刷新树的方法给子组件
+  const refreshTree = () => {
+    configTreeRef.value?.handleRefresh?.();
+  };
+  provide('refreshTree', refreshTree);
 
   const clusterType = computed(() => (route.params.clusterType as ClusterTypes) || ClusterTypes.TENDBSINGLE);
 
-  const hasModules = computed(() => {
-    const hasModuleClusters = [
-      ClusterTypes.TENDBSINGLE,
-      ClusterTypes.TENDBHA,
-      ClusterTypes.TENDBCLUSTER,
-      ClusterTypes.SQLSERVER_HA,
-      ClusterTypes.SQLSERVER_SINGLE,
-    ];
-    return hasModuleClusters.includes(clusterType.value);
-  });
-
-  /**
-   * content component
-   */
   const activeComponent = computed(() => {
-    if (!treeState.activeNode) {
-      return '';
-    }
+    const activeNode = configTreeRef.value?.treeState?.activeNode;
+    if (!activeNode) return '';
 
-    const { levelType } = treeState.activeNode;
-
-    if (levelType === ConfLevels.APP) {
+    if (activeNode.levelType === ConfLevels.APP) {
       return ConfigBusiness;
     }
-
-    if (levelType === ConfLevels.MODULE) {
+    if (activeNode.levelType === ConfLevels.MODULE) {
       return ConfigModule;
     }
-
-    if (levelType === ConfLevels.CLUSTER) {
-      return ConfigCluster;
-    }
-
     return '';
   });
 
+  const { run: fetchConfTabs } = useRequest(getListClusterModuleConfFiles, {
+    manual: true,
+    onSuccess(res) {
+      confTabs.value = res;
+    },
+  });
+
   watch(
-    () => route.query,
-    () => {
-      if (!route.query.parentId && route.query.treeId && treeState.selected) {
-        treeState.activeNode = treeState.selected;
+    () => activeTreeNode.value?.id,
+    (moduleId) => {
+      if (moduleId) {
+        fetchConfTabs({
+          bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
+          db_module_id: moduleId,
+          meta_cluster_type: clusterType.value,
+        });
       }
     },
+    {
+      immediate: true,
+    },
   );
-
-  const getIconText = (item: TreeData) => {
-    if (item.levelType === ConfLevels.APP) {
-      return '业';
-    }
-    if (item.levelType === ConfLevels.MODULE) {
-      return '模';
-    }
-    return '集';
-  };
-
-  const createModule = () => {
-    const ticketTypeMap = {
-      [ClusterTypes.SQLSERVER_HA]: TicketTypes.SQLSERVER_HA_APPLY,
-      [ClusterTypes.SQLSERVER_SINGLE]: TicketTypes.SQLSERVER_SINGLE_APPLY,
-      [ClusterTypes.TENDBHA]: TicketTypes.MYSQL_HA_APPLY,
-      [ClusterTypes.TENDBSINGLE]: TicketTypes.MYSQL_SINGLE_APPLY,
-    } as Record<ClusterTypes, TicketTypes>;
-
-    if ([ClusterTypes.TENDBHA, ClusterTypes.TENDBSINGLE].includes(clusterType.value)) {
-      router.push({
-        name: 'SelfServiceCreateDbModule',
-        params: {
-          bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
-          type: ticketTypeMap[clusterType.value],
-        },
-        query: {
-          clusterType: clusterType.value,
-          from: String(route.name),
-        },
-      });
-    } else if ([ClusterTypes.SQLSERVER_HA, ClusterTypes.SQLSERVER_SINGLE].includes(clusterType.value)) {
-      router.push({
-        name: 'SqlServerCreateDbModule',
-        params: {
-          bizId: window.PROJECT_CONFIG.BIZ_ID,
-          ticketType: ticketTypeMap[clusterType.value],
-        },
-        query: {
-          clusterType: clusterType.value,
-          from: String(route.name),
-        },
-      });
-    } else {
-      router.push({
-        name: 'createSpiderModule',
-        params: {
-          bizId: window.PROJECT_CONFIG.BIZ_ID,
-        },
-        query: {
-          clusterType: clusterType.value,
-          from: String(route.name),
-        },
-      });
-    }
-  };
-
-  const handleClearSearch = () => {
-    treeState.search = '';
-  };
-
-  const handleRefresh = () => {
-    const { dbType } = clusterTypeInfos[clusterType.value as ClusterTypes];
-    dbType && fetchBusinessTopoTree(dbType);
-  };
 </script>
 
 <style lang="less" scoped>
@@ -251,113 +116,7 @@
     }
   }
 
-  .content-tree {
-    height: 100%;
-    padding: 16px 0;
-
-    .bk-tree {
-      height: calc(100% - 42px) !important;
-      font-size: 12px;
-
-      :deep(.bk-node-prefix) {
-        color: #979ba5;
-      }
-
-      :deep(.bk-node-row) {
-        &:hover {
-          background-color: #e1ecff;
-        }
-      }
-    }
-
-    .content-tree-node {
-      .flex-center();
-
-      padding: 0 16px 0 4px;
-    }
-
-    .content-tree-tag {
-      width: 20px;
-      height: 20px;
-      margin-right: 8px;
-      line-height: 20px;
-      color: white;
-      text-align: center;
-      background-color: #c4c6cc;
-      flex-shrink: 0;
-      border-radius: 50%;
-    }
-
-    .content-tree-name {
-      flex: 1;
-      margin-right: 4px;
-    }
-
-    .content-tree-add {
-      display: none;
-      margin-right: 4px;
-    }
-
-    .content-tree-count,
-    .content-tree-version {
-      padding: 0 6px;
-      margin-left: 4px;
-      line-height: 16px;
-      color: @gray-color;
-      background-color: @bg-dark-gray;
-      border-radius: 2px;
-    }
-
-    :deep(.bk-node-row) {
-      &.is-selected {
-        color: @primary-color;
-        background-color: #e1ecff;
-
-        .bk-node-prefix {
-          color: #3a84ff;
-        }
-
-        .content-tree-add {
-          display: block;
-        }
-
-        .content-tree-tag {
-          background-color: #3a84ff;
-        }
-
-        .content-tree-count,
-        .content-tree-version {
-          color: @white-color;
-          background-color: #a3c5fd;
-        }
-      }
-
-      &:hover {
-        .content-tree-add {
-          display: block;
-        }
-      }
-    }
-
-    .content-tree-search {
-      display: flex;
-      padding: 0 12px;
-      margin-bottom: 12px;
-    }
-  }
-
   .content-details {
-    height: 100%;
-    padding: 24px;
-    background-color: @bg-white;
-
-    .content-details-title {
-      padding-bottom: 16px;
-
-      .content-details-title-name {
-        padding: 0 8px 0 4px;
-        color: @title-color;
-      }
-    }
+    margin: 20px 24px;
   }
 </style>

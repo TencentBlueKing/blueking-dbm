@@ -29,7 +29,7 @@ const routes: RouteRecordRaw[] = [
     component: () => import('@views/db-configure/Index.vue'),
     children: [
       {
-        path: 'list/:clusterType?',
+        path: 'list/:clusterType?/:parentId?/:treeId?/:tabName?',
         name: 'DbConfigureList',
         meta: {
           fullscreen: true,
@@ -38,55 +38,30 @@ const routes: RouteRecordRaw[] = [
         component: () => import('@views/db-configure/business/list/Index.vue'),
       },
       {
-        path: 'detail/:clusterType/:version/:confType/:treeId/:parentId?',
+        path: 'detail/:clusterType/:confType/:version',
         name: 'DbConfigureDetail',
         meta: {
           fullscreen: true,
-          navName: t('配置详情'),
+          navName: '',
         },
         props: true,
-        component: () => import('@views/db-configure/business/Detail.vue'),
+        component: () => import('@views/db-configure/business/detail/Index.vue'),
       },
       {
-        path: 'edit/:clusterType/:version/:confType/:treeId/:parentId?',
-        name: 'DbConfigureEdit',
-        meta: {
-          navName: t('配置编辑'),
-        },
-        props: true,
-        component: () => import('@views/db-configure/business/Edit.vue'),
-      },
-      {
-        path: 'bind/:clusterType/:moduleId',
-        name: 'DbConfigureBind',
-        meta: {
-          navName: t('绑定模块'),
-        },
-        component: () => import('@views/db-configure/business/Bind.vue'),
-      },
-      {
-        path: 'create-db-module/:type/:bk_biz_id/',
-        name: 'SelfServiceCreateDbModule',
+        path: 'create-module/:clusterType',
+        name: 'DbConfigureCreateModule',
         meta: {
           navName: t('新建模块'),
         },
-        component: () => import('@views/service-apply/create-db-module/Mysql.vue'),
+        component: () => import('@views/db-configure/business/create-module/Index.vue'),
       },
       {
-        path: 'create-module/:bizId(\\d+)',
-        name: 'createSpiderModule',
+        path: 'clone-module/:clusterType',
+        name: 'DbConfigureCloneModule',
         meta: {
-          navName: t('新建模块'),
+          navName: t('克隆模块'),
         },
-        component: () => import('@views/service-apply/create-db-module/tendb-cluster/Index.vue'),
-      },
-      {
-        path: 'sqlserver-create-db-module/:ticketType/:bizId/',
-        name: 'SqlServerCreateDbModule',
-        meta: {
-          navName: t('新建模块'),
-        },
-        component: () => import('@views/service-apply/create-db-module/SqlServer.vue'),
+        component: () => import('@views/db-configure/business/clone-module/Index.vue'),
       },
     ],
   },

@@ -56,30 +56,6 @@ const routes: RouteRecordRaw[] = [
       createApplyRoute(DBTypes.INFLUXDB, TicketTypes.INFLUXDB_APPLY, t('申请InfluxDB集群部署')),
       createApplyRoute(DBTypes.RIAK, TicketTypes.RIAK_CLUSTER_APPLY, t('申请Riak集群部署')),
       createApplyRoute(DBTypes.DORIS, TicketTypes.DORIS_APPLY, t('申请Doris集群部署')),
-      {
-        path: 'create-db-module/:type/:bk_biz_id/',
-        name: 'SelfServiceCreateDbModule',
-        meta: {
-          navName: t('新建模块'),
-        },
-        component: () => import('@views/service-apply/create-db-module/Mysql.vue'),
-      },
-      {
-        path: 'bind-db-module/:type/:bk_biz_id/:db_module_id',
-        name: 'SelfServiceBindDbModule',
-        meta: {
-          navName: t('绑定配置'),
-        },
-        component: () => import('@views/service-apply/create-db-module/Mysql.vue'),
-      },
-      {
-        path: 'sqlserver-create-db-module/:ticketType/:bizId/',
-        name: 'SqlServerCreateDbModule',
-        meta: {
-          navName: t('新建模块'),
-        },
-        component: () => import('@views/service-apply/create-db-module/SqlServer.vue'),
-      },
     ],
   },
 ];

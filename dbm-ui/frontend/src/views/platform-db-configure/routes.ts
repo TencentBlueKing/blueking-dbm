@@ -21,7 +21,7 @@ const routes: RouteRecordRaw[] = [
     path: 'platform-db-configure',
     name: 'PlatformDbConfigure',
     meta: {
-      navName: t('数据库配置'),
+      navName: t('数据库配置定义'),
     },
     redirect: {
       name: 'PlatformDbConfigureList',
@@ -29,31 +29,22 @@ const routes: RouteRecordRaw[] = [
     component: () => import('@views/platform-db-configure/Index.vue'),
     children: [
       {
-        path: 'list/:clusterType?',
+        path: 'list/:clusterType?/:confType?',
         name: 'PlatformDbConfigureList',
         meta: {
           fullscreen: true,
-          navName: t('数据库配置'),
+          navName: t('数据库配置定义'),
         },
-        component: () => import('@views/db-configure/platform/List.vue'),
+        component: () => import('@views/db-configure/platform/list/Index.vue'),
       },
       {
-        path: 'edit/:clusterType/:version/:confType',
-        name: 'PlatformDbConfigureEdit',
-        meta: {
-          navName: t('编辑平台配置'),
-          // fullscreen: true,
-        },
-        component: () => import('@views/db-configure/platform/Edit.vue'),
-      },
-      {
-        path: 'detail/:clusterType/:version/:confType',
+        path: 'detail/:clusterType/:confType/:version',
         name: 'PlatformDbConfigureDetail',
         meta: {
           fullscreen: true,
-          navName: t('配置详情'),
+          navName: '',
         },
-        component: () => import('@views/db-configure/platform/Detail.vue'),
+        component: () => import('@views/db-configure/platform/detail/Index.vue'),
       },
     ],
   },

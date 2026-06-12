@@ -155,7 +155,6 @@
 
   const { t } = useI18n();
 
-  const route = useRoute();
   const router = useRouter();
 
   const packageSelectList = ref<
@@ -277,16 +276,15 @@
 
   const handleCreateModule = () => {
     const url = router.resolve({
-      name: 'SelfServiceCreateDbModule',
+      name: 'DbConfigureCreateModule',
       params: {
-        bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
-        type:
+        clusterType: props.cluster.cluster_type,
+      },
+      query: {
+        from:
           props.cluster.cluster_type === ClusterTypes.TENDBSINGLE
             ? TicketTypes.MYSQL_SINGLE_APPLY
             : TicketTypes.MYSQL_HA_APPLY,
-      },
-      query: {
-        from: route.name as string,
       },
     });
     window.open(url.href, '_blank');

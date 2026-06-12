@@ -56,8 +56,8 @@
 
   import type { ClusterTypes } from '@common/const';
 
-  import OperationRecord from '@views/db-configure-new/business/list/components/OperationRecord.vue';
-  import ParamTable from '@views/db-configure-new/components/ParamTable.vue';
+  import OperationRecord from '@views/db-configure/business/list/components/OperationRecord.vue';
+  import ParamTable from '@views/db-configure/components/ParamTable.vue';
 
   interface Props {
     cluster: {
