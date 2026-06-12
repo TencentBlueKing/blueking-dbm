@@ -348,27 +348,12 @@
   };
 
   const handleSave = async () => {
-    const changedItems = editItems.value
-      .filter((item) => {
-        const origin = originItems.value.find((o) => o.conf_name === item.conf_name);
-        return origin?.conf_value !== item.conf_value;
-      })
-      .map((item) => ({
-        ...item,
-        op_type: 'update' as const,
-      }));
-
-    if (changedItems.length === 0) {
-      handleClose();
-      return;
-    }
-
     // 后端校验合法性
     try {
       await validateConfItems(
-        changedItems.map((item) => ({
+        editItems.value.map((item) => ({
           conf_name: item.conf_name,
-          op_type: item.op_type,
+          op_type: 'update',
           value_allowed: item.value_allowed,
           value_default: item.conf_value ?? '',
           value_type: item.value_type ?? '',
@@ -383,7 +368,7 @@
     try {
       await updateBusinessConfig({
         bk_biz_id: props.fetchParams.bk_biz_id,
-        conf_items: changedItems,
+        conf_items: editItems.value.map((item) => Object.assign(item, { op_type: 'update' })),
         conf_type: props.fetchParams.conf_type,
         confirm: 0,
         description: '',
@@ -395,7 +380,7 @@
         publish_description: '',
         version: props.fetchParams.version,
       });
-      messageSuccess(t('操作成功，n 个参数已转为自定义', { n: changedItems.length }));
+      messageSuccess(t('操作成功，n 个参数已转为自定义', { n: editItems.value.length }));
       emit('saved');
       handleClose();
     } finally {

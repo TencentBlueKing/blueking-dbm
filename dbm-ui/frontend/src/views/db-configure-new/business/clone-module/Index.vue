@@ -43,11 +43,23 @@
     [ClusterTypes.TENDBSINGLE]: MySql,
   } as Record<ClusterTypes, any>;
 
+  const isFromNewTab = computed(() => !!route.query.ticketType);
+
   const routerBack = () => {
+    if (route.query.ticketType) {
+      router.push({
+        name: route.query.ticketType as string,
+        query: {
+          ...route.query,
+          ticketType: undefined,
+        },
+      });
+      return;
+    }
     router.back();
   };
 
   defineExpose({
-    routerBack,
+    routerBack: isFromNewTab.value ? undefined : routerBack,
   });
 </script>

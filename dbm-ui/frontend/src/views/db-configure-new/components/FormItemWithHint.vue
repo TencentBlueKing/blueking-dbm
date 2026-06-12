@@ -18,7 +18,9 @@
     :label="label"
     :property="property"
     :required="required"
-    :rules="mergedRules">
+    :rules="mergedRules"
+    :show-label="showLabel"
+    v-bind="$attrs">
     <slot />
     <template #error="message">
       <span
@@ -38,18 +40,21 @@
 <script setup lang="ts">
   interface Props {
     hint?: string;
-    label: string;
+    label?: string;
     model?: any;
     property: string;
     required?: boolean;
     rules?: Record<string, any>[];
+    showLabel?: boolean;
   }
 
   const props = withDefaults(defineProps<Props>(), {
     hint: '',
+    label: '',
     model: undefined,
     required: false,
     rules: () => [],
+    showLabel: true,
   });
 
   const formItemRef = ref<any>(null);
@@ -90,7 +95,7 @@
           required: true,
           trigger: 'blur',
           validator: (value: any) => {
-            if (value !== undefined && value !== null && value !== '') {
+            if (value !== undefined && value !== null && value !== '' && (!Array.isArray(value) || value.length > 0)) {
               return true;
             }
             return '';
