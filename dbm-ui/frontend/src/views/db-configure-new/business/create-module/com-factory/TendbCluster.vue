@@ -434,10 +434,6 @@
 
   /** 取消 */
   const handleCancel = () => {
-    if (route.query.ticketType) {
-      window.close();
-      return;
-    }
     emits('routerBack');
   };
 </script>
