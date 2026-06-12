@@ -44,6 +44,16 @@
   } as Record<ClusterTypes, any>;
 
   const routerBack = () => {
+    if (route.query.ticketType) {
+      router.push({
+        name: route.query.ticketType as string,
+        query: {
+          ...route.query,
+          ticketType: undefined,
+        },
+      });
+      return;
+    }
     router.back();
   };
 

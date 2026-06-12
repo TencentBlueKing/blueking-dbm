@@ -229,6 +229,9 @@
       <span class="config-detail-nav-title">
         {{ configTypeName }}
       </span>
+      <BkTag theme="info">
+        {{ clusterTypeInfos[clusterType]?.name || clusterType }}
+      </BkTag>
       <span class="config-detail-meta">
         <span>{{ t('配置名称') }}：{{ detailData?.name || '--' }}</span>
         <span>
@@ -386,7 +389,7 @@
     defaultParams: [{ meta_cluster_type: clusterType }],
     onSuccess(res) {
       const matched = res.find((item) => item.conf_type === confType);
-      configTypeName.value = matched?.name || confType;
+      configTypeName.value = matched?.name || '--';
     },
   });
 
