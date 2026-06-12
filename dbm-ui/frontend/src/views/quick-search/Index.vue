@@ -78,12 +78,12 @@
   import { FilterType } from '@components/system-search/components/FilterTypeSelect.vue';
   import FilterOptions from '@components/system-search/components/search-result/FilterOptions.vue';
 
-  import Entry from './components/Entry.vue';
-  import Instance from './components/Instance.vue';
-  import Machine from './components/Machine.vue';
+  import Cluster from './components/content/cluster/Index.vue';
+  import Instance from './components/content/Instance.vue';
+  import Machine from './components/content/Machine.vue';
+  import Task from './components/content/Task.vue';
+  import Ticket from './components/content/Ticket.vue';
   import SearchInput from './components/SearchInput.vue';
-  import Task from './components/Task.vue';
-  import Ticket from './components/Ticket.vue';
 
   type MapArrayToString<T> = {
     [K in keyof T]: T[K] extends Array<string | number> ? string : T[K];
@@ -99,7 +99,7 @@
   let routeParamsMemo = {};
 
   const comMap = {
-    entry: Entry,
+    cluster: Cluster,
     instance: Instance,
     machine: Machine,
     task: Task,
@@ -114,7 +114,7 @@
   // const keyword = ref((route.query.keyword as string) || '');
   const keyword = ref('');
   const dataMap = ref<Omit<ServiceReturnType<typeof quickSearch>, 'keyword' | 'short_code'>>({
-    entry: [],
+    cluster: [],
     instance: [],
     machine: [],
     task: [],
@@ -127,12 +127,12 @@
     filter_type: FilterType.EXACT,
     resource_types: [] as string[],
   });
-  const activeTab = ref('entry');
+  const activeTab = ref('cluster');
   const panelList = reactive([
     {
       count: 0,
-      label: t('访问入口'),
-      name: 'entry',
+      label: t('集群'),
+      name: 'cluster',
     },
     {
       count: 0,
@@ -168,7 +168,7 @@
     if (activeComponent) {
       return activeComponent;
     }
-    return Entry;
+    return Cluster;
   });
 
   const dataList = computed(() => {
@@ -179,7 +179,7 @@
     if (activeDataList) {
       return activeDataList;
     }
-    return dataMap.value.entry;
+    return dataMap.value.cluster;
   });
 
   const {
@@ -197,13 +197,13 @@
         handleSearch();
       }
       Object.assign(dataMap.value, {
-        entry: data.entry,
+        cluster: data.cluster,
         instance: data.instance,
         machine: data.machine,
         task: data.task,
         ticket: data.ticket,
       });
-      panelList[0].count = data.entry.length;
+      panelList[0].count = data.cluster.length;
       panelList[1].count = data.instance.length;
       panelList[2].count = data.machine.length;
       panelList[3].count = data.task.length;
@@ -248,7 +248,7 @@
 
   const clearData = () => {
     Object.assign(dataMap.value, {
-      entry: [],
+      cluster: [],
       instance: [],
       resource_pool: [],
       task: [],

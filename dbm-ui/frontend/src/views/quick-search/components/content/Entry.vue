@@ -178,7 +178,7 @@
 
   import { execCopy, exportExcelFile } from '@utils';
 
-  import { groupByDbType } from '../common/utils';
+  import { groupByDbType } from './utils';
 
   interface Props {
     bizIdNameMap: Record<number, string>;
@@ -238,19 +238,35 @@
   );
 
   const handleExport = (clusterType: string, dataList: QuickSearchEntryModel[]) => {
-    const formatData = dataList.map((dataItem) => ({
-      [t('业务名称')]: props.bizIdNameMap[dataItem.bk_biz_id],
-      [t('主 DBA')]: dataItem.dba,
-      [t('地域')]: dataItem.region,
-      [t('容灾要求')]: dataItem.disasterToleranceLevelName,
-      [t('所属业务')]: String(dataItem.bk_biz_id),
-      [t('所属集群')]: dataItem.immute_domain,
-      [t('架构类型')]: dataItem.cluster_type,
-      [t('版本')]: dataItem.major_version,
-      [t('访问入口（域名、CLB、北极星）')]: dataItem.entry,
-      [t('集群ID')]: String(dataItem.cluster_id),
-    }));
-    const colsWidths = [{ width: 10 }, { width: 16 }, { width: 16 }, { width: 24 }, { width: 24 }, { width: 16 }];
+    const formatData = dataList.map((dataItem) =>
+      Object.fromEntries(
+        [
+          { label: t('集群ID'), value: String(dataItem.id) },
+          { label: t('访问入口（域名、CLB、北极星）'), value: dataItem.entry },
+          { label: t('所属集群'), value: dataItem.immute_domain },
+          { label: t('架构类型'), value: dataItem.cluster_type },
+          { label: t('版本'), value: dataItem.major_version },
+          { label: t('地域'), value: dataItem.region },
+          { label: t('所属业务'), value: String(dataItem.bk_biz_id) },
+          { label: t('业务名称'), value: props.bizIdNameMap[dataItem.bk_biz_id] },
+          { label: t('容灾要求'), value: dataItem.disaster_tolerance_level },
+          { label: t('主 DBA'), value: dataItem.dba },
+        ].map(({ label, value }) => [label, value]),
+      ),
+    );
+    const colsWidths = [
+      { width: 10 },
+      { width: 16 },
+      { width: 16 },
+      { width: 24 },
+      { width: 24 },
+      { width: 16 },
+      { width: 16 },
+      { width: 16 },
+      { width: 16 },
+      { width: 16 },
+      { width: 16 },
+    ];
 
     exportExcelFile(formatData, colsWidths, clusterType, `${clusterType}.xlsx`);
   };
@@ -279,7 +295,7 @@
 </script>
 
 <style lang="less" scoped>
-  @import '../style/table-card.less';
+  @import './table-card.less';
 
   .search-result-cluster {
     .export-button-icon {
