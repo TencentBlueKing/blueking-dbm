@@ -36,6 +36,7 @@ func BuildRequestRecordRouter(db *gorm.DB, baseRouter *gin.RouterGroup) {
 	metaGroup := metaRouter.Group("/cluster_operation_log")
 	{
 		metaGroup.GET("", metaController.ListClusterRecords)
+		metaGroup.PUT("", metaController.UpdateClusterTicketID)
 		metaGroup.POST("", metaController.CreateClusterRecord)
 	}
 }

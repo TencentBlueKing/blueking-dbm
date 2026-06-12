@@ -51,9 +51,18 @@ type ClusterRequestQueryParams struct {
 	NameSpace      string    `gorm:"column:namespace" json:"namespace"`
 	RequestTypes   []string  `json:"requestTypes"`
 	RequestParams  string    `gorm:"column:request_params" json:"requestParams"`
+	TicketID       *uint64   `gorm:"column:ticket_id" json:"ticketId"`
 	Creators       []string  `json:"creators"`
 	StartTime      time.Time `json:"startTime"`
 	EndTime        time.Time `json:"endTime"`
+}
+
+// UpdateClusterRequestParams 更新 ticket_id 时的查询参数（字符串版本）
+type UpdateClusterRequestParams struct {
+	ClusterName    string `json:"clusterName"`
+	K8sClusterName string `json:"k8sClusterName"`
+	NameSpace      string `json:"nameSpace"`
+	RequestType    string `json:"requestType"`
 }
 
 // AddonQueryParams addon 插件元数据查询参数
