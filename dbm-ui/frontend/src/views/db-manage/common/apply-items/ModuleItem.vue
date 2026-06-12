@@ -17,7 +17,7 @@
       :no-data-text="t('当前业务下暂无可用模块，请联系 DBA 创建')"
       style="display: inline-block">
       <BkOption
-        v-for="item in moduleList"
+        v-for="item in sortedModuleList"
         :id="item.db_module_id"
         :key="item.db_module_id"
         :name="item.alias_name">
@@ -94,7 +94,7 @@
 
 <script setup lang="ts">
   import { Form } from 'bkui-vue';
-  import type { UnwrapRef } from 'vue';
+  import { computed, type UnwrapRef } from 'vue';
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
@@ -160,6 +160,16 @@
 
   const moduleRef = ref<InstanceType<typeof Form.FormItem>>();
   const isBindModule = ref(false);
+
+  /**
+   * 自然序排序比较函数（将字符串中的数字按数值比较）
+   */
+  const naturalSort = (a: string, b: string) => a.localeCompare(b, undefined, { numeric: true });
+
+  const sortedModuleList = computed(() => {
+    const list = moduleList.value || [];
+    return [...list].sort((a, b) => naturalSort(a.alias_name, b.alias_name));
+  });
 
   const configItemList = computed(() => {
     const confItems = levelConfigData.value?.conf_items || [];
@@ -337,8 +347,7 @@
         clusterType: props.clusterType,
       },
       query: {
-        ...route.query,
-        ticketType: route.name as string,
+        from: route.name as string,
       },
     });
     window.open(url.href, '_blank');
