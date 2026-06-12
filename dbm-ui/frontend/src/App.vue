@@ -128,12 +128,10 @@
 
   const handleSignOut = () => {
     InfoBox({
-      onConfirm: () =>
-        getLogout().then(() => {
-          window.changeConfirm = false;
-          window.location.reload();
-          return true;
-        }),
+      onConfirm: () => {
+        window.HAS_LOGGED_IN = false;
+        getLogout();
+      },
       title: t('确认退出登录'),
     });
   };

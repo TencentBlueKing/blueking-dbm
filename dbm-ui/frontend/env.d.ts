@@ -101,6 +101,7 @@ declare interface Window {
     VITE_PUBLIC_PATH: string;
     VITE_ROUTER_PERFIX: string;
   };
+  HAS_LOGGED_IN: boolean;
   BkVisionSDK: {
     init: (
       dom: HTMLElement,
