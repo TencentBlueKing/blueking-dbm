@@ -25,6 +25,7 @@
 package sink
 
 import (
+	"context"
 	"strings"
 
 	"dbm-services/common/dbha-v2/internal/receiver/config"
@@ -33,7 +34,7 @@ import (
 
 // Sinker Define the interface for storing data.
 type Sinker interface {
-	Save(msg *Message) error
+	Save(ctx context.Context, msg *Message) error
 	Close()
 }
 

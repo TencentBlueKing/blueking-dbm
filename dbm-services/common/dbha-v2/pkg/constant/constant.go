@@ -34,6 +34,7 @@ const (
 	DefaultClientPingTime             = 5 * time.Second
 	DefaultServerPingTime             = 5 * time.Minute
 	DefaultPingTimeout                = 10 * time.Second
+	DefaultSaveTimeout                = 10 * time.Second
 	DefaultKeepAliveMiniTime          = 5 * time.Minute
 	DefaultMaxReceiveMessageSize      = 1024 * 1024 * 10
 	DefaultMaxSendMessageSize         = 1024 * 1024 * 10

@@ -25,6 +25,7 @@
 package probe
 
 import (
+	"context"
 	"sync"
 
 	"dbm-services/common/dbha-v2/internal/receiver/sink"
@@ -72,9 +73,11 @@ func (c *connectionHandler) readEvent() {
 		copy(data.Data, msg.Payload)
 
 		for _, saver := range c.savers {
-			if err := saver.Save(data); err != nil {
+			ctx, cancel := context.WithTimeout(context.Background(), constant.DefaultSaveTimeout)
+			if err := saver.Save(ctx, data); err != nil {
 				logger.Warn("save probe msg failed, errmsg: %s", err)
 			}
+			cancel()
 		}
 	}
 }

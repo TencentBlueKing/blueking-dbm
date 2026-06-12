@@ -25,8 +25,10 @@
 package kafka
 
 import (
+	"context"
 	"dbm-services/common/dbha-v2/internal/receiver/apm"
 	"dbm-services/common/dbha-v2/internal/receiver/sink"
+	"dbm-services/common/dbha-v2/pkg/constant"
 	"dbm-services/common/dbha-v2/pkg/logger"
 
 	"github.com/IBM/sarama"
@@ -73,7 +75,8 @@ func (h *consumerHandler) ConsumeClaim(session sarama.ConsumerGroupSession, clai
 		}
 
 		for _, saver := range h.savers {
-			if err := saver.Save(data); err != nil {
+			ctx, cancel := context.WithTimeout(context.Background(), constant.DefaultSaveTimeout)
+			if err := saver.Save(ctx, data); err != nil {
 				logger.Warn("save the data failed, topic(%s), errmsg: %s", msg.Topic, err)
 
 				if metricErr := apm.KafkaWriteErrorsTotal.IncWithLabels(map[string]string{
@@ -82,6 +85,7 @@ func (h *consumerHandler) ConsumeClaim(session sarama.ConsumerGroupSession, clai
 					logger.Warn("update kafka write errors metric failed, errmsg: %s", metricErr)
 				}
 			}
+			cancel()
 		}
 	}
 

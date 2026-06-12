@@ -48,7 +48,9 @@ type fakeSinker struct {
 // errorSinker simulates save errors.
 type errorSinker struct{}
 
-func (f *fakeSinker) Save(msg *sink.Message) error {
+type sleepSinker struct{}
+
+func (f *fakeSinker) Save(ctx context.Context, msg *sink.Message) error {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 	f.messages = append(f.messages, msg)
@@ -69,10 +71,21 @@ func (f *fakeSinker) getData(index int) []byte {
 	return f.messages[index].Data
 }
 
-func (e *errorSinker) Save(msg *sink.Message) error {
+func (e *errorSinker) Save(ctx context.Context, msg *sink.Message) error {
 	return fmt.Errorf("injected failure")
 }
 func (e *errorSinker) Close() {}
+
+func (s *sleepSinker) Save(ctx context.Context, msg *sink.Message) error {
+	select {
+	case <-time.After(12 * time.Second):
+		return nil
+	case <-ctx.Done():
+		return ctx.Err()
+	}
+}
+
+func (s *sleepSinker) Close() {}
 
 func prepareServerAndClient(t *testing.T) (*Probe, *client.ReceiverClient) {
 	t.Helper()
@@ -97,7 +110,7 @@ func prepareServerAndClient(t *testing.T) (*Probe, *client.ReceiverClient) {
 		t.Fatalf("NewProbeServer failed: %v", err)
 	}
 
-	cli, err := client.NewReceiverClient(ctx, endpoint, "test-client")
+	cli, err := client.NewReceiverClient(ctx, []string{endpoint}, "test-client")
 	if err != nil {
 		t.Fatalf("NewReceiverClient failed: %v", err)
 	}
@@ -307,5 +320,32 @@ func TestSpecialPayload(t *testing.T) {
 	length := len(data)
 	if length != 3*1024*1024 {
 		t.Fatalf("error in big payload, expect 3MB, got %.2f MB", float64(length)/float64(1024*1024))
+	}
+}
+
+func TestSinkerSaveTimeout(t *testing.T) {
+	ss := &sleepSinker{}
+	fs := &fakeSinker{}
+	ch := &connectionHandler{
+		savers: []sink.Sinker{ss, fs},
+		eventC: make(requestEventC, 3),
+	}
+	defer ch.close()
+
+	req := &proto.ReceiverRequest{
+		Payload: []byte(`{"hello":"world"}`),
+	}
+
+	err := ch.postEvent(req)
+	if err != nil {
+		t.Fatalf("Failed to send request: %v", err)
+	}
+
+	go ch.readEvent()
+
+	time.Sleep(12 * time.Second)
+
+	if fs.count() != 1 {
+		t.Fatalf("fakeSinker should still receive msg after sleepSinker timeout, got %d", fs.count())
 	}
 }

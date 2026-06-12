@@ -25,6 +25,7 @@
 package sink
 
 import (
+	"context"
 	"encoding/json"
 	"path/filepath"
 	"time"
@@ -95,7 +96,7 @@ func newMySql(endpoints, user, password string) (*mysql, error) {
 	return msql, nil
 }
 
-func (s *mysql) Save(msg *Message) error {
+func (s *mysql) Save(ctx context.Context, msg *Message) error {
 	startTime := time.Now()
 	defer func() {
 		if err := apm.MySqlWriteDurationMs.ObserveWithLabels(map[string]string{
@@ -120,7 +121,7 @@ func (s *mysql) Save(msg *Message) error {
 	data := hamodel.NewDbhaData(dbStatus)
 
 	for _, db := range s.dbs {
-		err := db.DB().Session(&gorm.Session{FullSaveAssociations: true}).
+		err := db.DB().WithContext(ctx).Session(&gorm.Session{FullSaveAssociations: true}).
 			Clauses(clause.OnConflict{UpdateAll: true}).
 			Create(data).Error
 
