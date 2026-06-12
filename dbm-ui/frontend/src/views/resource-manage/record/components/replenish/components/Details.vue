@@ -64,7 +64,16 @@
               {{ tab.label }} ( {{ statusCountMap[tab.key] || 0 }} )
             </BkRadioButton>
           </BkRadioGroup>
-
+          <BkButton
+            v-if="showBatchOperation"
+            :disabled="selectedRows.length === 0"
+            :loading="isRetrying"
+            @click="handleBatchRetry">
+            <DbIcon
+              class="mr-4"
+              type="bk-dbm-icon db-icon-refresh" />
+            {{ t('批量重试') }}
+          </BkButton>
           <BkButton
             v-if="showBatchOperation"
             :disabled="selectedRows.length === 0"
@@ -75,7 +84,6 @@
               type="bk-dbm-icon db-icon-stop" />
             {{ t('批量终止') }}
           </BkButton>
-
           <BkButton
             v-bk-tooltips="t('导出该补货操作关联的所有单据明细，不受当前筛选条件影响')"
             :loading="isExporting"
@@ -311,10 +319,16 @@
 </template>
 
 <script setup lang="tsx">
+  import { InfoBox } from 'bkui-vue';
   import { useI18n } from 'vue-i18n';
 
   import TicketModel from '@services/model/ticket/ticket';
-  import { exportReplenishTickets, fetchReplenish, listTicketApplyInfo } from '@services/source/dbresourceReplenish';
+  import {
+    batchRetryReplenishTickets,
+    exportReplenishTickets,
+    fetchReplenish,
+    listTicketApplyInfo,
+  } from '@services/source/dbresourceReplenish';
   import { getTickets } from '@services/source/ticket';
   import { getInnerFlowInfo, revokeTicket } from '@services/source/ticketFlow';
 
@@ -375,6 +389,7 @@
   const isShowTerminateDialog = ref(false);
   const isTerminating = ref(false);
   const terminateFormRef = ref();
+  const isRetrying = ref(false);
   const ticketInnerFlowInfo = shallowRef<ServiceReturnType<typeof getInnerFlowInfo>>({});
 
   const summaryInfo = ref({
@@ -547,6 +562,43 @@
     } finally {
       isTerminating.value = false;
     }
+  };
+
+  const handleBatchRetry = () => {
+    if (selectedRows.value.length === 0) return;
+
+    InfoBox({
+      cancelText: t('取消'),
+      confirmText: t('确定'),
+      content: () => (
+        <div>
+          {t('将对已选的')}
+          <span
+            class='bold-number'
+            style='margin: 0 4px;'>
+            {selectedRows.value.length}
+          </span>
+          {t('条失败单据重新发起补货申请，系统将自动遍历候选机型进行重试。')}
+        </div>
+      ),
+      onConfirm: async () => {
+        try {
+          isRetrying.value = true;
+
+          await batchRetryReplenishTickets({
+            replenish_record_id: props.id,
+          });
+
+          messageSuccess(t('批量重试成功'));
+          handleClearSelection();
+          fetchData();
+        } finally {
+          isRetrying.value = false;
+        }
+      },
+      title: t('批量重试'),
+      type: 'warning',
+    });
   };
 
   const handleExportAll = async () => {
