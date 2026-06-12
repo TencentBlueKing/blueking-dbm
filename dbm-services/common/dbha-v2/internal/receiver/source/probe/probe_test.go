@@ -110,7 +110,7 @@ func prepareServerAndClient(t *testing.T) (*Probe, *client.ReceiverClient) {
 		t.Fatalf("NewProbeServer failed: %v", err)
 	}
 
-	cli, err := client.NewReceiverClient(ctx, []string{endpoint}, "test-client")
+	cli, err := client.NewReceiverClient(ctx, endpoint, "test-client")
 	if err != nil {
 		t.Fatalf("NewReceiverClient failed: %v", err)
 	}
