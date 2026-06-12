@@ -372,7 +372,11 @@ func (i *InstallHdfsService) RenderHdfsConfig() (err error) {
 	nn1Host := i.Params.HostMap[i.Params.Nn1Ip]
 	nn2Host := i.Params.HostMap[i.Params.Nn2Ip]
 	// 获取本地主机对应的DN域名/主机名
-	hostName := util2.GetLocalHostNameByMap(i.Params.HostMap)
+	hostName, err := util2.GetLocalHostNameByMap(i.Params.HostMap)
+	if err != nil {
+		logger.Error("resolve local DN hostname failed: %v", err)
+		return err
+	}
 	// 需要提前修改DN配置，否则NN无法启动 caused by bk-monitor
 	replaceDnHostCmd := fmt.Sprintf(`sed -i -e "s/{{dn_host}}/%s/" %s`, hostName, i.HdfsConfDir+"/*")
 	if _, err = osutil.ExecShellCommand(false, replaceDnHostCmd); err != nil {
