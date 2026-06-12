@@ -6,17 +6,19 @@
       {{ t('历史记录') }}
     </div>
     <div class="wrapper">
-      <div
+      <TextOverflowLayout
         v-for="(item, index) in historyKeyWordList"
         :key="index"
         class="keyword-item"
         @click="handleSelect(item)">
         {{ item }}
-        <DbIcon
-          class="remote-btn"
-          type="close"
-          @click.stop="handleRemove(item)" />
-      </div>
+        <template #append>
+          <DbIcon
+            class="remote-btn"
+            type="close"
+            @click.stop="handleRemove(item)" />
+        </template>
+      </TextOverflowLayout>
     </div>
     <div
       class="clear-btn"
@@ -42,6 +44,8 @@
   import { useI18n } from 'vue-i18n';
 
   import { systemSearchCache } from '@common/cache';
+
+  import TextOverflowLayout from '@components/text-overflow-layout/Index.vue';
 
   const modelValue = defineModel<string>({
     default: '',
@@ -79,7 +83,7 @@
 
     .wrapper {
       display: flex;
-      padding-right: 80px;
+      // padding-right: 80px;
       margin-top: 12px;
       flex-wrap: wrap;
     }
