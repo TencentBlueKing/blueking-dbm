@@ -47,3 +47,20 @@ class StatsRouter:
         if app_label in self.route_app_labels:
             return db == "stats_db"
         return db == "default"
+
+
+class SkipMigrateRouter:
+    """外部表 ORM 映射：不参与 migrate，数据库由调用方 .using() 指定。"""
+
+    route_app_labels = {"__skip_migrate__"}
+
+    def db_for_read(self, model: models.Model, **hints):
+        return None
+
+    def db_for_write(self, model: models.Model, **hints):
+        return None
+
+    def allow_migrate(self, db, app_label, model_name=None, **hints):
+        if app_label in self.route_app_labels:
+            return False
+        return None

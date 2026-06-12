@@ -24,8 +24,8 @@ class QueryClusterSkewDataInputSerializer(serializers.Serializer):
 
 
 class QueryClusterSkewDataPeriodSerializer(serializers.Serializer):
-    from_ = serializers.CharField(source="from", help_text=_("查询起始日期，ISO 8601 格式"))
-    to = serializers.CharField(help_text=_("查询截止日期，ISO 8601 格式"))
+    from_ = serializers.CharField(source="from", help_text=_("查询起始时间，集群时区 YYYY-MM-DD HH:MM"))
+    to = serializers.CharField(help_text=_("查询截止时间，集群时区 YYYY-MM-DD HH:MM"))
     time_zone = serializers.CharField(help_text=_("集群时区，如 +08:00"))
 
 

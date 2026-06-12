@@ -22,6 +22,8 @@ class ClusterType(StrStructuredEnum):
     TenDBCluster = EnumField("tendbcluster", _("TendbCluster集群"))
     # 仅用于TBinlogDumper实例的管控
     TBinlogDumper = EnumField("tbinlogdumper", _("TBinlogDumper"))
+    # MySQL DTS 集群
+    MySQLDTS = EnumField("mysqldts", _("MySQLDTS"))
 
     RedisCluster = EnumField("redis", _("Redis"))
     TendisPredixyRedisCluster = EnumField("PredixyRedisCluster", _("RedisCluster集群"))
@@ -77,7 +79,7 @@ class ClusterType(StrStructuredEnum):
         """
         return {
             DBType.InfluxDB.value: [ClusterType.Influxdb],
-            DBType.MySQL.value: [cls.TenDBSingle, cls.TenDBHA],
+            DBType.MySQL.value: [cls.TenDBSingle, cls.TenDBHA, cls.MySQLDTS],
             DBType.TenDBCluster.value: [cls.TenDBCluster],
             DBType.Redis.value: [
                 cls.RedisCluster,

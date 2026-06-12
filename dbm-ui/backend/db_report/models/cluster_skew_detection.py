@@ -31,4 +31,5 @@ class ClusterSkewDetection(models.Model):
 
     class Meta:
         managed = False
+        app_label = "__skip_migrate__"
         db_table = "cluster_skew_detection"

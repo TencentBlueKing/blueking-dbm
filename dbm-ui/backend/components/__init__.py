@@ -23,6 +23,7 @@ from .dns.client import DnsApi
 from .itsm.client import ItsmApi
 from .job.client import JobApi
 from .mysql_priv_manager.client import DBPrivManagerApi
+from .mysqldtsapi.client import MySQLDTSApi
 from .usermanage.client import UserManagerApi
 
 """
@@ -46,6 +47,7 @@ __all__ = [
     "BKMonitorV3Api",
     "NameServiceApi",
     "BKBaseApi",
+    "MySQLDTSApi",
 ]
 
 
