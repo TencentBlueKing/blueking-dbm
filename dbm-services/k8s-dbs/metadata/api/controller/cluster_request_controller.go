@@ -112,6 +112,33 @@ func (k *ClusterRequestRecordController) buildListParams(ctx *gin.Context) (
 	return &requestPrams, nil
 }
 
+// UpdateClusterTicketID 根据 clusterName, k8sClusterName, namespace, requestType 更新 ticketId
+func (k *ClusterRequestRecordController) UpdateClusterTicketID(ctx *gin.Context) {
+	ctx.Set(commconst.APIName, commconst.APIMetaClusterRequestUpdate)
+
+	var reqVo metareq.UpdateClusterTicketRequest
+	if err := ctx.ShouldBindJSON(&reqVo); err != nil {
+		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.ParameterInvalidError, err))
+		return
+	}
+
+	// 构建查询参数
+	params := metaentity.UpdateClusterRequestParams{
+		ClusterName:    reqVo.ClusterName,
+		K8sClusterName: reqVo.K8sClusterName,
+		NameSpace:      reqVo.NameSpace,
+		RequestType:    reqVo.RequestType,
+	}
+
+	err := k.clusterRequestProvider.AssociateTicketRecord(reqVo.TicketID, &params)
+	if err != nil {
+		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.UpdateMetaDataError, err))
+		return
+	}
+
+	api.SuccessResponse(ctx, true, commconst.Success)
+}
+
 // CreateClusterRecord 创建集群操作记录
 func (k *ClusterRequestRecordController) CreateClusterRecord(ctx *gin.Context) {
 	ctx.Set(commconst.APIName, commconst.APIMetaClusterRequestCreate)

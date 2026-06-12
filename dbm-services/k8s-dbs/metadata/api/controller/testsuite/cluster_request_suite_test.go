@@ -67,6 +67,7 @@ func (suite *ClusterRequestControllerTestSuite) SetupSuite() {
 	routerGroup := r.Group("/metadata/cluster_request_record")
 	{
 		routerGroup.GET("", suite.clusterRequestController.ListClusterRecords)
+		routerGroup.PUT("", suite.clusterRequestController.UpdateClusterTicketID)
 		routerGroup.POST("", suite.clusterRequestController.CreateClusterRecord)
 	}
 	suite.router = r

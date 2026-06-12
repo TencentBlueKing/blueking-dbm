@@ -38,6 +38,8 @@ type ClusterRequestRecordDbAccess interface {
 	Update(model *metamodel.ClusterRequestRecordModel) (uint64, error)
 	ListByPage(params *metaentity.ClusterRequestQueryParams, pagination *entity.Pagination) (
 		[]*metamodel.ClusterRequestRecordModel, uint64, error)
+	FindLatestEmptyTicketByCondition(params *metaentity.UpdateClusterRequestParams) (
+		*metamodel.ClusterRequestRecordModel, error)
 }
 
 // ClusterRequestRecordDbAccessImpl ClusterRequestRecordDbAccess 的具体实现
@@ -139,6 +141,9 @@ func (k *ClusterRequestRecordDbAccessImpl) ListByPage(
 	if params.RequestParams != "" {
 		query = query.Where("request_params like ?", "%"+params.RequestParams+"%")
 	}
+	if params.TicketID != nil {
+		query = query.Where("ticket_id = ?", *params.TicketID)
+	}
 
 	if err := query.Count(&count).Error; err != nil {
 		return nil, 0, errors.Wrapf(err, "failed to count request record with pagination %+v", pagination)
@@ -154,4 +159,30 @@ func (k *ClusterRequestRecordDbAccessImpl) ListByPage(
 		return nil, 0, errors.Wrapf(err, "failed to find request record with pagination %+v", pagination)
 	}
 	return recordModels, uint64(count), nil
+}
+
+// FindLatestEmptyTicketByCondition 根据条件查询最新一条 ticket_id 为空的记录
+func (k *ClusterRequestRecordDbAccessImpl) FindLatestEmptyTicketByCondition(
+	params *metaentity.UpdateClusterRequestParams,
+) (*metamodel.ClusterRequestRecordModel, error) {
+	if params.K8sClusterName == "" || params.NameSpace == "" ||
+		params.ClusterName == "" || params.RequestType == "" {
+		return nil, errors.New("k8sClusterName, nameSpace, clusterName and requestType are all required")
+	}
+	var record metamodel.ClusterRequestRecordModel
+	query := k.db.Model(&metamodel.ClusterRequestRecordModel{})
+	query = query.Where("k8s_cluster_name = ?", params.K8sClusterName)
+	query = query.Where("namespace = ?", params.NameSpace)
+	query = query.Where("cluster_name = ?", params.ClusterName)
+	query = query.Where("request_type = ?", params.RequestType)
+	query = query.Where("ticket_id IS NULL")
+	query = query.Order("created_at DESC")
+	result := query.First(&record)
+	if result.Error != nil {
+		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
+			return nil, nil
+		}
+		return nil, errors.Wrapf(result.Error, "failed to find latest empty ticket record with params: %+v", params)
+	}
+	return &record, nil
 }
