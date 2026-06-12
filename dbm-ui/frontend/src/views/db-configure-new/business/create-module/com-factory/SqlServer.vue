@@ -62,30 +62,40 @@
               </template>
               {{ clusterTypeInfos[clusterType]?.name }}
             </BkTag>
-            <DbVersionSelect
-              v-model="formData.version"
-              class="version-select-inline"
-              :db-type="DBTypes.SQLSERVER"
-              @change="handleValidate" />
+            <FormItemWithHint
+              class="custom-form-item version-select-inline"
+              property="version"
+              required
+              :show-label="false">
+              <DbVersionSelect
+                v-model="formData.version"
+                :db-type="DBTypes.SQLSERVER"
+                @change="handleValidate" />
+            </FormItemWithHint>
             <BkInput
               class="ha-mode-input"
               disabled
               :model-value="haModeDisplay"
               :prefix="t('主从方式')" />
-            <BkSelect
-              v-model="formData.character_set"
-              class="charset-select-inline"
-              :clearable="false"
-              filterable
-              :placeholder="t('请选择')"
-              :prefix="t('字符集')"
-              @change="handleValidate">
-              <BkOption
-                v-for="(item, index) of characterSets"
-                :key="index"
-                :label="item"
-                :value="item" />
-            </BkSelect>
+            <FormItemWithHint
+              class="custom-form-item charset-select-inline"
+              property="character_set"
+              required
+              :show-label="false">
+              <BkSelect
+                v-model="formData.character_set"
+                :clearable="false"
+                filterable
+                :placeholder="t('请选择')"
+                :prefix="t('字符集')"
+                @change="handleValidate">
+                <BkOption
+                  v-for="(item, index) of characterSets"
+                  :key="index"
+                  :label="item"
+                  :value="item" />
+              </BkSelect>
+            </FormItemWithHint>
           </div>
         </BkFormItem>
         <!-- 部署规格 -->
@@ -93,35 +103,50 @@
           :label="t('部署规格')"
           required>
           <div class="db-config-row">
-            <BkSelect
-              v-model="formData.operatingSystemVersion"
-              class="os-version-select-inline"
-              filterable
-              multiple
-              :placeholder="t('请选择（可多选）')"
-              :prefix="t('操作系统版本')">
-              <BkOption
-                v-for="item in operatingSystemVersionList"
-                :key="item"
-                :label="item"
-                :value="item" />
-            </BkSelect>
-            <BkInput
-              v-model="formData.memoryAllocationRatio"
-              class="memory-allocation-ratio-input"
-              :max="80"
-              :min="50"
-              :prefix="t('内存分配比率')"
-              suffix="%"
-              type="number" />
-            <BkInput
-              v-model="formData.maxSystemReservedMemory"
-              class="reserved-memory-input"
-              disabled
-              :min="1"
-              :prefix="t('最大 OS 保留内存')"
-              suffix="GB"
-              type="number" />
+            <FormItemWithHint
+              class="custom-form-item os-version-select-inline"
+              property="operatingSystemVersion"
+              required
+              :show-label="false">
+              <BkSelect
+                v-model="formData.operatingSystemVersion"
+                filterable
+                multiple
+                :placeholder="t('请选择（可多选）')"
+                :prefix="t('操作系统版本')">
+                <BkOption
+                  v-for="item in operatingSystemVersionList"
+                  :key="item"
+                  :label="item"
+                  :value="item" />
+              </BkSelect>
+            </FormItemWithHint>
+            <FormItemWithHint
+              class="custom-form-item memory-allocation-ratio-input"
+              property="memoryAllocationRatio"
+              required
+              :show-label="false">
+              <BkInput
+                v-model="formData.memoryAllocationRatio"
+                :max="80"
+                :min="50"
+                :prefix="t('内存分配比率')"
+                suffix="%"
+                type="number" />
+            </FormItemWithHint>
+            <FormItemWithHint
+              class="custom-form-item reserved-memory-input"
+              property="maxSystemReservedMemory"
+              required
+              :show-label="false">
+              <BkInput
+                v-model="formData.maxSystemReservedMemory"
+                disabled
+                :min="1"
+                :prefix="t('最大 OS 保留内存')"
+                suffix="GB"
+                type="number" />
+            </FormItemWithHint>
           </div>
         </BkFormItem>
       </div>
@@ -204,6 +229,7 @@
   import { clusterTypeInfos, ClusterTypes, DBTypes } from '@common/const';
 
   import FormItemWithHint from '@views/db-configure-new/components/FormItemWithHint.vue';
+  import { saveConfigureState } from '@views/db-configure-new/utils/configureState';
 
   import { random } from '@utils';
 
@@ -440,12 +466,16 @@
 
       window.changeConfirm = false;
 
+      // 保存选中的树节点状态，确保跳转后树能自动选中新模块
+      saveConfigureState({
+        selectedParentId: `app-${bizId}`,
+        selectedTreeId: latestModuleId ? `module-${latestModuleId}` : '',
+      });
+
       router.push({
         name: 'DbConfigureList',
         params: {
           clusterType: clusterType.value,
-        },
-        query: {
           parentId: `app-${bizId}`,
           treeId: latestModuleId ? `module-${latestModuleId}` : '',
         },
@@ -475,6 +505,10 @@
 
   /** 取消 */
   const handleCancel = () => {
+    if (route.query.ticketType) {
+      window.close();
+      return;
+    }
     emits('routerBack');
   };
 </script>
@@ -523,6 +557,7 @@
     }
 
     .version-select-inline {
+      width: auto;
       min-width: 268px;
     }
 
@@ -544,6 +579,14 @@
 
     .reserved-memory-input {
       min-width: 220px;
+    }
+
+    .custom-form-item {
+      margin-bottom: 0;
+
+      :deep(.bk-form-content) {
+        margin-bottom: 0;
+      }
     }
   }
 

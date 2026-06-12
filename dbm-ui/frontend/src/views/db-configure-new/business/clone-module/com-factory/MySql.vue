@@ -58,35 +58,47 @@
               </template>
               {{ clusterTypeInfos[clusterType]?.name }}
             </BkTag>
-            <DbVersionSelect
-              v-model="formData.db_version"
-              class="version-select-inline"
-              :db-type="DBTypes.MYSQL"
-              :prefix="t('存储层版本')"
-              :source-version="String(route.query.confFile || '')"
-              @change="handleValidate" />
-            <BkSelect
-              v-model="formData.charset"
-              class="charset-select-inline"
-              :clearable="false"
-              filterable
-              :placeholder="t('请选择字符集')"
-              :prefix="t('字符集')"
-              @change="handleValidate">
-              <BkOption
-                v-for="(item, index) of characterSets"
-                :key="index"
-                :label="item"
-                :value="item">
-                <span>{{ item }}</span>
-                <BkTag
-                  v-if="sourceCharset && item === sourceCharset"
-                  class="ml-5"
-                  theme="info">
-                  {{ t('源字符集') }}
-                </BkTag>
-              </BkOption>
-            </BkSelect>
+            <FormItemWithHint
+              class="version-form-item"
+              property="db_version"
+              required
+              :show-label="false">
+              <DbVersionSelect
+                v-model="formData.db_version"
+                class="version-select-inline"
+                :db-type="DBTypes.MYSQL"
+                :prefix="t('存储层版本')"
+                :source-version="String(route.query.confFile || '')"
+                @change="handleValidate" />
+            </FormItemWithHint>
+            <FormItemWithHint
+              class="charset-form-item"
+              property="charset"
+              required
+              :show-label="false">
+              <BkSelect
+                v-model="formData.charset"
+                class="charset-select-inline"
+                :clearable="false"
+                filterable
+                :placeholder="t('请选择字符集')"
+                :prefix="t('字符集')"
+                @change="handleValidate">
+                <BkOption
+                  v-for="(item, index) of characterSets"
+                  :key="index"
+                  :label="item"
+                  :value="item">
+                  <span>{{ item }}</span>
+                  <BkTag
+                    v-if="sourceCharset && item === sourceCharset"
+                    class="ml-5"
+                    theme="info">
+                    {{ t('源字符集') }}
+                  </BkTag>
+                </BkOption>
+              </BkSelect>
+            </FormItemWithHint>
           </div>
         </BkFormItem>
       </div>
@@ -216,6 +228,7 @@
   import DbTable from '@components/db-table/IndexNew.vue';
 
   import FormItemWithHint from '@views/db-configure-new/components/FormItemWithHint.vue';
+  import { saveConfigureState } from '@views/db-configure-new/utils/configureState';
 
   import { random } from '@utils';
 
@@ -562,10 +575,20 @@
       });
 
       window.changeConfirm = false;
+
+      // 保存选中的树节点状态，确保跳转后树能自动选中新模块
+      saveConfigureState({
+        selectedParentId: `app-${bizId}`,
+        selectedTreeId: `module-${createResult.db_module_id}`,
+      });
+
       router.push({
         name: 'DbConfigureList',
-        params: { clusterType: clusterType.value },
-        query: { parentId: `app-${bizId}`, treeId: `module-${createResult.db_module_id}` },
+        params: {
+          clusterType: clusterType.value,
+          parentId: `app-${bizId}`,
+          treeId: `module-${createResult.db_module_id}`,
+        },
       });
     } catch (e) {
       console.error(e);
@@ -575,6 +598,10 @@
 
   /** 取消 */
   const handleCancel = () => {
+    if (route.query.ticketType) {
+      window.close();
+      return;
+    }
     emits('routerBack');
   };
 </script>
@@ -604,7 +631,16 @@
     .version-select-inline,
     .charset-select-inline {
       width: auto;
-      min-width: 180px;
+      min-width: 160px;
+    }
+
+    .version-form-item,
+    .charset-form-item {
+      margin-bottom: 0;
+
+      :deep(.bk-form-content) {
+        margin-bottom: 0;
+      }
     }
   }
 

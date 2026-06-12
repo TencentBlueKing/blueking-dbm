@@ -43,6 +43,8 @@
     [ClusterTypes.TENDBSINGLE]: MySql,
   } as Record<ClusterTypes, any>;
 
+  const isFromNewTab = computed(() => !!route.query.ticketType);
+
   const routerBack = () => {
     if (route.query.ticketType) {
       router.push({
@@ -58,6 +60,6 @@
   };
 
   defineExpose({
-    routerBack,
+    routerBack: isFromNewTab.value ? undefined : routerBack,
   });
 </script>
