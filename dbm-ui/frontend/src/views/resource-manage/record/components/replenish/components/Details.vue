@@ -64,7 +64,16 @@
               {{ tab.label }} ( {{ statusCountMap[tab.key] || 0 }} )
             </BkRadioButton>
           </BkRadioGroup>
-
+          <BkButton
+            v-if="showBatchOperation"
+            :disabled="selectedRows.length === 0"
+            :loading="isRetrying"
+            @click="handleBatchRetry">
+            <DbIcon
+              class="mr-4"
+              type="bk-dbm-icon db-icon-refresh" />
+            {{ t('批量重试') }}
+          </BkButton>
           <BkButton
             v-if="showBatchOperation"
             :disabled="selectedRows.length === 0"
@@ -75,7 +84,6 @@
               type="bk-dbm-icon db-icon-stop" />
             {{ t('批量终止') }}
           </BkButton>
-
           <BkButton
             v-bk-tooltips="t('导出该补货操作关联的所有单据明细，不受当前筛选条件影响')"
             :loading="isExporting"
@@ -174,6 +182,7 @@
             :width="120">
             <template #default="{ row }: { row: RowData }">
               <TicketStatusTag
+                :key="row.renderKey"
                 :data="{
                   status: row.status,
                   statusText: row.status_display,
@@ -311,11 +320,18 @@
 </template>
 
 <script setup lang="tsx">
+  import { InfoBox } from 'bkui-vue';
   import { useI18n } from 'vue-i18n';
+  import { useRequest } from 'vue-request';
 
   import TicketModel from '@services/model/ticket/ticket';
-  import { exportReplenishTickets, fetchReplenish, listTicketApplyInfo } from '@services/source/dbresourceReplenish';
-  import { getTickets } from '@services/source/ticket';
+  import {
+    batchRetryReplenishTickets,
+    exportReplenishTickets,
+    fetchReplenish,
+    listTicketApplyInfo,
+  } from '@services/source/dbresourceReplenish';
+  import { getTickets, getTicketStatus } from '@services/source/ticket';
   import { getInnerFlowInfo, revokeTicket } from '@services/source/ticketFlow';
 
   import { useSystemEnviron } from '@stores';
@@ -326,7 +342,9 @@
 
   import StatusFailedAction from '@views/ticket-center/ticket-self-todo/components/batch-operation/StatusFailedAction.vue';
 
-  import { messageSuccess, utcDisplayTime } from '@utils';
+  import { messageSuccess, random, utcDisplayTime } from '@utils';
+
+  import { useTimeoutFn } from '@vueuse/core';
 
   type StatusKey = 'all' | 'FAILED' | 'RUNNING' | 'SUCCEEDED' | 'TERMINATED';
 
@@ -341,6 +359,7 @@
     operator: string;
     os_name: string;
     record_id: number;
+    renderKey: string;
     spec: {
       spec_machine_type: string;
       spec_name: string;
@@ -375,7 +394,10 @@
   const isShowTerminateDialog = ref(false);
   const isTerminating = ref(false);
   const terminateFormRef = ref();
+  const isRetrying = ref(false);
   const ticketInnerFlowInfo = shallowRef<ServiceReturnType<typeof getInnerFlowInfo>>({});
+
+  const shouldPoll = ref(false);
 
   const summaryInfo = ref({
     create_at: '',
@@ -524,6 +546,46 @@
     selectedRowMap.value = {};
   };
 
+  // 轮询获取单据状态
+  const { refresh: fetchTicketStatus } = useRequest(
+    () => {
+      if (tableData.value.length < 1 || !shouldPoll.value) {
+        return Promise.reject();
+      }
+      return getTicketStatus({
+        ticket_ids: tableData.value.map((item) => item.id).join(','),
+      });
+    },
+    {
+      manual: true,
+      onSuccess(data: Record<string, string>) {
+        // 更新 tableData 中对应单据的 status
+        tableData.value.forEach((ticketData) => {
+          if (data[ticketData.id]) {
+            Object.assign(ticketData, {
+              renderKey: random(),
+              status: data[ticketData.id],
+              status_display:
+                TicketModel.statusTextMap[data[ticketData.id] as keyof typeof TicketModel.statusTextMap] ||
+                data[ticketData.id],
+            });
+          }
+        });
+        // 触发 shallowRef 响应式更新
+        tableData.value = [...tableData.value];
+
+        // 继续轮询
+        if (shouldPoll.value) {
+          loopFetchTicketStatus();
+        }
+      },
+    },
+  );
+
+  const { start: loopFetchTicketStatus, stop: stopPolling } = useTimeoutFn(() => {
+    fetchTicketStatus();
+  }, 3000);
+
   const handleBatchTerminate = () => {
     if (selectedRows.value.length === 0) return;
     terminateForm.remark = '';
@@ -547,6 +609,33 @@
     } finally {
       isTerminating.value = false;
     }
+  };
+
+  const handleBatchRetry = () => {
+    if (selectedRows.value.length === 0) return;
+
+    InfoBox({
+      cancelText: t('取消'),
+      confirmText: t('确定'),
+      content: t('确认后，失败单据将重新发起补货申请。'),
+      onConfirm: async () => {
+        try {
+          isRetrying.value = true;
+
+          await batchRetryReplenishTickets({
+            replenish_record_id: props.id,
+            ticket_ids: selectedRows.value.map((item) => item.id),
+          });
+
+          messageSuccess(t('批量重试成功'));
+          handleClearSelection();
+          fetchData();
+        } finally {
+          isRetrying.value = false;
+        }
+      },
+      title: t('确认批量重试 {count} 个单据', { count: selectedRows.value.length }),
+    });
   };
 
   const handleExportAll = async () => {
@@ -646,6 +735,12 @@
               ...applyInfoItem.details,
             } as unknown as RowData;
           });
+
+          // 启动轮询
+          if (tableData.value.length > 0) {
+            shouldPoll.value = true;
+            fetchTicketStatus();
+          }
         }
       }
     } finally {
@@ -655,10 +750,14 @@
 
   watch(
     isShow,
-    () => {
-      if (isShow.value && props.id) {
+    (newVal) => {
+      if (newVal && props.id) {
         selectedRowMap.value = {};
         fetchData();
+      } else {
+        // 停止轮询
+        shouldPoll.value = false;
+        stopPolling();
       }
     },
     {

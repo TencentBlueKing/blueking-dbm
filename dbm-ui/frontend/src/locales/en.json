@@ -4770,6 +4770,7 @@
   "确认重试": "Confirm Retry",
   "继续执行": "Continue Execution",
   "批量重试": "Batch Retry",
+  "确认批量重试 {count} 个单据": "Confirm batch retry for {count} tickets",
   "批量跳过": "Batch Skip",
   "批量继续": "Batch Continue",
   "图例": "Legend",
