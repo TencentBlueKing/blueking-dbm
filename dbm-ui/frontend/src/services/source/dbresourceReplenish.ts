@@ -11,8 +11,8 @@
  * the specific language governing permissions and limitations under the License.
  */
 
-import type { CreateReplenish } from '@services/model/db-resource/Replenish';
 import type ReplenishModel from '@services/model/db-resource/Replenish';
+import type { CreateReplenish } from '@services/model/db-resource/Replenish';
 
 import http from '../http';
 import type { ListBase } from '../types';
@@ -78,4 +78,11 @@ export function getRunningReplenishRecord() {
  */
 export function exportReplenishTickets(params: { replenish_record_ids: number[] }) {
   return http.post<string>(`${path}/export_replenish_tickets/`, params, { responseType: 'blob' });
+}
+
+/**
+ * 批量重试补货申请
+ */
+export function batchRetryReplenishTickets(params: { replenish_record_id: number; ticket_ids?: number[] }) {
+  return http.post(`${path}/batch_retry_replenish_tickets/`, params);
 }
