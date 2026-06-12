@@ -13,7 +13,7 @@ from unittest.mock import patch
 import pytest
 
 from backend.components.dbresource.client import DBResourceApi
-from backend.db_meta.enums import ClusterEntryRole, ClusterType
+from backend.db_meta.enums import ClusterType
 from backend.db_meta.models import Cluster, Machine
 from backend.db_services.quick_search.views import QuickSearchViewSet
 from backend.tests.mock_data.iam_app.permission import PermissionMock
@@ -71,21 +71,50 @@ class TestQuickSearchViewSet:
     @pytest.mark.parametrize("query", [QUICK_SEARCH_CONTAINS_PARAMS, QUICK_SEARCH_EXACT_PARAMS])
     @patch.object(DBResourceApi, "resource_list")
     @patch("backend.db_services.quick_search.handlers.Permission", PermissionMock)
-    def test_quick_search_for_entry(self, resource_list_mock, query, init_mysql_cluster):
+    def test_quick_search_for_cluster(self, resource_list_mock, query, init_mysql_cluster):
         """
-        测试搜索访问入口
+        测试搜索集群访问入口和标签
         """
+        from backend.db_meta.enums.comm import TagType
+        from backend.db_meta.models import Tag
+
         cluster = Cluster.objects.filter(cluster_type=ClusterType.TenDBHA).first()
+
+        # --- 测试通过域名搜索集群 ---
         target_value = cluster.immute_domain
         query["keyword"] = self._get_keyword(query, target_value)
         response = self._request_quick_search(resource_list_mock, query)
         assert response.status_code == 200
-        result = [
-            entry.get("entry")
-            for entry in response.data.get("entry")
-            if entry["role"] == ClusterEntryRole.MASTER_ENTRY
-        ]
-        assert cluster.immute_domain in result
+        clusters = response.data.get("cluster", [])
+        cluster_ids = [c.get("id") for c in clusters]
+        assert cluster.id in cluster_ids
+        # 验证匹配到的集群包含正确的访问入口
+        matched_cluster = next((c for c in clusters if c.get("id") == cluster.id), {})
+        master_domain = matched_cluster.get("master_domain", "")
+        assert master_domain == cluster.immute_domain
+
+        # --- 测试通过标签键搜索集群 ---
+        tag_key, tag_value = "负责人", "zhangsan"
+        tag, _ = Tag.objects.get_or_create(
+            key=tag_key, value=tag_value, type=TagType.CLUSTER.value, defaults={"bk_biz_id": cluster.bk_biz_id}
+        )
+        cluster.tags.add(tag)
+
+        # 模糊搜索：仅标签键
+        query["keyword"] = self._get_keyword(query, tag_key)
+        response = self._request_quick_search(resource_list_mock, query)
+        assert response.status_code == 200
+        clusters = response.data.get("cluster", [])
+        cluster_ids = [c.get("id") for c in clusters]
+        assert cluster.id in cluster_ids
+
+        # 模糊搜索：标签键:标签值
+        query["keyword"] = self._get_keyword(query, f"{tag_key}:{tag_value}")
+        response = self._request_quick_search(resource_list_mock, query)
+        assert response.status_code == 200
+        clusters = response.data.get("cluster", [])
+        cluster_ids = [c.get("id") for c in clusters]
+        assert cluster.id in cluster_ids
 
     @pytest.mark.parametrize("query", [QUICK_SEARCH_CONTAINS_PARAMS, QUICK_SEARCH_EXACT_PARAMS])
     @patch.object(DBResourceApi, "resource_list")
