@@ -15,7 +15,7 @@ from blue_krill.data_types.enum import EnumField, StrStructuredEnum
 
 class ResourceType(StrStructuredEnum):
     # CLUSTER_NAME = EnumField("cluster_name", _("集群名"))
-    ENTRY = EnumField("entry", _("访问入口"))
+    CLUSTER = EnumField("cluster", _("集群"))
     INSTANCE = EnumField("instance", _("实例"))
     TICKET = EnumField("ticket", _("单号"))
     TASK = EnumField("task", _("任务"))
