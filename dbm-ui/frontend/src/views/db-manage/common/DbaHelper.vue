@@ -1,6 +1,6 @@
 <template>
   <Teleport
-    :disabled="userDBAList.length === 0"
+    v-if="userDBAList.length > 0"
     to="#dbContentHeaderAppend">
     <div class="pr-16 db-manage-dba-header">
       <span class="pr-8">{{ t('主DBA') }}:</span>
