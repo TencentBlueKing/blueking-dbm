@@ -386,11 +386,11 @@
   const ticketInnerFlowInfo = shallowRef<ServiceReturnType<typeof getInnerFlowInfo>>({});
   const viewMode = ref<'drawer' | 'jump'>(userProfileStore.profile[TABLE_SETTING_KEY]?.view_mode || 'drawer');
 
-  const tableSettings = ref({
+  const tableSettings = computed(() => ({
     checked: userProfileStore.profile[TABLE_SETTING_KEY]?.checked,
     disabled: ['ids', 'ticket_type__in'],
     size: userProfileStore.profile[TABLE_SETTING_KEY]?.size || 'small',
-  });
+  }));
 
   const isSearching = computed(() => Object.keys(quickSearchValue.value).length > 0);
   const selectedCount = computed(() => Object.keys(rowSelectMemo.value).length);

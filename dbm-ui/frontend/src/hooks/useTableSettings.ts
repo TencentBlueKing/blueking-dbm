@@ -26,23 +26,24 @@ export const useTableSettings = (key: string, defaultSettings: Settings) => {
   const userProfileStore = useUserProfile();
 
   // 获取用户配置的表头信息
-  const settings = shallowRef<Settings>();
-  settings.value = {
-    checked: userProfileStore.profile[key]?.checked || defaultSettings.checked,
-    disabled: defaultSettings.disabled,
-    size: userProfileStore.profile[key]?.size || defaultSettings.size || 'small',
-  };
+  const settings = computed<Settings>(() => {
+    return {
+      checked: userProfileStore.profile[key]?.checked || defaultSettings.checked,
+      disabled: defaultSettings.disabled,
+      size: userProfileStore.profile[key]?.size || defaultSettings.size || 'small',
+    };
+  });
 
   /**
    * 更新表头设置
    */
-  const updateTableSettings = (payload?: { checked?: string[]; size?: string }) => {
+  const updateTableSettings = (payload?: { columns?: string[]; size?: string }) => {
     if (!payload) return;
-    
+
     userProfileStore.updateProfile({
       label: key,
       values: {
-        checked: payload.checked,
+        checked: payload.columns,
         size: payload.size,
       },
     });
