@@ -24,13 +24,13 @@ import RequestError from '../lib/request-error';
 
 // 标记已经登录过状态
 // 第一次登录跳转登录页面，之后弹框登录
-let hasLogined = false;
+window.HAS_LOGGED_IN = false;
 
 const redirectLogin = (loginUrl: string) => {
   const { host, pathname, protocol } = parseURL(loginUrl);
   const domain = `${protocol}://${host}${pathname}`;
 
-  if (hasLogined) {
+  if (window.HAS_LOGGED_IN) {
     showLoginModal({
       loginUrl: `${domain}?is_from_logout=1&c_url=${decodeURIComponent(`${window.location.origin}${window.PROJECT_ENV.VITE_PUBLIC_PATH}login-success.html`)}`,
     });
@@ -66,7 +66,7 @@ export default (interceptors: AxiosInterceptorManager<AxiosResponse>) => {
         case 0:
         case 200:
         case 'success':
-          hasLogined = true;
+          window.HAS_LOGGED_IN = true;
           return response.data;
         default: {
           // 文件的字节流
