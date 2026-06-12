@@ -73,21 +73,30 @@ class ReportBaseViewSet(AuditedModelViewSet):
         state_map.update({info["state"]: info["count"] for info in state_count_info})
         return state_map
 
-    def get_total_count(self):
+    def _get_time_filtered_queryset(self):
         """
-        获取全量数据的总记录数，不受搜索/过滤条件影响
+        获取经过 time_range 过滤的查询集，不受其他搜索/过滤条件影响
         """
         queryset = self.get_queryset()
-        # 获取 time_range 参数
         time_range = self.request.query_params.get("time_range", "")
         filter_instance = ReportListFilter(
             data=self.request.query_params,
             queryset=queryset,
             request=self.request,
         )
-        queryset = filter_instance.filter_time_range(queryset, "time_range", time_range)
+        return filter_instance.filter_time_range(queryset, "time_range", time_range)
 
-        return queryset.count()
+    def get_total_count(self):
+        """
+        获取全量数据的总记录数，不受搜索/过滤条件影响
+        """
+        return self._get_time_filtered_queryset().count()
+
+    def get_total_abnormal_count(self):
+        """
+        获取 time_range 范围内状态不正常的总数，不考虑其它搜索项
+        """
+        return self._get_time_filtered_queryset().filter(state=ReportStateType.ABNORMAL).count()
 
     def list(self, request, *args, **kwargs):
         response = super().list(request, *args, **kwargs)
@@ -95,6 +104,7 @@ class ReportBaseViewSet(AuditedModelViewSet):
         response.data["title"] = self.report_title
         response.data["state_count"] = self.summary_state_count()
         response.data["total_count"] = self.get_total_count()
+        response.data["total_abnormal_count"] = self.get_total_abnormal_count()
         return response
 
 
