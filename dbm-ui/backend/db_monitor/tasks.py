@@ -171,7 +171,7 @@ def query_cap(bk_biz_id, cluster_type, cap_key="used", immute_domains=None):
     query_template = QUERY_TEMPLATE.get(cluster_type)
     if not query_template:
         logger.error("No query template for cluster type: %s", cluster_type)
-        return {}
+        return {}, {}
 
     # now-5/15m ~ now
     end_time = datetime.datetime.now(timezone.utc)
