@@ -144,6 +144,7 @@
 
   const tableName = ref('');
   const total = ref(0);
+  const totalAbnormalCount = ref(0);
   const isShowFailSlaveInstance = ref(false);
   const failSlaveInstanceReportId = ref(0);
   const stateCountsMap = ref({
@@ -182,7 +183,7 @@
       }
       return t('{timeRange}内无巡检记录，若想查看更早结果，请扩大时间范围', { timeRange: timeRangeText });
     }
-    if (props.isOnlyAbnormal) {
+    if (props.isOnlyAbnormal && totalAbnormalCount.value === 0) {
       return t('{timeRange}内无预警或异常', { timeRange: timeRangeText });
     }
     return t('{timeRange}内无巡检记录', { timeRange: timeRangeText });
@@ -194,6 +195,7 @@
       stateCountsMap.value = result.state_count;
       pagination.total = result.count;
       total.value = result.total_count;
+      totalAbnormalCount.value = result.total_abnormal_count;
       tableName.value = result.name;
       const rawTitleList = result.title;
       const failedDaysIndex = rawTitleList.findIndex((item) => item.name === 'failed_days');
