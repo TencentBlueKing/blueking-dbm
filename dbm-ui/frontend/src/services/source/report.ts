@@ -131,6 +131,7 @@ export function getReport(path: string, params: Record<string, any>, payload = {
       name: string;
       ordering: boolean;
     }[];
+    total_abnormal_count: number;
     total_count: number;
   }>(path, params, payload);
 }
