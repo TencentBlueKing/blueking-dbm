@@ -294,7 +294,7 @@
         v-model:is-show="batchEditConfig.isShow"
         :data="selectedRows"
         :fetch-params="fetchParams"
-        @saved="emit('change')" />
+        @saved="handleBatchEditSaved" />
     </BkLoading>
   </ApplyPermissionCatch>
 </template>
@@ -491,9 +491,15 @@
     overflowStates.value[row.conf_name] = el.scrollWidth > el.clientWidth;
   };
 
-  /** 刷新表格数据 */
+  /** 仅刷新表格数据（不会请求接口） */
   const refreshTable = () => {
     paramTableRef.value?.fetchData({}, true);
+  };
+
+  /** 批量编辑保存后的处理 */
+  const handleBatchEditSaved = () => {
+    fetchLevelConfig(fetchParams.value); // 重新拉取配置列表（并且刷新表格）
+    emit('change');
   };
 
   /** 初始化描述 tippy 提示 */
@@ -550,13 +556,6 @@
     version: props.version,
   }));
 
-  watch(
-    () => props.levelValue,
-    () => {
-      console.log(props.levelValue, 'ww');
-    },
-  );
-
   /** 参数列表数据源 */
   const paramDataSource = (params: { limit: number; offset: number }) => {
     let data = [...allConfItems.value];
@@ -607,6 +606,16 @@
       data = [emptyRow, ...data];
     }
 
+    if (selectedRows.value.length) {
+      // 更新 selectedRows 中对应项的属性，保持响应式
+      selectedRows.value.forEach((row) => {
+        const latestItem = data.find((item) => item.conf_name === row.conf_name);
+        if (latestItem) {
+          Object.assign(row, latestItem);
+        }
+      });
+    }
+
     const start = params.offset;
     const end = start + params.limit;
     const result = {
@@ -617,7 +626,7 @@
     return Promise.resolve(result);
   };
 
-  /** 获取配置 */
+  /** 拉取配置列表（并且刷新表格） */
   const { loading, run: fetchLevelConfig } = useRequest(getLevelConfig, {
     manual: true,
     onSuccess(res) {

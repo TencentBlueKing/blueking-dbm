@@ -42,6 +42,9 @@
       <span class="config-detail-nav-title">
         {{ configTypeName }}
       </span>
+      <BkTag theme="info">
+        {{ clusterTypeInfos[clusterType]?.name || clusterType }}
+      </BkTag>
       <span class="config-detail-meta">
         <span>{{ t('配置名称') }}：{{ detailData?.name || '--' }}</span>
         <span>
@@ -61,7 +64,7 @@
 
   import { getLevelConfig, getListConfTypes } from '@services/source/configs';
 
-  import { type ClusterTypes, ConfLevels } from '@common/const';
+  import { clusterTypeInfos, type ClusterTypes, ConfLevels } from '@common/const';
 
   import ApplyPermissionCatch from '@components/apply-permission/Catch.vue';
 

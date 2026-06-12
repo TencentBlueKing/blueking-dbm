@@ -230,6 +230,8 @@
 
   import MultipleSelect from '@components/db-table/components/MultipleSelect.vue';
 
+  import { messageSuccess } from '@utils';
+
   import type { ConfItem } from './ParamTable.vue';
   import ValueEditor from './ValueEditor.vue';
 
@@ -393,6 +395,7 @@
         publish_description: '',
         version: props.fetchParams.version,
       });
+      messageSuccess(t('操作成功，n 个参数已转为自定义', { n: changedItems.length }));
       emit('saved');
       handleClose();
     } finally {

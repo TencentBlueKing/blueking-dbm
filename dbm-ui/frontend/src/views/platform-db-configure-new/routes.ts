@@ -42,7 +42,7 @@ const routes: RouteRecordRaw[] = [
         name: 'PlatformDbConfigureDetail',
         meta: {
           fullscreen: true,
-          navName: t('配置详情'),
+          navName: '',
         },
         component: () => import('@views/db-configure-new/platform/detail/Index.vue'),
       },
