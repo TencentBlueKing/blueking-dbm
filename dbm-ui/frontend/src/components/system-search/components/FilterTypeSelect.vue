@@ -36,14 +36,10 @@
   </BkSelect>
 </template>
 
-<script lang="ts">
-  export enum FilterType {
-    CONTAINS = 'CONTAINS',
-    EXACT = 'EXACT',
-  }
-</script>
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
+
+  import { FilterType } from '@common/const';
 
   export interface Props {
     iconType: string;
