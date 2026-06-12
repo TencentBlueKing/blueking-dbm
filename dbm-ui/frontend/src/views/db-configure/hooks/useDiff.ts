@@ -14,14 +14,11 @@
 import _ from 'lodash';
 import type { ComputedRef } from 'vue';
 
-import { getLevelConfig } from '@services/source/configs';
-
-type ParameterConfigItem = ServiceReturnType<typeof getLevelConfig>['conf_items'][number];
-type DiffData = ComputedRef<ParameterConfigItem[]> | ParameterConfigItem[];
+type DiffData = ComputedRef<any[]> | any[];
 
 export type DiffItem = {
-  after?: ParameterConfigItem;
-  before?: ParameterConfigItem;
+  after?: any;
+  before?: any;
   name: string;
   status: string;
 };
@@ -43,7 +40,8 @@ export const useDiff = (data: DiffData, origin: DiffData) => {
     const cloneOrigin = _.cloneDeep(unref(origin));
 
     // table 组件设置 rowKey 失效导致自动加了一个 _X_ROW_KEY 字段
-    cloneData.forEach((item) => {
+    cloneData.forEach((item: any) => {
+      // eslint-disable-next-line no-underscore-dangle, no-param-reassign
       delete item._X_ROW_KEY;
     });
 
@@ -72,17 +70,17 @@ export const useDiff = (data: DiffData, origin: DiffData) => {
     }
 
     // updated items
-    const excludesMap: { [key: string]: boolean } = {};
+    const excludesMap: Record<string, boolean> = {};
     for (const item of state.data) {
       excludesMap[item.name] = true;
     }
     // 剩余对比项
-    const remainingData = cloneData.filter((item) => excludesMap[item.conf_name] !== true);
+    const remainingData = cloneData.filter((item: any) => excludesMap[item.conf_name] !== true);
     // 发生变更 items
     const updated = _.differenceWith(remainingData, cloneOrigin, _.isEqual);
     state.count.update = updated.length;
 
-    const originNames: { [key: string]: ParameterConfigItem } = {};
+    const originNames: Record<string, any> = {};
     for (const item of cloneOrigin) {
       originNames[item.conf_name] = item;
     }

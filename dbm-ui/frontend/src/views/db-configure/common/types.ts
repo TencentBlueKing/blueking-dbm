@@ -11,35 +11,53 @@
  * the specific language governing permissions and limitations under the License.
  */
 
-import { getLevelConfig } from '@services/source/configs';
+import BizConfTopoTreeModel from '@services/model/config/biz-conf-topo-tree';
 
-import { ClusterTypes } from '@common/const';
-
-/**
- * 对应集群参数配置版本信息
- */
-export type ExtraConfListItem = {
-  conf_type: string;
-  data: ServiceReturnType<typeof getLevelConfig> | null;
-  loading: boolean;
-  title: string;
-  version: string;
-};
+import type { ConfLevels } from '@common/const';
 
 /**
- * 集群多份参数配置信息
+ * 树节点数据
  */
-export type ExtraParamertesCluster = Partial<Record<ClusterTypes, ExtraConfListItem[]>>;
-
-/**
- * 获取对应集群版本列表项信息
- */
-export type ConfType = {
-  confType: string;
+export type TreeData = {
+  children: TreeData[];
+  /** 模块下挂载的集群列表（不进入树渲染，仅用于展示"关联集群"等业务信息） */
+  clusters?: TreeData[];
+  data?: BizConfTopoTreeModel;
+  id: number;
+  isOpen?: boolean;
+  levelType: ConfLevels;
   name: string;
+  parentId: string;
+  tag: string;
+  treeId: string;
+  version?: string;
 };
 
 /**
- * 集群版本配置列表 tabs 信息
+ * 树 state
  */
-export type ExtraClusterConf = Partial<Record<ClusterTypes, ConfType[]>>;
+export type TreeState = {
+  activeNode?: TreeData;
+  data: TreeData[];
+  isAnomalies: boolean;
+  loading: boolean;
+  search: string;
+  selected?: TreeData;
+};
+
+/** 模块信息类型定义 */
+export interface ModuleInfo {
+  bufferPercent?: string; // 内存分片比率 (SqlServer)
+  charset: string; // 字符集
+  maxRemainMemGb?: string; // 最大OS保留内存 (SqlServer)
+  moduleId: number;
+  moduleName: string;
+  relatedClusterCount: number;
+  relatedClusters: string;
+  spiderVersion?: string; // 接入层版本 (TenDBCluster)
+  syncType?: string; // 主从方式 (SqlServer)
+  systemVersion?: string; // 操作系统版本 (SqlServer)
+  updatedAt: string;
+  updatedBy: string;
+  version: string; // 数据库版本
+}

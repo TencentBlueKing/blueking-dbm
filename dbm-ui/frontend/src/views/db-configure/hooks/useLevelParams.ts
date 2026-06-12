@@ -15,9 +15,7 @@ import type { ComputedRef } from 'vue';
 
 import { useGlobalBizs } from '@stores';
 
-import { clusterTypeInfos, ClusterTypes, ConfLevels, type ConfLevelValues } from '@common/const';
-
-import { notModuleClusters } from '../common/const';
+import { ConfLevels, type ConfLevelValues } from '@common/const';
 
 export type LevelParams = {
   bk_biz_id?: number;
@@ -41,7 +39,7 @@ export const useLevelParams = (isPlat: boolean): ComputedRef<LevelParams> => {
       return {};
     }
 
-    const { clusterType, parentId, treeId } = route.params;
+    const { parentId, treeId } = route.params;
 
     if (!treeId) {
       return {
@@ -52,20 +50,15 @@ export const useLevelParams = (isPlat: boolean): ComputedRef<LevelParams> => {
     const params = {
       bk_biz_id: globalBizsStore.currentBizId,
       level_info: undefined as any,
-      level_name: ConfLevels.PLAT,
-      level_value: 0,
+      level_name: ConfLevels.APP,
+      level_value: globalBizsStore.currentBizId,
     };
     // 处理路由参数
     const [levelType, nodeId] = (treeId as string).split('-');
     params.level_name = levelType as ConfLevels;
     params.level_value = Number(nodeId);
-    const notExistModule = notModuleClusters.includes(clusterTypeInfos[clusterType as ClusterTypes].dbType);
-    if (parentId && levelType === ConfLevels.CLUSTER) {
-      let [parentLevelType, parentNodeId] = (parentId as string).split('-');
-      if (notExistModule) {
-        parentLevelType = 'module';
-        parentNodeId = '0';
-      }
+    if (parentId) {
+      const [parentLevelType, parentNodeId] = (parentId as string).split('-');
       params.level_info = {
         [parentLevelType]: parentNodeId,
       };
