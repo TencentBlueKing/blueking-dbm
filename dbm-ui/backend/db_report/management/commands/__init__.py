@@ -8,23 +8,3 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-from blueapps.core.celery.celery import app
-
-from .mysql_backup_result import clean_expired_mysql_backup_records, clean_expired_mysql_binlog_records
-from .sqlserver_backup_result import clean_expired_sqlserver_backup_records, clean_expired_sqlserver_binlog_records
-
-
-@app.task
-def clean_all_expired_backup_records():
-
-    # 清理 MySQL 全备记录
-    clean_expired_mysql_backup_records()
-
-    # 清理 MySQL Binlog 记录
-    clean_expired_mysql_binlog_records()
-
-    # 清理 SQLServer 全备记录
-    clean_expired_sqlserver_backup_records()
-
-    # 清理 SQLServer 事务日志备份记录
-    clean_expired_sqlserver_binlog_records()
