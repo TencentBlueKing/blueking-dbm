@@ -15,6 +15,7 @@ BACKUP_FILE_TAG_TABLE = {
     "OTHER": {"file_savedays": 30, "tag_cn_name": _("未归类")},
     "BINLOG": {"file_savedays": 15, "tag_cn_name": _("BINLOG")},
     "MYSQL_FULL_BACKUP": {"file_savedays": 25, "tag_cn_name": _("MYSQL全备")},
+    "MSSQL_FULL_BACKUP": {"file_savedays": 25, "tag_cn_name": _("SQLServer全备")},
     "ORACLE": {"file_savedays": 25, "tag_cn_name": _("ORACLE全备")},
     "OSDATA": {"file_savedays": 30, "tag_cn_name": _("脚本备份")},
     "INCREMENT_BACKUP": {"file_savedays": 15, "tag_cn_name": _("增量备份")},
