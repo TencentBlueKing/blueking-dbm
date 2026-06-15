@@ -195,6 +195,7 @@ class RedisRollbackExerciseContext:
 
     alarm_shield_id: int = None  # 告警屏蔽ID
     task_msg: list = field(default_factory=list)  # 执行情况
+    applied_infos: list = field(default_factory=list)  # resource-apply result, visible to sub-processes
 
 
 @dataclass()

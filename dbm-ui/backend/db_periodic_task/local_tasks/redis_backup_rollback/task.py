@@ -21,10 +21,102 @@ from backend.db_report.models import RedisRollbackExerciseReport as Report
 from backend.flow.consts import StateType
 from backend.flow.models import FlowTree
 from backend.flow.signal.redis_rollback_exercise_handler import wakeup_redis_rollback_runner_by_child
+from backend.ticket.constants import FlowType, TicketStatus, TicketType
+from backend.ticket.models import Flow, Ticket
 
 from .base import RedisRollbackExercise
 
 logger = logging.getLogger("root")
+
+RECYCLE_TICKET_TYPES = (TicketType.RECYCLE_APPLY_HOST, TicketType.RECYCLE_OLD_HOST)
+TERMINAL_TICKET_STATUSES = (
+    TicketStatus.SUCCEEDED,
+    TicketStatus.FAILED,
+    TicketStatus.TERMINATED,
+    TicketStatus.REVOKED,
+)
+RECENT_TICKET_LOOKBACK_DAYS = 2
+
+
+def ticket_has_applied_hosts(ticket: Ticket) -> bool:
+    """Return True when rollback exercise ticket details contain applied resource hosts."""
+    recycle_hosts = ticket.details.get("recycle_hosts") or []
+    if recycle_hosts:
+        return True
+
+    for info in ticket.details.get("infos") or []:
+        if info.get("redis"):
+            return True
+    return False
+
+
+def ticket_has_recycle_ticket(ticket_id: int) -> bool:
+    """Return True when the parent drill ticket already has a linked recycle ticket.
+
+    ``Ticket.create_recycle_ticket`` registers a DELIVERY flow on the parent with
+    ``details.related_ticket`` pointing to the recycle ticket. Query by indexed
+    ``Flow.ticket_id`` instead of JSON ``details.parent_ticket`` on Ticket.
+    """
+    related_ticket_ids = []
+    for flow in Flow.objects.filter(
+        ticket_id=ticket_id,
+        flow_type=FlowType.DELIVERY.value,
+    ).only("details"):
+        related_id = (flow.details or {}).get("related_ticket")
+        if related_id:
+            related_ticket_ids.append(related_id)
+
+    if not related_ticket_ids:
+        return False
+
+    return Ticket.objects.filter(
+        id__in=related_ticket_ids,
+        ticket_type__in=RECYCLE_TICKET_TYPES,
+    ).exists()
+
+
+def resolve_missing_recycle_request(ticket: Ticket) -> tuple[TicketType, list]:
+    """Choose recycle ticket type/hosts for a drill ticket missing recycle linkage."""
+    recycle_hosts = ticket.details.get("recycle_hosts") or []
+    if ticket.status == TicketStatus.TERMINATED:
+        return TicketType.RECYCLE_APPLY_HOST, []
+    return TicketType.RECYCLE_OLD_HOST, recycle_hosts
+
+
+def repair_missing_redis_rollback_recycle_tickets(polling_timeout: int) -> int:
+    """
+    Best-effort safety net for drill tickets that applied hosts but missed recycle creation.
+    """
+    now = django_timezone.now()
+    grace_cutoff = now - timedelta(seconds=polling_timeout)
+    recent_cutoff = now - timedelta(days=RECENT_TICKET_LOOKBACK_DAYS)
+
+    tickets = Ticket.objects.filter(
+        ticket_type=TicketType.REDIS_ROLLBACK_EXERCISE,
+        status__in=TERMINAL_TICKET_STATUSES,
+        update_at__lt=grace_cutoff,
+        create_at__gte=recent_cutoff,
+    ).only("id", "status", "details")
+
+    repaired = 0
+    for ticket in tickets:
+        if not ticket_has_applied_hosts(ticket):
+            continue
+        if ticket_has_recycle_ticket(ticket.id):
+            continue
+
+        recycle_type, recycle_hosts = resolve_missing_recycle_request(ticket)
+        logger.warning(
+            _("Redis rollback exercise ticket {} is {} with applied hosts but no recycle ticket; creating {}").format(
+                ticket.id, ticket.status, recycle_type
+            )
+        )
+        Ticket.create_recycle_ticket(ticket.id, recycle_hosts, recycle_type)
+        repaired += 1
+
+    if repaired:
+        logger.info(_("Created {} missing redis rollback recycle ticket(s)").format(repaired))
+    return repaired
 
 
 @register_periodic_task(run_every=crontab(day_of_week="0", hour="12", minute="0"))
@@ -85,3 +177,12 @@ def repair_stuck_redis_rollback_exercise():
 
     if recovered:
         logger.info(_("Recovered {} stuck redis rollback runner(s)").format(recovered))
+
+
+@register_periodic_task(run_every=crontab(hour="3", minute="0"))
+def repair_missing_redis_rollback_exercise_recycle():
+    """
+    Daily safety net for drill tickets that applied hosts but missed recycle creation.
+    """
+    polling_timeout = RedisRollbackExercise().config.polling_timeout
+    repair_missing_redis_rollback_recycle_tickets(polling_timeout)

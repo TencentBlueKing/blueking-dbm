@@ -19,7 +19,8 @@ from backend.db_report.enums import RedisRollbackExerciseTaskStage as TaskStage
 from backend.db_report.models import RedisRollbackExerciseReport as Report
 from backend.flow.consts import StateType
 from backend.flow.models import FlowTree
-from backend.ticket.constants import TicketType
+from backend.ticket.constants import FlowType, TicketFlowStatus, TicketStatus, TicketType
+from backend.ticket.models import Flow, Ticket
 
 pytestmark = pytest.mark.django_db
 
@@ -290,3 +291,212 @@ def test_periodic_repair_running_child_under_3_timeout_no_warning():
     mock_warning.assert_not_called()
     report.delete()
     flow_tree.delete()
+
+
+# ==================== Missing recycle ticket repair ====================
+
+
+def _make_drill_ticket(status: TicketStatus, details: dict, hours_ago: int = 2) -> Ticket:
+    ticket = Ticket.objects.create(
+        bk_biz_id=1,
+        ticket_type=TicketType.REDIS_ROLLBACK_EXERCISE,
+        status=status,
+        creator="tester",
+        updater="tester",
+        remark="drill ticket",
+        details=details,
+        group="redis",
+    )
+    Ticket.objects.filter(id=ticket.id).update(
+        update_at=timezone.now() - timedelta(hours=hours_ago),
+        create_at=timezone.now() - timedelta(days=1),
+    )
+    ticket.refresh_from_db()
+    return ticket
+
+
+def _import_recycle_repair():
+    from backend.db_periodic_task.local_tasks.redis_backup_rollback.task import (
+        repair_missing_redis_rollback_recycle_tickets,
+        resolve_missing_recycle_request,
+        ticket_has_applied_hosts,
+        ticket_has_recycle_ticket,
+    )
+
+    return (
+        repair_missing_redis_rollback_recycle_tickets,
+        resolve_missing_recycle_request,
+        ticket_has_applied_hosts,
+        ticket_has_recycle_ticket,
+    )
+
+
+def test_ticket_has_applied_hosts_from_recycle_hosts():
+    ticket = _make_drill_ticket(TicketStatus.SUCCEEDED, {"recycle_hosts": [{"bk_host_id": 1, "ip": "1.1.1.1"}]})
+    _, _, ticket_has_applied_hosts, _ = _import_recycle_repair()
+
+    assert ticket_has_applied_hosts(ticket) is True
+    ticket.delete()
+
+
+def test_ticket_has_applied_hosts_from_infos_redis():
+    ticket = _make_drill_ticket(
+        TicketStatus.FAILED,
+        {"infos": [{"redis": [{"bk_host_id": 2, "ip": "2.2.2.2", "bk_cloud_id": 0}]}]},
+    )
+    _, _, ticket_has_applied_hosts, _ = _import_recycle_repair()
+
+    assert ticket_has_applied_hosts(ticket) is True
+    ticket.delete()
+
+
+def test_ticket_has_recycle_ticket_ignores_parent_ticket_without_delivery_flow():
+    parent = _make_drill_ticket(TicketStatus.SUCCEEDED, {"recycle_hosts": [{"bk_host_id": 1}]})
+    recycle = Ticket.objects.create(
+        bk_biz_id=1,
+        ticket_type=TicketType.RECYCLE_OLD_HOST,
+        status=TicketStatus.PENDING,
+        creator="tester",
+        updater="tester",
+        remark="recycle",
+        details={"parent_ticket": parent.id},
+        group="common",
+    )
+    _, _, _, ticket_has_recycle_ticket = _import_recycle_repair()
+
+    assert ticket_has_recycle_ticket(parent.id) is False
+    recycle.delete()
+    parent.delete()
+
+
+def test_ticket_has_recycle_ticket_by_delivery_flow():
+    parent = _make_drill_ticket(TicketStatus.SUCCEEDED, {"recycle_hosts": [{"bk_host_id": 1}]})
+    recycle = Ticket.objects.create(
+        bk_biz_id=1,
+        ticket_type=TicketType.RECYCLE_OLD_HOST,
+        status=TicketStatus.PENDING,
+        creator="tester",
+        updater="tester",
+        remark="recycle",
+        details={"parent_ticket": parent.id},
+        group="common",
+    )
+    Flow.objects.create(
+        ticket=parent,
+        flow_type=FlowType.DELIVERY.value,
+        status=TicketFlowStatus.SUCCEEDED,
+        details={"related_ticket": recycle.id},
+        flow_alias="recycle",
+    )
+    _, _, _, ticket_has_recycle_ticket = _import_recycle_repair()
+
+    assert ticket_has_recycle_ticket(parent.id) is True
+    recycle.delete()
+    parent.delete()
+
+
+@pytest.mark.parametrize(
+    ("status", "expected_type"),
+    [
+        (TicketStatus.SUCCEEDED, TicketType.RECYCLE_OLD_HOST),
+        (TicketStatus.FAILED, TicketType.RECYCLE_OLD_HOST),
+        (TicketStatus.TERMINATED, TicketType.RECYCLE_APPLY_HOST),
+        (TicketStatus.REVOKED, TicketType.RECYCLE_OLD_HOST),
+    ],
+)
+def test_resolve_missing_recycle_request(status, expected_type):
+    ticket = _make_drill_ticket(
+        status,
+        {"recycle_hosts": [{"bk_host_id": 1, "ip": "1.1.1.1", "bk_cloud_id": 0}]},
+    )
+    _, resolve_missing_recycle_request, _, _ = _import_recycle_repair()
+
+    recycle_type, recycle_hosts = resolve_missing_recycle_request(ticket)
+    assert recycle_type == expected_type
+    if expected_type == TicketType.RECYCLE_APPLY_HOST:
+        assert recycle_hosts == []
+    else:
+        assert recycle_hosts == ticket.details["recycle_hosts"]
+    ticket.delete()
+
+
+def test_repair_missing_recycle_creates_ticket_for_terminal_drill():
+    ticket = _make_drill_ticket(
+        TicketStatus.FAILED,
+        {"recycle_hosts": [{"bk_host_id": 1, "ip": "1.1.1.1", "bk_cloud_id": 0}]},
+    )
+    repair_missing_redis_rollback_recycle_tickets, _, _, _ = _import_recycle_repair()
+
+    with patch(
+        "backend.db_periodic_task.local_tasks.redis_backup_rollback.task.Ticket.create_recycle_ticket"
+    ) as mock_create:
+        repaired = repair_missing_redis_rollback_recycle_tickets(10)
+
+    assert repaired == 1
+    mock_create.assert_called_once_with(ticket.id, ticket.details["recycle_hosts"], TicketType.RECYCLE_OLD_HOST)
+    ticket.delete()
+
+
+def test_repair_missing_recycle_skips_when_recycle_exists():
+    ticket = _make_drill_ticket(
+        TicketStatus.SUCCEEDED,
+        {"recycle_hosts": [{"bk_host_id": 1, "ip": "1.1.1.1", "bk_cloud_id": 0}]},
+    )
+    recycle = Ticket.objects.create(
+        bk_biz_id=1,
+        ticket_type=TicketType.RECYCLE_OLD_HOST,
+        status=TicketStatus.PENDING,
+        creator="tester",
+        updater="tester",
+        remark="recycle",
+        details={"parent_ticket": ticket.id},
+        group="common",
+    )
+    Flow.objects.create(
+        ticket=ticket,
+        flow_type=FlowType.DELIVERY.value,
+        status=TicketFlowStatus.SUCCEEDED,
+        details={"related_ticket": recycle.id},
+        flow_alias="recycle",
+    )
+    repair_missing_redis_rollback_recycle_tickets, _, _, _ = _import_recycle_repair()
+
+    with patch(
+        "backend.db_periodic_task.local_tasks.redis_backup_rollback.task.Ticket.create_recycle_ticket"
+    ) as mock_create:
+        repaired = repair_missing_redis_rollback_recycle_tickets(10)
+
+    assert repaired == 0
+    mock_create.assert_not_called()
+    recycle.delete()
+    ticket.delete()
+
+
+def test_repair_missing_recycle_skips_running_ticket():
+    ticket = _make_drill_ticket(
+        TicketStatus.RUNNING,
+        {"recycle_hosts": [{"bk_host_id": 1, "ip": "1.1.1.1", "bk_cloud_id": 0}]},
+    )
+    repair_missing_redis_rollback_recycle_tickets, _, _, _ = _import_recycle_repair()
+
+    with patch(
+        "backend.db_periodic_task.local_tasks.redis_backup_rollback.task.Ticket.create_recycle_ticket"
+    ) as mock_create:
+        repaired = repair_missing_redis_rollback_recycle_tickets(10)
+
+    assert repaired == 0
+    mock_create.assert_not_called()
+    ticket.delete()
+
+
+def test_daily_recycle_repair_invokes_missing_recycle_repair():
+    from backend.db_periodic_task.local_tasks.redis_backup_rollback.task import (
+        repair_missing_redis_rollback_exercise_recycle,
+    )
+
+    with _PATCH_EXERCISE_CFG, patch(
+        "backend.db_periodic_task.local_tasks.redis_backup_rollback.task.repair_missing_redis_rollback_recycle_tickets"
+    ) as mock_repair:
+        repair_missing_redis_rollback_exercise_recycle()
+
+    mock_repair.assert_called_once_with(10)

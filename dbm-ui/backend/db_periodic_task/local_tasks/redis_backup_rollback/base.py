@@ -38,7 +38,7 @@ from backend.db_services.redis.util import (
 )
 from backend.exceptions import AppBaseException
 from backend.flow.consts import DEFAULT_DB_MODULE_ID, ConfigTypeEnum
-from backend.ticket.builders.common.base import ClusterType, IpSource
+from backend.ticket.builders.common.base import ClusterType
 from backend.ticket.constants import TicketType
 from backend.ticket.models import ClusterOperateRecord, Ticket
 from backend.utils.redis import RedisConn
@@ -97,9 +97,9 @@ class RedisRollbackExercise:
         3. Create a REDIS_ROLLBACK_EXERCISE drill ticket with selected instances
 
         The drill ticket will:
-        - Apply resources
+        - Apply resources inside the inner flow
         - Create `redis_data_structure` flow to rollback each instance
-        - Each rollback flow requires 1 machine with spec equal to instance selected
+        - Each rollback flow requires 1 redis-pool machine with disk/mem >= source instance
         - Monitor rollback flow states
         - Destroy temp instances via `redis_data_structure_task_delete` flow
         - Return the resources
@@ -420,12 +420,6 @@ class RedisRollbackExercise:
                 "instance_port": instance.port,
                 "recovery_time_point": datetime2str(recovery_time_point),
                 "report_id": report.id,  # Link to report record for status updates
-                "resource_spec": {
-                    "redis": {
-                        "count": 1,
-                        "spec_id": instance.machine.spec_id,
-                    }
-                },
             }
             infos.append(instance_info)
 
@@ -442,7 +436,6 @@ class RedisRollbackExercise:
                         "polling_timeout": self.config.polling_timeout,
                         "error_ignorable": self.config.error_ignorable,
                     },
-                    "ip_source": IpSource.RESOURCE_POOL.value,
                 },
                 auto_execute=True,
             )
