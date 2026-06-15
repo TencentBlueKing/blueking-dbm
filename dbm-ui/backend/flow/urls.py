@@ -196,6 +196,11 @@ from backend.flow.views.pulsar_reboot import RebootPulsarSceneApiView
 from backend.flow.views.pulsar_replace import ReplacePulsarSceneApiView
 from backend.flow.views.pulsar_scale_up import ScaleUpPulsarSceneApiView
 from backend.flow.views.pulsar_shrink import ShrinkPulsarSceneApiView
+from backend.flow.views.qdrant_apply import InstallK8sQdrantSceneApiView
+from backend.flow.views.qdrant_delete import DeleteK8sQdrantSceneApiView
+from backend.flow.views.qdrant_disable import DisableK8sQdrantSceneApiView
+from backend.flow.views.qdrant_enable import EnableK8sQdrantSceneApiView
+from backend.flow.views.qdrant_restart import RestartK8sQdrantSceneApiView
 from backend.flow.views.redis_cluster import (
     InstallPredixyClusterSceneApiView,
     InstallPredixyTendisPlusInsSceneApiView,
@@ -644,4 +649,10 @@ urlpatterns = [
     url(r"^scene/shrink_vm$", ShrinkVmSceneApiView.as_view()),
     url(r"^scene/replace_vm$", ReplaceVmSceneApiView.as_view()),
     url("^scene/vm_machine_clear$", VmMachineClearApiView.as_view()),
+    # qdrant
+    url(r"^scene/install_k8s_qdrant$", InstallK8sQdrantSceneApiView.as_view()),
+    url(r"^scene/enable_k8s_qdrant$", EnableK8sQdrantSceneApiView.as_view()),
+    url(r"^scene/disable_k8s_qdrant$", DisableK8sQdrantSceneApiView.as_view()),
+    url(r"^scene/delete_k8s_qdrant$", DeleteK8sQdrantSceneApiView.as_view()),
+    url(r"^scene/restart_k8s_qdrant$", RestartK8sQdrantSceneApiView.as_view()),
 ]
