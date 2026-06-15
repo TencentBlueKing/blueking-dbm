@@ -53,7 +53,7 @@ class McpCalleePlanFlowBuilder(TicketFlowBuilder):
 
     default_need_itsm = False
     default_need_manual_confirm = True
-    enable_ai_details_summary = True
+    # enable_ai_details_summary = True
 
     group = "common"
     inner_flow_name = _("注册 MCP 执行计划")

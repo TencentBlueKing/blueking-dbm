@@ -8,4 +8,19 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-from .subflow import clone_grants_from_file_subflow
+
+from django.utils.translation import gettext_lazy as _
+from rest_framework import serializers
+
+
+class SubmitBillMySQLCloneGrantsInputSerializer(serializers.Serializer):
+    bk_cloud_id = serializers.IntegerField(
+        required=False,
+        default=0,
+        help_text=_("云区域 ID，默认 0"),
+    )
+    address = serializers.CharField(help_text=_("源实例地址, ip:port 格式"))
+    dest_addresses = serializers.ListField(
+        child=serializers.CharField(),
+        help_text=_("目标实例地址列表, ip:port 格式"),
+    )

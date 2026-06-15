@@ -18,7 +18,7 @@ func ParseModernFile(
 ) error {
 	userCount := 0
 	systemUserCount := 0
-	lastUser := ""
+	seenUsers := make(map[string]struct{})
 
 	ls := pkg.NewLineScanner(scanner, path, totalLines)
 	defer ls.Stop()
@@ -27,7 +27,7 @@ func ParseModernFile(
 		stmt := replacer.Replace(ls.Stmt())
 
 		if matches := pkg.ReCreateUser.FindStringSubmatch(stmt); matches != nil {
-			if err := handleModernCreateUser(stmt, matches, cfg, &lastUser, &userCount, &systemUserCount, w); err != nil {
+			if err := handleModernCreateUser(stmt, matches, cfg, seenUsers, &userCount, &systemUserCount, w); err != nil {
 				logger.Error("handleModernCreateUser: %v", err)
 				return err
 			}
@@ -68,7 +68,7 @@ func ParseModernFile(
 // 系统用户写入独立文件，普通用户通过 cfg.AddIfNotExists 加工后写入 create 文件。
 func handleModernCreateUser(
 	stmt string, matches []string, cfg *pkg.ParseConfig,
-	lastUser *string, userCount *int, systemUserCount *int, w *pkg.Writers,
+	seenUsers map[string]struct{}, userCount *int, systemUserCount *int, w *pkg.Writers,
 ) error {
 	user, host, _ := pkg.ExtractUserHost(matches, 1)
 	key := user + "@" + host
@@ -83,10 +83,12 @@ func handleModernCreateUser(
 		return nil
 	}
 
-	if key != *lastUser {
-		*userCount++
-		*lastUser = key
+	if _, exists := seenUsers[key]; exists {
+		logger.Warn("skipping duplicate CREATE USER for %s after host replacement", key)
+		return nil
 	}
+	seenUsers[key] = struct{}{}
+	*userCount++
 
 	outStmt := cfg.AddIfNotExists(stmt)
 	if err := w.WriteCreate(fmt.Sprintf("%s;\n", outStmt)); err != nil {
