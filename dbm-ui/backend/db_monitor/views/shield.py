@@ -64,7 +64,6 @@ class AlarmShieldView(SystemViewSet):
         if params.get("category"):
             params["categories"] = [params["category"]]
         conditions = params.get("conditions", [])
-        conditions.append({"key": "description", "value": format_shield_description(params["bk_biz_id"])})
         params.update(
             {
                 "bk_biz_id": env.DBA_APP_BK_BIZ_ID,
@@ -72,6 +71,8 @@ class AlarmShieldView(SystemViewSet):
                 "page": page,
                 "page_size": page_size,
                 "conditions": conditions,
+                # 这样可以直接拿到维度里有这个业务的所有屏蔽策略，dbm上创建的策略一定是带业务维度的
+                "dimension_conditions": [{"key": "appid", "value": [params["bk_biz_id"]]}],
             }
         )
         data = BKMonitorV3Api.list_shield(params)
