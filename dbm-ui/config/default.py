@@ -160,6 +160,9 @@ if env.ENABLE_DBM_AI:
         "aidev_bkplugin",
         "backend.dbm_aiagent",
     )
+    # 这两张表由 SDK 侧负责创建，dbm 不接管其 schema，故置空跳过该 app 的迁移。
+    # 注：checkpoint 表的联合唯一索引在 utf8mb4 下，超过 InnoDB 单索引 3072 字节上限会导致迁移失败
+    MIGRATION_MODULES = {"aidev_bkplugin": None}
 
 # 中间件
 MIDDLEWARE = (

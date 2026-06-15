@@ -150,8 +150,8 @@ environment variables
 {{- printf "%s-%s" (include "dbm.fullname" .) "celery-beater" -}}
 {{- end -}}
 
-{{- define "dbm.pipeline-execute.fullname" -}}
-{{- printf "%s-%s" (include "dbm.fullname" .) "pipeline-execute" -}}
+{{- define "dbm.pipeline-worker.fullname" -}}
+{{- printf "%s-%s" (include "dbm.fullname" .) "pipeline-worker" -}}
 {{- end -}}
 
 {{- define "dbm.pipeline-schedule.fullname" -}}

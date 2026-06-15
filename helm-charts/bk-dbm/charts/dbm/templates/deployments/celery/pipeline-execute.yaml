@@ -1,5 +1,5 @@
 {{- if .Values.saas.pipelineWorker.enabled | default .Values.enabled -}}
-{{- $fullName := ( include "dbm.pipeline-execute.fullname" .) -}}
+{{- $fullName := ( include "dbm.pipeline-worker.fullname" .) -}}
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -31,9 +31,9 @@ spec:
       serviceAccountName: {{ include "dbm.serviceAccountName" . }}
       securityContext:
         {{- toYaml .Values.podSecurityContext | nindent 8 }}
-      terminationGracePeriodSeconds: {{ .Values.terminationGracePeriodSeconds.execute }}
+      terminationGracePeriodSeconds: {{ .Values.terminationGracePeriodSeconds.worker }}
       containers:
-        - name: "{{ .Chart.Name }}-celery-pipeline-execute"
+        - name: "{{ .Chart.Name }}-celery-pipeline"
           securityContext:
             {{- toYaml .Values.securityContext | nindent 12 }}
           image: "{{ .Values.global.imageRegistry | default .Values.image.registry }}/{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
