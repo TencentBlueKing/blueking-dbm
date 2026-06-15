@@ -35,6 +35,8 @@ type ListOptions struct {
 	ClusterName   string
 	SwitchVersion string
 	Status        string
+	Output        string
+	OutputFile    string
 }
 
 // AddOptions contains add command arguments.
