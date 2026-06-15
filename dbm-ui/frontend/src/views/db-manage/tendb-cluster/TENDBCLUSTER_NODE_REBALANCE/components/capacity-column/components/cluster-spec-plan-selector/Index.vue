@@ -86,7 +86,7 @@
           style="width: 314px" />
       </BkFormItem>
       <BkFormItem
-        :label="t('数量')"
+        :label="t('机器组数')"
         property="count"
         required
         :rules="countRules">
