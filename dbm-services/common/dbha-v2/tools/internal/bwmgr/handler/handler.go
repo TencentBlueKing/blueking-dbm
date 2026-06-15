@@ -26,8 +26,13 @@
 package handler
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
+	"io"
+	"os"
+	"text/tabwriter"
+	"time"
 
 	"dbm-services/common/dbha-v2/pkg/gerrors"
 	"dbm-services/common/dbha-v2/tools/internal/bwmgr"
@@ -67,13 +72,7 @@ func (h *Handler) List(opts ListOptions) error {
 		return gerrors.Newf(gerrors.Failure, errGetListFormat, err)
 	}
 
-	output, err := json.MarshalIndent(items, jsonIndentPrefix, jsonIndentValue)
-	if err != nil {
-		return gerrors.Newf(gerrors.InvalidJson, errFormatOutputFormat, err)
-	}
-
-	fmt.Println(string(output))
-	return nil
+	return writeListOutput(os.Stdout, items, opts)
 }
 
 // Add handles the add command.
@@ -169,6 +168,94 @@ func buildListRequest(opts ListOptions) (*bwmgr.GetBlackWhiteListRequest, error)
 	queryArgs.Status = status
 
 	return queryArgs, nil
+}
+
+func writeListOutput(w io.Writer, items []bwmgr.BlackWhiteListItem, opts ListOptions) error {
+	if opts.OutputFile != "" {
+		return writeListJSONLinesFile(items, opts.OutputFile)
+	}
+
+	switch opts.Output {
+	case "", OutputFormatTable:
+		return writeListTable(w, items)
+
+	case OutputFormatJSON:
+		return writeListJSON(w, items)
+
+	default:
+		return gerrors.Newf(gerrors.InvalidParameter, errOutputInvalid)
+	}
+}
+
+func writeListTable(w io.Writer, items []bwmgr.BlackWhiteListItem) error {
+	tw := tabwriter.NewWriter(w, 0, 0, 2, ' ', 0)
+	if _, err := fmt.Fprintln(tw, listTableHeader); err != nil {
+		return gerrors.Newf(gerrors.Failure, errWriteOutputFormat, err)
+	}
+
+	for _, item := range items {
+		if _, err := fmt.Fprintf(
+			tw,
+			listTableRowFormat,
+			item.ID,
+			item.BkBizID,
+			item.BkCloudID,
+			item.ClusterID,
+			item.ClusterName,
+			item.SwitchVersion,
+			item.Status,
+			formatListTime(item.CreatedAt),
+			formatListTime(item.UpdatedAt),
+		); err != nil {
+			return gerrors.Newf(gerrors.Failure, errWriteOutputFormat, err)
+		}
+	}
+
+	if err := tw.Flush(); err != nil {
+		return gerrors.Newf(gerrors.Failure, errWriteOutputFormat, err)
+	}
+
+	return nil
+}
+
+func writeListJSON(w io.Writer, items []bwmgr.BlackWhiteListItem) error {
+	output, err := json.MarshalIndent(items, jsonIndentPrefix, jsonIndentValue)
+	if err != nil {
+		return gerrors.Newf(gerrors.InvalidJson, errFormatOutputFormat, err)
+	}
+
+	if _, err := fmt.Fprintln(w, string(output)); err != nil {
+		return gerrors.Newf(gerrors.Failure, errWriteOutputFormat, err)
+	}
+
+	return nil
+}
+
+func writeListJSONLinesFile(items []bwmgr.BlackWhiteListItem, outputFile string) error {
+	var output bytes.Buffer
+	for _, item := range items {
+		line, err := json.Marshal(item)
+		if err != nil {
+			return gerrors.Newf(gerrors.InvalidJson, errFormatOutputFormat, err)
+		}
+
+		output.Write(line)
+		output.WriteByte('\n')
+	}
+
+	if err := os.WriteFile(outputFile, output.Bytes(), 0o644); err != nil {
+		return gerrors.Newf(gerrors.Failure, errWriteOutputFileFmt, err)
+	}
+
+	return nil
+}
+
+func formatListTime(value time.Time) string {
+	if value.IsZero() {
+		return ""
+	}
+
+	return value.Format(time.RFC3339)
 }
 
 func buildUpdateRequest(opts UpdateOptions) (bwmgr.UpdateBlackWhiteListRequest, error) {

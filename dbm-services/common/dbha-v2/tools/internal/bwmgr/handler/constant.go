@@ -26,15 +26,31 @@
 package handler
 
 const (
+	// OutputFormatTable renders list results as a tabular stdout view.
+	OutputFormatTable = "table"
+	// OutputFormatJSON renders list results as indented JSON on stdout.
+	OutputFormatJSON = "json"
+)
+
+const (
 	jsonIndentPrefix = ""
 	jsonIndentValue  = "  "
 )
 
 const (
+	listTableHeader = "ID\tBK_BIZ_ID\tBK_CLOUD_ID\tCLUSTER_ID\tCLUSTER_NAME\tSWITCH_VERSION\tSTATUS\t" +
+		"CREATED_AT\tUPDATED_AT"
+	listTableRowFormat = "%d\t%d\t%d\t%d\t%s\t%s\t%s\t%s\t%s\n"
+)
+
+const (
 	errSwitchVersionInvalid = "switch-version must be 'v1' or 'v2'"
 	errStatusInvalid        = "status must be 'enabled' or 'disabled'"
+	errOutputInvalid        = "output must be 'table' or 'json'"
 	errGetListFormat        = "failed to get black-white list: %v"
 	errFormatOutputFormat   = "failed to format output: %v"
+	errWriteOutputFormat    = "failed to write output: %v"
+	errWriteOutputFileFmt   = "failed to write output file: %v"
 	errBkBizIDRequired      = "bk-biz-id is required"
 	errClusterIDRequired    = "cluster-id is required"
 	errClusterNameRequired  = "cluster-name is required"

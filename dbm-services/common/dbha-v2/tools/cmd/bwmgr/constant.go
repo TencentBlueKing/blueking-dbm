@@ -25,7 +25,10 @@
 // Package main implements the bwmgr command-line entrypoint.
 package main
 
-import "dbm-services/common/dbha-v2/tools/internal/bwmgr/config"
+import (
+	"dbm-services/common/dbha-v2/tools/internal/bwmgr/config"
+	"dbm-services/common/dbha-v2/tools/internal/bwmgr/handler"
+)
 
 const (
 	cmdUseRoot    = "bwmgr"
@@ -72,6 +75,8 @@ const (
 	flagClusterName   = "cluster-name"
 	flagSwitchVersion = "switch-version"
 	flagStatus        = "status"
+	flagOutput        = "output"
+	flagOutputFile    = "output-file"
 	flagYes           = "yes"
 )
 
@@ -80,6 +85,7 @@ const (
 	defaultIntValue       = 0
 	defaultStringValue    = ""
 	defaultFalseValue     = false
+	defaultOutput         = handler.OutputFormatTable
 )
 
 const (
@@ -105,6 +111,8 @@ const (
 	flagUsageListCluster    = "Filter by cluster name"
 	flagUsageListSwitch     = "Filter by switch version (v1/v2)"
 	flagUsageListStatus     = "Filter by status (enabled/disabled)"
+	flagUsageListOutput     = "Output mode (table/json)"
+	flagUsageListOutputFile = "Output file path for file mode"
 	flagUsageBizID          = "Business ID"
 	flagUsageBizIDRequired  = "Business ID (required)"
 	flagUsageCloudID        = "Cloud ID"

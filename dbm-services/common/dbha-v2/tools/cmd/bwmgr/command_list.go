@@ -53,6 +53,8 @@ func newListCmd(a *app) *cobra.Command {
 	listCmd.Flags().String(flagClusterName, defaultStringValue, flagUsageListCluster)
 	listCmd.Flags().String(flagSwitchVersion, defaultStringValue, flagUsageListSwitch)
 	listCmd.Flags().String(flagStatus, defaultStringValue, flagUsageListStatus)
+	listCmd.Flags().String(flagOutput, defaultOutput, flagUsageListOutput)
+	listCmd.Flags().String(flagOutputFile, defaultStringValue, flagUsageListOutputFile)
 
 	return listCmd
 }
@@ -88,6 +90,16 @@ func newListOptions(cmd *cobra.Command) (handler.ListOptions, error) {
 		return handler.ListOptions{}, err
 	}
 
+	output, err := cmd.Flags().GetString(flagOutput)
+	if err != nil {
+		return handler.ListOptions{}, err
+	}
+
+	outputFile, err := cmd.Flags().GetString(flagOutputFile)
+	if err != nil {
+		return handler.ListOptions{}, err
+	}
+
 	return handler.ListOptions{
 		BkBizID:       bkBizID,
 		BkCloudID:     bkCloudID,
@@ -95,5 +107,7 @@ func newListOptions(cmd *cobra.Command) (handler.ListOptions, error) {
 		ClusterName:   clusterName,
 		SwitchVersion: switchVersion,
 		Status:        status,
+		Output:        output,
+		OutputFile:    outputFile,
 	}, nil
 }
