@@ -142,6 +142,9 @@ class _KubernetesApi(BaseApi):
         self.delete_cluster = self.generate_data_api(
             method="POST", url="/v4/dbs/cluster/delete", description=_("删除集群")
         )
+        self.update_log_ticket_id = self.generate_data_api(
+            method="PUT", url="/v4/dbs/metadata/cluster_operation_log", description=_("修改dbs log单据ID")
+        )
 
 
 KubernetesApi = _KubernetesApi()

@@ -25,6 +25,7 @@ from backend.flow.plugins.components.collections.qdrant.expose_k8s_qdrant_servic
     ExposeK8sQdrantServiceComponent,
 )
 from backend.flow.plugins.components.collections.qdrant.get_k8s_qdrant_clb_detail import GetK8sQdrantClbDetailComponent
+from backend.flow.plugins.components.collections.qdrant.k8s_qdrant_sync_ticket_id import K8sQdrantSyncTicketIdComponent
 from backend.flow.plugins.components.collections.qdrant.qdrant_db_meta import QdrantDBMetaComponent
 from backend.flow.plugins.components.collections.qdrant.qdrant_dns_manage import QdrantDnsManageComponent
 from backend.flow.plugins.components.collections.qdrant.qdrant_sync_cluster import QdrantSyncClusterComponent
@@ -97,6 +98,11 @@ class K8sQdrantApplyFlow(K8sQdrantBaseFlow):
         # 调用dbs服务暴露接口暴露service
         qdrant_pipeline.add_act(
             act_name=_("暴露服务"), act_component_code=ExposeK8sQdrantServiceComponent.code, kwargs=asdict(act_kwargs)
+        )
+
+        # 同步ticket_id给dbs
+        qdrant_pipeline.add_act(
+            act_name=_("同步ticketId"), act_component_code=K8sQdrantSyncTicketIdComponent.code, kwargs=asdict(act_kwargs)
         )
 
         qdrant_pipeline.run_pipeline()
