@@ -35,7 +35,7 @@
     <TicketInfoTableColumn
       col-key="resource_spec.new_proxies.count"
       :min-width="120"
-      :title="t('目标数量（台）')">
+      :title="t('重建后数量（台）')">
       <template #default="{ row: data }: { row: RowData }">
         {{ data.resource_spec?.new_proxies?.count || '--' }}
       </template>

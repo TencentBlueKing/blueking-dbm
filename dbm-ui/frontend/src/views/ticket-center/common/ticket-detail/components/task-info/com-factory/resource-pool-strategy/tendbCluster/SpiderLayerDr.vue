@@ -39,7 +39,7 @@
     <TicketInfoTableColumn
       col-key="count"
       :min-width="120"
-      :title="t('目标数量（台）')">
+      :title="t('重建后数量（台）')">
       <template #default="{ row: data }: { row: RowData }">
         {{ getResourceSpecItem(data)?.count || 0 }}
       </template>
