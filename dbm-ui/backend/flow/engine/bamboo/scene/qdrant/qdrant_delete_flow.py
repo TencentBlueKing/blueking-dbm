@@ -17,6 +17,7 @@ from backend.flow.consts import DnsOpType
 from backend.flow.engine.bamboo.scene.common.builder import Builder
 from backend.flow.engine.bamboo.scene.qdrant.qdrant_base_flow import K8sQdrantBaseFlow
 from backend.flow.plugins.components.collections.qdrant.k8s_qdrant_delete import DeleteK8sQdrantComponent
+from backend.flow.plugins.components.collections.qdrant.k8s_qdrant_sync_ticket_id import K8sQdrantSyncTicketIdComponent
 from backend.flow.plugins.components.collections.qdrant.qdrant_db_meta import QdrantDBMetaComponent
 from backend.flow.plugins.components.collections.qdrant.qdrant_dns_manage import QdrantDnsManageComponent
 from backend.flow.utils.doris.doris_context_dataclass import DnsKwargs
@@ -56,6 +57,11 @@ class K8sQdrantDeleteFlow(K8sQdrantBaseFlow):
 
         qdrant_pipeline.add_act(
             act_name=_("修改Meta"), act_component_code=QdrantDBMetaComponent.code, kwargs=asdict(act_kwargs)
+        )
+
+        # 同步ticketId给dbs
+        qdrant_pipeline.add_act(
+            act_name=_("同步ticketId"), act_component_code=K8sQdrantSyncTicketIdComponent.code, kwargs=asdict(act_kwargs)
         )
 
         qdrant_pipeline.run_pipeline()
