@@ -16,6 +16,7 @@ from django.utils.translation import gettext as _
 from backend.flow.engine.bamboo.scene.common.builder import Builder
 from backend.flow.engine.bamboo.scene.qdrant.qdrant_base_flow import K8sQdrantBaseFlow
 from backend.flow.plugins.components.collections.qdrant.k8s_qdrant_restart import RestartK8sQdrantComponent
+from backend.flow.plugins.components.collections.qdrant.k8s_qdrant_sync_ticket_id import K8sQdrantSyncTicketIdComponent
 from backend.flow.utils.qdrant.qdrant_context_dataclass import K8sQdrantActKwargs, K8sQdrantApplyContext
 
 
@@ -37,9 +38,14 @@ class K8sQdrantRestartFlow(K8sQdrantBaseFlow):
         act_kwargs = K8sQdrantActKwargs(bk_cloud_id=self.bk_cloud_id)
         act_kwargs.set_trans_data_dataclass = K8sQdrantApplyContext.__name__
 
-        # # 调用dbs禁用接口
+        # 调用dbs重启接口
         qdrant_pipeline.add_act(
             act_name=_("重启Qdrant集群"), act_component_code=RestartK8sQdrantComponent.code, kwargs=asdict(act_kwargs)
+        )
+
+        # 同步ticketId给dbs
+        qdrant_pipeline.add_act(
+            act_name=_("同步ticketId"), act_component_code=K8sQdrantSyncTicketIdComponent.code, kwargs=asdict(act_kwargs)
         )
 
         qdrant_pipeline.run_pipeline()
