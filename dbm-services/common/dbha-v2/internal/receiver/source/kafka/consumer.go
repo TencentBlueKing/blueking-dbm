@@ -33,6 +33,7 @@ import (
 
 	"dbm-services/common/dbha-v2/internal/receiver/config"
 	"dbm-services/common/dbha-v2/internal/receiver/sink"
+	"dbm-services/common/dbha-v2/pkg/constant"
 	"dbm-services/common/dbha-v2/pkg/gerrors"
 	"dbm-services/common/dbha-v2/pkg/hanet"
 	"dbm-services/common/dbha-v2/pkg/logger"
@@ -155,6 +156,11 @@ func (k *consumer) Harvest(ctx context.Context, savers []sink.Sinker) error {
 	go func(ctx context.Context) {
 		defer k.wg.Done()
 
+		saveTimeout := config.GetSaveTimeout()
+		if saveTimeout <= 0 {
+			saveTimeout = constant.DefaultSaveTimeout
+		}
+
 		for {
 			select {
 			case <-k.quit:
@@ -164,7 +170,7 @@ func (k *consumer) Harvest(ctx context.Context, savers []sink.Sinker) error {
 				return
 
 			default:
-				err := k.group.Consume(ctx, k.topics, &consumerHandler{savers: savers})
+				err := k.group.Consume(ctx, k.topics, &consumerHandler{savers: savers, saveTimeout: saveTimeout})
 				if err != nil {
 					logger.Warn("kafka consumer failed, errmsg: %s", err)
 					return

@@ -27,6 +27,7 @@ package probe
 import (
 	"context"
 	"sync"
+	"time"
 
 	"dbm-services/common/dbha-v2/internal/receiver/sink"
 	"dbm-services/common/dbha-v2/pkg/constant"
@@ -41,10 +42,11 @@ type requestEventC chan *proto.ReceiverRequest
 
 // connectionHandler service connection handler
 type connectionHandler struct {
-	savers     []sink.Sinker
-	bufferSize int
-	eventC     requestEventC
-	wg         sync.WaitGroup
+	savers      []sink.Sinker
+	bufferSize  int
+	saveTimeout time.Duration
+	eventC      requestEventC
+	wg          sync.WaitGroup
 }
 
 func (c *connectionHandler) readEvent() {
@@ -73,7 +75,7 @@ func (c *connectionHandler) readEvent() {
 		copy(data.Data, msg.Payload)
 
 		for _, saver := range c.savers {
-			ctx, cancel := context.WithTimeout(context.Background(), constant.DefaultSaveTimeout)
+			ctx, cancel := context.WithTimeout(context.Background(), c.saveTimeout)
 			if err := saver.Save(ctx, data); err != nil {
 				logger.Warn("save probe msg failed, errmsg: %s", err)
 			}

@@ -63,11 +63,15 @@ func NewProbeServer(cfg config.SourceConfig) (*Probe, error) {
 	if err != nil {
 		return nil, gerrors.Newf(gerrors.InvalidConfiguration, "invalid probe source endpoint, errmsg: %s", err)
 	}
+	saveTimeout := config.GetSaveTimeout()
+	if saveTimeout <= 0 {
+		saveTimeout = constant.DefaultSaveTimeout
+	}
 
 	return &Probe{
 		cfg:         cfg,
 		ep:          ep,
-		connHandler: &connectionHandler{bufferSize: cfg.BufferSize},
+		connHandler: &connectionHandler{bufferSize: cfg.BufferSize, saveTimeout: saveTimeout},
 	}, nil
 }
 

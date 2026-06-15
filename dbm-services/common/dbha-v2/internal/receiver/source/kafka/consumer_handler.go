@@ -26,9 +26,10 @@ package kafka
 
 import (
 	"context"
+	"time"
+
 	"dbm-services/common/dbha-v2/internal/receiver/apm"
 	"dbm-services/common/dbha-v2/internal/receiver/sink"
-	"dbm-services/common/dbha-v2/pkg/constant"
 	"dbm-services/common/dbha-v2/pkg/logger"
 
 	"github.com/IBM/sarama"
@@ -37,7 +38,8 @@ import (
 var _ sarama.ConsumerGroupHandler = (*consumerHandler)(nil)
 
 type consumerHandler struct {
-	savers []sink.Sinker
+	savers      []sink.Sinker
+	saveTimeout time.Duration
 }
 
 func (h *consumerHandler) Setup(session sarama.ConsumerGroupSession) error {
@@ -75,7 +77,7 @@ func (h *consumerHandler) ConsumeClaim(session sarama.ConsumerGroupSession, clai
 		}
 
 		for _, saver := range h.savers {
-			ctx, cancel := context.WithTimeout(context.Background(), constant.DefaultSaveTimeout)
+			ctx, cancel := context.WithTimeout(context.Background(), h.saveTimeout)
 			if err := saver.Save(ctx, data); err != nil {
 				logger.Warn("save the data failed, topic(%s), errmsg: %s", msg.Topic, err)
 
