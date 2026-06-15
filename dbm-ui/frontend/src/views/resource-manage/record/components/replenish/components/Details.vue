@@ -570,23 +570,14 @@
     InfoBox({
       cancelText: t('取消'),
       confirmText: t('确定'),
-      content: () => (
-        <div>
-          {t('将对已选的')}
-          <span
-            class='bold-number'
-            style='margin: 0 4px;'>
-            {selectedRows.value.length}
-          </span>
-          {t('条失败单据重新发起补货申请，系统将自动遍历候选机型进行重试。')}
-        </div>
-      ),
+      content: t('确认后，失败单据将重新发起补货申请。'),
       onConfirm: async () => {
         try {
           isRetrying.value = true;
 
           await batchRetryReplenishTickets({
             replenish_record_id: props.id,
+            ticket_ids: selectedRows.value.map((item) => item.id),
           });
 
           messageSuccess(t('批量重试成功'));
@@ -596,8 +587,7 @@
           isRetrying.value = false;
         }
       },
-      title: t('批量重试'),
-      type: 'warning',
+      title: t('确认批量重试 {count} 个单据', { count: selectedRows.value.length }),
     });
   };
 
