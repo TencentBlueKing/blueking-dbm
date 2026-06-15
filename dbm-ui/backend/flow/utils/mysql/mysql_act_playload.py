@@ -1352,7 +1352,6 @@ class MysqlActPayload(PayloadHandler, ProxyActPayload, TBinlogDumperActPayload):
             从中控 mysql.servers 共享密码读取, Go 侧 getCredByRole("tdbctl") 取此字段。
           - spider_user / spider_pwd: 中控反向连接被加入的 spider 节点时使用的账号,
             由调用方通过 kwargs["spider_pwd"] (即上游 param.spider_pass) 显式透传,
-            Go 侧 getCredByRole("spider") 取此字段。
         本子命令场景下 spider 与 tdbctl 共用同一个 user 名称 = TDBCTL_USER, 且上游
         common_sub_flow.add_spider_masters_sub_flow / add_spider_slaves_sub_flow 中
         均以 spider_pass=tdbctl_pass 的方式透传, 故二者密码值实际一致, 但字段定位与

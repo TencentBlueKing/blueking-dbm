@@ -212,8 +212,5 @@ class TenDBClusterRebuildNodesFlow(TenDBClusterSwitchNodesFlow):
 
         pipeline.add_parallel_sub_pipeline(sub_flow_list=sub_pipelines)
 
-        # 启动接入单据值守监听，保持与 switch/add/reduce 流程一致
-        pipeline.run_pipeline_with_sidecar(
-            check_ai_monitor_cluster_list=[int(info["cluster_id"]) for info in self.data["infos"]],
-            init_trans_data_class=SystemInfoContext(),
-        )
+        # 暂时不启动接入单据值守监听
+        pipeline.run_pipeline(init_trans_data_class=SystemInfoContext())
