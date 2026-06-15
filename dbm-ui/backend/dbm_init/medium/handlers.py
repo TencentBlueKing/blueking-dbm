@@ -174,17 +174,19 @@ class MediumHandler:
                     # 分割路径，保留制品路径(db_type/name/version/file)
                     file_path = os.path.join(root, file)
                     file_path_bkrepo = file_path.split(file_path.rsplit("/", 4)[0])[1]
+                    # Django>=4.2 的 Storage.save 会拒绝绝对路径(path traversal 校验)，这里去掉前导斜杠传相对路径
+                    save_path_bkrepo = file_path_bkrepo.lstrip("/")
                     print("upload file: %s -> %s", file_path, file_path_bkrepo)
                     with open(file_path, "rb") as f:
                         # 如果当前版本不存在，则更新介质
                         if not self.storage.listdir(file_path_bkrepo.rsplit("/", 1)[0])[1]:
-                            self.storage.save(file_path_bkrepo, f)
+                            self.storage.save(save_path_bkrepo, f)
                         # 如果文件md5不相等，则更新介质
                         bkrepo_file_md5 = self.storage.listdir(file_path_bkrepo.rsplit("/", 1)[0])[1][0]["md5"]
                         pkg_file_md5 = hashlib.md5(f.read()).hexdigest()
                         if bkrepo_file_md5 != pkg_file_md5:
                             f.seek(0)
-                            self.storage.save(file_path_bkrepo, f)
+                            self.storage.save(save_path_bkrepo, f)
 
     def sync_from_bkrepo(self, db_type):
         """将制品库文件同步到dbm"""
