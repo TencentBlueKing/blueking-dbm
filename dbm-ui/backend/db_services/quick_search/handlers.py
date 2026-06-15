@@ -208,12 +208,12 @@ class QSearchHandler(object):
                         tag_qs |= Q(tags__key__icontains=tag_key, tags__value__icontains=tag_value)
                     continue
 
-            # 不包含冒号的关键字，同时按标签键和域名过滤
-            # 标签键过滤
+            # 不包含冒号的关键字，同时按标签键、标签值和域名过滤
+            # 标签键 / 标签值过滤
             if self.filter_type == FilterType.EXACT.value:
-                tag_qs |= Q(tags__key=keyword)
+                tag_qs |= Q(tags__key=keyword) | Q(tags__value=keyword)
             else:
-                tag_qs |= Q(tags__key__icontains=keyword)
+                tag_qs |= Q(tags__key__icontains=keyword) | Q(tags__value__icontains=keyword)
 
             # 域名过滤
             try:
