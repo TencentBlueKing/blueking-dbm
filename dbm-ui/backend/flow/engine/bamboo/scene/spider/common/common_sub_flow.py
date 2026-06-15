@@ -18,7 +18,6 @@ from backend.db_meta.enums import ClusterEntryRole, ClusterType, InstanceStatus,
 from backend.db_meta.models import Cluster, ProxyInstance
 from backend.flow.consts import AUTH_ADDRESS_DIVIDER, LONG_JOB_TIMEOUT, TDBCTL_USER, DnsOpType, PrivRole
 from backend.flow.engine.bamboo.scene.common.builder import SubBuilder
-from backend.flow.engine.bamboo.scene.common.download_file import add_db_actuator_download_to_pipeline
 from backend.flow.engine.bamboo.scene.common.entrys_manager import BuildEntrysManageSubflow
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
 from backend.flow.engine.bamboo.scene.mysql.common.common_sub_flow import check_sub_flow, init_machine_sub_flow
@@ -32,6 +31,9 @@ from backend.flow.plugins.components.collections.mysql.dns_manage import MySQLDn
 from backend.flow.plugins.components.collections.mysql.exec_actuator_script import ExecuteDBActuatorScriptComponent
 from backend.flow.plugins.components.collections.mysql.sync_master import SyncMasterComponent
 from backend.flow.plugins.components.collections.mysql.trans_flies import TransFileComponent
+from backend.flow.plugins.components.collections.spider.add_spider_routing_by_via_dbactor import (
+    AddSpiderRoutingByViaDbactorComponent,
+)
 from backend.flow.plugins.components.collections.spider.add_spider_system_user import AddSpiderSystemUserComponent
 from backend.flow.plugins.components.collections.spider.check_tdbctl_secondary_health import (
     CheckTDBCTlSecondaryHealthComponent,
@@ -43,6 +45,7 @@ from backend.flow.plugins.components.collections.spider.install_spider_with_copy
 )
 from backend.flow.plugins.components.collections.spider.remote_migrate_cut_over import RemoteMigrateCutOverComponent
 from backend.flow.plugins.components.collections.spider.spider_db_meta import SpiderDBMetaComponent
+from backend.flow.plugins.components.collections.spider.sync_ctl_master import SyncCtlMasterComponent
 from backend.flow.utils.base.base_dataclass import Instance
 from backend.flow.utils.mysql.mysql_act_dataclass import (
     CreateDnsKwargs,
@@ -60,6 +63,7 @@ from backend.flow.utils.spider.spider_act_dataclass import (
     AddSpiderRoutingSubFlowParam,
     CtlSwitchToSlaveKwargs,
     DropSpiderRoutingKwargs,
+    SpiderSyncCtlMasterKwargs,
 )
 from backend.flow.utils.spider.spider_bk_config import get_spider_version_and_charset
 from backend.flow.utils.spider.spider_db_meta import SpiderDBMeta
@@ -113,24 +117,36 @@ def add_spider_routing_sub_flow(
     ctl_primary_addr = cluster.tendbcluster_ctl_primary_address()
     ctl_primary_ip, ctl_primary_port = ctl_primary_addr.split(IP_PORT_DIVIDER)
 
-    # 2) 下发 dbactuator 到中控 primary
-    add_db_actuator_download_to_pipeline(
-        pipeline=sub_pipeline,
-        bk_cloud_id=cluster.bk_cloud_id,
-        exec_ip=ctl_primary_ip,
+    # 2) 下发 db-actuator 到所有的tdb-ctl节点
+    sub_pipeline.add_act(
+        act_name=_("下发db-actuator介质[云区域ID:{}]".format(cluster.bk_cloud_id)),
+        act_component_code=TransFileComponent.code,
+        kwargs=asdict(
+            DownloadMediaKwargs(
+                bk_cloud_id=cluster.bk_cloud_id,
+                exec_ip=[
+                    s.machine.ip
+                    for s in cluster.proxyinstance_set.filter(
+                        tendbclusterspiderext__spider_role=TenDBClusterSpiderRole.SPIDER_MASTER
+                    )
+                ],
+                file_list=GetFileList(db_type=DBType.MySQL).get_db_actuator_package(),
+            )
+        ),
     )
 
     # 3) 在中控 primary 本机执行 spiderctl add-spider-routing
     spider_inst = cluster.proxyinstance_set.first()
     sub_pipeline.add_act(
         act_name=_("添加对应spider节点路由关系"),
-        act_component_code=ExecuteDBActuatorScriptComponent.code,
+        act_component_code=AddSpiderRoutingByViaDbactorComponent.code,
         kwargs=asdict(
             ExecActuatorKwargs(
                 cluster_type=ClusterType.TenDBCluster,
                 bk_cloud_id=cluster.bk_cloud_id,
                 exec_ip=ctl_primary_ip,
                 component_kwargs={
+                    "cluster_id": cluster.id,
                     "ctl_primary_port": int(ctl_primary_port),
                     "add_port": spider_inst.port,
                     "add_spiders": param.add_spiders,
@@ -146,13 +162,14 @@ def add_spider_routing_sub_flow(
         # 如果添加的spider_master, 则增加对应节点spider_ctl节点的路由信息
         sub_pipeline.add_act(
             act_name=_("添加对应spider_ctl节点路由关系"),
-            act_component_code=ExecuteDBActuatorScriptComponent.code,
+            act_component_code=AddSpiderRoutingByViaDbactorComponent.code,
             kwargs=asdict(
                 ExecActuatorKwargs(
                     cluster_type=ClusterType.TenDBCluster,
                     bk_cloud_id=cluster.bk_cloud_id,
                     exec_ip=ctl_primary_ip,
                     component_kwargs={
+                        "cluster_id": cluster.id,
                         "ctl_primary_port": int(ctl_primary_port),
                         "add_port": spider_inst.admin_port,
                         "add_spiders": param.add_spiders,
@@ -579,9 +596,9 @@ def add_spider_masters_sub_flow(
         is_clone_user = False
         tmp_spider = None
     elif spiders:
-        # 正常获取第一个节点做模板
+        # 正常获取第一个节点做模板, 过滤掉待加入节点信息，这里spider重建的话，如果不过滤就有问题
         is_clone_user = True
-        tmp_spider = spiders[0]
+        tmp_spider = spiders.exclude(machine__ip__in=[s["ip"] for s in add_spider_masters])[0]
     else:
         # 如果扩容角色是master，且spiders没有running状态的节点，则扩容时无法做权限克隆，故异常，表示构建流程失败
         raise AddSpiderNodeFailedException(
@@ -628,7 +645,7 @@ def add_spider_masters_sub_flow(
                         MysqlSyncMasterKwargs(
                             bk_biz_id=cluster.bk_biz_id,
                             bk_cloud_id=cluster.bk_cloud_id,
-                            priv_role=PrivRole.TDBCTL.value,
+                            priv_role=PrivRole.TDBCTL,
                             master=Instance(host=first_ctl["ip"], port=ctl_master_port_str),
                             slaves=[Instance(host=s["ip"], port=ctl_master_port_str) for s in rest_ctls],
                             is_gtid=True,
@@ -643,12 +660,13 @@ def add_spider_masters_sub_flow(
             ctl_master_port = ctl_master.split(IP_PORT_DIVIDER)[1]
             sub_pipeline.add_act(
                 act_name=_("构建spider中控集群同步"),
-                act_component_code=SyncMasterComponent.code,
+                act_component_code=SyncCtlMasterComponent.code,
                 kwargs=asdict(
-                    MysqlSyncMasterKwargs(
+                    SpiderSyncCtlMasterKwargs(
+                        cluster_id=cluster.id,
                         bk_biz_id=cluster.bk_biz_id,
                         bk_cloud_id=cluster.bk_cloud_id,
-                        priv_role=PrivRole.TDBCTL.value,
+                        priv_role=PrivRole.TDBCTL,
                         master=Instance(host=ctl_master_ip, port=ctl_master_port),
                         slaves=[Instance(host=s["ip"], port=ctl_master_port) for s in add_spider_masters],
                         is_gtid=True,

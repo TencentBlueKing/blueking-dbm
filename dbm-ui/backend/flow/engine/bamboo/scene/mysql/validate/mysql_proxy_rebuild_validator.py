@@ -31,20 +31,6 @@ class MySQLProxyRebuildFlowValidator(MysqlBaseValidator):
     检验3：同一个flow，同一个集群，如果传入proxy数量，不能大于等于集群所有proxy数量
     """
 
-    def pre_check_duplicate_rebuild_ip(self):
-        """
-        聚合校验2：同一个flow，同一个集群，传入机器不能有相同
-        前置依赖：聚合校验1已保证infos中不会出现重复cluster_id，故只需在每个info内判断即可
-        """
-        err_msg = ""
-        for info in self.data["infos"]:
-            ips = [host["ip"] for host in info["rebuild_proxy_hosts"]]
-            if len(ips) != len(set(ips)):
-                duplicate_ips = [ip for ip in set(ips) if ips.count(ip) > 1]
-                cluster = Cluster.objects.get(id=int(info["cluster_id"]))
-                err_msg += _("集群[{}]在单据中存在重复的proxy机器[{}]，请检查 \n".format(cluster.immute_domain, duplicate_ips))
-        return err_msg
-
     def pre_check_rebuild_proxy_count(self):
         """
         聚合校验3：同一个flow，同一个集群，传入proxy数量不能大于等于集群所有proxy机器数量
@@ -112,7 +98,7 @@ class MySQLProxyRebuildFlowValidator(MysqlBaseValidator):
             raise DuplicateClusterIDException(err)
 
         # 聚合校验2：同一个flow，同一个集群，传入机器不能有相同
-        err = self.pre_check_duplicate_rebuild_ip()
+        err = self.pre_check_duplicate_ip(check_ip_field_name="rebuild_proxy_hosts")
         if err:
             raise ProxyRebuildDuplicateIPException(err)
 
