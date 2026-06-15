@@ -91,6 +91,10 @@ func (d *InstallDorisAct) Run() (err error) {
 			FunName: "部署Doris",
 			Func:    d.Service.InstallDoris,
 		},
+		{
+			FunName: "校验组件RUNNING",
+			Func:    d.Service.CheckComponentRunning,
+		},
 	}
 
 	// json 解析每个步骤执行返回内容

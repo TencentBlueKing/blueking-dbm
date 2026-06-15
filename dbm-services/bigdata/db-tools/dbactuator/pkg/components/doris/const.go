@@ -211,3 +211,29 @@ const (
 	// DefaultCosEndpoint 默认的COS地址，内网，需要拼接上地域
 	DefaultCosEndpoint = "cos-internal.%s.tencentcos.cn"
 )
+
+// 单据类型常量，用于标识 dbactuator 接收到的上层 ticket type。
+const (
+	// Apply 集群部署单据类型
+	Apply = "DORIS_APPLY"
+	// ScaleUp 集群扩容单据类型
+	ScaleUp = "DORIS_SCALE_UP"
+	// Shrink 集群缩容单据类型
+	Shrink = "DORIS_SHRINK"
+	// Upgrade 集群升级单据类型
+	Upgrade = "DORIS_UPGRADE"
+)
+
+const (
+	// RootUser doris root 用户名
+	RootUser = "root"
+)
+
+// BE tag.location 标签常量，用于 ALTER SYSTEM ... PROPERTIES("tag.location" = ...)
+// 与上层 Role("cold"/"warm") 解耦，避免类型混淆。
+const (
+	// BeTagLocationCold 冷/温节点统一归为 cold tag
+	BeTagLocationCold = "cold"
+	// BeTagLocationDefault 默认 tag
+	BeTagLocationDefault = "default"
+)

@@ -7,6 +7,7 @@ import (
 	"dbm-services/bigdata/db-tools/dbactuator/pkg/util/dorisutil"
 	"dbm-services/common/go-pubpkg/logger"
 	"fmt"
+	"strings"
 )
 
 // InitGrantParams TODO
@@ -36,7 +37,7 @@ func (i *InitGrantService) AlterRootPassword() (err error) {
 
 	// mysql客户端实现
 	db, err := sql.Open("mysql", fmt.Sprintf("%s:%s@tcp(%s:%d)/%s",
-		"root", "", i.Params.Host, i.Params.QueryPort, ""))
+		RootUser, "", i.Params.Host, i.Params.QueryPort, ""))
 
 	if err != nil {
 		logger.Error("连接Doris数据库失败，%v", err)
@@ -64,7 +65,7 @@ func (i *InitGrantService) AlterAdminPassword() (err error) {
 
 	// mysql客户端实现
 	db, err := sql.Open("mysql", fmt.Sprintf("%s:%s@tcp(%s:%d)/%s",
-		"root", rootPwd, i.Params.Host, i.Params.QueryPort, ""))
+		RootUser, rootPwd, i.Params.Host, i.Params.QueryPort, ""))
 
 	if err != nil {
 		logger.Error("连接Doris数据库失败，%v", err)
@@ -91,7 +92,7 @@ func (i *InitGrantService) CreateCustomUser() (err error) {
 	pwd := dorisutil.DefaultString(i.Params.RootPassword, i.Params.Password)
 	// mysql客户端实现
 	db, err := sql.Open("mysql", fmt.Sprintf("%s:%s@tcp(%s:%d)/%s",
-		"root", pwd, i.Params.Host, i.Params.QueryPort, ""))
+		RootUser, pwd, i.Params.Host, i.Params.QueryPort, ""))
 
 	if err != nil {
 		logger.Error("连接Doris数据库失败，%v", err)
@@ -117,7 +118,8 @@ func (i *InitGrantService) CreateCustomUser() (err error) {
 	}
 	// 用户变量 UserProperty调整
 	// 不管是否存在温/冷 节点，均对自定义用户配置
-	setPropSql := fmt.Sprintf("set property for '%s' 'resource_tags.location' = 'cold,default';", i.Params.UserName)
+	setPropSql := fmt.Sprintf("set property for '%s' 'resource_tags.location' = '%s';",
+		i.Params.UserName, getAllResourceTags())
 	if _, err = db.Exec(setPropSql); err != nil {
 		return err
 	}
@@ -128,7 +130,7 @@ func (i *InitGrantService) CreateCustomUser() (err error) {
 func (i *InitGrantService) InitGrantTxn() (err error) {
 	// mysql客户端实现
 	db, err := sql.Open("mysql", fmt.Sprintf("%s:%s@tcp(%s:%d)/%s",
-		"root", "", i.Params.Host, i.Params.QueryPort, ""))
+		RootUser, "", i.Params.Host, i.Params.QueryPort, ""))
 
 	if err != nil {
 		logger.Error("连接Doris数据库失败，%v", err)
@@ -170,9 +172,24 @@ func (i *InitGrantService) InitGrantTxn() (err error) {
 		tx.Rollback()
 		logger.Fatal("创建自定义用户失败: %v", err)
 	}
+	// 4. 用户配置资源标签
+	setPropSql := fmt.Sprintf("set property for '%s' 'resource_tags.location' = '%s';",
+		i.Params.UserName, getAllResourceTags())
+	_, err = tx.Exec(setPropSql)
+	if err != nil {
+		tx.Rollback()
+		logger.Fatal("用户配置资源标签失败: %v", err)
+	}
 	// 提交事务
 	if err := tx.Commit(); err != nil {
 		logger.Fatal("提交事务失败: %v", err)
 	}
 	return nil
+
+}
+
+// getAllResourceTags 返回自定义用户 UserProperty 'resource_tags.location' 的取值。
+// 与历史行为保持一致：cold,default。后续若 BE tag 体系扩展，仅在切片中追加常量即可。
+func getAllResourceTags() string {
+	return strings.Join([]string{BeTagLocationCold, BeTagLocationDefault}, ",")
 }

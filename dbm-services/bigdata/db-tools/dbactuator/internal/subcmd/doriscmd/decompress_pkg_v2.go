@@ -13,21 +13,21 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// StartProcessAct TODO
-type StartProcessAct struct {
+// DecompressDorisPkgV2Act 用于解压缩 Doris 包的结构体
+type DecompressDorisPkgV2Act struct {
 	*subcmd.BaseOptions
-	Service doris.NodeOperationService
+	Service doris.DecompressPkgService
 }
 
-// StartProcessCommand TODO
-func StartProcessCommand() *cobra.Command {
-	act := StartProcessAct{
+// DecompressDorisPkgV2Command 创建解压缩 Doris 包的命令
+func DecompressDorisPkgV2Command() *cobra.Command {
+	act := DecompressDorisPkgV2Act{
 		BaseOptions: subcmd.GBaseOptions,
 	}
 	cmd := &cobra.Command{
-		Use:     "start_process",                                                            // 命令用法
-		Short:   "启动doris进程",                                                                // 命令简短描述
-		Example: fmt.Sprintf(`dbactuator doris start_process %s`, subcmd.CmdBaseExapmleStr), // 命令示例
+		Use:     "decompress_pkg_v2",
+		Short:   "解压缩v2",
+		Example: fmt.Sprintf(`dbactuator doris decompress_pkg_v2 %s`, subcmd.CmdBaseExapmleStr),
 		Run: func(cmd *cobra.Command, args []string) {
 			util.CheckErr(act.Validate())
 			if act.RollBack {
@@ -42,15 +42,15 @@ func StartProcessCommand() *cobra.Command {
 }
 
 // Validate 用于验证参数
-func (d *StartProcessAct) Validate() (err error) {
+func (d *DecompressDorisPkgV2Act) Validate() (err error) {
 	return d.BaseOptions.Validate()
 }
 
 // Init 用于初始化
-func (d *StartProcessAct) Init() (err error) {
-	logger.Info("StartProcessAct Init")
+func (d *DecompressDorisPkgV2Act) Init() (err error) {
+	logger.Info("DecompressDorisPkgV2Act 初始化")
 	if err = d.Deserialize(&d.Service.Params); err != nil {
-		logger.Error("DeserializeAndValidate failed, %v", err)
+		logger.Error("DeserializeAndValidate 失败, %v", err)
 		return err
 	}
 	d.Service.GeneralParam = subcmd.GeneralRuntimeParam
@@ -61,45 +61,44 @@ func (d *StartProcessAct) Init() (err error) {
 
 // Rollback 用于回滚操作
 //
-//	@receiver d
-//	@return err
-func (d *StartProcessAct) Rollback() (err error) {
+// @receiver d
+// @return err
+func (d *DecompressDorisPkgV2Act) Rollback() (err error) {
 	var r rollback.RollBackObjects
 	if err = d.DeserializeAndValidate(&r); err != nil {
-		logger.Error("DeserializeAndValidate failed, %v", err)
+		logger.Error("DeserializeAndValidate 失败, %v", err)
 		return err
 	}
 	err = r.RollBack()
 	if err != nil {
-		logger.Error("roll back failed %s", err.Error())
+		logger.Error("回滚失败 %s", err.Error())
 	}
 	return
 }
 
-// Run 用于执行
-func (d *StartProcessAct) Run() (err error) {
+// Run 用于执行操作
+func (d *DecompressDorisPkgV2Act) Run() (err error) {
 	steps := subcmd.Steps{
 		{
-			FunName: "启动doris进程",
-			Func:    d.Service.StartStopComponent,
+			FunName: "预检查",
+			Func:    d.Service.PreCheck,
 		},
 		{
-			FunName: "校验组件RUNNING",
-			Func:    d.Service.CheckComponentRunning,
+			FunName: "解压缩",
+			Func:    d.Service.DecompressDorisPkgV2,
 		},
 	}
-
-	// json 解析每个步骤执行返回内容
+	// 解析每个步骤执行返回内容的JSON
 	if err := steps.Run(); err != nil {
 		rollbackCtxBytes, jsonErr := json.Marshal(d.Service.RollBackContext)
 		if jsonErr != nil {
-			logger.Error("json Marshal %s", err.Error())
-			fmt.Printf("<ctx>Can't RollBack<ctx>\n")
+			logger.Error("JSON Marshal %s", err.Error())
+			fmt.Printf("<ctx>无法回滚<ctx>\n")
 		}
 		fmt.Printf("<ctx>%s<ctx>\n", string(rollbackCtxBytes))
 		return err
 	}
 
-	logger.Info("start_process successfully")
+	logger.Info("decompress_pkg_v2 执行成功")
 	return nil
 }

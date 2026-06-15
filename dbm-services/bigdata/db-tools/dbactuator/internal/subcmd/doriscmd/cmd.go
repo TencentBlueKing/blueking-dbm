@@ -36,6 +36,9 @@ func DorisCommand() *cobra.Command {
 				CheckProcessStartCommand(),
 				CreateResourceCommand(),
 				DropResourceCommand(),
+				DecompressDorisPkgV2Command(),
+				RenderConfigV2Command(),
+				UpgradeNodeCommand(),
 			},
 		},
 	}

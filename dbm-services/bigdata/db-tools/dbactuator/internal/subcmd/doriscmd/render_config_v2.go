@@ -1,11 +1,11 @@
 package doriscmd
 
 import (
+	"dbm-services/bigdata/db-tools/dbactuator/pkg/components/doris"
 	"encoding/json"
 	"fmt"
 
 	"dbm-services/bigdata/db-tools/dbactuator/internal/subcmd"
-	"dbm-services/bigdata/db-tools/dbactuator/pkg/components/doris"
 	"dbm-services/bigdata/db-tools/dbactuator/pkg/rollback"
 	"dbm-services/bigdata/db-tools/dbactuator/pkg/util"
 	"dbm-services/common/go-pubpkg/logger"
@@ -13,21 +13,21 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// StartProcessAct TODO
-type StartProcessAct struct {
+// RenderConfigV2Act 用于渲染配置的V2版本结构体
+type RenderConfigV2Act struct {
 	*subcmd.BaseOptions
-	Service doris.NodeOperationService
+	Service doris.InstallDorisService
 }
 
-// StartProcessCommand TODO
-func StartProcessCommand() *cobra.Command {
-	act := StartProcessAct{
+// RenderConfigV2Command 创建渲染配置V2版本的命令
+func RenderConfigV2Command() *cobra.Command {
+	act := RenderConfigV2Act{
 		BaseOptions: subcmd.GBaseOptions,
 	}
 	cmd := &cobra.Command{
-		Use:     "start_process",                                                            // 命令用法
-		Short:   "启动doris进程",                                                                // 命令简短描述
-		Example: fmt.Sprintf(`dbactuator doris start_process %s`, subcmd.CmdBaseExapmleStr), // 命令示例
+		Use:     "render_config_v2",
+		Short:   "doris 渲染集群配置v2",
+		Example: fmt.Sprintf(`dbactuator doris render_config_v2 %s`, subcmd.CmdBaseExapmleStr),
 		Run: func(cmd *cobra.Command, args []string) {
 			util.CheckErr(act.Validate())
 			if act.RollBack {
@@ -42,20 +42,19 @@ func StartProcessCommand() *cobra.Command {
 }
 
 // Validate 用于验证参数
-func (d *StartProcessAct) Validate() (err error) {
+func (d *RenderConfigV2Act) Validate() (err error) {
 	return d.BaseOptions.Validate()
 }
 
 // Init 用于初始化
-func (d *StartProcessAct) Init() (err error) {
-	logger.Info("StartProcessAct Init")
+func (d *RenderConfigV2Act) Init() (err error) {
+	logger.Info("RenderConfigV2Act Init")
 	if err = d.Deserialize(&d.Service.Params); err != nil {
 		logger.Error("DeserializeAndValidate failed, %v", err)
 		return err
 	}
 	d.Service.GeneralParam = subcmd.GeneralRuntimeParam
 	d.Service.InstallParams = doris.InitDefaultInstallParam()
-
 	return nil
 }
 
@@ -63,7 +62,7 @@ func (d *StartProcessAct) Init() (err error) {
 //
 //	@receiver d
 //	@return err
-func (d *StartProcessAct) Rollback() (err error) {
+func (d *RenderConfigV2Act) Rollback() (err error) {
 	var r rollback.RollBackObjects
 	if err = d.DeserializeAndValidate(&r); err != nil {
 		logger.Error("DeserializeAndValidate failed, %v", err)
@@ -77,15 +76,11 @@ func (d *StartProcessAct) Rollback() (err error) {
 }
 
 // Run 用于执行
-func (d *StartProcessAct) Run() (err error) {
+func (d *RenderConfigV2Act) Run() (err error) {
 	steps := subcmd.Steps{
 		{
-			FunName: "启动doris进程",
-			Func:    d.Service.StartStopComponent,
-		},
-		{
-			FunName: "校验组件RUNNING",
-			Func:    d.Service.CheckComponentRunning,
+			FunName: "渲染Doris配置V2",
+			Func:    d.Service.RenderConfigV2,
 		},
 	}
 
@@ -100,6 +95,6 @@ func (d *StartProcessAct) Run() (err error) {
 		return err
 	}
 
-	logger.Info("start_process successfully")
+	logger.Info("render_config_v2 successfully")
 	return nil
 }

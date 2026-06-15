@@ -13,6 +13,7 @@ import (
 	"math"
 	"net"
 	"os"
+	"path/filepath"
 	"strconv"
 	"time"
 
@@ -51,6 +52,8 @@ type InstallDorisParams struct {
 	Version       string            `json:"version"  validate:"required"`     // 版本号eg: 2.0.4
 	ClusterName   string            `json:"cluster_name" validate:"required"` // 集群名
 	MasterFeIp    string            `json:"master_fe_ip" validate:"ip"`       // 第一台FE IP
+	NewVersion    string            `json:"new_version"`                      // 升级目标版本号eg: 2.0.5
+	OperationType string            `json:"operation_type"`                   // 操作类型 eg: install / upgrade
 }
 
 // InitDefaultInstallParam TODO
@@ -150,12 +153,39 @@ func (i *InstallDorisService) InstallSupervisor() (err error) {
 	return nil
 }
 
-// RenderConfig TODO
+// RenderConfig 渲染Doris配置到角色软链目录
 func (i *InstallDorisService) RenderConfig() (err error) {
+	dorisConfDir := fmt.Sprintf(ConfDirTmpl, i.Params.Role)
+	return i.renderConfigToDir(dorisConfDir)
+}
+
+// RenderConfigV2 v2版本渲染配置，支持升级流程中将配置文件生成到新版本目录
+func (i *InstallDorisService) RenderConfigV2() (err error) {
 	roleEnum := RoleEnumByRole(i.Params.Role)
 	group := roleEnum.Group()
 
-	dorisConfDir := fmt.Sprintf(ConfDirTmpl, i.Params.Role)
+	// 根据操作类型决定配置文件写入目录
+	var dorisConfDir string
+	if i.Params.OperationType == Upgrade {
+		if i.Params.Version == "" {
+			return fmt.Errorf("operation_type is upgrade but version is empty")
+		}
+		// 升级时将配置写入新版本目录: /data/dorisenv/doris-{version}/{group}/conf
+		dorisConfDir = filepath.Join(i.DorisEnvDir, fmt.Sprintf("doris-%s", i.Params.Version), string(group), "conf")
+		logger.Info("upgrade mode: render config to new version dir %s", dorisConfDir)
+	} else {
+		// 非升级场景使用默认的角色软链目录
+		dorisConfDir = fmt.Sprintf(ConfDirTmpl, i.Params.Role)
+	}
+
+	return i.renderConfigToDir(dorisConfDir)
+}
+
+// renderConfigToDir 渲染配置文件到指定目录（内部公共方法）
+func (i *InstallDorisService) renderConfigToDir(dorisConfDir string) (err error) {
+	roleEnum := RoleEnumByRole(i.Params.Role)
+	group := roleEnum.Group()
+
 	confFileName := fmt.Sprintf("%s.conf", group)
 	logger.Info("now doris conf is %s/%s", dorisConfDir, confFileName)
 	cidr, err := dorisutil.GetLocalNetwork()
@@ -190,7 +220,7 @@ func (i *InstallDorisService) RenderConfig() (err error) {
 			logger.Error("buffer concat fe config bytes failed %s", err.Error())
 			return err
 		}
-		if err = os.WriteFile(dorisConfDir+"/"+confFileName, feConfBytes, 0644); err != nil {
+		if err = os.WriteFile(filepath.Join(dorisConfDir, confFileName), feConfBytes, 0644); err != nil {
 			logger.Error("write fe config failed %s", err.Error())
 			return err
 		}
@@ -207,7 +237,7 @@ func (i *InstallDorisService) RenderConfig() (err error) {
 			logger.Error("buffer concat be config bytes failed %s", err.Error())
 			return err
 		}
-		if err = os.WriteFile(dorisConfDir+"/"+confFileName, beConfBytes, 0644); err != nil {
+		if err = os.WriteFile(filepath.Join(dorisConfDir, confFileName), beConfBytes, 0644); err != nil {
 			logger.Error("write be config failed %s", err.Error())
 			return err
 		}
@@ -250,6 +280,12 @@ func (i *InstallDorisService) InstallDoris() (err error) {
 	}
 
 	return SupervisorUpdate()
+}
+
+// CheckComponentRunning 校验当前角色在 supervisor 中已 RUNNING（5s × 3 次轮询）。
+// 用于 install_doris 的部署后活性检查。
+func (i *InstallDorisService) CheckComponentRunning() error {
+	return dorisutil.CheckComponentRunning(string(i.Params.Role))
 }
 
 // GenDorisDataDirConf TODO

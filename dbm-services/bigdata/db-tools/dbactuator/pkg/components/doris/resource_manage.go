@@ -43,7 +43,7 @@ func (i *CreateResourceService) CreateResource() (err error) {
 	pwd := dorisutil.DefaultString(i.Params.RootPassword, i.Params.Password)
 	// mysql客户端实现
 	db, err := sql.Open("mysql", fmt.Sprintf("%s:%s@tcp(%s:%d)/%s",
-		i.Params.UserName, pwd, i.Params.MasterFeIp, i.Params.QueryPort, ""))
+		RootUser, pwd, i.Params.MasterFeIp, i.Params.QueryPort, ""))
 
 	if err != nil {
 		logger.Error("连接Doris数据库失败，%v", err)
@@ -124,7 +124,7 @@ func (i *DropResourceService) DropResource() (err error) {
 	pwd := dorisutil.DefaultString(i.Params.RootPassword, i.Params.Password)
 	// mysql客户端实现
 	db, err := sql.Open("mysql", fmt.Sprintf("%s:%s@tcp(%s:%d)/%s",
-		i.Params.UserName, pwd, i.Params.MasterFeIp, i.Params.QueryPort, ""))
+		RootUser, pwd, i.Params.MasterFeIp, i.Params.QueryPort, ""))
 
 	if err != nil {
 		logger.Error("连接Doris数据库失败，%v", err)
