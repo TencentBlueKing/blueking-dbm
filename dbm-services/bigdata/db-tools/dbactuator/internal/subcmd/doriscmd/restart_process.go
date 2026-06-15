@@ -83,6 +83,10 @@ func (d *RestartProcessAct) Run() (err error) {
 			FunName: "重启doris进程",
 			Func:    d.Service.StartStopComponent,
 		},
+		{
+			FunName: "校验组件RUNNING",
+			Func:    d.Service.CheckComponentRunning,
+		},
 	}
 
 	// json 解析每个步骤执行返回内容

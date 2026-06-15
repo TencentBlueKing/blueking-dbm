@@ -4,9 +4,11 @@ import (
 	"dbm-services/bigdata/db-tools/dbactuator/pkg/components"
 	"dbm-services/bigdata/db-tools/dbactuator/pkg/components/hdfs/util"
 	"dbm-services/bigdata/db-tools/dbactuator/pkg/rollback"
+	"dbm-services/bigdata/db-tools/dbactuator/pkg/util/dorisutil"
 	"dbm-services/common/go-pubpkg/logger"
 	"encoding/json"
 	"fmt"
+	"net/url"
 	"strconv"
 
 	"github.com/pkg/errors"
@@ -14,12 +16,13 @@ import (
 
 // CheckDecommissionParams TODO
 type CheckDecommissionParams struct {
-	Host      string              `json:"host" validate:"required,ip" ` // 本机IP
-	QueryPort int                 `json:"query_port" validate:"required"`
-	HttpPort  int                 `json:"http_port" validate:"required"`
-	UserName  string              `json:"username" validate:"required"`
-	Password  string              `json:"password" validate:"required"`
-	HostMap   map[string][]string `json:"host_map" validate:"required"`
+	Host         string              `json:"host" validate:"required,ip" ` // 本机IP
+	QueryPort    int                 `json:"query_port" validate:"required"`
+	HttpPort     int                 `json:"http_port" validate:"required"`
+	UserName     string              `json:"username" validate:"required"`
+	Password     string              `json:"password" validate:"required"`
+	HostMap      map[string][]string `json:"host_map" validate:"required"`
+	RootPassword string              `json:"root_password" validate:"omitempty"`
 }
 
 // CheckDecommissionService TODO
@@ -33,10 +36,18 @@ type CheckDecommissionService struct {
 // CheckDecommission TODO
 func (c *CheckDecommissionService) CheckDecommission() (err error) {
 	decommissioningErr := errors.New("Backend Decommissioning")
+	rootPwd := dorisutil.DefaultString(c.Params.RootPassword, c.Params.Password)
+
 	// 通过http判断节点是否退役
-	urlFormat := "http://%s:%s@%s:%d/rest/v1/system?path=//backends"
-	responseBody, err := util.HttpGet(fmt.Sprintf(urlFormat, c.Params.UserName, c.Params.Password,
-		c.Params.Host, c.Params.HttpPort))
+	// 使用 url.UserPassword 构造 userinfo，避免密码包含 @ : / # ? 等特殊字符时被 URL 解析截断
+	u := &url.URL{
+		Scheme:   "http",
+		User:     url.UserPassword(RootUser, rootPwd),
+		Host:     fmt.Sprintf("%s:%d", c.Params.Host, c.Params.HttpPort),
+		Path:     "/rest/v1/system",
+		RawQuery: "path=//backends",
+	}
+	responseBody, err := util.HttpGet(u.String())
 	if err != nil {
 		return err
 	}

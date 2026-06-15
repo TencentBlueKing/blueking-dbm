@@ -13,21 +13,21 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// StartProcessAct TODO
-type StartProcessAct struct {
+// UpgradeNodeAct 升级节点操作结构体
+type UpgradeNodeAct struct {
 	*subcmd.BaseOptions
-	Service doris.NodeOperationService
+	Service doris.UpgradeService
 }
 
-// StartProcessCommand TODO
-func StartProcessCommand() *cobra.Command {
-	act := StartProcessAct{
+// UpgradeNodeCommand 创建升级节点命令
+func UpgradeNodeCommand() *cobra.Command {
+	act := UpgradeNodeAct{
 		BaseOptions: subcmd.GBaseOptions,
 	}
 	cmd := &cobra.Command{
-		Use:     "start_process",                                                            // 命令用法
-		Short:   "启动doris进程",                                                                // 命令简短描述
-		Example: fmt.Sprintf(`dbactuator doris start_process %s`, subcmd.CmdBaseExapmleStr), // 命令示例
+		Use:     "upgrade_node",
+		Short:   "升级doris节点",
+		Example: fmt.Sprintf(`dbactuator doris upgrade_node %s`, subcmd.CmdBaseExapmleStr),
 		Run: func(cmd *cobra.Command, args []string) {
 			util.CheckErr(act.Validate())
 			if act.RollBack {
@@ -42,20 +42,19 @@ func StartProcessCommand() *cobra.Command {
 }
 
 // Validate 用于验证参数
-func (d *StartProcessAct) Validate() (err error) {
+func (d *UpgradeNodeAct) Validate() (err error) {
 	return d.BaseOptions.Validate()
 }
 
 // Init 用于初始化
-func (d *StartProcessAct) Init() (err error) {
-	logger.Info("StartProcessAct Init")
+func (d *UpgradeNodeAct) Init() (err error) {
+	logger.Info("UpgradeNodeAct Init")
 	if err = d.Deserialize(&d.Service.Params); err != nil {
 		logger.Error("DeserializeAndValidate failed, %v", err)
 		return err
 	}
 	d.Service.GeneralParam = subcmd.GeneralRuntimeParam
 	d.Service.InstallParams = doris.InitDefaultInstallParam()
-
 	return nil
 }
 
@@ -63,7 +62,7 @@ func (d *StartProcessAct) Init() (err error) {
 //
 //	@receiver d
 //	@return err
-func (d *StartProcessAct) Rollback() (err error) {
+func (d *UpgradeNodeAct) Rollback() (err error) {
 	var r rollback.RollBackObjects
 	if err = d.DeserializeAndValidate(&r); err != nil {
 		logger.Error("DeserializeAndValidate failed, %v", err)
@@ -76,12 +75,32 @@ func (d *StartProcessAct) Rollback() (err error) {
 	return
 }
 
-// Run 用于执行
-func (d *StartProcessAct) Run() (err error) {
+// Run 用于执行升级操作
+func (d *UpgradeNodeAct) Run() (err error) {
 	steps := subcmd.Steps{
 		{
-			FunName: "启动doris进程",
-			Func:    d.Service.StartStopComponent,
+			FunName: "升级预检查",
+			Func:    d.Service.PreCheck,
+		},
+		{
+			FunName: "停止进程",
+			Func:    d.Service.StopProcess,
+		},
+		{
+			FunName: "切换角色软链",
+			Func:    d.Service.SwitchRoleLink,
+		},
+		{
+			FunName: "切换JDK软链",
+			Func:    d.Service.SwitchJdkLink,
+		},
+		{
+			FunName: "新版本目录赋权",
+			Func:    d.Service.ChownNewVersion,
+		},
+		{
+			FunName: "启动进程",
+			Func:    d.Service.StartProcess,
 		},
 		{
 			FunName: "校验组件RUNNING",
@@ -100,6 +119,6 @@ func (d *StartProcessAct) Run() (err error) {
 		return err
 	}
 
-	logger.Info("start_process successfully")
+	logger.Info("upgrade_node successfully")
 	return nil
 }

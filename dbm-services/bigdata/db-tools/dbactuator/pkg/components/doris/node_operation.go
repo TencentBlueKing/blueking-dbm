@@ -6,6 +6,7 @@ import (
 
 	"dbm-services/bigdata/db-tools/dbactuator/pkg/components"
 	"dbm-services/bigdata/db-tools/dbactuator/pkg/rollback"
+	"dbm-services/bigdata/db-tools/dbactuator/pkg/util/dorisutil"
 	"dbm-services/bigdata/db-tools/dbactuator/pkg/util/osutil"
 	"dbm-services/common/go-pubpkg/logger"
 )
@@ -111,6 +112,12 @@ func (i *NodeOperationService) FirstLaunch() (err error) {
 	}
 	logger.Info("doris process %s first launch successfully", i.Params.Component)
 	return nil
+}
+
+// CheckComponentRunning 校验当前组件在 supervisor 中已 RUNNING（5s × 3 次轮询）。
+// 用于 start_process / restart_process 的启动后活性检查。
+func (i *NodeOperationService) CheckComponentRunning() error {
+	return dorisutil.CheckComponentRunning(i.Params.Component)
 }
 
 // SupervisorCommand Supervisor 命令集

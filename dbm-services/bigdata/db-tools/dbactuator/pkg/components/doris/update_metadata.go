@@ -37,7 +37,7 @@ func (i *UpdateMetaDataService) UpdateMetaDataInternal() (failHostMap map[string
 	rootPwd := dorisutil.DefaultString(i.Params.RootPassword, i.Params.Password)
 	// mysql客户端实现
 	db, err := sql.Open("mysql", fmt.Sprintf("%s:%s@tcp(%s:%d)/%s",
-		i.Params.UserName, rootPwd, i.Params.Host, i.Params.QueryPort, ""))
+		RootUser, rootPwd, i.Params.Host, i.Params.QueryPort, ""))
 
 	if err != nil {
 		logger.Error("连接Doris数据库失败，%v", err)
@@ -69,6 +69,12 @@ func (i *UpdateMetaDataService) UpdateMetaDataInternal() (failHostMap map[string
 			}
 			metaDataSql := fmt.Sprintf("ALTER SYSTEM %s %s '%s:%d'", i.Params.Operation,
 				metaRole, host, roleEnum.InnerPort())
+			// 仅在 ADD BACKEND 且角色为 cold/warm 时，通过 PROPERTIES 一条 SQL 直接打上 tag.location=cold
+			// 上游 role 名兼容 cold 和 warm，BE tag 统一归为 cold（与 init_grant.go 中用户 resource_tags 保持一致）
+			if i.Params.Operation == Add &&
+				(roleEnum.Value() == Cold || roleEnum.Value() == Warm) {
+				metaDataSql = fmt.Sprintf(`%s PROPERTIES("tag.location" = "%s")`, metaDataSql, BeTagLocationCold)
+			}
 			// 执行SQL
 			_, err = db.Exec(metaDataSql)
 			if err != nil {
@@ -101,8 +107,10 @@ func (i *UpdateMetaDataService) UpdateMetaData() (err error) {
 func (i *UpdateMetaDataService) UpdateBackendsTag(tag string, backendIps []string) (err error) {
 
 	// mysql客户端实现
+	rootPwd := dorisutil.DefaultString(i.Params.RootPassword, i.Params.Password)
+
 	db, err := sql.Open("mysql", fmt.Sprintf("%s:%s@tcp(%s:%d)/%s",
-		i.Params.UserName, i.Params.Password, i.Params.Host, i.Params.QueryPort, ""))
+		RootUser, rootPwd, i.Params.Host, i.Params.QueryPort, ""))
 
 	if err != nil {
 		logger.Error("连接Doris数据库失败，%v", err)

@@ -96,6 +96,6 @@ func (d *CheckProcessStartAct) Run() (err error) {
 		return err
 	}
 
-	logger.Info("check_decommission 执行成功")
+	logger.Info("check_process_start 执行成功")
 	return nil
 }
