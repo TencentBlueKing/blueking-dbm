@@ -28221,6 +28221,10 @@ msgstr "暴露服务"
 msgid "回写集群ID"
 msgstr "Write back ClusterId"
 
+#: backend/flow/engine/bamboo/scene/qdrant/qdrant_apply_flow.py
+msgid "同步ticketId"
+msgstr "sync ticket_id"
+
 #: backend/ticket/builders/redis/redis_backup.py:67
 msgid "集群备份"
 msgstr "集群备份"
