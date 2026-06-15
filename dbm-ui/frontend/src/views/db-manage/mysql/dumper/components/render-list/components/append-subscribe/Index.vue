@@ -12,7 +12,7 @@
 -->
 
 <template>
-  <BkSideslider
+  <DbSideslider
     :before-close="handleClose"
     :is-show="isShow"
     render-directive="if"
@@ -24,7 +24,7 @@
       </div>
     </template>
     <div class="append-rule-edit-box">
-      <BkForm
+      <DbForm
         ref="formRef"
         class="edit-form"
         form-type="vertical">
@@ -56,7 +56,7 @@
             </BkRadio>
           </BkRadioGroup>
         </BkFormItem>
-      </BkForm>
+      </DbForm>
     </div>
     <template #footer>
       <BkButton
@@ -73,7 +73,7 @@
         {{ t('取消') }}
       </BkButton>
     </template>
-  </BkSideslider>
+  </DbSideslider>
 </template>
 
 <script setup lang="tsx">

@@ -29,7 +29,7 @@ export default (props: any) => {
       {
         id: 'hosts',
         name: 'IP',
-        type: 'multiple-input',
+        type: 'multiple-input' as const,
       },
       {
         id: 'for_biz',
@@ -38,7 +38,7 @@ export default (props: any) => {
           value: `${item.bk_biz_id}`,
         })),
         name: t('所属业务'),
-        type: 'single',
+        type: 'single' as const,
       },
       {
         id: 'resource_type',
@@ -47,7 +47,7 @@ export default (props: any) => {
           value: SpecialOptions.PUBLIC,
         }),
         name: t('所属DB类型'),
-        type: 'single',
+        type: 'single' as const,
       },
       {
         id: 'bk_cloud_ids',
@@ -56,7 +56,7 @@ export default (props: any) => {
           value: `${item.bk_cloud_id}`,
         })),
         name: t('管控区域'),
-        type: 'multiple',
+        type: 'multiple' as const,
       },
       {
         id: 'agent_status',
@@ -71,7 +71,7 @@ export default (props: any) => {
           },
         ],
         name: t('Agent 状态'),
-        type: 'single',
+        type: 'single' as const,
       },
       {
         id: 'mount_point',
@@ -80,7 +80,7 @@ export default (props: any) => {
           value: item,
         })),
         name: t('操作系统类型'),
-        type: 'single',
+        type: 'single' as const,
       },
       {
         id: 'mount_point',
@@ -89,7 +89,7 @@ export default (props: any) => {
           value: item,
         })),
         name: t('数据盘挂载点'),
-        type: 'single',
+        type: 'single' as const,
       },
       {
         id: 'disk_type',
@@ -100,7 +100,7 @@ export default (props: any) => {
             value: item,
           })),
         name: t('数据盘类型'),
-        type: 'single',
+        type: 'single' as const,
       },
       {
         id: 'city',
@@ -109,7 +109,7 @@ export default (props: any) => {
           value: item.city_code,
         })),
         name: t('地域'),
-        type: 'multiple',
+        type: 'multiple' as const,
       },
       {
         id: 'sub_zone',
@@ -118,7 +118,7 @@ export default (props: any) => {
           value: `${item.bk_sub_zone_id}`,
         })),
         name: t('园区'),
-        type: 'multiple',
+        type: 'multiple' as const,
       },
       {
         id: 'device_class',
@@ -127,7 +127,7 @@ export default (props: any) => {
           value: `${item.id}`,
         })),
         name: t('机型'),
-        type: 'multiple',
+        type: 'multiple' as const,
       },
     ];
 

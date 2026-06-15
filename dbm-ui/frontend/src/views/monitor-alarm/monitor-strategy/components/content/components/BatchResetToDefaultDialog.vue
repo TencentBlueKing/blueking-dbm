@@ -1,5 +1,5 @@
 <template>
-  <BkDialog
+  <DbDialog
     v-model:is-show="moduleValue"
     class="batch-reset-to-default-dialog"
     quick-close
@@ -40,7 +40,7 @@
         {{ t('取消') }}
       </BkButton>
     </template>
-  </BkDialog>
+  </DbDialog>
 </template>
 
 <script setup lang="ts">

@@ -212,7 +212,7 @@
       v-model:is-show="isShowShrink"
       :cluster-data="operationData"
       @change="fetchData" />
-    <BkDialog
+    <DbDialog
       v-model:is-show="isShowPassword"
       render-directive="if"
       :title="t('获取访问方式')">
@@ -225,7 +225,7 @@
           {{ t('关闭') }}
         </BkButton>
       </template>
-    </BkDialog>
+    </DbDialog>
     <TableDetailDialog
       v-model="isShowDetail"
       :default-offset-left="300"

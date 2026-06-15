@@ -12,7 +12,7 @@
 -->
 
 <template>
-  <BkForm
+  <DbForm
     ref="formRef"
     class="mt-24"
     form-type="vertical"
@@ -39,7 +39,7 @@
         :data="formModel.tableData"
         :show-overflow="false" />
     </BkFormItem>
-  </BkForm>
+  </DbForm>
 </template>
 
 <script setup lang="tsx">

@@ -1,6 +1,6 @@
 <template>
   <div class="recommend-architecture-form">
-    <BkForm
+    <DbForm
       ref="formRef"
       form-type="vertical"
       :model="formData">
@@ -41,7 +41,7 @@
           <BkRadio label="no">{{ t('否') }}</BkRadio>
         </BkRadioGroup>
       </BkFormItem>
-    </BkForm>
+    </DbForm>
     <div class="mt-36">
       <BkButton
         theme="primary"

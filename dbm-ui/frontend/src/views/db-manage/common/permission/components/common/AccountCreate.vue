@@ -12,7 +12,7 @@
 -->
 
 <template>
-  <BkDialog
+  <DbDialog
     class="account-dialog"
     :draggable="false"
     :esc-close="false"
@@ -21,7 +21,7 @@
     :title="t('新建账号')"
     :width="580"
     @closed="handleClose">
-    <BkForm
+    <DbForm
       v-if="isShow"
       ref="accountRef"
       form-type="vertical"
@@ -71,7 +71,7 @@
           {{ t('复制密码') }}
         </BkButton>
       </div>
-    </BkForm>
+    </DbForm>
     <template #footer>
       <BkButton
         v-bk-tooltips="{
@@ -91,7 +91,7 @@
         {{ t('取消') }}
       </BkButton>
     </template>
-  </BkDialog>
+  </DbDialog>
 </template>
 <script setup lang="ts">
   import { Message } from 'bkui-vue';

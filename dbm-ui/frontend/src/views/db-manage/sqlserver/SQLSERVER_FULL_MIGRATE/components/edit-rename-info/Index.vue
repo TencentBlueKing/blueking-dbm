@@ -1,5 +1,5 @@
 <template>
-  <BkSideslider
+  <DbSideslider
     v-model:is-show="isShow"
     :width="900">
     <template #header>
@@ -44,7 +44,7 @@
         {{ t('取消') }}
       </BkButton>
     </template>
-  </BkSideslider>
+  </DbSideslider>
 </template>
 <script setup lang="ts">
   import _ from 'lodash';

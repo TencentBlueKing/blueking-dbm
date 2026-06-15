@@ -12,7 +12,7 @@
 -->
 
 <template>
-  <BkDialog
+  <DbDialog
     class="cluster-batch-add-tag-main"
     :close-icon="false"
     :is-show="isShow"
@@ -96,7 +96,7 @@
         {{ t('取消') }}
       </BkButton>
     </template>
-  </BkDialog>
+  </DbDialog>
 </template>
 <script setup lang="tsx">
   import { useI18n } from 'vue-i18n';

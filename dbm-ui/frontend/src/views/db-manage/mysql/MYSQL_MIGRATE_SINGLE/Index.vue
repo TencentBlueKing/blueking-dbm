@@ -17,7 +17,7 @@
       class="mb-20"
       closable
       :title="t('支持实时同步数据和仅迁移表结构。实时同步数据需要开启 binlog')" />
-    <BkForm
+    <DbForm
       class="toolbox-form mb-20"
       form-type="vertical">
       <BkFormItem
@@ -60,7 +60,7 @@
         :is="comMap[migrateType]"
         :key="formKey"
         ref="formRef" />
-    </BkForm>
+    </DbForm>
     <template #action>
       <BkButton
         class="mr-8 w-88"

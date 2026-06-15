@@ -12,7 +12,7 @@
 -->
 
 <template>
-  <BkDialog
+  <DbDialog
     class="dbm-instance-selector"
     :close-icon="false"
     :draggable="false"
@@ -71,7 +71,7 @@
         {{ t('取消') }}
       </BkButton>
     </template>
-  </BkDialog>
+  </DbDialog>
 </template>
 
 <script setup lang="ts" generic="T extends ISupportClusterType">

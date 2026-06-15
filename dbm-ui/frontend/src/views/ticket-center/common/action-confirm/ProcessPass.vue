@@ -17,7 +17,7 @@
         </BkTag>
         <span>{{ t('通过后，单据将进入下一步骤') }}</span>
       </div>
-      <BkForm
+      <DbForm
         ref="approveForm"
         class="mt-14"
         form-type="vertical"
@@ -31,7 +31,7 @@
             :rows="3"
             type="textarea" />
         </BkFormItem>
-      </BkForm>
+      </DbForm>
     </template>
   </DbPopconfirm>
 </template>

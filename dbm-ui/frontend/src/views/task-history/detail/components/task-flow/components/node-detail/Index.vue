@@ -12,7 +12,7 @@
 -->
 
 <template>
-  <BkSideslider
+  <DbSideslider
     v-model:is-show="isShow"
     class="node-log-main"
     quick-close
@@ -189,7 +189,7 @@
         </BkTabPanel>
       </BkTab>
     </template>
-  </BkSideslider>
+  </DbSideslider>
 </template>
 
 <script setup lang="tsx">

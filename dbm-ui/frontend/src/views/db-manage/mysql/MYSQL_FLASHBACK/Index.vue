@@ -4,7 +4,7 @@
       class="mb-20"
       closable
       :title="t('支持构造回档、库表闪回、记录级闪回')" />
-    <BkForm
+    <DbForm
       ref="formRef"
       class="mb-24 toolbox-form"
       form-type="vertical">
@@ -33,7 +33,7 @@
         </BkRadioGroup>
       </BkFormItem>
       <Component :is="comMap[flashbackType]" />
-    </BkForm>
+    </DbForm>
   </div>
 </template>
 <script setup lang="ts">

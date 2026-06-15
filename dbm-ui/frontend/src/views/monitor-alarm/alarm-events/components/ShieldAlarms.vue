@@ -12,7 +12,7 @@
 -->
 
 <template>
-  <BkForm
+  <DbForm
     ref="formRef"
     form-type="vertical"
     :model="formModel"
@@ -101,7 +101,7 @@
         </BkTag>
       </div>
     </BkFormItem>
-  </BkForm>
+  </DbForm>
 </template>
 <script setup lang="ts">
   import dayjs from 'dayjs';

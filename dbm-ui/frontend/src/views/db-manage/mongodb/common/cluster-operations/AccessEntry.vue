@@ -12,7 +12,7 @@
 -->
 
 <template>
-  <BkDialog
+  <DbDialog
     class="mongo-access-entry"
     :is-show="isShow"
     :quick-close="false"
@@ -98,7 +98,7 @@
         {{ t('关闭') }}
       </BkButton>
     </template>
-  </BkDialog>
+  </DbDialog>
 </template>
 
 <script setup lang="ts">

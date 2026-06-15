@@ -17,7 +17,7 @@
       class="mb-20"
       closable
       :title="t('添加运维节点：在原集群上增加运维节点实例来实现额外的数据访问，在运维节点上的操作不会影响原集群')" />
-    <BkForm
+    <DbForm
       class="mb-20"
       form-type="vertical"
       :model="formData">
@@ -57,7 +57,7 @@
         </EditableRow>
       </EditableTable>
       <TicketPayload v-model="formData.payload" />
-    </BkForm>
+    </DbForm>
     <template #action>
       <BkButton
         class="mr-8 w-88"

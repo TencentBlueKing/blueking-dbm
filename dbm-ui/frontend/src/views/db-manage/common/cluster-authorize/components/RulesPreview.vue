@@ -15,7 +15,7 @@
   <BkButton @click="handleShow">
     {{ t('权限预览') }}
   </BkButton>
-  <BkDialog
+  <DbDialog
     :draggable="false"
     :is-show="isShow"
     :quick-close="false"
@@ -136,7 +136,7 @@
     <template #footer>
       <BkButton @click="handleClose">{{ t('关闭') }}</BkButton>
     </template>
-  </BkDialog>
+  </DbDialog>
 </template>
 
 <script setup lang="ts">
@@ -262,7 +262,6 @@
         .cell-privilege-value {
           max-width: 350px;
           margin-left: 6px;
-          word-wrap: break-word;
           overflow-wrap: break-word;
           white-space: normal;
         }

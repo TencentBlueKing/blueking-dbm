@@ -1,5 +1,5 @@
 <template>
-  <BkDialog
+  <DbDialog
     dialog-type="show"
     :draggable="false"
     :is-show="isShow"
@@ -32,7 +32,7 @@
         </div>
       </div>
     </div>
-  </BkDialog>
+  </DbDialog>
 </template>
 
 <script setup lang="ts">

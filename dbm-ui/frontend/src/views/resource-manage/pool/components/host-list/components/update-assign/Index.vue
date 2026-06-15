@@ -1,5 +1,5 @@
 <template>
-  <BkDialog
+  <DbDialog
     class="update-assign-dialog"
     :is-show="isShow"
     render-directive="if"
@@ -13,7 +13,7 @@
         </div>
       </div>
     </template>
-    <BkForm
+    <DbForm
       ref="formRef"
       class="mt-16"
       form-type="vertical"
@@ -59,7 +59,7 @@
           :default-list="editData.labels"
           :disabled="!formData.for_biz && formData.for_biz !== 0" />
       </BkFormItem>
-    </BkForm>
+    </DbForm>
     <template #footer>
       <BkButton
         :loading="isUpdating"
@@ -73,7 +73,7 @@
         {{ t('取消') }}
       </BkButton>
     </template>
-  </BkDialog>
+  </DbDialog>
 </template>
 
 <script setup lang="tsx">

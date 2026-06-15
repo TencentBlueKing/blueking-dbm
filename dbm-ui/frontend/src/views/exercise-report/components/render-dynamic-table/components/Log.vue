@@ -1,5 +1,5 @@
 <template>
-  <BkSideslider
+  <DbSideslider
     v-model:is-show="isShow"
     class="dynamic-log-sideslider"
     quick-close
@@ -11,7 +11,7 @@
         ref="logRef"
         :loading="initLoading" />
     </div>
-  </BkSideslider>
+  </DbSideslider>
 </template>
 <script setup lang="ts">
   import DbLog from '@components/db-log/index.vue';

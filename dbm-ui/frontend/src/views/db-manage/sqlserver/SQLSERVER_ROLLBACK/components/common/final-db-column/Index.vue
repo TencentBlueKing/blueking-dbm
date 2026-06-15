@@ -30,7 +30,7 @@
       </EditableBlock>
     </BkLoading>
   </EditableColumn>
-  <BkSideslider
+  <DbSideslider
     v-model:is-show="isShowEditName"
     render-directive="if"
     :width="900">
@@ -59,7 +59,7 @@
         {{ t('取消') }}
       </BkButton>
     </template>
-  </BkSideslider>
+  </DbSideslider>
 </template>
 <script setup lang="ts">
   import _ from 'lodash';

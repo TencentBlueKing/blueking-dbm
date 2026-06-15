@@ -12,7 +12,7 @@
 -->
 
 <template>
-  <BkSideslider
+  <DbSideslider
     v-model:is-show="isShow"
     quick-close
     :width="1200">
@@ -76,7 +76,7 @@
           :record-id="currentRecord.record_id" />
       </div>
     </template>
-  </BkSideslider>
+  </DbSideslider>
 </template>
 
 <script setup lang="tsx">

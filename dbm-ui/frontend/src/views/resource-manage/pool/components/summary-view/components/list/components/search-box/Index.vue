@@ -1,5 +1,5 @@
 <template>
-  <BkForm
+  <DbForm
     class="search-box"
     form-type="vertical">
     <BkFormItem
@@ -28,7 +28,7 @@
         :model="searchParams"
         @change="handleSearch" />
     </BkFormItem>
-  </BkForm>
+  </DbForm>
 </template>
 
 <script setup lang="ts">

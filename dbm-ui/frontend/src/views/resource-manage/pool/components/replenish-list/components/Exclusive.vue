@@ -26,7 +26,7 @@
         {{ t('查看详情') }}
       </BkButton>
     </BkAlert>
-    <BkSideslider
+    <DbSideslider
       :is-show="isShowSlider"
       :title="t('统计说明')"
       :width="960"
@@ -112,7 +112,7 @@
           </BkTabPanel>
         </BkTab>
       </div>
-    </BkSideslider>
+    </DbSideslider>
   </div>
 </template>
 
@@ -166,9 +166,9 @@
     .replenish-exclusive-desc {
       width: 100%;
       height: 48px;
+      padding: 16px;
       background: #f5f7fa;
       border-radius: 2px;
-      padding: 16px;
     }
   }
 </style>

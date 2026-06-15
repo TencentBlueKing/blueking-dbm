@@ -12,7 +12,7 @@
 -->
 
 <template>
-  <BkSideslider
+  <DbSideslider
     v-model:is-show="isShow"
     :width="900"
     @close="handleClose">
@@ -74,7 +74,7 @@
         </BkTableColumn>
       </BkTable>
     </div>
-  </BkSideslider>
+  </DbSideslider>
 </template>
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
@@ -129,11 +129,11 @@
 
     .db-list-title {
       font-family: MicrosoftYaHei-Bold;
-      font-weight: 700;
       font-size: 14px;
-      color: #313238;
-      letter-spacing: 0;
+      font-weight: 700;
       line-height: 22px;
+      letter-spacing: 0;
+      color: #313238;
     }
   }
 </style>

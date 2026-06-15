@@ -12,7 +12,7 @@
 -->
 
 <template>
-  <BkDialog
+  <DbDialog
     :esc-close="false"
     :is-show="isShow"
     :quick-close="false"
@@ -61,7 +61,7 @@
         {{ t('取消') }}
       </BkButton>
     </template>
-  </BkDialog>
+  </DbDialog>
   <div style="display: none">
     <div
       ref="mergeTipsRef"

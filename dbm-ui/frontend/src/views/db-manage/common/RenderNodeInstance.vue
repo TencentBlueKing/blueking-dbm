@@ -69,7 +69,7 @@
       @click="handleShowMore">
       {{ t('查看更多') }}
     </BkButton>
-    <BkDialog
+    <DbDialog
       class="cluster-node-instance-dialog"
       :is-show="isShowMore"
       :title="t('xx预览', { name: title })"
@@ -104,7 +104,7 @@
           {{ t('关闭') }}
         </BkButton>
       </template>
-    </BkDialog>
+    </DbDialog>
   </div>
 </template>
 <script setup lang="tsx">

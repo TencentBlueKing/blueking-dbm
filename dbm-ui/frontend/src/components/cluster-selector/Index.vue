@@ -12,7 +12,7 @@
 -->
 
 <template>
-  <BkDialog
+  <DbDialog
     class="cluster-selector-dialog"
     :close-icon="false"
     :draggable="false"
@@ -128,7 +128,7 @@
         {{ t('取消') }}
       </BkButton>
     </template>
-  </BkDialog>
+  </DbDialog>
 </template>
 <script
   setup

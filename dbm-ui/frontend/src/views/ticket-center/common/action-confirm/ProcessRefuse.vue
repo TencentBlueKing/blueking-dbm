@@ -18,7 +18,7 @@
           </BkTag>
           <span>{{ t('拒绝后，单据将作废处理') }}</span>
         </div>
-        <BkForm
+        <DbForm
           ref="terminateForm"
           class="mt-14"
           form-type="vertical"
@@ -33,7 +33,7 @@
               :rows="3"
               type="textarea" />
           </BkFormItem>
-        </BkForm>
+        </DbForm>
       </div>
     </template>
   </DbPopconfirm>

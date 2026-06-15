@@ -12,7 +12,7 @@
 -->
 
 <template>
-  <BkDialog
+  <DbDialog
     class="result-files"
     dialog-type="show"
     :is-show="isShow"
@@ -57,7 +57,7 @@
         @refresh="fetchKeyFiles"
         @selection-change="handleTableSelected" />
     </BkLoading>
-  </BkDialog>
+  </DbDialog>
 </template>
 
 <script setup lang="tsx">

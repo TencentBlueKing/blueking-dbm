@@ -17,7 +17,7 @@
       class="mb-20"
       closable
       :title="t('按指定查询SQL语句导出数据')" />
-    <BkForm
+    <DbForm
       :key="formData.render_key"
       ref="form"
       class="mt-16 mb-16 toolbox-form"
@@ -69,7 +69,7 @@
           :cluster-list="formData.cluster_list"
           @grammar-check="handleGrammarCheck" />
       </BkFormItem>
-    </BkForm>
+    </DbForm>
     <template #action>
       <span
         v-bk-tooltips="{

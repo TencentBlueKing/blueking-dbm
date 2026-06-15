@@ -17,7 +17,7 @@
       </EditableBlock>
     </BkLoading>
   </EditableColumn>
-  <BkSideslider
+  <DbSideslider
     v-model:is-show="isShowEditName"
     class="sqlserver-manage-db-backup-fianal-db"
     :width="900">
@@ -58,7 +58,7 @@
         </div>
       </div>
     </BkLoading>
-  </BkSideslider>
+  </DbSideslider>
 </template>
 <script setup lang="ts">
   import { computed, ref, watch } from 'vue';

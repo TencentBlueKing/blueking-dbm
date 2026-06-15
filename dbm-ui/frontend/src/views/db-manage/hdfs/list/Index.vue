@@ -228,7 +228,7 @@
       v-model:is-show="isShowShrink"
       :cluster-data="operationData"
       @change="fetchData" />
-    <BkDialog
+    <DbDialog
       v-model:is-show="isShowPassword"
       render-directive="if"
       :title="t('获取访问方式')"
@@ -242,8 +242,8 @@
           {{ t('关闭') }}
         </BkButton>
       </template>
-    </BkDialog>
-    <BkSideslider
+    </DbDialog>
+    <DbSideslider
       v-model:is-show="isShowSettings"
       class="settings-sideslider"
       quick-close
@@ -253,7 +253,7 @@
       <ClusterSettings
         v-if="operationData"
         :cluster-id="operationData.id" />
-    </BkSideslider>
+    </DbSideslider>
     <TableDetailDialog
       v-model="isShowDetail"
       :default-offset-left="300"

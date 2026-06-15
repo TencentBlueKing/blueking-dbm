@@ -1,5 +1,5 @@
 <template>
-  <BkSideslider
+  <DbSideslider
     :before-close="handleBeforeClose"
     class="cluster-authorize-slider"
     :is-show="isShow"
@@ -31,7 +31,7 @@
         {{ t('取消') }}
       </BkButton>
     </template>
-  </BkSideslider>
+  </DbSideslider>
 </template>
 <script setup lang="tsx">
   import { useI18n } from 'vue-i18n';

@@ -1,5 +1,5 @@
 <template>
-  <BkSideslider
+  <DbSideslider
     v-model:is-show="isShow"
     :before-close="handleBeforeClose"
     class="edit-version-slider-main"
@@ -16,7 +16,7 @@
       </div>
     </template>
     <div class="content-main">
-      <BkForm
+      <DbForm
         ref="formRef"
         class="form-main"
         form-type="vertical"
@@ -151,7 +151,7 @@
             theme="primary"
             @change="handleValueChange" />
         </BkFormItem>
-      </BkForm>
+      </DbForm>
       <div class="operate-main">
         <BkButton
           v-bk-tooltips="{
@@ -172,7 +172,7 @@
         </BkButton>
       </div>
     </div>
-  </BkSideslider>
+  </DbSideslider>
 </template>
 <script setup lang="ts">
   import _ from 'lodash';

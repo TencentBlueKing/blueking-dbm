@@ -6,11 +6,11 @@
       @click="handleShowDialog">
       {{ title }}
     </BkButton>
-    <BkDialog
+    <DbDialog
       v-model:is-show="isShow"
       class="ticket-self-todo-batch-operation"
       :title="title">
-      <BkForm
+      <DbForm
         ref="form"
         form-type="vertical"
         :model="formData">
@@ -32,7 +32,7 @@
             :rows="3"
             type="textarea" />
         </BkFormItem>
-      </BkForm>
+      </DbForm>
       <template #footer>
         <BkButton
           :loading="isSubmiting"
@@ -47,7 +47,7 @@
           {{ t('取消') }}
         </BkButton>
       </template>
-    </BkDialog>
+    </DbDialog>
   </div>
 </template>
 <script setup lang="ts">

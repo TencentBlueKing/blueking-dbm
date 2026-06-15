@@ -5,7 +5,7 @@
       closable
       theme="info"
       :title="t('闪回：通过 flashback 工具，对 row 格式的 binlog 做逆向操作')" />
-    <BkForm
+    <DbForm
       ref="formRef"
       class="mb-24 toolbox-form"
       form-type="vertical">
@@ -34,7 +34,7 @@
         </BkRadioGroup>
       </BkFormItem>
       <Component :is="comMap[flashbackType]" />
-    </BkForm>
+    </DbForm>
   </div>
 </template>
 <script setup lang="ts">

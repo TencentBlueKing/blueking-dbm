@@ -1,5 +1,5 @@
 <template>
-  <BkDialog
+  <DbDialog
     v-model:is-show="moduleValue"
     class="batch-edit-notice-group-dialog"
     quick-close
@@ -8,7 +8,7 @@
       <span>{{ t('批量设置告警组') }}</span>
       <span class="sub-title">{{ t('已选n个策略', { n: selected.length }) }}</span>
     </template>
-    <BkForm
+    <DbForm
       ref="form"
       form-type="vertical"
       :model="formData">
@@ -106,7 +106,7 @@
           </div>
         </div>
       </div>
-    </BkForm>
+    </DbForm>
     <template #footer>
       <BkButton
         class="mr-8"
@@ -122,7 +122,7 @@
         {{ t('取消') }}
       </BkButton>
     </template>
-  </BkDialog>
+  </DbDialog>
 </template>
 
 <script setup lang="ts">

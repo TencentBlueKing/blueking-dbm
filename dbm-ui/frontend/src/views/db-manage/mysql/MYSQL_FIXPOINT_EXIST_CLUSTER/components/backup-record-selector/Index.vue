@@ -12,7 +12,7 @@
 -->
 
 <template>
-  <BkDialog
+  <DbDialog
     class="mysql-backup-record-selector"
     :close-icon="false"
     :draggable="false"
@@ -183,7 +183,7 @@
         </div>
       </div>
     </template>
-  </BkDialog>
+  </DbDialog>
 </template>
 <script setup lang="ts">
   import type { ISearchValue } from 'bkui-vue/lib/search-select/utils';

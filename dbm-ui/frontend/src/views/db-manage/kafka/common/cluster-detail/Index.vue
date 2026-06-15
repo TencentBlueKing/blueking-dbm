@@ -155,7 +155,7 @@
       <ClusterShrink
         v-model:is-show="isShowShrink"
         :cluster-data="data" />
-      <BkDialog
+      <DbDialog
         v-model:is-show="isShowPassword"
         render-directive="if"
         :title="t('获取访问方式')"
@@ -168,7 +168,7 @@
             {{ t('关闭') }}
           </BkButton>
         </template>
-      </BkDialog>
+      </DbDialog>
     </template>
   </div>
 </template>

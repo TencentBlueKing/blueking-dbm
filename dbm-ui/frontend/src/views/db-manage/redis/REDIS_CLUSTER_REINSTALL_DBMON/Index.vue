@@ -20,7 +20,7 @@
     <BatchInput
       :config="batchInputConfig"
       @change="handleBatchInput" />
-    <BkForm
+    <DbForm
       class="mt-16 mb-16"
       form-type="vertical"
       :model="formData">
@@ -50,7 +50,7 @@
         {{ t('重新下发GSE配置') }}
       </BkCheckbox>
       <TicketPayload v-model="formData.payload" />
-    </BkForm>
+    </DbForm>
     <template #action>
       <BkButton
         class="mr-8 w-88"

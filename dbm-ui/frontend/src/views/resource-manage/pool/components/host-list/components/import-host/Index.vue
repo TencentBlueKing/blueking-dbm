@@ -12,7 +12,7 @@
 -->
 
 <template>
-  <BkDialog
+  <DbDialog
     v-model:is-show="modelValue"
     class="import-host-dialog"
     :esc-close="false"
@@ -59,7 +59,7 @@
         </BkButton>
       </div>
     </template>
-  </BkDialog>
+  </DbDialog>
 </template>
 <script setup lang="tsx">
   import BkButton from 'bkui-vue/lib/button';

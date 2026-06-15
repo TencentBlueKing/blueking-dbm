@@ -12,7 +12,7 @@
 -->
 
 <template>
-  <BkSideslider
+  <DbSideslider
     v-model:is-show="isShow"
     class="replenish-record-details-slider"
     width="65%">
@@ -272,12 +272,12 @@
     </div>
 
     <!-- 批量终止弹窗 -->
-    <BkDialog
+    <DbDialog
       v-model:is-show="isShowTerminateDialog"
       class="replenish-batch-terminate-dialog"
       :title="t('批量终止')"
       :width="480">
-      <BkForm
+      <DbForm
         ref="terminateFormRef"
         form-type="vertical"
         :model="terminateForm"
@@ -299,7 +299,7 @@
             :rows="3"
             type="textarea" />
         </BkFormItem>
-      </BkForm>
+      </DbForm>
       <template #footer>
         <BkButton
           :loading="isTerminating"
@@ -314,8 +314,8 @@
           {{ t('取消') }}
         </BkButton>
       </template>
-    </BkDialog>
-  </BkSideslider>
+    </DbDialog>
+  </DbSideslider>
 </template>
 
 <script setup lang="tsx">
@@ -733,30 +733,30 @@
     .header-desc {
       position: relative;
       display: inline-flex;
-      align-items: center;
       padding-left: 12px;
       margin-left: 8px;
       font-family: MicrosoftYaHei, sans-serif;
       font-size: 13px;
+      font-weight: 400;
       line-height: 22px;
       letter-spacing: 0;
       color: #979ba5;
-      font-weight: 400;
+      align-items: center;
 
       &::before {
-        content: '';
         position: absolute;
-        left: 0;
         top: 50%;
-        transform: translateY(-50%);
+        left: 0;
         width: 1px;
         height: 14px;
         background: #dcdee5;
+        content: '';
+        transform: translateY(-50%);
       }
     }
 
     .replenish-record-details {
-      padding: 16px 24px 16px;
+      padding: 16px 24px;
     }
 
     .slide-summary {
@@ -791,19 +791,19 @@
           color: #63656e;
 
           .db-count-value {
+            margin-left: 2px;
             font-weight: 700;
             color: #313238;
-            margin-left: 2px;
           }
         }
       }
     }
 
     .related-tickets-title {
+      margin-bottom: 16px;
       font-size: 14px;
       font-weight: 700;
       color: #313238;
-      margin-bottom: 16px;
     }
 
     .slide-toolbar {
@@ -821,8 +821,8 @@
 
     .bold-number {
       font-family: MicrosoftYaHei-Bold;
-      font-weight: 700;
       font-size: 12px;
+      font-weight: 700;
       color: #313238;
 
       &.red-number {
@@ -836,8 +836,8 @@
 
     .delivery-number {
       font-family: MicrosoftYaHei-Bold;
-      font-weight: 700;
       font-size: 12px;
+      font-weight: 700;
       color: #ea3636;
     }
 
@@ -871,8 +871,8 @@
         font-size: 12px;
         font-weight: 500;
         color: #313238;
-        background: #f5f7fa;
         white-space: nowrap;
+        background: #f5f7fa;
       }
 
       .bk-table-body td {
