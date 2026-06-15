@@ -38,7 +38,9 @@
             @batch-edit="handleBatchEdit" />
           <CapacityColumn
             v-model="item.targetCapacity"
-            :cluster="item.cluster" />
+            :all-clusters="allClusters"
+            :cluster="item.cluster"
+            @batch-edit="handleBatchEditCapacity" />
           <ResourceTagColumn
             v-model="item.labels"
             @batch-edit="handleBatchEditColumn" />
@@ -175,6 +177,8 @@
   const tableKey = ref(random());
 
   const selected = computed(() => formData.tableData.filter((item) => item.cluster.id).map((item) => item.cluster));
+  /** 所有行的集群数据，用于统一设置目标容量时的校验 */
+  const allClusters = computed(() => formData.tableData.map((item) => item.cluster));
   const selectedMap = computed(() =>
     Object.fromEntries(formData.tableData.map((cur) => [cur.cluster.master_domain, true])),
   );
@@ -316,5 +320,22 @@
         [field]: value,
       });
     });
+  };
+
+  /**
+   * 统一设置目标容量
+   * 仅对 cluster_shard_num 能被 count 整除的行应用，跳过不满足条件的行
+   */
+  const handleBatchEditCapacity = (value: { specId: number; count: number; specData: TicketSpecInfo }) => {
+    formData.tableData.forEach((rowData) => {
+      const shardNum = rowData.cluster.cluster_shard_num;
+      if (shardNum > 0 && shardNum % value.count === 0) {
+        Object.assign(rowData.targetCapacity, value.specData);
+      }
+    });
+    // 延迟触发校验
+    setTimeout(() => {
+      tableRef.value?.validate();
+    }, 200);
   };
 </script>
