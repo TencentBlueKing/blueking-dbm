@@ -8,15 +8,26 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+import copy
+import time
+
+from django.core.exceptions import MultipleObjectsReturned
 from django.utils.translation import gettext as _
 from rest_framework.response import Response
 
-from backend.db_meta.enums import ClusterType
-from backend.db_meta.models import Cluster
-from backend.dbm_aiagent.mcp_tools.common.auth_parser.base import auth_parse_clusters
+from backend import env
+from backend.db_meta.enums import ClusterType, MachineType
+from backend.db_meta.models import Cluster, Machine, ProxyInstance, StorageInstance
+from backend.dbm_aiagent.mcp_tools.common.auth_parser.base import auth_parse_clusters, auth_parse_instances
 from backend.dbm_aiagent.mcp_tools.constants import DBMMCPTags, DBMMcpTools
 from backend.dbm_aiagent.mcp_tools.decorators import mcp_tools_api_decorator
-from backend.dbm_aiagent.mcp_tools.exceptions import DBMMcpNoneBillSubmittedException, DBMMcpUsernameNotFoundException
+from backend.dbm_aiagent.mcp_tools.exceptions import (
+    DBMMcpBaseException,
+    DBMMcpNoneBillSubmittedException,
+    DBMMcpNotSupportClusterTypeException,
+    DBMMcpNotSupportMachineTypeException,
+    DBMMcpUsernameNotFoundException,
+)
 from backend.dbm_aiagent.mcp_tools.mysql.auth_parser.bill import auth_parse_mysql_tdbctl_upgrade_ticket
 from backend.dbm_aiagent.mcp_tools.mysql.helpers.assert_clustertype import assert_cluster_type
 from backend.dbm_aiagent.mcp_tools.mysql.impl.bill_apply_priv import bill_apply_priv
@@ -42,6 +53,9 @@ from backend.dbm_aiagent.mcp_tools.mysql.serializers.bill_output import SubmitBi
 from backend.dbm_aiagent.mcp_tools.mysql.serializers.mysql_apply_priv_bill import (
     SubmitBillMySQLApplyPrivInputSerializer,
 )
+from backend.dbm_aiagent.mcp_tools.mysql.serializers.mysql_clone_grants_bill import (
+    SubmitBillMySQLCloneGrantsInputSerializer,
+)
 from backend.dbm_aiagent.mcp_tools.mysql.serializers.mysql_construct_rollback_bill import (
     SubmitBillMySQLConstructRollbackInputSerializer,
 )
@@ -61,6 +75,7 @@ from backend.dbm_aiagent.mcp_tools.mysql.serializers.mysql_standardize_bill impo
 )
 from backend.dbm_aiagent.mcp_tools.mysql.serializers.tdbctl_upgrade_bill import SubmitBillTdbctlUpgradeInputSerializer
 from backend.dbm_aiagent.mcp_tools.views import McpToolsViewSet
+from backend.flow.engine.bamboo.scene.common.builder import Builder
 from backend.iam_app.handlers.drf_perm.base import DBManagePermission
 from backend.iam_app.handlers.drf_perm.mcp import McpTicketToolPermission
 
@@ -464,4 +479,91 @@ class MySQLBillMcpToolsViewSet(McpToolsViewSet):
                 rollback_time=rollback_time,
                 backup_id=backup_id,
             )
+        )
+
+    @mcp_tools_api_decorator(
+        description=str(
+            _(
+                """创建 DB 权限克隆流程
+参数说明：
+- bk_cloud_id: 云区域 ID（可选，默认 0）
+- address: 源实例地址 ip:port（必填）
+- dest_addresses: 目标实例地址列表 ip:port（必填）
+"""
+            )
+        ),
+        request_slz=SubmitBillMySQLCloneGrantsInputSerializer,
+        response_slz=SubmitBillOutputSerializer,
+        permission_classes=[McpTicketToolPermission],
+        mcp_auth_parser=auth_parse_instances,
+        tags=[DBMMCPTags.READ, DBMMCPTags.WRITE],
+        mcp=[DBMMcpTools.MYSQL_BILL],
+        enable_callee_plan=True,
+        name_prefix="mysql_bill",
+    )
+    def submit_bill_mysql_clone_grants(self, request, *args, **kwargs):
+        bk_cloud_id = self.get_param("bk_cloud_id")
+        source_address = self.get_param("address")
+        dest_addresses = self.get_param("dest_addresses")
+
+        source_ip, source_port = source_address.split(":")
+        try:
+            m = Machine.objects.get(ip=source_ip, bk_cloud_id=bk_cloud_id)
+        except MultipleObjectsReturned as e:
+            raise DBMMcpBaseException(e)
+        except Machine.DoesNotExist as e:
+            raise DBMMcpBaseException(e)
+
+        if m.cluster_type not in [ClusterType.TenDBSingle, ClusterType.TenDBHA, ClusterType.TenDBCluster]:
+            raise DBMMcpNotSupportClusterTypeException(cluster_type=m.cluster_type)
+
+        if m.machine_type not in [MachineType.SINGLE, MachineType.BACKEND, MachineType.REMOTE, MachineType.SPIDER]:
+            raise DBMMcpNotSupportMachineTypeException(machine_type=m.machine_type)
+
+        if m.machine_type == MachineType.SPIDER:
+            cluster_ids = list(
+                ProxyInstance.find_insts_by_addresses([source_address] + dest_addresses)
+                .values_list("cluster__id", flat=True)
+                .distinct()
+            )
+        else:
+            cluster_ids = list(
+                StorageInstance.find_insts_by_addresses([source_address] + dest_addresses)
+                .values_list("cluster__id", flat=True)
+                .distinct()
+            )
+
+        username = request.user.username
+        if not username:
+            raise DBMMcpUsernameNotFoundException()
+
+        root_id = str(int(time.time()))
+        data = {
+            "uid": None,
+            "created_by": username,
+            "bk_biz_id": m.bk_biz_id,
+            "bk_cloud_id": bk_cloud_id,
+            "ticket_type": "",
+        }
+
+        if m.cluster_type == ClusterType.TenDBHA:
+            from backend.flow.engine.bamboo.scene.mysql.clone_grants_from_file import clone_grants_from_file_subflow
+        else:
+            from backend.flow.engine.bamboo.scene.spider.clone_grants_from_file import clone_grants_from_file_subflow
+
+        p = clone_grants_from_file_subflow(
+            root_id=root_id,
+            data=copy.deepcopy(data),
+            bk_cloud_id=bk_cloud_id,
+            bk_biz_id=m.bk_biz_id,
+            source_address=source_address,
+            dest_addresses=dest_addresses,
+        )
+
+        rp = Builder(root_id=root_id, data=copy.deepcopy(data), need_random_pass_cluster_ids=cluster_ids)
+        rp.add_sub_pipeline(p)
+        rp.run_pipeline(is_drop_random_user=True)
+
+        return Response(
+            [{"bill_id": root_id, "bill_url": f"{env.BK_SAAS_HOST}/{m.bk_biz_id}/task-history/detail/{root_id}"}]
         )

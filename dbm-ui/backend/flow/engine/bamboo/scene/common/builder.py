@@ -429,7 +429,7 @@ class Builder(object):
         uid = self.data.get("uid") if isinstance(self.data.get("uid"), int) else None
 
         # 如果单据非法状态 or 流程树已创建，则跳过本次流程执行
-        if is_ticket_inactive(uid) or FlowTree.objects.filter(root_id=self.root_id).exists():
+        if uid and (is_ticket_inactive(uid) or FlowTree.objects.filter(root_id=self.root_id).exists()):
             return False
 
         # 将流程信息录入到FLowTree表

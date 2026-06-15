@@ -53,14 +53,14 @@ def guard_ticket_revoked(func: Callable) -> Callable:
         uid = self.data.get("uid")
 
         # 前置: 入口预检, 单据已撤则不再启动 pipeline
-        if is_ticket_inactive(uid):
+        if uid and is_ticket_inactive(uid):
             logger.warning("ticket[%s] is not running, skip run pipeline", uid)
             return False
 
         result = func(self, *args, **kwargs)
 
         # 后置: 启动成功后立刻检测, 防住 build_tree 期间 / SDK 启动期间才被撤销的窗口
-        if result and is_ticket_inactive(uid):
+        if result and uid and is_ticket_inactive(uid):
             from backend.db_services.taskflow.handlers import TaskFlowHandler
 
             root_id = Ticket.objects.get(id=uid).current_flow().flow_obj_id
