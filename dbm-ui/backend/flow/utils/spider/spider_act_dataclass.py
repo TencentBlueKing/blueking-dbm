@@ -4,6 +4,7 @@ from typing import Dict, List, Optional
 from backend.db_meta.enums import TenDBClusterSpiderRole
 from backend.db_meta.models import Cluster
 from backend.flow.consts import TDBCTL_USER
+from backend.flow.utils.mysql.mysql_act_dataclass import MysqlSyncMasterKwargs
 
 
 @dataclass()
@@ -141,3 +142,20 @@ class AddSpiderRoutingSubFlowParam:
     add_spider_role: str
     spider_pass: str
     spider_user: str = TDBCTL_USER
+
+
+@dataclass
+class SpiderSyncCtlMasterKwargs(MysqlSyncMasterKwargs):
+    """
+    定义 spider 中控集群同步 (SyncCtlMasterService) 活动节点的私有变量结构体。
+
+    在 MysqlSyncMasterKwargs 基础上新增 cluster_id, 用于在活动节点 _execute 入口处
+    通过 Cluster.tendbcluster_ctl_primary_address() 实时探测当前 ctl primary, 避免
+    上层编排时缓存的 master 与运行时真实 primary 不一致 (中控切换场景)。
+
+    @attributes cluster_id: 待操作的 TenDB Cluster 集群 id, 必填。
+    其余字段含义与 MysqlSyncMasterKwargs 完全一致。
+    """
+
+    # 由于父类已经有非默认值字段, 这里给一个默认值占位, 实例化时调用方必须显式传入。
+    cluster_id: int = 0
