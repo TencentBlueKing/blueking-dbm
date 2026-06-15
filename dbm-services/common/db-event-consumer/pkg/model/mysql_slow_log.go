@@ -57,7 +57,7 @@ type MysqlSlowLogModel struct {
 	QueryCommand    string `gorm:"column:query_command;type:varchar(60);not null" json:"command" db:"query_command"`
 	QueryDbName     string `gorm:"column:query_db_name;type:varchar(127);not null" json:"query_db_name" db:"query_db_name"`
 	DbName          string `gorm:"column:db_name;type:varchar(127);not null" json:"db_name" db:"db_name"`
-	TableNames      string `gorm:"column:table_names;type:varchar(127);not null" json:"table_names" db:"table_names"`
+	TableNames      string `gorm:"column:table_names;type:varchar(1024);not null" json:"table_names" db:"table_names"`
 
 	Username     string `gorm:"column:username;type:varchar(127);not null" json:"user" db:"username"`
 	ClientHost   string `gorm:"column:client_host;type:varchar(60);not null" json:"client_host" db:"client_host"`
@@ -323,10 +323,10 @@ CREATE TABLE IF NOT EXISTS %s (
   query_digest_text varchar(8192) NULL,
   query_string string NULL,
   query_length int NULL,
-  query_command varchar(30) NULL,
+  query_command varchar(60) NULL,
   query_db_name varchar(100) NULL,
   db_name varchar(100) NULL,
-  table_names varchar(255) NULL,
+  table_names varchar(1024) NULL,
 
   client_host varchar(60) NULL,
   username varchar(60) NULL,

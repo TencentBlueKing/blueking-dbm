@@ -9,6 +9,7 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 import json
+import logging
 
 from django.core.cache import cache
 from django.db.models import CharField, Q, Value
@@ -31,6 +32,8 @@ from backend.db_meta.enums import ClusterType
 from backend.db_meta.models import AppCache, Cluster, DBModule, ProxyInstance, StorageInstance, TenDBClusterSpiderExt
 from backend.db_monitor import constants, serializers
 from backend.db_monitor.models import MonitorPolicy
+from backend.db_monitor.views.callbacks import mysql  # noqa: F401 - 注册 MySQL 告警回调
+from backend.db_monitor.views.callbacks.base import AlarmCallback
 from backend.iam_app.dataclass import ResourceEnum
 from backend.iam_app.dataclass.actions import ActionEnum
 from backend.iam_app.handlers.drf_perm.base import (
@@ -42,6 +45,8 @@ from backend.iam_app.handlers.drf_perm.base import (
 from backend.iam_app.handlers.drf_perm.monitor import MonitorPolicyPermission
 from backend.iam_app.handlers.permission import Permission
 from backend.ticket.models import Ticket
+
+logger = logging.getLogger("root")
 
 
 class MonitorPolicyListFilter(filters.FilterSet):
@@ -431,7 +436,35 @@ class MonitorPolicyViewSet(AuditedModelViewSet):
         )
 
     @common_swagger_auto_schema(
-        operation_summary=_("告警策略回调（处理套餐、故障自愈）"),
+        operation_summary=_("告警策略回调（处理套餐）"),
+        tags=[constants.SWAGGER_TAG],
+        request_body=serializers.AlarmCallBackDataSerializer,
+    )
+    @action(
+        methods=["POST"],
+        detail=False,
+        serializer_class=serializers.AlarmCallBackDataSerializer,
+        permission_classes=[AllowAny],
+    )
+    def alarm_callback(self, request, *args, **kwargs):
+        # 监控回调需要使用 Bearer Token 进行验证
+        # 从请求头中获取 Authorization 头
+        auth_header = request.headers.get("Authorization")
+        if not auth_header:
+            raise PermissionError("Missing Authorization header")
+        # 提取 Bearer Token
+        token = auth_header.split(" ")[1]
+        if token != env.BKMONITOR_BEARER_TOKEN:
+            raise PermissionError("Bearer token is not valid")
+
+        # 根据告警回调数据分发到匹配的回调处理器
+        callback_data = self.validated_data
+        AlarmCallback.dispatch(callback_data)
+
+        return Response()
+
+    @common_swagger_auto_schema(
+        operation_summary=_("告警策略回调（故障自愈）"),
         tags=[constants.SWAGGER_TAG],
         request_body=serializers.AlarmCallBackDataSerializer,
     )

@@ -17,7 +17,7 @@ from django.utils.translation import gettext as _
 
 from backend import env
 from backend.components import BKLogApi, BKMonitorV3Api
-from backend.db_monitor.constants import AUTOFIX_ACTION_NAME, AUTOFIX_ACTION_TEMPLATE
+from backend.db_monitor.constants import ALARM_CALLBACK_ACTIONS
 from backend.db_monitor.exceptions import BkMonitorDeleteAlarmException, BkMonitorSaveAlarmException
 from backend.db_monitor.format import JsonConfigFormat
 from backend.exceptions import ApiError
@@ -150,30 +150,36 @@ def render_promql_sql_new(prom_sql, wheres):
     return prom_sql
 
 
-def get_dbm_autofix_action_id() -> int:
-    """获取 dbm 故障自愈套餐 id"""
-    actions = BKMonitorV3Api.search_action_config({"bk_biz_id": env.DBA_APP_BK_BIZ_ID})["data"]
+def get_dbm_alarm_callback_actions() -> dict:
+    """获取 dbm 告警回调套餐 id"""
+    actions_res = BKMonitorV3Api.search_action_config({"bk_biz_id": env.DBA_APP_BK_BIZ_ID})["data"]
 
-    action_id = None
-    for action in actions:
-        if action["name"] == AUTOFIX_ACTION_NAME:
-            action_id = action["id"]
-    return action_id
+    callback_actions = copy.deepcopy(ALARM_CALLBACK_ACTIONS)
+    for name, action_info in callback_actions.items():
+        for action in actions_res:
+            if action["name"] == name:
+                callback_actions[name]["action_id"] = action["id"]
+                break
+    return callback_actions
 
 
-def create_bkmonitor_action() -> int:
+def create_bkmonitor_action() -> dict:
     """
     创建监控处理套餐
     """
-    action_id = get_dbm_autofix_action_id()
-    action_config = copy.deepcopy(AUTOFIX_ACTION_TEMPLATE)
+    callback_actions = get_dbm_alarm_callback_actions()
+    for name, callback in callback_actions.items():
+        action_id = callback.get("action_id", None)
+        action_config = copy.deepcopy(callback["template"])
 
-    if action_id is None:
-        BKMonitorV3Api.save_action_config(action_config)
-    else:
-        action_config["id"] = action_id
-        BKMonitorV3Api.edit_action_config(action_config)
-    return action_id
+        if action_id is None:
+            resp = BKMonitorV3Api.save_action_config(action_config)
+            callback_actions[name]["action_id"] = resp["id"]
+        else:
+            action_config["id"] = action_id
+            BKMonitorV3Api.edit_action_config(action_config)
+
+    return callback_actions
 
 
 def create_bklog_collector(startswith: str = ""):

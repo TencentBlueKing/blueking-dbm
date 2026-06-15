@@ -338,13 +338,13 @@ class Services:
 
         logger.info("auto_create_bkmonitor_service")
 
-        action_id = create_bkmonitor_action()
+        callback_actions = create_bkmonitor_action()
 
         # 加载采集策略
         CollectInstance.sync_collect_strategy()
 
         # 加载告警策略
-        MonitorPolicy.sync_plat_monitor_policy(action_id=action_id)
+        MonitorPolicy.sync_plat_monitor_policy(callback_actions=callback_actions)
 
         return True
 

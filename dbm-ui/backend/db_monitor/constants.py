@@ -275,6 +275,47 @@ AUTOFIX_ACTION_TEMPLATE = {
 }
 
 
+ALARM_CALLBACK_ACTION_NAME = "dbm_alarm_http_callback"
+
+# 蓝鲸监控的告警回调接口（处理套餐）
+ALARM_CALLBACK_ACTION_TEMPLATE = {
+    "execute_config": {
+        "template_detail": {
+            "method": "POST",
+            "url": f"{env.BK_SAAS_CALLBACK_URL}/apis/monitor/policy/alarm_callback/",
+            "headers": [],
+            "authorize": {
+                "auth_config": {"token": env.BKMONITOR_BEARER_TOKEN},
+                "auth_type": "bearer_token",
+                "insecure_skip_verify": True,
+            },
+            "body": {
+                "data_type": "raw",
+                "content_type": "json",
+                "content": '{"callback_message": {{alarm.callback_message}},' '"appointees": "{{alarm.appointees}}"}',
+                "params": [],
+            },
+            "query_params": [],
+            "need_poll": False,
+            "notify_interval": 60,
+            "failed_retry": {"is_enabled": True, "max_retry_times": 2, "retry_interval": 2, "timeout": 10},
+        },
+        "timeout": 600,
+    },
+    "name": ALARM_CALLBACK_ACTION_NAME,
+    "desc": "",
+    "is_enabled": True,
+    # plugin_id = 2 代表 http 回调
+    "plugin_id": 2,
+    "bk_biz_id": env.DBA_APP_BK_BIZ_ID,
+}
+
+ALARM_CALLBACK_ACTIONS = {
+    AUTOFIX_ACTION_NAME: {"template": AUTOFIX_ACTION_TEMPLATE, "label_starts": "NEED_AUTOFIX"},
+    ALARM_CALLBACK_ACTION_NAME: {"template": ALARM_CALLBACK_ACTION_TEMPLATE, "label_starts": "MySQL"},
+}
+
+
 class MonitorEventType(StrStructuredEnum):
     """
     自定义上报事件名称
