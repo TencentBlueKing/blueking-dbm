@@ -218,6 +218,11 @@ func GenConfigCmdRunE(cmd *cobra.Command, args []string) error {
 
 	var payload probeconfig.ProbeConfigPayload
 	if err := json.Unmarshal([]byte(raw), &payload); err != nil {
+		// Legacy admin returns a raw metadata list ([]ProbeMetadataItem) instead of ProbeConfigPayload;
+		// detect this to provide a clear version-mismatch error rather than a generic unmarshal error.
+		if len(raw) > 0 && raw[0] == '[' {
+			return fmt.Errorf("admin returned legacy metadata array instead of ProbeConfigPayload, please upgrade admin to match the probe version: %w", err)
+		}
 		return fmt.Errorf("parse probe config payload from admin: %w", err)
 	}
 
