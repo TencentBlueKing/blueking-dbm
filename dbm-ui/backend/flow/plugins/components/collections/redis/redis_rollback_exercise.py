@@ -11,6 +11,7 @@ specific language governing permissions and limitations under the License.
 import copy
 import logging
 import shlex
+from collections import defaultdict
 from datetime import datetime
 from typing import Optional
 
@@ -22,6 +23,7 @@ from pipeline.core.flow.activity import StaticIntervalGenerator
 from backend import env
 from backend.components import JobApi
 from backend.constants import IP_PORT_DIVIDER
+from backend.core.notify.constants import MsgType
 from backend.db_meta.api.cluster.nosqlcomm.decommission import decommission_instances
 from backend.db_meta.models import Cluster, StorageInstance
 from backend.db_report.enums import RedisRollbackExerciseTaskStage as TaskStage
@@ -39,7 +41,15 @@ from backend.flow.plugins.components.collections.common.base_service import Base
 from backend.flow.utils.base.flow_output import FlowOutputHandler
 from backend.flow.utils.redis import redis_context_dataclass as flow_context
 from backend.flow.utils.redis.redis_context_dataclass import RedisRollbackExerciseContext
+from backend.flow.utils.redis.redis_rollback_exercise_resource import (
+    all_infos_have_redis,
+    apply_exercise_resources,
+    get_effective_drill_infos,
+    info_has_applied_redis,
+)
 from backend.flow.utils.redis.redis_script_template import redis_fast_execute_script_common_kwargs
+from backend.ticket.constants import TicketStatus
+from backend.ticket.models import Ticket
 from backend.utils.basic import generate_root_id
 from backend.utils.string import base64_encode
 
@@ -98,6 +108,21 @@ class RedisLogCapturingService(BaseService):
         super().log_debug(msg)
         self._append_to_task_info(msg, "debug")
 
+    @staticmethod
+    def _get_effective_infos(data) -> list:
+        global_data = data.get_one_of_inputs("global_data") or {}
+        trans_data = data.get_one_of_inputs("trans_data")
+        return get_effective_drill_infos(global_data, trans_data)
+
+    @classmethod
+    def _get_effective_info(cls, data, info_index: Optional[int]):
+        if info_index is None:
+            return None
+        infos = cls._get_effective_infos(data)
+        if info_index >= len(infos):
+            return None
+        return infos[info_index]
+
     def _execute(self, data, parent_data) -> bool:
         self.init_trans_data(data)
         data.inputs.trans_data = self.trans_data
@@ -127,6 +152,24 @@ class RedisRollbackExerciseAlarmShieldService(RedisLogCapturingService, AddAlarm
     """
 
     def _execute_inner_captured(self, data, parent_data) -> bool:
+        kwargs = data.get_one_of_inputs("kwargs") or {}
+        info_index = kwargs.get("info_index")
+        if info_index is not None:
+            info = self._get_effective_info(data, info_index)
+            if info is None:
+                self.log_warning(_("info_index {} out of range, skip alarm shield").format(info_index))
+                return True
+            redis_hosts = info.get("redis") or []
+            if len(redis_hosts) == 1:
+                temp_host_ip = redis_hosts[0]["ip"]
+                dimensions = list(kwargs.get("dimensions") or [])
+                dimensions.append({"name": "bk_target_ip", "values": [temp_host_ip]})
+                kwargs["dimensions"] = dimensions
+                kwargs["description"] = _("主机 {} Redis回档演练操作").format(temp_host_ip)
+                data.inputs.kwargs = kwargs
+            else:
+                self.log_info(_("演练资源未申请，跳过告警屏蔽"))
+                return True
         return AddAlarmShieldService._execute(self, data, parent_data)
 
 
@@ -143,12 +186,28 @@ class RedisExerciseReportUpdateService(RedisLogCapturingService):
     """
 
     TERMINAL_STAGES = {TaskStage.DONE, TaskStage.ROLLBACK_FAILED, TaskStage.CLEANUP_FAILED}
+    RESOURCE_DEPENDENT_STAGES = {
+        TaskStage.ROLLBACK_STARTED,
+        TaskStage.ROLLBACK_SUCCEEDED,
+        TaskStage.ROLLBACK_FAILED,
+        TaskStage.DONE,
+        TaskStage.CLEANUP_FAILED,
+    }
 
     def _execute_inner_captured(self, data, parent_data) -> bool:
         kwargs = data.get_one_of_inputs("kwargs")
         report_id = kwargs.get("report_id")
         stage = kwargs.get("stage")
         task_message = kwargs.get("task_message")
+        info_index = kwargs.get("info_index")
+
+        if (
+            stage in self.RESOURCE_DEPENDENT_STAGES
+            and info_index is not None
+            and not info_has_applied_redis(self._get_effective_info(data, info_index))
+        ):
+            self.log_info(_("演练资源未申请，跳过标记 {}").format(stage))
+            return True
 
         if stage in self.TERMINAL_STAGES and not task_message and self.trans_data and self.trans_data.task_msg:
             task_message = "\n".join(self.trans_data.task_msg)
@@ -248,13 +307,56 @@ class RedisExerciseFlowRunnerService(RedisLogCapturingService):
         self.interval = StaticIntervalGenerator(polling_interval)
 
         flow_identifier = kwargs["flow_identifier"]
-        flow_data = kwargs["flow_data"]
         report_id = kwargs.get("report_id")
         flow_id_field = kwargs.get("flow_id_field")
         polling_timeout = kwargs.get("polling_timeout", 3600)
         output_var = kwargs.get("output_var", "rollback_code")
 
         data.outputs.output_var = output_var
+
+        if kwargs.get("build_flow_data_from_global") or kwargs.get("build_delete_flow_data_from_global"):
+            global_data = data.get_one_of_inputs("global_data") or {}
+            info_index = kwargs.get("info_index")
+            cluster_id = kwargs.get("cluster_id")
+            infos = self._get_effective_infos(data)
+            if info_index is None or info_index >= len(infos):
+                self.log_warning(_("info_index invalid, skip child flow"))
+                self._set_result(data, 1)
+                self.finish_schedule()
+                return True
+            info = infos[info_index]
+            redis_hosts = info.get("redis") or []
+            if len(redis_hosts) != 1:
+                self.log_info(_("演练资源未申请，跳过子流程"))
+                self._set_result(data, 1)
+                self.finish_schedule()
+                return True
+            try:
+                cluster = Cluster.objects.get(id=cluster_id or info["cluster_id"])
+            except Cluster.DoesNotExist:
+                self.log_error(_("集群 {} 不存在").format(cluster_id or info.get("cluster_id")))
+                self._set_result(data, 1)
+                self.finish_schedule()
+                return True
+
+            from backend.flow.engine.bamboo.scene.redis.redis_rollback_exercise import RedisRollbackExerciseFlow
+
+            if kwargs.get("build_delete_flow_data_from_global"):
+                flow_data = RedisRollbackExerciseFlow.build_delete_flow_data(global_data, cluster)
+            else:
+                flow_data = RedisRollbackExerciseFlow.build_ds_flow_data(global_data, info, cluster)
+                if not info.get("drill_prod_temp_instance_pairs"):
+                    instance_ip = info.get("instance_ip")
+                    instance_port = info.get("instance_port")
+                    temp_host_ip = redis_hosts[0]["ip"]
+                    info["drill_prod_temp_instance_pairs"] = [
+                        [
+                            "{}{}{}".format(instance_ip, IP_PORT_DIVIDER, instance_port),
+                            "{}{}{}".format(temp_host_ip, IP_PORT_DIVIDER, DEFAULT_REDIS_START_PORT),
+                        ]
+                    ]
+        else:
+            flow_data = kwargs["flow_data"]
 
         registry_entry = FLOW_REGISTRY.get(flow_identifier)
         if not registry_entry:
@@ -434,6 +536,211 @@ class RedisExerciseRevokeAppliedHostsComponent(Component):
     bound_service = RedisExerciseRevokeAppliedHostsService
 
 
+class RedisExerciseResourceApplyService(RedisLogCapturingService):
+    """Batch-apply redis drill hosts via DBResourceApi and inject ticket recycle metadata."""
+
+    @staticmethod
+    def _instance_addr(info: dict) -> str:
+        return "{}{}{}".format(info.get("instance_ip"), IP_PORT_DIVIDER, info.get("instance_port"))
+
+    @classmethod
+    def _resolve_cluster_domains(cls, infos: list) -> dict:
+        missing_cluster_ids = {
+            info["cluster_id"] for info in infos if info.get("cluster_id") and not info.get("cluster_domain")
+        }
+        if not missing_cluster_ids:
+            return {}
+        return dict(Cluster.objects.filter(id__in=missing_cluster_ids).values_list("id", "immute_domain"))
+
+    @classmethod
+    def _build_resource_apply_log_summary(
+        cls,
+        infos: list,
+        *,
+        header: str,
+        include_applied_ip: bool = True,
+        pending_suffix: str = "",
+    ) -> str:
+        cluster_domain_map = cls._resolve_cluster_domains(infos)
+        clusters = defaultdict(lambda: {"domain": "", "instance_groups": defaultdict(list)})
+
+        for info in infos:
+            cluster_id = info.get("cluster_id")
+            if cluster_id is None:
+                continue
+            cluster_domain = info.get("cluster_domain") or cluster_domain_map.get(cluster_id) or ""
+            clusters[cluster_id]["domain"] = cluster_domain or clusters[cluster_id]["domain"]
+
+            instance_addr = cls._instance_addr(info)
+            redis_hosts = info.get("redis") or []
+            if include_applied_ip and redis_hosts:
+                applied_ip = redis_hosts[0].get("ip") or ""
+                clusters[cluster_id]["instance_groups"][applied_ip].append(instance_addr)
+            else:
+                clusters[cluster_id]["instance_groups"][""].append(instance_addr)
+
+        lines = [header]
+        for cluster_id in sorted(clusters):
+            cluster_data = clusters[cluster_id]
+            cluster_label = (
+                "{}:{}".format(cluster_id, cluster_data["domain"]) if cluster_data["domain"] else str(cluster_id)
+            )
+            lines.append(cluster_label)
+            for applied_ip in sorted(cluster_data["instance_groups"]):
+                instances = sorted(cluster_data["instance_groups"][applied_ip])
+                instances_label = ",".join(instances)
+                if include_applied_ip and applied_ip:
+                    lines.append("    {}: {}".format(instances_label, applied_ip))
+                elif pending_suffix:
+                    lines.append("    {}{}".format(instances_label, pending_suffix))
+                else:
+                    lines.append("    {}".format(instances_label))
+
+        return "\n".join(lines)
+
+    def _log_applied_resources(self, infos: list, request_id: str = ""):
+        host_count = sum(1 for info in infos if info.get("redis"))
+        if not host_count:
+            return
+
+        header = _("演练资源申请完成，共 {} 台主机").format(host_count)
+        if request_id:
+            header = "{} request_id={}".format(header, request_id)
+        self.log_info(self._build_resource_apply_log_summary(infos, header=header))
+
+    def _log_resource_apply_failure(self, infos: list, error_message: str):
+        header = _("演练资源申请失败: {}").format(error_message)
+        self.log_error(
+            self._build_resource_apply_log_summary(
+                infos,
+                header=header,
+                include_applied_ip=False,
+                pending_suffix=_(" (no resource)"),
+            )
+        )
+
+    def _inject_ticket_details(
+        self,
+        ticket_id: int,
+        applied_hosts: list,
+        node_infos: dict,
+        resource_request_id: str,
+        summary: list,
+    ):
+        standardized = ResourceHandler.standardized_resource_host(applied_hosts)
+        ticket = Ticket.objects.get(id=ticket_id)
+        ticket.details["recycle_hosts"] = standardized
+        ticket.details["nodes"] = node_infos
+        ticket.details["resource_request_id"] = resource_request_id
+        ticket.details["resource_apply_summary"] = summary
+        ticket.details["immediate_recycle"] = True
+        ticket.details["send_msg_config"] = {
+            status: {MsgType.RTX: True} if status == TicketStatus.FAILED else {}
+            for status in TicketStatus.get_values()
+        }
+        ticket.save(update_fields=["details"])
+
+    def _persist_applied_infos(self, infos: list):
+        if self.trans_data is None:
+            return
+        self.trans_data.applied_infos = copy.deepcopy(infos)
+
+    def _execute_inner_captured(self, data, parent_data) -> bool:
+        global_data = data.get_one_of_inputs("global_data") or {}
+        infos = global_data.get("infos") or []
+        ticket_id = global_data.get("uid")
+
+        if all_infos_have_redis(infos):
+            self.log_info(_("演练资源已申请，跳过重复申请"))
+            self._persist_applied_infos(infos)
+            self._log_applied_resources(infos)
+            return True
+
+        result = apply_exercise_resources(global_data, global_data.get("job_root_id") or self.root_id)
+
+        if result.skipped_idempotent:
+            self.log_info(_("演练资源已申请，跳过重复申请"))
+            self._persist_applied_infos(infos)
+            self._log_applied_resources(infos)
+            return True
+
+        if not result.success:
+            warn_msg = _("WARN: no available resources")
+            fail_msg = result.error_message or warn_msg
+            self._persist_applied_infos(infos)
+            self._log_resource_apply_failure(infos, fail_msg)
+            if result.node_infos and ticket_id:
+                partial_hosts = [
+                    {
+                        "bk_host_id": host["bk_host_id"],
+                        "ip": host["ip"],
+                        "bk_cloud_id": host["bk_cloud_id"],
+                    }
+                    for hosts in result.node_infos.values()
+                    for host in hosts
+                ]
+                if partial_hosts:
+                    self._inject_ticket_details(
+                        ticket_id,
+                        partial_hosts,
+                        result.node_infos,
+                        result.resource_request_id,
+                        result.resource_apply_summary,
+                    )
+            for info in infos:
+                report_id = info.get("report_id")
+                if not report_id:
+                    continue
+                try:
+                    report = Report.objects.get(id=report_id)
+                    report.mark(TaskStage.SKIPPED, task_message=fail_msg)
+                except Report.DoesNotExist:
+                    self.log_warning(_("Report {} not found when marking resource skip").format(report_id))
+            return True
+
+        applied_hosts = []
+        for hosts in result.node_infos.values():
+            for host in hosts:
+                applied_hosts.append(
+                    {
+                        "bk_host_id": host["bk_host_id"],
+                        "ip": host["ip"],
+                        "bk_cloud_id": host["bk_cloud_id"],
+                    }
+                )
+
+        if applied_hosts and ticket_id:
+            self._inject_ticket_details(
+                ticket_id,
+                applied_hosts,
+                result.node_infos,
+                result.resource_request_id,
+                result.resource_apply_summary,
+            )
+
+        self._persist_applied_infos(infos)
+        self._log_applied_resources(infos, result.resource_request_id)
+
+        for info in infos:
+            report_id = info.get("report_id")
+            if not report_id:
+                continue
+            try:
+                report = Report.objects.get(id=report_id)
+                if info.get("redis"):
+                    report.mark(TaskStage.RESOURCE_APPLI_SUCCEEDED)
+            except Report.DoesNotExist:
+                self.log_warning(_("Report {} not found when marking resource success").format(report_id))
+
+        return True
+
+
+class RedisExerciseResourceApplyComponent(Component):
+    name = __name__
+    code = "redis_exercise_resource_apply"
+    bound_service = RedisExerciseResourceApplyService
+
+
 class RedisExerciseBestEffortCleanupService(RedisLogCapturingService, BkJobService):
     """Best-effort cleanup for exercise failures.
 
@@ -597,8 +904,9 @@ class RedisExerciseBestEffortCleanupService(RedisLogCapturingService, BkJobServi
         ticket_id = self._get_rollback_task_ticket_id(global_data)
         ticket_bk_biz_id = global_data.get("bk_biz_id")
         cleanup_hosts = []
+        infos = get_effective_drill_infos(global_data, self.trans_data)
 
-        for info in global_data.get("infos", []):
+        for info in infos:
             resource_applied = info.get("redis", [])
             if not resource_applied:
                 continue
@@ -844,7 +1152,7 @@ done
             except Exception as e:
                 self.log_error(_("Failed to clean TbTendisRollbackTasks: {}").format(e))
 
-        infos = global_data.get("infos", [])
+        infos = get_effective_drill_infos(global_data, self.trans_data)
         for info in infos:
             report_id = info.get("report_id")
             try:
@@ -868,6 +1176,7 @@ done
 
         terminal_stages = {
             TaskStage.DONE,
+            TaskStage.SKIPPED,
             TaskStage.RESOURCE_APPLI_FAILED,
             TaskStage.ROLLBACK_FAILED,
             TaskStage.CLEANUP_FAILED,

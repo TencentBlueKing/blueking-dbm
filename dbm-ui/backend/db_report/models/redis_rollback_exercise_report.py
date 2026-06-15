@@ -184,7 +184,9 @@ class RedisRollbackExerciseReport(BaseReportABS):
 
         if task_message:
             update_fields.append("task_message")
-            self.task_message = task_message
+            self.task_message = "".join(
+                ch for ch in task_message if ord(ch) <= 0xFFFF
+            )  # For MySQL utf8mb3 compatibility
 
         for field_name, value in kwargs.items():
             setattr(self, field_name, value)

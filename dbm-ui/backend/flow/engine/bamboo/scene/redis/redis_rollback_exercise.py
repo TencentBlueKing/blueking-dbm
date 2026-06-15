@@ -26,9 +26,11 @@ from backend.flow.plugins.components.collections.redis.redis_rollback_exercise i
     RedisExerciseBestEffortCleanupComponent,
     RedisExerciseFlowRunnerComponent,
     RedisExerciseReportUpdateComponent,
+    RedisExerciseResourceApplyComponent,
     RedisRollbackExerciseAlarmShieldComponent,
 )
 from backend.flow.utils.redis.redis_context_dataclass import RedisRollbackExerciseContext
+from backend.flow.utils.redis.redis_rollback_exercise_resource import build_drill_resource_spec, get_instance_machine
 
 logger = logging.getLogger("flow")
 
@@ -93,24 +95,29 @@ class RedisRollbackExerciseFlow(object):
 
     def rollback_exercise_flow(self):
         """
-        Composes data-structure + cleanup steps directly instead of spawning inner pipelines and polling.
+        Composes resource apply, per-cluster exercise sub-flows, and best-effort cleanup.
         """
-        for info in self.ticket_data["infos"]:
-            self._enrich_drill_prod_temp_instance_pairs(info)
+        flow_data = copy.deepcopy(self.ticket_data)
 
-        pipeline = Builder(root_id=self.root_id, data=copy.deepcopy(self.ticket_data))
+        pipeline = Builder(root_id=self.root_id, data=flow_data)
+
+        pipeline.add_act(
+            act_name=_("申请演练资源"),
+            act_component_code=RedisExerciseResourceApplyComponent.code,
+            kwargs={
+                "set_trans_data_dataclass": RedisRollbackExerciseContext.__name__,
+            },
+            error_ignorable=True,
+        )
 
         sub_flows = []
-        for info in self.ticket_data["infos"]:
-            sf = self._build_exercise_sub_flow(info)
+        for info_index, info in enumerate(flow_data["infos"]):
+            sf = self._build_exercise_sub_flow(info, info_index, flow_data)
             if sf is not None:
                 sub_flows.append(sf)
 
-        if not sub_flows:
-            logger.warning("No valid sub-flows to run")
-            return
-
-        pipeline.add_parallel_sub_pipeline(sub_flows)
+        if sub_flows:
+            pipeline.add_parallel_sub_pipeline(sub_flows)
 
         pipeline.add_act(
             act_name=_("最佳尝试清理"),
@@ -122,11 +129,57 @@ class RedisRollbackExerciseFlow(object):
 
         pipeline.run_pipeline(init_trans_data_class=RedisRollbackExerciseContext())
 
+    @staticmethod
+    def build_ds_flow_data(global_data: dict, info: dict, cluster: Cluster) -> dict:
+        resource_applied = info.get("redis") or []
+        instance_ip = info.get("instance_ip")
+        instance_port = info.get("instance_port")
+        master_instances = [f"{instance_ip}{IP_PORT_DIVIDER}{instance_port}"]
+        resource_spec = info.get("resource_spec") or {}
+        if not resource_spec.get("redis"):
+            machine = get_instance_machine(info, cluster)
+            if machine is not None:
+                resource_spec = build_drill_resource_spec(machine, host_count=len(resource_applied) or 1)
+        return {
+            "bk_biz_id": global_data["bk_biz_id"],
+            "uid": global_data.get("uid", global_data.get("job_root_id")),
+            "created_by": global_data.get("created_by", "system"),
+            "ticket_type": "REDIS_DATA_STRUCTURE",
+            "infos": [
+                {
+                    "cluster_id": cluster.id,
+                    "bk_cloud_id": cluster.bk_cloud_id,
+                    "master_instances": master_instances,
+                    "redis": resource_applied,
+                    "resource_spec": resource_spec,
+                    "recovery_time_point": info.get("recovery_time_point"),
+                }
+            ],
+            "skip_mannual_confirm": True,
+            "is_rollback_drill": True,
+        }
+
+    @staticmethod
+    def build_delete_flow_data(global_data: dict, cluster: Cluster) -> dict:
+        del_info = {
+            "related_rollback_bill_id": global_data.get("uid", global_data.get("job_root_id")),
+            "prod_cluster": cluster.immute_domain,
+        }
+        return {
+            "bk_biz_id": global_data["bk_biz_id"],
+            "uid": global_data.get("uid", global_data.get("job_root_id")),
+            "created_by": global_data.get("created_by", "system"),
+            "ticket_type": "REDIS_DATA_STRUCTURE_TASK_DELETE",
+            "skip_connections_check": True,
+            "is_rollback_drill": True,
+            "infos": [del_info],
+        }
+
     # -------------------------------------------------------------------------
     # New flow: sub-flow builder
     # -------------------------------------------------------------------------
 
-    def _build_exercise_sub_flow(self, info: dict):
+    def _build_exercise_sub_flow(self, info: dict, info_index: int, flow_data: dict):
         """Build a single-cluster exercise sub-flow.
 
         The data-structure step is wrapped in a polling runner act with
@@ -141,9 +194,7 @@ class RedisRollbackExerciseFlow(object):
         instance_ip = info["instance_ip"]
         instance_port = info["instance_port"]
         report_id = info["report_id"]
-        resource_applied = info.get("redis", [])
-        recovery_time_point = info.get("recovery_time_point")
-        config = self.ticket_data.get("drill_config", {})
+        config = flow_data.get("drill_config", {})
         polling_timeout = config.get("polling_timeout", 3600)
         polling_interval = config.get("polling_interval", 10)
         error_ignorable = config.get("error_ignorable", True)
@@ -157,29 +208,20 @@ class RedisRollbackExerciseFlow(object):
             report.mark(TaskStage.SKIPPED, task_message=task_message)
             return None
 
-        if not resource_applied or len(resource_applied) != 1:
-            logger.warning(_("Resource applied is abnormal: {}").format(resource_applied or "None"))
-            report.mark(TaskStage.RESOURCE_APPLI_FAILED, task_message=_("资源申请异常"))
-            return None
-        report.mark(TaskStage.RESOURCE_APPLI_SUCCEEDED)
-
-        temp_host_ip = resource_applied[0]["ip"]
-        master_instances = [f"{instance_ip}{IP_PORT_DIVIDER}{instance_port}"]
-
-        sub_flow = SubBuilder(root_id=self.root_id, data=copy.deepcopy(self.ticket_data))
+        sub_flow = SubBuilder(root_id=self.root_id, data=flow_data)
 
         # ---- Alarm shield ----
         shield_duration_seconds = polling_timeout + settings.DISABLE_ALARM_SHIELD_DELAY
         sub_flow.add_act(
-            act_name=_("屏蔽主机 {} 告警(超时 {:.1f} mins)").format(temp_host_ip, shield_duration_seconds / 60),
+            act_name=_("屏蔽演练主机告警(超时 {:.1f} mins)").format(shield_duration_seconds / 60),
             act_component_code=RedisRollbackExerciseAlarmShieldComponent.code,
             kwargs={
                 "set_trans_data_dataclass": RedisRollbackExerciseContext.__name__,
+                "info_index": info_index,
                 "duration_seconds": polling_timeout,
-                "description": _("主机 {} Redis回档演练操作").format(temp_host_ip),
+                "description": _("Redis回档演练操作"),
                 "dimensions": [
                     {"name": "appid", "values": [str(cluster.bk_biz_id)]},
-                    {"name": "bk_target_ip", "values": [temp_host_ip]},
                 ],
             },
         )
@@ -191,54 +233,21 @@ class RedisRollbackExerciseFlow(object):
             kwargs={
                 "set_trans_data_dataclass": RedisRollbackExerciseContext.__name__,
                 "report_id": report_id,
+                "info_index": info_index,
                 "stage": TaskStage.ROLLBACK_STARTED,
             },
         )
 
         # ================================================================
-        # Data-structure & delete flow data
+        # Data-structure & delete flow data resolved at runner runtime
         # ================================================================
-        ds_data = {
-            "bk_biz_id": self.ticket_data["bk_biz_id"],
-            "uid": self.ticket_data.get("uid", self.root_id),
-            "created_by": self.ticket_data.get("created_by", "system"),
-            "ticket_type": "REDIS_DATA_STRUCTURE",
-            "infos": [
-                {
-                    "cluster_id": cluster_id,
-                    "bk_cloud_id": cluster.bk_cloud_id,
-                    "master_instances": master_instances,
-                    "redis": resource_applied,
-                    "resource_spec": info.get("resource_spec", {}),
-                    "recovery_time_point": recovery_time_point,
-                }
-            ],
-            "skip_mannual_confirm": True,
-            "is_rollback_drill": True,
-        }
-
-        del_info = {
-            "related_rollback_bill_id": self.ticket_data.get("uid", self.root_id),
-            "prod_cluster": cluster.immute_domain,
-        }
-        del_data = {
-            "bk_biz_id": self.ticket_data["bk_biz_id"],
-            "uid": self.ticket_data.get("uid", self.root_id),
-            "created_by": self.ticket_data.get("created_by", "system"),
-            "ticket_type": "REDIS_DATA_STRUCTURE_TASK_DELETE",
-            "skip_connections_check": True,
-            "is_rollback_drill": True,
-            "infos": [del_info],
-        }
-
         self._build_runner_flow(
             sub_flow,
-            ds_data,
-            del_data,
+            info_index,
             report_id,
+            cluster_id,
             polling_timeout,
             polling_interval,
-            temp_host_ip,
             error_ignorable,
         )
 
@@ -249,12 +258,11 @@ class RedisRollbackExerciseFlow(object):
     def _build_runner_flow(
         self,
         sub_flow,
-        ds_data,
-        del_data,
+        info_index,
         report_id,
+        cluster_id,
         polling_timeout,
         polling_interval,
-        temp_host_ip,
         error_ignorable,
     ):
         """Build runner acts with conditional branching on outcomes.
@@ -277,7 +285,9 @@ class RedisRollbackExerciseFlow(object):
             kwargs={
                 "set_trans_data_dataclass": RedisRollbackExerciseContext.__name__,
                 "flow_identifier": "redis_data_structure",
-                "flow_data": ds_data,
+                "info_index": info_index,
+                "cluster_id": cluster_id,
+                "build_flow_data_from_global": True,
                 "report_id": report_id,
                 "flow_id_field": "rollback_flow_obj_id",
                 "polling_timeout": polling_timeout,
@@ -289,7 +299,7 @@ class RedisRollbackExerciseFlow(object):
         )
 
         # ---- Success branch: report_succeeded -> delete runner -> conditional ----
-        success_branch = SubBuilder(root_id=self.root_id, data=copy.deepcopy(self.ticket_data))
+        success_branch = SubBuilder(root_id=self.root_id, data=sub_flow.data)
 
         success_branch.add_act(
             act_name=_("标记回档成功"),
@@ -297,6 +307,7 @@ class RedisRollbackExerciseFlow(object):
             kwargs={
                 "set_trans_data_dataclass": RedisRollbackExerciseContext.__name__,
                 "report_id": report_id,
+                "info_index": info_index,
                 "stage": TaskStage.ROLLBACK_SUCCEEDED,
             },
         )
@@ -307,7 +318,9 @@ class RedisRollbackExerciseFlow(object):
             kwargs={
                 "set_trans_data_dataclass": RedisRollbackExerciseContext.__name__,
                 "flow_identifier": "redis_data_structure_task_delete",
-                "flow_data": del_data,
+                "info_index": info_index,
+                "cluster_id": cluster_id,
+                "build_delete_flow_data_from_global": True,
                 "report_id": report_id,
                 "flow_id_field": "delete_flow_obj_id",
                 "polling_timeout": polling_timeout,
@@ -324,6 +337,7 @@ class RedisRollbackExerciseFlow(object):
             kwargs={
                 "set_trans_data_dataclass": RedisRollbackExerciseContext.__name__,
                 "report_id": report_id,
+                "info_index": info_index,
                 "stage": TaskStage.DONE,
             },
             extend=False,
@@ -335,6 +349,7 @@ class RedisRollbackExerciseFlow(object):
             kwargs={
                 "set_trans_data_dataclass": RedisRollbackExerciseContext.__name__,
                 "report_id": report_id,
+                "info_index": info_index,
                 "stage": TaskStage.CLEANUP_FAILED,
             },
             extend=False,
@@ -359,6 +374,7 @@ class RedisRollbackExerciseFlow(object):
             kwargs={
                 "set_trans_data_dataclass": RedisRollbackExerciseContext.__name__,
                 "report_id": report_id,
+                "info_index": info_index,
                 "stage": TaskStage.ROLLBACK_FAILED,
             },
             extend=False,
@@ -377,7 +393,7 @@ class RedisRollbackExerciseFlow(object):
 
         # ---- Disable alarm shield (always runs after conditional converge) ----
         sub_flow.add_act(
-            act_name=_("15 分钟后解除主机 {} 告警屏蔽").format(temp_host_ip),
+            act_name=_("15 分钟后解除演练主机告警屏蔽"),
             act_component_code=DisableAlarmShieldComponent.code,
             kwargs={},
             error_ignorable=True,  # Don't let bkmonitor affect the task flow
