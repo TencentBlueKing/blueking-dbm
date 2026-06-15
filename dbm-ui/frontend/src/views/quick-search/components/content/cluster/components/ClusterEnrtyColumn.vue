@@ -26,12 +26,12 @@
             size="small">
             {{ t('北极星') }}
           </BkTag>
-          <BkTag
+          <!-- <BkTag
             v-if="entryItem.role === 'master_entry'"
             size="small"
             theme="info">
             {{ t('主') }}
-          </BkTag>
+          </BkTag> -->
           <BkTag
             v-if="entryItem.role === 'slave_entry'"
             size="small"
