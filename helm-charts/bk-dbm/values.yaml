@@ -98,7 +98,7 @@ dbm:
     tag: ""
 
   terminationGracePeriodSeconds:
-    execute: 3600
+    worker: 3600
     schedule: 300
 
   serviceAccount:
