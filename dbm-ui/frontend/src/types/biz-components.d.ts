@@ -9,6 +9,7 @@ declare module 'vue' {
     BkTableColumn: typeof import('@blueking/table/typings/BkTableColumn.vue');
     DbCard: typeof import('@components/db-card/index.vue').default;
     DbDateTimePicker: typeof import('@components/db-date-time-picker/Index.vue').default;
+    DbDialog: typeof import('@components/db-dialog/Index.vue').default;
     DbForm: typeof import('@components/db-form/index.vue').default;
     DbFormItem: typeof import('@components/db-form/item.vue').default;
     DbIcon: typeof import('@components/db-icon/index.ts').default;

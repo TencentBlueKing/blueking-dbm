@@ -12,7 +12,7 @@
 -->
 
 <template>
-  <BkSideslider
+  <DbSideslider
     v-model:is-show="isShow"
     quick-close
     render-directive="if"
@@ -117,7 +117,7 @@
           :title="t('机型')" />
       </DbTable>
     </div>
-  </BkSideslider>
+  </DbSideslider>
 </template>
 <script lang="ts" setup>
   import { useI18n } from 'vue-i18n';

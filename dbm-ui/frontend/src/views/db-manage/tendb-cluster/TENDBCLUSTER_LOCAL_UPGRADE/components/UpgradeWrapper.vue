@@ -17,7 +17,7 @@
       class="mb-20"
       closable
       :title="t('版本升级：小版本可直接升级，跨版本需通过迁移升级，迁修升级需要相应版本的模块')" />
-    <BkForm
+    <DbForm
       class="toolbox-form"
       form-type="vertical"
       :model="modelValue">
@@ -72,7 +72,7 @@
         </template>
       </BkFormItem>
       <slot />
-    </BkForm>
+    </DbForm>
   </div>
 </template>
 <script lang="ts" setup>

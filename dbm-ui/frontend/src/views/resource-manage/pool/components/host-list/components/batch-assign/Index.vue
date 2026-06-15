@@ -1,5 +1,5 @@
 <template>
-  <BkDialog
+  <DbDialog
     class="batch-assign-dialog"
     :esc-close="false"
     :is-show="isShow"
@@ -49,7 +49,7 @@
         </BkButton>
       </div>
     </template>
-  </BkDialog>
+  </DbDialog>
 </template>
 
 <script setup lang="tsx">

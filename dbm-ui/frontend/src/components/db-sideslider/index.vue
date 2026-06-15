@@ -39,12 +39,12 @@
           style="min-width: 88px"
           theme="primary"
           @click="handleConfirm">
-          {{ confirmText || $t('提交') }}
+          {{ confirmText || t('提交') }}
         </BkButton>
         <BkButton
           style="min-width: 88px"
           @click="handleCancle">
-          {{ cancelText || $t('取消') }}
+          {{ cancelText || t('取消') }}
         </BkButton>
       </slot>
     </template>
@@ -53,6 +53,7 @@
 <script setup lang="ts">
   import _ from 'lodash';
   import { ref, useAttrs, useSlots, watch } from 'vue';
+  import { useI18n } from 'vue-i18n';
 
   import { useModelProvider } from '@hooks';
 
@@ -62,8 +63,8 @@
     cancelText?: string;
     confirmText?: string;
     disabledConfirm?: boolean | string;
-    // eslint-disable-next-line vue/no-required-prop-with-default
-    isShow: boolean;
+
+    isShow?: boolean;
     renderDirective?: 'if' | 'show';
     showConfirm?: boolean;
     showFooter?: boolean;
@@ -91,6 +92,7 @@
 
   const attrs = useAttrs();
   const slots = useSlots();
+  const { t } = useI18n();
 
   const isLoading = ref(false);
   let pageChangeConfirm: boolean | 'popover' = false;
@@ -130,7 +132,10 @@
 
   const getModelProvier = useModelProvider();
 
-  const beforeCloseCallback = () => leaveConfirm();
+  const beforeCloseCallback = () => {
+    console.log('beforeCloseCallback');
+    return leaveConfirm();
+  };
   const close = () => {
     window.changeConfirm = pageChangeConfirm;
     emit('update:isShow', false);

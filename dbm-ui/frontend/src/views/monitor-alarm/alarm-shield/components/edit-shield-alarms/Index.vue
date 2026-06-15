@@ -12,7 +12,7 @@
 -->
 
 <template>
-  <BkForm
+  <DbForm
     ref="formRef"
     form-type="vertical"
     :model="formModel"
@@ -61,7 +61,7 @@
         :resize="false"
         type="textarea" />
     </BkFormItem>
-  </BkForm>
+  </DbForm>
 </template>
 <script setup lang="ts">
   import dayjs from 'dayjs';

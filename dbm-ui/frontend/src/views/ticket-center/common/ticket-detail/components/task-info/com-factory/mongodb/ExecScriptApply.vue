@@ -48,7 +48,7 @@
       </TicketInfoTable>
     </InfoItem>
   </InfoList>
-  <BkSideslider
+  <DbSideslider
     class="mongodb-exec-script-apply-content-dialog"
     :is-show="isShow"
     render-directive="if"
@@ -83,7 +83,7 @@
           :title="uploadFileList.toString()" />
       </template>
     </BkLoading>
-  </BkSideslider>
+  </DbSideslider>
 </template>
 
 <script setup lang="tsx">

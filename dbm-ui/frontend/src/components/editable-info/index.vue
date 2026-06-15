@@ -32,7 +32,7 @@
             ：
           </span>
           <div class="base-info-value-container">
-            <BkForm
+            <DbForm
               v-if="editState.key === config.key && !readonly"
               class="base-info-edit"
               :model="editState">
@@ -58,7 +58,7 @@
                   size="mini"
                   theme="primary" />
               </BkFormItem>
-            </BkForm>
+            </DbForm>
             <template v-else>
               <span
                 v-overflow-tips

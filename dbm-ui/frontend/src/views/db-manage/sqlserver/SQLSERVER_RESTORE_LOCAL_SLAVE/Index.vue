@@ -17,7 +17,7 @@
       class="mb-20"
       closable
       :title="t('重建从库_原机器或新机器重新同步数据及权限_并且将域名解析指向同步好的机器')" />
-    <BkForm
+    <DbForm
       class="toolbox-form mb-20"
       form-type="vertical"
       :model="formData">
@@ -51,7 +51,7 @@
         </EditableRow>
       </EditableTable>
       <TicketPayload v-model="formData.payload" />
-    </BkForm>
+    </DbForm>
     <template #action>
       <BkButton
         class="mr-8 w-88"

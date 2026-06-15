@@ -46,7 +46,7 @@
           </div>
         </div>
       </div>
-      <BkForm label-width="135">
+      <DbForm label-width="135">
         <ClusterSpecPlanSelector
           v-model="modelValue.spec_id"
           v-model:custom-spec-info="customSpecInfo"
@@ -55,7 +55,7 @@
           cluster-type="tendbcluster"
           machine-type="backend"
           @change="handlePlanChange" />
-      </BkForm>
+      </DbForm>
     </div>
     <template #footer>
       <BkButton

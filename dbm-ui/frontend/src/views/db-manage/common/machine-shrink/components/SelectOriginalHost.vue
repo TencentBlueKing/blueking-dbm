@@ -12,7 +12,7 @@
 -->
 
 <template>
-  <BkDialog
+  <DbDialog
     v-model:is-show="isShow"
     quick-close
     :title="t('手动添加节点 IP')"
@@ -53,7 +53,7 @@
         {{ t('取消') }}
       </BkButton>
     </template>
-  </BkDialog>
+  </DbDialog>
 </template>
 <script lang="tsx">
   interface IModleValue {

@@ -14,7 +14,7 @@
 <template>
   <UpgradeWrapper v-model="wrapperController">
     <SmartAction class="db-toolbox">
-      <BkForm
+      <DbForm
         class="toolbox-form mb-20"
         form-type="vertical"
         :model="formData">
@@ -74,7 +74,7 @@
             theme="primary" />
         </BkFormItem>
         <TicketPayload v-model="formData.payload" />
-      </BkForm>
+      </DbForm>
       <template #action>
         <BkButton
           class="mr-8 w-88"

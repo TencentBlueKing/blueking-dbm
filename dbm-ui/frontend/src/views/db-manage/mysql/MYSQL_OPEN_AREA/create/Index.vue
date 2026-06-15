@@ -24,7 +24,7 @@
       <DbCard
         style="margin-bottom: 24px"
         :title="t('开区目标')">
-        <BkForm v-if="templateData">
+        <DbForm v-if="templateData">
           <BkFormItem :label="t('模板信息：')">
             <BkButton
               class="template-name"
@@ -52,7 +52,7 @@
               :show-ip-cloumn="templateData.related_authorize.length > 0"
               :variable-list="variableList" />
           </BkFormItem>
-        </BkForm>
+        </DbForm>
       </DbCard>
     </BkLoading>
     <template #action>

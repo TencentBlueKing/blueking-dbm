@@ -10,7 +10,7 @@
       </span>
     </template>
     <div style="padding: 20px 25px 0">
-      <BkForm
+      <DbForm
         class="mb-12"
         form-type="vertical">
         <BkFormItem
@@ -31,7 +31,7 @@
             </BkRadioButton>
           </BkRadioGroup>
         </BkFormItem>
-      </BkForm>
+      </DbForm>
       <KeepAlive>
         <Component
           :is="renderCom"

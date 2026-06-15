@@ -1,5 +1,5 @@
 <template>
-  <BkSideslider
+  <DbSideslider
     v-model:is-show="isShow"
     class="related-ticket-detail-slider"
     quick-close
@@ -14,7 +14,7 @@
     <TicketDetail
       v-if="ticketId"
       :ticket-id="ticketId" />
-  </BkSideslider>
+  </DbSideslider>
 </template>
 <script setup lang="ts">
   import TicketDetail from '@components/ticket-detail/index.vue';

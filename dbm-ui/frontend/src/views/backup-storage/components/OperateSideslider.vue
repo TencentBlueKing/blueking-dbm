@@ -26,7 +26,7 @@
         </span>
       </div>
     </template>
-    <BkForm
+    <DbForm
       ref="formRef"
       class="backup-config-form"
       form-type="vertical"
@@ -138,7 +138,7 @@
           v-model="formData.bucket_name"
           :placeholder="t('请输入 Bucket')" />
       </BkFormItem>
-    </BkForm>
+    </DbForm>
     <template #footer>
       <AuthButton
         action-id="dbconfig_edit"
@@ -375,8 +375,8 @@
       left: 0;
       width: 1px;
       height: 14px;
-      content: '';
       background: #dcdee5;
+      content: '';
       transform: translateY(-50%);
     }
   }
@@ -385,15 +385,15 @@
     padding: 24px;
 
     .form-divider {
+      margin: 4px 0 20px;
       border: none;
       border-top: 1px solid #dcdee5;
-      margin: 4px 0 20px;
     }
 
     .cloud-text {
       font-size: 13px;
-      color: #313238;
       line-height: 32px;
+      color: #313238;
     }
 
     .cloud-option {
@@ -403,9 +403,9 @@
     }
 
     .password-toggle-icon {
-      cursor: pointer;
-      color: #979ba5;
       font-size: 14px;
+      color: #979ba5;
+      cursor: pointer;
 
       &:hover {
         color: #3a84ff;

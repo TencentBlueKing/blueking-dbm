@@ -21,7 +21,7 @@
           '版本升级：主从接入层和单节点采用原地升级，存储层小版本升级采用原地升级（注意：暂不支持一主多从），大版本需提供新机迁移方式执行。同一主机所有关联集群将一并同步升级',
         )
       " />
-    <BkForm
+    <DbForm
       class="toolbox-form"
       form-type="vertical"
       :model="modelValue">
@@ -67,7 +67,7 @@
           :true-value="TicketTypes.MYSQL_MIGRATE_UPGRADE" />
       </BkFormItem>
       <slot />
-    </BkForm>
+    </DbForm>
   </div>
 </template>
 <script lang="ts" setup>

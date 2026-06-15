@@ -4,7 +4,7 @@
       closable
       theme="info"
       :title="t('查询集群具体的访问信息')" />
-    <BkForm
+    <DbForm
       ref="formRef"
       class="web-query-form toolbox-form"
       form-type="vertical"
@@ -39,7 +39,7 @@
         :clusters="clusterList"
         :db-type="DBTypes.MONGODB"
         @finish="handleQueryFinish" />
-    </BkForm>
+    </DbForm>
   </div>
 </template>
 <script setup lang="ts">

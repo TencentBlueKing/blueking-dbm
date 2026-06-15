@@ -13,7 +13,7 @@
 
 <template>
   <SmartAction>
-    <BkDialog
+    <DbDialog
       v-model:is-show="isShow"
       :disabled-confirm="isExistedErrorMsg"
       :height="760"
@@ -69,7 +69,7 @@
           {{ t('关闭') }}
         </BkButton>
       </template>
-    </BkDialog>
+    </DbDialog>
   </SmartAction>
 </template>
 

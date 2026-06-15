@@ -176,14 +176,14 @@
     </div>
   </ApplyPermissionCatch>
   <!-- 新增版本 -->
-  <BkDialog
+  <DbDialog
     v-model:is-show="createFileState.isShow"
     :mask-close="false"
     render-directive="if"
     theme="primary"
     :title="t('新增版本')"
     :width="480">
-    <BkForm
+    <DbForm
       ref="versionFormRef"
       class="create-new-version-dialog"
       form-type="vertical"
@@ -248,7 +248,7 @@
           @delete="handleDeleteFile"
           @success="handleUpdateSuccess" />
       </BkFormItem>
-    </BkForm>
+    </DbForm>
     <template #footer>
       <BkButton
         class="mr-8"
@@ -263,7 +263,7 @@
         {{ t('取消') }}
       </BkButton>
     </template>
-  </BkDialog>
+  </DbDialog>
 </template>
 <script setup lang="ts">
   import { Form, Message } from 'bkui-vue';

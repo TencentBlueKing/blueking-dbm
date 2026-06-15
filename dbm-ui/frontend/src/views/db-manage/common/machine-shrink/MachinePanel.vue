@@ -33,7 +33,7 @@
         </I18nT>
       </template>
     </BkAlert>
-    <BkForm form-type="vertical">
+    <DbForm form-type="vertical">
       <BkFormItem>
         <template #label>
           <span>{{ t('缩容的节点 IP') }}</span>
@@ -119,7 +119,7 @@
           <span style="font-weight: bolder">{{ estimateCapacity }}</span>
         </I18nT>
       </div>
-    </BkForm>
+    </DbForm>
     <SelectOriginalHost
       v-model:is-show="isShowHostDialog"
       :min-host="data.minHost"

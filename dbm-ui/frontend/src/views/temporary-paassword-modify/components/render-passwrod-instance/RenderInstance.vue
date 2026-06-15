@@ -12,7 +12,7 @@
 -->
 
 <template>
-  <BkSideslider
+  <DbSideslider
     :is-show="isShow"
     render-directive="if"
     :title="t('临时密码生效的实例')"
@@ -75,7 +75,7 @@
         @clear-search="getDataSource"
         @selection="handleSelection" />
     </div>
-  </BkSideslider>
+  </DbSideslider>
 </template>
 
 <script setup lang="tsx">

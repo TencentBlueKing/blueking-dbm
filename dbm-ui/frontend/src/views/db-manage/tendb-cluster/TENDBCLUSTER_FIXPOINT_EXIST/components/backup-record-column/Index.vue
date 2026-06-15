@@ -26,7 +26,7 @@
         :width="504"
         @change="handleBatchEdit">
         <template #content>
-          <BkForm
+          <DbForm
             form-type="vertical"
             :model="formData">
             <BkFormItem
@@ -63,7 +63,7 @@
                 </BkRadio>
               </BkRadioGroup>
             </BkFormItem>
-          </BkForm>
+          </DbForm>
         </template>
       </BatchEditColumn>
       <span

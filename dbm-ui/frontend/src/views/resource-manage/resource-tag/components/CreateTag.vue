@@ -12,7 +12,7 @@
 -->
 
 <template>
-  <BkDialog
+  <DbDialog
     :is-show="isShow"
     render-directive="if"
     @closed="handleClose"
@@ -26,7 +26,7 @@
         </span>
       </div>
     </template>
-    <BkForm
+    <DbForm
       ref="formRef"
       form-type="vertical"
       :model="formModel"
@@ -41,7 +41,7 @@
           allow-create
           has-delete-icon />
       </BkFormItem>
-    </BkForm>
+    </DbForm>
     <template #footer>
       <div class="footer-wrapper">
         <BkButton
@@ -59,7 +59,7 @@
         </BkButton>
       </div>
     </template>
-  </BkDialog>
+  </DbDialog>
 </template>
 
 <script setup lang="tsx">

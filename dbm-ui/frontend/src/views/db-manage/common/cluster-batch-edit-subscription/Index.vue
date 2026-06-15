@@ -1,5 +1,5 @@
 <template>
-  <BkDialog
+  <DbDialog
     class="batch-edit-alarm-subscription-dialog"
     :close-icon="false"
     :esc-close="false"
@@ -42,7 +42,7 @@
         {{ t('取消') }}
       </BkButton>
     </template>
-  </BkDialog>
+  </DbDialog>
 </template>
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';

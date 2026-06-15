@@ -26,7 +26,7 @@
           : t('清空主机现有的所属业务、所属 DB 、标签，重新进行设置')
       }}
     </BkAlert>
-    <BkForm
+    <DbForm
       ref="formRef"
       class="mt-16"
       form-type="vertical"
@@ -72,7 +72,7 @@
           :bk-biz-id="formData.for_biz"
           :default-list="currentData?.labels" />
       </BkFormItem>
-    </BkForm>
+    </DbForm>
   </div>
 </template>
 

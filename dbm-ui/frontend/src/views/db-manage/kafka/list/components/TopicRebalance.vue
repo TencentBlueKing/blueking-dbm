@@ -1,5 +1,5 @@
 <template>
-  <BkSideslider
+  <DbSideslider
     v-model:is-show="isShow"
     background-color="#FFFFFF"
     class="kafka-topic-sideslider"
@@ -12,7 +12,7 @@
       </div>
     </template>
     <div class="kafka-topic-main">
-      <BkForm
+      <DbForm
         ref="form"
         form-type="vertical"
         :model="formData">
@@ -152,7 +152,7 @@
               sort />
           </BkTable>
         </BkFormItem>
-      </BkForm>
+      </DbForm>
     </div>
     <template #footer>
       <BkButton
@@ -169,7 +169,7 @@
         {{ t('取消') }}
       </BkButton>
     </template>
-  </BkSideslider>
+  </DbSideslider>
 </template>
 <script setup lang="ts">
   import tippy, { type Instance, type SingleTarget } from 'tippy.js';
@@ -186,8 +186,10 @@
 
   import { utcDisplayTime } from '@utils';
 
-  interface RowData
-    extends Pick<KafkaInstanceModel, 'instance_address' | 'bk_cloud_id' | 'bk_host_id' | 'ip' | 'port'> {
+  interface RowData extends Pick<
+    KafkaInstanceModel,
+    'instance_address' | 'bk_cloud_id' | 'bk_host_id' | 'ip' | 'port'
+  > {
     agentStatus: number;
     checked: boolean; // Add checked state for selection
     createAt: string;

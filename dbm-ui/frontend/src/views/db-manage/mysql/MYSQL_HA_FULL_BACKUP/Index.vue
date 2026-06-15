@@ -20,7 +20,7 @@
     <BatchInput
       :config="batchInputConfig"
       @change="handleBatchInput" />
-    <BkForm
+    <DbForm
       class="mt-16 mb-16 toolbox-form"
       form-type="vertical"
       :model="formData">
@@ -79,7 +79,7 @@
         </BkRadioGroup>
       </BkFormItem>
       <TicketPayload v-model="formData.payload" />
-    </BkForm>
+    </DbForm>
     <template #action>
       <BkButton
         v-test="{ type: 'button', value: 'submitTicket' }"

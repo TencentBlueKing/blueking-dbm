@@ -21,7 +21,7 @@
           '定点构造：新建副本集或分片集群，通过全备 + oplog的方式，将数据库恢复到过去的某一时间点或者某个指定备份文件的状态',
         )
       " />
-    <BkForm
+    <DbForm
       class="mb-20"
       form-type="vertical"
       :model="formData">
@@ -61,7 +61,7 @@
         </div>
       </BkFormItem>
       <TicketPayload v-model="formData.payload" />
-    </BkForm>
+    </DbForm>
     <template #action>
       <BkButton
         class="mr-8 w-88"

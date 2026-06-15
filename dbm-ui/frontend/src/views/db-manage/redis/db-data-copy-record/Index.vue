@@ -52,7 +52,7 @@
       :data="currentActiveRow"
       :is-show="isShowDataCopyTransferDetail"
       @on-close="() => (isShowDataCopyTransferDetail = false)" />
-    <!-- <BkDialog
+    <!-- <DbDialog
       class="recopy-dialog"
       dialog-type="show"
       header-align="center"
@@ -86,7 +86,7 @@
           </BkButton>
         </div>
       </div>
-    </BkDialog> -->
+    </DbDialog> -->
   </div>
 </template>
 

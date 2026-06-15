@@ -64,7 +64,7 @@
       </slot>
     </div>
   </div>
-  <BkDialog
+  <DbDialog
     v-model:is-show="showDialog"
     class="db-ip-selector-dialog"
     :close-icon="false"
@@ -108,7 +108,7 @@
         {{ $t('取消') }}
       </BkButton>
     </template>
-  </BkDialog>
+  </DbDialog>
 </template>
 <script lang="tsx">
   import type { TablePropTypes } from 'bkui-vue/lib/table/props';

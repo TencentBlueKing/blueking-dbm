@@ -34,7 +34,7 @@
         @setting-change="updateTableSettings" />
     </BkLoading>
   </div>
-  <BkSideslider
+  <DbSideslider
     v-model:is-show="logState.isShow"
     class="log-sideslider"
     quick-close
@@ -65,7 +65,7 @@
     <SwtichEventDetatils
       :is-active="logState.isShow"
       :uid="logState.data.uid" />
-  </BkSideslider>
+  </DbSideslider>
 </template>
 
 <script setup lang="tsx">

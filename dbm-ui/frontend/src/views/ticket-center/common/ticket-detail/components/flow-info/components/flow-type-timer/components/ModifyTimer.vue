@@ -8,7 +8,7 @@
     <slot />
     <template #content>
       <div style="font-size: 12px; color: #63656e">
-        <BkForm
+        <DbForm
           ref="formRef"
           class="mt-14"
           form-type="vertical"
@@ -23,7 +23,7 @@
               style="width: 100%"
               type="datetime" />
           </BkFormItem>
-        </BkForm>
+        </DbForm>
         <div style="margin-top: 4px; font-size: 12px; color: #979ba5">
           {{ t('原定时时间：') }}
           {{ data.details.trigger_time }}

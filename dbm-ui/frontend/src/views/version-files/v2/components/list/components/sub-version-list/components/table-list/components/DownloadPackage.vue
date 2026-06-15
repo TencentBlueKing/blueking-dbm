@@ -8,7 +8,7 @@
     @click="handleDownloadClick">
     {{ t('下载') }}
   </BkButton>
-  <BkDialog
+  <DbDialog
     v-model:is-show="isShow"
     class="download-package-dialog"
     quick-close
@@ -44,7 +44,7 @@
         {{ t('取消') }}
       </BkButton>
     </template>
-  </BkDialog>
+  </DbDialog>
 </template>
 
 <script setup lang="ts">

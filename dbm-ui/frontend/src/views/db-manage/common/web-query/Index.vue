@@ -6,7 +6,7 @@
       closable
       theme="info"
       :title="alertTip" />
-    <BkForm
+    <DbForm
       ref="formRef"
       class="web-query-form"
       form-type="vertical"
@@ -65,7 +65,7 @@
           :instances="instanceList"
           :query-type="formData.queryType" />
       </BkFormItem>
-    </BkForm>
+    </DbForm>
   </div>
 </template>
 <script setup lang="ts">

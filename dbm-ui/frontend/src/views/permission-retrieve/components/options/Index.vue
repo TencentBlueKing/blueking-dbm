@@ -13,7 +13,7 @@
 
 <template>
   <div class="permission-retrieve-options">
-    <BkForm
+    <DbForm
       ref="formRef"
       form-type="vertical"
       :model="formData">
@@ -48,7 +48,7 @@
           has-delete-icon
           :placeholder="t('请输入DB，支持%')" />
       </BkFormItem>
-    </BkForm>
+    </DbForm>
     <div class="mb-24">
       <BkButton
         class="w-88"

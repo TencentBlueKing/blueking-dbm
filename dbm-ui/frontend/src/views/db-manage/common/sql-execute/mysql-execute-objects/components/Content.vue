@@ -13,7 +13,7 @@
 
 <template>
   <div class="mysql-execute-objects-content">
-    <BkForm form-type="vertical">
+    <DbForm form-type="vertical">
       <BkFormItem
         class="mb-24"
         label=""
@@ -54,7 +54,7 @@
         :cluster-version-list="clusterVersionList"
         :db-names="localDbnames"
         :ignore-dbnames="localIgnoreDbnames" />
-    </BkForm>
+    </DbForm>
   </div>
 </template>
 <script setup lang="ts">

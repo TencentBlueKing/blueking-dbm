@@ -12,8 +12,7 @@
 -->
 
 <template>
-  <BkSideslider
-    :before-close="handleClose"
+  <DbSideslider
     class="rotate-setting-edit-rule"
     :is-show="isShow"
     render-directive="if"
@@ -28,7 +27,7 @@
       </span>
     </template>
     <div class="rotation-edit-rule">
-      <BkForm
+      <DbForm
         ref="formRef"
         form-type="vertical"
         :model="formModel"
@@ -39,7 +38,7 @@
           required>
           <BkInput v-model="formModel.ruleName" />
         </BkFormItem>
-      </BkForm>
+      </DbForm>
       <div class="name-tip">
         {{ nameTip }}
       </div>
@@ -83,7 +82,7 @@
         {{ t('取消') }}
       </BkButton>
     </template>
-  </BkSideslider>
+  </DbSideslider>
 </template>
 
 <script setup lang="tsx">
@@ -92,8 +91,6 @@
 
   import DutyRuleModel from '@services/model/monitor/duty-rule';
   import { createDutyRule, updateDutyRule } from '@services/source/monitor';
-
-  import { useBeforeClose } from '@hooks';
 
   import { messageSuccess } from '@utils';
 
@@ -119,7 +116,6 @@
   const isShow = defineModel<boolean>();
 
   const { t } = useI18n();
-  const handleBeforeClose = useBeforeClose();
 
   const nameTip = ref('');
   const rotateType = ref('handoff');
@@ -190,6 +186,7 @@
   const { loading: isCreateLoading, run: runCreateDutyRule } = useRequest(createDutyRule, {
     manual: true,
     onSuccess: () => {
+      window.changeConfirm = false;
       messageSuccess(t('保存成功'));
       emits('success');
       isShow.value = false;
@@ -200,6 +197,7 @@
     manual: true,
     onSuccess: () => {
       // 成功
+      window.changeConfirm = false;
       messageSuccess(t('编辑成功'));
       emits('success');
       isShow.value = false;
@@ -273,14 +271,7 @@
   };
 
   async function handleClose() {
-    const result = await handleBeforeClose();
-
-    if (!result) {
-      return false;
-    }
-    window.changeConfirm = false;
     isShow.value = false;
-    return true;
   }
 </script>
 

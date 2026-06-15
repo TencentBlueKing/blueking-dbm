@@ -1,5 +1,5 @@
 <template>
-  <BkSideslider
+  <DbSideslider
     v-model:is-show="isShow"
     class="edit-release-slider-main"
     render-directive="if"
@@ -11,7 +11,7 @@
       </div>
     </template>
     <div class="content-main">
-      <BkForm
+      <DbForm
         ref="formRef"
         class="mt-14"
         form-type="vertical"
@@ -52,7 +52,7 @@
               :value="item.value" />
           </BkSelect>
         </BkFormItem>
-      </BkForm>
+      </DbForm>
       <div class="operate-main">
         <BkButton
           class="operate-button"
@@ -68,7 +68,7 @@
         </BkButton>
       </div>
     </div>
-  </BkSideslider>
+  </DbSideslider>
 </template>
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';

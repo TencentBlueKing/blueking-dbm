@@ -25,7 +25,7 @@
       <i class="bk-dbm-icon db-icon-add" />
       {{ t('批量录入') }}
     </BkButton>
-    <BkDialog
+    <DbDialog
       :is-show="isShow"
       :quick-close="false"
       :title="t('xx_批量录入', { title: route.meta.navName })"
@@ -77,7 +77,7 @@
           {{ t('取消') }}
         </BkButton>
       </template>
-    </BkDialog>
+    </DbDialog>
   </div>
 </template>
 

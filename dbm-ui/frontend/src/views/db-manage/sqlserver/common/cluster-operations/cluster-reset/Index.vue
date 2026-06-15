@@ -1,5 +1,5 @@
 <template>
-  <BkDialog
+  <DbDialog
     class="sqlserver-cluster-reset"
     :is-show="isShow"
     theme="primary"
@@ -10,7 +10,7 @@
       closable
       theme="warning"
       :title="t('集群的数据将会被全部清空')" />
-    <BkForm
+    <DbForm
       ref="formRef"
       class="reset-form"
       label-width="80"
@@ -42,8 +42,8 @@
           </div>
         </BkFormItem>
       </BkComposeFormItem>
-    </BkForm>
-  </BkDialog>
+    </DbForm>
+  </DbDialog>
 </template>
 
 <script setup lang="ts" generic="T extends SqlServerSingleModel | SqlServerHaModel">

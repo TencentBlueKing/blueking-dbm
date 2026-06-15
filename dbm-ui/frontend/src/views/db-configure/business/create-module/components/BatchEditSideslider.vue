@@ -12,7 +12,7 @@
 -->
 
 <template>
-  <BkSideslider
+  <DbSideslider
     :before-close="handleBeforeClose"
     class="config-edit-diff-sideslider"
     :is-show="isShow"
@@ -200,7 +200,7 @@
         </BkButton>
       </template>
     </template>
-  </BkSideslider>
+  </DbSideslider>
 </template>
 
 <script setup lang="ts">
@@ -440,8 +440,8 @@
         left: 0;
         width: 1px;
         height: 16px;
-        content: '';
         background: #dcdee5;
+        content: '';
         transform: translateY(-50%);
       }
     }
@@ -457,9 +457,9 @@
 
     .diff-table {
       width: 100%;
-      table-layout: fixed;
-      border-collapse: collapse;
       font-size: 12px;
+      border-collapse: collapse;
+      table-layout: fixed;
 
       tr {
         border-bottom: 1px solid #dcdee5;

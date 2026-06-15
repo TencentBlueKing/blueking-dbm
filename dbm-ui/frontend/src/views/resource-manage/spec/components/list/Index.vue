@@ -319,7 +319,7 @@
       </TableColumn>
     </DbTable>
   </div>
-  <BkSideslider
+  <DbSideslider
     v-model:is-show="isSpecOperationShow"
     :before-close="handleBeforeClose"
     render-directive="if"
@@ -351,7 +351,7 @@
       :ratio-map="ratioMap"
       @cancel="handleCloseSpecOperation"
       @successed="handleSubmitSuccessed" />
-  </BkSideslider>
+  </DbSideslider>
 </template>
 
 <script setup lang="tsx">
