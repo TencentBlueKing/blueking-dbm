@@ -55,7 +55,7 @@ from backend.db_monitor.tasks import delete_monitor_duty_rule, update_app_policy
 from backend.db_monitor.utils import (
     bkm_delete_alarm_strategy,
     bkm_save_alarm_strategy,
-    get_dbm_autofix_action_id,
+    get_dbm_alarm_callback_actions,
     render_promql_sql_new,
 )
 from backend.db_services.cmdb.biz import list_cc_obj_user
@@ -1304,9 +1304,10 @@ class MonitorPolicy(AuditedModel):
         )
 
     @classmethod
-    def sync_plat_monitor_policy(cls, action_id=None, db_type=None, force=False, specified_name=None):
-        if action_id is None:
-            action_id = get_dbm_autofix_action_id()
+    def sync_plat_monitor_policy(cls, callback_actions=None, db_type=None, force=False, specified_name=None):
+        if not callback_actions:
+            callback_actions = get_dbm_alarm_callback_actions()
+
         skip_dir = "v1"
         now = datetime.datetime.now(timezone.utc)
         logger.warning("[sync_plat_monitor_policy] sync bkm alarm policy start: %s", now)
@@ -1319,7 +1320,7 @@ class MonitorPolicy(AuditedModel):
 
             for alarm_tpl in files:
 
-                with open(os.path.join(root, alarm_tpl), "r", encoding="utf-8") as f:
+                with (open(os.path.join(root, alarm_tpl), "r", encoding="utf-8") as f):
                     logger.info("[sync_plat_monitor_policy] start sync bkm alarm tpl: %s " % alarm_tpl)
                     try:
                         template_dict = json.loads(f.read())
@@ -1351,24 +1352,31 @@ class MonitorPolicy(AuditedModel):
                     template_dict["details"]["priority"] = TargetPriority.PLATFORM.value
                     # 平台策略仅开启基于分派通知
                     template_dict["details"]["notice"]["options"]["assign_mode"] = ["by_rule"]
+                    callbacks = []
                     for label in labels:
-                        if label.startswith("NEED_AUTOFIX") and action_id is not None:
-                            template_dict["details"]["actions"] = [
-                                {
-                                    "config_id": action_id,
-                                    "signal": ["abnormal"],
-                                    "user_groups": [],
-                                    "options": {
-                                        "converge_config": {
-                                            "is_enabled": False,
-                                            "converge_func": "skip_when_success",
-                                            "timedelta": 60,
-                                            "count": 1,
-                                        }
-                                    },
-                                }
-                            ]
-
+                        # 可以注册多个 callbacks
+                        for callback_name, callback in callback_actions.items():
+                            if (
+                                callback["label_starts"]
+                                and label.startswith(callback["label_starts"])
+                                and callback.get("action_id", None) is not None
+                            ):
+                                callbacks.append(
+                                    {
+                                        "config_id": callback["action_id"],
+                                        "signal": ["abnormal"],
+                                        "user_groups": [],
+                                        "options": {
+                                            "converge_config": {
+                                                "is_enabled": False,
+                                                "converge_func": "skip_when_success",
+                                                "timedelta": 60,
+                                                "count": 1,
+                                            }
+                                        },
+                                    }
+                                )
+                    template_dict["details"]["actions"] = callbacks
                     policy = MonitorPolicy(**template_dict)
 
                 policy_name = policy.name

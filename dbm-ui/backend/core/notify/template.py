@@ -73,3 +73,14 @@ AI_TASK_GUARDIAN_TEMPLATE = _(
     AI检测详情: {{ai_result}}\
     """
 )
+
+# 告警触发慢查询 AI 分析通知模板
+AI_SLOWLOG_ANALYSIS_TEMPLATE = _(
+    """\
+    业务: {{biz_name}}
+    集群域名: {{cluster_domain}}
+    集群类型: {{cluster_type}}
+    分析时间窗口: {{time_window_start}} - {{time_window_end}}
+    AI分析结果: {{ai_result}}\
+    """
+)

@@ -1,0 +1,128 @@
+# -*- coding: utf-8 -*-
+"""
+TencentBlueKing is pleased to support the open source community by making 蓝鲸智云-DB管理系统(BlueKing-BK-DBM) available.
+Copyright (C) 2017-2023 THL A29 Limited, a Tencent company. All rights reserved.
+Licensed under the MIT License (the "License"); you may not use this file except in compliance with the License.
+You may obtain a copy of the License at https://opensource.org/licenses/MIT
+Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on
+an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
+specific language governing permissions and limitations under the License.
+"""
+import logging
+from datetime import timedelta
+
+from celery import shared_task
+from django.utils import timezone
+
+from backend.core.notify.handlers import NotifyAdapter
+from backend.db_meta.enums import ClusterType, InstanceRole, TenDBClusterSpiderRole
+from backend.db_meta.models import Cluster
+from backend.db_monitor.views.callbacks.base import AlarmCallback
+from backend.dbm_aiagent.agent.commands.commands import MySQLSlowLogCommand
+from backend.dbm_aiagent.agent.handlers import AgentHandler
+
+logger = logging.getLogger("root")
+
+
+class MySQLAlarm(AlarmCallback):
+    """MySQL 告警回调处理器，处理所有 MySQL 相关的告警回调"""
+
+    # 策略名关键字 -> 处理函数的映射
+    STRATEGY_HANDLERS = {
+        "mysql_global_status_slow_queries": "call_slowlog_ai_analysis",
+        "慢查询数量": "call_slowlog_ai_analysis",
+    }
+
+    @classmethod
+    def callback(cls, callback_data: dict):
+        """根据策略名分发到对应的异步处理任务"""
+        strategy_name = callback_data.get("callback_message", {}).get("strategy", {}).get("name", "")
+
+        for keyword, handler_name in cls.STRATEGY_HANDLERS.items():
+            if keyword in strategy_name:
+                handler = globals().get(handler_name)
+                if handler:
+                    handler.delay(callback_data)
+                    logger.info(f"[MySQLAlarm] 策略 '{strategy_name}' 分发到异步任务: {handler_name}")
+                else:
+                    logger.warning(f"[MySQLAlarm] 未找到处理函数: {handler_name}")
+                return
+
+
+@shared_task
+def call_slowlog_ai_analysis(callback_data):
+    """
+    异步任务：告警触发 AI 慢查询分析，并将结果通过消息推送
+    """
+
+    try:
+        dimensions = callback_data["callback_message"]["event"]["dimensions"]
+        cluster_domain = dimensions.get("cluster_domain", "")
+        if not cluster_domain:
+            logger.warning("[slowlog_ai_analysis] 告警事件中缺少 cluster_domain，跳过 AI 分析")
+            return
+
+        # 通过 cluster_domain 查询集群类型
+        cluster = Cluster.objects.filter(immute_domain=cluster_domain).first()
+        if not cluster:
+            logger.warning(f"[slowlog_ai_analysis] 未找到集群: {cluster_domain}，跳过 AI 分析")
+            return
+
+        bk_biz_id = cluster.bk_biz_id
+        cluster_type = cluster.cluster_type
+
+        # 确定 instance_role
+        instance_role = dimensions.get("instance_role", "")
+        if not instance_role or instance_role == "--":
+            if cluster_type == ClusterType.TenDBHA:
+                instance_role = InstanceRole.BACKEND_MASTER.value
+            else:
+                instance_role = TenDBClusterSpiderRole.SPIDER_MASTER.value
+
+        # 设置时间窗口为过去 1 小时
+        now = timezone.now()
+        time_window_start = now - timedelta(hours=1)
+        time_window_end = now
+
+        time_window_start_str = time_window_start.replace(microsecond=0).isoformat(sep="T")
+        time_window_end_str = time_window_end.replace(microsecond=0).isoformat(sep="T")
+    except Exception as e:
+        logger.exception(f"[slowlog_ai_analysis] 提取 ai 分析参数失败: {e}")
+        return
+
+    try:
+        # 调用 AI Agent 进行慢查询分析
+        logger.info(f"[slowlog_ai_analysis] 告警触发 AI 慢查询分析，集群: {cluster_domain}")
+        result = AgentHandler.ask_agent_with_command(
+            command=MySQLSlowLogCommand.command,
+            command_params={
+                "cluster_domain": cluster_domain,
+                "cluster_type": cluster_type,
+                "instance_role": instance_role,
+                "time_window_start": time_window_start_str,
+                "time_window_end": time_window_end_str,
+                "limit": 5,
+            },
+        )
+
+        if not result:
+            logger.info(f"[slowlog_ai_analysis] 集群 {cluster_domain} AI 分析无结果，跳过通知")
+            return
+
+        logger.info(f"[slowlog_ai_analysis] 集群 {cluster_domain} AI 慢查询分析完成，开始推送通知")
+
+        # 获取接收人：优先使用告警回调中的负责人
+        receivers = [r.strip() for r in callback_data.get("appointees", "").split(",") if r.strip()]
+
+        # 调用 NotifyAdapter 发送 AI 分析报告通知
+        NotifyAdapter.send_msg_for_ai_report(
+            bk_biz_id=bk_biz_id,
+            cluster_domain=cluster_domain,
+            cluster_type=cluster_type,
+            time_window_start=time_window_start_str,
+            time_window_end=time_window_end_str,
+            ai_result=result,
+            receivers=receivers or None,
+        )
+    except Exception as e:
+        logger.exception(f"[slowlog_ai_analysis] 告警触发 AI 慢查询分析失败: {e}")

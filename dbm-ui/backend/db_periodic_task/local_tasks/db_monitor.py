@@ -68,7 +68,7 @@ def update_local_notice_group():
 @register_periodic_task(run_every=crontab(minute="*/5"))
 def sync_plat_monitor_policy(action_id=None, db_type=None, force=False):
     """同步平台告警策略"""
-    MonitorPolicy.sync_plat_monitor_policy(action_id=action_id, db_type=db_type, force=force)
+    MonitorPolicy.sync_plat_monitor_policy(callback_actions=action_id, db_type=db_type, force=force)
 
 
 @register_periodic_task(run_every=crontab(minute=0, hour="*/2"))

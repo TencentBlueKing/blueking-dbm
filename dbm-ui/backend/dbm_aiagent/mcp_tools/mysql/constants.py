@@ -229,8 +229,9 @@ SLAVE_DELAY = {
 
 
 METRIC_TYPES = {
-    "disk_used": DISK_USED,
     "disk_usage": DISK_USAGE,
+    "disk_used": DISK_USED,
+    "disk_total": DISK_TOTAL,
     "cpu_summary": CPU_SUMMARY,
     "qps_summary": QPS_SUMMARY,
     "memory_usage": MEMORY_USAGE,
