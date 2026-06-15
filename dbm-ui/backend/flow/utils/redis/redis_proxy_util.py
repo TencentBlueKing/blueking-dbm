@@ -1014,28 +1014,17 @@ def get_cluster_info_by_cluster_id(cluster_id):
 
 def async_get_multi_cluster_info_by_cluster_ids(cluster_ids: List[int]) -> Dict[int, Any]:
     """
-    根据集群id批量获取集群信息
+    根据集群id批量获取集群信息（使用多线程并发，避免在已有事件循环的上下文中调用 asyncio.run）
     """
-
-    async def async_hanlder(cluster_ids: List[int]) -> Dict[int, Any]:
-        loop = asyncio.get_running_loop()
-
-        # 自定义线程池
-        with concurrent.futures.ThreadPoolExecutor() as executor:
-            # 将所有的任务提交到线程池
-            tasks = [
-                loop.run_in_executor(executor, get_cluster_info_by_cluster_id, cluster_id)
-                for cluster_id in cluster_ids
-            ]
-            # 等待所有任务完成并收集结果
-            results = await asyncio.gather(*tasks)
-
-        ret_dict = {}
-        for result in results:
+    ret_dict = {}
+    with concurrent.futures.ThreadPoolExecutor() as executor:
+        future_to_id = {
+            executor.submit(get_cluster_info_by_cluster_id, cluster_id): cluster_id for cluster_id in cluster_ids
+        }
+        for future in concurrent.futures.as_completed(future_to_id):
+            result = future.result()
             ret_dict[result["cluster_id"]] = result
-        return ret_dict
-
-    return asyncio.run(async_hanlder(cluster_ids))
+    return ret_dict
 
 
 def get_cluster_info_by_ip(ip: str) -> Dict[str, Any]:
