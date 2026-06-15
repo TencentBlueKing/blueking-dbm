@@ -13,9 +13,9 @@
 
 <template>
   <UserSelector
+    v-bind="$attrs"
     ref="userSelectorRef"
     v-model="modelValue"
-    v-bind="$attrs"
     class="member-selector"
     :exact-search-method="exactSearchMethod"
     :fixed-height="false"

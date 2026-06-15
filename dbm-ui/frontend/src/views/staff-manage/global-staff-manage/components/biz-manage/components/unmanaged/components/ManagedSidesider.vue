@@ -1,0 +1,352 @@
+<template>
+  <BkSideslider
+    v-model:is-show="modelValue"
+    quick-close
+    :width="960">
+    <template #header>
+      <div class="biz-unmanage-sideslider-header">
+        <div>{{ t('纳管业务') }}</div>
+        <div class="biz-bar ml-8"></div>
+        <div class="biz-name ml-8">{{ props.data.name }}</div>
+      </div>
+    </template>
+    <template #default>
+      <BkLoading :loading="isGetAdminsLoading">
+        <DbForm
+          ref="form"
+          class="biz-unmanage-sideslider"
+          form-type="vertical"
+          :label-width="100"
+          :model="formData">
+          <DbFormItem
+            :label="t('业务 Code')"
+            property="bizCode"
+            required
+            :rules="bizCodeRules">
+            <div class="biz-code-item">
+              <BkInput
+                v-model="formData.bizCode"
+                :disabled="bizCodeDisabled"
+                :placeholder="t('以小写字母开头，仅包含小写字母、数字、连字符（-），长度 2~32')" />
+              <!-- <div
+              v-if="bizCodeDisabled"
+              class="biz-code-hint">
+              {{ t('已从 CMDB 获取，不可修改') }}
+            </div> -->
+            </div>
+          </DbFormItem>
+          <div class="dba-label">{{ t('配置业务 DBA') }}</div>
+          <BkAlert class="mt-8">
+            <template #title>
+              <div>
+                {{
+                  t(
+                    '为该业务配置各组件类型的 DBA 负责人。不强制全部填写——未配置的组件将保持"待分配"状态，使用组件默认 DBA 兜底。',
+                  )
+                }}
+              </div>
+              <div>
+                <span class="alert-bord">{{ t('注意：') }}</span>
+                {{ t('单个组件如填写了任一角色，则主 DBA、备 DBA 必填，二线 DBA 可选。') }}
+              </div>
+            </template>
+          </BkAlert>
+          <PrimaryTable
+            class="mt-16"
+            :data="formData.tableData"
+            :outer-border="false"
+            row-key="dbType">
+            <TableColumn
+              col-key="dbTypeName"
+              :title="t('组件类型')"
+              width="120" />
+            <TableColumn
+              col-key="mainDba"
+              min-width="180">
+              <template #title>
+                <div style="display: flex; align-items: center">
+                  <span>{{ t('主 DBA') }}</span>
+                  <BkTag
+                    class="ml-4"
+                    size="small"
+                    :theme="dbaRoleTypesInfo[DBARoleTypes.PRIMARY_DBA].tagTheme">
+                    {{ dbaRoleTypesInfo[DBARoleTypes.PRIMARY_DBA].tagText }}
+                  </BkTag>
+                  <BatchEdit
+                    class="ml-4"
+                    field="primaryDBA"
+                    :label="t('主 DBA')"
+                    :multiple="false"
+                    @batch-edit="handleBatchEdit" />
+                </div>
+              </template>
+              <template #default="{ row, rowIndex }: { row: IRowData; rowIndex: number }">
+                <DbFormItem
+                  error-display-type="tooltips"
+                  :property="`tableData.${rowIndex}.primaryDBA`"
+                  :required="
+                    formData.tableData[rowIndex].standbyDBA.length > 0 ||
+                    formData.tableData[rowIndex].level2DBA.length > 0
+                  ">
+                  <MemberSelector
+                    v-model="row.primaryDBA"
+                    :multiple="false" />
+                </DbFormItem>
+              </template>
+            </TableColumn>
+            <TableColumn
+              col-key="backupDba"
+              min-width="180">
+              <template #title>
+                <div style="display: flex; align-items: center">
+                  <span>{{ t('备 DBA') }}</span>
+                  <BkTag
+                    class="ml-4"
+                    size="small"
+                    :theme="dbaRoleTypesInfo[DBARoleTypes.BACKUP_DBA].tagTheme">
+                    {{ dbaRoleTypesInfo[DBARoleTypes.BACKUP_DBA].tagText }}
+                  </BkTag>
+                  <BatchEdit
+                    class="ml-4"
+                    field="standbyDBA"
+                    :label="t('备 DBA')"
+                    :multiple="false"
+                    @batch-edit="handleBatchEdit" />
+                </div>
+              </template>
+              <template #default="{ row, rowIndex }: { row: IRowData; rowIndex: number }">
+                <DbFormItem
+                  error-display-type="tooltips"
+                  :property="`tableData.${rowIndex}.standbyDBA`"
+                  :required="
+                    formData.tableData[rowIndex].primaryDBA.length > 0 ||
+                    formData.tableData[rowIndex].level2DBA.length > 0
+                  ">
+                  <MemberSelector
+                    v-model="row.standbyDBA"
+                    :multiple="false"
+                    :property="`tableData.${rowIndex}.standbyDBA`" />
+                </DbFormItem>
+              </template>
+            </TableColumn>
+            <TableColumn
+              col-key="secondDbaList"
+              min-width="200">
+              <template #title>
+                <div style="display: flex; align-items: center">
+                  <span>{{ t('二线 DBA') }}</span>
+                  <BkTag
+                    class="ml-4"
+                    size="small"
+                    :theme="dbaRoleTypesInfo[DBARoleTypes.LEVEL2_DBA].tagTheme">
+                    {{ dbaRoleTypesInfo[DBARoleTypes.LEVEL2_DBA].tagText }}
+                  </BkTag>
+                  <BatchEdit
+                    class="ml-4"
+                    field="level2DBA"
+                    :label="t('二线 DBA')"
+                    @batch-edit="handleBatchEdit" />
+                </div>
+              </template>
+              <template #default="{ row }: { row: IRowData }">
+                <DbFormItem>
+                  <MemberSelector v-model="row.level2DBA" />
+                </DbFormItem>
+              </template>
+            </TableColumn>
+          </PrimaryTable>
+        </DbForm>
+      </BkLoading>
+    </template>
+    <template #footer>
+      <BkButton
+        :loading="isManageBizLoading"
+        theme="primary"
+        @click="handleConfirm">
+        {{ t('确认纳管') }}
+      </BkButton>
+      <BkButton
+        class="ml-16"
+        :disabled="isManageBizLoading"
+        @click="modelValue = false">
+        {{ t('取消') }}
+      </BkButton>
+    </template>
+  </BkSideslider>
+</template>
+
+<script setup lang="ts">
+  import { useI18n } from 'vue-i18n';
+  import { useRequest } from 'vue-request';
+
+  import { getAdmins, manageBiz } from '@services/source/dbadmin';
+  import type { BizItem } from '@services/types';
+
+  import { useGlobalBizs } from '@stores';
+
+  import { DBARoleTypes, dbaRoleTypesInfo, DBTypeInfos, DBTypes } from '@common/const';
+
+  import MemberSelector from '@components/db-member-selector/index.vue';
+
+  import BatchEdit from '@views/staff-manage/common/BatchEdit.vue';
+
+  import { nameRegx } from '@/common/regex';
+  import { messageSuccess } from '@/utils';
+
+  interface Props {
+    data: BizItem;
+  }
+
+  type Emits = (e: 'success') => void;
+
+  interface IRowData {
+    dbType: DBTypes;
+    dbTypeName: string;
+    level2DBA: string[];
+    primaryDBA: string[];
+    standbyDBA: string[];
+  }
+
+  const props = defineProps<Props>();
+  const emits = defineEmits<Emits>();
+  const modelValue = defineModel<boolean>({ required: true });
+
+  const { t } = useI18n();
+  const { bizs } = useGlobalBizs();
+
+  const codePlaceholder = t('以小写英文字母开头_且只能包含英文字母_数字_连字符');
+  const bizCodeRules = [
+    {
+      message: codePlaceholder,
+      trigger: 'change',
+      validator: (val: string) => {
+        if (bizCodeDisabled.value) {
+          return true;
+        }
+        return nameRegx.test(val) && val.length >= 2 && val.length <= 32;
+      },
+    },
+    {
+      message: t('业务code不允许重复'),
+      trigger: 'blur',
+      validator: (val: string) => {
+        if (bizCodeDisabled.value) {
+          return true;
+        }
+        return !bizs.find((item) => item.english_name === val);
+      },
+    },
+  ];
+
+  const formRef = useTemplateRef('form');
+
+  const bizCodeDisabled = ref(false);
+  const formData = ref({
+    bizCode: '',
+    tableData: [] as IRowData[],
+  });
+
+  const { loading: isGetAdminsLoading, run: runGetAdmins } = useRequest(getAdmins, {
+    manual: true,
+    onSuccess(adminData) {
+      const usersMap = Object.fromEntries(adminData.map((item) => [item.db_type, item.users]));
+      formData.value.tableData = Object.keys(DBTypeInfos).map((dbType) => {
+        const [primaryDBA, standbyDBA, ...level2DBA] = usersMap[dbType] || [];
+        return {
+          dbType: dbType as DBTypes,
+          dbTypeName: DBTypeInfos[dbType as DBTypes].name,
+          level2DBA: level2DBA || [],
+          primaryDBA: primaryDBA ? [primaryDBA] : [],
+          standbyDBA: standbyDBA ? [standbyDBA] : [],
+        };
+      });
+    },
+  });
+
+  const { loading: isManageBizLoading, run: runManageBiz } = useRequest(manageBiz, {
+    manual: true,
+    onSuccess() {
+      messageSuccess(t('操作成功'));
+      modelValue.value = false;
+      emits('success');
+    },
+  });
+
+  watch(modelValue, () => {
+    if (modelValue.value) {
+      formRef.value!.clearValidate();
+    }
+  });
+
+  watch(
+    () => props.data,
+    () => {
+      formData.value.bizCode = props.data.english_name;
+      bizCodeDisabled.value = !!props.data.english_name;
+      runGetAdmins({
+        bk_biz_id: props.data.bk_biz_id,
+      });
+    },
+    {
+      immediate: true,
+    },
+  );
+
+  const handleBatchEdit = (value: any, field: string) => {
+    formData.value.tableData.forEach((item) => {
+      Object.assign(item, {
+        [field]: value,
+      });
+    });
+  };
+
+  const handleConfirm = async () => {
+    await formRef.value!.validate();
+    runManageBiz({
+      app_code: bizCodeDisabled.value ? undefined : formData.value.bizCode,
+      bk_biz_id: props.data.bk_biz_id,
+      db_admins: formData.value.tableData
+        .filter((item) => [...item.primaryDBA, ...item.standbyDBA, ...item.level2DBA].length > 0)
+        .map((item) => {
+          return {
+            db_type: item.dbType,
+            users: [...item.primaryDBA, ...item.standbyDBA, ...item.level2DBA],
+          };
+        }),
+    });
+  };
+</script>
+
+<style lang="less">
+  .biz-unmanage-sideslider-header {
+    display: flex;
+    align-items: center;
+
+    .biz-bar {
+      width: 1px;
+      height: 14px;
+      background-color: #dcdee5;
+    }
+
+    .biz-name {
+      font-size: 14px;
+      color: #979ba5;
+    }
+  }
+
+  .biz-unmanage-sideslider {
+    padding: 24px;
+
+    // .biz-code-item {
+    // }
+
+    .dba-label {
+      font-weight: bolder;
+      color: #313238;
+    }
+
+    .alert-bord {
+      font-weight: bolder;
+    }
+  }
+</style>

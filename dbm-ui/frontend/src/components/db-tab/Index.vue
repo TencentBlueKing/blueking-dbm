@@ -16,7 +16,7 @@
     :key="renderKey"
     v-model:active="moduleValue"
     class="db-tab"
-    type="unborder-card">
+    :type="type">
     <BkTabPanel
       v-for="tab of renderTabs"
       :key="tab.id"
@@ -26,6 +26,9 @@
 </template>
 
 <script setup lang="ts">
+  import BkTab from 'bkui-vue/lib/tab';
+  import { type ComponentProps } from 'vue-component-type-helpers';
+
   import { useFunController } from '@stores';
 
   import { DBTypeInfos, DBTypes } from '@common/const';
@@ -33,16 +36,20 @@
   interface Props {
     exclude?: DBTypes[];
     labelConfig?: Record<DBTypes, string>;
+    suffixItems?: TabItem[];
+    type?: ComponentProps<typeof BkTab>['type'];
   }
 
   interface TabItem {
-    id: DBTypes;
+    id: string;
     name: string;
   }
 
   const props = withDefaults(defineProps<Props>(), {
     exclude: () => [],
     labelConfig: undefined,
+    suffixItems: () => [],
+    type: 'unborder-card',
   });
 
   const moduleValue = defineModel<DBTypes>({
@@ -54,8 +61,8 @@
   // 解决 labelConfig 变化后渲染样式异常问题
   const renderKey = ref(0);
 
-  const renderTabs = computed(() =>
-    Object.values(DBTypeInfos).reduce((result, item) => {
+  const renderTabs = computed(() => {
+    const displayTabs = Object.values(DBTypeInfos).reduce((result, item) => {
       const { id, moduleId, name } = item;
       const data = funControllerStore.funControllerData.getFlatData(moduleId);
       if (data[id] && !props.exclude.includes(id)) {
@@ -65,8 +72,10 @@
         });
       }
       return result;
-    }, [] as TabItem[]),
-  );
+    }, [] as TabItem[]);
+
+    return displayTabs.concat(props.suffixItems);
+  });
 
   watch(
     () => [props.exclude, props.labelConfig],

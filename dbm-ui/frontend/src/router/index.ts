@@ -18,8 +18,8 @@ import { connectToMain, rootPath } from '@blueking/sub-saas';
 import { useGlobalBizs } from '@stores';
 
 import getAiChatRoutes from '@views/ai-chat/routes';
-import BizPermission from '@views/BizPermission.vue';
 import getBackupStorageRoutes from '@views/backup-storage/routes';
+import BizPermission from '@views/BizPermission.vue';
 import getDashborderRoutes from '@views/dashboard-manage/routes';
 import getDbConfRoutes from '@views/db-configure/routes';
 import getDbManageRoutes from '@views/db-manage/routes';
@@ -30,7 +30,6 @@ import getInspectionRoutes from '@views/inspection-manage/routes';
 import getMonitorAlarmRoutes from '@views/monitor-alarm/routes';
 import getNotificationSettingRoutes from '@views/notification-setting/routes';
 import getPasswordManageRoutes from '@views/password-manage/routes';
-import getPlatformDbConfigureRoutes from '@/views/platform-db-configure/routes';
 import getQuickSearchRoutes from '@views/quick-search/routes';
 import getResourceManageRoutes from '@views/resource-manage/routes';
 import getRiskMemoRoutes from '@views/risk-memo/routes';
@@ -45,6 +44,8 @@ import getVersionFilesRoutes from '@views/version-files/routes';
 import getWhitelistRoutes from '@views/whitelist/routes';
 
 import { checkDbConsole } from '@utils';
+
+import getPlatformDbConfigureRoutes from '@/views/platform-db-configure/routes';
 
 let appRouter: Router;
 
@@ -110,6 +111,7 @@ export default () => {
   getDbManageRoutes();
   getRiskMemoRoutes();
   getAiChatRoutes();
+  getStaffManageRoutes();
 
   const routes = [
     {
@@ -141,7 +143,6 @@ export default () => {
         ...getDbhaSwitchEventsRouters(),
         ...getBackupStorageRoutes(),
         ...getNotificationSettingRoutes(),
-        ...getStaffManageRoutes(),
         ...getWhitelistRoutes(),
         ...getTemporaryPasswordModify(),
         ...businessModuleList,
