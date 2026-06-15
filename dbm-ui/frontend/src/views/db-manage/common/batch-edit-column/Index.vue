@@ -132,6 +132,7 @@
     title: string;
     titlePrefixType?: 'edit' | 'entry' | 'select';
     type?: 'select' | 'textarea' | 'input' | 'taginput' | 'datetime' | 'number-input';
+    validator?: () => Promise<boolean> | boolean;
     width?: number;
   }
 
@@ -181,7 +182,19 @@
     localValue.value = value;
   };
 
-  const handleConfirm = () => {
+  const handleConfirm = async () => {
+    // 校验拦截
+    if (props.validator) {
+      try {
+        const valid = await props.validator();
+        if (!valid) {
+          return;
+        }
+      } catch {
+        return;
+      }
+    }
+
     if (props.type === 'taginput') {
       // 组件内为200ms后失焦处理失焦的回调，这里将任务添加至失焦回调后，以获取最新值
       setTimeout(() => {
