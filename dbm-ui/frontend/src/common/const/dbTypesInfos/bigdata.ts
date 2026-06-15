@@ -7,6 +7,7 @@ import { type DbInfoType } from './index';
 
 export const bigdata: DbInfoType = {
   [DBTypes.DORIS]: {
+    icon: 'doris',
     id: DBTypes.DORIS,
     machineList: [
       {
@@ -27,6 +28,7 @@ export const bigdata: DbInfoType = {
     routeIndexName: 'DorisManage',
   },
   [DBTypes.ES]: {
+    icon: 'es',
     id: DBTypes.ES,
     machineList: [
       {
@@ -47,6 +49,7 @@ export const bigdata: DbInfoType = {
     routeIndexName: 'EsManage',
   },
   [DBTypes.HDFS]: {
+    icon: 'hdfs',
     id: DBTypes.HDFS,
     machineList: [
       {
@@ -63,6 +66,7 @@ export const bigdata: DbInfoType = {
     routeIndexName: 'HdfsManage',
   },
   [DBTypes.INFLUXDB]: {
+    icon: 'influxdb',
     id: DBTypes.INFLUXDB,
     machineList: [
       {
@@ -75,6 +79,7 @@ export const bigdata: DbInfoType = {
     routeIndexName: 'InfluxDBManage',
   },
   [DBTypes.KAFKA]: {
+    icon: 'kafka',
     id: DBTypes.KAFKA,
     machineList: [
       {
@@ -91,6 +96,7 @@ export const bigdata: DbInfoType = {
     routeIndexName: 'KafkaManage',
   },
   [DBTypes.PULSAR]: {
+    icon: 'pulsar',
     id: DBTypes.PULSAR,
     machineList: [
       {
@@ -111,6 +117,7 @@ export const bigdata: DbInfoType = {
     routeIndexName: 'PulsarManage',
   },
   [DBTypes.RIAK]: {
+    icon: 'cluster',
     id: DBTypes.RIAK,
     machineList: [
       {
