@@ -75,16 +75,34 @@ class ReportBaseViewSet(AuditedModelViewSet):
 
     def _get_time_filtered_queryset(self):
         """
-        获取经过 time_range 过滤的查询集，不受其他搜索/过滤条件影响
+        获取经过 time_range 和 manage 过滤的查询集，不受其他搜索/过滤条件影响
         """
         queryset = self.get_queryset()
+
+        # 应用 time_range 过滤
         time_range = self.request.query_params.get("time_range", "")
         filter_instance = ReportListFilter(
             data=self.request.query_params,
             queryset=queryset,
             request=self.request,
         )
-        return filter_instance.filter_time_range(queryset, "time_range", time_range)
+        queryset = filter_instance.filter_time_range(queryset, "time_range", time_range)
+
+        # 应用 manage 过滤
+        manage = self.request.query_params.get("manage")
+        if manage:
+            username = self.request.user.username
+            # 从请求路径中获取 db_type
+            db_type = self.request.path.strip("/").split("/")[1]
+            manage_bizs, assist_bizs = DBAdministrator.get_manage_bizs(db_type, username)
+            # 待我处理
+            if manage == "todo":
+                queryset = queryset.filter(bk_biz_id__in=manage_bizs)
+            # 待我协助
+            elif manage == "assist":
+                queryset = queryset.filter(bk_biz_id__in=assist_bizs)
+
+        return queryset
 
     def get_total_count(self):
         """
