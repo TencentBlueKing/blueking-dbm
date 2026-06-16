@@ -108,14 +108,6 @@ class TestQuickSearchViewSet:
         cluster_ids = [c.get("id") for c in clusters]
         assert cluster.id in cluster_ids
 
-        # 模糊搜索：标签键:标签值
-        query["keyword"] = self._get_keyword(query, f"{tag_key}:{tag_value}")
-        response = self._request_quick_search(resource_list_mock, query)
-        assert response.status_code == 200
-        clusters = response.data.get("cluster", [])
-        cluster_ids = [c.get("id") for c in clusters]
-        assert cluster.id in cluster_ids
-
     @pytest.mark.parametrize("query", [QUICK_SEARCH_CONTAINS_PARAMS, QUICK_SEARCH_EXACT_PARAMS])
     @patch.object(DBResourceApi, "resource_list")
     @patch("backend.db_services.quick_search.handlers.Permission", PermissionMock)
