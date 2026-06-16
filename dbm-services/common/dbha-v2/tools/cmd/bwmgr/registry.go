@@ -35,5 +35,6 @@ func commandFactories() []commandFactory {
 		newAddCmd,
 		newUpdateCmd,
 		newDeleteCmd,
+		newImportCmd,
 	}
 }

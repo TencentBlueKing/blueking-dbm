@@ -36,6 +36,7 @@ const (
 	cmdUseAdd     = "add"
 	cmdUseUpdate  = "update"
 	cmdUseDelete  = "delete"
+	cmdUseImport  = "import"
 	cmdUseVersion = "version"
 )
 
@@ -45,6 +46,7 @@ const (
 	cmdShortAdd     = "Add a new black-white list entry"
 	cmdShortUpdate  = "Update an existing black-white list entry"
 	cmdShortDelete  = "Delete a black-white list entry"
+	cmdShortImport  = "Import black-white list entries from a file"
 	cmdShortVersion = "Print version information of bwmgr"
 )
 
@@ -54,30 +56,39 @@ const (
 	cmdLongAdd    = "Add a new entry to the black-white list"
 	cmdLongUpdate = "Update an existing entry in the black-white list. " +
 		"At least one of (id, bk-biz-id, cluster-id, cluster-name) is required " +
-		"to locate the entry, and at least one of (switch-version, status) is " +
-		"required to update."
+		"to locate the entry, and at least one of (set-cluster-name, switch-version, status) " +
+		"is required to update."
 	cmdLongDelete = "Delete an entry from the black-white list. At least one of " +
 		"(id, bk-biz-id, cluster-id, cluster-name) is required to prevent " +
 		"unintended full-table deletion."
+	cmdLongImport = "Import black-white list entries from a JSON Lines file. " +
+		"Each line must contain action add, update, or delete. " +
+		"Use --create-template for empty examples or --create-template-from-list to export current entries."
 )
 
 const (
-	flagConfig        = "config"
-	flagConfigShort   = "c"
-	flagAPIEndpoint   = config.CmdFlagAPIEndpoint
-	flagAPIBkCloudID  = config.CmdFlagAPIBkCloudID
-	flagAPIToken      = config.CmdFlagAPIToken
-	flagAPITimeout    = config.CmdFlagAPITimeout
-	flagID            = "id"
-	flagBkBizID       = "bk-biz-id"
-	flagBkCloudID     = "bk-cloud-id"
-	flagClusterID     = "cluster-id"
-	flagClusterName   = "cluster-name"
-	flagSwitchVersion = "switch-version"
-	flagStatus        = "status"
-	flagOutput        = "output"
-	flagOutputFile    = "output-file"
-	flagYes           = "yes"
+	flagConfig             = "config"
+	flagConfigShort        = "c"
+	flagAPIEndpoint        = config.CmdFlagAPIEndpoint
+	flagAPIBkCloudID       = config.CmdFlagAPIBkCloudID
+	flagAPIToken           = config.CmdFlagAPIToken
+	flagAPITimeout         = config.CmdFlagAPITimeout
+	flagID                 = "id"
+	flagBkBizID            = "bk-biz-id"
+	flagBkCloudID          = "bk-cloud-id"
+	flagClusterID          = "cluster-id"
+	flagClusterName        = "cluster-name"
+	flagSetClusterName     = "set-cluster-name"
+	flagSwitchVersion      = "switch-version"
+	flagStatus             = "status"
+	flagOutput             = "output"
+	flagOutputFile         = "output-file"
+	flagFile               = "file"
+	flagCreateTmpl         = "create-template"
+	flagCreateTmplFromList = "create-template-from-list"
+	flagDryRun             = "dry-run"
+	flagUpsert             = "upsert"
+	flagYes                = "yes"
 )
 
 const (
@@ -100,34 +111,40 @@ const (
 )
 
 const (
-	flagUsageConfig         = "Path to configuration file"
-	flagUsageAPIEndpoint    = "API endpoint (override config file and " + config.EnvAPIEndpoint + ")"
-	flagUsageAPIBkCloudID   = "API bk_cloud_id (override config file and " + config.EnvAPIBkCloudID + ")"
-	flagUsageAPIToken       = "API token (override config file and " + config.EnvAPIToken + ")"
-	flagUsageAPITimeout     = "API timeout duration, e.g. 30s (override config file and " + config.EnvAPITimeout + ")"
-	flagUsageListBizID      = "Filter by business ID"
-	flagUsageListCloudID    = "Filter by cloud ID"
-	flagUsageListClusterID  = "Filter by cluster ID"
-	flagUsageListCluster    = "Filter by cluster name"
-	flagUsageListSwitch     = "Filter by switch version (v1/v2)"
-	flagUsageListStatus     = "Filter by status (enabled/disabled)"
-	flagUsageListOutput     = "Output mode (table/json)"
-	flagUsageListOutputFile = "Output file path for file mode"
-	flagUsageBizID          = "Business ID"
-	flagUsageBizIDRequired  = "Business ID (required)"
-	flagUsageCloudID        = "Cloud ID"
-	flagUsageCloudDefault   = "Cloud ID (default: 0 for direct region)"
-	flagUsageClusterID      = "Cluster ID"
-	flagUsageClusterIDReq   = "Cluster ID (required)"
-	flagUsageClusterName    = "Cluster name"
-	flagUsageClusterNameReq = "Cluster name (required)"
-	flagUsageSwitchVersion  = "Switch version (v1/v2)"
-	flagUsageSwitchDefault  = "Switch version (v1/v2, default: v2)"
-	flagUsageStatus         = "Status (enabled/disabled)"
-	flagUsageStatusDefault  = "Status (enabled/disabled, default: enabled)"
-	flagUsageYesRisky       = "Skip confirmation prompt for risky operations"
-	flagUsageYesDelete      = "Skip confirmation prompt"
-	flagUsageEntryID        = "Entry ID"
+	flagUsageConfig             = "Path to configuration file"
+	flagUsageAPIEndpoint        = "API endpoint (override config file and " + config.EnvAPIEndpoint + ")"
+	flagUsageAPIBkCloudID       = "API bk_cloud_id (override config file and " + config.EnvAPIBkCloudID + ")"
+	flagUsageAPIToken           = "API token (override config file and " + config.EnvAPIToken + ")"
+	flagUsageAPITimeout         = "API timeout duration, e.g. 30s (override config file and " + config.EnvAPITimeout + ")"
+	flagUsageListBizID          = "Filter by business ID"
+	flagUsageListCloudID        = "Filter by cloud ID"
+	flagUsageListClusterID      = "Filter by cluster ID"
+	flagUsageListCluster        = "Filter by cluster name"
+	flagUsageListSwitch         = "Filter by switch version (v1/v2)"
+	flagUsageListStatus         = "Filter by status (enabled/disabled)"
+	flagUsageListOutput         = "Output mode (table/json)"
+	flagUsageListOutputFile     = "Output file path for file mode"
+	flagUsageBizID              = "Business ID"
+	flagUsageBizIDRequired      = "Business ID (required)"
+	flagUsageCloudID            = "Cloud ID"
+	flagUsageCloudDefault       = "Cloud ID (default: 0 for direct region)"
+	flagUsageClusterID          = "Cluster ID"
+	flagUsageClusterIDReq       = "Cluster ID (required)"
+	flagUsageClusterName        = "Cluster name"
+	flagUsageClusterNameReq     = "Cluster name (required)"
+	flagUsageSetClusterName     = "New cluster name"
+	flagUsageSwitchVersion      = "Switch version (v1/v2)"
+	flagUsageSwitchDefault      = "Switch version (v1/v2, default: v2)"
+	flagUsageStatus             = "Status (enabled/disabled)"
+	flagUsageStatusDefault      = "Status (enabled/disabled, default: enabled)"
+	flagUsageYesRisky           = "Skip confirmation prompt for risky operations"
+	flagUsageYesDelete          = "Skip confirmation prompt"
+	flagUsageImportFile         = "JSON Lines import file path"
+	flagUsageCreateTmpl         = "Create an empty JSON Lines import template at the path and exit"
+	flagUsageCreateTmplFromList = "Export current black-white list entries as JSON Lines update template and exit"
+	flagUsageDryRun             = "Validate import file without calling API"
+	flagUsageUpsert             = "Update existing entry when add matches bk-biz-id, bk-cloud-id, and cluster-id"
+	flagUsageEntryID            = "Entry ID"
 )
 
 const (

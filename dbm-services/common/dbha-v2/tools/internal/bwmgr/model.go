@@ -108,6 +108,7 @@ type UpdateQueryArgs struct {
 
 // UpdateSetArgs represents the set arguments for update operation
 type UpdateSetArgs struct {
+	ClusterName   *string            `json:"cluster_name,omitempty"`
 	SwitchVersion *SwitchVersionType `json:"switch_version,omitempty"`
 	Status        *StatusType        `json:"status,omitempty"`
 }
@@ -215,7 +216,7 @@ func (r *UpdateBlackWhiteListRequest) Validate() error {
 	}
 
 	// Check if at least one set argument is provided
-	if r.SetArgs.SwitchVersion == nil && r.SetArgs.Status == nil {
+	if r.SetArgs.ClusterName == nil && r.SetArgs.SwitchVersion == nil && r.SetArgs.Status == nil {
 		return errors.New(errUpdateSetArgsMissing)
 	}
 

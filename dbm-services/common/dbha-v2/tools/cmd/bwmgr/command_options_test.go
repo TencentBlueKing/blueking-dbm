@@ -308,6 +308,23 @@ func TestFilterCommandOptionsAllowExplicitDirectCloudID(t *testing.T) {
 	}
 }
 
+func TestUpdateCommandSetClusterNameOption(t *testing.T) {
+	t.Parallel()
+
+	cmd := newUpdateCmd(newApp())
+	if err := cmd.Flags().Set(flagSetClusterName, "cluster-b"); err != nil {
+		t.Fatalf("set flag %s failed: %s", flagSetClusterName, err)
+	}
+
+	opts, err := newUpdateOptions(cmd)
+	if err != nil {
+		t.Fatalf("parse update options failed: %s", err)
+	}
+	if opts.SetClusterName != "cluster-b" {
+		t.Fatalf("set cluster name = %s, want cluster-b", opts.SetClusterName)
+	}
+}
+
 type commandWithOptions struct {
 	err           error
 	listOptions   handler.ListOptions

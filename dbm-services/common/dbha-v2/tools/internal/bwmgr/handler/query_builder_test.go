@@ -66,6 +66,21 @@ func TestBuildUpdateRequestBkCloudID(t *testing.T) {
 	}
 }
 
+func TestBuildUpdateRequestSetClusterName(t *testing.T) {
+	t.Parallel()
+
+	req, err := buildUpdateRequest(UpdateOptions{ID: 1, SetClusterName: "cluster-b"})
+	if err != nil {
+		t.Fatalf("build update request failed: %s", err)
+	}
+	if req.QueryArgs.ClusterName != nil {
+		t.Fatalf("query cluster name = %v, want nil", *req.QueryArgs.ClusterName)
+	}
+	if req.SetArgs.ClusterName == nil || *req.SetArgs.ClusterName != "cluster-b" {
+		t.Fatalf("set cluster name = %v, want cluster-b", req.SetArgs.ClusterName)
+	}
+}
+
 func TestBuildDeleteRequestBkCloudID(t *testing.T) {
 	t.Parallel()
 
