@@ -164,7 +164,7 @@
     },
   });
 
-  const handleSerachDebounce = _.debounce(runQuickSearch, 200);
+  const handleSerachDebounce = _.debounce(runQuickSearch, 300);
 
   const handleSearch = () => {
     serachResult.value = {} as ServiceReturnType<typeof quickSearch>;
