@@ -27,7 +27,8 @@
           v-model:active="pkgActive"
           class="pkg-tab-main"
           :class="{ 'pkg-tab-main-scroll': isPkgTabScroll }"
-          type="card-tab">
+          type="card-tab"
+          @change="handlePkgTabChange">
           <template #add>
             <AuthTemplate
               action-id="package_manage"
@@ -110,6 +111,7 @@
           :pkg-label-map="pkgLabelMap"
           :pkg-type="pkgActive"
           :tabs="renderTabs"
+          :version-num="currentPkgType?.version_num || 3"
           @refresh-pkg-type-list="handleGetPkgTypeList" />
       </div>
     </div>
@@ -469,6 +471,10 @@
 
   let isFirstLoad = true;
 
+  const handlePkgTabChange = (name: string) => {
+    currentPkgType.value = pkgTypeList.value?.find((item) => item.value === name);
+  };
+
   const handleConfirmDeletePkgType = (tab: { label: string; name: string }) => {
     if (!pkgTypeList.value?.length) {
       return;
@@ -480,10 +486,9 @@
     });
   };
 
-  const handleEditPkgType = (tab: { label: string; name: string }) => {
+  const handleEditPkgType = () => {
     isEditPkgType.value = true;
     isShowPkgTypeManage.value = true;
-    currentPkgType.value = pkgTypeList.value?.find((item) => item.value === tab.name);
   };
 
   const handleGetPkgTypeList = () => {
@@ -576,13 +581,15 @@
   };
 
   onMounted(() => {
-    const { dbType, pkgType } = route.query;
+    const { dbType } = route.query;
     if (dbType) {
       dbTypeActive.value = dbType as DBTypes;
     }
+    const pkgType = route.query.pkgType as string;
     if (pkgType) {
       setTimeout(() => {
-        pkgActive.value = pkgType as string;
+        pkgActive.value = pkgType;
+        handlePkgTabChange(pkgType);
       }, 500);
     }
 

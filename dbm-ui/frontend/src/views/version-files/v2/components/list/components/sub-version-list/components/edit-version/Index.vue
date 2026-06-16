@@ -198,6 +198,7 @@
     isEdit?: boolean;
     pkgType: string;
     releaseVersion?: ReleaseVersionModel;
+    versionNum: number;
     versionSeriesId?: number;
   }
 
@@ -241,16 +242,6 @@
     version_series: props.dbVersion!.version_series,
   });
 
-  const dbPkgSixMaxMap: Record<string, Record<string, boolean>> = {
-    mysql: {
-      mysql: true,
-      spider: true,
-    },
-    redis: {
-      twemproxy: true,
-    },
-  };
-
   const enableTip = `${t('启用：所有场景均可使用，如：部署、升级')}\n${t('停用：存量集群替换不受影响，其它场景不可使用。注意：停用将自动清除推荐')}`;
   let fileErrorMessage = '';
 
@@ -266,12 +257,8 @@
 
   const isPureMysql = computed(() => props.dbType === 'mysql' && props.pkgType === 'mysql');
 
-  const isFullVersionSixMax = computed(() => {
-    return dbPkgSixMaxMap[props.dbType]?.[props.pkgType] ?? false;
-  });
-
   const fullVersionPlaceholder = computed(() =>
-    isFullVersionSixMax.value ? t('6 段点分数字，如 8.0.3.1.0.0') : t('3 段点分数字，如 5.0.14'),
+    props.versionNum === 6 ? t('6 段点分数字，如 8.0.3.1.0.0') : t('3 段点分数字，如 5.0.14'),
   );
   const isApplied = computed(() => {
     const packages = props.dbVersion?.packages;
@@ -311,10 +298,10 @@
     ],
     full_version: [
       {
-        message: t('格式不正确，须为 {n} 段点分数字', { n: isFullVersionSixMax.value ? 6 : 3 }),
+        message: t('格式不正确，须为 {n} 段点分数字', { n: props.versionNum }),
         trigger: 'blur',
         validator: (value: string) =>
-          isFullVersionSixMax.value ? /^(\d+\.){5}\d+$/.test(value) : /^(\d+\.){2}\d+$/.test(value),
+          props.versionNum === 6 ? /^(\d+\.){5}\d+$/.test(value) : /^(\d+\.){2}\d+$/.test(value),
       },
       {
         message: t('该版本号已存在'),

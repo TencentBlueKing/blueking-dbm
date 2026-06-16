@@ -89,6 +89,7 @@
     :is-edit="isEditVersion"
     :pkg-type="pkgType"
     :release-version="releaseVersion"
+    :version-num="versionNum"
     :version-series-id="currentVersionSeriesId"
     @add-version="handleAddVersionSuccess"
     @success="handleEditVersionSuccess" />
@@ -113,6 +114,7 @@
     hasPackageManagePermission: boolean;
     pkgType: string;
     releaseVersion?: ReleaseVersionModel;
+    versionNum: number;
   }
 
   type Emits = (e: 'refreshReleaseList') => void;
@@ -161,7 +163,10 @@
     () => {
       if (props.releaseVersion) {
         fetchVersionSeriesList();
+        return;
       }
+
+      versionSeriesList.value = [];
     },
     {
       immediate: true,
