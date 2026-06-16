@@ -86,12 +86,12 @@
         <template v-if="monitorPanelList && monitorPanelList.urls.length > 0">
           <BkTabPanel
             v-for="monirotItem in monitorPanelList.urls"
-            :key="monirotItem.view"
+            :key="monirotItem.id"
             :label="monirotItem.view"
-            :name="monirotItem.view">
+            :name="monirotItem.id">
             <MonitorDashboard
-              v-if="visitedPanels.has(monirotItem.view)"
-              v-show="activePanel === monirotItem.view"
+              v-if="visitedPanels.has(monirotItem.id)"
+              v-show="activePanel === monirotItem.id"
               :key="clusterData.id"
               :url="monirotItem.url" />
           </BkTabPanel>
@@ -176,6 +176,7 @@
     URL_CLUSTER_DETAIL_MEMO_KEY,
     URL_HOST_MEMO_KEY,
     URL_INSTANCE_MEMO_KEY,
+    URL_PARAM_CONF_TAB_KEY,
     URL_RECORD_MEMO_KEY,
   } from './constants';
 
@@ -299,7 +300,10 @@
   const handlePanelChange = (value: string) => {
     router.replace({
       query: {
-        ...removeSearchParam([URL_HOST_MEMO_KEY, URL_INSTANCE_MEMO_KEY, URL_RECORD_MEMO_KEY], false),
+        ...removeSearchParam(
+          [URL_HOST_MEMO_KEY, URL_INSTANCE_MEMO_KEY, URL_PARAM_CONF_TAB_KEY, URL_RECORD_MEMO_KEY],
+          false,
+        ),
         [URL_CLUSTER_DETAIL_MEMO_KEY]: value,
       },
     });
