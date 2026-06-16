@@ -529,19 +529,18 @@ class TicketFlowBuilder:
         self.ticket = ticket
 
     @classmethod
-    def ai_summary_details(cls, ticket: Ticket) -> str:
+    def ai_summary_details(cls, ticket: Ticket) -> Union[str, Dict]:
+        if not env.ENABLE_DBM_AI:
+            return ticket.details
         try:
-            if env.ENABLE_DBM_AI:
-                return AgentHandler.ask_agent_with_content(
-                    agent_code=DBMAgentCode.LOG_ANALYSIS,
-                    content=str(_("{} 总结需求摘要").format(ticket.details)),
-                    timeout=30,
-                )
-            else:
-                return ""
+            return AgentHandler.ask_agent_with_content(
+                agent_code=DBMAgentCode.LOG_ANALYSIS,
+                content=str(_("{} 总结需求摘要").format(ticket.details)),
+                timeout=30,
+            )
         except Exception:  # noqa
             logger.exception("ask ai for details summary failed")
-            return ""
+            return ticket.details
 
     @classmethod
     def name(cls):
