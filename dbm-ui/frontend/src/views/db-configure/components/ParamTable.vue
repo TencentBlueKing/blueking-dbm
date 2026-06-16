@@ -39,7 +39,7 @@
               }"
               :disabled="selectedRows.length === 0"
               @click="handleShowBatchRestoreInfoBox">
-              {{ t('恢复默认') }}
+              {{ t('批量处理自定义') }}
             </BkButton>
           </AuthTemplate>
         </div>
@@ -868,14 +868,20 @@
       item.flag_readonly !== 1 && (item.level_name === props.levelName || isCancelUseParam(item));
 
     const restorableItems = selected.filter(isRestorable);
+
+    // 按 isCancelUseParam 分组：restore(恢复默认) / cancel_use(取消使用)
+    const restoreItems = restorableItems.filter((item) => !isCancelUseParam(item));
+    const cancelUseItems = restorableItems.filter((item) => isCancelUseParam(item));
+
     const skipCount = total - restorableItems.length;
-    const affectCount = restorableItems.length;
+    const restoreCount = restoreItems.length;
+    const cancelUseCount = cancelUseItems.length;
 
     InfoBox({
       // 用 beforeClose 拦截 X=0 时的"确定"操作
       beforeClose(action: string) {
         if (action === 'confirm') {
-          if (affectCount === 0) {
+          if (restorableItems.length === 0) {
             return false;
           }
           runRecoverDefault({
@@ -893,32 +899,55 @@
       cancelText: t('取消'),
       confirmText: t('确定'),
       content: () =>
-        h('div', { class: 'param-batch-restore-content' }, [
-          h(
-            'div',
-            { class: 'restore-desc' },
-            t('确认恢复为上一级配置值？恢复后将重新继承上一级配置，并随上一级配置更新自动同步。'),
-          ),
+        h('div', { class: 'param-batch-custom-content' }, [
+          // 跳过提示
           skipCount > 0 &&
-            h('div', { class: 'restore-infobar' }, [
+            h('div', { class: 'custom-infobar' }, [
               h('i', { class: 'infobar-icon bk-dbm-icon db-icon-attention' }),
               h('span', [
-                t('自动跳过'),
-                h('span', { class: 'infobar-num' }, String(skipCount)),
-                t('个参数 (只读、已是默认值)，不受本次操作影响。'),
+                t('已自动过滤 '),
+                h('strong', { style: { color: '#ff9c01' } }, skipCount),
+                t(' 个不适用的参数（只读或已是默认值），不受本次操作影响。'),
               ]),
             ]),
-          h('div', { class: 'restore-affect-title' }, [
-            t('本次将影响以下'),
-            h('span', { class: 'affect-num' }, String(affectCount)),
-            t('个参数'),
-          ]),
-          h(
-            'div',
-            { class: 'restore-affect-list' },
-            affectCount === 0
-              ? h('div', { class: 'affect-empty' }, t('无可恢复的参数'))
-              : restorableItems.map((item) => {
+          // 描述文本：根据两组数量动态决定文案
+          (() => {
+            if (restoreCount > 0 && cancelUseCount > 0) {
+              return h('div', { class: 'custom-desc' }, [
+                t('将恢复 '),
+                h('strong', restoreCount),
+                t(' 个参数为默认值，并取消使用 '),
+                h('strong', cancelUseCount),
+                t(' 个主动添加的参数。'),
+              ]);
+            }
+            if (restoreCount > 0) {
+              return h('div', { class: 'custom-desc' }, [
+                t('将恢复 '),
+                h('strong', restoreCount),
+                t(' 个参数为默认值。'),
+              ]);
+            }
+            if (cancelUseCount > 0) {
+              return h('div', { class: 'custom-desc' }, [
+                t('将取消使用 '),
+                h('strong', cancelUseCount),
+                t(' 个主动添加的参数。'),
+              ]);
+            }
+            return null;
+          })(),
+          // 分组1：恢复默认
+          restoreCount > 0 &&
+            h('div', { class: 'custom-section' }, [
+              h('div', { class: 'section-header' }, [
+                h('span', t('恢复默认')),
+                h('span', { class: 'ml-4' }, ['( ', h('strong', restoreCount), ' )']),
+              ]),
+              h(
+                'div',
+                { class: 'section-list' },
+                restoreItems.map((item) => {
                   const oldVal = item.flag_encrypt === 1 ? '******' : (item.conf_value ?? '--');
                   const newVal = item.up_level_value?.conf_value ?? '--';
                   return h('div', { class: 'affect-item', key: item.conf_name }, [
@@ -944,21 +973,40 @@
                     ]),
                   ]);
                 }),
-          ),
+              ),
+            ]),
+          // 分组2：取消使用
+          cancelUseCount > 0 &&
+            h('div', { class: 'custom-section' }, [
+              h('div', { class: 'section-header' }, [
+                h('span', t('取消使用')),
+                h('span', { class: 'ml-4' }, ['( ', h('strong', cancelUseCount), ' )']),
+              ]),
+              h(
+                'div',
+                { class: 'section-list' },
+                cancelUseItems.map((item) =>
+                  h('div', { class: 'affect-item' }, [h('span', { class: 'affect-name' }, item.conf_name)]),
+                ),
+              ),
+            ]),
+          // 空状态
+          restorableItems.length === 0 && h('div', { class: 'affect-empty' }, t('当前已无可处理的参数')),
         ]),
       contentAlign: 'left',
-      extCls: affectCount === 0 ? 'param-batch-restore-infobox is-confirm-disabled' : 'param-batch-restore-infobox',
+      extCls:
+        restorableItems.length === 0 ? 'param-batch-custom-infobox is-confirm-disabled' : 'param-batch-custom-infobox',
       headerAlign: 'left',
       title: () =>
-        h('div', { class: 'restore-title' }, [
-          h('span', { class: 'restore-title-text' }, t('确认批量恢复默认值')),
-          h('span', { class: 'restore-sub-title' }, [
+        h('div', { class: 'custom-title' }, [
+          h('span', { class: 'custom-title-text' }, t('确认批量处理自定义参数')),
+          h('span', { class: 'custom-sub-title' }, [
             t('已选'),
             h('span', { class: 'sub-title-num' }, String(total)),
             t('个参数'),
           ]),
         ]),
-      width: 560,
+      width: 640,
     });
   };
 
@@ -1211,18 +1259,18 @@
     }
   }
 
-  .param-batch-restore-infobox {
+  .param-batch-custom-infobox {
     .bk-infobox-title {
       margin-top: 0;
     }
 
-    .restore-title {
+    .custom-title {
       display: flex;
       align-items: center;
       justify-content: flex-start;
       gap: 8px;
 
-      .restore-title-text {
+      .custom-title-text {
         font-size: 20px;
         font-weight: 400;
         line-height: 28px;
@@ -1230,7 +1278,7 @@
       }
     }
 
-    .restore-sub-title {
+    .custom-sub-title {
       display: inline-flex;
       align-items: center;
       padding: 0 8px;
@@ -1258,16 +1306,16 @@
       }
     }
 
-    .param-batch-restore-content {
+    .param-batch-custom-content {
       font-size: 14px;
       line-height: 22px;
       color: #63656e;
 
-      .restore-desc {
+      .custom-desc {
         margin-bottom: 12px;
       }
 
-      .restore-infobar {
+      .custom-infobar {
         display: flex;
         align-items: center;
         padding: 8px 12px;
@@ -1284,90 +1332,90 @@
           font-size: 14px;
           color: #ff9c01;
         }
-
-        .infobar-num {
-          padding: 0 4px;
-          font-weight: 700;
-          color: #ff9c01;
-        }
       }
 
-      .restore-affect-title {
-        margin-bottom: 8px;
-        font-size: 14px;
-        color: #63656e;
-
-        .affect-num {
-          padding: 0 4px;
-          font-weight: 700;
-          color: #3a84ff;
-        }
-      }
-
-      .restore-affect-list {
-        max-height: 240px;
-        overflow-y: auto;
-        background: #f5f7fa;
+      .custom-section {
+        margin-bottom: 12px;
+        border: 1px solid #f0f1f5;
         border-radius: 2px;
 
-        .affect-item {
+        &:last-child {
+          margin-bottom: 0;
+        }
+      }
+
+      .section-header {
+        display: flex;
+        align-items: center;
+        padding: 8px 16px;
+        font-size: 12px;
+        line-height: 20px;
+        background: #f5f7fa;
+        border-bottom: 1px solid #f0f1f5;
+      }
+
+      .section-list {
+        max-height: 182px;
+        overflow-y: auto;
+      }
+
+      .affect-item {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 8px 16px;
+        font-size: 12px;
+        line-height: 20px;
+        border-bottom: 1px solid #f0f1f5;
+
+        &:last-child {
+          border-bottom: none;
+        }
+
+        .affect-name {
+          flex-shrink: 0;
+          margin-right: 16px;
+          font-family: 'Roboto Mono', Consolas, Menlo, monospace;
+          color: #313238;
+        }
+
+        .affect-value {
+          flex: 1;
           display: flex;
           align-items: center;
-          justify-content: space-between;
-          padding: 8px 16px;
-          font-size: 12px;
-          line-height: 20px;
-          border-bottom: 1px solid #f0f1f5;
+          justify-content: flex-end;
+          overflow: hidden;
+          color: #979ba5;
 
-          &:last-child {
-            border-bottom: none;
-          }
-
-          .affect-name {
-            flex-shrink: 0;
-            margin-right: 16px;
-            font-family: 'Roboto Mono', Consolas, Menlo, monospace;
-            color: #313238;
-          }
-
-          .affect-value {
-            flex: 1;
-            display: flex;
-            align-items: center;
-            justify-content: flex-end;
+          .value-old,
+          .value-new {
+            max-width: 220px;
             overflow: hidden;
-            color: #979ba5;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+          }
 
-            .value-old,
-            .value-new {
-              max-width: 220px;
-              overflow: hidden;
-              text-overflow: ellipsis;
-              white-space: nowrap;
-            }
+          .value-old {
+            color: #ff9c01;
+          }
 
-            .value-old {
-              color: #ff9c01;
-            }
+          .value-new {
+            font-weight: 700;
+            color: #3a84ff;
+          }
 
-            .value-new {
-              font-weight: 700;
-              color: #3a84ff;
-            }
-
-            .value-arrow {
-              margin: 0 8px;
-              color: #c4c6cc;
-            }
+          .value-arrow {
+            margin: 0 8px;
+            color: #c4c6cc;
           }
         }
+      }
 
-        .affect-empty {
-          padding: 24px 16px;
-          font-size: 12px;
-          text-align: center;
-          color: #c4c6cc;
-        }
+      .affect-empty {
+        padding: 24px 16px;
+        font-size: 12px;
+        text-align: center;
+        color: #c4c6cc;
       }
     }
   }
