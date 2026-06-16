@@ -8,11 +8,10 @@
         <div
           v-for="tagItem in getList(rowData.tags)"
           :key="tagItem.id">
-          <BkTag
-            class="mb-4"
-            :theme="getTheme(tagItem)">
-            {{ tagItem.key }} : {{ tagItem.value }}
-          </BkTag>
+          <TextHighlight
+            high-light-color="#FF9C01"
+            :keyword="keyword"
+            :text="`${tagItem.key}:${tagItem.value}`" />
         </div>
         <BkButton
           v-if="rowData.tags.length > 3"
@@ -32,13 +31,13 @@
 
   import QuickSearchClusterModel from '@services/model/quiker-search/quick-search-cluster';
 
-  import { batchSplitRegex } from '@common/regex';
+  import TextHighlight from '@components/text-highlight/Index.vue';
 
   interface Props {
     keyword: string;
   }
 
-  const props = defineProps<Props>();
+  defineProps<Props>();
 
   const { t } = useI18n();
 
@@ -53,19 +52,6 @@
 
   const handleExpand = () => {
     isExpand.value = !isExpand.value;
-  };
-
-  const getTheme = (tagItem: QuickSearchClusterModel['tags'][number]) => {
-    const tag = `${tagItem.key}:${tagItem.value}`;
-    return props.keyword.split(batchSplitRegex).find((keywordItem) => {
-      if (keywordItem.includes(':')) {
-        console.log(keywordItem);
-        return keywordItem === tag;
-      }
-      return tagItem.key.includes(keywordItem);
-    })
-      ? 'warning'
-      : undefined;
   };
 </script>
 

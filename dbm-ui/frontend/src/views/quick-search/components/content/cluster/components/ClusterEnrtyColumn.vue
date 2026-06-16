@@ -15,7 +15,7 @@
             :keyword="keyword"
             :text="entryItem.entry" />
           <BkTag
-            v-if="entryItem.cluster_entry_type === 'clb'"
+            v-if="['clb', 'clbDns'].includes(entryItem.cluster_entry_type)"
             class="redis-cluster-clb"
             size="small">
             CLB
