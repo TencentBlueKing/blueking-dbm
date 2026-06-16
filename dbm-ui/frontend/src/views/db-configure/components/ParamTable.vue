@@ -167,38 +167,37 @@
                   class="no-constraint-text">
                   {{ t('空字符串') }}
                 </span>
-                <template v-else>
-                  <span
-                    v-bk-tooltips="{
-                      content: row.flag_encrypt === 1 ? '******' : (row.conf_value ?? '--'),
-                      disabled: !row.conf_value || !overflowStates[row.conf_name],
-                      extCls: 'param-table-value-tooltip',
-                    }"
-                    class="value-cell-text"
-                    @mouseenter="handleCellMouseEnter($event, row)">
-                    {{ row.flag_encrypt === 1 ? '******' : (row.conf_value ?? '--') }}
-                  </span>
-                  <BkTag
-                    v-if="row.level_name === levelName || row.op_type === 'add'"
-                    size="small"
-                    theme="warning">
-                    {{ t('自定义') }}
-                  </BkTag>
-                  <AuthTemplate
-                    v-if="row.flag_readonly !== 1"
-                    :action-id="actionId"
-                    :permission="permissions[actionId]"
-                    :resource="resourceId">
-                    <template #default="{ permission }">
-                      <DbIcon
-                        v-if="permission"
-                        v-bk-tooltips="{ content: t('编辑参数') }"
-                        class="value-cell-edit"
-                        type="bk-dbm-icon db-icon-edit"
-                        @click="handleStartEdit(row)" />
-                    </template>
-                  </AuthTemplate>
-                </template>
+                <span
+                  v-else
+                  v-bk-tooltips="{
+                    content: row.flag_encrypt === 1 ? '******' : (row.conf_value ?? '--'),
+                    disabled: !row.conf_value || !overflowStates[row.conf_name],
+                    extCls: 'param-table-value-tooltip',
+                  }"
+                  class="value-cell-text"
+                  @mouseenter="handleCellMouseEnter($event, row)">
+                  {{ row.flag_encrypt === 1 ? '******' : (row.conf_value ?? '--') }}
+                </span>
+                <BkTag
+                  v-if="row.level_name === levelName || row.op_type === 'add'"
+                  size="small"
+                  theme="warning">
+                  {{ t('自定义') }}
+                </BkTag>
+                <AuthTemplate
+                  v-if="row.flag_readonly !== 1"
+                  :action-id="actionId"
+                  :permission="permissions[actionId]"
+                  :resource="resourceId">
+                  <template #default="{ permission }">
+                    <DbIcon
+                      v-if="permission"
+                      v-bk-tooltips="{ content: t('编辑参数') }"
+                      class="value-cell-edit"
+                      type="bk-dbm-icon db-icon-edit"
+                      @click="handleStartEdit(row)" />
+                  </template>
+                </AuthTemplate>
               </span>
             </template>
           </template>
