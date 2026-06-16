@@ -230,7 +230,7 @@ class MediumHandler:
                     full_version = self.__format_full_version(package_info.get("full_version", version["name"]))
                     package_version_params = {
                         "distribution_name": package_info.get("distribution_name", "DBM"),
-                        "distribution_engine": package_info.get("distribution_engine", "DBM"),
+                        "distribution_engine": package_info.get("distribution_engine", ""),
                         "version_series": package_info.get("version_series", version["name"]),
                         "phase": package_info.get("phase", "release"),
                         "description": package_info.get("description", "auto sync medium"),

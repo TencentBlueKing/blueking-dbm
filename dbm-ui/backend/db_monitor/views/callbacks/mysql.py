@@ -13,6 +13,7 @@ from datetime import timedelta
 
 from celery import shared_task
 from django.utils import timezone
+from django.utils.translation import gettext as _
 
 from backend.core.notify.handlers import NotifyAdapter
 from backend.db_meta.enums import ClusterType, InstanceRole, TenDBClusterSpiderRole
@@ -30,7 +31,7 @@ class MySQLAlarm(AlarmCallback):
     # 策略名关键字 -> 处理函数的映射
     STRATEGY_HANDLERS = {
         "mysql_global_status_slow_queries": "call_slowlog_ai_analysis",
-        "慢查询数量": "call_slowlog_ai_analysis",
+        _("慢查询数量"): "call_slowlog_ai_analysis",
     }
 
     @classmethod
@@ -43,9 +44,9 @@ class MySQLAlarm(AlarmCallback):
                 handler = globals().get(handler_name)
                 if handler:
                     handler.delay(callback_data)
-                    logger.info(f"[MySQLAlarm] 策略 '{strategy_name}' 分发到异步任务: {handler_name}")
+                    logger.info(_("[MySQLAlarm] 策略 '{}' 分发到异步任务: {}").format(strategy_name, handler_name))
                 else:
-                    logger.warning(f"[MySQLAlarm] 未找到处理函数: {handler_name}")
+                    logger.warning(_("[MySQLAlarm] 未找到处理函数: {}").format(handler_name))
                 return
 
 
@@ -59,13 +60,13 @@ def call_slowlog_ai_analysis(callback_data):
         dimensions = callback_data["callback_message"]["event"]["dimensions"]
         cluster_domain = dimensions.get("cluster_domain", "")
         if not cluster_domain:
-            logger.warning("[slowlog_ai_analysis] 告警事件中缺少 cluster_domain，跳过 AI 分析")
+            logger.warning(_("[slowlog_ai_analysis] 告警事件中缺少 cluster_domain，跳过 AI 分析"))
             return
 
         # 通过 cluster_domain 查询集群类型
         cluster = Cluster.objects.filter(immute_domain=cluster_domain).first()
         if not cluster:
-            logger.warning(f"[slowlog_ai_analysis] 未找到集群: {cluster_domain}，跳过 AI 分析")
+            logger.warning(_("[slowlog_ai_analysis] 未找到集群: {}，跳过 AI 分析").format(cluster_domain))
             return
 
         bk_biz_id = cluster.bk_biz_id
@@ -87,12 +88,12 @@ def call_slowlog_ai_analysis(callback_data):
         time_window_start_str = time_window_start.replace(microsecond=0).isoformat(sep="T")
         time_window_end_str = time_window_end.replace(microsecond=0).isoformat(sep="T")
     except Exception as e:
-        logger.exception(f"[slowlog_ai_analysis] 提取 ai 分析参数失败: {e}")
+        logger.exception(_("[slowlog_ai_analysis] 提取 ai 分析参数失败: {}").format(e))
         return
 
     try:
         # 调用 AI Agent 进行慢查询分析
-        logger.info(f"[slowlog_ai_analysis] 告警触发 AI 慢查询分析，集群: {cluster_domain}")
+        logger.info(_("[slowlog_ai_analysis] 告警触发 AI 慢查询分析，集群: {}").format(cluster_domain))
         result = AgentHandler.ask_agent_with_command(
             command=MySQLSlowLogCommand.command,
             command_params={
@@ -106,10 +107,10 @@ def call_slowlog_ai_analysis(callback_data):
         )
 
         if not result:
-            logger.info(f"[slowlog_ai_analysis] 集群 {cluster_domain} AI 分析无结果，跳过通知")
+            logger.info(_("[slowlog_ai_analysis] 集群 {} AI 分析无结果，跳过通知").format(cluster_domain))
             return
 
-        logger.info(f"[slowlog_ai_analysis] 集群 {cluster_domain} AI 慢查询分析完成，开始推送通知")
+        logger.info(_("[slowlog_ai_analysis] 集群 {} AI 慢查询分析完成，开始推送通知").format(cluster_domain))
 
         # 获取接收人：优先使用告警回调中的负责人
         receivers = [r.strip() for r in callback_data.get("appointees", "").split(",") if r.strip()]
@@ -125,4 +126,4 @@ def call_slowlog_ai_analysis(callback_data):
             receivers=receivers or None,
         )
     except Exception as e:
-        logger.exception(f"[slowlog_ai_analysis] 告警触发 AI 慢查询分析失败: {e}")
+        logger.exception(_("[slowlog_ai_analysis] 告警触发 AI 慢查询分析失败: {}").format(e))
