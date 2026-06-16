@@ -16,6 +16,7 @@
       :has-package-manage-permission="hasPackageManagePermission"
       :pkg-type="pkgType"
       :release-version="activeReleaseVersion"
+      :version-num="versionNum"
       @refresh-release-list="handleRefreshReleaseList" />
   </div>
 </template>
@@ -36,6 +37,7 @@
     pkgLabelMap: Record<string, string>;
     pkgType: string;
     tabs: TabItem[];
+    versionNum: number;
   }
 
   type Emits = (e: 'refreshPkgTypeList') => void;
