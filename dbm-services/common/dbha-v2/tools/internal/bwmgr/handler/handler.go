@@ -45,6 +45,12 @@ type Handler struct {
 	bkCloudID int
 }
 
+type addEntryResult struct {
+	ID           uint
+	RowsAffected int
+	Updated      bool
+}
+
 // NewHandler creates a new command handler
 func NewHandler(cfg *config.Config) *Handler {
 	client := bwmgr.NewClient(cfg.GetAPIURL(), cfg.API.Token, cfg.API.Timeout)
@@ -77,19 +83,92 @@ func (h *Handler) List(opts ListOptions) error {
 
 // Add handles the add command.
 func (h *Handler) Add(opts AddOptions) error {
+	result, err := h.addEntry(opts)
+	if err != nil {
+		return err
+	}
+
+	if result.Updated {
+		fmt.Printf(msgAddUpsertFormat, result.RowsAffected)
+		return nil
+	}
+
+	fmt.Printf(msgAddSuccessFormat, result.ID)
+	return nil
+}
+
+func (h *Handler) addEntry(opts AddOptions) (addEntryResult, error) {
 	if opts.BkBizID == 0 {
-		return gerrors.Newf(gerrors.InvalidParameter, errBkBizIDRequired)
+		return addEntryResult{}, gerrors.Newf(gerrors.InvalidParameter, errBkBizIDRequired)
 	}
 
 	if opts.ClusterID == 0 {
-		return gerrors.Newf(gerrors.InvalidParameter, errClusterIDRequired)
+		return addEntryResult{}, gerrors.Newf(gerrors.InvalidParameter, errClusterIDRequired)
 	}
 
+	if opts.Upsert {
+		return h.upsertAddEntry(opts)
+	}
+
+	return h.insertAddEntry(opts)
+}
+
+func (h *Handler) insertAddEntry(opts AddOptions) (addEntryResult, error) {
 	if opts.ClusterName == "" {
-		return gerrors.Newf(gerrors.InvalidParameter, errClusterNameRequired)
+		return addEntryResult{}, gerrors.Newf(gerrors.InvalidParameter, errClusterNameRequired)
 	}
 
-	insertReq := bwmgr.InsertBlackWhiteListRequest{
+	insertReq := buildInsertRequest(opts)
+	if err := insertReq.Validate(); err != nil {
+		return addEntryResult{}, gerrors.Newf(gerrors.InvalidParameter, errAddEntryFormat, err)
+	}
+
+	id, err := h.service.InsertBlackWhiteList(h.bkCloudID, insertReq)
+	if err != nil {
+		return addEntryResult{}, gerrors.Newf(gerrors.Failure, errAddEntryFormat, err)
+	}
+
+	return addEntryResult{ID: id}, nil
+}
+
+func (h *Handler) upsertAddEntry(opts AddOptions) (addEntryResult, error) {
+	matches, err := h.findAddMatches(opts)
+	if err != nil {
+		return addEntryResult{}, err
+	}
+	if len(matches) == 0 {
+		return h.insertAddEntry(opts)
+	}
+	if len(matches) > 1 {
+		return addEntryResult{}, gerrors.Newf(
+			gerrors.InvalidParameter,
+			errAddUpsertConflictFmt,
+			opts.BkBizID,
+			opts.BkCloudID,
+			opts.ClusterID,
+		)
+	}
+
+	updateReq, err := buildAddUpsertUpdateRequest(matches[0].ID, opts)
+	if err != nil {
+		return addEntryResult{}, err
+	}
+
+	confirmOpts := UpdateOptions{Yes: opts.Yes, Confirm: opts.Confirm}
+	if err := confirmRiskyUpdate(confirmOpts, updateReq); err != nil {
+		return addEntryResult{}, err
+	}
+
+	rowsAffected, err := h.service.UpdateBlackWhiteList(h.bkCloudID, updateReq)
+	if err != nil {
+		return addEntryResult{}, gerrors.Newf(gerrors.Failure, errUpdateEntryFormat, err)
+	}
+
+	return addEntryResult{RowsAffected: rowsAffected, Updated: true}, nil
+}
+
+func buildInsertRequest(opts AddOptions) bwmgr.InsertBlackWhiteListRequest {
+	return bwmgr.InsertBlackWhiteListRequest{
 		BkBizID:       opts.BkBizID,
 		BkCloudID:     opts.BkCloudID,
 		ClusterID:     opts.ClusterID,
@@ -97,54 +176,122 @@ func (h *Handler) Add(opts AddOptions) error {
 		SwitchVersion: bwmgr.SwitchVersionType(opts.SwitchVersion),
 		Status:        bwmgr.StatusType(opts.Status),
 	}
+}
 
-	id, err := h.service.InsertBlackWhiteList(h.bkCloudID, insertReq)
+func (h *Handler) findAddMatches(opts AddOptions) ([]bwmgr.BlackWhiteListItem, error) {
+	queryArgs := buildGetQueryArgs(queryOptions{
+		BkBizID:   opts.BkBizID,
+		BkCloudID: opts.BkCloudID,
+		ClusterID: opts.ClusterID,
+	})
+
+	items, err := h.service.GetBlackWhiteList(h.bkCloudID, queryArgs)
 	if err != nil {
-		return gerrors.Newf(gerrors.Failure, errAddEntryFormat, err)
+		return nil, gerrors.Newf(gerrors.Failure, errGetListFormat, err)
 	}
 
-	fmt.Printf(msgAddSuccessFormat, id)
-	return nil
+	return items, nil
+}
+
+func buildAddUpsertUpdateRequest(id uint, opts AddOptions) (bwmgr.UpdateBlackWhiteListRequest, error) {
+	updateReq := bwmgr.UpdateBlackWhiteListRequest{
+		QueryArgs: bwmgr.UpdateQueryArgs{ID: &id},
+	}
+
+	if opts.ClusterNameSet {
+		if opts.ClusterName == "" {
+			return bwmgr.UpdateBlackWhiteListRequest{}, gerrors.Newf(
+				gerrors.InvalidParameter,
+				errClusterNameRequired,
+			)
+		}
+		updateReq.SetArgs.ClusterName = &opts.ClusterName
+	}
+
+	if opts.SwitchVersionSet {
+		switchVersion, err := parseSwitchVersion(opts.SwitchVersion)
+		if err != nil {
+			return bwmgr.UpdateBlackWhiteListRequest{}, err
+		}
+		updateReq.SetArgs.SwitchVersion = switchVersion
+	}
+
+	if opts.StatusSet {
+		status, err := parseStatus(opts.Status)
+		if err != nil {
+			return bwmgr.UpdateBlackWhiteListRequest{}, err
+		}
+		updateReq.SetArgs.Status = status
+	}
+
+	if updateReq.SetArgs.ClusterName == nil &&
+		updateReq.SetArgs.SwitchVersion == nil &&
+		updateReq.SetArgs.Status == nil {
+		return bwmgr.UpdateBlackWhiteListRequest{}, gerrors.Newf(
+			gerrors.InvalidParameter,
+			errAddUpsertSetRequired,
+		)
+	}
+
+	return updateReq, nil
 }
 
 // Update handles the update command.
 func (h *Handler) Update(opts UpdateOptions) error {
-	updateReq, err := buildUpdateRequest(opts)
+	rowsAffected, err := h.updateEntry(opts)
 	if err != nil {
 		return err
-	}
-
-	if err := confirmRiskyUpdate(opts, updateReq); err != nil {
-		return err
-	}
-
-	rowsAffected, err := h.service.UpdateBlackWhiteList(h.bkCloudID, updateReq)
-	if err != nil {
-		return gerrors.Newf(gerrors.Failure, errUpdateEntryFormat, err)
 	}
 
 	fmt.Printf(msgUpdateSuccessFormat, rowsAffected)
 	return nil
 }
 
+func (h *Handler) updateEntry(opts UpdateOptions) (int, error) {
+	updateReq, err := buildUpdateRequest(opts)
+	if err != nil {
+		return 0, err
+	}
+
+	if err := confirmRiskyUpdate(opts, updateReq); err != nil {
+		return 0, err
+	}
+
+	rowsAffected, err := h.service.UpdateBlackWhiteList(h.bkCloudID, updateReq)
+	if err != nil {
+		return 0, gerrors.Newf(gerrors.Failure, errUpdateEntryFormat, err)
+	}
+
+	return rowsAffected, nil
+}
+
 // Delete handles the delete command.
 func (h *Handler) Delete(opts DeleteOptions) error {
-	deleteReq, err := buildDeleteRequest(opts)
+	rowsAffected, err := h.deleteEntry(opts)
 	if err != nil {
 		return err
-	}
-
-	if err := confirmDelete(opts); err != nil {
-		return err
-	}
-
-	rowsAffected, err := h.service.DeleteBlackWhiteList(h.bkCloudID, deleteReq)
-	if err != nil {
-		return gerrors.Newf(gerrors.Failure, errDeleteEntryFormat, err)
 	}
 
 	fmt.Printf(msgDeleteSuccessFormat, rowsAffected)
 	return nil
+}
+
+func (h *Handler) deleteEntry(opts DeleteOptions) (int, error) {
+	deleteReq, err := buildDeleteRequest(opts)
+	if err != nil {
+		return 0, err
+	}
+
+	if err := confirmDelete(opts); err != nil {
+		return 0, err
+	}
+
+	rowsAffected, err := h.service.DeleteBlackWhiteList(h.bkCloudID, deleteReq)
+	if err != nil {
+		return 0, gerrors.Newf(gerrors.Failure, errDeleteEntryFormat, err)
+	}
+
+	return rowsAffected, nil
 }
 
 func buildListRequest(opts ListOptions) (*bwmgr.GetBlackWhiteListRequest, error) {
@@ -263,7 +410,7 @@ func buildUpdateRequest(opts UpdateOptions) (bwmgr.UpdateBlackWhiteListRequest, 
 		return bwmgr.UpdateBlackWhiteListRequest{}, gerrors.Newf(gerrors.InvalidParameter, errUpdateQueryRequired)
 	}
 
-	if opts.SwitchVersion == "" && opts.Status == "" {
+	if opts.SetClusterName == "" && opts.SwitchVersion == "" && opts.Status == "" {
 		return bwmgr.UpdateBlackWhiteListRequest{}, gerrors.Newf(gerrors.InvalidParameter, errUpdateSetRequired)
 	}
 
@@ -288,6 +435,10 @@ func setUpdateQueryArgs(updateReq *bwmgr.UpdateBlackWhiteListRequest, opts Updat
 }
 
 func setUpdateSetArgs(updateReq *bwmgr.UpdateBlackWhiteListRequest, opts UpdateOptions) error {
+	if opts.SetClusterName != "" {
+		updateReq.SetArgs.ClusterName = &opts.SetClusterName
+	}
+
 	switchVersion, err := parseSwitchVersion(opts.SwitchVersion)
 	if err != nil {
 		return err

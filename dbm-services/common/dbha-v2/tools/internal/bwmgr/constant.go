@@ -73,6 +73,6 @@ const (
 	errStatusInvalid          = "status must be either 'enabled' or 'disabled'"
 	errUpdateQueryArgsMissing = "at least one query argument (id, bk_biz_id, cluster_id, or " +
 		"cluster_name) is required"
-	errUpdateSetArgsMissing = "at least one set argument (switch_version or status) is required"
+	errUpdateSetArgsMissing = "at least one set argument (cluster_name, switch_version, or status) is required"
 	errDeleteArgsMissing    = "at least one argument (id, bk_biz_id, cluster_id, or cluster_name) is required"
 )

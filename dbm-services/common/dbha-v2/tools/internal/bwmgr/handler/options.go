@@ -41,25 +41,43 @@ type ListOptions struct {
 
 // AddOptions contains add command arguments.
 type AddOptions struct {
-	BkBizID       int
-	BkCloudID     int
-	ClusterID     int
-	ClusterName   string
-	SwitchVersion string
-	Status        string
+	BkBizID          int
+	BkCloudID        int
+	ClusterID        int
+	ClusterName      string
+	SwitchVersion    string
+	Status           string
+	Upsert           bool
+	Yes              bool
+	Confirm          ConfirmFunc
+	ClusterNameSet   bool
+	SwitchVersionSet bool
+	StatusSet        bool
+}
+
+// ImportOptions contains import command arguments.
+type ImportOptions struct {
+	File                   string
+	CreateTemplate         string
+	CreateTemplateFromList string
+	DryRun                 bool
+	Yes                    bool
+	Upsert                 bool
+	Confirm                ConfirmFunc
 }
 
 // UpdateOptions contains update command query and set arguments.
 type UpdateOptions struct {
-	ID            int
-	BkBizID       int
-	BkCloudID     int
-	ClusterID     int
-	ClusterName   string
-	SwitchVersion string
-	Status        string
-	Yes           bool
-	Confirm       ConfirmFunc
+	ID             int
+	BkBizID        int
+	BkCloudID      int
+	ClusterID      int
+	ClusterName    string
+	SetClusterName string
+	SwitchVersion  string
+	Status         string
+	Yes            bool
+	Confirm        ConfirmFunc
 }
 
 // DeleteOptions contains delete command query arguments.

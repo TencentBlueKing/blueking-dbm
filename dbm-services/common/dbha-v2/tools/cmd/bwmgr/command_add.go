@@ -53,6 +53,8 @@ func newAddCmd(a *app) *cobra.Command {
 	addCmd.Flags().String(flagClusterName, defaultStringValue, flagUsageClusterNameReq)
 	addCmd.Flags().String(flagSwitchVersion, defaultSwitchVersion, flagUsageSwitchDefault)
 	addCmd.Flags().String(flagStatus, defaultStatus, flagUsageStatusDefault)
+	addCmd.Flags().Bool(flagUpsert, defaultFalseValue, flagUsageUpsert)
+	addCmd.Flags().Bool(flagYes, defaultFalseValue, flagUsageYesRisky)
 
 	return addCmd
 }
@@ -88,12 +90,28 @@ func newAddOptions(cmd *cobra.Command) (handler.AddOptions, error) {
 		return handler.AddOptions{}, err
 	}
 
+	upsert, err := cmd.Flags().GetBool(flagUpsert)
+	if err != nil {
+		return handler.AddOptions{}, err
+	}
+
+	yes, err := cmd.Flags().GetBool(flagYes)
+	if err != nil {
+		return handler.AddOptions{}, err
+	}
+
 	return handler.AddOptions{
-		BkBizID:       bkBizID,
-		BkCloudID:     bkCloudID,
-		ClusterID:     clusterID,
-		ClusterName:   clusterName,
-		SwitchVersion: switchVersion,
-		Status:        status,
+		BkBizID:          bkBizID,
+		BkCloudID:        bkCloudID,
+		ClusterID:        clusterID,
+		ClusterName:      clusterName,
+		SwitchVersion:    switchVersion,
+		Status:           status,
+		Upsert:           upsert,
+		Yes:              yes,
+		Confirm:          confirm,
+		ClusterNameSet:   cmd.Flags().Changed(flagClusterName),
+		SwitchVersionSet: cmd.Flags().Changed(flagSwitchVersion),
+		StatusSet:        cmd.Flags().Changed(flagStatus),
 	}, nil
 }

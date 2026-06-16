@@ -52,6 +52,7 @@ func newUpdateCmd(a *app) *cobra.Command {
 	updateCmd.Flags().Int(flagBkCloudID, defaultIntValue, flagUsageCloudID)
 	updateCmd.Flags().Int(flagClusterID, defaultIntValue, flagUsageClusterID)
 	updateCmd.Flags().String(flagClusterName, defaultStringValue, flagUsageClusterName)
+	updateCmd.Flags().String(flagSetClusterName, defaultStringValue, flagUsageSetClusterName)
 	updateCmd.Flags().String(flagSwitchVersion, defaultStringValue, flagUsageSwitchVersion)
 	updateCmd.Flags().String(flagStatus, defaultStringValue, flagUsageStatus)
 	updateCmd.Flags().Bool(flagYes, defaultFalseValue, flagUsageYesRisky)
@@ -85,6 +86,11 @@ func newUpdateOptions(cmd *cobra.Command) (handler.UpdateOptions, error) {
 		return handler.UpdateOptions{}, err
 	}
 
+	setClusterName, err := cmd.Flags().GetString(flagSetClusterName)
+	if err != nil {
+		return handler.UpdateOptions{}, err
+	}
+
 	switchVersion, err := cmd.Flags().GetString(flagSwitchVersion)
 	if err != nil {
 		return handler.UpdateOptions{}, err
@@ -101,14 +107,15 @@ func newUpdateOptions(cmd *cobra.Command) (handler.UpdateOptions, error) {
 	}
 
 	return handler.UpdateOptions{
-		ID:            id,
-		BkBizID:       bkBizID,
-		BkCloudID:     bkCloudID,
-		ClusterID:     clusterID,
-		ClusterName:   clusterName,
-		SwitchVersion: switchVersion,
-		Status:        status,
-		Yes:           yes,
-		Confirm:       confirm,
+		ID:             id,
+		BkBizID:        bkBizID,
+		BkCloudID:      bkCloudID,
+		ClusterID:      clusterID,
+		ClusterName:    clusterName,
+		SetClusterName: setClusterName,
+		SwitchVersion:  switchVersion,
+		Status:         status,
+		Yes:            yes,
+		Confirm:        confirm,
 	}, nil
 }
