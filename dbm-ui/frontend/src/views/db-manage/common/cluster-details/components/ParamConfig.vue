@@ -51,6 +51,7 @@
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
+  import { useRoute, useRouter } from 'vue-router';
 
   import { getListClusterModuleConfFiles } from '@services/source/configs';
 
@@ -58,6 +59,8 @@
 
   import OperationRecord from '@views/db-configure/business/list/components/OperationRecord.vue';
   import ParamTable from '@views/db-configure/components/ParamTable.vue';
+
+  import { URL_PARAM_CONF_TAB_KEY } from '../constants';
 
   interface Props {
     cluster: {
@@ -70,6 +73,8 @@
   const props = defineProps<Props>();
 
   const { t } = useI18n();
+  const route = useRoute();
+  const router = useRouter();
 
   const activeTab = ref('');
   const confTabs = ref<ServiceReturnType<typeof getListClusterModuleConfFiles>>([]);
@@ -85,7 +90,14 @@
           name: t('配置变更记录'),
         },
       ];
-      activeTab.value = res[0]?.conf_file || '';
+      // 优先从 URL 参数恢复 activeTab
+      const urlTab = route.query[URL_PARAM_CONF_TAB_KEY];
+      const isValidTab = confTabs.value.some((tab) => tab.conf_file === urlTab);
+      if (isValidTab) {
+        activeTab.value = String(urlTab);
+      } else {
+        activeTab.value = res[0]?.conf_file || '';
+      }
     },
   });
 
@@ -100,6 +112,14 @@
     },
     { immediate: true },
   );
+
+  // activeTab 变化时同步到 URL
+  watch(activeTab, (value) => {
+    if (value) {
+      const query = { ...route.query, [URL_PARAM_CONF_TAB_KEY]: value };
+      router.replace({ query });
+    }
+  });
 </script>
 
 <style lang="less">
