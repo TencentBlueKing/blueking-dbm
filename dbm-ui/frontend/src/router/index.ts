@@ -36,6 +36,7 @@ import getInspectionRoutes from '@views/inspection-manage/routes';
 import getMonitorAlarmRoutes from '@views/monitor-alarm/routes';
 import getNotificationSettingRoutes from '@views/notification-setting/routes';
 import getPasswordManageRoutes from '@views/password-manage/routes';
+import getPlatformDbConfigureRoutes from '@views/platform-db-configure/routes';
 import getQuickSearchRoutes from '@views/quick-search/routes';
 import getResourceManageRoutes from '@views/resource-manage/routes';
 import getRiskMemoRoutes from '@views/risk-memo/routes';
@@ -50,10 +51,6 @@ import getVersionFilesRoutes from '@views/version-files/routes';
 import getWhitelistRoutes from '@views/whitelist/routes';
 
 import { checkDbConsole, leaveConfirm } from '@utils';
-
-import getPlatformDbConfigureRoutes from '@/views/platform-db-configure/routes';
-
-import getPlatformDbConfigureRoutes from '@/views/platform-db-configure/routes';
 
 let appRouter: Router;
 
