@@ -29,6 +29,7 @@ export function getMonitorUrls(
 ) {
   return http.get<{
     urls: {
+      id: string;
       url: string;
       view: string;
     }[];
