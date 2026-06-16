@@ -286,7 +286,7 @@ func TestFilterWhitelistedInstances_NoWhitelistNotifiesAll(t *testing.T) {
 		},
 	}
 
-	w.filterWhitelistedInstances(context.Background(), group, req)
+	w.filterByWhitelistForSwitch(context.Background(), group, req)
 
 	// whitelist is empty: no instance is authorised to switch, all are notified
 	if len(req.MySqlInstData) != 0 {
@@ -318,7 +318,7 @@ func TestFilterWhitelistedInstances_WhitelistedInstanceKept(t *testing.T) {
 		},
 	}
 
-	w.filterWhitelistedInstances(context.Background(), group, req)
+	w.filterByWhitelistForSwitch(context.Background(), group, req)
 
 	// whitelisted instance is kept for switching
 	if len(req.MySqlInstData) != 1 {
@@ -351,7 +351,7 @@ func TestFilterWhitelistedInstances_PartialWhitelisted(t *testing.T) {
 		},
 	}
 
-	w.filterWhitelistedInstances(context.Background(), group, req)
+	w.filterByWhitelistForSwitch(context.Background(), group, req)
 
 	// only the whitelisted instance (ClusterID=200) is kept for switching;
 	// the non-whitelisted instance (ClusterID=300) is filtered out and notified
@@ -387,7 +387,7 @@ func TestFilterWhitelistedInstances_V1SwitchVersionNotWhitelisted(t *testing.T) 
 		},
 	}
 
-	w.filterWhitelistedInstances(context.Background(), group, req)
+	w.filterByWhitelistForSwitch(context.Background(), group, req)
 
 	// whitelist is empty (v1 excluded): instance is treated as non-whitelisted, notify only
 	if len(req.MySqlInstData) != 0 {
@@ -419,7 +419,7 @@ func TestFilterWhitelistedInstances_DisabledWhitelistNotWhitelisted(t *testing.T
 		},
 	}
 
-	w.filterWhitelistedInstances(context.Background(), group, req)
+	w.filterByWhitelistForSwitch(context.Background(), group, req)
 
 	// whitelist is empty (disabled excluded): instance is treated as non-whitelisted, notify only
 	if len(req.MySqlInstData) != 0 {
@@ -442,7 +442,7 @@ func TestFilterWhitelistedInstances_WhiteListDisabledSkipsFiltering(t *testing.T
 		},
 	}
 
-	w.filterWhitelistedInstances(context.Background(), group, req)
+	w.filterByWhitelistForSwitch(context.Background(), group, req)
 
 	// whitelist disabled: req.MySqlInstData is unchanged, all instances proceed to switching
 	if len(req.MySqlInstData) != 1 {
@@ -477,7 +477,7 @@ func TestFilterWhitelistedInstances_SwitchingDisabledSkipsFiltering(t *testing.T
 		},
 	}
 
-	w.filterWhitelistedInstances(context.Background(), group, req)
+	w.filterByWhitelistForSwitch(context.Background(), group, req)
 
 	if len(req.MySqlInstData) != 1 {
 		t.Fatalf("expected 1 instance remaining (switching disabled), got %d", len(req.MySqlInstData))
@@ -508,7 +508,7 @@ func TestFilterWhitelistedInstances_NoneWhitelisted(t *testing.T) {
 		},
 	}
 
-	w.filterWhitelistedInstances(context.Background(), group, req)
+	w.filterByWhitelistForSwitch(context.Background(), group, req)
 
 	// no instance matches the whitelist: req.MySqlInstData is cleared,
 	// and a notification alarm is sent for the non-whitelisted instance
