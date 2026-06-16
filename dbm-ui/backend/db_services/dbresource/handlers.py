@@ -17,6 +17,7 @@ from datetime import datetime
 from typing import Any, Dict, List
 
 from celery import shared_task
+from django.db import transaction
 from django.utils.translation import gettext as _
 
 from backend import env
@@ -900,16 +901,18 @@ def async_retry_replenish_tickets(replenish_record_id, username, ticket_ids=None
     from backend.ticket.flow_manager.inner import HCMReplenishResourceTaskFlow
 
     # 对补货记录加行锁， 防止多次重试
-    replenish = ResourceReplenishRecord.objects.select_for_update().filter(id=replenish_record_id).first()
-    if not replenish:
-        return
+    with transaction.atomic():
+        replenish = ResourceReplenishRecord.objects.select_for_update().filter(id=replenish_record_id).first()
+        if not replenish:
+            return
 
-    # 对传过来的单据id进行过滤
-    retry_ticket_ids = (
-        [ticket_id for ticket_id in replenish.ticket_ids if ticket_id in ticket_ids]
-        if ticket_ids
-        else replenish.ticket_ids
-    )
+        # 对传过来的单据id进行过滤
+        retry_ticket_ids = (
+            [ticket_id for ticket_id in replenish.ticket_ids if ticket_id in ticket_ids]
+            if ticket_ids
+            else replenish.ticket_ids
+        )
+
     tickets = Ticket.objects.filter(id__in=retry_ticket_ids, status=TicketStatus.FAILED)
     if not tickets:
         return
