@@ -297,7 +297,7 @@ class TaskFlowHandler:
             return [self.generate_log_record(message=_("节点日志仅保留{}天").format(env.BKLOG_DEFAULT_RETENTION))]
 
         # 探测日志的pod名称
-        detected_pods = ["worker", "dbsimulation", "dbpriv"]
+        detected_pods = ["schedule", "worker", "dbsimulation", "dbpriv"]
         detected_pods_query = " OR ".join([f"__ext.io_kubernetes_pod:*{pod}*" for pod in detected_pods])
 
         start_time = datetime2str(history["started_time"])

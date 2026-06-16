@@ -73,9 +73,7 @@ COMPONENT_CONFIG_ITEMS = {
         ConfType.CONFIG: [ConfFile.BACKUP, ConfFile.FULLBACKUP, ConfFile.BINLOGBACKUP, ConfFile.MONITOR],
     },
     # ----- ES -----
-    ClusterType.Es: {
-        ConfType.DBCONF: [DB_VERSION],
-    },
+    ClusterType.Es: {ConfType.DBCONF: [DB_VERSION], ConfType.DEPLOY: []},
     # ----- Kafka -----
     ClusterType.Kafka: {
         ConfType.DBCONF: [DB_VERSION],
