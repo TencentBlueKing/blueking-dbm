@@ -88,6 +88,7 @@ class DBResourceViewSet(viewsets.SystemViewSet):
             "get_subzones",
             "get_device_class",
             "list_dba_hosts",
+            "resource_list",
             "query_dba_hosts",
             "resource_import_urls",
             "get_os_types",
