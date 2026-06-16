@@ -198,17 +198,18 @@ class QSearchHandler(object):
         tag_qs = Q()
 
         for keyword in keyword_list:
-            if ":" in keyword:
+            # 判断是否为 "键:值" 格式（包含冒号）
+            is_key_value_format = ":" in keyword
+
+            if is_key_value_format:
                 # 尝试按 标签:标签值 格式解析
                 tag_key, _, tag_value = keyword.partition(":")
                 if tag_key and tag_value:
-                    if self.filter_type == FilterType.EXACT.value:
-                        tag_qs |= Q(tags__key=tag_key, tags__value=tag_value)
-                    else:
-                        tag_qs |= Q(tags__key__icontains=tag_key, tags__value__icontains=tag_value)
+                    # 包含冒号时，无论模糊/精确模式，都按"键:值"精确匹配
+                    tag_qs |= Q(tags__key=tag_key, tags__value=tag_value)
                     continue
 
-            # 不包含冒号的关键字，同时按标签键、标签值和域名过滤
+            # 不包含冒号的关键字，或冒号解析失败，按正常逻辑处理
             # 标签键 / 标签值过滤
             if self.filter_type == FilterType.EXACT.value:
                 tag_qs |= Q(tags__key=keyword) | Q(tags__value=keyword)
