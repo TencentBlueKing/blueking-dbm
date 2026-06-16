@@ -97,6 +97,8 @@
           activeConfType.value = '';
         }
 
+        // 先清空旧 tab 数据，避免切换期间展示错误类型的 tabs
+        confTypeTabs.value = [];
         fetchConfTypeTabs({ meta_cluster_type: value });
       }
     },
