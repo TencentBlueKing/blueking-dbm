@@ -24,7 +24,6 @@ from backend.bk_web import viewsets
 from backend.bk_web.swagger import common_swagger_auto_schema
 from backend.configuration.constants import DEFAULT_PACKAGE_SUPPORT_SYSTEMS, SystemSettingsEnum
 from backend.configuration.models import SystemSettings
-from backend.core.storages.handlers import StorageHandler
 from backend.core.storages.storage import get_storage
 from backend.db_meta.models import DBVersion, Distribution, ProxyInstance, StorageInstance, VersionSeries
 from backend.db_package.constants import DB_PACKAGE_TAG, INSTALL_PACKAGE_LIST, PARSE_FILE_EXT, PackageType
@@ -130,10 +129,8 @@ class DBPackageViewSet(viewsets.AuditedModelViewSet):
     )
     @action(methods=["POST"], detail=False, serializer_class=SyncMediumSerializer)
     def sync_medium(self, request, *args, **kwargs):
-        def package_key(pkg):
-            if isinstance(pkg, Package):
-                return f"{pkg.db_type}-{pkg.pkg_type}-{pkg.name}-{pkg.version}"
-            return f"{pkg['db_type']}-{pkg['pkg_type']}-{pkg['name']}-{pkg['version']}"
+        def package_md5_key(pkg):
+            return pkg.md5 if isinstance(pkg, Package) else pkg["md5"]
 
         def patch_version_model(info):
             # 获取发行版
@@ -169,7 +166,7 @@ class DBPackageViewSet(viewsets.AuditedModelViewSet):
 
         # 获取原来介质的优先级信息
         old_packages = Package.objects.filter(db_type=db_type)
-        old_package_map: Dict[str, Tuple[int, bool]] = {f"{package_key(pkg)}": pkg for pkg in old_packages}
+        old_package_map: Dict[str, Tuple[int, bool]] = {f"{package_md5_key(pkg)}": pkg for pkg in old_packages}
         # 更新新介质的优先级和启用信息，如果没有在原来介质中存在，则默认为0和启用
         update_packages, create_packages = [], []
         for info in sync_medium_infos:
@@ -177,7 +174,7 @@ class DBPackageViewSet(viewsets.AuditedModelViewSet):
                 logger.warning(f"pkg type({info.get('pkg_type')}) not in PackageType Enum, ignore")
                 continue
 
-            pkg_key = package_key(info)
+            pkg_key = package_md5_key(info)
             if pkg_key in old_package_map:
                 old_package_map[pkg_key].__dict__.update(info)
                 update_packages.append(old_package_map[pkg_key])
@@ -264,9 +261,11 @@ class DBPackageViewSet(viewsets.AuditedModelViewSet):
         package = self.get_object()
         if package.storageinstance_set.exists() or package.proxyinstance_set.exists():
             raise DBPackageBaseException(_("请保证该版本文件没有关联实例"))
-        # 删除制品库文件
+        # 如果还存在md5记录，则不删除制品库文件
+        # 删除制品库文件。 TODO: 暂时屏蔽该逻辑
         try:
-            StorageHandler().delete_file(self.get_object().path)
+            # StorageHandler().delete_file(self.get_object().path)
+            pass
         except ApiRequestError as e:
             logger.error(_("文件删除异常，错误信息: {}").format(e))
         # 删除本地记录
@@ -284,11 +283,12 @@ class DBPackageViewSet(viewsets.AuditedModelViewSet):
             raise DBPackageBaseException(_("请保证该版本文件没有关联实例"))
         if ProxyInstance.objects.filter(db_package__in=package_ids).exists():
             raise DBPackageBaseException(_("请保证该版本文件没有关联实例"))
-        # 删除制品库文件
+        # 删除制品库文件  TODO: 暂时屏蔽该逻辑
         packages = Package.objects.filter(id__in=package_ids)
         for package in packages:
             try:
-                StorageHandler().delete_file(package.path)
+                pass
+                # StorageHandler().delete_file(package.path)
             except ApiRequestError as e:
                 logger.error(_("文件删除异常，错误信息: {}").format(e))
         # 删除本地记录
