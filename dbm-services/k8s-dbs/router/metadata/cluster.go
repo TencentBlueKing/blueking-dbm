@@ -34,6 +34,7 @@ func BuildClusterMetaRouter(db *gorm.DB, baseRouter *gin.RouterGroup) {
 	clusterMetaGroup := metaRouter.Group("/cluster")
 	{
 		clusterMetaGroup.GET("/:id", clusterMetaController.GetClusterInfo)
+		clusterMetaGroup.GET("/dbm/:cluster_id", clusterMetaController.GetClusterInfoByClusterID)
 		clusterMetaGroup.GET("/topology/:id", clusterMetaController.GetClusterTopology)
 		clusterMetaGroup.GET("/search", clusterMetaController.ListCluster)
 	}

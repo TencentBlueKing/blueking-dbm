@@ -25,6 +25,7 @@ import (
 	commconst "k8s-dbs/common/constant"
 	commutil "k8s-dbs/common/util"
 	"k8s-dbs/errors"
+	"k8s-dbs/metadata/entity"
 	"k8s-dbs/metadata/provider"
 	"k8s-dbs/metadata/vo/response"
 	"strconv"
@@ -75,6 +76,40 @@ func (c *ClusterController) GetClusterTopology(ctx *gin.Context) {
 		return
 	}
 	api.SuccessResponse(ctx, clusterTopology, commconst.Success)
+}
+
+// GetClusterInfoByClusterID 按照 cluster_id（dbm_cluster_id）获取存储集群实例
+func (c *ClusterController) GetClusterInfoByClusterID(ctx *gin.Context) {
+	ctx.Set(commconst.APIName, commconst.APIMetaClusterDetailByClusterID)
+	clusterIDParam := ctx.Param("cluster_id")
+	clusterID, err := strconv.ParseUint(clusterIDParam, 10, 64)
+	if err != nil {
+		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.ParameterInvalidError, err))
+		return
+	}
+	clusterInfo, err := c.clusterProvider.FindByParams(&entity.ClusterQueryParams{DbmClusterID: clusterID})
+	if err != nil {
+		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetMetaDataError, err))
+		return
+	}
+	if clusterInfo == nil {
+		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetMetaDataError,
+			fmt.Errorf("cluster not found with cluster_id %d", clusterID)))
+		return
+	}
+	cluster, err := c.clusterProvider.FindClusterByID(clusterInfo.ID)
+	if err != nil {
+		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetMetaDataError, err))
+		return
+	}
+	var data response.K8sCrdClusterResponse
+	if err = copier.Copy(&data, cluster); err != nil {
+		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetMetaDataError, err))
+		return
+	}
+	data.BkBizTitle = fmt.Sprintf("[%d]%s", data.BkBizID, data.BkBizName)
+	data.TopoNameAlias = getTopoNameAlias(data.AddonInfo.AddonType, data.TopoName)
+	api.SuccessResponse(ctx, data, commconst.Success)
 }
 
 // GetClusterInfo 按照 ID 获取存储集群实例

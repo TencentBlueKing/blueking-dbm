@@ -36,6 +36,7 @@ type ClusterQueryParams struct {
 	BkBizName           string   `gorm:"column:bk_biz_name" json:"bkBizName"`
 	BkAppAbbr           string   `gorm:"column:bk_app_abbr" json:"bkAppAbbr"`
 	BkAppCode           string   `gorm:"column:bk_app_code" json:"bkAppCode"`
+	DbmClusterID        uint64   `gorm:"column:dbm_cluster_id" json:"dbmClusterId"`
 	Status              string   `gorm:"column:status" json:"status"`
 	Creators            []string `json:"creators"`
 	Updaters            []string `json:"updaters"`

@@ -329,7 +329,6 @@ func (k *K8sCrdClusterProviderImpl) FindByParams(params *metaentity.ClusterQuery
 		return nil, errors.Wrap(err, "failed to copy")
 	}
 	clusterEntity.AddonInfo = addonEntity
-
 	return &clusterEntity, nil
 }
 

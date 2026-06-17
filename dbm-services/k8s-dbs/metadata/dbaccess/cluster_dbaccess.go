@@ -122,6 +122,9 @@ func (k *K8sCrdClusterDbAccessImpl) FindByParams(params *metaentity.ClusterQuery
 			Where("addon_type in (?)", params.AddonTypes)
 		query = query.Where("addon_id in (?)", subQuery)
 	}
+	if params.DbmClusterID > 0 {
+		query = query.Where("dbm_cluster_id = ?", params.DbmClusterID)
+	}
 	result := query.First(&cluster)
 	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
 		return nil, nil
