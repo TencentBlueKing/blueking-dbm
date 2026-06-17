@@ -1164,7 +1164,7 @@ class RedisActPayload(object):
                 "ip": ip,
                 "ports": ports,
                 "is_all_instances_shutdown": self.__is_all_instances_shutdown(ip, ports),
-                "IsClusterShutdown": is_cluster_shutdown,
+                "is_cluster_shutdown": is_cluster_shutdown,
             },
         }
 
@@ -1699,7 +1699,7 @@ class RedisActPayload(object):
                 "ip": ip,
                 "ports": ports,
                 "is_all_instances_shutdown": self.__is_all_instances_shutdown(ip, ports),
-                "IsClusterShutdown": is_cluster_shutdown,
+                "is_cluster_shutdown": is_cluster_shutdown,
             },
         }
 

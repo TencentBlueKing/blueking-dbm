@@ -141,6 +141,13 @@ bkmonitorbeat="{{bkmonitor_beat_path}}"
 agent_address="{{agent_address}}"
 local_ip="{{local_ip}}"
 
+# lumberjack 配置（可选，不配置则使用默认值）
+log_max_size = 100        # 单个文件最大 100MB
+log_max_backups = 5       # 保留 5 个备份
+log_max_age = 7           # 保留 7 天
+log_compress = true       # 压缩旧文件
+log_to_console = false     # 同时输出到控制台
+
 interval="3"
 flush_switch="true"
 forward_ip=""

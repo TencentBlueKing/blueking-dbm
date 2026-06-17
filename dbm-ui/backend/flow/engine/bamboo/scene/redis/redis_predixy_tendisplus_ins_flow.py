@@ -144,6 +144,8 @@ class PredixyTendisPlusInsApplyFlow(object):
             act_name=_("初始化配置"), act_component_code=GetRedisActPayloadComponent.code, kwargs=asdict(act_kwargs)
         )
 
+        # 目前传参不允许传databases，默认databases为2（后续有可能放开）
+        self.data["databases"] = 2
         # 步骤2：并行安装tendisplus主从实例（master + slave）
         params = {
             "instance_numb": ins_num,

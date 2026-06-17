@@ -191,6 +191,8 @@ class RedisDataStructureTaskDeleteFlow(object):
                 "skip_connections_check": self.data.get("skip_connections_check", False),
                 # 演练场景：dbmon从未安装，跳过重装/卸载监控步骤
                 "skip_dbmon_uninstall": is_drill,
+                # 数据构造删除等同集群下架，需通知actuator执行集群级下架逻辑
+                "is_cluster_shutdown": True,
             }
             sub_builder = RedisBatchShutdownAtomJob(self.root_id, self.data, act_kwargs, params)
             sub_pipelines.append(sub_builder)
