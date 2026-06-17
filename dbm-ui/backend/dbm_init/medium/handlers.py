@@ -210,6 +210,9 @@ class MediumHandler:
             for version in self.storage.listdir(pkg_type["fullPath"])[0]:
                 for media in self.storage.listdir(version["fullPath"])[1]:
                     package_info = package_map[db_type][pkg_type["name"]][version["name"]][media["name"]]
+                    # 如果不属于medium.lock维护，则不同步到package
+                    if not package_info:
+                        continue
                     # 介质基础信息
                     package_params = {
                         "name": media["name"],
