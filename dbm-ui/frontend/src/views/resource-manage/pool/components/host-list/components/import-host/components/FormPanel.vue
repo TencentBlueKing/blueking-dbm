@@ -17,7 +17,7 @@
       {{ t('导入设置') }}
     </div>
     <div class="host-header">
-      <div>
+      <div style="margin-right: auto">
         <I18nT keypath="已选n台">
           <span
             class="number"
@@ -26,6 +26,17 @@
           </span>
         </I18nT>
       </div>
+      <BkButton
+        v-if="isErrorExist"
+        class="error-host-action mr-8"
+        text
+        theme="primary"
+        @click="handleClearErrorHost">
+        <DbIcon
+          class="clear-icon mr-4"
+          type="clearing" />
+        {{ t('一键清除问题 IP') }}
+      </BkButton>
       <BkPopover
         :arrow="false"
         :is-show="isShowHostActionPop"
@@ -68,7 +79,8 @@
       <div
         v-for="hostItem in hostList"
         :key="hostItem.host_id"
-        class="host-item">
+        class="host-item"
+        :class="{ 'error-host-item': errorHostMap[hostItem.ip] }">
         <div>{{ hostItem.ip }}</div>
         <div class="action-box">
           <DbIcon
@@ -165,6 +177,7 @@
   type IAppItem = ServiceReturnType<typeof getBizs>[number];
 
   interface Props {
+    errorHostMap: Record<string, boolean>;
     hostList: HostInfo[];
   }
   type Emits = (e: 'update:hostList', value: Props['hostList']) => void;
@@ -196,6 +209,8 @@
   const currentApp = shallowRef(
     formData.for_biz !== undefined ? globalBizsStore.bizIdMap.get(formData.for_biz) : undefined,
   );
+
+  const isErrorExist = computed(() => props.hostList.some((item) => props.errorHostMap[item.ip]));
 
   watch(
     () => formData.for_biz,
@@ -284,6 +299,16 @@
     emits('update:hostList', hostListResult);
   };
 
+  const handleClearErrorHost = () => {
+    const hostListResult = props.hostList.reduce<HostInfo[]>((result, item) => {
+      if (!props.errorHostMap[item.ip]) {
+        result.push(item);
+      }
+      return result;
+    }, []);
+    emits('update:hostList', hostListResult);
+  };
+
   const handleAppChange = (appInfo?: IAppItem) => {
     currentApp.value = appInfo;
     formData.for_biz = appInfo!.bk_biz_id;
@@ -322,11 +347,18 @@
       line-height: 24px;
       color: #63656e;
 
+      .error-host-action {
+        font-size: 12px;
+
+        .clear-icon {
+          font-size: 14px;
+        }
+      }
+
       .host-action {
         display: flex;
         width: 20px;
         height: 20px;
-        margin-left: auto;
         cursor: pointer;
         border-radius: 2px;
         transition: all 0.15s;
@@ -367,6 +399,10 @@
           .action-box {
             display: flex;
           }
+        }
+
+        &.error-host-item {
+          background-color: #ffebeb;
         }
 
         .action-box {

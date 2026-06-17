@@ -14,9 +14,20 @@
 <template>
   <div class="batch-import-list-panel">
     <div class="title">
-      <span>
+      <span style="margin-right: auto">
         {{ t('已选主机') }}
       </span>
+      <BkButton
+        v-if="isErrorExist"
+        class="error-host-action mr-8"
+        text
+        theme="primary"
+        @click="handleClearErrorHost">
+        <DbIcon
+          class="clear-icon mr-4"
+          type="clearing" />
+        {{ t('一键清除问题 IP') }}
+      </BkButton>
       <BkPopover
         :arrow="false"
         :is-show="isShowHostActionPop"
@@ -56,7 +67,8 @@
       <div
         v-for="hostItem in hostList"
         :key="hostItem.bk_host_id"
-        class="host-item">
+        class="host-item"
+        :class="{ 'error-host-item': errorHostMap[hostItem.ip] }">
         <div>{{ hostItem.ip }}</div>
         <div class="action-box">
           <DbIcon
@@ -86,6 +98,10 @@
 
   import { execCopy, messageWarn } from '@utils';
 
+  interface Props {
+    errorHostMap: Record<string, boolean>;
+  }
+
   interface Expose {
     getValue: () => Promise<{
       for_biz: number;
@@ -94,6 +110,7 @@
     }>;
   }
 
+  const props = defineProps<Props>();
   const hostList = defineModel<FaultOrRecycleMachineModel[]>({
     default: () => [],
   });
@@ -107,6 +124,8 @@
     labels: '',
     resource_type: '',
   });
+
+  const isErrorExist = computed(() => hostList.value.some((item) => props.errorHostMap[item.ip]));
 
   const toggleHostActionShow = () => {
     isShowHostActionPop.value = true;
@@ -141,6 +160,17 @@
     hostList.value = hostListResult;
   };
 
+  const handleClearErrorHost = () => {
+    const hostListResult = hostList.value.reduce<FaultOrRecycleMachineModel[]>((result, item) => {
+      if (!props.errorHostMap[item.ip]) {
+        result.push(item);
+      }
+      return result;
+    }, []);
+
+    hostList.value = hostListResult;
+  };
+
   defineExpose<Expose>({
     getValue() {
       return formRef.value.validate().then(() => ({
@@ -160,6 +190,7 @@
 
     .title {
       display: flex;
+      align-items: center;
       padding: 8px 12px 10px 24px;
       font-size: 12px;
       font-weight: 700;
@@ -172,7 +203,7 @@
         display: flex;
         width: 20px;
         height: 20px;
-        margin-left: auto;
+        // margin-left: auto;
         cursor: pointer;
         border-radius: 2px;
         transition: all 0.15s;
@@ -195,6 +226,14 @@
       align-items: center;
       line-height: 24px;
       color: #63656e;
+
+      .error-host-action {
+        font-size: 12px;
+
+        .clear-icon {
+          font-size: 14px;
+        }
+      }
     }
 
     .host-list {
@@ -223,6 +262,10 @@
           .action-box {
             display: flex;
           }
+        }
+
+        &.error-host-item {
+          background-color: #ffebeb;
         }
 
         .action-box {
