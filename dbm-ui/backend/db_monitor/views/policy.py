@@ -443,6 +443,7 @@ class MonitorPolicyViewSet(AuditedModelViewSet):
     @action(
         methods=["POST"],
         detail=False,
+        url_path="alarm_callback",
         serializer_class=serializers.AlarmCallBackDataSerializer,
         permission_classes=[AllowAny],
     )

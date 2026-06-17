@@ -62,4 +62,4 @@ class AlarmCallback(ABC):
             try:
                 handler_cls.callback(callback_data)
             except Exception as e:
-                logger.exception(f"[alarm_callback] 处理器 {handler_cls.__name__} 执行异常: {e}")
+                logger.exception(f"[alarm_callback] processor {handler_cls.__name__} callback error: {e}")
