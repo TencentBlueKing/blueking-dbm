@@ -110,6 +110,7 @@
       <!-- 参数配置 -->
       <div class="param-config-wrapper">
         <BkTab
+          :key="tabRenderKey"
           v-model:active="activeConfType"
           type="card-tab">
           <BkTabPanel
