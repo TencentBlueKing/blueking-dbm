@@ -191,6 +191,7 @@ def format_resource_hosts(hosts, biz_name_map, label_name_map) -> List[dict]:
             "sub_zone_id": host.get("sub_zone_id"),
             "rack_id": host.get("rack_id"),
             "device_class": host.get("device_class"),
+            "bk_svr_device_cls_name": host.get("bk_svr_device_cls_name") or host.get("device_class") or "",
             "for_biz": host["dedicated_biz"],
             "labels": host["labels"],
             "for_biz_info": {

@@ -45,6 +45,7 @@ from backend.flow.utils.redis.redis_rollback_exercise_resource import (
     all_infos_have_redis,
     apply_exercise_resources,
     get_effective_drill_infos,
+    get_instance_machine,
     info_has_applied_redis,
 )
 from backend.flow.utils.redis.redis_script_template import redis_fast_execute_script_common_kwargs
@@ -54,6 +55,25 @@ from backend.utils.basic import generate_root_id
 from backend.utils.string import base64_encode
 
 logger = logging.getLogger("json")
+
+
+def merge_task_message(*messages: str) -> str:
+    """Merge report task logs into one ordered, de-duplicated block.
+
+    Node logs accumulate in ``trans_data.task_msg`` (append-only), so the same
+    lines are re-submitted repeatedly -- e.g. a terminal-stage snapshot and the
+    later cleanup pass both carry the full history up to that point. Merging per
+    line preserves order and any explicit notes already on the report while
+    dropping lines that were already persisted.
+    """
+    merged, seen = [], set()
+    for message in messages:
+        for line in (message or "").splitlines():
+            if line in seen:
+                continue
+            seen.add(line)
+            merged.append(line)
+    return "\n".join(merged).strip()
 
 
 class RedisLogCapturingService(BaseService):
@@ -107,6 +127,16 @@ class RedisLogCapturingService(BaseService):
         """Override to auto-capture debug logs"""
         super().log_debug(msg)
         self._append_to_task_info(msg, "debug")
+
+    def render_report_message(self, existing_msg: str = "") -> str:
+        """Build a report ``task_message`` from the captured node logs.
+
+        ``existing_msg`` (the message already stored on the report) is kept first
+        so explicit notes -- e.g. a build-time skip reason -- survive, then the
+        append-only ``trans_data.task_msg`` is merged on top with duplicates removed.
+        """
+        captured = self.trans_data.task_msg if self.trans_data else None
+        return merge_task_message(existing_msg, "\n".join(captured or []))
 
     @staticmethod
     def _get_effective_infos(data) -> list:
@@ -209,15 +239,21 @@ class RedisExerciseReportUpdateService(RedisLogCapturingService):
             self.log_info(_("演练资源未申请，跳过标记 {}").format(stage))
             return True
 
-        if stage in self.TERMINAL_STAGES and not task_message and self.trans_data and self.trans_data.task_msg:
-            task_message = "\n".join(self.trans_data.task_msg)
-
         try:
             report = Report.objects.get(id=report_id)
-            report.mark(stage, task_message=task_message)
-            self.log_info(_("Report {} marked as {}").format(report_id, stage))
         except Report.DoesNotExist:
             self.log_error(_("Report {} not found").format(report_id))
+            return True
+        except Exception as e:
+            self.log_error(_("Failed to update report {}: {}").format(report_id, str(e)))
+            return True
+
+        if stage in self.TERMINAL_STAGES and not task_message and self.trans_data and self.trans_data.task_msg:
+            task_message = self.render_report_message(report.task_message)
+
+        try:
+            report.mark(stage, task_message=task_message)
+            self.log_info(_("Report {} marked as {}").format(report_id, stage))
         except Exception as e:
             self.log_error(_("Failed to update report {}: {}").format(report_id, str(e)))
 
@@ -553,16 +589,167 @@ class RedisExerciseResourceApplyService(RedisLogCapturingService):
         return dict(Cluster.objects.filter(id__in=missing_cluster_ids).values_list("id", "immute_domain"))
 
     @classmethod
+    def _format_disk_gb(cls, redis_host: dict) -> Optional[int]:
+        disk_gb = redis_host.get("bk_disk")
+        if disk_gb not in (None, ""):
+            try:
+                disk_value = int(disk_gb)
+                if disk_value > 0:
+                    return disk_value
+            except (TypeError, ValueError):
+                pass
+
+        storage_device = redis_host.get("storage_device") or {}
+        total = 0
+        for item in storage_device.values():
+            if not isinstance(item, dict):
+                continue
+            try:
+                total += int(item.get("size") or 0)
+            except (TypeError, ValueError):
+                continue
+        return total or None
+
+    @classmethod
+    def _format_mem_gb(cls, mem_mb) -> str:
+        """Render ``bk_mem`` (stored in MB across db_meta / resource pool) as GB.
+
+        Whole values collapse to ints (16GB) and fractional ones keep one
+        decimal (3.5GB), so 3619MB no longer prints as the bogus "3619GB".
+        """
+        if mem_mb in (None, ""):
+            return ""
+        try:
+            gb = int(mem_mb) / 1024
+        except (TypeError, ValueError):
+            return ""
+        if gb <= 0:
+            return ""
+        return "{:g}GB".format(round(gb, 1))
+
+    @classmethod
+    def _format_spec_details(cls, redis_host: dict) -> str:
+        cpu = redis_host.get("bk_cpu")
+        mem_label = cls._format_mem_gb(redis_host.get("bk_mem"))
+        disk_gb = cls._format_disk_gb(redis_host)
+
+        parts = []
+        if cpu not in (None, ""):
+            parts.append("{} cores".format(cpu))
+        if mem_label:
+            parts.append("{} RAM".format(mem_label))
+        if disk_gb:
+            parts.append("{}GB disk".format(disk_gb))
+        return " ".join(parts)
+
+    @classmethod
+    def _resolve_bk_svr_device_cls_name(cls, redis_host: dict) -> str:
+        for key in ("bk_svr_device_cls_name", "device_class"):
+            value = redis_host.get(key)
+            if value:
+                return str(value)
+        return ""
+
+    @classmethod
+    def _machine_to_spec_host_dict(cls, machine) -> dict:
+        spec_config = machine.spec_config or {}
+        cpu_info = spec_config.get("cpu") or {}
+        mem_info = spec_config.get("mem") or {}
+        cpu = cpu_info.get("min") or cpu_info.get("max") or ""
+        # spec_config.mem is GB; normalize to MB so bk_mem stays consistent with the resource pool.
+        mem_gb = mem_info.get("min") or mem_info.get("max") or 0
+        try:
+            mem_mb = int(mem_gb) * 1024 or ""
+        except (TypeError, ValueError):
+            mem_mb = ""
+        return {
+            "bk_cpu": cpu,
+            "bk_mem": mem_mb,
+            "storage_device": machine.storage_device or {},
+            "bk_svr_device_cls_name": machine.bk_svr_device_cls_name or "",
+            "device_class": machine.bk_svr_device_cls_name or "",
+        }
+
+    @classmethod
+    def _resolve_source_machine_spec(cls, info: dict, cluster, machine_cache: dict) -> str:
+        cache_key = (info.get("cluster_id"), info.get("instance_ip"), info.get("instance_port"))
+        if cache_key in machine_cache:
+            return machine_cache[cache_key]
+
+        machine = get_instance_machine(info, cluster) if cluster else None
+        spec_label = cls._format_spec_details(cls._machine_to_spec_host_dict(machine)) if machine else ""
+        machine_cache[cache_key] = spec_label
+        return spec_label
+
+    @classmethod
+    def _format_applied_host_spec(cls, redis_host: dict) -> str:
+        spec_details = cls._format_spec_details(redis_host)
+        device_cls_name = cls._resolve_bk_svr_device_cls_name(redis_host)
+        if spec_details and device_cls_name:
+            return "{} {}".format(spec_details, device_cls_name)
+        return spec_details or device_cls_name
+
+    @classmethod
+    def _append_original_instance_lines(
+        cls,
+        lines: list,
+        entries: list,
+        cluster,
+        machine_cache: dict,
+        *,
+        spec_in_parens: bool = False,
+    ):
+        for entry in sorted(entries, key=lambda item: cls._instance_addr(item["info"])):
+            info = entry["info"]
+            instance_addr = cls._instance_addr(info)
+            orig_spec = cls._resolve_source_machine_spec(info, cluster, machine_cache)
+            if orig_spec and spec_in_parens:
+                lines.append("        {} ({})".format(instance_addr, orig_spec))
+            elif orig_spec:
+                lines.append("        {} {}".format(instance_addr, orig_spec))
+            else:
+                lines.append("        {}".format(instance_addr))
+
+    @classmethod
+    def _append_pending_instance_lines(
+        cls,
+        lines: list,
+        pending_infos: list,
+        cluster,
+        machine_cache: dict,
+        *,
+        no_resource_label: str = "",
+        spec_in_parens: bool = False,
+    ):
+        if not pending_infos:
+            return
+        if no_resource_label:
+            lines.append("    {}".format(no_resource_label))
+        for info in sorted(pending_infos, key=cls._instance_addr):
+            instance_addr = cls._instance_addr(info)
+            orig_spec = cls._resolve_source_machine_spec(info, cluster, machine_cache)
+            indent = "        " if no_resource_label else "    "
+            if orig_spec and spec_in_parens:
+                lines.append("{}{} ({})".format(indent, instance_addr, orig_spec))
+            elif orig_spec:
+                lines.append("{}{} {}".format(indent, instance_addr, orig_spec))
+            else:
+                lines.append("{}{}".format(indent, instance_addr))
+
+    @classmethod
     def _build_resource_apply_log_summary(
         cls,
         infos: list,
         *,
         header: str,
         include_applied_ip: bool = True,
-        pending_suffix: str = "",
+        no_resource_label: str = "",
     ) -> str:
         cluster_domain_map = cls._resolve_cluster_domains(infos)
-        clusters = defaultdict(lambda: {"domain": "", "instance_groups": defaultdict(list)})
+        cluster_ids = {info["cluster_id"] for info in infos if info.get("cluster_id")}
+        cluster_objects = {cluster.id: cluster for cluster in Cluster.objects.filter(id__in=cluster_ids)}
+
+        clusters = defaultdict(lambda: {"domain": "", "applied_hosts": defaultdict(list), "pending": []})
 
         for info in infos:
             cluster_id = info.get("cluster_id")
@@ -571,34 +758,45 @@ class RedisExerciseResourceApplyService(RedisLogCapturingService):
             cluster_domain = info.get("cluster_domain") or cluster_domain_map.get(cluster_id) or ""
             clusters[cluster_id]["domain"] = cluster_domain or clusters[cluster_id]["domain"]
 
-            instance_addr = cls._instance_addr(info)
             redis_hosts = info.get("redis") or []
             if include_applied_ip and redis_hosts:
                 applied_ip = redis_hosts[0].get("ip") or ""
-                clusters[cluster_id]["instance_groups"][applied_ip].append(instance_addr)
+                clusters[cluster_id]["applied_hosts"][applied_ip].append({"info": info, "redis_host": redis_hosts[0]})
             else:
-                clusters[cluster_id]["instance_groups"][""].append(instance_addr)
+                clusters[cluster_id]["pending"].append(info)
 
-        lines = [header]
+        lines = [header] if header else []
+        machine_cache = {}
         for cluster_id in sorted(clusters):
             cluster_data = clusters[cluster_id]
-            cluster_label = (
-                "{}:{}".format(cluster_id, cluster_data["domain"]) if cluster_data["domain"] else str(cluster_id)
-            )
+            cluster = cluster_objects.get(cluster_id)
+            cluster_label = cluster_data["domain"] or str(cluster_id)
             lines.append(cluster_label)
-            for applied_ip in sorted(cluster_data["instance_groups"]):
-                instances = sorted(cluster_data["instance_groups"][applied_ip])
-                instances_label = ",".join(instances)
-                if include_applied_ip and applied_ip:
-                    lines.append("    {}: {}".format(instances_label, applied_ip))
-                elif pending_suffix:
-                    lines.append("    {}{}".format(instances_label, pending_suffix))
+
+            for applied_ip in sorted(cluster_data["applied_hosts"]):
+                entries = cluster_data["applied_hosts"][applied_ip]
+                spec_label = cls._format_spec_details(entries[0]["redis_host"])
+                if spec_label:
+                    lines.append("    {} ({})".format(applied_ip, spec_label))
                 else:
-                    lines.append("    {}".format(instances_label))
+                    lines.append("    {}".format(applied_ip))
+                cls._append_original_instance_lines(lines, entries, cluster, machine_cache)
+
+            cls._append_pending_instance_lines(
+                lines,
+                cluster_data["pending"],
+                cluster,
+                machine_cache,
+                no_resource_label=no_resource_label,
+                spec_in_parens=bool(no_resource_label),
+            )
 
         return "\n".join(lines)
 
     def _log_applied_resources(self, infos: list, request_id: str = ""):
+        if self.trans_data and getattr(self.trans_data, "resource_apply_logged", False):
+            return
+
         host_count = sum(1 for info in infos if info.get("redis"))
         if not host_count:
             return
@@ -607,6 +805,8 @@ class RedisExerciseResourceApplyService(RedisLogCapturingService):
         if request_id:
             header = "{} request_id={}".format(header, request_id)
         self.log_info(self._build_resource_apply_log_summary(infos, header=header))
+        if self.trans_data:
+            self.trans_data.resource_apply_logged = True
 
     def _log_resource_apply_failure(self, infos: list, error_message: str):
         header = _("演练资源申请失败: {}").format(error_message)
@@ -615,7 +815,7 @@ class RedisExerciseResourceApplyService(RedisLogCapturingService):
                 infos,
                 header=header,
                 include_applied_ip=False,
-                pending_suffix=_(" (no resource)"),
+                no_resource_label=_("(no resource)"),
             )
         )
 
@@ -1171,8 +1371,7 @@ done
         except Report.DoesNotExist:
             return
 
-        cleanup_msg = "\n".join(self.trans_data.task_msg) if self.trans_data and self.trans_data.task_msg else ""
-        merged_msg = self._merge_task_message(report.task_message, cleanup_msg)
+        merged_msg = self.render_report_message(report.task_message)
 
         terminal_stages = {
             TaskStage.DONE,
@@ -1187,27 +1386,6 @@ done
             return
         report.mark(TaskStage.CLEANUP_FAILED, task_message=merged_msg)
         self.log_info(_("Report {} marked CLEANUP_FAILED by best-effort cleanup").format(report_id))
-
-    @staticmethod
-    def _merge_task_message(existing_msg: str, appended_msg: str) -> str:
-        """
-        Merge report task logs without clobbering historical content.
-
-        Rules:
-        1. Keep existing logs first.
-        2. Append new block only when non-empty.
-        3. Deduplicate when the existing message already ends with the same block.
-        """
-        existing = (existing_msg or "").strip()
-        appended = (appended_msg or "").strip()
-
-        if not existing:
-            return appended
-        if not appended:
-            return existing
-        if existing.endswith(appended):
-            return existing
-        return "{}\n{}".format(existing, appended)
 
 
 class RedisExerciseBestEffortCleanupComponent(Component):

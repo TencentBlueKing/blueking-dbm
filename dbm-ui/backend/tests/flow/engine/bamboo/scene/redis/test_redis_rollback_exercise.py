@@ -16,6 +16,7 @@ from backend.flow.plugins.components.collections.redis.redis_rollback_exercise i
     RedisExerciseResourceApplyService,
     RedisExerciseRevokeAppliedHostsComponent,
     RedisExerciseRevokeAppliedHostsService,
+    merge_task_message,
 )
 from backend.flow.utils.redis.redis_context_dataclass import RedisRollbackExerciseContext
 
@@ -251,7 +252,46 @@ def test_rollback_exercise_flow_starts_with_resource_apply_act():
     assert builder.acts[-1]["act_component_code"] == RedisExerciseBestEffortCleanupComponent.code
 
 
-def test_resource_apply_service_logs_applied_host_summary():
+def test_merge_task_message_deduplicates_prefix_snapshot():
+    early = "\n".join(
+        [
+            "[2026-06-17 13:00:18] [INFO]: resource apply summary",
+            "21000560:cache.example.db",
+            "    1.1.1.1:30000: 2.2.2.2",
+            "[2026-06-17 13:00:18] [INFO]: [apply act] success",
+        ]
+    )
+    full = early + "\n[2026-06-17 13:06:47] [INFO]: cleanup finished"
+
+    assert merge_task_message(early, full) == full
+    assert merge_task_message(full, early) == full
+
+
+def test_resource_apply_service_logs_applied_resources_only_once():
+    service = RedisExerciseResourceApplyService()
+    service.trans_data = RedisRollbackExerciseContext(resource_apply_logged=True)
+    infos = [{"cluster_id": 10, "redis": [{"ip": "2.2.2.2"}]}]
+
+    with patch.object(service, "log_info") as mock_log_info:
+        service._log_applied_resources(infos, "req-123")
+
+    mock_log_info.assert_not_called()
+
+
+def _mock_source_machine(cpu, mem, disk, device_cls):
+    return SimpleNamespace(
+        spec_config={"cpu": {"min": cpu}, "mem": {"min": mem}},
+        storage_device={"/data": {"size": disk}},
+        bk_svr_device_cls_name=device_cls,
+    )
+
+
+@patch("backend.flow.plugins.components.collections.redis.redis_rollback_exercise.get_instance_machine")
+@patch("backend.flow.plugins.components.collections.redis.redis_rollback_exercise.Cluster.objects.filter")
+def test_resource_apply_service_logs_applied_host_summary(mock_cluster_filter, mock_get_instance_machine):
+    mock_cluster_filter.return_value = [SimpleNamespace(id=10, immute_domain="cache.example.db")]
+    mock_get_instance_machine.return_value = _mock_source_machine(4, 32, 500, "S5.4XLARGE16")
+
     service = RedisExerciseResourceApplyService()
     infos = [
         {
@@ -259,11 +299,16 @@ def test_resource_apply_service_logs_applied_host_summary():
             "cluster_domain": "cache.example.db",
             "instance_ip": "1.1.1.1",
             "instance_port": 30000,
+            "resource_spec": {"redis": {"spec_name": "2c_16g_200g"}},
             "redis": [
                 {
                     "ip": "2.2.2.2",
                     "bk_host_id": 101,
                     "bk_cloud_id": 0,
+                    "bk_cpu": 2,
+                    "bk_mem": 16384,
+                    "bk_disk": 200,
+                    "bk_svr_device_cls_name": "SA5.MEDIUM4",
                 }
             ],
         }
@@ -275,11 +320,39 @@ def test_resource_apply_service_logs_applied_host_summary():
     assert mock_log_info.call_count == 1
     summary_log = mock_log_info.call_args_list[0].args[0]
     assert "演练资源申请完成，共 1 台主机 request_id=req-123" in summary_log
-    assert "10:cache.example.db" in summary_log
-    assert "    1.1.1.1:30000: 2.2.2.2" in summary_log
+    assert summary_log == "\n".join(
+        [
+            "演练资源申请完成，共 1 台主机 request_id=req-123",
+            "cache.example.db",
+            "    2.2.2.2 (2 cores 16GB RAM 200GB disk)",
+            "        1.1.1.1:30000 4 cores 32GB RAM 500GB disk",
+        ]
+    )
 
 
-def test_resource_apply_service_log_summary_groups_instances_by_applied_ip():
+def test_resource_apply_service_format_applied_host_spec_uses_storage_device_fallback():
+    service = RedisExerciseResourceApplyService()
+    redis_host = {
+        "bk_cpu": 4,
+        "bk_mem": 32768,
+        "storage_device": {"/data": {"size": 500}},
+        "bk_svr_device_cls_name": "S5.4XLARGE16",
+    }
+
+    assert service._format_applied_host_spec(redis_host) == "4 cores 32GB RAM 500GB disk S5.4XLARGE16"
+
+
+@patch("backend.flow.plugins.components.collections.redis.redis_rollback_exercise.get_instance_machine")
+@patch("backend.flow.plugins.components.collections.redis.redis_rollback_exercise.Cluster.objects.filter")
+def test_resource_apply_service_log_summary_groups_instances_by_applied_ip(
+    mock_cluster_filter, mock_get_instance_machine
+):
+    mock_cluster_filter.return_value = [
+        SimpleNamespace(id=10, immute_domain="cache.example.db"),
+        SimpleNamespace(id=11, immute_domain="cache.other.db"),
+    ]
+    mock_get_instance_machine.return_value = _mock_source_machine(4, 32, 500, "S5.4XLARGE16")
+
     service = RedisExerciseResourceApplyService()
     infos = [
         {
@@ -287,21 +360,45 @@ def test_resource_apply_service_log_summary_groups_instances_by_applied_ip():
             "cluster_domain": "cache.example.db",
             "instance_ip": "1.1.1.1",
             "instance_port": 30000,
-            "redis": [{"ip": "2.2.2.2"}],
+            "redis": [
+                {
+                    "ip": "2.2.2.2",
+                    "bk_cpu": 2,
+                    "bk_mem": 8192,
+                    "bk_disk": 100,
+                    "bk_svr_device_cls_name": "S5.LARGE8",
+                }
+            ],
         },
         {
             "cluster_id": 10,
             "cluster_domain": "cache.example.db",
             "instance_ip": "1.1.1.1",
             "instance_port": 30001,
-            "redis": [{"ip": "2.2.2.2"}],
+            "redis": [
+                {
+                    "ip": "2.2.2.2",
+                    "bk_cpu": 2,
+                    "bk_mem": 8192,
+                    "bk_disk": 100,
+                    "bk_svr_device_cls_name": "S5.LARGE8",
+                }
+            ],
         },
         {
             "cluster_id": 11,
             "cluster_domain": "cache.other.db",
             "instance_ip": "3.3.3.3",
             "instance_port": 30000,
-            "redis": [{"ip": "4.4.4.4"}],
+            "redis": [
+                {
+                    "ip": "4.4.4.4",
+                    "bk_cpu": 4,
+                    "bk_mem": 16384,
+                    "bk_disk": 200,
+                    "bk_svr_device_cls_name": "S5.4XLARGE16",
+                }
+            ],
         },
     ]
 
@@ -310,10 +407,48 @@ def test_resource_apply_service_log_summary_groups_instances_by_applied_ip():
     assert summary == "\n".join(
         [
             "applied",
-            "10:cache.example.db",
-            "    1.1.1.1:30000,1.1.1.1:30001: 2.2.2.2",
-            "11:cache.other.db",
-            "    3.3.3.3:30000: 4.4.4.4",
+            "cache.example.db",
+            "    2.2.2.2 (2 cores 8GB RAM 100GB disk)",
+            "        1.1.1.1:30000 4 cores 32GB RAM 500GB disk",
+            "        1.1.1.1:30001 4 cores 32GB RAM 500GB disk",
+            "cache.other.db",
+            "    4.4.4.4 (4 cores 16GB RAM 200GB disk)",
+            "        3.3.3.3:30000 4 cores 32GB RAM 500GB disk",
+        ]
+    )
+
+
+@patch("backend.flow.plugins.components.collections.redis.redis_rollback_exercise.get_instance_machine")
+@patch("backend.flow.plugins.components.collections.redis.redis_rollback_exercise.Cluster.objects.filter")
+def test_resource_apply_service_log_summary_shows_no_resource_with_instance_spec(
+    mock_cluster_filter, mock_get_instance_machine
+):
+    mock_cluster_filter.return_value = [SimpleNamespace(id=10, immute_domain="cache.example.db")]
+    mock_get_instance_machine.return_value = _mock_source_machine(2, 3, 120, "S5.MEDIUM4")
+
+    service = RedisExerciseResourceApplyService()
+    infos = [
+        {
+            "cluster_id": 10,
+            "cluster_domain": "cache.example.db",
+            "instance_ip": "5.5.5.5",
+            "instance_port": 30000,
+        }
+    ]
+
+    summary = service._build_resource_apply_log_summary(
+        infos,
+        header="failed",
+        include_applied_ip=False,
+        no_resource_label="(no resource)",
+    )
+
+    assert summary == "\n".join(
+        [
+            "failed",
+            "cache.example.db",
+            "    (no resource)",
+            "        5.5.5.5:30000 (2 cores 3GB RAM 120GB disk)",
         ]
     )
 
@@ -418,6 +553,35 @@ def test_build_ds_flow_data_fills_resource_spec_from_source_machine(mock_get_mac
     redis_spec = flow_data["infos"][0]["resource_spec"]["redis"]
     assert redis_spec["id"] == 42
     assert redis_spec["count"] == 1
+
+
+@patch("backend.flow.plugins.components.collections.redis.redis_rollback_exercise.Report")
+def test_reconcile_report_deduplicates_existing_snapshot(mock_report_model):
+    from backend.db_report.models import RedisRollbackExerciseReport as Report
+
+    report = Report()
+    report.task_message = "\n".join(
+        [
+            "[2026-06-17 13:00:18] [INFO]: resource apply summary",
+            "21000560:cache.example.db",
+        ]
+    )
+    report.task_stage = TaskStage.DONE
+    report.save = MagicMock()
+    mock_report_model.objects.get.return_value = report
+
+    service = RedisExerciseBestEffortCleanupService()
+    service.trans_data = RedisRollbackExerciseContext()
+    service.trans_data.task_msg = [
+        "[2026-06-17 13:00:18] [INFO]: resource apply summary\n21000560:cache.example.db",
+        "[2026-06-17 13:06:47] [INFO]: cleanup finished",
+    ]
+
+    service._reconcile_report(15)
+
+    assert report.task_message.count("resource apply summary") == 1
+    assert "cleanup finished" in report.task_message
+    report.save.assert_called_once()
 
 
 @patch("backend.flow.plugins.components.collections.redis.redis_rollback_exercise.Report")
