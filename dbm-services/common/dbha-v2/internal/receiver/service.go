@@ -247,19 +247,19 @@ func (s *Service) createSource(ctx context.Context) error {
 }
 
 func (s *Service) createSinkers() error {
-	if len(config.Cfg.Service.Sinks) == 0 {
+	if len(config.Cfg.Service.Sink.Sinkers) == 0 {
 		return gerrors.New(gerrors.InvalidConfiguration, "not set any sink")
 	}
 
-	for _, sinkCfg := range config.Cfg.Service.Sinks {
-		if !sinkCfg.Enable {
-			logger.Info("the outputer(%s) is disabled", sinkCfg.Name)
+	for _, sinkerCfg := range config.Cfg.Service.Sink.Sinkers {
+		if !sinkerCfg.Enable {
+			logger.Info("the outputer(%s) is disabled", sinkerCfg.Name)
 			continue
 		}
 
-		sinker, err := sink.NewSinker(sinkCfg)
+		sinker, err := sink.NewSinker(sinkerCfg)
 		if err != nil {
-			logger.Warn("create new outputer failed, outputer: %s, errmsg: %s", sinkCfg.Name, err)
+			logger.Warn("create new outputer failed, outputer: %s, errmsg: %s", sinkerCfg.Name, err)
 			continue
 		}
 

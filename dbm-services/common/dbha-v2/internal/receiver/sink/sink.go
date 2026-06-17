@@ -39,7 +39,7 @@ type Sinker interface {
 }
 
 // NewSinker create a new saver
-func NewSinker(cfg config.SinkConfig) (Sinker, error) {
+func NewSinker(cfg config.SinkerConfig) (Sinker, error) {
 	switch strings.ToLower(cfg.Name) {
 	case strings.ToLower(mySQLName):
 		return newMySql(cfg.Endpoints, cfg.User, cfg.Password)

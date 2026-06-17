@@ -83,20 +83,25 @@ type SourceConfig struct {
 	GrpcMaxSendMessageSize    int           `yaml:"grpcMaxSendMessageSize"    mapstructure:"grpcMaxSendMessageSize"`
 }
 
-// SinkConfig Configuration related to data storage.
+// SinkerConfig Configuration for a single sinker instance.
+type SinkerConfig struct {
+	Name      string `yaml:"name"     mapstructure:"name"`
+	Enable    bool   `yaml:"enable"   mapstructure:"enable"`
+	Endpoints string `yaml:"endpoint" mapstructure:"endpoint"`
+	User      string `yaml:"user"     mapstructure:"user"`
+	Password  string `yaml:"password" mapstructure:"password"`
+}
+
+// SinkConfig Configuration related to the sink layer (global timeout + sinker list).
 type SinkConfig struct {
-	Name        string        `yaml:"name"        mapstructure:"name"`
-	Enable      bool          `yaml:"enable"      mapstructure:"enable"`
-	Endpoints   string        `yaml:"endpoint"    mapstructure:"endpoint"`
-	User        string        `yaml:"user"        mapstructure:"user"`
-	Password    string        `yaml:"password"    mapstructure:"password"`
-	SaveTimeout time.Duration `yaml:"saveTimeout" mapstructure:"saveTimeout"`
+	SaveTimeout time.Duration  `yaml:"saveTimeout" mapstructure:"saveTimeout"`
+	Sinkers     []SinkerConfig `yaml:"sinkers"     mapstructure:"sinkers"`
 }
 
 // ServiceConfig service's configuration
 type ServiceConfig struct {
 	Sources []SourceConfig `yaml:"source" mapstructure:"source"`
-	Sinks   []SinkConfig   `yaml:"sink" mapstructure:"sink"`
+	Sink    SinkConfig     `yaml:"sink"   mapstructure:"sink"`
 }
 
 // LogConfig log configuration
@@ -118,15 +123,10 @@ type Configuration struct {
 	Log       LogConfig       `yaml:"log"       mapstructure:"log"`
 }
 
-// GetSaveTimeout returns the save timeout from the first enabled sink config.
+// GetSaveTimeout returns the save timeout from sink config.
 // If not configured, returns 0 (caller should fall back to default).
 func GetSaveTimeout() time.Duration {
-	for _, sinkCfg := range Cfg.Service.Sinks {
-		if sinkCfg.Enable && sinkCfg.SaveTimeout > 0 {
-			return sinkCfg.SaveTimeout
-		}
-	}
-	return 0
+	return Cfg.Service.Sink.SaveTimeout
 }
 
 // Load loads receiver configuration from file
