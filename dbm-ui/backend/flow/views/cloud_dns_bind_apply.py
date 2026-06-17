@@ -31,7 +31,10 @@ class CloudDNSApplySceneApiView(FlowTestView):
             "host_infos": [
                 {
                     "ip": "xxx",
-                    "bk_cloud_id": 0
+                    "bk_cloud_id": 0,
+                    "bk_host_id": 0,
+                    "bk_city": "深圳",
+                    "is_access": 0
                 }
             ]
         }

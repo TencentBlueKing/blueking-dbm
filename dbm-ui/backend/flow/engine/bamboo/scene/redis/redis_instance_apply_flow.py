@@ -288,6 +288,8 @@ class RedisInstanceApplyFlow(object):
             master_servers = []
             slave_servers = []
             for rule in info["ip_install_dict"][master_ip]:
+                if rule["databases"] < 2 or rule["databases"] > 16:
+                    raise Exception("databases must in [2,16] ")
                 act_kwargs.exec_ip = master_ip
                 act_kwargs.cluster["exec_ip"] = master_ip
                 #  集群申请单据时，下面参数需要从param中获取，不能从已有配置中获取

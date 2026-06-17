@@ -156,7 +156,8 @@ class CloudDNSDetail(CloudServiceDetail):
     DNS服务的detail数据类
     """
 
-    pass
+    is_access: int = 0  # 是否启用（DNS同城优先逻辑依赖此字段），默认 0 不启用
+    bk_city: str = ""  # 部署机器的城市信息（DNS同城优先逻辑依赖此字段）
 
 
 @dataclass()

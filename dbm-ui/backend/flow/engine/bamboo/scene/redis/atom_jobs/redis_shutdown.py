@@ -153,6 +153,7 @@ def RedisBatchShutdownAtomJob(root_id, ticket_data, sub_kwargs: ActKwargs, shutd
     act_kwargs.cluster["exec_ip"] = exec_ip
     act_kwargs.cluster["force_shutdown"] = shutdown_param.get("force_shutdown", False)
     act_kwargs.cluster["shutdown_ports"] = shutdown_param["ports"]
+    act_kwargs.cluster["is_cluster_shutdown"] = shutdown_param.get("is_cluster_shutdown", False)
     act_kwargs.get_redis_payload_func = RedisActPayload.redis_shutdown_4_scene.__name__
     sub_pipeline.add_act(
         act_name=_("下架实例-{}-{}").format(exec_ip, shutdown_param["ports"]),
@@ -284,6 +285,7 @@ def RedisFaultShutdownAtomJob(root_id, ticket_data, sub_kwargs: ActKwargs, shutd
     act_kwargs.cluster["exec_ip"] = exec_ip
     act_kwargs.cluster["force_shutdown"] = shutdown_param.get("force_shutdown", False)
     act_kwargs.cluster["shutdown_ports"] = shutdown_param["ports"]
+    act_kwargs.cluster["is_cluster_shutdown"] = shutdown_param.get("is_cluster_shutdown", False)
     act_kwargs.get_redis_payload_func = RedisActPayload.redis_shutdown_4_scene.__name__
     sub_pipeline.add_act(
         act_name=_("下架实例-{}").format(exec_ip),

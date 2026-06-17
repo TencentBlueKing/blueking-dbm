@@ -41,7 +41,8 @@ class DrsHostInfoSerializer(BaseHostInfoSerializer):
 
 
 class DnsHostInfoSerializer(BaseHostInfoSerializer):
-    pass
+    bk_city = serializers.CharField(help_text=_("城市"), required=False, allow_blank=True, default="")
+    is_access = serializers.IntegerField(help_text=_("是否启用"), required=False, default=0)
 
 
 class DbhaHostInfoSerializer(BaseHostInfoSerializer):
