@@ -455,6 +455,13 @@
           name: item.value,
         }));
       }
+      nextTick(() => {
+        if (newCreatePkgType) {
+          pkgActive.value = newCreatePkgType;
+          newCreatePkgType = undefined;
+        }
+        handlePkgTabChange(pkgActive.value);
+      });
       setTimeout(() => {
         checkPkgTabScroll();
       }, 1000);
@@ -470,6 +477,7 @@
   });
 
   let isFirstLoad = true;
+  let newCreatePkgType: string | undefined = undefined;
 
   const handlePkgTabChange = (name: string) => {
     currentPkgType.value = pkgTypeList.value?.find((item) => item.value === name);
@@ -491,7 +499,10 @@
     isShowPkgTypeManage.value = true;
   };
 
-  const handleGetPkgTypeList = () => {
+  const handleGetPkgTypeList = (data?: { name: string; value: string }) => {
+    if (data) {
+      newCreatePkgType = data.value;
+    }
     fetchPkgTypeList({
       db_type: dbTypeActive.value,
     });
@@ -518,9 +529,16 @@
     });
   };
 
-  watch(dbTypeActive, handleGetPkgTypeList, {
-    immediate: true,
-  });
+  watch(
+    dbTypeActive,
+    () => {
+      handleGetPkgTypeList();
+      checkPackagePermission();
+    },
+    {
+      immediate: true,
+    },
+  );
 
   watch([dbTypeActive, pkgActive], () => {
     if (!dbTypeActive.value || !pkgActive.value) {
@@ -539,10 +557,6 @@
         pkgType: pkgActive.value,
       },
     });
-  });
-
-  watch(dbTypeActive, checkPackagePermission, {
-    immediate: true,
   });
 
   watch(pkgTypeList, () => {
