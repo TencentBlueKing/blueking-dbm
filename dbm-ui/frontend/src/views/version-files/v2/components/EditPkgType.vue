@@ -106,7 +106,7 @@
     totalList: NonNullable<Props['data']>[];
   }
 
-  type Emits = (e: 'success') => void;
+  type Emits = (e: 'success', data?: typeof formModel.value) => void;
 
   const props = defineProps<Props>();
 
@@ -179,7 +179,7 @@
     onSuccess() {
       isShow.value = false;
       messageSuccess(t('操作成功'));
-      emits('success');
+      emits('success', !props.isEdit ? formModel.value : undefined);
     },
   });
 

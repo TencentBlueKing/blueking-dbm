@@ -165,8 +165,6 @@
         fetchVersionSeriesList();
         return;
       }
-
-      versionSeriesList.value = [];
     },
     {
       immediate: true,
