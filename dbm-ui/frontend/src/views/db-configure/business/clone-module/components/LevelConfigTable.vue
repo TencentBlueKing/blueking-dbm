@@ -61,6 +61,12 @@
         <template #default="{ row }">
           <span class="value-cell">
             <span
+              v-if="row.conf_value === ''"
+              class="no-constraint-text">
+              {{ t('空字符串') }}
+            </span>
+            <span
+              v-else
               v-bk-tooltips="{
                 content: row.flag_encrypt === 1 ? '******' : (row.conf_value ?? '--'),
                 disabled: !row.conf_value || !overflowStates[row.conf_name],
