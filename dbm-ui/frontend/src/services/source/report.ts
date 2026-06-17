@@ -82,7 +82,7 @@ export function getReportOverview(params?: { kind?: 'inspect' | 'drill' }) {
 }
 
 // 巡检总览统计接口
-export function getReportCount() {
+export function getReportCount(params: { time_range?: string }) {
   return http.get<
     Record<
       string,
@@ -94,13 +94,9 @@ export function getReportCount() {
         }
       >
     >
-  >(
-    `${path}/get_report_count/`,
-    {},
-    {
-      cache: 2000,
-    },
-  );
+  >(`${path}/get_report_count/`, params, {
+    cache: 2000,
+  });
 }
 
 // 巡检报告通用接口

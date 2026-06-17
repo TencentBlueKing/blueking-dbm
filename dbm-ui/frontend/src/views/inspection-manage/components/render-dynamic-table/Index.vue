@@ -5,7 +5,7 @@
     <CollapseCard>
       <template #title>
         <span style="font-weight: 700">{{ tableName }}</span>
-        <template v-if="isShowStateCount">
+        <template v-if="isTodo">
           <span class="ml-6 mr-2">(</span>
           <template v-if="!isOnlyAbnormal">
             <span>{{ t('正常') }}</span>
@@ -25,8 +25,18 @@
       </template>
       <div
         v-if="total === 0 || totalAbnormalCount === 0"
-        style="padding: 20px; font-size: 14px; color: #999; text-align: center">
+        style="font-size: 14px; line-height: 40px; color: #999; text-align: center">
         {{ emptyDescription }}
+        <I18nT
+          v-if="route.query.time_range !== 'now -30d'"
+          keypath="若想查看更早结果，请扩大时间范围">
+          <BkButton
+            text
+            theme="primary"
+            @click="handleExpandTimeRange">
+            {{ t('扩大时间范围') }}
+          </BkButton>
+        </I18nT>
       </div>
       <PrimaryTable
         v-else
@@ -92,7 +102,7 @@
   import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
-  import { useRoute } from 'vue-router';
+  import { useRoute, useRouter } from 'vue-router';
 
   import { getReport } from '@services/source/report';
 
@@ -107,8 +117,7 @@
 
   interface Props {
     isOnlyAbnormal?: boolean;
-    isPlatform?: boolean;
-    isShowStateCount?: boolean;
+    isTodo?: boolean;
     searchParams: Record<string, any>;
     serviceUrl: string;
   }
@@ -126,15 +135,13 @@
 
   const props = withDefaults(defineProps<Props>(), {
     isOnlyAbnormal: false,
-    isPlatform: false,
-    isShowStateCount: true,
+    isTodo: false,
   });
 
   const { t } = useI18n();
   const route = useRoute();
+  const router = useRouter();
   const globalBizsStore = useGlobalBizs();
-
-  const isTodoPage = computed(() => route.name === 'inspectionTodosGlobal');
 
   const pagination = reactive({
     current: 1,
@@ -175,13 +182,11 @@
       'now -3d': t('近 3 天'),
       'now -7d': t('近 7 天'),
     };
+
     const timeRangeText = timeRangeTextMap[timeRange] || timeRangeTextMap['now -1d'];
-    if (isTodoPage.value) {
+    if (props.isTodo) {
       // 近 30 天为最大档位，不再提示扩大时间范围
-      if (timeRange === 'now -30d') {
-        return t('{timeRange}内无巡检记录', { timeRange: timeRangeText });
-      }
-      return t('{timeRange}内无巡检记录，若想查看更早结果，请扩大时间范围', { timeRange: timeRangeText });
+      return t('{timeRange}内无巡检记录', { timeRange: timeRangeText });
     }
     if (props.isOnlyAbnormal && totalAbnormalCount.value === 0) {
       return t('{timeRange}内无预警或异常', { timeRange: timeRangeText });
@@ -270,7 +275,6 @@
         offset: (pagination.current - 1) * pagination.pageSize,
         // 默认排序，优先按失败天数排序，其次按创建时间排序
         ordering: '-failed_days,-create_at',
-        platform: props.isPlatform,
         ...searchParams,
       },
       {
@@ -308,6 +312,15 @@
     }
   };
 
+  const handleExpandTimeRange = () => {
+    router.push({
+      query: {
+        ...route.query,
+        time_range: 'now -30d',
+      },
+    });
+  };
+
   defineExpose<Exposes>({
     async getExportExcelSheetData() {
       const searchParams = _.cloneDeep(props.searchParams);
@@ -325,7 +338,6 @@
           limit: -1,
           offset: 0,
           ordering: '-failed_days,-create_at',
-          platform: props.isPlatform,
           ...searchParams,
         },
         {

@@ -12,6 +12,7 @@
  */
 
 import { useRequest } from 'vue-request';
+import { useRoute } from 'vue-router';
 
 import { getReportCount } from '@services/source/report';
 
@@ -19,6 +20,7 @@ import { getReportCount } from '@services/source/report';
  * 巡检报告统计数据
  */
 export const useReportCount = (immediate = true) => {
+  const route = useRoute();
   const manageCount = ref(0);
   const assistCount = ref(0);
   const dbReportCountMap = ref<
@@ -31,9 +33,13 @@ export const useReportCount = (immediate = true) => {
     >
   >({});
 
-  useRequest(getReportCount, {
+  const timeRange = computed(() => {
+    return route.query.time_range as string;
+  });
+
+  const { run } = useRequest(getReportCount, {
     cacheKey: 'reportCount',
-    manual: !immediate,
+    manual: true,
     onSuccess(countResult) {
       let manages = 0;
       let assists = 0;
@@ -59,6 +65,18 @@ export const useReportCount = (immediate = true) => {
       assistCount.value = assists;
     },
   });
+
+  watch(
+    timeRange,
+    () => {
+      run({
+        time_range: timeRange.value,
+      });
+    },
+    {
+      immediate,
+    },
+  );
 
   return {
     assistCount,

@@ -46,10 +46,6 @@
 
   const selectOptionList = computed(() => [
     {
-      label: t('今天'),
-      value: 'now -0d',
-    },
-    {
       label: t('最近 24 小时'),
       value: 'now -1d',
     },
