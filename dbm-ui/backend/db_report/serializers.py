@@ -55,5 +55,7 @@ class GetReportOverviewSerializer(serializers.Serializer):
 
 
 class GetReportCountSerializer(serializers.Serializer):
+    time_range = serializers.CharField(help_text=_("时间范围"), required=False, default="")
+
     class Meta:
         swagger_schema_fields = {"example": mock_data.REPORT_COUNT_DATA}
