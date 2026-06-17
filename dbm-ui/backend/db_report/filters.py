@@ -43,11 +43,22 @@ class ReportListFilter(filters.FilterSet):
         return queryset
 
     def filter_cluster(self, queryset, name, value):
+        # 支持不同模型使用不同字段名存储集群信息
+        model_fields = [f.name for f in queryset.model._meta.fields]
+        if "cluster" in model_fields:
+            cluster_field = "cluster"
+        elif "domain" in model_fields:
+            cluster_field = "domain"
+        elif "cluster_domain" in model_fields:
+            cluster_field = "cluster_domain"
+        else:
+            return queryset
+
         cluster = value.split(",")
         if len(cluster) == 1:
-            return queryset.filter(cluster__icontains=cluster[0])
+            return queryset.filter(**{f"{cluster_field}__icontains": cluster[0]})
         else:
-            return queryset.filter(cluster__in=cluster)
+            return queryset.filter(**{f"{cluster_field}__in": cluster})
 
     def filter_dba(self, queryset, name, value):
         users = value.split(",")

@@ -112,9 +112,13 @@ class ReportBaseViewSet(AuditedModelViewSet):
 
     def get_total_abnormal_count(self):
         """
-        获取 time_range 范围内状态不正常的总数，不考虑其它搜索项
+        获取 time_range 范围内状态为异常或预警的总数，不考虑其它搜索项
         """
-        return self._get_time_filtered_queryset().filter(state=ReportStateType.ABNORMAL).count()
+        return (
+            self._get_time_filtered_queryset()
+            .filter(state__in=[ReportStateType.ABNORMAL, ReportStateType.WARNING])
+            .count()
+        )
 
     def list(self, request, *args, **kwargs):
         response = super().list(request, *args, **kwargs)
