@@ -179,9 +179,10 @@
 
     .search-item-error {
       position: absolute;
-      right: 0;
+      // right: 0;
       bottom: -16px;
-      left: 20px;
+      // left: 20px;
+      left: 6px;
       font-size: 12px;
       color: #ea3636;
     }

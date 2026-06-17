@@ -14,21 +14,27 @@
 <template>
   <div class="batch-import-list-panel">
     <div class="title">
-      <span>
+      <span style="margin-right: auto">
         {{ t('已选主机') }}
       </span>
+      <BkButton
+        v-if="isErrorExist"
+        class="error-host-action mr-8"
+        text
+        theme="primary"
+        @click="handleClearErrorHost">
+        <DbIcon
+          class="clear-icon mr-4"
+          type="clearing" />
+        {{ t('一键清除问题 IP') }}
+      </BkButton>
       <BkPopover
         :arrow="false"
-        :is-show="isShowHostActionPop"
+        click-content-auto-hide
         placement="bottom"
         theme="light export-host-action-extends"
-        trigger="manual">
-        <div
-          class="host-action"
-          :class="{
-            active: isShowHostActionPop,
-          }"
-          @click="toggleHostActionShow">
+        trigger="click">
+        <div class="host-action">
           <DbIcon type="more" />
         </div>
         <template #content>
@@ -56,7 +62,8 @@
       <div
         v-for="hostItem in hostList"
         :key="hostItem.bk_host_id"
-        class="host-item">
+        class="host-item"
+        :class="{ 'error-host-item': errorHostMap[hostItem.ip] }">
         <div>{{ hostItem.ip }}</div>
         <div class="action-box">
           <DbIcon
@@ -86,6 +93,10 @@
 
   import { execCopy, messageWarn } from '@utils';
 
+  interface Props {
+    errorHostMap: Record<string, boolean>;
+  }
+
   interface Expose {
     getValue: () => Promise<{
       for_biz: number;
@@ -94,6 +105,7 @@
     }>;
   }
 
+  const props = defineProps<Props>();
   const hostList = defineModel<FaultOrRecycleMachineModel[]>({
     default: () => [],
   });
@@ -101,21 +113,17 @@
   const { t } = useI18n();
 
   const formRef = ref();
-  const isShowHostActionPop = ref(false);
   const formData = reactive({
     for_biz: '',
     labels: '',
     resource_type: '',
   });
 
-  const toggleHostActionShow = () => {
-    isShowHostActionPop.value = true;
-  };
+  const isErrorExist = computed(() => hostList.value.some((item) => props.errorHostMap[item.ip]));
 
   // 复制所有主机 IP
   const handleCopyAll = () => {
     const ipList = hostList.value.map((item) => item.ip);
-    isShowHostActionPop.value = false;
     if (!ipList.length) {
       messageWarn(t('暂无可复制 IP'));
       return;
@@ -133,6 +141,17 @@
   const handleRemove = (hostItem: FaultOrRecycleMachineModel) => {
     const hostListResult = hostList.value.reduce<FaultOrRecycleMachineModel[]>((result, item) => {
       if (item.bk_host_id !== hostItem.bk_host_id) {
+        result.push(item);
+      }
+      return result;
+    }, []);
+
+    hostList.value = hostListResult;
+  };
+
+  const handleClearErrorHost = () => {
+    const hostListResult = hostList.value.reduce<FaultOrRecycleMachineModel[]>((result, item) => {
+      if (!props.errorHostMap[item.ip]) {
         result.push(item);
       }
       return result;
@@ -160,6 +179,7 @@
 
     .title {
       display: flex;
+      align-items: center;
       padding: 8px 12px 10px 24px;
       font-size: 12px;
       font-weight: 700;
@@ -172,7 +192,7 @@
         display: flex;
         width: 20px;
         height: 20px;
-        margin-left: auto;
+        // margin-left: auto;
         cursor: pointer;
         border-radius: 2px;
         transition: all 0.15s;
@@ -195,6 +215,14 @@
       align-items: center;
       line-height: 24px;
       color: #63656e;
+
+      .error-host-action {
+        font-size: 12px;
+
+        .clear-icon {
+          font-size: 14px;
+        }
+      }
     }
 
     .host-list {
@@ -223,6 +251,10 @@
           .action-box {
             display: flex;
           }
+        }
+
+        &.error-host-item {
+          background-color: #ffebeb;
         }
 
         .action-box {
