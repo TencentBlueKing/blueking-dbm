@@ -77,6 +77,7 @@ class AgentHandler:
         session_content_id,
         stream: bool = False,
         timeout=DEFAULT_AGENT_CHAT_TIMEOUT,
+        username=DEFAULT_USERNAME,
     ):
         """获得本次对话内容，支持流式/非流式"""
         execute_kwargs = ExecuteKwargs(stream=stream, invoke_timeout=timeout)
@@ -85,7 +86,7 @@ class AgentHandler:
         agent_instance = AgentBuilder(
             resource_manager=rm,
             session_manager=sm,
-            username=DEFAULT_USERNAME,
+            username=username,
             agent_code=rm.get_agent_code(),
         ).by_session_code(session_code, version=execute_kwargs.version)
         result = agent_instance.execute(execute_kwargs)
@@ -124,6 +125,7 @@ class AgentHandler:
             session_code=session_code,
             stream=stream,
             timeout=timeout,
+            username=username,
         )
 
         if stream and not isinstance(ai_response, dict):
@@ -187,6 +189,7 @@ class AgentHandler:
             session_content_id=session_content_id,
             stream=stream,
             timeout=timeout,
+            username=username,
         )
 
         if stream and not isinstance(ai_response, dict):
