@@ -123,6 +123,9 @@ export default (interceptors: AxiosInterceptorManager<AxiosResponse>) => {
       case 9900403:
         handlePermission(error);
         break;
+      // 资源池导入主机，展示具体报错
+      case 8700026:
+        break;
       // po 环境静默此错误码
       case 8718002:
         break;

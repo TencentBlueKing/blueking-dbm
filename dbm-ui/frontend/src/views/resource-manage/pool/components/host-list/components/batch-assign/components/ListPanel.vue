@@ -19,17 +19,11 @@
       </span>
       <BkPopover
         :arrow="false"
-        :is-show="isShowHostActionPop"
+        click-content-auto-hide
         placement="bottom"
         theme="light export-host-action-extends"
-        trigger="manual">
-        <div
-          class="host-action"
-          :class="{
-            active: isShowHostActionPop,
-          }"
-          @blur="handleHideHostAction"
-          @click="handleShowHostAction">
+        trigger="click">
+        <div class="host-action">
           <DbIcon type="more" />
         </div>
         <template #content>
@@ -93,25 +87,15 @@
   const { t } = useI18n();
 
   const formRef = ref();
-  const isShowHostActionPop = ref(false);
   const formData = reactive({
     for_biz: '',
     labels: '',
     resource_type: '',
   });
 
-  const handleShowHostAction = () => {
-    isShowHostActionPop.value = true;
-  };
-
-  const handleHideHostAction = () => {
-    isShowHostActionPop.value = false;
-  };
-
   // 复制所有主机 IP
   const handleCopyAll = () => {
     const ipList = hostList.value.map((item) => item.ip);
-    isShowHostActionPop.value = false;
     if (!ipList.length) {
       messageWarn(t('暂无可复制 IP'));
       return;

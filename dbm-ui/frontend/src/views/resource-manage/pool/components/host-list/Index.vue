@@ -251,12 +251,12 @@
         :width="80">
         <template #default="{ row }: { row: DbResourceModel }">{{ row.rack_id || '--' }}</template>
       </TableColumn>
-      <TableColumn
+      <!-- <TableColumn
         col-key="os_type"
         :title="t('操作系统类型')"
         :width="120">
         <template #default="{ row }: { row: DbResourceModel }">{{ row.os_type || '--' }}</template>
-      </TableColumn>
+      </TableColumn> -->
       <TableColumn
         col-key="os_name"
         :title="t('操作系统名称')"
