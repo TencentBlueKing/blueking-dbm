@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 import importlib
 from types import SimpleNamespace
+from unittest.mock import MagicMock, patch
 
 import pytest
 
@@ -43,3 +44,40 @@ def test_same_subzone_cross_switch_suggests_moving_master_when_slave_is_in_expec
 
     assert "请将主节点机器 1.1.1.2 替换或迁移到 园区(test-subzone-a) 且不同机架" in msg
     assert "副节点机器 1.1.1.1 替换" not in msg
+
+
+def test_check_redis_affinity_exits_when_disabled(redis_affinity_module):
+    config = redis_affinity_module.RedisAffinityCheckConfig(enabled=False)
+
+    with patch.object(redis_affinity_module.RedisAffinityCheckConfig, "from_settings", return_value=config):
+        with patch.object(redis_affinity_module, "RedisAffinityChecker") as checker_cls:
+            redis_affinity_module.check_redis_affinity()
+
+    checker_cls.assert_not_called()
+
+
+def test_get_candidate_clusters_filters_by_bk_cloud_ids(redis_affinity_module):
+    config = redis_affinity_module.RedisAffinityCheckConfig(
+        cluster_types=["RedisInstance"],
+        bk_cloud_ids=[0],
+    )
+    query = MagicMock()
+    query.exclude.return_value = query
+    query.filter.return_value = query
+
+    with patch.object(redis_affinity_module.Cluster.objects, "filter", return_value=query) as cluster_filter:
+        redis_affinity_module._get_candidate_clusters(config)
+
+    cluster_filter.assert_called_once_with(cluster_type__in=["RedisInstance"])
+    query.filter.assert_called_once_with(bk_cloud_id__in=[0])
+
+
+def test_get_candidate_clusters_checks_all_clouds_when_bk_cloud_ids_empty(redis_affinity_module):
+    config = redis_affinity_module.RedisAffinityCheckConfig(cluster_types=["RedisInstance"])
+    query = MagicMock()
+    query.exclude.return_value = query
+
+    with patch.object(redis_affinity_module.Cluster.objects, "filter", return_value=query):
+        redis_affinity_module._get_candidate_clusters(config)
+
+    query.filter.assert_not_called()

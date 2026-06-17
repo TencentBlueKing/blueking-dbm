@@ -11,13 +11,13 @@ specific language governing permissions and limitations under the License.
 
 import logging
 from collections import defaultdict
+from dataclasses import asdict, dataclass, field, fields
 from math import floor
 from typing import Dict, List, Optional, Tuple, Union
 
-from django.db.models import Q
 from django.utils.translation import gettext_lazy as _
 
-from backend.configuration.constants import AffinityEnum, DBType
+from backend.configuration.constants import AffinityEnum, DBType, SystemSettingsEnum
 from backend.configuration.models import DBAdministrator
 from backend.db_meta.enums import ClusterPhase, ClusterType, InstanceRole, MachineType
 from backend.db_meta.models import Cluster, StorageInstance
@@ -29,16 +29,85 @@ from backend.flow.utils.redis.redis_report_utils import (
     is_cluster_labeled_with,
 )
 from backend.ticket.constants import TICKET_RUNNING_STATUS_SET, TicketType
+from backend.ticket.models import SystemSettings
 from backend.ticket.models.ticket import ClusterOperateRecord
 
 logger = logging.getLogger("root")
+
+
+DEFAULT_CLUSTER_TYPES = [
+    ClusterType.TendisTwemproxyRedisInstance.value,  # TendisCache 集群
+    ClusterType.TwemproxyTendisSSDInstance.value,  # TendisSSD 集群
+    ClusterType.TendisPredixyRedisCluster.value,  # RedisCluster 集群
+    ClusterType.TendisPredixyTendisplusCluster.value,  # Tendisplus 集群
+    ClusterType.TendisRedisInstance.value,  # Redis 主从
+]
+
+
+@dataclass
+class RedisAffinityCheckConfig:
+    """
+    Configuration for Redis affinity check task
+    """
+
+    enabled: bool = True
+    cluster_types: Optional[List[str]] = field(default_factory=lambda: list(DEFAULT_CLUSTER_TYPES))
+    bizs_ignored: Optional[List[int]] = field(default_factory=list)
+    clusters_ignored: Optional[List[int]] = field(default_factory=list)
+    # Empty list means all cloud areas; when set (e.g. [0]), only check matching bk_cloud_id.
+    bk_cloud_ids: Optional[List[int]] = field(default_factory=list)
+
+    @classmethod
+    def from_settings(cls) -> "RedisAffinityCheckConfig":
+        """Load config from SystemSettings with dataclass defaults for missing keys."""
+        raw = SystemSettings.get_setting_value(SystemSettingsEnum.REDIS_AFFINITY_CHECK.value, default={})
+        if not isinstance(raw, dict):
+            if raw:
+                logger.warning("RedisAffinityCheckConfig: expected dict, got %s", type(raw).__name__)
+            return cls()
+
+        valid_keys = {f.name for f in fields(cls)}
+        return cls(**{key: value for key, value in raw.items() if key in valid_keys})
+
+    def save_to_settings(self, user: str = "admin") -> None:
+        """Persist this config to SystemSettings for shell_plus maintenance."""
+        SystemSettings.insert_setting_value(
+            key=SystemSettingsEnum.REDIS_AFFINITY_CHECK.value,
+            value=asdict(self),
+            value_type="dict",
+            user=user,
+        )
+
+
+def _get_candidate_clusters(config: RedisAffinityCheckConfig):
+    """
+    Get candidate clusters for affinity check based on configuration
+    """
+    query = Cluster.objects.filter(cluster_type__in=config.cluster_types)
+
+    if config.bizs_ignored:
+        query = query.exclude(bk_biz_id__in=config.bizs_ignored)
+
+    if config.clusters_ignored:
+        query = query.exclude(id__in=config.clusters_ignored)
+
+    if config.bk_cloud_ids:
+        query = query.filter(bk_cloud_id__in=config.bk_cloud_ids)
+
+    return query
 
 
 def check_redis_affinity():
     """
     检查集群中的主从机器是否满足集群亲和性要求
     """
-    RedisAffinityChecker().check_all_clusters()
+    config = RedisAffinityCheckConfig.from_settings()
+
+    if not config.enabled:
+        logger.info(_("Redis affinity check is disabled, exiting"))
+        return
+
+    RedisAffinityChecker(config).check_all_clusters()
 
 
 class RedisAffinityChecker:
@@ -93,17 +162,11 @@ class RedisAffinityChecker:
     SKIP_PROXY_CHECK_LABEL = {"directmode": "true"}
     _subzone_map_cache: Dict[int, str] = {}
 
-    def __init__(self):
+    def __init__(self, config: Optional[RedisAffinityCheckConfig] = None):
         """Initialize the affinity checker"""
+        self._config = config or RedisAffinityCheckConfig.from_settings()
         self._writer = RedisReportWriter()
-        # ClusterTypes that need to check
-        self._supported_cluster_types = [
-            ClusterType.TendisTwemproxyRedisInstance.value,  # TendisCache 集群
-            ClusterType.TwemproxyTendisSSDInstance.value,  # TendisSSD 集群
-            ClusterType.TendisPredixyRedisCluster.value,  # RedisCluster 集群
-            ClusterType.TendisPredixyTendisplusCluster.value,  # Tendisplus 集群
-            ClusterType.TendisRedisInstance.value,  # Redis 主从
-        ]
+        self._supported_cluster_types = list(self._config.cluster_types)
         # Ignore cluster if it has machines changing
         self._ignore_tickets = [
             TicketType.REDIS_PROXY_CLOSE.value,
@@ -140,7 +203,7 @@ class RedisAffinityChecker:
             self._supported_cluster_types,
             self._writer.retention_days,
         )
-        for cluster in Cluster.objects.filter(Q(cluster_type__in=self._supported_cluster_types)):
+        for cluster in _get_candidate_clusters(self._config):
             try:
                 self._check_cluster_affinity(cluster)
             except Exception as e:
