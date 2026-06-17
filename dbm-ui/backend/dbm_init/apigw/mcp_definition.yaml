@@ -28,6 +28,7 @@ stages:
     {% if settings.BK_APIGW_STAGE_ENABLE_MCP_SERVERS %}
     mcp_servers:
       {% for mcp_server in settings.BK_APIGW_STAGE_MCP_SERVERS %}
+      {% if mcp_server.tools %}
       - name: "{{ mcp_server.name }}"
         title: "{% firstof mcp_server.title mcp_server.name %}"
         description: "{{ mcp_server.description }}"
@@ -37,10 +38,14 @@ stages:
           - "{{ label }}"
           {% endfor %}
         {% endif %}
+        {% if mcp_server.tools %}
         resource_names:
           {% for resource in mcp_server.tools %}
           - "{{ resource }}"
           {% endfor %}
+        {% else %}
+        resource_names: []
+        {% endif %}
         is_public: {{ mcp_server.is_public }}
         status: {{ mcp_server.status }}
         protocol_type: "streamable_http"
@@ -50,6 +55,7 @@ stages:
           - "{{ app_code }}"
           {% endfor %}
         {% endif %}
+      {% endif %}
       {% endfor %}
     {% endif %}
 

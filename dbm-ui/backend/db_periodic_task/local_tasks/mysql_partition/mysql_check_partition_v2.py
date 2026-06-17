@@ -88,20 +88,53 @@ class PartitionCheckV2Collector:
             "spider_fail": [s.as_dict() for s in spider_fail],
         }
 
-    def _check_cluster_type(self, cluster_type: str) -> Tuple[List[CheckSummary], List[CheckSummary]]:
-        not_run_summaries: List[CheckSummary] = []
-        fail_summaries: List[CheckSummary] = []
+    def _check_cluster_type(self, cluster_type: str, *, full_config_ids: bool = False) -> Tuple[List, List]:
+        not_run_summaries: List = []
+        fail_summaries: List = []
 
         for biz_meta in _iter_check_biz(cluster_type, BIZ_PAGE_SIZE):
             if biz_meta.config_count <= 0:
                 continue
             not_run_ids, fail_ids = self._check_one_biz(cluster_type, biz_meta)
             if not_run_ids:
-                not_run_summaries.append(_make_summary(biz_meta, not_run_ids))
+                not_run_summaries.append(
+                    _make_full_summary(biz_meta, not_run_ids)
+                    if full_config_ids
+                    else _make_summary(biz_meta, not_run_ids)
+                )
             if fail_ids:
-                fail_summaries.append(_make_summary(biz_meta, fail_ids))
+                fail_summaries.append(
+                    _make_full_summary(biz_meta, fail_ids) if full_config_ids else _make_summary(biz_meta, fail_ids)
+                )
 
         return not_run_summaries, fail_summaries
+
+    def list_not_run_config_ids(self, bk_biz_id: int, cluster_type: str) -> List[int]:
+        """
+        指定业务，返回巡检窗口内未执行的 config_id 列表。
+
+        判定规则与 collect() 一致：近 CHECK_RESULT_WINDOW_HOURS 小时内，
+        该 config_id 无 success/failed 上报记录则视为未执行。
+        cluster_type 取值：tendbha（MySQL）或 tendbcluster（Spider）。
+        """
+        biz_meta = BizCheckMeta(bk_biz_id=bk_biz_id, db_app_abbr="", config_count=0)
+        not_run_ids, _ = self._check_one_biz(cluster_type, biz_meta)
+        return not_run_ids
+
+    def collect_abnormal_details(self) -> Dict[str, List[Dict]]:
+        """
+        与 collect() 判定规则一致，按业务汇总返回完整 config_id 列表（供单独调用）。
+
+        与每日企微任务的区别：config_ids 为完整列表，不做展示截断。
+        """
+        mysql_not_run, mysql_fail = self._check_cluster_type(MYSQL_CLUSTER_TYPE, full_config_ids=True)
+        spider_not_run, spider_fail = self._check_cluster_type(SPIDER_CLUSTER_TYPE, full_config_ids=True)
+        return {
+            "mysql_not_run": mysql_not_run,
+            "mysql_fail": mysql_fail,
+            "spider_not_run": spider_not_run,
+            "spider_fail": spider_fail,
+        }
 
     def _check_one_biz(self, cluster_type: str, biz_meta: BizCheckMeta) -> Tuple[List[int], List[int]]:
         not_run_ids: List[int] = []
@@ -270,6 +303,16 @@ def _make_summary(biz_meta: BizCheckMeta, problem_ids: List[int]) -> CheckSummar
         cnt=len(ids_sorted),
         ids=",".join(str(i) for i in ids_sorted),
     )
+
+
+def _make_full_summary(biz_meta: BizCheckMeta, problem_ids: List[int]) -> Dict:
+    config_ids = sorted(set(problem_ids))
+    return {
+        "bk_biz_id": biz_meta.bk_biz_id,
+        "db_app_abbr": biz_meta.db_app_abbr,
+        "cnt": len(config_ids),
+        "config_ids": config_ids,
+    }
 
 
 def _chunked(items: List[int], size: int) -> Iterable[List[int]]:
