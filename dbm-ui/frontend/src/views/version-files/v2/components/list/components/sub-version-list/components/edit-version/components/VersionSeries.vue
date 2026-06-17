@@ -56,6 +56,7 @@
   interface Emits {
     (e: 'addVersion'): void;
     (e: 'valueChange'): void;
+    (e: 'labelChange', label: string): void;
   }
 
   const props = withDefaults(defineProps<Props>(), {
@@ -97,6 +98,18 @@
       });
     }
   });
+
+  watch(
+    currentVersionLabel,
+    () => {
+      if (currentVersionLabel.value) {
+        emits('labelChange', currentVersionLabel.value);
+      }
+    },
+    {
+      immediate: true,
+    },
+  );
 
   watch(
     () => props.versionSeriesId,

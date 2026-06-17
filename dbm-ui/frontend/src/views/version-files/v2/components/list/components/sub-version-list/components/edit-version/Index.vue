@@ -37,6 +37,7 @@
             :distribution-id="releaseVersion?.id"
             :version-series-id="versionSeriesId"
             @add-version="() => emits('addVersion')"
+            @label-change="handleLabelChange"
             @value-change="handleValueChange" />
         </BkFormItem>
         <div class="version-row">
@@ -120,7 +121,7 @@
             :db-type="dbType"
             :is-applied="isApplied"
             :pkg-type="pkgType"
-            :version="formModel.full_version"
+            :version="versionSeriesLabel"
             @value-change="handleValueChange" />
         </BkFormItem>
         <BkFormItem
@@ -250,6 +251,7 @@
   const versionSeriesRef = ref<InstanceType<typeof VersionSeries>>();
   const formModel = ref(initFormModel());
   const confirmDisabled = ref(true);
+  const versionSeriesLabel = ref('');
   const hideTipMap = ref({
     full_version: false,
     name: false,
@@ -422,6 +424,10 @@
   watch(isShow, () => {
     confirmDisabled.value = true;
   });
+
+  const handleLabelChange = (label: string) => {
+    versionSeriesLabel.value = label;
+  };
 
   const handleValueChange = () => {
     confirmDisabled.value = false;
