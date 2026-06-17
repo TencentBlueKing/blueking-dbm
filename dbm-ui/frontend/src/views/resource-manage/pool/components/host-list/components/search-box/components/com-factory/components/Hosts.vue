@@ -12,23 +12,19 @@
 -->
 
 <template>
-  <BkTagInput
-    allow-create
-    collapse-tags
-    has-delete-icon
-    :model-value="defaultValue"
-    :paste-fn="pasteCallback"
-    :placeholder="t('请输入 IP')"
-    @change="handleChange" />
+  <IpSearch
+    :model-value="localValue"
+    style="flex: 1"
+    @clear="fetchData"
+    @search="fetchData" />
 </template>
 <script setup lang="ts">
-  import _ from 'lodash';
-  import { useI18n } from 'vue-i18n';
-
   import { batchSplitRegex } from '@common/regex';
 
+  import IpSearch from '@views/resource-manage/common/components/ip-search/Index.vue';
+
   interface Props {
-    defaultValue?: string[];
+    defaultValue?: string;
   }
 
   type Emits = (e: 'change', value: Props['defaultValue']) => void;
@@ -37,23 +33,27 @@
     inheritAttrs: false,
   });
 
-  defineProps<Props>();
+  const props = defineProps<Props>();
 
   const emits = defineEmits<Emits>();
 
-  const { t } = useI18n();
+  const localValue = ref('');
 
-  const handleChange = (value: Props['defaultValue']) => {
-    emits('change', value);
-  };
+  watch(
+    () => props.defaultValue,
+    () => {
+      if (props.defaultValue) {
+        localValue.value = props.defaultValue.split(',').join('\n');
+      } else {
+        localValue.value = '';
+      }
+    },
+    {
+      immediate: true,
+    },
+  );
 
-  const pasteCallback = (text: string) => {
-    if (!_.trim(text)) {
-      return [];
-    }
-    return text.split(batchSplitRegex).map((item) => ({
-      id: item,
-      name: item,
-    }));
+  const fetchData = (value: string) => {
+    emits('change', value.split(batchSplitRegex).join(','));
   };
 </script>

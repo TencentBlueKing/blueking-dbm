@@ -17,7 +17,7 @@
       {{ t('导入设置') }}
     </div>
     <div class="host-header">
-      <div>
+      <div style="margin-right: auto">
         <I18nT keypath="已选n台">
           <span
             class="number"
@@ -26,18 +26,24 @@
           </span>
         </I18nT>
       </div>
+      <BkButton
+        v-if="isErrorExist"
+        class="error-host-action mr-8"
+        text
+        theme="primary"
+        @click="handleClearErrorHost">
+        <DbIcon
+          class="clear-icon mr-4"
+          type="clearing" />
+        {{ t('一键清除问题 IP') }}
+      </BkButton>
       <BkPopover
         :arrow="false"
-        :is-show="isShowHostActionPop"
+        click-content-auto-hide
         placement="bottom"
         theme="light export-host-action-extends"
-        trigger="manual">
-        <div
-          class="host-action"
-          :class="{
-            active: isShowHostActionPop,
-          }"
-          @click="handleShowHostAction">
+        trigger="click">
+        <div class="host-action">
           <DbIcon type="more" />
         </div>
         <template #content>
@@ -68,7 +74,8 @@
       <div
         v-for="hostItem in hostList"
         :key="hostItem.host_id"
-        class="host-item">
+        class="host-item"
+        :class="{ 'error-host-item': errorHostMap[hostItem.ip] }">
         <div>{{ hostItem.ip }}</div>
         <div class="action-box">
           <DbIcon
@@ -165,6 +172,7 @@
   type IAppItem = ServiceReturnType<typeof getBizs>[number];
 
   interface Props {
+    errorHostMap: Record<string, boolean>;
     hostList: HostInfo[];
   }
   type Emits = (e: 'update:hostList', value: Props['hostList']) => void;
@@ -185,7 +193,6 @@
   const formRef = useTemplateRef('formRef');
   const tagSelectorRef = useTemplateRef('tagSelectorRef');
 
-  const isShowHostActionPop = ref(false);
   const formData = reactive({
     for_biz: isBusiness ? globalBizsStore.currentBizId : 0,
     labels: [] as number[],
@@ -196,6 +203,8 @@
   const currentApp = shallowRef(
     formData.for_biz !== undefined ? globalBizsStore.bizIdMap.get(formData.for_biz) : undefined,
   );
+
+  const isErrorExist = computed(() => props.hostList.some((item) => props.errorHostMap[item.ip]));
 
   watch(
     () => formData.for_biz,
@@ -216,14 +225,9 @@
     },
   });
 
-  const handleShowHostAction = () => {
-    isShowHostActionPop.value = true;
-  };
-
   // 清空所有主机
   const handleRemoveAll = () => {
     emits('update:hostList', []);
-    isShowHostActionPop.value = false;
   };
 
   // 清空所有异常主机
@@ -235,13 +239,11 @@
       return result;
     }, []);
     emits('update:hostList', result);
-    isShowHostActionPop.value = false;
   };
 
   // 复制所有主机 IP
   const handleCopyAll = () => {
     const ipList = props.hostList.map((item) => item.ip);
-    isShowHostActionPop.value = false;
     if (ipList.length < 1) {
       messageWarn(t('暂无可复制 IP'));
       return;
@@ -257,8 +259,6 @@
       }
       return result;
     }, []);
-
-    isShowHostActionPop.value = false;
 
     if (ipList.length < 1) {
       messageWarn(t('暂无可复制 IP'));
@@ -281,6 +281,16 @@
       return result;
     }, []);
 
+    emits('update:hostList', hostListResult);
+  };
+
+  const handleClearErrorHost = () => {
+    const hostListResult = props.hostList.reduce<HostInfo[]>((result, item) => {
+      if (!props.errorHostMap[item.ip]) {
+        result.push(item);
+      }
+      return result;
+    }, []);
     emits('update:hostList', hostListResult);
   };
 
@@ -322,11 +332,18 @@
       line-height: 24px;
       color: #63656e;
 
+      .error-host-action {
+        font-size: 12px;
+
+        .clear-icon {
+          font-size: 14px;
+        }
+      }
+
       .host-action {
         display: flex;
         width: 20px;
         height: 20px;
-        margin-left: auto;
         cursor: pointer;
         border-radius: 2px;
         transition: all 0.15s;
@@ -367,6 +384,10 @@
           .action-box {
             display: flex;
           }
+        }
+
+        &.error-host-item {
+          background-color: #ffebeb;
         }
 
         .action-box {

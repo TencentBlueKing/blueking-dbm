@@ -15,22 +15,6 @@
   <div class="export-host-select-panel">
     <div class="title">
       {{ t('导入主机') }}
-      <!-- <BusinessSelector
-        v-if="!isBusiness"
-        v-model="bizId">
-        <template #trigger>
-          <span style="font-size: 12px; color: #979ba5; cursor: pointer">
-            （
-            <I18nT
-              keypath="从n业务CMDB空闲机模块导入"
-              tag="span">
-              {{ globalBizsStore.bizIdMap.get(bizId)?.name }}
-            </I18nT>
-            ）
-            <DbIcon type="down-big" />
-          </span>
-        </template>
-      </BusinessSelector> -->
       <span style="font-size: 12px; color: #979ba5">
         （
         <I18nT
@@ -46,35 +30,112 @@
         ）
       </span>
     </div>
-    <BkInput
-      v-model="searchContent"
-      class="search-input"
-      :placeholder="t('请输入 IP/IPv6/主机名称 或 选择条件搜索')"
-      @change="handleSearch" />
-    <div
-      :style="{
-        position: 'relative',
-        height: `${contentHeight - 110}px`,
-      }">
-      <DbTable
-        ref="tableRef"
-        :columns="tableColumn"
-        :container-height="contentHeight - 110"
-        :data-source="fetchListDbaHost"
-        :disable-select-method="disableSelectMethod"
-        ignore-biz
-        primary-key="host_id"
-        :releate-url-query="false"
-        selectable
-        @clear-search="handleClearSearch"
-        @selection="handleSelection">
-        <template
-          v-if="!searchContent"
-          #empty>
-          <HostEmpty :bk-biz-id="bizId" />
-        </template>
-      </DbTable>
+    <div class="search-input">
+      <IpSearch
+        v-model="searchContent"
+        class="mr-8"
+        style="flex: 1"
+        @clear="fetchData"
+        @search="fetchData" />
+      <DbQuickSearch
+        v-model="quickSearchValue"
+        :data="quickSearchData"
+        :placeholder="t('搜索主要负责人 、机型 、Agent 状态、地域、园区、操作系统名称')"
+        style="width: 635px; margin-left: auto"
+        @change="handleQuickSearchChange" />
     </div>
+    <DbTable
+      ref="tableRef"
+      :container-height="contentHeight - 110"
+      :data-source="fetchListDbaHost"
+      :disable-select-method="disableSelectMethod"
+      row-key="host_id"
+      selectable
+      :selected="modelValue"
+      @clear-search="handleClearSearch"
+      @selection="handleSelection">
+      <TableColumn
+        col-key="ip"
+        fixed="left"
+        title="IP"
+        :width="150" />
+      <TableColumn
+        col-key="cloud_area.name"
+        :title="t('管控区域')" />
+      <TableColumn
+        col-key="agent"
+        :title="t('Agent 状态')">
+        <template #default="{ row }: { row: HostInfo }">
+          <DbStatus :theme="row.alive === 1 ? 'success' : 'danger'">
+            {{ row.alive === 1 ? t('正常') : t('异常') }}
+          </DbStatus>
+        </template>
+      </TableColumn>
+      <TableColumn
+        col-key="operator"
+        :title="t('主要负责人')"
+        :width="150" />
+      <TableColumn
+        col-key="bk_idc_city_name"
+        :title="t('地域')">
+        <template #default="{ row }: { row: HostInfo }">
+          {{ row.bk_idc_city_name || '--' }}
+        </template>
+      </TableColumn>
+      <TableColumn
+        col-key="bk_sub_zone"
+        :title="t('园区')">
+        <template #default="{ row }: { row: HostInfo }">
+          {{ row.bk_sub_zone || '--' }}
+        </template>
+      </TableColumn>
+      <TableColumn
+        col-key="bk_rack_id"
+        :title="t('机架')">
+        <template #default="{ row }: { row: HostInfo }">
+          {{ row.bk_rack_id || '--' }}
+        </template>
+      </TableColumn>
+      <TableColumn
+        col-key="os_name"
+        :title="t('操作系统名称')">
+        <template #default="{ row }: { row: HostInfo }">
+          {{ row.os_name || '--' }}
+        </template>
+      </TableColumn>
+      <TableColumn
+        col-key="bk_svr_device_class_name"
+        :title="t('机型')">
+        <template #default="{ row }: { row: HostInfo }">
+          {{ row.bk_svr_device_class_name || '--' }}
+        </template>
+      </TableColumn>
+      <TableColumn
+        col-key="bk_cpu"
+        :title="t('CPU（核）')">
+        <template #default="{ row }: { row: HostInfo }">
+          {{ row.bk_cpu || '--' }}
+        </template>
+      </TableColumn>
+      <TableColumn
+        col-key="bk_mem"
+        :title="t('内存（G）')">
+        <template #default="{ row }: { row: HostInfo }">
+          {{ row.bk_mem ? (row.bk_mem / 1024).toFixed(2) : '--' }}
+        </template>
+      </TableColumn>
+      <TableColumn
+        col-key="bk_disk"
+        :title="t('磁盘总容量（G）')"
+        width="120">
+        <template #default="{ row }: { row: HostInfo }">
+          {{ row.bk_disk ? (row.bk_disk / 1024).toFixed(2) : '--' }}
+        </template>
+      </TableColumn>
+      <template #empty>
+        <HostEmpty :bk-biz-id="bizId" />
+      </template>
+    </DbTable>
   </div>
 </template>
 <script setup lang="tsx">
@@ -86,9 +147,15 @@
 
   import { useGlobalBizs, useSystemEnviron } from '@stores';
 
+  import { batchSplitRegex } from '@common/regex';
+
   import DbStatus from '@components/db-status/index.vue';
+  import DbTable from '@components/db-table/IndexNew.vue';
+
+  import IpSearch from '@views/resource-manage/common/components/ip-search/Index.vue';
 
   import HostEmpty from './components/HostEmpty.vue';
+  import { useQuickSearch } from './useQuickSearch';
 
   interface Props {
     contentHeight: number;
@@ -106,6 +173,7 @@
   const route = useRoute();
   const globalBizsStore = useGlobalBizs();
   const systemEnvironStore = useSystemEnviron();
+  const { quickSearchData, quickSearchValue } = useQuickSearch();
 
   const isBusiness = route.name === 'BizResourcePool';
   const defaultBizId = systemEnvironStore.urls.RESOURCE_INDEPENDENT_BIZ;
@@ -115,40 +183,6 @@
   const tableRef = ref();
   const searchContent = ref('');
   const bizId = ref(isBusiness ? globalBizsStore.currentBizId : defaultBizId);
-
-  const tableColumn = [
-    {
-      field: 'ip',
-      fixed: 'left',
-      label: 'IP',
-      width: 150,
-    },
-    {
-      field: 'ipv6',
-      label: 'IPV6',
-      render: ({ data }: { data: HostInfo }) => data.ipv6 || '--',
-    },
-    {
-      field: 'cloud_area.name',
-      label: t('管控区域'),
-    },
-    {
-      field: 'agent',
-      label: t('Agent 状态'),
-      render: ({ data }: { data: HostInfo }) => {
-        const info = data.alive === 1 ? { text: t('正常'), theme: 'success' } : { text: t('异常'), theme: 'danger' };
-        return <DbStatus theme={info.theme}>{info.text}</DbStatus>;
-      },
-    },
-    {
-      field: 'host_name',
-      label: t('主机名称'),
-    },
-    {
-      field: 'os_name',
-      label: 'OS 名称',
-    },
-  ];
 
   // 同步外部的删除操作
   watch(
@@ -179,7 +213,8 @@
   const fetchData = () => {
     tableRef.value.fetchData({
       bk_biz_id: bizId.value,
-      search_content: searchContent.value,
+      search_content: searchContent.value.split(batchSplitRegex).join(','),
+      ...quickSearchValue.value,
     });
   };
 
@@ -193,16 +228,17 @@
     return false;
   };
 
-  const handleSearch = () => {
+  const handleQuickSearchChange = () => {
     fetchData();
   };
 
   const handleClearSearch = () => {
     searchContent.value = '';
+    quickSearchValue.value = {};
     fetchData();
   };
 
-  const handleSelection = (key: number[], dataList: HostInfo[]) => {
+  const handleSelection = (_key: string[], dataList: HostInfo[]) => {
     emits('update:modelValue', dataList);
   };
 
@@ -231,6 +267,8 @@
     }
 
     .search-input {
+      display: flex;
+      align-items: center;
       margin: 14px 0 12px;
     }
   }
