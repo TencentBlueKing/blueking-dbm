@@ -93,6 +93,7 @@ func (suite *ClusterControllerTestSuite) SetupSuite() {
 	routerGroup := r.Group("/metadata/cluster")
 	{
 		routerGroup.GET("/:id", suite.clusterController.GetClusterInfo)
+		routerGroup.GET("/dbm/:cluster_id", suite.clusterController.GetClusterInfoByClusterID)
 		routerGroup.GET("/topology/:id", suite.clusterController.GetClusterTopology)
 		routerGroup.GET("/search", suite.clusterController.ListCluster)
 	}

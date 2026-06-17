@@ -153,9 +153,10 @@ const (
 
 // APIMetaClusterDetail 集群元数据接口标识
 const (
-	APIMetaClusterDetail         = "v4_dbs_meta_cluster_detail"
-	APIMetaClusterList           = "v4_dbs_meta_cluster_list"
-	APIMetaClusterTopologyDetail = "v4_dbs_meta_cluster_topology_detail"
+	APIMetaClusterDetail            = "v4_dbs_meta_cluster_detail"
+	APIMetaClusterDetailByClusterID = "v4_dbs_meta_cluster_detail_by_cluster_id"
+	APIMetaClusterList              = "v4_dbs_meta_cluster_list"
+	APIMetaClusterTopologyDetail    = "v4_dbs_meta_cluster_topology_detail"
 )
 
 // APIMetaComponentDetail 组件元数据接口标识
@@ -400,6 +401,7 @@ func initClusterRequestMetaGroups(groups map[string]string) {
 func initClusterMetaGroups(groups map[string]string) {
 	add(groups, APIGroupMeta,
 		APIMetaClusterDetail,
+		APIMetaClusterDetailByClusterID,
 		APIMetaClusterList,
 		APIMetaClusterTopologyDetail,
 	)
