@@ -35,15 +35,10 @@ func ConfigNamesBatchUpsert(db *gorm.DB, cf api.BaseConfFileDef,
 
 		if cn.OPType == constvar.OPTypeAdd {
 			adds = append(adds, confName)
-		} else if cn.OPType == constvar.OPTypeUpdate {
-			updates = append(updates, confName)
-			if cn.FlagReadonly == 1 {
-				needCheckInherit = append(needCheckInherit, cn.ConfName)
-			}
 		} else if cn.OPType == constvar.OPTypeRemove {
 			deletes = append(deletes, confName)
 			needCheckInherit = append(needCheckInherit, cn.ConfName)
-		} else if cn.OPType == constvar.OPTypeUpsert {
+		} else if cn.OPType == constvar.OPTypeUpsert || cn.OPType == constvar.OPTypeUpdate {
 			upserts = append(upserts, confName)
 			if cn.FlagReadonly == 1 {
 				needCheckInherit = append(needCheckInherit, cn.ConfName)
