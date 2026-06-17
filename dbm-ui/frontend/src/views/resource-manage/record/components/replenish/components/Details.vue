@@ -321,6 +321,7 @@
 <script setup lang="tsx">
   import { InfoBox } from 'bkui-vue';
   import { useI18n } from 'vue-i18n';
+  import { useRequest } from 'vue-request';
 
   import TicketModel from '@services/model/ticket/ticket';
   import {
@@ -329,7 +330,7 @@
     fetchReplenish,
     listTicketApplyInfo,
   } from '@services/source/dbresourceReplenish';
-  import { getTickets } from '@services/source/ticket';
+  import { getTickets, getTicketStatus } from '@services/source/ticket';
   import { getInnerFlowInfo, revokeTicket } from '@services/source/ticketFlow';
 
   import { useSystemEnviron } from '@stores';
@@ -341,6 +342,8 @@
   import StatusFailedAction from '@views/ticket-center/ticket-self-todo/components/batch-operation/StatusFailedAction.vue';
 
   import { messageSuccess, utcDisplayTime } from '@utils';
+
+  import { useTimeoutFn } from '@vueuse/core';
 
   type StatusKey = 'all' | 'FAILED' | 'RUNNING' | 'SUCCEEDED' | 'TERMINATED';
 
@@ -391,6 +394,8 @@
   const terminateFormRef = ref();
   const isRetrying = ref(false);
   const ticketInnerFlowInfo = shallowRef<ServiceReturnType<typeof getInnerFlowInfo>>({});
+
+  const shouldPoll = ref(false);
 
   const summaryInfo = ref({
     create_at: '',
@@ -538,6 +543,40 @@
   const handleClearSelection = () => {
     selectedRowMap.value = {};
   };
+
+  // 轮询获取单据状态
+  const { refresh: fetchTicketStatus } = useRequest(
+    () => {
+      if (tableData.value.length < 1 || !shouldPoll.value) {
+        return Promise.reject();
+      }
+      return getTicketStatus({
+        ticket_ids: tableData.value.map((item) => item.id).join(','),
+      });
+    },
+    {
+      manual: true,
+      onSuccess(data: Record<string, string>) {
+        // 更新 tableData 中对应单据的 status
+        tableData.value.forEach((ticketData) => {
+          if (data[ticketData.id]) {
+            Object.assign(ticketData, { status: data[ticketData.id] });
+          }
+        });
+        // 触发 shallowRef 响应式更新
+        tableData.value = [...tableData.value];
+
+        // 继续轮询
+        if (shouldPoll.value) {
+          loopFetchTicketStatus();
+        }
+      },
+    },
+  );
+
+  const { start: loopFetchTicketStatus, stop: stopPolling } = useTimeoutFn(() => {
+    fetchTicketStatus();
+  }, 3000);
 
   const handleBatchTerminate = () => {
     if (selectedRows.value.length === 0) return;
@@ -688,6 +727,12 @@
               ...applyInfoItem.details,
             } as unknown as RowData;
           });
+
+          // 启动轮询
+          if (tableData.value.length > 0) {
+            shouldPoll.value = true;
+            fetchTicketStatus();
+          }
         }
       }
     } finally {
@@ -697,10 +742,14 @@
 
   watch(
     isShow,
-    () => {
-      if (isShow.value && props.id) {
+    (newVal) => {
+      if (newVal && props.id) {
         selectedRowMap.value = {};
         fetchData();
+      } else {
+        // 停止轮询
+        shouldPoll.value = false;
+        stopPolling();
       }
     },
     {
