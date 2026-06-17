@@ -32,6 +32,9 @@ from backend.dbm_aiagent.mcp_tools.mysql.helpers.assert_clustertype import asser
 from backend.dbm_aiagent.mcp_tools.mysql.impl.cluster_runtime_variables import cluster_runtime_variables
 from backend.dbm_aiagent.mcp_tools.mysql.impl.cluster_topo import mysql_cluster_topo
 from backend.dbm_aiagent.mcp_tools.mysql.impl.explain_sql import explain_sql
+from backend.dbm_aiagent.mcp_tools.mysql.impl.get_table_partition_conf import (
+    get_table_partition_conf as get_table_partition_conf_impl,
+)
 from backend.dbm_aiagent.mcp_tools.mysql.impl.query_cluster_skew_data import query_cluster_skew_data
 from backend.dbm_aiagent.mcp_tools.mysql.impl.query_table_data_free import query_table_data_free
 from backend.dbm_aiagent.mcp_tools.mysql.impl.query_trx import query_long_running_trx
@@ -62,6 +65,10 @@ from backend.dbm_aiagent.mcp_tools.mysql.serializers.cluster_topo import (
 from backend.dbm_aiagent.mcp_tools.mysql.serializers.explain_sql import (
     ExplainSQLInputSerializer,
     ExplainSQLOutputSerializer,
+)
+from backend.dbm_aiagent.mcp_tools.mysql.serializers.get_table_partition_conf import (
+    GetTablePartitionConfInputSerializer,
+    GetTablePartitionConfOutputSerializer,
 )
 from backend.dbm_aiagent.mcp_tools.mysql.serializers.query_cluster_skew_data import (
     QueryClusterSkewDataInputSerializer,
@@ -759,6 +766,32 @@ class MySQLQueryMcpToolsViewSet(McpToolsViewSet):
                 cluster_obj=cluster_obj,
                 from_date=from_date,
                 to_date=to_date,
+            )
+        )
+
+    @mcp_tools_api_decorator(
+        description=str(_("查询单表分区 v2 配置及实例侧表结构（tendbha / tendbsingle）")),
+        request_slz=GetTablePartitionConfInputSerializer,
+        response_slz=GetTablePartitionConfOutputSerializer,
+        permission_classes=[McpClusterDetailPermission],
+        mcp_auth_parser=auth_parse_clusters,
+        tags=[DBMMCPTags.READ],
+        mcp=[DBMMcpTools.MYSQL_QUERY],
+        name_prefix="mysql_query",
+    )
+    def get_table_partition_conf(self, request, *args, **kwargs):
+        cluster_domain = self.get_param("cluster_domain")
+        db_name = self.get_param("db_name")
+        table_name = self.get_param("table_name")
+
+        cluster_obj = Cluster.objects.get(immute_domain=cluster_domain)
+        assert_cluster_type(cluster_obj, [ClusterType.TenDBSingle, ClusterType.TenDBHA])
+
+        return Response(
+            get_table_partition_conf_impl(
+                cluster_domain=cluster_domain,
+                db_name=db_name,
+                table_name=table_name,
             )
         )
 
