@@ -51,6 +51,7 @@ class DBMAgentResourceManager(AgentResourceManager):
 
     @classmethod
     def set_backend_mcp_config(cls, agent_config: AgentConfig):
+        """设置后台mcp鉴权配置"""
         mcp_servers = agent_config.mcp_server_config
         for name, config in mcp_servers.items():
             # 将请求连接替换为应用请求，网关是加上application标识
@@ -78,8 +79,9 @@ class DBMAgentResourceManager(AgentResourceManager):
         return agent_config
 
     def get_paas_sbx_client(self, executor_info: dict, **kwargs):
+        """修改paas sandbox的鉴权配置"""
         client = super().get_paas_sbx_client(executor_info, **kwargs)
-        # 手动修改url里面的app_code为项目app_code，保持鉴权一致性
+        # 手动修改url里面的app_code为项目app_code，保持应用鉴权一致性
         sandbox_app_urls = [
             "create_sandbox",
             "list_agent_sandbox_volumes",
@@ -89,6 +91,10 @@ class DBMAgentResourceManager(AgentResourceManager):
         for url in sandbox_app_urls:
             ins = getattr(client, url)
             ins.path = ins.path.replace("{app_code}", settings.APP_CODE)
+        # 如果是后台请求，则使用虚拟身份调用
+        if executor_info.get("executor", "") in ["", "admin"]:
+            user, access_token = settings.DBM_APP_USER, settings.DBM_APP_ACCESS_TOKEN
+            client.update_bkapi_authorization(access_token=access_token, bk_username=user)
         return client
 
 

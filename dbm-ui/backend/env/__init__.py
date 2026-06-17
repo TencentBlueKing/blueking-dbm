@@ -89,6 +89,10 @@ APIGW_PUBLIC_KEY = get_type_env(key="APIGW_PUBLIC_KEY", _type=str, default="")
 BK_APIGW_STAGE_ENABLE_MCP_SERVERS = get_type_env(key="BK_APIGW_STAGE_ENABLE_MCP_SERVERS", _type=bool, default=False)
 BK_APIGW_STAGE_ENABLE_SERVERS = get_type_env(key="BK_APIGW_STAGE_ENABLE_SERVERS", _type=bool, default=True)
 
+# 虚拟用户
+DBM_APP_USER = get_type_env(key="DBM_APP_USER", _type=str, default="")
+DBM_APP_ACCESS_TOKEN = get_type_env(key="DBM_APP_ACCESS_TOKEN", _type=str, default="")
+
 # bkoauth 相关配置
 OAUTH_API_URL = get_type_env(key="OAUTH_API_URL", _type=str, default="")
 
