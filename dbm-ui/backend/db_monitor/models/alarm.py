@@ -989,8 +989,15 @@ class MonitorPolicy(AuditedModel):
                 sub_policy.detects_config = self.detects_config
                 sub_policy.notify_rules = self.notify_rules
                 sub_policy.notify_config = self.notify_config
+                if self.details.get("actions"):
+                    callbacks = self.details["actions"]
+                else:
+                    callback_actions = get_dbm_alarm_callback_actions()
+                    labels = list(set(self.details["labels"]))
+                    callbacks = self.get_callbacks(labels, callback_actions)
+
                 sub_policy.is_enabled = self.is_enabled
-                sub_policy.details.update(is_enabled=self.is_enabled)
+                sub_policy.details.update(is_enabled=self.is_enabled, actions=callbacks)
                 old_agg_info = sub_policy.agg_info
                 for info in old_agg_info:
                     info["agg_interval"] = agg_interval_map[info["metric_id"]]
@@ -1304,6 +1311,34 @@ class MonitorPolicy(AuditedModel):
         )
 
     @classmethod
+    def get_callbacks(cls, labels, callback_actions):
+        callbacks = []
+        for label in labels:
+            # 可以注册多个 callbacks
+            for callback_name, callback in callback_actions.items():
+                if (
+                    callback["label_starts"]
+                    and label.startswith(callback["label_starts"])
+                    and callback.get("action_id", None) is not None
+                ):
+                    callbacks.append(
+                        {
+                            "config_id": callback["action_id"],
+                            "signal": ["abnormal"],
+                            "user_groups": [],
+                            "options": {
+                                "converge_config": {
+                                    "is_enabled": False,
+                                    "converge_func": "skip_when_success",
+                                    "timedelta": 60,
+                                    "count": 1,
+                                }
+                            },
+                        }
+                    )
+        return callbacks
+
+    @classmethod
     def sync_plat_monitor_policy(cls, callback_actions=None, db_type=None, force=False, specified_name=None):
         if not callback_actions:
             callback_actions = get_dbm_alarm_callback_actions()
@@ -1352,31 +1387,8 @@ class MonitorPolicy(AuditedModel):
                     template_dict["details"]["priority"] = TargetPriority.PLATFORM.value
                     # 平台策略仅开启基于分派通知
                     template_dict["details"]["notice"]["options"]["assign_mode"] = ["by_rule"]
-                    callbacks = []
-                    for label in labels:
-                        # 可以注册多个 callbacks
-                        for callback_name, callback in callback_actions.items():
-                            if (
-                                callback["label_starts"]
-                                and label.startswith(callback["label_starts"])
-                                and callback.get("action_id", None) is not None
-                            ):
-                                callbacks.append(
-                                    {
-                                        "config_id": callback["action_id"],
-                                        "signal": ["abnormal"],
-                                        "user_groups": [],
-                                        "options": {
-                                            "converge_config": {
-                                                "is_enabled": False,
-                                                "converge_func": "skip_when_success",
-                                                "timedelta": 60,
-                                                "count": 1,
-                                            }
-                                        },
-                                    }
-                                )
-                    template_dict["details"]["actions"] = callbacks
+
+                    template_dict["details"]["actions"] = cls.get_callbacks(labels, callback_actions)
                     policy = MonitorPolicy(**template_dict)
 
                 policy_name = policy.name
