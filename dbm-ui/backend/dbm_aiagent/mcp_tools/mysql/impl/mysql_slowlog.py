@@ -298,6 +298,7 @@ def query_slowlog_aggregated(
                 query_time_sum=Sum("query_time"),
                 rows_examined_max=Max("rows_examined"),
                 rows_examined_sum=Sum("rows_examined"),
+                rows_examined_min=Min("rows_examined"),
                 rows_sent_max=Max("rows_sent"),
                 rows_sent_sum=Sum("rows_sent"),
                 query_digest_text=AnyValue("query_digest_text", output_field=CharField()),

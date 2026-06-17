@@ -30,8 +30,7 @@ class MySQLAlarm(AlarmCallback):
 
     # 策略名关键字 -> 处理函数的映射
     STRATEGY_HANDLERS = {
-        "mysql_global_status_slow_queries": "call_slowlog_ai_analysis",
-        _("慢查询数量"): "call_slowlog_ai_analysis",
+        "慢查询数量": "call_slowlog_ai_analysis",
     }
 
     @classmethod
