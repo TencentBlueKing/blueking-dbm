@@ -83,25 +83,20 @@ type SourceConfig struct {
 	GrpcMaxSendMessageSize    int           `yaml:"grpcMaxSendMessageSize"    mapstructure:"grpcMaxSendMessageSize"`
 }
 
-// SinkerConfig Configuration for a single sinker instance.
-type SinkerConfig struct {
-	Name      string `yaml:"name"     mapstructure:"name"`
-	Enable    bool   `yaml:"enable"   mapstructure:"enable"`
-	Endpoints string `yaml:"endpoint" mapstructure:"endpoint"`
-	User      string `yaml:"user"     mapstructure:"user"`
-	Password  string `yaml:"password" mapstructure:"password"`
-}
-
-// SinkConfig Configuration related to the sink layer (global timeout + sinker list).
+// SinkConfig Configuration related to the sink layer.
 type SinkConfig struct {
-	SaveTimeout time.Duration  `yaml:"saveTimeout" mapstructure:"saveTimeout"`
-	Sinkers     []SinkerConfig `yaml:"sinkers"     mapstructure:"sinkers"`
+	Name        string        `yaml:"name"     mapstructure:"name"`
+	Enable      bool          `yaml:"enable"   mapstructure:"enable"`
+	Endpoints   string        `yaml:"endpoint" mapstructure:"endpoint"`
+	User        string        `yaml:"user"     mapstructure:"user"`
+	Password    string        `yaml:"password" mapstructure:"password"`
+	SaveTimeout time.Duration `yaml:"saveTimeout" mapstructure:"saveTimeout"`
 }
 
 // ServiceConfig service's configuration
 type ServiceConfig struct {
 	Sources []SourceConfig `yaml:"source" mapstructure:"source"`
-	Sink    SinkConfig     `yaml:"sink"   mapstructure:"sink"`
+	Sinks   []SinkConfig   `yaml:"sink"   mapstructure:"sink"`
 }
 
 // LogConfig log configuration
@@ -121,12 +116,6 @@ type Configuration struct {
 	Apm       ApmConfig       `yaml:"apm"       mapstructure:"apm"`
 	Service   ServiceConfig   `yaml:"service"   mapstructure:"service"`
 	Log       LogConfig       `yaml:"log"       mapstructure:"log"`
-}
-
-// GetSaveTimeout returns the save timeout from sink config.
-// If not configured, returns 0 (caller should fall back to default).
-func GetSaveTimeout() time.Duration {
-	return Cfg.Service.Sink.SaveTimeout
 }
 
 // Load loads receiver configuration from file

@@ -38,7 +38,7 @@ import (
 type DataC chan interface{}
 
 type Inputter interface {
-	Harvest(ctx context.Context, savers []sink.Sinker) error
+	Harvest(ctx context.Context, savers []sink.Saver) error
 	Close()
 }
 

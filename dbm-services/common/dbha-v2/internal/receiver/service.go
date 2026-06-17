@@ -62,7 +62,7 @@ type Service struct {
 	discoveryCli *discovery.Client
 	regCli       *discovery.Registry
 	sources      []source.Inputter
-	sinkers      []sink.Sinker
+	sinkers      []sink.Saver
 	wg           sync.WaitGroup
 	etcdLogger   *zap.Logger
 }
@@ -150,7 +150,7 @@ func (s *Service) Close() {
 		go func(out sink.Sinker) {
 			defer wg.Done()
 			out.Close()
-		}(outputer)
+		}(outputer.Sinker)
 	}
 
 	wg.Wait()
@@ -247,11 +247,11 @@ func (s *Service) createSource(ctx context.Context) error {
 }
 
 func (s *Service) createSinkers() error {
-	if len(config.Cfg.Service.Sink.Sinkers) == 0 {
+	if len(config.Cfg.Service.Sinks) == 0 {
 		return gerrors.New(gerrors.InvalidConfiguration, "not set any sink")
 	}
 
-	for _, sinkerCfg := range config.Cfg.Service.Sink.Sinkers {
+	for _, sinkerCfg := range config.Cfg.Service.Sinks {
 		if !sinkerCfg.Enable {
 			logger.Info("the outputer(%s) is disabled", sinkerCfg.Name)
 			continue

@@ -49,7 +49,7 @@ const Name = "probe"
 type Probe struct {
 	proto.UnimplementedReceiverServiceServer
 	wg          sync.WaitGroup
-	savers      []sink.Sinker
+	savers      []sink.Saver
 	cfg         config.SourceConfig
 	ep          *hanet.Endpoint
 	svr         *grpc.Server
@@ -63,15 +63,11 @@ func NewProbeServer(cfg config.SourceConfig) (*Probe, error) {
 	if err != nil {
 		return nil, gerrors.Newf(gerrors.InvalidConfiguration, "invalid probe source endpoint, errmsg: %s", err)
 	}
-	saveTimeout := config.GetSaveTimeout()
-	if saveTimeout <= 0 {
-		saveTimeout = constant.DefaultSaveTimeout
-	}
 
 	return &Probe{
 		cfg:         cfg,
 		ep:          ep,
-		connHandler: &connectionHandler{bufferSize: cfg.BufferSize, saveTimeout: saveTimeout},
+		connHandler: &connectionHandler{bufferSize: cfg.BufferSize},
 	}, nil
 }
 
@@ -164,7 +160,7 @@ func (p *Probe) PushDataUnary(ctx context.Context, req *proto.ReceiverRequest) (
 	}, nil
 }
 
-func (p *Probe) Harvest(ctx context.Context, savers []sink.Sinker) error {
+func (p *Probe) Harvest(ctx context.Context, savers []sink.Saver) error {
 	p.wg.Add(1)
 	go func(ctx context.Context) {
 		defer p.wg.Done()

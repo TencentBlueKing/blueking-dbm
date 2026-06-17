@@ -27,8 +27,10 @@ package sink
 import (
 	"context"
 	"strings"
+	"time"
 
 	"dbm-services/common/dbha-v2/internal/receiver/config"
+	"dbm-services/common/dbha-v2/pkg/constant"
 	"dbm-services/common/dbha-v2/pkg/gerrors"
 )
 
@@ -38,13 +40,31 @@ type Sinker interface {
 	Close()
 }
 
+type Saver struct {
+	Sinker      Sinker
+	SaveTimeout time.Duration
+}
+
 // NewSinker create a new saver
-func NewSinker(cfg config.SinkerConfig) (Sinker, error) {
+func NewSinker(cfg config.SinkConfig) (Saver, error) {
 	switch strings.ToLower(cfg.Name) {
 	case strings.ToLower(mySQLName):
-		return newMySql(cfg.Endpoints, cfg.User, cfg.Password)
+		mysql, err := newMySql(cfg.Endpoints, cfg.User, cfg.Password)
+		if err != nil {
+			return Saver{}, err
+		}
+
+		saveTimeout := cfg.SaveTimeout
+		if saveTimeout <= 0 {
+			saveTimeout = constant.DefaultSaveTimeout
+		}
+
+		return Saver{
+			Sinker:      mysql,
+			SaveTimeout: saveTimeout,
+		}, nil
 
 	default:
-		return nil, gerrors.Newf(gerrors.Unsupported, "unsupported storage(%s)", cfg.Name)
+		return Saver{}, gerrors.Newf(gerrors.Unsupported, "unsupported storage(%s)", cfg.Name)
 	}
 }
