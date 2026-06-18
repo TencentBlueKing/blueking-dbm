@@ -36,7 +36,6 @@ import (
 	"dbm-services/common/dbha-v2/internal/probe/client"
 	"dbm-services/common/dbha-v2/internal/receiver/config"
 	"dbm-services/common/dbha-v2/internal/receiver/sink"
-	"dbm-services/common/dbha-v2/pkg/constant"
 	"dbm-services/common/dbha-v2/pkg/proto"
 )
 
@@ -88,10 +87,6 @@ func (s *sleepSinker) Save(ctx context.Context, msg *sink.Message) error {
 
 func (s *sleepSinker) Close() {}
 
-func newSaver(s sink.Sinker) sink.Saver {
-	return sink.Saver{Sinker: s, SaveTimeout: constant.DefaultSaveTimeout}
-}
-
 func prepareServerAndClient(t *testing.T) (*Probe, *client.ReceiverClient) {
 	t.Helper()
 
@@ -126,7 +121,7 @@ func prepareServerAndClient(t *testing.T) (*Probe, *client.ReceiverClient) {
 func prepareConnectionHandler(bufferSize int) (*connectionHandler, *fakeSinker) {
 	fs := &fakeSinker{}
 	ch := &connectionHandler{
-		savers:     []sink.Saver{newSaver(fs)},
+		savers:     []sink.Sinker{fs},
 		bufferSize: bufferSize,
 		eventC:     make(requestEventC, bufferSize),
 	}
@@ -144,7 +139,7 @@ func TestHarvestWithProbe(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	err := probe.Harvest(ctx, []sink.Saver{newSaver(fs)})
+	err := probe.Harvest(ctx, []sink.Sinker{fs})
 	if err != nil {
 		t.Fatalf("Harvest failed: %v", err)
 	}
@@ -219,17 +214,17 @@ func TestSinkerBroadCast(t *testing.T) {
 		cli.Close()
 	}()
 
-	savers := make([]sink.Saver, 3)
+	sinkers := make([]sink.Sinker, 3)
 	fakes := make([]*fakeSinker, 3)
 
 	for i := 0; i < 3; i++ {
 		fakes[i] = &fakeSinker{}
-		savers[i] = newSaver(fakes[i])
+		sinkers[i] = fakes[i]
 	}
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
-	if err := probe.Harvest(ctx, savers); err != nil {
+	if err := probe.Harvest(ctx, sinkers); err != nil {
 		t.Fatalf("Harvest failed: %v", err)
 	}
 
@@ -255,20 +250,20 @@ func TestSinkerIndependency(t *testing.T) {
 		cli.Close()
 	}()
 
-	savers := make([]sink.Saver, 3)
+	sinkers := make([]sink.Sinker, 3)
 	var targetFs *fakeSinker
 	for i := 0; i < 3; i++ {
 		if i == 1 {
 			targetFs = &fakeSinker{}
-			savers[i] = newSaver(targetFs)
+			sinkers[i] = targetFs
 			continue
 		}
-		savers[i] = newSaver(&errorSinker{})
+		sinkers[i] = &errorSinker{}
 	}
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
-	if err := probe.Harvest(ctx, savers); err != nil {
+	if err := probe.Harvest(ctx, sinkers); err != nil {
 		t.Fatalf("Harvest failed: %v", err)
 	}
 
@@ -295,7 +290,7 @@ func TestSpecialPayload(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	if err := probe.Harvest(ctx, []sink.Saver{newSaver(fs)}); err != nil {
+	if err := probe.Harvest(ctx, []sink.Sinker{fs}); err != nil {
 		t.Fatalf("Harvest failed: %v", err)
 	}
 
@@ -333,7 +328,7 @@ func TestSinkerSaveTimeout(t *testing.T) {
 	ss := &sleepSinker{}
 	fs := &fakeSinker{}
 	ch := &connectionHandler{
-		savers: []sink.Saver{newSaver(ss), newSaver(fs)},
+		savers: []sink.Sinker{ss, fs},
 		eventC: make(requestEventC, 3),
 	}
 	defer ch.close()

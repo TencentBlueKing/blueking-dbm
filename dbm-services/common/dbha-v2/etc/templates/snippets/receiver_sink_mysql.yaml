@@ -3,4 +3,4 @@
       endpoint: "{{COMMON_STORAGE_TCP_ENDPOINT}}"
       user: "{{COMMON_STORAGE_USER}}"
       password: "{{COMMON_STORAGE_PASSWORD}}"
-      saveTimeout: {{RECEIVER_SINK_SAVE_TIMEOUT}}
+      saveTimeout: {{RECEIVER_SINK_MYSQL_SAVE_TIMEOUT}}

@@ -32,6 +32,7 @@ import (
 
 	"dbm-services/common/dbha-v2/internal/receiver/apm"
 	"dbm-services/common/dbha-v2/internal/receiver/config"
+	"dbm-services/common/dbha-v2/pkg/constant"
 	"dbm-services/common/dbha-v2/pkg/gerrors"
 	"dbm-services/common/dbha-v2/pkg/hanet"
 	"dbm-services/common/dbha-v2/pkg/logger"
@@ -74,6 +75,9 @@ func newMySql(endpoints, user, password string, timeout time.Duration) (*mysql, 
 
 	gormLogger := logger.NewZapLogger(logCfg)
 
+	if timeout <= 0 {
+		timeout = constant.DefaultSaveTimeout
+	}
 	msql := &mysql{saveTimeout: timeout}
 
 	for _, epoint := range epoints {
