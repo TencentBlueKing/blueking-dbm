@@ -39,16 +39,11 @@
       </BkButton>
       <BkPopover
         :arrow="false"
-        :is-show="isShowHostActionPop"
+        click-content-auto-hide
         placement="bottom"
         theme="light export-host-action-extends"
-        trigger="manual">
-        <div
-          class="host-action"
-          :class="{
-            active: isShowHostActionPop,
-          }"
-          @click="handleShowHostAction">
+        trigger="click">
+        <div class="host-action">
           <DbIcon type="more" />
         </div>
         <template #content>
@@ -198,7 +193,6 @@
   const formRef = useTemplateRef('formRef');
   const tagSelectorRef = useTemplateRef('tagSelectorRef');
 
-  const isShowHostActionPop = ref(false);
   const formData = reactive({
     for_biz: isBusiness ? globalBizsStore.currentBizId : 0,
     labels: [] as number[],
@@ -231,14 +225,9 @@
     },
   });
 
-  const handleShowHostAction = () => {
-    isShowHostActionPop.value = true;
-  };
-
   // 清空所有主机
   const handleRemoveAll = () => {
     emits('update:hostList', []);
-    isShowHostActionPop.value = false;
   };
 
   // 清空所有异常主机
@@ -250,13 +239,11 @@
       return result;
     }, []);
     emits('update:hostList', result);
-    isShowHostActionPop.value = false;
   };
 
   // 复制所有主机 IP
   const handleCopyAll = () => {
     const ipList = props.hostList.map((item) => item.ip);
-    isShowHostActionPop.value = false;
     if (ipList.length < 1) {
       messageWarn(t('暂无可复制 IP'));
       return;
@@ -272,8 +259,6 @@
       }
       return result;
     }, []);
-
-    isShowHostActionPop.value = false;
 
     if (ipList.length < 1) {
       messageWarn(t('暂无可复制 IP'));
