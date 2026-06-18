@@ -3236,7 +3236,7 @@
     "value_default": "mysql.servers",
     "value_allowed": "",
     "value_type": "STRING",
-    "value_type_sub": "STRING",
+    "value_type_sub": "",
     "conf_name_lc": "",
     "description": "",
     "need_restart": 1,

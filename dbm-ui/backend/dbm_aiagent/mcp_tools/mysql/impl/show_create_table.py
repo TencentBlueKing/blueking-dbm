@@ -8,8 +8,6 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-from typing import Dict
-
 from backend.components import DRSApi
 from backend.db_meta.enums import ClusterType
 from backend.dbm_aiagent.mcp_tools.exceptions import DBMMcpBaseException
@@ -17,7 +15,7 @@ from backend.dbm_aiagent.mcp_tools.mysql.helpers.get_slave_address_and_dbname im
 from backend.dbm_aiagent.mcp_tools.mysql.helpers.sql_safety import quote_ident
 
 
-def show_create_table(cluster_type: ClusterType, cluster_domain: str, dbname: str, tablename: str) -> Dict:
+def show_create_table(cluster_type: ClusterType, cluster_domain: str, dbname: str, tablename: str) -> str:
     dbname = dbname.strip("`")
     tablename = tablename.strip("`").strip(" ")
     if "." in tablename:
@@ -53,6 +51,4 @@ def show_create_table(cluster_type: ClusterType, cluster_domain: str, dbname: st
     if show_create_res["error_msg"]:
         raise DBMMcpBaseException(msg=f"show create table {tablename} failed: {show_create_res['error_msg']}")
 
-    return {
-        "create_sql": list(show_create_res["table_data"][0].values())[0],
-    }
+    return list(show_create_res["table_data"][0].values())[0]
