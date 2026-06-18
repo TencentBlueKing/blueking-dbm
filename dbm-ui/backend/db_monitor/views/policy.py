@@ -458,6 +458,8 @@ class MonitorPolicyViewSet(AuditedModelViewSet):
         if token != env.BKMONITOR_BEARER_TOKEN:
             raise PermissionError("Bearer token is not valid")
 
+        logger.info("[alarm_callback] request data: %s", request.data)
+
         # 根据告警回调数据分发到匹配的回调处理器
         callback_data = self.validated_data
         AlarmCallback.dispatch(callback_data)
