@@ -141,12 +141,14 @@ class MySQLQueryMcpToolsViewSet(McpToolsViewSet):
         assert_cluster_type(cluster_obj, [ClusterType.TenDBSingle, ClusterType.TenDBCluster, ClusterType.TenDBHA])
 
         return Response(
-            show_create_table(
-                cluster_type=cluster_obj.cluster_type,
-                cluster_domain=cluster_domain,
-                dbname=db_name,
-                tablename=table_name,
-            )
+            {
+                "create_sql": show_create_table(
+                    cluster_type=cluster_obj.cluster_type,
+                    cluster_domain=cluster_domain,
+                    dbname=db_name,
+                    tablename=table_name,
+                )
+            }
         )
 
     @mcp_tools_api_decorator(
@@ -168,16 +170,15 @@ class MySQLQueryMcpToolsViewSet(McpToolsViewSet):
 
         create_sql_list = []
         for table_name in table_names:
-            create_sql = show_create_table(
-                cluster_type=cluster_obj.cluster_type,
-                cluster_domain=cluster_domain,
-                dbname="",
-                tablename=table_name,
-            )
             create_sql_list.append(
                 {
                     "table_name": table_name,
-                    "create_sql": create_sql,
+                    "create_sql": show_create_table(
+                        cluster_type=cluster_obj.cluster_type,
+                        cluster_domain=cluster_domain,
+                        dbname="",
+                        tablename=table_name,
+                    ),
                 }
             )
 
