@@ -41,6 +41,7 @@
                   :biz-id-name-map="bizIdNameMap"
                   class="tab-table"
                   :data="dataList"
+                  :filter-type="formData.filter_type"
                   :is-anomalies="!!error"
                   :is-searching="isSearching"
                   :keyword="keyword"
@@ -73,9 +74,9 @@
 
   import { useGlobalBizs } from '@stores';
 
+  import { FilterType } from '@common/const';
   import { batchSplitRegex } from '@common/regex';
 
-  import { FilterType } from '@components/system-search/components/FilterTypeSelect.vue';
   import FilterOptions from '@components/system-search/components/search-result/FilterOptions.vue';
 
   import Cluster from './components/content/cluster/Index.vue';

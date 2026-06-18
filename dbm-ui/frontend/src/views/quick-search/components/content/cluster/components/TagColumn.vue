@@ -9,6 +9,7 @@
           v-for="tagItem in getList(rowData.tags)"
           :key="tagItem.id">
           <TextHighlight
+            :filter-type="filterType"
             high-light-color="#FF9C01"
             :keyword="keyword"
             :text="`${tagItem.key}:${tagItem.value}`" />
@@ -31,9 +32,12 @@
 
   import QuickSearchClusterModel from '@services/model/quiker-search/quick-search-cluster';
 
+  import { FilterType } from '@common/const';
+
   import TextHighlight from '@components/text-highlight/Index.vue';
 
   interface Props {
+    filterType: FilterType;
     keyword: string;
   }
 
