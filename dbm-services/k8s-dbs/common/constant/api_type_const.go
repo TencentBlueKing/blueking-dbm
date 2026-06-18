@@ -148,7 +148,8 @@ const (
 
 // APIMetaClusterRequestList 集群请求元数据接口标识
 const (
-	APIMetaClusterRequestList = "v4_dbs_meta_cluster_request_list"
+	APIMetaClusterRequestList   = "v4_dbs_meta_cluster_request_list"
+	APIMetaClusterRequestCreate = "v4_dbs_meta_cluster_request_create"
 )
 
 // APIMetaClusterDetail 集群元数据接口标识
@@ -394,6 +395,7 @@ func initAddonTypeMetaGroups(groups map[string]string) {
 func initClusterRequestMetaGroups(groups map[string]string) {
 	add(groups, APIGroupMeta,
 		APIMetaClusterRequestList,
+		APIMetaClusterRequestCreate,
 	)
 }
 

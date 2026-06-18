@@ -20,12 +20,14 @@ limitations under the License.
 package controller
 
 import (
+	"encoding/json"
 	"k8s-dbs/common/api"
 	commconst "k8s-dbs/common/constant"
 	commutil "k8s-dbs/common/util"
 	"k8s-dbs/errors"
 	metaentity "k8s-dbs/metadata/entity"
 	"k8s-dbs/metadata/provider"
+	metareq "k8s-dbs/metadata/vo/request"
 	corevo "k8s-dbs/metadata/vo/response"
 	"time"
 
@@ -100,4 +102,36 @@ func (k *ClusterRequestRecordController) buildListParams(ctx *gin.Context) (
 		EndTime:        endTime,
 	}
 	return &requestPrams, nil
+}
+
+// CreateClusterRecord 创建集群操作记录
+func (k *ClusterRequestRecordController) CreateClusterRecord(ctx *gin.Context) {
+	ctx.Set(commconst.APIName, commconst.APIMetaClusterRequestCreate)
+	var req metareq.CreateClusterOperationLogRequest
+	if err := ctx.ShouldBindJSON(&req); err != nil {
+		api.HandleValidationError(ctx, err, &req)
+		return
+	}
+	requestBytes, err := json.Marshal(req)
+	if err != nil {
+		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.ParameterInvalidError, err))
+		return
+	}
+	requestRecord := &metaentity.ClusterRequestRecordEntity{
+		K8sClusterName: req.K8sClusterName,
+		ClusterName:    req.ClusterName,
+		NameSpace:      req.NameSpace,
+		RequestID:      commutil.RequestID(),
+		RequestType:    req.RequestType,
+		RequestParams:  string(requestBytes),
+		TicketID:       &req.TicketID,
+		CreatedBy:      req.BkUserName,
+		UpdatedBy:      req.BkUserName,
+	}
+	addedRequestRecord, err := k.clusterRequestProvider.CreateRequestRecord(requestRecord)
+	if err != nil {
+		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.CreateMetaDataError, err))
+		return
+	}
+	api.SuccessResponse(ctx, addedRequestRecord, commconst.Success)
 }
