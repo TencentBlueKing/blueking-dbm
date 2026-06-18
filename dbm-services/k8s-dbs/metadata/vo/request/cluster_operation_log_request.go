@@ -42,3 +42,13 @@ type ClusterOperationLogsSearch struct {
 	ClusterName    string `json:"clusterName" required:"true"`
 	NameSpace      string `json:"namespace" required:"true"`
 }
+
+// CreateClusterOperationLogRequest 创建集群操作记录的请求
+type CreateClusterOperationLogRequest struct {
+	TicketID          uint64 `json:"ticketId" binding:"required"`
+	ClusterName       string `json:"clusterName" binding:"required"`
+	K8sClusterName    string `json:"k8sClusterName" binding:"required"`
+	NameSpace         string `json:"nameSpace" binding:"required"`
+	RequestType       string `json:"requestType" binding:"required"`
+	commentity.BKAuth `json:",inline"`
+}

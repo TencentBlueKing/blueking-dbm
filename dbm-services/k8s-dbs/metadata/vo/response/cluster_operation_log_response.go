@@ -70,7 +70,7 @@ func (k ClusterOperationLogResponse) MarshalJSON() ([]byte, error) {
 	output := map[string]interface{}{
 		"id":               k.ID,
 		"requestId":        k.RequestID,
-		"k8sClusterName":   k.NameSpace,
+		"k8sClusterName":   k.K8sClusterName,
 		"clusterName":      k.ClusterName,
 		"nameSpace":        k.NameSpace,
 		"requestType":      k.RequestType,

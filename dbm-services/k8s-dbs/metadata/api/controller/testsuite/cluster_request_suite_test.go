@@ -20,7 +20,9 @@ limitations under the License.
 package testsuite
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
 	"k8s-dbs/metadata/api/controller"
 	"k8s-dbs/metadata/constant"
 	"k8s-dbs/metadata/dbaccess"
@@ -65,6 +67,7 @@ func (suite *ClusterRequestControllerTestSuite) SetupSuite() {
 	routerGroup := r.Group("/metadata/cluster_request_record")
 	{
 		routerGroup.GET("", suite.clusterRequestController.ListClusterRecords)
+		routerGroup.POST("", suite.clusterRequestController.CreateClusterRecord)
 	}
 	suite.router = r
 }
@@ -132,4 +135,26 @@ func (suite *ClusterRequestControllerTestSuite) TestListClusterRequests() {
 	}
 	`
 	assert.JSONEq(t, expected, deleteTimeColumn(w.Body.Bytes()))
+}
+
+func (suite *ClusterRequestControllerTestSuite) TestCreateClusterRecord() {
+	t := suite.T()
+	reqBody := `{
+		"ticketId": 123,
+		"clusterName": "vm-cw-test-08",
+		"k8sClusterName": "minikube",
+		"nameSpace": "kb-system",
+		"requestType": "DeleteK8sPod",
+		"bk_username": "admin"
+	}`
+	request, _ := http.NewRequest("POST", "/metadata/cluster_request_record", bytes.NewBufferString(reqBody))
+	request.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+	suite.router.ServeHTTP(w, request)
+	assert.Equal(t, http.StatusOK, w.Code)
+	var resp map[string]interface{}
+	err := json.Unmarshal(w.Body.Bytes(), &resp)
+	assert.NoError(t, err)
+	assert.True(t, resp["result"].(bool))
+	assert.Equal(t, float64(200), resp["code"].(float64))
 }
