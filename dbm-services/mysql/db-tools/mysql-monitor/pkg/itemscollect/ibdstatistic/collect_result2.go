@@ -114,14 +114,54 @@ func (c *ibdStatistic) collectResult2(dataDir string) (map[string]int64, map[str
 		return nil, nil, err
 	}
 
-	tokudbTableSize, tokudbDbSize, err := c.collectTokudb()
-	if err == nil {
-		for dbName, size := range tokudbDbSize {
-			dbSize[dbName] = +size
+	// 检测已启用的存储引擎
+	enabledEngines := c.getEnabledEngines()
+
+	if enabledEngines["TokuDB"] {
+		tokudbTableSize, tokudbDbSize, err := c.collectTokudb()
+		if err == nil {
+			for dbName, size := range tokudbDbSize {
+				dbSize[dbName] = +size
+			}
+			for dbTableName, size := range tokudbTableSize {
+				tableSize[dbTableName] = size
+			}
 		}
-		for dbTableName, size := range tokudbTableSize {
-			tableSize[dbTableName] = size
+	}
+
+	if enabledEngines["ROCKSDB"] {
+		rocksdbTableSize, rocksdbDbSize, err := c.collectRocksdb()
+		if err == nil {
+			for dbName, size := range rocksdbDbSize {
+				dbSize[dbName] += size
+			}
+			for dbTableName, size := range rocksdbTableSize {
+				tableSize[dbTableName] += size
+			}
 		}
 	}
 	return tableSize, dbSize, nil
+}
+
+// getEnabledEngines 查询 MySQL 已启用的存储引擎，返回引擎名到是否启用的映射
+func (c *ibdStatistic) getEnabledEngines() map[string]bool {
+	type EngineInfo struct {
+		Engine  string `db:"Engine"`
+		Support string `db:"Support"`
+	}
+	var engines []*EngineInfo
+	if err := c.db.Select(&engines, "SELECT Engine, Support FROM information_schema.ENGINES"); err != nil {
+		slog.Error("ibd-statistic get enabled engines", slog.String("error", err.Error()))
+		return nil
+	}
+
+	enabledEngines := make(map[string]bool)
+	for _, e := range engines {
+		// Support 值为 YES 或 DEFAULT 表示引擎已启用
+		if e.Support == "YES" || e.Support == "DEFAULT" {
+			enabledEngines[e.Engine] = true
+		}
+	}
+	slog.Info("ibd-statistic enabled engines", slog.Any("engines", enabledEngines))
+	return enabledEngines
 }
