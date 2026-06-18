@@ -251,15 +251,15 @@ func (s *Service) createSinkers() error {
 		return gerrors.New(gerrors.InvalidConfiguration, "not set any sink")
 	}
 
-	for _, sinkerCfg := range config.Cfg.Service.Sinks {
-		if !sinkerCfg.Enable {
-			logger.Info("the outputer(%s) is disabled", sinkerCfg.Name)
+	for _, sinkCfg := range config.Cfg.Service.Sinks {
+		if !sinkCfg.Enable {
+			logger.Info("the outputer(%s) is disabled", sinkCfg.Name)
 			continue
 		}
 
-		sinker, err := sink.NewSinker(sinkerCfg)
+		sinker, err := sink.NewSinker(sinkCfg)
 		if err != nil {
-			logger.Warn("create new outputer failed, outputer: %s, errmsg: %s", sinkerCfg.Name, err)
+			logger.Warn("create new outputer failed, outputer: %s, errmsg: %s", sinkCfg.Name, err)
 			continue
 		}
 
