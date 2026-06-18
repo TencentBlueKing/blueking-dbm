@@ -1,8 +1,9 @@
 # DBHA-v2 Change Log
 
-## v2.0.0-beta.10-unreleased
+## v2.0.0-beta.10
 - 【新增】cluster 工具 `reset` 流程支持 CLB 实例恢复：自动注册缺失实例、注销多余实例。
 - 【新增】cluster 工具新增 `show clb` 子命令，支持以 JSON 格式输出 tendbha、tendbcluster 集群的 CLB 绑定信息。
+- 【新增】黑白名单管理工具 `bwmgr` 命令行工具。
 - 【修复】切换流程中 CLB 实例注销、TBinlogDumper 切换补充 DBM API 响应解析与结果校验。
 - 【优化】业务扫描前按白名单集群过滤，仅对白名单内实例发起探测；白名单查询失败时跳过该业务扫描。
 - 【优化】白名单查询重试逻辑以及过滤切换实例逻辑迁移至 `dbhav1_whitelist.go`，白名单匹配字段由 clusterName 调整为 clusterId。
