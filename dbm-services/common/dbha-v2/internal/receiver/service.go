@@ -62,7 +62,7 @@ type Service struct {
 	discoveryCli *discovery.Client
 	regCli       *discovery.Registry
 	sources      []source.Inputter
-	sinkers      []sink.Saver
+	sinkers      []sink.Sinker
 	wg           sync.WaitGroup
 	etcdLogger   *zap.Logger
 }
@@ -150,7 +150,7 @@ func (s *Service) Close() {
 		go func(out sink.Sinker) {
 			defer wg.Done()
 			out.Close()
-		}(outputer.Sinker)
+		}(outputer)
 	}
 
 	wg.Wait()

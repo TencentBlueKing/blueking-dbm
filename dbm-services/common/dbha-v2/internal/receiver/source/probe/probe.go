@@ -49,7 +49,7 @@ const Name = "probe"
 type Probe struct {
 	proto.UnimplementedReceiverServiceServer
 	wg          sync.WaitGroup
-	savers      []sink.Saver
+	savers      []sink.Sinker
 	cfg         config.SourceConfig
 	ep          *hanet.Endpoint
 	svr         *grpc.Server
@@ -160,7 +160,7 @@ func (p *Probe) PushDataUnary(ctx context.Context, req *proto.ReceiverRequest) (
 	}, nil
 }
 
-func (p *Probe) Harvest(ctx context.Context, savers []sink.Saver) error {
+func (p *Probe) Harvest(ctx context.Context, savers []sink.Sinker) error {
 	p.wg.Add(1)
 	go func(ctx context.Context) {
 		defer p.wg.Done()

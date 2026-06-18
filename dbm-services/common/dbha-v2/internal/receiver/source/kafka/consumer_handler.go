@@ -37,7 +37,7 @@ import (
 var _ sarama.ConsumerGroupHandler = (*consumerHandler)(nil)
 
 type consumerHandler struct {
-	savers []sink.Saver
+	savers []sink.Sinker
 }
 
 func (h *consumerHandler) Setup(session sarama.ConsumerGroupSession) error {
@@ -75,17 +75,18 @@ func (h *consumerHandler) ConsumeClaim(session sarama.ConsumerGroupSession, clai
 		}
 
 		for _, saver := range h.savers {
-			ctx, cancel := context.WithTimeout(context.Background(), saver.SaveTimeout)
-			if err := saver.Sinker.Save(ctx, data); err != nil {
-				logger.Warn("save the data failed, topic(%s), errmsg: %s", msg.Topic, err)
-
-				if metricErr := apm.KafkaWriteErrorsTotal.IncWithLabels(map[string]string{
-					apm.MetricLabelKafka: msg.Topic,
-				}); metricErr != nil {
-					logger.Warn("update kafka write errors metric failed, errmsg: %s", metricErr)
-				}
+			err := saver.Save(context.Background(), data)
+			if err == nil {
+				continue
 			}
-			cancel()
+
+			logger.Warn("save the data failed, topic(%s), errmsg: %s", msg.Topic, err)
+
+			if metricErr := apm.KafkaWriteErrorsTotal.IncWithLabels(map[string]string{
+				apm.MetricLabelKafka: msg.Topic,
+			}); metricErr != nil {
+				logger.Warn("update kafka write errors metric failed, errmsg: %s", metricErr)
+			}
 		}
 	}
 

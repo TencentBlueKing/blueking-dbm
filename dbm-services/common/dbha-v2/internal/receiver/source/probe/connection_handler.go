@@ -41,7 +41,7 @@ type requestEventC chan *proto.ReceiverRequest
 
 // connectionHandler service connection handler
 type connectionHandler struct {
-	savers     []sink.Saver
+	savers     []sink.Sinker
 	bufferSize int
 	eventC     requestEventC
 	wg         sync.WaitGroup
@@ -73,11 +73,9 @@ func (c *connectionHandler) readEvent() {
 		copy(data.Data, msg.Payload)
 
 		for _, saver := range c.savers {
-			ctx, cancel := context.WithTimeout(context.Background(), saver.SaveTimeout)
-			if err := saver.Sinker.Save(ctx, data); err != nil {
+			if err := saver.Save(context.Background(), data); err != nil {
 				logger.Warn("save probe msg failed, errmsg: %s", err)
 			}
-			cancel()
 		}
 	}
 }

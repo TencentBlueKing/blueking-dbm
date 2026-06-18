@@ -52,10 +52,11 @@ type Message struct {
 }
 
 type mysql struct {
-	dbs []*hamysql.GormDB
+	dbs         []*hamysql.GormDB
+	saveTimeout time.Duration
 }
 
-func newMySql(endpoints, user, password string) (*mysql, error) {
+func newMySql(endpoints, user, password string, timeout time.Duration) (*mysql, error) {
 	epoints, err := hanet.NewEndpoints(endpoints)
 	if err != nil {
 		return nil, err
@@ -73,7 +74,7 @@ func newMySql(endpoints, user, password string) (*mysql, error) {
 
 	gormLogger := logger.NewZapLogger(logCfg)
 
-	msql := &mysql{}
+	msql := &mysql{saveTimeout: timeout}
 
 	for _, epoint := range epoints {
 		db, err := hamysql.NewGormDB(
@@ -121,19 +122,24 @@ func (s *mysql) Save(ctx context.Context, msg *Message) error {
 	data := hamodel.NewDbhaData(dbStatus)
 
 	for _, db := range s.dbs {
+		ctx, cancel := context.WithTimeout(ctx, s.saveTimeout)
 		err := db.DB().WithContext(ctx).Session(&gorm.Session{FullSaveAssociations: true}).
 			Clauses(clause.OnConflict{UpdateAll: true}).
 			Create(data).Error
 
-		if err != nil {
-			logger.Warn("save the mysql metric failed, errmsg: %s", err)
-
-			if metricErr := apm.MySqlWriteErrorsTotal.IncWithLabels(map[string]string{
-				apm.MetricLabelMysql: msg.Topic,
-			}); metricErr != nil {
-				logger.Warn("update mysql write errors metric failed, errmsg: %s", metricErr)
-			}
+		if err == nil {
+			cancel()
+			continue
 		}
+
+		logger.Warn("save the mysql metric failed, errmsg: %s", err)
+
+		if metricErr := apm.MySqlWriteErrorsTotal.IncWithLabels(map[string]string{
+			apm.MetricLabelMysql: msg.Topic,
+		}); metricErr != nil {
+			logger.Warn("update mysql write errors metric failed, errmsg: %s", metricErr)
+		}
+		cancel()
 	}
 
 	if err := apm.MySqlWriteMessagesTotal.IncWithLabels(map[string]string{
