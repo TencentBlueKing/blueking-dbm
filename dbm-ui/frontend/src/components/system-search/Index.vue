@@ -76,11 +76,12 @@
   import { quickSearch } from '@services/source/quickSearch';
 
   import { systemSearchCache } from '@common/cache';
+  import { FilterType } from '@common/const';
   import { batchSplitRegex } from '@common/regex';
 
   import { buildURLParams } from '@utils';
 
-  import FilterTypeSelect, { FilterType } from './components/FilterTypeSelect.vue';
+  import FilterTypeSelect from './components/FilterTypeSelect.vue';
   import SearchResult from './components/search-result/Index.vue';
   import SearchHistory from './components/SearchHistory.vue';
   import useKeyboard from './hooks/useKeyboard';

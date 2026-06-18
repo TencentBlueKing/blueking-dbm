@@ -13,6 +13,7 @@ export * from './dbSysExclude';
 export * from './dbTypes';
 export * from './dbTypesInfos/index';
 export * from './deviceClass';
+export * from './filterType';
 export * from './hostHandleTodoType';
 export * from './machineEvents';
 export * from './machineTypes';

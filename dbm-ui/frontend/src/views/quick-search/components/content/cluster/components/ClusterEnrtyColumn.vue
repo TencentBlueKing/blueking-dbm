@@ -11,6 +11,7 @@
           :key="entryItem.entry">
           <TextHighlight
             class="mr-4"
+            :filter-type="filterType"
             high-light-color="#FF9C01"
             :keyword="keyword"
             :text="entryItem.entry" />
@@ -57,9 +58,12 @@
 
   import QuickSearchClusterModel from '@services/model/quiker-search/quick-search-cluster';
 
+  import { FilterType } from '@common/const';
+
   import TextHighlight from '@components/text-highlight/Index.vue';
 
   interface Props {
+    filterType: FilterType;
     keyword: string;
   }
 

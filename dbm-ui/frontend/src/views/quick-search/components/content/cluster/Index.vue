@@ -65,8 +65,12 @@
               </TextOverflowLayout>
             </template>
           </BkTableColumn>
-          <TagColumn :keyword="keyword" />
-          <ClusterEnrtyColumn :keyword="keyword" />
+          <TagColumn
+            :filter-type="filterType"
+            :keyword="keyword" />
+          <ClusterEnrtyColumn
+            :filter-type="filterType"
+            :keyword="keyword" />
           <BkTableColumn
             field="cluster_status"
             :label="t('状态')"
@@ -140,6 +144,7 @@
 
   import QuickSearchClusterModel from '@services/model/quiker-search/quick-search-cluster';
 
+  import { FilterType } from '@common/const';
   import { batchSplitRegex } from '@common/regex';
 
   import RenderClusterStatus from '@components/cluster-status/Index.vue';
@@ -158,6 +163,7 @@
   interface Props {
     bizIdNameMap: Record<number, string>;
     data: QuickSearchClusterModel[];
+    filterType: FilterType;
     isAnomalies: boolean;
     isSearching: boolean;
     keyword: string;
