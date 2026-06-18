@@ -9,7 +9,6 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 from collections import defaultdict
-from datetime import datetime, timezone
 from typing import Dict
 
 from django.core.cache import cache
@@ -174,23 +173,31 @@ class ReportCommonViewSet(viewsets.SystemViewSet):
     def get_report_count(self, request, *args, **kwargs):
         username = request.user.username
         cache_key = REPORT_COUNT_CACHE_KEY.format(user=username)
-
+        # 获取 time_range 参数
+        time_range = request.query_params.get("time_range", "")
         # 有缓存优先返回缓存，数量精确性要求性不高
-        report_count_cache = cache.get(cache_key)
-        if report_count_cache:
-            return Response(report_count_cache)
+        # report_count_cache = cache.get(cache_key)
+        # if report_count_cache:
+        #     return Response(report_count_cache)
 
         report_count_map: Dict[str, Dict[str, Dict]] = defaultdict(lambda: defaultdict(dict))
         for db_type, report_classes in db_report_maps.items():
             # 获取用户的管理业务和协助业务
             manage_bizs, assist_bizs = DBAdministrator.get_manage_bizs(db_type, username)
             for cls in report_classes:
-                # 过滤当天的代办
-                now_date = datetime.now(timezone.utc).date()
-                queryset = cls.queryset.filter(state=ReportStateType.ABNORMAL, update_at__gte=now_date)
+                # 基础过滤：状态为异常
+                queryset = cls.queryset.filter(state=ReportStateType.ABNORMAL)
+                # 应用 time_range 过滤
+                if time_range:
+                    filter_instance = ReportListFilter(
+                        data=request.query_params,
+                        queryset=queryset,
+                        request=request,
+                    )
+                    queryset = filter_instance.filter_time_range(queryset, "time_range", time_range)
                 report_count_map[db_type][cls.report_type].update(
-                    manage_count=queryset.filter(state=ReportStateType.ABNORMAL, bk_biz_id__in=manage_bizs).count(),
-                    assist_count=queryset.filter(state=ReportStateType.ABNORMAL, bk_biz_id__in=assist_bizs).count(),
+                    manage_count=queryset.filter(bk_biz_id__in=manage_bizs).count(),
+                    assist_count=queryset.filter(bk_biz_id__in=assist_bizs).count(),
                 )
 
         # 默认可以做1h的缓存
