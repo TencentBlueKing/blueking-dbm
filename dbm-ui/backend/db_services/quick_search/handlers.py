@@ -193,9 +193,13 @@ class QSearchHandler(object):
         return self.common_filter(objs)
 
     def filter_cluster(self, keyword_list: list):
-        """过滤集群，支持通过域名或 标签键 / 标签:标签值 格式过滤"""
+        """过滤集群，支持通过域名或 标签键 / 标签:标签值 格式过滤
+        域名搜索支持：immute_domain(集群固定域名)、CLB域名、北极星域名等所有ClusterEntry入口域名
+        """
         domain_qs = Q()
         tag_qs = Q()
+        # 用于收集通过ClusterEntry.entry匹配到的集群ID
+        entry_match_cluster_ids = []
 
         for keyword in keyword_list:
             # 判断是否为 "键:值" 格式（包含冒号）
@@ -216,7 +220,7 @@ class QSearchHandler(object):
             else:
                 tag_qs |= Q(tags__key__icontains=keyword) | Q(tags__value__icontains=keyword)
 
-            # 域名过滤
+            # 域名过滤 - 支持immute_domain和ClusterEntry.entry(CLB、北极星等)
             try:
                 domain, _ = keyword.split(":")
             except ValueError:
@@ -228,10 +232,24 @@ class QSearchHandler(object):
 
             if self.filter_type == FilterType.EXACT.value:
                 domain_qs |= Q(immute_domain=domain)
+                # 精确搜索：通过ClusterEntry.entry匹配集群ID
+                entry_match_cluster_ids.extend(
+                    ClusterEntry.objects.filter(entry=domain).values_list("cluster_id", flat=True)
+                )
             else:
                 domain_qs |= Q(immute_domain__icontains=domain)
+                # 模糊搜索：通过ClusterEntry.entry匹配集群ID
+                entry_match_cluster_ids.extend(
+                    ClusterEntry.objects.filter(entry__icontains=domain).values_list("cluster_id", flat=True)
+                )
 
-        qs = domain_qs | tag_qs
+        # 合并通过ClusterEntry.entry匹配到的集群ID
+        if entry_match_cluster_ids:
+            entry_qs = Q(id__in=list(set(entry_match_cluster_ids)))
+            qs = domain_qs | tag_qs | entry_qs
+        else:
+            qs = domain_qs | tag_qs
+
         objs = Cluster.objects.filter(qs).distinct()
         # 使用objects模式获取QuerySet，再手动预取关联数据并序列化
         clusters = self.common_filter(
