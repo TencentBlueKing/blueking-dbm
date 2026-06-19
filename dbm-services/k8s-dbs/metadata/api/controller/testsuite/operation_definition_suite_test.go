@@ -44,7 +44,7 @@ var operationDefinitionRequest = vo.OperationDefinitionRequest{
 	OperationName:   "test-operation",
 	OperationTarget: "cluster",
 	Description:     "测试操作定义",
-	BKAuth:          baseBKAuth,
+	BKAdditional:    baseBKAdditional,
 }
 
 type OperationDefinitionControllerTestSuite struct {

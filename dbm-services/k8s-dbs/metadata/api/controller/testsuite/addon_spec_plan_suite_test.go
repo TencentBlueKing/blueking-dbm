@@ -47,7 +47,7 @@ var addonSpecPlanVOCreate = &metareq.AddonSpecPlanRequest{
 	AddonTopology:  "standalone",
 	SpecLevel:      "basic",
 	SpecLevelAlias: "基础版",
-	BKAuth:         baseBKAuth,
+	BKAdditional:   baseBKAdditional,
 }
 
 type AddonSpecPlanControllerTestSuite struct {

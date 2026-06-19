@@ -76,6 +76,8 @@ const (
 	GetClusterEventError
 	PartialUpdateClusterError
 	GetClusterSvcError
+	BindDomainError
+	UnbindDomainError
 )
 
 // 存储集群 component 操作异常
@@ -144,6 +146,8 @@ var codeTag = map[ErrorCode]string{
 	UpdateClusterError:        "更新集群失败",
 	PartialUpdateClusterError: "局部更新集群失败",
 	GetClusterSvcError:        "获取集群连接失败",
+	BindDomainError:           "绑定域名失败",
+	UnbindDomainError:         "解绑域名失败",
 
 	// k8s api server 调用异常
 	CreateK8sNsError:         "创建命名空间失败",

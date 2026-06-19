@@ -103,7 +103,7 @@ func (c *ComponentSpecPlanController) CreateComponentSpecPlan(ctx *gin.Context) 
 		return
 	}
 	dbsCtx := commentity.DbsContext{
-		BkAuth: &req.BKAuth,
+		BkAdditional: &req.BKAdditional,
 	}
 	addedSpecPlan, err := c.componentSpecPlanProvider.CreateSpecPlan(&dbsCtx, &entity)
 	if err != nil {
@@ -138,7 +138,7 @@ func (c *ComponentSpecPlanController) UpdateComponentSpecPlan(ctx *gin.Context) 
 		return
 	}
 	dbsCtx := commentity.DbsContext{
-		BkAuth: &req.BKAuth,
+		BkAdditional: &req.BKAdditional,
 	}
 	entity.ID = id
 	rows, err := c.componentSpecPlanProvider.UpdateSpecPlan(&dbsCtx, &entity)

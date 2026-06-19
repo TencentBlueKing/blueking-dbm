@@ -23,19 +23,19 @@ import commentity "k8s-dbs/common/entity"
 
 // AddonRequest represents the request data structure of addon meta.
 type AddonRequest struct {
-	AddonName            string `json:"addonName" binding:"required"`
-	AddonCategory        string `json:"addonCategory" binding:"required"`
-	AddonType            string `json:"addonType" binding:"required"`
-	AddonVersion         string `json:"addonVersion" binding:"required"`
-	RecommendedVersion   string `json:"recommendedVersion" binding:"required"`
-	SupportedVersions    string `json:"supportedVersions" binding:"required"`
-	RecommendedAcVersion string `json:"recommendedAcVersion" binding:"required"`
-	SupportedAcVersions  string `json:"supportedAcVersions" binding:"required"`
-	Topologies           string `json:"topologies" binding:"required"`
-	Releases             string `json:"releases" binding:"required"`
-	Active               bool   `json:"active"`
-	Description          string `json:"description" binding:"required"`
-	commentity.BKAuth    `json:",inline"`
+	AddonName               string `json:"addonName" binding:"required"`
+	AddonCategory           string `json:"addonCategory" binding:"required"`
+	AddonType               string `json:"addonType" binding:"required"`
+	AddonVersion            string `json:"addonVersion" binding:"required"`
+	RecommendedVersion      string `json:"recommendedVersion" binding:"required"`
+	SupportedVersions       string `json:"supportedVersions" binding:"required"`
+	RecommendedAcVersion    string `json:"recommendedAcVersion" binding:"required"`
+	SupportedAcVersions     string `json:"supportedAcVersions" binding:"required"`
+	Topologies              string `json:"topologies" binding:"required"`
+	Releases                string `json:"releases" binding:"required"`
+	Active                  bool   `json:"active"`
+	Description             string `json:"description" binding:"required"`
+	commentity.BKAdditional `json:",inline"`
 }
 
 // AddonVersionRequest addon 版本查询请求参数

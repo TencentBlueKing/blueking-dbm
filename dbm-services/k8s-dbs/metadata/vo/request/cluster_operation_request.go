@@ -25,9 +25,9 @@ import (
 
 // ClusterOperationRequest represents the ReqVo structure of cluster operation.
 type ClusterOperationRequest struct {
-	AddonType         string `json:"addonType" binding:"required"`
-	AddonVersion      string `json:"addonVersion" binding:"required"`
-	OperationID       uint64 `json:"operationId" binding:"required"`
-	Description       string `json:"description" binding:"required"`
-	commentity.BKAuth `json:",inline"`
+	AddonType               string `json:"addonType" binding:"required"`
+	AddonVersion            string `json:"addonVersion" binding:"required"`
+	OperationID             uint64 `json:"operationId" binding:"required"`
+	Description             string `json:"description" binding:"required"`
+	commentity.BKAdditional `json:",inline"`
 }

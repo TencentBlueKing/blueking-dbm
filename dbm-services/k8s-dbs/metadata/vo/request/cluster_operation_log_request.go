@@ -25,15 +25,15 @@ import (
 
 // ClusterOperationLogsRequest represents the request data structure of record.
 type ClusterOperationLogsRequest struct {
-	RequestID         string  `json:"requestId" required:"true"`
-	K8sClusterName    string  `json:"k8sClusterName" required:"true"`
-	ClusterName       string  `json:"clusterName" required:"true"`
-	NameSpace         string  `json:"namespace" required:"true"`
-	RequestType       string  `json:"requestType" required:"true"`
-	RequestParams     string  `json:"requestParams" required:"true"`
-	TicketID          *uint64 `json:"ticketId"`
-	Description       string  `json:"description" required:"true"`
-	commentity.BKAuth `json:",inline"`
+	RequestID               string  `json:"requestId" required:"true"`
+	K8sClusterName          string  `json:"k8sClusterName" required:"true"`
+	ClusterName             string  `json:"clusterName" required:"true"`
+	NameSpace               string  `json:"namespace" required:"true"`
+	RequestType             string  `json:"requestType" required:"true"`
+	RequestParams           string  `json:"requestParams" required:"true"`
+	TicketID                *uint64 `json:"ticketId"`
+	Description             string  `json:"description" required:"true"`
+	commentity.BKAdditional `json:",inline"`
 }
 
 // ClusterOperationLogsSearch 封装集群操作查询请求

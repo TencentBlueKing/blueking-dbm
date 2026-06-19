@@ -45,7 +45,7 @@ var clusterOperationRequest = vo.ClusterOperationRequest{
 	AddonVersion: "8.0",
 	OperationID:  1,
 	Description:  "创建测试集群",
-	BKAuth:       baseBKAuth,
+	BKAdditional: baseBKAdditional,
 }
 
 type ClusterOperationControllerTestSuite struct {

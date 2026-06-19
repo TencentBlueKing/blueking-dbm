@@ -26,10 +26,10 @@ import (
 
 // K8sNamespaceRequest k8s 的 namespace 创建请求结构体
 type K8sNamespaceRequest struct {
-	K8sClusterName    string                `json:"k8sClusterName,omitempty"`
-	Name              string                `json:"name" binding:"required"`
-	Annotations       map[string]string     `json:"annotations,omitempty"`   // 可选注解
-	Labels            map[string]string     `json:"labels,omitempty"`        // 可选标签
-	ResourceQuota     *entity.ResourceQuota `json:"resourceQuota,omitempty"` // 可选资源配额
-	commentity.BKAuth `json:",inline"`
+	K8sClusterName          string                `json:"k8sClusterName,omitempty"`
+	Name                    string                `json:"name" binding:"required"`
+	Annotations             map[string]string     `json:"annotations,omitempty"`   // 可选注解
+	Labels                  map[string]string     `json:"labels,omitempty"`        // 可选标签
+	ResourceQuota           *entity.ResourceQuota `json:"resourceQuota,omitempty"` // 可选资源配额
+	commentity.BKAdditional `json:",inline"`
 }
