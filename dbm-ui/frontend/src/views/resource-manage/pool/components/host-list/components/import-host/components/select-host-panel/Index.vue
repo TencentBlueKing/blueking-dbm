@@ -34,7 +34,7 @@
       <IpSearch
         v-model="searchContent"
         class="mr-8"
-        style="width: 500px"
+        style="flex: 1"
         @clear="fetchData"
         @search="fetchData" />
       <DbQuickSearch
