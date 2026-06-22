@@ -1,10 +1,12 @@
 <template>
   <DbSideslider
-    v-model:is-show="isShow"
-    :cancel-text="t('取消')"
+    :before-close="handleClose"
     :confirm-handler="handleConfirm"
     :confirm-text="t('确定')"
-    :width="960">
+    :el-text="t('取消')"
+    :is-show="isShow"
+    :width="960"
+    @closed="handleClose">
     <template #header>
       <span>
         {{ t('选择集群目标方案_n', { n: cluster.master_domain }) }}
@@ -47,16 +49,11 @@
           </div>
         </div>
       </div>
-      <DbForm label-width="135">
-        <ClusterSpecPlanSelector
-          v-model="modelValue.spec_id"
-          v-model:custom-spec-info="customSpecInfo"
-          :cloud-id="cluster.bk_cloud_id"
-          :cluster-shard-num="cluster.cluster_shard_num"
-          cluster-type="tendbcluster"
-          machine-type="backend"
-          @change="handlePlanChange" />
-      </DbForm>
+      <ClusterSpecPlanSelector
+        ref="clusterSpecPlanSelectorRef"
+        v-model="clusterSpecPlanData"
+        :cluster="cluster"
+        @change="handlePlanChange" />
     </div>
   </DbSideslider>
 </template>
@@ -65,9 +62,14 @@
 
   import TendbClusterModel from '@services/model/tendbcluster/tendbcluster';
 
-  import ClusterSpecPlanSelector, { type TicketSpecInfo } from './components/cluster-spec-plan-selector/Index.vue';
+  import { useBeforeClose } from '@hooks';
 
-  export type { TicketSpecInfo };
+  import ClusterSpecPlanSelector, {
+    type ClusterSpecPlanData,
+    type TicketSpecInfo,
+  } from './components/cluster-spec-plan-selector/Index.vue';
+
+  export type { ClusterSpecPlanData, TicketSpecInfo };
 
   interface Props {
     cluster: Pick<
@@ -92,43 +94,58 @@
     required: true,
   });
   const modelValue = defineModel<TicketSpecInfo>({
-    default: () => ({
-      cluster_capacity: 0,
-      machine_pair: 0,
-      spec_id: 0,
-      spec_name: '',
-    }),
+    required: true,
   });
   const { t } = useI18n();
+  const handleBeforeClose = useBeforeClose();
 
-  const futureSpec = reactive<TicketSpecInfo>({
+  const clusterSpecPlanSelectorRef = ref();
+
+  const clusterSpecPlanData = ref<ClusterSpecPlanData>({
+    count: '',
+    spec_id: '',
+  });
+
+  const futureSpec = ref<TicketSpecInfo>({
     cluster_capacity: 0,
     machine_pair: 0,
     spec_id: 0,
     spec_name: '',
   });
-  const customSpecInfo = reactive({
-    count: 1,
-    specId: '',
-  });
 
-  watch(isShow, () => {
-    if (isShow.value) {
-      Object.assign(futureSpec, modelValue.value);
-      Object.assign(customSpecInfo, {
-        count: modelValue.value.machine_pair,
-        specId: modelValue.value.spec_id,
-      });
+  const choosedSpecId = ref(-1);
+
+  // 监听 isShow 变化，初始化表单数据
+  watch(isShow, (value) => {
+    if (value && modelValue.value) {
+      choosedSpecId.value = modelValue.value.spec_id;
+      clusterSpecPlanData.value.spec_id = modelValue.value.spec_id;
+      clusterSpecPlanData.value.count = modelValue.value.machine_pair;
+      Object.assign(futureSpec.value, modelValue.value);
     }
   });
 
+  async function handleClose() {
+    const result = await handleBeforeClose(choosedSpecId.value !== -1);
+    if (!result) {
+      return;
+    }
+    isShow.value = false;
+  }
+
   const handlePlanChange = (specId: number, specData: TicketSpecInfo) => {
-    Object.assign(futureSpec, specData);
+    choosedSpecId.value = specId;
+    Object.assign(futureSpec.value, specData);
   };
 
-  const handleConfirm = () => {
-    modelValue.value = futureSpec;
-    return Promise.resolve();
+  const handleConfirm = async () => {
+    try {
+      await clusterSpecPlanSelectorRef.value?.validate();
+      modelValue.value = { ...futureSpec.value };
+      isShow.value = false;
+    } catch {
+      // 校验失败
+    }
   };
 </script>
 <style lang="less" scoped>

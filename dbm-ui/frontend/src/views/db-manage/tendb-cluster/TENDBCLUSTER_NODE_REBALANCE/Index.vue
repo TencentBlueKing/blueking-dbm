@@ -112,6 +112,7 @@
 
   import { random } from '@utils';
 
+  import type { TicketSpecInfo } from './components/capacity-column/CapacityChange.vue';
   import CapacityColumn from './components/capacity-column/Index.vue';
 
   interface RowData {
@@ -151,19 +152,11 @@
         master_domain: '',
         region: '',
         remote_shard_num: 0,
-      } as unknown as TendbClusterModel,
+      } as RowData['cluster'],
       data.cluster,
     ),
     labels: (data.labels || []) as RowData['labels'],
-    targetCapacity: Object.assign(
-      {
-        cluster_capacity: 0,
-        machine_pair: 0,
-        spec_id: 0,
-        spec_name: '',
-      },
-      data.targetCapacity,
-    ),
+    targetCapacity: Object.assign({} as RowData['targetCapacity'], data.targetCapacity),
   });
 
   const defaultData = () => ({
@@ -326,7 +319,7 @@
    * 统一设置目标容量
    * 仅对 cluster_shard_num 能被 count 整除的行应用，跳过不满足条件的行
    */
-  const handleBatchEditCapacity = (value: { specId: number; count: number; specData: TicketSpecInfo }) => {
+  const handleBatchEditCapacity = (value: { count: number; specData: TicketSpecInfo; specId: number }) => {
     formData.tableData.forEach((rowData) => {
       const shardNum = rowData.cluster.cluster_shard_num;
       if (shardNum > 0 && shardNum % value.count === 0) {
