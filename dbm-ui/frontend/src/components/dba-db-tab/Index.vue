@@ -74,19 +74,24 @@
     renderTabs,
     (tabs) => {
       renderKey.value += 1;
-      if (tabs.length > 0 && !tabs.some((tab) => tab.id === moduleValue.value)) {
+      if (!moduleValue.value && tabs.length > 0 && !tabs.some((tab) => tab.id === moduleValue.value)) {
         nextTick(() => {
           moduleValue.value = tabs[0].id;
         });
       }
     },
-    { immediate: true },
+    {
+      immediate: true,
+    },
   );
 
   // 如果有 countConfig，自动选中第一个非 0 的 tab
   watch(
     () => props.countConfig,
     (countConfig) => {
+      if (moduleValue.value) {
+        return;
+      }
       const activeTab = Object.keys(countConfig).find((key) => countConfig[key] > 0);
       if (activeTab) {
         nextTick(() => {
@@ -94,7 +99,9 @@
         });
       }
     },
-    { immediate: true },
+    {
+      immediate: true,
+    },
   );
 </script>
 

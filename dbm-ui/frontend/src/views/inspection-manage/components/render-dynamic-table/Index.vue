@@ -1,6 +1,7 @@
 <template>
   <BkLoading
     class="render-dynamic-table"
+    :class="{ 'is-empty': total === 0 || totalAbnormalCount === 0 }"
     :loading="loading">
     <CollapseCard>
       <template #title>
@@ -176,7 +177,6 @@
   const emptyDescription = computed(() => {
     const timeRange = (props.searchParams.time_range as string) || 'now -1d';
     const timeRangeTextMap: Record<string, string> = {
-      'now -0d': t('今天'),
       'now -1d': t('近 24 小时'),
       'now -30d': t('近 30 天'),
       'now -3d': t('近 3 天'),
@@ -312,11 +312,18 @@
     }
   };
 
+  // 时间范围档位，从小到大排序
+  const timeRangeLevels = ['now -1d', 'now -3d', 'now -7d', 'now -30d'];
+
   const handleExpandTimeRange = () => {
+    const currentTimeRange = (route.query.time_range as string) || 'now -1d';
+    const currentIndex = timeRangeLevels.indexOf(currentTimeRange);
+    // 取下一档位，已是最大档位则保持不变
+    const nextTimeRange = timeRangeLevels[currentIndex + 1] || timeRangeLevels[timeRangeLevels.length - 1];
     router.push({
       query: {
         ...route.query,
-        time_range: 'now -30d',
+        time_range: nextTimeRange,
       },
     });
   };
@@ -376,6 +383,16 @@
   .render-dynamic-table {
     & ~ .render-dynamic-table {
       margin-top: 16px;
+    }
+
+    &.is-empty {
+      .collapse-card-main.is-toggle {
+        padding-bottom: 0;
+
+        .card-content {
+          margin-top: 0;
+        }
+      }
     }
 
     .dynamic-table-empty {
