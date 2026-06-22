@@ -21,6 +21,7 @@ from backend.db_services.dbbase.constants import IpSource
 from backend.db_services.ipchooser.constants import BkOsType
 from backend.flow.engine.controller.sqlserver import SqlserverController
 from backend.flow.utils.sqlserver.sqlserver_bk_config import get_module_infos
+from backend.iam_app.dataclass.actions import ActionEnum
 from backend.ticket import builders
 from backend.ticket.builders.common.base import HostInfoSerializer
 from backend.ticket.builders.sqlserver.base import (
@@ -144,7 +145,9 @@ class SQLServerRestoreSlaveResourceParamBuilder(SQLServerBaseOperateResourcePara
         next_flow.save(update_fields=["details"])
 
 
-@builders.BuilderFactory.register(TicketType.SQLSERVER_RESTORE_SLAVE, is_recycle=True, is_apply=True)
+@builders.BuilderFactory.register(
+    TicketType.SQLSERVER_RESTORE_SLAVE, is_recycle=True, is_apply=True, iam=ActionEnum.SQLSERVER_MANAGE
+)
 class SQLServerRestoreSlaveFlowBuilder(BaseSQLServerHATicketFlowBuilder):
     serializer = SQLServerRestoreSlaveDetailSerializer
     resource_batch_apply_builder = SQLServerRestoreSlaveResourceParamBuilder

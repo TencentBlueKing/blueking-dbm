@@ -14,6 +14,7 @@ from rest_framework import serializers
 from backend.db_meta.models import Cluster
 from backend.db_services.dbbase.constants import IpSource
 from backend.flow.engine.controller.sqlserver import SqlserverController
+from backend.iam_app.dataclass.actions import ActionEnum
 from backend.ticket import builders
 from backend.ticket.builders.sqlserver.base import (
     BaseSQLServerHATicketFlowBuilder,
@@ -63,7 +64,9 @@ class SQLServerClusterMigrateParamBuilder(builders.FlowParamBuilder):
     controller = SqlserverController.sqlserver_cluster_migrate_for_ins_scene
 
 
-@builders.BuilderFactory.register(TicketType.SQLSERVER_CLUSTER_MIGRATE, is_apply=True, is_recycle=True)
+@builders.BuilderFactory.register(
+    TicketType.SQLSERVER_CLUSTER_MIGRATE, is_apply=True, is_recycle=True, iam=ActionEnum.SQLSERVER_MANAGE
+)
 class SQLServerClusterMigrateFlowBuilder(BaseSQLServerHATicketFlowBuilder):
     serializer = SQLServerClusterMigrateDetailSerializer
     inner_flow_builder = SQLServerClusterMigrateParamBuilder
