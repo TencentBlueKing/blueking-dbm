@@ -132,6 +132,7 @@ RECEIVER_SOURCE_KAFKA_TOPICS=[test]
 # ## receiver · service.sink · mysql
 RECEIVER_SINK_MYSQL_NAME=mysql
 RECEIVER_SINK_MYSQL_ENABLE=true
+RECEIVER_SINK_MYSQL_SAVE_TIMEOUT=10s
 
 # ## receiver · logging
 RECEIVER_LOG_PATH=./logs/receiver.log

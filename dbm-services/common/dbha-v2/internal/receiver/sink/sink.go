@@ -41,7 +41,7 @@ type Sinker interface {
 func NewSinker(cfg config.SinkConfig) (Sinker, error) {
 	switch strings.ToLower(cfg.Name) {
 	case strings.ToLower(mySQLName):
-		return newMySql(cfg.Endpoints, cfg.User, cfg.Password)
+		return newMySql(cfg.Endpoints, cfg.User, cfg.Password, cfg.SaveTimeout)
 
 	default:
 		return nil, gerrors.Newf(gerrors.Unsupported, "unsupported storage(%s)", cfg.Name)

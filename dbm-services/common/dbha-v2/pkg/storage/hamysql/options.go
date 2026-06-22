@@ -65,6 +65,8 @@ type options struct {
 	parseTime        *bool
 	loc              string
 	timeout          time.Duration
+	readTimeout      time.Duration
+	writeTimeout     time.Duration
 	maxAllowedPacket int
 
 	// The default length of string type fields.
@@ -150,6 +152,24 @@ func (o options) BuildDSNString(coverPassword bool) string {
 		} else {
 			hasOptions = true
 			dsnBuilder.WriteString(fmt.Sprintf("timeout=%s", o.timeout))
+		}
+	}
+
+	if o.readTimeout != 0 {
+		if hasOptions {
+			dsnBuilder.WriteString(fmt.Sprintf("&readTimeout=%s", o.readTimeout))
+		} else {
+			hasOptions = true
+			dsnBuilder.WriteString(fmt.Sprintf("readTimeout=%s", o.readTimeout))
+		}
+
+	}
+	if o.writeTimeout != 0 {
+		if hasOptions {
+			dsnBuilder.WriteString(fmt.Sprintf("&writeTimeout=%s", o.writeTimeout))
+		} else {
+			hasOptions = true
+			dsnBuilder.WriteString(fmt.Sprintf("writeTimeout=%s", o.writeTimeout))
 		}
 	}
 
@@ -310,6 +330,26 @@ func OptionTimeout(val time.Duration) *funcOptions {
 	return &funcOptions{
 		f: func(opt *options) error {
 			opt.timeout = val
+			return nil
+		},
+	}
+}
+
+// OptionReadTimeout sets readTimeout in DSN.
+func OptionReadTimeout(val time.Duration) *funcOptions {
+	return &funcOptions{
+		f: func(opt *options) error {
+			opt.readTimeout = val
+			return nil
+		},
+	}
+}
+
+// OptionWriteTimeout sets writeTimeout in DSN.
+func OptionWriteTimeout(val time.Duration) *funcOptions {
+	return &funcOptions{
+		f: func(opt *options) error {
+			opt.writeTimeout = val
 			return nil
 		},
 	}
