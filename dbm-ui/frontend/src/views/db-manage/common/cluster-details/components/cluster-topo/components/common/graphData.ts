@@ -82,9 +82,9 @@ export const nodeTypes = {
   MONGODB_M1: 'mongodb::m1',
   MONGODB_M2: 'mongodb::m2',
   MONGODB_MONGOS: 'mongos',
-  PROXY: 'proxy',
   ORACLE_PRIMARY: 'oracle::primary',
   ORACLE_STANDBY: 'oracle::standby',
+  PROXY: 'proxy',
   PULSAR_BOOKKEEPER: 'pulsar_bookkeeper::pulsar_bookkeeper',
   PULSAR_BROKER: 'pulsar_broker::pulsar_broker',
   PULSAR_ZOOKEEPER: 'pulsar_zookeeper::pulsar_zookeeper',
@@ -171,11 +171,15 @@ const getGroupLines = (data: ResourceTopo) => {
     } else if (sourceType === 'node') {
       // 处理 source 为 node 的情况
       const sourceGroup = groups.find((group) => group.children_id.includes(source));
-      sourceGroup && (sourceId = sourceGroup.node_id);
+      if (sourceGroup) {
+        sourceId = sourceGroup.node_id;
+      }
     } else if (targetType === 'node') {
       // 处理 target 为 node 的情况
       const targetGroup = groups.find((group) => group.children_id.includes(target));
-      targetGroup && (targetId = targetGroup.node_id);
+      if (targetGroup) {
+        targetId = targetGroup.node_id;
+      }
     }
     results.push({
       id: `${sourceId}__${targetId}`,

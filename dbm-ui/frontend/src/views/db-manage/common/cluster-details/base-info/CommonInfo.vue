@@ -11,9 +11,11 @@
   <InfoItem :label="t('园区')">
     <div>{{ data.clusterSubzonesDisplay }}</div>
   </InfoItem>
-  <InfoItem :label="t('规格')">
-    {{ data.cluster_spec.spec_name || '--' }}
-  </InfoItem>
+  <slot name="spec">
+    <InfoItem :label="t('规格')">
+      {{ data.cluster_spec.spec_name || '--' }}
+    </InfoItem>
+  </slot>
   <InfoItem :label="t('管控区域')">
     {{ data.bk_cloud_name ? `${data.bk_cloud_name}[${data.bk_cloud_id}]` : '--' }}
   </InfoItem>
@@ -29,6 +31,7 @@
 </template>
 
 <script setup lang="ts" generic="T extends ISupportClusterType">
+  import type { VNode } from 'vue';
   import { useI18n } from 'vue-i18n';
 
   import { InfoItem } from './components/Index.vue';
@@ -36,6 +39,10 @@
 
   export interface Props<C extends ISupportClusterType> {
     data: ClusterDetailModel<C>;
+  }
+
+  export interface Slots {
+    spec: () => VNode;
   }
 
   defineProps<Props<T>>();

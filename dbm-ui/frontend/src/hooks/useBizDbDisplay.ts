@@ -13,7 +13,7 @@
 
 import { useRequest } from 'vue-request';
 
-import type { BigdataFunctions } from '@services/model/function-controller/functionController';
+import type { BigdataFunctions, K8sFunctions } from '@services/model/function-controller/functionController';
 import { queryClusterInstanceCount } from '@services/source/dbbase';
 
 import { useFunController, useUserProfile } from '@stores';
@@ -56,6 +56,11 @@ export function useBizDbDisplay(options?: { ignoreClusterCount?: boolean; manual
         return;
       }
 
+      const k8sCountKeyMap: Record<string, string[]> = {
+        [DBTypes.K8S_QRRANT]: [ClusterTypes.K8S_QDRANT_HA],
+        [DBTypes.K8S_SURREALDB]: [ClusterTypes.K8S_SURREALDB_SINGLE, ClusterTypes.K8S_SURREALDB_HA],
+      };
+
       try {
         const resultList = Object.keys(DBTypeInfos).reduce<DBInfoItem[]>((prevList, dbType) => {
           const dbTypeInfo = DBTypeInfos[dbType as DBTypes];
@@ -74,6 +79,15 @@ export function useBizDbDisplay(options?: { ignoreClusterCount?: boolean; manual
                     return prevList.concat(dbTypeInfo);
                   }
                 }
+              }
+            } else if (dbTypeInfo.moduleId === 'k8s') {
+              const data = funControllerStore.funControllerData.getFlatData(dbTypeInfo.moduleId);
+              const clusterCount = k8sCountKeyMap[dbTypeInfo.id as string]!.reduce(
+                (prevCount, key) => prevCount + (clusterInstanceCount.value![key as ClusterTypes]?.cluster_count || 0),
+                0,
+              );
+              if (data[dbType as K8sFunctions] && clusterCount) {
+                return prevList.concat(dbTypeInfo);
               }
             } else {
               const controllerData = funControllerStore.funControllerData.getFlatData(dbTypeInfo.moduleId);

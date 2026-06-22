@@ -89,10 +89,13 @@
   import { getOracleHaClusterTopoGraph } from '@services/source/oracleHaCluster';
   import { getOracleSingleClusterTopoGraph } from '@services/source/oracleSingleCluster';
   import { getPulsarTopoGraph } from '@services/source/pulsar';
+  import { getQdrantHaTopoGraph } from '@services/source/qdrantHa';
   import { getRedisTopoGraph } from '@services/source/redis';
   import { getRiakTopoGraph } from '@services/source/riak';
   import { getHaClusterTopoGraph } from '@services/source/sqlserveHaCluster';
   import { getSingleClusterTopoGraph } from '@services/source/sqlserverSingleCluster';
+  import { getSurrealdbHaTopoGraph } from '@services/source/surrealdbHa';
+  import { getSurrealdbSingleTopoGraph } from '@services/source/surrealdbSingle';
   import { getTendbclusterTopoGraph } from '@services/source/tendbcluster';
   import { getTendbhaTopoGraph } from '@services/source/tendbha';
   import { getTendbsingleTopoGraph } from '@services/source/tendbsingle';
@@ -129,13 +132,24 @@
     [ClusterTypes.TWEMPROXY_REDIS_INSTANCE]: getRedisTopoGraph,
     [ClusterTypes.TWEMPROXY_TENDIS_SSD_INSTANCE]: getRedisTopoGraph,
   };
+
+  const k8sApiMap = {
+    [ClusterTypes.K8S_QDRANT_HA]: getQdrantHaTopoGraph,
+    [ClusterTypes.K8S_SURREALDB_HA]: getSurrealdbHaTopoGraph,
+    [ClusterTypes.K8S_SURREALDB_SINGLE]: getSurrealdbSingleTopoGraph,
+  };
 </script>
 <script setup lang="tsx">
   export interface Props {
-    clusterType: keyof typeof apiMap;
+    clusterData: {
+      cluster_name: string;
+      id: number;
+      k8s_cluster_name?: string;
+      namespace?: string;
+    };
+    clusterType: keyof typeof apiMap | keyof typeof k8sApiMap;
     // eslint-disable-next-line vue/no-unused-properties
     dbType: string;
-    id: number;
     // eslint-disable-next-line vue/no-unused-properties
     nodeConfig?: NodeConfig;
   }
@@ -220,11 +234,11 @@
   let topoData: ResourceTopo | null = null;
 
   watch(
-    () => props.id,
+    () => props.clusterData.id,
     () => {
-      if (props.id) {
+      if (props.clusterData.id) {
         setTimeout(() => {
-          fetchResourceTopo(props.id);
+          fetchResourceTopo(props.clusterData.id);
         });
       }
     },
@@ -242,9 +256,21 @@
   const fetchResourceTopo = (id: number) => {
     pageLoading.value = true;
 
-    return apiMap[props.clusterType]({
-      cluster_id: id,
-    })
+    const getApi = () => {
+      if (props.clusterType in k8sApiMap) {
+        return k8sApiMap[props.clusterType as keyof typeof k8sApiMap]({
+          cluster_id: props.clusterData.id,
+          k8sClusterName: props.clusterData.k8s_cluster_name!,
+          namespace: props.clusterData.namespace!,
+        });
+      }
+
+      return apiMap[props.clusterType as keyof typeof apiMap]({
+        cluster_id: props.clusterData.id,
+      });
+    };
+
+    getApi()
       .then((data: ResourceTopo) => {
         topoData = data;
         renderDraph(data);

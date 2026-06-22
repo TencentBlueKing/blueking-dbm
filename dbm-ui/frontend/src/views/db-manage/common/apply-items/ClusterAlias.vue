@@ -30,16 +30,18 @@
 
   import { verifyDuplicatedClusterName } from '@services/source/dbbase';
 
+  import { ClusterTypes } from '@common/const';
+
   interface Props {
     bizId: number | '';
-    clusterType: string;
+    clusterType: ClusterTypes;
   }
 
   const props = defineProps<Props>();
 
-  const { t } = useI18n();
-
   const modelValue = defineModel<string>();
+
+  const { t } = useI18n();
 
   const rules = [
     {

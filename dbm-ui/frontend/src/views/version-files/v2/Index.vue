@@ -15,7 +15,7 @@
   <div class="version-files-page">
     <DbTab
       v-model="dbTypeActive"
-      :exclude="[DBTypes.TENDBCLUSTER]" />
+      :exclude="[DBTypes.TENDBCLUSTER, DBTypes.K8S_SURREALDB, DBTypes.K8S_QRRANT]" />
     <div
       v-if="renderPkgTypeList.length > 0"
       class="veriosn-content-main">
