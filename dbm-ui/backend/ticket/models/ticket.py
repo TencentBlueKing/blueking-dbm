@@ -30,12 +30,14 @@ from backend.core.encrypt.handlers import AsymmetricHandler
 from backend.db_monitor.exceptions import AutofixException
 from backend.flow.engine.revoke.base import RevokeFlowBase
 from backend.ticket.constants import (
+    CLUSTER_TAG_WILDCARD_VALUE,
     EXCLUSIVE_TICKET_EXCEL_PATH,
     TICKET_RUNNING_STATUS_SET,
     FlowContext,
     FlowErrCode,
     FlowRetryType,
     FlowType,
+    FlowTypeConfig,
     TicketFlowStatus,
     TicketStatus,
     TicketType,
@@ -433,6 +435,7 @@ class TicketFlowsConfig(AuditedModel):
 
     bk_biz_id = models.IntegerField(_("业务ID"), default=0)
     cluster_ids = models.JSONField(_("集群ID列表"), default=list)
+    cluster_tags = models.JSONField(_("集群标签列表"), default=list)
     group = models.CharField(_("单据分组类型"), choices=DBType.get_choices(), max_length=LEN_NORMAL)
     ticket_type = models.CharField(_("单据类型"), choices=TicketType.get_choices(), max_length=128)
     editable = models.BooleanField(_("是否支持用户配置"), default=True)
@@ -445,24 +448,106 @@ class TicketFlowsConfig(AuditedModel):
 
     @classmethod
     def get_cluster_configs(cls, ticket_type, bk_biz_id, cluster_ids):
-        """获取集群生效的流程配置"""
-        # 流程优先级：集群维度 > 业务维度 > 平台维度
+        """
+        获取集群生效的流程配置。
+
+        匹配规则：
+        1. 单个集群的匹配优先级：集群精确配置 > 标签配置 > 业务默认配置 > 平台默认配置。
+        2. 业务默认配置指 cluster_ids=[] 且 cluster_tags=[] 且 bk_biz_id != 0的自定义配置；仅在集群配置和标签配置都未命中时使用。
+        3. 若当前业务没有业务默认配置，则业务默认使用平台默认配置。
+        4. 同一维度允许多条配置，按 update_at 倒序匹配，优先使用最新命中的配置。
+        5. 同一条标签配置内，同一个 tag_key 下多个 tag_value 是 OR 关系，不同 tag_key 之间是 AND 关系。
+        6. 标签值为 CLUSTER_TAG_WILDCARD_VALUE 时，表示集群在该 tag_key 下存在任意标签值即可命中该 key。
+        7. '人工确认'配置统一用平台默认配置
+        """
+        # 流程优先级：集群维度 > 标签维度 > 业务维度 > 平台维度
         # 全局配置
+        from backend.db_meta.models import Cluster
+
         global_cfg = cls.objects.get(bk_biz_id=PLAT_BIZ_ID, ticket_type=ticket_type)
-        # 业务配置和集群配置
+
+        def with_global_manual_confirm(config):
+            # '人工确认'配置统一用平台默认配置
+            need_manual_confirm_key = FlowTypeConfig.NEED_MANUAL_CONFIRM.value
+            config.configs = {
+                **config.configs,
+                need_manual_confirm_key: global_cfg.configs.get(need_manual_confirm_key),
+            }
+            return config
+
+        # 当前业务下该单据类型的所有配置；cluster_ids/cluster_tags 均为空的记录是业务默认配置。
         biz_configs = cls.objects.filter(bk_biz_id=bk_biz_id, ticket_type=ticket_type)
-        biz_cfg = biz_configs.filter(cluster_ids=[]).first() or global_cfg
-        cluster_cfg = biz_configs.exclude(cluster_ids=[]).first() or biz_cfg
+        biz_cfg = biz_configs.filter(cluster_ids=[], cluster_tags=[]).first() or global_cfg
+        # 同一个 ticket_type 允许存在多条集群/标签子配置，按更新时间倒序匹配，优先使用最新配置。
+        cluster_configs = list(biz_configs.exclude(cluster_ids=[]).order_by("-update_at"))
+        tag_configs = list(biz_configs.exclude(cluster_tags=[]).order_by("-update_at"))
 
-        # 单据不涉及集群，则返回业务/平台配置
+        # 单据不涉及集群，无法匹配集群/标签维度，直接返回业务默认配置或平台默认配置。
         if not cluster_ids:
-            return [biz_cfg]
+            return [with_global_manual_confirm(biz_cfg)]
 
-        # 业务或集群配置最多共存一个
-        cluster_configs = [
-            cluster_cfg if cluster_cfg and cluster_id in cluster_cfg.cluster_ids else biz_cfg
-            for cluster_id in cluster_ids
+        # 集群维度为精确匹配：当前 cluster_id 出现在配置的 cluster_ids 中即命中。
+        # cluster_cfg.cluster_ids 存储的是 [{"id": 1, "immute_domain": "..."}]
+        cluster_cfg_rule_list = [
+            (cluster_cfg, {cluster["id"] for cluster in cluster_cfg.cluster_ids}) for cluster_cfg in cluster_configs
         ]
+        # 将一条标签配置的 cluster_tags 按 tag_key 分组：
+        # 1. 同一个 tag_key 下多个 tag_value 是 OR 关系；
+        # 2. 同一条配置里的不同 tag_key 之间在 match_tag_rules 中按 AND 关系判断。
+        tag_cfg_rule_list = []
+        for tag_cfg in tag_configs:
+            tag_cfg_rules = defaultdict(set)
+            for tag in tag_cfg.cluster_tags:
+                tag_key = tag.get("tag_key")
+                tag_value = tag.get("tag_value")
+                if tag_key is None or tag_value is None:
+                    continue
+                tag_cfg_rules[tag_key].add(tag_value)
+            tag_cfg_rule_list.append((tag_cfg, tag_cfg_rules))
+
+        # 查询当前单据涉及的集群标签，整理成 {cluster_id: {tag_key: {tag_value1, tag_value2}}}，便于和 tag_cfg_rules 对比。
+        cluster_tag_map = {}
+        for cluster in Cluster.objects.prefetch_related("tags").filter(id__in=cluster_ids):
+            cluster_tag_map[cluster.id] = defaultdict(set)
+            for tag in cluster.tags.all():
+                cluster_tag_map[cluster.id][tag.key].add(tag.value)
+
+        def match_tag_rules(cluster_id, tag_cfg_rules):
+            # tag_cfg_rules 为一条 TicketFlowsConfig 的 cluster_tags 字段按 tag_key 分组后的匹配规则。
+            cluster_tags = cluster_tag_map.get(cluster_id, {})
+
+            for tag_key, tag_values in tag_cfg_rules.items():
+                cluster_tag_values = cluster_tags.get(tag_key, set())
+                # 单个 tag_key 命中条件：
+                # 1. 配置值包含通配符，且集群在该 tag_key 下存在任意标签值；
+                # 2. 或者集群该 tag_key 下的标签值与配置值存在交集。
+                tag_value_matched = (CLUSTER_TAG_WILDCARD_VALUE in tag_values and bool(cluster_tag_values)) or bool(
+                    cluster_tag_values & tag_values
+                )
+                if not tag_value_matched:
+                    # 同一条标签配置里的不同 tag_key 是 AND 关系，有任意 tag_key 不命中则整条配置不生效。
+                    return False
+            return True
+
+        def get_matched_tag_cfg(cluster_id):
+            # tag_cfg_rule_list 已按 update_at 倒序排列，返回第一条命中的标签配置。
+            for tag_cfg, tag_cfg_rules in tag_cfg_rule_list:
+                if tag_cfg_rules and match_tag_rules(cluster_id, tag_cfg_rules):
+                    return tag_cfg
+            return None
+
+        def get_matched_cluster_cfg(cluster_id):
+            # cluster_cfg_rule_list 已按 update_at 倒序排列，返回第一条包含该 cluster_id 的集群配置。
+            for cluster_cfg, cluster_cfg_ids in cluster_cfg_rule_list:
+                if cluster_id in cluster_cfg_ids:
+                    return cluster_cfg
+            return None
+
+        cluster_configs = []
+        for cluster_id in cluster_ids:
+            # 单个集群只有在集群配置和标签配置都未命中时，才使用业务默认配置或平台默认配置。
+            matched_cfg = get_matched_cluster_cfg(cluster_id) or get_matched_tag_cfg(cluster_id) or biz_cfg
+            cluster_configs.append(with_global_manual_confirm(matched_cfg))
         return cluster_configs
 
     @classmethod

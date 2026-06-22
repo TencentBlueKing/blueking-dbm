@@ -577,7 +577,7 @@ class TicketFlowBuilder:
     @property
     def need_manual_confirm(self):
         """是否需要人工确认节点。后续默认从单据配置表获取。子类可覆写，覆写以后editable为False"""
-        need_manual_confirm = any([c.configs["need_manual_confirm"] for c in self.ticket_configs])
+        need_manual_confirm = any([c.configs.get("need_manual_confirm") for c in self.ticket_configs])
         return need_manual_confirm
 
     @property
@@ -683,7 +683,7 @@ class TicketFlowBuilder:
     def _add_itsm_pause_describe(cls, flow_desc, flow_config_map):
         if flow_config_map[cls.ticket_type]["need_itsm"]:
             flow_desc.append(FlowType.get_choice_label(FlowType.BK_ITSM))
-        if flow_config_map[cls.ticket_type]["need_manual_confirm"]:
+        if flow_config_map[cls.ticket_type].get("need_manual_confirm"):
             flow_desc.append(FlowType.get_choice_label(FlowType.PAUSE))
         return flow_desc
 

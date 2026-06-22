@@ -8,7 +8,6 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-import itertools
 import json
 import logging
 import threading
@@ -27,12 +26,14 @@ from backend.components import ItsmApi
 from backend.configuration.constants import PLAT_BIZ_ID, SystemSettingsEnum
 from backend.configuration.models import SystemSettings
 from backend.db_meta.enums import ClusterEntryType, ClusterType
-from backend.db_meta.models import Cluster, ClusterEntry
+from backend.db_meta.enums.comm import TagType
+from backend.db_meta.models import ClusterEntry, Tag
 from backend.db_meta.models.db_module import DBModule
 from backend.db_services.ipchooser.handlers.host_handler import HostHandler
 from backend.ticket.builders import BuilderFactory
 from backend.ticket.builders.common.base import fetch_cluster_ids, fetch_instance_ids
 from backend.ticket.constants import (
+    CLUSTER_TAG_WILDCARD_VALUE,
     FLOW_FINISHED_STATUS,
     SPECIAL_APPROVE_TICKETS,
     TODO_RUNNING_STATUS,
@@ -375,16 +376,112 @@ class TicketHandler:
         return TicketHandler.batch_process_todo(user=username, action=action, operations=operations)
 
     @classmethod
-    def create_ticket_flow_config(cls, bk_biz_id, cluster_ids, ticket_types, configs, operator, remark):
+    def check_ticket_flow_config_cluster_repeat(cls, bk_biz_id, cluster_ids, ticket_type, config_id=None):
+        """给前端预校验使用，返回每个集群是否已命中已有流程配置。"""
+        current_cluster_ids = set(cluster_ids)
+        if not current_cluster_ids:
+            return []
+
+        cluster_configs = TicketFlowsConfig.objects.filter(bk_biz_id=bk_biz_id, ticket_type=ticket_type).exclude(
+            cluster_ids=[]
+        )
+        if config_id is not None:
+            cluster_configs = cluster_configs.exclude(id=config_id)
+
+        existed_cluster_ids = set()
+        for cluster_config in cluster_configs:
+            existed_cluster_ids.update(cluster["id"] for cluster in cluster_config.cluster_ids)
+
+        duplicate_cluster_ids = current_cluster_ids & existed_cluster_ids
+
+        return [
+            {
+                "id": cluster_id,
+                "validate": cluster_id in duplicate_cluster_ids,
+            }
+            for cluster_id in cluster_ids
+        ]
+
+    @classmethod
+    def check_ticket_flow_config_cluster_tag_repeat(cls, bk_biz_id, cluster_tags, ticket_type, config_id=None):
+        """给前端预校验使用，返回每个集群标签是否已命中已有流程配置。"""
+        if not cluster_tags:
+            return []
+
+        def build_tag_rules(tags):
+            """将标签列表整理成 {tag_key: {tag_value}}，用于判断两个标签条件是否存在命中范围交集。"""
+            tag_rules = defaultdict(set)
+            for tag in tags:
+                tag_rules[tag.get("tag_key")].add(tag.get("tag_value"))
+            return tag_rules
+
+        def is_tag_scope_overlap(left_rules, right_rules):
+            """判断拟保存标签条件(left)是否命中已有标签条件(right)。"""
+            # 没有共同 tag_key 时，普通标签条件不存在冲突可能。
+            common_keys = set(left_rules) & set(right_rules)
+            if not common_keys:
+                return False
+
+            # 所有共同 tag_key 都必须存在取值交集，才认为两组条件覆盖范围有交集。
+            for tag_key in common_keys:
+                left_values = left_rules[tag_key]
+                right_values = right_rules[tag_key]
+                right_has_wildcard = CLUSTER_TAG_WILDCARD_VALUE in right_values
+                if not right_has_wildcard and not (left_values & right_values):
+                    return False
+            return True
+
+        current_tag_rules = build_tag_rules(cluster_tags)
+        tag_configs = TicketFlowsConfig.objects.filter(bk_biz_id=bk_biz_id, ticket_type=ticket_type).exclude(
+            cluster_tags=[]
+        )
+        if config_id is not None:
+            tag_configs = tag_configs.exclude(id=config_id)
+
+        conflict_tag_pairs = set()
+        for tag_config in tag_configs:
+            existed_tag_rules = build_tag_rules(tag_config.cluster_tags)
+            if is_tag_scope_overlap(current_tag_rules, existed_tag_rules):
+                # 只在同一个 tag_key 下处理“任意值”通配，避免不同 key 之间被误报为重复。
+                for tag_key in set(current_tag_rules) & set(existed_tag_rules):
+                    current_values = current_tag_rules[tag_key]
+                    existed_values = existed_tag_rules[tag_key]
+                    existed_has_wildcard = CLUSTER_TAG_WILDCARD_VALUE in existed_values
+                    conflict_values = current_values if existed_has_wildcard else current_values & existed_values
+                    for tag_value in conflict_values:
+                        conflict_tag_pairs.add((tag_key, tag_value))
+
+        return [
+            {
+                **tag,
+                "validate": (tag.get("tag_key"), tag.get("tag_value")) in conflict_tag_pairs,
+            }
+            for tag in cluster_tags
+        ]
+
+    @classmethod
+    def create_ticket_flow_config(
+        cls, bk_biz_id, cluster_ids, ticket_types, configs, operator, remark, cluster_tags=None
+    ):
         """
         创建单据流程
         @param bk_biz_id: 业务ID，为0表示平台业务
-        @param cluster_ids: 集群ID列表，表示规则生效的集群范围
+        @param cluster_ids: 集群范围列表，表示规则生效的集群范围，格式:
+            [{"id": 1, "immute_domain": "mysql.example.com"}]
+        @param cluster_tags: 集群标签范围列表，表示规则生效的标签范围，格式:
+            [{"id": 14, "tag_key": "dbresource", "tag_value": "xxx"}]
         @param ticket_types: 单据类型列表
         @param configs: 流程配置
         @param operator: 创建者
         @param remark: 备注
         """
+
+        cluster_tags = cluster_tags or []
+
+        def check_editable_configs(configs_qs):
+            uneditable_configs = list(configs_qs.filter(editable=False).values_list("id", "ticket_type"))
+            if uneditable_configs:
+                raise TicketFlowsConfigException(_("流程配置不允许编辑，配置ID和单据类型: {}").format(uneditable_configs))
 
         def check_create_config(ticket_type):
             if not bk_biz_id:
@@ -392,23 +489,51 @@ class TicketHandler:
 
             global_config = TicketFlowsConfig.objects.get(bk_biz_id=0, ticket_type=ticket_type)
             biz_configs = TicketFlowsConfig.objects.filter(bk_biz_id=bk_biz_id, ticket_type=ticket_type)
+            editable_config_qs = TicketFlowsConfig.objects.filter(
+                bk_biz_id__in=[PLAT_BIZ_ID, bk_biz_id],
+                ticket_type=ticket_type,
+            )
+            check_editable_configs(editable_config_qs)
 
-            if configs["need_manual_confirm"] != global_config.configs["need_manual_confirm"]:
+            if configs.get("need_manual_confirm") and configs.get("need_manual_confirm") != global_config.configs.get(
+                "need_manual_confirm"
+            ):
                 raise TicketFlowsConfigException(_("业务级别不允许编辑[人工确认]设置"))
 
-            biz_cfg = biz_configs.filter(cluster_ids=[]).first()
-            cluster_cfg = biz_configs.exclude(cluster_ids=[]).first()
+            biz_cfg = biz_configs.filter(cluster_ids=[], cluster_tags=[]).first()
 
             # 不允许创建相同维度的流程
-            if biz_cfg and not cluster_ids:
+            if biz_cfg and not cluster_ids and not cluster_tags:
                 raise TicketFlowsConfigException(_("业务[{}]已存在{}的流程配置").format(bk_biz_id, ticket_type))
-            if cluster_cfg and cluster_ids:
-                raise TicketFlowsConfigException(_("业务[{}]已存在{}的集群流程配置").format(bk_biz_id, ticket_type))
-            # 新创建的流程，不能和生效流程的配置冲突
-            effect_flows = [biz_cfg or global_config, cluster_cfg]
-            for ef in effect_flows:
-                if ef and ef.configs["need_itsm"] == configs["need_itsm"]:
-                    raise TicketFlowsConfigException(_("业务[{}]已存在{}的相同范围配置").format(bk_biz_id, ticket_type))
+            if cluster_ids:
+                checking_cluster_ids = [
+                    cluster.get("id") if isinstance(cluster, dict) else cluster for cluster in cluster_ids
+                ]
+                duplicate_cluster_ids = [
+                    cluster["id"]
+                    for cluster in cls.check_ticket_flow_config_cluster_repeat(
+                        bk_biz_id=bk_biz_id, cluster_ids=checking_cluster_ids, ticket_type=ticket_type
+                    )
+                    if cluster["validate"]
+                ]
+                if duplicate_cluster_ids:
+                    raise TicketFlowsConfigException(
+                        _("业务[{}]已存在{}的集群流程配置，重复集群ID: {}").format(
+                            bk_biz_id, ticket_type, sorted(duplicate_cluster_ids)
+                        )
+                    )
+            if cluster_tags:
+                duplicate_tags = [
+                    tag
+                    for tag in cls.check_ticket_flow_config_cluster_tag_repeat(
+                        bk_biz_id=bk_biz_id, cluster_tags=cluster_tags, ticket_type=ticket_type
+                    )
+                    if tag["validate"]
+                ]
+                if duplicate_tags:
+                    raise TicketFlowsConfigException(
+                        _("业务[{}]已存在{}的集群标签流程配置，冲突标签: {}").format(bk_biz_id, ticket_type, duplicate_tags)
+                    )
 
         flows_config_list = []
         for type in ticket_types:
@@ -419,6 +544,7 @@ class TicketHandler:
             flows_config = TicketFlowsConfig(
                 bk_biz_id=bk_biz_id,
                 cluster_ids=cluster_ids,
+                cluster_tags=cluster_tags,
                 ticket_type=type,
                 group=group,
                 configs=configs,
@@ -431,11 +557,16 @@ class TicketHandler:
         TicketFlowsConfig.objects.bulk_create(flows_config_list)
 
     @classmethod
-    def update_ticket_flow_config(cls, bk_biz_id, cluster_ids, ticket_types, configs, config_ids, operator, remark):
+    def update_ticket_flow_config(
+        cls, bk_biz_id, cluster_ids, ticket_types, configs, config_ids, operator, remark, cluster_tags=None
+    ):
         """
         更新单据流程
         @param bk_biz_id: 业务ID，为0表示平台业务
-        @param cluster_ids: 集群ID列表，表示规则生效的集群范围
+        @param cluster_ids: 集群范围列表，表示规则生效的集群范围，格式:
+            [{"id": 1, "immute_domain": "mysql.example.com"}]
+        @param cluster_tags: 集群标签范围列表，表示规则生效的标签范围，格式:
+            [{"id": 14, "tag_key": "dbresource", "tag_value": "xxx"}]
         @param ticket_types: 单据类型列表
         @param configs: 流程配置
         @param config_ids: 更新的流程ID列表
@@ -443,50 +574,151 @@ class TicketHandler:
         @param remark: 备注
         """
         cluster_ids = cluster_ids or []
+        cluster_tags = cluster_tags or []
         config_ids = config_ids or []
 
         config_qs = TicketFlowsConfig.objects.filter(bk_biz_id=bk_biz_id, ticket_type__in=ticket_types)
+
+        def check_editable_configs(configs_qs):
+            uneditable_configs = list(configs_qs.filter(editable=False).values_list("id", "ticket_type"))
+            if uneditable_configs:
+                raise TicketFlowsConfigException(_("流程配置不允许编辑，配置ID和单据类型: {}").format(uneditable_configs))
+
         # 平台全局配置直接更新
         if not bk_biz_id:
+            check_editable_configs(config_qs)
             config_qs.update(configs=configs)
             return
 
         # 业务级别先删除，再创建，可以复用校验流程
         with transaction.atomic():
-            config_qs.filter(id__in=config_ids).delete()
-            cls.create_ticket_flow_config(bk_biz_id, cluster_ids, ticket_types, configs, operator, remark)
+            update_config_qs = config_qs.filter(id__in=config_ids).exclude(bk_biz_id=PLAT_BIZ_ID)
+            check_editable_configs(update_config_qs)
+            update_config_qs.delete()
+            cls.create_ticket_flow_config(
+                bk_biz_id, cluster_ids, ticket_types, configs, operator, remark, cluster_tags
+            )
 
     @classmethod
     def query_ticket_flows_describe(cls, bk_biz_id, db_type, ticket_types=None):
         # 根据条件过滤单据配置
-        config_filter = Q(bk_biz_id__in=[bk_biz_id, PLAT_BIZ_ID], group=db_type, editable=True)
+        config_filter = Q(bk_biz_id__in=[bk_biz_id, PLAT_BIZ_ID], group=db_type)
         if ticket_types:
             config_filter &= Q(ticket_type__in=ticket_types)
-        ticket_flow_configs = TicketFlowsConfig.objects.filter(config_filter)
+        candidate_flow_configs = TicketFlowsConfig.objects.filter(config_filter)
+
+        # 同一个 ticket_type 的时候 cluster_ids/cluster_tags 为空的是父配置，非空的是子配置；子配置返回时带上父配置 ID。
+        ticket_flow_config_map = defaultdict(list)
+        for config in candidate_flow_configs:
+            ticket_flow_config_map[config.ticket_type].append(config)
+
+        ticket_flow_configs = []
+        for configs in ticket_flow_config_map.values():
+            # 平台父配置作为兜底配置，业务未创建父配置时使用平台配置展示。
+            plat_parent_config = next(
+                (config for config in configs if config.bk_biz_id == PLAT_BIZ_ID),
+                None,
+            )
+            # 业务父配置只包含业务维度配置，不包含集群子策略和标签子策略。
+            biz_parent_config = next(
+                (
+                    config
+                    for config in configs
+                    if config.bk_biz_id != PLAT_BIZ_ID and not config.cluster_ids and not config.cluster_tags
+                ),
+                None,
+            )
+            # 集群子策略和标签子策略都作为子配置返回，前端通过 is_child_config 区分。
+            biz_child_configs = [config for config in configs if config.cluster_ids or config.cluster_tags]
+
+            # 有业务父配置时(自定义策略)，使用业务父配置；否则使用平台父配置。
+            parent_config = biz_parent_config or plat_parent_config
+            ticket_flow_configs.extend([config for config in [parent_config] if config] + biz_child_configs)
+        # 记录每种 ticket_type 的父配置，后续给子配置补充 parent_id 和重复配置标记。
+        parent_config_map = {
+            config.ticket_type: config
+            for config in ticket_flow_configs
+            if not config.cluster_ids and not config.cluster_tags
+        }
+        # 记录存在子配置的 ticket_type，父配置返回时标记 has_child_config。
+        child_config_ticket_types = {
+            config.ticket_type for config in ticket_flow_configs if config.cluster_ids or config.cluster_tags
+        }
 
         # 获得单据flow配置映射表和集群映射表
-        biz_config_map = {cfg.ticket_type: cfg.configs for cfg in ticket_flow_configs if not cfg.cluster_ids}
-        cluster_config_map = {cfg.ticket_type: cfg.configs for cfg in ticket_flow_configs if cfg.cluster_ids}
+        biz_config_map = {
+            cfg.ticket_type: cfg.configs for cfg in ticket_flow_configs if not cfg.cluster_ids and not cfg.cluster_tags
+        }
 
-        # 获得集群映射表
-        cluster_ids = list(itertools.chain(*ticket_flow_configs.values_list("cluster_ids", flat=True)))
-        clusters_map = {c.id: c for c in Cluster.objects.filter(id__in=cluster_ids)}
+        # 批量查询标签是否仍然存在；标签被删除后，返回时标记 is_invalid，用作前端展示。
+        # 根据 tag_key/tag_value，判断有效性。
+        tag_pairs = {
+            (tag["tag_key"], tag["tag_value"])
+            for cfg in ticket_flow_configs
+            for tag in cfg.cluster_tags
+            if isinstance(tag, dict)
+            and tag.get("tag_key")
+            and tag.get("tag_value")
+            and tag.get("tag_value") != CLUSTER_TAG_WILDCARD_VALUE
+        }
+        if tag_pairs:
+            tag_keys = {tag_key for tag_key, __ in tag_pairs}
+            tag_values = {tag_value for __, tag_value in tag_pairs}
+            valid_tag_pairs = set(
+                Tag.objects.filter(
+                    bk_biz_id__in=[bk_biz_id, PLAT_BIZ_ID],
+                    key__in=tag_keys,
+                    value__in=tag_values,
+                    type=TagType.CLUSTER,
+                ).values_list("key", "value")
+            )
+        else:
+            valid_tag_pairs = set()
 
-        # 获取单据流程配置信息
         flow_desc_list: List[Dict] = []
         for flow_config in ticket_flow_configs:
+            is_child_config = bool(flow_config.cluster_ids or flow_config.cluster_tags)
             # 获取集群的描述
             cluster_info = [
-                {"cluster_id": clusters_map[cluster_id].id, "immute_domain": clusters_map[cluster_id].immute_domain}
-                for cluster_id in flow_config.cluster_ids
-                if cluster_id in clusters_map
+                {"cluster_id": cluster["id"], "immute_domain": cluster["immute_domain"]}
+                for cluster in flow_config.cluster_ids
             ]
             # 获取当前单据的执行流程描述
-            config_map = cluster_config_map if cluster_info else biz_config_map
+            # 子配置只用自身 configs 生成描述；父配置使用同组父配置映射生成完整描述。
+            config_map = {flow_config.ticket_type: flow_config.configs} if is_child_config else biz_config_map
             flow_desc = BuilderFactory.registry[flow_config.ticket_type].describe_ticket_flows(config_map)
             # 获取配置的基本信息
             flow_config_info = model_to_dict(flow_config)
+
+            # 给标签范围追加失效标记，兼容标签表数据已被删除的场景。
+            def append_tag_invalid_mark(tag):
+                if not isinstance(tag, dict):
+                    return tag
+
+                tag_key = tag.get("tag_key")
+                tag_value = tag.get("tag_value")
+                is_invalid = (
+                    not tag_key
+                    or not tag_value
+                    or (tag_value != CLUSTER_TAG_WILDCARD_VALUE and (tag_key, tag_value) not in valid_tag_pairs)
+                )
+                return {**tag, "is_invalid": is_invalid}
+
+            flow_config_info["cluster_tags"] = [
+                append_tag_invalid_mark(tag) for tag in flow_config_info["cluster_tags"]
+            ]
+            parent_config = parent_config_map.get(flow_config.ticket_type)
+            # model_to_dict 返回的 configs 可能直接引用原对象，这里复制后再追加展示字段。
+            flow_config_info["configs"] = dict(flow_config_info["configs"])
+            if is_child_config and parent_config:
+                # 子配置的 need_itsm 与父配置一致时，标记为重复配置，便于前端提示用户。
+                flow_config_info["configs"]["need_itsm_duplicated"] = flow_config.configs.get(
+                    FlowTypeConfig.NEED_ITSM
+                ) == parent_config.configs.get(FlowTypeConfig.NEED_ITSM)
             flow_config_info.update(
+                parent_id=parent_config.id if is_child_config and parent_config else 0,
+                is_child_config=is_child_config,
+                has_child_config=not is_child_config and flow_config.ticket_type in child_config_ticket_types,
                 ticket_type_display=flow_config.get_ticket_type_display(),
                 flow_desc=flow_desc,
                 clusters=cluster_info,
