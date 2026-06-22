@@ -14,6 +14,7 @@ from rest_framework import serializers
 
 from backend.db_meta.enums import ClusterType
 from backend.flow.engine.controller.sqlserver import SqlserverController
+from backend.iam_app.dataclass.actions import ActionEnum
 from backend.ticket import builders
 from backend.ticket.builders.common.base import InstanceInfoSerializer
 from backend.ticket.builders.sqlserver.base import (
@@ -53,7 +54,7 @@ class SQLServerRestoreLocalSlaveParamBuilder(builders.FlowParamBuilder):
             info["port"] = info["slave_host"].pop("port")
 
 
-@builders.BuilderFactory.register(TicketType.SQLSERVER_RESTORE_LOCAL_SLAVE)
+@builders.BuilderFactory.register(TicketType.SQLSERVER_RESTORE_LOCAL_SLAVE, iam=ActionEnum.SQLSERVER_MANAGE)
 class SQLServerRestoreLocalSlaveFlowBuilder(BaseSQLServerHATicketFlowBuilder):
     serializer = SQLServerRestoreLocalSlaveDetailSerializer
     inner_flow_builder = SQLServerRestoreLocalSlaveParamBuilder

@@ -1822,8 +1822,8 @@
                 "id": "sqlserver_dbconfig_edit",
                 "name": "SQLServer 集群参数配置编辑",
                 "name_en": "sqlserver_dbconfig_edit",
-                "description": "SQLServer 集群参数配置编辑",
-                "description_en": "sqlserver_dbconfig_edit",
+                "description": "编辑集群的参数配置",
+                "description_en": "编辑集群的参数配置",
                 "type": "manage",
                 "related_resource_types": [
                     {
@@ -6719,8 +6719,8 @@
                 "id": "sqlserver_view",
                 "name": "SQLServer 集群详情查看",
                 "name_en": "sqlserver_view",
-                "description": "SQLServer 集群详情查看",
-                "description_en": "sqlserver_view",
+                "description": "查看集群的基本信息、参数配置、性能监控等详情",
+                "description_en": "查看集群的基本信息、参数配置、性能监控等详情",
                 "type": "view",
                 "related_resource_types": [
                     {
@@ -6748,8 +6748,8 @@
                 "id": "sqlserver_edit",
                 "name": "SQLServer 集群元数据编辑",
                 "name_en": "sqlserver_edit",
-                "description": "编辑集群的标签、别名、备注、容灾要求、地域信息等元数据",
-                "description_en": "编辑集群的标签、别名、备注、容灾要求、地域信息等元数据",
+                "description": "编辑集群的标签、别名、备注等元数据",
+                "description_en": "编辑集群的标签、别名、备注等元数据",
                 "type": "edit",
                 "related_resource_types": [
                     {
@@ -6867,6 +6867,37 @@
         {
             "operation": "upsert_action",
             "data": {
+                "id": "sqlserver_priv_manage",
+                "name": "SQLServer 权限管理",
+                "name_en": "sqlserver_priv_manage",
+                "description": "管理集群的账号和权限模板",
+                "description_en": "管理集群的账号和权限模板",
+                "type": "manage",
+                "related_resource_types": [
+                    {
+                        "system_id": "bk_dbm",
+                        "id": "sqlserver",
+                        "selection_mode": "all",
+                        "related_instance_selections": [
+                            {
+                                "system_id": "bk_dbm",
+                                "id": "sqlserver_list"
+                            }
+                        ]
+                    }
+                ],
+                "related_actions": [
+                    "db_manage"
+                ],
+                "version": 1,
+                "hidden": false,
+                "group": "SQLServer",
+                "subgroup": "权限管理"
+            }
+        },
+        {
+            "operation": "upsert_action",
+            "data": {
                 "id": "sqlserver_account_create",
                 "name": "SQLServer 账号创建",
                 "name_en": "sqlserver_account_create",
@@ -6886,7 +6917,9 @@
                         ]
                     }
                 ],
-                "related_actions": [],
+                "related_actions": [
+                    "sqlserver_priv_manage"
+                ],
                 "version": 1,
                 "hidden": false,
                 "group": "SQLServer",
@@ -6915,7 +6948,9 @@
                         ]
                     }
                 ],
-                "related_actions": [],
+                "related_actions": [
+                    "sqlserver_priv_manage"
+                ],
                 "version": 1,
                 "hidden": false,
                 "group": "SQLServer",
@@ -6945,7 +6980,8 @@
                     }
                 ],
                 "related_actions": [
-                    "db_manage"
+                    "db_manage",
+                    "sqlserver_priv_manage"
                 ],
                 "version": 1,
                 "hidden": false,
@@ -7018,7 +7054,8 @@
                     }
                 ],
                 "related_actions": [
-                    "db_manage"
+                    "db_manage",
+                    "sqlserver_priv_manage"
                 ],
                 "version": 1,
                 "hidden": false,
@@ -8703,10 +8740,10 @@
             "operation": "upsert_action",
             "data": {
                 "id": "sqlserver_manage",
-                "name": "SQLServer 集群管理",
+                "name": "SQLServer 集群运维管理",
                 "name_en": "sqlserver_manage",
-                "description": "SQLServer 集群管理",
-                "description_en": "sqlserver_manage",
+                "description": "管理集群的运维操作，包括扩缩容、高可用、迁移升级、故障修复等",
+                "description_en": "管理集群的运维操作，包括扩缩容、高可用、迁移升级、故障修复等",
                 "type": "manage",
                 "related_resource_types": [
                     {
@@ -8721,7 +8758,9 @@
                         ]
                     }
                 ],
-                "related_actions": [],
+                "related_actions": [
+                    "sqlserver_view"
+                ],
                 "version": 1,
                 "hidden": false,
                 "group": "SQLServer",
@@ -10785,9 +10824,9 @@
             "operation": "upsert_action",
             "data": {
                 "id": "mysql_proxy_rebuild",
-                "name": "MySQL Proxy实例重建",
+                "name": "MySQL Proxy原地重建",
                 "name_en": "MYSQL_PROXY_REBUILD",
-                "description": "MySQL Proxy实例重建",
+                "description": "MySQL Proxy原地重建",
                 "description_en": "MYSQL_PROXY_REBUILD",
                 "type": "execute",
                 "related_resource_types": [
@@ -17709,6 +17748,9 @@
                             "name_en": "权限管理",
                             "actions": [
                                 {
+                                    "id": "sqlserver_priv_manage"
+                                },
+                                {
                                     "id": "sqlserver_account_create"
                                 },
                                 {
@@ -19076,6 +19118,9 @@
                             "id": "sqlserver_apply"
                         },
                         {
+                            "id": "sqlserver_priv_manage"
+                        },
+                        {
                             "id": "sqlserver_account_create"
                         },
                         {
@@ -20255,6 +20300,33 @@
                             "id": "sqlserver_view"
                         }
                     ]
+                },
+                {
+                    "name": "SQLServer 权限管理",
+                    "name_en": "sqlserver_priv_manage",
+                    "actions": [
+                        {
+                            "id": "db_manage"
+                        },
+                        {
+                            "id": "sqlserver_priv_manage"
+                        },
+                        {
+                            "id": "sqlserver_account_create"
+                        },
+                        {
+                            "id": "sqlserver_account_delete"
+                        },
+                        {
+                            "id": "sqlserver_add_account_rule"
+                        },
+                        {
+                            "id": "sqlserver_authorize_rules"
+                        },
+                        {
+                            "id": "sqlserver_excel_authorize_rules"
+                        }
+                    ]
                 }
             ]
         },
@@ -21197,6 +21269,10 @@
                             },
                             {
                                 "id": "sqlserver_admin_pwd_modify",
+                                "required": true
+                            },
+                            {
+                                "id": "sqlserver_priv_manage",
                                 "required": true
                             },
                             {
