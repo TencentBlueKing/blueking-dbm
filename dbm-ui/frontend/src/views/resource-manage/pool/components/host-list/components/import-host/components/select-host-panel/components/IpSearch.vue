@@ -32,7 +32,7 @@
                 'white-space': 'pre-wrap',
                 'word-break': 'break-all',
               }">
-              {{ modelValue }}
+              {{ modelValue }}{{ modelValue.endsWith('\n') ? '\u200B' : '' }}
             </div>
             <textarea
               ref="textarea"
@@ -85,10 +85,19 @@
     modelValue.value = pasteParseMethod(modelValue.value);
   });
 
+  const textareaRef = useTemplateRef('textarea');
   const isFocused = ref(false);
 
   const isDisplayValueShow = computed(() => !isFocused.value && modelValue.value);
   const displayValue = computed(() => modelValue.value.replace(batchSplitRegex, ' | '));
+
+  watch(isFocused, () => {
+    nextTick(() => {
+      if (isFocused.value) {
+        textareaRef.value!.focus();
+      }
+    });
+  });
 
   const pasteParseMethod = (value: string) => {
     return _.uniq(_.filter(value.split(batchSplitRegex), (item) => Boolean(_.trim(item)))).join('\n');
