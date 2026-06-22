@@ -26,11 +26,11 @@ package client
 
 import (
 	"sync"
-	"time"
 
 	"dbm-services/common/dbha-v2/internal/probe/config"
 	"dbm-services/common/dbha-v2/pkg/constant"
 	"dbm-services/common/dbha-v2/pkg/gerrors"
+	"dbm-services/common/dbha-v2/pkg/hanet"
 	"dbm-services/common/dbha-v2/pkg/logger"
 	"dbm-services/common/dbha-v2/pkg/proto"
 
@@ -38,28 +38,32 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/keepalive"
+	"google.golang.org/grpc/resolver"
+	"google.golang.org/grpc/resolver/manual"
 )
 
 var NameGRPC = "GRPC"
 
+const (
+	resolverScheme      = "dbha"
+	loadBalancingPolicy = "round_robin"
+)
+
 // ReceiverClient is the gRPC client for the receiver service.
 type ReceiverClient struct {
-	conn                 *grpc.ClientConn
-	client               proto.ReceiverServiceClient
-	wg                   sync.WaitGroup
-	ctx                  context.Context
-	cancel               context.CancelFunc
-	clientId             string
-	closed               bool
-	reconnecting         bool
-	reconnectInterval    time.Duration
-	maxReconnectAttempts int
-	reconnectAttempts    int
-	mutex                sync.RWMutex
+	conn     *grpc.ClientConn
+	client   proto.ReceiverServiceClient
+	wg       sync.WaitGroup
+	ctx      context.Context
+	cancel   context.CancelFunc
+	clientId string
+	closed   bool
+	mutex    sync.RWMutex
+	resolver *manual.Resolver
 }
 
 // NewReceiverClient creates a ReceiverClient connected to the given endpoints.
-func NewReceiverClient(ctx context.Context, endpoints string, clientId string) (*ReceiverClient, error) {
+func NewReceiverClient(ctx context.Context, endpoint string, clientId string) (*ReceiverClient, error) {
 	pingTime := config.Cfg.Client.PingTime
 	if pingTime <= 0 {
 		pingTime = constant.DefaultClientPingTime
@@ -77,22 +81,31 @@ func NewReceiverClient(ctx context.Context, endpoints string, clientId string) (
 		maxSendMsgSize = constant.DefaultMaxSendMessageSize
 	}
 
-	reconnectInterval := config.Cfg.Client.ReceiverReconnectInterval
-	if reconnectInterval <= 0 {
-		reconnectInterval = constant.DefaultClientReconnectInterval
-	}
-	maxReconnectAttempts := config.Cfg.Client.ReceiverMaxReconnectAttempts
-	if maxReconnectAttempts <= 0 {
-		maxReconnectAttempts = constant.DefaultClientMaxReconnectAttempts
-	}
-
 	kacp := keepalive.ClientParameters{
 		Time:                pingTime,
 		Timeout:             pingTimeout,
 		PermitWithoutStream: true,
 	}
 
-	conn, err := grpc.NewClient(endpoints,
+	eps, err := hanet.ParseList(endpoint, "tcp")
+	if err != nil {
+		return nil, gerrors.Newf(gerrors.InvalidConfiguration, "invalid receiver endpoint(%s): %s", endpoint, err)
+	}
+
+	addrs := make([]resolver.Address, 0, len(eps))
+	for _, ep := range eps {
+		addrs = append(addrs, resolver.Address{Addr: ep.HostPort()})
+	}
+
+	rs := manual.NewBuilderWithScheme(resolverScheme)
+	rs.InitialState(resolver.State{Addresses: addrs})
+
+	serviceConfig := `{"loadBalancingPolicy":"` + loadBalancingPolicy + `"}`
+
+	conn, err := grpc.NewClient(
+		resolverScheme+":///receiver",
+		grpc.WithResolvers(rs),
+		grpc.WithDefaultServiceConfig(serviceConfig),
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 		grpc.WithKeepaliveParams(kacp),
 		grpc.WithDefaultCallOptions(
@@ -109,13 +122,12 @@ func NewReceiverClient(ctx context.Context, endpoints string, clientId string) (
 	ctxBase, cancel := context.WithCancel(ctx)
 
 	r := &ReceiverClient{
-		clientId:             clientId,
-		conn:                 conn,
-		client:               proto.NewReceiverServiceClient(conn),
-		ctx:                  ctxBase,
-		cancel:               cancel,
-		reconnectInterval:    reconnectInterval,
-		maxReconnectAttempts: maxReconnectAttempts,
+		clientId: clientId,
+		conn:     conn,
+		client:   proto.NewReceiverServiceClient(conn),
+		resolver: rs,
+		ctx:      ctxBase,
+		cancel:   cancel,
 	}
 
 	return r, nil
