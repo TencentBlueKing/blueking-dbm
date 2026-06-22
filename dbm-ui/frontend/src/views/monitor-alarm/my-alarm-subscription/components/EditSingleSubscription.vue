@@ -2,7 +2,10 @@
   <DbSideslider
     v-model:is-show="isShow"
     :before-close="handleBeforeClose"
+    :cancel-text="t('取消')"
     class="edit-single-subscription-main"
+    :confirm-handler="handleConfirm"
+    :confirm-text="t('确定')"
     :width="640">
     <template #header>
       <div class="major-title">
@@ -47,21 +50,6 @@
       <div class="item-title">{{ t('通知渠道') }}</div>
       <NoticeWaysGroup v-model="noticeWays" />
     </div>
-    <template #footer>
-      <BkButton
-        class="w-88"
-        :loading="saveLoading"
-        theme="primary"
-        @click="handleConfirm">
-        {{ t('确定') }}
-      </BkButton>
-      <BkButton
-        class="w-88 ml-8"
-        style="width: 64px"
-        @click="handleCancel">
-        {{ t('取消') }}
-      </BkButton>
-    </template>
   </DbSideslider>
 </template>
 <script setup lang="ts">
@@ -101,12 +89,11 @@
 
   const defaultChecked = true;
 
-  const { loading: saveLoading, run: runSaveSubscribe } = useRequest(saveSubscribe, {
+  const { runAsync: runSaveSubscribe } = useRequest(saveSubscribe, {
     manual: true,
     onSuccess: () => {
       messageSuccess('保存成功');
       initSubscribedDomainInfo();
-      isShow.value = false;
     },
   });
 
@@ -137,11 +124,7 @@
       ],
       notice_ways: noticeWays.value,
     };
-    runSaveSubscribe(params);
-  };
-
-  const handleCancel = () => {
-    isShow.value = false;
+    return runSaveSubscribe(params);
   };
 
   const handleBeforeClose = () => {

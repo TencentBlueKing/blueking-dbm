@@ -13,6 +13,10 @@
 
 <template>
   <DbSideslider
+    :cancel-handler="handleCancel"
+    :cancel-text="t('取消')"
+    :confirm-handler="handleSubmit"
+    :confirm-text="t('提交')"
     :is-show="isShow"
     :show-footer="!editDisabled"
     :width="960"
@@ -78,21 +82,6 @@
           :type="type" />
       </BkFormItem>
     </DbForm>
-    <template #footer>
-      <BkButton
-        class="w-88 mr-8"
-        :loading="loading"
-        theme="primary"
-        @click="handleSubmit">
-        {{ t('提交') }}
-      </BkButton>
-      <BkButton
-        class="w-88"
-        :disabled="loading"
-        @click="handleClose">
-        {{ t('取消') }}
-      </BkButton>
-    </template>
   </DbSideslider>
 </template>
 
@@ -186,23 +175,16 @@
   });
   const isSubmiting = ref(false);
 
-  const loading = computed(() => insertLoading.value || patchLoading.value);
   const editDisabled = computed(() => props.type === 'edit' && props.detailData.is_built_in);
 
   const sidesliderTitle = computed(() => `${titleMap[props.type]}`);
 
-  const { loading: insertLoading, run: insertAlarmGroupRun } = useRequest(insertAlarmGroup, {
+  const { runAsync: insertAlarmGroupRun } = useRequest(insertAlarmGroup, {
     manual: true,
-    onSuccess() {
-      runSuccess(t('创建成功'));
-    },
   });
 
-  const { loading: patchLoading, run: patchAlarmGroupRun } = useRequest(patchAlarmGroup, {
+  const { runAsync: patchAlarmGroupRun } = useRequest(patchAlarmGroup, {
     manual: true,
-    onSuccess() {
-      runSuccess(t('编辑成功'));
-    },
   });
 
   watch(isShow, (newVal) => {
@@ -241,7 +223,7 @@
       const receivers = receiversSelectorRef.value?.getSelectedReceivers() || [];
 
       if (props.type === 'edit') {
-        patchAlarmGroupRun({
+        await patchAlarmGroupRun({
           details: {
             alert_notice: alertNotice,
             channels,
@@ -250,8 +232,9 @@
           name,
           receivers: isReceiversSelectorShow.value ? receivers : [],
         });
+        runSuccess(t('编辑成功'));
       } else {
-        insertAlarmGroupRun({
+        await insertAlarmGroupRun({
           bk_biz_id: props.bizId,
           details: {
             alert_notice: alertNotice,
@@ -260,6 +243,7 @@
           name,
           receivers: isReceiversSelectorShow.value ? receivers : [],
         });
+        runSuccess(t('创建成功'));
       }
     } finally {
       setTimeout(() => {
@@ -284,6 +268,8 @@
       window.changeConfirm = false;
     });
   };
+
+  const handleCancel = () => handleClose(true);
 </script>
 
 <style lang="less">

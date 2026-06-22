@@ -1,6 +1,9 @@
 <template>
   <DbSideslider
     v-model:is-show="isShow"
+    :confirm-button-disable-info="confirmButtonDisableInfo"
+    :confirm-handler="handleSubmit"
+    :confirm-text="t('确定')"
     render-directive="show"
     :width="1100">
     <template #header>
@@ -43,26 +46,6 @@
           @grammar-check="handleGrammarCheck" />
       </KeepAlive>
     </div>
-    <template #footer>
-      <span
-        v-bk-tooltips="{
-          content: submitButtonTips,
-          disabled: !submitButtonTips,
-        }">
-        <BkButton
-          class="w-88"
-          :disabled="Boolean(submitButtonTips)"
-          theme="primary"
-          @click="handleSubmit">
-          {{ t('确定') }}
-        </BkButton>
-      </span>
-      <BkButton
-        class="ml-8"
-        @click="handleCancel">
-        {{ t('取消') }}
-      </BkButton>
-    </template>
   </DbSideslider>
 </template>
 <script setup lang="ts">
@@ -121,6 +104,14 @@
     return '';
   });
 
+  const confirmButtonDisableInfo = computed(() => ({
+    disabled: Boolean(submitButtonTips.value),
+    tooltips: {
+      content: submitButtonTips.value,
+      disabled: !submitButtonTips.value,
+    },
+  }));
+
   let isInnerChange = false;
   watch(
     modelValue,
@@ -147,15 +138,9 @@
     grammarCheckResult.value = checkResult;
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = () =>
     fileRef.value!.getValue().then((data) => {
       isInnerChange = true;
       modelValue.value = data;
-      isShow.value = false;
     });
-  };
-
-  const handleCancel = () => {
-    isShow.value = false;
-  };
 </script>

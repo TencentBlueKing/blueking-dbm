@@ -21,14 +21,21 @@
     <slot />
     <template #footer>
       <slot name="footer">
-        <BkButton
+        <span
           v-if="showConfirm"
-          class="mr-8"
-          theme="primary"
-          @click="handleConfirm">
-          {{ confirmText || t('确定') }}
-        </BkButton>
-        <BkButton @click="handleCancle">
+          v-bk-tooltips="confirmButtonDisableInfo?.tooltips">
+          <BkButton
+            class="mr-8"
+            :disabled="confirmButtonDisableInfo?.disabled"
+            :loading="confirmLoading"
+            theme="primary"
+            @click="handleConfirm">
+            {{ confirmText || t('确定') }}
+          </BkButton>
+        </span>
+        <BkButton
+          :loading="cancelLoading"
+          @click="handleCancle">
           {{ cancelText || t('取消') }}
         </BkButton>
       </slot>
@@ -44,8 +51,17 @@
   import { leaveConfirm } from '@utils';
 
   interface Props {
+    cancelHandler?: () => Promise<unknown>;
     cancelText?: string;
     closeIcon?: boolean;
+    confirmButtonDisableInfo?: {
+      disabled: boolean;
+      tooltips: {
+        content: string;
+        disabled: boolean;
+      };
+    };
+    confirmHandler?: () => Promise<unknown>;
     confirmText?: string;
     quickClose?: boolean;
     renderDirective?: 'if' | 'show';
@@ -56,8 +72,11 @@
   type Emits = (e: 'update:isShow', isShow: boolean) => void;
 
   const props = withDefaults(defineProps<Props>(), {
+    cancelHandler: undefined,
     cancelText: '',
     closeIcon: true,
+    confirmButtonDisableInfo: undefined,
+    confirmHandler: undefined,
     confirmText: '',
     isShow: false,
     quickClose: true,
@@ -82,6 +101,9 @@
   const attrs = useAttrs();
   const { t } = useI18n();
   const getModelProvier = useModelProvider();
+
+  const confirmLoading = ref(false);
+  const cancelLoading = ref(false);
 
   let pageChangeConfirm: boolean | 'popover' = false;
 
@@ -109,18 +131,52 @@
 
   // 确定
   const handleConfirm = () => {
+    if (props.confirmButtonDisableInfo?.disabled) {
+      return;
+    }
+    if (props.confirmHandler) {
+      confirmLoading.value = true;
+      Promise.resolve(props.confirmHandler())
+        .then(() => {
+          close();
+        })
+        .finally(() => {
+          confirmLoading.value = false;
+        });
+      return;
+    }
+
+    confirmLoading.value = true;
     const { submit } = getModelProvier();
-    submit().then(() => {
-      close();
-    });
+    submit()
+      .then(() => {
+        close();
+      })
+      .finally(() => {
+        confirmLoading.value = false;
+      });
   };
 
   // 取消
   const handleCancle = () => {
+    if (props.cancelHandler) {
+      cancelLoading.value = true;
+      return leaveConfirm()
+        .then(() => props.cancelHandler!())
+        .then(() => close())
+        .finally(() => {
+          cancelLoading.value = false;
+        });
+    }
+
     const { cancel } = getModelProvier();
 
+    cancelLoading.value = true;
     return leaveConfirm()
       .then(() => cancel())
-      .then(() => close());
+      .then(() => close())
+      .finally(() => {
+        cancelLoading.value = false;
+      });
   };
 </script>

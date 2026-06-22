@@ -2,6 +2,11 @@
   <DbDialog
     v-model:is-show="moduleValue"
     class="batch-edit-notice-group-dialog"
+    :confirm-button-disable-info="{
+      disabled: changedSelected.length === 0,
+      tooltips: { content: '', disabled: true },
+    }"
+    :confirm-handler="handleSubmit"
     quick-close
     :width="500">
     <template #header>
@@ -107,21 +112,6 @@
         </div>
       </div>
     </DbForm>
-    <template #footer>
-      <BkButton
-        class="mr-8"
-        :disabled="changedSelected.length === 0"
-        :loading="isSubmitting"
-        theme="primary"
-        @click="handleSubmit">
-        {{ t('确定') }}
-      </BkButton>
-      <BkButton
-        :disabled="isSubmitting"
-        @click="handleCancel">
-        {{ t('取消') }}
-      </BkButton>
-    </template>
   </DbDialog>
 </template>
 
@@ -216,12 +206,11 @@
     return props.alarmGroupList;
   });
 
-  const { loading: isSubmitting, run: runBatchUpdateNotifyGroup } = useRequest(batchUpdateNotifyGroup, {
+  const { runAsync: runBatchUpdateNotifyGroup } = useRequest(batchUpdateNotifyGroup, {
     manual: true,
     onSuccess() {
       messageSuccess(t('批量设置成功'));
       Object.assign(formData, initFormData());
-      moduleValue.value = false;
       emits('suceess');
     },
   });
@@ -266,7 +255,7 @@
     formData.notifyGroups.splice(index, 1);
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = () =>
     formRef.value!.validate().then(() => {
       const { notifyGroups: pageNotifyGroups, settingType } = formData;
       const isAppend = settingType === 'append';
@@ -298,13 +287,8 @@
         });
       }
 
-      runBatchUpdateNotifyGroup(params);
+      return runBatchUpdateNotifyGroup(params);
     });
-  };
-
-  const handleCancel = () => {
-    moduleValue.value = false;
-  };
 </script>
 
 <style lang="less">

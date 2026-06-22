@@ -2,6 +2,7 @@
   <DbDialog
     v-model:is-show="isShow"
     class="edit-pkg-type-dialog"
+    :confirm-handler="handleSubmit"
     quick-close
     render-directive="if"
     :title="isEdit ? t('编辑包类型') : t('新建包类型')"
@@ -69,18 +70,6 @@
         </div>
       </BkFormItem>
     </DbForm>
-    <template #footer>
-      <BkButton @click="handleCancel">
-        {{ t('取消') }}
-      </BkButton>
-      <BkButton
-        class="ml-8"
-        :loading="updateLoading"
-        theme="primary"
-        @click="handleSubmit">
-        {{ t('确定') }}
-      </BkButton>
-    </template>
   </DbDialog>
 </template>
 
@@ -174,10 +163,9 @@
     ],
   }));
 
-  const { loading: updateLoading, run: runUpdatePkgType } = useRequest(updatePkgType, {
+  const { runAsync: runUpdatePkgType } = useRequest(updatePkgType, {
     manual: true,
     onSuccess() {
-      isShow.value = false;
       messageSuccess(t('操作成功'));
       emits('success');
     },
@@ -225,14 +213,10 @@
         version_num: formModel.value.version_num,
       });
     }
-    runUpdatePkgType({
+    return runUpdatePkgType({
       db_type: props.dbType,
       items,
     });
-  };
-
-  const handleCancel = () => {
-    isShow.value = false;
   };
 
   const handleFormValidate = (property: string, result: boolean) => {

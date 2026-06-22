@@ -133,7 +133,7 @@
   import dbOperations from './config';
 
   interface Props {
-    accountId: number;
+    accountId?: number;
   }
 
   type Emits = (e: 'success') => void;

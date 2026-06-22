@@ -13,6 +13,10 @@
 
 <template>
   <DbSideslider
+    :cancel-handler="handleClose"
+    :cancel-text="t('取消')"
+    :confirm-handler="handleSubmit"
+    :confirm-text="t('确定')"
     :is-show="isShow"
     render-directive="if"
     :title="t('添加授权规则')"
@@ -120,20 +124,6 @@
         </div>
       </BkFormItem>
     </DbForm>
-    <template #footer>
-      <BkButton
-        class="mr-8"
-        :loading="isSubmitting"
-        theme="primary"
-        @click="handleSubmit">
-        {{ t('确定') }}
-      </BkButton>
-      <BkButton
-        :disabled="isSubmitting"
-        @click="handleClose">
-        {{ t('取消') }}
-      </BkButton>
-    </template>
   </DbSideslider>
 </template>
 
@@ -266,7 +256,7 @@
     },
   });
 
-  const { loading: isSubmitting, run: addMongodbAccountRuleRun } = useRequest(addAccountRule, {
+  const { runAsync: addMongodbAccountRuleRun } = useRequest(addAccountRule, {
     manual: true,
     onSuccess() {
       messageSuccess(t('成功添加授权规则'));
@@ -328,7 +318,7 @@
       access_db: formData.access_db.replace(replaceReg, ','), // 统一分隔符
       account_type: AccountTypes.MONGODB,
     };
-    addMongodbAccountRuleRun(params);
+    return addMongodbAccountRuleRun(params);
   };
 </script>
 

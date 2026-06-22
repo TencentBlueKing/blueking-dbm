@@ -1,0 +1,72 @@
+# DbDialog 重构结果
+
+重构说明：将 DbDialog 的 #footer 插槽（仅包含标准「确定 + 取消」按钮的场景）改为使用
+DbDialog 的 confirmHandler / cancelHandler / confirmText / cancelText / confirmButtonDisableInfo
+等 props 实现，confirm 处理函数返回 Promise（resolve 后由 DbDialog 自动关闭），并移除手动
+isShow=false / loading 等冗余逻辑。
+
+## 已重构文件（26）
+
+src/views/version-files/v2/components/EditPkgType.vue
+src/views/version-files/v2/components/list/components/sub-version-list/components/table-list/components/DownloadPackage.vue
+src/views/version-files/v1/components/FileContent.vue
+src/views/whitelist/list/components/WhitelistOperation.vue
+src/views/ticket-center/ticket-self-todo/components/batch-operation/Index.vue
+src/views/resource-manage/record/components/replenish/components/Details.vue
+src/views/resource-manage/pool/components/host-list/components/import-host/Index.vue
+src/views/resource-manage/common/components/fault-pool-batch-import/Index.vue
+src/views/resource-manage/resource-tag/components/CreateTag.vue
+src/views/resource-manage/pool/components/host-list/components/update-assign/Index.vue
+src/views/resource-manage/pool/components/host-list/components/batch-assign/Index.vue
+src/views/resource-manage/pool/components/host-list/components/batch-add-tags/Index.vue
+src/views/resource-manage/cluster-tag/Index.vue
+src/views/monitor-alarm/monitor-strategy/components/content/components/BatchResetToDefaultDialog.vue
+src/views/monitor-alarm/monitor-strategy/components/content/components/BatchEditNoticeGroupDialog.vue
+src/views/monitor-alarm/alarm-events/components/ToAlarmPolicy.vue
+src/views/db-manage/todo/disabled/components/BatchDeleteDialog.vue
+src/views/db-manage/tendb-cluster/TENDBCLUSTER_OPEN_AREA/create/components/preview-data/Index.vue
+src/views/db-manage/redis/REDIS_CLUSTER_CUTOFF/components/resource-selector/Index.vue
+src/views/db-manage/mysql/MYSQL_OPEN_AREA/create/components/preview-data/Index.vue
+src/views/db-manage/common/permission/components/common/AccountCreate.vue
+src/views/db-manage/common/cluster-table/components/cluster-tag-cell/components/AddTag.vue
+src/views/db-manage/common/cluster-batch-edit-subscription/Index.vue
+src/views/db-manage/common/cluster-batch-add-tag/Index.vue
+src/views/db-manage/common/batch-input/Index.vue
+src/views/db-manage/common/ExcelAuthorize.vue
+
+## 已跳过文件（footer 非标准「确定+取消」按钮，无法套用 props 方案）
+
+# 仅含单个「关闭」按钮
+src/views/task-history/detail/components/HostPreview.vue
+src/views/ticket-center/common/ticket-detail/components/task-info/com-factory/mongodb/components/TargetClusterPreview.vue
+src/views/ticket-center/common/ticket-detail/components/flow-info/components/flow-type-inner-flow/components/MongodbExportDataDownload.vue
+src/views/ticket-center/common/ticket-detail/components/flow-info/components/flow-type-inner-flow/components/MongodbExecScriptDownloadFile.vue
+src/views/db-manage/sqlserver/common/apply/Index.vue
+src/views/db-manage/redis/common/cluster-operations/ClusterPassword.vue
+src/views/db-manage/mysql/common/apply/Index.vue
+src/views/db-manage/mongodb/common/cluster-operations/AccessEntry.vue
+src/views/db-manage/pulsar/list/Index.vue
+src/views/db-manage/pulsar/common/cluster-detail/Index.vue
+src/views/db-manage/kafka/list/Index.vue
+src/views/db-manage/kafka/common/cluster-detail/Index.vue
+src/views/db-manage/hdfs/list/Index.vue
+src/views/db-manage/hdfs/common/cluster-detail/Index.vue
+src/views/db-manage/elastic-search/list/Index.vue
+src/views/db-manage/elastic-search/common/cluster-detail/Index.vue
+src/views/db-manage/doris/list/Index.vue
+src/views/db-manage/doris/common/cluster-detail/Index.vue
+src/views/db-manage/common/render-instances/Instacelist.vue
+src/views/db-manage/common/cluster-authorize/components/RulesPreview.vue
+src/views/db-manage/common/RenderNodeInstance.vue
+
+# footer 含额外自定义内容（复选框 / 已选数量文案 / 额外按钮 / 动态主题等）
+src/views/resource-manage/common/components/review-data-dialog/Index.vue
+src/views/db-manage/mysql/partition-manage/components/excel-import/Index.vue
+src/views/db-manage/mysql/MYSQL_OPEN_AREA/template-create/components/permission-rule/components/PermissionRuleSelector.vue
+src/views/db-manage/mysql/MYSQL_FIXPOINT_EXIST_CLUSTER/components/backup-record-selector/Index.vue
+src/views/db-manage/tendb-cluster/partition-manage/components/excel-import/Index.vue
+src/views/db-manage/tendb-cluster/TENDBCLUSTER_OPEN_AREA/template-create/components/permission-rule/components/PermissionRuleSelector.vue
+src/views/db-manage/tendb-cluster/TENDBCLUSTER_FIXPOINT_EXIST/components/backup-record-selector/Index.vue
+src/views/db-manage/common/machine-shrink/components/SelectOriginalHost.vue
+src/views/db-manage/common/cluster-batch-remove-tag/Index.vue
+src/views/db-manage/common/cluster-authorize/components/permission-rules/components/accounter-rules-selector/Index.vue

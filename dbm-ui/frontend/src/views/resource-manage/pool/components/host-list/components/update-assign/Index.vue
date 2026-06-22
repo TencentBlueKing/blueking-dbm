@@ -1,6 +1,7 @@
 <template>
   <DbDialog
     class="update-assign-dialog"
+    :confirm-handler="handleSubmit"
     :is-show="isShow"
     render-directive="if"
     width="600"
@@ -60,19 +61,6 @@
           :disabled="!formData.for_biz && formData.for_biz !== 0" />
       </BkFormItem>
     </DbForm>
-    <template #footer>
-      <BkButton
-        :loading="isUpdating"
-        theme="primary"
-        @click="handleSubmit">
-        {{ t('确定') }}
-      </BkButton>
-      <BkButton
-        class="ml-8"
-        @click="handleCancel">
-        {{ t('取消') }}
-      </BkButton>
-    </template>
   </DbDialog>
 </template>
 
@@ -165,11 +153,10 @@
     },
   });
 
-  const { loading: isUpdating, run: runUpdate } = useRequest(updateResource, {
+  const { runAsync: runUpdate } = useRequest(updateResource, {
     manual: true,
     onSuccess() {
       emits('refresh');
-      isShow.value = false;
     },
   });
 
@@ -199,7 +186,7 @@
       },
     ];
 
-    runUpdate({
+    return runUpdate({
       bk_biz_id: isBusiness ? window.PROJECT_CONFIG.BIZ_ID : defaultBizId,
       bk_host_ids: [props.editData.bk_host_id],
       for_biz: Number(formData.for_biz),
