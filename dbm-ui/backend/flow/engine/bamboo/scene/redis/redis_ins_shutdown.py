@@ -170,6 +170,7 @@ class RedisInsShutdownFlow(object):
         for ins_info in all_ins_info["ins_info_list"]:
             act_kwargs.exec_ip = ins_info["master_ip"]
             act_kwargs.cluster["domain_name"] = ins_info["domain_name"]
+            act_kwargs.cluster["port"] = ins_info["port"]
 
             act_kwargs.get_redis_payload_func = RedisActPayload.redis_cluster_backup_payload.__name__
             acts_list.append(

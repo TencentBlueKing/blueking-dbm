@@ -147,12 +147,26 @@ func (job *RedisShutdown) checkInstanceSlotsBeforeShutdown(ports []int) error {
 		pwd, err := myredis.GetRedisPasswdFromConfFile(port)
 		if err != nil {
 			err = fmt.Errorf("checkInstanceSlotsBeforeShutdown: get redis port[%d] password failed: %v", port, err)
+			// 区分两种情况:
+			//   1) 端口不监听 -> 实例进程已挂, 可安全跳过(已下架实例不可能持有 slot)
+			//   2) 端口仍在监听(或探测出错) -> 实例仍存活, 可能仍持有 slot, 必须中止下架
+			if down, ok := job.isInstancePortDown(port); ok && down {
+				job.runtime.Logger.Error(err.Error() + "; instance is not listening, treat as already down, skip slot check")
+				continue
+			}
 			job.runtime.Logger.Error(err.Error())
 			return err
 		}
 		redisClient, err := myredis.NewRedisClient(insAddr, pwd, 0, consts.TendisTypeRedisInstance)
 		if err != nil {
 			err = fmt.Errorf("checkInstanceSlotsBeforeShutdown: connect redis %s failed: %v", insAddr, err)
+			// 区分两种情况:
+			//   1) 端口不监听 -> 实例进程已挂, 可安全跳过
+			//   2) 端口仍在监听(或探测出错) -> 实例仍存活, 连接失败意味着无法确认 slot 状态, 必须中止下架
+			if down, ok := job.isInstancePortDown(port); ok && down {
+				job.runtime.Logger.Error(err.Error() + "; instance is not listening, treat as already down, skip slot check")
+				continue
+			}
 			job.runtime.Logger.Error(err.Error())
 			return err
 		}
@@ -341,6 +355,20 @@ func (job *RedisShutdown) IsRedisRunning(port int) (installed bool, err error) {
 	time.Sleep(10 * time.Second)
 	portIsUse, err := util.CheckPortIsInUse(job.params.IP, strconv.Itoa(port))
 	return portIsUse, err
+}
+
+// isInstancePortDown 通过探测端口是否仍被监听来判断实例进程是否已停止。
+// 返回 (down, ok)：
+//   - down=true,  ok=true: 确认实例端口未在监听(进程已挂, 可安全跳过 slot 检查)
+//   - down=false, ok=true: 确认实例端口仍在监听(进程仍存活, 可能仍持有 slot)
+//   - down=false, ok=false: 探测过程出错(状态未知, 一律按"仍存活"处理, 保守地中止下架)
+func (job *RedisShutdown) isInstancePortDown(port int) (down bool, ok bool) {
+	inUse, err := util.CheckPortIsInUse(job.params.IP, strconv.Itoa(port))
+	if err != nil {
+		job.runtime.Logger.Warn("isInstancePortDown: check port[%d] failed: %v", port, err)
+		return false, false
+	}
+	return !inUse, true
 }
 
 // ClearWhenAllInstancesShutdown TODO

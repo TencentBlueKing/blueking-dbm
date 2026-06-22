@@ -1107,6 +1107,11 @@ class RedisActPayload(object):
         else:
             domain_name = self.cluster["domain_name"]
         cluster = Cluster.objects.get(immute_domain=domain_name)
+        # 优先使用指定的port，避免备份该IP上的所有端口
+        if "port" in self.cluster:
+            ports = [int(self.cluster["port"])]
+        else:
+            ports = self.cluster[ip]
         return {
             "db_type": DBActuatorTypeEnum.Redis.value,
             "action": DBActuatorTypeEnum.Redis.value + "_" + RedisActuatorActionEnum.Backup.value,
@@ -1114,7 +1119,7 @@ class RedisActPayload(object):
                 "bk_biz_id": self.bk_biz_id,
                 "bk_cloud_id": cluster.bk_cloud_id,
                 "ip": ip,
-                "ports": self.cluster[ip],
+                "ports": ports,
                 "backup_type": self.cluster["backup_type"],
                 "domain": domain_name,
                 "without_to_backup_sys": not BACKUP_SYS_STATUS,
