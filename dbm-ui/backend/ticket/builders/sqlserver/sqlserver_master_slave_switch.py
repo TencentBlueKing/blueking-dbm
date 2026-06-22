@@ -13,6 +13,7 @@ from rest_framework import serializers
 
 from backend.db_meta.enums import ClusterType
 from backend.flow.engine.controller.sqlserver import SqlserverController
+from backend.iam_app.dataclass.actions import ActionEnum
 from backend.ticket import builders
 from backend.ticket.builders.common.base import CommonValidate, HostInfoSerializer
 from backend.ticket.builders.sqlserver.base import (
@@ -51,7 +52,7 @@ class SQLServerMasterSlaveSwitchParamBuilder(builders.FlowParamBuilder):
         self.ticket_data["force"] = False
 
 
-@builders.BuilderFactory.register(TicketType.SQLSERVER_MASTER_SLAVE_SWITCH)
+@builders.BuilderFactory.register(TicketType.SQLSERVER_MASTER_SLAVE_SWITCH, iam=ActionEnum.SQLSERVER_MANAGE)
 class SQLServerMasterSlaveSwitchFlowBuilder(BaseSQLServerHATicketFlowBuilder):
     serializer = SQLServerMasterSlaveSwitchDetailSerializer
     inner_flow_builder = SQLServerMasterSlaveSwitchParamBuilder

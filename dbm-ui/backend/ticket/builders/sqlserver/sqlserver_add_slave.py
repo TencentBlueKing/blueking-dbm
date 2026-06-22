@@ -15,6 +15,7 @@ from rest_framework import serializers
 from backend.db_meta.enums import ClusterType
 from backend.db_services.dbbase.constants import IpSource
 from backend.flow.engine.controller.sqlserver import SqlserverController
+from backend.iam_app.dataclass.actions import ActionEnum
 from backend.ticket import builders
 from backend.ticket.builders.common.base import HostInfoSerializer
 from backend.ticket.builders.mysql.mysql_add_slave import MysqlAddSlaveResourceParamBuilder
@@ -70,7 +71,7 @@ class SQLServerAddSlaveResourceParamBuilder(SQLServerBaseOperateResourceParamBui
         next_flow.save(update_fields=["details"])
 
 
-@builders.BuilderFactory.register(TicketType.SQLSERVER_ADD_SLAVE, is_apply=True)
+@builders.BuilderFactory.register(TicketType.SQLSERVER_ADD_SLAVE, is_apply=True, iam=ActionEnum.SQLSERVER_MANAGE)
 class SQLServerAddSlaveFlowBuilder(BaseSQLServerHATicketFlowBuilder):
     serializer = SQLServerAddSlaveDetailSerializer
     resource_batch_apply_builder = SQLServerAddSlaveResourceParamBuilder
