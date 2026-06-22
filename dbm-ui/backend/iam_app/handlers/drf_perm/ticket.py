@@ -213,7 +213,7 @@ def ticket_flows_config_permission(action, request):
     dbtype_cov = TicketType.get_db_type_by_ticket
     permission: IAMPermission = None
 
-    if action in ["update_ticket_flow_config", "create_ticket_flow_config"]:
+    if action in ["save_ticket_flow_config", "update_ticket_flow_config", "create_ticket_flow_config"]:
         if request.data.get("bk_biz_id"):
             permission = BizDBTypeResourceActionPermission(
                 [ActionEnum.BIZ_TICKET_CONFIG_SET],
