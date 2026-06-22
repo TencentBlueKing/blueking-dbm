@@ -152,8 +152,9 @@
   import DbStatus from '@components/db-status/index.vue';
   import DbTable from '@components/db-table/IndexNew.vue';
 
+  import IpSearch from '@views/resource-manage/common/components/ip-search/Index.vue';
+
   import HostEmpty from './components/HostEmpty.vue';
-  import IpSearch from './components/IpSearch.vue';
   import { useQuickSearch } from './useQuickSearch';
 
   interface Props {

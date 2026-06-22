@@ -41,8 +41,7 @@
               :placeholder="t('请输入 IP，用逗号或空格分隔、Shift+Enter 换行，Enter 搜索')"
               spellcheck="false"
               @keydown="handleKeydown"
-              @keyup="handleKeyup"
-              @paste="handlePaste" />
+              @keyup="handleKeyup" />
           </div>
         </div>
       </div>
@@ -82,11 +81,19 @@
       return;
     }
     isFocused.value = false;
-    modelValue.value = pasteParseMethod(modelValue.value);
+    const parsedValue = parseMethod(modelValue.value);
+    modelValue.value = parsedValue;
+
+    // 失焦时触发搜索（仅当值确实发生了变化）
+    if (parsedValue && parsedValue !== lastSearchedValue.value) {
+      lastSearchedValue.value = parsedValue;
+      emits('search', parsedValue);
+    }
   });
 
   const textareaRef = useTemplateRef('textarea');
   const isFocused = ref(false);
+  const lastSearchedValue = ref('');
 
   const isDisplayValueShow = computed(() => !isFocused.value && modelValue.value);
   const displayValue = computed(() => modelValue.value.replace(batchSplitRegex, ' | '));
@@ -99,7 +106,7 @@
     });
   });
 
-  const pasteParseMethod = (value: string) => {
+  const parseMethod = (value: string) => {
     return _.uniq(_.filter(value.split(batchSplitRegex), (item) => Boolean(_.trim(item)))).join('\n');
   };
 
@@ -132,8 +139,9 @@
         }
 
         // 如果允许输入多个需要解析分隔符
-        modelValue.value = pasteParseMethod(modelValue.value);
+        modelValue.value = parseMethod(modelValue.value);
 
+        lastSearchedValue.value = modelValue.value;
         isFocused.value = false;
         emits('search', modelValue.value);
       }
@@ -141,11 +149,11 @@
   };
 
   // 处理粘贴
-  const handlePaste = () => {
-    setTimeout(() => {
-      modelValue.value = pasteParseMethod(modelValue.value);
-    });
-  };
+  // const handlePaste = () => {
+  //   setTimeout(() => {
+  //     modelValue.value = parseMethod(modelValue.value);
+  //   });
+  // };
 
   const handleClear = () => {
     modelValue.value = '';
