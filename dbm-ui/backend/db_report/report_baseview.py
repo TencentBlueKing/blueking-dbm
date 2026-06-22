@@ -210,18 +210,23 @@ class ReportCommonViewSet(viewsets.SystemViewSet):
         cache_key = REPORT_COUNT_CACHE_KEY.format(user=username)
         # 获取 time_range 参数
         time_range = request.query_params.get("time_range", "")
+        # 获取 bk_biz_id 参数
+        bk_biz_id = request.query_params.get("bk_biz_id")
         # 有缓存优先返回缓存，数量精确性要求性不高
         # report_count_cache = cache.get(cache_key)
         # if report_count_cache:
         #     return Response(report_count_cache)
+
+        # 获取全局排除业务列表
+        exclude_bk_biz_ids = SystemSettings.get_setting_value(SystemSettingsEnum.DB_REPORT_EXCLUDE_BIZS, default=[])
 
         report_count_map: Dict[str, Dict[str, Dict]] = defaultdict(lambda: defaultdict(dict))
         for db_type, report_classes in db_report_maps.items():
             # 获取用户的管理业务和协助业务
             manage_bizs, assist_bizs = DBAdministrator.get_manage_bizs(db_type, username)
             for cls in report_classes:
-                # 基础过滤：状态为异常
-                queryset = cls.queryset.filter(state=ReportStateType.ABNORMAL)
+                # 基础过滤：状态为异常或预警（与列表页面统计逻辑一致）
+                queryset = cls.queryset.filter(state__in=[ReportStateType.ABNORMAL, ReportStateType.WARNING])
                 # 应用 time_range 过滤
                 if time_range:
                     filter_instance = ReportListFilter(
@@ -230,6 +235,12 @@ class ReportCommonViewSet(viewsets.SystemViewSet):
                         request=request,
                     )
                     queryset = filter_instance.filter_time_range(queryset, "time_range", time_range)
+                # 应用 bk_biz_id 过滤
+                if bk_biz_id:
+                    queryset = queryset.filter(bk_biz_id=bk_biz_id)
+                # 应用全局业务排除过滤
+                if exclude_bk_biz_ids:
+                    queryset = queryset.exclude(bk_biz_id__in=exclude_bk_biz_ids)
                 report_count_map[db_type][cls.report_type].update(
                     manage_count=queryset.filter(bk_biz_id__in=manage_bizs).count(),
                     assist_count=queryset.filter(bk_biz_id__in=assist_bizs).count(),
