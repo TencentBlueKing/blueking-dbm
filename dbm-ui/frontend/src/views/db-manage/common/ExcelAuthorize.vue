@@ -13,9 +13,14 @@
 
 <template>
   <DbDialog
+    v-model:is-show="isShow"
+    :confirm-button-disable-info="{
+      disabled: !excelState.importable,
+      tooltips: { content: '', disabled: true },
+    }"
+    :confirm-handler="handleConfirmImport"
     confirm-text="导入"
     :esc-close="false"
-    :is-show="isShow"
     :quick-close="false"
     :title="t('导入授权')"
     :width="600"
@@ -95,21 +100,6 @@
         </template>
       </BkUpload>
     </div>
-    <template #footer>
-      <BkButton
-        class="mr-8"
-        :disabled="!excelState.importable"
-        :loading="excelState.isLoading"
-        theme="primary"
-        @click="handleConfirmImport">
-        {{ t('导入') }}
-      </BkButton>
-      <BkButton
-        :disabled="excelState.isLoading"
-        @click="handleCloseUpload">
-        {{ t('取消') }}
-      </BkButton>
-    </template>
   </DbDialog>
 </template>
 
@@ -130,16 +120,16 @@
 
   interface Props {
     clusterType: ClusterTypes;
-    isShow: boolean;
     ticketType?: TicketTypesStrings;
   }
-
-  type Emits = (e: 'update:isShow', value: boolean) => void;
 
   const props = withDefaults(defineProps<Props>(), {
     ticketType: TicketTypes.MYSQL_EXCEL_AUTHORIZE_RULES,
   });
-  const emits = defineEmits<Emits>();
+
+  const isShow = defineModel<boolean>('isShow', {
+    default: false,
+  });
 
   const { t } = useI18n();
   const globalBizsStore = useGlobalBizs();
@@ -148,7 +138,6 @@
   const basePath = window.PROJECT_ENV.VITE_PUBLIC_PATH ? window.PROJECT_ENV.VITE_PUBLIC_PATH : '/';
   const excelState = reactive({
     importable: false,
-    isLoading: false,
     precheck: {
       authorizeDataList: [] as AuthorizePreCheckData[],
       excelUrl: '',
@@ -186,7 +175,7 @@
   };
 
   const handleCloseUpload = () => {
-    emits('update:isShow', false);
+    isShow.value = false;
     handleInitExcelData();
   };
 
@@ -207,15 +196,9 @@
       remark: '',
       ticket_type: props.ticketType,
     };
-    excelState.isLoading = true;
-    createTicket(params)
-      .then((res) => {
-        ticketMessage(res.id);
-        handleCloseUpload();
-      })
-      .finally(() => {
-        excelState.isLoading = false;
-      });
+    return createTicket(params).then((res) => {
+      ticketMessage(res.id);
+    });
   };
 
   /**

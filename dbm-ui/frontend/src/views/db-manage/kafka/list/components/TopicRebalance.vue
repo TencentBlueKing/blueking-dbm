@@ -2,7 +2,9 @@
   <DbSideslider
     v-model:is-show="isShow"
     background-color="#FFFFFF"
+    :cancel-handler="handleCancel"
     class="kafka-topic-sideslider"
+    :confirm-handler="handleConfirm"
     quick-close
     :width="960">
     <template #header>
@@ -154,21 +156,6 @@
         </BkFormItem>
       </DbForm>
     </div>
-    <template #footer>
-      <BkButton
-        class="mr-8"
-        :loading="isSubmitting"
-        style="min-width: 88px"
-        theme="primary"
-        @click="handleConfirm">
-        {{ t('提交') }}
-      </BkButton>
-      <BkButton
-        style="min-width: 88px"
-        @click="handleCancel">
-        {{ t('取消') }}
-      </BkButton>
-    </template>
   </DbSideslider>
 </template>
 <script setup lang="ts">
@@ -234,7 +221,7 @@
     },
   });
 
-  const { loading: isSubmitting, run: createTicketRun } = useCreateTicket<{
+  const { run: createTicketRun } = useCreateTicket<{
     cluster_id: number;
     instance_info: {
       agent_status: number;
@@ -301,13 +288,10 @@
     tippyIns?.show();
   };
 
-  const handleConfirm = () => {
-    const valid = formRef.value?.validate();
-    if (!valid) {
-      return;
-    }
+  const handleConfirm = async () => {
+    await formRef.value!.validate();
     const selectedInstances = formData.instance_list.filter((item) => item.checked);
-    createTicketRun({
+    await createTicketRun({
       details: {
         cluster_id: props.data.id,
         instance_info: selectedInstances.map((item) => ({
@@ -333,8 +317,8 @@
       throttle_rate: 500000,
       topics: ['*'],
     });
-    isShow.value = false;
     window.changeConfirm = false;
+    return Promise.resolve();
   };
 
   onMounted(() => {

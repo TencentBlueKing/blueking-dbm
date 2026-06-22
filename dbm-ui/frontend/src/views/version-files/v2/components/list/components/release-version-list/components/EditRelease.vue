@@ -1,7 +1,10 @@
 <template>
   <DbSideslider
     v-model:is-show="isShow"
+    :cancel-text="t('取消')"
     class="edit-release-slider-main"
+    :confirm-handler="handleSubmit"
+    :confirm-text="t('确定')"
     render-directive="if"
     :width="640">
     <template #header>
@@ -53,20 +56,6 @@
           </BkSelect>
         </BkFormItem>
       </DbForm>
-      <div class="operate-main">
-        <BkButton
-          class="operate-button"
-          :loading="createLoading || updateLoading"
-          theme="primary"
-          @click="handleSubmit">
-          {{ t('确定') }}
-        </BkButton>
-        <BkButton
-          class="operate-button"
-          @click="handleCancel">
-          {{ t('取消') }}
-        </BkButton>
-      </div>
     </div>
   </DbSideslider>
 </template>
@@ -151,21 +140,19 @@
     },
   });
 
-  const { loading: createLoading, run: runCreateReleaseVersion } = useRequest(createReleaseVersion, {
+  const { runAsync: runCreateReleaseVersion } = useRequest(createReleaseVersion, {
     manual: true,
     onSuccess() {
       emits('success');
       messageSuccess(t('操作成功'));
-      isShow.value = false;
     },
   });
 
-  const { loading: updateLoading, run: runUpdateReleaseVersion } = useRequest(updateReleaseVersion, {
+  const { runAsync: runUpdateReleaseVersion } = useRequest(updateReleaseVersion, {
     manual: true,
     onSuccess() {
       emits('success');
       messageSuccess(t('操作成功'));
-      isShow.value = false;
     },
   });
 
@@ -203,27 +190,21 @@
     }
   };
 
-  const handleSubmit = () => {
-    formRef.value.validate().then(() => {
-      const commonParams = {
-        db_type: props.dbType,
-        engine: formModel.value.engine,
-        name: formModel.value.name,
-        pkg_type: props.pkgType,
-      };
-      if (props.isEdit) {
-        runUpdateReleaseVersion({
-          ...commonParams,
-          id: props.data!.id,
-        });
-      } else {
-        runCreateReleaseVersion(commonParams);
-      }
-    });
-  };
-
-  const handleCancel = () => {
-    isShow.value = false;
+  const handleSubmit = async () => {
+    await formRef.value.validate();
+    const commonParams = {
+      db_type: props.dbType,
+      engine: formModel.value.engine,
+      name: formModel.value.name,
+      pkg_type: props.pkgType,
+    };
+    if (props.isEdit) {
+      return runUpdateReleaseVersion({
+        ...commonParams,
+        id: props.data!.id,
+      });
+    }
+    return runCreateReleaseVersion(commonParams);
   };
 </script>
 <style lang="less">
@@ -237,16 +218,6 @@
     .content-main {
       padding: 0 24px;
       font-family: 'Microsoft YaHei', Arial, sans-serif;
-
-      .operate-main {
-        display: flex;
-        gap: 8px;
-        margin-top: 32px;
-
-        .operate-button {
-          width: 88px;
-        }
-      }
 
       .engine-tip {
         position: absolute;

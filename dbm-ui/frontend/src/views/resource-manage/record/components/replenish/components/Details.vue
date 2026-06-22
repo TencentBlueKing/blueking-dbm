@@ -276,6 +276,7 @@
     <DbDialog
       v-model:is-show="isShowTerminateDialog"
       class="replenish-batch-terminate-dialog"
+      :confirm-handler="handleConfirmTerminate"
       :title="t('批量终止')"
       :width="480">
       <DbForm
@@ -301,20 +302,6 @@
             type="textarea" />
         </BkFormItem>
       </DbForm>
-      <template #footer>
-        <BkButton
-          :loading="isTerminating"
-          theme="primary"
-          @click="handleConfirmTerminate">
-          {{ t('确定') }}
-        </BkButton>
-        <BkButton
-          class="ml-8"
-          :disabled="isTerminating"
-          @click="isShowTerminateDialog = false">
-          {{ t('取消') }}
-        </BkButton>
-      </template>
     </DbDialog>
   </DbSideslider>
 </template>
@@ -603,7 +590,6 @@
       });
 
       messageSuccess(t('批量终止成功'));
-      isShowTerminateDialog.value = false;
       handleClearSelection();
       fetchData();
     } finally {

@@ -13,6 +13,11 @@
 
 <template>
   <DbDialog
+    :confirm-button-disable-info="{
+      disabled: formModel.tags.length === 0 || existedTagsSet.size > 0,
+      tooltips: { content: '', disabled: true },
+    }"
+    :confirm-handler="handleConfirm"
     :is-show="isShow"
     render-directive="if"
     @closed="handleClose"
@@ -42,23 +47,6 @@
           has-delete-icon />
       </BkFormItem>
     </DbForm>
-    <template #footer>
-      <div class="footer-wrapper">
-        <BkButton
-          class="mr-8"
-          :disabled="formModel.tags.length === 0 || existedTagsSet.size > 0"
-          :loading="createLoading || validateLoading"
-          theme="primary"
-          @click="handleConfirm">
-          {{ t('确定') }}
-        </BkButton>
-        <BkButton
-          :loading="validateLoading"
-          @click="handleClose">
-          {{ t('取消') }}
-        </BkButton>
-      </div>
-    </template>
   </DbDialog>
 </template>
 
@@ -108,7 +96,7 @@
     };
   });
 
-  const { loading: validateLoading, run: runValidate } = useRequest(validateTag, {
+  const { run: runValidate } = useRequest(validateTag, {
     manual: true,
     onSuccess(data) {
       existedTagsSet.value = new Set(data.map((item) => item.value));
@@ -118,10 +106,10 @@
     },
   });
 
-  const { loading: createLoading, run: runCreate } = useRequest(createTag, {
+  const { runAsync: runCreate } = useRequest(createTag, {
     manual: true,
     onSuccess() {
-      handleSubmit();
+      emits('create');
     },
   });
 
@@ -147,7 +135,7 @@
 
   const handleConfirm = async () => {
     await formRef.value!.validate();
-    runCreate({
+    return runCreate({
       bk_biz_id: props.bizId,
       tags: formModel.tags.map((tag) => ({ key: 'dbresource', value: tag })),
       type: 'resource',
@@ -156,11 +144,6 @@
 
   const handleClose = () => {
     isShow.value = false;
-  };
-
-  const handleSubmit = () => {
-    isShow.value = false;
-    emits('create');
   };
 </script>
 

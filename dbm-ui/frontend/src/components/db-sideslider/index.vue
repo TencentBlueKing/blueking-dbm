@@ -60,7 +60,16 @@
   import { leaveConfirm } from '@utils';
 
   interface Props {
+    cancelHandler?: () => Promise<unknown>;
     cancelText?: string;
+    confirmButtonDisableInfo?: {
+      disabled: boolean;
+      tooltips: {
+        content: string;
+        disabled: boolean;
+      };
+    };
+    confirmHandler?: () => Promise<unknown>;
     confirmText?: string;
     disabledConfirm?: boolean | string;
 
@@ -78,7 +87,10 @@
   }
 
   const props = withDefaults(defineProps<Props>(), {
+    cancelHandler: undefined,
     cancelText: '',
+    confirmButtonDisableInfo: undefined,
+    confirmHandler: undefined,
     confirmText: '',
     disabledConfirm: false,
     isShow: false,
@@ -98,6 +110,9 @@
   let pageChangeConfirm: boolean | 'popover' = false;
 
   const submitButtonDisabledInfo = computed(() => {
+    if (props.confirmButtonDisableInfo) {
+      return props.confirmButtonDisableInfo;
+    }
     const info = {
       disabled: false,
       tooltips: {
@@ -133,7 +148,6 @@
   const getModelProvier = useModelProvider();
 
   const beforeCloseCallback = () => {
-    console.log('beforeCloseCallback');
     return leaveConfirm();
   };
   const close = () => {
@@ -147,6 +161,20 @@
 
   // 确定
   const handleConfirm = () => {
+    if (props.confirmButtonDisableInfo?.disabled) {
+      return;
+    }
+    if (props.confirmHandler) {
+      isLoading.value = true;
+      Promise.resolve(props.confirmHandler())
+        .then(() => {
+          close();
+        })
+        .finally(() => {
+          isLoading.value = false;
+        });
+      return;
+    }
     isLoading.value = true;
     const { submit } = getModelProvier();
     submit()
@@ -160,6 +188,15 @@
 
   // 取消
   const handleCancle = () => {
+    if (props.cancelHandler) {
+      isLoading.value = true;
+      return leaveConfirm()
+        .then(() => props.cancelHandler!())
+        .then(() => close())
+        .finally(() => {
+          isLoading.value = false;
+        });
+    }
     const { cancel } = getModelProvier();
     if (!props.showLeaveConfirm) {
       return Promise.resolve(cancel()).then(() => close());

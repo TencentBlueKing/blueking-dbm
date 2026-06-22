@@ -13,9 +13,14 @@
 
 <template>
   <DbDialog
+    v-model:is-show="isShow"
     class="cluster-batch-add-tag-main"
     :close-icon="false"
-    :is-show="isShow"
+    :confirm-button-disable-info="{
+      disabled: !selectedClusters.length,
+      tooltips: { content: '', disabled: true },
+    }"
+    :confirm-handler="handleConfirm"
     :quick-close="false"
     render-directive="if"
     :width="1000"
@@ -81,21 +86,6 @@
         </div>
       </template>
     </BkResizeLayout>
-    <template #footer>
-      <BkButton
-        class="mr-8 w-64"
-        :disabled="!selectedClusters.length"
-        :loading="confirmLoading"
-        theme="primary"
-        @click="handleConfirm">
-        {{ t('确定') }}
-      </BkButton>
-      <BkButton
-        class="w-64"
-        @click="handleClose">
-        {{ t('取消') }}
-      </BkButton>
-    </template>
   </DbDialog>
 </template>
 <script setup lang="tsx">
@@ -127,12 +117,11 @@
   const tagOperationRef = ref<InstanceType<typeof TagOperation>>();
   const selectedClusters = ref<NonNullable<Props['selected']>>([]);
 
-  const { loading: confirmLoading, run: handleAddClusterTagKeys } = useRequest(addClusterTagKeys, {
+  const { runAsync: handleAddClusterTagKeys } = useRequest(addClusterTagKeys, {
     manual: true,
     onSuccess() {
       messageSuccess(t('操作成功'));
       emits('success');
-      isShow.value = false;
     },
   });
 
@@ -159,11 +148,11 @@
   const handleConfirm = async () => {
     const tagsInfo = await tagOperationRef.value!.getValue();
     if (!tagsInfo) {
-      return;
+      return Promise.reject();
     }
 
     const tags = Object.values(tagsInfo).map((item) => item.value) as number[];
-    handleAddClusterTagKeys({
+    return handleAddClusterTagKeys({
       bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
       cluster_ids: selectedClusters.value.map((item) => item.id),
       tags,

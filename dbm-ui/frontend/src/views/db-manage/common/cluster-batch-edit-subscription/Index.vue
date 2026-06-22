@@ -1,9 +1,14 @@
 <template>
   <DbDialog
+    v-model:is-show="isShow"
     class="batch-edit-alarm-subscription-dialog"
     :close-icon="false"
+    :confirm-button-disable-info="{
+      disabled: isEmpty,
+      tooltips: { content: '', disabled: true },
+    }"
+    :confirm-handler="handleConfirm"
     :esc-close="false"
-    :is-show="isShow"
     :quick-close="false"
     :width="912">
     <BkResizeLayout
@@ -26,22 +31,6 @@
           :show-update="showUpdate" />
       </template>
     </BkResizeLayout>
-    <template #footer>
-      <BkButton
-        :disabled="isEmpty"
-        :loading="saveLoading"
-        style="width: 88px"
-        theme="primary"
-        @click="handleConfirm">
-        {{ t('确定') }}
-      </BkButton>
-      <BkButton
-        class="ml-8"
-        style="width: 88px"
-        @click="handleCancel">
-        {{ t('取消') }}
-      </BkButton>
-    </template>
   </DbDialog>
 </template>
 <script setup lang="ts">
@@ -82,13 +71,12 @@
 
   const isEmpty = computed(() => !Object.values(domainMapList.value).flat().length);
 
-  const { loading: saveLoading, run: runSaveSubscribe } = useRequest(saveSubscribe, {
+  const { runAsync: runSaveSubscribe } = useRequest(saveSubscribe, {
     manual: true,
     onSuccess: () => {
-      messageSuccess('保存成功');
+      messageSuccess(t('保存成功'));
       initSubscribedDomainInfo();
       editContentRef.value!.reset();
-      isShow.value = false;
     },
   });
 
@@ -136,11 +124,7 @@
         cluster_type: item.clusterType,
       })),
     };
-    runSaveSubscribe(params);
-  };
-
-  const handleCancel = () => {
-    isShow.value = false;
+    return runSaveSubscribe(params);
   };
 </script>
 <style lang="less">

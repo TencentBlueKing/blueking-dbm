@@ -13,8 +13,10 @@
 
 <template>
   <DbDialog
+    v-model:is-show="isShow"
+    :cancel-handler="handleCancel"
+    :confirm-handler="handleSubmit"
     :esc-close="false"
-    :is-show="isShow"
     :quick-close="false"
     :title="title"
     :width="640">
@@ -47,20 +49,6 @@
           type="textarea" />
       </BkFormItem>
     </DbForm>
-    <template #footer>
-      <BkButton
-        class="mr-8"
-        :loading="isSubmitting"
-        theme="primary"
-        @click="handleSubmit">
-        {{ t('确定') }}
-      </BkButton>
-      <BkButton
-        :disabled="isSubmitting"
-        @click="handleCancel">
-        {{ t('取消') }}
-      </BkButton>
-    </template>
   </DbDialog>
   <div style="display: none">
     <div
@@ -111,21 +99,21 @@
 
   type WhitelistItem = ServiceReturnType<typeof getWhitelist>['results'][number];
 
-  interface Emits {
-    (e: 'update:isShow', value: boolean): void;
-    (e: 'successed'): void;
-  }
+  type Emits = (e: 'successed') => void;
 
   interface Props {
     bizId: number;
     data: WhitelistItem;
     isEdit: boolean;
-    isShow: boolean;
     title: string;
   }
 
   const props = defineProps<Props>();
   const emits = defineEmits<Emits>();
+
+  const isShow = defineModel<boolean>('isShow', {
+    default: false,
+  });
 
   const { t } = useI18n();
 
@@ -137,13 +125,25 @@
     ips: '',
     remark: '',
   });
-  const isSubmitting = ref(false);
   let mergeInst: Instance | undefined = undefined;
   const ipMergeState = reactive({
     ignoreValues: [] as string[],
     mergeValues: [] as string[],
     renderValues: [] as string[],
   });
+
+  const resetFormState = () => {
+    formRef.value.clearValidate();
+
+    setTimeout(() => {
+      formdata.ips = '';
+      formdata.remark = '';
+      const keys = Object.keys(ipMergeState) as Array<keyof typeof ipMergeState>;
+      for (const key of keys) {
+        ipMergeState[key] = [];
+      }
+    }, 300);
+  };
 
   const ipRules = [
     {
@@ -166,9 +166,9 @@
   ];
 
   watch(
-    () => props.isShow,
-    (isShow) => {
-      if (isShow && props.isEdit) {
+    isShow,
+    (show) => {
+      if (show && props.isEdit) {
         formdata.remark = props.data.remark;
         formdata.ips = props.data.ips.join('\n');
       }
@@ -280,39 +280,24 @@
   };
 
   const handleCancel = () => {
-    emits('update:isShow', false);
-    formRef.value.clearValidate();
-    window.changeConfirm = false;
-
-    setTimeout(() => {
-      formdata.ips = '';
-      formdata.remark = '';
-      const keys = Object.keys(ipMergeState) as Array<keyof typeof ipMergeState>;
-      for (const key of keys) {
-        ipMergeState[key] = [];
-      }
-    }, 300);
+    resetFormState();
+    return Promise.resolve();
   };
 
   const handleSubmit = () => {
-    formRef.value.validate().then(() => {
-      isSubmitting.value = true;
+    return formRef.value.validate().then(() => {
       const api = props.isEdit ? updateWhitelist : createWhitelist;
 
-      api({
+      return api({
         bk_biz_id: props.bizId,
         id: props.data?.id || 0,
         ips: _.uniq(formdata.ips.split(batchSplitRegex)),
         remark: formdata.remark,
-      })
-        .then(() => {
-          messageSuccess(t('创建成功'));
-          handleCancel();
-          emits('successed');
-        })
-        .finally(() => {
-          isSubmitting.value = false;
-        });
+      }).then(() => {
+        messageSuccess(t('创建成功'));
+        resetFormState();
+        emits('successed');
+      });
     });
   };
 </script>

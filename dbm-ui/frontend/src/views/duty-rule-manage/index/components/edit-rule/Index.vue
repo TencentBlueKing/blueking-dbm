@@ -13,8 +13,11 @@
 
 <template>
   <DbSideslider
+    v-model:is-show="isShow"
+    :cancel-text="t('取消')"
     class="rotate-setting-edit-rule"
-    :is-show="isShow"
+    :confirm-handler="handleConfirm"
+    :confirm-text="t('确定')"
     render-directive="if"
     :width="960"
     @closed="handleClose">
@@ -68,20 +71,6 @@
           :data="data" />
       </KeepAlive>
     </div>
-    <template #footer>
-      <BkButton
-        class="mr-8"
-        :loading="isCreateLoading || isUpdateLoading"
-        theme="primary"
-        @click="handleConfirm">
-        {{ t('确定') }}
-      </BkButton>
-      <BkButton
-        :disabled="isCreateLoading || isUpdateLoading"
-        @click="handleClose">
-        {{ t('取消') }}
-      </BkButton>
-    </template>
   </DbSideslider>
 </template>
 
@@ -183,24 +172,22 @@
     ],
   };
 
-  const { loading: isCreateLoading, run: runCreateDutyRule } = useRequest(createDutyRule, {
+  const { runAsync: runCreateDutyRule } = useRequest(createDutyRule, {
     manual: true,
     onSuccess: () => {
       window.changeConfirm = false;
       messageSuccess(t('保存成功'));
       emits('success');
-      isShow.value = false;
     },
   });
 
-  const { loading: isUpdateLoading, run: runUpdateDutyRule } = useRequest(updateDutyRule, {
+  const { runAsync: runUpdateDutyRule } = useRequest(updateDutyRule, {
     manual: true,
     onSuccess: () => {
       // 成功
       window.changeConfirm = false;
       messageSuccess(t('编辑成功'));
       emits('success');
-      isShow.value = false;
     },
   });
 
@@ -236,14 +223,13 @@
       };
       if (isCreate.value) {
         // 新建/克隆
-        runCreateDutyRule(cycleParams);
-      } else {
-        // 克隆或者编辑
-        if (props.data) {
-          cycleParams.effective_time = cycleValues.effective_time;
-          cycleParams.end_time = cycleValues.end_time;
-          runUpdateDutyRule(props.data.id, cycleParams);
-        }
+        return runCreateDutyRule(cycleParams);
+      }
+      // 克隆或者编辑
+      if (props.data) {
+        cycleParams.effective_time = cycleValues.effective_time;
+        cycleParams.end_time = cycleValues.end_time;
+        return runUpdateDutyRule(props.data.id, cycleParams);
       }
     } else {
       // 自定义轮值
@@ -260,12 +246,11 @@
       };
       if (isCreate.value) {
         // 新建/克隆
-        runCreateDutyRule(customParams);
-      } else {
-        // 克隆或者编辑
-        if (props.data) {
-          runUpdateDutyRule(props.data.id, customParams);
-        }
+        return runCreateDutyRule(customParams);
+      }
+      // 克隆或者编辑
+      if (props.data) {
+        return runUpdateDutyRule(props.data.id, customParams);
       }
     }
   };

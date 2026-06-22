@@ -13,8 +13,10 @@
 
 <template>
   <DbSideslider
+    v-model:is-show="isShow"
     :before-close="handleClose"
-    :is-show="isShow"
+    :confirm-handler="handleConfirm"
+    :disabled-confirm="isReadonlyPage"
     render-directive="if"
     :width="1100"
     @closed="handleClose">
@@ -124,19 +126,6 @@
         </BkFormItem>
       </DbForm>
     </div>
-    <template #footer>
-      <BkButton
-        class="mr-8"
-        :disabled="isReadonlyPage"
-        :loading="isSubmitting"
-        theme="primary"
-        @click="handleConfirm">
-        {{ t('提交') }}
-      </BkButton>
-      <BkButton @click="handleClose">
-        {{ t('取消') }}
-      </BkButton>
-    </template>
   </DbSideslider>
 </template>
 
@@ -190,7 +179,6 @@
   const deployPlace = ref('master');
   const syncType = ref('full_sync');
   const createType = ref('new');
-  const isSubmitting = ref(false);
   const subscribeNameList = ref<SelectItem<number>[]>([]);
   const subscribeTableData = ref<DumperConfig['repl_tables']>([]);
 
@@ -335,38 +323,32 @@
 
   // 点击确定
   const handleConfirm = async () => {
-    isSubmitting.value = true;
-    try {
-      await formRef.value.validate();
-      const replTables = isUseExistedSubscribe.value
-        ? replTableMap[formModel.name]
-        : await subscribeDbTableRef.value.getValue();
-      const infos = await receiverDataRef.value.getValue();
-      const params = {
-        bk_biz_id: currentBizId,
-        details: {
-          add_type: syncType.value,
-          infos,
-          name: isUseExistedSubscribe.value
-            ? subscribeNameList.value.find((item) => item.value === formModel.name)?.label
-            : formModel.name,
-          repl_tables: replTables,
-        },
-        remark: '',
-        ticket_type: TicketTypes.TBINLOGDUMPER_INSTALL,
-      };
+    await formRef.value.validate();
+    const replTables = isUseExistedSubscribe.value
+      ? replTableMap[formModel.name]
+      : await subscribeDbTableRef.value.getValue();
+    const infos = await receiverDataRef.value.getValue();
+    const params = {
+      bk_biz_id: currentBizId,
+      details: {
+        add_type: syncType.value,
+        infos,
+        name: isUseExistedSubscribe.value
+          ? subscribeNameList.value.find((item) => item.value === formModel.name)?.label
+          : formModel.name,
+        repl_tables: replTables,
+      },
+      remark: '',
+      ticket_type: TicketTypes.TBINLOGDUMPER_INSTALL,
+    };
 
-      const data = await createTicket(params);
-      if (data && data.id) {
-        ticketMessage(data.id);
-        initFormData();
-        emits('success');
-        isShow.value = false;
-      }
-      window.changeConfirm = false;
-    } finally {
-      isSubmitting.value = false;
+    const data = await createTicket(params);
+    if (data && data.id) {
+      ticketMessage(data.id);
+      initFormData();
+      emits('success');
     }
+    window.changeConfirm = false;
   };
 
   async function handleClose() {

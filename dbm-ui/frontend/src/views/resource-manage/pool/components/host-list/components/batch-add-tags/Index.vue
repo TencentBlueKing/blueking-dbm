@@ -1,6 +1,11 @@
 <template>
   <DbDialog
     class="batch-assign-dialog"
+    :confirm-button-disable-info="{
+      disabled: !hostList.length,
+      tooltips: { content: t('请选择主机'), disabled: !!hostList.length },
+    }"
+    :confirm-handler="handleSubmit"
     :esc-close="false"
     :is-show="isShow"
     :quick-close="false"
@@ -27,28 +32,6 @@
           @update:host-list="handleUpdate" />
       </template>
     </BkResizeLayout>
-    <template #footer>
-      <div>
-        <span
-          v-bk-tooltips="{
-            disabled: !!hostList.length,
-            content: t('请选择主机'),
-          }">
-          <BkButton
-            :disabled="!hostList.length"
-            :loading="isUpdating"
-            theme="primary"
-            @click="handleSubmit">
-            {{ t('确定') }}
-          </BkButton>
-        </span>
-        <BkButton
-          class="ml-8"
-          @click="handleCancel">
-          {{ t('取消') }}
-        </BkButton>
-      </div>
-    </template>
   </DbDialog>
 </template>
 
@@ -100,11 +83,10 @@
   const curBizId = computed(() => hostList.value[0]?.for_biz.bk_biz_id || 0);
   const labels = computed(() => (props.selected.length === 1 ? props.selected[0].labels : undefined));
 
-  const { loading: isUpdating, run: runAppend } = useRequest(appendHostLabel, {
+  const { runAsync: runAppend } = useRequest(appendHostLabel, {
     manual: true,
     onSuccess() {
       emits('refresh');
-      isShow.value = false;
       messageSuccess('设置成功');
     },
   });
@@ -134,7 +116,7 @@
       return { labels: { after_value: tagAfter, before_value: tagBefore } };
     });
 
-    runAppend({
+    return runAppend({
       bk_biz_id: isBusiness ? window.PROJECT_CONFIG.BIZ_ID : defaultBizId,
       bk_host_ids: hostList.value.map((item) => item.bk_host_id),
       host_id_ip_map: props.selected.reduce<Record<string, string>>((prev, item) => {

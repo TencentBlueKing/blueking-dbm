@@ -15,6 +15,11 @@
   <DbDialog
     v-model:is-show="modelValue"
     class="import-host-dialog"
+    :confirm-button-disable-info="{
+      disabled: hostSelectList.length === 0,
+      tooltips: { content: t('请选择主机'), disabled: hostSelectList.length > 0 },
+    }"
+    :confirm-handler="handleSubmit"
     :esc-close="false"
     :quick-close="false"
     render-directive="if"
@@ -40,24 +45,6 @@
           :error-host-map="errorHostMap" />
       </template>
     </BkResizeLayout>
-    <template #footer>
-      <div>
-        <BkButton
-          v-bk-tooltips="submitButtonTooltips"
-          :disabled="!submitButtonTooltips.disabled"
-          :loading="isSubmitting"
-          theme="primary"
-          @click="handleSubmit">
-          {{ t('确定') }}
-        </BkButton>
-        <BkButton
-          class="ml-8"
-          :disabled="isSubmitting"
-          @click="handleCancel">
-          {{ t('取消') }}
-        </BkButton>
-      </div>
-    </template>
     <ImportResourceErrorMessage
       v-model="isErrorMessageShow"
       :ips="errorHostList"
@@ -65,8 +52,7 @@
   </DbDialog>
 </template>
 <script setup lang="tsx">
-  import BkButton from 'bkui-vue/lib/button';
-  import { ref, shallowRef } from 'vue';
+  import { shallowRef } from 'vue';
   import { useI18n } from 'vue-i18n';
 
   import { importResource } from '@services/source/dbresourceResource';
@@ -107,28 +93,8 @@
   const formRef = useTemplateRef('formRef');
   const selectHostPanelRef = useTemplateRef('selectHostPanelRef');
 
-  const isSubmitting = ref(false);
   const hostSelectList = shallowRef<HostInfo[]>([]);
   const isErrorMessageShow = ref(false);
-
-  const submitButtonTooltips = computed(() => {
-    if (hostSelectList.value.length === 0) {
-      return {
-        content: t('请选择主机'),
-        disabled: false,
-      };
-    }
-    if (hostSelectList.value.some((hostItem) => errorHostMap.value[hostItem.ip])) {
-      return {
-        content: t('请先处理有问题的 IP'),
-        disabled: false,
-      };
-    }
-    return {
-      content: '',
-      disabled: true,
-    };
-  });
 
   const ticketMessage = useTicketMessage({
     isCurrentBiz: props.type === 'business',
@@ -140,11 +106,10 @@
     height: `${contentHeight}px`,
   };
 
-  const handleSubmit = () => {
-    isSubmitting.value = true;
-    Promise.all([selectHostPanelRef.value!.getValue(), formRef.value!.getValue()])
-      .then(([selectHostPanelData, fromData]) => {
-        return importResource({
+  const handleSubmit = () =>
+    Promise.all([selectHostPanelRef.value!.getValue(), formRef.value!.getValue()]).then(
+      ([selectHostPanelData, fromData]) =>
+        importResource({
           ...selectHostPanelData,
           ...fromData,
           hosts: hostSelectList.value.map((item) => ({
@@ -156,22 +121,14 @@
           .then(({ ticket_ids: ticketIds }) => {
             window.changeConfirm = false;
             ticketMessage(ticketIds);
-            handleCancel();
             emits('change');
           })
           .catch((error) => {
             handleErrorChange(error.message);
             isErrorMessageShow.value = true;
-          });
-      })
-      .finally(() => {
-        isSubmitting.value = false;
-      });
-  };
-
-  const handleCancel = () => {
-    modelValue.value = false;
-  };
+            return Promise.reject(error);
+          }),
+    );
 
   const handleHidden = () => {
     handleErrorChange('');

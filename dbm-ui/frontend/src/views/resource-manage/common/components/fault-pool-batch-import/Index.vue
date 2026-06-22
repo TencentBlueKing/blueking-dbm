@@ -1,6 +1,11 @@
 <template>
   <DbDialog
     class="batch-import-dialog"
+    :confirm-button-disable-info="{
+      disabled: !hostList.length,
+      tooltips: { content: t('请选择主机'), disabled: hostList.length > 0 },
+    }"
+    :confirm-handler="handleSubmit"
     :esc-close="false"
     :is-show="isShow"
     :quick-close="false"
@@ -25,23 +30,6 @@
           @update:host-list="handleUpdate" />
       </template>
     </BkResizeLayout>
-    <template #footer>
-      <div>
-        <BkButton
-          v-bk-tooltips="submitButtonTooltips"
-          :disabled="!submitButtonTooltips.disabled"
-          :loading="isUpdating"
-          theme="primary"
-          @click="handleSubmit">
-          {{ t('确定') }}
-        </BkButton>
-        <BkButton
-          class="ml-8"
-          @click="handleCancel">
-          {{ t('取消') }}
-        </BkButton>
-      </div>
-    </template>
     <ImportResourceErrorMessage
       v-model="isErrorMessageShow"
       :ips="errorHostList"
@@ -98,33 +86,13 @@
 
   const isErrorMessageShow = ref(false);
 
-  const submitButtonTooltips = computed(() => {
-    if (hostList.value.length === 0) {
-      return {
-        content: t('请选择主机'),
-        disabled: false,
-      };
-    }
-    if (hostList.value.some((hostItem) => errorHostMap.value[hostItem.ip])) {
-      return {
-        content: t('请先处理有问题的 IP'),
-        disabled: false,
-      };
-    }
-    return {
-      content: '',
-      disabled: true,
-    };
-  });
-
-  const { loading: isUpdating, run: runImport } = useRequest(importResource, {
+  const { runAsync: runImport } = useRequest(importResource, {
     manual: true,
     onError(error) {
       handleErrorChange(error.message);
       isErrorMessageShow.value = true;
     },
     onSuccess({ ticket_ids: ticketIds }) {
-      handleCancel();
       ticketMessage(ticketIds);
     },
   });
@@ -135,7 +103,7 @@
 
   const handleSubmit = async () => {
     const data = await formPanelRef.value!.getValue();
-    runImport({
+    return runImport({
       bk_biz_id: systemEnvironStore.urls.RESOURCE_INDEPENDENT_BIZ,
       for_biz: data.for_biz as number,
       hosts: hostList.value.map((item) => ({
