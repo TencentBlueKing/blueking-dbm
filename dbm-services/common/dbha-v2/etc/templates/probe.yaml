@@ -9,6 +9,7 @@ reporter:
   endpoint: "{{PROBE_REPORTER_ENDPOINT}}"
   dataID: {{PROBE_REPORTER_DATA_ID}}
   connTimeout: {{PROBE_REPORTER_CONN_TIMEOUT}}
+  bkCloudID: {{PROBE_REPORTER_BKCLOUD_ID}}
 
 client:
   pingTime: {{PROBE_CLIENT_PING_TIME}}
