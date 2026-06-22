@@ -55,7 +55,7 @@
 
   import ClusterSelector, { type TabConfig } from '@components/cluster-selector/Index.vue';
 
-  import { t } from '@/locales/index';
+  import { t } from '@locales/index';
 
   interface Props {
     /**
@@ -89,7 +89,10 @@
     tabListConfig?: Record<ClusterTypes.TENDBHA | ClusterTypes.TENDBSINGLE, TabConfig>;
   }
 
-  type Emits = (e: 'batch-edit', list: TendbhaModel[]) => void;
+  interface Emits {
+    (e: 'batch-edit', value: TendbhaModel[]): void;
+    (e: 'request-success'): void;
+  }
 
   const props = withDefaults(defineProps<Props>(), {
     allowRepeat: false,
@@ -158,6 +161,7 @@
       const [currentCluster] = data;
       if (currentCluster) {
         modelValue.value = currentCluster;
+        emits('request-success');
       } else {
         // 集群不存在，触发校验
         editableColumnRef.value?.validate();

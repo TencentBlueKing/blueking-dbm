@@ -20,8 +20,7 @@
           :key="tableKey"
           ref="editableTable"
           class="mb-16"
-          :model="formData.tableData"
-          :rules="rules">
+          :model="formData.tableData">
           <EditableRow
             v-for="(rowData, index) in formData.tableData"
             :key="index">
@@ -99,7 +98,6 @@
   </div>
 </template>
 <script setup lang="ts">
-  import type { ComponentProps } from 'vue-component-type-helpers';
   import { useI18n } from 'vue-i18n';
 
   import SqlserverHaModel from '@services/model/sqlserver/sqlserver-ha';
@@ -197,22 +195,6 @@
   const formRef = useTemplateRef('form');
   const editableTableRef = useTemplateRef('editableTable');
 
-  const rules = {
-    'cluster.master_domain': [
-      {
-        message: t('目标集群重复'),
-        trigger: 'change',
-        validator: (value: string) => {
-          if (value) {
-            const nonEmptyIdList = formData.tableData.filter((row) => row.cluster.master_domain === value);
-            return nonEmptyIdList.length === 1;
-          }
-          return true;
-        },
-      },
-    ],
-  };
-
   const clusterSelectorTabConfig = {
     [ClusterTypes.SQLSERVER_HA]: {
       disabledRowConfig: [
@@ -273,35 +255,13 @@
     },
   ];
 
-  const selected = computed(() => {
-    const selectedClusters: ComponentProps<typeof ClusterColumn>['selected'] = {
-      [ClusterTypes.SQLSERVER_HA]: [],
-      [ClusterTypes.SQLSERVER_SINGLE]: [],
-    };
-    formData.tableData.forEach((tableRow) => {
-      const { cluster_type: clusterType, id, master_domain: masterDomain } = tableRow.cluster;
-      if (id) {
-        selectedClusters[clusterType as keyof typeof selectedClusters].push({
-          id,
-          master_domain: masterDomain,
-        });
-      }
-    });
-    return selectedClusters;
-  });
-
-  const clusterMemo = computed(() =>
-    Object.fromEntries(
-      Object.values(selected.value).flatMap((clusters) =>
-        clusters.filter((cluster) => cluster.master_domain).map((cluster) => [cluster.master_domain, true]),
-      ),
-    ),
-  );
+  const selected = computed(() => formData.tableData.filter((item) => item.cluster.id).map((item) => item.cluster));
+  const selectedMap = computed(() => Object.fromEntries(selected.value.map((cur) => [cur.master_domain, true])));
 
   const handleClusterBatchEdit = (clusterList: SqlserverHaModel[]) => {
     const newList: IDataRow[] = [];
     clusterList.forEach((item) => {
-      if (!clusterMemo.value[item.master_domain]) {
+      if (!selectedMap.value[item.master_domain]) {
         newList.push(
           createRowData({
             cluster: {
