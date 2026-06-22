@@ -182,6 +182,7 @@
             :width="120">
             <template #default="{ row }: { row: RowData }">
               <TicketStatusTag
+                :key="row.renderKey"
                 :data="{
                   status: row.status,
                   statusText: row.status_display,
@@ -341,7 +342,7 @@
 
   import StatusFailedAction from '@views/ticket-center/ticket-self-todo/components/batch-operation/StatusFailedAction.vue';
 
-  import { messageSuccess, utcDisplayTime } from '@utils';
+  import { messageSuccess, random, utcDisplayTime } from '@utils';
 
   import { useTimeoutFn } from '@vueuse/core';
 
@@ -358,6 +359,7 @@
     operator: string;
     os_name: string;
     record_id: number;
+    renderKey: string;
     spec: {
       spec_machine_type: string;
       spec_name: string;
@@ -560,7 +562,13 @@
         // 更新 tableData 中对应单据的 status
         tableData.value.forEach((ticketData) => {
           if (data[ticketData.id]) {
-            Object.assign(ticketData, { status: data[ticketData.id] });
+            Object.assign(ticketData, {
+              renderKey: random(),
+              status: data[ticketData.id],
+              status_display:
+                TicketModel.statusTextMap[data[ticketData.id] as keyof typeof TicketModel.statusTextMap] ||
+                data[ticketData.id],
+            });
           }
         });
         // 触发 shallowRef 响应式更新
