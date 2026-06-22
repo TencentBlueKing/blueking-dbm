@@ -42,6 +42,7 @@
   const funControllerStore = useFunController();
   const userProfileStore = useUserProfile();
 
+  const excludesMap = Object.fromEntries(props.excludes.map((item) => [item, true]));
   let renderTabs: {
     id: ClusterTypes;
     name: string;
@@ -54,7 +55,7 @@
   >((result, item) => {
     const { dbType, id, moduleId, name } = item;
     const data = funControllerStore.funControllerData.getFlatData(moduleId);
-    if (props.excludes.includes(id)) {
+    if (excludesMap[id]) {
       return result;
     }
     if (data[dbType as keyof typeof data]) {
@@ -83,7 +84,10 @@
 
     const topList = topDbTypes.flatMap((topItem) => {
       const topClusterTypes = dbTypeMap[topItem as DBTypes];
-      return topClusterTypes.map((topClusterType) => tabInfoMap[topClusterType]);
+      if (topClusterTypes) {
+        return topClusterTypes.map((topClusterType) => tabInfoMap[topClusterType]);
+      }
+      return [];
     });
     const topMap = Object.fromEntries(topList.map((item) => [item.id, true]));
     const commonList = tabsInfo.filter((item) => !topMap[item.id]);
