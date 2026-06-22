@@ -31,6 +31,7 @@ import (
 
 	"dbm-services/common/dbha-v2/internal/receiver/apm"
 	"dbm-services/common/dbha-v2/internal/receiver/config"
+	"dbm-services/common/dbha-v2/pkg/constant"
 	"dbm-services/common/dbha-v2/pkg/gerrors"
 	"dbm-services/common/dbha-v2/pkg/hanet"
 	"dbm-services/common/dbha-v2/pkg/logger"
@@ -54,7 +55,7 @@ type mysql struct {
 	dbs []*hamysql.GormDB
 }
 
-func newMySql(endpoints, user, password string) (*mysql, error) {
+func newMySql(endpoints, user, password string, timeout time.Duration) (*mysql, error) {
 	epoints, err := hanet.NewEndpoints(endpoints)
 	if err != nil {
 		return nil, err
@@ -74,6 +75,10 @@ func newMySql(endpoints, user, password string) (*mysql, error) {
 
 	msql := &mysql{}
 
+	if timeout <= 0 {
+		timeout = constant.DefaultSaveTimeout
+	}
+
 	for _, epoint := range epoints {
 		db, err := hamysql.NewGormDB(
 			hamysql.OptionIP(epoint.Host),
@@ -83,6 +88,8 @@ func newMySql(endpoints, user, password string) (*mysql, error) {
 			hamysql.OptionUser(user),
 			hamysql.OptionPassword(password),
 			hamysql.OptionLogger(gormLogger),
+			hamysql.OptionReadTimeout(timeout),
+			hamysql.OptionWriteTimeout(timeout),
 		)
 
 		if err != nil {

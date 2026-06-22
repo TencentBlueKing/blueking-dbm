@@ -85,17 +85,18 @@ type SourceConfig struct {
 
 // SinkConfig Configuration related to data storage.
 type SinkConfig struct {
-	Name      string `yaml:"name"     mapstructure:"name"`
-	Enable    bool   `yaml:"enable"   mapstructure:"enable"`
-	Endpoints string `yaml:"endpoint" mapstructure:"endpoint"`
-	User      string `yaml:"user"     mapstructure:"user"`
-	Password  string `yaml:"password" mapstructure:"password"`
+	Name        string        `yaml:"name"        mapstructure:"name"`
+	Enable      bool          `yaml:"enable"      mapstructure:"enable"`
+	Endpoints   string        `yaml:"endpoint"    mapstructure:"endpoint"`
+	User        string        `yaml:"user"        mapstructure:"user"`
+	Password    string        `yaml:"password"    mapstructure:"password"`
+	SaveTimeout time.Duration `yaml:"saveTimeout" mapstructure:"saveTimeout"`
 }
 
 // ServiceConfig service's configuration
 type ServiceConfig struct {
 	Sources []SourceConfig `yaml:"source" mapstructure:"source"`
-	Sinks   []SinkConfig   `yaml:"sink" mapstructure:"sink"`
+	Sinks   []SinkConfig   `yaml:"sink"   mapstructure:"sink"`
 }
 
 // LogConfig log configuration
