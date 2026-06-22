@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <BatchInput
     class="mb-20"
     :config="batchInputConfig"
@@ -20,11 +20,11 @@
         @batch-edit="handleClusterBatchEdit" />
       <DstClusterColumn
         v-model="rowData.dst_cluster"
-        :src-cluster-data="rowData.cluster"
+        :src-cluster-data="rowData.cluster as any"
         @batch-edit="handleDstClusterBatchEdit" />
       <RenderModeColumn
         ref="renderModeColumnRef"
-        v-model:restore-backup-file="rowData.restore_backup_file"
+        v-model:restore-backup-file="rowData.restore_backup_file as any"
         v-model:restore-time="rowData.restore_time"
         :cluster-id="rowData.cluster.id"
         @batch-edit="handleRenderModeBatchEdit" />
@@ -48,7 +48,7 @@
         v-model:db-name="rowData.db_list"
         :cluster="rowData.cluster"
         :is-local="false"
-        :restore-backup-file="rowData.restore_backup_file"
+        :restore-backup-file="rowData.restore_backup_file as any"
         :restore-time="rowData.restore_time"
         :target-cluster-id="rowData.dst_cluster.id" />
       <OperationColumn
@@ -58,7 +58,6 @@
   </EditableTable>
 </template>
 <script setup lang="ts">
-  import type { ComponentProps } from 'vue-component-type-helpers';
   import { useI18n } from 'vue-i18n';
 
   import SqlserverHaModel from '@services/model/sqlserver/sqlserver-ha';
@@ -87,6 +86,7 @@
 
   interface IDataRow {
     cluster: {
+      bk_cloud_id: number;
       cluster_type: ClusterTypes;
       id: number;
       major_version: string;
@@ -96,6 +96,7 @@
     dst_cluster: {
       bk_cloud_id: number;
       id: number;
+      major_version: string;
       master_domain: string;
     };
     ignore_db_list: string[];
@@ -107,13 +108,42 @@
     }[];
     restore_backup_file: {
       backup_id: string;
-      complete: boolean;
-      end_time: string;
-      expected_cnt: number;
-      logs: Record<string, string>[];
-      real_cnt: number;
-      role: string;
-      start_time: string;
+      logs: {
+        backup_begin_time: string;
+        backup_end_time: string;
+        backup_host: string;
+        backup_id: string;
+        backup_port: number;
+        backup_task_end_time: string;
+        backup_task_start_time: string;
+        backup_type: string;
+        bill_id: string;
+        bk_biz_id: number;
+        bk_cloud_id: number;
+        charset: string;
+        checkpointlsn: number;
+        cluster_address: string;
+        cluster_id: number;
+        compatibility_level: number;
+        data_schema_grant: string;
+        databasebackuplsn: number;
+        db_list: string;
+        db_size_kb: number;
+        dbname: string;
+        file_cnt: number;
+        file_name: string;
+        file_size_kb: number;
+        firstlsn: number;
+        is_full_backup: boolean;
+        lastlsn: number;
+        local_path: string;
+        master_ip: string;
+        master_port: number;
+        role: string;
+        task_id: string;
+        time_zone: string;
+        version: string;
+      }[];
     };
     restore_time: string;
   }
@@ -121,6 +151,7 @@
   const createRowData = (values = {} as Partial<IDataRow>) => ({
     cluster: Object.assign(
       {
+        bk_cloud_id: 0,
         cluster_type: '',
         id: 0,
         major_version: '',
@@ -133,25 +164,14 @@
       {
         bk_cloud_id: 0,
         id: 0,
+        major_version: '',
         master_domain: '',
       },
       values.dst_cluster,
     ),
     ignore_db_list: values.ignore_db_list || [],
     rename_infos: values.rename_infos || [],
-    restore_backup_file: Object.assign(
-      {
-        backup_id: '',
-        complete: false,
-        end_time: '',
-        expected_cnt: 0,
-        logs: {},
-        real_cnt: 0,
-        role: '',
-        start_time: '',
-      },
-      values.restore_backup_file,
-    ),
+    restore_backup_file: values.restore_backup_file || [],
     restore_time: values.restore_time || '',
   });
 
@@ -203,30 +223,8 @@
 
   const tableData = ref([createRowData()]);
 
-  const selected = computed(() => {
-    const selectedClusters: ComponentProps<typeof ClusterColumn>['selected'] = {
-      [ClusterTypes.SQLSERVER_HA]: [],
-      [ClusterTypes.SQLSERVER_SINGLE]: [],
-    };
-    tableData.value.forEach((tableRow) => {
-      const { cluster_type: clusterType, id, master_domain: masterDomain } = tableRow.cluster;
-      if (id) {
-        selectedClusters[clusterType as keyof typeof selectedClusters].push({
-          id,
-          master_domain: masterDomain,
-        });
-      }
-    });
-    return selectedClusters;
-  });
-
-  const clusterMemo = computed(() =>
-    Object.fromEntries(
-      Object.values(selected.value).flatMap((clusters) =>
-        clusters.filter((cluster) => cluster.master_domain).map((cluster) => [cluster.master_domain, true]),
-      ),
-    ),
-  );
+  const selected = computed(() => tableData.value.filter((item) => item.cluster.id).map((item) => item.cluster));
+  const selectedMap = computed(() => Object.fromEntries(selected.value.map((cur) => [cur.master_domain, true])));
 
   const batchInputConfig = [
     {
@@ -259,16 +257,17 @@
   const handleClusterBatchEdit = (clusterList: SqlserverHaModel[]) => {
     const newList: IDataRow[] = [];
     clusterList.forEach((item) => {
-      if (!clusterMemo.value[item.master_domain]) {
+      if (!selectedMap.value[item.master_domain]) {
         newList.push(
           createRowData({
             cluster: {
+              bk_cloud_id: item.bk_cloud_id,
               cluster_type: item.cluster_type,
               id: item.id,
               major_version: item.major_version,
               master_domain: item.master_domain,
             },
-          }),
+          }) as IDataRow,
         );
       }
     });
@@ -340,13 +339,20 @@
       tableData.value = infos.map((infoItem) => {
         return createRowData({
           cluster: {
+            bk_cloud_id: clusters[infoItem.src_cluster].bk_cloud_id,
+            cluster_type: clusters[infoItem.src_cluster].cluster_type,
+            id: infoItem.src_cluster,
+            major_version: clusters[infoItem.src_cluster].major_version,
             master_domain: clusters[infoItem.src_cluster].immute_domain,
           } as IDataRow['cluster'],
-          db_list: infoItem.db_list,
+          db_list: infoItem.db_list || [],
           dst_cluster: {
+            bk_cloud_id: clusters[infoItem.dst_cluster].bk_cloud_id,
+            id: infoItem.dst_cluster,
+            major_version: clusters[infoItem.dst_cluster].major_version,
             master_domain: clusters[infoItem.dst_cluster].immute_domain,
           } as IDataRow['dst_cluster'],
-          ignore_db_list: infoItem.ignore_db_list,
+          ignore_db_list: infoItem.ignore_db_list || [],
           rename_infos: infoItem.rename_infos,
           restore_backup_file: infoItem.restore_backup_file,
           restore_time: infoItem.restore_time,
