@@ -245,6 +245,7 @@
               bk_cloud_id: row.originProxy.bk_cloud_id,
               bk_host_id: row.originProxy.bk_host_id,
               ip: row.originProxy.ip,
+              port: row.originProxy.port,
             })),
           })),
           is_safe: true,

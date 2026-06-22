@@ -253,8 +253,9 @@
       rebuild_spider_role: rows[0].originSpider.role,
       spider_ip_list: rows.map((row) => ({
         bk_cloud_id: row.originSpider.bk_cloud_id,
-        ip: row.originSpider.ip,
         bk_host_id: row.originSpider.bk_host_id,
+        ip: row.originSpider.ip,
+        port: row.originSpider.port,
       })),
     }));
 

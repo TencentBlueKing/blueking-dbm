@@ -19,14 +19,14 @@
       col-key="rebuild_proxy_hosts"
       :get-copy-value="(row: RowData) => (row.rebuild_proxy_hosts || []).map((item) => item.ip)"
       :min-width="180"
-      :title="t('目标 Proxy 实例')">
+      :title="t('目标实例')">
       <template #default="{ row: data }: { row: RowData }">
         <span v-if="!data.rebuild_proxy_hosts?.length">--</span>
         <p
           v-for="item in data.rebuild_proxy_hosts"
           v-else
-          :key="item.ip">
-          {{ item.ip }}
+          :key="item.bk_host_id">
+          {{ item.ip }}:{{ item.port }}
         </p>
       </template>
     </TicketInfoTableColumn>

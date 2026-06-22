@@ -20,14 +20,14 @@
       col-key="spider_ip_list"
       :get-copy-value="(row: RowData) => (row.spider_ip_list || []).map((item) => item.ip)"
       :min-width="180"
-      :title="t('目标 Spider 实例')">
+      :title="t('目标实例')">
       <template #default="{ row: data }: { row: RowData }">
         <span v-if="!data.spider_ip_list?.length">--</span>
         <p
           v-for="item in data.spider_ip_list"
           v-else
-          :key="item.ip">
-          {{ item.ip }}
+          :key="item.bk_host_id">
+          {{ item.ip }}:{{ item.port }}
         </p>
       </template>
     </TicketInfoTableColumn>

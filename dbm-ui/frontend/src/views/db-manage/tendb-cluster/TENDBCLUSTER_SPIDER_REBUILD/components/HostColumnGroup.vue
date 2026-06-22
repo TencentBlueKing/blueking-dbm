@@ -16,7 +16,7 @@
     :append-rules="rules"
     field="originSpider.instance_address"
     fixed="left"
-    :label="t('实例')"
+    :label="t('目标实例')"
     :loading="loading"
     :min-width="220"
     required>
@@ -73,6 +73,7 @@
     :cluster-types="['SpiderHost']"
     hide-manual-input
     :selected="selectedHosts"
+    :tab-list-config="tabListConfig"
     @change="handleSelectorChange" />
 </template>
 <script lang="ts" setup>
@@ -118,6 +119,22 @@
   });
 
   const { t } = useI18n();
+
+  const tabListConfig = {
+    SpiderHost: [
+      {
+        id: 'SpiderHost',
+        name: t('目标实例'),
+        tableConfig: {
+          firsrColumn: {
+            field: 'instance_address',
+            label: t('目标实例'),
+            role: '', // 不传， 以roleFilterList过滤
+          },
+        },
+      },
+    ],
+  };
 
   const statusTheme = computed(() => {
     const s = modelValue.value.status;
