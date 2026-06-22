@@ -20,7 +20,8 @@
         ref="form"
         form-type="vertical"
         :label-width="0"
-        :model="formData">
+        :model="formData"
+        :scroll-align-to-top="false">
         <PrimaryTable
           ref="table"
           class="dba-table mt-20"
@@ -37,6 +38,14 @@
                   svg
                   :type="DBTypeInfos[row.db_type as DBTypes].icon" />
                 <span class="ml-4">{{ row.db_type_display }}</span>
+                <BkButton
+                  v-if="row.users.length > 0 || defaultAdminsDataMap[row.db_type as DBTypes].users.length > 0"
+                  class="copy-btn"
+                  text
+                  theme="primary"
+                  @click="() => handleCopyRow(row)">
+                  <DbIcon type="copy" />
+                </BkButton>
               </div>
             </template>
           </TableColumn>
@@ -44,12 +53,12 @@
             <template #title>
               <div style="display: flex; align-items: center">
                 <span>{{ t('主 DBA') }}</span>
-                <BkTag
+                <!-- <BkTag
                   class="ml-4"
                   size="small"
                   :theme="dbaRoleTypesInfo[DBARoleTypes.PRIMARY_DBA].tagTheme">
                   {{ dbaRoleTypesInfo[DBARoleTypes.PRIMARY_DBA].tagText }}
-                </BkTag>
+                </BkTag> -->
                 <BatchEdit
                   v-if="isBatchEdit"
                   class="ml-4"
@@ -74,7 +83,7 @@
                   <DbIcon
                     class="mr-4"
                     type="attention" />
-                  <span>{{ t('主备 DBA 相同') }}</span>
+                  <span>{{ t('主备 DBA 为同一人，建议设置不同人员') }}</span>
                 </div>
               </DbFormItem>
               <template v-else>
@@ -111,12 +120,12 @@
             <template #title>
               <div style="display: flex; align-items: center">
                 <span>{{ t('备 DBA') }}</span>
-                <BkTag
+                <!-- <BkTag
                   class="ml-4"
                   size="small"
                   :theme="dbaRoleTypesInfo[DBARoleTypes.BACKUP_DBA].tagTheme">
                   {{ dbaRoleTypesInfo[DBARoleTypes.BACKUP_DBA].tagText }}
-                </BkTag>
+                </BkTag> -->
                 <BatchEdit
                   v-if="isBatchEdit"
                   class="ml-4"
@@ -141,7 +150,7 @@
                   <DbIcon
                     class="mr-4"
                     type="attention" />
-                  <span>{{ t('该人员不在时审批可能无人处理') }}</span>
+                  <span>{{ t('主备 DBA 为同一人，建议设置不同人员') }}</span>
                 </div>
               </DbFormItem>
               <template v-else>
@@ -178,12 +187,12 @@
             <template #title>
               <div style="display: flex; align-items: center">
                 <span>{{ t('二线 DBA') }}</span>
-                <BkTag
+                <!-- <BkTag
                   class="ml-4"
                   size="small"
                   :theme="dbaRoleTypesInfo[DBARoleTypes.LEVEL2_DBA].tagTheme">
                   {{ dbaRoleTypesInfo[DBARoleTypes.LEVEL2_DBA].tagText }}
-                </BkTag>
+                </BkTag> -->
                 <BatchEdit
                   v-if="isBatchEdit"
                   class="ml-4"
@@ -197,7 +206,7 @@
                 <MemberSelector v-model="row.level2_dba_edit" />
                 <div
                   v-if="isPrimaryAndStanbySame(row)"
-                  class="member-selector-tip"></div>
+                  class="member-selector-tip" />
               </DbFormItem>
               <template v-else>
                 <template v-if="row.users.length">
@@ -329,7 +338,7 @@
 
   import { getAdmins, updateAdmins } from '@services/source/dbadmin';
 
-  import { DBAOperateTypes, DBARoleTypes, dbaRoleTypesInfo, DBTypeInfos, DBTypes } from '@common/const';
+  import { DBAOperateTypes, DBARoleTypes, DBTypeInfos, DBTypes } from '@common/const';
 
   import MemberSelector from '@components/db-member-selector/index.vue';
   import TagBlock from '@components/tag-block/Index.vue';
@@ -583,6 +592,15 @@
 
   const handleRowCancel = (row: IRowData, rowIndex: number) => {
     formData.value.filterTableData[rowIndex].is_edit = false;
+  };
+
+  const handleCopyRow = (row: IRowData) => {
+    if (row.users.length > 0) {
+      execCopy(_.uniq([row.primary_dba, row.standby_dba, ...row.level2_dba]).join('；'));
+    } else {
+      const defaultDba = props.defaultAdminsDataMap[row.db_type as DBTypes].users[0];
+      execCopy(defaultDba);
+    }
   };
 
   const handleCopy = (userList: string[]) => {

@@ -60,23 +60,30 @@
         :title="t('修改后')">
         <template #default="{ row }: { row: IDataRow }">
           <div
-            v-if="row.after.length"
-            class="after-content">
-            <div>
-              <div
-                v-for="(item, index) in row.after"
-                :key="index">
-                {{ `${item}（${userDataMap[item]}）` }}
-              </div>
-            </div>
-            <BkTag
-              v-if="!row.isChanged"
-              class="ml-4"
-              size="small">
-              {{ t('无变化') }}
-            </BkTag>
+            v-if="isFormEmpty"
+            style="color: #c4c6cc">
+            {{ t('未填写') }}
           </div>
-          <span v-else>--</span>
+          <template v-else>
+            <div
+              v-if="row.after.length"
+              class="after-content">
+              <div>
+                <div
+                  v-for="(item, index) in row.after"
+                  :key="index">
+                  {{ `${item}（${userDataMap[item]}）` }}
+                </div>
+              </div>
+              <BkTag
+                v-if="!row.isChanged"
+                class="ml-4"
+                size="small">
+                {{ t('无变化') }}
+              </BkTag>
+            </div>
+            <span v-else>--</span>
+          </template>
         </template>
       </TableColumn>
     </PrimaryTable>
@@ -100,6 +107,7 @@
 
   interface Props {
     data: IDataRow[];
+    isFormEmpty: boolean;
     userDataMap: Record<string, string>;
   }
 
