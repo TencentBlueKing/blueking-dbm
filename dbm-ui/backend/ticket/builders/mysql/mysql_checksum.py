@@ -61,7 +61,7 @@ class MySQLChecksumDetailSerializer(MySQLBaseOperateDetailSerializer):
         super().validate_database_table_selector(attrs)
 
         # 校验定时时间不能早于当前时间
-        if attrs["need_manual_confirm"] is False:
+        if attrs.get("need_manual_confirm") is False:
             if str2datetime(attrs["timing"]) < datetime.now(timezone.utc):
                 raise serializers.ValidationError(_("定时时间必须晚于当前时间"))
 
@@ -201,11 +201,11 @@ class MySQLChecksumFlowBuilder(BaseMySQLHATicketFlowBuilder):
 
     @property
     def need_timer(self):
-        return not self.ticket.details["need_manual_confirm"]
+        return not self.ticket.details.get("need_manual_confirm")
 
     @property
     def need_manual_confirm(self):
-        return self.ticket.details["need_manual_confirm"]
+        return self.ticket.details.get("need_manual_confirm")
 
     @property
     def need_itsm(self):
