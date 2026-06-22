@@ -763,7 +763,7 @@ class BuilderFactory:
                 cls.ticket_type__cluster_phase[ticket_type] = kwargs["phase"]
             if hasattr(ActionEnum, ticket_type) or kwargs.get("iam"):
                 # 单据类型和权限动作默认一一对应，如果是特殊指定的则通过iam参数传递
-                cls.ticket_type__iam_action[ticket_type] = getattr(ActionEnum, ticket_type, None) or kwargs.get("iam")
+                cls.ticket_type__iam_action[ticket_type] = kwargs.get("iam") or getattr(ActionEnum, ticket_type, None)
 
             return wrapped_class
 

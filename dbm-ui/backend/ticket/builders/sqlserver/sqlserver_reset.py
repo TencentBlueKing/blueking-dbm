@@ -15,6 +15,7 @@ from rest_framework import serializers
 from backend.db_meta.enums import ClusterPhase
 from backend.db_meta.models import Cluster
 from backend.flow.engine.controller.sqlserver import SqlserverController
+from backend.iam_app.dataclass.actions import ActionEnum
 from backend.ticket import builders
 from backend.ticket.builders.common.base import fetch_cluster_ids
 from backend.ticket.builders.sqlserver.base import BaseSQLServerTicketFlowBuilder, SQLServerBaseOperateDetailSerializer
@@ -47,7 +48,9 @@ class SQLServerResetFlowParamBuilder(builders.FlowParamBuilder):
         pass
 
 
-@builders.BuilderFactory.register(TicketType.SQLSERVER_RESET, phase=ClusterPhase.ONLINE)
+@builders.BuilderFactory.register(
+    TicketType.SQLSERVER_RESET, phase=ClusterPhase.ONLINE, iam=ActionEnum.SQLSERVER_MANAGE
+)
 class SQLServerResetFlowBuilder(BaseSQLServerTicketFlowBuilder):
     serializer = SQLServerResetDetailSerializer
     inner_flow_builder = SQLServerResetFlowParamBuilder
