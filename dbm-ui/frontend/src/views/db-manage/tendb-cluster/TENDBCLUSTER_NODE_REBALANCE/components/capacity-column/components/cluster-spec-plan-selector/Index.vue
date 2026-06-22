@@ -1,8 +1,8 @@
 <template>
-  <div class="cluster-spec-plan-selector">
-    <DbFormItem
-      :label="t('部署方案选择')"
-      required>
+  <DbForm
+    ref="formRef"
+    :model="modelValue">
+    <DbFormItem :label="t('部署方案选择')">
       <BkRadioGroup
         v-model="applyType"
         style="width: 314px">
@@ -24,27 +24,21 @@
       </BkRadioGroup>
     </DbFormItem>
     <template v-if="applyType === 'auto'">
-      <DbFormItem
-        :label="t('目标集群容量需求')"
-        required>
+      <DbFormItem :label="t('目标集群容量需求')">
         <BkInput
           v-model="localCapacity"
           style="width: 314px"
+          suffix="G"
           type="number" />
-        <span class="input-desc">G</span>
       </DbFormItem>
-      <DbFormItem
-        :label="t('未来集群容量需求')"
-        required>
+      <DbFormItem :label="t('未来集群容量需求')">
         <BkInput
           v-model="localFutureCapacity"
           style="width: 314px"
+          suffix="G"
           type="number" />
-        <span class="input-desc">G</span>
       </DbFormItem>
-      <DbFormItem
-        :label="t('QPS 预估范围')"
-        required>
+      <DbFormItem :label="t('QPS 预估范围')">
         <BkLoading :loading="isDpsRangLoading">
           <BkSlider
             v-model="sliderProps.value"
@@ -60,8 +54,10 @@
         </BkLoading>
       </DbFormItem>
       <DbFormItem
-        v-bind="planFormItemProps"
-        :label="t('集群部署方案')">
+        :label="t('集群部署方案')"
+        property="spec_id"
+        required
+        :rules="specRules">
         <BkLoading :loading="isPlanLoading">
           <BkTable
             :columns="tableColumns"
@@ -71,82 +67,73 @@
       </DbFormItem>
     </template>
     <template v-else>
-      <BkFormItem
+      <DbFormItem
         :label="t('规格')"
-        property="specId"
-        required>
+        property="spec_id"
+        required
+        :rules="specRules">
         <SpecSelector
           ref="specSelectorRef"
-          v-model="customSpecInfo.specId"
+          v-model="modelValue.spec_id"
           :biz-id="currentBizId"
           :clearable="false"
-          :cloud-id="cloudId"
-          :cluster-type="ClusterTypes.TENDBCLUSTER"
+          :cloud-id="props.cluster.bk_cloud_id"
+          cluster-type="tendbcluster"
           machine-type="backend"
           style="width: 314px" />
-      </BkFormItem>
-      <BkFormItem
-        :label="t('数量')"
+      </DbFormItem>
+      <DbFormItem
+        :label="t('机器组数')"
         property="count"
         required
         :rules="countRules">
         <BkInput
-          v-model="customSpecInfo.count"
+          v-model="modelValue.count"
           clearable
-          :max="clusterShardNum"
+          :max="props.cluster.cluster_shard_num"
           :min="1"
           show-clear-only-hover
           style="width: 314px"
+          :suffix="t('组')"
           type="number" />
-        <span class="input-desc">{{ t('组') }}</span>
-      </BkFormItem>
-      <BkFormItem
-        :label="t('单机分片数')"
-        required>
+      </DbFormItem>
+      <DbFormItem :label="t('单机分片数')">
         <BkInput
           v-model="localRemoteShardNum"
           disabled
           style="width: 314px"
           type="number" />
-      </BkFormItem>
-      <BkFormItem
-        :label="t('集群分片数')"
-        required>
+      </DbFormItem>
+      <DbFormItem :label="t('集群分片数')">
         <BkInput
           v-model="localClusterShardNum"
           disabled
           style="width: 314px"
           type="number" />
-      </BkFormItem>
-      <BkFormItem
-        :label="t('总容量')"
-        :required="false">
+      </DbFormItem>
+      <DbFormItem :label="t('总容量')">
         <BkInput
           v-model="specInfo.totalCapcity"
           disabled
           :placeholder="t('自动生成')"
           style="width: 314px"
+          suffix="G"
           type="number" />
-        <span class="input-desc">G</span>
-      </BkFormItem>
-      <BkFormItem
-        label="QPS"
-        :required="false">
+      </DbFormItem>
+      <DbFormItem label="QPS">
         <BkInput
           v-model="specInfo.qps"
           disabled
           :placeholder="t('自动生成')"
           style="width: 314px"
+          suffix="/s"
           type="number" />
-        <span class="input-desc">/s</span>
-      </BkFormItem>
+      </DbFormItem>
     </template>
-  </div>
+  </DbForm>
 </template>
 <script setup lang="tsx">
-  import type { FormItemProps } from 'bkui-vue/lib/form/form-item';
   import _ from 'lodash';
-  import { reactive, ref, watch } from 'vue';
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
@@ -157,35 +144,39 @@
 
   import { useGlobalBizs } from '@stores';
 
-  import { ClusterTypes } from '@common/const';
-
   import SpecSelector from '@views/db-manage/common/apply-items/SpecSelector.vue';
 
   export type TicketSpecInfo = Pick<ClusterSpecModel, 'spec_id' | 'spec_name' | 'cluster_capacity' | 'machine_pair'>;
 
   interface Props {
-    cloudId: number;
-    clusterShardNum: number;
-    clusterType: string;
-    machineType: string;
-    planFormItemProps?: Partial<FormItemProps>;
+    cluster: {
+      bk_cloud_id: number;
+      cluster_shard_num: number;
+    };
   }
 
-  type Emits = (e: 'change', modelValue: number, data: TicketSpecInfo) => void;
+  export interface ClusterSpecPlanData {
+    count: string | number;
+    spec_id: string | number;
+  }
+
+  type Emits = (e: 'change', specId: number, data: TicketSpecInfo) => void;
 
   const props = defineProps<Props>();
   const emits = defineEmits<Emits>();
 
-  const modelValue = defineModel<number>('modelValue');
-  const specData = defineModel<{ futureCapacity: number; name: string }>('specData');
-  const customSpecInfo = defineModel<{
-    count: number;
-    specId: string | number;
-  }>('customSpecInfo', {
-    required: true,
+  // 统一的 v-model：包含 spec_id 和 count
+  const modelValue = defineModel<ClusterSpecPlanData>('modelValue', {
+    default: {
+      count: 1,
+      spec_id: '',
+    },
   });
   const { t } = useI18n();
   const { currentBizId } = useGlobalBizs();
+
+  // 内部状态：部署方案类型
+  const applyType = ref<'auto' | 'custom'>('auto');
 
   const genSliderData = () => ({
     disabled: false,
@@ -196,24 +187,32 @@
   const formatterLabel = (value: string) => `${value}/s`;
 
   const specSelectorRef = ref<InstanceType<typeof SpecSelector>>();
-  const localCapacity = ref();
-  const localFutureCapacity = ref();
-  const localClusterShardNum = ref();
+  const formRef = ref();
+  const localCapacity = ref('');
+  const localFutureCapacity = ref('');
+  const localClusterShardNum = ref<string | number>('');
   const queryTimer = ref();
-  const applyType = ref<'auto' | 'custom'>('auto');
+
+  const specRules = computed(() => [
+    {
+      message: applyType.value === 'auto' ? t('请选择集群部署方案') : t('请选择规格'),
+      trigger: 'change',
+      validator: () => Number(modelValue.value.spec_id) > 0,
+    },
+  ]);
+
+  const countRules = computed(() => [
+    {
+      message: t('必须要能除尽总分片数'),
+      trigger: 'change',
+      validator: () => props.cluster.cluster_shard_num % Number(modelValue.value.count) === 0,
+    },
+  ]);
 
   const sliderProps = reactive(genSliderData());
 
   const specCountMap = shallowRef<Record<number, number>>({});
   const planList = shallowRef<ServiceReturnType<typeof getFilterClusterSpec>>([]);
-
-  const countRules = [
-    {
-      message: t('必须要能除尽总分片数'),
-      trigger: 'change',
-      validator: () => props.clusterShardNum % customSpecInfo.value.count === 0,
-    },
-  ];
 
   const tableColumns = [
     {
@@ -222,7 +221,7 @@
       render: ({ data }: { data: ClusterSpecModel }) => (
         <bk-radio
           label={data.spec_id}
-          modelValue={modelValue.value}
+          modelValue={modelValue.value.spec_id}
           style='display: flex'
           onClick={() => handleRowClick(data)}>
           <div
@@ -274,7 +273,7 @@
 
   const specInfo = computed(() => {
     const data = specSelectorRef.value?.getData();
-    const { count } = customSpecInfo.value;
+    const { count } = modelValue.value;
 
     if (_.isEmpty(data)) {
       return {
@@ -284,12 +283,12 @@
     }
 
     return {
-      qps: count * (data.qps.min ?? 0),
-      totalCapcity: count * getSpecCapacity(data.storage_spec),
+      qps: Number(count) * (data.qps.min ?? 0),
+      totalCapcity: Number(count) * getSpecCapacity(data.storage_spec),
     };
   });
 
-  const localRemoteShardNum = computed(() => props.clusterShardNum / customSpecInfo.value.count);
+  const localRemoteShardNum = computed(() => props.cluster.cluster_shard_num / Number(modelValue.value.count));
 
   const getSpecCapacity = (storageSpec: ResourceSpecModel['storage_spec']) => {
     let specCapacity = 0;
@@ -328,22 +327,6 @@
     },
   });
 
-  // 规格列表
-  const { loading: isPlanLoading, run: fetchPlanList } = useRequest(getFilterClusterSpec, {
-    debounceOptions: {
-      maxWait: 2000,
-      trailing: true,
-    },
-    manual: true,
-    onSuccess(data) {
-      if (props.clusterShardNum && props.clusterShardNum > 0) {
-        planList.value = _.filter(data, (item) => item.cluster_shard_num === props.clusterShardNum);
-      } else {
-        planList.value = data;
-      }
-    },
-  });
-
   // 可用主机数
   const { loading: isCountLoading, run: fetchSpecCount } = useRequest(getSpecResourceCount, {
     manual: true,
@@ -352,48 +335,71 @@
     },
   });
 
-  watch(
-    () => [props.clusterType, props.machineType],
-    () => {
-      Object.assign(sliderProps, genSliderData());
-      planList.value = [];
+  // 规格列表
+  const { loading: isPlanLoading, run: fetchPlanList } = useRequest(getFilterClusterSpec, {
+    debounceOptions: {
+      maxWait: 2000,
+      trailing: true,
     },
-  );
+    manual: true,
+    onSuccess(data) {
+      // 根据集群分片数过滤方案列表
+      const shardNum = props.cluster.cluster_shard_num;
+      planList.value = shardNum > 0 ? _.filter(data, (item) => item.cluster_shard_num === shardNum) : data;
 
+      // 列表为空时无需查询可用主机数
+      if (planList.value.length < 1) {
+        return;
+      }
+
+      fetchSpecCount({
+        bk_biz_id: currentBizId,
+        bk_cloud_id: props.cluster.bk_cloud_id,
+        spec_ids: planList.value.map((item) => item.spec_id),
+      });
+    },
+  });
+
+  const handleDpsRangChange = (data: [number, number]) => {
+    const [min, max] = data;
+    fetchPlanList({
+      capacity: Number(localCapacity.value),
+      future_capacity: Number(localFutureCapacity.value),
+      qps: { max, min },
+      shard_num: props.cluster.cluster_shard_num,
+      spec_cluster_type: 'tendbcluster',
+      spec_machine_type: 'backend',
+    });
+  };
+
+  // 选中单行
+  const handleRowClick = (data?: TicketSpecInfo) => {
+    if (data) {
+      modelValue.value.spec_id = data.spec_id;
+      emits('change', data.spec_id, {
+        cluster_capacity: data.cluster_capacity,
+        machine_pair: data.machine_pair,
+        spec_id: data.spec_id,
+        spec_name: data.spec_name,
+      });
+    }
+  };
+
+  // 容量变化时查询 QPS 范围
   watch([localCapacity, localFutureCapacity], () => {
     if (!localCapacity.value || !localFutureCapacity.value) {
       return;
     }
     fetchQpsRang({
-      capacity: localCapacity.value,
-      future_capacity: localFutureCapacity.value,
-      spec_cluster_type: props.clusterType,
-      spec_machine_type: props.machineType,
+      capacity: Number(localCapacity.value),
+      future_capacity: Number(localFutureCapacity.value),
+      spec_cluster_type: 'tendbcluster',
+      spec_machine_type: 'backend',
     });
-    modelValue.value = undefined;
-    specData.value = {
-      futureCapacity: 0,
-      name: '',
-    };
+    modelValue.value.spec_id = 0;
   });
 
-  watch(
-    planList,
-    () => {
-      if (!planList.value || planList.value.length < 1) {
-        return;
-      }
-      fetchSpecCount({
-        bk_biz_id: currentBizId,
-        bk_cloud_id: props.cloudId,
-        spec_ids: planList.value.map((item) => item.spec_id),
-      });
-    },
-    {
-      immediate: true,
-    },
-  );
-
+  // 滑块变化时防抖查询方案
   watch(
     () => sliderProps.value,
     (data) => {
@@ -407,90 +413,49 @@
     },
   );
 
+  // 分片数变化时更新本地状态
   watch(
-    () => props.clusterShardNum,
-    () => {
-      localClusterShardNum.value = props.clusterShardNum;
+    () => props.cluster.cluster_shard_num,
+    (value) => {
+      localClusterShardNum.value = value;
     },
-    {
-      immediate: true,
-    },
+    { immediate: true },
   );
 
+  // 自定义方案信息变化时同步
   watch(
-    [() => customSpecInfo.value.count, () => customSpecInfo.value.specId],
+    () => [modelValue.value.count, modelValue.value.spec_id],
     ([count, specId]) => {
       if (specId) {
         applyType.value = 'custom';
       }
-
       nextTick(() => {
         const data = specSelectorRef.value?.getData();
         if (!_.isEmpty(data)) {
           handleRowClick({
-            cluster_capacity: count * getSpecCapacity(data.storage_spec),
-            machine_pair: customSpecInfo.value.count,
+            cluster_capacity: Number(count) * getSpecCapacity(data.storage_spec),
+            machine_pair: Number(count),
             spec_id: Number(specId),
             spec_name: data.spec_name,
           });
         }
       });
     },
-    {
-      immediate: true,
-    },
+    { immediate: true },
   );
 
-  const handleDpsRangChange = (data: [number, number]) => {
-    const [min, max] = data;
-    fetchPlanList({
-      capacity: localCapacity.value,
-      future_capacity: localFutureCapacity.value,
-      qps: { max, min },
-      shard_num: props.clusterShardNum,
-      spec_cluster_type: props.clusterType,
-      spec_machine_type: props.machineType,
-    });
+  // 切换部署方案类型时重置
+  watch(applyType, () => {
+    modelValue.value.spec_id = '';
+    modelValue.value.count = '';
+    formRef.value?.clearValidate();
+  });
+
+  const validate = async () => {
+    return formRef.value?.validate();
   };
 
-  // 选中单行
-  const handleRowClick = (data?: TicketSpecInfo) => {
-    if (data) {
-      modelValue.value = data.spec_id;
-      specData.value = {
-        futureCapacity: data.cluster_capacity,
-        name: data.spec_name,
-      };
-      emits('change', data.spec_id, {
-        cluster_capacity: data.cluster_capacity,
-        machine_pair: data.machine_pair,
-        spec_id: data.spec_id,
-        spec_name: data.spec_name,
-      });
-    }
-  };
+  defineExpose({
+    validate,
+  });
 </script>
-<style lang="less">
-  .cluster-spec-plan-selector {
-    display: block;
-
-    // .capacity-box {
-    //   display: flex;
-
-    //   .bk-form-item {
-    //     flex: 1;
-
-    //     & ~ .bk-form-item {
-    //       margin-left: 40px;
-    //     }
-    //   }
-    // }
-
-    .input-desc {
-      padding-left: 12px;
-      font-size: 12px;
-      line-height: 20px;
-      color: #63656e;
-    }
-  }
-</style>
