@@ -1,11 +1,11 @@
 <template>
   <EditableColumn
-    ref="editableTableColumn"
+    ref="editableColumnRef"
     :append-rules="rules"
     :field="field"
     fixed="left"
-    :label="label || t('目标集群')"
-    :loading="isLoading"
+    :label="label"
+    :loading="loading"
     :min-width="350"
     required>
     <template #headAppend>
@@ -18,39 +18,45 @@
     </template>
     <EditableInput
       v-model="modelValue.master_domain"
-      :placeholder="t('请输入或选择集群')" />
+      :placeholder="t('请输入或选择集群')"
+      @change="handleChange" />
     <ClusterSelector
       :key="clusterTypes.join(',')"
       v-model:is-show="isShowClusterSelector"
       :cluster-types="clusterTypes"
-      :selected="selected"
+      :selected="selectedClusters"
       :tab-list-config="tabListConfig"
       @change="handelClusterChange" />
   </EditableColumn>
 </template>
 
 <script setup lang="ts">
-  import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
   import SqlserverHaModel from '@services/model/sqlserver/sqlserver-ha';
   import { filterClusters } from '@services/source/dbbase';
 
+  import { ClusterTypes, DBTypes } from '@common/const';
   import { domainRegex } from '@common/regex';
 
   import ClusterSelector, { type TabConfig } from '@components/cluster-selector/Index.vue';
 
+  import { t } from '@locales/index';
+
   interface Props {
+    /**
+     * @description 是否允许重复选择集群
+     * @default false
+     */
+    allowRepeat?: boolean;
     clusterTypes: string[];
     field?: string;
     label?: string;
-    selected: Record<
-      string,
-      {
-        id: number;
-        master_domain: string;
-      }[]
-    >;
+    selected: {
+      cluster_type: ClusterTypes;
+      id: number;
+      master_domain: string;
+    }[];
     tabListConfig?: Record<string, TabConfig>;
   }
 
@@ -59,62 +65,71 @@
     (e: 'request-success'): void;
   }
 
-  withDefaults(defineProps<Props>(), {
+  const props = withDefaults(defineProps<Props>(), {
+    allowRepeat: false,
     field: 'cluster.master_domain',
-    label: '',
+    label: t('目标集群'),
     tabListConfig: undefined,
   });
+
   const emits = defineEmits<Emits>();
 
   const modelValue = defineModel<Partial<ServiceReturnType<typeof filterClusters>[number]>>({
     required: true,
   });
 
-  const { t } = useI18n();
+  const editableColumnRef = useTemplateRef('editableColumnRef');
+
+  const selectedClusters = computed<Record<string, SqlserverHaModel[]>>(() => ({
+    [ClusterTypes.SQLSERVER_HA]: props.selected.filter(
+      (item) => item.cluster_type === ClusterTypes.SQLSERVER_HA,
+    ) as SqlserverHaModel[],
+    [ClusterTypes.SQLSERVER_SINGLE]: props.selected.filter(
+      (item) => item.cluster_type === ClusterTypes.SQLSERVER_SINGLE,
+    ) as SqlserverHaModel[],
+  }));
 
   const rules = [
     {
-      message: t('目标集群输入格式有误'),
+      message: t('集群域名格式不正确'),
       trigger: 'change',
-      validator: (value: string) => domainRegex.test(value),
+      validator: (value: string) => !value || domainRegex.test(value),
     },
     {
-      message: t('目标集群不存在'),
+      message: t('cluster重复', [props.label]),
+      trigger: 'change',
+      validator: (value: string) =>
+        props.allowRepeat || !value || props.selected.filter((item) => item.master_domain === value).length < 2,
+    },
+    {
+      message: t('cluster不存在', [props.label]),
       trigger: 'blur',
-      validator: () => Boolean(modelValue.value.id),
+      validator: (value: string) => !value || Boolean(modelValue.value.id),
     },
   ];
 
   const isShowClusterSelector = ref(false);
 
-  const { loading: isLoading, run: runFilterClusters } = useRequest(filterClusters<SqlserverHaModel>, {
+  const { loading, run: queryCluster } = useRequest(filterClusters<SqlserverHaModel>, {
     manual: true,
     onSuccess(data) {
-      if (data.length > 0) {
-        [modelValue.value] = data;
+      const [currentCluster] = data;
+      if (currentCluster) {
+        modelValue.value = currentCluster;
         emits('request-success');
+      } else {
+        // 集群不存在，触发校验
+        editableColumnRef.value?.validate();
       }
     },
   });
 
-  watch(
-    () => modelValue.value.master_domain,
-    () => {
-      if (!modelValue.value.id && modelValue.value.master_domain) {
-        modelValue.value.id = undefined;
-        runFilterClusters({
-          bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
-          exact_domain: modelValue.value.master_domain,
-        });
-      }
-      if (!modelValue.value.master_domain) {
-        modelValue.value.id = undefined;
-      }
-    },
-    {
-      immediate: true,
-    },
-  );
+  const handleChange = (value: string) => {
+    modelValue.value = {
+      id: 0,
+      master_domain: value,
+    } as SqlserverHaModel;
+  };
 
   const handleShowClusterSelector = () => {
     isShowClusterSelector.value = true;
@@ -124,6 +139,23 @@
     const clusterList = Object.values(selected).flatMap((selectedList) => selectedList);
     emits('batch-edit', clusterList);
   };
+
+  watch(
+    modelValue,
+    () => {
+      if (modelValue.value.master_domain && !modelValue.value.id) {
+        queryCluster({
+          bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
+          cluster_type: props.clusterTypes.join(','),
+          db_type: DBTypes.SQLSERVER,
+          exact_domain: modelValue.value.master_domain,
+        });
+      }
+    },
+    {
+      immediate: true,
+    },
+  );
 </script>
 
 <style lang="less" scoped>

@@ -7,8 +7,7 @@
     :key="tableKey"
     ref="editableTable"
     class="mb-12"
-    :model="tableData"
-    :rules="rules">
+    :model="tableData">
     <EditableRow
       v-for="(rowData, index) in tableData"
       :key="index">
@@ -55,7 +54,6 @@
   </EditableTable>
 </template>
 <script setup lang="ts">
-  import type { ComponentProps } from 'vue-component-type-helpers';
   import { useI18n } from 'vue-i18n';
 
   import SqlserverHaModel from '@services/model/sqlserver/sqlserver-ha';
@@ -94,16 +92,7 @@
       rename_db_name: string;
       target_db_name: string;
     }[];
-    restore_backup_file: {
-      backup_id: string;
-      complete: boolean;
-      end_time: string;
-      expected_cnt: number;
-      logs: Record<string, string>[];
-      real_cnt: number;
-      role: string;
-      start_time: string;
-    };
+    restore_backup_file: any;
     restore_time: string;
   }
 
@@ -119,19 +108,10 @@
     db_list: values.db_list || [],
     ignore_db_list: values.ignore_db_list || [],
     rename_infos: values.rename_infos || [],
-    restore_backup_file: Object.assign(
-      {
-        backup_id: '',
-        complete: false,
-        end_time: '',
-        expected_cnt: 0,
-        logs: {},
-        real_cnt: 0,
-        role: '',
-        start_time: '',
-      },
-      values.restore_backup_file,
-    ),
+    restore_backup_file: values.restore_backup_file || {
+      backup_id: '',
+      logs: [],
+    },
     restore_time: values.restore_time || '',
   });
 
@@ -141,22 +121,6 @@
   const editableTableRef = useTemplateRef('editableTable');
   const renderModeColumnRef = useTemplateRef<Array<InstanceType<typeof RenderModeColumn>>>('renderModeColumnRef');
   const tableKey = ref(random());
-
-  const rules = {
-    'cluster.master_domain': [
-      {
-        message: t('目标集群重复'),
-        trigger: 'change',
-        validator: (value: string) => {
-          if (value) {
-            const nonEmptyIdList = tableData.value.filter((row) => row.cluster.master_domain === value);
-            return nonEmptyIdList.length === 1;
-          }
-          return true;
-        },
-      },
-    ],
-  };
 
   const clusterSelectorTabConfig = {
     [ClusterTypes.SQLSERVER_HA]: {
@@ -183,30 +147,8 @@
 
   const tableData = ref([createRowData()]);
 
-  const selected = computed(() => {
-    const selectedClusters: ComponentProps<typeof ClusterColumn>['selected'] = {
-      [ClusterTypes.SQLSERVER_HA]: [],
-      [ClusterTypes.SQLSERVER_SINGLE]: [],
-    };
-    tableData.value.forEach((tableRow) => {
-      const { cluster_type: clusterType, id, master_domain: masterDomain } = tableRow.cluster;
-      if (id) {
-        selectedClusters[clusterType as keyof typeof selectedClusters].push({
-          id,
-          master_domain: masterDomain,
-        });
-      }
-    });
-    return selectedClusters;
-  });
-
-  const clusterMemo = computed(() =>
-    Object.fromEntries(
-      Object.values(selected.value).flatMap((clusters) =>
-        clusters.filter((cluster) => cluster.master_domain).map((cluster) => [cluster.master_domain, true]),
-      ),
-    ),
-  );
+  const selected = computed(() => tableData.value.filter((item) => item.cluster.id).map((item) => item.cluster));
+  const selectedMap = computed(() => Object.fromEntries(selected.value.map((cur) => [cur.master_domain, true])));
 
   const batchInputConfig = [
     {
@@ -234,7 +176,7 @@
   const handleClusterBatchEdit = (clusterList: SqlserverHaModel[]) => {
     const newList: IDataRow[] = [];
     clusterList.forEach((item) => {
-      if (!clusterMemo.value[item.master_domain]) {
+      if (!selectedMap.value[item.master_domain]) {
         newList.push(
           createRowData({
             cluster: {
