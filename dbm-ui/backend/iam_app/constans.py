@@ -28,4 +28,6 @@ class CommonActionLabel(StrStructuredEnum):
     TENDBCLUSTER_IMPORT_SQLFILE = EnumField("tendbcluster_import_sqlfile", _("TendbCluster SQL变更"))
     TENDBCLUSTER_AUTHORIZE_RULES = EnumField("tendbcluster_authorize_rules", _("TendbCluster DB授权"))
 
+    SQLSERVER_PRIV_MANAGE = EnumField("sqlserver_priv_manage", _("SQLServer 权限管理"))
+
     HDFS_ACCESS = EnumField("hdfs_access", _("HDFS获取访问方式"))
