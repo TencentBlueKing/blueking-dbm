@@ -38,5 +38,5 @@ class TendbClusterSpiderRebuildParamBuilder(builders.FlowParamBuilder):
 class TendbClusterSpiderRebuildFlowBuilder(BaseMySQLHATicketFlowBuilder):
     serializer = TendbClusterSpiderRebuildDetailSerializer
     inner_flow_builder = TendbClusterSpiderRebuildParamBuilder
-    inner_flow_name = _("TenDB Cluster 接入层重建执行")
+    inner_flow_name = _("TenDBCluster 接入层原地重建")
     validator = SpiderController.rebuild_spider_nodes_scene.validator
