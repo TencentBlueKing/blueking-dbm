@@ -208,7 +208,7 @@
   const searchKey = useDebouncedRef('');
 
   const formatLogName = (logData: UnwrapRef<typeof modelValue>) =>
-    logData ? `${logData.role} ${formatDateToUTC(logData.start_time)}` : '';
+    logData?.backup_id ? `${logData.role} ${formatDateToUTC(logData.start_time)}` : '';
 
   const rootRef = ref();
   const popRef = ref();
