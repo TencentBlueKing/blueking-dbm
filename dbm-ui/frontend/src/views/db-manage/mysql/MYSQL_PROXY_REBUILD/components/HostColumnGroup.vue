@@ -16,7 +16,7 @@
     :append-rules="rules"
     field="originProxy.instance_address"
     fixed="left"
-    :label="t('实例')"
+    :label="t('目标实例')"
     :loading="loading"
     :min-width="220"
     required>

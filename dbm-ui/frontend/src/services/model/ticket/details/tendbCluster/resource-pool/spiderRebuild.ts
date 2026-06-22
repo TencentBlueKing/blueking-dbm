@@ -10,8 +10,9 @@ export interface SpiderRebuild extends ResourcePoolDetailBase {
     rebuild_spider_role: string;
     spider_ip_list: {
       bk_cloud_id: number;
-      ip: string;
       bk_host_id: number;
+      ip: string;
+      port: number;
     }[];
   }[];
 }

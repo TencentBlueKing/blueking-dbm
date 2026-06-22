@@ -5,7 +5,6 @@ import type { ResourcePoolDetailBase } from '../../resource-pool';
  * 在原主机重建异常 Proxy 实例进程，拓扑、IP、端口均保持不变
  */
 export interface ProxyRebuild extends ResourcePoolDetailBase {
-  is_safe: boolean;
   infos: {
     cluster_id: number;
     rebuild_proxy_hosts: {
@@ -13,6 +12,8 @@ export interface ProxyRebuild extends ResourcePoolDetailBase {
       bk_cloud_id: number;
       bk_host_id: number;
       ip: string;
+      port: number;
     }[];
   }[];
+  is_safe: boolean;
 }
