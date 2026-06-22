@@ -26,6 +26,8 @@
 </template>
 
 <script setup lang="ts">
+  import _ from 'lodash';
+
   import { useFunController } from '@stores';
 
   import { DBTypeInfos, DBTypes } from '@common/const';
@@ -70,7 +72,11 @@
 
   watch(
     () => [props.exclude, props.labelConfig],
-    () => {
+    (newValue, oldValue) => {
+      if (_.isEqual(newValue, oldValue)) {
+        return;
+      }
+
       renderKey.value += 1;
     },
     { immediate: true },
