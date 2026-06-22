@@ -222,6 +222,29 @@ func (m *MySql) loadCollectors() {
 	}
 }
 
+// collectProxyServicePort handles a TendbHA mysql-proxy data (service) port with a lightweight
+// reachability probe: open() success is the success verdict, so host metrics and the full
+// collectCommonStatus flow are skipped. It returns true when it has fully handled the collector
+// (caller must stop), and false when the collector is not a proxy data port so normal collection
+// continues. open() success leaves the connection on c.db for the caller's deferred close().
+func (m *MySql) collectProxyServicePort(c *collector, data *plugin.HarvestData, status *haprobe.MySqlStatus) bool {
+	if !c.isTendbHaProxy() || c.isAdmin() {
+		return false
+	}
+
+	servicePortStatus, dbEvent, err := c.obtainTendbHaProxyServicePortStatus()
+	if err != nil {
+		dbEvent.BkCloudID = m.bkCloudID
+		data.Events = []*haprobe.DbEvent{dbEvent}
+		logger.Warn(
+			"failed to probe tendbha proxy data port, ip: %s, port: %d, errmsg: %s",
+			c.endpoint.Host, c.endpoint.Port, err,
+		)
+	}
+	status.ProxyServicePortStatus = servicePortStatus
+	return true
+}
+
 func (m *MySql) collecting(c *collector, dataC chan<- *plugin.HarvestData) {
 	status := &haprobe.MySqlStatus{}
 
@@ -249,6 +272,12 @@ func (m *MySql) collecting(c *collector, dataC chan<- *plugin.HarvestData) {
 
 		dataC <- data
 	}()
+
+	// TendbHA mysql-proxy data (service) port: lightweight reachability probe only; it skips host
+	// metrics and collectCommonStatus. Non-proxy and admin paths fall through to normal collection.
+	if m.collectProxyServicePort(c, data, status) {
+		return
+	}
 
 	if hostStatus, err := c.obtainHostStatus(); err != nil {
 		logger.Warn("failed to obtain the host status, errmsg: %s", err)

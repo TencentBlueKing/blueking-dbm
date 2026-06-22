@@ -211,8 +211,10 @@ func TestGenProbeYAML_MysqlProxyOnly(t *testing.T) {
 	if got.Harvester.MySQLProxyAdmin == nil {
 		t.Fatal("expected MySQLProxyAdmin harvester to be present")
 	}
-	if got.Harvester.MySQL != nil {
-		t.Fatal("expected MySQL to be absent")
+	// With the dual-produce change, a mysql-proxy carrying a data port additionally emits a
+	// mysql block for the lightweight data-port probe.
+	if got.Harvester.MySQL == nil {
+		t.Fatal("expected MySQL harvester to be present for the proxy data port")
 	}
 	if got.Harvester.MySQLProxyAdmin.User != "proxy_admin_user" {
 		t.Errorf("unexpected user, got: %s", got.Harvester.MySQLProxyAdmin.User)
@@ -223,12 +225,119 @@ func TestGenProbeYAML_MysqlProxyOnly(t *testing.T) {
 	if len(got.Harvester.MySQLProxyAdmin.Endpoints) != 1 {
 		t.Fatalf("expected 1 endpoint, got: %d", len(got.Harvester.MySQLProxyAdmin.Endpoints))
 	}
-	ep := got.Harvester.MySQLProxyAdmin.Endpoints[0]
-	if len(ep.Ports) != 0 {
-		t.Errorf("mysql-proxy endpoint must not carry Ports, got: %v", ep.Ports)
+	adminEp := got.Harvester.MySQLProxyAdmin.Endpoints[0]
+	if len(adminEp.Ports) != 0 {
+		t.Errorf("mysql-proxy admin endpoint must not carry Ports, got: %v", adminEp.Ports)
 	}
-	if !reflect.DeepEqual(ep.AdminPorts, []string{"4001"}) {
-		t.Errorf("unexpected admin ports, got: %v", ep.AdminPorts)
+	if !reflect.DeepEqual(adminEp.AdminPorts, []string{"4001"}) {
+		t.Errorf("unexpected admin ports, got: %v", adminEp.AdminPorts)
+	}
+
+	// The data-port endpoint goes to the mysql block with probeMysql creds, only Ports, no AdminPorts.
+	if got.Harvester.MySQL.User != "mysql_user" {
+		t.Errorf("data-port endpoint must use probeMysql user, got: %s", got.Harvester.MySQL.User)
+	}
+	if len(got.Harvester.MySQL.Endpoints) != 1 {
+		t.Fatalf("expected 1 mysql endpoint, got: %d", len(got.Harvester.MySQL.Endpoints))
+	}
+	dataEp := got.Harvester.MySQL.Endpoints[0]
+	if !reflect.DeepEqual(dataEp.Ports, []string{"10000"}) {
+		t.Errorf("unexpected data ports, got: %v", dataEp.Ports)
+	}
+	if len(dataEp.AdminPorts) != 0 {
+		t.Errorf("mysql-proxy data endpoint must not carry AdminPorts, got: %v", dataEp.AdminPorts)
+	}
+	if dataEp.MachineType != string(haprobe.DbmMetadataMachineTypeProxy) {
+		t.Errorf("unexpected data endpoint machine type, got: %s", dataEp.MachineType)
+	}
+}
+
+// TestGenProbeYAML_MysqlProxyDataPortOnly asserts a mysql-proxy that carries only a data port
+// (no admin port) is skipped entirely: without admin capability we do not emit either block.
+func TestGenProbeYAML_MysqlProxyDataPortOnly(t *testing.T) {
+	payload := newPayload([]probeconfig.ProbeMetadataItem{
+		{
+			IP:          "127.0.0.21",
+			Port:        10000,
+			ClusterType: string(haprobe.DbmMetadataClusterTypeTendbha),
+			MachineType: string(haprobe.DbmMetadataMachineTypeProxy),
+			AccessLayer: string(haprobe.DbmMetadataAccessLayerTypeProxy),
+		},
+	})
+
+	got := renderAndParse(t, payload)
+
+	if got.Harvester.MySQLProxyAdmin != nil {
+		t.Fatal("expected MySQLProxyAdmin to be absent when proxy has no admin port")
+	}
+	if got.Harvester.MySQL != nil {
+		t.Fatal("expected MySQL to be absent when proxy has no admin port")
+	}
+}
+
+// TestGenProbeYAML_MysqlProxyDualPortFallback covers the fallback path (payload.ProxyAdmin==nil)
+// for a mysql-proxy that has BOTH a data port and an admin port. The data-port endpoint and the
+// fallback admin-port endpoint share an identical 5-tuple key and both land in the mysql block;
+// output must remain deterministic (validated by the secondary tie-break in sortEndpoints).
+func TestGenProbeYAML_MysqlProxyDualPortFallback(t *testing.T) {
+	payload := newPayload([]probeconfig.ProbeMetadataItem{
+		{
+			IP:          "127.0.0.22",
+			Port:        10000,
+			AdminPort:   4001,
+			ClusterType: string(haprobe.DbmMetadataClusterTypeTendbha),
+			MachineType: string(haprobe.DbmMetadataMachineTypeProxy),
+			AccessLayer: string(haprobe.DbmMetadataAccessLayerTypeProxy),
+		},
+	})
+	payload.ProxyAdmin = nil
+
+	got := renderAndParse(t, payload)
+
+	if got.Harvester.MySQLProxyAdmin != nil {
+		t.Fatal("expected MySQLProxyAdmin absent when payload.ProxyAdmin is nil")
+	}
+	if got.Harvester.MySQL == nil {
+		t.Fatal("expected MySQL harvester to carry both data and fallback admin endpoints")
+	}
+	if got.Harvester.MySQL.User != "mysql_user" {
+		t.Errorf("fallback should use probeMysql creds, got: %s", got.Harvester.MySQL.User)
+	}
+	if len(got.Harvester.MySQL.Endpoints) != 2 {
+		t.Fatalf("expected 2 mysql endpoints (data + fallback admin), got: %d", len(got.Harvester.MySQL.Endpoints))
+	}
+
+	var sawData, sawAdmin bool
+	for _, ep := range got.Harvester.MySQL.Endpoints {
+		switch {
+		case reflect.DeepEqual(ep.Ports, []string{"10000"}) && len(ep.AdminPorts) == 0:
+			sawData = true
+		case reflect.DeepEqual(ep.AdminPorts, []string{"4001"}) && len(ep.Ports) == 0:
+			sawAdmin = true
+		default:
+			t.Errorf("unexpected endpoint shape, ports: %v, adminPorts: %v", ep.Ports, ep.AdminPorts)
+		}
+	}
+	if !sawData {
+		t.Error("expected a data-port endpoint with Ports=[10000] and no AdminPorts")
+	}
+	if !sawAdmin {
+		t.Error("expected a fallback admin-port endpoint with AdminPorts=[4001] and no Ports")
+	}
+
+	// Determinism: identical 5-tuple keys must render in a stable order across runs.
+	first, err := GenProbeYAML(payload)
+	if err != nil {
+		t.Fatalf("GenProbeYAML failed, errmsg: %s", err)
+	}
+	for i := 0; i < 10; i++ {
+		out, err := GenProbeYAML(payload)
+		if err != nil {
+			t.Fatalf("GenProbeYAML failed on iter %d, errmsg: %s", i, err)
+		}
+		if out != first {
+			t.Fatalf("GenProbeYAML output not deterministic on iter %d", i)
+		}
 	}
 }
 
