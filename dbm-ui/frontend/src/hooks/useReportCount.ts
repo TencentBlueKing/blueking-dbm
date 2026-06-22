@@ -34,7 +34,7 @@ export const useReportCount = (immediate = true) => {
   >({});
 
   const timeRange = computed(() => {
-    return route.query.time_range as string;
+    return (route.query.time_range as string) || 'now+-1d';
   });
 
   const { run } = useRequest(getReportCount, {

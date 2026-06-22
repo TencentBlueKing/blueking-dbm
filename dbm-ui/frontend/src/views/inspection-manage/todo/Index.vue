@@ -207,6 +207,7 @@
       timeRange.value = routerQuery.time_range || 'now -1d';
       currentActiveTab.value = routerQuery.manage || 'todo';
       tabType.value = (routerQuery.tabType as DBTypes) || DBTypes.MYSQL;
+      console.log('tabType.value', tabType.value);
     },
     {
       immediate: true,
