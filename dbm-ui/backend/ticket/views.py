@@ -82,6 +82,7 @@ from backend.ticket.serializers import (
     RetryFlowSLZ,
     RevokeFlowSLZ,
     RevokeTicketSLZ,
+    SaveTicketFlowConfigSerializer,
     SensitiveTicketSerializer,
     TicketFlowDescribeSerializer,
     TicketFlowSerializer,
@@ -131,7 +132,12 @@ class TicketViewSet(viewsets.AuditedModelViewSet):
             instance_getter = lambda request, view: [request.parser_context["kwargs"]["pk"]]  # noqa
             return [ResourceActionPermission([ActionEnum.TICKET_VIEW], ResourceEnum.TICKET, instance_getter)]
         # 单据流程设置，关联单据流程设置动作
-        elif self.action in ["update_ticket_flow_config", "create_ticket_flow_config", "delete_ticket_flow_config"]:
+        elif self.action in [
+            "save_ticket_flow_config",
+            "update_ticket_flow_config",
+            "create_ticket_flow_config",
+            "delete_ticket_flow_config",
+        ]:
             return ticket_flows_config_permission(self.action, self.request)
         # 对于处理todo的接口，可以不用鉴权，todo本身会判断是否是确认人
         elif self.action in ["process_todo", "batch_process_todo", "batch_process_ticket", "cluster_disable_todo"]:
@@ -694,6 +700,23 @@ class TicketViewSet(viewsets.AuditedModelViewSet):
     def update_ticket_flow_config(self, request, *args, **kwargs):
         data = self.params_validate(self.get_serializer_class())
         TicketHandler.update_ticket_flow_config(**data, operator=request.user.username)
+        return Response()
+
+    @swagger_auto_schema(
+        operation_summary=_("保存单据流程规则"),
+        request_body=SaveTicketFlowConfigSerializer(),
+        tags=[TICKET_TAG],
+    )
+    @action(methods=["POST"], detail=False, serializer_class=SaveTicketFlowConfigSerializer)
+    def save_ticket_flow_config(self, request, *args, **kwargs):
+        data = self.params_validate(self.get_serializer_class())
+        config_ids = data.get("config_ids") or []
+
+        if config_ids:
+            TicketHandler.update_ticket_flow_config(**data, operator=request.user.username)
+        else:
+            data.pop("config_ids", None)
+            TicketHandler.create_ticket_flow_config(**data, operator=request.user.username)
         return Response()
 
     @swagger_auto_schema(

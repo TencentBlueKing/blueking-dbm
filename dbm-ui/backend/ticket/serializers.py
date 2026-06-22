@@ -394,6 +394,10 @@ class UpdateTicketFlowConfigSerializer(CreateTicketFlowConfigSerializer):
     )
 
 
+class SaveTicketFlowConfigSerializer(UpdateTicketFlowConfigSerializer):
+    pass
+
+
 class DeleteTicketFlowConfigSerializer(serializers.Serializer):
     config_ids = serializers.ListField(help_text=_("流程规则ID列表)"), child=serializers.IntegerField())
 
