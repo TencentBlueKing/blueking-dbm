@@ -1657,13 +1657,54 @@ func (job *ClusterMigrateSlots) GetMigrateNodes() ([]string, []string, error) {
 }
 
 // GetBESlot 获取idx段的起始slot编号，左闭右闭
+// 余数分配法：前 remainder 个节点多分 1 个 slot，保证 slot 总量守恒
 func GetBESlot(idxCount, idx, slotCount int) (beginSlotNum, endSlotNum int) {
-	beginSlotNum = idx * slotCount
-	endSlotNum = beginSlotNum + slotCount - 1
-	if idx == idxCount-1 {
-		endSlotNum = consts.DefaultMaxSlots
+	totalSlots := consts.DefaultMaxSlots + 1 // 16384
+	remainder := totalSlots % idxCount
+	if idx < remainder {
+		// 前 remainder 个段，每个段 slotCount+1 个 slot
+		beginSlotNum = idx * (slotCount + 1)
+		endSlotNum = beginSlotNum + slotCount
+	} else {
+		// 后面 idxCount-remainder 个段，每个段 slotCount 个 slot
+		beginSlotNum = remainder*(slotCount+1) + (idx-remainder)*slotCount
+		endSlotNum = beginSlotNum + slotCount - 1
 	}
 	return
+}
+
+// CheckSlotFullCoverage 校验 slot 分布是否连续且恰好覆盖 [0, DefaultMaxSlots]
+// slotMap: 目标 slot 分布, key 为 slot 编号(必须 >= 0), value 为所属节点地址
+// 返回:
+//   - ok: 校验是否通过
+//   - errMsg: 失败时的详细信息
+//   - perAddrCount: 每个节点拥有的 slot 数(用于调试)
+func CheckSlotFullCoverage(slotMap map[int]string) (ok bool, errMsg string, perAddrCount map[string]int) {
+	perAddrCount = make(map[string]int)
+	totalSlots := consts.DefaultMaxSlots + 1 // 16384
+
+	// 1. 检查 slot 范围并统计
+	for slot, addr := range slotMap {
+		if slot < 0 || slot > consts.DefaultMaxSlots {
+			return false, fmt.Sprintf("slot %d 超出 [0, %d] 范围", slot, consts.DefaultMaxSlots), perAddrCount
+		}
+		perAddrCount[addr]++
+	}
+
+	// 2. 检查总数与连续性
+	if len(slotMap) != totalSlots {
+		// 找出第一个缺失的 slot 以便排错
+		for slot := 0; slot <= consts.DefaultMaxSlots; slot++ {
+			if _, exists := slotMap[slot]; !exists {
+				return false, fmt.Sprintf("slot 分布不完整: 期望 %d 个, 实际 %d 个, 第一个缺失 slot=%d",
+					totalSlots, len(slotMap), slot), perAddrCount
+			}
+		}
+		// size 与 totalSlots 不一致, 但每个 slot 都在范围内 => 一定存在重复 slot
+		return false, fmt.Sprintf("slot 分布存在重复: 期望 %d 个, 实际 %d 个", totalSlots, len(slotMap)), perAddrCount
+	}
+
+	return true, "", perAddrCount
 }
 
 // ForgetDelNodes 删除节点
@@ -1858,8 +1899,8 @@ func (job *ClusterMigrateSlots) ReBalanceSlot() error {
 
 	// 集群最终master节点数
 	finalNodeCount := len(finalNodes)
-	// 最终每一个节点的slot数。如果除不尽，那么余数全部放在最后一个node去
-	finalSlotCount2Node := int(float64(consts.DefaultMaxSlots+1) / float64(finalNodeCount))
+	// 最终每一个节点的slot数。如果除不尽，余数分配给前 remainder 个节点，每个多分 1 个 slot
+	finalSlotCount2Node := (consts.DefaultMaxSlots + 1) / finalNodeCount
 	// 段是否已被选择，被那个节点选择
 	segmentIsChose := make(map[int]bool, finalNodeCount)
 	node2Segment := make(map[string]int, finalNodeCount)
@@ -2096,6 +2137,22 @@ func (job *ClusterMigrateSlots) ReBalanceSlot() error {
 		job.runtime.Logger.Info("node:%s => segment:%d, slot range:[%d-%d]", addr, segIdx, beginSlotNum, endSlotNum)
 	}
 	job.runtime.Logger.Info("===== slot 分组计划结束 =====")
+
+	// 校验目标 slot 分布的连续性和完整性: 覆盖必须恰好为 [0, DefaultMaxSlots]
+	targetSlotMap := make(map[int]string)
+	for addr, segIdx := range node2Segment {
+		beginSlotNum, endSlotNum := GetBESlot(finalNodeCount, segIdx, finalSlotCount2Node)
+		for slot := beginSlotNum; slot <= endSlotNum; slot++ {
+			targetSlotMap[slot] = addr
+		}
+	}
+	if ok, errMsg, perAddrCount := CheckSlotFullCoverage(targetSlotMap); !ok {
+		job.runtime.Logger.Error("slot 分组计划校验失败: %s, perAddrCount:%+v", errMsg, perAddrCount)
+		return fmt.Errorf("slot 分组计划校验失败: %s", errMsg)
+	} else {
+		job.runtime.Logger.Info("slot 分组计划校验通过: 连续覆盖 [%d, %d], perAddrCount:%+v",
+			0, consts.DefaultMaxSlots, perAddrCount)
+	}
 
 	// 打印迁移执行计划
 	job.runtime.Logger.Info("===== 迁移执行计划开始 =====")
