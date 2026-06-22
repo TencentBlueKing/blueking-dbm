@@ -404,11 +404,6 @@ class TicketHandler:
                 raise TicketFlowsConfigException(_("业务[{}]已存在{}的流程配置").format(bk_biz_id, ticket_type))
             if cluster_cfg and cluster_ids:
                 raise TicketFlowsConfigException(_("业务[{}]已存在{}的集群流程配置").format(bk_biz_id, ticket_type))
-            # 新创建的流程，不能和生效流程的配置冲突
-            effect_flows = [biz_cfg or global_config, cluster_cfg]
-            for ef in effect_flows:
-                if ef and ef.configs["need_itsm"] == configs["need_itsm"]:
-                    raise TicketFlowsConfigException(_("业务[{}]已存在{}的相同范围配置").format(bk_biz_id, ticket_type))
 
         flows_config_list = []
         for type in ticket_types:
@@ -453,7 +448,7 @@ class TicketHandler:
 
         # 业务级别先删除，再创建，可以复用校验流程
         with transaction.atomic():
-            config_qs.filter(id__in=config_ids).delete()
+            config_qs.filter(id__in=config_ids).exclude(bk_biz_id=PLAT_BIZ_ID).delete()
             cls.create_ticket_flow_config(bk_biz_id, cluster_ids, ticket_types, configs, operator, remark)
 
     @classmethod
@@ -462,14 +457,37 @@ class TicketHandler:
         config_filter = Q(bk_biz_id__in=[bk_biz_id, PLAT_BIZ_ID], group=db_type, editable=True)
         if ticket_types:
             config_filter &= Q(ticket_type__in=ticket_types)
-        ticket_flow_configs = TicketFlowsConfig.objects.filter(config_filter)
+        candidate_flow_configs = TicketFlowsConfig.objects.filter(config_filter)
+
+        # 同一个 ticket_type 的时候 cluster_ids 为空的是父配置，cluster_ids 不为空的是子配置；子配置返回时带上父配置 ID。
+        ticket_flow_config_map = defaultdict(list)
+        for config in candidate_flow_configs:
+            ticket_flow_config_map[config.ticket_type].append(config)
+
+        ticket_flow_configs = []
+        for configs in ticket_flow_config_map.values():
+            plat_parent_config = next(
+                (config for config in configs if config.bk_biz_id == PLAT_BIZ_ID),
+                None,
+            )
+            biz_parent_config = next(
+                (config for config in configs if config.bk_biz_id != PLAT_BIZ_ID and not config.cluster_ids),
+                None,
+            )
+            biz_child_configs = [config for config in configs if config.cluster_ids]
+
+            # 有业务父配置时(自定义策略)，使用业务父配置；否则使用平台父配置。
+            parent_config = biz_parent_config or plat_parent_config
+            ticket_flow_configs.extend([config for config in [parent_config] if config] + biz_child_configs)
+        parent_config_map = {config.ticket_type: config for config in ticket_flow_configs if not config.cluster_ids}
+        child_config_ticket_types = {config.ticket_type for config in ticket_flow_configs if config.cluster_ids}
 
         # 获得单据flow配置映射表和集群映射表
         biz_config_map = {cfg.ticket_type: cfg.configs for cfg in ticket_flow_configs if not cfg.cluster_ids}
         cluster_config_map = {cfg.ticket_type: cfg.configs for cfg in ticket_flow_configs if cfg.cluster_ids}
 
         # 获得集群映射表
-        cluster_ids = list(itertools.chain(*ticket_flow_configs.values_list("cluster_ids", flat=True)))
+        cluster_ids = list(itertools.chain(*[config.cluster_ids for config in ticket_flow_configs]))
         clusters_map = {c.id: c for c in Cluster.objects.filter(id__in=cluster_ids)}
 
         # 获取单据流程配置信息
@@ -486,7 +504,12 @@ class TicketHandler:
             flow_desc = BuilderFactory.registry[flow_config.ticket_type].describe_ticket_flows(config_map)
             # 获取配置的基本信息
             flow_config_info = model_to_dict(flow_config)
+            is_child_config = bool(flow_config.cluster_ids)
+            parent_config = parent_config_map.get(flow_config.ticket_type)
             flow_config_info.update(
+                parent_id=parent_config.id if is_child_config and parent_config else 0,
+                is_child_config=is_child_config,
+                has_child_config=not is_child_config and flow_config.ticket_type in child_config_ticket_types,
                 ticket_type_display=flow_config.get_ticket_type_display(),
                 flow_desc=flow_desc,
                 clusters=cluster_info,
