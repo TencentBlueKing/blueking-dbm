@@ -65,7 +65,32 @@ class ReportBaseViewSet(AuditedModelViewSet):
         return queryset.exclude(bk_biz_id__in=exclude_bk_biz_ids)
 
     def summary_state_count(self):
-        queryset = self.filter_queryset(self.get_queryset())
+        """
+        统计各状态的数量，受 time_range 和 bk_biz_id 影响，不受其他过滤参数(state等)影响
+        """
+        # 应用 time_range、bk_biz_id 过滤和业务排除，不应用其他过滤条件
+        queryset = self.get_queryset()
+
+        # 应用 time_range 过滤
+        time_range = self.request.query_params.get("time_range", "")
+        if time_range:
+            filter_instance = ReportListFilter(
+                data=self.request.query_params,
+                queryset=queryset,
+                request=self.request,
+            )
+            queryset = filter_instance.filter_time_range(queryset, "time_range", time_range)
+
+        # 应用 bk_biz_id 过滤
+        bk_biz_id = self.request.query_params.get("bk_biz_id")
+        if bk_biz_id:
+            queryset = queryset.filter(bk_biz_id=bk_biz_id)
+
+        # 全局过滤排除掉特定业务
+        exclude_bk_biz_ids = SystemSettings.get_setting_value(SystemSettingsEnum.DB_REPORT_EXCLUDE_BIZS, default=[])
+        if exclude_bk_biz_ids:
+            queryset = queryset.exclude(bk_biz_id__in=exclude_bk_biz_ids)
+
         # 这里使用order_by()清除排序字段，否则会加到group_by中，影响聚合逻辑
         state_count_info = queryset.order_by().values("state").annotate(count=Count("state"))
         state_map = {state: 0 for state in ReportStateType.get_values()}
@@ -74,7 +99,7 @@ class ReportBaseViewSet(AuditedModelViewSet):
 
     def _get_time_filtered_queryset(self):
         """
-        获取经过 time_range 和 manage 过滤的查询集，不受其他搜索/过滤条件影响
+        获取经过 time_range、bk_biz_id 和 manage 过滤的查询集，不受其他搜索/过滤条件影响
         """
         queryset = self.get_queryset()
 
@@ -86,6 +111,11 @@ class ReportBaseViewSet(AuditedModelViewSet):
             request=self.request,
         )
         queryset = filter_instance.filter_time_range(queryset, "time_range", time_range)
+
+        # 应用 bk_biz_id 过滤
+        bk_biz_id = self.request.query_params.get("bk_biz_id")
+        if bk_biz_id:
+            queryset = queryset.filter(bk_biz_id=bk_biz_id)
 
         # 应用 manage 过滤
         manage = self.request.query_params.get("manage")
@@ -100,6 +130,11 @@ class ReportBaseViewSet(AuditedModelViewSet):
             # 待我协助
             elif manage == "assist":
                 queryset = queryset.filter(bk_biz_id__in=assist_bizs)
+
+        # 全局过滤排除掉特定业务
+        exclude_bk_biz_ids = SystemSettings.get_setting_value(SystemSettingsEnum.DB_REPORT_EXCLUDE_BIZS, default=[])
+        if exclude_bk_biz_ids:
+            queryset = queryset.exclude(bk_biz_id__in=exclude_bk_biz_ids)
 
         return queryset
 
