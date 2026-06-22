@@ -29,6 +29,7 @@
     autoLabelWidth?: boolean;
     formType?: 'default' | 'vertical';
     model?: Record<string, any>;
+    scrollAlignToTop?: boolean;
   }
 
   defineOptions({
@@ -39,6 +40,7 @@
     autoLabelWidth: false,
     formType: 'default',
     model: () => ({}),
+    scrollAlignToTop: true,
   });
 
   const bkFormRef = ref();
@@ -123,7 +125,7 @@
       bkFormRef.value.validate(fields).catch((error: Error) => {
         const errorItemEl = bkFormRef.value.$el.querySelector('.bk-form-item.is-error');
         if (errorItemEl) {
-          errorItemEl.scrollIntoView();
+          errorItemEl.scrollIntoView(props.scrollAlignToTop);
         }
         return Promise.reject(error);
       }),

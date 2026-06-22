@@ -2,6 +2,14 @@
   <div class="global-staff-manage-db-type">
     <BkAlert :title="t('待分配 状态的业务由默认 DBA 兜底负责，如需指定专人可通过编辑或批量设置完成。')" />
     <div class="dbtype-action-bar mt-16">
+      <BkRadioGroup
+        v-model="status"
+        class="mr-8"
+        type="capsule"
+        @change="handleQuickSearchChange">
+        <BkRadioButton label="assigned">{{ t('已分配') }}({{ countMap.allocateCount }})</BkRadioButton>
+        <BkRadioButton label="unassigned">{{ t('待分配') }}({{ countMap.defaultCount }})</BkRadioButton>
+      </BkRadioGroup>
       <BkButton
         v-bk-tooltips="{
           content: t('请先选择业务'),
@@ -12,6 +20,7 @@
         {{ t('批量设置') }}
       </BkButton>
       <BkButton
+        v-if="status === 'assigned'"
         v-bk-tooltips="{
           content: t('请先选择业务'),
           disabled: isSelected,
@@ -22,6 +31,7 @@
         {{ t('批量替换') }}
       </BkButton>
       <BkButton
+        v-if="status === 'assigned'"
         v-bk-tooltips="{
           content: t('请先选择业务'),
           disabled: isSelected,
@@ -32,6 +42,7 @@
         {{ t('批量追加二线') }}
       </BkButton>
       <BkButton
+        v-if="status === 'assigned'"
         v-bk-tooltips="{
           content: t('请先选择业务'),
           disabled: isSelected,
@@ -42,15 +53,6 @@
         {{ t('批量移除二线') }}
       </BkButton>
       <div class="bar-right">
-        <BkRadioGroup
-          v-model="status"
-          class="mr-8"
-          type="capsule"
-          @change="handleQuickSearchChange">
-          <BkRadioButton label="all">{{ t('全部') }}</BkRadioButton>
-          <BkRadioButton label="assigned">{{ t('已分配') }}（{{ countMap.allocateCount }}）</BkRadioButton>
-          <BkRadioButton label="unassigned">{{ t('待分配') }}（{{ countMap.defaultCount }}）</BkRadioButton>
-        </BkRadioGroup>
         <DbQuickSearch
           v-model="searchValue"
           :data="quickSearchData"
@@ -78,27 +80,57 @@
               col-key="row-select"
               fixed="left"
               type="multiple"
-              :width="40" />
+              :width="40">
+            </TableColumn>
             <TableColumn
               col-key="bk_biz_id"
               fixed="left"
               :title="t('业务 ID')"
-              width="150" />
+              width="160">
+              <template #default="{ row }: { row: BizDbaModel }">
+                {{ row.bk_biz_id }}
+                <BkButton
+                  v-if="row.isAssigned || defaultUserData"
+                  class="copy-btn"
+                  text
+                  theme="primary"
+                  @click="() => handleCopyRow(row)">
+                  <DbIcon type="copy" />
+                </BkButton>
+              </template>
+            </TableColumn>
             <TableColumn
               col-key="name"
-              :title="t('业务名称')">
+              :title="t('业务名称')"
+              width="160">
+            </TableColumn>
+            <TableColumn
+              col-key="english_name"
+              :title="t('业务代号')"
+              width="160">
+            </TableColumn>
+            <TableColumn
+              col-key="tags"
+              :title="t('标签')"
+              :width="180">
+              <template #default="{ row }: { row: BizDbaModel }">
+                <TagList
+                  v-if="row.tags.length"
+                  :list="row.tags.map((tagItem) => ({ label: tagItem.value, value: tagItem.id }))" />
+                <span v-else>--</span>
+              </template>
             </TableColumn>
             <TableColumn
               col-key="primary-dba"
-              :width="200">
+              :min-width="260">
               <template #title>
                 <span>{{ t('主 DBA') }}</span>
-                <BkTag
+                <!-- <BkTag
                   class="ml-4"
                   size="small"
                   :theme="dbaRoleTypesInfo[DBARoleTypes.PRIMARY_DBA].tagTheme">
                   {{ dbaRoleTypesInfo[DBARoleTypes.PRIMARY_DBA].tagText }}
-                </BkTag>
+                </BkTag> -->
               </template>
               <template #default="{ row, rowIndex }: { row: BizDbaModel; rowIndex: number }">
                 <BkFormItem
@@ -109,6 +141,14 @@
                   <MemberSelector
                     v-model="row.primary_dba_edit"
                     :multiple="false" />
+                  <div
+                    v-if="isPrimaryAndStanbySame(row)"
+                    class="member-selector-tip">
+                    <DbIcon
+                      class="mr-4"
+                      type="attention" />
+                    <span>{{ t('主备 DBA 为同一人，建议设置不同人员') }}</span>
+                  </div>
                 </BkFormItem>
                 <template v-else>
                   <TextOverflowLayout v-if="row.primary_dba">
@@ -142,15 +182,15 @@
             </TableColumn>
             <TableColumn
               col-key="standby_dba"
-              :width="200">
+              :min-width="260">
               <template #title>
                 <span>{{ t('备 DBA') }}</span>
-                <BkTag
+                <!-- <BkTag
                   class="ml-4"
                   size="small"
                   :theme="dbaRoleTypesInfo[DBARoleTypes.BACKUP_DBA].tagTheme">
                   {{ dbaRoleTypesInfo[DBARoleTypes.BACKUP_DBA].tagText }}
-                </BkTag>
+                </BkTag> -->
               </template>
               <template #default="{ row, rowIndex }: { row: BizDbaModel; rowIndex: number }">
                 <BkFormItem
@@ -161,6 +201,14 @@
                   <MemberSelector
                     v-model="row.standby_dba_edit"
                     :multiple="false" />
+                  <div
+                    v-if="isPrimaryAndStanbySame(row)"
+                    class="member-selector-tip">
+                    <DbIcon
+                      class="mr-4"
+                      type="attention" />
+                    <span>{{ t('主备 DBA 为同一人，建议设置不同人员') }}</span>
+                  </div>
                 </BkFormItem>
                 <template v-else>
                   <TextOverflowLayout v-if="row.standby_dba">
@@ -194,15 +242,15 @@
             </TableColumn>
             <TableColumn
               col-key="level2-dba"
-              :width="300">
+              :min-width="300">
               <template #title>
                 <span>{{ t('二线 DBA') }}</span>
-                <BkTag
+                <!-- <BkTag
                   class="ml-4"
                   size="small"
                   :theme="dbaRoleTypesInfo[DBARoleTypes.LEVEL2_DBA].tagTheme">
                   {{ dbaRoleTypesInfo[DBARoleTypes.LEVEL2_DBA].tagText }}
-                </BkTag>
+                </BkTag> -->
               </template>
               <template #default="{ row }: { row: BizDbaModel }">
                 <BkFormItem
@@ -211,6 +259,9 @@
                   <MemberSelector
                     v-if="row.is_edit"
                     v-model="row.level2_dba_edit" />
+                  <div
+                    v-if="isPrimaryAndStanbySame(row)"
+                    class="member-selector-tip" />
                 </BkFormItem>
                 <template v-else>
                   <template v-if="row.isAssigned">
@@ -359,7 +410,7 @@
 
   import { useGlobalBizs } from '@stores';
 
-  import { DBAOperateTypes, DBARoleTypes, dbaRoleTypesInfo, DBTypeInfos, DBTypes } from '@common/const';
+  import { DBAOperateTypes, DBARoleTypes, DBTypeInfos, DBTypes } from '@common/const';
 
   import MemberSelector from '@components/db-member-selector/index.vue';
   import TagBlock from '@components/tag-block/Index.vue';
@@ -374,6 +425,7 @@
   import BatchRemoveL2DBA from './components/BatchRemoveL2DBA.vue';
   import BatchReplace from './components/BatchReplace.vue';
   import BatchUpdate from './components/BatchUpdate.vue';
+  import TagList from './components/TagList.vue';
   import { useQuickSearch } from './useQuickSearch';
 
   interface Props {
@@ -387,7 +439,7 @@
   const bizStore = useGlobalBizs();
   const { getSearchParams, replaceSearchParams } = useUrlSearch();
 
-  const status = ref<'all' | 'assigned' | 'unassigned'>('all');
+  const status = ref<'assigned' | 'unassigned'>('assigned');
   const { handleFilterList, handleMergeSearchParams, quickSearchData, searchValue } = useQuickSearch(status);
 
   const formData = ref({
@@ -540,11 +592,22 @@
   };
 
   const handleQuickSearchChange = () => {
+    selectedRowKeys.value = [];
+    selected.value = [];
+
     const filterList = handleFilterList(bizList.value);
     router.replace({
       query: replaceSearchParams(handleMergeSearchParams(getSearchParams()), false),
     });
     tableFilterData.value = filterList;
+  };
+
+  const isPrimaryAndStanbySame = (row: BizDbaModel) => {
+    return (
+      row.primary_dba_edit.length > 0 &&
+      row.standby_dba_edit.length > 0 &&
+      row.primary_dba_edit[0] === row.standby_dba_edit[0]
+    );
   };
 
   const handleBatchUpdate = () => {
@@ -637,6 +700,14 @@
     formData.value.tableData[rowIndex].is_edit = false;
   };
 
+  const handleCopyRow = (row: BizDbaModel) => {
+    if (row.users.length > 0) {
+      execCopy(_.uniq([row.primary_dba, row.standby_dba, ...row.level2_dba]).join('；'));
+    } else {
+      execCopy(defaultUserData.value.username);
+    }
+  };
+
   const handleCopy = (userList: string[]) => {
     if (userList.length < 1) {
       messageWarn(t('没有可复制 DBA'));
@@ -692,6 +763,11 @@
             }
           }
         }
+      }
+
+      .member-selector-tip {
+        height: 32px;
+        color: #fe9c00;
       }
 
       .copy-btn {

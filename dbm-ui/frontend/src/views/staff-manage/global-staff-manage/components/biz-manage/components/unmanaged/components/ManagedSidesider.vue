@@ -17,9 +17,10 @@
           class="biz-unmanage-sideslider"
           form-type="vertical"
           :label-width="100"
-          :model="formData">
+          :model="formData"
+          :scroll-align-to-top="false">
           <DbFormItem
-            :label="t('业务 Code')"
+            :label="t('业务代号')"
             property="bizCode"
             required
             :rules="bizCodeRules">
@@ -66,12 +67,12 @@
               <template #title>
                 <div style="display: flex; align-items: center">
                   <span>{{ t('主 DBA') }}</span>
-                  <BkTag
+                  <!-- <BkTag
                     class="ml-4"
                     size="small"
                     :theme="dbaRoleTypesInfo[DBARoleTypes.PRIMARY_DBA].tagTheme">
                     {{ dbaRoleTypesInfo[DBARoleTypes.PRIMARY_DBA].tagText }}
-                  </BkTag>
+                  </BkTag> -->
                   <BatchEdit
                     class="ml-4"
                     field="primaryDBA"
@@ -91,6 +92,14 @@
                   <MemberSelector
                     v-model="row.primaryDBA"
                     :multiple="false" />
+                  <div
+                    v-if="isPrimaryAndStanbySame(row)"
+                    class="member-selector-tip">
+                    <DbIcon
+                      class="mr-4"
+                      type="attention" />
+                    <span>{{ t('主备 DBA 为同一人，建议设置不同人员') }}</span>
+                  </div>
                 </DbFormItem>
               </template>
             </TableColumn>
@@ -100,12 +109,12 @@
               <template #title>
                 <div style="display: flex; align-items: center">
                   <span>{{ t('备 DBA') }}</span>
-                  <BkTag
+                  <!-- <BkTag
                     class="ml-4"
                     size="small"
                     :theme="dbaRoleTypesInfo[DBARoleTypes.BACKUP_DBA].tagTheme">
                     {{ dbaRoleTypesInfo[DBARoleTypes.BACKUP_DBA].tagText }}
-                  </BkTag>
+                  </BkTag> -->
                   <BatchEdit
                     class="ml-4"
                     field="standbyDBA"
@@ -126,6 +135,14 @@
                     v-model="row.standbyDBA"
                     :multiple="false"
                     :property="`tableData.${rowIndex}.standbyDBA`" />
+                  <div
+                    v-if="isPrimaryAndStanbySame(row)"
+                    class="member-selector-tip">
+                    <DbIcon
+                      class="mr-4"
+                      type="attention" />
+                    <span>{{ t('主备 DBA 为同一人，建议设置不同人员') }}</span>
+                  </div>
                 </DbFormItem>
               </template>
             </TableColumn>
@@ -135,12 +152,12 @@
               <template #title>
                 <div style="display: flex; align-items: center">
                   <span>{{ t('二线 DBA') }}</span>
-                  <BkTag
+                  <!-- <BkTag
                     class="ml-4"
                     size="small"
                     :theme="dbaRoleTypesInfo[DBARoleTypes.LEVEL2_DBA].tagTheme">
                     {{ dbaRoleTypesInfo[DBARoleTypes.LEVEL2_DBA].tagText }}
-                  </BkTag>
+                  </BkTag> -->
                   <BatchEdit
                     class="ml-4"
                     field="level2DBA"
@@ -151,6 +168,9 @@
               <template #default="{ row }: { row: IRowData }">
                 <DbFormItem>
                   <MemberSelector v-model="row.level2DBA" />
+                  <div
+                    v-if="isPrimaryAndStanbySame(row)"
+                    class="member-selector-tip" />
                 </DbFormItem>
               </template>
             </TableColumn>
@@ -184,7 +204,7 @@
 
   import { useGlobalBizs } from '@stores';
 
-  import { DBARoleTypes, dbaRoleTypesInfo, DBTypeInfos, DBTypes } from '@common/const';
+  import { DBTypeInfos, DBTypes } from '@common/const';
 
   import MemberSelector from '@components/db-member-selector/index.vue';
 
@@ -292,6 +312,10 @@
     },
   );
 
+  const isPrimaryAndStanbySame = (row: IRowData) => {
+    return row.primaryDBA.length > 0 && row.standbyDBA.length > 0 && row.primaryDBA[0] === row.standbyDBA[0];
+  };
+
   const handleBatchEdit = (value: any, field: string) => {
     formData.value.tableData.forEach((item) => {
       Object.assign(item, {
@@ -347,6 +371,11 @@
 
     .alert-bord {
       font-weight: bolder;
+    }
+
+    .member-selector-tip {
+      height: 32px;
+      color: #fe9c00;
     }
   }
 </style>

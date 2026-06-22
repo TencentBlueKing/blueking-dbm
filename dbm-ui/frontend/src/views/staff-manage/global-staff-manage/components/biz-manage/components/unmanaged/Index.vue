@@ -28,7 +28,7 @@
         <TableColumn
           col-key="english_name"
           :min-width="160"
-          :title="t('业务 Code')">
+          :title="t('业务代号')">
           <template #default="{ row }: { row: BizItem }">
             {{ row.english_name || '--' }}
           </template>

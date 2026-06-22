@@ -2,7 +2,7 @@ import _ from 'lodash';
 import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 
-// import { listTag } from '@services/source/tag';
+import { listTag } from '@services/source/tag';
 import { getUserList } from '@services/source/user';
 
 import { useGlobalBizs } from '@stores';
@@ -23,7 +23,7 @@ export const useQuickSearch = (status: Ref<'all' | 'assigned' | 'unassigned'>) =
       {
         id: 'bk_biz_id',
         name: t('业务 ID'),
-        // type: 'input',
+        type: 'multiple-input',
       },
       {
         id: 'name',
@@ -31,25 +31,30 @@ export const useQuickSearch = (status: Ref<'all' | 'assigned' | 'unassigned'>) =
         name: t('业务名称'),
         type: 'multiple',
       },
-      // {
-      //   id: 'tags',
-      //   name: t('标签'),
-      //   remoteMethod: () => {
-      //     return listTag({
-      //       limit: -1,
-      //       offset: 0,
-      //       // type: 'app',
-      //       type: 'resource',
-      //     }).then((data) =>
-      //       data.results.map((item) => ({
-      //         label: item.value,
-      //         value: item.id,
-      //       })),
-      //     );
-      //   },
-      //   remoteSearch: true,
-      //   type: 'multiple',
-      // },
+      {
+        id: 'english_name',
+        list: globalBizStore.bizs.map((item) => ({ label: item.english_name, value: item.english_name })),
+        name: t('业务代号'),
+        type: 'multiple',
+      },
+      {
+        id: 'tags',
+        name: t('标签'),
+        remoteMethod: () => {
+          return listTag({
+            limit: -1,
+            offset: 0,
+            type: 'app',
+          }).then((data) =>
+            data.results.map((item) => ({
+              label: item.value,
+              value: item.id,
+            })),
+          );
+        },
+        remoteSearch: true,
+        type: 'multiple',
+      },
       {
         id: 'users',
         name: t('人员名称'),
@@ -86,15 +91,27 @@ export const useQuickSearch = (status: Ref<'all' | 'assigned' | 'unassigned'>) =
     return tableOriginalData.filter((tableOriginalDataItem) => {
       if (
         Object.prototype.hasOwnProperty.call(localSearchValue, 'bk_biz_id') &&
-        tableOriginalDataItem.bk_biz_id !== Number(localSearchValue.bk_biz_id)
+        !localSearchValue.bk_biz_id.split(',').includes(`${tableOriginalDataItem.bk_biz_id}`)
       ) {
         return false;
       }
       if (
         Object.prototype.hasOwnProperty.call(localSearchValue, 'name') &&
-        !tableOriginalDataItem.name.includes(localSearchValue.name)
+        !localSearchValue.name.split(',').includes(tableOriginalDataItem.name)
       ) {
         return false;
+      }
+      if (
+        Object.prototype.hasOwnProperty.call(localSearchValue, 'english_name') &&
+        !localSearchValue.english_name.split(',').includes(tableOriginalDataItem.english_name)
+      ) {
+        return false;
+      }
+      if (Object.prototype.hasOwnProperty.call(localSearchValue, 'tags')) {
+        const tagMap = Object.fromEntries(localSearchValue.tags.split(',').map((item) => [item, true]));
+        if (tableOriginalDataItem.tags.every((tagItem) => !tagMap[tagItem.id])) {
+          return false;
+        }
       }
       if (Object.prototype.hasOwnProperty.call(localSearchValue, 'users')) {
         const userMap = Object.fromEntries(localSearchValue.users.split(',').map((item) => [item, true]));

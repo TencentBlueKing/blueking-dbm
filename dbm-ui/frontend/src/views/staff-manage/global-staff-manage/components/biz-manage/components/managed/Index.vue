@@ -26,7 +26,7 @@
           :title="t('业务名称')" />
         <TableColumn
           col-key="english_name"
-          :title="t('业务 Code')" />
+          :title="t('业务代号')" />
         <TableColumn
           col-key="tags"
           :title="t('标签')">

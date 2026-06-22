@@ -44,6 +44,7 @@
         <DiffTable
           ref="diffTable"
           :data="diffData"
+          :is-form-empty="isFormEmpty"
           :user-data-map="userDataMap" />
       </div>
     </template>
@@ -107,6 +108,13 @@
   const formData = ref(getDefaultData());
   const diffData = ref<ComponentProps<typeof DiffTable>['data']>([]);
 
+  const isFormEmpty = computed(() => {
+    return (
+      formData.value.primaryDBA.length === 0 &&
+      formData.value.standbyDBA.length === 0 &&
+      formData.value.level2DBA.length === 0
+    );
+  });
   const changedData = computed(() => diffData.value.filter((item) => item.isChanged));
 
   const { loading, run: runBatchUpsertAdmins } = useRequest(batchUpsertAdmins, {

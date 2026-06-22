@@ -4,12 +4,13 @@ import { useI18n } from 'vue-i18n';
 
 import type { BizItem } from '@services/types';
 
-// import { useGlobalBizs } from '@stores';
+import { useGlobalBizs } from '@stores';
+
 import { type Props as QuickSearchProps } from '@components/db-quick-search/bk-quick-search/Index.vue';
 
 export const useQuickSearch = () => {
   const { t } = useI18n();
-  // const globalBizStore = useGlobalBizs();
+  const globalBizStore = useGlobalBizs();
 
   const searchValue = ref<Record<string, string>>({});
   const isSearching = computed(() => Object.keys(searchValue.value).length > 0);
@@ -19,23 +20,19 @@ export const useQuickSearch = () => {
       {
         id: 'bk_biz_id',
         name: t('业务 ID'),
-        // type: 'input',
+        type: 'multiple-input',
       },
       {
         id: 'name',
-        // list: globalBizStore.bizs
-        //   .filter((item) => item.status === 'unmanaged')
-        //   .map((item) => ({ label: item.name, value: item.name })),
+        list: globalBizStore.bizs.map((item) => ({ label: item.name, value: item.name })),
         name: t('业务名称'),
-        // type: 'multiple',
+        type: 'multiple',
       },
       {
         id: 'english_name',
-        // list: globalBizStore.bizs
-        //   .filter((item) => item.status === 'unmanaged' && item.english_name)
-        //   .map((item) => ({ label: item.english_name, value: item.english_name })),
-        name: t('业务 Code'),
-        // type: 'multiple',
+        list: globalBizStore.bizs.map((item) => ({ label: item.english_name, value: item.english_name })),
+        name: t('业务代号'),
+        type: 'multiple',
       },
     ],
     (item) => item,
@@ -51,19 +48,19 @@ export const useQuickSearch = () => {
     return tableOriginalData.filter((tableOriginalDataItem) => {
       if (
         Object.prototype.hasOwnProperty.call(localSearchValue, 'bk_biz_id') &&
-        tableOriginalDataItem.bk_biz_id !== Number(localSearchValue.bk_biz_id)
+        !localSearchValue.bk_biz_id.split(',').includes(`${tableOriginalDataItem.bk_biz_id}`)
       ) {
         return false;
       }
       if (
         Object.prototype.hasOwnProperty.call(localSearchValue, 'name') &&
-        !tableOriginalDataItem.name.includes(localSearchValue.name)
+        !localSearchValue.name.split(',').includes(tableOriginalDataItem.name)
       ) {
         return false;
       }
       if (
         Object.prototype.hasOwnProperty.call(localSearchValue, 'english_name') &&
-        !tableOriginalDataItem.english_name.includes(localSearchValue.english_name)
+        !localSearchValue.english_name.split(',').includes(tableOriginalDataItem.english_name)
       ) {
         return false;
       }
