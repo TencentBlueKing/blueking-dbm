@@ -45,8 +45,8 @@
         v-model="isShowBatchEdit"
         :title="t('目标容量')"
         title-prefix-type="edit"
-        :width="480"
         :validator="() => batchFormRef?.validate().catch(() => false)"
+        :width="480"
         @change="handleBatchEditChange">
         <span
           v-bk-tooltips="t('统一设置：将该列统一设置为相同的值')"
@@ -76,11 +76,12 @@
                   style="width: 94%" />
               </BkFormItem>
               <BkFormItem
-                :label="t('数量')"
+                :label="t('机器组数')"
                 property="count"
                 required>
                 <BkInput
                   v-model="batchFormData.count"
+                  allow-empty-value
                   clearable
                   :min="1"
                   style="width: 100%"
@@ -90,8 +91,8 @@
               </BkFormItem>
             </BkForm>
             <BkAlert
-              class="mt-20"
               v-if="validateState.message"
+              class="mt-20"
               :theme="validateState.theme || 'info'"
               :title="validateState.message"
               type="info" />
@@ -136,12 +137,13 @@
   import { ClusterTypes } from '@common/const';
 
   import SpecSelector from '@views/db-manage/common/apply-items/SpecSelector.vue';
-
   import BatchEditColumn from '@views/db-manage/common/batch-edit-column/Index.vue';
 
   import CapacityChange, { type TicketSpecInfo } from './CapacityChange.vue';
 
   interface Props {
+    /** 所有行的集群数据列表，用于统一设置时的校验 */
+    allClusters?: Props['cluster'][];
     cluster: Pick<
       TendbClusterModel,
       | 'id'
@@ -155,11 +157,9 @@
       | 'remote_shard_num'
       | 'disaster_tolerance_level'
     >;
-    /** 所有行的集群数据列表，用于统一设置时的校验 */
-    allClusters?: Props['cluster'][];
   }
 
-  type Emits = (e: 'batch-edit', value: { specId: number; count: number; specData: TicketSpecInfo }) => void;
+  type Emits = (e: 'batch-edit', value: { count: number; specData: TicketSpecInfo; specId: number }) => void;
 
   const props = withDefaults(defineProps<Props>(), {
     allClusters: () => [],
@@ -181,48 +181,48 @@
 
   // 批量编辑表单数据
   const batchFormData = reactive({
-    specId: '' as number | string,
     count: undefined as number | undefined,
+    specId: '' as number | string,
   });
 
   // 批量编辑表单校验规则
   const batchFormRules = {
-    specId: [
-      {
-        validator: (value: string | number) => Boolean(value),
-        message: () => t('请选择规格'),
-        trigger: 'change',
-      },
-    ],
     count: [
       {
-        validator: (value: number) => Boolean(value),
         message: () => t('请输入数量'),
         trigger: 'change',
+        validator: (value: number) => Boolean(value),
+      },
+    ],
+    specId: [
+      {
+        message: () => t('请选择规格'),
+        trigger: 'change',
+        validator: (value: string | number) => Boolean(value),
       },
     ],
   };
 
   // 校验状态枚举
   enum ValidateStatus {
-    /** 未填 */
-    Empty = 'empty',
-    /** 全部可应用 */
-    AllValid = 'all_valid',
-    /** 部分跳过 */
-    PartialSkip = 'partial_skip',
     /** 全部跳过 */
     AllSkip = 'all_skip',
+    /** 全部可应用 */
+    AllValid = 'all_valid',
+    /** 未填 */
+    Empty = 'empty',
+    /** 部分跳过 */
+    PartialSkip = 'partial_skip',
   }
 
   /** 校验结果类型定义 */
   interface BatchValidateResult {
-    status: ValidateStatus;
-    message: string;
-    theme: '' | 'info' | 'warning' | 'danger';
     iconType: string;
-    validCount: number;
+    message: string;
     skipCount: number;
+    status: ValidateStatus;
+    theme: '' | 'info' | 'warning' | 'danger';
+    validCount: number;
   }
 
   /** 校验各行的 cluster_shard_num 是否能被数量整除 */
@@ -230,24 +230,24 @@
     const allRows = props.allClusters;
     if (!allRows.length) {
       return {
-        status: ValidateStatus.Empty,
-        message: '',
-        theme: '',
         iconType: '',
-        validCount: 0,
+        message: '',
         skipCount: 0,
+        status: ValidateStatus.Empty,
+        theme: '',
+        validCount: 0,
       };
     }
 
     const count = batchFormData.count;
     if (!count) {
       return {
-        status: ValidateStatus.Empty,
-        message: t('将应用到全部_n_行', { n: allRows.length }),
-        theme: 'info',
         iconType: 'info-circle',
-        validCount: allRows.length,
+        message: t('将应用到全部_n_行', { n: allRows.length }),
         skipCount: 0,
+        status: ValidateStatus.Empty,
+        theme: 'info',
+        validCount: allRows.length,
       };
     }
 
@@ -265,31 +265,31 @@
 
     if (skipCount === 0) {
       return {
-        status: ValidateStatus.AllValid,
-        message: t('将应用到全部_n_行；各行列单机分片数将按集群分片数除以数量自动计算', { n: allRows.length }),
-        theme: 'info',
         iconType: 'info-circle',
-        validCount,
+        message: t('将应用到全部_n_行；各行列单机分片数将按集群分片数除以数量自动计算', { n: allRows.length }),
         skipCount,
+        status: ValidateStatus.AllValid,
+        theme: 'info',
+        validCount,
       };
     }
     if (validCount > 0) {
       return {
-        status: ValidateStatus.PartialSkip,
-        message: t('将应用到_x_行_y_行算不出整数的单机分片数_本次跳过', { x: validCount, y: skipCount }),
-        theme: 'warning',
         iconType: 'info-circle',
-        validCount,
+        message: t('将应用到_x_行_y_行算不出整数的单机分片数_本次跳过', { x: validCount, y: skipCount }),
         skipCount,
+        status: ValidateStatus.PartialSkip,
+        theme: 'warning',
+        validCount,
       };
     }
     return {
-      status: ValidateStatus.AllSkip,
-      message: t('当前数量算不出任何集群的整数单机分片数_请调整数量'),
-      theme: 'danger',
       iconType: 'info-circle',
-      validCount: 0,
+      message: t('当前数量算不出任何集群的整数单机分片数_请调整数量'),
       skipCount,
+      status: ValidateStatus.AllSkip,
+      theme: 'danger',
+      validCount: 0,
     };
   });
 
@@ -319,7 +319,6 @@
     const count = batchFormData.count!;
 
     emits('batch-edit', {
-      specId,
       count,
       specData: {
         cluster_capacity: count * getSpecCapacity(specData?.storage_spec ?? []),
@@ -327,6 +326,7 @@
         spec_id: specId,
         spec_name: specData?.spec_name ?? '',
       },
+      specId,
     });
   };
 
