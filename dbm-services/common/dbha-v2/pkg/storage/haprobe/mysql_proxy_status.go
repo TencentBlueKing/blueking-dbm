@@ -24,6 +24,10 @@
 
 package haprobe
 
+// MySqlProxyServicePortState is the verdict of a TendbHA mysql-proxy data
+// (service) port reachability probe. Valid values are the constants below.
+type MySqlProxyServicePortState string
+
 // MySqlProxyBackend MySQL proxy backend
 type MySqlProxyBackend struct {
 	BackendNdx       int    `gorm:"column:backend_ndx"       json:"backend_ndx"`
@@ -38,4 +42,19 @@ type MySqlProxyBackend struct {
 // MySqlProxyStatus MySQL proxy status for the TendbHA cluster.
 type MySqlProxyStatus struct {
 	Backends []MySqlProxyBackend `json:"backends"`
+}
+
+// Proxy service (data) port probe verdicts used by MySqlProxyServicePortStatus.State.
+const (
+	MySqlProxyServicePortStateOk     MySqlProxyServicePortState = "ok"
+	MySqlProxyServicePortStateFailed MySqlProxyServicePortState = "failed"
+)
+
+// MySqlProxyServicePortStatus reports the lightweight reachability probe result of a
+// TendbHA mysql-proxy data (service) port. The data port forwards client MySQL traffic
+// to backends, so it is probed with the regular probeMysql backend account (not proxy-admin)
+// and only carries a success/failure verdict.
+type MySqlProxyServicePortStatus struct {
+	State         MySqlProxyServicePortState `json:"state"`                    // "ok" | "failed"
+	FailureReason string                     `json:"failure_reason,omitempty"` // desensitized error summary, never password/token
 }

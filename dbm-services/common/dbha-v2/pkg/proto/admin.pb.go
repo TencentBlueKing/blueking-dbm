@@ -45,13 +45,13 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
-// ProbeConfigCode result code for GetProbeConfig: 成功/失败/无数据
+// ProbeConfigCode result code for GetProbeConfig: success / failure / no data
 type ProbeConfigCode int32
 
 const (
-	ProbeConfigCode_PROBE_CONFIG_SUCCESS ProbeConfigCode = 0 // 成功
-	ProbeConfigCode_PROBE_CONFIG_FAIL    ProbeConfigCode = 1 // 失败
-	ProbeConfigCode_PROBE_CONFIG_NO_DATA ProbeConfigCode = 2 // 无数据
+	ProbeConfigCode_PROBE_CONFIG_SUCCESS ProbeConfigCode = 0 // success
+	ProbeConfigCode_PROBE_CONFIG_FAIL    ProbeConfigCode = 1 // failure
+	ProbeConfigCode_PROBE_CONFIG_NO_DATA ProbeConfigCode = 2 // no data
 )
 
 // Enum value maps for ProbeConfigCode.

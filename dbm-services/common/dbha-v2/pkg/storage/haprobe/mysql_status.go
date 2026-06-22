@@ -34,6 +34,9 @@ type MySqlStatus struct {
 	// Proxy Status
 	ProxyStatus *MySqlProxyStatus `json:"proxy_status,omitempty"`
 
+	// Proxy Service (data) Port Status
+	ProxyServicePortStatus *MySqlProxyServicePortStatus `json:"proxy_service_port_status,omitempty"`
+
 	// Global Status
 	GlobalStatus *MySqlGlobalStatus `json:"global_status,omitempty"`
 

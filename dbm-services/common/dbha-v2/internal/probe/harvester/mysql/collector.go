@@ -177,6 +177,25 @@ func (c *collector) obtainTendbHaProxyStatus() (*haprobe.MySqlProxyStatus, error
 	return &haprobe.MySqlProxyStatus{Backends: backends}, nil
 }
 
+// obtainTendbHaProxyServicePortStatus performs a lightweight reachability probe of a TendbHA
+// mysql-proxy data (service) port using the probeMysql backend account. open() establishes a
+// real connection and runs SELECT VERSION() during gorm initialization (this collector passes
+// OptionSkipInitializeWithVersion(false)), so a successful open is sufficient evidence the data
+// port accepts and serves MySQL traffic; no extra query is issued. On failure it returns the
+// DbEvent produced by open() so the caller can reuse the existing failure reporting path.
+func (c *collector) obtainTendbHaProxyServicePortStatus() (
+	*haprobe.MySqlProxyServicePortStatus, *haprobe.DbEvent, error,
+) {
+	dbEvent, err := c.open()
+	if err != nil {
+		return &haprobe.MySqlProxyServicePortStatus{
+			State:         haprobe.MySqlProxyServicePortStateFailed,
+			FailureReason: err.Error(),
+		}, dbEvent, err
+	}
+	return &haprobe.MySqlProxyServicePortStatus{State: haprobe.MySqlProxyServicePortStateOk}, nil, nil
+}
+
 func (c *collector) obtainGlobalStatus() (*haprobe.MySqlGlobalStatus, error) {
 	ctx, cancel := c.queryCtx()
 	defer cancel()

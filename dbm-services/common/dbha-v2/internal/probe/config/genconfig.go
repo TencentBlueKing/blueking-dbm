@@ -27,6 +27,7 @@ package config
 import (
 	"sort"
 	"strconv"
+	"strings"
 
 	"dbm-services/common/dbha-v2/pkg/logger"
 	"dbm-services/common/dbha-v2/pkg/probeconfig"
@@ -43,15 +44,17 @@ const defaultProbeConfigVersion = "v2.0.0"
 // (gse reporter defaults, harvester credentials/timing, and per-cluster metadata).
 //
 // Probe routes harvester usage per endpoint based on (access_layer, machine_type):
-//   - access_layer=proxy AND machine_type=proxy (TendbHA mysql-proxy): use payload.ProxyAdmin
-//     credentials and emit only admin ports under harvester.mysqlProxyAdmin.
+//   - access_layer=proxy AND machine_type=proxy (TendbHA mysql-proxy): admin ports use
+//     payload.ProxyAdmin credentials under harvester.mysqlProxyAdmin; data ports are additionally
+//     routed under harvester.mysql with payload.MySQL credentials for a lightweight reachability
+//     probe (see buildEndpointsFromMetadata).
 //   - other mysql-family endpoints (incl. spider admin/ctl): use payload.MySQL credentials
 //     under harvester.mysql.
 //   - redis-family endpoints (incl. twemproxy/predixy admin ports): use payload.Redis
 //     credentials under harvester.redis.
 //
-// When admin omits payload.ProxyAdmin (e.g. older admin), mysql-proxy endpoints fall back to
-// harvester.mysql with payload.MySQL credentials so the probe degrades to legacy behavior.
+// When admin omits payload.ProxyAdmin (e.g. older admin), mysql-proxy admin-port endpoints fall
+// back to harvester.mysql with payload.MySQL credentials so the probe degrades to legacy behavior.
 func GenProbeYAML(payload probeconfig.ProbeConfigPayload) (string, error) {
 	mysqlEndpoints, mysqlProxyAdminEndpoints, redisEndpoints := buildEndpointsFromMetadata(payload.Metadata)
 
@@ -80,9 +83,9 @@ func GenProbeYAML(payload probeconfig.ProbeConfigPayload) (string, error) {
 
 		Log: LogConfig{
 			Path:      "./logs/probe.log",
-			Level:     "debug",
+			Level:     "info",
 			FileCount: 10,
-			FileSize:  100,
+			FileSize:  500,
 		},
 	}
 
@@ -95,6 +98,7 @@ func GenProbeYAML(payload probeconfig.ProbeConfigPayload) (string, error) {
 			mysqlEndpoints,
 		)
 	}
+
 	if payload.ProxyAdmin != nil && len(mysqlProxyAdminEndpoints) > 0 {
 		cfg.Harvester.MySQLProxyAdmin = buildMySQLHarvester(
 			payload.ProxyAdmin.User,
@@ -243,8 +247,10 @@ func groupMetadataByEndpointKey(
 // buildEndpointsFromMetadata folds metadata items into three endpoint slices keyed by
 // (ip, cluster_type, machine_type, instance_role, access_layer). It applies these rules:
 //   - port 0 entries are dropped silently (no "0" noise in yaml output)
-//   - mysql-proxy endpoints (access_layer=proxy AND machine_type=proxy) emit only AdminPorts
-//     and go to mysqlProxyAdmin; if they have no AdminPorts they are skipped
+//   - mysql-proxy endpoints (access_layer=proxy AND machine_type=proxy) dual-produce: the admin
+//     port goes to mysqlProxyAdmin (AdminPorts only), and when a data port exists it additionally
+//     goes to mysql (Ports only) for the lightweight data-port probe; endpoints without AdminPorts
+//     are skipped
 //   - other mysql-family endpoints go to mysql with both Ports and AdminPorts
 //   - redis-family endpoints go to redis with both Ports and AdminPorts
 //   - unknown cluster types are skipped
@@ -272,22 +278,35 @@ func buildEndpointsFromMetadata(
 		}
 
 		if isMysqlProxyEndpoint(k.clusterType, k.machineType, k.accessLayer) {
+			// Dual-produce: admin port keeps the existing proxy-admin route (backends query),
+			// data port is routed to the mysql plugin so it reuses probeMysql creds and reports
+			// db_port=Port aligned with the analysis instance key. Each endpoint must carry only
+			// its own port kind: the mysql plugin treats any AdminPorts as admin collectors, so a
+			// data endpoint that also carried AdminPorts would probe the admin port with the wrong
+			// account. Keep them as two separate endpoints in two separate slices.
 			if len(adminPorts) == 0 {
-				continue
-			}
-			if len(ports) > 0 {
-				logger.Debug(
-					"dropping data ports for mysql-proxy endpoint, ip: %s, dropped: %v",
+				logger.Info(
+					"skip mysql-proxy endpoint without admin ports, ip: %s, data_ports: %v",
 					k.ip, ports,
 				)
+				continue
 			}
-			ep.AdminPorts = adminPorts
-			mysqlProxyAdmin = append(mysqlProxyAdmin, ep)
+
+			adminEp := ep
+			adminEp.AdminPorts = adminPorts
+			mysqlProxyAdmin = append(mysqlProxyAdmin, adminEp)
+
+			if len(ports) > 0 {
+				dataEp := ep
+				dataEp.Ports = ports
+				mysql = append(mysql, dataEp)
+			}
 			continue
 		}
 
 		ep.Ports = ports
 		ep.AdminPorts = adminPorts
+
 		switch {
 		case probeconfig.IsMySQLClusterType(k.clusterType):
 			mysql = append(mysql, ep)
@@ -295,11 +314,16 @@ func buildEndpointsFromMetadata(
 			redis = append(redis, ep)
 		}
 	}
+
 	return mysql, mysqlProxyAdmin, redis
 }
 
 // sortEndpoints sorts in-place by (ip, cluster_type, machine_type, instance_role, access_layer) to
-// keep yaml output deterministic after merges (e.g. fallback path).
+// keep yaml output deterministic after merges (e.g. fallback path). After the mysql-proxy
+// dual-produce change, the fallback path can place two endpoints with an identical 5-tuple key
+// into the mysql slice (a data-port endpoint carrying Ports and an admin-port endpoint carrying
+// AdminPorts). To keep the (non-stable) sort deterministic we add Ports / AdminPorts as
+// secondary tie-breakers.
 func sortEndpoints(endpoints []DbEndpointConfig) {
 	sort.Slice(endpoints, func(i, j int) bool {
 		if endpoints[i].Ip != endpoints[j].Ip {
@@ -314,6 +338,12 @@ func sortEndpoints(endpoints []DbEndpointConfig) {
 		if endpoints[i].InstanceRole != endpoints[j].InstanceRole {
 			return endpoints[i].InstanceRole < endpoints[j].InstanceRole
 		}
-		return endpoints[i].AccessLayer < endpoints[j].AccessLayer
+		if endpoints[i].AccessLayer != endpoints[j].AccessLayer {
+			return endpoints[i].AccessLayer < endpoints[j].AccessLayer
+		}
+		if pi, pj := strings.Join(endpoints[i].Ports, ","), strings.Join(endpoints[j].Ports, ","); pi != pj {
+			return pi < pj
+		}
+		return strings.Join(endpoints[i].AdminPorts, ",") < strings.Join(endpoints[j].AdminPorts, ",")
 	})
 }
