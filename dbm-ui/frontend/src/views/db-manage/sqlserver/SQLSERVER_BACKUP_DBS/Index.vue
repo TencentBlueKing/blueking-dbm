@@ -17,8 +17,7 @@
         :model="formData">
         <EditableTable
           ref="editableTable"
-          :model="formData.tableData"
-          :rules="rules">
+          :model="formData.tableData">
           <EditableRow
             v-for="(rowData, index) in formData.tableData"
             :key="index">
@@ -121,7 +120,6 @@
   </div>
 </template>
 <script setup lang="ts">
-  import type { ComponentProps } from 'vue-component-type-helpers';
   import { useI18n } from 'vue-i18n';
 
   import SqlserverHaModel from '@services/model/sqlserver/sqlserver-ha';
@@ -216,22 +214,6 @@
   const editableTableRef = useTemplateRef('editableTable');
   const tableKey = ref(random());
 
-  const rules = {
-    'cluster.master_domain': [
-      {
-        message: t('目标集群重复'),
-        trigger: 'change',
-        validator: (value: string) => {
-          if (value) {
-            const nonEmptyIdList = formData.tableData.filter((row) => row.cluster.master_domain === value);
-            return nonEmptyIdList.length === 1;
-          }
-          return true;
-        },
-      },
-    ],
-  };
-
   const backupLocationList = [
     {
       label: t('主库主机'),
@@ -241,30 +223,8 @@
 
   const formData = reactive(createDefaultFormData());
 
-  const selected = computed(() => {
-    const selectedClusters: ComponentProps<typeof ClusterColumn>['selected'] = {
-      [ClusterTypes.SQLSERVER_HA]: [],
-      [ClusterTypes.SQLSERVER_SINGLE]: [],
-    };
-    formData.tableData.forEach((tableRow) => {
-      const { cluster_type: clusterType, id, master_domain: masterDomain } = tableRow.cluster;
-      if (id) {
-        selectedClusters[clusterType as keyof typeof selectedClusters].push({
-          id,
-          master_domain: masterDomain,
-        });
-      }
-    });
-    return selectedClusters;
-  });
-
-  const clusterMemo = computed(() =>
-    Object.fromEntries(
-      Object.values(selected.value).flatMap((clusters) =>
-        clusters.filter((cluster) => cluster.master_domain).map((cluster) => [cluster.master_domain, true]),
-      ),
-    ),
-  );
+  const selected = computed(() => formData.tableData.filter((item) => item.cluster.id).map((item) => item.cluster));
+  const selectedMap = computed(() => Object.fromEntries(selected.value.map((cur) => [cur.master_domain, true])));
 
   const isBackupTypeFull = computed(() => formData.backup_type === 'full_backup');
 
@@ -297,7 +257,7 @@
 
   const handleClusterBatchEdit = async (data: SqlserverHaModel[]) => {
     // 过滤出未选择的集群
-    const newClusters = data.filter((item) => !clusterMemo.value[item.master_domain]);
+    const newClusters = data.filter((item) => !selectedMap.value[item.master_domain]);
     if (newClusters.length === 0) return;
 
     const clusterIds = newClusters.map((item) => item.id);
