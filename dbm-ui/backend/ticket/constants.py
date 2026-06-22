@@ -383,7 +383,7 @@ class TicketType(StrStructuredEnum):
     TENDBCLUSTER_SPIDER_REDUCE_NODES = TicketEnumField("TENDBCLUSTER_SPIDER_REDUCE_NODES",
                                                        _("TenDB Cluster 缩容接入层"), _("集群维护"))  # noqa
     TENDBCLUSTER_SPIDER_REBUILD = TicketEnumField("TENDBCLUSTER_SPIDER_REBUILD",
-                                                  _("TenDB Cluster 接入层重建"), _("集群维护"))  # noqa
+                                                  _("TenDBCluster 接入层原地重建"), _("集群维护"))  # noqa
     TENDBCLUSTER_SPIDER_MNT_APPLY = TicketEnumField("TENDBCLUSTER_SPIDER_MNT_APPLY", _("TenDB Cluster 添加运维节点"),
                                                     _("运维 Spider 管理"))  # noqa
     TENDBCLUSTER_SPIDER_MNT_DESTROY = TicketEnumField("TENDBCLUSTER_SPIDER_MNT_DESTROY",
