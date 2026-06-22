@@ -18,10 +18,13 @@ import { retrieveHdfsInstance } from '@services/source/hdfs';
 import { retrieveKafkaInstance } from '@services/source/kafka';
 import { retrieveMongoInstanceDetail } from '@services/source/mongodb';
 import { retrievePulsarInstance } from '@services/source/pulsar';
+import { retrieveQdrantHaInstanceDetail } from '@services/source/qdrantHa';
 import { retrieveRedisInstance } from '@services/source/redis';
 import { retrieveRiakInstance } from '@services/source/riak';
 import { retrieveSqlserverHaInstance } from '@services/source/sqlserveHaCluster';
 import { retrieveSqlserverSingleInstance } from '@services/source/sqlserverSingleCluster';
+import { retrieveSurrealdbHaInstanceDetail } from '@services/source/surrealdbHa';
+import { retrieveSurrealdbSingleInstanceDetail } from '@services/source/surrealdbSingle';
 import { getTendbclusterInstanceDetail } from '@services/source/tendbcluster';
 import { retrieveTendbhaInstance } from '@services/source/tendbha';
 import { retrieveTendbsingleInstance } from '@services/source/tendbsingle';
@@ -43,8 +46,10 @@ const apiMap = {
   [ClusterTypes.KAFKA]: retrieveKafkaInstance,
   [ClusterTypes.MONGO_REPLICA_SET]: retrieveMongoInstanceDetail,
   [ClusterTypes.MONGO_SHARED_CLUSTER]: retrieveMongoInstanceDetail,
+  // [ClusterTypes.REDIS_CLUSTER]: retrieveRedisInstance,
+  [ClusterTypes.PREDIXY_REDIS_CLUSTER]: retrieveRedisInstance,
+  [ClusterTypes.PREDIXY_TENDISPLUS_CLUSTER]: retrieveRedisInstance,
   [ClusterTypes.PULSAR]: retrievePulsarInstance,
-  [ClusterTypes.REDIS_CLUSTER]: retrieveRedisInstance,
   [ClusterTypes.REDIS_INSTANCE]: retrieveRedisInstance,
   [ClusterTypes.RIAK]: retrieveRiakInstance,
   [ClusterTypes.SQLSERVER_HA]: retrieveSqlserverHaInstance,
@@ -52,12 +57,25 @@ const apiMap = {
   [ClusterTypes.TENDBCLUSTER]: getTendbclusterInstanceDetail,
   [ClusterTypes.TENDBHA]: retrieveTendbhaInstance,
   [ClusterTypes.TENDBSINGLE]: retrieveTendbsingleInstance,
+  [ClusterTypes.TWEMPROXY_REDIS_INSTANCE]: retrieveRedisInstance,
+  [ClusterTypes.TWEMPROXY_TENDIS_SSD_INSTANCE]: retrieveRedisInstance,
+};
+
+const k8sApiMap = {
+  [ClusterTypes.K8S_QDRANT_HA]: retrieveQdrantHaInstanceDetail,
+  [ClusterTypes.K8S_SURREALDB_HA]: retrieveSurrealdbHaInstanceDetail,
+  [ClusterTypes.K8S_SURREALDB_SINGLE]: retrieveSurrealdbSingleInstanceDetail,
 };
 
 interface ClusterTopoProps {
-  clusterType: keyof typeof apiMap;
+  clusterData: {
+    cluster_name: string;
+    id: number;
+    k8s_cluster_name?: string;
+    namespace?: string;
+  };
+  clusterType: keyof typeof apiMap | keyof typeof k8sApiMap;
   dbType: string;
-  id: number;
   nodeConfig?: NodeConfig;
 }
 
@@ -221,14 +239,27 @@ export const useRenderGraph = (props: ClusterTopoProps) => {
    * 获取实例详情
    */
   const fetchInstDetails = (address: string) => {
-    const params = {
-      cluster_id: props.id,
-      dbType: props.dbType,
-      instance: address,
-      type: props.clusterType,
+    const getApi = () => {
+      if (props.clusterType in k8sApiMap) {
+        return k8sApiMap[props.clusterType as keyof typeof k8sApiMap]({
+          clusterName: props.clusterData.cluster_name,
+          componentName: '',
+          k8sClusterName: props.clusterData.k8s_cluster_name!,
+          namespace: props.clusterData.namespace!,
+          podName: address,
+        });
+      }
+
+      return apiMap[props.clusterType as keyof typeof apiMap]({
+        cluster_id: props.clusterData.id,
+        dbType: props.dbType,
+        instance: address,
+        type: props.clusterType,
+      });
     };
+
     instState.isLoading = true;
-    return apiMap[props.clusterType](params)
+    return getApi()
       .then((details) => {
         instState.detailsCaches.set(address, details);
       })

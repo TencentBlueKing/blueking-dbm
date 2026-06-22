@@ -68,10 +68,17 @@ const dorisClusterTypePageMap = {
   [ClusterTypes.DORIS]: 'DorisDetail',
 };
 
+// surrealdb
+const surrealdbClusterTypePageMap = {
+  [ClusterTypes.K8S_SURREALDB_HA]: 'SurrealdbHaDetail',
+  [ClusterTypes.K8S_SURREALDB_SINGLE]: 'SurrealdbSingleDetail',
+};
+
 export const clusterTypeListPageMap: Record<string, string> = {
   ...redisClusterTypePageMap,
   ...mysqlClusterTypePageMap,
   ...oracleClusterTypePageMap,
+  ...surrealdbClusterTypePageMap,
   ...pulsarClusterTypePageMap,
   ...riakClusterTypePageMap,
   ...sqlserverClusterTypePageMap,

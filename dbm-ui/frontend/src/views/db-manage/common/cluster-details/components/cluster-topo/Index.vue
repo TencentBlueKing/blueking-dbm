@@ -1,6 +1,8 @@
 <template>
   <div class="cluser-detail-instance-box">
-    <div class="action-box">
+    <div
+      v-if="!clusterType.includes('k8s')"
+      class="action-box">
       <BkRadioGroup
         v-model="viewType"
         type="capsule"
@@ -31,13 +33,14 @@
     </div>
     <ViewTopo
       v-if="viewType === 'topo'"
-      :id="clusterId"
+      :cluster-data="clusterData"
       :cluster-type="clusterType"
       :db-type="dbType" />
   </div>
 </template>
 <script setup lang="ts">
   import _ from 'lodash';
+  import type { ComponentProps } from 'vue-component-type-helpers';
   import { useI18n } from 'vue-i18n';
   import { useRoute, useRouter } from 'vue-router';
 
@@ -47,8 +50,6 @@
 
   import { ClusterInstStatusKeys, DBTypes } from '@common/const';
 
-  import useClusterMachineList from '@views/db-manage/hooks/useClusterMachineList';
-
   import { execCopy, messageWarn } from '@utils';
 
   import { URL_CLUSTER_TOPO_VIEW_TYPE_KEY } from '../../constants';
@@ -57,9 +58,14 @@
   import ViewTopo from './components/ViewTopo.vue';
 
   interface Props {
-    clusterId: number;
+    clusterData: {
+      cluster_name: string;
+      id: number;
+      k8s_cluster_name?: string;
+      namespace?: string;
+    };
     clusterRoleNodeGroup: Record<string, ClusterListNode[]>;
-    clusterType: Parameters<typeof useClusterMachineList>[0];
+    clusterType: ComponentProps<typeof ViewTopo>['clusterType'];
     dbType: DBTypes;
   }
 
@@ -70,7 +76,9 @@
   const router = useRouter();
   const { getSearchParams } = useUrlSearch();
 
-  const viewType = ref(String(route.query[URL_CLUSTER_TOPO_VIEW_TYPE_KEY] || 'table'));
+  const viewType = ref(
+    props.clusterType.includes('k8s') ? 'topo' : String(route.query[URL_CLUSTER_TOPO_VIEW_TYPE_KEY] || 'table'),
+  );
 
   const handleNotAliveHostIp = () => {
     const ipList = _.uniq(

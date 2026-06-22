@@ -17,7 +17,7 @@
             <ClusterTopo
               v-if="visitedPanels.has('topo')"
               v-show="activePanel === 'topo'"
-              :cluster-id="clusterData.id"
+              :cluster-data="clusterData"
               :cluster-role-node-group="clusterRoleNodeGroup"
               :cluster-type="clusterType"
               :db-type="dbType" />
@@ -55,7 +55,9 @@
             </slot>
           </BkTabPanel>
         </slot>
-        <slot name="host">
+        <slot
+          v-if="!clusterType.includes('k8s')"
+          name="host">
           <BkTabPanel
             :key="clusterData.id"
             :label="t('主机列表')"
@@ -69,7 +71,7 @@
                 :key="clusterData.id"
                 :active-panel="activePanel"
                 :cluster-id="clusterData.id"
-                :cluster-type="clusterType" />
+                :cluster-type="hostListRelatedClusterTypes" />
             </slot>
           </BkTabPanel>
         </slot>
@@ -109,7 +111,9 @@
               :data="clusterData" />
           </BkTabPanel>
         </slot>
-        <slot name="record">
+        <slot
+          v-if="!clusterType.includes('k8s')"
+          name="record">
           <BkTabPanel
             :key="clusterData.id"
             :label="t('操作记录')"
@@ -123,12 +127,28 @@
                 <BkTabPanel
                   :label="t('单据记录')"
                   name="ticketRecord">
-                  <OperationRecord
+                  <TicketRecord
                     :id="clusterData.id"
                     :key="clusterData.id" />
                 </BkTabPanel>
               </BkTab>
             </div>
+          </BkTabPanel>
+        </slot>
+        <slot
+          v-if="clusterType.includes('k8s')"
+          name="operation">
+          <BkTabPanel
+            :key="clusterData.id"
+            :label="t('操作记录')"
+            name="operation">
+            <K8SOperationRecord
+              v-if="visitedPanels.has('operation')"
+              v-show="activePanel === 'operation'"
+              :id="clusterData.id"
+              :key="clusterData.id"
+              :cluster-data="k8sOperationRecordRelatedClusterData"
+              :cluster-type="clusterType" />
           </BkTabPanel>
         </slot>
       </BkTab>
@@ -152,10 +172,13 @@
   import OracleHaModel from '@services/model/oracle/oracle-ha';
   import OracleSingleModel from '@services/model/oracle/oracle-single';
   import PulsarModel from '@services/model/pulsar/pulsar';
+  import QdrantHaModel from '@services/model/qdrant/qdrant-ha';
   import RedisModel from '@services/model/redis/redis';
   import RiakModel from '@services/model/riak/riak';
   import SqlserverHaModel from '@services/model/sqlserver/sqlserver-ha';
   import SqlserverSingleModel from '@services/model/sqlserver/sqlserver-single';
+  import SurrealdbHaModel from '@services/model/surrealdb/surrealdb-ha';
+  import SurrealdbSingleModel from '@services/model/surrealdb/surrealdb-single';
   import TendbClusterModel from '@services/model/tendbcluster/tendbcluster';
   import { getMonitorUrls } from '@services/source/monitorGrafana';
   import type { ClusterListNode } from '@services/types';
@@ -169,13 +192,15 @@
   import ClusterTopo from './components/cluster-topo/Index.vue';
   import HostList from './components/HostList.vue';
   import Instancelist from './components/InstanceList.vue';
+  import K8SOperationRecord from './components/k8s-operation-record/Index.vue';
   import MonitorDashboard from './components/MonitorDashboard.vue';
-  import OperationRecord from './components/OperationRecord.vue';
+  import TicketRecord from './components/TicketRecord.vue';
   import ParamConfig from './components/ParamConfig.vue';
   import {
     URL_CLUSTER_DETAIL_MEMO_KEY,
     URL_HOST_MEMO_KEY,
     URL_INSTANCE_MEMO_KEY,
+    URL_K8S_OPERATION_MEMO_KEY,
     URL_RECORD_MEMO_KEY,
   } from './constants';
 
@@ -194,6 +219,7 @@
     instance: () => VNode;
     instanceContent: () => VNode;
     paramConfig: () => VNode;
+    operation: () => VNode;
     record: () => VNode;
     topo: () => VNode;
   }
@@ -202,6 +228,9 @@
     [ClusterTypes.DORIS]: DorisModel;
     [ClusterTypes.ES]: EsModel;
     [ClusterTypes.HDFS]: HdfsModel;
+    [ClusterTypes.K8S_QDRANT_HA]: QdrantHaModel;
+    [ClusterTypes.K8S_SURREALDB_HA]: SurrealdbHaModel;
+    [ClusterTypes.K8S_SURREALDB_SINGLE]: SurrealdbSingleModel;
     [ClusterTypes.KAFKA]: KafkaModel;
     [ClusterTypes.MONGO_REPLICA_SET]: MongodbModel;
     [ClusterTypes.MONGO_SHARED_CLUSTER]: MongodbModel;
@@ -247,6 +276,17 @@
   const dbType = computed(() => clusterTypeInfos[props.clusterData.cluster_type].dbType);
   const isLoading = computed(() => !isFixedTab.value && isPanelLoading.value);
   const isAbleSubscribe = computed(() => metricsMap.value[props.clusterData.cluster_type]?.list?.length > 0);
+
+  type ExludeClusterTypes =
+    | ClusterTypes.K8S_SURREALDB_HA
+    | ClusterTypes.K8S_SURREALDB_SINGLE
+    | ClusterTypes.K8S_QDRANT_HA;
+  const hostListRelatedClusterTypes = computed(
+    () => props.clusterType as Exclude<keyof ClusterTypeRelateClusterModel, ExludeClusterTypes>,
+  );
+  const k8sOperationRecordRelatedClusterData = computed(
+    () => props.clusterData as ClusterTypeRelateClusterModel[ExludeClusterTypes],
+  );
 
   const calcTabContentHeight = _.throttle(() => {
     if (rootRef.value) {
@@ -299,7 +339,10 @@
   const handlePanelChange = (value: string) => {
     router.replace({
       query: {
-        ...removeSearchParam([URL_HOST_MEMO_KEY, URL_INSTANCE_MEMO_KEY, URL_RECORD_MEMO_KEY], false),
+        ...removeSearchParam(
+          [URL_HOST_MEMO_KEY, URL_INSTANCE_MEMO_KEY, URL_RECORD_MEMO_KEY, URL_K8S_OPERATION_MEMO_KEY],
+          false,
+        ),
         [URL_CLUSTER_DETAIL_MEMO_KEY]: value,
       },
     });

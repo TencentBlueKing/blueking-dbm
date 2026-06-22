@@ -19,9 +19,11 @@
   import Mysql from './Mysql.vue';
   import Oracle from './Oracle.vue';
   import Pulsar from './Pulsar.vue';
+  import Qdrant from './Qdrant.vue';
   import Redis from './Redis.vue';
   import Riak from './Riak.vue';
   import SqlServer from './SqlServer.vue';
+  import SurrealDB from './SurrealDB.vue';
   import TendbCluster from './TendbCluster.vue';
 
   interface Props {
@@ -36,6 +38,8 @@
     [DBTypes.ES]: Es,
     [DBTypes.HDFS]: Hdfs,
     [DBTypes.INFLUXDB]: Influxdb,
+    [DBTypes.K8S_QRRANT]: Qdrant,
+    [DBTypes.K8S_SURREALDB]: SurrealDB,
     [DBTypes.KAFKA]: Kafka,
     [DBTypes.MONGODB]: MongoDB,
     [DBTypes.MYSQL]: Mysql,

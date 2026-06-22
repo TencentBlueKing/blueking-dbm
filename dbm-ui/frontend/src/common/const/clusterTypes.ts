@@ -47,12 +47,21 @@ export enum ClusterTypes {
   SQLSERVER_HA = 'sqlserver_ha', // SQLServer主从版
   SQLSERVER_SINGLE = 'sqlserver_single', // SQLServer单节点版
 }
-
 // oracle
 export enum ClusterTypes {
   ORACLE = 'oracle',
   ORACLE_PRIMARY_STANDBY = 'oracle_primary_standby',
   ORACLE_SINGLE_NONE = 'oracle_single_none',
+}
+// surrealdb
+export enum ClusterTypes {
+  K8S_SURREALDB = 'k8s_surrealdb',
+  K8S_SURREALDB_HA = 'k8s_surrealdb_ha',
+  K8S_SURREALDB_SINGLE = 'k8s_surrealdb_single',
+}
+// qdrant
+export enum ClusterTypes {
+  K8S_QDRANT_HA = 'k8s_qdrant_ha',
 }
 
 export type ClusterTypeValues = keyof typeof ClusterTypes;
