@@ -33,7 +33,9 @@
 <script setup lang="ts">
   import { useUserDbaComponents } from '@hooks';
 
-  import { DBTypes } from '@common/const';
+  import { useUserProfile } from '@stores';
+
+  import { DBTypes, UserPersonalSettings } from '@common/const';
 
   interface Props {
     // tab 标签的计数配置
@@ -51,6 +53,7 @@
     default: '',
   });
 
+  const userProfileStore = useUserProfile();
   const { components: dbaComponents, loading } = useUserDbaComponents();
 
   defineExpose({ loading });
@@ -60,14 +63,32 @@
 
   const includeSet = computed(() => new Set<string>(props.include));
 
-  const renderTabs = computed(() =>
-    dbaComponents.value
+  const renderTabs = computed(() => {
+    const includeList = dbaComponents.value
       .filter((item) => includeSet.value.has(item.db_type))
       .map((item) => ({
         id: item.db_type,
         name: item.db_type_display,
-      })),
-  );
+      }));
+    const includeMap = Object.fromEntries(includeList.map((item) => [item.id, item]));
+
+    const topDbTypes: string[] = (
+      (userProfileStore.profile[UserPersonalSettings.TOP_DB_TYPES] || []) as string[]
+    ).filter((item) => includeSet.value.has(item));
+    if (topDbTypes.length > 0) {
+      const topDbTypeMap = Object.fromEntries(topDbTypes.map((item) => [item, includeMap[item]]));
+      const topList = topDbTypes.flatMap((topItem) => {
+        const topDbType = includeMap[topItem as DBTypes];
+        if (topDbType) {
+          return [topDbType];
+        }
+        return [];
+      });
+      const commonList = includeList.filter((item) => !topDbTypeMap[item.id]);
+      return topList.concat(commonList);
+    }
+    return includeList;
+  });
 
   // Tab 列表变化时递增 renderKey 重新渲染，并自动选中合适的 Tab
   watch(

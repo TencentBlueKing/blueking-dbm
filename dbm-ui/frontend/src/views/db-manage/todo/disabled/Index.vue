@@ -39,7 +39,8 @@
         <DbTab
           v-model="dbType"
           :exclude="excludeDbTypes"
-          :label-config="labelConfig" />
+          :label-config="labelConfig"
+          top-sort />
         <div class="content-wrapper">
           <div class="header-action">
             <span
@@ -105,7 +106,6 @@
                 {{ row.immute_domain }}
               </template>
             </TableColumn>
-
             <TableColumn
               v-if="showClusterTypeColumn"
               col-key="cluster_type"
