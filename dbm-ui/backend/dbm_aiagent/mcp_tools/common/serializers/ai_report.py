@@ -21,7 +21,7 @@ class WriteAiReportInputSerializer(serializers.Serializer):
     )
     bk_biz_id = serializers.IntegerField(default=0, help_text=_("业务 ID，0 表示不关联业务"))
     cluster_domain = serializers.CharField(default="", allow_blank=True, required=False, help_text=_("集群域名，为空表示不关联集群"))
-    title = serializers.CharField(default="", allow_blank=True, required=False, help_text=_("报告标题"))
+    title = serializers.CharField(help_text=_("报告标题"))
     summary = serializers.CharField(default="", allow_blank=True, required=False, help_text=_("报告摘要"))
     content = serializers.CharField(help_text=_("分析结果内容"))
 
