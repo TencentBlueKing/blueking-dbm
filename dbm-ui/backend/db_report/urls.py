@@ -14,12 +14,14 @@ from backend.db_report.register import report_kind_register_map
 from backend.db_report.report_baseview import ReportCommonViewSet
 from backend.db_report.views.checksum_instance_view import ChecksumInstanceViewSet
 from backend.db_report.views.exporter import ClusterExporterUpViewSet
+from backend.db_report.views.share_ai_report import AiReportViewSet
 
 routers = DefaultRouter(trailing_slash=True)
 
 routers.register(r"", ReportCommonViewSet, basename="report_common")
 routers.register(r"checksum_instance", ChecksumInstanceViewSet, basename="checksum_instance")
 routers.register(r"exporter", ClusterExporterUpViewSet, basename="exporter")
+routers.register(r"", AiReportViewSet, basename="share_ai_report")
 
 # 自动添加注册视图
 for kind, report_maps in report_kind_register_map.items():

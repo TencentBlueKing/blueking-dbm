@@ -16,6 +16,7 @@ from django.http import Http404
 from django.utils.translation import gettext_lazy as _
 from rest_framework.response import Response
 
+from backend import env
 from backend.db_report.models.ai_analysis_report import AiAnalysisReport
 from backend.dbm_aiagent.mcp_tools.common.auth_parser.base import auth_parse_bizs
 from backend.dbm_aiagent.mcp_tools.common.serializers.ai_report import (
@@ -70,7 +71,14 @@ class AiReportMcpToolsViewSet(McpToolsViewSet):
             creator=creator,
         )
 
-        return Response({"report_id": str(report.id), "bk_biz_id": report.bk_biz_id, "message": _("报告写入成功")})
+        return Response(
+            {
+                "report_id": str(report.id),
+                "bk_biz_id": report.bk_biz_id,
+                "share_url": f"{env.BK_SAAS_HOST}/ai-chat/share/{str(report.id)}/",
+                "message": _("报告写入成功"),
+            }
+        )
 
     @mcp_tools_api_decorator(
         description=str(_("读取 AI 分析报告。支持按报告 ID 精确查询，或按 ai_agent、bk_biz_id、cluster_domain 等条件过滤查询。")),
@@ -103,6 +111,7 @@ class AiReportMcpToolsViewSet(McpToolsViewSet):
             "creator": report.creator,
             "create_at": report.create_at,
             "update_at": report.update_at,
+            "share_url": f"{env.BK_SAAS_HOST}/ai-chat/share/{str(report.id)}/",
         }
 
         return Response({"report": report_data})
