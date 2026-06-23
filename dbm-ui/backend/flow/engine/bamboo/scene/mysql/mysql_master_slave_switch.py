@@ -25,6 +25,7 @@ from backend.db_meta.models.extra_process import ExtraProcessInstance
 from backend.flow.consts import ACCOUNT_PREFIX, AUTH_ADDRESS_DIVIDER
 from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
+from backend.flow.engine.bamboo.scene.mysql.clone_grants_from_file import mysql_clone_grants_from_file_subflow
 from backend.flow.engine.bamboo.scene.mysql.common.common_sub_flow import (
     check_long_active_process_sub_flow,
     check_sub_flow,
@@ -35,7 +36,6 @@ from backend.flow.engine.bamboo.scene.mysql.deploy_peripheraltools.subflow impor
     standardize_mysql_cluster_by_ip_subflow,
 )
 from backend.flow.plugins.components.collections.mysql.add_user_for_cluster_switch import AddSwitchUserComponent
-from backend.flow.plugins.components.collections.mysql.clone_user import CloneUserComponent
 from backend.flow.plugins.components.collections.mysql.dns_manage import MySQLDnsManageComponent
 from backend.flow.plugins.components.collections.mysql.exec_actuator_script import ExecuteDBActuatorScriptComponent
 from backend.flow.plugins.components.collections.mysql.mysql_db_meta import MySQLDBMetaComponent
@@ -49,7 +49,6 @@ from backend.flow.utils.mysql.mysql_act_dataclass import (
     DBMetaOPKwargs,
     DownloadMediaKwargs,
     ExecActuatorKwargs,
-    InstanceUserCloneKwargs,
     RecycleDnsRecordKwargs,
 )
 from backend.flow.utils.mysql.mysql_act_playload import MysqlActPayload
@@ -212,38 +211,25 @@ class MySQLMasterSlaveSwitchFlow(object):
                     ),
                 )
 
-                # 阶段2 从实例的账号信息克隆到主实例上
-                cluster_switch_sub_pipeline.add_act(
-                    act_name=_("新master克隆旧master权限"),
-                    act_component_code=CloneUserComponent.code,
-                    kwargs=asdict(
-                        InstanceUserCloneKwargs(
-                            clone_data=[
-                                {
-                                    "source": f"{cluster['old_master_ip']}{AUTH_ADDRESS_DIVIDER}{cluster['mysql_port']}",
-                                    "target": f"{cluster['new_master_ip']}{AUTH_ADDRESS_DIVIDER}{cluster['mysql_port']}",
-                                    "bk_cloud_id": cluster["bk_cloud_id"],
-                                },
-                            ]
-                        )
-                    ),
+                cluster_switch_sub_pipeline.add_sub_pipeline(
+                    mysql_clone_grants_from_file_subflow(
+                        root_id=self.root_id,
+                        data=copy.deepcopy(self.data),
+                        bk_cloud_id=cluster["bk_cloud_id"],
+                        bk_biz_id=sub_sub_flow_context["bk_biz_id"],
+                        source_address=f"{cluster['old_master_ip']}{AUTH_ADDRESS_DIVIDER}{cluster['mysql_port']}",
+                        dest_addresses=[f"{cluster['new_master_ip']}{AUTH_ADDRESS_DIVIDER}{cluster['mysql_port']}"],
+                    )
                 )
-
-                # 阶段2.1 主实例的账号信息克隆到从实例上
-                cluster_switch_sub_pipeline.add_act(
-                    act_name=_("旧master克隆新master权限"),
-                    act_component_code=CloneUserComponent.code,
-                    kwargs=asdict(
-                        InstanceUserCloneKwargs(
-                            clone_data=[
-                                {
-                                    "source": f"{cluster['new_master_ip']}{AUTH_ADDRESS_DIVIDER}{cluster['mysql_port']}",
-                                    "target": f"{cluster['old_master_ip']}{AUTH_ADDRESS_DIVIDER}{cluster['mysql_port']}",
-                                    "bk_cloud_id": cluster["bk_cloud_id"],
-                                },
-                            ]
-                        )
-                    ),
+                cluster_switch_sub_pipeline.add_sub_pipeline(
+                    mysql_clone_grants_from_file_subflow(
+                        root_id=self.root_id,
+                        data=copy.deepcopy(self.data),
+                        bk_cloud_id=cluster["bk_cloud_id"],
+                        bk_biz_id=sub_sub_flow_context["bk_biz_id"],
+                        source_address=f"{cluster['new_master_ip']}{AUTH_ADDRESS_DIVIDER}{cluster['mysql_port']}",
+                        dest_addresses=[f"{cluster['old_master_ip']}{AUTH_ADDRESS_DIVIDER}{cluster['mysql_port']}"],
+                    )
                 )
 
                 # 阶段3 执行主从切换的原子任务
@@ -549,38 +535,25 @@ def master_slave_mutual_switch_subflow(
             ),
         )
 
-        # 阶段2 从实例的账号信息克隆到主实例上
-        mutual_switch_sub_pipeline.add_act(
-            act_name=_("新master克隆旧master权限"),
-            act_component_code=CloneUserComponent.code,
-            kwargs=asdict(
-                InstanceUserCloneKwargs(
-                    clone_data=[
-                        {
-                            "source": f"{cluster_info['old_master_ip']}{AUTH_ADDRESS_DIVIDER}{cluster_info['mysql_port']}",
-                            "target": f"{cluster_info['new_master_ip']}{AUTH_ADDRESS_DIVIDER}{cluster_info['mysql_port']}",
-                            "bk_cloud_id": cluster_info["bk_cloud_id"],
-                        },
-                    ]
-                )
-            ),
+        mutual_switch_sub_pipeline.add_sub_pipeline(
+            mysql_clone_grants_from_file_subflow(
+                root_id=root_id,
+                data=copy.deepcopy(context_data),
+                bk_cloud_id=cluster_info["bk_cloud_id"],
+                bk_biz_id=bk_biz_id,
+                source_address=f"{cluster_info['old_master_ip']}{AUTH_ADDRESS_DIVIDER}{cluster_info['mysql_port']}",
+                dest_addresses=[f"{cluster_info['new_master_ip']}{AUTH_ADDRESS_DIVIDER}{cluster_info['mysql_port']}"],
+            )
         )
-
-        # 阶段2.1 主实例的账号信息克隆到从实例上
-        mutual_switch_sub_pipeline.add_act(
-            act_name=_("旧master克隆新master权限"),
-            act_component_code=CloneUserComponent.code,
-            kwargs=asdict(
-                InstanceUserCloneKwargs(
-                    clone_data=[
-                        {
-                            "source": f"{cluster_info['new_master_ip']}{AUTH_ADDRESS_DIVIDER}{cluster_info['mysql_port']}",
-                            "target": f"{cluster_info['old_master_ip']}{AUTH_ADDRESS_DIVIDER}{cluster_info['mysql_port']}",
-                            "bk_cloud_id": cluster_info["bk_cloud_id"],
-                        },
-                    ]
-                )
-            ),
+        mutual_switch_sub_pipeline.add_sub_pipeline(
+            mysql_clone_grants_from_file_subflow(
+                root_id=root_id,
+                data=copy.deepcopy(context_data),
+                bk_cloud_id=cluster_info["bk_cloud_id"],
+                bk_biz_id=bk_biz_id,
+                source_address=f"{cluster_info['new_master_ip']}{AUTH_ADDRESS_DIVIDER}{cluster_info['mysql_port']}",
+                dest_addresses=[f"{cluster_info['old_master_ip']}{AUTH_ADDRESS_DIVIDER}{cluster_info['mysql_port']}"],
+            )
         )
 
         # 阶段3 执行主从切换的原子任务

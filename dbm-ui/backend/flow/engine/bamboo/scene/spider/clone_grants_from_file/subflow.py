@@ -14,11 +14,11 @@ from typing import Dict
 from backend.flow.consts import DBA_ROOT_USER
 from backend.flow.engine.bamboo.scene.common.builder import SubProcess
 from backend.flow.engine.bamboo.scene.mysql.clone_grants_from_file import (
-    clone_grants_from_file_subflow as m_clone_subflow,
+    mysql_clone_grants_from_file_subflow as m_clone_subflow,
 )
 
 
-def clone_grants_from_file_subflow(
+def spider_clone_grants_from_file_subflow(
     root_id: str,
     data: Dict,
     bk_cloud_id: int,

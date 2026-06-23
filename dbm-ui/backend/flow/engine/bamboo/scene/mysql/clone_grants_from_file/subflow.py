@@ -36,7 +36,7 @@ from backend.flow.utils.mysql.mysql_act_dataclass import DownloadMediaKwargs, Ex
 logger = logging.getLogger("flow")
 
 
-def clone_grants_from_file_subflow(
+def mysql_clone_grants_from_file_subflow(
     root_id: str,
     data: Dict,
     bk_cloud_id: int,

@@ -20,13 +20,13 @@ from backend.db_meta.models import Cluster
 from backend.db_meta.models.extra_process import ExtraProcessInstance
 from backend.flow.consts import ACCOUNT_PREFIX, AUTH_ADDRESS_DIVIDER, InstanceStatus
 from backend.flow.engine.bamboo.scene.common.builder import Conditions, SubBuilder
+from backend.flow.engine.bamboo.scene.mysql.clone_grants_from_file import mysql_clone_grants_from_file_subflow
 from backend.flow.engine.bamboo.scene.mysql.common.cluster_entrys import get_tendb_ha_entry
 from backend.flow.engine.bamboo.scene.mysql.common.common_sub_flow import check_sub_flow
 from backend.flow.plugins.components.collections.common.add_alarm_shield import AddAlarmShieldComponent
 from backend.flow.plugins.components.collections.common.disable_alarm_shield import DisableAlarmShieldComponent
 from backend.flow.plugins.components.collections.common.pause import PauseComponent
 from backend.flow.plugins.components.collections.mysql.add_user_for_cluster_switch import AddSwitchUserComponent
-from backend.flow.plugins.components.collections.mysql.clone_user import CloneUserComponent
 from backend.flow.plugins.components.collections.mysql.dns_manage import MySQLDnsManageComponent
 from backend.flow.plugins.components.collections.mysql.exec_actuator_script import ExecuteDBActuatorScriptComponent
 from backend.flow.plugins.components.collections.mysql.exec_switch_for_source_act import (
@@ -39,7 +39,6 @@ from backend.flow.utils.mysql.mysql_act_dataclass import (
     AddSwitchUserKwargs,
     CreateDnsKwargs,
     ExecActuatorKwargs,
-    InstanceUserCloneKwargs,
     RecycleDnsRecordKwargs,
 )
 from backend.flow.utils.mysql.mysql_act_playload import MysqlActPayload
@@ -137,24 +136,25 @@ def master_and_slave_switch_v2(
     )
     cluster_switch_sub_pipeline.add_parallel_acts(acts_list=acts_list)
 
-    clone_kwargs = InstanceUserCloneKwargs(
-        clone_data=[
-            {
-                "source": f"{cluster_info['old_master_ip']}{AUTH_ADDRESS_DIVIDER}{cluster_info['mysql_port']}",
-                "target": f"{cluster_info['new_master_ip']}{AUTH_ADDRESS_DIVIDER}{cluster_info['mysql_port']}",
-                "bk_cloud_id": cluster.bk_cloud_id,
-            },
-            {
-                "source": f"{cluster_info['old_slave_ip']}{AUTH_ADDRESS_DIVIDER}{cluster_info['mysql_port']}",
-                "target": f"{cluster_info['new_slave_ip']}{AUTH_ADDRESS_DIVIDER}{cluster_info['mysql_port']}",
-                "bk_cloud_id": cluster.bk_cloud_id,
-            },
+    cluster_switch_sub_pipeline.add_parallel_sub_pipeline(
+        sub_flow_list=[
+            mysql_clone_grants_from_file_subflow(
+                root_id=root_id,
+                data=copy.deepcopy(ticket_data),
+                bk_cloud_id=cluster.bk_cloud_id,
+                bk_biz_id=cluster.bk_biz_id,
+                source_address=f"{cluster_info['old_master_ip']}{AUTH_ADDRESS_DIVIDER}{cluster_info['mysql_port']}",
+                dest_addresses=[f"{cluster_info['new_master_ip']}{AUTH_ADDRESS_DIVIDER}{cluster_info['mysql_port']}"],
+            ),
+            mysql_clone_grants_from_file_subflow(
+                root_id=root_id,
+                data=copy.deepcopy(ticket_data),
+                bk_cloud_id=cluster.bk_cloud_id,
+                bk_biz_id=cluster.bk_biz_id,
+                source_address=f"{cluster_info['old_slave_ip']}{AUTH_ADDRESS_DIVIDER}{cluster_info['mysql_port']}",
+                dest_addresses=[f"{cluster_info['new_slave_ip']}{AUTH_ADDRESS_DIVIDER}{cluster_info['mysql_port']}"],
+            ),
         ]
-    )
-    cluster_switch_sub_pipeline.add_act(
-        act_name=_("新master克隆旧master权限,新slave克隆旧slave权限"),
-        act_component_code=CloneUserComponent.code,
-        kwargs=asdict(clone_kwargs),
     )
 
     # 代理层、账号等等。
@@ -173,8 +173,6 @@ def master_and_slave_switch_v2(
     domain_map = get_tendb_ha_entry(cluster.id)
     cluster_info["master_domain"] = domain_map["master_domain"]
     cluster_info["slave_domain"] = domain_map["slave_domain"]
-    # cluster_info["proxy_ip_list"] = [x.machine.ip for x in mysql_proxy]
-    # cluster_info["proxy_port"] = mysql_proxy[0].port
     cluster_info["id"] = cluster.id
 
     cluster_sw_kwargs = ExecActuatorKwargs(cluster=cluster_info, bk_cloud_id=cluster.bk_cloud_id)

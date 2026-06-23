@@ -18,7 +18,7 @@ from backend.db_meta.models import Cluster
 from backend.flow.consts import TendbSingleRestoreType
 from backend.flow.engine.bamboo.scene.common.builder import SubBuilder
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
-from backend.flow.engine.bamboo.scene.mysql.clone_grants_from_file import clone_grants_from_file_subflow
+from backend.flow.engine.bamboo.scene.mysql.clone_grants_from_file import mysql_clone_grants_from_file_subflow
 from backend.flow.plugins.components.collections.mysql.dns_manage import MySQLDnsManageComponent
 from backend.flow.plugins.components.collections.mysql.exec_actuator_script import ExecuteDBActuatorScriptComponent
 from backend.flow.plugins.components.collections.mysql.mysql_check_slave_delay import MySQLCheckSlaveDelayComponent
@@ -105,7 +105,7 @@ def single_migrate_switch_sub_flow(
     if len(clone_data) > 0:
         for ele in clone_data:
             sub_pipeline.add_sub_pipeline(
-                sub_flow=clone_grants_from_file_subflow(
+                sub_flow=mysql_clone_grants_from_file_subflow(
                     root_id=root_id,
                     data=copy.deepcopy(ticket_data),
                     bk_cloud_id=cluster.bk_cloud_id,
