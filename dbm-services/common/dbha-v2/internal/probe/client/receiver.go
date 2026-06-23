@@ -45,8 +45,9 @@ import (
 var NameGRPC = "GRPC"
 
 const (
-	resolverScheme      = "dbha"
-	loadBalancingPolicy = "round_robin"
+	resolverScheme    = "dbha"
+	resolverTarget    = resolverScheme + ":///receiver"
+	grpcServiceConfig = `{"loadBalancingPolicy":"round_robin"}`
 )
 
 // ReceiverClient is the gRPC client for the receiver service.
@@ -100,12 +101,9 @@ func NewReceiverClient(ctx context.Context, endpoint string, clientId string) (*
 	rs := manual.NewBuilderWithScheme(resolverScheme)
 	rs.InitialState(resolver.State{Addresses: addrs})
 
-	target := resolverScheme + ":///receiver"
-	serviceConfig := `{"loadBalancingPolicy":"` + loadBalancingPolicy + `"}`
-
-	conn, err := grpc.NewClient(target,
+	conn, err := grpc.NewClient(resolverTarget,
 		grpc.WithResolvers(rs),
-		grpc.WithDefaultServiceConfig(serviceConfig),
+		grpc.WithDefaultServiceConfig(grpcServiceConfig),
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 		grpc.WithKeepaliveParams(kacp),
 		grpc.WithDefaultCallOptions(

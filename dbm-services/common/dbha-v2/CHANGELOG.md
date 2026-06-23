@@ -1,5 +1,9 @@
 # DBHA-v2 Change Log
 
+## v2.0.0-beta.11
+- 【新增】Probe 到 Receiver 的 gRPC 上报链路。
+- 【修复】mysql sinker 无超时控制导致的探针数据持久化阻塞问题。
+
 ## v2.0.0-beta.10
 - 【新增】cluster 工具 `reset` 流程支持 CLB 实例恢复：自动注册缺失实例、注销多余实例。
 - 【新增】cluster 工具新增 `show clb` 子命令，支持以 JSON 格式输出 tendbha、tendbcluster 集群的 CLB 绑定信息。
