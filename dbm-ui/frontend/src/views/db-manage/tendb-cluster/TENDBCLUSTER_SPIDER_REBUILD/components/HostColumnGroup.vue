@@ -69,11 +69,10 @@
     </EditableBlock>
   </EditableColumn>
   <InstanceSelector
+    v-model="selectedInstances"
     v-model:is-show="showSelector"
-    :cluster-types="['SpiderHost']"
-    hide-manual-input
-    :selected="selectedHosts"
-    :tab-list-config="tabListConfig"
+    :cluster-types="[ClusterTypes.TENDBCLUSTER]"
+    :data-source-map="dataSourceMap"
     @change="handleSelectorChange" />
 </template>
 <script lang="ts" setup>
@@ -81,15 +80,15 @@
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
+  import TendbInstanceModel from '@services/model/tendbcluster/tendbcluster-instance';
   import { checkInstance } from '@services/source/dbbase';
+  import { getTendbclusterInstanceList } from '@services/source/tendbcluster';
 
   import { ClusterTypes, DBTypes } from '@common/const';
   import { ipPort } from '@common/regex';
 
   import DbStatus from '@components/db-status/index.vue';
-  import InstanceSelector, { type InstanceSelectorValues, type IValue } from '@components/instance-selector/Index.vue';
-
-  export type SelectorHost = IValue;
+  import InstanceSelector from '@components/instance-selector-new/Index.vue';
 
   interface Props {
     handleRowMerge: () => void;
@@ -98,7 +97,7 @@
     selected: Array<typeof modelValue.value>;
   }
 
-  type Emits = (e: 'batch-edit', list: IValue[]) => void;
+  type Emits = (e: 'batch-edit', list: TendbInstanceModel[]) => void;
 
   const props = defineProps<Props>();
 
@@ -120,20 +119,12 @@
 
   const { t } = useI18n();
 
-  const tabListConfig = {
-    SpiderHost: [
-      {
-        id: 'SpiderHost',
-        name: t('目标实例'),
-        tableConfig: {
-          firsrColumn: {
-            field: 'instance_address',
-            label: t('目标实例'),
-            role: '', // 不传， 以roleFilterList过滤
-          },
-        },
-      },
-    ],
+  const dataSourceMap = {
+    [ClusterTypes.TENDBCLUSTER]: (params: ServiceParameters<typeof getTendbclusterInstanceList>) =>
+      getTendbclusterInstanceList({
+        ...params,
+        role: 'spider_master,spider_slave,spider_mnt',
+      }),
   };
 
   const statusTheme = computed(() => {
@@ -165,13 +156,10 @@
   };
 
   const showSelector = ref(false);
-  const selectedHosts = computed<InstanceSelectorValues<IValue>>(() => ({
-    SpiderHost: props.selected.map(
-      (item) =>
-        ({
-          ip: item.ip,
-        }) as IValue,
-    ),
+  const selectedInstances = computed(() => ({
+    [ClusterTypes.TENDBCLUSTER]: props.selected.map((item) => ({
+      instance_address: item.instance_address,
+    })) as TendbInstanceModel[],
   }));
 
   const rules = [
@@ -229,8 +217,11 @@
     showSelector.value = true;
   };
 
-  const handleSelectorChange = (selected: InstanceSelectorValues<IValue>) => {
-    emits('batch-edit', selected.SpiderHost!);
+  const handleSelectorChange = (selected: { [ClusterTypes.TENDBCLUSTER]: TendbInstanceModel[] }) => {
+    emits(
+      'batch-edit',
+      Object.values(selected).flatMap((item) => item),
+    );
   };
 
   const handleChange = (value: string) => {
