@@ -37,13 +37,16 @@
           property="alias_name"
           required
           :rules="rules.alias_name">
-          <BkInput
-            v-model="formData.alias_name"
-            class="module-name-input"
-            :maxlength="63"
-            :placeholder="t('请输入模块名')"
-            show-word-limit
-            @change="handleValidate" />
+          <div class="module-name-row">
+            <BkInput
+              v-model="formData.alias_name"
+              class="module-name-input"
+              :maxlength="63"
+              :placeholder="t('请输入模块名')"
+              show-word-limit
+              @change="handleValidate" />
+            <DomainPreview :module-name="formData.alias_name" />
+          </div>
         </FormItemWithHint>
         <!-- 数据库信息 -->
         <BkFormItem
@@ -294,6 +297,7 @@
 
   import DbTable from '@components/db-table/IndexNew.vue';
 
+  import DomainPreview from '@views/db-configure/components/DomainPreview.vue';
   import FormItemWithHint from '@views/db-configure/components/FormItemWithHint.vue';
   import { saveConfigureState } from '@views/db-configure/utils/configureState';
 
@@ -549,12 +553,12 @@
   /** 获取配置文件 Tab 列表 */
   const { run: fetchConfTabs } = useRequest(getListClusterModuleConfFiles, {
     manual: true,
-    onSuccess(rawConfTabs) {
-      const tabs = rawConfTabs || [];
+    onSuccess(res) {
+      const rawConfTabs = res || [];
       if (formData.version) {
-        tabs[0] = { conf_file: formData.version, conf_type: 'dbconf', name: formData.version };
+        Object.assign(rawConfTabs[0], { conf_file: formData.version, conf_type: 'dbconf', name: formData.version });
       }
-      confTabs.value = tabs;
+      confTabs.value = rawConfTabs;
       tabRenderKey.value = random();
     },
   });
@@ -769,8 +773,14 @@
     box-shadow: 0 2px 4px 0 rgb(25 25 41 / 5%);
   }
 
-  .module-name-input {
-    min-width: 844px;
+  .module-name-row {
+    display: flex;
+    align-items: center;
+
+    .module-name-input {
+      width: 420px;
+      flex-shrink: 0;
+    }
   }
 
   .db-config-row {

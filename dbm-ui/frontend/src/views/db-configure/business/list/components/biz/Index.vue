@@ -25,7 +25,8 @@
         <OperationRecord v-if="tab.conf_type === 'operationRecord'" />
         <ConfigDatabase
           v-else
-          :conf-type="tab.conf_type" />
+          :conf-type="tab.conf_type"
+          :namespace="tab.namespace" />
       </BkTabPanel>
     </BkTab>
   </div>
@@ -90,6 +91,7 @@
         {
           conf_type: 'operationRecord',
           name: t('配置变更记录'),
+          namespace: 'operationRecord',
         },
       ];
       confTypeTabs.value = base;

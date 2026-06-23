@@ -82,6 +82,7 @@
 
   interface Props {
     confType: string;
+    namespace: string;
   }
 
   const props = defineProps<Props>();
@@ -108,7 +109,7 @@
         bk_biz_id: globalBizsStore.currentBizId,
         conf_type: props.confType,
         limit: -1,
-        meta_cluster_type: activeClusterType.value,
+        meta_cluster_type: props.namespace === 'cluster_type' ? activeClusterType.value : props.namespace,
       },
       { permission: 'catch' },
     ).then((res) => {

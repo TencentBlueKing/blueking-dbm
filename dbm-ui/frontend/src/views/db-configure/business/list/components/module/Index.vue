@@ -76,6 +76,7 @@
         <Component
           :is="moduleInfoComponent[dbType]"
           ref="moduleInfoRef"
+          :cluster-type="clusterType"
           :module-info="moduleInfo" />
       </DbCard>
 
@@ -84,6 +85,22 @@
         :db-module-id="moduleInfo.moduleId"
         show-operation-record-tab>
         <template #default="{ tab }">
+          <BkAlert
+            class="mb-16"
+            closable
+            theme="info">
+            {{ t('参数值默认继承自') }}
+            <a
+              class="alert-link"
+              @click="openBusinessConfig(tab)">
+              {{ t('业务配置') }}
+            </a>
+            {{
+              t(
+                ' ；业务配置更新时，未自定义的参数值会自动同步。修改后将转为「自定义」，不再随业务配置更新。可通过「恢复默认」重新继承业务配置。',
+              )
+            }}
+          </BkAlert>
           <OperationRecord
             v-if="tab.conf_type === 'operationRecord'"
             level-name="module"
@@ -105,7 +122,7 @@
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
-  import { useRoute } from 'vue-router';
+  import { useRoute, useRouter } from 'vue-router';
 
   import type { ParameterConfigItem } from '@services/source/configs';
   import { deleteModuleConfig, getLevelConfig } from '@services/source/configs';
@@ -135,7 +152,21 @@
   const moduleInfoRef = ref<ModuleInfoComponentExposes | null>(null);
 
   const route = useRoute();
+  const router = useRouter();
   const { t } = useI18n();
+
+  /** 新开 tab 打开业务配置详情页（DbConfigureDetail） */
+  const openBusinessConfig = (tab: { conf_file: string; conf_type: string }) => {
+    const href = router.resolve({
+      name: 'DbConfigureDetail',
+      params: {
+        clusterType: clusterType.value,
+        confType: tab.conf_type,
+        version: tab.conf_file,
+      },
+    }).href;
+    window.open(href, '_blank');
+  };
 
   const treeState = reactive<TreeState>({
     data: [],
@@ -157,6 +188,7 @@
     moduleId: 0,
     moduleName: '',
     relatedClusterCount: 0,
+    relatedClusterList: [], // 关联集群列表（包含 ID 和名称）
     relatedClusters: '',
     spiderVersion: '', // 接入层版本 (TenDBCluster)
     syncType: '', // 主从方式 (SqlServer)
@@ -195,9 +227,14 @@
 
     if (clusterNodes.length > 0) {
       moduleInfo.relatedClusterCount = clusterNodes.length;
+      moduleInfo.relatedClusterList = clusterNodes.map((node) => ({
+        id: node.id,
+        name: node.name,
+      }));
       moduleInfo.relatedClusters = clusterNodes.map((node) => node.name).join(', ');
     } else {
       moduleInfo.relatedClusterCount = 0;
+      moduleInfo.relatedClusterList = [];
       moduleInfo.relatedClusters = '';
     }
   };
@@ -295,22 +332,12 @@
 </style>
 
 <style lang="less">
-  .related-clusters-tooltip {
-    padding: 8px 0;
-    background-color: #333;
-    color: #fff;
-    border-radius: 2px;
-    box-shadow: 0 2px 6px 0 rgba(0, 0, 0, 0.2);
+  .alert-link {
+    color: #3a84ff;
+    cursor: pointer;
 
-    .related-clusters-list {
-      max-height: 240px;
-      overflow-y: auto;
-      padding: 0 12px;
-    }
-
-    .related-cluster-item {
-      line-height: 28px;
-      color: #fff;
+    &:hover {
+      color: #699df4;
     }
   }
 </style>

@@ -45,6 +45,12 @@ export type TreeState = {
   selected?: TreeData;
 };
 
+/** 关联集群信息 */
+export interface RelatedCluster {
+  id: number;
+  name: string;
+}
+
 /** 模块信息类型定义 */
 export interface ModuleInfo {
   bufferPercent?: string; // 内存分片比率 (SqlServer)
@@ -53,7 +59,8 @@ export interface ModuleInfo {
   moduleId: number;
   moduleName: string;
   relatedClusterCount: number;
-  relatedClusters: string;
+  relatedClusterList: RelatedCluster[]; // 关联集群列表（包含 ID 和名称）
+  relatedClusters: string; // 关联集群名称（逗号分隔，兼容旧逻辑）
   spiderVersion?: string; // 接入层版本 (TenDBCluster)
   syncType?: string; // 主从方式 (SqlServer)
   systemVersion?: string; // 操作系统版本 (SqlServer)

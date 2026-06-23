@@ -21,9 +21,13 @@
             class="mb-16"
             closable
             theme="info"
-            :title="t('业务配置参数说明')" />
+            :title="
+              t(
+                '参数值默认继承自平台配置；平台配置更新时，未自定义的参数值会自动同步。修改后将转为「自定义」，不再随平台配置更新。可通过「恢复默认」重新继承平台配置。',
+              )
+            " />
           <ParamTable
-            :cluster-type="clusterType"
+            :cluster-type="namespace"
             :conf-type="confType"
             :config-name="configName"
             :level-info="levelParams.level_info"
@@ -86,17 +90,9 @@
   };
 
   const configTypeName = ref('');
+  const namespace = ref('');
 
   const configName = computed(() => detailData.value.name || '');
-
-  // 获取 confType 对应的显示名称
-  useRequest(getListConfTypes, {
-    defaultParams: [{ meta_cluster_type: clusterType }],
-    onSuccess(res) {
-      const matched = res.find((item) => item.conf_type === confType);
-      configTypeName.value = matched?.name || '--';
-    },
-  });
 
   type LevelConfigResult = ServiceReturnType<typeof getLevelConfig>;
 
@@ -109,16 +105,26 @@
     conf_type: confType,
     level_name: ConfLevels.APP,
     level_value: window.PROJECT_CONFIG.BIZ_ID,
-    meta_cluster_type: clusterType,
+    meta_cluster_type: namespace.value,
     version,
     ...levelParams.value,
   }));
 
   /** 获取配置详情 */
   const { run: fetchDetail } = useRequest(getLevelConfig, {
-    defaultParams: [fetchParams.value, { permission: 'page' }],
+    manual: true,
     onSuccess(res) {
       detailData.value = res;
+    },
+  });
+
+  // 获取 confType 对应的显示名称
+  useRequest(getListConfTypes, {
+    defaultParams: [{ meta_cluster_type: clusterType }],
+    onSuccess(res) {
+      const matched = res.find((item) => item.conf_type === confType);
+      configTypeName.value = matched?.name || '--';
+      namespace.value = matched?.namespace === 'cluster_type' ? clusterType : matched!.namespace;
     },
   });
 
@@ -126,6 +132,12 @@
   const handleParamChange = () => {
     fetchDetail(fetchParams.value, { permission: 'page' });
   };
+
+  watch(namespace, (value) => {
+    if (value) {
+      handleParamChange();
+    }
+  });
 
   defineExpose({
     routerBack() {
