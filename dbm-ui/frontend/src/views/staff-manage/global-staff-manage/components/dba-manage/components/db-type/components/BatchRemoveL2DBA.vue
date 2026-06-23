@@ -110,17 +110,12 @@
     return props.selected
       .filter((item) => item.users.length > 0)
       .flatMap((selectedItem) => {
-        return [
-          selectedItem.primary_dba ? [selectedItem.primary_dba] : [],
-          selectedItem.standby_dba ? [selectedItem.standby_dba] : [],
-          selectedItem.level2_dba,
-        ].map((item, index) => ({
-          after: index < 2 ? item : item.filter((userItem) => !removeUsersMap[userItem]),
+        return [selectedItem.level2_dba].map((item) => ({
+          after: item.filter((userItem) => !removeUsersMap[userItem]),
           before: item,
           bizId: selectedItem.bk_biz_id,
           bizName: selectedItem.name,
           isChanged: false,
-          isReadonly: index < 2,
           rowKey: random(),
           users: selectedItem.users,
         }));
@@ -150,17 +145,12 @@
 
   const handleConfirm = () => {
     formRef.value!.validate().then(() => {
-      const groupInfo = _.groupBy(diffData.value, (item) => item.bizId);
-      const updateInfo = Object.entries(groupInfo)
-        .filter(([_bizId, rows]) => rows.some((rowItem) => rowItem.isChanged))
-        .map(([bizId, rows]) => {
-          const level2DBARow = rows.find((row) => !row.isReadonly)!;
-
+      const updateInfo = diffData.value
+        .filter((rowItem) => rowItem.isChanged)
+        .map((rowItem) => {
           return {
-            bk_biz_id: Number(bizId),
-            db_admins: [
-              { db_type: props.dbType as DBTypes, users: level2DBARow.users.slice(0, 2).concat(level2DBARow.after) },
-            ],
+            bk_biz_id: Number(rowItem.bizId),
+            db_admins: [{ db_type: props.dbType as DBTypes, users: rowItem.users.slice(0, 2).concat(rowItem.after) }],
           };
         });
       const params = {

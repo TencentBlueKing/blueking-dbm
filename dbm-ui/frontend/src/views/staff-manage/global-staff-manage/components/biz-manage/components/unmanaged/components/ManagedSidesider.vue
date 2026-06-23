@@ -40,16 +40,12 @@
           <BkAlert class="mt-8">
             <template #title>
               <div>
-                {{
-                  t(
-                    '为该业务配置各组件类型的 DBA 负责人。不强制全部填写——未配置的组件将保持"待分配"状态，使用组件默认 DBA 兜底。',
-                  )
-                }}
+                {{ t('为各 DB 组件配置 DBA。未配置的组件沿用该组件默认 DBA。主、备 DBA 必须同时填写。') }}
               </div>
-              <div>
+              <!-- <div>
                 <span class="alert-bord">{{ t('注意：') }}</span>
                 {{ t('单个组件如填写了任一角色，则主 DBA、备 DBA 必填，二线 DBA 可选。') }}
-              </div>
+              </div> -->
             </template>
           </BkAlert>
           <PrimaryTable

@@ -40,6 +40,7 @@
                 <span class="ml-4">{{ row.db_type_display }}</span>
                 <BkButton
                   v-if="row.users.length > 0 || defaultAdminsDataMap[row.db_type as DBTypes].users.length > 0"
+                  v-bk-tooltips="t('复制该行所有DBA')"
                   class="copy-btn"
                   text
                   theme="primary"
@@ -89,26 +90,26 @@
               <template v-else>
                 <div v-if="row.primary_dba">
                   <span>{{ row.primary_dba }}（{{ userDataMap[row.primary_dba] }}）</span>
-                  <BkButton
+                  <!-- <BkButton
                     class="copy-btn"
                     text
                     theme="primary"
                     @click="() => handleCopy([row.primary_dba])">
                     <DbIcon type="copy" />
-                  </BkButton>
+                  </BkButton> -->
                 </div>
                 <template v-else>
                   <div v-if="defaultAdminsDataMap[row.db_type as DBTypes]?.users?.length">
                     <div class="fallback-dba">
                       <span class="allback-dba-value">{{ defaultAdminsDataMap[row.db_type as DBTypes].users[0] }}</span>
                       <span class="allback-dba-alert">（{{ t('兜底') }}）</span>
-                      <BkButton
+                      <!-- <BkButton
                         class="copy-btn"
                         text
                         theme="primary"
                         @click="() => handleCopy([defaultAdminsDataMap[row.db_type as DBTypes].users[0]])">
                         <DbIcon type="copy" />
-                      </BkButton>
+                      </BkButton> -->
                     </div>
                   </div>
                   <span v-else>--</span>
@@ -156,26 +157,26 @@
               <template v-else>
                 <div v-if="row.standby_dba">
                   <span>{{ row.standby_dba }}（{{ userDataMap[row.standby_dba] }}）</span>
-                  <BkButton
+                  <!-- <BkButton
                     class="copy-btn"
                     text
                     theme="primary"
                     @click="() => handleCopy([row.standby_dba])">
                     <DbIcon type="copy" />
-                  </BkButton>
+                  </BkButton> -->
                 </div>
                 <template v-else>
                   <div v-if="defaultAdminsDataMap[row.db_type as DBTypes]?.users?.length">
                     <div class="fallback-dba">
                       <span class="allback-dba-value">{{ defaultAdminsDataMap[row.db_type as DBTypes].users[0] }}</span>
                       <span class="allback-dba-alert">（{{ t('兜底') }}）</span>
-                      <BkButton
+                      <!-- <BkButton
                         class="copy-btn"
                         text
                         theme="primary"
                         @click="() => handleCopy([defaultAdminsDataMap[row.db_type as DBTypes].users[0]])">
                         <DbIcon type="copy" />
-                      </BkButton>
+                      </BkButton> -->
                     </div>
                   </div>
                   <span v-else>--</span>
@@ -213,7 +214,6 @@
                   <div v-if="row.level2_dba.length > 0">
                     <TagBlock
                       :copy-data="row.level2_dba"
-                      copyenable
                       :data="row.level2_dba.map((item) => `${item}（${userDataMap[item]}）`)" />
                   </div>
                   <span v-else>--</span>
@@ -223,13 +223,13 @@
                     <div class="fallback-dba">
                       <span class="allback-dba-value">{{ defaultAdminsDataMap[row.db_type as DBTypes].users[0] }}</span>
                       <span class="allback-dba-alert">（{{ t('兜底') }}）</span>
-                      <BkButton
+                      <!-- <BkButton
                         class="copy-btn"
                         text
                         theme="primary"
                         @click="() => handleCopy([defaultAdminsDataMap[row.db_type as DBTypes].users[0]])">
                         <DbIcon type="copy" />
-                      </BkButton>
+                      </BkButton> -->
                     </div>
                   </div>
                   <span v-else>--</span>
@@ -345,7 +345,7 @@
 
   import BatchEdit from '@views/staff-manage/common/BatchEdit.vue';
 
-  import { execCopy, getOffset, messageSuccess, messageWarn, utcDisplayTime } from '@utils';
+  import { execCopy, getOffset, messageSuccess, utcDisplayTime } from '@utils';
 
   interface Props {
     data: ServiceReturnType<typeof getAdmins>;
@@ -603,18 +603,18 @@
     }
   };
 
-  const handleCopy = (userList: string[]) => {
-    if (userList.length < 1) {
-      messageWarn(t('没有可复制 DBA'));
-      return;
-    }
-    execCopy(
-      userList.join('\n'),
-      t('复制成功，共n条', {
-        n: userList.length,
-      }),
-    );
-  };
+  // const handleCopy = (userList: string[]) => {
+  //   if (userList.length < 1) {
+  //     messageWarn(t('没有可复制 DBA'));
+  //     return;
+  //   }
+  //   execCopy(
+  //     userList.join('\n'),
+  //     t('复制成功，共n条', {
+  //       n: userList.length,
+  //     }),
+  //   );
+  // };
 
   const setTableMaxHeight = () => {
     nextTick(() => {

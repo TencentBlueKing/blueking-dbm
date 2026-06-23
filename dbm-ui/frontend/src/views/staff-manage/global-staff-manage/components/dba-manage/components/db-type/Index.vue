@@ -91,6 +91,7 @@
                 {{ row.bk_biz_id }}
                 <BkButton
                   v-if="row.isAssigned || defaultUserData"
+                  v-bk-tooltips="t('复制该行所有DBA')"
                   class="copy-btn"
                   text
                   theme="primary"
@@ -108,6 +109,9 @@
               col-key="english_name"
               :title="t('业务代号')"
               width="160">
+              <template #default="{ row }: { row: BizDbaModel }">
+                {{ row.english_name || '--' }}
+              </template>
             </TableColumn>
             <TableColumn
               col-key="tags"
@@ -154,26 +158,26 @@
                   <TextOverflowLayout v-if="row.primary_dba">
                     <span>{{ row.primary_dba }}（{{ userDataMap[row.primary_dba] }}）</span>
                     <template #append>
-                      <BkButton
+                      <!-- <BkButton
                         class="copy-btn"
                         text
                         theme="primary"
                         @click="() => handleCopy([row.primary_dba])">
                         <DbIcon type="copy" />
-                      </BkButton>
+                      </BkButton> -->
                     </template>
                   </TextOverflowLayout>
                   <template v-else-if="defaultUserData.username">
                     <div class="fallback-dba">
                       <span class="allback-dba-value">{{ defaultUserData.displayText }}</span>
                       <span class="allback-dba-alert">（{{ t('兜底') }}）</span>
-                      <BkButton
+                      <!-- <BkButton
                         class="copy-btn"
                         text
                         theme="primary"
                         @click="() => handleCopy([defaultUserData.username])">
                         <DbIcon type="copy" />
-                      </BkButton>
+                      </BkButton> -->
                     </div>
                   </template>
                   <span v-else>--</span>
@@ -214,26 +218,26 @@
                   <TextOverflowLayout v-if="row.standby_dba">
                     <span>{{ row.standby_dba }}（{{ userDataMap[row.standby_dba] }}）</span>
                     <template #append>
-                      <BkButton
+                      <!-- <BkButton
                         class="copy-btn"
                         text
                         theme="primary"
                         @click="() => handleCopy([row.standby_dba])">
                         <DbIcon type="copy" />
-                      </BkButton>
+                      </BkButton> -->
                     </template>
                   </TextOverflowLayout>
                   <template v-else-if="defaultUserData.username">
                     <div class="fallback-dba">
                       <span class="allback-dba-value">{{ defaultUserData.displayText }}</span>
                       <span class="allback-dba-alert">（{{ t('兜底') }}）</span>
-                      <BkButton
+                      <!-- <BkButton
                         class="copy-btn"
                         text
                         theme="primary"
                         @click="() => handleCopy([defaultUserData.username])">
                         <DbIcon type="copy" />
-                      </BkButton>
+                      </BkButton> -->
                     </div>
                   </template>
                   <span v-else>--</span>
@@ -268,7 +272,6 @@
                     <template v-if="row.level2_dba.length > 0">
                       <TagBlock
                         :copy-data="row.level2_dba"
-                        copyenable
                         :data="row.level2_dba.map((item) => `${item}（${userDataMap[item]}）`)" />
                     </template>
                     <span v-else>--</span>
@@ -278,13 +281,13 @@
                       <div class="fallback-dba">
                         <span class="allback-dba-value">{{ defaultUserData.displayText }}</span>
                         <span class="allback-dba-alert">（{{ t('兜底') }}）</span>
-                        <BkButton
+                        <!-- <BkButton
                           class="copy-btn"
                           text
                           theme="primary"
                           @click="() => handleCopy([defaultUserData.username])">
                           <DbIcon type="copy" />
-                        </BkButton>
+                        </BkButton> -->
                       </div>
                     </template>
                     <span v-else>--</span>
@@ -418,7 +421,7 @@
 
   import { usePagination } from '@views/staff-manage/common/use-pagination.ts';
 
-  import { execCopy, getOffset, messageSuccess, messageWarn } from '@utils';
+  import { execCopy, getOffset, messageSuccess } from '@utils';
 
   import BizDbaModel from './bizDba';
   import BatchAppendL2DBA from './components/BatchAppendL2DBA.vue';
@@ -708,18 +711,18 @@
     }
   };
 
-  const handleCopy = (userList: string[]) => {
-    if (userList.length < 1) {
-      messageWarn(t('没有可复制 DBA'));
-      return;
-    }
-    execCopy(
-      userList.join('\n'),
-      t('复制成功，共n条', {
-        n: userList.length,
-      }),
-    );
-  };
+  // const handleCopy = (userList: string[]) => {
+  //   if (userList.length < 1) {
+  //     messageWarn(t('没有可复制 DBA'));
+  //     return;
+  //   }
+  //   execCopy(
+  //     userList.join('\n'),
+  //     t('复制成功，共n条', {
+  //       n: userList.length,
+  //     }),
+  //   );
+  // };
 
   onMounted(() => {
     fetchData();

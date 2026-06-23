@@ -21,8 +21,7 @@
       class="diff-table mt-12"
       :data="data"
       :row-class-name="rowClassName"
-      row-key="rowKey"
-      :rowspan-and-colspan="rowspanAndColspan">
+      row-key="rowKey">
       <TableColumn
         col-key="bizName"
         :title="t('业务')">
@@ -65,7 +64,7 @@
                 </div>
               </div>
               <BkTag
-                v-if="!row.isReadonly && !row.isChanged"
+                v-if="!row.isChanged"
                 class="ml-4"
                 size="small">
                 {{ t('无变化') }}
@@ -88,7 +87,6 @@
     bizId: number;
     bizName: string;
     isChanged: boolean;
-    isReadonly: boolean;
     rowKey: string;
     users: string[];
   }
@@ -106,20 +104,11 @@
   const rowClassName = ({ row }: { row: IDataRow; rowIndex: number }) => {
     const classList: string[] = [];
 
-    if (!row.isReadonly && row.isChanged) {
+    if (row.isChanged) {
       classList.push('changed-row');
     }
 
     return classList.join(' ');
-  };
-
-  const rowspanAndColspan = ({ colIndex, rowIndex }: { colIndex: number; rowIndex: number }) => {
-    if (colIndex === 0 && rowIndex % 3 === 0) {
-      return {
-        rowspan: 3,
-      };
-    }
-    return {};
   };
 </script>
 
