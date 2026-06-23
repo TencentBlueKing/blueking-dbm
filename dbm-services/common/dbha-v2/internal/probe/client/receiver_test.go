@@ -27,10 +27,12 @@ package client
 import (
 	"bytes"
 	"context"
+	"fmt"
 	"net"
 	"strings"
 	"sync"
 	"testing"
+	"time"
 
 	"dbm-services/common/dbha-v2/internal/probe/config"
 	"dbm-services/common/dbha-v2/pkg/logger"
@@ -245,4 +247,132 @@ func TestPostWithDisconnectedClient(t *testing.T) {
 		t.Fatal("expect a grpc error, got nil")
 	}
 	logger.Infof("failed to push data, errmsg: %v", postErr)
+}
+
+func TestRoundRobinBalancing(t *testing.T) {
+	ctx := context.Background()
+
+	srv1 := &fakeReceiverServer{}
+	srv2 := &fakeReceiverServer{}
+
+	addr1, stop1 := startFakeReceiverServer(t, srv1)
+	defer stop1()
+	addr2, stop2 := startFakeReceiverServer(t, srv2)
+	defer stop2()
+
+	endpoint := addr1 + ";" + addr2
+	cli, err := NewReceiverClient(ctx, endpoint, "test-client")
+	if err != nil {
+		t.Fatalf("new receiver client failed: %v", err)
+	}
+	defer cli.Close()
+
+	payload := []byte(`{"db_type":"mysql"}`)
+	total := 100
+
+	if err := waitUntilReady(t, cli, payload, 3*time.Second); err != nil {
+		t.Fatalf("client did not become ready: %v", err)
+	}
+
+	srv1.mu.Lock()
+	srv1.requests = srv1.requests[:0]
+	srv1.mu.Unlock()
+	srv2.mu.Lock()
+	srv2.requests = srv2.requests[:0]
+	srv2.mu.Unlock()
+
+	for i := range total {
+		if err := cli.Post(ctx, payload); err != nil {
+			t.Fatalf("post[%d] failed: %v", i, err)
+		}
+	}
+
+	srv1.mu.Lock()
+	count1 := len(srv1.requests)
+	srv1.mu.Unlock()
+	srv2.mu.Lock()
+	count2 := len(srv2.requests)
+	srv2.mu.Unlock()
+
+	if count1+count2 != total {
+		t.Fatalf("total received = %d, want %d", count1+count2, total)
+	}
+
+	tolerance := 2
+	diff := count1 - count2
+	if diff < 0 {
+		diff = -diff
+	}
+	if diff > tolerance {
+		t.Fatalf("uneven distribution: srv1=%d srv2=%d (diff=%d, tolerance=%d)",
+			count1, count2, diff, tolerance)
+	}
+	t.Logf("round_robin distribution: srv1=%d srv2=%d (total=%d)", count1, count2, count1+count2)
+}
+
+func TestFailoverToHealthyReceiver(t *testing.T) {
+	ctx := context.Background()
+
+	srv := &fakeReceiverServer{}
+	addr, stop := startFakeReceiverServer(t, srv)
+	defer stop()
+
+	deadAddr := unusedLocalAddr(t)
+
+	endpoint := deadAddr + ";" + addr
+	cli, err := NewReceiverClient(ctx, endpoint, "test-client")
+	if err != nil {
+		t.Fatalf("new receiver client failed: %v", err)
+	}
+	defer cli.Close()
+
+	payload := []byte(`{"db_type":"mysql"}`)
+	total := 20
+
+	if err := waitUntilReady(t, cli, payload, 5*time.Second); err != nil {
+		t.Fatalf("client did not become ready: %v", err)
+	}
+
+	srv.mu.Lock()
+	srv.requests = srv.requests[:0]
+	srv.mu.Unlock()
+
+	for i := range total {
+		if err := cli.Post(ctx, payload); err != nil {
+			t.Fatalf("post[%d] failed: %v", i, err)
+		}
+	}
+
+	srv.mu.Lock()
+	count := len(srv.requests)
+	srv.mu.Unlock()
+
+	if count != total {
+		t.Fatalf("healthy receiver got %d requests, want %d", count, total)
+	}
+	t.Logf("failover ok: all %d requests routed to healthy receiver", count)
+}
+
+func waitUntilReady(t *testing.T, cli *ReceiverClient, payload []byte, timeout time.Duration) error {
+	t.Helper()
+	deadline := time.Now().Add(timeout)
+	ctx := context.Background()
+	for time.Now().Before(deadline) {
+		if err := cli.Post(ctx, payload); err == nil {
+			return nil
+		}
+		time.Sleep(100 * time.Millisecond)
+	}
+	return fmt.Errorf("client not ready after %s", timeout)
+}
+
+func unusedLocalAddr(t *testing.T) string {
+	t.Helper()
+	l, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatalf("failed to find unused port: %v", err)
+	}
+	addr := l.Addr().String()
+	l.Close()
+	return addr
 }
