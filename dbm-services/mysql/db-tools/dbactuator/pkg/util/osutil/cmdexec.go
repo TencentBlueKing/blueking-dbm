@@ -10,6 +10,7 @@ import (
 	"strings"
 	"sync"
 
+	"dbm-services/common/go-pubpkg/cmutil"
 	"dbm-services/common/go-pubpkg/logger"
 
 	"github.com/pkg/errors"
@@ -144,9 +145,19 @@ func ExecShellCommand(isSudo bool, param string) (stdoutStr string, err error) {
 		return stderr.String(), errors.WithMessage(err, stderr.String())
 	}
 
-	if len(stderr.String()) > 0 {
-		err = fmt.Errorf("execute shell command(%s) has stderr:%s", param, stderr.String())
-		return stderr.String(), err
+	// exclude some error
+	stderrLines := strings.Split(stderr.String(), "\n")
+	for i, line := range stderrLines {
+		// tar: xxx.sql.err: time stamp 2026-06-23 05:44:35 is 511.497895371 s in the future
+		if strings.Contains(line, " in the future") {
+			stderrLines[i] = ""
+		}
+	}
+	stderrLines = cmutil.RemoveEmpty(stderrLines)
+	stderrStr := strings.Join(stderrLines, "\n")
+	if len(stderrStr) > 0 {
+		err = fmt.Errorf("execute shell command(%s) has stderr:%s", param, stderrStr)
+		return stderrStr, err
 	}
 	return stdout.String(), nil
 }

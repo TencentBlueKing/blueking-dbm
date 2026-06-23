@@ -376,6 +376,21 @@ class AlarmCallBackDataSerializer(serializers.Serializer):
         return data
 
 
+class MySQLAlarmCallbackDataSerializer(serializers.Serializer):
+    """
+    告警回调数据（处理套餐），不含故障自愈的 NEED_AUTOFIX 校验逻辑
+    """
+
+    class CallBackMessageSerializer(serializers.Serializer):
+        event = serializers.DictField(help_text=_("告警事件"))
+        strategy = serializers.DictField(help_text=_("监控策略"))
+        latest_anomaly_record = serializers.DictField(help_text=_("最新异常点信息"))
+        labels = serializers.ListSerializer(help_text=_("标签"), child=serializers.CharField(), required=False)
+
+    appointees = serializers.CharField(help_text=_("告警负责人"))
+    callback_message = CallBackMessageSerializer(help_text=_("回调消息体"))
+
+
 class ListAlertSerializer(serializers.Serializer):
     bk_biz_id = serializers.IntegerField(help_text=_("业务ID"), required=False)
     self_manage = serializers.BooleanField(help_text=_("是否待我处理"), default=False)
