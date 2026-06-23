@@ -41,7 +41,7 @@ class DBAdminViewSet(viewsets.SystemViewSet):
     def _get_custom_permissions(self):
         if self.action in ["list_admins", "get_dba_component", "app_operate_log"]:
             return []
-        if not int(self.request.data.get("bk_biz_id", 0)):
+        if self.action in ["upsert_global_admins"]:
             return [GlobalDBAPermission([ActionEnum.GLOBAL_DBA_ADMINISTRATOR_EDIT])]
         else:
             return [BizDBAPermission([ActionEnum.DBA_ADMINISTRATOR_EDIT])]
@@ -71,14 +71,20 @@ class DBAdminViewSet(viewsets.SystemViewSet):
             )
         return Response(db_admins)
 
-    @common_swagger_auto_schema(operation_summary=_("更新DBA人员"), tags=[SWAGGER_TAG])
+    @common_swagger_auto_schema(operation_summary=_("更新业务DBA人员"), tags=[SWAGGER_TAG])
     @action(methods=["POST"], detail=False, serializer_class=UpsertDBAdminSerializer)
     def upsert_admins(self, request, *args, **kwargs):
         username = request.user.username
         validated_data = self.params_validate(self.get_serializer_class())
         validated_data["username"] = username
-        # bk_biz_id = validated_data["bk_biz_id"]
-        # db_admins = validated_data["db_admins"]
+        return Response(DBAdministratorHandler.upsert_biz_admins(**validated_data))
+
+    @common_swagger_auto_schema(operation_summary=_("更新全局DBA人员"), tags=[SWAGGER_TAG])
+    @action(methods=["POST"], detail=False, serializer_class=UpsertDBAdminSerializer)
+    def upsert_global_admins(self, request, *args, **kwargs):
+        username = request.user.username
+        validated_data = self.params_validate(self.get_serializer_class())
+        validated_data["username"] = username
         return Response(DBAdministratorHandler.upsert_biz_admins(**validated_data))
 
     @common_swagger_auto_schema(operation_summary=_("获取DBA人员组件信息"), tags=[SWAGGER_TAG])
