@@ -9,11 +9,11 @@
         :key="tab.key"
         :label="tab.label"
         :name="tab.key">
-        <Managed
-          v-if="activeBizSubTab === 'managed'"
-          :key="activeBizSubTab" />
         <UnManaged
           v-if="activeBizSubTab === 'unmanaged'"
+          :key="activeBizSubTab" />
+        <Managed
+          v-if="activeBizSubTab === 'managed'"
           :key="activeBizSubTab" />
       </BkTabPanel>
     </BkTab>
@@ -29,11 +29,11 @@
   const { t } = useI18n();
 
   const bizSubTabs = [
-    { key: 'managed', label: t('已纳管') },
     { key: 'unmanaged', label: t('未纳管') },
+    { key: 'managed', label: t('已纳管') },
   ];
 
-  const activeBizSubTab = ref<'managed' | 'unmanaged'>('managed');
+  const activeBizSubTab = ref<'managed' | 'unmanaged'>('unmanaged');
 </script>
 
 <style lang="less">
