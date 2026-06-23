@@ -28,13 +28,14 @@
 <script setup lang="ts">
   import _ from 'lodash';
 
-  import { useFunController } from '@stores';
+  import { useFunController, useUserProfile } from '@stores';
 
-  import { DBTypeInfos, DBTypes } from '@common/const';
+  import { DBTypeInfos, DBTypes, UserPersonalSettings } from '@common/const';
 
   interface Props {
     exclude?: DBTypes[];
     labelConfig?: Record<DBTypes, string>;
+    topSort?: boolean;
   }
 
   interface TabItem {
@@ -52,12 +53,13 @@
   });
 
   const funControllerStore = useFunController();
+  const userProfileStore = useUserProfile();
 
   // 解决 labelConfig 变化后渲染样式异常问题
   const renderKey = ref(0);
 
-  const renderTabs = computed(() =>
-    Object.values(DBTypeInfos).reduce((result, item) => {
+  const renderTabs = computed(() => {
+    const renderList = Object.values(DBTypeInfos).reduce((result, item) => {
       const { id, moduleId, name } = item;
       const data = funControllerStore.funControllerData.getFlatData(moduleId);
       if (data[id] && !props.exclude.includes(id)) {
@@ -67,8 +69,24 @@
         });
       }
       return result;
-    }, [] as TabItem[]),
-  );
+    }, [] as TabItem[]);
+
+    if (props.topSort) {
+      const renderMap = Object.fromEntries(renderList.map((item) => [item.id, item]));
+      const topDbTypes: string[] = (
+        (userProfileStore.profile[UserPersonalSettings.TOP_DB_TYPES] || []) as string[]
+      ).filter((item) => renderMap[item]);
+
+      if (topDbTypes.length > 0) {
+        const topDbTypeMap = Object.fromEntries(topDbTypes.map((item) => [item, renderMap[item]]));
+        const topList = topDbTypes.map((topItem) => renderMap[topItem as DBTypes]);
+        const commonList = renderList.filter((item) => !topDbTypeMap[item.id]);
+        return topList.concat(commonList);
+      }
+    }
+
+    return renderList;
+  });
 
   watch(
     () => [props.exclude, props.labelConfig],
