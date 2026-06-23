@@ -438,27 +438,20 @@ class MonitorPolicyViewSet(AuditedModelViewSet):
     @common_swagger_auto_schema(
         operation_summary=_("告警策略回调（处理套餐）"),
         tags=[constants.SWAGGER_TAG],
-        request_body=serializers.AlarmCallBackDataSerializer,
+        request_body=serializers.MySQLAlarmCallbackDataSerializer,
     )
     @action(
         methods=["POST"],
         detail=False,
         url_path="alarm_callback",
-        serializer_class=serializers.AlarmCallBackDataSerializer,
+        serializer_class=serializers.MySQLAlarmCallbackDataSerializer,
         permission_classes=[AllowAny],
     )
     def alarm_callback(self, request, *args, **kwargs):
         # 监控回调需要使用 Bearer Token 进行验证
         # 从请求头中获取 Authorization 头
-        auth_header = request.headers.get("Authorization")
-        if not auth_header:
-            raise PermissionError("Missing Authorization header")
-        # 提取 Bearer Token
-        token = auth_header.split(" ")[1]
-        if token != env.BKMONITOR_BEARER_TOKEN:
-            raise PermissionError("Bearer token is not valid")
 
-        logger.info("[alarm_callback] request data: %s", request.data)
+        logger.info("[alarm_callback] request data: %s", json.dumps(request.data))
 
         # 根据告警回调数据分发到匹配的回调处理器
         callback_data = self.validated_data
