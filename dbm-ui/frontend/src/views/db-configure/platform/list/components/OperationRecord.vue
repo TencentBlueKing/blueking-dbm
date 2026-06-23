@@ -222,7 +222,7 @@
   import { utcDisplayTime } from '@utils';
 
   interface Props {
-    clusterType: string;
+    namespace: string;
   }
 
   const props = defineProps<Props>();
@@ -402,12 +402,12 @@
   };
 
   const dataSource = async (params: { limit: number; offset: number }) => {
-    if (!props.clusterType) {
+    if (!props.namespace) {
       return { count: 0, results: [] };
     }
     const res = await getConfigNameChanges(
       {
-        namespace: props.clusterType,
+        namespace: props.namespace,
       },
       {
         permission: 'catch',
@@ -518,13 +518,14 @@
   });
 
   watch(
-    () => props.clusterType,
+    () => props.namespace,
     () => {
       nextTick(() => {
         tableRef.value?.fetchData({}, true);
       });
     },
   );
+
   const checkboxKeys = ['flag_visible', 'flag_readonly', 'need_restart', 'flag_encrypt'] as const;
 
   const getCheckboxValues = (image: ConfigNameChangeImage | undefined) => {

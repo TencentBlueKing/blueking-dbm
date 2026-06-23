@@ -180,7 +180,7 @@
                     </BkButton>
                     <BkPopConfirm
                       :cancel-text="t('取消')"
-                      :confirm-config="{ theme: 'danger' }"
+                      :confirm-config="dangerConfirmConfig"
                       :confirm-text="t('删除')"
                       :title="t('确认删除该参数？')"
                       trigger="click"
@@ -217,17 +217,18 @@
 
     <!-- 新增/编辑参数侧滑 -->
     <ParamFormSideslider
+      v-if="currentConfItem"
       ref="paramFormSliderRef"
-      :cluster-type="clusterType"
       :conf-name-type-map="confNameTypeMap"
       :conf-type="confType"
+      :namespace="currentConfItem!.namespace"
       :version="version"
       @success="fetchDetailData" />
   </ApplyPermissionCatch>
   <Teleport to="#dbContentTitleAppend">
     <div class="config-detail-header">
       <span class="config-detail-nav-title">
-        {{ configTypeName }}
+        {{ currentConfItem?.name }}
       </span>
       <BkTag theme="info">
         {{ clusterTypeInfos[clusterType]?.name || clusterType }}
@@ -248,7 +249,6 @@
   import type { Instance } from 'tippy.js';
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
-  import { useRouter } from 'vue-router';
 
   import {
     changeConfNames,
@@ -287,12 +287,17 @@
   const paramTableRef = ref<InstanceType<typeof DbTable>>();
   const paramFormSliderRef = ref<InstanceType<typeof ParamFormSideslider>>();
 
-  const configTypeName = ref('');
+  const currentConfItem = ref<ServiceReturnType<typeof getListConfTypes>[number]>();
   type DetailResult = ServiceReturnType<typeof getConfigBaseDetails>;
   const detailData = ref<Partial<DetailResult>>({});
   const allConfItems = ref<DetailResult['conf_items']>([]);
 
   const paramLoading = ref(false);
+
+  // 删除确认按钮配置（BkPopConfirm confirm-config 类型声明不完整，使用 as any 绕过）
+  const dangerConfirmConfig = {
+    theme: 'danger',
+  } as any;
 
   // 快速搜索
   const searchValue = ref<Record<string, any>>({});
@@ -388,8 +393,7 @@
   useRequest(getListConfTypes, {
     defaultParams: [{ meta_cluster_type: clusterType }],
     onSuccess(res) {
-      const matched = res.find((item) => item.conf_type === confType);
-      configTypeName.value = matched?.name || '--';
+      currentConfItem.value = res.find((item) => item.conf_type === confType);
     },
   });
 
@@ -405,11 +409,11 @@
   });
 
   const fetchDetailData = () => {
-    fetchDetail({ conf_type: confType, meta_cluster_type: clusterType, version: version }, { permission: 'catch' });
+    fetchDetail(
+      { conf_type: confType, meta_cluster_type: currentConfItem.value!.namespace, version: version },
+      { permission: 'catch' },
+    );
   };
-
-  // 初始加载详情数据（传入 permission: 'catch' 由 ApplyPermissionCatch 拦截无权限场景）
-  fetchDetailData();
 
   // 获取数据类型与约束类型联动选项
   useRequest(getListConfNameTypes, {
@@ -420,12 +424,23 @@
   });
 
   // 获取可选参数名
-  useRequest(getConfigNames, {
-    defaultParams: [{ conf_type: confType, meta_cluster_type: clusterType, version: version }],
+  const { run: fetchAvailableParams } = useRequest(getConfigNames, {
+    manual: true,
     onSuccess(res) {
       availableParams.value = res;
     },
   });
+
+  watch(
+    () => currentConfItem.value?.namespace,
+    (value) => {
+      if (value) {
+        // 初始加载详情数据（传入 permission: 'catch' 由 ApplyPermissionCatch 拦截无权限场景）
+        fetchDetailData();
+        fetchAvailableParams({ conf_type: confType, meta_cluster_type: value, version: version });
+      }
+    },
+  );
 
   // 表格数据源（前端分页 + 过滤）
   const paramDataSource = (params: { limit: number; offset: number }) => {
@@ -501,10 +516,10 @@
         },
       ],
       conf_type: confType,
-      meta_cluster_type: clusterType,
+      meta_cluster_type: currentConfItem.value!.namespace,
     });
     messageSuccess(t('删除成功'));
-    fetchDetail({ conf_type: confType, meta_cluster_type: clusterType, version: version });
+    fetchDetail({ conf_type: confType, meta_cluster_type: currentConfItem.value!.namespace, version: version });
   };
 
   /** 初始化描述 tippy 提示 */

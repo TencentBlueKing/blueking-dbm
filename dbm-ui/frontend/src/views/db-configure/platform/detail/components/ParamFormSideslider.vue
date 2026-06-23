@@ -229,12 +229,12 @@
   import { messageSuccess } from '@utils';
 
   interface Props {
-    /** 集群类型 */
-    clusterType: string;
     /** 数据类型 → 约束类型映射（来自 list_conf_name_types 接口） */
     confNameTypeMap: Record<string, string[]>;
     /** 配置类型，如 dbconf / proxyconf */
     confType: string;
+    /** sqlserver个别配置是sqlservercomm非集群类型 */
+    namespace: string;
     /** 版本号 */
     version: string;
   }
@@ -418,7 +418,7 @@
             conf_file: props.version,
             conf_name: value,
             conf_type: props.confType,
-            meta_cluster_type: props.clusterType,
+            meta_cluster_type: props.namespace,
           });
           if (res.exists) {
             return false;
@@ -511,7 +511,7 @@
           },
         ],
         conf_type: props.confType,
-        meta_cluster_type: props.clusterType,
+        meta_cluster_type: props.namespace,
       });
       isShowAddParam.value = false;
       messageSuccess(isEditMode.value ? t('编辑成功') : t('新增成功'));
