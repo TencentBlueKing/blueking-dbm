@@ -386,6 +386,7 @@ export function getListConfTypes(params: { limit?: number; meta_cluster_type: st
     {
       conf_type: string;
       name: string;
+      namespace: string;
     }[]
   >(`${path}/list_conf_types/`, params);
 }
@@ -405,6 +406,7 @@ export function getListClusterModuleConfFiles(params: {
       conf_file: string;
       conf_type: string;
       name: string;
+      namespace: string;
     }[]
   >(`${path}/list_cluster_module_conf_files/`, params);
 }

@@ -288,7 +288,6 @@
   export type ConfItem = {} & LevelConfigResult['conf_items'][number];
 
   export interface Props {
-    clusterType: string;
     /** 配置名称（用于保存时） */
     configName?: string;
     confType: string;
@@ -300,6 +299,7 @@
     levelName?: string;
     /** 层级值 */
     levelValue?: number;
+    namespace: string;
     /** 行唯一标识字段 */
     rowKey?: string;
     /** 是否支持行选择（批量编辑） */
@@ -466,7 +466,7 @@
     level_info: props.levelInfo,
     level_name: props.levelName as any,
     level_value: props.levelValue ?? globalBizsStore.currentBizId,
-    meta_cluster_type: props.clusterType,
+    meta_cluster_type: props.namespace,
     version: props.version,
   }));
 
@@ -567,14 +567,14 @@
 
   // 监听 version 变化重新获取数据
   watch(
-    () => props.version,
-    (version) => {
-      if (version) {
+    () => [props.namespace, props.version],
+    ([namespace, version]) => {
+      if (namespace && version) {
         fetchLevelConfig(fetchParams.value);
         fetchConfigNames({
           conf_type: props.confType,
-          meta_cluster_type: props.clusterType,
-          version: props.version,
+          meta_cluster_type: namespace,
+          version: version,
         });
       }
     },

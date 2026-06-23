@@ -27,7 +27,8 @@
       class="create-module-page db-scroll-y"
       :label-width="100"
       :model="formData"
-      :rules="rules">
+      :rules="rules"
+      :scroll-align-to-top="false">
       <!-- 模块信息 & 部署规格（紧凑布局） -->
       <div class="module-info-card">
         <FormItemWithHint
@@ -38,13 +39,16 @@
           property="alias_name"
           required
           :rules="rules.alias_name">
-          <BkInput
-            v-model="formData.alias_name"
-            class="module-name-input"
-            :maxlength="63"
-            :placeholder="t('请输入模块名')"
-            show-word-limit
-            @change="handleValidate" />
+          <div class="module-name-row">
+            <BkInput
+              v-model="formData.alias_name"
+              class="module-name-input"
+              :maxlength="63"
+              :placeholder="t('请输入模块名')"
+              show-word-limit
+              @change="handleValidate" />
+            <DomainPreview :module-name="formData.alias_name" />
+          </div>
         </FormItemWithHint>
         <!-- 数据库信息 -->
         <BkFormItem
@@ -170,8 +174,8 @@
             </template>
             <ParamTable
               :ref="(el: any) => setTableRef(tab.name, el)"
-              :cluster-type="clusterType"
               :conf-type="tab.conf_type"
+              :namespace="tab.namespace"
               :version="tab.conf_file" />
           </BkTabPanel>
         </BkTab>
@@ -228,6 +232,7 @@
 
   import { clusterTypeInfos, ClusterTypes, DBTypes } from '@common/const';
 
+  import DomainPreview from '@views/db-configure/components/DomainPreview.vue';
   import FormItemWithHint from '@views/db-configure/components/FormItemWithHint.vue';
   import { saveConfigureState } from '@views/db-configure/utils/configureState';
 
@@ -349,7 +354,7 @@
     onSuccess(res) {
       const rawConfTabs = res || [];
       if (formData.version) {
-        rawConfTabs[0] = { conf_file: formData.version, conf_type: 'dbconf', name: formData.version };
+        Object.assign(rawConfTabs[0], { conf_file: formData.version, conf_type: 'dbconf', name: formData.version });
       }
       confTabs.value = rawConfTabs;
       tabRenderKey.value = random();
@@ -526,8 +531,14 @@
     box-shadow: 0 2px 4px 0 rgba(25, 25, 41, 0.05);
   }
 
-  .module-name-input {
-    min-width: 844px;
+  .module-name-row {
+    display: flex;
+    align-items: center;
+
+    .module-name-input {
+      width: 420px;
+      flex-shrink: 0;
+    }
   }
 
   .db-config-row {
