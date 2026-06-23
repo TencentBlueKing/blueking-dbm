@@ -29,14 +29,15 @@
   import BkTab from 'bkui-vue/lib/tab';
   import { type ComponentProps } from 'vue-component-type-helpers';
 
-  import { useFunController } from '@stores';
+  import { useFunController, useUserProfile } from '@stores';
 
-  import { DBTypeInfos, DBTypes } from '@common/const';
+  import { DBTypeInfos, DBTypes, UserPersonalSettings } from '@common/const';
 
   interface Props {
     exclude?: DBTypes[];
     labelConfig?: Record<DBTypes, string>;
     suffixItems?: TabItem[];
+    topSort?: boolean;
     type?: ComponentProps<typeof BkTab>['type'];
   }
 
@@ -57,12 +58,13 @@
   });
 
   const funControllerStore = useFunController();
+  const userProfileStore = useUserProfile();
 
   // 解决 labelConfig 变化后渲染样式异常问题
   const renderKey = ref(0);
 
   const renderTabs = computed(() => {
-    const displayTabs = Object.values(DBTypeInfos).reduce((result, item) => {
+    const renderList = Object.values(DBTypeInfos).reduce((result, item) => {
       const { id, moduleId, name } = item;
       const data = funControllerStore.funControllerData.getFlatData(moduleId);
       if (data[id] && !props.exclude.includes(id)) {
@@ -74,7 +76,21 @@
       return result;
     }, [] as TabItem[]);
 
-    return displayTabs.concat(props.suffixItems);
+    if (props.topSort) {
+      const renderMap = Object.fromEntries(renderList.map((item) => [item.id, item]));
+      const topDbTypes: string[] = (
+        (userProfileStore.profile[UserPersonalSettings.TOP_DB_TYPES] || []) as string[]
+      ).filter((item) => renderMap[item]);
+
+      if (topDbTypes.length > 0) {
+        const topDbTypeMap = Object.fromEntries(topDbTypes.map((item) => [item, renderMap[item]]));
+        const topList = topDbTypes.map((topItem) => renderMap[topItem as DBTypes]);
+        const commonList = renderList.filter((item) => !topDbTypeMap[item.id]);
+        return topList.concat(commonList).concat(props.suffixItems);
+      }
+    }
+
+    return renderList.concat(props.suffixItems);
   });
 
   watch(
