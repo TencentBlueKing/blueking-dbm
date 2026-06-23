@@ -3510,6 +3510,9 @@ BEGIN
 			AND A.NAME <> 'MONITOR'
 			AND A.STATE = 0
 			AND A.IS_READ_ONLY = 0
+			-- Skip databases that are actually read-only (e.g. AlwaysOn secondary replica),
+			-- DBCC SHRINKFILE would fail on a read-only database.
+			AND DATABASEPROPERTYEX(A.NAME,'Updateability') = 'READ_WRITE'
 			AND A.DATABASE_ID = B.DATABASE_ID
 			AND B.TYPE = 1
 			AND B.SIZE*8/1024/1024 >= @SHRINK_SIZE

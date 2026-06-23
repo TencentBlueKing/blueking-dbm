@@ -665,34 +665,6 @@ func WriteInitSQLFile() ([]string, error) {
 	return dealFiles, nil
 }
 
-// WriteInitSQLFileV2 TODO
-// 把初始化的sql文件写入到本地, 导入专属
-func WriteInitSQLFileV2() ([]string, error) {
-	var dealFiles []string
-	sqls := []string{
-		staticembed.InitDBMMonitorFileV2Name,
-	}
-
-	for _, sqlFile := range sqls {
-		data, err := staticembed.SQLScript.ReadFile(sqlFile)
-		if err != nil {
-			logger.Error("read sql script failed %s", err.Error())
-			return nil, err
-		}
-		// tmpScriptName := fmt.Sprintf("%s\\%s", cst.BASE_DATA_PATH, sqlFile)
-		// 添加 UTF-8 BOM 字节序列
-		data = append([]byte{0xEF, 0xBB, 0xBF}, data...)
-
-		tmpScriptName := filepath.Join(cst.BASE_DATA_PATH, sqlFile)
-		if err = os.WriteFile(tmpScriptName, data, 0755); err != nil {
-			logger.Error("write sql script failed %s", err.Error())
-			return nil, err
-		}
-		dealFiles = append(dealFiles, tmpScriptName)
-	}
-	return dealFiles, nil
-}
-
 // ExecInitSQL 读取并执行自定义初始化sql的配置
 func (i *InstallSqlServerComp) ExecInitSQL() error {
 	if i.Params.InitSQL == "" {
