@@ -76,6 +76,8 @@ from backend.dbm_aiagent.mcp_tools.mysql.serializers.mysql_standardize_bill impo
 from backend.dbm_aiagent.mcp_tools.mysql.serializers.tdbctl_upgrade_bill import SubmitBillTdbctlUpgradeInputSerializer
 from backend.dbm_aiagent.mcp_tools.views import McpToolsViewSet
 from backend.flow.engine.bamboo.scene.common.builder import Builder
+from backend.flow.engine.bamboo.scene.mysql.clone_grants_from_file import mysql_clone_grants_from_file_subflow
+from backend.flow.engine.bamboo.scene.spider.clone_grants_from_file import spider_clone_grants_from_file_subflow
 from backend.iam_app.handlers.drf_perm.base import DBManagePermission
 from backend.iam_app.handlers.drf_perm.mcp import McpTicketToolPermission
 
@@ -547,18 +549,23 @@ class MySQLBillMcpToolsViewSet(McpToolsViewSet):
         }
 
         if m.cluster_type == ClusterType.TenDBHA:
-            from backend.flow.engine.bamboo.scene.mysql.clone_grants_from_file import clone_grants_from_file_subflow
+            p = mysql_clone_grants_from_file_subflow(
+                root_id=root_id,
+                data=copy.deepcopy(data),
+                bk_cloud_id=bk_cloud_id,
+                bk_biz_id=m.bk_biz_id,
+                source_address=source_address,
+                dest_addresses=dest_addresses,
+            )
         else:
-            from backend.flow.engine.bamboo.scene.spider.clone_grants_from_file import clone_grants_from_file_subflow
-
-        p = clone_grants_from_file_subflow(
-            root_id=root_id,
-            data=copy.deepcopy(data),
-            bk_cloud_id=bk_cloud_id,
-            bk_biz_id=m.bk_biz_id,
-            source_address=source_address,
-            dest_addresses=dest_addresses,
-        )
+            p = spider_clone_grants_from_file_subflow(
+                root_id=root_id,
+                data=copy.deepcopy(data),
+                bk_cloud_id=bk_cloud_id,
+                bk_biz_id=m.bk_biz_id,
+                source_address=source_address,
+                dest_addresses=dest_addresses,
+            )
 
         rp = Builder(root_id=root_id, data=copy.deepcopy(data), need_random_pass_cluster_ids=cluster_ids)
         rp.add_sub_pipeline(p)

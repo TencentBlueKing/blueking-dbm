@@ -7,6 +7,7 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+import copy
 from dataclasses import asdict
 
 from django.utils.crypto import get_random_string
@@ -14,20 +15,21 @@ from django.utils.translation import gettext as _
 
 from backend.configuration.constants import DBType
 from backend.constants import IP_PORT_DIVIDER
-from backend.db_meta.enums import ClusterEntryRole, ClusterType, InstanceStatus, MachineType, TenDBClusterSpiderRole
+from backend.db_meta.enums import ClusterEntryRole, ClusterType, InstanceStatus, TenDBClusterSpiderRole
 from backend.db_meta.models import Cluster, ProxyInstance
 from backend.flow.consts import AUTH_ADDRESS_DIVIDER, LONG_JOB_TIMEOUT, TDBCTL_USER, DnsOpType, PrivRole
 from backend.flow.engine.bamboo.scene.common.builder import SubBuilder
 from backend.flow.engine.bamboo.scene.common.download_file import add_db_actuator_download_to_pipeline
 from backend.flow.engine.bamboo.scene.common.entrys_manager import BuildEntrysManageSubflow
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
+from backend.flow.engine.bamboo.scene.mysql.clone_grants_from_file import mysql_clone_grants_from_file_subflow
 from backend.flow.engine.bamboo.scene.mysql.common.common_sub_flow import check_sub_flow, init_machine_sub_flow
+from backend.flow.engine.bamboo.scene.spider.clone_grants_from_file import spider_clone_grants_from_file_subflow
 from backend.flow.engine.bamboo.scene.spider.common.exceptions import AddSpiderNodeFailedException
 from backend.flow.plugins.components.collections.common.add_alarm_shield import AddAlarmShieldComponent
 from backend.flow.plugins.components.collections.common.delete_cc_service_instance import DelCCServiceInstComponent
 from backend.flow.plugins.components.collections.common.disable_alarm_shield import DisableAlarmShieldComponent
 from backend.flow.plugins.components.collections.mysql.clear_machine import SpiderRemoteClearMachineComponent
-from backend.flow.plugins.components.collections.mysql.clone_user import CloneUserComponent
 from backend.flow.plugins.components.collections.mysql.dns_manage import MySQLDnsManageComponent
 from backend.flow.plugins.components.collections.mysql.exec_actuator_script import ExecuteDBActuatorScriptComponent
 from backend.flow.plugins.components.collections.mysql.sync_master import SyncMasterComponent
@@ -50,7 +52,6 @@ from backend.flow.utils.mysql.mysql_act_dataclass import (
     DelServiceInstKwargs,
     DownloadMediaKwargs,
     ExecActuatorKwargs,
-    InstanceUserCloneKwargs,
     MysqlSyncMasterKwargs,
 )
 from backend.flow.utils.mysql.mysql_act_playload import MysqlActPayload
@@ -345,27 +346,18 @@ def add_spider_slaves_sub_flow(
                 )
             )
 
-        acts_list = []
-        for spider in add_spider_slaves:
-            acts_list.append(
-                {
-                    "act_name": _("克隆权限到spider节点[{}->{}]".format(tmp_spider.machine.ip, spider["ip"])),
-                    "act_component_code": CloneUserComponent.code,
-                    "kwargs": asdict(
-                        InstanceUserCloneKwargs(
-                            clone_data=[
-                                {
-                                    "source": tmp_spider.ip_port,
-                                    "target": f"{spider['ip']}{AUTH_ADDRESS_DIVIDER}{tmp_spider.port}",
-                                    "machine_type": MachineType.SPIDER.value,
-                                    "bk_cloud_id": cluster.bk_cloud_id,
-                                },
-                            ],
-                        )
-                    ),
-                }
+        sub_pipeline.add_sub_pipeline(
+            spider_clone_grants_from_file_subflow(
+                root_id=root_id,
+                data=copy.deepcopy(parent_global_data),
+                bk_cloud_id=cluster.bk_cloud_id,
+                bk_biz_id=cluster.bk_biz_id,
+                source_address=tmp_spider.ip_port,
+                dest_addresses=[
+                    f"{spider['ip']}{AUTH_ADDRESS_DIVIDER}{tmp_spider.port}" for spider in add_spider_slaves
+                ],
             )
-        sub_pipeline.add_parallel_acts(acts_list=acts_list)
+        )
 
     # 阶段7 添加从域名
     # 冷恢复场景：从域名摘除/重建由上层统一处理（Pre-Stage 摘除旧 IP；Stage 3 之后由元数据维护新映射），此处跳过
@@ -591,28 +583,27 @@ def add_spider_masters_sub_flow(
         )
 
     if is_clone_user:
-        # 阶段7 集群的业务账号信息克隆到新的spider实例上, 因为目前spider中控实例无法有克隆权限的操作，只能在这里做
-        acts_list = []
-        for spider in add_spider_masters:
-            acts_list.append(
-                {
-                    "act_name": _("克隆权限到spider节点[{}->{}]".format(tmp_spider.machine.ip, spider["ip"])),
-                    "act_component_code": CloneUserComponent.code,
-                    "kwargs": asdict(
-                        InstanceUserCloneKwargs(
-                            clone_data=[
-                                {
-                                    "source": tmp_spider.ip_port,
-                                    "target": f"{spider['ip']}{AUTH_ADDRESS_DIVIDER}{tmp_spider.port}",
-                                    "machine_type": MachineType.SPIDER.value,
-                                    "bk_cloud_id": cluster.bk_cloud_id,
-                                },
-                            ],
-                        )
-                    ),
-                }
+        if not tmp_spider:
+            raise AddSpiderNodeFailedException(
+                message=_(
+                    "[{}]构建流程失败，集群找不到相应角色[{}]的且running状态的spider实例作为权限克隆的来源，请检查集群".format(
+                        cluster.immute_domain, TenDBClusterSpiderRole.SPIDER_MASTER
+                    )
+                )
             )
-        sub_pipeline.add_parallel_acts(acts_list=acts_list)
+
+        sub_pipeline.add_sub_pipeline(
+            spider_clone_grants_from_file_subflow(
+                root_id=root_id,
+                data=copy.deepcopy(parent_global_data),
+                bk_cloud_id=cluster.bk_cloud_id,
+                bk_biz_id=cluster.bk_biz_id,
+                source_address=tmp_spider.ip_port,
+                dest_addresses=[
+                    f"{spider['ip']}{AUTH_ADDRESS_DIVIDER}{tmp_spider.port}" for spider in add_spider_masters
+                ],
+            )
+        )
 
     if not is_add_spider_mnt:
         # 阶段8 待添加中控实例建立主从数据同步关系
@@ -1063,30 +1054,30 @@ def remote_migrate_switch_sub_flow(
         )
     )
 
-    clone_data = []
+    clone_sub_pipes = []
     for tuple_info in migrate_tuples:
-        clone_data.append(
-            {
-                "source": f"{tuple_info['old_master']}",
-                "target": f"{tuple_info['new_master']}",
-                "machine_type": MachineType.REMOTE.value,
-                "bk_cloud_id": cluster.bk_cloud_id,
-            }
+        clone_sub_pipes.append(
+            mysql_clone_grants_from_file_subflow(
+                root_id=root_id,
+                data=copy.deepcopy(parent_global_data),
+                bk_cloud_id=cluster.bk_cloud_id,
+                bk_biz_id=cluster.bk_biz_id,
+                source_address=f"{tuple_info['old_master']}",
+                dest_addresses=[f"{tuple_info['new_master']}"],
+            )
         )
-        clone_data.append(
-            {
-                "source": f"{tuple_info['old_slave']}",
-                "target": f"{tuple_info['new_slave']}",
-                "machine_type": MachineType.REMOTE.value,
-                "bk_cloud_id": cluster.bk_cloud_id,
-            }
+        clone_sub_pipes.append(
+            mysql_clone_grants_from_file_subflow(
+                root_id=root_id,
+                data=copy.deepcopy(parent_global_data),
+                bk_cloud_id=cluster.bk_cloud_id,
+                bk_biz_id=cluster.bk_biz_id,
+                source_address=f"{tuple_info['old_slave']}",
+                dest_addresses=[f"{tuple_info['new_slave']}"],
+            )
         )
 
-    sub_pipeline.add_act(
-        act_name=_("克隆权限"),
-        act_component_code=CloneUserComponent.code,
-        kwargs=asdict(InstanceUserCloneKwargs(clone_data=clone_data)),
-    )
+    sub_pipeline.add_parallel_sub_pipeline(sub_flow_list=clone_sub_pipes)
 
     sub_pipeline.add_act(
         act_name=_("切换期间屏蔽新机器告警30分钟"),

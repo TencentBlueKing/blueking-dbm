@@ -40,7 +40,12 @@ def _fetch_metric_of_cluster_instances(
     query_builder.end_time = end_time_str
 
     domains_match_filter = "|".join(cluster_domains)
+    logger.info(f"cluster_domains: {cluster_domains}, domains_match_filter: {domains_match_filter}")
+
     res = []
+    if not cluster_domains:
+        return res
+
     try:
         result = _query_promql_metrics_with_roles(domains_match_filter, [], query_builder)
 

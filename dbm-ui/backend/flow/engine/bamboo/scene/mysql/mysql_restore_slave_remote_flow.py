@@ -25,7 +25,7 @@ from backend.db_package.models import Package
 from backend.flow.consts import MediumEnum
 from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
-from backend.flow.engine.bamboo.scene.mysql.clone_grants_from_file.subflow import clone_grants_from_file_subflow
+from backend.flow.engine.bamboo.scene.mysql.clone_grants_from_file.subflow import mysql_clone_grants_from_file_subflow
 from backend.flow.engine.bamboo.scene.mysql.common.cluster_entrys import get_tendb_ha_entry
 from backend.flow.engine.bamboo.scene.mysql.common.common_sub_flow import install_mysql_in_cluster_sub_flow
 from backend.flow.engine.bamboo.scene.mysql.common.get_master_config import get_instance_config
@@ -755,7 +755,7 @@ class MySQLRestoreSlaveRemoteFlow(object):
             #  克隆权限
             if master.is_stand_by:
                 tendb_migrate_pipeline.add_sub_pipeline(
-                    sub_flow=clone_grants_from_file_subflow(
+                    sub_flow=mysql_clone_grants_from_file_subflow(
                         root_id=self.root_id,
                         data=copy.deepcopy(self.data),
                         bk_cloud_id=cluster_model.bk_cloud_id,
