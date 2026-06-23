@@ -38,6 +38,15 @@ export default function getRoutes() {
           },
           component: () => import('@views/ai-chat/index/Index.vue'),
         },
+        {
+          path: 'share/:recordId',
+          name: 'AgentChatShare',
+          meta: {
+            fullscreen: true,
+            navName: '',
+          },
+          component: () => import('@views/ai-chat/share/Index.vue'),
+        },
       ],
     },
   ]);
