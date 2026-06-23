@@ -1,0 +1,18 @@
+{
+  "managedBy": "skill-manage",
+  "skillName": "skill-import-63b3f225-3572-452d-aa8e-53bd6cd9e977",
+  "sourceAgent": "agents",
+  "targetAgent": "cursor",
+  "installedAt": "2026-06-24T04:02:55.932Z",
+  "updatedAt": "2026-06-24T04:02:55.932Z",
+  "appVersion": "0.1.0",
+  "contentHash": "f741160b914549aea4369b249aa16fb619b5547743eaec4f0b52a8962e89de5d",
+  "files": {
+    "_meta.json": "56fb7f167484f71475e75387a58a1efc59db8d114180d5a1d9b91881debe53c1",
+    "SKILL.md": "35a0c26f4a793e7cf67fef57faf2be96ce467fe01684ec337bdf198c0ea9110e"
+  },
+  "snapshot": {
+    "_meta.json": "{\n  \"ownerId\": \"kn70pywhg0fyz996kpa8xj89s57yhv26\",\n  \"slug\": \"github\",\n  \"version\": \"1.0.0\",\n  \"publishedAt\": 1767545344344\n}",
+    "SKILL.md": "---\nname: github\ndescription: >-\n  Interact with GitHub using the `gh` CLI. Use `gh issue`, `gh pr`, `gh run`,\n  and `gh api` for issues, PRs, CI runs, and advanced queries.\n---\n\n# GitHub Skill\n\nUse the `gh` CLI to interact with GitHub. Always specify `--repo owner/repo` when not in a git directory, or use URLs directly.\n\n## Pull Requests\n\nCheck CI status on a PR:\n```bash\ngh pr checks 55 --repo owner/repo\n```\n\nList recent workflow runs:\n```bash\ngh run list --repo owner/repo --limit 10\n```\n\nView a run and see which steps failed:\n```bash\ngh run view <run-id> --repo owner/repo\n```\n\nView logs for failed steps only:\n```bash\ngh run view <run-id> --repo owner/repo --log-failed\n```\n\n## API for Advanced Queries\n\nThe `gh api` command is useful for accessing data not available through other subcommands.\n\nGet PR with specific fields:\n```bash\ngh api repos/owner/repo/pulls/55 --jq '.title, .state, .user.login'\n```\n\n## JSON Output\n\nMost commands support `--json` for structured output.  You can use `--jq` to filter:\n\n```bash\ngh issue list --repo owner/repo --json number,title --jq '.[] | \"\\(.number): \\(.title)\"'\n```\n"
+  }
+}
