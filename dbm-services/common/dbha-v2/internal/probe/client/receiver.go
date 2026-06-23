@@ -100,10 +100,10 @@ func NewReceiverClient(ctx context.Context, endpoint string, clientId string) (*
 	rs := manual.NewBuilderWithScheme(resolverScheme)
 	rs.InitialState(resolver.State{Addresses: addrs})
 
+	target := resolverScheme + ":///receiver"
 	serviceConfig := `{"loadBalancingPolicy":"` + loadBalancingPolicy + `"}`
 
-	conn, err := grpc.NewClient(
-		resolverScheme+":///receiver",
+	conn, err := grpc.NewClient(target,
 		grpc.WithResolvers(rs),
 		grpc.WithDefaultServiceConfig(serviceConfig),
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
