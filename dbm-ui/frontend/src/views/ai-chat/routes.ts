@@ -42,7 +42,8 @@ export default function getRoutes() {
           path: 'share/:recordId',
           name: 'AgentChatShare',
           meta: {
-            navName: t('DBA 智能助手内容分享'),
+            fullscreen: true,
+            navName: '',
           },
           component: () => import('@views/ai-chat/share/Index.vue'),
         },

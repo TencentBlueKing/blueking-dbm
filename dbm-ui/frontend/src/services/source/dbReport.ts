@@ -24,7 +24,7 @@ export function getReportShare(params: { record_id: string }) {
     content: string;
     create_at: string;
     creator: string;
-    format: string;
+    format: 'markdown' | 'html';
     report_id: string;
     summary: string;
     title: string;

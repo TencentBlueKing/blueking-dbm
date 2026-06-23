@@ -1,7 +1,15 @@
 <template>
+  <iframe
+    v-if="isHtml"
+    class="report-share-html-frame"
+    :srcdoc="htmlContent" />
   <div
+    v-else
     v-bk-xss-html="renderLogContent"
     class="report-share-markdowm-container" />
+  <Teleport to=".db-navigation-content-title">
+    {{ reportShare?.title || 'DBA 智能助手内容分享' }}
+  </Teleport>
 </template>
 <script setup lang="ts">
   import MarkdownIt from 'markdown-it';
@@ -21,6 +29,11 @@
     ],
   });
 
+  // 完整的 html 页面通过 iframe 隔离渲染，避免与宿主页面样式冲突且保留 html/head/body 结构
+  const isHtml = computed(() => reportShare.value?.format === 'html');
+
+  const htmlContent = computed(() => reportShare.value?.content ?? '');
+
   const renderLogContent = computed(() => {
     if (!reportShare.value) {
       return '';
@@ -29,12 +42,19 @@
   });
 </script>
 <style lang="postcss">
+  .report-share-html-frame {
+    display: block;
+    width: 100%;
+    height: calc(100vh - 102px - var(--notice-height));
+    border: none;
+  }
+
   .report-share-markdowm-container {
     width: 800px;
     height: calc(100vh - 150px - var(--notice-height));
     max-width: 80%;
     padding: 16px 20px;
-    margin: 0 auto;
+    margin: 20px auto 0;
     overflow-y: auto;
     font-size: 12px;
     line-height: 1.68;
