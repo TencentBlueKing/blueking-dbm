@@ -25,7 +25,8 @@
       class="clone-module-page db-scroll-y"
       :label-width="100"
       :model="formData"
-      :rules="rules">
+      :rules="rules"
+      :scroll-align-to-top="false">
       <!-- 模块信息 -->
       <div class="module-info-card">
         <!-- 模块名称 -->
@@ -37,13 +38,16 @@
           property="alias_name"
           required
           :rules="rules.alias_name">
-          <BkInput
-            v-model="formData.alias_name"
-            class="module-name-input"
-            :maxlength="63"
-            :placeholder="t('请输入模块名')"
-            show-word-limit
-            @change="handleValidate" />
+          <div class="module-name-row">
+            <BkInput
+              v-model="formData.alias_name"
+              class="module-name-input"
+              :maxlength="63"
+              :placeholder="t('请输入模块名')"
+              show-word-limit
+              @change="handleValidate" />
+            <DomainPreview :module-name="formData.alias_name" />
+          </div>
         </FormItemWithHint>
         <!-- 数据库信息 -->
         <BkFormItem
@@ -187,18 +191,12 @@
               <ParamTable
                 v-if="tab.conf_type === 'dbconf'"
                 :ref="(el: any) => setTableRef(tab.conf_file, el)"
-                :cluster-type="clusterType"
-                :conf-type="tab.conf_type"
                 :deprecated-count="removedCount"
-                :version="tab.conf_file"
                 @deprecated-click="handleShowDeprecated" />
               <!-- 其他 Tab：层级配置模式，仅自定义过滤 -->
               <LevelConfigTable
                 v-else
-                :ref="(el: any) => setTableRef(tab.conf_file, el)"
-                :cluster-type="clusterType"
-                :conf-type="tab.conf_type"
-                :version="tab.conf_file" />
+                :ref="(el: any) => setTableRef(tab.conf_file, el)" />
             </BkTabPanel>
           </BkTab>
         </template>
@@ -294,6 +292,7 @@
 
   import DbTable from '@components/db-table/IndexNew.vue';
 
+  import DomainPreview from '@views/db-configure/components/DomainPreview.vue';
   import FormItemWithHint from '@views/db-configure/components/FormItemWithHint.vue';
   import { saveConfigureState } from '@views/db-configure/utils/configureState';
 
@@ -549,12 +548,12 @@
   /** 获取配置文件 Tab 列表 */
   const { run: fetchConfTabs } = useRequest(getListClusterModuleConfFiles, {
     manual: true,
-    onSuccess(rawConfTabs) {
-      const tabs = rawConfTabs || [];
+    onSuccess(res) {
+      const rawConfTabs = res || [];
       if (formData.version) {
-        tabs[0] = { conf_file: formData.version, conf_type: 'dbconf', name: formData.version };
+        Object.assign(rawConfTabs[0], { conf_file: formData.version, conf_type: 'dbconf', name: formData.version });
       }
-      confTabs.value = tabs;
+      confTabs.value = rawConfTabs;
       tabRenderKey.value = random();
     },
   });
@@ -769,8 +768,14 @@
     box-shadow: 0 2px 4px 0 rgba(25, 25, 41, 0.05);
   }
 
-  .module-name-input {
-    min-width: 844px;
+  .module-name-row {
+    display: flex;
+    align-items: center;
+
+    .module-name-input {
+      width: 420px;
+      flex-shrink: 0;
+    }
   }
 
   .db-config-row {

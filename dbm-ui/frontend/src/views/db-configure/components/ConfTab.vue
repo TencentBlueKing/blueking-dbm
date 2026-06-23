@@ -21,12 +21,15 @@
       :label="tab.name"
       :name="tab.conf_file"
       render-directive="if">
-      <slot :tab="tab" />
+      <slot
+        :namespace="namespace"
+        :tab="tab" />
     </BkTabPanel>
   </BkTab>
 </template>
 
 <script setup lang="ts">
+  import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
   import { useRoute, useRouter } from 'vue-router';
@@ -49,6 +52,8 @@
 
   const route = useRoute();
   const router = useRouter();
+
+  const namespace = ref('');
 
   const clusterType = computed(() => (route.params.clusterType as ClusterTypes) || ClusterTypes.TENDBSINGLE);
 
@@ -87,12 +92,14 @@
   const { run: fetchConfTabs } = useRequest(getListClusterModuleConfFiles, {
     manual: true,
     onSuccess(res) {
+      namespace.value = _.uniq(res.map((item) => item.namespace)).join(',');
       const base = res;
       if (props.showOperationRecordTab) {
         base.push({
           conf_file: 'operationRecord',
           conf_type: 'operationRecord',
           name: t('配置变更记录'),
+          namespace: 'operationRecord',
         });
       }
 
