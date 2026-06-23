@@ -668,13 +668,13 @@
 
   // 监听 version 变化重新获取数据
   watch(
-    () => props.version,
-    (version) => {
-      if (version) {
+    () => [props.clusterType, props.version],
+    ([clusterType, version]) => {
+      if (clusterType && version) {
         fetchLevelConfig(fetchParams.value);
         fetchConfigNames({
           conf_type: props.confType,
-          meta_cluster_type: props.clusterType,
+          meta_cluster_type: clusterType,
           version: props.version,
         });
       }

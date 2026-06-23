@@ -80,6 +80,7 @@
   interface Props {
     clusterType: string;
     confType: string;
+    namespace: string;
   }
 
   const props = defineProps<Props>();
@@ -97,7 +98,7 @@
     return getPlatformConfigList(
       {
         conf_type: props.confType,
-        meta_cluster_type: props.clusterType,
+        meta_cluster_type: props.namespace === 'cluster_type' ? props.clusterType : props.namespace,
       },
       { permission: 'catch' },
     ).then((res) => {

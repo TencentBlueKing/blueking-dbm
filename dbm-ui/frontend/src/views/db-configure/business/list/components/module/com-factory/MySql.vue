@@ -10,7 +10,9 @@
       <span class="module-info-label">{{ t('字符集') }}：</span>{{ moduleInfo.charset || '--' }}
     </span>
     <RelatedClusters
+      :cluster-type="clusterType"
       :related-cluster-count="moduleInfo.relatedClusterCount"
+      :related-cluster-list="moduleInfo.relatedClusterList"
       :related-clusters="moduleInfo.relatedClusters" />
   </div>
 </template>
@@ -20,11 +22,14 @@
 
   import type { ParameterConfigItem } from '@services/source/configs';
 
+  import { ClusterTypes } from '@common/const';
+
   import type { ModuleInfo } from '@views/db-configure/common/types';
 
   import RelatedClusters from '../components/RelatedClusters.vue';
 
   interface Props {
+    clusterType?: ClusterTypes;
     moduleInfo: ModuleInfo;
   }
 

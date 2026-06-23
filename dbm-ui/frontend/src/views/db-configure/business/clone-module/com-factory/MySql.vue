@@ -37,12 +37,16 @@
           property="alias_name"
           required
           :rules="rules.alias_name">
-          <BkInput
-            v-model="formData.alias_name"
-            :maxlength="63"
-            :placeholder="t('请输入模块名')"
-            show-word-limit
-            @change="handleValidate" />
+          <div class="module-name-row">
+            <BkInput
+              v-model="formData.alias_name"
+              class="module-name-input"
+              :maxlength="63"
+              :placeholder="t('请输入模块名')"
+              show-word-limit
+              @change="handleValidate" />
+            <DomainPreview :module-name="formData.alias_name" />
+          </div>
         </FormItemWithHint>
         <!-- 数据库信息 -->
         <BkFormItem
@@ -217,6 +221,7 @@
     type CloneModuleQueryResult,
     getLevelConfig,
     getListClusterModuleConfFiles,
+    getListConfTypes,
     moduleCloneQuery,
     saveModulesDeployInfo,
   } from '@services/source/configs';
@@ -227,6 +232,7 @@
 
   import DbTable from '@components/db-table/IndexNew.vue';
 
+  import DomainPreview from '@views/db-configure/components/DomainPreview.vue';
   import FormItemWithHint from '@views/db-configure/components/FormItemWithHint.vue';
   import { saveConfigureState } from '@views/db-configure/utils/configureState';
 
@@ -247,9 +253,19 @@
 
   const clusterType = ref(route.params.clusterType as ClusterTypes);
   const bizId = window.PROJECT_CONFIG.BIZ_ID;
+  const namespace = ref('');
 
   // 业务信息
   const bizInfo = computed(() => globalBizsStore.bizs.find((info) => info.bk_biz_id === bizId) || { name: '' });
+
+  // 获取 confType 对应的 namespace
+  useRequest(getListConfTypes, {
+    defaultParams: [{ meta_cluster_type: clusterType.value }],
+    onSuccess(res) {
+      const matched = res.find((item) => item.conf_type === 'deploy');
+      namespace.value = matched?.namespace === 'cluster_type' ? clusterType.value : matched!.namespace;
+    },
+  });
 
   const isSubmitting = ref(false);
   // 每个 confFile 对应一个 ParamTable 实例
@@ -431,12 +447,16 @@
   /** 获取配置文件 Tab 列表 */
   const { run: fetchConfTabs } = useRequest(getListClusterModuleConfFiles, {
     manual: true,
-    onSuccess(rawConfTabs) {
-      const tabs = rawConfTabs || [];
+    onSuccess(res) {
+      const rawConfTabs = res || [];
       if (formData.db_version) {
-        tabs[0] = { conf_file: formData.db_version, conf_type: 'dbconf', name: formData.db_version };
+        Object.assign(rawConfTabs[0], {
+          conf_file: formData.db_version,
+          conf_type: 'dbconf',
+          name: formData.db_version,
+        });
       }
-      confTabs.value = tabs;
+      confTabs.value = rawConfTabs;
       tabRenderKey.value = random();
     },
   });
@@ -570,7 +590,7 @@
         conf_type: 'deploy',
         level_name: 'module',
         level_value: createResult.db_module_id,
-        meta_cluster_type: clusterType.value,
+        meta_cluster_type: namespace.value,
         version: 'deploy_info',
       });
 
@@ -617,6 +637,16 @@
     background: #fff;
     border-radius: 2px;
     box-shadow: 0 2px 4px 0 rgb(25 25 41 / 5%);
+  }
+
+  .module-name-row {
+    display: flex;
+    align-items: center;
+
+    .module-name-input {
+      width: 371px;
+      flex-shrink: 0;
+    }
   }
 
   .db-config-row {
