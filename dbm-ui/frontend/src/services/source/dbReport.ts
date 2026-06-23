@@ -11,31 +11,23 @@
  * the specific language governing permissions and limitations under the License.
  */
 
-import { defineStore } from 'pinia';
-
-import { getSystemEnviron } from '@services/source/systemSettings';
-
-type Urls = ServiceReturnType<typeof getSystemEnviron>;
+import http from '../http';
 
 /**
- * 获取关联系统 url
+ * 查询 DBA 人员列表
  */
-export const useSystemEnviron = defineStore('SystemEnviron', {
-  state: (): { urls: Urls } => ({
-    urls: {} as Urls,
-  }),
-  actions: {
-    /**
-     * 查询环境变量信息
-     */
-    fetchSystemEnviron() {
-      getSystemEnviron().then((res) => {
-        this.urls = res;
-        this.urls.ENABLE_DBM_AI = true;
-      });
-    },
-    setSystemEnviron(payload: Urls) {
-      this.urls = payload;
-    },
-  },
-});
+export function getReportShare(params: { record_id: string }) {
+  return http.get<{
+    ai_agent: string;
+    bk_biz_id: number;
+    cluster_domain: string;
+    content: string;
+    create_at: string;
+    creator: string;
+    format: string;
+    report_id: string;
+    summary: string;
+    title: string;
+    update_at: string;
+  }>(`/db_report/share/${params.record_id}/`);
+}
