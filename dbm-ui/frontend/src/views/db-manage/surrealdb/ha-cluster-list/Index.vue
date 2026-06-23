@@ -132,7 +132,8 @@
               class="ml-4">
               <ClusterEntryPanel
                 :cluster-id="data.id"
-                entry-type="clb" />
+                entry-type="clb"
+                :show-content="false" />
             </div>
           </template>
         </MasterDomainColumn>

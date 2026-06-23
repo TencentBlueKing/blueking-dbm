@@ -61,11 +61,11 @@
             :cluster-type="ClusterTypes.K8S_SURREALDB_HA"
             :data="data"
             @refresh="fetchDetailData">
-            <template #clbMaster>
+            <!-- <template #clbMaster>
               <ClbInfo
                 :cluster-type="ClusterTypes.K8S_SURREALDB_HA"
                 :data="data" />
-            </template>
+            </template> -->
             <template #k8sClusterName>
               <K8SClusterName
                 :cluster-type="ClusterTypes.K8S_SURREALDB_HA"
@@ -115,7 +115,7 @@
   import {
     ActionPanel,
     BaseInfo,
-    BaseInfoField,
+    // BaseInfoField,
     DisplayBox,
     K8SClusterName,
     K8SInstanceList,
@@ -135,7 +135,7 @@
   const props = defineProps<Props>();
   const emits = defineEmits<Emits>();
 
-  const { ClbInfo } = BaseInfoField;
+  // const { ClbInfo } = BaseInfoField;
 
   const { t } = useI18n();
 

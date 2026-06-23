@@ -75,7 +75,9 @@
             </slot>
           </BkTabPanel>
         </slot>
-        <slot name="paramConfig">
+        <slot
+          v-if="!clusterType.includes('k8s')"
+          name="paramConfig">
           <BkTabPanel
             :key="clusterData.id"
             :label="t('参数配置')"
@@ -194,8 +196,8 @@
   import Instancelist from './components/InstanceList.vue';
   import K8SOperationRecord from './components/k8s-operation-record/Index.vue';
   import MonitorDashboard from './components/MonitorDashboard.vue';
-  import TicketRecord from './components/TicketRecord.vue';
   import ParamConfig from './components/ParamConfig.vue';
+  import TicketRecord from './components/TicketRecord.vue';
   import {
     URL_CLUSTER_DETAIL_MEMO_KEY,
     URL_HOST_MEMO_KEY,
@@ -218,8 +220,8 @@
     infoContent: () => VNode;
     instance: () => VNode;
     instanceContent: () => VNode;
-    paramConfig: () => VNode;
     operation: () => VNode;
+    paramConfig: () => VNode;
     record: () => VNode;
     topo: () => VNode;
   }
