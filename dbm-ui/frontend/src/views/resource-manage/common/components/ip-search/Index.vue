@@ -85,7 +85,7 @@
     modelValue.value = parsedValue;
 
     // 失焦时触发搜索（仅当值确实发生了变化）
-    if (parsedValue && parsedValue !== lastSearchedValue.value) {
+    if (parsedValue !== lastSearchedValue.value) {
       lastSearchedValue.value = parsedValue;
       emits('search', parsedValue);
     }
@@ -135,6 +135,7 @@
         event.preventDefault();
         // 没有输入任何值
         if (!modelValue.value) {
+          lastSearchedValue.value = '';
           return;
         }
 
@@ -157,6 +158,7 @@
 
   const handleClear = () => {
     modelValue.value = '';
+    lastSearchedValue.value = '';
     emits('clear', '');
   };
 </script>
