@@ -35,9 +35,11 @@ import (
 	"dbm-services/common/dbha-v2/internal/analysis/storage"
 	"dbm-services/common/dbha-v2/internal/analysis/switcher"
 	"dbm-services/common/dbha-v2/internal/analysis/switcher/switchcore"
+	"dbm-services/common/dbha-v2/internal/analysis/switcher/switchlogger/snapshotlogger"
 	"dbm-services/common/dbha-v2/pkg/haapm"
 	"dbm-services/common/dbha-v2/pkg/logger"
 	"dbm-services/common/dbha-v2/pkg/monitor"
+	"dbm-services/common/dbha-v2/pkg/safe"
 	"dbm-services/common/dbha-v2/pkg/storage/hamodel"
 	"dbm-services/common/dbha-v2/pkg/storage/haprobe"
 )
@@ -149,7 +151,9 @@ func (e *SwitchExecutor) MatchStrategyForGroup(ctx context.Context, group *Failu
 }
 
 // TriggerSwitching runs the switcher for the given db type and posts success/failure alarms.
-func (e *SwitchExecutor) TriggerSwitching(dbType haprobe.DbType, req *switcher.Request) {
+func (e *SwitchExecutor) TriggerSwitching(dbType haprobe.DbType, req *switcher.Request,
+	snapshotData *snapshotlogger.SwitchingSnapshotData) {
+
 	if !config.Cfg.Workflow.EnableSwitching {
 		logger.Warn("switching operation is disabled")
 		return
@@ -162,23 +166,45 @@ func (e *SwitchExecutor) TriggerSwitching(dbType haprobe.DbType, req *switcher.R
 	}
 
 	start := time.Now()
+	switchingSnapshotLogger := snapshotlogger.NewSwitchingSnapshotReport(snapshotData, start)
+	defer func() {
+		for _, swLogger := range switchingSnapshotLogger.SnapshotLoggers {
+			swLogger.Close()
+		}
+	}()
 
-	switchTimeout := config.Cfg.Workflow.SwitchTimeout
-	if switchTimeout <= 0 {
-		switchTimeout = 10 * time.Minute
-	}
+	// Report before switching snapshot
+	switchingSnapshotLogger.ReportBeforeSwitchingSnapshot()
 
-	switchCtx, cancel := context.WithTimeout(context.Background(), switchTimeout)
-	defer cancel()
+	var rsp *switcher.Response
+	safe.Run(func() {
+		switchTimeout := config.Cfg.Workflow.SwitchTimeout
+		if switchTimeout <= 0 {
+			switchTimeout = 10 * time.Minute
+		}
 
-	rsp := sw.Switch(switchCtx, req)
-	if errors.Is(switchCtx.Err(), context.DeadlineExceeded) {
-		logger.Warn("switching timeout, switchTimeout: %s, dbType: %s, switchID: %s", switchTimeout, dbType, req.SwitchID)
+		switchCtx, cancel := context.WithTimeout(context.Background(), switchTimeout)
+		defer cancel()
+
+		rsp = sw.Switch(switchCtx, req)
+
+		if errors.Is(switchCtx.Err(), context.DeadlineExceeded) {
+			logger.Warn("switching timeout, switchTimeout: %s, dbType: %s, switchID: %s", switchTimeout, dbType, req.SwitchID)
+		}
+	})
+
+	if rsp == nil {
+		logger.Error("switch response is nil, possibly due to panic in safe.Run, dbType: %s, switchID: %s",
+			dbType, req.SwitchID)
+		return
 	}
 
 	if rsp.Err == nil {
 		logger.Info("switching success for the database type: %s", dbType)
 	}
+
+	// Report after switching snapshot
+	switchingSnapshotLogger.ReportAfterSwitchingSnapshot(rsp.Err)
 
 	e.reportSwitchingMetrics(start, req, rsp, dbType)
 	e.postSuccessAlarms(req, rsp, dbType)

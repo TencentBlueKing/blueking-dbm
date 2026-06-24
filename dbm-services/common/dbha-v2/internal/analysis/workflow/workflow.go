@@ -581,9 +581,13 @@ func (w *Workflow) handleStrategySwitch(strategy *hamodel.DbSwitchingStrategy, g
 		logger.Warn("failed to update switching instance total metric, errmsg: %s", err)
 	}
 
-	WriteSwitchSnapshot(strategy, group, req, w.swSnapshotLogger)
+	// Build the switching snapshot data
+	snapshotData := NewSwitchingSnapshotData(strategy, group, req, w.swSnapshotLogger)
+	if snapshotData == nil {
+		logger.Warn("failed to create switching snapshot data, switchId: %s", req.SwitchID)
+	}
 
-	w.switchExecutor.TriggerSwitching(group.DbType, req)
+	w.switchExecutor.TriggerSwitching(group.DbType, req, snapshotData)
 
 	return true
 }

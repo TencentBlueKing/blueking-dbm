@@ -1,0 +1,120 @@
+/**
+ * MIT License
+ *
+ * Copyright (c) 2023 腾讯蓝鲸
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ */
+
+package snapshotlogger
+
+import (
+	"encoding/json"
+
+	"dbm-services/common/dbha-v2/pkg/gerrors"
+	"dbm-services/common/dbha-v2/pkg/logger"
+)
+
+// StdSnapshotHandler is a handler that writes switch log records to standard output.
+type StdSnapshotHandler struct {
+	logger logger.Logger
+}
+
+// NewStdSnapshotHandler creates a new StdSnapshotHandler.
+func NewStdSnapshotHandler(logger logger.Logger) *StdSnapshotHandler {
+	return &StdSnapshotHandler{
+		logger: logger,
+	}
+}
+
+// Open this function does nothing, only for interface
+func (hdl *StdSnapshotHandler) Open() error {
+	return nil
+}
+
+// Close this function does nothing, only for interface
+func (hdl *StdSnapshotHandler) Close() {
+}
+
+// PreSwitchLog logs the snapshot before the switch executes.
+func (hdl *StdSnapshotHandler) PreSwitchLog(record *SwitchingSnapshotData) error {
+	if hdl.logger == nil {
+		return nil
+	}
+
+	if record == nil {
+		return gerrors.Newf(gerrors.InvalidParameter, "before switching snapshot record for file is nil")
+	}
+
+	payload := SwitchingSnapshotData{
+		DbSwitchingSnapshotData: DbSwitchingSnapshotData{
+			StartTime:   record.StartTime,
+			BkBizID:     record.BkBizID,
+			BkCloudID:   record.BkCloudID,
+			ClusterID:   record.ClusterID,
+			ClusterName: record.ClusterName,
+			Reason:      record.Reason,
+		},
+		StdSwitchingSnapshotData: StdSwitchingSnapshotData{
+			DbType:               record.DbType,
+			ActionScope:          record.ActionScope,
+			StrategyJSON:         record.StrategyJSON,
+			FailureInstancesJSON: record.FailureInstancesJSON,
+			MetadataSetJSON:      record.MetadataSetJSON,
+		},
+	}
+
+	body, err := json.Marshal(&payload)
+	if err != nil {
+		return gerrors.Newf(gerrors.InvalidJson,
+			"failed to marshal before switching snapshot payload, switchId: %s, errmsg: %s", record.SwitchID, err)
+	}
+
+	hdl.logger.Info("%s\t%s\t%s", record.SwitchID, SwitchTypePre, string(body))
+
+	return nil
+}
+
+// PostSwitchLog logs the snapshot after the switch executes.
+func (hdl *StdSnapshotHandler) PostSwitchLog(record *SwitchingSnapshotData) error {
+	if hdl.logger == nil {
+		return nil
+	}
+
+	if record == nil {
+		return gerrors.Newf(gerrors.InvalidParameter, "after switching snapshot record for file is nil")
+	}
+
+	payload := SwitchingSnapshotData{
+		DbSwitchingSnapshotData: DbSwitchingSnapshotData{
+			FinishedTime: record.FinishedTime,
+			Result:       record.Result,
+		},
+	}
+
+	body, err := json.Marshal(&payload)
+	if err != nil {
+		return gerrors.Newf(gerrors.InvalidJson,
+			"failed to marshal after switching snapshot payload, switchId: %s, errmsg: %s", record.SwitchID, err)
+	}
+
+	hdl.logger.Info("%s\t%s\t%s", record.SwitchID, SwitchTypePost, string(body))
+
+	return nil
+}

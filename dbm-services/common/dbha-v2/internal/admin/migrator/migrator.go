@@ -69,6 +69,7 @@ var tables = []any{
 	&hamodel.SkipDbInstance{},
 	&hamodel.DbmMetadata{},
 	&hamodel.DbSwitchingLog{},
+	&hamodel.DbSwitchingSnapshotLog{},
 	&hamodel.DbSwitchingStrategy{},
 }
 
