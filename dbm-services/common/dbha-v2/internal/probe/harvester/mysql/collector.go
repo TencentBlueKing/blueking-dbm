@@ -408,15 +408,20 @@ func (c *collector) obtainHeartbeatStatus(writeBinlog bool) (*haprobe.MySqlHeart
 	heartbeatStatus.WriteSuccess = writeSuccess
 	heartbeatStatus.WriteFailureReason = writeFailureReason
 
-	// query heartbeat delay
+	// query heartbeat delay; GREATEST(...,0) on SIGNED avoids negative-to-UNSIGNED wraparound on clock skew.
+	const fallbackHeartbeatDelay = uint64(365 * 24 * 60 * 60)
 	var heartbeatDelay uint64
-	queryErr := c.db.DB().WithContext(ctx).Raw(`
-		SELECT convert((unix_timestamp(now())-unix_timestamp(master_time)), UNSIGNED) as heartbeat_delay 
+	tx := c.db.DB().WithContext(ctx).Raw(`
+		SELECT GREATEST(CAST(UNIX_TIMESTAMP(NOW())-UNIX_TIMESTAMP(master_time) AS SIGNED), 0) as heartbeat_delay 
 		FROM infodba_schema.master_slave_heartbeat 
-		WHERE master_server_id = ? and slave_server_id = ?`, serverId, serverId).Scan(&heartbeatDelay).Error
-	if queryErr != nil {
-		logger.Warn("failed to query heartbeat delay, errmsg: %s", queryErr)
-		heartbeatDelay = 365 * 24 * 60 * 60
+		WHERE master_server_id = ? and slave_server_id = ?`, serverId, serverId).Scan(&heartbeatDelay)
+	if tx.Error != nil {
+		logger.Warn("failed to query heartbeat delay, errmsg: %s", tx.Error)
+		heartbeatDelay = fallbackHeartbeatDelay
+	} else if tx.RowsAffected == 0 {
+		// No heartbeat row: treat as unknown/broken, never report 0 delay.
+		logger.Warn("no heartbeat row for server_id=%s, keep fallback heartbeat delay", serverId)
+		heartbeatDelay = fallbackHeartbeatDelay
 	}
 	heartbeatStatus.HeartbeatDelay = heartbeatDelay
 
@@ -451,18 +456,32 @@ func (c *collector) obtainSlaveStatus() (*haprobe.MySqlSlaveStatus, error) {
 		LastIODelay    uint64 `gorm:"column:last_io_delay"`
 	}
 
-	queryErr := c.db.DB().WithContext(ctx).Raw(`
-		SELECT CONVERT(UNIX_TIMESTAMP(NOW()) - UNIX_TIMESTAMP(master_time), UNSIGNED) AS heartbeat_delay,
-		       CAST(IFNULL(delay_sec, 0) AS UNSIGNED) AS last_io_delay
+	// Master_Server_Id == 0 means replication never connected (e.g. RESET SLAVE/CHANGE MASTER):
+	// no heartbeat row can match, so keep the fallback delay instead of overwriting it with 0.
+	if slaveInfo.MasterServerId == 0 {
+		logger.Warn("slave Master_Server_Id is 0 (replication not connected), keep fallback delay")
+		return ret, nil
+	}
+
+	// Use GREATEST(..., 0) on SIGNED arithmetic to avoid negative-to-UNSIGNED wraparound.
+	tx := c.db.DB().WithContext(ctx).Raw(`
+		SELECT GREATEST(CAST(UNIX_TIMESTAMP(NOW()) - UNIX_TIMESTAMP(master_time) AS SIGNED), 0) AS heartbeat_delay,
+		       GREATEST(CAST(IFNULL(delay_sec, 0) AS SIGNED), 0) AS last_io_delay
 		FROM infodba_schema.master_slave_heartbeat
 		WHERE master_server_id = ? AND slave_server_id = @@server_id`,
-		slaveInfo.MasterServerId).Scan(&hb).Error
-	if queryErr != nil {
-		logger.Warn("failed to query slave delay, errmsg: %s", queryErr)
-	} else {
-		ret.HeartbeatDelay = hb.HeartbeatDelay
-		ret.LastIODelay = hb.LastIODelay
+		slaveInfo.MasterServerId).Scan(&hb)
+	if tx.Error != nil {
+		logger.Warn("failed to query slave delay, errmsg: %s", tx.Error)
+		return ret, nil // keep fallback
 	}
+	if tx.RowsAffected == 0 {
+		// No matching heartbeat row (stale/ownership changed): keep fallback, never report 0 for broken repl.
+		logger.Warn("no heartbeat row for master_server_id=%d, keep fallback delay", slaveInfo.MasterServerId)
+		return ret, nil
+	}
+
+	ret.HeartbeatDelay = hb.HeartbeatDelay
+	ret.LastIODelay = hb.LastIODelay
 
 	return ret, nil
 }

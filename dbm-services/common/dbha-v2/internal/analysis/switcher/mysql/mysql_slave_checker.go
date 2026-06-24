@@ -69,9 +69,10 @@ const (
 		"FROM infodba_schema.checksum_history " +
 		"WHERE (this_crc <> master_crc OR this_cnt <> master_cnt) AND ts > DATE_SUB(NOW(), INTERVAL 7 DAY)"
 
-	// CheckDelaySQL master and slave's time delay
+	// CheckDelaySQL: master/slave time delay; GREATEST(...,0) on SIGNED avoids negative-to-UNSIGNED wraparound.
 	CheckDelaySQL = `
-		SELECT unix_timestamp(now())-unix_timestamp(master_time) as heartbeat_delay, delay_sec as io_delay 
+		SELECT GREATEST(CAST(UNIX_TIMESTAMP(NOW()) - UNIX_TIMESTAMP(master_time) AS SIGNED), 0) AS heartbeat_delay,
+		       GREATEST(CAST(IFNULL(delay_sec, 0) AS SIGNED), 0) AS io_delay
 		FROM infodba_schema.master_slave_heartbeat 
 		WHERE master_server_id = ? and slave_server_id != master_server_id
 	`
@@ -345,19 +346,41 @@ func (checker *MySQLSlaveChecker) GetSlaveTimeDelay(slaveDB *hamysql.GormDB) (in
 	checker.ReportLogf(switchlogger.SwitchInfo, "successfully get Master_Server_Id of slave node(%s:%d): %d",
 		ip, port, slaveStatus.MasterServerID)
 
+	// fallbackDelaySec is reported when repl is broken/heartbeat missing, so a broken slave isn't seen healthy.
+	const fallbackDelaySec = 365 * 24 * 60 * 60
+
+	// Master_Server_Id == 0 means replication never connected (e.g. RESET SLAVE/CHANGE MASTER):
+	// no heartbeat row can match, so report the fallback delay instead of 0.
+	if slaveStatus.MasterServerID == 0 {
+		checker.ReportLogf(switchlogger.SwitchInfo,
+			"slave node(%s:%d) Master_Server_Id is 0 (replication not connected), use fallback delay", ip, port)
+		return fallbackDelaySec, fallbackDelaySec, nil
+	}
+
 	delayInfo := SlaveTimeDelayInfo{}
 	gdb2, cancel2 := switchcore.GormWithExecSqlTimeout(slaveDB)
 	defer cancel2()
 
-	err = gdb2.Raw(CheckDelaySQL, slaveStatus.MasterServerID).Scan(&delayInfo).Error
-	if err != nil {
+	tx := gdb2.Raw(CheckDelaySQL, slaveStatus.MasterServerID).Scan(&delayInfo)
+	if tx.Error != nil {
 		return 0, 0, gerrors.Newf(gerrors.Failure, "failed to query slave time delay info from node(%s:%d): %s",
-			ip, port, err.Error())
+			ip, port, tx.Error.Error())
 	}
+	if tx.RowsAffected == 0 {
+		// No matching heartbeat row (stale/ownership changed): use fallback, never report 0 for broken repl.
+		checker.ReportLogf(switchlogger.SwitchInfo,
+			"no heartbeat row for master_server_id=%d on slave node(%s:%d), use fallback delay",
+			slaveStatus.MasterServerID, ip, port)
+		return fallbackDelaySec, fallbackDelaySec, nil
+	}
+
 	checker.ReportLogf(switchlogger.SwitchInfo, "successfully get slave time delay of slave node(%s:%d), "+
 		"SlaveHeartbeatDelay: %f, SlaveIODelay: %f", ip, port, delayInfo.SlaveHeartbeatDelay, delayInfo.SlaveIODelay)
 
-	return int(delayInfo.SlaveHeartbeatDelay), int(delayInfo.SlaveIODelay), nil
+	heartbeatDelay := int(delayInfo.SlaveHeartbeatDelay)
+	ioDelay := int(delayInfo.SlaveIODelay)
+
+	return heartbeatDelay, ioDelay, nil
 }
 
 // GetSlaveCheckSum returns checksum count and failure count
