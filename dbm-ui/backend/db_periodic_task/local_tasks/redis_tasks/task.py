@@ -12,6 +12,7 @@ import logging
 
 from celery.schedules import crontab
 
+from backend.db_periodic_task.local_tasks.db_meta.db_meta_check.redis_cluster_check.check_conf import check_redis_conf
 from backend.db_periodic_task.local_tasks.redis_tasks.agent_checks import (
     CheckBackendDataSkewTask,
     CheckBackendLoadSkewTask,
@@ -66,6 +67,12 @@ def redis_agent_alarm_daily_domain_cache_build_task():
             logger.warning(
                 "%s: failed to build daily priority domain cache: %s", task_cls.__name__, err, exc_info=True
             )
+
+
+@register_periodic_task(run_every=crontab(minute=3, hour=2))
+def redis_conf_check_task():
+    """Redis unified conf check (role, predixy servers, etc.). Runs daily at 02:03."""
+    check_redis_conf()
 
 
 @register_periodic_task(run_every=crontab(minute=1, hour=8))

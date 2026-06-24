@@ -12,7 +12,7 @@ specific language governing permissions and limitations under the License.
 import logging
 from dataclasses import dataclass, field
 from datetime import timedelta
-from typing import Any, Optional, Set
+from typing import Any, Dict, List, Optional, Set
 
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
@@ -227,6 +227,64 @@ class RedisReportWriter:
         if mode == REDIS_REPORT_MODE_UPSERT:
             return RedisCheckReport.upsert_by_cluster_subtype(**kwargs)
         return RedisCheckReport.create_by_cluster_subtype(**kwargs)
+
+    def write_redis_reports(self, rows: List[Dict]) -> List[RedisCheckReport]:
+        """Write multiple RedisCheckReport rows, bulk-creating add-mode rows."""
+        if not rows:
+            return []
+
+        add_rows = []
+        written = []
+        for row in rows:
+            mode = _resolve_write_mode(row["subtype"], self._mode_config)
+            if mode == REDIS_REPORT_MODE_UPSERT:
+                written.append(self.write_redis_report(**row))
+            else:
+                add_rows.append(row)
+
+        if not add_rows:
+            return written
+
+        cutoff = timezone.now() - timedelta(hours=36)
+        cluster_ids = {row["cluster_id"] for row in add_rows}
+        subtypes = {row["subtype"] for row in add_rows}
+        instances = {row.get("instance", "") for row in add_rows}
+        latest_by_key = {}
+        existing_rows = RedisCheckReport.objects.filter(
+            cluster_id__in=cluster_ids,
+            subtype__in=subtypes,
+            instance__in=instances,
+            create_at__gte=cutoff,
+        ).order_by("cluster_id", "subtype", "instance", "-create_at")
+        for existing in existing_rows:
+            key = (existing.cluster_id, existing.subtype, existing.instance)
+            latest_by_key.setdefault(key, existing)
+
+        to_create = []
+        for row in add_rows:
+            key = (row["cluster_id"], row["subtype"], row.get("instance", ""))
+            defaults = RedisCheckReport._build_defaults(
+                cluster=row["cluster"],
+                cluster_type=row["cluster_type"],
+                bk_biz_id=row["bk_biz_id"],
+                bk_cloud_id=row["bk_cloud_id"],
+                report_day=row["report_day"],
+                creator=row["creator"],
+                state=row["state"],
+                msg=row["msg"],
+                shard=row.get("shard", ""),
+                instance=row.get("instance", ""),
+            )
+            defaults["failed_days"] = RedisCheckReport._resolve_failed_days(
+                state=row["state"], existing=latest_by_key.get(key)
+            )
+            report = RedisCheckReport(cluster_id=row["cluster_id"], subtype=row["subtype"], **defaults)
+            to_create.append(report)
+            latest_by_key[key] = report
+
+        RedisCheckReport.objects.bulk_create(to_create)
+        written.extend(to_create)
+        return written
 
 
 def is_cluster_labeled_with(cluster: Cluster, label: dict) -> bool:

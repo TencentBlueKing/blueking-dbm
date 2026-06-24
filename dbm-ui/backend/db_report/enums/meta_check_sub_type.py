@@ -20,7 +20,6 @@ class MetaCheckSubType(StrStructuredEnum):
     AloneInstance = EnumField("alone_instance", _("孤立的实例"))
     StatusAbnormal = EnumField("status_abnormal", _("不属于RUNNING状态"))
     AffinityViolation = EnumField("affinity_violation", _("亲和性违规"))
-    RoleMismatch = EnumField("redis_role_mismatch", _("实例角色不匹配"))
     EntryInconsistent = EnumField("redis_entry_inconsistent", _("访问入口代理不一致"))
     # tendbha
     TenDBHAProxyBindWrongBackendRole = EnumField("proxy_bind_wrong_backend_role", _("proxy bind backend 角色错误"))

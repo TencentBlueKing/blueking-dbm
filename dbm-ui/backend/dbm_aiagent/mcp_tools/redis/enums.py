@@ -117,7 +117,8 @@ class RedisReportSubtype(StrStructuredEnum):
     AFFINITY_VIOLATION = EnumField("affinity_violation", "Affinity violation")
     ISOLATED_INSTANCE = EnumField("isolated_instance", "Isolated instance")
     STATUS_ABNORMAL = EnumField("status_abnormal", "Status abnormal")
-    ROLE_MISMATCH = EnumField("role_mismatch", "Role mismatch")
+    # Unified conf check: role mismatch + predixy server fail/conf drift.
+    CONFIG_INCONSISTENT = EnumField("config_inconsistent", "Config inconsistent")
     ENTRY_INCONSISTENT = EnumField("entry_inconsistent", "Entry inconsistent")
     EXPORTER = EnumField("exporter", "Exporter")
 

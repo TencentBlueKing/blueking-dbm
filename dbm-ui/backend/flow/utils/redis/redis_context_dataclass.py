@@ -233,9 +233,14 @@ class TendisplusLightningContext:
 
 
 @dataclass()
-class RedisRoleCheckContext:
+class RedisConfCheckContext:
     """
-    Redis role check context for passing data between components via trans_data.
+    Redis conf check context for passing data between components via trans_data.
+
+    Carries the per-host on-host script job infos so the report service can poll
+    them and pull back the conf-file data parsed from each host's log.
     """
 
-    job_infos: list = field(default_factory=list)  # Job execution info for polling
+    job_infos: list = field(default_factory=list)  # Per-host job execution info for polling
+    target_infos: list = field(default_factory=list)  # Serialized checker targets shared by collect/report
+    check_metrics: dict = field(default_factory=dict)  # Lightweight counters for troubleshooting overhead

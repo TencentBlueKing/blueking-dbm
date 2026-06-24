@@ -561,7 +561,9 @@ class TicketType(StrStructuredEnum):
     REDIS_SINGLE_INS_MIGRATE = TicketEnumField("REDIS_SINGLE_INS_MIGRATE", _("Redis 主从指定实例迁移"), _("集群管理"))
     REDIS_HOT_KEY_ANALYSIS = TicketEnumField("REDIS_HOT_KEY_ANALYSIS", _("Redis 热key分析"), _("集群管理"))
     REDIS_KEYSTAT = TicketEnumField("REDIS_KEYSTAT", _("Redis 内存分析"), _("集群管理"))
+    # deprecated: 角色检查已并入 REDIS_CONF_CHECK, 保留枚举以兼容历史流程记录
     REDIS_ROLE_CHECK = TicketEnumField("REDIS_ROLE_CHECK", _("Redis 角色检查"))
+    REDIS_CONF_CHECK = TicketEnumField("REDIS_CONF_CHECK", _("Redis 配置检查"), register_iam=False)
     REDIS_ENTRY_CHECK = TicketEnumField("REDIS_ENTRY_CHECK", _("Redis 入口一致性检查"))
     REDIS_FAILOVER_DRILL = TicketEnumField("REDIS_FAILOVER_DRILL", _("Redis 容灾演练"), register_iam=False)
     REDIS_ROLLBACK_EXERCISE = TicketEnumField("REDIS_ROLLBACK_EXERCISE", _("Redis 回档演练"))
