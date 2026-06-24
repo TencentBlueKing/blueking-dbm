@@ -105,7 +105,7 @@
     return _.filter(
       [
         isPlatform.value && {
-          id: 'bk_biz_id',
+          id: 'select_biz_id',
           list: globalBizsStore.bizs.map((biz) => ({
             label: biz.name,
             value: biz.bk_biz_id,
@@ -191,7 +191,7 @@
 
       timeRange.value = routerQuery.time_range || 'now -1d';
       isOnlyAbnormal.value = routerQuery.isOnlyAbnormal ? routerQuery.isOnlyAbnormal === 'true' : true;
-      tabType.value = (routerQuery.tabType as DBTypes) || DBTypes.MYSQL;
+      tabType.value = routerQuery.tabType as DBTypes;
     },
     {
       immediate: true,

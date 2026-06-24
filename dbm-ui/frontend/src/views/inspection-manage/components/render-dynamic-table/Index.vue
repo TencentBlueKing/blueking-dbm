@@ -25,7 +25,7 @@
         </template>
       </template>
       <div
-        v-if="total === 0 || totalAbnormalCount === 0"
+        v-if="total === 0 || (isOnlyAbnormal && totalAbnormalCount === 0)"
         style="font-size: 14px; line-height: 40px; color: #999; text-align: center">
         {{ emptyDescription }}
         <I18nT
