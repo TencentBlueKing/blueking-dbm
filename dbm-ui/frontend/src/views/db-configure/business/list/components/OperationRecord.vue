@@ -146,23 +146,22 @@
   import { utcDisplayTime } from '@utils';
 
   interface Props {
-    clusterType?: string;
     confFile?: string;
     confType?: string;
     levelName?: string;
     levelValue?: number | string;
+    namespace?: string;
   }
 
   const props = withDefaults(defineProps<Props>(), {
-    clusterType: '',
     confFile: '',
     confType: '',
     levelName: '',
     levelValue: '',
+    namespace: '',
   });
 
   const { t } = useI18n();
-  const activeClusterType = inject<Ref<string>>('activeClusterType');
   const confTabs = inject<Ref<{ conf_file: string; conf_type: string; name: string }[]>>('confTabs');
 
   const tableRef = ref<InstanceType<typeof DbTable>>();
@@ -367,7 +366,7 @@
         conf_type: props.confType || defaultConfType || undefined,
         level_name: props.levelName || undefined,
         level_value: props.levelValue || undefined,
-        namespace: props.clusterType || (activeClusterType?.value as string),
+        namespace: props.namespace,
       },
       {
         permission: 'catch',

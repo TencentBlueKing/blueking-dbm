@@ -31,10 +31,9 @@
             render-directive="if">
             <OperationRecord
               v-if="tab.conf_type === 'operationRecord'"
-              :cluster-type="activeClusterType" />
+              :namespace="namespace" />
             <ConfigDatabase
               v-else
-              :cluster-type="activeClusterType"
               :conf-type="tab.conf_type"
               :namespace="tab.namespace" />
           </BkTabPanel>
@@ -45,6 +44,7 @@
 </template>
 
 <script setup lang="ts">
+  import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
@@ -66,10 +66,12 @@
   const activeConfType = ref<string>((route.params.confType as string) || 'dbconf');
 
   const confTypeTabs = ref<ServiceReturnType<typeof getListConfTypes>>([]);
+  const namespace = ref('');
 
   const { run: fetchConfTypeTabs } = useRequest(getListConfTypes, {
     manual: true,
     onSuccess(res) {
+      namespace.value = _.uniq(res.map((item) => item.namespace)).join(',');
       confTypeTabs.value = [
         ...res,
         {

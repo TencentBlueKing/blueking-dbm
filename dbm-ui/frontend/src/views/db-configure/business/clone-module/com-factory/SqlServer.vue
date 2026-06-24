@@ -25,7 +25,8 @@
       class="clone-module-page db-scroll-y"
       :label-width="100"
       :model="formData"
-      :rules="rules">
+      :rules="rules"
+      :scroll-align-to-top="false">
       <!-- 模块信息 -->
       <div class="module-info-card">
         <!-- 模块名称 -->
@@ -190,18 +191,12 @@
               <ParamTable
                 v-if="tab.conf_type === 'dbconf'"
                 :ref="(el: any) => setTableRef(tab.conf_file, el)"
-                :cluster-type="clusterType"
-                :conf-type="tab.conf_type"
                 :deprecated-count="removedCount"
-                :version="tab.conf_file"
                 @deprecated-click="handleShowDeprecated" />
               <!-- 其他 Tab：层级配置模式，仅自定义过滤 -->
               <LevelConfigTable
                 v-else
-                :ref="(el: any) => setTableRef(tab.conf_file, el)"
-                :cluster-type="clusterType"
-                :conf-type="tab.conf_type"
-                :version="tab.conf_file" />
+                :ref="(el: any) => setTableRef(tab.conf_file, el)" />
             </BkTabPanel>
           </BkTab>
         </template>

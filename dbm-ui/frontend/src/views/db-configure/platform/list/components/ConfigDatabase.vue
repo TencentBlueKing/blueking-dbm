@@ -78,7 +78,6 @@
   type ConfigListItem = ServiceReturnType<typeof getPlatformConfigList>;
 
   interface Props {
-    clusterType: string;
     confType: string;
     namespace: string;
   }
@@ -86,6 +85,7 @@
   const props = defineProps<Props>();
 
   const router = useRouter();
+  const route = useRoute();
   const { t } = useI18n();
 
   const tableRef = ref<InstanceType<typeof DbTable>>();
@@ -98,7 +98,7 @@
     return getPlatformConfigList(
       {
         conf_type: props.confType,
-        meta_cluster_type: props.namespace === 'cluster_type' ? props.clusterType : props.namespace,
+        meta_cluster_type: props.namespace,
       },
       { permission: 'catch' },
     ).then((res) => {
@@ -158,7 +158,7 @@
     router.push({
       name: 'PlatformDbConfigureDetail',
       params: {
-        clusterType: props.clusterType,
+        clusterType: route.params.clusterType,
         confType: props.confType,
         version: row.version,
       },

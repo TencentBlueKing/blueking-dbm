@@ -84,7 +84,7 @@
         class="module-conf-tab"
         :db-module-id="moduleInfo.moduleId"
         show-operation-record-tab>
-        <template #default="{ tab }">
+        <template #default="{ tab, namespace }">
           <BkAlert
             class="mb-16"
             closable
@@ -104,13 +104,14 @@
           <OperationRecord
             v-if="tab.conf_type === 'operationRecord'"
             level-name="module"
-            :level-value="moduleInfo.moduleId" />
+            :level-value="moduleInfo.moduleId"
+            :namespace="namespace" />
           <ParamTable
             v-else
-            :cluster-type="clusterType"
             :conf-type="tab.conf_type"
             level-name="module"
             :level-value="moduleInfo.moduleId"
+            :namespace="tab.namespace"
             selectable
             :version="tab.conf_file" />
         </template>

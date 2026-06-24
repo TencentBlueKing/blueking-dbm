@@ -335,7 +335,7 @@
   export interface Props {
     /** 集群 ID（用于集群级权限 Resource ID） */
     clusterId?: number | string;
-    clusterType: string;
+    clusterType?: ClusterTypes;
     /** 配置名称（用于保存时） */
     configName?: string;
     confType: string;
@@ -347,6 +347,7 @@
     levelName?: string;
     /** 层级值 */
     levelValue?: number | string;
+    namespace: string;
     /** 行唯一标识字段 */
     rowKey?: string;
     /** 是否支持行选择（批量编辑） */
@@ -369,6 +370,7 @@
 
   const { t } = useI18n();
   const globalBizsStore = useGlobalBizs();
+  const route = useRoute();
 
   const saveLoading = ref(false);
   // 所有配置项
@@ -385,7 +387,7 @@
   /** 根据层级和集群类型计算权限 actionId */
   const actionId = computed(() => {
     if (props.levelName === 'cluster') {
-      const dbType = clusterTypeInfos[props.clusterType as ClusterTypes]?.dbType;
+      const dbType = clusterTypeInfos[props.clusterType || (route.params.clusterType as ClusterTypes)]?.dbType;
       return `${dbType}_dbconfig_edit`;
     }
     return 'dbconfig_edit';
@@ -396,7 +398,7 @@
     if (props.levelName === 'cluster') {
       return props.clusterId;
     }
-    return clusterTypeInfos[props.clusterType as ClusterTypes]?.dbType;
+    return clusterTypeInfos[props.clusterType || (route.params.clusterType as ClusterTypes)]?.dbType;
   });
 
   // 行唯一标识字段
@@ -551,7 +553,7 @@
     level_info: props.levelInfo,
     level_name: (props.levelName as any) ?? 'app',
     level_value: props.levelValue ?? globalBizsStore.currentBizId,
-    meta_cluster_type: props.clusterType,
+    meta_cluster_type: props.namespace,
     version: props.version,
   }));
 
@@ -668,13 +670,13 @@
 
   // 监听 version 变化重新获取数据
   watch(
-    () => [props.clusterType, props.version],
-    ([clusterType, version]) => {
-      if (clusterType && version) {
+    () => [props.namespace, props.version],
+    ([namespace, version]) => {
+      if (namespace && version) {
         fetchLevelConfig(fetchParams.value);
         fetchConfigNames({
           conf_type: props.confType,
-          meta_cluster_type: clusterType,
+          meta_cluster_type: namespace,
           version: props.version,
         });
       }
@@ -700,7 +702,7 @@
     // 重新拉取可选参数名并根据当前配置列表过滤（排除已存在项）
     fetchConfigNames({
       conf_type: props.confType,
-      meta_cluster_type: props.clusterType,
+      meta_cluster_type: props.namespace,
       version: props.version,
     });
   };
@@ -890,7 +892,7 @@
             conf_type: props.confType,
             level_name: props.levelName || 'app',
             level_value: String(props.levelValue),
-            meta_cluster_type: props.clusterType,
+            meta_cluster_type: props.namespace,
           });
         }
         return true;
@@ -1041,7 +1043,7 @@
           conf_type: props.confType,
           level_name: props.levelName || 'app',
           level_value: String(props.levelValue),
-          meta_cluster_type: props.clusterType,
+          meta_cluster_type: props.namespace,
         });
       },
       title: isCancel ? t('确认不再使用该参数？') : t('确认恢复为默认值？'),

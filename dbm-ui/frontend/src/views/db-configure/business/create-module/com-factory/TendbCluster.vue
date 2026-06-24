@@ -25,7 +25,8 @@
       class="create-module-page db-scroll-y"
       :label-width="100"
       :model="formData"
-      :rules="rules">
+      :rules="rules"
+      :scroll-align-to-top="false">
       <!-- 模块信息 & 绑定数据库配置（紧凑布局） -->
       <div class="module-info-card">
         <FormItemWithHint
@@ -130,8 +131,8 @@
             </template>
             <ParamTable
               :ref="(el: any) => setTableRef(tab.name, el)"
-              cluster-type="tendbcluster"
               :conf-type="tab.conf_type"
+              :namespace="tab.namespace"
               :version="
                 tab.conf_type === 'proxyconf'
                   ? formData.spider_version
