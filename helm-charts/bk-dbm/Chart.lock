@@ -49,7 +49,7 @@ dependencies:
   version: 0.0.4
 - name: backup-server
   repository: file://charts/backup-server
-  version: 0.0.6
+  version: 0.0.7
 - name: backup-consumer
   repository: file://charts/backup-consumer
   version: 0.0.5
@@ -74,5 +74,5 @@ dependencies:
 - name: k8s-dbs
   repository: file://charts/k8s-dbs
   version: 2.1.7
-digest: sha256:b46f04222587340466e0fc07501a7ce95abe2a91d60b186c7896b876729fbd6e
-generated: "2026-06-15T11:28:48.617391+08:00"
+digest: sha256:a685db01b1c3e247146870f8fba517cd0a1ec8e6a529c6d5a7aa70b415028b41
+generated: "2026-06-24T16:44:06.444267+08:00"
