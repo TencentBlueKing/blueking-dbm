@@ -85,7 +85,8 @@
             0,
           );
         } else {
-          clusterCount = props.countData![dbType as ClusterTypes].cluster_count || 0;
+          // TODO 兼容k8s集群
+          clusterCount = props.countData![dbType as ClusterTypes]?.cluster_count || 0;
         }
 
         if (clusterCount > 0) {
