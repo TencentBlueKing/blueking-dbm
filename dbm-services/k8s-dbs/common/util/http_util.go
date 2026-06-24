@@ -28,6 +28,7 @@ import (
 	"github.com/pkg/errors"
 )
 
+// HTTP 客户端默认配置
 const (
 	DefaultTimeout       = 30 * time.Second
 	DefaultRetry         = 3
@@ -39,6 +40,7 @@ type HTTPClient struct {
 	client *resty.Client
 }
 
+// BaseHTTPClient 全局 HTTP 客户端实例
 var BaseHTTPClient *HTTPClient
 
 // InitGlobalHTTPClient 初始化 BaseHTTPClient

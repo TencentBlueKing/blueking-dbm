@@ -17,6 +17,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Package entity 定义 common 模块使用的通用实体类型
 package entity
 
 // BKAuth 封装认证授权

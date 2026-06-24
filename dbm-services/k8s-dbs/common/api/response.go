@@ -31,6 +31,7 @@ import (
 	"github.com/pkg/errors"
 )
 
+// ResponseCode 响应状态码类型
 type ResponseCode int
 
 // Response the src response

@@ -75,7 +75,9 @@ type ClusterStatus string
 
 const (
 	// StatusNormal 集群正常状态
-	StatusNormal    ClusterStatus = "normal"
-	StatusAbNormal  ClusterStatus = "abnormal"
+	StatusNormal ClusterStatus = "normal"
+	// StatusAbNormal 集群异常状态
+	StatusAbNormal ClusterStatus = "abnormal"
+	// StatusTemporary 集群临时状态
 	StatusTemporary ClusterStatus = "temporary" // nolint
 )

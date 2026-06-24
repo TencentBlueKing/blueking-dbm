@@ -17,6 +17,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Package controller 实现容器终端 WebSocket 连接的 HTTP 接口控制器
 package controller
 
 import (
@@ -69,7 +70,7 @@ func (k *ContainerController) OpenTerminal(c *gin.Context) {
 		// 注意：此处不能返回 HTTP 响应，因为连接已经升级
 		return
 	}
-	defer conn.Close()
+	defer func() { _ = conn.Close() }()
 
 	// 3. 构造领域对象 TerminalEntity
 	entity := &terminalentity.TerminalEntity{

@@ -17,6 +17,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Package controller 实现存储集群管理的 HTTP 接口控制器
 package controller
 
 import (

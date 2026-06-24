@@ -17,6 +17,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Package response 定义调用下游基础设施 API 的响应结构体
 package response
 
 // CreateClbAPIResponse CLB API 创建响应

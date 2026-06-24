@@ -32,6 +32,7 @@ import (
 // ClusterAPITotalMetric cluster api 计数统计指标
 const ClusterAPITotalMetric = "k8s_dbs_cluster_api_total"
 
+// ClusterAPITotalMetricTags cluster api 指标标签字段集合
 var ClusterAPITotalMetricTags = []string{
 	"api_name",
 	"method",

@@ -17,6 +17,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Package addonoperation 提供 addon 集群和操作合法性检查逻辑
 package addonoperation
 
 import (
@@ -33,6 +34,7 @@ type AddonType string
 // AddonComponent 定义存储组件
 type AddonComponent string
 
+// OperationType 集群/组件操作类型
 type OperationType string
 
 // AddonType 常量定义
@@ -69,6 +71,7 @@ const (
 	ComponentProxy      AddonComponent = "proxy"
 )
 
+// OperationTypeClusterCreate 集群/组件操作类型常量定义
 const (
 	CreateCluster        OperationType = "CreateCluster"
 	DeleteCluster        OperationType = "DeleteCluster"

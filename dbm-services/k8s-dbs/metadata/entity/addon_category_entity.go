@@ -17,6 +17,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Package entity 定义 metadata 模块的数据库实体类型
 package entity
 
 import (

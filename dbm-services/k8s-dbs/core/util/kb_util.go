@@ -269,8 +269,8 @@ func MergeValues(values map[string]interface{}, request *coreentity.Request, isI
 func GetClusterInfo(request *coreentity.Request, k8sClient *commutil.K8sClient) (*kbv1.Cluster, error) {
 	// Construct and query crd resources
 	crd := &coreentity.CustomResourceDefinition{
-		ResourceName:         request.Metadata.ClusterName,
-		Namespace:            request.Metadata.Namespace,
+		ResourceName:         request.ClusterName,
+		Namespace:            request.Namespace,
 		GroupVersionResource: kbtypes.ClusterGVR(),
 	}
 	clusterCR, err := GetCRD(k8sClient, crd)

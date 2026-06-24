@@ -31,6 +31,7 @@ type ClusterMetricFetcher interface {
 	GetStorageUsage(params *ClusterMetricQueryParams) (float64, error)
 }
 
+// FetcherFactory 全局集群指标获取器工厂
 var FetcherFactory = &ClusterMetricFetcherFactory{}
 
 // ClusterMetricFetcherFactory 集群指标 Factory

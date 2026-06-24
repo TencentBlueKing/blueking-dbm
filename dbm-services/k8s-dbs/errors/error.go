@@ -17,6 +17,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Package errors 定义 k8s-dbs 业务错误码与错误类型
 package errors
 
 // K8sDbsError Error
@@ -31,6 +32,7 @@ func (e *K8sDbsError) Error() string {
 	return e.ErrorDetail
 }
 
+// ErrorCode 错误码类型
 type ErrorCode int
 
 // 通用内部业务逻辑异常

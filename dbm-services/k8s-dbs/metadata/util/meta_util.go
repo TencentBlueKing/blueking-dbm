@@ -17,6 +17,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Package util 提供 metadata 模块的辅助工具函数（如审计日志、元数据更新）
 package util
 
 import (
@@ -81,8 +82,8 @@ func SaveAuditLog(
 		RequestID:      commutil.RequestID(),
 		RequestType:    requestType,
 		RequestParams:  string(requestBytes),
-		CreatedBy:      request.BKAuth.BkUserName,
-		UpdatedBy:      request.BKAuth.BkUserName,
+		CreatedBy:      request.BkUserName,
+		UpdatedBy:      request.BkUserName,
 	}
 
 	addedRequestRecord, err := reqRecordProvider.CreateRequestRecord(requestRecord)
@@ -148,8 +149,8 @@ func UpdateClusterMeta(
 		return nil, dbserrors.NewK8sDbsError(dbserrors.UpdateMetaDataError,
 			fmt.Errorf("更新集群 %s 元数据失败 %w ", request.ClusterName, err))
 	}
-	if request.Spec.OpsService.Service.VIP != "" {
-		clusterEntity.VIP = request.Spec.OpsService.Service.VIP
+	if request.Service.VIP != "" {
+		clusterEntity.VIP = request.Service.VIP
 	}
 	return clusterEntity, nil
 }

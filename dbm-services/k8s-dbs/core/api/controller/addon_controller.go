@@ -17,6 +17,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Package controller 实现 addon 插件的 HTTP 接口控制器
 package controller
 
 import (

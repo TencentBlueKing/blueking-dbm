@@ -27,6 +27,7 @@ import (
 // HTTPAPITotalMetric api 计数统计指标
 const HTTPAPITotalMetric = "k8s_dbs_http_api_total"
 
+// HTTPAPITotalMetricTags http api 请求指标标签字段集合
 var HTTPAPITotalMetricTags = []string{
 	"api_name",
 	"method",

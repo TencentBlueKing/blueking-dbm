@@ -87,6 +87,7 @@ func parseCommandLineArgs(input string) map[string]interface{} {
 	return result
 }
 
+// ClusterConfBuilderFactory 全局集群配置构建器工厂
 var ClusterConfBuilderFactory = &ClusterConfigBuilderFactory{}
 
 // ClusterConfigBuilderFactory 集群配置构建器工厂

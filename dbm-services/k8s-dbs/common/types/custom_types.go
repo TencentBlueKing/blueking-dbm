@@ -1,3 +1,4 @@
+// Package types 定义 common 模块共享的自定义类型
 package types
 
 import (
@@ -11,8 +12,10 @@ import (
 	"time"
 )
 
+// JSONDatetime 自定义 JSON 时间类型
 type JSONDatetime time.Time
 
+// DefaultTimeZone 默认时区
 const DefaultTimeZone = "Asia/shanghai"
 
 var (

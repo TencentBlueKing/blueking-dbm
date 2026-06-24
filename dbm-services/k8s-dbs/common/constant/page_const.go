@@ -19,6 +19,7 @@ limitations under the License.
 
 package constant
 
+// DefaultFetchSizeStr 分页查询相关默认值
 const (
 	DefaultFetchSizeStr = "10"
 	DefaultPageStr      = "1"

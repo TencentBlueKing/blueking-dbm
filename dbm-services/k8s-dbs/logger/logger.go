@@ -33,12 +33,15 @@ import (
 	conconst "k8s-dbs/common/constant"
 )
 
-const LogDir = "./logs/"
-const LogFileName = "api.log"
-const DefaultMaxSizeMB = 10
-const DefaultMaxBackups = 5
-const DefaultMaxAge = 30
-const DefaultCompress = false
+// Logger 默认配置常量
+const (
+	LogDir            = "./logs/"
+	LogFileName       = "api.log"
+	DefaultMaxSizeMB  = 10
+	DefaultMaxBackups = 5
+	DefaultMaxAge     = 30
+	DefaultCompress   = false
+)
 
 // InitLogger 初始化 Logger（zap+lumberjack）
 func InitLogger() *zap.Logger {

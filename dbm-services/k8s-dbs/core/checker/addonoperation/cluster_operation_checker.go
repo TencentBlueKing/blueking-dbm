@@ -24,6 +24,7 @@ import (
 	coreentity "k8s-dbs/core/entity"
 )
 
+// ClusterOpsChecker 全局集群操作检查器实例
 var ClusterOpsChecker = &ClusterOperationChecker{
 	rules: make(map[AddonType]map[OperationType]OperationCheckFunc),
 }

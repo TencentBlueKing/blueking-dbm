@@ -17,6 +17,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Package core 负责 k8s-dbs 核心服务的初始化引导
 package core
 
 import (

@@ -1,3 +1,4 @@
+// Package middleware 提供 API 路由中间件实现
 package middleware
 
 import (

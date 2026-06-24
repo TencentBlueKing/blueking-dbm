@@ -17,6 +17,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Package provider 实现 core 模块的业务逻辑封装
 package provider
 
 import (
@@ -226,7 +227,7 @@ func (a *AddonProvider) installAddonHelmRelease(
 	install.Wait = true
 	install.Username = helmRepo.RepoUsername
 	install.Password = helmRepo.RepoPassword
-	chartRequested, err := install.ChartPathOptions.LocateChart(entity.AddonType, helmcli.New())
+	chartRequested, err := install.LocateChart(entity.AddonType, helmcli.New())
 	if err != nil {
 		slog.Error("failed to locate helm chart requested", "error", err)
 		return fmt.Errorf("failed to locate helm chart requested\n%s", err)
@@ -305,7 +306,7 @@ func (a *AddonProvider) UpgradeAddonHelmRelease(
 	upgrade.Wait = true
 	upgrade.Username = helmRepo.RepoUsername
 	upgrade.Password = helmRepo.RepoPassword
-	chartRequested, err := upgrade.ChartPathOptions.LocateChart(entity.AddonType, helmcli.New())
+	chartRequested, err := upgrade.LocateChart(entity.AddonType, helmcli.New())
 	if err != nil {
 		slog.Error("failed to locate helm chart requested", "error", err)
 		return fmt.Errorf("failed to locate helm chart requested\n%s", err)

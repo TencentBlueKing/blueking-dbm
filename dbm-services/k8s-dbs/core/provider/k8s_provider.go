@@ -24,7 +24,6 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"k8s-dbs/common/entity"
 	commentity "k8s-dbs/common/entity"
 	commtypes "k8s-dbs/common/types"
 	commutil "k8s-dbs/common/util"
@@ -180,7 +179,7 @@ func (k *K8sProvider) GetPodRawLogs(entity *coreentity.K8sPodLogQueryParams) (st
 // ListPodLogs 获取 pod 日志
 func (k *K8sProvider) ListPodLogs(
 	entity *coreentity.K8sPodLogQueryParams,
-	pagination *entity.Pagination,
+	pagination *commentity.Pagination,
 ) ([]*coreentity.K8sLog, uint64, error) {
 	stream, err := k.buildLogStream(entity)
 	if err != nil {

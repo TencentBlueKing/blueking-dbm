@@ -17,6 +17,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Package request 定义 terminal 模块接收的终端请求结构体
 package request
 
 import commentity "k8s-dbs/common/entity"

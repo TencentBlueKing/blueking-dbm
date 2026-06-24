@@ -17,6 +17,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Package util 提供终端会话状态管理与提示符构建工具
 package util
 
 import (
@@ -24,6 +25,7 @@ import (
 	"strings"
 )
 
+// DefaultCwd 终端会话默认常量
 const (
 	DefaultCwd = "/"
 	CwdMarker  = "<<<CWD_MARKER>>>"

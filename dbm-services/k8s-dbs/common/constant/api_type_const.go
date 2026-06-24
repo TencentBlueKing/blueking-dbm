@@ -19,7 +19,7 @@ limitations under the License.
 
 package constant
 
-// API 组
+// APIGroupSystem 系统管理相关 API 组标识
 const (
 	APIGroupSystem     = "system"
 	APIGroupAddon      = "addon"
@@ -31,18 +31,19 @@ const (
 	APIGroupUnknown    = "unknown"
 )
 
+// APIHealth 系统健康检查接口标识
 const (
 	APIHealth = "v4_dbs_health"
 )
 
-// addon api
+// APIAddonInstall addon 安装接口标识
 const (
 	APIAddonInstall   = "v4_dbs_addon_install"
 	APIAddonUninstall = "v4_dbs_addon_uninstall"
 	APIAddonUpgrade   = "v4_dbs_addon_upgrade"
 )
 
-// cluster api
+// APIClusterCreate 集群管理相关接口标识
 const (
 	APIClusterVScaling      = "v4_dbs_cluster_vscaling"
 	APIClusterHScaling      = "v4_dbs_cluster_hscaling"
@@ -62,20 +63,20 @@ const (
 	APIClusterServiceInfo   = "v4_dbs_cluster_service_info"
 )
 
-// opsrequest api
+// APIOpsRequestDesc 运维请求相关接口标识
 const (
 	APIOpsRequestDesc   = "v4_dbs_opsrequest_desc"
 	APIOpsRequestStatus = "v4_dbs_opsrequest_status"
 )
 
-// component api
+// APIComponentDesc 集群组件相关接口标识
 const (
 	APIComponentDesc        = "v4_dbs_component_desc"
 	APIComponentPods        = "v4_dbs_component_pods"
 	APIComponentServiceInfo = "v4_dbs_component_service_info"
 )
 
-// k8s api
+// APIK8sNsCreate K8s 资源相关接口标识
 const (
 	APIK8sNsCreate   = "v4_dbs_k8s_namespace_create"
 	APIK8sPodDelete  = "v4_dbs_k8s_pod_delete"
@@ -84,13 +85,13 @@ const (
 	APIK8sPodRawLog  = "v4_dbs_k8s_pod_raw_log"
 )
 
-// addon category meta api
+// APIMetaAddonCategoryCreate addon 分类元数据接口标识
 const (
 	APIMetaAddonCategoryCreate = "v4_dbs_meta_addon_category_create"
 	APIMetaAddonCategoryList   = "v4_dbs_meta_addon_category_list"
 )
 
-// addon meta api
+// APIMetaAddonList addon 元数据接口标识
 const (
 	APIMetaAddonList     = "v4_dbs_meta_addon_list"
 	APIMetaAddonDetail   = "v4_dbs_meta_addon_detail"
@@ -100,7 +101,7 @@ const (
 	APIMetaAddonUpdate   = "v4_dbs_meta_addon_update"
 )
 
-// addon spec plan meta api
+// APIMetaAddonSpecPlanList addon 规格方案元数据接口标识
 const (
 	APIMetaAddonSpecPlanList   = "v4_dbs_meta_addon_spec_plan_list"
 	APIMetaAddonSpecPlanDetail = "v4_dbs_meta_addon_spec_plan_detail"
@@ -109,7 +110,7 @@ const (
 	APIMetaAddonSpecPlanUpdate = "v4_dbs_meta_addon_spec_plan_update"
 )
 
-// component spec plan meta api
+// APIMetaComponentSpecPlanList 组件规格方案元数据接口标识
 const (
 	APIMetaComponentSpecPlanList   = "v4_dbs_meta_component_spec_plan_list"
 	APIMetaComponentSpecPlanDetail = "v4_dbs_meta_component_spec_plan_detail"
@@ -118,81 +119,81 @@ const (
 	APIMetaComponentSpecPlanUpdate = "v4_dbs_meta_component_spec_plan_update"
 )
 
-// addon repo meta api
+// APIMetaAddonRepoDetail addon 仓库元数据接口标识
 const (
 	APIMetaAddonRepoDetail = "v4_dbs_meta_addon_repo_detail"
 	APIMetaAddonRepoSearch = "v4_dbs_meta_addon_repo_search"
 	APIMetaAddonRepoCreate = "v4_dbs_meta_addon_repo_create"
 )
 
-// addon cluster repo meta api
+// APIMetaAddonClusterRepoDetail addon 集群仓库元数据接口标识
 const (
 	APIMetaAddonClusterRepoDetail = "v4_dbs_meta_addon_cluster_repo_detail"
 	APIMetaAddonClusterRepoSearch = "v4_dbs_meta_addon_cluster_repo_search"
 	APIMetaAddonClusterRepoCreate = "v4_dbs_meta_addon_cluster_repo_create"
 )
 
-// addon topo meta api
+// APIMetaAddonTopoCreate addon 拓扑元数据接口标识
 const (
 	APIMetaAddonTopoCreate = "v4_dbs_meta_addon_topo_create"
 	APIMetaAddonTopoDetail = "v4_dbs_meta_addon_topo_detail"
 	APIMetaAddonTopoSearch = "v4_dbs_meta_addon_topo_search"
 )
 
-// addon type meta api
+// APIMetaAddonTypeList addon 类型元数据接口标识
 const (
 	APIMetaAddonTypeList   = "v4_dbs_meta_addon_type_list"
 	APIMetaAddonTypeCreate = "v4_dbs_meta_addon_type_create"
 )
 
-// APIMetaClusterRequestList cluster request meta api
+// APIMetaClusterRequestList 集群请求元数据接口标识
 const (
 	APIMetaClusterRequestList = "v4_dbs_meta_cluster_request_list"
 )
 
-// cluster meta api
+// APIMetaClusterDetail 集群元数据接口标识
 const (
 	APIMetaClusterDetail         = "v4_dbs_meta_cluster_detail"
 	APIMetaClusterList           = "v4_dbs_meta_cluster_list"
 	APIMetaClusterTopologyDetail = "v4_dbs_meta_cluster_topology_detail"
 )
 
-// APIMetaComponentDetail component meta api
+// APIMetaComponentDetail 组件元数据接口标识
 const (
 	APIMetaComponentDetail = "v4_dbs_meta_component_detail"
 )
 
-// cluster addon meta api
+// APIMetaClusterAddonDetail 集群 addon 元数据接口标识
 const (
 	APIMetaClusterAddonDetail = "v4_dbs_meta_cluster_addon_detail"
 	APIMetaClusterAddonByName = "v4_dbs_meta_cluster_addon_name"
 )
 
-// operation meta api
+// APIMetaOpDefList 操作定义元数据接口标识
 const (
 	APIMetaOpDefList   = "v4_dbs_meta_op_def_list"
 	APIMetaOpDefCreate = "v4_dbs_meta_op_def_create"
 )
 
-// cluster operation meta api
+// APIMetaClusterOpDefList 集群操作定义元数据接口标识
 const (
 	APIMetaClusterOpDefList   = "v4_dbs_meta_cluster_op_def_list"
 	APIMetaClusterOpDefCreate = "v4_dbs_meta_cluster_op_def_create"
 )
 
-// component operation meta api
+// APIMetaComponentOpDefList 组件操作定义元数据接口标识
 const (
 	APIMetaComponentOpDefList   = "v4_dbs_meta_component_op_def_list"
 	APIMetaComponentOpDefCreate = "v4_dbs_meta_component_op_def_create"
 )
 
-// ac release meta api
+// APIMetaAcReleaseDetail 接入层发布元数据接口标识
 const (
 	APIMetaAcReleaseDetail = "v4_dbs_meta_ac_release_detail"
 	APIMetaAcReleaseSearch = "v4_dbs_meta_ac_release_search"
 )
 
-// ac version meta api
+// APIMetaAcVersionList 接入层版本元数据接口标识
 const (
 	APIMetaAcVersionList   = "v4_dbs_meta_ac_version_list"
 	APIMetaAcVersionCreate = "v4_dbs_meta_ac_version_create"
@@ -201,7 +202,7 @@ const (
 	APIMetaAcVersionUpdate = "v4_dbs_meta_ac_version_update"
 )
 
-// k8s config meta api
+// APIMetaK8sConfigDetail K8s 配置元数据接口标识
 const (
 	APIMetaK8sConfigDetail       = "v4_dbs_meta_k8s_config_detail"
 	APIMetaK8sConfigDetailByVis  = "v4_dbs_meta_k8s_config_detail_by_vis"
@@ -211,7 +212,7 @@ const (
 	APIMetaK8sConfigUpdate       = "v4_dbs_meta_k8s_config_update"
 )
 
-// opsrequest meta api
+// APIMetaOpsRequestDetail 运维请求元数据接口标识
 const (
 	APIMetaOpsRequestDetail = "v4_dbs_meta_ops_request_detail"
 )
@@ -219,14 +220,14 @@ const (
 // APIGroups 存储 API 名称到分组的映射
 var APIGroups = initAPIGroups()
 
-// add 辅助函数：向分组映射中添加 API
+// add 向分组映射中添加 API 标识
 func add(groups map[string]string, group string, apis ...string) {
 	for _, api := range apis {
 		groups[api] = group
 	}
 }
 
-// 初始化 API 分组
+// initAPIGroups 初始化并返回 API 分组映射
 func initAPIGroups() map[string]string {
 	groups := make(map[string]string)
 

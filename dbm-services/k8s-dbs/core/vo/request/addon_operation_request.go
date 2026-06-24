@@ -17,6 +17,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Package request 定义 core 模块下的 vo 请求结构体
 package request
 
 import commentity "k8s-dbs/common/entity"

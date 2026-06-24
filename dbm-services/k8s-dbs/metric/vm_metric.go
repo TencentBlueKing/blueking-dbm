@@ -32,6 +32,7 @@ import (
 	commutil "k8s-dbs/common/util"
 )
 
+// VictoriaMetrics API 路径模板
 const (
 	BaseVMApiV1Path     = "http://%s:%s/select/0/prometheus/api/v1/"
 	VMApiV1QueryPattern = BaseVMApiV1Path + "query"

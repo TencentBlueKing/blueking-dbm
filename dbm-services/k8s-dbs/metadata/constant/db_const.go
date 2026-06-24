@@ -17,6 +17,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Package constant 定义 metadata 模块中使用的常量
 package constant
 
 // DefaultFetchSizeStr 列表默认拉取行数
