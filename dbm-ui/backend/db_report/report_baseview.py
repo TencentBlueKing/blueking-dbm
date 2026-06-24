@@ -11,7 +11,6 @@ specific language governing permissions and limitations under the License.
 from collections import defaultdict
 from typing import Dict
 
-from django.core.cache import cache
 from django.db.models import Count
 from django.utils.translation import gettext_lazy as _
 from rest_framework import status
@@ -25,7 +24,7 @@ from backend.bk_web.swagger import common_swagger_auto_schema
 from backend.bk_web.viewsets import AuditedModelViewSet
 from backend.configuration.constants import SystemSettingsEnum
 from backend.configuration.models import DBAdministrator, SystemSettings
-from backend.db_report.enums import REPORT_COUNT_CACHE_KEY, SWAGGER_TAG, ReportStateType, ReportType
+from backend.db_report.enums import SWAGGER_TAG, ReportStateType, ReportType
 from backend.db_report.filters import DrillReportFilterBackend, ReportFilterBackend, ReportListFilter
 from backend.db_report.register import db_report_maps, report_kind_register_map
 from backend.db_report.serializers import GetReportCountSerializer, GetReportOverviewSerializer
@@ -46,7 +45,6 @@ class ReportBaseViewSet(AuditedModelViewSet):
     # 巡检过滤/排序
     filter_backends = [ReportFilterBackend, OrderingFilter]
     filter_fields = {
-        "bk_biz_id": ["exact"],
         "cluster_type": ["exact", "in"],
         "create_at": ["gte", "lte"],
         "status": ["exact", "in"],
@@ -63,39 +61,6 @@ class ReportBaseViewSet(AuditedModelViewSet):
         # 全局过滤排除掉特定业务
         exclude_bk_biz_ids = SystemSettings.get_setting_value(SystemSettingsEnum.DB_REPORT_EXCLUDE_BIZS, default=[])
         return queryset.exclude(bk_biz_id__in=exclude_bk_biz_ids)
-
-    def summary_state_count(self):
-        """
-        统计各状态的数量，受 time_range 和 bk_biz_id 影响，不受其他过滤参数(state等)影响
-        """
-        # 应用 time_range、bk_biz_id 过滤和业务排除，不应用其他过滤条件
-        queryset = self.get_queryset()
-
-        # 应用 time_range 过滤
-        time_range = self.request.query_params.get("time_range", "")
-        if time_range:
-            filter_instance = ReportListFilter(
-                data=self.request.query_params,
-                queryset=queryset,
-                request=self.request,
-            )
-            queryset = filter_instance.filter_time_range(queryset, "time_range", time_range)
-
-        # 应用 bk_biz_id 过滤
-        bk_biz_id = self.request.query_params.get("bk_biz_id")
-        if bk_biz_id:
-            queryset = queryset.filter(bk_biz_id=bk_biz_id)
-
-        # 全局过滤排除掉特定业务
-        exclude_bk_biz_ids = SystemSettings.get_setting_value(SystemSettingsEnum.DB_REPORT_EXCLUDE_BIZS, default=[])
-        if exclude_bk_biz_ids:
-            queryset = queryset.exclude(bk_biz_id__in=exclude_bk_biz_ids)
-
-        # 这里使用order_by()清除排序字段，否则会加到group_by中，影响聚合逻辑
-        state_count_info = queryset.order_by().values("state").annotate(count=Count("state"))
-        state_map = {state: 0 for state in ReportStateType.get_values()}
-        state_map.update({info["state"]: info["count"] for info in state_count_info})
-        return state_map
 
     def _get_time_filtered_queryset(self):
         """
@@ -138,15 +103,28 @@ class ReportBaseViewSet(AuditedModelViewSet):
 
         return queryset
 
+    def summary_state_count(self):
+        """
+        统计各状态的数量，受 time_range、manage 和 bk_biz_id(可观测页面) 影响，不受其他过滤参数(state等)影响
+        """
+        # 应用 time_range、manage、bk_biz_id 过滤和业务排除，不应用其他过滤条件
+        queryset = self._get_time_filtered_queryset()
+
+        # 这里使用order_by()清除排序字段，否则会加到group_by中，影响聚合逻辑
+        state_count_info = queryset.order_by().values("state").annotate(count=Count("state"))
+        state_map = {state: 0 for state in ReportStateType.get_values()}
+        state_map.update({info["state"]: info["count"] for info in state_count_info})
+        return state_map
+
     def get_total_count(self):
         """
-        获取全量数据的总记录数，不受搜索/过滤条件影响
+        获取全量数据的总记录数，为 state_count 的总和
         """
         return self._get_time_filtered_queryset().count()
 
     def get_total_abnormal_count(self):
         """
-        获取 time_range 范围内状态为异常或预警的总数，不考虑其它搜索项
+        获取状态为异常或预警的总数，为 state_count 中异常+预警的总和
         """
         return (
             self._get_time_filtered_queryset()
@@ -207,18 +185,14 @@ class ReportCommonViewSet(viewsets.SystemViewSet):
     @action(methods=["GET"], detail=False, serializer_class=GetReportCountSerializer)
     def get_report_count(self, request, *args, **kwargs):
         username = request.user.username
-        cache_key = REPORT_COUNT_CACHE_KEY.format(user=username)
+        # cache_key = REPORT_COUNT_CACHE_KEY.format(user=username)
         # 获取 time_range 参数
         time_range = request.query_params.get("time_range", "")
-        # 获取 bk_biz_id 参数
         bk_biz_id = request.query_params.get("bk_biz_id")
         # 有缓存优先返回缓存，数量精确性要求性不高
         # report_count_cache = cache.get(cache_key)
         # if report_count_cache:
         #     return Response(report_count_cache)
-
-        # 获取全局排除业务列表
-        exclude_bk_biz_ids = SystemSettings.get_setting_value(SystemSettingsEnum.DB_REPORT_EXCLUDE_BIZS, default=[])
 
         report_count_map: Dict[str, Dict[str, Dict]] = defaultdict(lambda: defaultdict(dict))
         for db_type, report_classes in db_report_maps.items():
@@ -235,17 +209,13 @@ class ReportCommonViewSet(viewsets.SystemViewSet):
                         request=request,
                     )
                     queryset = filter_instance.filter_time_range(queryset, "time_range", time_range)
-                # 应用 bk_biz_id 过滤
                 if bk_biz_id:
                     queryset = queryset.filter(bk_biz_id=bk_biz_id)
-                # 应用全局业务排除过滤
-                if exclude_bk_biz_ids:
-                    queryset = queryset.exclude(bk_biz_id__in=exclude_bk_biz_ids)
                 report_count_map[db_type][cls.report_type].update(
                     manage_count=queryset.filter(bk_biz_id__in=manage_bizs).count(),
                     assist_count=queryset.filter(bk_biz_id__in=assist_bizs).count(),
                 )
 
         # 默认可以做1h的缓存
-        cache.set(cache_key, report_count_map, 60 * 10)
+        # cache.set(cache_key, report_count_map, 60 * 10)
         return Response(report_count_map)
