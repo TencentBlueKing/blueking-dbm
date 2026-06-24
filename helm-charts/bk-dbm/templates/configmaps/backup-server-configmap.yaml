@@ -61,7 +61,7 @@ data:
         app_code: "{{ .Values.dbm.envs.bkAppCode }}"
         app_secret: "{{ .Values.dbm.envs.bkAppToken }}"
         app_id: {{ .Values.bk.bluekingBizId | default "9991001"}}
-        operator: "{{ .Values.bk.bkJobV3Operator | default "admin"}}"
+        operator: "{{ .Values.bk.bkAdminUser | default "admin"}}"
       etcdset:
         endpoints: "{{ $etcdInfo.schema }}://{{ $etcdInfo.host }}:{{ $etcdInfo.port }}"
         user: "{{ $etcdInfo.username }}"
