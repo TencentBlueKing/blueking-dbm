@@ -143,7 +143,7 @@
     return _.filter(
       [
         {
-          id: 'bk_biz_id',
+          id: 'select_biz_id',
           list: globalBizsStore.bizs.map((biz) => ({
             label: biz.name,
             value: biz.bk_biz_id,
@@ -198,7 +198,7 @@
       const routerQuery = _.cloneDeep(route.query) as Record<string, string>;
 
       searchParams.value = {};
-      ['bk_biz_id', 'cluster', 'dba'].forEach((item) => {
+      ['select_biz_id', 'cluster', 'dba'].forEach((item) => {
         if (routerQuery[item]) {
           searchValue.value[item] = routerQuery[item];
         }
@@ -206,8 +206,7 @@
 
       timeRange.value = routerQuery.time_range || 'now -1d';
       currentActiveTab.value = routerQuery.manage || 'todo';
-      tabType.value = (routerQuery.tabType as DBTypes) || DBTypes.MYSQL;
-      console.log('tabType.value', tabType.value);
+      tabType.value = routerQuery.tabType as DBTypes;
     },
     {
       immediate: true,
