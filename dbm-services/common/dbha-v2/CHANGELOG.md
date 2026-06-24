@@ -1,6 +1,6 @@
 # DBHA-v2 Change Log
 
-## v2.0.0-beta.11
+## v2.0.0-beta.11-unreleased
 - 【新增】Probe 到 Receiver 的 gRPC 上报链路。
 - 【修复】mysql sinker 无超时控制导致的探针数据持久化阻塞问题。
 
