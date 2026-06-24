@@ -286,3 +286,28 @@ func (ha *DbhaData) CountDbhaDataStatusUpdatedWithin(ctx context.Context,
 
 	return result, nil
 }
+
+// SaveSwitchingSnapshotLog saves switching snapshot log records into the database.
+func (ha *DbhaData) SaveSwitchingSnapshotLog(ctx context.Context, records ...*hamodel.DbSwitchingSnapshotLog) error {
+	err := ha.DB.DB().WithContext(ctx).Model(&hamodel.DbSwitchingSnapshotLog{}).CreateInBatches(records, 100).Error
+	if err != nil {
+		return gerrors.NewE(gerrors.MysqlFailure, err)
+	}
+
+	return nil
+}
+
+// UpdateSwitchingSnapshotLog updates an existing switching snapshot log record in the database.
+func (ha *DbhaData) UpdateSwitchingSnapshotLog(ctx context.Context, record *hamodel.DbSwitchingSnapshotLog) error {
+	err := ha.DB.DB().WithContext(ctx).Model(&hamodel.DbSwitchingSnapshotLog{}).
+		Where(fmt.Sprintf("%s = ?", hamodel.DbSwitchingSnapshotLogFieldID), record.ID).
+		Updates(map[string]any{
+			hamodel.DbSwitchingSnapshotLogFieldFinishedTime: record.FinishedTime,
+			hamodel.DbSwitchingSnapshotLogFieldResult:       record.Result,
+		}).Error
+	if err != nil {
+		return gerrors.NewE(gerrors.MysqlFailure, err)
+	}
+
+	return nil
+}

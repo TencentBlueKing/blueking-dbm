@@ -29,47 +29,47 @@ import (
 
 	"dbm-services/common/dbha-v2/internal/analysis/dbm"
 	"dbm-services/common/dbha-v2/internal/analysis/switcher"
+	"dbm-services/common/dbha-v2/internal/analysis/switcher/switchlogger/snapshotlogger"
 	"dbm-services/common/dbha-v2/pkg/logger"
 	"dbm-services/common/dbha-v2/pkg/storage/hamodel"
 )
 
-// SwitchSnapshotPayload is logged as JSON after SwitchID in switching-snapshot-* log files.
-type SwitchSnapshotPayload struct {
-	DbType           string          `json:"db_type"`
-	ActionScope      string          `json:"action_scope"`
-	Strategy         json.RawMessage `json:"strategy"`
-	FailureInstances json.RawMessage `json:"failure_instances"`
-	MetadataSet      json.RawMessage `json:"metadata_set"`
-}
-
-// WriteSwitchSnapshot writes one line: SwitchID, then JSON SwitchSnapshotPayload.
-// swSnapshotLogger is the dedicated rotating file logger; nil disables writing.
-// strategy / group may be nil (encoded as JSON null / empty arrays in sub-documents).
-func WriteSwitchSnapshot(
+// NewSwitchingSnapshotData creates a new SwitchingSnapshotData instance.
+func NewSwitchingSnapshotData(
 	strategy *hamodel.DbSwitchingStrategy,
 	group *FailureGroup,
 	req *switcher.Request,
 	swSnapshotLogger logger.Logger,
-) {
-	if swSnapshotLogger == nil {
-		return
+) *snapshotlogger.SwitchingSnapshotData {
+	if strategy == nil || group == nil || req == nil || swSnapshotLogger == nil {
+		return nil
 	}
 
-	if req == nil {
-		swSnapshotLogger.Warn("skip saving switching snapshot: switch request is nil")
-		return
+	data := &snapshotlogger.SwitchingSnapshotData{
+		StdSwitchingSnapshotData: snapshotlogger.StdSwitchingSnapshotData{
+			DbType:      string(req.DbType),
+			ActionScope: string(req.ActionScope),
+		},
+		DbSwitchingSnapshotData: snapshotlogger.DbSwitchingSnapshotData{
+			SwitchID:  req.SwitchID,
+			BkCloudID: group.BkCloudID,
+		},
+		SwSnapshotLogger: swSnapshotLogger,
 	}
 
+	// marshal strategy
 	strategyJSON, err := json.Marshal(strategy)
 	if err != nil {
 		swSnapshotLogger.Warn(
 			"failed to marshal strategy for switching snapshot, switchId: %s, errmsg: %s",
 			req.SwitchID, err)
-		return
+	} else {
+		data.StdSwitchingSnapshotData.StrategyJSON = strategyJSON
 	}
 
+	// marshal failure instances
 	failures := []FailureInstanceInfo{}
-	if group != nil && group.Instances != nil {
+	if group.Instances != nil {
 		failures = group.Instances
 	}
 
@@ -78,35 +78,32 @@ func WriteSwitchSnapshot(
 		swSnapshotLogger.Warn(
 			"failed to marshal failure instances for switching snapshot, switchId: %s, errmsg: %s",
 			req.SwitchID, err)
-		return
+	} else {
+		data.StdSwitchingSnapshotData.FailureInstancesJSON = failureJSON
+
+		if len(group.Instances) > 0 {
+			data.DbSwitchingSnapshotData.BkBizID = group.Instances[0].BkBizID
+			data.DbSwitchingSnapshotData.ClusterID = group.Instances[0].ClusterID
+			data.DbSwitchingSnapshotData.ClusterName = group.Instances[0].Cluster
+			data.DbSwitchingSnapshotData.Reason = group.Instances[0].EventNameReason.Str().String()
+		}
 	}
 
+	// marshal metadata set
 	metaSet := []*dbm.DbInstMetadata{}
 	if req.MySqlInstData != nil {
 		metaSet = req.MySqlInstData
 	}
+	data.MetadataSet = metaSet
 
 	metadataJSON, err := json.Marshal(metaSet)
 	if err != nil {
 		swSnapshotLogger.Warn(
 			"failed to marshal metadata set for switching snapshot, switchId: %s, errmsg: %s",
 			req.SwitchID, err)
-		return
+	} else {
+		data.StdSwitchingSnapshotData.MetadataSetJSON = metadataJSON
 	}
 
-	payload := SwitchSnapshotPayload{
-		DbType:           string(req.DbType),
-		ActionScope:      string(req.ActionScope),
-		Strategy:         strategyJSON,
-		FailureInstances: failureJSON,
-		MetadataSet:      metadataJSON,
-	}
-
-	body, err := json.Marshal(&payload)
-	if err != nil {
-		swSnapshotLogger.Warn("failed to marshal switching snapshot payload, switchId: %s, errmsg: %s", req.SwitchID, err)
-		return
-	}
-
-	swSnapshotLogger.Info("%s\t%s", req.SwitchID, string(body))
+	return data
 }

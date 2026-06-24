@@ -52,6 +52,8 @@ type DbInstMetadata struct {
 	AdminPort          int                                `json:"admin_port"`
 	Port               int                                `json:"port"`
 	IP                 string                             `json:"ip"`
+	NewMasterIP        string                             `json:"new_master_ip"`
+	NewMasterPort      int                                `json:"new_master_port"`
 	DbModuleID         int                                `json:"db_module_id"`
 	BkBizID            int                                `json:"bk_biz_id"`
 	Cluster            string                             `json:"cluster"`
