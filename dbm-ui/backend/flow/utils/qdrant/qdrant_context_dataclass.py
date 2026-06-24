@@ -35,6 +35,8 @@ class K8sQdrantApplyContext:
     clb_detail: Optional[dict] = None
     cluster_id: Optional[int] = None
     namespace: Optional[str] = None
+    k8s_cluster_name: Optional[str] = None
+    cluster_name: Optional[str] = None
 
 
 @dataclass()

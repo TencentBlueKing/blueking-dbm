@@ -15,6 +15,7 @@ from typing import List
 from pipeline.component_framework.component import Component
 from pipeline.core.flow.activity import Service
 
+import backend.flow.utils.qdrant.qdrant_context_dataclass as flow_context
 from backend.components import KubernetesApi
 from backend.flow.plugins.components.collections.common.base_service import BaseService
 
@@ -28,9 +29,18 @@ class DeleteK8sQdrantService(BaseService):
 
     def _execute(self, data, parent_data):
         global_data = data.get_one_of_inputs("global_data")
+        trans_data = data.get_one_of_inputs("trans_data")
+        kwargs = data.get_one_of_inputs("kwargs")
+
+        if trans_data is None or trans_data == "${trans_data}":
+            trans_data = getattr(flow_context, kwargs["set_trans_data_dataclass"])()
 
         cluster_id = global_data["cluster_id"]
         cluster_detail = KubernetesApi.cluster_detail({"cluster_id": cluster_id}, use_admin=True)
+
+        trans_data.cluster_name = cluster_detail["clusterName"]
+        trans_data.namespace = cluster_detail["namespace"]
+        trans_data.k8s_cluster_name = cluster_detail["k8sClusterConfig"]["clusterName"]
 
         params = {
             "k8sClusterName": cluster_detail["k8sClusterConfig"]["clusterName"],
@@ -41,6 +51,7 @@ class DeleteK8sQdrantService(BaseService):
         }
         KubernetesApi.delete_cluster(params, use_admin=True)
 
+        data.outputs["trans_data"] = trans_data
         return True
 
     def inputs_format(self) -> List:
