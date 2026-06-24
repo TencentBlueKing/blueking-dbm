@@ -11,14 +11,12 @@ specific language governing permissions and limitations under the License.
 from .check_affinity import check_redis_affinity
 from .check_entry import check_redis_entry_consistency
 from .check_instance import check_redis_instance
-from .check_role import check_redis_instance_role
 
 
 def check_redis_clusters():
     """Redis cluster meta data validation"""
     check_redis_instance()
     check_redis_affinity()
-    check_redis_instance_role()
     check_redis_entry_consistency()
 
 

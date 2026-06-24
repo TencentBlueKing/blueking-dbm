@@ -76,12 +76,15 @@ class RedisCheckReport(BaseReportABS):
         }
 
     @classmethod
-    def _get_latest_row_for_mode_window(cls, *, cluster_id: int, subtype: str, window_hours: int = 36):
+    def _get_latest_row_for_mode_window(
+        cls, *, cluster_id: int, subtype: str, instance: str = "", window_hours: int = 36
+    ):
         cutoff = timezone.now() - timedelta(hours=window_hours)
         return (
             cls.objects.filter(
                 cluster_id=cluster_id,
                 subtype=subtype,
+                instance=instance,
                 create_at__gte=cutoff,
             )
             .order_by("-create_at")
@@ -125,7 +128,7 @@ class RedisCheckReport(BaseReportABS):
             shard=shard,
             instance=instance,
         )
-        existing = cls._get_latest_row_for_mode_window(cluster_id=cluster_id, subtype=subtype)
+        existing = cls._get_latest_row_for_mode_window(cluster_id=cluster_id, subtype=subtype, instance=instance)
         defaults["failed_days"] = cls._resolve_failed_days(state=state, existing=existing)
         return cls.objects.create(
             cluster_id=cluster_id,
@@ -150,7 +153,7 @@ class RedisCheckReport(BaseReportABS):
         shard: str = "",
         instance: str = "",
     ) -> "RedisCheckReport":
-        """Create or update a record by (cluster_id, subtype). Returns the saved instance.
+        """Create or update a record by (cluster_id, subtype, instance). Returns the saved instance.
         When multiple rows match, updates only the latest one (by create_at).
         Only updates if that record was modified within the last 36 hours; otherwise creates new.
         """
@@ -166,7 +169,7 @@ class RedisCheckReport(BaseReportABS):
             shard=shard,
             instance=instance,
         )
-        existing = cls._get_latest_row_for_mode_window(cluster_id=cluster_id, subtype=subtype)
+        existing = cls._get_latest_row_for_mode_window(cluster_id=cluster_id, subtype=subtype, instance=instance)
         if existing:
             old_state = existing.state
             old_failed_days = existing.failed_days

@@ -16,6 +16,9 @@ from blue_krill.data_types.enum import EnumField, StrStructuredEnum
 class RedisCheckSubType(StrStructuredEnum):
     Exporter = EnumField("redis_exporter", _("redis_exporter"))
 
+    # Unified conf check: role mismatch + predixy server fail/conf drift all land here.
+    ConfigInconsistent = EnumField("redis_config_inconsistent", _("Instance config inconsistent"))
+
     # Agent check subtypes
     ClusterCapacityGrowthRisk = EnumField("cluster_capacity_growth_risk", _("Cluster capacity growth risk"))
     BackendLoadSkew = EnumField("backend_load_skew", _("Backend load skew"))

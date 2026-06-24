@@ -178,7 +178,7 @@ class SystemSettingsEnum(StrStructuredEnum):
     # Redis 回档演练配置
     REDIS_ROLLBACK_EXERCISE = EnumField("REDIS_ROLLBACK_EXERCISE", _("Redis回档演练配置"))
     # Redis 巡检相关配置
-    REDIS_ROLE_CHECK = EnumField("REDIS_ROLE_CHECK", _("Redis实例角色校验配置"))
+    REDIS_CONF_CHECK = EnumField("REDIS_CONF_CHECK", _("Redis配置检查配置"))
     REDIS_ENTRY_CHECK = EnumField("REDIS_ENTRY_CHECK", _("Redis访问入口一致性校验配置"))
     REDIS_AFFINITY_CHECK = EnumField("REDIS_AFFINITY_CHECK", _("Redis亲和性校验配置"))
     REDIS_CLUSTER_CAPACITY_GROWTH_CHECK = EnumField("REDIS_CLUSTER_CAPACITY_GROWTH_CHECK", _("Redis集群容量增长检查配置"))

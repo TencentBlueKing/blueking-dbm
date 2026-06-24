@@ -683,10 +683,10 @@ REPORT_SUBTYPE_MAP = {
     RedisReportSubtype.CLUSTER_CAPACITY_GROWTH_RISK: RedisCheckSubType.ClusterCapacityGrowthRisk,
     RedisReportSubtype.BACKEND_LOAD_SKEW: RedisCheckSubType.BackendLoadSkew,
     RedisReportSubtype.BACKEND_DATA_SKEW: RedisCheckSubType.BackendDataSkew,
+    RedisReportSubtype.CONFIG_INCONSISTENT: RedisCheckSubType.ConfigInconsistent,
     RedisReportSubtype.AFFINITY_VIOLATION: MetaCheckSubType.AffinityViolation,
     RedisReportSubtype.ISOLATED_INSTANCE: MetaCheckSubType.AloneInstance,
     RedisReportSubtype.STATUS_ABNORMAL: MetaCheckSubType.StatusAbnormal,
-    RedisReportSubtype.ROLE_MISMATCH: MetaCheckSubType.RoleMismatch,
     RedisReportSubtype.ENTRY_INCONSISTENT: MetaCheckSubType.EntryInconsistent,
 }
 
@@ -696,10 +696,10 @@ REPORT_MODEL_MAP = {
     RedisReportSubtype.CLUSTER_CAPACITY_GROWTH_RISK: RedisCheckReport,
     RedisReportSubtype.BACKEND_LOAD_SKEW: RedisCheckReport,
     RedisReportSubtype.BACKEND_DATA_SKEW: RedisCheckReport,
+    RedisReportSubtype.CONFIG_INCONSISTENT: RedisCheckReport,
     RedisReportSubtype.AFFINITY_VIOLATION: MetaCheckReport,
     RedisReportSubtype.ISOLATED_INSTANCE: MetaCheckReport,
     RedisReportSubtype.STATUS_ABNORMAL: MetaCheckReport,
-    RedisReportSubtype.ROLE_MISMATCH: MetaCheckReport,
     RedisReportSubtype.ENTRY_INCONSISTENT: MetaCheckReport,
 }
 

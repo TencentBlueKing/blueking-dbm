@@ -8,6 +8,8 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+from typing import List
+
 # fast_execute_script接口固定参数
 # 这里独立出来，遇到过全局变量被其他db修改，导致用户错乱的问题
 redis_fast_execute_script_common_kwargs = {
@@ -505,3 +507,58 @@ def build_redis_role_check_script(instances: list) -> str:
     )
 
     return script
+
+
+# ==============================================================================
+# REDIS_CONF_CHECK: on-host script snippets
+#
+# Live instance state (role, predixy INFO Servers) is read via DRS, so the only
+# on-host work is reading config files. Each checker contributes a self-contained
+# snippet that prints tagged blocks:
+#   <CONFCHK checker="<name>" port="<port>">{json}</CONFCHK>
+# The collect component concatenates all snippets for a host into one script and
+# delivers a single job per host.
+# ==============================================================================
+
+CONF_CHECK_SCRIPT_HEADER = "#!/bin/bash\nset +e\n"
+
+
+# Bash helper for the predixy_servers checker. Defined once per script; invoked
+# once per predixy port that lives on the host.
+_PREDIXY_CONF_READ_FUNC = r"""
+__dbm_predixy_conf_servers() {
+    local port="$1"
+    local conf=""
+    # Prefer the running process's actual conf path, fall back to the data dir.
+    conf=$(ps aux 2>/dev/null | grep predixy | grep -w "$port" | grep predixy.conf | grep -v grep | head -1 | awk '{print $NF}')
+    if [ -z "$conf" ]; then
+        conf=$(ls "$REDIS_DATA_DIR/predixy/$port/predixy.conf" 2>/dev/null | head -1)
+    fi
+    if [ -z "$conf" ] || [ ! -f "$conf" ]; then
+        echo "<CONFCHK checker=\"predixy_servers\" port=\"$port\">{\"error\": \"conf_not_found\"}</CONFCHK>"
+        return
+    fi
+    # Servers live inside the pool block (ClusterServerPool -> Servers, StandaloneServerPool -> Masters).
+    local servers
+    servers=$(awk '/(Servers|Masters)[[:space:]]*\{/{f=1; next} f&&/\}/{f=0} f{print}' "$conf" \
+        | grep -oE '[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+:[0-9]+' | sort -u)
+    local json="" first=1 s
+    for s in $servers; do
+        if [ "$first" -eq 1 ]; then first=0; else json="$json,"; fi
+        json="$json\"$s\""
+    done
+    echo "<CONFCHK checker=\"predixy_servers\" port=\"$port\">{\"servers\": [$json]}</CONFCHK>"
+}
+"""
+
+
+def build_predixy_conf_check_snippet(ports: List[int]) -> str:
+    """
+    Build the predixy_servers checker's on-host snippet for the given ports.
+
+    Reads each predixy's local config file and prints one tagged block per port
+    listing the configured backend servers (ip:port). Compared against live
+    `INFO Servers` by ``PredixyServersChecker.evaluate`` in the report service.
+    """
+    calls = "\n".join('__dbm_predixy_conf_servers "{}"'.format(int(p)) for p in ports if str(p).isdigit())
+    return _PREDIXY_CONF_READ_FUNC + "\n" + calls + "\n"
