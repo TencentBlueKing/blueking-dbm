@@ -43,12 +43,21 @@ class K8sQdrantSyncTicketIdService(BaseService):
         else:
             cluster_id = trans_data.cluster_id
 
-        cluster_detail = KubernetesApi.cluster_detail({"cluster_id": cluster_id}, use_admin=True)
+        # delete类型的单据从trans_data中取数据
+        if global_data["ticket_type"] == TicketType.K8S_QDRANT_DELETE:
+            k8s_cluster_name = trans_data.k8s_cluster_name
+            namespace = trans_data.namespace
+            cluster_name = trans_data.cluster_name
+        else:
+            cluster_detail = KubernetesApi.cluster_detail({"cluster_id": cluster_id}, use_admin=True)
+            k8s_cluster_name = cluster_detail["k8sClusterConfig"]["clusterName"]
+            namespace = cluster_detail["namespace"]
+            cluster_name = cluster_detail["clusterName"]
 
         params = {
-            "k8sClusterName": cluster_detail["k8sClusterConfig"]["clusterName"],
-            "namespace": cluster_detail["namespace"],
-            "clusterName": cluster_detail["clusterName"],
+            "k8sClusterName": k8s_cluster_name,
+            "namespace": namespace,
+            "clusterName": cluster_name,
             "ticketId": global_data["uid"],
             "requestType": self.get_request_type(global_data["ticket_type"]),
             "async_to_dbm": False,
