@@ -1,6 +1,8 @@
 package model
 
 import (
+	"strings"
+
 	"bk-dbconfig/internal/api"
 	"bk-dbconfig/pkg/util"
 
@@ -43,6 +45,10 @@ func ConfNameChangesCreate(db *gorm.DB, changes []*ConfNameChangesModel) error {
 func QueryConfNameChanges(db *gorm.DB, req *api.ConfNameChangesQueryReq) ([]*ConfNameChangesModel, error) {
 	var changes = make([]*ConfNameChangesModel, 0)
 	query := db.Where("namespace = ?", req.Namespace)
+	if ns := strings.Split(req.Namespace, ","); len(ns) > 1 {
+		query = db.Where("namespace in ?", ns)
+	}
+
 	if len(req.ConfType) > 0 {
 		query = query.Where("conf_type in ?", req.ConfType)
 	}

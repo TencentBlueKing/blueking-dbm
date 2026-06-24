@@ -1,6 +1,8 @@
 package model
 
 import (
+	"strings"
+
 	"bk-dbconfig/internal/api"
 	"bk-dbconfig/pkg/util"
 
@@ -55,7 +57,12 @@ func ConfItemChangesCreate(db *gorm.DB, changes []*ConfItemChangesModel) error {
 // QueryConfItemChanges 查询 conf_item 变更历史
 func QueryConfItemChanges(db *gorm.DB, req *api.ConfItemChangesQueryReq) ([]*ConfItemChangesModel, error) {
 	var changes = make([]*ConfItemChangesModel, 0)
-	query := db.Debug().Where("bk_biz_id = ? AND namespace = ?", req.BKBizID, req.Namespace)
+	query := db.Debug().Where("bk_biz_id = ?", req.BKBizID)
+	if ns := strings.Split(req.Namespace, ","); len(ns) > 1 {
+		query = query.Where("namespace in ?", ns)
+	} else {
+		query = query.Where("namespace = ?", req.Namespace)
+	}
 	if len(req.ConfType) > 0 {
 		query = query.Where("conf_type in ?", req.ConfType)
 	}
