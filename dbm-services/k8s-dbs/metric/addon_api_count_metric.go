@@ -17,6 +17,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Package metric 提供 Prometheus 指标定义与上报相关实现
 package metric
 
 import (
@@ -32,6 +33,7 @@ import (
 // AddonAPITotalMetric Addon api 计数统计指标
 const AddonAPITotalMetric = "k8s_dbs_addon_api_total"
 
+// AddonAPITotalMetricTags addon api 指标标签字段集合
 var AddonAPITotalMetricTags = []string{
 	"api_name",
 	"method",

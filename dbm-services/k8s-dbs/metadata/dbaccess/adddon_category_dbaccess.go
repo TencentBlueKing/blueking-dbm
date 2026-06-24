@@ -17,6 +17,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Package dbaccess 实现 metadata 模块的数据访问层
 package dbaccess
 
 import (

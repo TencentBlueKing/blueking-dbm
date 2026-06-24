@@ -17,6 +17,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Package core 注册 core 模块对外暴露的 HTTP 路由
 package core
 
 import (

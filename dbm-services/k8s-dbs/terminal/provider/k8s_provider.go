@@ -17,6 +17,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Package provider 实现终端模块的业务流程封装
 package provider
 
 import (
@@ -66,7 +67,7 @@ func (k *TerminalProvider) OpenTerminal(
 		writeWSMessage(conn, fmt.Sprintf("[ERROR] 创建持久 shell 失败: %v", err))
 		return dbserrors.NewK8sDbsError(dbserrors.CreateK8sClientError, err)
 	}
-	defer shell.Close()
+	defer func() { _ = shell.Close() }()
 
 	// 4. 初始化：获取用户名和初始 cwd
 	userResult := shell.Execute("whoami")

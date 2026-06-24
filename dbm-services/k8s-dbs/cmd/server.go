@@ -17,6 +17,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Package main 是 k8s-dbs 服务的入口包
 package main
 
 import (

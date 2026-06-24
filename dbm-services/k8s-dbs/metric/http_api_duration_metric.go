@@ -27,6 +27,7 @@ import (
 // HTTPAPIDurationMetric api 耗时统计指标
 const HTTPAPIDurationMetric = "k8s_dbs_http_api_duration_mills_histogram"
 
+// HTTPAPIDurationMetricTags http api 耗时指标标签字段集合
 var HTTPAPIDurationMetricTags = []string{
 	"api_name",
 	"method",

@@ -17,6 +17,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Package model 定义 metadata 模块对应的 GORM 数据库模型
 package model
 
 import (

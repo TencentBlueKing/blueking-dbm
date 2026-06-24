@@ -17,6 +17,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Package util 提供路由构建相关的工具函数与 Provider 工厂方法
 package util
 
 import (
@@ -203,6 +204,7 @@ type CoreAPIProviders struct {
 // CustomRouterBuilder 自定义 Router 构建函数
 type CustomRouterBuilder func(db *gorm.DB, engine *gin.RouterGroup)
 
+// CustomRouterBuilders 已注册的自定义 Router 构建函数列表
 var CustomRouterBuilders []CustomRouterBuilder
 
 // RegisterAPIRouterBuilder 注册 CustomRouterBuilder

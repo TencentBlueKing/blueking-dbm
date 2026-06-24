@@ -17,6 +17,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Package validator 提供请求参数校验相关的工具函数
 package validator
 
 import (

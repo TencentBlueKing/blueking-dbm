@@ -21,18 +21,21 @@ package constant
 
 import "time"
 
+// ResourceInGlobal 全局资源集合
 var ResourceInGlobal = map[string]struct{}{
 	ClusterDefinition:   {},
 	ComponentDefinition: {},
 	ComponentVersion:    {},
 }
 
+// Helm 默认配置
 const (
 	AddonDefaultNamespace = "kb-system"
 	HelmOperationTimeout  = 30 * time.Second
 	HelmDriver            = "secrets"
 )
 
+// KubeBlocks 环境变量名常量
 const (
 	KbPodName   = "KB_POD_NAME"
 	KbPodUID    = "KB_POD_UID"
@@ -47,6 +50,7 @@ const (
 	KbPodips    = "KB_PODIPS"
 )
 
+// KbEnvVar KubeBlocks 识别的环境变量集合
 var KbEnvVar = map[string]struct{}{
 	KbPodName:   {},
 	KbPodUID:    {},
@@ -61,6 +65,7 @@ var KbEnvVar = map[string]struct{}{
 	KbPodips:    {},
 }
 
+// PodSelectLabel pod 选择器标签映射
 var PodSelectLabel = map[string]string{
 	"pod-name":  "apps.kubeblocks.io/pod-name",
 	"component": "app.kubernetes.io/component",

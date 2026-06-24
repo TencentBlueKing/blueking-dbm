@@ -17,6 +17,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Package response 定义 metadata 模块对外返回的响应结构体
 package response
 
 // AddonCategoryResponse 插件分类响应结构体

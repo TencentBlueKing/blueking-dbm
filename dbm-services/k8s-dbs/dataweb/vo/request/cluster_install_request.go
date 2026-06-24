@@ -17,6 +17,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Package request 定义 dataweb 模块接收的集群安装请求结构体
 package request
 
 import (

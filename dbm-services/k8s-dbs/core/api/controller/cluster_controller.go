@@ -143,7 +143,7 @@ func (c *ClusterController) checkCreateParams(request *coreentity.Request) error
 		return errors.New("缺少 BkAppAbbr")
 	}
 
-	if strings.TrimSpace(request.Metadata.ClusterAlias) == "" {
+	if strings.TrimSpace(request.ClusterAlias) == "" {
 		return errors.New("缺少 ClusterAlias")
 	}
 

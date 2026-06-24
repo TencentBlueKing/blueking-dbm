@@ -195,24 +195,41 @@ func GetClusterOpsStatus(opsRequestType string, opsRequestStatus string, cluster
 	return clusterStatus
 }
 
+// 集群/组件操作类型与状态常量定义
 const (
-	// 操作类型
-	Start             = "Start"
-	Stop              = "Stop"
-	Restart           = "Restart"
-	VerticalScaling   = "VerticalScaling"
+	// 集群操作类型常量
+
+	// Start 启动集群/组件操作
+	Start = "Start"
+	// Stop 停止集群/组件操作
+	Stop = "Stop"
+	// Restart 重启集群/组件操作
+	Restart = "Restart"
+	// VerticalScaling 垂直扩缩容操作（调整资源配额）
+	VerticalScaling = "VerticalScaling"
+	// HorizontalScaling 水平扩缩容操作（调整实例数量）
 	HorizontalScaling = "HorizontalScaling"
-	VolumeExpansion   = "VolumeExpansion"
-	Upgrade           = "Upgrade"
-	Expose            = "Expose"
+	// VolumeExpansion 存储卷扩容操作
+	VolumeExpansion = "VolumeExpansion"
+	// Upgrade 升级集群/组件操作
+	Upgrade = "Upgrade"
+	// Expose 暴露服务操作（创建访问入口）
+	Expose = "Expose"
 
-	// 操作状态
-	Pending   = "Pending"
+	// 操作请求状态常量
+
+	// Pending 操作请求已提交，等待执行
+	Pending = "Pending"
+	// Createing 操作请求正在创建资源（注：拼写与上游保持一致）
 	Createing = "Creating"
-	Running   = "Running"
+	// Running 操作请求正在执行中
+	Running = "Running"
 
-	// 集群操作状态
+	// 集群/组件状态常量
+
+	// Updating 集群/组件处于更新中状态
 	Updating = "Updating"
+	// Stopping 集群/组件处于停止中状态
 	Stopping = "Stopping"
 )
 

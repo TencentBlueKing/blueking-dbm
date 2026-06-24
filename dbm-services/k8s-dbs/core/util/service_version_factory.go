@@ -66,6 +66,7 @@ func (v *SurrealDBServiceVersionResolver) Resolve(componentList []coreentity.Com
 }
 
 var (
+	// SVRFactory 全局服务版本解析器工厂
 	SVRFactory = &ServiceVersionResolverFactory{}
 )
 

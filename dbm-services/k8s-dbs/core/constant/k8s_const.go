@@ -28,4 +28,5 @@ const (
 	NodePort     = "NodePort"
 )
 
+// K8sAPIServerTimeout k8s API server 默认超时时间
 const K8sAPIServerTimeout = 60 * time.Second

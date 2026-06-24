@@ -11,6 +11,7 @@ spec:
     {{- range .Values.componentList }}
     - name: {{ .componentName }}
       componentDef: {{ .componentDef }}
+      serviceVersion: {{ .serviceVersion }}
       serviceAccountName: kb-{{ $.Release.Name }}
       {{- with .env }}
       env:

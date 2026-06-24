@@ -290,7 +290,7 @@ func (o *OpsRequestProvider) CancelOpsRequest(request *coreentity.Request) error
 
 	crd := &coreentity.CustomResourceDefinition{
 		ResourceName:         request.ClusterName,
-		Namespace:            request.Metadata.Namespace,
+		Namespace:            request.Namespace,
 		GroupVersionResource: kbtypes.ClusterGVR(),
 	}
 	/**
@@ -318,7 +318,7 @@ func (o *OpsRequestProvider) doCleanService(request *coreentity.Request, cleanSe
 	}
 	crd := &coreentity.CustomResourceDefinition{
 		ResourceName:         request.ClusterName,
-		Namespace:            request.Metadata.Namespace,
+		Namespace:            request.Namespace,
 		GroupVersionResource: kbtypes.ClusterGVR(),
 	}
 	// 要清理的service名称
@@ -879,8 +879,8 @@ func (o *OpsRequestProvider) DescribeOpsRequest(request *coreentity.Request) (*c
 		return nil, errors.Wrapf(err, "failed to create k8sClient")
 	}
 	crd := &coreentity.CustomResourceDefinition{
-		ResourceName:         request.Metadata.OpsRequestName,
-		Namespace:            request.Metadata.Namespace,
+		ResourceName:         request.OpsRequestName,
+		Namespace:            request.Namespace,
 		GroupVersionResource: kbtypes.OpsGVR(),
 	}
 	opsRequest, err := coreutil.GetCRD(k8sClient, crd)

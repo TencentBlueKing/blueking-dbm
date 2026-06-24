@@ -34,10 +34,16 @@ const (
 	BackupPolicy        = "BackupPolicy"
 )
 
+// APIVersion KubeBlocks apps API 版本
 const APIVersion = "apps.kubeblocks.io/v1alpha1"
+
+// DataProAPIVersion KubeBlocks dataprotection API 版本
 const DataProAPIVersion = "dataprotection.kubeblocks.io/v1alpha1"
+
+// DefaultUserName 默认用户名
 const DefaultUserName = "admin"
 
+// Helm 仓库默认配置
 const (
 	DefaultRepoName       = "mapleleaf"
 	DefaultRepoRepository = ""
@@ -55,8 +61,10 @@ const (
 // Kubeblocks kb 常量
 const Kubeblocks = "kubeblocks"
 
+// TerminationPolicy 集群删除策略类型
 type TerminationPolicy string
 
+// TerminationPolicy 枚举
 const (
 	DoNotTerminate TerminationPolicy = "DoNotTerminate"
 	Halt           TerminationPolicy = "Halt"

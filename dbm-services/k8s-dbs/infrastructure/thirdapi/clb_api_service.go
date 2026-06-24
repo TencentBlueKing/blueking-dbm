@@ -17,6 +17,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Package thirdapi 封装对外部第三方服务（如 DBM、CLB）API 的调用
 package thirdapi
 
 import (

@@ -174,9 +174,9 @@ func (s *Shell) startShell(shellPath string) error {
 			Stdout: stdoutWriter,
 			Stderr: stderrWriter,
 		})
-		stdinReader.Close()
-		stdoutWriter.Close()
-		stderrWriter.Close()
+		_ = stdinReader.Close()
+		_ = stdoutWriter.Close()
+		_ = stderrWriter.Close()
 	}()
 
 	// 初始化 shell 环境
@@ -205,9 +205,9 @@ func (s *Shell) initShell() error {
 	// 写入初始化命令，使用标记确认完成
 	marker := initDoneMarker
 	for _, cmd := range initCommands {
-		fmt.Fprintf(s.stdin, "%s 2>/dev/null || true\n", cmd)
+		_, _ = fmt.Fprintf(s.stdin, "%s 2>/dev/null || true\n", cmd)
 	}
-	fmt.Fprintf(s.stdin, "echo '%s'\n", marker)
+	_, _ = fmt.Fprintf(s.stdin, "echo '%s'\n", marker)
 
 	// 读取直到看到标记（带超时）
 	timeout := time.After(shellInitTimeout)
@@ -465,7 +465,7 @@ func (s *Shell) Close() error {
 	// 发送 exit 命令
 	if s.stdin != nil {
 		_, _ = s.stdin.Write([]byte("exit\n"))
-		s.stdin.Close()
+		_ = s.stdin.Close()
 	}
 
 	// 取消 context

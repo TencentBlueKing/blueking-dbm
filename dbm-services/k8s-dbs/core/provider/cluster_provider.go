@@ -944,10 +944,10 @@ func (c *ClusterProvider) saveClusterMeta(
 		BkBizID:             request.BkBizID,
 		BkBizName:           request.BkBizName,
 		BkAppAbbr:           request.BkAppAbbr,
-		BkAppCode:           request.BKAuth.BkAppCode,
+		BkAppCode:           request.BkAppCode,
 		Description:         request.Description,
-		CreatedBy:           request.BKAuth.BkUserName,
-		UpdatedBy:           request.BKAuth.BkUserName,
+		CreatedBy:           request.BkUserName,
+		UpdatedBy:           request.BkUserName,
 	}
 	addedClusterEntity, err := c.clusterMetaProvider.CreateCluster(clusterEntity)
 	if err != nil {
@@ -965,12 +965,12 @@ func (c *ClusterProvider) saveComponentMeta(
 ) ([]*metaentity.K8sCrdComponentEntity, error) {
 	var compEntityList []*metaentity.K8sCrdComponentEntity
 	for _, comp := range request.ComponentList {
-		compName := request.Metadata.ClusterName + "-" + comp.ComponentName
+		compName := request.ClusterName + "-" + comp.ComponentName
 		componentEntity := &metaentity.K8sCrdComponentEntity{
 			ComponentName: compName,
 			CrdClusterID:  crdClusterID,
-			CreatedBy:     request.BKAuth.BkUserName,
-			UpdatedBy:     request.BKAuth.BkUserName,
+			CreatedBy:     request.BkUserName,
+			UpdatedBy:     request.BkUserName,
 		}
 		_, err := c.componentMetaProvider.CreateComponent(componentEntity)
 		if err != nil {
@@ -1039,8 +1039,8 @@ func buildClusterReleaseEntity(
 		RepoName:           repoName,
 		RepoRepository:     repoRepository,
 		ChartValues:        jsonStr,
-		CreatedBy:          request.BKAuth.BkUserName,
-		UpdatedBy:          request.BKAuth.BkUserName,
+		CreatedBy:          request.BkUserName,
+		UpdatedBy:          request.BkUserName,
 	}, nil
 }
 
@@ -1078,7 +1078,7 @@ func (c *ClusterProvider) installHelmRelease(
 	install.Wait = true
 	install.Username = helmRepo.RepoUsername
 	install.Password = helmRepo.RepoPassword
-	chartRequested, err := install.ChartPathOptions.LocateChart(request.StorageAddonType+"-cluster", helmcli.New())
+	chartRequested, err := install.LocateChart(request.StorageAddonType+"-cluster", helmcli.New())
 	if err != nil {
 		slog.Error("failed to locate helm chart requested", "error", err)
 		return nil, fmt.Errorf("failed to locate helm chart requested\n%s", err)
@@ -1148,7 +1148,7 @@ func (c *ClusterProvider) doUpdateClusterRelease(
 	upgrade.Username = helmRepo.RepoUsername
 	upgrade.Password = helmRepo.RepoPassword
 
-	chartRequested, err := upgrade.ChartPathOptions.LocateChart(request.StorageAddonType+"-cluster", helmcli.New())
+	chartRequested, err := upgrade.LocateChart(request.StorageAddonType+"-cluster", helmcli.New())
 	if err != nil {
 		slog.Error("failed to locate helm chart requested", "error", err)
 		return nil, err

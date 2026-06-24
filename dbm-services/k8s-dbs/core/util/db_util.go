@@ -17,6 +17,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Package util 提供 core 模块的辅助工具函数（如数据库操作）
 package util
 
 import (
@@ -37,7 +38,8 @@ import (
 var (
 	once    sync.Once
 	initErr error
-	Db      = &database{}
+	// Db 全局数据库连接单例
+	Db = &database{}
 )
 
 type database struct {

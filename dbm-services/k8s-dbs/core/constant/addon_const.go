@@ -17,6 +17,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Package constant 定义 core 模块共享的常量
 package constant
 
 // AddonOperation addon 操作类别
@@ -32,6 +33,7 @@ const (
 // StorageAddonType addon 类型
 type StorageAddonType string
 
+// StorageAddonType 枚举
 const (
 	Surreal         StorageAddonType = "surrealdb"
 	Victoriametrics StorageAddonType = "victoriametrics"
@@ -66,6 +68,7 @@ const (
 	VMInsert  string = "vminsert"
 )
 
+// VictoriaMetrics 拓扑类型常量
 const (
 	VMClusterTopo string = "cluster"
 	VMQueryTopo   string = "select"

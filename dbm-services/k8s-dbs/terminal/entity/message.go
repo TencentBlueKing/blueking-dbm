@@ -17,6 +17,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Package entity 定义 terminal 模块的领域实体类型
 package entity
 
 // MessageType WebSocket消息类型

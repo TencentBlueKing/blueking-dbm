@@ -17,6 +17,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Package api 提供通用 HTTP 接口实现（如健康检查）
 package api
 
 import (
@@ -25,6 +26,7 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+// HealthCheckURL 健康检查接口路径
 const HealthCheckURL = "/common/health"
 
 // HealthCheck 集群健康检查 API

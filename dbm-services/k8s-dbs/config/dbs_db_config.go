@@ -17,6 +17,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Package config 提供应用全局配置结构体与实例
 package config
 
 import "time"

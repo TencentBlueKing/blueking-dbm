@@ -17,6 +17,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Package informers 提供 K8s CRD 资源的 Informer 实现，用于监听资源变更
 package informers
 
 import (

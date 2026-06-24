@@ -24,6 +24,7 @@ import (
 	coreentity "k8s-dbs/core/entity"
 )
 
+// ComponentOpsChecker 全局组件操作检查器实例
 var ComponentOpsChecker = &ComponentOperationChecker{
 	rules: make(map[AddonType]map[AddonComponent]map[OperationType]OperationCheckFunc),
 }

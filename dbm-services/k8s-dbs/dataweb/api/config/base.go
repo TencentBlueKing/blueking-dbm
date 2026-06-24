@@ -17,6 +17,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Package config 提供集群部署配置构建器接口与基础实现
 package config
 
 import (

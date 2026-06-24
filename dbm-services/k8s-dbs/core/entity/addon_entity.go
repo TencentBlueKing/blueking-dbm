@@ -17,6 +17,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Package entity 定义 core 模块使用的领域实体类型
 package entity
 
 // AddonEntity addon 创建请求结构体
