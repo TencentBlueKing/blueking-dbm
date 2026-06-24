@@ -85,11 +85,20 @@ type InstanceOp struct {
 	logger *logger.Logger
 }
 
+// PrimaryStepDownSettleWait is the fixed wait after a primary becomes SECONDARY before shutdown.
+const PrimaryStepDownSettleWait = 30 * time.Second
+
 // StopOptions controls DoStopWithOptions behavior.
 // Graceful=true: 在停实例前，如果当前节点是primary则先执行rs.stepDown并等待变为SECONDARY，再发送SIGINT。
 // Graceful=false: 跳过stepDown，直接SIGINT关停。
+// SkipStepDown=true: graceful 停服时跳过 stepDown（由前置 step_down_if_primary 完成时使用）。
+// SkipRsAvailabilityCheck=true: graceful 停服时跳过 RS 可用性检查（由前置 check_rs_availability 完成时使用）。
+// Timeout>0: 整个 stop 流程（含 stepDown、SIGINT、端口释放等待）的最长总时长。
 type StopOptions struct {
-	Graceful bool
+	Graceful                bool
+	Timeout                 time.Duration
+	SkipStepDown            bool
+	SkipRsAvailabilityCheck bool
 }
 
 // NewInstanceOp 新建一个InstanceOp
@@ -112,6 +121,24 @@ func (inst *InstanceOp) DoStop() error {
 
 // DoStopWithOptions 停止mongod/mongos，并按选项决定是否先做stepDown
 func (inst *InstanceOp) DoStopWithOptions(opts StopOptions) error {
+	var deadline time.Time
+	hasDeadline := opts.Timeout > 0
+	if hasDeadline {
+		deadline = time.Now().Add(opts.Timeout)
+	}
+	checkDeadline := func() error {
+		if hasDeadline && time.Now().After(deadline) {
+			return fmt.Errorf("graceful stop timeout for %s after %s", inst.Addr(), opts.Timeout)
+		}
+		return nil
+	}
+	remaining := func() time.Duration {
+		if !hasDeadline {
+			return 0
+		}
+		return time.Until(deadline)
+	}
+
 	listenPID, err := getPidByPort(inst.Port)
 	if err != nil {
 		return errors.Wrap(err, "getPidByPort "+strconv.Itoa(inst.Port))
@@ -129,21 +156,51 @@ func (inst *InstanceOp) DoStopWithOptions(opts StopOptions) error {
 		return fmt.Errorf("port %d is occupied by non-mongo process %q (pid=%d), stop aborted", inst.Port, processNameStr, listenPID)
 	}
 	if opts.Graceful {
-		if err = inst.stepDownIfPrimary(processNameStr); err != nil {
-			return errors.Wrap(err, "stepDownIfPrimary before stop")
+		if !opts.SkipRsAvailabilityCheck {
+			if err = inst.DoCheckRsAvailabilityBeforeRestart(); err != nil {
+				return errors.Wrap(err, "rs availability check before graceful stop")
+			}
+		} else {
+			inst.logger.Info("skip rs availability check before graceful stop on %s (already done)", inst.Addr())
+		}
+		if !opts.SkipStepDown {
+			stepDownTimeout := 120 * time.Second
+			if hasDeadline {
+				if rem := remaining(); rem <= 0 {
+					return checkDeadline()
+				} else if rem < stepDownTimeout {
+					stepDownTimeout = rem
+				}
+			}
+			if err = inst.stepDownIfPrimaryWithTimeout(processNameStr, stepDownTimeout); err != nil {
+				return errors.Wrap(err, "stepDownIfPrimary before stop")
+			}
+		} else {
+			inst.logger.Info("skip stepDown before graceful stop on %s (already done)", inst.Addr())
 		}
 	} else {
 		inst.logger.Info("graceful stop disabled, skip stepDown before kill -2 on %s", inst.Addr())
 	}
 	maxRetry := 10
 	for i := 0; i < maxRetry; i++ {
+		if err := checkDeadline(); err != nil {
+			return err
+		}
 		pid, err := getPidByPort(inst.Port)
 		inst.logger.Info("getPidByPort %d %v", inst.Port, err)
 
 		if err != nil {
 			return errors.Wrap(err, "getPidByPort "+strconv.Itoa(inst.Port))
 		} else if pid == 0 {
-			return inst.waitPortRelease(maxRetry, 10*time.Second)
+			waitRetry := maxRetry
+			waitInterval := 10 * time.Second
+			if hasDeadline {
+				waitRetry = int(remaining()/waitInterval) + 1
+				if waitRetry < 1 {
+					return checkDeadline()
+				}
+			}
+			return inst.waitPortReleaseWithDeadline(waitRetry, waitInterval, deadline, hasDeadline)
 		} else if pid > 0 {
 			processNameStr, err := getProcessNameByPID(pid)
 			if err != nil {
@@ -161,18 +218,58 @@ func (inst *InstanceOp) DoStopWithOptions(opts StopOptions) error {
 				return fmt.Errorf("port %d is occupied by non-mongo process %q (pid=%d), stop aborted", inst.Port, processNameStr, pid)
 			}
 		}
-		time.Sleep(5 * time.Second)
+		sleepDuration := 5 * time.Second
+		if hasDeadline {
+			if rem := remaining(); rem <= 0 {
+				return checkDeadline()
+			} else if rem < sleepDuration {
+				sleepDuration = rem
+			}
+		}
+		time.Sleep(sleepDuration)
 	}
 
 	// Extra wait: process may need longer than maxRetry*5s to release the port from /proc/net/tcp.
-	if err := inst.waitPortRelease(24, 5*time.Second); err == nil {
+	extraRetry := 24
+	extraInterval := 5 * time.Second
+	if hasDeadline {
+		extraRetry = int(remaining()/extraInterval) + 1
+		if extraRetry < 1 {
+			return checkDeadline()
+		}
+	}
+	if err := inst.waitPortReleaseWithDeadline(extraRetry, extraInterval, deadline, hasDeadline); err == nil {
 		inst.logger.Info("port %d released after extended wait following stop retries", inst.Port)
 		return nil
+	}
+	if hasDeadline {
+		return checkDeadline()
 	}
 	return fmt.Errorf("port %d still in use after %d retries, stop failed", inst.Port, maxRetry)
 }
 
 func (inst *InstanceOp) stepDownIfPrimary(processName string) error {
+	return inst.stepDownIfPrimaryWithTimeout(processName, 120*time.Second)
+}
+
+// DoStepDownIfPrimary stepDown when current member is PRIMARY, wait until SECONDARY, then settle wait.
+func (inst *InstanceOp) DoStepDownIfPrimary() error {
+	listenPID, err := getPidByPort(inst.Port)
+	if err != nil {
+		return errors.Wrap(err, "getPidByPort for stepDown "+strconv.Itoa(inst.Port))
+	}
+	if listenPID == 0 {
+		inst.logger.Info("port %d has no TCP listener, skip stepDown on %s", inst.Port, inst.Addr())
+		return nil
+	}
+	processNameStr, err := getProcessNameByPID(listenPID)
+	if err != nil {
+		return err
+	}
+	return inst.stepDownIfPrimaryWithTimeout(processNameStr, 120*time.Second)
+}
+
+func (inst *InstanceOp) stepDownIfPrimaryWithTimeout(processName string, stepDownTimeout time.Duration) error {
 	if !strings.Contains(processName, "mongod") {
 		inst.logger.Info("process %s is not mongod, skip stepDown before stop", processName)
 		return nil
@@ -192,7 +289,7 @@ func (inst *InstanceOp) stepDownIfPrimary(processName string) error {
 	}
 
 	inst.logger.Info("instance %s is primary, start stepDown before kill -2", inst.Addr())
-	switched, err := inst.execRsStepDownAndVerify(120 * time.Second)
+	switched, err := inst.execRsStepDownAndVerify(stepDownTimeout)
 	if err != nil {
 		return errors.Wrap(err, "execute rs.stepDown")
 	}
@@ -220,12 +317,29 @@ func (inst *InstanceOp) execRsStepDownAndVerify(timeout time.Duration) (bool, er
 	}
 
 	deadline := time.Now().Add(timeout)
+	pollDeadline := deadline.Add(-PrimaryStepDownSettleWait)
+	if pollDeadline.Before(time.Now()) {
+		pollDeadline = time.Now()
+	}
 	for {
 		isMasterResult, err := inst.IsMasterDirect()
 		if err == nil {
 			if isMasterResult.Secondary {
-				inst.logger.Info("member %s became SECONDARY, waiting 30s before kill -2", inst.Addr())
-				time.Sleep(30 * time.Second)
+				settle := PrimaryStepDownSettleWait
+				if rem := time.Until(deadline); rem <= 0 {
+					return false, fmt.Errorf("wait member become secondary timeout after rs.stepDown (%s)", timeout)
+				} else if rem < settle {
+					inst.logger.Warn(
+						"member %s became SECONDARY, shorten settle wait from %s to %s",
+						inst.Addr(), PrimaryStepDownSettleWait, rem,
+					)
+					settle = rem
+				}
+				inst.logger.Info(
+					"member %s became SECONDARY, waiting %s before shutdown",
+					inst.Addr(), settle,
+				)
+				time.Sleep(settle)
 				return true, nil
 			}
 			inst.logger.Info(
@@ -236,7 +350,7 @@ func (inst *InstanceOp) execRsStepDownAndVerify(timeout time.Duration) (bool, er
 			inst.logger.Warn("wait new primary after stepDown got error: %v", err)
 		}
 
-		if time.Now().After(deadline) {
+		if time.Now().After(pollDeadline) {
 			return false, fmt.Errorf("wait member become secondary timeout after rs.stepDown (%s)", timeout)
 		}
 		time.Sleep(1 * time.Second)
@@ -263,7 +377,16 @@ func getProcessNameByPID(pid int) (string, error) {
 
 // waitPortRelease waits until no TCP LISTEN on the port (/proc/net/tcp + tcp6), not merely any /proc/net/tcp row.
 func (inst *InstanceOp) waitPortRelease(maxRetry int, waitTime time.Duration) error {
+	return inst.waitPortReleaseWithDeadline(maxRetry, waitTime, time.Time{}, false)
+}
+
+func (inst *InstanceOp) waitPortReleaseWithDeadline(
+	maxRetry int, waitTime time.Duration, deadline time.Time, hasDeadline bool,
+) error {
 	for i := 0; i < maxRetry; i++ {
+		if hasDeadline && time.Now().After(deadline) {
+			return fmt.Errorf("port %d still has TCP LISTEN after stop timeout", inst.Port)
+		}
 		listenPID, err := getPidByPort(inst.Port)
 		if err != nil {
 			return errors.Wrap(err, "getPidByPort after stop")
@@ -273,7 +396,15 @@ func (inst *InstanceOp) waitPortRelease(maxRetry int, waitTime time.Duration) er
 			return nil
 		}
 		inst.logger.Info("port %d still has TCP LISTEN (pid %d), attempt %d/%d, waiting...", inst.Port, listenPID, i+1, maxRetry)
-		time.Sleep(waitTime)
+		sleepDuration := waitTime
+		if hasDeadline {
+			if rem := time.Until(deadline); rem <= 0 {
+				return fmt.Errorf("port %d still has TCP LISTEN after stop timeout", inst.Port)
+			} else if rem < sleepDuration {
+				sleepDuration = rem
+			}
+		}
+		time.Sleep(sleepDuration)
 	}
 	return fmt.Errorf("port %d still has TCP LISTEN after process stopped, waited %d retries", inst.Port, maxRetry)
 }
@@ -488,6 +619,43 @@ func (inst *InstanceOp) GrantRolesToUser(user string, roles []string) error {
 // DoFlushRouterConfig TODO
 func (inst *InstanceOp) DoFlushRouterConfig() error {
 	return inst.ExecJs("db.adminCommand({flushRouterConfig: 1});", 300)
+}
+
+// DoWaitUntilReady polls service status until healthy or timeout.
+func (inst *InstanceOp) DoWaitUntilReady(logger *logger.Logger, timeout time.Duration) error {
+	if timeout <= 0 {
+		timeout = 300 * time.Second
+	}
+	deadline := time.Now().Add(timeout)
+	interval := 5 * time.Second
+	var lastErr error
+	for {
+		if err := inst.DoServiceStatusCheck(logger); err == nil {
+			logger.Info("instance %s became ready", inst.Addr())
+			return nil
+		} else {
+			lastErr = err
+			logger.Info("instance %s not ready yet: %v", inst.Addr(), err)
+		}
+		if time.Now().After(deadline) {
+			if lastErr != nil {
+				return fmt.Errorf("wait until ready timeout for %s after %s: %w", inst.Addr(), timeout, lastErr)
+			}
+			return fmt.Errorf("wait until ready timeout for %s after %s", inst.Addr(), timeout)
+		}
+		sleepDuration := interval
+		if rem := time.Until(deadline); rem < sleepDuration {
+			sleepDuration = rem
+		}
+		if sleepDuration <= 0 {
+			break
+		}
+		time.Sleep(sleepDuration)
+	}
+	if lastErr != nil {
+		return fmt.Errorf("wait until ready timeout for %s after %s: %w", inst.Addr(), timeout, lastErr)
+	}
+	return fmt.Errorf("wait until ready timeout for %s after %s", inst.Addr(), timeout)
 }
 
 // DoServiceStatusCheck 检查服务状态是否正常.

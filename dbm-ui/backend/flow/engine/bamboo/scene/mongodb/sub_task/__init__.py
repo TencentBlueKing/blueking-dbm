@@ -20,7 +20,6 @@ from .exec_script import exec_script
 from .increase_mongod import increase_mongod
 from .increase_mongos import increase_mongos
 from .instance_deinstall import instance_deinstall
-from .instance_restart import instance_restart
 from .migrate_mongod_replace import migrate_mongod_replace
 from .mongod_replace import mongod_replace
 from .mongos_install import mongos_install

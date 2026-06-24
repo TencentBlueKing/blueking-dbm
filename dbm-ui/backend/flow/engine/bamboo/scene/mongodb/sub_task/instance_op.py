@@ -37,13 +37,24 @@ class InstanceOpSubTask(BaseSubTask):
         op: str,
         username: str = None,
         graceful_stop: Optional[bool] = None,
+        skip_step_down: Optional[bool] = None,
+        skip_rs_availability_check: Optional[bool] = None,
         upgrade_phase: Optional[str] = None,
         dest_version: Optional[str] = None,
         instance_type: Optional[str] = None,
+        stop_timeout_seconds: Optional[int] = None,
+        start_timeout_seconds: Optional[int] = None,
+        admin_username: Optional[str] = None,
+        admin_password: Optional[str] = None,
     ) -> dict:
         if username is None:
             username = MongoDBManagerUser.DbaUser.value
-        user, pwd = MongoUtil.get_mongo_user_password(exec_node.ip, exec_node.port, exec_node.bk_cloud_id, username)
+        if admin_username is not None and admin_password is not None:
+            user, pwd = admin_username, admin_password
+        else:
+            user, pwd = MongoUtil.get_mongo_user_password(
+                exec_node.ip, exec_node.port, exec_node.bk_cloud_id, username
+            )
         payload = {
             "ip": exec_node.ip,
             "port": int(exec_node.port),
@@ -53,6 +64,14 @@ class InstanceOpSubTask(BaseSubTask):
         }
         if graceful_stop is not None:
             payload["gracefulStop"] = graceful_stop
+        if skip_step_down is not None:
+            payload["skipStepDown"] = skip_step_down
+        if skip_rs_availability_check is not None:
+            payload["skipRsAvailabilityCheck"] = skip_rs_availability_check
+        if stop_timeout_seconds is not None:
+            payload["stopTimeoutSeconds"] = stop_timeout_seconds
+        if start_timeout_seconds is not None:
+            payload["startTimeoutSeconds"] = start_timeout_seconds
         # 滚动升级两阶段守卫字段：仅升级流程下传，其余流程不带（actuator 侧据此判断是否启用守卫）
         if upgrade_phase:
             payload["upgradePhase"] = upgrade_phase

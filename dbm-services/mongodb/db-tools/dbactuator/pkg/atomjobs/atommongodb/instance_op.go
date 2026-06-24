@@ -22,14 +22,18 @@ import (
 
 // instOpParams 原子任务参数
 type instOpParams struct {
-	IP             string `json:"ip"`
-	Port           int    `json:"port"`
-	AdminUsername  string `json:"adminUsername"`
-	AdminPassword  string `json:"adminPassword"`
-	Op             string `json:"op"` // start, stop, check_empty_data, start_standalone
-	GracefulStop   *bool  `json:"gracefulStop,omitempty"`
-	SetName        string `json:"set_name,omitempty"`
-	CurrentVersion string `json:"currentVersion,omitempty"`
+	IP                      string `json:"ip"`
+	Port                    int    `json:"port"`
+	AdminUsername           string `json:"adminUsername"`
+	AdminPassword           string `json:"adminPassword"`
+	Op                      string `json:"op"` // start, stop, check_empty_data, start_standalone
+	GracefulStop            *bool  `json:"gracefulStop,omitempty"`
+	SkipStepDown            *bool  `json:"skipStepDown,omitempty"`
+	SkipRsAvailabilityCheck *bool  `json:"skipRsAvailabilityCheck,omitempty"`
+	StopTimeoutSeconds      *int   `json:"stopTimeoutSeconds,omitempty"`
+	StartTimeoutSeconds     *int   `json:"startTimeoutSeconds,omitempty"`
+	SetName                 string `json:"set_name,omitempty"`
+	CurrentVersion          string `json:"currentVersion,omitempty"`
 	// 滚动升级两阶段守卫字段（仅升级流程下传）：
 	// UpgradePhase=secondary|primary，DestVersion 用于决策文件归属校验，InstanceType 用于识别 mongos（无主从、不守卫）。
 	UpgradePhase string `json:"upgradePhase,omitempty"`
@@ -63,6 +67,16 @@ func NewInstOpJob() jobruntime.JobRunner {
 // Name 获取原子任务的名字
 func (s *instOpJob) Name() string {
 	return "mongodb_instance_op"
+}
+
+// Retry 重启类 op 允许 actuator 侧重试；各 op 实现需保持幂等。
+func (s *instOpJob) Retry() uint {
+	switch s.ConfParams.Op {
+	case "shield_dbmon", "stop", "start", "unblock_dbmon", "check_rs_availability", "check_rs_all_members_ready", "step_down_if_primary":
+		return 3
+	default:
+		return s.BaseJob.Retry()
+	}
 }
 
 // Run 运行原子任务
@@ -113,8 +127,22 @@ func (s *instOpJob) Run() error {
 		return s.doShieldDbmon()
 	case "unblock_dbmon":
 		return s.doUnblockDbmon()
+	case "check_rs_availability":
+		return op.DoCheckRsAvailabilityBeforeRestart()
+	case "check_rs_all_members_ready":
+		return op.DoCheckRsAllMembersReady()
+	case "step_down_if_primary":
+		return op.DoStepDownIfPrimary()
 	case "stop":
-		return op.DoStopWithOptions(common.StopOptions{Graceful: s.isGracefulStop()})
+		stopOpts := common.StopOptions{
+			Graceful:                s.isGracefulStop(),
+			SkipStepDown:            s.isSkipStepDown(),
+			SkipRsAvailabilityCheck: s.isSkipRsAvailabilityCheck(),
+		}
+		if timeout := s.stopTimeoutDuration(); timeout > 0 {
+			stopOpts.Timeout = timeout
+		}
+		return op.DoStopWithOptions(stopOpts)
 	case "start":
 		pid, running, err := op.IsRunning()
 		if err != nil {
@@ -122,9 +150,20 @@ func (s *instOpJob) Run() error {
 		}
 		if running {
 			s.runtime.Logger.Info("instance is running pid = %d , skip start", pid)
-			return nil
+		} else if err = op.DoStart("auth"); err != nil {
+			pid, running, runErr := op.IsRunning()
+			if runErr != nil || !running {
+				return errors.Wrap(err, "DoStart")
+			}
+			s.runtime.Logger.Warn(
+				"DoStart returned error but %s is listening (pid=%d), continue wait: %v",
+				op.Addr(), pid, err,
+			)
 		}
-		return op.DoStart("auth")
+		if timeout := s.startTimeoutDuration(); timeout > 0 {
+			return op.DoWaitUntilReady(s.runtime.Logger, timeout)
+		}
+		return nil
 	case "start_as_standalone":
 		err := op.DoStop()
 		if err != nil {
@@ -163,6 +202,12 @@ func (s *instOpJob) Run() error {
 			}
 		}
 		return nil
+	case "wait_until_ready":
+		timeout := s.startTimeoutDuration()
+		if timeout <= 0 {
+			timeout = 300 * time.Second
+		}
+		return op.DoWaitUntilReady(s.runtime.Logger, timeout)
 	case "backup_mongodata":
 		return s.doBackupMongodata()
 	case "precheck_upgrade":
@@ -179,6 +224,28 @@ func (s *instOpJob) isGracefulStop() bool {
 		return true
 	}
 	return *s.ConfParams.GracefulStop
+}
+
+func (s *instOpJob) isSkipStepDown() bool {
+	return s.ConfParams.SkipStepDown != nil && *s.ConfParams.SkipStepDown
+}
+
+func (s *instOpJob) isSkipRsAvailabilityCheck() bool {
+	return s.ConfParams.SkipRsAvailabilityCheck != nil && *s.ConfParams.SkipRsAvailabilityCheck
+}
+
+func (s *instOpJob) stopTimeoutDuration() time.Duration {
+	if s.ConfParams.StopTimeoutSeconds == nil || *s.ConfParams.StopTimeoutSeconds <= 0 {
+		return 0
+	}
+	return time.Duration(*s.ConfParams.StopTimeoutSeconds) * time.Second
+}
+
+func (s *instOpJob) startTimeoutDuration() time.Duration {
+	if s.ConfParams.StartTimeoutSeconds == nil || *s.ConfParams.StartTimeoutSeconds <= 0 {
+		return 0
+	}
+	return time.Duration(*s.ConfParams.StartTimeoutSeconds) * time.Second
 }
 
 func (s *instOpJob) doBackupMongodata() error {
