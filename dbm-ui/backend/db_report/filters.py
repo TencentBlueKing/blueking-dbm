@@ -22,6 +22,7 @@ from backend.configuration.models import DBAdministrator
 
 
 class ReportListFilter(filters.FilterSet):
+    select_biz_id = filters.NumberFilter(field_name="bk_biz_id", label=_("业务ID"))
     manage = filters.CharFilter(
         field_name="manage", method="filter_manage", label=_("处理类型"), help_text=_("todo待我处理/assist待我协助")
     )
@@ -66,6 +67,9 @@ class ReportListFilter(filters.FilterSet):
         first_dba_filters = functools.reduce(operator.or_, [Q(db_type=db_type, users__0=user) for user in users])
         manage_bizs = DBAdministrator.objects.filter(first_dba_filters).values_list("bk_biz_id", flat=True)
         return queryset.filter(bk_biz_id__in=list(manage_bizs))
+
+    def filter_select_biz_id(self, queryset, name, value):
+        return queryset.filter(bk_biz_id__in=value)
 
     def filter_time_range(self, queryset, name, value):
         """
