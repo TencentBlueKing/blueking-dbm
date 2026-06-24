@@ -181,8 +181,9 @@ func (c *Checker) reportHeartbeatDelay() (string, error) {
 			slog.String("force report time_delay", fmt.Sprintf("%v", timeDelay)),
 		)
 	} else {
+		// GREATEST(...,0) on SIGNED avoids negative-to-UNSIGNED wraparound on clock skew (master_time ahead of NOW()).
 		err = c.db.QueryRowx(
-			`select convert((unix_timestamp(now())-unix_timestamp(master_time)),UNSIGNED) as time_delay 
+			`select GREATEST(CAST(UNIX_TIMESTAMP(NOW())-UNIX_TIMESTAMP(master_time) AS SIGNED), 0) as time_delay 
 					from infodba_schema.master_slave_heartbeat 
 					where master_server_id = ? and slave_server_id != master_server_id`,
 			masterServerId,

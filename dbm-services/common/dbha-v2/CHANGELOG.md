@@ -3,6 +3,7 @@
 ## v2.0.0-beta.11-unreleased
 - 【新增】Probe 到 Receiver 的 gRPC 上报链路。
 - 【修复】mysql sinker 无超时控制导致的探针数据持久化阻塞问题。
+- 【修复】修复主从复制异常场景下 slave 延迟上报不准确的问题。
 
 ## v2.0.0-beta.10
 - 【新增】cluster 工具 `reset` 流程支持 CLB 实例恢复：自动注册缺失实例、注销多余实例。
