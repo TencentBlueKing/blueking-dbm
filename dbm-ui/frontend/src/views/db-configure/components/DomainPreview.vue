@@ -4,18 +4,22 @@
     <div class="domain-preview-list">
       <!-- 主域名 / 单节点域名 -->
       <span>
-        <span class="domain-module-name">{{ props.moduleName }}db</span>.<BkTag>{{ t('{集群名}') }}</BkTag> .{{
-          bizName
-        }}.db
+        <I18nT keypath="{0}db.{1}.{2}.db">
+          <span class="domain-module-name">{{ props.moduleName }}</span>
+          <span class="cluster-name">{{ t('{集群名}') }}</span>
+          <span>{{ bizName }}</span>
+        </I18nT>
         <BkTag v-if="isHaType">
           {{ t('主') }}
         </BkTag>
       </span>
       <!-- 从域名（仅主从类型显示） -->
       <span v-if="isHaType">
-        <span class="domain-module-name">{{ props.moduleName }}dr</span>.<BkTag>{{ t('{集群名}') }}</BkTag> .{{
-          bizName
-        }}.db
+        <I18nT keypath="{0}dr.{1}.{2}.db">
+          <span class="domain-module-name">{{ props.moduleName }}</span>
+          <span class="cluster-name">{{ t('{集群名}') }}</span>
+          <span>{{ bizName }}</span>
+        </I18nT>
         <BkTag>{{ t('从') }}</BkTag>
       </span>
     </div>
@@ -75,5 +79,9 @@
 
   .domain-module-name {
     color: #3a84ff;
+  }
+
+  .cluster-name {
+    color: #c4c6cc;
   }
 </style>

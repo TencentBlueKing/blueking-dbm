@@ -25,7 +25,8 @@
       class="create-module-page db-scroll-y"
       :label-width="100"
       :model="formData"
-      :rules="rules">
+      :rules="rules"
+      :scroll-align-to-top="false">
       <!-- 模块信息 & 绑定数据库配置（紧凑布局） -->
       <div class="module-info-card">
         <FormItemWithHint
@@ -116,8 +117,8 @@
             </template>
             <ParamTable
               :ref="(el: any) => setTableRef(tab.name, el)"
-              :cluster-type="clusterType"
               :conf-type="tab.conf_type"
+              :namespace="tab.namespace"
               :version="tab.conf_file" />
           </BkTabPanel>
         </BkTab>
@@ -168,7 +169,7 @@
   import { useRequest } from 'vue-request';
 
   import { checkDbModuleUnique, createModules } from '@services/source/cmdb';
-  import { getListClusterModuleConfFiles, getListConfTypes, saveModulesDeployInfo } from '@services/source/configs';
+  import { getListClusterModuleConfFiles, saveModulesDeployInfo } from '@services/source/configs';
 
   import { useGlobalBizs } from '@stores';
 
@@ -194,19 +195,9 @@
 
   const clusterType = ref(route.params.clusterType as ClusterTypes);
   const bizId = window.PROJECT_CONFIG.BIZ_ID;
-  const namespace = ref('');
 
   // 业务信息
   const bizInfo = computed(() => globalBizsStore.bizs.find((info) => info.bk_biz_id === bizId) || { name: '' });
-
-  // 获取 confType 对应的 namespace
-  useRequest(getListConfTypes, {
-    defaultParams: [{ meta_cluster_type: clusterType.value }],
-    onSuccess(res) {
-      const matched = res.find((item) => item.conf_type === 'deploy');
-      namespace.value = matched?.namespace === 'cluster_type' ? clusterType.value : matched!.namespace;
-    },
-  });
 
   const moduleId = ref(Number(route.params.db_module_id));
   const isBindSuccessfully = ref(false);
@@ -366,7 +357,7 @@
         conf_type: 'deploy',
         level_name: 'module',
         level_value: moduleId.value,
-        meta_cluster_type: namespace.value,
+        meta_cluster_type: clusterType.value,
         version: 'deploy_info',
       });
       isBindSuccessfully.value = true;

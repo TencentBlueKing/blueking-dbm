@@ -27,12 +27,12 @@
               )
             " />
           <ParamTable
-            :cluster-type="namespace"
             :conf-type="confType"
             :config-name="configName"
             :level-info="levelParams.level_info"
             :level-name="levelParams.level_name"
             :level-value="levelParams.level_value"
+            :namespace="namespace"
             selectable
             :version="version"
             @change="handleParamChange">

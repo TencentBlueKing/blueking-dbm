@@ -6064,5 +6064,8 @@
   "{timeRange}内无巡检记录": "No inspection records in the {timeRange}",
   "{timeRange}内无预警或异常，若想查看更早结果，请扩大时间范围": "No warnings or exceptions in the {timeRange}. To view earlier results, please expand the time range",
   "近 24 小时": "last 24 hours",
+  "集群域名预览": "Cluster domain preview",
+  "{0}db.{1}.{2}.db": "{0}db.{1}.{2}.db",
+  "{0}dr.{1}.{2}.db": "{0}dr.{1}.{2}.db",
   "这行勿动！新增翻译请在上一行添加！": ""
 }

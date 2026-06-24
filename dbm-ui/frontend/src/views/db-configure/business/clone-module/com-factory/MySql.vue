@@ -25,7 +25,8 @@
       class="clone-module-page db-scroll-y"
       :label-width="100"
       :model="formData"
-      :rules="rules">
+      :rules="rules"
+      :scroll-align-to-top="false">
       <!-- 模块信息 -->
       <div class="module-info-card">
         <!-- 模块名 -->
@@ -221,7 +222,6 @@
     type CloneModuleQueryResult,
     getLevelConfig,
     getListClusterModuleConfFiles,
-    getListConfTypes,
     moduleCloneQuery,
     saveModulesDeployInfo,
   } from '@services/source/configs';
@@ -253,19 +253,9 @@
 
   const clusterType = ref(route.params.clusterType as ClusterTypes);
   const bizId = window.PROJECT_CONFIG.BIZ_ID;
-  const namespace = ref('');
 
   // 业务信息
   const bizInfo = computed(() => globalBizsStore.bizs.find((info) => info.bk_biz_id === bizId) || { name: '' });
-
-  // 获取 confType 对应的 namespace
-  useRequest(getListConfTypes, {
-    defaultParams: [{ meta_cluster_type: clusterType.value }],
-    onSuccess(res) {
-      const matched = res.find((item) => item.conf_type === 'deploy');
-      namespace.value = matched?.namespace === 'cluster_type' ? clusterType.value : matched!.namespace;
-    },
-  });
 
   const isSubmitting = ref(false);
   // 每个 confFile 对应一个 ParamTable 实例
@@ -590,7 +580,7 @@
         conf_type: 'deploy',
         level_name: 'module',
         level_value: createResult.db_module_id,
-        meta_cluster_type: namespace.value,
+        meta_cluster_type: clusterType.value,
         version: 'deploy_info',
       });
 

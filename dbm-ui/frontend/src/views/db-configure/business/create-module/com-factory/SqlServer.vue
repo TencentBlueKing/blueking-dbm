@@ -27,7 +27,8 @@
       class="create-module-page db-scroll-y"
       :label-width="100"
       :model="formData"
-      :rules="rules">
+      :rules="rules"
+      :scroll-align-to-top="false">
       <!-- 模块信息 & 部署规格（紧凑布局） -->
       <div class="module-info-card">
         <FormItemWithHint
@@ -173,8 +174,8 @@
             </template>
             <ParamTable
               :ref="(el: any) => setTableRef(tab.name, el)"
-              :cluster-type="clusterType"
               :conf-type="tab.conf_type"
+              :namespace="tab.namespace"
               :version="tab.conf_file" />
           </BkTabPanel>
         </BkTab>

@@ -25,7 +25,8 @@
       class="clone-module-page db-scroll-y"
       :label-width="100"
       :model="formData"
-      :rules="rules">
+      :rules="rules"
+      :scroll-align-to-top="false">
       <!-- 模块信息 -->
       <div class="module-info-card">
         <!-- 模块名 -->

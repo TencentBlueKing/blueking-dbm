@@ -66,6 +66,7 @@
             :config-name="tab.name"
             level-name="cluster"
             :level-value="cluster.master_domain"
+            :namespace="tab.namespace"
             selectable
             :version="tab.conf_file" />
         </template>
@@ -156,6 +157,7 @@
           conf_file: 'operationRecord',
           conf_type: 'operationRecord',
           name: t('配置变更记录'),
+          namespace: 'operationRecord',
         },
       ];
       // 优先从 URL 参数恢复 activeTab

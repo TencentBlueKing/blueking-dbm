@@ -22,7 +22,9 @@
         :label="tab.name"
         :name="tab.conf_type"
         render-directive="if">
-        <OperationRecord v-if="tab.conf_type === 'operationRecord'" />
+        <OperationRecord
+          v-if="tab.conf_type === 'operationRecord'"
+          :namespace="namespace" />
         <ConfigDatabase
           v-else
           :conf-type="tab.conf_type"
@@ -33,9 +35,9 @@
 </template>
 
 <script setup lang="ts">
+  import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
-  import { useRoute, useRouter } from 'vue-router';
 
   import { getListConfTypes } from '@services/source/configs';
 
@@ -52,6 +54,7 @@
   const { t } = useI18n();
 
   const activeClusterType = inject('activeClusterType', ref(ClusterTypes.TENDBSINGLE));
+  const namespace = ref('');
 
   /** 初始化 activeConfType（优先从 sessionStorage 恢复 tab） */
   const getInitialActiveConfType = (): string => {
@@ -86,6 +89,7 @@
   const { run: fetchConfTypeTabs } = useRequest(getListConfTypes, {
     manual: true,
     onSuccess(res) {
+      namespace.value = _.uniq(res.map((item) => item.namespace)).join(',');
       const base = [
         ...res,
         {
