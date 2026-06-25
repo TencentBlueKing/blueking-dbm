@@ -11,3 +11,8 @@ export interface DumpData extends DetailBase {
   tables_ignore: string[];
   where: string;
 }
+
+export interface DumpDataDetails extends DetailBase {
+  clusters: DetailClusters;
+  infos: DumpData[];
+}

@@ -135,7 +135,7 @@
 
   import BatchInput from '@views/db-manage/common/batch-input/Index.vue';
   import TicketPayload, {
-    createTickePayload,
+    createTicketPayload,
   } from '@views/db-manage/common/toolbox-field/form-item/ticket-payload/Index.vue';
   import ClusterColumn from '@views/db-manage/mongodb/common/toolbox-field/cluster-column/Index.vue';
   import DbNameColumn from '@views/db-manage/mongodb/common/toolbox-field/db-name-column/Index.vue';
@@ -174,7 +174,7 @@
 
   const createDefaultFormData = () => ({
     file_tag: 'normal_backup',
-    payload: createTickePayload(),
+    payload: createTicketPayload(),
     tableData: [createRowData()],
   });
 
@@ -214,7 +214,7 @@
       const { clusters, file_tag: fileTag, infos } = details;
       Object.assign(formData, {
         file_tag: fileTag,
-        payload: createTickePayload(ticketDetail),
+        payload: createTicketPayload(ticketDetail),
         tableData: infos.map((item) =>
           createRowData({
             cluster: {

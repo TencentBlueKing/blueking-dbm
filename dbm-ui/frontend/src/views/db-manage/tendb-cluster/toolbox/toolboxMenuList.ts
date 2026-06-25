@@ -167,13 +167,12 @@ export const toolboxMenuList: ToolboxTreeNode[] = [
         id: TicketTypes.TENDBCLUSTER_SPIDER_MNT_APPLY,
         name: t('添加运维节点'),
       },
-      // TODO 功能未合主分支，注释
-      // {
-      //   dbConsoleValue: 'tendbCluster.toolbox.removeMNTNode',
-      //   desc: t('下架 Spider Mnt'),
-      //   id: TicketTypes.TENDBCLUSTER_SPIDER_MNT_DESTROY,
-      //   name: t('下架运维节点'),
-      // },
+      {
+        dbConsoleValue: 'tendbCluster.toolbox.removeMNTNode',
+        desc: t('下架 Spider Mnt'),
+        id: TicketTypes.TENDBCLUSTER_SPIDER_MNT_DESTROY,
+        name: t('下架运维节点'),
+      },
       {
         dbConsoleValue: 'tendbCluster.toolbox.spiderRebuild',
         desc: t('Spider 进程异常时在原主机重建实例'),

@@ -109,7 +109,7 @@
   import CardCheckbox from '@components/db-card-checkbox/CardCheckbox.vue';
 
   import TicketPayload, {
-    createTickePayload,
+    createTicketPayload,
   } from '@views/db-manage/common/toolbox-field/form-item/ticket-payload/Index.vue';
 
   import BackendCluster from './components/backend-cluster/Index.vue';
@@ -129,7 +129,7 @@
 
   const createDefaultFormData = () => ({
     nodeType: NodeType.PROXY,
-    payload: createTickePayload(),
+    payload: createTicketPayload(),
     updateType: UpdateType.CLUSTER,
   });
 
@@ -144,7 +144,7 @@
 
       formData.nodeType = infos[0].node_type;
       formData.updateType = updateType;
-      formData.payload = createTickePayload(ticketDetail);
+      formData.payload = createTicketPayload(ticketDetail);
     },
   });
 

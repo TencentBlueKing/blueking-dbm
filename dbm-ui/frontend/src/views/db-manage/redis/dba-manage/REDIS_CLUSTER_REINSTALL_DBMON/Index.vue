@@ -89,7 +89,7 @@
 
   import BatchInput from '@views/db-manage/common/batch-input/Index.vue';
   import TicketPayload, {
-    createTickePayload,
+    createTicketPayload,
   } from '@views/db-manage/common/toolbox-field/form-item/ticket-payload/Index.vue';
 
   import { random } from '@utils';
@@ -127,7 +127,7 @@
   const defaultData = () => ({
     restart_exporter: false,
     tableData: [createTableRow()],
-    ticketPayload: createTickePayload(),
+    ticketPayload: createTicketPayload(),
   });
 
   const formData = reactive(defaultData());

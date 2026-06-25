@@ -13,9 +13,21 @@
 
 <template>
   <TicketInfoTable
-    :data="ticketDetails.details.infos"
+    :data="tableData"
     ellipsis
     row-key="cluster_id">
+    <TicketInfoTableColumn
+      col-key="spider_ip_list"
+      :get-copy-value="(row: RowData) => row.old_nodes.spider_ip_list.map((item) => `${item.ip}:${item.port}`)"
+      :title="t('运维节点')">
+      <template #default="{ row: data }: { row: RowData }">
+        <div
+          v-for="item in data.old_nodes.spider_ip_list"
+          :key="item.ip">
+          {{ `${item.ip}:${item.port}` }}
+        </div>
+      </template>
+    </TicketInfoTableColumn>
     <TicketInfoTableColumn
       col-key="cluster_id"
       :get-copy-value="(row: RowData) => ticketDetails.details.clusters[row.cluster_id].immute_domain"
@@ -24,18 +36,11 @@
         {{ ticketDetails.details.clusters[data.cluster_id].immute_domain }}
       </template>
     </TicketInfoTableColumn>
-    <TicketInfoTableColumn
-      col-key="spider_ip_list"
-      :get-copy-value="(row: RowData) => row.old_nodes.spider_ip_list.map((item) => item.ip)"
-      :title="t('节点IP')">
-      <template #default="{ row: data }: { row: RowData }">
-        {{ data.old_nodes.spider_ip_list.map((item) => item.ip).join(', ') }}
-      </template>
-    </TicketInfoTableColumn>
   </TicketInfoTable>
 </template>
 
 <script setup lang="tsx">
+  import { computed } from 'vue';
   import { useI18n } from 'vue-i18n';
 
   import TicketModel, { type TendbCluster } from '@services/model/ticket/ticket';
@@ -53,7 +58,28 @@
     inheritAttrs: false,
   });
 
-  defineProps<Props>();
+  const props = defineProps<Props>();
 
   const { t } = useI18n();
+
+  const tableData = computed(() => {
+    const infos = props.ticketDetails.details.infos;
+    const clusterMap = new Map<number, RowData>();
+
+    infos.forEach((info) => {
+      const existing = clusterMap.get(info.cluster_id);
+      if (existing) {
+        existing.old_nodes.spider_ip_list.push(...info.old_nodes.spider_ip_list);
+      } else {
+        clusterMap.set(info.cluster_id, {
+          ...info,
+          old_nodes: {
+            spider_ip_list: [...info.old_nodes.spider_ip_list],
+          },
+        });
+      }
+    });
+
+    return Array.from(clusterMap.values());
+  });
 </script>
