@@ -1,13 +1,15 @@
 <template>
   <div class="global-staff-manage-defalut-dba">
     <BkAlert :title="t('默认 DBA 作为平台兜底负责人，当业务未显式配置 DBA 时自动生效。修改不影响已有显式配置。')" />
-    <BkButton
+    <AuthButton
+      v-if="!isEdit"
+      action-id="global_dba_admin_edit"
       class="mt-16"
       :disabled="isLoading"
       theme="primary"
       @click="() => handleEdit()">
       {{ t('编辑') }}
-    </BkButton>
+    </AuthButton>
     <div ref="tableWrapper">
       <BkLoading :loading="isLoading">
         <DbForm
@@ -33,9 +35,15 @@
                 </div>
               </template>
             </TableColumn>
-            <TableColumn
-              col-key="users"
-              :title="t('默认 DBA')">
+            <TableColumn col-key="users">
+              <template #title>
+                {{ t('默认 DBA') }}
+                <span
+                  v-if="isEdit"
+                  class="required-star">
+                  *
+                </span>
+              </template>
               <template #default="{ row, rowIndex }: { row: IRowData, rowIndex: number }">
                 <DbFormItem
                   v-if="isEdit"
@@ -44,7 +52,8 @@
                   required>
                   <MemberSelector
                     v-model="row.user_edit"
-                    :multiple="false" />
+                    :multiple="false"
+                    @change="() => handleMemberChange(`dataList.${rowIndex}.user_edit`)" />
                 </DbFormItem>
                 <template v-else>
                   <span v-if="row.users.length > 0"> {{ row.users[0] }}（{{ userDataMap[row.users[0]] }}） </span>
@@ -58,6 +67,10 @@
     </div>
     <div v-if="isEdit">
       <BkButton
+        v-bk-tooltips="{
+          content: t('当前无变更，请先修改内容'),
+          disabled: changedDataList.length > 0,
+        }"
         class="w-88 mt-16"
         :disabled="changedDataList.length === 0"
         :loading="isUpdateAdminsLoading"
@@ -80,7 +93,8 @@
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
-  import { getAdmins, updateAdmins } from '@services/source/dbadmin';
+  import DBAdminModel from '@services/model/db-admin/db-admin';
+  import { getAdmins, updateGlobalAdmins } from '@services/source/dbadmin';
   import { getUserList } from '@services/source/user';
 
   import { DBAOperateTypes, DBTypeInfos, DBTypes } from '@common/const';
@@ -89,7 +103,7 @@
 
   import { getOffset, messageSuccess } from '@utils';
 
-  type IRowData = { user_edit: string[] } & ServiceReturnType<typeof getAdmins>[number];
+  type IRowData = { user_edit: string[] } & DBAdminModel;
 
   const { t } = useI18n();
 
@@ -112,7 +126,7 @@
   const { loading: isGetAdminsLoading, run: runGetAdmins } = useRequest(getAdmins, {
     manual: true,
     onSuccess(adminsData) {
-      const adminsDataMap = Object.fromEntries(adminsData.map((item) => [item.db_type, item]));
+      const adminsDataMap = Object.fromEntries(adminsData.data.map((item) => [item.db_type, item]));
       const defaultAdminData = Object.values(DBTypeInfos).map((item) => {
         if (adminsDataMap[item.id]) {
           return {
@@ -125,6 +139,7 @@
             db_type: item.id,
             db_type_display: item.name,
             is_show: true,
+            permission: {} as DBAdminModel['permission'],
             update_at: '',
             updater: '',
             user_edit: [] as string[],
@@ -136,7 +151,7 @@
     },
   });
 
-  const { loading: isUpdateAdminsLoading, run: runUpdateAdmins } = useRequest(updateAdmins, {
+  const { loading: isUpdateAdminsLoading, run: runUpdateAdmins } = useRequest(updateGlobalAdmins, {
     manual: true,
     onSuccess() {
       messageSuccess(t('操作成功'));
@@ -159,6 +174,10 @@
     runGetAdmins({
       bk_biz_id: 0,
     });
+  };
+
+  const handleMemberChange = (property: string) => {
+    formRef.value?.validate(property);
   };
 
   const handleEdit = () => {
@@ -230,6 +249,12 @@
             right: 24px;
           }
         }
+      }
+
+      .required-star {
+        width: 12px;
+        height: 12px;
+        color: #ea3636;
       }
     }
   }

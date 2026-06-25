@@ -10,54 +10,58 @@
         <BkRadioButton label="assigned">{{ t('已分配') }}({{ countMap.allocateCount }})</BkRadioButton>
         <BkRadioButton label="unassigned">{{ t('待分配') }}({{ countMap.defaultCount }})</BkRadioButton>
       </BkRadioGroup>
-      <BkButton
+      <AuthButton
         v-bk-tooltips="{
           content: t('请先选择业务'),
           disabled: isSelected,
         }"
+        action-id="global_dba_admin_edit"
         :disabled="!isSelected"
         @click="handleBatchUpdate">
         {{ t('批量设置') }}
-      </BkButton>
-      <BkButton
+      </AuthButton>
+      <AuthButton
         v-if="status === 'assigned'"
         v-bk-tooltips="{
           content: t('请先选择业务'),
           disabled: isSelected,
         }"
+        action-id="global_dba_admin_edit"
         class="ml-8"
         :disabled="!isSelected"
         @click="handleBatchReplace">
         {{ t('批量替换') }}
-      </BkButton>
-      <BkButton
+      </AuthButton>
+      <AuthButton
         v-if="status === 'assigned'"
         v-bk-tooltips="{
           content: t('请先选择业务'),
           disabled: isSelected,
         }"
+        action-id="global_dba_admin_edit"
         class="ml-8"
         :disabled="!isSelected"
         @click="handleBatchAppendL2DBA">
         {{ t('批量追加二线') }}
-      </BkButton>
-      <BkButton
+      </AuthButton>
+      <AuthButton
         v-if="status === 'assigned'"
         v-bk-tooltips="{
           content: t('请先选择业务'),
           disabled: isSelected,
         }"
+        action-id="global_dba_admin_edit"
         class="ml-8"
         :disabled="!isSelected"
         @click="handleBatchRemoveL2DBA">
         {{ t('批量移除二线') }}
-      </BkButton>
+      </AuthButton>
       <div class="bar-right">
         <DbQuickSearch
           v-model="searchValue"
           :data="quickSearchData"
           parse-url
-          :placeholder="t('请输入或选择条件搜索')"
+          :placeholder="t('搜索业务 ID、业务名称、业务代号、标签、人员名称')"
           style="width: 500px; margin-left: auto"
           @change="handleQuickSearchChange" />
       </div>
@@ -73,6 +77,7 @@
             class="dba-table mt-20"
             :data="formData.tableData"
             :max-height="tableMaxHeight"
+            :row-class-name="rowClassName"
             row-key="bk_biz_id"
             :selected-row-keys="selectedRowKeys"
             @select-change="handleSelectChange">
@@ -86,9 +91,19 @@
               col-key="bk_biz_id"
               fixed="left"
               :title="t('业务 ID')"
-              width="160">
+              width="120">
               <template #default="{ row }: { row: BizDbaModel }">
                 {{ row.bk_biz_id }}
+                <DbIcon
+                  v-if="!row.is_edit && isPrimaryAndStanbySame(row)"
+                  v-bk-tooltips="
+                    t('主 DBA 与 备DBA 相同（均为{user}），该人员不在时审批可能无人处理', {
+                      user: `${row.primary_dba}（${userDataMap[row.primary_dba]}）`,
+                    })
+                  "
+                  class="ml-4 mt-4"
+                  style="font-size: 14px; color: #f59500; cursor: pointer"
+                  type="early-warning" />
                 <BkButton
                   v-if="row.isAssigned || defaultUserData"
                   v-bk-tooltips="t('复制该行所有DBA')"
@@ -103,12 +118,12 @@
             <TableColumn
               col-key="name"
               :title="t('业务名称')"
-              width="160">
+              width="150">
             </TableColumn>
             <TableColumn
               col-key="english_name"
               :title="t('业务代号')"
-              width="160">
+              width="150">
               <template #default="{ row }: { row: BizDbaModel }">
                 {{ row.english_name || '--' }}
               </template>
@@ -116,7 +131,7 @@
             <TableColumn
               col-key="tags"
               :title="t('标签')"
-              :width="180">
+              :width="150">
               <template #default="{ row }: { row: BizDbaModel }">
                 <TagList
                   v-if="row.tags.length"
@@ -126,7 +141,7 @@
             </TableColumn>
             <TableColumn
               col-key="primary-dba"
-              :min-width="260">
+              :width="250">
               <template #title>
                 <span>{{ t('主 DBA') }}</span>
                 <!-- <BkTag
@@ -142,11 +157,24 @@
                   error-display-type="tooltips"
                   :property="`tableData.${rowIndex}.primary_dba_edit`"
                   required>
-                  <MemberSelector
-                    v-model="row.primary_dba_edit"
-                    :multiple="false" />
+                  <div class="member-selector-wrapper">
+                    <MemberSelector
+                      v-model="row.primary_dba_edit"
+                      class="member-selector"
+                      :multiple="false"
+                      @change="() => handleMemberChange(`tableData.${rowIndex}.primary_dba_edit`)" />
+                    <BkButton
+                      v-bk-tooltips="t('主备互换')"
+                      class="ml-16"
+                      text
+                      @click="handleSwitchPrimaryAndStandby(row, rowIndex)">
+                      <DbIcon
+                        class="switch-icon"
+                        type="qiehuan-2" />
+                    </BkButton>
+                  </div>
                   <div
-                    v-if="isPrimaryAndStanbySame(row)"
+                    v-if="isEditPrimaryAndStanbySame(row)"
                     class="member-selector-tip">
                     <DbIcon
                       class="mr-4"
@@ -186,7 +214,7 @@
             </TableColumn>
             <TableColumn
               col-key="standby_dba"
-              :min-width="260">
+              :width="250">
               <template #title>
                 <span>{{ t('备 DBA') }}</span>
                 <!-- <BkTag
@@ -204,9 +232,10 @@
                   required>
                   <MemberSelector
                     v-model="row.standby_dba_edit"
-                    :multiple="false" />
+                    :multiple="false"
+                    @change="() => handleMemberChange(`tableData.${rowIndex}.standby_dba_edit`)" />
                   <div
-                    v-if="isPrimaryAndStanbySame(row)"
+                    v-if="isEditPrimaryAndStanbySame(row)"
                     class="member-selector-tip">
                     <DbIcon
                       class="mr-4"
@@ -262,9 +291,10 @@
                   required>
                   <MemberSelector
                     v-if="row.is_edit"
-                    v-model="row.level2_dba_edit" />
+                    v-model="row.level2_dba_edit"
+                    fast-clear />
                   <div
-                    v-if="isPrimaryAndStanbySame(row)"
+                    v-if="isEditPrimaryAndStanbySame(row)"
                     class="member-selector-tip" />
                 </BkFormItem>
                 <template v-else>
@@ -298,7 +328,7 @@
             <TableColumn
               col-key="status"
               :title="t('状态')"
-              width="120">
+              width="100">
               <template #default="{ row }: { row: BizDbaModel }">
                 <BkTag
                   v-if="row.isAssigned"
@@ -325,7 +355,8 @@
             </TableColumn>
             <TableColumn
               col-key="updater"
-              :title="t('更新人')">
+              :title="t('更新人')"
+              :width="120">
               <template #default="{ row }: { row: BizDbaModel }">
                 {{ row.updater || '--' }}
               </template>
@@ -338,6 +369,11 @@
               <template #default="{ row, rowIndex }: { row: BizDbaModel; rowIndex: number }">
                 <template v-if="row.is_edit">
                   <BkButton
+                    v-bk-tooltips="{
+                      content: t('当前无变更，请先修改内容'),
+                      disabled: isRowChanged(row),
+                    }"
+                    :disabled="!isRowChanged(row)"
                     :loading="isUpdateAdminsLoading"
                     text
                     theme="primary"
@@ -353,13 +389,15 @@
                     {{ t('取消') }}
                   </BkButton>
                 </template>
-                <BkButton
+                <AuthButton
                   v-else
+                  action-id="global_dba_admin_edit"
+                  :permission="row.isAssigned ? row.permission.global_dba_admin_edit : 'normal'"
                   text
                   theme="primary"
                   @click="() => handleEdit(row, rowIndex)">
                   {{ t('编辑') }}
-                </BkButton>
+                </AuthButton>
               </template>
             </TableColumn>
           </PrimaryTable>
@@ -406,7 +444,7 @@
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
-  import { getAdmins, updateAdmins } from '@services/source/dbadmin';
+  import { getAdmins, updateGlobalAdmins } from '@services/source/dbadmin';
   import { getUserList } from '@services/source/user';
 
   import { useUrlSearch } from '@hooks';
@@ -505,7 +543,7 @@
   });
 
   const defaultUserData = computed(() => {
-    const user = defaultAdminData.value?.find((item) => item.db_type === props.activeTab)?.users?.[0];
+    const user = defaultAdminData.value?.data.find((item) => item.db_type === props.activeTab)?.users?.[0];
     if (user) {
       return {
         displayText: `${user}（${userDataMap.value[user]}）`,
@@ -539,7 +577,7 @@
 
   const { data: userData, loading: isGetUserListLoading } = useRequest(getUserList);
 
-  const { loading: isUpdateAdminsLoading, run: runUpdateAdmins } = useRequest(updateAdmins, {
+  const { loading: isUpdateAdminsLoading, run: runUpdateAdmins } = useRequest(updateGlobalAdmins, {
     manual: true,
     onSuccess() {
       messageSuccess(t('操作成功'));
@@ -550,14 +588,20 @@
   watch(
     () => [bizStore.bizs, defaultAdminData.value, bizAdminData.value, userData.value],
     () => {
-      if (!defaultAdminData.value || !bizAdminData.value || !userData.value) {
+      if (
+        !defaultAdminData.value ||
+        !defaultAdminData.value.data.length ||
+        !bizAdminData.value ||
+        !bizAdminData.value.data.length ||
+        !userData.value
+      ) {
         bizList.value = [];
         return;
       }
 
       // const defaultDbTypeAdmin =
       //   defaultAdminData.value.find((item) => item.db_type === props.activeTab) || getDefaultDbTypeAdmin();
-      const bizAdminMap = Object.fromEntries(bizAdminData.value.map((item) => [item.bk_biz_id, item]));
+      const bizAdminMap = Object.fromEntries(bizAdminData.value.data.map((item) => [item.bk_biz_id, item]));
 
       bizList.value = bizStore.bizs.map((bizItem) => {
         // const adminItem = bizAdminMap[bizItem.bk_biz_id] || defaultDbTypeAdmin;
@@ -569,12 +613,12 @@
           is_edit: false,
           level2_dba: level2DBA,
           level2_dba_edit: [],
+          permission: Object.assign({}, adminItem.permission, bizItem.permission),
           primary_dba: primaryDBA || '',
           primary_dba_edit: [],
           standby_dba: standbyDBA || '',
           standby_dba_edit: [],
         } as unknown as BizDbaModel;
-
         return new BizDbaModel(bizDbaItem);
       });
 
@@ -594,6 +638,10 @@
     });
   };
 
+  const rowClassName = ({ row }: { row: BizDbaModel }) => {
+    return !row.is_edit && isPrimaryAndStanbySame(row) ? 'warning-row' : '';
+  };
+
   const handleQuickSearchChange = () => {
     selectedRowKeys.value = [];
     selected.value = [];
@@ -605,12 +653,28 @@
     tableFilterData.value = filterList;
   };
 
-  const isPrimaryAndStanbySame = (row: BizDbaModel) => {
+  const handleSwitchPrimaryAndStandby = (row: BizDbaModel, rowIndex: number) => {
+    const { primary_dba_edit: primaryDBA, standby_dba_edit: standbyDBA } = row;
+    formData.value.tableData[rowIndex] = Object.assign(row, {
+      primary_dba_edit: standbyDBA,
+      standby_dba_edit: primaryDBA,
+    });
+  };
+
+  const isEditPrimaryAndStanbySame = (row: BizDbaModel) => {
     return (
       row.primary_dba_edit.length > 0 &&
       row.standby_dba_edit.length > 0 &&
       row.primary_dba_edit[0] === row.standby_dba_edit[0]
     );
+  };
+
+  const isPrimaryAndStanbySame = (row: BizDbaModel) => {
+    return row.primary_dba && row.standby_dba && row.primary_dba === row.standby_dba;
+  };
+
+  const handleMemberChange = (property: string) => {
+    formRef.value?.validate(property);
   };
 
   const handleBatchUpdate = () => {
@@ -639,6 +703,11 @@
     selectedRowKeys.value = value as number[];
     selected.value = selectedRowData as BizDbaModel[];
   };
+
+  const isRowChanged = (row: BizDbaModel) =>
+    (row.is_edit && !_.isEqual(row.primary_dba ? [row.primary_dba] : [], row.primary_dba_edit)) ||
+    !_.isEqual(row.standby_dba ? [row.standby_dba] : [], row.standby_dba_edit) ||
+    !_.isEqual(_.sortBy(row.level2_dba), _.sortBy(row.level2_dba_edit));
 
   const handleEdit = (row: BizDbaModel, rowIndex: number) => {
     let tableList = formData.value.tableData;
@@ -748,6 +817,10 @@
     }
 
     .dba-table {
+      .warning-row {
+        background-color: #fdf4e8;
+      }
+
       .fallback-dba {
         .allback-dba-value {
           color: #c4c6cc;
@@ -768,8 +841,28 @@
         }
       }
 
+      .member-selector-wrapper {
+        display: flex;
+        align-items: center;
+
+        .member-selector {
+          flex: 1;
+          min-width: 0;
+        }
+
+        .switch-icon {
+          font-size: 20px;
+          color: #c4c6cc;
+
+          &:hover {
+            color: #4d4f56;
+          }
+        }
+      }
+
       .member-selector-tip {
-        height: 32px;
+        height: 20px;
+        line-height: 20px;
         color: #fe9c00;
       }
 
@@ -796,9 +889,9 @@
       .bk-pagination {
         width: 100%;
 
-        & > .is-last {
-          margin-left: auto;
-        }
+        // & > .is-last {
+        //   margin-left: auto;
+        // }
       }
     }
   }

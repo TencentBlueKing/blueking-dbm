@@ -97,7 +97,7 @@ export const useQuickSearch = (isPlatform: boolean) => {
           label: item.name,
           value: item.id,
         })),
-        name: t('DB类型'),
+        name: t('DB 类型'),
         type: 'multiple',
       },
       {

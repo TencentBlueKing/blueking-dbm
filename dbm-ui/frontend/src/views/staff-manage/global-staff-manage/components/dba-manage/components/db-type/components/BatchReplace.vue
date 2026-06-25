@@ -274,11 +274,11 @@
   }
 
   .biz-unmanage-batch-replace-content {
-    padding: 24px;
+    padding: 24px 24px 8px;
 
     .dba-box {
       display: flex;
-      gap: 24px;
+      gap: 8px;
       align-items: center;
 
       .bk-form-item {

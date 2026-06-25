@@ -148,7 +148,7 @@
             key="StaffManage"
             v-db-console="'bizConfigManage.StaffManage'">
             <template #icon>
-              <DbIcon type="db-config" />
+              <DbIcon type="dba-config" />
             </template>
             <span
               v-overflow-tips.right

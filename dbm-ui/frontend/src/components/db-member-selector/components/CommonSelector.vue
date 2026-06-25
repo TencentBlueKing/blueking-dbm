@@ -20,11 +20,12 @@
     :exact-search-method="exactSearchMethod"
     :fixed-height="false"
     :fuzzy-search-method="fuzzySearchMethod"
+    :multiple="multiple"
     :paste-validator="pasteValidator"
     :render-list="renderList"
     :render-tag="renderTag"
     :search-from-default-alternate="false"
-    tag-clearable
+    :tag-clearable="multiple"
     @remove-selected="handleRemoveSelected" />
 </template>
 
@@ -33,6 +34,13 @@
 
   import { getUserList } from '@services/source/user';
 
+  interface Props {
+    multiple?: boolean;
+  }
+
+  withDefaults(defineProps<Props>(), {
+    multiple: true,
+  });
   const modelValue = defineModel<string[]>({
     required: true,
   });

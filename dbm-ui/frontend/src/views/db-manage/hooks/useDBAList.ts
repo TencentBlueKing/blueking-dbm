@@ -9,7 +9,7 @@ import { DBTypes } from '@common/const';
 
 export default (dbType: Ref<DBTypes | undefined>) => {
   const { urls } = useSystemEnviron();
-  const { data: dbaList } = useRequest(getAdmins, {
+  const { data } = useRequest(getAdmins, {
     defaultParams: [
       {
         bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
@@ -24,6 +24,6 @@ export default (dbType: Ref<DBTypes | undefined>) => {
     if (urls.DBA_ROBOT?.[dbType.value]) {
       return [urls.DBA_ROBOT[dbType.value]];
     }
-    return dbaList.value?.find((item) => item.db_type === dbType.value)?.users || [];
+    return data?.value?.data.find((item) => item.db_type === dbType.value)?.users || [];
   });
 };

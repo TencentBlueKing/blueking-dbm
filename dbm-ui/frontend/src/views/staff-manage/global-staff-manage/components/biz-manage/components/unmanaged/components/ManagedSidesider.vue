@@ -11,7 +11,9 @@
       </div>
     </template>
     <template #default>
-      <BkLoading :loading="isGetAdminsLoading">
+      <BkLoading
+        :loading="isGetAdminsLoading"
+        style="height: 100%">
         <DbForm
           ref="form"
           class="biz-unmanage-sideslider"
@@ -30,10 +32,10 @@
                 :disabled="bizCodeDisabled"
                 :placeholder="t('以小写字母开头，仅包含小写字母、数字、连字符（-），长度 2~32')" />
               <!-- <div
-              v-if="bizCodeDisabled"
-              class="biz-code-hint">
-              {{ t('已从 CMDB 获取，不可修改') }}
-            </div> -->
+                v-if="bizCodeDisabled"
+                class="biz-code-hint">
+                {{ t('已从 CMDB 获取，不可修改') }}
+              </div> -->
             </div>
           </DbFormItem>
           <div class="dba-label">{{ t('配置业务 DBA') }}</div>
@@ -43,134 +45,174 @@
                 {{ t('为各 DB 组件配置 DBA。未配置的组件沿用该组件默认 DBA。主、备 DBA 必须同时填写。') }}
               </div>
               <!-- <div>
-                <span class="alert-bord">{{ t('注意：') }}</span>
-                {{ t('单个组件如填写了任一角色，则主 DBA、备 DBA 必填，二线 DBA 可选。') }}
-              </div> -->
+                  <span class="alert-bord">{{ t('注意：') }}</span>
+                  {{ t('单个组件如填写了任一角色，则主 DBA、备 DBA 必填，二线 DBA 可选。') }}
+                </div> -->
             </template>
           </BkAlert>
-          <PrimaryTable
-            class="mt-16"
-            :data="formData.tableData"
-            :outer-border="false"
-            row-key="dbType">
-            <TableColumn
-              col-key="dbTypeName"
-              :title="t('组件类型')"
-              width="120" />
-            <TableColumn
-              col-key="mainDba"
-              min-width="180">
-              <template #title>
-                <div style="display: flex; align-items: center">
-                  <span>{{ t('主 DBA') }}</span>
-                  <!-- <BkTag
-                    class="ml-4"
-                    size="small"
-                    :theme="dbaRoleTypesInfo[DBARoleTypes.PRIMARY_DBA].tagTheme">
-                    {{ dbaRoleTypesInfo[DBARoleTypes.PRIMARY_DBA].tagText }}
-                  </BkTag> -->
-                  <BatchEdit
-                    class="ml-4"
-                    field="primaryDBA"
-                    :label="t('主 DBA')"
-                    :multiple="false"
-                    @batch-edit="handleBatchEdit" />
-                </div>
-              </template>
-              <template #default="{ row, rowIndex }: { row: IRowData; rowIndex: number }">
-                <DbFormItem
-                  error-display-type="tooltips"
-                  :property="`tableData.${rowIndex}.primaryDBA`"
-                  :required="
-                    formData.tableData[rowIndex].standbyDBA.length > 0 ||
-                    formData.tableData[rowIndex].level2DBA.length > 0
-                  ">
-                  <MemberSelector
-                    v-model="row.primaryDBA"
-                    :multiple="false" />
-                  <div
-                    v-if="isPrimaryAndStanbySame(row)"
-                    class="member-selector-tip">
-                    <DbIcon
-                      class="mr-4"
-                      type="attention" />
-                    <span>{{ t('主备 DBA 为同一人，建议设置不同人员') }}</span>
+          <div ref="tableWrapper">
+            <PrimaryTable
+              class="mt-16"
+              :data="formData.tableData"
+              :max-height="tableMaxHeight"
+              :outer-border="false"
+              row-key="dbType">
+              <TableColumn
+                col-key="dbTypeName"
+                :title="t('组件类型')"
+                width="120" />
+              <TableColumn
+                col-key="mainDba"
+                :width="250">
+                <template #title>
+                  <div style="display: flex; align-items: center">
+                    <span>{{ t('主 DBA') }}</span>
+                    <!-- <BkTag
+                              class="ml-4"
+                              size="small"
+                              :theme="dbaRoleTypesInfo[DBARoleTypes.PRIMARY_DBA].tagTheme">
+                              {{ dbaRoleTypesInfo[DBARoleTypes.PRIMARY_DBA].tagText }}
+                            </BkTag> -->
+                    <BatchEdit
+                      class="ml-4"
+                      field="primaryDBA"
+                      :label="t('主 DBA')"
+                      :multiple="false"
+                      @batch-edit="handleBatchEdit" />
                   </div>
-                </DbFormItem>
-              </template>
-            </TableColumn>
-            <TableColumn
-              col-key="backupDba"
-              min-width="180">
-              <template #title>
-                <div style="display: flex; align-items: center">
-                  <span>{{ t('备 DBA') }}</span>
-                  <!-- <BkTag
-                    class="ml-4"
-                    size="small"
-                    :theme="dbaRoleTypesInfo[DBARoleTypes.BACKUP_DBA].tagTheme">
-                    {{ dbaRoleTypesInfo[DBARoleTypes.BACKUP_DBA].tagText }}
-                  </BkTag> -->
-                  <BatchEdit
-                    class="ml-4"
-                    field="standbyDBA"
-                    :label="t('备 DBA')"
-                    :multiple="false"
-                    @batch-edit="handleBatchEdit" />
-                </div>
-              </template>
-              <template #default="{ row, rowIndex }: { row: IRowData; rowIndex: number }">
-                <DbFormItem
-                  error-display-type="tooltips"
-                  :property="`tableData.${rowIndex}.standbyDBA`"
-                  :required="
-                    formData.tableData[rowIndex].primaryDBA.length > 0 ||
-                    formData.tableData[rowIndex].level2DBA.length > 0
-                  ">
-                  <MemberSelector
-                    v-model="row.standbyDBA"
-                    :multiple="false"
-                    :property="`tableData.${rowIndex}.standbyDBA`" />
-                  <div
-                    v-if="isPrimaryAndStanbySame(row)"
-                    class="member-selector-tip">
-                    <DbIcon
-                      class="mr-4"
-                      type="attention" />
-                    <span>{{ t('主备 DBA 为同一人，建议设置不同人员') }}</span>
+                </template>
+                <template #default="{ row, rowIndex }: { row: IRowData; rowIndex: number }">
+                  <DbFormItem
+                    v-if="row.isEdit"
+                    error-display-type="tooltips"
+                    :property="`tableData.${rowIndex}.primaryDBA`"
+                    :required="
+                      formData.tableData[rowIndex].standbyDBA.length > 0 ||
+                      formData.tableData[rowIndex].level2DBA.length > 0
+                    ">
+                    <div class="member-selector-wrapper">
+                      <MemberSelector
+                        v-model="row.primaryDBA"
+                        class="member-selector"
+                        :multiple="false"
+                        @change="() => handleMemberChange(`tableData.${rowIndex}.primaryDBA`)" />
+                      <BkButton
+                        v-bk-tooltips="t('主备互换')"
+                        class="ml-16"
+                        text
+                        @click="handleSwitchPrimaryAndStandby(row, rowIndex)">
+                        <DbIcon
+                          class="switch-icon"
+                          type="qiehuan-2" />
+                      </BkButton>
+                    </div>
+                    <div
+                      v-if="isPrimaryAndStanbySame(row)"
+                      class="member-selector-tip">
+                      <DbIcon
+                        class="mr-4"
+                        type="attention" />
+                      <span>{{ t('主备 DBA 为同一人，建议设置不同人员') }}</span>
+                    </div>
+                  </DbFormItem>
+                  <BkButton
+                    v-else
+                    text
+                    theme="primary"
+                    @click="handleEditRow(row, rowIndex)">
+                    {{ t('添加') }}
+                  </BkButton>
+                </template>
+              </TableColumn>
+              <TableColumn
+                col-key="backupDba"
+                :width="250">
+                <template #title>
+                  <div style="display: flex; align-items: center">
+                    <span>{{ t('备 DBA') }}</span>
+                    <!-- <BkTag
+                              class="ml-4"
+                              size="small"
+                              :theme="dbaRoleTypesInfo[DBARoleTypes.BACKUP_DBA].tagTheme">
+                              {{ dbaRoleTypesInfo[DBARoleTypes.BACKUP_DBA].tagText }}
+                            </BkTag> -->
+                    <BatchEdit
+                      class="ml-4"
+                      field="standbyDBA"
+                      :label="t('备 DBA')"
+                      :multiple="false"
+                      @batch-edit="handleBatchEdit" />
                   </div>
-                </DbFormItem>
-              </template>
-            </TableColumn>
-            <TableColumn
-              col-key="secondDbaList"
-              min-width="200">
-              <template #title>
-                <div style="display: flex; align-items: center">
-                  <span>{{ t('二线 DBA') }}</span>
-                  <!-- <BkTag
-                    class="ml-4"
-                    size="small"
-                    :theme="dbaRoleTypesInfo[DBARoleTypes.LEVEL2_DBA].tagTheme">
-                    {{ dbaRoleTypesInfo[DBARoleTypes.LEVEL2_DBA].tagText }}
-                  </BkTag> -->
-                  <BatchEdit
-                    class="ml-4"
-                    field="level2DBA"
-                    :label="t('二线 DBA')"
-                    @batch-edit="handleBatchEdit" />
-                </div>
-              </template>
-              <template #default="{ row }: { row: IRowData }">
-                <DbFormItem>
-                  <MemberSelector v-model="row.level2DBA" />
-                  <div
-                    v-if="isPrimaryAndStanbySame(row)"
-                    class="member-selector-tip" />
-                </DbFormItem>
-              </template>
-            </TableColumn>
-          </PrimaryTable>
+                </template>
+                <template #default="{ row, rowIndex }: { row: IRowData; rowIndex: number }">
+                  <DbFormItem
+                    v-if="row.isEdit"
+                    error-display-type="tooltips"
+                    :property="`tableData.${rowIndex}.standbyDBA`"
+                    :required="
+                      formData.tableData[rowIndex].primaryDBA.length > 0 ||
+                      formData.tableData[rowIndex].level2DBA.length > 0
+                    ">
+                    <MemberSelector
+                      v-model="row.standbyDBA"
+                      :multiple="false"
+                      :property="`tableData.${rowIndex}.standbyDBA`"
+                      @change="() => handleMemberChange(`tableData.${rowIndex}.standbyDBA`)" />
+                    <div
+                      v-if="isPrimaryAndStanbySame(row)"
+                      class="member-selector-tip">
+                      <DbIcon
+                        class="mr-4"
+                        type="attention" />
+                      <span>{{ t('主备 DBA 为同一人，建议设置不同人员') }}</span>
+                    </div>
+                  </DbFormItem>
+                </template>
+              </TableColumn>
+              <TableColumn
+                col-key="secondDbaList"
+                min-width="200">
+                <template #title>
+                  <div style="display: flex; align-items: center">
+                    <span>{{ t('二线 DBA') }}</span>
+                    <!-- <BkTag
+                              class="ml-4"
+                              size="small"
+                              :theme="dbaRoleTypesInfo[DBARoleTypes.LEVEL2_DBA].tagTheme">
+                              {{ dbaRoleTypesInfo[DBARoleTypes.LEVEL2_DBA].tagText }}
+                            </BkTag> -->
+                    <BatchEdit
+                      class="ml-4"
+                      field="level2DBA"
+                      :label="t('二线 DBA')"
+                      @batch-edit="handleBatchEdit" />
+                  </div>
+                </template>
+                <template #default="{ row, rowIndex }: { row: IRowData; rowIndex: number }">
+                  <DbFormItem v-if="row.isEdit">
+                    <div class="member-selector-wrapper">
+                      <MemberSelector
+                        v-model="row.level2DBA"
+                        class="member-selector"
+                        fast-clear />
+                      <BkButton
+                        v-bk-tooltips="t('删除')"
+                        class="ml-8"
+                        text
+                        @click="handleDeleteRow(row, rowIndex)">
+                        <DbIcon
+                          class="delete-icon"
+                          type="delete" />
+                      </BkButton>
+                      <div
+                        v-if="isPrimaryAndStanbySame(row)"
+                        class="member-selector-tip" />
+                    </div>
+                  </DbFormItem>
+                </template>
+              </TableColumn>
+            </PrimaryTable>
+          </div>
         </DbForm>
       </BkLoading>
     </template>
@@ -207,7 +249,7 @@
   import BatchEdit from '@views/staff-manage/common/BatchEdit.vue';
 
   import { nameRegx } from '@/common/regex';
-  import { messageSuccess } from '@/utils';
+  import { getOffset, messageSuccess } from '@/utils';
 
   interface Props {
     data: BizItem;
@@ -218,6 +260,7 @@
   interface IRowData {
     dbType: DBTypes;
     dbTypeName: string;
+    isEdit: boolean;
     level2DBA: string[];
     primaryDBA: string[];
     standbyDBA: string[];
@@ -254,23 +297,25 @@
     },
   ];
 
+  const rootRef = useTemplateRef('tableWrapper');
   const formRef = useTemplateRef('form');
-
   const bizCodeDisabled = ref(false);
   const formData = ref({
     bizCode: '',
     tableData: [] as IRowData[],
   });
+  const tableMaxHeight = ref<number | 'auto'>('auto');
 
   const { loading: isGetAdminsLoading, run: runGetAdmins } = useRequest(getAdmins, {
     manual: true,
     onSuccess(adminData) {
-      const usersMap = Object.fromEntries(adminData.map((item) => [item.db_type, item.users]));
+      const usersMap = Object.fromEntries(adminData.data.map((item) => [item.db_type, item.users]));
       formData.value.tableData = Object.keys(DBTypeInfos).map((dbType) => {
         const [primaryDBA, standbyDBA, ...level2DBA] = usersMap[dbType] || [];
         return {
           dbType: dbType as DBTypes,
           dbTypeName: DBTypeInfos[dbType as DBTypes].name,
+          isEdit: false,
           level2DBA: level2DBA || [],
           primaryDBA: primaryDBA ? [primaryDBA] : [],
           standbyDBA: standbyDBA ? [standbyDBA] : [],
@@ -308,15 +353,41 @@
     },
   );
 
+  const handleSwitchPrimaryAndStandby = (row: IRowData, rowIndex: number) => {
+    const { primaryDBA, standbyDBA } = row;
+    formData.value.tableData[rowIndex] = Object.assign(row, {
+      primaryDBA: standbyDBA,
+      standbyDBA: primaryDBA,
+    });
+  };
+
   const isPrimaryAndStanbySame = (row: IRowData) => {
     return row.primaryDBA.length > 0 && row.standbyDBA.length > 0 && row.primaryDBA[0] === row.standbyDBA[0];
   };
 
+  const handleMemberChange = (property: string) => {
+    formRef.value?.validate(property);
+  };
+
+  const handleEditRow = (row: IRowData, rowIndex: number) => {
+    formData.value.tableData[rowIndex] = Object.assign(row, {
+      isEdit: true,
+    });
+  };
+
+  const handleDeleteRow = (row: IRowData, rowIndex: number) => {
+    formData.value.tableData[rowIndex] = Object.assign(row, {
+      isEdit: false,
+    });
+  };
+
   const handleBatchEdit = (value: any, field: string) => {
     formData.value.tableData.forEach((item) => {
-      Object.assign(item, {
-        [field]: value,
-      });
+      if (item.isEdit) {
+        Object.assign(item, {
+          [field]: value,
+        });
+      }
     });
   };
 
@@ -326,7 +397,7 @@
       app_code: bizCodeDisabled.value ? undefined : formData.value.bizCode,
       bk_biz_id: props.data.bk_biz_id,
       db_admins: formData.value.tableData
-        .filter((item) => [...item.primaryDBA, ...item.standbyDBA, ...item.level2DBA].length > 0)
+        .filter((item) => item.isEdit && [...item.primaryDBA, ...item.standbyDBA, ...item.level2DBA].length > 0)
         .map((item) => {
           return {
             db_type: item.dbType,
@@ -335,6 +406,16 @@
         }),
     });
   };
+
+  const setTableMaxHeight = () => {
+    nextTick(() => {
+      tableMaxHeight.value = window.innerHeight - getOffset(rootRef.value as HTMLElement).top - 72;
+    });
+  };
+
+  onMounted(() => {
+    setTableMaxHeight();
+  });
 </script>
 
 <style lang="less">
@@ -369,8 +450,38 @@
       font-weight: bolder;
     }
 
+    .member-selector-wrapper {
+      display: flex;
+      align-items: center;
+
+      .member-selector {
+        flex: 1;
+        min-width: 0;
+      }
+
+      .switch-icon {
+        flex-shrink: 0;
+        font-size: 20px;
+        color: #c4c6cc;
+
+        &:hover {
+          color: #4d4f56;
+        }
+      }
+
+      .delete-icon {
+        font-size: 14px;
+        color: #c4c6cc;
+
+        &:hover {
+          color: #4d4f56;
+        }
+      }
+    }
+
     .member-selector-tip {
-      height: 32px;
+      height: 20px;
+      line-height: 20px;
       color: #fe9c00;
     }
   }
