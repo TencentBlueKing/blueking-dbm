@@ -25,7 +25,7 @@
         </template>
       </template>
       <div
-        v-if="total === 0 || (isOnlyAbnormal && totalAbnormalCount === 0)"
+        v-if="emptyDescription"
         style="font-size: 14px; line-height: 40px; color: #999; text-align: center">
         {{ emptyDescription }}
         <I18nT
@@ -184,14 +184,13 @@
     };
 
     const timeRangeText = timeRangeTextMap[timeRange] || timeRangeTextMap['now -1d'];
-    if (props.isTodo) {
-      // 近 30 天为最大档位，不再提示扩大时间范围
+    if (total.value === 0) {
       return t('{timeRange}内无巡检记录', { timeRange: timeRangeText });
     }
     if (props.isOnlyAbnormal && totalAbnormalCount.value === 0) {
       return t('{timeRange}内无预警或异常', { timeRange: timeRangeText });
     }
-    return t('{timeRange}内无巡检记录', { timeRange: timeRangeText });
+    return '';
   });
 
   const { loading, run: fetchInspectionData } = useRequest(getReport, {
