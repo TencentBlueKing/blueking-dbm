@@ -159,7 +159,7 @@
   import ResourceTagColumn from '@views/db-manage/common/toolbox-field/column/resource-tag-column/Index.vue';
   import SpecColumn from '@views/db-manage/common/toolbox-field/column/spec-column/Index.vue';
   import TicketPayload, {
-    createTickePayload,
+    createTicketPayload,
   } from '@views/db-manage/common/toolbox-field/form-item/ticket-payload/Index.vue';
   import AddShardNodesNumColumn from '@views/db-manage/mongodb/common/toolbox-field/addShardNodes/AddShardNodesNumColumn.vue';
   import ClusterWithRelatedClustersColumn from '@views/db-manage/mongodb/common/toolbox-field/cluster-with-related-clusters-column/Index.vue';
@@ -213,7 +213,7 @@
   const createDefaultFormData = () => ({
     clusterType: ClusterTypes.MONGO_REPLICA_SET,
     is_ignore_business_access: false,
-    payload: createTickePayload(),
+    payload: createTicketPayload(),
     tableData: [createRowData()],
   });
 
@@ -245,7 +245,7 @@
 
       Object.assign(formData, {
         is_ignore_business_access: !isSafe,
-        payload: createTickePayload(ticketDetail),
+        payload: createTicketPayload(ticketDetail),
         tableData: infos.map((item) => {
           const clusterItem = clusters[item.cluster_ids[0]];
           return createRowData({

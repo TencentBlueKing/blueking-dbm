@@ -144,7 +144,7 @@
   import ResourceTagColumn from '@views/db-manage/common/toolbox-field/column/resource-tag-column/Index.vue';
   import SpecColumn from '@views/db-manage/common/toolbox-field/column/spec-column/Index.vue';
   import TicketPayload, {
-    createTickePayload,
+    createTicketPayload,
   } from '@views/db-manage/common/toolbox-field/form-item/ticket-payload/Index.vue';
   import ClusterColumn from '@views/db-manage/tendb-cluster/TENDBCLUSTER_SPIDER_ADD_NODES/components/ClusterColumn.vue';
 
@@ -186,7 +186,7 @@
   });
 
   const defaultData = () => ({
-    payload: createTickePayload(),
+    payload: createTicketPayload(),
     role: 'spider_master' as RoleValue,
     tableData: [createTableRow()],
   });
@@ -252,7 +252,7 @@
       const firstInfo = details.infos[0];
       const role: RoleValue = firstInfo?.resource_spec?.spider_slave_new_ip_list ? 'spider_slave' : 'spider_master';
       Object.assign(formData, {
-        payload: createTickePayload(ticketDetail),
+        payload: createTicketPayload(ticketDetail),
         role,
         tableData: details.infos.map((item) => {
           const resourceSpec =

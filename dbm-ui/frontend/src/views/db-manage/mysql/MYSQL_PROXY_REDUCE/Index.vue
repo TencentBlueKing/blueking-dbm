@@ -82,7 +82,7 @@
 
   import BatchInput from '@views/db-manage/common/batch-input/Index.vue';
   import TicketPayload, {
-    createTickePayload,
+    createTicketPayload,
   } from '@views/db-manage/common/toolbox-field/form-item/ticket-payload/Index.vue';
   import ProxyWrapper from '@views/db-manage/mysql/MYSQL_PROXY_ADD/components/ProxyWrapper.vue';
 
@@ -122,7 +122,7 @@
 
   const defaultData = () => ({
     is_safe: true,
-    payload: createTickePayload(),
+    payload: createTicketPayload(),
     tableData: [createTableRow()],
   });
 
@@ -137,7 +137,7 @@
       const { details } = ticketDetail;
       Object.assign(formData, {
         is_safe: details.is_safe,
-        payload: createTickePayload(ticketDetail),
+        payload: createTicketPayload(ticketDetail),
         tableData: details.infos.map((item) =>
           createTableRow({
             host: {

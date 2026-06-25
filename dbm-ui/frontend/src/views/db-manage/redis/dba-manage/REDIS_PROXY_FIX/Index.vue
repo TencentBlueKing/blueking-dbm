@@ -120,7 +120,7 @@
 
   import BatchInput from '@views/db-manage/common/batch-input/Index.vue';
   import TicketPayload, {
-    createTickePayload,
+    createTicketPayload,
   } from '@views/db-manage/common/toolbox-field/form-item/ticket-payload/Index.vue';
 
   import HostColumn, { type IValue } from './components/HostColumn.vue';
@@ -163,7 +163,7 @@
   });
 
   const defaultData = () => ({
-    payload: createTickePayload(),
+    payload: createTicketPayload(),
     tableData: [createTableRow()],
     ticketType: TicketTypes.REDIS_PROXY_FIX,
   });

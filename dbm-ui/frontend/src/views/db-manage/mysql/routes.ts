@@ -27,6 +27,7 @@ const { createRouteItem } = createToolboxRoute(DBTypes.MYSQL);
 export const mysqlToolboxChildrenRouters: RouteRecordRaw[] = [
   createRouteItem(TicketTypes.MYSQL_IMPORT_SQLFILE, t('变更SQL执行'), {}, { params: '/:step?' }),
   createRouteItem(TicketTypes.MYSQL_RENAME_DATABASE, t('DB重命名')),
+  createRouteItem(TicketTypes.MYSQL_DUMP_DATA, t('数据导出')),
   createRouteItem(TicketTypes.MYSQL_RESTORE_LOCAL_SLAVE, t('重建从库')),
   createRouteItem(TicketTypes.MYSQL_RESTORE_SLAVE, t('重建从库')),
   createRouteItem(TicketTypes.MYSQL_ADD_SLAVE, t('添加从库')),

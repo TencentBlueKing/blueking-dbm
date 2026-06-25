@@ -155,7 +155,7 @@
   import ResourceTagColumn from '@views/db-manage/common/toolbox-field/column/resource-tag-column/Index.vue';
   import SpecColumn from '@views/db-manage/common/toolbox-field/column/spec-column/Index.vue';
   import TicketPayload, {
-    createTickePayload,
+    createTicketPayload,
   } from '@views/db-manage/common/toolbox-field/form-item/ticket-payload/Index.vue';
   import HostColumn from '@views/db-manage/mongodb/common/toolbox-field/cutoff/HostColumn.vue';
 
@@ -280,7 +280,7 @@
 
   const formData = reactive({
     clusterType: ClusterTypes.MONGO_REPLICA_SET,
-    payload: createTickePayload(),
+    payload: createTicketPayload(),
     tableData: [createRowData()],
   });
 
@@ -292,7 +292,7 @@
       const { details } = ticketDetail;
       const { clusters, infos } = details;
       Object.assign(formData, {
-        ...createTickePayload(ticketDetail),
+        ...createTicketPayload(ticketDetail),
         clusterType: clusters[infos[0].cluster_id].cluster_type,
         tableData: infos.flatMap((infoItem) => {
           const machineInfoList = infoItem.mongodb || [];
@@ -410,7 +410,7 @@
 
   const handleReset = () => {
     Object.assign(formData, {
-      payload: createTickePayload(),
+      payload: createTicketPayload(),
       tableData: [createRowData()],
     });
   };

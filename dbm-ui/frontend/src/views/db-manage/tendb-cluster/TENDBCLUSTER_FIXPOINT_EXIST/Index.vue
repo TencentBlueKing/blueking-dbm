@@ -122,7 +122,7 @@
 
   import BatchInput from '@views/db-manage/common/batch-input/Index.vue';
   import TicketPayload, {
-    createTickePayload,
+    createTicketPayload,
   } from '@views/db-manage/common/toolbox-field/form-item/ticket-payload/Index.vue';
   import DbNameColumn from '@views/db-manage/mysql/common/toolbox-field/db-name-column/Index.vue';
   import TableNameColumn from '@views/db-manage/mysql/common/toolbox-field/table-name-column/Index.vue';
@@ -215,7 +215,7 @@
 
   const defaultData = () => ({
     backupSource: BackupSourceType.REMOTE,
-    payload: createTickePayload(),
+    payload: createTicketPayload(),
     rollbackMethod: 'BACKUPID',
     tableData: [createTableRow()],
   });
@@ -235,7 +235,7 @@
       const { clusters, infos } = details;
       isTicketLoaded = true;
       Object.assign(formData, {
-        payload: createTickePayload(ticketDetail),
+        payload: createTicketPayload(ticketDetail),
         rollbackMethod: infos[0].rollback_time ? 'TIME' : 'BACKUPID',
       });
       nextTick(() => {

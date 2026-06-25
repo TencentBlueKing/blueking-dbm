@@ -225,7 +225,7 @@
 
   import BatchInput from '@views/db-manage/common/batch-input/Index.vue';
   import TicketPayload, {
-    createTickePayload,
+    createTicketPayload,
   } from '@views/db-manage/common/toolbox-field/form-item/ticket-payload/Index.vue';
   import DbNameColumn from '@views/db-manage/mysql/common/toolbox-field/db-name-column/Index.vue';
   import TableNameColumn from '@views/db-manage/mysql/common/toolbox-field/table-name-column/Index.vue';
@@ -346,7 +346,7 @@
       mode: 'manual',
     },
     execute_mode: 'timer', // 默认定时执行
-    payload: createTickePayload(),
+    payload: createTicketPayload(),
     runtime_hour: 48,
     tableData: [createTableRow()],
     timing: getCurrentDate(),
@@ -388,7 +388,7 @@
           mode: details.data_repair.mode,
         },
         execute_mode: details.need_manual_confirm ? 'manual' : 'timer',
-        payload: createTickePayload(ticketDetail),
+        payload: createTicketPayload(ticketDetail),
         runtime_hour: details.runtime_hour,
         tableData: infos.reduce<RowData[]>((acc, item) => {
           const rows = item.backup_infos.map((row) =>

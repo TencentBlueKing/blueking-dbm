@@ -101,7 +101,7 @@
   import { ClusterTypes, TicketTypes } from '@common/const';
 
   import TicketPayload, {
-    createTickePayload,
+    createTicketPayload,
   } from '@views/db-manage/common/toolbox-field/form-item/ticket-payload/Index.vue';
   import WithRelatedClustersColumn from '@views/db-manage/mysql/common/toolbox-field/with-related-clusters-column/Index.vue';
   import UpgradeWrapper from '@views/db-manage/mysql/MYSQL_LOCAL_UPGRADE/components/UpgradeWrapper.vue';
@@ -167,7 +167,7 @@
 
   const defaultData = () => ({
     is_check_process: true,
-    payload: createTickePayload(),
+    payload: createTicketPayload(),
     tableData: [createTableRow()],
   });
 
@@ -201,7 +201,7 @@
       wrapperController.value.roleType = isSingle ? 'singleStorageLayer' : 'haStorageLayer';
       if (infos.length > 0) {
         Object.assign(formData, {
-          ...createTickePayload(ticketDetail),
+          ...createTicketPayload(ticketDetail),
           is_check_process: ticketDetail.details.is_check_process,
           tableData: ticketDetail.details.infos.map((item) =>
             createTableRow({

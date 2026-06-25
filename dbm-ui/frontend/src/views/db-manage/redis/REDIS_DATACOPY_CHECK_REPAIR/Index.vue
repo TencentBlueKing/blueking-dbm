@@ -149,7 +149,7 @@
   import { TicketTypes } from '@common/const';
 
   import TicketPayload, {
-    createTickePayload,
+    createTicketPayload,
   } from '@views/db-manage/common/toolbox-field/form-item/ticket-payload/Index.vue';
   import RegexKeysColumn from '@views/db-manage/redis/common/toolbox-field/regex-keys-column/Index.vue';
   import { formatDatetime } from '@views/db-manage/redis/common/utils';
@@ -174,7 +174,7 @@
     data_repair_enabled: true,
     execute_mode: ExecuteModes.SCHEDULED_EXECUTION,
     keep_check_and_repair: true,
-    payload: createTickePayload(),
+    payload: createTicketPayload(),
     repair_mode: RepairModes.AUTO_REPAIR,
     specified_execution_time: new Date(),
     tableData: [] as IDataRow[],
@@ -194,7 +194,7 @@
         data_repair_enabled: details.data_repair_enabled,
         execute_mode: details.execute_mode,
         keep_check_and_repair: details.keep_check_and_repair,
-        payload: createTickePayload(ticketDetail),
+        payload: createTicketPayload(ticketDetail),
         repair_mode: details.repair_mode,
         specified_execution_time: dayjs(details.specified_execution_time).toDate(),
         tableData: [

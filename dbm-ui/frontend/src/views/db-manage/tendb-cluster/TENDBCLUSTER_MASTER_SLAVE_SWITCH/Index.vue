@@ -98,7 +98,7 @@
 
   import BatchInput from '@views/db-manage/common/batch-input/Index.vue';
   import TicketPayload, {
-    createTickePayload,
+    createTicketPayload,
   } from '@views/db-manage/common/toolbox-field/form-item/ticket-payload/Index.vue';
 
   import { random } from '@utils';
@@ -150,7 +150,7 @@
     is_check_delay: true,
     is_check_process: true,
     is_verify_checksum: true,
-    payload: createTickePayload(),
+    payload: createTicketPayload(),
     tableData: [createTableRow()],
   });
 
@@ -169,7 +169,7 @@
         is_check_delay: details.is_check_delay,
         is_check_process: details.is_check_process,
         is_verify_checksum: details.is_verify_checksum,
-        payload: createTickePayload(ticketDetail),
+        payload: createTicketPayload(ticketDetail),
         tableData: details.infos.map((item) =>
           createTableRow({
             master: {

@@ -134,7 +134,7 @@
 
   import BatchInput from '@views/db-manage/common/batch-input/Index.vue';
   import TicketPayload, {
-    createTickePayload,
+    createTicketPayload,
   } from '@views/db-manage/common/toolbox-field/form-item/ticket-payload/Index.vue';
   import DbNameColumn from '@views/db-manage/sqlserver/common/toolbox-field/db-name-column/Index.vue';
 
@@ -189,7 +189,7 @@
 
   const defaultData = () => ({
     need_auto_rename: false,
-    payload: createTickePayload(),
+    payload: createTicketPayload(),
     tableData: [createTableRow()],
     ticketType: TicketTypes.SQLSERVER_FULL_MIGRATE,
   });
@@ -241,7 +241,7 @@
       Object.assign(formData, {
         need_auto_rename: details.need_auto_rename,
         ticketType: TicketTypes.SQLSERVER_FULL_MIGRATE,
-        ...createTickePayload(ticketDetail),
+        ...createTicketPayload(ticketDetail),
         tableData: infos.map((item) => {
           const srcCluster = clusters[item.src_cluster];
           return createTableRow({

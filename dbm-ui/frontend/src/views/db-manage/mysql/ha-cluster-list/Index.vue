@@ -96,7 +96,7 @@
                 :permission="data.permission.mysql_dump_data"
                 :resource="data.id"
                 text
-                @click="handleShowDataExportSlider(data)">
+                @click="handleGoToDataExport(data)">
                 {{ t('导出数据') }}
               </AuthButton>
             </div>
@@ -420,9 +420,13 @@
     isShowCreateSubscribeRule.value = true;
   };
 
-  const handleShowDataExportSlider = (data: TendbhaModel) => {
-    currentData.value = data;
-    isShowDataExport.value = true;
+  const handleGoToDataExport = (data: TendbhaModel) => {
+    router.push({
+      name: TicketTypes.MYSQL_DUMP_DATA,
+      query: {
+        clusterId: data.id.toString(),
+      },
+    });
   };
 
   const handleClearSelected = () => {

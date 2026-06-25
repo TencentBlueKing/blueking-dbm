@@ -88,6 +88,9 @@ const spiderToolboxRoute = {
     createRouteItem(TicketTypes.TENDBCLUSTER_RENAME_DATABASE, t('DB 重命名'), {
       dbConsole: 'tendbCluster.toolbox.dbRename',
     }),
+    createRouteItem(TicketTypes.TENDBCLUSTER_DUMP_DATA, t('数据导出'), {
+      dbConsole: 'tendbCluster.toolbox.dataExport',
+    }),
     createRouteItem(TicketTypes.TENDBCLUSTER_MASTER_SLAVE_SWITCH, t('主从互切'), {
       dbConsole: 'tendbCluster.toolbox.masterSlaveSwap',
     }),
@@ -121,8 +124,14 @@ const spiderToolboxRoute = {
     createRouteItem(TicketTypes.TENDBCLUSTER_SPIDER_SLAVE_APPLY, t('部署只读接入层'), {
       dbConsole: 'tendbCluster.toolbox.proxySlaveApply',
     }),
+    createRouteItem(TicketTypes.TENDBCLUSTER_SPIDER_SLAVE_DESTROY, t('下架只读接入层'), {
+      dbConsole: 'tendbCluster.toolbox.removeReadonlyNode',
+    }),
     createRouteItem(TicketTypes.TENDBCLUSTER_SPIDER_MNT_APPLY, t('添加运维节点'), {
       dbConsole: 'tendbCluster.toolbox.addMnt',
+    }),
+    createRouteItem(TicketTypes.TENDBCLUSTER_SPIDER_MNT_DESTROY, t('下架运维节点'), {
+      dbConsole: 'tendbCluster.toolbox.removeMNTNode',
     }),
     createRouteItem(TicketTypes.TENDBCLUSTER_REMOTE_UPGRADE, t('版本升级'), {
       dbConsole: 'tendbCluster.toolbox.remoteUpgrade',

@@ -134,7 +134,7 @@
 
   import BatchInput from '@views/db-manage/common/batch-input/Index.vue';
   import TicketPayload, {
-    createTickePayload,
+    createTicketPayload,
   } from '@views/db-manage/common/toolbox-field/form-item/ticket-payload/Index.vue';
   import ClusterColumn from '@views/db-manage/sqlserver/common/toolbox-field/cluster-column/Index.vue';
   import DbNameColumn from '@views/db-manage/sqlserver/common/toolbox-field/db-name-column/Index.vue';
@@ -172,7 +172,7 @@
     backup_place: 'master',
     backup_type: 'full_backup',
     file_tag: 'DBFILE1M',
-    payload: createTickePayload(),
+    payload: createTicketPayload(),
     tableData: [createRowData()],
   });
 
@@ -185,7 +185,7 @@
         backup_place: details.backup_place,
         backup_type: details.backup_type,
         file_tag: details.file_tag,
-        payload: createTickePayload(ticketDetail),
+        payload: createTicketPayload(ticketDetail),
         remark,
         tableData: details.infos.map((item) =>
           createRowData({

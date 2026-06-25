@@ -73,7 +73,7 @@
   import { TicketTypes } from '@common/const';
 
   import TicketPayload, {
-    createTickePayload,
+    createTicketPayload,
   } from '@views/db-manage/common/toolbox-field/form-item/ticket-payload/Index.vue';
 
   import CountShrink from './components/count-shrink/Index.vue';
@@ -88,7 +88,7 @@
   };
   const defaultData = () => ({
     isSafe: false,
-    payload: createTickePayload(),
+    payload: createTicketPayload(),
     tableData: [],
   });
 
@@ -101,7 +101,7 @@
       const { details } = ticketDetail;
       shrinkType.value = ticketDetail.details.shrink_type;
       Object.assign(formData, {
-        payload: createTickePayload(ticketDetail),
+        payload: createTicketPayload(ticketDetail),
       });
       nextTick(() => {
         ticketDetails.value = details;

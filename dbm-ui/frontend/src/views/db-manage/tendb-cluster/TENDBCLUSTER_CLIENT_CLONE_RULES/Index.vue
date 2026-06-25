@@ -83,7 +83,7 @@
   import BatchInput from '@views/db-manage/common/batch-input/Index.vue';
   import OperationColumn from '@views/db-manage/common/toolbox-field/column/operation-column/Index.vue';
   import TicketPayload, {
-    createTickePayload,
+    createTicketPayload,
   } from '@views/db-manage/common/toolbox-field/form-item/ticket-payload/Index.vue';
   import SourceColumn from '@views/db-manage/mysql/MYSQL_CLIENT_CLONE_RULES/components/SourceColumn.vue';
   import TargetColumn from '@views/db-manage/mysql/MYSQL_CLIENT_CLONE_RULES/components/TargetColumn.vue';
@@ -123,7 +123,7 @@
   });
 
   const defaultData = () => ({
-    payload: createTickePayload(),
+    payload: createTicketPayload(),
     tableData: [createTableRow()],
   });
 
@@ -133,7 +133,7 @@
     onSuccess(ticketDetail) {
       const { details } = ticketDetail;
       Object.assign(formData, {
-        payload: createTickePayload(ticketDetail),
+        payload: createTicketPayload(ticketDetail),
         tableData: details.clone_data.map((item) =>
           createTableRow({
             bk_cloud_id: item.bk_cloud_id,

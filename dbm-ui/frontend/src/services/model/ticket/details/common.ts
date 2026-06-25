@@ -164,3 +164,12 @@ export interface NodeInfo {
   sub_zone: string;
   sub_zone_id: string;
 }
+
+export interface RegisterMcpCalleePlan {
+  max_call_count: number;
+  mcp_id: string;
+  params: Record<string, unknown>;
+  plan_id: number;
+  time_window_end: string;
+  time_window_start: string;
+}

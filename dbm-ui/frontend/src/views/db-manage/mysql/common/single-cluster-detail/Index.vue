@@ -138,16 +138,13 @@
         :account-type="AccountTypes.MYSQL"
         :cluster-types="[ClusterTypes.TENDBSINGLE]"
         :selected="[data]" />
-      <ClusterExportData
-        v-model:is-show="isShowDataExport"
-        :data="data"
-        :ticket-type="TicketTypes.MYSQL_DUMP_DATA" />
     </template>
   </div>
 </template>
 
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
+  import { useRouter } from 'vue-router';
   import { useRequest } from 'vue-request';
 
   import TendbsingleDetailModel from '@services/model/mysql/tendbsingle-detail';
@@ -160,7 +157,6 @@
   import ClusterAuthorize from '@views/db-manage/common/cluster-authorize/Index.vue';
   import { ActionPanel, BaseInfo, BaseInfoField, DisplayBox } from '@views/db-manage/common/cluster-details';
   import ClusterDomainDnsRelation from '@views/db-manage/common/cluster-domain-dns-relation/Index.vue';
-  import ClusterExportData from '@views/db-manage/common/cluster-export-data/Index.vue';
   import { useOperateClusterBasic } from '@views/db-manage/common/hooks';
   import OperationBtnStatusTips from '@views/db-manage/common/OperationBtnStatusTips.vue';
 
@@ -181,7 +177,6 @@
 
   /** 集群授权 */
   const isAuthorizeShow = ref(false);
-  const isShowDataExport = ref(false);
 
   const clusterRoleNodeGroup = computed(() => {
     return {
@@ -229,8 +224,15 @@
     isAuthorizeShow.value = true;
   };
 
+  const router = useRouter();
+
   const handleShowDataExportSlider = () => {
-    isShowDataExport.value = true;
+    router.push({
+      name: TicketTypes.MYSQL_DUMP_DATA,
+      query: {
+        clusterId: data.value?.id.toString() || '',
+      },
+    });
   };
 </script>
 

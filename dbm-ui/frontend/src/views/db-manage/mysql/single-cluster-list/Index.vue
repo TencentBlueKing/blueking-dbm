@@ -195,11 +195,6 @@
   <ExcelAuthorize
     v-model:is-show="isShowExcelAuthorize"
     :cluster-type="ClusterTypes.TENDBSINGLE" />
-  <ClusterExportData
-    v-if="currentData"
-    v-model:is-show="showDataExportSlider"
-    :data="currentData"
-    :ticket-type="TicketTypes.MYSQL_DUMP_DATA" />
   <TableDetailDialog
     v-model="isShowDetail"
     :default-offset-left="300"
@@ -226,7 +221,6 @@
   import ClusterAuthorize from '@views/db-manage/common/cluster-authorize/Index.vue';
   import ClusterBatchOperation from '@views/db-manage/common/cluster-batch-opration/Index.vue';
   import ClusterDomainDnsRelation from '@views/db-manage/common/cluster-domain-dns-relation/Index.vue';
-  import ClusterExportData from '@views/db-manage/common/cluster-export-data/Index.vue';
   import ClusterIpCopy from '@views/db-manage/common/cluster-ip-copy/Index.vue';
   import ClusterTable, {
     MasterDomainColumn,
@@ -265,7 +259,6 @@
   const operationColumnRef = ref<ComponentExposed<typeof OperationColumn>>();
   const tableRef = useTemplateRef<ComponentExposed<typeof ClusterTable>>('clusterTable');
   const isShowExcelAuthorize = ref(false);
-  const showDataExportSlider = ref(false);
   const isShowAuthorize = ref(false);
   const currentData = ref<TendbsingleModel>();
 
@@ -319,8 +312,12 @@
   };
 
   const handleShowDataExportSlider = (data: TendbsingleModel) => {
-    currentData.value = data;
-    showDataExportSlider.value = true;
+    router.push({
+      name: TicketTypes.MYSQL_DUMP_DATA,
+      query: {
+        clusterId: data.id.toString(),
+      },
+    });
   };
   const handleQuickSearchChange = () => {
     fetchData();

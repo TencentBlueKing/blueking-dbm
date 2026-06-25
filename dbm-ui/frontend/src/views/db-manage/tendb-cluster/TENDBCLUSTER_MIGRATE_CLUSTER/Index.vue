@@ -119,7 +119,7 @@
   import SpecColumn from '@views/db-manage/common/toolbox-field/column/spec-column/Index.vue';
   import BackupSource from '@views/db-manage/common/toolbox-field/form-item/backup-source/Index.vue';
   import TicketPayload, {
-    createTickePayload,
+    createTicketPayload,
   } from '@views/db-manage/common/toolbox-field/form-item/ticket-payload/Index.vue';
 
   import { random } from '@utils';
@@ -185,7 +185,7 @@
   const defaultData = () => ({
     backupSource: BackupSourceType.REMOTE,
     need_checksum: true,
-    payload: createTickePayload(),
+    payload: createTicketPayload(),
     tableData: [createTableRow()],
   });
 
@@ -203,7 +203,7 @@
       Object.assign(formData, {
         backupSource: details.backup_source,
         need_checksum: details.need_checksum,
-        payload: createTickePayload(ticketDetail),
+        payload: createTicketPayload(ticketDetail),
         tableData: details.infos.map((item) =>
           createTableRow({
             labels: (item.resource_spec.backend_group.labels || []).map((item) => ({ id: Number(item) })),

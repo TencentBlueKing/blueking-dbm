@@ -99,40 +99,8 @@
                 :permission="data.permission.tendbcluster_dump_data"
                 :resource="data.id"
                 text
-                @click="() => handleShowDataExportSlider(data)">
+                @click="handleGoToDataExport(data)">
                 {{ t('导出数据') }}
-              </AuthButton>
-            </div>
-            <div
-              v-bk-tooltips="{
-                disabled: data.spider_mnt.length > 0,
-                content: t('无运维节点'),
-              }"
-              v-db-console="'tendbCluster.clusterManage.removeMNTNode'">
-              <AuthButton
-                action-id="tendbcluster_spider_mnt_destroy"
-                :disabled="data.spider_mnt.length === 0 || data.isOffline"
-                :permission="data.permission.tendbcluster_spider_mnt_destroy"
-                :resource="data.id"
-                text
-                @click="handleRemoveMNT(data)">
-                {{ t('下架运维节点') }}
-              </AuthButton>
-            </div>
-            <div
-              v-bk-tooltips="{
-                disabled: data.spider_slave.length > 0,
-                content: t('无只读集群'),
-              }"
-              v-db-console="'tendbCluster.clusterManage.removeReadonlyNode'">
-              <AuthButton
-                action-id="tendb_spider_slave_destroy"
-                :disabled="data.spider_slave.length === 0 || data.isOffline"
-                :permission="data.permission.tendb_spider_slave_destroy"
-                :resource="data.id"
-                text
-                @click="handleDestroySlave(data)">
-                {{ t('下架只读集群') }}
               </AuthButton>
             </div>
             <ClusterAlarmSubscribe
@@ -662,9 +630,13 @@
     fetchData();
   };
 
-  const handleShowDataExportSlider = (data: TendbClusterModel) => {
-    currentData.value = data;
-    showDataExportSlider.value = true;
+  const handleGoToDataExport = (data: TendbClusterModel) => {
+    router.push({
+      name: TicketTypes.TENDBCLUSTER_DUMP_DATA,
+      query: {
+        clusterId: data.id.toString(),
+      },
+    });
   };
 
   const handleShowExcelAuthorize = () => {

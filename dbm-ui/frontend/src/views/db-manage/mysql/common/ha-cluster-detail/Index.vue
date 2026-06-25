@@ -197,10 +197,6 @@
         :account-type="AccountTypes.MYSQL"
         :cluster-types="[ClusterTypes.TENDBHA, 'tendbhaSlave']"
         :selected="[data]" />
-      <ClusterExportData
-        v-model:is-show="isShowDataExport"
-        :data="data"
-        :ticket-type="TicketTypes.MYSQL_DUMP_DATA" />
       <CreateSubscribeRuleSlider
         v-model="isShowCreateSubscribeRule"
         :selected-clusters="[data]"
@@ -211,6 +207,7 @@
 
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
+  import { useRouter } from 'vue-router';
   import { useRequest } from 'vue-request';
 
   import type { MySQLFunctions } from '@services/model/function-controller/functionController';
@@ -232,7 +229,6 @@
     SlaveDomain,
   } from '@views/db-manage/common/cluster-details';
   import ClusterDomainDnsRelation from '@views/db-manage/common/cluster-domain-dns-relation/Index.vue';
-  import ClusterExportData from '@views/db-manage/common/cluster-export-data/Index.vue';
   import { useAddClb, useBindOrUnbindClb, useOperateClusterBasic } from '@views/db-manage/common/hooks';
   import OperationBtnStatusTips from '@views/db-manage/common/OperationBtnStatusTips.vue';
   import CreateSubscribeRuleSlider from '@views/db-manage/mysql/dumper/components/create-rule/Index.vue';
@@ -263,7 +259,6 @@
 
   /** 集群授权 */
   const isAuthorizeShow = ref(false);
-  const isShowDataExport = ref(false);
   const isShowCreateSubscribeRule = ref(false);
 
   const clusterRoleNodeGroup = computed(() => {
@@ -324,8 +319,15 @@
     isAuthorizeShow.value = true;
   };
 
+  const router = useRouter();
+
   const handleShowDataExportSlider = () => {
-    isShowDataExport.value = true;
+    router.push({
+      name: TicketTypes.MYSQL_DUMP_DATA,
+      query: {
+        clusterId: data.value?.id.toString() || '',
+      },
+    });
   };
 
   const handleShowCreateSubscribeRuleSlider = () => {

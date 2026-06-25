@@ -116,7 +116,7 @@
   import BatchInput from '@views/db-manage/common/batch-input/Index.vue';
   import OperationColumn from '@views/db-manage/common/toolbox-field/column/operation-column/Index.vue';
   import TicketPayload, {
-    createTickePayload,
+    createTicketPayload,
   } from '@views/db-manage/common/toolbox-field/form-item/ticket-payload/Index.vue';
   import ClusterColumn from '@views/db-manage/mysql/common/toolbox-field/cluster-column/Index.vue';
 
@@ -162,7 +162,7 @@
   const defaultData = () => ({
     backup_type: 'logical',
     file_tag: 'DBFILE1M',
-    payload: createTickePayload(),
+    payload: createTicketPayload(),
     tableData: [createTableRow()],
   });
 
@@ -180,7 +180,7 @@
       Object.assign(formData, {
         backup_type: details.backup_type,
         file_tag: details.file_tag,
-        payload: createTickePayload(ticketDetail),
+        payload: createTicketPayload(ticketDetail),
         tableData: infos.map((item) =>
           createTableRow({
             backup_local: item.backup_local,

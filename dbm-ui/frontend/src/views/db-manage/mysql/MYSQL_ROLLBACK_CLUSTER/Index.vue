@@ -83,7 +83,7 @@
   import TimeZonePicker from '@components/time-zone-picker/index.vue';
 
   import TicketPayload, {
-    createTickePayload,
+    createTicketPayload,
   } from '@views/db-manage/common/toolbox-field/form-item/ticket-payload/Index.vue';
 
   import BUILD_INTO_EXIST_CLUSTER from './components/BUILD_INTO_EXIST_CLUSTER/Index.vue';
@@ -99,7 +99,7 @@
     BUILD_INTO_NEW_CLUSTER,
   };
   const defaultData = () => ({
-    payload: createTickePayload(),
+    payload: createTicketPayload(),
   });
 
   const rollbackClusterType =
@@ -112,7 +112,7 @@
       const { details } = ticketDetail;
       rollbackClusterType.value = ticketDetail.details.rollback_cluster_type;
       Object.assign(formData, {
-        payload: createTickePayload(ticketDetail),
+        payload: createTicketPayload(ticketDetail),
       });
       nextTick(() => {
         ticketDetails.value = details;

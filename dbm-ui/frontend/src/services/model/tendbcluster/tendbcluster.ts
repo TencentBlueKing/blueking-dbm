@@ -146,9 +146,9 @@ export default class TendbCluster extends ClusterBase {
     this.remote_shard_num = payload.remote_shard_num;
     this.slave_domain = payload.slave_domain;
     this.slaves = payload.slaves || [];
-    this.spider_master = payload.spider_master;
-    this.spider_mnt = payload.spider_mnt;
-    this.spider_slave = payload.spider_slave;
+    this.spider_master = payload.spider_master || [];
+    this.spider_mnt = payload.spider_mnt || [];
+    this.spider_slave = payload.spider_slave || [];
     this.status = payload.status;
     this.temporary_info = payload.temporary_info;
     this.update_at = payload.update_at;
