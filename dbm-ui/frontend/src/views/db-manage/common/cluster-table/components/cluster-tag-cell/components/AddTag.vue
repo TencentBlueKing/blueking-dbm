@@ -102,19 +102,20 @@
       confirmLoading.value = true;
       const tagsInfo = await tagOperationRef.value!.getValue();
       if (tagsInfo) {
+        const tags = tagsInfo.map((item) => item.value) as number[];
         if (!props.data.length) {
           // 新增
           handleAddClusterTagKeys({
             bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
             cluster_ids: [props.clusterId],
-            tags: Object.values(tagsInfo).map((item) => item.value) as number[],
+            tags,
           });
         } else {
           // 更新
           handleUpdateClusterTag({
             bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
             cluster_id: props.clusterId,
-            tags: Object.values(tagsInfo).map((item) => item.value) as number[],
+            tags,
           });
         }
       }

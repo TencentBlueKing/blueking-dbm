@@ -27,6 +27,8 @@
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
 
+  import { createTag } from '@services/source/tag';
+
   import { random } from '@utils';
 
   import type { KeyValueMapType, TagsPairType } from '../../Index.vue';
@@ -35,12 +37,12 @@
 
   interface Props {
     allowEmpty?: boolean;
-    data?: TagsPairType;
+    data?: TagsPairType[];
     keyValueMap: KeyValueMapType;
   }
 
   interface Exposes {
-    getValue: (isIgnoreVerify?: boolean) => Promise<TagsPairType | null>;
+    getValue: (isIgnoreVerify?: boolean) => Promise<TagsPairType[] | null>;
   }
 
   const props = withDefaults(defineProps<Props>(), {
@@ -51,8 +53,8 @@
   const generateRowData = () => ({
     id: random(),
     key: '',
-    label: '',
     value: '' as string | number,
+    valueLabel: '',
   });
 
   const { t } = useI18n();
@@ -65,13 +67,13 @@
   watch(
     () => props.data,
     () => {
-      if (props.data && Object.keys(props.data).length > 0) {
-        pairList.value = Object.entries(props.data).reduce<typeof pairList.value>((results, item) => {
+      if (props.data && props.data.length > 0) {
+        pairList.value = props.data.reduce<typeof pairList.value>((results, item) => {
           results.push({
             id: random(),
-            key: item[0],
-            label: item[1].label,
-            value: item[1].value as number,
+            key: item.key,
+            value: item.value,
+            valueLabel: item.valueLabel,
           });
           return results;
         }, []);
@@ -125,7 +127,7 @@
 
   defineExpose<Exposes>({
     async getValue(isIgnoreVerify = false) {
-      let pairList = await Promise.all(keyValuePairsRef.value!.map((item) => item.getValue()));
+      let pairList = await Promise.all(keyValuePairsRef.value!.map((item) => item.getValue(isIgnoreVerify)));
       if (isIgnoreVerify) {
         pairList = pairList.filter((item) => !!item);
       } else {
@@ -133,8 +135,38 @@
           return null;
         }
       }
-
-      return Object.values(pairList).reduce<TagsPairType>((results, item) => Object.assign(results, item), {});
+      const isNewList = pairList.reduce<Record<string, string>>((results, item) => {
+        if (item!.isNew) {
+          Object.assign(results, {
+            [item!.key]: item!.value,
+          });
+        }
+        return results;
+      }, {});
+      const tagInfoList = await createTag({
+        bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
+        tags: Object.entries(isNewList).map((item) => ({
+          key: item[0],
+          value: item[1],
+        })),
+        type: 'cluster',
+      });
+      const keyIdMap = tagInfoList.reduce<Record<string, number>>((results, item) => {
+        Object.assign(results, {
+          [item.key]: item.id,
+        });
+        return results;
+      }, {});
+      pairList.forEach((item) => {
+        if (item!.isNew) {
+          Object.assign(item!, {
+            value: keyIdMap[item!.key],
+          });
+          const tempItem = item as { isNew?: boolean };
+          delete tempItem.isNew;
+        }
+      });
+      return pairList as TagsPairType[];
     },
   });
 </script>
