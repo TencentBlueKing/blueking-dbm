@@ -73,7 +73,7 @@
   import TimeZonePicker from '@components/time-zone-picker/index.vue';
 
   import TicketPayload, {
-    createTickePayload,
+    createTicketPayload,
   } from '@views/db-manage/common/toolbox-field/form-item/ticket-payload/Index.vue';
 
   import RenderLocal from './components/local/Index.vue';
@@ -81,7 +81,7 @@
 
   const createDefaultFormData = () => ({
     is_local: true,
-    payload: createTickePayload(),
+    payload: createTicketPayload(),
   });
 
   const { t } = useI18n();
@@ -91,7 +91,7 @@
       const { details } = ticketDetail;
       Object.assign(formData, {
         is_local: details.is_local,
-        payload: createTickePayload(ticketDetail),
+        payload: createTicketPayload(ticketDetail),
       });
 
       nextTick(() => {

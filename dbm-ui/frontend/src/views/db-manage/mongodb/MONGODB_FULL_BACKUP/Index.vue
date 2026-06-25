@@ -120,7 +120,7 @@
   import { TicketTypes } from '@common/const';
 
   import TicketPayload, {
-    createTickePayload,
+    createTicketPayload,
   } from '@views/db-manage/common/toolbox-field/form-item/ticket-payload/Index.vue';
   import ClusterColumn from '@views/db-manage/mongodb/common/toolbox-field/cluster-column/Index.vue';
 
@@ -148,7 +148,7 @@
   const createDefaultFormData = () => ({
     file_tag: 'normal_backup',
     oplog: '0',
-    payload: createTickePayload(),
+    payload: createTicketPayload(),
     tableData: [createRowData()],
   });
 
@@ -161,7 +161,7 @@
       Object.assign(formData, {
         file_tag: fileTag,
         oplog: oplog ? '1' : '0',
-        payload: createTickePayload(ticketDetail),
+        payload: createTicketPayload(ticketDetail),
         tableData: infos.map((item) => {
           const clusterItem = clusters[item.cluster_id];
           return createRowData({

@@ -109,7 +109,7 @@
 
   import BatchInput from '@views/db-manage/common/batch-input/Index.vue';
   import TicketPayload, {
-    createTickePayload,
+    createTicketPayload,
   } from '@views/db-manage/common/toolbox-field/form-item/ticket-payload/Index.vue';
   import ClusterColumn from '@views/db-manage/redis/common/toolbox-field/cluster-column/Index.vue';
 
@@ -147,7 +147,7 @@
   const createDefaultFormData = () => ({
     data_check_repair_setting_execution_frequency: RepairAndVerifyFrequencyModes.ONCE_AFTER_REPLICATION,
     data_check_repair_setting_type: RepairAndVerifyModes.DATA_CHECK_AND_REPAIR,
-    payload: createTickePayload(),
+    payload: createTicketPayload(),
     tableData: [createRowData()],
   });
 
@@ -159,7 +159,7 @@
       const { details } = ticketDetail;
       const { clusters, infos } = details;
       Object.assign(formData, {
-        payload: createTickePayload(ticketDetail),
+        payload: createTicketPayload(ticketDetail),
         tableData: infos.map((infoItem) =>
           createRowData({
             cluster: {

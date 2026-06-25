@@ -106,7 +106,9 @@
 
     if (newRowIndex > 0) {
       tableData.value.splice(newRowIndex, 0, _.cloneDeep(tableData.value[rowIndex]!));
-      editTableContext!.validateByRowIndex(newRowIndex);
+      setTimeout(() => {
+        editTableContext!.validateByRowIndex(newRowIndex);
+      }, 100);
     }
 
     if (props.handleRowMerge) {

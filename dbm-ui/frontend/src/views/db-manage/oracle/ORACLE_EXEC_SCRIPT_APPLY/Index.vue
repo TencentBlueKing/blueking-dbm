@@ -85,7 +85,7 @@
   import { DBTypes, TicketTypes } from '@common/const';
 
   import TicketPayload, {
-    createTickePayload,
+    createTicketPayload,
   } from '@views/db-manage/common/toolbox-field/form-item/ticket-payload/Index.vue';
 
   import ClusterColumn from './components/ClusterColumn.vue';
@@ -113,7 +113,7 @@
       const { details } = ticketDetail;
       Object.assign(formData, {
         importMode: details.import_mode,
-        payload: createTickePayload(ticketDetail),
+        payload: createTicketPayload(ticketDetail),
         script_files: details.script_files,
         tableData: details.cluster_info.map((item) =>
           createRowData({
@@ -139,7 +139,7 @@
 
   const createDefaultData = () => ({
     importMode: 'manual' as 'manual' | 'file',
-    payload: createTickePayload(),
+    payload: createTicketPayload(),
     script_files: [] as string[],
     tableData: [createRowData()],
   });
