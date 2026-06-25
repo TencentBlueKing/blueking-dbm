@@ -10,9 +10,9 @@
 
 - **`address` 行为约定**：
   - `cluster_topo` / `instance_summary` / `list_databases` / `server_config_summary`：未传时返回 **集群内全部实例** 的结果。
-  - 其余“需要落到具体实例上跑 SQL”的工具：未传时 **缺省走 master**。
+  - 其余“需要落到具体实例上跑 SQL”的工具（包括 `database_file_usage` / `get_stored_procedure` 等）：未传时 **缺省走 master**。
 - **标识符校验**：所有 `dbname / schema / table / table_name` 仅允许 `[A-Za-z_][A-Za-z0-9_$#@]{0,127}`。
-- **批量结果约定**（仅适用于索引分析功能域 5 个工具）：每张表独立返回 `status` ∈ `ok / not_found / error`，单表失败不会让整批失败，`results[i]` 顺序与入参 `tables` 一致。
+- **批量结果约定**（仅适用于索引分析功能域 5 个工具 + `database_file_usage`）：每个目标对象（表 / 数据库）独立返回 `status` ∈ `ok / not_found / error`，单项失败不会让整批失败，`results[i]` 顺序与入参一致。
 - **per-instance 结果约定**（适用于 `instance_summary / list_databases / server_config_summary`）：每实例独立返回 `error_msg`，空字符串表示成功。
 
 ## 工具一览
@@ -34,6 +34,9 @@
 | 13 | `get_table_stats` | 批量查询表统计对象状态（含过期判定） | 缺省 master |
 | 14 | `get_index_usage_stats` | 批量查询索引使用画像（seek/scan/lookup/update 累计） | 缺省 master |
 | 15 | `get_index_fragmentation` | 批量查询索引碎片状态（LIMITED 模式） | 缺省 master |
+| 16 | `sync_status` | 分析集群数据同步状态（自动识别 Mirroring / AlwaysOn，含滞后队列、commit_lag、健康摘要）；支持 `databases` 白名单过滤 | 整个集群 |
+| 17 | `database_file_usage` | 批量查询数据库 MDF/LDF 文件容量使用率（已用/已分配 + 文件级明细 + 库级汇总） | 缺省 master |
+| 18 | `get_stored_procedure` | 按精确坐标获取单个 SP 的完整原始 T-SQL 定义体，专用于静态风险/安全分析 | 缺省 master |
 
 ---
 
@@ -657,6 +660,243 @@ L2~L4（仅 `detail`）：
 
 ---
 
+## 16. `sync_status`：集群数据同步状态分析（Mirroring / AlwaysOn）
+
+**用途**：分析 SQLServer 集群的数据同步状态。**后端根据 `SqlserverClusterSyncMode` 自动识别集群是 `mirroring` 还是 `always_on`**，调用方无须感知差异；统一输出 schema，差异通过 `mirroring` / `always_on` 两个字段（互斥）承载。**核心价值**：一次调用即可让 LLM 拿到「健康摘要 + 滞后队列 + 估算追齐秒数 + 具体 issue 列表」，可直接给出诊断结论。
+
+**通道**：`sqlserver_sys_read_rpc`，仅访问 `sys.*` DMV，**无须业务库权限**。集群内所有实例并发采集，单实例失败不影响整体。
+
+**输入字段**
+
+| 字段 | 类型 | 必填 | 默认 | 说明 |
+|---|---|---|---|---|
+| `cluster_domain` | string | 是 | - | 集群域名 |
+| `databases` | string[] | 否 | `[]` | DB 名白名单（不区分大小写）；不传或传空数组 = 全量返回；用于在大集群下让 LLM 集中分析特定库的同步情况，缩小上下文 |
+
+**输出顶层字段**
+
+| 字段 | 说明 |
+|---|---|
+| `cluster_domain` | 集群域名 |
+| `cluster_type` | 集群类型（`sqlserver_ha` / `sqlserver_single`） |
+| `sync_mode` | `mirroring` / `always_on`；单节点集群为 null |
+| `summary` | 整体同步健康摘要（LLM 第一眼读这里） |
+| `mirroring` | mirroring 详细数据；非 mirroring 集群为 null |
+| `always_on` | AlwaysOn 详细数据；非 AG 集群为 null |
+| `results[]` | 各实例采集结果（含 error_msg） |
+| `filter` | 用户传入 `databases` 白名单时回显的过滤情况：含 `requested`（原始请求名单去重后小写）、`matched`（集群中实际命中的库名）、`missing`（未在集群中找到的库名）；未指定 `databases` 入参时为 null |
+
+### `summary` 字段（通用）
+
+| 字段 | 说明 |
+|---|---|
+| `overall_health` | `HEALTHY` / `PARTIALLY_HEALTHY` / `NOT_HEALTHY` / `N/A` |
+| `node_count` | AG 副本数；mirroring 不适用，固定 null |
+| `database_count` | 参与同步的数据库（视角行）总数 |
+| `unhealthy_database_count` | 不健康数据库（视角行）数量 |
+| `max_log_send_queue_mb` | 全集群最大 log_send_queue（MB）。阈值：>=100 警告 / >=1024 严重 |
+| `max_redo_queue_mb` | 全集群最大 redo_queue（MB），阈值同上 |
+| `max_commit_lag_seconds` | AG 专属：primary/secondary 上 `last_commit_time` 差最大值（秒）。阈值：>=5 警告 / >=60 严重 |
+| `issues[]` | 顶层问题列表（聚合各 DB 的关键 issue） |
+| `reason` | `overall_health=N/A` 时的原因说明 |
+
+### `mirroring.databases[]`（每个被镜像 DB 一行）
+
+| 字段 | 说明 |
+|---|---|
+| `database_name` | 数据库名 |
+| `principal_address` / `mirror_address` | 看到该 DB 为 PRINCIPAL / MIRROR 的实例 `ip:port` |
+| `mirroring_role_desc` | `PRINCIPAL` / `MIRROR` |
+| `mirroring_state_desc` | `SYNCHRONIZED` / `SYNCHRONIZING` / `SUSPENDED` / `DISCONNECTED` / `PENDING_FAILOVER` |
+| `mirroring_safety_level_desc` | `FULL`（同步模式）/ `OFF`（异步模式） |
+| `mirroring_partner_name` / `mirroring_partner_instance` | 对端 endpoint / 实例 |
+| `mirroring_witness_name` / `mirroring_witness_state_desc` | 见证服务器及其状态 |
+| `mirroring_failover_lsn` / `mirroring_end_of_log_lsn` / `mirroring_replication_lsn` | 关键 LSN |
+| `mirroring_connection_timeout` / `mirroring_redo_queue_type` / `mirroring_redo_queue` | 连接超时 / redo 限速配置 |
+| `log_send_queue_mb` | 主端待发送日志（MB）；阈值 >=100 警告 / >=1024 严重 |
+| `redo_queue_mb` | 备端待重做日志（MB），阈值同上 |
+| `log_send_rate_kbps` / `redo_rate_kbps` | 当前发送 / redo 速率 |
+| `transaction_delay_ms` | 同步模式下事务等待 ack 的延迟（毫秒） |
+| `log_send_flow_control_ms_per_sec` | 主端被流控阻塞时长 ms/s |
+| `mirrored_write_tps` | 镜像写事务速率 |
+| `estimated_send_seconds` | 估算清空 log_send_queue 所需秒数（速率为 0 时为 null） |
+| `estimated_redo_seconds` | 估算清空 redo_queue 所需秒数 |
+| `is_healthy` | 综合判定：SYNCHRONIZED 且队列 < 警告阈值 |
+| `issues[]` | 该 DB 的具体 issue（如 `state=SUSPENDED`、`log_send_queue=200MB(warn)`） |
+
+### `always_on.availability_groups[]`（每个 AG 一项）
+
+**AG 级**：
+
+| 字段 | 说明 |
+|---|---|
+| `ag_name` / `group_id` | AG 名 / GUID |
+| `primary_replica` | 当前 primary 副本实例名 |
+| `automated_backup_preference_desc` | 自动备份偏好 |
+| `failure_condition_level` / `health_check_timeout` | 故障检测灵敏度 |
+| `primary_recovery_health_desc` / `secondary_recovery_health_desc` | 副本恢复健康 |
+| `synchronization_health_desc` | `HEALTHY` / `PARTIALLY_HEALTHY` / `NOT_HEALTHY` |
+| `replicas[]` | 副本列表（primary 在前） |
+| `listeners[]` | Listener 列表（VIP/Port/状态） |
+| `cluster_members[]` | WSFC 仲裁节点列表（用于判断仲裁健康） |
+
+**`replicas[]` 元素**：
+
+| 字段 | 说明 |
+|---|---|
+| `replica_id` / `replica_server_name` / `endpoint_url` | 副本标识 |
+| `role_desc` | `PRIMARY` / `SECONDARY` / `RESOLVING` |
+| `availability_mode_desc` | `SYNCHRONOUS_COMMIT` / `ASYNCHRONOUS_COMMIT` |
+| `failover_mode_desc` | `AUTOMATIC` / `MANUAL`（仅同步副本可 AUTOMATIC） |
+| `session_timeout` / `backup_priority` | 会话超时秒 / 备份优先级 |
+| `primary_role_allow_connections_desc` / `secondary_role_allow_connections_desc` | 各角色允许的连接（只读路由配置） |
+| `seeding_mode_desc` | `AUTOMATIC` / `MANUAL` |
+| `operational_state_desc` / `connected_state_desc` / `recovery_health_desc` | 运行 / 连接 / 恢复健康状态 |
+| `synchronization_health_desc` | 副本级同步健康 |
+| `join_state_desc` / `is_failover_ready` | WSFC 加入状态 / 是否可切换 |
+| `databases[]` | 该副本上各 DB 的同步状态 |
+
+**`replicas[].databases[]` 元素**：
+
+| 字段 | 说明 |
+|---|---|
+| `database_name` / `replica_server_name` | 数据库 / 所在副本 |
+| `is_local` / `is_primary_replica` | 是否本地 / 是否 primary |
+| `synchronization_state_desc` | `SYNCHRONIZED`（仅同步副本会到达）/ `SYNCHRONIZING`（异步常态）/ `NOT_SYNCHRONIZING`（异常）/ `REVERTING` / `INITIALIZING` |
+| `synchronization_health_desc` | `HEALTHY` / `PARTIALLY_HEALTHY` / `NOT_HEALTHY` |
+| `database_state_desc` | `ONLINE` / `RESTORING` / `RECOVERING` / `SUSPECT` / `OFFLINE` |
+| `suspend_reason_desc` / `is_suspended` | 挂起原因 / 是否挂起 |
+| `is_commit_participant` | 是否参与同步提交（仅同步副本为 true） |
+| `log_send_queue_mb` / `redo_queue_mb` | 主端待发 / 备端待重做（MB） |
+| `log_send_rate_kbps` / `redo_rate_kbps` | 速率 KB/s |
+| `last_hardened_lsn` / `last_redone_lsn` / `end_of_log_lsn` / `recovery_lsn` | 关键 LSN |
+| `last_hardened_time` / `last_redone_time` / `last_commit_time` / `last_received_time` / `last_sent_time` | 关键时间戳 |
+| `estimated_send_seconds` / `estimated_redo_seconds` | 估算追齐秒数（速率为 0 时为 null） |
+| `is_failover_ready` / `is_database_joined` | 故障转移就绪 / 已加入 AG |
+| `is_healthy` | 综合判定（同步状态 + 未挂起 + 队列 < 警告阈值） |
+| `issues[]` | 该 DB 的具体 issue |
+
+**`listeners[]` 元素**：`listener_id` / `dns_name` / `port` / `ip_address` / `ip_subnet_mask` / `is_dhcp` / `state_desc`（`ONLINE` / `OFFLINE` / `ONLINE_PENDING` / `FAILED`）。
+
+**`cluster_members[]` 元素**：`member_name` / `member_type_desc`（`NODE` / `DISK_WITNESS` / …）/ `member_state_desc`（`UP` / `DOWN`）/ `number_of_quorum_votes`。
+
+### `results[]`（per-instance 采集结果）
+
+| 字段 | 说明 |
+|---|---|
+| `address` / `role` / `is_stand_by` | 实例位置信息 |
+| `error_msg` | 该实例采集错误信息；空串表示成功 |
+
+---
+
+## 17. `database_file_usage`：批量查询数据库文件容量使用率
+
+**用途**：批量查询 SQLServer 数据库文件（MDF/NDF/LDF）的容量使用率（已用 / 已分配 / 增长策略），同时返回库级汇总（`data_used_pct` / `log_used_pct`）。**用于在容量告警 / 扩容决策 / 日志增长排查场景下，一次拿到一组库的文件级 + 库级画像**。
+
+**通道**：业务库只读账号；每个库独立 `USE` + 查 `sys.database_files`，单库 OFFLINE / RESTORING / 不存在不会让整批失败。
+
+**输入字段**
+
+| 字段 | 类型 | 必填 | 默认 | 说明 |
+|---|---|---|---|---|
+| `cluster_domain` | string | 是 | - | 集群域名 |
+| `databases` | string[] | 是 | - | 目标数据库名列表，1~20 个；列表内重复项会被去重并保持首次出现的顺序；元素仅允许 `[A-Za-z_][A-Za-z0-9_$#@]{0,127}` |
+| `address` | string | 否 | null | 实例地址 `ip:port`；不传缺省走 master |
+
+**输出顶层字段**
+
+| 字段 | 说明 |
+|---|---|
+| `cluster_domain` | 集群域名 |
+| `address` / `role` | 实际查询的实例地址 / 角色 |
+| `database_count` | 入参数据库数量（去重后） |
+| `ok_count` | `status=ok` 的数据库数量 |
+| `results[]` | 每个数据库的文件使用率结果，顺序与入参 `databases` 一致 |
+
+**`results[]` 元素**
+
+| 字段 | 说明 |
+|---|---|
+| `database` | 数据库名 |
+| `status` | `ok` / `error`（库 OFFLINE / RESTORING / 不存在等） |
+| `error` | `status` 非 ok 时的错误说明；ok 时为 null |
+| `files[]` | 文件级使用率明细（含 mdf/ndf/ldf）；`status` 非 ok 时为空数组 |
+| `data_allocated_mb` | 数据文件总分配空间 MB（所有 ROWS 文件加总） |
+| `data_used_mb` | 数据文件总已用空间 MB |
+| `data_used_pct` | 数据文件整体使用率%（已用/已分配 × 100） |
+| `log_allocated_mb` | 日志文件总分配空间 MB（所有 LOG 文件加总） |
+| `log_used_mb` | 日志文件总已用空间 MB |
+| `log_used_pct` | 日志文件整体使用率%（已用/已分配 × 100） |
+
+**`files[]` 元素**
+
+| 字段 | 说明 |
+|---|---|
+| `file_id` | 文件 ID |
+| `file_name` | 逻辑文件名 |
+| `file_type` | 文件类型，0=数据文件(mdf/ndf) 1=日志文件(ldf) |
+| `file_type_desc` | 文件类型描述：`ROWS` / `LOG` |
+| `physical_name` | 物理文件路径 |
+| `allocated_mb` | 已分配空间 MB |
+| `used_mb` | 已使用空间 MB |
+| `used_pct` | 单文件使用率百分比，例如 85.32 表示 85.32% |
+| `max_size_mb` | 文件最大大小 MB；`-1` 表示无限增长 |
+| `growth_desc` | 增长策略描述，例如 `64MB` / `10%` / `NONE` |
+
+---
+
+## 18. `get_stored_procedure`：获取单个存储过程的原始 T-SQL 定义体
+
+**用途**：按精确坐标（`cluster_domain` + `dbname` + `schema.proc`）获取 SQLServer 单个存储过程的【完整原始 T-SQL 定义体】，**专用于 LLM 静态风险 / 安全分析**（硬编码凭据、动态 SQL 注入、权限提升、超大 SP、祖传代码识别等）。
+
+**调用约束**：
+- 调用方必须**已确切知道 SP 名称**——本工具**不提供枚举 / 模糊匹配 / 批量**。
+- 用户未提供 SP 名时，请先反问而不是猜测。
+- 如需分析多个 SP，请**多次调用**本工具。
+- `procedure` 支持两种形式：`schema.proc`（显式 schema）或 `proc`（缺省 `schema=dbo`）。
+
+**数据源**：`sys.procedures` + `sys.sql_modules.definition`，与 SSMS 右键 Modify 一致；**不做任何脱敏**。
+
+**⚠ 安全提示**：`definition` 字段是原文，可能包含**硬编码密码 / 密钥 / IP**，仅用于分析、**不要原样回显给最终用户**。
+
+**输入字段**
+
+| 字段 | 类型 | 必填 | 默认 | 说明 |
+|---|---|---|---|---|
+| `cluster_domain` | string | 是 | - | 集群域名 |
+| `dbname` | string | 是 | - | 业务库名（实际承载该 SP 的数据库） |
+| `procedure` | string | 是 | - | SP 名称：`schema.proc` 或 `proc`（缺省 `schema=dbo`） |
+| `max_definition_chars` | int | 否 | 200000 | definition 字符数硬上限；超出则 `status=too_large` 且 `definition=null`（**不截断**，避免风险分析失真）。范围 [10000, 500000] |
+| `address` | string | 否 | null | 实例地址 `ip:port`；不传缺省走 master |
+
+**输出字段**（**扁平结构**，一次只查 1 个 SP，不再嵌套 `results[]`）
+
+| 字段 | 说明 |
+|---|---|
+| `cluster_domain` | 集群域名 |
+| `address` / `role` | 实际命中的实例 `ip:port` / 实例角色 |
+| `dbname` / `procedure` | 调用方原样回传，便于对账 |
+| `status` | 流程控制核心字段，五态：`ok` / `not_found` / `encrypted` / `too_large` / `error`（详见下方） |
+| `error` | 非 `ok` 状态下的错误描述；`ok` 时为 null |
+| `modify_date` | SP 最近一次修改时间（来源 `sys.objects.modify_date`）；用于识别长期未维护的祖传代码 |
+| `is_encrypted` | SP 是否启用 `WITH ENCRYPTION`：`1`=是（`definition` 为 null），`0`=否 |
+| `definition_total_chars` | `definition` 原始字符长度；可用于评估 LLM 上下文消耗 |
+| `line_count` | `definition` 行数；体量信号，超大 SP 本身是风险信号 |
+| `definition` | SP 完整原始 T-SQL 定义体；`status != ok` 时为 null |
+| `notice` | 使用注意事项（提示 `definition` 是原文，含敏感风险，仅供分析） |
+
+**`status` 五态语义**
+
+| status | 含义 | `definition` |
+|---|---|---|
+| `ok` | 已成功获取定义体 | SP 原文 |
+| `not_found` | SP 不存在 | null |
+| `encrypted` | SP 用了 `WITH ENCRYPTION` 加密，无法解析 | null |
+| `too_large` | 定义体超过 `max_definition_chars`（不截断） | null |
+| `error` | RPC / 权限等异常，详见 `error` 字段 | null |
+
+---
+
 ## 典型使用流程示例
 
 ### 场景 A：定位“某个库里值得分析的表”
@@ -685,4 +925,37 @@ top_requests(order_by=cpu)          # 找当前 CPU 杀手
 blocking_sessions                   # 是否存在阻塞链
 wait_stats_snapshot                 # 累计等待画像
 slow_log_query                      # 历史慢查询
+```
+
+### 场景 E：主备同步异常 / 滞后排查
+```
+sync_status                         # 一次拿到 summary + 各 DB 队列 + commit_lag + issues
+# 若 summary.overall_health 非 HEALTHY，进一步：
+cluster_topo                        # 确认拓扑/角色与同步模式
+instance_summary(address=备端)      # 确认备端是否资源/版本异常
+top_requests / wait_stats_snapshot  # 若主端 transaction_delay 高，定位被同步拖慢的会话
+```
+
+### 场景 F：单个存储过程的静态风险分析
+```
+list_databases                              # （可选）确认 SP 所在的库
+# 用户告诉你 SP 名 'dbo.dsp_DeleteUserCarePrivilegeAccount'
+get_stored_procedure(
+  dbname=L2MAccountDB,
+  procedure="dbo.dsp_DeleteUserCarePrivilegeAccount"
+)
+# 根据 status 分支：
+#   ok        -> 用 definition 做风险扫描（硬编码凭据 / 动态 SQL / 权限提升 / 体量信号）
+#   not_found -> 反问用户库名 / SP 名是否拼写正确
+#   encrypted -> 告知 LLM 该 SP 加了 WITH ENCRYPTION，无法静态分析
+#   too_large -> 提示用户定义体超过 max_definition_chars，可调大上限或人工分段分析
+```
+
+### 场景 G：数据库文件容量 / 日志增长排查
+```
+list_databases                              # 找到目标实例上候选库
+database_file_usage(databases=[A, B, C])    # 一次拿到 1~20 个库的 mdf/ldf 使用率与库级汇总
+# 若某库 log_used_pct 接近 100%：
+sync_status                                 # 排查是否因镜像/AG 备端落后导致日志无法截断
+top_requests / blocking_sessions            # 排查长事务阻塞日志截断
 ```

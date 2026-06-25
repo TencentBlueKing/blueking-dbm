@@ -367,6 +367,7 @@ var (
 var GRANT_DATA_READ_SQL = `
 use [master] 
 GRANT VIEW SERVER STATE TO [%s]
+GRANT VIEW ANY DEFINITION TO [%s];
 `
 
 // 导出系统库一些配置专用的SQL

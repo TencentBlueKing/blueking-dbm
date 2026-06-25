@@ -47,6 +47,10 @@ class SQLServerInstanceSummaryDataSerializer(serializers.Serializer):
         help_text=_("SQL Server 启动时间（用最早系统会话登录时间近似，全版本可用）"),
         allow_null=True,
     )
+    physical_memory_mb = serializers.IntegerField(
+        help_text=_("操作系统物理内存总量，单位 MB（取自 sys.dm_os_sys_memory.total_physical_memory_kb）"),
+        allow_null=True,
+    )
     sql_memory_used_mb = serializers.IntegerField(
         help_text=_(
             "SQL Server 进程当前已用物理内存（工作集），单位 MB；"

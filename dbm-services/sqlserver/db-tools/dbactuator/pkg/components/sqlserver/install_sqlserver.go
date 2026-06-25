@@ -550,6 +550,7 @@ func (i *InstallSqlServerComp) InitUsers() (err error) {
 		DataReadGrantCmd := fmt.Sprintf(
 			cst.GRANT_DATA_READ_SQL,
 			i.GeneralParam.RuntimeAccountParam.DRSDataReadUser,
+			i.GeneralParam.RuntimeAccountParam.DRSDataReadUser,
 		)
 		if _, err := dbWork.Exec(DataReadGrantCmd); err != nil {
 			logger.Error("init drs_data_read-grant failed %v", err)
