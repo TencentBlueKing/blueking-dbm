@@ -221,7 +221,11 @@ class ResourceListSerializer(serializers.Serializer):
             ]
             # 规格存在机型的时候，如果还选了机型搜索那就是取交集
             if spec.device_class:
-                attrs["device_class"] = list(set(spec.device_class + attrs.get("device_class", [])))
+                attrs["device_class"] = (
+                    list(set(spec.device_class) & set(attrs.get("device_class", [])))
+                    if attrs.get("device_class")
+                    else spec.device_class
+                )
             else:
                 attrs["cpu"] = spec.cpu
                 attrs["mem"] = {
