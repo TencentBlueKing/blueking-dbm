@@ -2742,7 +2742,7 @@ class ActionEnum:
         type="manage",
         related_actions=[],
         related_resource_types=[ResourceEnum.BUSINESS, ResourceEnum.DBTYPE],
-        group=_("业务配置"),
+        group=_("已废弃"),
         subgroup="",
     )
 
@@ -2753,6 +2753,29 @@ class ActionEnum:
         type="manage",
         related_actions=[GLOBAL_MANAGE.id],
         related_resource_types=[ResourceEnum.DBTYPE],
+        group=_("已废弃"),
+        subgroup="",
+        hidden=True,
+    )
+
+    DBA_ADMIN_EDIT = ActionMeta(
+        id="dba_admin_edit",
+        name=_("业务DBA设置"),
+        name_en="dba_admin_edit",
+        type="manage",
+        related_actions=[DB_MANAGE.id],
+        related_resource_types=[ResourceEnum.BUSINESS],
+        group=_("业务配置"),
+        subgroup="",
+    )
+
+    GLOBAL_DBA_ADMIN_EDIT = ActionMeta(
+        id="global_dba_admin_edit",
+        name=_("全局DBA与业务设置"),
+        name_en="global_dba_admin_edit",
+        type="manage",
+        related_actions=[GLOBAL_MANAGE.id],
+        related_resource_types=[],
         group=_("全局设置"),
         subgroup="",
         hidden=True,
