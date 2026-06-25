@@ -43,6 +43,7 @@ export function createTag(params: {
   return http.post<
     {
       id: number;
+      key: string;
     }[]
   >(`${path}/batch_create/`, params);
 }
