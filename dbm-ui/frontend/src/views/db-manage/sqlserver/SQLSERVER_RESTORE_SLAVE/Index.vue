@@ -111,7 +111,7 @@
   import SpecColumn from '@views/db-manage/common/toolbox-field/column/spec-column/Index.vue';
   // import SingleResourceHostColumn from '@views/db-manage/common/toolbox-field/column/single-resource-host-column/Index.vue';
   import TicketPayload, {
-    createTickePayload,
+    createTicketPayload,
   } from '@views/db-manage/common/toolbox-field/form-item/ticket-payload/Index.vue';
   import SlaveRestoreFormItem from '@views/db-manage/sqlserver/common/slave-restore-form-item/Index.vue';
 
@@ -164,7 +164,7 @@
   });
 
   const defaultData = () => ({
-    payload: createTickePayload(),
+    payload: createTicketPayload(),
     restore_type: TicketTypes.SQLSERVER_RESTORE_SLAVE,
     tableData: [createTableRow()],
   });
@@ -197,7 +197,7 @@
     onSuccess(ticketDetail) {
       const { details } = ticketDetail;
       Object.assign(formData, {
-        payload: createTickePayload(ticketDetail),
+        payload: createTicketPayload(ticketDetail),
         tableData: details.infos.map((item) =>
           createTableRow({
             labels: (item.resource_spec.sqlserver_ha.labels || []).map((item) => ({ id: Number(item) })),

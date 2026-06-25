@@ -114,7 +114,7 @@
   import SpecColumn from '@views/db-manage/common/toolbox-field/column/spec-column/Index.vue';
   import BackupSource from '@views/db-manage/common/toolbox-field/form-item/backup-source/Index.vue';
   import TicketPayload, {
-    createTickePayload,
+    createTicketPayload,
   } from '@views/db-manage/common/toolbox-field/form-item/ticket-payload/Index.vue';
   import WithRelatedClustersColumn from '@views/db-manage/mysql/common/toolbox-field/with-related-clusters-column/Index.vue';
   import CurrentVersionColumn from '@views/db-manage/mysql/MYSQL_LOCAL_UPGRADE/components/CurrentVersionColumn.vue';
@@ -198,7 +198,7 @@
     backupSource: BackupSourceType.REMOTE,
     is_check_process: true,
     need_checksum: true,
-    payload: createTickePayload(),
+    payload: createTicketPayload(),
     tableData: [createTableRow()],
   });
 
@@ -228,7 +228,7 @@
       const { clusters, infos } = ticketDetail.details;
       if (infos.length > 0) {
         Object.assign(formData, {
-          ...createTickePayload(ticketDetail),
+          ...createTicketPayload(ticketDetail),
           backupSource: ticketDetail.details.backup_source,
           is_check_process: ticketDetail.details.is_check_process,
           need_checksum: ticketDetail.details.need_checksum,

@@ -96,7 +96,7 @@
 
   import RenderTargetSpec from '@views/db-manage/common/apply-items/SpecSelector.vue';
   import TicketPayload, {
-    createTickePayload,
+    createTicketPayload,
   } from '@views/db-manage/common/toolbox-field/form-item/ticket-payload/Index.vue';
 
   import TargetCluster, { type RowData } from './components/TargetCluster.vue';
@@ -107,7 +107,7 @@
   const bizId = window.PROJECT_CONFIG.BIZ_ID;
 
   const defaultData = () => ({
-    payload: createTickePayload(),
+    payload: createTicketPayload(),
     shardNum: 1,
     specId: '',
     tableData: [] as RowData[],
@@ -129,7 +129,7 @@
     onSuccess(ticketDetail) {
       const { details } = ticketDetail;
       Object.assign(formData, {
-        payload: createTickePayload(ticketDetail),
+        payload: createTicketPayload(ticketDetail),
         shardNum: details.instance_per_host,
         specId: details.resource_spec.mongodb.spec_id,
         tableData: details.cluster_ids.map((clusterId) => ({

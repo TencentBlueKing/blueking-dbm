@@ -82,7 +82,7 @@
   import TaskTips from '@views/db-manage/common/sql-execute/task-tips/Index.vue';
   import TicketMode from '@views/db-manage/common/sql-execute/ticket-mode/Index.vue';
   import TicketPayload, {
-    createTickePayload,
+    createTicketPayload,
   } from '@views/db-manage/common/toolbox-field/form-item/ticket-payload/Index.vue';
 
   import { utcDisplayTime } from '@utils';
@@ -101,7 +101,7 @@
     cluster_type: DBTypes.MYSQL,
     execute_objects: [] as Mysql.ImportSqlFile['execute_objects'],
     is_auto_commit: true,
-    payload: createTickePayload(),
+    payload: createTicketPayload(),
     ticket_mode: {
       mode: 'manual',
       trigger_time: '',
@@ -126,7 +126,7 @@
         charset: details.charset,
         cluster_ids: details.cluster_ids,
         execute_objects: details.execute_objects,
-        payload: createTickePayload(ticketDetail),
+        payload: createTicketPayload(ticketDetail),
         ticket_mode: {
           ...details.ticket_mode,
           trigger_time: utcDisplayTime(details.ticket_mode.trigger_time),
@@ -155,7 +155,7 @@
         charset: semanticData.charset,
         cluster_ids: semanticData.cluster_ids,
         execute_objects: semanticData.execute_objects,
-        payload: createTickePayload(semanticData),
+        payload: createTicketPayload(semanticData),
         ticket_mode: {
           ...semanticData.ticket_mode,
           trigger_time: utcDisplayTime(semanticData.ticket_mode.trigger_time),

@@ -78,7 +78,7 @@
   import { TicketTypes } from '@common/const';
 
   import TicketPayload, {
-    createTickePayload,
+    createTicketPayload,
   } from '@views/db-manage/common/toolbox-field/form-item/ticket-payload/Index.vue';
   import SpiderWrapper from '@views/db-manage/tendb-cluster/TENDBCLUSTER_SPIDER_ADD_NODES/components/SpiderWrapper.vue';
 
@@ -94,7 +94,7 @@
   };
   const defaultData = () => ({
     isSafe: true,
-    payload: createTickePayload(),
+    payload: createTicketPayload(),
   });
 
   const shrinkType = ref<TendbCluster.ResourcePool.SpiderReduceNodes['shrink_type']>('QUANTITY');
@@ -107,7 +107,7 @@
       shrinkType.value = ticketDetail.details.shrink_type;
       Object.assign(formData, {
         isSafe: details.is_safe,
-        payload: createTickePayload(ticketDetail),
+        payload: createTicketPayload(ticketDetail),
       });
       nextTick(() => {
         ticketDetails.value = details;

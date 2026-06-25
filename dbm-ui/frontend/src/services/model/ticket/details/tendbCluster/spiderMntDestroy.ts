@@ -7,6 +7,7 @@ export interface SpiderMntDestroy extends DetailBase {
     spider_ip_list: {
       bk_cloud_id: number;
       ip: string;
+      port: number;
     }[];
   }[];
   is_safe: boolean;

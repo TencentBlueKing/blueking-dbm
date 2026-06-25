@@ -64,7 +64,7 @@
   import { TicketTypes } from '@common/const';
 
   import TicketPayload, {
-    createTickePayload,
+    createTicketPayload,
   } from '@views/db-manage/common/toolbox-field/form-item/ticket-payload/Index.vue';
 
   import SqlFile from './components/sql-file/Index.vue';
@@ -77,7 +77,7 @@
     execute_db_infos: [],
     execute_sqls: [] as string[],
     import_mode: 'manual' as const,
-    payload: createTickePayload(),
+    payload: createTicketPayload(),
   });
 
   const { t } = useI18n();
@@ -94,7 +94,7 @@
   useTicketDetail<Mongodb.ExecScriptApply>(TicketTypes.MONGODB_EXEC_SCRIPT_APPLY, {
     onSuccess(ticketDetail) {
       Object.assign(formData, {
-        payload: createTickePayload(ticketDetail),
+        payload: createTicketPayload(ticketDetail),
       });
     },
   });

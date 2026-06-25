@@ -126,7 +126,7 @@
 
   import BatchInput from '@views/db-manage/common/batch-input/Index.vue';
   import TicketPayload, {
-    createTickePayload,
+    createTicketPayload,
   } from '@views/db-manage/common/toolbox-field/form-item/ticket-payload/Index.vue';
   import RegexKeysColumn from '@views/db-manage/redis/common/toolbox-field/regex-keys-column/Index.vue';
 
@@ -157,7 +157,7 @@
   });
 
   const createDefaultFormData = () => ({
-    payload: createTickePayload(),
+    payload: createTicketPayload(),
     tableData: [createRowData()],
     write_mode: WriteModes.DELETE_AND_WRITE_TO_REDIS,
   });
@@ -169,7 +169,7 @@
     onSuccess(ticketDetail) {
       const { details } = ticketDetail;
       Object.assign(formData, {
-        payload: createTickePayload(ticketDetail),
+        payload: createTicketPayload(ticketDetail),
         tableData: details.infos.map((infoItem) =>
           createRowData({
             cluster: {

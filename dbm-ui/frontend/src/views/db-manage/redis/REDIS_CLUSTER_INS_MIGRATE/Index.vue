@@ -124,7 +124,7 @@
   import ResourceTagColumn from '@views/db-manage/common/toolbox-field/column/resource-tag-column/Index.vue';
   import SpecColumn from '@views/db-manage/common/toolbox-field/column/spec-column/Index.vue';
   import TicketPayload, {
-    createTickePayload,
+    createTicketPayload,
   } from '@views/db-manage/common/toolbox-field/form-item/ticket-payload/Index.vue';
   import MigrateFormItems, {
     ArchitectureType,
@@ -169,7 +169,7 @@
     onSuccess(ticketDetail) {
       const { infos } = ticketDetail.details;
       Object.assign(formData, {
-        payload: createTickePayload(ticketDetail),
+        payload: createTicketPayload(ticketDetail),
         tableData: infos.map((infoItem) =>
           createRowData({
             batchInstance: {
@@ -189,7 +189,7 @@
   const initFormData = () => ({
     architectureType: ArchitectureType.CLUSTER,
     migrateType: MigrateType.INSTANCE,
-    payload: createTickePayload(),
+    payload: createTicketPayload(),
     tableData: [createRowData()],
   });
 

@@ -85,7 +85,7 @@
   import ResourceTagColumn from '@views/db-manage/common/toolbox-field/column/resource-tag-column/Index.vue';
   import SpecColumn from '@views/db-manage/common/toolbox-field/column/spec-column/Index.vue';
   import TicketPayload, {
-    createTickePayload,
+    createTicketPayload,
   } from '@views/db-manage/common/toolbox-field/form-item/ticket-payload/Index.vue';
 
   import { random } from '@utils';
@@ -143,7 +143,7 @@
   const formData = reactive({
     backup_source: BackupSourceType.REMOTE, // 固定传remote, 页面不展示
     orphan_restore_type: 'restore_with_data',
-    payload: createTickePayload(),
+    payload: createTicketPayload(),
     tableData: [createTableRow()],
   });
   const tableKey = ref(random());
@@ -160,7 +160,7 @@
       Object.assign(formData, {
         backup_source: details.backup_source,
         orphan_restore_type: details.orphan_restore_type,
-        payload: createTickePayload(ticketDetail),
+        payload: createTicketPayload(ticketDetail),
         tableData: details.infos.map((item) =>
           createTableRow({
             host: {

@@ -211,6 +211,12 @@ export const toolboxMenuList = [
         name: t('DB 数据合并空间评估'),
         parentId: 'data',
       },
+      {
+        dbConsoleValue: 'mysql.toolbox.dataExport',
+        id: TicketTypes.MYSQL_DUMP_DATA,
+        name: t('数据导出'),
+        parentId: 'data_export',
+      },
     ],
     icon: 'db-icon-data',
     id: 'data',

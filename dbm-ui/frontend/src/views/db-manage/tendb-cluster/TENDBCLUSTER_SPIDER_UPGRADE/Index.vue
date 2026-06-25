@@ -115,7 +115,7 @@
   import AvailableResourceColumn from '@views/db-manage/common/toolbox-field/column/available-resource-column/Index.vue';
   import ResourceTagColumn from '@views/db-manage/common/toolbox-field/column/resource-tag-column/Index.vue';
   import TicketPayload, {
-    createTickePayload,
+    createTicketPayload,
   } from '@views/db-manage/common/toolbox-field/form-item/ticket-payload/Index.vue';
   import ClusterColumn from '@views/db-manage/tendb-cluster/common/toolbox-field/cluster-column/Index.vue';
   import CurrentVersionColumn from '@views/db-manage/tendb-cluster/TENDBCLUSTER_LOCAL_UPGRADE/components/CurrentVersionColumn.vue';
@@ -174,7 +174,7 @@
 
   const defaultData = () => ({
     is_check_process: true,
-    payload: createTickePayload(),
+    payload: createTicketPayload(),
     tableData: [createTableRow()],
   });
 
@@ -198,7 +198,7 @@
   useTicketDetail<TendbCluster.ResourcePool.SpiderUpgrade>(TicketTypes.TENDBCLUSTER_SPIDER_UPGRADE, {
     onSuccess(ticketDetail) {
       Object.assign(formData, {
-        ...createTickePayload(ticketDetail),
+        ...createTicketPayload(ticketDetail),
         is_check_process: ticketDetail.details.is_check_process,
         tableData: ticketDetail.details.infos.map((item) =>
           createTableRow({

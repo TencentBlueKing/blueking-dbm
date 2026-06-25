@@ -110,7 +110,7 @@
 
   import BatchInput from '@views/db-manage/common/batch-input/Index.vue';
   import TicketPayload, {
-    createTickePayload,
+    createTicketPayload,
   } from '@views/db-manage/common/toolbox-field/form-item/ticket-payload/Index.vue';
   import ClusterWithRelatedClustersColumn from '@views/db-manage/mongodb/common/toolbox-field/cluster-with-related-clusters-column/Index.vue';
 
@@ -171,7 +171,7 @@
   });
 
   const formData = reactive({
-    payload: createTickePayload(),
+    payload: createTicketPayload(),
     strategy: 'rolling' as UpgradeStrategy,
     tableData: [createTableRow()],
     tableKey: random(),
@@ -224,7 +224,7 @@
       formData.strategy = details.infos?.[0]?.strategy || 'rolling';
       nextTick(() => {
         Object.assign(formData, {
-          payload: createTickePayload(ticketDetail),
+          payload: createTicketPayload(ticketDetail),
           tableData: infos.map((item) =>
             createTableRow({
               cluster: {
@@ -313,7 +313,7 @@
 
   const handleReset = () => {
     Object.assign(formData, {
-      payload: createTickePayload(),
+      payload: createTicketPayload(),
       tableData: [createTableRow()],
       tableKey: random(),
     });

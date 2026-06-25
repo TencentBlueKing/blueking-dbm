@@ -84,7 +84,7 @@
 
   import BatchInput from '@views/db-manage/common/batch-input/Index.vue';
   import TicketPayload, {
-    createTickePayload,
+    createTicketPayload,
   } from '@views/db-manage/common/toolbox-field/form-item/ticket-payload/Index.vue';
 
   import { random } from '@utils';
@@ -119,7 +119,7 @@
   });
 
   const createDefaultFormData = () => ({
-    payload: createTickePayload(),
+    payload: createTicketPayload(),
     tableData: [createRowData()],
     type: TicketTypes.REDIS_BACKUP,
   });
@@ -131,7 +131,7 @@
     onSuccess(ticketDetail) {
       const { details } = ticketDetail;
       Object.assign(formData, {
-        payload: createTickePayload(ticketDetail),
+        payload: createTicketPayload(ticketDetail),
         tableData: details.rules.map((item) =>
           createRowData({
             backup_type: item.backup_type,
