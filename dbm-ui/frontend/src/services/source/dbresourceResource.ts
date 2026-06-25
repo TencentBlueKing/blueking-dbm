@@ -88,9 +88,7 @@ export function importResource(params: {
 }) {
   return http.post<{
     ticket_ids: number[];
-  }>(`${path}/import/`, params, {
-    catchError: true,
-  });
+  }>(`${path}/import/`, params);
 }
 
 interface ResouceListParams {
@@ -142,25 +140,15 @@ export function resourceExport(params: ResouceListParams) {
 /**
  * 获取DBA业务下的主机信息
  */
-export function fetchListDbaHost(params: {
-  bk_biz_id: number;
-  bk_idc_city_name: string;
-  bk_sub_zone: string;
-  bk_svr_device_class_name: string;
-  limit: number;
-  offset: number;
-  operator: string;
-  os_name: string;
-  search_content: string;
-}) {
+export function fetchListDbaHost(params: { bk_biz_id: number; limit: number; offset: number; search_content: string }) {
   return http
     .get<{
       data: HostInfo[];
       total: number;
     }>(`${path}/list_dba_hosts/`, {
-      ...params,
       bk_biz_id: params.bk_biz_id,
       page_size: params.limit,
+      search_content: params.search_content,
       start: params.offset,
     })
     .then((data) => ({
