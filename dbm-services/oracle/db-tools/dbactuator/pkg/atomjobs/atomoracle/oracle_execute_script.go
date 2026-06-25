@@ -1,6 +1,7 @@
 package atomoracle
 
 import (
+	"dbm-services/common/go-pubpkg/cmutil"
 	"dbm-services/oracle/db-tools/dbactuator/pkg/common"
 	"dbm-services/oracle/db-tools/dbactuator/pkg/consts"
 	"dbm-services/oracle/db-tools/dbactuator/pkg/jobruntime"
@@ -233,9 +234,11 @@ func (e *ExecuteScript) ExecuteAllScript() error {
 			_, _ = util.RunBashCmd(echoCmd, "", nil, 10*time.Second)
 			e.Runtime.Logger.Error("execute shell script:%s fail, error:%s", e.ExecuteShellPath[index], err.Error())
 			// 截取报错日志
+			lastFile, _ := cmutil.NewGrepLines(e.ExecuteShellLogPath[index], false, false).
+				MatchWords([]string{"SQL> @"}, 1)
 			lines, _ := util.GetLastLine(e.ExecuteShellLogPath[index], 10)
-			e.Runtime.Logger.Error("execute shell script:%s fail, error log:%s", e.ExecuteShellPath[index], strings.Join(lines,
-				"\n"))
+			e.Runtime.Logger.Error("execute shell script:%s fail, last execute sql file: %s\nerror log:%s", e.ExecuteShellPath[index],
+				lastFile, strings.Join(lines, "\n"))
 			e.ExecuteResultStatus["fail"] = append(e.ExecuteResultStatus["fail"], username)
 			continue
 		}
