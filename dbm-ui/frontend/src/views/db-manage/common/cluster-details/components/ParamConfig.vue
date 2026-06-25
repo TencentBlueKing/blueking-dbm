@@ -24,9 +24,9 @@
         render-directive="if">
         <OperationRecord
           v-if="tab.conf_type === 'operationRecord'"
-          :cluster-type="cluster.cluster_type"
           level-name="cluster"
-          :level-value="cluster.master_domain" />
+          :level-value="cluster.master_domain"
+          :namespace="namespace" />
         <template v-else>
           <BkAlert
             class="mb-16"
@@ -76,6 +76,7 @@
 </template>
 
 <script setup lang="ts">
+  import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
   import { useRoute, useRouter } from 'vue-router';
@@ -115,6 +116,8 @@
     ClusterTypes.TENDBSINGLE,
   ];
 
+  const namespace = ref('');
+
   /** 当前集群是否支持模块配置 */
   const hasModule = computed(() => MODULE_CLUSTER_TYPES.includes(props.cluster.cluster_type));
 
@@ -151,6 +154,7 @@
   const { run: fetchConfTabs } = useRequest(getListClusterModuleConfFiles, {
     manual: true,
     onSuccess(res) {
+      namespace.value = _.uniq(res.map((item) => item.namespace)).join(',');
       confTabs.value = [
         ...res,
         {
