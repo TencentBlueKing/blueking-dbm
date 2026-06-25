@@ -301,7 +301,18 @@ class UpdateClusterAliasSerializer(serializers.Serializer):
 class UpdateClusterTagsSerializer(serializers.Serializer):
     bk_biz_id = serializers.IntegerField(help_text=_("业务ID"))
     cluster_id = serializers.IntegerField(help_text=_("集群ID"))
-    tags = serializers.ListField(child=serializers.IntegerField(), help_text=_("标签列表"))
+    tags = serializers.ListField(
+        child=serializers.DictField(), help_text=_("标签键值对列表(格式:[{'key':'value'}]，标签不存在则新增，存在则绑定)")
+    )
+
+    def validate_tags(self, value):
+        """验证tags字段，确保每个tag都有key"""
+        if not value:
+            return value
+        for tag_item in value:
+            if not isinstance(tag_item, dict):
+                raise serializers.ValidationError(_("每个标签必须是字典格式"))
+        return value
 
 
 class RemoveClusterTagKeysSerializer(serializers.Serializer):
@@ -313,7 +324,18 @@ class RemoveClusterTagKeysSerializer(serializers.Serializer):
 class AddClusterTagKeysSerializer(serializers.Serializer):
     bk_biz_id = serializers.IntegerField(help_text=_("业务ID"))
     cluster_ids = serializers.ListField(child=serializers.IntegerField(), help_text=_("集群ID列表"))
-    tags = serializers.ListField(child=serializers.IntegerField(), help_text=_("标签列表"))
+    tags = serializers.ListField(
+        child=serializers.DictField(), help_text=_("标签键值对列表(格式:[{'key':'value'}]，标签不存在则新增，存在则绑定)")
+    )
+
+    def validate_tags(self, value):
+        """验证tags字段，确保每个tag都有key"""
+        if not value:
+            return value
+        for tag_item in value:
+            if not isinstance(tag_item, dict):
+                raise serializers.ValidationError(_("每个标签必须是字典格式"))
+        return value
 
 
 class QueryGlobalSerializer(serializers.Serializer):
