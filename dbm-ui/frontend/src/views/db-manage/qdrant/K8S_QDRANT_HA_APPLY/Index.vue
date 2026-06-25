@@ -29,7 +29,8 @@
           <ClusterAlias
             v-model="formData.details.cluster_alias"
             :biz-id="formData.bk_biz_id"
-            :cluster-type="ClusterTypes.K8S_QDRANT_HA" />
+            :cluster-type="ClusterTypes.K8S_QDRANT_HA"
+            required />
         </DbCard>
         <DbCard :title="t('部署环境')">
           <K8SApplyMode v-model="formData.details.apply_mode" />
