@@ -777,6 +777,30 @@ class DBBaseViewSet(viewsets.SystemViewSet):
         cluster.save(update_fields=["alias"])
         return Response(ClusterSLZ(cluster).data)
 
+    def _create_cluster_tags(self, bk_biz_id: int, tags_input: list) -> list:
+        """处理标签：不存在则创建，存在则获取
+
+        Args:
+            bk_biz_id: 业务 ID
+            tags_input: 标签列表，格式: [{"key": "value"}, ...]
+
+        Returns:
+            Tag 对象列表
+        """
+        from backend.db_meta.enums.comm import TagType
+
+        tag_objs = []
+        for tag_item in tags_input:
+            (tag_key,) = tag_item.keys()
+            (tag_value,) = tag_item.values()
+
+            if not tag_key:
+                continue
+
+            tag = Tag.objects.update_or_create(bk_biz_id=bk_biz_id, key=tag_key, value=tag_value, type=TagType.CLUSTER)
+            tag_objs.append(tag)
+        return tag_objs
+
     @common_swagger_auto_schema(
         operation_summary=_("更新集群标签"),
         request_body=UpdateClusterTagsSerializer(),
@@ -787,10 +811,11 @@ class DBBaseViewSet(viewsets.SystemViewSet):
         """更新集群标签"""
         data = self.params_validate(self.get_serializer_class())
         cluster = Cluster.objects.get(bk_biz_id=data["bk_biz_id"], id=data["cluster_id"])
-        tags = Tag.objects.filter(id__in=data["tags"])
+        tag_objs = self._create_cluster_tags(data["bk_biz_id"], data["tags"])
+
         # 清空旧标签，添加新标签
         cluster.tags.clear()
-        cluster.tags.add(*tags)
+        cluster.tags.add(*tag_objs)
         return Response(ClusterSLZ(cluster).data)
 
     @common_swagger_auto_schema(
@@ -816,11 +841,11 @@ class DBBaseViewSet(viewsets.SystemViewSet):
         """批量增加标签键"""
         data = self.params_validate(self.get_serializer_class())
 
-        tags = Tag.objects.filter(id__in=data["tags"])
+        tag_objs = self._create_cluster_tags(data["bk_biz_id"], data["tags"])
         through = Cluster.tags.through
 
-        # 这里需要先获取到所有标签键，然后排除已经存在该key的集群，考虑到这里标签一次性不会太多，暂用for循环处理
-        for tag in tags:
+        # 这里需要先获取到所有标签键，然后排除已经存在该 key 的集群，考虑到这里标签一次性不会太多，暂用 for 循环处理
+        for tag in tag_objs:
             add_clusters = Cluster.objects.filter(id__in=data["cluster_ids"]).exclude(tags__key=tag.key)
             add_tags = [through(cluster_id=cluster.id, tag_id=tag.id) for cluster in add_clusters]
             through.objects.bulk_create(add_tags)

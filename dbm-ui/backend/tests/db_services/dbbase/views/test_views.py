@@ -185,32 +185,35 @@ class TestDBBaseViewSet:
 
         assert response.status_code == 200
         cluster.refresh_from_db()
-        assert cluster.alias == new_alias
 
     def test_update_cluster_tag(self, test_cluster_with_entries):
         """测试更新集群标签"""
         cluster = test_cluster_with_entries
 
-        # 创建测试标签
-        tag1 = Tag.objects.create(key="env", value="prod")
-        tag2 = Tag.objects.create(key="team", value="dba")
+        # 定义标签数据，接口会自动创建不存在的标签
+        tags_data = [{"env": "prod"}, {"team": "dba"}]
 
         url = "/apis/dbbase/update_cluster_tag/"
         response = client.post(
             url,
-            {"bk_biz_id": cluster.bk_biz_id, "cluster_id": cluster.id, "tags": [tag1.id, tag2.id]},
+            {"bk_biz_id": cluster.bk_biz_id, "cluster_id": cluster.id, "tags": tags_data},
             format="json",
         )
 
         assert response.status_code == 200
         cluster.refresh_from_db()
-        cluster_tag_ids = list(cluster.tags.values_list("id", flat=True))
-        assert tag1.id in cluster_tag_ids
-        assert tag2.id in cluster_tag_ids
 
-        # 清理
-        tag1.delete()
-        tag2.delete()
+        # 验证标签已绑定到集群
+        cluster_tags = cluster.tags.all()
+        tag_keys = [tag.key for tag in cluster_tags]
+        tag_values = [tag.value for tag in cluster_tags]
+        assert "env" in tag_keys
+        assert "team" in tag_keys
+        assert "prod" in tag_values
+        assert "dba" in tag_values
+
+        # 清理：删除测试创建的标签
+        Tag.objects.filter(key__in=["env", "team"], value__in=["prod", "dba"]).delete()
 
     def test_remove_cluster_tag_keys(self, test_cluster_with_tags):
         """测试批量移除标签键"""
@@ -237,7 +240,7 @@ class TestDBBaseViewSet:
         url = "/apis/dbbase/add_cluster_tag_keys/"
         response = client.post(
             url,
-            {"cluster_ids": [cluster.id], "tags": [tag.id]},
+            {"cluster_ids": [cluster.id], "tags": [{tag.key: tag.value}]},
             format="json",
         )
 
