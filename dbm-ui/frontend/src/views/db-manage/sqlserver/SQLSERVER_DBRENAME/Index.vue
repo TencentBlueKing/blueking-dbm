@@ -84,7 +84,7 @@
 
   import BatchInput from '@views/db-manage/common/batch-input/Index.vue';
   import TicketPayload, {
-    createTickePayload,
+    createTicketPayload,
   } from '@views/db-manage/common/toolbox-field/form-item/ticket-payload/Index.vue';
   import ClusterColumn from '@views/db-manage/sqlserver/common/toolbox-field/cluster-column/Index.vue';
   import DbNameColumn from '@views/db-manage/sqlserver/common/toolbox-field/db-name-column/Index.vue';
@@ -115,7 +115,7 @@
   });
 
   const createDefaultFormData = () => ({
-    payload: createTickePayload(),
+    payload: createTicketPayload(),
     tableData: [createRowData()],
   });
 
@@ -125,7 +125,7 @@
     onSuccess(ticketDetail) {
       const { details } = ticketDetail;
       Object.assign(formData, {
-        payload: createTickePayload(ticketDetail),
+        payload: createTicketPayload(ticketDetail),
         tableData: details.infos.map((item) =>
           createRowData({
             cluster: {

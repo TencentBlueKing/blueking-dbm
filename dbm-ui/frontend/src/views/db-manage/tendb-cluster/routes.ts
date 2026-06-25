@@ -137,10 +137,9 @@ const spiderToolboxRoute = {
     createRouteItem(TicketTypes.TENDBCLUSTER_SPIDER_MNT_APPLY, t('添加运维节点'), {
       dbConsole: 'tendbCluster.toolbox.addMnt',
     }),
-    // TODO 功能未合主分支，注释
-    // createRouteItem(TicketTypes.TENDBCLUSTER_SPIDER_MNT_DESTROY, t('下架运维节点'), {
-    //   dbConsole: 'tendbCluster.toolbox.removeMNTNode',
-    // }),
+    createRouteItem(TicketTypes.TENDBCLUSTER_SPIDER_MNT_DESTROY, t('下架运维节点'), {
+      dbConsole: 'tendbCluster.toolbox.removeMNTNode',
+    }),
     createRouteItem(TicketTypes.TENDBCLUSTER_REMOTE_UPGRADE, t('版本升级'), {
       dbConsole: 'tendbCluster.toolbox.remoteUpgrade',
     }),

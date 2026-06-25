@@ -16,12 +16,12 @@
     :data="tableData"
     row-key="id">
     <TicketInfoTableColumn
-      col-key="immute_domain"
-      :get-copy-value="(row: IRowData) => ticketDetails.details.clusters[row.id].immute_domain"
+      col-key="master_domain"
+      :get-copy-value="(row: IRowData) => ticketDetails.details.clusters[row.id].master_domain"
       :min-width="200"
       :title="t('目标集群')">
       <template #default="{ row }: { row: IRowData }">
-        {{ ticketDetails.details.clusters[row.id].immute_domain }}
+        {{ ticketDetails.details.clusters[row.id].master_domain }}
       </template>
     </TicketInfoTableColumn>
   </TicketInfoTable>
@@ -49,7 +49,7 @@
   const { t } = useI18n();
 
   const tableData = computed(() =>
-    props.ticketDetails.details.cluster_ids.map((item) => ({
+    props.ticketDetails.details.clusterIds.map((item) => ({
       id: item,
     })),
   );

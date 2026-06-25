@@ -160,7 +160,7 @@
   import { TicketTypes } from '@common/const';
 
   import TicketPayload, {
-    createTickePayload,
+    createTicketPayload,
   } from '@views/db-manage/common/toolbox-field/form-item/ticket-payload/Index.vue';
   import {
     copyTypeList,
@@ -186,7 +186,7 @@
     data_check_repair_execution_frequency: RepairAndVerifyFrequencyModes.ONCE_AFTER_REPLICATION,
     data_check_repair_type: RepairAndVerifyModes.DATA_CHECK_AND_REPAIR,
     dts_copy_type: CopyModes.INTRA_BISNESS,
-    payload: createTickePayload(),
+    payload: createTicketPayload(),
     sync_disconnect_reminder_frequency: RemindFrequencyModes.ONCE_DAILY,
     sync_disconnect_type: DisconnectModes.KEEP_SYNC_WITH_REMINDER,
     write_mode: WriteModes.DELETE_AND_WRITE_TO_REDIS,
@@ -202,7 +202,7 @@
         data_check_repair_execution_frequency: details.data_check_repair_setting.execution_frequency,
         data_check_repair_type: details.data_check_repair_setting.type,
         dts_copy_type: details.dts_copy_type,
-        payload: createTickePayload(ticketDetail),
+        payload: createTicketPayload(ticketDetail),
         sync_disconnect_reminder_frequency: details.sync_disconnect_setting.reminder_frequency,
         sync_disconnect_type: details.sync_disconnect_setting.type,
         write_mode: details.write_mode,

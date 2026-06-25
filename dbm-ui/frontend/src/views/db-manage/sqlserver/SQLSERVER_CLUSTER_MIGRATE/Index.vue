@@ -93,7 +93,7 @@
   import ResourceTagColumn from '@views/db-manage/common/toolbox-field/column/resource-tag-column/Index.vue';
   import SpecColumn from '@views/db-manage/common/toolbox-field/column/spec-column/Index.vue';
   import TicketPayload, {
-    createTickePayload,
+    createTicketPayload,
   } from '@views/db-manage/common/toolbox-field/form-item/ticket-payload/Index.vue';
 
   import { random } from '@utils';
@@ -144,7 +144,7 @@
   });
 
   const defaultData = () => ({
-    payload: createTickePayload(),
+    payload: createTicketPayload(),
     tableData: [createTableRow()],
   });
 
@@ -163,7 +163,7 @@
       const { details } = ticketDetail;
       const { clusters, infos } = details;
       Object.assign(formData, {
-        ...createTickePayload(ticketDetail),
+        ...createTicketPayload(ticketDetail),
         tableData: infos.map((item) => {
           const batchCluster = {
             clusters: {},

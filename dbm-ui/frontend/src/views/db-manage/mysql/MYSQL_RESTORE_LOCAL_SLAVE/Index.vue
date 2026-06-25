@@ -117,7 +117,7 @@
 
   import BatchInput from '@views/db-manage/common/batch-input/Index.vue';
   import TicketPayload, {
-    createTickePayload,
+    createTicketPayload,
   } from '@views/db-manage/common/toolbox-field/form-item/ticket-payload/Index.vue';
 
   import { random } from '@utils';
@@ -151,7 +151,7 @@
 
   const defaultData = () => ({
     backupSource: BackupSourceType.REMOTE,
-    payload: createTickePayload(),
+    payload: createTicketPayload(),
     tableData: [createTableRow()],
   });
 
@@ -176,7 +176,7 @@
       const { backup_source: backupSource, infos } = ticketDetail.details;
       Object.assign(formData, {
         backupSource,
-        ...createTickePayload(ticketDetail),
+        ...createTicketPayload(ticketDetail),
         tableData: infos.map((item) =>
           createTableRow({
             slave: {

@@ -86,7 +86,7 @@
 
   import BatchInput from '@views/db-manage/common/batch-input/Index.vue';
   import TicketPayload, {
-    createTickePayload,
+    createTicketPayload,
   } from '@views/db-manage/common/toolbox-field/form-item/ticket-payload/Index.vue';
   import SlaveRestoreFormItem from '@views/db-manage/sqlserver/common/slave-restore-form-item/Index.vue';
 
@@ -124,7 +124,7 @@
   });
 
   const defaultData = () => ({
-    payload: createTickePayload(),
+    payload: createTicketPayload(),
     restore_type: TicketTypes.SQLSERVER_RESTORE_LOCAL_SLAVE,
     tableData: [createTableRow()],
   });
@@ -147,7 +147,7 @@
     onSuccess(ticketDetail) {
       const { details } = ticketDetail;
       Object.assign(formData, {
-        payload: createTickePayload(ticketDetail),
+        payload: createTicketPayload(ticketDetail),
         tableData: details.infos.map((item) =>
           createTableRow({
             slave: { instance_address: `${item.slave.ip}:${item.slave.port}` } as RowData['slave'],

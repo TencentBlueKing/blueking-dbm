@@ -121,7 +121,7 @@
 
   import BatchInput from '@views/db-manage/common/batch-input/Index.vue';
   import TicketPayload, {
-    createTickePayload,
+    createTicketPayload,
   } from '@views/db-manage/common/toolbox-field/form-item/ticket-payload/Index.vue';
 
   import HostColumn from './components/HostColumn.vue';
@@ -146,7 +146,7 @@
       const { details } = ticketDetail;
       const { infos } = details;
       Object.assign(formData, {
-        payload: createTickePayload(ticketDetail),
+        payload: createTicketPayload(ticketDetail),
         tableData: infos.flatMap((infoItem) =>
           infoItem.proxy.map((item) =>
             createTableRow({
@@ -182,7 +182,7 @@
   });
 
   const defaultData = () => ({
-    payload: createTickePayload(),
+    payload: createTicketPayload(),
     tableData: [createTableRow()],
     ticketType: TicketTypes.REDIS_PROXY_FIX,
   });

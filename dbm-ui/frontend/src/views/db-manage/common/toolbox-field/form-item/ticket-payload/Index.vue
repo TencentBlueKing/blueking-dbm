@@ -13,7 +13,7 @@
   interface TicketItem {
     remark: string;
   }
-  export const createTickePayload = (data = {} as TicketItem) => ({
+  export const createTicketPayload = (data = {} as TicketItem) => ({
     remark: data.remark || '',
   });
 </script>

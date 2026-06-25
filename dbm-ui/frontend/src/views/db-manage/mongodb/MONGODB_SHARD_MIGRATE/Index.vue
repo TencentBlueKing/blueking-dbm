@@ -110,7 +110,7 @@
   import ResourceTagColumn from '@views/db-manage/common/toolbox-field/column/resource-tag-column/Index.vue';
   import SpecColumn from '@views/db-manage/common/toolbox-field/column/spec-column/Index.vue';
   import TicketPayload, {
-    createTickePayload,
+    createTicketPayload,
   } from '@views/db-manage/common/toolbox-field/form-item/ticket-payload/Index.vue';
   import MigrateFormItem from '@views/db-manage/mongodb/common/migrate-form-item/Index.vue';
 
@@ -140,7 +140,7 @@
 
   const createDefaultFormData = () => ({
     architectureType: TicketTypes.MONGODB_SHARD_MIGRATE,
-    payload: createTickePayload(),
+    payload: createTicketPayload(),
     tableData: [createRowData()],
   });
 
@@ -152,7 +152,7 @@
       const { infos } = details;
 
       Object.assign(formData, {
-        payload: createTickePayload(ticketDetail),
+        payload: createTicketPayload(ticketDetail),
         tableData: infos.map((item) => {
           return createRowData({
             batchShard: {

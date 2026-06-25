@@ -157,7 +157,7 @@
   import SingleResourceHostColumn from '@views/db-manage/common/toolbox-field/column/single-resource-host-column/Index.vue';
   import SpecColumn from '@views/db-manage/common/toolbox-field/column/spec-column/Index.vue';
   import TicketPayload, {
-    createTickePayload,
+    createTicketPayload,
   } from '@views/db-manage/common/toolbox-field/form-item/ticket-payload/Index.vue';
 
   import { random } from '@utils';
@@ -206,7 +206,7 @@
 
   const defaultData = () => ({
     backupSource: BackupSourceType.REMOTE,
-    payload: createTickePayload(),
+    payload: createTicketPayload(),
     tableData: [createTableRow()],
   });
 
@@ -256,7 +256,7 @@
       tableKey.value = random();
       Object.assign(formData, {
         backupSource,
-        ...createTickePayload(ticketDetail),
+        ...createTicketPayload(ticketDetail),
         tableData: infos.map((item) =>
           createTableRow({
             labels: (item.resource_spec.new_slave.labels || []).map((item) => ({ id: Number(item) })),

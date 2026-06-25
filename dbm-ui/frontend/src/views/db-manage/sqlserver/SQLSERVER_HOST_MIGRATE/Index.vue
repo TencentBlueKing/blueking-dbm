@@ -92,7 +92,7 @@
   import ResourceTagColumn from '@views/db-manage/common/toolbox-field/column/resource-tag-column/Index.vue';
   import SpecColumn from '@views/db-manage/common/toolbox-field/column/spec-column/Index.vue';
   import TicketPayload, {
-    createTickePayload,
+    createTicketPayload,
   } from '@views/db-manage/common/toolbox-field/form-item/ticket-payload/Index.vue';
   import MigrateWrapper from '@views/db-manage/sqlserver/SQLSERVER_CLUSTER_MIGRATE/components/MigrateWrapper.vue';
 
@@ -149,7 +149,7 @@
   });
 
   const defaultData = () => ({
-    payload: createTickePayload(),
+    payload: createTicketPayload(),
     tableData: [createTableRow()],
   });
 
@@ -164,7 +164,7 @@
       const { details } = ticketDetail;
       const { infos } = details;
       Object.assign(formData, {
-        ...createTickePayload(ticketDetail),
+        ...createTicketPayload(ticketDetail),
         tableData: infos.map((item) => {
           const resourceSpec = item.resource_spec.new_hosts || item.resource_spec.backend_group;
           return createTableRow({

@@ -112,7 +112,7 @@
 
   import BatchInput from '@views/db-manage/common/batch-input/Index.vue';
   import TicketPayload, {
-    createTickePayload,
+    createTicketPayload,
   } from '@views/db-manage/common/toolbox-field/form-item/ticket-payload/Index.vue';
   import ClusterWithRelatedClustersColumn from '@views/db-manage/mongodb/common/toolbox-field/cluster-with-related-clusters-column/Index.vue';
 
@@ -156,7 +156,7 @@
 
   const createDefaultFormData = () => ({
     is_ignore_business_access: false,
-    payload: createTickePayload(),
+    payload: createTicketPayload(),
     tableData: [createRowData()],
   });
 
@@ -175,7 +175,7 @@
       ];
       Object.assign(formData, {
         is_ignore_business_access: !isSafe,
-        payload: createTickePayload(ticketDetail),
+        payload: createTicketPayload(ticketDetail),
         tableData: tableInfos.map((item) => {
           const clusterItem = clusters[item.cluster_ids![0]];
           return createRowData({

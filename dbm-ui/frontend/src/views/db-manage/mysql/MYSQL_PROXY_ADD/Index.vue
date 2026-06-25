@@ -117,7 +117,7 @@
   import ResourceTagColumn from '@views/db-manage/common/toolbox-field/column/resource-tag-column/Index.vue';
   import SpecColumn from '@views/db-manage/common/toolbox-field/column/spec-column/Index.vue';
   import TicketPayload, {
-    createTickePayload,
+    createTicketPayload,
   } from '@views/db-manage/common/toolbox-field/form-item/ticket-payload/Index.vue';
   import WithRelatedClustersColumn from '@views/db-manage/mysql/common/toolbox-field/with-related-clusters-column/Index.vue';
   import ProxyWrapper from '@views/db-manage/mysql/MYSQL_PROXY_ADD/components/ProxyWrapper.vue';
@@ -160,7 +160,7 @@
   });
 
   const defaultData = () => ({
-    payload: createTickePayload(),
+    payload: createTicketPayload(),
     tableData: [createTableRow()],
   });
 
@@ -211,7 +211,7 @@
       const { clusters, infos } = details;
       tableKey.value = random();
       Object.assign(formData, {
-        ...createTickePayload(ticketDetail),
+        ...createTicketPayload(ticketDetail),
         tableData: infos.map((item) => {
           return createTableRow({
             cluster: {
