@@ -10,16 +10,16 @@ specific language governing permissions and limitations under the License.
 """
 import re
 
-from django.db.models import CharField, F, Prefetch, Q, Value
+from django.db.models import CharField, F, Q, Value
 from django.db.models.functions import Concat
 
 from backend.configuration.models import DBAdministrator
 from backend.constants import DOMAIN_PATTERN
 from backend.db_dirty.models import DirtyMachine
 from backend.db_dirty.serializers import ListMachinePoolSerializer
-from backend.db_meta.enums import ClusterEntryType, ClusterType
-from backend.db_meta.models import AppCache, Cluster, ClusterEntry, DBModule, ProxyInstance, Spec, StorageInstance
-from backend.db_meta.models.city_map import BKSubzone
+from backend.db_meta.enums import ClusterType
+from backend.db_meta.models import AppCache, Cluster, ClusterEntry, ProxyInstance, StorageInstance
+from backend.db_services.dbbase.resources.query import ListRetrieveResource
 from backend.db_services.ipchooser.query.resource import ResourceQueryHelper
 from backend.db_services.quick_search import constants
 from backend.db_services.quick_search.constants import FilterType, ResourceType
@@ -27,7 +27,7 @@ from backend.flow.models import FlowTree
 from backend.iam_app.dataclass.actions import ActionEnum
 from backend.iam_app.handlers.permission import Permission
 from backend.ticket.constants import TicketType
-from backend.ticket.models import ClusterOperateRecord, Ticket
+from backend.ticket.models import Ticket
 from backend.utils.string import split_str_to_list
 
 
@@ -194,16 +194,71 @@ class QSearchHandler(object):
         """过滤集群，支持通过域名或 标签键 / 标签:标签值 格式过滤
         域名搜索支持：immute_domain(集群固定域名)、CLB域名、北极星域名等所有ClusterEntry入口域名
         """
-        domain_qs = Q()
-        tag_qs = Q()
-        # 用于收集通过ClusterEntry.entry匹配到的集群ID
-        entry_match_cluster_ids = []
+        # 构建域名过滤条件
+        domain_qs = self.generate_filter_for_domain("immute_domain", keyword_list)
 
+        # 构建标签过滤条件
+        tag_qs = self._build_tag_filter(keyword_list)
+
+        # 获取通过ClusterEntry.entry匹配到的集群ID
+        entry_match_cluster_ids = self._get_entry_match_cluster_ids(keyword_list)
+
+        # 合并通过ClusterEntry.entry匹配到的集群ID
+        if entry_match_cluster_ids:
+            entry_qs = Q(id__in=list(set(entry_match_cluster_ids)))
+            qs = domain_qs | tag_qs | entry_qs
+        else:
+            qs = domain_qs | tag_qs
+
+        objs = Cluster.objects.filter(qs).distinct()
+
+        # 复用 ListRetrieveResource 的序列化逻辑
+        # 创建临时子类实例，设置 cluster_types
+        resource_cls = ListRetrieveResource
+        # 获取有效的集群类型列表，过滤掉未定义 db_type 的集群类型（如 tbinlogdumper）
+        if self.cluster_types:
+            cluster_types = self.cluster_types
+        else:
+            # 过滤掉未定义 db_type 的集群类型
+            cluster_types = []
+            for ct in ClusterType.get_values():
+                try:
+                    ClusterType.cluster_type_to_db_type(ct)
+                    cluster_types.append(ct)
+                except ValueError:
+                    # 跳过未定义 db_type 的集群类型
+                    pass
+        resource_cls.cluster_types = cluster_types
+
+        # 获取集群ID列表，调用 _list_clusters 进行序列化
+        cluster_ids = list(objs.values_list("id", flat=True)[: self.limit])
+        if not cluster_ids:
+            return []
+
+        # 构造 query_params，通过 id__in 来精确查询
+        query_params = {"id": ",".join(map(str, cluster_ids))}
+        resource_list = resource_cls._list_clusters(
+            bk_biz_id=None,  # 已在 filter 中处理
+            query_params=query_params,
+            limit=len(cluster_ids),
+            offset=0,
+        )
+
+        return self.supplementary_fields(resource_list.data)
+
+    def _build_tag_filter(self, keyword_list: list) -> Q:
+        """构建标签过滤条件，支持 标签:标签值 格式
+
+        Args:
+            keyword_list: 搜索关键字列表
+
+        Returns:
+            Q: 标签过滤条件
+        """
+        tag_qs = Q()
         for keyword in keyword_list:
             # 判断是否为 "键:值" 格式（包含冒号）
-            is_key_value_format = ":" in keyword
-
-            if is_key_value_format:
+            if ":" in keyword:
                 # 尝试按 标签:标签值 格式解析
                 tag_key, _, tag_value = keyword.partition(":")
                 if tag_key and tag_value:
@@ -211,14 +266,23 @@ class QSearchHandler(object):
                     tag_qs |= Q(tags__key=tag_key, tags__value=tag_value)
                     continue
 
-            # 不包含冒号的关键字，或冒号解析失败，按正常逻辑处理
-            # 标签键 / 标签值过滤
-            if self.filter_type == FilterType.EXACT.value:
-                tag_qs |= Q(tags__key=keyword) | Q(tags__value=keyword)
-            else:
-                tag_qs |= Q(tags__key__icontains=keyword) | Q(tags__value__icontains=keyword)
+            # 不包含冒号的关键字，按标签键/标签值过滤（复用字符串过滤逻辑）
+            tag_qs |= self.generate_filter_for_str("tags__key", [keyword])
+            tag_qs |= self.generate_filter_for_str("tags__value", [keyword])
 
-            # 域名过滤 - 支持immute_domain和ClusterEntry.entry(CLB、北极星等)
+        return tag_qs
+
+    def _get_entry_match_cluster_ids(self, keyword_list: list) -> list:
+        """获取通过ClusterEntry.entry匹配到的集群ID
+
+        Args:
+            keyword_list: 搜索关键字列表
+
+        Returns:
+            list: 匹配到的集群ID列表
+        """
+        entry_match_cluster_ids = []
+        for keyword in keyword_list:
             try:
                 domain, _ = keyword.split(":")
             except ValueError:
@@ -229,136 +293,17 @@ class QSearchHandler(object):
                 domain = keyword
 
             if self.filter_type == FilterType.EXACT.value:
-                domain_qs |= Q(immute_domain=domain)
                 # 精确搜索：通过ClusterEntry.entry匹配集群ID
                 entry_match_cluster_ids.extend(
                     ClusterEntry.objects.filter(entry=domain).values_list("cluster_id", flat=True)
                 )
             else:
-                domain_qs |= Q(immute_domain__icontains=domain)
                 # 模糊搜索：通过ClusterEntry.entry匹配集群ID
                 entry_match_cluster_ids.extend(
                     ClusterEntry.objects.filter(entry__icontains=domain).values_list("cluster_id", flat=True)
                 )
 
-        # 合并通过ClusterEntry.entry匹配到的集群ID
-        if entry_match_cluster_ids:
-            entry_qs = Q(id__in=list(set(entry_match_cluster_ids)))
-            qs = domain_qs | tag_qs | entry_qs
-        else:
-            qs = domain_qs | tag_qs
-
-        objs = Cluster.objects.filter(qs).distinct()
-        # 使用objects模式获取QuerySet，再手动预取关联数据并序列化
-        clusters = self.common_filter(
-            objs.prefetch_related(
-                Prefetch(
-                    "clusterentry_set",
-                    queryset=ClusterEntry.objects.select_related("forward_to"),
-                    to_attr="entries",
-                ),
-                "tags",
-            ),
-            return_type="objects",
-        )
-        return self._serialize_clusters(clusters)
-
-    def _serialize_clusters(self, clusters):
-        """序列化集群对象，包含cluster_entry和tags"""
-        if not clusters:
-            return []
-
-        cluster_ids = [c.id for c in clusters]
-        cluster_types = list({c.cluster_type for c in clusters})
-        bk_biz_ids = list({c.bk_biz_id for c in clusters})
-
-        # 批量预取关联数据
-        cluster_entry_map = ClusterEntry.get_entries_map(
-            ClusterEntry.objects.filter(cluster_id__in=cluster_ids).select_related("cluster")
-        )
-        db_module_names_map = {
-            m["db_module_id"]: m["alias_name"]
-            for m in DBModule.objects.filter(cluster_type__in=cluster_types).values("db_module_id", "alias_name")
-        }
-        cluster_operate_records_map = ClusterOperateRecord.get_cluster_records_map(cluster_ids)
-        cloud_info = ResourceQueryHelper.search_cc_cloud(get_cache=True)
-        cluster_zone_map = BKSubzone.get_subzone_map(get_cache=True)
-        biz_info_map = {biz.bk_biz_id: biz for biz in AppCache.objects.filter(bk_biz_id__in=bk_biz_ids)}
-
-        # 预取集群规格信息
-        db_types = set(ClusterType.cluster_type_to_db_type(ct) for ct in cluster_types)
-        remote_spec_map = {s.spec_id: s for s in Spec.objects.filter(spec_cluster_type__in=db_types)}
-
-        result = []
-        for cluster in clusters:
-            # 处理 cluster_entry 和 dns_to_clb
-            cluster_entry = []
-            dns_to_clb = False
-            for entry in getattr(cluster, "entries", []):
-                cluster_entry.append(
-                    {"cluster_entry_type": entry.cluster_entry_type, "entry": entry.entry, "role": entry.role}
-                )
-                if (
-                    not dns_to_clb
-                    and entry.cluster_entry_type == ClusterEntryType.DNS.value
-                    and entry.entry == cluster.immute_domain
-                    and entry.forward_to is not None
-                    and entry.forward_to.cluster_entry_type == ClusterEntryType.CLB.value
-                ):
-                    dns_to_clb = True
-
-            # 补充集群规格信息
-            cluster_spec = None
-            storage = cluster.storageinstance_set.first()
-            if storage:
-                cluster_spec_id = storage.machine.spec_id
-                cluster_spec = remote_spec_map.get(cluster_spec_id)
-
-            biz_info = biz_info_map.get(cluster.bk_biz_id)
-            bk_cloud_name = cloud_info.get(str(cluster.bk_cloud_id), {}).get("bk_cloud_name", "")
-            cluster_entry_map_value = cluster_entry_map.get(cluster.id, {})
-            cluster_zone_list = cluster.zone_list or []
-
-            cluster_data = {
-                "id": cluster.id,
-                "db_type": ClusterType.cluster_type_to_db_type(cluster.cluster_type),
-                "phase": cluster.phase,
-                "phase_name": cluster.get_phase_display(),
-                "status": cluster.status,
-                "operations": cluster_operate_records_map.get(cluster.id, []),
-                "dns_to_clb": dns_to_clb,
-                "cluster_time_zone": cluster.time_zone,
-                "cluster_name": cluster.name,
-                "cluster_alias": cluster.alias,
-                "cluster_access_port": cluster.access_port,
-                "cluster_stats": {},
-                "cluster_type": cluster.cluster_type,
-                "cluster_type_name": str(ClusterType.get_choice_label(cluster.cluster_type)),
-                "cluster_subzones": [cluster_zone_map.get(str(zone), "") for zone in cluster_zone_list],
-                "cluster_subzone_ids": cluster_zone_list,
-                "disaster_tolerance_level": cluster.disaster_tolerance_level,
-                "master_domain": cluster_entry_map_value.get("master_domain", ""),
-                "slave_domain": cluster_entry_map_value.get("slave_domain", ""),
-                "cluster_entry": cluster_entry,
-                "bk_biz_id": cluster.bk_biz_id,
-                "bk_biz_name": biz_info.bk_biz_name if biz_info else "",
-                "bk_cloud_id": cluster.bk_cloud_id,
-                "bk_cloud_name": bk_cloud_name,
-                "major_version": cluster.major_version,
-                "region": cluster.region,
-                "city": cluster.region,
-                "db_module_name": db_module_names_map.get(cluster.db_module_id, ""),
-                "db_module_id": cluster.db_module_id,
-                "creator": cluster.creator,
-                "updater": cluster.updater,
-                "create_at": cluster.create_at,
-                "update_at": cluster.update_at,
-                "cluster_spec": cluster_spec.to_dict() if cluster_spec else None,
-                "tags": [tag.desc for tag in cluster.tags.all()],
-                "zone_list": cluster.zone_list,
-            }
-            result.append(cluster_data)
-        return self.supplementary_fields(result)
+        return entry_match_cluster_ids
 
     def filter_instance(self, keyword_list: list):
         """过滤实例"""
