@@ -102,6 +102,11 @@ COMPONENT_CONFIG_ITEMS = {
         ConfType.PROXY: [ConfFile.PREDIXY],
         ConfType.CONFIG: [ConfFile.BACKUP, ConfFile.FULLBACKUP, ConfFile.BINLOGBACKUP, ConfFile.MONITOR],
     },
+    ClusterType.TendisPredixyTendisplusInstance: {
+        ConfType.DBCONF: [DB_VERSION],
+        ConfType.PROXY: [ConfFile.PREDIXY],
+        ConfType.CONFIG: [ConfFile.BACKUP, ConfFile.FULLBACKUP, ConfFile.BINLOGBACKUP, ConfFile.MONITOR],
+    },
     # ----- Redis: RedisInstance (无 Proxy) -----
     ClusterType.TendisRedisInstance: {
         ConfType.DBCONF: [DB_VERSION],
