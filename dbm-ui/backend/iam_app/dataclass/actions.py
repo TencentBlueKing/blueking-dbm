@@ -2737,22 +2737,22 @@ class ActionEnum:
 
     DBA_ADMINISTRATOR_EDIT = ActionMeta(
         id="dba_administrator_edit",
-        name=_("业务DBA设置"),
+        name=_("DBA人员设置"),
         name_en="dba_administrator_edit",
         type="manage",
-        related_actions=[DB_MANAGE.id],
-        related_resource_types=[ResourceEnum.BUSINESS],
+        related_actions=[],
+        related_resource_types=[ResourceEnum.BUSINESS, ResourceEnum.DBTYPE],
         group=_("业务配置"),
         subgroup="",
     )
 
     GLOBAL_DBA_ADMINISTRATOR_EDIT = ActionMeta(
         id="global_dba_administrator_edit",
-        name=_("全局DBA与业务设置"),
+        name=_("全局DBA人员设置"),
         name_en="global_dba_administrator_edit",
         type="manage",
         related_actions=[GLOBAL_MANAGE.id],
-        related_resource_types=[],
+        related_resource_types=[ResourceEnum.DBTYPE],
         group=_("全局设置"),
         subgroup="",
         hidden=True,
