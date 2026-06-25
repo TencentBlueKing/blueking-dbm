@@ -38,6 +38,7 @@ class ConfType(StrStructuredEnum):
     CHECKSUM = EnumField("checksum", _("Checksum配置"))
     BACKUP_CLIENT = EnumField("backup_client", _("备份客户端配置"))
     ALARM = EnumField("alarm", _("告警配置"))
+    DORIS_RUNTIME_CONFIG = EnumField("doris_runtime_config", _("Doris运行时配置"))
 
 
 class OpType(StrStructuredEnum):

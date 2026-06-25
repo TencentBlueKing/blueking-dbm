@@ -120,6 +120,19 @@ class DorisBaseFlow(object):
             self.doris_config = dbconfig["content"]
             self.be_conf = self.doris_config[DorisConfigEnum.Backend]
             self.fe_conf = self.doris_config[DorisConfigEnum.Frontend]
+            # 从dbconfig获取运行时配置（全局变量、用户属性、资源组）
+            runtime_dbconfig = DBConfigApi.query_conf_item(
+                {
+                    "bk_biz_id": str(self.bk_biz_id),
+                    "level_name": LevelName.APP,
+                    "level_value": str(self.bk_biz_id),
+                    "conf_file": self.db_version,
+                    "conf_type": ConfType.DORIS_RUNTIME_CONFIG,
+                    "namespace": NameSpaceEnum.Doris,
+                    "format": FormatType.MAP_LEVEL,
+                }
+            )
+            self.runtime_config = runtime_dbconfig["content"]
             self.username = data.get("username")
             self.password = data.get("password")
         else:
@@ -153,6 +166,21 @@ class DorisBaseFlow(object):
             self.doris_config = dbconfig["content"]
             self.be_conf = self.doris_config[DorisConfigEnum.Backend]
             self.fe_conf = self.doris_config[DorisConfigEnum.Frontend]
+            # 从dbconfig获取运行时配置（全局变量、用户属性、资源组）
+            runtime_dbconfig = DBConfigApi.query_conf_item(
+                {
+                    "bk_biz_id": str(self.bk_biz_id),
+                    "level_name": LevelName.CLUSTER,
+                    "level_value": self.domain,
+                    "level_info": {"module": LevelInfoEnum.TendataModuleDefault},
+                    "conf_file": self.db_version,
+                    "conf_type": ConfType.DORIS_RUNTIME_CONFIG,
+                    "namespace": NameSpaceEnum.Doris,
+                    "format": FormatType.MAP_LEVEL,
+                    "method": ReqType.GENERATE_AND_PUBLISH,
+                }
+            )
+            self.runtime_config = runtime_dbconfig["content"]
             # dbconfig 默认返回字符串类型，需要转int
             self.http_port = int(self.doris_config[DorisConfigEnum.Frontend]["http_port"])
             self.query_port = int(self.doris_config[DorisConfigEnum.Frontend]["query_port"])
@@ -182,6 +210,7 @@ class DorisBaseFlow(object):
             "domain": self.domain,
             "fe_conf": self.fe_conf,
             "be_conf": self.be_conf,
+            "runtime_config": self.runtime_config,
             "resource_spec": self.resource_spec,
             "city_code": self.city_code,
         }

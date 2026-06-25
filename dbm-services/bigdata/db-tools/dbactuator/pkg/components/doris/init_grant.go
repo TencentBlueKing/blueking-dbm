@@ -172,14 +172,6 @@ func (i *InitGrantService) InitGrantTxn() (err error) {
 		tx.Rollback()
 		logger.Fatal("创建自定义用户失败: %v", err)
 	}
-	// 4. 用户配置资源标签
-	setPropSql := fmt.Sprintf("set property for '%s' 'resource_tags.location' = '%s';",
-		i.Params.UserName, getAllResourceTags())
-	_, err = tx.Exec(setPropSql)
-	if err != nil {
-		tx.Rollback()
-		logger.Fatal("用户配置资源标签失败: %v", err)
-	}
 	// 提交事务
 	if err := tx.Commit(); err != nil {
 		logger.Fatal("提交事务失败: %v", err)

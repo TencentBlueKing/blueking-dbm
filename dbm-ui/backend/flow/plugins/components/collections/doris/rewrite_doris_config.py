@@ -9,6 +9,7 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 import base64
+import json
 import logging
 from typing import List
 
@@ -17,7 +18,7 @@ from pipeline.component_framework.component import Component
 from pipeline.core.flow.activity import Service
 
 from backend.components import DBConfigApi
-from backend.components.dbconfig.constants import LevelName, OpType, ReqType
+from backend.components.dbconfig.constants import ConfType, LevelName, OpType, ReqType
 from backend.components.mysql_priv_manager.client import DBPrivManagerApi
 from backend.flow.consts import ConfigTypeEnum, LevelInfoEnum, MySQLPrivComponent, NameSpaceEnum
 from backend.flow.plugins.components.collections.common.base_service import BaseService
@@ -71,11 +72,85 @@ class WriteBackDorisConfigService(BaseService):
                 "level_value": global_data["domain"],
             }
         )
+        # 回写运行时配置（动态用户属性）到 dbconfig
+        self.write_dynamic_user_property(global_data, conf_file_version)
         self.log_info("successfully write back doris config to dbconfig")
         # 仅上架单据需要回写权限配置，升级等场景不需要
         if global_data.get("ticket_type") == TicketType.DORIS_APPLY.value:
             self.write_auth_to_prv_manager(global_data)
         return True
+
+    def write_dynamic_user_property(self, global_data: dict, conf_file_version: str):
+        """
+        回写动态用户属性到 dbconfig 运行时配置。
+        - 从 runtime_config 中提取 default 模板属性
+        - 应用给动态用户（global_data["username"]），不写回 root/admin
+        - 合并后写回 dbconfig 的 user.property
+        """
+        dynamic_user = global_data.get("username")
+        if not dynamic_user:
+            return
+
+        runtime_config = global_data.get("runtime_config", {})
+        user_config = runtime_config.get("user", {})
+        if not user_config:
+            self.log_info(_("运行时配置无 user 段，跳过回写"))
+            return
+
+        # 解析 property，提取 default 模板和非 default 的已有用户
+        merged_users: dict = {}
+        default_props: dict = {}
+        for key, value in user_config.items():
+            if key != "property":
+                continue
+            try:
+                all_users = json.loads(value) if isinstance(value, str) else value
+            except (json.JSONDecodeError, TypeError):
+                logger.warning("解析 property 失败: %s", key)
+                continue
+            for username, props in all_users.items():
+                if username == "default":
+                    default_props.update(props)
+                else:
+                    merged_users[username] = props
+
+        # 将 default 模板属性赋给动态用户
+        if default_props:
+            merged_users[dynamic_user] = default_props
+        else:
+            self.log_info(_("default 模板属性为空，跳过动态用户属性回写"))
+            return
+
+        # 保留 default 模板 + 合并后的所有用户
+        final_users = {"default": default_props}
+        final_users.update(merged_users)
+        user_property_value = json.dumps(final_users, ensure_ascii=False)
+
+        # 构建 runtime config 的 conf_items
+        conf_items = [
+            {
+                "conf_name": DorisConfigEnum.UserProperty,
+                "conf_value": user_property_value,
+                "op_type": OpType.UPDATE,
+            }
+        ]
+
+        DBConfigApi.upsert_conf_item(
+            {
+                "conf_file_info": {
+                    "conf_file": conf_file_version,
+                    "conf_type": ConfType.DORIS_RUNTIME_CONFIG,
+                    "namespace": NameSpaceEnum.Doris,
+                },
+                "conf_items": conf_items,
+                "level_info": {"module": LevelInfoEnum.TendataModuleDefault},
+                "confirm": 0,
+                "req_type": ReqType.SAVE_AND_PUBLISH,
+                "bk_biz_id": str(global_data["bk_biz_id"]),
+                "level_name": LevelName.CLUSTER,
+                "level_value": global_data["domain"],
+            }
+        )
 
     def inputs_format(self) -> List:
         return [

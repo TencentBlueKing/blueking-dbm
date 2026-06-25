@@ -40,6 +40,7 @@ func DorisCommand() *cobra.Command {
 				DecompressDorisPkgV2Command(),
 				RenderConfigV2Command(),
 				UpgradeNodeCommand(),
+				InitRuntimeConfigCommand(),
 			},
 		},
 	}
