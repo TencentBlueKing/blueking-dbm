@@ -302,8 +302,9 @@ func (ha *DbhaData) UpdateSwitchingSnapshotLog(ctx context.Context, record *hamo
 	err := ha.DB.DB().WithContext(ctx).Model(&hamodel.DbSwitchingSnapshotLog{}).
 		Where(fmt.Sprintf("%s = ?", hamodel.DbSwitchingSnapshotLogFieldID), record.ID).
 		Updates(map[string]any{
-			hamodel.DbSwitchingSnapshotLogFieldFinishedTime: record.FinishedTime,
+			hamodel.DbSwitchingSnapshotLogFieldInstances:    record.Instances,
 			hamodel.DbSwitchingSnapshotLogFieldResult:       record.Result,
+			hamodel.DbSwitchingSnapshotLogFieldFinishedTime: record.FinishedTime,
 		}).Error
 	if err != nil {
 		return gerrors.NewE(gerrors.MysqlFailure, err)

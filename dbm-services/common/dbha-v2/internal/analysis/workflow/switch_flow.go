@@ -204,7 +204,7 @@ func (e *SwitchExecutor) TriggerSwitching(dbType haprobe.DbType, req *switcher.R
 	}
 
 	// Report after switching snapshot
-	switchingSnapshotLogger.ReportAfterSwitchingSnapshot(rsp.Err)
+	switchingSnapshotLogger.ReportAfterSwitchingSnapshot(rsp)
 
 	e.reportSwitchingMetrics(start, req, rsp, dbType)
 	e.postSuccessAlarms(req, rsp, dbType)

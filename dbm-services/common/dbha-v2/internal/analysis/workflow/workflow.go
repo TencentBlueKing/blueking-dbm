@@ -27,6 +27,7 @@ package workflow
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"sort"
 	"strconv"
@@ -36,8 +37,10 @@ import (
 
 	"dbm-services/common/dbha-v2/internal/analysis/apm"
 	"dbm-services/common/dbha-v2/internal/analysis/config"
+	"dbm-services/common/dbha-v2/internal/analysis/dbm"
 	"dbm-services/common/dbha-v2/internal/analysis/storage"
 	"dbm-services/common/dbha-v2/internal/analysis/switcher"
+	"dbm-services/common/dbha-v2/internal/analysis/switcher/switchlogger/snapshotlogger"
 	"dbm-services/common/dbha-v2/pkg/discovery"
 	"dbm-services/common/dbha-v2/pkg/gerrors"
 	"dbm-services/common/dbha-v2/pkg/haapm"
@@ -687,4 +690,78 @@ func (w *Workflow) reportDbTableUpdatedStats(ctx context.Context) {
 			logger.Warn("failed to report dbha_data_status_updated_count, dbType: %s, errmsg: %s", item.DbType, e)
 		}
 	}
+}
+
+// NewSwitchingSnapshotData creates a new SwitchingSnapshotData instance.
+func NewSwitchingSnapshotData(
+	strategy *hamodel.DbSwitchingStrategy,
+	group *FailureGroup,
+	req *switcher.Request,
+	swSnapshotLogger logger.Logger,
+) *snapshotlogger.SwitchingSnapshotData {
+	if strategy == nil || group == nil || req == nil || swSnapshotLogger == nil {
+		return nil
+	}
+
+	data := &snapshotlogger.SwitchingSnapshotData{
+		StdSwitchingSnapshotData: snapshotlogger.StdSwitchingSnapshotData{
+			DbType:      string(req.DbType),
+			ActionScope: string(req.ActionScope),
+		},
+		DbSwitchingSnapshotData: snapshotlogger.DbSwitchingSnapshotData{
+			SwitchID:  req.SwitchID,
+			BkCloudID: group.BkCloudID,
+		},
+		SwSnapshotLogger: swSnapshotLogger,
+	}
+
+	// marshal strategy
+	strategyJSON, err := json.Marshal(strategy)
+	if err != nil {
+		swSnapshotLogger.Warn(
+			"failed to marshal strategy for switching snapshot, switchId: %s, errmsg: %s",
+			req.SwitchID, err)
+	} else {
+		data.StdSwitchingSnapshotData.StrategyJSON = strategyJSON
+	}
+
+	// marshal failure instances
+	failures := []FailureInstanceInfo{}
+	if group.Instances != nil {
+		failures = group.Instances
+	}
+
+	failureJSON, err := json.Marshal(failures)
+	if err != nil {
+		swSnapshotLogger.Warn(
+			"failed to marshal failure instances for switching snapshot, switchId: %s, errmsg: %s",
+			req.SwitchID, err)
+	} else {
+		data.StdSwitchingSnapshotData.FailureInstancesJSON = failureJSON
+
+		if len(group.Instances) > 0 {
+			data.DbSwitchingSnapshotData.BkBizID = group.Instances[0].BkBizID
+			data.DbSwitchingSnapshotData.ClusterID = group.Instances[0].ClusterID
+			data.DbSwitchingSnapshotData.ClusterName = group.Instances[0].Cluster
+			data.DbSwitchingSnapshotData.Reason = group.Instances[0].EventNameReason.Str().String()
+		}
+	}
+
+	// marshal metadata set
+	metaSet := []*dbm.DbInstMetadata{}
+	if req.MySqlInstData != nil {
+		metaSet = req.MySqlInstData
+	}
+	data.MetadataSet = metaSet
+
+	metadataJSON, err := json.Marshal(metaSet)
+	if err != nil {
+		swSnapshotLogger.Warn(
+			"failed to marshal metadata set for switching snapshot, switchId: %s, errmsg: %s",
+			req.SwitchID, err)
+	} else {
+		data.StdSwitchingSnapshotData.MetadataSetJSON = metadataJSON
+	}
+
+	return data
 }
