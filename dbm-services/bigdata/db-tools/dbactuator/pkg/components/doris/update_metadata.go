@@ -75,8 +75,15 @@ func (i *UpdateMetaDataService) UpdateMetaDataInternal() (failHostMap map[string
 				(roleEnum.Value() == Cold || roleEnum.Value() == Warm) {
 				metaDataSql = fmt.Sprintf(`%s PROPERTIES("tag.location" = "%s")`, metaDataSql, BeTagLocationCold)
 			}
+
+			logger.Info("执行SQL: %s", metaDataSql)
 			// 执行SQL
-			_, err = db.Exec(metaDataSql)
+
+			_, err := db.Exec(metaDataSql)
+			if err != nil {
+				logger.Error("执行SQL失败，%v", err)
+			}
+
 			if err != nil {
 				failErr = err
 				value, ok := failHostMap[role]

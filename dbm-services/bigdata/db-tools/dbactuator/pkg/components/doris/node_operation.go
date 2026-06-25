@@ -134,8 +134,14 @@ func SupervisorCommand(command string, component string) error {
 func SupervisorAddConfig(supervisorConfDir string, component string) error {
 
 	group := RoleEnum(component).Group()
+	dorisHome := fmt.Sprintf("/data/dorisenv/%s", component)
+	// 用 bash -c 包裹启动命令，先 source dorisprofile 加载 JAVA_HOME 等环境变量。
+	// supervisor 直接 exec 不加载 profile，不加这一步会导致 start_fe.sh/start_be.sh 找不到 java。
+	startCmd := fmt.Sprintf("bash -c 'source /data/dorisenv/dorisprofile && exec %s/bin/start_%s.sh'",
+		dorisHome, group)
 	data := []byte(fmt.Sprintf(`[program:%s]
-command=/data/dorisenv/%s/bin/start_%s.sh ; the program (relative uses PATH, can take args)
+command=%s ; the program (relative uses PATH, can take args)
+directory=%s ; supervisord 
 numprocs=1 ; number of processes copies to start (def 1)
 autostart=true ; start at supervisord start (default: true)
 startsecs=3 ; # of secs prog must stay up to be running (def. 1)
@@ -146,8 +152,8 @@ user=mysql ;
 stopsignal=KILL ;
 stopasgroup=true ;
 killasgroup=true ;
-redirect_stdout=false ; 
-redirect_stderr=false ; redirect proc stderr to stdout (default false)`, component, component, group))
+redirect_stdout=false ;
+redirect_stderr=false ; redirect proc stderr to stdout (default false)`, component, startCmd, dorisHome))
 
 	componentIni := supervisorConfDir + "/" + component + ".ini"
 
@@ -161,4 +167,9 @@ redirect_stderr=false ; redirect proc stderr to stdout (default false)`, compone
 // SupervisorUpdate TODO
 func SupervisorUpdate() error {
 	return SupervisorCommand("update", "")
+}
+
+// SupervisorStart 显式启动 supervisor 程序（覆盖重试时 update 不启动已存在程序的问题）
+func SupervisorStart(component string) error {
+	return SupervisorCommand("start", component)
 }

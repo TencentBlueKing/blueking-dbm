@@ -94,16 +94,15 @@ func RemoveSystemCrontab(removeKey string) (err error) {
  * @return {*}
  */
 func ListCrontb(user string) (output string, err error) {
-	crontabList := fmt.Sprintf("crontab -u %s -l|grep -E -v ^$ || true", user)
-	// "crontab -u " + user + " -l"
+	// 2>/dev/null 同时解决两个 stderr 问题：
+	// 1. crontab 无任务时输出 "no crontab for xxx" 到 stderr
+	// 2. grep -E 在某些系统上触发 "egrep: warning: egrep is obsolescent" 到 stderr
+	// ExecShellCommand 会把任何 stderr 当作错误，所以必须重定向
+	crontabList := fmt.Sprintf("crontab -u %s -l 2>/dev/null | grep -E -v '^$' || true", user)
 	output, err = ExecShellCommand(false, crontabList)
 	if err != nil {
 		err = fmt.Errorf("execute [%s] get an error:%w,%s", crontabList, err, output)
-		if strings.Contains(output, "no crontab for") {
-			return "", nil
-		} else {
-			return "", err
-		}
+		return "", err
 	}
 	return output, err
 }

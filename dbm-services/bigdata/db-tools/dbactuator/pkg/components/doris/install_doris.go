@@ -255,15 +255,31 @@ func (i *InstallDorisService) StartFeByHelper() (err error) {
 		2. 本地调用Http接口测试服务是否正常启动
 		3. 退出Fe
 	*/
-	if err := dorisutil.StartFeByHelper(i.DorisEnvDir, string(i.Params.Role),
+	// 幂等安全：如果 FE 端口已通（上一次尝试的残留进程），先停掉，保证干净状态
+	if CheckHostPortOpen(i.Params.Host, i.Params.QueryPort) == nil {
+		logger.Info("FE port %d on %s is already open, stopping it first to ensure clean state",
+			i.Params.QueryPort, i.Params.Host)
+		if stopErr := i.StopByFeHelper(); stopErr != nil {
+			logger.Warn("StopByFeHelper for already-running FE failed (may already be stopped): %v", stopErr)
+		}
+	}
+
+	if err = dorisutil.StartFeByHelper(i.DorisEnvDir, string(i.Params.Role),
 		i.Params.MasterFeIp, FeEditLogPort); err != nil {
 		return err
 	}
 	// 检查FE启动是否成功
 	if err = i.CheckFrontEndStart(); err != nil {
+		// 检查失败（超时或FE异常），必须停掉进程，否则：
+		// - 重试时 start_fe.sh 会因为进程/端口已存在而失败
+		// - 跳过时 supervisor 会因为端口被占用而不断重启
+		logger.Error("CheckFrontEndStart failed, stopping FE process for clean retry: %v", err)
+		if stopErr := i.StopByFeHelper(); stopErr != nil {
+			logger.Warn("StopByFeHelper during error cleanup failed (may already be stopped): %v", stopErr)
+		}
 		return err
 	}
-	// 停止通过helper启动的服务
+	// 停止通过helper启动的服务，交棒给 supervisor
 	if err = i.StopByFeHelper(); err != nil {
 		return err
 	}
@@ -279,7 +295,16 @@ func (i *InstallDorisService) InstallDoris() (err error) {
 		return err
 	}
 
-	return SupervisorUpdate()
+	// 加载新配置（首次添加时自动启动，重试时程序已存在则不启动）
+	if err = SupervisorUpdate(); err != nil {
+		return err
+	}
+	// 显式启动，覆盖重试场景（update 对已存在的 stopped 程序不操作）
+	// "already started" 场景不阻塞，打 warn 即可
+	if err = SupervisorStart(string(i.Params.Role)); err != nil {
+		logger.Warn("supervisorctl start %s: %v (may already be running, ignoring)", i.Params.Role, err)
+	}
+	return nil
 }
 
 // CheckComponentRunning 校验当前角色在 supervisor 中已 RUNNING（5s × 3 次轮询）。
@@ -314,15 +339,17 @@ func GenDorisDataDirConf(role Role, dirs []string) string {
 
 // CheckQeServiceStart 检查Follower QE service是否正常启动，
 func (i *InstallDorisService) CheckQeServiceStart() (err error) {
-	RetryCount := 3
+	RetryCount := 12
 	SleepDuration := 10 * time.Second
 	for retryTimes := 0; retryTimes <= RetryCount; retryTimes++ {
 		err = CheckHostPortOpen(i.Params.Host, i.Params.QueryPort)
 		if err != nil {
-			logger.Error("打开连接失败, ", err.Error())
+			logger.Info("CheckQeServiceStart attempt %d/%d: port %d on %s not ready yet, err=%v",
+				retryTimes+1, RetryCount+1, i.Params.QueryPort, i.Params.Host, err)
 			time.Sleep(SleepDuration)
 			continue
 		} else {
+			logger.Info("CheckQeServiceStart success on attempt %d", retryTimes+1)
 			return nil
 		}
 	}
@@ -345,7 +372,7 @@ func CheckHostPortOpen(host string, port int) (err error) {
 
 // CheckFrontEndStart TODO
 func (i *InstallDorisService) CheckFrontEndStart() (err error) {
-	RetryCount := 3
+	RetryCount := 12
 	SleepDuration := 10 * time.Second
 	url := fmt.Sprintf("http://%s:%d/api/bootstrap", i.Params.Host, i.Params.HttpPort)
 	var statusStruct *BootstrapStatus
@@ -353,23 +380,24 @@ func (i *InstallDorisService) CheckFrontEndStart() (err error) {
 	for retryTimes := 0; retryTimes <= RetryCount; retryTimes++ {
 		responseBody, err := dorisutil.HttpGet(url)
 		if err != nil {
-			logger.Error("httpGet failed", err.Error())
-			// 等待5s
+			logger.Info("CheckFrontEndStart attempt %d/%d: httpGet %s failed, err=%v",
+				retryTimes+1, RetryCount+1, url, err)
 			time.Sleep(SleepDuration)
 			continue
 		}
 		if err = json.Unmarshal(responseBody, &statusStruct); err != nil {
-			logger.Error("transfer response to json failed", err.Error())
-			// 等待5s
+			logger.Info("CheckFrontEndStart attempt %d/%d: json unmarshal failed, err=%v",
+				retryTimes+1, RetryCount+1, err)
 			time.Sleep(SleepDuration)
 			continue
 		}
 		if statusStruct.Code != BootstrapStatusOK {
-			logger.Error("bootstrap failed, msg is %s, err is %s", statusStruct.Message, err.Error())
-			// 等待5s
+			logger.Info("CheckFrontEndStart attempt %d/%d: bootstrap not ready, code=%d, msg=%s",
+				retryTimes+1, RetryCount+1, statusStruct.Code, statusStruct.Message)
 			time.Sleep(SleepDuration)
 			continue
 		} else {
+			logger.Info("CheckFrontEndStart success on attempt %d", retryTimes+1)
 			return nil
 		}
 	}

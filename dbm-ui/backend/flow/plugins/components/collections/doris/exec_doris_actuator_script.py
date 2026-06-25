@@ -19,7 +19,7 @@ from jinja2.sandbox import SandboxedEnvironment as Environment
 from pipeline.component_framework.component import Component
 from pipeline.core.flow.activity import Service
 
-import backend.flow.utils.es.es_context_dataclass as flow_context
+import backend.flow.utils.doris.doris_context_dataclass as flow_context
 from backend import env
 from backend.components import JobApi
 from backend.flow.models import FlowNode
