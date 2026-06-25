@@ -258,7 +258,6 @@ export const toolboxMenuList: ToolboxTreeNode[] = [
         id: TicketTypes.MYSQL_PROXY_UPGRADE,
         name: t('版本升级'),
       },
-
       {
         dbConsoleValue: 'mysql.toolbox.clusterStandardize',
         desc: t('标准化集群配置和周边工具'),

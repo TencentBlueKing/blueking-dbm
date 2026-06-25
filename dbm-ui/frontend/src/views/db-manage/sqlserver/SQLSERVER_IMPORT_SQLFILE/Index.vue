@@ -77,7 +77,7 @@
   import TaskTips from '@views/db-manage/common/sql-execute/task-tips/Index.vue';
   import TicketMode from '@views/db-manage/common/sql-execute/ticket-mode/Index.vue';
   import TicketPayload, {
-    createTickePayload,
+    createTicketPayload,
   } from '@views/db-manage/common/toolbox-field/form-item/ticket-payload/Index.vue';
 
   import { utcDisplayTime } from '@utils';
@@ -94,7 +94,7 @@
     charset: 'GBK',
     cluster_ids: [] as Sqlserver.ImportSqlFile['cluster_ids'],
     execute_objects: [] as Sqlserver.ImportSqlFile['execute_objects'],
-    payload: createTickePayload(),
+    payload: createTicketPayload(),
     ticket_mode: {
       mode: 'manual',
       trigger_time: '',
@@ -119,7 +119,7 @@
         charset: details.charset,
         cluster_ids: details.cluster_ids,
         execute_objects: details.execute_objects,
-        payload: createTickePayload(ticketDetail),
+        payload: createTicketPayload(ticketDetail),
         ticket_mode: {
           ...details.ticket_mode,
           trigger_time: utcDisplayTime(details.ticket_mode.trigger_time),

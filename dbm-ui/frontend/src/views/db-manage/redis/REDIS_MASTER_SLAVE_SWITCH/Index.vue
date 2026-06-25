@@ -113,7 +113,7 @@
 
   import BatchInput from '@views/db-manage/common/batch-input/Index.vue';
   import TicketPayload, {
-    createTickePayload,
+    createTicketPayload,
   } from '@views/db-manage/common/toolbox-field/form-item/ticket-payload/Index.vue';
   import HostColumn from '@views/db-manage/redis/common/toolbox-field/host-column/Index.vue';
 
@@ -154,7 +154,7 @@
 
   const createDefaultFormData = () => ({
     force: false,
-    payload: createTickePayload(),
+    payload: createTicketPayload(),
     tableData: [createRowData()],
   });
 
@@ -166,7 +166,7 @@
       const { infos } = details;
       Object.assign(formData, {
         force: details.force,
-        payload: createTickePayload(ticketDetail),
+        payload: createTicketPayload(ticketDetail),
         tableData: infos.map((infoItem) =>
           createRowData({
             host: {

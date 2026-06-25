@@ -65,7 +65,7 @@
   import { TicketTypes } from '@common/const';
 
   import TicketPayload, {
-    createTickePayload,
+    createTicketPayload,
   } from '@views/db-manage/common/toolbox-field/form-item/ticket-payload/Index.vue';
   import MigrateFormItems, {
     ArchitectureType,
@@ -85,7 +85,7 @@
       if (ticketDetail.details.infos[0]?.migrate_type === 'machine') {
         formData.migrateType = MigrateType.MACHINE;
       }
-      formData.payload = createTickePayload(ticketDetail);
+      formData.payload = createTicketPayload(ticketDetail);
     },
   });
 
@@ -96,7 +96,7 @@
   const initFormData = () => ({
     architectureType: ArchitectureType.MASTER_SLAVE,
     migrateType: MigrateType.INSTANCE,
-    payload: createTickePayload(),
+    payload: createTicketPayload(),
   });
 
   const formData = reactive(initFormData());
