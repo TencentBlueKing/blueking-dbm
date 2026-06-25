@@ -52,6 +52,7 @@ class ApplyContext:
     kafka_act_payload: Optional[Any] = None  # 代表获取kafka的payload参数的类
     new_broker_ips: list = None  # 代表在资源池分配到broker的ip列表
     new_zookeeper_ips: list = None  # 代表在资源池分配到zookeeper的ip列表
+    existing_broker_configs: dict = None  # 代表从现有broker检查得到的配置信息，格式: {"missing_configs": [...]}
 
     @staticmethod
     def get_new_ip_var_name() -> str:
@@ -59,6 +60,10 @@ class ApplyContext:
         为了增加代码的可读性，同时手动输入字符串会有输入的风险，定义方法专门返回变量
         """
         return "new_ip"
+
+    @staticmethod
+    def get_existing_broker_configs_var_name() -> str:
+        return "existing_broker_configs"
 
 
 @dataclass()
