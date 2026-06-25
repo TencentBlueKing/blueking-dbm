@@ -73,6 +73,7 @@ class KafkaScaleUpFlow(object):
         self.data["domain"] = cluster.immute_domain
         self.data["cluster_name"] = cluster.name
         self.data["port"] = broker_first.port
+        self.data["existing_broker_ip"] = broker_first.machine.ip
         # 写入cluster_type，转模块会使用
         self.data["cluster_type"] = ClusterType.Kafka.value
 
@@ -198,6 +199,19 @@ class KafkaScaleUpFlow(object):
             kwargs=asdict(act_kwargs),
         )
 
+        # 检查现有broker配置项，获取缺失的配置，避免新旧broker配置漂移
+        act_kwargs.exec_ip = [{"ip": self.data["existing_broker_ip"], "bk_cloud_id": self.data["bk_cloud_id"]}]
+        act_kwargs.template = act_payload.get_check_broker_configs_payload(
+            host=self.data["existing_broker_ip"],
+            configs_to_check=list(self.data["kafka_config"].keys()),
+        )
+        kafka_pipeline.add_act(
+            act_name=_("检查现有broker配置项"),
+            act_component_code=ExecuteDBActuatorScriptComponent.code,
+            kwargs=asdict(act_kwargs),
+            write_payload_var=ApplyContext.get_existing_broker_configs_var_name(),
+        )
+
         # 安装broker
         broker_act_list = []
         for i, broker in enumerate(self.data["nodes"]["broker"], self.data["broker_max_id"] + 1):
@@ -211,10 +225,12 @@ class KafkaScaleUpFlow(object):
                 node_id=i,
             )
             ip = broker["ip"]
+            broker_kwargs = asdict(act_kwargs)
+            broker_kwargs["filter_kafka_config_by_check"] = True
             broker_act = {
                 "act_name": _("安装broker-{}").format(ip),
                 "act_component_code": ExecuteDBActuatorScriptComponent.code,
-                "kwargs": asdict(act_kwargs),
+                "kwargs": broker_kwargs,
             }
             broker_act_list.append(broker_act)
         kafka_pipeline.add_parallel_acts(acts_list=broker_act_list)

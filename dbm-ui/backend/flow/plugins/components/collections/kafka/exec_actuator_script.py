@@ -65,6 +65,16 @@ class ExecuteDBActuatorScriptService(BkJobService):
 
         # 获取kafka actuator 组件所需要执行的参数,
         db_act_template = kwargs["template"]
+
+        # 若安装节点需要过滤掉现有broker没有的配置项，从上下文读取检查结果并过滤
+        if kwargs.get("filter_kafka_config_by_check"):
+            trans_data = data.get_one_of_inputs("trans_data")
+            broker_configs = getattr(trans_data, "existing_broker_configs", None) if trans_data else None
+            if broker_configs:
+                missing = broker_configs.get("missing_configs", [])
+                kafka_configs = db_act_template.get("payload", {}).get("extend", {}).get("kafka_configs", {})
+                for key in missing:
+                    kafka_configs.pop(key, None)
         db_act_template["root_id"] = root_id
         db_act_template["node_id"] = node_id
         db_act_template["version_id"] = self._runtime_attrs["version"]

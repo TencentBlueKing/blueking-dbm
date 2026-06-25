@@ -200,10 +200,23 @@ class KafkaActPayload(object):
             },
         }
 
+    def get_check_broker_configs_payload(self, host: str, configs_to_check: list) -> dict:
+        """
+        拼接检查broker配置项的payload参数
+        """
+        return {
+            "db_type": DBActuatorTypeEnum.Kafka.value,
+            "action": KafkaActuatorActionEnum.CheckBrokerConfigs.value,
+            "payload": {
+                "general": {},
+                "extend": {
+                    "host": host,
+                    "configs_to_check": configs_to_check,
+                },
+            },
+        }
+
     def get_shrink_payload(self, action, host, new_host=None) -> dict:
-        """
-        拼接缩容参数
-        """
         zookeeper_ip = self.zookeeper_ip.split(",")[0]
         return {
             "db_type": DBActuatorTypeEnum.Kafka.value,
