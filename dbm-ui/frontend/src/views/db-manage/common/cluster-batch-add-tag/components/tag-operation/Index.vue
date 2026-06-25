@@ -12,19 +12,37 @@
 -->
 
 <template>
+  <BkAlert
+    class="mb-16"
+    theme="info">
+    <template #title>
+      <I18nT
+        v-if="!isKeyValueMode"
+        keypath="每行一个标签，格式n"
+        tag="span">
+        <template #n>
+          <BkTag style="height: 16px; margin-left: 4px">
+            <span style="color: #3a84ff">键:值</span>
+          </BkTag>
+        </template>
+      </I18nT>
+      <div>{{ t('标签键：支持中文、字母、数字、连字符、下划线、点号') }}</div>
+      <div>{{ t('标签值：支持中文、字母、数字、连字符、下划线、点号、逗号') }}</div>
+    </template>
+  </BkAlert>
   <div class="cluster-add-tag-main">
     <div class="title-opeartion-main">
       <template v-if="isKeyValueMode">
-        <div class="title title-key">{{ t('标签键') }}</div>
-        <div class="title title-value">{{ t('标签值') }}</div>
+        <div class="column-title title-key">{{ t('标签键') }}</div>
+        <div class="column-title title-value">{{ t('标签值') }}</div>
       </template>
       <div class="switch-operation">
-        <DbIcon type="copy" />
+        <DbIcon type="qiehuan" />
         <BkButton
           text
           theme="primary"
           @click="handleSwitchMode">
-          {{ isKeyValueMode ? t('切换文本编辑') : t('切换为 key/value') }}
+          {{ isKeyValueMode ? t('切换文本编辑') : t('切换网格编辑') }}
         </BkButton>
       </div>
     </div>
@@ -47,13 +65,11 @@
   import KeyValueMode from './components/key-value-mode/Index.vue';
   import TextMode from './components/TextMode.vue';
 
-  export type TagsPairType = Record<
-    string,
-    {
-      label: string;
-      value: number | string;
-    }
-  >;
+  export type TagsPairType = {
+    key: string;
+    value: number | string;
+    valueLabel: string;
+  };
 
   export type KeyValueMapType = Record<
     string,
@@ -64,7 +80,7 @@
   >;
 
   interface Exposes {
-    getValue: (isIgnoreVerify?: boolean) => Promise<TagsPairType | null>;
+    getValue: (isIgnoreVerify?: boolean) => Promise<TagsPairType[]>;
   }
 
   interface Props {
@@ -81,7 +97,7 @@
 
   const modeRef = ref();
   const editMode = ref('key_value');
-  const tagsPairData = ref<TagsPairType>();
+  const tagsPairData = ref<TagsPairType[]>([]);
   const keyValueMap = ref<KeyValueMapType>({});
 
   const isKeyValueMode = computed(() => editMode.value === 'key_value');
@@ -135,15 +151,11 @@
 
   watchEffect(() => {
     if (props.data.length) {
-      tagsPairData.value = props.data.reduce<TagsPairType>((results, item) => {
-        Object.assign(results, {
-          [item.key]: {
-            label: item.value,
-            value: item.id,
-          },
-        });
-        return results;
-      }, {});
+      tagsPairData.value = props.data.map((item) => ({
+        key: item.key,
+        value: item.id,
+        valueLabel: item.value,
+      }));
     }
   });
 
@@ -151,11 +163,10 @@
     const inputData = await modeRef.value!.getValue(true);
     if (inputData) {
       tagsPairData.value = inputData;
+      nextTick(() => {
+        editMode.value = isKeyValueMode.value ? 'text' : 'key_value';
+      });
     }
-
-    nextTick(() => {
-      editMode.value = isKeyValueMode.value ? 'text' : 'key_value';
-    });
   };
 
   defineExpose<Exposes>({
@@ -173,8 +184,17 @@
       margin-bottom: 8px;
       font-size: 12px;
 
-      .title {
+      .column-title {
+        position: relative;
         font-weight: 700;
+
+        &::after {
+          position: absolute;
+          top: 2px;
+          left: 42px;
+          color: #ea3636;
+          content: '*';
+        }
 
         &.title-key {
           width: 254px;
