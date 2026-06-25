@@ -29,7 +29,7 @@ from backend.flow.plugins.components.collections.doris.get_doris_payload import 
 from backend.flow.utils.base.payload_handler import PayloadHandler
 from backend.flow.utils.doris.consts import DorisConfigEnum
 from backend.flow.utils.doris.doris_act_payload import DorisActPayload
-from backend.flow.utils.doris.doris_context_dataclass import DorisActKwargs
+from backend.flow.utils.doris.doris_context_dataclass import DorisActKwargs, DorisApplyContext
 from backend.ticket.constants import TicketType
 
 logger = logging.getLogger("flow")
@@ -356,12 +356,20 @@ class DorisBaseFlow(object):
         # sub_flow 缩容BE 只涉及Doris集群操作，不包括清理数据目录/dbmeta等
         del_be_sub_pipeline = SubBuilder(root_id=self.root_id, data=del_be_data)
         act_kwargs = DorisActKwargs(bk_cloud_id=self.bk_cloud_id)
+        act_kwargs.set_trans_data_dataclass = DorisApplyContext.__name__
 
         del_be_sub_pipeline.add_act(
             act_name=_("获取集群Payload"), act_component_code=GetDorisActPayloadComponent.code, kwargs=asdict(act_kwargs)
         )
-        # 更新元数据 退役 BE
+        # 退役前确认所有新 BE 已加入集群且 Alive，避免副本数不足导致退役失败
         act_kwargs.exec_ip = del_be_data["master_fe_ip"]
+        act_kwargs.get_doris_payload_func = DorisActPayload.get_check_backends_alive_payload.__name__
+        del_be_sub_pipeline.add_act(
+            act_name=_("检查新BE节点状态"),
+            act_component_code=ExecuteDorisActuatorScriptComponent.code,
+            kwargs=asdict(act_kwargs),
+        )
+        # 更新元数据 退役 BE
         act_kwargs.get_doris_payload_func = DorisActPayload.get_decommission_metadata_payload.__name__
         del_be_sub_pipeline.add_act(
             act_name=_("集群元数据更新-退役-BE"),

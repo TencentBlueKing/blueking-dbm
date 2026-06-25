@@ -782,6 +782,7 @@ class DorisActuatorActionEnum(StrStructuredEnum):
     UpdateMetadata = EnumField("update_metadata", _("update_metadata"))
     CheckDecommission = EnumField("check_decommission", _("check_decommission"))
     CheckProcessStart = EnumField("check_process_start", _("check_process_start"))
+    CheckBackendsAlive = EnumField("check_backends_alive", _("check_backends_alive"))
     CreateResource = EnumField("create_resource", _("create_resource"))
     DropResource = EnumField("drop_resource", _("drop_resource"))
     DecompressPkgV2 = EnumField("decompress_pkg_v2", _("decompress_pkg_v2"))

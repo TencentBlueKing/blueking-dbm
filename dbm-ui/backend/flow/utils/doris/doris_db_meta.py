@@ -184,6 +184,58 @@ class DorisDBMeta(object):
         logger.info("doris_upgrade meta done: cluster_id=%s", cluster_id)
         return True
 
+    def doris_replace(self) -> bool:
+        """
+        替换集群节点：先添加新节点，再删除旧节点
+        ticket_data 中 new_nodes 和 old_nodes 分别存放新旧节点信息
+        """
+        origin_nodes = self.ticket_data.get("nodes", {})
+        origin_ticket_type = self.ticket_data.get("ticket_type", "")
+
+        new_nodes = self.ticket_data.get("new_nodes", {})
+        old_nodes = self.ticket_data.get("old_nodes", {})
+
+        has_new = any(new_nodes.get(role) for role in new_nodes)
+        has_old = any(old_nodes.get(role) for role in old_nodes)
+
+        if has_new:
+            logger.info(
+                "doris_replace: adding new nodes %s", {k: [n["ip"] for n in v] for k, v in new_nodes.items() if v}
+            )
+            self.ticket_data["nodes"] = new_nodes
+            machines = self.__generate_machine()
+            storage_instances = self.__generate_storage_instance()
+            with atomic():
+                api.machine.create(
+                    bk_cloud_id=self.ticket_data["bk_cloud_id"],
+                    machines=machines,
+                    creator=self.ticket_data["created_by"],
+                )
+                api.storage_instance.create(instances=storage_instances, creator=self.ticket_data["created_by"])
+                api.cluster.doris.scale_up(
+                    cluster_id=self.ticket_data["cluster_id"],
+                    storages=storage_instances,
+                )
+            logger.info("doris_replace: new nodes added successfully")
+
+        if has_old:
+            logger.info(
+                "doris_replace: removing old nodes %s", {k: [n["ip"] for n in v] for k, v in old_nodes.items() if v}
+            )
+            self.ticket_data["nodes"] = old_nodes
+            storage_instances = self.__generate_storage_instance()
+            with atomic():
+                api.cluster.doris.shrink(
+                    cluster_id=self.ticket_data["cluster_id"],
+                    storages=storage_instances,
+                )
+            logger.info("doris_replace: old nodes removed successfully")
+
+        # 恢复原始值
+        self.ticket_data["nodes"] = origin_nodes
+        self.ticket_data["ticket_type"] = origin_ticket_type
+        return True
+
     def clear_machines(self):
         """
         清理机器信息

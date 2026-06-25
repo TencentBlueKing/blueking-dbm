@@ -30,7 +30,10 @@ class DorisMetaService(BaseService):
 
         doris_meta = DorisDBMeta(ticket_data=global_data)
         result = doris_meta.write()
-        self.log_info("DBMeta write successfully")
+        if result:
+            self.log_info("DBMeta write successfully")
+        else:
+            self.log_error("DBMeta write failed, ticket_type=%s", global_data.get("ticket_type", "unknown"))
         return result
 
     def inputs_format(self) -> List:

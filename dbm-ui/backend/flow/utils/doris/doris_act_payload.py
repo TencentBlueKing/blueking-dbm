@@ -193,6 +193,26 @@ class DorisActPayload(object):
     def get_drop_metadata_payload(self, **kwargs) -> dict:
         return self._get_metadata_payload(DorisMetaOperation.Drop, **kwargs)
 
+    # 元数据管理：替换场景下的删除节点（host_meta_map 从 host_meta_map_del 读取）
+    # 替换场景中 ADD 和 DROP 在同一个 SubBuilder，host_meta_map 已被 ADD 占用，
+    # DROP 需要的旧节点信息存放在 host_meta_map_del 中
+    def get_drop_metadata_for_replace_payload(self, **kwargs) -> dict:
+        extend_dict = {
+            "master_fe_ip": self.ticket_data.get("master_fe_ip_del", self.ticket_data["master_fe_ip"]),
+            "operation": DorisMetaOperation.Drop.value,
+            "host_map": self.ticket_data.get("host_meta_map_del", self.ticket_data.get("host_meta_map", {})),
+            "root_password": self.ticket_data["root_password"],
+            "admin_password": self.ticket_data["admin_password"],
+        }
+        return {
+            "db_type": DBActuatorTypeEnum.Doris.value,
+            "action": DorisActuatorActionEnum.UpdateMetadata.value,
+            "payload": {
+                "general": {},
+                "extend": dict(**(self.get_common_extend(**kwargs)), **extend_dict),
+            },
+        }
+
     # 元数据管理：强制删除节点，适用于BE节点
     def get_force_drop_metadata_payload(self, **kwargs) -> dict:
         return self._get_metadata_payload(DorisMetaOperation.ForceDrop, **kwargs)
@@ -329,6 +349,24 @@ class DorisActPayload(object):
             "payload": {
                 "general": {},
                 "extend": dict(**(self.get_common_extend(**kwargs)), **extend_dict),
+            },
+        }
+
+    def get_check_backends_alive_payload(self, **kwargs) -> dict:
+        """
+        拼接 检查新BE节点是否已加入集群 payload参数（退役前检查）
+        直接调用每个 BE 的 /api/health 接口验证存活
+        host_map 取自 host_meta_map_new（新 BE），没有则取 host_meta_map
+        """
+        host_map = self.ticket_data.get("host_meta_map_new") or self.ticket_data.get("host_meta_map", {})
+        return {
+            "db_type": DBActuatorTypeEnum.Doris.value,
+            "action": DorisActuatorActionEnum.CheckBackendsAlive.value,
+            "payload": {
+                "general": {},
+                "extend": {
+                    "host_map": host_map,
+                },
             },
         }
 
