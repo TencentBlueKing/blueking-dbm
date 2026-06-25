@@ -15,6 +15,7 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"syscall"
 	"time"
 
 	"github.com/pkg/errors"
@@ -426,7 +427,33 @@ func DoBackupIncr(connInfo *mymongo.MongoHost, backupType, dir string, zip bool,
 		log.Fatalf("Cannot chdir to %s", workdir)
 	}
 	dumpLogFilePath := "dump.log"
+	originFile := "dump/local/oplog.rs.bson"
+	streamZstdFile := "oplog.rs.bson.zst"
 	var cmdList []*mycmd.MyExec
+	var execZstd *mycmd.MyExec
+
+	if archive {
+		// Keep the incremental backup as raw oplog BSON for mongorestore --oplogReplay,
+		// but stream mongodump's file output through zstd instead of landing a plain file.
+		if err := os.MkdirAll(path.Dir(originFile), os.FileMode(0755)); err != nil {
+			return nil, errors.Wrap(err, "mkdir oplog fifo dir")
+		}
+		if err := syscall.Mkfifo(originFile, 0600); err != nil {
+			return nil, errors.Wrap(err, "mkfifo oplog.rs.bson")
+		}
+		defer func() { _ = os.Remove(originFile) }()
+		execZstd, err = mycmd.NewMyExec(
+			mycmd.New(dbmonconsts.MustFindBinPath("zstd", dbmonconsts.GetDbTool("mongotools")),
+				"-f", originFile, "-o", streamZstdFile),
+			cmdMaxTimeout, nil, os.DevNull, false)
+		if err != nil {
+			return nil, err
+		}
+		setChildDeathSignal(execZstd.ExecHandle)
+		defer execZstd.CancelFunc()
+		cmdList = append(cmdList, execZstd)
+	}
+
 	exec1, err := mycmd.NewMyExec(dumpCmd, cmdMaxTimeout, nil, dumpLogFilePath, false)
 	if err != nil {
 		return nil, err
@@ -437,36 +464,23 @@ func DoBackupIncr(connInfo *mymongo.MongoHost, backupType, dir string, zip bool,
 	defer exec1.CancelFunc()
 	cmdList = append(cmdList, exec1)
 
-	// var archiveFile string
-	/*
-		if archive && zip {
-			zstdBin, err := GetZstdBin()
-			if err != nil {
-				return nil, err
-			}
-			archiveFile = "oplog.rs.bson.archive.zstd"
-			exec2, err := mycmd.NewMyExec(mycmd.NewCmdBuilder().Append(zstdBin, "-", "-o", archiveFile),
-				cmdMaxTimeout, nil, os.DevNull)
-			if err != nil {
-				return nil, err
-			}
-			defer exec2.CancelFunc()
-			cmd1Output, err := exec1.ExecHandle.StdoutPipe()
-			if err != nil {
-				log.Fatalf("StdoutPipe failed: %v", err)
-			}
-			exec2.SetStdin(cmd1Output)
-			cmdList = append(cmdList, exec2)
-		}
-	*/
 	startTime := time.Now()
-	log.Infof("DoBackupIncr cmd: %s cwd: %s", exec1.CmdBuilder.GetCmdLine("", true), workdir)
-	errorsList := runCmdList(cmdList)
+	for _, cmd := range cmdList {
+		log.Infof("DoBackupIncr cmd: %s cwd: %s", cmd.CmdBuilder.GetCmdLine("", true), workdir)
+	}
+	var errorsList []error
+	if archive {
+		errorsList = runIncrZstdCmdList(execZstd, exec1)
+	} else {
+		errorsList = runCmdList(cmdList)
+	}
 	endTime := time.Now()
 	if len(errorsList) > 0 {
 		for _, err := range errorsList {
 			log.Warnf("DoBackupIncr error: %v", err)
-			appendLog(dumpCmd.GetCmdLine("", true), dumpLogFilePath, "", "", err)
+			for _, cmd := range cmdList {
+				appendLog(cmd.CmdBuilder.GetCmdLine("", true), dumpLogFilePath, "", "", err)
+			}
 		}
 		return nil, errors.Wrap(errorsList[0], "DoBackupIncr")
 	}
@@ -479,7 +493,9 @@ func DoBackupIncr(connInfo *mymongo.MongoHost, backupType, dir string, zip bool,
 	firstTs, lastTs, _ := ParseTs(bytes.NewBuffer(stderr))
 	log.Debugf("return %v %v", firstTs, lastTs)
 
-	appendLog(dumpCmd.GetCmdLine("", true), dumpLogFilePath, "", "", nil)
+	for _, cmd := range cmdList {
+		appendLog(cmd.CmdBuilder.GetCmdLine("", true), dumpLogFilePath, "", "", nil)
+	}
 
 	//chdir to *dir && do do tar czvf
 	if err := os.Chdir(dir); err != nil {
@@ -503,9 +519,9 @@ func DoBackupIncr(connInfo *mymongo.MongoHost, backupType, dir string, zip bool,
 	/*
 		3种情况:
 		1. archive && zip
-			originFile = "oplog.rs.bson.archive.zstd"
-			oplogFile = outputDirname + "-oplog.rs.bson.archive.zstd"
-			fNameObj.SetSuffix("-oplog.rs.bson.archive.zstd")
+			originFile = "oplog.rs.bson.zst"
+			oplogFile = outputDirname + "-oplog.rs.bson.zst"
+			fNameObj.SetSuffix("-oplog.rs.bson.zst")
 		2. !archive && zip
 			originFile = "oplog.rs.bson"
 			oplogFile = outputDirname + "-oplog.rs.bson.gz"
@@ -515,23 +531,11 @@ func DoBackupIncr(connInfo *mymongo.MongoHost, backupType, dir string, zip bool,
 			oplogFile = outputDirname + "-oplog.rs.bson"
 			fNameObj.SetSuffix("-oplog.rs.bson")
 	*/
-	originFile := "dump/local/oplog.rs.bson"
 	oplogFile := outputDirname + "-oplog.rs.bson"
 	fNameObj.SetSuffix("-oplog.rs.bson")
 
-	// 临时处理: archive模式时，使用zstd压缩.
 	if archive {
-		// doCommand 会使用zstd压缩.
-		zstdCmd := mycmd.New(
-			dbmonconsts.MustFindBinPath("zstd", dbmonconsts.GetDbTool("mongotools")), "--rm", path.Join(workdir, originFile))
-		log.Infof("DoCommand %s workdir: %s", zstdCmd.GetCmdLine("", true), workdir)
-		o, err := zstdCmd.Run(cmdMaxTimeout)
-		if err != nil {
-			log.Errorf("DoCommand %s workdir: %s return err %v stdout: %s stderr: %s exitCode: %d",
-				zstdCmd.GetCmdLine("", true), workdir, err, o.GetStdout(), o.GetStderr(), o.ExitCode)
-			return nil, err
-		}
-		originFile = originFile + ".zst"
+		originFile = streamZstdFile
 		oplogFile = oplogFile + ".zst"
 		fNameObj.SetSuffix("-oplog.rs.bson.zst")
 	} else if zip {
@@ -575,6 +579,45 @@ func DoBackupIncr(connInfo *mymongo.MongoHost, backupType, dir string, zip bool,
 	return fNameObj, nil
 }
 
+func runIncrZstdCmdList(zstdExec, dumpExec *mycmd.MyExec) []error {
+	var errorsList []error
+
+	if zstdExec == nil || dumpExec == nil {
+		return []error{errors.New("zstdExec and dumpExec are required")}
+	}
+	if err := zstdExec.Start(); err != nil {
+		return []error{errors.Errorf("Start failed, cmd %s error: %v", zstdExec.CmdBuilder.GetCmdLine("", true), err)}
+	}
+	if err := dumpExec.Start(); err != nil {
+		errorsList = append(errorsList,
+			errors.Errorf("Start failed, cmd %s error: %v", dumpExec.CmdBuilder.GetCmdLine("", true), err))
+		if zstdExec.CancelFunc != nil {
+			zstdExec.CancelFunc()
+		}
+		if err := zstdExec.Wait(); err != nil {
+			errorsList = append(errorsList,
+				errors.Errorf("Wait failed, cmd %s error: %v", zstdExec.CmdBuilder.GetCmdLine("", true), err))
+		}
+		return errorsList
+	}
+
+	if err := dumpExec.Wait(); err != nil {
+		errorsList = append(errorsList,
+			errors.Errorf("Wait failed, cmd %s error: %v", dumpExec.CmdBuilder.GetCmdLine("", true), err))
+		if zstdExec != nil && zstdExec.CancelFunc != nil {
+			zstdExec.CancelFunc()
+		}
+	}
+	if zstdExec != nil {
+		if err := zstdExec.Wait(); err != nil {
+			errorsList = append(errorsList,
+				errors.Errorf("Wait failed, cmd %s error: %v", zstdExec.CmdBuilder.GetCmdLine("", true), err))
+		}
+	}
+
+	return errorsList
+}
+
 // buildDumpIncrCmd 构建增量备份命令
 // 参数:
 //   - connInfo: 数据库连接信息
@@ -593,6 +636,11 @@ func buildDumpIncrCmd(connInfo *mymongo.MongoHost, zip bool, archive bool, lastB
 	if err != nil {
 		return nil, errors.Wrap(err, "get version")
 	}
+	return buildDumpIncrCmdWithBin(mongoDumpBin, connInfo, zip, archive, lastBackup, maxTs), nil
+}
+
+func buildDumpIncrCmdWithBin(mongoDumpBin string, connInfo *mymongo.MongoHost, zip bool, archive bool,
+	lastBackup *BackupFileName, maxTs *TS) *mycmd.CmdBuilder {
 	dumpCmd := mycmd.NewCmdBuilder().Append(mongoDumpBin).
 		Append("--host", connInfo.Host, "--port", connInfo.Port, "--authenticationDatabase", connInfo.AuthDb)
 
@@ -603,10 +651,9 @@ func buildDumpIncrCmd(connInfo *mymongo.MongoHost, zip bool, archive bool, lastB
 		dumpCmd.Append("-p", mycmd.Password(connInfo.Pass))
 	}
 
-	//	备份oplog时，不能使用archive模式.
 	if archive {
-		// do nothing. 备份oplog时，不能使用archive模式.
-		// 生成未压缩的oplog.rs.bson文件. 再用zstd压缩.
+		// Do not use mongodump --archive here: PITR restore expects raw oplog BSON
+		// renamed to oplog.bson, not a mongodump archive stream.
 	} else {
 		// 非archive模式时，可以使用zip压缩. 这是为了兼容现有情况
 		if zip {
@@ -635,7 +682,7 @@ func buildDumpIncrCmd(connInfo *mymongo.MongoHost, zip bool, archive bool, lastB
 		}
 	}
 
-	return dumpCmd, nil
+	return dumpCmd
 }
 
 func buildDumpFullCmd(connInfo *mymongo.MongoHost, zip bool, archive bool, archiveFile string,
