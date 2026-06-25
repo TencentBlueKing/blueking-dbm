@@ -182,7 +182,7 @@ class MonitorPolicyViewSet(AuditedModelViewSet):
     @classmethod
     def _get_login_exempt_view_func(cls):
         # 需要豁免的接口方法与名字
-        return {"post": [cls.callback.__name__], "put": [], "get": [], "delete": []}
+        return {"post": [cls.callback.__name__, cls.alarm_callback.__name__], "put": [], "get": [], "delete": []}
 
     def get_serializer_class(self):
         if self.action == "list":
@@ -448,10 +448,16 @@ class MonitorPolicyViewSet(AuditedModelViewSet):
         permission_classes=[AllowAny],
     )
     def alarm_callback(self, request, *args, **kwargs):
+        logger.info("[alarm_callback] request data: %s", json.dumps(request.data))
         # 监控回调需要使用 Bearer Token 进行验证
         # 从请求头中获取 Authorization 头
-
-        logger.info("[alarm_callback] request data: %s", json.dumps(request.data))
+        auth_header = request.headers.get("Authorization")
+        if not auth_header:
+            raise PermissionError("Missing Authorization header")
+        # 提取 Bearer Token
+        token = auth_header.split(" ")[1]
+        if token != env.BKMONITOR_BEARER_TOKEN:
+            raise PermissionError("Bearer token is not valid")
 
         # 根据告警回调数据分发到匹配的回调处理器
         callback_data = self.validated_data
