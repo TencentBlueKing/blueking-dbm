@@ -10,6 +10,7 @@ specific language governing permissions and limitations under the License.
 """
 import datetime
 import logging
+from functools import wraps
 from typing import Dict, List, Optional, Union
 
 from django.utils import timezone
@@ -26,9 +27,37 @@ from backend.db_monitor.models import DispatchGroup, NoticeGroup
 from backend.dbm_init.constants import CC_APP_ABBR_ATTR
 from backend.exceptions import ApiError
 from backend.flow.utils.cc_manage import CcManage
+from backend.iam_app.dataclass import ResourceEnum
+from backend.iam_app.dataclass.actions import ActionEnum
+from backend.iam_app.handlers.drf_perm.base import get_request_key_id
+from backend.iam_app.handlers.permission import Permission
 
 logger = logging.getLogger("root")
 OPERATE_DBA_MAP = {0: _("primary_dba"), 1: _("standby_dba"), 2: _("sec_dba")}
+
+
+def decorator_permission_field():
+    def wrapper(view_func):
+        @wraps(view_func)
+        def wrapped_view(*args, **kwargs):
+            response = view_func(*args, **kwargs)
+            bk_biz_id = get_request_key_id(args[1], key="bk_biz_id")
+            response.data.setdefault("permission", {})
+            result = Permission().is_allowed(action=ActionEnum.GLOBAL_DBA_ADMIN_EDIT, resources=[])
+            response.data["permission"].update({ActionEnum.GLOBAL_DBA_ADMIN_EDIT.id: result})
+            if bk_biz_id:
+                Permission.insert_external_permission_field(
+                    response,
+                    actions=[ActionEnum.DBA_ADMIN_EDIT, ActionEnum.DB_MANAGE],
+                    resource_meta=ResourceEnum.BUSINESS,
+                    resource_id=int(bk_biz_id),
+                )
+
+            return response
+
+        return wrapped_view
+
+    return wrapper
 
 
 class DBAdministratorHandler(object):
