@@ -15,6 +15,7 @@
   <BkFormItem
     :label="t('集群别名')"
     property="details.cluster_alias"
+    :required="required"
     :rules="rules">
     <BkInput
       v-model="modelValue"
@@ -35,6 +36,7 @@
   interface Props {
     bizId: number | '';
     clusterType: ClusterTypes;
+    required?: boolean;
   }
 
   const props = defineProps<Props>();
