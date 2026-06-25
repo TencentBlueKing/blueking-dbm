@@ -89,6 +89,7 @@ COMPONENT_CONFIG_ITEMS = {
     # ----- Doris -----
     ClusterType.Doris: {
         ConfType.DBCONF: [DB_VERSION],
+        ConfType.DORIS_RUNTIME_CONFIG: [DB_VERSION],
     },
     # ----- MongoDB -----
     ClusterType.MongoReplicaSet: {

@@ -11,6 +11,7 @@ specific language governing permissions and limitations under the License.
 
 
 import base64
+import json
 import logging
 
 from backend import constants
@@ -261,6 +262,85 @@ class DorisActPayload(object):
                     "http_port": self.ticket_data["http_port"],
                     "query_port": self.ticket_data["query_port"],
                     "master_fe_ip": self.ticket_data["master_fe_ip"],
+                },
+            },
+        }
+
+    def get_init_runtime_config_payload(self, **kwargs) -> dict:
+        """
+        拼接 初始化Doris运行时配置（全局变量、用户属性、资源组）payload参数
+        配置值从 dbconfig (conf_type=doris_runtime_config) 中获取
+        在 init_grant 之后执行，使用已设置的密码连接 FE
+
+        DBConfig 数据格式:
+          user:
+            property: '{"default": {...}, "admin": {...}}'  # key 为用户名，value 为属性 JSON
+          workload:
+            group: '{"normal": {...}, "high_priority": {...}}'  # key 为组名，value 为属性 JSON
+        """
+        runtime_config = self.ticket_data.get("runtime_config", {})
+
+        # 1. 全局变量：直接从 "global" key 获取，格式 {"var_name": "value", ...}
+        global_variables = runtime_config.get("global", {})
+
+        # 2. 用户属性：key 为 "property"，value 为 JSON 字符串
+        #    e.g. {"property": '{"default": {"max_user_connections": 100}, ...}'}
+        #    "default" 是属性模板，应用给动态用户（ticket_data["username"]）
+        user_properties: dict = {}
+        default_user_props: dict = {}
+        for key, value in runtime_config.get("user", {}).items():
+            if key != "property":
+                continue
+            try:
+                all_user_props = json.loads(value) if isinstance(value, str) else value
+                for username, props in all_user_props.items():
+                    if username == "default":
+                        # 提取 default 模板属性，应用给动态用户
+                        default_user_props.update(props)
+                    else:
+                        if username not in user_properties:
+                            user_properties[username] = {}
+                        user_properties[username].update(props)
+            except (json.JSONDecodeError, TypeError):
+                logger.warning("解析用户属性失败: %s = %s", key, value)
+
+        # 将 default 模板属性应用给动态用户（ticket_data["username"]）
+        dynamic_user = self.ticket_data.get("username")
+        if dynamic_user and default_user_props:
+            if dynamic_user not in user_properties:
+                user_properties[dynamic_user] = {}
+            user_properties[dynamic_user].update(default_user_props)
+
+        # 3. 资源组配额：key 为 "group"，value 为 JSON 字符串
+        #    e.g. {"group": '{"normal": {"min_cpu_percent": "0%"}, "high": {...}}'}
+        workload_groups: dict = {}
+        for key, value in runtime_config.get("workload", {}).items():
+            if key != "group":
+                continue
+            try:
+                all_groups = json.loads(value) if isinstance(value, str) else value
+                for group_name, group_props in all_groups.items():
+                    workload_groups[group_name] = group_props
+            except (json.JSONDecodeError, TypeError):
+                logger.warning("解析资源组配置失败: %s = %s", key, value)
+
+        return {
+            "db_type": DBActuatorTypeEnum.Doris.value,
+            "action": DorisActuatorActionEnum.InitRuntimeConfig.value,
+            "payload": {
+                "general": {},
+                "extend": {
+                    "host": kwargs["ip"],
+                    "role": kwargs["role"],
+                    "username": self.ticket_data["username"],
+                    "password": self.ticket_data["password"],
+                    "root_password": self.ticket_data["root_password"],
+                    "admin_password": self.ticket_data["admin_password"],
+                    "query_port": self.ticket_data["query_port"],
+                    "master_fe_ip": self.ticket_data["master_fe_ip"],
+                    "global_variables": global_variables,
+                    "user_properties": user_properties,
+                    "workload_groups": workload_groups,
                 },
             },
         }

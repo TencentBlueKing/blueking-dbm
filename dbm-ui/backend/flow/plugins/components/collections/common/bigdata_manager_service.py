@@ -23,16 +23,14 @@ def get_manager_ip(bk_biz_id, db_type, cluster_name, service_type):
     @return: manager ip
     """
 
-    try:
-        manager = ClusterExtension.objects.get(
-            bk_biz_id=bk_biz_id,
-            db_type=db_type,
-            cluster_name=cluster_name,
-            service_type=service_type,
-        )
-        return manager.ip
-    except ClusterExtension.DoesNotExist:
-        return None
+    manager = ClusterExtension.objects.filter(
+        bk_biz_id=bk_biz_id,
+        db_type=db_type,
+        cluster_name=cluster_name,
+        service_type=service_type,
+        is_deleted=False,
+    ).first()
+    return manager.ip if manager else None
 
 
 class BigdataManagerService(BaseService):
@@ -71,12 +69,15 @@ class BigdataManagerService(BaseService):
             )
         elif manager_op_type == ManagerOpType.UPDATE:
             try:
-                manager = ClusterExtension.objects.get(
+                manager = ClusterExtension.objects.filter(
                     bk_biz_id=bk_biz_id,
                     db_type=db_type,
                     cluster_name=cluster_name,
                     service_type=service_type,
-                )
+                    is_deleted=False,
+                ).first()
+                if manager is None:
+                    raise ClusterExtension.DoesNotExist()
                 manager.bk_biz_id = bk_biz_id
                 manager.db_type = db_type
                 manager.cluster_name = cluster_name
@@ -101,12 +102,15 @@ class BigdataManagerService(BaseService):
 
         elif manager_op_type == ManagerOpType.DELETE:
             try:
-                manager = ClusterExtension.objects.get(
+                manager = ClusterExtension.objects.filter(
                     bk_biz_id=bk_biz_id,
                     db_type=db_type,
                     cluster_name=cluster_name,
                     service_type=service_type,
-                )
+                    is_deleted=False,
+                ).first()
+                if manager is None:
+                    raise ClusterExtension.DoesNotExist()
                 manager.is_deleted = True
                 manager.save()
             except ClusterExtension.DoesNotExist:

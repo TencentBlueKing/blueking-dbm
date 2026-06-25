@@ -20,6 +20,8 @@ class DorisConfigEnum(StrStructuredEnum):
     Backend = EnumField("be", _("be"))
     UserName = EnumField("username", _("访问Doris 管理员账户名"))
     Password = EnumField("password", _("访问Doris 管理员密码"))
+    RuntimeConfig = EnumField("runtime_config", _("Doris运行时配置"))
+    UserProperty = EnumField("user.property", _("Doris用户属性"))
 
 
 class DorisMetaOperation(StrStructuredEnum):

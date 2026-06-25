@@ -790,6 +790,7 @@ class DorisActuatorActionEnum(StrStructuredEnum):
     UpgradeNode = EnumField("upgrade_node", _("upgrade_node"))
     CheckUpgrade = EnumField("check_upgrade", _("check_upgrade"))
     RenderConfigV2 = EnumField("render_config_v2", _("render_config_v2"))
+    InitRuntimeConfig = EnumField("init_runtime_config", _("init_runtime_config"))
 
 
 class RiakModuleId(IntStructuredEnum):

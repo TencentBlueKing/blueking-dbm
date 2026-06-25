@@ -159,6 +159,19 @@ class DorisApplyFlow(DorisBaseFlow):
         sub_new_be_acts = self.new_be_sub_acts(act_kwargs=act_kwargs, data=doris_deploy_data)
         doris_pipeline.add_parallel_acts(acts_list=sub_new_be_acts)
 
+        # 初始化运行时配置（全局变量、用户属性、资源组）
+        # 在所有 FE/BE 节点启动完成后执行，此时集群已完整建立，
+        # SET GLOBAL 可正常通过多数派持久化
+        # 注意：new_be_sub_acts 会修改 act_kwargs.exec_ip，需要重置回 master FE
+        act_kwargs.exec_ip = doris_deploy_data["master_fe_ip"]
+        act_kwargs.doris_role = DorisRoleEnum.FOLLOWER
+        act_kwargs.get_doris_payload_func = DorisActPayload.get_init_runtime_config_payload.__name__
+        doris_pipeline.add_act(
+            act_name=_("初始化运行时配置"),
+            act_component_code=ExecuteDorisActuatorScriptComponent.code,
+            kwargs=asdict(act_kwargs),
+        )
+
         # 插入Doris WebUI实例信息
         manager_kwargs = BigdataManagerKwargs(
             manager_op_type=ManagerOpType.CREATE,
