@@ -787,10 +787,30 @@ class DBBaseViewSet(viewsets.SystemViewSet):
         """更新集群标签"""
         data = self.params_validate(self.get_serializer_class())
         cluster = Cluster.objects.get(bk_biz_id=data["bk_biz_id"], id=data["cluster_id"])
-        tags = Tag.objects.filter(id__in=data["tags"])
+        bk_biz_id = data["bk_biz_id"]
+        tags_input = data["tags"]  # 格式: [{"key": "value", ...]
+
+        # 处理标签：不存在则创建，存在则获取
+        tag_objs = []
+        for tag_item in tags_input:
+            (tag_key,) = tag_item.keys()
+            (tag_value,) = tag_item.values()
+
+            if not tag_key:
+                continue
+
+            # 根据标签键(bk_biz_id + key)查询是否已存在
+            tag = Tag.objects.filter(bk_biz_id=bk_biz_id, key=tag_key, value=tag_value).first()
+            if not tag:
+                # 标签不存在则创建新标签，默认type为自定义类型
+                from backend.db_meta.enums.comm import TagType
+
+                tag = Tag.objects.create(bk_biz_id=bk_biz_id, key=tag_key, value=tag_value, type=TagType.CLUSTER)
+            tag_objs.append(tag)
+
         # 清空旧标签，添加新标签
         cluster.tags.clear()
-        cluster.tags.add(*tags)
+        cluster.tags.add(*tag_objs)
         return Response(ClusterSLZ(cluster).data)
 
     @common_swagger_auto_schema(
@@ -816,11 +836,31 @@ class DBBaseViewSet(viewsets.SystemViewSet):
         """批量增加标签键"""
         data = self.params_validate(self.get_serializer_class())
 
-        tags = Tag.objects.filter(id__in=data["tags"])
+        bk_biz_id = data["bk_biz_id"]
+        tags_input = data["tags"]  # 格式: [{"key": "value", ...]
+
+        # 处理标签：不存在则创建，存在则获取
+        tag_objs = []
+        for tag_item in tags_input:
+            (tag_key,) = tag_item.keys()
+            (tag_value,) = tag_item.values()
+
+            if not tag_key:
+                continue
+
+            # 根据标签键(bk_biz_id + key)查询是否已存在
+            tag = Tag.objects.filter(bk_biz_id=bk_biz_id, key=tag_key, value=tag_value).first()
+            if not tag:
+                # 标签不存在则创建新标签，默认type为自定义类型
+                from backend.db_meta.enums.comm import TagType
+
+                tag = Tag.objects.create(bk_biz_id=bk_biz_id, key=tag_key, value=tag_value, type=TagType.CLUSTER)
+            tag_objs.append(tag)
+
         through = Cluster.tags.through
 
         # 这里需要先获取到所有标签键，然后排除已经存在该key的集群，考虑到这里标签一次性不会太多，暂用for循环处理
-        for tag in tags:
+        for tag in tag_objs:
             add_clusters = Cluster.objects.filter(id__in=data["cluster_ids"]).exclude(tags__key=tag.key)
             add_tags = [through(cluster_id=cluster.id, tag_id=tag.id) for cluster in add_clusters]
             through.objects.bulk_create(add_tags)
