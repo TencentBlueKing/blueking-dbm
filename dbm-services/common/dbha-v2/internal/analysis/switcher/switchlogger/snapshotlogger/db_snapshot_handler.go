@@ -33,6 +33,7 @@ import (
 	"dbm-services/common/dbha-v2/internal/analysis/config"
 	"dbm-services/common/dbha-v2/internal/analysis/dbm"
 	"dbm-services/common/dbha-v2/internal/analysis/storage"
+	"dbm-services/common/dbha-v2/internal/analysis/switcher"
 	"dbm-services/common/dbha-v2/pkg/gerrors"
 	"dbm-services/common/dbha-v2/pkg/hanet"
 	"dbm-services/common/dbha-v2/pkg/logger"
@@ -146,8 +147,8 @@ func (hdl *DbSnapshotHandler) CheckSwitchSnapshotTableExists(ctx context.Context
 
 	// Check if database exists
 	var dbExists int
-	dbCheckSQL := fmt.Sprintf("SELECT 1 FROM information_schema.SCHEMATA WHERE SCHEMA_NAME = '%s'", hamodel.DatabaseName)
-	if err := dbClient.WithContext(ctx).Raw(dbCheckSQL).Scan(&dbExists).Error; err != nil {
+	dbCheckSQL := "SELECT 1 FROM information_schema.SCHEMATA WHERE SCHEMA_NAME = ?"
+	if err := dbClient.WithContext(ctx).Raw(dbCheckSQL, hamodel.DatabaseName).Scan(&dbExists).Error; err != nil {
 		return gerrors.Newf(gerrors.MysqlFailure, "failed to check database(%s) existence on mysql(%s:%d), errmsg: %s",
 			hamodel.DatabaseName, hdl.Ip, hdl.Port, err.Error())
 	}
@@ -158,7 +159,7 @@ func (hdl *DbSnapshotHandler) CheckSwitchSnapshotTableExists(ctx context.Context
 	}
 
 	// Use the database
-	dbhaDB := dbClient.WithContext(ctx).Session(&gorm.Session{}).Exec("USE " + hamodel.DatabaseName)
+	dbhaDB := dbClient.WithContext(ctx).Session(&gorm.Session{}).Exec("USE `" + hamodel.DatabaseName + "`")
 	if dbhaDB.Error != nil {
 		return gerrors.Newf(gerrors.MysqlFailure,
 			"failed to use database %s on mysql(%s:%d), errmsg: %s",
@@ -284,7 +285,7 @@ func (hdl *DbSnapshotHandler) createRecord(ctx context.Context, record *Switchin
 		StartTime:   record.StartTime,
 	}
 
-	instances := buildInstancesListFromMetadata(record.MetadataSet)
+	instances := buildInstancesListFromMetadata(record.MetadataSet, nil)
 	dbRecord.SetInstances(instances)
 
 	err := hdl.logDb.SaveSwitchingSnapshotLog(ctx, dbRecord)
@@ -308,6 +309,9 @@ func (hdl *DbSnapshotHandler) updateRecord(ctx context.Context, record *Switchin
 		Result:       record.Result,
 	}
 
+	instances := buildInstancesListFromMetadata(record.MetadataSet, record.Response)
+	dbRecord.SetInstances(instances)
+
 	err := hdl.logDb.UpdateSwitchingSnapshotLog(ctx, dbRecord)
 	if ctx.Err() == context.DeadlineExceeded {
 		return gerrors.Newf(gerrors.Failure, "switch snapshot log write timeout after %s", hdl.writeTimeout)
@@ -316,7 +320,7 @@ func (hdl *DbSnapshotHandler) updateRecord(ctx context.Context, record *Switchin
 }
 
 // buildInstancesListFromMetadata converts DbInstMetadata list to SwitchingSnapshotInstance list for database storage.
-func buildInstancesListFromMetadata(metaSet []*dbm.DbInstMetadata) []*hamodel.SwitchingSnapshotInstance {
+func buildInstancesListFromMetadata(metaSet []*dbm.DbInstMetadata, response *switcher.Response) []*hamodel.SwitchingSnapshotInstance {
 	if metaSet == nil {
 		return nil
 	}
@@ -328,13 +332,20 @@ func buildInstancesListFromMetadata(metaSet []*dbm.DbInstMetadata) []*hamodel.Sw
 			instanceRole = string(meta.SpiderRole)
 		}
 
+		newMasterIP := ""
+		newMasterPort := 0
+		if response != nil {
+			// TODO Get the latest newMasterIP and newMasterPort of the instance through response
+			//instKey := switchcore.GenerateMetadataKey(meta.BkCloudID, meta.IP, meta.Port)
+		}
+
 		instances = append(instances, &hamodel.SwitchingSnapshotInstance{
 			IP:            meta.IP,
 			Port:          meta.Port,
 			MachineType:   string(meta.MachineType),
 			InstanceRole:  instanceRole,
-			NewMasterIP:   meta.NewMasterIP,
-			NewMasterPort: meta.NewMasterPort,
+			NewMasterIP:   newMasterIP,
+			NewMasterPort: newMasterPort,
 		})
 	}
 

@@ -31,6 +31,7 @@ import (
 	"time"
 
 	"dbm-services/common/dbha-v2/internal/analysis/dbm"
+	"dbm-services/common/dbha-v2/internal/analysis/switcher"
 	"dbm-services/common/dbha-v2/pkg/logger"
 )
 
@@ -48,11 +49,11 @@ type SwitchSnapshotLogger[T any] interface {
 
 type SnapshotLogger = SwitchSnapshotLogger[*SwitchingSnapshotData]
 
-type SwitchType string
+type SwitchSnapshotLogType string
 
 const (
-	SwitchTypePre  SwitchType = "pre-switch"
-	SwitchTypePost SwitchType = "post-switch"
+	SwitchSnapshotLogTypePre  SwitchSnapshotLogType = "pre-switch"
+	SwitchSnapshotLogTypePost SwitchSnapshotLogType = "post-switch"
 )
 
 // StdSwitchingSnapshotData is the data structure for switching snapshot logging to standard output.
@@ -84,6 +85,7 @@ type SwitchingSnapshotData struct {
 
 	MetadataSet      []*dbm.DbInstMetadata `json:"-"`
 	SwSnapshotLogger logger.Logger         `json:"-"`
+	Response         *switcher.Response    `json:"-"`
 }
 
 // SwitchingSnapshotReport is the data structure for switching snapshot reporting.
@@ -136,15 +138,20 @@ func (s *SwitchingSnapshotReport) ReportBeforeSwitchingSnapshot() {
 }
 
 // ReportAfterSwitchingSnapshot reports the switching snapshot after switching.
-func (s *SwitchingSnapshotReport) ReportAfterSwitchingSnapshot(rspErr error) {
+func (s *SwitchingSnapshotReport) ReportAfterSwitchingSnapshot(rsp *switcher.Response) {
 	if s.SnapshotData == nil {
 		return
 	}
 
+	if rsp == nil {
+		return
+	}
+	s.SnapshotData.Response = rsp
+
 	now := time.Now()
 	s.SnapshotData.FinishedTime = &now
-	if rspErr != nil {
-		s.SnapshotData.Result = fmt.Sprintf("switching failed: %s", rspErr.Error())
+	if rsp.Err != nil {
+		s.SnapshotData.Result = fmt.Sprintf("switching failed: %s", rsp.Err.Error())
 	} else {
 		s.SnapshotData.Result = "switching completed successfully"
 	}

@@ -86,7 +86,7 @@ func (hdl *StdSnapshotHandler) PreSwitchLog(record *SwitchingSnapshotData) error
 			"failed to marshal before switching snapshot payload, switchId: %s, errmsg: %s", record.SwitchID, err)
 	}
 
-	hdl.logger.Info("%s\t%s\t%s", record.SwitchID, SwitchTypePre, string(body))
+	hdl.logger.Info("%s\t%s\t%s", record.SwitchID, SwitchSnapshotLogTypePre, string(body))
 
 	return nil
 }
@@ -114,7 +114,7 @@ func (hdl *StdSnapshotHandler) PostSwitchLog(record *SwitchingSnapshotData) erro
 			"failed to marshal after switching snapshot payload, switchId: %s, errmsg: %s", record.SwitchID, err)
 	}
 
-	hdl.logger.Info("%s\t%s\t%s", record.SwitchID, SwitchTypePost, string(body))
+	hdl.logger.Info("%s\t%s\t%s", record.SwitchID, SwitchSnapshotLogTypePost, string(body))
 
 	return nil
 }

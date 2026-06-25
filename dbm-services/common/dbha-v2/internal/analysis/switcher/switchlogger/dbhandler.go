@@ -135,8 +135,8 @@ func (hdl *LogToDbHandler) CheckSwitchLogTableExists(ctx context.Context) error 
 
 	// Check if database exists
 	var dbExists int
-	dbCheckSQL := fmt.Sprintf("SELECT 1 FROM information_schema.SCHEMATA WHERE SCHEMA_NAME = '%s'", hamodel.DatabaseName)
-	if err := dbClient.WithContext(ctx).Raw(dbCheckSQL).Scan(&dbExists).Error; err != nil {
+	dbCheckSQL := "SELECT 1 FROM information_schema.SCHEMATA WHERE SCHEMA_NAME = ?"
+	if err := dbClient.WithContext(ctx).Raw(dbCheckSQL, hamodel.DatabaseName).Scan(&dbExists).Error; err != nil {
 		return gerrors.Newf(gerrors.MysqlFailure, "failed to check database(%s) existence on mysql(%s:%d), %s",
 			hamodel.DatabaseName, hdl.Ip, hdl.Port, err.Error())
 	}
@@ -147,7 +147,7 @@ func (hdl *LogToDbHandler) CheckSwitchLogTableExists(ctx context.Context) error 
 	}
 
 	// Use the database
-	dbhaDB := dbClient.WithContext(ctx).Session(&gorm.Session{}).Exec("USE " + hamodel.DatabaseName)
+	dbhaDB := dbClient.WithContext(ctx).Session(&gorm.Session{}).Exec("USE `" + hamodel.DatabaseName + "`")
 	if dbhaDB.Error != nil {
 		return gerrors.Newf(gerrors.MysqlFailure,
 			"failed to use database %s on mysql(%s:%d), %s", hamodel.DatabaseName, hdl.Ip, hdl.Port, dbhaDB.Error.Error())

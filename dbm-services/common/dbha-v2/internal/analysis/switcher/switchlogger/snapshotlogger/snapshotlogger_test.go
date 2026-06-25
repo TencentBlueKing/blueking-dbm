@@ -326,7 +326,7 @@ func TestStdSnapshotHandler_PreSwitchLog_PostSwitchLog_Cycle(t *testing.T) {
 			t.Logf("PreSwitchLog succeeded on iteration %d", i)
 			// Verify PreSwitchLog output contains switch ID and pre-switch type
 			assert.Contains(t, ml.messages[0], record.SwitchID)
-			assert.Contains(t, ml.messages[0], string(SwitchTypePre))
+			assert.Contains(t, ml.messages[0], string(SwitchSnapshotLogTypePre))
 
 			// Simulate post-switch
 			now := time.Now()
@@ -342,7 +342,7 @@ func TestStdSnapshotHandler_PreSwitchLog_PostSwitchLog_Cycle(t *testing.T) {
 			t.Logf("PostSwitchLog succeeded on iteration %d", i)
 			// Verify PostSwitchLog output contains switch ID and post-switch type
 			assert.Contains(t, ml.messages[0], record.SwitchID)
-			assert.Contains(t, ml.messages[0], string(SwitchTypePost))
+			assert.Contains(t, ml.messages[0], string(SwitchSnapshotLogTypePost))
 		})
 	}
 
