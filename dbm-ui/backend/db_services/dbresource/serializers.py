@@ -70,6 +70,7 @@ class ResourceImportSerializer(serializers.Serializer):
 
     def validate(self, attrs):
         error_groups = {}
+        error_extra = {}
         # 如果主机存在元数据，则拒绝导入
         host_ids = [host["host_id"] for host in attrs["hosts"]]
         exist_hosts = list(Machine.objects.filter(bk_host_id__in=host_ids).values_list("ip", flat=True))
@@ -120,8 +121,12 @@ class ResourceImportSerializer(serializers.Serializer):
         conflict_hosts = set(host_ids) & recycling_map.keys()
         if conflict_hosts:
             host_id_ip_map = {host["host_id"]: host["ip"] for host in attrs["hosts"]}
-            conflict_ips = [host_id_ip_map[host_id] for host_id in conflict_hosts]
+            sorted_conflict_hosts = sorted(conflict_hosts, key=lambda host_id: host_id_ip_map[host_id])
+            conflict_ips = [host_id_ip_map[host_id] for host_id in sorted_conflict_hosts]
             error_groups.setdefault("recycling_ticket", []).extend(conflict_ips)
+            error_extra["recycling_ticket"] = {
+                "ticket_ids": [recycling_map[host_id] for host_id in sorted_conflict_hosts],
+            }
 
         error_map = {
             "machine_exists": _("主机已被 DBM 管理，无法重复导入"),
@@ -133,12 +138,12 @@ class ResourceImportSerializer(serializers.Serializer):
         non_field_errors = []
 
         for error_type, ips in error_groups.items():
-            non_field_errors.append(
-                {
-                    "message": error_map.get(error_type, error_type),
-                    "ips": sorted(set(ips)),
-                }
-            )
+            error_info = {
+                "message": error_map.get(error_type, error_type),
+                "ips": ips if error_type == "recycling_ticket" else sorted(set(ips)),
+            }
+            error_info.update(error_extra.get(error_type, {}))
+            non_field_errors.append(error_info)
 
         # 验证完统一抛出异常
         if error_groups:
