@@ -27,8 +27,10 @@ from backend.dbm_aiagent.mcp_tools.sqlserver.impl.index_analysis import (
 from backend.dbm_aiagent.mcp_tools.sqlserver.impl.instance_summary import sqlserver_instance_summary
 from backend.dbm_aiagent.mcp_tools.sqlserver.impl.list_databases import sqlserver_list_databases
 from backend.dbm_aiagent.mcp_tools.sqlserver.impl.list_table_status import sqlserver_list_table_status
+from backend.dbm_aiagent.mcp_tools.sqlserver.impl.procedure_definition import sqlserver_get_stored_procedure
 from backend.dbm_aiagent.mcp_tools.sqlserver.impl.server_config_summary import sqlserver_server_config_summary
 from backend.dbm_aiagent.mcp_tools.sqlserver.impl.slow_log_query import sqlserver_slow_log_query
+from backend.dbm_aiagent.mcp_tools.sqlserver.impl.sync_status import sqlserver_sync_status
 from backend.dbm_aiagent.mcp_tools.sqlserver.impl.top_requests import sqlserver_top_requests
 from backend.dbm_aiagent.mcp_tools.sqlserver.impl.wait_stats_snapshot import sqlserver_wait_stats_snapshot
 from backend.dbm_aiagent.mcp_tools.sqlserver.serializers.blocking_sessions import (
@@ -71,6 +73,10 @@ from backend.dbm_aiagent.mcp_tools.sqlserver.serializers.list_table_status impor
     SQLServerListTableStatusInputSerializer,
     SQLServerListTableStatusOutputSerializer,
 )
+from backend.dbm_aiagent.mcp_tools.sqlserver.serializers.procedure_definition import (
+    SQLServerProcedureDefinitionInputSerializer,
+    SQLServerProcedureDefinitionOutputSerializer,
+)
 from backend.dbm_aiagent.mcp_tools.sqlserver.serializers.server_config_summary import (
     SQLServerServerConfigSummaryInputSerializer,
     SQLServerServerConfigSummaryOutputSerializer,
@@ -78,6 +84,10 @@ from backend.dbm_aiagent.mcp_tools.sqlserver.serializers.server_config_summary i
 from backend.dbm_aiagent.mcp_tools.sqlserver.serializers.slow_log_query import (
     SQLServerSlowLogQueryInputSerializer,
     SQLServerSlowLogQueryOutputSerializer,
+)
+from backend.dbm_aiagent.mcp_tools.sqlserver.serializers.sync_status import (
+    SQLServerSyncStatusInputSerializer,
+    SQLServerSyncStatusOutputSerializer,
 )
 from backend.dbm_aiagent.mcp_tools.sqlserver.serializers.top_requests import (
     SQLServerTopRequestsInputSerializer,
@@ -108,6 +118,30 @@ class SqlserverMcpToolsViewSet(McpToolsViewSet):
     def cluster_topo(self, request, *args, **kwargs):
         cluster_domain = self.get_param("cluster_domain")
         return Response(sqlserver_cluster_topo(cluster_domain=cluster_domain))
+
+    @mcp_tools_api_decorator(
+        description=str(
+            _(
+                "分析 SQLServer 集群数据同步状态（自动识别 Mirroring / AlwaysOn 架构）；"
+                "返回主备角色、同步状态、log_send_queue / redo_queue 等滞后队列、"
+                "估算追齐秒数、commit_lag、健康摘要与具体 issue 列表，"
+                "供 LLM 直接判断是否存在同步异常或滞后风险；只读，无须业务库权限。"
+                "可通过 databases 入参指定库名白名单（不区分大小写），仅分析这些库的同步情况，"
+                "用于在大集群下缩小 LLM 上下文"
+            )
+        ),
+        request_slz=SQLServerSyncStatusInputSerializer,
+        response_slz=SQLServerSyncStatusOutputSerializer,
+        tags=[DBMMCPTags.READ],
+        mcp=[DBMMcpTools.SQLSERVER_QUERY],
+        permission_classes=[McpClusterDetailPermission],
+        mcp_auth_parser=auth_parse_clusters,
+        name_prefix="sqlserver_query",
+    )
+    def sync_status(self, request, *args, **kwargs):
+        cluster_domain = self.get_param("cluster_domain")
+        databases = self.get_param("databases") or []
+        return Response(sqlserver_sync_status(cluster_domain=cluster_domain, databases=databases))
 
     @mcp_tools_api_decorator(
         description=str(_("查询 SQLServer 实例基础信息（版本、Edition、CPU、内存、启动时间等）；" "address 不传时返回集群内所有实例的信息")),
@@ -369,6 +403,39 @@ class SqlserverMcpToolsViewSet(McpToolsViewSet):
             sqlserver_database_file_usage(
                 cluster_domain=cluster_domain,
                 databases=databases,
+                address=address,
+            )
+        )
+
+    @mcp_tools_api_decorator(
+        description=str(
+            _(
+                "获取 SQLServer 单个存储过程的完整原始 T-SQL 定义体，用于静态风险分析。"
+                "需调用方已知确切 SP 名（不支持枚举/模糊/批量），未知请先反问；多个 SP 请多次调用。"
+                "status: ok / not_found / encrypted（WITH ENCRYPTION）/ too_large（超 max_definition_chars，不截断）/ error。"
+                "⚠ definition 为未脱敏原文，可能含硬编码凭据，仅供分析、勿原样回显给最终用户"
+            )
+        ),
+        request_slz=SQLServerProcedureDefinitionInputSerializer,
+        response_slz=SQLServerProcedureDefinitionOutputSerializer,
+        tags=[DBMMCPTags.READ],
+        mcp=[DBMMcpTools.SQLSERVER_QUERY],
+        permission_classes=[McpClusterDetailPermission],
+        mcp_auth_parser=auth_parse_clusters,
+        name_prefix="sqlserver_query",
+    )
+    def get_stored_procedure(self, request, *args, **kwargs):
+        cluster_domain = self.get_param("cluster_domain")
+        dbname = self.get_param("dbname")
+        procedure = self.get_param("procedure")
+        max_definition_chars = self.get_param("max_definition_chars") or 200000
+        address = self.get_param("address")
+        return Response(
+            sqlserver_get_stored_procedure(
+                cluster_domain=cluster_domain,
+                dbname=dbname,
+                procedure=procedure,
+                max_definition_chars=max_definition_chars,
                 address=address,
             )
         )

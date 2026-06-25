@@ -24,6 +24,9 @@ from backend.dbm_aiagent.mcp_tools.sqlserver.helpers.get_instance_address import
 #   - sys.configurations.'max/min server memory (MB)'：2005+ 都有
 #   - 实例启动时间不取 dm_os_sys_info.sqlserver_start_time（2008 没有），
 #     改用 4 个系统会话最早的 login_time 近似，全版本可用
+#   - sys.dm_os_sys_memory.total_physical_memory_kb：2008+ 都有，列名各版本一致，
+#     表示操作系统层面的物理内存总量。注意不要用 sys.dm_os_sys_info.physical_memory_kb：
+#     该列从 SQL Server 2012 才引入，在 2008/2008R2 上会编译失败
 #
 # 设计原则：
 #   - 整批就一条 SELECT，不使用 DECLARE / SET / EXEC / sp_executesql / SET NOCOUNT，
@@ -43,6 +46,9 @@ SELECT
     CAST(SERVERPROPERTY('IsIntegratedSecurityOnly') AS INT)           AS is_integrated_security_only,
     (SELECT cpu_count FROM sys.dm_os_sys_info)                        AS cpu_count,
     (SELECT MIN(login_time) FROM sys.dm_exec_sessions WHERE session_id <= 4) AS sqlserver_start_time,
+    -- 物理内存（机器级，MB）：使用 sys.dm_os_sys_memory（2008+ 全版本可用，列名稳定）
+    (SELECT CAST(total_physical_memory_kb / 1024 AS BIGINT)
+       FROM sys.dm_os_sys_memory)                                     AS physical_memory_mb,
     -- 内存信息：以 MB 为单位，全部走 2008+ 都存在的视图与配置项，无版本判断
     -- sys.dm_os_process_memory：2008 起，physical_memory_in_use_kb 列名各版本一致
     (SELECT physical_memory_in_use_kb / 1024 FROM sys.dm_os_process_memory) AS sql_memory_used_mb,
