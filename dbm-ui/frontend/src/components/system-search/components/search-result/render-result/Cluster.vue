@@ -40,7 +40,7 @@
     handleRedirect(
       data.cluster_type,
       {
-        name: data.name,
+        domain: data.master_domain,
       },
       data.bk_biz_id,
     );
