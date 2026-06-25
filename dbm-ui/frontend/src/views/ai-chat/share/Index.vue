@@ -270,5 +270,34 @@
     blockquote::after {
       content: '';
     }
+
+    table {
+      width: 95%;
+      margin-bottom: 20px;
+      margin-left: 10px;
+      word-break: break-all;
+      border-collapse: collapse;
+      border-color: #dcdee5;
+      border-spacing: 0;
+      border-style: solid;
+      border-width: 1px;
+      table-layout: fixed;
+
+      tr {
+        th,
+        td {
+          padding: 8px;
+          text-align: left;
+          vertical-align: middle;
+          border: 1px solid #dcdee5;
+          border-color: #ced4d9;
+        }
+
+        th {
+          word-break: keep-all;
+          background-color: #fafbfd;
+        }
+      }
+    }
   }
 </style>
