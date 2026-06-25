@@ -12,7 +12,7 @@
 -->
 
 <template>
-  <div class="preview-diff-common mt-24">
+  <div class="preview-diff-common">
     <div class="diff-title">
       {{ t('影响预览') }}
     </div>
@@ -24,7 +24,8 @@
       row-key="rowKey">
       <TableColumn
         col-key="bizName"
-        :title="t('业务')">
+        :title="t('业务')"
+        :width="150">
         <template #default="{ row }: { row: IDataRow }">
           <div style="font-weight: bolder">{{ row.bizName }}</div>
         </template>

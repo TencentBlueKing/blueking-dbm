@@ -55,14 +55,15 @@
         <TagList :list="data.tags.map((tagItem) => ({ label: tagItem.value, value: tagItem.id }))" />
       </template>
       <span v-else>--</span>
-      <BkButton
+      <AuthButton
+        action-id="global_dba_admin_edit"
         class="ml-4"
         text
         @click="handleEdit(data)">
         <DbIcon
           class="operation-icon"
           type="edit" />
-      </BkButton>
+      </AuthButton>
     </span>
   </div>
 </template>
@@ -137,7 +138,8 @@
 
     .operation-icon {
       display: none;
-      font-size: 18px;
+      font-size: 16px;
+      color: #3a84ff;
       cursor: pointer;
     }
   }

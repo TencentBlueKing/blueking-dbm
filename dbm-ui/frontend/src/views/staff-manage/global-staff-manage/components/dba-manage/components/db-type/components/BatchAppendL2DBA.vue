@@ -26,6 +26,7 @@
         </DbForm>
         <DiffTable
           ref="diffTable"
+          class="mt-24"
           :data="diffData"
           :is-form-empty="isFormEmpty"
           :user-data-map="userDataMap" />
@@ -189,11 +190,11 @@
   }
 
   .biz-unmanage-batch-append-l2-dba-content {
-    padding: 24px;
+    padding: 24px 24px 8px;
 
     .dba-box {
       display: flex;
-      gap: 24px;
+      gap: 8px;
 
       .dba-item {
         flex: 1;

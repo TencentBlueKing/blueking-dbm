@@ -39,6 +39,7 @@
 
     .db-manage-tab {
       padding: 0;
+      box-shadow: none;
     }
 
     .db-manage-content {

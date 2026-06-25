@@ -11,6 +11,7 @@
  * the specific language governing permissions and limitations under the License.
  */
 
+import DBAdminModel from '@services/model/db-admin/db-admin';
 import DBAdminOperationRecordModel from '@services/model/db-admin/db-admin-operation_record';
 import type { ListBase } from '@services/types';
 
@@ -37,17 +38,22 @@ export function getAdmins(params: {
   bk_biz_id?: number;
   db_type?: DBTypes;
 }) {
-  return http.get<
-    {
-      bk_biz_id: number;
-      db_type: string;
-      db_type_display: string;
-      is_show: boolean;
-      update_at: string;
-      updater: string;
-      users: string[];
-    }[]
-  >(`${path}/list_admins/`, params);
+  return http
+    .get<{
+      data: DBAdminModel[];
+      permission: DBAdminModel['permission'];
+    }>(`${path}/list_admins/`, params)
+    .then((data) => ({
+      ...data,
+      data: data.data.map(
+        (item) =>
+          new DBAdminModel(
+            Object.assign(item, {
+              permission: Object.assign({}, item.permission, data.permission),
+            }),
+          ),
+      ),
+    }));
 }
 
 /**
@@ -63,6 +69,21 @@ export function updateAdmins(params: {
   operates: Operate[];
 }) {
   return http.post(`${path}/upsert_admins/`, params);
+}
+
+/**
+ * 全局更新 DBA 人员列表
+ */
+export function updateGlobalAdmins(params: {
+  bk_biz_id: number;
+  db_admins: {
+    db_type: string;
+    db_type_display: string;
+    users: string[];
+  }[];
+  operates: Operate[];
+}) {
+  return http.post(`${path}/upsert_global_admins/`, params);
 }
 
 /**

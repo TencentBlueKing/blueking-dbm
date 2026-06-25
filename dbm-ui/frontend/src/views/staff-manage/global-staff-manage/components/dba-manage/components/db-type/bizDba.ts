@@ -10,16 +10,13 @@
  * on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for
  * the specific language governing permissions and limitations under the License.
  */
+import DBAdminModel from '@services/model/db-admin/db-admin';
+import ResourceTagModel from '@services/model/db-resource/ResourceTag';
 import type { BizItem } from '@services/types';
 
 import { utcDisplayTime } from '@utils';
 
-import { getAdmins } from '@/services/source/dbadmin';
-
-type AdminItem = ServiceReturnType<typeof getAdmins>[number];
-import ResourceTagModel from '@services/model/db-resource/ResourceTag';
-
-export default class BizDba implements BizItem, AdminItem {
+export default class BizDba implements BizItem, DBAdminModel {
   bk_biz_id: number;
   db_type: string;
   db_type_display: string;
@@ -31,9 +28,7 @@ export default class BizDba implements BizItem, AdminItem {
   level2_dba_edit: string[];
   managed_time: string;
   name: string;
-  permission: {
-    db_manage: boolean;
-  };
+  permission: DBAdminModel['permission'];
   pinyin_head: string;
   pinyin_name: string;
   primary_dba: string;

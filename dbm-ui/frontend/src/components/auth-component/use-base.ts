@@ -53,7 +53,7 @@ const withBizActionList = [
   'notify_group_delete',
   'dbconfig_view',
   'dbconfig_edit',
-  'dba_administrator_edit',
+  'dba_admin_edit',
   'health_report_view',
   'dbha_switch_event_view',
   'ip_whitelist_manage',
@@ -132,7 +132,7 @@ export default function (props: Props) {
     if (!props.actionId) {
       return;
     }
-    run(realParams.value);
+    run(realParams.value, { cache: 1000 });
   };
 
   const handleRequestPermission = (event: Event) => {

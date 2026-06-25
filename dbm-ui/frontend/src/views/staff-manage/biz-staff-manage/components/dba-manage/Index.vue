@@ -29,6 +29,7 @@
       <div class="db-manage-content">
         <Table
           v-if="activeTopTab"
+          :active-top-tab="activeTopTab"
           :data="tableData"
           :default-admins-data-map="defaultAdminsDataMap"
           :user-data-map="userDataMap"
@@ -112,7 +113,7 @@
     const activeDbTypes =
       activeTopTab.value === 'apply' ? dbTypeMap.value.applyDbTypes : dbTypeMap.value.unapplyDbTypes;
     const bizAdminsMap = Object.fromEntries(
-      Object.values(bizAdminsData.value || {}).map((item) => [item.db_type, item]),
+      Object.values(bizAdminsData.value?.data || {}).map((item) => [item.db_type, item]),
     );
 
     return activeDbTypes.map((item) => bizAdminsMap[item] || getDefaultDbTypeAdmin(item));
@@ -120,7 +121,7 @@
 
   const defaultAdminsDataMap = computed(() => {
     const defalutAdminsMap = Object.fromEntries(
-      Object.values(defalutAdminsData.value || {}).map((item) => [item.db_type, item]),
+      Object.values(defalutAdminsData.value?.data || {}).map((item) => [item.db_type, item]),
     );
     const defalutAdminsList = Object.values(DBTypeInfos).map(
       (item) => defalutAdminsMap[item.id] || getDefaultDbTypeAdmin(item.id),

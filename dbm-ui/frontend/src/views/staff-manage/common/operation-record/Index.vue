@@ -5,7 +5,11 @@
       class="mb-16"
       :data="quickSearchData"
       parse-url
-      :placeholder="t('请输入或选择条件搜索')"
+      :placeholder="
+        isPlatform
+          ? t('搜索操作人、操作时间、所属业务、操作类型、DB 类型、变更角色')
+          : t('搜索操作人、操作时间、操作类型、DB 类型、变更角色')
+      "
       style="width: 500px"
       @change="handleQuickSearchChange" />
     <DbTable

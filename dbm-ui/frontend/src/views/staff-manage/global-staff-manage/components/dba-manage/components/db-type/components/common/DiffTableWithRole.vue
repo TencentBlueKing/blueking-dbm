@@ -12,7 +12,7 @@
 -->
 
 <template>
-  <div class="preview-diff-with-role mt-24">
+  <div class="preview-diff-with-role">
     <div class="diff-title">
       {{ t('影响预览') }}
     </div>
@@ -25,7 +25,8 @@
       :rowspan-and-colspan="rowspanAndColspan">
       <TableColumn
         col-key="bizName"
-        :title="t('业务')">
+        :title="t('业务')"
+        :width="150">
         <template #default="{ row }: { row: IDataRow }">
           <div style="font-weight: bolder">{{ row.bizName }}</div>
         </template>
@@ -33,7 +34,7 @@
       <TableColumn
         col-key="privilegeDisplay"
         :title="t('修改项')"
-        :width="150">
+        :width="100">
         <template #default="{ row }: { row: IDataRow }">
           <div
             class="role-dot ml-8 mr-8"

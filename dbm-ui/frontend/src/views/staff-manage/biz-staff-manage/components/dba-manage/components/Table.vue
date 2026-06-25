@@ -3,11 +3,12 @@
     <template v-if="!isBatchEdit">
       <BkAlert :title="t('当前业务各组件类型的 DBA 负责人配置。如需修改请点击编辑。')" />
       <div class="top-box mt-16">
-        <BkButton
+        <AuthButton
+          action-id="dba_admin_edit"
           theme="primary"
           @click="handleBatchEdit">
           {{ t('批量编辑') }}
-        </BkButton>
+        </AuthButton>
         <MemberSelector
           v-model="searchUsers"
           :mutiple="false"
@@ -27,17 +28,28 @@
           class="dba-table mt-20"
           :data="formData.filterTableData"
           :max-height="tableMaxHeight"
+          :row-class-name="rowClassName"
           row-key="db_type">
           <TableColumn
             col-key="db_type_display"
-            :title="t('组件类型')">
+            :title="t('组件类型')"
+            :width="160">
             <template #default="{ row }: { row: IRowData }">
               <div class="db-type">
                 <DbIcon
                   class="db-type-icon"
-                  svg
                   :type="DBTypeInfos[row.db_type as DBTypes].icon" />
                 <span class="ml-4">{{ row.db_type_display }}</span>
+                <DbIcon
+                  v-if="!row.is_edit && isPrimaryAndStanbySame(row)"
+                  v-bk-tooltips="
+                    t('主 DBA 与 备DBA 相同（均为{user}），该人员不在时审批可能无人处理', {
+                      user: `${row.primary_dba}（${userDataMap[row.primary_dba]}）`,
+                    })
+                  "
+                  class="ml-4 mt-4"
+                  style="font-size: 14px; color: #f59500; cursor: pointer"
+                  type="early-warning" />
                 <BkButton
                   v-if="row.users.length > 0 || defaultAdminsDataMap[row.db_type as DBTypes].users.length > 0"
                   v-bk-tooltips="t('复制该行所有DBA')"
@@ -50,7 +62,9 @@
               </div>
             </template>
           </TableColumn>
-          <TableColumn col-key="primary-dba">
+          <TableColumn
+            col-key="primary-dba"
+            :width="250">
             <template #title>
               <div style="display: flex; align-items: center">
                 <span>{{ t('主 DBA') }}</span>
@@ -75,11 +89,24 @@
                 error-display-type="tooltips"
                 :property="`filterTableData.${rowIndex}.primary_dba_edit`"
                 :required="row.standby_dba_edit.length > 0 || row.level2_dba_edit.length > 0">
-                <MemberSelector
-                  v-model="row.primary_dba_edit"
-                  :multiple="false" />
+                <div class="member-selector-wrapper">
+                  <MemberSelector
+                    v-model="row.primary_dba_edit"
+                    class="member-selector"
+                    :multiple="false"
+                    @change="() => handleMemberChange(`filterTableData.${rowIndex}.primary_dba_edit`)" />
+                  <BkButton
+                    v-bk-tooltips="t('主备互换')"
+                    class="ml-16"
+                    text
+                    @click="handleSwitchPrimaryAndStandby(row, rowIndex)">
+                    <DbIcon
+                      class="switch-icon"
+                      type="qiehuan-2" />
+                  </BkButton>
+                </div>
                 <div
-                  v-if="isPrimaryAndStanbySame(row)"
+                  v-if="isEditPrimaryAndStanbySame(row)"
                   class="member-selector-tip">
                   <DbIcon
                     class="mr-4"
@@ -117,7 +144,9 @@
               </template>
             </template>
           </TableColumn>
-          <TableColumn col-key="standby-dba">
+          <TableColumn
+            col-key="standby-dba"
+            :width="250">
             <template #title>
               <div style="display: flex; align-items: center">
                 <span>{{ t('备 DBA') }}</span>
@@ -144,9 +173,10 @@
                 :required="row.primary_dba_edit.length > 0 || row.level2_dba_edit.length > 0">
                 <MemberSelector
                   v-model="row.standby_dba_edit"
-                  :multiple="false" />
+                  :multiple="false"
+                  @change="() => handleMemberChange(`filterTableData.${rowIndex}.standby_dba_edit`)" />
                 <div
-                  v-if="isPrimaryAndStanbySame(row)"
+                  v-if="isEditPrimaryAndStanbySame(row)"
                   class="member-selector-tip">
                   <DbIcon
                     class="mr-4"
@@ -184,7 +214,9 @@
               </template>
             </template>
           </TableColumn>
-          <TableColumn col-key="level2_dba">
+          <TableColumn
+            col-key="level2_dba"
+            :min-width="300">
             <template #title>
               <div style="display: flex; align-items: center">
                 <span>{{ t('二线 DBA') }}</span>
@@ -204,9 +236,11 @@
             </template>
             <template #default="{ row }: { row: IRowData }">
               <DbFormItem v-if="row.is_edit">
-                <MemberSelector v-model="row.level2_dba_edit" />
+                <MemberSelector
+                  v-model="row.level2_dba_edit"
+                  fast-clear />
                 <div
-                  v-if="isPrimaryAndStanbySame(row)"
+                  v-if="isEditPrimaryAndStanbySame(row)"
                   class="member-selector-tip" />
               </DbFormItem>
               <template v-else>
@@ -240,7 +274,8 @@
           <TableColumn
             v-if="!isBatchEdit"
             col-key="status"
-            :title="t('状态')">
+            :title="t('状态')"
+            width="100">
             <template #default="{ row }: { row: IRowData }">
               <BkTag
                 v-if="row.users.length"
@@ -264,7 +299,8 @@
           <TableColumn
             v-if="!isBatchEdit"
             col-key="update_at"
-            :title="t('更新时间')">
+            :title="t('更新时间')"
+            width="200">
             <template #default="{ row }: { row: IRowData }">
               {{ utcDisplayTime(row.update_at) || '--' }}
             </template>
@@ -272,7 +308,8 @@
           <TableColumn
             v-if="!isBatchEdit"
             col-key="updater"
-            :title="t('更新人')">
+            :title="t('更新人')"
+            :width="120">
             <template #default="{ row }: { row: IRowData }">
               {{ row.updater || '--' }}
             </template>
@@ -300,20 +337,54 @@
                   {{ t('取消') }}
                 </BkButton>
               </template>
-              <BkButton
+              <AuthButton
                 v-else
+                action-id="dba_admin_edit"
+                :permission="row.users.length > 0 ? row.permission.dba_admin_edit : 'normal'"
                 text
                 theme="primary"
                 @click="() => handleRowEdit(row, rowIndex)">
                 {{ t('编辑') }}
-              </BkButton>
+              </AuthButton>
             </template>
           </TableColumn>
+          <template #empty>
+            <BkException
+              v-if="activeTopTab === 'apply'"
+              scene="part"
+              :title="t('当前业务尚未部署任何 DB 组件')"
+              type="empty">
+              <template #description>
+                <I18nT
+                  keypath="前往 n 页面部署数据库 DBA 管理"
+                  tag="span">
+                  <template #n>
+                    <RouterLink
+                      :to="{
+                        name: 'BussinessServiceApply',
+                      }">
+                      {{ t('部署申请') }}
+                    </RouterLink>
+                  </template>
+                </I18nT>
+              </template>
+            </BkException>
+            <BkException
+              v-else
+              :description="t('暂无数据')"
+              scene="part"
+              style="font-size: 12px"
+              type="empty" />
+          </template>
         </PrimaryTable>
       </DbForm>
     </div>
     <div v-if="isBatchEdit">
       <BkButton
+        v-bk-tooltips="{
+          content: t('当前无变更，请先修改内容'),
+          disabled: changedDataList.length > 0,
+        }"
         class="w-88 mt-16"
         :disabled="changedDataList.length === 0"
         :loading="batchUpdateLoading"
@@ -336,7 +407,8 @@
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
-  import { getAdmins, updateAdmins } from '@services/source/dbadmin';
+  import DBAdminModel from '@services/model/db-admin/db-admin';
+  import { updateAdmins } from '@services/source/dbadmin';
 
   import { DBAOperateTypes, DBARoleTypes, DBTypeInfos, DBTypes } from '@common/const';
 
@@ -348,8 +420,9 @@
   import { execCopy, getOffset, messageSuccess, utcDisplayTime } from '@utils';
 
   interface Props {
-    data: ServiceReturnType<typeof getAdmins>;
-    defaultAdminsDataMap: Record<string, ServiceReturnType<typeof getAdmins>[number]>;
+    activeTopTab: 'apply' | 'unapply';
+    data: DBAdminModel[];
+    defaultAdminsDataMap: Record<string, DBAdminModel>;
     userDataMap: Record<string, string>;
   }
 
@@ -363,7 +436,7 @@
     primary_dba_edit: string[];
     standby_dba: string;
     standby_dba_edit: string[];
-  } & ServiceReturnType<typeof getAdmins>[number];
+  } & DBAdminModel;
 
   const props = defineProps<Props>();
   const emits = defineEmits<Emits>();
@@ -438,12 +511,32 @@
     setTableMaxHeight();
   });
 
+  const rowClassName = ({ row }: { row: IRowData }) => {
+    return !row.is_edit && isPrimaryAndStanbySame(row) ? 'warning-row' : '';
+  };
+
+  const handleSwitchPrimaryAndStandby = (row: IRowData, rowIndex: number) => {
+    const { primary_dba_edit: primaryDBA, standby_dba_edit: standbyDBA } = row;
+    formData.value.filterTableData[rowIndex] = Object.assign(row, {
+      primary_dba_edit: standbyDBA,
+      standby_dba_edit: primaryDBA,
+    });
+  };
+
   const isPrimaryAndStanbySame = (row: IRowData) => {
+    return row.primary_dba && row.standby_dba && row.primary_dba === row.standby_dba;
+  };
+
+  const isEditPrimaryAndStanbySame = (row: IRowData) => {
     return (
       row.primary_dba_edit.length > 0 &&
       row.standby_dba_edit.length > 0 &&
       row.primary_dba_edit[0] === row.standby_dba_edit[0]
     );
+  };
+
+  const handleMemberChange = (property: string) => {
+    formRef.value?.validate(property);
   };
 
   const handleSearchUsersChange = (users: string[]) => {
@@ -539,9 +632,9 @@
     tableList = tableList.map((item) => ({
       ...item,
       is_edit: false,
-      level2_dba_edit: _.cloneDeep(row.level2_dba),
-      primary_dba_edit: row.primary_dba ? [row.primary_dba] : [],
-      standby_dba_edit: row.standby_dba ? [row.standby_dba] : [],
+      level2_dba_edit: _.cloneDeep(item.level2_dba),
+      primary_dba_edit: item.primary_dba ? [item.primary_dba] : [],
+      standby_dba_edit: item.standby_dba ? [item.standby_dba] : [],
     }));
     tableList[rowIndex].is_edit = true;
 
@@ -643,10 +736,58 @@
 
       .db-type-icon {
         font-size: 16px;
+
+        &.db-icon-mysql {
+          color: #3a84ff;
+        }
+
+        &.db-icon-redis {
+          color: #ea3636;
+        }
+
+        &.db-icon-es {
+          color: #3c9c48;
+        }
+
+        &.db-icon-kafka {
+          color: #333;
+        }
+
+        &.db-icon-mongo-db {
+          color: #3c9c48;
+        }
+
+        &.db-icon-doris {
+          color: #3c9c48;
+        }
+
+        &.db-icon-hdfs {
+          color: #f59500;
+        }
+
+        &.db-icon-influxdb {
+          color: #3a84ff;
+        }
+
+        &.db-icon-pulsar {
+          color: #2c2cea;
+        }
+
+        &.db-icon-cluster {
+          color: #333;
+        }
+
+        &.db-icon-sqlserver {
+          color: #ea3636;
+        }
       }
     }
 
     .dba-table {
+      .warning-row {
+        background-color: #fdf4e8;
+      }
+
       .fallback-dba {
         .allback-dba-value {
           color: #c4c6cc;
@@ -683,8 +824,29 @@
         }
       }
 
+      .member-selector-wrapper {
+        display: flex;
+        align-items: center;
+
+        .member-selector {
+          flex: 1;
+          min-width: 0;
+        }
+
+        .switch-icon {
+          flex-shrink: 0;
+          font-size: 20px;
+          color: #c4c6cc;
+
+          &:hover {
+            color: #4d4f56;
+          }
+        }
+      }
+
       .member-selector-tip {
-        height: 32px;
+        height: 20px;
+        line-height: 20px;
         color: #fe9c00;
       }
     }

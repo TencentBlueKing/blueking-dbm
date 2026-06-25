@@ -5,7 +5,7 @@
         v-model="searchValue"
         :data="quickSearchData"
         parse-url
-        :placeholder="t('请输入或选择条件搜索')"
+        :placeholder="t('搜索业务 ID、业务名称、业务代号、标签')"
         style="width: 500px"
         @change="handleQuickSearchChange" />
     </div>
@@ -55,12 +55,13 @@
           :title="t('操作')"
           width="120">
           <template #default="{ row }: { row: BizItem }">
-            <BkButton
+            <AuthButton
+              action-id="global_dba_admin_edit"
               text
               theme="primary"
               @click="() => handleCancelManage(row)">
               {{ t('取消纳管') }}
-            </BkButton>
+            </AuthButton>
           </template>
         </TableColumn>
       </PrimaryTable>
@@ -249,9 +250,9 @@
       .bk-pagination {
         width: 100%;
 
-        & > .is-last {
-          margin-left: auto;
-        }
+        // & > .is-last {
+        //   margin-left: auto;
+        // }
       }
     }
   }
