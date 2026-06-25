@@ -64,7 +64,7 @@ class IAMViewSet(viewsets.SystemViewSet):
         request_body=SimpleIamActionResourceRequestSerializer(),
         tags=[SWAGGER_TAG],
     )
-    @action(detail=False, methods=["POST"], serializer_class=SimpleIamActionResourceRequestSerializer)
+    @action(detail=False, methods=["GET"], serializer_class=SimpleIamActionResourceRequestSerializer)
     def simple_check_allowed(self, request, *args, **kwargs):
         data = self.validated_data
         client = Permission(username=request.user.username)

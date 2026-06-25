@@ -17,7 +17,7 @@ from backend.bk_web.pagination import AuditedLimitOffsetPagination
 from backend.bk_web.swagger import common_swagger_auto_schema
 from backend.configuration.constants import DBType
 from backend.configuration.filters import AppOperateLogFilter
-from backend.configuration.handlers.dba import DBAdministratorHandler
+from backend.configuration.handlers.dba import DBAdministratorHandler, decorator_permission_field
 from backend.configuration.models.dba import DBAdministrator
 from backend.configuration.serializers import (
     AppOperateLogSerializer,
@@ -42,14 +42,15 @@ class DBAdminViewSet(viewsets.SystemViewSet):
         if self.action in ["list_admins", "get_dba_component", "app_operate_log"]:
             return []
         if self.action in ["upsert_global_admins"]:
-            return [GlobalDBAPermission([ActionEnum.GLOBAL_DBA_ADMINISTRATOR_EDIT])]
+            return [GlobalDBAPermission([ActionEnum.GLOBAL_DBA_ADMIN_EDIT])]
         else:
-            return [BizDBAPermission([ActionEnum.DBA_ADMINISTRATOR_EDIT])]
+            return [BizDBAPermission([ActionEnum.DBA_ADMIN_EDIT])]
 
     @common_swagger_auto_schema(
         operation_summary=_("查询DBA人员列表"), query_serializer=ListDBAdminSerializer, tags=[SWAGGER_TAG]
     )
     @action(methods=["GET"], detail=False, serializer_class=ListDBAdminSerializer)
+    @decorator_permission_field()
     def list_admins(self, request, *args, **kwargs):
         validated_data = self.params_validate(self.get_serializer_class())
         if "db_type" not in validated_data:
@@ -69,7 +70,7 @@ class DBAdminViewSet(viewsets.SystemViewSet):
                     "bk_biz_id": biz_dba.bk_biz_id,
                 }
             )
-        return Response(db_admins)
+        return Response({"data": db_admins})
 
     @common_swagger_auto_schema(operation_summary=_("更新业务DBA人员"), tags=[SWAGGER_TAG])
     @action(methods=["POST"], detail=False, serializer_class=UpsertDBAdminSerializer)
