@@ -87,7 +87,7 @@
       return Promise.reject();
     }
 
-    const tags = Object.values(tagsInfo).map((item) => item.value) as number[];
+    const tags = tagsInfo.map((item) => item.value) as number[];
     if (!props.data.length) {
       // 新增
       return handleAddClusterTagKeys({

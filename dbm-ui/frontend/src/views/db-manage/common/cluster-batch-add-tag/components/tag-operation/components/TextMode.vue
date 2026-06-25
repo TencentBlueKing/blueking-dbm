@@ -1,49 +1,42 @@
 <template>
   <div class="text-mode-main">
-    <BkPopover
-      always
-      placement="top"
-      theme="light">
-      <template #content>
-        <div style="line-height: 20px">
-          <div style="font-weight: 700">{{ tipTitle }}</div>
-          <div>{{ exampleTip1 }}</div>
-          <div>{{ exampleTip2 }}</div>
-        </div>
-      </template>
-      <BkInput
-        ref="inputRef"
-        v-model="localValue"
-        :autosize="{ minRows: 8, maxRows: 20 }"
-        :over-max-length-limit="false"
-        :placeholder="placeholder"
-        :resize="false"
-        type="textarea" />
-    </BkPopover>
+    <BkInput
+      ref="inputRef"
+      v-model="localValue"
+      :autosize="{ minRows: 8, maxRows: 20 }"
+      :over-max-length-limit="false"
+      :placeholder="placeholder"
+      :resize="false"
+      type="textarea" />
     <div
-      v-if="!isVerifyPassed"
+      v-if="errorTipList.length > 0"
       class="error-tip">
-      <DbIcon
-        style="font-size: 14px"
-        type="exclamation-fill" />
-      <span class="ml-4">{{ verifyTip }}</span>
+      <div
+        v-for="item in errorTipList"
+        :key="item.line"
+        class="error-tip-item">
+        <DbIcon
+          style="font-size: 18px"
+          type="close" />
+        <span class="ml-4">{{ t('第 n 行', { n: item.line }) }}</span>
+        <span class="mr-4">:</span>
+        <span class="ml-4">{{ item.tip }}</span>
+      </div>
     </div>
   </div>
 </template>
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
 
-  import { tagKeyRegex, tagValueRegex } from '@common/regex';
-
   import type { KeyValueMapType, TagsPairType } from '../Index.vue';
 
   interface Props {
-    data?: TagsPairType;
+    data?: TagsPairType[];
     keyValueMap: KeyValueMapType;
   }
 
   interface Exposes {
-    getValue: (isIgnoreVerify?: boolean) => TagsPairType | null;
+    getValue: (isIgnoreVerify?: boolean) => TagsPairType[] | null;
   }
 
   const props = withDefaults(defineProps<Props>(), {
@@ -54,94 +47,168 @@
 
   const inputRef = ref();
   const localValue = ref('');
-  const isVerifyPassed = ref(true);
-  const verifyTip = ref('');
+  const errorTipList = ref<
+    {
+      line: number;
+      tip: string;
+    }[]
+  >([]);
 
-  const tipTitle = `${t('请按照格式输入标签，如')}：`;
-  const exampleTip1 = t('所属部门：技术部门');
-  const exampleTip2 = t('负责人：admin');
-  const placeholder = `${tipTitle}\n${exampleTip1}\n${exampleTip2}`;
+  const placeholder = `${t('请按照格式输入标签，如')}：\n${t('所属部门：技术部门')}\n${t('负责人：admin')}`;
 
   watch(
     () => props.data,
     () => {
-      if (props.data && Object.keys(props.data).length > 0) {
+      if (props.data && props.data.length > 0) {
         let tmpStr = '';
-        Object.entries(props.data).forEach(([key, item]) => {
-          tmpStr += `${key}:${item.label}\n`;
+        props.data.forEach((item) => {
+          tmpStr += `${item.key}:${item.valueLabel}\n`;
         });
-        localValue.value = tmpStr;
+        localValue.value = tmpStr.trim();
       }
     },
     { immediate: true },
   );
 
-  const checkInputValue = () => {
-    const pairStrList = localValue.value
-      .trim()
-      .split(/\n/)
-      .filter((item) => !!item);
-    const validPairRegex = /[:：/]/;
-    const pairInfo: TagsPairType = {};
-    const notExistValues: {
-      key: string;
-      value: string;
-    }[] = [];
+  const getValue = (key: string, value: string) =>
+    props.keyValueMap[key].find((item) => item.value === value)?.id || value;
 
-    for (const pairStr of pairStrList) {
+  const checkInputValue = (isIgnoreVerify = false) => {
+    errorTipList.value = [];
+    const pairStrList = localValue.value.trim().split(/\n/);
+    const validPairRegex = /[:：/]/;
+    const pairInfo: TagsPairType[] = [];
+
+    for (let i = 0; i < pairStrList.length; i++) {
+      const pairStr = pairStrList[i];
+      if (!pairStr.trim()) {
+        continue;
+      }
+
       if (!validPairRegex.test(pairStr)) {
-        return null;
+        errorTipList.value.push({
+          line: i + 1,
+          tip: t('缺少 : 分隔符'),
+        });
+        if (isIgnoreVerify) {
+          pairInfo.push({
+            key: pairStr,
+            value: '',
+            valueLabel: '',
+          });
+        }
+        continue;
       }
       const [key, value] = pairStr.split(validPairRegex);
 
       if (!key) {
-        verifyTip.value = t('键必填');
-        return null;
-      }
-
-      if (!props.keyValueMap[key]) {
-        notExistValues.push({
-          key,
-          value,
+        errorTipList.value.push({
+          line: i + 1,
+          tip: t('请输入标签键'),
         });
+        if (isIgnoreVerify) {
+          pairInfo.push({
+            key: '',
+            value,
+            valueLabel: value,
+          });
+        }
+        continue;
       }
 
-      if (!tagKeyRegex.test(key)) {
-        verifyTip.value = t('标签键为1-50个字符，支持英文字母、数字或汉字，中划线(-)，下划线(_)，点(.)');
-        return null;
+      if (key.length > 50) {
+        errorTipList.value.push({
+          line: i + 1,
+          tip: t('标签键长度不能超过 50 个字符'),
+        });
+        if (isIgnoreVerify) {
+          pairInfo.push({
+            key,
+            value: getValue(key, value),
+            valueLabel: value,
+          });
+        }
+        continue;
+      }
+
+      // 支持中文、字母、数字、连字符、下划线、点号
+      if (!/^[\u4e00-\u9fa5a-zA-Z0-9\-_.]+$/.test(key)) {
+        errorTipList.value.push({
+          line: i + 1,
+          tip: t('标签键包含不支持的字符'),
+        });
+        if (isIgnoreVerify) {
+          pairInfo.push({
+            key,
+            value: getValue(key, value),
+            valueLabel: value,
+          });
+        }
+        continue;
       }
 
       if (!value) {
-        verifyTip.value = t('值必填');
-        return null;
+        errorTipList.value.push({
+          line: i + 1,
+          tip: t('请输入标签值'),
+        });
+        if (isIgnoreVerify) {
+          pairInfo.push({
+            key,
+            value: '',
+            valueLabel: '',
+          });
+        }
+        continue;
       }
 
-      if (props.keyValueMap[key] && !props.keyValueMap[key].find((item) => item.value === value)) {
-        notExistValues.push({
+      if (value.length > 50) {
+        errorTipList.value.push({
+          line: i + 1,
+          tip: t('标签值长度不能超过 50 个字符'),
+        });
+        if (isIgnoreVerify) {
+          pairInfo.push({
+            key,
+            value: getValue(key, value),
+            valueLabel: value,
+          });
+        }
+        continue;
+      }
+
+      // 支持中文、字母、数字、连字符、下划线、点号、逗号
+      if (!/^[\u4e00-\u9fa5a-zA-Z0-9\-_.,]+$/.test(value)) {
+        errorTipList.value.push({
+          line: i + 1,
+          tip: t('标签值包含不支持的字符'),
+        });
+        if (isIgnoreVerify) {
+          pairInfo.push({
+            key,
+            value,
+            valueLabel: value,
+          });
+        }
+        continue;
+      }
+
+      // 新增键或值
+      if (!props.keyValueMap[key]) {
+        pairInfo.push({
           key,
           value,
+          valueLabel: value,
         });
-      }
-
-      if (!tagValueRegex.test(value)) {
-        verifyTip.value = t('标签值为1-100个字符，支持英文字母、数字或汉字，中划线(-)，下划线(_)，点(.)');
-        return null;
-      }
-
-      if (props.keyValueMap[key]) {
-        Object.assign(pairInfo, {
-          [key]: {
-            label: value,
-            value: props.keyValueMap[key].find((item) => item.value === value)?.id,
-          },
+      } else {
+        pairInfo.push({
+          key,
+          value: getValue(key, value),
+          valueLabel: value,
         });
       }
     }
-
-    if (notExistValues.length) {
-      verifyTip.value = t('标签m不存在', {
-        m: notExistValues.map((item) => `${item.key} : ${item.value}`).join(' , '),
-      });
+    if (errorTipList.value.length && !isIgnoreVerify) {
       return null;
     }
 
@@ -153,9 +220,8 @@
   });
 
   defineExpose<Exposes>({
-    getValue() {
-      const pairInfo = checkInputValue();
-      isVerifyPassed.value = !!pairInfo;
+    getValue(isIgnoreVerify = false) {
+      const pairInfo = checkInputValue(isIgnoreVerify);
       return pairInfo;
     },
   });
@@ -163,9 +229,17 @@
 <style lang="less" scoped>
   .text-mode-main {
     .error-tip {
-      margin-top: 8px;
+      max-height: 200px;
+      margin-top: 12px;
+      overflow-y: auto;
       font-size: 12px;
       color: #ea3636;
+
+      .error-tip-item {
+        display: flex;
+        align-items: center;
+        height: 20px;
+      }
     }
   }
 </style>

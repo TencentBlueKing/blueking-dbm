@@ -8,7 +8,7 @@
         <TextOverflowLayout
           v-for="(item, index) in renderList"
           :key="index">
-          {{ item.key }} : {{ item.value.join(' , ') }}
+          <div class="tag-item-main">{{ item.key }} : {{ item.value.join(' , ') }}</div>
           <template
             v-if="index === 0"
             #append>
@@ -115,6 +115,8 @@
 <style lang="less">
   .cluster-tag-list-box {
     display: inline-flex;
+    width: 100%;
+    overflow: hidden;
     align-items: center;
 
     &:hover {
@@ -131,6 +133,13 @@
     .list-display-main {
       flex: 1;
       overflow: hidden;
+
+      .tag-item-main {
+        width: 100%;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
     }
 
     .edit-main {
