@@ -38,7 +38,7 @@
               ref="textarea"
               v-model="modelValue"
               name="search"
-              :placeholder="t('请输入 IP，用逗号或空格分隔、Shift+Enter 换行，Enter 搜索')"
+              :placeholder="t('请输入 IP 地址，逗号 / 空格 / 换行分隔，Shift+Enter 换行，Enter 搜索')"
               spellcheck="false"
               @keydown="handleKeydown"
               @keyup="handleKeyup" />

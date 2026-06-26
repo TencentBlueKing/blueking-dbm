@@ -11,7 +11,7 @@
           class="mr-4"
           type="exclamation-fill" />
         <span class="header-title">
-          {{ t('以下 n 台主机校验不通过，请确认机器情况或清除有问题的机器后重新导入', { n: ips.length }) }}
+          {{ t('以下 n 台主机校验不通过，请确认机器情况或清除有问题的机器后重新导入', { n: uniqIps.length }) }}
         </span>
         <BkButton
           class="header-copy"
@@ -53,6 +53,7 @@
 </template>
 
 <script setup lang="ts">
+  import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
 
   import { execCopy, getBusinessHref } from '@utils';
@@ -77,8 +78,10 @@
   const { t } = useI18n();
   const router = useRouter();
 
+  const uniqIps = computed(() => _.uniq(props.ips));
+
   const handleCopyIps = () => {
-    execCopy(props.ips.join('\n'), t('复制成功，共n条', { n: props.ips.length }));
+    execCopy(uniqIps.value.join('\n'), t('复制成功，共n条', { n: uniqIps.value.length }));
   };
 
   const toTicketManage = (ticketItem: NonNullable<Props['messageList'][number]['tickets']>[number]) => {
