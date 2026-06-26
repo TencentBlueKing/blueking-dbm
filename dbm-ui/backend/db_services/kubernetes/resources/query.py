@@ -104,11 +104,24 @@ class KubernetesBaseListRetrieveResource(query.ListRetrieveResource, KubernetesB
         cluster_detail = KubernetesApi.cluster_detail({"cluster_id": cluster.id}, use_admin=True)
         k8s_cluster_name = cluster_detail.get("k8sClusterConfig", {}).get("clusterName", "")
         namespace = cluster_detail.get("namespace", "")
+        components = cluster_detail.get("addonInfo", {}).get("topology", {}).get("components", [])
+        component_pod = KubernetesApi.component_pods(
+            {
+                "clusterName": cluster.name,
+                "k8sClusterName": k8s_cluster_name,
+                "namespace": namespace,
+                "componentName": components[0].get("name"),
+            },
+            use_admin=True,
+        )
+        cluster_spec = component_pod.get("result")[0].get("resourceQuota")
 
         cluster_extra_info = {
             "k8s_cluster_name": k8s_cluster_name,
             "namespace": namespace,
-            "components": cluster_detail.get("addonInfo", {}).get("topology", {}).get("components", []),
+            "components": components,
+            "major_version": cluster_detail.get("serviceVersion", ""),
+            "cluster_spec": cluster_spec,
         }
         cluster_info = super()._to_cluster_representation(
             cluster,
@@ -146,25 +159,23 @@ class KubernetesBaseListRetrieveResource(query.ListRetrieveResource, KubernetesB
         """
         result = {"count": 0, "data": []}
 
-        # 支持多集群查询：解析集群参数，支持逗号分隔的多值或列表
+        # 支持多集群查询：解析集群参数，只支持逗号分隔的字符串格式
         cluster_names = query_params.get("cluster_name", "")
         k8s_cluster_names = query_params.get("k8s_cluster_name", "")
         namespaces = query_params.get("namespace", "")
 
-        # 解析多值参数（支持逗号分隔的字符串或列表）
-        cluster_name_list = cluster_names.split(",") if isinstance(cluster_names, str) else (cluster_names or [])
-        k8s_cluster_name_list = (
-            k8s_cluster_names.split(",") if isinstance(k8s_cluster_names, str) else (k8s_cluster_names or [])
-        )
-        namespace_list = namespaces.split(",") if isinstance(namespaces, str) else (namespaces or [])
+        # 解析多值参数（逗号分隔的字符串）
+        cluster_name_list = cluster_names.split(",") if cluster_names else []
+        k8s_cluster_name_list = k8s_cluster_names.split(",") if k8s_cluster_names else []
+        namespace_list = namespaces.split(",") if namespaces else []
 
         # 批量反查 cluster_id，用于权限字段嵌入(viewsets.list_instances 的 id_field=lambda d: d["cluster_id"])
         # 构建 cluster_name -> cluster_id 的映射
         cluster_id_map = {}
         cluster_ids = query_params.get("cluster_id")
         if cluster_ids:
-            # 如果传入了 cluster_id，支持多选（逗号分隔或列表）
-            id_list = cluster_ids.split(",") if isinstance(cluster_ids, str) else cluster_ids
+            # 如果传入了 cluster_id，支持多选（只支持逗号分隔的字符串格式）
+            id_list = cluster_ids.split(",") if cluster_ids else []
             clusters = Cluster.objects.filter(bk_biz_id=bk_biz_id, id__in=id_list).only("id", "name")
             cluster_id_map = {c.name: c.id for c in clusters}
         else:
