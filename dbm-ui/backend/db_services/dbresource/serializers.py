@@ -125,7 +125,10 @@ class ResourceImportSerializer(serializers.Serializer):
             conflict_ips = [host_id_ip_map[host_id] for host_id in sorted_conflict_hosts]
             error_groups.setdefault("recycling_ticket", []).extend(conflict_ips)
             error_extra["recycling_ticket"] = {
-                "ticket_ids": [recycling_map[host_id] for host_id in sorted_conflict_hosts],
+                "tickets": [
+                    {"id": recycling_map[host_id], "bk_biz_id": attrs.get("bk_biz_id")}
+                    for host_id in sorted_conflict_hosts
+                ],
             }
 
         error_map = {
