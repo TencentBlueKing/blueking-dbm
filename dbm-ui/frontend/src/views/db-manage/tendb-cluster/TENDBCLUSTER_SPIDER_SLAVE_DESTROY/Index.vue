@@ -12,16 +12,20 @@
 -->
 
 <template>
-  <SmartAction class="db-toolbox">
+  <SmartAction>
     <BkAlert
       class="mb-20"
       closable
-      :title="t('下架只读接入层：下架指定集群的只读接入层（移除该集群全部 Spider Slave 实例）')" />
+      :title="
+        t(
+          '批量下架集群的只读接入层（Spider Slave 实例）。只读接入层为业务提供只读域名访问入口，常用于读写分离与读流量分担；下架后业务将无法通过只读域名访问数据，主集群读写访问不受影响。',
+        )
+      " />
     <BatchInput
       :config="batchInputConfig"
       @change="handleBatchInput" />
-    <BkForm
-      class="mt-16 mb-16"
+    <DbForm
+      class="mt-16 mb-20"
       form-type="vertical"
       :model="formData">
       <EditableTable
@@ -35,6 +39,7 @@
           <ClusterColumn
             v-model="item.cluster"
             allow-repeat
+            :disable-rule="disableRule"
             :selected="selected"
             @batch-edit="handleBatchEditCluster" />
           <EditableColumn
@@ -61,7 +66,7 @@
         </EditableRow>
       </EditableTable>
       <TicketPayload v-model="formData.payload" />
-    </BkForm>
+    </DbForm>
     <template #action>
       <BkButton
         class="mr-8 w-88"
@@ -84,7 +89,6 @@
   </SmartAction>
 </template>
 <script lang="ts" setup>
-  import { computed, reactive, ref, useTemplateRef } from 'vue';
   import { useI18n } from 'vue-i18n';
 
   import TendbClusterModel from '@services/model/tendbcluster/tendbcluster';
@@ -108,6 +112,13 @@
   }
 
   const { t } = useI18n();
+  const router = useRouter();
+
+  // 无只读接入层（spider_slave.length === 0）的集群将被禁选并在表格中拦截
+  const disableRule = {
+    handler: (data: TendbClusterModel) => data.spider_slave?.length === 0,
+    tip: t('该集群无只读接入层'),
+  };
 
   const tableRef = useTemplateRef('table');
   const tableKey = ref(random());
@@ -158,8 +169,8 @@
   });
 
   const { loading: isSubmitting, run: createTicketRun } = useCreateTicket<{
-    clusterIds: number[];
-    isSafe: boolean;
+    cluster_ids: number[];
+    is_safe: boolean;
   }>(TicketTypes.TENDBCLUSTER_SPIDER_SLAVE_DESTROY);
 
   const handleSubmit = async () => {
@@ -170,8 +181,8 @@
 
     createTicketRun({
       details: {
-        clusterIds: formData.tableData.map((item) => item.cluster.id),
-        isSafe: true,
+        cluster_ids: formData.tableData.map((item) => item.cluster.id),
+        is_safe: true,
       },
       ...formData.payload,
     });
@@ -213,4 +224,12 @@
       formData.tableData = [...(formData.tableData[0].cluster.id ? formData.tableData : []), ...dataList];
     }
   };
+
+  defineExpose({
+    routerBack() {
+      router.push({
+        name: 'TendbclusterToolboxIndex',
+      });
+    },
+  });
 </script>
