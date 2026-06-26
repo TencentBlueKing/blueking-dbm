@@ -21,17 +21,15 @@
           ref="formRef"
           v-model="hostList"
           :content-height="contentHeight"
+          :error-host-map="errorHostMap"
           @update:host-list="handleUpdate" />
       </template>
     </BkResizeLayout>
     <template #footer>
       <div>
         <BkButton
-          v-bk-tooltips="{
-            content: t('请选择主机'),
-            disabled: hostList.length,
-          }"
-          :disabled="!hostList.length"
+          v-bk-tooltips="submitButtonTooltips"
+          :disabled="!submitButtonTooltips.disabled"
           :loading="isUpdating"
           theme="primary"
           @click="handleSubmit">
@@ -44,6 +42,10 @@
         </BkButton>
       </div>
     </template>
+    <ImportResourceErrorMessage
+      v-model="isErrorMessageShow"
+      :ips="errorHostList"
+      :message-list="errorMessageList" />
   </BkDialog>
 </template>
 
@@ -57,6 +59,9 @@
   import { useTicketMessage } from '@hooks';
 
   import { useSystemEnviron } from '@stores';
+
+  import ImportResourceErrorMessage from '@views/resource-manage/common/components/import-resource-error-message/Index.vue';
+  import { useImportResourceErrorMessage } from '@views/resource-manage/common/hooks/useImportResourceErrorMessage.ts';
 
   import FormPanel from './components/FormPanel.vue';
   import ListPanel from './components/ListPanel.vue';
@@ -78,6 +83,12 @@
 
   const formPanelRef = useTemplateRef('formPanelRef');
   const ticketMessage = useTicketMessage();
+  const {
+    errorHostList,
+    errorHostMap,
+    errorMessageList,
+    handleChange: handleErrorChange,
+  } = useImportResourceErrorMessage();
 
   const width = Math.ceil(window.innerWidth * 0.8);
   const contentHeight = Math.ceil(window.innerHeight * 0.8 - 48);
@@ -85,8 +96,33 @@
     height: `${contentHeight}px`,
   };
 
+  const isErrorMessageShow = ref(false);
+
+  const submitButtonTooltips = computed(() => {
+    if (hostList.value.length === 0) {
+      return {
+        content: t('请选择主机'),
+        disabled: false,
+      };
+    }
+    if (hostList.value.some((hostItem) => errorHostMap.value[hostItem.ip])) {
+      return {
+        content: t('请先处理有问题的 IP'),
+        disabled: false,
+      };
+    }
+    return {
+      content: '',
+      disabled: true,
+    };
+  });
+
   const { loading: isUpdating, run: runImport } = useRequest(importResource, {
     manual: true,
+    onError(error) {
+      handleErrorChange(error.message);
+      isErrorMessageShow.value = true;
+    },
     onSuccess({ ticket_ids: ticketIds }) {
       handleCancel();
       ticketMessage(ticketIds);
@@ -115,6 +151,9 @@
   };
 
   const handleCancel = () => {
+    handleErrorChange('');
+    isErrorMessageShow.value = false;
+
     emits('refresh');
     isShow.value = false;
   };

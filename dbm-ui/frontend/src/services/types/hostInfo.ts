@@ -22,6 +22,7 @@ export interface HostInfo {
     id: number;
     name: string;
   };
+  bk_bak_operator: string;
   bk_cpu: number;
   bk_cpu_architecture: string;
   bk_cpu_module: string;
@@ -48,6 +49,7 @@ export interface HostInfo {
     scope_type: string;
   };
   occupancy: boolean;
+  operator: string;
   os_name: string;
   os_type: string;
 }

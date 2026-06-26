@@ -18,7 +18,8 @@
     :esc-close="false"
     :quick-close="false"
     render-directive="if"
-    :width="width">
+    :width="width"
+    @hidden="handleHidden">
     <BkResizeLayout
       :border="false"
       collapsible
@@ -35,17 +36,15 @@
       <template #aside>
         <FormPanel
           ref="formRef"
-          v-model:host-list="hostSelectList" />
+          v-model:host-list="hostSelectList"
+          :error-host-map="errorHostMap" />
       </template>
     </BkResizeLayout>
     <template #footer>
       <div>
         <BkButton
-          v-bk-tooltips="{
-            content: t('请选择主机'),
-            disabled: hostSelectList.length > 0,
-          }"
-          :disabled="hostSelectList.length === 0"
+          v-bk-tooltips="submitButtonTooltips"
+          :disabled="!submitButtonTooltips.disabled"
           :loading="isSubmitting"
           theme="primary"
           @click="handleSubmit">
@@ -59,6 +58,10 @@
         </BkButton>
       </div>
     </template>
+    <ImportResourceErrorMessage
+      v-model="isErrorMessageShow"
+      :ips="errorHostList"
+      :message-list="errorMessageList" />
   </BkDialog>
 </template>
 <script setup lang="tsx">
@@ -70,6 +73,9 @@
   import type { HostInfo } from '@services/types';
 
   import { useTicketMessage } from '@hooks';
+
+  import ImportResourceErrorMessage from '@views/resource-manage/common/components/import-resource-error-message/Index.vue';
+  import { useImportResourceErrorMessage } from '@views/resource-manage/common/hooks/useImportResourceErrorMessage.ts';
 
   import FormPanel from './components/FormPanel.vue';
   import SelectHostPanel from './components/select-host-panel/Index.vue';
@@ -91,11 +97,38 @@
 
   const { t } = useI18n();
 
+  const {
+    errorHostList,
+    errorHostMap,
+    errorMessageList,
+    handleChange: handleErrorChange,
+  } = useImportResourceErrorMessage();
+
   const formRef = useTemplateRef('formRef');
   const selectHostPanelRef = useTemplateRef('selectHostPanelRef');
 
   const isSubmitting = ref(false);
   const hostSelectList = shallowRef<HostInfo[]>([]);
+  const isErrorMessageShow = ref(false);
+
+  const submitButtonTooltips = computed(() => {
+    if (hostSelectList.value.length === 0) {
+      return {
+        content: t('请选择主机'),
+        disabled: false,
+      };
+    }
+    if (hostSelectList.value.some((hostItem) => errorHostMap.value[hostItem.ip])) {
+      return {
+        content: t('请先处理有问题的 IP'),
+        disabled: false,
+      };
+    }
+    return {
+      content: '',
+      disabled: true,
+    };
+  });
 
   const ticketMessage = useTicketMessage({
     isCurrentBiz: props.type === 'business',
@@ -119,12 +152,17 @@
             host_id: item.host_id,
             ip: item.ip,
           })),
-        }).then(({ ticket_ids: ticketIds }) => {
-          window.changeConfirm = false;
-          ticketMessage(ticketIds);
-          handleCancel();
-          emits('change');
-        });
+        })
+          .then(({ ticket_ids: ticketIds }) => {
+            window.changeConfirm = false;
+            ticketMessage(ticketIds);
+            handleCancel();
+            emits('change');
+          })
+          .catch((error) => {
+            handleErrorChange(error.message);
+            isErrorMessageShow.value = true;
+          });
       })
       .finally(() => {
         isSubmitting.value = false;
@@ -133,6 +171,11 @@
 
   const handleCancel = () => {
     modelValue.value = false;
+  };
+
+  const handleHidden = () => {
+    handleErrorChange('');
+    isErrorMessageShow.value = false;
   };
 </script>
 <style lang="less">

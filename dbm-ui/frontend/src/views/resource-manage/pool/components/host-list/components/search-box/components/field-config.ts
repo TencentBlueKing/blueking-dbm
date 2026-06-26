@@ -112,12 +112,12 @@ export default {
     component: 'hosts',
     flex: 2,
     label: 'IP',
-    type: 'array',
-    validator: (value: string[]) => {
+    type: 'string',
+    validator: (value: string) => {
       if (!value || value.length < 1) {
         return true;
       }
-      const errorValue = value.filter((item) => !ipv4.test(_.trim(item)));
+      const errorValue = value.split(',').filter((item) => !ipv4.test(_.trim(item)));
       if (errorValue.length > 0) {
         return t('IP 格式错误:n', { n: errorValue.join(',') });
       }
