@@ -31,11 +31,22 @@
         :key="index"
         class="content-item">
         <div class="content-item-title">• {{ item.message }}（{{ item.ips.length }}{{ t('台') }}）</div>
-        <BkOverflowTitle
-          class="content-item-ips"
-          type="tips">
-          {{ item.ips.join(',') }}
-        </BkOverflowTitle>
+        <div class="content-item-ips">
+          <span
+            v-for="(ip, ipIndex) in item.ips"
+            :key="ipIndex">
+            <span v-if="ipIndex !== 0">,</span>
+            {{ ip }}
+            <BkButton
+              v-if="item.tickets && item.tickets[ipIndex]"
+              class="mr-4"
+              text
+              theme="primary"
+              @click="() => toTicketManage(item.tickets![ipIndex])">
+              [{{ item.tickets![ipIndex].id }}]
+            </BkButton>
+          </span>
+        </div>
       </div>
     </div>
   </BkDialog>
@@ -44,13 +55,17 @@
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
 
-  import { execCopy } from '@utils';
+  import { execCopy, getBusinessHref } from '@utils';
 
   interface Props {
     ips: string[];
     messageList: {
       ips: string[];
       message: string;
+      tickets?: {
+        bk_biz_id: number;
+        id: number;
+      }[];
     }[];
   }
 
@@ -60,9 +75,21 @@
   });
 
   const { t } = useI18n();
+  const router = useRouter();
 
   const handleCopyIps = () => {
     execCopy(props.ips.join('\n'), t('复制成功，共n条', { n: props.ips.length }));
+  };
+
+  const toTicketManage = (ticketItem: NonNullable<Props['messageList'][number]['tickets']>[number]) => {
+    const routeInfo = router.resolve({
+      name: 'bizTicketManage',
+      params: {
+        ticketId: ticketItem.id,
+      },
+    });
+    const routeInfoHref = getBusinessHref(routeInfo.href, ticketItem.bk_biz_id);
+    window.open(routeInfoHref, '_blank');
   };
 </script>
 
