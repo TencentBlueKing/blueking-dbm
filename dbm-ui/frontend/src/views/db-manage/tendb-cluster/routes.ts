@@ -130,10 +130,9 @@ const spiderToolboxRoute = {
     createRouteItem(TicketTypes.TENDBCLUSTER_SPIDER_SLAVE_APPLY, t('部署只读接入层'), {
       dbConsole: 'tendbCluster.toolbox.proxySlaveApply',
     }),
-    // TODO 功能未合主分支，注释
-    // createRouteItem(TicketTypes.TENDBCLUSTER_SPIDER_SLAVE_DESTROY, t('下架只读接入层'), {
-    //   dbConsole: 'tendbCluster.toolbox.removeReadonlyNode',
-    // }),
+    createRouteItem(TicketTypes.TENDBCLUSTER_SPIDER_SLAVE_DESTROY, t('下架只读接入层'), {
+      dbConsole: 'tendbCluster.toolbox.removeReadonlyNode',
+    }),
     createRouteItem(TicketTypes.TENDBCLUSTER_SPIDER_MNT_APPLY, t('添加运维节点'), {
       dbConsole: 'tendbCluster.toolbox.addMnt',
     }),
