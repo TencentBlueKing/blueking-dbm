@@ -165,6 +165,16 @@ func NewGormDBForTest(gormDB *gorm.DB) *GormDB {
 	}
 }
 
+// NewGormDBForTestWithClose is only used in unit tests. closeFn is invoked by Close(); when nil, Close is a no-op.
+func NewGormDBForTestWithClose(gormDB *gorm.DB, closeFn func()) *GormDB {
+	return &GormDB{
+		Base: Base[gorm.DB]{
+			db:    gormDB,
+			close: closeFn,
+		},
+	}
+}
+
 // DBWithContext returns a new gorm.DB with the given context.
 func (db *GormDB) DBWithContext(ctx context.Context) *gorm.DB {
 	return db.db.WithContext(ctx)
