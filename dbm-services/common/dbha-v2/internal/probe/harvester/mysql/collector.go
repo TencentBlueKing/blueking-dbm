@@ -61,6 +61,16 @@ func (c *collector) queryCtx() (context.Context, context.CancelFunc) {
 	return context.WithTimeout(context.Background(), c.timeout)
 }
 
+func (c *collector) connectionExceptionEvent(err error) *haprobe.DbEvent {
+	return &haprobe.DbEvent{
+		Name:       haprobe.DbEventNameDetectFailure,
+		Reason:     haprobe.DbEventNameReasonConnectionException,
+		DbTypeName: haprobe.DbTypeMySql,
+		Endpoint:   c.endpoint,
+		Message:    err.Error(),
+	}
+}
+
 func (c *collector) open() (*haprobe.DbEvent, error) {
 	opts := []hamysql.Option{
 		hamysql.OptionProto(c.endpoint.Proto),
@@ -79,29 +89,19 @@ func (c *collector) open() (*haprobe.DbEvent, error) {
 
 	if err != nil {
 		logger.Warn("create mysql db operator failed, errmsg: %s", err)
-		event := &haprobe.DbEvent{
-			Name:       haprobe.DbEventNameDetectFailure,
-			Reason:     haprobe.DbEventNameReasonConnectionException,
-			DbTypeName: haprobe.DbTypeMySql,
-			Endpoint:   c.endpoint,
-			Message:    err.Error(),
-		}
-
-		return event, err
+		return c.connectionExceptionEvent(err), err
 	}
 
+	return c.adoptOpenedDB(db)
+}
+
+// adoptOpenedDB configures the connection pool and assigns c.db after NewGormDB succeeds.
+// On failure it closes db and returns a connection-exception DbEvent; c.db is left unset.
+func (c *collector) adoptOpenedDB(db *hamysql.GormDB) (*haprobe.DbEvent, error) {
 	sqlDb, err := db.DB().DB()
-
 	if err != nil {
-		event := &haprobe.DbEvent{
-			Name:       haprobe.DbEventNameDetectFailure,
-			Reason:     haprobe.DbEventNameReasonConnectionException,
-			DbTypeName: haprobe.DbTypeMySql,
-			Endpoint:   c.endpoint,
-			Message:    err.Error(),
-		}
-
-		return event, err
+		db.Close()
+		return c.connectionExceptionEvent(err), err
 	}
 
 	sqlDb.SetMaxIdleConns(1)
@@ -113,9 +113,11 @@ func (c *collector) open() (*haprobe.DbEvent, error) {
 }
 
 func (c *collector) close() {
-	if c.db != nil {
-		c.db.Close()
+	if c.db == nil {
+		return
 	}
+	c.db.Close()
+	c.db = nil
 }
 
 func (c *collector) isTendbHaProxy() bool {
