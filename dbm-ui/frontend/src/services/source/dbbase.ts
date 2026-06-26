@@ -215,7 +215,11 @@ export function dbConsole(params: {
 }
 
 // 批量增加集群标签键
-export function addClusterTagKeys(params: { bk_biz_id: number; cluster_ids: number[]; tags: number[] }) {
+export function addClusterTagKeys(params: {
+  bk_biz_id: number;
+  cluster_ids: number[];
+  tags: Record<string, string>[];
+}) {
   return http.post(`${path}/add_cluster_tag_keys/`, params);
 }
 
@@ -225,7 +229,7 @@ export function removeClusterTagKeys(params: { bk_biz_id: number; cluster_ids: n
 }
 
 // 更新集群标签
-export function updateClusterTag(params: { bk_biz_id: number; cluster_id: number; tags: number[] }) {
+export function updateClusterTag(params: { bk_biz_id: number; cluster_id: number; tags: Record<string, string>[] }) {
   return http.post(`${path}/update_cluster_tag/`, params);
 }
 

@@ -59,13 +59,7 @@
   interface Props {
     data: typeof pairInfo.value;
     excludeKeys: string[];
-    keyValueMap: Record<
-      string,
-      {
-        id: number;
-        value: string;
-      }[]
-    >;
+    keyValueMap: Record<string, string[]>;
   }
 
   interface Emits {
@@ -96,11 +90,10 @@
   const valueSelectRef = ref<ComponentExposed<typeof CreateValidateSelect>>();
   const pairInfo = ref({
     key: '',
-    value: '' as string | number,
-    valueLabel: '',
+    value: '',
   });
   const keyList = ref<KeyOptionType[]>([]);
-  const valueList = ref<Array<{ value: number | string } & OptionType>>([]);
+  const valueList = ref<Array<{ value: string } & OptionType>>([]);
 
   const keyRules = [
     {
@@ -178,8 +171,8 @@
         if (props.keyValueMap?.[pairInfo.value.key]) {
           valueList.value =
             props.keyValueMap[pairInfo.value.key].map((item) => ({
-              label: item.value,
-              value: item.id,
+              label: item,
+              value: item,
             })) ?? [];
         } else {
           valueList.value = [];
@@ -194,17 +187,16 @@
   const handleKeyChange = (_: string, isNew: boolean) => {
     isKeyNewCreated = isNew;
     pairInfo.value.value = '';
-    pairInfo.value.valueLabel = '';
     emits('selectKey');
   };
 
-  const handleValueChange = (value: string | number, isNew: boolean) => {
+  const handleValueChange = (value: string, isNew: boolean) => {
     isValueNewCreated = isNew;
     if (isNew) {
-      pairInfo.value.valueLabel = value as string;
+      pairInfo.value.value = value;
     } else {
       const valueItem = valueList.value.find((item) => item.value === value)!;
-      pairInfo.value.valueLabel = valueItem.label;
+      pairInfo.value.value = valueItem.value;
     }
   };
 
@@ -232,7 +224,6 @@
         return {
           key: pairInfo.value.key,
           value: pairInfo.value.value,
-          valueLabel: pairInfo.value.valueLabel,
         };
       }
       const validateResult = await Promise.all([keySelectRef.value?.validate(), valueSelectRef.value?.validate()]);
@@ -243,8 +234,7 @@
       return {
         isNew: isKeyNewCreated || isValueNewCreated,
         key: pairInfo.value.key,
-        value: pairInfo.value.value,
-        valueLabel: pairInfo.value.valueLabel,
+        value: pairInfo.value.value as string,
       };
     },
   });
