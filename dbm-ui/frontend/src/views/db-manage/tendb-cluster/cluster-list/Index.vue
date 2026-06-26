@@ -396,8 +396,6 @@
   </TableDetailDialog>
 </template>
 <script setup lang="tsx">
-  import { Checkbox } from 'bkui-vue';
-  import InfoBox from 'bkui-vue/lib/info-box';
   import type { ComponentExposed } from 'vue-component-type-helpers';
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
@@ -405,9 +403,8 @@
 
   import TendbClusterModel from '@services/model/tendbcluster/tendbcluster';
   import { getTendbClusterList, getTendbclusterPrimary } from '@services/source/tendbcluster';
-  import { createTicket } from '@services/source/ticket';
 
-  import { useClusterQuickSearch, useTableSettings, useTicketMessage } from '@hooks';
+  import { useClusterQuickSearch, useTableSettings } from '@hooks';
 
   import { AccountTypes, ClusterTypes, TicketTypes, UserPersonalSettings } from '@common/const';
 
@@ -433,12 +430,9 @@
   import useGoClusterDetail from '@views/db-manage/hooks/useGoClusterDetail';
   import ClusterDetail from '@views/db-manage/tendb-cluster/common/cluster-detail/Index.vue';
 
-  import { messageWarn } from '@utils';
-
   const route = useRoute();
   const router = useRouter();
   const { t } = useI18n();
-  const ticketMessage = useTicketMessage();
 
   const { isSearching, quickSearchData, searchValue } = useClusterQuickSearch(ClusterTypes.TENDBCLUSTER);
   const { handleDeleteCluster, handleDisableCluster, handleEnableCluster } = useOperateClusterBasic(
@@ -469,7 +463,6 @@
 
   const operationColumnRef = ref<ComponentExposed<typeof OperationColumn>>();
   const tableRef = useTemplateRef<ComponentExposed<typeof ClusterTable>>('clusterTable');
-  const removeMNTInstances = ref<string[]>([]);
   const excelAuthorizeShow = ref(false);
   const clusterAuthorizeShow = ref(false);
   const showDataExportSlider = ref(false);
@@ -520,92 +513,6 @@
 
   const hideOperationColumn = () => {
     operationColumnRef.value?.hide();
-  };
-
-  // 下架运维节点
-  const handleRemoveMNT = (data: TendbClusterModel) => {
-    InfoBox({
-      cancelText: t('取消'),
-      confirmText: t('下架'),
-      content: () => (
-        <>
-          <p>{t('下架后将无法再访问_请谨慎操作')}</p>
-          <div style='text-align: left; padding: 0 24px;'>
-            <p
-              class='pt-12'
-              style='font-size: 12px;'>
-              {t('请勾选要下架的运维节点')}
-            </p>
-            <Checkbox.Group
-              v-model={removeMNTInstances.value}
-              class='mnt-checkbox-group'
-              style='flex-wrap: wrap;'>
-              {data.spider_mnt.map((item) => (
-                <Checkbox label={item.instance}>{item.instance}</Checkbox>
-              ))}
-            </Checkbox.Group>
-          </div>
-        </>
-      ),
-      onCancel: () => {
-        removeMNTInstances.value = [];
-      },
-      onConfirm: () => {
-        if (removeMNTInstances.value.length === 0) {
-          messageWarn(t('请勾选要下架的运维节点'));
-          return false;
-        }
-        return createTicket({
-          bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
-          details: {
-            infos: [
-              {
-                cluster_id: data.id,
-                old_nodes: {
-                  spider_ip_list: data.spider_mnt
-                    .filter((item) => removeMNTInstances.value.includes(item.instance))
-                    .map((item) => ({
-                      bk_cloud_id: item.bk_cloud_id,
-                      bk_host_id: item.bk_host_id,
-                      ip: item.ip,
-                    })),
-                },
-              },
-            ],
-            is_safe: true,
-          },
-          ticket_type: TicketTypes.TENDBCLUSTER_SPIDER_MNT_DESTROY,
-        })
-          .then((res) => {
-            ticketMessage(res.id);
-            removeMNTInstances.value = [];
-            return true;
-          })
-          .catch(() => false);
-      },
-      title: t('确认下架运维节点'),
-      width: 480,
-    });
-  };
-
-  // 下架只读集群
-  const handleDestroySlave = (data: TendbClusterModel) => {
-    InfoBox({
-      content: t('下架后将无法访问只读集群'),
-      onConfirm: () =>
-        createTicket({
-          bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
-          details: {
-            cluster_ids: [data.id],
-            is_safe: true,
-          },
-          ticket_type: TicketTypes.TENDBCLUSTER_SPIDER_SLAVE_DESTROY,
-        }).then((res) => {
-          ticketMessage(res.id);
-        }),
-      title: t('确认下架只读集群'),
-      type: 'warning',
-    });
   };
 
   // 申请实例
