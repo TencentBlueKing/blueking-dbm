@@ -14,6 +14,7 @@ from typing import List
 
 from django.utils.translation import gettext as _
 
+from backend.core.storages.constants import STAGING_PREFIX
 from backend.exceptions import PermissionDeniedError
 from backend.flow.consts import MediumEnum
 from backend.iam_app.dataclass.actions import ActionEnum, ActionMeta
@@ -30,15 +31,26 @@ class StoragePermission(ResourceActionPermission):
         鉴权根据db_type
     2. {db_type}/{file_type}/{bk_biz_id}/... -- 表示业务临时文件(sql文件，dump文件等)
         鉴权根据bk_biz_id
+    暂存区路径为上述路径加上 /staging 前缀，鉴权时按剔除前缀后的正式路径判定。
     """
 
     def __init__(self, actions: List[ActionMeta] = None, resource_meta: ResourceMeta = None) -> None:
         instance_ids_getter = self.instance_id_getter
         super().__init__(actions, resource_meta, instance_ids_getter)
 
+    @staticmethod
+    def trim_staging_prefix(path: str) -> str:
+        """剔除暂存区前缀，使暂存区路径与正式路径的段位对齐"""
+        segments = path.strip("/").split("/")
+        if segments and segments[0] == STAGING_PREFIX.strip("/"):
+            segments = segments[1:]
+        return "/".join(segments)
+
     def instance_id_getter(self, request, view):
         file_path = get_request_key_id(request, "file_path")
         file_path_list = get_request_key_id(request, "file_path_list") or [file_path]
+        # 暂存区文件与正式文件的权限语义一致，统一按正式路径解析
+        file_path_list = [self.trim_staging_prefix(path) for path in file_path_list if path]
         medium_types = MediumEnum.get_values()
 
         # 解析路径下的文件类型

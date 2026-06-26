@@ -92,6 +92,35 @@ class MyBKGenericRepoClient(BKGenericRepoClient):
         logger.info("Calling BkRepo: %s", curlify.to_curl(resp.request))
         return resp
 
+    def move_file(self, src_full_path: str, dest_full_path: str, overwrite: bool = False) -> dict:
+        """
+        在同一制品库仓库内移动文件/目录（制品库原生接口，不产生数据传输）
+        :param src_full_path: 源文件完整路径
+        :param dest_full_path: 目标文件完整路径
+        :param overwrite: 目标已存在时是否覆盖
+        """
+        client = self.get_client()
+        url = urljoin(self.endpoint_url, "/repository/api/node/move")
+        data = {
+            "srcProjectId": self.project,
+            "srcRepoName": self.bucket,
+            "srcFullPath": src_full_path,
+            "destProjectId": self.project,
+            "destRepoName": self.bucket,
+            "destFullPath": dest_full_path,
+            "overwrite": overwrite,
+        }
+        resp = client.post(url, json=data, timeout=TIMEOUT_THRESHOLD)
+        if not resp.ok:
+            logger.error(
+                "Move file failed with http status %s, src: %s, dest: %s",
+                resp.status_code,
+                src_full_path,
+                dest_full_path,
+            )
+
+        return self._validate_resp(resp)
+
     def create_bkrepo_access_token(self, paths: List[str], expire_time: int, permits: int) -> dict:
         """
         返回制品库临时凭证
