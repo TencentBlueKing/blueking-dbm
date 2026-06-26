@@ -117,7 +117,7 @@ class ResourceImportSerializer(serializers.Serializer):
             ticket_type__in=[TicketType.RECYCLE_OLD_HOST, TicketType.RECYCLE_APPLY_HOST],
             status__in=TICKET_RUNNING_STATUS_SET,
         )
-        recycling_map = {host["bk_host_id"]: t.id for t in recycling_tickets for host in t.details["recycle_hosts"]}
+        recycling_map = {host["bk_host_id"]: t for t in recycling_tickets for host in t.details["recycle_hosts"]}
         conflict_hosts = set(host_ids) & recycling_map.keys()
         if conflict_hosts:
             host_id_ip_map = {host["host_id"]: host["ip"] for host in attrs["hosts"]}
@@ -126,7 +126,7 @@ class ResourceImportSerializer(serializers.Serializer):
             error_groups.setdefault("recycling_ticket", []).extend(conflict_ips)
             error_extra["recycling_ticket"] = {
                 "tickets": [
-                    {"id": recycling_map[host_id], "bk_biz_id": attrs.get("bk_biz_id")}
+                    {"id": recycling_map[host_id].id, "bk_biz_id": recycling_map[host_id].bk_biz_id}
                     for host_id in sorted_conflict_hosts
                 ],
             }
