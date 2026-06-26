@@ -252,7 +252,7 @@ class TenDBClusterSwitchNodesFlow(TenDBClusterAddNodesFlow, TenDBClusterReduceNo
                 spider_reduced_to_count_snapshot=spider_count - len(old_spider_hosts),
                 is_check_min_count=False,
                 is_check_disaster_tolerance_level=False,
-                is_check_process=self.data.get("is_check_process", True),
+                is_check_process=self.data.get("is_safe", True),
                 disable_manual_confirm=disable_manual_confirm,
             )
         )
