@@ -47,12 +47,13 @@ def explain_sql(cluster_type: ClusterType, cluster_domain: str, dbname: str, que
     if use_db_res["error_msg"]:
         raise DBMMcpBaseException(msg=f"change db to {dbname} failed: {use_db_res['error_msg']}")
 
+    # explain 的结果可能会有多行
     explain_sql_res = address_res["cmd_results"][1]
     if explain_sql_res["error_msg"]:
         raise DBMMcpBaseException(msg=f"explain sql failed: {explain_sql_res['error_msg']}")
 
     return {
-        "explain_result": explain_sql_res["table_data"][0],
+        "explain_result": explain_sql_res["table_data"],
         # sql 原文可能很大，mcp返回会超长，占用上下文。先不返回了
         # "explained_sql": explained_sql,
         "rewritten": was_rewritten,
