@@ -2045,6 +2045,7 @@
   "须为时间类型的字段，如2022-12-12 或 2022.12.12": "Must be a time-type field, e.g. 2022-12-12 or 2022.12.12",
   "请输入单个新 DB 名": "Please enter a single new DB name",
   "该集群已有只读集群": "This cluster already has a read-only cluster",
+  "该集群无只读接入层": "This cluster has no read-only access layer",
   "确认销毁选中的实例": "Confirm to destroy the selected instances",
   "TenDBCluster集群容量变更name": "TenDB Cluster Capacity Change [{name}]",
   "校验时间": "Validation Time",
@@ -6095,5 +6096,8 @@
   "最多选择 5 个 DB；当前已选 {n} 个": "At most 5 DBs can be selected; {n} selected",
   "批量下架不再使用的运维节点（spider_mnt 角色）实例。运维节点用于在不影响主集群的前提下提供独立的数据访问入口；下架后该节点上的访问能力被回收，主集群业务不受影响。": "Batch remove unused operation nodes (spider_mnt role) instances. Operation nodes provide independent data access entry without affecting the main cluster. After removal, the access capabilities on the node are回收, and the main cluster business is not affected.",
   "该实例非运维节点（spider_mnt）": "This instance is not an operation node (spider_mnt)",
+  "批量下架集群的只读接入层（Spider Slave 实例）。只读接入层为业务提供只读域名访问入口，常用于读写分离与读流量分担；下架后业务将无法通过只读域名访问数据，主集群读写访问不受影响。": "Batch remove read-only access layers (Spider Slave instances). Read-only access layers provide read-only domain access entry for business, commonly used for read/write separation and read traffic sharing; after removal, the business will not be able to access data through the read-only domain, and the main cluster read/write access is not affected.",
+  "Spider Slave 实例": "Spider Slave Instance",
+  "下架只读接入层": "Remove Read-Only Access Layer",
   "这行勿动！新增翻译请在上一行添加！": ""
 }

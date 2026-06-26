@@ -39,7 +39,7 @@
     :cluster-types="[ClusterTypes.TENDBCLUSTER]"
     :selected="selectedClusters"
     :support-offline-data="supportOfflineData"
-    :tab-list-config="tabListConfig"
+    :tab-list-config="selectorTabListConfig"
     @change="handleSelectorChange" />
 </template>
 <script lang="ts" setup>
@@ -55,12 +55,27 @@
 
   import { t } from '@/locales/index';
 
+  interface DisableRule {
+    /**
+     * @description 命中规则的集群将被禁用（禁选）并拦截（校验报错）
+     */
+    handler: (data: TendbClusterModel) => boolean;
+    /**
+     * @description 禁选与拦截时展示的文案
+     */
+    tip: string;
+  }
+
   interface Props {
     /**
      * @description 是否允许重复选择集群
      * @default false
      */
     allowRepeat?: boolean;
+    /**
+     * @description 集群禁用规则：命中规则的集群在接入层选择器中禁用（禁选），并在表格中拦截（校验报错）
+     */
+    disableRule?: DisableRule;
     label?: string;
     minWidth?: number;
     rowspan?: number;
@@ -80,6 +95,7 @@
 
   const props = withDefaults(defineProps<Props>(), {
     allowRepeat: false,
+    disableRule: undefined,
     label: t('目标集群'),
     minWidth: 350,
     rowspan: 1,
@@ -104,24 +120,64 @@
     [ClusterTypes.TENDBCLUSTER]: props.selected,
   }));
 
-  const rules = [
-    {
-      message: t('集群域名格式不正确'),
-      trigger: 'change',
-      validator: (value: string) => !value || domainRegex.test(value),
-    },
-    {
-      message: t('目标集群重复'),
-      trigger: 'change',
-      validator: (value: string) =>
-        props.allowRepeat || !value || props.selected.filter((item) => item.master_domain === value).length < 2,
-    },
-    {
-      message: t('目标集群不存在'),
-      trigger: 'blur',
-      validator: (value: string) => !value || Boolean(modelValue.value.id),
-    },
-  ];
+  // 将 disableRule 合并进选择器配置，实现接入层禁选
+  const selectorTabListConfig = computed<Record<ClusterTypes.TENDBCLUSTER, TabConfig>>(() => {
+    if (!props.disableRule) {
+      return props.tabListConfig;
+    }
+    const baseConfig = props.tabListConfig[ClusterTypes.TENDBCLUSTER] ?? {};
+    return {
+      ...props.tabListConfig,
+      [ClusterTypes.TENDBCLUSTER]: {
+        ...baseConfig,
+        disabledRowConfig: [
+          ...(baseConfig.disabledRowConfig ?? []),
+          {
+            handler: props.disableRule.handler,
+            tip: props.disableRule.tip,
+          },
+        ],
+      },
+    };
+  });
+
+  const rules = computed(() => {
+    const baseRules = [
+      {
+        message: t('集群域名格式不正确'),
+        trigger: 'change',
+        validator: (value: string) => !value || domainRegex.test(value),
+      },
+      {
+        message: t('目标集群重复'),
+        trigger: 'change',
+        validator: (value: string) =>
+          props.allowRepeat || !value || props.selected.filter((item) => item.master_domain === value).length < 2,
+      },
+      {
+        message: t('目标集群不存在'),
+        trigger: 'blur',
+        validator: (value: string) => !value || Boolean(modelValue.value.id),
+      },
+    ];
+
+    // 命中禁用规则的集群在表格中拦截（校验报错）
+    if (props.disableRule) {
+      const disableRule = props.disableRule;
+      baseRules.push({
+        message: disableRule.tip,
+        trigger: 'blur',
+        validator: (value: string) => {
+          if (!value || !modelValue.value.id) {
+            return true;
+          }
+          return !disableRule.handler(modelValue.value);
+        },
+      });
+    }
+
+    return baseRules;
+  });
 
   const { loading, runAsync: queryCluster } = useRequest(filterClusters<TendbClusterModel>, {
     manual: true,
