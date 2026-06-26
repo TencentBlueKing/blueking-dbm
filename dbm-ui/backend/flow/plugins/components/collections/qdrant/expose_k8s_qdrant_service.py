@@ -13,7 +13,7 @@ import logging.config
 from typing import List
 
 from pipeline.component_framework.component import Component
-from pipeline.core.flow.activity import Service
+from pipeline.core.flow.activity import Service, StaticIntervalGenerator
 
 import backend.flow.utils.qdrant.qdrant_context_dataclass as flow_context
 from backend.components import KubernetesApi
@@ -27,6 +27,9 @@ class ExposeK8sQdrantServiceService(BaseService):
     """
     调用dbs接口暴露服务
     """
+
+    __need_schedule__ = True
+    interval = StaticIntervalGenerator(20)
 
     def _execute(self, data, parent_data) -> bool:
         trans_data = data.get_one_of_inputs("trans_data")
