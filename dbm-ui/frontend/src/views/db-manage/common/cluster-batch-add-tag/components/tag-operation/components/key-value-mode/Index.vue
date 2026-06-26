@@ -27,8 +27,6 @@
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
 
-  import { createTag } from '@services/source/tag';
-
   import { random } from '@utils';
 
   import type { KeyValueMapType, TagsPairType } from '../../Index.vue';
@@ -53,8 +51,7 @@
   const generateRowData = () => ({
     id: random(),
     key: '',
-    value: '' as string | number,
-    valueLabel: '',
+    value: '',
   });
 
   const { t } = useI18n();
@@ -73,7 +70,6 @@
             id: random(),
             key: item.key,
             value: item.value,
-            valueLabel: item.valueLabel,
           });
           return results;
         }, []);
@@ -135,33 +131,8 @@
           return null;
         }
       }
-      const isNewList = pairList.reduce<Record<string, string>>((results, item) => {
-        if (item!.isNew) {
-          Object.assign(results, {
-            [item!.key]: item!.value,
-          });
-        }
-        return results;
-      }, {});
-      const tagInfoList = await createTag({
-        bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
-        tags: Object.entries(isNewList).map((item) => ({
-          key: item[0],
-          value: item[1],
-        })),
-        type: 'cluster',
-      });
-      const keyIdMap = tagInfoList.reduce<Record<string, number>>((results, item) => {
-        Object.assign(results, {
-          [item.key]: item.id,
-        });
-        return results;
-      }, {});
       pairList.forEach((item) => {
         if (item!.isNew) {
-          Object.assign(item!, {
-            value: keyIdMap[item!.key],
-          });
           const tempItem = item as { isNew?: boolean };
           delete tempItem.isNew;
         }
