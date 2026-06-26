@@ -162,7 +162,9 @@
       return;
     }
 
-    const tags = Object.values(tagsInfo).map((item) => item.value) as number[];
+    const tags = tagsInfo.map((item) => ({
+      [item.key]: item.value,
+    }));
     handleAddClusterTagKeys({
       bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
       cluster_ids: selectedClusters.value.map((item) => item.id),

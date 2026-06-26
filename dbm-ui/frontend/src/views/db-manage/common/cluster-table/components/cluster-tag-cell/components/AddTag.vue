@@ -102,7 +102,9 @@
       confirmLoading.value = true;
       const tagsInfo = await tagOperationRef.value!.getValue();
       if (tagsInfo) {
-        const tags = tagsInfo.map((item) => item.value) as number[];
+        const tags = tagsInfo.map((item) => ({
+          [item.key]: item.value,
+        }));
         if (!props.data.length) {
           // 新增
           handleAddClusterTagKeys({
