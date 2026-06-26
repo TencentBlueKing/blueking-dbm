@@ -8,7 +8,8 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-from typing import Optional
+import logging
+from typing import Iterable, List, Optional
 
 import django.utils.timezone as timezone
 from django.db import models
@@ -23,7 +24,10 @@ from backend.db_meta.models.db_version import DBVersion
 from backend.db_package.constants import PackageMode, PackageType
 from backend.db_package.exceptions import PackageNotExistException, VersionNoNotExistException
 from backend.db_services.ipchooser.constants import BkOsType
+from backend.exceptions import ApiRequestError
 from backend.flow.consts import MediumEnum
+
+logger = logging.getLogger("root")
 
 
 class Package(AuditedModel):
@@ -186,3 +190,26 @@ class Package(AuditedModel):
             db_type=db_type,
             only_enable_pkg=True,
         )
+
+    @classmethod
+    def clean_unreferenced_files(cls, paths: Iterable[str]) -> List[str]:
+        """
+        安全清理不再被任何介质包引用的制品库文件。
+        必须在目标介质包记录删除之后调用，否则待删记录自身会被计入引用，导致文件被跳过。
+        """
+        from backend.core.storages.handlers import StorageHandler
+
+        paths = {path for path in paths if path}
+        if not paths:
+            return []
+
+        referenced_paths = set(cls.objects.filter(path__in=paths).values_list("path", flat=True))
+        deleted_paths = []
+        for path in paths - referenced_paths:
+            try:
+                StorageHandler().delete_file(path)
+                deleted_paths.append(path)
+            except ApiRequestError as e:
+                logger.error(_("[clean_unreferenced_files] 文件删除异常, 路径: {}, 错误信息: {}").format(path, e))
+
+        return deleted_paths

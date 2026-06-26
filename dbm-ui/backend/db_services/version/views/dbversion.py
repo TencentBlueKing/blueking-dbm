@@ -22,7 +22,6 @@ from backend.bk_web import viewsets
 from backend.bk_web.swagger import common_swagger_auto_schema
 from backend.configuration.constants import SystemSettingsEnum
 from backend.configuration.models import SystemSettings
-from backend.core.storages.handlers import StorageHandler
 from backend.db_meta.models import DBVersion, Distribution, ProxyInstance, StorageInstance, VersionSeries
 from backend.db_package.constants import INIT_DB_PKG_SETTINGS, PackageType
 from backend.db_package.models import Package
@@ -36,7 +35,6 @@ from backend.db_services.version.serializers import (
     DBVersionSerializer,
 )
 from backend.db_services.version.utils import pad_full_version
-from backend.exceptions import ApiRequestError
 from backend.iam_app.dataclass import ActionEnum, ResourceEnum
 from backend.iam_app.handlers.drf_perm.base import ResourceActionPermission, get_request_key_id
 
@@ -112,15 +110,12 @@ class DBVersionViewSet(viewsets.AuditedModelViewSet):
             raise VersionBaseException(_("版本介质关联了实例，不允许删除"))
         if ProxyInstance.objects.filter(db_package__in=package_ids).exists():
             raise VersionBaseException(_("版本介质关联了实例，不允许删除"))
-        # 删除制品库文件
         packages = Package.objects.filter(id__in=package_ids)
-        for package in packages:
-            try:
-                StorageHandler().delete_file(package.path)
-            except ApiRequestError as e:
-                logger.error(_("文件删除异常，错误信息: {}").format(e))
+        paths = list(packages.values_list("path", flat=True))
         # 删除本地记录
         packages.delete()
+        # 记录删除后再清理制品库文件，路径仍被其他介质包引用时会自动跳过
+        Package.clean_unreferenced_files(paths)
         return super().destroy(request, *args, **kwargs)
 
     @common_swagger_auto_schema(
