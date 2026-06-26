@@ -67,17 +67,10 @@
 
   export type TagsPairType = {
     key: string;
-    value: number | string;
-    valueLabel: string;
+    value: string;
   };
 
-  export type KeyValueMapType = Record<
-    string,
-    {
-      id: number;
-      value: string;
-    }[]
-  >;
+  export type KeyValueMapType = Record<string, string[]>;
 
   interface Exposes {
     getValue: (isIgnoreVerify?: boolean) => Promise<TagsPairType[]>;
@@ -132,15 +125,11 @@
     ],
     onSuccess(data) {
       keyValueMap.value = data.results.reduce<typeof keyValueMap.value>((results, item) => {
-        const keyInfo = {
-          id: item.id,
-          value: item.value,
-        };
         if (results[item.key]) {
-          results[item.key].push(keyInfo);
+          results[item.key].push(item.value);
         } else {
           Object.assign(results, {
-            [item.key]: [keyInfo],
+            [item.key]: [item.value],
           });
         }
         return results;
@@ -153,8 +142,7 @@
     if (props.data.length) {
       tagsPairData.value = props.data.map((item) => ({
         key: item.key,
-        value: item.id,
-        valueLabel: item.value,
+        value: item.value,
       }));
     }
   });
