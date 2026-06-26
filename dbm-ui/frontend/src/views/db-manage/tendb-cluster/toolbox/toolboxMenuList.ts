@@ -154,13 +154,12 @@ export const toolboxMenuList: ToolboxTreeNode[] = [
         id: TicketTypes.TENDBCLUSTER_SPIDER_SLAVE_APPLY,
         name: t('部署只读接入层'),
       },
-      // TODO 功能未合主分支，注释
-      // {
-      //   dbConsoleValue: 'tendbCluster.toolbox.removeReadonlyNode',
-      //   desc: t('下架 Spider Slave'),
-      //   id: TicketTypes.TENDBCLUSTER_SPIDER_SLAVE_DESTROY,
-      //   name: t('下架只读接入层'),
-      // },
+      {
+        dbConsoleValue: 'tendbCluster.toolbox.removeReadonlyNode',
+        desc: t('下架 Spider Slave'),
+        id: TicketTypes.TENDBCLUSTER_SPIDER_SLAVE_DESTROY,
+        name: t('下架只读接入层'),
+      },
       {
         dbConsoleValue: 'tendbCluster.toolbox.addMnt',
         desc: t('部署 Spider Mnt'),
