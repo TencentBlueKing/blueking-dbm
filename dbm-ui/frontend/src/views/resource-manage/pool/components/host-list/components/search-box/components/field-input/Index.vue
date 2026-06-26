@@ -262,7 +262,7 @@
     .action-box {
       display: flex;
       width: 100%;
-      padding: 0 20px;
+      // padding: 0 20px;
     }
 
     .toggle-input-btn {
