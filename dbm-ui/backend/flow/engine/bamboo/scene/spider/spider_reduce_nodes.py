@@ -293,7 +293,7 @@ class TenDBClusterReduceNodesFlow(object):
                     spider_reduced_hosts=info["spider_reduced_hosts"],
                     reduce_spider_role=info["reduce_spider_role"],
                     spider_reduced_to_count_snapshot=info["spider_reduced_to_count"],
-                    is_check_process=self.data.get("is_check_process", True),
+                    is_check_process=self.data.get("is_safe", True),
                 )
             )
 

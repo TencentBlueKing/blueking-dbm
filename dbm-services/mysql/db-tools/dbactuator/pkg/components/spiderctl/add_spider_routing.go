@@ -180,11 +180,13 @@ func (a *AddSpiderRoutingComp) Run() (err error) {
 			return err
 		}
 		if useParallel {
+			// 启动并发添加路由信息的通道
 			logger.Info("use parallel route adding for %v", a.realAddSpiders)
 			if err = a.addNodesInParallel(); err != nil {
 				return err
 			}
 		} else {
+			// 启动串行添加路由信息的通道
 			logger.Info("use serial route adding for %v", a.realAddSpiders)
 			if err = a.addNodesInNonParallel(); err != nil {
 				return err
@@ -926,6 +928,7 @@ func (a *AddSpiderRoutingComp) execCreateNodeWithConcurrent(
 
 	cmds := []string{
 		"set tc_admin=1",
+		"SET GLOBAL tc_use_internal_backup_tool = OFF",
 		fmt.Sprintf("SET GLOBAL tc_skip_check_db_list = '%s'", strings.Join(tcSkipCheckDBList, ",")),
 		createSQL,
 	}
