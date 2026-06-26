@@ -39,7 +39,14 @@ export const useImportResourceErrorMessage = () => {
   const errorHostMap = computed(() => Object.fromEntries(errorHostList.value.map((ip) => [ip, true])));
 
   const handleChange = (message: string) => {
-    const messageList: { ips: string[]; message: string }[] = parsePythonDict(message) || [];
+    const messageList: {
+      ips: string[];
+      message: string;
+      tickets?: {
+        bk_biz_id: number;
+        id: number;
+      }[];
+    }[] = parsePythonDict(message) || [];
     errorHostList.value = messageList.flatMap((item) => item.ips);
     errorMessageList.value = messageList;
   };
