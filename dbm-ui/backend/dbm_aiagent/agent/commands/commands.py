@@ -79,6 +79,19 @@ class MySQLSlowLogCommand(CommandHandler):
 
 
 @command
+class MySQLAlarmAnalyzerCommand(CommandHandler):
+    name = _("告警分析")
+    command = "alarm_analyzer"
+    agent_code = DBMAgentCode.MYSQL_AI_INSPECT_AGENT
+
+    def get_template(self) -> str:
+        return """
+        /mysql_alarm_analyzer 使用告警分析 skills 来分析以下告警:
+        {{alarm_content}}
+        """
+
+
+@command
 class CheckMysqlClusterCommand(CommandHandler):
     name = _("查询单据运行期间这批MySQL集群的是否存在风险性")
     command = "check_mysql_cluster_operating_status"

@@ -19,11 +19,11 @@ class WriteAiReportInputSerializer(serializers.Serializer):
     format = serializers.ChoiceField(
         choices=ResultFormat.get_choices(), default=ResultFormat.MARKDOWN, help_text=_("结果格式：markdown 或 html")
     )
-    bk_biz_id = serializers.IntegerField(default=0, help_text=_("业务 ID，0 表示不关联业务"))
+    bk_biz_id = serializers.IntegerField(default=0, allow_blank=True, required=False, help_text=_("业务 ID，0 表示不关联业务"))
     cluster_domain = serializers.CharField(default="", allow_blank=True, required=False, help_text=_("集群域名，为空表示不关联集群"))
     title = serializers.CharField(help_text=_("报告标题"))
     summary = serializers.CharField(default="", allow_blank=True, required=False, help_text=_("报告摘要"))
-    content = serializers.CharField(help_text=_("分析结果内容"))
+    content = serializers.CharField(help_text=_("分析结果内容, 可以是完整报告内容，使用 dbm-mcp-cli 时也可以是 @file_path 这样的文件路径"))
 
 
 class WriteAiReportOutputSerializer(serializers.Serializer):
