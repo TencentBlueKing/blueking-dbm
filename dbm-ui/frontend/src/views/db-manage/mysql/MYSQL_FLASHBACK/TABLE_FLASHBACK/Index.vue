@@ -141,6 +141,7 @@
 
   const { t } = useI18n();
   const { format: formatDateToUTC } = useTimeZoneFormat();
+  const router = useRouter();
 
   const batchInputConfig = [
     {
@@ -329,4 +330,12 @@
   const handleReset = () => {
     Object.assign(formData, defaultData());
   };
+
+  defineExpose({
+    routerBack() {
+      router.push({
+        name: 'MysqlToolboxIndex',
+      });
+    },
+  });
 </script>

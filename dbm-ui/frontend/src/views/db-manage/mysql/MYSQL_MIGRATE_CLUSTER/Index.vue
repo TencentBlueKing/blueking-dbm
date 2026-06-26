@@ -126,6 +126,7 @@
   import MachineMigrate from './components/machine-migrate/Index.vue';
 
   const { t } = useI18n();
+  const router = useRouter();
   const tableRef = useTemplateRef('table');
 
   const comMap = {
@@ -229,6 +230,14 @@
     Object.assign(formData, defaultData());
     tableRef.value!.reset();
   };
+
+  defineExpose({
+    routerBack() {
+      router.push({
+        name: 'MysqlToolboxIndex',
+      });
+    },
+  });
 </script>
 <style lang="less">
   .alert-show {

@@ -85,4 +85,12 @@
       });
     }
   };
+
+  defineExpose({
+    routerBack() {
+      router.push({
+        name: 'MysqlToolboxIndex',
+      });
+    },
+  });
 </script>

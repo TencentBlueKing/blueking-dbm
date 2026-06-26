@@ -99,6 +99,7 @@
   }
 
   const { t } = useI18n();
+  const router = useRouter();
 
   const tableRef = useTemplateRef('table');
   const tableKey = ref(random());
@@ -211,4 +212,12 @@
       formData.tableData = [...(formData.tableData[0].source ? formData.tableData : []), ...dataList];
     }
   };
+
+  defineExpose({
+    routerBack() {
+      router.push({
+        name: 'MysqlToolboxIndex',
+      });
+    },
+  });
 </script>

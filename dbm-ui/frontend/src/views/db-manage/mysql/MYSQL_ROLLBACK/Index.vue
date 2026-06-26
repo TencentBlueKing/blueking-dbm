@@ -463,4 +463,12 @@
   const handleReset = () => {
     Object.assign(formData, defaultData());
   };
+
+  defineExpose({
+    routerBack() {
+      router.push({
+        name: 'MysqlToolboxIndex',
+      });
+    },
+  });
 </script>

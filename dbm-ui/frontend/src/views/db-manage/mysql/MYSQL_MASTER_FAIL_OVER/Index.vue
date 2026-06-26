@@ -290,4 +290,12 @@
       formData.tableData = [...(selected.value.length ? formData.tableData : []), ...dataList];
     }
   };
+
+  defineExpose({
+    routerBack() {
+      router.push({
+        name: 'MysqlToolboxIndex',
+      });
+    },
+  });
 </script>

@@ -74,16 +74,21 @@ const permissionManageRoutes = [
 
 const spiderToolboxRoute = {
   path: 'toolbox',
-  name: 'spiderToolbox',
-  meta: {
-    fullscreen: true,
-    navName: t('Spider_工具箱'),
-  },
+  name: 'TendbclusterToolbox',
   redirect: {
-    name: '',
+    name: 'TendbclusterToolboxIndex',
   },
   component: () => import('@views/db-manage/tendb-cluster/toolbox/Index.vue'),
   children: [
+    {
+      path: 'index',
+      name: 'TendbclusterToolboxIndex',
+      meta: {
+        fullscreen: false,
+        navName: t('TenDBCluster 工具箱'),
+      },
+      component: () => import('@views/db-manage/tendb-cluster/toolbox/Index.vue'),
+    },
     createRouteItem(TicketTypes.TENDBCLUSTER_IMPORT_SQLFILE, t('变更SQL执行'), {}, { params: '/:step?' }),
     createRouteItem(TicketTypes.TENDBCLUSTER_RENAME_DATABASE, t('DB 重命名'), {
       dbConsole: 'tendbCluster.toolbox.dbRename',
@@ -166,15 +171,7 @@ const spiderToolboxRoute = {
     createRouteItem(TicketTypes.TENDBCLUSTER_ROLLBACK_CLUSTER, t('定点构造'), {
       dbConsole: 'tendbCluster.toolbox.rollback',
     }),
-    {
-      path: 'rollback-record',
-      name: 'spiderRollbackRecord',
-      meta: {
-        dbConsole: 'tendbCluster.toolbox.rollbackRecord',
-        navName: t('构造实例'),
-      },
-      component: () => import('@views/db-manage/tendb-cluster/rollback-record/Index.vue'),
-    },
+
     createRouteItem(TicketTypes.TENDBCLUSTER_TRUNCATE_DATABASE, t('清档'), {
       dbConsole: 'tendbCluster.toolbox.dbClear',
     }),
@@ -196,21 +193,34 @@ const spiderToolboxRoute = {
     createRouteItem(TicketTypes.TENDBCLUSTER_RESTORE_LOCAL_SLAVE, t('重建从库'), {
       dbConsole: 'tendbCluster.toolbox.slaveLocalRebuild',
     }),
-    createRouteItem(TicketTypes.TENDBCLUSTER_RESTORE_SLAVE, t('重建从库'), {
+    createRouteItem(TicketTypes.TENDBCLUSTER_RESTORE_SLAVE, t('新机重建'), {
       dbConsole: 'tendbCluster.toolbox.slaveRebuild',
     }),
+    createRouteItem(TicketTypes.TENDBCLUSTER_CLUSTER_STANDARDIZE, t('标准化'), {
+      dbConsole: 'tendbCluster.toolbox.clusterStandardize',
+    }),
+    // {
+    //   path: 'rollback-record',
+    //   name: 'spiderRollbackRecord',
+    //   meta: {
+    //     dbConsole: 'tendbCluster.toolbox.rollbackRecord',
+    //     fullscreen: true,
+    //     hideTitle: true,
+    //     navName: t('构造实例'),
+    //   },
+    //   component: () => import('@views/db-manage/tendb-cluster/rollback-record/Index.vue'),
+    // },
     {
       path: 'webconsole',
       name: 'SpiderWebconsole',
       meta: {
         dbConsole: 'tendbCluster.toolbox.webconsole',
+        fullscreen: true,
+        hideTitle: true,
         navName: 'Webconsole',
       },
       component: () => import('@views/db-manage/tendb-cluster/webconsole/Index.vue'),
     },
-    createRouteItem(TicketTypes.TENDBCLUSTER_CLUSTER_STANDARDIZE, t('集群标准化'), {
-      dbConsole: 'tendbCluster.toolbox.clusterStandardize',
-    }),
   ],
 };
 

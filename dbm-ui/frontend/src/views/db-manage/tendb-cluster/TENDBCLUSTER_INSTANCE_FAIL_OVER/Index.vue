@@ -307,4 +307,12 @@
       formData.tableData = [...(formData.tableData[0].master.bk_host_id ? formData.tableData : []), ...dataList];
     }
   };
+
+  defineExpose({
+    routerBack() {
+      router.push({
+        name: 'TendbclusterToolboxIndex',
+      });
+    },
+  });
 </script>

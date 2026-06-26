@@ -123,6 +123,7 @@
   }
 
   const { t } = useI18n();
+  const router = useRouter();
   const tableRef = useTemplateRef('table');
 
   const createTableRow = (data = {} as DeepPartial<RowData>) => ({
@@ -266,4 +267,12 @@
   const handleReset = () => {
     Object.assign(formData, defaultData());
   };
+
+  defineExpose({
+    routerBack() {
+      router.push({
+        name: 'MysqlToolboxIndex',
+      });
+    },
+  });
 </script>

@@ -250,6 +250,7 @@
 
   const { t } = useI18n();
   const { format: formatDateToUTC } = useTimeZoneFormat();
+  const router = useRouter();
 
   const tableRef = useTemplateRef('table');
   const tableKey = ref(random());
@@ -530,6 +531,14 @@
       formData.tableData = [...(formData.tableData[0].cluster.id ? formData.tableData : []), ...dataList];
     }
   };
+
+  defineExpose({
+    routerBack() {
+      router.push({
+        name: 'MysqlToolboxIndex',
+      });
+    },
+  });
 </script>
 <style lang="less">
   .mysql-checksum-page {
