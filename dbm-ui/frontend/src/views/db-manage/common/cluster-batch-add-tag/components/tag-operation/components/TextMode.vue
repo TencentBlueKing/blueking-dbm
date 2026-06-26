@@ -62,16 +62,13 @@
       if (props.data && props.data.length > 0) {
         let tmpStr = '';
         props.data.forEach((item) => {
-          tmpStr += `${item.key}:${item.valueLabel}\n`;
+          tmpStr += `${item.key}:${item.value}\n`;
         });
         localValue.value = tmpStr.trim();
       }
     },
     { immediate: true },
   );
-
-  const getValue = (key: string, value: string) =>
-    props.keyValueMap[key].find((item) => item.value === value)?.id || value;
 
   const checkInputValue = (isIgnoreVerify = false) => {
     errorTipList.value = [];
@@ -94,7 +91,6 @@
           pairInfo.push({
             key: pairStr,
             value: '',
-            valueLabel: '',
           });
         }
         continue;
@@ -110,7 +106,6 @@
           pairInfo.push({
             key: '',
             value,
-            valueLabel: value,
           });
         }
         continue;
@@ -124,8 +119,7 @@
         if (isIgnoreVerify) {
           pairInfo.push({
             key,
-            value: getValue(key, value),
-            valueLabel: value,
+            value,
           });
         }
         continue;
@@ -140,8 +134,7 @@
         if (isIgnoreVerify) {
           pairInfo.push({
             key,
-            value: getValue(key, value),
-            valueLabel: value,
+            value,
           });
         }
         continue;
@@ -156,7 +149,6 @@
           pairInfo.push({
             key,
             value: '',
-            valueLabel: '',
           });
         }
         continue;
@@ -170,8 +162,7 @@
         if (isIgnoreVerify) {
           pairInfo.push({
             key,
-            value: getValue(key, value),
-            valueLabel: value,
+            value,
           });
         }
         continue;
@@ -187,7 +178,6 @@
           pairInfo.push({
             key,
             value,
-            valueLabel: value,
           });
         }
         continue;
@@ -198,13 +188,11 @@
         pairInfo.push({
           key,
           value,
-          valueLabel: value,
         });
       } else {
         pairInfo.push({
           key,
-          value: getValue(key, value),
-          valueLabel: value,
+          value,
         });
       }
     }
