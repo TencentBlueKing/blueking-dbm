@@ -6086,5 +6086,7 @@
   "标签键长度不能超过 50 个字符": "Tag key length cannot exceed 50 characters",
   "第 n 行": "Line {n}",
   "最多选择 5 个 DB；当前已选 {n} 个": "At most 5 DBs can be selected; {n} selected",
+  "批量下架不再使用的运维节点（spider_mnt 角色）实例。运维节点用于在不影响主集群的前提下提供独立的数据访问入口；下架后该节点上的访问能力被回收，主集群业务不受影响。": "Batch remove unused operation nodes (spider_mnt role) instances. Operation nodes provide independent data access entry without affecting the main cluster. After removal, the access capabilities on the node are回收, and the main cluster business is not affected.",
+  "该实例非运维节点（spider_mnt）": "This instance is not an operation node (spider_mnt)",
   "这行勿动！新增翻译请在上一行添加！": ""
 }

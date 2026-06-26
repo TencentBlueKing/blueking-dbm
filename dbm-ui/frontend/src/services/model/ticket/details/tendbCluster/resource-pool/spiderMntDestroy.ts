@@ -8,6 +8,7 @@ export interface SpiderMntDestroy extends ResourcePoolDetailBase {
         bk_cloud_id: number;
         bk_host_id: number;
         ip: string;
+        port: number;
       }[];
     };
   }[];

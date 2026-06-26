@@ -54,6 +54,7 @@
   import InstanceSelector from '@components/instance-selector-new/Index.vue';
 
   interface Props {
+    handleRowMerge: () => void;
     selected: {
       instance_address: string;
     }[];
@@ -136,6 +137,9 @@
           port: currentHost.port,
           role: currentHost.role,
         };
+        setTimeout(() => {
+          props.handleRowMerge();
+        });
       }
     },
   });
