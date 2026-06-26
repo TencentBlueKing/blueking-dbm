@@ -32,7 +32,7 @@ class BizDBAPermission(MoreResourceActionPermission):
     @staticmethod
     def instance_ids_getters(request, view):
         data = request.data
-        biz__db_type_tuples = [data["bk_biz_id"]]
+        biz__db_type_tuples = [(data["bk_biz_id"],)]
         return biz__db_type_tuples
 
 
