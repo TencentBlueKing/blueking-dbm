@@ -16,7 +16,6 @@ import os
 import shutil
 import subprocess
 import zipfile
-from collections import defaultdict
 from datetime import datetime
 from pathlib import Path
 
@@ -181,7 +180,8 @@ class MediumHandler:
                             "plugin_name": plugin_name,
                             "file_name": medium_info["name"],
                             "version": medium_info["version"],
-                            "bkrepo_path": f"/{db_type}/exporter/{medium_info['version']}/{medium_info['name']}",
+                            "bkrepo_path": f"{self.medium_formal_dir(db_type, medium_type, medium_info)}/"
+                            f"{medium_info['name']}",
                         }
 
         return monitor_plugins
@@ -309,6 +309,16 @@ class MediumHandler:
         else:
             return "1.0.0.0.0.0"
 
+    @classmethod
+    def medium_formal_dir(cls, db_type, medium_type, medium_info):
+        """
+        介质在制品库的正式目录: /{db_type}/{pkg_type}/{distribution}/{full_version}
+        本脚本独立打包进镜像，无法引用 backend，规则须与 Package.build_formal_path 保持一致
+        """
+        full_version = cls.__format_full_version(str(medium_info.get("full_version", medium_info["version"])))
+        distribution_name = medium_info.get("distribution_name", "DBM")
+        return f"/{db_type}/{medium_type}/{distribution_name}/{full_version}"
+
     def download_medium(self, option, path, bkrepo_tmp_dir):
         """从制品库下载文件到本地"""
         if not os.path.exists(bkrepo_tmp_dir):
@@ -341,51 +351,29 @@ class MediumHandler:
                     os.remove(os.path.join(root, file))
 
     def upload_medium(self, path, bkrepo_tmp_dir):
-        """将本地文件上传到制品库"""
-        if not os.path.exists(bkrepo_tmp_dir):
-            os.makedirs(bkrepo_tmp_dir)
-        os.chdir(bkrepo_tmp_dir)
-
-        for root, dirs, files in os.walk(bkrepo_tmp_dir):
-            for file in files:
-                if "?" in file:
-                    continue
-                if os.getenv("RUN_VER") == "ieod" and "dbbackup-go-txsql" in file:
+        """将 medium.lock 维护的本地介质上传到制品库，本地目录与制品库正式目录一一对应"""
+        lock_info = self.__load_medium_lock()
+        for db_type, mediums in lock_info.items():
+            if path and db_type != path:
+                continue
+            for medium in mediums or []:
+                for medium_type, medium_info in medium.items():
                     # 内部版本不自动上传 dbbackup
-                    continue
-
-                for suffix in [
-                    "txt",
-                    "SQL",
-                    "py",
-                    "sql",
-                    "xlsx",
-                    "secret",
-                    "crt",
-                    "key",
-                    "png",
-                    "ppx",
-                    "doc",
-                    "md",
-                    "DS_Store",
-                ]:
-                    if f".{suffix}" in file:
-                        break
-                else:
-                    if path and f"/{path}" not in root:
+                    if os.getenv("RUN_VER") == "ieod" and "dbbackup-go-txsql" in medium_info["name"]:
                         continue
-                    # 分割路径，保留制品路径(db_type/name/version/file)
-                    file_path = os.path.join(root, file)
-                    file_path_bkrepo = file_path.split(file_path.rsplit("/", 4)[0])[1]
-                    # Django>=4.2 的 Storage.save 会拒绝绝对路径(path traversal 校验)，这里去掉前导斜杠传相对路径
-                    save_path_bkrepo = file_path_bkrepo.lstrip("/")
-                    print("upload file: %s -> %s", file_path, file_path_bkrepo)
+                    formal_dir = self.medium_formal_dir(db_type, medium_type, medium_info)
+                    # Django>=4.2 的 Storage.save 会拒绝绝对路径(path traversal 校验)，这里传相对路径
+                    save_path_bkrepo = f"{formal_dir[1:]}/{medium_info['name']}"
+                    file_path = os.path.join(bkrepo_tmp_dir, save_path_bkrepo)
+                    if not os.path.isfile(file_path):
+                        print("skip medium, local file not found: %s", file_path)
+                        continue
+
+                    print("upload file: %s -> %s", file_path, save_path_bkrepo)
                     with open(file_path, "rb") as f:
-                        # 如果当前版本不存在，则更新介质
-                        if not self.storage.listdir(file_path_bkrepo.rsplit("/", 1)[0])[1]:
-                            self.storage.save(save_path_bkrepo, f)
-                        # 如果文件md5不相等，则更新介质
-                        bkrepo_file_md5 = self.storage.listdir(file_path_bkrepo.rsplit("/", 1)[0])[1][0]["md5"]
+                        # 制品库不存在同名文件，或文件md5不相等，则更新介质。同一目录可能存放多个介质(如 exporter)
+                        bkrepo_files = self.storage.listdir(formal_dir)[1]
+                        bkrepo_file_md5 = {item["name"]: item["md5"] for item in bkrepo_files}.get(medium_info["name"])
                         pkg_file_md5 = hashlib.md5(f.read()).hexdigest()
                         if bkrepo_file_md5 != pkg_file_md5:
                             f.seek(0)
@@ -394,62 +382,68 @@ class MediumHandler:
     def sync_from_bkrepo(self, db_type):
         """将制品库文件同步到dbm"""
 
-        # 映射版本信息字典
+        # 映射版本信息字典: 介质正式路径 -> 介质信息
         lock_info = self.__load_medium_lock()
-        package_map = defaultdict(lambda: defaultdict(lambda: defaultdict(lambda: defaultdict(dict))))
+        package_map = {}
         for medium in lock_info[db_type]:
             for medium_type, info in medium.items():
-                package_map[db_type][medium_type][info["version"]][info["name"]] = info
+                package_map[f"{self.medium_formal_dir(db_type, medium_type, info)}/{info['name']}"] = info
+        lock_pkg_types = {medium_type for medium in lock_info[db_type] for medium_type in medium}
 
         from network import HttpHandler
 
         http = HttpHandler()
         package_sync_params = []
         for pkg_type in self.storage.listdir(f"/{db_type}")[0]:
-            # 排除非介质文件
-            if pkg_type["name"] in ["keyfiles", "db-remote-service", "sqlfile"]:
+            # 只同步medium.lock维护的介质类型，业务临时文件等其他目录直接跳过
+            if pkg_type["name"] not in lock_pkg_types:
                 continue
 
-            for version in self.storage.listdir(pkg_type["fullPath"])[0]:
-                for media in self.storage.listdir(version["fullPath"])[1]:
-                    package_info = package_map[db_type][pkg_type["name"]][version["name"]][media["name"]]
-                    # 如果不属于medium.lock维护，则不同步到package
-                    if not package_info:
-                        continue
-                    # 介质基础信息
-                    package_params = {
-                        "name": media["name"],
-                        "db_type": db_type,
-                        "pkg_type": pkg_type["name"],
-                        "version": version["name"],
-                        "path": media["fullPath"],
-                        "size": media["size"],
-                        "md5": media["md5"],
-                        "permit_os_type": package_info.get("os_type", ""),
-                        "permit_os": package_info.get("os_version", []),
-                        "create_at": time_parse(media["createdDate"]).isoformat(),
-                        "creator": "system",
-                        "update_at": time_parse(media["lastModifiedDate"]).isoformat(),
-                        "updater": "system",
-                    }
-                    # 介质版本信息
-                    full_version = self.__format_full_version(package_info.get("full_version", version["name"]))
-                    package_version_params = {
-                        "distribution_name": package_info.get("distribution_name", "DBM"),
-                        "distribution_engine": package_info.get("distribution_engine", ""),
-                        "version_series": package_info.get("version_series", version["name"]),
-                        "phase": package_info.get("phase", "release"),
-                        "description": package_info.get("description", "auto sync medium"),
-                        "full_version": full_version,
-                        "version_name": package_info.get("version_name", full_version),
-                    }
-
-                    package_params.update(package_version_params)
-                    package_sync_params.append(package_params)
-                    print("sync info %s", json.dumps(package_params, indent=4))
+            for distribution in self.storage.listdir(pkg_type["fullPath"])[0]:
+                for version in self.storage.listdir(distribution["fullPath"])[0]:
+                    for media in self.storage.listdir(version["fullPath"])[1]:
+                        package_info = package_map.get(media["fullPath"])
+                        # 如果不属于medium.lock维护，则不同步到package
+                        if not package_info:
+                            continue
+                        package_sync_params.append(self.__build_sync_params(db_type, pkg_type, media, package_info))
 
         data = {"db_type": db_type, "sync_medium_infos": package_sync_params}
         http.post(url="/apis/packages/sync_medium/", data=data)
+
+    def __build_sync_params(self, db_type, pkg_type, media, package_info):
+        """组装单个介质同步到 Package 的参数"""
+        # 介质基础信息，version 取 medium.lock 的 version 以匹配已有介质记录，不从目录名反推
+        package_params = {
+            "name": media["name"],
+            "db_type": db_type,
+            "pkg_type": pkg_type["name"],
+            "version": package_info["version"],
+            "path": media["fullPath"],
+            "size": media["size"],
+            "md5": media["md5"],
+            "permit_os_type": package_info.get("os_type", ""),
+            "permit_os": package_info.get("os_version", []),
+            "create_at": time_parse(media["createdDate"]).isoformat(),
+            "creator": "system",
+            "update_at": time_parse(media["lastModifiedDate"]).isoformat(),
+            "updater": "system",
+        }
+        # 介质版本信息
+        full_version = self.__format_full_version(str(package_info.get("full_version", package_info["version"])))
+        package_params.update(
+            {
+                "distribution_name": package_info.get("distribution_name", "DBM"),
+                "distribution_engine": package_info.get("distribution_engine", ""),
+                "version_series": package_info.get("version_series", package_info["version"]),
+                "phase": package_info.get("phase", "release"),
+                "description": package_info.get("description", "auto sync medium"),
+                "full_version": full_version,
+                "version_name": package_info.get("version_name", full_version),
+            }
+        )
+        print("sync info %s", json.dumps(package_params, indent=4))
+        return package_params
 
     @classmethod
     def update_lock(cls, bkrepo_tmp_dir):
@@ -507,8 +501,12 @@ class MediumHandler:
                     # 如果介质和安装模式不匹配，忽略
                     if medium_info.get("installation", False) != installation:
                         continue
+                    # 介质文件不存在(如未编译、安装包未挂载)时跳过，避免创建空的正式目录
+                    if not os.path.isfile(medium_info["buildPath"]):
+                        print("skip medium, build file not found: %s", medium_info["buildPath"])
+                        continue
                     # 将编译好的介质复制到指定目录（使用 pathlib+shutil 替代 shell 命令，避免命令注入风险）
-                    target_path = Path(bkrepo_tmp_dir) / db_type / medium_type / medium_info["version"]
+                    target_path = Path(bkrepo_tmp_dir) / cls.medium_formal_dir(db_type, medium_type, medium_info)[1:]
                     target_path.mkdir(parents=True, exist_ok=True)
                     try:
                         shutil.copy2(medium_info["buildPath"], target_path)

@@ -9,6 +9,7 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 import logging
+import posixpath
 from typing import Iterable, List, Optional
 
 import django.utils.timezone as timezone
@@ -21,9 +22,9 @@ from backend.bk_web.constants import LEN_LONG, LEN_NORMAL, LEN_SHORT
 from backend.bk_web.models import AuditedModel
 from backend.configuration.constants import DBType
 from backend.db_meta.enums.version_phase import PkgSeries, VersionPhase
-from backend.db_meta.models.db_version import DBVersion
+from backend.db_meta.models.db_version import DBVersion, Distribution
 from backend.db_package.constants import PackageMode, PackageType
-from backend.db_package.exceptions import PackageNotExistException, VersionNoNotExistException
+from backend.db_package.exceptions import PackageNotExistException, PackagePathException, VersionNoNotExistException
 from backend.db_services.ipchooser.constants import BkOsType
 from backend.exceptions import ApiRequestError
 from backend.flow.consts import MediumEnum
@@ -241,6 +242,24 @@ class Package(AuditedModel):
             db_type=db_type,
             only_enable_pkg=True,
         )
+
+    @staticmethod
+    def build_formal_path(db_version: DBVersion, db_type: str, pkg_type: str, file_name: str) -> str:
+        """
+        生成介质文件在制品库的正式路径: /{db_type}/{pkg_type}/{distribution}/{full_version}/{filename}
+        CI 介质链路无法引用本模块，MediumHandler.medium_formal_dir 另有一份同规则实现，修改时需同步
+        """
+        distribution = Distribution.objects.filter(id=db_version.distribution_id).first()
+        snapshot = distribution.snapshot() if distribution else {}
+
+        if snapshot.get("db_type") != db_type or snapshot.get("pkg_type") != pkg_type:
+            raise PackagePathException(_("介质类型{}/{}与版本{}的发行版不一致").format(db_type, pkg_type, db_version.full_version))
+
+        segments = [db_type, pkg_type, snapshot.get("name"), db_version.full_version, file_name]
+        if any(not seg or "/" in seg or seg in (".", "..") for seg in segments):
+            raise PackagePathException(_("无法生成介质正式路径，路径段不合法: {}").format(segments))
+
+        return "/" + posixpath.join(*segments)
 
     @classmethod
     def clean_unreferenced_files(cls, paths: Iterable[str]) -> List[str]:
