@@ -16,9 +16,16 @@
     <BkAlert
       class="mb-20"
       closable
-      :title="t('下架运维节点：摘除指定集群的运维节点（spider_mnt 角色）实例')" />
+      :title="
+        t(
+          '批量下架不再使用的运维节点（spider_mnt 角色）实例。运维节点用于在不影响主集群的前提下提供独立的数据访问入口；下架后该节点上的访问能力被回收，主集群业务不受影响。',
+        )
+      " />
+    <BatchInput
+      :config="batchInputConfig"
+      @change="handleBatchInput" />
     <DbForm
-      class="mb-20"
+      class="mt-16 mb-20"
       form-type="vertical"
       :model="formData">
       <EditableTable
@@ -30,19 +37,22 @@
           :key="index">
           <MntNodeColumn
             v-model="item.mntNode"
+            :handle-row-merge="handleRowMerge"
             :selected="selected"
             @batch-edit="handleBatchEdit" />
           <EditableColumn
             :label="t('所属集群')"
             :min-width="150"
-            readonly>
+            readonly
+            :rowspan="item.rowspan">
             <EditableBlock
               v-model="item.mntNode.master_domain"
               :placeholder="t('自动生成')" />
           </EditableColumn>
           <OperationColumn
             v-model:table-data="formData.tableData"
-            :create-row-method="createTableRow" />
+            :create-row-method="createTableRow"
+            :handle-row-merge="handleRowMerge" />
         </EditableRow>
       </EditableTable>
       <TicketPayload v-model="formData.payload" />
@@ -73,24 +83,36 @@
   import { useI18n } from 'vue-i18n';
 
   import TendbClusterInstanceModel from '@services/model/tendbcluster/tendbcluster-instance';
-  import type { TendbCluster } from '@services/model/ticket/ticket';
+  import type { SpiderMntDestroy } from '@services/model/ticket/details/tendbCluster/resource-pool/spiderMntDestroy';
 
   import { useCreateTicket, useTicketDetail } from '@hooks';
 
   import { TicketTypes } from '@common/const';
 
+  import BatchInput from '@views/db-manage/common/batch-input/Index.vue';
   import TicketPayload, {
     createTicketPayload,
   } from '@views/db-manage/common/toolbox-field/form-item/ticket-payload/Index.vue';
+
+  import { random } from '@utils';
 
   import MntNodeColumn from './components/MntNodeColumn.vue';
 
   interface RowData {
     mntNode: ComponentProps<typeof MntNodeColumn>['modelValue'];
+    rowspan: number;
   }
 
   const { t } = useI18n();
   const tableRef = useTemplateRef('table');
+
+  const batchInputConfig = [
+    {
+      case: '192.168.10.2:3000',
+      key: 'instance_address',
+      label: t('运维节点'),
+    },
+  ];
 
   const createTableRow = (data: DeepPartial<RowData> = {}) => ({
     mntNode: {
@@ -105,6 +127,7 @@
       role: '',
       ...data.mntNode,
     },
+    rowspan: data.rowspan || 1,
   });
 
   const defaultData = () => ({
@@ -112,25 +135,58 @@
     tableData: [createTableRow()],
   });
 
+  const tableKey = ref(random());
   const formData = reactive(defaultData());
   const selected = computed(() =>
     formData.tableData.filter((item) => item.mntNode.bk_host_id).map((item) => item.mntNode),
   );
   const selectedMap = computed(() => Object.fromEntries(selected.value.map((cur) => [cur.instance_address, true])));
+  // 具备完全相同的集群id列的行数组map
+  let sameClusterIdsRowsMap: Record<string, RowData[]> = {};
 
-  useTicketDetail<TendbCluster.SpiderMntDestroy>(TicketTypes.TENDBCLUSTER_SPIDER_MNT_DESTROY, {
+  // 行合并
+  const handleRowMerge = () => {
+    // 接口都响应后再合并
+    const isResponsed = formData.tableData.every((item) => !!item.mntNode.cluster_id);
+    if (!isResponsed) {
+      return;
+    }
+
+    sameClusterIdsRowsMap = {};
+    formData.tableData.forEach((item) => {
+      const key = String(item.mntNode.cluster_id);
+      if (!sameClusterIdsRowsMap[key]) {
+        sameClusterIdsRowsMap[key] = [item];
+      } else {
+        sameClusterIdsRowsMap[key].push(item);
+      }
+    });
+
+    // 设置 rowspan
+    Object.values(sameClusterIdsRowsMap).forEach((list) => {
+      Object.assign(list[0], {
+        rowspan: list.length,
+      });
+    });
+  };
+
+  useTicketDetail<SpiderMntDestroy>(TicketTypes.TENDBCLUSTER_SPIDER_MNT_DESTROY, {
     onSuccess(ticketDetail) {
-      const { infos } = ticketDetail.details;
+      const { details } = ticketDetail;
       Object.assign(formData, {
         payload: createTicketPayload(ticketDetail),
-        tableData: infos.map((info) => {
-          const [firstNode] = info.spider_ip_list;
-          return createTableRow({
-            mntNode: {
-              instance_address: `${firstNode.ip}:${firstNode.port || 0}`,
-            },
+        tableData: details.infos.reduce<RowData[]>((acc, info) => {
+          info.old_nodes.spider_ip_list.forEach((node) => {
+            acc.push(
+              createTableRow({
+                mntNode: {
+                  instance_address: `${node.ip}:${node.port}`,
+                },
+              }),
+            );
           });
-        }),
+          return acc;
+        }, []),
       });
     },
   });
@@ -138,11 +194,13 @@
   const { loading: isSubmitting, run: createTicketRun } = useCreateTicket<{
     infos: {
       cluster_id: number;
-      spider_ip_list: {
-        bk_cloud_id: number;
-        ip: string;
-        port: number;
-      }[];
+      old_nodes: {
+        spider_ip_list: {
+          bk_cloud_id: number;
+          bk_host_id: number;
+          ip: string;
+        }[];
+      };
     }[];
     is_safe: boolean;
   }>(TicketTypes.TENDBCLUSTER_SPIDER_MNT_DESTROY);
@@ -152,19 +210,20 @@
     if (valid) {
       createTicketRun({
         details: {
-          infos: formData.tableData.map((item) => ({
-            cluster_id: item.mntNode.cluster_id,
-            spider_ip_list: [
-              {
-                bk_cloud_id: item.mntNode.bk_cloud_id,
-                ip: item.mntNode.ip,
-                port: item.mntNode.port,
-              },
-            ],
+          infos: Object.values(sameClusterIdsRowsMap).map((rows) => ({
+            cluster_id: rows[0].mntNode.cluster_id,
+            old_nodes: {
+              spider_ip_list: rows.map((row) => ({
+                bk_cloud_id: row.mntNode.bk_cloud_id,
+                bk_host_id: row.mntNode.bk_host_id,
+                ip: row.mntNode.ip,
+                port: row.mntNode.port,
+              })),
+            },
           })),
           is_safe: true,
         },
-        ...formData.payload,
+        remark: formData.payload.remark,
       });
     }
   };
@@ -187,5 +246,27 @@
       return acc;
     }, []);
     formData.tableData = [...(selected.value.length ? formData.tableData : []), ...dataList];
+  };
+
+  const handleBatchInput = (data: Record<string, any>[], isClear: boolean) => {
+    const dataList = data.reduce<RowData[]>((acc, item) => {
+      acc.push(
+        createTableRow({
+          mntNode: {
+            instance_address: item.instance_address,
+          },
+        }),
+      );
+      return acc;
+    }, []);
+    if (isClear) {
+      tableKey.value = random();
+      formData.tableData = [...dataList];
+    } else {
+      formData.tableData = [...(formData.tableData[0].mntNode.bk_host_id ? formData.tableData : []), ...dataList];
+    }
+    setTimeout(() => {
+      tableRef.value?.validate();
+    }, 200);
   };
 </script>
