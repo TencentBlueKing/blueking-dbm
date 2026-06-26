@@ -54,13 +54,13 @@ def create(
     cluster_entry_params = {
         "creator": creator,
         "cluster": cluster,
-        "cluster_entry_type": ClusterEntryType.DNS,
+        "cluster_entry_type": ClusterEntryType.CLBDNS,
         "entry": immute_domain,
     }
     ClusterEntry.objects.get_or_create(
         creator=creator,
         cluster=cluster,
-        cluster_entry_type=ClusterEntryType.DNS,
+        cluster_entry_type=ClusterEntryType.CLBDNS,
         entry=immute_domain,
         defaults=cluster_entry_params,
     )
