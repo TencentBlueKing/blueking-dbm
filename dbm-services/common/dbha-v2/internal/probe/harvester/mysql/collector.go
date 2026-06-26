@@ -67,7 +67,7 @@ func (c *collector) connectionExceptionEvent(err error) *haprobe.DbEvent {
 		Reason:     haprobe.DbEventNameReasonConnectionException,
 		DbTypeName: haprobe.DbTypeMySql,
 		Endpoint:   c.endpoint,
-		Message:    err.Error(),
+		Message:    hamysql.SanitizeConnectionError(err),
 	}
 }
 
@@ -180,11 +180,10 @@ func (c *collector) obtainTendbHaProxyStatus() (*haprobe.MySqlProxyStatus, error
 }
 
 // obtainTendbHaProxyServicePortStatus performs a lightweight reachability probe of a TendbHA
-// mysql-proxy data (service) port using the probeMysql backend account. open() establishes a
-// real connection and runs SELECT VERSION() during gorm initialization (this collector passes
-// OptionSkipInitializeWithVersion(false)), so a successful open is sufficient evidence the data
-// port accepts and serves MySQL traffic; no extra query is issued. On failure it returns the
-// DbEvent produced by open() so the caller can reuse the existing failure reporting path.
+// mysql-proxy data (service) port using the probeMysql backend account. open() establishes the
+// connection pool; a successful SELECT 1 is the probe verdict so reachability does not depend
+// on gorm initialization options. On failure it returns a connection-exception DbEvent so the
+// caller can reuse the existing failure reporting path.
 func (c *collector) obtainTendbHaProxyServicePortStatus() (
 	*haprobe.MySqlProxyServicePortStatus, *haprobe.DbEvent, error,
 ) {
@@ -192,7 +191,19 @@ func (c *collector) obtainTendbHaProxyServicePortStatus() (
 	if err != nil {
 		return &haprobe.MySqlProxyServicePortStatus{
 			State:         haprobe.MySqlProxyServicePortStateFailed,
-			FailureReason: err.Error(),
+			FailureReason: dbEvent.Message,
+		}, dbEvent, err
+	}
+
+	ctx, cancel := c.queryCtx()
+	defer cancel()
+
+	var one int
+	if err := c.db.DB().WithContext(ctx).Raw("SELECT 1").Scan(&one).Error; err != nil {
+		dbEvent = c.connectionExceptionEvent(err)
+		return &haprobe.MySqlProxyServicePortStatus{
+			State:         haprobe.MySqlProxyServicePortStateFailed,
+			FailureReason: dbEvent.Message,
 		}, dbEvent, err
 	}
 	return &haprobe.MySqlProxyServicePortStatus{State: haprobe.MySqlProxyServicePortStateOk}, nil, nil
