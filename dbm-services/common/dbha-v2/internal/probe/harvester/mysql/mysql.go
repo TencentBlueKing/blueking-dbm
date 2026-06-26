@@ -223,10 +223,10 @@ func (m *MySql) loadCollectors() {
 }
 
 // collectProxyServicePort handles a TendbHA mysql-proxy data (service) port with a lightweight
-// reachability probe: open() success is the success verdict, so host metrics and the full
+// reachability probe: SELECT 1 success is the success verdict, so host metrics and the full
 // collectCommonStatus flow are skipped. It returns true when it has fully handled the collector
 // (caller must stop), and false when the collector is not a proxy data port so normal collection
-// continues. open() success leaves the connection on c.db for the caller's deferred close().
+// continues. A successful probe leaves the connection on c.db for the caller's deferred close().
 func (m *MySql) collectProxyServicePort(c *collector, data *plugin.HarvestData, status *haprobe.MySqlStatus) bool {
 	if !c.isTendbHaProxy() || c.isAdmin() {
 		return false

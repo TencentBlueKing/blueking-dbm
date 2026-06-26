@@ -46,7 +46,7 @@ var (
 )
 
 const (
-	CheckProbeProcessCmd = "cd ~/dbhav2/ && ./probe health -j"
+	CheckProbeProcessCmd = "cd ~/dbha-v2/ && ./probe health -j"
 )
 
 // DoubleCheckTask represents the double-check task.
