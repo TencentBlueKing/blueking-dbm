@@ -100,6 +100,7 @@
   import RestoreSwitch from './restore-switch/Index.vue';
 
   const { t } = useI18n();
+  const router = useRouter();
 
   const comMap = {
     failover: RestoreSwitch,
@@ -140,6 +141,14 @@
   const handleReset = () => {
     formKey.value = random();
   };
+
+  defineExpose({
+    routerBack() {
+      router.push({
+        name: 'MysqlToolboxIndex',
+      });
+    },
+  });
 </script>
 <style lang="less" scoped>
   .card-checkbox-block {

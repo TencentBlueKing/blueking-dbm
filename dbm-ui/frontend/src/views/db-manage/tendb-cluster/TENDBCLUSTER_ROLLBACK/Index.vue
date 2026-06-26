@@ -450,4 +450,12 @@
   const handleReset = () => {
     Object.assign(formData, defaultData());
   };
+
+  defineExpose({
+    routerBack() {
+      router.push({
+        name: 'TendbclusterToolboxIndex',
+      });
+    },
+  });
 </script>

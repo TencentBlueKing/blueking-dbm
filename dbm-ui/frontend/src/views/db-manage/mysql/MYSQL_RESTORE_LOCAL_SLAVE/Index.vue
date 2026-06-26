@@ -272,4 +272,12 @@
       tableRef.value?.validate();
     }, 200);
   };
+
+  defineExpose({
+    routerBack() {
+      router.push({
+        name: 'MysqlToolboxIndex',
+      });
+    },
+  });
 </script>

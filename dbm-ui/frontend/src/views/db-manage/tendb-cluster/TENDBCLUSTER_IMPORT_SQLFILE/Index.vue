@@ -23,6 +23,7 @@
   import Step3 from './steps/step3/Index.vue';
 
   const route = useRoute();
+  const router = useRouter();
 
   const comMap = {
     execute: Step1,
@@ -49,4 +50,12 @@
       immediate: true,
     },
   );
+
+  defineExpose({
+    routerBack() {
+      router.push({
+        name: 'TendbclusterToolboxIndex',
+      });
+    },
+  });
 </script>

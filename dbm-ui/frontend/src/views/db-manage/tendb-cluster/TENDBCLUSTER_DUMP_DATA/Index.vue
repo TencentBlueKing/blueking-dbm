@@ -132,6 +132,7 @@
   }
 
   const { t } = useI18n();
+  const router = useRouter();
 
   const formRef = useTemplateRef('formRef');
 
@@ -215,6 +216,14 @@
   const handleReset = () => {
     Object.assign(formData, defaultData());
   };
+
+  defineExpose({
+    routerBack() {
+      router.push({
+        name: 'TendbclusterToolboxIndex',
+      });
+    },
+  });
 </script>
 
 <style lang="less" scoped>

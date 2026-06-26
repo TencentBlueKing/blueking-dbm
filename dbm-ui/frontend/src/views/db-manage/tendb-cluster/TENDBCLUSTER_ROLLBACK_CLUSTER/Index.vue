@@ -91,6 +91,7 @@
   import BUILD_INTO_NEW_CLUSTER from './components/BUILD_INTO_NEW_CLUSTER/Index.vue';
 
   const { t } = useI18n();
+  const router = useRouter();
   const tableRef = useTemplateRef('table');
 
   const tableMap = {
@@ -173,4 +174,12 @@
     Object.assign(formData, defaultData());
     tableRef.value?.reset();
   };
+
+  defineExpose({
+    routerBack() {
+      router.push({
+        name: 'TendbclusterToolboxIndex',
+      });
+    },
+  });
 </script>

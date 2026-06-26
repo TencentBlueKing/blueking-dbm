@@ -104,6 +104,7 @@
   }
 
   const { t } = useI18n();
+  const router = useRouter();
   const tableRef = useTemplateRef('table');
 
   const batchInputConfig = [
@@ -269,4 +270,12 @@
       tableRef.value?.validate();
     }, 200);
   };
+
+  defineExpose({
+    routerBack() {
+      router.push({
+        name: 'TendbclusterToolboxIndex',
+      });
+    },
+  });
 </script>

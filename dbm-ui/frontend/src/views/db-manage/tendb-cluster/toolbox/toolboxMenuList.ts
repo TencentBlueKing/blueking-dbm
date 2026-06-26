@@ -13,49 +13,131 @@
 
 import { TicketTypes } from '@common/const';
 
+import type { ToolboxTreeNode } from '@views/db-manage/common/toolbox-new/common/types';
+
 import { t } from '@locales/index';
 
-export const toolboxMenuList = [
+export const toolboxMenuList: ToolboxTreeNode[] = [
   {
     children: [
       {
         dbConsoleValue: 'tendbCluster.toolbox.sqlExecute',
+        desc: t('执行 DDL / DML 变更 SQL'),
         id: TicketTypes.TENDBCLUSTER_IMPORT_SQLFILE,
-        name: t('变更SQL执行'),
-        parentId: 'spider_sql',
+        isPrimary: true,
+        name: t('变更 SQL 执行'),
+      },
+      {
+        dbConsoleValue: 'tendbCluster.toolbox.dataExport',
+        desc: t('把 DB 数据导出为文件'),
+        id: TicketTypes.TENDBCLUSTER_DUMP_DATA,
+        name: t('数据导出'),
+      },
+      {
+        dbConsoleValue: 'tendbCluster.toolbox.webconsole',
+        desc: t('只读 client，连接 DB 查询'),
+        id: 'SpiderWebconsole',
+        name: 'Webconsole',
       },
       {
         dbConsoleValue: 'tendbCluster.toolbox.dbRename',
+        desc: t('修改 DB 名称'),
         id: TicketTypes.TENDBCLUSTER_RENAME_DATABASE,
         name: t('DB 重命名'),
-        parentId: 'spider_sql',
       },
     ],
-    icon: 'db-icon-mysql',
-    id: 'spider_sql',
-    name: t('SQL任务'),
+    icon: 'chaxunyubiangeng',
+    id: 'sql',
+    name: t('查询与变更'),
   },
   {
     children: [
       {
-        dbConsoleValue: 'tendbCluster.toolbox.masterSlaveSwap',
-        id: TicketTypes.TENDBCLUSTER_MASTER_SLAVE_SWITCH,
-        name: t('主从互切'),
-        parentId: 'spider_cluster_maintain',
+        dbConsoleValue: 'tendbCluster.toolbox.dbBackup',
+        desc: t('整库数据备份'),
+        id: TicketTypes.TENDBCLUSTER_FULL_BACKUP,
+        isPrimary: true,
+        name: t('全库备份'),
       },
       {
-        bind: [TicketTypes.TENDBCLUSTER_MASTER_FAIL_OVER, TicketTypes.TENDBCLUSTER_INSTANCE_FAIL_OVER],
-        dbConsoleValue: 'tendbCluster.toolbox.instanceFailover',
-        id: TicketTypes.TENDBCLUSTER_MASTER_FAIL_OVER,
-        name: t('主库故障切换'),
-        parentId: 'spider_cluster_maintain',
+        dbConsoleValue: 'tendbCluster.toolbox.dbTableBackup',
+        desc: t('指定库 / 表级备份'),
+        id: TicketTypes.TENDBCLUSTER_DB_TABLE_BACKUP,
+        name: t('库表备份'),
+      },
+    ],
+    icon: 'baofen',
+    id: 'copy',
+    name: t('备份'),
+  },
+  {
+    children: [
+      {
+        bind: [TicketTypes.TENDBCLUSTER_FIXPOINT_EXIST, TicketTypes.TENDBCLUSTER_FIXPOINT_NEW],
+        dbConsoleValue: 'tendbCluster.toolbox.fixpoint',
+        desc: t('按备份数据重建新集群'),
+        id: TicketTypes.TENDBCLUSTER_FIXPOINT_EXIST,
+        name: t('构造'),
       },
       {
-        dbConsoleValue: 'tendbCluster.toolbox.capacityChange',
-        id: TicketTypes.TENDBCLUSTER_NODE_REBALANCE,
-        name: t('集群容量变更'),
-        parentId: 'spider_cluster_maintain',
+        bind: [TicketTypes.TENDBCLUSTER_FLASHBACK, TicketTypes.TENDBCLUSTER_ROLLBACK],
+        dbConsoleValue: 'tendbCluster.toolbox.flashback',
+        desc: t('按备份回退当前集群数据'),
+        id: TicketTypes.TENDBCLUSTER_ROLLBACK,
+        name: t('回档'),
       },
+      {
+        dbConsoleValue: 'tendbCluster.toolbox.rollback',
+        desc: t('回到指定时间点重建集群'),
+        id: TicketTypes.TENDBCLUSTER_ROLLBACK_CLUSTER,
+        name: t('定点构造（旧）'),
+      },
+    ],
+    icon: 'shujuhuifu',
+    id: 'fileback',
+    name: t('数据恢复'),
+  },
+  {
+    children: [
+      {
+        dbConsoleValue: 'tendbCluster.toolbox.openareaTemplate',
+        desc: t('绑定源集群的开区模板，数据 + 权限整体克隆'),
+        id: TicketTypes.TENDBCLUSTER_OPEN_AREA,
+        name: t('开区模版'),
+      },
+      {
+        dbConsoleValue: 'tendbCluster.toolbox.clientPermissionClone',
+        desc: t('复制客户端访问权限配置'),
+        id: TicketTypes.TENDBCLUSTER_CLIENT_CLONE_RULES,
+        name: t('客户端权限克隆'),
+      },
+      {
+        dbConsoleValue: 'tendbCluster.toolbox.dbInstancePermissionClone',
+        desc: t('复制实例级权限配置'),
+        id: TicketTypes.TENDBCLUSTER_INSTANCE_CLONE_RULES,
+        name: t('DB实例权限克隆'),
+      },
+    ],
+    icon: 'clone',
+    id: 'clone',
+    name: t('克隆与开区'),
+  },
+  {
+    children: [
+      {
+        dbConsoleValue: 'tendbCluster.toolbox.dbClear',
+        desc: t('清理指定范围数据（带回收窗口）'),
+        id: TicketTypes.TENDBCLUSTER_TRUNCATE_DATABASE,
+        isPrimary: true,
+        name: t('清档'),
+      },
+    ],
+    icon: 'shujuqingli',
+    id: 'clear',
+    name: t('数据清理'),
+  },
+  {
+    children: [
       {
         bind: [
           TicketTypes.TENDBCLUSTER_SPIDER_CONF_UP_DOWN,
@@ -63,213 +145,124 @@ export const toolboxMenuList = [
           TicketTypes.TENDBCLUSTER_SPIDER_REDUCE_NODES,
           TicketTypes.TENDBCLUSTER_SPIDER_SWITCH_NODES,
         ],
-        dbConsoleValue: 'mysql.toolbox.proxyScaleUp',
+        dbConsoleValue: 'tendbCluster.toolbox.spiderChange',
+        desc: t('Spider Master / Slave 添加、减少、升降配、替换'),
         id: TicketTypes.TENDBCLUSTER_SPIDER_ADD_NODES,
         name: t('接入层变更'),
-        parentId: 'migrate',
+      },
+      {
+        dbConsoleValue: 'tendbCluster.toolbox.proxySlaveApply',
+        desc: t('部署 Spider Slave 只读接入层（首次创建）'),
+        id: TicketTypes.TENDBCLUSTER_SPIDER_SLAVE_APPLY,
+        name: t('部署只读接入层'),
+      },
+      {
+        dbConsoleValue: 'tendbCluster.toolbox.removeReadonlyNode',
+        desc: t('下架整个 Spider Slave 只读接入层'),
+        id: TicketTypes.TENDBCLUSTER_SPIDER_SLAVE_DESTROY,
+        name: t('下架只读接入层'),
+      },
+      {
+        dbConsoleValue: 'tendbCluster.toolbox.addMnt',
+        desc: t('在原集群上增加运维节点实例，与生产流量隔离'),
+        id: TicketTypes.TENDBCLUSTER_SPIDER_MNT_APPLY,
+        name: t('添加运维节点'),
+      },
+      {
+        dbConsoleValue: 'tendbCluster.toolbox.removeMNTNode',
+        desc: t('批量下架运维节点实例（按节点 IP 录入，支持跨集群）'),
+        id: TicketTypes.TENDBCLUSTER_SPIDER_MNT_DESTROY,
+        name: t('下架运维节点'),
       },
       {
         dbConsoleValue: 'tendbCluster.toolbox.spiderRebuild',
+        desc: t('Spider 进程异常时在原主机重建实例'),
         id: TicketTypes.TENDBCLUSTER_SPIDER_REBUILD,
+        isFix: true,
         name: t('接入层原地重建'),
-        parentId: 'spider_cluster_maintain',
       },
       {
         dbConsoleValue: 'tendbCluster.toolbox.spiderLayerDr',
+        desc: t('集群所有 Spider 不可用时，新机重建后下架旧机'),
         id: TicketTypes.TENDBCLUSTER_SPIDER_LAYER_DR,
+        isFix: true,
         name: t('接入层灾难重建'),
-        parentId: 'spider_cluster_maintain',
+      },
+    ],
+    icon: 'proxy',
+    id: 'proxy',
+    name: '接入层',
+  },
+  {
+    children: [
+      {
+        dbConsoleValue: 'tendbCluster.toolbox.masterSlaveSwap',
+        desc: t('后端分片主从角色互换'),
+        id: TicketTypes.TENDBCLUSTER_MASTER_SLAVE_SWITCH,
+        name: t('主从互切'),
       },
       {
         dbConsoleValue: 'tendbCluster.toolbox.masterSlaveClone',
+        desc: t('迁移后端分片主从节点到新机器'),
         id: TicketTypes.TENDBCLUSTER_MIGRATE_CLUSTER,
         name: t('迁移主从'),
-        parentId: 'spider_cluster_maintain',
+      },
+      {
+        dbConsoleValue: 'tendbCluster.toolbox.capacityChange',
+        desc: t('调整后端分片数 / 实例规格'),
+        id: TicketTypes.TENDBCLUSTER_NODE_REBALANCE,
+        name: t('集群容量变更'),
+      },
+      {
+        dbConsoleValue: 'tendbCluster.toolbox.checksum',
+        desc: t('主从复制一致性检查与修复'),
+        id: TicketTypes.TENDBCLUSTER_CHECKSUM,
+        name: t('数据校验修复'),
       },
       {
         bind: [TicketTypes.TENDBCLUSTER_RESTORE_LOCAL_SLAVE, TicketTypes.TENDBCLUSTER_RESTORE_SLAVE],
+        dbConsoleValue: 'tendbCluster.toolbox.slaveRebuild',
+        desc: t('重建后端分片从库实例（支持原地重建 / 新机重建）'),
         id: TicketTypes.TENDBCLUSTER_RESTORE_LOCAL_SLAVE,
+        isFix: true,
         name: t('重建从库'),
-        parentId: 'spider_cluster_maintain',
       },
       {
-        id: TicketTypes.TENDBCLUSTER_CLUSTER_STANDARDIZE,
-        name: t('集群标准化'),
-        parentId: 'spider_cluster_maintain',
+        bind: [TicketTypes.TENDBCLUSTER_MASTER_FAIL_OVER, TicketTypes.TENDBCLUSTER_INSTANCE_FAIL_OVER],
+        dbConsoleValue: 'tendbCluster.toolbox.instanceFailover',
+        desc: t('后端分片主库故障后切换新主'),
+        id: TicketTypes.TENDBCLUSTER_MASTER_FAIL_OVER,
+        isFix: true,
+        name: t('主库故障切换'),
       },
+    ],
+    icon: 'node',
+    id: 'backend',
+    name: '存储层',
+  },
+  {
+    children: [
       {
         bind: [
           TicketTypes.TENDBCLUSTER_LOCAL_UPGRADE,
           TicketTypes.TENDBCLUSTER_SPIDER_UPGRADE,
           TicketTypes.TENDBCLUSTER_REMOTE_UPGRADE,
+          TicketTypes.TENDBCLUSTER_MIGRATE_UPGRADE,
         ],
+        dbConsoleValue: 'tendbCluster.toolbox.versionUpgrade',
+        desc: t('DB 软件版本升级'),
         id: TicketTypes.TENDBCLUSTER_LOCAL_UPGRADE,
         name: t('版本升级'),
-        parentId: 'spider_cluster_maintain',
+      },
+      {
+        dbConsoleValue: 'tendbCluster.toolbox.clusterStandardize',
+        desc: t('集群配置拉齐到标准'),
+        id: TicketTypes.TENDBCLUSTER_CLUSTER_STANDARDIZE,
+        name: t('标准化'),
       },
     ],
-    icon: 'db-icon-cluster',
-    id: 'spider_cluster_maintain',
-    name: t('集群维护'),
-  },
-  {
-    children: [
-      {
-        dbConsoleValue: 'tendbCluster.toolbox.proxySlaveApply',
-        id: TicketTypes.TENDBCLUSTER_SPIDER_SLAVE_APPLY,
-        name: t('部署只读接入层'),
-        parentId: 'spider_entry',
-      },
-      {
-        dbConsoleValue: 'tendbCluster.toolbox.removeReadonlyNode',
-        id: TicketTypes.TENDBCLUSTER_SPIDER_SLAVE_DESTROY,
-        name: t('下架只读接入层'),
-        parentId: 'spider_entry',
-      },
-    ],
-    icon: 'db-icon-entry',
-    id: 'spider_entry',
-    name: t('访问入口'),
-  },
-  {
-    children: [
-      {
-        dbConsoleValue: 'tendbCluster.toolbox.addMnt',
-        id: TicketTypes.TENDBCLUSTER_SPIDER_MNT_APPLY,
-        name: t('添加运维节点'),
-        parentId: 'spider_mnt',
-      },
-      {
-        dbConsoleValue: 'tendbCluster.toolbox.removeMNTNode',
-        id: TicketTypes.TENDBCLUSTER_SPIDER_MNT_DESTROY,
-        name: t('下架运维节点'),
-        parentId: 'spider_mnt',
-      },
-    ],
-    icon: 'db-icon-jiankong',
-    id: 'spider_mnt',
-    name: t('运维节点管理'),
-  },
-  {
-    children: [
-      {
-        dbConsoleValue: 'tendbCluster.toolbox.dbTableBackup',
-        id: TicketTypes.TENDBCLUSTER_DB_TABLE_BACKUP,
-        name: t('库表备份'),
-        parentId: 'spider_copy',
-      },
-      {
-        dbConsoleValue: 'tendbCluster.toolbox.dbBackup',
-        id: TicketTypes.TENDBCLUSTER_FULL_BACKUP,
-        name: t('全库备份'),
-        parentId: 'spider_copy',
-      },
-    ],
-    icon: 'db-icon-copy',
-    id: 'spider_copy',
-    name: t('备份'),
-  },
-  {
-    children: [
-      // {
-      //   dbConsoleValue: 'tendbCluster.toolbox.rollbackRecord',
-      //   id: 'spiderRollbackRecord',
-      //   name: t('构造实例'),
-      //   parentId: 'spider_fileback',
-      // },
-      {
-        bind: [TicketTypes.TENDBCLUSTER_FIXPOINT_EXIST, TicketTypes.TENDBCLUSTER_FIXPOINT_NEW],
-        dbConsoleValue: 'tendbCluster.toolbox.fixpoint',
-        id: TicketTypes.TENDBCLUSTER_FIXPOINT_EXIST,
-        name: t('构造'),
-        parentId: 'fileback',
-      },
-      {
-        bind: [TicketTypes.TENDBCLUSTER_FLASHBACK, TicketTypes.TENDBCLUSTER_ROLLBACK],
-        dbConsoleValue: 'tendbCluster.toolbox.flashback',
-        id: TicketTypes.TENDBCLUSTER_ROLLBACK,
-        name: t('回档'),
-        parentId: 'spider_fileback',
-      },
-      {
-        dbConsoleValue: 'tendbCluster.toolbox.rollback',
-        id: TicketTypes.TENDBCLUSTER_ROLLBACK_CLUSTER,
-        name: t('定点构造（旧）'),
-        parentId: 'spider_fileback',
-      },
-    ],
-    icon: 'db-icon-rollback',
-    id: 'spider_fileback',
-    name: t('构造和回档'),
-  },
-  {
-    children: [
-      {
-        dbConsoleValue: 'tendbCluster.toolbox.dbClear',
-        id: TicketTypes.TENDBCLUSTER_TRUNCATE_DATABASE,
-        name: t('清档'),
-        parentId: 'spider_data',
-      },
-      {
-        dbConsoleValue: 'tendbCluster.toolbox.checksum',
-        id: TicketTypes.TENDBCLUSTER_CHECKSUM,
-        name: t('数据校验修复'),
-        parentId: 'spider_data',
-      },
-      {
-        dbConsoleValue: 'tendbCluster.toolbox.dataExport',
-        id: TicketTypes.TENDBCLUSTER_DUMP_DATA,
-        name: t('数据导出'),
-        parentId: 'spider_data_export',
-      },
-    ],
-    icon: 'db-icon-data',
-    id: 'spider_data',
-    name: t('数据处理'),
-  },
-  {
-    children: [
-      {
-        dbConsoleValue: 'tendbCluster.toolbox.clientPermissionClone',
-        id: TicketTypes.TENDBCLUSTER_CLIENT_CLONE_RULES,
-        name: t('客户端权限克隆'),
-        parentId: 'spider_privilege',
-      },
-      {
-        dbConsoleValue: 'tendbCluster.toolbox.dbInstancePermissionClone',
-        id: TicketTypes.TENDBCLUSTER_INSTANCE_CLONE_RULES,
-        name: t('DB实例权限克隆'),
-        parentId: 'spider_privilege',
-      },
-    ],
-    icon: 'db-icon-clone',
-    id: 'spider_privilege',
-    name: t('权限克隆'),
-  },
-  {
-    children: [
-      {
-        dbConsoleValue: 'tendbCluster.toolbox.openareaTemplate',
-        id: TicketTypes.TENDBCLUSTER_OPEN_AREA,
-        name: t('开区模版'),
-        parentId: 'spider_openarea',
-      },
-    ],
-    icon: 'db-icon-template',
-    id: 'spider_openarea',
-    name: t('克隆开区'),
-  },
-  {
-    children: [
-      {
-        dbConsoleValue: 'tendbCluster.toolbox.webconsole',
-        id: 'SpiderWebconsole',
-        name: 'Webconsole',
-        parentId: 'spider_data_query',
-      },
-    ],
-    icon: 'db-icon-search',
-    id: 'spider_data_query',
-    name: t('数据查询'),
+    icon: 'resource',
+    id: 'common',
+    name: t('通用'),
   },
 ];
