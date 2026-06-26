@@ -541,6 +541,10 @@ func (m *AccountRulePara) ParaPreCheck() error {
 	if m.Dbname == "" {
 		return errno.DbNameNull
 	}
+	newDBRegexp := mysqlGrantDBToReg(m.Dbname)
+	if newDBRegexp.MatchString("mysql") {
+		return errno.DbContainMysql
+	}
 	if m.ClusterType == nil {
 		ct := mysql
 		m.ClusterType = &ct
