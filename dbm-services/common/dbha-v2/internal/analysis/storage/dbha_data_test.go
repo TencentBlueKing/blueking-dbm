@@ -56,7 +56,7 @@ func newTestDbhaData(t *testing.T) *DbhaData {
 		}
 	})
 
-	return &DbhaData{DB: hamysql.NewGormDBForTest(gormDB)}
+	return &DbhaData{DB: hamysql.WithGormDB(gormDB, nil)}
 }
 
 // insertStrategies inserts strategy records in batch.

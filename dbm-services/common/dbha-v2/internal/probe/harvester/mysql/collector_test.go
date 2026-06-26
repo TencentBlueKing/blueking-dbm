@@ -39,7 +39,7 @@ import (
 func TestCollectorClose_Idempotent(t *testing.T) {
 	closeCount := 0
 	gdb := &gorm.DB{Config: &gorm.Config{}}
-	db := hamysql.NewGormDBForTestWithClose(gdb, func() { closeCount++ })
+	db := hamysql.WithGormDB(gdb, func() { closeCount++ })
 
 	c := &collector{db: db}
 	c.close()
@@ -57,7 +57,7 @@ func TestAdoptOpenedDB_ClosesOnDBMethodFailure(t *testing.T) {
 	closeCount := 0
 	// Nil ConnPool makes gorm.DB.DB() return ErrInvalidDB.
 	gdb := &gorm.DB{Config: &gorm.Config{}}
-	db := hamysql.NewGormDBForTestWithClose(gdb, func() { closeCount++ })
+	db := hamysql.WithGormDB(gdb, func() { closeCount++ })
 
 	c := &collector{endpoint: &hanet.Endpoint{Host: "127.0.0.1", Port: 3306}}
 	event, err := c.adoptOpenedDB(db)
@@ -92,7 +92,7 @@ func TestAdoptOpenedDB_Success(t *testing.T) {
 	gdb := &gorm.DB{Config: &gorm.Config{ConnPool: sqlDB}}
 
 	closeCount := 0
-	db := hamysql.NewGormDBForTestWithClose(gdb, func() { closeCount++ })
+	db := hamysql.WithGormDB(gdb, func() { closeCount++ })
 
 	c := &collector{endpoint: &hanet.Endpoint{Host: "127.0.0.1", Port: 3306}}
 	event, err := c.adoptOpenedDB(db)

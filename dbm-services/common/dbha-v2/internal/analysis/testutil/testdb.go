@@ -71,7 +71,7 @@ func NewTestDbhaData(t *testing.T) *TestDbhaData {
 	})
 
 	return &TestDbhaData{
-		DbhaData: &storage.DbhaData{DB: hamysql.NewGormDBForTest(gormDB)},
+		DbhaData: &storage.DbhaData{DB: hamysql.WithGormDB(gormDB, nil)},
 		GormDB:   gormDB,
 	}
 }

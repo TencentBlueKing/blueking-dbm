@@ -156,21 +156,13 @@ func (db Base[T]) Close() {
 	db.close()
 }
 
-// NewGormDBForTest is only used in unit test scenarios, allowing injection of *gorm.DB to construct a GormDB instance.
-func NewGormDBForTest(gormDB *gorm.DB) *GormDB {
+// WithGormDB returns a GormDB view over an existing *gorm.DB.
+// When onClose is non-nil it is invoked by Close(); when nil, Close is a no-op.
+func WithGormDB(gdb *gorm.DB, onClose func()) *GormDB {
 	return &GormDB{
 		Base: Base[gorm.DB]{
-			db: gormDB,
-		},
-	}
-}
-
-// NewGormDBForTestWithClose is only used in unit tests. closeFn is invoked by Close(); when nil, Close is a no-op.
-func NewGormDBForTestWithClose(gormDB *gorm.DB, closeFn func()) *GormDB {
-	return &GormDB{
-		Base: Base[gorm.DB]{
-			db:    gormDB,
-			close: closeFn,
+			db:    gdb,
+			close: onClose,
 		},
 	}
 }
