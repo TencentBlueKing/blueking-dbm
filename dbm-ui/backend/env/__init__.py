@@ -241,7 +241,7 @@ XWORK_CALLER_KEY = get_type_env(key="XWORK_CALLER_KEY", _type=str, default="")
 MYSQL_BACKUP_PKG_MAP_ENABLE = get_type_env(key="MYSQL_BACKUP_PKG_MAP_ENABLE", _type=bool, default=False)
 
 # bkdbm 通知机器人的key
-WECOM_ROBOT = get_type_env(key="WECOM_ROBOT", _type=str, default="")
+WECOM_ROBOT = get_type_env(key="WECOM_ROBOT", _type=str, default="wxbot")
 MYSQL_CHATID = get_type_env(key="MYSQL_CHATID", _type=str, default="")
 
 # django DebugToolbar是否开启。开启后会对接口进行SQL分析和统计，将大幅度降低接口效率
