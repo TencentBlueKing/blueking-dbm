@@ -14,6 +14,7 @@ from types import FunctionType
 
 from django.utils.translation import gettext as _
 from rest_framework import permissions
+from rest_framework.exceptions import PermissionDenied
 from rest_framework.request import Request
 
 from backend import env
@@ -44,8 +45,9 @@ class IPHasRegisteredPermission(permissions.BasePermission):
             validate_machine_ip(bk_cloud_id, request)
 
         except Exception as e:  # noqa
-            # if not found:
-            raise Exception(_("访问受限，不存在于DBM平台 {}".format(e)))
+            # IP 未注册属于预期的鉴权拒绝，抛 PermissionDenied 返回 403，
+            # 避免被当作未处理异常记录 error 日志并误报 500
+            raise PermissionDenied(_("访问受限，不存在于DBM平台 {}".format(e)))
 
         return True
 
