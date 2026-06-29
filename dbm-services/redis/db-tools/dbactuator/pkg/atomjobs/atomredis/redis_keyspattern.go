@@ -450,6 +450,9 @@ func (task *RedisInsKeyPatternTask) getSafeRegexPattern(keyRegex string) (shellG
 		regPartten = strings.ReplaceAll(regPartten, "|", "\\|")
 		regPartten = strings.ReplaceAll(regPartten, ".", "\\.")
 		regPartten = strings.ReplaceAll(regPartten, "*", ".*")
+		regPartten = strings.ReplaceAll(regPartten, "\\d", "[0-9]")
+		regPartten = strings.ReplaceAll(regPartten, "\\D", "[^0-9]")
+		regPartten = strings.ReplaceAll(regPartten, "\\w", "[a-zA-Z0-9_]")
 
 		if shellGrepPattern == "" {
 			if strings.HasPrefix(regPartten, "^") {
