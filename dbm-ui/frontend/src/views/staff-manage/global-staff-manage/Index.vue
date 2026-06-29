@@ -25,10 +25,10 @@
           :name="tab.key" />
       </BkTab>
       <div v-if="activeTopTab === 'person-manage'">
-        <DbaManage />
+        <DbaManage :active-top-tab="activeTopTab" />
       </div>
       <div v-if="activeTopTab === 'biz-manage'">
-        <BizManage />
+        <BizManage :active-top-tab="activeTopTab" />
       </div>
       <div v-if="activeTopTab === 'oplog'">
         <OperationRecord />
@@ -46,7 +46,6 @@
 
   type TopTab = 'person-manage' | 'biz-manage' | 'oplog';
 
-  const router = useRouter();
   const route = useRoute();
   const { t } = useI18n();
 
@@ -59,14 +58,6 @@
     { key: 'oplog', label: t('操作记录') },
   ];
   const activeTopTab = ref<TopTab>((route.params.tabType as TopTab) || 'person-manage');
-
-  watch(activeTopTab, () => {
-    router.replace({
-      params: {
-        tabType: activeTopTab.value,
-      },
-    });
-  });
 </script>
 
 <style lang="less" scoped>

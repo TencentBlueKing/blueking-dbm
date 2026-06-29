@@ -75,6 +75,7 @@
                             </BkTag> -->
                     <BatchEdit
                       class="ml-4"
+                      :disabled="!hasEditRow"
                       field="primaryDBA"
                       :label="t('主 DBA')"
                       :multiple="false"
@@ -84,12 +85,10 @@
                 <template #default="{ row, rowIndex }: { row: IRowData; rowIndex: number }">
                   <DbFormItem
                     v-if="row.isEdit"
+                    class="primary-dba-form-item"
                     error-display-type="tooltips"
                     :property="`tableData.${rowIndex}.primaryDBA`"
-                    :required="
-                      formData.tableData[rowIndex].standbyDBA.length > 0 ||
-                      formData.tableData[rowIndex].level2DBA.length > 0
-                    ">
+                    required>
                     <div class="member-selector-wrapper">
                       <MemberSelector
                         v-model="row.primaryDBA"
@@ -112,7 +111,7 @@
                       <DbIcon
                         class="mr-4"
                         type="attention" />
-                      <span>{{ t('主备 DBA 为同一人，建议设置不同人员') }}</span>
+                      <span>{{ t('主备 DBA 为同一人') }}</span>
                     </div>
                   </DbFormItem>
                   <BkButton
@@ -138,6 +137,7 @@
                             </BkTag> -->
                     <BatchEdit
                       class="ml-4"
+                      :disabled="!hasEditRow"
                       field="standbyDBA"
                       :label="t('备 DBA')"
                       :multiple="false"
@@ -149,10 +149,7 @@
                     v-if="row.isEdit"
                     error-display-type="tooltips"
                     :property="`tableData.${rowIndex}.standbyDBA`"
-                    :required="
-                      formData.tableData[rowIndex].primaryDBA.length > 0 ||
-                      formData.tableData[rowIndex].level2DBA.length > 0
-                    ">
+                    required>
                     <MemberSelector
                       v-model="row.standbyDBA"
                       :multiple="false"
@@ -160,12 +157,7 @@
                       @change="() => handleMemberChange(`tableData.${rowIndex}.standbyDBA`)" />
                     <div
                       v-if="isPrimaryAndStanbySame(row)"
-                      class="member-selector-tip">
-                      <DbIcon
-                        class="mr-4"
-                        type="attention" />
-                      <span>{{ t('主备 DBA 为同一人，建议设置不同人员') }}</span>
-                    </div>
+                      class="member-selector-tip"></div>
                   </DbFormItem>
                 </template>
               </TableColumn>
@@ -183,6 +175,7 @@
                             </BkTag> -->
                     <BatchEdit
                       class="ml-4"
+                      :disabled="!hasEditRow"
                       field="level2DBA"
                       :label="t('二线 DBA')"
                       @batch-edit="handleBatchEdit" />
@@ -305,6 +298,8 @@
     tableData: [] as IRowData[],
   });
   const tableMaxHeight = ref<number | 'auto'>('auto');
+
+  const hasEditRow = computed(() => formData.value.tableData.some((item) => item.isEdit));
 
   const { loading: isGetAdminsLoading, run: runGetAdmins } = useRequest(getAdmins, {
     manual: true,
@@ -448,6 +443,12 @@
 
     .alert-bord {
       font-weight: bolder;
+    }
+
+    .primary-dba-form-item {
+      .bk-form-error-tips {
+        right: 44px;
+      }
     }
 
     .member-selector-wrapper {

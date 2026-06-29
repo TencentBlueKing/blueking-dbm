@@ -5,6 +5,15 @@
 </template>
 <script setup lang="ts">
   import OperationRecord from '@views/staff-manage/common/operation-record/Index.vue';
+
+  const router = useRouter();
+
+  router.replace({
+    params: {
+      subTabType: '',
+      tabType: 'oplog',
+    },
+  });
 </script>
 
 <style lang="less">

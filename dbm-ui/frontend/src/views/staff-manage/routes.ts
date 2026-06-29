@@ -18,7 +18,7 @@ import { t } from '@locales/index';
 export default function getRoutes() {
   registerBusinessModule([
     {
-      path: 'staff-manage/:tabType?',
+      path: 'staff-manage/:tabType?/:subTabType?',
       name: 'StaffManage',
       meta: {
         fullscreen: true,
@@ -29,7 +29,7 @@ export default function getRoutes() {
   ]);
   registerModule([
     {
-      path: 'platform-staff-manage/:tabType?',
+      path: 'platform-staff-manage/:tabType?/:subTabType?',
       name: 'PlatformStaffManage',
       meta: {
         fullscreen: true,
