@@ -9,6 +9,8 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 import copy
+import logging
+import pathlib
 from dataclasses import asdict
 from datetime import datetime
 from typing import Dict, Optional
@@ -17,14 +19,17 @@ from django.db.models import Q
 from django.utils.crypto import get_random_string
 from django.utils.translation import gettext as _
 
+from backend import env
 from backend.components.dbresource.client import DBResourceApi
 from backend.configuration.constants import MYSQL_DATA_RESTORE_TIME, DBType
-from backend.db_meta.enums import ClusterType, InstanceInnerRole
+from backend.db_meta.enums import ClusterType, InstanceInnerRole, VersionPhase
 from backend.db_meta.models import Cluster
+from backend.db_package.exceptions import DBPackageBaseException
 from backend.db_package.models import Package
 from backend.db_periodic_task.models import TaskStatus
 from backend.db_services.cmdb.biz import get_or_create_resource_module, get_resource_biz
-from backend.flow.consts import MediumEnum, RollbackType
+from backend.db_services.ipchooser.constants import BkOsType
+from backend.flow.consts import DBA_ROOT_USER, MediumEnum, MysqlVersionToDBBackupForMap, RollbackType
 from backend.flow.engine.bamboo.scene.common.builder import Builder, Conditions, SubBuilder
 from backend.flow.engine.bamboo.scene.common.machine_os_init import insert_host_event
 from backend.flow.engine.bamboo.scene.mysql.common.domain_util import generate_valid_domain
@@ -32,6 +37,8 @@ from backend.flow.engine.bamboo.scene.mysql.common.get_master_config import get_
 from backend.flow.engine.bamboo.scene.mysql.common.mysql_restore_download_sub_flow import (
     mysql_restore_download_sub_flow,
 )
+from backend.flow.engine.bamboo.scene.mysql.deploy_peripheraltools.departs import DeployPeripheralToolsDepart
+from backend.flow.engine.bamboo.scene.mysql.deploy_peripheraltools.push_config import gen_reload_departs_config
 from backend.flow.engine.bamboo.scene.mysql.mysql_single_apply_flow import MySQLSingleApplyFlow
 from backend.flow.engine.bamboo.scene.mysql.mysql_single_destroy_flow import MySQLSingleDestroyFlow
 from backend.flow.plugins.components.collections.common.add_alarm_shield import AddAlarmShieldComponent
@@ -47,10 +54,73 @@ from backend.flow.plugins.components.collections.mysql.mysql_backup_recovery_exe
     MySQLBackupRecoverTaskMetaComponent,
 )
 from backend.flow.plugins.components.collections.mysql.mysql_os_init import CleanDataBakDirComponent
+from backend.flow.plugins.components.collections.mysql.trans_flies import TransFileComponent
+from backend.flow.utils.mysql.act_payload.mysql.peripheraltools import PeripheralToolsPayload
 from backend.flow.utils.mysql.common.mysql_cluster_info import get_version_and_charset
-from backend.flow.utils.mysql.mysql_act_dataclass import ExecActuatorKwargs
+from backend.flow.utils.mysql.mysql_act_dataclass import DownloadMediaKwargs, ExecActuatorKwargs
 from backend.flow.utils.mysql.mysql_act_playload import MysqlActPayload
 from backend.flow.utils.mysql.mysql_context_dataclass import MySQLRollbackExerciseContext
+
+logger = logging.getLogger("flow")
+
+# V2 备份介质取自 version_series.name=beta（非 latest）；优先 alpha，无则兼容 release
+_BACKUP_VERSION_SERIES_NAME = "beta"
+_BACKUP_PHASE_PRIORITY = [VersionPhase.ALPHA.value, VersionPhase.RELEASE.value]
+
+
+def _get_v2_package_by_phase(
+    db_type: str,
+    pkg_type: str,
+    phase: str,
+    permit_os_type: str = BkOsType.LINUX.value,
+) -> Optional[Package]:
+    """
+    获取指定数据库类型、介质类型和版本阶段（phase）的 V2 备份介质包
+
+    逻辑说明：
+    - 根据给定的 db_type、pkg_type、phase 检索可用、并启用的备份包，限定 version_series 名称为 beta
+    - 默认按 permit_os_type=Linux 过滤介质包
+    - 若存在多个备份包，优先选择 full_version 数值最大者；
+      同一版本时，优先选择 recommend 和 priority 高的包
+
+    返回：
+    - 若找到符合条件的 Package 实例则返回，否则返回 None
+    """
+    packages = list(
+        Package.objects.filter(
+            enable=True,
+            permit_os_type=permit_os_type,
+            db_version__phase=phase,
+            db_version__enable=True,
+            db_version__version_series__name=_BACKUP_VERSION_SERIES_NAME,
+            db_version__version_series__distribution__db_type=db_type,
+            db_version__version_series__distribution__pkg_type=pkg_type,
+        ).select_related("db_version")
+    )
+    if not packages:
+        return None
+    # 按 full_version 数值比较取最大版本，recommend/priority 作为同版本时的 tiebreaker
+    return max(
+        packages,
+        key=lambda pkg: (pkg.db_version.full_version_n, pkg.db_version.recommend, pkg.priority),
+    )
+
+
+def _resolve_v2_backup_package(db_type: str, pkg_type: str, permit_os_type: str = BkOsType.LINUX.value) -> Package:
+    for phase in _BACKUP_PHASE_PRIORITY:
+        pkg = _get_v2_package_by_phase(db_type, pkg_type, phase, permit_os_type=permit_os_type)
+        if pkg:
+            logger.info(
+                _("V2 备份包命中 series={}, phase={}, pkg_type={}, package_id={}").format(
+                    _BACKUP_VERSION_SERIES_NAME, phase, pkg_type, pkg.id
+                )
+            )
+            return pkg
+    raise DBPackageBaseException(
+        _("未找到 V2 备份介质: series={}, pkg_type={}, permit_os_type={}").format(
+            _BACKUP_VERSION_SERIES_NAME, pkg_type, permit_os_type
+        )
+    )
 
 
 class MySQLRollbackExerciseFlow(object):
@@ -199,6 +269,7 @@ class MySQLRollbackExerciseFlow(object):
                 skip_install_bk_plugin=True,
             )
         )
+        sub_pipeline.add_sub_pipeline(self._build_reinstall_v2_dbbackup_subflow(cluster_class))
         # 屏蔽告警
         sub_pipeline.add_act(
             act_name=_("屏蔽集群 {} 告警12小时").format(cluster_class.name),
@@ -402,3 +473,52 @@ class MySQLRollbackExerciseFlow(object):
         # )
         # 更新任务状态
         return sub_pipeline.build_sub_process(sub_name=_("{}回档演练".format(cluster_class.immute_domain)))
+
+    def _build_reinstall_v2_dbbackup_subflow(self, cluster_class: Cluster):
+        backup_pkg_type = MysqlVersionToDBBackupForMap[self.data["db_version"]]
+        backup_pkg = _resolve_v2_backup_package(DBType.MySQL.value, backup_pkg_type)
+        rollback_ip = self.rollback_host["ip"]
+        instance = "{}:{}".format(rollback_ip, self.rollback_port)
+
+        sub_pipeline = SubBuilder(root_id=self.root_id, data=copy.deepcopy(self.data))
+        sub_pipeline.add_act(
+            act_name=_("下发V2备份介质"),
+            act_component_code=TransFileComponent.code,
+            kwargs=asdict(
+                DownloadMediaKwargs(
+                    bk_cloud_id=cluster_class.bk_cloud_id,
+                    exec_ip=rollback_ip,
+                    file_list=[f"{env.BKREPO_PROJECT}/{env.BKREPO_BUCKET}/{backup_pkg.path}"],
+                )
+            ),
+        )
+        sub_pipeline.add_act(
+            act_name=_("重装备份程序 {}").format(rollback_ip),
+            act_component_code=ExecuteDBActuatorScriptComponent.code,
+            kwargs=asdict(
+                ExecActuatorKwargs(
+                    exec_ip=[rollback_ip],
+                    run_as_system_user=DBA_ROOT_USER,
+                    payload_class=PeripheralToolsPayload.payload_class_path(),
+                    get_mysql_payload_func=PeripheralToolsPayload.deploy_binary.__name__,
+                    bk_cloud_id=cluster_class.bk_cloud_id,
+                    cluster={
+                        "departs": [DeployPeripheralToolsDepart.MySQLDBBackup],
+                        "dbbackup_pkg_override": {
+                            "pkg": pathlib.Path(backup_pkg.path).name,
+                            "pkg_md5": backup_pkg.md5,
+                        },
+                    },
+                )
+            ),
+        )
+        sub_pipeline.add_sub_pipeline(
+            sub_flow=gen_reload_departs_config(
+                root_id=self.root_id,
+                data=copy.deepcopy(self.data),
+                bk_cloud_id=cluster_class.bk_cloud_id,
+                instances=[instance],
+                departs=[DeployPeripheralToolsDepart.MySQLDBBackup],
+            )
+        )
+        return sub_pipeline.build_sub_process(sub_name=_("重装 V2 备份程序"))

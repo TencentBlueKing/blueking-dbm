@@ -88,7 +88,7 @@ def build_resource_apply_params(task_id: str, storage_spec: list, mysql_version:
         "os_type": "Linux",
         "storage_spec": storage_spec,
     }
-    logger.info(_("apply details: {}").format(details))
+    logger.debug(_("apply details: {}").format(details))
     # 如果MySQL版本大于等于8.0，则排除tlinux 1.2操作系统
 
     if mysql_version and mysql_version_parse(mysql_version) >= 8000000:
@@ -174,11 +174,11 @@ def calculate_recovery_min_disk_size_gb(
                 data_dir_size_mb = data_dir_size_mb * 2.6
         else:
             data_dir_size_mb = data_dir_size_mb * 4.3
-        logger.info(_("计算后的数据目录大小: {} MB").format(data_dir_size_mb))
+        logger.debug(_("计算后的数据目录大小: {} MB").format(data_dir_size_mb))
         min_disk_size = int(data_dir_size_mb / 1024)
     else:
         min_disk_size = calculate_min_disk_size(total_filesize)
-    logger.info(_("计算后的最小磁盘大小: {} GB").format(min_disk_size))
+    logger.debug(_("计算后的最小磁盘大小: {} GB").format(min_disk_size))
     return min_disk_size
 
 
@@ -198,20 +198,20 @@ def get_master_storage_spec(cluster: Cluster) -> list:
     try:
         main_storage = cluster.main_storage_instances().first()
         if not main_storage:
-            logger.info(_("集群 {} 未找到 master 节点，退避为单盘模式申请").format(cluster.immute_domain))
+            logger.debug(_("集群 {} 未找到 master 节点，退避为单盘模式申请").format(cluster.immute_domain))
             return []
 
         spec_config = main_storage.machine.spec_config or {}
         storage_spec = spec_config.get("storage_spec") or []
         if not storage_spec:
-            logger.info(
+            logger.debug(
                 _("集群 {} master 节点(IP {}) 无 storage_spec 信息，退避为单盘模式申请").format(
                     cluster.immute_domain, main_storage.machine.ip
                 )
             )
             return []
 
-        logger.info(
+        logger.debug(
             _("集群 {} master 节点(IP {}) storage_spec: {}").format(
                 cluster.immute_domain, main_storage.machine.ip, storage_spec
             )
@@ -256,7 +256,7 @@ def build_recovery_storage_spec(
 
     master_storage_spec = get_master_storage_spec(cluster)
     if not master_storage_spec:
-        logger.info(_("集群 {} 按单盘模式申请，最小容量: {} GB").format(cluster.immute_domain, min_disk_size_gb))
+        logger.debug(_("集群 {} 按单盘模式申请，最小容量: {} GB").format(cluster.immute_domain, min_disk_size_gb))
         return fallback_spec
 
     # 解析 master 规格构建多盘申请，任何异常都退避到单盘模式
@@ -294,7 +294,7 @@ def build_recovery_storage_spec(
             logger.warning(_("集群 {} 解析 master 规格后为空，退避为单盘模式申请").format(cluster.immute_domain))
             return fallback_spec
 
-        logger.info(_("集群 {} 申请 storage_spec(基于 master 盘符布局): {}").format(cluster.immute_domain, storage_spec_list))
+        logger.debug(_("集群 {} 申请 storage_spec(基于 master 盘符布局): {}").format(cluster.immute_domain, storage_spec_list))
         return storage_spec_list
     except Exception as e:
         logger.warning(
@@ -470,13 +470,13 @@ def gen_rollback_task():
         )
 
         if not backup_results.exists():
-            logger.info(_("集群 {} 没有可用的备份记录").format(cluster.immute_domain))
+            logger.debug(_("集群 {} 没有可用的备份记录").format(cluster.immute_domain))
             continue
 
         # 选择最新的备份记录
         backup_result = backup_results.first()
         if not backup_result:
-            logger.info(_("集群 {} 没有找到备份记录").format(cluster.immute_domain))
+            logger.debug(_("集群 {} 没有找到备份记录").format(cluster.immute_domain))
             continue
 
         logger.debug(
@@ -493,7 +493,7 @@ def gen_rollback_task():
     # 第三阶段：生成回档任务
     for cluster, backup_result, backup_size in cluster_backup_info:
         backup_file_size_gb = bytes_to_gb(backup_size)
-        logger.info(_("开始处理集群 {} 的备份，备份大小: {:.2f} GB").format(cluster.immute_domain, backup_file_size_gb))
+        logger.debug(_("开始处理集群 {} 的备份，备份大小: {:.2f} GB").format(cluster.immute_domain, backup_file_size_gb))
 
         # 格式化备份信息，保持与原有格式兼容
         backup_result.backup_consistent_time = backup_result.backup_consistent_time.isoformat()
@@ -523,7 +523,7 @@ def gen_rollback_task():
         backup_type = backup_record.get("backup_type", "")
 
         # 打印备份信息
-        logger.info(_("演练备份记录: {}").format(backup_record))
+        logger.debug(_("演练备份记录: {}").format(backup_record))
         root_id = generate_root_id()
         task = MySQLBackupRecoverTask(
             bk_biz_id=backup_record["bk_biz_id"],
@@ -594,7 +594,7 @@ def gen_rollback_task():
         # 申请资源成功后，获取资源申请结果
         try:
             resource_request_id, apply_data = resp["request_id"], resp["data"]
-            logger.info(f"resource_request_id: {resource_request_id}, apply_data: {apply_data}")
+            logger.debug(f"resource_request_id: {resource_request_id}, apply_data: {apply_data}")
             mch_info = apply_data[0]["data"][0]
             rollback_host = {
                 "ip": mch_info["ip"],
@@ -930,7 +930,7 @@ def _prepare_cluster_data(num: int):
     exclude_biz_ids.extend(ignored_biz_ids)
     exclude_cluster_id.extend(ignored_cluster_ids)
 
-    logger.info(
+    logger.debug(
         _("演练忽略配置: 忽略业务 {} 个 {}, 忽略集群 {} 个 {}").format(
             len(ignored_biz_ids), ignored_biz_ids, len(ignored_cluster_ids), ignored_cluster_ids
         )
@@ -1036,7 +1036,7 @@ def _collect_unpracticed_clusters(exclude_biz_ids, exclude_cluster_id, global_pr
 
     if unpracticed_biz_ids:
         logger.info(_("发现 {} 个从未演练过的业务，包含 {} 个集群，将获得最高优先级").format(len(unpracticed_biz_ids), unpracticed_biz_clusters))
-        logger.info(_("从未演练过的业务ID列表: {}").format(sorted(list(unpracticed_biz_ids))))
+        logger.debug(_("从未演练过的业务ID列表: {}").format(sorted(list(unpracticed_biz_ids))))
     else:
         logger.info(_("未发现从未演练过的业务"))
 
@@ -1090,6 +1090,11 @@ def _collect_valid_candidates(global_priority_queue, target_tendbcluster, target
     # 统计待检查的集群总数
     total_candidate_clusters = len(global_priority_queue)
     logger.info(_("开始检查候选集群，总计 {} 个集群待检查").format(total_candidate_clusters))
+    logger.info(
+        _("本轮候选收集配额: TenDBCluster 目标 {} (最多检查 {}), TenDBHA 目标 {} (最多检查 {})").format(
+            target_tendbcluster, max_needed_tendbcluster, target_tendbha, max_needed_tendbha
+        )
+    )
 
     while global_priority_queue:
         task = heapq.heappop(global_priority_queue)
@@ -1097,7 +1102,7 @@ def _collect_valid_candidates(global_priority_queue, target_tendbcluster, target
         total_clusters_checked += 1
 
         # 打印优先级信息
-        logger.info(
+        logger.debug(
             _("从优先级队列取出集群: {} (ID: {}), 业务ID: {}, 优先级: {}, 集群类型: {}").format(
                 cluster.immute_domain, cluster.id, cluster.bk_biz_id, task.priority, cluster.cluster_type
             )
@@ -1107,10 +1112,30 @@ def _collect_valid_candidates(global_priority_queue, target_tendbcluster, target
 
         # 根据集群类型检查是否已收集足够数量
         if cluster.cluster_type == ClusterType.TenDBCluster:
+            if max_needed_tendbcluster == 0:
+                logger.info(
+                    _("集群 {} (ID: {}, 类型: TenDBCluster) 本轮目标数量为 0，跳过备份检查").format(cluster.immute_domain, cluster.id)
+                )
+                continue
             if tendbcluster_count >= max_needed_tendbcluster:
+                logger.info(
+                    _("集群 {} (ID: {}, 类型: TenDBCluster) 候选已收集足够({}/{}), 跳过备份检查").format(
+                        cluster.immute_domain, cluster.id, tendbcluster_count, max_needed_tendbcluster
+                    )
+                )
                 continue
         elif cluster.cluster_type == ClusterType.TenDBHA:
+            if max_needed_tendbha == 0:
+                logger.info(
+                    _("集群 {} (ID: {}, 类型: TenDBHA) 本轮目标数量为 0，跳过备份检查").format(cluster.immute_domain, cluster.id)
+                )
+                continue
             if tendbha_count >= max_needed_tendbha:
+                logger.info(
+                    _("集群 {} (ID: {}, 类型: TenDBHA) 候选已收集足够({}/{}), 跳过备份检查").format(
+                        cluster.immute_domain, cluster.id, tendbha_count, max_needed_tendbha
+                    )
+                )
                 continue
 
         # 检查集群是否有有效的备份记录
@@ -1306,7 +1331,7 @@ def get_exercise_clusters(num: int) -> list:
     # 记录演练成功次数统计
     for cluster in rs:
         success_count = recover_success_map.get(cluster.immute_domain, 0)
-        logger.info(_("选中集群 {} ({}): 历史演练成功次数 {}").format(cluster.immute_domain, cluster.cluster_type, success_count))
+        logger.debug(_("选中集群 {} ({}): 历史演练成功次数 {}").format(cluster.immute_domain, cluster.cluster_type, success_count))
 
     return rs
 
