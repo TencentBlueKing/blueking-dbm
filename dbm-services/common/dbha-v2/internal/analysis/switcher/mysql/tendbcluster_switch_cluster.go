@@ -100,6 +100,11 @@ type TenDBClusterSwitchCluster struct {
 
 	// keyListMu guards concurrent appends to SpiderKeyList, RemoteMasterKeyList, and RemoteSlaveKeyList
 	keyListMu sync.Mutex
+
+	// newMasterInfoMap records the new master info keyed by the switched remote master instance
+	newMasterInfoMap map[switchcore.MetadataKey]*MySqlNewMasterInfo
+	// newMasterInfoMu guards concurrent writes to newMasterInfoMap
+	newMasterInfoMu sync.Mutex
 }
 
 // SetStandbySlaveMap sets the standby slave map from remote master metadata
@@ -530,7 +535,7 @@ func (cluster *TenDBClusterSwitchCluster) switchRemoteMasterWorker(
 		return findErr
 	}
 
-	_, _, resetErr := DoResetSlaveWithBinlogPos(
+	binlogFile, binlogPos, resetErr := DoResetSlaveWithBinlogPos(
 		standbySlave.Ip, standbySlave.Port, instLogFunc)
 	if resetErr != nil {
 		errMsg := fmt.Sprintf(
@@ -540,12 +545,44 @@ func (cluster *TenDBClusterSwitchCluster) switchRemoteMasterWorker(
 		return resetErr
 	}
 
+	cluster.recordNewMasterInfo(instKey, &MySqlNewMasterInfo{
+		Host:       standbySlave.Ip,
+		Port:       standbySlave.Port,
+		BinlogFile: binlogFile,
+		BinlogPos:  binlogPos,
+	})
+
 	tdbctlMu.Lock()
 	cluster.tdbctlHelper.SetLogFunc(instLogFunc)
 	updateErr := cluster.tdbctlHelper.UpdateMasterRouteToSlave(
 		primaryTdbctlConn, masterRoute, slaveRoute)
 	tdbctlMu.Unlock()
 	return updateErr
+}
+
+// recordNewMasterInfo stores the new master info of a switched remote master in a concurrency-safe way.
+func (cluster *TenDBClusterSwitchCluster) recordNewMasterInfo(
+	instKey switchcore.MetadataKey, info *MySqlNewMasterInfo,
+) {
+	cluster.newMasterInfoMu.Lock()
+	defer cluster.newMasterInfoMu.Unlock()
+
+	if cluster.newMasterInfoMap == nil {
+		cluster.newMasterInfoMap = map[switchcore.MetadataKey]*MySqlNewMasterInfo{}
+	}
+	cluster.newMasterInfoMap[instKey] = info
+}
+
+// GetNewMasterInfos returns the new master info keyed by the switched remote master instance.
+func (cluster *TenDBClusterSwitchCluster) GetNewMasterInfos() map[switchcore.MetadataKey]*MySqlNewMasterInfo {
+	cluster.newMasterInfoMu.Lock()
+	defer cluster.newMasterInfoMu.Unlock()
+
+	res := make(map[switchcore.MetadataKey]*MySqlNewMasterInfo, len(cluster.newMasterInfoMap))
+	for k, v := range cluster.newMasterInfoMap {
+		res[k] = v
+	}
+	return res
 }
 
 // switchRemoteMasters resets slaves and updates route info for each broken remote master

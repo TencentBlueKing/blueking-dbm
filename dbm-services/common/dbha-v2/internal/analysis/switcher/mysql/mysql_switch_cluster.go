@@ -465,6 +465,26 @@ func (cluster *MySQLSwitchCluster) RefreshProxiesBackends() error {
 	return nil
 }
 
+// GetNewMasterInfos returns the new master info keyed by the switched backend master instance.
+func (cluster *MySQLSwitchCluster) GetNewMasterInfos() map[switchcore.MetadataKey]*MySqlNewMasterInfo {
+	res := map[switchcore.MetadataKey]*MySqlNewMasterInfo{}
+	for _, masterKey := range cluster.BackendMasterKeyList {
+		standbySlave, exists := cluster.StandbySlaveMap[masterKey]
+		if !exists || standbySlave == nil {
+			continue
+		}
+
+		res[masterKey] = &MySqlNewMasterInfo{
+			Host:       standbySlave.Ip,
+			Port:       standbySlave.Port,
+			BinlogFile: cluster.NewMasterBinlogFile,
+			BinlogPos:  cluster.NewMasterBinlogPos,
+		}
+	}
+
+	return res
+}
+
 // DoSwitch switches the required nodes in the cluster
 //  1. deletes proxy instances from all bound entries
 //  2. delete non-standby slave backends from all bound entries

@@ -213,6 +213,8 @@ func (m *Mysql) InstanceLevelSwitch(ctx context.Context, switchLoggers []switchl
 				return
 			}
 
+			rsp.recordInstanceNewMaster(instKey, swInst)
+
 			swReporter.ReportSwitchLogf(switchlogger.SwitchSuccess, "successfully switched the single mysql instance: %s",
 				instKey)
 		}(inst, instKey)
@@ -379,6 +381,9 @@ func (m *Mysql) HostLevelSwitch(ctx context.Context, switchLoggers []switchlogge
 
 			switchSuccess, errMap := switchcore.SwitchSameHostInstances(ctx, swInstMap)
 			if switchSuccess {
+				for instKey, swInst := range swInstMap {
+					rsp.recordInstanceNewMaster(instKey, swInst)
+				}
 				swReporter.ReportSwitchLogf(switchlogger.SwitchSuccess, "successfully switched all instances on the current host")
 				return
 			}
@@ -393,6 +398,7 @@ func (m *Mysql) HostLevelSwitch(ctx context.Context, switchLoggers []switchlogge
 					continue
 				}
 
+				rsp.recordInstanceNewMaster(instKey, swInst)
 				swInst.ReportLogf(switchlogger.SwitchSuccess, "Only some instances on this host were switched successfully.")
 			}
 		}(host, instDataMap)
@@ -459,6 +465,8 @@ func (m *Mysql) ClusterLevelSwitch(ctx context.Context, switchLoggers []switchlo
 				addAllInstsAsFailure(instDataMap)
 				return
 			}
+
+			rsp.recordClusterNewMasters(swCluster)
 
 			swReporter.ReportSwitchLogf(switchlogger.SwitchSuccess, "successfully switched current instance in cluster level")
 		}(clusterKey, instDataMap)
