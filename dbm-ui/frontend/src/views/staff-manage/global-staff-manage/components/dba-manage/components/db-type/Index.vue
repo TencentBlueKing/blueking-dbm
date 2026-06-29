@@ -1,6 +1,6 @@
 <template>
   <div class="global-staff-manage-db-type">
-    <BkAlert :title="t('待分配 状态的业务由默认 DBA 兜底负责，如需指定专人可通过编辑或批量设置完成。')" />
+    <BkAlert :title="t('待分配业务由默认 DBA 兜底，支持通过编辑或批量设置指定主、备、二线。')" />
     <div class="dbtype-action-bar mt-16">
       <BkRadioGroup
         v-model="status"
@@ -96,11 +96,7 @@
                 {{ row.bk_biz_id }}
                 <DbIcon
                   v-if="!row.is_edit && isPrimaryAndStanbySame(row)"
-                  v-bk-tooltips="
-                    t('主 DBA 与 备DBA 相同（均为{user}），该人员不在时审批可能无人处理', {
-                      user: `${row.primary_dba}（${userDataMap[row.primary_dba]}）`,
-                    })
-                  "
+                  v-bk-tooltips="t('主备 DBA 为同一人，存在单点风险')"
                   class="ml-4 mt-4"
                   style="font-size: 14px; color: #f59500; cursor: pointer"
                   type="early-warning" />
@@ -154,6 +150,7 @@
               <template #default="{ row, rowIndex }: { row: BizDbaModel; rowIndex: number }">
                 <BkFormItem
                   v-if="row.is_edit"
+                  class="primary-dba-form-item"
                   error-display-type="tooltips"
                   :property="`tableData.${rowIndex}.primary_dba_edit`"
                   required>
@@ -179,7 +176,7 @@
                     <DbIcon
                       class="mr-4"
                       type="attention" />
-                    <span>{{ t('主备 DBA 为同一人，建议设置不同人员') }}</span>
+                    <span>{{ t('主备 DBA 为同一人') }}</span>
                   </div>
                 </BkFormItem>
                 <template v-else>
@@ -236,12 +233,7 @@
                     @change="() => handleMemberChange(`tableData.${rowIndex}.standby_dba_edit`)" />
                   <div
                     v-if="isEditPrimaryAndStanbySame(row)"
-                    class="member-selector-tip">
-                    <DbIcon
-                      class="mr-4"
-                      type="attention" />
-                    <span>{{ t('主备 DBA 为同一人，建议设置不同人员') }}</span>
-                  </div>
+                    class="member-selector-tip"></div>
                 </BkFormItem>
                 <template v-else>
                   <TextOverflowLayout v-if="row.standby_dba">
@@ -712,10 +704,11 @@
   const handleEdit = (row: BizDbaModel, rowIndex: number) => {
     let tableList = formData.value.tableData;
 
-    tableList = tableList.map((item) => ({
-      ...item,
-      is_edit: false,
-    }));
+    tableList = tableList.map((item) =>
+      Object.assign(item, {
+        is_edit: false,
+      }),
+    );
     tableList[rowIndex] = Object.assign(row, {
       is_edit: true,
       level2_dba_edit: _.cloneDeep(row.level2_dba),
@@ -838,6 +831,12 @@
               display: inline !important;
             }
           }
+        }
+      }
+
+      .primary-dba-form-item {
+        .bk-form-error-tips {
+          right: 44px;
         }
       }
 

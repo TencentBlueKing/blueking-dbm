@@ -1,6 +1,6 @@
 <template>
   <div class="global-staff-manage-defalut-dba">
-    <BkAlert :title="t('默认 DBA 作为平台兜底负责人，当业务未显式配置 DBA 时自动生效。修改不影响已有显式配置。')" />
+    <BkAlert :title="t('默认 DBA 按组件设置，作为兜底负责人，仅对该组件下待分配业务生效。')" />
     <AuthButton
       v-if="!isEdit"
       action-id="global_dba_admin_edit"

@@ -1,7 +1,12 @@
 <template>
   <div class="biz-staff-manage-dba-table">
     <template v-if="!isBatchEdit">
-      <BkAlert :title="t('当前业务各组件类型的 DBA 负责人配置。如需修改请点击编辑。')" />
+      <BkAlert
+        :title="
+          activeTopTab === 'apply'
+            ? t('仅展示当前业务空间已部署组件的 DBA，可在此设置主、备、二线。')
+            : t('仅展示当前业务空间未部署组件的 DBA，可提前设置，组件部署后生效。')
+        " />
       <div class="top-box mt-16">
         <AuthButton
           action-id="dba_admin_edit"
@@ -42,11 +47,7 @@
                 <span class="ml-4">{{ row.db_type_display }}</span>
                 <DbIcon
                   v-if="!row.is_edit && isPrimaryAndStanbySame(row)"
-                  v-bk-tooltips="
-                    t('主 DBA 与 备DBA 相同（均为{user}），该人员不在时审批可能无人处理', {
-                      user: `${row.primary_dba}（${userDataMap[row.primary_dba]}）`,
-                    })
-                  "
+                  v-bk-tooltips="t('主备 DBA 为同一人，存在单点风险')"
                   class="ml-4 mt-4"
                   style="font-size: 14px; color: #f59500; cursor: pointer"
                   type="early-warning" />
@@ -86,6 +87,7 @@
             <template #default="{ row, rowIndex }: { row: IRowData; rowIndex: number }">
               <DbFormItem
                 v-if="row.is_edit"
+                class="primary-dba-form-item"
                 error-display-type="tooltips"
                 :property="`filterTableData.${rowIndex}.primary_dba_edit`"
                 :required="row.standby_dba_edit.length > 0 || row.level2_dba_edit.length > 0">
@@ -111,7 +113,7 @@
                   <DbIcon
                     class="mr-4"
                     type="attention" />
-                  <span>{{ t('主备 DBA 为同一人，建议设置不同人员') }}</span>
+                  <span>{{ t('主备 DBA 为同一人') }}</span>
                 </div>
               </DbFormItem>
               <template v-else>
@@ -177,12 +179,7 @@
                   @change="() => handleMemberChange(`filterTableData.${rowIndex}.standby_dba_edit`)" />
                 <div
                   v-if="isEditPrimaryAndStanbySame(row)"
-                  class="member-selector-tip">
-                  <DbIcon
-                    class="mr-4"
-                    type="attention" />
-                  <span>{{ t('主备 DBA 为同一人，建议设置不同人员') }}</span>
-                </div>
+                  class="member-selector-tip"></div>
               </DbFormItem>
               <template v-else>
                 <div v-if="row.standby_dba">
@@ -350,27 +347,6 @@
           </TableColumn>
           <template #empty>
             <BkException
-              v-if="activeTopTab === 'apply'"
-              scene="part"
-              :title="t('当前业务尚未部署任何 DB 组件')"
-              type="empty">
-              <template #description>
-                <I18nT
-                  keypath="前往 n 页面部署数据库 DBA 管理"
-                  tag="span">
-                  <template #n>
-                    <RouterLink
-                      :to="{
-                        name: 'BussinessServiceApply',
-                      }">
-                      {{ t('部署申请') }}
-                    </RouterLink>
-                  </template>
-                </I18nT>
-              </template>
-            </BkException>
-            <BkException
-              v-else
               :description="t('暂无数据')"
               scene="part"
               style="font-size: 12px"
@@ -821,6 +797,12 @@
           .db-member-selector-copy {
             right: 24px;
           }
+        }
+      }
+
+      .primary-dba-form-item {
+        .bk-form-error-tips {
+          right: 44px;
         }
       }
 

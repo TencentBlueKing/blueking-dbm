@@ -28,7 +28,9 @@
             :name="tab.key" />
         </BkTab>
         <div v-if="activeTopTab === 'person'">
-          <DbaManage :count-data="clusterInstanceCountData" />
+          <DbaManage
+            :active-top-tab="activeTopTab"
+            :count-data="clusterInstanceCountData" />
         </div>
         <div v-if="activeTopTab === 'oplog'">
           <OperationRecord />

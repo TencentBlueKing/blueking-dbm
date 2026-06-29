@@ -26,14 +26,48 @@
   import Managed from './components/managed/Index.vue';
   import UnManaged from './components/unmanaged/Index.vue';
 
+  interface Props {
+    activeTopTab: string;
+  }
+
+  const props = defineProps<Props>();
+
   const { t } = useI18n();
+  const route = useRoute();
+  const router = useRouter();
 
   const bizSubTabs = [
     { key: 'unmanaged', label: t('未纳管') },
     { key: 'managed', label: t('已纳管') },
   ];
 
-  const activeBizSubTab = ref<'managed' | 'unmanaged'>('unmanaged');
+  const activeBizSubTab = ref<string>((route.params.subTabType as string) || 'unmanaged');
+
+  watch(
+    activeBizSubTab,
+    () => {
+      nextTick(() => {
+        router.replace({
+          params: {
+            subTabType: activeBizSubTab.value,
+            tabType: props.activeTopTab,
+          },
+        });
+      });
+    },
+    {
+      immediate: true,
+    },
+  );
+
+  onBeforeUnmount(() => {
+    router.replace({
+      params: {
+        subTabType: '',
+        tabType: props.activeTopTab,
+      },
+    });
+  });
 </script>
 
 <style lang="less">

@@ -15,7 +15,7 @@
   <div class="biz-staff-manage-dba">
     <BkLoading :loading="isLoading">
       <BkTab
-        v-model:active="activeTopTab"
+        v-model:active="activeSubTab"
         class="db-manage-tab"
         type="card-tab">
         <BkTabPanel
@@ -26,10 +26,33 @@
           :num="tab.count"
           num-display-type="bracket" />
       </BkTab>
-      <div class="db-manage-content">
+      <div
+        v-if="activeSubTab"
+        class="db-manage-content">
+        <BkException
+          v-if="activeSubTab === 'apply' && tableData.length === 0"
+          class="pb-48"
+          scene="page"
+          :title="t('当前业务尚未部署任何 DB 组件')"
+          type="empty">
+          <template #description>
+            <I18nT
+              keypath="前往 n 页面部署数据库"
+              tag="span">
+              <template #n>
+                <RouterLink
+                  :to="{
+                    name: 'BussinessServiceApply',
+                  }">
+                  {{ t('部署申请') }}
+                </RouterLink>
+              </template>
+            </I18nT>
+          </template>
+        </BkException>
         <Table
-          v-if="activeTopTab"
-          :active-top-tab="activeTopTab"
+          v-else
+          :active-top-tab="activeSubTab"
           :data="tableData"
           :default-admins-data-map="defaultAdminsDataMap"
           :user-data-map="userDataMap"
@@ -52,14 +75,19 @@
   import Table from './components/Table.vue';
 
   interface Props {
+    activeTopTab: string;
     countData?: ServiceReturnType<typeof queryClusterInstanceCount>;
   }
 
   const props = defineProps<Props>();
+  const router = useRouter();
+  const route = useRoute();
 
   const { t } = useI18n();
 
-  const activeTopTab = ref<'apply' | 'unapply'>('apply');
+  type SubTabKeys = 'apply' | 'unapply';
+
+  const activeSubTab = ref<SubTabKeys>((route.params.subTabType as SubTabKeys) || 'apply');
 
   const getDefaultDbTypeAdmin = (dbType: DBTypes) => ({
     bk_biz_id: 0,
@@ -111,7 +139,7 @@
 
   const tableData = computed(() => {
     const activeDbTypes =
-      activeTopTab.value === 'apply' ? dbTypeMap.value.applyDbTypes : dbTypeMap.value.unapplyDbTypes;
+      activeSubTab.value === 'apply' ? dbTypeMap.value.applyDbTypes : dbTypeMap.value.unapplyDbTypes;
     const bizAdminsMap = Object.fromEntries(
       Object.values(bizAdminsData.value?.data || {}).map((item) => [item.db_type, item]),
     );
@@ -152,6 +180,23 @@
   });
 
   const { data: userData, loading: isGetUserListLoading } = useRequest(getUserList);
+
+  watch(
+    activeSubTab,
+    () => {
+      nextTick(() => {
+        router.replace({
+          params: {
+            subTabType: activeSubTab.value,
+            tabType: props.activeTopTab,
+          },
+        });
+      });
+    },
+    {
+      immediate: true,
+    },
+  );
 
   const fetchData = () => {
     runGetDefalutAdmins({

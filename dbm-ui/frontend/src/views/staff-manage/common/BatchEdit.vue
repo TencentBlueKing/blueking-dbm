@@ -4,7 +4,11 @@
     v-bind="$attrs"
     @click.stop="">
     <BkButton
-      v-bk-tooltips="t('统一设置：将该列统一设置为相同的值')"
+      v-bk-tooltips="{
+        content: t('统一设置：将该列统一设置为相同的值'),
+        disabled: disabled,
+      }"
+      :disabled="disabled"
       text
       theme="primary"
       @click="handleShow">
@@ -50,6 +54,7 @@
   import MemberSelector from '@components/db-member-selector/index.vue';
 
   interface Props {
+    disabled?: boolean;
     field: string;
     label: string;
     multiple?: boolean;
