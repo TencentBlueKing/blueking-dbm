@@ -364,7 +364,7 @@ class MysqlOpenAreaFlow(object):
         )
 
         sub_pipeline.add_act(
-            act_name=_("从源实例:{}#{}获取开区所需库表结构".format(source_cluster_data["ip"], source_cluster_data["port"])),
+            act_name=_("从源实例:{}#{}获取开区所需库表数据".format(source_cluster_data["ip"], source_cluster_data["port"])),
             act_component_code=ExecuteDBActuatorScriptComponent.code,
             kwargs=asdict(
                 ExecActuatorKwargs(

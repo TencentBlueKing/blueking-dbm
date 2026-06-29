@@ -15,6 +15,7 @@ import (
 	"os"
 	"path"
 	"regexp"
+	"strings"
 
 	"dbm-services/bigdata/db-tools/dbactuator/pkg/util"
 	"dbm-services/common/go-pubpkg/logger"
@@ -125,8 +126,15 @@ func (c *OpenAreaImportSchemaComp) Init() (err error) {
 	c.tarFilePath = path.Join(c.workDir, tarFileName)
 	md5FileName := fmt.Sprintf("%s.md5sum", c.Params.DumpDirName)
 	c.md5FilePath = path.Join(c.workDir, md5FileName)
-	// 避免并发时共用文件导致导入错误，同一机器上的不同实例使用自己的解压目录
-	c.decompressDir = path.Join(c.workDir, fmt.Sprintf("%s_%d", c.Params.Host, c.Params.Port))
+	// 避免并发时共用文件导致导入错误，同一机器上的不同实例/目标库使用自己的解压目录
+	newDBDirName := "unknown_newdb"
+	if len(c.Params.OpenAreaParam) > 0 {
+		newDB := strings.NewReplacer("/", "_", "\\", "_").Replace(c.Params.OpenAreaParam[0].NewDB)
+		if newDB != "" {
+			newDBDirName = newDB
+		}
+	}
+	c.decompressDir = path.Join(c.workDir, fmt.Sprintf("%s_%d", c.Params.Host, c.Params.Port), newDBDirName)
 	err = os.MkdirAll(c.decompressDir, 0755)
 	if err != nil {
 		logger.Error("解压目录创建失败：%s", err.Error())
