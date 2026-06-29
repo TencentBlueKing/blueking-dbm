@@ -154,9 +154,7 @@ def call_slowlog_ai_analysis(callback_data):
 
         logger.info(_("[slowlog_ai_analysis] 集群 {} AI 慢查询分析完成，开始推送通知").format(cluster_domain))
 
-        # 获取接收人：优先使用告警回调中的负责人
-        receivers = [r.strip() for r in callback_data.get("appointees", "").split(",") if r.strip()]
-
+        receivers = callback_data.get("appointees", [])
         # 调用 NotifyAdapter 发送 AI 分析报告通知
         NotifyAdapter.send_msg_for_ai_report(
             bk_biz_id=bk_biz_id,
@@ -229,7 +227,10 @@ def call_mysql_alarm_analyzer(callback_data):
         logger.info(_("[mysql_alarm_analyzer] 集群 {} AI 分析分析完成，开始推送通知").format(cluster_domain))
 
         # 获取接收人：优先使用告警回调中的负责人
-        receivers = [r.strip() for r in callback_data.get("appointees", "").split(",") if r.strip()]
+        appointees = callback_data.get("appointees", [])
+        receivers = (
+            appointees if isinstance(appointees, list) else [r.strip() for r in appointees.split(",") if r.strip()]
+        )
 
         # 调用 NotifyAdapter 发送 AI 分析报告通知
         NotifyAdapter.send_msg_for_ai_report(

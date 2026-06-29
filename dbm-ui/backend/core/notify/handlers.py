@@ -496,7 +496,7 @@ class NotifyAdapter:
                 else:
                     CmsiHandler(title, content, msg_receivers).send_msg(msg_type, context=None)
             except (ApiResultError, Exception) as e:
-                logger.error(_("[{}] AI报告消息发送失败，错误信息: {}").format(MsgType.get_choice_label(msg_type), e))
+                logger.error(_("[{}] AI报告消息发送失败，错误信息: {}").format(msg_type, e))
 
 
 @shared_task
