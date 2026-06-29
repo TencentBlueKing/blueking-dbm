@@ -39,12 +39,23 @@ class SpiderSlaveApplyFlowBuilder(BaseTendbTicketFlowBuilder):
     def get_reduce_spider_slave(self):
         cluster_ids = self.ticket.details["cluster_ids"]
         # 获取所有下架的spider slave
-        reduce_spider_slaves = ProxyInstance.objects.select_related("machine").filter(
-            cluster__in=cluster_ids, tendbclusterspiderext__spider_role=TenDBClusterSpiderRole.SPIDER_SLAVE.value
+        reduce_spider_slaves = (
+            ProxyInstance.objects.select_related("machine")
+            .filter(
+                cluster__id__in=cluster_ids,
+                tendbclusterspiderext__spider_role=TenDBClusterSpiderRole.SPIDER_SLAVE.value,
+            )
+            .values("cluster__id", "machine__ip", "machine__bk_host_id", "port")
         )
         # 获取下架的机器信息，并补充到details中
         reduce_spider_slave_hosts = [
-            {"ip": spider.machine.ip, "bk_host_id": spider.machine.bk_host_id} for spider in reduce_spider_slaves
+            {
+                "cluster_id": spider["cluster__id"],
+                "ip": spider["machine__ip"],
+                "bk_host_id": spider["machine__bk_host_id"],
+                "port": spider["port"],
+            }
+            for spider in reduce_spider_slaves
         ]
         self.ticket.details["old_nodes"] = {"reduce_spider_slave_hosts": reduce_spider_slave_hosts}
 
