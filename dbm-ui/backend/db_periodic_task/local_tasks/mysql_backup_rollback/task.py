@@ -21,7 +21,8 @@ from .gen_task import gen_rollback_task
 logger = logging.getLogger("root")
 
 
-@register_periodic_task(run_every=crontab(minute="*/3"))
+# 分钟偏移 +1，避免与 */2、*/5 等周期任务在同一分钟撞点
+@register_periodic_task(run_every=crontab(minute="1-59/5"))
 def backup_data_recovery_task():
     logger.info("start backup data recovery task")
     gen_rollback_task()

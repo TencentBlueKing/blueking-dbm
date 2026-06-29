@@ -88,7 +88,13 @@ class PeripheralToolsPayload(PayloadBase, MySQLAccountMixed, ProxyAccountMixed):
 
         if DeployPeripheralToolsDepart.MySQLDBBackup in departs:
             departs = remove_departs(departs, DeployPeripheralToolsDepart.MySQLDBBackup)
-            if m.machine_type == MachineType.PROXY:
+            dbbackup_override = self.cluster.get("dbbackup_pkg_override")
+            if dbbackup_override:
+                depart_pkgs[DeployPeripheralToolsDepart.MySQLDBBackup] = {
+                    "pkg": dbbackup_override["pkg"],
+                    "pkg_md5": dbbackup_override["pkg_md5"],
+                }
+            elif m.machine_type == MachineType.PROXY:
                 pass
             else:
                 if m.machine_type == MachineType.SPIDER:
