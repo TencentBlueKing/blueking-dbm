@@ -256,6 +256,10 @@ ANALYSIS_DATABASE_MYSQL_CTRL_DELEGATE_PASSWORD=xxx
 ANALYSIS_DATABASE_MYSQL_CTRL_TIMEOUT=10s
 
 # ## analysis · detector (ssh)
+# probe install root on probe nodes; must match deploy.sh -t target directory
+PROBE_INSTALL_DIR=/usr/local/dbha-v2
+# remote SSH command for probe liveness double-check; must match probe binary path on target hosts
+ANALYSIS_DETECTOR_CHECK_PROBE_PROCESS_CMD="cd /usr/local/dbha-v2 && ./bin/dbha-probe health -j"
 ANALYSIS_DETECTOR_SSH_PORT=22
 ANALYSIS_DETECTOR_SSH_USER=root
 ANALYSIS_DETECTOR_SSH_PASSWORD=123456789

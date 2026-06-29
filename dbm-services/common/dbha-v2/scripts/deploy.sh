@@ -399,9 +399,13 @@ do_install() {
     if [ "${module}" = "${MODULE_SERVER}" ]; then
         info "  1. configure: cd ${tgt} && ./setup.sh"
         info "  2. start server: ./start-server.sh"
+        info "  3. if probe runs on other hosts, set in server rc:"
+        info "     PROBE_INSTALL_DIR=<probe install directory>"
+        info "     ANALYSIS_DETECTOR_CHECK_PROBE_PROCESS_CMD='cd <probe install directory> && ./bin/dbha-probe health -j'"
     else
         info "  1. configure probe config: edit ${tgt}/etc/probe.yaml"
         info "  2. start probe: ./start-probe.sh"
+        info "  3. ensure server analysis rc uses probe install path: ${tgt}"
     fi
 }
 
@@ -444,6 +448,13 @@ do_update() {
     echo ""
     info "=== update complete ==="
     info "target: ${tgt}"
+    if [ "${module}" = "${MODULE_SERVER}" ]; then
+        info "if probe runs on other hosts, ensure server rc has:"
+        info "  PROBE_INSTALL_DIR=<probe install directory>"
+        info "  ANALYSIS_DETECTOR_CHECK_PROBE_PROCESS_CMD='cd <probe install directory> && ./bin/dbha-probe health -j'"
+    else
+        info "ensure server analysis rc uses probe install path: ${tgt}"
+    fi
     if [ "${restart}" != "yes" ]; then
         info "services were NOT restarted (--no-restart)"
         info "restart manually when ready:"

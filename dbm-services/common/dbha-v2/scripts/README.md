@@ -55,6 +55,7 @@ python3 scripts/render_configs.py --module server \
     4. `RECEIVER_SOURCE_PROBE_ENDPOINT` → `<本机检测 IPv4>:50052`（失败则为 `127.0.0.1:50052`）。
     5. `ADMIN_GRPC_LISTEN_ADDRESS` → `<本机检测 IPv4>:50051`；若仅为 `:<端口>` 则补全主机段。
     6. `ADMIN_WEB_LISTEN_ADDRESS` → `http://<本机检测 IPv4>:50060`（失败则为 `http://127.0.0.1:50060`）。
+    7. `PROBE_INSTALL_DIR` / `ANALYSIS_DETECTOR_CHECK_PROBE_PROCESS_CMD` → 默认 `/usr/local/dbha-v2` 与 `cd /usr/local/dbha-v2 && ./bin/dbha-probe health -j`（与 `deploy.sh -t` 及 `start-probe.sh` 一致）。
   - 「本机检测 IPv4」依赖必填参数 `--ip-detect-udp-connect-host`（UDP connect 对端；与上列 (1)–(6) 同一策略）。
 - **receiver `service.source` 分片（server）**：`RECEIVER_SOURCE_PROBE_SHARD_FILE` / `RECEIVER_SOURCE_KAFKA_SHARD_FILE` 各对应一类 source 列表项（默认见 `templates/snippets/receiver_source_probe.yaml`、`receiver_source_kafka.yaml`），占位符与 rc 中 `RECEIVER_SOURCE_PROBE_*` / `RECEIVER_SOURCE_KAFKA_*` 一致。
 - **probe client（probe）**：`probe.yaml` 的 `client.*` 可配置 probe 侧 gRPC client 的 keepalive/msg size，以及 receiver client 的重连参数；未设置时回退到内置默认值。
@@ -115,6 +116,34 @@ python3 scripts/render_configs.py --module server \
 
 # probe 侧更新（不重启）
 ./deploy.sh -m update -r probe -s /tmp/dbha-v2 -t /usr/local/dbha-v2 --no-restart
+```
+
+## analysis detector / checkProbeProcessCmd
+
+analysis 对漏采实例做 SSH 二次探测时，远程执行 `detector.checkProbeProcessCmd`。标准形态（与 probe 安装布局一致）：
+
+```bash
+cd /usr/local/dbha-v2 && ./bin/dbha-probe health -j
+```
+
+- `/usr/local/dbha-v2`：须与 `deploy.sh -t` 安装目录一致（`PROBE_INSTALL_DIR`）。
+- `./bin/dbha-probe`：与 `start-probe.sh` 使用的二进制路径一致。
+- `health -j`：输出 JSON，供 analysis 解析 probe 进程状态。
+
+配置途径：
+
+1. **推荐**：`dbha-v2.server.rc` 中设置 `PROBE_INSTALL_DIR` 与 `ANALYSIS_DETECTOR_CHECK_PROBE_PROCESS_CMD`，再执行 `render_configs.py --module server`。
+2. **交互式**：`setup.sh` → Setup analysis，会提示 probe 安装目录并写入 `etc/analysis.yaml`。
+
+若 probe 安装在其他路径（例如 `/home/mysql/dbha-v2`），在 server rc 中覆盖 `PROBE_INSTALL_DIR` 与 `ANALYSIS_DETECTOR_CHECK_PROBE_PROCESS_CMD` 中的路径即可。
+
+显式覆盖 `ANALYSIS_DETECTOR_CHECK_PROBE_PROCESS_CMD` 时，`render_configs.py` 不做全量命令白名单校验；analysis 启动时 `config.Load()` 仍为最终门禁。
+
+验证（开发/CI）：
+
+```bash
+cd dbm-services/common/dbha-v2
+python3 -m unittest scripts.test_render_configs_detector
 ```
 
 ## setup.sh（仅 server）
