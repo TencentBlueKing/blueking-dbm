@@ -222,17 +222,24 @@ func (m *MySql) loadCollectors() {
 	}
 }
 
-// collectProxyServicePort handles a TendbHA mysql-proxy data (service) port with a lightweight
-// reachability probe: SELECT 1 success is the success verdict, so host metrics and the full
-// collectCommonStatus flow are skipped. It returns true when it has fully handled the collector
-// (caller must stop), and false when the collector is not a proxy data port so normal collection
-// continues. A successful probe leaves the connection on c.db for the caller's deferred close().
+// collectProxyServicePort handles a TendbHA mysql-proxy data (service) port with a
+// lightweight reachability probe (SELECT 1) followed by a write-heartbeat path: open the
+// data port with the probeMysql backend account, do SELECT 1 for reachability, then write
+// one heartbeat that proxy forwards to the backend master, verifying the proxy->backend
+// write path. It deliberately skips obtainGlobalStatus / obtainHostStatus /
+// obtainSlaveStatus (all forward to the backend master and only duplicate the direct
+// backend probe). It returns true when it has fully handled the collector (caller must
+// stop), false when not a proxy data port. A successful probe leaves the connection on
+// c.db for the caller's deferred close().
 func (m *MySql) collectProxyServicePort(c *collector, data *plugin.HarvestData, status *haprobe.MySqlStatus) bool {
 	if !c.isTendbHaProxy() || c.isAdmin() {
 		return false
 	}
 
 	servicePortStatus, dbEvent, err := c.obtainTendbHaProxyServicePortStatus()
+
+	status.ProxyServicePortStatus = servicePortStatus
+
 	if err != nil {
 		dbEvent.BkCloudID = m.bkCloudID
 		data.Events = []*haprobe.DbEvent{dbEvent}
@@ -240,8 +247,17 @@ func (m *MySql) collectProxyServicePort(c *collector, data *plugin.HarvestData, 
 			"failed to probe tendbha proxy data port, ip: %s, port: %d, errmsg: %s",
 			c.endpoint.Host, c.endpoint.Port, err,
 		)
+		return true
 	}
-	status.ProxyServicePortStatus = servicePortStatus
+
+	heartbeatStatus, err := c.obtainHeartbeatStatus(false)
+	if err != nil {
+		logger.Warn(
+			"failed to write heartbeat via tendbha proxy data port, ip: %s, port: %d, errmsg: %s",
+			c.endpoint.Host, c.endpoint.Port, err,
+		)
+	}
+	status.HeartbeatStatus = heartbeatStatus
 	return true
 }
 
@@ -273,8 +289,9 @@ func (m *MySql) collecting(c *collector, dataC chan<- *plugin.HarvestData) {
 		dataC <- data
 	}()
 
-	// TendbHA mysql-proxy data (service) port: lightweight reachability probe only; it skips host
-	// metrics and collectCommonStatus. Non-proxy and admin paths fall through to normal collection.
+	// TendbHA mysql-proxy data (service) port: SELECT 1 reachability probe + write-heartbeat
+	// path; it skips host metrics and collectCommonStatus. Non-proxy and admin paths fall through
+	// to normal collection.
 	if m.collectProxyServicePort(c, data, status) {
 		return
 	}
