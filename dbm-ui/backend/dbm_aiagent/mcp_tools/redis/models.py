@@ -62,8 +62,6 @@ class MetricsQueryParams:
     instance_filters: Optional[List[InstanceFilter]] = None  # Optional ip:port pair filter (instance scope)
 
     # Output options
-    need_stats: bool = True  # Whether to include statistical queries
-    need_overall: bool = True  # Whether to include overall time series queries
     group_by: Optional[
         List[MetricsGroupBy]
     ] = None  # Explicit dimensions for grouping results (e.g., [cluster_domain, ip, port])
@@ -72,35 +70,19 @@ class MetricsQueryParams:
 @dataclass
 class MetricSeries:
     """
-    Statistical measures and raw time series for metrics.
+    Raw time series and the timeline statistics derived from them.
 
-    This class supports three aggregation levels:
-    1. INSTANCE (ip:port): Metrics for a single instance
-       - raw_series: {"ip:port": [[value, timestamp], ...]}
-       - stats_series_by_key: {"ip:port": {MIN: [...], MAX: [...], AVG: [...], STDDEV: [...]}}
-         (Inner dict keys are MetricsAggFunction enum values)
-       - statistics: scalar values computed from stats_series_by_key
+    ``raw_series`` maps a result key to its [[value, timestamp], ...] points. The key is composed of
+    the metric's intrinsic breakdown values (cmd / latency bucket / capacity sub-type) and the scope
+    identifier, depending on aggregation level:
+    1. INSTANCE (ip:port): keyed by intrinsic breakdown, or "ip:port" when none.
+    2. MACHINE (ip): one entry per instance/breakdown on that machine.
+    3. CLUSTER: one entry per group_by/breakdown dimension value across the cluster.
 
-    2. MACHINE (ip): Metrics aggregated across all instances on one machine
-       - raw_series: {"ip:port1": [...], "ip:port2": [...], ...} for all ports on that IP
-       - stats_series_by_key: {"ip": {MIN: [...], MAX: [...], AVG: [...], STDDEV: [...]}}
-       - statistics: scalar values computed from stats_series_by_key
-
-    3. CLUSTER: Metrics aggregated across all machines in the cluster
-       - raw_series: {"ip1": [...], "ip2": [...], ...} for all IPs in cluster
-       - stats_series_by_key: {"cluster_domain": {MIN: [...], MAX: [...], AVG: [...], STDDEV: [...]}}
-       - statistics: scalar values computed from stats_series_by_key
-
-    Statistics are computed from stats_series_by_key:
-    - For each key in stats_series_by_key, statistics are calculated from the respective series
-    - min: min(values) from stats_series_by_key[key][MetricsAggFunction.MIN]
-    - max: max(values) from stats_series_by_key[key][MetricsAggFunction.MAX]
-    - avg: average(values) from stats_series_by_key[key][MetricsAggFunction.AVG]
-    - stddev: max(values) from stats_series_by_key[key][MetricsAggFunction.STDDEV] (represents peak variability)
-    - median, p95, cv, trend: calculated from stats_series_by_key[key][MetricsAggFunction.AVG]
+    ``statistics`` holds scalar timeline stats per ``raw_series`` key (min, max, avg, median, p95,
+    cv, trend, latest), computed over each series' values across the time window.
     """
 
     aggregation_level: MetricsAggregationLevel
     raw_series: Optional[Dict[str, List[List[float]]]] = None
-    stats_series_by_key: Optional[Dict[str, Dict[str, List[List[float]]]]] = None
     statistics: Optional[Dict[str, Dict[str, float]]] = None

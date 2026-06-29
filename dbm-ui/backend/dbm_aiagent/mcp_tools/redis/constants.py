@@ -11,6 +11,12 @@ specific language governing permissions and limitations under the License.
 from backend.db_report.enums import MetaCheckSubType
 from backend.db_report.enums.redis_sub_type import RedisCheckSubType
 from backend.db_report.models import MetaCheckReport, RedisCheckReport
+from backend.dbm_aiagent.mcp_tools.redis.enums import (
+    BUCKET_DIMENSION,
+    CAPACITY_TYPE_DIMENSION,
+    CMD_DIMENSION,
+    MOUNT_POINT_DIMENSION,
+)
 from backend.dbm_aiagent.mcp_tools.redis.enums import MetricsAggFunction as AggFunction
 from backend.dbm_aiagent.mcp_tools.redis.enums import MetricsGroupBy, RedisReportSubtype
 
@@ -120,6 +126,11 @@ TREND_UNIT_BY_METRIC_KEY = {
 #   means users can choose to aggregate at cluster level (group_by=None) or ip level (group_by=[MetricsGroupBy.IP]).
 #   The outer query wraps the inner query: "max by (cluster_domain) (inner_query)" or
 #   "max by (cluster_domain, ip) (inner_query)".
+#
+# - intrinsic_dimensions: List of IntrinsicDimension objects describing metric-specific breakdowns
+#   (e.g. cmd, latency bucket, capacity used/total/available) that are ALWAYS applied internally and are
+#   NOT user-selectable. NATURAL_LABEL dims are appended to the inner/outer "by" clauses; SYNTHESIZED dims
+#   are produced by a dedicated builder via label_replace. They are composed into result keys by key_order.
 #
 # Example for redis_cpu with required_dimensions=["ip"], supported_group_by=["cluster_domain", "ip"]:
 #   Inner query (always): max by (cluster_domain, ip) (max_over_time(...))
@@ -276,12 +287,13 @@ METRIC_REGISTRY = {
             MetricsGroupBy.CLUSTER_DOMAIN,
             MetricsGroupBy.IP,
             MetricsGroupBy.INSTANCE,
-            MetricsGroupBy.CMD,
         ],
-        "required_dimensions": ["ip", "instance_port", "cmd"],
+        "intrinsic_dimensions": [CMD_DIMENSION],
+        "required_dimensions": ["ip", "instance_port"],
     },
     "capacity_memory": {
         "is_capacity": True,
+        "intrinsic_dimensions": [CAPACITY_TYPE_DIMENSION],
         "sub_metrics": {
             "used": "bkmonitor:exporter_dbm_redis_exporter:redis_memory_used_bytes{{{filters}}}",
             "total": "bkmonitor:exporter_dbm_redis_exporter:redis_config_maxmemory{{{filters}}}",
@@ -295,6 +307,13 @@ METRIC_REGISTRY = {
     },
     "capacity_disk": {
         "is_capacity": True,
+        # capacity_type (used/total/available) + per physical mount_point breakdown -> used@<ip>@<mount_point>.
+        "intrinsic_dimensions": [CAPACITY_TYPE_DIMENSION, MOUNT_POINT_DIMENSION],
+        # df_*_mb is a filesystem-level metric: instances sharing a data-dir mount report identical
+        # values. Deduplicate each physical disk once (max per cluster_domain,ip,mount_point) and keep
+        # that granularity in the output, mirroring the db_monitor capacity policy; otherwise a shared
+        # disk is multiplied by the number of co-located instances.
+        "capacity_dedup": {"agg": AggFunction.MAX, "by": ["cluster_domain", "ip", "mount_point"]},
         "sub_metrics": {
             "used": "bkmonitor:exporter_dbm_redis_exporter:redis_datadir_df_used_mb{{{filters}}} * 1024 * 1024",
             "total": "bkmonitor:exporter_dbm_redis_exporter:redis_datadir_df_total_mb{{{filters}}} * 1024 * 1024",
@@ -455,9 +474,9 @@ METRIC_REGISTRY = {
             MetricsGroupBy.CLUSTER_DOMAIN,
             MetricsGroupBy.IP,
             MetricsGroupBy.INSTANCE,
-            MetricsGroupBy.CMD,
         ],
-        "required_dimensions": ["ip", "instance_port", "cmd"],
+        "intrinsic_dimensions": [CMD_DIMENSION],
+        "required_dimensions": ["ip", "instance_port"],
         "instance_filter_mode": "instance_label",
     },
     "predixy_latency_distribution": {
@@ -488,7 +507,8 @@ METRIC_REGISTRY = {
             "overall": AggFunction.SUM,
             "stats": [AggFunction.MAX, AggFunction.MIN],
         },
-        "supported_group_by": [MetricsGroupBy.CLUSTER_DOMAIN, MetricsGroupBy.IP, MetricsGroupBy.BUCKET],
+        "supported_group_by": [MetricsGroupBy.CLUSTER_DOMAIN, MetricsGroupBy.IP],
+        "intrinsic_dimensions": [BUCKET_DIMENSION],
         "required_dimensions": ["ip"],  # Inner query needs ip dimension for per-IP bucket counts
     },
     # Twemproxy proxy metrics
@@ -640,9 +660,9 @@ METRIC_REGISTRY = {
             MetricsGroupBy.CLUSTER_DOMAIN,
             MetricsGroupBy.IP,
             MetricsGroupBy.INSTANCE,
-            MetricsGroupBy.CMD,
         ],
-        "required_dimensions": ["ip", "instance_port", "cmd"],
+        "intrinsic_dimensions": [CMD_DIMENSION],
+        "required_dimensions": ["ip", "instance_port"],
         "instance_filter_mode": "instance_label",
     },
     "twemproxy_latency_distribution": {
@@ -672,7 +692,8 @@ METRIC_REGISTRY = {
             "overall": AggFunction.SUM,
             "stats": [AggFunction.MAX, AggFunction.MIN],
         },
-        "supported_group_by": [MetricsGroupBy.CLUSTER_DOMAIN, MetricsGroupBy.IP, MetricsGroupBy.BUCKET],
+        "supported_group_by": [MetricsGroupBy.CLUSTER_DOMAIN, MetricsGroupBy.IP],
+        "intrinsic_dimensions": [BUCKET_DIMENSION],
         "required_dimensions": ["ip"],  # Inner query needs ip dimension for per-IP bucket counts
     },
 }

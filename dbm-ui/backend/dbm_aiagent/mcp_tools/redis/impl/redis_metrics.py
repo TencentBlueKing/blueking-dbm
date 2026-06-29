@@ -14,10 +14,10 @@ from typing import Dict, Iterable, List, NamedTuple, Optional, Set, Tuple
 
 from backend.db_meta.enums import InstanceRole
 from backend.db_meta.models import Cluster, ProxyInstance, StorageInstance
-from backend.dbm_aiagent.mcp_tools.redis.enums import MetricsGroupBy, MetricsInstanceRole, MetricsStatsType, MetricType
+from backend.dbm_aiagent.mcp_tools.redis.enums import MetricsGroupBy, MetricsInstanceRole, MetricType
 from backend.dbm_aiagent.mcp_tools.redis.models import InstanceFilter, MetricsQueryBatch
 from backend.dbm_aiagent.mcp_tools.redis.tools.redis_metrics_svc import RedisMetricsQueryService
-from backend.dbm_aiagent.mcp_tools.redis.utils import calculate_time_range_window, generate_mermaid_line_chart
+from backend.dbm_aiagent.mcp_tools.redis.utils import calculate_time_range_window
 
 _PROXY_ONLY_METRICS = {MetricType.LATENCY_DISTRIBUTION}
 _BACKEND_ONLY_METRICS = {MetricType.CAPACITY}
@@ -354,7 +354,6 @@ def query_redis_metrics_series(
     metric_type: MetricType,
     time_range: tuple,
     time_window: int,
-    mermaid_format: bool = False,
     group_by: Optional[List[MetricsGroupBy]] = None,
     include_meta: bool = False,
 ) -> dict:
@@ -362,7 +361,7 @@ def query_redis_metrics_series(
     Query Redis cluster time-series metrics.
 
     Iterates over batches (each with a single instance_role), queries per batch,
-    and merges results. Returns aggregated time series data (and optionally mermaid chart code).
+    and merges results. Returns aggregated time series data.
     """
     metrics_svc = RedisMetricsQueryService()
     merged_series_by_scope: Dict[str, object] = {}
@@ -383,8 +382,6 @@ def query_redis_metrics_series(
             clusters=batch.clusters,
             metric_type=metric_type,
             time_range=time_range,
-            need_stats=False,
-            need_overall=True,
             time_window=time_window,
             instance_role=batch.instance_role,
             ip_filters=batch.ip_filters,
@@ -407,32 +404,6 @@ def query_redis_metrics_series(
 
     result = {"series": result_series}
 
-    if mermaid_format and result_series:
-        y_labels = {
-            MetricType.CPU_USAGE: "%CPU",
-            MetricType.MEMORY_USAGE: "%Memory",
-            MetricType.IO_USAGE: "%IO",
-            MetricType.DISK_USAGE: "%Disk",
-            MetricType.CONNECTIONS: "Connections",
-            MetricType.QPS: "Queries/sec",
-            MetricType.HOST_LATENCY: "Latency (μs)",
-            MetricType.COMMAND_LATENCY: "Latency (μs)",
-            MetricType.LATENCY_DISTRIBUTION: "Requests",
-            MetricType.CAPACITY: "Bytes",
-        }
-
-        title = (
-            f"{metric_type.value.upper()} (multi-entity)"
-            if len(merged_series_by_scope) > 1
-            else metric_type.value.upper()
-        )
-        result["mermaid_code"] = generate_mermaid_line_chart(
-            title=title,
-            series_data=result_series,
-            y_label=y_labels.get(metric_type, "Value"),
-        )
-        result.pop("series")
-
     if include_meta:
         entity_meta = _merge_entity_meta(batches)
         if entity_meta:
@@ -450,16 +421,15 @@ def query_redis_metrics_stats(
     time_range: tuple,
     time_window: int,
     group_by: Optional[List[MetricsGroupBy]] = None,
-    stats_type: MetricsStatsType = MetricsStatsType.VERTICAL,
     include_meta: bool = False,
 ) -> dict:
     """
-    Query Redis cluster scalar statistics.
+    Query Redis cluster scalar statistics over the timeline.
 
-    Iterates over batches (each with a single instance_role), queries per batch,
-    and merges results. Returns computed statistics (min, max, avg, median, p95, cv, trend, etc.).
+    Iterates over batches (each with a single instance_role), queries per batch, and merges
+    results. Each series is reduced to timeline statistics (min, max, avg, median, p95, cv,
+    trend, latest) computed over the query window.
     """
-    is_vertical = stats_type == MetricsStatsType.VERTICAL
     metrics_svc = RedisMetricsQueryService()
     merged_series_by_scope: Dict[str, object] = {}
     all_partial_errors: List[dict] = []
@@ -479,14 +449,11 @@ def query_redis_metrics_stats(
             clusters=batch.clusters,
             metric_type=metric_type,
             time_range=time_range,
-            need_stats=not is_vertical,
-            need_overall=is_vertical,
             time_window=time_window,
             instance_role=batch.instance_role,
             ip_filters=batch.ip_filters,
             instance_filters=batch.instance_filters,
             group_by=group_by,
-            vertical_stats=is_vertical,
         )
 
         merged_series_by_scope.update(series_by_scope)

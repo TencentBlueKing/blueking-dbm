@@ -21,7 +21,7 @@ from backend.dbm_aiagent.mcp_tools.common.auth_parser.base import (
 )
 from backend.dbm_aiagent.mcp_tools.constants import DBMMCPTags, DBMMcpTools
 from backend.dbm_aiagent.mcp_tools.decorators import mcp_tools_api_decorator
-from backend.dbm_aiagent.mcp_tools.redis.enums import MetricsGroupBy, MetricsInstanceRole, MetricsStatsType, MetricType
+from backend.dbm_aiagent.mcp_tools.redis.enums import MetricsGroupBy, MetricsInstanceRole, MetricType
 from backend.dbm_aiagent.mcp_tools.redis.impl.redis_metrics import (
     query_redis_metrics_series,
     query_redis_metrics_stats,
@@ -78,7 +78,6 @@ class RedisMetricsMcpToolsViewSet(McpToolsViewSet):
             metric_type=MetricType(self.get_param("metric_type")),
             time_range=time_range,
             time_window=time_window,
-            mermaid_format=self.get_param("mermaid_format", False),
             group_by=self._parse_group_by(),
             include_meta=self.get_param("include_meta", False),
         )
@@ -99,7 +98,6 @@ class RedisMetricsMcpToolsViewSet(McpToolsViewSet):
             time_range=time_range,
             time_window=time_window,
             group_by=self._parse_group_by(),
-            stats_type=MetricsStatsType(self.get_param("stats_type", MetricsStatsType.VERTICAL.value)),
             include_meta=self.get_param("include_meta", False),
         )
         if partial_errors:
@@ -115,8 +113,8 @@ class RedisMetricsMcpToolsViewSet(McpToolsViewSet):
             "Query time-series metrics for Redis cluster PROXY nodes. "
             "Applicable metrics: cpu_usage, memory_usage, io_usage, disk_usage, connections, qps, "
             "host_latency, command_latency, latency_distribution (not capacity). "
-            "group_by: ip, instance, bucket, cluster_domain. "
-            "Keep max_len_datapoints<=15 to avoid context length issues; mermaid_code output AS-IS."
+            "group_by: ip, instance, cluster_domain (per-command/bucket/capacity breakdowns are automatic). "
+            "Keep max_len_datapoints<=15 to avoid context length issues."
         ),
         request_slz=RedisClusterProxySeriesInputSerializer,
         response_slz=RedisMetricsSeriesOutputSerializer,
@@ -144,7 +142,7 @@ class RedisMetricsMcpToolsViewSet(McpToolsViewSet):
             "Query scalar statistics (min/max/avg/p95/cv/trend) for Redis cluster PROXY nodes. "
             "Applicable metrics: cpu_usage, memory_usage, io_usage, disk_usage, connections, qps, "
             "host_latency, command_latency, latency_distribution (not capacity). "
-            "group_by: ip, instance, bucket, cluster_domain."
+            "group_by: ip, instance, cluster_domain (per-command/bucket/capacity breakdowns are automatic)."
         ),
         request_slz=RedisClusterProxyStatsInputSerializer,
         response_slz=RedisMetricsStatsOutputSerializer,
@@ -177,8 +175,8 @@ class RedisMetricsMcpToolsViewSet(McpToolsViewSet):
             "Query time-series metrics for Redis cluster MASTER nodes. "
             "Applicable metrics: cpu_usage, memory_usage, io_usage, disk_usage, connections, qps, "
             "host_latency, command_latency, capacity (not latency_distribution). "
-            "group_by: ip, instance, bucket, cluster_domain. "
-            "Keep max_len_datapoints<=15 to avoid context length issues; mermaid_code output AS-IS."
+            "group_by: ip, instance, cluster_domain (per-command/bucket/capacity breakdowns are automatic). "
+            "Keep max_len_datapoints<=15 to avoid context length issues."
         ),
         request_slz=RedisClusterBackendSeriesInputSerializer,
         response_slz=RedisMetricsSeriesOutputSerializer,
@@ -206,7 +204,7 @@ class RedisMetricsMcpToolsViewSet(McpToolsViewSet):
             "Query scalar statistics (min/max/avg/p95/cv/trend) for Redis cluster MASTER nodes. "
             "Applicable metrics: cpu_usage, memory_usage, io_usage, disk_usage, connections, qps, "
             "host_latency, command_latency, capacity (not latency_distribution). "
-            "group_by: ip, instance, bucket, cluster_domain."
+            "group_by: ip, instance, cluster_domain (per-command/bucket/capacity breakdowns are automatic)."
         ),
         request_slz=RedisClusterBackendStatsInputSerializer,
         response_slz=RedisMetricsStatsOutputSerializer,
@@ -239,8 +237,8 @@ class RedisMetricsMcpToolsViewSet(McpToolsViewSet):
             "Query time-series metrics for Redis cluster SLAVE nodes. "
             "Applicable metrics: cpu_usage, memory_usage, io_usage, disk_usage, connections, qps, "
             "host_latency, command_latency, capacity (not latency_distribution). "
-            "group_by: ip, instance, bucket, cluster_domain. "
-            "Keep max_len_datapoints<=15 to avoid context length issues; mermaid_code output AS-IS."
+            "group_by: ip, instance, cluster_domain (per-command/bucket/capacity breakdowns are automatic). "
+            "Keep max_len_datapoints<=15 to avoid context length issues."
         ),
         request_slz=RedisClusterBackendSeriesInputSerializer,
         response_slz=RedisMetricsSeriesOutputSerializer,
@@ -268,7 +266,7 @@ class RedisMetricsMcpToolsViewSet(McpToolsViewSet):
             "Query scalar statistics (min/max/avg/p95/cv/trend) for Redis cluster SLAVE nodes. "
             "Applicable metrics: cpu_usage, memory_usage, io_usage, disk_usage, connections, qps, "
             "host_latency, command_latency, capacity (not latency_distribution). "
-            "group_by: ip, instance, bucket, cluster_domain."
+            "group_by: ip, instance, cluster_domain (per-command/bucket/capacity breakdowns are automatic)."
         ),
         request_slz=RedisClusterBackendStatsInputSerializer,
         response_slz=RedisMetricsStatsOutputSerializer,
@@ -301,8 +299,8 @@ class RedisMetricsMcpToolsViewSet(McpToolsViewSet):
             "Query time-series metrics for a specific machine (by IP). "
             "Cluster and instance role are auto-resolved. "
             "All metric types are accepted; latency_distribution is proxy-only, capacity is backend-only. "
-            "group_by: ip, instance, bucket (not cluster_domain). "
-            "Keep max_len_datapoints<=15 to avoid context length issues; mermaid_code output AS-IS."
+            "group_by: ip, instance (not cluster_domain; per-command/bucket/capacity breakdowns are automatic). "
+            "Keep max_len_datapoints<=15 to avoid context length issues."
         ),
         request_slz=RedisMachineSeriesInputSerializer,
         response_slz=RedisMetricsSeriesOutputSerializer,
@@ -331,7 +329,7 @@ class RedisMetricsMcpToolsViewSet(McpToolsViewSet):
             "Query scalar statistics (min/max/avg/p95/cv/trend) for a specific machine (by IP). "
             "Cluster and instance role are auto-resolved. "
             "All metric types are accepted; latency_distribution is proxy-only, capacity is backend-only. "
-            "group_by: ip, instance, bucket (not cluster_domain)."
+            "group_by: ip, instance (not cluster_domain; per-command/bucket/capacity breakdowns are automatic)."
         ),
         request_slz=RedisMachineStatsInputSerializer,
         response_slz=RedisMetricsStatsOutputSerializer,
@@ -366,8 +364,8 @@ class RedisMetricsMcpToolsViewSet(McpToolsViewSet):
             "Cluster and instance role are auto-resolved. "
             "Metrics: connections, qps, host_latency, command_latency, latency_distribution (proxy), "
             "capacity (backend); not host resource metrics (cpu/memory/io/disk). "
-            "group_by: instance, bucket (not cluster_domain or ip). "
-            "Keep max_len_datapoints<=15 to avoid context length issues; mermaid_code output AS-IS."
+            "group_by: instance (not cluster_domain or ip; per-command/bucket/capacity breakdowns are automatic). "
+            "Keep max_len_datapoints<=15 to avoid context length issues."
         ),
         request_slz=RedisInstanceSeriesInputSerializer,
         response_slz=RedisMetricsSeriesOutputSerializer,
@@ -397,7 +395,7 @@ class RedisMetricsMcpToolsViewSet(McpToolsViewSet):
             "Cluster and instance role are auto-resolved. "
             "Metrics: connections, qps, host_latency, command_latency, latency_distribution (proxy), "
             "capacity (backend); not host resource metrics (cpu/memory/io/disk). "
-            "group_by: instance, bucket (not cluster_domain or ip)."
+            "group_by: instance (not cluster_domain or ip; per-command/bucket/capacity breakdowns are automatic)."
         ),
         request_slz=RedisInstanceStatsInputSerializer,
         response_slz=RedisMetricsStatsOutputSerializer,
