@@ -45,10 +45,6 @@ var (
 	ErrDetectorNoTarget        = gerrors.Newf(gerrors.InvalidParameter, "no detected target")
 )
 
-const (
-	CheckProbeProcessCmd = "cd ~/dbha-v2/ && ./probe health -j"
-)
-
 // DoubleCheckTask represents the double-check task.
 type DoubleCheckTask struct {
 	Meta   *hamodel.DbmMetadata
@@ -108,7 +104,7 @@ func (d *Detector) Detect(dbInsts []DoubleCheckTask) error {
 		d.wg.Add(1)
 		go func(task *detectorTask) {
 			defer d.wg.Done()
-			task.run(CheckProbeProcessCmd)
+			task.run(config.Cfg.Detector.CheckProbeProcessCmd)
 		}(task)
 	}
 

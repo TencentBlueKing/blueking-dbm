@@ -6,6 +6,7 @@ cd "$(dirname "$0")" || exit 1
 ETC_DIR="./etc"
 VERSION="__VERSION__"
 COMMON_DONE=0
+PROBE_INSTALL_DIR_DEFAULT="/usr/local/dbha-v2"
 
 #---------------------------------------------------------------
 # Helpers
@@ -30,6 +31,34 @@ section() {
     echo "========================================"
     echo "  $1"
     echo "========================================"
+}
+
+validate_probe_install_dir() {
+    local dir="$1"
+    if [[ "${dir}" == *".."* ]]; then
+        echo "  invalid probe install directory, errmsg: path traversal" >&2
+        return 1
+    fi
+    if [[ ! "${dir}" =~ ^(/|~|\.) ]]; then
+        echo "  invalid probe install directory, errmsg: invalid prefix" >&2
+        return 1
+    fi
+    if [[ ! "${dir}" =~ ^[A-Za-z0-9_./~-]+$ ]]; then
+        echo "  invalid probe install directory, errmsg: invalid character" >&2
+        return 1
+    fi
+    return 0
+}
+
+prompt_probe_install_dir() {
+    while true; do
+        prompt PROBE_INSTALL_DIR "Probe install directory" \
+            "${PROBE_INSTALL_DIR:-${PROBE_INSTALL_DIR_DEFAULT}}"
+        if validate_probe_install_dir "${PROBE_INSTALL_DIR}"; then
+            break
+        fi
+        echo "  please enter a valid probe install directory." >&2
+    done
 }
 
 show_menu() {
@@ -162,6 +191,10 @@ collect_analysis() {
     prompt SSH_USER "SSH user"  "${SSH_USER:-root}"
     prompt_secret SSH_PASSWORD "SSH password" \
         "${SSH_PASSWORD:-}"
+
+    echo ""
+    echo "  -- Probe install path (for remote health check) --"
+    prompt_probe_install_dir
 
     echo ""
     echo "  -- Monitor --"
@@ -415,6 +448,7 @@ database:
     proxyPassword: "${DB_PROXY_PASSWORD}"
 
 detector:
+  checkProbeProcessCmd: "cd ${PROBE_INSTALL_DIR} && ./bin/dbha-probe health -j"
   ssh:
     port: ${SSH_PORT}
     user: ${SSH_USER}

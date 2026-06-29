@@ -164,7 +164,9 @@ type DatabaseConfig struct {
 
 // DetectorConfig detector's configuration
 type DetectorConfig struct {
-	Ssh struct {
+	// CheckProbeProcessCmd remote SSH command; only "cd <workdir> && ./bin/dbha-probe health -j" is allowed.
+	CheckProbeProcessCmd string `yaml:"checkProbeProcessCmd" mapstructure:"checkProbeProcessCmd"`
+	Ssh                  struct {
 		Port     int           `yaml:"port"       mapstructure:"port"`
 		User     string        `yaml:"user"       mapstructure:"user"`
 		Password string        `yaml:"password"   mapstructure:"password"`
@@ -238,6 +240,14 @@ func Load(configFilePath string) error {
 	}
 
 	Cfg.Workflow.DbmApiMetadataHashCnt = clampDbmApiMetadataHashCnt(Cfg.Workflow.DbmApiMetadataHashCnt)
+
+	if Cfg.Detector.CheckProbeProcessCmd == "" {
+		Cfg.Detector.CheckProbeProcessCmd = defaultCheckProbeProcessCmd
+	}
+	if err := validateCheckProbeProcessCmd(Cfg.Detector.CheckProbeProcessCmd); err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -260,6 +270,7 @@ func clampDbmApiMetadataHashCnt(hashCnt int) int {
 }
 
 func init() {
+	Cfg.Detector.CheckProbeProcessCmd = defaultCheckProbeProcessCmd
 	Cfg.Detector.Ssh.Port = 22
 	Cfg.Detector.Ssh.User = "root"
 	Cfg.Detector.Ssh.Timeout = 10 * time.Second

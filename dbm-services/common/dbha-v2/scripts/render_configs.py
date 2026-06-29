@@ -27,6 +27,9 @@ _DEFAULT_RECEIVER_SOURCE_PROBE_PORT = 50052
 _DEFAULT_ADMIN_GRPC_LISTEN_PORT = 50051
 _DEFAULT_ADMIN_WEB_LISTEN_PORT = 50060
 
+# probe install directory default (must match deploy.sh -t target).
+_DEFAULT_PROBE_INSTALL_DIR = "/usr/local/dbha-v2"
+
 # IP detection and fallback.
 _IP_DETECT_UDP_CONNECT_PORT = 80
 _DEFAULT_LOOPBACK_IPV4 = "127.0.0.1"
@@ -41,6 +44,24 @@ _MODULE_TEMPLATES = {
     _MODULE_SERVER: ("admin.yaml", "analysis.yaml", "receiver.yaml"),
     _MODULE_PROBE: ("probe.yaml",),
 }
+
+_PROBE_INSTALL_DIR_ALLOWED_RE = re.compile(r"^[A-Za-z0-9_./~-]+$")
+
+
+def validate_probe_install_dir(install_dir: str) -> None:
+    """Validate probe install directory; rules align with Go validateProbeWorkdir."""
+    if ".." in install_dir:
+        raise ValueError("path traversal")
+
+    if not (
+        install_dir.startswith("/")
+        or install_dir.startswith("~")
+        or install_dir.startswith(".")
+    ):
+        raise ValueError("invalid prefix")
+
+    if not _PROBE_INSTALL_DIR_ALLOWED_RE.match(install_dir):
+        raise ValueError("invalid character")
 
 
 def parse_rc(content: str) -> Dict[str, str]:
@@ -92,6 +113,23 @@ def apply_analysis_apm_listen_address_default(values: Dict[str, str], ip_detect_
         key="ANALYSIS_APM_LISTEN_ADDRESS",
         port=_DEFAULT_ANALYSIS_APM_LISTEN_PORT,
     )
+
+
+def apply_detector_check_probe_process_cmd_default(values: Dict[str, str]) -> None:
+    """Fill PROBE_INSTALL_DIR and ANALYSIS_DETECTOR_CHECK_PROBE_PROCESS_CMD when unset."""
+    install_dir = values.get("PROBE_INSTALL_DIR", "").strip() or _DEFAULT_PROBE_INSTALL_DIR
+    try:
+        validate_probe_install_dir(install_dir)
+    except ValueError as exc:
+        sys.stderr.write("invalid PROBE_INSTALL_DIR, errmsg: {}\n".format(exc))
+        sys.exit(1)
+
+    if not values.get("PROBE_INSTALL_DIR", "").strip():
+        values["PROBE_INSTALL_DIR"] = install_dir
+    if not values.get("ANALYSIS_DETECTOR_CHECK_PROBE_PROCESS_CMD", "").strip():
+        values["ANALYSIS_DETECTOR_CHECK_PROBE_PROCESS_CMD"] = (
+            "cd {} && ./bin/dbha-probe health -j".format(install_dir)
+        )
 
 
 def _apply_apm_listen_address_default(
@@ -336,6 +374,7 @@ def main() -> None:
         apply_admin_apm_listen_address_default(values, ip_detect_host)
         apply_receiver_apm_listen_address_default(values, ip_detect_host)
         apply_analysis_apm_listen_address_default(values, ip_detect_host)
+        apply_detector_check_probe_process_cmd_default(values)
         apply_receiver_source_probe_endpoint_default(values, ip_detect_host)
         apply_admin_grpc_listen_address_default(values, ip_detect_host)
         apply_admin_web_listen_address_default(values, ip_detect_host)

@@ -110,6 +110,7 @@ database:
     timeout: {{ANALYSIS_DATABASE_MYSQL_CTRL_TIMEOUT}}
 
 detector:
+  checkProbeProcessCmd: "{{ANALYSIS_DETECTOR_CHECK_PROBE_PROCESS_CMD}}"
   ssh:
     port: {{ANALYSIS_DETECTOR_SSH_PORT}}
     user: "{{ANALYSIS_DETECTOR_SSH_USER}}"
