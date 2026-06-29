@@ -33,7 +33,7 @@ from backend.db_periodic_task.local_tasks.mysql_partition.get_partition_conf imp
 logger = logging.getLogger("flow")
 
 
-@register_periodic_task(run_every=crontab(minute=3, hour="1"))
+@register_periodic_task(run_every=crontab(minute=30, hour="7"))
 def tendbha_partition_task():
     logger.info("start tendbha partition task v2!")
     # 异步执行，执行前以集群为单位生成参数 集群内根据分区配置量再进行切分
