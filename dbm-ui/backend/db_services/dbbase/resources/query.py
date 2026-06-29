@@ -1347,14 +1347,54 @@ class ListRetrieveResource(BaseListRetrieveResource, CommonExportQueryResourceMi
             return ResourceList(count=0, data=[])
 
         # 预取proxy_queryset，storage_queryset，加块查询效率
-        entry_queryset = entry_queryset.order_by("-create_at")[offset : limit + offset].prefetch_related(
-            "cluster__storageinstance_set__machine", "cluster__proxyinstance_set__machine"
+        entry_list = entry_queryset.order_by("-create_at")[offset : limit + offset].prefetch_related(
+            Prefetch(
+                "cluster__storageinstance_set",
+                queryset=StorageInstance.objects.select_related("machine"),
+                to_attr="storages",
+            ),
+            Prefetch(
+                "cluster__proxyinstance_set",
+                queryset=ProxyInstance.objects.select_related("machine"),
+                to_attr="proxies",
+            ),
+            "cluster__tags",
         )
+        cluster_ids = list({entry.cluster_id for entry in entry_list})
+
+        db_module_queryset = DBModule.objects.filter(cluster_type__in=cls.cluster_types)
+        if bk_biz_id is not None:
+            db_module_queryset = db_module_queryset.filter(bk_biz_id=bk_biz_id)
+        db_module_names_map = {
+            module["db_module_id"]: module["alias_name"]
+            for module in db_module_queryset.values("db_module_id", "alias_name")
+        }
+        cluster_operate_records_map = ClusterOperateRecord.get_cluster_records_map(cluster_ids)
+        cloud_info = ResourceQueryHelper.search_cc_cloud(get_cache=True)
+        try:
+            biz_info = AppCache.objects.get(bk_biz_id=bk_biz_id)
+        except AppCache.DoesNotExist:
+            biz_info = None
+        cluster_stats_map = Cluster.get_cluster_stats(bk_biz_id, cls.cluster_types)
+        db_types = set([ClusterType.cluster_type_to_db_type(cluster_type) for cluster_type in cls.cluster_types])
+        kwargs["remote_spec_map"] = {s.spec_id: s for s in Spec.objects.filter(spec_cluster_type__in=db_types)}
+        cluster_zone_map = BKSubzone.get_subzone_map(get_cache=True)
 
         # 将集群的查询结果序列化为集群字典信息
         entry_infos: List[Dict[str, Any]] = []
-        for entry in entry_queryset:
-            entry_infos.append(cls._to_entry_representation(entry, **kwargs))
+        for entry in entry_list:
+            entry_infos.append(
+                cls._to_entry_representation(
+                    entry,
+                    db_module_names_map=db_module_names_map,
+                    cluster_operate_records_map=cluster_operate_records_map,
+                    cloud_info=cloud_info,
+                    biz_info=biz_info,
+                    cluster_stats_map=cluster_stats_map,
+                    cluster_zone_map=cluster_zone_map,
+                    **kwargs,
+                )
+            )
 
         return ResourceList(count=count, data=entry_infos)
 
@@ -1362,20 +1402,67 @@ class ListRetrieveResource(BaseListRetrieveResource, CommonExportQueryResourceMi
     def _to_entry_representation(
         cls,
         entry: ClusterEntry,
+        db_module_names_map: Dict[int, str],
+        cluster_operate_records_map: Dict[int, List],
+        cloud_info: Dict[str, Any],
+        biz_info: AppCache,
+        cluster_stats_map: Dict[str, Dict[str, int]],
+        cluster_zone_map: Dict[str, str],
         **kwargs,
     ) -> Dict[str, Any]:
         """
         将域名对象转为可序列化的 dict 结构
         @param entry: model ClusterEntry 对象, 增加了 storages 和 proxies 属性
         """
-        storage_list = [inst.ip_port for inst in entry.cluster.storageinstance_set.all()]
-        proxy_list = [inst.ip_port for inst in entry.cluster.proxyinstance_set.all()]
+        cluster = entry.cluster
+        storage_list = [inst.ip_port for inst in cluster.storages]
+        proxy_list = [inst.ip_port for inst in cluster.proxies]
+        bk_cloud_name = cloud_info.get(str(cluster.bk_cloud_id), {}).get("bk_cloud_name", "")
+        cluster_zone_list = cluster.zone_list or []
+
+        cluster_spec = None
+        if cls.storage_spec_role:
+            storage = next((inst for inst in cluster.storages if inst.instance_role == cls.storage_spec_role), None)
+            cluster_spec_id = storage.machine.spec_id if storage else 0
+            cluster_spec = kwargs["remote_spec_map"].get(cluster_spec_id)
+
         entry_info = {
+            "id": cluster.id,
+            "db_type": str(ClusterType.cluster_type_to_db_type(cluster.cluster_type)),
+            "phase": cluster.phase,
+            "phase_name": cluster.get_phase_display(),
+            "status": cluster.status,
+            "operations": cluster_operate_records_map.get(cluster.id, []),
+            "cluster_time_zone": cluster.time_zone,
             "domain": entry.entry,
             "role": entry.role,
             "cluster_entry_type": entry.cluster_entry_type,
-            "cluster_name": entry.cluster.name,
-            "cluster_status": entry.cluster.status,
+            "cluster_name": cluster.name,
+            "cluster_alias": cluster.alias,
+            "cluster_access_port": cluster.access_port,
+            "cluster_stats": cluster_stats_map.get(cluster.immute_domain, {}),
+            "cluster_status": cluster.status,
+            "cluster_type": cluster.cluster_type,
+            "cluster_type_name": str(ClusterType.get_choice_label(cluster.cluster_type)),
+            "cluster_subzones": [cluster_zone_map.get(str(zone), "") for zone in cluster_zone_list],
+            "cluster_subzone_ids": cluster_zone_list,
+            "disaster_tolerance_level": cluster.disaster_tolerance_level,
+            "bk_biz_id": cluster.bk_biz_id,
+            "bk_biz_name": "" if biz_info is None else biz_info.bk_biz_name,
+            "bk_cloud_id": cluster.bk_cloud_id,
+            "bk_cloud_name": bk_cloud_name,
+            "major_version": cluster.major_version,
+            "region": cluster.region,
+            "city": cluster.region,
+            "db_module_name": db_module_names_map.get(cluster.db_module_id, ""),
+            "db_module_id": cluster.db_module_id,
+            "creator": cluster.creator,
+            "updater": cluster.updater,
+            "create_at": datetime2str(cluster.create_at),
+            "update_at": datetime2str(cluster.update_at),
+            "cluster_spec": cluster_spec.to_dict() if cluster_spec else None,
+            "tags": [tag.desc for tag in cluster.tags.all()],
+            "zone_list": cluster.zone_list,
             "instances": storage_list + proxy_list,
         }
         return entry_info

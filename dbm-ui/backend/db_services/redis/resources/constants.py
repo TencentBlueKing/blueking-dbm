@@ -75,4 +75,5 @@ REDIS_LIST_CLUSTER_TYPE = [
     ClusterType.TendisTendisplusInsance.value,
     ClusterType.TendisRedisCluster.value,
     ClusterType.TendisTendisplusCluster.value,
+    ClusterType.TenDBHA.value,
 ]
