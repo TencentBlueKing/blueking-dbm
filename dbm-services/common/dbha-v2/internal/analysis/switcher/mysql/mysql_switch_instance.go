@@ -801,3 +801,18 @@ func GetBinlogDumperInfo(binlogDumperSet []dbm.DbmMetadataBinlogDumper) string {
 
 	return fmt.Sprintf("(%s)", strings.Join(dumperInfos, ","))
 }
+
+// GetNewMasterInfo returns the promoted new master info. ok is true only for a master switch
+// whose standby slave (the new master) is known.
+func (sw *MySQLStorageSwitchInstance) GetNewMasterInfo() (*MySqlNewMasterInfo, bool) {
+	if sw.InstanceRole != haprobe.MySQLStorageMaster || sw.StandBySlave == nil {
+		return nil, false
+	}
+
+	return &MySqlNewMasterInfo{
+		Host:       sw.StandBySlave.Ip,
+		Port:       sw.StandBySlave.Port,
+		BinlogFile: sw.NewMasterBinlogFile,
+		BinlogPos:  sw.NewMasterBinlogPos,
+	}, true
+}

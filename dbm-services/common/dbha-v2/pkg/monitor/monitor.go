@@ -71,15 +71,16 @@ type EventData struct {
 	Dimension struct {
 		// Added in v2
 		Reporter          string                         `json:"reporter,omitempty"`
-		BkCloudId         int                            `json:"bk_cloud_id,omitempty"`
+		BkCloudId         int                            `json:"bk_cloud_id"`
 		IP                string                         `json:"ip,omitempty"`
 		Port              int                            `json:"port,omitempty"`
-		BkBizId           int                            `json:"bk_biz_id,omitempty"`
+		BkBizId           int                            `json:"bk_biz_id"`
 		DbClusterType     haprobe.DbmMetadataClusterType `json:"dbm_cluster_type,omitempty"`
 		DbMachineType     haprobe.DbmMetadataMachineType `json:"dbm_machine_type,omitempty"`
 		DbTypeName        haprobe.DbType                 `json:"db_type_name,omitempty"`
 		DbEventName       haprobe.DbEventName            `json:"db_event_name,omitempty"`
 		DbEventNameReason haprobe.DbEventNameReasonStr   `json:"db_event_name_reason,omitempty"`
+		SwitchId          string                         `json:"switch_id,omitempty"`
 
 		// Compatible with V1.
 		SwitchInfoBkBizIdV1       string `json:"appid,omitempty"`
@@ -92,7 +93,7 @@ type EventData struct {
 		// switch info.
 		SwitchInfoInstanceRoleV1      string `json:"instance_role,omitempty"`
 		SwitchInfoIdcV1               string `json:"idc,omitempty"`
-		SwitchInfoCheckIdV1           string `json:"double_check_id,omitempty"`
+		SwitchInfoCheckIdV1           int64  `json:"double_check_id,omitempty"`
 		SwitchInfoNewMasterBinlogFile string `json:"new_master_binlog_file,omitempty"`
 		SwitchInfoNewMasterBinlogPos  uint64 `json:"new_master_binlog_pos,omitempty"`
 		SwitchInfoNewMasterHost       string `json:"new_master_host,omitempty"`

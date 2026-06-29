@@ -229,6 +229,26 @@ func (sw *TenDBClusterSpiderSwitchInstance) DoFinal() error {
 // TenDBClusterRemoteSwitchInstance switch instance for remote
 type TenDBClusterRemoteSwitchInstance struct {
 	TenDBClusterBaseSwitchInstance
+
+	// Information obtained during switch
+
+	NewMasterBinlogFile string
+	NewMasterBinlogPos  uint64
+}
+
+// GetNewMasterInfo returns the promoted new master info. ok is true only for a master switch
+// whose standby slave (the new master) is known.
+func (sw *TenDBClusterRemoteSwitchInstance) GetNewMasterInfo() (*MySqlNewMasterInfo, bool) {
+	if sw.InstanceRole != haprobe.TenDBClusterStorageMaster || sw.StandBySlave == nil {
+		return nil, false
+	}
+
+	return &MySqlNewMasterInfo{
+		Host:       sw.StandBySlave.Ip,
+		Port:       sw.StandBySlave.Port,
+		BinlogFile: sw.NewMasterBinlogFile,
+		BinlogPos:  sw.NewMasterBinlogPos,
+	}, true
 }
 
 // CheckTenDBClusterStorageMaster check remote master
@@ -342,13 +362,15 @@ func (sw *TenDBClusterRemoteSwitchInstance) DoSwitch() error {
 	}
 
 	sw.ReportLogf(switchlogger.SwitchInfo, "switch step 7: try to reset slave for current remote slave")
-	_, _, err := sw.ResetSlaveWithBinlogPos(sw.StandBySlave.Ip, sw.StandBySlave.Port)
+	binlogFile, binlogPos, err := sw.ResetSlaveWithBinlogPos(sw.StandBySlave.Ip, sw.StandBySlave.Port)
 	if err != nil {
 		err = gerrors.Newf(gerrors.Failure, "failed to reset slave status for the remote slave(%s:%d), errmsg: %s",
 			sw.StandBySlave.Ip, sw.StandBySlave.Port, err.Error())
 		sw.ReportLog(switchlogger.SwitchWarn, err.Error())
 		return err
 	}
+	sw.NewMasterBinlogFile = binlogFile
+	sw.NewMasterBinlogPos = binlogPos
 
 	sw.ReportLogf(switchlogger.SwitchInfo,
 		"switch step 8: try to update route info of current broken remote master and its slave")

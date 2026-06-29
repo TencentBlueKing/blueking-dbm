@@ -27,6 +27,8 @@ package workflow
 import (
 	"context"
 	"errors"
+	"fmt"
+	"strconv"
 	"time"
 
 	"dbm-services/common/dbha-v2/internal/analysis/apm"
@@ -38,6 +40,7 @@ import (
 	"dbm-services/common/dbha-v2/internal/analysis/switcher/switchlogger/snapshotlogger"
 	"dbm-services/common/dbha-v2/pkg/haapm"
 	"dbm-services/common/dbha-v2/pkg/logger"
+	"dbm-services/common/dbha-v2/pkg/machine"
 	"dbm-services/common/dbha-v2/pkg/monitor"
 	"dbm-services/common/dbha-v2/pkg/safe"
 	"dbm-services/common/dbha-v2/pkg/storage/hamodel"
@@ -55,6 +58,21 @@ type SwitchExecutor struct {
 // NewSwitchExecutor creates a SwitchExecutor.
 func NewSwitchExecutor(hadata *storage.DbhaData, dbmSync *Synchronizer, switchers map[haprobe.DbType]switcher.Switcher, serviceID string) *SwitchExecutor {
 	return &SwitchExecutor{hadata: hadata, dbmSync: dbmSync, switchers: switchers, myServiceID: serviceID}
+}
+
+// generateDoubleCheckID derives a stable, machine-scoped double-check id from the switch context.
+// It is a deterministic function of (switchID, bkCloudID, ip), so it can be called multiple times:
+//   - all instances on the same machine within one switch request get the same id;
+//   - different machines or different switch requests get different ids.
+func generateDoubleCheckID(switchID string, bkCloudID int, ip string) int64 {
+	key := fmt.Sprintf("%s|%d|%s", switchID, bkCloudID, ip)
+	// Use 63 bits so the hash always fits into a positive int64.
+	id := int64(machine.Hash(key, 63))
+	// 0 is reserved to mean "uninitialized", so never emit it.
+	if id == 0 {
+		id = 1
+	}
+	return id
 }
 
 // CreateRequestWithGroup creates a switcher request from a failure group.
@@ -208,7 +226,7 @@ func (e *SwitchExecutor) TriggerSwitching(dbType haprobe.DbType, req *switcher.R
 
 	e.reportSwitchingMetrics(start, req, rsp, dbType)
 	e.postSuccessAlarms(req, rsp, dbType)
-	e.postFailureAlarms(rsp, dbType)
+	e.postFailureAlarms(req, rsp, dbType)
 }
 
 func (e *SwitchExecutor) reportSwitchingMetrics(start time.Time, req *switcher.Request,
@@ -257,10 +275,30 @@ func (e *SwitchExecutor) postSuccessAlarms(req *switcher.Request, rsp *switcher.
 
 		monitorEvent.Content.Content = "switching success"
 		monitorEvent.Dimension.BkCloudId = inst.BkCloudID
+		monitorEvent.Dimension.BkBizId = inst.BkBizID
+		monitorEvent.Dimension.SwitchId = req.SwitchID
 		monitorEvent.Dimension.IP = inst.IP
 		monitorEvent.Dimension.Port = inst.Port
 		monitorEvent.Dimension.DbTypeName = dbType
 		monitorEvent.Dimension.DbEventName = haprobe.DbEventNameMysqlSwitchSuccessV1
+
+		// Populate the v1 dimensions to support self-healing tickets.
+		monitorEvent.Dimension.SwitchInfoServerIpV1 = inst.IP
+		monitorEvent.Dimension.SwitchInfoServerPortV1 = inst.Port
+		monitorEvent.Dimension.SwitchInfoInstanceRoleV1 = string(inst.InstanceRole)
+		monitorEvent.Dimension.SwitchInfoBkBizIdV1 = strconv.Itoa(inst.BkBizID)
+		monitorEvent.Dimension.SwitchInfoClusterDomainV1 = inst.Cluster
+		monitorEvent.Dimension.SwitchInfoMachineTypeV1 = string(inst.MachineType)
+		monitorEvent.Dimension.SwitchInfoIdcV1 = strconv.Itoa(inst.BkIdcCityID)
+		monitorEvent.Dimension.SwitchInfoStatusV1 = string(inst.Status)
+		monitorEvent.Dimension.SwitchInfoCheckIdV1 = generateDoubleCheckID(req.SwitchID, inst.BkCloudID, inst.IP)
+
+		if newMaster, ok := rsp.GetMySqlNewMasterInfo(instKey); ok {
+			monitorEvent.Dimension.SwitchInfoNewMasterHost = newMaster.Host
+			monitorEvent.Dimension.SwitchInfoNewMasterPort = newMaster.Port
+			monitorEvent.Dimension.SwitchInfoNewMasterBinlogFile = newMaster.BinlogFile
+			monitorEvent.Dimension.SwitchInfoNewMasterBinlogPos = newMaster.BinlogPos
+		}
 
 		if err := monitor.PostBKMonitor(config.Cfg.Monitor.Timeout, monitorEvent); err != nil {
 			logger.Warn(
@@ -272,7 +310,7 @@ func (e *SwitchExecutor) postSuccessAlarms(req *switcher.Request, rsp *switcher.
 	}
 }
 
-func (e *SwitchExecutor) postFailureAlarms(rsp *switcher.Response, dbType haprobe.DbType) {
+func (e *SwitchExecutor) postFailureAlarms(req *switcher.Request, rsp *switcher.Response, dbType haprobe.DbType) {
 	for instKey, inst := range rsp.GetFailureInsts() {
 		monitorEvent := &monitor.EventData{
 			Name:      string(haprobe.DbEventNameMysqlSwitchFailureV1),
@@ -282,6 +320,8 @@ func (e *SwitchExecutor) postFailureAlarms(rsp *switcher.Response, dbType haprob
 
 		monitorEvent.Content.Content = rsp.Err.Error()
 		monitorEvent.Dimension.BkCloudId = inst.BkCloudID
+		monitorEvent.Dimension.BkBizId = inst.BkBizID
+		monitorEvent.Dimension.SwitchId = req.SwitchID
 		monitorEvent.Dimension.IP = inst.IP
 		monitorEvent.Dimension.Port = inst.Port
 		monitorEvent.Dimension.DbTypeName = dbType
