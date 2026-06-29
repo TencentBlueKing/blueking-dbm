@@ -8,6 +8,7 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+from dataclasses import dataclass
 from typing import List, Tuple
 
 from blue_krill.data_types.enum import EnumField, StrStructuredEnum
@@ -58,13 +59,6 @@ class MetricsInstanceRole(StrStructuredEnum):
     SLAVE = EnumField("redis_slave", "Redis slave")
 
 
-class MetricsStatsType(StrStructuredEnum):
-    """Type of statistical computation for metric results."""
-
-    VERTICAL = EnumField("vertical", "Vertical (temporal stats on aggregated series)")
-    HORIZONTAL = EnumField("horizontal", "Horizontal (stats across instances per time point)")
-
-
 class MetricsAggregationLevel(StrStructuredEnum):
     """Level at which metrics are aggregated."""
 
@@ -84,31 +78,75 @@ class MetricsAggFunction(StrStructuredEnum):
 
 
 class MetricsGroupBy(StrStructuredEnum):
-    """Dimension for grouping metric results."""
+    """User-selectable structural dimension for grouping metric results.
+
+    Only the cluster-structure dimensions are user-facing here. Metric-specific
+    breakdowns (command, latency bucket, capacity sub-type, ...) are modelled as
+    internal "intrinsic dimensions" (see ``IntrinsicDimension``) and are applied
+    automatically by the query service -- they are never user-selectable.
+    """
 
     IP = EnumField("ip", "IP address")
     INSTANCE = EnumField("instance", "Instance (ip:port)")
-    CMD = EnumField("cmd", "Command")
     CLUSTER_DOMAIN = EnumField("cluster_domain", "Cluster domain")
-    BUCKET = EnumField("bucket", "Latency bucket (distribution metrics only)")
 
     @classmethod
     def get_cluster_api_choices(cls) -> List[str]:
-        """User-visible group_by values for cluster-level Redis metrics MCP APIs (CMD is service-injected)."""
-
-        return [cls.IP.value, cls.INSTANCE.value, cls.BUCKET.value, cls.CLUSTER_DOMAIN.value]
+        """User-visible group_by values for cluster-level Redis metrics MCP APIs."""
+        return [cls.IP.value, cls.INSTANCE.value, cls.CLUSTER_DOMAIN.value]
 
     @classmethod
     def get_machine_api_choices(cls) -> List[str]:
         """User-visible group_by values for machine-level APIs; cluster_domain omitted (scope fixes cluster)."""
-
-        return [cls.IP.value, cls.INSTANCE.value, cls.BUCKET.value]
+        return [cls.IP.value, cls.INSTANCE.value]
 
     @classmethod
     def get_instance_api_choices(cls) -> List[str]:
         """User-visible group_by values for instance-level APIs; cluster_domain and ip omitted."""
+        return [cls.INSTANCE.value]
 
-        return [cls.INSTANCE.value, cls.BUCKET.value]
+
+class IntrinsicDimensionKind(StrStructuredEnum):
+    """How an intrinsic dimension is realized in the PromQL query pipeline."""
+
+    NATURAL_LABEL = EnumField("natural_label", "Real PromQL label, added to the by() clause")
+    SYNTHESIZED = EnumField("synthesized", "Produced via label_replace by a dedicated query builder")
+
+
+@dataclass(frozen=True)
+class IntrinsicDimension:
+    """A metric-specific breakdown applied internally (not a user-facing group_by).
+
+    Attributes:
+        promql_label: The PromQL label name carried on result series
+            (e.g. "cmd", "bucket_label", "capacity_type").
+        kind: NATURAL_LABEL dims are appended to the inner/outer ``by(...)`` clauses;
+            SYNTHESIZED dims are emitted by a dedicated builder via ``label_replace``.
+        key_order: Relative ordering when composing result keys (lower comes first).
+
+    To add a new metric-specific dimension:
+      1. Declare an ``IntrinsicDimension`` instance here.
+      2. Attach it to the relevant ``METRIC_REGISTRY`` entry via ``intrinsic_dimensions``.
+      3. For NATURAL_LABEL: ensure the source metric actually exposes that label.
+         For SYNTHESIZED: ensure a builder emits it via ``label_replace``.
+    """
+
+    promql_label: str
+    kind: IntrinsicDimensionKind
+    key_order: int = 100
+
+
+# Canonical intrinsic dimensions. Reference these from METRIC_REGISTRY entries.
+#
+# key_order controls placement in composed result keys. The scope identifier (ip / ip:port) is
+# inserted by the query service at SCOPE_KEY_ORDER (50): dims with key_order < 50 precede the scope,
+# dims with key_order > 50 follow it. So capacity_type/bucket/cmd lead the key, while mount_point
+# trails the scope -> e.g. "used@<ip>@<mount_point>".
+CMD_DIMENSION = IntrinsicDimension("cmd", IntrinsicDimensionKind.NATURAL_LABEL, key_order=20)
+BUCKET_DIMENSION = IntrinsicDimension("bucket_label", IntrinsicDimensionKind.SYNTHESIZED, key_order=10)
+CAPACITY_TYPE_DIMENSION = IntrinsicDimension("capacity_type", IntrinsicDimensionKind.SYNTHESIZED, key_order=5)
+# Disk capacity is per physical mount; mount_point trails the scope so keys read used@<ip>@<mount_point>.
+MOUNT_POINT_DIMENSION = IntrinsicDimension("mount_point", IntrinsicDimensionKind.NATURAL_LABEL, key_order=60)
 
 
 class RedisReportSubtype(StrStructuredEnum):

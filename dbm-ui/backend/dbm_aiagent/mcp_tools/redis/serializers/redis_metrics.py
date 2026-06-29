@@ -11,7 +11,7 @@ specific language governing permissions and limitations under the License.
 from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
-from backend.dbm_aiagent.mcp_tools.redis.enums import MetricsGroupBy, MetricsStatsType, MetricType
+from backend.dbm_aiagent.mcp_tools.redis.enums import MetricsGroupBy, MetricType
 
 # Shown on metric_type where capacity is allowed, and on capacity-related response fields.
 _CAPACITY_METRIC_USER_GUIDANCE = _(
@@ -19,6 +19,14 @@ _CAPACITY_METRIC_USER_GUIDANCE = _(
     "when describing current state, lean on `latest` together with used/available. "
     "If total (or its min/max over the window) differs from that steady baseline across the period, "
     "it usually reflects scale-out, scale-in, or topology changes rather than continuous drift."
+)
+
+# Metric-specific breakdowns (per command, per latency bucket, capacity used/total/available) are applied
+# automatically by the service and are NOT user-selectable group_by options.
+_AUTOMATIC_BREAKDOWN_NOTE = _(
+    "Metric-specific breakdowns are applied automatically and are not group_by options: "
+    "command_latency is broken down per command; latency_distribution per latency bucket; "
+    "capacity into used/available/total."
 )
 
 
@@ -60,11 +68,13 @@ class RedisMetricsTimeWindowSerializer(serializers.Serializer):
 # Cluster scope: proxy vs backend (master/slave)
 # ---------------------------------------------------------------------------
 
-_GROUP_BY_HELP_CLUSTER = _(
-    "Dimensions to break results down by. Omit (or null) for a cluster-wide aggregate. "
-    "Choices: 'ip' (per host), 'instance' (per ip:port), "
-    "'bucket' (latency buckets; for latency_distribution), "
-    "'cluster_domain' (per cluster; rarely needed at cluster scope)."
+_GROUP_BY_HELP_CLUSTER = (
+    _(
+        "Dimensions to break results down by. Omit (or null) for a cluster-wide aggregate. "
+        "Choices: 'ip' (per host), 'instance' (per ip:port), "
+        "'cluster_domain' (per cluster; rarely needed at cluster scope). "
+    )
+    + _AUTOMATIC_BREAKDOWN_NOTE
 )
 
 
@@ -87,8 +97,8 @@ class RedisMetricsClusterProxyInputSerializer(ClusterDomainsFieldMixin, RedisMet
             "Metric to query (proxy nodes; capacity is not available at proxy). "
             "[Resource] cpu_usage, memory_usage, io_usage, disk_usage. "
             "[Throughput] connections, qps. "
-            "[Latency] host_latency, command_latency (group_by cmd is auto-added), "
-            "latency_distribution (per bucket when grouped by bucket). "
+            "[Latency] host_latency, command_latency (broken down per command automatically), "
+            "latency_distribution (broken down per latency bucket automatically). "
         ),
     )
     group_by = serializers.ListField(
@@ -109,7 +119,7 @@ class RedisMetricsClusterBackendInputSerializer(ClusterDomainsFieldMixin, RedisM
             "Metric to query (backend nodes; latency_distribution is proxy-only). "
             "[Resource] cpu_usage, memory_usage, io_usage, disk_usage. "
             "[Throughput] connections, qps. "
-            "[Latency] host_latency, command_latency (group_by cmd is auto-added). "
+            "[Latency] host_latency, command_latency (broken down per command automatically). "
             "[Capacity] capacity (used/available/total memory in bytes). "
         )
         + _CAPACITY_METRIC_USER_GUIDANCE,
@@ -145,7 +155,7 @@ class RedisMetricsMachineInputSerializer(RedisMetricsTimeWindowSerializer):
             "latency_distribution is proxy-only, capacity is backend-only. "
             "[Resource] cpu_usage, memory_usage, io_usage, disk_usage. "
             "[Throughput] connections, qps. "
-            "[Latency] host_latency, command_latency (group_by cmd is auto-added), latency_distribution. "
+            "[Latency] host_latency, command_latency (broken down per command automatically), latency_distribution. "
             "[Capacity] capacity. "
         )
         + _CAPACITY_METRIC_USER_GUIDANCE,
@@ -157,10 +167,10 @@ class RedisMetricsMachineInputSerializer(RedisMetricsTimeWindowSerializer):
         default=[MetricsGroupBy.IP.value],
         help_text=_(
             "Dimensions to break results down by. Default: ['ip']. Pass null for aggregate on this host. "
-            "Choices: 'ip', 'instance' (ip:port on this machine), "
-            "'bucket' (for latency_distribution). "
-            "'cluster_domain' is not listed here — scope is already a single resolved cluster."
-        ),
+            "Choices: 'ip', 'instance' (ip:port on this machine). "
+            "'cluster_domain' is not listed here — scope is already a single resolved cluster. "
+        )
+        + _AUTOMATIC_BREAKDOWN_NOTE,
     )
 
 
@@ -185,7 +195,7 @@ class RedisMetricsInstanceInputSerializer(RedisMetricsTimeWindowSerializer):
             "are not available at instance scope. "
             "latency_distribution is proxy-only; capacity is backend-only. "
             "[Throughput] connections, qps. "
-            "[Latency] host_latency, command_latency (group_by cmd is auto-added), latency_distribution. "
+            "[Latency] host_latency, command_latency (broken down per command automatically), latency_distribution. "
             "[Capacity] capacity. "
         )
         + _CAPACITY_METRIC_USER_GUIDANCE,
@@ -197,10 +207,10 @@ class RedisMetricsInstanceInputSerializer(RedisMetricsTimeWindowSerializer):
         default=[MetricsGroupBy.INSTANCE.value],
         help_text=_(
             "Dimensions to break results down by. Default: ['instance']. Pass null for aggregate on this instance. "
-            "Choices: 'instance' (ip:port; same vocabulary as cluster APIs), "
-            "'bucket' (for latency_distribution). "
-            "'cluster_domain' and 'ip' are omitted — scope already fixes cluster and host."
-        ),
+            "Choices: 'instance' (ip:port; same vocabulary as cluster APIs). "
+            "'cluster_domain' and 'ip' are omitted — scope already fixes cluster and host. "
+        )
+        + _AUTOMATIC_BREAKDOWN_NOTE,
     )
 
     def validate(self, attrs):
@@ -213,70 +223,39 @@ class RedisMetricsInstanceInputSerializer(RedisMetricsTimeWindowSerializer):
 
 
 # ---------------------------------------------------------------------------
-# Series / stats field mixins
+# Concrete input serializers (series vs stats share the same inputs)
 # ---------------------------------------------------------------------------
 
 
-class SeriesFieldMixin(serializers.Serializer):
-    mermaid_format = serializers.BooleanField(
-        default=False,
-        help_text=_(
-            "Set True to receive a pre-rendered mermaid xychart-beta chart in the 'mermaid_code' response field. "
-            "When mermaid_code is generated, the raw series data is omitted from the response. "
-            "IMPORTANT: output the returned mermaid_code verbatim -- do NOT modify or regenerate it."
-        ),
-    )
-
-
-class StatsFieldMixin(serializers.Serializer):
-    stats_type = serializers.ChoiceField(
-        choices=MetricsStatsType.get_choices(),
-        default=MetricsStatsType.VERTICAL.value,
-        help_text=_(
-            "How to compute statistics. "
-            "'vertical' (default): aggregates all instances into one cluster-wide series first, "
-            "then computes min/max/avg/p95/trend over time. "
-            "Use when asking 'what was the cluster-wide peak total QPS?' "
-            "'horizontal': computes stats across instances at each time point, then summarizes. "
-            "Use when asking 'which instance had the highest QPS?'"
-        ),
-    )
-
-
-# ---------------------------------------------------------------------------
-# Concrete input serializers (scope x mode)
-# ---------------------------------------------------------------------------
-
-
-class RedisClusterProxySeriesInputSerializer(SeriesFieldMixin, RedisMetricsClusterProxyInputSerializer):
+class RedisClusterProxySeriesInputSerializer(RedisMetricsClusterProxyInputSerializer):
     pass
 
 
-class RedisClusterProxyStatsInputSerializer(StatsFieldMixin, RedisMetricsClusterProxyInputSerializer):
+class RedisClusterProxyStatsInputSerializer(RedisMetricsClusterProxyInputSerializer):
     pass
 
 
-class RedisClusterBackendSeriesInputSerializer(SeriesFieldMixin, RedisMetricsClusterBackendInputSerializer):
+class RedisClusterBackendSeriesInputSerializer(RedisMetricsClusterBackendInputSerializer):
     pass
 
 
-class RedisClusterBackendStatsInputSerializer(StatsFieldMixin, RedisMetricsClusterBackendInputSerializer):
+class RedisClusterBackendStatsInputSerializer(RedisMetricsClusterBackendInputSerializer):
     pass
 
 
-class RedisMachineSeriesInputSerializer(SeriesFieldMixin, RedisMetricsMachineInputSerializer):
+class RedisMachineSeriesInputSerializer(RedisMetricsMachineInputSerializer):
     pass
 
 
-class RedisMachineStatsInputSerializer(StatsFieldMixin, RedisMetricsMachineInputSerializer):
+class RedisMachineStatsInputSerializer(RedisMetricsMachineInputSerializer):
     pass
 
 
-class RedisInstanceSeriesInputSerializer(SeriesFieldMixin, RedisMetricsInstanceInputSerializer):
+class RedisInstanceSeriesInputSerializer(RedisMetricsInstanceInputSerializer):
     pass
 
 
-class RedisInstanceStatsInputSerializer(StatsFieldMixin, RedisMetricsInstanceInputSerializer):
+class RedisInstanceStatsInputSerializer(RedisMetricsInstanceInputSerializer):
     pass
 
 
@@ -295,19 +274,17 @@ class RedisMetricsSeriesOutputSerializer(serializers.Serializer):
             "The key depends on scope: "
             "instance scope -> key is 'ip:port'; "
             "machine scope -> one key per instance on that machine ('ip:port1', 'ip:port2', ...); "
-            "cluster scope -> key is cluster_domain, or group_by dimension values (ip, instance, bucket). "
+            "cluster scope -> key is cluster_domain, or group_by dimension values (ip, instance, and metric-specific fields). "
             "Value units match the metric_type: % for usage metrics, count for connections, "
             "ops/s for qps, μs for latency, bytes for capacity. "
             "For capacity, separate series correspond to used, available, and total. "
+            "Disk-based capacity (e.g. Tendisplus/TendisSSD) is broken down per physical mount point. "
+            "At cluster scope (default group_by or group_by=['cluster_domain']), keys look like "
+            "'used@<mount_point>' with values summed across all hosts; at ip scope "
+            "(group_by=['ip']), keys look like 'used@<ip>@<mount_point>'. Sum across mount-point "
+            "series client-side for a host or cluster total. "
         )
         + _CAPACITY_METRIC_USER_GUIDANCE,
-    )
-    mermaid_code = serializers.CharField(
-        required=False,
-        help_text=_(
-            "Pre-rendered mermaid xychart-beta chart code. Present only when mermaid_format=True "
-            "and series data exists. Render this directly in a mermaid code block -- do NOT modify it."
-        ),
     )
     partial_errors = serializers.JSONField(
         required=False,
@@ -321,22 +298,21 @@ class RedisMetricsStatsOutputSerializer(serializers.Serializer):
     statistics = serializers.JSONField(
         required=False,
         help_text=_(
-            "Dict keyed by group dimension (cluster_domain when no group_by, otherwise ip / instance / "
-            "cmd / bucket). Each value is a dict containing: "
+            "Dict keyed by group/breakdown dimension (cluster_domain when no group_by, otherwise ip / instance, "
+            "plus automatic breakdowns: command for command_latency, latency bucket for latency_distribution). "
+            "Each value is a dict of timeline statistics computed over the query window: "
             "min -- minimum observed value; "
             "max -- maximum observed value; "
             "avg -- arithmetic mean; "
             "median -- 50th percentile; "
             "p95 -- 95th percentile; "
-            "cv -- coefficient of variation in % (higher = more volatile); "
+            "cv -- coefficient of variation in % (higher = more volatile over time); "
             "trend -- slope per minute (positive = increasing, negative = decreasing); "
             "trend_unit -- unit string for the trend value; "
             "latest -- most recent data point value of the series. "
-            "With stats_type='vertical': these stats describe the aggregated cluster-wide series over time "
-            "(e.g. max = peak total cluster QPS). "
-            "With stats_type='horizontal': these stats describe the spread across instances "
-            "(e.g. max = highest value any single instance reached). "
-            "For metric_type=capacity, keys distinguish used, available, and total. "
+            "For metric_type=capacity, keys distinguish used, available, and total; disk-based capacity "
+            "is further broken down per mount point. At cluster scope keys look like 'used@<mount_point>' "
+            "(summed across hosts); at ip scope 'used@<ip>@<mount_point>'. "
         )
         + _CAPACITY_METRIC_USER_GUIDANCE,
     )
