@@ -10,6 +10,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/samber/lo"
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 
 	"bk-dbconfig/pkg/constvar"
 	"bk-dbconfig/pkg/core/logger"
@@ -169,9 +170,14 @@ func (op *ConfNameOperation) BatchCreate(db *gorm.DB, confNames []*ConfigNameDef
 }
 
 // BatchSave upsert
-// 聚合 create 和 update 的操作，通过唯一键来判断是否是一条记录
-// 先执行 create，当报 duplicate key 时，根据唯一键来执行 update 其它非唯一键字段
+// 使用 ON DUPLICATE KEY UPDATE 实现 upsert，一条 SQL 完成插入或更新
 func (op *ConfNameOperation) BatchSave(db *gorm.DB, confNames []*ConfigNameDefModel) error {
+	// 冲突时需要更新的字段列表
+	upsertColumns := []string{
+		"conf_name_lc", "value_type", "value_default", "value_allowed", "value_type_sub",
+		"flag_visible", "flag_readonly", "flag_locked", "flag_encrypt", "flag_disable",
+		"flag_status", "need_restart", "description", "deleted",
+	}
 	return db.Transaction(func(tx *gorm.DB) error {
 		changes := make([]*ConfNameChangesModel, 0, len(confNames))
 		for _, c := range confNames {
@@ -187,16 +193,13 @@ func (op *ConfNameOperation) BatchSave(db *gorm.DB, confNames []*ConfigNameDefMo
 			if op.Table != constvar.PlatTypeDef {
 				dbTx = dbTx.Model(ConfigNamePlatModel{})
 			}
-			if err := dbTx.Create(c).Error; err != nil {
-				if errors.Is(err, gorm.ErrDuplicatedKey) || strings.Contains(err.Error(), "Duplicate entry") {
-					// 当遇到重复键错误时，根据唯一键执行 update
-					if err := dbTx.Where(c.UniqueWhere()).Updates(c).Error; err != nil {
-						return errors.WithMessage(err, c.ConfName)
-					}
-				} else {
-					// 其他错误直接返回
-					return errors.WithMessage(err, c.ConfName)
-				}
+			if err := dbTx.Clauses(clause.OnConflict{
+				Columns: []clause.Column{
+					{Name: "namespace"}, {Name: "conf_type"}, {Name: "conf_file"}, {Name: "conf_name"},
+				},
+				DoUpdates: clause.AssignmentColumns(upsertColumns),
+			}).Create(c).Error; err != nil {
+				return errors.WithMessage(err, c.ConfName)
 			}
 
 			changes = append(changes, &ConfNameChangesModel{
