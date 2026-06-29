@@ -8,6 +8,7 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+import ast
 import json
 import logging
 
@@ -461,8 +462,20 @@ class MonitorPolicyViewSet(AuditedModelViewSet):
 
         # 根据告警回调数据分发到匹配的回调处理器
         callback_data = self.validated_data
-        AlarmCallback.dispatch(callback_data)
-
+        # appointees 格式为 Python 列表的 str 表示，如 "['user1', 'user2']"，需要用 ast.literal_eval 解析
+        try:
+            callback_data["appointees"] = ast.literal_eval(callback_data["appointees"])
+        except (ValueError, SyntaxError):
+            # 兜底：如果解析失败，按逗号分隔处理
+            callback_data["appointees"] = [r.strip() for r in callback_data["appointees"].split(",") if r.strip()]
+        if not callback_data["appointees"]:
+            # 告警恢复中/被抑制，可能会导致告警接收人为空
+            logger.warning(
+                "[alarm_callback] no receivers found in callback_data for %s",
+                json.dumps(callback_data["callback_message"]["event"]),
+            )
+        else:
+            AlarmCallback.dispatch(callback_data)
         return Response()
 
     @common_swagger_auto_schema(

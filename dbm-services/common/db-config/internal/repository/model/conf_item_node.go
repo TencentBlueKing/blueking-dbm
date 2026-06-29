@@ -52,7 +52,7 @@ func (c *ConfigModel) UniqueWhere() map[string]interface{} {
 		"conf_name":   c.ConfName,
 		"level_name":  c.LevelName,
 		"level_value": c.LevelValue,
-		// "conf_type": c.ConfType,
+		"conf_type":   c.ConfType,
 	}
 	return uniqueWhere
 }
