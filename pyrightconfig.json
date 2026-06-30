@@ -1,0 +1,31 @@
+{
+  "$schema": "https://raw.githubusercontent.com/RobertCraigie/pyright-config-schema/main/pyrightconfig.schema.json",
+  "include": [
+    "dbm-ui/**/*"
+  ],
+  "exclude": [
+    "**/__pycache__",
+    "**/*.pyc",
+    "**/.venv/**",
+    "**/node_modules/**",
+    "**/migrations/**"
+  ],
+  "extraPaths": [
+    "dbm-ui"
+  ],
+  "pythonVersion": "3.11",
+  "pythonPlatform": "All",
+  "typeCheckingMode": "basic",
+  "reportMissingModuleSource": false,
+  "reportImplicitRelativeImport": false,
+  "reportMissingImports": false,
+  "reportUnusedImport": false,
+  "reportDeprecated": "warning",
+  "reportMissingTypeArgument": "warning",
+  "reportArgumentType": "warning",
+  "reportUnknownVariableType": "none",
+  "reportUnknownParameterType": "none",
+  "reportUnknownMemberType": "none",
+  "reportUnknownArgumentType": "none",
+  "reportUnusedCallResult": "none"
+}
