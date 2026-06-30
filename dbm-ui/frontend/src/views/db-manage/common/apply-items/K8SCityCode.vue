@@ -20,41 +20,14 @@
       required>
       <BkRadioGroup
         v-model="modelValue"
-        class="region-group"
-        :class="{ 'region-group-flex-direction': commonList?.length }">
+        class="region-group">
         <div class="region-group-item-box">
           <div
-            v-for="info of commonList"
-            :key="info.city_code"
+            v-for="info of cityData"
+            :key="info.regionCode"
             class="region-group-item">
-            <BkRadioButton :label="info.city_code">
-              {{ info.city_name }}
-            </BkRadioButton>
-          </div>
-          <BkButton
-            v-if="commonList?.length"
-            class="ml-12"
-            size="small"
-            style="font-size: 12px"
-            text
-            theme="primary"
-            @click="handleShowInternalListClick">
-            {{ t('更多地域') }}
-            <DbIcon
-              class="ml-4"
-              style="font-size: 16px"
-              :type="showInternalList ? 'up-big' : 'down-big'" />
-          </BkButton>
-        </div>
-        <div
-          v-if="showInternalList"
-          class="region-group-item-box">
-          <div
-            v-for="info of internalList"
-            :key="info.city_code"
-            class="region-group-item">
-            <BkRadioButton :label="info.city_code">
-              {{ info.city_name }}
+            <BkRadioButton :label="info.regionCode">
+              {{ info.regionName }}
             </BkRadioButton>
           </div>
         </div>
@@ -65,11 +38,10 @@
 </template>
 
 <script setup lang="ts">
-  import type { UnwrapRef } from 'vue';
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
-  import { getCommonCities } from '@services/source/infras';
+  import { getRegions } from '@services/source/kubernetesToolbox';
 
   const modelValue = defineModel<string>({
     required: true,
@@ -77,28 +49,7 @@
 
   const { t } = useI18n();
 
-  const showInternalList = ref(false);
-
-  const commonList = shallowRef<NonNullable<UnwrapRef<typeof cityData>>['common']>();
-  const internalList = shallowRef<NonNullable<UnwrapRef<typeof cityData>>['internal']>();
-
-  const { data: cityData, loading } = useRequest(getCommonCities);
-
-  watch(cityData, () => {
-    if (cityData.value) {
-      commonList.value = cityData.value.common;
-      internalList.value = cityData.value.internal;
-
-      showInternalList.value = commonList.value.length === 0;
-    }
-  });
-
-  const handleShowInternalListClick = () => {
-    showInternalList.value = !showInternalList.value;
-    if (!showInternalList.value) {
-      modelValue.value = '';
-    }
-  };
+  const { data: cityData, loading } = useRequest(getRegions);
 </script>
 
 <style lang="less">

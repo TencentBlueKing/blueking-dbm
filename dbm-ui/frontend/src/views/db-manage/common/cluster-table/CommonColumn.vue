@@ -9,6 +9,7 @@
     </template>
   </TableColumn>
   <TableColumn
+    v-if="!clusterType.includes('k8s')"
     col-key="disaster_tolerance_level"
     :filter="columnFilter?.['disaster_tolerance_level']"
     :min-width="160"
@@ -28,6 +29,7 @@
     </template>
   </TableColumn>
   <TableColumn
+    v-if="!clusterType.includes('k8s')"
     col-key="cluster_spec"
     :min-width="180"
     :title="t('规格')">
@@ -43,6 +45,7 @@
     </template>
   </TableColumn>
   <TableColumn
+    v-if="!clusterType.includes('k8s')"
     col-key="bk_cloud_id"
     :filter="columnFilter?.['bk_cloud_id']"
     :title="t('管控区域')"

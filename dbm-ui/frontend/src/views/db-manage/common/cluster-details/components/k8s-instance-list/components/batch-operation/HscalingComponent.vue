@@ -153,7 +153,7 @@
         {
           componentName: props.role,
           scaleOut: {
-            replicaChanges: Number(count),
+            replicaChanges: Number(count) - props.count,
           },
         },
       ],

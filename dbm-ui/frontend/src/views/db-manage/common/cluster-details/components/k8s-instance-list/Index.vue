@@ -160,7 +160,6 @@
           </TableColumn>
           <TableColumn
             col-key="createdTimeDisplay"
-            sorter
             :title="t('部署时间')"
             :width="180" />
           <TableColumn
@@ -369,7 +368,7 @@
         clusterName: props.clusterData.cluster_name,
         k8sClusterName: props.clusterData.k8s_cluster_name,
         namespace: props.clusterData.namespace,
-        restart: originalData.value.map((selectedItem) => ({
+        restart: selectedList.value.map((selectedItem) => ({
           componentName: selectedItem.podName,
         })),
       },

@@ -32,3 +32,30 @@ export const clusterInstStatus = {
   },
 };
 export type ClusterInstStatus = `${ClusterInstStatusKeys}`;
+
+/**
+ * K8S集群实例状态
+ */
+export enum ClusterK8sInstStatusKeys {
+  FAILED = 'Failed',
+  PENDING = 'Pending',
+  RUNNING = 'Running',
+}
+export const clusterK8sInstStatus = {
+  [ClusterK8sInstStatusKeys.FAILED]: {
+    icon: 'abnormal',
+    key: ClusterK8sInstStatusKeys.FAILED,
+    text: t('失败'),
+  },
+  [ClusterK8sInstStatusKeys.PENDING]: {
+    icon: 'sync-pending',
+    key: ClusterK8sInstStatusKeys.PENDING,
+    text: t('等待调度'),
+  },
+  [ClusterK8sInstStatusKeys.RUNNING]: {
+    icon: 'normal',
+    key: ClusterK8sInstStatusKeys.RUNNING,
+    text: t('运行中'),
+  },
+};
+export type ClusterK8sInstStatus = `${ClusterK8sInstStatusKeys}`;

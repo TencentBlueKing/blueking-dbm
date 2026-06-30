@@ -156,7 +156,7 @@
   .k8s-instance-list-patch-config {
     display: flex;
     width: 100%;
-    padding: 24px 40px;
+    padding: 24px 24px 0 24px;
     flex-direction: column;
 
     .config-header {

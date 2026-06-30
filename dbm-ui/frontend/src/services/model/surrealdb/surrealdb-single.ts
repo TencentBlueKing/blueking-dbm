@@ -58,6 +58,7 @@ export default class SurrealdbSingle extends ClusterBase {
   db_module_id: number;
   db_module_name: string;
   disaster_tolerance_level: Affinity;
+  dns_to_clb: boolean;
   domain: string;
   id: number;
   k8s_cluster_name: string;
@@ -105,6 +106,7 @@ export default class SurrealdbSingle extends ClusterBase {
     this.db_module_id = payload.db_module_id || 0;
     this.db_module_name = payload.db_module_name || '';
     this.disaster_tolerance_level = payload.disaster_tolerance_level;
+    this.dns_to_clb = payload.dns_to_clb;
     this.domain = payload.domain;
     this.id = payload.id || 0;
     this.k8s_cluster_name = payload.k8s_cluster_name;
@@ -138,16 +140,21 @@ export default class SurrealdbSingle extends ClusterBase {
     );
   }
 
+  get isOnlineCLB() {
+    return this.cluster_entry.some((item) => item.cluster_entry_type === 'clbDns');
+  }
+
   get isStarting() {
     return Boolean(this.operations.find((item) => item.ticket_type === TicketTypes.K8S_SURREALDB_ENABLE));
   }
-
   get masterDomainDisplayName() {
-    const port = this.cluster_access_port;
-    const displayName = port ? `${this.master_domain}:${port}` : this.master_domain;
+    const domainItem = this.cluster_entry.find((item) => item.cluster_entry_type === 'clbDns');
+    const displayName = domainItem?.entry || '';
     return displayName;
+    // const port = this.cluster_access_port;
+    // const displayName = port ? `${this.master_domain}:${port}` : this.master_domain;
+    // return displayName;
   }
-
   get operationDisabled() {
     if (!this.isClusterNormal) {
       return true;
