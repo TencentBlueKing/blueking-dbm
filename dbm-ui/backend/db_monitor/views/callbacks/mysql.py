@@ -69,24 +69,74 @@ def extract_callback_key_info(callback_data: dict) -> dict:
 class MySQLAlarm(AlarmCallback):
     """MySQL 告警回调处理器，处理所有 MySQL 相关的告警回调"""
 
-    # 策略名关键字 -> 处理函数的映射
+    # 处理函数 -> 匹配条件列表的映射
+    # keyword: 策略名中的关键字
+    # level: 告警级别列表（0-致命, 1-预警, 2-提醒）
+    # cluster_type: 集群类型列表
     STRATEGY_HANDLERS = {
-        "慢查询数量": "call_slowlog_ai_analysis",
-        "Threads_running": "call_mysql_alarm_analyzer",
-        "连接失败": "call_mysql_alarm_analyzer",
+        "call_slowlog_ai_analysis": [
+            {
+                "keyword": "慢查询数量",
+                "level": [0, 1, 2],
+                "cluster_type": [],
+            }
+        ],
+        "call_mysql_alarm_analyzer": [
+            {
+                "keyword": "Threads_running",
+                "level": [0, 1],
+                "cluster_type": [],
+            },
+            {
+                "keyword": "连接失败",
+                "level": [0, 1, 2],
+                "cluster_type": [],
+            },
+            {
+                "keyword": "dbha二次探测失败",
+                "level": [0, 1, 2],
+                "cluster_type": ["tendbcluster", "tendbha", "tendbsingle"],
+            },
+        ],
     }
 
     @classmethod
     def callback(cls, callback_data: dict):
-        """根据策略名分发到对应的异步处理任务"""
-        strategy_name = callback_data.get("callback_message", {}).get("strategy", {}).get("name", "")
+        """根据策略名、告警级别、集群类型分发到对应的异步处理任务"""
+        callback_message = callback_data.get("callback_message", {})
+        strategy_name = callback_message.get("strategy", {}).get("name", "")
+        event_level = callback_message.get("event", {}).get("level")
 
-        for keyword, handler_name in cls.STRATEGY_HANDLERS.items():
-            if keyword in strategy_name:
+        # 优先从 dimensions 中获取 cluster_type，没有则通过 cluster_domain 查询
+        dimensions = callback_message.get("event", {}).get("dimensions", {})
+        cluster_domain = dimensions.get("cluster_domain", "")
+        cluster_type = dimensions.get("cluster_type")
+        if not cluster_type and cluster_domain:
+            cluster = Cluster.objects.filter(immute_domain=cluster_domain).first()
+            cluster_type = cluster.cluster_type if cluster else None
+
+        for handler_name, conditions in cls.STRATEGY_HANDLERS.items():
+            for condition in conditions:
+                # 匹配策略名关键字
+                if condition["keyword"] == "" or condition["keyword"] not in strategy_name:
+                    continue
+                # 匹配告警级别（未设置或为空时不限制）
+                level_list = condition.get("level", [])
+                if level_list and event_level is not None and event_level not in level_list:
+                    continue
+                # 匹配集群类型（未设置或为空时不限制）
+                cluster_type_list = condition.get("cluster_type", [])
+                if cluster_type_list and cluster_type and cluster_type not in cluster_type_list:
+                    continue
+
                 handler = globals().get(handler_name)
                 if handler:
                     handler.delay(callback_data)
-                    logger.info(_("[MySQLAlarm] 策略 '{}' 分发到异步任务: {}").format(strategy_name, handler_name))
+                    logger.info(
+                        _("[MySQLAlarm] 策略 '{}' (level={}, cluster_type={}) 分发到异步任务: {}").format(
+                            strategy_name, event_level, cluster_type, handler_name
+                        )
+                    )
                 else:
                     logger.warning(_("[MySQLAlarm] 未找到处理函数: {}").format(handler_name))
                 return

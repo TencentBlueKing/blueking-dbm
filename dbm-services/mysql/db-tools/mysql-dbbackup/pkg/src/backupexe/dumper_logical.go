@@ -74,8 +74,15 @@ func (l *LogicalDumper) Execute(ctx context.Context) error {
 		fmt.Sprintf("--threads=%d", l.cnf.LogicalBackup.Threads),
 		// "--disk-limits=1GB:5GB",
 	}
+	if ok, _ := MydumperHasOption(binPath, "--source-data"); ok {
+		args = append(args, "--source-data", "--replica-data")
+	}
 	if l.cnf.LogicalBackup.TrxConsistencyOnly != nil && *l.cnf.LogicalBackup.TrxConsistencyOnly {
-		args = append(args, "--trx-consistency-only")
+		if ok, _ := MydumperHasOption(binPath, "--trx-tables"); ok {
+			args = append(args, "--trx-tables")
+		} else {
+			args = append(args, "--trx-consistency-only")
+		}
 	}
 	if l.cnf.Public.KillLongQueryTime > 0 {
 		args = append(args, "--kill-long-queries",
@@ -215,7 +222,7 @@ func (l *LogicalDumper) Execute(ctx context.Context) error {
 // mydumper 备份完成后，解析 metadata 文件
 func (l *LogicalDumper) PrepareBackupMetaInfo(cnf *config.BackupConfig, metaInfo *dbareport.IndexContent) error {
 	metaFileName := filepath.Join(cnf.Public.BackupDir, cnf.Public.TargetName(), "metadata")
-	metadata, err := parseMydumperMetadata(metaFileName)
+	metadata, err := parseMydumperMetadataV2(metaFileName)
 	if err != nil {
 		return errors.WithMessage(err, "parse mydumper metadata")
 	}
@@ -230,19 +237,19 @@ func (l *LogicalDumper) PrepareBackupMetaInfo(cnf *config.BackupConfig, metaInfo
 	}
 	metaInfo.BackupConsistentTime = metaInfo.BackupBeginTime // 逻辑备份开始时间认为是一致性位点时间
 	metaInfo.BinlogInfo.ShowMasterStatus = &dbareport.StatusInfo{
-		BinlogFile: metadata.MasterStatus["File"],
-		BinlogPos:  metadata.MasterStatus["Position"],
-		Gtid:       metadata.MasterStatus["Executed_Gtid_Set"],
+		BinlogFile: metadata.MasterStatus["source_log_file"],
+		BinlogPos:  metadata.MasterStatus["source_log_pos"],
+		Gtid:       metadata.MasterStatus["executed_gtid_set"],
 		MasterHost: cnf.Public.MysqlHost, // use backup_host as local binlog file_pos host
 		MasterPort: cast.ToInt(cnf.Public.MysqlPort),
 	}
-	if strings.ToLower(cnf.Public.MysqlRole) == cst.RoleSlave && metadata.SlaveStatus["Relay_Master_Log_File"] != "" {
+	if strings.ToLower(cnf.Public.MysqlRole) == cst.RoleSlave && metadata.SlaveStatus["relay_master_log_file"] != "" {
 		metaInfo.BinlogInfo.ShowSlaveStatus = &dbareport.StatusInfo{
-			BinlogFile: metadata.SlaveStatus["Relay_Master_Log_File"],
-			BinlogPos:  metadata.SlaveStatus["Exec_Master_Log_Pos"],
-			Gtid:       metadata.SlaveStatus["Executed_Gtid_Set"],
-			MasterHost: metadata.SlaveStatus["Master_Host"],
-			MasterPort: cast.ToInt(metadata.SlaveStatus["Master_Port"]),
+			BinlogFile: metadata.SlaveStatus["relay_master_log_file"],
+			BinlogPos:  metadata.SlaveStatus["exec_master_log_pos"],
+			Gtid:       metadata.SlaveStatus["executed_gtid_Set"],
+			MasterHost: metadata.SlaveStatus["master_host"],
+			MasterPort: cast.ToInt(metadata.SlaveStatus["master_port"]),
 		}
 	}
 	metaInfo.JudgeBackupMethod(cnf)
@@ -262,7 +269,6 @@ func MydumperHasOption(bin string, option ...string) (bool, error) {
 	}
 	if strings.Contains(cmdStderr, "Unknown option") {
 		return false, nil
-	} else {
-		return false, err
 	}
+	return false, err
 }
