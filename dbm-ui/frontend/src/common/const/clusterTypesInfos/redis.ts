@@ -40,7 +40,25 @@ export const redis: ClusterTypeInfo = {
       },
     ],
     moduleId: 'redis',
-    name: 'Tendisplus',
+    name: t('TendisPlus 集群版'),
+    specClusterName: 'Redis',
+  },
+  [ClusterTypes.PREDIXY_TENDISPLUS_INSTANCE]: {
+    dbType: DBTypes.REDIS,
+    id: ClusterTypes.PREDIXY_TENDISPLUS_INSTANCE,
+    listRouteName: 'DatabaseRedisList',
+    machineList: [
+      {
+        id: MachineTypes.REDIS_TENDIS_PLUS,
+        name: t('TendisPlus后端存储'),
+      },
+      {
+        id: MachineTypes.REDIS_PROXY,
+        name: 'Proxy',
+      },
+    ],
+    moduleId: 'redis',
+    name: t('TendisPlus 标准版'),
     specClusterName: 'Redis',
   },
   [ClusterTypes.TWEMPROXY_REDIS_INSTANCE]: {

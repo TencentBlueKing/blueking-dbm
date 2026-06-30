@@ -35,6 +35,7 @@
       <BkInput
         v-model="modelValue.count"
         clearable
+        :disabled="isTendisInstance"
         :min="countMin"
         show-clear-only-hover
         style="width: 314px"
@@ -49,7 +50,7 @@
       <BkInput
         v-model="shardNum"
         clearable
-        :disabled="shardNumDisabled"
+        :disabled="shardNumDisabled || isTendisInstance"
         :min="1"
         show-clear-only-hover
         style="width: 314px"
@@ -148,6 +149,7 @@
     return 1;
   });
   const clusterShardNum = computed(() => Number(modelValue.value.count) * Number(shardNum.value) || '');
+  const isTendisInstance = computed(() => props.clusterType === ClusterTypes.PREDIXY_TENDISPLUS_INSTANCE);
 
   const totalCapcity = computed(() => {
     const data = specSelectorRef.value?.getData();
@@ -160,11 +162,26 @@
     return Number(count) * getSpecCapacity(data) || '';
   });
 
+  watch(
+    isTendisInstance,
+    () => {
+      if (isTendisInstance.value) {
+        modelValue.value.count = 1;
+        shardNum.value = 4;
+      }
+    },
+    {
+      immediate: true,
+    },
+  );
+
   const getSpecCapacity = (resourceSpec: ReturnType<ComponentExposed<typeof SpecSelector>['getData']>) => {
     if (
-      [ClusterTypes.PREDIXY_TENDISPLUS_CLUSTER, ClusterTypes.TWEMPROXY_TENDIS_SSD_INSTANCE].includes(
-        props.clusterType as ClusterTypes,
-      )
+      [
+        ClusterTypes.PREDIXY_TENDISPLUS_CLUSTER,
+        ClusterTypes.PREDIXY_TENDISPLUS_INSTANCE,
+        ClusterTypes.TWEMPROXY_TENDIS_SSD_INSTANCE,
+      ].includes(props.clusterType as ClusterTypes)
     ) {
       const specItem = resourceSpec.storage_spec.find((storageSpecItem) => storageSpecItem.mount_point === '/data1');
       return specItem?.min || 0;

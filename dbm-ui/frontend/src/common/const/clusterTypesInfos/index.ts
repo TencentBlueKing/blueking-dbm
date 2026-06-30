@@ -53,6 +53,7 @@ export type ClusterTypeInfos = keyof typeof clusterTypeInfos;
 export const clusterRedisTypeList = [
   ClusterTypes.TWEMPROXY_REDIS_INSTANCE,
   ClusterTypes.PREDIXY_TENDISPLUS_CLUSTER,
+  ClusterTypes.PREDIXY_TENDISPLUS_INSTANCE,
   ClusterTypes.TWEMPROXY_TENDIS_SSD_INSTANCE,
   ClusterTypes.PREDIXY_REDIS_CLUSTER,
 ];

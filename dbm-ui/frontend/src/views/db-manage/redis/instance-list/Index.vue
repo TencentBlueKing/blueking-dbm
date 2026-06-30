@@ -72,7 +72,7 @@
 
   import { useInstanceQuickSearch, useTableSettings } from '@hooks';
 
-  import { ClusterTypes, UserPersonalSettings } from '@common/const';
+  import { clusterRedisTypeList, ClusterTypes, UserPersonalSettings } from '@common/const';
 
   import DropdownExportExcel from '@views/db-manage/common/dropdown-export-excel/index.vue';
   import InstanceBatchCopy from '@views/db-manage/common/instance-batch-copy/Index.vue';
@@ -86,12 +86,7 @@
   const { t } = useI18n();
 
   const { isSearching, quickSearchData, quickSearchValue } = useInstanceQuickSearch({
-    cluster_type: [
-      ClusterTypes.TWEMPROXY_REDIS_INSTANCE,
-      ClusterTypes.PREDIXY_TENDISPLUS_CLUSTER,
-      ClusterTypes.TWEMPROXY_TENDIS_SSD_INSTANCE,
-      ClusterTypes.PREDIXY_REDIS_CLUSTER,
-    ],
+    cluster_type: clusterRedisTypeList,
   });
   const { settings, updateTableSettings } = useTableSettings(UserPersonalSettings.REDIS_INSTANCE_SETTINGS, {
     disabled: ['instance_address'],
@@ -104,12 +99,7 @@
   const dataSource = (params: ServiceParameters<typeof getRedisInstances>) =>
     getRedisInstances({
       ...params,
-      cluster_type: [
-        ClusterTypes.TWEMPROXY_REDIS_INSTANCE,
-        ClusterTypes.PREDIXY_TENDISPLUS_CLUSTER,
-        ClusterTypes.TWEMPROXY_TENDIS_SSD_INSTANCE,
-        ClusterTypes.PREDIXY_REDIS_CLUSTER,
-      ].join(','),
+      cluster_type: clusterRedisTypeList.join(','),
     });
 
   const getTableInstance = () => instanceTableRef.value;

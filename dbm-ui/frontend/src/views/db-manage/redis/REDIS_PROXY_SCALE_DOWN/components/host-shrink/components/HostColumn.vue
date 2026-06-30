@@ -48,7 +48,7 @@
   import { checkInstance } from '@services/source/dbbase';
   import { getRedisClusterList } from '@services/source/redis';
 
-  import { ClusterTypes, DBTypes } from '@common/const';
+  import { clusterRedisTypeList, ClusterTypes, DBTypes } from '@common/const';
   import { ipv4 } from '@common/regex';
 
   import InstanceSelector, {
@@ -105,12 +105,7 @@
           getTopoList: (params: ServiceParameters<typeof getRedisClusterList>) =>
             getRedisClusterList({
               ...params,
-              cluster_type: [
-                ClusterTypes.TWEMPROXY_REDIS_INSTANCE,
-                ClusterTypes.PREDIXY_TENDISPLUS_CLUSTER,
-                ClusterTypes.TWEMPROXY_TENDIS_SSD_INSTANCE,
-                ClusterTypes.PREDIXY_REDIS_CLUSTER,
-              ].join(','),
+              cluster_type: clusterRedisTypeList.join(','),
             }),
           totalCountFunc: (dataList: RedisModel[]) => {
             const ipSet = new Set<string>();
@@ -205,12 +200,7 @@
       if (!modelValue.value.bk_host_id && modelValue.value.ip) {
         queryHost({
           bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
-          cluster_type: [
-            ClusterTypes.TWEMPROXY_REDIS_INSTANCE,
-            ClusterTypes.PREDIXY_TENDISPLUS_CLUSTER,
-            ClusterTypes.TWEMPROXY_TENDIS_SSD_INSTANCE,
-            ClusterTypes.PREDIXY_REDIS_CLUSTER,
-          ],
+          cluster_type: clusterRedisTypeList,
           db_type: DBTypes.REDIS,
           instance_addresses: [modelValue.value.ip],
         });
