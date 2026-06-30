@@ -18,6 +18,7 @@ export const queryClusterTypes = {
     ClusterTypes.REDIS,
     ClusterTypes.PREDIXY_REDIS_CLUSTER,
     ClusterTypes.PREDIXY_TENDISPLUS_CLUSTER,
+    ClusterTypes.PREDIXY_TENDISPLUS_INSTANCE,
     ClusterTypes.TWEMPROXY_REDIS_INSTANCE,
     ClusterTypes.TWEMPROXY_TENDIS_SSD_INSTANCE,
     ClusterTypes.TWEMPROXY_TENDISPLUS_INSTANCE,

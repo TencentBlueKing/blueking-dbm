@@ -49,7 +49,6 @@
             required>
             <BkRadioGroup
               v-model="formData.details.cluster_type"
-              class="item-input"
               @change="handleChangeClusterType">
               <BkPopover
                 v-for="item of renderRedisClusterTypes"
@@ -60,7 +59,7 @@
                 trigger="hover">
                 <BkRadioButton
                   :label="item.id"
-                  style="flex: 1">
+                  style="flex: 0 0 130px">
                   {{ item.text }}
                 </BkRadioButton>
                 <template #content>
@@ -657,6 +656,12 @@
         cluster_type: ClusterTypes.PREDIXY_TENDISPLUS_CLUSTER,
         machine_type: MachineTypes.REDIS_TENDIS_PLUS,
         pkg_type: QueryKeyMap[ClusterTypes.PREDIXY_TENDISPLUS_CLUSTER],
+      },
+      [ClusterTypes.PREDIXY_TENDISPLUS_INSTANCE]: {
+        backend_machine_type: 'tendisplus',
+        cluster_type: ClusterTypes.PREDIXY_TENDISPLUS_INSTANCE,
+        machine_type: MachineTypes.REDIS_TENDIS_PLUS,
+        pkg_type: QueryKeyMap[ClusterTypes.PREDIXY_TENDISPLUS_INSTANCE],
       },
       [ClusterTypes.TWEMPROXY_REDIS_INSTANCE]: {
         backend_machine_type: 'tendiscache',

@@ -19,7 +19,7 @@ import { createTicket } from '@services/source/ticket';
 
 import { useTicketMessage } from '@hooks';
 
-import { ClusterTypes, TicketTypes } from '@common/const';
+import { clusterRedisTypeList, ClusterTypes, TicketTypes } from '@common/const';
 
 export const useOperateClusterBasic = (options: { onSuccess: () => void }) => {
   const { t } = useI18n();
@@ -129,14 +129,7 @@ export const useOperateClusterBasic = (options: { onSuccess: () => void }) => {
   };
 
   const getRealClusterType = (clusterType: ClusterTypes) => {
-    if (
-      [
-        ClusterTypes.PREDIXY_REDIS_CLUSTER,
-        ClusterTypes.PREDIXY_TENDISPLUS_CLUSTER,
-        ClusterTypes.TWEMPROXY_REDIS_INSTANCE,
-        ClusterTypes.TWEMPROXY_TENDIS_SSD_INSTANCE,
-      ].includes(clusterType)
-    ) {
+    if (clusterRedisTypeList.includes(clusterType)) {
       return ClusterTypes.REDIS;
     }
     return clusterType;

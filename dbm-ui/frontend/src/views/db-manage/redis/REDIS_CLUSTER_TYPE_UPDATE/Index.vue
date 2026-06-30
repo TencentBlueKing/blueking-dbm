@@ -176,7 +176,7 @@
 
   import { useCreateTicket, useTicketDetail } from '@hooks';
 
-  import { Affinity, ClusterTypes, TicketTypes } from '@common/const';
+  import { Affinity, clusterRedisTypeList, ClusterTypes, TicketTypes } from '@common/const';
 
   import { type TabItem } from '@components/cluster-selector/Index.vue';
 
@@ -332,12 +332,7 @@
     [ClusterTypes.REDIS]: {
       getResourceList: (params: ServiceParameters<typeof getRedisList>) =>
         getRedisList({
-          cluster_type: [
-            ClusterTypes.TWEMPROXY_REDIS_INSTANCE,
-            ClusterTypes.PREDIXY_REDIS_CLUSTER,
-            ClusterTypes.PREDIXY_TENDISPLUS_CLUSTER,
-            ClusterTypes.TWEMPROXY_TENDIS_SSD_INSTANCE,
-          ].join(','),
+          cluster_type: clusterRedisTypeList.join(','),
           ...params,
         }),
       multiple: false,

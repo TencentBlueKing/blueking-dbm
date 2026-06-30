@@ -82,6 +82,7 @@
     [ClusterTypes.REDIS]: {
       getResourceList: (params: ServiceParameters<typeof getRedisList>) =>
         getRedisList({
+          // 暂不支持 TendisPlus 标准版
           cluster_type: [
             ClusterTypes.TWEMPROXY_REDIS_INSTANCE,
             ClusterTypes.PREDIXY_TENDISPLUS_CLUSTER,

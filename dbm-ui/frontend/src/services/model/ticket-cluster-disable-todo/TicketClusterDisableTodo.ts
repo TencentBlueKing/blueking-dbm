@@ -1,6 +1,6 @@
 import dayjs from 'dayjs';
 
-import { ClusterTypes } from '@common/const';
+import { clusterRedisTypeList, ClusterTypes } from '@common/const';
 
 import { getCostTimeDisplay, utcDisplayTime } from '@utils';
 
@@ -32,14 +32,7 @@ export default class TicketClusterDisableTodo {
   }
 
   get clusterTypesDisplay() {
-    if (
-      [
-        ClusterTypes.PREDIXY_REDIS_CLUSTER,
-        ClusterTypes.PREDIXY_TENDISPLUS_CLUSTER,
-        ClusterTypes.TWEMPROXY_REDIS_INSTANCE,
-        ClusterTypes.TWEMPROXY_TENDIS_SSD_INSTANCE,
-      ].includes(this.cluster_type)
-    ) {
+    if (clusterRedisTypeList.includes(this.cluster_type)) {
       return t('集群');
     }
     const textMap = {
