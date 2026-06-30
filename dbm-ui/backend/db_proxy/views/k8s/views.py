@@ -28,6 +28,7 @@ from .serializers import (
     DeleteDomainSerializer,
     GetDomainSerializer,
     UpdateClusterSerializer,
+    UpdateClusterStatusSerializer,
     UpdateDomainSerializer,
 )
 
@@ -273,3 +274,25 @@ class K8sClusterApiProxyPassViewSet(BaseProxyPassViewSet):
             }
         )
         return Response(res)
+
+    @common_swagger_auto_schema(
+        operation_summary=_("[k8s]集群状态更新"),
+        request_body=UpdateClusterStatusSerializer(),
+        tags=[SWAGGER_TAG],
+    )
+    @action(
+        methods=["POST"],
+        detail=False,
+        serializer_class=UpdateClusterStatusSerializer,
+        url_path="k8s/domain/update_cluster_status",
+    )
+    def update_cluster_status(self, request):
+        params = self.params_validate(self.get_serializer_class())
+        cluster = Cluster.objects.filter(id=params["cluster_id"]).first()
+        if not cluster:
+            raise ProxyPassBaseException(_("集群id {} 不存在，更新失败").format(params["cluster_id"]))
+
+        cluster.phase = params["phase"]
+        cluster.status = params["status"]
+        cluster.save()
+        return Response()
