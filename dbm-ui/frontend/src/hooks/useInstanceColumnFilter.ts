@@ -4,20 +4,19 @@ import { useRequest } from 'vue-request';
 
 import { queryBizInstanceAttrs } from '@services/source/dbbase';
 
-import { clusterInstStatus, ClusterTypes, specialOptionLabelMap, SpecialOptions } from '@common/const';
+import {
+  clusterInstStatus,
+  clusterRedisTypeList,
+  ClusterTypes,
+  specialOptionLabelMap,
+  SpecialOptions,
+} from '@common/const';
 
 import DatetimeRange from '@components/db-table/components/DatetimeRange.vue';
 import MultipleInput from '@components/db-table/components/MultipleInput.vue';
 import MultipleSelect from '@components/db-table/components/MultipleSelect.vue';
 
 import { t } from '@/locales';
-
-const clusterRedisTypeList = [
-  ClusterTypes.TWEMPROXY_REDIS_INSTANCE,
-  ClusterTypes.PREDIXY_TENDISPLUS_CLUSTER,
-  ClusterTypes.TWEMPROXY_TENDIS_SSD_INSTANCE,
-  ClusterTypes.PREDIXY_REDIS_CLUSTER,
-];
 
 const baseFilter = {
   create_at: {

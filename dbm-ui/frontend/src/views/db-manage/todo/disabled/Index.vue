@@ -210,7 +210,7 @@
 
   import { useGlobalBizs } from '@stores';
 
-  import { ClusterTypes, DBTypeInfos, DBTypes } from '@common/const';
+  import { clusterRedisTypeList, ClusterTypes, DBTypeInfos, DBTypes } from '@common/const';
 
   import DbTab from '@components/db-tab/Index.vue';
   import DbTable from '@components/db-table/IndexNew.vue';
@@ -341,14 +341,7 @@
   };
 
   const disableSelectMethod = (row: TicketClusterDisableTodoModel) => {
-    if (
-      [
-        ClusterTypes.PREDIXY_REDIS_CLUSTER,
-        ClusterTypes.PREDIXY_TENDISPLUS_CLUSTER,
-        ClusterTypes.TWEMPROXY_REDIS_INSTANCE,
-        ClusterTypes.TWEMPROXY_TENDIS_SSD_INSTANCE,
-      ].includes(row.cluster_type)
-    ) {
+    if (clusterRedisTypeList.includes(row.cluster_type)) {
       return t('该架构类型暂不支持批量下架');
     }
     return false;

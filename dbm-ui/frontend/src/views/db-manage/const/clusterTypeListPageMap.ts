@@ -4,6 +4,7 @@ import { ClusterTypes } from '@common/const';
 const redisClusterTypePageMap = {
   [ClusterTypes.PREDIXY_REDIS_CLUSTER]: 'redisClusterDetail',
   [ClusterTypes.PREDIXY_TENDISPLUS_CLUSTER]: 'redisClusterDetail',
+  [ClusterTypes.PREDIXY_TENDISPLUS_INSTANCE]: 'redisClusterDetail',
   [ClusterTypes.REDIS_INSTANCE]: 'redisClusterHaDetail',
   [ClusterTypes.TWEMPROXY_REDIS_INSTANCE]: 'redisClusterDetail',
   [ClusterTypes.TWEMPROXY_TENDIS_SSD_INSTANCE]: 'redisClusterDetail',

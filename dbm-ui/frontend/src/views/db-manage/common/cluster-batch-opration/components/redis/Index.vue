@@ -129,7 +129,7 @@
 
   import { useAlarmSubscribe } from '@hooks';
 
-  import { ClusterTypes, TicketTypes } from '@common/const';
+  import { clusterRedisTypeList, ClusterTypes, TicketTypes } from '@common/const';
 
   import ClusterBatchAddTag from '@views/db-manage/common/cluster-batch-add-tag/Index.vue';
   import ClusterBatchDeleteSubscription from '@views/db-manage/common/cluster-batch-delete-subscription/Index.vue';
@@ -152,12 +152,7 @@
 
   const { t } = useI18n();
   const { handleToToolbox } = useRedisClusterListToToolbox();
-  const { isClusterTypeAlarmSupported } = useAlarmSubscribe([
-    ClusterTypes.TWEMPROXY_REDIS_INSTANCE,
-    ClusterTypes.PREDIXY_TENDISPLUS_CLUSTER,
-    ClusterTypes.TWEMPROXY_TENDIS_SSD_INSTANCE,
-    ClusterTypes.PREDIXY_REDIS_CLUSTER,
-  ]);
+  const { isClusterTypeAlarmSupported } = useAlarmSubscribe(clusterRedisTypeList);
 
   const showClusterBatchAddTag = ref(false);
   const showClusterBatchRemoveTag = ref(false);

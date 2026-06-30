@@ -20,7 +20,7 @@
 
   import { queryClusterStat } from '@services/source/dbbase';
 
-  import { ClusterTypes } from '@common/const';
+  import { clusterRedisTypeList, ClusterTypes } from '@common/const';
 
   import ClusterCapacityUsageRate from '@views/db-manage/common/cluster-capacity-usage-rate/Index.vue';
 
@@ -42,15 +42,7 @@
       defaultParams: [
         {
           bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
-          cluster_type:
-            props.clusterType === ClusterTypes.REDIS
-              ? [
-                  ClusterTypes.TWEMPROXY_REDIS_INSTANCE,
-                  ClusterTypes.PREDIXY_TENDISPLUS_CLUSTER,
-                  ClusterTypes.TWEMPROXY_TENDIS_SSD_INSTANCE,
-                  ClusterTypes.PREDIXY_REDIS_CLUSTER,
-                ].join(',')
-              : props.clusterType,
+          cluster_type: props.clusterType === ClusterTypes.REDIS ? clusterRedisTypeList.join(',') : props.clusterType,
         },
       ],
     },
