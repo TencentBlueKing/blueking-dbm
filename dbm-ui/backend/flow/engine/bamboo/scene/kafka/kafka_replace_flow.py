@@ -369,6 +369,13 @@ class KafkaReplaceFlow(object):
             if not is_full_replace:
                 # 部分替换：检查未被替换的现有broker配置项，过滤掉缺失的配置避免新旧broker不一致
                 existing_broker_ip = next(ip for ip in self.data["broker_ip"] if ip not in old_broker_ips)
+                # 下发kafka介质到现有broker（执行check_broker_configs所需）
+                act_kwargs.exec_ip = [{"ip": existing_broker_ip, "bk_cloud_id": self.data["bk_cloud_id"]}]
+                kafka_pipeline.add_act(
+                    act_name=_("下发kafka介质到现有broker"),
+                    act_component_code=TransFileComponent.code,
+                    kwargs=asdict(act_kwargs),
+                )
                 act_kwargs.exec_ip = [{"ip": existing_broker_ip, "bk_cloud_id": self.data["bk_cloud_id"]}]
                 act_kwargs.template = act_payload.get_check_broker_configs_payload(
                     host=existing_broker_ip,
