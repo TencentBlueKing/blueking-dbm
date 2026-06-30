@@ -199,6 +199,12 @@ class KafkaScaleUpFlow(object):
             kwargs=asdict(act_kwargs),
         )
 
+        # 下发kafka介质到现有broker（执行check_broker_configs所需）
+        act_kwargs.exec_ip = [{"ip": self.data["existing_broker_ip"], "bk_cloud_id": self.data["bk_cloud_id"]}]
+        kafka_pipeline.add_act(
+            act_name=_("下发kafka介质到现有broker"), act_component_code=TransFileComponent.code, kwargs=asdict(act_kwargs)
+        )
+
         # 检查现有broker配置项，获取缺失的配置，避免新旧broker配置漂移
         act_kwargs.exec_ip = [{"ip": self.data["existing_broker_ip"], "bk_cloud_id": self.data["bk_cloud_id"]}]
         act_kwargs.template = act_payload.get_check_broker_configs_payload(
