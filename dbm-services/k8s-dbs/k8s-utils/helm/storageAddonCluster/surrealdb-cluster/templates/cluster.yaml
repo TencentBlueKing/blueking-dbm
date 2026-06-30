@@ -59,12 +59,14 @@ spec:
         - name: surreal-volume
           spec:
             accessModes:
-              - ReadWriteOnce
+              {{- range .volumeClaimTemplates.accessModes }}
+              - {{ . }}
+              {{- end }}
             resources:
               requests:
-                storage: {{ .storage }}
-            #storageClassName: null
-            volumeMode: Filesystem
+                storage: {{ .volumeClaimTemplates.storage }}
+            storageClassName: {{ .volumeClaimTemplates.storageClassName }}
+            volumeMode: {{ .volumeClaimTemplates.volumeMode }}
       {{- end }}
       {{- end }}
       {{- end }}

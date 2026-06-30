@@ -38,7 +38,7 @@ spec:
             value: "rocksdb:/var/lib/surrealdb"
         volumeMounts:
           - name: surreal-volume
-            mountPath: /var/lib
+            mountPath: /var/lib/surrealdb
         ports:
           - containerPort: 8000
             name: http
@@ -51,3 +51,6 @@ spec:
           httpGet:
             path: /health
             port: 8000
+  volumes:
+    - name: surreal-volume
+      needSnapshot: true
