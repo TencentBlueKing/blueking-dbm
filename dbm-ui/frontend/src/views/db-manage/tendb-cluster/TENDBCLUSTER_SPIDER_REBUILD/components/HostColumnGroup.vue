@@ -90,6 +90,8 @@
   import DbStatus from '@components/db-status/index.vue';
   import InstanceSelector from '@components/instance-selector-new/Index.vue';
 
+  export type SelectorHost = TendbInstanceModel;
+
   interface Props {
     handleRowMerge: () => void;
     roleRowspan: number;
