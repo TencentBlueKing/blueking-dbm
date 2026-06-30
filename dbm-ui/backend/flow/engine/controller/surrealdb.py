@@ -16,6 +16,8 @@ from backend.flow.engine.bamboo.scene.surrealdb.surrealdb_single.surrealdb_singl
     K8sSurrealDBSingleApplyFlow,
 )
 from backend.flow.engine.controller.base import BaseController
+from backend.flow.engine.bamboo.scene.surrealdb.surrealdb_ha.surrealdb_ha_apply_flow import K8sSurrealdbApplyFlow
+
 
 
 class SurrealDBController(BaseController):
@@ -56,4 +58,17 @@ class SurrealDBController(BaseController):
         SurrealDB 下架流程
         """
         flow = K8sSurrealDBDestroyFlow(root_id=self.root_id, data=self.ticket_data)
+        flow.destroy_surrealdb_flow()
+
+
+class SurrealdbHaController(BaseController):
+    """
+    SurrealDB 组件版实例相关调用
+    """
+
+    def surrealdb_apply_scene(self):
+        """
+        SurrealDB 部署流程
+        """
+        flow = K8sSurrealdbApplyFlow(root_id=self.root_id, data=self.ticket_data)
         flow.deploy_surrealdb_flow()

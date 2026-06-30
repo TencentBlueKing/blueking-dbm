@@ -201,6 +201,7 @@ from backend.flow.views.qdrant_delete import DeleteK8sQdrantSceneApiView
 from backend.flow.views.qdrant_disable import DisableK8sQdrantSceneApiView
 from backend.flow.views.qdrant_enable import EnableK8sQdrantSceneApiView
 from backend.flow.views.qdrant_restart import RestartK8sQdrantSceneApiView
+from backend.flow.views.surrealdb_apply import InstallK8sSurrealdbHASceneApiView
 from backend.flow.views.redis_cluster import (
     InstallPredixyClusterSceneApiView,
     InstallPredixyTendisPlusInsSceneApiView,
@@ -666,4 +667,5 @@ urlpatterns = [
     url(r"^scene/disable_k8s_surrealdb$", DisableSurrealDBSceneApiView.as_view()),
     url(r"^scene/enable_k8s_surrealdb$", EnableSurrealDBSceneApiView.as_view()),
     url(r"^scene/delete_k8s_surrealdb$", DestroySurrealDBSceneApiView.as_view()),
+    url(r"^scene/install_k8s_surrealdb_ha$", InstallK8sSurrealdbHASceneApiView.as_view()),
 ]
