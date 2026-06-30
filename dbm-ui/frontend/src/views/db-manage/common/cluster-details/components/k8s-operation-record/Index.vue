@@ -34,7 +34,7 @@
         col-key="createdAt"
         :filter="columnFilter?.createdAt"
         :title="t('操作时间')"
-        :width="250">
+        :width="200">
         <template #default="{ row }: { row: KubernetesOperationLogModel }">
           {{ row.createdAtDisplay || '--' }}
         </template>
@@ -52,7 +52,7 @@
         col-key="requestType"
         :filter="columnFilter?.requestType"
         :title="t('操作类型')"
-        :width="150">
+        :width="100">
         <template #default="{ row }: { row: KubernetesOperationLogModel }">
           <BkTag theme="info">{{ row.requestTypeAlias }}</BkTag>
         </template>
@@ -69,6 +69,7 @@
                 statusText: TicketModel.statusTextMap[row.ticket_status as TicketModel['status']],
               }" />
             <RouterLink
+              class="ml-4"
               target="_blank"
               :to="{
                 name: 'bizTicketManage',
@@ -188,8 +189,8 @@
     const [startTime, endTime] = (quickSearchValue.value?.createdAt || '').split(',');
     const params = {
       ...realQuickSearchValue,
-      endTime,
-      startTime,
+      endTime: endTime || undefined,
+      startTime: startTime || undefined,
     };
 
     tableRef.value.fetchData(params);

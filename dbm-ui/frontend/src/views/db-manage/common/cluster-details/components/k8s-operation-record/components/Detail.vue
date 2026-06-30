@@ -36,6 +36,7 @@
                 statusText: TicketModel.statusTextMap[data.ticket_status as TicketModel['status']],
               }" />
             <RouterLink
+              class="ml-4"
               target="_blank"
               :to="{
                 name: 'bizTicketManage',

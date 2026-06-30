@@ -50,7 +50,19 @@
             class="note-icon"
             type="note" />
         </div>
-        <PopoverCopy @toogle-show="handlePopoverShow">
+        <BkButton
+          v-if="clusterType.includes('k8s')"
+          v-bk-tooltips="t('复制域名')"
+          class="ml-4"
+          role="table-cell-operation"
+          text
+          theme="primary"
+          @click="handleCopy(data.masterDomain)">
+          <DbIcon type="copy" />
+        </BkButton>
+        <PopoverCopy
+          v-else
+          @toogle-show="handlePopoverShow">
           <div @click="handleCopy(data.masterDomain)">
             {{ t('复制域名') }}
           </div>

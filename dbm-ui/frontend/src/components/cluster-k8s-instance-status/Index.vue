@@ -12,55 +12,40 @@
 -->
 
 <template>
-  <div class="k8s-instance-list-usage-rate">
-    <template v-if="data">
-      <BkProgress
-        bg-color="#EAEBF0"
-        :color="color"
-        :percent="percent"
-        :show-text="false" />
-      <span class="ml-8">
-        <span class="usage-rate">{{ percent }}%</span>
-      </span>
-    </template>
-    <span v-else>--</span>
+  <div class="db-cluster-k8s-instance-status">
+    <DbIcon
+      :class="{
+        'rotate-loading': statusInfo.icon === 'sync-pending',
+      }"
+      svg
+      :type="statusInfo.icon" />
+    <span
+      v-if="showText"
+      style="margin-left: 4px">
+      {{ statusInfo.text }}
+    </span>
   </div>
 </template>
 <script setup lang="ts">
+  import { clusterK8sInstStatus } from '@common/const';
+
   interface Props {
-    data: number;
+    data: string;
+    showText?: boolean;
   }
 
-  const props = defineProps<Props>();
+  const props = withDefaults(defineProps<Props>(), {
+    showText: true,
+  });
 
-  const percent = computed(() => props.data || 0);
-
-  const color = computed(() => {
-    let value = '#2DCB56';
-
-    if (percent.value >= 90) {
-      value = '#EA3636';
-    } else if (percent.value >= 70) {
-      value = '#FF9C01';
-    }
-
-    return value;
+  const statusInfo = computed(() => {
+    const status = props.data.toLowerCase();
+    return clusterK8sInstStatus[status as keyof typeof clusterK8sInstStatus];
   });
 </script>
-
-<style lang="less" scoped>
-  .k8s-instance-list-usage-rate {
+<style lang="less">
+  .db-cluster-k8s-instance-status {
     display: flex;
     align-items: center;
-
-    .usage-rate {
-      font-weight: 700;
-      color: #63656e;
-    }
-
-    .usage-text {
-      margin-left: 2px;
-      color: #979ba5;
-    }
   }
 </style>

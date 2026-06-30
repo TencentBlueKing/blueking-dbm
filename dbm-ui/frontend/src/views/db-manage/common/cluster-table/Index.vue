@@ -33,7 +33,9 @@
       <slot name="status">
         <StatusColumn :cluster-type="clusterType" />
       </slot>
-      <slot name="clusterState">
+      <slot
+        v-if="!clusterType.includes('k8s')"
+        name="clusterState">
         <ClusterStatsColumn :cluster-type="clusterType" />
       </slot>
       <slot name="role" />

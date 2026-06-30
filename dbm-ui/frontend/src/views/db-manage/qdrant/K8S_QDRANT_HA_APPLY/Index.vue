@@ -35,7 +35,9 @@
         <DbCard :title="t('部署环境')">
           <K8SApplyMode v-model="formData.details.apply_mode" />
           <K8SCityCode v-model="formData.details.city_code" />
-          <K8SClusterName v-model="formData.details.k8s_cluster_name" />
+          <K8SClusterName
+            v-model="formData.details.k8s_cluster_name"
+            :region-code="formData.details.city_code" />
         </DbCard>
         <DbCard :title="t('资源配置')">
           <K8SVersion

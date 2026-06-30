@@ -27,7 +27,9 @@
       :label="t('负载')">
       <slot name="load" />
     </InfoItem>
-    <InfoItem :label="t('容量使用率')">
+    <InfoItem
+      v-if="!clusterType.includes('k8s')"
+      :label="t('容量使用率')">
       <ClusterStats
         :cluster-id="data.id"
         :cluster-type="clusterType" />

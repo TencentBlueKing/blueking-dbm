@@ -28,6 +28,24 @@ export function getAddonVersions(params: { addonType: 'surrealdb' | 'qdrant' }) 
 }
 
 /**
+ * 查询城市信息
+ */
+export function getRegions() {
+  return http.get<
+    {
+      k8sClusterList: {
+        clusterAlias: string;
+        clusterName: string;
+        vpcID: string;
+      }[];
+      provider: string;
+      regionCode: string;
+      regionName: string;
+    }[]
+  >(`${getRootPath()}/get_regions/`);
+}
+
+/**
  * 查询BCS集群信息
  */
 export function getBcsClusters(params: { isPublic: boolean }) {

@@ -141,7 +141,7 @@ export default class QdrantHa extends ClusterBase {
   }
 
   get isOnlineCLB() {
-    return this.cluster_entry.some((item) => item.cluster_entry_type === 'clb');
+    return this.cluster_entry.some((item) => item.cluster_entry_type === 'clbDns');
   }
 
   get isStarting() {
@@ -153,7 +153,7 @@ export default class QdrantHa extends ClusterBase {
   }
 
   get masterDomainDisplayName() {
-    const domainItem = this.cluster_entry.find((item) => item.cluster_entry_type === 'clb');
+    const domainItem = this.cluster_entry.find((item) => item.cluster_entry_type === 'clbDns');
     const displayName = domainItem?.entry || '';
     return displayName;
   }

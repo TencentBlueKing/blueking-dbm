@@ -125,7 +125,18 @@
           :label="t('访问入口')"
           :selected-list="selectedList"
           @go-detail="handleToDetails"
-          @refresh="fetchData" />
+          @refresh="fetchData">
+          <template #append="{ data }">
+            <div
+              v-if="data.isOnlineCLB"
+              class="ml-4">
+              <ClusterEntryPanel
+                :cluster-id="data.id"
+                entry-type="clb"
+                :show-content="false" />
+            </div>
+          </template>
+        </MasterDomainColumn>
       </template>
     </ClusterTable>
     <TableDetailDialog
@@ -150,6 +161,7 @@
 
   import { ClusterTypes, TicketTypes, UserPersonalSettings } from '@common/const';
 
+  import ClusterEntryPanel from '@views/db-manage/common/cluster-entry-panel/Index.vue';
   import ClusterTable, { MasterDomainColumn, OperationColumn } from '@views/db-manage/common/cluster-table/Index.vue';
   import DropdownExportExcel from '@views/db-manage/common/dropdown-export-excel/index.vue';
   import { useK8sClusterRestart, useOperateClusterBasic } from '@views/db-manage/common/hooks';

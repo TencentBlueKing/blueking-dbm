@@ -25,9 +25,9 @@
       :loading="isLoading">
       <BkOption
         v-for="item in bcsClusterList"
-        :key="item"
-        :label="item"
-        :value="item" />
+        :key="item.clusterName"
+        :label="item.clusterName"
+        :value="item.clusterName" />
     </BkSelect>
   </BkFormItem>
 </template>
@@ -38,6 +38,11 @@
 
   import { getBcsClusters } from '@services/source/kubernetesToolbox';
 
+  interface Props {
+    regionCode: string;
+  }
+
+  const props = defineProps<Props>();
   const modelValue = defineModel<string>({
     required: true,
   });
@@ -45,7 +50,7 @@
   const { t } = useI18n();
 
   const bcsClusterList = computed(() => {
-    return (bcsClusterData?.value || []).flatMap((item) => item.k8sClusterList.map((cluster) => cluster.clusterName));
+    return (bcsClusterData?.value || []).find((item) => item.regionCode === props.regionCode)?.k8sClusterList || [];
   });
 
   const { data: bcsClusterData, loading: isLoading } = useRequest(getBcsClusters, {

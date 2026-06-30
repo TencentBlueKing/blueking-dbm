@@ -18,12 +18,14 @@
     :min-width="200"
     :title="t('实例')">
     <template #default="{ row }: { row: IColumnData }">
-      <BkButton
-        text
-        theme="primary"
-        @click="handleInstanceAddressClick(row)">
-        {{ row.podName }}
-      </BkButton>
+      <TextOverflowLayout>
+        <BkButton
+          text
+          theme="primary"
+          @click="handleInstanceAddressClick(row)">
+          {{ row.podName }}
+        </BkButton>
+      </TextOverflowLayout>
       <div>
         <span style="color: #979ba5">{{ row.node }}</span>
         <!-- <BkTag
@@ -50,6 +52,8 @@
   import SurrealdbSingleInstanceModel from '@services/model/surrealdb/surrealdb-single-instance';
 
   import { ClusterTypes } from '@common/const';
+
+  import TextOverflowLayout from '@components/text-overflow-layout/Index.vue';
 
   import useClusterInstanceList from '@views/db-manage/hooks/useClusterInstaceList';
 

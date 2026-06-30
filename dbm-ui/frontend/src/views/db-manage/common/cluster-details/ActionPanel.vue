@@ -310,7 +310,13 @@
       // 部分仪表盘暂时没数据，若请求会报错
       if (
         props.clusterData &&
-        ![ClusterTypes.ORACLE_PRIMARY_STANDBY, ClusterTypes.ORACLE_SINGLE_NONE].includes(props.clusterData.cluster_type)
+        ![
+          ClusterTypes.K8S_QDRANT_HA,
+          ClusterTypes.K8S_SURREALDB_HA,
+          ClusterTypes.K8S_SURREALDB_SINGLE,
+          ClusterTypes.ORACLE_PRIMARY_STANDBY,
+          ClusterTypes.ORACLE_SINGLE_NONE,
+        ].includes(props.clusterData.cluster_type)
       ) {
         fetchMonitorUrls({
           bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,

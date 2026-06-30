@@ -133,7 +133,7 @@
   import { useRequest } from 'vue-request';
 
   import TicketModel, { type SurrealDB } from '@services/model/ticket/ticket';
-  import { getInfrasCities } from '@services/source/infras';
+  import { getRegions } from '@services/source/kubernetesToolbox';
 
   import { TicketTypes } from '@common/const';
 
@@ -154,10 +154,10 @@
 
   const cityName = ref('--');
 
-  useRequest(getInfrasCities, {
+  useRequest(getRegions, {
     onSuccess: (cityList) => {
       const cityCode = props.ticketDetails.details.city_code;
-      const name = cityList.find((item) => item.city_code === cityCode)?.city_name;
+      const name = cityList.find((item) => item.regionCode === cityCode)?.regionName;
       cityName.value = name ?? '--';
     },
   });
