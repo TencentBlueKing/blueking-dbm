@@ -54,6 +54,7 @@
           v-for="(item, index) in formData.tableData"
           :key="index">
           <ClusterColumn
+            :ref="(el: any) => el && (clusterColumnRefs[index] = el)"
             v-model="item.cluster"
             :disable-select-config="{
               handler: (cluster: TendbClusterModel) => cluster.status === 'normal',
@@ -126,11 +127,13 @@
   </SmartAction>
 </template>
 <script lang="ts" setup>
+  import _ from 'lodash';
   import type { ComponentProps } from 'vue-component-type-helpers';
   import { useI18n } from 'vue-i18n';
 
   import TendbClusterModel from '@services/model/tendbcluster/tendbcluster';
   import type { TendbCluster } from '@services/model/ticket/ticket';
+  import type { ClusterListNode } from '@services/types';
 
   import { useCreateTicket, useTicketDetail } from '@hooks';
 
@@ -163,6 +166,7 @@
 
   const { t } = useI18n();
   const tableRef = useTemplateRef('table');
+  const clusterColumnRefs = ref<InstanceType<typeof ClusterColumn>[]>([]);
   const currentBizId = window.PROJECT_CONFIG.BIZ_ID;
 
   const createTableRow = (data: DeepPartial<RowData> = {}) => ({
@@ -269,6 +273,8 @@
           });
         }),
       });
+      await nextTick();
+      clusterColumnRefs.value[0]?.fetchData(formData.tableData);
     },
   });
 
@@ -300,7 +306,7 @@
           return {
             cluster_id: item.cluster.id,
             old_nodes: {
-              proxy: oldHosts.map((host) => ({
+              proxy: oldHosts.map((host: ClusterListNode) => ({
                 bk_cloud_id: host.bk_cloud_id,
                 bk_host_id: host.bk_host_id,
                 ip: host.ip,
@@ -342,6 +348,9 @@
       return acc;
     }, []);
     formData.tableData = [...(selected.value.length ? formData.tableData : []), ...dataList];
+
+    await nextTick();
+    clusterColumnRefs.value[0]?.fetchData(formData.tableData);
   };
 
   const handleBatchInput = async (data: Record<string, any>[], isClear: boolean) => {
@@ -365,15 +374,14 @@
       formData.tableData = [...(formData.tableData[0].cluster.id ? formData.tableData : []), ...dataList];
     }
 
-    setTimeout(() => {
-      tableRef.value?.validate();
-    }, 300);
+    await nextTick();
+    clusterColumnRefs.value[0]?.fetchData(formData.tableData);
   };
 
   const handleBatchEditColumn = (value: any, field: string) => {
     formData.tableData.forEach((rowData) => {
       Object.assign(rowData, {
-        [field]: value,
+        [field]: _.cloneDeep(value),
       });
     });
   };

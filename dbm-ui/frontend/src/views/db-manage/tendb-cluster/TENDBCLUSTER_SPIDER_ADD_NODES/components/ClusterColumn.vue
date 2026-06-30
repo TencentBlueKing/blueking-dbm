@@ -47,11 +47,24 @@
 
   import TendbClusterModel from '@services/model/tendbcluster/tendbcluster';
   import { filterClusters } from '@services/source/dbbase';
+  import type { ClusterListNode } from '@services/types';
 
   import { ClusterTypes, DBTypes } from '@common/const';
   import { domainRegex } from '@common/regex';
 
   import ClusterSelector, { type TabConfig } from '@components/cluster-selector/Index.vue';
+
+  interface ClusterSpecModel {
+    bk_cloud_id: number;
+    id: number;
+    master_domain: string;
+    mnt_count: number;
+    region: string;
+    spider_master: ClusterListNode[];
+    spider_master_spec_list: number[];
+    spider_slave: ClusterListNode[];
+    spider_slave_spec_list: number[];
+  }
 
   interface Props {
     /**
