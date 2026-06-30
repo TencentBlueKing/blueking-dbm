@@ -295,6 +295,7 @@ from backend.flow.views.sqlserver import (
     SqlserverSQLFileExecuteSceneApiView,
     SqlserverStandardizationSceneApiView,
 )
+from backend.flow.views.surrealdb_single_apply import InstallSurrealDBSingleSceneApiView
 from backend.flow.views.tbinlogdumper_add import (
     DisableTBinlogDumperSceneApiView,
     EnableTBinlogDumperSceneApiView,
@@ -655,4 +656,6 @@ urlpatterns = [
     url(r"^scene/disable_k8s_qdrant$", DisableK8sQdrantSceneApiView.as_view()),
     url(r"^scene/delete_k8s_qdrant$", DeleteK8sQdrantSceneApiView.as_view()),
     url(r"^scene/restart_k8s_qdrant$", RestartK8sQdrantSceneApiView.as_view()),
+    # surrealdb single
+    url(r"^scene/install_surrealdb_single$", InstallSurrealDBSingleSceneApiView.as_view()),
 ]
