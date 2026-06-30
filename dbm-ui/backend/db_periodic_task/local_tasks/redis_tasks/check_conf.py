@@ -9,35 +9,32 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 
-import json
 import logging
-from collections import defaultdict
 from dataclasses import asdict, dataclass, field, fields
 from datetime import timedelta
-from typing import List, Optional
+from typing import Dict, List, Optional, Tuple
 
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
 from backend.configuration.constants import SystemSettingsEnum
-from backend.db_meta.enums import ClusterPhase
 from backend.db_meta.models import Cluster
 from backend.db_report.enums.redis_sub_type import RedisCheckSubType
 from backend.db_report.models.redis_check_report import RedisCheckReport
+from backend.flow.plugins.components.collections.redis.conf_check.candidate_selection import (
+    get_candidate_cluster_tuples,
+)
+from backend.flow.plugins.components.collections.redis.conf_check.redis_candidates import (
+    REDIS_CONF_CHECK_CANDIDATES_KEY,
+    REDIS_CONF_CHECK_CANDIDATES_TTL,
+    push_candidate_cluster_ids,
+)
 from backend.flow.plugins.components.collections.redis.conf_check.registry import get_candidate_cluster_types
 from backend.flow.utils.redis.redis_report_utils import RedisReportWriter
 from backend.ticket.models import SystemSettings, TicketType
 from backend.utils.basic import generate_root_id
-from backend.utils.redis import RedisConn
 
 logger = logging.getLogger("root")
-
-
-REDIS_CONF_CHECK_CANDIDATES_KEY = "dbm:redis_conf_check:candidates:{root_id}"
-# TTL for candidates key in Redis (1 hour)
-REDIS_CONF_CHECK_CANDIDATES_TTL = 3600
-# Special field name for metadata in the hash
-REDIS_CONF_CHECK_META_FIELD = "_meta"
 
 # All conf checkers report under one subtype on RedisCheckReport.
 CONF_CHECK_SUBTYPE = RedisCheckSubType.ConfigInconsistent.value
@@ -57,10 +54,15 @@ class RedisConfCheckConfig:
     bk_cloud_ids: Optional[List[int]] = field(default_factory=list)
 
     batch_size: int = 100  # amount of clusters to check each batch in flow
-    batch_interval: int = 10  # sec to wait between batches
-    interval: int = 10  # seconds between polls
-    max_retries: int = 120  # timeout = interval * max_retries
+    batch_interval: int = 10  # seconds to wait between pipeline batches (not job poll interval)
+    interval: int = 10  # seconds between host-job status polls; timeout ~= interval * max_retries
+    max_retries: int = 120
     drs_chunk_size: int = 20  # amount of addresses per DRS redis_rpc call
+    drs_chunks_per_tick: int = 1  # DRS redis_rpc chunks per schedule tick
+    password_batch_size: int = 200  # clusters per get_password call when prefetching passwords
+    # Per-checker overrides of global fields, keyed by checker.name (e.g. "role", "predixy_servers").
+    # predixy_servers: {"ignore_question_ip_in_memory": false} skips memory servers with ip "?".
+    customized: Optional[Dict[str, Dict]] = field(default_factory=dict)
 
     @classmethod
     def from_settings(cls) -> "RedisConfCheckConfig":
@@ -89,19 +91,9 @@ def _get_config() -> RedisConfCheckConfig:
     return RedisConfCheckConfig.from_settings()
 
 
-def _get_candidate_clusters(config: RedisConfCheckConfig) -> List:
-    """Return [(bk_cloud_id, cluster_id), ...] of online clusters of supported types."""
-    query = Cluster.objects.filter(
-        cluster_type__in=config.cluster_types,
-        phase=ClusterPhase.ONLINE,
-    )
-    if config.bizs_ignored:
-        query = query.exclude(bk_biz_id__in=config.bizs_ignored)
-    if config.clusters_ignored:
-        query = query.exclude(id__in=config.clusters_ignored)
-    if config.bk_cloud_ids:
-        query = query.filter(bk_cloud_id__in=config.bk_cloud_ids)
-    return list(query.values_list("bk_cloud_id", "id"))
+def _get_candidate_clusters(config: RedisConfCheckConfig) -> List[Tuple[int, int]]:
+    """Return deduplicated [(bk_cloud_id, cluster_id), ...] across all registered checkers."""
+    return get_candidate_cluster_tuples(config)
 
 
 def check_redis_conf():
@@ -110,7 +102,7 @@ def check_redis_conf():
 
     1. Read configuration from SystemSettings
     2. Select candidate clusters (union of all checkers' cluster types)
-    3. Store candidates in a Redis Hash and trigger RedisConfCheckFlow
+    3. Store candidates in a Redis list and trigger RedisConfCheckFlow
     4. Clean up expired reports
     """
     logger.info(_("Starting Redis conf check"))
@@ -127,30 +119,22 @@ def check_redis_conf():
 
     logger.info(_("Found {} clusters for conf check").format(len(cluster_tuples)))
 
-    cloud_to_clusters = defaultdict(list)
-    for bk_cloud_id, cluster_id in cluster_tuples:
-        cloud_to_clusters[bk_cloud_id].append(cluster_id)
+    candidate_ids = [cluster_id for _bk_cloud_id, cluster_id in cluster_tuples]
+    existing_ids = set(Cluster.objects.filter(id__in=candidate_ids).values_list("id", flat=True))
+    valid_cluster_ids = sorted(cluster_id for cluster_id in candidate_ids if cluster_id in existing_ids)
+    if len(valid_cluster_ids) < len(set(candidate_ids)):
+        logger.warning(
+            _("Skipped {} cluster(s) not found in meta").format(len(set(candidate_ids)) - len(valid_cluster_ids))
+        )
+    if not valid_cluster_ids:
+        logger.info(_("No valid clusters found for conf check"))
+        return
 
     root_id = generate_root_id()
     candidates_key = REDIS_CONF_CHECK_CANDIDATES_KEY.format(root_id=root_id)
     try:
-        hash_data = {
-            str(bk_cloud_id): json.dumps(cluster_ids) for bk_cloud_id, cluster_ids in cloud_to_clusters.items()
-        }
-        hash_data[REDIS_CONF_CHECK_META_FIELD] = json.dumps(
-            {
-                "total_cloud_groups": len(cloud_to_clusters),
-                "total_clusters": len(cluster_tuples),
-                "created_at": root_id,
-            }
-        )
-        RedisConn.hset(candidates_key, mapping=hash_data)
-        RedisConn.expire(candidates_key, REDIS_CONF_CHECK_CANDIDATES_TTL)
-        logger.info(
-            _("Stored {} cloud groups ({} clusters) in Redis Hash: {}").format(
-                len(cloud_to_clusters), len(cluster_tuples), candidates_key
-            )
-        )
+        pushed = push_candidate_cluster_ids(candidates_key, valid_cluster_ids, ttl=REDIS_CONF_CHECK_CANDIDATES_TTL)
+        logger.info(_("Stored {} clusters in Redis list: {}").format(pushed, candidates_key))
     except Exception as e:
         logger.exception(_("Failed to store candidates in Redis: {}").format(str(e)))
         return
@@ -165,6 +149,9 @@ def check_redis_conf():
         "interval": config.interval,
         "max_retries": config.max_retries,
         "drs_chunk_size": config.drs_chunk_size,
+        "drs_chunks_per_tick": config.drs_chunks_per_tick,
+        "password_batch_size": config.password_batch_size,
+        "checker_customized": config.customized or {},
     }
 
     try:
