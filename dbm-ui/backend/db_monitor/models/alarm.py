@@ -506,13 +506,16 @@ class DispatchGroup(AuditedModel):
         user_groups = [NoticeGroup.get_groups(bk_biz_id).get(db_type)]
         # 特殊策略需要独立分派
         dispatch_policies = MonitorPolicy.get_dispatch_policies()
-        if db_type in [DBType.MySQL, DBType.TenDBCluster, DBType.Redis, DBType.Sqlserver]:
+        # 按 cluster_type 维度分派特殊策略，覆盖所有可映射到 cluster_type 的组件
+        # （特殊策略的告警必须上报 cluster_type 维度，否则无法命中分派规则）
+        cluster_types = ClusterType.db_type_to_cluster_types(db_type)
+        if dispatch_policies and cluster_types:
             conditions = [
                 {"field": "alert.strategy_id", "method": "eq", "value": dispatch_policies, "condition": "and"},
                 {
                     "field": "cluster_type",
                     "method": "eq",
-                    "value": ClusterType.db_type_to_cluster_types(db_type),
+                    "value": cluster_types,
                     "condition": "and",
                 },
             ]

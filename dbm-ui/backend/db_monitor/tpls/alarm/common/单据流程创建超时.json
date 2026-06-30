@@ -1,16 +1,16 @@
 {
   "bk_biz_id": 0,
-  "name": "dbha二次探测失败电话告警",
-  "db_type": "cloud",
+  "name": "单据流程创建超时",
+  "db_type": "common",
   "details": {
     "bk_biz_id": "",
-    "name": "dbha二次探测失败电话告警",
+    "name": "单据流程创建超时",
     "source": "dbm",
     "scenario": "component",
     "type": "monitor",
     "items": [
       {
-        "name": "COUNT(dbha_doublecheck_ssh_fail-dbm_report_channel)",
+        "name": "COUNT(ticket-flow-tree-missing-dbm_report_channel)",
         "no_data_config": {
           "level": 2,
           "continuous": 10,
@@ -26,46 +26,45 @@
             "data_source_label": "custom",
             "data_type_label": "event",
             "alias": "a",
-            "metric_id": "custom.event.bkmonitor_event_{event_data_id}.dbha_doublecheck_ssh_fail",
+            "metric_id": "custom.event.bkmonitor_event_{event_data_id}.ticket-flow-tree-missing",
             "functions": [],
             "result_table_id": "bkmonitor_event_{event_data_id}",
             "agg_method": "COUNT",
             "agg_interval": 60,
             "agg_dimension": [
-              "cluster_type",
               "appid",
-              "cluster_domain",
-              "instance_role",
-              "server_ip",
-              "server_port",
-              "machine_type"
+              "ticket_type",
+              "cluster_type",
+              "ticket_id"
             ],
             "agg_condition": [],
-            "custom_event_name": "dbha_doublecheck_ssh_fail",
-            "name": "dbha_doublecheck_ssh_fail"
+            "custom_event_name": "ticket-flow-tree-missing",
+            "query_string": "*",
+            "name": "ticket-flow-tree-missing"
           }
         ],
         "algorithms": [
           {
             "type": "Threshold",
-            "level": 1,
+            "level": 2,
             "config": [
               [
                 {
                   "method": "gte",
-                  "threshold": 1
+                  "threshold": 1.0
                 }
               ]
             ],
             "unit_prefix": ""
           }
         ],
-        "metric_type": "event"
+        "metric_type": "event",
+        "time_delay": 0
       }
     ],
     "detects": [
       {
-        "level": 1,
+        "level": 2,
         "expression": "",
         "trigger_config": {
           "count": 1,
@@ -76,12 +75,13 @@
                 "end": "23:59",
                 "start": "00:00"
               }
-            ]
+            ],
+            "active_calendars": []
           },
-          "check_window": 1
+          "check_window": 5
         },
         "recovery_config": {
-          "check_window": 1,
+          "check_window": 5,
           "status_setter": "recovery"
         },
         "connector": "and"
@@ -89,7 +89,7 @@
     ],
     "actions": [],
     "notice": {
-      "config_id": 117797,
+      "config_id": 12969,
       "user_groups": [],
       "user_type": "main",
       "signal": [
@@ -230,13 +230,12 @@
             "message_tmpl": "{{content.level}}\n{{content.begin_time}}\n{{content.time}}\n{{content.duration}}\n{{content.target_type}}\n{{content.data_source}}\n{{content.content}}\n{{content.current_value}}\n{{content.biz}}\n{{content.target}}\n{{content.dimension}}\n{{content.detail}}\n{{content.assign_detail}}\n通知人:{{alarm.receivers}}\n{{content.related_info}}",
             "title_tmpl": "{{business.bk_biz_name}} - {{alarm.name}}{{alarm.display_type}}"
           }
-        ]
+        ],
+        "voice_notice": "parallel"
       }
     },
     "labels": [
       "DBM",
-      "DBM_CLOUD",
-      "DBM_DBHA",
       "DBM_NEED_DISPATCH",
       "NO_MONITOR_TARGET"
     ],
@@ -246,13 +245,14 @@
     "priority_group_key": "",
     "edit_allowed": true,
     "metric_type": "event",
+    "issue_config": null,
     "data_source_type": "自定义事件",
     "is_enabled": true
   },
   "is_enabled": true,
-  "monitor_indicator": "COUNT(dbha_doublecheck_ssh_fail-dbm_report_channel)",
-  "version": 3,
+  "monitor_indicator": "COUNT(ticket-flow-tree-missing-dbm_report_channel)",
+  "version": 1,
   "alert_source": "event",
   "custom_conditions": [],
-  "export_at": "2024-08-13T15:24:37+08:00"
+  "export_at": "2026-06-30T16:54:52+08:00"
 }

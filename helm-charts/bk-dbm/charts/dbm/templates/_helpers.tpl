@@ -229,3 +229,51 @@ envFrom:
       name: {{ .Values.extraEnvVarsCM }}
   {{- end }}
 {{- end }}
+
+{{/*
+基于内存水位的 livenessProbe：当容器 working_set 内存超过 cgroup limit 的
+指定百分比时，探针失败，触发 k8s 优雅重启（SIGTERM 热关闭 -> 等待terminationGracePeriodSeconds -> 超时 SIGKILL），
+从而回收 celery(threads 池)长生命周期进程累积的内存。脚本对读取失败/未设内存 limit 的场景一律返回健康（exit 0），避免误触发重启。
+*/}}
+{{- define "dbm.memoryLivenessProbe" -}}
+{{- $cfg := .Values.memoryLivenessProbe | default dict -}}
+{{- if $cfg.enabled }}
+livenessProbe:
+  exec:
+    command:
+      - /bin/bash
+      - -c
+      - |
+        ratio={{ $cfg.ratioPercent | default 60 }}
+        usage=0; limit=0; inactive=0
+        if [ -f /sys/fs/cgroup/memory.current ]; then
+          # cgroup v2
+          usage=$(cat /sys/fs/cgroup/memory.current 2>/dev/null || echo 0)
+          limit=$(cat /sys/fs/cgroup/memory.max 2>/dev/null || echo max)
+          [ "$limit" = "max" ] && exit 0
+          inactive=$(awk '/^inactive_file /{print $2}' /sys/fs/cgroup/memory.stat 2>/dev/null)
+        elif [ -f /sys/fs/cgroup/memory/memory.usage_in_bytes ]; then
+          # cgroup v1
+          usage=$(cat /sys/fs/cgroup/memory/memory.usage_in_bytes 2>/dev/null || echo 0)
+          limit=$(cat /sys/fs/cgroup/memory/memory.limit_in_bytes 2>/dev/null || echo 0)
+          inactive=$(awk '/^total_inactive_file /{print $2}' /sys/fs/cgroup/memory/memory.stat 2>/dev/null)
+        else
+          exit 0
+        fi
+        inactive=${inactive:-0}
+        case "$limit" in ''|*[!0-9]*) exit 0;; esac
+        [ "$limit" -le 0 ] && exit 0
+        [ "$limit" -gt 9223372036854770000 ] && exit 0
+        ws=$((usage - inactive))
+        threshold=$((limit * ratio / 100))
+        if [ "$ws" -gt "$threshold" ]; then
+          echo "[mem-liveness] working_set=${ws}B > ${ratio}% of limit(${limit}B)=${threshold}B, trigger warm restart" >&2
+          exit 1
+        fi
+        exit 0
+  initialDelaySeconds: {{ $cfg.initialDelaySeconds | default 120 }}
+  periodSeconds: {{ $cfg.periodSeconds | default 30 }}
+  timeoutSeconds: {{ $cfg.timeoutSeconds | default 10 }}
+  failureThreshold: {{ $cfg.failureThreshold | default 3 }}
+{{- end }}
+{{- end -}}
