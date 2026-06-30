@@ -23,6 +23,7 @@ readonly PROBE_BIN_FILES=(
 
 readonly TOOLKIT_FILES=(
     dbha-cluster
+    dbha-bwmgr
 )
 
 readonly SERVER_SCRIPT_FILES=(
@@ -46,6 +47,8 @@ readonly SERVER_CONF_FILES=(
     admin.yaml
     analysis.yaml
     receiver.yaml
+    cluster.yaml
+    bwmgr.yaml
 )
 
 readonly PROBE_CONF_FILES=(
@@ -64,8 +67,8 @@ usage() {
 Usage: deploy.sh -m <mode> -r <module> -s <source> -t <target> [options]
 
 Modes:
-  install   Full installation (binaries + configs + scripts)
-  update    Update only (binaries + scripts, configs skipped)
+  install   Full installation (binaries + configs + scripts + toolkits + lib)
+  update    Update binaries + toolkits + scripts + lib (configs skipped)
 
 Modules:
   server    Install/update server-side modules (admin/receiver/analysis)
@@ -148,6 +151,16 @@ validate_source() {
 
     if [ ! -f "${src}/lib/guard-utils.sh" ]; then
         error "source missing required lib script: lib/guard-utils.sh"
+    fi
+
+    if [ "${module}" = "${MODULE_SERVER}" ]; then
+        local missing_toolkits=()
+        for f in "${TOOLKIT_FILES[@]}"; do
+            [ -f "${src}/toolkits/${f}" ] || missing_toolkits+=("toolkits/${f}")
+        done
+        if [ ${#missing_toolkits[@]} -gt 0 ]; then
+            error "source missing toolkits: ${missing_toolkits[*]}"
+        fi
     fi
 }
 
@@ -402,6 +415,8 @@ do_install() {
         info "  3. if probe runs on other hosts, set in server rc:"
         info "     PROBE_INSTALL_DIR=<probe install directory>"
         info "     ANALYSIS_DETECTOR_CHECK_PROBE_PROCESS_CMD='cd <probe install directory> && ./bin/dbha-probe health -j'"
+        info "  4. toolkits: ./toolkits/dbha-cluster -c ./etc/cluster.yaml"
+        info "             ./toolkits/dbha-bwmgr -c ./etc/bwmgr.yaml"
     else
         info "  1. configure probe config: edit ${tgt}/etc/probe.yaml"
         info "  2. start probe: ./start-probe.sh"
@@ -452,6 +467,7 @@ do_update() {
         info "if probe runs on other hosts, ensure server rc has:"
         info "  PROBE_INSTALL_DIR=<probe install directory>"
         info "  ANALYSIS_DETECTOR_CHECK_PROBE_PROCESS_CMD='cd <probe install directory> && ./bin/dbha-probe health -j'"
+        info "toolkit binaries updated; etc/cluster.yaml and etc/bwmgr.yaml are not changed by update"
     else
         info "ensure server analysis rc uses probe install path: ${tgt}"
     fi

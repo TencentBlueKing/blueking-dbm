@@ -68,7 +68,7 @@ python3 scripts/render_configs.py --module server \
 - 若已安装 PyYAML，渲染后会做语法校验；可用 `--no-validate-yaml` 跳过。
 
 发布包：
-- server 包（`$(VERSION)-server.tar.gz`）携带 `render_configs.py`、`etc/templates/`、`etc/dbha-v2.server.rc.example`
+- server 包（`$(VERSION)-server.tar.gz`）携带 `render_configs.py`、`etc/templates/`、`etc/dbha-v2.server.rc.example`、`toolkits/dbha-cluster`、`toolkits/dbha-bwmgr`、`etc/cluster.yaml`、`etc/bwmgr.yaml`
 - probe 包（`$(VERSION)-probe.tar.gz`）携带 `render_configs.py`、`etc/templates/`、`etc/dbha-v2.probe.rc.example`
 
 ## deploy.sh
@@ -91,10 +91,13 @@ python3 scripts/render_configs.py --module server \
 
 - `server`:
   - 安装/更新 `dbha-admin`、`dbha-receiver`、`dbha-analysis`
-  - 安装/更新 `admin.yaml`、`receiver.yaml`、`analysis.yaml`
+  - 安装/更新 `admin.yaml`、`receiver.yaml`、`analysis.yaml`（仅 `install` 下发；`update` 跳过）
+  - install 时下发 `etc/cluster.yaml`、`etc/bwmgr.yaml`（toolkit 配置模板）
+  - 安装/更新 `toolkits/dbha-cluster`、`toolkits/dbha-bwmgr`（`install` 与 `update` 均更新二进制）
   - 安装 `setup.sh`、`start-server.sh`、`stop-server.sh`、`deploy.sh`
-  - 处理 `toolkits/`（部署与备份）
+  - 处理 `toolkits/`（部署与 backup）
   - 依赖 `lib/guard-utils.sh`，发布包需包含 `lib/` 目录
+  - **存量环境**：仅执行 `deploy update` 会更新 toolkit 二进制，不会自动新增或覆盖 `etc/cluster.yaml` / `etc/bwmgr.yaml`；需从包内手工复制或在新装时确认覆盖
 - `probe`:
   - 安装/更新 `dbha-probe`
   - 安装/更新 `probe.yaml`

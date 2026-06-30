@@ -26,7 +26,7 @@ make probe      # Build dbha-probe
 make proto
 
 # Build toolkit binaries
-make toolkits   # Builds dbha-cluster
+make toolkits   # Builds dbha-cluster and dbha-bwmgr
 
 # Format code and tidy modules
 make format
@@ -36,7 +36,7 @@ make clean
 
 # Create release packages
 make package              # Build both server and probe packages
-make package-server       # Create server package (admin/analysis/receiver)
+make package-server       # Create server package (services + toolkits + etc templates)
 make package-probe        # Create probe package
 ```
 
@@ -126,7 +126,7 @@ go test -v ./...
 │   └── version/           # Version information
 ├── etc/                    # Configuration templates
 ├── scripts/                # Deployment and setup scripts
-└── tools/                  # Utility binaries (cluster)
+└── tools/                  # Utility binaries (cluster, bwmgr)
 ```
 
 ## Key Patterns
@@ -144,6 +144,7 @@ Each service uses Cobra for CLI commands. The pattern in `cmd/*/main.go`:
 - Use `scripts/render_configs.py` to generate configs from rc files
 - RC examples: `etc/dbha-v2.server.rc.example`, `etc/dbha-v2.probe.rc.example`
 - Runtime configs: `etc/admin.yaml`, `etc/analysis.yaml`, `etc/receiver.yaml`, `etc/probe.yaml`
+- Toolkit configs: `etc/cluster.yaml`, `etc/bwmgr.yaml` (installed under server deployment root)
 
 ### Panic Safety
 

@@ -39,6 +39,18 @@ CGO_ENABLED=0 go build -o dbha-bwmgr ./tools/cmd/bwmgr
 
 ---
 
+### 部署后使用（server 安装目录）
+
+通过 `deploy.sh -m install -r server` 安装后，二进制与配置位于安装根目录：
+
+```bash
+cd /usr/local/dbha-v2
+./toolkits/dbha-bwmgr -c ./etc/bwmgr.yaml list
+./toolkits/dbha-bwmgr -c ./etc/bwmgr.yaml version
+```
+
+仅执行 `deploy update` 会更新 `toolkits/dbha-bwmgr` 二进制，不会自动覆盖 `etc/bwmgr.yaml`。
+
 ## 配置
 
 ### 配置优先级（高 → 低）

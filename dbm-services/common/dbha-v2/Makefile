@@ -75,6 +75,10 @@ PROBE_PKG_NAME  = $(VERSION)-probe.tar.gz
 SERVER_BINS = dbha-admin dbha-analysis dbha-receiver
 PROBE_BINS  = dbha-probe
 
+# server-side toolkit binaries (keep in sync with scripts/deploy.sh TOOLKIT_FILES)
+SERVER_TOOLKITS = dbha-cluster dbha-bwmgr
+SERVER_TOOLKIT_CONFIGS = cluster.yaml bwmgr.yaml
+
 # per-module template/snippet files (relative to etc/templates and
 # etc/templates/snippets respectively)
 SERVER_TEMPLATES = admin.yaml analysis.yaml receiver.yaml
@@ -154,8 +158,7 @@ package-server: admin analysis receiver toolkits
 		$(SERVER_PKG_DIR)/logs $(SERVER_PKG_DIR)/pids \
 		$(SERVER_PKG_DIR)/toolkits
 	@cp $(addprefix $(BUILD_DIR)/,$(SERVER_BINS)) $(SERVER_PKG_DIR)/bin/
-	@cp $(BUILD_DIR)/$(BIN_PREFIX)cluster $(SERVER_PKG_DIR)/toolkits/
-	@cp $(BUILD_DIR)/$(BIN_PREFIX)bwmgr $(SERVER_PKG_DIR)/toolkits/
+	@cp $(addprefix $(BUILD_DIR)/,$(SERVER_TOOLKITS)) $(SERVER_PKG_DIR)/toolkits/
 	@cp $(SERVER_SCRIPTS) $(SERVER_PKG_DIR)/
 	@chmod +x $(SERVER_PKG_DIR)/render_configs.py
 	@mkdir -p $(SERVER_PKG_DIR)/lib
@@ -168,9 +171,7 @@ package-server: admin analysis receiver toolkits
 		$(SERVER_PKG_DIR)/etc/templates/snippets/
 	@cp etc/dbha-v2.server.rc.example \
 		$(SERVER_PKG_DIR)/etc/dbha-v2.server.rc.example
-	@if [ -f etc/bwmgr.yaml ]; then \
-		cp etc/bwmgr.yaml $(SERVER_PKG_DIR)/etc/bwmgr.yaml; \
-	fi
+	@cp $(addprefix etc/,$(SERVER_TOOLKIT_CONFIGS)) $(SERVER_PKG_DIR)/etc/
 	@sed -i 's/__VERSION__/$(VERSION)/g' $(SERVER_PKG_DIR)/setup.sh
 	@cd $(BUILD_DIR) && tar -czf $(SERVER_PKG_NAME) $(PROJECT)-server
 	@rm -rf $(SERVER_PKG_DIR)
@@ -217,7 +218,7 @@ help:
 	@echo "  cluster    - Build cluster toolkit (dbha-cluster)"
 	@echo "  bwmgr      - Build black-white list manager (dbha-bwmgr)"
 	@echo "  package    - Build and create both server and probe release packages"
-	@echo "  package-server - Create server release package ($(VERSION)-server.tar.gz)"
+	@echo "  package-server - Create server release package (services + toolkits + etc templates)"
 	@echo "  package-probe  - Create probe release package ($(VERSION)-probe.tar.gz)"
 	@echo "  format     - Format code and tidy modules"
 	@echo "  test       - Run tests"

@@ -1,6 +1,7 @@
 # DBHA-v2 Change Log
 
 ## v2.0.0-beta.11-unreleased
+- 【新增】server 发布包与 deploy install 完整支持 `dbha-bwmgr`；`etc/cluster.yaml` 纳入 server 包；install 下发 toolkit 配置模板。
 - 【新增】Probe 到 Receiver 的 gRPC 上报链路。
 - 【新增】增加 t_db_switching_snapshot_log 切换快照日志表，并在 Switch 函数切换前与切换后，完善了日志表和本地日志文件的快照数据写入流程。
 - 【修复】mysql sinker 无超时控制导致的探针数据持久化阻塞问题。
