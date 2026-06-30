@@ -11,6 +11,8 @@ specific language governing permissions and limitations under the License.
 import base64
 import logging
 import re
+from collections import defaultdict
+from typing import Dict, List, Optional
 
 from backend import env
 from backend.components import DBConfigApi, DBPrivManagerApi, DRSApi
@@ -35,6 +37,13 @@ apply_list = [
 ]
 
 logger = logging.getLogger("flow")
+
+DEFAULT_REDIS_PASSWORD_BATCH_SIZE = 200
+REDIS_PASSWORD_QUERY_USERS = [
+    {"username": UserName.REDIS_DEFAULT.value, "component": MySQLPrivComponent.REDIS_PROXY_ADMIN.value},
+    {"username": UserName.REDIS_DEFAULT.value, "component": MySQLPrivComponent.REDIS_PROXY.value},
+    {"username": UserName.REDIS_DEFAULT.value, "component": MySQLPrivComponent.REDIS.value},
+]
 
 
 class PayloadHandler(object):
@@ -318,25 +327,9 @@ class PayloadHandler(object):
         }
 
     @staticmethod
-    def redis_get_cluster_password(cluster: Cluster):
-        """
-        获取redis集群的密码
-        - 优先从密码服务中获取
-        - 如果密码服务为空,则从dbconfig中获取
-        """
-        # cluster_port 先全部统一设置为 0,便于DBHA获取密码
-        cluster_port = 0
-        query_params = {
-            "instances": [{"ip": str(cluster.id), "port": cluster_port, "bk_cloud_id": cluster.bk_cloud_id}],
-            "users": [
-                {"username": UserName.REDIS_DEFAULT.value, "component": MySQLPrivComponent.REDIS_PROXY_ADMIN.value},
-                {"username": UserName.REDIS_DEFAULT.value, "component": MySQLPrivComponent.REDIS_PROXY.value},
-                {"username": UserName.REDIS_DEFAULT.value, "component": MySQLPrivComponent.REDIS.value},
-            ],
-        }
-        data = DBPrivManagerApi.get_password(query_params)
+    def _parse_redis_password_items(items: List[Dict]) -> Dict[str, str]:
         ret = {"redis_password": "", "redis_proxy_admin_password": "", "redis_proxy_password": ""}
-        for item in data["items"]:
+        for item in items:
             if (
                 item["username"] == UserName.REDIS_DEFAULT.value
                 and item["component"] == MySQLPrivComponent.REDIS_PROXY_ADMIN.value
@@ -352,11 +345,81 @@ class PayloadHandler(object):
                 and item["component"] == MySQLPrivComponent.REDIS.value
             ):
                 ret["redis_password"] = base64.b64decode(item["password"]).decode("utf-8")
-        if (
-            ret["redis_password"] == ""
-            and ret["redis_proxy_password"] == ""
-            and ret["redis_proxy_admin_password"] == ""
-        ):
+        return ret
+
+    @staticmethod
+    def _redis_passwords_empty(passwords: Dict[str, str]) -> bool:
+        return (
+            passwords["redis_password"] == ""
+            and passwords["redis_proxy_password"] == ""
+            and passwords["redis_proxy_admin_password"] == ""
+        )
+
+    @staticmethod
+    def redis_batch_get_cluster_passwords(
+        clusters: List[Cluster],
+        chunk_size: int = DEFAULT_REDIS_PASSWORD_BATCH_SIZE,
+        errors_out: Optional[Dict[int, str]] = None,
+    ) -> Dict[int, Dict]:
+        """Fetch redis passwords for many clusters via batched get_password calls."""
+        if not clusters:
+            return {}
+
+        chunk_size = max(int(chunk_size or DEFAULT_REDIS_PASSWORD_BATCH_SIZE), 1)
+        password_cache: Dict[int, Dict] = {}
+        for start in range(0, len(clusters), chunk_size):
+            chunk = clusters[start : start + chunk_size]
+            instances = [{"ip": str(cluster.id), "port": 0, "bk_cloud_id": cluster.bk_cloud_id} for cluster in chunk]
+            data = None
+            last_error = None
+            for attempt in range(2):
+                try:
+                    data = DBPrivManagerApi.get_password({"instances": instances, "users": REDIS_PASSWORD_QUERY_USERS})
+                    break
+                except Exception as e:
+                    last_error = e
+                    if attempt == 0:
+                        logger.warning("batch get redis password failed for %s clusters, retrying: %s", len(chunk), e)
+            if data is None:
+                logger.error("batch get redis password failed for %s clusters: %s", len(chunk), last_error)
+                for cluster in chunk:
+                    passwords = PayloadHandler.redis_get_cluster_pass_from_dbconfig(cluster)
+                    password_cache[cluster.id] = passwords
+                    if errors_out is not None and PayloadHandler._redis_passwords_empty(passwords):
+                        errors_out[cluster.id] = str(last_error)
+                continue
+
+            items_by_cluster_id: Dict[int, List[Dict]] = defaultdict(list)
+            for item in data.get("items", []):
+                try:
+                    cluster_id = int(item["ip"])
+                except (KeyError, TypeError, ValueError):
+                    continue
+                items_by_cluster_id[cluster_id].append(item)
+
+            for cluster in chunk:
+                passwords = PayloadHandler._parse_redis_password_items(items_by_cluster_id.get(cluster.id, []))
+                if PayloadHandler._redis_passwords_empty(passwords):
+                    passwords = PayloadHandler.redis_get_cluster_pass_from_dbconfig(cluster)
+                password_cache[cluster.id] = passwords
+        return password_cache
+
+    @staticmethod
+    def redis_get_cluster_password(cluster: Cluster):
+        """
+        获取redis集群的密码
+        - 优先从密码服务中获取
+        - 如果密码服务为空,则从dbconfig中获取
+        """
+        # cluster_port 先全部统一设置为 0,便于DBHA获取密码
+        cluster_port = 0
+        query_params = {
+            "instances": [{"ip": str(cluster.id), "port": cluster_port, "bk_cloud_id": cluster.bk_cloud_id}],
+            "users": REDIS_PASSWORD_QUERY_USERS,
+        }
+        data = DBPrivManagerApi.get_password(query_params)
+        ret = PayloadHandler._parse_redis_password_items(data["items"])
+        if PayloadHandler._redis_passwords_empty(ret):
             # 密码服务为空,从dbconfig中获取
             ret = PayloadHandler.redis_get_cluster_pass_from_dbconfig(cluster)
         return ret

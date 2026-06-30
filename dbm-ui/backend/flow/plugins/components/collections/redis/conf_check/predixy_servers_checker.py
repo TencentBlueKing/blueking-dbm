@@ -14,11 +14,27 @@ from django.utils.translation import gettext as _
 
 from backend.db_meta.enums import ClusterType, InstanceStatus
 from backend.db_report.enums import ReportStateType
-from backend.flow.utils.redis.redis_proxy_util import decode_predixy_info_servers
+from backend.flow.utils.redis.redis_proxy_util import PredixyInfoServer, decode_predixy_info_servers
 from backend.flow.utils.redis.redis_script_template import build_predixy_conf_check_snippet
 
 from .base import BaseConfChecker, CheckTarget, ConfCheckResult
+from .errors import is_host_collection_error
 from .registry import redis_conf_checker
+
+QUESTION_MARK_MEMORY_IP = "?"
+IGNORE_QUESTION_IP_IN_MEMORY_KEY = "ignore_question_ip_in_memory"
+
+
+def _memory_server_ip(server: str) -> str:
+    return server.split(":", 1)[0]
+
+
+def _apply_memory_server_filters(
+    servers: List[PredixyInfoServer], ignore_question_ip_in_memory: bool
+) -> List[PredixyInfoServer]:
+    if not ignore_question_ip_in_memory:
+        return servers
+    return [item for item in servers if _memory_server_ip(item.server) != QUESTION_MARK_MEMORY_IP]
 
 
 @redis_conf_checker
@@ -87,45 +103,65 @@ class PredixyServersChecker(BaseConfChecker):
         return "info servers", "redis_proxy_password"
 
     def evaluate(
-        self, target: CheckTarget, drs_result: Optional[str], host_block: Optional[Dict]
+        self,
+        target: CheckTarget,
+        drs_result: Optional[str],
+        host_block: Optional[Dict],
+        checker_config: Optional[Dict] = None,
+        drs_error: Optional[str] = None,
     ) -> List[ConfCheckResult]:
         """Combine CurrentIsFail + conf drift into a single row per proxy."""
         addr = target.address
+        checker_config = checker_config or {}
+        ignore_question_ip_in_memory = bool(checker_config.get(IGNORE_QUESTION_IP_IN_MEMORY_KEY, False))
 
         if not drs_result:
+            reason = drs_error or "proxy_unreachable_or_empty"
             return [
                 ConfCheckResult(
                     ip=target.ip,
                     port=target.port,
                     state=ReportStateType.ABNORMAL.value,
-                    msg=_("Predixy {} INFO Servers 查询失败(proxy不可达?)").format(addr),
+                    msg=_("Predixy {} INFO Servers 查询失败({})").format(addr, reason),
                 )
             ]
 
-        servers = decode_predixy_info_servers(drs_result)
+        raw_servers = decode_predixy_info_servers(drs_result)
+        if not raw_servers:
+            return [
+                ConfCheckResult(
+                    ip=target.ip,
+                    port=target.port,
+                    state=ReportStateType.ABNORMAL.value,
+                    msg=_("Predixy {} INFO Servers 返回为空(empty_drs_snapshot)").format(addr),
+                )
+            ]
+
+        servers = _apply_memory_server_filters(raw_servers, ignore_question_ip_in_memory)
         in_memory = {s.server for s in servers}
         failed_in_memory = sorted({s.server for s in servers if s.current_is_fail == 1})
         meta_set = set(target.extra.get("meta_servers", []))
 
         issues = []
-        # 1) CurrentIsFail backends -> predixy keeps retrying and floods the error log
         if failed_in_memory:
             issues.append("failed_in_memory={}".format(failed_in_memory))
 
-        # 2) Drift between live servers and the on-disk config file
         if not host_block or "servers" not in host_block:
-            err = host_block.get("error", "no_host_data") if host_block else "no_host_data"
-            issues.append(_("无法读取predixy.conf进行比对({})").format(err))
+            err = host_block.get("error") if host_block else "no_host_data"
+            if err and is_host_collection_error(err):
+                issues.append(_("主机配置采集失败({})").format(err))
+            else:
+                issues.append(_("无法读取predixy.conf进行比对({})").format(err))
         else:
             conf_set = set(host_block["servers"])
             failed_in_conf = sorted(set(failed_in_memory) & conf_set)
             if failed_in_conf:
                 issues.append("failed_in_conf={}".format(failed_in_conf))
 
-            only_in_memory = sorted(in_memory - conf_set)  # live predixy has it, config file does not
-            only_in_conf = sorted(conf_set - in_memory)  # in conf but predixy has no such server -> stale
-            only_in_meta = sorted(meta_set - in_memory - conf_set)  # online storage missing from both views
-            not_in_meta = sorted(conf_set - meta_set)  # conf must also match online cluster storage instances
+            only_in_memory = sorted(in_memory - conf_set)
+            only_in_conf = sorted(conf_set - in_memory)
+            only_in_meta = sorted(meta_set - in_memory - conf_set)
+            not_in_meta = sorted(conf_set - meta_set)
             if only_in_memory or only_in_conf or only_in_meta or not_in_meta:
                 issues.append(
                     "servers_mismatch: only_in_memory={}, only_in_conf={}, only_in_meta={}, not_in_meta={}".format(

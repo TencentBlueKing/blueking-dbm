@@ -13,6 +13,7 @@ import json
 import logging
 import os.path
 import sys
+import tempfile
 import time
 from typing import Any, Callable, Dict, List
 from urllib import parse
@@ -521,21 +522,36 @@ class DataAPI(object):
 
         return result
 
+    @staticmethod
+    def _write_file_atomically(file_path: str, content: str):
+        directory = os.path.dirname(file_path)
+        fd, tmp_path = tempfile.mkstemp(prefix=".{}.".format(os.path.basename(file_path)), dir=directory, text=True)
+        try:
+            with os.fdopen(fd, "w", encoding="utf-8") as f:
+                f.write(content)
+                f.flush()
+                os.fsync(f.fileno())
+            os.replace(tmp_path, file_path)
+        finally:
+            if os.path.exists(tmp_path):
+                os.remove(tmp_path)
+
     def _fetch_client_crt(self):
         client_crt, client_key = f"{CLIENT_CRT_PATH}/{SSLEnum.CLIENT_CRT}", f"{CLIENT_CRT_PATH}/{SSLEnum.CLIENT_KEY}"
-        # 如何证书已存在，则直接返回即可
+        # 如果证书已存在，则直接返回即可
         ssl = SystemSettings.get_setting_value(key=SSL_KEY, default={})
         # 这里需要判断是否本地化以及文件夹是否存在，有可能pod重启导致秘钥文件丢失
-        if ssl and ssl.get("local") and os.path.exists(CLIENT_CRT_PATH):
+        if ssl and ssl.get("local") and os.path.isfile(client_crt) and os.path.isfile(client_key):
             return client_crt, client_key
 
         # 本地写入crt和key文件，防止每次都需要write IO
-        os.makedirs(CLIENT_CRT_PATH)
-        with open(client_crt, "w+") as f:
-            f.write(ssl[SSLEnum.CLIENT_CRT.value])
+        os.makedirs(CLIENT_CRT_PATH, exist_ok=True)
+        # 并发场景下其他请求可能已写完，直接复用磁盘文件，无需再次读库
+        if os.path.isfile(client_crt) and os.path.isfile(client_key):
+            return client_crt, client_key
 
-        with open(client_key, "w+") as f:
-            f.write(ssl[SSLEnum.CLIENT_KEY.value])
+        self._write_file_atomically(client_crt, ssl[SSLEnum.CLIENT_CRT.value])
+        self._write_file_atomically(client_key, ssl[SSLEnum.CLIENT_KEY.value])
 
         # 记录秘钥已经本地化
         ssl["local"] = True

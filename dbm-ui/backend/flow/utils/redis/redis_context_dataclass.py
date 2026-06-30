@@ -230,17 +230,3 @@ class TendisplusLightningContext:
     tendis_backup_info: list = None  # 执行备份后的信息
     ticket_id: int = None  # 代表dts job id,对应表tb_tendis_dts_job
     dst_cluster: str = None  # 代表目标集群
-
-
-@dataclass()
-class RedisConfCheckContext:
-    """
-    Redis conf check context for passing data between components via trans_data.
-
-    Carries the per-host on-host script job infos so the report service can poll
-    them and pull back the conf-file data parsed from each host's log.
-    """
-
-    job_infos: list = field(default_factory=list)  # Per-host job execution info for polling
-    target_infos: list = field(default_factory=list)  # Serialized checker targets shared by collect/report
-    check_metrics: dict = field(default_factory=dict)  # Lightweight counters for troubleshooting overhead

@@ -62,18 +62,24 @@ class RoleChecker(BaseConfChecker):
         return "INFO REPLICATION", "redis_password"
 
     def evaluate(
-        self, target: CheckTarget, drs_result: Optional[str], host_block: Optional[Dict]
+        self,
+        target: CheckTarget,
+        drs_result: Optional[str],
+        host_block: Optional[Dict],
+        checker_config: Optional[Dict] = None,
+        drs_error: Optional[str] = None,
     ) -> List[ConfCheckResult]:
         meta_role = target.extra.get("meta_role", "")
         expected = ROLE_NORMALIZE.get(meta_role, meta_role)
 
         if not drs_result:
+            reason = drs_error or "drs_no_result"
             return [
                 ConfCheckResult(
                     ip=target.ip,
                     port=target.port,
                     state=ReportStateType.ABNORMAL.value,
-                    msg=_("角色检查失败: 无法执行 INFO REPLICATION (meta_role={})").format(meta_role),
+                    msg=_("角色检查失败: 无法执行 INFO REPLICATION (meta_role={}, 原因={})").format(meta_role, reason),
                 )
             ]
 

@@ -58,7 +58,7 @@ class BaseConfChecker(abc.ABC):
        script and delivers a single job per host.
     3. ``drs_request(target)`` -> optional ``(command, password_key)`` describing
        the live-state query issued via ``DRSApi.redis_rpc``.
-    4. ``evaluate(target, drs_result, host_block)`` -> report rows.
+    4. ``evaluate(target, drs_result, host_block, checker_config, drs_error)`` -> report rows.
 
     Adding a new check = subclass this and decorate with ``@redis_conf_checker``.
     """
@@ -100,11 +100,18 @@ class BaseConfChecker(abc.ABC):
 
     @abc.abstractmethod
     def evaluate(
-        self, target: CheckTarget, drs_result: Optional[str], host_block: Optional[Dict]
+        self,
+        target: CheckTarget,
+        drs_result: Optional[str],
+        host_block: Optional[Dict],
+        checker_config: Optional[Dict] = None,
+        drs_error: Optional[str] = None,
     ) -> List[ConfCheckResult]:
         """
         Compare live state (drs_result) and/or on-host config (host_block) against
         the expected state and return report rows. ``drs_result`` is None when the
-        DRS query failed; ``host_block`` is None when no on-host data was collected.
+        DRS query failed (see ``drs_error`` for the reason); ``host_block`` is None
+        or carries ``{"error": reason}`` when no on-host data was collected.
+        ``checker_config`` carries per-checker overrides from REDIS_CONF_CHECK.customized.
         """
         raise NotImplementedError
