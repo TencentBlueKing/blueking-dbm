@@ -1,9 +1,12 @@
 # DBHA-v2 Change Log
 
-## v2.0.0-beta.11-unreleased
-- 【新增】server 发布包与 deploy install 完整支持 `dbha-bwmgr`；`etc/cluster.yaml` 纳入 server 包；install 下发 toolkit 配置模板。
-- 【新增】Probe 到 Receiver 的 gRPC 上报链路。
+## v2.0.0-beta.11
+- 【新增】切换请求的响应结果新增mysql存储主节点切换后的新主信息。
+- 【新增】MySQL 切换成功告警事件补齐与 DBHA v1 兼容的维度字段。
+- 【新增】探针增加对MySQL Proxy 节点 非admin端口的数据采集与探测。
+- 【新增】基于gRPC实现Probe与Receiver之间的数据链路。
 - 【新增】增加 t_db_switching_snapshot_log 切换快照日志表，并在 Switch 函数切换前与切换后，完善了日志表和本地日志文件的快照数据写入流程。
+- 【优化】AM 服务二次探测的指令改为可配置且增加探测指令的安全校验。
 - 【修复】mysql sinker 无超时控制导致的探针数据持久化阻塞问题。
 - 【修复】修复主从复制异常场景下 slave 延迟上报不准确的问题。
 
