@@ -112,3 +112,9 @@ class GetDomainSerializer(BaseProxyPassSerializer):
     cluster_type = serializers.CharField(help_text=_("集群类型"))
     name = serializers.CharField(help_text=_("集群名称"))
     domain = serializers.CharField(help_text=_("域名"))
+
+
+class UpdateClusterStatusSerializer(BaseProxyPassSerializer):
+    cluster_id = serializers.IntegerField(help_text=_("集群ID"))
+    phase = serializers.CharField(help_text=_("集群状态"))
+    status = serializers.CharField(help_text=_("集群状态"))
