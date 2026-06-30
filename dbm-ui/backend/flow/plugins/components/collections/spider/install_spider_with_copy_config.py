@@ -46,20 +46,34 @@ COPY_CONFIG_LIST = [
     "show_json_type",
 ]
 
-# spider1.x不支持的继承配置列表
-SPIDER_1_X_NOT_SUPPORT_CONFIG_LIST = ["show_json_type"]
+# spider1.x 不支持的继承配置列表
+SPIDER_1_X_NOT_SUPPORT_CONFIG_LIST = ["show_json_type", "spider_parallel_limit"]
 
-# spider3.x不支持的继承配置列表
-SPIDER_3_X_NOT_SUPPORT_CONFIG_LIST = []
+# spider3.x 在 3.5.3 之前：show_json_type 与 spider_parallel_limit 均不支持
+SPIDER_3_X_BEFORE_3_5_3_NOT_SUPPORT_CONFIG_LIST = ["show_json_type", "spider_parallel_limit"]
 
-# spider4.x不支持的继承配置列表
+# spider3.x 在 [3.5.3, 3.7.13) 之间：spider_parallel_limit 已支持，show_json_type 仍不支持
+SPIDER_3_X_BEFORE_3_7_13_NOT_SUPPORT_CONFIG_LIST = ["show_json_type"]
+
+# spider3.x 在 [3.7.13, 3.8.0) 之间：全部支持
+SPIDER_3_X_AFTER_3_7_13_NOT_SUPPORT_CONFIG_LIST = []
+
+# spider3.x 在 3.8.0 及以上：show_json_type 再次不支持（3.8.x 移除了该特性）
+SPIDER_3_X_AFTER_3_8_0_NOT_SUPPORT_CONFIG_LIST = ["show_json_type"]
+
+# spider4.x 不支持的继承配置列表
 SPIDER_4_X_NOT_SUPPORT_CONFIG_LIST = []
 
-# spider主版本号与不支持的配置列表映射
+# spider 版本段与不支持的继承配置列表映射
+# key 为 (major_version_no, sub_version_min)，表示「主版本号 + 子版本号下限」组成的版本段起点
+# 同一主版本下若有多段，按子版本下限升序写；运行时取「<= 当前子版本号」的最大下限对应的列表
 MAJOR_VERSION_NOT_SUPPORT_CONFIG_MAP = {
-    1000000: SPIDER_1_X_NOT_SUPPORT_CONFIG_LIST,
-    3000000: SPIDER_3_X_NOT_SUPPORT_CONFIG_LIST,
-    4000000: SPIDER_4_X_NOT_SUPPORT_CONFIG_LIST,
+    (1000000, 0): SPIDER_1_X_NOT_SUPPORT_CONFIG_LIST,
+    (3000000, 0): SPIDER_3_X_BEFORE_3_5_3_NOT_SUPPORT_CONFIG_LIST,
+    (3000000, 5003): SPIDER_3_X_BEFORE_3_7_13_NOT_SUPPORT_CONFIG_LIST,
+    (3000000, 7013): SPIDER_3_X_AFTER_3_7_13_NOT_SUPPORT_CONFIG_LIST,
+    (3000000, 8000): SPIDER_3_X_AFTER_3_8_0_NOT_SUPPORT_CONFIG_LIST,
+    (4000000, 0): SPIDER_4_X_NOT_SUPPORT_CONFIG_LIST,
 }
 
 
@@ -95,8 +109,9 @@ class InstallSpiderWithCopyConfigService(ExecuteDBActuatorScriptService):
         Raises:
             Exception: DRS 查询失败或返回结果中缺少 COPY_CONFIG_LIST 中定义的变量时抛出
         """
-        # 获取主版本号信息
-        major_version_no, __ = spider_major_version_parse(target_spider_pkg_name, True)
+        # 获取主版本号、子版本号信息
+        # 例：mariadb-11.4.2-linux-x86_64-tspider-3.7.13.tar.gz -> (3000000, 7013)
+        major_version_no, sub_version_no = spider_major_version_parse(target_spider_pkg_name, True)
         spider_core_runtime_config = {}
         # 拼装 SQL，查询 COPY_CONFIG_LIST 中定义的全局变量
         sql = "show global variables where Variable_name in ({})".format(
@@ -127,7 +142,17 @@ class InstallSpiderWithCopyConfigService(ExecuteDBActuatorScriptService):
             self.log_warning(_("{} 源实例查询不到的需要继承的配置变量有: {}".format(spider.ip_port, ", ".join(sorted(missing_keys)))))
 
         # 计算目标spider的版本信息，获取到对应的不支持的继承配置列表
-        not_support_config_list = MAJOR_VERSION_NOT_SUPPORT_CONFIG_MAP.get(major_version_no, [])
+        # 在 MAJOR_VERSION_NOT_SUPPORT_CONFIG_MAP 中筛选出主版本号一致、且子版本号下限 <= 当前子版本号的所有版本段，
+        # 取「子版本号下限最大」的一段对应的不支持列表，即当前版本所在的版本段（若无匹配则返回空列表）
+        matched_segment = max(
+            (
+                (sub_min, not_support)
+                for (major, sub_min), not_support in MAJOR_VERSION_NOT_SUPPORT_CONFIG_MAP.items()
+                if major == major_version_no and sub_min <= sub_version_no
+            ),
+            default=(0, []),
+        )
+        not_support_config_list = matched_segment[1]
         self.log_info(
             _(
                 "{} 新安装的spider版本[{}]不支持继承配置有: {}".format(
