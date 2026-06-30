@@ -39,6 +39,7 @@ export type ISupportClusterType =
   | ClusterTypes.ORACLE_SINGLE_NONE
   | ClusterTypes.PREDIXY_REDIS_CLUSTER
   | ClusterTypes.PREDIXY_TENDISPLUS_CLUSTER
+  | ClusterTypes.PREDIXY_TENDISPLUS_INSTANCE
   | ClusterTypes.TWEMPROXY_TENDIS_SSD_INSTANCE
   | ClusterTypes.REDIS_INSTANCE
   | ClusterTypes.TWEMPROXY_REDIS_INSTANCE
@@ -61,6 +62,7 @@ export interface ClusterTypeRelateClusterModelDetail {
   // [ClusterTypes.REDIS]: RedisModelDetail;
   [ClusterTypes.PREDIXY_REDIS_CLUSTER]: RedisModelDetail;
   [ClusterTypes.PREDIXY_TENDISPLUS_CLUSTER]: RedisModelDetail;
+  [ClusterTypes.PREDIXY_TENDISPLUS_INSTANCE]: RedisModelDetail;
   [ClusterTypes.PULSAR]: PulsarModelDetail;
   [ClusterTypes.REDIS_INSTANCE]: RedisModelDetail;
   [ClusterTypes.REDIS_INSTANCE]: RedisModelDetail;

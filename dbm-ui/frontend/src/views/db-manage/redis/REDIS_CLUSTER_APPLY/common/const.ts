@@ -1,3 +1,4 @@
+/* eslint-disable perfectionist/sort-objects */
 /*
  * TencentBlueKing is pleased to support the open source community by making 蓝鲸智云-DB管理系统(BlueKing-BK-DBM) available.
  *
@@ -44,18 +45,26 @@ export const redisClusterTypes = {
       title: 'TendisCache',
     },
   },
-  // eslint-disable-next-line perfectionist/sort-objects
   [ClusterTypes.PREDIXY_TENDISPLUS_CLUSTER]: {
     id: ClusterTypes.PREDIXY_TENDISPLUS_CLUSTER,
     image: TendisplusImg,
-    text: 'Tendisplus',
+    text: t('TendisPlus 集群版'),
     tipContent: {
       desc: t('Tendisplus_TendisSSD的升级版本_完全兼容RedisCluster'),
       img: TendisplusImg,
-      title: 'Tendisplus',
+      title: t('TendisPlus 集群版'),
     },
   },
-  // eslint-disable-next-line perfectionist/sort-objects
+  [ClusterTypes.PREDIXY_TENDISPLUS_INSTANCE]: {
+    id: ClusterTypes.PREDIXY_TENDISPLUS_INSTANCE,
+    image: TendisplusImg,
+    text: t('TendisPlus 标准版'),
+    tipContent: {
+      desc: t('Tendisplus_TendisSSD的升级版本_完全兼容RedisCluster'),
+      img: TendisplusImg,
+      title: t('TendisPlus 标准版'),
+    },
+  },
   [ClusterTypes.PREDIXY_REDIS_CLUSTER]: {
     id: ClusterTypes.PREDIXY_REDIS_CLUSTER,
     image: TendisClusterImg,

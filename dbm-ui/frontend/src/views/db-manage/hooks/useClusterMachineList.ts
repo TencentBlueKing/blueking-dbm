@@ -27,6 +27,7 @@ const dataSourceMap = {
   [ClusterTypes.ORACLE_SINGLE_NONE]: getOracleSingleMachineList,
   [ClusterTypes.PREDIXY_REDIS_CLUSTER]: getRedisMachineList,
   [ClusterTypes.PREDIXY_TENDISPLUS_CLUSTER]: getRedisMachineList,
+  [ClusterTypes.PREDIXY_TENDISPLUS_INSTANCE]: getRedisMachineList,
   [ClusterTypes.PULSAR]: getPulsarMachineList,
   // [ClusterTypes.REDIS_CLUSTER]: getRedisMachineList,
   [ClusterTypes.REDIS_INSTANCE]: getRedisMachineList,

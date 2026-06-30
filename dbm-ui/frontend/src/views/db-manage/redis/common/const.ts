@@ -110,6 +110,7 @@ export const repairAndVerifyTypeList = [
 export const QueryKeyMap: Record<string, string> = {
   [ClusterTypes.PREDIXY_REDIS_CLUSTER]: 'redis',
   [ClusterTypes.PREDIXY_TENDISPLUS_CLUSTER]: 'tendisplus',
+  [ClusterTypes.PREDIXY_TENDISPLUS_INSTANCE]: 'tendisplus',
   [ClusterTypes.REDIS_INSTANCE]: 'redis',
   [ClusterTypes.TWEMPROXY_REDIS_INSTANCE]: 'redis',
   [ClusterTypes.TWEMPROXY_TENDIS_SSD_INSTANCE]: 'tendisssd',
@@ -119,6 +120,7 @@ export const QueryKeyMap: Record<string, string> = {
 export const specClusterMachineMap: Record<string, MachineTypes> = {
   [ClusterTypes.PREDIXY_REDIS_CLUSTER]: MachineTypes.REDIS_TENDIS_CACHE,
   [ClusterTypes.PREDIXY_TENDISPLUS_CLUSTER]: MachineTypes.REDIS_TENDIS_PLUS,
+  [ClusterTypes.PREDIXY_TENDISPLUS_INSTANCE]: MachineTypes.REDIS_TENDIS_PLUS,
   [ClusterTypes.REDIS_INSTANCE]: MachineTypes.REDIS_TENDIS_CACHE,
   [ClusterTypes.TWEMPROXY_REDIS_INSTANCE]: MachineTypes.REDIS_TENDIS_CACHE,
   [ClusterTypes.TWEMPROXY_TENDIS_SSD_INSTANCE]: MachineTypes.REDIS_TENDIS_SSD,

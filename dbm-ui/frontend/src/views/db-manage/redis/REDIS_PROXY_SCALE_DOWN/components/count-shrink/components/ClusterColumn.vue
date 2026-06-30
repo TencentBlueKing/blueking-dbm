@@ -49,7 +49,7 @@
   import { filterClusters } from '@services/source/dbbase';
   import { getRedisList } from '@services/source/redis';
 
-  import { ClusterTypes, DBTypes } from '@common/const';
+  import { clusterRedisTypeList, ClusterTypes, DBTypes } from '@common/const';
   import { domainRegex } from '@common/regex';
 
   import ClusterSelector, { type TabConfig } from '@components/cluster-selector/Index.vue';
@@ -93,12 +93,7 @@
       ],
       getResourceList: (params: ServiceParameters<typeof getRedisList>) =>
         getRedisList({
-          cluster_type: [
-            ClusterTypes.TWEMPROXY_REDIS_INSTANCE,
-            ClusterTypes.PREDIXY_TENDISPLUS_CLUSTER,
-            ClusterTypes.TWEMPROXY_TENDIS_SSD_INSTANCE,
-            ClusterTypes.PREDIXY_REDIS_CLUSTER,
-          ].join(','),
+          cluster_type: clusterRedisTypeList.join(','),
           ...params,
         }),
     },
@@ -166,12 +161,7 @@
       if (!modelValue.value.id && modelValue.value.master_domain) {
         queryCluster({
           bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
-          cluster_type: [
-            ClusterTypes.TWEMPROXY_REDIS_INSTANCE,
-            ClusterTypes.PREDIXY_TENDISPLUS_CLUSTER,
-            ClusterTypes.TWEMPROXY_TENDIS_SSD_INSTANCE,
-            ClusterTypes.PREDIXY_REDIS_CLUSTER,
-          ].join(','),
+          cluster_type: clusterRedisTypeList.join(','),
           db_type: DBTypes.REDIS,
           exact_domain: modelValue.value.master_domain,
         });

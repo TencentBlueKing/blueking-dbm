@@ -29,7 +29,7 @@
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
 
-  import { ClusterTypes } from '@common/const';
+  import { clusterRedisTypeList, clusterTypeInfos } from '@common/const';
 
   interface Props {
     cluster: {
@@ -44,24 +44,11 @@
 
   const { t } = useI18n();
 
-  const typeList = [
-    {
-      label: 'TendisCache',
-      value: ClusterTypes.TWEMPROXY_REDIS_INSTANCE,
-    },
-    {
-      label: 'TendisSSD',
-      value: ClusterTypes.TWEMPROXY_TENDIS_SSD_INSTANCE,
-    },
-    {
-      label: 'Tendisplus',
-      value: ClusterTypes.PREDIXY_TENDISPLUS_CLUSTER,
-    },
-    {
-      label: 'RedisCluster',
-      value: ClusterTypes.PREDIXY_REDIS_CLUSTER,
-    },
-  ];
+  //  TODO REDIS
+  const typeList = clusterRedisTypeList.map((item) => ({
+    label: clusterTypeInfos[item].name,
+    value: item,
+  }));
 
   const selectList = computed(() => typeList.filter((item) => item.value !== props.cluster.cluster_type));
 </script>

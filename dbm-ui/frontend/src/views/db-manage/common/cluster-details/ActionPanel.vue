@@ -239,8 +239,8 @@
     [ClusterTypes.ORACLE_PRIMARY_STANDBY]: OracleHaModel;
     [ClusterTypes.ORACLE_SINGLE_NONE]: OracleSingleModel;
     [ClusterTypes.PREDIXY_REDIS_CLUSTER]: RedisModel;
-    [ClusterTypes.PREDIXY_REDIS_CLUSTER]: RedisModel;
     [ClusterTypes.PREDIXY_TENDISPLUS_CLUSTER]: RedisModel;
+    [ClusterTypes.PREDIXY_TENDISPLUS_INSTANCE]: RedisModel;
     [ClusterTypes.PULSAR]: PulsarModel;
     // [ClusterTypes.REDIS_CLUSTER]: RedisModel;
     [ClusterTypes.REDIS_INSTANCE]: RedisModel;

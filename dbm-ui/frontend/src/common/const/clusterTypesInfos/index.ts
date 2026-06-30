@@ -48,3 +48,14 @@ export const clusterTypeInfos = {
 } as RequiredInfoType;
 
 export type ClusterTypeInfos = keyof typeof clusterTypeInfos;
+
+/**
+ * redis 集群版对应架构类型
+ */
+export const clusterRedisTypeList = [
+  ClusterTypes.TWEMPROXY_REDIS_INSTANCE,
+  ClusterTypes.PREDIXY_TENDISPLUS_CLUSTER,
+  ClusterTypes.PREDIXY_TENDISPLUS_INSTANCE,
+  ClusterTypes.TWEMPROXY_TENDIS_SSD_INSTANCE,
+  ClusterTypes.PREDIXY_REDIS_CLUSTER,
+];
