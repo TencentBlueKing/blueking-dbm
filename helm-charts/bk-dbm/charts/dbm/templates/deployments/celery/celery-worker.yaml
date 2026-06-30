@@ -46,6 +46,7 @@ spec:
           {{- include "dbm.container_env" . | nindent 10 }}
           resources:
             {{- toYaml .Values.saas.celeryWorker.resources | nindent 12 }}
+          {{- include "dbm.memoryLivenessProbe" . | nindent 10 }}
       {{- include "dbm.initContainersWaitForMigrate" . | nindent 6 }}
       {{- with .Values.nodeSelector }}
       nodeSelector:

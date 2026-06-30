@@ -27,6 +27,7 @@ from backend.configuration.constants import PLAT_BIZ_ID, DBType, SystemSettingsE
 from backend.configuration.models import DBAdministrator, SystemSettings
 from backend.core.notify.constants import MsgType
 from backend.core.notify.handlers import BkChatHandler, CmsiHandler
+from backend.db_meta.enums import ClusterType
 from backend.db_meta.models import Cluster
 from backend.db_monitor.constants import MONITOR_EVENTS, MonitorEventType
 from backend.db_monitor.dataclass import BaseEventBody, MonitorEvent
@@ -318,14 +319,21 @@ def scan_running_tickets_and_alert():
                 continue
 
             if not FlowTree.objects.filter(uid=str(ticket.id)).exists():
+                # 构造告警内容
                 alert_content = (
                     f"单据流程树创建超时 | "
                     f"业务ID: {ticket.bk_biz_id}, "
                     f"单据类型: {ticket.ticket_type}, "
+                    f"组件类型: {ticket.group}, "
                     f"单据ID: {ticket.id}, "
                     f"流程最后更新时间已超过10分钟。"
                 )
                 logger.info(alert_content)
+
+                # 增加cluster type维度，主要是匹配告警分派规则
+                cluster_types = ClusterType.db_type_to_cluster_types(ticket.group)
+                cluster_type = cluster_types[0] if cluster_types else ""
+                # 发送告警事件
                 BKMonitorV3EventApi.send_event(
                     events=[
                         MonitorEvent(
@@ -336,6 +344,7 @@ def scan_running_tickets_and_alert():
                                 "appid": ticket.bk_biz_id,
                                 "ticket_type": ticket.ticket_type,
                                 "ticket_id": ticket.id,
+                                "cluster_type": cluster_type,
                             },
                             timestamp=0,
                         )

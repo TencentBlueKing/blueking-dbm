@@ -99,7 +99,16 @@ dbm:
 
   terminationGracePeriodSeconds:
     worker: 3600
-    schedule: 300
+    schedule: 600
+
+  ## celery(threads 池) worker 内存水位优雅重启探针
+  memoryLivenessProbe:
+    enabled: true
+    ratioPercent: 60
+    initialDelaySeconds: 120
+    periodSeconds: 30
+    timeoutSeconds: 10
+    failureThreshold: 3
 
   serviceAccount:
     # Specifies whether a service account should be created
