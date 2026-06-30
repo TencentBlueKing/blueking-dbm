@@ -44,6 +44,8 @@ func init() {
 	loadLogicalCmd.Flags().StringP("password", "p", "", "User password, overwrite LogicalLoad.MysqlPasswd")
 	loadLogicalCmd.Flags().String("charset", "", "User password, overwrite LogicalLoad.MysqlCharset")
 	loadLogicalCmd.Flags().String("init-command", "", "Init command for conneciton, overwrite LogicalLoad.InitCommand")
+	loadLogicalCmd.Flags().Bool("schema-only", false, "only import schema/post/trigger")
+	loadLogicalCmd.Flags().Bool("data-only", false, "only import data, ignore schema")
 
 	viper.BindPFlag("LogicalLoad.MysqlHost", loadLogicalCmd.Flags().Lookup("host"))
 	viper.BindPFlag("LogicalLoad.MysqlPort", loadLogicalCmd.Flags().Lookup("port"))
@@ -51,6 +53,8 @@ func init() {
 	viper.BindPFlag("LogicalLoad.MysqlPasswd", loadLogicalCmd.Flags().Lookup("password"))
 	viper.BindPFlag("LogicalLoad.MysqlCharset", loadLogicalCmd.Flags().Lookup("charset"))
 	viper.BindPFlag("LogicalLoad.InitCommand", loadLogicalCmd.Flags().Lookup("init-command"))
+	viper.BindPFlag("LogicalLoad.SchemaOnly", loadLogicalCmd.Flags().Lookup("schema-only"))
+	viper.BindPFlag("LogicalLoad.DataOnly", loadLogicalCmd.Flags().Lookup("data-only"))
 
 	// Control options
 	loadLogicalCmd.Flags().Bool("enable-binlog", true, "overwrite LogicalLoad.EnableBinlog, "+
