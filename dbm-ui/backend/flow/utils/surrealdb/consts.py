@@ -19,6 +19,10 @@ STORAGE_ADDON_TYPE = "surrealdb"
 SINGLE_TOPO_NAME = "surreal-rocksdb"
 SINGLE_TAGS = ["dbm", "surrealdb", "single"]
 
+# HA 版本常量
+HA_TOPO_NAME = "surreal-tikv"
+HA_TAGS = ["dbm", "surrealdb", "ha"]
+
 # 组件名（与 dbs 约定的 componentName 一致）
 COMPONENT_SURREAL = "surreal"
 
