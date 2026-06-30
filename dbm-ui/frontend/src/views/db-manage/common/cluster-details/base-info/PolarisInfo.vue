@@ -22,6 +22,7 @@
       | ClusterTypes.REDIS_INSTANCE
       | ClusterTypes.PREDIXY_REDIS_CLUSTER
       | ClusterTypes.PREDIXY_TENDISPLUS_CLUSTER
+      | ClusterTypes.PREDIXY_TENDISPLUS_INSTANCE
       | ClusterTypes.TWEMPROXY_REDIS_INSTANCE
       | ClusterTypes.TWEMPROXY_TENDIS_SSD_INSTANCE
   ">

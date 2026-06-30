@@ -130,7 +130,7 @@
 
   import { useUserProfile } from '@stores';
 
-  import { ClusterTypes } from '@common/const';
+  import { clusterRedisTypeList, ClusterTypes } from '@common/const';
 
   import RenderBindIps from './components/RenderBindIps.vue';
 
@@ -185,14 +185,7 @@
   const tableData = ref<ClusterEntryInfo[]>([]);
 
   const accessEntryDbConsole = computed(() => {
-    if (
-      [
-        ClusterTypes.PREDIXY_REDIS_CLUSTER,
-        ClusterTypes.PREDIXY_TENDISPLUS_CLUSTER,
-        ClusterTypes.TWEMPROXY_REDIS_INSTANCE,
-        ClusterTypes.TWEMPROXY_TENDIS_SSD_INSTANCE,
-      ].includes(props.data.cluster_type)
-    ) {
+    if (clusterRedisTypeList.includes(props.data.cluster_type)) {
       return dbConsoleMap[ClusterTypes.REDIS];
     }
     return dbConsoleMap[props.data.cluster_type as keyof typeof dbConsoleMap] || false;

@@ -412,7 +412,7 @@
 
   import { useClusterColumnFilter, useClusterQuickSearch, useTableSettings } from '@hooks';
 
-  import { ClusterTypes, DBTypes, TicketTypes, UserPersonalSettings } from '@common/const';
+  import { clusterRedisTypeList, ClusterTypes, DBTypes, TicketTypes, UserPersonalSettings } from '@common/const';
 
   import TagBlock from '@components/tag-block/Index.vue';
 
@@ -443,12 +443,7 @@
   const dataSource = (params: ServiceParameters<typeof getRedisList>) =>
     getRedisList({
       ...params,
-      cluster_type: [
-        ClusterTypes.TWEMPROXY_REDIS_INSTANCE,
-        ClusterTypes.PREDIXY_TENDISPLUS_CLUSTER,
-        ClusterTypes.TWEMPROXY_TENDIS_SSD_INSTANCE,
-        ClusterTypes.PREDIXY_REDIS_CLUSTER,
-      ].join(','),
+      cluster_type: clusterRedisTypeList.join(','),
     });
 
   const { t } = useI18n();
@@ -458,12 +453,7 @@
   const { data: columnFilter } = useClusterColumnFilter({
     cluster_type: ClusterTypes.REDIS,
   });
-  const { isSearching, quickSearchData, searchValue } = useClusterQuickSearch([
-    ClusterTypes.TWEMPROXY_REDIS_INSTANCE,
-    ClusterTypes.PREDIXY_TENDISPLUS_CLUSTER,
-    ClusterTypes.TWEMPROXY_TENDIS_SSD_INSTANCE,
-    ClusterTypes.PREDIXY_REDIS_CLUSTER,
-  ]);
+  const { isSearching, quickSearchData, searchValue } = useClusterQuickSearch(clusterRedisTypeList);
   const { handleDeleteCluster, handleDisableCluster, handleEnableCluster } = useOperateClusterBasic(
     ClusterTypes.REDIS,
     {

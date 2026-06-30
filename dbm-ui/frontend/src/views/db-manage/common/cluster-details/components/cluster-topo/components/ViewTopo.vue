@@ -121,6 +121,7 @@
     [ClusterTypes.ORACLE_SINGLE_NONE]: getOracleSingleClusterTopoGraph,
     [ClusterTypes.PREDIXY_REDIS_CLUSTER]: getRedisTopoGraph,
     [ClusterTypes.PREDIXY_TENDISPLUS_CLUSTER]: getRedisTopoGraph,
+    [ClusterTypes.PREDIXY_TENDISPLUS_INSTANCE]: getRedisTopoGraph,
     [ClusterTypes.PULSAR]: getPulsarTopoGraph,
     [ClusterTypes.REDIS_INSTANCE]: getRedisTopoGraph,
     [ClusterTypes.RIAK]: getRiakTopoGraph,

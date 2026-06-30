@@ -15,6 +15,7 @@ export type AddonsFunctions = 'redis_nameservice';
 export type MySQLFunctions = 'toolbox' | 'tendbsingle' | 'tendbha' | 'tendbcluster' | 'tendbcluster_toolbox';
 export type RedisFunctions =
   | 'PredixyTendisplusCluster'
+  | 'PredixyTendisplusInstance'
   | 'TwemproxyRedisInstance'
   | 'TwemproxyTendisSSDInstance'
   | 'PredixyRedisCluster'

@@ -6,7 +6,7 @@ import { queryBizClusterAttrs } from '@services/source/dbbase';
 import { listTag } from '@services/source/tag';
 import { getUserList } from '@services/source/user';
 
-import { clusterTypeInfos, ClusterTypes } from '@common/const';
+import { clusterRedisTypeList, clusterTypeInfos, ClusterTypes } from '@common/const';
 
 import DatetimeRange from '@components/db-table/components/DatetimeRange.vue';
 import MultCascader from '@components/db-table/components/MultCascader.vue';
@@ -14,13 +14,6 @@ import MultipleInput from '@components/db-table/components/MultipleInput.vue';
 import MultipleSelect from '@components/db-table/components/MultipleSelect.vue';
 
 import { t } from '@/locales';
-
-const clusterRedisTypeList = [
-  ClusterTypes.TWEMPROXY_REDIS_INSTANCE,
-  ClusterTypes.PREDIXY_TENDISPLUS_CLUSTER,
-  ClusterTypes.TWEMPROXY_TENDIS_SSD_INSTANCE,
-  ClusterTypes.PREDIXY_REDIS_CLUSTER,
-];
 
 const baseFilter = {
   cluster_ids: {

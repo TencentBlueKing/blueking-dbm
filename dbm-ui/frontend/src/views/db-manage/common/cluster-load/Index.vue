@@ -34,7 +34,7 @@
 
   import { queryClusterLoad } from '@services/source/dbbase';
 
-  import { ClusterLoad, ClusterTypes } from '@common/const';
+  import { ClusterLoad, clusterRedisTypeList, ClusterTypes } from '@common/const';
 
   interface Props {
     clusterType: string;
@@ -98,15 +98,7 @@
       defaultParams: [
         {
           bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
-          cluster_type:
-            props.clusterType === ClusterTypes.REDIS
-              ? [
-                  ClusterTypes.TWEMPROXY_REDIS_INSTANCE,
-                  ClusterTypes.PREDIXY_TENDISPLUS_CLUSTER,
-                  ClusterTypes.TWEMPROXY_TENDIS_SSD_INSTANCE,
-                  ClusterTypes.PREDIXY_REDIS_CLUSTER,
-                ].join(',')
-              : props.clusterType,
+          cluster_type: props.clusterType === ClusterTypes.REDIS ? clusterRedisTypeList.join(',') : props.clusterType,
         },
       ],
       // pollingInterval: 10 * 1000,

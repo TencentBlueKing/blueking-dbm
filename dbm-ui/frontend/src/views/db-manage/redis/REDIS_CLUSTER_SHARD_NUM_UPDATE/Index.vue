@@ -334,6 +334,7 @@
   const tabListConfig = {
     [ClusterTypes.REDIS]: {
       getResourceList: (params: ServiceParameters<typeof getRedisList>) =>
+        // 暂不支持 TendisPlus 标准版
         getRedisList({
           cluster_type: [
             ClusterTypes.TWEMPROXY_REDIS_INSTANCE,

@@ -53,7 +53,7 @@
 
   import { useTicketDetail } from '@hooks';
 
-  import { ClusterTypes, TicketTypes } from '@common/const';
+  import { clusterRedisTypeList, ClusterTypes, TicketTypes } from '@common/const';
 
   import { type IValue, type PanelListType } from '@components/instance-selector/Index.vue';
 
@@ -169,12 +169,7 @@
           getTopoList: (params: ServiceParameters<typeof getRedisClusterList>) =>
             getRedisClusterList({
               ...params,
-              cluster_type: [
-                ClusterTypes.TWEMPROXY_REDIS_INSTANCE,
-                ClusterTypes.PREDIXY_REDIS_CLUSTER,
-                ClusterTypes.PREDIXY_TENDISPLUS_CLUSTER,
-                ClusterTypes.TWEMPROXY_TENDIS_SSD_INSTANCE,
-              ].join(','),
+              cluster_type: clusterRedisTypeList.join(','),
             }),
           totalCountFunc: (dataList: RedisModel[]) => {
             const ipSet = new Set<string>();
