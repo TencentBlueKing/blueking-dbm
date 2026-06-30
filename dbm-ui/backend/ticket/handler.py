@@ -26,7 +26,9 @@ from backend import env
 from backend.components import ItsmApi
 from backend.configuration.constants import PLAT_BIZ_ID, SystemSettingsEnum
 from backend.configuration.models import SystemSettings
-from backend.db_meta.models import Cluster
+from backend.db_meta.enums import ClusterEntryType, ClusterType
+from backend.db_meta.models import Cluster, ClusterEntry
+from backend.db_meta.models.db_module import DBModule
 from backend.db_services.ipchooser.handlers.host_handler import HostHandler
 from backend.ticket.builders import BuilderFactory
 from backend.ticket.builders.common.base import fetch_cluster_ids, fetch_instance_ids
@@ -41,7 +43,7 @@ from backend.ticket.constants import (
     TicketType,
     TodoType,
 )
-from backend.ticket.exceptions import TicketFlowsConfigException
+from backend.ticket.exceptions import AppBaseException, TicketFlowsConfigException
 from backend.ticket.flow_manager.manager import TicketFlowManager
 from backend.ticket.models import Flow, Ticket, TicketFlowsConfig, Todo
 from backend.ticket.todos import TodoActionType, TodoActorFactory
@@ -519,3 +521,67 @@ class TicketHandler:
             flow_desc_list.append(flow_config_info)
 
         return flow_desc_list
+
+
+class CheckDomainRepeatHandler:
+    def __init__(self, cluster_type):
+        self.cluster_type = cluster_type
+
+    def get_has_model_domain(self, db_module_id, domains, db_app_abbr):
+        """
+        db_app_abbr 的值如果没有就按biz-{bk_biz_id}传
+        """
+        domain_info = []
+        db_module = DBModule.objects.filter(db_module_id=db_module_id).first()
+        db_module_name = db_module.alias_name if db_module else f"db-module-{db_module_id}"
+        for domain in domains:
+            domain_temp = ClusterType.get_domain_template_map().get(self.cluster_type)
+            if not domain_temp:
+                raise AppBaseException(_("当前集群类型暂未设置域名模板映射， 请联系管理员"))
+            full_domain = domain_temp.format(
+                db_module_name=db_module_name, db_app_abbr=db_app_abbr, cluster_name=domain
+            )
+            domain_info.append(
+                {
+                    "prefix": f"{db_module_name}db.",
+                    "suffix": f".{db_app_abbr}.db",
+                    "domain": full_domain,
+                }
+            )
+        return domain_info
+
+    @classmethod
+    def get_common_domain(cls, domain_prefix, domains, db_app_abbr):
+        return [
+            {
+                "prefix": f"{domain_prefix}.",
+                "suffix": f".{db_app_abbr}.db",
+                "domain": "{}.{}.{}.db".format(domain_prefix, domain, db_app_abbr),
+            }
+            for domain in domains
+        ]
+
+    def check_domain(self, domains, db_app_abbr, db_module_id=None):
+        domain_prefix_map = ClusterType.get_domain_prefix_map()
+
+        if db_module_id:
+            domain_info = self.get_has_model_domain(db_module_id, domains, db_app_abbr)
+        else:
+            domain_prefix = domain_prefix_map.get(self.cluster_type)
+            if not domain_prefix:
+                raise AppBaseException(_("未获取到对应集群类型的域名前缀, 请联系管理员"))
+
+            domain_info = self.get_common_domain(domain_prefix, domains, db_app_abbr)
+
+        if self.cluster_type in ClusterType.k8s_container_cluster_type_values():
+            cluster_entry_type = ClusterEntryType.CLBDNS.value
+        else:
+            cluster_entry_type = ClusterEntryType.DNS.value
+
+        for domain in domain_info:
+            if ClusterEntry.objects.filter(cluster_entry_type=cluster_entry_type, entry=domain["domain"]).exists():
+                domain["validate"] = True
+            else:
+                domain["validate"] = False
+
+        return domain_info

@@ -24,6 +24,7 @@ from backend.ticket.constants import (
     FLOW_TASK_TYPES,
     TICKET_RUNNING_STATUS_SET,
     TODO_RUNNING_STATUS,
+    ClusterType,
     FlowType,
     TicketFlowStatus,
     TicketStatus,
@@ -469,3 +470,10 @@ class BatchTicketOperateSerializer(serializers.Serializer):
 
 class GetInnerFlowSerializer(serializers.Serializer):
     ticket_ids = serializers.CharField(help_text=_("单据ID(逗号分隔)"))
+
+
+class CheckDomainRepeatSerializer(serializers.Serializer):
+    cluster_type = serializers.ChoiceField(help_text=_("集群类型"), choices=ClusterType.get_choices())
+    db_module_id = serializers.IntegerField(help_text=_("DB模块ID"), required=False, default=None)
+    db_app_abbr = serializers.CharField(help_text=_("业务英文缩写"), default="")
+    domains = serializers.ListField(help_text=_("域名列表"), child=serializers.CharField())

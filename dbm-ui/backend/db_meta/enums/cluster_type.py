@@ -12,7 +12,7 @@ from typing import Dict, List
 
 from django.utils.translation import gettext_lazy as _
 
-from backend.configuration.constants import DBType
+from backend.configuration.constants import MASTER_DOMAIN_INITIAL_VALUE, DBType
 from blue_krill.data_types.enum import EnumField, StrStructuredEnum
 
 
@@ -195,3 +195,37 @@ class ClusterType(StrStructuredEnum):
             cls.TendisRedisInstance.value,
             cls.TendisRedisCluster.value,
         ]
+
+    @classmethod
+    def get_domain_prefix_map(cls):
+        """集群域名不带模块的信息的域名前缀， 新增集群类型是需加上"""
+        return {
+            cls.TwemproxyTendisSSDInstance.value: "ssd",
+            cls.TendisPredixyRedisCluster.value: "rediscluster",
+            cls.TendisTwemproxyRedisInstance.value: "cache",
+            cls.TendisTwemproxyTendisplusIns.value: "tendisplus",
+            cls.TendisPredixyTendisplusCluster.value: "tendisplus",
+            cls.TendisPredixyTendisplusInstance.value: "tendisplus",
+            cls.TendisRedisInstance.value: "ins",
+            cls.TenDBCluster.value: "spider",
+            cls.MongoReplicaSet.value: "m1",
+            cls.MongoShardedCluster.value: "mongos",
+            cls.Es.value: "es",
+            cls.Hdfs.value: "hdfs",
+            cls.Pulsar.value: "pulsar",
+            cls.Kafka.value: "kafka",
+            cls.Doris.value: "doris",
+            cls.K8sQdrantHa.value: "qdrant",
+        }
+
+    @classmethod
+    def get_domain_template_map(cls):
+        """集群域名带模型信息的域名模板映射， 新增集群类型时需加上"""
+
+        return {
+            ClusterType.TenDBHA: MASTER_DOMAIN_INITIAL_VALUE,
+            ClusterType.TenDBSingle: MASTER_DOMAIN_INITIAL_VALUE,
+            ClusterType.SqlserverHA: MASTER_DOMAIN_INITIAL_VALUE,
+            ClusterType.SqlserverSingle: MASTER_DOMAIN_INITIAL_VALUE,
+            ClusterType.Riak: "riak.{cluster_name}-{db_module_name}.{db_app_abbr}.db",
+        }
