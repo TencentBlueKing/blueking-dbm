@@ -10,6 +10,7 @@ EnableBinlog           = false
 InitCommand            =
 Threads                = 16
 SchemaOnly             = false
+DataOnly               = false
 ExtraOpt               =
 DBListDropIfExists     = infodba_schema
 CreateTableIfNotExists = false

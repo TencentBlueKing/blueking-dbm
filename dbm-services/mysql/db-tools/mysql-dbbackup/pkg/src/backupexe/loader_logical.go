@@ -160,6 +160,9 @@ func (l *LogicalLoader) Execute() (err error) {
 		"-d", l.cnf.MysqlLoadDir,
 		fmt.Sprintf("--set-names=%s", l.cnf.MysqlCharset),
 	}
+	if ok, _ := MydumperHasOption(binPath, "--skip-table-sorting"); ok {
+		args = append(args, "--skip-table-sorting", "--metadata-refresh-interval 1000")
+	}
 	if !strings.Contains(l.cnf.InitCommand, "max_allowed_packet") {
 		l.cnf.InitCommand += ";set global max_allowed_packet=1073741824"
 	}
@@ -199,8 +202,17 @@ func (l *LogicalLoader) Execute() (err error) {
 	if l.cnf.EnableBinlog {
 		args = append(args, "--enable-binlog")
 	}
-	if l.cnf.SchemaOnly {
+
+	if l.cnf.SchemaOnly && l.cnf.DataOnly {
+		return errors.Errorf("SchemaOnly and DataOnly can not be set at the same time")
+	} else if l.cnf.SchemaOnly {
 		args = append(args, "--no-data")
+	} else if l.cnf.DataOnly {
+		if ok, _ := MydumperHasOption(binPath, "--no-schema"); ok {
+			args = append(args, "--no-schema", "--skip-post", "--skip-triggers")
+		} else {
+			return errors.Errorf("myloader not support --no-schema option")
+		}
 	}
 	if l.cnf.CreateTableIfNotExists {
 		args = append(args, "--append-if-not-exist")
