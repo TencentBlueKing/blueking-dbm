@@ -63,11 +63,12 @@ from backend.ticket.filters import (
     TicketListFilter,
 )
 from backend.ticket.flow_manager.manager import TicketFlowManager
-from backend.ticket.handler import TicketHandler
+from backend.ticket.handler import CheckDomainRepeatHandler, TicketHandler
 from backend.ticket.models import ClusterOperateRecord, Flow, InstanceOperateRecord, Ticket, TicketFlowsConfig, Todo
 from backend.ticket.serializers import (
     BatchTicketOperateSerializer,
     BatchTodoOperateSerializer,
+    CheckDomainRepeatSerializer,
     ClusterDisableTodoSerializer,
     ClusterModifyOpSerializer,
     CreateTicketFlowConfigSerializer,
@@ -786,3 +787,16 @@ class TicketViewSet(viewsets.AuditedModelViewSet):
             if has_tree:
                 ticket__inner_flow_map[flow["ticket_id"]].append(flow_info)
         return Response(ticket__inner_flow_map)
+
+    @common_swagger_auto_schema(
+        operation_summary=_("查询集群域名是否重复"),
+        tags=[TICKET_TAG],
+    )
+    @action(methods=["POST"], detail=False, serializer_class=CheckDomainRepeatSerializer)
+    def check_domain_repeat(self, request, *args, **kwargs):
+        validated_data = self.params_validate(self.get_serializer_class())
+        return Response(
+            CheckDomainRepeatHandler(validated_data["cluster_type"]).check_domain(
+                validated_data["domains"], validated_data["db_app_abbr"], validated_data["db_module_id"]
+            )
+        )
