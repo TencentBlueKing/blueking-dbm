@@ -107,6 +107,16 @@ func (sw *BaseSwitchInstance) GetClusterID() int {
 	return sw.ClusterID
 }
 
+// GetClusterType returns the cluster type of the instance.
+func (sw *BaseSwitchInstance) GetClusterType() haprobe.DbmMetadataClusterType {
+	return sw.ClusterType
+}
+
+// GetMachineType returns the machine type of the instance.
+func (sw *BaseSwitchInstance) GetMachineType() haprobe.DbmMetadataMachineType {
+	return sw.MachineType
+}
+
 // GetIP returns the instance IP.
 func (sw *BaseSwitchInstance) GetIP() string {
 	return sw.IP

@@ -28,6 +28,7 @@ import (
 	"dbm-services/common/dbha-v2/internal/analysis/dbm"
 	"dbm-services/common/dbha-v2/internal/analysis/switcher/switchlogger"
 	"dbm-services/common/dbha-v2/pkg/storage/hamodel"
+	"dbm-services/common/dbha-v2/pkg/storage/haprobe"
 )
 
 type SwitchCheckCode int
@@ -64,6 +65,12 @@ type SwitchableInstance interface {
 
 	// GetClusterID returns the cluster ID of the instance
 	GetClusterID() int
+
+	// GetClusterType returns the cluster type of the instance
+	GetClusterType() haprobe.DbmMetadataClusterType
+
+	// GetMachineType returns the machine type of the instance
+	GetMachineType() haprobe.DbmMetadataMachineType
 
 	// GetIP returns the instance IP
 	GetIP() string

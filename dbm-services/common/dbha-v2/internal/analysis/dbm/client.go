@@ -195,7 +195,7 @@ func (c *Client) GetAddressNumberOfDomain(bkCloudId int, domainName string) (int
 }
 
 // UpdateBatchInstancesStatus updates status for multiple database instances in one request.
-func (c *Client) UpdateBatchInstancesStatus(bkCloudId int, insts []InstWithinCluster, status DbmMetadataStatus) error {
+func (c *Client) UpdateBatchInstancesStatus(bkCloudId int, insts []InstWithinCloud, status DbmMetadataStatus) error {
 	if len(insts) == 0 {
 		return nil
 	}
@@ -254,7 +254,7 @@ func (c *Client) UpdateBatchInstancesStatus(bkCloudId int, insts []InstWithinClu
 
 // UpdateInstanceStatus updates the status of a single database instance.
 func (c *Client) UpdateInstanceStatus(bkCloudId int, ip string, port int, status DbmMetadataStatus) error {
-	return c.UpdateBatchInstancesStatus(bkCloudId, []InstWithinCluster{{IP: ip, Port: port}}, status)
+	return c.UpdateBatchInstancesStatus(bkCloudId, []InstWithinCloud{{IP: ip, Port: port}}, status)
 }
 
 // DeleteFromDomain removes an instance from the specified domain
