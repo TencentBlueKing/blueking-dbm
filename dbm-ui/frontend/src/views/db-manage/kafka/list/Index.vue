@@ -56,14 +56,18 @@
           ref="operationColumnRef"
           :cluster-type="ClusterTypes.KAFKA">
           <template #default="{ data }: { data: KafkaModel }">
-            <div v-db-console="'kafka.clusterManage.manage'">
+            <div
+              v-if="data.isOnline"
+              v-db-console="'kafka.clusterManage.manage'">
               <a
                 :href="data.access_url"
                 target="_blank">
                 {{ t('控制台') }}
               </a>
             </div>
-            <div v-db-console="'kafka.clusterManage.getAccess'">
+            <div
+              v-if="data.isOnline"
+              v-db-console="'kafka.clusterManage.getAccess'">
               <AuthButton
                 action-id="kafka_access_entry_view"
                 :disabled="data.isOffline"
@@ -75,11 +79,14 @@
               </AuthButton>
             </div>
             <ClusterAlarmSubscribe
+              v-if="data.isOnline"
               :data="data"
               db-console-prefix="kafka.clusterManage"
               @click="hideOperationColumn"
               @edit="(e) => handleToDetails(data.id, e, 'alarmSubscription')" />
-            <div v-db-console="'kafka.clusterManage.scaleUp'">
+            <div
+              v-if="data.isOnline"
+              v-db-console="'kafka.clusterManage.scaleUp'">
               <OperationBtnStatusTips
                 :data="data"
                 :disabled="!data.isOffline">
@@ -93,7 +100,9 @@
                 </AuthButton>
               </OperationBtnStatusTips>
             </div>
-            <div v-db-console="'kafka.clusterManage.scaleDown'">
+            <div
+              v-if="data.isOnline"
+              v-db-console="'kafka.clusterManage.scaleDown'">
               <OperationBtnStatusTips :data="data">
                 <AuthButton
                   action-id="kafka_shrink"
@@ -105,7 +114,9 @@
                 </AuthButton>
               </OperationBtnStatusTips>
             </div>
-            <div v-db-console="'kafka.clusterManage.rebalance'">
+            <div
+              v-if="data.isOnline"
+              v-db-console="'kafka.clusterManage.rebalance'">
               <OperationBtnStatusTips :data="data">
                 <AuthButton
                   action-id="kafka_rebalance"
@@ -164,7 +175,9 @@
                 </AuthButton>
               </OperationBtnStatusTips>
             </div>
-            <ClusterDomainDnsRelation :data="data" />
+            <ClusterDomainDnsRelation
+              v-if="data.isOnline"
+              :data="data" />
           </template>
         </OperationColumn>
       </template>
