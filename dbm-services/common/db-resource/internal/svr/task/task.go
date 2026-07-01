@@ -23,6 +23,7 @@ import (
 	"dbm-services/common/db-resource/internal/config"
 	"dbm-services/common/db-resource/internal/model"
 	"dbm-services/common/db-resource/internal/svr/bk"
+	"dbm-services/common/db-resource/internal/svr/dbmapi"
 	"dbm-services/common/db-resource/internal/util"
 	"dbm-services/common/go-pubpkg/cc.v3"
 	"dbm-services/common/go-pubpkg/logger"
@@ -222,49 +223,61 @@ func UpdateResourceGseAgentStatus(bkHostIds ...int) (err error) {
 // AsyncBkCmdbAttributes 异步同步主机CMDB属性
 func AsyncBkCmdbAttributes() (err error) {
 	logger.Info("start async from cmdb ...")
+	allowCCModuleInfo, err := dbmapi.GetDbmEnv()
+	if err != nil {
+		logger.Error("get dbm env failed %s", err.Error())
+		return err
+	}
+	resourceBizID := allowCCModuleInfo.RESOURCE_INDEPENDENT_BIZ
+	logger.Info("resource independent biz id %d", resourceBizID)
+
 	var rsList []model.TbRpDetail
-	err = model.DB.Self.Table(model.TbRpDetailName()).Where("total_storage_cap <= 0").Limit(300).Find(&rsList).Error
+	err = model.DB.Self.Table(model.TbRpDetailName()).Select("ip").Find(&rsList).Error
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil
 		}
-		logger.Error("query total_storage_cap less than 0,err %w ", err)
+		logger.Error("query resource list failed, err %w ", err)
 		return err
 	}
 	if len(rsList) == 0 {
 		return nil
 	}
-	bizHostMap := make(map[int][]string)
+	hosts := make([]string, 0, len(rsList))
 	for _, rs := range rsList {
-		bizHostMap[rs.BkBizId] = append(bizHostMap[rs.BkBizId], rs.IP)
+		hosts = append(hosts, rs.IP)
 	}
-	for bizId, hosts := range bizHostMap {
-		ccInfos, _, err := bk.BatchQueryHostsInfo(bizId, hosts)
-		if err != nil {
-			logger.Warn("query machine host info from cmdb failed %s", err.Error())
-			continue
+	logger.Info("sync cmdb attributes for %d hosts in resource pool", len(hosts))
+
+	ccInfos, notFoundHosts, err := bk.BatchQueryHostsInfo(resourceBizID, hosts)
+	if err != nil {
+		logger.Warn("query machine host info from cmdb failed, biz_id:%d, err:%s", resourceBizID, err.Error())
+		return err
+	}
+	if len(notFoundHosts) > 0 {
+		logger.Warn("hosts not found in cmdb, biz_id:%d, count:%d, hosts:%v", resourceBizID, len(notFoundHosts), notFoundHosts)
+	}
+	for _, ccInfo := range ccInfos {
+		updates := map[string]interface{}{
+			"city":           ccInfo.IdcCityName,
+			"city_id":        ccInfo.IdcCityId,
+			"sub_zone":       ccInfo.SZone,
+			"sub_zone_id":    ccInfo.SZoneID,
+			"rack_id":        util.CleanStr(ccInfo.Equipment),
+			"net_device_id":  util.TransInnerSwitchIpAsNetDeviceId(ccInfo.InnerSwitchIp),
+			"os_name":        util.CleanOsName(ccInfo.OSName),
+			"os_version":     ccInfo.BkOsVersion,
+			"os_name_origin": ccInfo.OSName,
+			"idc_id":         ccInfo.IDCID,
+			"idc_name":       ccInfo.IDC,
 		}
-		for _, ccInfo := range ccInfos {
-			if ccInfo.BkDisk > 0 {
-				err = model.DB.Self.Table(model.TbRpDetailName()).Where("ip = ?  and  bk_biz_id = ? ", ccInfo.InnerIP, bizId).
-					Updates(map[string]interface{}{
-						"total_storage_cap": ccInfo.BkDisk,
-						"city":              ccInfo.IdcCityName,
-						"city_id":           ccInfo.IdcCityId,
-						"sub_zone":          ccInfo.SZone,
-						"sub_zone_id":       ccInfo.SZoneID,
-						"rack_id":           util.CleanStr(ccInfo.Equipment),
-						"net_device_id":     util.TransInnerSwitchIpAsNetDeviceId(ccInfo.InnerSwitchIp),
-						"os_name":           util.CleanOsName(ccInfo.OSName),
-						"os_version":        ccInfo.BkOsVersion,
-						"os_name_origin":    ccInfo.OSName,
-						"idc_id":            ccInfo.IDCID,
-						"idc_name":          ccInfo.IDC,
-					}).Error
-				if err != nil {
-					logger.Warn("request cmdb api failed %s", err.Error())
-				}
-			}
+		if ccInfo.BkDisk > 0 {
+			updates["total_storage_cap"] = ccInfo.BkDisk
+		}
+		err = model.DB.Self.Table(model.TbRpDetailName()).Where("ip = ?", ccInfo.InnerIP).
+			Updates(updates).Error
+		if err != nil {
+			logger.Warn("request cmdb api failed %s", err.Error())
 		}
 	}
 	return nil
@@ -279,7 +292,7 @@ func SyncOsNameInfo() (err error) {
 		if err == sql.ErrNoRows {
 			return nil
 		}
-		logger.Error("query total_storage_cap less than 0,err %w ", err)
+		logger.Error("query resource list failed, err %w ", err)
 		return err
 	}
 	bizHostMap := make(map[int][]string)
@@ -315,7 +328,7 @@ func FlushNetDeviceInfo() (err error) {
 		if err == sql.ErrNoRows {
 			return nil
 		}
-		logger.Error("query total_storage_cap less than 0,err %w ", err)
+		logger.Error("query resource list failed, err %w ", err)
 		return err
 	}
 	bizHostMap := make(map[int][]string)
