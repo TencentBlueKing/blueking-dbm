@@ -8,6 +8,9 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+import re
+
+from django.db.models import Q
 from django.utils.translation import gettext_lazy as _
 from django_filters import rest_framework as filters
 
@@ -20,6 +23,7 @@ class AppOperateLogFilter(filters.FilterSet):
     creator = filters.CharFilter(field_name="creator", method="filter_creator", label=_("操作人"))
     role = filters.CharFilter(field_name="role", method="filter_role", label=_("变更角色"))
     operate_type = filters.CharFilter(field_name="operate_type", method="filter_operate_type", label=_("操作类型"))
+    change_person = filters.CharFilter(field_name="operate_type", method="filter_change_person", label=_("变更人员"))
 
     class Meta:
         model = AppOperate
@@ -48,3 +52,17 @@ class AppOperateLogFilter(filters.FilterSet):
     def filter_operate_type(self, queryset, name, value):
         operate_types = [operate_type for operate_type in value.split(",")]
         return queryset.filter(operate_type__in=operate_types)
+
+    def filter_change_person(self, queryset, name, value):
+        if not value:
+            return queryset
+        person_list = [p.strip() for p in value.split(",") if p.strip()]
+        if not person_list:
+            return queryset
+
+        q = Q()
+        for person in person_list:
+            escaped = re.escape(person)
+            pattern = r"(^|,){}(,|$)".format(escaped)
+            q |= Q(change_before__regex=pattern) | Q(change_after__regex=pattern)
+        return queryset.filter(q)
