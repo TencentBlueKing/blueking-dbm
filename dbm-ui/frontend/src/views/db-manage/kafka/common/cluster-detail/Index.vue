@@ -20,6 +20,7 @@
         cluster-detail-router-name="KafkaDetail"
         :data="data">
         <a
+          v-if="data.isOnline"
           v-db-console="'kafka.clusterManage.manage'"
           class="ml-4"
           :href="data.access_url"
@@ -31,6 +32,7 @@
           </BkButton>
         </a>
         <AuthButton
+          v-if="data.isOnline"
           v-db-console="'kafka.clusterManage.getAccess'"
           action-id="kafka_access_entry_view"
           class="ml-4"
@@ -51,7 +53,9 @@
               <DbIcon type="more" />
             </BkButton>
           </template>
-          <div v-db-console="'kafka.clusterManage.scaleUp'">
+          <div
+            v-if="data.isOnline"
+            v-db-console="'kafka.clusterManage.scaleUp'">
             <OperationBtnStatusTips
               :data="data"
               :disabled="!data.isOffline">
@@ -65,7 +69,9 @@
               </AuthButton>
             </OperationBtnStatusTips>
           </div>
-          <div v-db-console="'kafka.clusterManage.scaleDown'">
+          <div
+            v-if="data.isOnline"
+            v-db-console="'kafka.clusterManage.scaleDown'">
             <OperationBtnStatusTips :data="data">
               <AuthButton
                 action-id="kafka_shrink"
@@ -124,7 +130,9 @@
               </AuthButton>
             </OperationBtnStatusTips>
           </div>
-          <ClusterDomainDnsRelation :data="data" />
+          <ClusterDomainDnsRelation
+            v-if="data.isOnline"
+            :data="data" />
         </MoreActionExtend>
       </DisplayBox>
       <ActionPanel
