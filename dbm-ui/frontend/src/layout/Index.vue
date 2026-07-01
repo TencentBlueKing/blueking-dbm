@@ -323,6 +323,7 @@
     }
 
     .bk-navigation-header {
+      overflow: unset;
       background: #0e1525;
     }
   }
@@ -361,10 +362,12 @@
   }
 
   .db-navigation-header-right {
+    position: relative;
+    z-index: 999;
     display: flex;
-    flex: 1;
     margin-left: 80px;
     color: #979ba5;
+    flex: 1;
     align-items: center;
     justify-content: flex-end;
   }
@@ -374,8 +377,6 @@
   }
 
   .db-navigation-content-header {
-    position: relative;
-    z-index: 99;
     display: flex;
     height: 52px;
     padding: 0 14px;
