@@ -394,26 +394,58 @@ SQLSERVER_RESTORE_SLAVE_SOURCE_TICKET_DATA = {
         ],
     },
 }
-# SQLSERVER 定点构造申请单据
+# SQLSERVER 定点构造申请单据（远程构造，目标集群不同于源集群）
 SQLSERVER_ROLLBACK_TICKET_DATA = {
     "bk_biz_id": BK_BIZ_ID,
     "ticket_type": TicketType.SQLSERVER_ROLLBACK,
     "details": {
-        "is_local": False,  # 是否代表原地构造，true代表是，false代表远程构造
+        "is_time_fixed": False,  # False 代表使用最新备份，True 代表指定时间
         "infos": [
             {
                 "src_cluster": CLUSTER_ID,
-                "dst_cluster": CLUSTER_ID + 1,  # 如果是原地构造，target_cluster_id=cluster_id
-                "db_list": [],
-                "ignore_db_list": [],
+                "dst_cluster": CLUSTER_ID + 1,  # 目标集群 ID
+                "db_list": ["test%"],  # 库正则
+                "ignore_db_list": [],  # 忽略库正则
                 "rename_infos": [
                     {
-                        "db_name": "SampleDatabaseRollback2",
-                        "target_db_name": "SampleDatabase2",
-                        "rename_db_name": "SampleDatabaseBak001",
+                        "db_name": "test_database",
+                        "target_db_name": "test_database_restored",
+                        "rename_db_name": "test_database_bak",
                     }
                 ],
-                "restore_backup_file": {"backup_id": "XXX", "logs": [{}]},
+                "restore_backup_file": {
+                    "backup_id": "backup_20240101_120000",
+                    "logs": [
+                        {"dbname": "test_database", "backup_id": "backup_20240101_120000"},
+                        {"dbname": "test_db2", "backup_id": "backup_20240101_120000"},
+                        {"dbname": "master", "backup_id": "backup_20240101_120000"},
+                    ],
+                },
+            }
+        ],
+    },
+}
+
+# SQLSERVER 原地构造申请单据（目标集群等于源集群，需对源集群重命名）
+SQLSERVER_ROLLBACK_LOCAL_TICKET_DATA = {
+    "bk_biz_id": BK_BIZ_ID,
+    "ticket_type": TicketType.SQLSERVER_ROLLBACK_LOCAL,
+    "details": {
+        "is_time_fixed": False,  # False 代表使用最新备份，True 代表指定时间
+        "infos": [
+            {
+                "src_cluster": CLUSTER_ID,
+                "dst_cluster": CLUSTER_ID,  # 原地构造时目标集群等于源集群
+                "db_list": ["test%"],
+                "ignore_db_list": ["test_temp%"],
+                "rename_infos": [],  # 原地构造可能不需要重命名
+                "restore_backup_file": {
+                    "backup_id": "backup_20240101_120000",
+                    "logs": [
+                        {"dbname": "test_database", "backup_id": "backup_20240101_120000"},
+                        {"dbname": "test_db2", "backup_id": "backup_20240101_120000"},
+                    ],
+                },
             }
         ],
     },

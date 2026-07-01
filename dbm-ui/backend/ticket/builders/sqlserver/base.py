@@ -22,6 +22,7 @@ from backend.ticket.builders import TicketFlowBuilder
 from backend.ticket.builders.common.base import (
     BaseOperateResourceParamBuilder,
     CommonValidate,
+    ParamValidateSerializerMixin,
     SkipToRepresentationMixin,
     SQLServerTicketFlowBuilderPatchMixin,
     TicketBaseValidateSerializerMixin,
@@ -60,7 +61,7 @@ class SQLServerTakeDownDetailsSerializer(MySQLClustersTakeDownDetailsSerializer)
 
 
 class SQLServerBaseOperateDetailSerializer(
-    TicketBaseValidateSerializerMixin, SkipToRepresentationMixin, serializers.Serializer
+    TicketBaseValidateSerializerMixin, SkipToRepresentationMixin, ParamValidateSerializerMixin, serializers.Serializer
 ):
     """
     sqlserver操作的基类，主要功能:
@@ -127,6 +128,7 @@ class SQLServerBaseOperateDetailSerializer(
     def validate(self, attrs):
         attrs = super().validate(attrs)
         # 默认全局校验只需要校验集群的状态
+        attrs = super().validated_params(attrs)
         return attrs
 
 
