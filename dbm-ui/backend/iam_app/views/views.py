@@ -61,7 +61,7 @@ class IAMViewSet(viewsets.SystemViewSet):
 
     @common_swagger_auto_schema(
         operation_summary=_("检查当前用户对该动作是否有权限(仅适用于鉴权业务下一个动作对应一种资源类型，如果是多种动作对应多种资源类型，请切换为check_allowed接口)"),
-        request_body=SimpleIamActionResourceRequestSerializer(),
+        query_serializer=SimpleIamActionResourceRequestSerializer(),
         tags=[SWAGGER_TAG],
     )
     @action(detail=False, methods=["GET"], serializer_class=SimpleIamActionResourceRequestSerializer)
