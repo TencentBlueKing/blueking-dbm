@@ -94,7 +94,7 @@
   interface RowData {
     cluster: {
       bk_cloud_id: number;
-      cluster_type: string;
+      cluster_type: ClusterTypes;
       id: number;
       master_domain: string;
     };
