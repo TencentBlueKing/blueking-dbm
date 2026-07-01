@@ -593,7 +593,7 @@
   resolved "https://mirrors.tencent.com/npm/@blueking/login-modal/-/login-modal-1.0.6.tgz#3d1948ac919556109d866baeb0e49c8601d1b128"
   integrity sha512-zjDHiCNY2Aydo9BcFiGiiw8uodPkCSK+SthXQZQQ/8Bq4nHnz+Hkuo8rnPrwuDIgB2E2C6X+T5+6jDXqTwrZyg==
 
-"@blueking/login-userinfo@~0.0.2":
+"@blueking/login-userinfo@0.0.13", "@blueking/login-userinfo@~0.0.2":
   version "0.0.13"
   resolved "https://mirrors.tencent.com/npm/@blueking/login-userinfo/-/login-userinfo-0.0.13.tgz#5ff16a5c832902bfb7397713f2dffe8a928e7625"
   integrity sha512-DHVIN/IGhZCiXalhy8YSMSikg4qMEe1WirqPwJrRCFcwk7fItKjQkrrXCam4JX66MCwSXFTAZ67ci2vsmfKRpw==
