@@ -27,13 +27,9 @@
         {{ t('配置变更') }}
       </AuthButton>
       <AuthButton
-        v-bk-tooltips="{
-          disabled: selectedList.length > 0,
-          content: t('请先勾选实例'),
-        }"
         :action-id="`${dbType}_stop`"
         class="ml-8"
-        :disabled="selectedList.length === 0"
+        :disabled="originalData.length === 0"
         :permission="clusterData.permission[`${dbType}_stop` as keyof typeof clusterData.permission]"
         :resource="clusterData.id"
         style="width: 105px"
@@ -106,7 +102,6 @@
           :data="tableFilterData"
           :max-height="tableMaxHeight"
           row-key="podName"
-          selectable
           :selected-row-keys="selectedRowKeys"
           @select-change="handleSelectChange">
           <TableColumn
@@ -368,11 +363,14 @@
         clusterName: props.clusterData.cluster_name,
         k8sClusterName: props.clusterData.k8s_cluster_name,
         namespace: props.clusterData.namespace,
-        restart: selectedList.value.map((selectedItem) => ({
-          componentName: selectedItem.podName,
-        })),
+        restart: [
+          {
+            componentName: props.role,
+          },
+        ],
       },
       props.role,
+      originalData.value.length,
     );
   };
 
@@ -386,9 +384,11 @@
       clusterName: props.clusterData.cluster_name,
       k8sClusterName: props.clusterData.k8s_cluster_name,
       namespace: props.clusterData.namespace,
-      restart: originalData.value.map((selectedItem) => ({
-        componentName: selectedItem.podName,
-      })),
+      restart: [
+        {
+          componentName: props.role,
+        },
+      ],
     }).then(() => {
       handleOperateSuccess();
     });

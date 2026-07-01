@@ -59,9 +59,7 @@ export const useK8sInstanceOperations = (options: { onSuccess: () => void }) => 
     });
   };
 
-  const handleRestartInstance = (params: ServiceParameters<typeof restartComponent>, role: string) => {
-    const count = params.restart.length;
-
+  const handleRestartInstance = (params: ServiceParameters<typeof restartComponent>, role: string, count: number) => {
     InfoBox({
       cancelText: t('取消'),
       confirmText: t('确定重启'),
