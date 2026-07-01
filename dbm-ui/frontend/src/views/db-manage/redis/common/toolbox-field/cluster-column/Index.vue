@@ -1,11 +1,11 @@
 <template>
   <EditableColumn
-    ref="editableTableColumn"
+    ref="editableColumnRef"
     :append-rules="rules"
     :field="field"
     fixed="left"
     :label="label || t('目标集群')"
-    :loading="isLoading"
+    :loading="loading"
     :min-width="350"
     required>
     <template #headAppend>
@@ -18,7 +18,8 @@
     </template>
     <EditableInput
       v-model="modelValue.master_domain"
-      :placeholder="t('请输入或选择集群')" />
+      :placeholder="t('请输入或选择集群')"
+      @change="handleChange" />
     <ClusterSelector
       v-model:is-show="isShowClusterSelector"
       :cluster-types="[ClusterTypes.REDIS]"
@@ -30,11 +31,12 @@
 
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
+  import { useRequest } from 'vue-request';
 
   import RedisModel from '@services/model/redis/redis';
   import { filterClusters } from '@services/source/dbbase';
 
-  import { ClusterTypes } from '@common/const';
+  import { ClusterTypes, DBTypes } from '@common/const';
   import { domainRegex } from '@common/regex';
 
   import ClusterSelector, { type TabConfig } from '@components/cluster-selector/Index.vue';
@@ -50,7 +52,10 @@
     tabListConfig?: Record<string, TabConfig>;
   }
 
-  type Emits = (e: 'batch-edit', value: RedisModel[]) => void;
+  interface Emits {
+    (e: 'batch-edit', value: RedisModel[]): void;
+    (e: 'request-success'): void;
+  }
 
   const props = withDefaults(defineProps<Props>(), {
     field: 'cluster.master_domain',
@@ -67,58 +72,66 @@
 
   const rules = [
     {
-      message: t('目标集群输入格式有误'),
+      message: t('集群域名格式不正确'),
       trigger: 'change',
-      validator: (value: string) => domainRegex.test(value),
+      validator: (value: string) => !value || domainRegex.test(value),
     },
     {
-      message: t('目标集群重复'),
-      trigger: 'blur',
-      validator: (value: string) => props.selected.filter((item) => item.master_domain === value).length < 2,
+      message: t('cluster重复', [props.label]),
+      trigger: 'change',
+      validator: (value: string) => !value || props.selected.filter((item) => item.master_domain === value).length < 2,
     },
     {
-      message: t('目标集群不存在'),
+      message: t('cluster不存在', [props.label]),
       trigger: 'blur',
-      validator: () => Boolean(modelValue.value.id),
+      validator: (value: string) => !value || Boolean(modelValue.value.id),
     },
   ];
 
-  const editableTableColumnRef = useTemplateRef('editableTableColumn');
+  const editableColumnRef = useTemplateRef('editableColumnRef');
   const isShowClusterSelector = ref(false);
-  const isLoading = ref(false);
 
   const selectedClusters = computed(() => ({
     [ClusterTypes.REDIS]: props.selected as RedisModel[],
   }));
 
-  watch(
-    () => modelValue.value.master_domain,
-    () => {
-      if (!modelValue.value.id && modelValue.value.master_domain) {
-        modelValue.value.id = 0;
-        isLoading.value = true;
-        filterClusters<RedisModel>({
-          bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
-          exact_domain: modelValue.value.master_domain,
-        })
-          .then((data) => {
-            if (data.length > 0) {
-              modelValue.value = new RedisModel(data[0]);
-            }
-          })
-          .finally(() => {
-            isLoading.value = false;
-            editableTableColumnRef.value!.validate();
-          });
+  const { loading, run: queryCluster } = useRequest(filterClusters<RedisModel>, {
+    manual: true,
+    onSuccess(data) {
+      const [currentCluster] = data;
+      if (currentCluster) {
+        modelValue.value = currentCluster;
+        emits('request-success');
+      } else {
+        // 集群不存在，触发校验
+        editableColumnRef.value?.validate();
       }
-      if (!modelValue.value.master_domain) {
-        modelValue.value.id = 0;
+    },
+  });
+
+  watch(
+    modelValue,
+    () => {
+      if (modelValue.value.master_domain && !modelValue.value.id) {
+        queryCluster({
+          bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
+          // cluster_type: ClusterTypes.REDIS,
+          db_type: DBTypes.REDIS,
+          exact_domain: modelValue.value.master_domain,
+        });
       }
     },
     {
       immediate: true,
     },
   );
+
+  const handleChange = (value: string) => {
+    modelValue.value = {
+      id: 0,
+      master_domain: value,
+    } as RedisModel;
+  };
 
   const handleShowClusterSelector = () => {
     isShowClusterSelector.value = true;
