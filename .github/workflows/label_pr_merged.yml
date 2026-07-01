@@ -1,4 +1,3 @@
-
 name: Add "for test" Label
 
 on:
@@ -40,25 +39,11 @@ jobs:
         with:
           script: |
             for (const issue_id of ${{ steps.pr-commits.outputs.issue_id_list }}) {
-              const { data: labels } = await github.rest.issues.listLabelsOnIssue({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                issue_number: issue_id
-              });
-              const todo_label = labels.find(label => label.name === "todo");
-              if (todo_label) {
-                github.rest.issues.removeLabel({
-                  issue_number: issue_id,
-                  owner: context.repo.owner,
-                  repo: context.repo.repo,
-                  name: "todo"
-                });
-              }
               github.rest.issues.addLabels({
                 issue_number: issue_id,
-                owner: context.repo.owner, 
+                owner: context.repo.owner,
                 repo: context.repo.repo,
-                labels: ["for test"]
+                labels: ["todo", "doing", "for test", "testing", "tested", "done"]
               });
             }
       - name: Close Issue
@@ -78,4 +63,3 @@ jobs:
         with:
           issue-number: ${{ matrix.issue_id }}
           comment: Auto close issue after pr merged \#${{ github.event.number }}
-
