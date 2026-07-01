@@ -39,6 +39,7 @@
             <ClusterColumn
               v-model="rowData.cluster"
               :selected="selected"
+              :tab-list-config="tabListConfig"
               @batch-edit="handleClusterBatchEdit" />
             <EditableColumn
               :label="t('架构版本')"
@@ -104,16 +105,18 @@
 
   import { ClusterTypes, TicketTypes } from '@common/const';
 
+  import { type TabItem } from '@components/cluster-selector/Index.vue';
+
   import BatchInput from '@views/db-manage/common/batch-input/Index.vue';
   import TicketPayload, {
     createTickePayload,
   } from '@views/db-manage/common/toolbox-field/form-item/ticket-payload/Index.vue';
   import KeyOperationAlert from '@views/db-manage/redis/common/toolbox-common/key-operation-alert/Index.vue';
+  import ClusterColumn from '@views/db-manage/redis/common/toolbox-field/cluster-column/Index.vue';
   import KeyOperationColumn from '@views/db-manage/redis/common/toolbox-field/key-operation-column/Index.vue';
 
   import { random } from '@utils';
 
-  import ClusterColumn from './components/ClusterColumn.vue';
   import DeleteRateColumn from './components/DeleteRateColumn.vue';
 
   interface IDataRow {
@@ -217,6 +220,24 @@
   );
   const selectedMap = computed(() => Object.fromEntries(selected.value.map((cur) => [cur.master_domain, true])));
 
+  const tabListConfig = {
+    [ClusterTypes.REDIS]: {
+      disabledRowConfig: [
+        {
+          handler: (data: RedisModel) =>
+            data.operations.some((item) =>
+              [TicketTypes.REDIS_DESTROY, TicketTypes.REDIS_INSTANCE_DESTROY].includes(item.ticket_type as TicketTypes),
+            ),
+          tip: t('集群删除中无法选择'),
+        },
+        {
+          handler: (data: RedisModel) => data.bk_cloud_id > 0,
+          tip: t('暂不支持跨管控区域删除Key'),
+        },
+      ],
+    },
+  } as unknown as Record<string, TabItem>;
+
   const batchInputConfig = [
     {
       case: 'redis.test.dba.db',
@@ -269,7 +290,6 @@
               bk_cloud_id: item.bk_cloud_id,
               cluster_type: item.cluster_type,
               cluster_type_name: item.cluster_type_name,
-
               id: item.id,
               master_domain: item.master_domain,
             },

@@ -20,7 +20,8 @@
     :key="tableKey"
     ref="table"
     class="mb-20"
-    :model="tableData">
+    :model="tableData"
+    :rules="rules">
     <EditableRow
       v-for="(item, index) in tableData"
       :key="index">
@@ -43,13 +44,13 @@
         :min-width="200"
         readonly>
         <EditableBlock :placeholder="t('自动生成')">
-          {{ item.cluster.id ? item.cluster.proxyCount : '' }}
+          {{ item.cluster.id ? item.cluster.proxy.length : '' }}
         </EditableBlock>
       </EditableColumn>
       <ReducedCountColumn
         v-model="item.reduced_count"
         :cluster="item.cluster"
-        :max="item.cluster.proxyCount"
+        :max="item.cluster.proxy.length"
         @batch-edit="handleRedecedCountBatchEdit"
         @change="handleChange(item)" />
       <EditableColumn
@@ -63,7 +64,7 @@
             item.target_proxy_count
               ? item.target_proxy_count
               : item.cluster.id
-                ? item.cluster.proxyCount - (Number(item.reduced_count) || 0)
+                ? item.cluster.proxy.length - (Number(item.reduced_count) || 0)
                 : ''
           }}
         </EditableBlock>
@@ -85,21 +86,24 @@
   import RedisModel from '@services/model/redis/redis';
   import type { Redis } from '@services/model/ticket/ticket';
 
+  import { ClusterTypes } from '@common/const';
+
   import BatchInput from '@views/db-manage/common/batch-input/Index.vue';
+  import ClusterColumn from '@views/db-manage/redis/common/toolbox-field/cluster-column/Index.vue';
 
   import { random } from '@utils';
 
   import OnlineSwitchTypeColumn, { ONLINE_SWITCH_TYPE } from '../OnlineSwitchTypeColumn.vue';
 
-  import ClusterColumn from './components/ClusterColumn.vue';
   import ReducedCountColumn from './components/ReducedCountColumn.vue';
 
   interface RowData {
     cluster: {
+      cluster_type: ClusterTypes;
       cluster_type_name: string;
       id: number;
       master_domain: string;
-      proxyCount: number;
+      proxy: RedisModel['proxy'];
     };
     online_switch_type: string;
     reduced_count: string;
@@ -150,10 +154,11 @@
   const createTableRow = (data = {} as DeepPartial<RowData>) => ({
     cluster: Object.assign(
       {
+        cluster_type: '',
         cluster_type_name: '',
         id: 0,
         master_domain: '',
-        proxyCount: 0,
+        proxy: [],
       },
       data.cluster,
     ),
@@ -167,6 +172,18 @@
   const selectedMap = computed(() =>
     Object.fromEntries(tableData.value.map((cur) => [cur.cluster.master_domain, true])),
   );
+
+  const rules = {
+    'cluster.master_domain': [
+      {
+        message: t('数量不足，Proxy至少保留 2 台'),
+        trigger: 'blur',
+        validator: (value: string, { rowData }: { rowData: RowData }) => {
+          return !value || rowData.cluster.proxy.length >= 2;
+        },
+      },
+    ],
+  };
 
   const targetCountRules = [
     {
@@ -252,7 +269,7 @@
 
   const handleChange = (row: RowData) => {
     Object.assign(row, {
-      target_proxy_count: row.cluster.proxyCount - (Number(row.reduced_count) || 0),
+      target_proxy_count: row.cluster.proxy.length - (Number(row.reduced_count) || 0),
     });
   };
 

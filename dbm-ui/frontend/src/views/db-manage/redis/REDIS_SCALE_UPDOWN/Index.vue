@@ -35,6 +35,7 @@
           <ClusterColumn
             v-model="item.cluster"
             :selected="selected"
+            :tab-list-config="tabListConfig"
             @batch-edit="handleClusterBatchEdit" />
           <EditableColumn
             field="cluster.cluster_type_name"
@@ -90,19 +91,22 @@
 
   import RedisModel from '@services/model/redis/redis';
   import type { Redis } from '@services/model/ticket/ticket';
+  import { getRedisList } from '@services/source/redis';
 
   import { useCreateTicket, useTicketDetail } from '@hooks';
 
-  import { Affinity, ClusterTypes, TicketTypes } from '@common/const';
+  import { Affinity, clusterRedisTypeList, ClusterTypes, TicketTypes } from '@common/const';
+
+  import type { TabConfig } from '@components/cluster-selector/Index.vue';
 
   import BatchInput from '@views/db-manage/common/batch-input/Index.vue';
   import TicketPayload, {
     createTickePayload,
   } from '@views/db-manage/common/toolbox-field/form-item/ticket-payload/Index.vue';
+  import ClusterColumn from '@views/db-manage/redis/common/toolbox-field/cluster-column/Index.vue';
 
   import { random } from '@utils';
 
-  import ClusterColumn from './components/ClusterColumn.vue';
   import CurrentCapacityColumn from './components/CurrentCapacityColumn.vue';
   import OnlineSwitchTypeColumn from './components/OnlineSwitchTypeColumn.vue';
   import RedisVersionColumn from './components/RedisVersionColumn.vue';
@@ -186,6 +190,16 @@
 
   const selected = computed(() => formData.tableData.filter((item) => item.cluster.id).map((item) => item.cluster));
   const selectedMap = computed(() => Object.fromEntries(selected.value.map((cur) => [cur.master_domain, true])));
+
+  const tabListConfig = {
+    [ClusterTypes.REDIS]: {
+      getResourceList: (params: Record<string, any>) =>
+        getRedisList({
+          cluster_type: clusterRedisTypeList.join(','),
+          ...params,
+        }),
+    },
+  } as unknown as Record<string, TabConfig>;
 
   useTicketDetail<Redis.ResourcePool.ScaleUpdown>(TicketTypes.REDIS_SCALE_UPDOWN, {
     onSuccess(ticketDetail) {

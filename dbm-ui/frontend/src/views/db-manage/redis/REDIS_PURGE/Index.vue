@@ -25,6 +25,7 @@
             <ClusterColumn
               v-model="rowData.cluster"
               :selected="selected"
+              :tab-list-config="tabListConfig"
               @batch-edit="handleClusterBatchEdit" />
             <EditableColumn
               :label="t('架构版本')"
@@ -82,15 +83,17 @@
 
   import { ClusterTypes, TicketTypes } from '@common/const';
 
+  import { type TabItem } from '@components/cluster-selector/Index.vue';
+
   import BatchInput from '@views/db-manage/common/batch-input/Index.vue';
   import TicketPayload, {
     createTickePayload,
   } from '@views/db-manage/common/toolbox-field/form-item/ticket-payload/Index.vue';
+  import ClusterColumn from '@views/db-manage/redis/common/toolbox-field/cluster-column/Index.vue';
 
   import { random } from '@utils';
 
   import BackupColumn, { BackupType } from './components/BackupColumn.vue';
-  import ClusterColumn from './components/ClusterColumn.vue';
   import ForceColumn, { ForceType } from './components/ForceColumn.vue';
 
   interface IDataRow {
@@ -183,6 +186,20 @@
     formData.tableData.filter((item) => item.cluster.master_domain).map((item) => item.cluster),
   );
   const selectedMap = computed(() => Object.fromEntries(selected.value.map((cur) => [cur.master_domain, true])));
+
+  const tabListConfig = {
+    [ClusterTypes.REDIS]: {
+      disabledRowConfig: [
+        {
+          handler: (data: RedisModel) =>
+            data.operations.some((item) =>
+              [TicketTypes.REDIS_DESTROY, TicketTypes.REDIS_INSTANCE_DESTROY].includes(item.ticket_type as TicketTypes),
+            ),
+          tip: t('集群删除中无法选择'),
+        },
+      ],
+    },
+  } as unknown as Record<string, TabItem>;
 
   const batchInputConfig = [
     {
