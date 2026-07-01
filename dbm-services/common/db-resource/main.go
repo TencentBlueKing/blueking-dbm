@@ -187,7 +187,7 @@ func registerCrontab(localcron *cron.Cron) {
 		},
 		{
 			Name: "同步主机硬件信息",
-			Spec: "20 */12 * * *",
+			Spec: "20 3 * * *",
 			Func: func() {
 				logger.Info("Start sync machine hardware information .....")
 				if err := task.AsyncBkCmdbAttributes(); err != nil {
