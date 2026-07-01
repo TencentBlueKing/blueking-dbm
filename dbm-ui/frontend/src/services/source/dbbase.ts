@@ -307,7 +307,7 @@ export function getGlobalCluster<
   limit?: number;
   offset?: number;
 }) {
-  return http.get<T[]>(`${path}/filter_clusters_by_type/`, params);
+  return http.get<ListBase<T[]>>(`${path}/filter_clusters_by_type/`, params);
 }
 
 /**
