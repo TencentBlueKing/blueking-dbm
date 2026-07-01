@@ -36,6 +36,7 @@ from backend.tests.mock_data.ticket.sqlserver_flow import (
     SQLSERVER_RESTORE_LOCAL_SLAVE_TICKET_DATA,
     SQLSERVER_RESTORE_SLAVE_SOURCE_TICKET_DATA,
     SQLSERVER_RESTORE_SLAVE_TICKET_DATA,
+    SQLSERVER_ROLLBACK_LOCAL_TICKET_DATA,
     SQLSERVER_ROLLBACK_TICKET_DATA,
     SQLSERVER_SINGLE_APPLY_TICKET_DATA,
     SQLSERVER_SINGLE_MANUAL_DATA,
@@ -166,9 +167,16 @@ class TestSqlServerApplyFlow(BaseTicketTest):
         self.flow_test(SQLSERVER_RESTORE_SLAVE_SOURCE_TICKET_DATA)
 
     @use_pipeline_mock
-    # SQLSERVER restore_rollback: start --> itsm --> INNER_FLOW --> end
+    # SQLSERVER rollback (远程构造): start --> itsm --> INNER_FLOW --> end
     def test_sqlserver_rollback_flow(self):
+        """测试 SQLServer 远程定点构造流程"""
         self.flow_test(SQLSERVER_ROLLBACK_TICKET_DATA)
+
+    @use_pipeline_mock
+    # SQLSERVER rollback_local (原地构造): start --> itsm --> INNER_FLOW --> end
+    def test_sqlserver_rollback_local_flow(self):
+        """测试 SQLServer 原地定点构造流程"""
+        self.flow_test(SQLSERVER_ROLLBACK_LOCAL_TICKET_DATA)
 
     @classmethod
     def apply_patches(cls):

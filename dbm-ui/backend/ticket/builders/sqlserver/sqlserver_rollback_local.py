@@ -19,10 +19,22 @@ from backend.ticket.builders.sqlserver.sqlserver_rollback_base import (
 from backend.ticket.constants import TicketType
 
 
-class SQLServerRollbackDetailSerializer(SQLServerRollbackBaseDetailSerializer):
+class SQLServerLocalDetailSerializer(SQLServerRollbackBaseDetailSerializer):
+    """本地构造(原地回档)：源集群与目标集群为同一集群，无需传目标集群ID"""
+
+    class LocalRollbackInfoSerializer(SQLServerRollbackBaseDetailSerializer.RollbackInfoSerializer):
+        # 原地回档不传目标集群，目标集群与源集群保持一致
+        dst_cluster = serializers.IntegerField(help_text=_("目标集群ID"), required=False)
+
+        def validate(self, attrs):
+            # 原地回档：目标集群ID等于源集群ID
+            attrs["dst_cluster"] = attrs["src_cluster"]
+            return attrs
+
+    infos = serializers.ListSerializer(help_text=_("迁移信息列表"), child=LocalRollbackInfoSerializer())
     is_time_fixed = serializers.BooleanField(help_text=_("是否指定回档时间"))
 
 
-@builders.BuilderFactory.register(TicketType.SQLSERVER_ROLLBACK)
-class SQLServerDataMigrateFlowBuilder(SQLServerRollbackCommonFlowBuilder):
-    serializer = SQLServerRollbackDetailSerializer
+@builders.BuilderFactory.register(TicketType.SQLSERVER_ROLLBACK_LOCAL)
+class SQLServerRollbackLocalFlowBuilder(SQLServerRollbackCommonFlowBuilder):
+    serializer = SQLServerLocalDetailSerializer
