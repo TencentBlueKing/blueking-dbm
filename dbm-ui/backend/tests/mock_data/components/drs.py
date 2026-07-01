@@ -66,13 +66,66 @@ class DRSApiMock(object):
 
     @classmethod
     def sqlserver_rpc(cls, *args, **kwargs):
-        response_data = [
-            {
-                "address": "2.2.2.1:10000",
-                "cmd_results": [
-                    {"cmd": "", "table_data": [{"name": "test_database"}], "rows_affected": 0, "error_msg": ""}
-                ],
-                "error_msg": "",
-            }
-        ]
+        """
+        SQLServer DRS 接口模拟
+        根据不同的 SQL 命令返回不同的模拟数据
+        """
+        cmds = args[0].get("cmds", [])
+        addresses = args[0].get("addresses", [])
+
+        response_data = []
+        for address in addresses:
+            cmd_results = []
+            for cmd in cmds:
+                # 模拟获取数据库列表的查询
+                if "select name from [master].[sys].[databases]" in cmd:
+                    # 返回源集群和目标集群的数据库列表
+                    if "2.2.2.1" in address or "2.2.2.2" in address:
+                        # 源集群 (CLUSTER_ID=101) 的数据库
+                        table_data = [
+                            {"name": "test_database"},
+                            {"name": "test_db2"},
+                            {"name": "master"},
+                            {"name": "model"},
+                            {"name": "msdb"},
+                            {"name": "tempdb"},
+                        ]
+                    elif "2.2.2.3" in address or "3.2.2" in address:
+                        # 目标集群 (CLUSTER_ID=102) 的数据库
+                        table_data = [
+                            {"name": "existing_db"},
+                            {"name": "master"},
+                            {"name": "model"},
+                            {"name": "msdb"},
+                            {"name": "tempdb"},
+                        ]
+                    else:
+                        table_data = [{"name": "test_database"}]
+                # 模拟检查数据库是否存在的查询
+                elif "select name from [master].[sys].[databases] where name in" in cmd:
+                    # 返回已存在的数据库
+                    table_data = [{"name": "existing_db"}]
+                # 模拟获取集群主节点的查询
+                elif "SELECT SERVERPROPERTY('MachineName')" in cmd:
+                    table_data = [{"MachineName": address.split(":")[0]}]
+                else:
+                    table_data = []
+
+                cmd_results.append(
+                    {
+                        "cmd": cmd,
+                        "table_data": table_data,
+                        "rows_affected": len(table_data),
+                        "error_msg": "",
+                    }
+                )
+
+            response_data.append(
+                {
+                    "address": address,
+                    "cmd_results": cmd_results,
+                    "error_msg": "",
+                }
+            )
+
         return response_data
