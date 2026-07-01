@@ -26,12 +26,13 @@ package switchcore
 
 import (
 	"context"
-	"strings"
+	"fmt"
 	"sync"
 
 	"dbm-services/common/dbha-v2/internal/analysis/dbm"
 	"dbm-services/common/dbha-v2/internal/analysis/switcher/switchlogger"
 	"dbm-services/common/dbha-v2/pkg/gerrors"
+	"dbm-services/common/dbha-v2/pkg/storage/haprobe"
 )
 
 // errIfCtxDoneInHostSwitch returns the error if ctx is non-nil
@@ -40,65 +41,294 @@ func errIfCtxDoneInHostSwitch(ctx context.Context, ins SwitchableInstance) error
 	return errIfCtxDoneInInstanceSwitch(ctx, ins)
 }
 
-// prepareForHostSwitch routine function that does switch preparation work for one instance on the same host
-func prepareForHostSwitch(ctx context.Context, ins SwitchableInstance) (needDoSwitch bool, retErr error) {
-	if err := errIfCtxDoneInHostSwitch(ctx, ins); err != nil {
-		return false, err
+// newSharedClusterLockLogFunc returns a log function for a cluster lock that is shared by multiple
+// same-host instances. The lockLogPrefix tags every lock log so the single shared lock is visible
+// (callers describe what shares it), and the log is reported to each instance in the group.
+func newSharedClusterLockLogFunc(lockLogPrefix string,
+	group map[MetadataKey]SwitchableInstance) switchlogger.SwitchLogFunc {
+	return func(level switchlogger.SwitchLogLevel, format string, args ...any) bool {
+		msg := lockLogPrefix + fmt.Sprintf(format, args...)
+		ok := true
+		for _, ins := range group {
+			if !ins.ReportLogf(level, "%s", msg) {
+				ok = false
+			}
+		}
+		return ok
 	}
-
-	if (ins.GetStatus() != dbm.Running) && (ins.GetStatus() != dbm.Available) {
-		retErr = gerrors.Newf(gerrors.Failure, "pre-status check unpass for wrong status:%s", ins.GetStatus())
-		ins.ReportLogf(switchlogger.SwitchError, "%s", retErr.Error())
-		return false, retErr
-	}
-	ins.ReportLogf(switchlogger.SwitchInfo, "pre-status check pass with status:%s", ins.GetStatus())
-
-	if err := ins.SetInstanceUnavailable(); err != nil {
-		retErr = gerrors.Newf(gerrors.Failure, "failed to set instance unavailable: %s", err.Error())
-		ins.ReportLogf(switchlogger.SwitchError, "%s", retErr.Error())
-		return false, retErr
-	}
-	ins.ReportLogf(switchlogger.SwitchInfo, "successfully set instance unavailable")
-
-	if err := errIfCtxDoneInHostSwitch(ctx, ins); err != nil {
-		return false, err
-	}
-
-	// lock cluster before check node status
-	clusterKey := GenerateClusterKey(ins.GetBkCloudID(), ins.GetClusterID())
-	unlock, err := LockClusterWithTimeout(ins.ReportLogf, clusterKey, ClusterLockTimeout())
-	if err != nil {
-		return false, err
-	}
-	defer unlock()
-
-	if err := errIfCtxDoneInHostSwitch(ctx, ins); err != nil {
-		return false, err
-	}
-
-	// check node status
-	checkRes, checkErr := checkBeforeSwitch(ins)
-	if checkRes != SwitchRequired {
-		return false, checkErr
-	}
-
-	return true, nil
 }
 
-// processForHostSwitch routine function that does switch processing work for one instance on the same host
-func processForHostSwitch(ctx context.Context, ins SwitchableInstance) (processErr error) {
-	if err := errIfCtxDoneInHostSwitch(ctx, ins); err != nil {
-		return err
+// checkStatusForHostSwitch serially validates the status of every instance on the same host.
+// Instance status is held in memory, so the check is fast and does not need parallelism.
+// It returns the keys of instances whose pre-status check fails.
+func checkStatusForHostSwitch(ctx context.Context, swInstMap map[MetadataKey]SwitchableInstance) []MetadataKey {
+	failedInsts := make([]MetadataKey, 0)
+
+	for instKey, ins := range swInstMap {
+		if err := errIfCtxDoneInHostSwitch(ctx, ins); err != nil {
+			failedInsts = append(failedInsts, instKey)
+			continue
+		}
+
+		if (ins.GetStatus() != dbm.Running) && (ins.GetStatus() != dbm.Available) {
+			ins.ReportLogf(switchlogger.SwitchError, "pre-status check unpass for wrong status:%s", ins.GetStatus())
+			failedInsts = append(failedInsts, instKey)
+			continue
+		}
+
+		ins.ReportLogf(switchlogger.SwitchInfo, "pre-status check pass with status:%s", ins.GetStatus())
 	}
 
-	// lock cluster before do switch
-	clusterKey := GenerateClusterKey(ins.GetBkCloudID(), ins.GetClusterID())
-	unlock, err := LockClusterWithTimeout(ins.ReportLogf, clusterKey, ClusterLockTimeout())
-	if err != nil {
-		return err
+	return failedInsts
+}
+
+// setStatusForHostSwitch marks all instances on the same host as unavailable with a single
+// batch DBM API call, instead of one API call per instance.
+func setStatusForHostSwitch(ctx context.Context, swInstMap map[MetadataKey]SwitchableInstance) error {
+	if len(swInstMap) == 0 {
+		return nil
+	}
+
+	if ctx != nil {
+		if err := ctx.Err(); err != nil {
+			return err
+		}
+	}
+
+	// instances on the same host share the same bk_cloud_id (host key is bk_cloud_id + ip)
+	var bkCloudID int
+	insts := make([]dbm.InstWithinCloud, 0, len(swInstMap))
+	for _, ins := range swInstMap {
+		bkCloudID = ins.GetBkCloudID()
+		insts = append(insts, dbm.InstWithinCloud{IP: ins.GetIP(), Port: ins.GetPort()})
+	}
+
+	dbmClient := &dbm.Client{}
+	if err := dbmClient.UpdateBatchInstancesStatus(bkCloudID, insts, dbm.Unavailable); err != nil {
+		retErr := gerrors.Newf(gerrors.Failure, "failed to set instances unavailable in batch: %s", err.Error())
+		for _, ins := range swInstMap {
+			ins.ReportLogf(switchlogger.SwitchError, "%s", retErr.Error())
+		}
+		return retErr
+	}
+
+	for _, ins := range swInstMap {
+		ins.ReportLogf(switchlogger.SwitchInfo, "successfully set instance unavailable")
+	}
+
+	return nil
+}
+
+// checkOnSameHost runs CheckBeforeSwitch for all instances on the same host concurrently.
+// Instances are grouped by cluster so each cluster is locked only once (rather than once per instance);
+// clusters are processed in parallel, and instances within a cluster are checked in parallel under the
+// single cluster lock.
+// It returns the set of instances that need no switch and the keys of instances whose check fails.
+func checkOnSameHost(ctx context.Context, swInstMap map[MetadataKey]SwitchableInstance) (
+	switchNotRequiredInsts map[MetadataKey]struct{}, checkFailedInsts []MetadataKey) {
+	switchNotRequiredInsts = make(map[MetadataKey]struct{})
+	checkFailedInsts = make([]MetadataKey, 0)
+
+	// group instances on the host by cluster
+	clusterGroups := make(map[ClusterKey]map[MetadataKey]SwitchableInstance)
+	for instKey, ins := range swInstMap {
+		clusterKey := GenerateClusterKey(ins.GetBkCloudID(), ins.GetClusterID())
+		if clusterGroups[clusterKey] == nil {
+			clusterGroups[clusterKey] = make(map[MetadataKey]SwitchableInstance)
+		}
+		clusterGroups[clusterKey][instKey] = ins
+	}
+
+	var mu sync.Mutex
+	var wg sync.WaitGroup
+
+	for clusterKey, group := range clusterGroups {
+		wg.Add(1)
+
+		go func(clusterKey ClusterKey, group map[MetadataKey]SwitchableInstance) {
+			defer wg.Done()
+
+			notRequired, failed := checkOnSameHostSameCluster(ctx, clusterKey, group)
+
+			mu.Lock()
+			for instKey := range notRequired {
+				switchNotRequiredInsts[instKey] = struct{}{}
+			}
+			checkFailedInsts = append(checkFailedInsts, failed...)
+			mu.Unlock()
+		}(clusterKey, group)
+	}
+
+	wg.Wait()
+
+	return switchNotRequiredInsts, checkFailedInsts
+}
+
+// checkOnSameHostSameCluster runs CheckBeforeSwitch for the instances that are on the same host and
+// belong to the same cluster. The cluster is locked only once for all these instances, and the
+// instances are checked in parallel under that single cluster lock.
+// It returns the set of instances that need no switch and the keys of instances whose check fails.
+func checkOnSameHostSameCluster(ctx context.Context, clusterKey ClusterKey,
+	group map[MetadataKey]SwitchableInstance) (
+	switchNotRequiredInsts map[MetadataKey]struct{}, checkFailedInsts []MetadataKey) {
+	switchNotRequiredInsts = make(map[MetadataKey]struct{})
+	checkFailedInsts = make([]MetadataKey, 0)
+
+	// lock the cluster once for all of its instances on this host
+	lockLogFunc := newSharedClusterLockLogFunc("[shared by same-host-same-cluster instance(s)] ", group)
+	unlock, lockErr := LockClusterWithTimeout(lockLogFunc, clusterKey, ClusterLockTimeout())
+	if lockErr != nil {
+		for instKey := range group {
+			checkFailedInsts = append(checkFailedInsts, instKey)
+		}
+		return switchNotRequiredInsts, checkFailedInsts
 	}
 	defer unlock()
 
+	var mu sync.Mutex
+	var wg sync.WaitGroup
+
+	// check the instances within this cluster in parallel under the single cluster lock
+	for instKey, ins := range group {
+		wg.Add(1)
+
+		go func(instKey MetadataKey, ins SwitchableInstance) {
+			defer wg.Done()
+
+			if err := errIfCtxDoneInHostSwitch(ctx, ins); err != nil {
+				mu.Lock()
+				checkFailedInsts = append(checkFailedInsts, instKey)
+				mu.Unlock()
+				return
+			}
+
+			checkRes, _ := checkBeforeSwitch(ins)
+			switch checkRes {
+			case SwitchRequired:
+				// instance requires switching, nothing to record
+			case SwitchNotNeeded:
+				mu.Lock()
+				switchNotRequiredInsts[instKey] = struct{}{}
+				mu.Unlock()
+			default:
+				mu.Lock()
+				checkFailedInsts = append(checkFailedInsts, instKey)
+				mu.Unlock()
+			}
+		}(instKey, ins)
+	}
+
+	wg.Wait()
+
+	return switchNotRequiredInsts, checkFailedInsts
+}
+
+// hostSwitchGroupKey returns the group key that decides which same-host instances switch together
+// under one shared cluster lock. Instances in different clusters always get different keys. Within
+// the same cluster, only the remote (machine_type=remote) nodes of a TendbCluster share a key so they
+// switch in parallel; every other instance gets a key of its own (kept serial via the cluster lock).
+// Other cluster types currently keep one instance per group, which may be extended later.
+func hostSwitchGroupKey(instKey MetadataKey, ins SwitchableInstance) string {
+	clusterKey := GenerateClusterKey(ins.GetBkCloudID(), ins.GetClusterID())
+
+	if ins.GetClusterType() == haprobe.DbmMetadataClusterTypeTendbCluster &&
+		ins.GetMachineType() == haprobe.DbmMetadataMachineTypeRemote {
+		return fmt.Sprintf("%s|remote", clusterKey)
+	}
+
+	return fmt.Sprintf("%s|%s", clusterKey, instKey)
+}
+
+// processOnSameHost performs the actual switch for the given same-host instances.
+// Instances are split into groups (see hostSwitchGroupKey); each group acquires the cluster lock once
+// and switches its instances in parallel under that single lock, and groups run in parallel goroutines.
+func processOnSameHost(ctx context.Context, swInstMap map[MetadataKey]SwitchableInstance) (
+	errMap map[MetadataKey]error) {
+	errMap = make(map[MetadataKey]error)
+
+	// group same-host instances for the actual switch, remembering each group's cluster
+	groups := make(map[string]map[MetadataKey]SwitchableInstance)
+	groupClusterKeys := make(map[string]ClusterKey)
+	for instKey, ins := range swInstMap {
+		groupKey := hostSwitchGroupKey(instKey, ins)
+		if groups[groupKey] == nil {
+			groups[groupKey] = make(map[MetadataKey]SwitchableInstance)
+		}
+		groups[groupKey][instKey] = ins
+		groupClusterKeys[groupKey] = GenerateClusterKey(ins.GetBkCloudID(), ins.GetClusterID())
+	}
+
+	var mu sync.Mutex
+	var wg sync.WaitGroup
+
+	for groupKey, group := range groups {
+		wg.Add(1)
+
+		go func(clusterKey ClusterKey, group map[MetadataKey]SwitchableInstance) {
+			defer wg.Done()
+
+			groupErrMap := processOnSameHostGroup(ctx, clusterKey, group, groupKey)
+
+			mu.Lock()
+			for instKey, err := range groupErrMap {
+				errMap[instKey] = err
+			}
+			mu.Unlock()
+		}(groupClusterKeys[groupKey], group)
+	}
+
+	wg.Wait()
+
+	return errMap
+}
+
+// processOnSameHostGroup acquires the cluster lock once for the group and switches the group's
+// instances in parallel under that single lock. The caller guarantees every instance in the group
+// belongs to clusterKey.
+func processOnSameHostGroup(ctx context.Context, clusterKey ClusterKey,
+	group map[MetadataKey]SwitchableInstance, groupKey string) (errMap map[MetadataKey]error) {
+	errMap = make(map[MetadataKey]error)
+	if len(group) == 0 {
+		return errMap
+	}
+
+	// lock the cluster once for all instances in this switch group
+	lockLogFunc := newSharedClusterLockLogFunc(fmt.Sprintf("[shared by same host switch group(key=%s)] ", groupKey), group)
+	unlock, lockErr := LockClusterWithTimeout(lockLogFunc, clusterKey, ClusterLockTimeout())
+	if lockErr != nil {
+		for instKey := range group {
+			errMap[instKey] = lockErr
+		}
+		return errMap
+	}
+	defer unlock()
+
+	var mu sync.Mutex
+	var wg sync.WaitGroup
+
+	// switch the instances within this group in parallel under the single cluster lock
+	for instKey, ins := range group {
+		wg.Add(1)
+
+		go func(instKey MetadataKey, ins SwitchableInstance) {
+			defer wg.Done()
+
+			if err := doSwitchForHostInstance(ctx, ins); err != nil {
+				mu.Lock()
+				errMap[instKey] = err
+				mu.Unlock()
+			}
+		}(instKey, ins)
+	}
+
+	wg.Wait()
+
+	return errMap
+}
+
+// doSwitchForHostInstance runs the switch processing work for one instance on the same host.
+// The caller must already hold the instance's cluster lock.
+func doSwitchForHostInstance(ctx context.Context, ins SwitchableInstance) (processErr error) {
 	if err := errIfCtxDoneInHostSwitch(ctx, ins); err != nil {
 		return err
 	}
@@ -140,44 +370,33 @@ func processForHostSwitch(ctx context.Context, ins SwitchableInstance) (processE
 // The errMap is a map of instance key to error, only contains the errors of instances that failed to switch.
 func SwitchSameHostInstances(ctx context.Context, swInstMap map[MetadataKey]SwitchableInstance) (
 	switchSuccess bool, errMap map[MetadataKey]error) {
-	prepareFailedInsts := make([]string, 0)
-	switchNotRequiredInsts := map[MetadataKey]struct{}{}
 	errMap = make(map[MetadataKey]error)
 
-	var mu sync.Mutex
-	var wg sync.WaitGroup
-
-	// do switch preparation work for all instances on the same host concurrently
-	for instKey, ins := range swInstMap {
-		wg.Add(1)
-
-		go func(instKey MetadataKey, ins SwitchableInstance) {
-			defer wg.Done()
-
-			needDoSwitch, err := prepareForHostSwitch(ctx, ins)
-			if err != nil {
-				mu.Lock()
-				prepareFailedInsts = append(prepareFailedInsts, string(instKey))
-				mu.Unlock()
-				return
-			}
-
-			if needDoSwitch {
-				return
-			}
-
-			mu.Lock()
-			switchNotRequiredInsts[instKey] = struct{}{}
-			mu.Unlock()
-		}(instKey, ins)
+	// Step 1: serially check the status of all instances on the host (fast, in-memory).
+	if statusFailedInsts := checkStatusForHostSwitch(ctx, swInstMap); len(statusFailedInsts) > 0 {
+		err := gerrors.Newf(gerrors.Failure, "pre-status check unpass for some instances on the same host, "+
+			"failed instances: [%s]", JoinMetadataKeys(statusFailedInsts, ", "))
+		for instKey := range swInstMap {
+			errMap[instKey] = err
+		}
+		return false, errMap
 	}
 
-	wg.Wait()
+	// Step 2: set all instances unavailable with a single batch DBM API call.
+	if err := setStatusForHostSwitch(ctx, swInstMap); err != nil {
+		for instKey := range swInstMap {
+			errMap[instKey] = err
+		}
+		return false, errMap
+	}
 
-	// Once there is an instance preparation failed, terminate the switch process of all instances on the same host
-	if len(prepareFailedInsts) > 0 {
-		err := gerrors.Newf(gerrors.Failure, "failed to do switch preparation for some instances on the same host, "+
-			"failed instances: [%s]", strings.Join(prepareFailedInsts, ", "))
+	// Step 3: check-before-switch in parallel, locking each cluster only once.
+	switchNotRequiredInsts, checkFailedInsts := checkOnSameHost(ctx, swInstMap)
+
+	// Once any instance fails the check, terminate the switch process of all instances on the same host
+	if len(checkFailedInsts) > 0 {
+		err := gerrors.Newf(gerrors.Failure, "check before switch unpass for some instances on the same host, "+
+			"failed instances: [%s]", JoinMetadataKeys(checkFailedInsts, ", "))
 
 		for instKey := range swInstMap {
 			if _, exists := switchNotRequiredInsts[instKey]; exists {
@@ -189,26 +408,17 @@ func SwitchSameHostInstances(ctx context.Context, swInstMap map[MetadataKey]Swit
 		return false, errMap
 	}
 
-	// do switch for all instances on the same host concurrently
+	// Step 4: do the actual switch for instances that require switching.
+	instsToSwitch := make(map[MetadataKey]SwitchableInstance, len(swInstMap))
 	for instKey, swInst := range swInstMap {
 		if _, exists := switchNotRequiredInsts[instKey]; exists {
 			continue
 		}
-
-		wg.Add(1)
-
-		go func(instKey MetadataKey, ins SwitchableInstance) {
-			defer wg.Done()
-
-			if err := processForHostSwitch(ctx, ins); err != nil {
-				mu.Lock()
-				errMap[instKey] = err
-				mu.Unlock()
-			}
-		}(instKey, swInst)
+		instsToSwitch[instKey] = swInst
 	}
 
-	wg.Wait()
+	// errMap is empty here: steps 1-3 return early on any failure.
+	errMap = processOnSameHost(ctx, instsToSwitch)
 
 	if len(errMap) > 0 {
 		return false, errMap

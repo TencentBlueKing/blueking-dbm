@@ -93,8 +93,8 @@ type DbmMetadataBinlogDumper struct {
 	Port int    `json:"port"`
 }
 
-// InstWithinCluster defined the instance within a cluster.
-type InstWithinCluster struct {
+// InstWithinCloud defined the instance within a cloud.
+type InstWithinCloud struct {
 	IP   string `json:"ip"`
 	Port int    `json:"port"`
 }
