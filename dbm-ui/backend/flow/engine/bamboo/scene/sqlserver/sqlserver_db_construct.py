@@ -76,8 +76,8 @@ class SqlserverDataConstruct(BaseFlow):
                             "bak_file": str(PureWindowsPath(target_path) / file_info["file_name"]),
                             "backup_full_start_time": file_info["backup_begin_time"],
                             "backup_full_end_time": file_info["backup_end_time"],
-                            "checkpointlsn": file_info["checkpointlsn"],
-                            "cluster_address": file_info["cluster_address"],
+                            "checkpointlsn": file_info["checkpoint_lsn"],
+                            "cluster_address": file_info["cluster_domain"],
                         }
                     )
                     break
@@ -94,7 +94,7 @@ class SqlserverDataConstruct(BaseFlow):
         err_infos = []
         for full_info in full_restore_infos:
             # 查询对应的日志备份记录
-            log_backup_infos = SQLServerRollbackHandler(cluster_id=cluster_id).query_binlogs(
+            log_backup_infos = SQLServerRollbackHandler(cluster_id=cluster_id).query_binlogs_from_model(
                 str2datetime(full_info["backup_full_end_time"]), restore_time, full_info["db_name"]
             )
 
