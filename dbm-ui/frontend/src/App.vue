@@ -29,30 +29,20 @@
           </div>
         </template>
       </BkPopover>
-      <BkPopover
-        click-content-auto-hide
-        placement="bottom"
-        theme="light top-action-menu-theme"
-        trigger="click"
-        @after-hidden="isShowLogout = false"
-        @after-show="isShowLogout = true">
-        <div class="user-info-box">
-          <span class="username-text">{{ userProfileStore.username }}</span>
-          <DbIcon
-            class="user-info-arrow"
-            :class="{
-              'is-active': isShowLogout,
-            }"
-            type="down-shape" />
-        </div>
-        <template #content>
-          <div
-            class="item"
+      <BkLoginUserinfo
+        style="position: relative; z-index: 999"
+        :userinfo="userinfo">
+        <template #action>
+          <ActionItem
+            theme="danger"
             @click="handleSignOut">
+            <template #icon>
+              <Qq />
+            </template>
             {{ t('退出登录') }}
-          </div>
+          </ActionItem>
         </template>
-      </BkPopover>
+      </BkLoginUserinfo>
     </template>
     <template #content-header>
       <RouterBack />
@@ -68,6 +58,7 @@
   import { onMounted, watch } from 'vue';
   import { useI18n } from 'vue-i18n';
 
+  import BkLoginUserinfo, { ActionItem } from '@blueking/login-userinfo';
   import NoticeComponent from '@blueking/notice-component';
 
   import { getLogout } from '@services/source/logout';
@@ -82,6 +73,8 @@
   import RouterBack from '@components/router-back/Index.vue';
   import SystemSearch from '@components/system-search/Index.vue';
   import SystemVersionLog from '@components/system-version-log/Index.vue';
+
+  import('@blueking/login-userinfo/vue3/vue3.css');
 
   import { checkDbConsole } from '@utils';
 
@@ -100,8 +93,13 @@
 
   const noticeApi = urlJoin(window.PROJECT_ENV.VITE_AJAX_URL_PREFIX, '/notice/announcements/');
   const isShowBKNotice = ref(false);
-  const isShowLogout = ref(false);
   const isShowSystemVersionLog = ref(false);
+
+  const userinfo = computed(() => {
+    return {
+      name: userProfileStore.username,
+    };
+  });
 
   watch(
     locale,
