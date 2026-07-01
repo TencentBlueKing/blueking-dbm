@@ -55,6 +55,7 @@ class SQLServerRollbackDetailSerializer(SQLServerBaseOperateDetailSerializer):
 
     infos = serializers.ListSerializer(help_text=_("迁移信息列表"), child=RollbackInfoSerializer())
     is_local = serializers.BooleanField(help_text=_("是否原地构造"), default=True)
+    is_time_fixed = serializers.BooleanField(help_text=_("是否指定回档时间"))
 
     def validate(self, attrs):
         """验证库表数据库的数据"""
@@ -123,7 +124,7 @@ class SQLServerRollbackBackupFlowParamBuilder(builders.FlowParamBuilder):
         self.ticket_data["backup_type"] = SqlserverBackupMode.LOG_BACKUP.value
 
 
-@builders.BuilderFactory.register(TicketType.SQLSERVER_ROLLBACK)
+@builders.BuilderFactory.register(TicketType.SQLSERVER_LOCAL)
 class SQLServerDataMigrateFlowBuilder(BaseSQLServerTicketFlowBuilder):
     serializer = SQLServerRollbackDetailSerializer
     inner_flow_builder = SQLServerDataMigrateFlowParamBuilder
