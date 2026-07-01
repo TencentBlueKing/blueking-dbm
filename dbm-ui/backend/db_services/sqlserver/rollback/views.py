@@ -48,10 +48,16 @@ class SQLServerRollbackViewSet(viewsets.SystemViewSet):
     @action(methods=["POST"], detail=False, serializer_class=QueryBackupLogsSerializer)
     def query_backup_logs(self, request, *args, **kwargs):
         data = self.params_validate(self.get_serializer_class())
-        end_time = datetime.now(timezone.utc)
-        start_time = end_time - timedelta(days=data["days"])
         cluster_id = data["cluster_id"]
-        return Response(SQLServerRollbackHandler(cluster_id).query_backup_logs(start_time, end_time))
+
+        # 支持显式指定 end_time，否则使用当前时间
+        if data.get("end_time"):
+            end_time = str2datetime(data["end_time"])
+        else:
+            end_time = datetime.now(timezone.utc)
+
+        start_time = end_time - timedelta(days=data["days"])
+        return Response(SQLServerRollbackHandler(cluster_id).query_backup_logs_from_model(start_time, end_time))
 
     @common_swagger_auto_schema(
         operation_summary=_("根据回档时间集群最近备份记录"),
@@ -64,7 +70,7 @@ class SQLServerRollbackViewSet(viewsets.SystemViewSet):
         data = self.params_validate(self.get_serializer_class())
         cluster_id = data.pop("cluster_id")
         return Response(
-            SQLServerRollbackHandler(cluster_id).query_latest_backup_log(
+            SQLServerRollbackHandler(cluster_id).query_latest_backup_log_from_model(
                 rollback_time=str2datetime(data["rollback_time"])
             )
         )
