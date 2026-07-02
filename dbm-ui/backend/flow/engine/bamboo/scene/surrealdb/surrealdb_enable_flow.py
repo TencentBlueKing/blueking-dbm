@@ -8,9 +8,18 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+from dataclasses import asdict
 from typing import Dict, Optional
 
+from django.utils.translation import gettext as _
+
+from backend.flow.engine.bamboo.scene.common.builder import Builder
 from backend.flow.engine.bamboo.scene.surrealdb.surrealdb_base_flow import K8sSurrealDBBaseFlow
+from backend.flow.plugins.components.collections.surrealdb.surrealdb_enable import EnableSurrealDBComponent
+from backend.flow.plugins.components.collections.surrealdb.surrealdb_sync_ticket_id import (
+    SurrealDBSyncTicketIdComponent,
+)
+from backend.flow.utils.surrealdb.surrealdb_context_dataclass import K8sSurrealDBActKwargs, K8sSurrealDBApplyContext
 
 
 class K8sSurrealDBEnableFlow(K8sSurrealDBBaseFlow):
@@ -25,5 +34,19 @@ class K8sSurrealDBEnableFlow(K8sSurrealDBBaseFlow):
         """
         启用 surrealdb 集群
         """
-        # TODO: implement in next PR
-        pass
+        surrealdb_pipeline = Builder(root_id=self.root_id, data=self.data)
+        act_kwargs = K8sSurrealDBActKwargs(bk_cloud_id=self.bk_cloud_id)
+        act_kwargs.set_trans_data_dataclass = K8sSurrealDBApplyContext.__name__
+
+        # 调用 dbs 接口启用集群
+        surrealdb_pipeline.add_act(
+            act_name=_("启用 surrealdb 集群"), act_component_code=EnableSurrealDBComponent.code, kwargs=asdict(act_kwargs)
+        )
+
+        # 同步ticket_id到 dbs
+        surrealdb_pipeline.add_act(
+            act_name=_("同步ticketId"),
+            act_component_code=SurrealDBSyncTicketIdComponent.code,
+            kwargs=asdict(act_kwargs),
+        )
+        surrealdb_pipeline.run_pipeline()
