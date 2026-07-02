@@ -15,7 +15,7 @@ from typing import List
 from pipeline.component_framework.component import Component
 from pipeline.core.flow.activity import Service
 
-import backend.flow.utils.surrealdb.surrealdb_single.surrealdb_context_dataclass as flow_context
+import backend.flow.utils.surrealdb.surrealdb_context_dataclass as flow_context
 from backend.components import KubernetesApi
 from backend.flow.plugins.components.collections.common.base_service import BaseService
 from backend.flow.utils.surrealdb.consts import NAMESPACE_PREFIX, SINGLE_TAGS, SINGLE_TOPO_NAME, STORAGE_ADDON_TYPE

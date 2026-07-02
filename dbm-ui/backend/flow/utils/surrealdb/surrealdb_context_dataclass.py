@@ -8,12 +8,13 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+
 from dataclasses import dataclass
 from typing import Any, Optional
 
 
 @dataclass()
-class K8sSurrealDBSingleActKwargs:
+class K8sSurrealDBActKwargs:
     """
     定义 surrealdb 单机版活动节点的私有变量dataclass类
     """
@@ -23,7 +24,7 @@ class K8sSurrealDBSingleActKwargs:
 
 
 @dataclass()
-class K8sSurrealDBSingleApplyContext:
+class K8sSurrealDBApplyContext:
     """
     定义 surrealdb 单机版申请的上下文数据类
     """
