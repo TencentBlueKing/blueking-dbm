@@ -8,39 +8,46 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-
+from backend.flow.engine.bamboo.scene.surrealdb.surrealdb_restart_flow import K8sSurrealDBRestartFlow
 from backend.flow.engine.bamboo.scene.surrealdb.surrealdb_single.surrealdb_single_apply_flow import (
     K8sSurrealDBSingleApplyFlow,
 )
 from backend.flow.engine.controller.base import BaseController
 
 
-class SurrealDBSingleController(BaseController):
+class SurrealDBController(BaseController):
     """
     SurrealDB 单机版实例相关调用
     """
 
-    def surrealdb_apply_scene(self):
+    def surrealdb_single_apply_scene(self):
         """
-        SurrealDB 单机版实例部署流程
+        SurrealDB 单机版部署流程
         """
         flow = K8sSurrealDBSingleApplyFlow(root_id=self.root_id, data=self.ticket_data)
         flow.deploy_surrealdb_flow()
 
     def surrealdb_enable_scene(self):
         """
-        SurrealDB 单机版实例启用流程
+        SurrealDB 启用流程
         """
         pass
 
     def surrealdb_disable_scene(self):
         """
-        SurrealDB 单机版实例禁用流程
+        SurrealDB 禁用流程
         """
         pass
 
     def surrealdb_restart_scene(self):
         """
-        SurrealDB 单机版实例重启流程
+        SurrealDB 重启流程
+        """
+        flow = K8sSurrealDBRestartFlow(root_id=self.root_id, data=self.ticket_data)
+        flow.restart_surrealdb_flow()
+
+    def surrealdb_destroy_scene(self):
+        """
+        SurrealDB 销毁流程
         """
         pass
