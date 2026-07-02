@@ -33,12 +33,14 @@
       <div class="module-info-card">
         <FormItemWithHint
           class="form-item-name"
-          :hint="t('仅支持小写字母、数字、连字符，同时会参与集群域名生成，创建后不可改')"
           :label="t('模块名称')"
           :model="formData.alias_name"
           property="alias_name"
           required
           :rules="rules.alias_name">
+          <template #hint>
+            {{ t('仅支持小写字母、数字、连字符，同时会参与集群域名生成，') }}<span class="hint-warning">{{ t('创建后不可改') }}</span>
+          </template>
           <div class="module-name-row">
             <BkInput
               v-model="formData.alias_name"
@@ -283,7 +285,7 @@
   const rules = {
     alias_name: [
       {
-        message: t('格式不正确_请勿使用大写_空格_下划线或特殊符号'),
+        message: t('格式不正确_请勿使用中文_大写字母_空格_下划线或特殊符号'),
         trigger: 'blur',
         validator: (value: string) => {
           if (/^[a-z0-9-]+$/.test(value)) {
@@ -529,6 +531,12 @@
     background: #fff;
     border-radius: 2px;
     box-shadow: 0 2px 4px 0 rgba(25, 25, 41, 0.05);
+  }
+
+  .form-item-name {
+    :deep(.hint-warning) {
+      color: rgb(255, 156, 1);
+    }
   }
 
   .module-name-row {
