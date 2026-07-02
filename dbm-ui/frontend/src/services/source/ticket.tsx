@@ -368,6 +368,25 @@ export function updateTicketFlowConfig(params: {
   }>(`${path}/update_ticket_flow_config/`, params);
 }
 
+/**
+ * 保存单据流程规则（新建或更新，后端统一接口）
+ */
+export function saveTicketFlowConfig(params: {
+  bk_biz_id: number;
+  cluster_ids?: number[];
+  config_ids?: number[];
+  configs: {
+    need_itsm: boolean;
+    need_manual_confirm: boolean;
+  };
+  remark?: string;
+  ticket_types: string[];
+}) {
+  return http.post<{
+    ticket_types: string[];
+  }>(`${path}/save_ticket_flow_config/`, params);
+}
+
 export function getTicketStatus(params: { ticket_ids: string }) {
   return http.post<Record<string, string>>(`${path}/list_ticket_status/`, params, {
     cache: 1000,

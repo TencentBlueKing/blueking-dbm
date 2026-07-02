@@ -1,6 +1,5 @@
 <template>
   <div class="target-form-item">
-    <div class="target-prefix">{{ t('集群') }}</div>
     <BkSelect
       v-model="modelValue"
       class="target-select"
@@ -30,12 +29,6 @@
         v-bk-tooltips="errorMessage"
         type="exclamation-fill" />
     </div>
-    <div class="action-box">
-      <DbIcon
-        class="action-btn"
-        type="minus-fill"
-        @click="handleRemove" />
-    </div>
   </div>
 </template>
 
@@ -55,10 +48,7 @@
     dbType: DBTypes;
   }
 
-  interface Emits {
-    (e: 'change', value: number[]): void;
-    (e: 'remove'): void;
-  }
+  type Emits = (e: 'change', value: number[]) => void;
 
   interface Exposes {
     getValue: () => Promise<number[]>;
@@ -111,10 +101,6 @@
     emits('change', value);
   };
 
-  const handleRemove = () => {
-    emits('remove');
-  };
-
   const matchKeywords = (keywords: string[], target: string) =>
     keywords.some((kw) => target.toLowerCase().includes(kw.toLowerCase()));
 
@@ -155,6 +141,26 @@
 </script>
 
 <style lang="less" scoped>
+  .target-form-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+
+    .target-select {
+      flex: 1;
+    }
+
+    .error-icon {
+      position: absolute;
+      right: 26px;
+      display: flex;
+      height: 32px;
+      font-size: 14px;
+      color: #ea3636;
+      align-items: center;
+    }
+  }
+
   .is-error {
     :deep(.bk-select-tag) {
       background-color: #fff0f1 !important;

@@ -12,13 +12,6 @@
 -->
 
 <template>
-  <Teleport to="#dbContentTitleAppend">
-    <BkTag
-      class="ml-8"
-      theme="info">
-      {{ t('全局') }}
-    </BkTag>
-  </Teleport>
   <div class="ticket-flow-list-content">
     <BkAlert
       class="mb-16"

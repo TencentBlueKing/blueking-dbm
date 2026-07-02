@@ -66,7 +66,7 @@ export default () => {
   if (checkDbConsole('globalConfigManage.ticketFlowSetting')) {
     registerModule([
       {
-        path: 'ticket-flow-global-settings',
+        path: 'ticket-flow-global-settings/:dbType?',
         name: 'PlatformTicketFlowSetting',
         meta: {
           fullscreen: true,
@@ -104,7 +104,7 @@ export default () => {
   if (checkDbConsole('bizConfigManage.ticketFlowSetting')) {
     registerBusinessModule([
       {
-        path: 'ticket-flow-settings',
+        path: 'ticket-flow-settings/:dbType?',
         name: 'TicketFlowSetting',
         meta: {
           fullscreen: true,
