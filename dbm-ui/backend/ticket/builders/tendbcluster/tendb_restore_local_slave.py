@@ -81,4 +81,4 @@ class TendbClusterRestoreLocalSlaveParamBuilder(builders.FlowParamBuilder):
 class TendbClusterRestoreLocalSlaveFlowBuilder(BaseTendbTicketFlowBuilder):
     serializer = TendbClusterRestoreLocalSlaveDetailSerializer
     inner_flow_builder = TendbClusterRestoreLocalSlaveParamBuilder
-    inner_flow_name = _("TendbCluster 接入层灾难重建")
+    inner_flow_name = _("TenDB Cluster Slave原地重建")
