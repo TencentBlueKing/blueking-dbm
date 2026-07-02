@@ -10,6 +10,7 @@
     class="permission-disable-component">
     <slot v-bind="{ permission: false }" />
     <div
+      v-if="!disabled"
       v-cursor
       class="permission-disable-mask"
       @click="handleRequestPermission" />
@@ -26,12 +27,15 @@
   interface Props {
     actionId: string;
     bizId?: string | number;
+    /** 禁用鉴权：内容本身不可操作（如平台锁定）时直接原样渲染，不校验权限 */
+    disabled?: boolean;
     permission?: boolean | string;
     resource?: string | number;
   }
 
   const props = withDefaults(defineProps<Props>(), {
     bizId: undefined,
+    disabled: false,
     permission: 'normal',
     resource: '',
   });

@@ -8,6 +8,8 @@ import { permissionDialog } from '@utils';
 export interface Props {
   actionId: string;
   bizId?: string | number;
+  /** 禁用鉴权：内容本身不可操作（如平台锁定）时直接原样渲染，不校验权限 */
+  disabled?: boolean;
   permission?: string | boolean;
   resource?: string | number;
 }
@@ -111,7 +113,7 @@ export default function (props: Props) {
   });
 
   const isShowRaw = computed(() => {
-    if (props.permission === true) {
+    if (props.disabled || props.permission === true) {
       return true;
     }
     return checkResult.value;
@@ -160,7 +162,8 @@ export default function (props: Props) {
 
   onMounted(() => {
     // 初始没有权限信息，需要主动鉴权一次
-    if (props.permission === 'normal') {
+    // 禁用态（如平台锁定）无需鉴权，直接跳过
+    if (!props.disabled && props.permission === 'normal') {
       checkPermission();
     }
   });
