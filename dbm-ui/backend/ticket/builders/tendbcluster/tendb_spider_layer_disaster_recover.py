@@ -55,6 +55,6 @@ class TendbClusterSpiderLayerDrResourceParamBuilder(BaseOperateResourceParamBuil
 class SpiderLayerDisasterRecoverFlowBuilder(BaseTendbTicketFlowBuilder):
     serializer = SpiderLayerDisasterRecoverDetailSerializer
     inner_flow_builder = SpiderLayerDisasterRecoverFlowParamBuilder
-    inner_flow_name = _("TenDB Cluster 接入层全毁灾难恢复")
+    inner_flow_name = _("TenDB Cluster 接入层灾难重建")
     resource_batch_apply_builder = TendbClusterSpiderLayerDrResourceParamBuilder
     # validator = SpiderController.tendbcluster_spider_layer_disaster_recover_scene.validator
