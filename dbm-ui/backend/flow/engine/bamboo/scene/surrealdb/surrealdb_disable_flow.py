@@ -8,28 +8,22 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+from typing import Dict, Optional
 
-from . import (
-    doris,
-    es,
-    hdfs,
-    influxdb,
-    kafka,
-    mongocluster,
-    mongorepset,
-    nosqlcomm,
-    pulsar,
-    qdrantha,
-    riak,
-    sqlserverha,
-    sqlserversingle,
-    surrealdb,
-    tendbha,
-    tendbsingle,
-    tendiscache,
-    tendispluscluster,
-    tendissingle,
-    tendisssd,
-    vm,
-)
-from .apis import domain_exists, query_instances
+from backend.flow.engine.bamboo.scene.surrealdb.surrealdb_base_flow import K8sSurrealDBBaseFlow
+
+
+class K8sSurrealDBDisableFlow(K8sSurrealDBBaseFlow):
+    def __init__(self, root_id: str, data: Optional[Dict]):
+        """
+        @param root_id : 任务流程定义的root_id
+        @param data : 单据传递过来的参数列表，是dict格式
+        """
+        super().__init__(root_id, data)
+
+    def disable_surrealdb_flow(self):
+        """
+        禁用 surrealdb 集群
+        """
+        # TODO: implement in next PR
+        pass
