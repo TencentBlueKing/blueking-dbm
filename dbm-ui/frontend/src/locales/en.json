@@ -5987,7 +5987,7 @@
   "目标 Proxy 实例": "Target Proxy Instance",
   "目标 Spider 实例": "Target Spider Instance",
   "可用": "Available",
-  "格式不正确_请勿使用大写_空格_下划线或特殊符号": "Format is incorrect. Please do not use uppercase, spaces, underscores or special symbols.",
+  "格式不正确_请勿使用中文_大写字母_空格_下划线或特殊符号": "Format incorrect. Do not use Chinese, capital letters, spaces, underscores or special symbols",
   "不能以连字符开头或结尾": "Cannot start or end with hyphen",
   "修改前：": "Before: ",
   "修改后：": "After: ",
