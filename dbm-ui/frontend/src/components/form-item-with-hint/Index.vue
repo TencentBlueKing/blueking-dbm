@@ -60,9 +60,7 @@
   const formItemRef = ref<any>(null);
   const isShowHint = ref(true);
 
-  /**
-   * 监听 BkFormItem 的 errorMessage，有错误时隐藏 hint
-   */
+  // 有错误信息时隐藏 hint
   watch(
     () => formItemRef.value?.errorMessage,
     (errorMessage) => {
@@ -73,9 +71,7 @@
     },
   );
 
-  /**
-   * 输入值变化时清除校验状态，恢复 hint 显示
-   */
+  // 值变化时清除校验态，恢复 hint 显示
   watch(
     () => props.model,
     () => {
@@ -83,9 +79,8 @@
     },
   );
 
-  /**
-   * 合并规则：为空校验仅显示红框，不显示文字提示
-   */
+  // 合并规则：为空校验仅显示红框、不显示文字（validator 返回 '' 走 string reject 分支，
+  // errorMessage 为空故无文字；return false 会被 mergeRules 用默认"验证出错"文案覆盖）
   const mergedRules = computed(() => {
     const rules = props.rules || [];
     if (props.required) {
@@ -106,11 +101,33 @@
     }
     return rules;
   });
+
+  const validate = (trigger?: string) => formItemRef.value?.validate?.(trigger);
+  const clearValidate = () => formItemRef.value?.clearValidate?.();
+
+  defineExpose({
+    clearValidate,
+    validate,
+  });
 </script>
 
 <style lang="less" scoped>
   .form-item-with-hint {
     position: relative;
+
+    /* bkui 的 .is-error .bk-tag-input 红框无效：bk-tag-input 外层无 border，
+       可见 border 在 .bk-tag-input-trigger 上，故此处补红框 */
+    &.is-error {
+      :deep(.bk-tag-input-trigger) {
+        border-color: #ea3636;
+        transition: all 0.15s;
+      }
+
+      :deep(.db-tag-input-panel) {
+        border-color: #ea3636;
+        transition: all 0.15s;
+      }
+    }
 
     :deep(.bk-form-error) {
       width: 100%;
