@@ -261,13 +261,17 @@ func processOnSameHost(ctx context.Context, swInstMap map[MetadataKey]Switchable
 	var mu sync.Mutex
 	var wg sync.WaitGroup
 
+	// instSem bounds the total number of instances being switched concurrently on this host,
+	// shared across all switch groups (each group acquires a slot per instance before switching it).
+	instSem := make(chan struct{}, HostLevelSwitchMaxInstanceConcurrency())
+
 	for groupKey, group := range groups {
 		wg.Add(1)
 
 		go func(clusterKey ClusterKey, group map[MetadataKey]SwitchableInstance) {
 			defer wg.Done()
 
-			groupErrMap := processOnSameHostGroup(ctx, clusterKey, group, groupKey)
+			groupErrMap := processOnSameHostGroup(ctx, clusterKey, group, groupKey, instSem)
 
 			mu.Lock()
 			for instKey, err := range groupErrMap {
@@ -284,9 +288,10 @@ func processOnSameHost(ctx context.Context, swInstMap map[MetadataKey]Switchable
 
 // processOnSameHostGroup acquires the cluster lock once for the group and switches the group's
 // instances in parallel under that single lock. The caller guarantees every instance in the group
-// belongs to clusterKey.
+// belongs to clusterKey. instSem is the host-wide semaphore bounding the number of instances being
+// switched concurrently across all groups; each instance acquires a slot before its switch.
 func processOnSameHostGroup(ctx context.Context, clusterKey ClusterKey,
-	group map[MetadataKey]SwitchableInstance, groupKey string) (errMap map[MetadataKey]error) {
+	group map[MetadataKey]SwitchableInstance, groupKey string, instSem chan struct{}) (errMap map[MetadataKey]error) {
 	errMap = make(map[MetadataKey]error)
 	if len(group) == 0 {
 		return errMap
@@ -306,12 +311,15 @@ func processOnSameHostGroup(ctx context.Context, clusterKey ClusterKey,
 	var mu sync.Mutex
 	var wg sync.WaitGroup
 
-	// switch the instances within this group in parallel under the single cluster lock
+	// switch the instances within this group in parallel under the single cluster lock,
+	// bounded by the host-wide instance semaphore
 	for instKey, ins := range group {
 		wg.Add(1)
+		instSem <- struct{}{}
 
 		go func(instKey MetadataKey, ins SwitchableInstance) {
 			defer wg.Done()
+			defer func() { <-instSem }()
 
 			if err := doSwitchForHostInstance(ctx, ins); err != nil {
 				mu.Lock()
