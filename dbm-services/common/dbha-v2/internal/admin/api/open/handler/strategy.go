@@ -64,7 +64,13 @@ func (h *StrategyHandler) Create(c *gin.Context) {
 		return
 	}
 
-	isDuplicated, err := serializer.CheckDuplicatedName(h.strategyService, 0, req.BkBizID, req.Name)
+	isDuplicated, err := serializer.CheckDuplicatedName(
+		c.Request.Context(),
+		h.strategyService,
+		0,
+		req.BkBizID,
+		req.Name,
+	)
 	if err != nil {
 		ginx.SystemErrorJSONResponse(c, err)
 		return
@@ -86,7 +92,7 @@ func (h *StrategyHandler) Create(c *gin.Context) {
 		Status:           hamodel.StatusTypeEnabled,
 	}
 
-	if err := h.strategyService.CreateStrategy(strategyInfo); err != nil {
+	if err := h.strategyService.CreateStrategy(c.Request.Context(), strategyInfo); err != nil {
 		ginx.SystemErrorJSONResponse(c, err)
 		return
 	}
@@ -135,7 +141,12 @@ func (h *StrategyHandler) BatchCreate(c *gin.Context) {
 		})
 	}
 
-	isDuplicated, err := serializer.BatchCreateCheckDuplicatedName(h.strategyService, req.BkBizID, names)
+	isDuplicated, err := serializer.BatchCreateCheckDuplicatedName(
+		c.Request.Context(),
+		h.strategyService,
+		req.BkBizID,
+		names,
+	)
 	if err != nil {
 		ginx.SystemErrorJSONResponse(c, err)
 		return
@@ -145,7 +156,7 @@ func (h *StrategyHandler) BatchCreate(c *gin.Context) {
 		return
 	}
 
-	if err := h.strategyService.BatchCreateStrategy(strategies); err != nil {
+	if err := h.strategyService.BatchCreateStrategy(c.Request.Context(), strategies); err != nil {
 		ginx.SystemErrorJSONResponse(c, err)
 		return
 	}
@@ -194,7 +205,13 @@ func (h *StrategyHandler) BatchUpdate(c *gin.Context) {
 		})
 	}
 
-	isDuplicated, err := serializer.BatchUpdateCheckDuplicatedName(h.strategyService, req.BkBizID, names, nameIDMap)
+	isDuplicated, err := serializer.BatchUpdateCheckDuplicatedName(
+		c.Request.Context(),
+		h.strategyService,
+		req.BkBizID,
+		names,
+		nameIDMap,
+	)
 	if err != nil {
 		ginx.SystemErrorJSONResponse(c, err)
 		return
@@ -204,7 +221,7 @@ func (h *StrategyHandler) BatchUpdate(c *gin.Context) {
 		return
 	}
 
-	if err := h.strategyService.BatchUpdateStrategy(strategies); err != nil {
+	if err := h.strategyService.BatchUpdateStrategy(c.Request.Context(), strategies); err != nil {
 		ginx.SystemErrorJSONResponse(c, err)
 		return
 	}
@@ -229,7 +246,8 @@ func (h *StrategyHandler) BatchDelete(c *gin.Context) {
 		return
 	}
 
-	if err := h.strategyService.BatchUpdateStrategyStatus(req.IDs, req.BkBizID, hamodel.StatusTypeDeleted); err != nil {
+	if err := h.strategyService.BatchUpdateStrategyStatus(c.Request.Context(),
+		req.IDs, req.BkBizID, hamodel.StatusTypeDeleted); err != nil {
 		ginx.SystemErrorJSONResponse(c, err)
 		return
 	}
@@ -254,7 +272,12 @@ func (h *StrategyHandler) BatchUpdateStatus(c *gin.Context) {
 		return
 	}
 
-	if err := h.strategyService.BatchUpdateStrategyStatus(req.IDs, req.BkBizID, req.Status); err != nil {
+	if err := h.strategyService.BatchUpdateStrategyStatus(
+		c.Request.Context(),
+		req.IDs,
+		req.BkBizID,
+		req.Status,
+	); err != nil {
 		ginx.SystemErrorJSONResponse(c, err)
 		return
 	}
@@ -293,6 +316,7 @@ func (h *StrategyHandler) List(c *gin.Context) {
 	}
 
 	strategies, count, err := h.strategyService.ListStrategies(
+		c.Request.Context(),
 		req.BkBizID,
 		req.Name,
 		req.Scope,
@@ -354,7 +378,7 @@ func (h *StrategyHandler) Get(c *gin.Context) {
 		return
 	}
 
-	strategyInfo, err := h.strategyService.GetStrategy(pathParam.ID, req.BkBizID)
+	strategyInfo, err := h.strategyService.GetStrategy(c.Request.Context(), pathParam.ID, req.BkBizID)
 	if err != nil {
 		ginx.SystemErrorJSONResponse(c, err)
 		return
@@ -409,7 +433,7 @@ func (h *StrategyHandler) Update(c *gin.Context) {
 		return
 	}
 
-	existingStrategy, err := h.strategyService.GetStrategy(pathParam.ID, req.BkBizID)
+	existingStrategy, err := h.strategyService.GetStrategy(c.Request.Context(), pathParam.ID, req.BkBizID)
 	if err != nil {
 		ginx.SystemErrorJSONResponse(c, err)
 		return
@@ -419,7 +443,13 @@ func (h *StrategyHandler) Update(c *gin.Context) {
 		return
 	}
 
-	isDuplicated, err := serializer.CheckDuplicatedName(h.strategyService, pathParam.ID, req.BkBizID, req.Name)
+	isDuplicated, err := serializer.CheckDuplicatedName(
+		c.Request.Context(),
+		h.strategyService,
+		pathParam.ID,
+		req.BkBizID,
+		req.Name,
+	)
 	if err != nil {
 		ginx.SystemErrorJSONResponse(c, err)
 		return
@@ -441,7 +471,7 @@ func (h *StrategyHandler) Update(c *gin.Context) {
 		Description:      req.Description,
 	}
 
-	if err := h.strategyService.UpdateStrategy(strategyInfo); err != nil {
+	if err := h.strategyService.UpdateStrategy(c.Request.Context(), strategyInfo); err != nil {
 		ginx.SystemErrorJSONResponse(c, err)
 		return
 	}
@@ -473,7 +503,7 @@ func (h *StrategyHandler) Delete(c *gin.Context) {
 		return
 	}
 
-	existingStrategy, err := h.strategyService.GetStrategy(pathParam.ID, req.BkBizID)
+	existingStrategy, err := h.strategyService.GetStrategy(c.Request.Context(), pathParam.ID, req.BkBizID)
 	if err != nil {
 		ginx.SystemErrorJSONResponse(c, err)
 		return
@@ -483,7 +513,12 @@ func (h *StrategyHandler) Delete(c *gin.Context) {
 		return
 	}
 
-	if err := h.strategyService.UpdateStrategyStatus(pathParam.ID, req.BkBizID, hamodel.StatusTypeDeleted); err != nil {
+	if err := h.strategyService.UpdateStrategyStatus(
+		c.Request.Context(),
+		pathParam.ID,
+		req.BkBizID,
+		hamodel.StatusTypeDeleted,
+	); err != nil {
 		ginx.SystemErrorJSONResponse(c, err)
 		return
 	}
@@ -515,7 +550,7 @@ func (h *StrategyHandler) StatusUpdate(c *gin.Context) {
 		return
 	}
 
-	existingStrategy, err := h.strategyService.GetStrategy(pathParam.ID, req.BkBizID)
+	existingStrategy, err := h.strategyService.GetStrategy(c.Request.Context(), pathParam.ID, req.BkBizID)
 	if err != nil {
 		ginx.SystemErrorJSONResponse(c, err)
 		return
@@ -525,7 +560,12 @@ func (h *StrategyHandler) StatusUpdate(c *gin.Context) {
 		return
 	}
 
-	if err := h.strategyService.UpdateStrategyStatus(pathParam.ID, req.BkBizID, req.Status); err != nil {
+	if err := h.strategyService.UpdateStrategyStatus(
+		c.Request.Context(),
+		pathParam.ID,
+		req.BkBizID,
+		req.Status,
+	); err != nil {
 		ginx.SystemErrorJSONResponse(c, err)
 		return
 	}
@@ -551,6 +591,7 @@ func (h *StrategyHandler) GlobalList(c *gin.Context) {
 	}
 
 	strategies, count, err := h.strategyService.ListStrategies(
+		c.Request.Context(),
 		0,
 		req.Name,
 		req.Scope,
@@ -605,7 +646,7 @@ func (h *StrategyHandler) GlobalCreate(c *gin.Context) {
 		return
 	}
 
-	isDuplicated, err := serializer.CheckDuplicatedName(h.strategyService, 0, 0, req.Name)
+	isDuplicated, err := serializer.CheckDuplicatedName(c.Request.Context(), h.strategyService, 0, 0, req.Name)
 	if err != nil {
 		ginx.SystemErrorJSONResponse(c, err)
 		return
@@ -627,7 +668,7 @@ func (h *StrategyHandler) GlobalCreate(c *gin.Context) {
 		Status:           hamodel.StatusTypeEnabled,
 	}
 
-	if err := h.strategyService.CreateStrategy(strategyInfo); err != nil {
+	if err := h.strategyService.CreateStrategy(c.Request.Context(), strategyInfo); err != nil {
 		ginx.SystemErrorJSONResponse(c, err)
 		return
 	}
@@ -652,7 +693,7 @@ func (h *StrategyHandler) GlobalGet(c *gin.Context) {
 		return
 	}
 
-	strategyInfo, err := h.strategyService.GetStrategy(pathParam.ID, 0)
+	strategyInfo, err := h.strategyService.GetStrategy(c.Request.Context(), pathParam.ID, 0)
 	if err != nil {
 		ginx.SystemErrorJSONResponse(c, err)
 		return
@@ -707,7 +748,7 @@ func (h *StrategyHandler) GlobalUpdate(c *gin.Context) {
 		return
 	}
 
-	existingStrategy, err := h.strategyService.GetStrategy(pathParam.ID, 0)
+	existingStrategy, err := h.strategyService.GetStrategy(c.Request.Context(), pathParam.ID, 0)
 	if err != nil {
 		ginx.SystemErrorJSONResponse(c, err)
 		return
@@ -717,7 +758,13 @@ func (h *StrategyHandler) GlobalUpdate(c *gin.Context) {
 		return
 	}
 
-	isDuplicated, err := serializer.CheckDuplicatedName(h.strategyService, pathParam.ID, 0, req.Name)
+	isDuplicated, err := serializer.CheckDuplicatedName(
+		c.Request.Context(),
+		h.strategyService,
+		pathParam.ID,
+		0,
+		req.Name,
+	)
 	if err != nil {
 		ginx.SystemErrorJSONResponse(c, err)
 		return
@@ -739,7 +786,7 @@ func (h *StrategyHandler) GlobalUpdate(c *gin.Context) {
 		Description:      req.Description,
 	}
 
-	if err := h.strategyService.UpdateStrategy(strategyInfo); err != nil {
+	if err := h.strategyService.UpdateStrategy(c.Request.Context(), strategyInfo); err != nil {
 		ginx.SystemErrorJSONResponse(c, err)
 		return
 	}
@@ -764,7 +811,7 @@ func (h *StrategyHandler) GlobalDelete(c *gin.Context) {
 		return
 	}
 
-	existingStrategy, err := h.strategyService.GetStrategy(pathParam.ID, 0)
+	existingStrategy, err := h.strategyService.GetStrategy(c.Request.Context(), pathParam.ID, 0)
 	if err != nil {
 		ginx.SystemErrorJSONResponse(c, err)
 		return
@@ -774,7 +821,12 @@ func (h *StrategyHandler) GlobalDelete(c *gin.Context) {
 		return
 	}
 
-	if err := h.strategyService.UpdateStrategyStatus(pathParam.ID, 0, hamodel.StatusTypeDeleted); err != nil {
+	if err := h.strategyService.UpdateStrategyStatus(
+		c.Request.Context(),
+		pathParam.ID,
+		0,
+		hamodel.StatusTypeDeleted,
+	); err != nil {
 		ginx.SystemErrorJSONResponse(c, err)
 		return
 	}
@@ -806,7 +858,7 @@ func (h *StrategyHandler) GlobalStatusUpdate(c *gin.Context) {
 		return
 	}
 
-	existingStrategy, err := h.strategyService.GetStrategy(pathParam.ID, 0)
+	existingStrategy, err := h.strategyService.GetStrategy(c.Request.Context(), pathParam.ID, 0)
 	if err != nil {
 		ginx.SystemErrorJSONResponse(c, err)
 		return
@@ -816,7 +868,12 @@ func (h *StrategyHandler) GlobalStatusUpdate(c *gin.Context) {
 		return
 	}
 
-	if err := h.strategyService.UpdateStrategyStatus(pathParam.ID, 0, req.Status); err != nil {
+	if err := h.strategyService.UpdateStrategyStatus(
+		c.Request.Context(),
+		pathParam.ID,
+		0,
+		req.Status,
+	); err != nil {
 		ginx.SystemErrorJSONResponse(c, err)
 		return
 	}

@@ -36,8 +36,8 @@ import (
 	"dbm-services/common/dbha-v2/internal/analysis/dbm"
 	"dbm-services/common/dbha-v2/internal/analysis/storage"
 	"dbm-services/common/dbha-v2/internal/analysis/switcher"
+	"dbm-services/common/dbha-v2/internal/analysis/switcher/snapshotlogger"
 	"dbm-services/common/dbha-v2/internal/analysis/switcher/switchcore"
-	"dbm-services/common/dbha-v2/internal/analysis/switcher/switchlogger/snapshotlogger"
 	"dbm-services/common/dbha-v2/pkg/haapm"
 	"dbm-services/common/dbha-v2/pkg/logger"
 	"dbm-services/common/dbha-v2/pkg/machine"
@@ -184,7 +184,7 @@ func (e *SwitchExecutor) TriggerSwitching(dbType haprobe.DbType, req *switcher.R
 	}
 
 	start := time.Now()
-	switchingSnapshotLogger := snapshotlogger.NewSwitchingSnapshotReport(snapshotData, start)
+	switchingSnapshotLogger := NewSwitchingSnapshotReport(snapshotData, start)
 	defer func() {
 		for _, swLogger := range switchingSnapshotLogger.SnapshotLoggers {
 			swLogger.Close()

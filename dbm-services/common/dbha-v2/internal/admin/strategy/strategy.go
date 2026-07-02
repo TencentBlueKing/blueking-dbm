@@ -26,6 +26,7 @@
 package strategy
 
 import (
+	"context"
 	"fmt"
 	"time"
 
@@ -42,8 +43,8 @@ type Strategy struct {
 }
 
 // CreateStrategy create strategy
-func (s *Strategy) CreateStrategy(strategy *hamodel.DbSwitchingStrategy) error {
-	query := s.DB.DB().Model(&hamodel.DbSwitchingStrategy{})
+func (s *Strategy) CreateStrategy(ctx context.Context, strategy *hamodel.DbSwitchingStrategy) error {
+	query := s.DB.DB().WithContext(ctx).Model(&hamodel.DbSwitchingStrategy{})
 	if err := query.Create(&strategy).Error; err != nil {
 		return gerrors.NewE(gerrors.MysqlFailure, err)
 	}
@@ -52,14 +53,14 @@ func (s *Strategy) CreateStrategy(strategy *hamodel.DbSwitchingStrategy) error {
 }
 
 // GetStrategy get strategy
-func (s *Strategy) GetStrategy(strategyID int, bkBizID int) (*hamodel.DbSwitchingStrategy, error) {
+func (s *Strategy) GetStrategy(ctx context.Context, strategyID int, bkBizID int) (*hamodel.DbSwitchingStrategy, error) {
 	var strategy *hamodel.DbSwitchingStrategy
 
 	idCond := fmt.Sprintf("%s = ? ", hamodel.DbSwitchingStrategyFieldID)
 	bkBizIDCond := fmt.Sprintf("%s = ? ", hamodel.DbSwitchingStrategyFieldBkBizID)
 	statusCond := fmt.Sprintf("%s in ? ", hamodel.DbSwitchingStrategyFieldStatus)
 
-	query := s.DB.DB().Model(&hamodel.DbSwitchingStrategy{})
+	query := s.DB.DB().WithContext(ctx).Model(&hamodel.DbSwitchingStrategy{})
 	if err := query.Where(idCond, strategyID).Where(bkBizIDCond, bkBizID).
 		Where(statusCond, []hamodel.StatusType{hamodel.StatusTypeEnabled, hamodel.StatusTypeDisabled}).
 		Find(&strategy).Error; err != nil {
@@ -71,6 +72,7 @@ func (s *Strategy) GetStrategy(strategyID int, bkBizID int) (*hamodel.DbSwitchin
 
 // ListStrategies list strategies
 func (s *Strategy) ListStrategies(
+	ctx context.Context,
 	bkBizID int,
 	name string,
 	scope string,
@@ -82,7 +84,7 @@ func (s *Strategy) ListStrategies(
 	var count int64
 	var strategies []*hamodel.DbSwitchingStrategy
 
-	query := s.DB.DB().Model(&hamodel.DbSwitchingStrategy{})
+	query := s.DB.DB().WithContext(ctx).Model(&hamodel.DbSwitchingStrategy{})
 
 	if name != "" {
 		nameCond := fmt.Sprintf("%s LIKE ? ", hamodel.DbSwitchingStrategyFieldName)
@@ -124,14 +126,16 @@ func (s *Strategy) ListStrategies(
 }
 
 // DuplicatedName check if name is duplicated
-func (s *Strategy) DuplicatedName(strategyID int, bkBizID int, name string) (bool, error) {
+func (s *Strategy) DuplicatedName(ctx context.Context, strategyID int, bkBizID int, name string) (bool, error) {
 	var strategies []*hamodel.DbSwitchingStrategy
 
 	idCond := fmt.Sprintf("%s = ? ", hamodel.DbSwitchingStrategyFieldID)
 	nameCond := fmt.Sprintf("%s = ? ", hamodel.DbSwitchingStrategyFieldName)
 	bkBizIDCond := fmt.Sprintf("%s = ? ", hamodel.DbSwitchingStrategyFieldBkBizID)
 
-	query := s.DB.DB().Model(&hamodel.DbSwitchingStrategy{}).Where(bkBizIDCond, bkBizID).Where(nameCond, name)
+	query := s.DB.DB().WithContext(ctx).Model(&hamodel.DbSwitchingStrategy{}).
+		Where(bkBizIDCond, bkBizID).Where(nameCond, name)
+
 	if strategyID != 0 {
 		query = query.Not(idCond, strategyID)
 	}
@@ -148,10 +152,10 @@ func (s *Strategy) DuplicatedName(strategyID int, bkBizID int, name string) (boo
 }
 
 // QueryStrategies query strategies
-func (s *Strategy) QueryStrategies(params map[string]any) ([]*hamodel.DbSwitchingStrategy, error) {
+func (s *Strategy) QueryStrategies(ctx context.Context, params map[string]any) ([]*hamodel.DbSwitchingStrategy, error) {
 	var strategies []*hamodel.DbSwitchingStrategy
 
-	query := s.DB.DB().Model(&hamodel.DbSwitchingStrategy{})
+	query := s.DB.DB().WithContext(ctx).Model(&hamodel.DbSwitchingStrategy{})
 	if err := query.Where(params).Find(&strategies).Error; err != nil {
 		return nil, gerrors.NewE(gerrors.MysqlFailure, err)
 	}
@@ -160,12 +164,12 @@ func (s *Strategy) QueryStrategies(params map[string]any) ([]*hamodel.DbSwitchin
 }
 
 // UpdateStrategy update strategy
-func (s *Strategy) UpdateStrategy(strategy *hamodel.DbSwitchingStrategy) error {
+func (s *Strategy) UpdateStrategy(ctx context.Context, strategy *hamodel.DbSwitchingStrategy) error {
 	idCond := fmt.Sprintf("%s = ? ", hamodel.DbSwitchingStrategyFieldID)
 	bkBizIDCond := fmt.Sprintf("%s = ? ", hamodel.DbSwitchingStrategyFieldBkBizID)
 	statusCond := fmt.Sprintf("%s = ? ", hamodel.DbSwitchingStrategyFieldStatus)
 
-	query := s.DB.DB().Model(&hamodel.DbSwitchingStrategy{})
+	query := s.DB.DB().WithContext(ctx).Model(&hamodel.DbSwitchingStrategy{})
 	if err := query.Where(idCond, strategy.ID).Where(bkBizIDCond, strategy.BkBizID).
 		Not(statusCond, hamodel.StatusTypeDeleted).Select(
 		hamodel.DbSwitchingStrategyFieldName,
@@ -183,14 +187,15 @@ func (s *Strategy) UpdateStrategy(strategy *hamodel.DbSwitchingStrategy) error {
 }
 
 // UpdateStrategyStatus update strategy status
-func (s *Strategy) UpdateStrategyStatus(strategyID int, bkBizID int, status hamodel.StatusType) error {
+func (s *Strategy) UpdateStrategyStatus(ctx context.Context, strategyID int, bkBizID int, status hamodel.StatusType) error {
 	idCond := fmt.Sprintf("%s = ? ", hamodel.DbSwitchingStrategyFieldID)
 	bkBizIDCond := fmt.Sprintf("%s = ? ", hamodel.DbSwitchingStrategyFieldBkBizID)
 	params := map[string]any{
 		hamodel.DbSwitchingStrategyFieldStatus: status,
 	}
 
-	query := s.DB.DB().Model(&hamodel.DbSwitchingStrategy{}).Where(idCond, strategyID).Where(bkBizIDCond, bkBizID)
+	query := s.DB.DB().WithContext(ctx).Model(&hamodel.DbSwitchingStrategy{}).
+		Where(idCond, strategyID).Where(bkBizIDCond, bkBizID)
 
 	if status == hamodel.StatusTypeDeleted {
 		params[hamodel.DbSwitchingStrategyFieldDeletedAt] = time.Now()
@@ -207,8 +212,8 @@ func (s *Strategy) UpdateStrategyStatus(strategyID int, bkBizID int, status hamo
 }
 
 // BatchCreateStrategy batch create strategy
-func (s *Strategy) BatchCreateStrategy(strategies []*hamodel.DbSwitchingStrategy) error {
-	query := s.DB.DB().Model(&hamodel.DbSwitchingStrategy{})
+func (s *Strategy) BatchCreateStrategy(ctx context.Context, strategies []*hamodel.DbSwitchingStrategy) error {
+	query := s.DB.DB().WithContext(ctx).Model(&hamodel.DbSwitchingStrategy{})
 	if err := query.Create(&strategies).Error; err != nil {
 		return gerrors.NewE(gerrors.MysqlFailure, err)
 	}
@@ -217,8 +222,8 @@ func (s *Strategy) BatchCreateStrategy(strategies []*hamodel.DbSwitchingStrategy
 }
 
 // BatchUpdateStrategy batch update strategy
-func (s *Strategy) BatchUpdateStrategy(strategies []*hamodel.DbSwitchingStrategy) error {
-	return s.DB.DB().Transaction(func(tx *gorm.DB) error {
+func (s *Strategy) BatchUpdateStrategy(ctx context.Context, strategies []*hamodel.DbSwitchingStrategy) error {
+	return s.DB.DB().WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		for _, strategyItem := range strategies {
 			idCond := fmt.Sprintf("%s = ? ", hamodel.DbSwitchingStrategyFieldID)
 			bkBizIDCond := fmt.Sprintf("%s = ? ", hamodel.DbSwitchingStrategyFieldBkBizID)
@@ -245,14 +250,15 @@ func (s *Strategy) BatchUpdateStrategy(strategies []*hamodel.DbSwitchingStrategy
 }
 
 // BatchUpdateStrategyStatus batch update strategy status
-func (s *Strategy) BatchUpdateStrategyStatus(strategyIDs []int, bkBizID int, status hamodel.StatusType) error {
+func (s *Strategy) BatchUpdateStrategyStatus(ctx context.Context, strategyIDs []int, bkBizID int, status hamodel.StatusType) error {
 	idsCond := fmt.Sprintf("%s IN ? ", hamodel.DbSwitchingStrategyFieldID)
 	bkBizIDCond := fmt.Sprintf("%s = ? ", hamodel.DbSwitchingStrategyFieldBkBizID)
 	params := map[string]any{
 		hamodel.DbSwitchingStrategyFieldStatus: status,
 	}
 
-	query := s.DB.DB().Model(&hamodel.DbSwitchingStrategy{}).Where(idsCond, strategyIDs).Where(bkBizIDCond, bkBizID)
+	query := s.DB.DB().WithContext(ctx).Model(&hamodel.DbSwitchingStrategy{}).
+		Where(idsCond, strategyIDs).Where(bkBizIDCond, bkBizID)
 
 	if status == hamodel.StatusTypeDeleted {
 		params[hamodel.DbSwitchingStrategyFieldDeletedAt] = time.Now()

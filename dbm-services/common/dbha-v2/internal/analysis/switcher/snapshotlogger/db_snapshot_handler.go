@@ -31,9 +31,7 @@ import (
 	"time"
 
 	"dbm-services/common/dbha-v2/internal/analysis/config"
-	"dbm-services/common/dbha-v2/internal/analysis/dbm"
 	"dbm-services/common/dbha-v2/internal/analysis/storage"
-	"dbm-services/common/dbha-v2/internal/analysis/switcher"
 	"dbm-services/common/dbha-v2/pkg/gerrors"
 	"dbm-services/common/dbha-v2/pkg/hanet"
 	"dbm-services/common/dbha-v2/pkg/logger"
@@ -78,10 +76,6 @@ type DbSnapshotHandler struct {
 	connectTimeout time.Duration
 	// the timeout for checking if the switch log table exists
 	openCheckTimeout time.Duration
-
-	// recordID holds the ID of the created record after the first Append call.
-	// It is used for updating the same record in subsequent Append calls.
-	recordID uint
 }
 
 // NewDbSnapshotHandler creates a DbSnapshotHandler by the connection information.
@@ -228,11 +222,13 @@ func (hdl *DbSnapshotHandler) Close() {
 // PreSwitchLog logs a switching snapshot record to the database before the switch executes.
 func (hdl *DbSnapshotHandler) PreSwitchLog(record *SwitchingSnapshotData) error {
 	if record == nil {
-		return gerrors.New(gerrors.InvalidParameter, "switching snapshot record for db is nil")
+		return gerrors.New(gerrors.InvalidParameter, "before switching snapshot record for db is nil")
 	}
-
+	if record.DbSwitchingSnapshotLog == nil {
+		return gerrors.New(gerrors.InvalidParameter, "dbSwitchingSnapshotLog is nil for before db switching snapshot")
+	}
 	if hdl.logDb == nil {
-		return gerrors.New(gerrors.MysqlFailure, "mysql instance for writing switch snapshot log is nil")
+		return gerrors.New(gerrors.MysqlFailure, "mysql instance for before writing switch snapshot log is nil")
 	}
 
 	// avoid concurrent write to database
@@ -242,53 +238,7 @@ func (hdl *DbSnapshotHandler) PreSwitchLog(record *SwitchingSnapshotData) error 
 	ctx, cancel := context.WithTimeout(context.Background(), hdl.writeTimeout)
 	defer cancel()
 
-	return hdl.createRecord(ctx, record)
-}
-
-// PostSwitchLog logs a switching snapshot record to the database after the switch executes.
-func (hdl *DbSnapshotHandler) PostSwitchLog(record *SwitchingSnapshotData) error {
-	if record == nil {
-		return gerrors.New(gerrors.InvalidParameter, "switching snapshot record for db is nil")
-	}
-
-	if hdl.logDb == nil {
-		return gerrors.New(gerrors.MysqlFailure, "mysql instance for writing switch snapshot log is nil")
-	}
-
-	if hdl.recordID == 0 {
-		return gerrors.New(gerrors.InvalidParameter, "recordID is 0, no record to update")
-	}
-
-	// avoid concurrent write to database
-	hdl.mu.Lock()
-	defer hdl.mu.Unlock()
-
-	ctx, cancel := context.WithTimeout(context.Background(), hdl.writeTimeout)
-	defer cancel()
-
-	return hdl.updateRecord(ctx, record)
-}
-
-// createRecord creates a new DbSwitchingSnapshotLog record in the database.
-// After creation, GORM auto-fills the ID back into the struct,
-// so we save the generated ID for subsequent updates.
-func (hdl *DbSnapshotHandler) createRecord(ctx context.Context, record *SwitchingSnapshotData) error {
-	dbRecord := &hamodel.DbSwitchingSnapshotLog{
-		SwitchID:    record.SwitchID,
-		DbType:      record.DbType,
-		ActionScope: record.ActionScope,
-		BkBizID:     record.BkBizID,
-		BkCloudID:   record.BkCloudID,
-		ClusterID:   record.ClusterID,
-		ClusterName: record.ClusterName,
-		Reason:      record.Reason,
-		StartTime:   record.StartTime,
-	}
-
-	instances := buildInstancesListFromMetadata(record.MetadataSet, nil)
-	dbRecord.SetInstances(instances)
-
-	err := hdl.logDb.SaveSwitchingSnapshotLog(ctx, dbRecord)
+	err := hdl.logDb.SaveSwitchingSnapshotLog(ctx, record.DbSwitchingSnapshotLog)
 	if ctx.Err() == context.DeadlineExceeded {
 		return gerrors.Newf(gerrors.Failure, "switch snapshot log write timeout after %s", hdl.writeTimeout)
 	}
@@ -296,58 +246,38 @@ func (hdl *DbSnapshotHandler) createRecord(ctx context.Context, record *Switchin
 		return err
 	}
 
-	// Save the auto-generated ID for subsequent updates
-	hdl.recordID = dbRecord.ID
 	return nil
 }
 
-// updateRecord updates the existing DbSwitchingSnapshotLog record identified by recordID.
-func (hdl *DbSnapshotHandler) updateRecord(ctx context.Context, record *SwitchingSnapshotData) error {
-	dbRecord := &hamodel.DbSwitchingSnapshotLog{
-		ID:           hdl.recordID,
-		FinishedTime: record.FinishedTime,
-		Result:       record.Result,
+// PostSwitchLog logs a switching snapshot record to the database after the switch executes.
+func (hdl *DbSnapshotHandler) PostSwitchLog(record *SwitchingSnapshotData) error {
+	if record == nil {
+		return gerrors.New(gerrors.InvalidParameter, "after switching snapshot record for db is nil")
+	}
+	if record.DbSwitchingSnapshotLog == nil {
+		return gerrors.New(gerrors.InvalidParameter, "dbSwitchingSnapshotLog is nil for after db switching snapshot")
+	}
+	if record.DbSwitchingSnapshotLog.ID == 0 {
+		return gerrors.New(gerrors.InvalidParameter, "recordID is 0, no record to update")
+	}
+	if hdl.logDb == nil {
+		return gerrors.New(gerrors.MysqlFailure, "mysql instance for after writing switch snapshot log is nil")
 	}
 
-	instances := buildInstancesListFromMetadata(record.MetadataSet, record.Response)
-	dbRecord.SetInstances(instances)
+	// avoid concurrent write to database
+	hdl.mu.Lock()
+	defer hdl.mu.Unlock()
 
-	err := hdl.logDb.UpdateSwitchingSnapshotLog(ctx, dbRecord)
+	ctx, cancel := context.WithTimeout(context.Background(), hdl.writeTimeout)
+	defer cancel()
+
+	err := hdl.logDb.UpdateSwitchingSnapshotLog(ctx, record.DbSwitchingSnapshotLog)
 	if ctx.Err() == context.DeadlineExceeded {
 		return gerrors.Newf(gerrors.Failure, "switch snapshot log write timeout after %s", hdl.writeTimeout)
 	}
-	return err
-}
-
-// buildInstancesListFromMetadata converts DbInstMetadata list to SwitchingSnapshotInstance list for database storage.
-func buildInstancesListFromMetadata(metaSet []*dbm.DbInstMetadata, response *switcher.Response) []*hamodel.SwitchingSnapshotInstance {
-	if metaSet == nil {
-		return nil
+	if err != nil {
+		return err
 	}
 
-	instances := make([]*hamodel.SwitchingSnapshotInstance, 0, len(metaSet))
-	for _, meta := range metaSet {
-		instanceRole := meta.InstanceRole.String()
-		if instanceRole == "" && meta.SpiderRole != "" {
-			instanceRole = string(meta.SpiderRole)
-		}
-
-		newMasterIP := ""
-		newMasterPort := 0
-		if response != nil {
-			// TODO Get the latest newMasterIP and newMasterPort of the instance through response
-			//instKey := switchcore.GenerateMetadataKey(meta.BkCloudID, meta.IP, meta.Port)
-		}
-
-		instances = append(instances, &hamodel.SwitchingSnapshotInstance{
-			IP:            meta.IP,
-			Port:          meta.Port,
-			MachineType:   string(meta.MachineType),
-			InstanceRole:  instanceRole,
-			NewMasterIP:   newMasterIP,
-			NewMasterPort: newMasterPort,
-		})
-	}
-
-	return instances
+	return nil
 }

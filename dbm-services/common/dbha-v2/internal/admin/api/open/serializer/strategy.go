@@ -25,6 +25,7 @@
 package serializer
 
 import (
+	"context"
 	"time"
 
 	"dbm-services/common/dbha-v2/internal/admin/strategy"
@@ -159,17 +160,17 @@ type GlobalStrategyStatusUpdateRequest struct {
 }
 
 // CheckDuplicatedName check duplicated name
-func CheckDuplicatedName(s *strategy.Strategy, id int, bkBizID int, name string) (bool, error) {
-	return s.DuplicatedName(id, bkBizID, name)
+func CheckDuplicatedName(ctx context.Context, s *strategy.Strategy, id int, bkBizID int, name string) (bool, error) {
+	return s.DuplicatedName(ctx, id, bkBizID, name)
 }
 
 // BatchCreateCheckDuplicatedName batch create check duplicated name
-func BatchCreateCheckDuplicatedName(s *strategy.Strategy, bkBizID int, names []string) (bool, error) {
+func BatchCreateCheckDuplicatedName(ctx context.Context, s *strategy.Strategy, bkBizID int, names []string) (bool, error) {
 	queryMap := map[string]any{
 		"bk_biz_id": bkBizID,
 		"name":      names,
 	}
-	strategies, err := s.QueryStrategies(queryMap)
+	strategies, err := s.QueryStrategies(ctx, queryMap)
 	if err != nil {
 		return false, err
 	}
@@ -182,12 +183,13 @@ func BatchCreateCheckDuplicatedName(s *strategy.Strategy, bkBizID int, names []s
 }
 
 // BatchUpdateCheckDuplicatedName batch update check duplicated name
-func BatchUpdateCheckDuplicatedName(s *strategy.Strategy, bkBizID int, names []string, nameIDMap map[string]int) (bool, error) {
+func BatchUpdateCheckDuplicatedName(ctx context.Context, s *strategy.Strategy, bkBizID int, names []string,
+	nameIDMap map[string]int) (bool, error) {
 	queryMap := map[string]any{
 		"bk_biz_id": bkBizID,
 		"name":      names,
 	}
-	strategies, err := s.QueryStrategies(queryMap)
+	strategies, err := s.QueryStrategies(ctx, queryMap)
 	if err != nil {
 		return false, err
 	}

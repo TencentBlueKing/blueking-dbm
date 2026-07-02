@@ -32,10 +32,9 @@ import (
 	"testing"
 	"time"
 
-	"dbm-services/common/dbha-v2/internal/analysis/dbm"
 	"dbm-services/common/dbha-v2/internal/analysis/storage"
 	"dbm-services/common/dbha-v2/pkg/logger"
-	"dbm-services/common/dbha-v2/pkg/storage/haprobe"
+	"dbm-services/common/dbha-v2/pkg/storage/hamodel"
 
 	"github.com/stretchr/testify/assert"
 	"go.uber.org/zap"
@@ -107,28 +106,29 @@ func newTestSnapshotData() *SwitchingSnapshotData {
 	now := time.Now()
 	return &SwitchingSnapshotData{
 		StdSwitchingSnapshotData: StdSwitchingSnapshotData{
+			StartTime:            &now,
+			BkBizID:              123,
+			BkCloudID:            0,
+			ClusterID:            456,
+			ClusterName:          "test-cluster",
+			Reason:               "test reason",
 			DbType:               "mysql",
 			ActionScope:          "cluster",
 			StrategyJSON:         json.RawMessage(`{"name":"strategy1"}`),
 			FailureInstancesJSON: json.RawMessage(`[{"ip":"127.0.0.1","port":3306}]`),
 			MetadataSetJSON:      json.RawMessage(`[{"ip":"127.0.0.1","port":3306}]`),
 		},
-		DbSwitchingSnapshotData: DbSwitchingSnapshotData{
+		DbSwitchingSnapshotLog: &hamodel.DbSwitchingSnapshotLog{
 			SwitchID:    "switch-001",
 			BkBizID:     123,
 			BkCloudID:   0,
 			ClusterID:   456,
 			ClusterName: "test-cluster",
 			Reason:      "test reason",
+			DbType:      "mysql",
+			ActionScope: "cluster",
 			StartTime:   &now,
-		},
-		MetadataSet: []*dbm.DbInstMetadata{
-			{
-				IP:           "127.0.0.1",
-				Port:         3306,
-				MachineType:  haprobe.DbmMetadataMachineType("mysql"),
-				InstanceRole: haprobe.DbmMetadataInstanceRole("master"),
-			},
+			Status:      hamodel.DbSwitchingSnapshotLogStatusDoing,
 		},
 	}
 }
@@ -138,31 +138,26 @@ func newTestSnapshotDataWithDB() *SwitchingSnapshotData {
 	now := time.Now()
 	return &SwitchingSnapshotData{
 		StdSwitchingSnapshotData: StdSwitchingSnapshotData{
-			DbType:      "mysql",
-			ActionScope: "cluster",
-		},
-		DbSwitchingSnapshotData: DbSwitchingSnapshotData{
-			SwitchID:    fmt.Sprintf("test-switch-%d", time.Now().UnixNano()),
 			BkBizID:     123,
 			BkCloudID:   0,
 			ClusterID:   456,
 			ClusterName: "test-cluster",
 			Reason:      "test reason",
 			StartTime:   &now,
+			DbType:      "mysql",
+			ActionScope: "cluster",
 		},
-		MetadataSet: []*dbm.DbInstMetadata{
-			{
-				IP:           "127.0.0.1",
-				Port:         3306,
-				MachineType:  haprobe.DbmMetadataMachineType("mysql"),
-				InstanceRole: haprobe.DbmMetadataInstanceRole("master"),
-			},
-			{
-				IP:           "127.0.0.1",
-				Port:         3307,
-				MachineType:  haprobe.DbmMetadataMachineType("mysql"),
-				InstanceRole: haprobe.DbmMetadataInstanceRole("slave"),
-			},
+		DbSwitchingSnapshotLog: &hamodel.DbSwitchingSnapshotLog{
+			SwitchID:    fmt.Sprintf("test-switch-%d", now.UnixNano()),
+			BkBizID:     123,
+			BkCloudID:   0,
+			ClusterID:   456,
+			ClusterName: "test-cluster",
+			Reason:      "test reason",
+			DbType:      "mysql",
+			ActionScope: "cluster",
+			StartTime:   &now,
+			Status:      hamodel.DbSwitchingSnapshotLogStatusDoing,
 		},
 	}
 }
@@ -189,19 +184,20 @@ func TestDbSnapshotHandler_PreSwitchLog_PostSwitchLog_Cycle(t *testing.T) {
 			defer handler.Close()
 
 			record := newTestSnapshotDataWithDB()
-			record.SwitchID = fmt.Sprintf("test-switch-%d-iter%d", time.Now().UnixNano(), i)
+			record.DbSwitchingSnapshotLog.SwitchID = fmt.Sprintf("test-switch-%d-iter%d", time.Now().UnixNano(), i)
 
 			// PreSwitchLog creates the record
 			err = handler.PreSwitchLog(record)
 			if err != nil {
 				t.Fatalf("PreSwitchLog failed on iteration %d: %v", i, err)
 			}
-			t.Logf("PreSwitchLog succeeded on iteration %d, switchId: %s", i, record.SwitchID)
+			t.Logf("PreSwitchLog succeeded on iteration %d, switchId: %s", i, record.DbSwitchingSnapshotLog.SwitchID)
 
 			// Simulate post-switch: set result and finished time
 			now := time.Now()
-			record.FinishedTime = &now
-			record.Result = "switching completed successfully"
+			record.DbSwitchingSnapshotLog.FinishedTime = &now
+			record.DbSwitchingSnapshotLog.Result = "switching completed successfully"
+			record.DbSwitchingSnapshotLog.Status = hamodel.DbSwitchingSnapshotLogStatusSuccess
 
 			// PostSwitchLog updates the record
 			err = handler.PostSwitchLog(record)
@@ -254,7 +250,17 @@ func TestDbSnapshotHandler_ParameterValidation(t *testing.T) {
 			1*time.Second, 3*time.Second, 10*time.Second)
 		err := hdl.PreSwitchLog(newTestSnapshotData())
 		assert.Error(t, err)
-		assert.Contains(t, err.Error(), "mysql instance for writing switch snapshot log is nil")
+		assert.Contains(t, err.Error(), "mysql instance for before writing switch snapshot log is nil")
+	})
+
+	t.Run("PreSwitchLog_NilDbSwitchingSnapshotLog", func(t *testing.T) {
+		hdl := NewDbSnapshotHandler("tcp", "127.0.0.1", 3306, "root", "password",
+			1*time.Second, 3*time.Second, 10*time.Second)
+		hdl.logDb = &storage.DbhaData{}
+		record := &SwitchingSnapshotData{}
+		err := hdl.PreSwitchLog(record)
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "DbSwitchingSnapshotLog is nil for before db switching snapshot")
 	})
 
 	t.Run("PostSwitchLog_NilRecord", func(t *testing.T) {
@@ -265,12 +271,13 @@ func TestDbSnapshotHandler_ParameterValidation(t *testing.T) {
 		assert.Contains(t, err.Error(), "nil")
 	})
 
-	t.Run("PostSwitchLog_NilLogDb", func(t *testing.T) {
+	t.Run("PostSwitchLog_NilDbSwitchingSnapshotLog", func(t *testing.T) {
 		hdl := NewDbSnapshotHandler("tcp", "127.0.0.1", 3306, "root", "password",
 			1*time.Second, 3*time.Second, 10*time.Second)
-		err := hdl.PostSwitchLog(newTestSnapshotData())
+		record := &SwitchingSnapshotData{}
+		err := hdl.PostSwitchLog(record)
 		assert.Error(t, err)
-		assert.Contains(t, err.Error(), "mysql instance for writing switch snapshot log is nil")
+		assert.Contains(t, err.Error(), "DbSwitchingSnapshotLog is nil for after db switching snapshot")
 	})
 
 	t.Run("PostSwitchLog_ZeroRecordID", func(t *testing.T) {
@@ -280,6 +287,17 @@ func TestDbSnapshotHandler_ParameterValidation(t *testing.T) {
 		err := hdl.PostSwitchLog(newTestSnapshotData())
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "recordID is 0")
+	})
+
+	t.Run("PostSwitchLog_NilLogDb", func(t *testing.T) {
+		hdl := NewDbSnapshotHandler("tcp", "127.0.0.1", 3306, "root", "password",
+			1*time.Second, 3*time.Second, 10*time.Second)
+		// Set a non-zero ID so the check passes the ID==0 guard and reaches the logDb==nil check
+		record := newTestSnapshotData()
+		record.DbSwitchingSnapshotLog.ID = 1
+		err := hdl.PostSwitchLog(record)
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "mysql instance for after writing switch snapshot log is nil")
 	})
 
 	t.Run("Open_AlreadyOpened", func(t *testing.T) {
@@ -315,7 +333,7 @@ func TestStdSnapshotHandler_PreSwitchLog_PostSwitchLog_Cycle(t *testing.T) {
 	for i := 1; i <= 3; i++ {
 		t.Run(fmt.Sprintf("Cycle test iteration %d", i), func(t *testing.T) {
 			record := newTestSnapshotData()
-			record.SwitchID = fmt.Sprintf("switch-std-%d", i)
+			record.DbSwitchingSnapshotLog.SwitchID = fmt.Sprintf("switch-std-%d", i)
 
 			// PreSwitchLog
 			ml.messages = nil
@@ -325,13 +343,14 @@ func TestStdSnapshotHandler_PreSwitchLog_PostSwitchLog_Cycle(t *testing.T) {
 			}
 			t.Logf("PreSwitchLog succeeded on iteration %d", i)
 			// Verify PreSwitchLog output contains switch ID and pre-switch type
-			assert.Contains(t, ml.messages[0], record.SwitchID)
+			assert.Contains(t, ml.messages[0], record.DbSwitchingSnapshotLog.SwitchID)
 			assert.Contains(t, ml.messages[0], string(SwitchSnapshotLogTypePre))
 
 			// Simulate post-switch
 			now := time.Now()
-			record.FinishedTime = &now
-			record.Result = "switching completed successfully"
+			record.DbSwitchingSnapshotLog.FinishedTime = &now
+			record.DbSwitchingSnapshotLog.Result = "switching completed successfully"
+			record.DbSwitchingSnapshotLog.Status = hamodel.DbSwitchingSnapshotLogStatusSuccess
 
 			// PostSwitchLog
 			ml.messages = nil
@@ -341,7 +360,7 @@ func TestStdSnapshotHandler_PreSwitchLog_PostSwitchLog_Cycle(t *testing.T) {
 			}
 			t.Logf("PostSwitchLog succeeded on iteration %d", i)
 			// Verify PostSwitchLog output contains switch ID and post-switch type
-			assert.Contains(t, ml.messages[0], record.SwitchID)
+			assert.Contains(t, ml.messages[0], record.DbSwitchingSnapshotLog.SwitchID)
 			assert.Contains(t, ml.messages[0], string(SwitchSnapshotLogTypePost))
 		})
 	}
@@ -382,6 +401,13 @@ func TestStdSnapshotHandler_ParameterValidation(t *testing.T) {
 		assert.Contains(t, err.Error(), "nil")
 	})
 
+	t.Run("PreSwitchLog_NilDbSwitchingSnapshotLog", func(t *testing.T) {
+		hdl := NewStdSnapshotHandler(&mockLogger{})
+		record := &SwitchingSnapshotData{}
+		err := hdl.PreSwitchLog(record)
+		assert.Error(t, err)
+	})
+
 	t.Run("PostSwitchLog_NilLogger", func(t *testing.T) {
 		hdl := NewStdSnapshotHandler(nil)
 		err := hdl.PostSwitchLog(newTestSnapshotData())
@@ -393,5 +419,12 @@ func TestStdSnapshotHandler_ParameterValidation(t *testing.T) {
 		err := hdl.PostSwitchLog(nil)
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "nil")
+	})
+
+	t.Run("PostSwitchLog_NilDbSwitchingSnapshotLog", func(t *testing.T) {
+		hdl := NewStdSnapshotHandler(&mockLogger{})
+		record := &SwitchingSnapshotData{}
+		err := hdl.PostSwitchLog(record)
+		assert.Error(t, err)
 	})
 }
