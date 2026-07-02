@@ -32,14 +32,13 @@ def node_label_func(self: Service, data: DataObject, *args, **kwargs):
         "name": self.name,
         "bk_biz_id": node_data.get("bk_biz_id", 0),
         "ticket_type": node_data.get("ticket_type", ""),
-        "ticket_id": node_data.get("uid", ""),
     }
     return _labels
 
 
 def pipeline_build_label_func(self, *args, **kwargs):
     # pipeline构建维度
-    return {"bk_biz_id": self.ticket.bk_biz_id, "ticket_type": self.ticket.ticket_type, "ticket_id": self.ticket.id}
+    return {"bk_biz_id": self.ticket.bk_biz_id, "ticket_type": self.ticket.ticket_type}
 
 
 def get_labels(labels: Union[Callable, Dict], *args, **kwargs):

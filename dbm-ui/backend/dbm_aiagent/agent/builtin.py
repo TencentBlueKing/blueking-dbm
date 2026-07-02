@@ -40,7 +40,7 @@ class AgentCodeResourceManagerMixin:
 
     def get_resource_manager(self) -> Optional[ResourceManagerProtocol]:
         params = self.request.query_params or self.request.data
-        agent_code = params.get("agent_code", "")
+        agent_code = params.get("agent_code", env.BK_AIDEV_AGENT_APP_CODE)
         if not agent_code:
             return super().get_resource_manager()
         return build_resource_manager(agent_code, username=self.get_username())

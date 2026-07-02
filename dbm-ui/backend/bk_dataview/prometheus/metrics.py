@@ -45,7 +45,7 @@ def get_histogram_buckets_from_env(env_name):
 pipeline_node_execute_failed_total = Counter(
     name="pipeline_node_execute_failed_total",
     documentation="count pipeline node execute failed",
-    labelnames=["name", "bk_biz_id", "ticket_type", "ticket_id"],
+    labelnames=["name", "bk_biz_id", "ticket_type"],
 )
 
 # pipeline原子任务 execute执行耗时
@@ -53,7 +53,7 @@ pipeline_node_execute_duration_histogram = Histogram(
     name="pipeline_node_execute_duration_histogram",
     documentation="Histogram of the time (in seconds) each pipeline node execute",
     buckets=get_histogram_buckets_from_env("BKAPP_MONITOR_METRICS_CORE_BUCKETS"),
-    labelnames=["name", "bk_biz_id", "ticket_type", "ticket_id"],
+    labelnames=["name", "bk_biz_id", "ticket_type"],
 )
 
 
@@ -62,14 +62,14 @@ pipeline_node_schedule_duration_histogram = Histogram(
     name="pipeline_node_schedule_duration_histogram",
     documentation="Histogram of the time (in seconds) each pipeline task schedule",
     buckets=get_histogram_buckets_from_env("BKAPP_MONITOR_METRICS_CORE_BUCKETS"),
-    labelnames=["name", "bk_biz_id", "ticket_type", "ticket_id"],
+    labelnames=["name", "bk_biz_id", "ticket_type"],
 )
 
 # pipeline原子任务 执行中计数
 pipeline_node_execute_running_count = Gauge(
     name="pipeline_node_execute_running_count",
     documentation="Number of pipeline execute running count.",
-    labelnames=["name", "bk_biz_id", "ticket_type", "ticket_id"],
+    labelnames=["name", "bk_biz_id", "ticket_type"],
 )
 
 # pipeline 流程树构建耗时
@@ -77,7 +77,7 @@ pipeline_tree_build_duration_histogram = Histogram(
     name="pipeline_tree_build_duration_histogram",
     documentation="Histogram of the time (in seconds) each pipeline tree build",
     buckets=get_histogram_buckets_from_env("BKAPP_MONITOR_METRICS_CORE_BUCKETS"),
-    labelnames=["bk_biz_id", "ticket_type", "ticket_id"],
+    labelnames=["bk_biz_id", "ticket_type"],
 )
 
 # ticket 创建耗时

@@ -12,6 +12,7 @@ from pathlib import Path
 from typing import Dict
 
 import pymysql
+import urllib3  # noqa: E402
 from bkcrypto import constants
 from bkcrypto.asymmetric.options import RSAAsymmetricOptions, SM2AsymmetricOptions
 from bkcrypto.symmetric.options import AESSymmetricOptions, SM4SymmetricOptions
@@ -27,6 +28,9 @@ from blueking.plugin_framework_patch import patch_bk_plugin_framework
 # 全局patch
 DatabaseFeatures.minimum_database_version = PatchFeatures.minimum_database_version
 patch_bk_plugin_framework()
+
+# 关闭独立 urllib3 包的 InsecureRequestWarning
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 # 加载开发框架默认settings
 if env.RUN_VER == "open":
