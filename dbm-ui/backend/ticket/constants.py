@@ -671,7 +671,7 @@ class TicketType(StrStructuredEnum):
                                                  _("集群维护"))  # noqa
     MONGODB_SCALE_UPDOWN = TicketEnumField("MONGODB_SCALE_UPDOWN", _("MongoDB 集群容量变更"), _("集群维护"))
     MONGODB_ENABLE = TicketEnumField("MONGODB_ENABLE", _("MongoDB 集群启用"), register_iam=False)
-    MONGODB_INSTANCE_RELOAD = TicketEnumField("MONGODB_INSTANCE_RELOAD", _("MongoDB 实例重启"), _("集群管理"))
+    MONGODB_INSTANCE_RELOAD = TicketEnumField("MONGODB_INSTANCE_RELOAD", _("MongoDB重启"), _("集群维护"))
     MONGODB_DISABLE = TicketEnumField("MONGODB_DISABLE", _("MongoDB 集群禁用"), register_iam=False)
     MONGODB_DESTROY = TicketEnumField("MONGODB_DESTROY", _("MongoDB 集群删除"), _("集群管理"))
     MONGODB_CUTOFF = TicketEnumField("MONGODB_CUTOFF", _("MongoDB 整机替换"), _("集群维护"))
