@@ -73,7 +73,7 @@ export default class Kafka extends ClusterBase {
   create_at: string;
   creator: string;
   db_module_id: number;
-  db_module_name: number;
+  db_module_name: string;
   db_type: DBTypes.KAFKA;
   disaster_tolerance_level: Affinity;
   domain: string;

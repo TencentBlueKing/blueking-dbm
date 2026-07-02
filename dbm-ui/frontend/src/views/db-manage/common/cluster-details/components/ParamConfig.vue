@@ -18,9 +18,9 @@
       type="unborder-card">
       <BkTabPanel
         v-for="tab of confTabs"
-        :key="tab.conf_file"
+        :key="`${tab.conf_type}-${tab.conf_file}`"
         :label="tab.name"
-        :name="tab.conf_file"
+        :name="`${tab.conf_type}-${tab.conf_file}`"
         render-directive="if">
         <OperationRecord
           v-if="tab.conf_type === 'operationRecord'"
@@ -93,8 +93,9 @@
   interface Props {
     cluster: {
       cluster_type: ClusterTypes;
-      db_module_id: number;
-      db_module_name: string;
+      // 仅支持模块配置的集群（Tendbha、Tendbsingle、Tendbcluster、Sqlserver 系列）才包含模块字段
+      db_module_id?: number;
+      db_module_name?: string;
       id: number;
       major_version: string;
       master_domain: string;

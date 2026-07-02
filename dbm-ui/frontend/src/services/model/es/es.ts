@@ -69,7 +69,7 @@ export default class Es extends ClusterBase {
   create_at: string;
   creator: string;
   db_module_id: number;
-  db_module_name: number;
+  db_module_name: string;
   db_type: DBTypes.ES;
   disaster_tolerance_level: Affinity;
   dns_to_clb: boolean;
