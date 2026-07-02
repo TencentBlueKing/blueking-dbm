@@ -285,7 +285,7 @@
           color: #476bfe;
         }
 
-        &.db-icon-shujuhuifu {
+        &.db-icon-data-recovery {
           color: #9e37e8;
         }
 
