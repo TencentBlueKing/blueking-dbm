@@ -93,7 +93,7 @@ export const toolboxMenuList: ToolboxTreeNode[] = [
         name: t('定点构造（旧）'),
       },
     ],
-    icon: 'shujuhuifu',
+    icon: 'data-recovery',
     id: 'fileback',
     name: t('数据恢复'),
   },
