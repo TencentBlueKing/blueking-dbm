@@ -295,6 +295,8 @@ from backend.flow.views.sqlserver import (
     SqlserverSQLFileExecuteSceneApiView,
     SqlserverStandardizationSceneApiView,
 )
+from backend.flow.views.surrealdb_disable import DisableSurrealDBSceneApiView
+from backend.flow.views.surrealdb_enable import EnableSurrealDBSceneApiView
 from backend.flow.views.surrealdb_restart import RestartSurrealDBSceneApiView
 from backend.flow.views.surrealdb_single_apply import InstallSurrealDBSingleSceneApiView
 from backend.flow.views.tbinlogdumper_add import (
@@ -660,4 +662,6 @@ urlpatterns = [
     # surrealdb
     url(r"^scene/install_k8s_surrealdb_single$", InstallSurrealDBSingleSceneApiView.as_view()),
     url(r"^scene/restart_k8s_surrealdb$", RestartSurrealDBSceneApiView.as_view()),
+    url(r"^scene/disable_k8s_surrealdb$", DisableSurrealDBSceneApiView.as_view()),
+    url(r"^scene/enable_k8s_surrealdb$", EnableSurrealDBSceneApiView.as_view()),
 ]
