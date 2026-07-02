@@ -20,41 +20,22 @@ from backend.utils.basic import generate_root_id
 logger = logging.getLogger("root")
 
 
-class InstallSurrealDBSingleSceneApiView(FlowTestView):
+class RestartSurrealDBSceneApiView(FlowTestView):
     """
-    api: /apis/v1/flow/scene/install_k8s_surrealdb_single
+    api: /apis/v1/flow/scene/restart_k8s_surrealdb
     params:
     {
-        "bk_biz_id": 2005000002,
-        "ticket_type": "K8S_SURREALDB_SINGLE_APPLY",
-        "db_app_abbr": "blueking",
-        "bk_biz_name": "蓝鲸",
-        "bk_cloud_id": 0,
-        "bk_cloud_region": "test-region",
-        "city_code": "深圳",
-        "cluster_type": "surreal-rocksdb",
-        "cluster_name": "test-surrealdb",
-        "cluster_alias": "测试集群",
-        "k8s_cluster_name": "test-k8s",
-        "major_version": "1",
-        "db_version": "1.7.4",
-        "remark": "测试创建surrealdb集群",
-        "component_list": [
-           {
-            "component_name": "surreal",
-            "replicas": 1,
-            "request_cpu": "1",
-            "request_memory": "1Gi",
-            "storage": "100Gi"
-            }
-        ]
+        "cluster_id": 65,
+        "ticket_type": "K8S_SURREALDB_RESTART",
+        "bk_biz_id": 10,
+        "created_by": "admin"
     }
     """
 
     def post(self, request):
-        logger.info(_("开始部署K8s SurrealDB 单机场景"))
+        logger.info(_("开始重启 K8s SurrealDB 场景"))
 
         root_id = generate_root_id()
-        logger.info("define root_id: {}".format(root_id))
-        SurrealDBController(root_id=root_id, ticket_data=request.data).surrealdb_single_apply_scene()
+        logger.info(f"define root_id: {root_id}")
+        SurrealDBController(root_id=root_id, ticket_data=request.data).surrealdb_restart_scene()
         return Response({"root_id": root_id})
