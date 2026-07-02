@@ -12,19 +12,77 @@
 -->
 
 <template>
-  <DbTabForBiz
-    v-model="activeTab"
-    ignore-cluster-count />
-  <List :db-type="activeTab" />
+  <Teleport to="#dbContentTitleAppend">
+    <BkTag
+      class="ml-8"
+      theme="info">
+      {{ t('业务') }}
+    </BkTag>
+  </Teleport>
+  <div class="ticket-flow-settings">
+    <div class="tab-header">
+      <DbTabForBiz
+        v-model="activeTab"
+        ignore-cluster-count />
+    </div>
+    <div class="list-wrapper">
+      <List :db-type="activeTab" />
+    </div>
+  </div>
 </template>
 <script setup lang="ts">
+  import { ref } from 'vue';
+  import { useI18n } from 'vue-i18n';
+  import { useRoute, useRouter } from 'vue-router';
+
   import { DBTypes } from '@common/const';
 
   import DbTabForBiz from '@components/db-tab-for-biz/Index.vue';
 
   import List from './components/List.vue';
 
+  const { t } = useI18n();
   const route = useRoute();
+  const router = useRouter();
 
-  const activeTab = ref<DBTypes>(route.query.db_type as DBTypes);
+  const activeTab = ref<DBTypes>((route.params.dbType as DBTypes) || DBTypes.MYSQL);
+
+  watch(
+    activeTab,
+    (value) => {
+      if (value) {
+        router.replace({
+          params: {
+            dbType: value,
+          },
+        });
+      }
+    },
+    {
+      immediate: true,
+    },
+  );
 </script>
+
+<style lang="less" scoped>
+  .ticket-flow-settings {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    overflow: hidden;
+
+    .tab-header {
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      flex-shrink: 0;
+      background: #fff;
+    }
+
+    .list-wrapper {
+      flex: 1;
+      min-height: 0;
+      overflow: hidden;
+    }
+  }
+</style>
