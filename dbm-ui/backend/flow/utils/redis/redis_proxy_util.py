@@ -8,7 +8,6 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-import asyncio
 import concurrent.futures
 import hashlib
 import json
@@ -1167,23 +1166,12 @@ def common_cluster_precheck(cluster_id: int):
 
 def async_multi_clusters_precheck(cluster_ids: List[int]):
     """
-    异步批量检查集群
+    多线程并发批量检查集群
     """
-
-    async def async_handler(cluster_ids: List[int]):
-        """
-        异步批量检查集群
-        """
-        loop = asyncio.get_running_loop()
-
-        # 自定义线程池
-        with concurrent.futures.ThreadPoolExecutor() as executor:
-            # 将所有的任务提交到线程池
-            tasks = [loop.run_in_executor(executor, common_cluster_precheck, cluster_id) for cluster_id in cluster_ids]
-            # 等待所有任务完成并收集结果
-            await asyncio.gather(*tasks)
-
-    return asyncio.run(async_handler(cluster_ids))
+    with concurrent.futures.ThreadPoolExecutor() as executor:
+        futures = [executor.submit(common_cluster_precheck, cluster_id) for cluster_id in cluster_ids]
+        for future in concurrent.futures.as_completed(futures):
+            future.result()  # 触发异常传播
 
 
 def lightning_cluster_nodes(cluster_id: int) -> list:
