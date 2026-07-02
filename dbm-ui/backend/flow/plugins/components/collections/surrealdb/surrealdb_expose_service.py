@@ -15,7 +15,7 @@ from typing import List
 from pipeline.component_framework.component import Component
 from pipeline.core.flow.activity import Service, StaticIntervalGenerator
 
-import backend.flow.utils.surrealdb.surrealdb_single.surrealdb_context_dataclass as flow_context
+import backend.flow.utils.surrealdb.surrealdb_context_dataclass as flow_context
 from backend.components import KubernetesApi
 from backend.exceptions import ApiResultError
 from backend.flow.plugins.components.collections.common.base_service import BaseService
