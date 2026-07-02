@@ -153,7 +153,13 @@
                   class="primary-dba-form-item"
                   error-display-type="tooltips"
                   :property="`tableData.${rowIndex}.primary_dba_edit`"
-                  required>
+                  :rules="[
+                    {
+                      required: true,
+                      message: t('主备必须成对填写'),
+                      validator: (value: string[]) => value.length > 0,
+                    },
+                  ]">
                   <div class="member-selector-wrapper">
                     <MemberSelector
                       v-model="row.primary_dba_edit"
@@ -226,7 +232,13 @@
                   v-if="row.is_edit"
                   error-display-type="tooltips"
                   :property="`tableData.${rowIndex}.standby_dba_edit`"
-                  required>
+                  :rules="[
+                    {
+                      required: true,
+                      message: t('主备必须成对填写'),
+                      validator: (value: string[]) => value.length > 0,
+                    },
+                  ]">
                   <MemberSelector
                     v-model="row.standby_dba_edit"
                     :multiple="false"
@@ -278,9 +290,7 @@
                 </BkTag> -->
               </template>
               <template #default="{ row }: { row: BizDbaModel }">
-                <BkFormItem
-                  v-if="row.is_edit"
-                  required>
+                <BkFormItem v-if="row.is_edit">
                   <MemberSelector
                     v-if="row.is_edit"
                     v-model="row.level2_dba_edit"

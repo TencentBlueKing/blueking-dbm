@@ -43,6 +43,11 @@
         </template>
       </TextOverflowLayout>
     </template>
+    <template
+      v-if="dataList.length > 0"
+      #empty>
+      <SearchEmpty />
+    </template>
   </AppSelect>
 </template>
 <script lang="ts">
@@ -63,6 +68,8 @@
   import { encodeRegexp, makeMap } from '@utils';
 
   import '@blueking/app-select/dist/style.css';
+
+  import SearchEmpty from './components/SearchEmpty.vue';
 
   type IAppItem = ServiceReturnType<typeof getBizs>[number];
 
@@ -149,7 +156,7 @@
     if (props.showPublicBiz) {
       sortedList.unshift(publicBiz);
     }
-    return sortedList;
+    return sortedList.filter((item) => item.status === 'managed');
   });
 
   const searchExtensionMethod = (data: IAppItem, keyword: string) => {
@@ -195,6 +202,10 @@
         display: inline !important;
       }
     }
+  }
+
+  .bk-app-select-menu-empty {
+    height: 72px;
   }
 
   .tippy-box[data-theme='bk-app-select-menu'] {

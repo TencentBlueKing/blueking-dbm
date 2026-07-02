@@ -5,6 +5,7 @@
     :generate-key="(item: IAppItem) => item.bk_biz_id"
     :generate-name="(item: IAppItem) => item.display_name"
     v-bind="{ ...attrs, ...props }"
+    :theme="theme"
     :value="modelValue"
     @change="handleAppChange">
     <template #value="{ data }: { data: IAppItem }">
@@ -49,6 +50,11 @@
         </template>
       </AuthTemplate>
     </template>
+    <template
+      v-if="withFavorBizList.length > 0"
+      #empty>
+      <SearchEmpty :theme="theme" />
+    </template>
   </AppSelect>
 </template>
 <script lang="ts">
@@ -69,6 +75,7 @@
 
   import '@blueking/app-select/dist/style.css';
 
+  import SearchEmpty from './components/SearchEmpty.vue';
   import { customListFilterRenderMethod } from './Index.vue';
 
   type IAppItem = ServiceReturnType<typeof getBizs>[number];
@@ -76,12 +83,14 @@
   interface Props {
     list: IAppItem[];
     permissionActionId?: string;
+    theme?: 'light' | 'dark';
   }
   type Emits = (e: 'change', value: IAppItem) => void;
 </script>
 <script setup lang="ts">
   const props = withDefaults(defineProps<Props>(), {
     permissionActionId: 'db_manage',
+    theme: undefined,
   });
 
   const emits = defineEmits<Emits>();
@@ -204,6 +213,10 @@
   .db-app-select-tooltips {
     z-index: 1000000 !important;
     white-space: nowrap;
+  }
+
+  .bk-app-select-menu-empty {
+    height: 72px;
   }
 
   .tippy-box[data-theme='bk-app-select-menu'] {

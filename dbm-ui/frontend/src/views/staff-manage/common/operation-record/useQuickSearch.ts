@@ -109,6 +109,28 @@ export const useQuickSearch = (isPlatform: boolean) => {
         name: t('变更角色'),
         type: 'multiple',
       },
+      {
+        id: 'change_person',
+        name: t('变更人员'),
+        remoteMethod: (params: { defaultValue?: string; keyword?: string }) => {
+          const requestParams = {};
+          if (params.defaultValue) {
+            Object.assign(requestParams, { exact_lookups: params.defaultValue });
+          }
+          if (params.keyword) {
+            Object.assign(requestParams, { fuzzy_lookups: params.keyword });
+          }
+
+          return getUserList(requestParams).then((data) =>
+            data.results.map((item) => ({
+              label: `${item.username} (${item.display_name})`,
+              value: item.username,
+            })),
+          );
+        },
+        remoteSearch: true,
+        type: 'multiple',
+      },
     ],
     (item) => item,
   ) as QuickSearchProps['data'];
