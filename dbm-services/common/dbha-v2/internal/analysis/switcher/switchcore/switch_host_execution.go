@@ -246,6 +246,16 @@ func processOnSameHost(ctx context.Context, swInstMap map[MetadataKey]Switchable
 	errMap map[MetadataKey]error) {
 	errMap = make(map[MetadataKey]error)
 
+	// skip before locking any cluster if the switching context is already done
+	for instKey, ins := range swInstMap {
+		if err := errIfCtxDoneInHostSwitch(ctx, ins); err != nil {
+			errMap[instKey] = err
+		}
+	}
+	if len(errMap) > 0 {
+		return errMap
+	}
+
 	// group same-host instances for the actual switch, remembering each group's cluster
 	groups := make(map[string]map[MetadataKey]SwitchableInstance)
 	groupClusterKeys := make(map[string]ClusterKey)
@@ -268,7 +278,7 @@ func processOnSameHost(ctx context.Context, swInstMap map[MetadataKey]Switchable
 	for groupKey, group := range groups {
 		wg.Add(1)
 
-		go func(clusterKey ClusterKey, group map[MetadataKey]SwitchableInstance) {
+		go func(clusterKey ClusterKey, group map[MetadataKey]SwitchableInstance, groupKey string) {
 			defer wg.Done()
 
 			groupErrMap := processOnSameHostGroup(ctx, clusterKey, group, groupKey, instSem)
@@ -278,7 +288,7 @@ func processOnSameHost(ctx context.Context, swInstMap map[MetadataKey]Switchable
 				errMap[instKey] = err
 			}
 			mu.Unlock()
-		}(groupClusterKeys[groupKey], group)
+		}(groupClusterKeys[groupKey], group, groupKey)
 	}
 
 	wg.Wait()
