@@ -13,6 +13,7 @@ from abc import ABC, abstractmethod
 from typing import Any, Dict
 
 from bamboo_engine import api
+from django.db import connections
 from django.utils.translation import gettext as _
 from pipeline.core.flow import StaticIntervalGenerator
 from pipeline.eri.runtime import BambooDjangoRuntime
@@ -93,6 +94,8 @@ class SidecarServiceABC(BaseService, ABC):
             except Exception as err:
                 result_holder["exc"] = err
                 result_holder["ret"] = True  # 出错时不要让节点变 FAILED，交给 sidecar_func 内部日志体现
+            finally:
+                connections.close_all()
 
         worker = threading.Thread(target=_run, name="sidecar-worker-{}".format(root_id), daemon=True)
         worker.start()
