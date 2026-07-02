@@ -17,6 +17,7 @@ from pipeline.core.flow.activity import Service
 import backend.flow.utils.surrealdb.surrealdb_context_dataclass as flow_context
 from backend.components import KubernetesApi
 from backend.flow.plugins.components.collections.common.base_service import BaseService
+from backend.flow.plugins.components.collections.surrealdb.utils import fetch_cluster_detail
 from backend.ticket.constants import TicketType
 
 
@@ -46,7 +47,9 @@ class SurrealDBSyncTicketIdService(BaseService):
             namespace = trans_data.namespace
             cluster_name = trans_data.cluster_name
         else:
-            cluster_detail = KubernetesApi.cluster_detail({"cluster_id": cluster_id}, use_admin=True)
+            cluster_detail = fetch_cluster_detail(self, cluster_id)
+            if cluster_detail is None:
+                return False
             k8s_cluster_name = cluster_detail["k8sClusterConfig"]["clusterName"]
             namespace = cluster_detail["namespace"]
             cluster_name = cluster_detail["clusterName"]

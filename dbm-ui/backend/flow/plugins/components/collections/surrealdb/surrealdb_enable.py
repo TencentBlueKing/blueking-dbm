@@ -12,19 +12,21 @@ specific language governing permissions and limitations under the License.
 import logging.config
 from typing import List
 
+from django.utils.translation import gettext as _
 from pipeline.component_framework.component import Component
 from pipeline.core.flow.activity import Service
 
 from backend.components import KubernetesApi
+from backend.exceptions import ApiRequestError, ApiResultError
 from backend.flow.plugins.components.collections.common.base_service import BaseService
 from backend.flow.plugins.components.collections.surrealdb.utils import fetch_cluster_detail
 
 logger = logging.getLogger("flow")
 
 
-class RestartSurrealDBService(BaseService):
+class EnableSurrealDBService(BaseService):
     """
-    调用dbs接口重启 surrealdb 集群
+    调用dbs接口启用 surrealdb 集群
     """
 
     def _execute(self, data, parent_data) -> bool:
@@ -40,7 +42,13 @@ class RestartSurrealDBService(BaseService):
             "async_to_dbm": False,
             "bk_username": global_data["created_by"],
         }
-        KubernetesApi.restart_cluster(params, use_admin=True)
+
+        try:
+            KubernetesApi.enable_cluster(params, use_admin=True)
+        except (ApiResultError, ApiRequestError) as e:
+            self.log_error(_("启用 surrealdb 集群[{}]失败: {}").format(cluster_detail["clusterName"], e))
+            return False
+
         return True
 
     def inputs_format(self) -> List:
@@ -50,7 +58,7 @@ class RestartSurrealDBService(BaseService):
         ]
 
 
-class RestartSurrealDBComponent(Component):
+class EnableSurrealDBComponent(Component):
     name = __name__
-    code = "restart_surrealdb"
-    bound_service = RestartSurrealDBService
+    code = "enable_surrealdb"
+    bound_service = EnableSurrealDBService
