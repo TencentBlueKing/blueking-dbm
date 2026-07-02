@@ -3,7 +3,7 @@
     <template v-if="!isBatchEdit">
       <BkAlert
         :title="
-          activeTopTab === 'apply'
+          isApply
             ? t('仅展示当前业务空间已部署组件的 DBA，可在此设置主、备、二线。')
             : t('仅展示当前业务空间未部署组件的 DBA，可提前设置，组件部署后生效。')
         " />
@@ -90,7 +90,13 @@
                 class="primary-dba-form-item"
                 error-display-type="tooltips"
                 :property="`filterTableData.${rowIndex}.primary_dba_edit`"
-                :required="row.standby_dba_edit.length > 0 || row.level2_dba_edit.length > 0">
+                :rules="[
+                  {
+                    required: isPrimaryRequired(row),
+                    message: isApply ? t('不能为空') : t('主备必须成对填写'),
+                    validator: (value: string[]) => (isPrimaryRequired(row) ? value.length > 0 : true),
+                  },
+                ]">
                 <div class="member-selector-wrapper">
                   <MemberSelector
                     v-model="row.primary_dba_edit"
@@ -172,7 +178,13 @@
                 v-if="row.is_edit"
                 error-display-type="tooltips"
                 :property="`filterTableData.${rowIndex}.standby_dba_edit`"
-                :required="row.primary_dba_edit.length > 0 || row.level2_dba_edit.length > 0">
+                :rules="[
+                  {
+                    required: isStandbyRequired(row),
+                    message: isApply ? t('不能为空') : t('主备必须成对填写'),
+                    validator: (value: string[]) => (isStandbyRequired(row) ? value.length > 0 : true),
+                  },
+                ]">
                 <MemberSelector
                   v-model="row.standby_dba_edit"
                   :multiple="false"
@@ -429,6 +441,7 @@
     filterTableData: [] as IRowData[],
   });
 
+  const isApply = computed(() => props.activeTopTab === 'apply');
   const isBatchEdit = computed(
     () =>
       formData.value.filterTableData.length > 0 &&
@@ -489,6 +502,20 @@
 
   const rowClassName = ({ row }: { row: IRowData }) => {
     return !row.is_edit && isPrimaryAndStanbySame(row) ? 'warning-row' : '';
+  };
+
+  const isPrimaryRequired = (row: IRowData) => {
+    if (isApply.value) {
+      return true;
+    }
+    return row.standby_dba_edit.length > 0 || row.level2_dba_edit.length > 0;
+  };
+
+  const isStandbyRequired = (row: IRowData) => {
+    if (isApply.value) {
+      return true;
+    }
+    return row.primary_dba_edit.length > 0 || row.level2_dba_edit.length > 0;
   };
 
   const handleSwitchPrimaryAndStandby = (row: IRowData, rowIndex: number) => {

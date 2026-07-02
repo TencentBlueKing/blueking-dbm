@@ -88,7 +88,13 @@
                     class="primary-dba-form-item"
                     error-display-type="tooltips"
                     :property="`tableData.${rowIndex}.primaryDBA`"
-                    required>
+                    :rules="[
+                      {
+                        required: true,
+                        message: t('主备必须成对填写'),
+                        validator: (value: string[]) => value.length > 0,
+                      },
+                    ]">
                     <div class="member-selector-wrapper">
                       <MemberSelector
                         v-model="row.primaryDBA"
@@ -149,7 +155,13 @@
                     v-if="row.isEdit"
                     error-display-type="tooltips"
                     :property="`tableData.${rowIndex}.standbyDBA`"
-                    required>
+                    :rules="[
+                      {
+                        required: true,
+                        message: t('主备必须成对填写'),
+                        validator: (value: string[]) => value.length > 0,
+                      },
+                    ]">
                     <MemberSelector
                       v-model="row.standbyDBA"
                       :multiple="false"

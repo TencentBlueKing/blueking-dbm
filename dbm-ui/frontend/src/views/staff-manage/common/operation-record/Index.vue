@@ -7,8 +7,8 @@
       parse-url
       :placeholder="
         isPlatform
-          ? t('搜索操作人、操作时间、所属业务、操作类型、DB 类型、变更角色')
-          : t('搜索操作人、操作时间、操作类型、DB 类型、变更角色')
+          ? t('搜索操作人、操作时间、所属业务、操作类型、DB 类型、变更角色、变更人员')
+          : t('搜索操作人、操作时间、操作类型、DB 类型、变更角色、变更人员')
       "
       style="width: 500px"
       @change="handleQuickSearchChange" />
