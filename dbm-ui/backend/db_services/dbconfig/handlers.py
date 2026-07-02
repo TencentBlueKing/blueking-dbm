@@ -512,6 +512,12 @@ class DBConfigHandler:
                 continue
             cf["conf_file"] = cf["name"] = deploy_info.get(cf["conf_file"], "")
 
+        # 单 conf_file 的 conf_type 以 conf_type 标签命名
+        single_conf_types = {ct for ct, conf_files in conf_type_map.items() if len(conf_files) == 1}
+        for cf in results:
+            if cf["conf_type"] in single_conf_types:
+                cf["name"] = str(ConfType.get_choice_label(cf["conf_type"]))
+
         return results
 
     def delete_module_config(self, params: Dict[str, Any]) -> Any:

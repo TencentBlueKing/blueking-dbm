@@ -78,6 +78,12 @@ class DBMAgentResourceManager(AgentResourceManager):
 
         return agent_config
 
+    def resolve_access_token(self, username: str = None) -> str:
+        """解析access_token，这里如果是后台调用，则用虚拟账户token"""
+        if username == "admin":
+            return settings.DBM_APP_ACCESS_TOKEN
+        return super().resolve_access_token(username)
+
     def get_paas_sbx_client(self, executor_info: dict, **kwargs):
         """修改paas sandbox的鉴权配置"""
         client = super().get_paas_sbx_client(executor_info, **kwargs)
