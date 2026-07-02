@@ -73,7 +73,7 @@
             v-db-console="'bizConfigManage.ticketFlowSetting'"
             icon="db-config"
             route-name="TicketFlowSetting">
-            {{ t('单据免审批设置') }}
+            {{ t('单据审批设置') }}
           </DbMenuItem>
           <DbMenuItem
             v-db-console="'bizConfigManage.ticketCooperationSetting'"

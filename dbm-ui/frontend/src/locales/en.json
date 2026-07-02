@@ -3449,7 +3449,7 @@
   "高版本不能恢复到低版本": "Cannot restore from a higher version to a lower version",
   "添加免审批": "Add Auto-Approval",
   "所有集群已免审批": "All clusters are approval-exempt",
-  "单据免审批设置": "Ticket Auto-Approval Settings",
+  "单据审批设置": "Ticket Approval Settings",
   "内置策略为平台预设的审批规则，不可修改。根据业务需求，您可对全部或部分集群应用免审批策略。": "Built-in policies are platform-preset approval rules and cannot be modified. Based on business needs, you can apply approval exemption policies to all or selected clusters.",
   "已存在自定义的免审批": "Custom approval exemption already exists",
   "内置策略不支持编辑": "Built-in policies cannot be edited",
@@ -6170,7 +6170,7 @@
   "请选择标签键与匹配条件": "Please select a tag key and match condition",
   "集群 clusters 已在其他按集群子策略中，不可重复": "Clusters {clusters} already exist in other by-cluster sub-policies and cannot be duplicated",
   "标签 tags 已在其他按标签子策略中，不可重复": "Tags {tags} already exist in other by-tag sub-policies and cannot be duplicated",
-  "平台锁定：固定需审批，不可自定义与新建子策略": "Platform Lock: This ticket type requires approval in all cases. Customization and sub-policy creation are not allowed",
+  "平台已锁定，不可更改设置": "The platform has locked this setting and it cannot be changed",
   "编辑父策略": "Edit Parent Policy",
   "同一集群仅可归属一条按集群子策略": "A cluster can only belong to one by-cluster sub-policy",
   "跳过 DBA 审批": "Skip DBA Approval",
@@ -6195,5 +6195,7 @@
   "已有库新名": "Existing DB New Name",
   "部署": "Deploy",
   "新 DB": "New DB",
+  "与「业务下全部集群」的审批设置一致，不再独立生效。可手动删除。": "Identical to the approval settings of \"All clusters under the business\"; it will not take effect. It can be deleted manually.",
+  "业务策略基于业务下全部集群生效，该规则支持创建子策略进行例外配置。": "The business policy applies to all clusters under the business. This rule supports creating sub-policies for exception configurations.",
   "这行勿动！新增翻译请在上一行添加！": ""
 }
