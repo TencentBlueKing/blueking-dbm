@@ -12,6 +12,7 @@ export const queryClusterTypes = {
   [DBTypes.KAFKA]: [ClusterTypes.KAFKA],
   [DBTypes.MONGODB]: [ClusterTypes.MONGODB, ClusterTypes.MONGO_REPLICA_SET, ClusterTypes.MONGO_SHARED_CLUSTER],
   [DBTypes.MYSQL]: [ClusterTypes.TENDBSINGLE, ClusterTypes.TENDBHA],
+  [DBTypes.ORACLE]: [ClusterTypes.ORACLE_PRIMARY_STANDBY, ClusterTypes.ORACLE_SINGLE_NONE],
   [DBTypes.PULSAR]: [ClusterTypes.PULSAR],
   [DBTypes.REDIS]: [
     ClusterTypes.REDIS,
@@ -29,5 +30,4 @@ export const queryClusterTypes = {
   [DBTypes.RIAK]: [ClusterTypes.RIAK],
   [DBTypes.SQLSERVER]: [ClusterTypes.SQLSERVER_HA, ClusterTypes.SQLSERVER_SINGLE],
   [DBTypes.TENDBCLUSTER]: [ClusterTypes.TENDBCLUSTER],
-  [DBTypes.ORACLE]: [ClusterTypes.ORACLE],
 };
