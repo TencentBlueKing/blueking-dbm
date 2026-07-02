@@ -22959,6 +22959,30 @@ msgstr "Cluster {} does not exist, please check whether the cluster exists"
 msgid "集群 {} 详情信息不完整, 缺失字段: {}"
 msgstr "Cluster {} details are incomplete, missing fields: {}"
 
+#: backend/flow/engine/bamboo/scene/surrealdb/surrealdb_disable_flow.py
+msgid "禁用 surrealdb 集群"
+msgstr "Disable surrealdb cluster"
+
+#: backend/flow/engine/bamboo/scene/surrealdb/surrealdb_enable_flow.py
+msgid "启用 surrealdb 集群"
+msgstr "Enable surrealdb cluster"
+
+#: backend/flow/plugins/components/collections/surrealdb/surrealdb_disable.py
+msgid "禁用 surrealdb 集群[{}]失败: {}"
+msgstr "Failed to disable surrealdb cluster[{}]: {}"
+
+#: backend/flow/plugins/components/collections/surrealdb/surrealdb_enable.py
+msgid "启用 surrealdb 集群[{}]失败: {}"
+msgstr "Failed to enable surrealdb cluster[{}]: {}"
+
+#: backend/flow/views/surrealdb_disable.py
+msgid "开始禁用 K8s SurrealDB 场景"
+msgstr "Start disabling K8s SurrealDB scene"
+
+#: backend/flow/views/surrealdb_enable.py
+msgid "开始启用 K8s SurrealDB 场景"
+msgstr "Start enabling K8s SurrealDB scene"
+
 #: backend/flow/plugins/components/collections/qdrant/get_k8s_qdrant_clb_detail.py
 msgid "获取CLB详情失败"
 msgstr "Failed to get CLB details"

@@ -35,15 +35,15 @@ class SurrealDBMeta(object):
         return {}
 
     def k8s_surrealdb_enable(self) -> dict:
-        api.cluster.surrealdbsingle.enable(self.ticket_data["cluster_id"])
+        api.cluster.surrealdb.enable(self.ticket_data["cluster_id"])
         return {"id": self.ticket_data["cluster_id"]}
 
     def k8s_surrealdb_delete(self) -> dict:
-        api.cluster.surrealdbsingle.delete(self.ticket_data["cluster_id"])
+        api.cluster.surrealdb.delete(self.ticket_data["cluster_id"])
         return {"id": self.ticket_data["cluster_id"]}
 
     def k8s_surrealdb_disable(self) -> dict:
-        api.cluster.surrealdbsingle.disable(self.ticket_data["cluster_id"])
+        api.cluster.surrealdb.disable(self.ticket_data["cluster_id"])
         return {"id": self.ticket_data["cluster_id"]}
 
     def k8s_surrealdb_single_apply(self) -> dict:
@@ -63,7 +63,7 @@ class SurrealDBMeta(object):
         }
 
         with atomic():
-            resp = api.cluster.surrealdbsingle.create(**cluster)
+            resp = api.cluster.surrealdb.create(**cluster)
             result.update(resp)
 
         return result
