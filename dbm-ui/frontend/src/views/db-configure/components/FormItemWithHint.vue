@@ -30,9 +30,9 @@
       </span>
     </template>
     <div
-      v-if="hint && isShowHint"
+      v-if="isShowHint"
       class="form-item-hint">
-      {{ hint }}
+      <slot name="hint">{{ hint }}</slot>
     </div>
   </BkFormItem>
 </template>
