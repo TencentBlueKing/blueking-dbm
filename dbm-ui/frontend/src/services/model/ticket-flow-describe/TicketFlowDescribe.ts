@@ -12,7 +12,7 @@ export default class TicketFlowDescribe {
       flow_todo_expire: number;
       inner_flow_expire: number;
       itsm_expire: number;
-    }
+    };
     need_itsm: boolean;
     need_manual_confirm: boolean;
   };
@@ -20,7 +20,10 @@ export default class TicketFlowDescribe {
   editable: boolean;
   flow_desc: string[];
   group: string;
+  has_child_config: boolean;
   id: number;
+  is_child_config: boolean;
+  parent_id: number;
   permission: {
     biz_ticket_config_set: boolean;
     ticket_config_set: boolean;
@@ -39,21 +42,24 @@ export default class TicketFlowDescribe {
       expire_config: {
         flow_todo_expire: -1,
         inner_flow_expire: -1,
-        itsm_expire: -1
+        itsm_expire: -1,
       },
       need_itsm: true,
-      need_manual_confirm: true
+      need_manual_confirm: true,
     };
     this.creator = payload.creator || '';
     this.editable = payload.editable || false;
     this.flow_desc = payload.flow_desc || [];
     this.group = payload.group || '';
+    this.has_child_config = payload.has_child_config || false;
     this.id = payload.id || 0;
+    this.is_child_config = payload.is_child_config || false;
+    this.parent_id = payload.parent_id || 0;
     this.permission = payload.permission || {
       biz_ticket_config_set: false,
-      ticket_config_set: false
+      ticket_config_set: false,
     };
-    this.remark = payload.remark || ''
+    this.remark = payload.remark || '';
     this.ticket_type = payload.ticket_type || '';
     this.ticket_type_display = payload.ticket_type_display || '';
     this.update_at = payload.update_at || '';
@@ -65,24 +71,29 @@ export default class TicketFlowDescribe {
     return this.clusters.map((cluster) => cluster.immute_domain);
   }
 
-  // 是否集群目标
-  get isClusterTarget() {
-    return this.isCustomTarget && this.cluster_ids.length > 0;
-  }
-
-  // 是否为业务全部目标
-  get isCurrentBizTarget() {
-    return this.isCustomTarget && !this.isClusterTarget;
-  }
-
-  // 是否自定义目标
-  get isCustomTarget() {
+  // 是否业务策略（当前业务的策略）
+  get isBusinessPolicy() {
     return this.bk_biz_id !== 0;
   }
 
-  // 是否内置目标
-  get isDefaultTarget() {
+  // 是否子策略
+  get isChildPolicy() {
+    return this.is_child_config;
+  }
+
+  // 是否自定义（业务策略已自定义，与全局策略脱钩）
+  get isCustom() {
+    return this.isBusinessPolicy && this.has_child_config;
+  }
+
+  // 是否内置（全局策略）
+  get isDefaultPolicy() {
     return this.bk_biz_id === 0;
+  }
+
+  // 是否父策略
+  get isParentPolicy() {
+    return this.has_child_config;
   }
 
   get updateAtDisplay() {

@@ -12,17 +12,42 @@
 -->
 
 <template>
+  <Teleport to="#dbContentTitleAppend">
+    <BkTag
+      class="ml-8"
+      theme="info">
+      {{ t('全局') }}
+    </BkTag>
+  </Teleport>
   <DbTab v-model="activeTab" />
   <List :db-type="activeTab" />
 </template>
 <script setup lang="ts">
+  import { useI18n } from 'vue-i18n';
+
   import { DBTypes } from '@common/const';
 
   import DbTab from '@components/db-tab/Index.vue';
 
   import List from './components/List.vue';
 
+  const { t } = useI18n();
   const route = useRoute();
+  const router = useRouter();
 
-  const activeTab = ref<DBTypes>((route.query.db_type as DBTypes) || DBTypes.MYSQL);
+  const activeTab = ref<DBTypes>((route.params.dbType as DBTypes) || DBTypes.MYSQL);
+
+  watch(
+    activeTab,
+    (value) => {
+      router.replace({
+        params: {
+          dbType: value,
+        },
+      });
+    },
+    {
+      immediate: true,
+    },
+  );
 </script>
