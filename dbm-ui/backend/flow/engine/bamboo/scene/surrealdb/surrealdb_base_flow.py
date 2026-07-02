@@ -14,7 +14,7 @@ from typing import Dict, Optional
 logger = logging.getLogger("flow")
 
 
-class K8sSurrealDBSingleBaseFlow(object):
+class K8sSurrealDBBaseFlow(object):
     """
     SurrealDB Flow基类
     """

@@ -9,18 +9,15 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 
-import logging.config
 from typing import List
 
 from pipeline.component_framework.component import Component
 from pipeline.core.flow.activity import Service
 
-import backend.flow.utils.surrealdb.surrealdb_single.surrealdb_context_dataclass as flow_context
+import backend.flow.utils.surrealdb.surrealdb_context_dataclass as flow_context
 from backend.components import KubernetesApi
 from backend.flow.plugins.components.collections.common.base_service import BaseService
 from backend.ticket.constants import TicketType
-
-logger = logging.getLogger("flow")
 
 
 class SurrealDBSyncTicketIdService(BaseService):

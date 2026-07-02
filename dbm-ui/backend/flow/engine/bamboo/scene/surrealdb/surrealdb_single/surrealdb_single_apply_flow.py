@@ -15,16 +15,14 @@ from django.utils.translation import gettext as _
 
 from backend.flow.consts import DnsOpType
 from backend.flow.engine.bamboo.scene.common.builder import Builder
-from backend.flow.engine.bamboo.scene.surrealdb.surrealdb_single.surrealdb_single_base_flow import (
-    K8sSurrealDBSingleBaseFlow,
-)
+from backend.flow.engine.bamboo.scene.surrealdb.surrealdb_base_flow import K8sSurrealDBBaseFlow
 from backend.flow.plugins.components.collections.surrealdb.surrealdb_apply_clb import ApplySurrealDBClbComponent
 from backend.flow.plugins.components.collections.surrealdb.surrealdb_clb_detail import GetSurrealDBClbDetailComponent
 from backend.flow.plugins.components.collections.surrealdb.surrealdb_dns_manage import SurrealDBDnsManageComponent
 from backend.flow.plugins.components.collections.surrealdb.surrealdb_expose_service import (
     ExposeSurrealDBServiceComponent,
 )
-from backend.flow.plugins.components.collections.surrealdb.surrealdb_single.deploy_surrealdb_single import (
+from backend.flow.plugins.components.collections.surrealdb.surrealdb_single.surrealdb_deploy_single import (
     DeploySurrealDBSingleComponent,
 )
 from backend.flow.plugins.components.collections.surrealdb.surrealdb_single.surrealdb_meta import (
@@ -35,16 +33,16 @@ from backend.flow.plugins.components.collections.surrealdb.surrealdb_sync_ticket
     SurrealDBSyncTicketIdComponent,
 )
 from backend.flow.utils.surrealdb.consts import DOMAIN_PREFIX, SURREALDB_PORT
-from backend.flow.utils.surrealdb.surrealdb_single.surrealdb_context_dataclass import (
+from backend.flow.utils.surrealdb.surrealdb_context_dataclass import (
     DnsKwargs,
-    K8sSurrealDBSingleActKwargs,
-    K8sSurrealDBSingleApplyContext,
+    K8sSurrealDBActKwargs,
+    K8sSurrealDBApplyContext,
 )
 
 logger = logging.getLogger("flow")
 
 
-class K8sSurrealDBSingleApplyFlow(K8sSurrealDBSingleBaseFlow):
+class K8sSurrealDBSingleApplyFlow(K8sSurrealDBBaseFlow):
     """
     构建 surrealdb 单机版申请流程
     """
@@ -55,8 +53,8 @@ class K8sSurrealDBSingleApplyFlow(K8sSurrealDBSingleBaseFlow):
         """
         # Builder 传参 为封装好角色IP的数据结构
         surrealdb_pipeline = Builder(root_id=self.root_id, data=self.data)
-        act_kwargs = K8sSurrealDBSingleActKwargs(bk_cloud_id=self.bk_cloud_id)
-        act_kwargs.set_trans_data_dataclass = K8sSurrealDBSingleApplyContext.__name__
+        act_kwargs = K8sSurrealDBActKwargs(bk_cloud_id=self.bk_cloud_id)
+        act_kwargs.set_trans_data_dataclass = K8sSurrealDBApplyContext.__name__
 
         # 调用 dbs 接口创建集群
         surrealdb_pipeline.add_act(
