@@ -28,10 +28,13 @@
   const { t } = useI18n();
   const route = useRoute();
 
+  const isApplyPage = ((route.name || '') as string).includes('_APPLY');
   const dbType = route.meta.dbType as DBTypes;
 
   const defaultAdmin = computed(() =>
-    admins.value && admins.value.data.length > 0 ? admins.value.data[0].users[0] : '',
+    admins.value && admins.value.data.length > 0
+      ? admins.value.data.find((item) => item.db_type === dbType)?.users[0]
+      : '',
   );
   const loadingConfig = computed(() => {
     return {
@@ -48,7 +51,7 @@
     manual: true,
   });
 
-  if (dbType) {
+  if (isApplyPage && dbType) {
     runGetAdmins({
       bk_biz_id: 0,
     });
