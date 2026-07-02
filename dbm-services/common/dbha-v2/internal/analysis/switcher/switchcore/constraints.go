@@ -39,6 +39,9 @@ import (
 )
 
 const (
+	HostLevelSwitchDefaultMaxHostNum     = 32
+	HostLevelSwitchDefaultMaxInstanceNum = 64
+
 	ClusterLevelSwitchDefaultMaxClusterNum  = 32
 	ClusterLevelSwitchDefaultMaxInstanceNum = 64
 
@@ -48,6 +51,30 @@ const (
 	defaultClusterLockTimeout = 60 * time.Second
 	defaultExecSqlTimeout     = 6 * time.Second
 )
+
+// HostLevelSwitchMaxHostConcurrency returns a positive cap for
+// parallel host-level switch workers (bounded number of hosts processed concurrently).
+func HostLevelSwitchMaxHostConcurrency() int {
+	n := config.Cfg.Workflow.SwitchFlow.HostLevelSwitchMaxHostNum
+	if n <= 0 {
+		logger.Warn("hostLevelSwitchMaxHostNum(%d) is invalid, using default %d",
+			n, HostLevelSwitchDefaultMaxHostNum)
+		return HostLevelSwitchDefaultMaxHostNum
+	}
+	return n
+}
+
+// HostLevelSwitchMaxInstanceConcurrency returns the cap for
+// parallel per-instance switch work on the same host (shared across all switch groups of the host).
+func HostLevelSwitchMaxInstanceConcurrency() int {
+	n := config.Cfg.Workflow.SwitchFlow.HostLevelSwitchMaxInstanceNum
+	if n <= 0 {
+		logger.Warn("hostLevelSwitchMaxInstanceNum(%d) is invalid, using default %d",
+			n, HostLevelSwitchDefaultMaxInstanceNum)
+		return HostLevelSwitchDefaultMaxInstanceNum
+	}
+	return n
+}
 
 // ClusterLevelSwitchMaxClusterConcurrency returns a positive cap for
 // parallel cluster-level switch workers.

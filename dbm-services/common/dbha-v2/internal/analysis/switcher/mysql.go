@@ -348,14 +348,18 @@ func (m *Mysql) HostLevelSwitch(ctx context.Context, switchLoggers []switchlogge
 	}
 
 	ipGroup := m.buildIpGroup(req)
-	var wg sync.WaitGroup
 
-	// parallelize the processing of the same host
+	var wg sync.WaitGroup
+	sem := make(chan struct{}, switchcore.HostLevelSwitchMaxHostConcurrency())
+
+	// parallelize the processing of the same host (bounded by workflow.switchflow.hostLevelSwitchMaxHostNum)
 	for host, instDataMap := range ipGroup {
 		wg.Add(1)
+		sem <- struct{}{}
 
 		go func(host switchcore.HostKey, instDataMap switchcore.InstMetadataMap) {
 			defer wg.Done()
+			defer func() { <-sem }()
 
 			swReporter := NewSwitchReporter(switchLoggers, instDataMap, req.SwitchID, req.ActionScope)
 			swReporter.ReportSwitchLogf(switchlogger.SwitchInfo, "start to switch all instances on the current host, "+
@@ -389,7 +393,6 @@ func (m *Mysql) HostLevelSwitch(ctx context.Context, switchLoggers []switchlogge
 			}
 
 			failedInstStr := "[" + strings.Join(switchcore.ExtractMetadataKeys(errMap), ", ") + "]"
-
 			for instKey, swInst := range swInstMap {
 				if err, exists := errMap[instKey]; exists {
 					swInst.ReportLogf(switchlogger.SwitchFail, "failed to switch all instances on the same host, "+
@@ -406,12 +409,11 @@ func (m *Mysql) HostLevelSwitch(ctx context.Context, switchLoggers []switchlogge
 
 	wg.Wait()
 
-	m.reportMysqlSwitchingMetrics(apm.MysqlHostSwitchingTimeConsumingMs, start, req, rsp)
-
 	if len(rsp.MySqlFailureInsts) > 0 {
 		rsp.Err = ErrSwitchPartialSuccess
 	}
 
+	m.reportMysqlSwitchingMetrics(apm.MysqlHostSwitchingTimeConsumingMs, start, req, rsp)
 	return rsp
 }
 

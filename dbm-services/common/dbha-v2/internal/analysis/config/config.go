@@ -53,6 +53,8 @@ var Cfg = Configuration{
 		DbmApiMetadataHashCnt:      minDbmApiMetadataHashCnt,
 		EnableWhiteList:            true,
 		SwitchFlow: SwitchFlowConfig{
+			HostLevelSwitchMaxHostNum:        32,
+			HostLevelSwitchMaxInstanceNum:    64,
 			ClusterLevelSwitchMaxClusterNum:  32,
 			ClusterLevelSwitchMaxInstanceNum: 64,
 			DbmApiMaxConcurrentRequests:      8,
@@ -103,6 +105,8 @@ type DbmApi struct {
 // SwitchFlowConfig defines the configuration for the switch flow
 type SwitchFlowConfig struct {
 	DbmApiMaxConcurrentRequests      int           `yaml:"dbmApiMaxConcurrentRequests"      mapstructure:"dbmApiMaxConcurrentRequests"`
+	HostLevelSwitchMaxHostNum        int           `yaml:"hostLevelSwitchMaxHostNum"        mapstructure:"hostLevelSwitchMaxHostNum"`
+	HostLevelSwitchMaxInstanceNum    int           `yaml:"hostLevelSwitchMaxInstanceNum"    mapstructure:"hostLevelSwitchMaxInstanceNum"`
 	ClusterLevelSwitchMaxClusterNum  int           `yaml:"clusterLevelSwitchMaxClusterNum"  mapstructure:"clusterLevelSwitchMaxClusterNum"`
 	ClusterLevelSwitchMaxInstanceNum int           `yaml:"clusterLevelSwitchMaxInstanceNum" mapstructure:"clusterLevelSwitchMaxInstanceNum"`
 	SwitchLogWriteTimeout            time.Duration `yaml:"switchLogWriteTimeout"            mapstructure:"switchLogWriteTimeout"`

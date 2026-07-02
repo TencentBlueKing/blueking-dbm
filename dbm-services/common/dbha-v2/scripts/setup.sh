@@ -376,6 +376,8 @@ workflow:
   readDbEventOffsetDuration: -10m
   enableSwitching: true
   switchflow:
+    hostLevelSwitchMaxHostNum: 32
+    hostLevelSwitchMaxInstanceNum: 64
     clusterLevelSwitchMaxClusterNum: 32
     clusterLevelSwitchMaxInstanceNum: 64
     dbmApiMaxConcurrentRequests: 8
