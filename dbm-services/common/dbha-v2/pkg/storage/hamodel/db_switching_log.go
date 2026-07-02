@@ -32,10 +32,13 @@ const (
 	// DbSwitchingLog Table
 	DbSwitchingLogTableName        = "t_db_switching_log"
 	DbSwitchingLogFieldID          = "id"
+	DbSwitchingLogFieldSwitchID    = "switch_id"
+	DbSwitchingLogFieldActionScope = "action_scope"
 	DbSwitchingLogFieldBkBizID     = "bk_biz_id"
 	DbSwitchingLogFieldBkCloudID   = "bk_cloud_id"
 	DbSwitchingLogFieldDbIP        = "db_ip"
 	DbSwitchingLogFieldDbPort      = "db_port"
+	DbSwitchingLogFieldClusterID   = "cluster_id"
 	DbSwitchingLogFieldClusterName = "cluster_name"
 	DbSwitchingLogFieldDbTypeName  = "db_type_name"
 	DbSwitchingLogFieldLevel       = "level"

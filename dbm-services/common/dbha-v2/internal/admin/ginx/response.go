@@ -48,6 +48,13 @@ type SuccessResponse struct {
 	Data any `json:"data"`
 }
 
+// V1ResponseInfo Response of v1-compatible interface
+type V1ResponseInfo struct {
+	Data    any    `json:"data"`
+	Code    int    `json:"code"`
+	Message string `json:"message"`
+}
+
 // Error ...
 type Error struct {
 	Code    string `json:"code"`
@@ -64,6 +71,24 @@ type ErrorResponse struct {
 func SuccessJSONResponse(c *gin.Context, data any) {
 	c.JSON(http.StatusOK, SuccessResponse{
 		Data: data,
+	})
+}
+
+// V1SuccessJSONResponse Success Response of v1-compatible interface
+func V1SuccessJSONResponse(c *gin.Context, data any, code int, message string) {
+	c.JSON(http.StatusOK, V1ResponseInfo{
+		Data:    data,
+		Code:    code,
+		Message: message,
+	})
+}
+
+// V1ErrorJSONResponse Error Response of v1-compatible interface
+func V1ErrorJSONResponse(c *gin.Context, code int, err error) {
+	c.JSON(http.StatusBadRequest, V1ResponseInfo{
+		Code:    code,
+		Message: err.Error(),
+		Data:    "",
 	})
 }
 

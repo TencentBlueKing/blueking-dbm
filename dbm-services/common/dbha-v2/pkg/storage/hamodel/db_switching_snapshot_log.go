@@ -43,18 +43,34 @@ const (
 	DbSwitchingSnapshotLogFieldClusterName  = "cluster_name"
 	DbSwitchingSnapshotLogFieldReason       = "reason"
 	DbSwitchingSnapshotLogFieldResult       = "result"
+	DbSwitchingSnapshotLogFieldStatus       = "status"
 	DbSwitchingSnapshotLogFieldStartTime    = "start_time"
 	DbSwitchingSnapshotLogFieldFinishedTime = "finished_time"
 )
 
 // SwitchingSnapshotInstance is the data structure for switching snapshot instance.
 type SwitchingSnapshotInstance struct {
-	IP            string `json:"ip"`
-	Port          int    `json:"port"`
-	MachineType   string `json:"machine_type"`
-	InstanceRole  string `json:"instance_role"`
-	NewMasterIP   string `json:"new_master_ip"`
-	NewMasterPort int    `json:"new_master_port"`
+	IP                string     `json:"ip"`
+	Port              int        `json:"port"`
+	MachineType       string     `json:"machine_type"`
+	InstanceRole      string     `json:"instance_role"`
+	NewMasterIP       string     `json:"new_master_ip"`
+	NewMasterPort     int        `json:"new_master_port"`
+	BkIdcID           int        `json:"idc_id"`
+	CheckStartTime    *time.Time `json:"check_start_time,omitempty"`
+	CheckFinishedTime *time.Time `json:"check_finished_time,omitempty"`
+}
+
+type DbSwitchingSnapshotLogStatus string
+
+const (
+	DbSwitchingSnapshotLogStatusDoing   DbSwitchingSnapshotLogStatus = "doing"
+	DbSwitchingSnapshotLogStatusSuccess DbSwitchingSnapshotLogStatus = "success"
+	DbSwitchingSnapshotLogStatusFailed  DbSwitchingSnapshotLogStatus = "failed"
+)
+
+func (t DbSwitchingSnapshotLogStatus) String() string {
+	return string(t)
 }
 
 // DbSwitchingSnapshotLog defines the log of database switching.
@@ -65,11 +81,12 @@ type DbSwitchingSnapshotLog struct {
 	ActionScope  string                             `gorm:"column:action_scope;index:idx_scope"               json:"action_scope"`
 	BkBizID      int                                `gorm:"column:bk_biz_id;index:idx_biz"                    json:"bk_biz_id"`
 	BkCloudID    int                                `gorm:"column:bk_cloud_id"                                json:"bk_cloud_id"`
-	Instances    JSON[[]*SwitchingSnapshotInstance] `gorm:"column:instances;type:json"                        json:"instances"`
+	Instances    JSON[[]*SwitchingSnapshotInstance] `gorm:"column:instances;type:json"                        json:"instances,omitempty"`
 	ClusterID    int                                `gorm:"column:cluster_id;index:idx_cluster_id"            json:"cluster_id"`
 	ClusterName  string                             `gorm:"column:cluster_name;index:idx_cluster"             json:"cluster_name"`
 	Reason       string                             `gorm:"column:reason"                                     json:"reason,omitempty"`
 	Result       string                             `gorm:"column:result"                                     json:"result,omitempty"`
+	Status       DbSwitchingSnapshotLogStatus       `gorm:"column:status;index:idx_status"                    json:"status,omitempty"`
 	StartTime    *time.Time                         `gorm:"column:start_time;autoCreateTime;index:idx_time"   json:"start_time"`
 	FinishedTime *time.Time                         `gorm:"column:finished_time;type:datetime"                json:"finished_time,omitempty"`
 }

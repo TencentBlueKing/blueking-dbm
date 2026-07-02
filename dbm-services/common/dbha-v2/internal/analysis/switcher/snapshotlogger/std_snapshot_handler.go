@@ -59,34 +59,34 @@ func (hdl *StdSnapshotHandler) PreSwitchLog(record *SwitchingSnapshotData) error
 	}
 
 	if record == nil {
-		return gerrors.Newf(gerrors.InvalidParameter, "before switching snapshot record for file is nil")
+		return gerrors.Newf(gerrors.InvalidParameter, "before switching snapshot record for std is nil")
+	}
+	if record.DbSwitchingSnapshotLog == nil {
+		return gerrors.Newf(gerrors.InvalidParameter, "dbSwitchingSnapshotLog is nil for before std switching snapshot")
 	}
 
-	payload := SwitchingSnapshotData{
-		DbSwitchingSnapshotData: DbSwitchingSnapshotData{
-			StartTime:   record.StartTime,
-			BkBizID:     record.BkBizID,
-			BkCloudID:   record.BkCloudID,
-			ClusterID:   record.ClusterID,
-			ClusterName: record.ClusterName,
-			Reason:      record.Reason,
-		},
-		StdSwitchingSnapshotData: StdSwitchingSnapshotData{
-			DbType:               record.DbType,
-			ActionScope:          record.ActionScope,
-			StrategyJSON:         record.StrategyJSON,
-			FailureInstancesJSON: record.FailureInstancesJSON,
-			MetadataSetJSON:      record.MetadataSetJSON,
-		},
+	payload := StdSwitchingSnapshotData{
+		StartTime:            record.DbSwitchingSnapshotLog.StartTime,
+		BkBizID:              record.DbSwitchingSnapshotLog.BkBizID,
+		BkCloudID:            record.DbSwitchingSnapshotLog.BkCloudID,
+		ClusterID:            record.DbSwitchingSnapshotLog.ClusterID,
+		ClusterName:          record.DbSwitchingSnapshotLog.ClusterName,
+		Reason:               record.DbSwitchingSnapshotLog.Reason,
+		DbType:               record.DbSwitchingSnapshotLog.DbType,
+		ActionScope:          record.DbSwitchingSnapshotLog.ActionScope,
+		StrategyJSON:         record.StrategyJSON,
+		FailureInstancesJSON: record.FailureInstancesJSON,
+		MetadataSetJSON:      record.MetadataSetJSON,
 	}
 
 	body, err := json.Marshal(&payload)
 	if err != nil {
 		return gerrors.Newf(gerrors.InvalidJson,
-			"failed to marshal before switching snapshot payload, switchId: %s, errmsg: %s", record.SwitchID, err)
+			"failed to marshal before switching snapshot payload, switchId: %s, errmsg: %s",
+			record.DbSwitchingSnapshotLog.SwitchID, err)
 	}
 
-	hdl.logger.Info("%s\t%s\t%s", record.SwitchID, SwitchSnapshotLogTypePre, string(body))
+	hdl.logger.Info("%s\t%s\t%s", record.DbSwitchingSnapshotLog.SwitchID, SwitchSnapshotLogTypePre, string(body))
 
 	return nil
 }
@@ -98,23 +98,26 @@ func (hdl *StdSnapshotHandler) PostSwitchLog(record *SwitchingSnapshotData) erro
 	}
 
 	if record == nil {
-		return gerrors.Newf(gerrors.InvalidParameter, "after switching snapshot record for file is nil")
+		return gerrors.Newf(gerrors.InvalidParameter, "after switching snapshot record for std is nil")
+	}
+	if record.DbSwitchingSnapshotLog == nil {
+		return gerrors.Newf(gerrors.InvalidParameter, "dbSwitchingSnapshotLog is nil for after std switching snapshot")
 	}
 
-	payload := SwitchingSnapshotData{
-		DbSwitchingSnapshotData: DbSwitchingSnapshotData{
-			FinishedTime: record.FinishedTime,
-			Result:       record.Result,
-		},
+	payload := StdSwitchingSnapshotData{
+		FinishedTime: record.DbSwitchingSnapshotLog.FinishedTime,
+		Result:       record.DbSwitchingSnapshotLog.Result,
+		Status:       record.DbSwitchingSnapshotLog.Status.String(),
 	}
 
 	body, err := json.Marshal(&payload)
 	if err != nil {
 		return gerrors.Newf(gerrors.InvalidJson,
-			"failed to marshal after switching snapshot payload, switchId: %s, errmsg: %s", record.SwitchID, err)
+			"failed to marshal after switching snapshot payload, switchId: %s, errmsg: %s",
+			record.DbSwitchingSnapshotLog.SwitchID, err)
 	}
 
-	hdl.logger.Info("%s\t%s\t%s", record.SwitchID, SwitchSnapshotLogTypePost, string(body))
+	hdl.logger.Info("%s\t%s\t%s", record.DbSwitchingSnapshotLog.SwitchID, SwitchSnapshotLogTypePost, string(body))
 
 	return nil
 }

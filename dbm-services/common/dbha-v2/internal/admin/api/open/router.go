@@ -26,13 +26,22 @@ package open
 
 import (
 	"dbm-services/common/dbha-v2/internal/admin/api/open/handler"
+	"dbm-services/common/dbha-v2/internal/admin/strategy"
+	"dbm-services/common/dbha-v2/internal/admin/switchlog"
 	"dbm-services/common/dbha-v2/pkg/hanet"
+	"dbm-services/common/dbha-v2/pkg/storage/hamysql"
 )
 
 // RegisterOpenAPI register open api
-func RegisterOpenAPI(strategyHandler *handler.StrategyHandler, server *hanet.GinHTTPServer) {
+func RegisterOpenAPI(db *hamysql.GormDB, server *hanet.GinHTTPServer) {
+	// Register strategy api
+	strategyHandler := handler.NewStrategyHandler(&strategy.Strategy{DB: db})
 	RegisterStrategyApi(strategyHandler, server)
 	RegisterGlobalStrategyApi(strategyHandler, server)
+
+	// Register switch log api
+	switchLogHandler := handler.NewSwitchLogHandler(&switchlog.SwitchLog{DB: db})
+	RegisterSwitchLogApi(switchLogHandler, server)
 }
 
 // RegisterStrategyApi register strategy api
@@ -159,5 +168,23 @@ func RegisterGlobalStrategyApi(strategyHandler *handler.StrategyHandler, server 
 		Method:  hanet.HttpMethodPut,
 		Path:    "/:id/status/",
 		Handler: strategyHandler.GlobalStatusUpdate,
+	})
+}
+
+// RegisterSwitchLogApi register switch log api
+func RegisterSwitchLogApi(switchLogHandler *handler.SwitchLogHandler, server *hanet.GinHTTPServer) {
+	group := "/api/admin"
+	server.RegisterAPI(&hanet.ResetAPI{
+		Group:   group,
+		Method:  hanet.HttpMethodPost,
+		Path:    "/switchqueue/",
+		Handler: switchLogHandler.List,
+	})
+
+	server.RegisterAPI(&hanet.ResetAPI{
+		Group:   group,
+		Method:  hanet.HttpMethodPost,
+		Path:    "/switchlogs/",
+		Handler: switchLogHandler.Get,
 	})
 }

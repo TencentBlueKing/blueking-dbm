@@ -32,10 +32,8 @@ import (
 	"time"
 
 	"dbm-services/common/dbha-v2/internal/admin/api/open"
-	"dbm-services/common/dbha-v2/internal/admin/api/open/handler"
 	"dbm-services/common/dbha-v2/internal/admin/apm"
 	"dbm-services/common/dbha-v2/internal/admin/config"
-	"dbm-services/common/dbha-v2/internal/admin/strategy"
 	"dbm-services/common/dbha-v2/pkg/constant"
 	"dbm-services/common/dbha-v2/pkg/discovery"
 	"dbm-services/common/dbha-v2/pkg/gerrors"
@@ -72,7 +70,6 @@ type Service struct {
 	regCli       *discovery.Registry
 	wg           sync.WaitGroup
 	db           *hamysql.GormDB
-	strategy     *strategy.Strategy
 	address      string
 	grpcSvc      *AdminGrpcService // gRPC API implementation, created and owned by Service
 	svr          *grpc.Server
@@ -278,10 +275,6 @@ func (s *Service) createWebServer() error {
 		return err
 	}
 
-	s.strategy = &strategy.Strategy{DB: s.db}
-
-	strategyHandler := handler.NewStrategyHandler(s.strategy)
-
 	ep, err := hanet.Parse(config.Cfg.Web.ListenAddress, "http")
 	if err != nil {
 		logger.Error("invalid admin web listen address, errmsg: %s", err)
@@ -300,7 +293,7 @@ func (s *Service) createWebServer() error {
 	server.SetMetricMiddleware(apm.MetricMiddleware())
 
 	// register open api
-	open.RegisterOpenAPI(strategyHandler, server)
+	open.RegisterOpenAPI(s.db, server)
 
 	// add swagger api
 	server.SetSwaggerFileRoute(config.Cfg.DocFileDir + "/swagger.json")
