@@ -283,7 +283,7 @@ class AppMonitorTopo(AuditedModel):
         verbose_name_plural = _("业务监控拓扑(AppMonitorTopo)")
 
     @classmethod
-    def get_set_by_dbtype(cls, db_type):
+    def get_set_by_dbtype(cls, db_type, **filters):
         """获取指定db_type的拓扑配置"""
         # tendbcluster主机都放在mysql模块
         db_type = DBType.MySQL if db_type == DBType.TenDBCluster else db_type
@@ -291,6 +291,9 @@ class AppMonitorTopo(AuditedModel):
         # tbinlogdumper 归属于 MySQL，比较特殊，此处做一个转换
         if db_type == DBType.TBinlogDumper.value:
             topos = cls.objects.filter(machine_type=MachineType.TBinlogDumper.value)
+        # 其他过滤条件
+        if filters:
+            topos = topos.filter(**filters)
         return [
             {
                 "machine_type": obj.machine_type,

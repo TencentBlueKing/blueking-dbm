@@ -14,6 +14,7 @@ from urllib.parse import urljoin
 from backend import env
 from backend.components import CCApi
 from backend.configuration.constants import DBType
+from backend.db_meta.enums import MachineType
 from backend.db_meta.models import AppMonitorTopo
 from backend.db_services.cmdb.biz import get_resource_biz
 from backend.utils.basic import distinct_dict_list
@@ -26,7 +27,7 @@ class JsonConfigFormat:
     """
 
     @classmethod
-    def get_db_set_ctx(cls, db_type: str):
+    def get_db_set_ctx(cls, db_type: str, **filters):
         return {
             "bk_biz_id": env.DBA_APP_BK_BIZ_ID,
             "target_nodes": distinct_dict_list(
@@ -36,7 +37,7 @@ class JsonConfigFormat:
                         "bk_inst_id": bk_set["bk_set_id"],
                         "bk_obj_id": "set",
                     }
-                    for bk_set in AppMonitorTopo.get_set_by_dbtype(db_type)
+                    for bk_set in AppMonitorTopo.get_set_by_dbtype(db_type, **filters)
                 ]
             ),
         }
@@ -124,6 +125,14 @@ class JsonConfigFormat:
         }
 
     @classmethod
+    def format_mysql_proxy_connlog(cls):
+        proxy_filter = {"machine_type": MachineType.PROXY}
+        return {
+            "bk_biz_id": env.DBA_APP_BK_BIZ_ID,
+            "target_nodes": cls.get_db_set_ctx(DBType.MySQL.value, **proxy_filter)["target_nodes"],
+        }
+
+    @classmethod
     def format_mysql(cls):
         return cls.get_db_set_ctx(DBType.MySQL.value)
 
@@ -141,6 +150,14 @@ class JsonConfigFormat:
 
     @classmethod
     def custom_modify_mysql_slowlog(cls, params):
+        return cls.__patch_sql_text_field(params)
+
+    @classmethod
+    def custom_modify_mysql_slowquery(cls, params):
+        return cls.__patch_sql_text_field(params)
+
+    @classmethod
+    def __patch_sql_text_field(cls, params):
         """
         mysql 慢查询日志，需要添加 option 进行清洗
         """
