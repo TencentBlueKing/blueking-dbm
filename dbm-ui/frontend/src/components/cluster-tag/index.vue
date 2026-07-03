@@ -19,7 +19,9 @@
               :resource="data.id"
               role="table-cell-operation"
               @click="handleOpenAddTag">
-              <DbIcon type="edit" />
+              <DbIcon
+                style="font-size: 16px"
+                type="edit" />
             </AuthTemplate>
           </template>
         </TextOverflowLayout>
@@ -46,7 +48,9 @@
       :resource="data.id"
       role="table-cell-operation"
       @click="handleOpenAddTag">
-      <DbIcon type="edit" />
+      <DbIcon
+        style="font-size: 16px"
+        type="edit" />
     </AuthTemplate>
   </div>
   <ClusterAddTag
