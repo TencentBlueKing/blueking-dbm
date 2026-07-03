@@ -54,8 +54,26 @@ def _fetch_metric_of_cluster_instances(
                     "avg": s["stat"]["avg"][1],
                 }
             )
+        logger.info(
+            "fetch metric done: metric=%s cluster_count=%d instance_count=%d",
+            metric_name,
+            len(cluster_domains),
+            len(res),
+        )
+        if not res:
+            logger.warning(
+                "fetch metric empty: metric=%s cluster_count=%d domains=%s",
+                metric_name,
+                len(cluster_domains),
+                domains_match_filter,
+            )
     except Exception:  # noqa
-        logger.exception("query %s metrics failed", domains_match_filter)
+        logger.exception(
+            "fetch metric failed: metric=%s cluster_count=%d domains=%s",
+            metric_name,
+            len(cluster_domains),
+            domains_match_filter,
+        )
 
     return res
 
@@ -77,23 +95,37 @@ def _fetch_key_metrics_of_cluster_instances(
         )
         res[metric_name] = metric_res
 
+    logger.info(
+        "fetch key metrics done: cluster_type=%s cluster_count=%d instance_counts=%s",
+        cluster_type.value,
+        len(cluster_domains),
+        {metric_name: len(instances) for metric_name, instances in res.items()},
+    )
     return res
 
 
 def _query_promql_metrics_with_roles(
     cluster_domain_pattern: str, instance_roles: list[str], p: PromQLQueryBuilder
 ) -> dict:
-    if not p.filters or not p.group_by:
-        raise Exception("filters or group_by in {} is None".format(p))
+    filters = p.filters if p.filters is not None else []
 
-    p.filters.append({"label_name": "cluster_domain", "op": "match", "value": cluster_domain_pattern})
+    if not p.group_by:
+        raise Exception("group_by in {} is None".format(p))
+
+    if not filters:
+        filters = [{"label_name": "cluster_domain", "op": "match", "value": cluster_domain_pattern}]
+    else:
+        filters.append({"label_name": "cluster_domain", "op": "match", "value": cluster_domain_pattern})
+
     if "cluster_domain" not in p.group_by:
         p.group_by.append("cluster_domain")
 
     if instance_roles:
-        p.filters.append({"label_name": "instance_role", "op": "match", "value": "|".join(instance_roles)})
+        filters.append({"label_name": "instance_role", "op": "match", "value": "|".join(instance_roles)})
         if "instance_role" not in p.group_by:
             p.group_by.append("instance_role")
+
+    p.filters = filters
 
     promql_dict = p.prepare_promql()
     expr = promql_dict.pop("expression", None)
