@@ -50,6 +50,6 @@ class SQLServerLocalDetailSerializer(SQLServerRollbackBaseDetailSerializer):
         return super().validate(attrs)
 
 
-@builders.BuilderFactory.register(TicketType.SQLSERVER_LOCAL)
+@builders.BuilderFactory.register(TicketType.SQLSERVER_ROLLBACK_LOCAL)
 class SQLServerDataMigrateFlowBuilder(SQLServerRollbackCommonFlowBuilder):
     serializer = SQLServerLocalDetailSerializer
