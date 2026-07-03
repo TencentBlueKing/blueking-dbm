@@ -1,0 +1,112 @@
+# Time: 2026-07-02T00:00:20.581596+08:00
+# User@Host: user3[user3] @  [1.2.3.4]  Id: 622265227
+# Schema: dbtest3  Last_errno: 0  Killed: 0
+# Query_time: 17.501662  Lock_time: 0.000423  Rows_sent: 12  Rows_examined: 49798517  Rows_affected: 0
+# Bytes_sent: 825
+# Db_name: dbtest3  Query_start_ts: 1782921603  Session_id: 622265227
+use dbtest3;
+SET timestamp=1782921620;
+select  'STATUS-latest-12hour',status,count(*),
+case status
+when 0   then    '等待确认主机信息'
+when 1   then    '等待备份'
+else 'OTHERS' end as status_code
+from dbtest3.tb_backup_tasklist where uptime > date_sub(now(), interval 12 hour)  group by 1,2
+union
+select  'SECONDBACKUP-24hour', status_2,count(*),
+case status_2
+when 0   then    '等待确认主机信息'
+when 1   then    '等待备份'
+else 'OTHERS' end as recovery_status
+from tb_recovery_tasklist where uptime > date_sub(now(), interval 12 hour) group by 1,2
+order by FIELD(status,0,1,2,26,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,27,28,29,30,31,32,33,34,35,36,37,38,39,40,41,42,43);
+
+# Time: 2026-07-02T00:24:18.199910+08:00
+# User@Host: user3[user3] @  [1.2.3.4]  Id: 622271910
+# Schema: dbtest3  Last_errno: 0  Killed: 0
+# Query_time: 256.054094  Lock_time: 0.000070  Rows_sent: 0  Rows_examined: 500532  Rows_affected: 500000
+# Bytes_sent: 14
+# Db_name: dbtest3  Query_start_ts: 1782922802  Session_id: 622271910
+SET timestamp=1782923058;
+select sleep(10);
+
+# Time: 2026-07-02T00:34:27.162703+08:00
+# User@Host: user3[user3] @  [1.2.3.4]  Id: 622271910
+# Schema: dbtest3  Last_errno: 0  Killed: 0
+# Query_time: 232.440966  Lock_time: 0.000072  Rows_sent: 0  Rows_examined: 501110  Rows_affected: 500000
+# Bytes_sent: 14
+# Db_name: dbtest3  Query_start_ts: 1782923435  Session_id: 622271910
+SET timestamp=1782923667;
+select sleep(10);
+
+# Time: 2026-07-02T05:39:01.741743Z
+# User@Host: user1[user1] @  [1.2.3.4]  Id: 7576192
+# Query_time: 1.168021  Lock_time: 0.000003 Rows_sent: 0  Rows_examined: 39240 Sync_read_count_local: 0 Sync_read_bytes_local: 0 Sync_read_time_local: 0 Sync_write_count_local: 0 Sync_write_bytes_local: 0 Sync_write_time_local: 0 Async_read_count_local: 0 Async_read_bytes_local: 0 Async_write_count_local: 0 Async_write_bytes_local: 0 Sync_read_count_remote: 0 Sync_read_bytes_remote: 0 Sync_read_time_remote: 0 Sync_write_count_remote: 0 Sync_write_bytes_remote: 0 Sync_write_time_remote: 0 Async_read_count_remote: 0 Async_read_bytes_remote: 0 Async_write_count_remote: 0 Async_write_bytes_remote: 0 Trx_commit_delay: 0
+# Db_name: dbtest3  Query_start_ts: 1782970740  Session_id: 7576192
+SET timestamp=1782970740;
+select sleep(10);
+
+# Time: 2026-07-02T05:39:02.830745Z
+# User@Host: user1@[user1@] @  [1.2.3.4]  Id: 7576192
+# Query_time: 1.055944  Lock_time: 0.000002 Rows_sent: 0  Rows_examined: 35840 Sync_read_count_local: 0 Sync_read_bytes_local: 0 Sync_read_time_local: 0 Sync_write_count_local: 0 Sync_write_bytes_local: 0 Sync_write_time_local: 0 Async_read_count_local: 0 Async_read_bytes_local: 0 Async_write_count_local: 0 Async_write_bytes_local: 0 Sync_read_count_remote: 0 Sync_read_bytes_remote: 0 Sync_read_time_remote: 0 Sync_write_count_remote: 0 Sync_write_bytes_remote: 0 Sync_write_time_remote: 0 Async_read_count_remote: 0 Async_read_bytes_remote: 0 Async_write_count_remote: 0 Async_write_bytes_remote: 0 Trx_commit_delay: 0
+# Db_name: dbtest3  Query_start_ts: 1782970741  Session_id: 7576192
+SET timestamp=1782970741;
+select sleep(10);
+
+# User@Host: user1[user1] @  [1.2.3.4]  Id: 7532525
+# Query_time: 1.099657  Lock_time: 0.000003 Rows_sent: 0  Rows_examined: 34649 Sync_read_count_local: 0 Sync_read_bytes_local: 0 Sync_read_time_local: 0 Sync_write_count_local: 0 Sync_write_bytes_local: 0 Sync_write_time_local: 0 Async_read_count_local: 0 Async_read_bytes_local: 0 Async_write_count_local: 0 Async_write_bytes_local: 0 Sync_read_count_remote: 0 Sync_read_bytes_remote: 0 Sync_read_time_remote: 0 Sync_write_count_remote: 0 Sync_write_bytes_remote: 0 Sync_write_time_remote: 0 Async_read_count_remote: 0 Async_read_bytes_remote: 0 Async_write_count_remote: 0 Async_write_bytes_remote: 0 Trx_commit_delay: 0
+# Db_name: dbtest3  Query_start_ts: 1782932431  Session_id: 7532525
+SET timestamp=1782932431;
+select sleep(10);
+
+# Time: 260701 23:55:05
+# User@Host: user2[user2] @  [1.1.1.1]
+# Thread_id: 98343452  Schema: tesddb_639  QC_hit: No
+# Query_time: 5.368769  Lock_time: 0.046386  Rows_sent: 0  Rows_examined: 0
+# Rows_affected: 5109  Bytes_sent: 3144752
+# Db_name: tesddb_639  Query_start_ts: 1782921300  Session_id: 98343452
+use tesddb_639;
+SET timestamp=1782921305;
+select sleep(10);
+
+# Time: 2026-07-02T07:25:45.877115Z
+# User@Host: user2[user2] @  [1.1.1.1]
+# Thread_id: 98343452  Schema: tesddb_631  QC_hit: No
+# Query_time: 5.368769  Lock_time: 0.046386  Rows_sent: 0  Rows_examined: 0
+# Rows_affected: 5109  Bytes_sent: 3144752
+# Db_name: tesddb_631  Query_start_ts: 1782977115  Session_id: 98343452
+SET timestamp=1782977115;
+select sleep(10) from infodba_schema.master_slave_heartbeat where
+  master_server_id!=slave_server_id and
+master_server_id='
+
+# adfb;' or master_server_id!="";
+# Time: 260702 17:09:08
+# User@Host: testuser1[testuser1 @ localhost []
+# Query_time: 2.003021  Lock_time: 0.000000 Rows_sent: 1  Rows_examined: 0
+# Db_name: tesddb_639  Query_start_ts: 1782983346
+SET timestamp=1782983348;
+select sleep(2);
+
+# Time: 260702 17:09:18
+# User@Host: testuser1[testuser1 @ localhost []
+# Query_time: 3.000149  Lock_time: 0.000000 Rows_sent: 1  Rows_examined: 0
+# Db_name: infodba_schema  Query_start_ts: 1782983355
+use infodba_schema;
+SET timestamp=1782983358;
+select sleep(3);
+
+# Time: 260702 17:09:42
+# User@Host: testuser1[testuser1 @ localhost []
+# Query_time: 8.000394  Lock_time: 0.000071 Rows_sent: 2  Rows_examined: 2
+# Db_name: infodba_schema  Query_start_ts: 1782983374
+SET timestamp=1782983382;
+select sleep(4) from infodba_schema.master_slave_heartbeat;
+
+# Time: 2026-07-02T09:10:59.020164Z
+# User@Host: testuser1[testuser1 @ localhost []  Id: 17661313  Schema:  QC_hit: No
+# Query_time: 2.000347  Lock_time: 0.000004 Rows_sent: 1  Rows_examined: 1
+# Db_name: infodba_schema  Query_start_ts: 1782983457  Session_id: 17661313
+use infodba_schema;
+SET timestamp=1782983457;·
+select sleep(2) from infodba_schema.master_slave_heartbeat;
