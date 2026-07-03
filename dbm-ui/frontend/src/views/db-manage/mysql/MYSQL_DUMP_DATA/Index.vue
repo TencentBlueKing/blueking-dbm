@@ -133,11 +133,12 @@
 
   const { t } = useI18n();
   const router = useRouter();
+  const route = useRoute();
 
   const formRef = useTemplateRef('formRef');
 
   const defaultData = () => ({
-    clusterId: undefined as unknown as number,
+    clusterId: route.query.clusterId ? Number(route.query.clusterId) : (undefined as unknown as number),
     databases: [] as string[],
     exportType: 'DATA_TABLE',
     payload: createTicketPayload(),
