@@ -16,8 +16,22 @@ cp /data/install/server.crt /data/install/server.key /home/mysql/db-remote-servi
 
 # 写入域名解析器的nameserver
 # TODO: 后续需要把配置记录落库
-sed -i '1i \
-{{dns_nameserver}}' /etc/resolv.conf
+tmp_new=$(mktemp)
+trap 'rm -f "$tmp_new"' EXIT
+
+echo "{{ dns_nameserver }}" | while IFS= read -r ns; do
+    if ! grep -Fxq "$ns" /etc/resolv.conf; then
+        echo "$ns" >> "$tmp_new"
+    fi
+done
+
+if [ -s "$tmp_new" ]; then
+    backup_dir="/usr/local/bkdb/drs_bak"
+    mkdir -p "$backup_dir"
+    backup_file="$backup_dir/resolv.conf.drs_bak.$(date +%Y%m%d%H%M%S)"
+    cp -p /etc/resolv.conf "$backup_file"
+    cat "$tmp_new" /etc/resolv.conf > /etc/resolv.conf.new && mv /etc/resolv.conf.new /etc/resolv.conf
+fi
 
 # 以下为默认值
 export DRS_TLS=true
@@ -58,6 +72,15 @@ export WORKDIR="/data"
 start_drs_service_template = """
 path=/usr/local/bkdb;
 mkdir -p $path
+
+# ---- 备份现有文件（用于回滚） ----
+if [ -d "$path/drs" ]; then
+    backup_dir="$path/drs_bak"
+    mkdir -p "$backup_dir"
+    timestamp=$(date +%Y%m%d%H%M%S)
+    [ -f "$path/drs/drs.env" ] && cp "$path/drs/drs.env" "$backup_dir/drs.env.$timestamp"
+    [ -f "$path/drs/db-remote-service" ] && cp "$path/drs/db-remote-service" "$backup_dir/db-remote-service.$timestamp"
+fi
 
 # 清除过时的drs相关文件
 rm -rf $path/drs;
