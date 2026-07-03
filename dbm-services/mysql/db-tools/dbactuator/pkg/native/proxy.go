@@ -115,7 +115,7 @@ func (h *ProxyAdminDbWork) GetAllProxyUsers() (users []string, err error) {
 func (h *ProxyAdminDbWork) CheckBackend(host string, port int) (err error) {
 	c, err := h.SelectBackend()
 	if err != nil {
-		return err
+		return fmt.Errorf("select proxy backend failed: %w", err)
 	}
 	if strings.Compare(c.Address, fmt.Sprintf("%s:%d", host, port)) != 0 {
 		return fmt.Errorf(

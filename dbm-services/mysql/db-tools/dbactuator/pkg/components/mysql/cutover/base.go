@@ -177,9 +177,10 @@ func (m *MySQLClusterDetail) InitAltSlaveSlaveConn(user, pwd string) (err error)
 
 // CheckBackends TODO
 func (m *MySQLClusterDetail) CheckBackends(host string, port int) (err error) {
+	expected := fmt.Sprintf("%s:%d", host, port)
 	for _, p := range m.ProxyInstances {
 		if err = p.proxyConn.CheckBackend(host, port); err != nil {
-			return err
+			return fmt.Errorf("proxy %s check backend against %s failed: %w", p.Addr(), expected, err)
 		}
 	}
 	return

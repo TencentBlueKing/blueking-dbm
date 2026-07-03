@@ -192,7 +192,7 @@ func (m *CutOverToSlaveComp) PreCheck() (err error) {
 	// 以下是强制检查的内容
 	// 检查下proxy backend 是不是 源Master
 	if err = m.cluster.CheckBackends(m.cluster.MasterIns.Host, m.cluster.MasterIns.Port); err != nil {
-		logger.Error("proxy backend is not %s:%d", m.cluster.MasterIns.Host, m.cluster.MasterIns.Port)
+		logger.Error("check proxy backend failed: %s", err.Error())
 		return err
 	}
 	// 检查alt Slave repl 的地址不是 cluster.MasterIns
