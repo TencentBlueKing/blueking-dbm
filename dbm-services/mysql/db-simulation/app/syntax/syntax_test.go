@@ -648,6 +648,52 @@ func TestTmysqlParseFile_Do_MultipleFiles(t *testing.T) {
 	}
 }
 
+// TestTmysqlParseFile_Do_DuplicateFileNames 重复文件名只解析一次，避免并发写同一输出文件
+func TestTmysqlParseFile_Do_DuplicateFileNames(t *testing.T) {
+	if testing.Short() {
+		t.Skip("Skipping integration test in short mode")
+	}
+
+	workdir, cleanup := setupTestEnv(t)
+	defer cleanup()
+
+	testFile := "valid_ddl.sql"
+	err := copyTestFile(t, getTestDataPath(testFile), workdir)
+	require.NoError(t, err)
+
+	duplicateFiles := []string{testFile, testFile, testFile}
+	tf := &syntax.TmysqlParseFile{
+		TmysqlParse: syntax.TmysqlParse{
+			TmysqlParseBinPath: testTmysqlParseBin,
+			BaseWorkdir:        workdir,
+		},
+		Param: syntax.CheckSQLFileParam{
+			FileNames: duplicateFiles,
+			ExecuteObjects: []syntax.ExecuteSQLFileObj{
+				{
+					LineId:   1,
+					SQLFiles: duplicateFiles,
+					DbNames:  []string{"test_db"},
+				},
+			},
+		},
+		IsLocalFile: true,
+	}
+
+	result, err := tf.Do(app.MySQL, []string{"5.7.20"})
+	require.NoError(t, err)
+	require.NotNil(t, result)
+
+	fileResult, ok := result[testFile]
+	require.True(t, ok, "should have result for %s", testFile)
+	require.Len(t, result, 1, "duplicate file names should produce one result entry")
+	t.Logf("File %s: %d syntax errors, %d risk warnings, %d ban warnings",
+		testFile,
+		len(fileResult.SyntaxFailInfos),
+		len(fileResult.RiskWarnings),
+		len(fileResult.BanWarnings))
+}
+
 // TestTmysqlParseFile_Do_EmptyFile 测试空文件
 func TestTmysqlParseFile_Do_EmptyFile(t *testing.T) {
 	if testing.Short() {

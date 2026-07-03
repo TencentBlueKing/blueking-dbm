@@ -472,7 +472,7 @@ func (tf *TmysqlParseFile) checkConflictUsedbInOneFile(sqlFile, version string,
 //     - 当前函数所在进程是常驻 web 服务，caller 提前 return 不会终止子 goroutine。
 //  3. 用 errors.Join 收集两个 goroutine 的错误，避免任一错误被丢弃。
 func (tf *TmysqlParseFile) doSingleVersion(dbtype string, mysqlVersion string) error {
-	executedSqlFileCh := make(chan string, len(tf.Param.FileNames))
+	executedSqlFileCh := make(chan string, len(tf.uniqueFileNames()))
 
 	var (
 		wg         sync.WaitGroup
@@ -589,16 +589,19 @@ func (t *TmysqlParse) DelTempDir() {
 	}
 }
 
+// uniqueFileNames 返回去重后的文件名列表（保留首次出现顺序）。
+// 同一文件名会映射到 tmpWorkdir 下的同一路径；并发下载/解析会因 os.Create(O_TRUNC)
+// 或 tmysqlparse 写同一输出文件而互相覆盖，每个物理文件只需处理一次。
+func (tf *TmysqlParseFile) uniqueFileNames() []string {
+	return lo.Uniq(tf.Param.FileNames)
+}
+
 // Downloadfile download sqlfile
 func (tf *TmysqlParseFile) Downloadfile() (err error) {
 	wg := &sync.WaitGroup{}
 	errCh := make(chan error)
 	c := make(chan struct{}, 5)
-	// 文件名去重：同一文件名会被下载到 tmpWorkdir 的同一路径，
-	// 若重复并发下载会因 os.Create(O_TRUNC) 互相截断，导致 md5 校验读到空文件。
-	// 每个文件只需下载一次即可（下游按文件名读取本地文件）。
-	uniqFileNames := lo.Uniq(tf.Param.FileNames)
-	for _, fileName := range uniqFileNames {
+	for _, fileName := range tf.uniqueFileNames() {
 		wg.Add(1)
 		go func(fileName string) {
 			c <- struct{}{}
@@ -622,7 +625,7 @@ func (tf *TmysqlParseFile) Downloadfile() (err error) {
 
 // UploadDdlTblMapFile upload analyze ddl tables
 func (tf *TmysqlParseFile) UploadDdlTblMapFile() (err error) {
-	for _, fileName := range tf.Param.FileNames {
+	for _, fileName := range tf.uniqueFileNames() {
 		ddlTblFile := fileName + DdlMapFileSubffix
 		resp, err := tf.bkRepoClient.Upload(path.Join(tf.tmpWorkdir, ddlTblFile), ddlTblFile,
 			tf.Param.BkRepoBasePath)
@@ -678,8 +681,7 @@ func (tf *TmysqlParseFile) Execute(executedSqlFileCh chan string, version string
 	c := make(chan struct{}, 10) // Semaphore to limit concurrent goroutines
 	errChan := make(chan error)
 
-	// Iterate through all SQL files
-	for _, fileName := range tf.Param.FileNames {
+	for _, fileName := range tf.uniqueFileNames() {
 		wg.Add(1)
 		go func(sqlfile, ver string) {
 			c <- struct{}{}
