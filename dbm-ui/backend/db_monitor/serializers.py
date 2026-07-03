@@ -351,6 +351,9 @@ class AlarmCallBackDataSerializer(serializers.Serializer):
         latest_anomaly_record = serializers.DictField(help_text=_("最新异常点信息"))
         labels = serializers.ListSerializer(help_text=_("标签"), child=serializers.CharField())
 
+        class Meta:
+            ref_name = "AlarmCallBackMessage"
+
     appointees = serializers.CharField(help_text=_("告警负责人"))
     callback_message = CallBackMessageSerializer(help_text=_("回调消息体"))
 
@@ -386,6 +389,9 @@ class MySQLAlarmCallbackDataSerializer(serializers.Serializer):
         strategy = serializers.DictField(help_text=_("监控策略"))
         latest_anomaly_record = serializers.DictField(help_text=_("最新异常点信息"))
         labels = serializers.ListSerializer(help_text=_("标签"), child=serializers.CharField(), required=False)
+
+        class Meta:
+            ref_name = "MySQLAlarmCallBackMessage"
 
     appointees = serializers.CharField(help_text=_("告警负责人"))
     callback_message = CallBackMessageSerializer(help_text=_("回调消息体"))
