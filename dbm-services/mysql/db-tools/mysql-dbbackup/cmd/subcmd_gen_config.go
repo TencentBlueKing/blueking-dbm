@@ -10,6 +10,8 @@ import (
 	"strings"
 	"text/template"
 
+	"github.com/go-viper/mapstructure/v2"
+
 	"dbm-services/common/go-pubpkg/cmutil"
 	"dbm-services/common/go-pubpkg/mysqlcomm"
 	reversemysqlapi "dbm-services/common/reverseapi/apis/mysql"
@@ -103,7 +105,19 @@ func generateOneDbbackupConfig(cfg *reversemysqldef.DBBackupConfig) error {
 		return err
 	}
 
-	err = generateOneIniConfig(cfg, backupOptions, dsg, filter)
+	/*
+			if err = mapstructure.Decode(cfg.ConfigsTemplate, &backupConfig); err != nil {
+				return errors.WithMessagef(err, "failed to decode configs template")
+			}
+		'Public.ClusterId' expected type 'int', got unconvertible type 'string'
+	*/
+	backupConfig := config.BackupConfig{}
+	scheduleConfig := config.Schedule{}
+	if err = mapstructure.Decode(cfg.ConfigsTemplate["Schedule"], &scheduleConfig); err != nil {
+		return errors.WithMessagef(err, "failed to decode configs template")
+	}
+	backupConfig.Schedule = scheduleConfig
+	err = generateOneIniConfig(cfg, backupOptions, dsg, filter, backupConfig)
 	if err != nil {
 		return err
 	}
@@ -145,7 +159,8 @@ func generateOneDSGString(cfg *reversemysqldef.DBBackupConfig, opt *dbbackup.Bac
 	}
 }
 
-func generateOneIniConfig(cfg *reversemysqldef.DBBackupConfig, opt *dbbackup.BackupOptions, dsg string, filter *db_table_filter.DbTableFilter) error {
+func generateOneIniConfig(cfg *reversemysqldef.DBBackupConfig, opt *dbbackup.BackupOptions,
+	dsg string, filter *db_table_filter.DbTableFilter, backupConfig config.BackupConfig) error {
 	iniData := config.BackupConfig{
 		Public: config.Public{
 			MysqlHost:       cfg.Ip,
@@ -170,8 +185,15 @@ func generateOneIniConfig(cfg *reversemysqldef.DBBackupConfig, opt *dbbackup.Bac
 		PhysicalBackup: config.PhysicalBackup{
 			DefaultsFile: util.GetMyCnfFileName(cfg.Port),
 		},
-		Schedule: config.Schedule{},
+		Schedule: config.Schedule{
+			Command:  backupConfig.Schedule.Command,
+			JobName:  backupConfig.Schedule.JobName,
+			CronTime: opt.CrontabTime,
+		},
 	}
+	cfg.ConfigsTemplate["Schedule"]["JobName"] = backupConfig.Schedule.JobName
+	cfg.ConfigsTemplate["Schedule"]["Command"] = backupConfig.Schedule.Command
+	cfg.ConfigsTemplate["Schedule"]["CronTime"] = opt.CrontabTime
 
 	err := writeIniFile(cfg, &iniData)
 	if err != nil {

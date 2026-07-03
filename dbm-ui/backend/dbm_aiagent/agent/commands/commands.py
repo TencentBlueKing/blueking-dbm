@@ -75,6 +75,7 @@ class MySQLSlowLogCommand(CommandHandler):
         分析的时间窗口：'{{time_window_start}}' - '{{time_window_end}}'
         最大查询条数：{{limit}}
         instance_role: {{ instance_role}}
+        返回输出控制在 2000 字符以内
         """
 
 
@@ -86,7 +87,8 @@ class MySQLAlarmAnalyzerCommand(CommandHandler):
 
     def get_template(self) -> str:
         return """
-        /mysql_alarm_analyzer 使用告警分析 skills 来分析以下告警:
+        /mysql_alarm_analyzer 使用告警分析 skills 来分析告警，返回输出控制在 2000 字符以内。
+        告警内容:
         {{alarm_content}}
         """
 

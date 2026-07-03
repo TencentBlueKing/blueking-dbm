@@ -49,6 +49,7 @@ func (c *RecoverBinlogComp) Example() interface{} {
 				StopTime:       "2022-11-05 22:00:01",
 				IdempotentMode: true,
 				NotWriteBinlog: true,
+				SkipGtids:      true,
 				Databases:      []string{"db1,db2"},
 				Tables:         []string{"tb1,tb2"},
 				MySQLClientOpt: &MySQLClientOpt{
@@ -450,6 +451,9 @@ func (r *RecoverBinlog) buildBinlogOptions() error {
 		binlogTool = r.ToolSet.MustGet(tools.ToolMysqlbinlogRollback)
 	} else {
 		binlogTool = r.ToolSet.MustGet(tools.ToolMysqlbinlog)
+	}
+	if b.SkipGtids && mysqlcomm.MysqlbinlogHasOpt(binlogTool, "--skip-gtids") == nil {
+		b.options += fmt.Sprintf(" --skip-gtids")
 	}
 	if b.IdempotentMode && mysqlcomm.MysqlbinlogHasOpt(binlogTool, "--idempotent") == nil {
 		b.options += fmt.Sprintf(" --idempotent")

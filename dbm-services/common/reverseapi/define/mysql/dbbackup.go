@@ -1,6 +1,8 @@
 package mysql
 
-import "encoding/json"
+import (
+	"encoding/json"
+)
 
 type DBBackupConfig struct {
 	ConfigsTemplate map[string]map[string]string `json:"configs"`

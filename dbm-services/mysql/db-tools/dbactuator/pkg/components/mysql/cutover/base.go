@@ -380,6 +380,9 @@ func (s *AltSlaveInfo) RecordBinPos() (binPosJsonStr string, err error) {
 						MASTER_LOG_FILE='%s',
 						MASTER_LOG_POS=%d;`, s.Host, "{user}", "{pwd}", s.Port, pos.File, pos.Position,
 	)
+	if pos.ExecutedGtidSet != "" {
+		changeSQL += fmt.Sprintf("    /* Executed_Gtid_Set='%s' */", pos.ExecutedGtidSet)
+	}
 	logger.Info("change master sql: %s", changeSQL)
 	return string(b), nil
 }
