@@ -16,7 +16,7 @@
     <BkAlert
       class="mb-20"
       closable
-      :title="t('对已部署的集群重新进行标准化动作')" />
+      :title="t('标准化：对已部署的集群重新进行标准化动作。')" />
     <BatchInput
       :config="batchInputConfig"
       @change="handleBatchInput" />
