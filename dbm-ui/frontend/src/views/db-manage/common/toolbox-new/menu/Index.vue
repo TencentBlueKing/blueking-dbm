@@ -103,7 +103,7 @@
 
   import { t } from '@wangeditor/editor';
 
-  import type { ToolboxLeafNode, ToolboxMenuNode, ToolboxTreeNode } from '../common/types';
+  import type { ToolboxLeafNode, ToolboxTreeNode } from '../common/types';
   import { isLeafNode, isTreeNode } from '../common/utils.ts';
 
   import MenuItem from './components/MenuItem.vue';
@@ -161,19 +161,8 @@
 
   const usedItem = computed(() => {
     const profileUsedList = profile.value[profileUsedKey] || [];
-    const displayUsedList =
-      profileUsedList.length > 0
-        ? profileUsedList
-        : props.menuList
-            .flatMap((item) =>
-              item.children.filter(
-                (childItem: ToolboxMenuNode): childItem is ToolboxLeafNode =>
-                  isLeafNode(childItem) && !!childItem.isPrimary,
-              ),
-            )
-            .map((item) => item.id);
     return {
-      children: displayUsedList.map((item: string) => menuMap[item]),
+      children: profileUsedList.map((item: string) => menuMap[item]),
       icon: 'zuijinshiyong',
       id: 'used',
       name: t('最近使用'),

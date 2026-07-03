@@ -16,6 +16,7 @@
     <BkAlert
       class="mb-20"
       closable
+      theme="warning"
       :title="t('重建从库_原机器或新机器重新同步数据及权限_并且将域名解析指向同步好的机器')" />
     <div class="title-spot mt-12 mb-10">{{ t('重建类型') }}<span class="required" /></div>
     <div class="mt-8 mb-20">

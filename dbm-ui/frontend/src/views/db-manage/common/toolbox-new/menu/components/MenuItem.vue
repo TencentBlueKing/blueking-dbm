@@ -34,7 +34,7 @@
 
   import { useUserProfile } from '@stores';
 
-  import { makeMap, messageSuccess } from '@utils';
+  import { makeMap, messageSuccess, messageWarn } from '@utils';
 
   import type { ToolboxLeafNode } from '../../common/types';
 
@@ -71,6 +71,10 @@
       lastFavor = (profile.value[profileFavorKey] || []).filter((item: string) => item !== routerName);
       successMessage = t('取消收藏成功');
     } else {
+      if (lastFavor.length >= 12) {
+        messageWarn(t('最多收藏n个工具，请先取消部分收藏', { n: 12 }));
+        return;
+      }
       lastFavor.unshift(routerName);
       successMessage = t('添加收藏成功');
     }

@@ -24,9 +24,9 @@ export const toolboxMenuList: ToolboxTreeNode[] = [
         dbConsoleValue: 'mysql.toolbox.sqlExecute',
         desc: t('执行 DDL / DML 变更 SQL'),
         id: TicketTypes.MYSQL_IMPORT_SQLFILE,
-        isPrimary: true,
         name: t('变更 SQL 执行'),
       },
+      // TODO 功能未合主分支，注释
       {
         dbConsoleValue: 'mysql.toolbox.dataExport',
         desc: t('把 DB 数据导出为文件'),
@@ -56,7 +56,6 @@ export const toolboxMenuList: ToolboxTreeNode[] = [
         dbConsoleValue: 'mysql.toolbox.dbBackup',
         desc: t('整库数据备份'),
         id: TicketTypes.MYSQL_HA_FULL_BACKUP,
-        isPrimary: true,
         name: t('全库备份'),
       },
       {
@@ -75,23 +74,23 @@ export const toolboxMenuList: ToolboxTreeNode[] = [
       {
         bind: [TicketTypes.MYSQL_FIXPOINT_EXIST_CLUSTER, TicketTypes.MYSQL_FIXPOINT_NEW_CLUSTER],
         dbConsoleValue: 'mysql.toolbox.fixpoint',
-        desc: t('按备份数据重建新集群'),
+        desc: t('在其它集群恢复源集群的数据'),
         id: TicketTypes.MYSQL_FIXPOINT_EXIST_CLUSTER,
         name: t('构造'),
       },
       {
         bind: [TicketTypes.MYSQL_FLASHBACK, TicketTypes.MYSQL_ROLLBACK],
         dbConsoleValue: 'mysql.toolbox.flashback',
-        desc: t('按备份回退当前集群数据'),
+        desc: t('在源集群回滚数据'),
         id: TicketTypes.MYSQL_ROLLBACK,
         name: t('回档'),
       },
-      {
-        dbConsoleValue: 'mysql.toolbox.rollback',
-        desc: t('回到指定时间点重建集群'),
-        id: TicketTypes.MYSQL_ROLLBACK_CLUSTER,
-        name: t('定点构造（旧）'),
-      },
+      // {
+      //   dbConsoleValue: 'mysql.toolbox.rollback',
+      //   desc: t('回到指定时间点重建集群'),
+      //   id: TicketTypes.MYSQL_ROLLBACK_CLUSTER,
+      //   name: t('定点构造（旧）'),
+      // },
     ],
     icon: 'data-recovery',
     id: 'fileback',
@@ -100,8 +99,22 @@ export const toolboxMenuList: ToolboxTreeNode[] = [
   {
     children: [
       {
+        bind: [TicketTypes.MYSQL_HA_TRUNCATE_DATA, TicketTypes.MYSQL_SINGLE_TRUNCATE_DATA],
+        dbConsoleValue: 'mysql.toolbox.dbClear',
+        desc: t('删除指定库表的数据'),
+        id: TicketTypes.MYSQL_HA_TRUNCATE_DATA,
+        name: t('清档'),
+      },
+    ],
+    icon: 'shujuqingli',
+    id: 'clear',
+    name: t('数据清理'),
+  },
+  {
+    children: [
+      {
         dbConsoleValue: 'mysql.toolbox.openareaTemplate',
-        desc: t('绑定源集群的开区模板，数据 + 权限整体克隆'),
+        desc: t('按模板将源集群表结构、数据、权限克隆到目标集群'),
         id: TicketTypes.MYSQL_OPEN_AREA,
         name: t('开区模版'),
       },
@@ -137,21 +150,6 @@ export const toolboxMenuList: ToolboxTreeNode[] = [
   {
     children: [
       {
-        bind: [TicketTypes.MYSQL_HA_TRUNCATE_DATA, TicketTypes.MYSQL_SINGLE_TRUNCATE_DATA],
-        dbConsoleValue: 'mysql.toolbox.dbClear',
-        desc: t('清理指定范围数据（带回收窗口）'),
-        id: TicketTypes.MYSQL_HA_TRUNCATE_DATA,
-        isPrimary: true,
-        name: t('清档'),
-      },
-    ],
-    icon: 'shujuqingli',
-    id: 'clear',
-    name: t('数据清理'),
-  },
-  {
-    children: [
-      {
         children: [
           {
             dbConsoleValue: 'mysql.toolbox.slaveAdd',
@@ -180,7 +178,7 @@ export const toolboxMenuList: ToolboxTreeNode[] = [
           {
             bind: [TicketTypes.MYSQL_RESTORE_LOCAL_SLAVE, TicketTypes.MYSQL_RESTORE_SLAVE],
             dbConsoleValue: 'mysql.toolbox.slaveRebuild',
-            desc: t('重建主从复制从库实例（支持原地重建 / 新机重建）'),
+            desc: t('重建 Slave 实例'),
             id: TicketTypes.MYSQL_RESTORE_LOCAL_SLAVE,
             isFix: true,
             name: t('重建从库'),
@@ -188,7 +186,7 @@ export const toolboxMenuList: ToolboxTreeNode[] = [
           {
             bind: [TicketTypes.MYSQL_MASTER_FAIL_OVER, TicketTypes.MYSQL_INSTANCE_FAIL_OVER],
             dbConsoleValue: 'mysql.toolbox.instanceFailover',
-            desc: t('主库故障后切换新主'),
+            desc: t('主库故障时从库紧急升主'),
             id: TicketTypes.MYSQL_MASTER_FAIL_OVER,
             isFix: true,
             name: t('主库故障切换'),
@@ -210,7 +208,7 @@ export const toolboxMenuList: ToolboxTreeNode[] = [
               TicketTypes.MYSQL_PROXY_MIGRATE_INS,
             ],
             dbConsoleValue: 'mysql.toolbox.proxyAdd',
-            desc: t('Proxy 实例添加 / 减少 / 升降配 / 替换'),
+            desc: t('对 Proxy 进行增减、替换、升降配、迁移'),
             id: TicketTypes.MYSQL_PROXY_ADD,
             name: t('接入层变更'),
           },
@@ -223,7 +221,7 @@ export const toolboxMenuList: ToolboxTreeNode[] = [
           },
           {
             dbConsoleValue: 'mysql.toolbox.proxyRescue',
-            desc: t('集群所有 Proxy 不可用时，新机重建后下架旧机'),
+            desc: t('全部 Proxy 不可用时，在新机器重建'),
             id: TicketTypes.MYSQL_PROXY_RESCUE,
             isFix: true,
             name: t('Proxy 灾难重建'),
@@ -256,14 +254,14 @@ export const toolboxMenuList: ToolboxTreeNode[] = [
       {
         bind: [TicketTypes.MYSQL_LOCAL_UPGRADE, TicketTypes.MYSQL_MIGRATE_UPGRADE, TicketTypes.MYSQL_PROXY_UPGRADE],
         dbConsoleValue: 'mysql.toolbox.versionUpgrade',
-        desc: t('DB 软件版本升级（跨架构，内部按架构分支）'),
+        desc: t('升级数据库版本'),
         id: TicketTypes.MYSQL_PROXY_UPGRADE,
         name: t('版本升级'),
       },
 
       {
         dbConsoleValue: 'mysql.toolbox.clusterStandardize',
-        desc: t('集群配置拉齐到标准（跨架构，内部按架构分支）'),
+        desc: t('标准化集群配置和周边工具'),
         id: TicketTypes.MYSQL_CLUSTER_STANDARDIZE,
         name: t('标准化'),
       },

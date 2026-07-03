@@ -152,10 +152,11 @@
     return dataList.flatMap((item) => item.children).find((item: ToolboxLeafNode) => item.id === selectId)?.isFix;
   });
 
+  const MAX_USED_COUNT = 6;
   const handleRouterUsed = (routerId: string) => {
     let lastUsed = [routerId].concat((profile.value[profileUsedKey] || []).filter((item: string) => item !== routerId));
-    if (lastUsed.length > 10) {
-      lastUsed = lastUsed.slice(0, 10);
+    if (lastUsed.length > MAX_USED_COUNT) {
+      lastUsed = lastUsed.slice(0, MAX_USED_COUNT);
     }
     profileStore.updateProfile({
       label: profileUsedKey,

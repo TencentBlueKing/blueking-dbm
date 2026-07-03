@@ -4,7 +4,6 @@ export interface ToolboxLeafNode {
   desc: string;
   id: string;
   isFix?: boolean;
-  isPrimary?: boolean;
   name: string;
 }
 
