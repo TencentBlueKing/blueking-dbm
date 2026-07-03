@@ -36,7 +36,7 @@ class QdrantDBMetaService(BaseService):
             # 表示没有加载上下文内容，则在此添加
             trans_data = getattr(flow_context, kwargs["set_trans_data_dataclass"])()
 
-        global_data["region"] = trans_data.region_code
+        global_data["region"] = trans_data.region_name
         global_data["domain"] = trans_data.domain
         qdrant_meta = QdrantDBMeta(ticket_data=global_data)
         result = qdrant_meta.write()
