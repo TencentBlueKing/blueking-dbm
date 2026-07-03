@@ -13,7 +13,9 @@ import (
 	"dbm-services/mysql/db-tools/mysql-monitor/pkg/itemscollect/inforeport"
 	"dbm-services/mysql/db-tools/mysql-monitor/pkg/itemscollect/maintaingrantproc"
 	"dbm-services/mysql/db-tools/mysql-monitor/pkg/itemscollect/proxyrebind"
+	"dbm-services/mysql/db-tools/mysql-monitor/pkg/itemscollect/reportslowlog"
 	"dbm-services/mysql/db-tools/mysql-monitor/pkg/itemscollect/rotateproxyconnlog"
+	"dbm-services/mysql/db-tools/mysql-monitor/pkg/itemscollect/saveproxyconnlog"
 
 	"fmt"
 	"log/slog"
@@ -104,4 +106,6 @@ func init() {
 	_ = registerItemConstructor(maintaingrantproc.Register())
 	_ = registerItemConstructor(inforeport.Register())
 	_ = registerItemConstructor(rotateslowlog.RegisterSlowlogReport())
+	_ = registerItemConstructor(saveproxyconnlog.Register())
+	_ = registerItemConstructor(reportslowlog.RegisterSlowlogRewrite())
 }
