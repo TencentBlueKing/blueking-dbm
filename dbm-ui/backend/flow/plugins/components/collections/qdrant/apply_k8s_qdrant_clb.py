@@ -43,11 +43,13 @@ class ApplyK8sQdrantClbService(BaseService):
         # 匹配clusterName与cluster_name一致的数据，获取vpcID和regionCode
         region_code = ""
         vpc_id = ""
+        region_name = ""
         for region in regions_resp:
             for k8s_cluster in region.get("k8sClusterList", []):
                 if k8s_cluster.get("clusterName") == cluster_name:
                     region_code = region.get("regionCode", "")
                     vpc_id = k8s_cluster.get("vpcID", "")
+                    region_name = region.get("regionName", "")
                     break
             if region_code:
                 break
@@ -76,6 +78,7 @@ class ApplyK8sQdrantClbService(BaseService):
         trans_data.clb_id = clb_id
         trans_data.vpc_id = vpc_id
         trans_data.region_code = region_code
+        trans_data.region_name = region_name
         data.outputs["trans_data"] = trans_data
         return True
 
