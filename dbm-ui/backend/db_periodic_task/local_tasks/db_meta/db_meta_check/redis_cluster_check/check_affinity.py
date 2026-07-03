@@ -13,20 +13,25 @@ import logging
 from collections import defaultdict
 from dataclasses import asdict, dataclass, field, fields
 from math import floor
-from typing import Dict, List, Optional, Tuple, Union
+from typing import Dict, List, Optional, Set, Tuple, Union
 
+from django.db.models import Prefetch
 from django.utils.translation import gettext_lazy as _
 
 from backend.configuration.constants import AffinityEnum, DBType, SystemSettingsEnum
 from backend.configuration.models import DBAdministrator
 from backend.db_meta.enums import ClusterPhase, ClusterType, InstanceRole, MachineType
-from backend.db_meta.models import Cluster, StorageInstance
+from backend.db_meta.models import Cluster, ProxyInstance, StorageInstance
 from backend.db_meta.models.city_map import BKSubzone
+from backend.db_meta.models.storage_instance_tuple import StorageInstanceTuple
 from backend.db_report.enums import MetaCheckSubType, ReportStateType
 from backend.flow.utils.redis.redis_report_utils import (
+    META_CHECK_CLUSTER_PAGE_SIZE,
     RedisReportWriter,
+    _chunked,
     delete_old_meta_check_reports,
     is_cluster_labeled_with,
+    safe_write_meta_reports,
 )
 from backend.ticket.constants import TICKET_RUNNING_STATUS_SET, TicketType
 from backend.ticket.models import SystemSettings
@@ -79,10 +84,7 @@ class RedisAffinityCheckConfig:
         )
 
 
-def _get_candidate_clusters(config: RedisAffinityCheckConfig):
-    """
-    Get candidate clusters for affinity check based on configuration
-    """
+def _get_candidate_cluster_ids(config: RedisAffinityCheckConfig) -> List[int]:
     query = Cluster.objects.filter(cluster_type__in=config.cluster_types)
 
     if config.bizs_ignored:
@@ -94,7 +96,35 @@ def _get_candidate_clusters(config: RedisAffinityCheckConfig):
     if config.bk_cloud_ids:
         query = query.filter(bk_cloud_id__in=config.bk_cloud_ids)
 
-    return query
+    return list(query.values_list("id", flat=True))
+
+
+def _load_affinity_clusters_page(cluster_ids: List[int]) -> List[Cluster]:
+    if not cluster_ids:
+        return []
+    # as_ejector + receiver__machine: used by _check_master_machine_affinity for master→slave pairs
+    storage_qs = StorageInstance.objects.select_related("machine").prefetch_related(
+        Prefetch("as_ejector", queryset=StorageInstanceTuple.objects.select_related("receiver__machine")),
+    )
+    return list(
+        Cluster.objects.filter(id__in=cluster_ids).prefetch_related(
+            Prefetch("proxyinstance_set", queryset=ProxyInstance.objects.select_related("machine")),
+            Prefetch("storageinstance_set", queryset=storage_qs),
+            "tags",
+        )
+    )
+
+
+def _fetch_affinity_ignore_cluster_ids(cluster_ids: List[int], ignore_tickets: List[str]) -> Set[int]:
+    if not cluster_ids:
+        return set()
+    return set(
+        ClusterOperateRecord.objects.filter(
+            ticket__ticket_type__in=ignore_tickets,
+            ticket__status__in=TICKET_RUNNING_STATUS_SET,
+            cluster_id__in=cluster_ids,
+        ).values_list("cluster_id", flat=True)
+    )
 
 
 def check_redis_affinity():
@@ -188,14 +218,20 @@ class RedisAffinityChecker:
         Debug check a single cluster
         """
         self.__class__._subzone_map_cache = BKSubzone.get_subzone_map(get_cache=True)
-        cluster = Cluster.objects.get(immute_domain=cluster_domain)
-        self._check_cluster_affinity(cluster)
+        clusters = _load_affinity_clusters_page(
+            list(Cluster.objects.filter(immute_domain=cluster_domain).values_list("id", flat=True))
+        )
+        if not clusters:
+            logger.error("affinity_check: cluster %s not found", cluster_domain)
+            return
+        rows = self._check_cluster_affinity(clusters[0])
+        if rows:
+            safe_write_meta_reports(self._writer, rows, context=f"debug cluster={cluster_domain}")
 
     def check_all_clusters(self) -> None:
         """
         Check affinity for all Redis clusters
         """
-        # Snapshot subzone names at the beginning of this check run.
         self.__class__._subzone_map_cache = BKSubzone.get_subzone_map(get_cache=True)
 
         delete_old_meta_check_reports(
@@ -203,20 +239,39 @@ class RedisAffinityChecker:
             self._supported_cluster_types,
             self._writer.retention_days,
         )
-        for cluster in _get_candidate_clusters(self._config):
-            try:
-                self._check_cluster_affinity(cluster)
-            except Exception as e:
-                logger.error("affinity_check: error checking cluster %s: %s", cluster.immute_domain, e, exc_info=True)
 
-    def _check_cluster_affinity(self, cluster: Cluster) -> None:
+        all_cluster_ids = _get_candidate_cluster_ids(self._config)
+        ignore_cluster_ids = _fetch_affinity_ignore_cluster_ids(all_cluster_ids, self._ignore_tickets)
+        dba_cache: Dict[int, str] = {}
+
+        for page_ids in _chunked(all_cluster_ids, META_CHECK_CLUSTER_PAGE_SIZE):
+            page_rows: List[dict] = []
+            for cluster in _load_affinity_clusters_page(page_ids):
+                try:
+                    if self._should_ignore_cluster(cluster, ignore_cluster_ids):
+                        continue
+                    page_rows.extend(self._check_cluster_affinity(cluster, dba_cache))
+                except Exception as e:
+                    logger.error(
+                        "affinity_check: error checking cluster %s: %s",
+                        cluster.immute_domain,
+                        e,
+                        exc_info=True,
+                    )
+            if page_rows:
+                safe_write_meta_reports(self._writer, page_rows, context="affinity_check page")
+
+    def _check_cluster_affinity(self, cluster: Cluster, dba_cache: Optional[Dict[int, str]] = None) -> List[dict]:
         """
         Check master-slave affinity for a single cluster
         """
         logger.info("affinity_check: start checking cluster %s", cluster.immute_domain)
 
-        dba_list = DBAdministrator.get_biz_db_type_admins(bk_biz_id=cluster.bk_biz_id, db_type=DBType.Redis.value)
-        creator = dba_list[0] if dba_list else "admin"
+        dba_cache = dba_cache if dba_cache is not None else {}
+        if cluster.bk_biz_id not in dba_cache:
+            dba_list = DBAdministrator.get_biz_db_type_admins(bk_biz_id=cluster.bk_biz_id, db_type=DBType.Redis.value)
+            dba_cache[cluster.bk_biz_id] = dba_list[0] if dba_list else "admin"
+        creator = dba_cache[cluster.bk_biz_id]
         affinity_level = cluster.disaster_tolerance_level
 
         if affinity_level not in self._supported_levels:
@@ -225,19 +280,17 @@ class RedisAffinityChecker:
                 "Cannot perform affinity check: Unsupported affinity level '{}' for Redis. Supported levels are: {}"
             ).format(affinity_level, supported_levels_str)
             logger.warning("affinity_check: %s", msg)
-            self._writer.write_meta_report(
-                cluster=cluster,
-                ip="none",
-                port=None,
-                subtype=MetaCheckSubType.AffinityViolation,
-                msg=msg,
-                state=ReportStateType.WARNING,
-                creator=creator,
-            )
-            return
-
-        if self._should_ignore_cluster(cluster):
-            return
+            return [
+                {
+                    "cluster": cluster,
+                    "ip": "none",
+                    "port": None,
+                    "subtype": MetaCheckSubType.AffinityViolation,
+                    "msg": msg,
+                    "state": ReportStateType.WARNING,
+                    "creator": creator,
+                }
+            ]
 
         check_results = []
         expected_subzone_id = self._resolve_expected_subzone_id(cluster.zone_list or [])
@@ -250,7 +303,7 @@ class RedisAffinityChecker:
 
         # For proxies, we check the stats of their locations
         if not skip_proxy_check:
-            proxy_instances = cluster.proxyinstance_set.filter()
+            proxy_instances = list(cluster.proxyinstance_set.all())
             proxy_result = self._validate_proxies_affinity(
                 proxy_instances=proxy_instances,
                 affinity_level=affinity_level,
@@ -261,7 +314,9 @@ class RedisAffinityChecker:
             check_results.append(proxy_result)
 
         # For backends, we check each master-slave pair
-        master_instances = cluster.storageinstance_set.filter(instance_role=InstanceRole.REDIS_MASTER.value)
+        master_instances = [
+            inst for inst in cluster.storageinstance_set.all() if inst.instance_role == InstanceRole.REDIS_MASTER.value
+        ]
         backend_results = self._validate_backends_affinity(
             master_instances=master_instances,
             affinity_level=affinity_level,
@@ -272,14 +327,14 @@ class RedisAffinityChecker:
             result["identifier"] = identifier
             check_results.append(result)
 
-        self._create_affinity_reports(
+        return self._build_affinity_report_rows(
             cluster=cluster,
             affinity_level=affinity_level,
             check_results=check_results,
             creator=creator,
         )
 
-    def _should_ignore_cluster(self, cluster: Cluster) -> bool:
+    def _should_ignore_cluster(self, cluster: Cluster, ignore_cluster_ids: Set[int]) -> bool:
         """
         Check if cluster should be ignored (being destroyed, disabled, or has active operations)
         """
@@ -294,13 +349,10 @@ class RedisAffinityChecker:
             )
             return True
 
-        if ClusterOperateRecord.objects.filter(
-            ticket__ticket_type__in=self._ignore_tickets,
-            ticket__status__in=TICKET_RUNNING_STATUS_SET,
-            cluster_id=cluster.id,
-        ).exists():
+        if cluster.id in ignore_cluster_ids:
             logger.info(
-                f"affinity_check: will ignore cluster {cluster.immute_domain}, it has active destroy/disable ticket"
+                "affinity_check: will ignore cluster %s, it has active destroy/disable ticket",
+                cluster.immute_domain,
             )
             return True
 
@@ -701,8 +753,8 @@ class RedisAffinityChecker:
 
         for master_obj in master_instances:
             try:
-                slave_tuples = master_obj.as_ejector.all()
-                if not slave_tuples.exists():
+                slave_tuples = list(master_obj.as_ejector.all())
+                if not slave_tuples:
                     instances_without_slaves.append(master_obj.ip_port)
                     continue
                 for slave_tuple in slave_tuples:
@@ -876,30 +928,15 @@ class RedisAffinityChecker:
             return cls._append_suggestion(violation_msg, suggestion)
         return None
 
-    def _create_affinity_reports(
+    def _build_affinity_report_rows(
         self,
         cluster: Cluster,
         affinity_level: str,
         check_results: list[Dict],
         creator: str = "admin",
-    ) -> None:
+    ) -> List[dict]:
         """
-        Create affinity check reports
-
-        Strategy:
-        - If all checks pass: Create 1 cluster-level success record
-        - If any violations/warnings: Create individual records for each failed check only
-
-        Args:
-            cluster: Cluster object
-            affinity_level: Affinity level being checked
-            check_results: List of check results, each containing:
-                - result_type: str ('proxy_distribution', 'backend_pair', 'proxy_master_colocation')
-                - identifier: str (IP address or identifier for the report)
-                - state: ReportStateType
-                - msg: str
-                - machine_type: MachineType (optional, depends on result_type)
-                - proxy_count: int (only for proxy_distribution)
+        Build affinity check report rows for bulk write.
         """
         failed_checks = [result for result in check_results if result["state"] != ReportStateType.NORMAL.value]
         has_violations = len(failed_checks) > 0
@@ -918,33 +955,51 @@ class RedisAffinityChecker:
                 total_machines, affinity_level
             )
             logger.info("affinity_check: cluster %s passed affinity check", cluster.immute_domain)
+            return [
+                {
+                    "cluster": cluster,
+                    "ip": "all",
+                    "port": None,
+                    "subtype": MetaCheckSubType.AffinityViolation,
+                    "msg": msg,
+                    "state": ReportStateType.NORMAL,
+                    "creator": creator,
+                }
+            ]
 
-            self._writer.write_meta_report(
-                cluster=cluster,
-                ip="all",
-                port=None,
-                subtype=MetaCheckSubType.AffinityViolation,
-                msg=msg,
-                state=ReportStateType.NORMAL,
-                creator=creator,
+        total_warnings = sum(1 for result in failed_checks if result["state"] == ReportStateType.WARNING.value)
+        total_violations = len(failed_checks) - total_warnings
+        logger.warning(
+            "affinity_check: cluster %s has %s affinity violations and %s warnings",
+            cluster.immute_domain,
+            total_violations,
+            total_warnings,
+        )
+
+        rows = []
+        for result in failed_checks:
+            rows.append(
+                {
+                    "cluster": cluster,
+                    "ip": result["identifier"],
+                    "port": None,
+                    "subtype": MetaCheckSubType.AffinityViolation,
+                    "msg": result["msg"],
+                    "state": result["state"],
+                    "machine_type": result.get("machine_type"),
+                    "creator": creator,
+                }
             )
-        else:
-            total_warnings = sum(1 for result in failed_checks if result["state"] == ReportStateType.WARNING.value)
-            total_violations = len(failed_checks) - total_warnings
+        return rows
 
-            logger.warning(
-                f"affinity_check: cluster {cluster.immute_domain} has {total_violations} "
-                f"affinity violations and {total_warnings} warnings"
-            )
-
-            for result in failed_checks:
-                self._writer.write_meta_report(
-                    cluster=cluster,
-                    ip=result["identifier"],
-                    port=None,
-                    subtype=MetaCheckSubType.AffinityViolation,
-                    msg=result["msg"],
-                    state=result["state"],
-                    machine_type=result.get("machine_type"),
-                    creator=creator,
-                )
+    def _create_affinity_reports(
+        self,
+        cluster: Cluster,
+        affinity_level: str,
+        check_results: list[Dict],
+        creator: str = "admin",
+    ) -> None:
+        """Backward-compatible wrapper for single-cluster debug flows."""
+        rows = self._build_affinity_report_rows(cluster, affinity_level, check_results, creator)
+        if rows:
+            safe_write_meta_reports(self._writer, rows, context=f"cluster={cluster.immute_domain}")

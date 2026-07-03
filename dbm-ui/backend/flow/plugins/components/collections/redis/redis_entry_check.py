@@ -24,7 +24,7 @@ from backend.flow.plugins.components.collections.common.base_service import Base
 from backend.flow.utils import dns_manage
 from backend.flow.utils.clb_manage import get_clb_by_ip
 from backend.flow.utils.polaris_manage import GetPolarisManageByName
-from backend.flow.utils.redis.redis_report_utils import RedisReportWriter
+from backend.flow.utils.redis.redis_report_utils import RedisReportWriter, safe_write_meta_reports
 from backend.utils.redis import RedisConn
 
 # Default batch size and interval for scheduled processing
@@ -49,63 +49,40 @@ class RedisEntryCheckService(BaseService):
 
     @staticmethod
     def _get_cluster_proxy_ips(cluster: Cluster) -> Set[str]:
-        """
-        Get all proxy IPs from cluster metadata
-
-        Args:
-            cluster: Cluster object
-
-        Returns:
-            Set of proxy IP addresses
-        """
-        return set(cluster.proxyinstance_set.values_list("machine__ip", flat=True))
+        return {proxy.machine.ip for proxy in cluster.proxyinstance_set.all()}
 
     @staticmethod
     def _get_cluster_storage_ips(cluster: Cluster) -> Set[str]:
-        """
-        Get all storage (backend Redis) IPs from cluster metadata
-
-        Args:
-            cluster: Cluster object
-
-        Returns:
-            Set of storage IP addresses (both master and slave)
-        """
-        return set(cluster.storageinstance_set.values_list("machine__ip", flat=True))
+        return {storage.machine.ip for storage in cluster.storageinstance_set.all()}
 
     @staticmethod
     def _get_cluster_master_ips(cluster: Cluster) -> Set[str]:
-        """
-        Get master storage IPs from cluster metadata
-
-        Args:
-            cluster: Cluster object
-
-        Returns:
-            Set of master IP addresses
-        """
-        return set(
-            cluster.storageinstance_set.filter(instance_inner_role=InstanceInnerRole.MASTER).values_list(
-                "machine__ip", flat=True
-            )
-        )
+        return {
+            storage.machine.ip
+            for storage in cluster.storageinstance_set.all()
+            if storage.instance_inner_role == InstanceInnerRole.MASTER
+        }
 
     @staticmethod
     def _get_cluster_slave_ips(cluster: Cluster) -> Set[str]:
-        """
-        Get slave storage IPs from cluster metadata
+        return {
+            storage.machine.ip
+            for storage in cluster.storageinstance_set.all()
+            if storage.instance_inner_role == InstanceInnerRole.SLAVE
+        }
 
-        Args:
-            cluster: Cluster object
-
-        Returns:
-            Set of slave IP addresses
-        """
-        return set(
-            cluster.storageinstance_set.filter(instance_inner_role=InstanceInnerRole.SLAVE).values_list(
-                "machine__ip", flat=True
+    @staticmethod
+    def _load_batch_clusters(cluster_ids: List[int]) -> Dict[int, Cluster]:
+        if not cluster_ids:
+            return {}
+        return {
+            cluster.id: cluster
+            for cluster in Cluster.objects.filter(id__in=cluster_ids).prefetch_related(
+                "proxyinstance_set__machine",
+                "storageinstance_set__machine",
+                "clusterentry_set",
             )
-        )
+        }
 
     def _get_dns_ips(self, cluster: Cluster, entry: ClusterEntry) -> Tuple[Set[str], Optional[str]]:
         """
@@ -287,27 +264,19 @@ class RedisEntryCheckService(BaseService):
 
         return None
 
-    def _create_cluster_report(self, cluster: Cluster, all_error_details: list, writer: RedisReportWriter):
-        """
-        Create a single meta check report for all entry inconsistencies in a cluster
-
-        Args:
-            cluster: Cluster object
-            all_error_details: List of error detail dicts from all entries
-            writer: ReportWriter instance for writing reports
-        """
+    @staticmethod
+    def _build_entry_report_row(cluster: Cluster, all_error_details: list) -> Dict:
         if not all_error_details:
-            writer.write_meta_report(
-                cluster=cluster,
-                ip=None,
-                port=None,
-                subtype=MetaCheckSubType.EntryInconsistent,
-                msg=_("All entries are consistent."),
-                state=ReportStateType.NORMAL,
-            )
-            return
+            return {
+                "cluster": cluster,
+                "ip": None,
+                "port": None,
+                "subtype": MetaCheckSubType.EntryInconsistent,
+                "msg": _("All entries are consistent."),
+                "state": ReportStateType.NORMAL,
+                "creator": "system",
+            }
 
-        # Build a comprehensive description for all inconsistencies
         description_parts = []
         for error_detail in all_error_details:
             entry_type = error_detail["entry_type"]
@@ -329,37 +298,22 @@ class RedisEntryCheckService(BaseService):
             if entry_desc_parts:
                 description_parts.append(_("{}  ({}): {}").format(entry_type, entry_name, "; ".join(entry_desc_parts)))
 
-        description = "; ".join(description_parts)
+        return {
+            "cluster": cluster,
+            "ip": None,
+            "port": None,
+            "subtype": MetaCheckSubType.EntryInconsistent,
+            "msg": "; ".join(description_parts),
+            "state": ReportStateType.ABNORMAL,
+            "creator": "system",
+        }
 
-        writer.write_meta_report(
-            cluster=cluster,
-            ip=None,
-            port=None,
-            subtype=MetaCheckSubType.EntryInconsistent,
-            msg=description,
-            state=ReportStateType.ABNORMAL,
-        )
-        self.log_warning(
-            _("Entry inconsistencies detected for cluster {}: {}").format(cluster.immute_domain, description)
-        )
-
-    def _check_single_cluster(self, cluster_id: int, writer: RedisReportWriter) -> Dict:
+    def _check_single_cluster(self, cluster: Cluster) -> Dict:
         """
-        Check entries for a single cluster
-
-        Args:
-            cluster_id: ID of the cluster to check
-
-        Returns:
-            Dict with check results
+        Check entries for a single preloaded cluster (external I/O only; no ORM).
         """
         try:
-            cluster = Cluster.objects.prefetch_related(
-                "proxyinstance_set", "storageinstance_set", "clusterentry_set"
-            ).get(id=cluster_id)
-
-            # Check each entry and collect all error details
-            entries = cluster.clusterentry_set.all()
+            entries = list(cluster.clusterentry_set.all())
             checked_count = 0
             all_error_details = []
 
@@ -369,18 +323,25 @@ class RedisEntryCheckService(BaseService):
                 if error_detail:
                     all_error_details.append(error_detail)
 
-            # Create a single report for the cluster (success or failure)
-            self._create_cluster_report(cluster, all_error_details, writer)
-
+            report_row = self._build_entry_report_row(cluster, all_error_details)
             inconsistent_count = len(all_error_details)
-            return {"cluster_id": cluster_id, "checked": checked_count, "inconsistent": inconsistent_count}
+            if inconsistent_count:
+                self.log_warning(
+                    _("Entry inconsistencies detected for cluster {}: {}").format(
+                        cluster.immute_domain, report_row["msg"]
+                    )
+                )
 
-        except Cluster.DoesNotExist:
-            self.log_warning(_("Cluster id={} not found, skipping").format(cluster_id))
-            return {"cluster_id": cluster_id, "checked": 0, "inconsistent": 0, "error": "Cluster not found"}
+            return {
+                "cluster_id": cluster.id,
+                "checked": checked_count,
+                "inconsistent": inconsistent_count,
+                "report_row": report_row,
+            }
+
         except Exception as e:
-            self.log_exception(_("Failed to check entries for cluster id={}: {}").format(cluster_id, str(e)))
-            return {"cluster_id": cluster_id, "checked": 0, "inconsistent": 0, "error": str(e)}
+            self.log_exception(_("Failed to check entries for cluster id={}: {}").format(cluster.id, str(e)))
+            return {"cluster_id": cluster.id, "checked": 0, "inconsistent": 0, "error": str(e)}
 
     def _pop_batch_from_redis(self, candidates_key: str, batch_size: int) -> List[int]:
         """
@@ -412,6 +373,14 @@ class RedisEntryCheckService(BaseService):
         except Exception as e:
             self.log_exception(_("Failed to pop batch from Redis: {}").format(e))
             return []
+
+    @staticmethod
+    def _requeue_batch_to_redis(candidates_key: str, batch_cluster_ids: List[int]) -> None:
+        """Put popped cluster ids back on the Redis list tail so a failed write can be retried."""
+        if not batch_cluster_ids:
+            return
+        # Candidates are LPUSHed then RPOPped; restore original order via reversed RPUSH.
+        RedisConn.rpush(candidates_key, *reversed(batch_cluster_ids))
 
     def _execute(self, data, parent_data) -> bool:
         """
@@ -513,27 +482,56 @@ class RedisEntryCheckService(BaseService):
             )
         )
 
-        # Process this batch
+        cluster_map = self._load_batch_clusters(batch_cluster_ids)
         writer = RedisReportWriter()
         batch_checked = 0
         batch_inconsistent = 0
+        report_rows = []
 
-        # Use ThreadPoolExecutor for parallel processing within the batch
-        max_workers = min(15, len(batch_cluster_ids))
-        with ThreadPoolExecutor(max_workers=max_workers) as executor:
-            future_to_cluster = {
-                executor.submit(self._check_single_cluster, cluster_id, writer): cluster_id
-                for cluster_id in batch_cluster_ids
-            }
+        clusters_to_check = []
+        for cluster_id in batch_cluster_ids:
+            cluster = cluster_map.get(cluster_id)
+            if cluster is None:
+                self.log_warning(_("Cluster id={} not found, skipping").format(cluster_id))
+                continue
+            clusters_to_check.append(cluster)
 
-            for future in as_completed(future_to_cluster):
-                cluster_id = future_to_cluster[future]
+        max_workers = min(15, len(clusters_to_check))
+        if max_workers > 0:
+            # Workers use preloaded cluster objects and external I/O only (no Django ORM / DB writes).
+            # ORM prefetch and report writes stay on this thread to avoid connection leaks.
+            with ThreadPoolExecutor(max_workers=max_workers) as executor:
+                future_to_cluster = {
+                    executor.submit(self._check_single_cluster, cluster): cluster.id for cluster in clusters_to_check
+                }
+
+                for future in as_completed(future_to_cluster):
+                    cluster_id = future_to_cluster[future]
+                    try:
+                        result = future.result()
+                        batch_checked += result.get("checked", 0)
+                        batch_inconsistent += result.get("inconsistent", 0)
+                        report_row = result.get("report_row")
+                        if report_row:
+                            report_rows.append(report_row)
+                    except Exception as e:
+                        self.log_exception(_("Exception checking cluster id={}: {}").format(cluster_id, e))
+
+        write_ok = True
+        if report_rows:
+            write_ok = safe_write_meta_reports(
+                writer,
+                report_rows,
+                context=f"entry_check batch={batch_num} key={candidates_key}",
+            )
+            if not write_ok:
                 try:
-                    result = future.result()
-                    batch_checked += result.get("checked", 0)
-                    batch_inconsistent += result.get("inconsistent", 0)
+                    self._requeue_batch_to_redis(candidates_key, batch_cluster_ids)
+                    self.log_warning(
+                        _("Re-queued {} cluster ids after report write failure").format(len(batch_cluster_ids))
+                    )
                 except Exception as e:
-                    self.log_exception(_("Exception checking cluster id={}: {}").format(cluster_id, e))
+                    self.log_exception(_("Failed to re-queue batch after write failure: {}").format(e))
 
         # Update totals in outputs
         total_checked += batch_checked
@@ -546,6 +544,9 @@ class RedisEntryCheckService(BaseService):
                 batch_num, total_batches, batch_checked, batch_inconsistent
             )
         )
+
+        if not write_ok:
+            return True
 
         # Update state for next iteration
         current_batch += 1

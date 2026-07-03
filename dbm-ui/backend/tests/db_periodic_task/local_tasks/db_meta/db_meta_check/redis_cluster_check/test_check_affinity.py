@@ -64,20 +64,25 @@ def test_get_candidate_clusters_filters_by_bk_cloud_ids(redis_affinity_module):
     query = MagicMock()
     query.exclude.return_value = query
     query.filter.return_value = query
+    query.values_list.return_value = [1, 2]
 
     with patch.object(redis_affinity_module.Cluster.objects, "filter", return_value=query) as cluster_filter:
-        redis_affinity_module._get_candidate_clusters(config)
+        redis_affinity_module._get_candidate_cluster_ids(config)
 
     cluster_filter.assert_called_once_with(cluster_type__in=["RedisInstance"])
     query.filter.assert_called_once_with(bk_cloud_id__in=[0])
+    query.values_list.assert_called_once_with("id", flat=True)
 
 
 def test_get_candidate_clusters_checks_all_clouds_when_bk_cloud_ids_empty(redis_affinity_module):
     config = redis_affinity_module.RedisAffinityCheckConfig(cluster_types=["RedisInstance"])
     query = MagicMock()
     query.exclude.return_value = query
+    query.values_list.return_value = []
 
     with patch.object(redis_affinity_module.Cluster.objects, "filter", return_value=query):
-        redis_affinity_module._get_candidate_clusters(config)
+        redis_affinity_module._get_candidate_cluster_ids(config)
+
+    query.filter.assert_not_called()
 
     query.filter.assert_not_called()
