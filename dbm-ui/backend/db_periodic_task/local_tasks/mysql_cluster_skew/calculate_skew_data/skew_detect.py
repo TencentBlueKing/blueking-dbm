@@ -11,22 +11,22 @@ specific language governing permissions and limitations under the License.
 import logging
 import time
 from collections import defaultdict
-from concurrent.futures import as_completed
-from concurrent.futures.thread import ThreadPoolExecutor
 from datetime import datetime, timedelta
 from itertools import islice
 from typing import Any, Generator, Iterable
 
 import numpy as np
+from blueapps.core.celery.celery import app
+from django.core.cache import cache
 
 from backend.db_meta.enums import ClusterType
-from backend.db_meta.models import Cluster
 from backend.db_periodic_task.local_tasks.mysql_cluster_skew.calculate_skew_data.fetch_metrics import (
     _fetch_key_metrics_of_cluster_instances,
 )
 from backend.db_report.models.cluster_skew_detection import ClusterSkewDetection
 
 logger = logging.getLogger("celery.mysql_skew_detect.calculate_skew_data.skew_detect")
+
 
 # 偏离详情字典结构，由 _detect_skew_by_gini 产出，贯穿 analyze → save 全流程
 # DeviationDict = {
@@ -172,16 +172,26 @@ def _detect_clusters_skew(
             per_cluster[inst["cluster_domain"]][metric_name].append(inst)
 
     skew_results = {}
+    no_metrics_count = 0
     for cluster_domain in cluster_domains:
         cluster_metrics = dict(per_cluster.get(cluster_domain, {}))
         if not cluster_metrics:
-            logger.error(f"{cluster_domain} no metrics data")
+            no_metrics_count += 1
+            logger.error("analyze failed, no metrics: cluster_domain=%s", cluster_domain)
             continue
 
         skew_result = _analyze_cluster_skew(cluster_metrics)
         if any(skew_result.values()):
             skew_results[cluster_domain] = skew_result
     analyze_elapsed = time.monotonic() - t_analyze
+
+    logger.info(
+        "analyze done: cluster_count=%d skew_count=%d no_metrics_count=%d elapsed=%.2fs",
+        len(cluster_domains),
+        len(skew_results),
+        no_metrics_count,
+        analyze_elapsed,
+    )
 
     return skew_results, fetch_elapsed, analyze_elapsed
 
@@ -203,6 +213,7 @@ def _save_skew_records(skew_results: dict[str, dict], now: datetime) -> tuple[in
         (写入记录数, 写入耗时秒数)
     """
     if not skew_results:
+        logger.info("write skip, no skew results")
         return 0, 0.0
 
     dt = now.date()
@@ -230,53 +241,57 @@ def _save_skew_records(skew_results: dict[str, dict], now: datetime) -> tuple[in
     try:
         ClusterSkewDetection.objects.using("doris").bulk_create(records)
     except Exception:  # noqa
-        logger.exception("write result to doris failed")
+        logger.exception("write failed: record_count=%d skew_cluster_count=%d", len(records), len(skew_results))
         raise
     write_elapsed = time.monotonic() - t_write
+
+    logger.info(
+        "write done: record_count=%d skew_cluster_count=%d elapsed=%.2fs",
+        len(records),
+        len(skew_results),
+        write_elapsed,
+    )
 
     return len(records), write_elapsed
 
 
-def _calculate_clusters_skew(cluster_type: ClusterType, cluster_domains: list[str], now: datetime) -> None:
+@app.task
+def calculate_clusters_skew(cluster_type: str, cluster_domains: list[str], lock_key: str) -> None:
     """单批集群的完整处理流程：fetch → analyze → write，结束后记录各步耗时。"""
-    skew_results, fetch_elapsed, analyze_elapsed = _detect_clusters_skew(cluster_type, cluster_domains, now)
-    record_count, write_elapsed = _save_skew_records(skew_results, now)
 
     logger.info(
-        "batch done: %d clusters, %d records, fetch=%.2fs analyze=%.2fs write=%.2fs",
+        "batch start: cluster_type=%s lock_key=%s cluster_count=%d",
+        cluster_type,
+        lock_key,
         len(cluster_domains),
-        record_count,
-        fetch_elapsed,
-        analyze_elapsed,
-        write_elapsed,
     )
-
-
-def _calculate_mysql_skew(cluster_type: ClusterType, pool_size: int, batch_size: int) -> None:
-    """对指定集群类型的所有集群做偏斜检测并写入 Doris。
-
-    将全量集群域名按 batch_size 分批，用线程池并发执行。
-    每个线程处理一批集群的 fetch → analyze → write 全流程。
-    """
-    # 前置检查 Doris 可用性，不可用则跳过整轮检测
     try:
-        ClusterSkewDetection.objects.using("doris").exists()
+        now = datetime.now()
+        skew_results, fetch_elapsed, analyze_elapsed = _detect_clusters_skew(
+            ClusterType(cluster_type), cluster_domains, now
+        )
+        record_count, write_elapsed = _save_skew_records(skew_results, now)
+
+        logger.info(
+            "batch done: cluster_type=%s lock_key=%s cluster_count=%d skew_count=%d record_count=%d "
+            "fetch=%.2fs analyze=%.2fs write=%.2fs",
+            cluster_type,
+            lock_key,
+            len(cluster_domains),
+            len(skew_results),
+            record_count,
+            fetch_elapsed,
+            analyze_elapsed,
+            write_elapsed,
+        )
     except Exception:  # noqa
-        logger.warning("doris is unavailable, skip skew detection")
-        return
-
-    now = datetime.now()
-
-    domains = list(Cluster.objects.filter(cluster_type=cluster_type).values_list("immute_domain", flat=True))
-
-    with ThreadPoolExecutor(max_workers=pool_size) as pool:
-        futures = {}
-        for batch in _batched(domains, batch_size):
-            f = pool.submit(_calculate_clusters_skew, cluster_type, batch, now)
-            futures[f] = batch
-
-        for f in as_completed(futures):
-            try:
-                f.result()
-            except Exception:  # noqa
-                logger.exception("failed for domains %s", futures[f])
+        logger.exception(
+            "batch failed: cluster_type=%s lock_key=%s cluster_count=%d",
+            cluster_type,
+            lock_key,
+            len(cluster_domains),
+        )
+        raise
+    finally:
+        if cache.get(lock_key) == 1:
+            cache.delete(lock_key)
