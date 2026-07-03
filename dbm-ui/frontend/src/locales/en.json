@@ -6080,5 +6080,8 @@
   "标签值长度不能超过 50 个字符": "Tag value length cannot exceed 50 characters",
   "标签键长度不能超过 50 个字符": "Tag key length cannot exceed 50 characters",
   "第 n 行": "Line {n}",
+  "受影响集群": "Affected Clusters",
+  "已自动跳过 n 个集群：包含同名标签键": "Auto skipped {n} clusters: contains same tag key",
+  "为选中集群添加标签，若标签键不存在则新添加，已存在则跳过": "Add tags to selected clusters, if the tag key does not exist, it will be added, if it exists, it will be skipped",
   "这行勿动！新增翻译请在上一行添加！": ""
 }

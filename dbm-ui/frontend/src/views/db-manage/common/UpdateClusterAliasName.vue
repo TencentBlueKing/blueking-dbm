@@ -17,7 +17,9 @@
         :permission="checkEditPermission(data)"
         :resource="data.id"
         @click="handleShowEdit">
-        <DbIcon type="edit" />
+        <DbIcon
+          style="font-size: 16px"
+          type="edit" />
       </AuthTemplate>
     </div>
     <template #content>

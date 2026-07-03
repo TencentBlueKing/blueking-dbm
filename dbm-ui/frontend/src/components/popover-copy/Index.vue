@@ -18,6 +18,7 @@
     <DbIcon
       ref="copyRootRef"
       :class="{ 'is-active': isActive }"
+      style="font-size: 16px"
       type="copy" />
     <div style="display: none">
       <div

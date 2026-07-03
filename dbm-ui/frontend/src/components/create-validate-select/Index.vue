@@ -39,7 +39,9 @@
                 show-word-limit
                 @blur="handleBlurInput"
                 @enter="handleEnterInput"
-                @input="handleInputValue" />
+                @focus="handleFocusInput"
+                @input="handleInputValue"
+                @keydown="handleKeyDown" />
             </div>
           </template>
           <template #optionRender="{ item }">
@@ -58,7 +60,9 @@
             </div>
           </template>
           <template #extension>
-            <div class="create-validate-select-extension">
+            <div
+              class="create-validate-select-extension"
+              :class="{ 'is-only-create-option': !localList.length && !isExistdInList }">
               <div
                 v-if="!isExistdInList"
                 class="add-new-option-main"
@@ -132,7 +136,7 @@
     rules: () => [],
   });
 
-  const emit = defineEmits<Emits>();
+  const emits = defineEmits<Emits>();
 
   const modelValue = defineModel<T>({
     default: '' as T,
@@ -163,7 +167,7 @@
   const localNewList: SelectOption<T>[] = [];
 
   let localTotalList: SelectOption<T>[] = [];
-  let isInputValueChanged = false;
+  let isInputOrSelectValueChanged = false;
 
   watch(
     () => props.options,
@@ -244,99 +248,129 @@
     return [...sortOptionList(prefixList), ...sortOptionList(containsList)];
   };
 
+  /**
+   * 悬浮第一个选项
+   */
+  const handleHoverFirstOption = () => {
+    const firstOption = selectRef.value?.contentRef?.querySelector('.bk-select-option') as HTMLElement | null;
+    firstOption?.dispatchEvent(new MouseEvent('mouseenter', { bubbles: true }));
+  };
+
   const handleAddNewOption = () => {
     handleEnterInput(inputValue.value as T);
+    nextTick(() => {
+      selectRef.value?.hidePopover();
+    });
   };
 
   const handleTriggerClick = (e: MouseEvent) => {
-    if (selectRef.value?.isFocus) {
+    if (selectRef.value?.isFocus && selectRef.value?.isPopoverShow) {
       e.stopPropagation();
+      return;
     }
   };
 
-  const handleBlurInput = async () => {
-    if (!isInputValueChanged) {
-      return;
-    }
-
-    isInputValueChanged = false;
-    const value = inputValue.value as T;
-    const existOption = localList.value.find((item) => item.label === value);
-    if (!value || existOption) {
-      if (existOption) {
-        modelValue.value = existOption.value as T;
-        emit('change', existOption.value as T, false);
+  const handleFocusInput = () => {
+    setTimeout(() => {
+      if (selectRef.value?.isFocus && selectRef.value?.isPopoverShow) {
+        return;
       }
+      selectRef.value?.showPopover();
+    }, 100);
+  };
+
+  const handleBlurInput = () => {
+    selectRef.value!.hidePopover();
+    selectRef.value!.isFocus = false;
+    setTimeout(async () => {
+      if (isInputOrSelectValueChanged) {
+        isInputOrSelectValueChanged = false;
+        return;
+      }
+
+      const value = inputValue.value as T;
+      const existOption = localList.value.find((item) => item.label === value);
+      if (!value || existOption) {
+        if (existOption) {
+          modelValue.value = existOption.value as T;
+          emits('change', existOption.value as T, false);
+        }
+
+        localList.value = _.cloneDeep(localTotalList);
+        isExistdInList.value = true;
+        return;
+      }
+
+      const isValid = await handleValidate();
+      if (!isValid) {
+        return;
+      }
+
+      localNewList.unshift({
+        isNew: true,
+        label: String(value),
+        value: value as any,
+      });
+      localTotalList = [...props.options, ...localNewList];
 
       localList.value = _.cloneDeep(localTotalList);
       isExistdInList.value = true;
-      return;
-    }
-
-    const isValid = await handleValidate();
-    if (!isValid) {
-      return;
-    }
-
-    localNewList.unshift({
-      isNew: true,
-      label: String(value),
-      value: value as any,
+      modelValue.value = value;
+      emits('change', value, true);
     });
-    localTotalList = [...props.options, ...localNewList];
-
-    localList.value = _.cloneDeep(localTotalList);
-    isExistdInList.value = true;
-    modelValue.value = value;
-    emit('change', value, true);
   };
 
   const handleEnterInput = async (value: T) => {
-    if (!isInputValueChanged) {
+    if (isInputOrSelectValueChanged) {
+      isInputOrSelectValueChanged = false;
       return;
     }
 
-    isInputValueChanged = false;
-    const existOption = localList.value.find((item) => item.label === value);
-    if (!value || existOption) {
-      if (existOption) {
-        modelValue.value = existOption.value as T;
-        emit('change', existOption.value as T, false);
+    try {
+      const existOption = localList.value.find((item) => item.label === value);
+      if (!value || existOption) {
+        if (existOption) {
+          modelValue.value = existOption.value as T;
+          emits('change', existOption.value as T, false);
+        }
+
+        localList.value = _.cloneDeep(localTotalList);
+        isExistdInList.value = true;
+        return;
       }
 
+      if (localList.value.length) {
+        const defaultOption = localList.value[0];
+        modelValue.value = defaultOption.value as T;
+        isExistdInList.value = true;
+        emits('change', defaultOption.value as T, false);
+        return;
+      }
+
+      const isValid = await handleValidate();
+      if (!isValid) {
+        return;
+      }
+
+      localNewList.unshift({
+        isNew: true,
+        label: String(value),
+        value: value as any,
+      });
+      localTotalList = [...props.options, ...localNewList];
       localList.value = _.cloneDeep(localTotalList);
       isExistdInList.value = true;
-      return;
+      modelValue.value = value;
+      emits('change', value, true);
+    } finally {
+      nextTick(() => {
+        selectRef.value?.hidePopover();
+      });
     }
-
-    if (localList.value.length) {
-      const defaultOption = localList.value[0];
-      modelValue.value = defaultOption.value as T;
-      isExistdInList.value = true;
-      emit('change', defaultOption.value as T, false);
-      return;
-    }
-
-    const isValid = await handleValidate();
-    if (!isValid) {
-      return;
-    }
-
-    localNewList.unshift({
-      isNew: true,
-      label: String(value),
-      value: value as any,
-    });
-    localTotalList = [...props.options, ...localNewList];
-
-    localList.value = _.cloneDeep(localTotalList);
-    isExistdInList.value = true;
-    modelValue.value = value;
-    emit('change', value, true);
   };
 
-  const handleInputValue = async (value: T) => {
-    isInputValueChanged = true;
+  const handleInputValue = (value: T) => {
+    // isInputOrSelectValueChanged = true;
     modelValue.value = value;
     nextTick(async () => {
       if (!value) {
@@ -348,21 +382,48 @@
       const isValid = await handleValidate();
       if (!isValid) {
         isExistdInList.value = true;
+        localList.value = [];
         return;
       }
 
       isExistdInList.value = localTotalList.some((item) => item.label === value);
       localList.value = filterAndSortOptionList(_.cloneDeep(localTotalList), String(value));
+      nextTick(() => {
+        handleHoverFirstOption();
+      });
     });
   };
 
-  const handleChange = (value: T) => {
+  const handleChange = (value: T, isAutoChanged = true) => {
+    isExistdInList.value = true;
+    isInputOrSelectValueChanged = isAutoChanged;
     handleValidate();
     modelValue.value = value;
     const option = localList.value.find((item) => item.value === value);
     inputValue.value = option?.label ?? '';
     const isNew = !!option?.isNew;
-    emit('change', value, isNew);
+    emits('change', value, isNew);
+  };
+
+  const handleKeyDown = (_value: string, e: KeyboardEvent) => {
+    const currentIndex = localList.value.findIndex((item) => item.value === modelValue.value);
+    if (e.key === 'ArrowDown') {
+      if (currentIndex < localList.value.length - 1) {
+        const nextValue = localList.value[currentIndex + 1].value;
+        handleChange(nextValue as T, false);
+      }
+    }
+
+    if (e.key === 'ArrowUp') {
+      if (currentIndex === 0) {
+        return;
+      }
+
+      if (currentIndex > 0) {
+        const prevValue = localList.value[currentIndex - 1].value;
+        handleChange(prevValue as T, false);
+      }
+    }
   };
 
   defineExpose<Exposes<T>>({
@@ -447,6 +508,12 @@
         display: flex;
         width: 100%;
         flex-direction: column;
+
+        &.is-only-create-option {
+          border: 1px solid #dcdee5;
+          border-radius: 2px;
+          box-shadow: 0 2px 6px 0 rgb(0 0 0 / 10%);
+        }
 
         .add-new-option-main {
           display: flex;
