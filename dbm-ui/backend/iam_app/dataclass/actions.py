@@ -133,7 +133,6 @@ class ActionEnum:
             CommonActionLabel.TENDBCLUSTER_AUTHORIZE_RULES,
             CommonActionLabel.TENDBCLUSTER_IMPORT_SQLFILE,
             CommonActionLabel.EXTERNAL_DEVELOPER,
-            CommonActionLabel.SQLSERVER_PRIV_MANAGE,
         ],
     )
 
@@ -2323,10 +2322,10 @@ class ActionEnum:
         description=_("管理集群的账号和权限模板"),
         type="manage",
         related_actions=[DB_MANAGE.id],
-        related_resource_types=[ResourceEnum.SQLSERVER],
+        related_resource_types=[ResourceEnum.BUSINESS, ResourceEnum.SQLSERVER],
         group=_("SQLServer"),
         subgroup=_("权限管理"),
-        common_labels=[CommonActionLabel.BIZ_MAINTAIN, CommonActionLabel.SQLSERVER_PRIV_MANAGE],
+        common_labels=[CommonActionLabel.BIZ_MAINTAIN],
     )
 
     SQLSERVER_CREATE_ACCOUNT = ActionMeta(
@@ -2334,11 +2333,11 @@ class ActionEnum:
         name=_("SQLServer 账号创建"),
         name_en="sqlserver_account_create",
         type="create",
-        related_actions=[SQLSERVER_PRIV_MANAGE.id],
+        related_actions=[],
         related_resource_types=[ResourceEnum.BUSINESS],
         group=_("SQLServer"),
         subgroup=_("权限管理"),
-        common_labels=[CommonActionLabel.BIZ_MAINTAIN, CommonActionLabel.SQLSERVER_PRIV_MANAGE],
+        common_labels=[CommonActionLabel.BIZ_MAINTAIN],
     )
 
     SQLSERVER_DELETE_ACCOUNT = ActionMeta(
@@ -2346,11 +2345,11 @@ class ActionEnum:
         name=_("SQLServer 删除账号"),
         name_en="sqlserver_account_delete",
         type="delete",
-        related_actions=[SQLSERVER_PRIV_MANAGE.id],
+        related_actions=[],
         related_resource_types=[ResourceEnum.SQLSERVER_ACCOUNT],
         group=_("SQLServer"),
         subgroup=_("权限管理"),
-        common_labels=[CommonActionLabel.BIZ_MAINTAIN, CommonActionLabel.SQLSERVER_PRIV_MANAGE],
+        common_labels=[CommonActionLabel.BIZ_MAINTAIN],
     )
 
     SQLSERVER_ADD_ACCOUNT_RULE = ActionMeta(
@@ -2358,11 +2357,11 @@ class ActionEnum:
         name=_("SQLServer 账号规则创建"),
         name_en="sqlserver_add_account_rule",
         type="create",
-        related_actions=[DB_MANAGE.id, SQLSERVER_PRIV_MANAGE.id],
+        related_actions=[DB_MANAGE.id],
         related_resource_types=[ResourceEnum.SQLSERVER_ACCOUNT],
         group=_("SQLServer"),
         subgroup=_("权限管理"),
-        common_labels=[CommonActionLabel.BIZ_MAINTAIN, CommonActionLabel.SQLSERVER_PRIV_MANAGE],
+        common_labels=[CommonActionLabel.BIZ_MAINTAIN],
     )
 
     SQLSERVER_ACCOUNT_RULES_VIEW = ActionMeta(
@@ -2382,11 +2381,11 @@ class ActionEnum:
         name=_("SQLServer 集群授权"),
         name_en="sqlserver_authorize_rules",
         type="execute",
-        related_actions=[DB_MANAGE.id, SQLSERVER_PRIV_MANAGE.id],
+        related_actions=[DB_MANAGE.id],
         related_resource_types=[ResourceEnum.SQLSERVER_ACCOUNT, ResourceEnum.SQLSERVER],
         group=_("SQLServer"),
         subgroup=_("权限管理"),
-        common_labels=[CommonActionLabel.BIZ_MAINTAIN, CommonActionLabel.SQLSERVER_PRIV_MANAGE],
+        common_labels=[CommonActionLabel.BIZ_MAINTAIN],
     )
 
     SQLSERVER_EXCEL_AUTHORIZE_RULES = ActionMeta(
@@ -2398,7 +2397,7 @@ class ActionEnum:
         related_resource_types=[ResourceEnum.BUSINESS],
         group=_("SQLServer"),
         subgroup=_("权限管理"),
-        common_labels=[CommonActionLabel.BIZ_MAINTAIN, CommonActionLabel.SQLSERVER_PRIV_MANAGE],
+        common_labels=[CommonActionLabel.BIZ_MAINTAIN],
     )
 
     SQLSERVER_ENABLE_DISABLE = ActionMeta(
