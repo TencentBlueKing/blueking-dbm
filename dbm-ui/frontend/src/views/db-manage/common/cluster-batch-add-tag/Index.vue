@@ -17,7 +17,7 @@
     class="cluster-batch-add-tag-main"
     :close-icon="false"
     :confirm-button-disable-info="{
-      disabled: !selectedClusters.length,
+      disabled: !selectedClusters.length || !isAbleToAddTags,
       tooltips: { content: '', disabled: true },
     }"
     :confirm-handler="handleConfirm"
@@ -41,47 +41,63 @@
             class="alert-tip"
             closable
             theme="warning"
-            :title="t('为集群添加标签，若标签键存在则新添加，已存在则忽略')" />
+            :title="t('为选中集群添加标签，若标签键不存在则新添加，已存在则跳过')" />
           <div class="operation-main">
             <TagOperation
               ref="tagOperationRef"
-              :allow-key-value-empty="false" />
+              :allow-key-value-empty="false"
+              @change="checkValidTags" />
           </div>
         </div>
       </template>
       <template #aside>
         <div class="preview-operate-main">
           <div class="title-main">
-            <span>{{ t('已选集群') }}</span>
+            <span>{{ t('受影响集群') }}</span>
             【
             <I18nT
               keypath="共n个"
               tag="span">
-              <span style="color: #3a84ff">{{ selectedClusters.length }}</span>
+              <span style="color: #3a84ff">{{ selectedClusters.length - filterClusterIds.length }}</span>
             </I18nT>
             】
           </div>
+          <div
+            v-if="filterClusterIds.length"
+            class="skip-tag-main">
+            <BkAlert
+              theme="warning"
+              :title="t('已自动跳过 n 个集群：包含同名标签键', { n: filterClusterIds.length })" />
+          </div>
           <div class="cluster-list-main">
-            <div
-              v-for="(item, index) in selectedClusters"
-              :key="item.id"
-              class="cluster-item">
+            <template v-if="validClusters.length">
               <div
-                v-overflow-tips
-                class="cluster-name">
-                {{ item.masterDomain }}
+                v-for="item in validClusters"
+                :key="item.id"
+                class="cluster-item">
+                <div
+                  v-overflow-tips
+                  class="cluster-name">
+                  {{ item.masterDomain }}
+                </div>
+                <DbIcon
+                  class="operate-icon"
+                  style="font-size: 14px"
+                  type="copy"
+                  @click="() => execCopy(item.masterDomain)" />
+                <!-- <DbIcon
+                  class="operate-icon ml-6"
+                  style="font-size: 18px"
+                  type="close"
+                  @click="() => handleRemoveCluster(index)" /> -->
               </div>
-              <DbIcon
-                class="operate-icon"
-                style="font-size: 14px"
-                type="copy"
-                @click="() => execCopy(item.masterDomain)" />
-              <DbIcon
-                class="operate-icon ml-6"
-                style="font-size: 18px"
-                type="close"
-                @click="() => handleRemoveCluster(index)" />
-            </div>
+            </template>
+            <BkException
+              v-else
+              class="exception-main"
+              scene="part"
+              :title="t('选中的集群均已包含同名标签键，无需操作')"
+              type="empty" />
           </div>
         </div>
       </template>
@@ -89,6 +105,7 @@
   </DbDialog>
 </template>
 <script setup lang="tsx">
+  import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
@@ -116,6 +133,17 @@
 
   const tagOperationRef = ref<InstanceType<typeof TagOperation>>();
   const selectedClusters = ref<NonNullable<Props['selected']>>([]);
+  /** 跳过的集群ID */
+  const filterClusterIds = ref<number[]>([]);
+  const isAbleToAddTags = ref(false);
+
+  const validClusters = computed(() => {
+    if (!filterClusterIds.value.length) {
+      return selectedClusters.value;
+    }
+
+    return selectedClusters.value.filter((item) => !filterClusterIds.value.includes(item.id));
+  });
 
   const { runAsync: handleAddClusterTagKeys } = useRequest(addClusterTagKeys, {
     manual: true,
@@ -137,26 +165,65 @@
     },
   );
 
-  const handleRemoveCluster = (index: number) => {
-    selectedClusters.value.splice(index, 1);
-  };
+  // const handleRemoveCluster = (index: number) => {
+  //   selectedClusters.value.splice(index, 1);
+  // };
 
   const handleClose = () => {
     isShow.value = false;
   };
 
-  const handleConfirm = async () => {
+  const checkValidTags = async () => {
     const tagsInfo = await tagOperationRef.value!.getValue();
     if (!tagsInfo) {
-      return Promise.reject();
+      isAbleToAddTags.value = false;
+      return null;
     }
 
+    filterClusterIds.value = [];
     const tags = tagsInfo.map((item) => ({
       [item.key]: item.value,
     }));
+    const clusterIdTagsMap = selectedClusters.value.reduce<Record<string, Record<string, string>>>((result, item) => {
+      Object.assign(result, {
+        [item.id]: item.tags.reduce<Record<string, string>>((tagsResult, tag) => {
+          Object.assign(tagsResult, {
+            [tag.key]: tag.value,
+          });
+          return tagsResult;
+        }, {}),
+      });
+      return result;
+    }, {});
+    const tagsKeys = tags.map((tag) => Object.keys(tag)[0]);
+    Object.entries(clusterIdTagsMap).forEach(([clusterId, tagsObj]) => {
+      if (tagsKeys.every((tagKey) => tagKey in tagsObj)) {
+        filterClusterIds.value.push(Number(clusterId));
+      }
+    });
+    const clusterIds = selectedClusters.value.map((item) => item.id);
+    if (filterClusterIds.value.length === selectedClusters.value.length) {
+      isAbleToAddTags.value = false;
+      return null;
+    }
+
+    isAbleToAddTags.value = true;
+    return {
+      clusterIds: _.difference(clusterIds, filterClusterIds.value),
+      tags,
+    };
+  };
+
+  const handleConfirm = async () => {
+    const result = await checkValidTags();
+    if (!result) {
+      return Promise.reject();
+    }
+
+    const { clusterIds, tags } = result;
     handleAddClusterTagKeys({
       bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
-      cluster_ids: selectedClusters.value.map((item) => item.id),
+      cluster_ids: clusterIds,
       tags,
     });
   };
@@ -215,11 +282,23 @@
             align-items: center;
           }
 
+          .skip-tag-main {
+            padding: 0 24px;
+            margin-top: 8px;
+          }
+
           .cluster-list-main {
             padding: 0 24px;
-            margin: 16px 0;
+            margin: 8px 0 16px;
             overflow-y: auto;
             flex: 1;
+
+            .exception-main {
+              .bk-exception-title {
+                font-size: 12px;
+                color: #63656e;
+              }
+            }
 
             .cluster-item {
               display: flex;

@@ -7,7 +7,8 @@
       :over-max-length-limit="false"
       :placeholder="placeholder"
       :resize="false"
-      type="textarea" />
+      type="textarea"
+      @blur="handleBlurTextarea" />
     <div
       v-if="errorTipList.length > 0"
       class="error-tip">
@@ -39,9 +40,13 @@
     getValue: (isIgnoreVerify?: boolean) => TagsPairType[] | null;
   }
 
+  type Emits = (e: 'change') => void;
+
   const props = withDefaults(defineProps<Props>(), {
     data: undefined,
   });
+
+  const emit = defineEmits<Emits>();
 
   const { t } = useI18n();
 
@@ -201,6 +206,19 @@
     }
 
     return pairInfo;
+  };
+
+  // 自动 trim：前后空白符、冒号左右空白符均自动清理。如 `  k : v  ` 自动规范为 `k:v`
+  const handleBlurTextarea = () => {
+    const pairStrList = localValue.value.trim().split(/\n/);
+    const validPairRegex = /[:：/]/;
+    let tmpStr = '';
+    pairStrList.forEach((item) => {
+      const [key, value] = item.split(validPairRegex);
+      tmpStr += `${key.trim()}:${value.trim()}\n`;
+    });
+    localValue.value = tmpStr.trim();
+    emit('change');
   };
 
   onMounted(() => {

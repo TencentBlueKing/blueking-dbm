@@ -46,7 +46,9 @@
       return;
     }
 
-    const inputList = _.flatMap(value.map((item) => item.split(/[,，;；|｜]/))).filter((item) => !!item.trim());
+    const inputList = _.flatMap(
+      value.map((item) => item.split(/[,，;；|｜]/).map((innerItem) => innerItem.trim())),
+    ).filter((item) => !!item.trim());
     modelValue.value = inputList;
 
     const inputValueMap: Record<string, boolean> = {};
