@@ -51,7 +51,7 @@ func (tf *TmysqlParseFile) DoParseRelationDbs(version string) (createDbs, relati
 		}
 	}
 	logger.Info("all sql files download ok ~")
-	executedSqlFileChan := make(chan string, len(tf.Param.FileNames))
+	executedSqlFileChan := make(chan string, len(tf.uniqueFileNames()))
 	go func() {
 		if err = tf.Execute(executedSqlFileChan, version); err != nil {
 			logger.Error("failed to execute tmysqlparse: %s", err.Error())
@@ -225,7 +225,7 @@ func (t *TmysqlParse) analyzeRelationDbs(inputfileName, mysqlVersion string) (
 // ParseSpecialTbls parse special tables
 func (tf *TmysqlParseFile) ParseSpecialTbls(mysqlVersion string) (relationTbls []RelationTbl, err error) {
 	m := make(map[string][]string)
-	for _, fileName := range tf.Param.FileNames {
+	for _, fileName := range tf.uniqueFileNames() {
 		mm, err := tf.parseSpecialSQLFile(fileName, mysqlVersion)
 		if err != nil {
 			logger.Error("parseAlterSQLFile failed %s", err.Error())
