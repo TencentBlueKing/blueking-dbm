@@ -53,7 +53,7 @@ type InstallEsParams struct {
 	DbType         string          `json:"db_type"`
 	ServiceType    string          `json:"service_type"`
 	RackID         string          `json:"rack_id"`     // 机架id
-	IdcID          string          `json:"idc_id"`      // 机房id
+	IdcID          int             `json:"idc_id"`      // 机房id, cmdb中定义此字段为int
 	SubZoneID      string          `json:"sub_zone_id"` // 园区id
 	PluginList     []string        `json:"plugin_list"` // 插件列表
 }
@@ -79,7 +79,7 @@ type ESYaml struct {
 	NodeName                              string `yaml:"node.name"`    // node.name
 	NodeAttrTag                           string `yaml:"node.attr.tag"`
 	NodeAttrRackID                        string `yaml:"node.attr.rack_id"`     // 机架id
-	NodeAttrIdcID                         string `yaml:"node.attr.idc_id"`      // 机房id
+	NodeAttrIdcID                         int    `yaml:"node.attr.idc_id"`      // 机房id
 	NodeAttrSubZoneID                     string `yaml:"node.attr.sub_zone_id"` //园区id
 	NetworkHost                           string `yaml:"network.host"`          // network.host
 	NetworkPublishhost                    string `yaml:"network.publish_host"`  // network.publish_host
