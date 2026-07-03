@@ -34,16 +34,16 @@
               class="tool-group-icon"
               :type="menuItem.icon" />
             <div class="tool-group-name ml-4">{{ menuItem.name }}</div>
-            <div
+            <!-- <div
               v-if="menuItem.id === 'favor'"
               class="tool-group-desc">
               {{ t('· 按收藏时间倒序 · 跨业务空间保留') }}
-            </div>
-            <div
+            </div> -->
+            <!-- <div
               v-if="menuItem.id === 'used'"
               class="tool-group-desc">
               {{ t('· 按使用时间倒序 · 跨业务空间保留') }}
-            </div>
+            </div> -->
           </div>
           <template #content>
             <template v-if="hasChildGroups(menuItem)">
