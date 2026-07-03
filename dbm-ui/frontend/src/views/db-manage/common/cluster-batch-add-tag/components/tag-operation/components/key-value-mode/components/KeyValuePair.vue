@@ -66,6 +66,7 @@
     (e: 'add'): void;
     (e: 'delete'): void;
     (e: 'selectKey'): void;
+    (e: 'change'): void;
   }
 
   interface Exposes {
@@ -188,6 +189,7 @@
     isKeyNewCreated = isNew;
     pairInfo.value.value = '';
     emits('selectKey');
+    emits('change');
   };
 
   const handleValueChange = (value: string, isNew: boolean) => {
@@ -198,6 +200,7 @@
       const valueItem = valueList.value.find((item) => item.value === value)!;
       pairInfo.value.value = valueItem.value;
     }
+    emits('change');
   };
 
   const handleAdd = () => {
