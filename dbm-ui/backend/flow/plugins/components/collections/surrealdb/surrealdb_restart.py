@@ -12,10 +12,12 @@ specific language governing permissions and limitations under the License.
 import logging.config
 from typing import List
 
+from django.utils.translation import gettext as _
 from pipeline.component_framework.component import Component
 from pipeline.core.flow.activity import Service
 
 from backend.components import KubernetesApi
+from backend.exceptions import ApiRequestError, ApiResultError
 from backend.flow.plugins.components.collections.common.base_service import BaseService
 from backend.flow.plugins.components.collections.surrealdb.utils import fetch_cluster_detail
 
@@ -40,7 +42,12 @@ class RestartSurrealDBService(BaseService):
             "async_to_dbm": False,
             "bk_username": global_data["created_by"],
         }
-        KubernetesApi.restart_cluster(params, use_admin=True)
+        # 调用 dbs 接口重启集群
+        try:
+            KubernetesApi.restart_cluster(params, use_admin=True)
+        except (ApiRequestError, ApiResultError) as e:
+            self.log_error(_("重启 surrealdb 集群[{}]失败: {}").format(cluster_detail["clusterName"], e))
+            return False
         return True
 
     def inputs_format(self) -> List:

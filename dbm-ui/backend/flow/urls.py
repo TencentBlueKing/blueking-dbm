@@ -295,6 +295,7 @@ from backend.flow.views.sqlserver import (
     SqlserverSQLFileExecuteSceneApiView,
     SqlserverStandardizationSceneApiView,
 )
+from backend.flow.views.surrealdb_destroy import DestroySurrealDBSceneApiView
 from backend.flow.views.surrealdb_disable import DisableSurrealDBSceneApiView
 from backend.flow.views.surrealdb_enable import EnableSurrealDBSceneApiView
 from backend.flow.views.surrealdb_restart import RestartSurrealDBSceneApiView
@@ -664,4 +665,5 @@ urlpatterns = [
     url(r"^scene/restart_k8s_surrealdb$", RestartSurrealDBSceneApiView.as_view()),
     url(r"^scene/disable_k8s_surrealdb$", DisableSurrealDBSceneApiView.as_view()),
     url(r"^scene/enable_k8s_surrealdb$", EnableSurrealDBSceneApiView.as_view()),
+    url(r"^scene/delete_k8s_surrealdb$", DestroySurrealDBSceneApiView.as_view()),
 ]

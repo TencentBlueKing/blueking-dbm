@@ -45,7 +45,7 @@ class EnableSurrealDBService(BaseService):
 
         try:
             KubernetesApi.enable_cluster(params, use_admin=True)
-        except (ApiResultError, ApiRequestError) as e:
+        except (ApiRequestError, ApiResultError) as e:
             self.log_error(_("启用 surrealdb 集群[{}]失败: {}").format(cluster_detail["clusterName"], e))
             return False
 
