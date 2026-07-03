@@ -103,7 +103,7 @@ class BaseSQLServerViewSet(viewsets.ResourceViewSet):
         ActionEnum.SQLSERVER_DBCONFIG_EDIT,
     ]
     list_instance_perm_actions = [ActionEnum.SQLSERVER_VIEW]
-    list_external_perm_actions = [ActionEnum.ACCESS_ENTRY_EDIT]
+    list_external_perm_actions = [ActionEnum.ACCESS_ENTRY_EDIT, ActionEnum.SQLSERVER_PRIV_MANAGE]
 
     @staticmethod
     def _external_perm_param_field(kwargs):
