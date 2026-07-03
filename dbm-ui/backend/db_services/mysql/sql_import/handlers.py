@@ -145,6 +145,15 @@ class SQLHandler(object):
                 execute["line_id"] = index
                 # 替换execute_objects中sql_files的文件名
                 execute["sql_files"] = file_name_list
+        print(
+            {
+                "path": dir_name,
+                "files": file_name_list,
+                "cluster_type": self.cluster_type,
+                "versions": versions,
+                "execute_objects": execute_objects,
+            }
+        )
 
         check_info = SQLSimulationApi.grammar_check(
             params={
