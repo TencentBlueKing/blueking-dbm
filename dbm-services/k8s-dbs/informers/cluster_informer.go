@@ -23,6 +23,7 @@ package informers
 import (
 	"context"
 	"fmt"
+	"k8s-dbs/infrastructure/thirdapi"
 	infrautil "k8s-dbs/infrastructure/util"
 
 	kbtypes "github.com/apecloud/kbcli/pkg/types"
@@ -34,8 +35,6 @@ import (
 
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
-
-	"k8s-dbs/infrastructure/thirdapi"
 
 	appsv1 "github.com/apecloud/kubeblocks/apis/apps/v1alpha1"
 	"k8s.io/client-go/dynamic/dynamicinformer"
@@ -131,7 +130,8 @@ func (o *ClusterInformer) OnUpdate(_, newObj interface{}) {
 	phase := cluster.Status.Phase
 	switch phase {
 	case appsv1.AbnormalClusterPhase,
-		appsv1.FailedClusterPhase:
+		appsv1.FailedClusterPhase,
+		appsv1.UpdatingClusterPhase:
 		infrautil.AsyncClusterAbnormal(entity, thirdapi.GetDbmAPIService())
 	case appsv1.RunningClusterPhase:
 		infrautil.AsyncClusterNormal(entity, thirdapi.GetDbmAPIService())

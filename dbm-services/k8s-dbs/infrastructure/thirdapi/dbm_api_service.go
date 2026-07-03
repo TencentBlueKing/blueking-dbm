@@ -143,6 +143,14 @@ func (d *DbmAPIService) SyncClusterUpdated(request *infreq.UpdateClusterRequest)
 	return d.sendDBMRequest(url, request)
 }
 
+// SyncClusterStatusUpdated 同步集群状态更新到 DBM
+func (d *DbmAPIService) SyncClusterStatusUpdated(
+	request *infreq.UpdateClusterStatusRequest,
+) (infresp.DbmAPIResponse, error) {
+	url := fmt.Sprintf("http://%s/apis/proxypass/k8s/domain/update_cluster_status/", d.syncDataAPIURL)
+	return d.sendDBMRequest(url, request)
+}
+
 // SyncClusterDeleted 同步集群下架到 DBM
 func (d *DbmAPIService) SyncClusterDeleted(request *infreq.DeleteClusterRequest) (infresp.DbmAPIResponse, error) {
 	url := fmt.Sprintf("http://%s/apis/proxypass/k8s/cluster/delete/", d.syncDataAPIURL)
