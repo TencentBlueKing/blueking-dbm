@@ -48,6 +48,13 @@ type UpdateClusterRequest struct {
 	ClusterEntryType string `json:"cluster_entry_type"`
 }
 
+// UpdateClusterStatusRequest 更新集群状态
+type UpdateClusterStatusRequest struct {
+	ClusterID uint64 `json:"cluster_id"`
+	Phase     string `json:"phase"`
+	Status    string `json:"status"`
+}
+
 // DeleteClusterRequest 删除集群请求
 type DeleteClusterRequest struct {
 	Name        string `json:"name"`

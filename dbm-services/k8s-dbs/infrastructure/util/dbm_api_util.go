@@ -359,7 +359,7 @@ func syncClusterWithCtx(
 		coreconst.OperationVolumeExpand,
 		coreconst.OperationStatusNormal,
 		coreconst.OperationStatusAbnormal:
-		return syncClusterUpdate(clusterEntity, dbmAPIService, dbmClusterType, operation)
+		return syncClusterStatusUpdate(clusterEntity, dbmAPIService, operation)
 	default:
 		return fmt.Errorf("不支持的同步操作类型: %s", operation)
 	}
@@ -367,7 +367,7 @@ func syncClusterWithCtx(
 
 // getPhaseByOperation 根据操作类型获取对应的phase值
 func getPhaseByOperation(operation coreconst.ClusterOperationType) coreconst.ClusterPhase {
-	if operation == coreconst.OperationStatusAbnormal {
+	if operation == coreconst.OperationStop {
 		return coreconst.PhaseOffline
 	}
 	return coreconst.PhaseOnline
@@ -402,18 +402,16 @@ func syncClusterDelete(
 	return handleSyncResponse(err, response, "删除", clusterEntity.ClusterName)
 }
 
-// syncClusterUpdate 同步集群更新操作
-func syncClusterUpdate(
+// syncClusterStatusUpdate 同步集群状态更新操作
+func syncClusterStatusUpdate(
 	clusterEntity *metaentity.K8sCrdClusterEntity,
 	dbmAPIService *thirdapi.DbmAPIService,
-	dbmClusterType string,
 	operation coreconst.ClusterOperationType,
 ) error {
 	phase := getPhaseByOperation(operation)
 	status := getStatusByOperation(operation)
-	// 目前仅支持 CLB
-	syncRequest := buildUpdateRequest(clusterEntity, dbmClusterType, phase, status, ClusterEntryTypeCLB)
-	response, err := dbmAPIService.SyncClusterUpdated(syncRequest)
+	syncRequest := buildUpdateStatusRequest(clusterEntity, phase, status)
+	response, err := dbmAPIService.SyncClusterStatusUpdated(syncRequest)
 	return handleSyncResponse(err, response, "更新", clusterEntity.ClusterName)
 }
 
@@ -452,34 +450,16 @@ func BuildCreateRequest(
 	}
 }
 
-// buildUpdateRequest 构建更新请求
-func buildUpdateRequest(
+// buildUpdateStatusRequest 构建更新请求
+func buildUpdateStatusRequest(
 	clusterEntity *metaentity.K8sCrdClusterEntity,
-	dbmClusterType string,
 	phase coreconst.ClusterPhase,
 	status coreconst.ClusterStatus,
-	entryType ClusterEntryType,
-) *infreq.UpdateClusterRequest {
-	domain := clusterEntity.VIP
-	if domain == "" {
-		domain = fmt.Sprintf("%d_%s_%s", clusterEntity.BkBizID, dbmClusterType, clusterEntity.ClusterName)
-	}
-	alias := clusterEntity.ClusterAlias
-	if alias == "" {
-		alias = clusterEntity.ClusterName
-	}
-	return &infreq.UpdateClusterRequest{
-		Name:             clusterEntity.ClusterName,
-		Alias:            alias,
-		BkBizID:          clusterEntity.BkBizID,
-		ClusterType:      dbmClusterType,
-		ImmuteDomain:     domain,
-		MajorVersion:     clusterEntity.ServiceVersion,
-		Phase:            string(phase),
-		Status:           string(status),
-		Region:           "default",
-		Operator:         clusterEntity.UpdatedBy,
-		ClusterEntryType: string(entryType),
+) *infreq.UpdateClusterStatusRequest {
+	return &infreq.UpdateClusterStatusRequest{
+		ClusterID: clusterEntity.DbmClusterID,
+		Phase:     string(phase),
+		Status:    string(status),
 	}
 }
 
