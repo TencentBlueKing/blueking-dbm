@@ -22975,6 +22975,22 @@ msgstr "Failed to disable surrealdb cluster[{}]: {}"
 msgid "启用 surrealdb 集群[{}]失败: {}"
 msgstr "Failed to enable surrealdb cluster[{}]: {}"
 
+#: backend/flow/plugins/components/collections/surrealdb/surrealdb_restart.py
+msgid "重启 surrealdb 集群[{}]失败: {}"
+msgstr "Failed to restart surrealdb cluster[{}]: {}"
+
+#: backend/flow/plugins/components/collections/surrealdb/surrealdb_destroy.py
+msgid "关闭集群[{}]删除保护失败: {}"
+msgstr "Failed to disable deletion protection of cluster[{}]: {}"
+
+#: backend/flow/plugins/components/collections/surrealdb/surrealdb_destroy.py
+msgid "删除 surrealdb 集群[{}]失败: {}"
+msgstr "Failed to delete surrealdb cluster[{}]: {}"
+
+#: backend/flow/plugins/components/collections/surrealdb/surrealdb_single/surrealdb_deploy_single.py
+msgid "部署 surrealdb 单机[{}]失败: {}"
+msgstr "Failed to deploy surrealdb single node[{}]: {}"
+
 #: backend/flow/views/surrealdb_disable.py
 msgid "开始禁用 K8s SurrealDB 场景"
 msgstr "Start disabling K8s SurrealDB scene"

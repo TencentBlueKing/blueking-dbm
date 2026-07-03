@@ -12,11 +12,13 @@ specific language governing permissions and limitations under the License.
 import logging.config
 from typing import List
 
+from django.utils.translation import gettext as _
 from pipeline.component_framework.component import Component
 from pipeline.core.flow.activity import Service
 
 import backend.flow.utils.surrealdb.surrealdb_context_dataclass as flow_context
 from backend.components import KubernetesApi
+from backend.exceptions import ApiRequestError, ApiResultError
 from backend.flow.plugins.components.collections.common.base_service import BaseService
 from backend.flow.utils.surrealdb.consts import NAMESPACE_PREFIX, SINGLE_TAGS, SINGLE_TOPO_NAME, STORAGE_ADDON_TYPE
 
@@ -83,7 +85,11 @@ class DeploySurrealDBSingleService(BaseService):
                 "svcMonitor": {"enabled": True, "interval": "60s", "labels": {}},
             },
         }
-        KubernetesApi.create_cluster(params)
+        try:
+            KubernetesApi.create_cluster(params)
+        except (ApiRequestError, ApiResultError) as e:
+            self.log_error(_("部署 surrealdb 单机[{}]失败: {}").format(global_data["cluster_name"], e))
+            return False
         trans_data.namespace = namespace
         data.outputs["trans_data"] = trans_data
         return True

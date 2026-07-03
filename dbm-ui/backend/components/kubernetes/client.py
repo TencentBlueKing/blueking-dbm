@@ -130,6 +130,11 @@ class _KubernetesApi(BaseApi):
             url="/v4/dbs/cluster/update_dbm_cluster_id",
             description=_("回写集群ID"),
         )
+        self.partial_update_cluster = self.generate_data_api(
+            method="POST",
+            url="/v4/dbs/cluster/partial_update",
+            description=_("部分更新集群"),
+        )
         self.disable_cluster = self.generate_data_api(
             method="POST", url="/v4/dbs/opsRequest/stop", description=_("禁用集群")
         )

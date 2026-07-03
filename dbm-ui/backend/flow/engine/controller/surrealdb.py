@@ -8,6 +8,7 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+from backend.flow.engine.bamboo.scene.surrealdb.surrealdb_destroy_flow import K8sSurrealDBDestroyFlow
 from backend.flow.engine.bamboo.scene.surrealdb.surrealdb_disable_flow import K8sSurrealDBDisableFlow
 from backend.flow.engine.bamboo.scene.surrealdb.surrealdb_enable_flow import K8sSurrealDBEnableFlow
 from backend.flow.engine.bamboo.scene.surrealdb.surrealdb_restart_flow import K8sSurrealDBRestartFlow
@@ -52,6 +53,7 @@ class SurrealDBController(BaseController):
 
     def surrealdb_destroy_scene(self):
         """
-        SurrealDB 销毁流程
+        SurrealDB 下架流程
         """
-        pass
+        flow = K8sSurrealDBDestroyFlow(root_id=self.root_id, data=self.ticket_data)
+        flow.deploy_surrealdb_flow()
