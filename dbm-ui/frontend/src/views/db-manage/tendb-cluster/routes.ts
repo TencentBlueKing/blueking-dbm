@@ -93,6 +93,7 @@ const spiderToolboxRoute = {
     createRouteItem(TicketTypes.TENDBCLUSTER_RENAME_DATABASE, t('DB 重命名'), {
       dbConsole: 'tendbCluster.toolbox.dbRename',
     }),
+    // TODO 功能未合主分支，注释
     createRouteItem(TicketTypes.TENDBCLUSTER_DUMP_DATA, t('数据导出'), {
       dbConsole: 'tendbCluster.toolbox.dataExport',
     }),
@@ -129,12 +130,14 @@ const spiderToolboxRoute = {
     createRouteItem(TicketTypes.TENDBCLUSTER_SPIDER_SLAVE_APPLY, t('部署只读接入层'), {
       dbConsole: 'tendbCluster.toolbox.proxySlaveApply',
     }),
+    // TODO 功能未合主分支，注释
     createRouteItem(TicketTypes.TENDBCLUSTER_SPIDER_SLAVE_DESTROY, t('下架只读接入层'), {
       dbConsole: 'tendbCluster.toolbox.removeReadonlyNode',
     }),
     createRouteItem(TicketTypes.TENDBCLUSTER_SPIDER_MNT_APPLY, t('添加运维节点'), {
       dbConsole: 'tendbCluster.toolbox.addMnt',
     }),
+    // TODO 功能未合主分支，注释
     createRouteItem(TicketTypes.TENDBCLUSTER_SPIDER_MNT_DESTROY, t('下架运维节点'), {
       dbConsole: 'tendbCluster.toolbox.removeMNTNode',
     }),
@@ -168,10 +171,9 @@ const spiderToolboxRoute = {
     createRouteItem(TicketTypes.TENDBCLUSTER_FIXPOINT_NEW, t('构造'), {
       dbConsole: 'tendbCluster.toolbox.fixpointNew',
     }),
-    createRouteItem(TicketTypes.TENDBCLUSTER_ROLLBACK_CLUSTER, t('定点构造'), {
-      dbConsole: 'tendbCluster.toolbox.rollback',
-    }),
-
+    // createRouteItem(TicketTypes.TENDBCLUSTER_ROLLBACK_CLUSTER, t('定点构造'), {
+    //   dbConsole: 'tendbCluster.toolbox.rollback',
+    // }),
     createRouteItem(TicketTypes.TENDBCLUSTER_TRUNCATE_DATABASE, t('清档'), {
       dbConsole: 'tendbCluster.toolbox.dbClear',
     }),

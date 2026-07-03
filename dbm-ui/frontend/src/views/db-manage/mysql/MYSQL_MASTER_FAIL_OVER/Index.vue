@@ -16,6 +16,7 @@
     <BkAlert
       class="mb-20"
       closable
+      theme="warning"
       :title="t('Slave提升成主库_断开同步_切换后集成成单点状态_一般用于紧急切换')" />
     <div class="mb-16">
       <div class="title-spot mt-12 mb-10">{{ t('切换类型') }}<span class="required" /></div>
