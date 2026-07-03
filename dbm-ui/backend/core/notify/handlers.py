@@ -25,7 +25,7 @@ from backend.configuration.models import BizSettings
 from backend.core.notify.constants import MsgType
 from backend.core.notify.exceptions import NotifyBaseException
 from backend.core.notify.template import (
-    AI_SLOWLOG_ANALYSIS_TEMPLATE,
+    AI_MYSQL_ALARM_ANALYSIS_TEMPLATE,
     AI_TASK_GUARDIAN_TEMPLATE,
     FAILED_TEMPLATE,
     FINISHED_TEMPLATE,
@@ -438,20 +438,16 @@ class NotifyAdapter:
     def send_msg_for_ai_report(
         cls,
         bk_biz_id: int,
-        cluster_domain: str,
-        cluster_type: str,
-        time_window_start: str,
-        time_window_end: str,
+        base_info: dict,
+        title: str,
         ai_result: str,
         receivers: list = None,
     ):
         """
         告警触发 AI 分析后推送分析报告消息（不依赖单据）
         @param bk_biz_id: 业务ID
-        @param cluster_domain: 集群域名
-        @param cluster_type: 集群类型
-        @param time_window_start: 分析时间窗口开始
-        @param time_window_end: 分析时间窗口结束
+        @param base_info: 告警基本维度信息
+        @param title: 分析时间窗口开始
         @param ai_result: AI 分析结果
         @param receivers: 接收人列表，为空则使用业务协助人
         """
@@ -464,16 +460,16 @@ class NotifyAdapter:
             pass
 
         # 渲染通知内容
-        title = _("「DBM」：集群 {} 慢查询 AI 分析结果").format(cluster_domain)
         jinja_env = Environment()
-        template = jinja_env.from_string(AI_SLOWLOG_ANALYSIS_TEMPLATE)
+        template = jinja_env.from_string(AI_MYSQL_ALARM_ANALYSIS_TEMPLATE)
         content = textwrap.dedent(
             template.render(
                 biz_name=biz_name,
-                cluster_domain=cluster_domain,
-                cluster_type=cluster_type,
-                time_window_start=time_window_start,
-                time_window_end=time_window_end,
+                cluster_domain=base_info["cluster_domain"],
+                cluster_type=base_info["cluster_type"],
+                alarm_strategy=base_info["strategy_name"],
+                alarm_level=base_info["level"],
+                alarm_time=base_info["alarm_time"],
                 ai_result=ai_result,
             )
         )
@@ -510,25 +506,3 @@ def send_msg_for_ai_task_guardian(ticket_id: int, ai_result: str, deadline: int 
     # 可异步发送消息，非阻塞路径默认不抛出异常
     # AI单据值守消息通道专属
     NotifyAdapter(ticket_id, deadline).send_msg_of_ai_task_guardian(ai_result=ai_result)
-
-
-@shared_task
-def send_msg_for_ai_report(
-    bk_biz_id: int,
-    cluster_domain: str,
-    cluster_type: str,
-    time_window_start: str,
-    time_window_end: str,
-    ai_result: str,
-    receivers: list = None,
-):
-    """异步发送 AI 分析报告通知（告警触发场景，不依赖单据）"""
-    NotifyAdapter.send_msg_for_ai_report(
-        bk_biz_id=bk_biz_id,
-        cluster_domain=cluster_domain,
-        cluster_type=cluster_type,
-        time_window_start=time_window_start,
-        time_window_end=time_window_end,
-        ai_result=ai_result,
-        receivers=receivers,
-    )

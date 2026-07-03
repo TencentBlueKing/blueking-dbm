@@ -76,6 +76,7 @@ func (f *Flashback) Init() error {
 			Flashback:         true, // --flashback 模式
 			NotWriteBinlog:    false,
 			IdempotentMode:    true,
+			SkipGtids:         true,
 			StartTime:         f.TargetTime,
 			//StopTime:          f.StopTime,
 			Databases:       f.RecoverOpt.Databases,

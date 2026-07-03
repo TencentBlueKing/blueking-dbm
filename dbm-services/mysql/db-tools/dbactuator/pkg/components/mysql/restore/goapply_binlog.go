@@ -48,6 +48,7 @@ func (c *GoApplyBinlogComp) Example() interface{} {
 				StopTime:      "2022-11-05 22:00:01",
 				Idempotent:    true,
 				DisableLogBin: true,
+				SkipGtids:     true,
 				Databases:     []string{"db1", "db2"},
 				Tables:        []string{"tb1", "tb2"},
 			},

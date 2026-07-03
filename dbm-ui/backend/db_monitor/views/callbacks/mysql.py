@@ -106,14 +106,28 @@ class MySQLAlarm(AlarmCallback):
         callback_message = callback_data.get("callback_message", {})
         strategy_name = callback_message.get("strategy", {}).get("name", "")
         event_level = callback_message.get("event", {}).get("level")
+        alarm_time = callback_message.get("latest_anomaly_record", {}).get("create_time")
 
         # 优先从 dimensions 中获取 cluster_type，没有则通过 cluster_domain 查询
         dimensions = callback_message.get("event", {}).get("dimensions", {})
         cluster_domain = dimensions.get("cluster_domain", "")
         cluster_type = dimensions.get("cluster_type")
-        if not cluster_type and cluster_domain:
+        bk_biz_id = int(dimensions.get("bk_biz_id"))
+        if (not cluster_type or not bk_biz_id) and cluster_domain:
             cluster = Cluster.objects.filter(immute_domain=cluster_domain).first()
             cluster_type = cluster.cluster_type if cluster else None
+            bk_biz_id = cluster.bk_biz_id
+
+        alarm_base_info = {
+            "bk_biz_id": bk_biz_id,
+            "cluster_type": cluster_type,
+            "cluster_domain": cluster_domain,
+            "dimensions": dimensions,
+            "strategy_name": strategy_name,
+            "level": event_level,
+            "alarm_time": alarm_time,
+            "appointees": callback_data.get("appointees", []),
+        }
 
         for handler_name, conditions in cls.STRATEGY_HANDLERS.items():
             for condition in conditions:
@@ -131,7 +145,7 @@ class MySQLAlarm(AlarmCallback):
 
                 handler = globals().get(handler_name)
                 if handler:
-                    handler.delay(callback_data)
+                    handler.delay(callback_data, alarm_base_info)
                     logger.info(
                         _("[MySQLAlarm] 策略 '{}' (level={}, cluster_type={}) 分发到异步任务: {}").format(
                             strategy_name, event_level, cluster_type, handler_name
@@ -143,7 +157,7 @@ class MySQLAlarm(AlarmCallback):
 
 
 @shared_task
-def call_slowlog_ai_analysis(callback_data):
+def call_slowlog_ai_analysis(callback_data: dict, alarm_base_info: dict):
     """
     异步任务：告警触发 AI 慢查询分析，并将结果通过消息推送
     """
@@ -155,19 +169,10 @@ def call_slowlog_ai_analysis(callback_data):
             logger.warning(_("[slowlog_ai_analysis] 告警事件中缺少 cluster_domain，跳过 AI 分析"))
             return
 
-        # 通过 cluster_domain 查询集群类型
-        cluster = Cluster.objects.filter(immute_domain=cluster_domain).first()
-        if not cluster:
-            logger.warning(_("[slowlog_ai_analysis] 未找到集群: {}，跳过 AI 分析").format(cluster_domain))
-            return
-
-        bk_biz_id = cluster.bk_biz_id
-        cluster_type = cluster.cluster_type
-
         # 确定 instance_role
         instance_role = dimensions.get("instance_role", "")
         if not instance_role or instance_role == "--":
-            if cluster_type == ClusterType.TenDBHA:
+            if alarm_base_info.get("cluster_type", "") == ClusterType.TenDBHA:
                 instance_role = InstanceRole.BACKEND_MASTER.value
             else:
                 instance_role = TenDBClusterSpiderRole.SPIDER_MASTER.value
@@ -186,11 +191,11 @@ def call_slowlog_ai_analysis(callback_data):
     try:
         # 调用 AI Agent 进行慢查询分析
         logger.info(_("[slowlog_ai_analysis] 告警触发 AI 慢查询分析，集群: {}").format(cluster_domain))
-        result = AgentHandler.ask_agent_with_command(
+        result_summary = AgentHandler.ask_agent_with_command(
             command=MySQLSlowLogCommand.command,
             command_params={
                 "cluster_domain": cluster_domain,
-                "cluster_type": cluster_type,
+                "cluster_type": alarm_base_info["cluster_type"],
                 "instance_role": instance_role,
                 "time_window_start": time_window_start_str,
                 "time_window_end": time_window_end_str,
@@ -198,29 +203,27 @@ def call_slowlog_ai_analysis(callback_data):
             },
         )
 
-        if not result:
+        if not result_summary:
             logger.info(_("[slowlog_ai_analysis] 集群 {} AI 分析无结果，跳过通知").format(cluster_domain))
             return
 
         logger.info(_("[slowlog_ai_analysis] 集群 {} AI 慢查询分析完成，开始推送通知").format(cluster_domain))
 
-        receivers = callback_data.get("appointees", [])
+        title = _("「DBM」：集群 {} 慢查询 AI 分析结果").format(cluster_domain)
         # 调用 NotifyAdapter 发送 AI 分析报告通知
         NotifyAdapter.send_msg_for_ai_report(
-            bk_biz_id=bk_biz_id,
-            cluster_domain=cluster_domain,
-            cluster_type=cluster_type,
-            time_window_start=time_window_start_str,
-            time_window_end=time_window_end_str,
-            ai_result=result,
-            receivers=receivers or None,
+            bk_biz_id=alarm_base_info["bk_biz_id"],
+            base_info=alarm_base_info,
+            title=title,
+            ai_result=result_summary,
+            receivers=alarm_base_info["appointees"],
         )
     except Exception as e:
         logger.exception(_("[slowlog_ai_analysis] 告警触发 AI 慢查询分析失败: {}").format(e))
 
 
 @shared_task
-def call_mysql_alarm_analyzer(callback_data):
+def call_mysql_alarm_analyzer(callback_data: dict, alarm_base_info: dict):
     """
     异步任务：告警触发 AI 慢查询分析，并将结果通过消息推送
     """
@@ -237,25 +240,6 @@ def call_mysql_alarm_analyzer(callback_data):
         if not cluster:
             logger.warning(_("[mysql_alarm_analyzer] 未找到集群: {}，跳过 AI 分析").format(cluster_domain))
             return
-
-        bk_biz_id = cluster.bk_biz_id
-        cluster_type = cluster.cluster_type
-
-        # 确定 instance_role
-        instance_role = dimensions.get("instance_role", "")
-        if not instance_role or instance_role == "--":
-            if cluster_type == ClusterType.TenDBHA:
-                instance_role = InstanceRole.BACKEND_MASTER.value
-            else:
-                instance_role = TenDBClusterSpiderRole.SPIDER_MASTER.value
-
-        # 设置时间窗口为过去 1 小时
-        now = timezone.now()
-        time_window_start = now - timedelta(hours=1)
-        time_window_end = now
-
-        time_window_start_str = time_window_start.replace(microsecond=0).isoformat(sep="T")
-        time_window_end_str = time_window_end.replace(microsecond=0).isoformat(sep="T")
     except Exception as e:
         logger.exception(_("[mysql_alarm_analyzer] 提取 ai 分析参数失败: {}").format(e))
         return
@@ -263,34 +247,28 @@ def call_mysql_alarm_analyzer(callback_data):
     try:
         # 调用 AI Agent 进行慢查询分析
         logger.info(_("[mysql_alarm_analyzer] 告警触发 AI 分析分析，集群: {}").format(cluster_domain))
-        result = AgentHandler.ask_agent_with_command(
+        # only return summary that length < 2000, otherwise notify will send failed
+        result_summary = AgentHandler.ask_agent_with_command(
             command=MySQLAlarmAnalyzerCommand.command,
             command_params={
                 "alarm_content": extract_callback_key_info(callback_data["callback_message"]),
             },
         )
 
-        if not result:
+        if not result_summary:
             logger.info(_("[mysql_alarm_analyzer] 集群 {} AI 分析无结果，跳过通知").format(cluster_domain))
             return
 
         logger.info(_("[mysql_alarm_analyzer] 集群 {} AI 分析分析完成，开始推送通知").format(cluster_domain))
 
-        # 获取接收人：优先使用告警回调中的负责人
-        appointees = callback_data.get("appointees", [])
-        receivers = (
-            appointees if isinstance(appointees, list) else [r.strip() for r in appointees.split(",") if r.strip()]
-        )
-
+        title = _("「DBM」：集群 {} 告警 AI 分析结果").format(cluster_domain)
         # 调用 NotifyAdapter 发送 AI 分析报告通知
         NotifyAdapter.send_msg_for_ai_report(
-            bk_biz_id=bk_biz_id,
-            cluster_domain=cluster_domain,
-            cluster_type=cluster_type,
-            time_window_start=time_window_start_str,
-            time_window_end=time_window_end_str,
-            ai_result=result,
-            receivers=receivers or None,
+            bk_biz_id=alarm_base_info["bk_biz_id"],
+            base_info=alarm_base_info,
+            title=title,
+            ai_result=result_summary,
+            receivers=alarm_base_info["appointees"],
         )
     except Exception as e:
         logger.exception(_("[mysql_alarm_analyzer] 告警触发 AI 分析失败: {}").format(e))

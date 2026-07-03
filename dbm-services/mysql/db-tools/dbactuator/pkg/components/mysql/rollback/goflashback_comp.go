@@ -74,6 +74,7 @@ func (f *GoFlashback) Init() error {
 			DisableLogBin:         false,
 			Idempotent:            true,
 			Autocommit:            true,
+			SkipGtids:             true,
 			Databases:             f.FlashbackOpt.Databases,
 			Tables:                f.FlashbackOpt.Tables,
 			ExcludeDatabases:      f.FlashbackOpt.DatabasesIgnore,

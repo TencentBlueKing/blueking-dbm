@@ -84,3 +84,15 @@ AI_SLOWLOG_ANALYSIS_TEMPLATE = _(
     AI分析结果: {{ai_result}}\
     """
 )
+
+# 告警触发慢查询 AI 分析通知模板
+AI_MYSQL_ALARM_ANALYSIS_TEMPLATE = _(
+    """\
+    业务: {{biz_name}}
+    集群域名: {{cluster_domain}}
+    集群类型: {{cluster_type}}
+    告警策略: {{alarm_strategy}} (级别: {{alarm_level}})
+    告警时间: {{alarm_time}}
+    AI分析结果: {{ai_result}}\
+    """
+)

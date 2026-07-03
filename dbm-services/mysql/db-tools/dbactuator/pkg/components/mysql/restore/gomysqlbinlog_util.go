@@ -42,6 +42,7 @@ type GoMySQLBinlogUtil struct {
 	Autocommit bool `json:"autocommit"`
 	// 导入时是否记录 binlog, mysql sql_log_bin=0 or mysqlbinlog --disable-log-bin. true表示不写
 	DisableLogBin         bool `json:"disable_log_bin"`
+	SkipGtids             bool `json:"skip_gtids"`
 	ConvRowsUpdateToWrite bool `json:"conv_rows_update_to_write"`
 	// --rewrite-db="db1->xx_db1,db2->xx_db2"
 	RewriteDB []string `json:"rewrite_db"`
@@ -84,6 +85,9 @@ func (b *GoMySQLBinlogUtil) BuildArgs(filterMode bool) ([]string, error) {
 	}
 	if b.DisableLogBin {
 		b.cmdArgs = append(b.cmdArgs, "--disable-log-bin")
+	}
+	if b.SkipGtids {
+		b.cmdArgs = append(b.cmdArgs, "--skip-gtids")
 	}
 	if b.RowsEventType != "" {
 		b.cmdArgs = append(b.cmdArgs, "--rows-event-type", b.RowsEventType)

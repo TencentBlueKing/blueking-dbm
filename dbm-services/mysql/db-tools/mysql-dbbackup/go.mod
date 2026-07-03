@@ -5,6 +5,7 @@ go 1.25.0
 require (
 	github.com/Masterminds/squirrel v1.5.4
 	github.com/go-sql-driver/mysql v1.9.3
+	github.com/go-viper/mapstructure/v2 v2.5.0
 	github.com/google/uuid v1.6.0
 	github.com/huandu/go-sqlbuilder v1.36.1
 	github.com/jedib0t/go-pretty/v6 v6.6.8
