@@ -51,7 +51,8 @@
       ref="modeRef"
       :allow-empty="allowKeyValueEmpty"
       :data="tagsPairData"
-      :key-value-map="keyValueMap" />
+      :key-value-map="keyValueMap"
+      @change="() => emits('change')" />
   </div>
 </template>
 
@@ -81,10 +82,14 @@
     data?: { id: number; key: string; value: string }[];
   }
 
+  type Emits = (e: 'change') => void;
+
   const props = withDefaults(defineProps<Props>(), {
     allowKeyValueEmpty: true,
     data: () => [],
   });
+
+  const emits = defineEmits<Emits>();
 
   const { t } = useI18n();
 

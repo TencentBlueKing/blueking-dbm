@@ -19,6 +19,7 @@
         :exclude-keys="excludeKeyList"
         :key-value-map="keyValueMap"
         @add="() => handleAdd(index)"
+        @change="() => emits('change')"
         @delete="() => handleDelete(index)"
         @select-key="handleSelectKey" />
     </template>
@@ -43,10 +44,14 @@
     getValue: (isIgnoreVerify?: boolean) => Promise<TagsPairType[] | null>;
   }
 
+  type Emits = (e: 'change') => void;
+
   const props = withDefaults(defineProps<Props>(), {
     allowEmpty: true,
     data: undefined,
   });
+
+  const emits = defineEmits<Emits>();
 
   const generateRowData = () => ({
     id: random(),
