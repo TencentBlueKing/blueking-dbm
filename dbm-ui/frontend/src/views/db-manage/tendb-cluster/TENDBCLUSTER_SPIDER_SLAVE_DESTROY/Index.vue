@@ -39,6 +39,7 @@
           <ClusterColumn
             v-model="item.cluster"
             allow-repeat
+            :disable-rule="disableRule"
             :selected="selected"
             @batch-edit="handleBatchEditCluster" />
           <EditableColumn
@@ -112,6 +113,12 @@
 
   const { t } = useI18n();
   const router = useRouter();
+
+  // 无只读接入层（spider_slave.length === 0）的集群将被禁选并在表格中拦截
+  const disableRule = {
+    handler: (data: TendbClusterModel) => data.spider_slave?.length === 0,
+    tip: t('该集群无只读接入层'),
+  };
 
   const tableRef = useTemplateRef('table');
   const tableKey = ref(random());
