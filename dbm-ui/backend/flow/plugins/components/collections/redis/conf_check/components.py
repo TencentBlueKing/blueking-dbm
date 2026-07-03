@@ -544,54 +544,45 @@ def _run_single_drs_chunk(
     addresses: List[str],
     password_cache: Dict[int, Dict],
     password_errors: Dict[int, str],
-    errors_out: Dict[Tuple[int, str, str], str],
-) -> Dict[Tuple[int, str, str], str]:
+) -> Tuple[Dict[Tuple[int, str, str], str], Dict[Tuple[int, str, str], str]]:
     bk_cloud_id, cluster_id, password_key, command = group_key
+    local_errors: Dict[Tuple[int, str, str], str] = {}
     pwd_err = password_errors.get(cluster_id)
     if pwd_err:
         err = format_password_drs_error(pwd_err)
         for address in addresses:
-            errors_out.setdefault((bk_cloud_id, command, address), err)
-        return {}
+            local_errors[(bk_cloud_id, command, address)] = err
+        return {}, local_errors
     passwords = password_cache.get(cluster_id, {})
     password = passwords.get(password_key, "")
-    return _redis_rpc_chunk(bk_cloud_id, command, addresses, password, errors_out)
+    out = _redis_rpc_chunk(bk_cloud_id, command, addresses, password, local_errors)
+    return out, local_errors
 
 
-# Resolved-password DRS group key: (bk_cloud_id, password, command) -> address set
-ResolvedDrsGroupKey = Tuple[int, str, str]
+def _run_drs_chunk_slice(
+    chunk_slice: List[DrsChunk],
+    password_cache: Dict[int, Dict],
+    password_errors: Dict[int, str],
+) -> Tuple[Dict[Tuple[int, str, str], str], Dict[Tuple[int, str, str], str]]:
+    """Run DRS redis_rpc for queued chunks in parallel (bounded by MAX_WORKERS)."""
+    if not chunk_slice:
+        return {}, {}
+    if len(chunk_slice) == 1:
+        group_key, addresses = chunk_slice[0]
+        return _run_single_drs_chunk(group_key, addresses, password_cache, password_errors)
 
-
-def _run_drs_groups(
-    drs_groups: Dict[ResolvedDrsGroupKey, set],
-    chunk_size: int = DEFAULT_DRS_GROUP_CHUNK_SIZE,
-    errors_out: Optional[Dict[Tuple[int, str, str], str]] = None,
-) -> Dict[Tuple[int, str, str], str]:
-    """Issue chunked redis_rpc per (bk_cloud_id, password, command) group."""
-    if not drs_groups:
-        return {}
-    chunk_size = max(int(chunk_size or DEFAULT_DRS_GROUP_CHUNK_SIZE), 1)
-    drs_result_map: Dict[Tuple[int, str, str], str] = {}
-    chunk_errors: Dict[Tuple[int, str, str], str] = errors_out if errors_out is not None else {}
-
-    drs_chunks: List[Tuple[ResolvedDrsGroupKey, List[str]]] = []
-    for group_key, address_set in drs_groups.items():
-        for address_chunk in _chunks(sorted(address_set), chunk_size):
-            drs_chunks.append((group_key, address_chunk))
-
-    def run_resolved_group(group_key: ResolvedDrsGroupKey, addresses: List[str]) -> Tuple[Dict, Dict]:
-        bk_cloud_id, password, command = group_key
-        local_errors: Dict[Tuple[int, str, str], str] = {}
-        out = _redis_rpc_chunk(bk_cloud_id, command, addresses, password, local_errors)
-        return out, local_errors
-
+    result_map: Dict[Tuple[int, str, str], str] = {}
+    error_map: Dict[Tuple[int, str, str], str] = {}
     with ThreadPoolExecutor(max_workers=MAX_WORKERS) as executor:
-        futures = [executor.submit(run_resolved_group, group_key, addrs) for group_key, addrs in drs_chunks]
+        futures = [
+            executor.submit(_run_single_drs_chunk, group_key, addresses, password_cache, password_errors)
+            for group_key, addresses in chunk_slice
+        ]
         for future in as_completed(futures):
-            chunk_result, local_errors = future.result()
-            drs_result_map.update(chunk_result)
-            chunk_errors.update(local_errors)
-    return drs_result_map
+            chunk_result, chunk_errors = future.result()
+            result_map.update(chunk_result)
+            error_map.update(chunk_errors)
+    return result_map, error_map
 
 
 def _evaluate_and_report(
@@ -885,17 +876,13 @@ class RedisConfCheckBatchService(BaseService):
             drs_error_map = data.outputs.drs_error_map
 
             end = min(drs_cursor + drs_chunks_per_tick, len(drs_chunk_queue))
-            for idx in range(drs_cursor, end):
-                group_key, addresses = drs_chunk_queue[idx]
-                drs_result_map.update(
-                    _run_single_drs_chunk(
-                        group_key,
-                        addresses,
-                        password_cache,
-                        password_errors,
-                        drs_error_map,
-                    )
-                )
+            chunk_results, chunk_errors = _run_drs_chunk_slice(
+                drs_chunk_queue[drs_cursor:end],
+                password_cache,
+                password_errors,
+            )
+            drs_result_map.update(chunk_results)
+            drs_error_map.update(chunk_errors)
             data.outputs.drs_cursor = end
             data.outputs.drs_result_map = drs_result_map
             data.outputs.drs_error_map = drs_error_map

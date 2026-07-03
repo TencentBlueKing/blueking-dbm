@@ -12,7 +12,7 @@ specific language governing permissions and limitations under the License.
 import logging
 from dataclasses import dataclass, field
 from datetime import timedelta
-from typing import Any, Dict, List, Optional, Set
+from typing import Any, Dict, List, Optional, Set, Tuple
 
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
@@ -31,6 +31,9 @@ REDIS_REPORT_MODE_ADD = "add"
 REDIS_REPORT_MODE_UPSERT = "upsert"
 REDIS_REPORT_MODE_SET = {REDIS_REPORT_MODE_ADD, REDIS_REPORT_MODE_UPSERT}
 REDIS_REPORT_DEFAULT_RETENTION_DAYS = 30
+META_REPORT_WRITE_CHUNK = 500
+META_CHECK_CLUSTER_PAGE_SIZE = 300
+META_REPORT_LOOKBACK_HOURS = 36
 
 
 def _known_redis_report_subtypes() -> Set[str]:
@@ -139,6 +142,84 @@ def _resolve_write_mode(subtype_value: str, mode_config: RedisReportModeConfig) 
     return mode_config.default_mode
 
 
+def _enum_value(value: Any) -> Any:
+    return getattr(value, "value", value)
+
+
+def _chunked(items: List, size: int):
+    chunk_size = max(int(size or 1), 1)
+    for start in range(0, len(items), chunk_size):
+        yield items[start : start + chunk_size]
+
+
+def _meta_report_lookup_key(
+    cluster_domain: str,
+    ip: Optional[str],
+    port: Optional[int],
+    subtype: Any,
+    state: Any,
+) -> Tuple[str, Optional[str], Optional[int], str, str]:
+    return (cluster_domain, ip, port, _enum_value(subtype), _enum_value(state))
+
+
+def _prefetch_meta_last_records(
+    rows: List[Dict],
+    *,
+    lookback_hours: int = META_REPORT_LOOKBACK_HOURS,
+) -> Dict[Tuple[str, Optional[str], Optional[int], str, str], MetaCheckReport]:
+    if not rows:
+        return {}
+
+    cutoff = timezone.now() - timedelta(hours=lookback_hours)
+    cluster_domains = sorted({row["cluster"].immute_domain for row in rows})
+    subtypes = sorted({_enum_value(row["subtype"]) for row in rows})
+    states = sorted({_enum_value(row["state"]) for row in rows})
+
+    latest_by_key: Dict[Tuple[str, Optional[str], Optional[int], str, str], MetaCheckReport] = {}
+    for domain_chunk in _chunked(cluster_domains, META_REPORT_WRITE_CHUNK):
+        existing_rows = MetaCheckReport.objects.filter(
+            cluster__in=domain_chunk,
+            subtype__in=subtypes,
+            state__in=states,
+            create_at__gte=cutoff,
+        ).order_by("cluster", "ip", "port", "subtype", "state", "-create_at")
+        for existing in existing_rows:
+            key = _meta_report_lookup_key(
+                existing.cluster,
+                existing.ip,
+                existing.port,
+                existing.subtype,
+                existing.state,
+            )
+            latest_by_key.setdefault(key, existing)
+    return latest_by_key
+
+
+def _build_meta_report_instance(row: Dict, failed_days: int) -> MetaCheckReport:
+    cluster = row["cluster"]
+    now = timezone.now()
+    state = _enum_value(row["state"])
+    subtype = row["subtype"]
+    creator = row.get("creator", "system")
+    return MetaCheckReport(
+        bk_biz_id=cluster.bk_biz_id,
+        bk_cloud_id=cluster.bk_cloud_id,
+        ip=row.get("ip"),
+        port=row.get("port"),
+        cluster=cluster.immute_domain,
+        cluster_type=cluster.cluster_type,
+        state=state,
+        msg=row["msg"],
+        subtype=subtype,
+        failed_days=failed_days,
+        machine_type=row.get("machine_type", ""),
+        creator=creator,
+        updater=creator,
+        create_at=now,
+        update_at=now,
+    )
+
+
 class RedisReportWriter:
     """Loads report-mode config once on init and exposes write methods that reuse it."""
 
@@ -155,43 +236,119 @@ class RedisReportWriter:
         msg: str,
         state: ReportStateType,
         machine_type: str = "",
-        creator: str = "dba",
+        creator: str = "system",
     ) -> MetaCheckReport:
-        subtype_value = getattr(subtype, "value", subtype)
-        mode = _resolve_write_mode(subtype_value, self._mode_config)
-        report = get_last_record(cluster.immute_domain, ip, port, subtype, state)
-        failed_days = calculate_failed_days(state, report)
+        written = self.write_meta_reports(
+            [
+                {
+                    "cluster": cluster,
+                    "ip": ip,
+                    "port": port,
+                    "subtype": subtype,
+                    "msg": msg,
+                    "state": state,
+                    "machine_type": machine_type,
+                    "creator": creator,
+                }
+            ]
+        )
+        return written[0]
 
-        if mode == REDIS_REPORT_MODE_ADD or not report:
-            report = MetaCheckReport.objects.create(
-                bk_biz_id=cluster.bk_biz_id,
-                bk_cloud_id=cluster.bk_cloud_id,
-                ip=ip,
-                port=port,
-                cluster=cluster.immute_domain,
-                cluster_type=cluster.cluster_type,
-                state=state,
-                msg=msg,
-                subtype=subtype,
-                failed_days=failed_days,
-                machine_type=machine_type,
-                creator=creator,
-            )
-        else:
-            report.msg = msg
-            report.state = state
-            report.failed_days = failed_days
-            report.create_at = timezone.now()
-            report.save(update_fields=["msg", "state", "failed_days", "create_at", "update_at"])
+    def write_meta_reports(self, rows: List[Dict]) -> List[MetaCheckReport]:
+        """Write multiple MetaCheckReport rows with batched prefetch and chunked DB writes."""
+        if not rows:
+            return []
+
+        upsert_rows: List[Dict] = []
+        add_rows: List[Dict] = []
+        for row in rows:
+            subtype_value = _enum_value(row["subtype"])
+            mode = _resolve_write_mode(subtype_value, self._mode_config)
+            if mode == REDIS_REPORT_MODE_UPSERT:
+                upsert_rows.append(row)
+            else:
+                add_rows.append(row)
+
+        written: List[MetaCheckReport] = []
+        if upsert_rows:
+            written.extend(self._write_meta_reports_upsert(upsert_rows))
+        if add_rows:
+            written.extend(self._write_meta_reports_add(add_rows))
 
         logger.info(
-            _(
-                "meta_check: {} check report for {} {}:{} - state={}, failed_days={}, machine_type={}, creator={}".format(
-                    subtype, cluster.immute_domain, ip, port, state, failed_days, machine_type, creator
-                )
-            )
+            "meta_check: wrote %d meta reports (upsert=%d, add=%d)",
+            len(written),
+            len(upsert_rows),
+            len(add_rows),
         )
-        return report
+        return written
+
+    def _write_meta_reports_add(self, rows: List[Dict]) -> List[MetaCheckReport]:
+        latest_by_key = _prefetch_meta_last_records(rows)
+        to_create: List[MetaCheckReport] = []
+        for row in rows:
+            cluster = row["cluster"]
+            key = _meta_report_lookup_key(
+                cluster.immute_domain,
+                row.get("ip"),
+                row.get("port"),
+                row["subtype"],
+                row["state"],
+            )
+            failed_days = calculate_failed_days(_enum_value(row["state"]), latest_by_key.get(key))
+            report = _build_meta_report_instance(row, failed_days)
+            to_create.append(report)
+            latest_by_key[key] = report
+
+        written: List[MetaCheckReport] = []
+        for chunk in _chunked(to_create, META_REPORT_WRITE_CHUNK):
+            MetaCheckReport.objects.bulk_create(chunk)
+            written.extend(chunk)
+        return written
+
+    def _write_meta_reports_upsert(self, rows: List[Dict]) -> List[MetaCheckReport]:
+        latest_by_key = _prefetch_meta_last_records(rows)
+        to_update: List[MetaCheckReport] = []
+        to_create: List[MetaCheckReport] = []
+        now = timezone.now()
+
+        for row in rows:
+            cluster = row["cluster"]
+            key = _meta_report_lookup_key(
+                cluster.immute_domain,
+                row.get("ip"),
+                row.get("port"),
+                row["subtype"],
+                row["state"],
+            )
+            failed_days = calculate_failed_days(_enum_value(row["state"]), latest_by_key.get(key))
+            existing = latest_by_key.get(key)
+            if existing is None:
+                report = _build_meta_report_instance(row, failed_days)
+                to_create.append(report)
+                latest_by_key[key] = report
+                continue
+
+            existing.msg = row["msg"]
+            existing.state = _enum_value(row["state"])
+            existing.failed_days = failed_days
+            existing.create_at = now
+            existing.update_at = now
+            to_update.append(existing)
+
+        written: List[MetaCheckReport] = []
+        if to_update:
+            for chunk in _chunked(to_update, META_REPORT_WRITE_CHUNK):
+                MetaCheckReport.objects.bulk_update(
+                    chunk,
+                    fields=["msg", "state", "failed_days", "create_at", "update_at"],
+                )
+            written.extend(to_update)
+        if to_create:
+            for chunk in _chunked(to_create, META_REPORT_WRITE_CHUNK):
+                MetaCheckReport.objects.bulk_create(chunk)
+            written.extend(to_create)
+        return written
 
     def write_redis_report(
         self,
@@ -285,6 +442,29 @@ class RedisReportWriter:
         RedisCheckReport.objects.bulk_create(to_create)
         written.extend(to_create)
         return written
+
+
+def safe_write_meta_reports(
+    writer: RedisReportWriter,
+    rows: List[Dict],
+    *,
+    context: str = "",
+) -> bool:
+    """Write meta reports; log and return False instead of aborting the caller on DB errors."""
+    if not rows:
+        return True
+    try:
+        writer.write_meta_reports(rows)
+        return True
+    except Exception as e:
+        logger.error(
+            "meta_check: failed to write %d reports%s: %s",
+            len(rows),
+            f" ({context})" if context else "",
+            e,
+            exc_info=True,
+        )
+        return False
 
 
 def is_cluster_labeled_with(cluster: Cluster, label: dict) -> bool:

@@ -11,54 +11,104 @@ specific language governing permissions and limitations under the License.
 
 import logging
 from collections import defaultdict
+from typing import Dict, List, Optional, Set, Union
 
-from django.core.exceptions import ObjectDoesNotExist
-from django.db.models import Q
+from django.db.models import Prefetch, Q
 from django.utils.translation import gettext_lazy as _
 
 from backend.configuration.constants import DBType
 from backend.configuration.models import DBAdministrator
 from backend.db_meta.enums import ClusterPhase, ClusterType, InstanceRole, InstanceStatus
-from backend.db_meta.models import Cluster
+from backend.db_meta.models import Cluster, ProxyInstance, StorageInstance
+from backend.db_meta.models.storage_instance_tuple import StorageInstanceTuple
 from backend.db_report.enums import MetaCheckSubType, ReportStateType
 from backend.flow.utils.redis.redis_report_utils import (
+    META_CHECK_CLUSTER_PAGE_SIZE,
     RedisReportWriter,
+    _chunked,
     delete_old_meta_check_reports,
     is_cluster_labeled_with,
+    safe_write_meta_reports,
 )
 from backend.ticket.constants import TICKET_RUNNING_STATUS_SET, TicketType
 from backend.ticket.models.ticket import ClusterOperateRecord
 
 logger = logging.getLogger("root")
 
+IGNORE_TICKET_TYPES = [
+    TicketType.REDIS_INSTANCE_CLOSE.value,
+    TicketType.REDIS_PROXY_CLOSE.value,
+    TicketType.REDIS_DESTROY.value,
+    TicketType.REDIS_INSTANCE_DESTROY.value,
+]
+
+
+def _storage_prefetch_qs():
+    return StorageInstance.objects.select_related("machine").prefetch_related(
+        Prefetch("as_ejector", queryset=StorageInstanceTuple.objects.select_related("receiver__machine")),
+        Prefetch("as_receiver", queryset=StorageInstanceTuple.objects.select_related("ejector__machine")),
+    )
+
 
 def get_supported_clusters():
     return [
-        ClusterType.TendisTwemproxyRedisInstance.value,  # TendisCache 集群
-        ClusterType.TwemproxyTendisSSDInstance.value,  # TendisSSD 集群
-        ClusterType.TendisPredixyRedisCluster.value,  # RedisCluster 集群
-        ClusterType.TendisPredixyTendisplusCluster.value,  # Tendisplus 集群
-        ClusterType.TendisRedisInstance.value,  # Redis 主从
+        ClusterType.TendisTwemproxyRedisInstance.value,
+        ClusterType.TwemproxyTendisSSDInstance.value,
+        ClusterType.TendisPredixyRedisCluster.value,
+        ClusterType.TendisPredixyTendisplusCluster.value,
+        ClusterType.TendisRedisInstance.value,
     ]
 
 
-def check_redis_instance():
-    """
-    孤立实例检查 （孤立的proxy小于2个proxy，孤立的master，孤立的slave）
-     ALONE_PROXY
-     ALONE_MASTER
-     ALONE_SLAVE
+def _load_clusters_page(cluster_ids: List[int]):
+    if not cluster_ids:
+        return []
+    return list(
+        Cluster.objects.filter(id__in=cluster_ids).prefetch_related(
+            Prefetch("proxyinstance_set", queryset=ProxyInstance.objects.select_related("machine")),
+            Prefetch("storageinstance_set", queryset=_storage_prefetch_qs()),
+            "tags",
+        )
+    )
 
-    实例状态异常检查，需要排除掉(禁用、删除中 状态集群) （不属于RUNNING状态）
-     STATUS_ABNORMAL
-     REDIS_INSTANCE_CLOSE = TicketEnumField("REDIS_INSTANCE_CLOSE", _("Redis 主从禁用"), register_iam=False)
-     REDIS_PROXY_CLOSE = TicketEnumField("REDIS_PROXY_CLOSE", _("Redis 集群禁用"), register_iam=False)
-     REDIS_DESTROY = TicketEnumField("REDIS_DESTROY", _("Redis 集群删除"), _("集群管理"))
-     REDIS_INSTANCE_PROXY_CLOSE = TicketEnumField("REDIS_INSTANCE_PROXY_CLOSE", _("Redis 主从集群禁用"), register_iam=False)
-     REDIS_INSTANCE_DESTROY = TicketEnumField("REDIS_INSTANCE_DESTROY", _("Redis 主从集群删除"), _("集群管理"))
-    """
+
+def _fetch_ignore_cluster_ids(cluster_ids: List[int]) -> Set[int]:
+    if not cluster_ids:
+        return set()
+    return set(
+        ClusterOperateRecord.objects.filter(
+            ticket__ticket_type__in=IGNORE_TICKET_TYPES,
+            ticket__status__in=TICKET_RUNNING_STATUS_SET,
+            cluster_id__in=cluster_ids,
+        ).values_list("cluster_id", flat=True)
+    )
+
+
+def _resolve_creator(dba_cache: Dict[int, str], bk_biz_id: int) -> str:
+    if bk_biz_id not in dba_cache:
+        dba_list = DBAdministrator.get_biz_db_type_admins(bk_biz_id=bk_biz_id, db_type=DBType.Redis.value)
+        dba_cache[bk_biz_id] = dba_list[0] if dba_list else "admin"
+    return dba_cache[bk_biz_id]
+
+
+def _should_ignore_cluster(cluster: Cluster, ignore_cluster_ids: Set[int]) -> bool:
+    if cluster.phase != ClusterPhase.ONLINE.value:
+        logger.info(
+            "instance_check: will ignore cluster %s, cluster phase is %s (not online)",
+            cluster,
+            cluster.phase,
+        )
+        return True
+    if cluster.id in ignore_cluster_ids:
+        logger.info("instance_check: will ignore cluster %s , 4 it has destory label", cluster)
+        return True
+    return False
+
+
+def check_redis_instance():
     cluster_types = get_supported_clusters()
     writer = RedisReportWriter()
+    dba_cache: Dict[int, str] = {}
 
     delete_old_meta_check_reports(
         MetaCheckSubType.AloneInstance, cluster_types=cluster_types, days=writer.retention_days
@@ -67,258 +117,266 @@ def check_redis_instance():
         MetaCheckSubType.StatusAbnormal, cluster_types=cluster_types, days=writer.retention_days
     )
 
-    # 遍历集群
     query = Q(cluster_type__in=cluster_types)
-    for c in Cluster.objects.filter(query):
-        logger.info("instance_check: start by {}".format(c))
-        if check_ignore(c):
-            continue
+    all_cluster_ids = list(Cluster.objects.filter(query).values_list("id", flat=True))
+    ignore_cluster_ids = _fetch_ignore_cluster_ids(all_cluster_ids)
 
-        # Get cluster's DBA
-        dba_list = DBAdministrator.get_biz_db_type_admins(bk_biz_id=c.bk_biz_id, db_type=DBType.Redis.value)
-        creator = dba_list[0] if dba_list else "admin"
+    for page_ids in _chunked(all_cluster_ids, META_CHECK_CLUSTER_PAGE_SIZE):
+        page_rows: List[dict] = []
+        for cluster in _load_clusters_page(page_ids):
+            logger.info("instance_check: start by %s", cluster)
+            if _should_ignore_cluster(cluster, ignore_cluster_ids):
+                continue
 
-        cluster_has_lonely_issue = False
+            creator = _resolve_creator(dba_cache, cluster.bk_biz_id)
+            page_rows.extend(_check_single_cluster_instance(cluster, creator))
 
-        # proxy节点数不能小于2
-        skip_proxy_count_check = c.cluster_type == ClusterType.TendisRedisInstance.value or is_cluster_labeled_with(
-            c,
-            {"directmode": "true"},
+        if page_rows:
+            safe_write_meta_reports(writer, page_rows, context="instance_check page")
+
+
+def _check_single_cluster_instance(cluster: Cluster, creator: str) -> List[dict]:
+    report_rows: List[dict] = []
+    cluster_has_lonely_issue = False
+
+    skip_proxy_count_check = cluster.cluster_type == ClusterType.TendisRedisInstance.value or is_cluster_labeled_with(
+        cluster,
+        {"directmode": "true"},
+    )
+    proxy_instances = list(cluster.proxyinstance_set.all())
+    if not skip_proxy_count_check and len(proxy_instances) < 2:
+        cluster_has_lonely_issue = True
+        msg = _("cluster:{} now had proxies[{}] < 2").format(cluster.immute_domain, len(proxy_instances))
+        report_rows.append(
+            _alone_instance_row(cluster, ip="none", port=None, msg=msg, creator=creator, machine_type="")
         )
-        if not skip_proxy_count_check and c.proxyinstance_set.count() < 2:
+    else:
+        logger.info(
+            "cluster:%s proxy count check passed, proxies count: %s",
+            cluster.immute_domain,
+            len(proxy_instances),
+        )
+
+    master_slave_map, slave_master_map = defaultdict(list), defaultdict()
+    storage_instances = list(cluster.storageinstance_set.all())
+    for master_obj in storage_instances:
+        if master_obj.instance_role != InstanceRole.REDIS_MASTER.value:
+            continue
+        try:
+            slave_tuples = list(master_obj.as_ejector.all())
+            if not slave_tuples:
+                cluster_has_lonely_issue = True
+                logger.warning(
+                    "Warning: cluster %s master %s has no slave configured", cluster.immute_domain, master_obj
+                )
+                msg = _("集群{}的master：{} 获取slave失败").format(cluster.immute_domain, master_obj)
+                report_rows.append(_alone_instance_row(cluster, master_obj, msg, creator))
+                continue
+
+            slave_objs = [tuple_obj.receiver for tuple_obj in slave_tuples]
+            all_slaves_valid = True
+            for slave_obj in slave_objs:
+                master_slave_map[master_obj.machine.ip].append(slave_obj.machine.ip)
+                if master_obj.port != slave_obj.port:
+                    cluster_has_lonely_issue = True
+                    all_slaves_valid = False
+                    msg = _("集群{}的master实例：{} 的slave {} 端口不匹配").format(cluster.immute_domain, master_obj, slave_obj)
+                    report_rows.append(_alone_instance_row(cluster, master_obj, msg, creator))
+
+            if all_slaves_valid:
+                slave_ips = ", ".join(slave.machine.ip for slave in slave_objs)
+                logger.info(
+                    _("集群{}的master实例：{} slave关系正常，共{}个slave: {}").format(
+                        cluster.immute_domain, master_obj, len(slave_objs), slave_ips
+                    )
+                )
+        except Exception as e:
             cluster_has_lonely_issue = True
-            msg = _("cluster:{} now had proxies[{}] < 2").format(c.immute_domain, c.proxyinstance_set.count())
-            writer.write_meta_report(
-                cluster=c,
-                ip="none",
-                port=None,
-                subtype=MetaCheckSubType.AloneInstance,
-                msg=msg,
-                state=ReportStateType.ABNORMAL,
-                creator=creator,
+            logger.warning(
+                "Warning: unexpected error while checking master %s in cluster %s: %s",
+                master_obj,
+                cluster.immute_domain,
+                e,
             )
-        else:
-            msg = _("cluster:{} proxy count check passed, proxies count: {}").format(
-                c.immute_domain, c.proxyinstance_set.count()
-            )
-            logger.info(msg)
+            msg = _("集群{}的master实例：{} 检查时发生异常: {}").format(cluster.immute_domain, master_obj, e)
+            report_rows.append(_alone_instance_row(cluster, master_obj, msg, creator))
 
-        # 检查master对应的slave是否缺失
-        master_slave_map, slave_master_map = defaultdict(list), defaultdict()
-        for master_obj in c.storageinstance_set.filter(instance_role=InstanceRole.REDIS_MASTER.value):
-            try:
-                slave_tuples = master_obj.as_ejector.all()
-
-                if not slave_tuples.exists():
-                    cluster_has_lonely_issue = True
-                    logger.warning(
-                        "Warning: cluster {} master {} has no slave configured".format(c.immute_domain, master_obj)
-                    )
-                    msg = _("集群{}的master：{} 获取slave失败").format(c.immute_domain, master_obj)
-                    create_single_node_record(c, master_obj, msg, creator, writer)
-                    continue
-
-                slave_objs = [tuple_obj.receiver for tuple_obj in slave_tuples]
-                all_slaves_valid = True
-
-                for slave_obj in slave_objs:
-                    master_slave_map[master_obj.machine.ip].append(slave_obj.machine.ip)
-
-                    if master_obj.port != slave_obj.port:
-                        cluster_has_lonely_issue = True
-                        all_slaves_valid = False
-                        msg = _("集群{}的master实例：{} 的slave {} 端口不匹配").format(c.immute_domain, master_obj, slave_obj)
-                        create_single_node_record(c, master_obj, msg, creator, writer)
-
-                # Log the result
-                if all_slaves_valid:
-                    slave_count = len(slave_objs)
-                    slave_ips = ", ".join([s.machine.ip for s in slave_objs])
-                    logger.info(
-                        _("集群{}的master实例：{} slave关系正常，共{}个slave: {}").format(
-                            c.immute_domain, master_obj, slave_count, slave_ips
-                        )
-                    )
-            except Exception as e:
+    for slave_obj in storage_instances:
+        if slave_obj.instance_role != InstanceRole.REDIS_SLAVE.value:
+            continue
+        try:
+            receiver_tuples = list(slave_obj.as_receiver.all())
+            if not receiver_tuples:
                 cluster_has_lonely_issue = True
                 logger.warning(
-                    "Warning: unexpected error while checking master {} in cluster {}: {}".format(
-                        master_obj, c.immute_domain, str(e)
-                    )
+                    "Warning: cluster %s slave %s failed to get master_obj",
+                    cluster.immute_domain,
+                    slave_obj,
                 )
-                msg = _("集群{}的master实例：{} 检查时发生异常: {}").format(c.immute_domain, master_obj, str(e))
-                create_single_node_record(c, master_obj, msg, creator, writer)
+                msg = _("集群{}的slave：{} 获取master失败").format(cluster.immute_domain, slave_obj)
+                report_rows.append(_alone_instance_row(cluster, slave_obj, msg, creator))
                 continue
+            master_obj = receiver_tuples[0].ejector
 
-        # 检查slave对应的master是否缺失
-        for slave_obj in c.storageinstance_set.filter(instance_role=InstanceRole.REDIS_SLAVE.value):
-            try:
-                try:
-                    master_obj = slave_obj.as_receiver.get().ejector
-                except ObjectDoesNotExist:
-                    cluster_has_lonely_issue = True
-                    logger.warning(
-                        "Warning: cluster {} slave {} failed to get master_obj".format(c.immute_domain, slave_obj)
-                    )
-                    msg = _("集群{}的slave：{} 获取master失败").format(c.immute_domain, slave_obj)
-                    create_single_node_record(c, slave_obj, msg, creator, writer)
-                    continue
-
-                # 不支持一从多主
-                ifmaster = slave_master_map.get(slave_obj.machine.ip)
-                if ifmaster and ifmaster != master_obj.machine.ip:
-                    cluster_has_lonely_issue = True
-                    logger.warning(
-                        "Warning: cluster {} unsupport multiple masters for slave {}".format(
-                            c.immute_domain, slave_obj.machine.ip
-                        )
-                    )
-                    msg = _(
-                        "unsupport mutil master with cluster {} 4:{}".format(c.immute_domain, slave_obj.machine.ip)
-                    )
-                    create_single_node_record(c, slave_obj, msg, creator, writer)
-                    continue
-
-                else:
-                    slave_master_map[slave_obj.machine.ip] = master_obj.machine.ip
-                # 没获取到对应端口
-                if slave_obj.port != master_obj.port:
-                    cluster_has_lonely_issue = True
-                    msg = _("集群{}的slave实例：{} 没有master").format(c.immute_domain, slave_obj)
-                    create_single_node_record(c, slave_obj, msg, creator, writer)
-                else:
-                    logger.info(_("集群{}的slave实例：{} master关系正常").format(c.immute_domain, slave_obj))
-            except Exception as e:
+            ifmaster = slave_master_map.get(slave_obj.machine.ip)
+            if ifmaster and ifmaster != master_obj.machine.ip:
                 cluster_has_lonely_issue = True
                 logger.warning(
-                    "Warning: unexpected error while checking slave {} in cluster {}: {}".format(
-                        slave_obj, c.immute_domain, str(e)
-                    )
+                    "Warning: cluster %s unsupport multiple masters for slave %s",
+                    cluster.immute_domain,
+                    slave_obj.machine.ip,
                 )
-                msg = _("集群{}的slave实例：{} 检查时发生异常: {}").format(c.immute_domain, slave_obj, str(e))
-                create_single_node_record(c, slave_obj, msg, creator, writer)
+                msg = _("unsupport mutil master with cluster {} 4:{}").format(
+                    cluster.immute_domain, slave_obj.machine.ip
+                )
+                report_rows.append(_alone_instance_row(cluster, slave_obj, msg, creator))
                 continue
 
-        # Check instance status abnormality
-        cluster_has_status_issue = check_cluster_instance_status(c, creator, writer)
+            slave_master_map[slave_obj.machine.ip] = master_obj.machine.ip
+            if slave_obj.port != master_obj.port:
+                cluster_has_lonely_issue = True
+                msg = _("集群{}的slave实例：{} 没有master").format(cluster.immute_domain, slave_obj)
+                report_rows.append(_alone_instance_row(cluster, slave_obj, msg, creator))
+            else:
+                logger.info(_("集群{}的slave实例：{} master关系正常").format(cluster.immute_domain, slave_obj))
+        except Exception as e:
+            cluster_has_lonely_issue = True
+            logger.warning(
+                "Warning: unexpected error while checking slave %s in cluster %s: %s",
+                slave_obj,
+                cluster.immute_domain,
+                e,
+            )
+            msg = _("集群{}的slave实例：{} 检查时发生异常: {}").format(cluster.immute_domain, slave_obj, e)
+            report_rows.append(_alone_instance_row(cluster, slave_obj, msg, creator))
 
-        if not cluster_has_lonely_issue:
-            create_cluster_normal_report(c, MetaCheckSubType.AloneInstance.value, creator, writer)
+    status_rows, cluster_has_status_issue = _collect_status_abnormal_rows(
+        cluster, creator, instance_objs=storage_instances + proxy_instances
+    )
+    report_rows.extend(status_rows)
 
-        if not cluster_has_status_issue:
-            create_cluster_normal_report(c, MetaCheckSubType.StatusAbnormal.value, creator, writer)
+    if not cluster_has_lonely_issue:
+        report_rows.append(_cluster_normal_row(cluster, MetaCheckSubType.AloneInstance, creator))
+    if not cluster_has_status_issue:
+        report_rows.append(_cluster_normal_row(cluster, MetaCheckSubType.StatusAbnormal, creator))
+
+    return report_rows
 
 
-def check_cluster_instance_status(cluster: Cluster, creator: str = "admin", writer: RedisReportWriter = None) -> bool:
-    """Check all instances (storage and proxy) status in the cluster"""
+def _collect_status_abnormal_rows(
+    cluster: Cluster,
+    creator: str,
+    instance_objs: Optional[List[Union[StorageInstance, ProxyInstance]]] = None,
+) -> tuple[List[dict], bool]:
     cluster_has_status_issue = False
+    rows: List[dict] = []
 
-    # Check storage instance status
-    for instance_obj in cluster.storageinstance_set.filter():
+    if instance_objs is None:
+        instance_objs = list(cluster.storageinstance_set.all()) + list(cluster.proxyinstance_set.all())
+
+    for instance_obj in instance_objs:
         try:
-            if not check_status_create_abnormal(cluster, instance_obj, creator, writer):
+            if instance_obj.status != InstanceStatus.RUNNING:
                 cluster_has_status_issue = True
+                msg = _("集群{}的实例:{}实例状态异常:{}").format(cluster.immute_domain, instance_obj.ip_port, instance_obj.status)
+                rows.append(
+                    {
+                        "cluster": cluster,
+                        "ip": instance_obj.machine.ip,
+                        "port": instance_obj.port,
+                        "subtype": MetaCheckSubType.StatusAbnormal,
+                        "msg": msg,
+                        "state": ReportStateType.ABNORMAL,
+                        "machine_type": instance_obj.machine_type,
+                        "creator": creator,
+                    }
+                )
         except Exception as e:
             cluster_has_status_issue = True
             logger.warning(
-                "Warning: unexpected error while checking storage instance {} in cluster {}: {}".format(
-                    instance_obj, cluster.immute_domain, str(e)
-                )
+                "Warning: unexpected error while checking instance %s in cluster %s: %s",
+                instance_obj,
+                cluster.immute_domain,
+                e,
             )
 
-    # Check proxy instance status
-    for instance_obj in cluster.proxyinstance_set.filter():
-        try:
-            if not check_status_create_abnormal(cluster, instance_obj, creator, writer):
-                cluster_has_status_issue = True
-        except Exception as e:
-            cluster_has_status_issue = True
-            logger.warning(
-                "Warning: unexpected error while checking proxy instance {} in cluster {}: {}".format(
-                    instance_obj, cluster.immute_domain, str(e)
-                )
-            )
+    return rows, cluster_has_status_issue
 
-    return cluster_has_status_issue
+
+def _alone_instance_row(cluster, instance_obj=None, msg="", creator="admin", ip=None, port=None, machine_type=""):
+    if instance_obj is not None:
+        ip = instance_obj.machine.ip
+        port = instance_obj.port
+        machine_type = instance_obj.machine_type
+    return {
+        "cluster": cluster,
+        "ip": ip,
+        "port": port,
+        "subtype": MetaCheckSubType.AloneInstance,
+        "msg": msg,
+        "state": ReportStateType.ABNORMAL,
+        "machine_type": machine_type,
+        "creator": creator,
+    }
+
+
+def _cluster_normal_row(cluster, subtype, creator="admin"):
+    msg = _("集群{}所有实例检查通过").format(cluster.immute_domain)
+    logger.info("instance_check: cluster %s passed", cluster.immute_domain)
+    return {
+        "cluster": cluster,
+        "ip": "all",
+        "port": None,
+        "subtype": subtype,
+        "msg": msg,
+        "state": ReportStateType.NORMAL,
+        "creator": creator,
+    }
+
+
+# Backward-compatible helpers for external callers/tests.
+def check_cluster_instance_status(cluster: Cluster, creator: str = "admin", writer: RedisReportWriter = None) -> bool:
+    rows, has_issue = _collect_status_abnormal_rows(cluster, creator)
+    if writer and rows:
+        writer.write_meta_reports(rows)
+    return has_issue
 
 
 def check_ignore(cluster) -> bool:
-    if cluster.phase != ClusterPhase.ONLINE.value:
-        logger.info(
-            f"instance_check: will ignore cluster {cluster}, " f"cluster phase is {cluster.phase} (not online)"
-        )
-        return True
-    ignore_tickets = [
-        TicketType.REDIS_INSTANCE_CLOSE.value,
-        TicketType.REDIS_PROXY_CLOSE.value,
-        TicketType.REDIS_DESTROY.value,
-        TicketType.REDIS_INSTANCE_CLOSE.value,
-        TicketType.REDIS_INSTANCE_DESTROY.value,
-    ]
-    if ClusterOperateRecord.objects.filter(
-        ticket__ticket_type__in=ignore_tickets,
-        ticket__status__in=TICKET_RUNNING_STATUS_SET,
-        cluster_id=cluster.id,
-    ).exists():
-        logger.info("instance_check: will ignore cluster {} , 4 it has destory label".format(cluster))
-        return True
-    return False
+    return _should_ignore_cluster(cluster, _fetch_ignore_cluster_ids([cluster.id]))
 
 
 def check_status_create_abnormal(c, instance_obj, creator="admin", writer: RedisReportWriter = None):
-    """
-    实例状态检查并插入异常报告
-    Returns:
-        bool: True if instance status is normal, False if abnormal
-    """
     if instance_obj.status != InstanceStatus.RUNNING:
-        msg = _("集群{}的实例:{}实例状态异常:{}").format(c.immute_domain, instance_obj.ip_port, instance_obj.status)
-        _write = writer.write_meta_report if writer else RedisReportWriter().write_meta_report
-        _write(
-            cluster=c,
-            ip=instance_obj.machine.ip,
-            port=instance_obj.port,
-            subtype=MetaCheckSubType.StatusAbnormal,
-            msg=msg,
-            state=ReportStateType.ABNORMAL,
-            machine_type=instance_obj.machine_type,
-            creator=creator,
-        )
+        row = {
+            "cluster": c,
+            "ip": instance_obj.machine.ip,
+            "port": instance_obj.port,
+            "subtype": MetaCheckSubType.StatusAbnormal,
+            "msg": _("集群{}的实例:{}实例状态异常:{}").format(c.immute_domain, instance_obj.ip_port, instance_obj.status),
+            "state": ReportStateType.ABNORMAL,
+            "machine_type": instance_obj.machine_type,
+            "creator": creator,
+        }
+        if writer:
+            writer.write_meta_reports([row])
+        else:
+            RedisReportWriter().write_meta_reports([row])
         return False
     return True
 
 
 def create_single_node_record(c, instance_obj, msg, creator="admin", writer: RedisReportWriter = None):
-    """
-    孤立实例写入表中
-    """
-    _write = writer.write_meta_report if writer else RedisReportWriter().write_meta_report
-    _write(
-        cluster=c,
-        ip=instance_obj.machine.ip,
-        port=instance_obj.port,
-        subtype=MetaCheckSubType.AloneInstance,
-        msg=msg,
-        state=ReportStateType.ABNORMAL,
-        machine_type=instance_obj.machine_type,
-        creator=creator,
-    )
+    row = _alone_instance_row(c, instance_obj, msg, creator)
+    if writer:
+        writer.write_meta_reports([row])
+    else:
+        RedisReportWriter().write_meta_reports([row])
 
 
 def create_cluster_normal_report(c, report_type, creator="admin", writer: RedisReportWriter = None):
-    """
-    集群级别正常检查报告
-    当集群下所有实例检查都通过时，创建集群级别的正常报告
-    """
-    msg = _("集群{}所有实例检查通过").format(c.immute_domain)
-    _write = writer.write_meta_report if writer else RedisReportWriter().write_meta_report
-    _write(
-        cluster=c,
-        ip="all",
-        port=None,
-        subtype=report_type,
-        msg=msg,
-        state=ReportStateType.NORMAL,
-        creator=creator,
-    )
-    logger.info("instance_check: cluster {} passed".format(c.immute_domain))
+    row = _cluster_normal_row(c, report_type, creator)
+    if writer:
+        writer.write_meta_reports([row])
+    else:
+        RedisReportWriter().write_meta_reports([row])

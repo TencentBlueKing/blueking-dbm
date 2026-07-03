@@ -32,7 +32,7 @@ from backend.flow.plugins.components.collections.redis.conf_check.components imp
     RedisConfCheckBatchService,
     _collapse_conf_check_report_rows,
     _collect_host_conf_data,
-    _run_drs_groups,
+    _run_drs_chunk_slice,
     _run_single_drs_chunk,
     _target_from_info,
     _target_to_info,
@@ -334,8 +334,26 @@ class TestConfCheckReportCollapse:
 
 
 class TestConfCheckDrsChunking:
-    def test_drs_chunk_failure_does_not_drop_other_chunks(self):
-        drs_groups = {(0, "pwd", "INFO REPLICATION"): {"1.1.1.1:30000", "1.1.1.2:30000", "1.1.1.3:30000"}}
+    def test_run_single_drs_chunk_empty_result_records_error(self):
+        with patch(
+            "backend.flow.plugins.components.collections.redis.conf_check.components.DRSApi.redis_rpc",
+            return_value=[{"address": "1.1.1.1:30000", "result": "", "error_msg": "auth failed"}],
+        ):
+            result, errors = _run_single_drs_chunk(
+                (0, 1, "redis_password", "INFO REPLICATION"),
+                ["1.1.1.1:30000"],
+                {1: {"redis_password": "pwd"}},
+                {},
+            )
+        assert result == {}
+        assert errors[(0, "INFO REPLICATION", "1.1.1.1:30000")] == "empty_result: auth failed"
+
+    def test_run_drs_chunk_slice_parallel(self):
+        chunk_slice = [
+            ((0, 1, "redis_password", "INFO REPLICATION"), ["1.1.1.1:30000"]),
+            ((0, 2, "redis_password", "INFO REPLICATION"), ["1.1.1.2:30000"]),
+            ((0, 3, "redis_password", "INFO REPLICATION"), ["1.1.1.3:30000"]),
+        ]
 
         def fake_redis_rpc(payload):
             addresses = payload["addresses"]
@@ -347,30 +365,18 @@ class TestConfCheckDrsChunking:
             "backend.flow.plugins.components.collections.redis.conf_check.components.DRSApi.redis_rpc",
             side_effect=fake_redis_rpc,
         ) as redis_rpc:
-            errors = {}
-            result_map = _run_drs_groups(drs_groups, chunk_size=1, errors_out=errors)
+            password_cache = {
+                1: {"redis_password": "pwd"},
+                2: {"redis_password": "pwd"},
+                3: {"redis_password": "pwd"},
+            }
+            result_map, errors = _run_drs_chunk_slice(chunk_slice, password_cache, {})
 
         assert redis_rpc.call_count == 3
         assert result_map[(0, "INFO REPLICATION", "1.1.1.1:30000")] == "role:master"
         assert result_map[(0, "INFO REPLICATION", "1.1.1.3:30000")] == "role:master"
         assert (0, "INFO REPLICATION", "1.1.1.2:30000") not in result_map
         assert "drs_rpc_error: boom" in errors[(0, "INFO REPLICATION", "1.1.1.2:30000")]
-
-    def test_run_single_drs_chunk_empty_result_records_error(self):
-        with patch(
-            "backend.flow.plugins.components.collections.redis.conf_check.components.DRSApi.redis_rpc",
-            return_value=[{"address": "1.1.1.1:30000", "result": "", "error_msg": "auth failed"}],
-        ):
-            errors = {}
-            result = _run_single_drs_chunk(
-                (0, 1, "redis_password", "INFO REPLICATION"),
-                ["1.1.1.1:30000"],
-                {1: {"redis_password": "pwd"}},
-                {},
-                errors,
-            )
-        assert result == {}
-        assert errors[(0, "INFO REPLICATION", "1.1.1.1:30000")] == "empty_result: auth failed"
 
 
 class TestConfCheckHostCollectionErrors:
@@ -557,8 +563,8 @@ class TestConfCheckBatchPhases:
         assert 99 in data.outputs.pending_jobs
 
     @patch(
-        "backend.flow.plugins.components.collections.redis.conf_check.components._run_single_drs_chunk",
-        return_value={(0, "INFO REPLICATION", "1.1.1.1:30000"): "role:master"},
+        "backend.flow.plugins.components.collections.redis.conf_check.components._run_drs_chunk_slice",
+        return_value=({(0, "INFO REPLICATION", "1.1.1.1:30000"): "role:master"}, {}),
     )
     @patch(
         "backend.flow.plugins.components.collections.redis.conf_check.components._get_password_cache_for_drs",
@@ -568,7 +574,7 @@ class TestConfCheckBatchPhases:
         "backend.flow.plugins.components.collections.redis.conf_check.components._evaluate_and_report",
         return_value=(1, 0),
     )
-    def test_drs_chunks_paced_across_ticks(self, _evaluate, _passwords, _run_chunk):
+    def test_drs_chunks_paced_across_ticks(self, _evaluate, _passwords, _run_slice):
         service = self._make_service()
         queue = [((0, 1, "redis_password", "INFO REPLICATION"), ["1.1.1.1:30000"])] * 3
         data = self._make_data(
@@ -594,7 +600,53 @@ class TestConfCheckBatchPhases:
         assert data.outputs.drs_cursor == 3
         assert data.outputs.phase == PHASE_EVALUATE
         service.finish_schedule.assert_called_once()
-        assert _run_chunk.call_count == 3
+        assert _run_slice.call_count == 3
+
+    @patch(
+        "backend.flow.plugins.components.collections.redis.conf_check.components._run_drs_chunk_slice",
+        return_value=({(0, "INFO REPLICATION", "1.1.1.1:30000"): "role:master"}, {}),
+    )
+    @patch(
+        "backend.flow.plugins.components.collections.redis.conf_check.components._get_password_cache_for_drs",
+        return_value=({1: {"redis_password": "pwd"}}, {}),
+    )
+    @patch(
+        "backend.flow.plugins.components.collections.redis.conf_check.components._evaluate_and_report",
+        return_value=(1, 0),
+    )
+    def test_drs_chunks_per_tick_batches_slice(self, _evaluate, _passwords, _run_slice):
+        service = self._make_service()
+        queue = [((0, 1, "redis_password", "INFO REPLICATION"), ["1.1.1.1:30000"])] * 3
+        data = self._make_data(
+            phase=PHASE_RUN_DRS,
+            target_infos=[],
+            poll_count=0,
+            drs_chunk_queue=queue,
+            drs_cursor=0,
+            drs_result_map={},
+            drs_error_map={},
+            host_conf_data={},
+        )
+        data.get_one_of_inputs.side_effect = lambda key: {
+            "kwargs": {
+                "node_name": "test_batch",
+                "candidates_key": "dbm:redis_conf_check:candidates:test",
+                "batch_num": 1,
+                "batch_size": 10,
+                "total_batches": 1,
+                "interval": 1,
+                "max_retries": 3,
+                "drs_chunk_size": 1,
+                "drs_chunks_per_tick": 3,
+            },
+            "global_data": {"created_by": "tester"},
+        }.get(key)
+
+        assert service._schedule(data, {}) is True
+        assert data.outputs.drs_cursor == 3
+        assert data.outputs.phase == PHASE_EVALUATE
+        _run_slice.assert_called_once()
+        assert len(_run_slice.call_args[0][0]) == 3
 
     @patch(
         "backend.flow.plugins.components.collections.redis.conf_check.components.delete_candidates_key",
