@@ -104,6 +104,7 @@ class BaseSQLServerViewSet(viewsets.ResourceViewSet):
         ActionEnum.SQLSERVER_EDIT,
         ActionEnum.SQLSERVER_SUBSCRIBE_MONITOR,
         ActionEnum.SQLSERVER_DBCONFIG_EDIT,
+        ActionEnum.SQLSERVER_PRIV_MANAGE,
     ]
     list_instance_perm_actions = [ActionEnum.SQLSERVER_VIEW]
     list_external_perm_actions = [ActionEnum.ACCESS_ENTRY_EDIT]
