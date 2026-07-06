@@ -64,7 +64,7 @@ class SQLServerBackupResult(models.Model):
     # 备份系统相关
     backup_file_tag = models.CharField(max_length=255, default="", verbose_name=_("备份系统文件过期标签"))
     # 是否为巡检自动补录的记录（用于统计自动修复命中率，区分非业务真实备份记录）
-    is_repaired = models.BooleanField(default=False, verbose_name=_("是否为巡检自动补录"))
+    is_repaired = models.BooleanField(null=True, default=False, verbose_name=_("是否为巡检自动补录"))
 
     class Meta:
         db_table = "tb_sqlserver_dbbackup_result"
