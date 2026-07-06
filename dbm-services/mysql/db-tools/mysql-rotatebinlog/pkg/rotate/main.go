@@ -72,13 +72,6 @@ func (c *RotateBinlogComp) Start() (err error) {
 	var servers []*ServerObj = c.ConfigObj.Servers
 	logger.Info("config servers: %+v", servers)
 
-	/*
-		if err = viper.UnmarshalKey("servers", &servers); err != nil {
-			return errs.Wrap(err, "parse config servers")
-		} else {
-			logger.Info("config servers: %+v", servers)
-		}
-	*/
 	var errRet error
 	for _, inst := range servers {
 		inst.instance = &native.InsObject{
@@ -273,7 +266,7 @@ func (c *RotateBinlogComp) decideSizeToFree(servers []*ServerObj) error {
 			diskPart.UsedTotal/1024/1024, diskPart.UsedPercent, maxDiskUsedPctAllowed)
 		logger.Info("diskPart %s maxDiskUsedAllowedMB:%d hardAllowed:%d expectFreeMB:%d hardFreeMB:%d",
 			diskPartName, maxDiskUsedAllowedMB, hardUsedAllowedMB, diskPartSizeToFreeMB, hardDiskPartSizeToFreeMB)
-		logger.Info("plan to free spaceMB:%+v", softSizeToFreeMap)
+		logger.Info("plan to free softSpaceMB:%+v, hardSpaceMB:%+v", softSizeToFreeMap, hardSizeToFreeMap)
 		if diskPart.UsedPercent < maxDiskUsedPctAllowed {
 			continue
 		}

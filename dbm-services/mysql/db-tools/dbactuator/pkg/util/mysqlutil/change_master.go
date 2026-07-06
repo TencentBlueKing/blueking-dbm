@@ -21,7 +21,7 @@ type ChangeMaster struct {
 
 	MasterAutoPosition int    `json:"master_auto_position"`
 	Channel            string `json:"channel"`
-	IsGtid             bool   `json:"is_gtid"` // 是否启动GID方式进行建立主从
+	IsGtid             bool   `json:"is_gtid"` // 是否启动GTID auto_position 方式进行建立主从
 	ExecutedGtidSet    string `json:"executed_gtid_set"`
 	MaxTolerateDelay   int    `json:"max_tolerate_delay"` // 最大容忍延迟,即主从延迟小于该值,认为建立主从关系成功
 	Force              bool   `json:"force"`              // 如果当前实例存在主从关系是否直接reset slave后,强制change master
@@ -39,16 +39,29 @@ func (c *ChangeMaster) GetSQL() string {
 	var sql string
 	if c.IsGtid {
 		sql = fmt.Sprintf(
-			`CHANGE MASTER TO MASTER_HOST='%s',MASTER_PORT=%d, MASTER_USER = '%s', MASTER_PASSWORD = '%s'`,
+			`CHANGE MASTER TO 
+MASTER_HOST='%s',
+MASTER_PORT=%d, 
+MASTER_USER = '%s', 
+MASTER_PASSWORD = '%s', 
+MASTER_AUTO_POSITION=1`,
 			c.MasterHost, c.MasterPort, c.MasterUser, c.MasterPassword,
 		)
 	} else {
 		sql = fmt.Sprintf(
-			"CHANGE MASTER TO MASTER_HOST='%s', MASTER_PORT=%d, MASTER_USER ='%s', MASTER_PASSWORD='%s', "+
-				"MASTER_LOG_FILE='%s', MASTER_LOG_POS=%d",
+			`CHANGE MASTER TO 
+MASTER_HOST='%s', 
+MASTER_PORT=%d, 
+MASTER_USER ='%s', 
+MASTER_PASSWORD='%s',
+MASTER_LOG_FILE='%s', 
+MASTER_LOG_POS=%d`,
 			c.MasterHost, c.MasterPort, c.MasterUser, c.MasterPassword,
 			c.MasterLogFile, c.MasterLogPos,
 		)
+	}
+	if c.ExecutedGtidSet != "" {
+		sql += fmt.Sprintf(" /* %s */", c.ExecutedGtidSet)
 	}
 	c.ChangeSQL = sql
 	return sql

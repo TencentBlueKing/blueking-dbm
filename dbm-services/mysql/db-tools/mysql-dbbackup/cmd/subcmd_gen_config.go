@@ -176,7 +176,9 @@ func generateOneIniConfig(cfg *reversemysqldef.DBBackupConfig, opt *dbbackup.Bac
 			BackupType:      opt.BackupType,
 			DataSchemaGrant: dsg,
 		},
-		BackupClient: config.BackupClient{},
+		BackupClient: config.BackupClient{
+			EnableBackupClient: opt.EnableBackupClient,
+		},
 		LogicalBackup: config.LogicalBackup{
 			TableFilter: config.TableFilter{
 				Regex: filter.TableFilterRegex(),

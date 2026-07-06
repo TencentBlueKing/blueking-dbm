@@ -29,8 +29,10 @@ type MySQLBinlogUtil struct {
 	// --start-position
 	StartPos uint `json:"start_pos,omitempty"`
 	// --stop-position
-	StopPos   uint `json:"stop_pos,omitempty"`
-	SkipGtids bool `json:"skip_gtids"`
+	StopPos uint `json:"stop_pos,omitempty"`
+	// SkipGtids add --skip-gtids that will SET @@SESSION.GTID_NEXT='AUTOMATIC'
+	// default true
+	SkipGtids *bool `json:"skip_gtids"`
 	// 是否开启幂等模式, mysqlbinlog --idempotent(>=5.7)
 	IdempotentMode bool `json:"idempotent_mode"`
 	// 导入时是否记录 binlog, mysql sql_log_bin=0 or mysqlbinlog --disable-log-bin. true表示不写
@@ -105,7 +107,7 @@ func (b *MySQLBinlogUtil) BuildArgs() ([]string, error) {
 	if b.IdempotentMode && mysqlcomm.MysqlbinlogHasOpt(b.binlogCmd, "--idempotent") == nil {
 		b.cmdArgs = append(b.cmdArgs, "--idempotent")
 	}
-	if b.SkipGtids && mysqlcomm.MysqlbinlogHasOpt(b.binlogCmd, "--skip-gtids") == nil {
+	if *b.SkipGtids && mysqlcomm.MysqlbinlogHasOpt(b.binlogCmd, "--skip-gtids") == nil {
 		b.cmdArgs = append(b.cmdArgs, "--skip-gtids")
 	}
 

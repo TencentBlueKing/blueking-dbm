@@ -5,13 +5,13 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"strings"
 	"time"
 
 	"github.com/samber/lo"
 
 	reapi "dbm-services/common/reverseapi/apis/common"
 	recore "dbm-services/common/reverseapi/pkg/core"
+	"dbm-services/mysql/db-tools/mysql-rotatebinlog/pkg/util"
 
 	"github.com/spf13/viper"
 
@@ -224,27 +224,41 @@ func (r *BinlogRotate) Backup(backupClient backup.BackupClient) error {
 		maxOldDaysToUpload = 7
 	}
 	logger.Info("%d binlog files unfinished: %d", r.binlogInst.Port, len(files))
+
+	type ClusterInstance struct {
+		AppId         int
+		ClusterDomain string
+		Host          string
+		Port          int
+		DBRole        string
+	}
+	abnormalCounts := make(map[ClusterInstance]int64)
+
 	for _, f := range files {
 		// 超过 maxOldDaysToUpload 天的，全部标记为异常
 		if fMtime, err := time.ParseInLocation(time.RFC3339, f.FileMtime, time.Local); err == nil {
 			if time.Now().Sub(fMtime).Hours() > float64(24*maxOldDaysToUpload) {
 				f.BackupStatus = models.IBStatusUploadAbnormal
-				if err = f.Update(models.DB.Conn); err != nil {
-					return err
-				}
+				_ = f.Update(models.DB.Conn)
 				continue
 			}
 		}
+		filename := filepath.Join(r.binlogDir, f.Filename)
+
 		// 需要上传的，提交上传任务
 		if f.BackupStatus == models.IBStatusNew || f.BackupStatus == models.IBStatusClientFail {
-			filename := filepath.Join(r.binlogDir, f.Filename)
 			if !cmutil.FileExists(filename) {
-				f.BackupStatus = models.FileStatusRemoved
+				f.BackupStatus = models.FileStatusForceRemoved
+				_ = f.Update(models.DB.Conn)
+				logger.Info("force removed already: %s(%d)", f.Filename, f.BackupTaskid)
+				abnormalCounts[ClusterInstance{
+					AppId:         f.BkBizId,
+					ClusterDomain: f.ClusterDomain,
+					Host:          f.Host,
+					Port:          f.Port,
+					DBRole:        f.DBRole,
+				}] += 1
 				continue
-			}
-			// 需要修改 binlog 的权限
-			if err := os.Chmod(filename, 0655); err != nil {
-				return errors.Wrap(err, "chmod 655")
 			}
 			if f.StartTime == "" || f.StopTime == "" {
 				bp, _ := binlog_parser.NewBinlogParse("", 0, reportlog.ReportTimeLayout1)
@@ -276,6 +290,22 @@ func (r *BinlogRotate) Backup(backupClient backup.BackupClient) error {
 				if err != nil {
 					logger.Error("backup_client query status: %s, taskid:%s, err: %v",
 						f.Filename, f.BackupTaskid, err.Error())
+					continue
+				}
+				if !cmutil.FileExists(filename) && taskStatus != models.IBStatusSuccess {
+					if f.BackupStatus == models.FileStatusForceRemoved { // 这个状态说明已经上报过异常了
+						continue
+					}
+					f.BackupStatus = models.FileStatusForceRemoved
+					_ = f.Update(models.DB.Conn)
+					logger.Info("force removed already: %s(%d)", f.Filename, f.BackupTaskid)
+					abnormalCounts[ClusterInstance{
+						AppId:         f.BkBizId,
+						ClusterDomain: f.ClusterDomain,
+						Host:          f.Host,
+						Port:          f.Port,
+						DBRole:        f.DBRole,
+					}] += 1
 					continue
 				}
 
@@ -320,90 +350,32 @@ func (r *BinlogRotate) Backup(backupClient backup.BackupClient) error {
 			return err
 		}
 	}
+	for inst, cnt := range abnormalCounts {
+		_ = util.SendMonitorMetrics("binlog_upload_failed", cnt,
+			map[string]interface{}{
+				"appid":          inst.AppId,
+				"cluster_domain": inst.ClusterDomain,
+				"db_role":        inst.DBRole,
+				"host":           inst.Host,
+				"port":           inst.Port,
+			})
+	}
 	return nil
 }
 
-// removeToStageDir rename file to binlog_wait_upload 放到暂存空间
-// f: 原始 binlog 文件
-// server: 用于 register
-// stageSizeAllowed: 中转目录允许的最大大小
-func removeToStageDir(f *models.BinlogFileModel, server *ServerObj, stageSizeAllowed int64) (err error) {
-	if strings.Contains(f.BinlogDir, cst.BinlogUploadStageDir) {
-		// 文件已经是 stage 目录的，不需要处理
-		return nil
-	}
-	originalFullFile := filepath.Join(f.BinlogDir, f.Filename)
-	stageUploadDir := filepath.Join(f.BinlogDir, cst.BinlogUploadStageDir)
-	newStageFullFile := filepath.Join(stageUploadDir, f.Filename)
-	if !cmutil.FileExists(stageUploadDir) {
-		os.Mkdir(stageUploadDir, 0755)
-	}
-	// 当暂存目录 达到一定大小时，也不能继续放了
-	if stageDirSize, fileInfoList, _ := cmutil.DirFileStatsList(stageUploadDir); stageDirSize > stageSizeAllowed {
-		logger.Warn("stage_upload_dir %s size %d > hardSizeAllowed %d",
-			stageUploadDir, stageDirSize, stageSizeAllowed)
-
-		stageDirSizeToDelete := stageDirSize - stageSizeAllowed
-		var stageDirSizeDeleted int64 = 0
-		for _, fi := range fileInfoList {
-			stagedBinlogFile := filepath.Join(stageUploadDir, fi.Name())
-			if err = os.Remove(stagedBinlogFile); err != nil {
-				logger.Error("remove stage file %s failed: %s", stagedBinlogFile, err.Error())
-			} else {
-				logger.Info("stage file force removed: %s", stagedBinlogFile)
-				stageDirSizeDeleted += fi.Size()
-				deletedFileModel := models.BinlogFileModel{
-					BkBizId:          f.BkBizId,
-					ClusterId:        f.ClusterId,
-					Host:             f.Host,
-					Port:             f.Port,
-					Filename:         fi.Name(),
-					BackupStatus:     models.FileStatusForceRemoved,
-					BackupStatusInfo: "stage file local force removed",
-				}
-				if err = deletedFileModel.Update(models.DB.Conn); err != nil {
-					logger.Error("update file status failed: %s", err.Error())
-				}
-			}
-			if stageDirSizeDeleted >= stageDirSizeToDelete {
-				break
-			}
-		}
-	}
-	// report a event
-
-	if err = os.Rename(originalFullFile, newStageFullFile); err == nil {
-		logger.Info("rename file %s to %s", originalFullFile, newStageFullFile)
-		// 当做释放了空间，会在后面 sizeDeleted += f.Filesize
-		err = server.RegisterOneBinlog(stageUploadDir, f.Filename, f.BackupEnable)
-		if err != nil {
-			logger.Error("register binlog failed: %s", err.Error())
-		}
-		return err
-	} else {
-		logger.Error("rename file %s failed: %s", originalFullFile, err.Error())
-		return err
-	}
-}
-
-// Remove 删除本地 binlog
-// 将本地 done,success 的超过阈值的 binlog 文件删除，更新 binlog 列表状态
-// 超过 max_keep_days 的强制删除，单位 bytes
-// sizeBytesToFree=999999999 代表尽可能删除
-// sizeBytesToFreeHard 一定要清理这么多，<=0 代表不需要强制delete，可以先转 stage目录. > 0 时，达到到目录大小硬限制，必须删除
-func (r *BinlogRotate) Remove(sizeBytesToFree, sizeBytesToFreeHard int64, server *ServerObj) (err error) {
+// RemoveToSoftLimit remove binlog
+// 处理的对象是从本地 sqlite里查询的 binlog 列表
+func (r *BinlogRotate) RemoveToSoftLimit(sizeBytesToFree int64, server *ServerObj) (err error) {
 	if sizeBytesToFree <= 0 {
 		logger.Info("no need to free %d binlog size", r.binlogInst.Port)
 		return nil
 	}
-	stageSizeAllowed := sizeBytesToFree - sizeBytesToFreeHard // stageUploadDir max size
 	var binlogFiles []*models.BinlogFileModel
 	binlogFiles, err = r.binlogInst.QueryToRemove(models.DB.Conn)
-
 	if err != nil {
 		return err
 	}
-	// sort.Slice(binlogFiles, func(i, j int) bool { return binlogFiles[i].Filename < binlogFiles[j].Filename }) // 升序
+
 	var sizeDeleted int64
 	var fileDeleted int
 	stopFile := ""
@@ -413,40 +385,15 @@ func (r *BinlogRotate) Remove(sizeBytesToFree, sizeBytesToFreeHard int64, server
 			logger.Info("rotate binlog %d keep ReserveMinBinlogNum=%d", r.binlogInst.Port, cst.ReserveMinBinlogNum)
 			break
 		}
-		if f.BinlogDir == "" {
-			f.BinlogDir = r.binlogDir
-		}
 		originalStatus := f.BackupStatus
-		fileFullPath := filepath.Join(f.BinlogDir, f.Filename)
-		canRemove := false
-		staged := false
+		fileFullPath := filepath.Join(r.binlogDir, f.Filename)
 		if cmutil.FileExists(fileFullPath) {
 			logger.Info("remove file: %s, status=%d", fileFullPath, f.BackupStatus)
-			fileMtime, _ := time.ParseInLocation(time.RFC3339, f.FileMtime, time.Local)
 			if lo.Contains(models.StatusSuccess, f.BackupStatus) {
-				canRemove = true
-			} else if strings.Contains(fileFullPath, cst.BinlogUploadStageDir) {
-				// 不管真实有没有删除，stage目录下的 binlog都当做不占用空间，stage目录的大小有单独的 hardSizeAllowed 来控制
-				sizeDeleted += f.Filesize
-				if time.Now().Sub(fileMtime).Seconds() > 12*3600 {
-					canRemove = true
-				}
-			} else if f.BackupStatus < models.IBStatusSuccess && !strings.Contains(f.BinlogDir, cst.BinlogUploadStageDir) {
-				if err := removeToStageDir(f, server, stageSizeAllowed); err != nil {
-					logger.Error("remove to stage dir failed: %s", err.Error())
-				} else {
-					staged = true // binlog已经stage处理， 标记后续不要改状态
-				}
-			}
-			if canRemove {
 				if err = os.Remove(fileFullPath); err != nil {
 					logger.Error("remove file failed: %s", err.Error())
 				} else { // remove success
-					if lo.Contains(models.StatusSuccess, f.BackupStatus) {
-						f.BackupStatus = models.FileStatusRemoved
-					} else {
-						f.BackupStatus = models.FileStatusForceRemoved
-					}
+					f.BackupStatus = models.FileStatusRemoved
 				}
 			}
 			if !cmutil.FileExists(fileFullPath) {
@@ -459,7 +406,7 @@ func (r *BinlogRotate) Remove(sizeBytesToFree, sizeBytesToFreeHard int64, server
 			// 也要更新状态
 			f.BackupStatus = models.FileStatusRemoved
 		}
-		if originalStatus != f.BackupStatus && !staged {
+		if originalStatus != f.BackupStatus {
 			if err = f.Update(models.DB.Conn); err != nil {
 				logger.Error(err.Error())
 			}
@@ -479,4 +426,94 @@ func (r *BinlogRotate) Remove(sizeBytesToFree, sizeBytesToFreeHard int64, server
 	logger.Info("sizeBytesDeleted:%d, fileDeleted:%d. binlog lastDeleted: %s",
 		sizeDeleted, fileDeleted, stopFile)
 	return nil
+}
+
+// RemoveToHardLimit 强制清除这么多字节，从前往后，不管文件处于什么状态
+// 如果有手动下载 binlog 到对应目录下，引起权限不包括 执行权限，不会触发删除
+// 处理的对象是本地扫描到的 binlog 列表
+func (r *BinlogRotate) RemoveToHardLimit(sizeBytesToFreeHard int64, server *ServerObj) int64 {
+	if sizeBytesToFreeHard <= 0 {
+		return 0
+	}
+	var sizeDeleted int64
+	var fileDeleted int
+	num := len(server.binlogFiles)
+	var abnormalCount int64
+	var err error
+
+	for i, f := range server.binlogFiles {
+		if num-i-cst.ReserveMinBinlogNum < 0 {
+			logger.Info("rotate binlog %d keep ReserveMinBinlogNum=%d", r.binlogInst.Port, cst.ReserveMinBinlogNum)
+			break
+		}
+		fileFullPath := filepath.Join(r.binlogDir, f.Filename)
+		if err != nil {
+			continue
+		}
+		if !cmutil.FileExists(fileFullPath) && !f.HasExecPerm {
+			continue
+		}
+		if err = os.Remove(fileFullPath); err == nil {
+			sizeDeleted += f.Size
+			fileDeleted += 1
+			logger.Info("force remove for hard limit: %s", fileFullPath)
+		}
+		fileObj, err := r.binlogInst.QueryByFileName(models.DB.Conn, f.Filename)
+		if err != nil {
+			logger.Error("query file %s failed: %s", f.Filename, err.Error())
+			fileObj = &models.BinlogFileModel{BackupStatus: models.FileStatusForceRemoved} // 不进入下面的状态维护流程
+		}
+		// 本地文件的状态维护，下轮自动维护
+		if (fileObj.BackupTaskid != "" && fileObj.BackupStatus != models.IBStatusSuccess) ||
+			(fileObj.BackupStatus == models.IBStatusNew) { // 去备份系统查一下真实状态
+			var backupStatus int
+			if fileObj.BackupTaskid != "" && server.backupClient != nil {
+				backupStatus, err = server.backupClient.Query(fileObj.BackupTaskid)
+				if err != nil {
+					logger.Error("query file status %s(%d) failed: %s",
+						fileObj.Filename, fileObj.BackupTaskid, err.Error())
+				}
+			}
+			if backupStatus == models.IBStatusSuccess {
+				fileObj.BackupStatus = models.IBStatusSuccess
+			} else {
+				abnormalCount += 1
+				fileObj.BackupStatus = models.FileStatusForceRemoved
+			}
+			if err = fileObj.Update(models.DB.Conn); err != nil {
+				logger.Error(err.Error())
+			}
+		}
+		if sizeDeleted >= sizeBytesToFreeHard {
+			break
+		}
+	}
+	if abnormalCount > 0 {
+		_ = util.SendMonitorMetrics("binlog_upload_failed", abnormalCount,
+			map[string]interface{}{
+				"appid":          server.Tags.BkBizId,
+				"cluster_domain": server.Tags.ClusterDomain,
+				"db_role":        server.Tags.DBRole,
+				"host":           server.Host,
+				"port":           server.Port,
+			})
+	}
+	return sizeDeleted
+}
+
+// Remove 删除本地 binlog
+// 将本地 done,success 的超过阈值的 binlog 文件删除，更新 binlog 列表状态
+// 超过 max_keep_days 的强制删除，单位 bytes
+// sizeBytesToFree=999999999 代表尽可能删除
+// sizeBytesToFreeHard 一定要清理这么多，<=0 代表不需要强制delete，可以先转 stage目录. > 0 时，达到到目录大小硬限制，必须删除
+func (r *BinlogRotate) Remove(sizeBytesToFree, sizeBytesToFreeHard int64, server *ServerObj) (err error) {
+	if sizeBytesToFree <= 0 {
+		logger.Info("no need to free %d binlog size", r.binlogInst.Port)
+		return nil
+	}
+	sizeDeleted := r.RemoveToHardLimit(sizeBytesToFreeHard, server)
+
+	// server.binlogFiles = binlogFiles
+	// 再按照本地文件状态，安全清理
+	return r.RemoveToSoftLimit(sizeBytesToFree-sizeDeleted, server)
 }

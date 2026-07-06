@@ -96,7 +96,7 @@ func (r *BackupRunner) BackupGrant(cfg *config.Public) error {
 
 	filepath := cfg.BackupDir + "/" + cfg.TargetName() + cst.SuffixPriv
 	// logger.Log.Info(filepath)
-	file, err := os.OpenFile(filepath, os.O_RDWR|os.O_CREATE, 0666)
+	file, err := os.OpenFile(filepath, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0666)
 	if err != nil {
 		logger.Log.Error("failed to create priv file")
 		return err

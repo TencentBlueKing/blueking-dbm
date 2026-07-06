@@ -5,11 +5,14 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"log/slog"
 	"os"
 	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/go-viper/mapstructure/v2"
 
 	offsetlinescanner "dbm-services/common/reglinescanner"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/core/cst"
@@ -28,10 +31,14 @@ func init() {
 	executable, _ = os.Executable()
 }
 
-// maxLogFileSize 单个日志文件最大大小（100MB），超过后轮转
-const maxLogFileSize = 100 * 1024 * 1024
+// maxLogFileSize 单个日志文件最大大小（200MB），超过后轮转
+// 这个文件目标不是给人长期看到，是用于日志采集上报，所以不需要保留太久
+const maxLogFileSize = 200 * 1024 * 1024
 
 type SlowlogReport struct {
+	// SlowLogFile 手动指定 log file path
+	SlowLogFile string `mapstructure:"slow_log_file"`
+
 	db                         *sqlx.DB
 	currentDB                  string
 	currentDBRegFilePath       string
@@ -85,16 +92,8 @@ func firstNonSpaceByte(line []byte) byte {
 	return line[0]
 }
 
-func (c *SlowlogReport) Run() (msg string, err error) {
-	slowLogOn, slowLogPath, err := slowLogStatus(c.db)
-	if err != nil {
-		return "", err
-	}
-
-	if !slowLogOn {
-		return "", nil
-	}
-
+func (c *SlowlogReport) ProcessSlowLog(slowLogPath string) (string, error) {
+	var err error
 	lockFilePath := filepath.Join(
 		cst.MySQLMonitorInstallPath, "locks", fmt.Sprintf("%d-%s.lock", config.MonitorConfig.Port, reporterName),
 	)
@@ -103,12 +102,9 @@ func (c *SlowlogReport) Run() (msg string, err error) {
 		_ = fl.Unlock()
 	}()
 
-	locked, err := fl.TryLock()
+	_, err = fl.TryLock()
 	if err != nil {
 		return "", err
-	}
-	if !locked {
-		return "", nil
 	}
 
 	err = c.loadCurrentDBFromDisk()
@@ -146,7 +142,7 @@ func (c *SlowlogReport) Run() (msg string, err error) {
 	}()
 	c.scanner = scanner
 
-	scanner.Buffer(make([]byte, 64*1024), 100*1024*1024)
+	//scanner.Buffer(make([]byte, 64*1024), 100*1024*1024)
 
 	// 预分配段缓冲区（初始 64KB，会按需增长但不会缩小，跨段复用）
 	if c.segBuf == nil {
@@ -169,7 +165,7 @@ func (c *SlowlogReport) Run() (msg string, err error) {
 		line := bytes.TrimSpace(rawLine)
 
 		// 段结束判断：前一行以分号结尾（segReady），且当前行是 "# Time:" 或 "# User@Host:" 开头（下一个段的起始）
-		if segReady && isSegmentStartLine(line) {
+		if segReady && isSegmentStartLine(rawLine) {
 			if err := c.rewriteSeg(); err != nil {
 				return "", err
 			}
@@ -188,17 +184,15 @@ func (c *SlowlogReport) Run() (msg string, err error) {
 			inSegment = false // 标记段结束
 		}
 
+		// 遇到段起始行，标记进入段内
+		if isSegmentStartLine(rawLine) {
+			inSegment = true
+		}
+
 		// 仅在段外跳过 slowlog 文件头信息行（Time/Tcp// 开头）
 		// 段内不跳过任何行，避免误删以 / 开头的 SQL hint、空行等合法内容
 		if !inSegment {
-			if isSkippableSlowlogHeaderLine(line) || isBlankLine(line) {
-				continue
-			}
-		}
-
-		// 遇到段起始行，标记进入段内
-		if isSegmentStartLine(line) {
-			inSegment = true
+			continue
 		}
 
 		// 将行数据追加到连续的 segBuf 中，记录偏移量和长度
@@ -235,11 +229,22 @@ func (c *SlowlogReport) Run() (msg string, err error) {
 		}
 	}
 
-	// 统一持久化状态文件到磁盘（仅在所有段处理成功后写入，保证一致性）
-	if err := c.persistState(); err != nil {
-		return "", err
-	}
 	return "", nil
+}
+
+func (c *SlowlogReport) Run() (msg string, err error) {
+	if c.SlowLogFile == "" {
+		slowLogOn, slowLogPath, err := slowLogStatus(c.db)
+		if err != nil {
+			return "", err
+		}
+		if !slowLogOn {
+			return "", nil
+		}
+		c.SlowLogFile = slowLogPath
+	}
+
+	return c.ProcessSlowLog(c.SlowLogFile)
 }
 
 // updateOffset 尽可能保证原子操作
@@ -248,6 +253,10 @@ func (c *SlowlogReport) updateOffsetFile() error {
 		return err
 	}
 	if err := c.scanner.Commit(); err != nil {
+		return err
+	}
+	// 统一持久化状态文件到磁盘
+	if err := c.persistState(); err != nil {
 		return err
 	}
 	return nil
@@ -808,6 +817,7 @@ func (c *SlowlogReport) Name() string {
 
 func NewSlowlogReport(db *sqlx.DB) *SlowlogReport {
 	r := &SlowlogReport{
+		// SlowLogFile: "",
 		db: db,
 		currentDBRegFilePath: filepath.Join(
 			cst.MySQLMonitorInstallPath, fmt.Sprintf("%d-current_db.reg", config.MonitorConfig.Port),
@@ -820,8 +830,14 @@ func NewSlowlogReport(db *sqlx.DB) *SlowlogReport {
 }
 
 func NewSlowlogReportItem(cc *monitoriteminterface.ConnectionCollect) monitoriteminterface.MonitorItemInterface {
-	r := NewSlowlogReport(cc.MySqlDB)
-	return r
+	c := NewSlowlogReport(cc.MySqlDB)
+	opts := cc.GetCustomOptions(reporterName)
+	if len(opts) > 0 {
+		if err := mapstructure.Decode(opts, c); err != nil {
+			slog.Warn("decode custom options failed, use defaults", slog.String("error", err.Error()))
+		}
+	}
+	return c
 }
 
 func RegisterSlowlogRewrite() (string, monitoriteminterface.MonitorItemConstructorFuncType) {

@@ -17,7 +17,7 @@ func slowLogStatus(db *sqlx.DB) (slowLogOn bool, slowLogPath string, err error) 
 	}
 
 	slog.Info(
-		"rotate slow log",
+		"slowlog rewrite",
 		slog.Bool("slow_query_log", slowLogOn),
 		slog.String("slow_query_log_file", slowLogPath),
 	)

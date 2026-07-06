@@ -4,6 +4,8 @@ import (
 	"path/filepath"
 	"time"
 
+	"github.com/samber/lo"
+
 	"dbm-services/common/go-pubpkg/logger"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/components"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/components/mysql/common"
@@ -76,7 +78,7 @@ func (f *Flashback) Init() error {
 			Flashback:         true, // --flashback 模式
 			NotWriteBinlog:    false,
 			IdempotentMode:    true,
-			SkipGtids:         true,
+			SkipGtids:         lo.ToPtr(true),
 			StartTime:         f.TargetTime,
 			//StopTime:          f.StopTime,
 			Databases:       f.RecoverOpt.Databases,

@@ -188,13 +188,16 @@ func (i *ServerObj) RegisterBinlog(lastFileBefore *models.BinlogFileModel) error
 			ff.FileRetentionTag = i.backupClient.StorageTag()
 		}
 		filesModel = append(filesModel, ff)
+		// 需要修改 binlog 的权限，增加执行权限，代表被处理过了
+		if err := os.Chmod(fileName, 0655); err != nil {
+			return errors.Wrap(err, "chmod 655")
+		}
 	}
 	logger.Info("new binlog files to process: %+v", filesModel)
 
 	if err := i.rotate.binlogInst.BatchSave(filesModel, models.DB.Conn); err != nil {
 		return err
-	} else {
-		logger.Info("binlog files to process: %+v", filesModel)
 	}
+	// logger.Info("binlog files saved: %+v", filesModel)
 	return nil
 }
