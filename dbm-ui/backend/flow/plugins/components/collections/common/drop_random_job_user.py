@@ -51,9 +51,21 @@ class DropTempUserForClusterService(BaseService):
             return False
 
         for instance in instance_list:
-            # 默认先关闭binlog记录， 最后统一打开
+            # 会话级开关说明（与 create_random_job_user.py 中授权语句对称）：
+            #   1) set session sql_log_bin = 0
+            #      关闭本会话 binlog 记录，避免临时账号的 drop 语句写入本机 binlog，
+            #      从而流入下游 slave 或备份工具，产生"账号漂移"风险。
+            #      注意：tc_admin=0 只影响 TDBCTL 路由，不影响本机 binlog 是否落盘，
+            #            因此 sql_log_bin=0 是必需的，二者职责正交、不可省略。
+            #   2) set tc_admin = 0
+            #      仅对中控（TDBCTL/Spider）节点生效：让本次会话按"单机 MySQL"模式执行，
+            #      不再通过 TDBCTL 路由层广播到后端 remote 集群，
+            #      同时规避集群模式下的隐式一致性检查导致 drop user 失败。
+            #      对普通 MySQL/Proxy 实例本条命令不生效；配合 force=true 兜底，非中控实例即使不识别该参数也不会中断整体流程。
+            #   3) 最后 set session sql_log_bin = 1 恢复默认，避免连接被复用时污染后续语句。
             cmd = [
                 "set session sql_log_bin = 0 ;",
+                "set tc_admin = 0;",
                 f"drop user `{user}`@`localhost`;",
                 f"drop user `{user}`@`{instance['instance'].split(':')[0]}`;",
                 "set session sql_log_bin = 1 ;",
