@@ -12,6 +12,7 @@ specific language governing permissions and limitations under the License.
 from django.utils.translation import gettext_lazy as _
 
 from backend.db_meta.enums import ClusterType
+from backend.flow.engine.controller.surrealdb import SurrealDBController
 from backend.iam_app.dataclass.actions import ActionEnum
 from backend.ticket import builders
 from backend.ticket.builders.surrealdb.base import BaseSurrealDBTicketFlowBuilder
@@ -27,7 +28,7 @@ class K8sSurrealDBSingleApplyDetailSerializer(K8sSurrealDBApplyDetailSerializer)
 
 
 class K8sSurrealDBSingleApplyFlowParamBuilder(K8sSurrealDBApplyFlowParamBuilder):
-    pass
+    controller = SurrealDBController.surrealdb_single_apply_scene
 
 
 @builders.BuilderFactory.register(
