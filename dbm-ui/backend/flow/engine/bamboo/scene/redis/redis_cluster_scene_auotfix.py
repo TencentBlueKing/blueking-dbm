@@ -37,6 +37,7 @@ from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
 from backend.flow.engine.bamboo.scene.redis.atom_jobs import (
     AccessManagerAtomJob,
+    ClusterPredixyConfigServersRewriteAtomJob,
     ProxyBatchInstallAtomJob,
     RedisBatchInstallAtomJob,
     RedisMakeSyncAtomJob,
@@ -680,6 +681,21 @@ class RedisClusterAutoFixSceneFlow(object):
                 }
             )
         # # #### 下架旧实例 ###################################################################### 完毕 ###
+
+        # predixy类型的集群在自愈流程结束前需要执行config rewrite
+        if is_predixy_proxy_type(sub_kwargs.cluster["cluster_type"]):
+            # 在所有predixy节点上执行config rewrite
+            predixy_conf_rewrite_builder = ClusterPredixyConfigServersRewriteAtomJob(
+                self.root_id,
+                flow_data,
+                sub_kwargs,
+                {
+                    "cluster_domain": sub_kwargs.cluster["immute_domain"],
+                    "to_remove_servers": [],  # 自愈场景不需要移除特定servers
+                },
+            )
+            if predixy_conf_rewrite_builder:
+                sub_pipeline.add_sub_pipeline(sub_flow=predixy_conf_rewrite_builder)
 
         # slave 自愈完成后解除告警屏蔽
         sub_pipeline.add_act(
