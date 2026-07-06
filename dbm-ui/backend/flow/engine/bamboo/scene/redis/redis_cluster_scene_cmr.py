@@ -23,12 +23,13 @@ from backend.db_meta import api
 from backend.db_meta.enums import ClusterEntryType, ClusterType, InstanceRole
 from backend.db_meta.models import Cluster
 from backend.db_services.redis.redis_modules.util import get_cluster_redis_modules_detail
-from backend.db_services.redis.util import is_twemproxy_proxy_type
+from backend.db_services.redis.util import is_predixy_proxy_type, is_twemproxy_proxy_type
 from backend.flow.consts import DEFAULT_DB_MODULE_ID, ConfigFileEnum, ConfigTypeEnum, DnsOpType, SyncType
 from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
 from backend.flow.engine.bamboo.scene.redis.atom_jobs import (
     AccessManagerAtomJob,
+    ClusterPredixyConfigServersRewriteAtomJob,
     ProxyBatchInstallAtomJob,
     ProxyUnInstallAtomJob,
     RedisClusterMasterReplaceJob,
@@ -286,6 +287,21 @@ class RedisClusterCMRSceneFlow(object):
             act_component_code=RedisUpdateVersionComponent.code,
             kwargs=asdict(act_kwargs),
         )
+
+        # predixy类型的集群在整机替换流程结束前需要执行config rewrite
+        if is_predixy_proxy_type(act_kwargs.cluster["cluster_type"]):
+            # 在所有predixy节点上执行config rewrite
+            predixy_conf_rewrite_builder = ClusterPredixyConfigServersRewriteAtomJob(
+                self.root_id,
+                flow_data,
+                act_kwargs,
+                {
+                    "cluster_domain": act_kwargs.cluster["immute_domain"],
+                    "to_remove_servers": [],  # 整机替换场景不需要移除特定servers
+                },
+            )
+            if predixy_conf_rewrite_builder:
+                sub_pipeline.add_sub_pipeline(sub_flow=predixy_conf_rewrite_builder)
 
         return sub_pipeline.build_sub_process(sub_name=_("整机替换-{}").format(act_kwargs.cluster["immute_domain"]))
 
