@@ -635,6 +635,7 @@ class TenDBClusterApplyFlow(object):
                     ALLDEPARTS,
                     DeployPeripheralToolsDepart.MySQLMonitor,
                     DeployPeripheralToolsDepart.MySQLTableChecksum,
+                    DeployPeripheralToolsDepart.MySQLDBBackup,
                 ),
             )
         )
