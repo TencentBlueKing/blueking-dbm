@@ -45,7 +45,7 @@ from backend.flow.utils.job_log_parser import SqlExecRecord, parse_sql_logs_by_i
 logger = logging.getLogger("flow")
 
 # 单条 SQL 执行耗时 ≥ 该阈值（秒）才入库。函数参数允许覆盖。
-LONG_SQL_THRESHOLD_SEC = 0
+LONG_SQL_THRESHOLD_SEC = 30.0
 
 # Redis Set key：sql_exec_duration_handler.py 端按 ticket_type 装饰器派发后 sadd ticket_id；
 # 周期任务端原子 drain 后派发 Celery 消费。
