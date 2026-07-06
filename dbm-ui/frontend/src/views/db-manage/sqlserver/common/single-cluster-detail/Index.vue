@@ -19,34 +19,48 @@
       <DisplayBox
         cluster-detail-router-name="SqlServerSingleClusterDetail"
         :data="data">
-        <BkButton
+        <AuthButton
           v-db-console="'sqlserver.singleClusterList.authorize'"
+          action-id="sqlserver_priv_manage"
           class="ml-4"
+          :permission="data.permission.sqlserver_priv_manage"
           size="small"
           @click="handleShowAuthorize">
           {{ t('授权') }}
-        </BkButton>
+        </AuthButton>
         <OperationBtnStatusTips
+          v-if="data.isOffline"
           v-db-console="'sqlserver.singleClusterList.enable'"
           :data="data">
-          <BkButton
+          <AuthButton
+            action-id="sqlserver_enable_disable"
             class="ml-4"
             :disabled="data.isStarting"
+            :permission="data.permission.sqlserver_enable_disable"
+            :resource="data.id"
             size="small"
             @click="handleEnableCluster([data])">
             {{ t('启用') }}
-          </BkButton>
+          </AuthButton>
         </OperationBtnStatusTips>
         <OperationBtnStatusTips
           v-db-console="'sqlserver.singleClusterList.reset'"
           :data="data">
-          <BkButton
+          <AuthButton
+            v-bk-tooltips="{
+              placement: 'right',
+              disabled: data.isOffline,
+              content: t('请先禁用集群'),
+            }"
+            action-id="sqlserver_manage"
             class="ml-4"
-            :disabled="!data.isOffline"
+            :disabled="data.isOnline"
+            :permission="data.permission.sqlserver_manage"
+            :resource="data.id"
             size="small"
             @click="handleResetCluster">
             {{ t('重置') }}
-          </BkButton>
+          </AuthButton>
         </OperationBtnStatusTips>
         <MoreActionExtend>
           <template #trigger>
@@ -58,28 +72,36 @@
               <DbIcon type="more" />
             </BkButton>
           </template>
-          <div v-db-console="'sqlserver.singleClusterList.disable'">
+          <div
+            v-if="data.isOnline"
+            v-db-console="'sqlserver.singleClusterList.disable'">
             <OperationBtnStatusTips :data="data">
-              <BkButton
+              <AuthButton
+                action-id="sqlserver_enable_disable"
                 :disabled="data.isOffline || Boolean(data.operationTicketId)"
+                :permission="data.permission.sqlserver_enable_disable"
+                :resource="data.id"
                 text
                 @click="handleDisableCluster([data])">
                 {{ t('禁用') }}
-              </BkButton>
+              </AuthButton>
             </OperationBtnStatusTips>
           </div>
           <div v-db-console="'sqlserver.singleClusterList.delete'">
             <OperationBtnStatusTips :data="data">
-              <BkButton
+              <AuthButton
                 v-bk-tooltips="{
                   disabled: data.isOffline,
                   content: t('请先禁用集群'),
                 }"
+                action-id="sqlserver_destroy"
                 :disabled="data.isOnline || Boolean(data.operationTicketId)"
+                :permission="data.permission.sqlserver_destroy"
+                :resource="data.id"
                 text
                 @click="handleDeleteCluster([data])">
                 {{ t('删除') }}
-              </BkButton>
+              </AuthButton>
             </OperationBtnStatusTips>
           </div>
           <ClusterDomainDnsRelation :data="data" />
@@ -109,10 +131,10 @@
         :cluster-types="[ClusterTypes.SQLSERVER_SINGLE]"
         :selected="[data]" />
       <!-- excel 导入授权 -->
-      <ExcelAuthorize
+      <!-- <ExcelAuthorize
         v-model:is-show="isShowExcelAuthorize"
         :cluster-type="ClusterTypes.SQLSERVER_SINGLE"
-        :ticket-type="TicketTypes.SQLSERVER_EXCEL_AUTHORIZE_RULES" />
+        :ticket-type="TicketTypes.SQLSERVER_EXCEL_AUTHORIZE_RULES" /> -->
       <ClusterReset
         v-model:is-show="isShowClusterReset"
         :data="data" />
@@ -127,14 +149,14 @@
   import SqlServerSingleDetailModel from '@services/model/sqlserver/sqlserver-single-detail';
   import { getSingleClusterDetail } from '@services/source/sqlserverSingleCluster';
 
-  import { AccountTypes, ClusterTypes, TicketTypes } from '@common/const';
+  import { AccountTypes, ClusterTypes } from '@common/const';
 
   import MoreActionExtend from '@components/more-action-extend/Index.vue';
 
   import ClusterAuthorize from '@views/db-manage/common/cluster-authorize/Index.vue';
   import { ActionPanel, BaseInfo, BaseInfoField, DisplayBox } from '@views/db-manage/common/cluster-details';
   import ClusterDomainDnsRelation from '@views/db-manage/common/cluster-domain-dns-relation/Index.vue';
-  import ExcelAuthorize from '@views/db-manage/common/ExcelAuthorize.vue';
+  // import ExcelAuthorize from '@views/db-manage/common/ExcelAuthorize.vue';
   import { useOperateClusterBasic } from '@views/db-manage/common/hooks';
   import OperationBtnStatusTips from '@views/db-manage/common/OperationBtnStatusTips.vue';
   import ClusterReset from '@views/db-manage/sqlserver/common/cluster-operations/cluster-reset/Index.vue';
@@ -157,7 +179,7 @@
   /** 集群授权 */
   const isAuthorizeShow = ref(false);
   const isShowClusterReset = ref(false);
-  const isShowExcelAuthorize = ref(false);
+  // const isShowExcelAuthorize = ref(false);
 
   const clusterRoleNodeGroup = computed(() => {
     return {

@@ -172,6 +172,7 @@
                   v-bk-tooltips="{
                     disabled: data.isOffline,
                     content: t('请先禁用集群'),
+                    placement: 'right',
                   }"
                   :disabled="data.isOnline || Boolean(data.operationTicketId)"
                   text
