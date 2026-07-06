@@ -13,7 +13,7 @@ from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
 from backend.db_meta.enums import ClusterPhase
-from backend.flow.engine.controller.surrealdb_temp import SurrealDBController
+from backend.flow.engine.controller.surrealdb import SurrealDBController
 from backend.iam_app.dataclass.actions import ActionEnum
 from backend.ticket import builders
 from backend.ticket.builders.common.base import TicketBaseValidateSerializerMixin
@@ -26,7 +26,7 @@ class K8sSurrealDBDisableDetailSerializer(TicketBaseValidateSerializerMixin, ser
 
 
 class K8sSurrealDBDisableFlowParamBuilder(builders.FlowParamBuilder):
-    controller = SurrealDBController.placeholder
+    controller = SurrealDBController.surrealdb_disable_scene
 
 
 @builders.BuilderFactory.register(
