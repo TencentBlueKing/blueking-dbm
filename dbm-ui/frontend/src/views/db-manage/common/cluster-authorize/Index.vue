@@ -21,7 +21,7 @@
         {{ t('提交') }}
       </BkButton>
       <RulesPreview
-        v-if="[AccountTypes.MYSQL, AccountTypes.TENDBCLUSTER].includes(accountType) && dbComRef"
+        v-if="dbComRef && [AccountTypes.MYSQL, AccountTypes.TENDBCLUSTER].includes(accountType)"
         :account-type="(accountType as AccountTypes.MYSQL | AccountTypes.TENDBCLUSTER)"
         :data="dbComRef?.formData" />
       <BkButton

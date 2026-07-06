@@ -20,8 +20,9 @@ import { utcDisplayTime } from '@utils';
 export default class SqlserverPermissionAccount implements PermissionRule {
   account: PermissionRuleAccount;
   permission: {
-    sqlserver_account_delete: boolean;
-    sqlserver_add_account_rule: boolean;
+    // sqlserver_account_delete: boolean; // 旧权限
+    // sqlserver_add_account_rule: boolean; // 旧权限
+    sqlserver_priv_manage: boolean;
   };
   rules: PermissionRuleInfo[];
 
