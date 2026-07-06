@@ -9,16 +9,26 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 import json
+import logging
 
 from aidev_agent.enums import CredentialType
-from aidev_agent.packages.resource_manager import AgentResourceManager, ResourceManagerProtocol
+from aidev_agent.packages.resource_manager import AgentResourceManager
 from aidev_agent.pydantic_models import AgentConfig
 from aidev_bkplugin.services.agent_session import SessionManager
 from django.conf import settings
+from django.core.cache import cache
 
+from backend.components import bk
 from backend.components.base import DataAPI
 from backend.configuration.constants import SystemSettingsEnum
 from backend.configuration.models import SystemSettings
+from backend.utils.local import local
+
+logger = logging.getLogger("root")
+
+# Agent 级别 access_token 缓存 key 模板与过期时间（秒）
+AGENT_ACCESS_TOKEN_CACHE_KEY_TPL = "agent_access_token::{agent_code}::{username}"
+AGENT_ACCESS_TOKEN_CACHE_TTL = 12 * 60 * 60
 
 AGENT_CONFIG_TEMPLATE = {
     # 使用的 LLM（联系接口人获取可使用的 LLM 模型名称列表）。
@@ -44,10 +54,12 @@ AGENT_CONFIG_TEMPLATE = {
 class DBMAgentResourceManager(AgentResourceManager):
     """DBM Agent配置管理器"""
 
-    def __init__(self, agent_code: str = None, agent_secret: str = None, username: str = ""):
+    def __init__(self, username="", agent_code: str = None, agent_secret: str = None):
         agent_code = agent_code or settings.AGENT_APP_CODE
         agent_secret = agent_secret or settings.AGENT_APP_SECRET
-        super().__init__(agent_code=agent_code, agent_secret=agent_secret)
+        # 如果用户是admin，则替换成虚拟用户请求
+        username = settings.DBM_APP_USER if username == "admin" else username
+        super().__init__(agent_code=agent_code, agent_secret=agent_secret, username=username)
 
     @classmethod
     def set_backend_mcp_config(cls, agent_config: AgentConfig):
@@ -60,11 +72,13 @@ class DBMAgentResourceManager(AgentResourceManager):
                 config["url"] = parsed_url[0] + "/application/" + parsed_url[1] + "/"
             # apigw mcp 添加校验头，后台请求用admin身份调用
             if config.get("credential_type", "") == CredentialType.BLUEAPPS.value:
-                auth = {"bk_app_code": settings.APP_CODE, "bk_app_secret": settings.SECRET_KEY, "bk_username": "admin"}
+                # auth = {"bk_app_code": settings.APP_CODE, "bk_app_secret": settings.SECRET_KEY, "bk_username": "admin"}
+                # config["headers"] = {"X-Bkapi-Authorization": json.dumps(auth)}
+                # config["headers"]["X-Bk-Username"] = "admin"
+                # config["headers"]["X-Bkapi-Allowed-Headers"] = "X-Bk-Username"
+                auth = {"access_token": settings.DBM_APP_ACCESS_TOKEN}
                 config["headers"] = {"X-Bkapi-Authorization": json.dumps(auth)}
-                config["headers"]["X-Bk-Username"] = "admin"
                 config["headers"]["X-Bkapi-Timeout"] = str(settings.BK_APIGW_MCP_TIMEOUT)
-                config["headers"]["X-Bkapi-Allowed-Headers"] = "X-Bk-Username"
                 config.pop("credential_type")
 
         return agent_config
@@ -78,11 +92,50 @@ class DBMAgentResourceManager(AgentResourceManager):
 
         return agent_config
 
+    def _resolve_user_access_token(self, username):
+        """使用 Agent app_code + 用户身份信息，向鉴权网关(OAUTH_API_URL)换取 Agent 级别的 access_token。
+
+        bkoauth 数据库缓存的 access_token 由 DBM 自身 app_code 派发，其主体与 Agent 不一致；
+        因此这里携带当前请求的用户认证信息(bk_token/bk_ticket)，以 Agent app_code 为主体，
+        走网关标准接口换取 access_token。为提升效率，按 `agent_code::username` 维度缓存。
+        仅在存在请求上下文（非 celery/pipeline 后台任务）且请求用户与目标用户一致时生效。
+        """
+        request = local.request
+        if not username or not request:
+            return ""
+
+        # 认证信息(bk_token/bk_ticket)属于当前登录用户，仅当与目标用户一致时才可用于换取其 token
+        if getattr(getattr(request, "user", None), "username", "") != username:
+            return ""
+
+        # 优先从缓存获取access token
+        agent_code = self.get_agent_code()
+        cache_key = AGENT_ACCESS_TOKEN_CACHE_KEY_TPL.format(agent_code=agent_code, username=username)
+        access_token = cache.get(cache_key)
+        if access_token:
+            return access_token
+
+        # 以 Agent app 凭证为主体，通过鉴权网关标准接口换取用户 access_token
+        access_token = bk.resolve_user_access_token(request, self.app_code, self.app_secret)
+        if access_token:
+            cache.set(cache_key, access_token, AGENT_ACCESS_TOKEN_CACHE_TTL)
+        return access_token
+
     def resolve_access_token(self, username: str = None) -> str:
-        """解析access_token，这里如果是后台调用，则用虚拟账户token"""
-        if username == "admin":
+        """解析 access_token：
+
+        - 后台/虚拟用户(admin / DBM_APP_USER)：使用 DBM 平台虚拟账户 token（由 DBM app_code 派发，用于后台任务）；
+        - 显式传入 access_token：直接使用；
+        - 其余真实用户：以 Agent app_code 为主体，携带用户身份向 PaaS 平台换取 Agent 级别 token（带缓存）。
+        """
+        _username = username or self.username
+        # 后台/虚拟用户直接使用 DBM 平台虚拟账户 access_token
+        if _username in ("admin", settings.DBM_APP_USER):
             return settings.DBM_APP_ACCESS_TOKEN
-        return super().resolve_access_token(username)
+        # 显式传入 access_token 优先
+        if self.access_token:
+            return self.access_token
+        return self._resolve_user_access_token(_username)
 
     def get_paas_sbx_client(self, executor_info: dict, **kwargs):
         """修改paas sandbox的鉴权配置"""
@@ -104,7 +157,7 @@ class DBMAgentResourceManager(AgentResourceManager):
         return client
 
 
-def build_resource_manager(agent_code: str = None, username: str = "") -> ResourceManagerProtocol:
+def build_resource_manager(agent_code, username) -> DBMAgentResourceManager:
     """
     构建子智能体 resource-manager
     如果没配置，则默认走主智能体调用（快捷指令路由）
@@ -114,16 +167,16 @@ def build_resource_manager(agent_code: str = None, username: str = "") -> Resour
     agent_token_config = SystemSettings.get_setting_value(key=SystemSettingsEnum.AGENT_TOKEN_CONFIG, default={})
     agent_token = agent_token_config.get(agent_code, "")
     if not agent_token:
-        return DBMAgentResourceManager(username=username)
-    return DBMAgentResourceManager(agent_code, agent_token, username=username)
+        return DBMAgentResourceManager(username)
+    return DBMAgentResourceManager(username, agent_code, agent_token)
 
 
-def build_session_manager(username: str = "", agent_code: str = None) -> SessionManager:
+def build_session_manager(agent_code, username) -> SessionManager:
     """
     构建子智能体 session-manager
     如果没配置，则默认走主智能体调用（快捷指令路由）
     """
-    resource_manager = build_resource_manager(agent_code)
+    resource_manager = build_resource_manager(agent_code, username)
     return SessionManager(
         username=username, agent_code=resource_manager.get_agent_code(), resource_manager=resource_manager
     )
