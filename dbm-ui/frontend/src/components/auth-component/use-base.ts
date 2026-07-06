@@ -66,8 +66,8 @@ const withBizActionList = [
   'mongodb_account_create',
   'mongodb_account_rules_view',
   'sqlserver_apply',
-  'sqlserver_account_create',
-  'sqlserver_account_rules_view',
+  // 'sqlserver_account_create', // 旧权限
+  // 'sqlserver_account_rules_view', // 旧权限
   'biz_ticket_config_set',
   'doris_apply',
   'biz_assistance_vars_config',
