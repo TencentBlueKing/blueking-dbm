@@ -274,8 +274,8 @@
             cluster: {
               master_domain: clusters[item.cluster_id]?.immute_domain || '',
             },
-            databases: item.rollback_time ? [] : item.databases,
-            tables: item.rollback_time ? [] : item.tables,
+            databases: item.databases,
+            tables: item.tables,
           }),
         );
       }).then(() => {

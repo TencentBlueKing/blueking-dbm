@@ -262,7 +262,7 @@
             cluster: {
               master_domain: clusters[item.cluster_id]?.immute_domain || '',
             },
-            databases: item.rollback_time ? [] : item.databases,
+            databases: item.databases,
             remoteHosts: (item.resource_spec?.remote_hosts?.hosts || []).map((host) => ({
               bk_biz_id: host.bk_biz_id,
               bk_cloud_id: host.bk_cloud_id,
@@ -272,7 +272,7 @@
             spiderHost: {
               ip: item.resource_spec?.spider_host?.hosts[0]?.ip || '',
             },
-            tables: item.rollback_time ? [] : item.tables,
+            tables: item.tables,
           }),
         );
       }).then(() => {
