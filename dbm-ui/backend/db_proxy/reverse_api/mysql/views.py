@@ -35,7 +35,7 @@ class MySQLReverseApiView(BaseReverseApiView):
     def list_instance_info(self, bk_cloud_id: int, ip: str, port_list: List[int]):
         logger.info(f"bk_cloud_id: {bk_cloud_id}, ip: {ip}, port:{port_list}")
         res = list_instance_info(bk_cloud_id=bk_cloud_id, ip=ip, port_list=port_list)
-        logger.info(f"instance info: {res}")
+        # logger.info(f"instance info: {res}")
         return JsonResponse(
             {
                 "result": True,

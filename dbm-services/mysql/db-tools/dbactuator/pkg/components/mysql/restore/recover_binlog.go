@@ -49,9 +49,9 @@ func (c *RecoverBinlogComp) Example() interface{} {
 				StopTime:       "2022-11-05 22:00:01",
 				IdempotentMode: true,
 				NotWriteBinlog: true,
-				SkipGtids:      true,
-				Databases:      []string{"db1,db2"},
-				Tables:         []string{"tb1,tb2"},
+				//SkipGtids:      true,
+				Databases: []string{"db1,db2"},
+				Tables:    []string{"tb1,tb2"},
 				MySQLClientOpt: &MySQLClientOpt{
 					MaxAllowedPacket: 1073741824,
 					BinaryMode:       true,
@@ -359,6 +359,9 @@ func (r *RecoverBinlog) Init() error {
 		r.BinlogFiles = lo.Uniq(append(r.BinlogFiles, leakFiles...))
 	}
 	//}
+	if r.RecoverOpt.SkipGtids == nil {
+		r.RecoverOpt.SkipGtids = lo.ToPtr(true)
+	}
 	return nil
 }
 
@@ -452,7 +455,7 @@ func (r *RecoverBinlog) buildBinlogOptions() error {
 	} else {
 		binlogTool = r.ToolSet.MustGet(tools.ToolMysqlbinlog)
 	}
-	if b.SkipGtids && mysqlcomm.MysqlbinlogHasOpt(binlogTool, "--skip-gtids") == nil {
+	if *b.SkipGtids && mysqlcomm.MysqlbinlogHasOpt(binlogTool, "--skip-gtids") == nil {
 		b.options += fmt.Sprintf(" --skip-gtids")
 	}
 	if b.IdempotentMode && mysqlcomm.MysqlbinlogHasOpt(binlogTool, "--idempotent") == nil {

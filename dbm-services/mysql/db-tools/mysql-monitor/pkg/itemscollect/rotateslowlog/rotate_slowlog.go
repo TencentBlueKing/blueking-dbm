@@ -45,12 +45,6 @@ qq{set global slow_query_log=\@sq_log_save},
 
 // Run 运行
 func (d *SlowlogRotator) Run() (msg string, err error) {
-	slowlogRp := NewSlowlogReport(d.db)
-	msg, err = slowlogRp.Run()
-	if err != nil || msg != "" {
-		return msg, err
-	}
-
 	slowLogOn, slowLogPath, err := slowLogStatus(d.db)
 	if err != nil {
 		return "", err

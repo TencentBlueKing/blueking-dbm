@@ -78,3 +78,19 @@ func MysqlAdminHasOption(mysqlCmd string, option string) (bool, error) {
 	}
 	return true, nil
 }
+
+// GomysqlbinlogHasOption return nil if option exists
+// example: ./gomysqlbinlog --skip-gtids 1 --help
+func GomysqlbinlogHasOption(bin string, option ...string) (bool, error) {
+	// --help 在前/后 无所谓
+	cmdArgs := []string{bin, "--help"}
+	cmdArgs = append(cmdArgs, option...)
+	_, cmdStderr, err := cmutil.ExecCommand(false, "", cmdArgs[0], cmdArgs[1:]...)
+	if err == nil {
+		return true, nil
+	}
+	if strings.Contains(cmdStderr, "unknown flag") {
+		return false, nil
+	}
+	return false, err
+}

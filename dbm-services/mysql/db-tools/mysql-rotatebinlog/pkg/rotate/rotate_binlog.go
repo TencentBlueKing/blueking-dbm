@@ -16,6 +16,7 @@ import (
 	"dbm-services/mysql/db-tools/mysql-rotatebinlog/pkg/backup"
 	"dbm-services/mysql/db-tools/mysql-rotatebinlog/pkg/cst"
 	"dbm-services/mysql/db-tools/mysql-rotatebinlog/pkg/models"
+	"dbm-services/mysql/db-tools/mysql-rotatebinlog/pkg/util"
 
 	"github.com/pkg/errors"
 	"github.com/spf13/cast"
@@ -117,7 +118,7 @@ func (i *ServerObj) Rotate() (lastFileBefore *models.BinlogFileModel, err error)
 func (i *ServerObj) FreeSpace() (err error) {
 	sizeToFreeBytes := i.rotate.sizeToFreeMB * 1024 * 1024       // MB to bytes
 	sizeToFreeBytesHard := i.rotate.hardSizeToFree * 1024 * 1024 // MB to bytes
-	logger.Info("plan to free port %d binlog bytes %d", i.Port, sizeToFreeBytes)
+	logger.Info("plan to free port %d binlog bytes %d (hard=%d)", i.Port, sizeToFreeBytes, sizeToFreeBytesHard)
 	if err = i.rotate.Remove(sizeToFreeBytes, sizeToFreeBytesHard, i); err != nil {
 		logger.Error("Remove %+v", err)
 	}
@@ -147,6 +148,8 @@ type BinlogFile struct {
 	Filename string
 	Mtime    time.Time
 	Size     int64
+	// HasExecPerm 经过 rotatebinlog 处理过的 binlog 文件会被 chmod +x
+	HasExecPerm bool
 }
 
 // String 用于打印
@@ -178,19 +181,35 @@ func (i *ServerObj) getBinlogFilesLocal() (string, []*BinlogFile, error) {
 			}
 			i.binlogFiles = append(
 				i.binlogFiles, &BinlogFile{
-					Filename: fi.Name(),
-					Mtime:    fii.ModTime(),
-					Size:     fii.Size(),
+					Filename:    fi.Name(),
+					Mtime:       fii.ModTime(),
+					Size:        fii.Size(),
+					HasExecPerm: fii.Mode()&0111 != 0,
 				},
 			)
 		}
 	}
-	// 确认排序, 升序
+	// 确认排序, 升序。不能直接按照文件名
 	sort.Slice(i.binlogFiles, func(m, n int) bool {
 		seqI := cast.ToInt(strings.LastIndex(i.binlogFiles[m].Filename, "."))
 		seqJ := cast.ToInt(strings.LastIndex(i.binlogFiles[n].Filename, "."))
 		return seqI < seqJ
 	})
+	// 看下第一个 binlog的时间，是否在 今天凌晨之前，如果本地 binlog保留太少，可能无法重建 slave
+	theFirstFile := i.binlogFiles[0]
+
+	// 准确的应该是  全备时间点 - binlog本地最早时间，如果 > 0 则代表本地 binlog 无法直接用于该全备的位点跟进
+	subDura := int64(timeutil.GetMidnight(time.Now()).Sub(theFirstFile.Mtime).Seconds())
+	if subDura > 0 {
+		_ = util.SendMonitorMetrics("binlog_local_too_little", subDura,
+			map[string]interface{}{
+				"appid":          i.Tags.BkBizId,
+				"cluster_domain": i.Tags.ClusterDomain,
+				"db_role":        i.Tags.DBRole,
+				"host":           i.Host,
+				"port":           i.Port,
+			})
+	}
 	//logger.Info("getBinlogFilesLocal: %+v", i.binlogFiles)
 	return i.binlogDir, i.binlogFiles, nil
 }

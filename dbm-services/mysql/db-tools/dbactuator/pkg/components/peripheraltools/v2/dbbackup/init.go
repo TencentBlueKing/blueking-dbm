@@ -5,6 +5,7 @@ package dbbackup
 // 这样设计感觉不太对, 更合理的应该是把这个类型定义到 dbbackup 代码那边
 // 暂时先不改
 type BackupOptions struct {
+	// BackupType auto | logical | physical
 	BackupType  string `json:"BackupType" validate:"required"`
 	CrontabTime string `json:"CrontabTime" validate:"required"`
 	IgnoreObjs  struct {
@@ -14,6 +15,8 @@ type BackupOptions struct {
 	} `json:"Logical"`
 	Master logicBackupDataOption `json:"Master" validate:"required"`
 	Slave  logicBackupDataOption `json:"Slave"`
+	// EnableBackupClient auto | yes | no
+	EnableBackupClient string `json:"EnableBackupClient"`
 }
 
 type logicBackupDataOption struct {

@@ -12,6 +12,7 @@ import (
 
 	"dbm-services/common/go-pubpkg/cmutil"
 	"dbm-services/common/go-pubpkg/logger"
+	"dbm-services/common/go-pubpkg/mysqlcomm"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/util/osutil"
 )
 
@@ -57,6 +58,9 @@ type GoMySQLBinlogUtil struct {
 	ExcludeDatabases []string `json:"exclude_databases,omitempty"`
 	// row event 解析指定 忽略 tables
 	ExcludeTables []string `json:"exclude_tables,omitempty"`
+	// QueryMatchIgnore ignore some statement query, golang regex format
+	QueryMatchIgnore string `json:"query_match_ignore"`
+	QueryMatchError  string `json:"query_match_error"`
 
 	Verbose int `json:"-"`
 	//MySQLClientOpt *MySQLClientOpt `json:"mysql_client_opt"`
@@ -87,10 +91,23 @@ func (b *GoMySQLBinlogUtil) BuildArgs(filterMode bool) ([]string, error) {
 		b.cmdArgs = append(b.cmdArgs, "--disable-log-bin")
 	}
 	if b.SkipGtids {
-		b.cmdArgs = append(b.cmdArgs, "--skip-gtids")
+		if ok, err := mysqlcomm.GomysqlbinlogHasOption(b.cmdPath, "--skip-gtids"); ok {
+			b.cmdArgs = append(b.cmdArgs, "--skip-gtids")
+		} else {
+			return nil, errors.Errorf("--skip-gtids is not supported for gomysqlbinlog:%v", err)
+		}
 	}
 	if b.RowsEventType != "" {
 		b.cmdArgs = append(b.cmdArgs, "--rows-event-type", b.RowsEventType)
+	}
+	if b.QueryMatchIgnore != "" {
+		b.cmdArgs = append(b.cmdArgs, fmt.Sprintf("--query-match-ignore='%s'", b.QueryMatchIgnore))
+	} else {
+		// create/drop procedure/function 是安全的，gomysqlbinlog parser 解析器可能解析失败，直接默认规则里忽略
+		b.cmdArgs = append(b.cmdArgs, `--query-match-ignore='(?i)^(create|drop)\s.*(procedure|function)\s'`)
+	}
+	if b.QueryMatchError != "" {
+		b.cmdArgs = append(b.cmdArgs, fmt.Sprintf("--query-match-error='%s'", b.QueryMatchError))
 	}
 	if filterMode {
 		if b.RowsFilter != "" {
@@ -181,11 +198,4 @@ func (b *GoMySQLBinlogUtil) SetWorkDir(workDir string) {
 
 func (b *GoMySQLBinlogUtil) Check() error {
 	return nil
-}
-
-func NewGoMySQLBinlogUtil(cmdPath string) *GoMySQLBinlogUtil {
-	tool := &GoMySQLBinlogUtil{
-		cmdPath: cmdPath,
-	}
-	return tool
 }

@@ -289,7 +289,7 @@ def _check_tendbcluster_full_backup(date_str: str):
                     backup.success = True
                     break
                 if len(stat.get("remote", {})) != shard_num:
-                    shard_id_list = [int(i) for i in stat.get("remote").keys()]
+                    shard_id_list = [int(i) for i in stat.get("remote", {}).keys()]
                     stat["remote"] = find_discontinuous_numbers(shard_id_list)
                 message = "backup_id={}:{}".format(backup_id, json.dumps(stat))
 

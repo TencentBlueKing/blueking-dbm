@@ -371,16 +371,17 @@ func (m *BinlogFileModel) QueryToRemove(db *sqlx.DB) ([]*BinlogFileModel, error)
 	return m.Query(db, removeWhere)
 }
 
-func (m *BinlogFileModel) QueryStage(db *sqlx.DB) ([]*BinlogFileModel, error) {
-	removeWhere := sq.Or{
-		sq.Eq{"backup_status": StatusSuccess},
-		sq.Lt{"backup_status": IBStatusSuccess},
+func (m *BinlogFileModel) QueryByFileName(db *sqlx.DB, fileName string) (*BinlogFileModel, error) {
+	if fileName == "" {
+		return nil, errors.New("filename is empty")
 	}
-	cond := sq.And{
-		sq.Like{"binlog_dir": "%binlog_upload_stage%"},
-		removeWhere,
+	objs, err := m.Query(db, sq.Eq{"filename": fileName})
+	if err != nil {
+		return nil, err
+	} else if len(objs) != 1 {
+		return nil, errors.New("filename is not unique")
 	}
-	return m.Query(db, cond)
+	return objs[0], nil
 }
 
 // QueryUnfinished 查询待上传、上传未完成的列表
