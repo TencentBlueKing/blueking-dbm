@@ -99,3 +99,36 @@ class BKClient:
             logger.error("comm_request response err: {}".format(response))
             raise Exception(_("请求[{}]失败：{}").format(func_url, response.get("message")))
         return response
+
+
+def resolve_user_access_token(request, app_code: str, app_secret: str) -> str:
+    """使用指定应用凭证(app_code/app_secret) + 当前请求携带的用户票据，向鉴权网关换取用户 access_token。
+
+    复用 bkoauth 的鉴权网关(OAUTH_API_URL)标准实现，自动兼容内部版/社区版两种网关协议：
+    - 内部版(ieod)：GET  {OAUTH_API_URL}/auth_api/token/
+    - 社区版(open)：POST {OAUTH_API_URL}/api/v1/auth/access-tokens
+    换取到的 access_token 主体为传入的 app_code；用户身份(bk_token/bk_ticket)由 bkoauth
+    从 request.COOKIES 中按 OAUTH_COOKIES_PARAMS 自动提取。
+
+    :param request: 当前 HTTP 请求（需携带用户票据 cookie），无请求上下文时返回空
+    :param app_code: 换取 access_token 的应用 code（即 token 主体）
+    :param app_secret: 应用 secret
+    :return: access_token 字符串，失败时返回空字符串
+    """
+    if request is None or not app_code or not app_secret:
+        return ""
+
+    try:
+        from bkoauth.client import oauth_client
+        from bkoauth.django_conf import OAUTH_API_URL, OAUTH_COOKIES_PARAMS, OAUTH_PARAMS
+
+        # 使用与当前部署一致的客户端类型，新建实例避免污染全局单例，并替换为指定 app 凭证
+        client = type(oauth_client)(OAUTH_API_URL, OAUTH_COOKIES_PARAMS, **OAUTH_PARAMS)
+        client.app_code = app_code
+        client.secret_key = app_secret
+
+        data = client._get_access_token_data(request)
+        return data.get("access_token", "")
+    except Exception as e:
+        logger.warning("resolve_user_access_token failed, app_code=%s, err=%s", app_code, e)
+        return ""

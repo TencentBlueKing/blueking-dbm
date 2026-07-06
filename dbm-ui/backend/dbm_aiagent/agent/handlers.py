@@ -13,7 +13,6 @@ import logging
 import re
 import uuid
 
-from aidev_agent.packages.resource_manager import ResourceManagerProtocol
 from aidev_agent.pydantic_models import ExecuteKwargs
 from aidev_bkplugin.services.agent_builder import AgentBuilder
 from aidev_bkplugin.services.agent_helpers import AgentHelper
@@ -22,7 +21,11 @@ from django.http import StreamingHttpResponse
 from django.utils.translation import gettext_lazy as _
 
 from backend.dbm_aiagent.agent.commands import CommandProcessor
-from backend.dbm_aiagent.agent.configs.manager import build_resource_manager, build_session_manager
+from backend.dbm_aiagent.agent.configs.manager import (
+    DBMAgentResourceManager,
+    build_resource_manager,
+    build_session_manager,
+)
 from backend.dbm_aiagent.agent.constants import DEFAULT_AGENT_CHAT_TIMEOUT, RISK_COMPARE_PROMPT, DBMAgentCode
 from backend.env import DEFAULT_USERNAME
 
@@ -38,22 +41,22 @@ class AgentHandler:
         return str(uuid.uuid4())
 
     @staticmethod
-    def __build_resource_manager(agent_code) -> ResourceManagerProtocol:
+    def __build_resource_manager(agent_code, username) -> DBMAgentResourceManager:
         """创建子智能体 resource manager"""
-        return build_resource_manager(agent_code)
+        return build_resource_manager(agent_code, username)
 
     @staticmethod
-    def __build_session_manager(agent_code) -> SessionManager:
+    def __build_session_manager(agent_code, username) -> SessionManager:
         """创建session manager"""
-        return build_session_manager(agent_code)
+        return build_session_manager(agent_code, username)
 
     @classmethod
-    def __build_client(cls, agent_code: str = None):
+    def __build_client(cls, agent_code, username):
         """按 agent_code 构建携带对应 resource_manager 的 client"""
-        return AgentHelper.get_client(resource_manager=cls.__build_resource_manager(agent_code))
+        return AgentHelper.get_client(resource_manager=cls.__build_resource_manager(agent_code, username))
 
     @classmethod
-    def create_temporary_session(cls, username=DEFAULT_USERNAME, agent_code=None):
+    def create_temporary_session(cls, username, agent_code):
         """创建临时会话"""
         session_code = cls.__generate_session_code()
 
@@ -64,7 +67,7 @@ class AgentHandler:
             "is_temporary": True,
             "session_property": {},
         }
-        client = cls.__build_client(agent_code)
+        client = cls.__build_client(agent_code, username)
         client.api.create_chat_session(json=create_session_params, headers={"X-BKAIDEV-USER": username})
 
         return session_code
@@ -81,8 +84,8 @@ class AgentHandler:
     ):
         """获得本次对话内容，支持流式/非流式"""
         execute_kwargs = ExecuteKwargs(stream=stream, invoke_timeout=timeout)
-        rm = cls.__build_resource_manager(agent_code)
-        sm = cls.__build_session_manager(agent_code)
+        rm = cls.__build_resource_manager(agent_code, username)
+        sm = cls.__build_session_manager(agent_code, username)
         agent_instance = AgentBuilder(
             resource_manager=rm,
             session_manager=sm,
@@ -114,7 +117,7 @@ class AgentHandler:
             rendered_content = f"comment：{agent_code}\n" + content
             content_property = {"extra": {"command": agent_code, "rendered_content": rendered_content}}
             content_params.update(property=content_property, content=str(DBMAgentCode.get_choice_label(agent_code)))
-        client = cls.__build_client(agent_code)
+        client = cls.__build_client(agent_code, username)
         resp = client.api.create_chat_session_content(json=content_params, headers={"X-BKAIDEV-USER": username})
 
         # 获取AI回复
@@ -178,7 +181,7 @@ class AgentHandler:
             "property": content_property,
             "content": command_handler.name,
         }
-        client = cls.__build_client(agent_code)
+        client = cls.__build_client(agent_code, username)
         resp = client.api.create_chat_session_content(json=content_params, headers={"X-BKAIDEV-USER": username})
 
         # 获取AI回复

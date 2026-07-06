@@ -454,6 +454,8 @@ class Services:
         cls.auto_create_backup_bucket()
         # 初始化dbconfig服务
         cls.auto_sync_dbconfig()
+        # 初始化 DBM access_token
+        cls.auto_create_dbm_access_token()
         return True
 
     @classmethod
@@ -503,6 +505,35 @@ class Services:
             logger.info("dbm同步dbconfig成功")
         except Exception as e:
             logger.info("dbm同步dbconfig异常: %s" % str(e))
+
+    @classmethod
+    def auto_create_dbm_access_token(cls):
+        """将 DBM_APP_USER 及 DBM_APP_ACCESS_TOKEN 写入 bkoauth 的 access_token 表，供后台任务鉴权使用"""
+        try:
+            from bkoauth.django_conf import ENV_NAME
+            from bkoauth.models import AccessToken
+        except ImportError:
+            logger.warning("bkoauth 未安装或未启用，跳过初始化 DBM access_token")
+            return
+
+        user_id = env.DBM_APP_USER
+        access_token = env.DBM_APP_ACCESS_TOKEN
+        if not user_id or not access_token:
+            logger.warning("DBM_APP_USER 或 DBM_APP_ACCESS_TOKEN 未配置，跳过初始化 DBM access_token")
+            return
+
+        try:
+            # 设置一个较长的过期时间，避免后台任务取用时触发自动续期（无 refresh_token 会失败）
+            expires = timezone.now() + datetime.timedelta(days=365 * 10)
+            token, created = AccessToken.objects.update_or_create(
+                env_name=ENV_NAME,
+                user_id=user_id,
+                defaults={"access_token": access_token, "expires": expires},
+            )
+            action = "创建" if created else "更新"
+            logger.info("dbm{} access_token 成功: user_id={}, env_name={}".format(action, user_id, ENV_NAME))
+        except Exception as e:
+            logger.error("dbm 初始化 access_token 异常: %s" % str(e))
 
     @classmethod
     def auto_create_job_user(cls, account_list: list):
