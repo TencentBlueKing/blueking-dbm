@@ -59,6 +59,7 @@
               <OperationBtnStatusTips
                 v-bk-tooltips="{
                   content: t('暂不支持跨管控区域提取Key'),
+                  placement: 'right',
                   disabled: data.bk_cloud_id === undefined,
                 }"
                 :data="data"
@@ -79,6 +80,7 @@
             <div v-db-console="'redis.haClusterManage.deleteKey'">
               <OperationBtnStatusTips
                 v-bk-tooltips="{
+                  placement: 'right',
                   content: t('暂不支持跨管控区域删除Key'),
                   disabled: data.bk_cloud_id === undefined,
                 }"
@@ -221,6 +223,7 @@
                   v-bk-tooltips="{
                     disabled: data.isOffline,
                     content: t('请先禁用集群'),
+                    placement: 'right',
                   }"
                   action-id="redis_destroy"
                   :disabled="data.isOnline || Boolean(data.operationTicketId)"
