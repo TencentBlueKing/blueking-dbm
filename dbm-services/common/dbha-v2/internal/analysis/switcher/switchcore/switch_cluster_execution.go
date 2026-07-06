@@ -64,13 +64,14 @@ func checkStatusForClusterSwitch(ctx context.Context, swCluster SwitchableCluste
 	wrongStatusInsts := []string{}
 
 	for instKey, instMeta := range insts {
-		if (instMeta.Status != dbm.Running) && (instMeta.Status != dbm.Available) {
-			wrongStatusInsts = append(wrongStatusInsts, string(instKey))
-			swCluster.ReportLogf(instKey, switchlogger.SwitchError,
-				"pre-status check unpass for wrong status: %s", instMeta.Status)
+		if (instMeta.Status == dbm.Running) || (instMeta.Status == dbm.Available) {
+			swCluster.ReportLogf(instKey, switchlogger.SwitchInfo, "pre-status check pass with status: %s", instMeta.Status)
+			continue
 		}
 
-		swCluster.ReportLogf(instKey, switchlogger.SwitchInfo, "pre-status check pass with status: %s", instMeta.Status)
+		wrongStatusInsts = append(wrongStatusInsts, string(instKey))
+		swCluster.ReportLogf(instKey, switchlogger.SwitchError,
+			"pre-status check unpass for wrong status: %s", instMeta.Status)
 	}
 
 	if len(wrongStatusInsts) > 0 {

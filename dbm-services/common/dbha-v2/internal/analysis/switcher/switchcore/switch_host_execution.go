@@ -70,13 +70,13 @@ func checkStatusForHostSwitch(ctx context.Context, swInstMap map[MetadataKey]Swi
 			continue
 		}
 
-		if (ins.GetStatus() != dbm.Running) && (ins.GetStatus() != dbm.Available) {
-			ins.ReportLogf(switchlogger.SwitchError, "pre-status check unpass for wrong status:%s", ins.GetStatus())
-			failedInsts = append(failedInsts, instKey)
+		if (ins.GetStatus() == dbm.Running) || (ins.GetStatus() == dbm.Available) {
+			ins.ReportLogf(switchlogger.SwitchInfo, "pre-status check pass with status:%s", ins.GetStatus())
 			continue
 		}
 
-		ins.ReportLogf(switchlogger.SwitchInfo, "pre-status check pass with status:%s", ins.GetStatus())
+		ins.ReportLogf(switchlogger.SwitchError, "pre-status check unpass for wrong status:%s", ins.GetStatus())
+		failedInsts = append(failedInsts, instKey)
 	}
 
 	return failedInsts

@@ -83,14 +83,14 @@ func checkStatusForInstanceSwitch(ctx context.Context, ins SwitchableInstance) e
 		return err
 	}
 
-	if (ins.GetStatus() != dbm.Running) && (ins.GetStatus() != dbm.Available) {
-		retErr := gerrors.Newf(gerrors.Failure, "pre-status check unpass for wrong status:%s", ins.GetStatus())
-		ins.ReportLogf(switchlogger.SwitchError, "%s", retErr.Error())
-		return retErr
+	if (ins.GetStatus() == dbm.Running) || (ins.GetStatus() == dbm.Available) {
+		ins.ReportLogf(switchlogger.SwitchInfo, "pre-status check pass with status:%s", ins.GetStatus())
+		return nil
 	}
 
-	ins.ReportLogf(switchlogger.SwitchInfo, "pre-status check pass with status:%s", ins.GetStatus())
-	return nil
+	retErr := gerrors.Newf(gerrors.Failure, "pre-status check unpass for wrong status:%s", ins.GetStatus())
+	ins.ReportLogf(switchlogger.SwitchError, "%s", retErr.Error())
+	return retErr
 }
 
 // setStatusForInstanceSwitch sets the instance unavailable for switching.
