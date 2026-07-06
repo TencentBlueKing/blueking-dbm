@@ -248,8 +248,8 @@
             cluster: {
               master_domain: clusters[item.cluster_id]?.immute_domain || '',
             },
-            databases: item.rollback_time ? [] : item.databases,
-            tables: item.rollback_time ? [] : item.tables,
+            databases: item.databases,
+            tables: item.tables,
             targetCluster: {
               master_domain: clusters[item.target_cluster_id]?.immute_domain || '',
             },

@@ -258,11 +258,11 @@
             cluster: {
               master_domain: clusters[item.cluster_id]?.immute_domain || '',
             },
-            databases: item.rollback_time ? [] : item.databases,
+            databases: item.databases,
             newHost: {
               ip: item.resource_spec?.rollback_host?.hosts[0]?.ip || '',
             },
-            tables: item.rollback_time ? [] : item.tables,
+            tables: item.tables,
           }),
         );
       }).then(() => {
