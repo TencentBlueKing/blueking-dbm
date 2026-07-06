@@ -181,7 +181,11 @@ class ModifyClusterPasswordPermission(ResourceActionPermission):
         machines = Machine.objects.filter(machine_ip_filters)
         # 根据集群类型获得关联实例和动作
         db_type = ClusterType.cluster_type_to_db_type(machines.first().cluster_type)
-        self.actions = [getattr(ActionEnum, f"{db_type}_admin_pwd_modify".upper())]
+        self.actions = (
+            [getattr(ActionEnum, f"{db_type}_admin_pwd_modify".upper())]
+            if db_type != "sqlserver"
+            else [getattr(ActionEnum, "SQLSERVER_MANAGE")]
+        )
         self.resource_meta = getattr(ResourceEnum, db_type.upper())
         # 通过machine获取关联集群，用于鉴权
         cluster_id_tuples = list(machines.values("storageinstance__cluster", "proxyinstance__cluster"))
