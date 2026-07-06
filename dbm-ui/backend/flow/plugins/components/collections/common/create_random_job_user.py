@@ -133,8 +133,21 @@ class AddTempUserForClusterService(BaseService):
         """
         if instance["priv_role"] == PrivRole.TDBCTL.value:
             # 这里做差异化处理，如果是中控节点，拼接专属的授权语句
+            #
+            # 会话级开关说明（与 drop_random_job_user.py 中删除语句对称）：
+            #   1) set tc_admin = 0
+            #      让本次会话按"单机 MySQL"模式在中控（TDBCTL/Spider）节点上执行，
+            #      不再通过 TDBCTL 路由层广播到后端 remote 集群，
+            #      同时规避集群模式下的隐式一致性检查导致 CREATE USER / GRANT 失败。
+            #   2) set session sql_log_bin = 0
+            #      关闭本会话 binlog 记录，避免临时账号的创建/授权语句写入本机 binlog，
+            #      从而流入下游 slave 或备份工具，产生"账号漂移"风险。
+            #      注意：tc_admin=0 只影响 TDBCTL 路由，不影响本机 binlog 是否落盘，
+            #            因此 sql_log_bin=0 是必需的，二者职责正交、不可省略。
+            #   3) 最后 set session sql_log_bin = 1 恢复默认，避免连接被复用时污染后续语句。
             return [
                 "set tc_admin = 0;",
+                "set session sql_log_bin = 0 ;",
                 f"""CREATE USER IF NOT EXISTS '{user}'@'localhost'
                 IDENTIFIED WITH mysql_native_password AS '{pwd_hash}';""",
                 f"""CREATE USER IF NOT EXISTS '{user}'@'{instance["instance"].split(":")[0]}'
@@ -142,6 +155,7 @@ class AddTempUserForClusterService(BaseService):
                 f"GRANT ALL PRIVILEGES ON *.* TO '{user}'@'localhost' WITH GRANT OPTION;",
                 f"""GRANT ALL PRIVILEGES ON *.* TO '{user}'@'{instance["instance"].split(":")[0]}'
                 WITH GRANT OPTION;""",
+                "set session sql_log_bin = 1 ;",
             ]
 
         return [
