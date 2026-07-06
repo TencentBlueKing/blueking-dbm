@@ -149,9 +149,14 @@ func (k *K8sController) DeletePod(ctx *gin.Context) {
 		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.CreateK8sNsError, err))
 		return
 	}
+	// 清除敏感字段用于审计日志记录
+	auditParams := *deleteRequest
+	auditParams.BkAppCode = ""
+	auditParams.BkAppSecret = ""
 	dbsCtx := commentity.DbsContext{
-		BkAuth:      &deleteRequest.BKAuth,
-		RequestType: coreconst.DeleteK8sPod,
+		BkAuth:           &deleteRequest.BKAuth,
+		RequestType:      coreconst.DeleteK8sPod,
+		APIRequestParams: &auditParams,
 	}
 	err := k.k8sProvider.DeletePod(&dbsCtx, &podDeleteEntity)
 	if err != nil {
