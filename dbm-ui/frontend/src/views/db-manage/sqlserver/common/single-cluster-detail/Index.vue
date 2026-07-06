@@ -19,13 +19,16 @@
       <DisplayBox
         cluster-detail-router-name="SqlServerSingleClusterDetail"
         :data="data">
-        <BkButton
+        <AuthButton
           v-db-console="'sqlserver.singleClusterList.authorize'"
+          action-id="sqlserver_priv_manage"
           class="ml-4"
+          :permission="data.permission.sqlserver_priv_manage"
+          :resource="bizId"
           size="small"
           @click="handleShowAuthorize">
           {{ t('授权') }}
-        </BkButton>
+        </AuthButton>
         <OperationBtnStatusTips
           v-db-console="'sqlserver.singleClusterList.enable'"
           :data="data">
@@ -109,10 +112,10 @@
         :cluster-types="[ClusterTypes.SQLSERVER_SINGLE]"
         :selected="[data]" />
       <!-- excel 导入授权 -->
-      <ExcelAuthorize
+      <!-- <ExcelAuthorize
         v-model:is-show="isShowExcelAuthorize"
         :cluster-type="ClusterTypes.SQLSERVER_SINGLE"
-        :ticket-type="TicketTypes.SQLSERVER_EXCEL_AUTHORIZE_RULES" />
+        :ticket-type="TicketTypes.SQLSERVER_EXCEL_AUTHORIZE_RULES" /> -->
       <ClusterReset
         v-model:is-show="isShowClusterReset"
         :data="data" />
@@ -127,14 +130,14 @@
   import SqlServerSingleDetailModel from '@services/model/sqlserver/sqlserver-single-detail';
   import { getSingleClusterDetail } from '@services/source/sqlserverSingleCluster';
 
-  import { AccountTypes, ClusterTypes, TicketTypes } from '@common/const';
+  import { AccountTypes, ClusterTypes } from '@common/const';
 
   import MoreActionExtend from '@components/more-action-extend/Index.vue';
 
   import ClusterAuthorize from '@views/db-manage/common/cluster-authorize/Index.vue';
   import { ActionPanel, BaseInfo, BaseInfoField, DisplayBox } from '@views/db-manage/common/cluster-details';
   import ClusterDomainDnsRelation from '@views/db-manage/common/cluster-domain-dns-relation/Index.vue';
-  import ExcelAuthorize from '@views/db-manage/common/ExcelAuthorize.vue';
+  // import ExcelAuthorize from '@views/db-manage/common/ExcelAuthorize.vue';
   import { useOperateClusterBasic } from '@views/db-manage/common/hooks';
   import OperationBtnStatusTips from '@views/db-manage/common/OperationBtnStatusTips.vue';
   import ClusterReset from '@views/db-manage/sqlserver/common/cluster-operations/cluster-reset/Index.vue';
@@ -150,6 +153,8 @@
 
   const { ModuleNameInfo } = BaseInfoField;
 
+  const bizId = window.PROJECT_CONFIG.BIZ_ID;
+
   const { t } = useI18n();
 
   const data = ref<SqlServerSingleDetailModel>();
@@ -157,7 +162,7 @@
   /** 集群授权 */
   const isAuthorizeShow = ref(false);
   const isShowClusterReset = ref(false);
-  const isShowExcelAuthorize = ref(false);
+  // const isShowExcelAuthorize = ref(false);
 
   const clusterRoleNodeGroup = computed(() => {
     return {
