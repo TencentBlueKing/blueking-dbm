@@ -42,6 +42,11 @@ class InstanceVariablesSerializer(serializers.Serializer):
     instance_role = serializers.CharField(help_text=_("实例角色"), default="", allow_blank=True)
     machine_type = serializers.CharField(help_text=_("实例机器类型"))
     version = serializers.CharField(help_text=_("版本号"), default="", allow_blank=True)
+    is_stand_by = serializers.BooleanField(
+        help_text=_("是否为 standby（TenDBHA 多 slave 时的备选从库标志）；Spider 实例无此语义时可缺省"),
+        required=False,
+        default=False,
+    )
     datadir = serializers.CharField(
         help_text=_("MySQL 变量 datadir 原始值(完整路径)"),
         default="",
