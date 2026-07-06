@@ -27,13 +27,13 @@ logger = logging.getLogger("root")
 
 def get_time_range():
     """
-    获取查询时间范围：前天10:30到今天10:30
+    获取查询时间范围：昨天9:00到今天9:00
     """
     today = datetime.datetime.now()
-    # 今天的10:30
-    end_time = today.replace(hour=10, minute=30, second=0, microsecond=0)
-    # 前天的10:30
-    start_time = end_time - datetime.timedelta(days=2)
+    # 今天的9:00
+    end_time = today.replace(hour=9, minute=0, second=0, microsecond=0)
+    # 昨天的9:00
+    start_time = end_time - datetime.timedelta(days=1)
 
     return start_time, end_time
 

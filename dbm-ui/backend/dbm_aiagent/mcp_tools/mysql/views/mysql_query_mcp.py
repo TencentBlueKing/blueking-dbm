@@ -32,6 +32,12 @@ from backend.dbm_aiagent.mcp_tools.exceptions import (
 from backend.dbm_aiagent.mcp_tools.mysql.helpers.assert_clustertype import assert_cluster_type
 from backend.dbm_aiagent.mcp_tools.mysql.impl.cluster_runtime_variables import cluster_runtime_variables
 from backend.dbm_aiagent.mcp_tools.mysql.impl.cluster_topo import mysql_cluster_topo
+from backend.dbm_aiagent.mcp_tools.mysql.impl.cluster_variable_diff import (
+    tendbcluster_variable_diff as tendbcluster_variable_diff_impl,
+)
+from backend.dbm_aiagent.mcp_tools.mysql.impl.cluster_variable_diff import (
+    tendbha_master_slave_variable_diff as tendbha_master_slave_variable_diff_impl,
+)
 from backend.dbm_aiagent.mcp_tools.mysql.impl.explain_sql import explain_sql
 from backend.dbm_aiagent.mcp_tools.mysql.impl.get_table_partition_conf import (
     get_table_partition_conf as get_table_partition_conf_impl,
@@ -62,6 +68,12 @@ from backend.dbm_aiagent.mcp_tools.mysql.serializers.cluster_runtime_variables i
 from backend.dbm_aiagent.mcp_tools.mysql.serializers.cluster_topo import (
     MySQLClusterTopoInputSerializer,
     MySQLClusterTopoOutputSerializer,
+)
+from backend.dbm_aiagent.mcp_tools.mysql.serializers.cluster_variable_diff import (
+    TenDBClusterVariableDiffInputSerializer,
+    TenDBClusterVariableDiffOutputSerializer,
+    TenDBHAMasterSlaveVariableDiffInputSerializer,
+    TenDBHAMasterSlaveVariableDiffOutputSerializer,
 )
 from backend.dbm_aiagent.mcp_tools.mysql.serializers.explain_sql import (
     ExplainSQLInputSerializer,
@@ -277,6 +289,49 @@ class MySQLQueryMcpToolsViewSet(McpToolsViewSet):
                 **cluster_runtime_variables(cluster_obj=cluster_obj),
             }
         )
+
+    @mcp_tools_api_decorator(
+        description=str(
+            _(
+                "对比 TenDBHA 集群 master 与 standby slave 的运行时核心参数差异。"
+                "一主多从时仅比较 is_stand_by=True 的从库，普通 slave 不参与对比。"
+                "已跳过天然不同参数（如 server_id/read_only 等）及可配置忽略键/前缀；"
+                "无差异时 replication_pairs 为空列表。cluster_id 与 cluster_domain 二选一。"
+            )
+        ),
+        request_slz=TenDBHAMasterSlaveVariableDiffInputSerializer,
+        response_slz=TenDBHAMasterSlaveVariableDiffOutputSerializer,
+        tags=[DBMMCPTags.READ],
+        mcp=[DBMMcpTools.MYSQL_QUERY],
+        permission_classes=[McpClusterDetailPermission],
+        mcp_auth_parser=auth_parse_clusters,
+        name_prefix="mysql_query",
+    )
+    def tendbha_master_slave_variable_diff(self, request, *args, **kwargs):
+        cluster_obj = _resolve_cluster_from_params(self.get_param("cluster_id"), self.get_param("cluster_domain"))
+        assert_cluster_type(cluster_obj, [ClusterType.TenDBHA])
+        return Response(tendbha_master_slave_variable_diff_impl(cluster_obj=cluster_obj))
+
+    @mcp_tools_api_decorator(
+        description=str(
+            _(
+                "对比 TenDBCluster 集群：Spider 版本与参数差异，以及每组分片内 master/slave 参数差异。"
+                "已跳过天然不同参数及可配置忽略键/前缀；无差异时对应列表为空。"
+                "cluster_id 与 cluster_domain 二选一。"
+            )
+        ),
+        request_slz=TenDBClusterVariableDiffInputSerializer,
+        response_slz=TenDBClusterVariableDiffOutputSerializer,
+        tags=[DBMMCPTags.READ],
+        mcp=[DBMMcpTools.MYSQL_QUERY],
+        permission_classes=[McpClusterDetailPermission],
+        mcp_auth_parser=auth_parse_clusters,
+        name_prefix="mysql_query",
+    )
+    def tendbcluster_variable_diff(self, request, *args, **kwargs):
+        cluster_obj = _resolve_cluster_from_params(self.get_param("cluster_id"), self.get_param("cluster_domain"))
+        assert_cluster_type(cluster_obj, [ClusterType.TenDBCluster])
+        return Response(tendbcluster_variable_diff_impl(cluster_obj=cluster_obj))
 
     @mcp_tools_api_decorator(
         description=str(_("""查询实例运行时参数, 执行 show global variables，返回所有变量""")),
@@ -796,6 +851,18 @@ class MySQLQueryMcpToolsViewSet(McpToolsViewSet):
                 table_name=table_name,
             )
         )
+
+
+def _resolve_cluster_from_params(cluster_id, cluster_domain) -> Cluster:
+    """解析 cluster_id / cluster_domain（二选一），不存在时抛 DBMMcpClusterNotFoundException。"""
+    try:
+        if cluster_id is not None:
+            return Cluster.objects.get(id=cluster_id)
+        return Cluster.objects.get(immute_domain=cluster_domain)
+    except Cluster.DoesNotExist:
+        if cluster_id is not None:
+            raise DBMMcpClusterNotFoundException(msg=_("集群 id={} 不存在").format(cluster_id))
+        raise DBMMcpClusterNotFoundException(msg=_("集群域名 {} 不存在").format(cluster_domain))
 
 
 def _validate_and_get_machine(bk_cloud_id: int | None, address: str) -> Machine:
