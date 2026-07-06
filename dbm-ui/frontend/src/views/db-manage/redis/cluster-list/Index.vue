@@ -62,6 +62,7 @@
                 :disabled="!data.isOffline">
                 <span
                   v-bk-tooltips="{
+                    placement: 'right',
                     content: t('暂不支持跨管控区域提取Key'),
                     disabled: data.bk_cloud_id === 0,
                   }">
@@ -80,6 +81,7 @@
             <div v-db-console="'redis.clusterManage.deleteKey'">
               <OperationBtnStatusTips
                 v-bk-tooltips="{
+                  placement: 'right',
                   content: t('暂不支持跨管控区域删除Key'),
                   disabled: data.bk_cloud_id === 0,
                 }"
@@ -275,6 +277,7 @@
               <OperationBtnStatusTips :data="data">
                 <AuthButton
                   v-bk-tooltips="{
+                    placement: 'right',
                     disabled: data.isOffline,
                     content: t('请先禁用集群'),
                   }"

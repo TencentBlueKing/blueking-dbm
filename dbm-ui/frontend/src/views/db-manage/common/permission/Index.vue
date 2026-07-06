@@ -31,7 +31,9 @@
       </BkAlert>
       <div class="operation-box">
         <AuthButton
-          :action-id="`${accountType}_account_create`"
+          :action-id="
+            accountType === AccountTypes.SQLSERVER ? `${accountType}_priv_manage` : `${accountType}_account_create`
+          "
           theme="primary"
           @click="handleShowAccountDialog">
           {{ t('新建账号') }}
@@ -145,6 +147,8 @@
     DELETE_RULE = 'deleteRule',
     EDIT_RULE = 'editRule',
   }
+
+  const bizId = window.PROJECT_CONFIG.BIZ_ID;
 
   /**
    * 配置
@@ -356,10 +360,20 @@
                   </bk-tag>
                 )}
                 <auth-button
-                  action-id='mysql_add_account_rule'
+                  action-id={
+                    props.accountType === AccountTypes.SQLSERVER
+                      ? `${props.accountType}_priv_manage`
+                      : `${props.accountType}_add_account_rule`
+                  }
                   class='add-rule-btn'
-                  permission={data.permission.mysql_add_account_rule}
-                  resource={data.account.account_id}
+                  permission={
+                    data.permission[
+                      props.accountType === AccountTypes.SQLSERVER
+                        ? `${props.accountType}_priv_manage`
+                        : `${props.accountType}_add_account_rule`
+                    ]
+                  }
+                  resource={props.accountType === AccountTypes.SQLSERVER ? undefined : data.account.account_id}
                   size='small'
                   onClick={(event: PointerEvent) => handleShowCreateRule(data, event)}>
                   {t('添加授权规则')}
@@ -368,8 +382,8 @@
             ),
             default: () => (
               <bk-button
-                theme='primary'
                 text
+                theme='primary'
                 onClick={(event: MouseEvent) => handleViewAccount(data, event)}>
                 {data.account.user}
               </bk-button>
@@ -404,12 +418,22 @@
             <div class='cell-row'>
               <span>{t('暂无规则')}，</span>
               <auth-button
-                action-id={`${props.accountType}_add_account_rule`}
-                permission={data.permission[`${props.accountType}_add_account_rule`]}
-                resource={data.account.account_id}
+                action-id={
+                  props.accountType === AccountTypes.SQLSERVER
+                    ? `${props.accountType}_priv_manage`
+                    : `${props.accountType}_add_account_rule`
+                }
+                permission={
+                  data.permission[
+                    props.accountType === AccountTypes.SQLSERVER
+                      ? `${props.accountType}_priv_manage`
+                      : `${props.accountType}_add_account_rule`
+                  ]
+                }
+                resource={props.accountType === AccountTypes.SQLSERVER ? undefined : data.account.account_id}
                 size='small'
-                theme='primary'
                 text
+                theme='primary'
                 onClick={(event: PointerEvent) => handleShowCreateRule(data, event)}>
                 {t('立即新建')}
               </auth-button>
@@ -468,11 +492,21 @@
           return (
             <div class='cell-row'>
               <auth-button
-                action-id={`${props.accountType}_account_delete`}
-                permission={data.permission[`${props.accountType}_account_delete`]}
-                resource={data.account.account_id}
-                theme='primary'
+                action-id={
+                  props.accountType === AccountTypes.SQLSERVER
+                    ? `${props.accountType}_priv_manage`
+                    : `${props.accountType}_account_delete`
+                }
+                permission={
+                  data.permission[
+                    props.accountType === AccountTypes.SQLSERVER
+                      ? `${props.accountType}_priv_manage`
+                      : `${props.accountType}_account_delete`
+                  ]
+                }
+                resource={props.accountType === AccountTypes.SQLSERVER ? undefined : data.account.account_id}
                 text
+                theme='primary'
                 onClick={() => handleDeleteAccount(data)}>
                 {t('删除账号')}
               </auth-button>
@@ -487,12 +521,23 @@
 
         return getRenderList(data).map((item, index) => (
           <div class='cell-row'>
-            <bk-button
-              theme='primary'
-              text
-              onClick={(event: PointerEvent) => handleShowAuthorize(data, item, event)}>
-              {t('授权')}
-            </bk-button>
+            {props.accountType === AccountTypes.SQLSERVER ? (
+              <auth-button
+                action-id={`${props.accountType}_priv_manage`}
+                permission={data.permission[`${props.accountType}_priv_manage`]}
+                text
+                theme='primary'
+                onClick={(event: PointerEvent) => handleShowAuthorize(data, item, event)}>
+                {t('授权')}
+              </auth-button>
+            ) : (
+              <bk-button
+                text
+                theme='primary'
+                onClick={(event: PointerEvent) => handleShowAuthorize(data, item, event)}>
+                {t('授权')}
+              </bk-button>
+            )}
             {configMap[props.accountType].buttonController[ButtonTypes.DELETE_RULE] && (
               <OperationBtnStatusTips
                 data={{
@@ -502,16 +547,28 @@
                   operationTicketId: data.rules[index].priv_ticket?.ticket_id,
                 }}
                 disabled={!data.rules[index].priv_ticket}>
-                {configMap[props.accountType].buttonController[ButtonTypes.EDIT_RULE] && (
-                  <bk-button
-                    class='ml-8'
-                    disabled={Boolean(data.rules[index].priv_ticket?.ticket_id)}
-                    theme='primary'
-                    text
-                    onClick={(event: PointerEvent) => handleShowEditRule(event, data, index)}>
-                    {t('编辑')}
-                  </bk-button>
-                )}
+                {configMap[props.accountType].buttonController[ButtonTypes.EDIT_RULE] &&
+                  (props.accountType === AccountTypes.SQLSERVER ? (
+                    <auth-button
+                      action-id={`${props.accountType}_priv_manage`}
+                      class='ml-8'
+                      disabled={Boolean(data.rules[index].priv_ticket?.ticket_id)}
+                      permission={data.permission[`${props.accountType}_priv_manage`]}
+                      text
+                      theme='primary'
+                      onClick={(event: PointerEvent) => handleShowEditRule(event, data, index)}>
+                      {t('编辑')}
+                    </auth-button>
+                  ) : (
+                    <bk-button
+                      class='ml-8'
+                      disabled={Boolean(data.rules[index].priv_ticket?.ticket_id)}
+                      text
+                      theme='primary'
+                      onClick={(event: PointerEvent) => handleShowEditRule(event, data, index)}>
+                      {t('编辑')}
+                    </bk-button>
+                  ))}
               </OperationBtnStatusTips>
             )}
             {configMap[props.accountType].buttonController[ButtonTypes.DELETE_RULE] && (
@@ -533,13 +590,25 @@
                   trigger='click'
                   width='288'
                   onConfirm={() => handleDeleteRule(data, index)}>
-                  <bk-button
-                    class='ml-8'
-                    disabled={Boolean(data.rules[index].priv_ticket?.ticket_id)}
-                    theme='primary'
-                    text>
-                    {t('删除')}
-                  </bk-button>
+                  {props.accountType === AccountTypes.SQLSERVER ? (
+                    <auth-button
+                      action-id={`${props.accountType}_priv_manage`}
+                      class='ml-8'
+                      disabled={Boolean(data.rules[index].priv_ticket?.ticket_id)}
+                      permission={data.permission[`${props.accountType}_priv_manage`]}
+                      text
+                      theme='primary'>
+                      {t('删除')}
+                    </auth-button>
+                  ) : (
+                    <bk-button
+                      class='ml-8'
+                      disabled={Boolean(data.rules[index].priv_ticket?.ticket_id)}
+                      text
+                      theme='primary'>
+                      {t('删除')}
+                    </bk-button>
+                  )}
                 </bk-pop-confirm>
               </OperationBtnStatusTips>
             )}
@@ -651,7 +720,7 @@
           await apiMap[props.accountType]({
             account_id: row.account.account_id,
             account_type: props.accountType,
-            bizId: window.PROJECT_CONFIG.BIZ_ID,
+            bizId,
           });
           Message({
             message: t('成功删除账号'),
