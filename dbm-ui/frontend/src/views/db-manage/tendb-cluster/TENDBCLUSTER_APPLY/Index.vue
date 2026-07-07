@@ -33,7 +33,7 @@
           <ClusterAlias
             v-model="formData.details.cluster_alias"
             :biz-id="formData.bk_biz_id"
-            cluster-type="tendbcluster" />
+            :cluster-type="ClusterTypes.TENDBCLUSTER" />
         </DbCard>
         <RegionRequirements
           ref="regionRequirements"

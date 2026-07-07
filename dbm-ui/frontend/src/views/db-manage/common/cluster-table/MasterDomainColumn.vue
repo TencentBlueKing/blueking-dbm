@@ -7,16 +7,25 @@
     :title="label">
     <template #title>
       <RenderHeadCopy
-        :config="[
-          {
-            field: 'masterDomain',
-            label: t('域名'),
-          },
-          {
-            field: 'masterDomainDisplayName',
-            label: t('域名:端口'),
-          },
-        ]"
+        :config="
+          clusterType.includes('k8s')
+            ? [
+                {
+                  field: 'masterDomain',
+                  label: t('域名'),
+                },
+              ]
+            : [
+                {
+                  field: 'masterDomain',
+                  label: t('域名'),
+                },
+                {
+                  field: 'masterDomainDisplayName',
+                  label: t('域名:端口'),
+                },
+              ]
+        "
         :has-selected="selectedList.length > 0"
         :is-filter="isFilter"
         @handle-copy-all="handleCopyAll"

@@ -15,6 +15,7 @@
   <FormItemWithHint
     :label="t('集群别名')"
     property="details.cluster_alias"
+    :required="required"
     :rules="rules">
     <DbInput
       v-model="modelValue"
@@ -38,7 +39,8 @@
 
   interface Props {
     bizId: number | '';
-    // clusterType: string;
+    // clusterType: ClusterTypes;
+    required?: boolean;
   }
 
   defineProps<Props>();

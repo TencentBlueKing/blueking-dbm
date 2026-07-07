@@ -126,12 +126,20 @@ export const useClusterQuickSearch = (cluster_type: ClusterTypes | ClusterTypes[
           return !ipPort.test(value) && !ipv4.test(value) && !domainRegex.test(value) && !domainPort.test(value);
         },
       },
-      {
-        id: 'db_module_id',
-        name: t('模块'),
-        remoteMethod: () => getBizClusterAttrs('db_module_id'),
-        type: 'multiple',
-      },
+      !Array.isArray(cluster_type) &&
+        [
+          ClusterTypes.RIAK,
+          ClusterTypes.SQLSERVER_HA,
+          ClusterTypes.SQLSERVER_SINGLE,
+          ClusterTypes.TENDBCLUSTER,
+          ClusterTypes.TENDBHA,
+          ClusterTypes.TENDBSINGLE,
+        ].includes(cluster_type) && {
+          id: 'db_module_id',
+          name: t('模块'),
+          remoteMethod: () => getBizClusterAttrs('db_module_id'),
+          type: 'multiple',
+        },
       {
         id: 'status',
         list: [
@@ -148,18 +156,12 @@ export const useClusterQuickSearch = (cluster_type: ClusterTypes | ClusterTypes[
         type: 'multiple',
       },
       {
-        id: 'db_module_id',
-        name: t('模块'),
-        remoteMethod: () => getBizClusterAttrs('db_module_id'),
-        type: 'multiple',
-      },
-      {
         id: 'major_version',
         name: t('版本'),
         remoteMethod: () => getBizClusterAttrs('major_version'),
         type: 'multiple',
       },
-      {
+      (Array.isArray(cluster_type) || !cluster_type.includes('k8s')) && {
         id: 'disaster_tolerance_level',
         name: t('容灾要求'),
         remoteMethod: () => getBizClusterAttrs('disaster_tolerance_level'),
@@ -171,7 +173,7 @@ export const useClusterQuickSearch = (cluster_type: ClusterTypes | ClusterTypes[
         remoteMethod: () => getBizClusterAttrs('region'),
         type: 'multiple',
       },
-      {
+      (Array.isArray(cluster_type) || !cluster_type.includes('k8s')) && {
         id: 'bk_cloud_id',
         name: t('管控区域'),
         remoteMethod: () => getBizClusterAttrs('bk_cloud_id'),

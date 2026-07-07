@@ -48,6 +48,7 @@
     exportOracleSingleInstanceToExcel,
   } from '@services/source/oracleSingleCluster';
   import { exportPulsarClusterToExcel, exportPulsarInstanceToExcel } from '@services/source/pulsar';
+  import { exportQdrantHaClusterToExcel, exportQdrantHaInstanceToExcel } from '@services/source/qdrantHa';
   import { exportRedisClusterToExcel, exportRedisInstanceToExcel } from '@services/source/redis';
   import { exportRiakClusterToExcel, exportRiakInstanceToExcel } from '@services/source/riak';
   import {
@@ -58,9 +59,16 @@
     exportSqlServerSingleClusterToExcel,
     exportSqlServerSingleInstanceToExcel,
   } from '@services/source/sqlserverSingleCluster';
+  import { exportSurrealdbHaClusterToExcel, exportSurrealdbHaInstanceToExcel } from '@services/source/surrealdbHa';
+  import {
+    exportSurrealdbSingleClusterToExcel,
+    exportSurrealdbSingleInstanceToExcel,
+  } from '@services/source/surrealdbSingle';
   import { exportTendbclusterInstanceToExcel, exportTendbclusterToExcel } from '@services/source/tendbcluster';
   import { exportTendbhaClusterToExcel, exportTendbhaInstanceToExcel } from '@services/source/tendbha';
   import { exportTendbsingleClusterToExcel, exportTendbsingleInstanceToExcel } from '@services/source/tendbsingle';
+
+  import { ClusterTypes } from '@common/const';
 
   interface Props {
     exportType?: 'cluster' | 'instance';
@@ -81,7 +89,10 @@
       | 'sqlserver_single'
       | 'doris'
       | 'oracle_single_none'
-      | 'oracle_primary_standby';
+      | 'oracle_primary_standby'
+      | ClusterTypes.K8S_SURREALDB_HA
+      | ClusterTypes.K8S_SURREALDB_SINGLE
+      | ClusterTypes.K8S_QDRANT_HA;
   }
 
   const props = withDefaults(defineProps<Props>(), {
@@ -96,6 +107,18 @@
   const isCluster = props.exportType === 'cluster';
 
   const apiMap = {
+    [ClusterTypes.K8S_QDRANT_HA]: {
+      cluster: exportQdrantHaClusterToExcel,
+      instance: exportQdrantHaInstanceToExcel,
+    },
+    [ClusterTypes.K8S_SURREALDB_HA]: {
+      cluster: exportSurrealdbHaClusterToExcel,
+      instance: exportSurrealdbHaInstanceToExcel,
+    },
+    [ClusterTypes.K8S_SURREALDB_SINGLE]: {
+      cluster: exportSurrealdbSingleClusterToExcel,
+      instance: exportSurrealdbSingleInstanceToExcel,
+    },
     doris: {
       cluster: exportDorisClusterToExcel,
       instance: exportDorisInstanceToExcel,
