@@ -1,6 +1,18 @@
 [
   {
     "conf_type": "config",
+    "conf_file": "binlogbackup",
+    "conf_name_validate": 1,
+    "conf_value_validate": 1,
+    "value_type_strict": 0,
+    "description": "binlog备份相关的配置",
+    "conf_type_lc": "binlog备份相关的配置",
+    "conf_file_lc": "binlogbackup",
+    "level_names": "pub,plat,app,module,cluster",
+    "level_versioned": "cluster"
+  },
+  {
+    "conf_type": "config",
     "conf_file": "fullbackup",
     "conf_name_validate": 1,
     "conf_value_validate": 1,
@@ -8,6 +20,54 @@
     "description": "",
     "conf_type_lc": "配置",
     "conf_file_lc": "全备相关的配置",
+    "level_names": "pub,plat,app,module,cluster",
+    "level_versioned": "cluster"
+  },
+  {
+    "conf_type": "config",
+    "conf_file": "heartbeat",
+    "conf_name_validate": 1,
+    "conf_value_validate": 1,
+    "value_type_strict": 0,
+    "description": "心跳相关的配置",
+    "conf_type_lc": "心跳相关的配置",
+    "conf_file_lc": "heartbeat",
+    "level_names": "pub,plat,app,module,cluster",
+    "level_versioned": "cluster"
+  },
+  {
+    "conf_type": "config",
+    "conf_file": "keymod",
+    "conf_name_validate": 1,
+    "conf_value_validate": 1,
+    "value_type_strict": 0,
+    "description": "key模式相关配置",
+    "conf_type_lc": "key模式相关配置",
+    "conf_file_lc": "keymod",
+    "level_names": "pub,plat,app,module,cluster",
+    "level_versioned": "cluster"
+  },
+  {
+    "conf_type": "config",
+    "conf_file": "maxmemory_set",
+    "conf_name_validate": 1,
+    "conf_value_validate": 1,
+    "value_type_strict": 0,
+    "description": "",
+    "conf_type_lc": "配置",
+    "conf_file_lc": "maxmemory设置的配置",
+    "level_names": "pub,plat,app,module,cluster",
+    "level_versioned": "cluster"
+  },
+  {
+    "conf_type": "config",
+    "conf_file": "monitor",
+    "conf_name_validate": 1,
+    "conf_value_validate": 1,
+    "value_type_strict": 0,
+    "description": "监控相关的配置",
+    "conf_type_lc": "监控相关的配置",
+    "conf_file_lc": "monitor",
     "level_names": "pub,plat,app,module,cluster",
     "level_versioned": "cluster"
   },

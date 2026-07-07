@@ -194,9 +194,9 @@
   {
     "conf_name": "kvstorecount",
     "value_default": "5",
-    "value_allowed": "10",
+    "value_allowed": "[1,10]",
     "value_type": "INT",
-    "value_type_sub": "ENUM",
+    "value_type_sub": "RANGE",
     "conf_name_lc": "",
     "description": "",
     "need_restart": 1,
