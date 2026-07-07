@@ -2,7 +2,9 @@
   <InfoItem :label="t('版本')">
     {{ data.major_version || '--' }}
   </InfoItem>
-  <InfoItem :label="t('容灾要求')">
+  <InfoItem
+    v-if="!data.cluster_type.includes('k8s')"
+    :label="t('容灾要求')">
     {{ data.disasterToleranceLevelName }}
   </InfoItem>
   <InfoItem :label="t('地域')">
@@ -11,11 +13,13 @@
   <InfoItem :label="t('园区')">
     <div>{{ data.clusterSubzonesDisplay }}</div>
   </InfoItem>
-  <InfoItem :label="t('规格')">
-    <MachineSpecCell
-      mode="detail"
-      :specs="data.machine_specs" />
-  </InfoItem>
+  <slot name="spec">
+    <InfoItem :label="t('规格')">
+      <MachineSpecCell
+        mode="detail"
+        :specs="data.machine_specs" />
+    </InfoItem>
+  </slot>
   <InfoItem :label="t('管控区域')">
     {{ data.bk_cloud_name ? `${data.bk_cloud_name}[${data.bk_cloud_id}]` : '--' }}
   </InfoItem>
@@ -31,6 +35,7 @@
 </template>
 
 <script setup lang="ts" generic="T extends ISupportClusterType">
+  import type { VNode } from 'vue';
   import { useI18n } from 'vue-i18n';
 
   import MachineSpecCell from '@views/db-manage/common/cluster-details/components/machine-spec-cell/Index.vue';
@@ -40,6 +45,10 @@
 
   export interface Props<C extends ISupportClusterType> {
     data: ClusterDetailModel<C>;
+  }
+
+  export interface Slots {
+    spec: () => VNode;
   }
 
   defineProps<Props<T>>();

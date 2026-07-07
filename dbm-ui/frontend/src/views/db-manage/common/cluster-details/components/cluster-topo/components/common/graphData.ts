@@ -82,15 +82,17 @@ export const nodeTypes = {
   MONGODB_M1: 'mongodb::m1',
   MONGODB_M2: 'mongodb::m2',
   MONGODB_MONGOS: 'mongos',
-  PROXY: 'proxy',
   ORACLE_PRIMARY: 'oracle::primary',
   ORACLE_STANDBY: 'oracle::standby',
+  PD: 'pd',
+  PROXY: 'proxy',
   PULSAR_BOOKKEEPER: 'pulsar_bookkeeper::pulsar_bookkeeper',
   PULSAR_BROKER: 'pulsar_broker::pulsar_broker',
   PULSAR_ZOOKEEPER: 'pulsar_zookeeper::pulsar_zookeeper',
   SLAVE: 'backend::backend_slave',
   SPIDER_MASTER_ENTRY_BIND: 'spider_master_entry_bind',
   SPIDER_SLAVE_ENTRY_BIND: 'spider_slave_entry_bind',
+  SURREAL: 'surreal',
   TENDBCLUSTER_CONTROLLER: 'controller_group',
   TENDBCLUSTER_MASTER: 'spider_master',
   TENDBCLUSTER_MNT: 'spider_mnt',
@@ -103,6 +105,7 @@ export const nodeTypes = {
   TENDISPLUS_SLAVE: 'tendisplus::redis_slave',
   TENDISSSD_MASTER: 'tendisssd::redis_master',
   TENDISSSD_SLAVE: 'tendisssd::redis_slave',
+  TIKV: 'tikv',
 };
 
 type GroupTypesStrings = `${GroupTypes}`;
@@ -171,11 +174,15 @@ const getGroupLines = (data: ResourceTopo) => {
     } else if (sourceType === 'node') {
       // 处理 source 为 node 的情况
       const sourceGroup = groups.find((group) => group.children_id.includes(source));
-      sourceGroup && (sourceId = sourceGroup.node_id);
+      if (sourceGroup) {
+        sourceId = sourceGroup.node_id;
+      }
     } else if (targetType === 'node') {
       // 处理 target 为 node 的情况
       const targetGroup = groups.find((group) => group.children_id.includes(target));
-      targetGroup && (targetId = targetGroup.node_id);
+      if (targetGroup) {
+        targetId = targetGroup.node_id;
+      }
     }
     results.push({
       id: `${sourceId}__${targetId}`,
@@ -513,6 +520,26 @@ export class GraphData {
   }
 
   /**
+   * 处理 SurrealDB role 相关节点位置
+   * @param nodes 节点列表
+   */
+  calcSurrealdbHaNodeLocations(rootNodes: GraphNode[] = [], nodes: GraphNode[] = []) {
+    const nodeMap = {} as Record<string, GraphNode>;
+    for (const node of [...rootNodes, ...nodes]) {
+      nodeMap[node.id] = node;
+    }
+
+    const tikvNode = nodeMap[nodeTypes.TIKV];
+    const pdNode = nodeMap[nodeTypes.PD];
+
+    if (tikvNode && pdNode) {
+      pdNode.style.y = tikvNode.style.y;
+      pdNode.style.x = tikvNode.style.x + tikvNode.style.width + this.nodeConfig.offsetX;
+      this.calcChildrenNodeLocations(pdNode);
+    }
+  }
+
+  /**
    * 处理 tendbha clb 相关节点位置
    * @param nodes 节点列表
    */
@@ -589,6 +616,8 @@ export class GraphData {
         this.calcSpiderNodeLocations(rootGroups, groups);
       } else if (this.clusterType === ClusterTypes.TENDBHA) {
         this.calcTendbHaNodeLocations(rootGroups, groups);
+      } else if (this.clusterType === ClusterTypes.K8S_SURREALDB_HA) {
+        this.calcSurrealdbHaNodeLocations(rootGroups, groups);
       }
 
       edges = getLines(data);

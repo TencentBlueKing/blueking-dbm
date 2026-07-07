@@ -9,6 +9,7 @@
     </template>
   </TableColumn>
   <TableColumn
+    v-if="!clusterType.includes('k8s')"
     col-key="disaster_tolerance_level"
     :filter="columnFilter?.['disaster_tolerance_level']"
     :min-width="160"
@@ -18,6 +19,17 @@
     </template>
   </TableColumn>
   <TableColumn
+    v-if="clusterType.includes('k8s')"
+    col-key="region"
+    :filter="columnFilter?.['region']"
+    :min-width="150"
+    :title="t('地域')">
+    <template #default="{ row }: { row: IRowData }">
+      {{ row.region || '--' }}
+    </template>
+  </TableColumn>
+  <TableColumn
+    v-else
     col-key="region"
     :filter="columnFilter?.['region']"
     :min-width="150"
@@ -28,6 +40,7 @@
     </template>
   </TableColumn>
   <TableColumn
+    v-if="!clusterType.includes('k8s')"
     col-key="cluster_spec"
     :min-width="220"
     :title="t('规格')">
@@ -38,6 +51,7 @@
     </template>
   </TableColumn>
   <TableColumn
+    v-if="!clusterType.includes('k8s')"
     col-key="bk_cloud_id"
     :filter="columnFilter?.['bk_cloud_id']"
     :title="t('管控区域')"

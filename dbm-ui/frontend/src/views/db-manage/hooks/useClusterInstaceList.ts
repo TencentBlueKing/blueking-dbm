@@ -6,10 +6,13 @@ import { getMongoInstancesList } from '@services/source/mongodb';
 import { getOracleHaInstanceList } from '@services/source/oracleHaCluster';
 import { getOracleSingleInstanceList } from '@services/source/oracleSingleCluster';
 import { getPulsarInstanceList } from '@services/source/pulsar';
+import { getQdrantHaInstanceList } from '@services/source/qdrantHa';
 import { getRedisInstances } from '@services/source/redis';
 import { getRiakInstanceList } from '@services/source/riak';
 import { getSqlServerInstanceList as getSqlServerHaInstanceList } from '@services/source/sqlserveHaCluster';
 import { getSqlServerInstanceList as getSqlServerSingleInstanceList } from '@services/source/sqlserverSingleCluster';
+import { getSurrealdbHaInstanceList } from '@services/source/surrealdbHa';
+import { getSurrealdbSingleInstanceList } from '@services/source/surrealdbSingle';
 import { getTendbclusterInstanceList } from '@services/source/tendbcluster';
 import { getTendbhaInstanceList } from '@services/source/tendbha';
 import { getTendbsingleInstanceList } from '@services/source/tendbsingle';
@@ -20,6 +23,9 @@ const dataSourceMap = {
   [ClusterTypes.DORIS]: getDorisInstanceList,
   [ClusterTypes.ES]: getEsInstanceList,
   [ClusterTypes.HDFS]: getHdfsInstanceList,
+  [ClusterTypes.K8S_QDRANT_HA]: getQdrantHaInstanceList,
+  [ClusterTypes.K8S_SURREALDB_HA]: getSurrealdbHaInstanceList,
+  [ClusterTypes.K8S_SURREALDB_SINGLE]: getSurrealdbSingleInstanceList,
   [ClusterTypes.KAFKA]: getKafkaInstanceList,
   [ClusterTypes.MONGO_REPLICA_SET]: getMongoInstancesList,
   [ClusterTypes.MONGO_SHARED_CLUSTER]: getMongoInstancesList,
