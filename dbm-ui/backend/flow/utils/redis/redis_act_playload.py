@@ -12,7 +12,7 @@ import copy
 import json
 import logging.config
 import time
-from typing import Any
+from typing import Any, Dict
 
 from django.conf import settings
 from django.utils.translation import gettext as _
@@ -193,13 +193,24 @@ class RedisActPayload(object):
         }
 
     @staticmethod
-    def get_common_config(bk_biz_id: str, namespace: str, conf_file: str, conf_type: str) -> Any:
-        """获取一些common的参数配置"""
+    def get_common_config(
+        bk_biz_id: str, namespace: str, conf_file: str, conf_type: str, cluster_domain: str = None
+    ) -> Any:
+        """
+        获取一些common的参数配置
+        :param cluster_domain: 集群域名。传入时按集群级别(LevelName.CLUSTER)查询，
+            dbconfig会自动返回该集群的有效配置(集群级别有覆盖则用覆盖值，否则继承业务/平台级别默认值)；
+            不传时按业务级别(LevelName.APP)查询。
+        """
+        if cluster_domain:
+            level_name, level_value = LevelName.CLUSTER, cluster_domain
+        else:
+            level_name, level_value = LevelName.APP, bk_biz_id
         data = DBConfigApi.query_conf_item(
             params={
                 "bk_biz_id": bk_biz_id,
-                "level_name": LevelName.APP,
-                "level_value": bk_biz_id,
+                "level_name": level_name,
+                "level_value": level_value,
                 "conf_file": conf_file,
                 "conf_type": conf_type,
                 "namespace": namespace,
@@ -1261,7 +1272,15 @@ class RedisActPayload(object):
         }
 
     @staticmethod
-    def get_bkdbmon_payload_header(bk_biz_id: str) -> dict:
+    def get_bkdbmon_payload_header(
+        bk_biz_id: str, namespace: str = None, cluster_domain: str = None
+    ) -> Dict[str, Any]:
+        # namespace 优先使用具体的集群架构类型(cluster_type)对应的dbconfig命名空间，
+        # 各架构下均已拆分出独立的 config(binlogbackup/fullbackup/heartbeat/monitor/keymod/maxmemory_set)。
+        # 当无法确定具体集群架构时(如单实例全部下架、只知道bk_biz_id的场景)，回退到 rediscomm 共用命名空间。
+        namespace = namespace or NameSpaceEnum.RedisCommon
+        # cluster_domain 传入时，会按集群级别(LevelName.CLUSTER)取配置，从而支持集群粒度的自定义覆盖；
+        # 不传时按业务级别(LevelName.APP)取配置。
         bkdbmon_pkg = Package.get_latest_package(
             version=MediumEnum.Latest, pkg_type=MediumEnum.DbMon, db_type=DBType.Redis
         )
@@ -1270,27 +1289,31 @@ class RedisActPayload(object):
         )
         fullbackup_config = RedisActPayload.get_common_config(
             bk_biz_id=bk_biz_id,
-            namespace=NameSpaceEnum.RedisCommon,
+            namespace=namespace,
             conf_file=ConfigFileEnum.FullBackup,
             conf_type=ConfigTypeEnum.Config,
+            cluster_domain=cluster_domain,
         )
         binlogbackup_config = RedisActPayload.get_common_config(
             bk_biz_id=bk_biz_id,
-            namespace=NameSpaceEnum.RedisCommon,
+            namespace=namespace,
             conf_file=ConfigFileEnum.BinlogBackup,
             conf_type=ConfigTypeEnum.Config,
+            cluster_domain=cluster_domain,
         )
         heartbeat_config = RedisActPayload.get_common_config(
             bk_biz_id=bk_biz_id,
-            namespace=NameSpaceEnum.RedisCommon,
+            namespace=namespace,
             conf_file=ConfigFileEnum.Heartbeat,
             conf_type=ConfigTypeEnum.Config,
+            cluster_domain=cluster_domain,
         )
         monitor_config = RedisActPayload.get_common_config(
             bk_biz_id=bk_biz_id,
-            namespace=NameSpaceEnum.RedisCommon,
+            namespace=namespace,
             conf_file=ConfigFileEnum.Monitor,
             conf_type=ConfigTypeEnum.Config,
+            cluster_domain=cluster_domain,
         )
         bkm_dbm_report = SystemSettings.get_setting_value(key="BKM_DBM_REPORT")
         monitor_config["bkmonitor_event_data_id"] = bkm_dbm_report["event"]["data_id"]
@@ -1298,26 +1321,31 @@ class RedisActPayload(object):
         monitor_config["bkmonitor_metric_data_id"] = bkm_dbm_report["metric"]["data_id"]
         monitor_config["bkmonitor_metirc_token"] = bkm_dbm_report["metric"]["token"]
 
+        # keymod 由原来的 base/hotkey/bigkey 三个 conf_file 合并而来，
+        # 其中 hotkey.*/bigkey.* 分别是原 hotkey.json/bigkey.json 的字段加前缀避免命名冲突。
+        keymod_config = RedisActPayload.get_common_config(
+            bk_biz_id=bk_biz_id,
+            namespace=namespace,
+            conf_file=ConfigFileEnum.KeyMod,
+            conf_type=ConfigTypeEnum.Config,
+            cluster_domain=cluster_domain,
+        )
         keylife_config = {
             "stat_dir": DirEnum.REDIS_KEY_LIFE_DIR,
-            **RedisActPayload.get_common_config(
-                bk_biz_id=bk_biz_id,
-                namespace=NameSpaceEnum.RedisCommon,
-                conf_file=ConfigFileEnum.Base,
-                conf_type=ConfigTypeEnum.Config,
-            ),
-            "hotkey_conf": RedisActPayload.get_common_config(
-                bk_biz_id=bk_biz_id,
-                namespace=NameSpaceEnum.RedisCommon,
-                conf_file=ConfigFileEnum.HotKey,
-                conf_type=ConfigTypeEnum.Config,
-            ),
-            "bigkey_conf": RedisActPayload.get_common_config(
-                bk_biz_id=bk_biz_id,
-                namespace=NameSpaceEnum.RedisCommon,
-                conf_file=ConfigFileEnum.BigKey,
-                conf_type=ConfigTypeEnum.Config,
-            ),
+            "cron": keymod_config.get("cron"),
+            "hotkey_conf": {
+                "duration_seconds": keymod_config.get("hotkey.duration_seconds"),
+                "top_count": keymod_config.get("hotkey.top_count"),
+            },
+            "bigkey_conf": {
+                "disk_max_usage": keymod_config.get("bigkey.disk_max_usage"),
+                "duration_seconds": keymod_config.get("bigkey.duration_seconds"),
+                "keymod_engine": keymod_config.get("bigkey.keymod_engine"),
+                "keymod_spec": keymod_config.get("bigkey.keymod_spec"),
+                "on_master": keymod_config.get("bigkey.on_master"),
+                "top_count": keymod_config.get("bigkey.top_count"),
+                "use_rdb": keymod_config.get("bigkey.use_rdb"),
+            },
         }
         return {
             "bkdbmonpkg": {"pkg": bkdbmon_pkg.name, "pkg_md5": bkdbmon_pkg.md5},
@@ -1330,21 +1358,30 @@ class RedisActPayload(object):
             "redis_heartbeat": heartbeat_config,
             "redis_monitor": monitor_config,
             "redis_keylife": keylife_config,
-            "redis_maxmemory_set": get_dbmon_maxmemory_config_by_bkbizid(bk_biz_id=bk_biz_id),
+            "redis_maxmemory_set": get_dbmon_maxmemory_config_by_bkbizid(bk_biz_id=int(bk_biz_id)),
         }
 
     def bkdbmon_install(self, **kwargs) -> dict:
         """
         redis bk-dbmon安装
         """
-        payload = self.get_bkdbmon_payload_header(str(self.bk_biz_id))
+        cluster = None
         if kwargs["params"] and kwargs["params"]["servers"]:
             if len(kwargs["params"]["servers"]) > 0:
                 cluster_domain = kwargs["params"]["servers"][0].get("cluster_domain", "")
                 if cluster_domain:
                     cluster = Cluster.objects.get(immute_domain=cluster_domain)
-                    payload["nginx_addrs"] = list_nginx_addrs(bk_cloud_id=cluster.bk_cloud_id)
-                    payload["redis_maxmemory_set"] = get_dbmon_maxmemory_config_by_cluster_ids([cluster.id])
+        # self.namespace 依赖构造RedisActPayload时传入的cluster/ticket_data中是否带有cluster_type，
+        # 部分场景(如脏机清理、只知道bk_biz_id)无法确定具体集群架构，这里显式回退到 rediscomm 共用命名空间。
+        namespace = self.namespace or NameSpaceEnum.RedisCommon
+        payload = self.get_bkdbmon_payload_header(
+            str(self.bk_biz_id),
+            namespace=namespace,
+            cluster_domain=cluster.immute_domain if cluster else None,
+        )
+        if cluster:
+            payload["nginx_addrs"] = list_nginx_addrs(bk_cloud_id=cluster.bk_cloud_id)
+            payload["redis_maxmemory_set"] = get_dbmon_maxmemory_config_by_cluster_ids([cluster.id])
 
         return {
             "db_type": DBActuatorTypeEnum.Bkdbmon.value,
@@ -1405,7 +1442,9 @@ class RedisActPayload(object):
             cluster = Cluster.objects.get(immute_domain=params["cluster_domain"])
         except Cluster.DoesNotExist:
             raise Exception("redis cluster {} does not exist".format(params["cluster_domain"]))
-        payload = self.get_bkdbmon_payload_header(str(cluster.bk_biz_id))
+        payload = self.get_bkdbmon_payload_header(
+            str(cluster.bk_biz_id), namespace=cluster.cluster_type, cluster_domain=cluster.immute_domain
+        )
         payload["nginx_addrs"] = list_nginx_addrs(bk_cloud_id=cluster.bk_cloud_id)
         payload["redis_maxmemory_set"] = get_dbmon_maxmemory_config_by_cluster_ids([cluster.id])
         if params["is_stop"]:
@@ -1444,9 +1483,13 @@ class RedisActPayload(object):
             cluster_ids.add(cluster.id)
         # 单实例下架的时候，如果全下架完了的话，这个地方的cluster是没有了的
         if cluster is None:
-            payload = self.get_bkdbmon_payload_header(str(kwargs["params"]["bk_biz_id"]))
+            payload = self.get_bkdbmon_payload_header(
+                str(kwargs["params"]["bk_biz_id"]), namespace=NameSpaceEnum.RedisCommon
+            )
         else:
-            payload = self.get_bkdbmon_payload_header(str(cluster.bk_biz_id))
+            payload = self.get_bkdbmon_payload_header(
+                str(cluster.bk_biz_id), namespace=cluster.cluster_type, cluster_domain=cluster.immute_domain
+            )
             payload["nginx_addrs"] = list_nginx_addrs(bk_cloud_id=bk_cloud_id)
             payload["redis_maxmemory_set"] = get_dbmon_maxmemory_config_by_cluster_ids(list(cluster_ids))
         payload["servers"] = servers

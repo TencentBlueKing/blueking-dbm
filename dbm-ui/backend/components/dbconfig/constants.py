@@ -90,9 +90,11 @@ class ConfFile(StrStructuredEnum):
     COSINFO = EnumField("cosinfo.toml", _("备份远程存储配置"))
 
     # ----- Redis -----
-    BACKUP = EnumField("backup", _("备份参数"))
     FULLBACKUP = EnumField("fullbackup", _("全备参数"))
     BINLOGBACKUP = EnumField("binlogbackup", _("Binlog备份参数"))
+    HEARTBEAT = EnumField("heartbeat", _("心跳参数"))
+    KEYMOD = EnumField("keymod", _("key模式相关配置(热key/大key)"))
+    MAXMEMORY_SET = EnumField("maxmemory_set", _("maxmemory设置的配置"))
     MONITOR = EnumField("monitor", _("监控参数"))
     TWEMPROXY = EnumField("Twemproxy-latest", _("Twemproxy代理配置"))
     PREDIXY = EnumField("Predixy-latest", _("Predixy代理配置"))
