@@ -81,6 +81,75 @@ func GetLocalIPs() ([]string, error) {
 	return ips, nil
 }
 
+const udpDetectPort = "80"
+
+// GetPrimaryLocalIPv4 returns the first IPv4 on a physical, up, non-virtual interface.
+// It reuses GetLocalIPs filtering and does not dial any remote host.
+func GetPrimaryLocalIPv4() (string, error) {
+	ips, err := GetLocalIPs()
+	if err != nil {
+		return "", gerrors.NewE(gerrors.Failure, err)
+	}
+	for _, ipStr := range ips {
+		ip := net.ParseIP(ipStr)
+		if ip != nil && ip.To4() != nil {
+			return ip.String(), nil
+		}
+	}
+	return "", gerrors.Newf(gerrors.Failure, "no primary local ipv4 found on physical interfaces")
+}
+
+// HostFromEndpoint extracts the host portion from an endpoint string such as
+// "127.0.0.1:8080" or "localhost".
+func HostFromEndpoint(endpoint string) (string, error) {
+	endpoint = strings.TrimSpace(endpoint)
+	if endpoint == "" {
+		return "", gerrors.Newf(gerrors.InvalidParameter, "endpoint is empty")
+	}
+	host, _, err := net.SplitHostPort(endpoint)
+	if err != nil {
+		if strings.Contains(endpoint, ":") {
+			return "", gerrors.NewE(gerrors.InvalidParameter, err)
+		}
+		return endpoint, nil
+	}
+	if host == "" {
+		return "", gerrors.Newf(gerrors.InvalidParameter, "endpoint host is empty")
+	}
+	return host, nil
+}
+
+func outboundIPViaUDP(detectHost string) (string, error) {
+	detectHost = strings.TrimSpace(detectHost)
+	if detectHost == "" {
+		return "", gerrors.Newf(gerrors.InvalidParameter, "detect host is empty")
+	}
+	conn, err := net.Dial("udp", net.JoinHostPort(detectHost, udpDetectPort))
+	if err != nil {
+		return "", gerrors.NewE(gerrors.Failure, err)
+	}
+	defer conn.Close()
+
+	localAddr, ok := conn.LocalAddr().(*net.UDPAddr)
+	if !ok || localAddr.IP == nil || localAddr.IP.IsUnspecified() {
+		return "", gerrors.Newf(gerrors.Failure, "failed to determine outbound ip")
+	}
+	return localAddr.IP.String(), nil
+}
+
+// GetOutboundIP returns a best-effort local IPv4 for gen-config fallback when a named
+// interface lookup fails. It first scans physical interfaces (GetPrimaryLocalIPv4);
+// if that fails and detectHost is non-empty, it uses a UDP connect to detectHost
+// (no packet sent) to learn which local address the OS would route through.
+func GetOutboundIP(detectHost string) (string, error) {
+	if ip, err := GetPrimaryLocalIPv4(); err == nil {
+		return ip, nil
+	} else if strings.TrimSpace(detectHost) == "" {
+		return "", err
+	}
+	return outboundIPViaUDP(detectHost)
+}
+
 // GetLocalIPWithInterface Obtain local ip with interface
 func GetLocalIPWithInterface(interfaceName string) (string, error) {
 	iface, err := net.InterfaceByName(interfaceName)

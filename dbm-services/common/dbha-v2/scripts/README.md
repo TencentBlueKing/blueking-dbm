@@ -13,6 +13,8 @@
 - `start-probe-keepalive.sh`: 后台启动 probe keepalive 模式（ping-only）
 - `stop-probe-keepalive.sh`: 停止 keepalive 模式并注销 crontab 守护
 - `stop-probe.sh`: 停止 probe 服务
+- `start-probe.ps1` / `stop-probe.ps1`: Windows 下启动/停止 probe 服务（PowerShell 版）
+- `start-probe-keepalive.ps1` / `stop-probe-keepalive.ps1`: Windows 下启动/停止 probe keepalive 模式
 - `install-libs.sh`: 安装构建依赖（abseil/protobuf/protoc 插件）
 - `devenv.rc`: 本地开发环境变量示例
 
@@ -234,6 +236,34 @@ curl http://127.0.0.1:18080/ping
 ps -ef | grep dbha-v2-keepalive
 crontab -l | grep DBHA_PROBE_KEEPALIVE_GUARD
 ```
+
+## Windows: start-probe.ps1 / stop-probe.ps1 / start-probe-keepalive.ps1 / stop-probe-keepalive.ps1
+
+Windows 平台使用 PowerShell 脚本管理 probe，与 Linux 的 `*.sh` 一一对应，CLI 语义一致（`daemon-start` / `stop` / keepalive）。二进制为 `bin\dbha-probe.exe`（由 `make probe-windows` 构建、`make package-probe-windows` 打包为 `*-probe-windows.zip`）。
+
+停止模型与 Linux 不同：Linux 用 POSIX 信号（SIGTERM/SIGKILL/SIGHUP），Windows 用**命名事件**（`Local\` 命名空间）。`stop-probe.ps1` 两段式停止——先 `dbha-probe.exe stop`（置位命名停止事件优雅退出，guard 与 worker 共享同一 manual-reset 事件），若仍存活再 `Stop-Process` 强杀；强杀前会同时校验进程**可执行路径**与**启动时间（StartTime）**，避免 PID 复用误杀无关进程（对齐 `stop-probe.sh` 的 `validate_pid_target` + `safe_kill_after_term`）。
+
+keepalive 进程不持有 pid 文件（由脚本管理 `runtime\probe-keepalive.pid` / `.addr`），其停止事件名按 `--ping-http-addr` 派生（与 Go 侧 `deriveEventName` 完全一致：`Local\dbha-probe-<sha1(addr) 前16位十六进制>-stop`）。`stop-probe-keepalive.ps1` 通过 .NET `EventWaitHandle.OpenExisting` 置位该事件实现优雅停止，再做强杀兜底。
+
+常驻守护用 **计划任务（schtasks）周期触发**（每分钟 `/SC MINUTE /MO 1`，等价 Linux crontab 周期守护，而非仅 `ONSTART`）：`start-probe.ps1` 注册 `DBHA_V2_PROBE_GUARD`，`start-probe-keepalive.ps1` 注册 `DBHA_PROBE_KEEPALIVE_GUARD`（均以 `/F` 幂等覆盖，`-FromCron` 分支不重复注册）；对应 `stop-*.ps1` 以 `schtasks /Delete /F` 幂等注销。
+
+```powershell
+# 在 dbha-v2 安装目录执行
+Set-Location C:\dbha-v2
+powershell -ExecutionPolicy Bypass -File .\start-probe.ps1
+powershell -ExecutionPolicy Bypass -File .\start-probe-keepalive.ps1 -PingHttpAddr 127.0.0.1:18080
+powershell -ExecutionPolicy Bypass -File .\stop-probe-keepalive.ps1
+powershell -ExecutionPolicy Bypass -File .\stop-probe.ps1
+```
+
+配置生成：`render_configs.py` 为跨平台（`fcntl` 条件导入，Windows 下跳过网卡 ioctl 回退，仅用 UDP 主路径探测 IP），Windows 上同样用 `--module probe` 渲染 `etc\probe.yaml`。若探针需经 GSE 上报，在 `dbha-v2.probe.rc` 设置 `PROBE_REPORTER_LOCAL_SOCKET_PORT`（Windows 本地 TCP 端口）；缺省 `0` 表示未设置，Linux 回退到 domain socket，行为不变。
+
+```powershell
+Copy-Item etc\dbha-v2.probe.rc.example etc\dbha-v2.probe.rc
+python scripts\render_configs.py --module probe --rc etc\dbha-v2.probe.rc --ip-detect-udp-connect-host 127.0.0.1
+```
+
+> 提示：`gen-config` 在 Windows 上找不到默认网卡（`eth1`）时，会回退到物理网卡 IPv4 扫描；若仍失败则对 `--admin-endpoints` 首地址做 UDP 路由探测（无硬编码公网 IP）。
 
 ## install-libs.sh
 

@@ -62,6 +62,12 @@ type ReporterConfig struct {
 	DataID      uint64        `yaml:"dataID"      mapstructure:"dataID"`
 	ConnTimeout time.Duration `yaml:"connTimeout" mapstructure:"connTimeout"`
 	BkCloudID   int           `yaml:"bkCloudID"   mapstructure:"bkCloudID"`
+	// LocalSocketPort is the local TCP port used by the GSE agent-report SDK on
+	// Windows (the SDK selects domain socket vs local TCP by build tag). Zero
+	// means unset: on Unix it is ignored, on Windows it must be provided to report
+	// via GSE. Kept optional so existing Linux configs (which omit it) are
+	// unaffected and generate byte-identical YAML.
+	LocalSocketPort uint `yaml:"localSocketPort" mapstructure:"localSocketPort"`
 }
 
 // DbEndpointConfig db instance endpoint config

@@ -29,7 +29,6 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"syscall"
 	"time"
 
 	"dbm-services/common/dbha-v2/pkg/gerrors"
@@ -42,20 +41,9 @@ const DefaultGuardRestartDelay = 3 * time.Second
 
 // StartCmdRunE handles the start command.
 func StartCmdRunE(cmd *cobra.Command, _ []string, pidFile, procName string) error {
-	pid, err := ReadPid(pidFile)
-	if err != nil {
-		if !errors.Is(err, ErrPidFileNotExist) && !errors.Is(err, ErrInvalidFile) {
-			return err
-		}
-	} else {
-		alive, aliveErr := IsAliveWithProcessName(pid, procName)
-		if aliveErr != nil {
-			return aliveErr
-		}
-		if alive {
-			fmt.Fprintf(cmd.OutOrStdout(), "%s is already running, pid:%d\n", procName, pid)
-			return nil
-		}
+	skip, err := skipStartIfAlreadyRunning(cmd.OutOrStdout(), pidFile, procName, "")
+	if err != nil || skip {
+		return err
 	}
 
 	exePath, err := os.Executable()
@@ -63,15 +51,9 @@ func StartCmdRunE(cmd *cobra.Command, _ []string, pidFile, procName string) erro
 		return err
 	}
 
-	rootCmd := cmd.Root()
-	configPath, err := rootCmd.PersistentFlags().GetString("config")
+	childArgs, err := configFlagArgs(cmd)
 	if err != nil {
 		return err
-	}
-
-	var childArgs []string
-	if configPath != "" {
-		childArgs = append(childArgs, "-c", configPath)
 	}
 
 	_, err = StartDaemon(DaemonOptions{
@@ -81,23 +63,13 @@ func StartCmdRunE(cmd *cobra.Command, _ []string, pidFile, procName string) erro
 	return err
 }
 
-// DaemonStartCmdRunE handles the daemon-start command. It forks a guard process that launches the target
-// via StartDaemon, monitors it, and restarts on abnormal exit. The launcher returns immediately; the guard runs in background.
+// DaemonStartCmdRunE handles the daemon-start command. It forks a guard process that
+// launches the target via StartDaemon, monitors it, and restarts on abnormal exit.
+// The launcher returns immediately; the guard runs in background.
 func DaemonStartCmdRunE(cmd *cobra.Command, _ []string, pidFile, procName string, restartDelay time.Duration) error {
-	pid, err := ReadPid(pidFile)
-	if err != nil {
-		if !errors.Is(err, ErrPidFileNotExist) && !errors.Is(err, ErrInvalidFile) {
-			return err
-		}
-	} else {
-		alive, aliveErr := IsAliveWithProcessName(pid, procName)
-		if aliveErr != nil {
-			return aliveErr
-		}
-		if alive {
-			fmt.Fprintf(cmd.OutOrStdout(), "%s is already running (guard mode), pid:%d\n", procName, pid)
-			return nil
-		}
+	skip, err := skipStartIfAlreadyRunning(cmd.OutOrStdout(), pidFile, procName, "guard mode")
+	if err != nil || skip {
+		return err
 	}
 
 	exePath, err := os.Executable()
@@ -105,23 +77,14 @@ func DaemonStartCmdRunE(cmd *cobra.Command, _ []string, pidFile, procName string
 		return err
 	}
 
-	rootCmd := cmd.Root()
-	configPath, err := rootCmd.PersistentFlags().GetString("config")
+	configArgs, err := configFlagArgs(cmd)
 	if err != nil {
 		return err
 	}
 
-	var serviceArgs []string
-	if configPath != "" {
-		serviceArgs = append(serviceArgs, "-c", configPath)
-	}
-
-	var guardArgs []string
+	serviceArgs := configArgs
 	// Always use "daemon-start" so the forked guard runs RunWithGuard (e.g. when called from restart).
-	guardArgs = append(guardArgs, "daemon-start")
-	if configPath != "" {
-		guardArgs = append(guardArgs, "-c", configPath)
-	}
+	guardArgs := append([]string{"daemon-start"}, configArgs...)
 
 	if restartDelay <= 0 {
 		restartDelay = DefaultGuardRestartDelay
@@ -211,7 +174,8 @@ func WaitForProcessExit(pidFile, procName string, timeout time.Duration) error {
 }
 
 // ReloadCmdRunE handles the reload command.
-// Sends SIGHUP to the process to trigger configuration reload.
+// Triggers a configuration reload of the target process: SIGHUP on Unix, the
+// named reload event on Windows (see reloadProcess).
 func ReloadCmdRunE(cmd *cobra.Command, _ []string, pidFile, procName string, _ int, _ bool) error {
 	pid, err := ReadPid(pidFile)
 	if errors.Is(err, ErrPidFileNotExist) || errors.Is(err, ErrInvalidFile) {
@@ -237,12 +201,7 @@ func ReloadCmdRunE(cmd *cobra.Command, _ []string, pidFile, procName string, _ i
 		return gerrors.NewE(gerrors.Failure, err)
 	}
 
-	if err := proc.Signal(os.Signal(syscall.SIGHUP)); err != nil {
-		return gerrors.Newf(gerrors.Failure, "failed to send SIGHUP to %s (pid=%d): %s", procName, pid, err)
-	}
-
-	fmt.Fprintf(cmd.OutOrStdout(), "sent SIGHUP to %s (pid=%d) for reload\n", procName, pid)
-	return nil
+	return reloadProcess(cmd, proc, pidFile, procName, pid)
 }
 
 // GetBaseHealthInfo returns basic process health information.
@@ -315,4 +274,48 @@ func waitForProcessExit(pidFile, procName string, timeout time.Duration) error {
 			return nil
 		}
 	}
+}
+
+func isBenignPidFileErr(err error) bool {
+	return errors.Is(err, ErrPidFileNotExist) || errors.Is(err, ErrInvalidFile)
+}
+
+func formatAlreadyRunning(procName string, pid int32, modeSuffix string) string {
+	if modeSuffix == "" {
+		return fmt.Sprintf("%s is already running, pid:%d\n", procName, pid)
+	}
+	return fmt.Sprintf("%s is already running (%s), pid:%d\n", procName, modeSuffix, pid)
+}
+
+// skipStartIfAlreadyRunning checks whether start should be skipped because the process is already running.
+// It returns (true, nil) when the process is alive, (false, nil) when start may proceed, and (false, err) on error.
+func skipStartIfAlreadyRunning(w io.Writer, pidFile, procName, modeSuffix string) (bool, error) {
+	pid, err := ReadPid(pidFile)
+	if err != nil {
+		if isBenignPidFileErr(err) {
+			return false, nil
+		}
+		return false, err
+	}
+
+	alive, err := IsAliveWithProcessName(pid, procName)
+	if err != nil {
+		return false, err
+	}
+	if alive {
+		fmt.Fprint(w, formatAlreadyRunning(procName, pid, modeSuffix))
+		return true, nil
+	}
+	return false, nil
+}
+
+func configFlagArgs(cmd *cobra.Command) ([]string, error) {
+	configPath, err := cmd.Root().PersistentFlags().GetString("config")
+	if err != nil {
+		return nil, err
+	}
+	if configPath == "" {
+		return nil, nil
+	}
+	return []string{"-c", configPath}, nil
 }

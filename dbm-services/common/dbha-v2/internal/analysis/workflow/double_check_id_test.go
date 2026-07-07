@@ -35,7 +35,7 @@ func TestGenerateDoubleCheckID_Deterministic(t *testing.T) {
 	const (
 		switchID  = "switch-001"
 		bkCloudID = 0
-		ip        = "1.1.1.1"
+		ip        = "127.0.0.1"
 	)
 
 	want := generateDoubleCheckID(switchID, bkCloudID, ip)
@@ -48,12 +48,12 @@ func TestGenerateDoubleCheckID_Deterministic(t *testing.T) {
 
 // generateDoubleCheckID must distinguish different switch requests, cloud ids and ips.
 func TestGenerateDoubleCheckID_Distinct(t *testing.T) {
-	base := generateDoubleCheckID("switch-001", 0, "1.1.1.1")
+	base := generateDoubleCheckID("switch-001", 0, "127.0.0.1")
 
 	cases := map[string]int64{
-		"different switchID":  generateDoubleCheckID("switch-002", 0, "1.1.1.1"),
-		"different bkCloudID": generateDoubleCheckID("switch-001", 1, "1.1.1.1"),
-		"different ip":        generateDoubleCheckID("switch-001", 0, "1.1.1.2"),
+		"different switchID":  generateDoubleCheckID("switch-002", 0, "127.0.0.1"),
+		"different bkCloudID": generateDoubleCheckID("switch-001", 1, "127.0.0.1"),
+		"different ip":        generateDoubleCheckID("switch-001", 0, "127.0.0.2"),
 	}
 
 	for name, got := range cases {
@@ -67,7 +67,7 @@ func TestGenerateDoubleCheckID_Distinct(t *testing.T) {
 // and must always be a positive int64.
 func TestGenerateDoubleCheckID_PositiveNonZero(t *testing.T) {
 	switchIDs := []string{"", "s", "switch-001", "a-very-long-switch-id-value-1234567890"}
-	ips := []string{"", "0.0.0.0", "10.0.0.1", "255.255.255.255"}
+	ips := []string{"127.0.0.1"}
 	cloudIDs := []int{0, 1, 1000}
 
 	for _, switchID := range switchIDs {

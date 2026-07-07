@@ -185,15 +185,11 @@ func GenConfigCmdRunE(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("admin-endpoints is required")
 	}
 	if localIP == "" {
-		var err error
-		ifName := constant.DefaultLocalIPInterface
-		if strings.TrimSpace(localIPInterface) != "" {
-			ifName = strings.TrimSpace(localIPInterface)
-		}
-		localIP, err = machine.GetLocalIPWithInterface(ifName)
+		resolved, err := resolveGenConfigLocalIP(localIPInterface, adminEndpointsStr)
 		if err != nil {
-			return fmt.Errorf("local-ip not set and failed to get %s internal ip: %w", ifName, err)
+			return err
 		}
+		localIP = resolved
 	}
 
 	endpoints := parseAdminEndpoints(adminEndpointsStr)
@@ -240,6 +236,35 @@ func GenConfigCmdRunE(cmd *cobra.Command, args []string) error {
 	}
 	fmt.Fprint(cmd.OutOrStdout(), yamlStr)
 	return nil
+}
+
+// resolveGenConfigLocalIP picks a local IP for gen-config when --local-ip is unset.
+// It tries the named interface first, then falls back to physical-interface scan
+// and UDP route detection toward the first admin endpoint host.
+func resolveGenConfigLocalIP(localIPInterface, adminEndpointsStr string) (string, error) {
+	ifName := constant.DefaultLocalIPInterface
+	if strings.TrimSpace(localIPInterface) != "" {
+		ifName = strings.TrimSpace(localIPInterface)
+	}
+	localIP, err := machine.GetLocalIPWithInterface(ifName)
+	if err == nil {
+		return localIP, nil
+	}
+
+	detectHost := ""
+	endpoints := parseAdminEndpoints(adminEndpointsStr)
+	if len(endpoints) > 0 {
+		detectHost, _ = machine.HostFromEndpoint(endpoints[0])
+	}
+
+	outboundIP, obErr := machine.GetOutboundIP(detectHost)
+	if obErr != nil {
+		return "", fmt.Errorf(
+			"local-ip not set and failed to get %s internal ip (%v) and outbound ip fallback failed: %w",
+			ifName, err, obErr,
+		)
+	}
+	return outboundIP, nil
 }
 
 func parseAdminEndpoints(s string) []string {

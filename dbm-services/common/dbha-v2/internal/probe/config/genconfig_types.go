@@ -36,10 +36,15 @@ type probeYAML struct {
 
 // probeReporterYAML has ConnTimeout as string for YAML output (e.g. "5s"); ReporterConfig uses time.Duration.
 type probeReporterYAML struct {
-	Name        string `yaml:"name"`
-	Endpoint    string `yaml:"endpoint"`
-	DataID      uint64 `yaml:"dataID"`
-	ConnTimeout string `yaml:"connTimeout"`
+	Name     string `yaml:"name"`
+	Endpoint string `yaml:"endpoint"`
+	DataID   uint64 `yaml:"dataID"`
+	// omitempty keeps the generated YAML byte-identical to the pre-change output
+	// when LocalSocketPort is unset (the common Linux case): no localSocketPort
+	// line is emitted. It is only rendered when a non-zero value is provided
+	// (Windows probes needing GSE via local TCP).
+	ConnTimeout     string `yaml:"connTimeout"`
+	LocalSocketPort uint   `yaml:"localSocketPort,omitempty"`
 }
 
 // probeHarvesterYAML uses string for Interval/Timeout in YAML output; reuses DbEndpointConfig for Endpoints.

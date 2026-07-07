@@ -69,6 +69,7 @@ storage:
 probeGse:
   endpoint: "{{ADMIN_PROBE_GSE_ENDPOINT}}"
   dataID: {{ADMIN_PROBE_GSE_DATA_ID}}
+  localSocketPort: {{ADMIN_PROBE_GSE_LOCAL_SOCKET_PORT}}
   # empty, invalid duration, or value strictly below 5s is normalized to 5s when admin loads config
   connTimeout: {{ADMIN_PROBE_GSE_CONN_TIMEOUT}}
 

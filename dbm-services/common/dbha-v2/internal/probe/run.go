@@ -26,8 +26,6 @@ package probe
 import (
 	"context"
 	"os"
-	"os/signal"
-	"syscall"
 
 	"dbm-services/common/dbha-v2/internal/probe/config"
 	"dbm-services/common/dbha-v2/pkg/gerrors"
@@ -38,28 +36,44 @@ import (
 	"github.com/spf13/cobra"
 )
 
-func setupGracefulShutdown(p *Probe) {
-	sigC := make(chan os.Signal, 1)
-	signal.Notify(sigC, syscall.SIGINT, syscall.SIGTERM, syscall.SIGHUP)
+// shouldRemovePidFileOnShutdown reports whether the worker should delete the pid
+// file on shutdown. Workers started under a guard never write the pid file and
+// must not remove the guard-owned file.
+func shouldRemovePidFileOnShutdown(pidFile string) bool {
+	return pidFile != "" && os.Getenv(process.EnvUnderGuard) == ""
+}
 
-	process.SavePid(config.Cfg.PidFile)
+func setupGracefulShutdown(p *Probe) error {
+	// waiter delivers shutdown/reload notifications: POSIX signals on Unix
+	// (SIGINT/SIGTERM shutdown, SIGHUP reload), the named stop/reload events on
+	// Windows. Reload remains a log-only stub on both platforms.
+	waiter, err := process.NewStopWaiter(process.EventKeyFromPidFile(config.Cfg.PidFile))
+	if err != nil {
+		return gerrors.Newf(gerrors.Failure, "setup stop waiter failed, errmsg: %s", err)
+	}
+
+	if err := process.SavePid(config.Cfg.PidFile); err != nil {
+		waiter.Close()
+		return gerrors.Newf(gerrors.Failure, "save pid failed, errmsg: %s", err)
+	}
 
 	go func() {
-		for sig := range sigC {
-			if sig == syscall.SIGHUP {
-				logger.Info("received SIGHUP, reloading configuration...")
-				continue
-			}
+		for {
+			select {
+			case <-waiter.Reload:
+				logger.Info("received reload request, reloading configuration...")
+			case <-waiter.Shutdown:
+				logger.Info("shutdown probe")
+				p.Close()
 
-			logger.Info("shutdown probe")
-			p.Close()
-
-			if config.Cfg.PidFile != "" {
-				_ = os.Remove(config.Cfg.PidFile)
+				if shouldRemovePidFileOnShutdown(config.Cfg.PidFile) {
+					_ = os.Remove(config.Cfg.PidFile)
+				}
+				os.Exit(0)
 			}
-			os.Exit(0)
 		}
 	}()
+	return nil
 }
 
 // Run run probe
@@ -93,7 +107,9 @@ func Run(cmd *cobra.Command, args []string) error {
 
 	ctx := context.Background()
 
-	setupGracefulShutdown(p)
+	if err := setupGracefulShutdown(p); err != nil {
+		return err
+	}
 
 	return p.Run(ctx)
 }

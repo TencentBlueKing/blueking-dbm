@@ -3,12 +3,12 @@ package process
 import (
 	"errors"
 	"os"
-	"syscall"
 	"time"
 
 	"dbm-services/common/dbha-v2/pkg/gerrors"
 )
 
+// StopOptions configures StopWithPidFile.
 type StopOptions struct {
 	PidFile  string
 	ProcName string
@@ -44,7 +44,12 @@ func StopWithPidFile(opt StopOptions) error {
 		return gerrors.NewE(gerrors.Failure, err)
 	}
 
-	if err := proc.Signal(syscall.SIGTERM); err != nil {
+	// Request graceful stop: SIGTERM on Unix; set the named stop event on Windows.
+	// On Windows a missing event means the process is not running.
+	if err := signalStop(proc, opt.PidFile, pid, opt.ProcName); err != nil {
+		if errors.Is(err, ErrProcessNotRunning) {
+			return ErrProcessNotRunning
+		}
 		return gerrors.NewE(gerrors.Failure, err)
 	}
 
@@ -71,7 +76,8 @@ func StopWithPidFile(opt StopOptions) error {
 		return gerrors.Newf(gerrors.Timeout, "stop process timeout after %s, pid=%d", opt.Timeout.String(), pid)
 	}
 
-	if err := proc.Signal(syscall.SIGKILL); err != nil {
+	// Force kill: SIGKILL on Unix; TerminateProcess (os.Process.Kill) on Windows.
+	if err := forceKill(proc, opt.PidFile); err != nil {
 		return gerrors.NewE(gerrors.Failure, err)
 	}
 

@@ -26,9 +26,12 @@ package process
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"os"
 	"testing"
+
+	"github.com/spf13/cobra"
 )
 
 func TestGetBaseHealthInfo_NoPidFile(t *testing.T) {
@@ -210,4 +213,177 @@ func TestErrorVariables(t *testing.T) {
 	if ErrInvalidProcName == nil {
 		t.Fatal("ErrInvalidProcName should not be nil")
 	}
+}
+
+func TestIsBenignPidFileErr(t *testing.T) {
+	if !isBenignPidFileErr(ErrPidFileNotExist) {
+		t.Fatal("ErrPidFileNotExist should be benign")
+	}
+	if !isBenignPidFileErr(ErrInvalidFile) {
+		t.Fatal("ErrInvalidFile should be benign")
+	}
+	// ErrInvalidPid shares InvalidParameter code with ErrInvalidFile in gerrors.Is, so it is benign too.
+	if !isBenignPidFileErr(ErrInvalidPid) {
+		t.Fatal("ErrInvalidPid should be benign")
+	}
+	if isBenignPidFileErr(ErrIsDir) {
+		t.Fatal("ErrIsDir should not be benign")
+	}
+}
+
+func TestSkipStartIfAlreadyRunning(t *testing.T) {
+	currentPid := os.Getpid()
+	procName, err := Name(int32(currentPid))
+	if err != nil {
+		t.Fatalf("failed to get process name: %v", err)
+	}
+
+	tests := []struct {
+		name       string
+		pidFile    string
+		setup      func(t *testing.T) string
+		procName   string
+		wantSkip   bool
+		wantErr    bool
+		wantErrIs  error
+		wantOutput string
+	}{
+		{
+			name:     "missing pid file",
+			pidFile:  "/nonexistent/path/test.pid",
+			procName: "test-process",
+			wantSkip: false,
+		},
+		{
+			name:     "invalid pid file path",
+			pidFile:  "",
+			procName: "test-process",
+			wantSkip: false,
+		},
+		{
+			name: "stale pid",
+			setup: func(t *testing.T) string {
+				t.Helper()
+				tmpFile, err := os.CreateTemp("", "test_skip_start_*.pid")
+				if err != nil {
+					t.Fatalf("failed to create temp file: %v", err)
+				}
+				t.Cleanup(func() { os.Remove(tmpFile.Name()) })
+				if _, err := tmpFile.WriteString("999999999"); err != nil {
+					t.Fatalf("failed to write temp file: %v", err)
+				}
+				tmpFile.Close()
+				return tmpFile.Name()
+			},
+			procName: "test-process",
+			wantSkip: false,
+		},
+		{
+			name: "invalid pid content",
+			setup: func(t *testing.T) string {
+				t.Helper()
+				tmpFile, err := os.CreateTemp("", "test_skip_start_*.pid")
+				if err != nil {
+					t.Fatalf("failed to create temp file: %v", err)
+				}
+				t.Cleanup(func() { os.Remove(tmpFile.Name()) })
+				if _, err := tmpFile.WriteString("invalid"); err != nil {
+					t.Fatalf("failed to write temp file: %v", err)
+				}
+				tmpFile.Close()
+				return tmpFile.Name()
+			},
+			procName: "test-process",
+			wantSkip: false,
+			wantErr:  true,
+		},
+		{
+			name: "already running",
+			setup: func(t *testing.T) string {
+				t.Helper()
+				tmpFile, err := os.CreateTemp("", "test_skip_start_*.pid")
+				if err != nil {
+					t.Fatalf("failed to create temp file: %v", err)
+				}
+				t.Cleanup(func() { os.Remove(tmpFile.Name()) })
+				tmpFile.Close()
+				if err := os.WriteFile(tmpFile.Name(), []byte(fmt.Sprintf("%d", currentPid)), 0644); err != nil {
+					t.Fatalf("failed to write pid file: %v", err)
+				}
+				return tmpFile.Name()
+			},
+			procName:   procName,
+			wantSkip:   true,
+			wantOutput: fmt.Sprintf("%s is already running, pid:%d\n", procName, currentPid),
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			pidFile := tt.pidFile
+			if tt.setup != nil {
+				pidFile = tt.setup(t)
+			}
+
+			var buf bytes.Buffer
+			skip, err := skipStartIfAlreadyRunning(&buf, pidFile, tt.procName, "")
+			if tt.wantErr {
+				if err == nil {
+					t.Fatal("expected error, got nil")
+				}
+				if tt.wantErrIs != nil && !errors.Is(err, tt.wantErrIs) {
+					t.Fatalf("error = %v, want %v", err, tt.wantErrIs)
+				}
+			} else if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+			if skip != tt.wantSkip {
+				t.Fatalf("skip = %v, want %v", skip, tt.wantSkip)
+			}
+			if tt.wantOutput != "" && buf.String() != tt.wantOutput {
+				t.Fatalf("output = %q, want %q", buf.String(), tt.wantOutput)
+			}
+		})
+	}
+}
+
+func TestConfigFlagArgs(t *testing.T) {
+	rootCmd := &cobra.Command{Use: "test"}
+	rootCmd.PersistentFlags().StringP("config", "c", "", "config file path")
+
+	childCmd := &cobra.Command{Use: "start"}
+	rootCmd.AddCommand(childCmd)
+
+	t.Run("empty config", func(t *testing.T) {
+		args, err := configFlagArgs(childCmd)
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		if len(args) != 0 {
+			t.Fatalf("args = %v, want empty", args)
+		}
+	})
+
+	t.Run("set config", func(t *testing.T) {
+		if err := rootCmd.PersistentFlags().Set("config", "/etc/probe.yaml"); err != nil {
+			t.Fatalf("failed to set config flag: %v", err)
+		}
+		t.Cleanup(func() {
+			_ = rootCmd.PersistentFlags().Set("config", "")
+		})
+
+		args, err := configFlagArgs(childCmd)
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		want := []string{"-c", "/etc/probe.yaml"}
+		if len(args) != len(want) {
+			t.Fatalf("args = %v, want %v", args, want)
+		}
+		for i := range want {
+			if args[i] != want[i] {
+				t.Fatalf("args[%d] = %q, want %q", i, args[i], want[i])
+			}
+		}
+	})
 }

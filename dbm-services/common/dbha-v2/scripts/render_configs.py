@@ -5,12 +5,20 @@
 from typing import Dict, List, Match, Optional, Tuple
 
 import argparse
-import fcntl
 import re
 import socket
 import struct
 import sys
 from pathlib import Path
+
+try:
+    import fcntl
+except ImportError:
+    # fcntl is Unix-only; on Windows the interface-ioctl fallback is unavailable,
+    # so _get_iface_ipv4 degrades to returning None (the UDP-based primary path in
+    # _guess_primary_ipv4 still works). This import guard does not affect Linux,
+    # where fcntl imports normally and the ioctl fallback is preserved.
+    fcntl = None
 
 _PLACEHOLDER_RE = re.compile(r"\{\{([A-Z0-9_]+)\}\}")
 _KEY_LINE_RE = re.compile(r"^([A-Z0-9_]+)=(.*)$")
@@ -29,6 +37,11 @@ _DEFAULT_ADMIN_WEB_LISTEN_PORT = 50060
 
 # probe install directory default (must match deploy.sh -t target).
 _DEFAULT_PROBE_INSTALL_DIR = "/usr/local/dbha-v2"
+
+# probe reporter local socket port default; "0" means unset -> probe falls back to
+# the GSE domain socket at runtime (used by Windows probes to report via local TCP).
+_DEFAULT_PROBE_REPORTER_LOCAL_SOCKET_PORT = "0"
+_DEFAULT_ADMIN_PROBE_GSE_LOCAL_SOCKET_PORT = "0"
 
 # IP detection and fallback.
 _IP_DETECT_UDP_CONNECT_PORT = 80
@@ -130,6 +143,31 @@ def apply_detector_check_probe_process_cmd_default(values: Dict[str, str]) -> No
         values["ANALYSIS_DETECTOR_CHECK_PROBE_PROCESS_CMD"] = (
             "cd {} && ./bin/dbha-probe health -j".format(install_dir)
         )
+
+
+def apply_probe_reporter_local_socket_port_default(values: Dict[str, str]) -> None:
+    """Inject a default of "0" for PROBE_REPORTER_LOCAL_SOCKET_PORT when the rc omits it.
+
+    probe.yaml is a shared Linux/Windows template that now references this
+    placeholder. Existing Linux rc files predate the key; without a default the
+    placeholder would stay unrendered and render_configs.py would treat it as an
+    undefined placeholder and exit 1, breaking upgrades of existing deployments.
+    Injecting "0" (meaning unset -> runtime falls back to the domain socket) keeps
+    Linux behavior unchanged while allowing Windows rc files to set a real port.
+    """
+    if not values.get("PROBE_REPORTER_LOCAL_SOCKET_PORT", "").strip():
+        values["PROBE_REPORTER_LOCAL_SOCKET_PORT"] = _DEFAULT_PROBE_REPORTER_LOCAL_SOCKET_PORT
+
+
+def apply_admin_probe_gse_local_socket_port_default(values: Dict[str, str]) -> None:
+    """Inject a default of "0" for ADMIN_PROBE_GSE_LOCAL_SOCKET_PORT when the rc omits it.
+
+    admin.yaml now references this placeholder for probe GSE defaults returned via
+    GetProbeConfig. Existing server rc files predate the key; without a default the
+    placeholder would stay unrendered and break upgrades of existing deployments.
+    """
+    if not values.get("ADMIN_PROBE_GSE_LOCAL_SOCKET_PORT", "").strip():
+        values["ADMIN_PROBE_GSE_LOCAL_SOCKET_PORT"] = _DEFAULT_ADMIN_PROBE_GSE_LOCAL_SOCKET_PORT
 
 
 def _apply_apm_listen_address_default(
@@ -378,6 +416,9 @@ def main() -> None:
         apply_receiver_source_probe_endpoint_default(values, ip_detect_host)
         apply_admin_grpc_listen_address_default(values, ip_detect_host)
         apply_admin_web_listen_address_default(values, ip_detect_host)
+        apply_admin_probe_gse_local_socket_port_default(values)
+    else:
+        apply_probe_reporter_local_socket_port_default(values)
 
     # Phase 1: expand _YAML_FILE keys into raw YAML text (no placeholder rendering).
     apply_yaml_snippet_files(values, rc_resolved)
@@ -443,6 +484,8 @@ def _guess_primary_ipv4(ip_detect_host: str) -> str:
 
 def _get_iface_ipv4(ifname: str) -> Optional[str]:
     """Return IPv4 for interface *ifname* (Linux ioctl); None if unavailable."""
+    if fcntl is None:
+        return None
     try:
         sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         try:
