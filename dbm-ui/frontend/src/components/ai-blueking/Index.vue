@@ -2,8 +2,8 @@
   <AIBlueking
     v-if="isShowAiBlueking"
     ref="aiBluekingRef"
+    class="dbm-ai-chat-dialog"
     :enable-popup="false"
-    ext-cls="dbm-ai-chat-dialog"
     :hide-nimbus="hideNimbus"
     load-recent-session-on-mount
     nimbus-size="large"
@@ -36,7 +36,7 @@
 </script>
 <style lang="postcss">
   .dbm-ai-chat-dialog {
-    .shortcuts-bar {
+    .shortcut-btns {
       display: none !important;
     }
   }

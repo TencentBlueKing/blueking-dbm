@@ -37,7 +37,7 @@
             theme="danger"
             @click="handleSignOut">
             <template #icon>
-              <Qq />
+              <DbIcon type="tuichu" />
             </template>
             {{ t('退出登录') }}
           </ActionItem>
