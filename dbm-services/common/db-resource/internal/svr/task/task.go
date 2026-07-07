@@ -52,17 +52,13 @@ var RecordRsOperatorInfoChan chan model.TbRpOperationInfo
 // SyncRsGseAgentStatusChan TODO
 var SyncRsGseAgentStatusChan chan []int
 
-// RunningTask running task
-var RunningTask chan struct{}
-
 // AnalysisTaskChan 智能体分析任务 channel
 var AnalysisTaskChan chan AnalysisTaskItem
 
 func init() {
 	ApplyResponseLogChan = make(chan ApplyResponseLogItem, 100)
-	ArchivedResourceChan = make(chan int, 200)
+	ArchivedResourceChan = make(chan int, 500)
 	RecordRsOperatorInfoChan = make(chan model.TbRpOperationInfo, 20)
-	RunningTask = make(chan struct{}, 100)
 	SyncRsGseAgentStatusChan = make(chan []int, 10)
 	AnalysisTaskChan = make(chan AnalysisTaskItem, 50)
 }
@@ -78,8 +74,34 @@ func init() {
 	}()
 	go func() {
 		var archIds []int
-		ticker := time.NewTicker(10 * time.Second)
-		defer ticker.Stop()
+		const archiveMaxAttempts = 3
+		const archiveRetryInterval = time.Second
+
+		// flushArchive 批量归档队列中的资源；失败时有限次立即重试，仍失败则保留 ID 待下次入队触发。
+		flushArchive := func(trigger string) {
+			if len(archIds) == 0 {
+				return
+			}
+			ids := lo.Uniq(archIds)
+			for attempt := 1; attempt <= archiveMaxAttempts; attempt++ {
+				logger.Info("[archive] start flush, trigger=%s, attempt=%d/%d, count=%d, ids=%v",
+					trigger, attempt, archiveMaxAttempts, len(ids), ids)
+				if err := archiveResource(ids); err != nil {
+					logger.Warn("[archive] flush failed, trigger=%s, attempt=%d/%d, count=%d, ids=%v, err=%s",
+						trigger, attempt, archiveMaxAttempts, len(ids), ids, err.Error())
+					if attempt < archiveMaxAttempts {
+						time.Sleep(archiveRetryInterval)
+						continue
+					}
+					archIds = ids
+					return
+				}
+				logger.Info("[archive] flush succeed, trigger=%s, count=%d", trigger, len(ids))
+				archIds = nil
+				return
+			}
+		}
+
 		for {
 			select {
 			case d := <-ApplyResponseLogChan:
@@ -88,22 +110,9 @@ func init() {
 					logger.Error("record log failed, %s", err.Error())
 				}
 			case id := <-ArchivedResourceChan:
-				if len(RunningTask) > 0 {
-					archIds = append(archIds, id)
-				} else {
-					archIds = append(archIds, id)
-					if err := archiveResource(archIds); err != nil {
-						logger.Warn("archive resource failed %s", err.Error())
-					}
-					archIds = []int{}
-				}
-			case <-ticker.C:
-				if len(RunningTask) == 0 && len(archIds) > 0 {
-					if err := archiveResource(archIds); err != nil {
-						logger.Warn("archive resource failed %s", err.Error())
-					}
-					archIds = []int{}
-				}
+				archIds = append(archIds, id)
+				logger.Info("[archive] enqueue id=%d, pending=%d", id, len(archIds))
+				flushArchive("resource_enqueued")
 			case info := <-RecordRsOperatorInfoChan:
 				if err := recordRsOperationInfo(info); err != nil {
 					logger.Error("failed to record resource operation log %s", err.Error())

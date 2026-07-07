@@ -150,8 +150,6 @@ func newLocker(key string, requestId string) *lock.SpinLock {
 
 // ApplyBase apply resource base func
 func (c *ApplyHandler) ApplyBase(r *gin.Context, mode string) {
-	task.RunningTask <- struct{}{}
-	defer func() { <-task.RunningTask }()
 	logger.Info("start apply resource ... ")
 	var param apply.RequestInputParam
 	var pickers []*apply.PickerObject
