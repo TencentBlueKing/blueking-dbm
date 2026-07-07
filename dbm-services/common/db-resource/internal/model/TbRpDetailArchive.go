@@ -119,6 +119,9 @@ func TbRpDetailArchiveName() string {
 
 // ArchiveResource 将申请完的资源转移到归档表
 func ArchiveResource(ids []int) (err error) {
+	if len(ids) == 0 {
+		return nil
+	}
 	tx := DB.Self.Begin()
 	defer func() {
 		if err != nil {
