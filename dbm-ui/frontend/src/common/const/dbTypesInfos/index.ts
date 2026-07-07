@@ -4,6 +4,7 @@ import { DBTypes } from '../dbTypes';
 import { MachineTypes } from '../machineTypes';
 
 import { bigdata } from './bigdata';
+import { k8s } from './k8s';
 import { mongodb } from './mongodb';
 import { mysql } from './mysql';
 import { oracle } from './oracle';
@@ -38,9 +39,12 @@ export const DBTypeInfos = {
   ...mongodb,
   ...sqlserver,
   ...oracle,
+  ...k8s,
 } as RequiredInfoType;
 
-const readExcludeDbTypeMap = Object.fromEntries([DBTypes.INFLUXDB].map((item) => [item, true]));
+const readExcludeDbTypeMap = Object.fromEntries(
+  [DBTypes.INFLUXDB, DBTypes.K8S_SURREALDB, DBTypes.K8S_QRRANT].map((item) => [item, true]),
+);
 export const readResourceDbTypes = Object.values(DBTypeInfos)
   .filter((item) => !readExcludeDbTypeMap[item.id])
   .map((item) => ({
@@ -54,7 +58,9 @@ export const readResourceDbTypes = Object.values(DBTypeInfos)
     },
   ]);
 
-const editExcludeDbTypeMap = Object.fromEntries([DBTypes.INFLUXDB, DBTypes.TENDBCLUSTER].map((item) => [item, true]));
+const editExcludeDbTypeMap = Object.fromEntries(
+  [DBTypes.INFLUXDB, DBTypes.TENDBCLUSTER, DBTypes.K8S_SURREALDB, DBTypes.K8S_QRRANT].map((item) => [item, true]),
+);
 export const editResourceDbTypes = Object.values(DBTypeInfos)
   .filter((item) => !editExcludeDbTypeMap[item.id])
   .map((item) => ({

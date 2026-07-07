@@ -111,6 +111,7 @@
 
   import {
     bigDataType,
+    k8sType,
     mongoType,
     mysqlType,
     redisType,
@@ -315,6 +316,33 @@
       ],
       id: 'bigdata',
       name: '消息队列',
+    },
+    {
+      children: [
+        {
+          controllerId: 'k8s_surrealdb',
+          icon: 'pulsar',
+          id: k8sType[TicketTypes.K8S_SURREALDB_HA_APPLY].id,
+          name: k8sType[TicketTypes.K8S_SURREALDB_HA_APPLY].name,
+          routeName: TicketTypes.K8S_SURREALDB_HA_APPLY,
+        },
+        {
+          controllerId: 'k8s_surrealdb',
+          icon: 'kafka',
+          id: k8sType[TicketTypes.K8S_SURREALDB_SINGLE_APPLY].id,
+          name: k8sType[TicketTypes.K8S_SURREALDB_SINGLE_APPLY].name,
+          routeName: TicketTypes.K8S_SURREALDB_SINGLE_APPLY,
+        },
+        {
+          controllerId: 'k8s_qdrant',
+          icon: 'cluster',
+          id: k8sType[TicketTypes.K8S_QDRANT_HA_APPLY].id,
+          name: k8sType[TicketTypes.K8S_QDRANT_HA_APPLY].name,
+          routeName: TicketTypes.K8S_QDRANT_HA_APPLY,
+        },
+      ],
+      id: 'k8s',
+      name: 'K8S',
     },
   ];
 
