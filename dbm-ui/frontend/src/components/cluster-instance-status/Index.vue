@@ -15,14 +15,14 @@
   <div class="db-cluster-instance-status">
     <DbIcon
       :class="{
-        'rotate-loading': clusterInstStatus[data as keyof typeof clusterInstStatus].icon === 'sync-pending',
+        'rotate-loading': statusInfo.icon === 'sync-pending',
       }"
       svg
-      :type="clusterInstStatus[data as keyof typeof clusterInstStatus].icon" />
+      :type="statusInfo.icon" />
     <span
       v-if="showText"
       style="margin-left: 4px">
-      {{ clusterInstStatus[data as keyof typeof clusterInstStatus].text }}
+      {{ statusInfo.text }}
     </span>
   </div>
 </template>
@@ -34,28 +34,14 @@
     showText?: boolean;
   }
 
-  withDefaults(defineProps<Props>(), {
+  const props = withDefaults(defineProps<Props>(), {
     showText: true,
   });
 
-  // const clusterInstStatus = {
-  //   restoring: {
-  //     icon: 'sync-pending',
-  //     text: t('恢复中'),
-  //   },
-  //   running: {
-  //     icon: 'normal',
-  //     text: t('运行中'),
-  //   },
-  //   unavailable: {
-  //     icon: 'abnormal',
-  //     text: t('不可用'),
-  //   },
-  //   upgrading: {
-  //     icon: 'sync-pending',
-  //     text: t('升级中'),
-  //   },
-  // };
+  const statusInfo = computed(() => {
+    const status = props.data.toLowerCase();
+    return clusterInstStatus[status as keyof typeof clusterInstStatus];
+  });
 </script>
 <style lang="less">
   .db-cluster-instance-status {

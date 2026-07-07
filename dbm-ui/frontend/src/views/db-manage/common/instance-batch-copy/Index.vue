@@ -48,14 +48,19 @@
   </BkDropdown>
 </template>
 
-<script setup lang="ts" generic="T extends { instance_address: string; isUnavailable: boolean; ip: string }">
+<script
+  setup
+  lang="ts"
+  generic="
+    T extends { instance_address: string; isUnavailable: boolean; ip: string } | { podName: string; node: string }
+  ">
   import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
 
   import { execCopy, messageWarn } from '@utils';
 
   export interface Props<T> {
-    field: 'instance_address' | 'ip';
+    field: 'instance_address' | 'ip' | 'podName' | 'node';
     getTableData: () => Promise<T[]>;
     selected: T[];
   }
@@ -64,7 +69,7 @@
 
   const { t } = useI18n();
 
-  const typeText = computed(() => (props.field === 'ip' ? ' IP' : t('实例')));
+  const typeText = computed(() => (['ip', 'node'].includes(props.field) ? ' IP' : t('实例')));
 
   const handleCopy = (copyList: string[]) => {
     if (copyList.length === 0) {

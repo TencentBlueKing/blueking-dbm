@@ -22,7 +22,7 @@ const path = '/apis/dbbase';
 /**
  * 查询集群名字是否重复
  */
-export function verifyDuplicatedClusterName(params: { bk_biz_id: number; cluster_type: string; name: string }) {
+export function verifyDuplicatedClusterName(params: { bk_biz_id: number; cluster_type: ClusterTypes; name: string }) {
   return http.get<boolean>(`${path}/verify_duplicated_cluster_name/`, params);
 }
 
