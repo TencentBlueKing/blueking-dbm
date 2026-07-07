@@ -34,11 +34,6 @@ import (
 )
 
 const (
-	// KeepaliveProcessNameFull is the full process name shown in args.
-	KeepaliveProcessNameFull = "dbha-v2-keepalive"
-	// KeepaliveProcessNameComm is the comm name shown in top/ps -o comm.
-	KeepaliveProcessNameComm = "dbha-keepalive"
-
 	keepaliveExecEnv = "DBHA_KEEPALIVE_EXECED"
 	maxCommNameLen   = 15
 )

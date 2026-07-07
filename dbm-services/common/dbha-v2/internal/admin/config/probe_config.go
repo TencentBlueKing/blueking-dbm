@@ -68,9 +68,10 @@ func GenProbeConfig(ctx context.Context, db *hamysql.GormDB, bkCloudID int, ip s
 
 	payload := probeconfig.ProbeConfigPayload{
 		Gse: probeconfig.GseConfig{
-			Endpoint:    Cfg.ProbeGse.Endpoint,
-			DataID:      Cfg.ProbeGse.DataID,
-			ConnTimeout: Cfg.ProbeGse.ConnTimeout,
+			Endpoint:        Cfg.ProbeGse.Endpoint,
+			DataID:          Cfg.ProbeGse.DataID,
+			ConnTimeout:     Cfg.ProbeGse.ConnTimeout,
+			LocalSocketPort: Cfg.ProbeGse.LocalSocketPort,
 		},
 		Metadata: items,
 	}

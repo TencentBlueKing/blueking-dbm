@@ -64,16 +64,20 @@ define GO_BUILD
 endef
 
 .PHONY: all proto $(SERVICES) doc toolkits cluster bwmgr clean format test \
-        package package-server package-probe help
+        package package-server package-probe help \
+        probe-windows package-probe-windows check-windows
 
 # package
 SERVER_PKG_DIR  = $(BUILD_DIR)/$(PROJECT)-server
 SERVER_PKG_NAME = $(VERSION)-server.tar.gz
 PROBE_PKG_DIR   = $(BUILD_DIR)/$(PROJECT)-probe
 PROBE_PKG_NAME  = $(VERSION)-probe.tar.gz
+PROBE_WINDOWS_PKG_DIR  = $(BUILD_DIR)/$(PROJECT)-probe-windows
+PROBE_WINDOWS_PKG_NAME = $(VERSION)-probe-windows.zip
 
 SERVER_BINS = dbha-admin dbha-analysis dbha-receiver
 PROBE_BINS  = dbha-probe
+PROBE_WINDOWS_BIN = dbha-probe.exe
 
 # server-side toolkit binaries (keep in sync with scripts/deploy.sh TOOLKIT_FILES)
 SERVER_TOOLKITS = dbha-cluster dbha-bwmgr
@@ -94,6 +98,13 @@ PROBE_SCRIPTS   = scripts/start-probe.sh scripts/stop-probe.sh \
                   scripts/start-probe-keepalive.sh scripts/stop-probe-keepalive.sh \
                   scripts/deploy.sh scripts/render_configs.py
 
+# Windows probe ships PowerShell scripts only; bash scripts and the bash-only
+# guard-utils.sh library are intentionally excluded. render_configs.py is Python
+# and cross-platform (fcntl import is guarded), so it is included for config gen.
+PROBE_WINDOWS_SCRIPTS = scripts/start-probe.ps1 scripts/stop-probe.ps1 \
+                        scripts/start-probe-keepalive.ps1 scripts/stop-probe-keepalive.ps1 \
+                        scripts/render_configs.py
+
 # build target
 
 all: proto admin analysis receiver probe toolkits
@@ -112,6 +123,20 @@ receiver: proto
 
 probe: proto
 	$(call GO_BUILD,$@)
+
+# Windows probe build. GO_BUILD's -o has no .exe suffix, so this is a standalone
+# invocation that emits dbha-probe.exe (GOOS pinned to windows regardless of GO_OS).
+probe-windows: proto
+	@mkdir -p $(BUILD_DIR)
+	CGO_ENABLED=0 GOOS=windows GOARCH=amd64 go build -ldflags=$(BUILD_FLAG) \
+				-gcflags="all=-trimpath=$(PWD)" -asmflags="all=-trimpath=$(PWD)" \
+				-o $(BUILD_DIR)/$(PROBE_WINDOWS_BIN) cmd/probe/main.go
+
+# Cross-compilation gate: ensures the whole module still builds for Windows.
+# CI has no Windows runner, so *_windows_test.go are skipped there; this target is
+# the guard that catches Windows-only compile breakage.
+check-windows:
+	CGO_ENABLED=0 GOOS=windows GOARCH=amd64 go build ./...
 
 # generate swagger api doc with swag
 doc:
@@ -200,6 +225,26 @@ package-probe: probe
 	@rm -rf $(PROBE_PKG_DIR)
 	@echo "Package created: $(BUILD_DIR)/$(PROBE_PKG_NAME)"
 
+# windows probe package: dbha-probe.exe + PowerShell scripts + render_configs.py
+# + probe templates/rc; deliberately excludes bash scripts and guard-utils.sh.
+package-probe-windows: probe-windows
+	@echo "Packaging $(PROBE_WINDOWS_PKG_NAME)..."
+	@rm -rf $(PROBE_WINDOWS_PKG_DIR)
+	@mkdir -p $(PROBE_WINDOWS_PKG_DIR)/bin $(PROBE_WINDOWS_PKG_DIR)/etc \
+		$(PROBE_WINDOWS_PKG_DIR)/logs $(PROBE_WINDOWS_PKG_DIR)/pids
+	@cp $(BUILD_DIR)/$(PROBE_WINDOWS_BIN) $(PROBE_WINDOWS_PKG_DIR)/bin/
+	@cp $(PROBE_WINDOWS_SCRIPTS) $(PROBE_WINDOWS_PKG_DIR)/
+	@mkdir -p $(PROBE_WINDOWS_PKG_DIR)/etc/templates/snippets
+	@cp $(addprefix etc/templates/,$(PROBE_TEMPLATES)) \
+		$(PROBE_WINDOWS_PKG_DIR)/etc/templates/
+	@cp $(addprefix etc/templates/snippets/,$(PROBE_SNIPPETS)) \
+		$(PROBE_WINDOWS_PKG_DIR)/etc/templates/snippets/
+	@cp etc/dbha-v2.probe.rc.example \
+		$(PROBE_WINDOWS_PKG_DIR)/etc/dbha-v2.probe.rc.example
+	@cd $(BUILD_DIR) && zip -r $(PROBE_WINDOWS_PKG_NAME) $(PROJECT)-probe-windows >/dev/null
+	@rm -rf $(PROBE_WINDOWS_PKG_DIR)
+	@echo "Package created: $(BUILD_DIR)/$(PROBE_WINDOWS_PKG_NAME)"
+
 clean:
 	rm -rf $(GEN_DIR)/*.go
 	rm -rf $(BUILD_DIR)/*
@@ -214,12 +259,15 @@ help:
 	@echo "  analysis   - Build analysis service"
 	@echo "  receiver   - Build receiver service"
 	@echo "  probe      - Build probe service"
+	@echo "  probe-windows  - Build Windows probe binary (dbha-probe.exe)"
+	@echo "  check-windows  - Cross-compile the whole module for Windows (build gate)"
 	@echo "  toolkits   - Build toolkit binaries (cluster, bwmgr)"
 	@echo "  cluster    - Build cluster toolkit (dbha-cluster)"
 	@echo "  bwmgr      - Build black-white list manager (dbha-bwmgr)"
 	@echo "  package    - Build and create both server and probe release packages"
 	@echo "  package-server - Create server release package (services + toolkits + etc templates)"
 	@echo "  package-probe  - Create probe release package ($(VERSION)-probe.tar.gz)"
+	@echo "  package-probe-windows - Create Windows probe release package ($(VERSION)-probe-windows.zip)"
 	@echo "  format     - Format code and tidy modules"
 	@echo "  test       - Run tests"
 	@echo "  clean      - Clean build artifacts"

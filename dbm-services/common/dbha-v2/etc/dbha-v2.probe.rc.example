@@ -26,6 +26,10 @@ PROBE_REPORTER_ENDPOINT=""
 PROBE_REPORTER_DATA_ID=0
 PROBE_REPORTER_CONN_TIMEOUT=5s
 PROBE_REPORTER_BKCLOUD_ID=0
+# GSE agent-report local TCP port for Windows probes; 0 (default) means unset,
+# so Linux probes ignore it and fall back to the domain socket endpoint. Existing
+# rc files that omit this key are auto-defaulted to 0 by render_configs.py.
+PROBE_REPORTER_LOCAL_SOCKET_PORT=0
 
 # ## probe · client
 PROBE_CLIENT_PING_TIME=5s

@@ -43,6 +43,11 @@ type GseConfig struct {
 	Endpoint    string `json:"endpoint"`
 	DataID      uint64 `json:"data_id"`
 	ConnTimeout string `json:"conn_timeout"`
+	// LocalSocketPort is the local TCP port the GSE agent-report SDK uses on
+	// Windows. Optional and omitempty: a zero value / missing field means "unset",
+	// so older admin builds that never send it, and Linux probes that never need
+	// it, stay fully backward compatible (probe falls back to the domain socket).
+	LocalSocketPort uint `json:"local_socket_port,omitempty"`
 }
 
 // ProbeMySQLConfig carries MySQL harvester credentials/timing from admin to probe.

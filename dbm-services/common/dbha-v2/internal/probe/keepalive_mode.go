@@ -26,13 +26,11 @@ package probe
 
 import (
 	"fmt"
-	"os"
-	"os/signal"
 	"strings"
-	"syscall"
 
 	"dbm-services/common/dbha-v2/internal/probe/keepalive"
 	"dbm-services/common/dbha-v2/pkg/logger"
+	"dbm-services/common/dbha-v2/pkg/process"
 )
 
 const pingHTTPAddrFlag = "--ping-http-addr"
@@ -87,14 +85,22 @@ func RunKeepaliveMode(pingAddr string, rawArgs []string) error {
 		}
 	}()
 
-	sigC := make(chan os.Signal, 1)
-	signal.Notify(sigC, syscall.SIGINT, syscall.SIGTERM, syscall.SIGHUP)
-
-	for sig := range sigC {
-		if sig == syscall.SIGHUP {
-			continue
-		}
-		return nil
+	// keepalive holds no pid file (the deploy scripts manage probe-keepalive.pid),
+	// so its stop/reload events are keyed off the ping-http-addr, which both the
+	// running process and the stop script hold. On Unix this reduces to the usual
+	// signal handling (SIGINT/SIGTERM stop, SIGHUP reload -> no-op).
+	waiter, err := process.NewStopWaiter(pingAddr)
+	if err != nil {
+		return err
 	}
-	return nil
+	defer waiter.Close()
+
+	for {
+		select {
+		case <-waiter.Reload:
+			continue
+		case <-waiter.Shutdown:
+			return nil
+		}
+	}
 }

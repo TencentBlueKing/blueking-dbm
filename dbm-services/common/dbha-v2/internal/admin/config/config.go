@@ -136,6 +136,10 @@ type ProbeGseConfig struct {
 	Endpoint    string `yaml:"endpoint"    mapstructure:"endpoint"`
 	DataID      uint64 `yaml:"dataID"      mapstructure:"dataID"`
 	ConnTimeout string `yaml:"connTimeout" mapstructure:"connTimeout"`
+	// LocalSocketPort is the local TCP port Windows probes use for the GSE
+	// agent-report SDK. Optional: unset (zero) means Linux probes ignore it and
+	// the probe falls back to the domain socket, preserving existing behavior.
+	LocalSocketPort uint `yaml:"localSocketPort" mapstructure:"localSocketPort"`
 }
 
 // ProbeMysqlConfig defaults for probe MySQL harvester; admin loads from YAML and always returns

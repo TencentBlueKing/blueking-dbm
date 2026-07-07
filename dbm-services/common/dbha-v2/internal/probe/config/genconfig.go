@@ -73,10 +73,11 @@ func GenProbeYAML(payload probeconfig.ProbeConfigPayload) (string, error) {
 		Version: defaultProbeConfigVersion,
 		PidFile: "./pids/probe.pid",
 		Reporter: probeReporterYAML{
-			Name:        "gse",
-			Endpoint:    payload.Gse.Endpoint,
-			DataID:      payload.Gse.DataID,
-			ConnTimeout: payload.Gse.ConnTimeout,
+			Name:            "gse",
+			Endpoint:        payload.Gse.Endpoint,
+			DataID:          payload.Gse.DataID,
+			ConnTimeout:     payload.Gse.ConnTimeout,
+			LocalSocketPort: payload.Gse.LocalSocketPort,
 		},
 
 		Harvester: probeHarvesterYAML{},

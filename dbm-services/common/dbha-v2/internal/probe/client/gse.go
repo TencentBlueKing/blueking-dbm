@@ -42,12 +42,29 @@ type gse struct {
 	agentCli agentreport.Client
 }
 
-// NewGSEClient creates a new GSE client.
-func NewGSEClient(cfg config.ReporterConfig, logger types.Logger) (Reporter, error) {
-	cli, err := agentreport.New(
+// buildGSEOptions assembles the agent-report options.
+//
+// The SDK selects its transport by build tag: the unix Dial reads only
+// DomainSocketPath, the windows Dial reads only LocalSocketPort; neither reads
+// the other's field. So we always pass WithDomainSocketPath (keeping the Linux
+// path byte-identical) and additionally pass WithLocalSocketPort when set. The
+// two options set independent Config fields and never interfere, so this is NOT
+// an either/or: setting LocalSocketPort must never drop the domain socket path
+// (which would break Linux).
+func buildGSEOptions(cfg config.ReporterConfig, logger types.Logger) []agentreport.OptionFn {
+	opts := []agentreport.OptionFn{
 		agentreport.WithDomainSocketPath(cfg.Endpoint),
 		agentreport.WithLogger(logger),
-	)
+	}
+	if cfg.LocalSocketPort != 0 {
+		opts = append(opts, agentreport.WithLocalSocketPort(cfg.LocalSocketPort))
+	}
+	return opts
+}
+
+// NewGSEClient creates a new GSE client.
+func NewGSEClient(cfg config.ReporterConfig, logger types.Logger) (Reporter, error) {
+	cli, err := agentreport.New(buildGSEOptions(cfg, logger)...)
 
 	if err != nil {
 		logger.Error("do not create gse agent, endpoint: %s, errmsg: %s", cfg.Endpoint, err)

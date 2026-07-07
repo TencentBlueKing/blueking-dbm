@@ -10,6 +10,9 @@ reporter:
   dataID: {{PROBE_REPORTER_DATA_ID}}
   connTimeout: {{PROBE_REPORTER_CONN_TIMEOUT}}
   bkCloudID: {{PROBE_REPORTER_BKCLOUD_ID}}
+  # local TCP port for the GSE agent-report SDK on Windows; 0 (default) means
+  # unset -> Linux ignores it and falls back to the domain socket endpoint.
+  localSocketPort: {{PROBE_REPORTER_LOCAL_SOCKET_PORT}}
 
 client:
   pingTime: {{PROBE_CLIENT_PING_TIME}}

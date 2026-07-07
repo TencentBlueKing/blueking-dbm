@@ -3,8 +3,6 @@ package process
 import (
 	"os"
 	"os/exec"
-	"os/signal"
-	"syscall"
 	"time"
 
 	"dbm-services/common/dbha-v2/pkg/gerrors"
@@ -23,6 +21,7 @@ var (
 	ErrExecutableEmpty = gerrors.Newf(gerrors.Failure, "Executable is empty")
 )
 
+// DaemonOptions configures StartDaemon.
 type DaemonOptions struct {
 	Executable string
 	Args       []string
@@ -38,6 +37,11 @@ type GuardOptions struct {
 	OnRestart    func(exitCode int, restartCount int)
 }
 
+type childWaitResult struct {
+	state *os.ProcessState
+	err   error
+}
+
 // StartDaemon starts a new background process using the given executable
 func StartDaemon(opt DaemonOptions) (*os.Process, error) {
 	if opt.Executable == "" {
@@ -50,7 +54,7 @@ func StartDaemon(opt DaemonOptions) (*os.Process, error) {
 		cmd.Env = append(os.Environ(), opt.Env...)
 	}
 
-	cmd.SysProcAttr = &syscall.SysProcAttr{Setsid: true}
+	cmd.SysProcAttr = newDetachedSysProcAttr()
 
 	if err := cmd.Start(); err != nil {
 		return nil, err
@@ -59,8 +63,60 @@ func StartDaemon(opt DaemonOptions) (*os.Process, error) {
 	return cmd.Process, nil
 }
 
+func spawnChildWait(proc *os.Process) <-chan childWaitResult {
+	waitDone := make(chan childWaitResult, 1)
+	go func() {
+		state, waitErr := proc.Wait()
+		waitDone <- childWaitResult{state: state, err: waitErr}
+	}()
+	return waitDone
+}
+
+func ensureChildDead(childProc *os.Process) {
+	for i := 0; i < 15; i++ {
+		alive, _ := IsAlive(int32(childProc.Pid))
+		if !alive {
+			break
+		}
+		time.Sleep(200 * time.Millisecond)
+	}
+	alive, _ := IsAlive(int32(childProc.Pid))
+	if alive {
+		_ = childProc.Kill()
+	}
+}
+
+func guardWaitForChild(
+	waiter *StopWaiter,
+	childProc *os.Process,
+	waitDone <-chan childWaitResult,
+) (state *os.ProcessState, waitErr error, stopRequested bool) {
+	for {
+		select {
+		case result := <-waitDone:
+			return result.state, result.err, false
+
+		case <-waiter.Reload:
+			// Forward reload to child (SIGHUP on Unix; no-op on Windows where
+			// the worker listens on the reload event directly); keep waiting.
+			if childProc != nil {
+				forwardReloadToChild(childProc)
+			}
+			continue
+
+		case <-waiter.Shutdown:
+			// Stop requested: nudge child toward graceful shutdown, wait for
+			// it to exit, force kill as a last resort, then exit the guard.
+			guardStopChild(childProc)
+			<-waitDone // drain Wait
+			ensureChildDead(childProc)
+			return nil, nil, true
+		}
+	}
+}
+
 // RunWithGuard runs a guard process that starts the target, monitors it, and restarts on abnormal exit.
-// It blocks until the guard receives SIGTERM or SIGINT.
+// It blocks until a shutdown is requested (SIGTERM/SIGINT on Unix, the named stop event on Windows).
 func RunWithGuard(opt GuardOptions) error {
 	if opt.Executable == "" {
 		return ErrExecutableEmpty
@@ -80,6 +136,15 @@ func RunWithGuard(opt GuardOptions) error {
 		Env:        env,
 	}
 
+	// waiter delivers shutdown/reload notifications: POSIX signals on Unix, the
+	// shared named stop/reload events on Windows (keyed off the pid file so the
+	// stop command and this guard agree on the event names).
+	waiter, err := NewStopWaiter(EventKeyFromPidFile(opt.PidFile))
+	if err != nil {
+		return err
+	}
+	defer waiter.Close()
+
 	if err := SavePid(opt.PidFile); err != nil {
 		return err
 	}
@@ -87,80 +152,30 @@ func RunWithGuard(opt GuardOptions) error {
 		_ = os.Remove(opt.PidFile)
 	}()
 
-	sigC := make(chan os.Signal, 1)
-	signal.Notify(sigC, syscall.SIGTERM, syscall.SIGINT, syscall.SIGHUP)
-
-	var childProc *os.Process
 	restartCount := 0
+	eventKey := EventKeyFromPidFile(opt.PidFile)
 
 	for {
+		// Restart-race guard: if a stop was already requested (e.g. arrived
+		// during the restart delay), do not relaunch; exit immediately.
+		if isShutdownPending(waiter, eventKey) {
+			return nil
+		}
+
 		proc, err := StartDaemon(daemonOpt)
 		if err != nil {
 			return err
 		}
-		childProc = proc
 
-		// Wait for either child exit or stop signal
-		waitDone := make(chan struct {
-			state *os.ProcessState
-			err   error
-		}, 1)
-
-		go func() {
-			state, waitErr := proc.Wait()
-			waitDone <- struct {
-				state *os.ProcessState
-				err   error
-			}{state, waitErr}
-		}()
-
-		var state *os.ProcessState
-		var waitErr error
-
-	waitLoop:
-		for {
-			select {
-			case result := <-waitDone:
-				state = result.state
-				waitErr = result.err
-				break waitLoop
-
-			case sig := <-sigC:
-				if sig == syscall.SIGHUP {
-					// Forward SIGHUP to child for config reload; keep waiting
-					if childProc != nil {
-						_ = childProc.Signal(syscall.SIGHUP)
-					}
-					continue
-				}
-
-				// SIGTERM or SIGINT: kill child and exit
-				_ = childProc.Signal(syscall.SIGTERM)
-				<-waitDone // drain Wait
-
-				// Ensure child is gone
-				for i := 0; i < 15; i++ {
-					alive, _ := IsAlive(int32(childProc.Pid))
-					if !alive {
-						break
-					}
-
-					time.Sleep(200 * time.Millisecond)
-				}
-
-				alive, _ := IsAlive(int32(childProc.Pid))
-				if alive {
-					_ = childProc.Signal(syscall.SIGKILL)
-				}
-				return nil
-			}
+		state, waitErr, stopRequested := guardWaitForChild(waiter, proc, spawnChildWait(proc))
+		if stopRequested {
+			return nil
 		}
 
 		exitCode := -1
 		if state != nil {
 			exitCode = state.ExitCode()
 		}
-
 		if waitErr != nil {
 			exitCode = -1
 		}

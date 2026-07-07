@@ -177,6 +177,7 @@ ADMIN_LOG_PATH=./logs/admin.log
 # ## admin · probe gse reporter defaults (returned to probe via GetProbeConfig)
 ADMIN_PROBE_GSE_ENDPOINT=""
 ADMIN_PROBE_GSE_DATA_ID=0
+ADMIN_PROBE_GSE_LOCAL_SOCKET_PORT=0
 ADMIN_PROBE_GSE_CONN_TIMEOUT=5s
 
 # ## admin · probe harvester defaults (returned to every probe; probe routes per endpoint)
