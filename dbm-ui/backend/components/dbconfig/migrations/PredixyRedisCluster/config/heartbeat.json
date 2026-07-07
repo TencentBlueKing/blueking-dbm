@@ -1,13 +1,13 @@
 [
   {
-    "conf_name": "top_count",
-    "value_default": "10",
+    "conf_name": "cron",
+    "value_default": "@every 10s",
     "value_allowed": "",
-    "value_type": "INT",
+    "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "",
     "description": "",
-    "need_restart": 1,
+    "need_restart": 0,
     "flag_readonly": 0,
     "flag_visible": 1,
     "flag_status": 1,
