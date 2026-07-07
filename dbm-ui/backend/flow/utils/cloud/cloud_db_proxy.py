@@ -118,7 +118,7 @@ class CloudDBProxy:
 
     def cloud_nginx_apply(self) -> bool:
         """nginx服务部署信息"""
-        host = self.kwargs["host_infos"][0]
+        host_infos = self.kwargs["host_infos"]
         with atomic():
             res = self.cloud_base_apply(
                 host_infos=self.kwargs["host_infos"],
@@ -126,9 +126,14 @@ class CloudDBProxy:
                 detail_class=CloudNginxDetail,
                 transfer_module=CloudServiceModuleName.NGINX,
             )
-            DBCloudProxy.objects.create(
-                bk_cloud_id=self.bk_cloud_id, internal_address=host["ip"], external_address=host["bk_outer_ip"]
-            )
+            db_cloud_proxy = []
+            for host in host_infos:
+                db_cloud_proxy.append(
+                    DBCloudProxy(
+                        bk_cloud_id=self.bk_cloud_id, internal_address=host["ip"], external_address=host["bk_outer_ip"]
+                    )
+                )
+            DBCloudProxy.objects.bulk_create(db_cloud_proxy)
         return res
 
     def cloud_nginx_reload(self) -> bool:

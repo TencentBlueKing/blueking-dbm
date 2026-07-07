@@ -24,7 +24,7 @@ logger = logging.getLogger("root")
 
 class CloudNginxReloadDetailSerializer(serializers.Serializer):
     bk_cloud_id = serializers.IntegerField(help_text=_("云区域ID"))
-    nginx_id = serializers.IntegerField(help_text=_("重装的nginx id"))
+    nginx_ids = serializers.ListSerializer(help_text=_("重装的nginx id"), child=serializers.IntegerField())
 
 
 class CloudNginxReloadItsmParamBuilder(builders.ItsmParamBuilder):
@@ -38,6 +38,12 @@ class CloudNginxReloadFlowParamBuilder(builders.FlowParamBuilder):
     def format_ticket_data(self):
         # 目前nginx就一台，默认全部重启
         extension_info = DBExtension.get_extension_info_in_cloud(bk_cloud_id=self.ticket_data["bk_cloud_id"])
+        nginx_host_infos = extension_info["nginx"]["host_infos"]
+        reload_nginx_hosts = []
+        for nginx in nginx_host_infos:
+            if nginx["id"] in self.ticket_data["nginx_ids"]:
+                reload_nginx_hosts.append(nginx)
+        extension_info["nginx"]["host_infos"] = reload_nginx_hosts
         self.ticket_data.update(extension_info)
 
 
