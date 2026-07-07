@@ -11,6 +11,7 @@
           <ClusterEntryPanel
             :cluster-id="data.id"
             entry-type="clb"
+            :show-content="!data.cluster_type.includes('k8s')"
             size="big" />
         </div>
       </slot>
@@ -110,7 +111,7 @@
       roleFailedInstanceInfo: Record<string, ClusterListNode[]>;
     } & Pick<
       TendbhaModel,
-      'masterDomain' | 'cluster_name' | 'region' | 'id' | 'isOffline' | 'operations' | 'id' | 'status'
+      'masterDomain' | 'cluster_name' | 'region' | 'id' | 'isOffline' | 'operations' | 'id' | 'status' | 'cluster_type'
     >;
   }
 

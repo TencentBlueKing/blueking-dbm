@@ -29,7 +29,7 @@
           <ClusterAlias
             v-model="formData.details.cluster_alias"
             :biz-id="formData.bk_biz_id"
-            cluster-type="tendbcluster" />
+            :cluster-type="ClusterTypes.TENDBCLUSTER" />
           <CloudItem v-model="formData.details.bk_cloud_id" />
         </DbCard>
         <RegionRequirements

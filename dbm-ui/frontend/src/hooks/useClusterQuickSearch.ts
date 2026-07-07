@@ -159,7 +159,7 @@ export const useClusterQuickSearch = (cluster_type: ClusterTypes | ClusterTypes[
         remoteMethod: () => getBizClusterAttrs('major_version'),
         type: 'multiple',
       },
-      {
+      (Array.isArray(cluster_type) || !cluster_type.includes('k8s')) && {
         id: 'disaster_tolerance_level',
         name: t('容灾要求'),
         remoteMethod: () => getBizClusterAttrs('disaster_tolerance_level'),
@@ -171,7 +171,7 @@ export const useClusterQuickSearch = (cluster_type: ClusterTypes | ClusterTypes[
         remoteMethod: () => getBizClusterAttrs('region'),
         type: 'multiple',
       },
-      {
+      (Array.isArray(cluster_type) || !cluster_type.includes('k8s')) && {
         id: 'bk_cloud_id',
         name: t('管控区域'),
         remoteMethod: () => getBizClusterAttrs('bk_cloud_id'),

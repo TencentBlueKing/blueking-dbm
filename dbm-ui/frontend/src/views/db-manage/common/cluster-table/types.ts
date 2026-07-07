@@ -8,10 +8,13 @@ import TendbsingleModel from '@services/model/mysql/tendbsingle';
 import OracleHaModel from '@services/model/oracle/oracle-ha';
 import OracleSingleModel from '@services/model/oracle/oracle-single';
 import PulsarModel from '@services/model/pulsar/pulsar';
+import QdrantHaModel from '@services/model/qdrant/qdrant-ha';
 import RedisModel from '@services/model/redis/redis';
 import RiakModel from '@services/model/riak/riak';
 import SqlserverHaModel from '@services/model/sqlserver/sqlserver-ha';
 import SqlserverSingleModel from '@services/model/sqlserver/sqlserver-single';
+import SurrealdbHaModel from '@services/model/surrealdb/surrealdb-ha';
+import SurrealdbSingleModel from '@services/model/surrealdb/surrealdb-single';
 import TendbClusterModel from '@services/model/tendbcluster/tendbcluster';
 
 import { ClusterTypes } from '@common/const';
@@ -33,12 +36,18 @@ export type ISupportClusterType =
   | ClusterTypes.MONGO_REPLICA_SET
   | ClusterTypes.MONGO_SHARED_CLUSTER
   | ClusterTypes.ORACLE_PRIMARY_STANDBY
-  | ClusterTypes.ORACLE_SINGLE_NONE;
+  | ClusterTypes.ORACLE_SINGLE_NONE
+  | ClusterTypes.K8S_SURREALDB_HA
+  | ClusterTypes.K8S_SURREALDB_SINGLE
+  | ClusterTypes.K8S_QDRANT_HA;
 
 export interface ClusterTypeRelateClusterModel {
   [ClusterTypes.DORIS]: DorisModel;
   [ClusterTypes.ES]: EsModel;
   [ClusterTypes.HDFS]: HdfsModel;
+  [ClusterTypes.K8S_QDRANT_HA]: QdrantHaModel;
+  [ClusterTypes.K8S_SURREALDB_HA]: SurrealdbHaModel;
+  [ClusterTypes.K8S_SURREALDB_SINGLE]: SurrealdbSingleModel;
   [ClusterTypes.KAFKA]: KafkaModel;
   [ClusterTypes.MONGO_REPLICA_SET]: MongodbModel;
   [ClusterTypes.MONGO_SHARED_CLUSTER]: MongodbModel;

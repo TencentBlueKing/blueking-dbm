@@ -15,6 +15,7 @@
   <BkFormItem
     :label="t('集群别名')"
     property="details.cluster_alias"
+    :required="required"
     :rules="rules">
     <BkInput
       v-model="modelValue"
@@ -30,16 +31,19 @@
 
   import { verifyDuplicatedClusterName } from '@services/source/dbbase';
 
+  import { ClusterTypes } from '@common/const';
+
   interface Props {
     bizId: number | '';
-    clusterType: string;
+    clusterType: ClusterTypes;
+    required?: boolean;
   }
 
   const props = defineProps<Props>();
 
-  const { t } = useI18n();
-
   const modelValue = defineModel<string>();
+
+  const { t } = useI18n();
 
   const rules = [
     {
