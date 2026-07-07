@@ -49,28 +49,63 @@ COMPONENT_CONFIG_ITEMS = {
     ClusterType.TendisTwemproxyRedisInstance: {
         ConfType.DBCONF: [DB_VERSION],
         ConfType.PROXY: [ConfFile.TWEMPROXY],
-        ConfType.CONFIG: [ConfFile.BACKUP, ConfFile.FULLBACKUP, ConfFile.BINLOGBACKUP, ConfFile.MONITOR],
+        ConfType.CONFIG: [
+            ConfFile.FULLBACKUP,
+            ConfFile.BINLOGBACKUP,
+            ConfFile.KEYMOD,
+            ConfFile.MAXMEMORY_SET,
+        ],
     },
     ClusterType.TwemproxyTendisSSDInstance: {
         ConfType.DBCONF: [DB_VERSION],
         ConfType.PROXY: [ConfFile.TWEMPROXY],
-        ConfType.CONFIG: [ConfFile.BACKUP, ConfFile.FULLBACKUP, ConfFile.BINLOGBACKUP, ConfFile.MONITOR],
+        ConfType.CONFIG: [
+            ConfFile.FULLBACKUP,
+            ConfFile.BINLOGBACKUP,
+            ConfFile.KEYMOD,
+            ConfFile.MAXMEMORY_SET,
+        ],
     },
     # ----- Redis: PredixyRedisCluster / PredixyTendisplusCluster -----
     ClusterType.TendisPredixyRedisCluster: {
         ConfType.DBCONF: [DB_VERSION],
         ConfType.PROXY: [ConfFile.PREDIXY],
-        ConfType.CONFIG: [ConfFile.BACKUP, ConfFile.FULLBACKUP, ConfFile.BINLOGBACKUP, ConfFile.MONITOR],
+        ConfType.CONFIG: [
+            ConfFile.FULLBACKUP,
+            ConfFile.BINLOGBACKUP,
+            ConfFile.KEYMOD,
+            ConfFile.MAXMEMORY_SET,
+        ],
     },
     ClusterType.TendisPredixyTendisplusCluster: {
         ConfType.DBCONF: [DB_VERSION],
         ConfType.PROXY: [ConfFile.PREDIXY],
-        ConfType.CONFIG: [ConfFile.BACKUP, ConfFile.FULLBACKUP, ConfFile.BINLOGBACKUP, ConfFile.MONITOR],
+        ConfType.CONFIG: [
+            ConfFile.FULLBACKUP,
+            ConfFile.BINLOGBACKUP,
+            ConfFile.KEYMOD,
+            ConfFile.MAXMEMORY_SET,
+        ],
+    },
+    ClusterType.TendisPredixyTendisplusInstance: {
+        ConfType.DBCONF: [DB_VERSION],
+        ConfType.PROXY: [ConfFile.PREDIXY],
+        ConfType.CONFIG: [
+            ConfFile.FULLBACKUP,
+            ConfFile.BINLOGBACKUP,
+            ConfFile.KEYMOD,
+            ConfFile.MAXMEMORY_SET,
+        ],
     },
     # ----- Redis: RedisInstance (无 Proxy) -----
     ClusterType.TendisRedisInstance: {
         ConfType.DBCONF: [DB_VERSION],
-        ConfType.CONFIG: [ConfFile.BACKUP, ConfFile.FULLBACKUP, ConfFile.BINLOGBACKUP, ConfFile.MONITOR],
+        ConfType.CONFIG: [
+            ConfFile.FULLBACKUP,
+            ConfFile.BINLOGBACKUP,
+            ConfFile.KEYMOD,
+            ConfFile.MAXMEMORY_SET,
+        ],
     },
     # ----- ES -----
     ClusterType.Es: {ConfType.DBCONF: [DB_VERSION], ConfType.DEPLOY: [DB_VERSION]},
