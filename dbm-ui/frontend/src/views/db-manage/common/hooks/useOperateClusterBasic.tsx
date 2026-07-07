@@ -32,7 +32,7 @@ export const useOperateClusterBasic = (clusterType: ClusterTypes, options: { onS
   const { t } = useI18n();
   const ticketMessage = useTicketMessage();
 
-  // 除 大数据 和 redis集群 暂未支持，其余都已支持批量提单
+  // 除 大数据 、redis集群、k8s 暂未支持，其余都已支持批量提单
   const batchOperateTicketTypeList: string[] = [
     TicketTypes.MYSQL_SINGLE_DISABLE,
     TicketTypes.MYSQL_SINGLE_ENABLE,
@@ -88,6 +88,16 @@ export const useOperateClusterBasic = (clusterType: ClusterTypes, options: { onS
       delete: TicketTypes.HDFS_DESTROY,
       disable: TicketTypes.HDFS_DISABLE,
       enable: TicketTypes.HDFS_ENABLE,
+    },
+    [ClusterTypes.K8S_QDRANT_HA]: {
+      delete: TicketTypes.K8S_QDRANT_DELETE,
+      disable: TicketTypes.K8S_QDRANT_DISABLE,
+      enable: TicketTypes.K8S_QDRANT_ENABLE,
+    },
+    [ClusterTypes.K8S_SURREALDB]: {
+      delete: TicketTypes.K8S_SURREALDB_DELETE,
+      disable: TicketTypes.K8S_SURREALDB_DISABLE,
+      enable: TicketTypes.K8S_SURREALDB_ENABLE,
     },
     [ClusterTypes.KAFKA]: {
       delete: TicketTypes.KAFKA_DESTROY,

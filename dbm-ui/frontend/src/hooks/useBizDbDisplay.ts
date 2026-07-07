@@ -13,7 +13,7 @@
 
 import { useRequest } from 'vue-request';
 
-import type { BigdataFunctions } from '@services/model/function-controller/functionController';
+import type { BigdataFunctions, K8sFunctions } from '@services/model/function-controller/functionController';
 import { queryClusterInstanceCount } from '@services/source/dbbase';
 
 import { useFunController, useUserProfile } from '@stores';
@@ -58,6 +58,11 @@ export function useBizDbDisplay(options?: { ignoreClusterCount?: boolean; manual
         [DBTypes.TENDBCLUSTER]: [ClusterTypes.TENDBCLUSTER],
       };
 
+      const K8sCountMap: Record<string, string[]> = {
+        [DBTypes.K8S_QRRANT]: [ClusterTypes.K8S_QDRANT_HA],
+        [DBTypes.K8S_SURREALDB]: [ClusterTypes.K8S_SURREALDB_SINGLE, ClusterTypes.K8S_SURREALDB_HA],
+      };
+
       try {
         const resultList = Object.keys(DBTypeInfos).reduce<DBInfoItem[]>((prevList, dbType) => {
           const dbTypeInfo = DBTypeInfos[dbType as DBTypes];
@@ -72,6 +77,22 @@ export function useBizDbDisplay(options?: { ignoreClusterCount?: boolean; manual
                 } else {
                   const clusterCount =
                     clusterInstanceCount.value![dbTypeInfo.id as unknown as ClusterTypes].cluster_count || 0;
+                  if (clusterCount) {
+                    return prevList.concat(dbTypeInfo);
+                  }
+                }
+              }
+            } else if (dbTypeInfo.moduleId === 'k8s') {
+              const data = funControllerStore.funControllerData.getFlatData(dbTypeInfo.moduleId);
+              if (data[dbType as K8sFunctions]) {
+                if (ignoreClusterCount) {
+                  return prevList.concat(dbTypeInfo);
+                } else {
+                  const clusterCount = K8sCountMap[dbTypeInfo.id as string]!.reduce(
+                    (prevCount, key) =>
+                      prevCount + (clusterInstanceCount.value![key as ClusterTypes]?.cluster_count || 0),
+                    0,
+                  );
                   if (clusterCount) {
                     return prevList.concat(dbTypeInfo);
                   }

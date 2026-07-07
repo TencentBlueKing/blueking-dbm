@@ -72,7 +72,6 @@ export enum MachineTypes {
   DORIS_FOLLOWER = 'doris_follower', // Follower节点
   DORIS_OBSERVER = 'doris_observer', // Observer节点
 }
-
 // oracle
 export enum MachineTypes {
   ORACLE_BACKEND = 'oracle', // 后端存储
