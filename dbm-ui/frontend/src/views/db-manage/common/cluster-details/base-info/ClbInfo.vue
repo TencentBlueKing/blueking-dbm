@@ -22,6 +22,8 @@
       | ClusterTypes.PREDIXY_TENDISPLUS_INSTANCE
       | ClusterTypes.TWEMPROXY_REDIS_INSTANCE
       | ClusterTypes.TWEMPROXY_TENDIS_SSD_INSTANCE
+      | ClusterTypes.K8S_SURREALDB_HA
+      | ClusterTypes.K8S_QDRANT_HA
   ">
   import ClusterEntryDetailModel, { type ClbTargetDetails } from '@services/model/cluster-entry/cluster-entry-details';
 

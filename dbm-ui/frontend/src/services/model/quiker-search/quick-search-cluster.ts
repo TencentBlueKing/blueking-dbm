@@ -21,6 +21,7 @@ export default class QuickSearchClusterName {
   bk_biz_id: number;
   bk_cloud_id: number;
   cluster_entry: ClusterListEntry[];
+  cluster_name: string;
   cluster_type: string;
   create_at: string;
   creator: string;
@@ -52,6 +53,7 @@ export default class QuickSearchClusterName {
     this.bk_biz_id = payload.bk_biz_id;
     this.bk_cloud_id = payload.bk_cloud_id;
     this.cluster_entry = payload.cluster_entry || [];
+    this.cluster_name = payload.cluster_name;
     this.cluster_type = payload.cluster_type;
     this.create_at = payload.create_at;
     this.creator = payload.creator;
@@ -89,5 +91,14 @@ export default class QuickSearchClusterName {
     return this.cluster_entry.filter(
       (entryItem) => !(entryItem.cluster_entry_type === 'dns' && entryItem.role === 'master_entry'),
     );
+  }
+
+  get displayValue() {
+    if (this.cluster_type.includes('k8s')) {
+      return (
+        this.cluster_entry.find((entryItem) => entryItem.cluster_entry_type === 'clbDns')?.entry || this.cluster_name
+      );
+    }
+    return this.master_domain;
   }
 }

@@ -22,6 +22,7 @@ export type RedisFunctions =
   | 'RedisInstance'
   | 'toolbox';
 export type BigdataFunctions = 'es' | 'kafka' | 'hdfs' | 'influxdb' | 'pulsar' | 'riak' | 'doris';
+export type K8sFunctions = 'k8s_surrealdb' | 'k8s_qdrant';
 export type MonitorFunctions = 'duty_rule' | 'monitor_policy' | 'notice_group';
 export type MongoFunctions = 'mongodb' | 'replicaSetList' | 'sharedClusterList' | 'toolbox';
 export type SqlServerFunctions = 'sqlserverCluster' | 'sqlserver_single' | 'sqlserver_ha' | 'sqlserver_tool';
@@ -36,6 +37,7 @@ export type FunctionKeys =
   | OracleFunctions
   | SqlServerFunctions
   | MongoFunctions
+  | K8sFunctions
   | DashboardFunctions;
 
 export interface ControllerBaseInfo {
@@ -62,14 +64,13 @@ export default class FunctionController {
   'bizConfigManage.dbConfigure': ControllerItem<string>;
   'bizConfigManage.monitorStrategy': ControllerItem<string>;
   'bizConfigManage.StaffManage': ControllerItem<string>;
-
   'bizConfigManage.ticketCooperationSetting': ControllerItem<string>;
   'bizConfigManage.ticketFlowSetting': ControllerItem<string>;
   'bizConfigManage.ticketNoticeSetting': ControllerItem<string>;
-  common: ControllerItem<string>;
-  // 通用开关，涉及多个功能页面
-  'common.clb': ControllerItem<string>;
 
+  // 通用开关，涉及多个功能页面
+  common: ControllerItem<string>;
+  'common.clb': ControllerItem<string>;
   'common.dorisColdResource': ControllerItem<string>;
   'common.hcmRecycle': ControllerItem<string>;
   'common.polaris': ControllerItem<string>;
@@ -102,6 +103,7 @@ export default class FunctionController {
   'hdfs.clusterManage.changeLog': ControllerItem<string>;
   'hdfs.clusterManage.clusterTopo': ControllerItem<string>;
   'hdfs.clusterManage.nodeList': ControllerItem<string>;
+  k8s: ControllerItem<K8sFunctions>;
   'kafka.clusterManage.baseInfo': ControllerItem<string>;
   'kafka.clusterManage.changeLog': ControllerItem<string>;
   'kafka.clusterManage.clusterTopo': ControllerItem<string>;
@@ -262,6 +264,7 @@ export default class FunctionController {
     this.monitor = payload.monitor;
     this.oracle = payload.oracle;
     this.sqlserver = payload.sqlserver;
+    this.k8s = payload.k8s;
     this.personalWorkbench = payload.personalWorkbench;
     this.observableManage = payload.observableManage;
     this.globalConfigManage = payload.globalConfigManage;
