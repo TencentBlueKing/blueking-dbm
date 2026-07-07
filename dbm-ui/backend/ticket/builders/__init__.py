@@ -683,7 +683,7 @@ class TicketFlowBuilder:
     def _add_itsm_pause_describe(cls, flow_desc, flow_config_map):
         if flow_config_map[cls.ticket_type]["need_itsm"]:
             flow_desc.append(FlowType.get_choice_label(FlowType.BK_ITSM))
-        if flow_config_map[cls.ticket_type]["need_manual_confirm"]:
+        if flow_config_map[cls.ticket_type].get("need_manual_confirm"):
             flow_desc.append(FlowType.get_choice_label(FlowType.PAUSE))
         return flow_desc
 
