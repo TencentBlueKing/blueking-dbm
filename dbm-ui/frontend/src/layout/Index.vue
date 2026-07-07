@@ -81,7 +81,7 @@
   const { t } = useI18n();
   const route = useRoute();
   const userProfile = useUserProfile();
-  const isSideMenuFlod = useStorage('is_side_menu_flod', false);
+  const isSideMenuFlod = useStorage('is_side_menu_flod', true);
 
   enum menuEnum {
     configManage = 'configManage',
@@ -306,6 +306,7 @@
       }
 
       .nav-slider {
+        width: inherit !important;
         border: none !important;
       }
 
