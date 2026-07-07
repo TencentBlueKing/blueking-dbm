@@ -91,8 +91,16 @@ Buildstamp:%s`, version, githash, strings.ToUpper(external), buildstamp,
 			if subcmd.PrintSubCommandHelper(cmd, subcmd.GBaseOptions) {
 				runHelp(cmd, args)
 			}
+			if err := subcmd.AcquireRunLock(subcmd.GBaseOptions); err != nil {
+				fmt.Fprint(os.Stderr, err.Error())
+				logger.Error("AcquireRunLock failed: %s", err.Error())
+				os.Exit(1)
+			}
 			// 定时输出标准心跳输出
 			startHeartbeat(10 * time.Second)
+		},
+		PersistentPostRun: func(cmd *cobra.Command, args []string) {
+			subcmd.ReleaseRunLock()
 		},
 		Run:        runHelp,
 		SuggestFor: []string{CMD},
