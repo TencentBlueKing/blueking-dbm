@@ -33,7 +33,9 @@
       <slot name="status">
         <StatusColumn :cluster-type="clusterType" />
       </slot>
-      <slot name="clusterState">
+      <slot
+        v-if="!clusterType.includes('k8s')"
+        name="clusterState">
         <ClusterStatsColumn :cluster-type="clusterType" />
       </slot>
       <slot name="role" />
@@ -202,6 +204,22 @@
       title: t('温馨提示'),
     },
   ];
+
+  watch(
+    () => [props.clusterType, props.clusterId],
+    () => {
+      if (props.clusterType.includes('k8s')) {
+        if (props.clusterId) {
+          tableRef.value?.stopPolling();
+        } else {
+          tableRef.value?.startPolling();
+        }
+      }
+    },
+    {
+      immediate: true,
+    },
+  );
 
   const fetchData = () => {
     tableRef.value?.fetchData(fetchDataParams);

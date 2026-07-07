@@ -101,6 +101,8 @@
 
   import { getOffset } from '@utils';
 
+  import { useTimeoutFn } from '@vueuse/core';
+
   import { usePagination } from './hooks/use-pagination.ts';
   import { useSelect } from './hooks/use-select.tsx';
 
@@ -159,6 +161,8 @@
     getData: <T>() => Array<T>;
     loading: Ref<boolean>;
     removeSelectByKey: (key: string) => void;
+    startPolling: () => void;
+    stopPolling: () => void;
     updateTableHeight: (containerHeight?: number) => void;
     updateTableKey: () => void;
   }
@@ -278,7 +282,7 @@
     emits('selection', Object.keys(selectedRowMap.value), Object.values(selectedRowMap.value));
   };
 
-  const fetchListData = (loading = true) => {
+  const fetchListData = (loading = true, isPolling = false) => {
     Promise.resolve().then(() => {
       isLoading.value = loading;
       const params = {
@@ -311,11 +315,17 @@
             });
           }
 
-          if (!isPaginationChangeFetch && !isSortChangeFetch) {
+          if (!isPaginationChangeFetch && !isSortChangeFetch && !isPolling) {
             handleClearWholeSelect();
           }
           isSortChangeFetch = false;
           isPaginationChangeFetch = false;
+
+          if (data.results.length < 1) {
+            handleStopPolling();
+          } else {
+            handleStartPolling();
+          }
 
           emits('requestSuccess', data);
         })
@@ -330,6 +340,10 @@
         });
     });
   };
+
+  const { start: handleStartPolling, stop: handleStopPolling } = useTimeoutFn(() => {
+    fetchListData(false, true);
+  }, 10 * 1000);
 
   // 拉取全量数据
   const fetchAllData = async () => {
@@ -485,6 +499,12 @@
     loading: isLoading,
     removeSelectByKey(key: string) {
       delete selectedRowMap.value[key];
+    },
+    startPolling() {
+      handleStartPolling();
+    },
+    stopPolling() {
+      handleStopPolling();
     },
     updateTableHeight,
     updateTableKey() {
