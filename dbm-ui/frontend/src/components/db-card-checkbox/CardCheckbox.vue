@@ -19,8 +19,13 @@
     }"
     class="card-checkbox"
     :class="statusClass"
+    :style="{
+      minWidth: `${minWidth}px`,
+    }"
     @click="handleChange">
-    <div class="card-checkbox-icon">
+    <div
+      v-if="icon"
+      class="card-checkbox-icon">
       <DbIcon :type="icon" />
     </div>
     <div class="card-checkbox-content">
@@ -51,6 +56,7 @@
     disabledTooltips?: string;
     falseValue?: boolean | string;
     icon?: string;
+    minWidth?: number;
     modelValue?: boolean | string;
     title?: string;
     trueValue?: boolean | string;
@@ -65,7 +71,8 @@
     disabled: false,
     disabledTooltips: '',
     falseValue: false,
-    icon: 'rebuild',
+    icon: '',
+    minWidth: 362,
     modelValue: false,
     title: 'title',
     trueValue: true,
@@ -94,7 +101,6 @@
     position: relative;
     display: inline-flex;
     height: 64px;
-    min-width: 362px;
     color: @gray-color;
     border: 1px solid #c4c6cc;
     border-radius: 2px;
@@ -151,6 +157,7 @@
 
     &:hover:not(&.card-checkbox--disabled),
     &.card-checkbox--selected {
+      background-color: #f5f7fa;
       border-color: @border-primary;
 
       .card-checkbox-icon {

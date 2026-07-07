@@ -5,6 +5,7 @@ import { DBTypes } from '../dbTypes';
 import { MachineTypes } from '../machineTypes';
 
 import { bigdata } from './bigdata';
+import { k8s } from './k8s';
 import { mongodb } from './mongodb';
 import { mysql } from './mysql';
 import { oracle } from './oracle';
@@ -43,6 +44,7 @@ export const clusterTypeInfos = {
   ...mongodb,
   ...sqlserver,
   ...oracle,
+  ...k8s,
 } as RequiredInfoType;
 
 export type ClusterTypeInfos = keyof typeof clusterTypeInfos;

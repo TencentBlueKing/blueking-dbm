@@ -31,10 +31,12 @@ export type * as Mongodb from './details/mongodb';
 export type * as Mysql from './details/mysql/index';
 export type * as Oracle from './details/oracle';
 export type * as Pulsar from './details/pulsar';
+export type * as Qdrant from './details/qdrant';
 export type * as Redis from './details/redis/index';
 export type * as ResourcePool from './details/resource-pool';
 export type * as Riak from './details/riak';
 export type * as Sqlserver from './details/sqlserver';
+export type * as SurrealDB from './details/surrealdb';
 export type * as TendbCluster from './details/tendbCluster';
 
 const STATUS_APPROVE = 'APPROVE';

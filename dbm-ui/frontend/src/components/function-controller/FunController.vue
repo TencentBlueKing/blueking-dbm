@@ -4,7 +4,7 @@
   </template>
 </template>
 
-<script setup lang="ts" generic="T extends FunctionKeys">
+<script lang="ts">
   import type {
     ControllerBaseInfo,
     ExtractedControllerDataKeys,
@@ -13,12 +13,14 @@
 
   import { useFunController } from '@stores';
 
-  interface Props {
+  interface Props<T> {
     controllerId?: T;
     moduleId: ExtractedControllerDataKeys;
   }
+</script>
 
-  const props = defineProps<Props>();
+<script setup lang="ts" generic="T extends FunctionKeys">
+  const props = defineProps<Props<T>>();
 
   const funControllerStore = useFunController();
 
