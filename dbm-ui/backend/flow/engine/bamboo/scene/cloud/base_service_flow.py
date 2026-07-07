@@ -238,19 +238,28 @@ class CloudBaseServiceFlow(object):
 
         return pipeline
 
-    def deploy_nginx_service_pipeline(self, nginx_host_info: Dict, pipeline: Union[Builder, SubBuilder]):
+    def deploy_nginx_service_pipeline(self, nginx_host_info: List, pipeline: Union[Builder, SubBuilder]):
         """nginx的部署流程抽象"""
-        nginx_version = nginx_host_info.get("nginx_version")
-        pipeline = self.deploy_service_flow(
-            pipeline=pipeline,
-            bk_cloud_id=self.data["bk_cloud_id"],
-            service_name=CloudServiceName.Nginx,
-            host_info=nginx_host_info,
-            get_file_func=GetFileList.nginx_apply.__name__,
-            script_template=start_nginx_template,
-            get_script_payload=CloudServiceActPayload.get_nginx_apply_payload.__name__,
-            get_file_params={"version": nginx_version} if nginx_version else {},
-        )
+        nginx_sub_pipeline = SubBuilder(self.root_id, data=self.data)
+        sub_pipeline_list: List[SubProcess] = []
+        for nginx_host in nginx_host_info:
+            sub_nginx_pipeline = SubBuilder(root_id=self.root_id, data=self.data)
+            nginx_version = nginx_host.get("nginx_version")
+            sub_nginx_pipeline = self.deploy_service_flow(
+                pipeline=sub_nginx_pipeline,
+                bk_cloud_id=self.data["bk_cloud_id"],
+                service_name=CloudServiceName.Nginx,
+                host_info=nginx_host,
+                get_file_func=GetFileList.nginx_apply.__name__,
+                script_template=start_nginx_template,
+                get_script_payload=CloudServiceActPayload.get_nginx_apply_payload.__name__,
+                get_file_params={"version": nginx_version} if nginx_version else {},
+            )
+            sub_pipeline_list.append(
+                sub_nginx_pipeline.build_sub_process(sub_name=_("主机{}部署nginx服务").format(nginx_host["ip"]))
+            )
+        nginx_sub_pipeline.add_parallel_sub_pipeline(sub_pipeline_list)
+        pipeline.add_sub_pipeline(nginx_sub_pipeline.build_sub_process(sub_name=_("部署nginx服务")))
         return pipeline
 
     def deploy_drs_service_pipeline(
@@ -438,7 +447,7 @@ class CloudBaseServiceFlow(object):
 
         nginx_reload_pipeline = SubBuilder(data=self.data, root_id=self.root_id)
         nginx_reload_pipeline = self.deploy_nginx_service_pipeline(
-            self.data["nginx"]["host_infos"][0], nginx_reload_pipeline
+            self.data["nginx"]["host_infos"], nginx_reload_pipeline
         )
         pipeline.add_sub_pipeline(nginx_reload_pipeline.build_sub_process(sub_name=_("重启nginx服务")))
         return pipeline
