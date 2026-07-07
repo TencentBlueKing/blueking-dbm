@@ -41,6 +41,7 @@ MYSQL_PRIV_MANAGER_APIGW_DOMAIN = get_type_env(
 PARTITION_APIGW_DOMAIN = get_type_env(key="PARTITION_APIGW_DOMAIN", _type=str, default="http://bk-dbm-dbpartition")
 MYSQL_SIMULATION_DOMAIN = get_type_env(key="MYSQL_SIMULATION_DOMAIN", _type=str, default="http://bk-dbm-dbsimulation")
 HADB_APIGW_DOMAIN = get_type_env(key="HADB_APIGW_DOMAIN", _type=str, default="http://bk-dbm-hadb-api")
+HADBV2_APIGW_DOMAIN = get_type_env(key="HADBV2_APIGW_DOMAIN", _type=str, default="http://bk-dbm-hadb-api")
 DBRESOURCE_APIGW_DOMAIN = get_type_env(key="DBRESOURCE_APIGW_DOMAIN", _type=str, default="http://bk-dbm-db-resource")
 BACKUP_APIGW_DOMAIN = get_type_env(key="BACKUP_APIGW_DOMAIN", _type=str, default="http://bk-dbm-backup-server:7000")
 SLOW_QUERY_PARSER_DOMAIN = get_type_env(
