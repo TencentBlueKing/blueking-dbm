@@ -130,23 +130,23 @@ BEGIN
         SET @ip = TRIM(SUBSTRING(ip_list, 1, LOCATE(',', ip_list) - 1));
         SET ip_list = SUBSTRING(ip_list, LOCATE(',', ip_list) + 1);  
 
-        SELECT EXISTS(SELECT 1 FROM mysql.user WHERE user = username AND host = @ip) INTO @user_host_exists;
+        SELECT EXISTS(SELECT 1 FROM mysql.user WHERE user = CONVERT(username USING utf8) COLLATE utf8_bin AND host = CONVERT(@ip USING utf8) COLLATE utf8_bin) INTO @user_host_exists;
         IF @user_host_exists THEN
             -- 用户存在, 检查密码
-            -- 5.6 及之前还有 old_password 函数, 也就是 < 5.7 可能有 old_password
+            -- 5.6 用 password，5.7+ 用 authentication_string
             IF @@version LIKE '%tspider%' THEN
-                IF @@VERSION LIKE "%tspider-1%" OR @@VERSION LIKE "%tspider-2%" OR @@VERSION LIKE "%tspider-3%" OR @@VERSION LIKE "%tspider-4%" THEN
-                    SELECT password = long_psw OR password = short_psw INTO @psw_match FROM mysql.user WHERE user = username AND host = @ip;
+                IF @@VERSION LIKE "%tspider-1%" OR @@VERSION LIKE "%tspider-2%" THEN
+                    SELECT CONVERT(password USING utf8) COLLATE utf8_bin = CONVERT(long_psw USING utf8) COLLATE utf8_bin OR CONVERT(password USING utf8) COLLATE utf8_bin = CONVERT(short_psw USING utf8) COLLATE utf8_bin INTO @psw_match FROM mysql.user WHERE user = CONVERT(username USING utf8) COLLATE utf8_bin AND host = CONVERT(@ip USING utf8) COLLATE utf8_bin;
+                ELSEIF @@VERSION LIKE "%tspider-3%" OR @@VERSION LIKE "%tspider-4%" THEN
+                    SELECT CONVERT(authentication_string USING utf8) COLLATE utf8_bin = CONVERT(long_psw USING utf8) COLLATE utf8_bin INTO @psw_match FROM mysql.user WHERE user = CONVERT(username USING utf8) COLLATE utf8_bin AND host = CONVERT(@ip USING utf8) COLLATE utf8_bin;
                 ELSE
                     SET @msg = CONCAT('not support spider version: ', @@version);
                     SIGNAL SQLSTATE '32401' SET MESSAGE_TEXT = @msg;
                 END IF;
+            ELSEIF SUBSTRING_INDEX(@@version, ".", 2) < 5.7 THEN
+                SELECT CONVERT(password USING utf8) COLLATE utf8_bin = CONVERT(long_psw USING utf8) COLLATE utf8_bin OR CONVERT(password USING utf8) COLLATE utf8_bin = CONVERT(short_psw USING utf8) COLLATE utf8_bin INTO @psw_match FROM mysql.user WHERE user = CONVERT(username USING utf8) COLLATE utf8_bin AND host = CONVERT(@ip USING utf8) COLLATE utf8_bin;
             ELSE
-                IF SUBSTRING_INDEX(@@version, ".", 2) < 5.7 THEN
-                    SELECT password = long_psw OR password = short_psw INTO @psw_match FROM mysql.user WHERE user = username AND host = @ip;
-                ELSE
-                    SELECT authentication_string = long_psw INTO @psw_match FROM mysql.user WHERE user = username AND host =@ip;
-                END IF;
+                SELECT CONVERT(authentication_string USING utf8) COLLATE utf8_bin = CONVERT(long_psw USING utf8) COLLATE utf8_bin INTO @psw_match FROM mysql.user WHERE user = CONVERT(username USING utf8) COLLATE utf8_bin AND host = CONVERT(@ip USING utf8) COLLATE utf8_bin;
             END IF;
 
             IF NOT @psw_match THEN
@@ -177,7 +177,7 @@ BEGIN
         SET @ip = TRIM(SUBSTRING(ip_list, 1, LOCATE(',', ip_list) - 1));
         SET ip_list = SUBSTRING(ip_list, LOCATE(',', ip_list) + 1);  
 
-        SELECT EXISTS(SELECT 1 FROM mysql.db WHERE user = username AND host = @ip) INTO @db_priv_applied;
+        SELECT EXISTS(SELECT 1 FROM mysql.db WHERE user = CONVERT(username USING utf8) COLLATE utf8_bin AND host = CONVERT(@ip USING utf8) COLLATE utf8_bin) INTO @db_priv_applied;
         IF @db_priv_applied THEN
             CALL check_db_conflict_one_ip(uuid, grant_time, username, @ip, db_list, is_check_failed);
         END IF;
@@ -198,7 +198,7 @@ SQL SECURITY INVOKER
 BEGIN
     DECLARE applied_dbname VARCHAR(64);
     DECLARE cursor_done INT DEFAULT FALSE;
-    DECLARE db_cursor CURSOR FOR SELECT db FROM mysql.db WHERE user = username AND host = @ip;
+    DECLARE db_cursor CURSOR FOR SELECT db FROM mysql.db WHERE user = CONVERT(username USING utf8) COLLATE utf8_bin AND host = CONVERT(ip USING utf8) COLLATE utf8_bin;
     DECLARE CONTINUE HANDLER FOR NOT FOUND SET cursor_done = TRUE;    
 
     -- 不同版本授权语句不兼容, 所以干脆不写
@@ -219,10 +219,10 @@ BEGIN
             SET @loop_db_list = SUBSTRING(@loop_db_list, LOCATE(',', @loop_db_list) + 1);
 
             -- 申请库名和已有库名不等并且能模式匹配 
-            IF @dbname <> applied_dbname AND (@dbname LIKE applied_dbname OR applied_dbname LIKE @dbname) THEN 
+            IF CONVERT(@dbname USING utf8) COLLATE utf8_bin <> applied_dbname AND (CONVERT(@dbname USING utf8) COLLATE utf8_bin LIKE applied_dbname OR applied_dbname LIKE CONVERT(@dbname USING utf8) COLLATE utf8_bin) THEN 
                 SET is_check_failed = is_check_failed OR 1;
-                INSERT INTO dba_grant_result(id, grant_time, username, client_ip, dbname, long_psw, short_psw, msg)
-                    VALUES (uuid, grant_time, username, @ip, @dbname, long_psw, short_psw, CONCAT("conflict with applied db [", applied_dbname, "]"));
+                INSERT INTO dba_grant_result(id, grant_time, username, client_ip, dbname, msg)
+                    VALUES (uuid, grant_time, username, ip, @dbname, CONCAT("conflict with applied db [", applied_dbname, "]"));
             END IF;
         END WHILE;
 
@@ -245,7 +245,7 @@ BEGIN
     -- 不同版本授权语句不兼容, 所以干脆不写
     SET SESSION sql_log_bin = 0;
 
-    SELECT EXISTS(SELECT 1 FROM mysql.user WHERE user = username AND host = ip) INTO @user_host_exists;
+    SELECT EXISTS(SELECT 1 FROM mysql.user WHERE user = CONVERT(username USING utf8) COLLATE utf8_bin AND host = CONVERT(ip USING utf8) COLLATE utf8_bin) INTO @user_host_exists;
     IF NOT @user_host_exists THEN
         -- 用户不存在, 直接创建, 只使用新版本密码, 传入的密码是密文
         -- 只有 spider 1 会拿到 5.5, 其他的都 > 5.7. 所以也是兼容的
@@ -282,7 +282,7 @@ SQL SECURITY INVOKER
 BEGIN
     DECLARE exists_db VARCHAR(64);
     DECLARE cursor_done INT DEFAULT FALSE;
-    DECLARE db_cursor CURSOR FOR SELECT db FROM mysql.db WHERE user = username AND host = ip;
+    DECLARE db_cursor CURSOR FOR SELECT db FROM mysql.db WHERE user = CONVERT(username USING utf8) COLLATE utf8_bin AND host = CONVERT(ip USING utf8) COLLATE utf8_bin;
     DECLARE CONTINUE HANDLER FOR NOT FOUND SET cursor_done = TRUE;
 
     -- 不同版本授权语句不兼容, 所以干脆不写

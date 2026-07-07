@@ -57,7 +57,7 @@ class MySQLDBHAAutofixTicketStageQueue(AuditedModel):
 
     ticket_id = models.BigIntegerField(default=0, help_text=_("单据 id"))
     status = models.CharField(max_length=128, choices=TicketStatus.get_choices(), default=TicketQueueUncommitStatus)
-    check_id = models.IntegerField(help_text=_("关联check_id"))
+    check_id = models.BigIntegerField(help_text=_("关联check_id"))
     cluster_id = models.IntegerField(help_text=_("关联集群id"))  # 数组的 json.dumps
     machine_type = models.CharField(max_length=64, help_text=_("机器类型"), choices=MachineType.get_choices())
     priority = models.IntegerField(

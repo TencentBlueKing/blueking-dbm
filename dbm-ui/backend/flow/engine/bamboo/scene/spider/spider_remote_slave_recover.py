@@ -121,6 +121,14 @@ class TenDBRemoteSlaveRecoverFlow(object):
                 cluster_type=cluster_class.cluster_type,
             )
 
+            has_unavailable_instance = StorageInstance.objects.filter(
+                machine__ip=self.data.get("old_slave_ip", None),
+                instance_inner_role=InstanceInnerRole.SLAVE.value,
+                status=InstanceStatus.UNAVAILABLE.value,
+                machine__bk_cloud_id=self.data["bk_cloud_id"],
+                bk_biz_id=self.data["bk_biz_id"],
+            ).exists()
+
             tendb_migrate_pipeline = SubBuilder(root_id=self.root_id, data=copy.deepcopy(self.data))
             cluster_info = get_slave_recover_info(cluster_class.id, self.data["source_ip"])
             cluster_info["ports"] = []
@@ -366,6 +374,7 @@ class TenDBRemoteSlaveRecoverFlow(object):
                         file_list=GetFileList(db_type=DBType.MySQL).get_db_actuator_package(),
                     )
                 ),
+                error_ignorable=has_unavailable_instance,
             )
 
             uninstall_svr_sub_pipeline.add_act(
@@ -377,10 +386,14 @@ class TenDBRemoteSlaveRecoverFlow(object):
                         bk_cloud_id=self.data["bk_cloud_id"],
                     )
                 ),
+                error_ignorable=has_unavailable_instance,
             )
             uninstall_svr_sub_pipeline.add_sub_pipeline(
                 sub_flow=uninstall_instance_sub_flow(
-                    root_id=self.root_id, ticket_data=copy.deepcopy(self.data), ip=self.data["source_ip"]
+                    root_id=self.root_id,
+                    ticket_data=copy.deepcopy(self.data),
+                    ip=self.data["source_ip"],
+                    error_ignorable=has_unavailable_instance,
                 )
             )
             uninstall_svr_sub_pipeline_list.append(
