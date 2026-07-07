@@ -31,7 +31,7 @@ class CloudNginxServiceFlow(CloudBaseServiceFlow):
         """
         nginx_pipeline = Builder(root_id=self.root_id, data=self.data)
         # 部署nginx，目前认为nginx只部署一台
-        nginx_pipeline = self.deploy_nginx_service_pipeline(self.data["nginx"]["host_infos"][0], nginx_pipeline)
+        nginx_pipeline = self.deploy_nginx_service_pipeline(self.data["nginx"]["host_infos"], nginx_pipeline)
 
         # 写入proxy信息
         nginx_pipeline = self.add_dbproxy_act(
@@ -50,7 +50,7 @@ class CloudNginxServiceFlow(CloudBaseServiceFlow):
         """
         nginx_pipeline = Builder(root_id=self.root_id, data=self.data)
         # nginx重装等价于用原来的参数重新部署一次
-        nginx_pipeline = self.deploy_nginx_service_pipeline(self.data["nginx"]["host_infos"][0], nginx_pipeline)
+        nginx_pipeline = self.deploy_nginx_service_pipeline(self.data["nginx"]["host_infos"], nginx_pipeline)
         nginx_pipeline.run_pipeline()
 
     def service_replace_flow(self):
@@ -59,7 +59,7 @@ class CloudNginxServiceFlow(CloudBaseServiceFlow):
         """
         # 首先部署新nginx
         nginx_pipeline = Builder(root_id=self.root_id, data=self.data)
-        nginx_pipeline = self.deploy_nginx_service_pipeline(self.data["nginx"]["host_infos"][0], nginx_pipeline)
+        nginx_pipeline = self.deploy_nginx_service_pipeline(self.data["nginx"]["host_infos"], nginx_pipeline)
 
         # 重新部署DNS组件(串行化部署)
         dns_pipeline = SubBuilder(root_id=self.root_id, data=self.data)
