@@ -486,13 +486,13 @@
     "@babel/helper-string-parser" "^8.0.0-rc.6"
     "@babel/helper-validator-identifier" "^8.0.0-rc.6"
 
-"@blueking/ai-blueking@2.1.4-beta.18":
-  version "2.1.4-beta.18"
-  resolved "https://mirrors.tencent.com/npm/@blueking/ai-blueking/-/ai-blueking-2.1.4-beta.18.tgz#8ef37af2e396c9138a0447adacbc68a88d197a4a"
-  integrity sha512-sksGrh+EcJJTSinFPIGFdU/p4IGdfW3G+11FJB7RTMde/5GiroKia1mE8toJAOCcMrnBOYmi0zb3XAxPCxP8pA==
+"@blueking/ai-blueking@2.2.0-beta.8":
+  version "2.2.0-beta.8"
+  resolved "https://mirrors.tencent.com/npm/@blueking/ai-blueking/-/ai-blueking-2.2.0-beta.8.tgz#48a793120ee653bdf26feee59bae302cec111bfc"
+  integrity sha512-PTwkJDas4JYlaTn8GOqfjkUqB1SNKjSsEPcgwKp55MicPdje5eHVyHT7x9p7AUboyLi8JTLZT3q2coE3deLm7g==
   dependencies:
-    "@blueking/chat-helper" "0.0.8"
-    "@blueking/chat-x" "0.0.42"
+    "@blueking/chat-helper" "0.0.12-beta.7"
+    "@blueking/chat-x" "0.0.46-beta.5"
     bkui-vue "2.0.2-beta.81"
     tippy.js "^6.3.7"
     vue-draggable-resizable "^3.0.0"
@@ -548,15 +548,17 @@
     lodash "^4.17.23"
     sortablejs "^1.15.6"
 
-"@blueking/chat-helper@0.0.8":
-  version "0.0.8"
-  resolved "https://mirrors.tencent.com/npm/@blueking/chat-helper/-/chat-helper-0.0.8.tgz#b48f1db0ec31915256ac2d2f8fca9f4307df975a"
-  integrity sha512-ldYbWL5oz86dJXdcIsLaaJKC687Dfub/RaiacjAN0Z4X4cSA18xf+SYWMGjNTo0Iq8ew6zeEP7cMLVMnFoyP9Q==
+"@blueking/chat-helper@0.0.12-beta.7":
+  version "0.0.12-beta.7"
+  resolved "https://mirrors.tencent.com/npm/@blueking/chat-helper/-/chat-helper-0.0.12-beta.7.tgz#b9a6badbcab839dfc9a5589ddd4f98c507db88d8"
+  integrity sha512-SyxrTOYlY37XRTIITyMr/l6SX1qdlTgAg2s7qTfJDtfoPsJWQPW2WvCgDndlQLtEKJ+NPu/hwSJVJ3AyDh8HRQ==
+  dependencies:
+    "@types/json-schema" "^7.0.15"
 
-"@blueking/chat-x@0.0.42":
-  version "0.0.42"
-  resolved "https://mirrors.tencent.com/npm/@blueking/chat-x/-/chat-x-0.0.42.tgz#649b21e8a81d63db2807c0581c2a4d25ea93dd55"
-  integrity sha512-mNj1MYFMYp9mxc8NnAH5vzHray5/B0RCT1CtUw1p7hCfgenxh1ekZI4Du6v/ylMpOPs1MQFT0CyAgLiz//EhXg==
+"@blueking/chat-x@0.0.46-beta.5":
+  version "0.0.46-beta.5"
+  resolved "https://mirrors.tencent.com/npm/@blueking/chat-x/-/chat-x-0.0.46-beta.5.tgz#e8000d2790baba9d438bef2168ad0951cdf337e1"
+  integrity sha512-K9aWACFD4dW8v1ZEk9rfLNbY8BnGBPT8yg3cxYX6V4qrBkKwQINUo5+ore8KvZK46JL0fyB26eVW5xxfpswj0w==
   dependencies:
     "@modelcontextprotocol/sdk" "^1.27.1"
     bkui-vue "2.0.2-beta.81"
@@ -593,7 +595,15 @@
   resolved "https://mirrors.tencent.com/npm/@blueking/login-modal/-/login-modal-1.0.6.tgz#3d1948ac919556109d866baeb0e49c8601d1b128"
   integrity sha512-zjDHiCNY2Aydo9BcFiGiiw8uodPkCSK+SthXQZQQ/8Bq4nHnz+Hkuo8rnPrwuDIgB2E2C6X+T5+6jDXqTwrZyg==
 
-"@blueking/login-userinfo@0.0.13", "@blueking/login-userinfo@~0.0.2":
+"@blueking/login-userinfo@0.0.16":
+  version "0.0.16"
+  resolved "https://mirrors.tencent.com/npm/@blueking/login-userinfo/-/login-userinfo-0.0.16.tgz#3bd504b9ea14cc00f796046cfa7b6a61b0de19b9"
+  integrity sha512-78ijRCj1+Oal+qP6/T6s21Ww9IZbPu/7OmVnDPfF6+OrW6JQAu2n6yk9Bv4eG5ARDlG3hrLb0R1LzhlJZ52JaQ==
+  dependencies:
+    js-cookie "^3.0.5"
+    tippy.js "^6.3.7"
+
+"@blueking/login-userinfo@~0.0.2":
   version "0.0.13"
   resolved "https://mirrors.tencent.com/npm/@blueking/login-userinfo/-/login-userinfo-0.0.13.tgz#5ff16a5c832902bfb7397713f2dffe8a928e7625"
   integrity sha512-DHVIN/IGhZCiXalhy8YSMSikg4qMEe1WirqPwJrRCFcwk7fItKjQkrrXCam4JX66MCwSXFTAZ67ci2vsmfKRpw==

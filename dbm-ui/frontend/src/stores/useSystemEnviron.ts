@@ -31,6 +31,7 @@ export const useSystemEnviron = defineStore('SystemEnviron', {
     fetchSystemEnviron() {
       getSystemEnviron().then((res) => {
         this.urls = res;
+        this.urls.ENABLE_DBM_AI = true;
       });
     },
     setSystemEnviron(payload: Urls) {
