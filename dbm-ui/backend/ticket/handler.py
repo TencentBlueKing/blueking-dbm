@@ -393,7 +393,10 @@ class TicketHandler:
             global_config = TicketFlowsConfig.objects.get(bk_biz_id=0, ticket_type=ticket_type)
             biz_configs = TicketFlowsConfig.objects.filter(bk_biz_id=bk_biz_id, ticket_type=ticket_type)
 
-            if configs["need_manual_confirm"] != global_config.configs["need_manual_confirm"]:
+            if (
+                configs.get("need_manual_confirm")
+                and configs.get("need_manual_confirm") != global_config.configs["need_manual_confirm"]
+            ):
                 raise TicketFlowsConfigException(_("业务级别不允许编辑[人工确认]设置"))
 
             biz_cfg = biz_configs.filter(cluster_ids=[]).first()

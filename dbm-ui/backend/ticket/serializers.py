@@ -385,7 +385,7 @@ class CreateTicketFlowConfigSerializer(serializers.Serializer):
         help_text=_("单据类型"), child=serializers.ChoiceField(choices=TicketType.get_choices())
     )
     configs = serializers.DictField(help_text=_("单据可配置项"))
-    remark = serializers.CharField(help_text=_("备注"), required=False, default="")
+    remark = serializers.CharField(help_text=_("备注"), required=False, allow_blank=True, allow_null=True, default="")
 
 
 class UpdateTicketFlowConfigSerializer(CreateTicketFlowConfigSerializer):
