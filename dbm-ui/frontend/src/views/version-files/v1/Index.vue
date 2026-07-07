@@ -13,7 +13,9 @@
 
 <template>
   <div class="version-files-view">
-    <DbTab v-model="tabActive" />
+    <DbTab
+      v-model="tabActive"
+      :exclude="[DBTypes.K8S_SURREALDB, DBTypes.K8S_QRRANT]" />
     <FileContent
       :key="tabActive"
       :info="activeTabInfo"

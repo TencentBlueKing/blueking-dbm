@@ -13,7 +13,9 @@
 
 <template>
   <div class="resource-spec-list-page">
-    <DbTab v-model="curTab" />
+    <DbTab
+      v-model="curTab"
+      :exclude="[DBTypes.K8S_SURREALDB, DBTypes.K8S_QRRANT]" />
     <div
       :key="curTab"
       class="wrapper">

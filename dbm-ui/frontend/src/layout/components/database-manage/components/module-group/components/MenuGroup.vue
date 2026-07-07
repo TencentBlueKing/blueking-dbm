@@ -44,6 +44,8 @@
     [DBTypes.ES]: 'ES',
     [DBTypes.HDFS]: 'HDFS',
     [DBTypes.INFLUXDB]: 'Influx',
+    [DBTypes.K8S_QRRANT]: 'Qdrant',
+    [DBTypes.K8S_SURREALDB]: 'SurrealDB',
     [DBTypes.KAFKA]: 'Kafka',
     [DBTypes.MONGODB]: 'Mongo',
     [DBTypes.MYSQL]: 'MySQL',

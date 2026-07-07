@@ -291,6 +291,30 @@
       id: 'bigdata',
       name: '消息队列',
     },
+    {
+      children: [
+        {
+          controllerId: 'k8s_surrealdb',
+          icon: 'node',
+          id: TicketTypes.K8S_SURREALDB_HA_APPLY,
+          name: t('SurrealDB 集群部署'),
+        },
+        {
+          controllerId: 'k8s_surrealdb',
+          icon: 'cluster',
+          id: TicketTypes.K8S_SURREALDB_SINGLE_APPLY,
+          name: t('SurrealDB 单节点部署'),
+        },
+        {
+          controllerId: 'k8s_qdrant',
+          icon: 'cluster',
+          id: TicketTypes.K8S_QDRANT_HA_APPLY,
+          name: t('Qdrant 集群部署'),
+        },
+      ],
+      id: 'k8s',
+      name: 'K8S',
+    },
   ];
 
   const serviceIdMap = Object.values(services).reduce<

@@ -56,6 +56,9 @@ const routes: RouteRecordRaw[] = [
       createApplyRoute(DBTypes.INFLUXDB, TicketTypes.INFLUXDB_APPLY, t('申请InfluxDB集群部署')),
       createApplyRoute(DBTypes.RIAK, TicketTypes.RIAK_CLUSTER_APPLY, t('申请Riak集群部署')),
       createApplyRoute(DBTypes.DORIS, TicketTypes.DORIS_APPLY, t('申请Doris集群部署')),
+      createApplyRoute(DBTypes.K8S_SURREALDB, TicketTypes.K8S_SURREALDB_HA_APPLY, t('申请 SurrealDB 集群部署')),
+      createApplyRoute(DBTypes.K8S_SURREALDB, TicketTypes.K8S_SURREALDB_SINGLE_APPLY, t('申请 SurrealDB 单节点部署')),
+      createApplyRoute(DBTypes.K8S_QRRANT, TicketTypes.K8S_QDRANT_HA_APPLY, t('申请 Qdrant 集群部署')),
     ],
   },
 ];

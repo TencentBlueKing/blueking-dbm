@@ -51,14 +51,14 @@
                 <TextHighlight
                   high-light-color="#FF9C01"
                   :keyword="formattedKeyword"
-                  :text="row.master_domain" />
+                  :text="row.displayValue" />
               </BkButton>
               <template #append>
                 <BkButton
                   class="copy-btn ml-4"
                   text
                   theme="primary"
-                  @click="() => handleCopy(row.master_domain)">
+                  @click="() => handleCopy(row.displayValue)">
                   <DbIcon type="copy" />
                 </BkButton>
               </template>
@@ -293,7 +293,7 @@
     handleRedirect(
       data.cluster_type,
       {
-        domain: data.master_domain,
+        domain: data.displayValue,
       },
       data.bk_biz_id,
     );
@@ -304,7 +304,7 @@
     const formatData = dataList.map((dataItem) =>
       Object.fromEntries(
         [
-          { label: t('集群'), value: dataItem.master_domain },
+          { label: t('集群'), value: dataItem.displayValue },
           { label: t('标签'), value: dataItem.tags.map((tagItem) => `${tagItem.key}:${tagItem.value}`).join('\n') },
           { label: t('访问入口'), value: dataItem.dispalyEntryList.map((entryItem) => entryItem.entry).join('\n') },
           { label: t('架构类型'), value: dataItem.cluster_type },

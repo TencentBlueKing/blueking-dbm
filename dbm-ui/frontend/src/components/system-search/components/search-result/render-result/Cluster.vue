@@ -8,7 +8,7 @@
       <div class="value-text">
         <TextHighlight
           :keyword="keyWord"
-          :text="item.master_domain" />
+          :text="item.displayValue" />
       </div>
       <div class="biz-text">
         {{ bizIdNameMap[item.bk_biz_id] }}
@@ -49,7 +49,7 @@
     handleRedirect(
       data.cluster_type,
       {
-        domain: data.master_domain,
+        domain: data.displayValue,
       },
       data.bk_biz_id,
     );

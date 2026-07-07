@@ -15,7 +15,13 @@
   <div class="business-db-configure-list-page">
     <ClusterTab
       v-model="activeClusterType"
-      :excludes="[ClusterTypes.ORACLE_SINGLE_NONE, ClusterTypes.ORACLE_PRIMARY_STANDBY]" />
+      :excludes="[
+        ClusterTypes.ORACLE_SINGLE_NONE,
+        ClusterTypes.ORACLE_PRIMARY_STANDBY,
+        ClusterTypes.K8S_SURREALDB_HA,
+        ClusterTypes.K8S_SURREALDB_SINGLE,
+        ClusterTypes.K8S_QDRANT_HA,
+      ]" />
     <ApplyPermissionCatch :key="activeClusterType">
       <Content
         v-if="hasModule"

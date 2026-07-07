@@ -16,67 +16,78 @@
     ref="clusterTopoRef"
     class="cluster-details-topo-view"
     title="">
-    <div
-      class="graph-action"
-      @click.stop>
-      <DbIcon
-        v-bk-tooltips="t('放大')"
-        class="graph-action-item"
-        type="plus-circle"
-        @click.stop="handleZoomIn" />
-      <DbIcon
-        v-bk-tooltips="t('缩小')"
-        class="graph-action-item"
-        type="minus-circle"
-        @click.stop="handleZoomOut" />
-      <DbIcon
-        v-bk-tooltips="t('还原')"
-        class="graph-action-item"
-        type="position"
-        @click.stop="handleZoomReset" />
-      <DbIcon
-        v-bk-tooltips="screenIcon.text"
-        class="graph-action-item"
-        :type="screenIcon.icon"
-        @click.stop="toggle" />
-    </div>
-    <div
-      id="clusterTopoGraphMain"
-      class="cluster-details-graph" />
+    <BkException
+      v-if="showEmpty"
+      class="empty-exception"
+      :description="t('集群禁用态无法展示拓扑')"
+      scene="part"
+      :title="t('集群已禁用')"
+      type="empty" />
+    <template v-else>
+      <div
+        class="graph-action"
+        @click.stop>
+        <DbIcon
+          v-bk-tooltips="t('放大')"
+          class="graph-action-item"
+          type="plus-circle"
+          @click.stop="handleZoomIn" />
+        <DbIcon
+          v-bk-tooltips="t('缩小')"
+          class="graph-action-item"
+          type="minus-circle"
+          @click.stop="handleZoomOut" />
+        <DbIcon
+          v-bk-tooltips="t('还原')"
+          class="graph-action-item"
+          type="position"
+          @click.stop="handleZoomReset" />
+        <DbIcon
+          v-bk-tooltips="screenIcon.text"
+          class="graph-action-item"
+          :type="screenIcon.icon"
+          @click.stop="toggle" />
+      </div>
+      <div
+        id="clusterTopoGraphMain"
+        class="cluster-details-graph" />
+    </template>
   </div>
-  <div
-    v-show="false"
-    id="node-details-tips">
-    <div class="node-details">
-      <BkLoading :loading="instState.isLoading">
-        <h5 class="pb-12">
-          {{ instState.activeId }}
-        </h5>
-        <template v-if="instDetails">
-          <div
-            v-for="item of detailColumns"
-            :key="item.key"
-            class="node-details-item">
-            <span class="node-details-label">{{ item.label }}：</span>
-            <span class="node-details-value">
-              <Component
-                :is="item.render(instDetails[item.key])"
-                v-if="item.render" />
-              <template v-else>{{ instDetails[item.key] || '--' }}</template>
-            </span>
-          </div>
-          <a
-            v-if="instState.nodeData?.url && showMore"
-            class="node-details-link"
-            :href="instState.nodeData.url"
-            target="_blank">
-            {{ t('更多详情') }}
-            <i class="db-icon-link" />
-          </a>
-        </template>
-      </BkLoading>
+  <template v-if="!showEmpty">
+    <div
+      v-show="false"
+      id="node-details-tips">
+      <div class="node-details">
+        <BkLoading :loading="instState.isLoading">
+          <h5 class="pb-12">
+            {{ instState.activeId }}
+          </h5>
+          <template v-if="instDetails">
+            <div
+              v-for="item of detailColumns"
+              :key="item.key"
+              class="node-details-item">
+              <span class="node-details-label">{{ item.label }}：</span>
+              <span class="node-details-value">
+                <Component
+                  :is="item.render(instDetails[item.key])"
+                  v-if="item.render" />
+                <template v-else>{{ instDetails[item.key] || '--' }}</template>
+              </span>
+            </div>
+            <a
+              v-if="instState.nodeData?.url && showMore"
+              class="node-details-link"
+              :href="instState.nodeData.url"
+              target="_blank">
+              {{ t('更多详情') }}
+              <i class="db-icon-link" />
+            </a>
+          </template>
+        </BkLoading>
+      </div>
     </div>
-  </div>
+  </template>
 </template>
 <script lang="tsx">
   import { useI18n } from 'vue-i18n';
@@ -89,10 +100,13 @@
   import { getOracleHaClusterTopoGraph } from '@services/source/oracleHaCluster';
   import { getOracleSingleClusterTopoGraph } from '@services/source/oracleSingleCluster';
   import { getPulsarTopoGraph } from '@services/source/pulsar';
+  import { getQdrantHaTopoGraph } from '@services/source/qdrantHa';
   import { getRedisTopoGraph } from '@services/source/redis';
   import { getRiakTopoGraph } from '@services/source/riak';
   import { getHaClusterTopoGraph } from '@services/source/sqlserveHaCluster';
   import { getSingleClusterTopoGraph } from '@services/source/sqlserverSingleCluster';
+  import { getSurrealdbHaTopoGraph } from '@services/source/surrealdbHa';
+  import { getSurrealdbSingleTopoGraph } from '@services/source/surrealdbSingle';
   import { getTendbclusterTopoGraph } from '@services/source/tendbcluster';
   import { getTendbhaTopoGraph } from '@services/source/tendbha';
   import { getTendbsingleTopoGraph } from '@services/source/tendbsingle';
@@ -130,13 +144,25 @@
     [ClusterTypes.TWEMPROXY_REDIS_INSTANCE]: getRedisTopoGraph,
     [ClusterTypes.TWEMPROXY_TENDIS_SSD_INSTANCE]: getRedisTopoGraph,
   };
+
+  const k8sApiMap = {
+    [ClusterTypes.K8S_QDRANT_HA]: getQdrantHaTopoGraph,
+    [ClusterTypes.K8S_SURREALDB_HA]: getSurrealdbHaTopoGraph,
+    [ClusterTypes.K8S_SURREALDB_SINGLE]: getSurrealdbSingleTopoGraph,
+  };
 </script>
 <script setup lang="tsx">
   export interface Props {
-    clusterType: keyof typeof apiMap;
+    clusterData: {
+      cluster_name: string;
+      id: number;
+      isOffline: boolean;
+      k8s_cluster_name?: string;
+      namespace?: string;
+    };
+    clusterType: keyof typeof apiMap | keyof typeof k8sApiMap;
     // eslint-disable-next-line vue/no-unused-properties
     dbType: string;
-    id: number;
     // eslint-disable-next-line vue/no-unused-properties
     nodeConfig?: NodeConfig;
   }
@@ -157,6 +183,7 @@
     icon: isFullscreen.value ? 'un-full-screen' : 'full-screen',
     text: isFullscreen.value ? t('取消全屏') : t('全屏'),
   }));
+  const showEmpty = computed(() => props.clusterType.includes('k8s') && props.clusterData.isOffline);
 
   const detailColumns = [
     {
@@ -221,11 +248,11 @@
   let topoData: ResourceTopo | null = null;
 
   watch(
-    () => props.id,
+    () => props.clusterData.id,
     () => {
-      if (props.id) {
+      if (props.clusterData.id) {
         setTimeout(() => {
-          fetchResourceTopo(props.id);
+          fetchResourceTopo(props.clusterData.id);
         });
       }
     },
@@ -243,9 +270,21 @@
   const fetchResourceTopo = (id: number) => {
     pageLoading.value = true;
 
-    return apiMap[props.clusterType]({
-      cluster_id: id,
-    })
+    const getApi = () => {
+      if (props.clusterType in k8sApiMap) {
+        return k8sApiMap[props.clusterType as keyof typeof k8sApiMap]({
+          cluster_id: props.clusterData.id,
+          k8sClusterName: props.clusterData.k8s_cluster_name!,
+          namespace: props.clusterData.namespace!,
+        });
+      }
+
+      return apiMap[props.clusterType as keyof typeof apiMap]({
+        cluster_id: props.clusterData.id,
+      });
+    };
+
+    getApi()
       .then((data: ResourceTopo) => {
         topoData = data;
         renderDraph(data);
@@ -260,6 +299,13 @@
 
   .cluster-details-topo-view {
     height: calc(100% - 92px);
+
+    .empty-exception {
+      display: flex;
+      height: 100%;
+      align-items: center;
+      justify-content: center;
+    }
 
     .graph-action {
       display: flex;

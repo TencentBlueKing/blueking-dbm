@@ -52,11 +52,14 @@
   import { useRequest } from 'vue-request';
 
   import { addClusterTagKeys, updateClusterTag } from '@services/source/dbbase';
+  import { updateQdrantHaClusterMeta } from '@services/source/qdrantHa';
 
   import TagOperation from '@views/db-manage/common/cluster-batch-add-tag/components/tag-operation/Index.vue';
+  import { getClusterMetaUpdater } from '@views/db-manage/utils/updateK8sClusterMeta';
 
   interface Props {
     clusterId: number;
+    clusterType: string;
     data: {
       id: number;
       key: string;
@@ -95,6 +98,18 @@
     },
   });
 
+  const { run: handleUpdateClusterMeta } = useRequest(
+    (updater: typeof updateQdrantHaClusterMeta, params: ServiceParameters<typeof updateQdrantHaClusterMeta>) =>
+      updater(params),
+    {
+      manual: true,
+      onSuccess() {
+        isShow.value = false;
+        emits('success');
+      },
+    },
+  );
+
   const handleClose = () => {
     isShow.value = false;
   };
@@ -107,7 +122,14 @@
         const tags = tagsInfo.map((item) => ({
           [item.key]: item.value,
         }));
-        if (!props.data.length) {
+        const updater = getClusterMetaUpdater(props.clusterType);
+        if (updater) {
+          handleUpdateClusterMeta(updater, {
+            bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
+            cluster_id: props.clusterId,
+            tags,
+          });
+        } else if (!props.data.length) {
           // 新增
           handleAddClusterTagKeys({
             bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,

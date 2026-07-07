@@ -143,7 +143,7 @@
   const route = useRoute();
   const router = useRouter();
   const { t } = useI18n();
-  const { applyBizInfo, baseState, bizState, handleCancel, handleCreateAppAbbr, handleCreateTicket } = useApplyBase();
+  const { baseState, bizState, handleCancel, handleCreateAppAbbr, handleCreateTicket } = useApplyBase();
   const serviceApply = inject(serviceApplyKey);
   const userProfile = useUserProfile();
   const bizStore = useGlobalBizs();
@@ -196,7 +196,8 @@
   const getSmartActionOffsetTarget = () => document.querySelector('.bk-form-content');
 
   const handleChangeBiz = (info: BizItem) => {
-    applyBizInfo(info);
+    bizState.info = info;
+    bizState.hasEnglishName = !!info.english_name;
     serviceApply?.changeBizId(info.bk_biz_id);
   };
 
@@ -272,46 +273,7 @@
 </script>
 
 <style lang="less">
-  .apply-form {
-    .apply-form-tips {
-      font-size: @font-size-mini;
-      color: @gray-color;
-
-      :deep(.bk-button-text) {
-        margin-left: 4px;
-        font-size: @font-size-mini;
-      }
-    }
-
-    .db-card {
-      margin-bottom: 16px;
-
-      &:last-child {
-        margin-bottom: 0;
-      }
-
-      .bk-form-item:last-child {
-        margin-bottom: 0;
-      }
-    }
-
-    .inline-box {
-      display: inline-flex;
-      width: 220px;
-    }
-
-    :deep(.bk-radio-group) {
-      width: 435px;
-
-      .bk-radio-button {
-        flex: auto;
-      }
-
-      .bk-radio-button-label {
-        width: 100%;
-      }
-    }
-  }
+  @import '@styles/applyInstance.less';
 
   .qdrant-apply {
     .item-input {
