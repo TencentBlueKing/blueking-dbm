@@ -14,9 +14,11 @@ from django.utils.translation import gettext as _
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
+from backend import env
 from backend.bk_web import viewsets
 from backend.bk_web.swagger import common_swagger_auto_schema
 from backend.components.hadb.client import HADBApi
+from backend.components.hadbv2.client import HADBApiV2
 from backend.db_event.serializers import QueryDetailSerializer, QueryListSerializer
 from backend.db_meta.models import AppCache, Cluster
 from backend.iam_app.dataclass import ResourceEnum
@@ -65,6 +67,15 @@ class DBHAEventViewSet(viewsets.SystemViewSet):
 
         switch_queues = HADBApi.switch_queue(params={"name": "query_switch_queue", "query_args": validated_data})
 
+        # env.ENABLE_DBHA_V2_SWITCH_LOG = False 时禁用 v2 接口
+        if env.ENABLE_DBHA_V2_SWITCH_LOG:
+            switch_queues_v2 = HADBApiV2.switch_queue(
+                params={"name": "query_switch_queue", "query_args": validated_data}
+            )
+            # v1 和 v2 切换日志数据合并，当 v2 有数据时，优先展示 v2 的最新数据
+            if switch_queues_v2:
+                switch_queues = switch_queues_v2 + switch_queues
+
         # fill bk_biz_name
         id_to_name = AppCache.id_to_name()
         cluster_domains = {switch["cluster"] for switch in switch_queues}
@@ -90,10 +101,26 @@ class DBHAEventViewSet(viewsets.SystemViewSet):
     @action(methods=["GET"], detail=False, serializer_class=QueryDetailSerializer, pagination_class=None)
     def cat(self, request):
         validated_data = self.params_validate(self.get_serializer_class())
-        logs = HADBApi.switch_logs(
-            params={"name": "query_switch_log", "query_args": {"sw_id": validated_data["sw_id"]}},
-            raw=False,
-        )
+        switch_version = validated_data.get("switch_version", "")
+
+        # switch_version 用于区分 v2 的日志详情接口，但 env.ENABLE_DBHA_V2_SWITCH_LOG = False 时禁用 v2 接口
+        if switch_version == "v2" and env.ENABLE_DBHA_V2_SWITCH_LOG:
+            # 由于在 v2 中一条切换记录包含多个实例信息，所以 v2 需要额外的 ip, port 参数来定位具体的实例日志
+            logs = HADBApiV2.switch_logs(
+                params={
+                    "query_args": {
+                        "sw_id": validated_data["sw_id"],
+                        "ip": validated_data.get("ip"),
+                        "port": validated_data.get("port"),
+                    },
+                },
+                raw=False,
+            )
+        else:
+            logs = HADBApi.switch_logs(
+                params={"name": "query_switch_log", "query_args": {"sw_id": validated_data["sw_id"]}},
+                raw=False,
+            )
 
         # 格式化时间戳
         switch_logs = []

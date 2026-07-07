@@ -302,3 +302,6 @@ USER_MANAGE_FRONTEND_APIGW_DOMAIN = get_type_env(key="USER_MANAGE_FRONTEND_APIGW
 
 # dbha-v2 探针总开关，默认关闭
 ENABLE_DBHA_V2 = get_type_env(key="ENABLE_DBHA_V2", _type=bool, default=False)
+
+# dbha-v2 切换日志接口开关，默认关闭
+ENABLE_DBHA_V2_SWITCH_LOG = get_type_env(key="ENABLE_DBHA_V2_SWITCH_LOG", _type=bool, default=False)

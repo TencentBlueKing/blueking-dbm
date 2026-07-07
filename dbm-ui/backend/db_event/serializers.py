@@ -17,6 +17,9 @@ class QueryDetailSerializer(serializers.Serializer):
     """查询dbha事件详情"""
 
     sw_id = serializers.IntegerField(help_text=_("事件ID"))
+    ip = serializers.CharField(help_text=_("实例IP"), required=False)
+    port = serializers.IntegerField(help_text=_("实例端口"), required=False)
+    switch_version = serializers.CharField(help_text=_("切换日志版本"), required=False)
 
 
 class LogSerializer(serializers.Serializer):
