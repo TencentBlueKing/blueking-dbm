@@ -8,16 +8,16 @@ import backend.db_meta.models.app
 
 
 def sync_appcache_managed(apps, schema_editor):
-    AppCache = apps.get_model("db_meta", "AppCache")
-    Cluster = apps.get_model("db_meta", "Cluster")
-    DBAdministrator = apps.get_model("configuration", "DBAdministrator")
-
-    all_biz_ids = set(AppCache.objects.all().values_list("bk_biz_id", flat=True))
-    managed_ids = set(Cluster.objects.exclude(phase="destroy").all().values_list("bk_biz_id", flat=True))
-    dba_biz_ids = set([dba.bk_biz_id for dba in DBAdministrator.objects.all() if len(dba.users) > 0])
-    managed_ids.update(dba_biz_ids)
-    managed_biz_ids = all_biz_ids & managed_ids
     try:
+        AppCache = apps.get_model("db_meta", "AppCache")
+        Cluster = apps.get_model("db_meta", "Cluster")
+        DBAdministrator = apps.get_model("configuration", "DBAdministrator")
+
+        all_biz_ids = set(AppCache.objects.all().values_list("bk_biz_id", flat=True))
+        managed_ids = set(Cluster.objects.exclude(phase="destroy").all().values_list("bk_biz_id", flat=True))
+        dba_biz_ids = set([dba.bk_biz_id for dba in DBAdministrator.objects.all() if dba.users and len(dba.users) > 0])
+        managed_ids.update(dba_biz_ids)
+        managed_biz_ids = all_biz_ids & managed_ids
         AppCache.objects.filter(bk_biz_id__in=list(managed_biz_ids)).update(
             status="managed", managed_time=datetime.datetime.now(timezone.utc)
         )
