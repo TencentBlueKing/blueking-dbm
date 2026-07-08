@@ -79,6 +79,17 @@ from backend.ticket.constants import TicketType
 
 logger = logging.getLogger("flow")
 
+# 流程运行期间需要临时解除互斥锁 / 结束后重新加回互斥锁的单据类型列表
+# 含义：在 MySQL 主从成对迁移流程执行期间，允许下列 proxy 相关变更单据并行进入执行，
+#      避免因互斥锁导致 proxy 侧变更单据长时间阻塞；流程关键节点会成对地"解锁 / 加锁"。
+# 使用位置：AddUnLockTicketTypeKwargs.unlock_ticket_type_list 与
+#          ReleaseUnLockTicketTypeKwargs.release_unlock_ticket_type_list
+MYSQL_MIGRATE_MUTEX_RELEASE_TICKET_TYPES = [
+    TicketType.MYSQL_PROXY_SWITCH,
+    TicketType.MYSQL_PROXY_MIGRATE,
+    TicketType.MYSQL_PROXY_CONF_CHANGE,
+]
+
 
 class MySQLMigrateClusterRemoteFlow(object):
     """
@@ -176,13 +187,17 @@ class MySQLMigrateClusterRemoteFlow(object):
 
             tendb_migrate_pipeline = SubBuilder(root_id=self.root_id, data=copy.deepcopy(self.data))
 
-            # 解除对proxy替换的单据互斥锁，这个阶段到下一个暂停节点，允许proxy替换单据进入执行
+            # 解除对proxy替换的单据互斥锁，这个阶段到下一个暂停节点，
+            # 允许proxy替换单据进入执行
+            # 允许proxy整体升降配进入执行
+            # 允许proxy整体迁移进入执行
             tendb_migrate_pipeline.add_act(
                 act_name=_("解锁部分单据互斥锁"),
                 act_component_code=AddUnlockTicketTypeConfigComponent.code,
                 kwargs=asdict(
                     AddUnLockTicketTypeKwargs(
-                        cluster_ids=self.data["cluster_ids"], unlock_ticket_type_list=[TicketType.MYSQL_PROXY_SWITCH]
+                        cluster_ids=self.data["cluster_ids"],
+                        unlock_ticket_type_list=MYSQL_MIGRATE_MUTEX_RELEASE_TICKET_TYPES,
                     )
                 ),
             )
@@ -583,27 +598,31 @@ class MySQLMigrateClusterRemoteFlow(object):
             )
             # todo 添加checksum单据状态检查 、添加通过后添加checksum结果的查询
 
-            # 人工确认切换迁移实例, 释放解除之前的prox替换单据互斥
+            # 人工确认切换迁移实例, 释放解除之前的prox单据的互斥逻辑
             tendb_migrate_pipeline.add_act(
                 act_name=_("人工确认切换,判断互斥单据"),
                 act_component_code=PauseWithTicketLockCheckComponent.code,
                 kwargs=asdict(
                     ReleaseUnLockTicketTypeKwargs(
                         cluster_ids=self.data["cluster_ids"],
-                        release_unlock_ticket_type_list=[TicketType.MYSQL_PROXY_SWITCH],
+                        release_unlock_ticket_type_list=MYSQL_MIGRATE_MUTEX_RELEASE_TICKET_TYPES,
                     )
                 ),
             )
             # 切换迁移实例
             tendb_migrate_pipeline.add_parallel_sub_pipeline(sub_flow_list=switch_sub_pipeline_list)
 
-            # 解除对proxy替换的单据互斥锁，最后卸载旧实例阶段，能允许proxy替换单据进入执行
+            # 卸载实例之后，解除对proxy替换的单据互斥锁，这个阶段到下一个暂停节点，
+            # 允许proxy替换单据进入执行
+            # 允许proxy整体升降配进入执行
+            # 允许proxy整体迁移进入执行
             tendb_migrate_pipeline.add_act(
                 act_name=_("解锁部分单据互斥锁"),
                 act_component_code=AddUnlockTicketTypeConfigComponent.code,
                 kwargs=asdict(
                     AddUnLockTicketTypeKwargs(
-                        cluster_ids=self.data["cluster_ids"], unlock_ticket_type_list=[TicketType.MYSQL_PROXY_SWITCH]
+                        cluster_ids=self.data["cluster_ids"],
+                        unlock_ticket_type_list=MYSQL_MIGRATE_MUTEX_RELEASE_TICKET_TYPES,
                     )
                 ),
             )
