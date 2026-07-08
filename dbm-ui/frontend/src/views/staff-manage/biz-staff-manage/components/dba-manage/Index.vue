@@ -55,7 +55,6 @@
           :active-top-tab="activeSubTab"
           :data="tableData"
           :default-admins-data-map="defaultAdminsDataMap"
-          :user-data-map="userDataMap"
           @suceess="handleSucess" />
       </div>
     </BkLoading>
@@ -68,7 +67,6 @@
 
   import { getAdmins } from '@services/source/dbadmin';
   import { queryClusterInstanceCount } from '@services/source/dbbase';
-  import { getUserList } from '@services/source/user';
 
   import { ClusterCountMap, ClusterTypes, DBTypeInfos, DBTypes } from '@common/const';
 
@@ -156,12 +154,7 @@
     );
     return Object.fromEntries(defalutAdminsList.map((item) => [item.db_type, item]));
   });
-  const userDataMap = computed(() =>
-    Object.fromEntries((userData.value?.results || []).map((item) => [item.username, item.display_name])),
-  );
-  const isLoading = computed(
-    () => isGetDefalutAdminsLoading.value || isGetBizAdminsLoading.value || isGetUserListLoading.value,
-  );
+  const isLoading = computed(() => isGetDefalutAdminsLoading.value || isGetBizAdminsLoading.value);
 
   const {
     data: defalutAdminsData,
@@ -178,8 +171,6 @@
   } = useRequest(getAdmins, {
     manual: true,
   });
-
-  const { data: userData, loading: isGetUserListLoading } = useRequest(getUserList);
 
   watch(
     activeSubTab,
