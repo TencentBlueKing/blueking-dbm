@@ -38,7 +38,6 @@ from backend.flow.engine.bamboo.scene.mysql.common.mysql_restore_download_sub_fl
     mysql_restore_download_sub_flow,
 )
 from backend.flow.engine.bamboo.scene.mysql.deploy_peripheraltools.departs import DeployPeripheralToolsDepart
-from backend.flow.engine.bamboo.scene.mysql.deploy_peripheraltools.push_config import gen_reload_departs_config
 from backend.flow.engine.bamboo.scene.mysql.mysql_single_apply_flow import MySQLSingleApplyFlow
 from backend.flow.engine.bamboo.scene.mysql.mysql_single_destroy_flow import MySQLSingleDestroyFlow
 from backend.flow.plugins.components.collections.common.add_alarm_shield import AddAlarmShieldComponent
@@ -478,7 +477,6 @@ class MySQLRollbackExerciseFlow(object):
         backup_pkg_type = MysqlVersionToDBBackupForMap[self.data["db_version"]]
         backup_pkg = _resolve_v2_backup_package(DBType.MySQL.value, backup_pkg_type)
         rollback_ip = self.rollback_host["ip"]
-        instance = "{}:{}".format(rollback_ip, self.rollback_port)
 
         sub_pipeline = SubBuilder(root_id=self.root_id, data=copy.deepcopy(self.data))
         sub_pipeline.add_act(
@@ -511,14 +509,5 @@ class MySQLRollbackExerciseFlow(object):
                     },
                 )
             ),
-        )
-        sub_pipeline.add_sub_pipeline(
-            sub_flow=gen_reload_departs_config(
-                root_id=self.root_id,
-                data=copy.deepcopy(self.data),
-                bk_cloud_id=cluster_class.bk_cloud_id,
-                instances=[instance],
-                departs=[DeployPeripheralToolsDepart.MySQLDBBackup],
-            )
         )
         return sub_pipeline.build_sub_process(sub_name=_("重装 V2 备份程序"))
