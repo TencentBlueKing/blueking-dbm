@@ -50,7 +50,7 @@
         <span> ，</span>
         <RedisAnalysisToList
           :biz-id="ticketDetail.bk_biz_id"
-          :ticket-type="ticketDetail.ticket_type" />
+          :ticket-type="ticketDetail?.ticket_type" />
       </template>
     </template>
   </StatusSucceeded>
