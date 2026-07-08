@@ -119,6 +119,4 @@
   };
 
   watch(() => [tableData.value[0].dbName, tableData.value[0].dbIgnoreName], fetchData);
-
-  onMounted(fetchData);
 </script>
