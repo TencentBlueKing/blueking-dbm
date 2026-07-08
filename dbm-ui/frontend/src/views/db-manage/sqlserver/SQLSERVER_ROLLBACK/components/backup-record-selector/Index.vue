@@ -12,7 +12,7 @@
 -->
 
 <template>
-  <DbDialog
+  <BkDialog
     class="sqlserver-backup-record-selector"
     :close-icon="false"
     :draggable="false"
@@ -89,7 +89,7 @@
           </template>
         </BkTableColumn>
         <BkTableColumn
-          :label="t('备份排除库')"
+          :label="t('备份缺失库')"
           :width="260">
           <template #default="{ row }: { row: SqlserverBackupLogModel }">
             <BackupDbTags
@@ -165,7 +165,7 @@
         </div>
       </div>
     </template>
-  </DbDialog>
+  </BkDialog>
 </template>
 <script setup lang="ts">
   import type { ISearchValue } from 'bkui-vue/lib/search-select/utils';
