@@ -123,29 +123,14 @@
                 </div>
               </DbFormItem>
               <template v-else>
-                <div v-if="row.primary_dba">
-                  <span>{{ row.primary_dba }}（{{ userDataMap[row.primary_dba] }}）</span>
-                  <!-- <BkButton
-                    class="copy-btn"
-                    text
-                    theme="primary"
-                    @click="() => handleCopy([row.primary_dba])">
-                    <DbIcon type="copy" />
-                  </BkButton> -->
-                </div>
+                <MemberDisplay
+                  v-if="row.primary_dba"
+                  :value="[row.primary_dba]" />
                 <template v-else>
                   <div v-if="defaultAdminsDataMap[row.db_type as DBTypes]?.users?.length">
-                    <div class="fallback-dba">
-                      <span class="allback-dba-value">{{ defaultAdminsDataMap[row.db_type as DBTypes].users[0] }}</span>
-                      <span class="allback-dba-alert">（{{ t('兜底') }}）</span>
-                      <!-- <BkButton
-                        class="copy-btn"
-                        text
-                        theme="primary"
-                        @click="() => handleCopy([defaultAdminsDataMap[row.db_type as DBTypes].users[0]])">
-                        <DbIcon type="copy" />
-                      </BkButton> -->
-                    </div>
+                    <MemberDisplay
+                      is-default
+                      :value="[defaultAdminsDataMap[row.db_type as DBTypes].users[0]]" />
                   </div>
                   <span v-else>--</span>
                 </template>
@@ -194,29 +179,14 @@
                   class="member-selector-tip"></div>
               </DbFormItem>
               <template v-else>
-                <div v-if="row.standby_dba">
-                  <span>{{ row.standby_dba }}（{{ userDataMap[row.standby_dba] }}）</span>
-                  <!-- <BkButton
-                    class="copy-btn"
-                    text
-                    theme="primary"
-                    @click="() => handleCopy([row.standby_dba])">
-                    <DbIcon type="copy" />
-                  </BkButton> -->
-                </div>
+                <MemberDisplay
+                  v-if="row.standby_dba"
+                  :value="[row.standby_dba]" />
                 <template v-else>
                   <div v-if="defaultAdminsDataMap[row.db_type as DBTypes]?.users?.length">
-                    <div class="fallback-dba">
-                      <span class="allback-dba-value">{{ defaultAdminsDataMap[row.db_type as DBTypes].users[0] }}</span>
-                      <span class="allback-dba-alert">（{{ t('兜底') }}）</span>
-                      <!-- <BkButton
-                        class="copy-btn"
-                        text
-                        theme="primary"
-                        @click="() => handleCopy([defaultAdminsDataMap[row.db_type as DBTypes].users[0]])">
-                        <DbIcon type="copy" />
-                      </BkButton> -->
-                    </div>
+                    <MemberDisplay
+                      is-default
+                      :value="[defaultAdminsDataMap[row.db_type as DBTypes].users[0]]" />
                   </div>
                   <span v-else>--</span>
                 </template>
@@ -253,27 +223,15 @@
                   class="member-selector-tip" />
               </DbFormItem>
               <template v-else>
-                <template v-if="row.users.length">
-                  <div v-if="row.level2_dba.length > 0">
-                    <TagBlock
-                      :copy-data="row.level2_dba"
-                      :data="row.level2_dba.map((item) => `${item}（${userDataMap[item]}）`)" />
-                  </div>
-                  <span v-else>--</span>
-                </template>
+                <MemberDisplay
+                  v-if="row.users.length > 0"
+                  type="tag"
+                  :value="row.level2_dba" />
                 <template v-else>
                   <div v-if="defaultAdminsDataMap[row.db_type as DBTypes]?.users?.length">
-                    <div class="fallback-dba">
-                      <span class="allback-dba-value">{{ defaultAdminsDataMap[row.db_type as DBTypes].users[0] }}</span>
-                      <span class="allback-dba-alert">（{{ t('兜底') }}）</span>
-                      <!-- <BkButton
-                        class="copy-btn"
-                        text
-                        theme="primary"
-                        @click="() => handleCopy([defaultAdminsDataMap[row.db_type as DBTypes].users[0]])">
-                        <DbIcon type="copy" />
-                      </BkButton> -->
-                    </div>
+                    <MemberDisplay
+                      is-default
+                      :value="[defaultAdminsDataMap[row.db_type as DBTypes].users[0]]" />
                   </div>
                   <span v-else>--</span>
                 </template>
@@ -401,9 +359,9 @@
   import { DBAOperateTypes, DBARoleTypes, DBTypeInfos, DBTypes } from '@common/const';
 
   import MemberSelector from '@components/db-member-selector/index.vue';
-  import TagBlock from '@components/tag-block/Index.vue';
 
   import BatchEdit from '@views/staff-manage/common/BatchEdit.vue';
+  import MemberDisplay from '@views/staff-manage/common/MemberDisplay.vue';
 
   import { execCopy, getOffset, messageSuccess, utcDisplayTime } from '@utils';
 
@@ -411,7 +369,6 @@
     activeTopTab: 'apply' | 'unapply';
     data: DBAdminModel[];
     defaultAdminsDataMap: Record<string, DBAdminModel>;
-    userDataMap: Record<string, string>;
   }
 
   type Emits = (e: 'suceess') => void;

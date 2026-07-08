@@ -37,12 +37,17 @@
             </TableColumn>
             <TableColumn col-key="users">
               <template #title>
-                {{ t('默认 DBA') }}
-                <span
-                  v-if="isEdit"
-                  class="required-star">
-                  *
-                </span>
+                <div style="display: flex; align-items: center">
+                  {{ t('默认 DBA') }}
+                  <template v-if="isEdit">
+                    <span class="required-star"> * </span>
+                    <BatchEdit
+                      field="user_edit"
+                      :label="t('默认 DBA')"
+                      :multiple="false"
+                      @batch-edit="handleBatchEditColumn" />
+                  </template>
+                </div>
               </template>
               <template #default="{ row, rowIndex }: { row: IRowData, rowIndex: number }">
                 <DbFormItem
@@ -56,7 +61,9 @@
                     @change="() => handleMemberChange(`dataList.${rowIndex}.user_edit`)" />
                 </DbFormItem>
                 <template v-else>
-                  <span v-if="row.users.length > 0"> {{ row.users[0] }}（{{ userDataMap[row.users[0]] }}） </span>
+                  <MemberDisplay
+                    v-if="row.users.length > 0"
+                    :value="[row.users[0]]" />
                   <span v-else>--</span>
                 </template>
               </template>
@@ -95,11 +102,13 @@
 
   import DBAdminModel from '@services/model/db-admin/db-admin';
   import { getAdmins, updateGlobalAdmins } from '@services/source/dbadmin';
-  import { getUserList } from '@services/source/user';
 
   import { DBAOperateTypes, DBTypeInfos, DBTypes } from '@common/const';
 
   import MemberSelector from '@components/db-member-selector/index.vue';
+
+  import BatchEdit from '@views/staff-manage/common/BatchEdit.vue';
+  import MemberDisplay from '@views/staff-manage/common/MemberDisplay.vue';
 
   import { getOffset, messageSuccess } from '@utils';
 
@@ -116,9 +125,6 @@
     dataList: [] as IRowData[],
   });
 
-  const userDataMap = computed(() =>
-    Object.fromEntries((userData.value?.results || []).map((item) => [item.username, item.display_name])),
-  );
   const changedDataList = computed(() =>
     formData.value.dataList.filter((item) => !_.isEqual(item.users, item.user_edit)),
   );
@@ -160,11 +166,7 @@
     },
   });
 
-  const { data: userData, loading: isGetUserListLoading } = useRequest(getUserList);
-
-  const isLoading = computed(
-    () => isGetAdminsLoading.value || isUpdateAdminsLoading.value || isGetUserListLoading.value,
-  );
+  const isLoading = computed(() => isGetAdminsLoading.value || isUpdateAdminsLoading.value);
 
   watch(isEdit, () => {
     setTableMaxHeight();
@@ -178,6 +180,13 @@
 
   const handleMemberChange = (property: string) => {
     formRef.value?.validate(property);
+  };
+
+  const handleBatchEditColumn = (value: any, field: string) => {
+    formData.value.dataList = formData.value.dataList.map((item) => ({
+      ...item,
+      [field]: value,
+    }));
   };
 
   const handleEdit = () => {
@@ -254,6 +263,7 @@
       .required-star {
         width: 12px;
         height: 12px;
+        margin-left: 4px;
         color: #ea3636;
       }
     }
