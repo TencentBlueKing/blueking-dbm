@@ -171,12 +171,14 @@ class DBBaseViewSet(viewsets.SystemViewSet):
         return Response(cluster_infos)
 
     @common_swagger_auto_schema(
+        methods=["get", "post"],
         operation_summary=_("根据过滤条件查询业务下集群详细信息"),
         auto_schema=ResponseSwaggerAutoSchema,
         query_serializer=ClusterFilterSerializer(),
+        request_body=ClusterFilterSerializer(),
         tags=[SWAGGER_TAG],
     )
-    @action(methods=["GET"], detail=False, serializer_class=ClusterFilterSerializer, pagination_class=None)
+    @action(methods=["GET", "POST"], detail=False, serializer_class=ClusterFilterSerializer, pagination_class=None)
     def filter_clusters(self, request, *args, **kwargs):
         data = self.params_validate(self.get_serializer_class())
         limit, offset = data.pop("limit"), data.pop("offset")
