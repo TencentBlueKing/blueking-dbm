@@ -129,7 +129,8 @@
         :title="t('磁盘总容量（G）')"
         width="120">
         <template #default="{ row }: { row: HostInfo }">
-          {{ row.bk_disk ? (row.bk_disk / 1024).toFixed(2) : '--' }}
+          <!-- {{ row.bk_disk ? (row.bk_disk / 1024).toFixed(2) : '--' }} -->
+          {{ row.bk_disk || '--' }}
         </template>
       </TableColumn>
       <template #empty>
