@@ -12,6 +12,7 @@
  */
 
 import BizConfTopoTreeModel from '@services/model/config/biz-conf-topo-tree';
+import SqlserverBackupLogModel from '@services/model/sqlserver/backup-log';
 
 import http from '../http';
 
@@ -52,19 +53,10 @@ export function importDbStruct(params: FormData) {
 }
 
 // 根据时间范围查询集群备份记录
-export function queryBackupLogs(params: { cluster_id: number; days?: number }) {
-  return http.post<
-    {
-      backup_id: string;
-      complete: boolean;
-      end_time: string;
-      expected_cnt: number;
-      logs: any[];
-      real_cnt: number;
-      role: string;
-      start_time: string;
-    }[]
-  >(`${path}/rollback/query_backup_logs/`, params);
+export function queryBackupLogs(params: { cluster_id: number; days?: number; end_time?: string }) {
+  return http
+    .post<SqlserverBackupLogModel[]>(`${path}/rollback/query_backup_logs/`, params)
+    .then((data) => data.map((item) => new SqlserverBackupLogModel(item)));
 }
 
 // 根据备份记录和库匹配模式查询操作库
@@ -82,8 +74,7 @@ export function queryDbsByBackupLog(params: {
 
 // 根据回档时间集群最近备份记录
 export function queryLatestBackupLog(params: { cluster_id: number; rollback_time: string }) {
-  return http.post<ServiceReturnType<typeof queryBackupLogs>[number]>(
-    `${path}/rollback/query_latest_backup_log/`,
-    params,
-  );
+  return http
+    .post<SqlserverBackupLogModel>(`${path}/rollback/query_latest_backup_log/`, params)
+    .then((data) => new SqlserverBackupLogModel(data));
 }
