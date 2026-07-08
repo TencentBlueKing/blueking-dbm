@@ -155,7 +155,9 @@ class MonitorPolicyViewSet(AuditedModelViewSet):
 
     def _get_custom_permissions(self):
         if self.action == "list":
-            if not int(self.request.query_params["bk_biz_id"]):
+            if not int(self.request.query_params["bk_biz_id"]) and not self.request.query_params.get(
+                "not_need_global"
+            ):
                 permission = ResourceActionPermission(
                     [ActionEnum.GLOBAL_MONITOR_POLICY_LIST],
                     ResourceEnum.DBTYPE,
