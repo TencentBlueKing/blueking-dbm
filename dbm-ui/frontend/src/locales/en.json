@@ -6109,5 +6109,10 @@
   "受影响集群": "Affected Clusters",
   "已自动跳过 n 个集群：包含同名标签键": "Auto skipped {n} clusters: contains same tag key",
   "为选中集群添加标签，若标签键不存在则新添加，已存在则跳过": "Add tags to selected clusters, if the tag key does not exist, it will be added, if it exists, it will be skipped",
+  "备份包含库": "Backup DB List",
+  "备份排除库": "Excluded DB List",
+  "数据库大小": "DB Size",
+  "备份文件大小": "Backup File Size",
+  "搜索备份记录": "Search Backup Records",
   "这行勿动！新增翻译请在上一行添加！": ""
 }

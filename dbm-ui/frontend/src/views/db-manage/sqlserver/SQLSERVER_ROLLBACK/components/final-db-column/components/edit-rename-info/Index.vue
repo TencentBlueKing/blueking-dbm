@@ -7,7 +7,7 @@
         :db-name="localDbName"
         @change="handleClusterDbChange" />
       <div style="margin-top: 24px; margin-bottom: 16px; font-size: 12px">
-        <span style="font-weight: bold; color: #313238">{{ t('DB 列表') }}</span>
+        <span style="font-weight: bold; color: #313238">{{ t('库名映射') }}</span>
         <I18nT
           keypath="（共 n 个）"
           style="color: #63656e">
@@ -35,7 +35,6 @@
   </div>
 </template>
 <script setup lang="tsx">
-  import { ref } from 'vue';
   import { useI18n } from 'vue-i18n';
 
   import RenderClusterDb from './components/ClusterDb.vue';
