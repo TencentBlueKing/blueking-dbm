@@ -13,9 +13,9 @@
 
 <template>
   <InfoList>
-    <InfoItem :label="t('构造方式')">
+    <InfoItem :label="t('回档方式')">
       <strong>
-        {{ ticketDetails.details.infos[0]?.restore_time ? t('指定时间构造') : t('指定备份记录构造') }}
+        {{ ticketDetails.details.infos[0]?.restore_time ? t('指定时间回档') : t('指定备份记录回档') }}
       </strong>
     </InfoItem>
   </InfoList>
@@ -27,7 +27,7 @@
       col-key="src_cluster"
       fixed="left"
       :get-copy-value="(row: RowData) => ticketDetails.details.clusters[row.src_cluster].immute_domain"
-      :title="t('集群')"
+      :title="t('源集群')"
       :width="220">
       <template #default="{ row: data }: { row: RowData }">
         {{ ticketDetails.details.clusters[data.src_cluster].immute_domain }}
@@ -108,28 +108,17 @@
       </template>
     </TicketInfoTableColumn>
     <TicketInfoTableColumn
-      col-key="dst_cluster"
-      fixed="left"
-      :get-copy-value="(row: RowData) => ticketDetails.details.clusters[row.dst_cluster].immute_domain"
-      :title="t('目标集群')"
-      :width="220">
-      <template #default="{ row: data }: { row: RowData }">
-        {{ ticketDetails.details.clusters[data.dst_cluster].immute_domain }}
-      </template>
-    </TicketInfoTableColumn>
-    <TicketInfoTableColumn
       col-key="target_db_name"
       :title="t('恢复后库名')"
       :width="300">
       <template #default="{ row: data }: { row: RowData }">
-        <span v-if="!data.rename_infos.length"> -- </span>
-        <div
-          v-else
-          class="rename-block">
+        <div class="rename-block">
           <template
             v-for="item in data.rename_infos"
             :key="item.db_name">
-            <div class="rename-item">
+            <div
+              v-if="!item.old_db_name"
+              class="rename-item">
               <template v-if="item.target_db_name && item.target_db_name !== item.db_name">
                 {{ item.db_name }} ➜ <span class="new-name">{{ item.target_db_name }}</span>
               </template>
@@ -138,13 +127,14 @@
               </template>
             </div>
           </template>
+          <span v-if="!data.rename_infos.some((item) => !item.old_db_name)">--</span>
         </div>
       </template>
     </TicketInfoTableColumn>
     <TicketInfoTableColumn
       col-key="rename_db_name"
       :title="t('已有库新名')"
-      :width="200">
+      :width="300">
       <template #default="{ row: data }: { row: RowData }">
         <div class="rename-block">
           <template
@@ -184,7 +174,7 @@
   type RowData = Props['ticketDetails']['details']['infos'][number];
 
   defineOptions({
-    name: TicketTypes.SQLSERVER_ROLLBACK,
+    name: TicketTypes.SQLSERVER_ROLLBACK_LOCAL,
     inheritAttrs: false,
   });
 
@@ -211,7 +201,7 @@
     }
 
     .content-value {
-      width: 260px;
+      width: 360px;
     }
   }
 

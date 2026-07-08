@@ -3,7 +3,7 @@
     ref="editableColumnRef"
     :disabled-method="disabledMethod"
     field="rename_infos"
-    :label="t('构造后 DB 名')"
+    :label="t('恢复后库名')"
     :min-width="300"
     required
     :rules="rules">
@@ -37,7 +37,7 @@
     render-directive="if"
     :width="900">
     <template #header>
-      <span>{{ t('手动修改回档的 DB 名') }}</span>
+      <span>{{ t('恢复后库名') }}</span>
       <BkTag class="ml-8">{{ cluster.master_domain }}</BkTag>
     </template>
     <EditName

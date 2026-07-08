@@ -7,7 +7,9 @@
       <EditableRow
         v-for="(item, index) in modelValue"
         :key="index">
-        <EditableColumn :label="t('构造 DB 名称')">
+        <EditableColumn
+          field="db_name"
+          :label="t('源库名')">
           <EditableBlock v-model="item.db_name" />
         </EditableColumn>
         <EditableColumn
@@ -16,7 +18,7 @@
             'is-change': valueMemo[index].target_db_name !== item.target_db_name,
           }"
           field="target_db_name"
-          :label="t('构造后 DB 名称（自动生成，可修改）')"
+          :label="t('恢复后库名')"
           @validate="(result: boolean) => handleTargetDbNameValidate(result, index)">
           <EditableInput
             v-model="item.target_db_name"
@@ -27,7 +29,7 @@
             'is-change': valueMemo[index].rename_db_name !== item.rename_db_name,
           }"
           field="rename_db_name"
-          :label="t('已存在的 DB（可修改）')"
+          :label="t('已有库新名')"
           @validate="(result: boolean) => handleRenameDbNameValidate(result, index)">
           <EditableInput
             v-model="item.rename_db_name"
@@ -38,7 +40,7 @@
         v-if="modelValue.length < 1"
         #empty>
         <BkException
-          description="没有数据"
+          :description="t('没有数据')"
           scene="part"
           type="empty" />
       </template>

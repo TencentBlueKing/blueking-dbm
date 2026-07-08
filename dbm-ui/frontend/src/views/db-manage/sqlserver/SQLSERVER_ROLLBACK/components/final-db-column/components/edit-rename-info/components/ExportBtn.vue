@@ -26,9 +26,9 @@
   // 导出文件
   const handleExport = () => {
     const formatData = props.data.map((item) => ({
-      [t('已存在的 DB')]: item.rename_db_name,
-      [t('构造 DB 名称')]: item.db_name,
-      [t('构造后 DB 名称')]: item.target_db_name,
+      [t('已有库新名')]: item.rename_db_name,
+      [t('恢复后库名')]: item.target_db_name,
+      [t('源库名')]: item.db_name,
     }));
     const colsWidths = [{ width: 40 }, { width: 40 }, { width: 40 }];
 

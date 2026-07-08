@@ -18,7 +18,6 @@
   </EditableTable>
 </template>
 <script setup lang="tsx">
-  import { ref } from 'vue';
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
