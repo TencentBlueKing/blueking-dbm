@@ -20,6 +20,11 @@ SWAGGER_TAG = _("透传服务(proxypass)")
 
 NGINX_PUSH_TARGET_PATH = "/usr/local/bkdb/nginx-portable/conf/cluster_service/"
 
+# 已软删除的大数据管理端nginx子配置单批清理数量
+CLEAN_DELETED_NGINX_CONF_BATCH_SIZE = 50
+# 已软删除的大数据管理端nginx子配置清理job请求间隔，单位秒
+CLEAN_DELETED_NGINX_CONF_JOB_REQUEST_INTERVAL = 1
+
 # 缓存inst_id和nginx id，用于回调job，默认缓存时间5min
 JOB_INSTANCE_EXPIRE_TIME = 5 * 60
 # 定义token过期时间1天，防止废弃的token复用
