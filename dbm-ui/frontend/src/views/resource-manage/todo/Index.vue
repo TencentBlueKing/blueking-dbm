@@ -150,7 +150,7 @@
         :title="t('内存（G）')" />
       <TableColumn
         col-key="bk_disk"
-        :title="t('磁盘总容量(G)')"
+        :title="t('磁盘总容量（G）')"
         :width="110">
         <template #default="{ row }: { row: FaultOrRecycleMachineModel }">
           {{ row.bk_disk || '--' }}
