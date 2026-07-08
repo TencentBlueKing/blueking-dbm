@@ -218,7 +218,6 @@
         bk_biz_id: props.data.bk_biz_id || window.PROJECT_CONFIG.BIZ_ID,
         configs: {
           need_itsm: formData.need_itsm,
-          need_manual_confirm: props.data.configs?.need_manual_confirm ?? false,
         },
         remark: formData.remark,
         ticket_types: [props.data.ticket_type],

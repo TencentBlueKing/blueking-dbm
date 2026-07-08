@@ -29,7 +29,6 @@ export interface TableRow {
       itsm_expire: number;
     };
     need_itsm: boolean;
-    need_manual_confirm: boolean;
   };
   id: number;
   isChildRow: boolean;

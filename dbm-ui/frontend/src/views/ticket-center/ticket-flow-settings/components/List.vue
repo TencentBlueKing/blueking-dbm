@@ -421,7 +421,6 @@
             itsm_expire: -1,
           },
           need_itsm: data.configs.need_itsm,
-          need_manual_confirm: data.configs.need_manual_confirm,
         },
         id: 0,
         is_child_config: true,
