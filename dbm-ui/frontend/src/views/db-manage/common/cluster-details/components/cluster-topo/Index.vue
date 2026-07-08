@@ -61,6 +61,7 @@
     clusterData: {
       cluster_name: string;
       id: number;
+      isOffline: boolean;
       k8s_cluster_name?: string;
       namespace?: string;
     };

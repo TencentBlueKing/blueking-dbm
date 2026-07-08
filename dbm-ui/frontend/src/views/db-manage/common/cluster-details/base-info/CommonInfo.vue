@@ -2,7 +2,9 @@
   <InfoItem :label="t('版本')">
     {{ data.major_version || '--' }}
   </InfoItem>
-  <InfoItem :label="t('容灾要求')">
+  <InfoItem
+    v-if="!data.cluster_type.includes('k8s')"
+    :label="t('容灾要求')">
     {{ data.disasterToleranceLevelName }}
   </InfoItem>
   <InfoItem :label="t('地域')">

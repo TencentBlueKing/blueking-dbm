@@ -19,6 +19,17 @@
     </template>
   </TableColumn>
   <TableColumn
+    v-if="clusterType.includes('k8s')"
+    col-key="region"
+    :filter="columnFilter?.['region']"
+    :min-width="150"
+    :title="t('地域')">
+    <template #default="{ row }: { row: IRowData }">
+      {{ row.region || '--' }}
+    </template>
+  </TableColumn>
+  <TableColumn
+    v-else
     col-key="region"
     :filter="columnFilter?.['region']"
     :min-width="150"

@@ -78,6 +78,7 @@ export const getSurrealdbSingleInstanceList = function (params: {
  * 获取集群实例详情
  */
 export const retrieveSurrealdbSingleInstanceDetail = function (params: {
+  cluster_id: number;
   clusterName: string;
   componentName: string;
   k8sClusterName: string;

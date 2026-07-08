@@ -38,6 +38,7 @@
   interface Props {
     clusterData: {
       cluster_name: string;
+      id: number;
       k8s_cluster_name: string;
       namespace: string;
     };
@@ -70,6 +71,7 @@
     height.value = window.innerHeight - getOffset(editorRef.value as HTMLElement).top - 24;
 
     runRetriveDetail({
+      cluster_id: props.clusterData.id,
       clusterName: props.clusterData.cluster_name,
       componentName: props.role,
       k8sClusterName: props.clusterData.k8s_cluster_name,
