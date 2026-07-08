@@ -207,7 +207,7 @@ def parse_db_from_sqlfile(path: str, files: List[str]):
                 "timestamp": 1733734571
             },
             "request_id": "9faaf67f-1b09-4575-8974-472677b2db5b",
-            "msg": "",
+            "message": "",
             "code": 0
         }
     create_dbs:  create database

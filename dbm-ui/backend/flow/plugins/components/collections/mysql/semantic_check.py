@@ -50,7 +50,7 @@ class SemanticCheckService(BaseService):
             self.log_info(_("创建模拟执行任务resp{}").format(resp))
             code = resp["code"]
             if code != 0:
-                errmsg = resp["msg"]
+                errmsg = resp["message"]
                 self.log_error(_("创建模拟任务失败:{}").format(errmsg))
                 return False
             self.log_info(_("创建模拟任务成功"))
@@ -72,7 +72,7 @@ class SemanticCheckService(BaseService):
             # -
             resp = SQLSimulationApi.query_simulation_task({"task_id": payload["task_id"]}, raw=True)
             code = resp["code"]
-            msg = resp["msg"]
+            msg = resp["message"]
 
             if code == 0:
                 self.log_info("run task success~ ")
@@ -85,7 +85,7 @@ class SemanticCheckService(BaseService):
                 self.log_error("execute stderr: {}".format(stderr))
                 self.finish_schedule()
                 return False
-            self.log_info("running... msg:{}".format(msg))
+            self.log_info("running... message:{}".format(msg))
             return True
         except Exception as e:
             self.log_exception("[{}] failed: {}".format(kwargs.get("node_name", self.__class__.__name__), e))
