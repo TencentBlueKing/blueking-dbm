@@ -884,8 +884,14 @@
           if (!validValues.length) {
             return;
           }
-          const lv = [...localValue.value];
-          lv.splice(inputIndex.value, 0, ...newValues);
+          let lv = [...localValue.value];
+          if (props.multiple) {
+            lv.splice(inputIndex.value, 0, ...newValues);
+          } else {
+            if (newValues.length > 0) {
+              lv = [newValues[0]];
+            }
+          }
           localValue.value = lv;
           if (multiple.value) {
             isFocus.value && moveInput(newValues.length, { reset: true });
