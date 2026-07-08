@@ -204,7 +204,8 @@ func getLocker(iNames []string) (*flock.Flock, error) {
 			nil,
 		)
 		_ = fl.Unlock()
-		return nil, errors.Wrapf(err, "main loop lock file %s failed, may be last round not finish", lockFilePath)
+		// TryLock 在锁被占用时 err 为 nil，不能用 Wrapf(err, ...)
+		return nil, errors.Errorf("main loop lock file %s failed, may be last round not finish", lockFilePath)
 	}
 
 	slog.Info("main loop get lock success", slog.String("lockFilePath", lockFilePath))
