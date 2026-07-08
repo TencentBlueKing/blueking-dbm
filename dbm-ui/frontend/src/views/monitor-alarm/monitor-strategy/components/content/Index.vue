@@ -580,7 +580,7 @@
     },
   });
 
-  const { loading: isGlobalMonitorPolicyLoading, runAsync: runGetGlobalMonitorPolicy } = useRequest(
+  const { loading: isGlobalMonitorPolicyLoading, runAsync: runQueryGlobalMonitorPolicy } = useRequest(
     queryMonitorPolicyList,
     {
       manual: true,
@@ -965,11 +965,12 @@
     }
 
     // 预检测对应全局策略的最新数据，对比更新时间
-    runGetGlobalMonitorPolicy({
+    runQueryGlobalMonitorPolicy({
       bk_biz_id: 0,
       db_type: props.dbType,
       id: row.isInnerReal ? row.id : row.parent_id,
       limit: -1,
+      not_need_global: 1,
       offset: 0,
     }).then((res) => {
       const getGlobalPolicyList = res.results;
@@ -1086,11 +1087,12 @@
 
     if (row.isInnerReal || row.isInnerFake || (row.isCustom && type === 'edit')) {
       // 预检测对应全局策略的最新数据，对比更新时间
-      runGetGlobalMonitorPolicy({
+      runQueryGlobalMonitorPolicy({
         bk_biz_id: 0,
         db_type: props.dbType,
         id: row.isInnerReal ? row.id : row.parent_id,
         limit: -1,
+        not_need_global: 1,
         offset: 0,
       }).then((res) => {
         const getGlobalPolicyList = res.results;
