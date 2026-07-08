@@ -118,7 +118,7 @@
             :min-width="80"
             :title="t('状态')">
             <template #default="{ row }: { row: IColumnData }">
-              <ClusterInstanceStatus :data="row.status" />
+              <ClusterK8sInstanceStatus :data="row.status" />
             </template>
           </TableColumn>
           <TableColumn
@@ -126,7 +126,7 @@
             :min-width="150"
             :title="t('资源配置')">
             <template #default="{ row }: { row: IColumnData }">
-              {{ `${row.resourceQuota.limitCpu}C / ${row.resourceQuota.limitMemory}GB` }}
+              {{ row.resourceQuotaDisplay }}
             </template>
           </TableColumn>
           <TableColumn
@@ -193,7 +193,7 @@
       v-model="isPatchComponentConfigShow"
       :cluster-data="clusterData"
       :role="role"
-      @success="handlePatchComponentConfigSuccess" />
+      @success="handleOperateSuccess" />
     <VscalingComponent
       v-model="isVscalingComponentShow"
       :cluster-data="clusterData"
@@ -224,15 +224,15 @@
   import QdrantHaDetailModel from '@services/model/qdrant/qdrant-ha-detail';
   import SurrealdbHaDetailModel from '@services/model/surrealdb/surrealdb-ha-detail';
   import SurrealdbSingleDetailModel from '@services/model/surrealdb/surrealdb-single-detail';
-  import { restartComponent } from '@services/source/kubernetesToolbox.ts';
 
+  // import { restartComponent } from '@services/source/kubernetesToolbox.ts';
   import { useUrlSearch } from '@hooks';
 
   import { useUserProfile } from '@stores';
 
   import { clusterTypeInfos, ClusterTypes } from '@common/const';
 
-  import ClusterInstanceStatus from '@components/cluster-instance-status/Index.vue';
+  import ClusterK8sInstanceStatus from '@components/cluster-k8s-instance-status/Index.vue';
 
   import { useK8sInstanceOperations } from '@views/db-manage/common/hooks';
   import InstanceBatchCopy from '@views/db-manage/common/instance-batch-copy/Index.vue';
@@ -384,21 +384,21 @@
     isPatchComponentConfigShow.value = true;
   };
 
-  const handlePatchComponentConfigSuccess = () => {
-    restartComponent({
-      bk_username: userProfile.username,
-      clusterName: props.clusterData.cluster_name,
-      k8sClusterName: props.clusterData.k8s_cluster_name,
-      namespace: props.clusterData.namespace,
-      restart: [
-        {
-          componentName: props.role,
-        },
-      ],
-    }).then(() => {
-      handleOperateSuccess();
-    });
-  };
+  // const handlePatchComponentConfigSuccess = () => {
+  //   restartComponent({
+  //     bk_username: userProfile.username,
+  //     clusterName: props.clusterData.cluster_name,
+  //     k8sClusterName: props.clusterData.k8s_cluster_name,
+  //     namespace: props.clusterData.namespace,
+  //     restart: [
+  //       {
+  //         componentName: props.role,
+  //       },
+  //     ],
+  //   }).then(() => {
+  //     handleOperateSuccess();
+  //   });
+  // };
 
   const handleVscalingComponentShow = () => {
     isVscalingComponentShow.value = true;

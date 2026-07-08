@@ -71,6 +71,7 @@ interface ClusterTopoProps {
   clusterData: {
     cluster_name: string;
     id: number;
+    isOffline: boolean;
     k8s_cluster_name?: string;
     namespace?: string;
   };
@@ -113,6 +114,9 @@ export const useRenderGraph = (props: ClusterTopoProps) => {
   );
 
   const renderDraph = (data: ResourceTopo) => {
+    if (props.clusterData.isOffline) {
+      return;
+    }
     graphInstance?.destroy();
     const graphData = new GraphData(props.clusterType, props.nodeConfig).formatGraphData(data, props.dbType);
     graphInstance = new Graph({

@@ -75,6 +75,7 @@
     clusterData: {
       cluster_name: string;
       db_type: string;
+      id: number;
       k8s_cluster_name: string;
       namespace: string;
     };

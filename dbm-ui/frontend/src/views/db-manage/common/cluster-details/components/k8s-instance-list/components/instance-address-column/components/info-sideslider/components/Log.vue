@@ -57,7 +57,7 @@
 
   import { useUserProfile } from '@stores';
 
-  import { getOffset, utcDisplayTime } from '@utils';
+  import { getOffset } from '@utils';
 
   interface Props {
     clusterData: {
@@ -122,54 +122,60 @@
   const { loading: isLoading, run: getLogs } = useRequest(getPodLog, {
     manual: true,
     onSuccess(logResult) {
-      const formattedLogs = formatLogs(logResult.result);
-      editor.setValue(formattedLogs.join('\n'));
-      highlightLinesByLevel(editor, formattedLogs);
+      // const formattedLogs = formatLogs(logResult.result);
+      // editor.setValue(formattedLogs.join('\n'));
+      // highlightLinesByLevel(editor, formattedLogs);
+      const formattedLogs = logResult.result.map((item) => `${item.timestamp} ${item.message}`).join('\n');
+      editor.setValue(formattedLogs);
     },
   });
 
-  const formatLogs = (logs: Array<{ message: string; timestamp: string }>) =>
-    logs.map((log) => {
-      const parsed = JSON.parse(log.message) as { caller?: string; level?: string; msg?: string };
-      const level = (parsed.level || 'unknown').toUpperCase();
-      const msg = parsed.msg || '';
-      const timestamp = utcDisplayTime(log.timestamp);
-      return `[${timestamp}] [${level}]${msg}`;
-    });
+  // const formatLogs = (logs: Array<{ message: string; timestamp: string }>) =>
+  //   logs.map((log) => {
+  //     try {
+  //       const parsed = JSON.parse(lzog.message) as { caller?: string; level?: string; msg?: string };
+  //       const level = (parsed.level || 'unknown').toUpperCase();
+  //       const msg = parsed.msg || '';
+  //       const timestamp = utcDisplayTime(log.timestamp);
+  //       return `[${timestamp}] [${level}]${msg}`;
+  //     } catch {
+  //       return log.message;
+  //     }
+  //   });
 
   // 添加/更新行背景色
-  const highlightLinesByLevel = (editor: monaco.editor.IStandaloneCodeEditor, logs: string[]): void => {
-    if (!decorationsCollection) {
-      decorationsCollection = editor.createDecorationsCollection();
-    }
+  // const highlightLinesByLevel = (editor: monaco.editor.IStandaloneCodeEditor, logs: string[]): void => {
+  //   if (!decorationsCollection) {
+  //     decorationsCollection = editor.createDecorationsCollection();
+  //   }
 
-    const newDecorations: monaco.editor.IModelDeltaDecoration[] = [];
+  //   const newDecorations: monaco.editor.IModelDeltaDecoration[] = [];
 
-    logs.forEach((log, index) => {
-      const lineNum = index + 1;
+  //   logs.forEach((log, index) => {
+  //     const lineNum = index + 1;
 
-      if (log.includes('[WARN]')) {
-        newDecorations.push({
-          options: {
-            className: 'warn-line',
-            isWholeLine: true,
-          },
-          range: new monaco.Range(lineNum, 1, lineNum, 1),
-        });
-      } else if (log.includes('[ERROR]')) {
-        newDecorations.push({
-          options: {
-            className: 'error-line',
-            isWholeLine: true,
-          },
-          range: new monaco.Range(lineNum, 1, lineNum, 1),
-        });
-      }
-    });
+  //     if (log.includes('[WARN]')) {
+  //       newDecorations.push({
+  //         options: {
+  //           className: 'warn-line',
+  //           isWholeLine: true,
+  //         },
+  //         range: new monaco.Range(lineNum, 1, lineNum, 1),
+  //       });
+  //     } else if (log.includes('[ERROR]')) {
+  //       newDecorations.push({
+  //         options: {
+  //           className: 'error-line',
+  //           isWholeLine: true,
+  //         },
+  //         range: new monaco.Range(lineNum, 1, lineNum, 1),
+  //       });
+  //     }
+  //   });
 
-    // 直接设置装饰器集合
-    decorationsCollection.set(newDecorations);
-  };
+  //   // 直接设置装饰器集合
+  //   decorationsCollection.set(newDecorations);
+  // };
 
   watch(
     () => [props.role, props.podName],
@@ -186,10 +192,11 @@
     monaco.languages.setMonarchTokensProvider('structured-log', {
       tokenizer: {
         root: [
-          [/\[\d{4}-\d{2}-\d{2}(?:\s\d{2}:\d{2}:\d{2}(?:\s\+\d{4})?)?\]/, 'log-timestamp'],
-          [/\[INFO\]/, 'log-info'],
-          [/\[WARN\]/, 'log-warn'],
-          [/\[ERROR\]/, 'log-error'],
+          // [/\[\d{4}-\d{2}-\d{2}(?:\s\d{2}:\d{2}:\d{2}(?:\s\+\d{4})?)?\]/, 'log-timestamp'],
+          [/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}/, 'log-timestamp'],
+          // [/\[INFO\]/, 'log-info'],
+          // [/\[WARN\]/, 'log-warn'],
+          // [/\[ERROR\]/, 'log-error'],
         ],
       },
     });
@@ -200,11 +207,10 @@
       colors: { 'editor.background': '#1E1E1E' },
       inherit: true,
       rules: [
-        { foreground: '#858585', token: 'log-timestamp' },
-        { fontStyle: 'bold', foreground: '2dcb56', token: 'log-info' },
-        { fontStyle: 'bold', foreground: 'ff9c01', token: 'log-warn' },
-        { fontStyle: 'bold', foreground: 'ea3636', token: 'log-error' },
-        { foreground: 'CE9178', token: 'log-caller' },
+        { fontStyle: 'bold', foreground: '#858585', token: 'log-timestamp' },
+        // { fontStyle: 'bold', foreground: '2dcb56', token: 'log-info' },
+        // { fontStyle: 'bold', foreground: 'ff9c01', token: 'log-warn' },
+        // { fontStyle: 'bold', foreground: 'ea3636', token: 'log-error' },
       ],
     });
   };
@@ -274,13 +280,13 @@
       decorationsCollection = editor.createDecorationsCollection();
 
       // 单独给每行加左内边距
-      const style = document.createElement('style');
-      style.textContent = `
-        .monaco-editor .view-line {
-          padding-left: 12px !important;
-        }
-      `;
-      document.head.appendChild(style);
+      // const style = document.createElement('style');
+      // style.textContent = `
+      //   .monaco-editor .view-line {
+      //     padding-left: 12px !important;
+      //   }
+      // `;
+      // document.head.appendChild(style);
     });
   });
 

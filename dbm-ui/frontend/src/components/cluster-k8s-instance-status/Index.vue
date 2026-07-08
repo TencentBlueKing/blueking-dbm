@@ -39,7 +39,7 @@
   });
 
   const statusInfo = computed(() => {
-    const status = props.data.toLowerCase();
+    const status = props.data;
     return clusterK8sInstStatus[status as keyof typeof clusterK8sInstStatus];
   });
 </script>

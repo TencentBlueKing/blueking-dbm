@@ -11,6 +11,8 @@
  * the specific language governing permissions and limitations under the License.
  */
 
+import { ClusterK8sInstStatusKeys } from '@common/const';
+
 import { utcDisplayTime } from '@/utils';
 
 export default class SurrealHaInstance {
@@ -49,5 +51,11 @@ export default class SurrealHaInstance {
 
   get createdTimeDisplay() {
     return utcDisplayTime(this.createdTime);
+  }
+
+  get resourceQuotaDisplay() {
+    return this.status === ClusterK8sInstStatusKeys.RUNNING
+      ? `${this.resourceQuota.limitCpu}C / ${this.resourceQuota.limitMemory}GB`
+      : '--';
   }
 }

@@ -31,7 +31,7 @@
         :loading="isLoading"
         theme="primary"
         @click="handleConfirm">
-        {{ t('保存并重启') }}
+        {{ t('保存') }}
       </BkButton>
       <BkButton
         :disabled="isLoading"
@@ -156,7 +156,7 @@
   .k8s-instance-list-patch-config {
     display: flex;
     width: 100%;
-    padding: 24px 24px 0 24px;
+    padding: 24px 24px 0;
     flex-direction: column;
 
     .config-header {

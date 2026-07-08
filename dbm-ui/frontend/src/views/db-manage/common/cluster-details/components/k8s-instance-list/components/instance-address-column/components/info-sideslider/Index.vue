@@ -33,11 +33,11 @@
             </div>
             <div class="info-item">
               <span class="info-label">{{ t('状态') }}：</span>
-              <ClusterInstanceStatus :data="data.status" />
+              <ClusterK8sInstanceStatus :data="data.status" />
             </div>
             <div class="info-item">
               <span class="info-label">{{ t('资源配置') }}：</span>
-              <span>{{ `${data.resourceQuota.limitCpu}C / ${data.resourceQuota.limitMemory}GB` }}</span>
+              <span>{{ data.resourceQuotaDisplay }}</span>
             </div>
           </div>
         </div>
@@ -75,10 +75,11 @@
   import type { ComponentProps } from 'vue-component-type-helpers';
   import { useI18n } from 'vue-i18n';
 
+  import QdrantHaInstanceModel from '@services/model/qdrant/qdrant-ha-instance.ts';
   import SurrealdbHaInstanceModel from '@services/model/surrealdb/surrealdb-ha-instance';
   import SurrealdbSingleInstanceModel from '@services/model/surrealdb/surrealdb-single-instance';
 
-  import ClusterInstanceStatus from '@components/cluster-instance-status/Index.vue';
+  import ClusterK8sInstanceStatus from '@components/cluster-k8s-instance-status/Index.vue';
 
   import Config from './components/Config.vue';
   import Log from './components/Log.vue';
@@ -87,11 +88,12 @@
     clusterData: {
       cluster_name: string;
       db_type: string;
+      id: number;
       k8s_cluster_name: string;
       namespace: string;
     };
     clusterType: ComponentProps<typeof Config>['clusterType'];
-    data: SurrealdbHaInstanceModel | SurrealdbSingleInstanceModel;
+    data: SurrealdbHaInstanceModel | SurrealdbSingleInstanceModel | QdrantHaInstanceModel;
     role: string;
   }
 
