@@ -57,7 +57,7 @@
         <div class="content-value">
           <BackupDbTags :list="modelValue.backup_db_list" />
         </div>
-        <div class="content-label">{{ t('备份排除库 ：') }}</div>
+        <div class="content-label">{{ t('备份缺失库 ：') }}</div>
         <div class="content-value">
           <BackupDbTags
             :list="modelValue.excluded_db_list"
