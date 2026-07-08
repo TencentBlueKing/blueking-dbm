@@ -110,3 +110,116 @@ class JobCallBackViewSet(BaseProxyPassViewSet):
             logger.info(_("[{}]nginx重启成功").format(job_inst_id))
 
         return Response()
+
+    @common_swagger_auto_schema(
+        operation_summary=_("nginx配置文件删除job回调视图"),
+        request_body=JobCallBackSerializer(),
+        tags=[SWAGGER_TAG],
+    )
+    @action(methods=["POST"], detail=False, serializer_class=JobCallBackSerializer, url_path="delete_conf_callback")
+    def delete_conf_callback(self, request):
+        logger.info(f"nginx delete conf job callback: {request.data}")
+
+        validated_data = self.params_validate(self.get_serializer_class())
+        job_inst_id = validated_data["job_instance_id"]
+        if validated_data["status"] not in SUCCESS_LIST:
+            logger.error(_("[{}]nginx配置文件删除失败，保留DB记录等待下次重试").format(job_inst_id))
+            return Response()
+
+        extension_ids = RedisConn.lrange(job_inst_id, 0, -1)
+        if not extension_ids:
+            logger.error(_("[{}]nginx配置文件删除job信息缓存已过期，请考虑是否删除时间过长").format(job_inst_id))
+            return Response()
+
+        deleted_count, __ = ClusterExtension.objects.filter(id__in=extension_ids, is_deleted=True).delete()
+        RedisConn.delete(job_inst_id)
+        logger.info(_("[{}]nginx配置文件删除成功，已删除{}条DB记录").format(job_inst_id, deleted_count))
+
+        return Response()
+
+    @common_swagger_auto_schema(
+        operation_summary=_("nginx配置文件巡检job回调视图"),
+        request_body=JobCallBackSerializer(),
+        tags=[SWAGGER_TAG],
+    )
+    @action(methods=["POST"], detail=False, serializer_class=JobCallBackSerializer, url_path="inspect_conf_callback")
+    def inspect_conf_callback(self, request):
+        logger.info(f"nginx inspect conf job callback: {request.data}")
+
+        validated_data = self.params_validate(self.get_serializer_class())
+        job_inst_id = validated_data["job_instance_id"]
+        if validated_data["status"] not in SUCCESS_LIST:
+            logger.error(_("[{}]nginx子配置巡检失败，跳过本次巡检结果").format(job_inst_id))
+            return Response()
+
+        cache_infos = RedisConn.lrange(job_inst_id, 0, -1)
+        if len(cache_infos) < 2:
+            logger.error(_("[{}]nginx子配置巡检job信息缓存已过期，请考虑是否巡检时间过长").format(job_inst_id))
+            return Response()
+
+        bk_cloud_id, nginx_ip = cache_infos[0], cache_infos[1]
+        step_instance_id = self._get_job_step_instance_id(job_inst_id)
+        if not step_instance_id:
+            return Response()
+
+        log_content = self._get_job_ip_log(
+            job_instance_id=job_inst_id,
+            step_instance_id=step_instance_id,
+            bk_cloud_id=bk_cloud_id,
+            ip=nginx_ip,
+        )
+        missing_extension_ids = self._parse_missing_cluster_extension_ids(log_content)
+        if not missing_extension_ids:
+            RedisConn.delete(job_inst_id)
+            logger.info(_("[{}]nginx子配置巡检未发现缺失配置文件").format(job_inst_id))
+            return Response()
+
+        updated_count = ClusterExtension.objects.filter(
+            id__in=missing_extension_ids, is_flush=True, is_deleted=False
+        ).update(is_flush=False)
+        RedisConn.delete(job_inst_id)
+        logger.info(_("[{}]nginx子配置巡检发现{}条记录缺失配置文件，已更新为待下发").format(job_inst_id, updated_count))
+
+        return Response()
+
+    def _get_job_step_instance_id(self, job_instance_id):
+        status_payload = {
+            "bk_scope_type": "biz_set",
+            "bk_scope_id": env.JOB_BLUEKING_BIZ_ID,
+            "job_instance_id": job_instance_id,
+            "return_ip_result": True,
+        }
+        resp = JobApi.get_job_instance_status(status_payload, raw=True)
+        if not resp.get("result") or not resp.get("data") or not resp["data"].get("step_instance_list"):
+            logger.error(_("获取job步骤实例失败，job_instance_id: {}, resp: {}").format(job_instance_id, resp))
+            return None
+
+        return resp["data"]["step_instance_list"][0]["step_instance_id"]
+
+    def _get_job_ip_log(self, job_instance_id, step_instance_id, bk_cloud_id, ip):
+        log_payload = {
+            "bk_scope_type": "biz_set",
+            "bk_scope_id": env.JOB_BLUEKING_BIZ_ID,
+            "job_instance_id": job_instance_id,
+            "step_instance_id": step_instance_id,
+            "bk_cloud_id": bk_cloud_id,
+            "ip": ip,
+        }
+        resp = JobApi.get_job_instance_ip_log(log_payload, raw=True)
+        if not resp.get("result"):
+            logger.error(_("获取job执行日志失败，job_instance_id: {}, resp: {}").format(job_instance_id, resp))
+            return ""
+
+        return resp.get("data", {}).get("log_content", "")
+
+    def _parse_missing_cluster_extension_ids(self, log_content):
+        missing_extension_ids = []
+        for line in log_content.splitlines():
+            if not line.startswith("MISSING_CLUSTER_EXTENSION_ID="):
+                continue
+            try:
+                missing_extension_ids.append(int(line.split("=", 1)[1]))
+            except (TypeError, ValueError):
+                logger.warning(_("解析缺失nginx子配置记录失败，日志行: {}").format(line))
+
+        return missing_extension_ids
