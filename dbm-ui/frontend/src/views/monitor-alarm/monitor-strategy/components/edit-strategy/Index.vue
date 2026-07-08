@@ -697,6 +697,7 @@
       db_type: props.dbType,
       id: props.data.isInnerReal ? props.data.id : props.data.parent_id,
       limit: -1,
+      not_need_global: 1,
       offset: 0,
     });
 
