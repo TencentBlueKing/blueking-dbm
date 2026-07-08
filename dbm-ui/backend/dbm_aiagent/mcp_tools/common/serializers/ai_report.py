@@ -28,6 +28,8 @@ class WriteAiReportInputSerializer(serializers.Serializer):
 
 class WriteAiReportOutputSerializer(serializers.Serializer):
     report_id = serializers.CharField(help_text=_("报告 ID（UUIDv7）"))
+    bk_biz_id = serializers.IntegerField(help_text=_("业务 ID"))
+    share_url = serializers.CharField(help_text=_("报告分享链接"))
     message = serializers.CharField(help_text=_("操作结果信息"))
 
 
@@ -46,10 +48,10 @@ class AiReportDetailSerializer(serializers.Serializer):
     title = serializers.CharField(help_text=_("报告标题"))
     summary = serializers.CharField(help_text=_("报告摘要"))
     content = serializers.CharField(help_text=_("分析结果内容"))
-    context = serializers.JSONField(help_text=_("附加上下文信息"))
     creator = serializers.CharField(help_text=_("创建者"))
     create_at = serializers.DateTimeField(help_text=_("创建时间"))
     update_at = serializers.DateTimeField(help_text=_("更新时间"))
+    share_url = serializers.CharField(help_text=_("报告分享链接"))
 
 
 class ReadAiReportOutputSerializer(serializers.Serializer):

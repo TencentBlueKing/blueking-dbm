@@ -64,9 +64,12 @@ func (c *SlowlogReport) Run() (msg string, err error) {
 		_ = fl.Unlock()
 	}()
 
-	_, err = fl.TryLock()
+	locked, err := fl.TryLock()
 	if err != nil {
 		return "", err
+	}
+	if !locked {
+		return "", nil
 	}
 
 	err = c.loadCurrentDBFromDisk()

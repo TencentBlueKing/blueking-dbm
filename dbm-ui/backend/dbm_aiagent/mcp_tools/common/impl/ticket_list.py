@@ -64,15 +64,6 @@ def ticket_list(
 
         include_want_cluster_domains = bool(set(relate_cluster_domains) & set(want_cluster_domains))
         if not want_cluster_domains or (want_cluster_domains and include_want_cluster_domains):
-            # if BuilderFactory.ai_details_summary_enabled(t.ticket_type):
-            #     try:
-            #         builder_cls = BuilderFactory.get_builder_cls(t.ticket_type)
-            #         ticket_param = builder_cls.ai_summary_details(t)
-            #     except NotImplementedError:
-            #         ticket_param = t.details
-            # else:
-            #     ticket_param = t.details
-
             want_tickets.append(
                 {
                     "ticket_id": t.pk,
