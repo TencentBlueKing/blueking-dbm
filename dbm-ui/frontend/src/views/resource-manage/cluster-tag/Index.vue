@@ -43,6 +43,7 @@
       ref="tableRef"
       :data-source="listClusterTag"
       :merge-cells="mergeCells"
+      :progressive-load="false"
       @request-finished="handleRequestFinished">
       <BkTableColumn
         field="key"

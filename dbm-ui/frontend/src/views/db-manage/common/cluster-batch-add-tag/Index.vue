@@ -48,51 +48,61 @@
       <template #aside>
         <div class="preview-operate-main">
           <div class="title-main">
-            <span>{{ t('受影响集群') }}</span>
-            【
+            <span style="font-weight: 700">{{ t('已选集群') }}</span>
+            <span class="ml-4 mr-4">(</span>
             <I18nT
-              keypath="共n个"
+              keypath="共 n 个，添加 x 个，跳过 y 个"
               tag="span">
-              <span style="color: #3a84ff">{{ selectedClusters.length - filterClusterIds.length }}</span>
+              <template #n>
+                <span style="font-weight: 700">{{ selectedClusters.length }}</span>
+              </template>
+              <template #x>
+                <span style="font-weight: 700; color: #2caf5e">{{
+                  selectedClusters.length - filterClusterIds.length
+                }}</span>
+              </template>
+              <template #y>
+                <span style="font-weight: 700">{{ filterClusterIds.length }}</span>
+              </template>
             </I18nT>
-            】
-          </div>
-          <div
-            v-if="filterClusterIds.length"
-            class="skip-tag-main">
-            <BkAlert
-              theme="warning"
-              :title="t('已自动跳过 n 个集群：包含同名标签键', { n: filterClusterIds.length })" />
+            <span class="ml-4 mr-4">)</span>
           </div>
           <div class="cluster-list-main">
-            <template v-if="validClusters.length">
+            <div
+              v-for="item in selectedClusters"
+              :key="item.id"
+              class="cluster-item">
               <div
-                v-for="item in validClusters"
-                :key="item.id"
-                class="cluster-item">
-                <div
-                  v-overflow-tips
-                  class="cluster-name">
-                  {{ item.masterDomain }}
-                </div>
-                <DbIcon
-                  class="operate-icon"
-                  style="font-size: 14px"
-                  type="copy"
-                  @click="() => execCopy(item.masterDomain)" />
-                <!-- <DbIcon
+                v-overflow-tips
+                class="cluster-name"
+                :class="{ 'is-skip': filterClusterIds.includes(item.id) }">
+                {{ item.masterDomain }}
+              </div>
+              <DbIcon
+                class="operate-icon"
+                style="font-size: 14px"
+                type="copy"
+                @click="() => execCopy(item.masterDomain)" />
+              <BkTag
+                v-if="filterClusterIds.includes(item.id)"
+                class="status-icon"
+                size="small">
+                {{ t('跳过') }}
+              </BkTag>
+              <BkTag
+                v-else
+                class="status-icon"
+                size="small"
+                theme="success">
+                {{ t('添加') }}
+              </BkTag>
+
+              <!-- <DbIcon
                   class="operate-icon ml-6"
                   style="font-size: 18px"
                   type="close"
                   @click="() => handleRemoveCluster(index)" /> -->
-              </div>
-            </template>
-            <BkException
-              v-else
-              class="exception-main"
-              scene="part"
-              :title="t('选中的集群均已包含同名标签键，无需操作')"
-              type="empty" />
+            </div>
           </div>
         </div>
       </template>
@@ -147,20 +157,13 @@
   const filterClusterIds = ref<number[]>([]);
   const isAbleToAddTags = ref(false);
 
-  const validClusters = computed(() => {
-    if (!filterClusterIds.value.length) {
-      return selectedClusters.value;
-    }
-
-    return selectedClusters.value.filter((item) => !filterClusterIds.value.includes(item.id));
-  });
-
   const { loading: confirmLoading, run: handleAddClusterTagKeys } = useRequest(addClusterTagKeys, {
     manual: true,
     onSuccess() {
       messageSuccess(t('操作成功'));
       emits('success');
       isShow.value = false;
+      filterClusterIds.value = [];
     },
   });
 
@@ -184,45 +187,53 @@
     isShow.value = false;
   };
 
-  const checkValidTags = async () => {
-    const tagsInfo = await tagOperationRef.value!.getValue();
-    if (!tagsInfo) {
-      isAbleToAddTags.value = false;
-      return null;
-    }
+  const checkValidTags = () => {
+    return new Promise((resolve) => {
+      setTimeout(async () => {
+        const tagsInfo = await tagOperationRef.value!.getValue();
+        if (!tagsInfo) {
+          isAbleToAddTags.value = false;
+          resolve(null);
+          return;
+        }
 
-    filterClusterIds.value = [];
-    const tags = tagsInfo.map((item) => ({
-      [item.key]: item.value,
-    }));
-    const clusterIdTagsMap = selectedClusters.value.reduce<Record<string, Record<string, string>>>((result, item) => {
-      Object.assign(result, {
-        [item.id]: item.tags.reduce<Record<string, string>>((tagsResult, tag) => {
-          Object.assign(tagsResult, {
-            [tag.key]: tag.value,
-          });
-          return tagsResult;
-        }, {}),
+        filterClusterIds.value = [];
+        const tags = tagsInfo.map((item) => ({
+          [item.key]: item.value,
+        }));
+        const clusterIdTagsMap = selectedClusters.value.reduce<Record<string, Record<string, string>>>(
+          (result, item) => {
+            Object.assign(result, {
+              [item.id]: item.tags.reduce<Record<string, string>>((tagsResult, tag) => {
+                Object.assign(tagsResult, {
+                  [tag.key]: tag.value,
+                });
+                return tagsResult;
+              }, {}),
+            });
+            return result;
+          },
+          {},
+        );
+        const tagsKeys = tags.map((tag) => Object.keys(tag)[0]);
+        Object.entries(clusterIdTagsMap).forEach(([clusterId, tagsObj]) => {
+          if (tagsKeys.every((tagKey) => tagKey in tagsObj)) {
+            filterClusterIds.value.push(Number(clusterId));
+          }
+        });
+        const clusterIds = selectedClusters.value.map((item) => item.id);
+        if (filterClusterIds.value.length === selectedClusters.value.length) {
+          isAbleToAddTags.value = false;
+          return null;
+        }
+
+        isAbleToAddTags.value = true;
+        resolve({
+          clusterIds: _.difference(clusterIds, filterClusterIds.value),
+          tags,
+        });
       });
-      return result;
-    }, {});
-    const tagsKeys = tags.map((tag) => Object.keys(tag)[0]);
-    Object.entries(clusterIdTagsMap).forEach(([clusterId, tagsObj]) => {
-      if (tagsKeys.every((tagKey) => tagKey in tagsObj)) {
-        filterClusterIds.value.push(Number(clusterId));
-      }
     });
-    const clusterIds = selectedClusters.value.map((item) => item.id);
-    if (filterClusterIds.value.length === selectedClusters.value.length) {
-      isAbleToAddTags.value = false;
-      return null;
-    }
-
-    isAbleToAddTags.value = true;
-    return {
-      clusterIds: _.difference(clusterIds, filterClusterIds.value),
-      tags,
-    };
   };
 
   const handleConfirm = async () => {
@@ -286,7 +297,7 @@
             display: flex;
             height: 40px;
             padding-left: 24px;
-            font-weight: 700;
+            color: #313238;
             background: #fff;
             border: 1px solid #dcdee5;
             border-radius: 0 2px 2px 0;
@@ -331,10 +342,15 @@
               }
 
               .cluster-name {
-                flex: 1;
                 overflow: hidden;
+                color: #4d4f56;
                 text-overflow: ellipsis;
                 white-space: nowrap;
+                flex: 1;
+
+                &.is-skip {
+                  color: #c4c6cc;
+                }
               }
 
               .operate-icon {
