@@ -511,6 +511,8 @@ app.conf.enable_utc = False
 app.conf.timezone = "Asia/Shanghai"
 app.conf.broker_url = env.BROKER_URL
 app.conf.broker_connection_retry_on_startup = True
+app.conf.worker_log_format = "[%(asctime)s: %(levelname)s/%(processName)s] %(name)s %(message)s"
+app.conf.worker_task_log_format = "[%(asctime)s: %(levelname)s/%(processName)s] %(name)s %(message)s"
 
 # 版本日志
 VERSION_LOG = {"MD_FILES_DIR": os.path.join(PROJECT_ROOT, "release")}

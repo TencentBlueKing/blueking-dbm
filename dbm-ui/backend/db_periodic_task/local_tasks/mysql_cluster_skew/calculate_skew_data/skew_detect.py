@@ -18,6 +18,7 @@ from typing import Any, Generator, Iterable
 import numpy as np
 from blueapps.core.celery.celery import app
 from django.core.cache import cache
+from django.utils import timezone
 
 from backend.db_meta.enums import ClusterType
 from backend.db_periodic_task.local_tasks.mysql_cluster_skew.calculate_skew_data.fetch_metrics import (
@@ -266,7 +267,7 @@ def calculate_clusters_skew(cluster_type: str, cluster_domains: list[str], lock_
         len(cluster_domains),
     )
     try:
-        now = datetime.now()
+        now = timezone.now().replace(tzinfo=None)
         skew_results, fetch_elapsed, analyze_elapsed = _detect_clusters_skew(
             ClusterType(cluster_type), cluster_domains, now
         )

@@ -9,14 +9,11 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 from collections import defaultdict
-from datetime import date, datetime, timedelta
-from typing import Optional, TypedDict, Union
-
-from django.utils import timezone as django_timezone
+from datetime import datetime, timedelta
+from typing import Optional, TypedDict
 
 from backend.db_meta.models import Cluster
 from backend.db_report.models.cluster_skew_detection import ClusterSkewDetection
-from backend.utils.time import trans_time_zone
 
 # 检测周期 5min，间隔超过 10min 视为新 episode
 _EPISODE_GAP = timedelta(minutes=10)
@@ -37,26 +34,6 @@ class _NodeSnapshot(TypedDict):
     mean_value: float
     pct_deviation: float
     abs_deviation: float
-
-
-def _ensure_aware(dt: datetime) -> datetime:
-    if django_timezone.is_naive(dt):
-        return django_timezone.make_aware(dt, django_timezone.get_current_timezone())
-    return dt
-
-
-def _to_zoned_datetime(value: datetime, time_zone: str) -> datetime:
-    return trans_time_zone(_ensure_aware(value), time_zone)
-
-
-def _format_detect_time(value: datetime, time_zone: str, fmt: str) -> str:
-    return _to_zoned_datetime(value, time_zone).strftime(fmt)
-
-
-def _to_date(value: Union[date, datetime], time_zone: str) -> date:
-    if isinstance(value, datetime):
-        return _to_zoned_datetime(value, time_zone).date()
-    return value
 
 
 def _to_float(value) -> Optional[float]:
@@ -143,21 +120,23 @@ def _split_episodes(
 
 def _classify_hot_pattern(
     snapshots: list[tuple[datetime, frozenset[str], frozenset[str]]],
-    time_zone: str,
-) -> tuple[str, Optional[str]]:
+) -> tuple[str, Optional[list[dict]]]:
     """根据高于均值的节点集合是否随时间变化，判断 fixed / migrating。"""
     hot_sets = [hot for _, hot, _ in snapshots]
     if len(set(hot_sets)) == 1:
         return "fixed", None
 
-    transitions: list[str] = []
+    transitions: list[dict] = []
     for i in range(1, len(snapshots)):
         if hot_sets[i] != hot_sets[i - 1]:
-            t = _format_detect_time(snapshots[i][0], time_zone, "%H:%M")
-            hot_str = ",".join(sorted(hot_sets[i]))
-            transitions.append(f"{t}→{hot_str}")
+            transitions.append(
+                {
+                    "at": snapshots[i][0].strftime("%Y-%m-%d %H:%M"),
+                    "nodes": sorted(hot_sets[i]),
+                }
+            )
 
-    return "migrating", ",".join(transitions) if transitions else None
+    return "migrating", transitions or None
 
 
 def _build_metric_snapshots(
@@ -181,7 +160,6 @@ def _build_metric_snapshots(
 
 def _build_episodes(
     metric_role_snapshots: dict[tuple[str, str], dict[datetime, dict[str, _NodeSnapshot]]],
-    time_zone: str,
 ) -> list[list]:
     """将 (metric, role) 分组的检测快照聚合为 episode 行。"""
     episode_rows: list[list] = []
@@ -194,9 +172,9 @@ def _build_episodes(
             if not hot_nodes and not cold_nodes:
                 continue
 
-            start = _format_detect_time(episode[0][0], time_zone, "%Y-%m-%d %H:%M")
-            end = _format_detect_time(episode[-1][0], time_zone, "%Y-%m-%d %H:%M")
-            pattern, transitions = _classify_hot_pattern(episode, time_zone)
+            start = episode[0][0].strftime("%Y-%m-%d %H:%M")
+            end = episode[-1][0].strftime("%Y-%m-%d %H:%M")
+            pattern, transitions = _classify_hot_pattern(episode)
             episode_rows.append(
                 [
                     metric,
@@ -214,37 +192,31 @@ def _build_episodes(
     return episode_rows
 
 
-_EPISODE_COLUMNS = [
-    "metric",
-    "role",
-    "pattern",
-    "start",
-    "end",
-    "group_mean",
-    "hot_nodes",
-    "cold_nodes",
-    "transitions",
-]
+def _has_episodes(
+    metric_role_snapshots: dict[tuple[str, str], dict[datetime, dict[str, _NodeSnapshot]]],
+) -> bool:
+    for (metric, role), time_nodes in sorted(metric_role_snapshots.items()):
+        snapshots = _build_metric_snapshots(metric, time_nodes)
+        for episode in _split_episodes(snapshots):
+            episode_times = [snap[0] for snap in episode]
+            _, hot_nodes, cold_nodes = _aggregate_episode_deviations(metric, episode_times, time_nodes)
+            if hot_nodes or cold_nodes:
+                return True
+    return False
 
 
-def query_cluster_skew_data(cluster_obj: Cluster, from_date: datetime, to_date: datetime) -> dict:
-    """
-    查询集群倾斜事件段，面向大模型报告生成。
+def _skew_detection_filter(cluster_obj: Cluster, from_date: datetime, to_date: datetime):
+    return ClusterSkewDetection.objects.using("doris").filter(
+        cluster_domain=cluster_obj.immute_domain,
+        dt__range=(from_date.date(), to_date.date()),
+        detect_time__gte=from_date,
+        detect_time__lte=to_date,
+    )
 
-    Gini 判定在写入侧完成；查询侧按绝对值阈值过滤低影响倾斜，并输出 value/mean/pct/abs_dev。
-    """
-    tz = cluster_obj.time_zone
-    from_dt = _ensure_aware(from_date)
-    to_dt = _ensure_aware(to_date)
 
-    rows = list(
-        ClusterSkewDetection.objects.using("doris")
-        .filter(
-            cluster_domain=cluster_obj.immute_domain,
-            dt__range=(_to_date(from_dt, tz), _to_date(to_dt, tz)),
-            detect_time__gte=from_dt,
-            detect_time__lte=to_dt,
-        )
+def _fetch_skew_detection_rows(cluster_obj: Cluster, from_date: datetime, to_date: datetime) -> list[dict]:
+    return list(
+        _skew_detection_filter(cluster_obj, from_date, to_date)
         .values(
             "detect_time",
             "metric_name",
@@ -258,21 +230,8 @@ def query_cluster_skew_data(cluster_obj: Cluster, from_date: datetime, to_date: 
         .order_by("metric_name", "instance_role", "detect_time", "node")
     )
 
-    period = {
-        "from": _format_detect_time(from_dt, tz, "%Y-%m-%d %H:%M"),
-        "to": _format_detect_time(to_dt, tz, "%Y-%m-%d %H:%M"),
-        "time_zone": tz,
-    }
-    empty_result = {
-        "has_skew": False,
-        "cluster": cluster_obj.immute_domain,
-        "period": period,
-        "episodes": _to_table(_EPISODE_COLUMNS, []),
-    }
-    if not rows:
-        return empty_result
 
-    # (metric, role) → detect_time → node → NodeSnapshot
+def _build_metric_role_snapshots(rows: list[dict]) -> dict[tuple[str, str], dict[datetime, dict[str, _NodeSnapshot]]]:
     metric_role_snapshots: dict[tuple[str, str], dict[datetime, dict[str, _NodeSnapshot]]] = defaultdict(
         lambda: defaultdict(dict)
     )
@@ -288,8 +247,52 @@ def query_cluster_skew_data(cluster_obj: Cluster, from_date: datetime, to_date: 
             "pct_deviation": pct_dev,
             "abs_deviation": _to_float(row["abs_deviation"]) or 0,
         }
+    return metric_role_snapshots
 
-    episode_rows = _build_episodes(metric_role_snapshots, tz)
+
+_EPISODE_COLUMNS = [
+    "metric",
+    "role",
+    "pattern",
+    "start",
+    "end",
+    "group_mean",
+    "hot_nodes",
+    "cold_nodes",
+    "transitions",
+]
+
+
+def has_cluster_skew(cluster_obj: Cluster, from_date: datetime, to_date: datetime) -> bool:
+    if not _skew_detection_filter(cluster_obj, from_date, to_date).exists():
+        return False
+    rows = _fetch_skew_detection_rows(cluster_obj, from_date, to_date)
+    return _has_episodes(_build_metric_role_snapshots(rows))
+
+
+def query_cluster_skew_data(cluster_obj: Cluster, from_date: datetime, to_date: datetime) -> dict:
+    """
+    查询集群倾斜事件段，面向大模型报告生成。
+
+    Gini 判定在写入侧完成；查询侧按绝对值阈值过滤低影响倾斜，并输出 value/mean/pct/abs_dev。
+    """
+    rows = _fetch_skew_detection_rows(cluster_obj, from_date, to_date)
+
+    period = {
+        "from": from_date.strftime("%Y-%m-%d %H:%M"),
+        "to": to_date.strftime("%Y-%m-%d %H:%M"),
+    }
+    empty_result = {
+        "has_skew": False,
+        "cluster": cluster_obj.immute_domain,
+        "period": period,
+        "episodes": _to_table(_EPISODE_COLUMNS, []),
+    }
+    if not rows:
+        return empty_result
+
+    metric_role_snapshots = _build_metric_role_snapshots(rows)
+    episode_rows = _build_episodes(metric_role_snapshots)
     if not episode_rows:
         return empty_result
 
