@@ -95,7 +95,7 @@
 
   import { useCreateTicket, useTicketDetail } from '@hooks';
 
-  import { Affinity, clusterRedisTypeList, ClusterTypes, TicketTypes } from '@common/const';
+  import { Affinity, ClusterTypes, TicketTypes } from '@common/const';
 
   import type { TabConfig } from '@components/cluster-selector/Index.vue';
 
@@ -195,7 +195,13 @@
     [ClusterTypes.REDIS]: {
       getResourceList: (params: Record<string, any>) =>
         getRedisList({
-          cluster_type: clusterRedisTypeList.join(','),
+          // 暂不支持 TendisPlus 标准版
+          cluster_type: [
+            ClusterTypes.TWEMPROXY_REDIS_INSTANCE,
+            ClusterTypes.PREDIXY_TENDISPLUS_CLUSTER,
+            ClusterTypes.TWEMPROXY_TENDIS_SSD_INSTANCE,
+            ClusterTypes.PREDIXY_REDIS_CLUSTER,
+          ].join(','),
           ...params,
         }),
     },
