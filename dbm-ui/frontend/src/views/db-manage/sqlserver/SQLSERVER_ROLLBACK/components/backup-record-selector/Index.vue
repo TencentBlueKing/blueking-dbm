@@ -180,6 +180,7 @@
   import BackupDbTags from '../BackupDbTags.vue';
 
   interface Props {
+    backupTime?: string;
     cluster: {
       id: number;
     };
@@ -319,6 +320,7 @@
       loading.value = true;
       const results = await queryBackupLogs({
         cluster_id: props.cluster.id,
+        end_time: props.backupTime,
       });
 
       originalData.value = results;
