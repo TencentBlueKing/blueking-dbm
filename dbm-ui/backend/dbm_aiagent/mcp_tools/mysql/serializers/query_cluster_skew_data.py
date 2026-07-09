@@ -11,6 +11,52 @@ specific language governing permissions and limitations under the License.
 from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
+_EPISODE_ROWS_JSON_SCHEMA = """{
+  "type": "array",
+  "description": "倾斜事件段行数据，每行与 columns 列顺序对应",
+  "items": {
+    "type": "array",
+    "minItems": 9,
+    "maxItems": 9,
+    "prefixItems": [
+      {"type": "string", "title": "metric", "description": "指标名"},
+      {"type": "string", "title": "role", "description": "实例角色"},
+      {"type": "string", "enum": ["fixed", "migrating"], "title": "pattern", "description": "热点模式：fixed 固定，migrating 迁移"},
+      {"type": "string", "title": "start", "description": "事件段起始时间，UTC，格式 YYYY-MM-DD HH:MM"},
+      {"type": "string", "title": "end", "description": "事件段结束时间，UTC，格式 YYYY-MM-DD HH:MM"},
+      {"type": ["number", "null"], "title": "group_mean", "description": "事件段内 role 组均值代表值"},
+      {
+        "type": "string",
+        "title": "hot_nodes",
+        "description": "高于均值的节点，每条格式 node value=X mean=Y pct=±Z% abs_dev=W，多条以 ; 分隔"
+      },
+      {
+        "type": "string",
+        "title": "cold_nodes",
+        "description": "低于均值的节点，每条格式 node value=X mean=Y pct=±Z% abs_dev=W，多条以 ; 分隔"
+      },
+      {
+        "title": "transitions",
+        "description": "热点迁移记录，仅 pattern=migrating 时有值",
+        "oneOf": [
+          {"type": "null"},
+          {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["at", "nodes"],
+              "properties": {
+                "at": {"type": "string", "description": "迁移发生时间，UTC，格式 YYYY-MM-DD HH:MM"},
+                "nodes": {"type": "array", "items": {"type": "string"}, "description": "该时刻高于均值的节点列表"}
+              }
+            }
+          }
+        ]
+      }
+    ]
+  }
+}"""
+
 
 class QueryClusterSkewDataInputSerializer(serializers.Serializer):
     cluster_domain = serializers.CharField(help_text=_("集群域名"))
@@ -24,9 +70,8 @@ class QueryClusterSkewDataInputSerializer(serializers.Serializer):
 
 
 class QueryClusterSkewDataPeriodSerializer(serializers.Serializer):
-    from_ = serializers.CharField(source="from", help_text=_("查询起始时间，集群时区 YYYY-MM-DD HH:MM"))
-    to = serializers.CharField(help_text=_("查询截止时间，集群时区 YYYY-MM-DD HH:MM"))
-    time_zone = serializers.CharField(help_text=_("集群时区，如 +08:00"))
+    from_ = serializers.CharField(source="from", help_text=_("查询起始时间，UTC，格式 YYYY-MM-DD HH:MM"))
+    to = serializers.CharField(help_text=_("查询截止时间，UTC，格式 YYYY-MM-DD HH:MM"))
 
 
 class QueryClusterSkewEpisodesTableSerializer(serializers.Serializer):
@@ -36,15 +81,7 @@ class QueryClusterSkewEpisodesTableSerializer(serializers.Serializer):
     )
     rows = serializers.ListField(
         child=serializers.ListField(),
-        help_text=_(
-            "倾斜事件段行数据。"
-            "group_mean 为 episode 内 role 组均值代表值；"
-            "hot_nodes/cold_nodes 每条格式为 "
-            "node value=X mean=Y pct=±Z% abs_dev=W，多条以 ; 分隔；"
-            "pattern 为 fixed 或 migrating；"
-            "transitions 仅在 migrating 时有值，格式为 HH:MM→nodes；"
-            "start/end/transitions 时间为集群时区"
-        ),
+        help_text=_EPISODE_ROWS_JSON_SCHEMA,
     )
 
 

@@ -257,9 +257,36 @@ func (r *Checker) writeFakeResult(fakeDB string, fakeTbl string, demand bool) er
 		resTable = r.resultTbl
 	}
 
+	ctx := context.Background()
+	var binlogFormatOld string
+	err := r.conn.QueryRowxContext(ctx, `SELECT @@session.binlog_format`).Scan(&binlogFormatOld)
+	if err != nil {
+		slog.Error("get session binlog_format", slog.String("error", err.Error()))
+		return err
+	}
+
+	_, err = r.conn.ExecContext(ctx, `SET SESSION binlog_format='ROW'`)
+	if err != nil {
+		slog.Error("set session binlog_format to ROW", slog.String("error", err.Error()))
+		return err
+	}
+	defer func() {
+		_, restoreErr := r.conn.ExecContext(
+			ctx,
+			fmt.Sprintf("SET SESSION binlog_format='%s'", binlogFormatOld),
+		)
+		if restoreErr != nil {
+			slog.Error(
+				"restore session binlog_format",
+				slog.String("binlog_format", binlogFormatOld),
+				slog.String("error", restoreErr.Error()),
+			)
+		}
+	}()
+
 	ts := time.Now().Format("2006-01-02 15:04:05")
-	_, err := r.conn.ExecContext(
-		context.Background(),
+	_, err = r.conn.ExecContext(
+		ctx,
 		fmt.Sprintf(
 			"REPLACE INTO %s.%s("+
 				"master_ip, master_port, "+

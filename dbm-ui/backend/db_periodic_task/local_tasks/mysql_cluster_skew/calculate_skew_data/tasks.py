@@ -84,8 +84,6 @@ def _dispatch_cluster_skew_task(cluster_type: ClusterType, batch_size: int):
                 calculate_clusters_skew.apply_async(
                     args=[cluster_type.value, cluster_domains, lock_key],
                     countdown=countdown,
-                    soft_time_limit=240,
-                    time_limit=360,
                 )
             scheduled += 1
             logger.info(

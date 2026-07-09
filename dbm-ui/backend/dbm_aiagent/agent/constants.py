@@ -63,3 +63,4 @@ class DBMAgentCode(StrStructuredEnum):
     PULSAR_TASK_GUARDIAN = EnumField("ai-pulsar-taskgd", _("Pulsar单据值守"))
     HDFS_TASK_GUARDIAN = EnumField("ai-hdfs-taskgd", _("HDFS单据值守"))
     DORIS_TASK_GUARDIAN = EnumField("ai-doris-taskgd", _("Doris单据值守"))
+    MYSQL_WORKBENCH = EnumField("ai-mysql-workb", _("ai-mysql-workb"))

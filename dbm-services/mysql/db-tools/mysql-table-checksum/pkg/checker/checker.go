@@ -159,6 +159,11 @@ func (r *Checker) validateSlaves() error {
 }
 
 func (r *Checker) prepareReplicateTable() error {
+	if !r.Config.Enable {
+		slog.Info("checksum disabled, skip create replicate table")
+		return nil
+	}
+
 	ctSql := fmt.Sprintf(
 		`CREATE TABLE IF NOT EXISTS %s.%s (
     master_ip      CHAR(32)     default '0.0.0.0',

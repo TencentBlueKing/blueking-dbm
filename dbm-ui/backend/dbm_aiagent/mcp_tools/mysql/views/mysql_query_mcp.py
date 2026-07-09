@@ -11,6 +11,7 @@ specific language governing permissions and limitations under the License.
 import logging
 
 from django.core.exceptions import ObjectDoesNotExist
+from django.utils import timezone
 from django.utils.translation import gettext as _
 from rest_framework.response import Response
 
@@ -754,8 +755,8 @@ class MySQLQueryMcpToolsViewSet(McpToolsViewSet):
     )
     def query_cluster_skew_data(self, request, *args, **kwargs):
         cluster_domain = self.get_param("cluster_domain")
-        from_date = self.get_param("from_date")
-        to_date = self.get_param("to_date")
+        from_date = self.get_param("from_date").astimezone(timezone.utc)
+        to_date = self.get_param("to_date").astimezone(timezone.utc)
 
         cluster_obj = Cluster.objects.get(
             immute_domain=cluster_domain, cluster_type__in=[ClusterType.TenDBHA, ClusterType.TenDBCluster]
