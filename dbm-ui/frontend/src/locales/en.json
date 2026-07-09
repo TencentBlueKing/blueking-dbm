@@ -6083,5 +6083,6 @@
   "受影响集群": "Affected Clusters",
   "已自动跳过 n 个集群：包含同名标签键": "Auto skipped {n} clusters: contains same tag key",
   "为选中集群添加标签，若标签键不存在则新添加，已存在则跳过": "Add tags to selected clusters, if the tag key does not exist, it will be added, if it exists, it will be skipped",
+  "共 n 个，新增 x 个，跳过 y 个": "Total {n} clusters, add {x} clusters, skip {y} clusters",
   "这行勿动！新增翻译请在上一行添加！": ""
 }

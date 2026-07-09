@@ -285,7 +285,7 @@
             display: flex;
             height: 40px;
             padding-left: 24px;
-            font-weight: 700;
+            color: #313238;
             background: #fff;
             border: 1px solid #dcdee5;
             border-radius: 0 2px 2px 0;

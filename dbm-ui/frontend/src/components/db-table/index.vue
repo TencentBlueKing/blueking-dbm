@@ -127,7 +127,20 @@
 <script setup lang="tsx">
   import type { Table } from 'bkui-vue';
   import _ from 'lodash';
-  import { computed, nextTick, onMounted, reactive, type Ref, ref, shallowRef, type UnwrapRef, type VNode } from 'vue';
+  import {
+    computed,
+    isRef,
+    nextTick,
+    onMounted,
+    reactive,
+    type Ref,
+    ref,
+    shallowRef,
+    type UnwrapRef,
+    useAttrs,
+    type VNode,
+    watch,
+  } from 'vue';
   import { useI18n } from 'vue-i18n';
   import { useRouter } from 'vue-router';
 
@@ -159,6 +172,8 @@
     };
     // data 数据的主键
     primaryKey?: string;
+    // 是否分批加载表格数据（与 merge-cells 等依赖完整行索引的能力不兼容）
+    progressiveLoad?: boolean;
     // 是否解析 URL query 参数
     releateUrlQuery?: boolean;
     remotePagination?: boolean;
@@ -213,6 +228,7 @@
     ignoreBiz: false,
     paginationExtra: () => ({}),
     primaryKey: 'id',
+    progressiveLoad: true,
     releateUrlQuery: false,
     remotePagination: true,
     remoteSort: false,
@@ -226,6 +242,7 @@
 
   const emits = defineEmits<Emits>();
   const slots = defineSlots<Slots>();
+  const attrs = useAttrs();
   // defineOptions({
   //   inheritAttrs: false,
   // });
@@ -316,9 +333,26 @@
     width: 70,
   });
 
+  const getMergeCellsFromAttrs = () => {
+    const mergeCells = attrs['merge-cells'] ?? attrs.mergeCells;
+    return isRef(mergeCells) ? mergeCells.value : mergeCells;
+  };
+
+  const reapplyMergeCells = () => {
+    const mergeCells = getMergeCellsFromAttrs();
+    if (!mergeCells?.length || !bkTableRef.value) {
+      return;
+    }
+
+    nextTick(() => {
+      bkTableRef.value?.getVxeTableInstance()?.setMergeCells(mergeCells);
+    });
+  };
+
   const router = useRouter();
   const { t } = useI18n();
   const paginationLimitCache = useStorage('table_pagination_limit', 20);
+  const { getSearchParams, replaceSearchParams } = useUrlSearch();
 
   const rootRef = ref();
   const bkTableRef = ref();
@@ -386,16 +420,38 @@
   let paramsMemo = {};
   let baseParamsMemo = {};
   let sortParams = {};
-
   let isReady = false;
   let isSortChangeFetch = false;
   let isPaginationChangeFetch = false;
+  let requestKey = 0;
+  let batchRequestTimer: Timeout;
 
   watch(
     () => props.columns,
     () => {
       tableKey.value = Date.now().toString();
     },
+  );
+
+  watch(
+    () => props.selected,
+    () => {
+      const selectMap = props.selected.reduce<Record<string, any>>((acc, item) => {
+        Object.assign(acc, {
+          [item[props.primaryKey]]: item,
+        });
+        return acc;
+      }, {});
+      rowSelectMemo.value = {
+        ...selectMap,
+      };
+    },
+  );
+
+  watch(
+    () => getMergeCellsFromAttrs(),
+    () => reapplyMergeCells(),
+    { deep: true },
   );
 
   /**
@@ -414,14 +470,10 @@
     return searchKeys.filter((key) => !baseParamsKeys.includes(key)).length > 0;
   };
 
-  const { getSearchParams, replaceSearchParams } = useUrlSearch();
-
   const triggerSelection = () => {
     emits('selection', Object.keys(rowSelectMemo.value), Object.values(rowSelectMemo.value));
   };
 
-  let requestKey = 0;
-  let batchRequestTimer: Timeout;
   const fetchListData = (loading = true) => {
     requestKey = Date.now();
     const latestRequestKey = requestKey;
@@ -447,19 +499,24 @@
       props
         .dataSource(params, payload)
         .then((data) => {
-          bkTableRef.value.getVxeTableInstance().loadData(data.results.slice(0, 20));
-          if (data.results.length > 20) {
+          const vxeTable = bkTableRef.value.getVxeTableInstance();
+          if (!props.progressiveLoad || data.results.length <= 20) {
+            vxeTable.loadData(data.results);
+          } else {
+            vxeTable.loadData(data.results.slice(0, 20));
             batchRequestTimer = setTimeout(() => {
               if (latestRequestKey !== requestKey) {
                 return;
               }
-              bkTableRef.value.getVxeTableInstance().loadData(data.results.slice(0, 50));
+              vxeTable.loadData(data.results.slice(0, 50));
+              reapplyMergeCells();
               if (data.results.length > 50) {
                 batchRequestTimer = setTimeout(() => {
                   if (latestRequestKey !== requestKey) {
                     return;
                   }
-                  bkTableRef.value.getVxeTableInstance().loadData(data.results);
+                  vxeTable.loadData(data.results);
+                  reapplyMergeCells();
                 }, 3000);
               }
             }, 1500);
@@ -518,28 +575,6 @@
     const { results } = await props.dataSource(params);
     return results;
   };
-
-  watch(
-    () => props.columns,
-    () => {
-      tableKey.value = Date.now().toString();
-    },
-  );
-
-  watch(
-    () => props.selected,
-    () => {
-      const selectMap = props.selected.reduce<Record<string, any>>((acc, item) => {
-        Object.assign(acc, {
-          [item[props.primaryKey]]: item,
-        });
-        return acc;
-      }, {});
-      rowSelectMemo.value = {
-        ...selectMap,
-      };
-    },
-  );
 
   // 解析 URL 上面的分页信息
   const parseURL = () => {
@@ -739,6 +774,7 @@
     parseURL();
     calcTableHeight();
   });
+
   onBeforeUnmount(() => {
     clearTimeout(batchRequestTimer);
   });

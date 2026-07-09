@@ -120,6 +120,7 @@
       return;
     }
 
+    emits('change');
     pairList.value.splice(index, 1);
     nextTick(() => {
       handleSelectKey();
