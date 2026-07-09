@@ -288,20 +288,21 @@ class RedisClusterCMRSceneFlow(object):
             kwargs=asdict(act_kwargs),
         )
 
-        # predixy类型的集群在整机替换流程结束前需要执行config rewrite
-        if is_predixy_proxy_type(act_kwargs.cluster["cluster_type"]):
-            # 在所有predixy节点上执行config rewrite
-            predixy_conf_rewrite_builder = ClusterPredixyConfigServersRewriteAtomJob(
-                self.root_id,
-                flow_data,
-                act_kwargs,
-                {
-                    "cluster_domain": act_kwargs.cluster["immute_domain"],
-                    "to_remove_servers": [],  # 整机替换场景不需要移除特定servers
-                },
-            )
-            if predixy_conf_rewrite_builder:
-                sub_pipeline.add_sub_pipeline(sub_flow=predixy_conf_rewrite_builder)
+        # 仅在master/slave(存储节点)替换时，predixy类型的集群需要在流程结束前执行config rewrite
+        if replacement_param.get("redis_master") or replacement_param.get("redis_slave"):
+            if is_predixy_proxy_type(act_kwargs.cluster["cluster_type"]):
+                # 在所有predixy节点上执行config rewrite
+                predixy_conf_rewrite_builder = ClusterPredixyConfigServersRewriteAtomJob(
+                    self.root_id,
+                    flow_data,
+                    act_kwargs,
+                    {
+                        "cluster_domain": act_kwargs.cluster["immute_domain"],
+                        "to_remove_servers": [],  # 整机替换场景不需要移除特定servers
+                    },
+                )
+                if predixy_conf_rewrite_builder:
+                    sub_pipeline.add_sub_pipeline(sub_flow=predixy_conf_rewrite_builder)
 
         return sub_pipeline.build_sub_process(sub_name=_("整机替换-{}").format(act_kwargs.cluster["immute_domain"]))
 
