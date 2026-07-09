@@ -466,6 +466,6 @@ def update_dba_notice_group(dba_id: int):
             group.receivers = group_receivers
             if not group.details:
                 group.details = {"alert_notice": DEFAULT_ALERT_NOTICE}
-            group.save(update_fields=["name", "receivers", "details"])
+            group.save(update_fields=["name", "receivers", "details", "monitor_group_id", "monitor_duty_rule_id"])
     except Exception as e:
         logger.exception("[local_notice_group] update_or_create notice group error: %s", e)

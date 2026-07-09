@@ -4,7 +4,8 @@ import datetime
 from django.db import migrations, models
 from django.utils import timezone
 
-import backend.db_meta.models.app
+from backend.configuration.constants import DBType
+from backend.db_meta.constants import AppManagedStatus, AppOperateType
 
 
 def sync_appcache_managed(apps, schema_editor):
@@ -45,13 +46,7 @@ class Migration(migrations.Migration):
                 (
                     "operate_type",
                     models.CharField(
-                        choices=[
-                            ("dba_change", "人员变更"),
-                            ("managed", "纳管"),
-                            ("cancel_managed", "取消纳管"),
-                            ("tag_change", "标签变更"),
-                            ("default_dba_change", "默认dba变更"),
-                        ],
+                        choices=AppOperateType.get_choices(),
                         default="",
                         max_length=64,
                         verbose_name="操作类型",
@@ -60,30 +55,7 @@ class Migration(migrations.Migration):
                 (
                     "db_type",
                     models.CharField(
-                        choices=[
-                            ("mysql", "MySQL"),
-                            ("tendbcluster", "TenDBCluster"),
-                            ("redis", "Redis"),
-                            ("mongodb", "MongoDB"),
-                            ("kafka", "Kafka"),
-                            ("hdfs", "HDFS"),
-                            ("es", "ElasticSearch"),
-                            ("pulsar", "Pulsar"),
-                            ("influxdb", "InfluxDB"),
-                            ("riak", "Riak"),
-                            ("sqlserver", "SQLServer"),
-                            ("doris", "Doris"),
-                            ("vm", "Vm"),
-                            ("oracle", "Oracle"),
-                            ("k8s_surrealdb", "K8s SurrealDB"),
-                            ("k8s_victoriametrics", "K8s VictoriaMetrics"),
-                            ("k8s_risingwave", "K8s Risingwave"),
-                            ("k8s_milvus", "K8s Milvus"),
-                            ("k8s_qdrant", "K8s Qdrant"),
-                            ("k8s_greptimedb", "K8s GreptimeDB"),
-                            ("cloud", "Cloud"),
-                            ("tbinlogdumper", "TBinlogDumper"),
-                        ],
+                        choices=DBType.get_choices(),
                         default="",
                         max_length=64,
                         verbose_name="组件类型",
@@ -107,8 +79,8 @@ class Migration(migrations.Migration):
             model_name="appcache",
             name="status",
             field=models.CharField(
-                choices=[("managed ", "已纳管"), ("unmanaged ", "未纳管")],
-                default=backend.db_meta.models.app.AppManagedStatus["UNMANAGED"],
+                choices=AppManagedStatus.get_choices(),
+                default=AppManagedStatus.UNMANAGED,
                 max_length=20,
                 verbose_name="纳管状态",
             ),
