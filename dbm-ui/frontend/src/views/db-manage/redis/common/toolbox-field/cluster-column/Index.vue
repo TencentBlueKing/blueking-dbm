@@ -128,8 +128,11 @@
 
   const handleChange = (value: string) => {
     modelValue.value = {
+      cluster_spec: { id: 0 },
       id: 0,
       master_domain: value,
+      proxy: [] as RedisModel['proxy'],
+      redis_master: [] as RedisModel['redis_master'],
     } as RedisModel;
   };
 
