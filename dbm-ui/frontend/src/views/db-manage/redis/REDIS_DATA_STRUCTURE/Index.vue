@@ -57,7 +57,7 @@
             <SpecColumn
               v-model="item.specId"
               :cluster-type="DBTypes.REDIS"
-              :current-spec-id-list="[item.cluster.cluster_spec.spec_id]"
+              :current-spec-id-list="item.cluster?.cluster_spec?.spec_id ? [item.cluster.cluster_spec.spec_id] : []"
               field="cluster.cluster_spec.spec_id"
               :label="t('规格需求')"
               required
