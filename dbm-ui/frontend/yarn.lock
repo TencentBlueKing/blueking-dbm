@@ -622,7 +622,7 @@
 
 "@blueking/table@0.0.1-beta.39":
   version "0.0.1-beta.39"
-  resolved "https://mirrors.tencent.com/npm/@blueking/table/-/table-0.0.1-beta.39.tgz#6dd8082391331ade8a032b58377090417ab85cfc"
+  resolved "https://registry.yarnpkg.com/@blueking/table/-/table-0.0.1-beta.39.tgz#6dd8082391331ade8a032b58377090417ab85cfc"
   integrity sha512-d4adI/xfofFka2iD2GeIIg0yHJ7yfyD9NF7YY2gDmMoPy+hGjnKcuXF7r2w9KlklVBO3tVXxz37Xo6Ui0pRHrg==
   dependencies:
     "@blueking/vxe-table" "4.10.6-beta.6"
