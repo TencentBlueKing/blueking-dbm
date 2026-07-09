@@ -53,7 +53,7 @@ export function importDbStruct(params: FormData) {
 }
 
 // 根据时间范围查询集群备份记录
-export function queryBackupLogs(params: { cluster_id: number; days?: number }) {
+export function queryBackupLogs(params: { cluster_id: number; days?: number; end_time?: string }) {
   return http
     .post<SqlserverBackupLogModel[]>(`${path}/rollback/query_backup_logs/`, params)
     .then((data) => data.map((item) => new SqlserverBackupLogModel(item)));

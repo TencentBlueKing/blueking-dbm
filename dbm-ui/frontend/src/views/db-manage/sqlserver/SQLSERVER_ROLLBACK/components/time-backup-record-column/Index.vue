@@ -118,6 +118,7 @@
   <BackupRecordSelector
     v-model="backupRecord"
     v-model:is-show="isShowSelector"
+    :backup-time="backupTime"
     v-bind="props" />
 </template>
 <script lang="ts" setup>
