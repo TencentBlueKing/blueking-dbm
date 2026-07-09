@@ -2,6 +2,8 @@
 
 from django.db import migrations, models
 
+from backend.db_meta.enums import ClusterType
+
 
 class Migration(migrations.Migration):
 
@@ -14,48 +16,7 @@ class Migration(migrations.Migration):
             model_name="reportrecord",
             name="cluster_type",
             field=models.CharField(
-                choices=[
-                    ("tendbsingle", "MySQL单节点集群"),
-                    ("tendbha", "MySQL高可用集群"),
-                    ("tendbcluster", "TendbCluster集群"),
-                    ("tbinlogdumper", "TBinlogDumper"),
-                    ("redis", "Redis"),
-                    ("PredixyRedisCluster", "RedisCluster集群"),
-                    ("PredixyTendisplusCluster", "Tendisplus存储版集群"),
-                    ("TwemproxyRedisInstance", "TendisCache集群"),
-                    ("TwemproxyTendisSSDInstance", "TendisSSD集群"),
-                    ("TwemproxyTendisplusInstance", "Tendis存储版集群"),
-                    ("RedisInstance", "RedisCache主从版"),
-                    ("TendisSSDInstance", "TendisSSD主从版"),
-                    ("TendisplusInstance", "Tendisplus主从版"),
-                    ("RedisCluster", "RedisCluster集群"),
-                    ("TendisplusCluster", "TendisplusCluster集群"),
-                    ("TendisplusInstance", "Tendisplus存储版集群"),
-                    ("RedisInstance", "TendisCache集群"),
-                    ("TendisSSDInstance", "TendisSSD集群"),
-                    ("es", "ES集群"),
-                    ("kafka", "Kafka集群"),
-                    ("hdfs", "Hdfs集群"),
-                    ("influxdb", "Influxdb实例"),
-                    ("pulsar", "Pulsar集群"),
-                    ("doris", "Doris集群"),
-                    ("vm", "vm集群"),
-                    ("dbmon", "redis监控"),
-                    ("MongoReplicaSet", "Mongo副本集"),
-                    ("MongoShardedCluster", "Mongo分片集群"),
-                    ("riak", "Riak集群"),
-                    ("sqlserver_single", "sqlserver单节点版"),
-                    ("sqlserver_ha", "sqlserver主从版"),
-                    ("oracle_primary_standby", "oracle主从版"),
-                    ("oracle_single_none", "oracle单节点版"),
-                    ("k8s_surrealdb_ha", "k8s SurrealDB集群版"),
-                    ("k8s_surrealdb_single", "k8s SurrealDB单机版"),
-                    ("k8s_victoriametrics_ha", "k8s VictoriaMetrics集群版"),
-                    ("k8s_risingwave_ha", "k8s Risingwave集群版"),
-                    ("k8s_greptimedb_ha", "k8s GreptimeDB集群版"),
-                    ("k8s_milvus_ha", "k8s Milvus集群版"),
-                    ("k8s_qdrant_ha", "k8s Qdrant集群版"),
-                ],
+                choices=ClusterType.get_choices(),
                 default="",
                 max_length=64,
             ),
