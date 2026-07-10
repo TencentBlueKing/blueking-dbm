@@ -40,7 +40,6 @@ from backend.iam_app.dataclass.actions import ActionEnum
 from backend.iam_app.handlers.drf_perm.base import (
     BizDBTypeResourceActionPermission,
     DBManagePermission,
-    ResourceActionPermission,
     get_request_key_id,
 )
 from backend.iam_app.handlers.drf_perm.monitor import MonitorPolicyPermission
@@ -155,17 +154,10 @@ class MonitorPolicyViewSet(AuditedModelViewSet):
 
     def _get_custom_permissions(self):
         if self.action == "list":
-            if not int(self.request.query_params["bk_biz_id"]) and not self.request.query_params.get(
-                "not_need_global"
-            ):
-                permission = ResourceActionPermission(
-                    [ActionEnum.GLOBAL_MONITOR_POLICY_LIST],
-                    ResourceEnum.DBTYPE,
-                    instance_ids_getter=self.instance_getter("db_type"),
-                )
+            if not int(self.request.query_params["bk_biz_id"]):
+                return []
             else:
-                permission = DBManagePermission()
-            return [permission]
+                return [DBManagePermission()]
         elif self.action == "clone_strategy":
             policy = MonitorPolicy.objects.get(id=self.request.data["parent_id"])
             permission = BizDBTypeResourceActionPermission(
