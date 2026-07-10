@@ -57,7 +57,7 @@
   import { getBizs } from '@services/source/cmdb';
   import type { BizItem } from '@services/types';
 
-  import { nameRegx } from '@common/regex';
+  import { bizCodeRegx } from '@common/regex';
 
   import DbAppSelectWithPermission from '@components/db-app-select/WithPermission.vue';
 
@@ -110,7 +110,7 @@
     {
       message: dbAppAbbrPlaceholder,
       trigger: 'change',
-      validator: (val: string) => nameRegx.test(val),
+      validator: (val: string) => bizCodeRegx.test(val),
     },
     {
       message: t('业务code不允许重复'),

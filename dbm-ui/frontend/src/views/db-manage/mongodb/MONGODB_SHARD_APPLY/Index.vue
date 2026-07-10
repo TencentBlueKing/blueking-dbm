@@ -26,7 +26,11 @@
             v-model:biz-id="formData.bk_biz_id"
             perrmision-action-id="mongodb_apply"
             @change-biz="handleChangeBiz" />
-          <ClusterName v-model="formData.details.cluster_name" />
+          <ClusterName
+            v-model="formData.details.cluster_name"
+            :biz-id="formData.bk_biz_id"
+            :cluster-type="ClusterTypes.MONGO_SHARED_CLUSTER"
+            :db-app-abbr="formData.details.db_app_abbr" />
           <ClusterAlias
             v-model="formData.details.cluster_alias"
             :biz-id="formData.bk_biz_id"
@@ -241,7 +245,7 @@
   import { useApplyBase, useTicketDetail } from '@hooks';
 
   import { Affinity, ClusterTypes, DBTypes, MachineTypes, TicketTypes } from '@common/const';
-  import { nameRegx } from '@common/regex';
+  import { clusterNameSymbolRegx } from '@common/regex';
 
   import DbForm from '@components/db-form/index.vue';
 
@@ -387,7 +391,7 @@
       {
         message: t('以小写英文字母开头_且只能包含英文字母_数字_连字符'),
         trigger: 'blur',
-        validator: (val: string) => nameRegx.test(val),
+        validator: (val: string) => clusterNameSymbolRegx.test(val),
       },
     ],
     'details.resource_spec.mongodb.capacity': [

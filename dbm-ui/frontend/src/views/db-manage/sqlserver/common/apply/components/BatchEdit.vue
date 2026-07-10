@@ -60,7 +60,7 @@
   import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
 
-  import { nameRegx } from '@common/regex';
+  import { clusterNameFormatRegx, clusterNameSymbolRegx } from '@common/regex';
 
   interface Props {
     appName: string;
@@ -125,11 +125,19 @@
       validateErrorText.value = t('最大长度为m', { m: 63 });
       return;
     }
-    // 格式
-    if (!newDomains.every((key) => nameRegx.test(key))) {
-      validateErrorText.value = t('以小写英文字母开头_且只能包含英文字母_数字_连字符');
-      return;
+
+    const clusterNameFormatValidate = newDomains.every((key) => clusterNameFormatRegx.test(key));
+    if (!clusterNameFormatValidate) {
+      validateErrorText.value = t('不能以连字符开头或结尾');
+      return clusterNameFormatValidate;
     }
+
+    const clusterNameSymbolValidate = newDomains.every((key) => clusterNameSymbolRegx.test(key));
+    if (!clusterNameSymbolValidate) {
+      validateErrorText.value = t('格式不正确，请勿使用中文、大写、空格、下划线或特殊符号');
+      return clusterNameSymbolValidate;
+    }
+
     // 校验名称是否重复
     if (newDomains.length !== _.uniq(newDomains).length) {
       validateErrorText.value = t('输入域名重复');

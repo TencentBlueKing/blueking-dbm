@@ -57,17 +57,16 @@
   import { useTicketMessage } from '@hooks';
 
   import { ClusterTypes, TicketTypes } from '@common/const';
-  import { nameRegx } from '@common/regex';
+  import { clusterNameSymbolRegx } from '@common/regex';
 
-  interface Props {
-    data: T;
+  export interface Props<C> {
+    data: C;
   }
 
-  const props = defineProps<Props>();
+  const props = defineProps<Props<T>>();
   const isShow = defineModel<boolean>('isShow', {
     required: true,
   });
-
   const { t } = useI18n();
   const ticketMessage = useTicketMessage();
 
@@ -85,7 +84,8 @@
     {
       message: t('以小写英文字母开头_且只能包含英文字母_数字_连字符'),
       trigger: 'blur',
-      validator: (val: string) => nameRegx.test(val),
+      // ??
+      validator: (val: string) => clusterNameSymbolRegx.test(val),
     },
   ];
 

@@ -32,7 +32,13 @@
           v-model:module-alias-name="moduleAliasName"
           :biz-id="formData.bk_biz_id"
           :cluster-type="ClusterTypes.RIAK" />
-        <ClusterName v-model="formData.details.cluster_name" />
+        <ClusterName
+          v-model="formData.details.cluster_name"
+          :biz-id="formData.bk_biz_id"
+          :cluster-type="ClusterTypes.RIAK"
+          :db-app-abbr="formData.details.db_app_abbr"
+          :db-module-id="formData.details.db_module_id"
+          :db-module-name="moduleAliasName" />
         <ClusterAlias
           v-model="formData.details.cluster_alias"
           :biz-id="formData.bk_biz_id"

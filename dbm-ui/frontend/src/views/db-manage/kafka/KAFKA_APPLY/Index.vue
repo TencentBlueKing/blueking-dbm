@@ -27,7 +27,11 @@
           v-model:biz-id="formData.bk_biz_id"
           perrmision-action-id="kafka_apply"
           @change-biz="handleChangeBiz" />
-        <ClusterName v-model="formData.details.cluster_name" />
+        <ClusterName
+          v-model="formData.details.cluster_name"
+          :biz-id="formData.bk_biz_id"
+          :cluster-type="ClusterTypes.KAFKA"
+          :db-app-abbr="formData.details.db_app_abbr" />
         <ClusterAlias
           v-model="formData.details.cluster_alias"
           :biz-id="formData.bk_biz_id"
@@ -362,7 +366,7 @@
 
   import { useApplyBase, useTicketDetail } from '@hooks';
 
-  import { Affinity, DBTypes, OSTypes, TicketTypes } from '@common/const';
+  import { Affinity, ClusterTypes, DBTypes, OSTypes, TicketTypes } from '@common/const';
 
   import IpSelector from '@components/ip-selector/IpSelector.vue';
 
