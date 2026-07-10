@@ -85,25 +85,30 @@ func (op *ConfNameOperation) BatchDelete(db *gorm.DB, confNames []*ConfigNameDef
 		nodes := []*ConfigModel{}
 		changes := make([]*ConfNameChangesModel, 0, len(confNames))
 		for _, c := range confNames {
-			err := tx.Debug().Model(ConfigModel{}).
-				Where("namespace = ? and conf_type = ? and conf_name = ?",
-					c.Namespace, c.ConfType, c.ConfName).Find(&nodes).Error
-			if err != nil {
-				return err
-			}
-			if len(nodes) > 0 { // 下级存在引用，不能删除
-				return errors.Errorf("conf_name=%s is used by app::%s", c.ConfName,
-					strings.Join(lo.Map(nodes, func(node *ConfigModel, _ int) string {
-						return fmt.Sprintf("bk_biz_id=%s(%s=%s)", node.BKBizID, node.LevelName, node.LevelValue)
-					}), ", "))
-			}
-
 			// 查询变更前的快照
 			var before ConfigNameDefModel
 			beforeImage := api.ConfName{}
 			if err := tx.Where(c.UniqueWhere()).First(&before).Error; err == nil {
 				beforeImage = NewConfNameFromDef(&before)
 			}
+			opType := constvar.OPTypeRemove
+			if before.ConfName != "" {
+				opType = constvar.OpTypeRecover
+			}
+
+			err := tx.Debug().Model(ConfigModel{}).
+				Where("namespace = ? and conf_type = ? and conf_name = ?",
+					c.Namespace, c.ConfType, c.ConfName).Find(&nodes).Error
+			if err != nil {
+				return err
+			}
+			if len(nodes) > 0 && opType == constvar.OPTypeRemove { // 下级存在引用，不能删除
+				return errors.Errorf("conf_name=%s is used by app::%s", c.ConfName,
+					strings.Join(lo.Map(nodes, func(node *ConfigModel, _ int) string {
+						return fmt.Sprintf("bk_biz_id=%s(%s=%s)", node.BKBizID, node.LevelName, node.LevelValue)
+					}), ", "))
+			}
+
 			tableName := c.TableName()
 			if op.Table != constvar.PlatTypeDef {
 				tableName = ConfigNamePlatModel{}.TableName()
@@ -120,7 +125,7 @@ func (op *ConfNameOperation) BatchDelete(db *gorm.DB, confNames []*ConfigNameDef
 				BeforeImage: beforeImage,
 				AfterImage:  api.ConfName{},
 				OpUser:      op.OpUser,
-				OpType:      constvar.OPTypeRemove,
+				OpType:      opType,
 			})
 		}
 		if op.OpUser == "system" || op.Table == constvar.PlatTypeDef {

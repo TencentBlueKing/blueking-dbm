@@ -102,7 +102,7 @@ func (l *LogicalDumper) Execute(ctx context.Context) error {
 		}
 	}
 	if !l.cnf.LogicalBackup.DisableCompress {
-		args = append(args, "--compress")
+		args = append(args, "--compress", "zstd")
 	}
 	if l.cnf.LogicalBackup.DefaultsFile != "" {
 		args = append(args, []string{

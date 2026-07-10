@@ -107,6 +107,7 @@ func QueryConfigNames(r *api.QueryConfigNamesReq, isPub bool) (*api.QueryConfigN
 			FlagReadonly: c.FlagReadonly,
 			FlagEncrypt:  c.FlagEncrypt,
 			FlagStatus:   c.FlagStatus, // 废弃
+			CreateFrom:   c.CreateFrom,
 		}
 	}
 	resp.ConfNames = namesMap

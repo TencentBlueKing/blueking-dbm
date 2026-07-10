@@ -73,8 +73,10 @@ func mergeConfNamePlat(confNamesDef []*ConfigNameDefModel, confNamesPlat []*Conf
 	for _, namePlat := range confNamesPlat {
 		matched := false
 		namePlat.ID = 0
+		namePlat.CreateFrom = constvar.PlatTypePlat
 		for i, nameDef := range confNamesDef {
 			if nameDef.ConfName == namePlat.ConfName {
+				namePlat.CreateFrom = constvar.PlatTypeDef // 配置定义在 plat/def 上都存在
 				if namePlat.Deleted > 0 {
 					confNamesDef = slices.Delete(confNamesDef, i, i+1)
 				} else {
@@ -85,11 +87,13 @@ func mergeConfNamePlat(confNamesDef []*ConfigNameDefModel, confNamesPlat []*Conf
 				break
 			}
 		}
+
 		if !matched && namePlat.Deleted <= 0 {
 			converted := ConfigNameDefModel(*namePlat)
 			confNamesDef = append(confNamesDef, &converted)
 		}
 	}
+	// 不在 plat 表里的，CreateFrom 为空，代表 def 且未被自定义
 	return confNamesDef
 }
 
