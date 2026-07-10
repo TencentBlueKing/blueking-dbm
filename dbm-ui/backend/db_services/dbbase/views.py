@@ -171,10 +171,16 @@ class DBBaseViewSet(viewsets.SystemViewSet):
         return Response(cluster_infos)
 
     @common_swagger_auto_schema(
-        methods=["get", "post"],
+        method="get",
         operation_summary=_("根据过滤条件查询业务下集群详细信息"),
         auto_schema=ResponseSwaggerAutoSchema,
         query_serializer=ClusterFilterSerializer(),
+        tags=[SWAGGER_TAG],
+    )
+    @common_swagger_auto_schema(
+        method="post",
+        operation_summary=_("根据过滤条件查询业务下集群详细信息"),
+        auto_schema=ResponseSwaggerAutoSchema,
         request_body=ClusterFilterSerializer(),
         tags=[SWAGGER_TAG],
     )
