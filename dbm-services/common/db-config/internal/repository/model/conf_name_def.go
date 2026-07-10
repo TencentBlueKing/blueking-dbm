@@ -34,6 +34,8 @@ type ConfigNameDefModel struct {
 	// Deleted only for confName plat
 	Deleted int8 `json:"deleted" gorm:"column:deleted;type:tinyint"`
 	util.BaseDatetime
+	// CreateFrom 配置项定义来自哪里，系统初始定义 def or  平台页面新增的 plat
+	CreateFrom string `json:"CreateFrom" gorm:"-"`
 }
 
 // BaseAutoTimeModel TODO

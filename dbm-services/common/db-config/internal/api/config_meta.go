@@ -67,6 +67,8 @@ type ConfNameDef struct {
 	FlagVisible int8 `json:"flag_visible" form:"flag_visible" example:"1"`
 	// 配置读写状态，1:可读可写， 2:只读不可修改，用于展示或者生成配置 -1: 不展示配置，只表示合法全量配置用于下拉
 	FlagStatus int8 `json:"flag_status" form:"flag_status" example:"1"`
+	// CreateFrom 平台配置来自 平台自定义plat，还是 系统初始值 def (或者为空)
+	CreateFrom string `json:"create_from" form:"create_from"`
 
 	// 配置项说明
 	Description string `json:"description" form:"description"`

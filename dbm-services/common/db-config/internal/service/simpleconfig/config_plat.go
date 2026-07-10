@@ -37,7 +37,8 @@ func ConfigNamesBatchUpsert(db *gorm.DB, cf api.BaseConfFileDef,
 			adds = append(adds, confName)
 		} else if cn.OPType == constvar.OPTypeRemove {
 			deletes = append(deletes, confName)
-			needCheckInherit = append(needCheckInherit, cn.ConfName)
+			// BatchDelete 有单独的检查集成逻辑
+			// needCheckInherit = append(needCheckInherit, cn.ConfName)
 		} else if cn.OPType == constvar.OPTypeUpsert || cn.OPType == constvar.OPTypeUpdate {
 			upserts = append(upserts, confName)
 			if cn.FlagReadonly == 1 {

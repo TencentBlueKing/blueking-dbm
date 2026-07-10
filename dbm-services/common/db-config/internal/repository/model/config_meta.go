@@ -10,7 +10,9 @@ import (
 	"bk-dbconfig/pkg/util/crypt"
 )
 
-// QueryConfigNames TODO
+// QueryConfigNames 平台配置来自于平台自定义和系统初始值
+// ConfigNameDefModel 平台自定义 plat
+// ConfigNamePlatModel 系统初始值 sys，来自 dbm json 初始化
 func QueryConfigNames(namespace, confType, confFile, confName string) ([]*ConfigNameDefModel, error) {
 	var sqlRes *gorm.DB
 	var err error

@@ -166,7 +166,7 @@ func UpsertConfigItems(db *gorm.DB, configsOp []*model.ConfigModelOp, revision s
 			if len(upLevelConfItems[c.Config.ConfName]) == 0 && flagVisible == 0 {
 				c.OPType = "cancel_render"
 			} else {
-				c.OPType = "recover" // recoverdefault
+				c.OPType = constvar.OpTypeRecover // recoverdefault
 			}
 			afterImage.ConfValue = upLevelConfItems[c.Config.ConfName]["conf_value"]
 		}

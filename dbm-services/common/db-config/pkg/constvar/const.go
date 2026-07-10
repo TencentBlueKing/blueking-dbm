@@ -15,6 +15,8 @@ const (
 	// OPTypeRemove TODO
 	OPTypeRemove = "remove"
 	OPTypeUpsert = "upsert"
+	// OpTypeRecover 恢复默认值/恢复初始值
+	OpTypeRecover = "recover"
 
 	// OPTypeRemoveRef TODO
 	OPTypeRemoveRef = "remove_ref" // 非用户操作的直接删除，而是用户操作需要级联删除
