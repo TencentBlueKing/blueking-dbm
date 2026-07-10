@@ -3,6 +3,8 @@ import { computed, shallowRef } from 'vue';
 
 import type { Props as ContextProps } from '@components/db-quick-search/bk-quick-search/Index.vue';
 
+import { splitSearchKeyword } from '../common/searchKeyword';
+
 export default <T extends { label: string; value: string | number }>(config: ContextProps['data'][number]) => {
   const filterKey = ref('');
   const remoteList = shallowRef<T[]>([]);
@@ -27,7 +29,7 @@ export default <T extends { label: string; value: string | number }>(config: Con
     Promise.resolve()
       .then(() =>
         config!.remoteMethod!({
-          keyword: filterKey.value,
+          keyword: splitSearchKeyword(filterKey.value).join(','),
         }),
       )
       .then((data) => {
