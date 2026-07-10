@@ -15,6 +15,7 @@ from .dbmeta_update import DBMetaUpdateMcpToolsViewSet
 from .host_decommission_query import HostDecommissionQueryMcpToolsViewSet
 from .host_performance_query import HostPerformanceQueryMcpToolsViewSet
 from .mcp_callee_plan import McpCalleePlanMcpToolsViewSet
+from .portrait_query import PortraitQueryMcpToolsViewSet
 from .promql_query import PromQLQueryMcpToolsViewSet
 from .resource_param_query import ResourceParamQueryMcpToolsViewSet
 from .taskflow_query import TaskflowQueryMcpToolsViewSet
