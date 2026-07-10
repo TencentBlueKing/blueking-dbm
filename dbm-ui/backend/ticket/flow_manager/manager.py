@@ -37,7 +37,12 @@ from backend.ticket.flow_manager.pause import PauseFlow
 from backend.ticket.flow_manager.resource import ResourceApplyFlow, ResourceBatchApplyFlow, ResourceDeliveryFlow
 from backend.ticket.flow_manager.timer import TimerFlow
 from backend.ticket.models import Ticket
-from backend.ticket.tasks.ticket_tasks import create_cluster_todo, create_monitor_grafana, create_recycle_ticket
+from backend.ticket.tasks.ticket_tasks import (
+    create_cluster_todo,
+    create_monitor_grafana,
+    create_recycle_ticket,
+    send_ticket_delivery_info,
+)
 
 SUPPORTED_FLOW_MAP = {
     FlowType.BK_ITSM.value: ItsmFlow,
@@ -175,3 +180,7 @@ class TicketFlowManager(object):
             )
             bk_biz_id = self.ticket.bk_biz_id
             create_monitor_grafana.apply_async(args=(bk_biz_id, cluster_type))
+
+        # 如果需要发送交付结果
+        if self.ticket.config.get("send_msg_config", {}).get("is_send") and target_status == TicketStatus.SUCCEEDED:
+            send_ticket_delivery_info.apply_async(args=(self.ticket.id,))
