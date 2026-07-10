@@ -23,6 +23,7 @@ from django.utils import timezone
 from django.utils.dateparse import parse_datetime
 from django.utils.translation import gettext as _
 
+from backend import env
 from backend.bk_dataview.grafana.constants import DASHBOARD_APP_ID, DASHBOARD_JSON_PATH
 from backend.components import BKMonitorV3Api
 from backend.components.bklog.handler import BKLogHandler
@@ -53,7 +54,7 @@ from backend.ticket.constants import (
 )
 from backend.ticket.exceptions import TicketTaskTriggerException
 from backend.ticket.models import Todo
-from backend.ticket.models.ticket import Flow, Ticket, TicketFlowsConfig, TodoStatus
+from backend.ticket.models.ticket import Flow, FlowSummary, Ticket, TicketFlowsConfig, TodoStatus
 from backend.utils.time import date2str
 
 logger = logging.getLogger("root")
@@ -564,3 +565,80 @@ def async_run_flow(flow_id):
     except Exception as err:  # pylint: disable=broad-except
         inner_flow.run_error_status_handler(err)
         return
+
+
+def build_html_table_from_data(data_list):
+    """
+    将数据列表转换为HTML表格字符串。
+    每个元素包含 'titles', 'values', 'table_name'。
+    返回完整的HTML表格（含标题和表头）。
+    """
+    if not data_list:
+        return _("<p>无数据</p>")
+
+    html_parts = []
+
+    for table_index, table_data in enumerate(data_list):
+        titles = table_data.get("titles", [])
+        values = table_data.get("values", [])
+        table_name = table_data.get("table_name", _("表格 {}").format(table_index + 1))
+
+        if not titles or not values:
+            continue
+
+        # 构建 id -> display_name 映射，便于取值
+        id_to_display = {item["id"]: item["display_name"] for item in titles}
+        # 获取所有列ID（按 titles 顺序）
+        column_ids = [item["id"] for item in titles]
+
+        # 开始构建表格HTML
+        table_html = f"<h3>{table_name}</h3>"
+        table_html += (
+            '<table border="1" cellpadding="5" cellspacing="0"'
+            ' style="border-collapse:collapse; font-family:Arial, sans-serif;">'
+        )
+        # 表头
+        table_html += "<thead><tr>"
+        for col_id in column_ids:
+            display = id_to_display.get(col_id, col_id)
+            table_html += f'<th style="background-color:#f2f2f2; text-align:left;">{display}</th>'
+        table_html += "</tr></thead>"
+        # 表体
+        table_html += "<tbody>"
+        for row in values:
+            table_html += "<tr>"
+            for col_id in column_ids:
+                value = row.get(col_id, "")
+                # 处理 None 和空值
+                if value is None:
+                    value = ""
+                table_html += f"<td>{value}</td>"
+            table_html += "</tr>"
+        table_html += "</tbody></table>"
+
+        html_parts.append(table_html)
+
+    return "<br>".join(html_parts)
+
+
+@shared_task
+def send_ticket_delivery_info(ticket_id):
+    ticket = Ticket.objects.get(id=ticket_id)
+    flow_ids = ticket.flows.all().values_list("id", flat=True)
+    flow_summary = FlowSummary.objects.filter(flow_id__in=flow_ids)
+    if not flow_summary:
+        return
+
+    ticket_dir = f"{env.BK_SAAS_HOST}/ticket-platform-manage/{ticket_id}?current=1&limit=50&ordering="
+    title = _("【DBM交付】 {}").format(TicketType.get_choice_label(ticket.ticket_type))
+    context = _('<p><a href="{}">单据 {} 已完成，交付信息如下：</a></p><br>').format(ticket_dir, ticket_id)
+    for summary in flow_summary:
+        html_context = build_html_table_from_data(summary.summary)
+        context += html_context
+    context += _("<br>密码等访问凭据请登录 DBM，在对应集群的「连接信息查看」中获取")
+    receivers = ticket.config["send_msg_config"]["receiver__username"].split(",")
+    for msg_type in ticket.config["send_msg_config"]["msg_type"]:
+        if msg_type == notify.constants.MsgType.MAIL.value:
+            notify.handlers.CmsiHandler(title, context, receivers).send_msg(
+                notify.constants.MsgType.MAIL.value, context=None
+            )
