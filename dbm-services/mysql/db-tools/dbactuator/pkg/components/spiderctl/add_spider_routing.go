@@ -928,6 +928,7 @@ func (a *AddSpiderRoutingComp) execCreateNodeWithConcurrent(
 
 	cmds := []string{
 		"set tc_admin=1",
+		"SET tc_use_internal_backup_tool = OFF",
 		"SET GLOBAL tc_use_internal_backup_tool = OFF",
 		fmt.Sprintf("SET GLOBAL tc_skip_check_db_list = '%s'", strings.Join(tcSkipCheckDBList, ",")),
 		createSQL,
