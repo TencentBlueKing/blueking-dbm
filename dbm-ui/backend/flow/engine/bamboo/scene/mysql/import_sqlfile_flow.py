@@ -12,7 +12,7 @@ import itertools
 import logging.config
 import os
 from dataclasses import asdict
-from typing import Any, Dict, Optional
+from typing import Dict, Optional
 
 from django.utils.translation import gettext as _
 
@@ -174,13 +174,11 @@ class ImportSQLFlow(object):
         ).get(id=templ_cluster_id)
         template_cluster = self.__get_master_instance_info(cluster=cluster)
         cluster_type = template_cluster["cluster_type"]
-        template_db_version = self.__get_version_and_charset(
-            db_module_id=cluster.db_module_id, cluster_type=cluster_type
-        )
         backend_ip = template_cluster["backend_ip"]
         backend_port = template_cluster["port"]
         bk_cloud_id = template_cluster["bk_cloud_id"]
         origin_mysql_var_map = query_mysql_variables(host=backend_ip, port=backend_port, bk_cloud_id=bk_cloud_id)
+        template_db_version = self.__get_template_db_version(cluster=cluster, mysql_var_map=origin_mysql_var_map)
         backend_charset = origin_mysql_var_map.get("character_set_client")
         start_mysqld_configs = get_mysql_start_configs(origin_mysql_var_map)
         logger.info(_("backend_charset: {}").format(backend_charset))
@@ -343,22 +341,46 @@ class ImportSQLFlow(object):
             file_list.extend(obj["sql_files"])
         return list(set(file_list))
 
-    def __get_version_and_charset(self, db_module_id, cluster_type) -> Any:
+    def __get_dbconfig_db_version(self, db_module_id, cluster_type) -> str:
+        """从 DBConfig 获取模块部署版本，失败或为空时返回空串。"""
+        try:
+            data = DBConfigApi.query_conf_item(
+                {
+                    "bk_biz_id": str(self.data["bk_biz_id"]),
+                    "level_name": LevelName.MODULE,
+                    "level_value": str(db_module_id),
+                    "conf_file": "deploy_info",
+                    "conf_type": "deploy",
+                    "namespace": cluster_type,
+                    "format": FormatType.MAP,
+                }
+            )["content"]
+            return (data or {}).get("db_version") or ""
+        except Exception as e:
+            logger.warning(_("从 DBConfig 获取版本失败: {}").format(str(e)))
+            return ""
+
+    def __get_template_db_version(self, cluster: Cluster, mysql_var_map: dict) -> str:
         """
-        获取集群版本号(大版本号)
-        @param db_module_id 集群记录的db模块id
-        @param cluster_type 集群集群的类型
-        todo 由于db-meta没有存储实例的版本信息，所以需要回调查询，后续优化后会删除这块代码
+        获取语义检测使用的 MySQL 版本，补偿优先级：
+        1. DBConfig db_version
+        2. cluster.major_version
+        3. 远程实例 version 变量（原始字符串）
         """
-        data = DBConfigApi.query_conf_item(
-            {
-                "bk_biz_id": str(self.data["bk_biz_id"]),
-                "level_name": LevelName.MODULE,
-                "level_value": str(db_module_id),
-                "conf_file": "deploy_info",
-                "conf_type": "deploy",
-                "namespace": cluster_type,
-                "format": FormatType.MAP,
-            }
-        )["content"]
-        return data["db_version"]
+        db_version = self.__get_dbconfig_db_version(
+            db_module_id=cluster.db_module_id, cluster_type=cluster.cluster_type
+        )
+        if db_version:
+            return db_version
+
+        major_version = (cluster.major_version or "").strip()
+        if major_version:
+            logger.warning(_("DBConfig 版本为空，使用集群 major_version 补偿: {}").format(major_version))
+            return major_version
+
+        remote_version = (mysql_var_map.get("version") or "").strip()
+        if remote_version:
+            logger.warning(_("DBConfig 与 major_version 均为空，使用远程实例版本补偿: {}").format(remote_version))
+            return remote_version
+
+        raise Exception(_("无法获取集群 {} 的 MySQL 版本").format(cluster.id))
