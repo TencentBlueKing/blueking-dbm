@@ -37,7 +37,9 @@
   "preCI.localCodeCheck.checkerSet.JS": ["standard_js"],
   "peacock.remoteColor": "#45e35f",
   "bk-code-ai.enable": true,
-  "typescript.tsdk": "node_modules/typescript/lib",
+  "js/ts.tsdk.path": "node_modules/typescript/lib",
+  "js/ts.tsserver.maxMemory": 8192,
+  "js/ts.tsserver.experimental.enableProjectDiagnostics": false,
   "explorer.fileNesting.enabled": true,
   "explorer.fileNesting.patterns": {
     "tsconfig.json": "tsconfig.*.json, env.d.ts",

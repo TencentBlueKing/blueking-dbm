@@ -3,14 +3,7 @@
     class="bk-quick-search-type-select"
     :style="{ 'min-width': contentMinWidth > 0 ? `${contentMinWidth}px` : '' }">
     <div class="bk-quick-search-value-panel-filter-box">
-      <Input
-        v-model="filterKey"
-        autofocus
-        borderless
-        clearable
-        placeholder="请输入关键字">
-        <template #prefix-icon> <SearchIcon /></template>
-      </Input>
+      <Input v-model="filterKey" />
     </div>
     <BkLoading :loading="isRemoteListLoading">
       <div
@@ -44,8 +37,7 @@
 </template>
 <script setup lang="ts">
   import _ from 'lodash';
-  import { SearchIcon } from 'tdesign-icons-vue-next';
-  import { Input, Radio } from 'tdesign-vue-next';
+  import { Radio } from 'tdesign-vue-next';
   import { onMounted, ref, useTemplateRef } from 'vue';
 
   import { SpecialOptions } from '@common/const';
@@ -54,6 +46,8 @@
   import type { Props as ContextProps } from '@components/db-quick-search/bk-quick-search/Index.vue';
   import { makeMap } from '@components/db-quick-search/bk-quick-search/utils';
 
+  import Input from '../common/Input.vue';
+  import { isSearchKeywordMatch } from '../common/searchKeyword';
   import useMenuList from '../hooks/useMenuList';
 
   interface Props {
@@ -96,7 +90,7 @@
       }
     }
 
-    return _.filter(list.value, (item) => item.label.toLowerCase().includes(keyword));
+    return _.filter(list.value, (item) => isSearchKeywordMatch(item.label, filterKey.value));
   });
 
   watch(
