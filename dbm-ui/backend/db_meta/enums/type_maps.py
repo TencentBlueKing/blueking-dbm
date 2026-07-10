@@ -18,6 +18,8 @@ MachineTypeAccessLayerMap = {
     MachineType.SINGLE: AccessLayer.STORAGE,
     MachineType.MYSQL_DTS_MASTER: AccessLayer.PROXY,
     MachineType.MYSQL_DTS_WORKER: AccessLayer.STORAGE,
+    # 同机双角色：Machine 层记 PROXY（管控面入口），实例层各自写 access_layer
+    MachineType.MYSQL_DTS_COLOCATED: AccessLayer.PROXY,
     MachineType.TENDISPLUS: AccessLayer.STORAGE,
     MachineType.TENDISCACHE: AccessLayer.STORAGE,
     MachineType.TENDISSSD: AccessLayer.STORAGE,
@@ -55,7 +57,11 @@ ClusterTypeMachineTypeDefine = {
     ClusterType.TenDBSingle: [MachineType.SINGLE],
     ClusterType.TenDBHA: [MachineType.PROXY, MachineType.BACKEND],
     ClusterType.TenDBCluster: [MachineType.SPIDER, MachineType.REMOTE],
-    ClusterType.MySQLDTS: [MachineType.MYSQL_DTS_MASTER, MachineType.MYSQL_DTS_WORKER],
+    ClusterType.MySQLDTS: [
+        MachineType.MYSQL_DTS_MASTER,
+        MachineType.MYSQL_DTS_WORKER,
+        MachineType.MYSQL_DTS_COLOCATED,
+    ],
     ClusterType.TendisRedisInstance: [MachineType.TENDISCACHE],
     ClusterType.TendisPredixyRedisCluster: [MachineType.PREDIXY, MachineType.TENDISCACHE],
     ClusterType.TendisPredixyTendisplusCluster: [MachineType.PREDIXY, MachineType.TENDISPLUS],
@@ -163,6 +169,10 @@ MachineTypeInstanceRoleMap = {
     MachineType.SINGLE: [InstanceRole.ORPHAN],
     MachineType.MYSQL_DTS_MASTER: [InstanceRole.MYSQL_DTS_MASTER_MASTER],
     MachineType.MYSQL_DTS_WORKER: [InstanceRole.MYSQL_DTS_WORKER_MASTER],
+    MachineType.MYSQL_DTS_COLOCATED: [
+        InstanceRole.MYSQL_DTS_MASTER_MASTER,
+        InstanceRole.MYSQL_DTS_WORKER_MASTER,
+    ],
     MachineType.TENDISCACHE: [
         InstanceRole.REDIS_SLAVE,
         InstanceRole.REDIS_MASTER,

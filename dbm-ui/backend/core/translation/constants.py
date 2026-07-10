@@ -42,6 +42,8 @@ EXCLUDE_FILE_PATHS = [
     "backend/db_services/dbpermission/constants.py",
     "backend/db_services/mysql/permission/constants.py",
     "backend/flow/utils/cloud/cloud_script_template.py",
+    # DTS 部署/重装 shell 模板，中文仅为脚本内注释，不面向用户
+    "backend/flow/utils/mysql/dts/script_template.py",
     # 忽略权限模型json初始化的中文
     "backend/iam_app/dataclass/__init__.py",
     "backend/ticket/constants.py",

@@ -356,6 +356,7 @@ class MediumEnum(StrStructuredEnum):
     Riak = EnumField("riak", _("riak"))
     RiakMonitor = EnumField("riak-monitor", _("riak-monitor"))
     RedisDts = EnumField("redis-dts", _("redis-dts"))
+    MySQLDts = EnumField("mysql-dts", _("mysql-dts"))
     RedisModules = EnumField("redis-modules", _("redis-modules"))
     TBinlogDumper = EnumField("tbinlogdumper", _("tbinlogdumper实例"))
     Sqlserver = EnumField("sqlserver", _("sqlserver实例"))
@@ -535,6 +536,8 @@ class DBActuatorActionEnum(StrStructuredEnum):
     DeployPeripheralToolsBinary = EnumField("prepare-peripheraltools-binary", _("prepare-peripheraltools-binary"))
     InitCommonConfig = EnumField("init-common-config", _("初始化公共配置"))
     MysqlPartitionV2 = EnumField("partition-execute-v2", _("mysql分区执行V2"))
+    # MySQL DTS 安全切换（源表锁 + Master HTTP API stop，不下发域名切换）
+    DtsCutover = EnumField("dts-cutover", _("dts-cutover"))
     # clone 权限 v2
     CloneGrantsDumpPriv = EnumField("clone-grants-dump-priv", _("导出权限"))
     CloneGrantsParseFile = EnumField("clone-grants-parse-file", _("处理权限文件"))

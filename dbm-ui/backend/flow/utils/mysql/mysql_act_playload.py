@@ -973,8 +973,6 @@ class MysqlActPayload(PayloadHandler, ProxyActPayload, TBinlogDumperActPayload):
         """
         数据校验
         """
-        dts_mode = self.ticket_data.get("dts_mode", False)
-
         db_patterns = []
         ignore_dbs = []
         if self.ticket_data["ticket_type"] == TicketType.TENDBCLUSTER_CHECKSUM:
@@ -1014,8 +1012,24 @@ class MysqlActPayload(PayloadHandler, ProxyActPayload, TBinlogDumperActPayload):
                     "system_dbs": SYSTEM_DBS,
                     "stage_db_header": STAGE_DB_HEADER,
                     "rollback_db_tail": ROLLBACK_DB_TAIL,
-                    "dts_mode": dts_mode,
+                    # DTS 跨集群校验：目标无复制线程，actuator 跳过 SHOW SLAVE STATUS
+                    "dts_mode": bool(self.ticket_data.get("dts_mode")),
                 },
+            },
+        }
+
+    def get_dts_cutover_payload(self, **kwargs) -> dict:
+        """MySQL DTS 安全切换：在 dts-master 上执行 mysql dts-cutover。
+
+        extend 载荷放在 kwargs['cluster']['dts_cutover']（由 cutover 子流程组装）。
+        """
+        extend = (self.cluster or {}).get("dts_cutover") or {}
+        return {
+            "db_type": DBActuatorTypeEnum.MySQL.value,
+            "action": DBActuatorActionEnum.DtsCutover.value,
+            "payload": {
+                "general": {"runtime_account": self.account},
+                "extend": extend,
             },
         }
 

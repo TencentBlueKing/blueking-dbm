@@ -24,6 +24,11 @@ from backend.flow.engine.bamboo.scene.mysql.autofix.mysql_dbha_af_repair_replica
 )
 from backend.flow.engine.bamboo.scene.mysql.dbconsole import DbConsoleDumpSqlFlow
 from backend.flow.engine.bamboo.scene.mysql.deploy_peripheraltools.flow import MySQLStandardizeFlow
+from backend.flow.engine.bamboo.scene.mysql.dts.mysql_dts_cluster_apply import MysqlDtsClusterApplyFlow
+from backend.flow.engine.bamboo.scene.mysql.dts.mysql_dts_cluster_destroy import MysqlDtsClusterDestroyFlow
+from backend.flow.engine.bamboo.scene.mysql.dts.mysql_dts_cluster_reinstall import MysqlDtsClusterReinstallFlow
+from backend.flow.engine.bamboo.scene.mysql.dts.mysql_ha_to_cluster_migrate import MysqlHaToClusterMigrateFlow
+from backend.flow.engine.bamboo.scene.mysql.dts.mysql_to_mysql_migrate import MysqlToMysqlMigrateFlow
 from backend.flow.engine.bamboo.scene.mysql.import_sqlfile_flow import ImportSQLFlow
 from backend.flow.engine.bamboo.scene.mysql.mysql_authorize_rules import MySQLAuthorizeRulesFlows
 from backend.flow.engine.bamboo.scene.mysql.mysql_checksum import MysqlChecksumFlow
@@ -844,3 +849,23 @@ class MySQLController(BaseController):
         """
         flow = MySQLCloneClusterFlow(root_id=self.root_id, ticket_data=self.ticket_data)
         flow.clone_cluster_flow()
+
+    def mysql_dts_cluster_apply_scene(self):
+        flow = MysqlDtsClusterApplyFlow(root_id=self.root_id, data=self.ticket_data)
+        flow.run_flow()
+
+    def mysql_dts_cluster_destroy_scene(self):
+        flow = MysqlDtsClusterDestroyFlow(root_id=self.root_id, data=self.ticket_data)
+        flow.run_flow()
+
+    def mysql_dts_cluster_reinstall_scene(self):
+        flow = MysqlDtsClusterReinstallFlow(root_id=self.root_id, data=self.ticket_data)
+        flow.run_flow()
+
+    def mysql_to_mysql_migrate_scene(self):
+        flow = MysqlToMysqlMigrateFlow(root_id=self.root_id, data=self.ticket_data)
+        flow.run_flow()
+
+    def mysql_ha_to_cluster_migrate_scene(self):
+        flow = MysqlHaToClusterMigrateFlow(root_id=self.root_id, data=self.ticket_data)
+        flow.run_flow()

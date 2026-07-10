@@ -19,6 +19,7 @@ from .extra_process import ExtraProcessInstance
 from .group import Group, GroupInstance
 from .instance import ProxyInstance, StorageInstance
 from .machine import Machine
+from .mysql_dts import MysqlDtsCluster, MysqlDtsInfo, MysqlDtsStatus
 from .proxy_instance_ext import TenDBClusterSpiderExt
 from .spec import SnapshotSpec, Spec
 from .storage_instance_ext import MongoDBStorageInstanceExt

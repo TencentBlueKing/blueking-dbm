@@ -51,6 +51,7 @@ func NewMysqlCommand() *cobra.Command {
 				NewExecPartitionSQLCommand(),
 				NewBackupDemandCommand(),
 				NewDropTableCommand(),
+				NewDtsCutoverCommand(),
 				NewEnableTokudbPluginCommand(),
 				NewOpenAreaDumpSchemaCommand(),
 				NewOpenAreaImportSchemaCommand(),

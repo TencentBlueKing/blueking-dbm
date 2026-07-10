@@ -69,11 +69,12 @@ class AddUserService(BaseService):
         global_data = data.get_one_of_inputs("global_data")
 
         try:
+            operator = global_data.get("created_by") or global_data.get("creator") or ""
             DBPrivManagerApi.add_priv_without_account_rule(
                 params={
                     "bk_cloud_id": kwargs["bk_cloud_id"],
                     "bk_biz_id": global_data["bk_biz_id"],
-                    "operator": global_data["created_by"],
+                    "operator": operator,
                     "user": kwargs["user"],
                     "psw": kwargs["psw"],
                     "hosts": kwargs["hosts"],

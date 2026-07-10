@@ -22,6 +22,7 @@ urlpatterns = [
     path("bizs/<int:bk_biz_id>/", include("backend.db_services.mysql.fixpoint_rollback.urls")),
     path("bizs/<int:bk_biz_id>/", include("backend.db_services.mysql.open_area.urls")),
     path("bizs/<int:bk_biz_id>/", include("backend.db_services.mysql.dumper.urls")),
+    path("bizs/<int:bk_biz_id>/", include("backend.db_services.mysql.dts.urls")),
     path("", include("backend.db_services.mysql.toolbox.urls")),
     re_path("^parse_sql/?$", parse_sql, name="parse_sql"),
 ]

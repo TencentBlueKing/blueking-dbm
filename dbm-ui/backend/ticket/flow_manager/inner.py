@@ -23,6 +23,7 @@ from backend.bk_dataview.prometheus import metrics
 from backend.bk_dataview.prometheus.handlers import pipeline_build_label_func, setup_histogram
 from backend.db_meta.exceptions import ClusterExclusiveOperateException
 from backend.db_meta.models import Cluster
+from backend.db_meta.models.mysql_dts import MysqlDtsInfo
 from backend.db_meta.models.sqlserver_dts import SqlserverDtsInfo
 from backend.db_services.cmdb.biz import get_hcm_apply_resource_biz
 from backend.flow.models import FlowTree
@@ -168,6 +169,17 @@ class InnerFlow(BaseTicketFlow):
             # 判断禁用、迁移集群跟迁移记录是否互斥
             SqlserverDtsInfo.dts_info_clusive(
                 ticket_id=self.ticket.id, ticket_type=ticket_type, details=self.ticket.details
+            )
+        if ticket_type in [TicketType.MYSQL_TO_MYSQL_MIGRATE, TicketType.MYSQL_HA_TO_CLUSTER_MIGRATE]:
+            # 预占 ToDo + 互斥（ToDo/FullOnline），缩小 check→update_meta 并发窗口
+            migrate_type = "mysql_to_mysql" if ticket_type == TicketType.MYSQL_TO_MYSQL_MIGRATE else "ha_to_cluster"
+            MysqlDtsInfo.check_exclusive_and_reserve(
+                ticket_id=self.ticket.id,
+                ticket_type=ticket_type,
+                details=self.ticket.details,
+                bk_biz_id=self.ticket.bk_biz_id,
+                migrate_type=migrate_type,
+                creator=getattr(self.ticket, "creator", "") or "",
             )
 
         cluster_ids = fetch_cluster_ids(details=self.ticket.details)

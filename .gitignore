@@ -39,3 +39,6 @@ CLAUDE.md
 # specStory
 .specstory/**
 **/.specstory/**
+
+# Compound Engineering (local preferences / examples — keep out of repo)
+.compound-engineering/

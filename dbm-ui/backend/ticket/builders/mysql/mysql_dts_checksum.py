@@ -57,6 +57,11 @@ class MySQLDtsChecksumDetailSerializer(MySQLChecksumDetailSerializer):
 class MySQLDtsChecksumFlowBuilder(MySQLChecksumFlowBuilder):
     serializer = MySQLDtsChecksumDetailSerializer
 
+    @property
+    def need_itsm(self):
+        """迁移流程自动挂出的校验子单，跳过 ITSM 审批。"""
+        return False
+
     def patch_ticket_detail(self):
         force_dts_checksum_details(self.ticket.details)
         super().patch_ticket_detail()
