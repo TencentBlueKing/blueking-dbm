@@ -52,6 +52,7 @@ class TicketConfigSerializer(serializers.Serializer):
         mentioned_list = serializers.ListField(help_text=_("提醒群中@某个成员，@all提醒所有人"), required=False)
         mentioned_mobile_list = serializers.ListField(help_text=_("提醒手机号@某个成员，@all提醒所有人"), required=False)
         visible_to_user = serializers.ListField(help_text=_("是否只给指定用户可见，默认给所有人可见"), required=False)
+        is_send = serializers.BooleanField(help_text=_("是否发送交付信息"), required=False)
 
     send_msg_config = TicketSendMsgSerializer(help_text=_("通知设置"), required=False)
     helpers = serializers.ListField(help_text=_("单据协助人"), required=False, child=serializers.CharField())
