@@ -212,7 +212,7 @@
 
   import { changeConfNames, checkConfNameExists } from '@services/source/configs';
 
-  import FormItemWithHint from '@views/db-configure/components/FormItemWithHint.vue';
+  import FormItemWithHint from '@components/form-item-with-hint/Index.vue';
 
   import { messageSuccess } from '@utils';
 

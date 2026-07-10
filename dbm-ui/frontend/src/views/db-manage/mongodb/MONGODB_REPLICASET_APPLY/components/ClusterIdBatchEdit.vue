@@ -70,7 +70,7 @@
   import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
 
-  import { nameRegx } from '@common/regex';
+  import { clusterNameFormatRegx, clusterNameSymbolRegx } from '@common/regex';
 
   type Emits = (e: 'change', value: string[]) => void;
 
@@ -79,9 +79,10 @@
   const { t } = useI18n();
 
   const errorTextMap = {
+    format: t('不能以连字符开头或结尾'),
     maxlength: t('最大长度为m', { m: 63 }),
-    repeat: t('集群ID重复'),
-    rule: t('以小写英文字母开头_且只能包含英文字母_数字_连字符'),
+    repeat: t('输入域名重复'),
+    symbol: t('格式不正确，请勿使用中文、大写、空格、下划线或特殊符号'),
   };
 
   const { body } = document;
@@ -109,7 +110,9 @@
   watch(
     () => clusterId.value,
     (value) => {
-      value && handleValidate();
+      if (value) {
+        handleValidate();
+      }
     },
   );
 
@@ -122,12 +125,18 @@
       errorShow.value = true;
       return false;
     }
-    // 校验格式
-    const validate = newClusterIds.every((key) => nameRegx.test(key));
-    if (!validate) {
-      errorText.value = errorTextMap.rule;
-      errorShow.value = !validate;
-      return validate;
+    const clusterNameFormatValidate = newClusterIds.every((key) => clusterNameFormatRegx.test(key));
+    if (!clusterNameFormatValidate) {
+      errorText.value = errorTextMap.format;
+      errorShow.value = !clusterNameFormatValidate;
+      return clusterNameFormatValidate;
+    }
+
+    const clusterNameSymbolValidate = newClusterIds.every((key) => clusterNameSymbolRegx.test(key));
+    if (!clusterNameSymbolValidate) {
+      errorText.value = errorTextMap.symbol;
+      errorShow.value = !clusterNameSymbolValidate;
+      return clusterNameSymbolValidate;
     }
     // 校验名称是否重复
     const uniqClusterIds = _.uniq(newClusterIds);

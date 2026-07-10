@@ -25,9 +25,13 @@
   import type { Column } from 'bkui-vue/lib/table/props';
   import { useI18n } from 'vue-i18n';
 
+  import { checkDomainRepeat } from '@services/source/ticket.tsx';
   import type { HostInfo } from '@services/types';
 
-  import { TicketTypes } from '@common/const';
+  import { ClusterTypes, TicketTypes } from '@common/const';
+  import { clusterNameFormatRegx, clusterNameSymbolRegx } from '@common/regex.ts';
+
+  import { getDomainStrategy } from '@views/db-manage/utils/getDomainPreview.ts';
 
   import BatchEdit from './BatchEdit.vue';
 
@@ -82,26 +86,52 @@
     return [];
   });
   const domainKeys = computed(() => tableData.value.map((item) => item.key));
+
   const domainRule = [
     {
-      message: t('必填项'),
+      message: '',
       required: true,
-      trigger: 'change',
+      trigger: 'blur',
+      validator: (val: string) => !!val,
+    },
+    // {
+    //   message: t('最大长度为m', { m: 63 }),
+    //   trigger: 'blur',
+    //   validator: (val: string) => val.length <= 63,
+    // },
+    {
+      message: t('不能以连字符开头或结尾'),
+      trigger: 'blur',
+      validator: (val: string) => clusterNameFormatRegx.test(val),
     },
     {
-      message: t('最大长度为m', { m: 63 }),
+      message: t('格式不正确，请勿使用中文、大写、空格、下划线或特殊符号'),
       trigger: 'blur',
-      validator: (val: string) => val.length <= 63,
-    },
-    {
-      message: t('以小写英文字母或数字开头_且只能包含英文字母_数字_连字符'),
-      trigger: 'blur',
-      validator: (val: string) => /^[a-z0-9][a-z0-9-]*$/.test(val),
+      validator: (val: string) => clusterNameSymbolRegx.test(val),
     },
     {
       message: t('主访问入口重复'),
       trigger: 'blur',
       validator: (val: string) => domainKeys.value.filter((item) => item === val).length < 2,
+    },
+    {
+      message: t('该域名已被占用，请修改集群标识'),
+      trigger: 'blur',
+      validator: (val: string) => {
+        const { bk_biz_id: bizId, details } = props.formdata;
+        const { db_app_abbr: dbAppAbbr, db_module_id: dbModuleId } = details;
+        if (!bizId || !dbModuleId) {
+          return true;
+        }
+        return checkDomainRepeat({
+          cluster_type: isMysqlSingle.value ? ClusterTypes.TENDBSINGLE : ClusterTypes.TENDBHA,
+          db_app_abbr: dbAppAbbr || `biz-${bizId}`,
+          db_module_id: dbModuleId,
+          domains: [val],
+        }).then((result) => {
+          return !result[0].validate;
+        });
+      },
     },
   ];
   // 设置域名 form-item refs
@@ -121,8 +151,9 @@
     const columns: Column[] = [
       {
         label: t('序号'),
-        type: 'index',
-        width: 60,
+        render: ({ index }: { index: number }) => index + 1,
+        // type: 'index',
+        width: 80,
       },
       {
         field: 'mainDomain',
@@ -146,6 +177,7 @@
       columns.push({
         field: 'slaveDomain',
         label: t('从访问入口'),
+        minWidth: 400,
         render: ({ index }: { index: number }) => renderDomain(index),
       });
     }
@@ -189,45 +221,120 @@
     return (
       <div class='domain-address'>
         <span>
-          {props.moduleAliasName}
-          {isMain ? 'db.' : 'dr.'}
+          {/* {props.moduleAliasName}
+          {isMain ? 'db.' : 'dr.'} */}
+          {
+            getDomainPreview(props.formdata.details.domains[rowIndex]?.key)[isMain ? 'masterDomain' : 'slaveDomain']
+              ?.prefix
+          }
         </span>
         {isMain ? (
           <bk-form-item
             key={rowIndex}
             ref={setDomainRef}
-            class='domain-address-item'
+            class={{
+              'domain-address-item': true,
+              'domain-address-item-empty': !props.formdata.details.domains[rowIndex]?.key,
+            }}
             errorDisplayType='tooltips'
             label-width={0}
             property={`details.domains.${rowIndex}.key`}
             rules={domainRule}>
             <bk-input
               v-bk-tooltips={{
-                content: t('以小写英文字母或数字开头_且只能包含英文字母_数字_连字符'),
+                content: t('仅支持小写字母、数字、连字符，同时会参与集群域名生成，创建后不可改'),
                 placement: 'top',
                 theme: 'light',
                 trigger: 'click',
               }}
+              maxlength={63}
               model-value={props.formdata.details.domains[rowIndex]?.key}
               placeholder={t('请输入')}
+              show-word-limit
               style='width:260px'
-              onInput={(value: string) => handleChangeDomain(value, rowIndex)}
-            />
+              onInput={(value: string) => handleChangeDomain(value, rowIndex)}>
+              {{
+                suffix: () =>
+                  props.formdata.details.domains[rowIndex]?.key && (
+                    <span class='domain-address-placeholder ml-4'></span>
+                  ),
+              }}
+            </bk-input>
           </bk-form-item>
         ) : (
-          <span class='domain-address-placeholder'>{props.formdata.details.domains[rowIndex]?.key}</span>
+          <span class='domain-address-placeholder'>
+            {props.formdata.details.domains[rowIndex]?.key || '{' + t('集群标识') + '}'}
+          </span>
         )}
-        <span>{`.${props.formdata.details.db_app_abbr}.db`}</span>
+        <span>
+          {/* {`.${props.formdata.details.db_app_abbr}.db`} */}
+          {
+            getDomainPreview(props.formdata.details.domains[rowIndex]?.key)[isMain ? 'masterDomain' : 'slaveDomain']
+              ?.suffix
+          }
+        </span>
       </div>
     );
   }
+
+  const getDomainPreview = (clusterName: string) => {
+    const strategy = getDomainStrategy(isMysqlSingle.value ? ClusterTypes.TENDBSINGLE : ClusterTypes.TENDBHA);
+
+    return strategy(
+      {
+        clusterName,
+        dbAppAbbr: props.formdata.details.db_app_abbr,
+        moduleName: props.moduleAliasName,
+      },
+      {
+        bizId: props.formdata.bk_biz_id,
+      },
+    );
+  };
 </script>
 
-<style lang="less" scoped>
+<style lang="less">
   .mysql-domains {
-    :deep(.bk-table) {
+    .bk-table {
       .bk-form-content {
         margin-left: 0 !important;
+      }
+    }
+
+    .domain-address {
+      display: flex;
+      align-items: center;
+
+      > span {
+        flex-shrink: 0;
+      }
+
+      .domain-address-item {
+        margin-bottom: 0;
+
+        .bk-form-label {
+          display: none;
+        }
+
+        .domain-address-placeholder {
+          display: none;
+        }
+
+        &.is-error {
+          .domain-address-placeholder {
+            display: inline;
+          }
+        }
+      }
+
+      .domain-address-item-empty {
+        .bk-form-error-tips {
+          display: none;
+        }
+      }
+
+      .domain-address-placeholder {
+        min-width: 12px;
       }
     }
   }

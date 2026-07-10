@@ -46,7 +46,6 @@
           :data="data">
           <BkButton
             class="ml-4"
-            :disabled="!data.isOffline"
             size="small"
             @click="handleResetCluster">
             {{ t('重置') }}

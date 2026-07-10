@@ -12,7 +12,7 @@
 -->
 
 <template>
-  <BkFormItem
+  <FormItemWithHint
     :label="t('集群别名')"
     property="details.cluster_alias"
     :required="required"
@@ -20,26 +20,30 @@
     <BkInput
       v-model="modelValue"
       class="item-input"
+      clearable
       :disabled="!bizId"
-      :maxlength="63"
-      :placeholder="t('用于区分不同集群_可随时修改')"
+      :maxlength="100"
+      :placeholder="t('请输入集群别名')"
       show-word-limit />
-  </BkFormItem>
+    <template #hint>
+      {{ t('支持中文、字母、数字、连字符、下划线、点号，') }}
+      <span class="hint-warning">{{ t('创建后不可改') }}</span>
+    </template>
+  </FormItemWithHint>
 </template>
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
 
-  import { verifyDuplicatedClusterName } from '@services/source/dbbase';
-
-  import { ClusterTypes } from '@common/const';
+  // import { verifyDuplicatedClusterName } from '@services/source/dbbase';
+  import FormItemWithHint from '@components/form-item-with-hint/Index.vue';
 
   interface Props {
     bizId: number | '';
-    clusterType: ClusterTypes;
+    // clusterType: ClusterTypes;
     required?: boolean;
   }
 
-  const props = defineProps<Props>();
+  defineProps<Props>();
 
   const modelValue = defineModel<string>();
 
@@ -47,26 +51,26 @@
 
   const rules = [
     {
-      message: t('只能包含中文_英文字母_数字_连字符'),
+      message: t('格式不正确，请勿使用特殊符号'),
       trigger: 'blur',
-      validator: (val: string) => val === '' || /^[\u4e00-\u9fa5A-Za-z0-9-]*$/.test(val),
+      validator: (val: string) => val === '' || /^[\u4e00-\u9fa5A-Za-z0-9_.-]*$/.test(val),
     },
-    {
-      message: t('集群别名重复'),
-      trigger: 'blur',
-      validator: (val: string) => {
-        if (!val) {
-          return true;
-        }
-        if (!props.bizId) {
-          return false;
-        }
-        return verifyDuplicatedClusterName({
-          bk_biz_id: props.bizId,
-          cluster_type: props.clusterType,
-          name: val,
-        }).then((data) => !data);
-      },
-    },
+    // {
+    //   message: t('集群别名重复'),
+    //   trigger: 'blur',
+    //   validator: (val: string) => {
+    //     if (!val) {
+    //       return true;
+    //     }
+    //     if (!props.bizId) {
+    //       return false;
+    //     }
+    //     return verifyDuplicatedClusterName({
+    //       bk_biz_id: props.bizId,
+    //       cluster_type: props.clusterType,
+    //       name: val,
+    //     }).then((data) => !data);
+    //   },
+    // },
   ];
 </script>
