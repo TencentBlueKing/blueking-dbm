@@ -20,7 +20,9 @@ class MachineType(StrStructuredEnum):
     BACKEND = EnumField("backend", _("backend"))
     SINGLE = EnumField("single", _("single"))
     MYSQL_DTS_MASTER = EnumField("mysql_dts_master", _("mysql_dts_master"))
-    MYSQL_DTS_WORKER = EnumField("mysql_dts_worker", "mysql_dts_worker")
+    MYSQL_DTS_WORKER = EnumField("mysql_dts_worker", _("mysql_dts_worker"))
+    # Master 与 Worker 同机部署时 Machine 表使用该类型；实例层仍分别记 master/worker
+    MYSQL_DTS_COLOCATED = EnumField("mysql_dts_colocated", _("mysql_dts_colocated"))
 
     PREDIXY = EnumField("predixy", _("predixy"))
     TWEMPROXY = EnumField("twemproxy", _("twemproxy"))

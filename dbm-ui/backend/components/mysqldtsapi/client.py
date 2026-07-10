@@ -42,7 +42,6 @@ from .types import (
     StopTaskRequest,
     TableStructureResponse,
     Task,
-    TaskItem,
     TaskStatusListResponse,
     TransferSourceRequest,
     UpdateSourceRequest,
@@ -278,18 +277,21 @@ class _MySQLDTSApi(BaseApi):
         data = self._call(dts_master_addr, "GET", "/api/v1/tasks", params)
         return ListTasksResponse(**data)
 
-    def get_task(self, dts_master_addr: str, task_name: str, with_status: bool = False) -> TaskItem:
-        """2.3 GET /api/v1/tasks/{task-name} — 获取单个任务
+    def get_task(self, dts_master_addr: str, task_name: str, with_status: bool = False) -> Task:
+        """2.3 GET /api/v1/tasks/{task-name} — 获取单个任务（完整 Task，可供 recreate）
 
         :param dts_master_addr: DTS Master 地址，如 1.1.1.1:1083
         :param task_name: 任务名称
-        :param with_status: 附带 subtask 状态列表
+        :param with_status: 附带 subtask 状态列表（解析前会剥离，不进入 Task）
         """
         params = {}
         if with_status:
             params["with_status"] = True
         data = self._call(dts_master_addr, "GET", f"/api/v1/tasks/{task_name}", params)
-        return TaskItem(**data)
+        if isinstance(data, dict):
+            data = dict(data)
+            data.pop("status_list", None)
+        return Task.model_validate(data)
 
     def delete_task(
         self, dts_master_addr: str, task_name: str, force: bool = False, source_name_list: list[str] | None = None

@@ -176,11 +176,12 @@ class MySQLChecksumFlowBuilder(BaseMySQLHATicketFlowBuilder):
             for master in masters
         }
 
-        # if not self.ticket.details.get('dts_mode', False):
         for info in self.ticket.details["infos"]:
-            # 填充master信息
-            info["master"] = cluster_id__master_map[info["cluster_id"]]
-            if self.ticket.details.get("dts_mode", False):
+            dts_mode = self.ticket.details.get("dts_mode", False)
+            # DTS 跨集群：infos 已显式指定 master（源）/ slaves（目标）时不覆盖 master
+            if not (dts_mode and info.get("master")):
+                info["master"] = cluster_id__master_map[info["cluster_id"]]
+            if dts_mode:
                 continue
 
             # 补充slave信息

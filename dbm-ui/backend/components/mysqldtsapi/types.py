@@ -8,8 +8,75 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+from typing import NamedTuple
+
 from django.utils.translation import gettext_lazy as _
 from pydantic import BaseModel, Field
+
+
+class DtsBinlogCoord(NamedTuple):
+    """DTS 位点字符串解析结果。格式示例：\"(binlog20000.002894, 12105)\"。"""
+
+    file: str
+    position: int
+
+
+def parse_dts_binlog_coord(raw: str | None) -> DtsBinlogCoord | None:
+    """解析 DTS sync_status 中的 binlog 位点字符串。
+
+    期望形态：\"(binlog20000.002894, 12105)\" 或 \"binlog20000.002894, 12105\"。
+    空串 / 缺逗号 / position 非整数 → 返回 None（调用方视为本轮未追平，勿直接失败节点）。
+    """
+    if raw is None:
+        return None
+    text = str(raw).strip()
+    if not text:
+        return None
+    if text.startswith("(") and text.endswith(")"):
+        text = text[1:-1].strip()
+    if "," not in text:
+        return None
+    file_part, pos_part = text.split(",", 1)
+    file_name = file_part.strip()
+    pos_text = pos_part.strip()
+    if not file_name or not pos_text:
+        return None
+    try:
+        position = int(pos_text)
+    except (TypeError, ValueError):
+        return None
+    if position < 0:
+        return None
+    return DtsBinlogCoord(file=file_name, position=position)
+
+
+def _binlog_file_seq(file_name: str) -> int | None:
+    """取 binlog 文件序号（最后一个 '.' 后的数字）。"""
+    if "." not in file_name:
+        return None
+    suffix = file_name.rsplit(".", 1)[-1]
+    if not suffix.isdigit():
+        return None
+    return int(suffix)
+
+
+def compare_dts_binlog_coord(left: DtsBinlogCoord, right: DtsBinlogCoord) -> int:
+    """比较位点：-1 left<right，0 相等，1 left>right（先 file 序号，再 position）。"""
+    left_seq = _binlog_file_seq(left.file)
+    right_seq = _binlog_file_seq(right.file)
+    if left_seq is not None and right_seq is not None:
+        if left_seq < right_seq:
+            return -1
+        if left_seq > right_seq:
+            return 1
+    elif left.file != right.file:
+        return -1 if left.file < right.file else 1
+    if left.position < right.position:
+        return -1
+    if left.position > right.position:
+        return 1
+    return 0
+
 
 # ============================================================
 # 通用 Schema
@@ -191,6 +258,7 @@ class SourceConfItem(BaseModel):
     binlog_name: str = Field(default="", description=_("增量起始 binlog 文件"))
     binlog_pos: int = Field(default=0, description=_("增量起始位点"))
     binlog_gtid: str = Field(default="", description=_("增量起始 GTID"))
+    myloader_config_name: str = Field(default="", description=_("引用 myloaders 命名配置"))
 
 
 class FullMigrateConfig(BaseModel):
@@ -210,6 +278,20 @@ class FullMigrateConfig(BaseModel):
     pd_addr: str = Field(default="", description=_("physical PD 地址"))
 
 
+class MyLoaderConfig(BaseModel):
+    """DTS 0.0.2+ myloader 全量导入配置（对齐引擎 myloaders 段）。"""
+
+    myloader_path: str = Field(description=_("Worker 上 myloader 可执行路径"))
+    myloader_dir: str = Field(description=_("全备数据目录"))
+    myloader_threads: int = Field(default=16, description=_("--threads"))
+    myloader_regex: str = Field(default="", description=_("--regex"))
+    myloader_sourcedb: str = Field(default="", description=_("--source-db"))
+    myloader_tablelist: str = Field(default="", description=_("--tables-list"))
+    myloader_setnames: str = Field(default="", description=_("--set-names"))
+    myloader_defaultsfile: str = Field(default="", description=_("--defaults-file"))
+    myloader_extraargs: str = Field(default="", description=_("扩展透传参数"))
+
+
 class IncrMigrateConfig(BaseModel):
     repl_threads: int = Field(default=16, description=_("syncer DML worker 数"))
     repl_batch: int = Field(default=100, description=_("syncer 每批 SQL 行数"))
@@ -219,6 +301,8 @@ class SourceConfig(BaseModel):
     source_conf: list[SourceConfItem] = Field(default_factory=list, description=_("源端实例列表"))
     full_migrate_conf: FullMigrateConfig | None = Field(default=None, description=_("全量迁移配置"))
     incr_migrate_conf: IncrMigrateConfig | None = Field(default=None, description=_("增量同步配置"))
+    myloader_conf: MyLoaderConfig | None = Field(default=None, description=_("共享 myloader 配置"))
+    myloaders: dict[str, MyLoaderConfig] = Field(default_factory=dict, description=_("myloader 命名配置池"))
 
 
 # ============================================================
@@ -255,7 +339,9 @@ class TableMigrateRule(BaseModel):
 
 class Task(BaseModel):
     name: str = Field(description=_("任务名称, 全局唯一, ≤64字符"))
-    task_mode: str = Field(description=_("任务模式: all | full | incremental"))
+    task_mode: str = Field(
+        description=_("任务模式: all | full | incremental | myloader | myloader&sync | dump | load&sync")
+    )
     shard_mode: str = Field(default="", description=_("分片模式: '' | pessimistic | optimistic"))
     strict_optimistic_shard_mode: bool = Field(default=False, description=_("严格spider模式"))
     enhance_online_schema_change: bool = Field(default=True, description=_("启用 online-DDL"))
@@ -364,6 +450,32 @@ class SyncStatus(BaseModel):
     synced: bool = False
     binlog_type: str = ""
     seconds_behind_master: int = 0
+
+    def master_coord(self) -> DtsBinlogCoord | None:
+        return parse_dts_binlog_coord(self.master_binlog)
+
+    def syncer_coord(self) -> DtsBinlogCoord | None:
+        return parse_dts_binlog_coord(self.syncer_binlog)
+
+    def is_same_binlog_file(self) -> bool:
+        """master/syncer 的 binlog 文件名相同（不要求 position）。"""
+        master = self.master_coord()
+        syncer = self.syncer_coord()
+        if master is None or syncer is None:
+            return False
+        return master.file == syncer.file
+
+    def is_master_not_behind_syncer(self) -> bool:
+        """部分同步允许 master 超前：master.file/pos >= syncer.file/pos。"""
+        master = self.master_coord()
+        syncer = self.syncer_coord()
+        if master is None or syncer is None:
+            return False
+        return compare_dts_binlog_coord(master, syncer) >= 0
+
+    def is_poll_caught_up(self) -> bool:
+        """Flow wait_catchup 轮询：SBM==0 且 master>=syncer（与 cutover 持锁快照语义不同）。"""
+        return self.seconds_behind_master == 0 and self.is_master_not_behind_syncer()
 
 
 class DumpStatus(BaseModel):

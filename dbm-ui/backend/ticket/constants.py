@@ -294,6 +294,15 @@ class TicketType(StrStructuredEnum):
                                                    _("集群维护"))  # noqa
     MYSQL_OPEN_AREA = TicketEnumField("MYSQL_OPEN_AREA", _("MySQL 开区"), _("克隆开区"), register_iam=False)
     MYSQL_DATA_MIGRATE = TicketEnumField("MYSQL_DATA_MIGRATE", _("MySQL DB数据克隆"), _("数据处理"))
+    MYSQL_DTS_CLUSTER_APPLY = TicketEnumField("MYSQL_DTS_CLUSTER_APPLY", _("MySQL DTS 集群部署"), register_iam=False)
+    MYSQL_DTS_CLUSTER_DESTROY = TicketEnumField("MYSQL_DTS_CLUSTER_DESTROY", _("MySQL DTS 集群销毁"), register_iam=False)
+    MYSQL_DTS_CLUSTER_REINSTALL = TicketEnumField(
+        "MYSQL_DTS_CLUSTER_REINSTALL", _("MySQL DTS 集群重装"), register_iam=False
+    )
+    MYSQL_TO_MYSQL_MIGRATE = TicketEnumField("MYSQL_TO_MYSQL_MIGRATE", _("MySQL 数据迁移"), _("数据处理"))
+    MYSQL_HA_TO_CLUSTER_MIGRATE = TicketEnumField(
+        "MYSQL_HA_TO_CLUSTER_MIGRATE", _("MySQL HA到Cluster数据迁移"), _("数据处理")
+    )
     MYSQL_DUMP_DATA = TicketEnumField("MYSQL_DUMP_DATA", _("MySQL 数据导出"), _("数据处理"))
     MYSQL_LOCAL_UPGRADE = TicketEnumField("MYSQL_LOCAL_UPGRADE", _("MySQL 原地升级"), _("版本升级"))
     MYSQL_MIGRATE_UPGRADE = TicketEnumField("MYSQL_MIGRATE_UPGRADE", _("MySQL 迁移升级"), _("版本升级"))
@@ -1020,4 +1029,5 @@ CLUSTER_APPLY_TICKET_TO_CLUSTER_TYPE = {
     TicketType.SQLSERVER_SINGLE_APPLY: ClusterType.SqlserverSingle,
     TicketType.TBINLOGDUMPER_INSTALL: ClusterType.TBinlogDumper,
     TicketType.TENDBCLUSTER_APPLY: ClusterType.TenDBCluster,
+    TicketType.MYSQL_DTS_CLUSTER_APPLY: ClusterType.MySQLDTS,
 }

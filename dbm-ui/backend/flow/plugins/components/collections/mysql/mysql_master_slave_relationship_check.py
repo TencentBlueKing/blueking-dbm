@@ -23,6 +23,11 @@ class MysqlMasterSlaveRelationshipCheckService(BaseService):
         kwargs = data.get_one_of_inputs("kwargs") or {}
         global_data = data.get_one_of_inputs("global_data") or {}
 
+        # DTS 跨集群校验：源/目标无 StorageInstanceTuple 主从关系，跳过元数据硬检查
+        if kwargs.get("dts_mode") or global_data.get("dts_mode"):
+            self.log_info(_("DTS 模式：跳过主从关系元数据检查"))
+            return True
+
         if "master" in kwargs and "slaves" in kwargs:
             master = kwargs["master"]
             slaves = kwargs["slaves"]

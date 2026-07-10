@@ -22,6 +22,7 @@ class FlowConfig(AppConfig):
     def ready(self):
         from pipeline.eri.signals import post_set_state
 
+        import backend.flow.signal.mysql_dts_migrate_handler  # noqa
         import backend.flow.signal.sqlserver_dts_callback_handler  # noqa
         import backend.iam_app.handlers.signal  # noqa
         from backend.flow.plugins.components.collections.mysql import (  # noqa: F401
