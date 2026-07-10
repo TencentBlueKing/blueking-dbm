@@ -15,8 +15,9 @@ from datetime import datetime
 from django.db import transaction
 from django.utils.translation import gettext as _
 
+from backend.db_meta import api
 from backend.db_meta.api import machine, storage_instance
-from backend.db_meta.enums import ClusterEntryRole, ClusterEntryType, InstanceRole
+from backend.db_meta.enums import ClusterEntryRole, ClusterEntryType, InstanceRole, MachineType
 from backend.db_meta.enums.cluster_type import ClusterType
 from backend.db_meta.models import Cluster, ClusterEntry, Machine, StorageInstance, StorageInstanceTuple
 
@@ -294,3 +295,34 @@ def replace_primary_and_standby(
     except Exception as e:
         logger.error(traceback.format_exc())
         raise Exception("oracle replace primary and standby failed: {}".format(e))
+
+
+@transaction.atomic
+def new_machine(
+    bk_cloud_id: int,
+    bk_biz_id: int,
+    ip: str,
+    resource_spec: dict,
+    creator: str,
+    cluster_type: str,
+):
+    # 录入新机器的machine信息
+    new_machine = Machine.objects.filter(ip=ip, bk_cloud_id=bk_cloud_id).first()
+    if not new_machine:
+        api.machine.create(
+            machines=[
+                {
+                    "ip": ip,
+                    "bk_biz_id": int(bk_biz_id),
+                    "machine_type": MachineType.ORACLE.value,
+                    "spec_id": resource_spec[MachineType.ORACLE.value]["id"],
+                    "spec_config": resource_spec[MachineType.ORACLE.value],
+                },
+            ],
+            creator=creator,
+            bk_cloud_id=bk_cloud_id,
+        )
+        new_machine = Machine.objects.filter(ip=ip, bk_cloud_id=bk_cloud_id).first()
+        new_machine.cluster_type = cluster_type
+        new_machine.save()
+        logger.info(_("创建新机器: host:{} cluster_type:{}").format(ip, cluster_type))

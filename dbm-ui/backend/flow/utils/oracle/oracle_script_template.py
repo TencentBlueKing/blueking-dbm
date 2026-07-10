@@ -34,6 +34,16 @@ chmod +x oracle-dbactuator
 --version_id {{version_id}} --payload {{payload}} --atom-job-list {{action}}
 """
 
+# 原子任务模板V2
+oracle_actuator_template_v2 = """
+mkdir -p /data/install/dbactuator-{{uid}}/logs
+cp /data/install/oracle-dbactuator /data/install/dbactuator-{{uid}}
+cd /data/install/dbactuator-{{uid}}
+chmod +x oracle-dbactuator
+./oracle-dbactuator --uid {{uid}} --root_id {{root_id}} --node_id {{node_id}} \
+--version_id {{version_id}} --payload {{payload}} --atom-job-list {{action}}
+"""
+
 
 def make_script_common_kwargs(timeout=259200, exec_account="root", is_param_sensitive=0):
     """

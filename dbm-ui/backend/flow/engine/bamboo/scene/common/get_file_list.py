@@ -759,6 +759,36 @@ class GetFileList(object):
             f"{env.BKREPO_PROJECT}/{env.BKREPO_BUCKET}/{self.actuator_pkg.path}",
         ]
 
+    def oracle_install_package(self, db_version: str, patch_versions: list) -> list:
+        """
+        oracle安装需要的安装包列表
+        """
+
+        # oracle_pkg = Package.get_latest_package(version=db_version, pkg_type=MediumEnum.Oracle, db_type=DBType.Oracle)
+        oracle_patch_pkgs = []
+        for patch_version in patch_versions:
+            oracle_patch_pkg = Package.get_latest_package(
+                version=patch_version, pkg_type=MediumEnum.Patch, db_type=DBType.Oracle
+            )
+            oracle_patch_pkgs.append(oracle_patch_pkg)
+        return [
+            f"{env.BKREPO_PROJECT}/{env.BKREPO_BUCKET}/{self.actuator_pkg.path}",
+            # f"{env.BKREPO_PROJECT}/{env.BKREPO_BUCKET}/{oracle_pkg.path}",
+            *[
+                f"{env.BKREPO_PROJECT}/{env.BKREPO_BUCKET}/{oracle_patch_pkg.path}"
+                for oracle_patch_pkg in oracle_patch_pkgs
+            ],
+        ]
+
+    def oracle_file(self, path: str, filelist: list) -> list:
+        """
+        返回执行需要下发分的文件
+        """
+        fileaddrs = []
+        for filename in filelist:
+            fileaddrs.append(f"{env.BKREPO_PROJECT}/{env.BKREPO_BUCKET}/{path}/{filename}")
+        return fileaddrs
+
     def get_tlinux4_dependencies_package(self) -> list:
         """
         tlinux4依赖包，可能返回多个rpm依赖包
