@@ -152,7 +152,9 @@
 
   const favorItem = computed(() => {
     return {
-      children: (profile.value[profileFavorKey] || []).map((item: string) => menuMap[item]),
+      children: (profile.value[profileFavorKey] || [])
+        .map((item: string) => menuMap[item])
+        .filter((item: string) => item),
       icon: 'star-fill',
       id: 'favor',
       name: t('我的收藏'),
@@ -160,9 +162,10 @@
   });
 
   const usedItem = computed(() => {
-    const profileUsedList = profile.value[profileUsedKey] || [];
     return {
-      children: profileUsedList.map((item: string) => menuMap[item]),
+      children: (profile.value[profileUsedKey] || [])
+        .map((item: string) => menuMap[item])
+        .filter((item: string) => item),
       icon: 'zuijinshiyong',
       id: 'used',
       name: t('最近使用'),
@@ -274,7 +277,7 @@
           color: #476bfe;
         }
 
-        &.db-icon-shujuhuifu {
+        &.db-icon-data-recovery {
           color: #9e37e8;
         }
 
