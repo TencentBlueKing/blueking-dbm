@@ -3,14 +3,7 @@
     class="bk-quick-search-type-mult-cascader"
     :style="{ 'min-width': contentMinWidth > 0 ? `${contentMinWidth}px` : '' }">
     <div class="bk-quick-search-value-panel-filter-box">
-      <Input
-        v-model="filterKey"
-        autofocus
-        borderless
-        clearable
-        placeholder="请输入关键字">
-        <template #prefix-icon> <SearchIcon /></template>
-      </Input>
+      <Input v-model="filterKey" />
     </div>
     <BkLoading :loading="isRemoteListLoading">
       <div
@@ -74,12 +67,13 @@
 </template>
 <script setup lang="ts">
   import _ from 'lodash';
-  import { SearchIcon } from 'tdesign-icons-vue-next';
-  import { Checkbox, Input } from 'tdesign-vue-next';
+  import { Checkbox } from 'tdesign-vue-next';
   import { ref, useTemplateRef } from 'vue';
 
   import type { Props as ContextProps } from '@components/db-quick-search/bk-quick-search/Index.vue';
 
+  import Input from '../common/Input.vue';
+  import { isSearchKeywordMatch } from '../common/searchKeyword';
   import useMenuList from '../hooks/useMenuList';
 
   interface Props {
@@ -127,7 +121,7 @@
 
     return list.value.reduce(
       (result, parentItem) => {
-        if (props.checkStrictly && parentItem.label.toLowerCase().includes(keyword)) {
+        if (props.checkStrictly && isSearchKeywordMatch(parentItem.label, filterKey.value)) {
           result.push({
             label: parentItem.label,
             searchLabel: parentItem.label,
@@ -135,7 +129,7 @@
           });
         }
         parentItem.children.forEach((childItem) => {
-          if (childItem.label.toLowerCase().includes(keyword)) {
+          if (isSearchKeywordMatch(childItem.label, filterKey.value)) {
             result.push({
               ...childItem,
               searchLabel: `${parentItem.label} / ${childItem.label}`,
