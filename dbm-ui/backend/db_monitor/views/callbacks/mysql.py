@@ -93,6 +93,11 @@ class MySQLAlarm(AlarmCallback):
                 "cluster_type": [],
             },
             {
+                "keyword": "主机 CPU 负载",
+                "level": [0, 1],
+                "cluster_type": [],
+            },
+            {
                 "keyword": "dbha二次探测失败",
                 "level": [0, 1, 2],
                 "cluster_type": ["tendbcluster", "tendbha", "tendbsingle"],
@@ -110,9 +115,9 @@ class MySQLAlarm(AlarmCallback):
 
         # 优先从 dimensions 中获取 cluster_type，没有则通过 cluster_domain 查询
         dimensions = callback_message.get("event", {}).get("dimensions", {})
-        cluster_domain = dimensions.get("cluster_domain", "")
-        cluster_type = dimensions.get("cluster_type")
-        bk_biz_id = int(dimensions.get("bk_biz_id"))
+        cluster_domain = dimensions.get("cluster_domain")
+        cluster_type = dimensions.get("cluster_type", "")
+        bk_biz_id = int(dimensions.get("appid", 0))
         if (not cluster_type or not bk_biz_id) and cluster_domain:
             cluster = Cluster.objects.filter(immute_domain=cluster_domain).first()
             cluster_type = cluster.cluster_type if cluster else None
