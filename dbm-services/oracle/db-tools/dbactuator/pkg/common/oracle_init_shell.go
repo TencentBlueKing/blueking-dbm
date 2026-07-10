@@ -5,8 +5,8 @@ var OracleShellInit = `#!/bin/sh
 # 创建相关目录
 
 function _exit() {
-        rm $0
-        exit
+        rm -f $0
+        exit 0
 }
 
 # 判断目录是否存在，如果不存在则创建，创建软链接 root执行

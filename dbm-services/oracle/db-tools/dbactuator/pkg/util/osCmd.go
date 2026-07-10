@@ -65,9 +65,25 @@ func RunLocalCmd(
 		dealPidMethod.DealProcessPid(cmdCtx.Process.Pid)
 	}
 	if err = cmdCtx.Wait(); err != nil {
-		mylog.Logger.Error("RunLocalCmd cmd wait fail,err:%v,errBuffer:%s,retBuffer:%s,cmd:%s,opts:%+v", err,
-			errBuffer.String(), retBuffer.String(), cmd, opts)
-		return "", fmt.Errorf("RunLocalCmd cmd wait fail,err:%v,detail:%s", err, errBuffer.String())
+		stderrText := strings.TrimSpace(errBuffer.String())
+		stdoutText := strings.TrimSpace(retBuffer.String())
+		ctxErr := ctx.Err()
+		// 优先使用 stderr, 若 stderr 为空则使用 stdout(很多工具比如 sqlplus 会把错误打到 stdout)
+		detail := stderrText
+		if detail == "" {
+			detail = stdoutText
+		}
+		if detail == "" && ctxErr != nil {
+			detail = ctxErr.Error()
+		}
+		mylog.Logger.Error(
+			"RunLocalCmd cmd wait fail,err:%v,ctxErr:%v,stderr:%s,stdout:%s,cmd:%s,opts:%+v",
+			err, ctxErr, stderrText, stdoutText, cmd, opts,
+		)
+		return stdoutText, fmt.Errorf(
+			"RunLocalCmd cmd wait fail,err:%v,ctxErr:%v,stderr:%s,stdout:%s,detail:%s",
+			err, ctxErr, stderrText, stdoutText, detail,
+		)
 	}
 	retStr = retBuffer.String()
 

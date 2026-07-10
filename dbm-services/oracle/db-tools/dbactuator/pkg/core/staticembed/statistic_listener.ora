@@ -1,0 +1,2 @@
+SID_LIST_LISTENER1 = (SID_LIST = (SID_DESC = (SID_NAME = {{oracle_sid}})(ORACLE_HOME = {{oracle_home}})(PROGRAM = extproc)) (SID_DESC = (GLOBAL_DBNAME = {{oracle_sid}})(ORACLE_HOME = {{oracle_home}})(SID_NAME = {{oracle_sid}})))
+LISTENER1 = (DESCRIPTION_LIST = (DESCRIPTION = (ADDRESS_LIST = (ADDRESS = (PROTOCOL = TCP)(HOST = {{host}})(PORT = 1522))) (ADDRESS_LIST = (ADDRESS = (PROTOCOL = IPC)(KEY = EXTPROC)))))

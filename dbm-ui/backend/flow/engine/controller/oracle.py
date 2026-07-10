@@ -8,6 +8,8 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+from backend.flow.engine.bamboo.scene.oracle.oracle_add_slave import OracleAddSlaveFlow
+from backend.flow.engine.bamboo.scene.oracle.oracle_add_slave_via_cascading import OracleAddSlaveViaCascadingFlow
 from backend.flow.engine.bamboo.scene.oracle.oracle_exec_script import OracleExecuteScriptFlow
 from backend.flow.engine.controller.base import BaseController
 
@@ -24,3 +26,19 @@ class OracleController(BaseController):
 
         flow = OracleExecuteScriptFlow(root_id=self.root_id, data=self.ticket_data)
         flow.multi_oracle_execute_script_flow()
+
+    def oracle_add_slave_scene(self):
+        """
+        添加备库
+        """
+
+        flow = OracleAddSlaveFlow(root_id=self.root_id, data=self.ticket_data)
+        flow.oracle_add_slave_flow()
+
+    def oracle_add_slave_via_cascading_scene(self):
+        """
+        添加备库，通过级联方式
+        """
+
+        flow = OracleAddSlaveViaCascadingFlow(root_id=self.root_id, data=self.ticket_data)
+        flow.oracle_add_slave_via_cascading_flow()
