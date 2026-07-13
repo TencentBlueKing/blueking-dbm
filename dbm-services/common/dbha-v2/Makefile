@@ -173,7 +173,7 @@ test:
 	go test -v -race -cover ./...
 
 # build and package
-package: package-server package-probe
+package: package-server package-probe package-probe-windows
 
 # server package: admin/analysis/receiver + toolkits + server-side scripts/configs
 package-server: admin analysis receiver toolkits
