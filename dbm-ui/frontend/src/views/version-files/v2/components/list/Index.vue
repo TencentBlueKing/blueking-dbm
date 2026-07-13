@@ -40,13 +40,15 @@
   import ReleaseVersionModel from '@services/model/version-file/release-version';
   import { getReleaseVersionList } from '@services/source/version';
 
+  import type { DBTypes } from '@common/const';
+
   import { isPureMysqlPkgType } from '@views/version-files/v2/common';
 
   import ReleaseVersionList from './components/release-version-list/Index.vue';
   import SubVersionList from './components/sub-version-list/Index.vue';
 
   interface Props {
-    dbType: string;
+    dbType: DBTypes;
     hasPackageManagePermission: boolean;
     pkgLabelMap: Record<string, string>;
     pkgType: string;

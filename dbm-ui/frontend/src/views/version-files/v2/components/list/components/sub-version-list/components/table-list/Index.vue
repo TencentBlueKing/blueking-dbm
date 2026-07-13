@@ -203,6 +203,8 @@
 
   import { getDbVersionList, getVersionSeriesList } from '@services/source/version';
 
+  import type { DBTypes } from '@common/const';
+
   import EmptyStatus from '@components/empty-status/EmptyStatus.vue';
   import TextOverflowLayout from '@components/text-overflow-layout/Index.vue';
 
@@ -220,7 +222,7 @@
   import RecommendConfig from './components/RecommendConfig.vue';
 
   interface Props {
-    dbType: string;
+    dbType: DBTypes;
     dbVersionList?: DbVersion[];
     loading?: boolean;
     permission: boolean;
