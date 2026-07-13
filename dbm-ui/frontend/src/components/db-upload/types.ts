@@ -22,6 +22,8 @@ export enum UploadStatus {
 
 /** 上传文件类型 */
 export interface UploadFile {
+  /** 错误原因（失败态） */
+  errMsg?: string;
   /** 文件名 */
   name: string;
   /** 上传进度百分比 0-100 */
@@ -55,35 +57,39 @@ export interface MaxSize {
   maxImgSize: number;
 }
 
-/** 上传请求选项 */
-export interface UploadRequestOptions {
-  /** 上传地址 */
-  action: string;
-  /** 额外 FormData 数据 */
-  data?: Record<string, string | Blob>;
-  /** 文件对象 */
-  file: File;
-  /** 文件字段名 */
-  filename: string;
-  /** 请求头 */
-  headers?: Record<string, string>;
-  /** HTTP 方法 */
-  method: string;
-  /** 错误回调 */
-  onError: (error: Error) => void;
-  /** 进度回调 */
-  onProgress: (event: ProgressEvent) => void;
-  /** 成功回调 */
-  onSuccess: (res: unknown) => void;
-  /** 是否携带凭证 */
-  withCredentials: boolean;
+/** 重名检查函数：返回 true 表示重名，或返回被忽略的文件名数组 */
+export type DuplicateChecker = (file: File, fileList: UploadFile[]) => boolean | string[];
+
+/** 文件列表相对触发区的位置 */
+export type ListPosition = 'bottom' | 'top';
+
+/** 上传模式 */
+export type UploadMode = 'bkrepo' | 'custom';
+
+/** 上传组件静态配置项 */
+export interface DbUploadOptions {
+  /** 接受的文件类型 */
+  accept?: string;
+  /** bkrepo 模式：上传目录前缀（如 /mysql/pkg/1.0），组件自动拼接 /<file.name> */
+  basePath?: string;
+  /** 是否禁用 */
+  disabled?: boolean;
+  /** 是否启用拖拽上传模式 */
+  draggable?: boolean;
+  /** 文件列表中的文件图标类型 */
+  fileIcon?: string;
+  /** 最大文件数量限制 */
+  limit?: number;
+  /** 文件列表相对触发区的位置，默认 bottom */
+  listPosition?: ListPosition;
+  /** 上传模式：bkrepo / custom，默认 custom */
+  mode?: UploadMode;
+  /** 是否支持多选 */
+  multiple?: boolean;
+  /** 是否展示文件列表，默认 true */
+  showFileList?: boolean;
+  /** 文件大小限制（MB），可传数字或对象 */
+  size?: number | MaxSize;
+  /** 提示文本 */
+  tip?: string;
 }
-
-/** 自定义上传处理函数 */
-export type UploadRequestHandler = (options: UploadRequestOptions) => XMLHttpRequest | void;
-
-/** beforeUpload 钩子 */
-export type BeforeUploadHook = (file: UploadRawFile, uploadFiles: UploadFile[]) => boolean | Promise<boolean>;
-
-/** beforeRemove 钩子 */
-export type BeforeRemoveHook = (file: UploadFile, uploadFiles: UploadFile[]) => boolean | Promise<boolean>;
