@@ -338,21 +338,6 @@ export function queryTicketFlowDescribe(params: {
 }
 
 /**
- * 创建单据流程规则
- */
-export function createTicketFlowConfig(params: {
-  bk_biz_id: number;
-  cluster_ids?: number[];
-  configs: Record<string, boolean>;
-  remark?: string;
-  ticket_types: string[];
-}) {
-  return http.post<{
-    ticket_types: string[];
-  }>(`${path}/create_ticket_flow_config/`, params);
-}
-
-/**
  * 修改可编辑的单据流程规则
  */
 export function updateTicketFlowConfig(params: {
@@ -377,7 +362,6 @@ export function saveTicketFlowConfig(params: {
   config_ids?: number[];
   configs: {
     need_itsm: boolean;
-    need_manual_confirm: boolean;
   };
   remark?: string;
   ticket_types: string[];

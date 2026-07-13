@@ -96,7 +96,7 @@
   import { useRequest } from 'vue-request';
 
   import TicketFlowDescribeModel from '@services/model/ticket-flow-describe/TicketFlowDescribe';
-  import { createTicketFlowConfig, saveTicketFlowConfig, updateTicketFlowConfig } from '@services/source/ticket';
+  import { saveTicketFlowConfig } from '@services/source/ticket';
 
   import { useBeforeClose } from '@hooks';
 
@@ -173,24 +173,6 @@
     },
   });
 
-  const { run: createRun } = useRequest(createTicketFlowConfig, {
-    manual: true,
-    onSuccess() {
-      messageSuccess(t('操作成功'));
-      emits('success');
-      isShow.value = false;
-    },
-  });
-
-  const { run: updateRun } = useRequest(updateTicketFlowConfig, {
-    manual: true,
-    onSuccess() {
-      messageSuccess(t('操作成功'));
-      emits('success');
-      isShow.value = false;
-    },
-  });
-
   watch(
     () => props.data,
     () => {
@@ -221,22 +203,17 @@
         },
         remark: formData.remark,
         ticket_types: [props.data.ticket_type],
-      } as Parameters<typeof createTicketFlowConfig>[0];
+      } as Parameters<typeof saveTicketFlowConfig>[0];
 
       if (isChildPolicy.value) {
         params.cluster_ids = selectedClusterIds.value;
       }
 
       if (props.isEdit) {
-        (params as any).config_ids = [props.data.id];
-        if (isChildPolicy.value) {
-          updateRun(params as Parameters<typeof updateTicketFlowConfig>[0]);
-        } else {
-          saveRun(params as Parameters<typeof saveTicketFlowConfig>[0]);
-        }
-      } else {
-        createRun(params);
+        params.config_ids = [props.data.id];
       }
+
+      saveRun(params);
     } finally {
       isSubmitting.value = false;
     }
