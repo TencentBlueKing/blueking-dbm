@@ -25,6 +25,13 @@ export interface ParameterConfigItem {
   conf_name: string;
   conf_name_lc?: string;
   conf_value?: string;
+  /**
+   * 参数来源（后端返回，区分系统内置与平台自定义）
+   * - ''（空值）：系统定义且未修改，不显示删除/恢复操作
+   * - 'def'：系统定义但平台修改成了自己的定义，显示「恢复初始值」
+   * - 'plat'：平台自定义，显示「删除」
+   */
+  create_from?: '' | 'def' | 'plat';
   description: string;
   extra_info?: string;
   flag_disable?: number;

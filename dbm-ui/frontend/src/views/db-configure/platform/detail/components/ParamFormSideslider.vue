@@ -129,6 +129,16 @@
               :placeholder="isValueAllowedDisabled ? valueAllowedPlaceholder : t('请输入允许值')"
               @change="markDirty" />
           </FormItemWithHint>
+          <!-- 约束类变更影响告知：仅编辑模式且数据类型/约束类型/允许值相对打开时有变更时显示 -->
+          <BkAlert
+            v-if="isEditMode && isConstraintDirty"
+            class="constraint-impact-alert mt-12"
+            theme="warning">
+            <div class="constraint-impact-content">
+              <p>{{ t('修改将同步到业务继承态参数_业务已自定义的参数值不受影响') }}</p>
+              <p>{{ t('若变更数据类型_约束类型或允许值_不符合新规则的业务参数值将被校验拦截') }}</p>
+            </div>
+          </BkAlert>
         </div>
 
         <!-- 默认值与安全 -->
@@ -210,7 +220,7 @@
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
 
-  import { changeConfNames, checkConfNameExists } from '@services/source/configs';
+  import { changeConfNames, checkConfNameExists, type ParameterConfigItem } from '@services/source/configs';
 
   import FormItemWithHint from '@components/form-item-with-hint/Index.vue';
 
@@ -264,6 +274,23 @@
 
   /** 表单是否有修改（任一字段变更即置位，不复位） */
   const isAddParamFormDirty = ref(false);
+
+  /**
+   * 约束类基线快照：openEdit 时记录 value_type / value_type_sub / value_allowed
+   * 用于编辑模式下检测约束类字段是否相对打开时有变更，触发业务影响 Alert
+   */
+  const constraintBaseline = ref({ value_allowed: '', value_type: '', value_type_sub: '' });
+
+  /** 编辑时记录原始来源（create_from），用于保存 Toast 分流 */
+  const originalCreateFrom = ref<ParameterConfigItem['create_from']>('plat');
+
+  /** 约束类字段是否相对打开时有变更（仅编辑模式有意义） */
+  const isConstraintDirty = computed(
+    () =>
+      addParamForm.value_type !== constraintBaseline.value.value_type ||
+      addParamForm.value_type_sub !== constraintBaseline.value.value_type_sub ||
+      addParamForm.value_allowed !== constraintBaseline.value.value_allowed,
+  );
 
   /** 标记表单为已修改 */
   const markDirty = () => {
@@ -486,7 +513,12 @@
 
   // 提交新建/编辑参数
   const handleAddParamConfirm = async () => {
-    await addFormRef.value?.validate();
+    try {
+      await addFormRef.value?.validate();
+    } catch {
+      return;
+    }
+
     await changeConfNames({
       conf_file: props.version,
       conf_names: [
@@ -509,7 +541,14 @@
       meta_cluster_type: props.namespace,
     });
     isShowAddParam.value = false;
-    messageSuccess(isEditMode.value ? t('编辑成功') : t('新增成功'));
+    // Toast 分流：系统定义未修改首次编辑 → 转为平台自定义；其余编辑 → 已修改；新建 → 新增成功
+    if (isEditMode.value && originalCreateFrom.value === '') {
+      messageSuccess(t('操作成功_参数已转为平台自定义'));
+    } else if (isEditMode.value) {
+      messageSuccess(t('操作成功_参数已修改'));
+    } else {
+      messageSuccess(t('新增成功'));
+    }
     isEditMode.value = false;
     emit('success');
   };
@@ -550,7 +589,7 @@
     value_type_sub?: string | null;
   }
 
-  const openEdit = (row: EditRowData) => {
+  const openEdit = (row: EditRowData, createFrom?: ParameterConfigItem['create_from']) => {
     isEditMode.value = true;
     Object.assign(addParamForm, {
       conf_name: row.conf_name,
@@ -567,6 +606,14 @@
       value_type: row.value_type ?? '',
       value_type_sub: row.value_type === 'STRING' && row.value_type_sub === '' ? NO_CONSTRAINT : row.value_type_sub,
     });
+    // 记录约束类基线快照，用于检测约束类字段是否相对打开时有变更
+    constraintBaseline.value = {
+      value_allowed: addParamForm.value_allowed,
+      value_type: addParamForm.value_type,
+      value_type_sub: addParamForm.value_type_sub,
+    };
+    // 记录原始来源，用于保存 Toast 分流（默认按平台自定义处理）
+    originalCreateFrom.value = createFrom ?? 'plat';
     isAddParamFormDirty.value = false;
     isShowAddParam.value = true;
   };
