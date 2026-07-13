@@ -84,7 +84,7 @@ require (
 
 require (
 	filippo.io/edwards25519 v1.1.0 // indirect
-	github.com/TencentBlueKing/bk-gse-sdk/go v0.0.3
+	github.com/TencentBlueKing/bk-gse-sdk/go v0.0.4
 	github.com/coreos/go-semver v0.3.1 // indirect
 	github.com/coreos/go-systemd/v22 v22.5.0 // indirect
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect
