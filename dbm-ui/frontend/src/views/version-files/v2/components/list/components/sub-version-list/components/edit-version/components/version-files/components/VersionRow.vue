@@ -1,116 +1,244 @@
+<!--
+ * TencentBlueKing is pleased to support the open source community by making 蓝鲸智云-DB管理系统(BlueKing-BK-DBM) available.
+ *
+ * Copyright (C) 2017-2023 THL A29 Limited, a Tencent company. All rights reserved.
+ *
+ * Licensed under the MIT License (the "License"); you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at https://opensource.org/licenses/MIT
+ *
+ * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed
+ * on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for
+ * the specific language governing permissions and limitations under the License.
+-->
+
 <template>
   <tr>
+    <!-- 文件列 -->
     <td>
-      <div class="version-file-name-container">
-        <div
-          v-overflow-tips
-          class="text-overflow">
-          {{ data.name }}
-        </div>
-        <div
-          v-overflow-tips
-          class="version-file-md5 text-overflow">
-          {{ data.md5 }}
-        </div>
-      </div>
-    </td>
-    <td>
-      <BkSelect
-        v-model="localData.permit_os_type"
-        :clearable="false"
-        ext-cls="version-files-version-row-select"
-        @change="(value) => handleOsTypeChange(value)">
-        <BkOption
-          v-for="system in systemList"
-          :key="system.value"
-          v-bk-tooltips="{
-            content: t('该 OS 已被其它文件占用'),
-            disabled: !(selectedAllSystems.has(system.value) && selectedAllVersions[system.value]?.has('all')),
-          }"
-          :disabled="selectedAllSystems.has(system.value) && selectedAllVersions[system.value]?.has('all')"
-          :label="system.label"
-          :value="system.value" />
-      </BkSelect>
-    </td>
-    <td>
-      <BkSelect
-        v-model="localData.permit_os"
-        all-option-id="all"
-        class="version-permit-os-select"
-        filterable
-        multiple
-        multiple-mode="tag"
-        show-all
-        @change="handleOsVersionChange"
-        @toggle="handleOsVersionToggle">
-        <template #trigger>
-          <div
-            class="version-display-trigger"
-            :class="{ 'is-active': isShowVersionPanel }">
-            <div class="display-main">
-              <template v-if="existVersionList.length > 0 || localData.permit_os.length > 0">
-                <div
-                  v-for="version in existVersionList"
-                  :key="version"
-                  class="fixed-tag-main">
-                  <div class="text-content">{{ version }}</div>
-                  <DbIcon
-                    v-bk-tooltips="t('该版本已被应用，无法删除')"
-                    class="close-icon"
-                    type="close" />
-                </div>
-                <div
-                  v-for="(version, index) in localData.permit_os"
-                  :key="version"
-                  class="closable-tag-main">
-                  <div class="text-content">
-                    <DbIcon
-                      v-if="version === 'all'"
-                      class="mr-4"
-                      type="quanbu-xuanzhong" />
-                    <span>{{ version === 'all' ? t('全部') : version }}</span>
-                  </div>
-                  <DbIcon
-                    class="close-icon"
-                    type="close"
-                    @click.stop="handleVersionDelete(index)" />
-                </div>
-              </template>
+      <!-- 上传中状态 -->
+      <template v-if="status === 'uploading'">
+        <div class="version-file-name-container">
+          <div class="version-file-name-row">
+            <DbIcon
+              class="file-icon"
+              type="file" />
+            <span
+              v-overflow-tips
+              class="text-overflow">
+              {{ data.name }}
+            </span>
+          </div>
+          <div class="file-upload-progress-wrapper">
+            <div class="file-upload-progress">
               <div
-                v-else
-                class="placeholder">
-                {{ t('请选择版本') }}
+                class="file-upload-progress-bar"
+                :style="{ width: `${percentage}%` }" />
+            </div>
+            <span class="file-upload-progress-text">{{ t('上传中') }} {{ percentage }}%</span>
+          </div>
+        </div>
+      </template>
+
+      <!-- 已上传状态 -->
+      <template v-else-if="status === 'staged'">
+        <div class="version-file-name-container">
+          <div
+            v-overflow-tips
+            class="text-overflow">
+            {{ data.name }}
+          </div>
+          <div class="version-file-md5-staged">
+            <DbIcon
+              class="check-icon"
+              type="check-circle-fill" />
+            <span class="md5-text">MD5: {{ data.md5 }}</span>
+          </div>
+        </div>
+      </template>
+
+      <!-- 上传失败状态 -->
+      <template v-else-if="status === 'failed'">
+        <div class="version-file-name-container">
+          <div class="version-file-name-row">
+            <span
+              v-overflow-tips
+              class="text-overflow version-file-name-failed">
+              {{ data.name }}
+            </span>
+          </div>
+          <div class="version-file-err-msg">{{ errMsg || t('上传失败，请重试') }}</div>
+        </div>
+      </template>
+
+      <!-- 无状态（编辑模式加载已有数据） -->
+      <template v-else>
+        <div class="version-file-name-container">
+          <div
+            v-overflow-tips
+            class="text-overflow">
+            {{ data.name }}
+          </div>
+          <div class="version-file-md5-staged">
+            <DbIcon
+              class="check-icon"
+              type="check-circle-fill" />
+            <span class="md5-text">MD5: {{ data.md5 }}</span>
+          </div>
+        </div>
+      </template>
+    </td>
+
+    <!-- OS 选择列 - 仅在已上传状态显示 -->
+    <td>
+      <template v-if="status === 'staged' || status === undefined">
+        <BkSelect
+          v-model="localData.permit_os_type"
+          :clearable="false"
+          ext-cls="version-files-version-row-select"
+          @change="(value: string) => handleOsTypeChange(value)">
+          <BkOption
+            v-for="system in systemList"
+            :key="system.value"
+            v-bk-tooltips="{
+              content: t('该 OS 已被其它文件占用'),
+              disabled: !(selectedAllSystems.has(system.value) && selectedAllVersions[system.value]?.has('all')),
+            }"
+            :disabled="selectedAllSystems.has(system.value) && selectedAllVersions[system.value]?.has('all')"
+            :label="system.label"
+            :value="system.value" />
+        </BkSelect>
+      </template>
+      <span
+        v-else
+        class="cell-placeholder">--</span>
+    </td>
+
+    <!-- OS 版本选择列 - 仅在已上传状态显示 -->
+    <td>
+      <template v-if="status === 'staged' || status === undefined">
+        <BkSelect
+          v-model="localData.permit_os"
+          all-option-id="all"
+          class="version-permit-os-select"
+          filterable
+          multiple
+          multiple-mode="tag"
+          show-all
+          @change="handleOsVersionChange"
+          @toggle="handleOsVersionToggle">
+          <template #trigger>
+            <div
+              class="version-display-trigger"
+              :class="{ 'is-active': isShowVersionPanel }">
+              <div class="display-main">
+                <template v-if="existVersionList.length > 0 || localData.permit_os.length > 0">
+                  <div
+                    v-for="version in existVersionList"
+                    :key="version"
+                    class="fixed-tag-main">
+                    <div class="text-content">{{ version }}</div>
+                    <DbIcon
+                      v-bk-tooltips="t('该版本已被应用，无法删除')"
+                      class="close-icon"
+                      type="close" />
+                  </div>
+                  <div
+                    v-for="(version, index) in localData.permit_os"
+                    :key="version"
+                    class="closable-tag-main">
+                    <div class="text-content">
+                      <DbIcon
+                        v-if="version === 'all'"
+                        class="mr-4"
+                        type="quanbu-xuanzhong" />
+                      <span>{{ version === 'all' ? t('全部') : version }}</span>
+                    </div>
+                    <DbIcon
+                      class="close-icon"
+                      type="close"
+                      @click.stop="handleVersionDelete(index)" />
+                  </div>
+                </template>
+                <div
+                  v-else
+                  class="placeholder">
+                  {{ t('请选择版本') }}
+                </div>
+              </div>
+              <div class="icon-main">
+                <DbIcon
+                  class="trigger-icon"
+                  type="down-big" />
               </div>
             </div>
-            <div class="icon-main">
-              <DbIcon
-                class="trigger-icon"
-                type="down-big" />
-            </div>
-          </div>
-        </template>
-        <BkOption
-          v-for="version in versionList"
-          :key="version.value"
-          v-bk-tooltips="{
-            content: t('该 OS 版本已被其它文件占用'),
-            disabled: !selectedAllVersions[localData.permit_os_type]?.has(version.value),
-          }"
-          :disabled="selectedAllVersions[localData.permit_os_type]?.has(version.value)"
-          :label="version.label"
-          :value="version.value" />
-      </BkSelect>
+          </template>
+          <BkOption
+            v-for="version in versionList"
+            :key="version.value"
+            v-bk-tooltips="{
+              content: t('该 OS 版本已被其它文件占用'),
+              disabled: !selectedAllVersions[localData.permit_os_type]?.has(version.value),
+            }"
+            :disabled="selectedAllVersions[localData.permit_os_type]?.has(version.value)"
+            :label="version.label"
+            :value="version.value" />
+        </BkSelect>
+      </template>
+      <span
+        v-else
+        class="cell-placeholder">--</span>
     </td>
+
+    <!-- 操作列 -->
     <td>
-      <DbIcon
-        v-bk-tooltips="{
-          content: t('该版本已被应用，无法删除'),
-          disabled: !isApplied,
-        }"
-        class="version-row-delete-icon"
-        :class="{ 'is-disabled': isApplied }"
-        type="delete"
-        @click="handleDelete" />
+      <div class="version-row-actions">
+        <!-- 上传中: 仅删除 -->
+        <template v-if="status === 'uploading'">
+          <BkButton
+            text
+            theme="danger"
+            @click="handleDelete">
+            {{ t('删除') }}
+          </BkButton>
+        </template>
+
+        <!-- 已上传: 替换 + 删除 -->
+        <template v-else-if="status === 'staged' || status === undefined">
+          <BkButton
+            text
+            theme="primary"
+            @click="handleReplace">
+            {{ t('替换') }}
+          </BkButton>
+          <BkButton
+            v-bk-tooltips="{
+              content: t('该版本已被应用，无法删除'),
+              disabled: !isApplied,
+            }"
+            :disabled="isApplied"
+            text
+            theme="danger"
+            @click="handleDelete">
+            {{ t('删除') }}
+          </BkButton>
+        </template>
+
+        <!-- 失败: 重试 + 删除 -->
+        <template v-else-if="status === 'failed'">
+          <BkButton
+            text
+            theme="primary"
+            @click="handleRetry">
+            {{ t('重试') }}
+          </BkButton>
+          <BkButton
+            text
+            theme="danger"
+            @click="handleDelete">
+            {{ t('删除') }}
+          </BkButton>
+        </template>
+      </div>
     </td>
   </tr>
 </template>
@@ -121,6 +249,8 @@
 
   import { listSupportSystems } from '@services/source/package';
 
+  type RowStatus = 'uploading' | 'staged' | 'failed';
+
   interface Props {
     data: {
       id?: number;
@@ -130,15 +260,21 @@
       permit_os?: string[];
       permit_os_type?: string;
       size: number;
+      tempId?: string;
     };
+    errMsg?: string;
     isApplied?: boolean;
     isOnlyOneFile: boolean;
+    percentage: number;
     selectedSystems: Set<string>;
     selectedVersions: Record<string, Set<string>>;
+    status?: RowStatus;
   }
 
   interface Emits {
     (e: 'delete'): void;
+    (e: 'replace'): void;
+    (e: 'retry'): void;
     (e: 'systemOsTypeChange', isInit: boolean): void;
     (e: 'systemOsVersionChange'): void;
   }
@@ -150,7 +286,10 @@
   }
 
   const props = withDefaults(defineProps<Props>(), {
+    errMsg: undefined,
     isApplied: false,
+    percentage: 0,
+    status: undefined,
   });
   const emits = defineEmits<Emits>();
 
@@ -279,9 +418,15 @@
   };
 
   const handleDelete = () => {
-    if (!props.isApplied) {
-      emits('delete');
-    }
+    emits('delete');
+  };
+
+  const handleReplace = () => {
+    emits('replace');
+  };
+
+  const handleRetry = () => {
+    emits('retry');
   };
 
   const handleOsVersionToggle = (isShow: boolean) => {
@@ -401,6 +546,94 @@
     }
   }
 
+  .version-file-name-container {
+    width: 100%;
+    overflow: hidden;
+
+    .version-file-name-row {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+
+      .file-icon {
+        flex-shrink: 0;
+        font-size: 14px;
+        color: #3a84ff;
+      }
+
+      .version-file-name-failed {
+        color: #ea3636 !important;
+      }
+    }
+
+    .file-upload-progress-wrapper {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-top: 6px;
+    }
+
+    .file-upload-progress {
+      width: 120px;
+      height: 2px;
+      background: #f0f1f5;
+      border-radius: 1px;
+      overflow: hidden;
+
+      .file-upload-progress-bar {
+        height: 100%;
+        background: #3a84ff;
+        border-radius: 1px;
+        transition: width 0.3s ease;
+      }
+    }
+
+    .file-upload-progress-text {
+      font-size: 12px;
+      color: #3a84ff;
+      white-space: nowrap;
+    }
+
+    .version-file-md5-staged {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      margin-top: 4px;
+
+      .check-icon {
+        flex-shrink: 0;
+        font-size: 14px;
+        color: #2dcb56;
+      }
+
+      .md5-text {
+        font-family: monospace;
+        font-size: 12px;
+        color: #c4c6cc;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+    }
+
+    .version-file-err-msg {
+      margin-top: 4px;
+      font-size: 12px;
+      color: #ea3636;
+    }
+  }
+
+  .version-row-actions {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+  }
+
+  .cell-placeholder {
+    color: #c4c6cc;
+    font-size: 12px;
+  }
+
   .version-row-delete-icon {
     font-size: 13px;
     color: #979ba5;
@@ -422,20 +655,5 @@
 
   .version-files-version-row-select {
     z-index: 99999;
-  }
-
-  .version-file-name-container {
-    width: 100%;
-    overflow: hidden;
-
-    .version-file-md5 {
-      width: 100%;
-      height: 18px;
-      margin-top: -4px;
-      margin-bottom: 10px;
-      font-size: 12px;
-      line-height: 18px;
-      color: #c4c6cc;
-    }
   }
 </style>
