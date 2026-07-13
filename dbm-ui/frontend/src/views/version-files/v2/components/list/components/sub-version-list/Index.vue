@@ -114,6 +114,8 @@
   import ReleaseVersionModel from '@services/model/version-file/release-version';
   import { getDbVersionList, getVersionSeriesList } from '@services/source/version';
 
+  import type { DBTypes } from '@common/const';
+
   import { isPureMysqlPkgType } from '@views/version-files/v2/common';
 
   import EditVersion from './components/edit-version/Index.vue';
@@ -121,7 +123,7 @@
   import useVersionFilter from './hooks/useVersionFilter';
 
   interface Props {
-    dbType: string;
+    dbType: DBTypes;
     hasPackageManagePermission: boolean;
     pkgType: string;
     releaseVersion?: ReleaseVersionModel;

@@ -46,11 +46,13 @@
   import DbVersionModel from '@services/model/version-file/db-version';
   import { deleteDbVersion } from '@services/source/version';
 
+  import type { DBTypes } from '@common/const';
+
   import { messageSuccess } from '@utils';
 
   interface Props {
     data: DbVersionModel;
-    dbType: string;
+    dbType: DBTypes;
     permission: boolean;
   }
 
