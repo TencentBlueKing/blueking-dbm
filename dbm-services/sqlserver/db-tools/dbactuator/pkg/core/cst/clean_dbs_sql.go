@@ -289,8 +289,16 @@ JOIN sys.schemas s ON s.schema_id = t.schema_id
 WHERE t.is_ms_shipped = 0 AND fk.is_not_trusted = 1;
 `
 
-// CHECK_CLEAN_RESULT_SQL 校验清档结果：表是否为空，identity 是否会从 1 开始
-// 仅返回未清干净的表（IsEmpty=0 或 IdentityStartsFrom1_OK=0），%s 为数据库名
+// CHECK_CLEAN_RESULT_SQL 校验清档结果：表是否为空，identity 是否已重置到初始状态
+// 仅返回未清干净的表（RowCnt>0 或 identity 未重置），%s 为数据库名
+//
+// Identity 校验说明（重要）：
+//
+//	不要求 seed_value 必须为 1（业务表常见 IDENTITY(N,1) 其中 N != 1，例如游戏区服 ID 起始值）。
+//	只要 identity 已经被重置到初始状态即视为正确：
+//	  - last_value IS NULL                              （表从未插入过数据 / TRUNCATE 后未再插入）
+//	  - last_value = seed_value - increment_value       （TRUNCATE / RESEED 后的正常状态）
+//	  - seed_value = 1 且 last_value = 0                （历史 DBCC CHECKIDENT RESEED,0 场景兼容）
 var CHECK_CLEAN_RESULT_SQL = `
 USE [%s];
 WITH R AS (
@@ -299,13 +307,14 @@ WITH R AS (
         TableName  = t.name,
         RowCnt     = ISNULL(SUM(CASE WHEN p.index_id IN (0,1) THEN p.row_count ELSE 0 END), 0),
         ic.seed_value,
+        ic.increment_value,
         ic.last_value
     FROM sys.tables t
     JOIN sys.schemas s ON s.schema_id = t.schema_id
     LEFT JOIN sys.dm_db_partition_stats p ON p.object_id = t.object_id
     LEFT JOIN sys.identity_columns ic ON ic.object_id = t.object_id
     WHERE t.is_ms_shipped = 0
-    GROUP BY s.name, t.name, ic.seed_value, ic.last_value
+    GROUP BY s.name, t.name, ic.seed_value, ic.increment_value, ic.last_value
 )
 SELECT
     SchemaName,
@@ -314,26 +323,33 @@ SELECT
     CASE WHEN seed_value IS NULL THEN 0 ELSE 1 END AS HasIdentity,
     CASE
         WHEN seed_value IS NULL THEN 1
-        WHEN CONVERT(bigint, seed_value) <> 1 THEN 0
         WHEN last_value IS NULL THEN 1
-        WHEN CONVERT(bigint, last_value) = 0 THEN 1
+        WHEN CONVERT(bigint, last_value) = CONVERT(bigint, seed_value) - CONVERT(bigint, increment_value) THEN 1
+        WHEN CONVERT(bigint, seed_value) = 1 AND CONVERT(bigint, last_value) = 0 THEN 1
         ELSE 0
     END AS IdentityStartsFrom1_OK
 FROM R
 WHERE RowCnt > 0
    OR (
         seed_value IS NOT NULL
-        AND NOT (
-            CONVERT(bigint, seed_value) = 1
-            AND (last_value IS NULL OR CONVERT(bigint, last_value) = 0)
-        )
+        AND last_value IS NOT NULL
+        AND CONVERT(bigint, last_value) <> CONVERT(bigint, seed_value) - CONVERT(bigint, increment_value)
+        AND NOT (CONVERT(bigint, seed_value) = 1 AND CONVERT(bigint, last_value) = 0)
    )
 ORDER BY SchemaName, TableName;
 `
 
-// CHECK_CLEAN_RESULT_BY_LIST_SQL 校验指定表的清档结果：表是否为空，identity 是否会从 1 开始
+// CHECK_CLEAN_RESULT_BY_LIST_SQL 校验指定表的清档结果：表是否为空，identity 是否已重置到初始状态
 // 第一个 %s: 数据库名
 // 第二个 %s: 由 Go 侧拼接的多行 INSERT INTO #T(...) 语句，注入待校验表清单
+//
+// Identity 校验说明（重要）：
+//
+//	不要求 seed_value 必须为 1（业务表常见 IDENTITY(N,1) 其中 N != 1，例如游戏区服 ID 起始值）。
+//	只要 identity 已经被重置到初始状态即视为正确：
+//	  - last_value IS NULL                              （表从未插入过数据 / TRUNCATE 后未再插入）
+//	  - last_value = seed_value - increment_value       （TRUNCATE / RESEED 后的正常状态）
+//	  - seed_value = 1 且 last_value = 0                （历史 DBCC CHECKIDENT RESEED,0 场景兼容）
 var CHECK_CLEAN_RESULT_BY_LIST_SQL = `
 USE [%s];
 SET NOCOUNT ON;
@@ -355,6 +371,7 @@ WITH R AS (
         t.TableName,
         RowCnt     = ISNULL(SUM(CASE WHEN p.index_id IN (0,1) THEN p.row_count ELSE 0 END), 0),
         ic.seed_value,
+        ic.increment_value,
         ic.last_value
     FROM #T t
     JOIN sys.tables st ON st.name = t.TableName COLLATE DATABASE_DEFAULT
@@ -362,7 +379,7 @@ WITH R AS (
     LEFT JOIN sys.dm_db_partition_stats p ON p.object_id = st.object_id
     LEFT JOIN sys.identity_columns ic ON ic.object_id = st.object_id
     WHERE st.is_ms_shipped = 0
-    GROUP BY t.SchemaName, t.TableName, ic.seed_value, ic.last_value
+    GROUP BY t.SchemaName, t.TableName, ic.seed_value, ic.increment_value, ic.last_value
 )
 SELECT
     SchemaName,
@@ -371,19 +388,18 @@ SELECT
     CASE WHEN seed_value IS NULL THEN 0 ELSE 1 END AS HasIdentity,
     CASE
         WHEN seed_value IS NULL THEN 1
-        WHEN CONVERT(bigint, seed_value) <> 1 THEN 0
         WHEN last_value IS NULL THEN 1
-        WHEN CONVERT(bigint, last_value) = 0 THEN 1
+        WHEN CONVERT(bigint, last_value) = CONVERT(bigint, seed_value) - CONVERT(bigint, increment_value) THEN 1
+        WHEN CONVERT(bigint, seed_value) = 1 AND CONVERT(bigint, last_value) = 0 THEN 1
         ELSE 0
     END AS IdentityStartsFrom1_OK
 FROM R
 WHERE RowCnt > 0
    OR (
         seed_value IS NOT NULL
-        AND NOT (
-            CONVERT(bigint, seed_value) = 1
-            AND (last_value IS NULL OR CONVERT(bigint, last_value) = 0)
-        )
+        AND last_value IS NOT NULL
+        AND CONVERT(bigint, last_value) <> CONVERT(bigint, seed_value) - CONVERT(bigint, increment_value)
+        AND NOT (CONVERT(bigint, seed_value) = 1 AND CONVERT(bigint, last_value) = 0)
    )
 ORDER BY SchemaName, TableName;
 `
