@@ -30,31 +30,78 @@
     font-size: @font-size-mini;
     color: @default-color;
   }
-}
-
-// ====== 拖拽上传区域 ======
-
-.db-upload-trigger {
-  color: @default-color;
 
   // 隐藏原生文件 input
-  &-input-file {
+  &-trigger-input-file {
     display: none;
   }
+}
 
-  // 可拖拽区域容器
-  &-draggable {
-    height: 80px;
-    cursor: pointer;
-    background-color: #fafbfd;
-    border: 1px dashed @light-gray;
-    border-radius: @border-radius-base;
-    transition: border-color 0.2s;
+// ====== 上传触发区域（两种模式共用容器） ======
+
+.db-upload-trigger {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  margin-top: 8px;
+  border: 1px dashed @light-gray;
+  border-radius: @border-radius-base;
+  color: @light-gray;
+  font-size: @font-size-mini;
+  cursor: pointer;
+  transition:
+    border-color 0.2s,
+    background 0.2s;
+
+  .db-icon {
+    font-size: 20px;
   }
 
-  // 拖拽经过时高亮边框
+  // 多选提示
+  &-hint {
+    color: @light-gray;
+    font-weight: 400;
+  }
+
+  // 拖拽悬停态：高亮边框 + 浅蓝背景
   &-dragover {
     border-color: @primary-color;
+    background: #f0f8ff;
+    color: @primary-color;
+  }
+
+  // 禁用态
+  &-disabled {
+    color: @light-gray;
+    cursor: not-allowed;
+    border-color: @disable-color;
+  }
+
+  // 重名提示（区域内红字）
+  .db-upload-duplicate-tip {
+    display: flex;
+    align-items: flex-start;
+    gap: 4px;
+    padding: 2px 4px;
+    margin-top: 4px;
+    color: #ea3636;
+    font-size: @font-size-mini;
+    line-height: 1.5;
+
+    .db-icon {
+      flex-shrink: 0;
+      margin-top: 3px;
+    }
+  }
+
+  // ====== 模式 1：拖拽上传（老样式） ======
+
+  // 可拖拽区域容器：固定高度 + 浅灰背景
+  &-draggable {
+    height: 80px;
+    background-color: #fafbfd;
   }
 
   // 拖拽区域内部内容（图标 + 文字）
@@ -67,7 +114,7 @@
     flex-direction: column;
   }
 
-  // 云朵图标
+  // 云图标
   &-draggable-icon {
     width: 24px;
     height: 24px;
@@ -87,15 +134,10 @@
     color: @primary-color;
   }
 
-  // 禁用态
-  &-disabled {
-    color: @light-gray;
-    cursor: not-allowed;
-
-    &.db-upload-trigger-draggable {
-      background-color: #fff;
-      border-color: @disable-color;
-    }
+  // 拖拽模式禁用态
+  &-disabled.db-upload-trigger-draggable {
+    background-color: #fff;
+    border-color: @disable-color;
 
     .db-upload-trigger-draggable-icon {
       fill: @light-gray;
@@ -106,8 +148,8 @@
     }
   }
 
-  // 非禁用态 hover：边框/图标/链接变亮蓝
-  &:not(&-disabled):hover {
+  // 拖拽模式非禁用 hover：边框/图标/链接变亮蓝
+  &:not(&-disabled).db-upload-trigger-draggable:hover {
     border-color: @primary-color;
 
     .db-upload-trigger-draggable-icon {
@@ -118,6 +160,20 @@
       color: #699df4;
     }
   }
+}
+
+// 重名提示淡入淡出动画
+.db-upload-tip-fade-enter-active,
+.db-upload-tip-fade-leave-active {
+  transition:
+    opacity 0.25s,
+    transform 0.25s;
+}
+
+.db-upload-tip-fade-enter-from,
+.db-upload-tip-fade-leave-to {
+  opacity: 0;
+  transform: translateY(-4px);
 }
 
 // ====== 文件列表 ======
@@ -268,6 +324,17 @@
     }
   }
 
+  // 替换按钮
+  &-item-replace-icon {
+    margin-right: 12px;
+    font-size: 14px;
+    cursor: pointer;
+
+    &:hover {
+      color: @primary-color;
+    }
+  }
+
   // 进度条相关
   &-item-progress {
     margin-top: 6px;
@@ -291,6 +358,22 @@
 
   // 成功状态：绿边框 + 浅绿背景 + 文件大小垂直居中
   &-item-success {
+    background: rgba(63, 192, 109, 0.04);
+    border-color: #3fc06d;
+
+    .db-upload-list-item-speed {
+      top: 50%;
+      transform: translateY(-50%);
+    }
+
+    &:hover {
+      background: rgba(63, 192, 109, 0.04);
+      border-color: #3fc06d;
+    }
+  }
+
+  // 已暂存状态：同成功态呈现
+  &-item-staged {
     background: rgba(63, 192, 109, 0.04);
     border-color: #3fc06d;
 
