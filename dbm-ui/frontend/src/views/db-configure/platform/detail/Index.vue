@@ -50,7 +50,7 @@
                 fixed="left"
                 :min-width="250"
                 :title="t('参数名')"
-                :width="250">
+                :width="300">
                 <template #default="{ row }">
                   {{ row.conf_name }}
                   <DbIcon
@@ -59,6 +59,12 @@
                     :data-conf-name="row.conf_name"
                     :data-description="row.description"
                     type="bk-dbm-icon db-icon-attention" />
+                  <BkTag
+                    v-if="getCreateFrom(row) !== ''"
+                    class="ml-4"
+                    theme="warning">
+                    {{ t('平台自定义') }}
+                  </BkTag>
                 </template>
               </TableColumn>
               <TableColumn
@@ -165,7 +171,7 @@
                 col-key="operation"
                 fixed="right"
                 :title="t('操作')"
-                :width="120">
+                :width="160">
                 <template #default="{ row }">
                   <AuthTemplate
                     action-id="global_dbconfig_edit"
@@ -178,34 +184,32 @@
                       @click="handleEditParam(row)">
                       {{ t('编辑') }}
                     </BkButton>
-                    <BkPopConfirm
-                      :cancel-text="t('取消')"
-                      :confirm-config="dangerConfirmConfig"
-                      :confirm-text="t('删除')"
-                      :title="t('确认删除该参数？')"
-                      trigger="click"
-                      :width="275"
-                      @confirm="handleDeleteParam(row)">
-                      <template #content>
-                        <div
-                          class="mb-16"
-                          style="line-height: 20px">
-                          <p class="mb-6">
-                            {{ t('参数名称_:_name', { name: row.conf_name }) }}
-                          </p>
-                          <p>
-                            {{ t('删除后，将不可恢复，请谨慎操作！') }}
-                          </p>
-                        </div>
-                      </template>
-                      <span @click.stop>
-                        <BkButton
-                          text
-                          theme="primary">
-                          {{ t('删除') }}
-                        </BkButton>
-                      </span>
-                    </BkPopConfirm>
+                    <!-- 系统定义但平台修改：恢复初始值 -->
+                    <BkButton
+                      v-if="getCreateFrom(row) === 'def'"
+                      class="mr-16"
+                      text
+                      theme="primary"
+                      @click="handleRestoreParam(row)">
+                      {{ t('恢复初始值') }}
+                    </BkButton>
+                    <!-- 平台自定义：删除（提交后端校验引用） -->
+                    <BkButton
+                      v-else-if="getCreateFrom(row) === 'plat'"
+                      class="mr-16"
+                      text
+                      theme="primary"
+                      @click="handleDeleteParam(row)">
+                      {{ t('删除') }}
+                    </BkButton>
+                    <!-- 系统定义且未修改：删除置灰 -->
+                    <BkButton
+                      v-else
+                      v-bk-tooltips="t('系统内置参数不允许删除')"
+                      disabled
+                      text>
+                      {{ t('删除') }}
+                    </BkButton>
                   </AuthTemplate>
                 </template>
               </TableColumn>
@@ -246,7 +250,9 @@
 </template>
 
 <script setup lang="ts">
+  import { InfoBox } from 'bkui-vue';
   import type { Instance } from 'tippy.js';
+  import { h } from 'vue';
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
@@ -256,6 +262,7 @@
     getConfigNames,
     getListConfNameTypes,
     getListConfTypes,
+    type ParameterConfigItem,
   } from '@services/source/configs';
 
   import { clusterTypeInfos, type ClusterTypes, DBTypes } from '@common/const';
@@ -293,11 +300,6 @@
   const allConfItems = ref<DetailResult['conf_items']>([]);
 
   const paramLoading = ref(false);
-
-  // 删除确认按钮配置（BkPopConfirm confirm-config 类型声明不完整，使用 as any 绕过）
-  const dangerConfirmConfig = {
-    theme: 'danger',
-  } as any;
 
   // 快速搜索
   const searchValue = ref<Record<string, any>>({});
@@ -491,35 +493,102 @@
 
   // 编辑参数
   const handleEditParam = (row: DetailResult['conf_items'][number]) => {
-    paramFormSliderRef.value?.openEdit(row);
+    paramFormSliderRef.value?.openEdit(row, getCreateFrom(row));
   };
 
+  /**
+   * 获取参数来源（后端 create_from 字段）
+   * - ''：系统定义且未修改
+   * - 'def'：系统定义但平台修改成了自己的定义
+   * - 'plat'：平台自定义
+   */
+  const getCreateFrom = (row: ParameterConfigItem): ParameterConfigItem['create_from'] => row.create_from ?? '';
+
   // 删除参数
-  const handleDeleteParam = async (row: DetailResult['conf_items'][number]) => {
-    await changeConfNames({
-      conf_file: detailData.value.version || version,
-      conf_names: [
-        {
-          conf_name: row.conf_name,
-          conf_name_lc: row.conf_name_lc ?? '',
-          description: row.description ?? '',
-          flag_encrypt: (row as Record<string, any>).flag_encrypt ?? 0,
-          flag_locked: row.flag_locked ?? 0,
-          flag_readonly: row.flag_readonly ?? 0,
-          flag_visible: row.flag_visible ?? 0,
-          need_restart: row.need_restart ?? 0,
-          op_type: 'remove',
-          value_allowed: row.value_allowed ?? '',
-          value_default: row.value_default ?? '',
-          value_type: row.value_type ?? '',
-          value_type_sub: row.value_type_sub ?? '',
-        },
-      ],
-      conf_type: confType,
-      meta_cluster_type: currentConfItem.value!.namespace,
+  const handleDeleteParam = (row: DetailResult['conf_items'][number]) => {
+    InfoBox({
+      cancelText: t('取消'),
+      confirmButtonTheme: 'danger',
+      confirmText: t('删除'),
+      content: () =>
+        h('div', { class: 'restore-param-content' }, [
+          h('p', t('参数_xxx_将从平台定义中移除_删除后不可恢复', { name: row.conf_name })),
+        ]),
+      contentAlign: 'left',
+      infoType: 'warning',
+      onConfirm: async () => {
+        await changeConfNames({
+          conf_file: detailData.value.version || version,
+          conf_names: [
+            {
+              conf_name: row.conf_name,
+              conf_name_lc: row.conf_name_lc ?? '',
+              description: row.description ?? '',
+              flag_encrypt: (row as Record<string, any>).flag_encrypt ?? 0,
+              flag_locked: row.flag_locked ?? 0,
+              flag_readonly: row.flag_readonly ?? 0,
+              flag_visible: row.flag_visible ?? 0,
+              need_restart: row.need_restart ?? 0,
+              op_type: 'remove',
+              value_allowed: row.value_allowed ?? '',
+              value_default: row.value_default ?? '',
+              value_type: row.value_type ?? '',
+              value_type_sub: row.value_type_sub ?? '',
+            },
+          ],
+          conf_type: confType,
+          meta_cluster_type: currentConfItem.value!.namespace,
+        });
+        messageSuccess(t('删除成功'));
+        fetchDetail({ conf_type: confType, meta_cluster_type: currentConfItem.value!.namespace, version: version });
+      },
+      title: t('确认删除该参数？'),
     });
-    messageSuccess(t('删除成功'));
-    fetchDetail({ conf_type: confType, meta_cluster_type: currentConfItem.value!.namespace, version: version });
+  };
+
+  /**
+   * 恢复参数为系统初始值（仅 create_from === 'def' 可用）
+   * 调用 recoverDefaultConfigItem，op_type 统一传 'remove'，后端自动判断操作类型
+   */
+  const handleRestoreParam = (row: DetailResult['conf_items'][number]) => {
+    InfoBox({
+      cancelText: t('取消'),
+      confirmText: t('恢复初始值'),
+      content: () =>
+        h('div', { class: 'restore-param-content' }, [
+          h('p', { class: 'mb-6' }, `${t('参数名')}：${row.conf_name}`),
+          h('p', t('将参数定义恢复为系统初始配置_不影响业务已自定义的参数值')),
+        ]),
+      contentAlign: 'left',
+      infoType: 'warning',
+      onConfirm: async () => {
+        await changeConfNames({
+          conf_file: detailData.value.version || version,
+          conf_names: [
+            {
+              conf_name: row.conf_name,
+              conf_name_lc: row.conf_name_lc ?? '',
+              description: row.description ?? '',
+              flag_encrypt: (row as Record<string, any>).flag_encrypt ?? 0,
+              flag_locked: row.flag_locked ?? 0,
+              flag_readonly: row.flag_readonly ?? 0,
+              flag_visible: row.flag_visible ?? 0,
+              need_restart: row.need_restart ?? 0,
+              op_type: 'remove',
+              value_allowed: row.value_allowed ?? '',
+              value_default: row.value_default ?? '',
+              value_type: row.value_type ?? '',
+              value_type_sub: row.value_type_sub ?? '',
+            },
+          ],
+          conf_type: confType,
+          meta_cluster_type: currentConfItem.value!.namespace,
+        });
+        messageSuccess(t('操作成功_参数已恢复为初始值'));
+        fetchDetail({ conf_type: confType, meta_cluster_type: currentConfItem.value!.namespace, version: version });
+      },
+      title: t('确认恢复为初始值？'),
+    });
   };
 
   /** 初始化描述 tippy 提示 */
@@ -658,5 +727,13 @@
       color: #63656e;
       word-break: break-word;
     }
+  }
+
+  .restore-param-content {
+    background: #f5f7fa;
+    color: #63656e;
+    text-align: left;
+    padding: 12px 14px;
+    line-height: 1.6;
   }
 </style>
