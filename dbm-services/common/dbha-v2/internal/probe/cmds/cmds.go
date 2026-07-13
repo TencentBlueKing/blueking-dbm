@@ -32,6 +32,7 @@ import (
 	"os"
 	"strings"
 	"time"
+	"unicode"
 
 	"dbm-services/common/dbha-v2/internal/probe/client"
 	"dbm-services/common/dbha-v2/internal/probe/config"
@@ -243,8 +244,8 @@ func GenConfigCmdRunE(cmd *cobra.Command, args []string) error {
 // and UDP route detection toward the first admin endpoint host.
 func resolveGenConfigLocalIP(localIPInterface, adminEndpointsStr string) (string, error) {
 	ifName := constant.DefaultLocalIPInterface
-	if strings.TrimSpace(localIPInterface) != "" {
-		ifName = strings.TrimSpace(localIPInterface)
+	if trimmed := strings.TrimSpace(localIPInterface); trimmed != "" {
+		ifName = trimmed
 	}
 	localIP, err := machine.GetLocalIPWithInterface(ifName)
 	if err == nil {
@@ -268,7 +269,10 @@ func resolveGenConfigLocalIP(localIPInterface, adminEndpointsStr string) (string
 }
 
 func parseAdminEndpoints(s string) []string {
-	raw := strings.Split(s, constant.Delimiter)
+	raw := strings.FieldsFunc(s, func(r rune) bool {
+		return r == rune(constant.Delimiter[0]) || unicode.IsSpace(r)
+	})
+
 	var out []string
 	for _, ep := range raw {
 		if e := strings.TrimSpace(ep); e != "" {

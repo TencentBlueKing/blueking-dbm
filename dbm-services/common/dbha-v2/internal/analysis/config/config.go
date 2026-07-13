@@ -33,9 +33,14 @@ import (
 	"github.com/spf13/viper"
 )
 
+// defaultPidFile is the fallback pid-file path used when the loaded config
+// leaves pidFile empty, so the running process never operates with an empty
+// pid-file path.
+const defaultPidFile = "./pids/analysis.pid"
+
 var Cfg = Configuration{
 	Name:    "analysis",
-	PidFile: "./pids/analysis.pid",
+	PidFile: defaultPidFile,
 	Workflow: WorkflowConfig{
 		WorkerBusinessCount:        100,
 		LockBusinessWaitTimeout:    5 * time.Second,
@@ -244,6 +249,10 @@ func Load(configFilePath string) error {
 	}
 
 	Cfg.Workflow.DbmApiMetadataHashCnt = clampDbmApiMetadataHashCnt(Cfg.Workflow.DbmApiMetadataHashCnt)
+
+	if Cfg.PidFile == "" {
+		Cfg.PidFile = defaultPidFile
+	}
 
 	if Cfg.Detector.CheckProbeProcessCmd == "" {
 		Cfg.Detector.CheckProbeProcessCmd = defaultCheckProbeProcessCmd

@@ -49,9 +49,14 @@ const (
 	minProbeHarvesterTimeout  = 1 * time.Second
 )
 
+// defaultPidFile is the fallback pid-file path used when the loaded config
+// leaves pidFile empty, so the running process never operates with an empty
+// pid-file path.
+const defaultPidFile = "./pids/admin.pid"
+
 var Cfg = Configuration{
 	Name:    "admin",
-	PidFile: "./pids/admin.pid",
+	PidFile: defaultPidFile,
 	Log: LogConfig{
 		Path:      "./logs/admin.log",
 		Level:     logger.InfoLevel.String(),
@@ -259,6 +264,10 @@ func Load(configFilePath string) error {
 
 	if err := viper.Unmarshal(&Cfg); err != nil {
 		return err
+	}
+
+	if Cfg.PidFile == "" {
+		Cfg.PidFile = defaultPidFile
 	}
 
 	Cfg.ProbeGse.ConnTimeout = clampProbeGseConnTimeout(Cfg.ProbeGse.ConnTimeout)

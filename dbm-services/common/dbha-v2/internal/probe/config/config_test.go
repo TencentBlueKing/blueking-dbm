@@ -25,6 +25,8 @@
 package config_test
 
 import (
+	"os"
+	"path/filepath"
 	"testing"
 
 	"dbm-services/common/dbha-v2/internal/probe/config"
@@ -47,4 +49,24 @@ func TestConfig(t *testing.T) {
 	}
 
 	t.Log("probe cfg:", config.Cfg)
+}
+
+// TestLoad_EmptyPidFileFallback ensures that an explicitly empty pidFile in the
+// config is normalized to the default at load time, so the running process
+// never operates with an empty pid-file path.
+func TestLoad_EmptyPidFileFallback(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "probe.yaml")
+	if err := os.WriteFile(path, []byte("name: probe\npidFile: \"\"\n"), 0o644); err != nil {
+		t.Fatalf("write temp config failed, %v", err)
+	}
+
+	if err := config.Load(path); err != nil {
+		t.Fatalf("load config failed, %v", err)
+	}
+
+	const wantPidFile = "./pids/probe.pid"
+	if config.Cfg.PidFile != wantPidFile {
+		t.Fatalf("PidFile = %q, want %q", config.Cfg.PidFile, wantPidFile)
+	}
 }

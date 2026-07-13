@@ -34,9 +34,14 @@ import (
 	"github.com/spf13/viper"
 )
 
+// defaultPidFile is the fallback pid-file path used when the loaded config
+// leaves pidFile empty, so the running process never operates with an empty
+// pid-file path.
+const defaultPidFile = "./pids/probe.pid"
+
 var Cfg = Configuration{
 	Name:    "probe",
-	PidFile: "./pids/probe.pid",
+	PidFile: defaultPidFile,
 	Log: LogConfig{
 		Path:      "./logs/probe.log",
 		Level:     logger.InfoLevel.String(),
@@ -147,5 +152,13 @@ func Load(configFilePath string) error {
 		return err
 	}
 
-	return viper.Unmarshal(&Cfg)
+	if err := viper.Unmarshal(&Cfg); err != nil {
+		return err
+	}
+
+	if Cfg.PidFile == "" {
+		Cfg.PidFile = defaultPidFile
+	}
+
+	return nil
 }
