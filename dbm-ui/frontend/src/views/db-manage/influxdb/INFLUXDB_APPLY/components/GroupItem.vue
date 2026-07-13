@@ -92,7 +92,7 @@
 
   import { createGroup, getGroupList } from '@services/source/influxdbGroup';
 
-  import { nameRegx } from '@common/regex';
+  import { clusterNameSymbolRegx } from '@common/regex';
 
   interface Emits {
     (e: 'update:model-value', value: number): void;
@@ -183,7 +183,7 @@
     {
       message: t('以小写英文字母开头_且只能包含英文字母_数字_连字符'),
       trigger: 'change',
-      validator: (val: string) => nameRegx.test(val),
+      validator: (val: string) => clusterNameSymbolRegx.test(val),
     },
   ];
 
