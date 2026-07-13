@@ -82,7 +82,10 @@ class AlertView(SystemViewSet):
         # 查询用户管理的告警事件，查出用户管理的业务，添加到查询条件中
         self_manage = params.pop("self_manage")
         self_assist = params.pop("self_assist")
-        dbas = DBAdministrator.objects.filter(users__contains=request.user.username)
+        # 仅取所需字段，避免 SELECT update_at 触发 Django 时区转换（脏 update_at 会导致 utcoffset 报错）
+        dbas = DBAdministrator.objects.filter(users__contains=request.user.username).only(
+            "bk_biz_id", "db_type", "users"
+        )
         biz_cluster_type_conditions = []
         if self_manage:
             # 主负责的业务（第一个 DBA）
