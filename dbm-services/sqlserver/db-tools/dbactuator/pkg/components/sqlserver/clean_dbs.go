@@ -319,7 +319,7 @@ func (c *CleanDBSComp) checkCleanResultByList(dbName string, tables []sqlserver.
 	}
 
 	if len(dirtyTables) == 0 {
-		logger.Info("clean-result check pass on db [%s]: all %d target tables are empty and identity reset",
+		logger.Info("clean-result check pass on db [%s]: all %d target tables are empty and identity reset to seed",
 			dbName, len(tables))
 		return nil
 	}
