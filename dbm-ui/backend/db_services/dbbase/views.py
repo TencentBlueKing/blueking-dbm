@@ -797,7 +797,9 @@ class DBBaseViewSet(viewsets.SystemViewSet):
             if not tag_key:
                 continue
 
-            tag = Tag.objects.update_or_create(bk_biz_id=bk_biz_id, key=tag_key, value=tag_value, type=TagType.CLUSTER)
+            tag, _ = Tag.objects.update_or_create(
+                bk_biz_id=bk_biz_id, key=tag_key, value=tag_value, type=TagType.CLUSTER
+            )
             tag_objs.append(tag)
         return tag_objs
 
