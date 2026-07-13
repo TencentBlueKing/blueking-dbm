@@ -43,6 +43,69 @@ func TestResolveGenConfigLocalIP_FallbackToOutbound(t *testing.T) {
 	}
 }
 
+func TestParseAdminEndpoints(t *testing.T) {
+	tests := []struct {
+		name  string
+		input string
+		want  []string
+	}{
+		{
+			name:  "semicolon separated",
+			input: "127.0.0.1:8080;127.0.0.2:8080",
+			want:  []string{"127.0.0.1:8080", "127.0.0.2:8080"},
+		},
+		{
+			name:  "space separated",
+			input: "127.0.0.1:8080 127.0.0.2:8080",
+			want:  []string{"127.0.0.1:8080", "127.0.0.2:8080"},
+		},
+		{
+			name:  "mixed delimiters",
+			input: "127.0.0.1:8080; 127.0.0.2:8080 127.0.0.3:8080",
+			want:  []string{"127.0.0.1:8080", "127.0.0.2:8080", "127.0.0.3:8080"},
+		},
+		{
+			name:  "newline separated",
+			input: "127.0.0.1:8080\n127.0.0.2:8080",
+			want:  []string{"127.0.0.1:8080", "127.0.0.2:8080"},
+		},
+		{
+			name:  "mixed with newline",
+			input: "127.0.0.1:8080; 127.0.0.2:8080\n127.0.0.3:8080",
+			want:  []string{"127.0.0.1:8080", "127.0.0.2:8080", "127.0.0.3:8080"},
+		},
+		{
+			name:  "crlf separated",
+			input: "127.0.0.1:8080\r\n127.0.0.2:8080",
+			want:  []string{"127.0.0.1:8080", "127.0.0.2:8080"},
+		},
+		{
+			name:  "trim and skip empty",
+			input: " ; 127.0.0.1:8080;; ",
+			want:  []string{"127.0.0.1:8080"},
+		},
+		{
+			name:  "empty input",
+			input: "",
+			want:  nil,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := parseAdminEndpoints(tt.input)
+			if len(got) != len(tt.want) {
+				t.Fatalf("parseAdminEndpoints(%q) len = %d, want %d, got: %v", tt.input, len(got), len(tt.want), got)
+			}
+			for i := range tt.want {
+				if got[i] != tt.want[i] {
+					t.Fatalf("parseAdminEndpoints(%q)[%d] = %q, want %q", tt.input, i, got[i], tt.want[i])
+				}
+			}
+		})
+	}
+}
+
 func TestResolveGenConfigLocalIP_ExplicitInterface(t *testing.T) {
 	iface, err := net.InterfaceByName("lo")
 	if err != nil {
