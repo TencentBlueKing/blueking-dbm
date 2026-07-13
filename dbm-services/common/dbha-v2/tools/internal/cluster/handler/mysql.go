@@ -877,6 +877,10 @@ func (hdl *MysqlClusterHandler) ShowAllMysqlClustersNodes() error {
 		}
 
 		for _, meta := range metadataList {
+			// metadata is queried by host ip, so skip instances of other clusters co-located on the same host
+			if meta.Cluster != cluster.Domain {
+				continue
+			}
 			clusterNodeInfo.Nodes = append(clusterNodeInfo.Nodes, NodeInfo{
 				IP:     meta.IP,
 				Port:   meta.Port,

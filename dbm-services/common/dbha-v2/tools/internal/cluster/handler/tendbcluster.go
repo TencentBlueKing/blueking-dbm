@@ -950,6 +950,10 @@ func (hdl *TenDBClusterHandler) ShowAllTenDBClustersNodes() error {
 		}
 
 		for _, meta := range metadataList {
+			// metadata is queried by host ip, so skip instances of other clusters co-located on the same host
+			if meta.Cluster != cluster.Domain {
+				continue
+			}
 			key := fmt.Sprintf("%s:%d", meta.IP, meta.Port)
 			clusterNodeInfo.Nodes = append(clusterNodeInfo.Nodes, NodeInfo{
 				ServerName: serverNameMap[key],
