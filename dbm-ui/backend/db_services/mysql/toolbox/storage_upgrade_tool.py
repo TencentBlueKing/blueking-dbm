@@ -15,7 +15,7 @@ from typing import Dict, List
 from django.utils.translation import gettext as _
 
 from backend.configuration.constants import DBType
-from backend.db_meta.enums import ClusterType
+from backend.db_meta.enums import ClusterType, InstanceInnerRole
 from backend.db_meta.models import Cluster, StorageInstance
 from backend.db_package.models import Package
 from backend.db_services.cmdb.biz import list_modules_by_biz
@@ -755,17 +755,21 @@ def _find_higher_storage_version_modules(cluster_id: int, module_list: List[Dict
 
                 # 检查存储层版本是否更高（比较模块配置版本）
                 if mysql_cross_major_version(module_storage_version_num, current_module_storage_version_num):
+                    # 获取对应的包列表；无可用包则不返回该模块，避免前端出现空包选项
+                    pkg_list = _get_storage_packages_for_module(module_storage_version, current_module_storage_version)
+
+                    logger.debug(_("模块 {} 获得 {} 个可用包").format(module_name, len(pkg_list)))
+                    if not pkg_list:
+                        logger.info(_("✗ 模块 {} 无可用包，跳过").format(module_name))
+                        skipped_count += 1
+                        continue
+
                     matched_count += 1
                     logger.info(
                         _("✓ 找到更高存储层版本模块: {} (版本: {} -> {})").format(
                             module_name, module_storage_version, module_storage_version_num
                         )
                     )
-
-                    # 获取对应的包列表
-                    pkg_list = _get_storage_packages_for_module(module_storage_version, current_module_storage_version)
-
-                    logger.debug(_("模块 {} 获得 {} 个可用包").format(module_name, len(pkg_list)))
 
                     higher_version_modules.append(
                         {
@@ -858,10 +862,12 @@ def _find_same_major_storage_version_higher_sub_version_modules(
         logger.info(_("找到当前集群模块: {} (模块配置版本: {})").format(module_name, current_module_storage_version))
 
         # 获取更高子版本的包列表
-
         pkg_list = _get_higher_sub_version_packages(
             current_module_storage_version, actual_storage_version, compatibility_checker
         )
+        if not pkg_list:
+            logger.info(_("当前模块 {} 无更高子版本包，不返回空模块").format(module_name))
+            return []
 
         # 返回当前模块的信息和可升级包列表
         result = [
@@ -1037,11 +1043,25 @@ def get_storage_actual_version(cluster_id: int) -> str:
     #  tmysql:  select version();==> 5.7.20-tmysql-3.4.2-log
     #  社区版本 mysql:> select version(); 8.0.32
     #  txsql: select version(); 8.0.30-txsql
+
+    优先取 master（TenDBHA/TenDBCluster），其次 orphan（TenDBSingle），避免任意 .first() 取到 slave。
     """
     cluster = Cluster.objects.get(id=cluster_id)
-    instance = StorageInstance.objects.filter(
-        cluster=cluster,
-    ).first()
+    instance = (
+        StorageInstance.objects.filter(cluster=cluster, instance_inner_role=InstanceInnerRole.MASTER.value)
+        .select_related("machine")
+        .first()
+    )
+    if not instance:
+        instance = (
+            StorageInstance.objects.filter(cluster=cluster, instance_inner_role=InstanceInnerRole.ORPHAN.value)
+            .select_related("machine")
+            .first()
+        )
+    if not instance:
+        logger.error(_("集群 {} 未找到 master/orphan 存储实例，无法获取实际版本").format(cluster_id))
+        return ""
+
     return get_online_mysql_version(instance.machine.ip, instance.port, cluster.bk_cloud_id)
 
 

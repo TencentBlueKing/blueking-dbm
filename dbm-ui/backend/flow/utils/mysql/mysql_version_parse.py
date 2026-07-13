@@ -343,23 +343,28 @@ def spider_cross_major_version(current_version_num, refer_version_num) -> bool:
 
 
 def mysql_cross_major_version(current_version_num, refer_version_num) -> bool:
-    """判断tmysql是否跨主版本
+    """判断目标版本是否相对参考版本跨且仅跨一个主版本（用于迁移升级候选筛选）。
+
+    将 MySQL-8.0 映射为假想的 5.8，使主版本序列变为 5.6 -> 5.7 -> 5.8(8.0)，
+    从而要求目标比参考更高，且最多跨 1 个主版本（禁止 5.6 直接跳到 8.0）。
 
     Args:
-        current_version_num (_type_): _description_
-        refer_version_num (_type_): _description_
+        current_version_num: 目标模块版本号（module_version_parse 结果）
+        refer_version_num: 当前集群模块版本号（module_version_parse 结果）
 
     Returns:
-        bool: _description_
+        bool: 目标相对参考恰好高 1 个主版本时为 True
     """
     # mysql5.6 = 5060000
     # mysql5.7 = 5070000
-    # mysql8.0 = 8000000
+    # mysql8.0 = 8000000 -> 映射为 5080000，保证与 5.7 相邻
     if current_version_num >= 8000000:
         current_version_num = 5080000
     if refer_version_num >= 8000000:
         refer_version_num = 5080000
-    return (current_version_num // 10000 - refer_version_num // 10000) <= 1
+    diff = current_version_num // 10000 - refer_version_num // 10000
+    # 必须更高，且跨度不超过 1（等价于恰好跨 1 个主版本）
+    return 0 < diff <= 1
 
 
 def module_version_parse(mysql_version: str) -> int:
