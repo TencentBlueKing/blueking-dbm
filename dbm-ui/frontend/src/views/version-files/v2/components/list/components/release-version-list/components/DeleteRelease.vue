@@ -45,11 +45,13 @@
   import ReleaseVersionModel from '@services/model/version-file/release-version';
   import { deleteReleaseVersion } from '@services/source/version';
 
+  import type { DBTypes } from '@common/const';
+
   import { messageSuccess } from '@utils';
 
   interface Props {
     data?: ReleaseVersionModel;
-    dbType: string;
+    dbType: DBTypes;
     pkgType: string;
   }
 

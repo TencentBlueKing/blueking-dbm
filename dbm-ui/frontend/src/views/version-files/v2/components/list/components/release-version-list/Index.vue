@@ -73,13 +73,15 @@
 
   import { getReleaseVersionList } from '@services/source/version';
 
+  import type { DBTypes } from '@common/const';
+
   import ScrollFaker from '@components/scroll-faker/Index.vue';
 
   import DeleteRelease from './components/DeleteRelease.vue';
   import EditRelease from './components/EditRelease.vue';
 
   interface Props {
-    dbType: string;
+    dbType: DBTypes;
     hasPackageManagePermission: boolean;
     pkgLabelMap: Record<string, string>;
     pkgType: string;
