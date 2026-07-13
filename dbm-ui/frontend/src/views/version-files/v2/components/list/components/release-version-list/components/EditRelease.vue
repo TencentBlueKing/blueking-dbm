@@ -90,13 +90,15 @@
   import ReleaseVersionModel from '@services/model/version-file/release-version';
   import { createReleaseVersion, getMysqlEngineList, updateReleaseVersion } from '@services/source/version';
 
+  import type { DBTypes } from '@common/const';
+
   import { CHINESE_CHAR_REG, IDENTIFIER_NAME_REG } from '@views/version-files/v2/common';
 
   import { messageSuccess } from '@utils';
 
   interface Props {
     data?: ReleaseVersionModel;
-    dbType: string;
+    dbType: DBTypes;
     existedNameList: string[];
     isEdit?: boolean;
     pkgType: string;
