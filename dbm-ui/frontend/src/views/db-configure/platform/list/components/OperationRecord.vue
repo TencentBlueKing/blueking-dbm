@@ -384,7 +384,7 @@
       theme: 'danger',
     },
     recover: {
-      text: t('恢复默认'),
+      text: t('恢复初始值'),
       theme: 'info',
     },
     remove: {
