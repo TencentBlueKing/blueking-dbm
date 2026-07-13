@@ -105,6 +105,8 @@
 
   import { deleteVersionSeries } from '@services/source/version';
 
+  import type { DBTypes } from '@common/const';
+
   import { messageSuccess } from '@utils';
 
   import EditSeries from '../../EditSeries.vue';
@@ -115,7 +117,7 @@
       id: number;
       name: string;
     };
-    dbType: string;
+    dbType: DBTypes;
     dbVersionListCount?: number;
     existedVersionNameList: string[];
     permission?: boolean;

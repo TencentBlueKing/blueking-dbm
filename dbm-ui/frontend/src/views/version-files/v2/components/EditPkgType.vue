@@ -103,6 +103,8 @@
 
   import { updatePkgType } from '@services/source/version';
 
+  import type { DBTypes } from '@common/const';
+
   import { messageSuccess } from '@utils';
 
   import { CHINESE_CHAR_REG, IDENTIFIER_NAME_REG } from '../common';
@@ -115,7 +117,7 @@
       value: string;
       version_num: number;
     };
-    dbType: string;
+    dbType: DBTypes;
     isEdit: boolean;
     totalList: NonNullable<Props['data']>[];
   }

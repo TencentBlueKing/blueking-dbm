@@ -12,11 +12,12 @@
 -->
 
 <template>
-  <BkSideslider
+  <DbSideslider
     v-model:is-show="isShow"
-    :before-close="handleBeforeClose"
     class="edit-version-slider-main"
+    quick-close
     render-directive="if"
+    :show-footer="false"
     :width="960"
     @closed="handleCancel">
     <template #header>
@@ -129,6 +130,7 @@
             :is-applied="isApplied"
             :pkg-type="pkgType"
             :version="versionSeriesLabel"
+            @uploading-change="handleUploadingChange"
             @value-change="handleValueChange" />
         </BkFormItem>
         <BkFormItem
@@ -175,12 +177,12 @@
         </BkButton>
         <BkButton
           class="operate-button"
-          @click="handleCancel">
+          @click="handleCancelClick">
           {{ t('取消') }}
         </BkButton>
       </div>
     </div>
-  </BkSideslider>
+  </DbSideslider>
 </template>
 <script setup lang="ts">
   import _ from 'lodash';
@@ -194,6 +196,8 @@
 
   import { useBeforeClose } from '@hooks';
 
+  import type { DBTypes } from '@common/const';
+
   import { CHINESE_CHAR_REG, IDENTIFIER_NAME_REG, isPureMysqlPkgType } from '@views/version-files/v2/common';
 
   import { messageSuccess } from '@utils';
@@ -203,7 +207,7 @@
   import VersionStage from './components/VersionStage.vue';
 
   interface Props {
-    dbType: string;
+    dbType: DBTypes;
     dbVersion?: DbVersionModel;
     isEdit?: boolean;
     pkgType: string;
@@ -260,6 +264,7 @@
   const versionSeriesRef = ref<InstanceType<typeof VersionSeries>>();
   const formModel = ref(initFormModel());
   const confirmDisabled = ref(true);
+  const isUploading = ref(false);
   const versionSeriesLabel = ref('');
   const hideTipMap = ref({
     full_version: false,
@@ -421,9 +426,9 @@
   );
 
   watch(
-    confirmDisabled,
+    [confirmDisabled, isUploading],
     () => {
-      window.changeConfirm = !confirmDisabled.value;
+      window.changeConfirm = !confirmDisabled.value || isUploading.value;
     },
     {
       immediate: true,
@@ -436,6 +441,10 @@
 
   const handleLabelChange = (label: string) => {
     versionSeriesLabel.value = label;
+  };
+
+  const handleUploadingChange = (value: boolean) => {
+    isUploading.value = value;
   };
 
   const handleValueChange = () => {
@@ -498,7 +507,7 @@
   };
 
   const handleCancel = () => {
-    isShow.value = false;
+    isUploading.value = false;
     if (props.isEdit) {
       formModel.value = initFormModelFromProps();
       return;
@@ -508,6 +517,13 @@
       full_version: false,
       name: false,
     };
+  };
+
+  const handleCancelClick = async () => {
+    const shouldClose = await handleBeforeClose(isUploading.value || !confirmDisabled.value);
+    if (shouldClose) {
+      isShow.value = false;
+    }
   };
 </script>
 <style lang="less">
