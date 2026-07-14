@@ -394,12 +394,11 @@ SQLSERVER_RESTORE_SLAVE_SOURCE_TICKET_DATA = {
         ],
     },
 }
-# SQLSERVER 定点构造申请单据（远程构造）
+# SQLSERVER 定点构造申请单据（远程构造，目标集群不同于源集群）
 SQLSERVER_ROLLBACK_TICKET_DATA = {
     "bk_biz_id": BK_BIZ_ID,
     "ticket_type": TicketType.SQLSERVER_ROLLBACK,
     "details": {
-        "is_local": False,  # False 代表远程构造，True 代表原地构造
         "is_time_fixed": False,  # False 代表使用最新备份，True 代表指定时间
         "infos": [
             {
@@ -427,12 +426,11 @@ SQLSERVER_ROLLBACK_TICKET_DATA = {
     },
 }
 
-# SQLSERVER 原地构造申请单据
+# SQLSERVER 原地构造申请单据（目标集群等于源集群，需对源集群重命名）
 SQLSERVER_ROLLBACK_LOCAL_TICKET_DATA = {
     "bk_biz_id": BK_BIZ_ID,
     "ticket_type": TicketType.SQLSERVER_ROLLBACK_LOCAL,
     "details": {
-        "is_local": True,  # True 代表原地构造
         "is_time_fixed": False,  # False 代表使用最新备份，True 代表指定时间
         "infos": [
             {
