@@ -70,30 +70,6 @@ class SQLServerRollbackBaseDetailSerializer(SQLServerBaseOperateDetailSerializer
 
     infos = serializers.ListSerializer(help_text=_("迁移信息列表"), child=RollbackInfoSerializer())
 
-    def validate(self, attrs):
-        """验证库表数据库的数据"""
-        # TODO: 验证 target_db_name 如果在目标集群存在，则 rename_db_name 不为空
-        # TODO: 验证所有的 rename_db_name 一定不在目标集群存在
-        # 校验集群是否可用
-        super().validate_cluster_can_access(attrs)
-
-        # 如果是指定回档时间，则查出最近的备份记录
-        for info in attrs["infos"]:
-            # 校验恢复库是否在备份范围内
-            if not info.get("restore_time"):
-                info.pop("restore_time", None)
-                continue
-            # 保持 restore_time 为字符串格式，避免 JSON 序列化失败
-            restore_time_str = info["restore_time"]
-            rollback_time = str2datetime(restore_time_str)
-            restore_backup_file = SQLServerRollbackHandler(info["src_cluster"]).query_latest_backup_log_from_model(
-                rollback_time
-            )
-            info["restore_backup_file"] = restore_backup_file
-
-        super().validate(attrs)
-        return attrs
-
 
 class SQLServerDataMigrateFlowParamBuilder(builders.FlowParamBuilder):
     controller = SqlserverController.db_construct_scene
@@ -106,8 +82,11 @@ class SQLServerRollbackRenameFlowParamBuilder(SQLServerRenameFlowParamBuilder):
     controller = SqlserverController.rename_dbs_scene
 
     def __init__(self, ticket: Ticket):
-        # 如果原地定点构造，则对源集群进行重命名；否则对目标集群进行重命名
-        rename_type = "source" if ticket.details["is_local"] else "target"
+        # 去掉 is_local 字段后，通过源集群与目标集群是否一致来判断：
+        # 原地回档（源集群与目标集群相同）需要对源集群重命名；定点构造（目标集群不同）对目标集群重命名
+        rollback_infos = ticket.details["infos"]
+        is_inplace = bool(rollback_infos) and rollback_infos[0]["dst_cluster"] == rollback_infos[0]["src_cluster"]
+        rename_type = "source" if is_inplace else "target"
         super().__init__(rename_type, ticket)
 
 
