@@ -45,6 +45,7 @@
           :key="index">
           <ClusterColumn
             v-model="item.cluster"
+            allow-repeat
             :cluster-types="[ClusterTypes.SQLSERVER_HA, ClusterTypes.SQLSERVER_SINGLE]"
             :label="t('源集群')"
             :selected="selected"
