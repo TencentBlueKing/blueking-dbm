@@ -57,3 +57,9 @@ class DuplicateClusterIDException(FlowValidateBaseException):
     ERROR_CODE = "007"
     MESSAGE = _("存在重复集群ID")
     MESSAGE_TPL = _("{message}")
+
+
+class NotExistClusterIDException(FlowValidateBaseException):
+    ERROR_CODE = "008"
+    MESSAGE = _("不存在集群ID")
+    MESSAGE_TPL = _("{message}")
