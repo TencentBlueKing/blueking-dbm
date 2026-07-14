@@ -11,8 +11,10 @@ specific language governing permissions and limitations under the License.
 from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
+from backend.flow.engine.controller.sqlserver import SqlserverController
 from backend.ticket import builders
 from backend.ticket.builders.sqlserver.sqlserver_rollback_base import (
+    SQLServerDBConstructRollbackFlowParamBuilder,
     SQLServerRollbackBaseDetailSerializer,
     SQLServerRollbackCommonFlowBuilder,
 )
@@ -24,5 +26,9 @@ class SQLServerRollbackDetailSerializer(SQLServerRollbackBaseDetailSerializer):
 
 
 @builders.BuilderFactory.register(TicketType.SQLSERVER_ROLLBACK)
-class SQLServerDataMigrateFlowBuilder(SQLServerRollbackCommonFlowBuilder):
+class SQLServerDBConstructFlowBuilder(SQLServerRollbackCommonFlowBuilder):
     serializer = SQLServerRollbackDetailSerializer
+    # rollback 内部流程走定点构造场景：db_construct_scene
+    rollback_flow_param_builder = SQLServerDBConstructRollbackFlowParamBuilder
+    inner_flow_builder = SQLServerDBConstructRollbackFlowParamBuilder
+    validator = SqlserverController.db_construct_scene.validator

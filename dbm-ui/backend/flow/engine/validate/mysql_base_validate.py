@@ -143,7 +143,8 @@ class MysqlBaseValidator(BaseValidator):
         err_msg = ""
         for cluster_id, count in cluster_id_counts.items():
             if count > 1:
-                err_msg += _("在单据中，存在重复集群ID信息填入 [{}]，请检查 \n".format(cluster_id))
+                cluster = Cluster.objects.get(id=cluster_id)
+                err_msg += _("在单据中，存在重复集群填入 [{}]，请检查 \n".format(cluster.immute_domain))
 
         return err_msg
 
