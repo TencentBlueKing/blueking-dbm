@@ -86,6 +86,7 @@ class ResourceApplyErrCode(IntStructuredEnum):
 
 TODO_DONE_STATUS = [TodoStatus.DONE_SUCCESS, TodoStatus.DONE_FAILED]
 TODO_RUNNING_STATUS = [TodoStatus.TODO]
+CLUSTER_TAG_WILDCARD_VALUE = "任意值"
 
 
 class TicketStatus(StrStructuredEnum):
