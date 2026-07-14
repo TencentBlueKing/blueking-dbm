@@ -141,7 +141,7 @@ class MySQLSensitiveMcpViewSet(McpToolsViewSet):
                 raise DBMMcpBaseException(msg="can't modify remote spec during migration")
 
             for ins in cluster_obj.storageinstance_set.filter(
-                is_stand_by=True, instance_role__in=[InstanceRole.REMOTE_MASTER, InstanceRole.REDIS_SLAVE]
+                is_stand_by=True, instance_role__in=[InstanceRole.REMOTE_MASTER, InstanceRole.REMOTE_SLAVE]
             ):
                 ins.machine.spec_id = new_spec.spec_id
                 ins.machine.spec_config = new_spec.get_spec_info()
