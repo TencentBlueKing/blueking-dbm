@@ -19,6 +19,7 @@ from backend.db_services.sqlserver.rollback.handlers import SQLServerRollbackHan
 from backend.flow.consts import SqlserverBackupFileTagEnum, SqlserverBackupMode
 from backend.flow.engine.controller.sqlserver import SqlserverController
 from backend.ticket import builders
+from backend.ticket.builders.common.base import ParamValidateSerializerMixin
 from backend.ticket.builders.common.field import DBTimezoneField
 from backend.ticket.builders.sqlserver.base import BaseSQLServerTicketFlowBuilder, SQLServerBaseOperateDetailSerializer
 from backend.ticket.builders.sqlserver.sqlserver_data_migrate import SQLServerRenameFlowParamBuilder
@@ -27,7 +28,7 @@ from backend.ticket.models import Flow, Ticket
 from backend.utils.time import str2datetime
 
 
-class SQLServerRollbackBaseDetailSerializer(SQLServerBaseOperateDetailSerializer):
+class SQLServerRollbackBaseDetailSerializer(SQLServerBaseOperateDetailSerializer, ParamValidateSerializerMixin):
     """SQLServer 定点构造(回档)与本地构造(原地构造)公共的明细序列化器"""
 
     class RollbackInfoSerializer(serializers.Serializer):
@@ -71,11 +72,37 @@ class SQLServerRollbackBaseDetailSerializer(SQLServerBaseOperateDetailSerializer
     infos = serializers.ListSerializer(help_text=_("迁移信息列表"), child=RollbackInfoSerializer())
 
 
-class SQLServerDataMigrateFlowParamBuilder(builders.FlowParamBuilder):
-    controller = SqlserverController.db_construct_scene
+class SQLServerDBRollbackFlowParamBuilder(builders.FlowParamBuilder):
+    """定点构造与本地原地构造 rollback 流程的公共基类。
+
+    功能说明：
+      - 作为 rollback 内部流程参数构造器的抽象基类，仅承载共用的 format_ticket_data 钩子。
+      - 具体的 controller 由子类指定，避免父类硬编码单一场景。
+    输入参数：
+      - 继承自 builders.FlowParamBuilder（由 ticket_data 提供）
+    输出参数：
+      - 由 controller 决定的执行参数
+    边界说明：
+      - 子类必须覆盖 controller，否则调用时会报 AttributeError
+    """
+
+    # controller 由子类覆写，父类不指向具体场景，避免误用
+    controller = None
 
     def format_ticket_data(self):
         super().format_ticket_data()
+
+
+class SQLServerDBConstructRollbackFlowParamBuilder(SQLServerDBRollbackFlowParamBuilder):
+    """定点构造(跨集群回档) rollback 流程参数构造器：走 db_construct_scene。"""
+
+    controller = SqlserverController.db_construct_scene
+
+
+class SQLServerDBRollbackInLocalFlowParamBuilder(SQLServerDBRollbackFlowParamBuilder):
+    """本地(原地)构造 rollback 流程参数构造器：走 db_rollback_in_local_scene。"""
+
+    controller = SqlserverController.db_rollback_in_local_scene
 
 
 class SQLServerRollbackRenameFlowParamBuilder(SQLServerRenameFlowParamBuilder):
@@ -125,16 +152,28 @@ class SQLServerRollbackBackupFlowParamBuilder(builders.FlowParamBuilder):
 
 
 class SQLServerRollbackCommonFlowBuilder(BaseSQLServerTicketFlowBuilder):
-    """定点构造与本地构造共用的流程编排逻辑"""
+    """定点构造与本地构造共用的流程编排逻辑。
 
-    inner_flow_builder = SQLServerDataMigrateFlowParamBuilder
+    功能说明：
+      - 承载 rollback / rename / backup 三条内部流程的编排。
+      - rollback 的具体 controller 由子类通过 rollback_flow_param_builder 指定：
+          * 定点构造(跨集群)  -> SQLServerDBConstructRollbackFlowParamBuilder (db_construct_scene)
+          * 本地(原地)构造    -> SQLServerDBRollbackInLocalFlowParamBuilder   (db_rollback_in_local_scene)
+    边界说明：
+      - 子类必须覆写 rollback_flow_param_builder，否则 rollback 流程构造会因 controller=None 失败。
+    """
+
+    # rollback 内部流程使用的 ParamBuilder，子类必须覆写为具体子类
+    rollback_flow_param_builder = SQLServerDBRollbackFlowParamBuilder
+    # inner_flow_builder 保留为通用基类；子类可按需覆写，用于 BuilderFactory 的注册元信息
+    inner_flow_builder = SQLServerDBRollbackFlowParamBuilder
     retry_type = FlowRetryType.MANUAL_RETRY
 
     def custom_ticket_flows(self):
         rollback_flow = Flow(
             ticket=self.ticket,
             flow_type=FlowType.INNER_FLOW.value,
-            details=SQLServerDataMigrateFlowParamBuilder(self.ticket).get_params(),
+            details=self.rollback_flow_param_builder(self.ticket).get_params(),
             flow_alias=_("SQLServer 定点构造执行"),
             retry_type=FlowRetryType.MANUAL_RETRY,
         )
