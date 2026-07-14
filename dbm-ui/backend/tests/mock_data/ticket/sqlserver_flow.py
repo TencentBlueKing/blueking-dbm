@@ -415,10 +415,47 @@ SQLSERVER_ROLLBACK_TICKET_DATA = {
                 ],
                 "restore_backup_file": {
                     "backup_id": "backup_20240101_120000",
+                    # backup_db_list 必须包含 rename_infos 中出现的所有 db_name，
+                    # 否则 SqlserverDBConstructValidator.pre_check_dbs_in_backup_list 会失败
+                    "backup_db_list": ["test_database", "test_db2", "master"],
+                    "start_time": "2024-01-01 11:00:00",
+                    "end_time": "2024-01-01 12:00:00",
+                    "complete": True,
+                    "expected_cnt": 3,
+                    "real_cnt": 3,
+                    "role": "master",
+                    "backup_db_size_kb": 10240,
+                    "backup_file_size_kb": 5120,
+                    "excluded_db_list": [],
+                    "bill_id": "",
+                    # 每条 log 补齐 pre_check_log_backup_continuity 所需字段
+                    # （backup_end_time / cluster_domain / last_lsn / file_name），
+                    # 便于将 is_time_fixed 切换为 True + restore_time 场景时直接复用
                     "logs": [
-                        {"dbname": "test_database", "backup_id": "backup_20240101_120000"},
-                        {"dbname": "test_db2", "backup_id": "backup_20240101_120000"},
-                        {"dbname": "master", "backup_id": "backup_20240101_120000"},
+                        {
+                            "dbname": "test_database",
+                            "backup_id": "backup_20240101_120000",
+                            "backup_end_time": "2024-01-01 12:00:00",
+                            "cluster_domain": "sqlserver.test.db",
+                            "last_lsn": "1000000000",
+                            "file_name": "test_database_full_20240101_120000.bak",
+                        },
+                        {
+                            "dbname": "test_db2",
+                            "backup_id": "backup_20240101_120000",
+                            "backup_end_time": "2024-01-01 12:00:00",
+                            "cluster_domain": "sqlserver.test.db",
+                            "last_lsn": "1000000001",
+                            "file_name": "test_db2_full_20240101_120000.bak",
+                        },
+                        {
+                            "dbname": "master",
+                            "backup_id": "backup_20240101_120000",
+                            "backup_end_time": "2024-01-01 12:00:00",
+                            "cluster_domain": "sqlserver.test.db",
+                            "last_lsn": "1000000002",
+                            "file_name": "master_full_20240101_120000.bak",
+                        },
                     ],
                 },
             }
@@ -441,9 +478,37 @@ SQLSERVER_ROLLBACK_LOCAL_TICKET_DATA = {
                 "rename_infos": [],  # 原地构造可能不需要重命名
                 "restore_backup_file": {
                     "backup_id": "backup_20240101_120000",
+                    # backup_db_list 必须包含 rename_infos 中出现的所有 db_name；
+                    # 当前 rename_infos 为空虽不会触发 pre_check_dbs_in_backup_list 的
+                    # 逐库校验，但补齐可保证未来任何 rename 追加均无需再改 mock
+                    "backup_db_list": ["test_database", "test_db2"],
+                    "start_time": "2024-01-01 11:00:00",
+                    "end_time": "2024-01-01 12:00:00",
+                    "complete": True,
+                    "expected_cnt": 2,
+                    "real_cnt": 2,
+                    "role": "master",
+                    "backup_db_size_kb": 8192,
+                    "backup_file_size_kb": 4096,
+                    "excluded_db_list": [],
+                    "bill_id": "",
                     "logs": [
-                        {"dbname": "test_database", "backup_id": "backup_20240101_120000"},
-                        {"dbname": "test_db2", "backup_id": "backup_20240101_120000"},
+                        {
+                            "dbname": "test_database",
+                            "backup_id": "backup_20240101_120000",
+                            "backup_end_time": "2024-01-01 12:00:00",
+                            "cluster_domain": "sqlserver.test.db",
+                            "last_lsn": "1000000000",
+                            "file_name": "test_database_full_20240101_120000.bak",
+                        },
+                        {
+                            "dbname": "test_db2",
+                            "backup_id": "backup_20240101_120000",
+                            "backup_end_time": "2024-01-01 12:00:00",
+                            "cluster_domain": "sqlserver.test.db",
+                            "last_lsn": "1000000001",
+                            "file_name": "test_db2_full_20240101_120000.bak",
+                        },
                     ],
                 },
             }
