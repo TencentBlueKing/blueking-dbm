@@ -91,9 +91,9 @@ def mongos_replace(root_id: str, ticket_data: Optional[Dict], sub_sub_kwargs: Ac
         cluster_id=cluster_id
     )
     sub_sub_get_kwargs.cluster_type = ClusterType.MongoShardedCluster.value
-    sub_sub_get_kwargs.payload["key_file"] = sub_sub_get_kwargs.get_conf(
+    sub_sub_get_kwargs.payload["key_file"] = sub_sub_get_kwargs.get_cluster_key_file(
         cluster_name=sub_sub_get_kwargs.db_instance["cluster_name"]
-    )["key_file"]
+    )
     node = info["target"]
     node["cluster_id"] = cluster_id
     sub_sub_get_kwargs.payload["mongos"] = {}

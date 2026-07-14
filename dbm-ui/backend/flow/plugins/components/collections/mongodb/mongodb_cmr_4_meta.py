@@ -31,6 +31,7 @@ from backend.db_meta.enums import (
 from backend.db_meta.models import Cluster, Machine, ProxyInstance, StorageInstance, StorageInstanceTuple
 from backend.flow.plugins.components.collections.common.base_service import BaseService
 from backend.flow.utils.mongodb.mongodb_module_operate import MongoDBCCTopoOperator
+from backend.flow.utils.mongodb.version_utils import apply_replaced_instance_version
 
 logger = logging.getLogger("flow")
 
@@ -184,6 +185,7 @@ class CMRMongoDBMetaService(BaseService):
             new_obj.instance_role = old_obj.instance_role
             new_obj.instance_inner_role = old_obj.instance_inner_role
             new_obj.cluster_type = old_obj.cluster_type
+            apply_replaced_instance_version(cluster, new_obj, old_obj)
             new_obj.save(update_fields=["cluster_type", "instance_role", "instance_inner_role"])
             # machine 实例信息更新
             new_machine = new_obj.machine
@@ -269,6 +271,17 @@ class CMRMongoDBMetaService(BaseService):
 
         # 新增 mongos 到集群
         self.add_proxies(cluster, proxies)
+        for rep_link in mongos_info:
+            for port in mongos_ports:
+                old_ip, new_ip = rep_link["ip"], rep_link["target"]["ip"]
+                old_obj = cluster.proxyinstance_set.get(machine__ip=old_ip, port=port)
+                new_obj = ProxyInstance.objects.get(
+                    machine__ip=new_ip,
+                    port=port,
+                    bk_biz_id=cluster.bk_biz_id,
+                    machine__bk_cloud_id=cluster.bk_cloud_id,
+                )
+                apply_replaced_instance_version(cluster, new_obj, old_obj)
         MongoDBCCTopoOperator(cluster).transfer_instances_to_cluster_module(proxy_objs)
 
         # # 删除老 mongos

@@ -71,8 +71,7 @@ class MongoDBDeInstallFlow(object):
         # 下发介质
         self.prepare_job(pipeline=pipeline)
 
-        # 卸载——子流程并行
-        sub_pipelines = []
+        # 卸载——多集群串行子流程，避免共享主机并发操作 CMDB 模块
         for cluster_id in self.data["cluster_ids"]:
             sub_pipline = deinstall(
                 root_id=self.root_id,
@@ -81,8 +80,7 @@ class MongoDBDeInstallFlow(object):
                 cluster_id=cluster_id,
                 reduce_mongos=False,
             )
-            sub_pipelines.append(sub_pipline)
-        pipeline.add_parallel_sub_pipeline(sub_flow_list=sub_pipelines)
+            pipeline.add_sub_pipeline(sub_pipline)
 
         # 运行流程
         pipeline.run_pipeline()

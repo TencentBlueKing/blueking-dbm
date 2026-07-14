@@ -535,6 +535,82 @@ class CcManage(object):
         except Exception as error:
             logger.warning(error)
 
+    def _list_bk_module_host_ids(self, bk_module_id: int) -> List[int]:
+        res = CCApi.list_biz_hosts(
+            {
+                "bk_biz_id": self.hosting_biz_id,
+                "bk_module_ids": [bk_module_id],
+                "fields": ["bk_host_id"],
+                "page": {"start": 0, "limit": 500},
+            },
+            use_admin=True,
+        )
+        return [host["bk_host_id"] for host in res.get("info") or []]
+
+    def _find_host_module_ids_map_in_set(self, bk_set_id: int, bk_host_ids: List[int]) -> Dict[int, List[int]]:
+        if not bk_host_ids:
+            return {}
+
+        bk_host_ids = list(set(bk_host_ids))
+        set_modules = CCApi.search_module(
+            {"bk_biz_id": self.hosting_biz_id, "bk_set_id": bk_set_id, "bk_module_name": ""},
+            use_admin=True,
+        )
+        bk_module_ids = [module["bk_module_id"] for module in set_modules.get("info") or []]
+        host_id__module_ids_map = {host_id: [] for host_id in bk_host_ids}
+        if not bk_module_ids:
+            return host_id__module_ids_map
+
+        res = CCApi.find_module_host_relation(
+            {
+                "bk_biz_id": self.hosting_biz_id,
+                "bk_module_ids": bk_module_ids,
+                "module_fields": ["bk_module_id"],
+                "host_fields": ["bk_host_id"],
+                "page": {"start": 0, "limit": 500},
+            },
+            use_admin=True,
+        )
+        bk_host_id_set = set(bk_host_ids)
+        for relation in res.get("relation") or []:
+            host_id = relation["host"]["bk_host_id"]
+            if host_id not in bk_host_id_set:
+                continue
+            host_id__module_ids_map[host_id] = [info["bk_module_id"] for info in relation.get("modules") or []]
+        return host_id__module_ids_map
+
+    def _detach_hosts_from_module(self, bk_set_id: int, bk_module_id: int, bk_host_ids: List[int]) -> None:
+        """
+        删除模块前，将仍挂在模块下的主机解绑。
+        共享主机场景：主机仍被其它集群使用时，仅从当前模块摘除；
+        独占主机场景：回收到 pending/待回收模块。
+        """
+        if not bk_host_ids:
+            return
+
+        host_id__module_ids_map = self._find_host_module_ids_map_in_set(bk_set_id, bk_host_ids)
+        recycle_host_ids = []
+        for host_id in bk_host_ids:
+            module_ids = host_id__module_ids_map.get(host_id) or []
+            if bk_module_id not in module_ids:
+                continue
+            remaining_module_ids = [module_id for module_id in module_ids if module_id != bk_module_id]
+            if remaining_module_ids:
+                CCApi.transfer_host_module(
+                    {
+                        "bk_biz_id": self.hosting_biz_id,
+                        "bk_host_id": [host_id],
+                        "bk_module_id": remaining_module_ids,
+                        "is_increment": False,
+                    },
+                    use_admin=True,
+                )
+            else:
+                recycle_host_ids.append(host_id)
+
+        if recycle_host_ids:
+            self.recycle_host(recycle_host_ids)
+
     def delete_cc_module(self, db_type: str, cluster_type: str, cluster_id: int = 0, instance_id: int = 0):
         """
         封装方法：现在bkcc的模块是跟cluster_id、db_type 的结合对应
@@ -566,7 +642,8 @@ class CcManage(object):
                 )
                 continue
 
-            # 检查模块下是否还有机器
+            bk_host_ids = self._list_bk_module_host_ids(bk_module_obj.bk_module_id)
+            self._detach_hosts_from_module(bk_module_obj.bk_set_id, bk_module_obj.bk_module_id, bk_host_ids)
             CCApi.delete_module(
                 {
                     "bk_biz_id": bk_module_obj.bk_biz_id,

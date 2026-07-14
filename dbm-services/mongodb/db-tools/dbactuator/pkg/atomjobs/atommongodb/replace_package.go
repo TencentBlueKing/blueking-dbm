@@ -98,22 +98,36 @@ func (r *ReplacePackage) Run() error {
 	r.ConfParams.CurrentVersion = strings.ReplaceAll(r.ConfParams.CurrentVersion, "mongodb-", "")
 	r.ConfParams.DestVersion = strings.ReplaceAll(r.ConfParams.DestVersion, "mongodb-", "")
 
-	// 检查当前版本（与 Flow 一致：主次版本 M.m 对齐，忽略 patch；CheckMongoVersion 常为 3.4.20 等形式）
 	dbVersion, err := common.CheckMongoVersion(r.BinDir, r.ConfParams.InstanceType)
 	if err != nil {
 		return fmt.Errorf("check db version fail, error:%s", err)
+	}
+	dbTuple, err := parseMongoVersionTuple(dbVersion)
+	if err != nil {
+		return fmt.Errorf("parse running db version fail: %w", err)
+	}
+	destTuple, err := parseMongoVersionTuple(r.ConfParams.DestVersion)
+	if err != nil {
+		return fmt.Errorf("parse dest version fail: %w", err)
 	}
 	dbMM := versionMajorMinor(dbVersion)
 	destMM := versionMajorMinor(r.ConfParams.DestVersion)
 	curMM := versionMajorMinor(r.ConfParams.CurrentVersion)
 
-	switch {
-	case dbMM == destMM:
-		r.runtime.Logger.Info("current db version is %s (mm=%s), already matches dest line %s", dbVersion, dbMM, destMM)
+	if compareMongoVersionTuples(dbTuple, destTuple) >= 0 {
+		r.runtime.Logger.Info(
+			"current db version is %s, already at or above target %s",
+			dbVersion, r.ConfParams.DestVersion,
+		)
 		return nil
+	}
+
+	switch {
 	case dbMM == curMM:
-		// dbVersion is the current release line, need to replace the package
-		r.runtime.Logger.Info("current db version is %s (mm=%s), need to replace the package to %s", dbVersion, dbMM, destMM)
+		r.runtime.Logger.Info(
+			"current db version is %s (mm=%s), need to replace the package to %s",
+			dbVersion, dbMM, r.ConfParams.DestVersion,
+		)
 		if err := r.unTarAndRecreateSoftLink(); err != nil {
 			return fmt.Errorf("unTar and create soft link fail, error:%s", err)
 		}
@@ -121,7 +135,18 @@ func (r *ReplacePackage) Run() error {
 		if err != nil {
 			return fmt.Errorf("check db version fail, error:%s", err)
 		}
-		if versionMajorMinor(dbVersionAfter) != destMM {
+		afterTuple, err := parseMongoVersionTuple(dbVersionAfter)
+		if err != nil {
+			return fmt.Errorf("parse db version after replace fail: %w", err)
+		}
+		if destMM == curMM && destTuple.hasPatch {
+			if compareMongoVersionTuples(afterTuple, destTuple) < 0 {
+				return fmt.Errorf(
+					"db version mismatch after replace: current=%s, expected at least %s",
+					dbVersionAfter, r.ConfParams.DestVersion,
+				)
+			}
+		} else if versionMajorMinor(dbVersionAfter) != destMM {
 			return fmt.Errorf(
 				"db version mismatch after replace: current=%s (line=%s), expected target line=%s (destVersion=%s)",
 				dbVersionAfter, versionMajorMinor(dbVersionAfter), destMM, r.ConfParams.DestVersion,

@@ -172,7 +172,6 @@ class MigrateActKwargs:
 
         cluster_info = self.source_cluster_info
         conf_type = ConfigTypeEnum.DBConf.value
-        conf_file = "{}-{}".format("Mongodb", cluster_info.get("major_version").split("-")[1].split(".")[0])
         cluster_name = ""
         key_file = ""
         cache_size = ""
@@ -204,7 +203,6 @@ class MigrateActKwargs:
             ]
         )
         return {
-            "conf_file": conf_file,
             "conf_type": conf_type,
             "namespace": namespace,
             "conf_items": conf_items,

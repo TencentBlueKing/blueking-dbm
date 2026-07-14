@@ -1,0 +1,50 @@
+[
+  {
+    "conf_name": "cacheSizeGB",
+    "value_default": "0",
+    "value_allowed": "[0,1024]",
+    "value_type": "FLOAT",
+    "value_type_sub": "RANGE",
+    "conf_name_lc": "db配置",
+    "description": "0: auto",
+    "need_restart": 1,
+    "flag_readonly": 0,
+    "flag_visible": 1,
+    "flag_status": 1,
+    "flag_locked": 0,
+    "flag_encrypt": 0,
+    "since_version": ""
+  },
+  {
+    "conf_name": "oplogSizeMB",
+    "value_default": "0",
+    "value_allowed": "[0,10485760]",
+    "value_type": "INT",
+    "value_type_sub": "RANGE",
+    "conf_name_lc": "db配置",
+    "description": "0: auto",
+    "need_restart": 1,
+    "flag_readonly": 0,
+    "flag_visible": 1,
+    "flag_status": 1,
+    "flag_locked": 0,
+    "flag_encrypt": 0,
+    "since_version": ""
+  },
+  {
+    "conf_name": "slowOpThresholdMs",
+    "value_default": "200",
+    "value_allowed": "[10,20000]",
+    "value_type": "INT",
+    "value_type_sub": "RANGE",
+    "conf_name_lc": "db配置",
+    "description": "slowms",
+    "need_restart": 1,
+    "flag_readonly": 0,
+    "flag_visible": 1,
+    "flag_status": 1,
+    "flag_locked": 0,
+    "flag_encrypt": 0,
+    "since_version": ""
+  }
+]

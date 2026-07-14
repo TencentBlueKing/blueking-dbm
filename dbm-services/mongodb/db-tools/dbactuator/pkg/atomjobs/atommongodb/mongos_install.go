@@ -170,7 +170,7 @@ func (s *MongoSInstall) makeConfContent() error {
 	conf.Sharding.ConfigDB = configDB
 	conf.SystemLog.LogAppend = true
 	conf.SystemLog.Path = s.LogPath
-	conf.SystemLog.Destination = s.ConfParams.DbConfig.Destination
+	conf.SystemLog.Destination = "file"
 	conf.ProcessManagement.Fork = true
 	conf.ProcessManagement.PidFilePath = s.PidFilePath
 	conf.Net.Port = s.ConfParams.Port

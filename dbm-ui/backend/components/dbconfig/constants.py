@@ -76,7 +76,10 @@ class ConfFile(StrStructuredEnum):
       存储层参数: conf_type=dbconf, conf_file=Redis-XX / TendisSSD-xxx / Tendisplus-xxx
       代理参数: conf_type=proxyconf, conf_file=Twemproxy-latest / Predixy-latest
     MongoDB:
-      集群参数: conf_type=dbconf, conf_file=Mongodb-X (大版本号, 如 Mongodb-6)
+      ReplicaSet: conf_type=dbconf, conf_file=mongod.conf
+      ShardedCluster: conf_type=dbconf, conf_file=shardsvr.conf / configsvr.conf / mongos.conf
+      兼容旧版: mongodb-M.m / Mongodb-M（仅存量读/迁移）
+      bk-dbmon: conf_type=config, conf_file=bk-dbmon (segment.key 形式，见 cluster_config.go)
     ES/Kafka/HDFS/Pulsar/Doris:
       conf_type=dbconf, conf_file=x.x.x (版本号)
     """
@@ -100,6 +103,10 @@ class ConfFile(StrStructuredEnum):
 
     # ----- MongoDB -----
     OSCONF = EnumField("osconf", _("OS公共配置"))
+    MONGOD = EnumField("mongod.conf", _("mongod配置"))
+    SHARDSVR = EnumField("shardsvr.conf", _("shardsvr配置"))
+    CONFIGSVR = EnumField("configsvr.conf", _("configsvr配置"))
+    MONGOS = EnumField("mongos.conf", _("mongos配置"))
 
     # ----- SQLServer -----
     DBBACKUP_CONF = EnumField("dbbackup.conf", _("备份配置"))

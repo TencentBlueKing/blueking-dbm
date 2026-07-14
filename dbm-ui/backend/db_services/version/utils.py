@@ -8,11 +8,20 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+import re
+
 from backend.db_meta.enums import ClusterType
+from backend.db_meta.models import DBVersion, Distribution
 from backend.db_package.constants import PackageType
 from backend.db_package.models import Package
 from backend.db_services.version import constants
-from backend.db_services.version.constants import FULL_VERSION_SEGMENT_COUNT, VERSION_PADDING_SEGMENT
+from backend.db_services.version.constants import (
+    FULL_VERSION_SEGMENT_COUNT,
+    SHORT_VERSION_SEGMENT_COUNT,
+    VERSION_PADDING_SEGMENT,
+)
+
+_MONGODB_LIST_VERSION_RE = re.compile(r"^\d+\.\d+\.\d+$")
 
 
 def pad_full_version(full_version: str) -> str:
@@ -40,6 +49,58 @@ def strip_full_version(full_version: str, display_version_seg: int) -> str:
     if len(segs) <= display_version_seg:
         return full_version
     return ".".join(segs[:display_version_seg])
+
+
+def _normalize_mongodb_list_version(version: str):
+    """将介质版本规范为 x.y.z; 无法解析时返回 None"""
+    if not version:
+        return None
+    short_version = strip_full_version(version.strip(), SHORT_VERSION_SEGMENT_COUNT)
+    if _MONGODB_LIST_VERSION_RE.match(short_version):
+        return short_version
+    try:
+        from backend.flow.utils.mongodb.version_utils import normalize_mongodb_full_version
+
+        normalized = normalize_mongodb_full_version(version)
+        display_version = normalized.removeprefix("mongodb-").split("-", 1)[0]
+        if _MONGODB_LIST_VERSION_RE.match(display_version):
+            return display_version
+    except ValueError:
+        return None
+    return None
+
+
+def _mongodb_list_version_sort_key(version: str) -> tuple:
+    from backend.flow.utils.mongodb.version_utils import _instance_version_tuple
+
+    return _instance_version_tuple("mongodb-{}".format(version))
+
+
+def query_mongodb_versions():
+    """MongoDB 版本列表: 仅返回 enable=True, 对外展示 x.y.z, 按版本号降序"""
+    distribution_ids = Distribution.objects.filter(pkg_type=PackageType.MongoDB).values_list("id", flat=True)
+    versions = list(
+        DBVersion.objects.filter(distribution_id__in=distribution_ids, enable=True)
+        .order_by("-full_version")
+        .values_list("full_version", flat=True)
+    )
+    if not versions:
+        versions = list(
+            Package.objects.filter(pkg_type=PackageType.MongoDB, enable=True)
+            .order_by("-version")
+            .values_list("version", flat=True)
+        )
+
+    seen = set()
+    result = []
+    for version in versions:
+        short_version = _normalize_mongodb_list_version(version)
+        if not short_version or short_version in seen:
+            continue
+        seen.add(short_version)
+        result.append(short_version)
+    result.sort(key=_mongodb_list_version_sort_key, reverse=True)
+    return result
 
 
 def query_versions_by_key(query_key):
@@ -95,6 +156,8 @@ def query_versions_by_key(query_key):
         versions = constants.TendisSsdVersion.get_values()
     elif query_key in [PackageType.Sqlserver]:
         versions = constants.SqlserverVersion.get_values()
+    elif query_key in [PackageType.MongoDB]:
+        versions = query_mongodb_versions()
     else:
         versions = list(Package.objects.filter(pkg_type=query_key).values_list("version", flat=True))
 

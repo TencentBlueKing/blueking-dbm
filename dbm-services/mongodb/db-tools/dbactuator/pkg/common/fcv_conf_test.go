@@ -38,6 +38,11 @@ func TestParseGetFcvJSON(t *testing.T) {
 			wantErr: true,
 		},
 		{
+			name:    "document not found errmsg",
+			in:      `{"errmsg":"featureCompatibilityVersion document not found"}`,
+			wantErr: true,
+		},
+		{
 			name:    "empty version",
 			in:      `{"featureCompatibilityVersion":{"version":""}}`,
 			wantErr: true,
@@ -78,7 +83,6 @@ func TestParseGetFcvJSON_TrimsWhitespace(t *testing.T) {
 
 func TestParseGetFcvJSON_ShellOutputStartsWithInvalidToken(t *testing.T) {
 	t.Parallel()
-	// Typical output where warning/noise is printed before final JSON line
 	in := "Type \"it\" for more\n{\"featureCompatibilityVersion\":{\"version\":\"4.2\"}}"
 	got, err := ParseGetFcvJSON(in)
 	if err != nil {
@@ -86,5 +90,27 @@ func TestParseGetFcvJSON_ShellOutputStartsWithInvalidToken(t *testing.T) {
 	}
 	if got != "4.2" {
 		t.Fatalf("got %q", got)
+	}
+}
+
+func TestFcvCheckSupported(t *testing.T) {
+	t.Parallel()
+	cases := []struct {
+		mm   string
+		want bool
+	}{
+		{"3.0", false},
+		{"3.2", false},
+		{"3.4", true},
+		{"6.0", true},
+	}
+	for _, tc := range cases {
+		tc := tc
+		t.Run(tc.mm, func(t *testing.T) {
+			t.Parallel()
+			if got := FcvCheckSupported(tc.mm); got != tc.want {
+				t.Fatalf("FcvCheckSupported(%q) = %v, want %v", tc.mm, got, tc.want)
+			}
+		})
 	}
 }

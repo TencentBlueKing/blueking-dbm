@@ -57,14 +57,12 @@ def mongod_autofix(
     cluster_name = sub_sub_get_kwargs.db_instance["seg_range"]
     sub_sub_get_kwargs.payload["cluster_type"] = ClusterType.MongoShardedCluster.value
     sub_sub_get_kwargs.payload["set_id"] = sub_sub_get_kwargs.db_instance["seg_range"]
-    sub_sub_get_kwargs.payload["key_file"] = sub_sub_get_kwargs.get_conf(
-        cluster_name=sub_sub_get_kwargs.db_instance["cluster_name"]
-    )["key_file"]
+    cluster_conf_name = sub_sub_get_kwargs.db_instance["cluster_name"]
+    sub_sub_get_kwargs.payload["key_file"] = sub_sub_get_kwargs.get_cluster_key_file(cluster_name=cluster_conf_name)
     sub_sub_get_kwargs.payload["config_nodes"] = []
     sub_sub_get_kwargs.payload["shards_nodes"] = []
     sub_sub_get_kwargs.payload["mongos_nodes"] = []
-    # 获取配置
-    conf = sub_sub_get_kwargs.get_conf(cluster_name=sub_sub_get_kwargs.db_instance["cluster_name"])
+    conf = sub_sub_get_kwargs.get_conf(cluster_name=cluster_conf_name)
     if cluster_role == MongoDBClusterRole.ConfigSvr.value:
         sub_sub_get_kwargs.payload["config_nodes"] = [
             {

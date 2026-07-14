@@ -19,7 +19,7 @@ from django.utils import timezone
 
 from backend import env
 from backend.components import DBConfigApi, DRSApi
-from backend.components.dbconfig.constants import FormatType, LevelName, OpType, ReqType
+from backend.components.dbconfig.constants import FormatType, LevelName, OpType
 from backend.configuration.constants import DBType
 from backend.configuration.models import SystemSettings
 from backend.db_meta.enums import ClusterEntryType
@@ -28,7 +28,6 @@ from backend.db_meta.enums.instance_role import InstanceRole
 from backend.db_meta.models import Cluster
 from backend.db_package.models import Package
 from backend.flow.consts import (
-    DEFAULT_CONFIG_CONFIRM,
     DEFAULT_DB_MODULE_ID,
     ConfigFileEnum,
     ConfigTypeEnum,
@@ -50,9 +49,16 @@ from backend.flow.consts import (
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
 from backend.flow.utils.mongodb import mongodb_script_template
 from backend.flow.utils.mongodb.calculate_cluster import get_cache_size, get_oplog_size, machine_order_by_tolerance
+from backend.flow.utils.mongodb.mongodb_conf_file import (
+    assert_cluster_dbconf_level_migrated,
+    query_mongodb_dbconf_content,
+    resolve_flow_dbconf_level_value,
+    upsert_mongodb_cluster_dbconf,
+)
 from backend.flow.utils.mongodb.mongodb_password import MongoDBPassword
 from backend.flow.utils.mongodb.mongodb_repo import MongoRepository
 from backend.flow.utils.mongodb.mongodb_util import MongoUtil
+from backend.flow.utils.mongodb.version_utils import extract_mongodb_major_minor, resolve_mongodb_flow_db_version
 
 
 @dataclass()
@@ -192,27 +198,60 @@ class ActKwargs:
                 domain=instance["domain"],
             )
 
-    def __get_define_config(self, namespace: str, conf_file: str, conf_type: str) -> Any:
-        """获取一些全局的参数配置"""
+    def _mongodb_dbconf_version(self) -> str:
+        """Version string used to resolve mongodb-M.m / Mongodb-M conf_file candidates."""
+        raw = self.db_release_version or self.payload.get("db_version", "")
+        if not raw:
+            raise ValueError("db_version is required to resolve mongodb dbconfig conf_file")
+        return "mongodb-{}".format(extract_mongodb_major_minor(str(raw)))
+
+    def __get_os_define_config(self) -> dict:
+        """获取 mongodbcommon/osconf 配置（与 MongoDB 大版本无关）。"""
         bk_biz_id = str(self.payload["bk_biz_id"])
         data = DBConfigApi.query_conf_item(
             params={
                 "bk_biz_id": bk_biz_id,
                 "level_name": LevelName.APP,
                 "level_value": bk_biz_id,
-                "conf_file": conf_file,
-                "conf_type": conf_type,
-                "namespace": namespace,
+                "conf_file": ConfigFileEnum.OsConf.value,
+                "conf_type": ConfigTypeEnum.Config.value,
+                "namespace": NameSpaceEnum.MongoDBCommon.value,
                 "format": FormatType.MAP.value,
             }
         )
         return data["content"]
 
+    def __get_define_config(self, namespace: str, conf_type: str) -> Any:
+        """获取一些全局的参数配置"""
+        bk_biz_id = str(self.payload["bk_biz_id"])
+        return query_mongodb_dbconf_content(
+            bk_biz_id=bk_biz_id,
+            level_name=LevelName.APP.value,
+            level_value=bk_biz_id,
+            namespace=namespace,
+            version=self._mongodb_dbconf_version(),
+            conf_type=conf_type,
+            plat_fallback=False,
+        )
+
+    def _resolve_save_conf_level_value(self, namespace: str, cluster_name: str) -> str:
+        if namespace == ClusterType.MongoReplicaSet.value:
+            nodes = self.replicaset_info.get("nodes") or []
+            if nodes and nodes[0].get("domain"):
+                return nodes[0]["domain"]
+        elif namespace == ClusterType.MongoShardedCluster.value:
+            mongos = self.payload.get("mongos") or {}
+            if mongos.get("domain"):
+                return mongos["domain"]
+        return resolve_flow_dbconf_level_value(
+            bk_biz_id=self.payload["bk_biz_id"],
+            cluster_type=namespace,
+            cluster_name=cluster_name,
+        )
+
     def save_conf(self, namespace: str):
         """保存配置到dbconfig"""
 
-        conf_type = ConfigTypeEnum.DBConf.value
-        conf_file = "{}-{}".format("Mongodb", self.db_main_version)
         cluster_name = ""
         key_file = ""
         cache_size = ""
@@ -243,97 +282,102 @@ class ActKwargs:
                 {"conf_name": "oplogSizeMB", "conf_value": oplog_size, "op_type": OpType.UPDATE},
             ]
         )
-        DBConfigApi.upsert_conf_item(
-            {
-                "conf_file_info": {
-                    "conf_file": conf_file,
-                    "conf_type": conf_type,
-                    "namespace": namespace,
-                },
-                "conf_items": conf_items,
-                "level_info": {"module": str(DEFAULT_DB_MODULE_ID)},
-                "confirm": DEFAULT_CONFIG_CONFIRM,
-                "req_type": ReqType.SAVE_AND_PUBLISH,
-                "bk_biz_id": str(self.payload["bk_biz_id"]),
-                "level_name": LevelName.CLUSTER,
-                "level_value": cluster_name,
-            }
+        level_value = self._resolve_save_conf_level_value(namespace, cluster_name)
+        upsert_mongodb_cluster_dbconf(
+            bk_biz_id=self.payload["bk_biz_id"],
+            namespace=namespace,
+            level_value=level_value,
+            version=self._mongodb_dbconf_version(),
+            conf_items=conf_items,
         )
 
     def scale_save_conf(self, cluster_name: str, namespace: str):
         """保存分片的oplogsize和cachesize配置到dbconfig"""
 
-        conf_type = ConfigTypeEnum.DBConf.value
-        conf_file = "{}-{}".format("Mongodb", self.db_main_version)
         cache_size = str(self.replicaset_info["cacheSizeGB"])
         oplog_size = str(self.replicaset_info["oplogSizeMB"])
         conf_items = [
             {"conf_name": "cacheSizeGB", "conf_value": cache_size, "op_type": OpType.UPDATE},
             {"conf_name": "oplogSizeMB", "conf_value": oplog_size, "op_type": OpType.UPDATE},
         ]
-        DBConfigApi.upsert_conf_item(
-            {
-                "conf_file_info": {
-                    "conf_file": conf_file,
-                    "conf_type": conf_type,
-                    "namespace": namespace,
-                },
-                "conf_items": conf_items,
-                "level_info": {"module": str(DEFAULT_DB_MODULE_ID)},
-                "confirm": DEFAULT_CONFIG_CONFIRM,
-                "req_type": ReqType.SAVE_AND_PUBLISH,
-                "bk_biz_id": str(self.payload["bk_biz_id"]),
-                "level_name": LevelName.CLUSTER,
-                "level_value": cluster_name,
-            }
+        level_value = self._resolve_save_conf_level_value(namespace, cluster_name)
+        upsert_mongodb_cluster_dbconf(
+            bk_biz_id=self.payload["bk_biz_id"],
+            namespace=namespace,
+            level_value=level_value,
+            version=self._mongodb_dbconf_version(),
+            conf_items=conf_items,
         )
+
+    def ensure_flow_version_context(self) -> None:
+        """Populate db_release* fields and shorten payload db_version (idempotent)."""
+        if self.db_release_version:
+            return
+        if not self.payload or not self.payload.get("db_version"):
+            return
+
+        raw = str(self.payload["db_version"]).strip()
+        if raw.lower().startswith("mongodb-"):
+            self.db_release = "mongodb"
+            self.db_release_version = raw
+            short_version = raw[len("mongodb-") :]
+        else:
+            self.db_release = "mongodb"
+            self.db_release_version = "mongodb-{}".format(raw)
+            short_version = raw
+
+        self.db_main_version = str(extract_mongodb_major_minor(self.db_release_version).split(".")[0])
+        self.payload["db_version"] = short_version
+
+    def get_cluster_key_file(self, cluster_name: str) -> str:
+        """Read key_file from CLUSTER dbconf; fall back to cluster_name when missing."""
+        conf = self.get_conf(cluster_name=cluster_name)
+        return conf.get("key_file") or cluster_name
 
     def get_conf(self, cluster_name: str) -> dict:
         """从dbconfig获取配置"""
 
-        return DBConfigApi.query_conf_item(
-            params={
-                "bk_biz_id": str(self.payload["bk_biz_id"]),
-                "level_name": LevelName.CLUSTER.value,
-                "level_value": cluster_name,
-                "conf_file": "{}-{}".format("Mongodb", self.db_main_version),
-                "conf_type": ConfigTypeEnum.DBConf.value,
-                "namespace": self.cluster_type,
-                "format": FormatType.MAP.value,
-            }
-        )["content"]
+        self.ensure_flow_version_context()
+        assert_cluster_dbconf_level_migrated(
+            bk_biz_id=self.payload["bk_biz_id"],
+            cluster_type=self.cluster_type,
+            cluster_name=cluster_name,
+        )
+        level_value = resolve_flow_dbconf_level_value(
+            bk_biz_id=self.payload["bk_biz_id"],
+            cluster_type=self.cluster_type,
+            cluster_name=cluster_name,
+        )
+        return query_mongodb_dbconf_content(
+            bk_biz_id=str(self.payload["bk_biz_id"]),
+            level_name=LevelName.CLUSTER.value,
+            level_value=level_value,
+            namespace=self.cluster_type,
+            version=self._mongodb_dbconf_version(),
+            conf_type=ConfigTypeEnum.DBConf.value,
+            level_info={"module": str(DEFAULT_DB_MODULE_ID)},
+            plat_fallback=True,
+        )
 
     def get_init_info(self):
         """获取初始信息一些信息"""
 
-        # 集群类型
         self.cluster_type = self.payload["cluster_type"]
-        # # db大版本
-        self.db_main_version = str(self.payload["db_version"].split("-")[1].split(".")[0])
-        # db发行版本
-        self.db_release_version = self.payload["db_version"]
-        # db发行
-        self.db_release = self.payload["db_version"].split("-")[0]
-        # db版本
-        self.payload["db_version"] = self.payload["db_version"].split("-")[1]
+        self.ensure_flow_version_context()
 
     def get_mongodb_conf(self):
         """获取db配置信息"""
 
+        self.ensure_flow_version_context()
         self.db_conf = self.__get_define_config(
             namespace=self.cluster_type,
             conf_type=ConfigTypeEnum.DBConf.value,
-            conf_file="{}-{}".format("Mongodb", self.db_main_version),
         )
 
     def get_mongodb_os_conf(self):
         """获取os配置信息"""
 
-        self.os_conf = self.__get_define_config(
-            namespace=NameSpaceEnum.MongoDBCommon.value,
-            conf_type=ConfigTypeEnum.Config.value,
-            conf_file=ConfigFileEnum.OsConf.value,
-        )
+        self.os_conf = self.__get_os_define_config()
         return self.os_conf
 
     @staticmethod
@@ -356,26 +400,25 @@ class ActKwargs:
     def get_file_path(self):
         """安装文件存放路径"""
 
-        self.file_path = self.__get_define_config(
-            namespace=NameSpaceEnum.MongoDBCommon.value,
-            conf_type=ConfigTypeEnum.Config.value,
-            conf_file=ConfigFileEnum.OsConf.value,
-        )["file_path"]
+        self.file_path = self.__get_os_define_config()["file_path"]
 
     def get_backup_dir(self):
         """备份文件存放路径"""
 
         resp = self.__get_define_config(
             namespace=self.cluster_type,
-            conf_type=ConfigTypeEnum.DBConf,
-            conf_file="{}-{}".format("Mongodb", self.db_main_version),
+            conf_type=ConfigTypeEnum.DBConf.value,
         )
         return resp["backup_dir"]
 
     def get_pkg(self):
-        self.pkg = Package.get_latest_package(
-            version=self.db_release_version, pkg_type=MediumEnum.MongoDB, db_type=DBType.MongoDB
-        )
+        from backend.flow.utils.mongodb.version_utils import lookup_mongodb_package
+
+        self.pkg = lookup_mongodb_package(self.db_release_version)
+        if self.pkg is None:
+            self.pkg = Package.get_latest_package(
+                version=self.db_release_version, pkg_type=MediumEnum.MongoDB, db_type=DBType.MongoDB
+            )
 
     @staticmethod
     def get_password(ip: str, port: int, bk_cloud_id: int, username: str) -> str:
@@ -430,15 +473,7 @@ class ActKwargs:
         media_type: actuator 仅actuator介质
         """
 
-        if self.payload.get("db_version") and not self.db_release and not self.db_release_version:
-            # db大版本
-            self.db_main_version = str(self.payload["db_version"].split("-")[1].split(".")[0])
-            # db发行版本
-            self.db_release_version = self.payload["db_version"]
-            # db发行
-            self.db_release = self.payload["db_version"].split("-")[0]
-            # db版本
-            self.payload["db_version"] = self.payload["db_version"].split("-")[1]
+        self.ensure_flow_version_context()
 
         file_list = []
         if media_type == "actuator":
@@ -1375,13 +1410,13 @@ class ActKwargs:
             # 目标ip
             hosts.append({"ip": info["target"]["ip"], "bk_cloud_id": info["target"]["bk_cloud_id"]})
             plugin_hosts.append({"ip": info["target"]["ip"], "bk_cloud_id": info["target"]["bk_cloud_id"]})
-            # db版本
-            self.payload["db_version"] = info["instances"][0]["db_version"]
+            cluster_id = info["instances"][0]["cluster_id"]
 
         elif mongodb_type == ClusterType.MongoShardedCluster.value:
+            cluster_id = None
             # mongos 获取主机以及版本
             if info.get("mongos"):
-                self.payload["db_version"] = info["mongos"][0]["instances"][0]["db_version"]
+                cluster_id = info["mongos"][0]["instances"][0]["cluster_id"]
                 for mongos in info.get("mongos"):
                     # 源ip
                     deinstall_hosts.append({"ip": mongos["ip"], "bk_cloud_id": mongos["bk_cloud_id"]})
@@ -1391,7 +1426,7 @@ class ActKwargs:
 
             # config 获取主机 config只有一个副本集
             if info.get("mongo_config"):
-                self.payload["db_version"] = info["mongo_config"][0]["instances"][0]["db_version"]
+                cluster_id = cluster_id or info["mongo_config"][0]["instances"][0]["cluster_id"]
                 for config in info.get("mongo_config"):
                     # 源ip
                     deinstall_hosts.append({"ip": config["ip"], "bk_cloud_id": config["bk_cloud_id"]})
@@ -1401,7 +1436,7 @@ class ActKwargs:
 
             # 分片获取主机 多个分片
             if info.get("mongodb"):
-                self.payload["db_version"] = info["mongodb"][0]["instances"][0]["db_version"]
+                cluster_id = cluster_id or info["mongodb"][0]["instances"][0]["cluster_id"]
                 for shard_by_ip in info.get("mongodb"):
                     # 源ip
                     deinstall_hosts.append({"ip": shard_by_ip["ip"], "bk_cloud_id": shard_by_ip["bk_cloud_id"]})
@@ -1412,6 +1447,11 @@ class ActKwargs:
                     plugin_hosts.append(
                         {"ip": shard_by_ip["target"]["ip"], "bk_cloud_id": shard_by_ip["target"]["bk_cloud_id"]}
                     )
+
+        if mongodb_type == ClusterType.MongoReplicaSet.value or (
+            mongodb_type == ClusterType.MongoShardedCluster.value and cluster_id
+        ):
+            self.payload["db_version"] = resolve_mongodb_flow_db_version(Cluster.objects.get(pk=cluster_id))
 
         self.payload["hosts"] = hosts
         self.payload["plugin_hosts"] = plugin_hosts
@@ -1600,6 +1640,8 @@ class ActKwargs:
 
         # 获取副本集老实例信息
         cluster_id = info["cluster_id"]
+        cluster = Cluster.objects.get(pk=cluster_id)
+        flow_db_version = resolve_mongodb_flow_db_version(cluster)
         self.get_cluster_info_deinstall(cluster_id=cluster_id)
         if self.payload["cluster_type"] == ClusterType.MongoReplicaSet.value:
             # 获取副本集新机器的顺序 副本集容量变更独占机器
@@ -1628,7 +1670,7 @@ class ActKwargs:
                             {
                                 "cluster_id": cluster_id,
                                 "cluster_name": self.payload["set_id"],
-                                "db_version": info["db_version"],
+                                "db_version": flow_db_version,
                                 "domain": instances[index]["domain"],
                                 "port": instances[index]["port"],
                                 "instance_role": instances[index]["instance_role"],
@@ -1693,7 +1735,7 @@ class ActKwargs:
                                         "cluster_id": cluster_id,
                                         "cluster_name": self.payload["cluster_name"],
                                         "seg_range": shard["shard"],
-                                        "db_version": info["db_version"],
+                                        "db_version": flow_db_version,
                                         "domain": node.get("domain", ""),
                                         "port": node["port"],
                                         "instance_role": node["instance_role"],
@@ -1710,6 +1752,9 @@ class ActKwargs:
 
     def get_host_scale(self, mongodb_type: str, info: dict):
         """容量变更获取host信息"""
+
+        cluster = Cluster.objects.get(pk=info["cluster_id"])
+        flow_db_version = resolve_mongodb_flow_db_version(cluster)
 
         hosts = []
         plugin_hosts = []
@@ -1733,9 +1778,6 @@ class ActKwargs:
                         "bk_cloud_id": instance_relationship["target"]["bk_cloud_id"],
                     }
                 )
-                # db版本
-            self.payload["db_version"] = self.payload["instance_relationships"][0]["instances"][0]["db_version"]
-            # self.db_main_version = self.payload["db_version"].split("-")[1].split(".")[0]
             self.payload["deinstall_hosts"] = deinstall_hosts
 
         elif mongodb_type == ClusterType.MongoShardedCluster.value:
@@ -1743,8 +1785,7 @@ class ActKwargs:
                 for host in host_set:
                     plugin_hosts.append({"ip": host["ip"], "bk_cloud_id": host["bk_cloud_id"]})
                     hosts.append({"ip": host["ip"], "bk_cloud_id": host["bk_cloud_id"]})
-            self.payload["db_version"] = info["db_version"]
-            # self.db_main_version = self.payload["db_version"].split("-")[1].split(".")[0]
+        self.payload["db_version"] = flow_db_version
         self.payload["hosts"] = hosts
         self.payload["deinstall_hosts"] = deinstall_hosts
         self.payload["plugin_hosts"] = plugin_hosts
@@ -1774,6 +1815,8 @@ class ActKwargs:
     def get_host_increase_node(self, info: dict):
         """cluster增加node获取主机"""
 
+        flow_db_version = resolve_mongodb_flow_db_version(Cluster.objects.get(pk=info["cluster_id"]))
+
         hosts = []
         if self.payload["cluster_type"] == ClusterType.MongoReplicaSet.value:
             for host in info["add_shard_nodes"]:
@@ -1782,9 +1825,7 @@ class ActKwargs:
             for host_set in info["add_shard_nodes"]:
                 for host in host_set["mongodb"]:
                     hosts.append({"ip": host["ip"], "bk_cloud_id": host["bk_cloud_id"]})
-        # db版本
-        self.payload["db_version"] = info["db_version"]
-        # self.db_main_version = self.payload["db_version"].split("-")[1].split(".")[0]
+        self.payload["db_version"] = flow_db_version
         self.payload["hosts"] = hosts
         self.payload["plugin_hosts"] = hosts
 
@@ -1839,6 +1880,7 @@ class ActKwargs:
                 self.payload["scale_outs"].append(scale_out_instance)
         elif self.payload["cluster_type"] == ClusterType.MongoShardedCluster.value:
             cluster_id = info["cluster_id"]
+            flow_db_version = resolve_mongodb_flow_db_version(Cluster.objects.get(pk=cluster_id))
             self.get_cluster_info_deinstall(cluster_id=info["cluster_id"])
 
             # 每台机器部署的实例数
@@ -1890,7 +1932,7 @@ class ActKwargs:
                                 "role": role,
                                 "cluster_name": self.payload["cluster_name"],
                                 "seg_range": shard,
-                                "db_version": info["db_version"],
+                                "db_version": flow_db_version,
                                 "port": port,
                             }
                         )
@@ -2497,6 +2539,7 @@ class ActKwargs:
     def get_instance_migrate_calc(self, info: dict, cluster_id: int, shard_name: str) -> list:
         """计算对应关系"""
 
+        flow_db_version = resolve_mongodb_flow_db_version(Cluster.objects.get(pk=cluster_id))
         instance_relationships = []
         # 获取副本集新机器的顺序
         mongodb_host_order_by_tolerance = machine_order_by_tolerance(
@@ -2524,7 +2567,7 @@ class ActKwargs:
                             {
                                 "cluster_id": cluster_id,
                                 "cluster_name": self.payload["set_id"],
-                                "db_version": info["db_version"],
+                                "db_version": flow_db_version,
                                 "domain": instances[index]["domain"],
                                 "port": instances[index]["port"],
                                 "instance_role": instances[index]["instance_role"],
@@ -2562,7 +2605,7 @@ class ActKwargs:
                                 "cluster_id": info["cluster_id"],
                                 "cluster_name": self.payload["cluster_name"],
                                 "seg_range": shard_info["shard"],
-                                "db_version": info["db_version"],
+                                "db_version": flow_db_version,
                                 "domain": shard_info["nodes"][index].get("domain", ""),
                                 "port": shard_info["nodes"][index]["port"],
                                 "cluster_role": MongoDBClusterRole.ShardSvr.value,

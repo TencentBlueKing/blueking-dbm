@@ -34,6 +34,7 @@ from backend.db_services.dbbase.resources.query import (
 from backend.db_services.dbbase.resources.query_base import build_empty_and_in_q, build_q_for_domain_by_mongo_instance
 from backend.db_services.dbbase.resources.register import register_resource_decorator
 from backend.db_services.dbresource.handlers import MongoDBShardSpecFilter
+from backend.flow.utils.mongodb.version_utils import get_cluster_live_instance_version
 from backend.ticket.constants import TicketType
 from backend.ticket.models import InstanceOperateRecord
 from backend.utils.time import datetime2str
@@ -308,6 +309,7 @@ class MongoDBListRetrieveResource(query.ListRetrieveResource, MongoDBExportQuery
             "single_host_shard_num": single_host_shard_num,  # 获取单机分片数
             "temporary_info": cls.get_temporary_cluster_info(cluster, [TicketType.MONGODB_PITR_RESTORE]),
             "disaster_tolerance_level": cluster.disaster_tolerance_level,
+            "instance_version": get_cluster_live_instance_version(cluster) or cluster.major_version,
         }
         cluster_info = super()._to_cluster_representation(
             cluster,

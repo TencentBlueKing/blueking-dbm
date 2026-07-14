@@ -26,7 +26,11 @@ from backend.db_services.mongodb.toolbox.constants import MONGODB_SCRIPT_PATH
 from backend.db_services.mysql.sql_import.handlers import SQLHandler as MySQLSQLHandler
 from backend.flow.consts import MediumEnum
 from backend.flow.engine.bamboo.scene.mongodb.mongodb_upgrade_version import MONGODB_MAJOR_MINOR_UPGRADE_CHAIN
-from backend.flow.utils.mongodb.version_utils import normalize_mongodb_full_version
+from backend.flow.utils.mongodb.version_utils import (
+    extract_mongodb_version_tuple,
+    get_cluster_live_instance_version,
+    normalize_mongodb_full_version,
+)
 
 _CHAIN_INDEX = {v: i for i, v in enumerate(MONGODB_MAJOR_MINOR_UPGRADE_CHAIN)}
 
@@ -77,10 +81,13 @@ class ToolboxHandler(ClusterServiceHandler):
 
     @classmethod
     def _extract_full_version_tuple(cls, version: str):
-        normalized = normalize_mongodb_full_version(version)
-        numeric = normalized.removeprefix("mongodb-").split("-", 1)[0]
-        major, minor, patch = numeric.split(".")[:3]
-        return int(major), int(minor), int(patch)
+        major, minor, patch = extract_mongodb_version_tuple(version)
+        if patch is None:
+            normalized = normalize_mongodb_full_version(version)
+            numeric = normalized.removeprefix("mongodb-").split("-", 1)[0]
+            major, minor, patch = numeric.split(".")[:3]
+            return int(major), int(minor), int(patch)
+        return major, minor, patch
 
     @staticmethod
     def _major_line_key(mm: str) -> str:
@@ -88,11 +95,12 @@ class ToolboxHandler(ClusterServiceHandler):
 
     @classmethod
     def _collect_available_versions_by_major_line(cls, cluster, packages) -> Dict[str, Set[str]]:
-        current_mm = cls._extract_major_minor(cluster.major_version)
+        live_version = get_cluster_live_instance_version(cluster) or cluster.major_version
+        current_mm = cls._extract_major_minor(live_version)
         if current_mm not in _CHAIN_INDEX:
             raise serializers.ValidationError(_("不支持的当前版本：{}").format(current_mm))
 
-        current_full = normalize_mongodb_full_version(cluster.major_version)
+        current_full = normalize_mongodb_full_version(live_version)
         current_tuple = cls._extract_full_version_tuple(current_full)
 
         by_line: Dict[str, Set[str]] = {}

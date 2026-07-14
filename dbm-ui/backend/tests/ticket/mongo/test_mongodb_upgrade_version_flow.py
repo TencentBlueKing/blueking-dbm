@@ -13,11 +13,12 @@ from backend.flow.utils.mongodb.version_utils import normalize_mongodb_full_vers
 
 
 class _FakeCluster:
-    def __init__(self, cluster_id, cluster_type):
+    def __init__(self, cluster_id, cluster_type, major_version="mongodb-3.4.0"):
         self.cluster_id = cluster_id
         self.cluster_type = cluster_type
         self.bk_biz_id = 100
         self.name = "clu-{}".format(cluster_id)
+        self.major_version = major_version
 
     def get_bk_cloud_id(self):
         return 0
@@ -154,7 +155,53 @@ def test_replace_package_payload_contains_current_and_dest_version():
 
 
 def test_expand_upgrade_hops():
-    assert MongoUpgradeVersionFlow._expand_upgrade_hops("4.4", "6.0") == [("4.4", "5.0"), ("5.0", "6.0")]
+    assert MongoUpgradeVersionFlow._expand_upgrade_hops(
+        "4.4", "6.0", current_full="mongodb-4.4.10", dest_full="mongodb-6.0.9"
+    ) == [("4.4", "5.0"), ("5.0", "6.0")]
+
+
+def test_expand_upgrade_hops_patch_same_major_minor():
+    assert MongoUpgradeVersionFlow._expand_upgrade_hops(
+        "6.0", "6.0", current_full="mongodb-6.0.6", dest_full="mongodb-6.0.27"
+    ) == [("6.0", "6.0")]
+
+
+def test_reject_patch_when_dest_not_higher():
+    with pytest.raises(ValidationError):
+        MongoUpgradeVersionFlow._expand_upgrade_hops(
+            "6.0", "6.0", current_full="mongodb-6.0.27", dest_full="mongodb-6.0.6"
+        )
+
+
+def test_patch_upgrade_flow_init_success(monkeypatch):
+    data = _payload()
+    data["infos"][0]["current_version"] = "mongodb-6.0.6"
+    data["infos"][0]["dest_version"] = "mongodb-6.0.27"
+    monkeypatch.setattr(
+        "backend.flow.engine.bamboo.scene.mongodb.mongodb_upgrade_version.MongoRepository.fetch_many_cluster_dict",
+        lambda **kwargs: {1: _FakeCluster(1, ClusterType.MongoReplicaSet, major_version="mongodb-6.0.6")},
+    )
+    monkeypatch.setattr(
+        "backend.flow.engine.bamboo.scene.mongodb.mongodb_upgrade_version.Package.get_latest_package",
+        lambda **kwargs: _mock_pkg("mongodb-6.0.27"),
+    )
+
+    flow = MongoUpgradeVersionFlow(root_id="r1", data=data)
+    assert len(flow.cluster_infos) == 1
+    hop_plan = flow.cluster_infos[0]["hop_plans"][0]
+    assert hop_plan["hop_key"] == ("6.0", "6.0")
+    assert hop_plan["current_version"] == "mongodb-6.0.6"
+    assert hop_plan["dest_version"] == "mongodb-6.0.27"
+    assert hop_plan["persist_version"] == "mongodb-6.0.27"
+
+
+def test_get_target_package_for_exact_dest_version(monkeypatch):
+    monkeypatch.setattr(
+        "backend.flow.engine.bamboo.scene.mongodb.mongodb_upgrade_version.Package.get_latest_package",
+        lambda **kwargs: _mock_pkg("mongodb-6.0.27"),
+    )
+    pkg = MongoUpgradeVersionFlow._get_target_package_for_dest("mongodb-6.0.27")
+    assert pkg.version == "mongodb-6.0.27"
 
 
 def test_reject_inconsistent_upgrade_path_across_clusters(monkeypatch):
@@ -189,7 +236,7 @@ def test_reject_unsupported_version_chain(monkeypatch):
     data["infos"][0]["dest_version"] = "3.6.8"
     monkeypatch.setattr(
         "backend.flow.engine.bamboo.scene.mongodb.mongodb_upgrade_version.MongoRepository.fetch_many_cluster_dict",
-        lambda **kwargs: {1: _FakeCluster(1, ClusterType.MongoReplicaSet)},
+        lambda **kwargs: {1: _FakeCluster(1, ClusterType.MongoReplicaSet, major_version="mongodb-2.6.18")},
     )
     with pytest.raises(ValidationError):
         MongoUpgradeVersionFlow(root_id="r1", data=data)
@@ -305,9 +352,47 @@ def test_normalize_mongodb_full_version():
 
 def test_resolve_persist_version_prefers_pkg():
     pkg = _mock_pkg("mongodb-5.0.14")
-    assert MongoUpgradeVersionFlow._resolve_persist_version(pkg, "5.0.0") == "mongodb-5.0.14"
+    assert MongoUpgradeVersionFlow._resolve_persist_version(pkg, "5.0") == "mongodb-5.0.14"
 
 
 def test_reject_version_beyond_chain():
     with pytest.raises(ValidationError):
-        MongoUpgradeVersionFlow._expand_upgrade_hops("6.0", "8.0")
+        MongoUpgradeVersionFlow._expand_upgrade_hops(
+            "8.0", "9.0", current_full="mongodb-8.0.0", dest_full="mongodb-9.0.0"
+        )
+
+
+def test_expand_upgrade_hops_70_to_80():
+    hops = MongoUpgradeVersionFlow._expand_upgrade_hops(
+        "7.0", "8.0", current_full="mongodb-7.0.14", dest_full="mongodb-8.0.0"
+    )
+    assert hops == [("7.0", "8.0")]
+
+
+def test_protocol_upgrade_needed_only_for_36_to_40():
+    assert MongoUpgradeVersionFlow._protocol_upgrade_needed("3.6", "4.0") is True
+    assert MongoUpgradeVersionFlow._protocol_upgrade_needed("mongodb-3.6", "mongodb-4.0.0") is True
+    assert MongoUpgradeVersionFlow._protocol_upgrade_needed("3.4", "3.6") is False
+    assert MongoUpgradeVersionFlow._protocol_upgrade_needed("3.6", "3.6") is False
+    assert MongoUpgradeVersionFlow._protocol_upgrade_needed("4.0", "4.2") is False
+
+
+def test_build_upgrade_rs_protocol_acts_one_per_replicaset(monkeypatch):
+    from types import SimpleNamespace
+
+    monkeypatch.setattr(
+        "backend.flow.engine.bamboo.scene.mongodb.sub_task.upgrade_version.MongoUtil.get_mongo_user_password",
+        lambda *args, **kwargs: ("dba", "pwd"),
+    )
+    node = SimpleNamespace(ip="1.1.1.1", port=27001, bk_cloud_id=0)
+    exec_groups = {
+        "replicasets": [
+            {"name": "rs1", "members": [node]},
+            {"name": "rs2", "members": [node]},
+        ]
+    }
+    acts = MongoUpgradeVersionFlow._build_upgrade_rs_protocol_acts(exec_groups, "/data")
+    assert len(acts) == 2
+    assert acts[0]["act_name"] == "MongoDB-升级复制协议版本-rs1"
+    assert acts[0]["kwargs"]["db_act_template"]["action"] == "mongo_upgrade_rs_protocol"
+    assert acts[0]["kwargs"]["db_act_template"]["payload"]["targetProtocolVersion"] == 1

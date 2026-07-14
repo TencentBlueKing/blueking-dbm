@@ -43,7 +43,7 @@ def cluster_add_shard(
     sub_get_kwargs.payload["db_version"] = new_shard_info["db_version"]
     sub_get_kwargs.get_init_info()
     # 获取key_file
-    new_shard_info["key_file"] = sub_get_kwargs.get_conf(cluster_name=new_shard_info["cluster_name"])["key_file"]
+    new_shard_info["key_file"] = sub_get_kwargs.get_cluster_key_file(cluster_name=new_shard_info["cluster_name"])
     sub_get_kwargs.payload["key_file"] = new_shard_info["key_file"]
     # 设置 node_count
     sub_get_kwargs.payload["node_count"] = new_shard_info["node_count"]

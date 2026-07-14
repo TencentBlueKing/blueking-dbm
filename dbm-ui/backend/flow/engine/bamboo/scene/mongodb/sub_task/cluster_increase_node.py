@@ -70,9 +70,9 @@ def cluster_increase_node(root_id: str, ticket_data: Optional[Dict], sub_kwargs:
 
     # 获取key_file
     sub_get_kwargs.cluster_type = sub_get_kwargs.payload["cluster_type"]
-    sub_get_kwargs.payload["key_file"] = sub_get_kwargs.get_conf(cluster_name=sub_get_kwargs.payload["cluster_name"])[
-        "key_file"
-    ]
+    sub_get_kwargs.payload["key_file"] = sub_get_kwargs.get_cluster_key_file(
+        cluster_name=sub_get_kwargs.payload["cluster_name"]
+    )
 
     # 以IP为维度增加node——子流程并行
     # 分批次

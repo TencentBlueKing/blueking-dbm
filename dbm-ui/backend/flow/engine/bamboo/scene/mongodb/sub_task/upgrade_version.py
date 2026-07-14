@@ -12,7 +12,7 @@ from typing import Optional
 
 from django.utils.translation import gettext as _
 
-from backend.flow.consts import MongoDBActuatorActionEnum, MongoDBManagerUser
+from backend.flow.consts import MongoDBActuatorActionEnum, MongoDBClusterRole, MongoDBManagerUser
 from backend.flow.engine.bamboo.scene.mongodb.sub_task.instance_op import InstanceOpSubTask
 from backend.flow.plugins.components.collections.mongodb.exec_actuator_job2 import ExecJobComponent2
 from backend.flow.utils.mongodb.mongodb_dataclass import CommonContext
@@ -191,7 +191,13 @@ class MongoUpgradeVersionSubTask:
         cls, file_path: str, exec_node: MongoNode, current_version: str, act_prefix: str = None
     ) -> dict:
         act_prefix = act_prefix or _("升级前检查")
-        kwargs = InstanceOpSubTask.make_kwargs(file_path=file_path, exec_node=exec_node, op="precheck_upgrade")
+        instance_type = "mongos" if exec_node.role == MongoDBClusterRole.Mongos.value else "mongod"
+        kwargs = InstanceOpSubTask.make_kwargs(
+            file_path=file_path,
+            exec_node=exec_node,
+            op="precheck_upgrade",
+            instance_type=instance_type,
+        )
         kwargs["db_act_template"]["payload"]["currentVersion"] = current_version
         return {
             "act_name": _("MongoDB-{}-{}:{}".format(act_prefix, exec_node.ip, exec_node.port)),
@@ -204,6 +210,49 @@ class MongoUpgradeVersionSubTask:
         v = version.removeprefix("mongodb-")
         parts = v.split(".", 2)
         return ".".join(parts[:2]) if len(parts) >= 2 else v
+
+    @classmethod
+    def _fcv_supported(cls, major_minor: str) -> bool:
+        try:
+            return float(major_minor) >= 3.4
+        except ValueError:
+            return False
+
+    @classmethod
+    def upgrade_rs_protocol_act(
+        cls,
+        file_path: str,
+        exec_node: MongoNode,
+        rs_name: Optional[str] = None,
+    ) -> dict:
+        user, pwd = MongoUtil.get_mongo_user_password(
+            exec_node.ip, exec_node.port, exec_node.bk_cloud_id, MongoDBManagerUser.DbaUser.value
+        )
+        label = rs_name or "{}:{}".format(exec_node.ip, exec_node.port)
+        return {
+            "act_name": _("MongoDB-升级复制协议版本-{}").format(label),
+            "act_component_code": ExecJobComponent2.code,
+            "kwargs": {
+                "set_trans_data_dataclass": CommonContext.__name__,
+                "get_trans_data_ip_var": None,
+                "bk_cloud_id": exec_node.bk_cloud_id,
+                "exec_ip": exec_node.ip,
+                "db_act_template": {
+                    "action": MongoDBActuatorActionEnum.MongoUpgradeRsProtocol,
+                    "file_path": file_path,
+                    "exec_account": "mysql",
+                    "sudo_account": "mysql",
+                    "payload": {
+                        "ip": exec_node.ip,
+                        "port": int(exec_node.port),
+                        "adminUsername": user,
+                        "adminPassword": pwd,
+                        "instanceType": "mongod",
+                        "targetProtocolVersion": 1,
+                    },
+                },
+            },
+        }
 
     @classmethod
     def postcheck_set_fcv_act(
@@ -219,6 +268,8 @@ class MongoUpgradeVersionSubTask:
         )
         old_fcv = cls._version_major_minor(current_version)
         new_fcv = cls._version_major_minor(dest_version)
+        if not cls._fcv_supported(new_fcv):
+            return None
         return {
             "act_name": _("MongoDB-设置FCV-{}:{}".format(exec_node.ip, exec_node.port)),
             "act_component_code": ExecJobComponent2.code,

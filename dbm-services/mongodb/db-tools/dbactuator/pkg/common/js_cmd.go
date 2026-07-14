@@ -9,8 +9,11 @@ import (
 )
 
 // getFcvEval 从 admin.system.version 读取 FCV，输出纯 JSON，避免 shell 默认输出中的扩展类型无法被 encoding/json 解析。
-// 兼容连到 secondary 的场景：先开启 secondary 读，再查询 FCV 文档。
-const getFcvEval = `try { db.getMongo().setSecondaryOk(); } catch (e) {}
+// 兼容连到 secondary 的场景：3.x/4.0 使用 setSecondaryOk(true)，与 db-remote-service 行为一致。
+const getFcvEval = `var isMaster = db.isMaster();
+if (isMaster && !isMaster.ismaster) {
+  db.getMongo().setSecondaryOk(true);
+}
 var doc = db.getSiblingDB('admin').getCollection("system.version").findOne({_id:"featureCompatibilityVersion"});
 if (doc == null) {
   print(JSON.stringify({ errmsg: "featureCompatibilityVersion document not found" }));
