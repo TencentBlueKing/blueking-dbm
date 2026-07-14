@@ -32,22 +32,7 @@ class SQLServerLocalDetailSerializer(SQLServerRollbackBaseDetailSerializer):
             return attrs
 
     infos = serializers.ListSerializer(help_text=_("迁移信息列表"), child=LocalRollbackInfoSerializer())
-    is_local = serializers.BooleanField(help_text=_("是否原地构造"), default=True)
     is_time_fixed = serializers.BooleanField(help_text=_("是否指定回档时间"))
-
-    def validate(self, attrs):
-        """校验指定回档时间时，必须填写每一条信息的回档时间(指定时间)"""
-        is_time_fixed = attrs.get("is_time_fixed")
-        for index, info in enumerate(attrs["infos"]):
-            if is_time_fixed:
-                # 指定回档时间：必须填写指定时间 restore_time
-                if not info.get("restore_time"):
-                    raise serializers.ValidationError(_("第{}条信息未指定回档时间，请填写指定时间").format(index + 1))
-            else:
-                # 未指定回档时间：清理掉可能存在的回档时间，走最新备份逻辑
-                info.pop("restore_time", None)
-
-        return super().validate(attrs)
 
 
 @builders.BuilderFactory.register(TicketType.SQLSERVER_ROLLBACK_LOCAL)
