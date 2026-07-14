@@ -84,7 +84,9 @@ class DBAdministratorHandler(object):
                 # 新 DBA 与 旧DBA 一致，也无需更新
                 continue
             dba_obj, created = DBAdministrator.objects.update_or_create(
-                bk_biz_id=bk_biz_id, db_type=db_type, defaults={"users": new_dba, "updater": username or "system"}
+                bk_biz_id=bk_biz_id,
+                db_type=db_type,
+                defaults={"users": new_dba, "updater": username or "system", "update_at": timezone.now()},
             )
 
             update_dba_notice_group.apply_async(kwargs={"dba_id": dba_obj.id})
