@@ -25,6 +25,18 @@ delete tencentRule['@typescript-eslint/dot-notation'];
 delete tencentRule['@typescript-eslint/no-misused-promises'];
 delete tencentRule['@typescript-eslint/prefer-optional-chain'];
 
+// eslint-config-tencent@1.2.0 将上述格式化规则迁移到 @stylistic 命名空间，
+// 但本项目未注册 @stylistic 插件且交由 Prettier 处理格式化，需一并删除
+delete tencentRule['@stylistic/quotes'];
+delete tencentRule['@stylistic/brace-style'];
+delete tencentRule['@stylistic/comma-spacing'];
+delete tencentRule['@stylistic/func-call-spacing'];
+delete tencentRule['@stylistic/indent'];
+delete tencentRule['@stylistic/keyword-spacing'];
+delete tencentRule['@stylistic/semi'];
+delete tencentRule['@stylistic/type-annotation-spacing'];
+delete tencentRule['@stylistic/space-before-function-paren'];
+
 configureVueProject({
   scriptLangs: ['ts', 'tsx'],
 });
