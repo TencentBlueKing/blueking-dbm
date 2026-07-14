@@ -38,6 +38,12 @@ from backend.flow.engine.bamboo.scene.sqlserver.validate.sqlserver_cluster_migra
 from backend.flow.engine.bamboo.scene.sqlserver.validate.sqlserver_data_export_validator import (
     SqlserverDataExportValidator,
 )
+from backend.flow.engine.bamboo.scene.sqlserver.validate.sqlserver_db_construct_validator import (
+    SqlserverDBConstructValidator,
+)
+from backend.flow.engine.bamboo.scene.sqlserver.validate.sqlserver_db_rollback_in_local_validator import (
+    SqlserverDBRollbackInLocalValidator,
+)
 from backend.flow.engine.controller.base import BaseController
 from backend.flow.engine.validate.base_validate import validates_with
 
@@ -119,7 +125,15 @@ class SqlserverController(BaseController):
         flow = SqlserverDTSFlow(root_id=self.root_id, data=self.ticket_data)
         flow.incr_dts_flow_v2()
 
+    # 指定目标集群构造数据
+    @validates_with(SqlserverDBConstructValidator)
     def db_construct_scene(self):
+        flow = SqlserverDataConstruct(root_id=self.root_id, data=self.ticket_data)
+        flow.run_flow()
+
+    # 原地回档数据
+    @validates_with(SqlserverDBRollbackInLocalValidator)
+    def db_rollback_in_local_scene(self):
         flow = SqlserverDataConstruct(root_id=self.root_id, data=self.ticket_data)
         flow.run_flow()
 
