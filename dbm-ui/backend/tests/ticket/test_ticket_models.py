@@ -765,7 +765,10 @@ class TestTicketFlowsConfig:
         """测试获取集群配置 - 有集群配置时优先使用集群配置"""
         cluster_config = TicketFlowsConfig.objects.create(
             bk_biz_id=constant.BK_BIZ_ID,
-            cluster_ids=[5001, 5002],
+            cluster_ids=[
+                {"id": 5001, "immute_domain": "mysql-test-1.example.com"},
+                {"id": 5002, "immute_domain": "mysql-test-2.example.com"},
+            ],
             group=DBType.MySQL.value,
             ticket_type=TicketType.MYSQL_SINGLE_APPLY,
             editable=True,
