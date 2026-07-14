@@ -20,6 +20,7 @@ from backend.configuration.constants import DBType
 from backend.db_meta.enums import InstanceRole
 from backend.db_meta.models import Cluster
 from backend.db_services.sqlserver.rollback.handlers import SQLServerRollbackHandler
+from backend.db_services.sqlserver.rollback.log_backup_chain import LogBackupChainStatus
 from backend.flow.consts import DBM_SQLSERVER_JOB_LONG_TIMEOUT, SqlserverRestoreDBStatus
 from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
@@ -76,8 +77,12 @@ class SqlserverDataConstruct(BaseFlow):
                             "bak_file": str(PureWindowsPath(target_path) / file_info["file_name"]),
                             "backup_full_start_time": file_info["backup_begin_time"],
                             "backup_full_end_time": file_info["backup_end_time"],
-                            "checkpointlsn": file_info["checkpoint_lsn"],
                             "cluster_address": file_info["cluster_domain"],
+                            # 首份日志分型判定所需字段（对应 handler.fetch_and_check_log_backup_chain）：
+                            #   - full_last_lsn：全量末尾 LSN，用于判定"全量→首份日志"衔接是否连续
+                            #   - full_file_name：全量备份文件名，仅供错误消息展示
+                            "full_last_lsn": file_info["last_lsn"],
+                            "full_file_name": file_info["file_name"],
                         }
                     )
                     break
@@ -88,34 +93,51 @@ class SqlserverDataConstruct(BaseFlow):
     def _get_log_backup_infos(full_restore_infos: list, restore_time: datetime, cluster_id: int, target_path: str):
         """
         根据时间范围计算出需要的log_backup文件
+
+        设计要点 / 怎么做：
+          - 前置守卫：调用 SQLServerRollbackHandler.check_restore_time_range 兜住
+            "单据提交时合法、但 flow 执行时时间窗口已越界"的场景（提交到执行时间跨度大）；
+            与 validator 层共用同一实现，错误消息一致
+          - 委托 SQLServerRollbackHandler.fetch_and_check_log_backup_chain 完成
+            "查询 + 完整性判定"两阶段能力，一次调用拿到 6 态之一的结构化结果
+          - status == OK -> 使用 result.backup_infos 组装下载 & 恢复元数据
+          - status != OK -> 追加 result.error_message 到 err_infos，最后聚合抛 Exception
+
+        :param full_restore_infos: 已完成全量匹配的构造信息列表
+        :param restore_time: 目标构造时点 datetime
+        :param cluster_id: 源集群 ID
+        :param target_path: 目标目录（Windows 风格），用于拼装 bak_file
+        :return: (log_download_infos, log_restore_infos) 二元组
+
+        边界 / 异常：
+          - restore_time 时间窗口越界 -> 直接 raise Exception，flow 停止执行
+          - 任一 DB 校验非 OK -> 汇总所有错误后 raise Exception，flow 停止执行
         """
+        # 前置守卫：flow 执行期二次校验时间窗口（提交到执行的时间跨度可能已越界）
+        # check_restore_time_range 接收字符串形态，此处 datetime 需回退为 ISO 字符串
+        time_range_err = SQLServerRollbackHandler.check_restore_time_range(restore_time_str=restore_time.isoformat())
+        if time_range_err:
+            raise Exception(time_range_err)
+
         log_download_infos = []
         log_restore_infos = []
         err_infos = []
+        handler = SQLServerRollbackHandler(cluster_id=cluster_id)
         for full_info in full_restore_infos:
-            # 查询对应的日志备份记录
-            log_backup_infos = SQLServerRollbackHandler(cluster_id=cluster_id).query_binlogs_from_model(
-                str2datetime(full_info["backup_full_end_time"]), restore_time, full_info["db_name"]
+            # 委托 handler 做"查询 + 完整性判定"两阶段能力（内部走 LogBackupChainInspector）
+            result = handler.fetch_and_check_log_backup_chain(
+                full_backup_info=full_info,
+                restore_time=restore_time,
             )
 
-            if not log_backup_infos:
-                err_infos.append(
-                    f"the log-backup-list is empty: "
-                    f"cluster_id:[{cluster_id}], "
-                    f"start_time:[{full_info['backup_full_end_time']}]"
-                    f"end_time:[{restore_time}]"
-                    f"db_name:[{full_info['db_name']}]\n"
-                )
+            if result.status != LogBackupChainStatus.OK:
+                # 非 OK 一律走错误聚合分支：EMPTY / MISSING_TAIL / MISSING_HEAD /
+                # DISCONTINUOUS 各自的 error_message 已由 handler 侧渲染完成
+                err_infos.append(result.error_message)
                 continue
 
-            # 判断日志备份的连续性
-            log_backup_sort_infos, errs = SQLServerRollbackHandler.check_binlog_lsn_continuity(
-                backup_logs=log_backup_infos, full_backup_info=full_info
-            )
-            if len(errs) > 0:
-                err_infos = err_infos + errs
-                continue
-
+            # OK 分支：使用完整日志链组装下载 & 恢复元数据
+            log_backup_infos = result.backup_infos
             for file in log_backup_infos:
                 log_download_infos.append(
                     {"file_path": file["local_path"], "file_name": file["file_name"], "task_id": file["task_id"]}
@@ -298,7 +320,7 @@ class SqlserverDataConstruct(BaseFlow):
 
             sub_pipelines.append(
                 sub_pipeline.build_sub_process(
-                    sub_name=_("[{}]->[{}]数据构造流程".format(cluster.name, target_cluster.name))
+                    sub_name=_("[{}]->[{}]数据构造流程".format(cluster.immute_domain, target_cluster.immute_domain))
                 )
             )
 
