@@ -9,7 +9,6 @@
       action-id="sqlserver_priv_manage"
       class="opration-button"
       :disabled="batchAuthorizeDisabled"
-      :resource="bizId"
       text
       @click="clusterAuthorizeShow = true">
       {{ t('批量授权') }}
@@ -152,8 +151,6 @@
   const sideSliderShow = defineModel<boolean>('side-slider-show', {
     required: true,
   });
-
-  const bizId = window.PROJECT_CONFIG.BIZ_ID;
 
   const { t } = useI18n();
   const { handleDeleteCluster, handleDisableCluster, handleEnableCluster } = useOperateClusterBasic(

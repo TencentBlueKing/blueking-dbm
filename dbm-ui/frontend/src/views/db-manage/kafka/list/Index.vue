@@ -163,6 +163,7 @@
                 <AuthButton
                   v-bk-tooltips="{
                     disabled: data.isOffline,
+                    placement: 'right',
                     content: t('请先禁用集群'),
                   }"
                   action-id="kafka_destroy"

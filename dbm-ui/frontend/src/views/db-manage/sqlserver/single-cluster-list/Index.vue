@@ -16,7 +16,6 @@
       <AuthButton
         v-db-console="'sqlserver.singleClusterList.importAuthorize'"
         action-id="sqlserver_priv_manage"
-        :resource="bizId"
         @click="handleShowExcelAuthorize">
         {{ t('导入授权') }}
       </AuthButton>
@@ -56,7 +55,6 @@
               <AuthButton
                 action-id="sqlserver_priv_manage"
                 :permission="data.permission.sqlserver_priv_manage"
-                :resource="bizId"
                 text
                 @click="handleShowAuthorize([data])">
                 {{ t('授权') }}
@@ -67,7 +65,9 @@
               db-console-prefix="sqlserver.singleClusterList"
               @click="hideOperationColumn"
               @edit="(e) => handleToDetails(data.id, e, 'alarmSubscription')" />
-            <div v-db-console="'sqlserver.singleClusterList.enable'">
+            <div
+              v-if="data.isOffline"
+              v-db-console="'sqlserver.singleClusterList.enable'">
               <OperationBtnStatusTips :data="data">
                 <BkButton
                   :disabled="data.isStarting"
@@ -87,7 +87,9 @@
                 </BkButton>
               </OperationBtnStatusTips>
             </div>
-            <div v-db-console="'sqlserver.singleClusterList.disable'">
+            <div
+              v-if="data.isOnline"
+              v-db-console="'sqlserver.singleClusterList.disable'">
               <OperationBtnStatusTips :data="data">
                 <BkButton
                   :disabled="data.isOffline || Boolean(data.operationTicketId)"
@@ -103,6 +105,7 @@
                   v-bk-tooltips="{
                     disabled: data.isOffline,
                     content: t('请先禁用集群'),
+                    placement: 'right',
                   }"
                   :disabled="data.isOnline || Boolean(data.operationTicketId)"
                   text
@@ -202,8 +205,6 @@
   import useGoClusterDetail from '@views/db-manage/hooks/useGoClusterDetail';
   import ClusterReset from '@views/db-manage/sqlserver/common/cluster-operations/cluster-reset/Index.vue';
   import ClusterDetail from '@views/db-manage/sqlserver/common/single-cluster-detail/Index.vue';
-
-  const bizId = window.PROJECT_CONFIG.BIZ_ID;
 
   const router = useRouter();
   const route = useRoute();

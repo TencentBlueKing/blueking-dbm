@@ -68,6 +68,7 @@ const withBizActionList = [
   'sqlserver_apply',
   // 'sqlserver_account_create', // 旧权限
   // 'sqlserver_account_rules_view', // 旧权限
+  'sqlserver_priv_manage',
   'biz_ticket_config_set',
   'doris_apply',
   'biz_assistance_vars_config',
