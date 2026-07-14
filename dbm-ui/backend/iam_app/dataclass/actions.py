@@ -2310,7 +2310,7 @@ class ActionEnum:
         description=_("管理集群的账号和权限模板"),
         type="manage",
         related_actions=[DB_MANAGE.id],
-        related_resource_types=[ResourceEnum.BUSINESS, ResourceEnum.SQLSERVER],
+        related_resource_types=[ResourceEnum.BUSINESS],
         group=_("SQLServer"),
         subgroup=_("权限管理"),
         common_labels=[CommonActionLabel.BIZ_MAINTAIN],
@@ -2324,7 +2324,7 @@ class ActionEnum:
         related_actions=[],
         related_resource_types=[ResourceEnum.BUSINESS],
         group=_("SQLServer"),
-        subgroup=_("权限管理"),
+        subgroup=_("已废弃"),
         common_labels=[CommonActionLabel.BIZ_MAINTAIN],
     )
 
@@ -2336,7 +2336,7 @@ class ActionEnum:
         related_actions=[],
         related_resource_types=[ResourceEnum.SQLSERVER_ACCOUNT],
         group=_("SQLServer"),
-        subgroup=_("权限管理"),
+        subgroup=_("已废弃"),
         common_labels=[CommonActionLabel.BIZ_MAINTAIN],
     )
 
@@ -2348,7 +2348,7 @@ class ActionEnum:
         related_actions=[DB_MANAGE.id],
         related_resource_types=[ResourceEnum.SQLSERVER_ACCOUNT],
         group=_("SQLServer"),
-        subgroup=_("权限管理"),
+        subgroup=_("已废弃"),
         common_labels=[CommonActionLabel.BIZ_MAINTAIN],
     )
 
@@ -2372,7 +2372,7 @@ class ActionEnum:
         related_actions=[DB_MANAGE.id],
         related_resource_types=[ResourceEnum.SQLSERVER_ACCOUNT, ResourceEnum.SQLSERVER],
         group=_("SQLServer"),
-        subgroup=_("权限管理"),
+        subgroup=_("已废弃"),
         common_labels=[CommonActionLabel.BIZ_MAINTAIN],
     )
 
@@ -2384,7 +2384,7 @@ class ActionEnum:
         related_actions=[DB_MANAGE.id],
         related_resource_types=[ResourceEnum.BUSINESS],
         group=_("SQLServer"),
-        subgroup=_("权限管理"),
+        subgroup=_("已废弃"),
         common_labels=[CommonActionLabel.BIZ_MAINTAIN],
     )
 
