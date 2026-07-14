@@ -30,6 +30,7 @@ from backend.core.encrypt.handlers import AsymmetricHandler
 from backend.db_monitor.exceptions import AutofixException
 from backend.flow.engine.revoke.base import RevokeFlowBase
 from backend.ticket.constants import (
+    CLUSTER_TAG_WILDCARD_VALUE,
     EXCLUSIVE_TICKET_EXCEL_PATH,
     TICKET_RUNNING_STATUS_SET,
     FlowContext,
@@ -431,6 +432,7 @@ class TicketFlowsConfig(AuditedModel):
 
     bk_biz_id = models.IntegerField(_("业务ID"), default=0)
     cluster_ids = models.JSONField(_("集群ID列表"), default=list)
+    cluster_tags = models.JSONField(_("集群标签列表"), default=list)
     group = models.CharField(_("单据分组类型"), choices=DBType.get_choices(), max_length=LEN_NORMAL)
     ticket_type = models.CharField(_("单据类型"), choices=TicketType.get_choices(), max_length=128)
     editable = models.BooleanField(_("是否支持用户配置"), default=True)
@@ -444,23 +446,62 @@ class TicketFlowsConfig(AuditedModel):
     @classmethod
     def get_cluster_configs(cls, ticket_type, bk_biz_id, cluster_ids):
         """获取集群生效的流程配置"""
-        # 流程优先级：集群维度 > 业务维度 > 平台维度
+        # 流程优先级：集群维度 > 标签维度 > 业务维度 > 平台维度
         # 全局配置
+        from backend.db_meta.models import Cluster
+
         global_cfg = cls.objects.get(bk_biz_id=PLAT_BIZ_ID, ticket_type=ticket_type)
-        # 业务配置和集群配置
+        # 业务配置、集群配置和标签配置
         biz_configs = cls.objects.filter(bk_biz_id=bk_biz_id, ticket_type=ticket_type)
-        biz_cfg = biz_configs.filter(cluster_ids=[]).first() or global_cfg
-        cluster_cfg = biz_configs.exclude(cluster_ids=[]).first() or biz_cfg
+        biz_cfg = biz_configs.filter(cluster_ids=[], cluster_tags=[]).first() or global_cfg
+        cluster_cfg = biz_configs.exclude(cluster_ids=[]).first()
+        tag_cfg = biz_configs.exclude(cluster_tags=[]).first()
 
         # 单据不涉及集群，则返回业务/平台配置
         if not cluster_ids:
             return [biz_cfg]
 
-        # 业务或集群配置最多共存一个
-        cluster_configs = [
-            cluster_cfg if cluster_cfg and cluster_id in cluster_cfg.cluster_ids else biz_cfg
-            for cluster_id in cluster_ids
-        ]
+        # 每个集群按顺序匹配：集群配置 > 标签配置 > 业务/平台配置
+        # cluster_ids 存储的是 [{"id": 1, "immute_domain": "..."}]，这里提取出 ID 方便后续判断集群是否命中。
+        cluster_cfg_ids = {cluster["id"] for cluster in cluster_cfg.cluster_ids} if cluster_cfg else set()
+        # 将 cluster_tags 按 tag_key 分组：
+        # 1. 同一个 tag_key 下多个 tag_value 是 OR 关系；
+        # 2. 不同 tag_key 之间在 match_tag_rules 中按 AND 关系判断。
+        tag_cfg_rules = defaultdict(set)
+        if tag_cfg:
+            for tag in tag_cfg.cluster_tags:
+                tag_cfg_rules[tag["tag_key"]].add(tag["tag_value"])
+        # tag_value 为“任意值”时，集群存在任意标签即命中。
+        tag_cfg_has_wildcard = any(CLUSTER_TAG_WILDCARD_VALUE in tag_values for tag_values in tag_cfg_rules.values())
+
+        # 查询当前单据涉及的集群标签，整理成 {cluster_id: {tag_key: {tag_value1, tag_value2}}}，便于和 tag_cfg_rules 对比。
+        cluster_tag_map = {}
+        for cluster in Cluster.objects.prefetch_related("tags").filter(id__in=cluster_ids):
+            cluster_tag_map[cluster.id] = defaultdict(set)
+            for tag in cluster.tags.all():
+                cluster_tag_map[cluster.id][tag.key].add(tag.value)
+
+        def match_tag_rules(cluster_id):
+            # tag_value 为“任意值”时，集群存在任意标签即命中。
+            cluster_tags = cluster_tag_map.get(cluster_id, {})
+            if tag_cfg_has_wildcard:
+                return any(cluster_tags.values())
+
+            for tag_key, tag_values in tag_cfg_rules.items():
+                cluster_tag_values = cluster_tags.get(tag_key, set())
+                if not cluster_tag_values & tag_values:
+                    # 不同 tag_key 之间按 AND 关系判断, 有一个 tag_key 的 tag_values 不命中则返回false
+                    return False
+            return True
+
+        cluster_configs = []
+        for cluster_id in cluster_ids:
+            if cluster_id in cluster_cfg_ids:
+                cluster_configs.append(cluster_cfg)
+            elif tag_cfg_rules and match_tag_rules(cluster_id):
+                cluster_configs.append(tag_cfg)
+            else:
+                cluster_configs.append(biz_cfg)
         return cluster_configs
 
     @classmethod

@@ -379,13 +379,32 @@ class QueryTicketFlowDescribeSerializer(serializers.Serializer):
 class CreateTicketFlowConfigSerializer(serializers.Serializer):
     bk_biz_id = serializers.IntegerField(help_text=_("业务ID"), required=False, default=PLAT_BIZ_ID)
     cluster_ids = serializers.ListSerializer(
-        help_text=_("集群ID列表"), child=serializers.IntegerField(), required=False, default=[]
+        help_text=_("集群ID列表"), child=serializers.DictField(), required=False, default=[]
+    )
+    cluster_tags = serializers.ListSerializer(
+        help_text=_("集群标签列表"), child=serializers.DictField(), required=False, default=[]
     )
     ticket_types = serializers.ListField(
         help_text=_("单据类型"), child=serializers.ChoiceField(choices=TicketType.get_choices())
     )
     configs = serializers.DictField(help_text=_("单据可配置项"))
     remark = serializers.CharField(help_text=_("备注"), required=False, allow_blank=True, allow_null=True, default="")
+
+    def validate_cluster_ids(self, value):
+        for cluster in value:
+            if "id" not in cluster or "immute_domain" not in cluster:
+                raise serializers.ValidationError(_("cluster_ids 的元素必须包含 id 和 immute_domain"))
+            cluster["id"] = int(cluster["id"])
+        return value
+
+    def validate_cluster_tags(self, value):
+        for tag in value:
+            if "id" not in tag or "tag_key" not in tag or "tag_value" not in tag:
+                raise serializers.ValidationError(_("cluster_tags 的元素必须包含 id、tag_key 和 tag_value"))
+            if not isinstance(tag["tag_value"], str):
+                raise serializers.ValidationError(_("cluster_tags 的 tag_value 必须是字符串"))
+            tag["id"] = int(tag["id"])
+        return value
 
 
 class UpdateTicketFlowConfigSerializer(CreateTicketFlowConfigSerializer):
@@ -395,7 +414,11 @@ class UpdateTicketFlowConfigSerializer(CreateTicketFlowConfigSerializer):
 
 
 class SaveTicketFlowConfigSerializer(UpdateTicketFlowConfigSerializer):
-    pass
+    def validate(self, attrs):
+        attrs = super().validate(attrs)
+        if attrs.get("cluster_ids") and attrs.get("cluster_tags"):
+            raise serializers.ValidationError(_("cluster_ids 和 cluster_tags 不允许同时存在"))
+        return attrs
 
 
 class DeleteTicketFlowConfigSerializer(serializers.Serializer):
