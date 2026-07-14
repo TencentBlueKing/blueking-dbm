@@ -279,7 +279,7 @@ def query_slowlog_aggregated(
         )
         # 排除系统 SQL：username 为系统用户，或 query_digest_text 包含系统 schema
         if exclude_system:
-            system_user_q = Q(username__in=["MONITOR", "yw"])
+            system_user_q = Q(username__in=["MONITOR", "yw", "dba_bak_all_sel"])
             system_schema_q = (
                 Q(query_digest_text__contains="infodba_schema")
                 | Q(query_digest_text__contains="information_schema")

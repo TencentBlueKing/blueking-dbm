@@ -2881,7 +2881,7 @@
   },
   {
     "conf_name": "mysqld.performance_schema",
-    "value_default": "ON",
+    "value_default": "OFF",
     "value_allowed": "ON| OFF ",
     "value_type": "STRING",
     "value_type_sub": "ENUM",
