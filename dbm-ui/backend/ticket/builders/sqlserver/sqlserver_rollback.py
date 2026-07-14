@@ -20,7 +20,6 @@ from backend.ticket.constants import TicketType
 
 
 class SQLServerRollbackDetailSerializer(SQLServerRollbackBaseDetailSerializer):
-    is_local = serializers.BooleanField(help_text=_("是否原地构造"), default=True)
     is_time_fixed = serializers.BooleanField(help_text=_("是否指定回档时间"))
 
 
