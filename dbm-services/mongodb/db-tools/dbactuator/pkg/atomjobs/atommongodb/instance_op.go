@@ -301,9 +301,9 @@ func (s *instOpJob) doBackupMongodata() error {
 		strings.TrimSpace(duRet.GetStdout()), strings.TrimSpace(duRet.GetStderr()),
 	)
 
-	// Best-effort disk space check: need >= data size + 5% margin on the filesystem hosting dbPath.
+	// Best-effort disk space check: after cp -a, filesystem used must stay < 90%.
 	usedBytes, errDu := duDirBytes(dbPath)
-	_, availBytes, errDf := dfTotalAvailBytes(dbPath)
+	totalBytes, availBytes, errDf := dfTotalAvailBytes(dbPath)
 	if errDu != nil || errDf != nil {
 		log.Info(
 			"backup_mongodata disk space precheck skipped (du/df parse): du_err=%v df_err=%v",
@@ -311,22 +311,46 @@ func (s *instOpJob) doBackupMongodata() error {
 			errDf,
 		)
 	} else {
-		need := usedBytes * 105 / 100
-		if availBytes < need {
+		if !postBackupUsedBelowMax(totalBytes, availBytes, usedBytes) {
+			fsUsed := totalBytes - availBytes
+			postUsed := fsUsed + usedBytes
+			postPct := 0.0
+			if totalBytes > 0 {
+				postPct = float64(postUsed) * 100 / float64(totalBytes)
+			}
 			return fmt.Errorf(
-				"backup_mongodata: insufficient disk space: need ~%d bytes (data dir %d bytes with 5%% margin), available %d",
-				need,
+				"backup_mongodata: insufficient disk space: after backup used would be %d/%d (%.2f%%), need < %.0f%% (data_dir=%d avail=%d)",
+				postUsed,
+				totalBytes,
+				postPct,
+				maxPostBackupUsedPercent,
 				usedBytes,
 				availBytes,
 			)
 		}
 		log.Info(
-			"backup_mongodata disk space precheck OK: used=%d avail=%d need=%d",
+			"backup_mongodata disk space precheck OK: fs_used=%d data_dir=%d avail=%d total=%d post_used=%d (<%.0f%%)",
+			totalBytes-availBytes,
 			usedBytes,
 			availBytes,
-			need,
+			totalBytes,
+			totalBytes-availBytes+usedBytes,
+			maxPostBackupUsedPercent,
 		)
 	}
+
+	copyTimeout := backupCopyMinTimeout
+	if errDu == nil {
+		copyTimeout = backupMongodataCopyTimeout(usedBytes)
+	}
+	log.Info(
+		"backup_mongodata copy timeout: used_bytes=%d timeout=%s (rate=%d bytes/s, min=%s, du_err=%v)",
+		usedBytes,
+		copyTimeout,
+		backupCopyBytesPerSec,
+		backupCopyMinTimeout,
+		errDu,
+	)
 
 	backupCmd := fmt.Sprintf(
 		"set -e; src=%q; dst=%q; cp -a \"$src\" \"$dst\"",
@@ -334,7 +358,7 @@ func (s *instOpJob) doBackupMongodata() error {
 		dstPath,
 	)
 	copyStart := time.Now()
-	ret, err := mycmd.New("bash", "-lc", backupCmd).Run(time.Second * 600)
+	ret, err := mycmd.New("bash", "-lc", backupCmd).Run(copyTimeout)
 	copyElapsed := time.Since(copyStart)
 	log.Info("exec %s, exitCode:%d, err:%v, copy_elapsed:%s", ret.Cmdline, ret.ExitCode, err, copyElapsed)
 	if err != nil {
@@ -364,6 +388,27 @@ func sanitizePathSegmentForBackupDir(s string) string {
 		}
 	}
 	return b.String()
+}
+
+const (
+	// backupCopyBytesPerSec estimates local cp throughput for timeout sizing (60 MiB/s).
+	backupCopyBytesPerSec = 60 * 1024 * 1024
+	// backupCopyMinTimeout is the floor for backup_mongodata cp timeout.
+	backupCopyMinTimeout = 600 * time.Second
+)
+
+// backupMongodataCopyTimeout returns cp timeout from data size at backupCopyBytesPerSec,
+// never below backupCopyMinTimeout.
+func backupMongodataCopyTimeout(usedBytes uint64) time.Duration {
+	if usedBytes == 0 {
+		return backupCopyMinTimeout
+	}
+	secs := (usedBytes + backupCopyBytesPerSec - 1) / backupCopyBytesPerSec
+	d := time.Duration(secs) * time.Second
+	if d < backupCopyMinTimeout {
+		return backupCopyMinTimeout
+	}
+	return d
 }
 
 func (s *instOpJob) doStartDbmon() error {
@@ -566,7 +611,23 @@ func (s *instOpJob) doPrecheckUpgrade() error {
 	return nil
 }
 
-const minFreeDiskRatioForUpgradePrecheck = 0.6
+const (
+	// maxPostBackupUsedPercent: after data-dir backup (cp -a), filesystem used must stay below this.
+	maxPostBackupUsedPercent = 90.0
+	// minFreeDiskRatioForUpgradePrecheck is only used when du fails (worst-case: data dir ≈ all used).
+	// With >=60% free, used <=40%; after copying all used space, used <=80% < 90%.
+	minFreeDiskRatioForUpgradePrecheck = 0.6
+)
+
+// postBackupUsedBelowMax reports whether used ratio after copying dataDirBytes stays < maxPostBackupUsedPercent.
+func postBackupUsedBelowMax(totalBytes, availBytes, dataDirBytes uint64) bool {
+	if totalBytes == 0 || availBytes < dataDirBytes {
+		return false
+	}
+	postUsed := totalBytes - availBytes + dataDirBytes
+	// postUsed/total < 0.90  <=>  postUsed*100 < total*90
+	return postUsed*100 < totalBytes*uint64(maxPostBackupUsedPercent)
+}
 
 func (s *instOpJob) doPrecheckDiskBeforeUpgrade() error {
 	op := s.GetInstanceOp()
@@ -575,7 +636,7 @@ func (s *instOpJob) doPrecheckDiskBeforeUpgrade() error {
 		return errors.Wrap(err, "GetDBPathFromConfig")
 	}
 	log := s.runtime.Logger
-	ret, err := dfRunWithLocale(dbPath, "-B1", "-P").Run(30 * time.Second)
+	ret, err := dfRunWithLocale(dbPath, "-B1", "-P").Run(60 * time.Second)
 	stdout := strings.TrimSpace(ret.GetStdout())
 	combined := fmt.Sprintf("stdout=%q stderr=%q", ret.GetStdout(), ret.GetStderr())
 	if err != nil || ret.ExitCode != 0 {
@@ -590,27 +651,56 @@ func (s *instOpJob) doPrecheckDiskBeforeUpgrade() error {
 	if totalBytes == 0 {
 		return fmt.Errorf("precheck_disk_upgrade: total filesystem size is zero")
 	}
-	ratio := float64(availBytes) / float64(totalBytes)
+	freeRatio := float64(availBytes) / float64(totalBytes)
 	const bytesPerGiB = 1024 * 1024 * 1024
 	totalGiB := float64(totalBytes) / bytesPerGiB
 	availGiB := float64(availBytes) / bytesPerGiB
+	fsUsedGiB := float64(totalBytes-availBytes) / bytesPerGiB
 	log.Info(
-		"precheck_disk_upgrade: dbPath=%s total_GB=%.2f avail_GB=%.2f free_ratio=%.4f",
+		"precheck_disk_upgrade: dbPath=%s total_GB=%.2f avail_GB=%.2f used_GB=%.2f free_ratio=%.4f",
 		dbPath,
 		totalGiB,
 		availGiB,
-		ratio,
+		fsUsedGiB,
+		freeRatio,
 	)
-	if ratio < minFreeDiskRatioForUpgradePrecheck {
-		// Use "%" as an argument instead of %% in the format string so fmt never mis-parses percent signs.
+
+	dataDirBytes, errDu := duDirBytes(dbPath)
+	if errDu != nil {
+		log.Info("precheck_disk_upgrade: du failed, fallback to free-ratio check: %v", errDu)
+		if freeRatio < minFreeDiskRatioForUpgradePrecheck {
+			return fmt.Errorf(
+				"precheck_disk_upgrade: insufficient free space on data disk: need >= %.0f%s free, got %.2f%s (avail_GB=%.2f total_GB=%.2f)",
+				minFreeDiskRatioForUpgradePrecheck*100,
+				"%",
+				freeRatio*100,
+				"%",
+				availGiB,
+				totalGiB,
+			)
+		}
+		return nil
+	}
+	dataGiB := float64(dataDirBytes) / bytesPerGiB
+	postUsed := totalBytes - availBytes + dataDirBytes
+	postUsedGiB := float64(postUsed) / bytesPerGiB
+	postUsedPct := float64(postUsed) * 100 / float64(totalBytes)
+	log.Info(
+		"precheck_disk_upgrade: data_dir_GB=%.2f post_backup_used_GB=%.2f (%.2f%%), limit=<%.0f%%",
+		dataGiB,
+		postUsedGiB,
+		postUsedPct,
+		maxPostBackupUsedPercent,
+	)
+	if !postBackupUsedBelowMax(totalBytes, availBytes, dataDirBytes) {
 		return fmt.Errorf(
-			"precheck_disk_upgrade: insufficient free space on data disk: need >= %.0f%s free, got %.2f%s (avail_GB=%.2f total_GB=%.2f)",
-			minFreeDiskRatioForUpgradePrecheck*100,
-			"%",
-			ratio*100,
-			"%",
-			availGiB,
+			"precheck_disk_upgrade: after data dir backup used would be %.2f%% (%.2f/%.2f GB), need < %.0f%% (data_dir_GB=%.2f avail_GB=%.2f)",
+			postUsedPct,
+			postUsedGiB,
 			totalGiB,
+			maxPostBackupUsedPercent,
+			dataGiB,
+			availGiB,
 		)
 	}
 	return nil

@@ -103,3 +103,65 @@ func TestDuRunWithLocaleCmdArgs(t *testing.T) {
 		})
 	}
 }
+
+func TestBackupMongodataCopyTimeout(t *testing.T) {
+	t.Parallel()
+	const rate = uint64(60 * 1024 * 1024) // 60 MiB/s
+	tests := []struct {
+		name      string
+		usedBytes uint64
+		want      time.Duration
+	}{
+		{name: "zero_uses_min", usedBytes: 0, want: 600 * time.Second},
+		{name: "small_uses_min", usedBytes: rate * 100, want: 600 * time.Second}, // 100s estimate -> 600
+		{name: "exactly_min_boundary", usedBytes: rate * 600, want: 600 * time.Second},
+		{name: "just_over_min", usedBytes: rate*600 + 1, want: 601 * time.Second},
+		{name: "large_40GiB", usedBytes: 40 * 1024 * 1024 * 1024, want: 683 * time.Second}, // ceil(40GiB/60MiB)
+	}
+	for _, tt := range tests {
+		tt := tt
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			got := backupMongodataCopyTimeout(tt.usedBytes)
+			if got != tt.want {
+				t.Fatalf("backupMongodataCopyTimeout(%d)=%v want %v", tt.usedBytes, got, tt.want)
+			}
+		})
+	}
+}
+
+func TestPostBackupUsedBelowMax(t *testing.T) {
+	t.Parallel()
+	const total = uint64(1000)
+	tests := []struct {
+		name    string
+		avail   uint64
+		dataDir uint64
+		want    bool
+	}{
+		// used=400, data=400 -> post=800 < 90% OK
+		{name: "post_80pct_ok", avail: 600, dataDir: 400, want: true},
+		// used=400, data=500 -> post=900 == 90% not < 90%
+		{name: "post_90pct_reject", avail: 600, dataDir: 500, want: false},
+		// used=400, data=501 -> post=901 > 90%
+		{name: "post_over_90_reject", avail: 600, dataDir: 501, want: false},
+		// cannot copy: avail < dataDir
+		{name: "avail_lt_data_reject", avail: 100, dataDir: 200, want: false},
+		// zero total
+		{name: "zero_total_reject", avail: 0, dataDir: 0, want: false},
+	}
+	for _, tt := range tests {
+		tt := tt
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			totalBytes := total
+			if tt.name == "zero_total_reject" {
+				totalBytes = 0
+			}
+			got := postBackupUsedBelowMax(totalBytes, tt.avail, tt.dataDir)
+			if got != tt.want {
+				t.Fatalf("postBackupUsedBelowMax(%d,%d,%d)=%v want %v", totalBytes, tt.avail, tt.dataDir, got, tt.want)
+			}
+		})
+	}
+}
