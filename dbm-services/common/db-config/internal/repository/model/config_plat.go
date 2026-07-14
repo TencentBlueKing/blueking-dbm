@@ -85,14 +85,15 @@ func (op *ConfNameOperation) BatchDelete(db *gorm.DB, confNames []*ConfigNameDef
 		nodes := []*ConfigModel{}
 		changes := make([]*ConfNameChangesModel, 0, len(confNames))
 		for _, c := range confNames {
-			// 查询变更前的快照
-			var before ConfigNameDefModel
-			beforeImage := api.ConfName{}
-			if err := tx.Where(c.UniqueWhere()).First(&before).Error; err == nil {
-				beforeImage = NewConfNameFromDef(&before)
-			}
 			opType := constvar.OPTypeRemove
-			if before.ConfName != "" {
+
+			// 查询变更前的快照
+			var configDef ConfigNameDefModel
+			defImage := api.ConfName{}
+			if err := tx.Where(c.UniqueWhere()).First(&configDef).Error; err == nil {
+				defImage = NewConfNameFromDef(&configDef)
+			}
+			if configDef.ConfName != "" {
 				opType = constvar.OpTypeRecover
 			}
 
@@ -109,6 +110,21 @@ func (op *ConfNameOperation) BatchDelete(db *gorm.DB, confNames []*ConfigNameDef
 					}), ", "))
 			}
 
+			beforeImage := api.ConfName{}
+			afterImage := api.ConfName{}
+			var configBefore ConfigNamePlatModel // 删除一定是从 plat 表删除
+			if err := tx.Where(c.UniqueWhere()).First(&configBefore).Error; err == nil {
+				before := ConfigNameDefModel(configBefore)
+				beforeImage = NewConfNameFromDef(&before)
+			}
+			if opType == constvar.OpTypeRecover { //  recover
+				// beforeImage 是 plat表数据，afterImage 是 def表数据
+				afterImage = defImage
+			} else { // remove
+				// beforeImage 是 plat 表的数据是，无 afterImage
+				afterImage = api.ConfName{}
+			}
+
 			tableName := c.TableName()
 			if op.Table != constvar.PlatTypeDef {
 				tableName = ConfigNamePlatModel{}.TableName()
@@ -123,7 +139,7 @@ func (op *ConfNameOperation) BatchDelete(db *gorm.DB, confNames []*ConfigNameDef
 				ConfFile:    c.ConfFile,
 				ConfName:    c.ConfName,
 				BeforeImage: beforeImage,
-				AfterImage:  api.ConfName{},
+				AfterImage:  afterImage,
 				OpUser:      op.OpUser,
 				OpType:      opType,
 			})
