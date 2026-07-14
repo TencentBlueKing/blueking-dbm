@@ -26,6 +26,7 @@ from backend.ticket.builders.mongodb.base import (
     BaseMongoDBOperateResourceParamBuilder,
     BaseMongoDBTicketFlowBuilder,
 )
+from backend.ticket.builders.mongodb.inst_desc import build_mongo_inst_desc
 from backend.ticket.constants import TicketType
 from backend.utils.basic import get_target_items_from_details
 
@@ -80,17 +81,7 @@ class MongoDBCutoffResourceParamBuilder(BaseMongoDBOperateResourceParamBuilder):
 
     @staticmethod
     def _get_mongo_inst_desc(instance, storage_id__shard):
-        cluster = instance.cluster.first()
-        desc = {
-            "port": instance.port,
-            "cluster_id": cluster.id,
-            "db_version": cluster.major_version,
-            "domain": instance.bind_entry.first().entry if instance.bind_entry.exists() else "",
-            "cluster_name": cluster.name,
-        }
-        if storage_id__shard.get(instance.id):
-            desc.update(seg_range=storage_id__shard[instance.id])
-        return desc
+        return build_mongo_inst_desc(instance, storage_id__shard)
 
     def _fill_instance_infos(self, role, machine, storage_id__shard):
         if role == MachineType.MONGOS:

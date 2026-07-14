@@ -208,7 +208,7 @@ func (m *MongoDBInstall) makeConfContent() error {
 		}
 		conf.SystemLog.LogAppend = true
 		conf.SystemLog.Path = m.LogPath
-		conf.SystemLog.Destination = m.ConfParams.DbConfig.Destination
+		conf.SystemLog.Destination = "file"
 		conf.ProcessManagement.Fork = true
 		conf.ProcessManagement.PidFilePath = m.PidFilePath
 		conf.Net.Port = m.ConfParams.Port
@@ -514,12 +514,21 @@ func (m *MongoDBInstall) startup() error {
 		m.runtime.Logger.Error("startup mongod fail, error:%s", err)
 		return fmt.Errorf("startup mongod fail, error:%s", err)
 	}
-	flag, service, err := common.CheckMongoService(m.ConfParams.Port)
-	if err != nil {
-		m.runtime.Logger.Error("check %s fail, error:%s", service, err)
-		return fmt.Errorf("check %s fail, error:%s", service, err)
+	var flag bool
+	var service string
+	var err error
+	for i := 0; i < 12; i++ {
+		flag, service, err = common.CheckMongoService(m.ConfParams.Port)
+		if err != nil {
+			m.runtime.Logger.Error("check %s fail, error:%s", service, err)
+			return fmt.Errorf("check %s fail, error:%s", service, err)
+		}
+		if flag {
+			break
+		}
+		time.Sleep(5 * time.Second)
 	}
-	if flag == false {
+	if !flag {
 		m.runtime.Logger.Error("startup %s fail", service)
 		return fmt.Errorf("startup %s fail", service)
 	}

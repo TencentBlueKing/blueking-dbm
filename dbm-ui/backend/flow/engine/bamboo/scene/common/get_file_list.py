@@ -713,10 +713,13 @@ class GetFileList(object):
         """
         部署mongodb,需要的pkg包
         """
+        from backend.flow.utils.mongodb.version_utils import lookup_mongodb_package
 
-        mongodb_pkg = Package.get_latest_package(
-            version=db_version, pkg_type=MediumEnum.MongoDB, db_type=DBType.MongoDB
-        )
+        mongodb_pkg = lookup_mongodb_package(db_version)
+        if mongodb_pkg is None:
+            mongodb_pkg = Package.get_latest_package(
+                version=db_version, pkg_type=MediumEnum.MongoDB, db_type=DBType.MongoDB
+            )
         # bkdbmon_pkg = Package.get_latest_package(
         #     version=MediumEnum.Latest, pkg_type=MediumEnum.DbMon, db_type=DBType.MongoDB
         # )

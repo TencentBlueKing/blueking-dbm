@@ -11,6 +11,7 @@ specific language governing permissions and limitations under the License.
 import logging
 from typing import List
 
+from django.utils.translation import gettext as _
 from pipeline.component_framework.component import Component
 from pipeline.core.flow.activity import Service
 
@@ -25,6 +26,17 @@ class ExecDeletePasswordFromDBOperation(BaseService):
     DeletePasswordFromDB服务
     """
 
+    @staticmethod
+    def _format_delete_plan(kwargs: dict) -> str:
+        usernames = kwargs.get("usernames") or []
+        lines = [
+            "[mongo deinstall password] usernames=[{}]".format(", ".join(usernames) or "-"),
+            "  {}: {}".format(_("instances"), len(kwargs.get("instances") or [])),
+        ]
+        for inst in kwargs.get("instances") or []:
+            lines.append("  {}:{} (cloud={})".format(inst.get("ip"), inst.get("port"), inst.get("bk_cloud_id")))
+        return "\n".join(lines)
+
     def _execute(self, data, parent_data) -> bool:
         """
         删除密码功能的函数
@@ -34,15 +46,27 @@ class ExecDeletePasswordFromDBOperation(BaseService):
 
         # 从流程节点中获取变量
         kwargs = data.get_one_of_inputs("kwargs")
+        self.log_info(self._format_delete_plan(kwargs))
 
         # 从db中删除管理员密码
         result = MongoDBPassword().delete_password_from_db(
             instances=kwargs["instances"], usernames=kwargs["usernames"]
         )
         if result is not None:
-            self.log_error("delete password of admin user from db fail, error:{}".format(result))
+            self.log_error(
+                "[mongo deinstall password] failed usernames=[{}] instances={}: {}".format(
+                    ", ".join(kwargs.get("usernames") or []),
+                    len(kwargs.get("instances") or []),
+                    result,
+                )
+            )
             return False
-        self.log_info("delete password of admin user to db successfully")
+        self.log_info(
+            "[mongo deinstall password] done usernames=[{}] instances={}".format(
+                ", ".join(kwargs.get("usernames") or []),
+                len(kwargs.get("instances") or []),
+            )
+        )
         return True
 
     # 流程节点输入参数

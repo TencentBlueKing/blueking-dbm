@@ -31,6 +31,10 @@ from backend.db_meta.enums import (
 from backend.db_meta.models import Cluster, ProxyInstance
 from backend.flow.plugins.components.collections.common.base_service import BaseService
 from backend.flow.utils.mongodb.mongodb_module_operate import MongoDBCCTopoOperator
+from backend.flow.utils.mongodb.version_utils import (
+    apply_mongodb_metadata_versions_to_cluster,
+    get_cluster_live_instance_version,
+)
 
 logger = logging.getLogger("flow")
 
@@ -125,6 +129,13 @@ class MongosScaleMetaService(BaseService):
         # 新增 mongos 到集群
         self.add_proxies(cluster, proxies)
         MongoDBCCTopoOperator(cluster).transfer_instances_to_cluster_module(proxies_obj)
+        live_version = get_cluster_live_instance_version(cluster) or cluster.major_version
+        if live_version:
+            apply_mongodb_metadata_versions_to_cluster(
+                cluster,
+                live_version,
+                instance_ids=[obj.id for obj in proxies_obj],
+            )
 
     # mongos(proxy) 添加到集群
     @transaction.atomic

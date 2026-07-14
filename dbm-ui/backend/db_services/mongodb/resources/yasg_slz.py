@@ -32,6 +32,7 @@ paginated_resource_example = {
             "bk_cloud_id": 0,
             "bk_cloud_name": "xxxx",
             "major_version": "2.4.0",
+            "instance_version": "2.4.12",
             "region": "",
             "mongos": [
                 {

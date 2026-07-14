@@ -121,6 +121,7 @@ class MongoReplicaSetApplyFlowBuilder(BaseMongoReplicaSetTicketFlowBuilder):
     def get_replicaset_resource_spec(cls, ticket_data):
         """获取副本集部署的资源池规格信息"""
         spec = Spec.objects.get(spec_id=ticket_data["spec_id"])
+        machine_set_spec = (ticket_data.get("resource_spec") or {}).get("mongo_machine_set") or {}
         # infos的组数 = 副本集数量 / 单机部署副本集数
         groups = int(ticket_data["replica_count"] / ticket_data["node_replica_count"])
         if (
@@ -151,6 +152,8 @@ class MongoReplicaSetApplyFlowBuilder(BaseMongoReplicaSetTicketFlowBuilder):
                         # # 副本集的亲和性要求至少跨两个机房
                         "count": ticket_data["node_count"],
                         "spec_id": ticket_data["spec_id"],
+                        "labels": machine_set_spec.get("labels") or [],
+                        "label_names": machine_set_spec.get("label_names") or [],
                     }
                 },
             }

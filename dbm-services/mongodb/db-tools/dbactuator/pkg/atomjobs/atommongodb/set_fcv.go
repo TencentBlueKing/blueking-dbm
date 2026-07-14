@@ -49,17 +49,29 @@ func (v *MongoSetFCV) Name() string {
 
 // Run 运行原子任务
 func (v *MongoSetFCV) Run() error {
-	// 检查老FCV参数
-	if err := v.checkOldFCV(); err != nil {
-		return err
+	if !common.FcvCheckSupported(v.ConfParams.NewFCV) {
+		v.runtime.Logger.Info(
+			"skip mongo_set_fcv: new_fcv %s (< %.1f, featureCompatibilityVersion not supported)",
+			v.ConfParams.NewFCV, common.MinVersionWithFCV,
+		)
+		return nil
 	}
 
-	// 设置FCV参数
+	if common.FcvCheckSupported(v.ConfParams.OldFCV) {
+		if err := v.checkOldFCV(); err != nil {
+			return err
+		}
+	} else {
+		v.runtime.Logger.Info(
+			"skip check old fcv: old_fcv %s (< %.1f, no prior FCV document)",
+			v.ConfParams.OldFCV, common.MinVersionWithFCV,
+		)
+	}
+
 	if err := v.setParam(); err != nil {
 		return err
 	}
 
-	// 检查新FCV参数
 	if err := v.checkNewFCV(); err != nil {
 		return err
 	}

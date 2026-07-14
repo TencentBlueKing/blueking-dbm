@@ -29,7 +29,13 @@ from backend.flow.engine.bamboo.scene.mongodb.sub_task.upgrade_version import Mo
 from backend.flow.plugins.components.collections.mongodb.mongo_update_version import MongoUpdateVersionComponent
 from backend.flow.utils.mongodb.mongodb_repo import MongoDBCluster, MongoNode, MongoRepository, ReplicaSet
 from backend.flow.utils.mongodb.mongodb_util import MongoUtil
-from backend.flow.utils.mongodb.version_utils import normalize_mongodb_full_version
+from backend.flow.utils.mongodb.version_utils import (
+    compare_mongodb_versions,
+    get_cluster_live_instance_version,
+    is_mongodb_major_minor_only,
+    normalize_mongodb_full_version,
+    resolve_mongodb_persist_version,
+)
 
 logger = logging.getLogger("flow")
 
@@ -45,6 +51,7 @@ MONGODB_MAJOR_MINOR_UPGRADE_CHAIN = (
     "5.0",
     "6.0",
     "7.0",
+    "8.0",
 )
 _UPGRADE_CHAIN_INDEX = {v: i for i, v in enumerate(MONGODB_MAJOR_MINOR_UPGRADE_CHAIN)}
 
@@ -59,8 +66,18 @@ class MongoUpgradeVersionFlow(MongoBaseFlow):
             bk_cloud_id = serializers.IntegerField()
 
             def validate(self, attrs):
-                if attrs["current_version"] == attrs["dest_version"]:
+                current_version = attrs["current_version"]
+                dest_version = attrs["dest_version"]
+                if current_version == dest_version:
                     raise serializers.ValidationError("dest_version can not be equal to current_version")
+                current_mm = MongoUpgradeVersionFlow._version_major_minor(current_version)
+                dest_mm = MongoUpgradeVersionFlow._version_major_minor(dest_version)
+                if current_mm == dest_mm:
+                    try:
+                        if compare_mongodb_versions(current_version, dest_version) >= 0:
+                            raise serializers.ValidationError("dest_version must be higher than current_version")
+                    except ValueError as err:
+                        raise serializers.ValidationError(str(err)) from err
                 return attrs
 
         uid = serializers.CharField()
@@ -93,28 +110,46 @@ class MongoUpgradeVersionFlow(MongoBaseFlow):
             for cluster_id in info["cluster_id_list"]:
                 cluster = clusters.get(cluster_id)
                 self.check_cluster_valid(cluster, payload)
-                current_version_mm = self._version_major_minor(info["current_version"])
-                dest_version_mm = self._version_major_minor(info["dest_version"])
+                effective_current, effective_dest = self._resolve_effective_upgrade_versions(cluster, info)
+                current_version_mm = self._version_major_minor(effective_current)
+                dest_version_mm = self._version_major_minor(effective_dest)
                 hops = self._expand_upgrade_hops(
-                    current_version_mm=current_version_mm, dest_version_mm=dest_version_mm
+                    current_version_mm=current_version_mm,
+                    dest_version_mm=dest_version_mm,
+                    current_full=effective_current,
+                    dest_full=effective_dest,
                 )
                 hop_plans = []
                 for from_version_mm, to_version_mm in hops:
-                    target_pkg = self._get_target_package(to_version_mm)
+                    hop_is_patch = from_version_mm == to_version_mm
+                    if hop_is_patch:
+                        target_pkg = self._get_target_package_for_dest(effective_dest)
+                        hop_current = normalize_mongodb_full_version(effective_current)
+                        hop_dest = normalize_mongodb_full_version(effective_dest)
+                        persist_dest = effective_dest
+                    else:
+                        target_pkg = self._get_target_package(to_version_mm)
+                        hop_current = from_version_mm
+                        hop_dest = to_version_mm
+                        persist_dest = to_version_mm
                     hop_plans.append(
                         {
-                            "current_version": from_version_mm,
-                            "dest_version": to_version_mm,
+                            "hop_key": (from_version_mm, to_version_mm),
+                            "current_version": hop_current,
+                            "dest_version": hop_dest,
                             "display_current_version": info["current_version"],
                             "display_dest_version": info["dest_version"],
                             "target_pkg": target_pkg,
                             "pkg_version": target_pkg.version,
                             "persist_version": self._resolve_persist_version(
-                                target_pkg=target_pkg, dest_version=to_version_mm
+                                target_pkg=target_pkg, dest_version=persist_dest
                             ),
+                            "is_patch_hop": hop_is_patch,
                         }
                     )
-                hop_plan_map = {(p["current_version"], p["dest_version"]): p for p in hop_plans}
+                if not hop_plans:
+                    raise serializers.ValidationError(_("集群 {} 已达目标版本 {}").format(cluster.name, effective_dest))
+                hop_plan_map = {p["hop_key"]: p for p in hop_plans}
                 self.cluster_infos.append(
                     {
                         "cluster": cluster,
@@ -127,7 +162,7 @@ class MongoUpgradeVersionFlow(MongoBaseFlow):
         if self.cluster_infos:
 
             def _hop_sequence(item: Dict) -> Tuple[Tuple[str, str], ...]:
-                return tuple((p["current_version"], p["dest_version"]) for p in item["hop_plans"])
+                return tuple(p["hop_key"] for p in item["hop_plans"])
 
             first_seq = _hop_sequence(self.cluster_infos[0])
             for item in self.cluster_infos[1:]:
@@ -210,17 +245,104 @@ class MongoUpgradeVersionFlow(MongoBaseFlow):
         return ".".join(parts[:2]) if len(parts) >= 2 else v
 
     @staticmethod
-    def _expand_upgrade_hops(current_version_mm: str, dest_version_mm: str) -> List[Tuple[str, str]]:
+    def _resolve_effective_upgrade_versions(cluster: MongoDBCluster, info: Dict) -> Tuple[str, str]:
+        """Align ticket versions with live cluster metadata for retry / partial multi-hop progress."""
+        ticket_current = info["current_version"]
+        ticket_dest = info["dest_version"]
+        live_version = (
+            get_cluster_live_instance_version(cluster) or getattr(cluster, "major_version", None) or ticket_current
+        )
+
+        try:
+            if compare_mongodb_versions(live_version, ticket_dest) >= 0:
+                raise serializers.ValidationError(
+                    _("集群 {} 已达目标版本 {}（当前 {}）").format(cluster.name, ticket_dest, live_version)
+                )
+        except ValueError as err:
+            logger.warning(
+                "cluster %s skip dest check: live=%s dest=%s: %s",
+                cluster.name,
+                live_version,
+                ticket_dest,
+                err,
+            )
+
+        effective_current = ticket_current
+        try:
+            if (
+                compare_mongodb_versions(live_version, ticket_current) > 0
+                and compare_mongodb_versions(live_version, ticket_dest) < 0
+            ):
+                effective_current = live_version
+        except ValueError as err:
+            logger.warning(
+                "cluster %s skip live version realignment: live=%s ticket_current=%s dest=%s: %s",
+                cluster.name,
+                live_version,
+                ticket_current,
+                ticket_dest,
+                err,
+            )
+        return effective_current, ticket_dest
+
+    @staticmethod
+    def _expand_upgrade_hops(
+        current_version_mm: str,
+        dest_version_mm: str,
+        *,
+        current_full: str,
+        dest_full: str,
+    ) -> List[Tuple[str, str]]:
         if current_version_mm not in _UPGRADE_CHAIN_INDEX:
             raise serializers.ValidationError(_("不支持的当前版本：{}").format(current_version_mm))
         if dest_version_mm not in _UPGRADE_CHAIN_INDEX:
             raise serializers.ValidationError(_("不支持的目标版本：{}").format(dest_version_mm))
+
+        if current_version_mm == dest_version_mm:
+            try:
+                cmp_result = compare_mongodb_versions(current_full, dest_full)
+            except ValueError as err:
+                raise serializers.ValidationError(str(err)) from err
+            if cmp_result >= 0:
+                raise serializers.ValidationError(_("目标版本必须高于当前版本：{} -> {}").format(current_full, dest_full))
+            return [(current_version_mm, dest_version_mm)]
+
         current_idx = _UPGRADE_CHAIN_INDEX[current_version_mm]
         dest_idx = _UPGRADE_CHAIN_INDEX[dest_version_mm]
         if dest_idx <= current_idx:
             raise serializers.ValidationError(_("目标版本必须高于当前版本：{} -> {}").format(current_version_mm, dest_version_mm))
         chain = MONGODB_MAJOR_MINOR_UPGRADE_CHAIN[current_idx : dest_idx + 1]
         return [(chain[i], chain[i + 1]) for i in range(len(chain) - 1)]
+
+    @classmethod
+    def _get_target_package_for_dest(cls, dest_full: str) -> Package:
+        if is_mongodb_major_minor_only(dest_full):
+            return cls._get_target_package(cls._version_major_minor(dest_full))
+
+        normalized = normalize_mongodb_full_version(dest_full)
+        candidate_versions = [
+            dest_full,
+            normalized,
+            normalized.removeprefix("mongodb-"),
+        ]
+        for version in candidate_versions:
+            try:
+                return Package.get_latest_package(version=version, pkg_type=MediumEnum.MongoDB, db_type=DBType.MongoDB)
+            except Exception:
+                continue
+        package = (
+            Package.objects.filter(
+                Q(version=normalized) | Q(version=normalized.removeprefix("mongodb-")) | Q(version__iexact=dest_full),
+                pkg_type=MediumEnum.MongoDB,
+                db_type=DBType.MongoDB,
+                enable=True,
+            )
+            .order_by("-update_at")
+            .first()
+        )
+        if package:
+            return package
+        return cls._get_target_package(cls._version_major_minor(dest_full))
 
     @classmethod
     def _get_target_package(cls, dest_version_mm: str) -> Package:
@@ -389,14 +511,19 @@ class MongoUpgradeVersionFlow(MongoBaseFlow):
     ):
         cluster_sb = SubBuilder(root_id=self.root_id, data=self.payload)
 
-        # --- precheck_upgrade_cluster: parallel check all nodes ---
-        all_nodes = self._collect_all_nodes(exec_groups)
-        if all_nodes:
+        if self._protocol_upgrade_needed(current_version, dest_version):
+            protocol_acts = self._build_upgrade_rs_protocol_acts(exec_groups=exec_groups, file_path=file_path)
+            if protocol_acts:
+                cluster_sb.add_parallel_acts(acts_list=protocol_acts)
+
+        # --- precheck_upgrade_cluster: all nodes; actuator skips FCV on mongos (buildInfo only) ---
+        precheck_nodes = self._collect_all_nodes(exec_groups)
+        if precheck_nodes:
             precheck_acts = [
                 MongoUpgradeVersionSubTask.precheck_upgrade_act(
                     file_path=file_path, exec_node=node, current_version=current_version
                 )
-                for node in all_nodes
+                for node in precheck_nodes
             ]
             cluster_sb.add_parallel_acts(acts_list=precheck_acts)
 
@@ -572,6 +699,30 @@ class MongoUpgradeVersionFlow(MongoBaseFlow):
         return mongos_sb.build_sub_process(_("mongos-stage"))
 
     @staticmethod
+    def _protocol_upgrade_needed(current_version: str, dest_version: str) -> bool:
+        """MongoDB 4.0 不再支持 replication protocolVersion 0，3.6->4.0 hop 前需先升到 1。"""
+        return (
+            MongoUpgradeVersionFlow._version_major_minor(current_version) == "3.6"
+            and MongoUpgradeVersionFlow._version_major_minor(dest_version) == "4.0"
+        )
+
+    @staticmethod
+    def _build_upgrade_rs_protocol_acts(exec_groups: Dict, file_path: str) -> List[Dict]:
+        acts = []
+        for rs_group in exec_groups.get("replicasets", []):
+            members = rs_group.get("members") or []
+            if not members:
+                continue
+            acts.append(
+                MongoUpgradeVersionSubTask.upgrade_rs_protocol_act(
+                    file_path=file_path,
+                    exec_node=members[0],
+                    rs_name=rs_group.get("name"),
+                )
+            )
+        return acts
+
+    @staticmethod
     def _build_postcheck_set_fcv_act(exec_groups: Dict, file_path: str, current_version: str, dest_version: str):
         mongos = exec_groups.get("mongos", [])
         if mongos:
@@ -595,16 +746,18 @@ class MongoUpgradeVersionFlow(MongoBaseFlow):
 
     @staticmethod
     def _resolve_persist_version(target_pkg: Optional[Package], dest_version: str) -> str:
-        if target_pkg and getattr(target_pkg, "version", None):
-            try:
+        try:
+            return resolve_mongodb_persist_version(dest_version, package=target_pkg)
+        except ValueError as err:
+            logger.warning(
+                "failed to resolve persist version for dest [%s] pkg [%s]: %s",
+                dest_version,
+                getattr(target_pkg, "version", None),
+                err,
+            )
+            if target_pkg and getattr(target_pkg, "version", None):
                 return normalize_mongodb_full_version(target_pkg.version)
-            except ValueError:
-                logger.warning(
-                    "failed to normalize package version [%s], fallback to dest_version [%s]",
-                    target_pkg.version,
-                    dest_version,
-                )
-        return normalize_mongodb_full_version(dest_version)
+            raise serializers.ValidationError(_("无法解析目标版本 {} 的持久化版本").format(dest_version)) from err
 
     @staticmethod
     def _build_persist_meta_version_act(cluster: MongoDBCluster, target_version: str) -> Dict:

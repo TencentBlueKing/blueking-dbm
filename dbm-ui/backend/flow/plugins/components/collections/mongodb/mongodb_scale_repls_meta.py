@@ -30,6 +30,10 @@ from backend.db_meta.models import Cluster, ClusterEntry, Machine, StorageInstan
 from backend.flow.plugins.components.collections.common.base_service import BaseService
 from backend.flow.utils.cc_manage import CcManage
 from backend.flow.utils.mongodb.mongodb_module_operate import MongoDBCCTopoOperator
+from backend.flow.utils.mongodb.version_utils import (
+    apply_mongodb_metadata_versions_to_cluster,
+    get_cluster_live_instance_version,
+)
 
 logger = logging.getLogger("flow")
 
@@ -261,6 +265,14 @@ class MongoScaleReplsMetaService(BaseService):
         MongoDBCCTopoOperator(cluster).transfer_instances_to_cluster_module(
             instances=mongo_objs, is_increment=is_increment
         )
+        if mongo_objs:
+            live_version = get_cluster_live_instance_version(cluster) or cluster.major_version
+            if live_version:
+                apply_mongodb_metadata_versions_to_cluster(
+                    cluster,
+                    live_version,
+                    instance_ids=[obj.id for obj in mongo_objs],
+                )
 
     # 获取到集群的master 节点， repSet 和 shardCluster 获取方式不一样
     def get_cluster_master_and_role(self, cluster: Cluster, scale_item: Dict):

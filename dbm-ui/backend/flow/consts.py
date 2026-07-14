@@ -625,6 +625,7 @@ class MongoDBActuatorActionEnum(StrStructuredEnum):
     ClusterBalancer = EnumField("cluster_balancer", _("cluster_balancer"))
     MongodNodeHidden = EnumField("mongod_node_hidden", _("mongod_node_hidden"))
     MongoSetFcv = EnumField("mongo_set_fcv", _("mongo_set_fcv"))
+    MongoUpgradeRsProtocol = EnumField("mongo_upgrade_rs_protocol", _("mongo_upgrade_rs_protocol"))
     FixServiceStatus = EnumField("fix_service_status", _("fix_service_status"))
     CleanResidualExporter = EnumField("mongodb_clean_residual_exporter", _("mongodb_clean_residual_exporter"))
 

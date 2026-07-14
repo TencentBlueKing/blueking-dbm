@@ -23,6 +23,7 @@ from backend.db_meta.enums import ClusterType, InstanceRole, InstanceStatus, Mac
 from backend.db_meta.models import Cluster, Machine, StorageInstance, StorageInstanceTuple
 from backend.flow.plugins.components.collections.common.base_service import BaseService
 from backend.flow.utils.mongodb.mongodb_module_operate import MongoDBCCTopoOperator
+from backend.flow.utils.mongodb.version_utils import apply_replaced_instance_version
 
 logger = logging.getLogger("flow")
 
@@ -171,6 +172,7 @@ class MongoDBCapcityMetaService(BaseService):
             new_obj.instance_role = old_obj.instance_role
             new_obj.instance_inner_role = old_obj.instance_inner_role
             new_obj.cluster_type = old_obj.cluster_type
+            apply_replaced_instance_version(cluster, new_obj, old_obj)
             new_obj.save(update_fields=["cluster_type", "instance_role", "instance_inner_role"])
             # machine 实例信息更新
             new_machine = new_obj.machine

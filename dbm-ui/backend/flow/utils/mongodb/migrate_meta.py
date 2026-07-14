@@ -13,16 +13,16 @@ import logging
 
 from django.utils.translation import gettext as _
 
-from backend.components import DBConfigApi, DnsApi
-from backend.components.dbconfig.constants import LevelName, ReqType
+from backend.components import DnsApi
 from backend.configuration.handlers.dba import DBAdministratorHandler
 from backend.db_meta.api.cluster.mongocluster import pkg_create_mongo_cluster
 from backend.db_meta.api.cluster.mongorepset import pkg_create_mongoset
 from backend.db_meta.enums import ClusterEntryType
 from backend.db_meta.enums.cluster_type import ClusterType
 from backend.db_meta.models import CLBEntryDetail, Cluster, ClusterEntry, Machine
-from backend.flow.consts import DEFAULT_CONFIG_CONFIRM, DEFAULT_DB_MODULE_ID, MongoDBManagerUser
+from backend.flow.consts import MongoDBManagerUser
 from backend.flow.utils import dns_manage
+from backend.flow.utils.mongodb.mongodb_conf_file import resolve_flow_dbconf_level_value, upsert_mongodb_cluster_dbconf
 from backend.flow.utils.mongodb.mongodb_module_operate import MongoDBCCTopoOperator
 from backend.flow.utils.mongodb.mongodb_password import MongoDBPassword
 
@@ -90,21 +90,16 @@ class MongoDBMigrateMeta(object):
     def save_config(self):
         """保存cluster的配置"""
 
-        DBConfigApi.upsert_conf_item(
-            {
-                "conf_file_info": {
-                    "conf_file": self.info["conf_file"],
-                    "conf_type": self.info["conf_type"],
-                    "namespace": self.info["namespace"],
-                },
-                "conf_items": self.info["conf_items"],
-                "level_info": {"module": str(DEFAULT_DB_MODULE_ID)},
-                "confirm": DEFAULT_CONFIG_CONFIRM,
-                "req_type": ReqType.SAVE_AND_PUBLISH,
-                "bk_biz_id": self.info["bk_biz_id"],
-                "level_name": LevelName.CLUSTER,
-                "level_value": self.info["cluster_name"],
-            }
+        level_value = resolve_flow_dbconf_level_value(
+            bk_biz_id=self.info["bk_biz_id"],
+            cluster_type=self.info["namespace"],
+            cluster_name=self.info["cluster_name"],
+        )
+        upsert_mongodb_cluster_dbconf(
+            bk_biz_id=self.info["bk_biz_id"],
+            namespace=self.info["namespace"],
+            level_value=level_value,
+            conf_items=self.info["conf_items"],
         )
 
     def upsert_dba(self):

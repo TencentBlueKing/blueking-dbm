@@ -92,12 +92,12 @@ COMPONENT_CONFIG_ITEMS = {
     },
     # ----- MongoDB -----
     ClusterType.MongoReplicaSet: {
-        ConfType.DBCONF: [DB_VERSION],
-        ConfType.CONFIG: [ConfFile.OSCONF, ConfFile.MONITOR],
+        ConfType.DBCONF: [ConfFile.MONGOD],
+        ConfType.CONFIG: [ConfFile.BACKUP, ConfFile.MONITOR],
     },
     ClusterType.MongoShardedCluster: {
-        ConfType.DBCONF: [DB_VERSION],
-        ConfType.CONFIG: [ConfFile.OSCONF, ConfFile.MONITOR],
+        ConfType.DBCONF: [ConfFile.SHARDSVR, ConfFile.CONFIGSVR, ConfFile.MONGOS],
+        ConfType.CONFIG: [ConfFile.BACKUP, ConfFile.MONITOR],
     },
     # ----- SQLServer -----
     ClusterType.SqlserverSingle: {

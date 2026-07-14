@@ -56,6 +56,14 @@ class ExecSendMediaOperation(BkJobService):
         )
         payload["file_target_path"] = kwargs["file_target_path"]
         payload["target_server"]["ip_list"] = kwargs["ip_list"]
+        self.log_info(
+            "[mongo deinstall media] node={} files={} hosts={} target={}".format(
+                node_name,
+                len(kwargs.get("file_list") or []),
+                len(kwargs.get("ip_list") or []),
+                kwargs.get("file_target_path"),
+            )
+        )
         self.log_info(_("[{}] 下发介质包参数：{}").format(node_name, payload))
         FlowNode.objects.filter(root_id=root_id, node_id=node_id).update(hosts=kwargs["exec_ips"])
 

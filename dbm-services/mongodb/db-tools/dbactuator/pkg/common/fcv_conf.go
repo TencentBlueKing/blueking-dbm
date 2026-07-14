@@ -3,8 +3,20 @@ package common
 import (
 	"encoding/json"
 	"fmt"
+	"strconv"
 	"strings"
 )
+
+const MinVersionWithFCV = 3.4
+
+// FcvCheckSupported reports whether major.minor supports featureCompatibilityVersion (>= 3.4).
+func FcvCheckSupported(majorMinor string) bool {
+	v, err := strconv.ParseFloat(majorMinor, 64)
+	if err != nil {
+		return false
+	}
+	return v >= MinVersionWithFCV
+}
 
 // GetFcv 对应 GetFCV（js_cmd）--eval 输出的返回。
 // featureCompatibilityVersion 通常为嵌套对象 {"version": "M.m"}；部分版本可能为字符串。

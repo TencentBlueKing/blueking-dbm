@@ -551,15 +551,42 @@ func (s *instOpJob) doPrecheckUpgrade() error {
 			runningMajor, expectedMajor, s.ConfParams.CurrentVersion)
 	}
 
-	// 2. Check featureCompatibilityVersion matches expected
-	fcv, err := common.GetFCV(mongoBin, ip, port, user, pass)
-	if err != nil {
-		return errors.Wrap(err, "get featureCompatibilityVersion")
-	}
-	s.runtime.Logger.Info("precheck: featureCompatibilityVersion=%s, expected=%s", fcv, expectedMajor)
-	if fcv != expectedMajor {
-		return fmt.Errorf("featureCompatibilityVersion %s does not match expected %s (from current_version %s)",
-			fcv, expectedMajor, s.ConfParams.CurrentVersion)
+	// 2. Check featureCompatibilityVersion matches expected (FCV exists only since MongoDB 3.4)
+	if !common.FcvCheckSupported(runningMajor) {
+		s.runtime.Logger.Info(
+			"precheck: skip featureCompatibilityVersion check for running version %s (< 3.4)",
+			runningMajor,
+		)
+	} else if strings.EqualFold(s.ConfParams.InstanceType, "mongos") || s.GetInstanceOp().IsMongosByDBType() {
+		// mongos 不是副本集成员，rs.isMaster().primary 恒为空；FCV 由 configsvr 维护，在 mongos 端口上不做此项检查。
+		s.runtime.Logger.Info(
+			"precheck: skip featureCompatibilityVersion check for mongos %s:%d",
+			ip, port,
+		)
+	} else {
+		fcvIP, fcvPort := ip, port
+		primaryInfo, perr := common.AuthGetPrimaryInfo(mongoBin, user, pass, ip, port)
+		if perr != nil {
+			return errors.Wrap(perr, "get primary for featureCompatibilityVersion check")
+		}
+		primaryParts := strings.Split(primaryInfo, ":")
+		if len(primaryParts) != 2 {
+			return fmt.Errorf("invalid primary address %q for featureCompatibilityVersion check", primaryInfo)
+		}
+		fcvIP = primaryParts[0]
+		fcvPort, perr = strconv.Atoi(primaryParts[1])
+		if perr != nil {
+			return fmt.Errorf("invalid port in primary address %q for featureCompatibilityVersion check: %w", primaryInfo, perr)
+		}
+		fcv, err := common.GetFCV(mongoBin, fcvIP, fcvPort, user, pass)
+		if err != nil {
+			return errors.Wrap(err, "get featureCompatibilityVersion")
+		}
+		s.runtime.Logger.Info("precheck: featureCompatibilityVersion=%s, expected=%s", fcv, expectedMajor)
+		if fcv != expectedMajor {
+			return fmt.Errorf("featureCompatibilityVersion %s does not match expected %s (from current_version %s)",
+				fcv, expectedMajor, s.ConfParams.CurrentVersion)
+		}
 	}
 
 	s.runtime.Logger.Info("precheck_upgrade passed for %s:%d", ip, port)

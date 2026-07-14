@@ -27,6 +27,7 @@ from backend.db_meta.api.cluster.nosqlcomm.precheck import (
 from backend.db_meta.enums import ClusterEntryType, ClusterPhase, ClusterStatus, ClusterType, InstanceRole, MachineType
 from backend.db_meta.models import Cluster, ClusterEntry, StorageInstance
 from backend.flow.utils.mongodb.mongodb_module_operate import MongoDBCCTopoOperator
+from backend.flow.utils.mongodb.version_utils import apply_mongodb_metadata_versions_to_cluster
 
 logger = logging.getLogger("flow")
 
@@ -177,4 +178,7 @@ def create_mongoset(
         logger.error(traceback.format_exc())
         raise Exception("mongoset add dns entry failed {}".format(e))
 
-    MongoDBCCTopoOperator(cluster).transfer_instances_to_cluster_module(storage_objs, is_increment=True)
+    MongoDBCCTopoOperator(cluster).transfer_replicaset_deploy_instances_to_cluster_module(storage_objs)
+    if major_version:
+        apply_mongodb_metadata_versions_to_cluster(cluster, major_version)
+    return cluster

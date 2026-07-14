@@ -41,6 +41,68 @@ class MongosShutdownMetaService(BaseService):
     }
     """
 
+    @staticmethod
+    def _snapshot_cluster_meta(cluster: Cluster) -> Dict:
+        return {
+            "cluster_id": cluster.id,
+            "domain": cluster.immute_domain,
+            "name": cluster.name,
+            "cluster_type": cluster.cluster_type,
+            "phase": cluster.phase,
+            "major_version": cluster.major_version or "",
+            "proxies": [
+                {"ip": row["machine__ip"], "port": row["port"]}
+                for row in cluster.proxyinstance_set.values("port", "machine__ip")
+            ],
+            "storages": [
+                {"ip": row["machine__ip"], "port": row["port"]}
+                for row in cluster.storageinstance_set.values("port", "machine__ip")
+            ],
+            "entries": [
+                {
+                    "type": row["cluster_entry_type"],
+                    "entry": row["entry"],
+                    "role": row["role"],
+                }
+                for row in cluster.clusterentry_set.values("cluster_entry_type", "entry", "role")
+            ],
+        }
+
+    def _log_shutdown_plan(self, snapshot: Dict) -> None:
+        lines = [
+            _("[mongo meta shutdown] cluster={} (id={}) type={} phase={}").format(
+                snapshot["domain"],
+                snapshot["cluster_id"],
+                snapshot["cluster_type"],
+                snapshot["phase"],
+            ),
+            "  {}: {}".format(_("major_version"), snapshot["major_version"] or "-"),
+            "  {}: proxy={}, storage={}, entry={}".format(
+                _("counts"),
+                len(snapshot["proxies"]),
+                len(snapshot["storages"]),
+                len(snapshot["entries"]),
+            ),
+        ]
+        for inst in snapshot["proxies"]:
+            lines.append("  proxy {}:{}".format(inst["ip"], inst["port"]))
+        for inst in snapshot["storages"]:
+            lines.append("  storage {}:{}".format(inst["ip"], inst["port"]))
+        for entry in snapshot["entries"]:
+            lines.append("  entry [{}] {} ({})".format(entry["type"], entry["entry"], entry["role"]))
+        self.log_info("\n".join(lines))
+
+    def _log_shutdown_summary(self, snapshot: Dict) -> None:
+        self.log_info(
+            "mongo meta shutdown done: cluster={} (id={}) removed proxy={}, storage={}, entry={}".format(
+                snapshot["domain"],
+                snapshot["cluster_id"],
+                len(snapshot["proxies"]),
+                len(snapshot["storages"]),
+                len(snapshot["entries"]),
+            )
+        )
+
     @transaction.atomic
     def decommission_proxies(self, cluster: Cluster, proxies: List[Dict]):
         logger.info("user request decmmission proxies {} {}".format(cluster.immute_domain, proxies))
@@ -122,13 +184,32 @@ class MongosShutdownMetaService(BaseService):
             logger.error(traceback.format_exc())
             raise e
 
+    def _log_shutdown_already_absent(self, kwargs: Dict) -> None:
+        domain = kwargs.get("immute_domain") or "-"
+        self.log_info(
+            "[mongo meta shutdown] skip: cluster already absent, domain={} id={} bk_biz_id={}".format(
+                domain,
+                kwargs.get("cluster_id"),
+                kwargs.get("bk_biz_id"),
+            )
+        )
+
     def _execute(self, data, parent_data) -> bool:
         kwargs = data.get_one_of_inputs("kwargs")
+        snapshot = None
 
         try:
             cluster = Cluster.objects.get(bk_biz_id=kwargs["bk_biz_id"], id=kwargs["cluster_id"])
+        except Cluster.DoesNotExist:
+            self._log_shutdown_already_absent(kwargs)
+            logger.info("cluster shutdown 4 meta skip, cluster already absent {}".format(kwargs))
+            return True
+
+        try:
+            snapshot = self._snapshot_cluster_meta(cluster)
+            self._log_shutdown_plan(snapshot)
             logger.info("user request decmmission cluster {}".format(cluster.immute_domain))
-            if cluster.cluster_type not in (ClusterType.MongoReplicaSet.value):
+            if cluster.cluster_type not in (ClusterType.MongoReplicaSet.value,):
                 proxies = [
                     {"ip": proxy_obj.machine.ip, "port": proxy_obj.port}
                     for proxy_obj in cluster.proxyinstance_set.all()
@@ -156,7 +237,16 @@ class MongosShutdownMetaService(BaseService):
         except Exception as e:
             logger.error(traceback.format_exc())
             logger.error("cluster shutdown 4 meta fail, {}error:{}".format(kwargs, str(e)))
+            domain = snapshot["domain"] if snapshot else kwargs.get("immute_domain") or kwargs.get("cluster_id")
+            self.log_error(
+                "[mongo meta shutdown] failed cluster={} (id={}): {}".format(
+                    domain,
+                    kwargs.get("cluster_id"),
+                    e,
+                )
+            )
             return False
+        self._log_shutdown_summary(snapshot)
         logger.info("cluster shutdown 4 meta successfully {}".format(kwargs))
         return True
 

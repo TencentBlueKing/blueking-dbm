@@ -155,9 +155,10 @@ def migrate_mongod_replace(
         cluster_name = sub_sub_get_kwargs.db_instance["seg_range"]
         sub_sub_get_kwargs.payload["cluster_type"] = ClusterType.MongoShardedCluster.value
         sub_sub_get_kwargs.payload["set_id"] = sub_sub_get_kwargs.db_instance["seg_range"]
-        sub_sub_get_kwargs.payload["key_file"] = sub_sub_get_kwargs.get_conf(
-            cluster_name=sub_sub_get_kwargs.db_instance["cluster_name"]
-        )["key_file"]
+        cluster_conf_name = sub_sub_get_kwargs.db_instance["cluster_name"]
+        sub_sub_get_kwargs.payload["key_file"] = sub_sub_get_kwargs.get_cluster_key_file(
+            cluster_name=cluster_conf_name
+        )
         sub_sub_get_kwargs.payload["config_nodes"] = []
         sub_sub_get_kwargs.payload["shards_nodes"] = []
         sub_sub_get_kwargs.payload["mongos_nodes"] = []
@@ -189,9 +190,9 @@ def migrate_mongod_replace(
         cluster_name = sub_sub_get_kwargs.db_instance["cluster_name"]
         sub_sub_get_kwargs.payload["cluster_type"] = ClusterType.MongoReplicaSet.value
         sub_sub_get_kwargs.payload["set_id"] = cluster_name
-        # 副本集直接获取配置
-        conf = sub_sub_get_kwargs.get_conf(cluster_name=cluster_name)
-        sub_sub_get_kwargs.replicaset_info["key_file"] = conf["key_file"]
+        key_file = sub_sub_get_kwargs.get_cluster_key_file(cluster_name=cluster_name)
+        sub_sub_get_kwargs.replicaset_info["key_file"] = key_file
+        sub_sub_get_kwargs.payload["key_file"] = key_file
 
     # 公共参数
     node_info = nodes_info[0]

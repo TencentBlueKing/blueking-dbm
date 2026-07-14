@@ -25,6 +25,19 @@ class ExecDeleteDomainFromDnsOperation(BaseService):
     DeleteDomainFromDns服务
     """
 
+    @staticmethod
+    def _format_delete_plan(kwargs: dict) -> str:
+        lines = [
+            "[mongo deinstall dns] bk_biz_id={} bk_cloud_id={}".format(
+                kwargs.get("bk_biz_id"),
+                kwargs.get("bk_cloud_id"),
+            ),
+        ]
+        for item in kwargs.get("del_domains", []):
+            instances = ", ".join(item.get("del_instance_list") or []) or "-"
+            lines.append("  domain={} instances=[{}]".format(item.get("domain"), instances))
+        return "\n".join(lines)
+
     def _execute(self, data, parent_data) -> bool:
         """
         执行删除domain功能的函数
@@ -34,18 +47,30 @@ class ExecDeleteDomainFromDnsOperation(BaseService):
 
         # 从流程节点中获取变量
         kwargs = data.get_one_of_inputs("kwargs")
+        self.log_info(self._format_delete_plan(kwargs))
 
         # 从dns删除domain
         for del_domain in kwargs["del_domains"]:
+            domain = del_domain["domain"]
+            del_instance_list = del_domain["del_instance_list"]
             result = dns_manage.DnsManage(
                 bk_biz_id=kwargs["bk_biz_id"], bk_cloud_id=kwargs["bk_cloud_id"]
-            ).remove_domain_ip(del_instance_list=del_domain["del_instance_list"], domain=del_domain["domain"])
+            ).remove_domain_ip(del_instance_list=del_instance_list, domain=domain)
             if not result:
                 self.log_error(
-                    "delete domain:{} with instance:{} to dns fail".format(kwargs["domain"], kwargs["instance_list"])
+                    "[mongo deinstall dns] failed domain={} instances=[{}]".format(
+                        domain,
+                        ", ".join(del_instance_list),
+                    )
                 )
                 return False
-            self.log_info("delete domain from dns successfully")
+            self.log_info(
+                "[mongo deinstall dns] removed domain={} instances=[{}]".format(
+                    domain,
+                    ", ".join(del_instance_list),
+                )
+            )
+        self.log_info("[mongo deinstall dns] done, domains={}".format(len(kwargs.get("del_domains", []))))
         return True
 
     # 流程节点输入参数
