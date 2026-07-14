@@ -24,12 +24,12 @@
           action-id="sqlserver_priv_manage"
           class="ml-4"
           :permission="data.permission.sqlserver_priv_manage"
-          :resource="bizId"
           size="small"
           @click="handleShowAuthorize">
           {{ t('授权') }}
         </AuthButton>
         <OperationBtnStatusTips
+          v-if="data.isOffline"
           v-db-console="'sqlserver.singleClusterList.enable'"
           :data="data">
           <BkButton
@@ -61,7 +61,9 @@
               <DbIcon type="more" />
             </BkButton>
           </template>
-          <div v-db-console="'sqlserver.singleClusterList.disable'">
+          <div
+            v-if="data.isOnline"
+            v-db-console="'sqlserver.singleClusterList.disable'">
             <OperationBtnStatusTips :data="data">
               <BkButton
                 :disabled="data.isOffline || Boolean(data.operationTicketId)"
@@ -152,8 +154,6 @@
   const emits = defineEmits<Emits>();
 
   const { ModuleNameInfo } = BaseInfoField;
-
-  const bizId = window.PROJECT_CONFIG.BIZ_ID;
 
   const { t } = useI18n();
 

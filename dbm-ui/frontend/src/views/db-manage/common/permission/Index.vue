@@ -34,7 +34,6 @@
           :action-id="
             accountType === AccountTypes.SQLSERVER ? `${accountType}_priv_manage` : `${accountType}_account_create`
           "
-          :resource="accountType === AccountTypes.SQLSERVER ? bizId : undefined"
           theme="primary"
           @click="handleShowAccountDialog">
           {{ t('新建账号') }}
@@ -374,7 +373,7 @@
                         : `${props.accountType}_add_account_rule`
                     ]
                   }
-                  resource={props.accountType === AccountTypes.SQLSERVER ? bizId : data.account.account_id}
+                  resource={props.accountType === AccountTypes.SQLSERVER ? undefined : data.account.account_id}
                   size='small'
                   onClick={(event: PointerEvent) => handleShowCreateRule(data, event)}>
                   {t('添加授权规则')}
@@ -431,7 +430,7 @@
                       : `${props.accountType}_add_account_rule`
                   ]
                 }
-                resource={props.accountType === AccountTypes.SQLSERVER ? bizId : data.account.account_id}
+                resource={props.accountType === AccountTypes.SQLSERVER ? undefined : data.account.account_id}
                 size='small'
                 text
                 theme='primary'
@@ -505,7 +504,7 @@
                       : `${props.accountType}_account_delete`
                   ]
                 }
-                resource={props.accountType === AccountTypes.SQLSERVER ? bizId : data.account.account_id}
+                resource={props.accountType === AccountTypes.SQLSERVER ? undefined : data.account.account_id}
                 text
                 theme='primary'
                 onClick={() => handleDeleteAccount(data)}>
@@ -526,7 +525,6 @@
               <auth-button
                 action-id={`${props.accountType}_priv_manage`}
                 permission={data.permission[`${props.accountType}_priv_manage`]}
-                resource={bizId}
                 text
                 theme='primary'
                 onClick={(event: PointerEvent) => handleShowAuthorize(data, item, event)}>
@@ -556,7 +554,6 @@
                       class='ml-8'
                       disabled={Boolean(data.rules[index].priv_ticket?.ticket_id)}
                       permission={data.permission[`${props.accountType}_priv_manage`]}
-                      resource={bizId}
                       text
                       theme='primary'
                       onClick={(event: PointerEvent) => handleShowEditRule(event, data, index)}>
@@ -599,7 +596,6 @@
                       class='ml-8'
                       disabled={Boolean(data.rules[index].priv_ticket?.ticket_id)}
                       permission={data.permission[`${props.accountType}_priv_manage`]}
-                      resource={bizId}
                       text
                       theme='primary'>
                       {t('删除')}
