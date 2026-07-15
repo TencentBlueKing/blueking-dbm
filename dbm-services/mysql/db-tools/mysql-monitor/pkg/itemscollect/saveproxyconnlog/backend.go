@@ -99,7 +99,7 @@ func batchInsert(ctx context.Context, conn *sqlx.Conn, entries []*ConnLogEntry, 
 		}
 	}
 
-	slog.Info("batch insert proxy conn log", slog.Int("count", len(entries)))
+	// slog.Info("batch insert proxy conn log", slog.Int("count", len(entries)))
 	return nil
 }
 

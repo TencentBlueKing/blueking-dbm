@@ -3,7 +3,7 @@
 # Schema: dbtest3  Last_errno: 0  Killed: 0
 # Query_time: 17.501662  Lock_time: 0.000423  Rows_sent: 12  Rows_examined: 49798517  Rows_affected: 0
 # Bytes_sent: 825
-# Db_name: dbtest3  Query_start_ts: 1782921603  Session_id: 622265227
+# Db_name:   Query_start_ts: 1782921603  Session_id: 622265227
 use dbtest3;
 SET timestamp=1782921620;
 select  'STATUS-latest-12hour',status,count(*),
@@ -26,7 +26,7 @@ order by FIELD(status,0,1,2,26,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21
 # Schema: dbtest3  Last_errno: 0  Killed: 0
 # Query_time: 256.054094  Lock_time: 0.000070  Rows_sent: 0  Rows_examined: 500532  Rows_affected: 500000
 # Bytes_sent: 14
-# Db_name: dbtest3  Query_start_ts: 1782922802  Session_id: 622271910
+# Db_name:   Query_start_ts: 1782922802  Session_id: 622271910
 SET timestamp=1782923058;
 select sleep(10);
 
@@ -35,7 +35,7 @@ select sleep(10);
 # Schema: dbtest3  Last_errno: 0  Killed: 0
 # Query_time: 232.440966  Lock_time: 0.000072  Rows_sent: 0  Rows_examined: 501110  Rows_affected: 500000
 # Bytes_sent: 14
-# Db_name: dbtest3  Query_start_ts: 1782923435  Session_id: 622271910
+# Db_name:   Query_start_ts: 1782923435  Session_id: 622271910
 SET timestamp=1782923667;
 select sleep(10);
 
@@ -64,7 +64,7 @@ select sleep(10);
 # Thread_id: 98343452  Schema: tesddb_639  QC_hit: No
 # Query_time: 5.368769  Lock_time: 0.046386  Rows_sent: 0  Rows_examined: 0
 # Rows_affected: 5109  Bytes_sent: 3144752
-# Db_name: tesddb_639  Query_start_ts: 1782921300  Session_id: 98343452
+# Db_name:   Query_start_ts: 1782921300  Session_id: 98343452
 use tesddb_639;
 SET timestamp=1782921305;
 select sleep(10);
@@ -74,7 +74,7 @@ select sleep(10);
 # Thread_id: 98343452  Schema: tesddb_631  QC_hit: No
 # Query_time: 5.368769  Lock_time: 0.046386  Rows_sent: 0  Rows_examined: 0
 # Rows_affected: 5109  Bytes_sent: 3144752
-# Db_name: tesddb_631  Query_start_ts: 1782977115  Session_id: 98343452
+# Db_name:   Query_start_ts: 1782977115  Session_id: 98343452
 SET timestamp=1782977115;
 select sleep(10) from infodba_schema.master_slave_heartbeat where
   master_server_id!=slave_server_id and
@@ -106,7 +106,7 @@ select sleep(4) from infodba_schema.master_slave_heartbeat;
 # Time: 2026-07-02T09:10:59.020164Z
 # User@Host: testuser1[testuser1 @ localhost []  Id: 17661313  Schema:  QC_hit: No
 # Query_time: 2.000347  Lock_time: 0.000004 Rows_sent: 1  Rows_examined: 1
-# Db_name: infodba_schema  Query_start_ts: 1782983457  Session_id: 17661313
+# Db_name:   Query_start_ts: 1782983457  Session_id: 17661313
 use infodba_schema;
 SET timestamp=1782983457;·
 select sleep(2) from infodba_schema.master_slave_heartbeat;
