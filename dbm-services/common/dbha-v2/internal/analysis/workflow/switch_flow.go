@@ -168,6 +168,37 @@ func (e *SwitchExecutor) MatchStrategyForGroup(ctx context.Context, group *Failu
 	return true, candidates[0]
 }
 
+// excludeUnavailableInstances keeps only the group instances that appear in DBM's query result
+// (req.MySqlInstData); exclude unavailable instances.
+//
+// Problem it solves: after a successful switch the failed instance may not recover immediately,
+// so its stale failure event can be pushed into the sliding window again. Counting those already-switched
+// instances during strategy matching inflates the match count and matches a wrong strategy.
+//
+// The original group is left untouched so downstream logging and inflight cleanup still see the
+// full failure set.
+func excludeUnavailableInstances(groupInsts []FailureInstanceInfo, req *switcher.Request) []FailureInstanceInfo {
+	if req == nil || len(req.MySqlInstData) == 0 {
+		return nil
+	}
+
+	reqKeys := make(map[string]struct{}, len(req.MySqlInstData))
+	for _, meta := range req.MySqlInstData {
+		reqKeys[instanceKey(meta.BkCloudID, meta.IP, meta.Port)] = struct{}{}
+	}
+
+	out := make([]FailureInstanceInfo, 0, len(groupInsts))
+	for _, inst := range groupInsts {
+		if _, ok := reqKeys[instanceKey(inst.BkCloudID, inst.IP, inst.Port)]; ok {
+			out = append(out, inst)
+		} else {
+			logger.Debug("exclude unavailable instance, cloudId: %d, dbType: %s, ip: %s, port: %d",
+				inst.BkCloudID, req.DbType, inst.IP, inst.Port)
+		}
+	}
+	return out
+}
+
 // TriggerSwitching runs the switcher for the given db type and posts success/failure alarms.
 func (e *SwitchExecutor) TriggerSwitching(dbType haprobe.DbType, req *switcher.Request,
 	snapshotData *snapshotlogger.SwitchingSnapshotData) {

@@ -33,7 +33,6 @@ import (
 	"dbm-services/common/dbha-v2/internal/analysis/config"
 	"dbm-services/common/dbha-v2/internal/analysis/dbm"
 	"dbm-services/common/dbha-v2/internal/analysis/switcher"
-
 	"dbm-services/common/dbha-v2/internal/analysis/testutil"
 	"dbm-services/common/dbha-v2/pkg/storage/hamodel"
 	"dbm-services/common/dbha-v2/pkg/storage/haprobe"
@@ -68,12 +67,24 @@ func setupEnableWhiteListForTest(t *testing.T) {
 	})
 }
 
+func setupBlackWhiteListAPIForTest(t *testing.T, serverURL string) {
+	t.Helper()
+	old := config.Cfg.Workflow.Dbhav1ApiBlackWhitelistGet
+	config.Cfg.Workflow.Dbhav1ApiBlackWhitelistGet.Api = serverURL
+	config.Cfg.Workflow.Dbhav1ApiBlackWhitelistGet.Token = "test-token"
+	config.Cfg.Workflow.Dbhav1ApiBlackWhitelistGet.Timeout = time.Second
+	t.Cleanup(func() {
+		config.Cfg.Workflow.Dbhav1ApiBlackWhitelistGet = old
+	})
+}
+
 func newWorkflowForHandleFailureGroupTests(t *testing.T, dbmClient *dbm.Client) *Workflow {
 	t.Helper()
 	td := testutil.NewTestDbhaData(t)
 	return &Workflow{
 		hadata:    td.DbhaData,
 		alarm:     NewAlarmNotifier(),
+		dbmSync:   &Synchronizer{cli: dbmClient},
 		windowMgr: NewBizWindowManager(10*time.Second, 30*time.Second, "test-service"),
 		switchExecutor: &SwitchExecutor{
 			hadata: td.DbhaData,
@@ -277,12 +288,17 @@ func TestMarkDoneAllReleasesAllKeys(t *testing.T) {
 func TestFilterWhitelistedInstances_NoWhitelistNotifiesAll(t *testing.T) {
 	setupEnableSwitchingForTest(t)
 	setupEnableWhiteListForTest(t)
-	w := newWorkflowForHandleFailureGroupTests(t, nil)
+
+	// dbha-v1 returns an empty whitelist
+	server := testutil.NewDbhaV1BlackWhiteListTestServer(t, nil)
+	setupBlackWhiteListAPIForTest(t, server.URL)
+
+	w := newWorkflowForHandleFailureGroupTests(t, &dbm.Client{})
 	group := buildSingleFailureGroup()
 	req := &switcher.Request{
 		DbType: haprobe.DbTypeMySql,
 		MySqlInstData: []*dbm.DbInstMetadata{
-			{BkCloudID: 1, IP: "127.0.0.10", Port: 3306, ClusterID: 200, Cluster: "test-cluster", Status: dbm.Available},
+			{BkBizID: 100, BkCloudID: 1, IP: "127.0.0.10", Port: 3306, ClusterID: 200, Cluster: "test-cluster", Status: dbm.Available},
 		},
 	}
 
@@ -297,24 +313,25 @@ func TestFilterWhitelistedInstances_NoWhitelistNotifiesAll(t *testing.T) {
 func TestFilterWhitelistedInstances_WhitelistedInstanceKept(t *testing.T) {
 	setupEnableSwitchingForTest(t)
 	setupEnableWhiteListForTest(t)
-	w := newWorkflowForHandleFailureGroupTests(t, nil)
 
-	testutil.InsertBlackWhiteList(t, w.hadata,
-		&hamodel.DbBlackWhiteList{
+	// dbha-v1 whitelist contains cluster 200
+	server := testutil.NewDbhaV1BlackWhiteListTestServer(t, []*dbm.Dbhav1BlackWhiteListItem{
+		{
 			BkBizID:       100,
-			BkCloudID:     1,
 			ClusterID:     200,
 			ClusterName:   "test-cluster",
-			SwitchVersion: hamodel.SwitchVersionV2,
-			Status:        hamodel.StatusTypeEnabled,
+			SwitchVersion: string(hamodel.SwitchVersionV2),
+			Status:        string(hamodel.StatusTypeEnabled),
 		},
-	)
+	})
+	setupBlackWhiteListAPIForTest(t, server.URL)
 
+	w := newWorkflowForHandleFailureGroupTests(t, &dbm.Client{})
 	group := buildSingleFailureGroup()
 	req := &switcher.Request{
 		DbType: haprobe.DbTypeMySql,
 		MySqlInstData: []*dbm.DbInstMetadata{
-			{BkCloudID: 1, IP: "127.0.0.10", Port: 3306, ClusterID: 200, Cluster: "test-cluster", Status: dbm.Available},
+			{BkBizID: 100, BkCloudID: 1, IP: "127.0.0.10", Port: 3306, ClusterID: 200, Cluster: "test-cluster", Status: dbm.Available},
 		},
 	}
 
@@ -329,25 +346,26 @@ func TestFilterWhitelistedInstances_WhitelistedInstanceKept(t *testing.T) {
 func TestFilterWhitelistedInstances_PartialWhitelisted(t *testing.T) {
 	setupEnableSwitchingForTest(t)
 	setupEnableWhiteListForTest(t)
-	w := newWorkflowForHandleFailureGroupTests(t, nil)
 
-	testutil.InsertBlackWhiteList(t, w.hadata,
-		&hamodel.DbBlackWhiteList{
+	// dbha-v1 whitelist contains only cluster 200
+	server := testutil.NewDbhaV1BlackWhiteListTestServer(t, []*dbm.Dbhav1BlackWhiteListItem{
+		{
 			BkBizID:       100,
-			BkCloudID:     1,
 			ClusterID:     200,
 			ClusterName:   "whitelisted-cluster",
-			SwitchVersion: hamodel.SwitchVersionV2,
-			Status:        hamodel.StatusTypeEnabled,
+			SwitchVersion: string(hamodel.SwitchVersionV2),
+			Status:        string(hamodel.StatusTypeEnabled),
 		},
-	)
+	})
+	setupBlackWhiteListAPIForTest(t, server.URL)
 
+	w := newWorkflowForHandleFailureGroupTests(t, &dbm.Client{})
 	group := buildSingleFailureGroup()
 	req := &switcher.Request{
 		DbType: haprobe.DbTypeMySql,
 		MySqlInstData: []*dbm.DbInstMetadata{
-			{BkCloudID: 1, IP: "127.0.0.10", Port: 3306, ClusterID: 200, Cluster: "whitelisted-cluster", Status: dbm.Available},
-			{BkCloudID: 1, IP: "127.0.0.11", Port: 3306, ClusterID: 300, Cluster: "normal-cluster", Status: dbm.Available},
+			{BkBizID: 100, BkCloudID: 1, IP: "127.0.0.10", Port: 3306, ClusterID: 200, Cluster: "whitelisted-cluster", Status: dbm.Available},
+			{BkBizID: 100, BkCloudID: 1, IP: "127.0.0.11", Port: 3306, ClusterID: 300, Cluster: "normal-cluster", Status: dbm.Available},
 		},
 	}
 
@@ -366,24 +384,17 @@ func TestFilterWhitelistedInstances_PartialWhitelisted(t *testing.T) {
 func TestFilterWhitelistedInstances_V1SwitchVersionNotWhitelisted(t *testing.T) {
 	setupEnableSwitchingForTest(t)
 	setupEnableWhiteListForTest(t)
-	w := newWorkflowForHandleFailureGroupTests(t, nil)
 
-	testutil.InsertBlackWhiteList(t, w.hadata,
-		&hamodel.DbBlackWhiteList{
-			BkBizID:       100,
-			BkCloudID:     1,
-			ClusterID:     200,
-			ClusterName:   "v1-cluster",
-			SwitchVersion: hamodel.SwitchVersionV1,
-			Status:        hamodel.StatusTypeEnabled,
-		},
-	)
+	// dbha-v1 filters out v1 switch version, so the whitelist is empty
+	server := testutil.NewDbhaV1BlackWhiteListTestServer(t, nil)
+	setupBlackWhiteListAPIForTest(t, server.URL)
 
+	w := newWorkflowForHandleFailureGroupTests(t, &dbm.Client{})
 	group := buildSingleFailureGroup()
 	req := &switcher.Request{
 		DbType: haprobe.DbTypeMySql,
 		MySqlInstData: []*dbm.DbInstMetadata{
-			{BkCloudID: 1, IP: "127.0.0.10", Port: 3306, ClusterID: 200, Cluster: "v1-cluster", Status: dbm.Available},
+			{BkBizID: 100, BkCloudID: 1, IP: "127.0.0.10", Port: 3306, ClusterID: 200, Cluster: "v1-cluster", Status: dbm.Available},
 		},
 	}
 
@@ -398,24 +409,17 @@ func TestFilterWhitelistedInstances_V1SwitchVersionNotWhitelisted(t *testing.T) 
 func TestFilterWhitelistedInstances_DisabledWhitelistNotWhitelisted(t *testing.T) {
 	setupEnableSwitchingForTest(t)
 	setupEnableWhiteListForTest(t)
-	w := newWorkflowForHandleFailureGroupTests(t, nil)
 
-	testutil.InsertBlackWhiteList(t, w.hadata,
-		&hamodel.DbBlackWhiteList{
-			BkBizID:       100,
-			BkCloudID:     1,
-			ClusterID:     200,
-			ClusterName:   "disabled-cluster",
-			SwitchVersion: hamodel.SwitchVersionV2,
-			Status:        hamodel.StatusTypeDisabled,
-		},
-	)
+	// dbha-v1 filters out disabled entries, so the whitelist is empty
+	server := testutil.NewDbhaV1BlackWhiteListTestServer(t, nil)
+	setupBlackWhiteListAPIForTest(t, server.URL)
 
+	w := newWorkflowForHandleFailureGroupTests(t, &dbm.Client{})
 	group := buildSingleFailureGroup()
 	req := &switcher.Request{
 		DbType: haprobe.DbTypeMySql,
 		MySqlInstData: []*dbm.DbInstMetadata{
-			{BkCloudID: 1, IP: "127.0.0.10", Port: 3306, ClusterID: 200, Cluster: "disabled-cluster", Status: dbm.Available},
+			{BkBizID: 100, BkCloudID: 1, IP: "127.0.0.10", Port: 3306, ClusterID: 200, Cluster: "disabled-cluster", Status: dbm.Available},
 		},
 	}
 
@@ -429,7 +433,7 @@ func TestFilterWhitelistedInstances_DisabledWhitelistNotWhitelisted(t *testing.T
 
 func TestFilterWhitelistedInstances_WhiteListDisabledSkipsFiltering(t *testing.T) {
 	setupEnableSwitchingForTest(t)
-	w := newWorkflowForHandleFailureGroupTests(t, nil)
+	w := newWorkflowForHandleFailureGroupTests(t, &dbm.Client{})
 
 	// whitelist feature is disabled: filtering is skipped, all instances proceed to switching
 	config.Cfg.Workflow.EnableWhiteList = false
@@ -453,18 +457,7 @@ func TestFilterWhitelistedInstances_WhiteListDisabledSkipsFiltering(t *testing.T
 func TestFilterWhitelistedInstances_SwitchingDisabledSkipsFiltering(t *testing.T) {
 	setupEnableSwitchingForTest(t)
 	setupEnableWhiteListForTest(t)
-	w := newWorkflowForHandleFailureGroupTests(t, nil)
-
-	testutil.InsertBlackWhiteList(t, w.hadata,
-		&hamodel.DbBlackWhiteList{
-			BkBizID:       100,
-			BkCloudID:     1,
-			ClusterID:     200,
-			ClusterName:   "test-cluster",
-			SwitchVersion: hamodel.SwitchVersionV2,
-			Status:        hamodel.StatusTypeEnabled,
-		},
-	)
+	w := newWorkflowForHandleFailureGroupTests(t, &dbm.Client{})
 
 	// switching is disabled: filtering is skipped, req.MySqlInstData is unchanged
 	config.Cfg.Workflow.EnableSwitching = false
@@ -487,24 +480,25 @@ func TestFilterWhitelistedInstances_SwitchingDisabledSkipsFiltering(t *testing.T
 func TestFilterWhitelistedInstances_NoneWhitelisted(t *testing.T) {
 	setupEnableSwitchingForTest(t)
 	setupEnableWhiteListForTest(t)
-	w := newWorkflowForHandleFailureGroupTests(t, nil)
 
-	testutil.InsertBlackWhiteList(t, w.hadata,
-		&hamodel.DbBlackWhiteList{
+	// dbha-v1 whitelist contains cluster 999, which does not match the instance (cluster 200)
+	server := testutil.NewDbhaV1BlackWhiteListTestServer(t, []*dbm.Dbhav1BlackWhiteListItem{
+		{
 			BkBizID:       100,
-			BkCloudID:     1,
 			ClusterID:     999,
 			ClusterName:   "other-cluster",
-			SwitchVersion: hamodel.SwitchVersionV2,
-			Status:        hamodel.StatusTypeEnabled,
+			SwitchVersion: string(hamodel.SwitchVersionV2),
+			Status:        string(hamodel.StatusTypeEnabled),
 		},
-	)
+	})
+	setupBlackWhiteListAPIForTest(t, server.URL)
 
+	w := newWorkflowForHandleFailureGroupTests(t, &dbm.Client{})
 	group := buildSingleFailureGroup()
 	req := &switcher.Request{
 		DbType: haprobe.DbTypeMySql,
 		MySqlInstData: []*dbm.DbInstMetadata{
-			{BkCloudID: 1, IP: "127.0.0.10", Port: 3306, ClusterID: 200, Cluster: "unmatched-cluster", Status: dbm.Available},
+			{BkBizID: 100, BkCloudID: 1, IP: "127.0.0.10", Port: 3306, ClusterID: 200, Cluster: "unmatched-cluster", Status: dbm.Available},
 		},
 	}
 

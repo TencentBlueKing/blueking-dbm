@@ -72,8 +72,15 @@ func NewSwitchingSnapshotData(
 		metaSet = req.MySqlInstData
 	}
 
+	// build a lookup of instance detection times (from the SSH double-check) keyed by instance
+	checkTimeByInst := make(map[string]*FailureInstanceInfo, len(group.Instances))
+	for i := range group.Instances {
+		inst := &group.Instances[i]
+		checkTimeByInst[instanceKey(inst.BkCloudID, inst.IP, inst.Port)] = inst
+	}
+
 	// set instances on the DB log record for persistence
-	instances := buildInstancesListFromMetadata(metaSet)
+	instances := buildInstancesListFromMetadata(metaSet, checkTimeByInst)
 	data.DbSwitchingSnapshotLog.SetInstances(instances)
 
 	metadataJSON, err := json.Marshal(metaSet)
@@ -193,7 +200,12 @@ func (s *SwitchingSnapshotReport) ReportAfterSwitchingSnapshot(rsp *switcher.Res
 
 // buildInstancesListFromMetadata converts a DbInstMetadata list to a SwitchingSnapshotInstance
 // list for database storage. If the instance role is empty, it falls back to the Spider role.
-func buildInstancesListFromMetadata(metaSet []*dbm.DbInstMetadata) []*hamodel.SwitchingSnapshotInstance {
+// checkTimeByInst maps each instance to its SSH detection window from the failure group;
+// a match extracts the detection times for the corresponding snapshot instance.
+func buildInstancesListFromMetadata(
+	metaSet []*dbm.DbInstMetadata,
+	checkTimeByInst map[string]*FailureInstanceInfo,
+) []*hamodel.SwitchingSnapshotInstance {
 	if metaSet == nil {
 		return nil
 	}
@@ -205,13 +217,20 @@ func buildInstancesListFromMetadata(metaSet []*dbm.DbInstMetadata) []*hamodel.Sw
 			instanceRole = string(meta.SpiderRole)
 		}
 
-		// TODO: Need to fetch CheckStartTime and CheckFinishedTime via SSH to supplement instance info
+		var checkStart, checkFinish *time.Time
+		if src, ok := checkTimeByInst[instanceKey(meta.BkCloudID, meta.IP, meta.Port)]; ok {
+			checkStart = src.CheckStartTime
+			checkFinish = src.CheckFinishedTime
+		}
+
 		instances = append(instances, &hamodel.SwitchingSnapshotInstance{
-			IP:           meta.IP,
-			Port:         meta.Port,
-			MachineType:  string(meta.MachineType),
-			InstanceRole: instanceRole,
-			BkIdcID:      meta.BkIdcID,
+			IP:                meta.IP,
+			Port:              meta.Port,
+			MachineType:       string(meta.MachineType),
+			InstanceRole:      instanceRole,
+			BkIdcID:           meta.BkIdcID,
+			CheckStartTime:    checkStart,
+			CheckFinishedTime: checkFinish,
 		})
 	}
 

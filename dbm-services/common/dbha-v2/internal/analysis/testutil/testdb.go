@@ -126,3 +126,27 @@ func NewDbmMetadataTestServer(t *testing.T, statusCode int, data []*dbm.DbInstMe
 	t.Cleanup(server.Close)
 	return server
 }
+
+// NewDbhaV1BlackWhiteListTestServer creates a dbha-v1 black-white list api test server.
+// It mirrors NewDbmMetadataTestServer: the handler returns the supplied items so the
+// Synchronizer's real HTTP query path (GetBlackWhiteListFromDbhaV1) is exercised.
+func NewDbhaV1BlackWhiteListTestServer(t *testing.T, items []*dbm.Dbhav1BlackWhiteListItem) *httptest.Server {
+	t.Helper()
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost {
+			t.Errorf("unexpected method: %s", r.Method)
+		}
+
+		resp := &dbm.Dbhav1BlackWhiteListResponse{
+			Code:    0,
+			Message: "ok",
+			Data:    items,
+		}
+
+		if err := json.NewEncoder(w).Encode(resp); err != nil {
+			t.Errorf("failed to encode response: %v", err)
+		}
+	}))
+	t.Cleanup(server.Close)
+	return server
+}

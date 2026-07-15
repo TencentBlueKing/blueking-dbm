@@ -501,13 +501,22 @@ func (w *Workflow) handleFailureGroup(ctx context.Context, group *FailureGroup) 
 		return
 	}
 
-	matched, strategy := w.switchExecutor.MatchStrategyForGroup(ctx, group)
+	// Build switchGroup with only the instances still reported available by DBM, so strategy
+	// matching counts the actually-switchable ones instead of stale failures. The original group
+	// remains the source of truth for downstream logging and inflight cleanup.
+	switchGroup := &FailureGroup{
+		BkCloudID: group.BkCloudID,
+		DbType:    group.DbType,
+		Instances: excludeUnavailableInstances(group.Instances, req),
+	}
+	matched, strategy := w.switchExecutor.MatchStrategyForGroup(ctx, switchGroup)
 	if !matched {
 		logger.Info(
-			"no matching switching strategy, skip, cloudId: %d, dbType: %s, instances: %d, events: [%s]",
+			"no matching switching strategy, skip, cloudId: %d, dbType: %s, instances: %d (matched: %d), events: [%s]",
 			group.BkCloudID,
 			group.DbType,
 			len(group.Instances),
+			len(switchGroup.Instances),
 			FormatInstanceEventSummary(group.Instances),
 		)
 		return
