@@ -2412,6 +2412,18 @@ class ActionEnum:
         common_labels=[CommonActionLabel.BIZ_MAINTAIN],
     )
 
+    SQLSERVER_DESTROY = ActionMeta(
+        id="sqlserver_destroy",
+        name=_("SQLServer 集群删除"),
+        name_en="SQLServer Destroy",
+        type="execute",
+        related_actions=[SQLSERVER_VIEW.id],
+        related_resource_types=[ResourceEnum.SQLSERVER],
+        group=_("SQLServer"),
+        subgroup=_("集群管理"),
+        common_labels=[CommonActionLabel.BIZ_MAINTAIN],
+    )
+
     ORACLE_VIEW = ActionMeta(
         id="oracle_view",
         name=_("Oracle 集群详情查看"),

@@ -97,6 +97,9 @@ class BaseSQLServerViewSet(viewsets.ResourceViewSet):
     db_type = DBType.Sqlserver
 
     list_perm_actions = [
+        ActionEnum.SQLSERVER_MANAGE,
+        ActionEnum.SQLSERVER_ENABLE_DISABLE,
+        ActionEnum.SQLSERVER_DESTROY,
         ActionEnum.SQLSERVER_VIEW,
         ActionEnum.SQLSERVER_EDIT,
         ActionEnum.SQLSERVER_SUBSCRIBE_MONITOR,
