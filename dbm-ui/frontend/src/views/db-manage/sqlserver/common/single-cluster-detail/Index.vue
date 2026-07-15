@@ -32,24 +32,30 @@
           v-if="data.isOffline"
           v-db-console="'sqlserver.singleClusterList.enable'"
           :data="data">
-          <BkButton
+          <AuthButton
+            action-id="sqlserver_enable_disable"
             class="ml-4"
             :disabled="data.isStarting"
+            :permission="data.permission.sqlserver_enable_disable"
+            :resource="data.id"
             size="small"
             @click="handleEnableCluster([data])">
             {{ t('启用') }}
-          </BkButton>
+          </AuthButton>
         </OperationBtnStatusTips>
         <OperationBtnStatusTips
           v-db-console="'sqlserver.singleClusterList.reset'"
           :data="data">
-          <BkButton
+          <AuthButton
+            action-id="sqlserver_manage"
             class="ml-4"
             :disabled="!data.isOffline"
+            :permission="data.permission.sqlserver_manage"
+            :resource="data.id"
             size="small"
             @click="handleResetCluster">
             {{ t('重置') }}
-          </BkButton>
+          </AuthButton>
         </OperationBtnStatusTips>
         <MoreActionExtend>
           <template #trigger>
@@ -65,26 +71,32 @@
             v-if="data.isOnline"
             v-db-console="'sqlserver.singleClusterList.disable'">
             <OperationBtnStatusTips :data="data">
-              <BkButton
+              <AuthButton
+                action-id="sqlserver_enable_disable"
                 :disabled="data.isOffline || Boolean(data.operationTicketId)"
+                :permission="data.permission.sqlserver_enable_disable"
+                :resource="data.id"
                 text
                 @click="handleDisableCluster([data])">
                 {{ t('禁用') }}
-              </BkButton>
+              </AuthButton>
             </OperationBtnStatusTips>
           </div>
           <div v-db-console="'sqlserver.singleClusterList.delete'">
             <OperationBtnStatusTips :data="data">
-              <BkButton
+              <AuthButton
                 v-bk-tooltips="{
                   disabled: data.isOffline,
                   content: t('请先禁用集群'),
                 }"
+                action-id="sqlserver_destroy"
                 :disabled="data.isOnline || Boolean(data.operationTicketId)"
+                :permission="data.permission.sqlserver_destroy"
+                :resource="data.id"
                 text
                 @click="handleDeleteCluster([data])">
                 {{ t('删除') }}
-              </BkButton>
+              </AuthButton>
             </OperationBtnStatusTips>
           </div>
           <ClusterDomainDnsRelation :data="data" />
