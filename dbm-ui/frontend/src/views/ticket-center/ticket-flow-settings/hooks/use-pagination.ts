@@ -38,19 +38,9 @@ export const usePagination = (options?: { callback?: () => void; defaultLimit?: 
     options?.callback?.();
   };
 
-  const updateTotal = (total: number) => {
-    pagination.count = total;
-  };
-
-  const resetPage = () => {
-    pagination.current = 1;
-  };
-
   return {
     handlePageLimitChange,
     handlePageValueChange,
     pagination,
-    resetPage,
-    updateTotal,
   };
 };

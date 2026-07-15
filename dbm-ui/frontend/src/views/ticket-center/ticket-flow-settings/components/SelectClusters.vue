@@ -1,7 +1,14 @@
 <template>
-  <div class="target-form-item">
+  <BkFormItem
+    class="target-form-item"
+    :class="{
+      'is-error': Boolean(errorMessage),
+    }"
+    :label="t('集群')"
+    property="cluster_ids"
+    required>
     <BkSelect
-      v-model="modelValue"
+      v-model="selectedIds"
       class="target-select"
       :class="{
         'is-error': Boolean(errorMessage),
@@ -29,7 +36,8 @@
         v-bk-tooltips="errorMessage"
         type="exclamation-fill" />
     </div>
-  </div>
+    <p class="target-form-tip">{{ t('按集群子策略之间集群不可重叠') }}</p>
+  </BkFormItem>
 </template>
 
 <script setup lang="ts">
@@ -43,22 +51,29 @@
 
   import useValidtor from '@components/render-table/hooks/useValidtor';
 
+  // 按集群子策略的集群元素
+  export interface SelectedCluster {
+    id: number;
+    immute_domain: string;
+  }
+
   interface Props {
     bizId: number;
     dbType: DBTypes;
   }
 
-  type Emits = (e: 'change', value: number[]) => void;
+  type Emits = (e: 'change', value: SelectedCluster[]) => void;
 
   interface Exposes {
-    getValue: () => Promise<number[]>;
+    getValue: () => Promise<SelectedCluster[]>;
   }
 
   const props = defineProps<Props>();
 
   const emits = defineEmits<Emits>();
 
-  const modelValue = defineModel<number[]>({
+  // 对外暴露对象数组；内部用原始 id 数组驱动 BkSelect 多选
+  const modelValue = defineModel<SelectedCluster[]>({
     default: [],
   });
 
@@ -67,7 +82,7 @@
   const rules = [
     {
       message: t('至少选择一个集群'),
-      validator: (value: number[]) => value.length > 0,
+      validator: (value: SelectedCluster[]) => value.length > 0,
     },
   ];
 
@@ -79,6 +94,25 @@
 
   // 过滤项
   const filterOption = ref<ServiceReturnType<typeof queryAllTypeCluster>>([]);
+
+  // 内部选中的原始 id 列表（驱动 BkSelect）
+  const selectedIds = computed<number[]>({
+    get: () => modelValue.value.map((item) => item.id),
+    set: (ids: number[]) => {
+      const map = new Map((clusterList.value || []).map((item) => [item.id, item]));
+      modelValue.value = ids
+        .map((id) => {
+          const cluster = map.get(id);
+          if (cluster) {
+            return { id: cluster.id, immute_domain: cluster.immute_domain };
+          }
+          // 回填场景：clusterList 尚未加载但 modelValue 已有值，保留原对象
+          const existing = modelValue.value.find((item) => item.id === id);
+          return existing;
+        })
+        .filter((item): item is SelectedCluster => !!item);
+    },
+  });
 
   watch(
     () => props.bizId,
@@ -97,8 +131,13 @@
   );
 
   const handleChange = (value: number[]) => {
-    validator(value);
-    emits('change', value);
+    // Enter 提交场景下 v-model 未更新，需手动赋值触发 setter
+    selectedIds.value = value;
+    // 等待 modelValue 更新完成后再校验，避免读到旧值导致误报
+    nextTick(() => {
+      validator(modelValue.value);
+      emits('change', modelValue.value);
+    });
   };
 
   const matchKeywords = (keywords: string[], target: string) =>
@@ -142,22 +181,24 @@
 
 <style lang="less" scoped>
   .target-form-item {
-    display: flex;
-    align-items: center;
-    gap: 8px;
+    position: relative;
 
-    .target-select {
-      flex: 1;
+    :deep(.bk-form-control) {
+      .target-select {
+        flex: 1;
+      }
     }
 
     .error-icon {
       position: absolute;
       right: 26px;
+      top: 0;
       display: flex;
       height: 32px;
       font-size: 14px;
       color: #ea3636;
       align-items: center;
+      z-index: 1;
     }
   }
 
@@ -165,5 +206,12 @@
     :deep(.bk-select-tag) {
       background-color: #fff0f1 !important;
     }
+  }
+
+  .target-form-tip {
+    margin-top: 6px;
+    font-size: 12px;
+    line-height: 16px;
+    color: #979ba5;
   }
 </style>

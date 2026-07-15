@@ -3,8 +3,11 @@ import { computed, ref, watch } from 'vue';
 import { useRoute } from 'vue-router';
 import type { SortInfo } from 'tdesign-vue-next';
 
-import TicketFlowDescribeModel from '@services/model/ticket-flow-describe/TicketFlowDescribe';
-import { queryTicketFlowDescribe } from '@services/source/ticket';
+import TicketFlowDescribeModel, {
+  type ScopeType,
+  type TagMatchType,
+} from '@services/model/ticket-flow-describe/TicketFlowDescribe';
+import { type ClusterTagItem, queryTicketFlowDescribe } from '@services/source/ticket';
 
 import { useUrlSearch } from '@hooks';
 
@@ -18,6 +21,7 @@ import { usePagination } from './use-pagination';
 
 export interface TableRow {
   children?: TableRow[];
+  cluster_tags: ClusterTagItem[];
   clusters: Array<{
     cluster_id: number;
     immute_domain: string;
@@ -29,17 +33,30 @@ export interface TableRow {
       itsm_expire: number;
     };
     need_itsm: boolean;
+    need_itsm_duplicated: boolean;
   };
   id: number;
   isChildRow: boolean;
   isCustom: boolean;
-  isDuplicate?: boolean;
+  isDuplicate: boolean;
+  /** 标签键是否已失效（仅按标签子策略有意义） */
+  isTagInvalid: boolean;
   permission: {
     biz_ticket_config_set: boolean;
     ticket_config_set: boolean;
   };
   rawData: TicketFlowDescribeModel;
   remark: string;
+  /** 生效范围类型：按集群 / 按标签 */
+  scopeType: ScopeType;
+  /** 标签生效范围展示文案（按标签子策略） */
+  tagDisplay: string;
+  /** 标签键（按标签子策略） */
+  tagKey: string;
+  /** 标签匹配条件类型 */
+  tagMatchType: TagMatchType;
+  /** 标签具体值列表（exists 时为空） */
+  tagValues: string[];
   ticket_type: string;
   ticket_type_display: string;
   updateAtDisplay: string;
@@ -51,25 +68,20 @@ export const useFetchData = () => {
   const { getSearchParams, replaceSearchParams } = useUrlSearch();
   const route = useRoute();
 
-  // db_type 由路由参数驱动（与 Index.vue 同步到路由的 dbType 保持一致，无需作为入参传入）
+  // db_type 由路由参数驱动（与 Index.vue 同步到路由的 dbType 保持一致）
   const dbType = computed(() => (route.params.dbType as DBTypes) || DBTypes.MYSQL);
 
-  // 分页状态由本 hook 统一持有并同步到 URL
   const { handlePageLimitChange, handlePageValueChange, pagination } = usePagination();
   // 筛选标签（全部 / 免审批），URL 驱动
   const activeTab = ref<'all' | 'noApproval'>('all');
 
-  // 从 URL 读取初始状态：筛选标签与分页由 URL 作为单一可信源
-  // （搜索条件由 DbQuickSearch 的 parse-url 负责从 URL 回显到 searchValue）
+  // 从 URL 读取初始状态（搜索条件由 DbQuickSearch 的 parse-url 负责回显到 searchValue）
   const urlParams = getSearchParams();
   const searchValue = ref<Record<string, any>>({});
 
-  // 筛选标签（全部 / 免审批）从 URL 恢复
   if (urlParams.activeTab) {
     activeTab.value = urlParams.activeTab as 'all' | 'noApproval';
   }
-
-  // 分页参数从 URL 恢复
   if (urlParams.current) {
     pagination.current = Number(urlParams.current);
   }
@@ -77,7 +89,7 @@ export const useFetchData = () => {
     pagination.limit = Number(urlParams.limit);
   }
 
-  // 搜索 + 筛选标签 + 分页参数统一写回 URL（transfromDataToQuery 负责规整数组与过滤空值）
+  // 搜索 + 筛选标签 + 分页参数统一写回 URL
   const syncUrlParams = () => {
     replaceSearchParams(
       transfromDataToQuery({
@@ -89,53 +101,41 @@ export const useFetchData = () => {
     );
   };
 
-  // 加载状态
   const isLoading = ref(false);
   const isRequestFailed = ref(false);
   const isSearching = ref(false);
 
-  // 树形数据（原始全量数据，不受 tab/搜索影响）
   const rawTreeData = ref<TableRow[]>([]);
-  // 过滤后的数据（用于展示）
   const allTreeData = ref<TableRow[]>([]);
   const paginatedData = ref<TableRow[]>([]);
   const expandedTreeNodes = ref<(string | number)[]>([]);
-  // 受控排序状态（TDesign SortInfo 类型）
   const tableSort = ref<SortInfo | undefined>({
     descending: true,
     sortBy: 'updated_at',
   } as SortInfo);
 
-  /**
-   * 构建树形数据结构
-   */
   const buildTreeData = (results: TicketFlowDescribeModel[]): TableRow[] => {
     const parentRows: TableRow[] = [];
     const childMap = new Map<string, TableRow[]>();
-    // 先建立 ticket_type -> parentConfig 的映射，用于判断子策略是否重复
-    const parentConfigMap = new Map<string, boolean>();
 
     results.forEach((item) => {
-      if (!item.isChildPolicy) {
-        parentConfigMap.set(item.ticket_type, item.configs.need_itsm);
-      }
-    });
-
-    results.forEach((item) => {
-      const parentNeedItsm = parentConfigMap.get(item.ticket_type);
-      const isDuplicate =
-        item.isChildPolicy && parentNeedItsm !== undefined && parentNeedItsm === item.configs.need_itsm;
-
       const tableRow: TableRow = {
+        cluster_tags: item.cluster_tags,
         clusters: item.clusters,
         configs: item.configs,
         id: item.id,
         isChildRow: item.isChildPolicy,
         isCustom: false,
-        isDuplicate,
+        isDuplicate: item.isChildPolicy && item.configs.need_itsm_duplicated,
+        isTagInvalid: item.isTagKeyInvalid,
         permission: item.permission,
         rawData: item,
         remark: item.remark,
+        scopeType: item.scopeType,
+        tagDisplay: item.tagDisplay,
+        tagKey: item.tagKey,
+        tagMatchType: item.tagMatchType,
+        tagValues: item.tagValues,
         ticket_type: item.ticket_type,
         ticket_type_display: item.ticket_type_display,
         updateAtDisplay: item.updateAtDisplay,
@@ -163,17 +163,13 @@ export const useFetchData = () => {
     return parentRows;
   };
 
-  /**
-   * 检查节点是否匹配搜索条件
-   */
+  /** 检查节点是否匹配搜索条件 */
   const isMatchSearch = (node: TableRow, searchMap: Record<string, string>): boolean => {
-    // 如果没有搜索条件，返回 true
     const hasSearchCondition = Object.values(searchMap).some((v) => v !== '');
     if (!hasSearchCondition) {
       return true;
     }
 
-    // 检查各个搜索字段
     let match = true;
 
     // 单据类型：cascader 实际过滤值（纯 ticket_type，如 mysql.BACKUP）在 ticket_type__in 中
@@ -233,9 +229,7 @@ export const useFetchData = () => {
     return match;
   };
 
-  /**
-   * 递归过滤树形数据
-   */
+  /** 递归过滤树形数据 */
   const filterTreeData = (nodes: TableRow[], searchMap: Record<string, string>): TableRow[] => {
     const filtered: TableRow[] = [];
 
@@ -278,9 +272,7 @@ export const useFetchData = () => {
     return filtered;
   };
 
-  /**
-   * 应用排序
-   */
+  /** 应用排序 */
   const applySort = (nodes: TableRow[], sort: SortInfo): TableRow[] => {
     if (!sort.sortBy) return nodes;
 
@@ -307,9 +299,7 @@ export const useFetchData = () => {
     return result;
   };
 
-  /**
-   * 应用分页
-   */
+  /** 应用分页 */
   const applyPagination = () => {
     // 越界时回退到最后一页，避免筛选后停留在空页
     const maxPage = Math.max(1, Math.ceil(pagination.count / pagination.limit));
@@ -322,38 +312,33 @@ export const useFetchData = () => {
   };
 
   /**
-   * 获取所有有子节点的父行 ID（用于默认展开）
+   * 递归遍历树形数据，对每个节点执行 callback
    */
-  const getAllParentIds = (nodes: TableRow[]): (string | number)[] => {
-    const ids: (string | number)[] = [];
+  const traverseTree = (nodes: TableRow[], callback: (node: TableRow) => void) => {
     nodes.forEach((node) => {
-      if (node.children && node.children.length > 0) {
-        ids.push(node.id);
+      callback(node);
+      if (node.children) {
+        traverseTree(node.children, callback);
       }
     });
-    return ids;
   };
 
-  /**
-   * 递归统计所有节点总数（含子节点）
-   */
+  /** 递归统计所有节点总数（含子节点） */
   const countAllNodes = (nodes: TableRow[]): number => {
     let count = 0;
-    nodes.forEach((node) => {
-      count++;
-      if (node.children) {
-        count += countAllNodes(node.children);
-      }
-    });
+    traverseTree(nodes, () => count++);
     return count;
   };
 
   /**
-   * 应用本地过滤（tab、搜索、排序、分页），不请求接口
+   * 获取所有有子节点的父行 ID（用于默认展开）
    */
+  const getAllParentIds = (nodes: TableRow[]): (string | number)[] =>
+    nodes.filter((node) => node.children && node.children.length > 0).map((node) => node.id);
+
+  /** 应用本地过滤（tab、搜索、排序、分页），不请求接口 */
   const applyLocalFilter = () => {
-    // 所有搜索条件（单据类型、集群域名、是否审批、更新人、更新时间、备注等）统一由
-    // filterTreeData -> isMatchSearch 处理（多条件取 AND，子节点匹配则保留父节点）
+    // 所有搜索条件统一由 filterTreeData -> isMatchSearch 处理（多条件取 AND，子节点匹配则保留父节点）
     let filtered = filterTreeData(rawTreeData.value, searchValue.value);
 
     // 应用排序（如"更新时间"列）
@@ -373,9 +358,7 @@ export const useFetchData = () => {
     isSearching.value = Object.values(searchValue.value).some((v) => v !== '');
   };
 
-  /**
-   * 获取列表数据（仅调接口，存储原始数据后触发本地过滤）
-   */
+  /** 获取列表数据（仅调接口，存储原始数据后触发本地过滤） */
   const fetchListData = async () => {
     isLoading.value = true;
     isRequestFailed.value = false;
@@ -400,13 +383,13 @@ export const useFetchData = () => {
     }
   };
 
-  // 处理表头筛选变化（本地过滤）。合并而非覆盖，避免清空快捷搜索条件
+  // 表头筛选变化（本地过滤，合并而非覆盖，避免清空快捷搜索条件）
   const handleFilterChange = (filters: Record<string, any>) => {
     pagination.current = 1;
     searchValue.value = filters;
   };
 
-  // 处理排序变化（本地排序）
+  // 排序变化（本地排序）
   const handleSortChange = (sort: SortInfo | SortInfo[]) => {
     pagination.current = 1;
     if (sort && !Array.isArray(sort) && sort.sortBy) {
@@ -417,7 +400,7 @@ export const useFetchData = () => {
     applyLocalFilter();
   };
 
-  // tab 切换（仅设置 activeTab，由 watch(activeTab) 统一处理过滤与 URL 同步）
+  // tab 切换（由 watch(activeTab) 统一处理过滤与 URL 同步）
   const handleTabChange = (tab: 'all' | 'noApproval') => {
     activeTab.value = tab;
   };
@@ -433,7 +416,7 @@ export const useFetchData = () => {
     expandedTreeNodes.value = expandedNodes;
   };
 
-  // 监听搜索值变化，触发本地过滤并同步到 URL（快捷搜索 / 表头筛选 / 清空均统一在此处理）
+  // 监听搜索值变化，触发本地过滤并同步到 URL
   watch(
     searchValue,
     () => {
@@ -445,14 +428,14 @@ export const useFetchData = () => {
     },
   );
 
-  // 监听筛选标签变化（全部 / 免审批）：重置到首页、同步 URL 并重新过滤
+  // 筛选标签变化（全部 / 免审批）：重置到首页、同步 URL 并重新过滤
   watch(activeTab, () => {
     pagination.current = 1;
     syncUrlParams();
     applyLocalFilter();
   });
 
-  // 监听分页变化，重新应用分页并同步到 URL
+  // 分页变化，重新应用分页并同步到 URL
   watch(
     () => [pagination.current, pagination.limit],
     () => {
@@ -464,7 +447,7 @@ export const useFetchData = () => {
   watch(
     () => route.params.dbType,
     (_, prevValue) => {
-      // 仅在 dbType 真正变化（切换 Tab）时清空搜索；初始挂载不清除，以保留 URL 上的搜索参数用于状态恢复
+      // 仅在 dbType 真正变化（切换 Tab）时清空搜索；初始挂载不清除，以保留 URL 上的搜索参数
       if (prevValue !== undefined) {
         searchValue.value = {};
         activeTab.value = 'all';
@@ -484,17 +467,9 @@ export const useFetchData = () => {
 
   const noApprovalCount = computed(() => {
     let count = 0;
-    const countNodes = (nodes: TableRow[]) => {
-      nodes.forEach((node) => {
-        if (!node.configs.need_itsm) {
-          count++;
-        }
-        if (node.children) {
-          countNodes(node.children);
-        }
-      });
-    };
-    countNodes(rawTreeData.value);
+    traverseTree(rawTreeData.value, (node) => {
+      if (!node.configs.need_itsm) count++;
+    });
     return count;
   });
 

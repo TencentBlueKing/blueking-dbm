@@ -354,11 +354,40 @@ export function updateTicketFlowConfig(params: {
 }
 
 /**
+ * 子策略按集群标签圈选：标签条件元素
+ * - 单值：1 条，tag_value 为具体值
+ * - 多值 in：N 条同 tag_key，每条一个 tag_value
+ * - 任意值 exists：1 条，tag_value 固定为 '任意值'
+ * 每条子策略仅一个 tag_key（不支持多键 AND）
+ */
+export interface ClusterTagItem {
+  id: number;
+  /** 标签键是否已失效（后端返回，true 表示该标签键/值已从业务移除） */
+  is_invalid?: boolean;
+  tag_key: string;
+  tag_value: string;
+}
+
+/**
+ * 按集群子策略的集群元素（cluster_ids 由 number[] 调整为对象数组）
+ */
+export interface ClusterIdItem {
+  id: number;
+  immute_domain: string;
+}
+
+/**
  * 保存单据流程规则（新建或更新，后端统一接口）
+ *
+ * 子策略生效范围：
+ * - 按集群：cluster_ids 传对象数组，cluster_tags 传 []
+ * - 按标签：cluster_ids 传 []，cluster_tags 传标签条件数组
+ * config_ids 非空代表编辑。
  */
 export function saveTicketFlowConfig(params: {
   bk_biz_id: number;
-  cluster_ids?: number[];
+  cluster_ids?: ClusterIdItem[];
+  cluster_tags?: ClusterTagItem[];
   config_ids?: number[];
   configs: {
     need_itsm: boolean;

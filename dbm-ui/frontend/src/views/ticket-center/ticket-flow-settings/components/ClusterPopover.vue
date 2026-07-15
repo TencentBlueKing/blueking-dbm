@@ -78,6 +78,17 @@
       padding: 4px 8px;
       line-height: 20px;
       font-size: 12px;
+
+      &::before {
+        content: '';
+        display: inline-block;
+        width: 6px;
+        height: 6px;
+        margin-right: 8px;
+        border-radius: 50%;
+        background: #c4c6cc;
+        vertical-align: middle;
+      }
     }
   }
 </style>
