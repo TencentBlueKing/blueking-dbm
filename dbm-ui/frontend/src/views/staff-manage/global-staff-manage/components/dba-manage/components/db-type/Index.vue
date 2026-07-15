@@ -234,11 +234,11 @@
                   <MemberDisplay
                     v-if="row.standby_dba"
                     :value="[row.standby_dba]" />
-                  <template v-else-if="defaultUserData.username">
+                  <!-- <template v-else-if="defaultUserData.username">
                     <MemberDisplay
                       is-default
                       :value="[defaultUserData.username]" />
-                  </template>
+                  </template> -->
                   <span v-else>--</span>
                 </template>
               </template>
@@ -275,12 +275,13 @@
                     <span v-else>--</span>
                   </template>
                   <template v-else>
-                    <template v-if="defaultUserData.username">
+                    <!-- <template v-if="defaultUserData.username">
                       <MemberDisplay
                         is-default
                         :value="[defaultUserData.username]" />
                     </template>
-                    <span v-else>--</span>
+                    <span v-else>--</span> -->
+                    <span>--</span>
                   </template>
                 </template>
               </template>
@@ -562,24 +563,26 @@
       //   defaultAdminData.value.find((item) => item.db_type === props.activeTab) || getDefaultDbTypeAdmin();
       const bizAdminMap = Object.fromEntries(bizAdminData.value.data.map((item) => [item.bk_biz_id, item]));
 
-      bizList.value = bizStore.bizs.map((bizItem) => {
-        // const adminItem = bizAdminMap[bizItem.bk_biz_id] || defaultDbTypeAdmin;
-        const adminItem = bizAdminMap[bizItem.bk_biz_id] || getDefaultDbTypeAdmin();
-        const [primaryDBA, standbyDBA, ...level2DBA] = adminItem.users;
-        const bizDbaItem = {
-          ...adminItem,
-          ...bizItem,
-          is_edit: false,
-          level2_dba: level2DBA,
-          level2_dba_edit: [],
-          permission: Object.assign({}, adminItem.permission, bizItem.permission),
-          primary_dba: primaryDBA || '',
-          primary_dba_edit: [],
-          standby_dba: standbyDBA || '',
-          standby_dba_edit: [],
-        } as unknown as BizDbaModel;
-        return new BizDbaModel(bizDbaItem);
-      });
+      bizList.value = bizStore.bizs
+        .filter((bizItem) => bizItem.status === 'managed')
+        .map((bizItem) => {
+          // const adminItem = bizAdminMap[bizItem.bk_biz_id] || defaultDbTypeAdmin;
+          const adminItem = bizAdminMap[bizItem.bk_biz_id] || getDefaultDbTypeAdmin();
+          const [primaryDBA, standbyDBA, ...level2DBA] = adminItem.users;
+          const bizDbaItem = {
+            ...adminItem,
+            ...bizItem,
+            is_edit: false,
+            level2_dba: level2DBA,
+            level2_dba_edit: [],
+            permission: Object.assign({}, adminItem.permission, bizItem.permission),
+            primary_dba: primaryDBA || '',
+            primary_dba_edit: [],
+            standby_dba: standbyDBA || '',
+            standby_dba_edit: [],
+          } as unknown as BizDbaModel;
+          return new BizDbaModel(bizDbaItem);
+        });
 
       handleQuickSearchChange();
     },
