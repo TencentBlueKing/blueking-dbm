@@ -14,7 +14,8 @@ function Get-DeriveEventName {
     } finally {
         $sha1.Dispose()
     }
-    return "Local\dbha-probe-" + $hex.Substring(0, 16) + $Suffix
+    # Must stay in sync with pkg/process/eventname.go (Global\ for Session-0 SYSTEM).
+    return "Global\dbha-probe-" + $hex.Substring(0, 16) + $Suffix
 }
 
 function Get-EventKeyFromPidFile {

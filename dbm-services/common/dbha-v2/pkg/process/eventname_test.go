@@ -41,19 +41,19 @@ func TestDeriveEventName_GoldenVectors(t *testing.T) {
 			name:   "keepalive_addr",
 			key:    "127.0.0.1:8080",
 			suffix: stopEventSuffix,
-			want:   `Local\dbha-probe-56852a5456d1b09e-stop`,
+			want:   `Global\dbha-probe-56852a5456d1b09e-stop`,
 		},
 		{
 			name:   "pid_file_abs",
 			key:    "/tmp/pids/probe.pid",
 			suffix: stopEventSuffix,
-			want:   `Local\dbha-probe-6948dc364e371ed9-stop`,
+			want:   `Global\dbha-probe-6948dc364e371ed9-stop`,
 		},
 		{
 			name:   "reload_suffix",
 			key:    "127.0.0.1:8080",
 			suffix: reloadEventSuffix,
-			want:   `Local\dbha-probe-56852a5456d1b09e-reload`,
+			want:   `Global\dbha-probe-56852a5456d1b09e-reload`,
 		},
 	}
 	for _, tc := range cases {

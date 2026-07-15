@@ -104,6 +104,8 @@ PROBE_SCRIPTS   = scripts/start-probe.sh scripts/stop-probe.sh \
 PROBE_WINDOWS_SCRIPTS = scripts/start-probe.ps1 scripts/stop-probe.ps1 \
                         scripts/start-probe-keepalive.ps1 scripts/stop-probe-keepalive.ps1 \
                         scripts/render_configs.py
+# Shared helpers required by start/stop *.ps1 (named-event name derivation).
+PROBE_WINDOWS_LIBS = scripts/lib/probe-event-utils.ps1
 
 # build target
 
@@ -234,6 +236,8 @@ package-probe-windows: probe-windows
 		$(PROBE_WINDOWS_PKG_DIR)/logs $(PROBE_WINDOWS_PKG_DIR)/pids
 	@cp $(BUILD_DIR)/$(PROBE_WINDOWS_BIN) $(PROBE_WINDOWS_PKG_DIR)/bin/
 	@cp $(PROBE_WINDOWS_SCRIPTS) $(PROBE_WINDOWS_PKG_DIR)/
+	@mkdir -p $(PROBE_WINDOWS_PKG_DIR)/lib
+	@cp $(PROBE_WINDOWS_LIBS) $(PROBE_WINDOWS_PKG_DIR)/lib/
 	@mkdir -p $(PROBE_WINDOWS_PKG_DIR)/etc/templates/snippets
 	@cp $(addprefix etc/templates/,$(PROBE_TEMPLATES)) \
 		$(PROBE_WINDOWS_PKG_DIR)/etc/templates/

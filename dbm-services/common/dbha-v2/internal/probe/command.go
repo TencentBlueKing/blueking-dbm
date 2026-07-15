@@ -89,6 +89,22 @@ var GenConfigCmd = &cobra.Command{
 	RunE:  cmds.GenConfigCmdRunE,
 }
 
+// EnsureCmd ensures probe is running as guard+worker (for schtasks/crontab).
+var EnsureCmd = &cobra.Command{
+	Use:   "ensure",
+	Short: "Ensure probe is running (chdir InstallRoot, lock, daemon-start if needed).",
+	Long:  "Intended for Scheduled Task / crontab. Does not register tasks. Use --from-cron for cron invocations.",
+	RunE:  cmds.EnsureCmdRunE,
+}
+
+// EnsureKeepaliveCmd ensures the keepalive ping process is running.
+var EnsureKeepaliveCmd = &cobra.Command{
+	Use:   "ensure-keepalive",
+	Short: "Ensure keepalive ping process is running (for schtasks/crontab).",
+	Long:  "Requires root flag --ping-http-addr. Chdirs to InstallRoot and takes a ensure lock. Use --from-cron for cron.",
+	RunE:  cmds.EnsureKeepaliveCmdRunE,
+}
+
 func init() {
 	GenConfigCmd.Flags().String("admin-endpoints", "",
 		"Admin service endpoints, separated by ; (e.g. host1:port1;host2:port2)")
@@ -105,4 +121,10 @@ func init() {
 		cmds.DefaultGenConfigTimeout,
 		"Timeout for fetching config from admin (non-positive falls back to default)",
 	)
+
+	EnsureCmd.Flags().BoolVar(&cmds.FromCron, "from-cron", false,
+		"Invoked by schtasks/crontab (no task registration; lock contention exits 0)")
+	EnsureKeepaliveCmd.Flags().BoolVar(&cmds.FromCron, "from-cron", false,
+		"Invoked by schtasks/crontab (no task registration; lock contention exits 0)")
+	// --ping-http-addr is the root persistent flag; ensure-keepalive reads it from the command line.
 }

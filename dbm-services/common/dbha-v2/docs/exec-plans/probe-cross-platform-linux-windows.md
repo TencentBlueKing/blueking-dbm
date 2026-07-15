@@ -105,7 +105,7 @@ flowchart TD
   - `stopper_windows.go`：`SetStopEvent(name)` = `OpenEvent+SetEvent`；`SetReloadEvent(name)` = 置位独立 reload 事件（供共享的 `ReloadCmdRunE` 调用，O4）；`ForceKill(proc)` = `proc.Kill()`（TerminateProcess 兜底）。
 - 新增 `waitstop_unix.go` / `waitstop_windows.go`：进程侧等待停止触发。Unix 返回 `signal.Notify` 通道（SIGINT/SIGTERM/SIGHUP）；Windows 起 goroutine `WaitForSingleObject(stopEvent)`（含独立 reload 事件占位），命中后回调统一的优雅退出。
 - `StopWithPidFile`/`StopCmdRunE` 按平台分流：Windows 走"派生停止事件名 → SetEvent → 轮询 `IsAliveWithProcessName` → 超时 `ForceKill`"。优雅退出时由进程自身删 pid 文件；**`ForceKill` 兜底分支须 `os.Remove(pidFile)`**，与 Linux `stop.go` Force+SIGKILL 分支对等，避免残留 pid 文件导致下次 `start` 误判"已在运行"（N-pidfile）。
-- 事件命名：按 pid 文件路径派生确定性事件名（如 `Local\dbha-probe-<hash(pidfile)>-stop` / `-reload`）。**派生前必须 `filepath.Abs`+`Clean` 归一化路径（D1）**：默认 `PidFile` 为相对路径（`./pids/probe.pid`），若 `stop` 命令与运行进程 cwd 不同会 hash 出不同事件名，导致 `stop` 静默打不到进程。keepalive 的 Go 进程不拥有 pid 文件（`probe-keepalive.pid` 由 shell/PS 脚本管理），故其事件名按运行进程与 PS 停止脚本都持有的 `--ping-http-addr` 派生（O3）。
+- 事件命名：按 pid 文件路径派生确定性事件名（如 `Global\dbha-probe-<hash(pidfile)>-stop` / `-reload`）。**修订（方案 C）**：必须用 **`Global\`**（非 `Local\`），以便 Session 0 SYSTEM 常驻进程可被交互会话 `stop`/`OpenEvent`；`CreateEvent` 需带 DACL（Authenticated Users：`EVENT_MODIFY_STATE|SYNCHRONIZE`）。**派生前必须 `filepath.Abs`+`Clean` 归一化路径（D1）**：默认 `PidFile` 为相对路径（`./pids/probe.pid`），若 `stop` 命令与运行进程 cwd 不同会 hash 出不同事件名，导致 `stop` 静默打不到进程。keepalive 的 Go 进程不拥有 pid 文件（`probe-keepalive.pid` 由 shell/PS/`ensure-keepalive` 管理），故其事件名按运行进程与停止脚本都持有的 `--ping-http-addr` 派生（O3）。
 - **命名事件实现约束（M1，强制正确性）**：
   - **manual-reset 事件**：guard 与 worker 是两个进程各自 `WaitForSingleObject` 同一事件；auto-reset 只唤醒一个等待者会导致只停一方，必须 manual-reset。
   - **单一共享停止事件**：`stop` 置位后 guard 与 worker 同时收到，guard 无需再向 child 事件单独 SetEvent。
@@ -197,7 +197,7 @@ flowchart TD
 
 ## 风险与决策点
 
-- Windows 停止已定稿为命名事件；实现风险在事件名派生的确定性（stop 与目标进程必须一致）与权限（`Local\` 命名空间即可）。
+- Windows 停止已定稿为命名事件；实现风险在事件名派生的确定性（stop 与目标进程必须一致）与权限（**`Global\` + DACL**；Session 0 SYSTEM 常驻时交互 stop 必须跨会话可见）。
 - guard/worker 停止顺序：必须先让 guard 停循环，再优雅停 worker，避免竞态重启。
 - GSE `localSocketPort` 是 admin→probe 契约变更，务必零值回退、保持旧 admin/probe 兼容。
 - **共享影响面（O1）**：`pkg/process` 为 4 服务共用，抽象改造需保证 admin/analysis/receiver 的 Linux 行为与可编译性不变。

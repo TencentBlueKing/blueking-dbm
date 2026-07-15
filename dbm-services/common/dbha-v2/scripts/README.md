@@ -197,15 +197,12 @@ cd /usr/local/dbha-v2
 
 ## start-probe.sh / stop-probe.sh / start-probe-keepalive.sh / stop-probe-keepalive.sh
 
-用于管理 probe 服务。`start-probe-keepalive.sh` 和 `stop-probe-keepalive.sh` 用于 keepalive 模式外部托管。
-keepalive 启动后会注册每分钟巡检的 crontab 守护项（单实例覆盖），进程异常退出后自动拉起。
+用于管理 probe 服务。`start-probe.sh` / `start-probe-keepalive.sh` 通过 Go 子命令 `ensure` / `ensure-keepalive` 纠偏进程形态（InstallRoot chdir + 互斥锁）；crontab 每分钟直接调用  
+`cd "$SCRIPT_DIR" && ./bin/dbha-probe ensure -c etc/probe.yaml --from-cron`（keepalive 同理 `ensure-keepalive`）。Linux keepalive 状态文件仍在 XDG runtime（`${XDG_STATE_HOME:-$HOME/.local/state}/dbha-v2/runtime`），与 Windows 的 `InstallRoot/runtime` 分叉。
 `--ping-http-addr` 必须是 `host:port` 或 `[host]:port` 格式，端口范围 `1-65535`；IPv6 地址须使用方括号格式。
-keepalive 启动后会执行短轮询存活校验（进程存在 + 参数命中 + 目标进程校验）；校验失败会自动清理 PID/ADDR 状态文件并返回失败。
-keepalive 停止时会先终止目标进程并复查，再清理状态文件，避免遗留孤儿进程。
-`start-probe.sh` / `stop-probe.sh` 也会注册/注销 probe 常驻守护，并将关键步骤同时打屏和写入
+`start-probe.sh` / `stop-probe.sh` 会注册/注销 probe crontab 守护，关键步骤写入  
 `${DBHA_LOG_ROOT:-${XDG_STATE_HOME:-$HOME/.local/state}/dbha-v2/logs}/dbha-v2-probe.log`。
-所有 start/stop 脚本的 crontab 注销均按 marker 精确过滤后回写，不执行全量删除操作。
-guard 进程识别基于 `ps args` 子串启发式（匹配 `daemon-start -c <配置文件路径>`），如自定义启动方式需保持该参数形态；可用 `ps -ef | grep dbha-` 与 `crontab -l | grep DBHA_V2_` 核对。
+crontab 注销按 marker 精确过滤后回写；可用 `ps -ef | grep dbha-` 与 `crontab -l | grep DBHA_V2_` 核对。
 
 ```bash
 cd /usr/local/dbha-v2
@@ -241,14 +238,18 @@ crontab -l | grep DBHA_PROBE_KEEPALIVE_GUARD
 
 Windows 平台使用 PowerShell 脚本管理 probe，与 Linux 的 `*.sh` 一一对应，CLI 语义一致（`daemon-start` / `stop` / keepalive）。二进制为 `bin\dbha-probe.exe`（由 `make probe-windows` 构建、`make package-probe-windows` 打包为 `*-probe-windows.zip`）。
 
-停止模型与 Linux 不同：Linux 用 POSIX 信号（SIGTERM/SIGKILL/SIGHUP），Windows 用**命名事件**（`Local\` 命名空间）。`stop-probe.ps1` 两段式停止——先 `dbha-probe.exe stop`（置位命名停止事件优雅退出，guard 与 worker 共享同一 manual-reset 事件），若仍存活再 `Stop-Process` 强杀；强杀前会同时校验进程**可执行路径**与**启动时间（StartTime）**，避免 PID 复用误杀无关进程（对齐 `stop-probe.sh` 的 `validate_pid_target` + `safe_kill_after_term`）。
+停止模型与 Linux 不同：Linux 用 POSIX 信号（SIGTERM/SIGKILL/SIGHUP），Windows 用**命名事件**（**`Global\`** 命名空间）。Session 0 的 SYSTEM 常驻进程创建事件后，交互会话里的 `stop` / `stop-probe.ps1` 才能 `OpenEvent`（`Local\` 是按会话隔离的，跨会话会失效）。`CreateEvent` 写入 DACL：SYSTEM/Administrators 全权限，Authenticated Users 至少 `EVENT_MODIFY_STATE|SYNCHRONIZE`。创建 `Global\` 对象通常需要 **SeCreateGlobalPrivilege**（Administrators/SYSTEM 具备），因此 Windows 常驻必须以**管理员**注册并由 SYSTEM 拉起；**禁止**非特权交互 `daemon-start` 静默回退 `Local\`。
 
-keepalive 进程不持有 pid 文件（由脚本管理 `runtime\probe-keepalive.pid` / `.addr`），其停止事件名按 `--ping-http-addr` 派生（与 Go 侧 `deriveEventName` 完全一致：`Local\dbha-probe-<sha1(addr) 前16位十六进制>-stop`）。`stop-probe-keepalive.ps1` 通过 .NET `EventWaitHandle.OpenExisting` 置位该事件实现优雅停止，再做强杀兜底。
+`stop-probe.ps1` 两段式停止——先 `dbha-probe.exe stop`（置位 Global 停止事件优雅退出），若仍存活再 `Stop-Process` 强杀；强杀前校验可执行路径与 StartTime（对齐 Linux）。升级场景：旧进程仍听 `Local\`，新二进制的优雅停对其无效，**必须依赖 Stage2 强杀**；脚本与二进制需同包升级。
 
-常驻守护用 **计划任务（schtasks）周期触发**（每分钟 `/SC MINUTE /MO 1`，等价 Linux crontab 周期守护，而非仅 `ONSTART`）：`start-probe.ps1` 注册 `DBHA_V2_PROBE_GUARD`，`start-probe-keepalive.ps1` 注册 `DBHA_PROBE_KEEPALIVE_GUARD`（均以 `/F` 幂等覆盖，`-FromCron` 分支不重复注册）；对应 `stop-*.ps1` 以 `schtasks /Delete /F` 幂等注销。
+keepalive 不持有由 Go 管理的 pid 文件（脚本/`ensure-keepalive` 写 `runtime\probe-keepalive.pid` / `.addr`），停止事件名按 `--ping-http-addr` 派生：`Global\dbha-probe-<sha1(addr) 前16位十六进制>-stop`（与 `pkg/process/eventname.go` 一致）。
+
+周期保活下沉到 Go：`ensure` / `ensure-keepalive`（`chdir` 到 InstallRoot=`exe/..`，取 `pids/*.ensure.lock` 互斥，抢锁失败退出 0）。管理员执行 `start-probe.ps1`：**先 stop 遗留用户态进程** → 写入 `runtime\run-ensure-probe.cmd`（`cd` 到 InstallRoot 后调用 `ensure … --from-cron`；因 `schtasks /TR` 不能直接含 `&&`）→ `schtasks /Create /RU SYSTEM /F` → **`schtasks /Run`** 冷启动（不再在当前用户会话 `daemon-start`，避免双实例）。非管理员注册失败即报错，**不**降级为当前用户任务。对应 `stop-*.ps1` 以 `schtasks /Delete /F` 注销任务。
+
+**升级顺序**：部署新包（含 `lib\probe-event-utils.ps1`）→ 管理员 `.\stop-probe.ps1`（及 keepalive）→ 确认无本路径残留 → `.\start-probe.ps1` → 验证 health，以及交互会话对新进程为优雅停（Global）。
 
 ```powershell
-# 在 dbha-v2 安装目录执行
+# 以管理员在安装目录执行
 Set-Location C:\dbha-v2
 powershell -ExecutionPolicy Bypass -File .\start-probe.ps1
 powershell -ExecutionPolicy Bypass -File .\start-probe-keepalive.ps1 -PingHttpAddr 127.0.0.1:18080

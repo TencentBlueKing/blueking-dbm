@@ -71,6 +71,8 @@ func main() {
 	rootCmd.AddCommand(probe.RestartCmd)
 	rootCmd.AddCommand(probe.ReloadCmd)
 	rootCmd.AddCommand(probe.GenConfigCmd)
+	rootCmd.AddCommand(probe.EnsureCmd)
+	rootCmd.AddCommand(probe.EnsureKeepaliveCmd)
 
 	if err := rootCmd.Execute(); err != nil {
 		fmt.Println("failed to execute probe. errmsg:", err.Error())

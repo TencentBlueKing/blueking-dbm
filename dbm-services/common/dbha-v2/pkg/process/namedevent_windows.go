@@ -26,6 +26,7 @@ package process
 
 import (
 	"errors"
+	"unsafe"
 
 	"dbm-services/common/dbha-v2/pkg/gerrors"
 
@@ -72,6 +73,24 @@ func setNamedEvent(name string) error {
 	return nil
 }
 
+// eventSecurityAttributes returns a SECURITY_ATTRIBUTES for Global\ events:
+// SYSTEM and Administrators get full access; Authenticated Users get
+// EVENT_MODIFY_STATE|SYNCHRONIZE so an interactive stop/reload can OpenEvent
+// a Session-0 SYSTEM-owned probe.
+func eventSecurityAttributes() (*windows.SecurityAttributes, error) {
+	// EVENT_MODIFY_STATE=0x0002, SYNCHRONIZE=0x00100000 → 0x00100002
+	const sddl = "D:(A;;GA;;;SY)(A;;GA;;;BA)(A;;0x00100002;;;AU)"
+	sd, err := windows.SecurityDescriptorFromString(sddl)
+	if err != nil {
+		return nil, gerrors.NewE(gerrors.Failure, err)
+	}
+	return &windows.SecurityAttributes{
+		Length:             uint32(unsafe.Sizeof(windows.SecurityAttributes{})),
+		SecurityDescriptor: sd,
+		InheritHandle:      0,
+	}, nil
+}
+
 // createManualResetEvent creates (or opens) a manual-reset named event, initially
 // non-signaled. Manual-reset is required because both the guard and worker wait
 // on the same stop event; an auto-reset event would only wake one of them.
@@ -88,8 +107,13 @@ func createManualResetEvent(name string) (windows.Handle, error) {
 		return 0, gerrors.NewE(gerrors.Failure, err)
 	}
 
+	sa, err := eventSecurityAttributes()
+	if err != nil {
+		return 0, err
+	}
+
 	// manualReset=1, initialState=0 (non-signaled).
-	h, err := windows.CreateEvent(nil, 1, 0, namePtr)
+	h, err := windows.CreateEvent(sa, 1, 0, namePtr)
 	if err != nil {
 		if errors.Is(err, windows.ERROR_ALREADY_EXISTS) && h != 0 {
 			if rerr := windows.ResetEvent(h); rerr != nil {
