@@ -122,7 +122,7 @@ from backend.dbm_aiagent.mcp_tools.mysql.serializers.show_variables import (
 )
 from backend.dbm_aiagent.mcp_tools.views import McpToolsViewSet
 from backend.iam_app.handlers.drf_perm.base import DBManagePermission
-from backend.iam_app.handlers.drf_perm.mcp import McpClusterDetailPermission, McpIsDbaPermission
+from backend.iam_app.handlers.drf_perm.mcp import McpClusterDetailPermission, McpDBManagePermission, McpIsDbaPermission
 
 logger = logging.getLogger("root")
 
@@ -363,7 +363,7 @@ class MySQLQueryMcpToolsViewSet(McpToolsViewSet):
         response_slz=ShowBizMySQLPrivilegeTemplateOutputSerializer,
         tags=[DBMMCPTags.READ],
         mcp=[DBMMcpTools.MYSQL_QUERY],
-        permission_classes=[McpClusterDetailPermission],
+        permission_classes=[McpDBManagePermission],
         mcp_auth_parser=auth_parse_bizs,
         name_prefix="mysql_query",
     )
