@@ -21,7 +21,7 @@
       class="mb-32"
       :model="formData"
       :rules="formRules">
-      <DbCard :title="t('业务信息')">
+      <DbCard :title="t('基本信息')">
         <BusinessItems
           v-model:app-abbr="formData.details.db_app_abbr"
           v-model:biz-id="formData.bk_biz_id"
@@ -43,13 +43,11 @@
           v-model="formData.details.cluster_alias"
           :biz-id="formData.bk_biz_id"
           cluster-type="riak" />
-        <CloudItem
-          v-model="formData.details.bk_cloud_id"
-          @change="handleChangeCloud" />
       </DbCard>
       <RegionRequirements
         ref="regionRequirements"
-        v-model="formData.details" />
+        v-model="formData.details"
+        @cloud-change="handleCloudChange" />
       <DbCard :title="t('数据库部署信息')">
         <BkFormItem
           :label="t('Riak版本')"
@@ -213,6 +211,7 @@
 </template>
 <script setup lang="ts">
   import InfoBox from 'bkui-vue/lib/info-box';
+  import { inject } from 'vue';
   import { type ComponentProps } from 'vue-component-type-helpers';
   import { useI18n } from 'vue-i18n';
 
@@ -226,7 +225,6 @@
   import IpSelector from '@components/ip-selector/IpSelector.vue';
 
   import BusinessItems from '@views/db-manage/common/apply-items/BusinessItems.vue';
-  import CloudItem from '@views/db-manage/common/apply-items/CloudItem.vue';
   import ClusterAlias from '@views/db-manage/common/apply-items/ClusterAlias.vue';
   import ClusterName from '@views/db-manage/common/apply-items/ClusterName.vue';
   import EstimatedCost from '@views/db-manage/common/apply-items/EstimatedCost.vue';
@@ -234,6 +232,7 @@
   import RegionRequirements from '@views/db-manage/common/apply-items/region-requirements/BigData.vue';
   import ResourcePreview from '@views/db-manage/common/apply-items/ResourcePreview.vue';
   import SpecSelector from '@views/db-manage/common/apply-items/SpecSelector.vue';
+  import { serviceApplyKey } from '@views/service-apply/const.ts';
 
   // 目前固定为此版本
   const dbVersionList = [2.2];
@@ -274,6 +273,7 @@
   const router = useRouter();
   const { t } = useI18n();
   const { baseState, bizState, handleCancel, handleCreateAppAbbr, handleCreateTicket } = useApplyBase();
+  const serviceApply = inject(serviceApplyKey);
 
   useTicketDetail<Riak.Apply>(TicketTypes.RIAK_CLUSTER_APPLY, {
     onSuccess(ticketDetail) {
@@ -366,9 +366,10 @@
   const handleChangeBiz = (info: BizItem) => {
     bizState.info = info;
     bizState.hasEnglishName = !!info.english_name;
+    serviceApply?.changeBizId(info.bk_biz_id);
   };
 
-  const handleChangeCloud = (info: { id: number | string; name: string }) => {
+  const handleCloudChange = (info: { id: number | string; name: string }) => {
     cloudInfo.value = info;
 
     formData.details.nodes = [];

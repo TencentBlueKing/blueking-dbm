@@ -12,12 +12,12 @@
 -->
 
 <template>
-  <div class="info-title">{{ t('部署模块') }}</div>
+  <div class="info-title">{{ t('基本信息') }}</div>
   <InfoList>
     <InfoItem :label="t('所属业务')">
       {{ ticketDetails.bk_biz_name || '--' }}
     </InfoItem>
-    <InfoItem :label="t('业务英文名')">
+    <InfoItem :label="t('业务代号')">
       {{ ticketDetails.db_app_abbr || '--' }}
     </InfoItem>
     <InfoItem :label="t('DB模块名')">
@@ -28,9 +28,6 @@
     </InfoItem>
     <InfoItem :label="t('集群别名')">
       {{ ticketDetails.details.cluster_alias || '--' }}
-    </InfoItem>
-    <InfoItem :label="t('管控区域')">
-      {{ ticketDetails.details.bk_cloud_name || '--' }}
     </InfoItem>
   </InfoList>
   <RegionRequirements :details="ticketDetails.details" />

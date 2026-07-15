@@ -58,7 +58,9 @@
       <RenderErrorMessage
         :data="data"
         :ticket-detail="ticketDetail" />
-      <Abstract :data="data" />
+      <Abstract
+        :data="data"
+        :ticket-type="ticketDetail.ticket_type" />
     </template>
     <template
       v-if="data.err_code === 3 || renderTodoList.length < 1"
@@ -86,7 +88,7 @@
 
   interface Props {
     data: FlowMode<unknown, any>;
-    ticketDetail: TicketModel;
+    ticketDetail: TicketModel<unknown>;
   }
 
   defineOptions({

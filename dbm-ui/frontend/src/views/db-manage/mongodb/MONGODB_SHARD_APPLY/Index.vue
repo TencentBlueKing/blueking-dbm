@@ -20,7 +20,7 @@
         class="apply-form mb-32"
         :model="formData"
         :rules="rules">
-        <DbCard :title="t('业务信息')">
+        <DbCard :title="t('基本信息')">
           <BusinessItems
             v-model:app-abbr="formData.details.db_app_abbr"
             v-model:biz-id="formData.bk_biz_id"
@@ -35,13 +35,11 @@
             v-model="formData.details.cluster_alias"
             :biz-id="formData.bk_biz_id"
             :cluster-type="ClusterTypes.MONGO_SHARED_CLUSTER" />
-          <CloudItem
-            v-model="formData.details.bk_cloud_id"
-            @change="handleChangeCloud" />
         </DbCard>
         <RegionRequirements
           ref="regionRequirements"
-          v-model="formData.details" />
+          v-model="formData.details"
+          @cloud-change="handleCloudChange" />
         <DbCard :title="t('数据库部署信息')">
           <BkFormItem
             :label="t('MongoDB版本')"
@@ -234,6 +232,7 @@
 <script setup lang="ts">
   import InfoBox from 'bkui-vue/lib/info-box';
   import type { UnwrapRef } from 'vue';
+  import { inject } from 'vue';
   import { type ComponentProps } from 'vue-component-type-helpers';
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
@@ -250,7 +249,6 @@
   import DbForm from '@components/db-form/index.vue';
 
   import BusinessItems from '@views/db-manage/common/apply-items/BusinessItems.vue';
-  import CloudItem from '@views/db-manage/common/apply-items/CloudItem.vue';
   import ClusterAlias from '@views/db-manage/common/apply-items/ClusterAlias.vue';
   import ClusterName from '@views/db-manage/common/apply-items/ClusterName.vue';
   import EstimatedCost from '@views/db-manage/common/apply-items/EstimatedCost.vue';
@@ -258,6 +256,7 @@
   import ResourcePreview from '@views/db-manage/common/apply-items/ResourcePreview.vue';
   import SpecSelector from '@views/db-manage/common/apply-items/SpecSelector.vue';
   import { APPLY_SCHEME } from '@views/db-manage/common/apply-schema/Index.vue';
+  import { serviceApplyKey } from '@views/service-apply/const.ts';
 
   import MongoConfigSpec from './components/MongoConfigSpec.vue';
 
@@ -318,6 +317,7 @@
   const route = useRoute();
   const router = useRouter();
   const { baseState, bizState, handleCancel, handleCreateAppAbbr, handleCreateTicket } = useApplyBase();
+  const serviceApply = inject(serviceApplyKey);
 
   useTicketDetail<Mongodb.ShardApply>(TicketTypes.MONGODB_SHARD_APPLY, {
     onSuccess(ticketDetail) {
@@ -494,9 +494,10 @@
   const handleChangeBiz = (info: BizItem) => {
     bizState.info = info;
     bizState.hasEnglishName = !!info.english_name;
+    serviceApply?.changeBizId(info.bk_biz_id);
   };
 
-  const handleChangeCloud = (info: { id: number | string; name: string }) => {
+  const handleCloudChange = (info: { id: number | string; name: string }) => {
     cloudInfo.value = info;
   };
 
