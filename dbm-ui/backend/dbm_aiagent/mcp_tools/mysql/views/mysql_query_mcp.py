@@ -370,7 +370,8 @@ class MySQLQueryMcpToolsViewSet(McpToolsViewSet):
     def show_biz_mysql_privilege_template(self, request, *args, **kwargs):
         bk_biz_id = self.get_param("bk_biz_id")
         cluster_type = self.get_param("cluster_type")
-        assert_cluster_type(cluster_type, [ClusterType.TenDBSingle, ClusterType.TenDBCluster, ClusterType.TenDBHA])
+        if cluster_type not in [ClusterType.TenDBSingle, ClusterType.TenDBCluster, ClusterType.TenDBHA]:
+            raise DBMMcpNotSupportClusterTypeException(cluster_type=cluster_type)
 
         return Response(
             {
