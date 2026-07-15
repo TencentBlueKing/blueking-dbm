@@ -25,7 +25,7 @@ import (
 	"github.com/jmoiron/sqlx"
 )
 
-var name = "info-report"
+var name = "config-report"
 
 func init() {
 }
@@ -39,16 +39,16 @@ type infoReport struct {
 func (c *infoReport) Run() (msg string, err error) {
 	dbPort := config.MonitorConfig.Port
 	if err := configreport.ReportDbbackupConfig(dbPort); err != nil {
-		slog.Warn("info-report", slog.String("error", err.Error()))
+		slog.Warn("config-report", slog.String("error", err.Error()))
 	}
 	if err := configreport.ReportRotatebinlogConfig(0); err != nil {
-		slog.Warn("info-report", slog.String("error", err.Error()))
+		slog.Warn("config-report", slog.String("error", err.Error()))
 	}
 	if err := pkgversion.CollectPkgVersion(); err != nil {
-		slog.Warn("info-report", slog.String("error", err.Error()))
+		slog.Warn("config-report", slog.String("error", err.Error()))
 	}
 	if err := reportMycnfConfig(c); err != nil {
-		slog.Warn("info-report", slog.String("error", err.Error()))
+		slog.Warn("config-report", slog.String("error", err.Error()))
 	}
 	return "", nil
 }
