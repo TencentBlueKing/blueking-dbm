@@ -1,13 +1,12 @@
-# dbha-probe keepalive Windows start script (equivalent of start-probe-keepalive.sh).
-# Starts the keepalive ping server in the background, records its pid/addr, and
-# registers a periodic Scheduled Task that re-runs this script with -FromCron to
-# auto-restart it (equivalent to the Linux crontab guard).
+# dbha-probe keepalive Windows start script.
+# Admin-only: stop legacy keepalive, register minutely SYSTEM task running
+# ensure-keepalive --from-cron, then schtasks /Run. No interactive-session spawn.
 #Requires -Version 5.1
+#Requires -RunAsAdministrator
 [CmdletBinding()]
 param(
     [Parameter(Mandatory = $true)]
-    [string]$PingHttpAddr,
-    [switch]$FromCron
+    [string]$PingHttpAddr
 )
 
 $ErrorActionPreference = "Stop"
@@ -15,14 +14,9 @@ $ErrorActionPreference = "Stop"
 $ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 Set-Location $ScriptDir
 
-. (Join-Path $ScriptDir "lib\probe-event-utils.ps1")
-
 $BinaryPath = Join-Path $ScriptDir "bin\dbha-probe.exe"
-$RuntimeDir = Join-Path $ScriptDir "runtime"
-$PidFile    = Join-Path $RuntimeDir "probe-keepalive.pid"
-$AddrFile   = Join-Path $RuntimeDir "probe-keepalive.addr"
 $TaskName   = "DBHA_PROBE_KEEPALIVE_GUARD"
-
+$StopScript = Join-Path $ScriptDir "stop-probe-keepalive.ps1"
 $PingHttpAddr = $PingHttpAddr.Trim()
 
 function Write-Log {
@@ -30,6 +24,16 @@ function Write-Log {
     Write-Host ("{0} [{1}] {2}" -f (Get-Date -Format o), $Level, $Message)
 }
 
+function Test-IsAdministrator {
+    $id = [Security.Principal.WindowsIdentity]::GetCurrent()
+    $p = New-Object Security.Principal.WindowsPrincipal($id)
+    return $p.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
+}
+
+if (-not (Test-IsAdministrator)) {
+    Write-Log "ERROR" "Administrator privileges required to register SYSTEM scheduled task (no interactive-user fallback)"
+    exit 1
+}
 if (-not (Test-Path $BinaryPath)) {
     Write-Log "ERROR" "binary missing, path: $BinaryPath"
     exit 1
@@ -39,76 +43,65 @@ if ([string]::IsNullOrWhiteSpace($PingHttpAddr)) {
     exit 1
 }
 
-$ExpectedExe = (Resolve-Path $BinaryPath).Path
-New-Item -ItemType Directory -Force -Path $RuntimeDir | Out-Null
+if (Test-Path $StopScript) {
+    Write-Log "INFO" "stopping existing keepalive"
+    try {
+        & $StopScript
+        if ($LASTEXITCODE -ne 0) {
+            Write-Log "WARN" "stop-probe-keepalive.ps1 exited $LASTEXITCODE; continuing"
+        }
+    }
+    catch {
+        Write-Log "WARN" ("stop-probe-keepalive.ps1 failed: {0}; continuing" -f $_.Exception.Message)
+    }
+}
 
-# Find running keepalive processes for this addr (our binary + matching --ping-http-addr).
-function Get-KeepaliveProcesses {
-    Get-CimInstance Win32_Process -Filter "Name='dbha-probe.exe'" -ErrorAction SilentlyContinue |
+# schtasks /TR cannot contain bare &&/&; helper .cmd cds to InstallRoot then ensure-keepalive.
+$runtimeDir = Join-Path $ScriptDir "runtime"
+New-Item -ItemType Directory -Force -Path $runtimeDir | Out-Null
+$helper = Join-Path $runtimeDir "run-ensure-keepalive.cmd"
+@(
+    "@echo off"
+    "cd /d `"$ScriptDir`""
+    "bin\dbha-probe.exe ensure-keepalive --ping-http-addr $PingHttpAddr --from-cron"
+) | Set-Content -Path $helper -Encoding ascii
+
+Write-Log "INFO" "registering SYSTEM scheduled task $TaskName (TR=$helper)"
+$createArgs = @('/Create', '/SC', 'MINUTE', '/MO', '1', '/TN', $TaskName, '/RU', 'SYSTEM', '/F', '/TR', $helper)
+& schtasks @createArgs | Out-Null
+if ($LASTEXITCODE -ne 0) {
+    Write-Log "ERROR" "schtasks /Create failed (TR=$helper)"
+    exit 1
+}
+
+Write-Log "INFO" "starting keepalive via schtasks /Run (Session 0 SYSTEM)"
+& schtasks @('/Run', '/TN', $TaskName) | Out-Null
+if ($LASTEXITCODE -ne 0) {
+    Write-Log "ERROR" "schtasks /Run failed"
+    exit 1
+}
+
+$ExpectedExe = (Resolve-Path $BinaryPath).Path
+$ok = $false
+for ($i = 0; $i -lt 30; $i++) {
+    Start-Sleep -Milliseconds 500
+    $running = @(Get-CimInstance Win32_Process -Filter "Name='dbha-probe.exe'" -ErrorAction SilentlyContinue |
         Where-Object {
             $_.ExecutablePath -and
             ((Resolve-Path $_.ExecutablePath -ErrorAction SilentlyContinue).Path -eq $ExpectedExe) -and
             $_.CommandLine -and ($_.CommandLine -match [regex]::Escape("--ping-http-addr")) -and
             ($_.CommandLine -match [regex]::Escape($PingHttpAddr))
-        }
-}
-
-function Register-Guard {
-    $action = "powershell -NoProfile -ExecutionPolicy Bypass -File `"$ScriptDir\start-probe-keepalive.ps1`" -PingHttpAddr `"$PingHttpAddr`" -FromCron"
-    schtasks /Create /SC MINUTE /MO 1 /TN $TaskName /TR $action /F | Out-Null
-}
-
-$running = @(Get-KeepaliveProcesses)
-if ($running.Count -gt 0) {
-    if ($FromCron) {
-        Write-Log "INFO" "keepalive already running, skip restart in cron"
-        exit 0
-    }
-    Write-Log "INFO" "existing keepalive detected, stopping before restart"
-    if (Set-KeepaliveStopEvent -Addr $PingHttpAddr) {
-        Write-Log "INFO" ("keepalive stop event set, addr: {0}" -f $PingHttpAddr)
-    } else {
-        Write-Log "INFO" ("keepalive stop event not found, addr: {0}" -f $PingHttpAddr)
-    }
-
-    $snapshot = @{}
-    foreach ($p in $running) {
-        $proc = Get-Process -Id $p.ProcessId -ErrorAction SilentlyContinue
-        if ($proc) { $snapshot[$p.ProcessId] = $proc.StartTime }
-    }
-
-    Start-Sleep -Seconds 1
-
-    foreach ($procId in @($snapshot.Keys)) {
-        $proc = Get-Process -Id $procId -ErrorAction SilentlyContinue
-        if (-not $proc) { continue }
-
-        $ci = Get-CimInstance Win32_Process -Filter "ProcessId=$procId" -ErrorAction SilentlyContinue
-        if (-not $ci -or -not $ci.ExecutablePath) { continue }
-        if ((Resolve-Path $ci.ExecutablePath -ErrorAction SilentlyContinue).Path -ne $ExpectedExe) { continue }
-        if ($proc.StartTime -ne $snapshot[$procId]) { continue }
-
-        Write-Log "WARN" ("force killing surviving keepalive before restart, pid: {0}" -f $procId)
-        Stop-Process -Id $procId -Force -ErrorAction SilentlyContinue
+        })
+    if ($running.Count -gt 0) {
+        $ok = $true
+        break
     }
 }
 
-Write-Log "INFO" "starting dbha-probe keepalive in background, ping_http_addr: $PingHttpAddr"
-$proc = Start-Process -FilePath $BinaryPath `
-    -ArgumentList @("--ping-http-addr", $PingHttpAddr) `
-    -WindowStyle Hidden -PassThru
-
-Set-Content -Path $PidFile -Value $proc.Id -Encoding ascii
-Set-Content -Path $AddrFile -Value $PingHttpAddr -Encoding ascii
-
-Start-Sleep -Milliseconds 500
-if (-not (Get-Process -Id $proc.Id -ErrorAction SilentlyContinue)) {
-    Write-Log "ERROR" "keepalive startup check failed, pid: $($proc.Id)"
-    Remove-Item -Force -ErrorAction SilentlyContinue $PidFile, $AddrFile
+if (-not $ok) {
+    Write-Log "ERROR" "keepalive not up after schtasks /Run"
     exit 1
 }
 
-if (-not $FromCron) { Register-Guard }
-
-Write-Log "INFO" "dbha-probe keepalive started, pid: $($proc.Id)"
-Write-Log "INFO" "health check: curl http://$PingHttpAddr/ping"
+Write-Log "INFO" "keepalive started (SYSTEM); health: curl http://$PingHttpAddr/ping"
+exit 0

@@ -35,8 +35,43 @@ import (
 
 const pingHTTPAddrFlag = "--ping-http-addr"
 
+// cobraSubcommands owns args that should never enter RunKeepaliveMode even if
+// --ping-http-addr is present (e.g. ensure-keepalive).
+var cobraSubcommands = map[string]struct{}{
+	"version":          {},
+	"health":           {},
+	"start":            {},
+	"daemon-start":     {},
+	"stop":             {},
+	"restart":          {},
+	"reload":           {},
+	"gen-config":       {},
+	"ensure":           {},
+	"ensure-keepalive": {},
+	"help":             {},
+	"completion":       {},
+}
+
+func firstPositionalArg(rawArgs []string) string {
+	for _, arg := range rawArgs {
+		if arg == "" || strings.HasPrefix(arg, "-") {
+			continue
+		}
+		return arg
+	}
+	return ""
+}
+
 // ExtractPingHTTPAddrFromArgs parses raw args and returns ping-http-addr.
+// Keepalive mode is the no-subcommand entry (`dbha-probe --ping-http-addr …`).
+// Known cobra subcommands are never treated as keepalive mode.
 func ExtractPingHTTPAddrFromArgs(rawArgs []string) (string, bool, error) {
+	if pos := firstPositionalArg(rawArgs); pos != "" {
+		if _, ok := cobraSubcommands[pos]; ok {
+			return "", false, nil
+		}
+	}
+
 	for i, arg := range rawArgs {
 		if !strings.HasPrefix(arg, pingHTTPAddrFlag) {
 			continue

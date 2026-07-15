@@ -30,10 +30,12 @@ if (-not (Test-Path $BinaryPath)) {
 $ExpectedExe = (Resolve-Path $BinaryPath).Path
 
 function Get-ProbeProcesses {
+    # Exclude keepalive (--ping-http-addr); those are owned by stop-probe-keepalive.ps1.
     Get-CimInstance Win32_Process -Filter "Name='dbha-probe.exe'" -ErrorAction SilentlyContinue |
         Where-Object {
             $_.ExecutablePath -and
-            ((Resolve-Path $_.ExecutablePath -ErrorAction SilentlyContinue).Path -eq $ExpectedExe)
+            ((Resolve-Path $_.ExecutablePath -ErrorAction SilentlyContinue).Path -eq $ExpectedExe) -and
+            (-not ($_.CommandLine -and ($_.CommandLine -match "--ping-http-addr")))
         }
 }
 
@@ -67,8 +69,8 @@ foreach ($procId in @($snapshot.Keys)) {
     Stop-Process -Id $procId -Force -ErrorAction SilentlyContinue
 }
 
-# Remove the periodic guard scheduled task (idempotent).
-schtasks /Delete /TN $TaskName /F 2>$null | Out-Null
+# Remove the periodic guard scheduled task (idempotent; ignore missing task).
+cmd /c "schtasks /Delete /TN `"$TaskName`" /F >NUL 2>&1" | Out-Null
 
 if (@(Get-ProbeProcesses).Count -gt 0) {
     Write-Log "ERROR" "dbha-probe still running after fallback"
@@ -76,3 +78,4 @@ if (@(Get-ProbeProcesses).Count -gt 0) {
 }
 
 Write-Log "INFO" "dbha-probe stopped successfully"
+exit 0

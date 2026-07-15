@@ -35,21 +35,31 @@ func TestExtractPingHTTPAddrFromArgs(t *testing.T) {
 		wantErr   bool
 	}{
 		{
-			name:      "flag equals format",
+			name:      "subcommand with flag is not keepalive mode",
 			args:      []string{"start", "--ping-http-addr=127.0.0.1:18080"},
-			wantAddr:  "127.0.0.1:18080",
-			wantFound: true,
+			wantFound: false,
 		},
 		{
-			name:      "flag split format",
-			args:      []string{"health", "--ping-http-addr", "127.0.0.1:18080"},
-			wantAddr:  "127.0.0.1:18080",
-			wantFound: true,
+			name:      "ensure-keepalive with flag is not keepalive mode",
+			args:      []string{"ensure-keepalive", "--ping-http-addr", "127.0.0.1:18080"},
+			wantFound: false,
 		},
 		{
 			name:      "flag not present",
 			args:      []string{"restart", "-c", "./etc/probe.yaml"},
 			wantFound: false,
+		},
+		{
+			name:      "root keepalive equals format",
+			args:      []string{"--ping-http-addr=127.0.0.1:18080"},
+			wantAddr:  "127.0.0.1:18080",
+			wantFound: true,
+		},
+		{
+			name:      "root keepalive split format",
+			args:      []string{"--ping-http-addr", "127.0.0.1:18080"},
+			wantAddr:  "127.0.0.1:18080",
+			wantFound: true,
 		},
 		{
 			name:      "flag empty value",

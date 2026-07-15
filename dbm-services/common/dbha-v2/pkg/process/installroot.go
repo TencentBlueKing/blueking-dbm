@@ -25,24 +25,40 @@
 package process
 
 import (
-	"crypto/sha1"
-	"encoding/hex"
+	"os"
+	"path/filepath"
+
+	"dbm-services/common/dbha-v2/pkg/gerrors"
 )
 
-// Named-event layout: Global\dbha-probe-<first16hex(sha1(key))><suffix>.
-// Global\ is required so a Session-0 SYSTEM-owned probe can be stopped from an
-// interactive user session (Local\ is per-session and would make stop miss).
-const (
-	eventNamePrefix   = `Global\dbha-probe-`
-	stopEventSuffix   = "-stop"
-	reloadEventSuffix = "-reload"
-)
+// InstallRoot returns the installation root directory for a packaged layout
+// where the binary lives in <root>/bin/<name>. Relative pid/log/runtime paths
+// and ensure(chdir) use this as the working directory anchor.
+func InstallRoot() (string, error) {
+	exe, err := os.Executable()
+	if err != nil {
+		return "", gerrors.NewE(gerrors.Failure, err)
+	}
+	if resolved, err := filepath.EvalSymlinks(exe); err == nil {
+		exe = resolved
+	}
+	root := filepath.Clean(filepath.Join(filepath.Dir(exe), ".."))
+	return root, nil
+}
 
-// DeriveEventName builds a deterministic named-event name from an opaque key.
-// The same key must be used by the process that creates/waits on the event and
-// by whatever sets it (the stop command for pid-file keys, or the keepalive stop
-// script for the ping-http-addr key).
-func DeriveEventName(key, suffix string) string {
-	sum := sha1.Sum([]byte(key))
-	return eventNamePrefix + hex.EncodeToString(sum[:])[:16] + suffix
+// ChdirInstallRoot changes the process working directory to InstallRoot()
+// and verifies a packaged layout (<root>/bin exists).
+func ChdirInstallRoot() (string, error) {
+	root, err := InstallRoot()
+	if err != nil {
+		return "", err
+	}
+	binDir := filepath.Join(root, "bin")
+	if st, err := os.Stat(binDir); err != nil || !st.IsDir() {
+		return "", gerrors.Newf(gerrors.Failure, "install root missing bin/, path: %s", root)
+	}
+	if err := os.Chdir(root); err != nil {
+		return "", gerrors.NewE(gerrors.Failure, err)
+	}
+	return root, nil
 }

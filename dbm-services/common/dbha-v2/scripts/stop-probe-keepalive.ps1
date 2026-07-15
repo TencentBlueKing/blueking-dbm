@@ -6,9 +6,9 @@
 #
 # The keepalive Go process holds no pid file, so its stop event name is derived
 # from the ping-http-addr, keyed identically to the Go side (see
-# pkg/process/namedevent_windows.go deriveEventName): the event name is
-#   Local\dbha-probe-<first16 hex chars of sha1(pingAddr)>-stop
-# This must stay byte-for-byte in sync with the Go derivation.
+# pkg/process/eventname.go DeriveEventName): the event name is
+#   Global\dbha-probe-<first16 hex chars of sha1(pingAddr)>-stop
+# Global\ is required for Session-0 SYSTEM processes. Must stay in sync with Go.
 #Requires -Version 5.1
 [CmdletBinding()]
 param()
@@ -87,7 +87,7 @@ foreach ($procId in @($snapshot.Keys)) {
     Stop-Process -Id $procId -Force -ErrorAction SilentlyContinue
 }
 
-schtasks /Delete /TN $TaskName /F 2>$null | Out-Null
+cmd /c "schtasks /Delete /TN `"$TaskName`" /F >NUL 2>&1" | Out-Null
 Remove-Item -Force -ErrorAction SilentlyContinue $PidFile, $AddrFile
 
 if (@(Get-KeepaliveProcesses).Count -gt 0) {
@@ -96,3 +96,4 @@ if (@(Get-KeepaliveProcesses).Count -gt 0) {
 }
 
 Write-Log "INFO" "dbha-probe keepalive stopped"
+exit 0

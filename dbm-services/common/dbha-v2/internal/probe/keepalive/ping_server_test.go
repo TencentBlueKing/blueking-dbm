@@ -27,6 +27,7 @@ package keepalive
 import (
 	"io"
 	"net/http"
+	"runtime"
 	"strings"
 	"testing"
 	"time"
@@ -96,6 +97,9 @@ func TestPingServerMethodNotAllowed(t *testing.T) {
 }
 
 func TestSetCommNameValidateLength(t *testing.T) {
+	if runtime.GOOS != "linux" {
+		t.Skip("SetCommName length validation is Linux-only (/proc/self/comm)")
+	}
 	longName := strings.Repeat("a", 16)
 	err := SetCommName(longName)
 	if err == nil {
