@@ -64,14 +64,6 @@ from backend.iam_app.dataclass.actions import ActionEnum
         tags=[constants.RESOURCE_TAG],
     ),
 )
-@method_decorator(
-    name="get_topo_graph",
-    decorator=common_swagger_auto_schema(
-        operation_summary=_("获取集群拓扑"),
-        responses={status.HTTP_200_OK: yasg_slz.ResourceTopoGraphSLZ()},
-        tags=[constants.RESOURCE_TAG],
-    ),
-)
 class SurrealDBSingleResourceViewSet(KubernetesResourceViewSet):
     query_class = SurrealDBSingleListRetrieveResource
     query_serializer_class = serializers.ListKubernetesResourceSLZ
