@@ -98,7 +98,6 @@ export const queryMonitorPolicyList = (
     id?: number;
     limit?: number;
     name?: string;
-    not_need_global?: number; // 业务下调用，固定值1
     notify_groups?: string;
     offset?: number;
     target_keyword?: string; // 监控目标

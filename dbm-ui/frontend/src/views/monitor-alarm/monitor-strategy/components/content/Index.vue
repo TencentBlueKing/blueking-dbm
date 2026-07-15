@@ -970,7 +970,6 @@
       db_type: props.dbType,
       id: row.isInnerReal ? row.id : row.parent_id,
       limit: -1,
-      not_need_global: 1,
       offset: 0,
     }).then((res) => {
       const getGlobalPolicyList = res.results;
@@ -1092,7 +1091,6 @@
         db_type: props.dbType,
         id: row.isInnerReal ? row.id : row.parent_id,
         limit: -1,
-        not_need_global: 1,
         offset: 0,
       }).then((res) => {
         const getGlobalPolicyList = res.results;
