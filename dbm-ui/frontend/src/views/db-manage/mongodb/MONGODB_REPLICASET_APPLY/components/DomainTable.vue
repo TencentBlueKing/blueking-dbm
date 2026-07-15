@@ -14,6 +14,7 @@
 <template>
   <div class="domain-table">
     <DbOriginalTable
+      class="domain-address"
       :columns="columns"
       :data="tableData"
       :empty-text="t('请选择业务和DB模块名')" />
@@ -25,7 +26,12 @@
   import type { Column } from 'bkui-vue/lib/table/props';
   import { useI18n } from 'vue-i18n';
 
-  import { nameRegx } from '@common/regex';
+  import { checkDomainRepeat } from '@services/source/ticket.tsx';
+
+  import { ClusterTypes } from '@common/const/clusterTypes.ts';
+  import { clusterNameFormatRegx, clusterNameSymbolRegx } from '@common/regex';
+
+  import { getDomainStrategy } from '@views/db-manage/utils/getDomainPreview.ts';
 
   import ClusterIdBatchEdit from './ClusterIdBatchEdit.vue';
   import ClusterNameBatchEdit from './ClusterNameBatchEdit.vue';
@@ -54,24 +60,46 @@
   const rules = {
     set_id: [
       {
-        message: t('必填项'),
+        message: '',
         required: true,
-        trigger: 'change',
+        trigger: 'blur',
+        validator: (val: string) => !!val,
+      },
+      // {
+      //   message: t('最大长度为m', { m: 63 }),
+      //   trigger: 'blur',
+      //   validator: (val: string) => val.length <= 63,
+      // },
+      {
+        message: t('不能以连字符开头或结尾'),
+        trigger: 'blur',
+        validator: (val: string) => clusterNameFormatRegx.test(val),
       },
       {
-        message: t('最大长度为m', { m: 63 }),
+        message: t('格式不正确，请勿使用中文、大写、空格、下划线或特殊符号'),
         trigger: 'blur',
-        validator: (val: string) => val.length <= 63,
-      },
-      {
-        message: t('以小写英文字母开头_且只能包含英文字母_数字_连字符'),
-        trigger: 'blur',
-        validator: (val: string) => nameRegx.test(val),
+        validator: (val: string) => clusterNameSymbolRegx.test(val),
       },
       {
         message: t('集群ID重复'),
         trigger: 'blur',
         validator: (val: string) => clusterIdKeys.value.filter((item) => item === val).length < 2,
+      },
+      {
+        message: t('该域名已被占用，请修改集群标识'),
+        trigger: 'blur',
+        validator: (val: string) => {
+          if (!props.appAbbr) {
+            return true;
+          }
+          return checkDomainRepeat({
+            cluster_type: ClusterTypes.MONGO_REPLICA_SET,
+            db_app_abbr: props.appAbbr,
+            domains: [val],
+          }).then((result) => {
+            return !result[0].validate;
+          });
+        },
       },
     ],
     // name: [
@@ -96,12 +124,14 @@
   const columns: Column[] = [
     {
       label: t('序号'),
-      type: 'index',
-      width: 60,
+      render: ({ index }: { index: number }) => index + 1,
+      // type: 'index',
+      width: 80,
     },
     {
       field: 'domain',
       label: t('主域名'),
+      render: ({ data }: { data: Domain }) => getDomainDisplay(data.set_id),
       width: 200,
     },
     {
@@ -122,22 +152,30 @@
         <bk-form-item
           key={index}
           ref={(value: FormItem) => setSetIdRef(value)}
-          class='cell-item'
+          class={{
+            'cell-item': true,
+            'domain-address-item-empty': !domains.value[index]?.set_id,
+          }}
           errorDisplayType='tooltips'
           label-width={0}
           property={`details.replica_sets.${index}.set_id`}
           rules={rules.set_id}>
           <bk-input
             v-bk-tooltips={{
-              content: t('以小写英文字母开头_且只能包含英文字母_数字_连字符'),
+              content: t('仅支持小写字母、数字、连字符，同时会参与集群域名生成，创建后不可改'),
               placement: 'top',
               theme: 'light',
               trigger: 'click',
             }}
+            maxlength={63}
             model-value={domains.value[index]?.set_id}
             placeholder={t('请输入')}
-            onInput={(value: string) => handleChangeCellValue(value, index, 'set_id')}
-          />
+            show-word-limit
+            onInput={(value: string) => handleChangeCellValue(value, index, 'set_id')}>
+            {{
+              suffix: () => domains.value[index]?.set_id && <span class='domain-address-placeholder ml-4'></span>,
+            }}
+          </bk-input>
         </bk-form-item>
       ),
     },
@@ -243,17 +281,28 @@
 
     domains.value = newDomains;
   };
+
+  const getDomainDisplay = (domain: string) => {
+    const strategy = getDomainStrategy(ClusterTypes.MONGO_REPLICA_SET);
+    const domainInfo = strategy({
+      clusterName: domain,
+      dbAppAbbr: props.appAbbr,
+      moduleName: '',
+    });
+
+    return `${domainInfo.masterDomain.prefix}${domain || '{' + t('集群标识') + '}'}${domainInfo.masterDomain.suffix}`;
+  };
 </script>
 
-<style lang="less" scoped>
+<style lang="less">
   .domain-table {
-    :deep(.bk-table) {
+    .bk-table {
       .bk-form-content {
         margin-left: 0 !important;
       }
     }
 
-    :deep(.table-custom-label) {
+    .table-custom-label {
       display: flex;
       align-items: center;
 
@@ -262,18 +311,34 @@
       }
     }
 
-    :deep(.domain-address) {
-      display: flex;
-      align-items: center;
+    .domain-address {
+      // display: flex;
+      // align-items: center;
 
-      > span {
-        flex-shrink: 0;
-      }
+      // > span {
+      //   flex-shrink: 0;
+      // }
 
       .cell-item {
         margin-bottom: 0;
 
         .bk-form-label {
+          display: none;
+        }
+
+        .domain-address-placeholder {
+          display: none;
+        }
+
+        &.is-error {
+          .domain-address-placeholder {
+            display: inline;
+          }
+        }
+      }
+
+      .domain-address-item-empty {
+        .bk-form-error-tips {
           display: none;
         }
       }

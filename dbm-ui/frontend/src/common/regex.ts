@@ -18,9 +18,19 @@ const portRegex = '([1-9][0-9]{0,3}|[1-5][0-9]{4}|6[0-4][0-9]{3}|65[0-4][0-9]{2}
 const domain = '(?=^.{3,255}$)[a-zA-Z0-9][-a-zA-Z0-9]{0,62}(\\.[a-zA-Z0-9][-a-zA-Z0-9]{0,62})+';
 
 /**
- * 以小写字母或数字开头，支持小写英文字母、数字、连字符-
+ * 集群名 格式正则，不能以连字符开头或结尾
  */
-export const nameRegx = /^[a-z0-9][a-z0-9-]*$/;
+export const clusterNameFormatRegx = /^(?!-).*(?<!-)$/;
+
+/**
+ * 集群名 符号正则，非中文、大写、空格、下划线或特殊符号
+ */
+export const clusterNameSymbolRegx = /^[a-z0-9-]+$/;
+
+/**
+ * 业务code 正则，非中文、大写、空格、下划线或特殊符号
+ */
+export const bizCodeRegx = /^[a-z0-9][a-z0-9-]*$/;
 
 /**
  * ipv4 正则
