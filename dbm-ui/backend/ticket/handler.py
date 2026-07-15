@@ -550,8 +550,12 @@ class CheckDomainRepeatHandler:
             )
         return domain_info
 
-    @classmethod
-    def get_common_domain(cls, domain_prefix, domains, db_app_abbr):
+    def get_common_domain(self, domains, db_app_abbr):
+        domain_prefix_map = ClusterType.get_domain_prefix_map()
+        domain_prefix = domain_prefix_map.get(self.cluster_type)
+        if not domain_prefix:
+            raise AppBaseException(_("未获取到对应集群类型的域名前缀, 请联系管理员"))
+
         return [
             {
                 "prefix": f"{domain_prefix}.",
@@ -562,24 +566,23 @@ class CheckDomainRepeatHandler:
         ]
 
     def check_domain(self, domains, db_app_abbr, db_module_id=None):
-        domain_prefix_map = ClusterType.get_domain_prefix_map()
-
+        # 带db_module_id的集群域名需要module相关信息拼接域名，分场景处理
         if db_module_id:
             domain_info = self.get_has_model_domain(db_module_id, domains, db_app_abbr)
         else:
-            domain_prefix = domain_prefix_map.get(self.cluster_type)
-            if not domain_prefix:
-                raise AppBaseException(_("未获取到对应集群类型的域名前缀, 请联系管理员"))
-
-            domain_info = self.get_common_domain(domain_prefix, domains, db_app_abbr)
+            domain_info = self.get_common_domain(domains, db_app_abbr)
 
         if self.cluster_type in ClusterType.k8s_container_cluster_type_values():
             cluster_entry_type = ClusterEntryType.CLBDNS.value
         else:
             cluster_entry_type = ClusterEntryType.DNS.value
 
+        entries = [domain["domain"] for domain in domain_info]
+        has_entries = ClusterEntry.objects.filter(cluster_entry_type=cluster_entry_type, entry__in=entries)
+        entry_domain_map = {entry.entry: entry for entry in has_entries}
+
         for domain in domain_info:
-            if ClusterEntry.objects.filter(cluster_entry_type=cluster_entry_type, entry=domain["domain"]).exists():
+            if entry_domain_map.get(domain["domain"]):
                 domain["validate"] = True
             else:
                 domain["validate"] = False
