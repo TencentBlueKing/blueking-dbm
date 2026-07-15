@@ -11,7 +11,7 @@
  * the specific language governing permissions and limitations under the License.
  */
 
-import { TicketTypes } from '@common/const';
+import { MessageTypes, TicketTypes } from '@common/const';
 
 import { utcDisplayTime } from '@utils';
 
@@ -97,7 +97,11 @@ export default class Ticket<T extends unknown | DetailBase = unknown> {
     title: string;
   };
   remark: string;
-  send_msg_config: Record<string, string>;
+  send_msg_config: {
+    is_send: boolean;
+    msg_type: MessageTypes[]; // 目前只有邮件的方式
+    receiver__username: string[];
+  };
   status: keyof typeof Ticket.statusTextMap;
   status_display: string;
   ticket_type: TicketTypes;

@@ -1,8 +1,11 @@
 <template>
-  <div class="ticket-details-info-title mt-20">{{ t('地域要求') }}</div>
+  <div class="ticket-details-info-title mt-20">{{ t('容灾要求') }}</div>
   <InfoList>
-    <InfoItem :label="t('容灾要求')">
+    <InfoItem :label="t('容灾级别')">
       {{ affinityText }}
+    </InfoItem>
+    <InfoItem :label="t('管控区域')">
+      {{ details.bk_cloud_name || '--' }}
     </InfoItem>
     <InfoItem :label="t('地域')">
       {{ cityName }}
@@ -25,6 +28,7 @@
 
   interface Props {
     details: {
+      bk_cloud_name: string;
       city_code: string;
       resource_spec: {
         [key: string]: {
