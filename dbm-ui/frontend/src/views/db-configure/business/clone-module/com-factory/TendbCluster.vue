@@ -38,7 +38,7 @@
           required
           :rules="rules.alias_name">
           <template #hint>
-            {{ t('仅支持小写字母、数字、连字符，同时会参与集群域名生成，') }}<span class="hint-warning">{{ t('创建后不可改') }}</span>
+            {{ t('仅支持小写字母、数字、连字符，') }}<span class="hint-warning">{{ t('创建后不可改') }}</span>
           </template>
           <div class="module-name-row">
             <BkInput
@@ -48,7 +48,6 @@
               :placeholder="t('请输入模块名')"
               show-word-limit
               @change="handleValidate" />
-            <DomainPreview :module-name="formData.alias_name" />
           </div>
         </FormItemWithHint>
         <!-- 数据库信息 -->
@@ -248,7 +247,6 @@
 
   import DbTable from '@components/db-table/IndexNew.vue';
 
-  import DomainPreview from '@views/db-configure/components/DomainPreview.vue';
   import FormItemWithHint from '@views/db-configure/components/FormItemWithHint.vue';
   import { saveConfigureState } from '@views/db-configure/utils/configureState';
 
