@@ -183,12 +183,13 @@
                   v-if="row.standby_dba"
                   :value="[row.standby_dba]" />
                 <template v-else>
-                  <div v-if="defaultAdminsDataMap[row.db_type as DBTypes]?.users?.length">
+                  <!-- <div v-if="defaultAdminsDataMap[row.db_type as DBTypes]?.users?.length">
                     <MemberDisplay
                       is-default
                       :value="[defaultAdminsDataMap[row.db_type as DBTypes].users[0]]" />
                   </div>
-                  <span v-else>--</span>
+                  <span v-else>--</span> -->
+                  <span>--</span>
                 </template>
               </template>
             </template>
@@ -228,12 +229,13 @@
                   type="tag"
                   :value="row.level2_dba" />
                 <template v-else>
-                  <div v-if="defaultAdminsDataMap[row.db_type as DBTypes]?.users?.length">
+                  <!-- <div v-if="defaultAdminsDataMap[row.db_type as DBTypes]?.users?.length">
                     <MemberDisplay
                       is-default
                       :value="[defaultAdminsDataMap[row.db_type as DBTypes].users[0]]" />
                   </div>
-                  <span v-else>--</span>
+                  <span v-else>--</span> -->
+                  <span>--</span>
                 </template>
               </template>
             </template>
