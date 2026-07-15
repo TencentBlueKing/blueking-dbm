@@ -5,6 +5,8 @@ import type { ClusterTypes } from '@common/const';
 import type { ApplySpecInfo, DetailBase } from '../common';
 
 export interface ClusterApply extends DetailBase {
+  apply_clb: boolean; // 默认 false
+  apply_polaris: boolean; // 默认 false
   bk_cloud_id: number;
   bk_cloud_name: string;
   cap_key: string;

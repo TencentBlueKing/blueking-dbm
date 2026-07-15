@@ -16,7 +16,7 @@
     <InfoItem :label="t('所属业务')">
       {{ ticketDetails.bk_biz_name }}
     </InfoItem>
-    <InfoItem :label="t('业务英文名')">
+    <InfoItem :label="t('业务代号')">
       {{ ticketDetails.db_app_abbr }}
     </InfoItem>
     <InfoItem :label="t('字符集')">

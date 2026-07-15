@@ -21,7 +21,7 @@
       :model="formData"
       :rules="rules"
       style="margin-bottom: 16px">
-      <DbCard :title="t('业务信息')">
+      <DbCard :title="t('基本信息')">
         <BusinessItems
           v-model:app-abbr="formData.details.db_app_abbr"
           v-model:biz-id="formData.bk_biz_id"
@@ -36,13 +36,11 @@
           v-model="formData.details.cluster_alias"
           :biz-id="formData.bk_biz_id"
           cluster-type="es" />
-        <CloudItem
-          v-model="formData.details.bk_cloud_id"
-          @change="handleChangeCloud" />
       </DbCard>
       <RegionRequirements
         ref="regionRequirements"
-        v-model="formData.details" />
+        v-model="formData.details"
+        @cloud-change="handleCloudChange" />
       <DbCard :title="t('部署需求')">
         <BkFormItem
           :label="t('ES版本')"
@@ -394,6 +392,7 @@
 <script setup lang="ts">
   import InfoBox from 'bkui-vue/lib/info-box';
   import _ from 'lodash';
+  import { inject } from 'vue';
   import { useI18n } from 'vue-i18n';
   import { useRoute, useRouter } from 'vue-router';
 
@@ -407,7 +406,6 @@
   import IpSelector from '@components/ip-selector/IpSelector.vue';
 
   import BusinessItems from '@views/db-manage/common/apply-items/BusinessItems.vue';
-  import CloudItem from '@views/db-manage/common/apply-items/CloudItem.vue';
   import ClusterAlias from '@views/db-manage/common/apply-items/ClusterAlias.vue';
   import ClusterName from '@views/db-manage/common/apply-items/ClusterName.vue';
   import DeployVersion from '@views/db-manage/common/apply-items/DeployVersion.vue';
@@ -419,6 +417,7 @@
     type IHostTableDataWithInstance,
   } from '@views/db-manage/common/big-data-host-table/es-host-table/index.vue';
   import RenderHostTable from '@views/db-manage/common/big-data-host-table/RenderHostTable.vue';
+  import { serviceApplyKey } from '@views/service-apply/const.ts';
 
   const route = useRoute();
   const router = useRouter();
@@ -636,6 +635,7 @@
   const getSmartActionOffsetTarget = () => document.querySelector('.bk-form-content');
 
   const { baseState, bizState, handleCancel, handleCreateAppAbbr, handleCreateTicket } = useApplyBase();
+  const serviceApply = inject(serviceApplyKey);
 
   // 切换业务，需要重置 IP 相关的选择
   function handleChangeBiz(info: BizItem) {
@@ -646,12 +646,13 @@
     formData.details.nodes.cold = [];
     formData.details.nodes.client = [];
     formData.details.nodes.master = [];
+    serviceApply?.changeBizId(info.bk_biz_id);
   }
 
   /**
    * 变更所属管控区域
    */
-  function handleChangeCloud(info: { id: number | string; name: string }) {
+  function handleCloudChange(info: { id: number | string; name: string }) {
     cloudInfo.id = info.id;
     cloudInfo.name = info.name;
 
