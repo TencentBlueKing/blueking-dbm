@@ -368,8 +368,9 @@ func (c *SlowlogReport) parseLine(line []byte) {
 				}
 			}
 		}
-		if c.segF.schema == "" {
+		if !c.segF.hasSchema {
 			if idx := bytes.Index(line, []byte("Schema:")); idx >= 0 {
+				c.segF.hasSchema = true
 				rest := line[idx+7:]
 				rest = bytes.TrimLeft(rest, " \t")
 				end := bytes.IndexByte(rest, ' ')
@@ -502,6 +503,7 @@ type segFields struct {
 	hasTime   bool    // 是否有 # Time 行
 	hasSetTs  bool    // 是否有 SET timestamp 行
 	hasQT     bool    // 是否有 Query_time 行
+	hasSchema bool    // 是否出现了 Schema: 关键字（即使值为空）
 }
 
 // collectSegFields 一次遍历 segLines，收集所有需要的字段（全部使用手写 parser，无正则）
@@ -541,8 +543,9 @@ func (c *SlowlogReport) collectSegFields(segLines [][]byte) segFields {
 				}
 			}
 			// 提取 Schema: xxx（手写解析，验证值不含 ':'）
-			if f.schema == "" {
+			if !f.hasSchema {
 				if idx := bytes.Index(line, []byte("Schema:")); idx >= 0 {
+					f.hasSchema = true
 					rest := line[idx+7:]
 					rest = bytes.TrimLeft(rest, " \t")
 					end := bytes.IndexByte(rest, ' ')
@@ -709,10 +712,17 @@ func (c *SlowlogReport) rewriteSeg() error {
 		}
 	}
 
-	// 确定 DB_name：优先使用段内已有的 Schema 信息，如果没有则使用上下文记录的 currentDB
-	schemaToWrite := c.currentDB
-	if f.schema != "" {
-		schemaToWrite = f.schema
+	// 确定 DB_name：
+	// 1. 如果段内出现了 Schema:（无论值是否为空），不填充 Db_name
+	// 2. 如果没有 Schema:，优先使用段内 use xxxdb 语句的数据库名
+	// 3. 如果也没有 use xxxdb，才使用 cached 的 currentDB
+	var schemaToWrite string
+	if !f.hasSchema {
+		if f.usedDB != "" {
+			schemaToWrite = f.usedDB
+		} else {
+			schemaToWrite = c.currentDB
+		}
 	}
 
 	// 构建注入行内容：使用 strings.Builder 减少分配

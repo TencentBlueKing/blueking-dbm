@@ -51,10 +51,17 @@ func (c *SlowlogReport) ReformatSeg() (string, error) {
 		}
 	}
 
-	// 确定 DB_name
-	schemaToWrite := c.currentDB
-	if f.schema != "" {
-		schemaToWrite = f.schema
+	// 确定 DB_name：
+	// 1. 如果段内出现了 Schema:（无论值是否为空），不填充 Db_name
+	// 2. 如果没有 Schema:，优先使用段内 use xxxdb 语句的数据库名
+	// 3. 如果也没有 use xxxdb，才使用 cached 的 currentDB
+	var schemaToWrite string
+	if !f.hasSchema {
+		if f.usedDB != "" {
+			schemaToWrite = f.usedDB
+		} else {
+			schemaToWrite = c.currentDB
+		}
 	}
 
 	// 通用解析：从注释行中提取所有 KEY: VALUE 对

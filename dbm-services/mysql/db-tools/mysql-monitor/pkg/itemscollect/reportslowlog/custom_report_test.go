@@ -409,9 +409,9 @@ func TestRewriteSegBytes_WithExistingSchema(t *testing.T) {
 
 	output := string(content)
 
-	// 验证输出包含 # Db_name: existingdb  Query_start_ts:（使用段内自带的 Schema）
-	if !strings.Contains(output, "# Db_name: existingdb  Query_start_ts:") {
-		t.Errorf("期望输出包含 '# Db_name: existingdb  Query_start_ts:', 实际输出:\n%s", output)
+	// 验证输出：段内有 Schema: 时，Db_name 不填充（为空）
+	if !strings.Contains(output, "# Db_name:   Query_start_ts:") {
+		t.Errorf("期望输出包含 '# Db_name:   Query_start_ts:'（Schema 存在时不填充 Db_name）, 实际输出:\n%s", output)
 	}
 }
 
@@ -518,9 +518,9 @@ func TestRewriteSegBytes_QueryStartTs(t *testing.T) {
 
 	output := string(content)
 
-	// DB_name testdb Query_start_ts: 1769450330 (= 1769450335 - 5)
-	if !strings.Contains(output, "# Db_name: testdb  Query_start_ts: 1769450330") {
-		t.Errorf("期望包含 '# Db_name: testdb  Query_start_ts: 1769450330', 实际输出:\n%s", output)
+	// 段内有 Schema: 时，Db_name 不填充；Query_start_ts: 1769450330 (= 1769450335 - 5)
+	if !strings.Contains(output, "# Db_name:   Query_start_ts: 1769450330") {
+		t.Errorf("期望包含 '# Db_name:   Query_start_ts: 1769450330'（Schema 存在时不填充 Db_name）, 实际输出:\n%s", output)
 	}
 }
 
@@ -572,9 +572,9 @@ func TestRewriteSegBytes_DifferentTimestamp(t *testing.T) {
 
 	output := string(content)
 
-	// commentHeadTime(1769450335) != setTs(1769450400) → queryStartTs = setTs = 1769450400
-	if !strings.Contains(output, "# Db_name: testdb  Query_start_ts: 1769450400") {
-		t.Errorf("期望包含 '# Db_name: testdb  Query_start_ts: 1769450400', 实际输出:\n%s", output)
+	// 段内有 Schema: 时，Db_name 不填充；commentHeadTime(1769450335) != setTs(1769450400) → queryStartTs = setTs = 1769450400
+	if !strings.Contains(output, "# Db_name:   Query_start_ts: 1769450400") {
+		t.Errorf("期望包含 '# Db_name:   Query_start_ts: 1769450400'（Schema 存在时不填充 Db_name）, 实际输出:\n%s", output)
 	}
 }
 
