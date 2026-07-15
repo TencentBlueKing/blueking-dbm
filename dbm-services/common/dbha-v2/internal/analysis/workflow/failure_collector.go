@@ -25,6 +25,8 @@
 package workflow
 
 import (
+	"time"
+
 	"dbm-services/common/dbha-v2/pkg/storage/haprobe"
 )
 
@@ -42,6 +44,11 @@ type FailureInstanceInfo struct {
 	ClusterType     haprobe.DbmMetadataClusterType  `json:"cluster_type"`
 	MachineType     haprobe.DbmMetadataMachineType  `json:"machine_type"`
 	InstanceRole    haprobe.DbmMetadataInstanceRole `json:"instance_role"`
+
+	// CheckStartTime and CheckFinishedTime are the start and end times of the instance's
+	// SSH double-check detection.
+	CheckStartTime    *time.Time `json:"check_start_time,omitempty"`
+	CheckFinishedTime *time.Time `json:"check_finished_time,omitempty"`
 }
 
 // FailureGroup groups failure instances by (BkCloudID, DbType) for batch switching.

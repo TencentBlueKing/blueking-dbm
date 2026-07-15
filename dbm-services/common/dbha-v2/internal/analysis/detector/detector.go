@@ -60,6 +60,11 @@ type Response struct {
 	DbEventNameReason haprobe.DbEventNameReason
 	Err               error
 	SshResp           *SshResponse
+
+	// CheckStartTime and CheckFinishedTime are the start and end times of the instance's
+	// SSH double-check detection.
+	CheckStartTime    *time.Time
+	CheckFinishedTime *time.Time
 }
 
 // Detector is used to detect whether the host or the probe is alive.
@@ -151,6 +156,9 @@ func (d *detectorTask) run(cmd string) {
 
 	start := time.Now()
 	sshResp, err := d.sshCli.Run(cmd)
+	finish := time.Now()
+	resp.CheckStartTime = &start
+	resp.CheckFinishedTime = &finish
 	resp.SshResp = sshResp
 	resp.Err = err
 	d.resp = resp

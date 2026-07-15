@@ -138,18 +138,20 @@ func (h *DetectorHandler) LivenessDoubleCheck(bizId int, missedInsts []detector.
 
 		// Build failure instance info and push into the sliding window
 		inst := &FailureInstanceInfo{
-			BkCloudID:       resp.Meta.BkCloudID,
-			IP:              resp.Meta.IP,
-			Port:            resp.Meta.Port,
-			BkBizID:         resp.Meta.BkBizID,
-			Cluster:         resp.Meta.Cluster,
-			ClusterID:       resp.Meta.ClusterID,
-			DbType:          resp.DbType,
-			EventName:       resp.DbEventName,
-			EventNameReason: resp.DbEventNameReason,
-			ClusterType:     resp.Meta.ClusterType,
-			MachineType:     resp.Meta.MachineType,
-			InstanceRole:    resp.Meta.InstanceRole,
+			BkCloudID:         resp.Meta.BkCloudID,
+			IP:                resp.Meta.IP,
+			Port:              resp.Meta.Port,
+			BkBizID:           resp.Meta.BkBizID,
+			Cluster:           resp.Meta.Cluster,
+			ClusterID:         resp.Meta.ClusterID,
+			DbType:            resp.DbType,
+			EventName:         resp.DbEventName,
+			EventNameReason:   resp.DbEventNameReason,
+			ClusterType:       resp.Meta.ClusterType,
+			MachineType:       resp.Meta.MachineType,
+			InstanceRole:      resp.Meta.InstanceRole,
+			CheckStartTime:    resp.CheckStartTime,
+			CheckFinishedTime: resp.CheckFinishedTime,
 		}
 
 		if h.windowMgr.Push(bizId, inst, now) {

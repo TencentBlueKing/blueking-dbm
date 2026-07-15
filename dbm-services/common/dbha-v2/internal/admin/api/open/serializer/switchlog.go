@@ -25,6 +25,7 @@
 package serializer
 
 import (
+	"fmt"
 	"strconv"
 	"time"
 
@@ -111,6 +112,7 @@ func SwitchLogInfoListOutput(switchSnapshotLogs []*hamodel.DbSwitchingSnapshotLo
 	res := make(SwitchLogListResponse, 0)
 	loc, _ := time.LoadLocation("Asia/Shanghai")
 
+	switchLogCheckTime := map[string]string{}
 	for _, switchLog := range switchSnapshotLogs {
 		if !switchLog.Instances.Valid {
 			continue
@@ -135,8 +137,8 @@ func SwitchLogInfoListOutput(switchSnapshotLogs []*hamodel.DbSwitchingSnapshotLo
 			var checkStartTime string
 			if instance.CheckStartTime != nil {
 				checkStartTime = instance.CheckStartTime.In(loc).Format(TimeFormat)
-			} else {
-				checkStartTime = switchStartTime
+				k := fmt.Sprintf("%d:%s", switchLog.ID, instance.IP)
+				switchLogCheckTime[k] = checkStartTime
 			}
 
 			res = append(res, SwitchLogListOutputInfo{
@@ -162,5 +164,21 @@ func SwitchLogInfoListOutput(switchSnapshotLogs []*hamodel.DbSwitchingSnapshotLo
 			})
 		}
 	}
+
+	// Backfill the check time for records of the same switch request sharing the same IP
+	// but different ports; fall back to the switch start time if none is available.
+	for i := range res {
+		if res[i].ConfirmCheckTime != "" {
+			continue
+		}
+
+		k := fmt.Sprintf("%d:%s", res[i].UID, res[i].IP)
+		if checkTime, ok := switchLogCheckTime[k]; ok {
+			res[i].ConfirmCheckTime = checkTime
+		} else {
+			res[i].ConfirmCheckTime = res[i].SwitchStartTime
+		}
+	}
+
 	return res
 }
