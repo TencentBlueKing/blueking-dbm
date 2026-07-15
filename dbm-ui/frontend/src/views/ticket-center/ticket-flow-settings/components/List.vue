@@ -39,7 +39,7 @@
     <BkAlert
       class="mb-16"
       closable>
-      {{ t('业务策略适用于业务下全部集群，不可删除。如需对指定集群单独设置，可添加子策略覆盖。') }}
+      {{ t('业务策略基于业务下全部集群生效，该规则支持创建子策略进行例外配置。') }}
     </BkAlert>
     <div
       ref="tableContentRef"
@@ -89,6 +89,7 @@
   <EditPolicySide
     v-model:is-show="editPolicyVisible"
     :data="currentPolicyData"
+    :existing-cluster-ids="currentExistingClusterIds"
     :is-edit="isEditPolicy"
     :parent-approval-setting="parentApprovalSetting"
     @success="fetchListData" />
@@ -131,7 +132,6 @@
 
   // 表格容器引用（用于动态计算表格可用高度）
   const tableContentRef = ref<HTMLElement>();
-  // 表格最大高度（由 ResizeObserver 根据容器高度实时计算）
   const tableMaxHeight = ref(600);
   let resizeObserver: ResizeObserver | null = null;
 
@@ -158,11 +158,12 @@
   const isEditPolicy = ref(false);
   const currentPolicyData = ref<TicketFlowDescribeModel>(new TicketFlowDescribeModel());
   const parentApprovalSetting = ref<boolean | undefined>(undefined);
+  // 当前编辑/新建子策略时，同一单据类型下已有按集群子策略的集群 id 集合（用于不重复校验）
+  const currentExistingClusterIds = ref<number[]>([]);
 
-  // 搜索选择器配置（搜索值的读写与 URL 同步统一由 useFetchData 通过 useUrlSearch 管理）
   const { quickSearchData } = useSearchSelect();
 
-  // 数据获取 hook：内部统一持有 activeTab / pagination / searchValue 并通过 URL 同步
+  // 数据获取 hook：统一持有 activeTab / pagination / searchValue 并通过 URL 同步
   const {
     activeTab,
     allCount,
@@ -262,12 +263,44 @@
     {
       cell: (_h: any, { row }: { row: TableRow }) => {
         if (row.isChildRow) {
-          return <ClusterPopover clusters={row.clusters} />;
+          // 按标签子策略：展示标签匹配文案 + 标签标识 + 已失效标记
+          if (row.scopeType === 'tag') {
+            return (
+              <span class='scope-tag-cell'>
+                <BkTag
+                  class='mr-4'
+                  size='small'>
+                  {t('按标签')}
+                </BkTag>
+                <span class={{ 'is-tag-invalid': row.isTagInvalid, 'tag-display-text': true }}>{row.tagDisplay}</span>
+                {row.isTagInvalid && (
+                  <BkTag
+                    v-bk-tooltips={t('该标签已被删除')}
+                    class='ml-4'
+                    size='small'
+                    theme='danger'>
+                    {t('已失效')}
+                  </BkTag>
+                )}
+              </span>
+            );
+          }
+          // 按集群子策略：展示集群列表 popover + 集群标识
+          return (
+            <span class='scope-cluster-cell'>
+              <BkTag
+                class='mr-4'
+                size='small'>
+                {t('按集群')}
+              </BkTag>
+              <ClusterPopover clusters={row.clusters} />
+            </span>
+          );
         }
         return <span>{t('业务下全部集群')}</span>;
       },
       title: t('生效范围'),
-      width: 200,
+      width: 260,
     },
     {
       cell: (_h: any, { row }: { row: TableRow }) => {
@@ -350,26 +383,12 @@
               onClick={() => handleEdit(row)}>
               {t('编辑')}
             </BkButton>
-            {row.children && row.children.length > 0 ? (
-              <BkPopover
-                content={t('已存在子策略，不可重复创建')}
-                placement='top'
-                trigger='hover'>
-                <BkButton
-                  disabled
-                  text
-                  theme='primary'>
-                  {t('新建子策略')}
-                </BkButton>
-              </BkPopover>
-            ) : (
-              <BkButton
-                text
-                theme='primary'
-                onClick={() => handleAddChild(row)}>
-                {t('新建子策略')}
-              </BkButton>
-            )}
+            <BkButton
+              text
+              theme='primary'
+              onClick={() => handleAddChild(row)}>
+              {t('新建子策略')}
+            </BkButton>
             {row.isCustom && (
               <BkButton
                 text
@@ -387,23 +406,33 @@
     },
   ]);
 
+  /**
+   * 收集同一单据类型下已有按集群子策略的集群 id（用于按集群不重复校验）
+   * 编辑态排除当前行自身已选集群，避免自校验误报
+   */
+  const collectExistingClusterIds = (ticketType: string, excludeRowId?: number): number[] => {
+    const ids: number[] = [];
+    const parent = allTreeData.value.find((n) => n.ticket_type === ticketType && !n.isChildRow);
+    parent?.children?.forEach((child) => {
+      if (child.scopeType !== 'cluster') return;
+      if (excludeRowId !== undefined && child.id === excludeRowId) return;
+      child.clusters.forEach((c) => ids.push(c.cluster_id));
+    });
+    return ids;
+  };
+
   const handleEdit = (data: TableRow) => {
     isEditPolicy.value = true;
     currentPolicyData.value = data.rawData;
     if (data.rawData.isChildPolicy) {
       // 找到父策略行以获取审批设置
-      const findParent = (nodes: TableRow[]): TableRow | undefined => {
-        for (const node of nodes) {
-          if (node.ticket_type === data.ticket_type && !node.isChildRow) {
-            return node;
-          }
-        }
-        return undefined;
-      };
-      const parentRow = findParent(allTreeData.value);
-      parentApprovalSetting.value = parentRow ? parentRow.configs.need_itsm : undefined;
+      const parentRow = allTreeData.value.find((n) => n.ticket_type === data.ticket_type && !n.isChildRow);
+      parentApprovalSetting.value = parentRow?.configs.need_itsm;
+      // 编辑态：排除当前行自身已选集群
+      currentExistingClusterIds.value = collectExistingClusterIds(data.ticket_type, data.id);
     } else {
       parentApprovalSetting.value = undefined;
+      currentExistingClusterIds.value = [];
     }
     editPolicyVisible.value = true;
   };
@@ -433,6 +462,8 @@
     isEditPolicy.value = false;
     currentPolicyData.value = newData;
     parentApprovalSetting.value = data.configs.need_itsm;
+    // 新建态：收集同一单据类型下所有按集群子策略的集群 id
+    currentExistingClusterIds.value = collectExistingClusterIds(data.ticket_type);
     editPolicyVisible.value = true;
   };
 
@@ -441,14 +472,79 @@
       cancelText: t('取消'),
       confirmButtonTheme: 'danger',
       confirmText: t('确认删除'),
-      content: () => (
-        <div class='infobox-content'>
-          <p>
-            {t('单据类型')}：{data.ticket_type_display}
-          </p>
-          <p class='infobox-tip'>{t('删除后，所有集群将会恢复使用父策略配置，请谨慎操作！')}</p>
-        </div>
-      ),
+      content: () => {
+        // 按集群：域名从上往下排列（≤5 个全部展示；>5 个展示前 5 个 + "共 N 个" popover）
+        const visibleClusterItems = data.clusters.slice(0, 5).map((c) => (
+          <span
+            key={c.cluster_id}
+            class='infobox-cluster-item'>
+            {c.immute_domain}
+          </span>
+        ));
+        const clusterMore =
+          data.clusters.length > 5 ? (
+            <BkPopover
+              v-slots={{
+                content: () => (
+                  <div class='infobox-cluster-overflow-list'>
+                    {data.clusters.map((c) => (
+                      <div
+                        key={c.cluster_id}
+                        class='infobox-cluster-item'>
+                        {c.immute_domain}
+                      </div>
+                    ))}
+                  </div>
+                ),
+              }}
+              placement='top'
+              theme='light'
+              trigger='click'
+              width={300}>
+              <span class='infobox-cluster-more'>
+                … {t('共')} {data.clusters.length} {t('个')}
+              </span>
+            </BkPopover>
+          ) : null;
+
+        const scopeContent =
+          data.scopeType === 'tag' ? (
+            <span class='scope-tag-cell'>
+              <BkTag
+                class='mr-8'
+                size='small'>
+                {t('按标签')}
+              </BkTag>
+              <span class={{ 'is-tag-invalid': data.isTagInvalid, 'tag-display-text': true }}>{data.tagDisplay}</span>
+            </span>
+          ) : (
+            <span class='infobox-scope-text'>
+              <BkTag
+                class='infobox-cluster-tag'
+                size='small'>
+                {t('按集群')}
+              </BkTag>
+              <div class='infobox-cluster-list'>
+                {visibleClusterItems}
+                {clusterMore}
+              </div>
+            </span>
+          );
+
+        return (
+          <div class='infobox-content'>
+            <div class='infobox-row'>
+              <span class='infobox-label'>{t('单据类型：')}</span>
+              <span class='infobox-value'>{data.ticket_type_display}</span>
+            </div>
+            <div class='infobox-row infobox-row-top'>
+              <span class='infobox-label'>{t('生效范围：')}</span>
+              <span class='infobox-value'>{scopeContent}</span>
+            </div>
+            <p class='infobox-tip'>{t('删除后，所有集群将会恢复使用父策略配置，请谨慎操作！')}</p>
+          </div>
+        );
+      },
       extCls: 'ticket-flow-settings-infobox',
       onConfirm: async () => {
         try {
@@ -472,9 +568,10 @@
       confirmText: t('确认'),
       content: () => (
         <div class='infobox-content'>
-          <p>
-            {t('单据类型')}：{data.ticket_type_display}
-          </p>
+          <div class='infobox-row'>
+            <span class='infobox-label'>{t('单据类型：')}</span>
+            <span class='infobox-value'>{data.ticket_type_display}</span>
+          </div>
           <p class='infobox-tip'>{t('恢复后该单据重新继承全局审批策略，随全局策略更新而自动同步。')}</p>
         </div>
       ),
@@ -568,6 +665,26 @@
       color: #2caf5e;
     }
 
+    // 生效范围：按标签 / 按集群 单元格
+    .scope-tag-cell,
+    .scope-cluster-cell {
+      display: inline-flex;
+      align-items: center;
+    }
+
+    // 标签展示文案（失效态添加删除线）
+    .tag-display-text {
+      font-family: 'Microsoft YaHei';
+      font-size: 12px;
+      font-weight: 400;
+      line-height: 20px;
+
+      &.is-tag-invalid {
+        color: #f8b4b4;
+        text-decoration-line: line-through;
+      }
+    }
+
     .action-btns {
       display: flex;
       align-items: center;
@@ -657,17 +774,86 @@
   // InfoBox
   .ticket-flow-settings-infobox {
     .infobox-content {
+      padding-top: 4px;
       text-align: left;
+      line-height: 22px;
+
+      // label 居左、内容居右的左右布局
+      .infobox-row {
+        display: flex;
+        gap: 8px;
+        color: #313238;
+
+        // 多行行：label 顶部对齐
+        &.infobox-row-top {
+          align-items: flex-start;
+        }
+
+        .infobox-label {
+          flex-shrink: 0;
+          width: 70px;
+        }
+
+        .infobox-value {
+          flex: 1;
+          word-break: break-all;
+        }
+      }
+
+      // 弹窗内生效范围：按集群文案（从上往下）
+      .infobox-scope-text {
+        display: flex;
+        gap: 4px;
+        font-size: 12px;
+        line-height: 20px;
+
+        .infobox-cluster-tag {
+          margin: 4px 4px 0 0;
+        }
+
+        .infobox-cluster-list {
+          display: flex;
+          flex-direction: column;
+          gap: 4px;
+        }
+
+        .infobox-cluster-more {
+          color: #3a84ff;
+          cursor: pointer;
+          font-size: 12px;
+        }
+      }
 
       .infobox-tip {
-        display: flex;
-        padding: 12px 16px;
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 10px;
-        align-self: stretch;
-        background: var(--Neutral-9, #f5f7fa);
         margin-top: 16px;
+        padding: 12px 16px;
+        color: #4d4f56;
+        background: var(--Neutral-9, #f5f7fa);
+      }
+    }
+  }
+</style>
+<style lang="less">
+  // 弹窗内集群溢出列表（popover teleport 到 body，需全局样式）
+  .infobox-cluster-overflow-list {
+    max-height: 200px;
+    overflow-y: auto;
+
+    .infobox-cluster-item {
+      position: relative;
+      padding: 2px 12px 2px 20px;
+      font-size: 12px;
+      line-height: 24px;
+
+      &::before {
+        content: '';
+        position: absolute;
+        left: 6px;
+        top: 9px;
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: #c4c6cc;
       }
     }
   }

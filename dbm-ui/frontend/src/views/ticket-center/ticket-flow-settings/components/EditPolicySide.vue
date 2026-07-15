@@ -21,7 +21,7 @@
           :model-value="data.ticket_type_display" />
       </BkFormItem>
       <BkFormItem
-        :label="t('应用范围')"
+        :label="t('生效范围')"
         required>
         <template v-if="showBusinessPolicyReadOnly">
           <BkInput
@@ -29,13 +29,29 @@
             :model-value="t('业务下全部集群')" />
         </template>
         <template v-else>
-          <SelectClusters
-            ref="targetRef"
-            v-model="selectedClusterIds"
-            :biz-id="selectClustersData.bizId"
-            :db-type="selectClustersData.dbType" />
+          <!-- 范围类型：按集群 / 按标签（仅子策略显示） -->
+          <BkRadioGroup
+            v-model="scopeType"
+            type="card">
+            <BkRadioButton label="cluster">{{ t('按集群') }}</BkRadioButton>
+            <BkRadioButton label="tag">{{ t('按标签') }}</BkRadioButton>
+          </BkRadioGroup>
         </template>
       </BkFormItem>
+      <!-- 按集群 -->
+      <SelectClusters
+        v-if="!showBusinessPolicyReadOnly && scopeType === 'cluster'"
+        ref="targetRef"
+        v-model="selectedClusters"
+        :biz-id="selectClustersData.bizId"
+        :db-type="selectClustersData.dbType" />
+      <!-- 按标签 -->
+      <TagScopeEditor
+        v-else-if="!showBusinessPolicyReadOnly && scopeType === 'tag'"
+        ref="tagScopeRef"
+        :cluster-tags="data.cluster_tags"
+        :get-tag-id="getTagId"
+        :key-value-map="keyValueMap" />
       <BkFormItem
         :label="t('免审批')"
         required>
@@ -61,7 +77,7 @@
       </BkFormItem>
       <BkAlert
         v-if="isChildPolicy && isSameAsParent"
-        class="mb-16"
+        class="mb-24"
         theme="warning">
         {{ t('当前审批设置与父策略相同，该子策略不会产生实际效果') }}
       </BkAlert>
@@ -95,8 +111,8 @@
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
-  import TicketFlowDescribeModel from '@services/model/ticket-flow-describe/TicketFlowDescribe';
-  import { saveTicketFlowConfig } from '@services/source/ticket';
+  import TicketFlowDescribeModel, { type ScopeType } from '@services/model/ticket-flow-describe/TicketFlowDescribe';
+  import { type ClusterIdItem, type ClusterTagItem, saveTicketFlowConfig } from '@services/source/ticket';
 
   import { useBeforeClose } from '@hooks';
 
@@ -104,10 +120,15 @@
 
   import { messageError, messageSuccess } from '@utils';
 
-  import SelectClusters from './SelectClusters.vue';
+  import { useClusterTags } from '../hooks/use-cluster-tags';
+
+  import SelectClusters, { type SelectedCluster } from './SelectClusters.vue';
+  import TagScopeEditor from './TagScopeEditor.vue';
 
   interface Props {
     data: TicketFlowDescribeModel;
+    /** 已有子策略的集群 id 集合（用于不重复校验） */
+    existingClusterIds?: number[];
     isEdit?: boolean;
     parentApprovalSetting?: boolean;
   }
@@ -115,10 +136,10 @@
   type Emits = (e: 'success') => void;
 
   const props = withDefaults(defineProps<Props>(), {
+    existingClusterIds: () => [],
     isEdit: false,
     parentApprovalSetting: undefined,
   });
-
   const emits = defineEmits<Emits>();
 
   const isShow = defineModel<boolean>('isShow', {
@@ -128,18 +149,25 @@
   const { t } = useI18n();
   const handleBeforeClose = useBeforeClose();
 
+  // 标签键值聚合（失效判定由后端 is_invalid 字段提供）
+  const { getTagId, keyValueMap } = useClusterTags();
+
   const formData = reactive({
     need_itsm: false,
     remark: '',
   });
 
-  const selectedClusterIds = ref<number[]>([]);
+  const selectedClusters = ref<SelectedCluster[]>([]);
+  const scopeType = ref<ScopeType>('cluster');
+
+  const targetRef = ref<InstanceType<typeof SelectClusters>>();
+  const tagScopeRef = ref<InstanceType<typeof TagScopeEditor>>();
 
   const isSubmitting = ref(false);
 
   const isChildPolicy = computed(() => props.data.isChildPolicy);
 
-  // 是否显示业务策略的只读模式（编辑父策略时为 true：非子策略的编辑场景即父策略，应用范围固定为业务下全部集群）
+  // 编辑父策略时为只读模式（生效范围固定为业务下全部集群）
   const showBusinessPolicyReadOnly = computed(() => props.isEdit && !isChildPolicy.value);
 
   const titleText = computed(() => {
@@ -178,7 +206,16 @@
     () => {
       formData.need_itsm = props.data.configs?.need_itsm ?? false;
       formData.remark = props.data.remark || '';
-      selectedClusterIds.value = props.data.cluster_ids || [];
+      // 编辑态按 data.scopeType 回填，新建态默认按集群
+      scopeType.value = props.isEdit ? props.data.scopeType : 'cluster';
+      // 按集群回填：cluster_ids 为对象数组 [{id, immute_domain}]
+      selectedClusters.value =
+        props.data.scopeType === 'cluster'
+          ? (props.data.cluster_ids || []).map((item) => ({
+              id: item.id,
+              immute_domain: item.immute_domain || '',
+            }))
+          : [];
     },
     { immediate: true },
   );
@@ -187,27 +224,52 @@
     isSubmitting.value = true;
 
     try {
-      // 子策略（新建或编辑）需要选择集群
+      let clusterIds: ClusterIdItem[] = [];
+      let clusterTags: ClusterTagItem[] = [];
+
+      // 子策略需校验生效范围
       if (isChildPolicy.value) {
-        if (selectedClusterIds.value.length === 0) {
-          messageError(t('请至少选择一个集群'));
-          isSubmitting.value = false;
-          return;
+        if (scopeType.value === 'cluster') {
+          // 按集群：校验至少一个集群
+          const clusters = await targetRef.value?.getValue();
+          if (!clusters || clusters.length === 0) {
+            messageError(t('请至少选择一个集群'));
+            isSubmitting.value = false;
+            return;
+          }
+          // 按集群不重复校验：同一单据类型下，一集群仅属一条按集群子策略
+          const existingSet = new Set(props.existingClusterIds);
+          // 编辑态排除自身已选集群（cluster_ids 为对象数组，提取 id）
+          const selfIds = new Set((props.data.cluster_ids || []).map((item) => item.id));
+          const duplicate = clusters.find((c) => existingSet.has(c.id) && !selfIds.has(c.id));
+          if (duplicate) {
+            messageError(t('集群 x 已在另一条按集群子策略中，不可重复', { x: duplicate.immute_domain }));
+            isSubmitting.value = false;
+            return;
+          }
+          clusterIds = clusters.map((c) => ({ id: c.id, immute_domain: c.immute_domain }));
+        } else {
+          // 按标签：校验标签条件
+          const tagResult = await tagScopeRef.value?.getValue();
+          if (!tagResult) {
+            messageError(t('请选择标签键与匹配条件'));
+            isSubmitting.value = false;
+            return;
+          }
+          clusterTags = tagResult.clusterTags;
         }
       }
 
       const params = {
         bk_biz_id: props.data.bk_biz_id || window.PROJECT_CONFIG.BIZ_ID,
+        cluster_ids: clusterIds,
+        cluster_tags: clusterTags,
         configs: {
           need_itsm: formData.need_itsm,
         },
         remark: formData.remark,
         ticket_types: [props.data.ticket_type],
       } as Parameters<typeof saveTicketFlowConfig>[0];
-
-      if (isChildPolicy.value) {
-        params.cluster_ids = selectedClusterIds.value;
-      }
 
       if (props.isEdit) {
         params.config_ids = [props.data.id];
@@ -226,7 +288,9 @@
   const handleClosed = () => {
     formData.need_itsm = false;
     formData.remark = '';
-    selectedClusterIds.value = [];
+    selectedClusters.value = [];
+    scopeType.value = 'cluster';
+    tagScopeRef.value?.reset();
   };
 </script>
 
@@ -245,12 +309,5 @@
 
   .form-tip {
     font-size: 12px;
-  }
-
-  .restore-dialog-content {
-    p:first-child {
-      font-weight: bold;
-      margin-bottom: 8px;
-    }
   }
 </style>
