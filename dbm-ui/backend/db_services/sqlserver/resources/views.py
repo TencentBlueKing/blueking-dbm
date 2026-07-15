@@ -101,7 +101,6 @@ class BaseSQLServerViewSet(viewsets.ResourceViewSet):
         ActionEnum.SQLSERVER_EDIT,
         ActionEnum.SQLSERVER_SUBSCRIBE_MONITOR,
         ActionEnum.SQLSERVER_DBCONFIG_EDIT,
-        ActionEnum.SQLSERVER_PRIV_MANAGE,
     ]
     list_instance_perm_actions = [ActionEnum.SQLSERVER_VIEW]
     list_external_perm_actions = [ActionEnum.ACCESS_ENTRY_EDIT]
@@ -117,6 +116,11 @@ class BaseSQLServerViewSet(viewsets.ResourceViewSet):
         id_field=lambda d: d["id"],
         data_field=lambda d: d["results"],
         action_filed=lambda d: d["view_class"].list_perm_actions,
+    )
+    @Permission.decorator_external_permission_field(
+        param_field=lambda d: d["bk_biz_id"],
+        actions=[ActionEnum.SQLSERVER_PRIV_MANAGE],
+        resource_meta=ResourceEnum.BUSINESS,
     )
     @Permission.decorator_external_permission_field(
         param_field=lambda d: d["view_class"]._external_perm_param_field(d),
