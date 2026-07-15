@@ -454,25 +454,28 @@ class TicketFlowsConfig(AuditedModel):
         # 业务配置、集群配置和标签配置
         biz_configs = cls.objects.filter(bk_biz_id=bk_biz_id, ticket_type=ticket_type)
         biz_cfg = biz_configs.filter(cluster_ids=[], cluster_tags=[]).first() or global_cfg
-        cluster_cfg = biz_configs.exclude(cluster_ids=[]).first()
-        tag_cfg = biz_configs.exclude(cluster_tags=[]).first()
+        # 同一个 ticket_type 允许存在多条集群/标签子配置，按更新时间倒序匹配，优先使用最新配置。
+        cluster_configs = list(biz_configs.exclude(cluster_ids=[]).order_by("-update_at"))
+        tag_configs = list(biz_configs.exclude(cluster_tags=[]).order_by("-update_at"))
 
         # 单据不涉及集群，则返回业务/平台配置
         if not cluster_ids:
             return [biz_cfg]
 
         # 每个集群按顺序匹配：集群配置 > 标签配置 > 业务/平台配置
-        # cluster_ids 存储的是 [{"id": 1, "immute_domain": "..."}]，这里提取出 ID 方便后续判断集群是否命中。
-        cluster_cfg_ids = {cluster["id"] for cluster in cluster_cfg.cluster_ids} if cluster_cfg else set()
+        # cluster_cfg.cluster_ids 存储的是 [{"id": 1, "immute_domain": "..."}]
+        cluster_cfg_rule_list = [
+            (cluster_cfg, {cluster["id"] for cluster in cluster_cfg.cluster_ids}) for cluster_cfg in cluster_configs
+        ]
         # 将 cluster_tags 按 tag_key 分组：
         # 1. 同一个 tag_key 下多个 tag_value 是 OR 关系；
         # 2. 不同 tag_key 之间在 match_tag_rules 中按 AND 关系判断。
-        tag_cfg_rules = defaultdict(set)
-        if tag_cfg:
+        tag_cfg_rule_list = []
+        for tag_cfg in tag_configs:
+            tag_cfg_rules = defaultdict(set)
             for tag in tag_cfg.cluster_tags:
                 tag_cfg_rules[tag["tag_key"]].add(tag["tag_value"])
-        # tag_value 为“任意值”时，集群存在任意标签即命中。
-        tag_cfg_has_wildcard = any(CLUSTER_TAG_WILDCARD_VALUE in tag_values for tag_values in tag_cfg_rules.values())
+            tag_cfg_rule_list.append((tag_cfg, tag_cfg_rules))
 
         # 查询当前单据涉及的集群标签，整理成 {cluster_id: {tag_key: {tag_value1, tag_value2}}}，便于和 tag_cfg_rules 对比。
         cluster_tag_map = {}
@@ -481,11 +484,8 @@ class TicketFlowsConfig(AuditedModel):
             for tag in cluster.tags.all():
                 cluster_tag_map[cluster.id][tag.key].add(tag.value)
 
-        def match_tag_rules(cluster_id):
-            # tag_value 为“任意值”时，集群存在任意标签即命中。
+        def match_tag_rules(cluster_id, tag_cfg_rules):
             cluster_tags = cluster_tag_map.get(cluster_id, {})
-            if tag_cfg_has_wildcard:
-                return any(cluster_tags.values())
 
             for tag_key, tag_values in tag_cfg_rules.items():
                 cluster_tag_values = cluster_tags.get(tag_key, set())
@@ -494,14 +494,27 @@ class TicketFlowsConfig(AuditedModel):
                     return False
             return True
 
+        def get_matched_tag_cfg(cluster_id):
+            cluster_tags = cluster_tag_map.get(cluster_id, {})
+            for tag_cfg, tag_cfg_rules in tag_cfg_rule_list:
+                if any(CLUSTER_TAG_WILDCARD_VALUE in tag_values for tag_values in tag_cfg_rules.values()):
+                    if any(cluster_tags.values()):
+                        # tag_value 为“任意值”时，集群存在任意标签即命中。
+                        return tag_cfg
+                    continue
+                if tag_cfg_rules and match_tag_rules(cluster_id, tag_cfg_rules):
+                    return tag_cfg
+            return None
+
+        def get_matched_cluster_cfg(cluster_id):
+            for cluster_cfg, cluster_cfg_ids in cluster_cfg_rule_list:
+                if cluster_id in cluster_cfg_ids:
+                    return cluster_cfg
+            return None
+
         cluster_configs = []
         for cluster_id in cluster_ids:
-            if cluster_id in cluster_cfg_ids:
-                cluster_configs.append(cluster_cfg)
-            elif tag_cfg_rules and match_tag_rules(cluster_id):
-                cluster_configs.append(tag_cfg)
-            else:
-                cluster_configs.append(biz_cfg)
+            cluster_configs.append(get_matched_cluster_cfg(cluster_id) or get_matched_tag_cfg(cluster_id) or biz_cfg)
         return cluster_configs
 
     @classmethod

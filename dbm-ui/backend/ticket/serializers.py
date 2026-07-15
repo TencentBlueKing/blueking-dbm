@@ -399,11 +399,10 @@ class CreateTicketFlowConfigSerializer(serializers.Serializer):
 
     def validate_cluster_tags(self, value):
         for tag in value:
-            if "id" not in tag or "tag_key" not in tag or "tag_value" not in tag:
-                raise serializers.ValidationError(_("cluster_tags 的元素必须包含 id、tag_key 和 tag_value"))
+            if "tag_key" not in tag or "tag_value" not in tag:
+                raise serializers.ValidationError(_("cluster_tags 的元素必须包含 tag_key 和 tag_value"))
             if not isinstance(tag["tag_value"], str):
                 raise serializers.ValidationError(_("cluster_tags 的 tag_value 必须是字符串"))
-            tag["id"] = int(tag["id"])
         return value
 
 
