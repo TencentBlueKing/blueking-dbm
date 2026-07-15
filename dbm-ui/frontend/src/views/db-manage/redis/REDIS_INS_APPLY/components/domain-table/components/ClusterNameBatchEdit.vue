@@ -58,7 +58,7 @@
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
 
-  import { nameRegx } from '@common/regex';
+  import { clusterNameFormatRegx, clusterNameSymbolRegx } from '@common/regex';
 
   interface Props {
     appAbbr: string;
@@ -122,8 +122,12 @@
       return;
     }
     // 格式
-    if (!newDomains.every((key) => nameRegx.test(key))) {
-      validateErrorText.value = t('以小写英文字母开头_且只能包含英文字母_数字_连字符');
+    if (!newDomains.every((key) => clusterNameFormatRegx.test(key))) {
+      validateErrorText.value = t('不能以连字符开头或结尾');
+      return;
+    }
+    if (!newDomains.every((key) => clusterNameSymbolRegx.test(key))) {
+      validateErrorText.value = t('格式不正确，请勿使用中文、大写、空格、下划线或特殊符号');
       return;
     }
     // 校验名称是否重复

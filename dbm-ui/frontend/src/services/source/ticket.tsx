@@ -20,7 +20,7 @@ import type { FlowItem, FlowItemTodo } from '@services/types/ticket';
 
 import { getRouter } from '@router';
 
-import { DBTypes, TicketTypes } from '@common/const';
+import { ClusterTypes, DBTypes, TicketTypes } from '@common/const';
 
 import { messageError } from '@utils';
 
@@ -515,4 +515,19 @@ export function getHostTodoCount() {
     fault_count: number;
     recycle_count: number;
   }>(`${path}/get_host_todo_count/`);
+}
+
+export function checkDomainRepeat(params: {
+  cluster_type: ClusterTypes;
+  db_app_abbr: string; // 有db_module_id的集群类型，db_app_abbr 的值如果没有就按biz-{bk_biz_id}传
+  db_module_id?: number;
+  domains: string[];
+}) {
+  return http.post<
+    {
+      prefix: string;
+      suffix: string;
+      validate: boolean;
+    }[]
+  >(`${path}/check_domain_repeat/`, params);
 }

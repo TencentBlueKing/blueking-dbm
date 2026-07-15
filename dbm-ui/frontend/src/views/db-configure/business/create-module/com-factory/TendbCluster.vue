@@ -196,7 +196,8 @@
 
   import { clusterTypeInfos, ClusterTypes, DBTypes } from '@common/const';
 
-  import FormItemWithHint from '@views/db-configure/components/FormItemWithHint.vue';
+  import FormItemWithHint from '@components/form-item-with-hint/Index.vue';
+
   import { saveConfigureState } from '@views/db-configure/utils/configureState';
 
   import { random } from '@utils';
@@ -463,12 +464,12 @@
     padding: 24px;
     background: #fff;
     border-radius: 2px;
-    box-shadow: 0 2px 4px 0 rgba(25, 25, 41, 0.05);
+    box-shadow: 0 2px 4px 0 rgb(25 25 41 / 5%);
   }
 
   .form-item-name {
     :deep(.hint-warning) {
-      color: rgb(255, 156, 1);
+      color: rgb(255 156 1);
     }
   }
 
@@ -506,8 +507,8 @@
   .param-config-wrapper {
     margin-top: 16px;
     background: #fff;
-    box-shadow: 0 2px 4px 0 rgba(25, 25, 41, 0.05);
     border-radius: 2px;
+    box-shadow: 0 2px 4px 0 rgb(25 25 41 / 5%);
 
     :deep(.bk-tab-content) {
       padding: 16px 16px 0;
@@ -566,8 +567,8 @@
     left: 0;
     width: 1px;
     height: 16px;
-    content: '';
     background: #dcdee5;
+    content: '';
     transform: translateY(-50%);
   }
 </style>

@@ -45,7 +45,7 @@
           <p
             v-if="validateState.isShow"
             class="batch-edit-domain-error">
-            {{ validateState.errorTxt }}
+            {{ validateState.errorTextMap }}
           </p>
         </div>
         <div class="batch-edit-footer">
@@ -71,7 +71,7 @@
   import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
 
-  import { nameRegx } from '@common/regex';
+  import { clusterNameFormatRegx, clusterNameSymbolRegx } from '@common/regex';
 
   interface Props {
     appName?: string;
@@ -88,10 +88,11 @@
 
   const { t } = useI18n();
 
-  const errorTxt = {
+  const errorTextMap = {
+    format: t('不能以连字符开头或结尾'),
     maxlength: t('最大长度为m', { m: 63 }),
     repeat: t('输入域名重复'),
-    rule: t('以小写英文字母开头_且只能包含英文字母_数字_连字符'),
+    symbol: t('格式不正确，请勿使用中文、大写、空格、下划线或特殊符号'),
   };
 
   const state = reactive({
@@ -100,7 +101,7 @@
     value: '',
   });
   const validateState = reactive({
-    errorTxt: '',
+    errorTextMap: '',
     isShow: false,
   });
   const { body } = document;
@@ -139,21 +140,29 @@
     // 最大长度
     const maxlengthRes = newDomains.every((key) => key.length <= 63);
     if (maxlengthRes === false) {
-      validateState.errorTxt = errorTxt.maxlength;
+      validateState.errorTextMap = errorTextMap.maxlength;
       validateState.isShow = true;
       return false;
     }
 
-    const validate = newDomains.every((key) => nameRegx.test(key));
-    if (!validate) {
-      validateState.errorTxt = errorTxt.rule;
-      validateState.isShow = !validate;
-      return validate;
+    const clusterNameFormatValidate = newDomains.every((key) => clusterNameFormatRegx.test(key));
+    if (!clusterNameFormatValidate) {
+      validateState.errorTextMap = errorTextMap.format;
+      validateState.isShow = !clusterNameFormatValidate;
+      return clusterNameFormatValidate;
     }
+
+    const clusterNameSymbolValidate = newDomains.every((key) => clusterNameSymbolRegx.test(key));
+    if (!clusterNameSymbolValidate) {
+      validateState.errorTextMap = errorTextMap.symbol;
+      validateState.isShow = !clusterNameSymbolValidate;
+      return clusterNameSymbolValidate;
+    }
+
     // 校验名称是否重复
     const uniqDomains = _.uniq(newDomains);
     const hasRepeat = newDomains.length !== uniqDomains.length;
-    validateState.errorTxt = errorTxt.repeat;
+    validateState.errorTextMap = errorTextMap.repeat;
     validateState.isShow = hasRepeat;
     return !hasRepeat;
   };

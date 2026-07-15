@@ -71,9 +71,11 @@
             required>
             <DomainTable
               v-model:domains="formData.details.domains"
+              :biz-id="formData.bk_biz_id"
               :db-app-abbr="formData.details.db_app_abbr"
               :is-sqlserver-single="isSingleType"
-              :module-alias-name="moduleAliasName" />
+              :module-alias-name="moduleAliasName"
+              :module-id="formData.details.db_module_id" />
           </BkFormItem>
           <!-- <BkFormItem
             :label="t('服务器选择')"
@@ -258,6 +260,7 @@
   import RegionRequirements from '@views/db-manage/common/apply-items/region-requirements/Index.vue';
   import ResourcePreview from '@views/db-manage/common/apply-items/ResourcePreview.vue';
   import SpecSelector from '@views/db-manage/common/apply-items/SpecSelector.vue';
+  import { getDomainStrategy } from '@views/db-manage/utils/getDomainPreview.ts';
 
   import DomainTable from './components/DomainTable.vue';
   import PreviewTable from './components/PreviewTable.vue';
@@ -487,17 +490,30 @@
   const previewData = computed(() => {
     const { charset, dbVersion } = moduleLevelConfig.value;
     return tableData.value.reduce(
-      (accumulator, { key }) => [
-        ...accumulator,
-        {
-          charset,
-          deployStructure: isSingleType ? t('单节点部署') : t('主从部署'),
-          disasterDefence: t('同城跨园区'),
-          domain: `${moduleAliasName.value}db.${key}.${formData.details.db_app_abbr}.db`,
-          slaveDomain: `${moduleAliasName.value}db.${key}.${formData.details.db_app_abbr}.db`,
-          version: dbVersion,
-        },
-      ],
+      (accumulator, { key }) => {
+        const strategy = getDomainStrategy(clusterType);
+        const domainInfo = strategy(
+          {
+            clusterName: key,
+            dbAppAbbr: formData.details.db_app_abbr,
+            moduleName: moduleAliasName.value,
+          },
+          {
+            bizId: formData.bk_biz_id,
+          },
+        );
+        return [
+          ...accumulator,
+          {
+            charset,
+            deployStructure: isSingleType ? t('单节点部署') : t('主从部署'),
+            disasterDefence: t('同城跨园区'),
+            domain: `${domainInfo.masterDomain.prefix}${key || '{' + t('集群标识') + '}'}${domainInfo.masterDomain.suffix}`,
+            slaveDomain: `${domainInfo.slaveDomain?.prefix}${key || '{' + t('集群标识') + '}'}${domainInfo.slaveDomain?.suffix}`,
+            version: dbVersion,
+          },
+        ];
+      },
       [] as {
         charset: string;
         deployStructure: string;
