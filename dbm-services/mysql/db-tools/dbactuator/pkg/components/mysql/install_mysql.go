@@ -324,6 +324,11 @@ func (i *InstallMySQLComp) PreCheck() error {
 	i.Checkfunc = append(i.Checkfunc, i.precheckMysqlPackageBitOS)
 	i.Checkfunc = append(i.Checkfunc, i.precheckGlibcVersion)
 	i.Checkfunc = append(i.Checkfunc, i.Params.Medium.Check)
+	// spider && tdbctl 不一定有挂载磁盘点，忽略检查
+	// 本身也不存储实际数据
+	if i.Params.GetPkgTypeName() == cst.PkgTypeMysql {
+		i.Checkfunc = append(i.Checkfunc, i.precheckFilesystemType)
+	}
 	if isRocksdb(i.Params.Engine) {
 		i.Checkfunc = append(i.Checkfunc, i.specialCheckForRocksdb)
 	}
