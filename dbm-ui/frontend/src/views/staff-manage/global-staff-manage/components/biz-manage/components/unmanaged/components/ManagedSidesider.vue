@@ -253,7 +253,7 @@
 
   import BatchEdit from '@views/staff-manage/common/BatchEdit.vue';
 
-  import { nameRegx } from '@/common/regex';
+  import { bizCodeRegx } from '@/common/regex';
   import { getOffset, messageSuccess } from '@/utils';
 
   interface Props {
@@ -287,7 +287,7 @@
         if (bizCodeDisabled.value) {
           return true;
         }
-        return nameRegx.test(val) && val.length >= 2 && val.length <= 32;
+        return bizCodeRegx.test(val) && val.length >= 2 && val.length <= 32;
       },
     },
     {
