@@ -12,10 +12,13 @@
 -->
 
 <template>
-  <DbCard :title="t('地域要求')">
+  <DbCard :title="t('容灾要求')">
     <DisasterToleranceLevelItem
       v-model="modelValue.disaster_tolerance_level"
       :type="type" />
+    <CloudItem
+      v-model="modelValue.bk_cloud_id"
+      @change="handleCloudChange" />
     <CityCodeItem v-model="modelValue" />
     <SubzonesItem
       v-if="showSubZoneItem"
@@ -32,6 +35,8 @@
 
   import { Affinity } from '@common/const';
 
+  import CloudItem from '@views/db-manage/common/apply-items/CloudItem.vue';
+
   import CityCodeItem from './components/CityCode.vue';
   import DisasterToleranceLevelItem from './components/DisasterToleranceLevel.vue';
   import SubzonesItem from './components/subzones/Index.vue';
@@ -39,6 +44,8 @@
   interface Props {
     type?: ComponentProps<typeof DisasterToleranceLevelItem>['type'];
   }
+
+  type Emits = (e: 'cloud-change', value: { id: number | string; name: string }) => void;
 
   interface Expose {
     getValue: () => {
@@ -53,8 +60,10 @@
   }
 
   defineProps<Props>();
+  const emits = defineEmits<Emits>();
 
   const modelValue = defineModel<{
+    bk_cloud_id: number;
     city_code: string;
     city_name?: string;
     disaster_tolerance_level: string;
@@ -69,6 +78,10 @@
   const subzoneRef = useTemplateRef('subzoneRef');
 
   const showSubZoneItem = computed(() => modelValue.value.disaster_tolerance_level && modelValue.value.city_code);
+
+  const handleCloudChange = (value: { id: number | string; name: string }) => {
+    emits('cloud-change', value);
+  };
 
   defineExpose<Expose>({
     getValue() {

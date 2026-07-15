@@ -19,6 +19,9 @@
             :title="titleItem.label" />
         </TicketInfoTable>
       </TableCollapse>
+      <div v-if="ticketType.includes('_APPLY')">
+        {{ t('密码等访问凭据请登录 DBM，在对应集群的「连接信息查看」中获取。') }}
+      </div>
     </div>
   </FlowCollapse>
 </template>
@@ -27,12 +30,15 @@
 
   import FlowMode from '@services/model/ticket/flow';
 
+  import { TicketTypes } from '@common/const';
+
   import TableCollapse from '@components/table-collapse/Index.vue';
 
   import FlowCollapse from '../FlowCollapse.vue';
 
   interface Props {
     data: FlowMode<unknown, any>;
+    ticketType: TicketTypes;
   }
 
   const props = defineProps<Props>();

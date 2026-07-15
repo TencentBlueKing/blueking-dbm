@@ -13,12 +13,12 @@
 
 <template>
   <div>
-    <div class="ticket-details-info-title">{{ t('业务信息') }}</div>
+    <div class="ticket-details-info-title">{{ t('基本信息') }}</div>
     <InfoList>
       <InfoItem :label="t('所属业务')">
         {{ ticketDetails?.bk_biz_name || '--' }}
       </InfoItem>
-      <InfoItem :label="t('业务英文名')">
+      <InfoItem :label="t('业务代号')">
         {{ ticketDetails?.db_app_abbr || '--' }}
       </InfoItem>
       <InfoItem :label="t('集群名称')">
@@ -27,12 +27,9 @@
       <InfoItem :label="t('集群别名')">
         {{ ticketDetails.details.cluster_alias || '--' }}
       </InfoItem>
-      <InfoItem :label="t('管控区域')">
-        {{ ticketDetails.details.bk_cloud_name || '--' }}
-      </InfoItem>
     </InfoList>
     <RegionRequirements :details="ticketDetails.details" />
-    <div class="ticket-details-info-title mt-20">{{ t('部署需求') }}</div>
+    <div class="ticket-details-info-title mt-20">{{ t('部署配置') }}</div>
     <InfoList>
       <InfoItem :label="t('部署架构')">
         {{ redisClusterTypes[ticketDetails.details.cluster_type as RedisClusterTypes]?.text || '--' }}
@@ -40,11 +37,11 @@
       <InfoItem :label="t('版本')">
         {{ ticketDetails.details.db_version || '--' }}
       </InfoItem>
-      <InfoItem :label="t('服务器')">
-        {{ redisIpSources[ticketDetails.details.ip_source as RedisIpSources]?.text || '--' }}
-      </InfoItem>
       <InfoItem :label="t('访问端口')">
         {{ ticketDetails.details.proxy_port }}
+      </InfoItem>
+      <InfoItem :label="t('服务器')">
+        {{ redisIpSources[ticketDetails.details.ip_source as RedisIpSources]?.text || '--' }}
       </InfoItem>
       <template v-if="ticketDetails.details.ip_source === redisIpSources.manual_input.id">
         <InfoItem :label="t('申请容量')">
@@ -164,6 +161,10 @@
         </InfoItem>
       </template>
     </InfoList>
+    <div class="ticket-details-info-title">{{ t('补充信息') }}</div>
+    <InfoList>
+      <NotifyRelatedPersons :data="ticketDetails.send_msg_config" />
+    </InfoList>
     <HostPreview
       v-model:is-show="previewState.isShow"
       :fetch-nodes="getTicketHostNodes"
@@ -196,6 +197,7 @@
   import { firstLetterToUpper } from '@utils';
 
   import InfoList, { Item as InfoItem } from '../components/info-list/Index.vue';
+  import NotifyRelatedPersons from '../components/NotifyRelatedPersons.vue';
   import RegionRequirements from '../components/RegionRequirements.vue';
 
   interface Props {

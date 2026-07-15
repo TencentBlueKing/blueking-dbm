@@ -7,7 +7,7 @@
         class="apply-form"
         :model="formData"
         :rules="rules">
-        <DbCard :title="t('部署模块')">
+        <DbCard :title="t('基本信息')">
           <BusinessItems
             v-model:app-abbr="formData.details.db_app_abbr"
             v-model:biz-id="formData.bk_biz_id"
@@ -20,14 +20,12 @@
             v-model:module-level-config="moduleLevelConfig"
             :biz-id="formData.bk_biz_id"
             :cluster-type="clusterType" />
-          <CloudItem
-            v-model="formData.details.bk_cloud_id"
-            @change="handleChangeCloud" />
         </DbCard>
         <RegionRequirements
           ref="regionRequirements"
           v-model="formData.details"
-          :type="isSingleType ? 'single' : 'common'" />
+          :type="isSingleType ? 'single' : 'common'"
+          @cloud-change="handleCloudChange" />
         <DbCard :title="t('数据库部署信息')">
           <BkFormItem
             :label="t('SQLServer 起始端口')"
@@ -240,6 +238,7 @@
 
 <script setup lang="tsx">
   import InfoBox from 'bkui-vue/lib/info-box';
+  import { inject } from 'vue';
   import { type ComponentProps } from 'vue-component-type-helpers';
   import { useI18n } from 'vue-i18n';
   import { useRoute } from 'vue-router';
@@ -254,13 +253,13 @@
   import IpSelector from '@components/ip-selector/IpSelector.vue';
 
   import BusinessItems from '@views/db-manage/common/apply-items/BusinessItems.vue';
-  import CloudItem from '@views/db-manage/common/apply-items/CloudItem.vue';
   import EstimatedCost from '@views/db-manage/common/apply-items/EstimatedCost.vue';
   import ModuleItem from '@views/db-manage/common/apply-items/ModuleItem.vue';
   import RegionRequirements from '@views/db-manage/common/apply-items/region-requirements/Index.vue';
   import ResourcePreview from '@views/db-manage/common/apply-items/ResourcePreview.vue';
   import SpecSelector from '@views/db-manage/common/apply-items/SpecSelector.vue';
   import { getDomainStrategy } from '@views/db-manage/utils/getDomainPreview.ts';
+  import { serviceApplyKey } from '@views/service-apply/const.ts';
 
   import DomainTable from './components/DomainTable.vue';
   import PreviewTable from './components/PreviewTable.vue';
@@ -269,6 +268,8 @@
   const route = useRoute();
   const router = useRouter();
   const { baseState, bizState, handleCancel, handleCreateAppAbbr, handleCreateTicket } = useApplyBase();
+
+  const serviceApply = inject(serviceApplyKey);
 
   useTicketDetail<Sqlserver.SingleApply>(TicketTypes.SQLSERVER_SINGLE_APPLY, {
     onSuccess(ticketDetail) {
@@ -579,7 +580,7 @@
   /**
    * 变更所属管控区域
    */
-  const handleChangeCloud = (info: { id: number | string; name: string }) => {
+  const handleCloudChange = (info: { id: number | string; name: string }) => {
     cloudInfo.value = info;
     formData.details.nodes.backend = [];
   };
@@ -677,6 +678,7 @@
     bizState.hasEnglishName = !!info.english_name;
     formData.details.db_module_id = null;
     formData.details.nodes.backend = [];
+    serviceApply?.changeBizId(info.bk_biz_id);
   };
 
   // 获取 DM模块

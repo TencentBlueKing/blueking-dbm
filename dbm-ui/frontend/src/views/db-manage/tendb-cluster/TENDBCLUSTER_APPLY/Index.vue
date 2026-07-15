@@ -19,7 +19,7 @@
         auto-label-width
         :model="formData"
         :rules="rules">
-        <DbCard :title="t('业务信息')">
+        <DbCard :title="t('基本信息')">
           <BusinessItems
             v-model:app-abbr="formData.details.db_app_abbr"
             v-model:biz-id="formData.bk_biz_id"
@@ -34,7 +34,6 @@
             v-model="formData.details.cluster_alias"
             :biz-id="formData.bk_biz_id"
             :cluster-type="ClusterTypes.TENDBCLUSTER" />
-          <CloudItem v-model="formData.details.bk_cloud_id" />
         </DbCard>
         <RegionRequirements
           ref="regionRequirements"
@@ -162,6 +161,7 @@
 <script setup lang="ts">
   import InfoBox from 'bkui-vue/lib/info-box';
   import _ from 'lodash';
+  import { inject } from 'vue';
   import { type ComponentProps } from 'vue-component-type-helpers';
   import { useI18n } from 'vue-i18n';
   import { useRoute, useRouter } from 'vue-router';
@@ -175,7 +175,6 @@
   import { clusterNameSymbolRegx } from '@common/regex';
 
   import BusinessItems from '@views/db-manage/common/apply-items/BusinessItems.vue';
-  import CloudItem from '@views/db-manage/common/apply-items/CloudItem.vue';
   import ClusterAlias from '@views/db-manage/common/apply-items/ClusterAlias.vue';
   import ClusterName from '@views/db-manage/common/apply-items/ClusterName.vue';
   import EstimatedCost from '@views/db-manage/common/apply-items/EstimatedCost.vue';
@@ -183,6 +182,7 @@
   import RegionRequirements from '@views/db-manage/common/apply-items/region-requirements/Index.vue';
   import ResourcePreview from '@views/db-manage/common/apply-items/ResourcePreview.vue';
   import SpecSelector from '@views/db-manage/common/apply-items/SpecSelector.vue';
+  import { serviceApplyKey } from '@views/service-apply/const.ts';
 
   import BackendQPSSpec from './components/BackendQPSSpec.vue';
 
@@ -240,6 +240,7 @@
 
   // 基础设置
   const { baseState, bizState, handleCancel, handleCreateAppAbbr, handleCreateTicket } = useApplyBase();
+  const serviceApply = inject(serviceApplyKey);
 
   useTicketDetail<TendbCluster.Apply>(TicketTypes.TENDBCLUSTER_APPLY, {
     onSuccess(ticketDetail) {
@@ -345,6 +346,7 @@
     formData.details.db_module_id = null;
     bizState.info = info;
     bizState.hasEnglishName = !!info.english_name;
+    serviceApply?.changeBizId(info.bk_biz_id);
   };
 
   /** 重置表单 */

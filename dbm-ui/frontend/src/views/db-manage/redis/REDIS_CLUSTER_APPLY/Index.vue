@@ -13,14 +13,14 @@
 
 <template>
   <SmartAction :offset-target="getSmartActionOffsetTarget">
-    <div class="redis-cluster-apply">
+    <div class="redis-cluster-apply mb-16">
       <DbForm
         ref="formRef"
         class="apply-form"
         :label-width="200"
         :model="formData"
         :rules="rules">
-        <DbCard :title="t('业务信息')">
+        <DbCard :title="t('基本信息')">
           <BusinessItems
             v-model:app-abbr="formData.details.db_app_abbr"
             v-model:biz-id="formData.bk_biz_id"
@@ -35,14 +35,12 @@
             v-model="formData.details.cluster_alias"
             :biz-id="formData.bk_biz_id"
             cluster-type="redis" />
-          <CloudItem
-            v-model="formData.details.bk_cloud_id"
-            @change="handleChangeCloud" />
         </DbCard>
         <RegionRequirements
           ref="regionRequirements"
-          v-model="formData.details" />
-        <DbCard :title="t('部署需求')">
+          v-model="formData.details"
+          @cloud-change="handleCloudChange" />
+        <DbCard :title="t('部署配置')">
           <BkFormItem
             :label="t('部署架构')"
             property="details.cluster_type"
@@ -89,6 +87,21 @@
               v-model="formData.details.db_version"
               :db-type="DBTypes.REDIS"
               :query-key="typeInfos.pkg_type" />
+          </BkFormItem>
+          <BkFormItem
+            :label="t('访问端口')"
+            property="details.proxy_port"
+            required>
+            <BkInput
+              v-model="formData.details.proxy_port"
+              clearable
+              :max="60000"
+              :min="50000"
+              style="width: 185px"
+              type="number" />
+            <span class="input-desc">
+              {{ t('范围min_max', { min: 50000, max: 60000 }) }}
+            </span>
           </BkFormItem>
           <BkFormItem
             :label="t('访问密码')"
@@ -323,28 +336,20 @@
                   :subzone-ids="formData.details.sub_zone_ids"
                   :subzone-names="formData.details.sub_zone_names" />
               </BkFormItem>
-              <BkFormItem
-                :label="t('访问端口')"
-                property="details.proxy_port"
-                required>
-                <BkInput
-                  v-model="formData.details.proxy_port"
-                  clearable
-                  :max="60000"
-                  :min="50000"
-                  style="width: 185px"
-                  type="number" />
-                <span class="input-desc">
-                  {{ t('范围min_max', { min: 50000, max: 60000 }) }}
-                </span>
-              </BkFormItem>
             </div>
           </Transition>
+        </DbCard>
+        <DbCard :title="t('补充信息')">
           <EstimatedCost
             :params="{
               db_type: DBTypes.REDIS,
               resource_spec: resourceSepc,
             }" />
+          <NotifyRelatedPersons
+            ref="notifyRelatedPersonsRef"
+            v-model="formData.send_msg_config"
+            :biz-id="formData.bk_biz_id"
+            :db-type="DBTypes.REDIS" />
           <BkFormItem :label="t('备注')">
             <BkInput
               v-model="formData.remark"
@@ -396,6 +401,7 @@
 <script setup lang="ts">
   import InfoBox from 'bkui-vue/lib/info-box';
   import _ from 'lodash';
+  import { inject } from 'vue';
   import { type ComponentProps } from 'vue-component-type-helpers';
   import { useI18n } from 'vue-i18n';
   import { useRoute, useRouter } from 'vue-router';
@@ -409,23 +415,24 @@
 
   import { useFunController } from '@stores';
 
-  import { Affinity, ClusterTypes, DBTypes, MachineTypes, OSTypes, TicketTypes } from '@common/const';
+  import { Affinity, ClusterTypes, DBTypes, MachineTypes, MessageTypes, OSTypes, TicketTypes } from '@common/const';
   import { clusterNameSymbolRegx } from '@common/regex';
 
   import IpSelector from '@components/ip-selector/IpSelector.vue';
 
   import BusinessItems from '@views/db-manage/common/apply-items/BusinessItems.vue';
-  import CloudItem from '@views/db-manage/common/apply-items/CloudItem.vue';
   import ClusterAlias from '@views/db-manage/common/apply-items/ClusterAlias.vue';
   import ClusterName from '@views/db-manage/common/apply-items/ClusterName.vue';
   import DeployVersion from '@views/db-manage/common/apply-items/DeployVersion.vue';
   import EstimatedCost from '@views/db-manage/common/apply-items/EstimatedCost.vue';
+  import NotifyRelatedPersons from '@views/db-manage/common/apply-items/NotifyRelatedPersons.vue';
   import RegionRequirements from '@views/db-manage/common/apply-items/region-requirements/Index.vue';
   import ResourcePreview from '@views/db-manage/common/apply-items/ResourcePreview.vue';
   import SpecSelector from '@views/db-manage/common/apply-items/SpecSelector.vue';
   import { APPLY_SCHEME } from '@views/db-manage/common/apply-schema/Index.vue';
   import PasswordInput from '@views/db-manage/common/password-input/Index.vue';
   import { QueryKeyMap } from '@views/db-manage/redis/common/const';
+  import { serviceApplyKey } from '@views/service-apply/const.ts';
 
   import { generateId } from '@utils';
 
@@ -444,6 +451,7 @@
 
   // 基础设置
   const { baseState, bizState, handleCancel, handleCreateAppAbbr, handleCreateTicket } = useApplyBase();
+  const serviceApply = inject(serviceApplyKey);
   const { t } = useI18n();
   const funControllerStore = useFunController();
   const route = useRoute();
@@ -456,6 +464,13 @@
       Object.assign(formData, {
         bk_biz_id: ticketDetail.bk_biz_id,
         remark: ticketDetail.remark,
+        send_msg_config: {
+          ...formData.send_msg_config,
+          is_send: ticketDetail.send_msg_config.is_send,
+          receiver__username: ticketDetail.send_msg_config.is_send
+            ? ticketDetail.send_msg_config.receiver__username
+            : [],
+        },
       });
       Object.assign(formData.details, {
         bk_cloud_id: details.bk_cloud_id,
@@ -560,10 +575,16 @@
       sub_zone_names: [] as string[],
     },
     remark: '',
+    send_msg_config: {
+      is_send: true,
+      msg_type: [MessageTypes.MAIL],
+      receiver__username: [] as string[],
+    },
     ticket_type: TicketTypes.REDIS_CLUSTER_APPLY,
   });
 
   const regionRequirementsRef = useTemplateRef('regionRequirements');
+  const notifyRelatedPersonsRef = useTemplateRef('notifyRelatedPersonsRef');
 
   const formRef = ref();
   const masterRef = ref();
@@ -781,12 +802,13 @@
     formData.details.nodes.proxy = [];
     formData.details.nodes.master = [];
     formData.details.nodes.slave = [];
+    serviceApply?.changeBizId(info.bk_biz_id);
   };
 
   /**
    * 变更所属管控区域
    */
-  const handleChangeCloud = (info: { id: number | string; name: string }) => {
+  const handleCloudChange = (info: { id: number | string; name: string }) => {
     cloudInfo.value = info;
 
     // 清空 ip 选择器
@@ -972,6 +994,7 @@
     const params = {
       ...formData,
       details: getDetails(),
+      send_msg_config: notifyRelatedPersonsRef.value!.getValue(),
     };
 
     // 若业务没有英文名称则先创建业务英文名称再创建单据，反正直接创建单据
