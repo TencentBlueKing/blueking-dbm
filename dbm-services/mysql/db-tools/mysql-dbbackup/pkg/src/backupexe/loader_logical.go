@@ -152,7 +152,7 @@ func (l *LogicalLoader) Execute() (err error) {
 
 	binPath := filepath.Join(l.dbbackupHome, "bin/myloader")
 	args := []string{
-		"-v", strconv.Itoa(3),
+		"-v", "3",
 		"-h", l.cnf.MysqlHost,
 		"-P", strconv.Itoa(l.cnf.MysqlPort),
 		"-u", l.cnf.MysqlUser,
