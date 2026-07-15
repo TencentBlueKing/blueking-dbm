@@ -36,15 +36,18 @@
   import RedisModel from '@services/model/redis/redis';
   import RedisMachineModel from '@services/model/redis/redis-machine';
   import { getRedisClusterList, getRedisMachineList } from '@services/source/redis';
+  import { checkDomainRepeat } from '@services/source/ticket.tsx';
 
   import { ClusterTypes } from '@common/const';
-  import { ipv4, nameRegx } from '@common/regex';
+  import { clusterNameFormatRegx, clusterNameSymbolRegx, ipv4 } from '@common/regex';
 
   import InstanceSelector, {
     type InstanceSelectorValues,
     type IValue,
     type PanelListType,
   } from '@components/instance-selector/Index.vue';
+
+  import { getDomainStrategy } from '@views/db-manage/utils/getDomainPreview.ts';
 
   import ClusterNameBatchEdit from './components/ClusterNameBatchEdit.vue';
   import DatabasesBatchEdit from './components/DatabasesBatchEdit.vue';
@@ -91,24 +94,47 @@
   const rules = {
     cluster_name: [
       {
-        message: t('必填项'),
+        message: '',
         required: true,
-        trigger: 'change',
+        trigger: 'blur',
+        validator: (val: string) => !!val,
+      },
+      // {
+      //   message: t('最大长度为m', { m: 63 }),
+      //   trigger: 'blur',
+      //   validator: (value: string) => value.length <= 63,
+      // },
+      {
+        message: t('不能以连字符开头或结尾'),
+        trigger: 'blur',
+        validator: (val: string) => clusterNameFormatRegx.test(val),
       },
       {
-        message: t('最大长度为m', { m: 63 }),
+        message: t('格式不正确，请勿使用中文、大写、空格、下划线或特殊符号'),
         trigger: 'blur',
-        validator: (value: string) => value.length <= 63,
-      },
-      {
-        message: t('以小写英文字母开头_且只能包含英文字母_数字_连字符'),
-        trigger: 'blur',
-        validator: (value: string) => nameRegx.test(value),
+        validator: (val: string) => clusterNameSymbolRegx.test(val),
       },
       {
         message: t('集群重复'),
         trigger: 'blur',
         validator: (value: string) => clusterNameList.value.filter((item) => item === value).length < 2,
+      },
+      {
+        message: t('该域名已被占用，请修改集群标识'),
+        trigger: 'blur',
+        validator: (val: string) => {
+          const dbAppAbbr = props.appAbbr;
+          if (!dbAppAbbr) {
+            return true;
+          }
+          return checkDomainRepeat({
+            cluster_type: ClusterTypes.REDIS_INSTANCE,
+            db_app_abbr: dbAppAbbr,
+            domains: [val],
+          }).then((result) => {
+            return !result[0].validate;
+          });
+        },
       },
     ],
     'masterHost.ip': [
@@ -178,28 +204,48 @@
         minWidth: 300,
         render: ({ index }: { index: number }) => (
           <div class='cluster_name'>
-            <div class='mr-4'>ins.</div>
+            <div class='mr-4'>
+              {/* ins. */}
+              {getDomainPreview(domains.value[index]?.cluster_name).masterDomain.prefix}
+            </div>
             <bk-form-item
               key={index}
-              class='cell-item'
+              class={{
+                'cell-item': true,
+                'domain-address-item-empty': !domains.value[index]?.cluster_name,
+              }}
               errorDisplayType='tooltips'
               label-width={0}
               property={`details.infos.${index}.cluster_name`}
               rules={rules.cluster_name}>
               <bk-input
+                v-bk-tooltips={{
+                  content: t('仅支持小写字母、数字、连字符，同时会参与集群域名生成，创建后不可改'),
+                  placement: 'top',
+                  theme: 'light',
+                  trigger: 'click',
+                }}
+                maxlength={63}
                 model-value={domains.value[index]?.cluster_name}
+                show-word-limit
                 style='width: 200px'
-                onChange={(value: string) => handleChangeCellValue(value, index, 'cluster_name')}
-              />
+                onChange={(value: string) => handleChangeCellValue(value, index, 'cluster_name')}>
+                {{
+                  suffix: () =>
+                    domains.value[index]?.cluster_name && <span class='domain-address-placeholder ml-4'></span>,
+                }}
+              </bk-input>
             </bk-form-item>
             {typeof props.portType === 'string' ? (
               <div class='ml-4'>
-                .{props.appAbbr}.db
+                {/* .{props.appAbbr}.db */}
+                {getDomainPreview(domains.value[index]?.cluster_name).masterDomain.suffix}
                 {props.isAppend ? '' : `#${props.portType === 'increment' ? props.port + index : props.port}`}
               </div>
             ) : (
               <div class='ml-4'>
-                .{props.appAbbr}.db
+                {/* .{props.appAbbr}.db */}
+                {getDomainPreview(domains.value[index]?.cluster_name).masterDomain.suffix}
                 {props.isAppend
                   ? ''
                   : `#${props.portType.length === tableData.value.length ? props.portType[index] : ''}`}
@@ -467,11 +513,21 @@
     emits('hostChange', `details.infos.${instanceSelectorIndex.value}.masterHost.ip`, ip, instanceSelectorIndex.value);
     instanceSelectorIndex.value = -1;
   };
+
+  const getDomainPreview = (clusterName: string) => {
+    const strategy = getDomainStrategy(ClusterTypes.REDIS_INSTANCE);
+
+    return strategy({
+      clusterName,
+      dbAppAbbr: props.appAbbr,
+      moduleName: '',
+    });
+  };
 </script>
 
-<style lang="less" scoped>
+<style lang="less">
   .domain-table {
-    :deep(.bk-table) {
+    .bk-table {
       .bk-form-content {
         margin-left: 0 !important;
       }
@@ -483,43 +539,54 @@
       }
     }
 
-    :deep(.table-custom-label) {
+    .table-custom-label {
       display: flex;
       align-items: center;
     }
 
-    :deep(.domain-address) {
-      display: flex;
-      align-items: center;
+    .cell-item {
+      margin-bottom: 0;
 
-      > span {
-        flex-shrink: 0;
+      .bk-form-label {
+        display: none;
       }
 
-      .cell-item {
-        margin-bottom: 0;
+      .domain-address-placeholder {
+        display: none;
+      }
 
-        .bk-form-label {
-          display: none;
+      &.is-error {
+        .domain-address-placeholder {
+          display: inline;
         }
       }
     }
 
-    :deep(.required-mark) {
+    .domain-address-item-empty {
+      .bk-form-error-tips {
+        display: none;
+      }
+    }
+
+    .domain-address-placeholder {
+      min-width: 12px;
+    }
+
+    .required-mark {
       margin: 0 2px 0 6px;
       color: #ea3636;
     }
 
-    :deep(.cluster_name) {
+    .cluster_name {
       display: flex;
       align-items: center;
     }
 
-    :deep(.bk-form-item) {
+    .bk-form-item {
       margin-bottom: 0;
     }
 
-    :deep(.master-ip-input-item) {
+    .master-ip-input-item {
       .bk-form-error-tips {
         right: 26px;
       }

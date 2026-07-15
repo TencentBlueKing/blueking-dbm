@@ -374,9 +374,9 @@
 
   import { useApplyBase, useTicketDetail } from '@hooks';
 
-  import { Affinity, DBTypes, mysqlType, type MysqlTypeString, TicketTypes } from '@common/const';
+  import { Affinity, ClusterTypes, DBTypes, mysqlType, type MysqlTypeString, TicketTypes } from '@common/const';
   import { OSTypes } from '@common/const';
-  import { nameRegx } from '@common/regex';
+  import { clusterNameSymbolRegx } from '@common/regex';
 
   import IpSelector from '@components/ip-selector/IpSelector.vue';
 
@@ -387,6 +387,7 @@
   import RegionRequirements from '@views/db-manage/common/apply-items/region-requirements/Index.vue';
   import ResourcePreview from '@views/db-manage/common/apply-items/ResourcePreview.vue';
   import SpecSelector from '@views/db-manage/common/apply-items/SpecSelector.vue';
+  import { getDomainStrategy } from '@views/db-manage/utils/getDomainPreview.ts';
 
   import DomainTable from './components/MySQLDomainTable.vue';
   import PreviewTable from './components/PreviewTable.vue';
@@ -596,7 +597,7 @@
       {
         message: t('以小写英文字母开头_且只能包含英文字母_数字_连字符'),
         trigger: 'blur',
-        validator: (val: string) => nameRegx.test(val),
+        validator: (val: string) => clusterNameSymbolRegx.test(val),
       },
     ],
     'details.nodes.backend': [
@@ -851,15 +852,28 @@
   }));
   const previewData = computed(() => {
     const { charset, dbVersion } = moduleLevelConfig.value;
-    return tableData.value.map(({ key }: { key: string }) => ({
-      charset,
-      deployStructure: typeInfo.value.name,
-      disasterDefence: t('同城跨园区'),
-      domain: `${moduleAliasName.value}db.${key}.${formData.details.db_app_abbr}.db`,
-      slaveDomain: `${moduleAliasName.value}db.${key}.${formData.details.db_app_abbr}.db`,
-      spec: hostSpecInfo.value ? `${hostSpecInfo.value.cpu}/${hostSpecInfo.value.mem}` : '',
-      version: dbVersion,
-    }));
+    return tableData.value.map(({ key }: { key: string }) => {
+      const strategy = getDomainStrategy(isSingleType ? ClusterTypes.TENDBSINGLE : ClusterTypes.TENDBHA);
+      const domainInfo = strategy(
+        {
+          clusterName: key,
+          dbAppAbbr: formData.details.db_app_abbr,
+          moduleName: moduleAliasName.value,
+        },
+        {
+          bizId: formData.bk_biz_id,
+        },
+      );
+      return {
+        charset,
+        deployStructure: typeInfo.value.name,
+        disasterDefence: t('同城跨园区'),
+        domain: `${domainInfo.masterDomain.prefix}${key || '{' + t('集群标识') + '}'}${domainInfo.masterDomain.suffix}`,
+        slaveDomain: `${domainInfo.slaveDomain?.prefix}${key || '{' + t('集群标识') + '}'}${domainInfo.slaveDomain?.suffix}`,
+        spec: hostSpecInfo.value ? `${hostSpecInfo.value.cpu}/${hostSpecInfo.value.mem}` : '',
+        version: dbVersion,
+      };
+    });
   });
   const isShowPreview = ref(false);
   const handleShowPreview = () => {
@@ -980,26 +994,6 @@
 <style lang="less" scoped>
   @import '@styles/mixins.less';
   @import '@styles/applyInstance.less';
-
-  :deep(.domain-address) {
-    .flex-center();
-
-    > span {
-      flex-shrink: 0;
-    }
-
-    .domain-address-item {
-      margin-bottom: 0;
-
-      .bk-form-label {
-        display: none;
-      }
-    }
-
-    .domain-address-placeholder {
-      min-width: 12px;
-    }
-  }
 
   :deep(.item-input) {
     width: 435px;

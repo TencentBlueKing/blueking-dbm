@@ -26,7 +26,11 @@
             v-model:biz-id="formData.bk_biz_id"
             perrmision-action-id="redis_cluster_apply"
             @change-biz="handleChangeBiz" />
-          <ClusterName v-model="formData.details.cluster_name" />
+          <ClusterName
+            v-model="formData.details.cluster_name"
+            :biz-id="formData.bk_biz_id"
+            :cluster-type="formData.details.cluster_type"
+            :db-app-abbr="formData.details.db_app_abbr" />
           <ClusterAlias
             v-model="formData.details.cluster_alias"
             :biz-id="formData.bk_biz_id"
@@ -407,7 +411,7 @@
   import { useFunController } from '@stores';
 
   import { Affinity, ClusterTypes, DBTypes, MachineTypes, OSTypes, TicketTypes } from '@common/const';
-  import { nameRegx } from '@common/regex';
+  import { clusterNameSymbolRegx } from '@common/regex';
 
   import IpSelector from '@components/ip-selector/IpSelector.vue';
 
@@ -591,7 +595,7 @@
       {
         message: t('以小写英文字母开头_且只能包含英文字母_数字_连字符'),
         trigger: 'blur',
-        validator: (val: string) => nameRegx.test(val),
+        validator: (val: string) => clusterNameSymbolRegx.test(val),
       },
     ],
     'details.nodes.master': [
