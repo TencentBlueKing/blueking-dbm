@@ -16,12 +16,15 @@
     <BkAlert
       class="mb-20"
       closable
-      :title="t('数据导出：导出指定集群的数据库数据')" />
+      :title="
+        t('将源集群中指定库表的数据与表结构导出为文件；支持整表导出，或按条件筛选记录后导出。系统库不在导出范围内。')
+      " />
     <BkForm
       ref="formRef"
       class="dump-data-form mb-20"
       form-type="vertical"
-      :model="formData">
+      :model="formData"
+      :rules="rules">
       <!-- 源集群 -->
       <BkFormItem
         :label="t('源集群')"
@@ -34,55 +37,91 @@
           :placeholder="t('请选择源集群')" />
       </BkFormItem>
 
-      <!-- 源 DB -->
+      <!-- 导出方式 -->
       <BkFormItem
-        :label="t('源 DB')"
+        :label="t('导出方式')"
+        property="exportScope"
+        required>
+        <BkRadioGroup v-model="formData.exportScope">
+          <BkRadio label="table">{{ t('整表导出') }}</BkRadio>
+          <BkRadio label="row">{{ t('条件导出') }}</BkRadio>
+        </BkRadioGroup>
+      </BkFormItem>
+
+      <!-- 导出物 -->
+      <BkFormItem
+        :label="t('导出物')"
+        property="exportType"
+        required>
+        <BkRadioGroup v-model="formData.exportType">
+          <BkRadio label="all">{{ t('数据和表结构') }}</BkRadio>
+          <BkRadio label="data">{{ t('仅数据') }}</BkRadio>
+          <BkRadio
+            v-if="formData.exportScope !== 'row'"
+            label="schema">
+            {{ t('仅表结构') }}
+          </BkRadio>
+        </BkRadioGroup>
+      </BkFormItem>
+
+      <!-- 目标DB名 -->
+      <BkFormItem
+        :label="t('目标DB名')"
         property="databases"
         required>
         <DbMultiSelect
           v-model="formData.databases"
           :cluster-id="formData.clusterId"
-          :placeholder="t('请选择，最多 5 个')" />
-        <div class="form-hint">{{ t('最多选择 5 个 DB；当前已选 {n} 个', { n: formData.databases.length }) }}</div>
+          :placeholder="t('请选择目标DB名')" />
       </BkFormItem>
 
-      <!-- 源表 -->
-      <BkFormItem
-        :label="t('源表')"
-        property="tables">
-        <BkInput
-          v-model="formData.tablesInput"
-          :placeholder="t('选填。多个表名以英文逗号分隔；支持通配符 *（如 user_*）')"
-          :rows="3"
-          type="textarea" />
-        <div class="form-hint">{{ t('不填表示导出所选 DB 下全部表') }}</div>
-      </BkFormItem>
+      <!-- 目标表名 + 忽略表名（* 时同行） -->
+      <div
+        class="form-row-pair"
+        :class="{ 'is-pair': isAllTablesMode }">
+        <BkFormItem
+          class="include-tables-field"
+          :label="t('目标表名')"
+          property="tables"
+          required>
+          <DbTableSelect
+            v-model="formData.tables"
+            :cluster-id="formData.clusterId"
+            :databases="formData.databases"
+            mode="include"
+            :multi-db-locked="isMultiDb"
+            :placeholder="t('点击选择表')" />
+        </BkFormItem>
+        <BkFormItem
+          v-if="isAllTablesMode"
+          class="ignore-tables-field"
+          :label="t('忽略表名')">
+          <DbTableSelect
+            v-model="formData.tablesIgnore"
+            :cluster-id="formData.clusterId"
+            :databases="formData.databases"
+            mode="ignore"
+            :placeholder="t('点击选择要排除的表')" />
+        </BkFormItem>
+      </div>
 
-      <!-- where 条件 -->
+      <!-- where 条件（条件导出） -->
       <BkFormItem
+        v-if="formData.exportScope === 'row'"
         :label="t('where 条件')"
-        property="where">
+        property="where"
+        required>
         <BkInput
           v-model="formData.where"
-          :placeholder="t('选填。例如 id between 1 and 10000，不要带 where 关键字')"
+          :placeholder="t('请输入条件，例如 id between 1 and 10000')"
           :rows="3"
           type="textarea" />
-        <div class="form-hint">{{ t('不填代表全表导出；多张表共用同一条件') }}</div>
+        <div class="form-hint">{{ t('多表共用同一条件；不带 where 关键字') }}</div>
       </BkFormItem>
 
-      <!-- 导出类型 -->
-      <BkFormItem
-        :label="t('导出类型')"
-        property="exportType"
-        required>
-        <BkRadioGroup v-model="formData.exportType">
-          <BkRadio label="DATA_TABLE">{{ t('数据和表结构') }}</BkRadio>
-          <BkRadio label="DATA">{{ t('数据') }}</BkRadio>
-          <BkRadio label="TABLE">{{ t('表结构') }}</BkRadio>
-        </BkRadioGroup>
-      </BkFormItem>
-
-      <TicketPayload v-model="formData.payload" />
+      <TicketPayload
+        v-model="formData.payload"
+        :width="560" />
     </BkForm>
     <template #action>
       <BkButton
@@ -118,16 +157,22 @@
 
   import ClusterSelect from '@views/db-manage/common/toolbox-field/cluster-select/Index.vue';
   import DbMultiSelect from '@views/db-manage/common/toolbox-field/db-multi-select/Index.vue';
+  import DbTableSelect from '@views/db-manage/common/toolbox-field/db-table-select/Index.vue';
   import TicketPayload, {
     createTicketPayload,
   } from '@views/db-manage/common/toolbox-field/form-item/ticket-payload/Index.vue';
 
+  type ExportScope = 'table' | 'row';
+  type ExportType = 'all' | 'data' | 'schema';
+
   interface IFormData {
     clusterId: number;
     databases: string[];
-    exportType: string;
+    exportScope: ExportScope;
+    exportType: ExportType;
     payload: ReturnType<typeof createTicketPayload>;
-    tablesInput: string;
+    tables: string[];
+    tablesIgnore: string[];
     where: string;
   }
 
@@ -140,36 +185,110 @@
   const defaultData = () => ({
     clusterId: route.query.clusterId ? Number(route.query.clusterId) : (undefined as unknown as number),
     databases: [] as string[],
-    exportType: 'DATA_TABLE',
+    exportScope: 'table' as ExportScope,
+    exportType: 'all' as ExportType,
     payload: createTicketPayload(),
-    tablesInput: '',
+    tables: [] as string[],
+    tablesIgnore: [] as string[],
     where: '',
   });
 
   const formData = reactive(defaultData()) as IFormData;
 
+  const rules = {
+    clusterId: [
+      {
+        message: t('请选择源集群'),
+        required: true,
+        trigger: 'change',
+      },
+    ],
+    databases: [
+      {
+        message: t('请至少选择 1 个目标 DB'),
+        trigger: 'change',
+        validator: (value: string[]) => value.length > 0,
+      },
+    ],
+    tables: [
+      {
+        message: t('请选择目标表名'),
+        trigger: 'change',
+        validator: (value: string[]) => value.length > 0,
+      },
+    ],
+    where: [
+      {
+        message: t('请填写 where 条件'),
+        trigger: 'blur',
+        validator: (value: string) => formData.exportScope !== 'row' || !!value.trim(),
+      },
+    ],
+  };
+
+  const isMultiDb = computed(() => formData.databases.length > 1);
+  const isAllTablesMode = computed(() => formData.tables.length === 1 && formData.tables[0] === '*');
+
+  // 多库时强制 tables = ['*']，清空忽略表
+  watch(isMultiDb, (multi) => {
+    if (multi) {
+      if (!(formData.tables.length === 1 && formData.tables[0] === '*')) {
+        formData.tables = ['*'];
+      }
+      formData.tablesIgnore = [];
+    }
+  });
+
+  // 非 * 模式时清空忽略表
+  watch(isAllTablesMode, (allMode) => {
+    if (!allMode) {
+      formData.tablesIgnore = [];
+    }
+  });
+
+  // 条件导出时隐藏「仅表结构」，若当前为 schema 则切回 data
+  watch(
+    () => formData.exportScope,
+    (scope) => {
+      if (scope === 'row' && formData.exportType === 'schema') {
+        formData.exportType = 'data';
+      }
+    },
+  );
+
+  const isApplyingTicket = ref(false);
+
+  // 源集群切换时清空库表
+  watch(
+    () => formData.clusterId,
+    () => {
+      if (isApplyingTicket.value) return;
+      formData.databases = [];
+      formData.tables = [];
+      formData.tablesIgnore = [];
+    },
+  );
+
   useTicketDetail<TendbCluster.DumpData>(TicketTypes.TENDBCLUSTER_DUMP_DATA, {
     onSuccess(ticketDetail) {
       const { details } = ticketDetail;
-      Object.assign(formData, {
-        ...createTicketPayload(ticketDetail),
-        clusterId: details.cluster_id,
-        databases: details.databases,
-        exportType: details.dump_data && details.dump_schema ? 'DATA_TABLE' : details.dump_data ? 'DATA' : 'TABLE',
-        tablesInput: details.tables.join(','),
-        where: details.where,
+      const exportScope: ExportScope = details.where ? 'row' : 'table';
+      const exportType: ExportType =
+        details.dump_data && details.dump_schema ? 'all' : details.dump_data ? 'data' : 'schema';
+      isApplyingTicket.value = true;
+      formData.payload.remark = ticketDetail.remark;
+      formData.clusterId = details.cluster_id;
+      formData.databases = details.databases;
+      formData.exportScope = exportScope;
+      formData.exportType = exportType;
+      formData.tables = details.tables;
+      formData.tablesIgnore = details.tables_ignore;
+      formData.where = details.where;
+      // 回填完成，放行后续集群切换清空
+      nextTick(() => {
+        isApplyingTicket.value = false;
       });
     },
-  });
-
-  const tables = computed(() => {
-    if (!formData.tablesInput) {
-      return [];
-    }
-    return formData.tablesInput
-      .split(/[,，]/)
-      .map((item: string) => item.trim())
-      .filter(Boolean);
   });
 
   const { loading: isSubmitting, run: createTicketRun } = useCreateTicket<{
@@ -195,7 +314,36 @@
     }
 
     if (formData.databases.length === 0) {
-      alert(t('请至少选择 1 个源 DB'));
+      alert(t('请至少选择 1 个目标 DB'));
+      return;
+    }
+
+    if (formData.tables.length === 0) {
+      alert(t('请选择目标表名'));
+      return;
+    }
+
+    // 多库时目标表必须为 *
+    if (isMultiDb.value && !(formData.tables.length === 1 && formData.tables[0] === '*')) {
+      alert(t('多个目标库时，目标表名只能为 *'));
+      return;
+    }
+
+    // 忽略表不支持 *
+    if (formData.tablesIgnore.includes('*')) {
+      alert(t('忽略表名不支持 *'));
+      return;
+    }
+
+    // 条件导出不支持仅表结构
+    if (formData.exportScope === 'row' && formData.exportType === 'schema') {
+      alert(t('条件导出不支持仅导出表结构'));
+      return;
+    }
+
+    // 条件导出 where 必填
+    if (formData.exportScope === 'row' && !formData.where.trim()) {
+      alert(t('请填写 where 条件'));
       return;
     }
 
@@ -204,18 +352,20 @@
         charset: 'default',
         cluster_id: formData.clusterId,
         databases: formData.databases,
-        dump_data: formData.exportType === 'DATA' || formData.exportType === 'DATA_TABLE',
-        dump_schema: formData.exportType === 'TABLE' || formData.exportType === 'DATA_TABLE',
-        tables: tables.value,
-        tables_ignore: [],
-        where: formData.where,
+        dump_data: formData.exportType === 'all' || formData.exportType === 'data',
+        dump_schema: formData.exportType === 'all' || formData.exportType === 'schema',
+        tables: formData.tables,
+        tables_ignore: isAllTablesMode.value ? formData.tablesIgnore : [],
+        where: formData.exportScope === 'row' ? formData.where : '',
       },
-      remark: formData.payload.remark,
+      ...formData.payload,
     });
   };
 
   const handleReset = () => {
-    Object.assign(formData, defaultData());
+    const data = defaultData();
+    isApplyingTicket.value = false;
+    Object.assign(formData, data);
   };
 
   defineExpose({
@@ -229,13 +379,48 @@
 
 <style lang="less" scoped>
   .dump-data-form {
-    max-width: 800px;
+    max-width: 1136px;
+
+    :deep(.bk-form-item) {
+      .bk-select,
+      .bk-input,
+      .bk-textarea {
+        max-width: 560px;
+      }
+    }
+
+    // 覆盖 bkui-vue .bk-form-item:last-child { margin-bottom: 0 }
+    .form-row-pair :deep(.bk-form-item) {
+      margin-bottom: 24px;
+    }
 
     .form-hint {
       margin-top: 6px;
       font-size: 12px;
       color: #979ba5;
       line-height: 1.5;
+    }
+
+    .form-row-pair {
+      display: contents;
+
+      &.is-pair {
+        display: flex;
+        gap: 16px;
+        align-items: flex-start;
+
+        .include-tables-field {
+          flex: 0 0 560px;
+          max-width: 560px;
+          min-width: 0;
+        }
+
+        .ignore-tables-field {
+          flex: 1;
+          max-width: 560px;
+          min-width: 0;
+        }
+      }
     }
   }
 </style>
