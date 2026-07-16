@@ -26,8 +26,7 @@
           </BkTag>
         </template>
       </I18nT>
-      <div>{{ t('标签键：支持中文、字母、数字、连字符、下划线、点号') }}</div>
-      <div>{{ t('标签值：支持中文、字母、数字、连字符、下划线、点号、逗号') }}</div>
+      <div>{{ t('标签键 / 值：支持中文、字母、数字、连字符、下划线、点号') }}</div>
     </template>
   </BkAlert>
   <div class="cluster-add-tag-main">
