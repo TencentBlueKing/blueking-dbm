@@ -14,6 +14,7 @@ from backend.dbm_aiagent.mcp_tools.common.views import (
     AiReportMcpToolsViewSet,
     DBMetaQueryMcpToolsViewSet,
     DBMetaUpdateMcpToolsViewSet,
+    HcmResourceReplenishMcpToolsViewSet,
     HostDecommissionQueryMcpToolsViewSet,
     HostPerformanceQueryMcpToolsViewSet,
     PortraitQueryMcpToolsViewSet,
@@ -39,4 +40,5 @@ routers.register(r"", PromQLQueryMcpToolsViewSet, basename="mcp-promql-query")
 routers.register(r"", McpCalleePlanMcpToolsViewSet, basename="mcp-callee-plan")
 routers.register(r"", AiReportMcpToolsViewSet, basename="mcp-ai-report")
 routers.register(r"", PortraitQueryMcpToolsViewSet, basename="mcp-portrait-query")
+routers.register(r"", HcmResourceReplenishMcpToolsViewSet, basename="mcp-resource-replenish")
 urlpatterns = routers.urls

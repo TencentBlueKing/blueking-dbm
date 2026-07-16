@@ -18,5 +18,6 @@ from .mcp_callee_plan import McpCalleePlanMcpToolsViewSet
 from .portrait_query import PortraitQueryMcpToolsViewSet
 from .promql_query import PromQLQueryMcpToolsViewSet
 from .resource_param_query import ResourceParamQueryMcpToolsViewSet
+from .resource_replenish import HcmResourceReplenishMcpToolsViewSet
 from .taskflow_query import TaskflowQueryMcpToolsViewSet
 from .ticket_operation import TicketOperationMcpToolsViewSet
