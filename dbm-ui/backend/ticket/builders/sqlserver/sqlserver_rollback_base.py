@@ -82,12 +82,15 @@ class SQLServerRollbackRenameFlowParamBuilder(SQLServerRenameFlowParamBuilder):
     controller = SqlserverController.rename_dbs_scene
 
     def __init__(self, ticket: Ticket):
-        # 去掉 is_local 字段后，通过源集群与目标集群是否一致来判断：
-        # 原地回档（源集群与目标集群相同）需要对源集群重命名；定点构造（目标集群不同）对目标集群重命名
-        rollback_infos = ticket.details["infos"]
-        is_inplace = bool(rollback_infos) and rollback_infos[0]["dst_cluster"] == rollback_infos[0]["src_cluster"]
-        rename_type = "source" if is_inplace else "target"
-        super().__init__(rename_type, ticket)
+        # 回档重命名始终作用在目标集群(dst_cluster)：
+        # 无论原地回档还是定点构造，数据最终都落地到目标集群(dst_cluster)，
+        # 需要与 db_construct 恢复流程保持一致，避免重命名作用在源集群上
+        self.rollback_infos = ticket.details["infos"]
+        self.is_inplace = (
+            bool(self.rollback_infos)
+            and self.rollback_infos[0]["dst_cluster"] == self.rollback_infos[0]["src_cluster"]
+        )
+        super().__init__("target", ticket)
 
 
 class SQLServerRollbackBackupFlowParamBuilder(builders.FlowParamBuilder):
