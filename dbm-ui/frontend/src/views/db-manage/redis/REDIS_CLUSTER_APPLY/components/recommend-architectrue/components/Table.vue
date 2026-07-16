@@ -106,9 +106,9 @@
 <script setup lang="tsx">
   import { useI18n } from 'vue-i18n';
 
-  import type { BaseTableCol } from '@blueking/tdesign-ui';
-
   import { ClusterTypes } from '@common/const';
+
+  import type { BaseTableCol } from '@components/tdesign-ui/table';
 
   import { type RowData, tableData } from './common/tabelData';
 

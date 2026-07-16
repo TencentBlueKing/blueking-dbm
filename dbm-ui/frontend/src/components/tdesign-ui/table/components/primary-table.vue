@@ -1,0 +1,80 @@
+<template>
+  <div>
+    <component
+      :is="
+        h(
+          PrimaryTable,
+          {
+            filterIcon: () => filterIcon,
+            sortIcon: () => sortIcon,
+            ...attrs,
+            ...customProps,
+            class: {
+              [attrs.class?.toString() || '']: true,
+              [tableFontSizeClass]: true,
+              [tableSizeClass]: true,
+              't-table__custom-scroll': needCustomScroll,
+            },
+            columnController,
+            displayColumns,
+            onDisplayColumnsChange,
+          },
+          slots,
+        )
+      "
+      ref="tableRef" />
+    <div
+      ref="tableColumnRef"
+      hidden
+      style="display: none">
+      <slot />
+    </div>
+    <CustomScroll v-if="needCustomScroll" />
+  </div>
+</template>
+
+<script setup lang="ts">
+  import { PrimaryTable, type TableCol } from 'tdesign-vue-next';
+  import baseTableProps from 'tdesign-vue-next/es/table/base-table-props';
+  import primaryTableProps from 'tdesign-vue-next/es/table/primary-table-props';
+  import { h, useAttrs, useTemplateRef } from 'vue';
+
+  import { useColumnsSettings } from '../hooks/use-columns-settings';
+  import { useTableExpose } from '../hooks/use-table-expose';
+  import { commonTableProps, type PrimaryTableRefExpose } from '../types/table';
+
+  import CustomScroll from './custom-scroll.vue';
+  import { filterIcon, sortIcon } from './icons';
+
+  defineOptions({
+    name: 'PrimaryTable',
+    inheritAttrs: false,
+  });
+  const props = defineProps({
+    ...baseTableProps,
+    ...primaryTableProps,
+    ...commonTableProps,
+  });
+  const {
+    bkUiAppearanceSettings,
+    default: defaultSlots,
+    ...slots
+  } = defineSlots<{
+    bkUiAppearanceSettings(): void;
+    default(): { props: TableCol }[];
+  }>();
+  const attrs = useAttrs();
+
+  const tableRef = useTemplateRef<PrimaryTableRefExpose>('tableRef');
+  const tableColumnRef = useTemplateRef<HTMLDivElement>('tableColumnRef');
+
+  const { columnController, customProps, displayColumns, onDisplayColumnsChange, tableFontSizeClass, tableSizeClass } =
+    useColumnsSettings(props, tableColumnRef);
+
+  useTableExpose<PrimaryTableRefExpose>(tableRef);
+
+  defineExpose<PrimaryTableRefExpose>();
+</script>
+<style lang="less">
+  @import './table.less';
+</style>
