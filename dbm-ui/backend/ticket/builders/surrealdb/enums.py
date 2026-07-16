@@ -11,6 +11,6 @@ specific language governing permissions and limitations under the License.
 
 from backend.ticket.builders.common.enums import DBSOperationType
 
-QdrantOperationType = DBSOperationType
+SurrealDBOperationType = DBSOperationType
 
-__all__ = ["QdrantOperationType"]
+__all__ = ["SurrealDBOperationType"]

@@ -18,11 +18,12 @@ from backend.iam_app.dataclass.actions import ActionEnum
 from backend.ticket import builders
 from backend.ticket.builders.common.base import TicketBaseValidateSerializerMixin
 from backend.ticket.builders.surrealdb.base import BaseSurrealDBTicketFlowBuilder
+from backend.ticket.builders.surrealdb.enums import SurrealDBOperationType
 from backend.ticket.constants import TicketType
 
 
 class K8sSurrealDBDeleteDetailSerializer(TicketBaseValidateSerializerMixin, serializers.Serializer):
-    cluster_id = serializers.CharField(help_text=_("集群ID"))
+    cluster_id = serializers.IntegerField(help_text=_("集群ID"))
 
 
 class K8sSurrealDBDeleteFlowParamBuilder(builders.FlowParamBuilder):
@@ -36,3 +37,4 @@ class K8sSurrealDBDeleteFlowBuilder(BaseSurrealDBTicketFlowBuilder):
     serializer = K8sSurrealDBDeleteDetailSerializer
     inner_flow_builder = K8sSurrealDBDeleteFlowParamBuilder
     inner_flow_name = _("Surrealdb集群卸载")
+    operation_type = SurrealDBOperationType.DeleteCluster
