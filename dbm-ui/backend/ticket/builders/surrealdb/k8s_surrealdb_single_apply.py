@@ -16,6 +16,7 @@ from backend.flow.engine.controller.surrealdb import SurrealDBController
 from backend.iam_app.dataclass.actions import ActionEnum
 from backend.ticket import builders
 from backend.ticket.builders.surrealdb.base import BaseSurrealDBTicketFlowBuilder
+from backend.ticket.builders.surrealdb.enums import SurrealDBOperationType
 from backend.ticket.builders.surrealdb.k8s_surrealdb_ha_apply import (
     K8sSurrealDBApplyDetailSerializer,
     K8sSurrealDBApplyFlowParamBuilder,
@@ -41,3 +42,8 @@ class K8sSurrealDBApplyFlowBuilder(BaseSurrealDBTicketFlowBuilder):
     serializer = K8sSurrealDBSingleApplyDetailSerializer
     inner_flow_builder = K8sSurrealDBSingleApplyFlowParamBuilder
     inner_flow_name = _("Surrealdb单节点部署执行")
+    enable_operation_log = False
+
+    def patch_ticket_detail(self):
+        super().patch_ticket_detail()
+        self.add_apply_operation_log(self.ticket, SurrealDBOperationType.CreateCluster)
