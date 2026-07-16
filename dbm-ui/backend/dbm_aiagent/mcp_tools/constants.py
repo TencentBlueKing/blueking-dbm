@@ -61,6 +61,7 @@ class DBMMcpTools(StrStructuredEnum):
     RESOURCE_POOL = EnumField("resource-pool", "resource-pool")
     # 3rd platform wrap
     BKCC_WRAP = EnumField("bkcc-wrap", _("bkcc-wrap"))
+    RESOURCE_REPLENISH = EnumField("resource-replenish", "resource-replenish")
 
 
 class DBMMCPTags(StrStructuredEnum):
