@@ -17,11 +17,12 @@ from backend.iam_app.dataclass.actions import ActionEnum
 from backend.ticket import builders
 from backend.ticket.builders.common.base import TicketBaseValidateSerializerMixin
 from backend.ticket.builders.surrealdb.base import BaseSurrealDBTicketFlowBuilder
+from backend.ticket.builders.surrealdb.enums import SurrealDBOperationType
 from backend.ticket.constants import TicketType
 
 
 class K8sSurrealDBRestartDetailSerializer(TicketBaseValidateSerializerMixin, serializers.Serializer):
-    cluster_id = serializers.CharField(help_text=_("集群ID"))
+    cluster_id = serializers.IntegerField(help_text=_("集群ID"))
 
 
 class K8sSurrealDBRestartFlowParamBuilder(builders.FlowParamBuilder):
@@ -33,3 +34,4 @@ class K8sSurrealDBRestartFlowBuilder(BaseSurrealDBTicketFlowBuilder):
     serializer = K8sSurrealDBRestartDetailSerializer
     inner_flow_builder = K8sSurrealDBRestartFlowParamBuilder
     inner_flow_name = _("Surrealdb集群重启")
+    operation_type = SurrealDBOperationType.RestartCluster
