@@ -69,7 +69,11 @@
     title?: string;
     width?: number | string;
   }
-  type Emits = (e: 'update:isShow', isShow: boolean) => void;
+
+  interface Emits {
+    (e: 'update:isShow', isShow: boolean): void;
+    (e: 'close'): void;
+  }
 
   const props = withDefaults(defineProps<Props>(), {
     cancelHandler: undefined,
@@ -126,7 +130,9 @@
 
   const close = () => {
     window.changeConfirm = pageChangeConfirm;
+    isShow.value = false;
     emit('update:isShow', false);
+    emit('close');
   };
 
   // 确定
