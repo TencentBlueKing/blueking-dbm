@@ -8,7 +8,7 @@ from backend.configuration.constants import DBType
 class Migration(migrations.Migration):
 
     dependencies = [
-        ("db_report", "0048_alter_kafkabrokeraffinityreport_cluster_type_and_more"),
+        ("db_report", "0049_mysqlclusterskewreport"),
     ]
 
     operations = [
