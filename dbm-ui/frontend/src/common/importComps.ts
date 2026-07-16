@@ -15,7 +15,6 @@ import type { App } from 'vue';
 import { VxeTooltip } from 'vxe-pc-ui';
 
 import { Table, TableColumn } from '@blueking/table';
-import { PrimaryTable, TableColumn as PrimaryTableColumn } from '@blueking/tdesign-ui';
 
 import AuthButton from '@components/auth-component/button.vue';
 import AuthTemplate from '@components/auth-component/component.vue';
@@ -53,6 +52,7 @@ import ScrollFaker from '@components/scroll-faker/Index.vue';
 import SkeletonLoading from '@components/skeleton-loading/Index.vue';
 import SmartAction from '@components/smart-action/Index.vue';
 import TableDetailDialog from '@components/table-detail-dialog/Index.vue';
+import { PrimaryTable, TableColumn as PrimaryTableColumn } from '@components/tdesign-ui/table';
 import { ipSelector } from '@components/vue2/ip-selector';
 
 import OperationColumn from '@views/db-manage/common/toolbox-field/column/operation-column/Index.vue';
@@ -60,7 +60,6 @@ import InfoTable, {
   InfoTableColumn,
 } from '@views/ticket-center/common/ticket-detail/components/common/info-table/Index.vue';
 
-import '@blueking/tdesign-ui/vue3/index.css';
 import UserSelector from '@patch/user-selector/selector.vue';
 
 import('@blueking/table/vue3/vue3.css');

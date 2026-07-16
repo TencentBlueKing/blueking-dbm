@@ -98,11 +98,11 @@
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
-  import type { TableSort } from '@blueking/tdesign-ui';
-
   import { getKeystatRank } from '@services/source/redisKeystat';
 
   import { useTableMaxHeight } from '@hooks';
+
+  import type { TableSort } from '@components/tdesign-ui/table';
 
   import { bytePretty, transfromDataToQuery } from '@utils';
 
