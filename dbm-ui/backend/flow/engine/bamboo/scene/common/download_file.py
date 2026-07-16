@@ -61,6 +61,10 @@ class DownloadFileFlow(object):
         pipeline.run_pipeline()
 
 
+# 主动下载并发过高时制品库易返回 429，超过该阈值退化为作业平台下发
+INITIATIVE_DOWNLOAD_MAX_IP_COUNT = 40
+
+
 def add_db_actuator_download_act(act_lists: list, bk_cloud_id: int, dest_ip_list: list):
     """
     Add db-actuator download action to act_lists based on initiative download setting
@@ -70,7 +74,11 @@ def add_db_actuator_download_act(act_lists: list, bk_cloud_id: int, dest_ip_list
         bk_cloud_id: Cloud area ID
         dest_ip_list: Target IP list
     """
-    if env.INITIATIVE_DOWNLOAD:
+    ip_count = len(dest_ip_list)
+    # 主动下载条件：开关开启 + 直连区域 + IP数量不超限
+    can_initiative = env.INITIATIVE_DOWNLOAD and bk_cloud_id == 0 and ip_count <= INITIATIVE_DOWNLOAD_MAX_IP_COUNT
+
+    if can_initiative:
         file_url, md5sum = GetFileList().get_db_actuator_download_info()
         act_lists.append(
             {
@@ -86,20 +94,24 @@ def add_db_actuator_download_act(act_lists: list, bk_cloud_id: int, dest_ip_list
                 ),
             }
         )
-    else:
-        act_lists.append(
-            {
-                "act_name": _("下发db-actuator介质[云区域ID: {}]".format(bk_cloud_id)),
-                "act_component_code": TransFileComponent.code,
-                "kwargs": asdict(
-                    DownloadMediaKwargs(
-                        bk_cloud_id=bk_cloud_id,
-                        exec_ip=dest_ip_list,
-                        file_list=GetFileList(db_type=DBType.MySQL).get_db_actuator_package(),
-                    )
-                ),
-            }
-        )
+        return
+
+    # 退化为默认下发（仅在开关开启且直连区域时打日志，说明是因 IP 超限退化）
+    if env.INITIATIVE_DOWNLOAD and bk_cloud_id == 0:
+        logger.warning(_("目标IP数量[{}]超过阈值[{}]，主动下载退化为默认下发方式").format(ip_count, INITIATIVE_DOWNLOAD_MAX_IP_COUNT))
+    act_lists.append(
+        {
+            "act_name": _("下发db-actuator介质[云区域ID: {}]".format(bk_cloud_id)),
+            "act_component_code": TransFileComponent.code,
+            "kwargs": asdict(
+                DownloadMediaKwargs(
+                    bk_cloud_id=bk_cloud_id,
+                    exec_ip=dest_ip_list,
+                    file_list=GetFileList(db_type=DBType.MySQL).get_db_actuator_package(),
+                )
+            ),
+        }
+    )
 
 
 def add_db_actuator_download_to_pipeline(pipeline: Builder, bk_cloud_id: int, exec_ip: str) -> None:
