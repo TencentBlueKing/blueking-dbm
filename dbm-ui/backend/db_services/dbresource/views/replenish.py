@@ -43,7 +43,7 @@ from backend.exceptions import ApiRequestError
 from backend.flow.consts import StateType
 from backend.iam_app.dataclass.actions import ActionEnum
 from backend.iam_app.handlers.drf_perm.base import ResourceActionPermission
-from backend.ticket.constants import TicketStatus
+from backend.ticket.constants import ReplenishTypeEnum, TicketStatus
 from backend.utils.excel import ExcelHandler
 
 
@@ -85,13 +85,15 @@ class DBReplenishViewSet(viewsets.AuditedModelViewSet):
         data = self.params_validate(self.get_serializer_class())
         username = request.user.username
 
-        if ResourceReplenishRecord.is_latest_running():
+        if data.get("replenish_type") == ReplenishTypeEnum.FULL.value and ResourceReplenishRecord.is_latest_running():
             raise ApiRequestError(_("有正在运行的补货记录，不允许提交"))
         if not data["infos"]:
             raise ValueError(_("不存在任何补货信息"))
 
         # 先创建空记录用于防重入和状态轮询，异步任务完成后更新 ticket_ids 和 details
-        record = ResourceReplenishRecord.objects.create(creator=username, ticket_ids=[], details={})
+        record = ResourceReplenishRecord.objects.create(
+            creator=username, ticket_ids=[], details={}, replenish_type=data["replenish_type"]
+        )
         # 一次提单可能很多，所以异步发起
         kwargs = {"username": username, "bk_biz_id": data["bk_biz_id"], "infos": data["infos"], "record_id": record.id}
         async_create_replenish.apply_async(kwargs=kwargs)
