@@ -207,11 +207,10 @@
   import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
 
-  import { PrimaryTable } from '@blueking/tdesign-ui';
-
   import { useBeforeClose } from '@hooks';
 
   import MultipleSelect from '@components/db-table/components/MultipleSelect.vue';
+  import { PrimaryTable } from '@components/tdesign-ui/table';
 
   import ValueEditor from '@views/db-configure/components/ValueEditor.vue';
 

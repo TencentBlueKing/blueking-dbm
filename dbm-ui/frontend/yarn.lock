@@ -269,7 +269,11 @@
     "@jridgewell/trace-mapping" "^0.3.28"
     jsesc "^3.0.2"
 
+<<<<<<< HEAD
 "@babel/generator@^8.0.0-rc.4":
+=======
+"@babel/generator@^8.0.0":
+>>>>>>> b4aad08a4 (perf(frontend): tdedign/table代码优化 #18949)
   version "8.0.0"
   resolved "https://mirrors.tencent.com/npm/@babel/generator/-/generator-8.0.0.tgz#24b7b53a74fa8e74cc2377e054fecef4dcdada96"
   integrity sha512-NT9NrVwJsbSV6Y2FSstWa71EETOnzrjkL5/wX3D2mYHtKM+qvqB1DvR4D0Setb/gDBsHzRICifwEWMO8CnTF6g==
@@ -443,7 +447,7 @@
     "@babel/helper-skip-transparent-expression-wrappers" "^7.29.7"
     "@babel/plugin-syntax-typescript" "^7.29.7"
 
-"@babel/runtime@^7.12.0", "@babel/runtime@^7.16.3", "@babel/runtime@^7.16.5", "@babel/runtime@^7.21.0", "@babel/runtime@^7.22.6", "@babel/runtime@^7.25.6":
+"@babel/runtime@^7.12.0", "@babel/runtime@^7.16.5", "@babel/runtime@^7.21.0", "@babel/runtime@^7.22.6", "@babel/runtime@^7.25.6":
   version "7.29.7"
   resolved "https://mirrors.tencent.com/npm/@babel/runtime/-/runtime-7.29.7.tgz#12022450c45a4da6d8d8287b18a4ff2ddb23f768"
   integrity sha512-Nq8OhGWiZIZGV6hLHoyAKLLcJihP/xFeBMGJoUrxTX2psI8dCifzLhZISFb+VWS3wFMRDmCGw5R+dOySCqPLhw==
@@ -626,26 +630,6 @@
     "@blueking/vxe-table" "4.10.6-beta.6"
     "@types/lodash" "^4.17.4"
     lodash "^4.17.21"
-
-"@blueking/tdesign-ui@0.0.4-beta.3":
-  version "0.0.4-beta.3"
-  resolved "https://mirrors.tencent.com/npm/@blueking/tdesign-ui/-/tdesign-ui-0.0.4-beta.3.tgz#b38fe8779f14d0efd2df01b259f6a353f9a89ee7"
-  integrity sha512-mcLuuq79wZ6Oum6QG5Ei56aGCszi0q2732J7VFNZUFZk+GP6UtnxEPpzlAWyMjkGQxSce/hLisWw9N0sAPrKaA==
-  dependencies:
-    "@babel/runtime" "^7.22.6"
-    "@popperjs/core" "^2.11.8"
-    "@types/lodash-es" "^4.17.12"
-    "@types/sortablejs" "^1.15.1"
-    "@types/tinycolor2" "^1.4.3"
-    "@types/validator" "^13.7.17"
-    dayjs "1.11.10"
-    lodash-es "^4.17.21"
-    mitt "^3.0.1"
-    sortablejs "^1.15.0"
-    tdesign-icons-vue-next "^0.3.5"
-    tdesign-vue-next "^1.11.5"
-    tinycolor2 "^1.6.0"
-    validator "^13.9.0"
 
 "@blueking/vxe-table@4.10.6-beta.6":
   version "4.10.6-beta.6"
@@ -2469,7 +2453,11 @@
     path-browserify "^1.0.1"
     vscode-uri "^3.0.8"
 
+<<<<<<< HEAD
 "@vue-macros/common@^3.1.1":
+=======
+"@vue-macros/common@^3.1.3":
+>>>>>>> b4aad08a4 (perf(frontend): tdedign/table代码优化 #18949)
   version "3.1.3"
   resolved "https://mirrors.tencent.com/npm/@vue-macros/common/-/common-3.1.3.tgz#76504322a0410bfbbda14edd999774d7990f3c7d"
   integrity sha512-pphnexn8CDKugcA4TYSKlg1XanBYPbILST+eZK9ZGqG8sVbNR5L0kXEpRqs8+iSznosHt/Jo2k1FGl0tnWIpyg==
@@ -2522,7 +2510,30 @@
     estree-walker "^2.0.2"
     source-map-js "^1.2.1"
 
+<<<<<<< HEAD
 "@vue/compiler-dom@3.5.39", "@vue/compiler-dom@^3.5.0":
+=======
+"@vue/compiler-core@3.5.40":
+  version "3.5.40"
+  resolved "https://mirrors.tencent.com/npm/@vue/compiler-core/-/compiler-core-3.5.40.tgz#a3e9e280ef3dccb6de4c7707ba50d7e10fd598a5"
+  integrity sha512-39E8IgOhTbVDnoJFMKc2DvYnypcZwUqgUhQkccva/0m6FUwtIKSGV7n1hpVmYcFaoRAwf9pBcwnKlCEsN63ZEQ==
+  dependencies:
+    "@babel/parser" "^7.29.7"
+    "@vue/shared" "3.5.40"
+    entities "^7.0.1"
+    estree-walker "^2.0.2"
+    source-map-js "^1.2.1"
+
+"@vue/compiler-dom@3.5.35", "@vue/compiler-dom@^3.5.0":
+  version "3.5.35"
+  resolved "https://mirrors.tencent.com/npm/@vue/compiler-dom/-/compiler-dom-3.5.35.tgz#523a42dcc49af499588c51e3db52e672b9491325"
+  integrity sha512-k+bprkXxuqhVajgTx5mUHuir7TwQzUKOWR40ng1ncAqQRPnrLngGGgqVEEhOnTMlc8btHYVKmrP8s5Qyg0hvYA==
+  dependencies:
+    "@vue/compiler-core" "3.5.35"
+    "@vue/shared" "3.5.35"
+
+"@vue/compiler-dom@3.5.39":
+>>>>>>> b4aad08a4 (perf(frontend): tdedign/table代码优化 #18949)
   version "3.5.39"
   resolved "https://mirrors.tencent.com/npm/@vue/compiler-dom/-/compiler-dom-3.5.39.tgz#d4261672233442762bee1709dcc34ceefc1ae873"
   integrity sha512-oQPigALqYbNxTNPvNgSOe+czwVExfbVF02lz8jP0S3AXJiu3jxYDygNUiqSep4ezzW8XgnubqH63My2A7JR/vg==
@@ -2530,7 +2541,49 @@
     "@vue/compiler-core" "3.5.39"
     "@vue/shared" "3.5.39"
 
+<<<<<<< HEAD
 "@vue/compiler-sfc@3.5.39", "@vue/compiler-sfc@^3.3.4", "@vue/compiler-sfc@^3.5.22":
+=======
+"@vue/compiler-dom@3.5.40":
+  version "3.5.40"
+  resolved "https://mirrors.tencent.com/npm/@vue/compiler-dom/-/compiler-dom-3.5.40.tgz#ac0579d4dc257bf5e10ce324a7ce0a7f9fc5c338"
+  integrity sha512-pwkx4vqlqOspFstrcmzwkKLePVMD3PT65imRzLhanU2V1Fj4K13g6OXjanOyzw3aTAuRk84BOmY8f3rEHqPaVA==
+  dependencies:
+    "@vue/compiler-core" "3.5.40"
+    "@vue/shared" "3.5.40"
+
+"@vue/compiler-sfc@3.5.35", "@vue/compiler-sfc@^3.5.22":
+  version "3.5.35"
+  resolved "https://mirrors.tencent.com/npm/@vue/compiler-sfc/-/compiler-sfc-3.5.35.tgz#e0310f48a37cf326b5c926ef0006d75c87e34d33"
+  integrity sha512-G5VPMcXTSywXBgtFOZOnHKBxKSrwXUcvY1iaF5/hRcy7t0J6CH/d8ha9F4nzi00Fax1eLV0QHM7v4mQu68jydw==
+  dependencies:
+    "@babel/parser" "^7.29.3"
+    "@vue/compiler-core" "3.5.35"
+    "@vue/compiler-dom" "3.5.35"
+    "@vue/compiler-ssr" "3.5.35"
+    "@vue/shared" "3.5.35"
+    estree-walker "^2.0.2"
+    magic-string "^0.30.21"
+    postcss "^8.5.15"
+    source-map-js "^1.2.1"
+
+"@vue/compiler-sfc@3.5.40":
+  version "3.5.40"
+  resolved "https://mirrors.tencent.com/npm/@vue/compiler-sfc/-/compiler-sfc-3.5.40.tgz#22252b2e5a58a6b6a4f71565cfa91271bddbe782"
+  integrity sha512-gIf497P4kpuALcvs5n3AEg1Vdn0pSY4XbjASIfHNYF1/MP3T2Mf2STERTubysBxCRxzJGJYtF/O7vwJrxFB3Vw==
+  dependencies:
+    "@babel/parser" "^7.29.7"
+    "@vue/compiler-core" "3.5.40"
+    "@vue/compiler-dom" "3.5.40"
+    "@vue/compiler-ssr" "3.5.40"
+    "@vue/shared" "3.5.40"
+    estree-walker "^2.0.2"
+    magic-string "^0.30.21"
+    postcss "^8.5.19"
+    source-map-js "^1.2.1"
+
+"@vue/compiler-sfc@^3.3.4":
+>>>>>>> b4aad08a4 (perf(frontend): tdedign/table代码优化 #18949)
   version "3.5.39"
   resolved "https://mirrors.tencent.com/npm/@vue/compiler-sfc/-/compiler-sfc-3.5.39.tgz#3eb13950e7442bc86eeebe73287ecbc6bf1678f5"
   integrity sha512-d0ki86iOyN8LoZPBmk5SJWNwHP19CnDDCfuo//+2WJa2g5Ke0Jay983PIBIcSSzldC68I8DrD5GrHV3OSDfodg==
@@ -2553,11 +2606,20 @@
     "@vue/compiler-dom" "3.5.39"
     "@vue/shared" "3.5.39"
 
+"@vue/compiler-ssr@3.5.40":
+  version "3.5.40"
+  resolved "https://mirrors.tencent.com/npm/@vue/compiler-ssr/-/compiler-ssr-3.5.40.tgz#c8c80efd22f5d85ea775d6ead787a108dc86cd58"
+  integrity sha512-rrE5xiXG663+vHCHa3J9p2z5OcBRjXmoqenprJxAFQxg5pSshzeBiCE6pu46axapRJ2Adk0YDA2BRZVjiHXnhg==
+  dependencies:
+    "@vue/compiler-dom" "3.5.40"
+    "@vue/shared" "3.5.40"
+
 "@vue/devtools-api@^6.5.0":
   version "6.6.4"
   resolved "https://mirrors.tencent.com/npm/@vue/devtools-api/-/devtools-api-6.6.4.tgz#cbe97fe0162b365edc1dba80e173f90492535343"
   integrity sha512-sGhTPMuXqZ1rVOk32RylztWkfXTRhuS7vgAKv0zjqk8gbsHkJ7xfFf+jbySxt7tWObEJwyKaHMikV/WGDiQm8g==
 
+<<<<<<< HEAD
 "@vue/devtools-api@^7.7.7":
   version "7.7.10"
   resolved "https://mirrors.tencent.com/npm/@vue/devtools-api/-/devtools-api-7.7.10.tgz#bfa52dee8918edeea1bfe04cce9f809eeed19862"
@@ -2590,11 +2652,26 @@
   resolved "https://mirrors.tencent.com/npm/@vue/devtools-kit/-/devtools-kit-8.1.5.tgz#7a074d9aa4de5c95adca1be1d41a29745505c916"
   integrity sha512-FcSAxsi4eWuXLCB7Rv9lj0aIVHHPNVQ2BazGf4RJTc2JCqb4BQg0hk87ZFhminCfl+mD5OUI0rX2cgyu4kJOGA==
   dependencies:
+=======
+"@vue/devtools-api@^8.1.5":
+  version "8.1.5"
+  resolved "https://mirrors.tencent.com/npm/@vue/devtools-api/-/devtools-api-8.1.5.tgz#0d8a7614f5d4549da31fb5b66988efdebbfa8ed5"
+  integrity sha512-YJipMVAKe5wT5CWf5kTYCaNV7NMNjFVxJkIkJaJ4W/nCxEBzlZzrOsYKeCymdCrFZmBS/+wTWFoUs3Jf/Q6XSQ==
+  dependencies:
+    "@vue/devtools-kit" "^8.1.5"
+
+"@vue/devtools-kit@^8.1.5":
+  version "8.1.5"
+  resolved "https://mirrors.tencent.com/npm/@vue/devtools-kit/-/devtools-kit-8.1.5.tgz#7a074d9aa4de5c95adca1be1d41a29745505c916"
+  integrity sha512-FcSAxsi4eWuXLCB7Rv9lj0aIVHHPNVQ2BazGf4RJTc2JCqb4BQg0hk87ZFhminCfl+mD5OUI0rX2cgyu4kJOGA==
+  dependencies:
+>>>>>>> b4aad08a4 (perf(frontend): tdedign/table代码优化 #18949)
     "@vue/devtools-shared" "^8.1.5"
     birpc "^2.6.1"
     hookable "^5.5.3"
     perfect-debounce "^2.0.0"
 
+<<<<<<< HEAD
 "@vue/devtools-shared@^7.7.10":
   version "7.7.10"
   resolved "https://mirrors.tencent.com/npm/@vue/devtools-shared/-/devtools-shared-7.7.10.tgz#ba45001aeb5f7b99a72db2fb824fc04a280aca53"
@@ -2602,6 +2679,8 @@
   dependencies:
     rfdc "^1.4.1"
 
+=======
+>>>>>>> b4aad08a4 (perf(frontend): tdedign/table代码优化 #18949)
 "@vue/devtools-shared@^8.1.5":
   version "8.1.5"
   resolved "https://mirrors.tencent.com/npm/@vue/devtools-shared/-/devtools-shared-8.1.5.tgz#fc59c1483cb05557ca501699e61239c66599db1c"
@@ -2638,43 +2717,110 @@
     path-browserify "^1.0.1"
     picomatch "^4.0.4"
 
+<<<<<<< HEAD
 "@vue/reactivity@3.5.39":
   version "3.5.39"
   resolved "https://mirrors.tencent.com/npm/@vue/reactivity/-/reactivity-3.5.39.tgz#e07513ae382cd8eb796bea06d046d3c34ddc12ef"
   integrity sha512-TpsuBJ9gGlZa5d23XcM2y8EXanz9dZeVDQBXRwzy46ItgvM+rWpzs+UVM0wcRLxGvcav0HE5jz2gNL53xlRAog==
+=======
+"@vue/reactivity@3.5.35":
+  version "3.5.35"
+  resolved "https://mirrors.tencent.com/npm/@vue/reactivity/-/reactivity-3.5.35.tgz#45b9794ca77ff5ade2eee74bcdeacbc00ae8e7a2"
+  integrity sha512-tVc+SsHConvh/Lz64qq1pP3rYArBmK42xonovEcxY74SQtvctZodG/zhq54P5dr38cVuw25d27cPNRdlMidpGQ==
   dependencies:
-    "@vue/shared" "3.5.39"
+    "@vue/shared" "3.5.35"
 
+"@vue/reactivity@3.5.40":
+  version "3.5.40"
+  resolved "https://mirrors.tencent.com/npm/@vue/reactivity/-/reactivity-3.5.40.tgz#91379172a9e9daba6737c6931382127976c830ba"
+  integrity sha512-B7ot9UlUZOi1zbq61/LvE88ZLTV8IlajTdiZTAEiDQgrnIMIZoPr9kGw0Zw46ObW62O9+H/Be3kMbfb7kYPQZA==
+>>>>>>> b4aad08a4 (perf(frontend): tdedign/table代码优化 #18949)
+  dependencies:
+    "@vue/shared" "3.5.40"
+
+<<<<<<< HEAD
 "@vue/runtime-core@3.5.39":
   version "3.5.39"
   resolved "https://mirrors.tencent.com/npm/@vue/runtime-core/-/runtime-core-3.5.39.tgz#ee70cb5c837112a93e477195fa2a2a0469373338"
   integrity sha512-9GLtNyRvPAUMbX+7ono0RC2j0guo2LXVi8LvcmAooImACUKm0oFf0jjwbX8/H0AE/t1nxhAkn8RSl9PMCzzxZw==
+=======
+"@vue/runtime-core@3.5.35":
+  version "3.5.35"
+  resolved "https://mirrors.tencent.com/npm/@vue/runtime-core/-/runtime-core-3.5.35.tgz#6f16679bc95ffe38af38c5d0bc1414ed4277458e"
+  integrity sha512-A/xFNX9loIcWDygeQuNCfKuh0CoYBzxhqEMNah5TSFg9Z53DrFYEN2qi5CU9necjM1OWYegYREUTHmXTmhfXtg==
   dependencies:
-    "@vue/reactivity" "3.5.39"
-    "@vue/shared" "3.5.39"
+    "@vue/reactivity" "3.5.35"
+    "@vue/shared" "3.5.35"
 
+"@vue/runtime-core@3.5.40":
+  version "3.5.40"
+  resolved "https://mirrors.tencent.com/npm/@vue/runtime-core/-/runtime-core-3.5.40.tgz#abdd20bc19244154eac7bcaf5ec68e95d5d8b1bc"
+  integrity sha512-KAZLweuZ6uUJPK1PMSQPgBU5gCjgrrfjUhSglmU9NhH+Zjepa8cnwSydPWDWHDwOgY4g3VcZ+PljbiHlURNCbw==
+>>>>>>> b4aad08a4 (perf(frontend): tdedign/table代码优化 #18949)
+  dependencies:
+    "@vue/reactivity" "3.5.40"
+    "@vue/shared" "3.5.40"
+
+<<<<<<< HEAD
 "@vue/runtime-dom@3.5.39":
   version "3.5.39"
   resolved "https://mirrors.tencent.com/npm/@vue/runtime-dom/-/runtime-dom-3.5.39.tgz#44a5c147fe2c2687da9cc0c7382ad21873aa476d"
   integrity sha512-7Y6aAGboKcXAZ3ECuUy7RrS5yy2r47dhTp2SKaJmYxjopImaVFaNa5Ne66NwGovsrxVAl5S5rwc7m22UG7Lmww==
+=======
+"@vue/runtime-dom@3.5.35":
+  version "3.5.35"
+  resolved "https://mirrors.tencent.com/npm/@vue/runtime-dom/-/runtime-dom-3.5.35.tgz#473f0fbf97b82652780ac9e6bb5873f7c0dde7e7"
+  integrity sha512-odrJ1C391dbGnyDRh8U+rnP7J2amIEzfmRk5vXy7xi3aZhEXofTvpi0T4HJb6jlNqQZTNPR5MPHSB3RHNkIORA==
   dependencies:
-    "@vue/reactivity" "3.5.39"
-    "@vue/runtime-core" "3.5.39"
-    "@vue/shared" "3.5.39"
+    "@vue/reactivity" "3.5.35"
+    "@vue/runtime-core" "3.5.35"
+    "@vue/shared" "3.5.35"
     csstype "^3.2.3"
 
+"@vue/runtime-dom@3.5.40":
+  version "3.5.40"
+  resolved "https://mirrors.tencent.com/npm/@vue/runtime-dom/-/runtime-dom-3.5.40.tgz#ed72f072c31e7868c0c59ad5883138cd7e0d88a5"
+  integrity sha512-ZfrX8ssZQds900L9pr8AuK05ddnMsR4MPMZr8cPN9GoqoPWcXLhjvvbIA2SMv+7a97sJ1vv9pj/zxK0Cq/eEFQ==
+>>>>>>> b4aad08a4 (perf(frontend): tdedign/table代码优化 #18949)
+  dependencies:
+    "@vue/reactivity" "3.5.40"
+    "@vue/runtime-core" "3.5.40"
+    "@vue/shared" "3.5.40"
+    csstype "^3.2.3"
+
+<<<<<<< HEAD
 "@vue/server-renderer@3.5.39":
   version "3.5.39"
   resolved "https://mirrors.tencent.com/npm/@vue/server-renderer/-/server-renderer-3.5.39.tgz#23978ecd5810b2422ca2f666e57c38fc1862b150"
   integrity sha512-yZSakiAGw85rZfG7UM8akMnIF+FmeiNk47uvHf2nVBBSe+dIKUhZuZq9+XgJhbV3nS5Z4ALH23/MpXofW+mbcw==
+=======
+"@vue/server-renderer@3.5.35":
+  version "3.5.35"
+  resolved "https://mirrors.tencent.com/npm/@vue/server-renderer/-/server-renderer-3.5.35.tgz#31c7b473de1000472444a0c0a336d1e799b209c3"
+  integrity sha512-NkebSOYdB97wi8OQcO3HqzZSlymJi/aWsN/7h74OSVhRTm6qGs3Jp3e0rCXynmWwSlKeRrnlIug+ilYoHBmQDA==
   dependencies:
-    "@vue/compiler-ssr" "3.5.39"
-    "@vue/shared" "3.5.39"
+    "@vue/compiler-ssr" "3.5.35"
+    "@vue/shared" "3.5.35"
+
+"@vue/server-renderer@3.5.40":
+  version "3.5.40"
+  resolved "https://mirrors.tencent.com/npm/@vue/server-renderer/-/server-renderer-3.5.40.tgz#94c7ccd0bf14ec3b19047e56b86f798be6736fda"
+  integrity sha512-XNJym9WpevhTVt1HuwOrCRJ5Q+9z4BjTMrDtjTrvx74SmUll8spNTw6whWJa9mEkO4PKn5TihI/bm/8ds2QVJw==
+>>>>>>> b4aad08a4 (perf(frontend): tdedign/table代码优化 #18949)
+  dependencies:
+    "@vue/compiler-ssr" "3.5.40"
+    "@vue/runtime-dom" "3.5.40"
+    "@vue/shared" "3.5.40"
 
 "@vue/shared@3.5.39", "@vue/shared@^3.5.0", "@vue/shared@^3.5.22":
   version "3.5.39"
   resolved "https://mirrors.tencent.com/npm/@vue/shared/-/shared-3.5.39.tgz#694bdae9d47381c2fcfedc6d5274f2450068c1ec"
   integrity sha512-l1rrBtBfTnmxvtsvdQDXltUUy8S1Y+ZaqdfUzmAnJkTd8Z8rv5v/ytW+TKiqEOWyHPoqtPlNFSs0lhRmYVSHVA==
+
+"@vue/shared@3.5.40":
+  version "3.5.40"
+  resolved "https://mirrors.tencent.com/npm/@vue/shared/-/shared-3.5.40.tgz#fc09d1871d66cd9b01959a597b41d7cb61f716a8"
+  integrity sha512-WxnBtruIqOoV3rA4jeKDWzrYI5h7Cp4+pjwDi8kWGHz+IslhiN+wguLVVhtv2l8VoU02rzDCVfDjgCl1lNpZVg==
 
 "@vue/tsconfig@0.9.1":
   version "0.9.1"
@@ -3172,7 +3318,7 @@ binary-extensions@^2.0.0:
   resolved "https://mirrors.tencent.com/npm/binary-extensions/-/binary-extensions-2.3.0.tgz#f6e14a97858d327252200242d4ccfe522c445522"
   integrity sha512-Ceh+7ox5qe7LJuLHoY0feh3pHuUDHAcRUeyL2VYghZwfpkNIy/+8Ocg0a3UuSoYzavmylwuLWQOf3hl0jjMMIw==
 
-birpc@^2.3.0, birpc@^2.6.1:
+birpc@^2.6.1:
   version "2.9.0"
   resolved "https://mirrors.tencent.com/npm/birpc/-/birpc-2.9.0.tgz#b59550897e4cd96a223e2a6c1475b572236ed145"
   integrity sha512-KrayHS5pBi69Xi9JmvoqrIgYGDkD6mcSe/i6YKi3w5kekCLzrX4+nawcXqrj2tIp50Kw/mT/s3p+GVK0A0sKxw==
@@ -3851,13 +3997,6 @@ copy-anything@^3.0.5:
   dependencies:
     is-what "^4.1.8"
 
-copy-anything@^4:
-  version "4.0.5"
-  resolved "https://mirrors.tencent.com/npm/copy-anything/-/copy-anything-4.0.5.tgz#16cabafd1ea4bb327a540b750f2b4df522825aea"
-  integrity sha512-7Vv6asjS4gMOuILabD3l739tsaxFQmC+a7pLZm02zyvs8p977bL3zEgq3yDk5rn9B0PbYgIv++jmHcuUab4RhA==
-  dependencies:
-    is-what "^5.2.0"
-
 core-util-is@1.0.2:
   version "1.0.2"
   resolved "https://mirrors.tencent.com/npm/core-util-is/-/core-util-is-1.0.2.tgz#b5fd54220aa2bc5ab57aab7140c940754503c1a7"
@@ -4440,12 +4579,16 @@ date-fns@~2.30.0:
   dependencies:
     "@babel/runtime" "^7.21.0"
 
+<<<<<<< HEAD
 dayjs@1.11.10:
   version "1.11.10"
   resolved "https://mirrors.tencent.com/npm/dayjs/-/dayjs-1.11.10.tgz#68acea85317a6e164457d6d6947564029a6a16a0"
   integrity sha512-vjAczensTgRcqDERK0SR2XMwsF/tSvnvlv6VcF2GIhg6Sx4yOIt/irsr1RDJsKiIyBzJDpCoXiWWq28MqH2cnQ==
 
 dayjs@1.11.21, dayjs@^1.10.4, dayjs@^1.11.10, dayjs@^1.11.12, dayjs@^1.11.20:
+=======
+dayjs@1.11.21, dayjs@^1.10.4, dayjs@^1.11.10, dayjs@^1.11.12, dayjs@^1.11.19, dayjs@^1.11.20:
+>>>>>>> b4aad08a4 (perf(frontend): tdedign/table代码优化 #18949)
   version "1.11.21"
   resolved "https://mirrors.tencent.com/npm/dayjs/-/dayjs-1.11.21.tgz#57f87562e62de76f3c704bd2b8d522fc33068eb2"
   integrity sha512-98IT+HOahAisibz/yjKbzuOBwYcjJ7BCLPzARyHiyEBmRz4fatF+KPJszEHXsGYjUG234aH/cOjW1wwTbKUZlA==
@@ -6747,11 +6890,6 @@ is-what@^4.1.8:
   resolved "https://mirrors.tencent.com/npm/is-what/-/is-what-4.1.16.tgz#1ad860a19da8b4895ad5495da3182ce2acdd7a6f"
   integrity sha512-ZhMwEosbFJkA0YhFnNDgTM4ZxDRsS6HqTo7qsZM08fehyRYIYa0yHu5R6mgo1n/8MgaPBXiPimPD77baVFYg+A==
 
-is-what@^5.2.0:
-  version "5.5.0"
-  resolved "https://mirrors.tencent.com/npm/is-what/-/is-what-5.5.0.tgz#a3031815757cfe1f03fed990bf6355a2d3f628c4"
-  integrity sha512-oG7cgbmg5kLYae2N5IVd3jm2s+vldjxJzK1pcu9LfpGuQ93MQSzo0okvRna+7y5ifrD+20FE8FvjusyGaz14fw==
-
 is-windows@^1.0.1:
   version "1.0.2"
   resolved "https://mirrors.tencent.com/npm/is-windows/-/is-windows-1.0.2.tgz#d1850eb9791ecd18e6182ce12a30f396634bb19d"
@@ -7209,7 +7347,7 @@ load-yaml-file@^0.2.0:
     pify "^4.0.1"
     strip-bom "^3.0.0"
 
-local-pkg@^1.1.2, local-pkg@^1.2.0:
+local-pkg@^1.1.2, local-pkg@^1.2.0, local-pkg@^1.2.1:
   version "1.2.1"
   resolved "https://mirrors.tencent.com/npm/local-pkg/-/local-pkg-1.2.1.tgz#9628389399851d78f3b50c9236eddb02f0c31b2b"
   integrity sha512-++gUqRDEvcnN6Zhqrr+y/CkVEHhlrR96vZn3nZZPYzMcBUyBtTKzB9NadClFIsIVSsu+3i9tfk/erqy9kAmt7Q==
@@ -7902,6 +8040,11 @@ normalize-wheel-es@^1.2.0:
   resolved "https://mirrors.tencent.com/npm/normalize-wheel-es/-/normalize-wheel-es-1.2.0.tgz#0fa2593d619f7245a541652619105ab076acf09e"
   integrity sha512-Wj7+EJQ8mSuXr2iWfnujrimU35R2W4FAErEyTmJoJ7ucwTn2hOUSsRehMb5RSYkxXGTM7Y9QpvPmp++w5ftoJw==
 
+nostics@^1.1.4:
+  version "1.1.4"
+  resolved "https://mirrors.tencent.com/npm/nostics/-/nostics-1.1.4.tgz#ab93812d91187467751a6e611d84015c1c75ea49"
+  integrity sha512-U4FApICSLCQ0dYiN59pxUCEZC053palQXi57yLaNdMaL6TBY4C4q3qZrJKUGcor2dGv8EhEwt8y5KvU2bo2kFg==
+
 npm-check@6.0.1:
   version "6.0.1"
   resolved "https://mirrors.tencent.com/npm/npm-check/-/npm-check-6.0.1.tgz#0df44d6ed8ab7bb29cf52fb3338b59adb6af1cd6"
@@ -8363,11 +8506,6 @@ pend@~1.2.0:
   resolved "https://mirrors.tencent.com/npm/pend/-/pend-1.2.0.tgz#7a57eb550a6783f9115331fcf4663d5c8e007a50"
   integrity sha512-F3asv42UuXchdzt+xXqfW1OGlVBe+mxa2mqI0pg5yAHZPvFmY3Y6drSf/GQ1A86WgWEN9Kzh/WrgKa6iGcHXLg==
 
-perfect-debounce@^1.0.0:
-  version "1.0.0"
-  resolved "https://mirrors.tencent.com/npm/perfect-debounce/-/perfect-debounce-1.0.0.tgz#9c2e8bc30b169cc984a58b7d5b28049839591d2a"
-  integrity sha512-xCy9V055GLEqoFaHoC1SoLIaLmWctgCUaBaWxDZ7/Zx4CTyX7cJQLJOok/orfjZAh9kEYpjJa4d0KcJmCbctZA==
-
 perfect-debounce@^2.0.0:
   version "2.1.0"
   resolved "https://mirrors.tencent.com/npm/perfect-debounce/-/perfect-debounce-2.1.0.tgz#e7078e38f231cb191855c3136a4423aef725d261"
@@ -8408,12 +8546,12 @@ pify@^4.0.1:
   resolved "https://mirrors.tencent.com/npm/pify/-/pify-4.0.1.tgz#4b2cd25c50d598735c50292224fd8c6df41e3231"
   integrity sha512-uB80kBFb/tfd68bVleG9T5GGsGPjJrLAUpR5PZIrhBnIaRTQRjqdJSsIKkOP6OAIFbj7GOrcudc5pNjZ+geV2g==
 
-pinia@3.0.4:
-  version "3.0.4"
-  resolved "https://mirrors.tencent.com/npm/pinia/-/pinia-3.0.4.tgz#75dde12784a61e34c1fa6abcd13c1a1061c360c0"
-  integrity sha512-l7pqLUFTI/+ESXn6k3nu30ZIzW5E2WZF/LaHJEpoq6ElcLD+wduZoB2kBN19du6K/4FDpPMazY2wJr+IndBtQw==
+pinia@4.0.2:
+  version "4.0.2"
+  resolved "https://mirrors.tencent.com/npm/pinia/-/pinia-4.0.2.tgz#ed71ec5818e6f26cbe8d2f552df8777d3413b615"
+  integrity sha512-yKVVA7bSj5oRZFp/Ab9wLlmyb5gPUYEiIm4ryiWTe/xe7PtkRdMVOp1X1ggvq0c6Uj7Q0Du1HnV2mtAwM0Ks1g==
   dependencies:
-    "@vue/devtools-api" "^7.7.7"
+    nostics "^1.1.4"
 
 pinkie-promise@^2.0.0:
   version "2.0.1"
@@ -8540,7 +8678,20 @@ postcss-value-parser@4.2.0, postcss-value-parser@^4.2.0:
   resolved "https://mirrors.tencent.com/npm/postcss-value-parser/-/postcss-value-parser-4.2.0.tgz#723c09920836ba6d3e5af019f92bc0971c02e514"
   integrity sha512-1NNCs6uurfkVbeXG4S8JFT9t19m45ICnif8zWLd5oPSZ50QnwMfK+H3jv408d4jw/7Bttv5axS5IiHoLaVNHeQ==
 
+<<<<<<< HEAD
 postcss@^8.5.0, postcss@^8.5.15, postcss@^8.5.16, postcss@^8.5.8:
+=======
+postcss@^8.5.0, postcss@^8.5.15, postcss@^8.5.8:
+  version "8.5.15"
+  resolved "https://mirrors.tencent.com/npm/postcss/-/postcss-8.5.15.tgz#d1eaf677a324e9ec02196da2d3fecf4a0b9a735c"
+  integrity sha512-FfR8sjd4em2T6fb3I2MwAJU7HWVMr9zba+enmQeeWFfCbm+UOC/0X4DS8XtpUTMwWMGbjKYP7xjfNekzyGmB3A==
+  dependencies:
+    nanoid "^3.3.12"
+    picocolors "^1.1.1"
+    source-map-js "^1.2.1"
+
+postcss@^8.5.17, postcss@^8.5.19:
+>>>>>>> b4aad08a4 (perf(frontend): tdedign/table代码优化 #18949)
   version "8.5.19"
   resolved "https://mirrors.tencent.com/npm/postcss/-/postcss-8.5.19.tgz#45ad5cfde499408e20147348237551381a922037"
   integrity sha512-Mz8SaolMd8nB+G13WkORcxQKHZ/NE4xXevtkJHVuG+guo9/wYKlIMTKAqGdEmYOXR2ijPjTYNHssizdaVSUNdQ==
@@ -8959,7 +9110,7 @@ robust-predicates@^3.0.2:
   resolved "https://mirrors.tencent.com/npm/robust-predicates/-/robust-predicates-3.0.3.tgz#1099061b3349e2c5abec6c2ab0acd440d24d4062"
   integrity sha512-NS3levdsRIUOmiJ8FZWCP7LG3QpJyrs/TE0Zpf1yvZu8cAJJ6QMW92H1c7kWpdIHo8RvmLxN/o2JXTKHp74lUA==
 
-rolldown@~1.1.4:
+rolldown@~1.1.5:
   version "1.1.5"
   resolved "https://mirrors.tencent.com/npm/rolldown/-/rolldown-1.1.5.tgz#339aae250844351fc55b74e2652d3ebd6fba389d"
   integrity sha512-t9z29cJjXf/vxQ8dyhCSpt6H6aSwHTk8cT5I3iy6SMXuFpk5mB6PL6XfC8PCwrPTx93udwKUm9HRteAlTGBLiA==
@@ -9400,11 +9551,6 @@ spdx-license-ids@^3.0.0:
   resolved "https://mirrors.tencent.com/npm/spdx-license-ids/-/spdx-license-ids-3.0.23.tgz#b069e687b1291a32f126893ed76a27a745ee2133"
   integrity sha512-CWLcCCH7VLu13TgOH+r8p1O/Znwhqv/dbb6lqWy67G+pT1kHmeD/+V36AVb/vq8QMIQwVShJ6Ssl5FPh0fuSdw==
 
-speakingurl@^14.0.1:
-  version "14.0.1"
-  resolved "https://mirrors.tencent.com/npm/speakingurl/-/speakingurl-14.0.1.tgz#f37ec8ddc4ab98e9600c1c9ec324a8c48d772a53"
-  integrity sha512-1POYv7uv2gXoyGFpBCmpDVSNV74IfsWlDW216UPjbWufNf+bSU6GdbDsxdcxtfwb4xlI3yxzOTKClUosxARYrQ==
-
 sprintf-js@~1.0.2:
   version "1.0.3"
   resolved "https://mirrors.tencent.com/npm/sprintf-js/-/sprintf-js-1.0.3.tgz#04e6926f662895354f3dd015203633b857297e2c"
@@ -9720,13 +9866,6 @@ stylis@^4.3.6:
   resolved "https://mirrors.tencent.com/npm/stylis/-/stylis-4.4.0.tgz#c5846c9345f4bfc51bd0cbd7ca35a0744f485a5d"
   integrity sha512-5Z9ZpRzfuH6l/UAvCPAPUo3665Nk2wLaZU3x+TLHKVzIz33+sbJqbtrYoC3KD4/uVOr2Zp+L0LySezP9OHV9yA==
 
-superjson@^2.2.2:
-  version "2.2.6"
-  resolved "https://mirrors.tencent.com/npm/superjson/-/superjson-2.2.6.tgz#a223a3a988172a5f9656e2063fe5f733af40d099"
-  integrity sha512-H+ue8Zo4vJmV2nRjpx86P35lzwDT3nItnIsocgumgr0hHMQ+ZGq5vrERg9kJBo5AWGmxZDhzDo+WVIJqkB0cGA==
-  dependencies:
-    copy-anything "^4"
-
 supports-color@^10.2.2:
   version "10.2.2"
   resolved "https://mirrors.tencent.com/npm/supports-color/-/supports-color-10.2.2.tgz#466c2978cc5cd0052d542a0b576461c2b802ebb4"
@@ -9799,13 +9938,6 @@ table@^6.9.0:
     string-width "^4.2.3"
     strip-ansi "^6.0.1"
 
-tdesign-icons-vue-next@^0.3.5:
-  version "0.3.7"
-  resolved "https://mirrors.tencent.com/npm/tdesign-icons-vue-next/-/tdesign-icons-vue-next-0.3.7.tgz#c6040dcc3398ef68fcb5010e3f8a08dd6e1e7cfb"
-  integrity sha512-Q5ebVty/TCqhBa0l/17kkhjC0pBAOGvn7C35MAt1xS+johKVM9QEDOy9R6XEl332AiwQ37MwqioczqjYC30ckw==
-  dependencies:
-    "@babel/runtime" "^7.16.3"
-
 tdesign-icons-vue-next@~0.4.4:
   version "0.4.6"
   resolved "https://mirrors.tencent.com/npm/tdesign-icons-vue-next/-/tdesign-icons-vue-next-0.4.6.tgz#3f72442713d843713b1e20a5d777bf963a439f29"
@@ -9813,7 +9945,11 @@ tdesign-icons-vue-next@~0.4.4:
   dependencies:
     "@babel/runtime" "^7.16.5"
 
+<<<<<<< HEAD
 tdesign-vue-next@^1.11.5:
+=======
+tdesign-vue-next@1.20.3:
+>>>>>>> b4aad08a4 (perf(frontend): tdedign/table代码优化 #18949)
   version "1.20.3"
   resolved "https://mirrors.tencent.com/npm/tdesign-vue-next/-/tdesign-vue-next-1.20.3.tgz#bd6554fa13be75acbc805e8dad8ece700e785966"
   integrity sha512-DYcZN1d1zSiwSIimgU63rTjBgaxPF3fVgBEN/X3M5R3OStnAnXh+DG6RfrENGJPKXVD3oUcYk37c7uE+hKdJEw==
@@ -10204,6 +10340,14 @@ unplugin-utils@^0.3.0, unplugin-utils@^0.3.1:
     pathe "^2.0.3"
     picomatch "^4.0.4"
 
+unplugin-utils@^0.3.2:
+  version "0.3.2"
+  resolved "https://mirrors.tencent.com/npm/unplugin-utils/-/unplugin-utils-0.3.2.tgz#22f6856408880b0b2d7dd974084faf94094613ef"
+  integrity sha512-xVToRh2CTmLk2HnEG7ac4rl1MJTT3RFkpS8B++/SnB0kXvuaavD+n3m/vrzyWQOdJNSZQACnbz01pnppbwV5BA==
+  dependencies:
+    pathe "^2.0.3"
+    picomatch "^4.0.4"
+
 unplugin-vue-components@32.1.0:
   version "32.1.0"
   resolved "https://mirrors.tencent.com/npm/unplugin-vue-components/-/unplugin-vue-components-32.1.0.tgz#6381802ff55b72b4664f575e926765f454255b8d"
@@ -10230,6 +10374,15 @@ unplugin@^2.3.11:
     webpack-virtual-modules "^0.6.2"
 
 unplugin@^3.0.0:
+  version "3.3.0"
+  resolved "https://mirrors.tencent.com/npm/unplugin/-/unplugin-3.3.0.tgz#18de476b6130a6cde94db87f70ac32b97757f3c9"
+  integrity sha512-qa66K+crbfyE6JK10GjvbJeRrOsuC/JpbnHctfyp/i4oBTxWOzJfRZyDiOk1PtErMFRu8JhsU/wPvOdBNWe5Rg==
+  dependencies:
+    "@jridgewell/remapping" "^2.3.5"
+    picomatch "^4.0.4"
+    webpack-virtual-modules "^0.6.2"
+
+unplugin@^3.3.0:
   version "3.3.0"
   resolved "https://mirrors.tencent.com/npm/unplugin/-/unplugin-3.3.0.tgz#18de476b6130a6cde94db87f70ac32b97757f3c9"
   integrity sha512-qa66K+crbfyE6JK10GjvbJeRrOsuC/JpbnHctfyp/i4oBTxWOzJfRZyDiOk1PtErMFRu8JhsU/wPvOdBNWe5Rg==
@@ -10329,7 +10482,7 @@ validate-npm-package-license@^3.0.1:
     spdx-correct "^3.0.0"
     spdx-expression-parse "^3.0.0"
 
-validator@^13.15.23, validator@^13.9.0:
+validator@^13.15.23:
   version "13.15.35"
   resolved "https://mirrors.tencent.com/npm/validator/-/validator-13.15.35.tgz#81cf455c51f15b69d8d340be5914f3fab00dbf7f"
   integrity sha512-TQ5pAGhd5whStmqWvYF4OjQROlmv9SMFVt37qoCBdqRffuuklWYQlCNnEs2ZaIBD1kZRNnikiZOS1eqgkar0iw==
@@ -10394,15 +10547,15 @@ vite-plugin-style-import@2.0.0:
     magic-string "^0.25.7"
     pathe "^0.2.0"
 
-vite@8.1.4:
-  version "8.1.4"
-  resolved "https://mirrors.tencent.com/npm/vite/-/vite-8.1.4.tgz#3cd711f31de805e5154ab47948349e693314d581"
-  integrity sha512-bTT9PsdWO+MQMNG9ZXIP/qM9wGh37DFxTV/sPq9cFpHr3w4jkgef032PkAL9jAqhk3Nz8NQw3O8n6/xFkqO4QQ==
+vite@8.1.5:
+  version "8.1.5"
+  resolved "https://mirrors.tencent.com/npm/vite/-/vite-8.1.5.tgz#ccffce3ee487b1886223b24ebb27b91674827d30"
+  integrity sha512-7ULLwsCdYx/nRyrpiEwvqb5TFHrMVZyBt+rg/OAXT7rgj/z+DtTDyKFeLAdDkubDVDKD8jOsndmy7m55XcfUsw==
   dependencies:
     lightningcss "^1.32.0"
     picomatch "^4.0.5"
-    postcss "^8.5.16"
-    rolldown "~1.1.4"
+    postcss "^8.5.17"
+    rolldown "~1.1.5"
     tinyglobby "^0.2.17"
   optionalDependencies:
     fsevents "~2.3.3"
@@ -10479,27 +10632,28 @@ vue-request@2.0.4:
   dependencies:
     vue-demi latest
 
-vue-router@5.1.0:
-  version "5.1.0"
-  resolved "https://mirrors.tencent.com/npm/vue-router/-/vue-router-5.1.0.tgz#0e5497c80ec3a60dc59ad385813bd15fb91a2915"
-  integrity sha512-HAbiLzLEHQwxPgvsbOJDAwtavszEgLwri6XfyrsPECIFez8+59xc9LofWVdc/HEaSRT822lJ8H9Ns38VVond5g==
+vue-router@5.2.0:
+  version "5.2.0"
+  resolved "https://mirrors.tencent.com/npm/vue-router/-/vue-router-5.2.0.tgz#34f03b1012729c33bb23184d96ad8e1b1b5c4546"
+  integrity sha512-QAC5i0LEb1GLG0LXDQmHu8L7FX12j0KwU/JTKmLQUJMrn04gQdKP6Du+p0QwpHb3iy71vBlqnHQ8WAfOSAWhqw==
   dependencies:
-    "@babel/generator" "^8.0.0-rc.4"
-    "@vue-macros/common" "^3.1.1"
-    "@vue/devtools-api" "^8.1.2"
+    "@babel/generator" "^8.0.0"
+    "@vue-macros/common" "^3.1.3"
+    "@vue/devtools-api" "^8.1.5"
     ast-walker-scope "^0.9.0"
     chokidar "^5.0.0"
     json5 "^2.2.3"
-    local-pkg "^1.1.2"
+    local-pkg "^1.2.1"
     magic-string "^0.30.21"
     mlly "^1.8.2"
     muggle-string "^0.4.1"
+    nostics "^1.1.4"
     pathe "^2.0.3"
-    picomatch "^4.0.3"
+    picomatch "^4.0.5"
     scule "^1.3.0"
-    tinyglobby "^0.2.16"
-    unplugin "^3.0.0"
-    unplugin-utils "^0.3.1"
+    tinyglobby "^0.2.17"
+    unplugin "^3.3.0"
+    unplugin-utils "^0.3.2"
     yaml "^2.9.0"
 
 vue-tippy@^6.7.1:
@@ -10529,6 +10683,7 @@ vue-types@~4.1.1:
   dependencies:
     is-plain-object "5.0.0"
 
+<<<<<<< HEAD
 vue-types@~6.0.0:
   version "6.0.0"
   resolved "https://mirrors.tencent.com/npm/vue-types/-/vue-types-6.0.0.tgz#3a9be5624491d5936652f3d1f2469ae3f53c6a94"
@@ -10538,12 +10693,18 @@ vue@3.5.39, vue@^3.5.24:
   version "3.5.39"
   resolved "https://mirrors.tencent.com/npm/vue/-/vue-3.5.39.tgz#0bb8d63bf2a75860e282bc054d19e625f5834224"
   integrity sha512-xmZCYabFGcirU8r0fTuvl/LICc1OU620rnqepaJDL/a141ZigkG7AyaxQLdqJ02ZRYzWe6YPaDHeQx7MfknQfA==
+=======
+vue@3.5.40:
+  version "3.5.40"
+  resolved "https://mirrors.tencent.com/npm/vue/-/vue-3.5.40.tgz#c4a9d4c62f98ea33aa811a75c3fbd476dc782184"
+  integrity sha512-+8PJ4SJXdn/cHGImF4CKdxlWHIN5Dkt7DoufRREM6h6uVCx2m7QxgcEQmmzyOK8A9mcafg7sFbJFYsdFVubTig==
+>>>>>>> b4aad08a4 (perf(frontend): tdedign/table代码优化 #18949)
   dependencies:
-    "@vue/compiler-dom" "3.5.39"
-    "@vue/compiler-sfc" "3.5.39"
-    "@vue/runtime-dom" "3.5.39"
-    "@vue/server-renderer" "3.5.39"
-    "@vue/shared" "3.5.39"
+    "@vue/compiler-dom" "3.5.40"
+    "@vue/compiler-sfc" "3.5.40"
+    "@vue/runtime-dom" "3.5.40"
+    "@vue/server-renderer" "3.5.40"
+    "@vue/shared" "3.5.40"
 
 vuedraggable@4.1.0:
   version "4.1.0"
