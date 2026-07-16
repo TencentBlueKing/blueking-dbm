@@ -12,7 +12,7 @@ from django.db import models
 from django.utils.translation import gettext_lazy as _
 
 from backend.bk_web.constants import LEN_NORMAL
-from backend.ticket.constants import TICKET_FINISHED_STATUS_SET
+from backend.ticket.constants import TICKET_FINISHED_STATUS_SET, ReplenishTypeEnum
 from backend.ticket.models import Ticket
 
 
@@ -23,6 +23,12 @@ class ResourceReplenishRecord(models.Model):
     create_at = models.DateTimeField(_("创建时间"), auto_now_add=True)
     details = models.JSONField(verbose_name=_("资源补给详情"))
     ticket_ids = models.JSONField(verbose_name=_("关联单据ID"))
+    replenish_type = models.CharField(
+        verbose_name=_("补货类型"),
+        choices=ReplenishTypeEnum.get_choices(),
+        max_length=LEN_NORMAL,
+        default=ReplenishTypeEnum.FULL,
+    )
 
     class Meta:
         verbose_name = _("资源补货记录")
@@ -30,7 +36,7 @@ class ResourceReplenishRecord(models.Model):
     @classmethod
     def is_latest_running(cls):
         # 查询最近一条是否在运行
-        record = cls.objects.last()
+        record = cls.objects.filter(replenish_type=ReplenishTypeEnum.FULL).last()
         if not record:
             return None
         # ticket_ids 为空表示异步任务正在创建单据中
