@@ -58,6 +58,7 @@ class DBMMcpTools(StrStructuredEnum):
     # MARKET
     DBM_PUBLIC_MARKET = EnumField("dbm-public-market", _("DBM公共服务"))
     RESOURCE_POOL = EnumField("resource-pool", "resource-pool")
+    RESOURCE_REPLENISH = EnumField("resource-replenish", "resource-replenish")
 
 
 class DBMMCPTags(StrStructuredEnum):

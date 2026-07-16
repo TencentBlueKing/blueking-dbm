@@ -8,15 +8,17 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-from .ai_report import AiReportMcpToolsViewSet
-from .alarm_query import MonitorQueryMcpToolsViewSet
-from .dbmeta_query import DBMetaQueryMcpToolsViewSet
-from .dbmeta_update import DBMetaUpdateMcpToolsViewSet
-from .host_decommission_query import HostDecommissionQueryMcpToolsViewSet
-from .host_performance_query import HostPerformanceQueryMcpToolsViewSet
-from .mcp_callee_plan import McpCalleePlanMcpToolsViewSet
-from .promql_query import PromQLQueryMcpToolsViewSet
-from .resource_param_query import ResourceParamQueryMcpToolsViewSet
-from .resource_replenish import HcmResourceReplenishMcpToolsViewSet
-from .taskflow_query import TaskflowQueryMcpToolsViewSet
-from .ticket_operation import TicketOperationMcpToolsViewSet
+from django.utils.translation import gettext_lazy as _
+from rest_framework import serializers
+
+from backend.db_services.dbresource.serializers import ResourceHcmReplenishSerializer
+
+
+class HcmResourceReplenishInputSerializer(serializers.Serializer):
+
+    infos = serializers.ListSerializer(help_text=_("资源补货信息"), child=ResourceHcmReplenishSerializer())
+    bk_biz_id = serializers.IntegerField(help_text=_("业务ID"))
+
+
+class HcmResourceReplenishOutputSerializer(serializers.Serializer):
+    record_id = serializers.IntegerField(help_text=_("补货记录ID"))
