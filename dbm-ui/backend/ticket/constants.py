@@ -776,6 +776,11 @@ class FlowType(StrStructuredEnum):
     RESOURCE_HCM_REPLENISH = EnumField("RESOURCE_HCM_REPLENISH", _("海磊-主机资源补货"))
 
 
+class ReplenishTypeEnum(StrStructuredEnum):
+    FULL = EnumField("full", _("全量补货"))
+    INCREMENT = EnumField("increment", _("部分补货"))
+
+
 # 任务流程类型合集
 FLOW_TASK_TYPES = [
     FlowType.INNER_FLOW,
