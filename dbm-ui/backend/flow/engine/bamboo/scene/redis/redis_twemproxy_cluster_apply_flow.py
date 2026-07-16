@@ -34,7 +34,7 @@ from backend.flow.utils.redis.redis_act_playload import RedisActPayload
 from backend.flow.utils.redis.redis_context_dataclass import ActKwargs, CommonContext, DnsKwargs
 from backend.flow.utils.redis.redis_db_meta import RedisDBMeta
 from backend.flow.utils.redis.redis_proxy_util import get_cache_backup_mode
-from backend.flow.utils.redis.redis_util import check_domain
+from backend.flow.utils.redis.redis_util import add_summary_output_act, build_clb_polaris_apply_subs, check_domain
 
 logger = logging.getLogger("flow")
 
@@ -277,7 +277,18 @@ class RedisClusterApplyFlow(object):
             act_name=_("建立集群 元数据"), act_component_code=RedisDBMetaComponent.code, kwargs=asdict(act_kwargs)
         )
 
-        acts_list = []
+        # 集群部署成功后，根据单据传参决定是否给集群构建创建clb / 北极星的子流程，与后面的注册域名等节点并行执行
+        clb_polaris_subs = build_clb_polaris_apply_subs(
+            root_id=self.root_id,
+            data=self.data,
+            bk_biz_id=self.data["bk_biz_id"],
+            domain_name=self.data["domain_name"],
+            creator=self.data["created_by"],
+            apply_clb=self.data.get("apply_clb", False),
+            apply_polaris=self.data.get("apply_polaris", False),
+        )
+
+        acts_list = list(clb_polaris_subs)
         act_kwargs.cluster = {
             "conf": {
                 "maxmemory": str(self.data["maxmemory"]),
@@ -360,6 +371,17 @@ class RedisClusterApplyFlow(object):
             act_name=_("{}-更新版本").format(self.data["domain_name"]),
             act_component_code=RedisUpdateVersionComponent.code,
             kwargs=asdict(act_kwargs),
+        )
+
+        # 写入集群信息摘要(地区/域名/端口/CLB/北极星)，供前端"执行摘要"展示
+        add_summary_output_act(
+            redis_pipeline=redis_pipeline,
+            bk_biz_id=self.data["bk_biz_id"],
+            domain_name=self.data["domain_name"],
+            region=self.data.get("city_code", ""),
+            proxy_port=self.data["proxy_port"],
+            apply_clb=self.data.get("apply_clb", False),
+            apply_polaris=self.data.get("apply_polaris", False),
         )
 
         redis_pipeline.run_pipeline()
