@@ -63,9 +63,9 @@
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
 
-  import { PrimaryTable } from '@blueking/tdesign-ui';
-
   import { importFromExcel } from '@services/source/partitionManage';
+
+  import { PrimaryTable } from '@components/tdesign-ui/table';
 
   type ResultType = 'allFail' | 'partial' | 'success';
 

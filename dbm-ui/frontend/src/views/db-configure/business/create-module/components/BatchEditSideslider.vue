@@ -207,11 +207,10 @@
   import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
 
-  import { PrimaryTable } from '@blueking/tdesign-ui';
-
   import { useBeforeClose } from '@hooks';
 
   import MultipleSelect from '@components/db-table/components/MultipleSelect.vue';
+  import { PrimaryTable } from '@components/tdesign-ui/table';
 
   import ValueEditor from '@views/db-configure/components/ValueEditor.vue';
 
@@ -440,8 +439,8 @@
         left: 0;
         width: 1px;
         height: 16px;
-        content: '';
         background: #dcdee5;
+        content: '';
         transform: translateY(-50%);
       }
     }
@@ -457,9 +456,9 @@
 
     .diff-table {
       width: 100%;
-      table-layout: fixed;
-      border-collapse: collapse;
       font-size: 12px;
+      border-collapse: collapse;
+      table-layout: fixed;
 
       tr {
         border-bottom: 1px solid #dcdee5;

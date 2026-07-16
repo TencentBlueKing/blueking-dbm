@@ -91,14 +91,13 @@
   import type { ComponentProps } from 'vue-component-type-helpers';
   import { useRouter } from 'vue-router';
 
-  import { PrimaryTable } from '@blueking/tdesign-ui';
-
   import type { IRequestPayload } from '@services/http';
   import type { ListBase } from '@services/types';
 
   import { useUrlSearch } from '@hooks';
 
   import EmptyStatus from '@components/empty-status/EmptyStatus.vue';
+  import { PrimaryTable } from '@components/tdesign-ui/table';
 
   import { getOffset } from '@utils';
 
