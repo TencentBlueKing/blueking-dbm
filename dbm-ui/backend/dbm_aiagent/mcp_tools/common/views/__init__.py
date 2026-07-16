@@ -18,5 +18,6 @@ from .host_performance_query import HostPerformanceQueryMcpToolsViewSet
 from .mcp_callee_plan import McpCalleePlanMcpToolsViewSet
 from .promql_query import PromQLQueryMcpToolsViewSet
 from .resource_param_query import ResourceParamQueryMcpToolsViewSet
+from .resource_replenish import HcmResourceReplenishMcpToolsViewSet
 from .taskflow_query import TaskflowQueryMcpToolsViewSet
 from .ticket_operation import TicketOperationMcpToolsViewSet
