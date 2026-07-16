@@ -390,9 +390,8 @@ QUERY_TEMPLATE = {
             bkmonitor:exporter_dbm_redis_exporter:redis_memory_used_bytes{instance_role="redis_master",%s}
            )""",
         "total": """sum by (cluster_domain) (
-            avg by (cluster_domain, bk_target_ip) (
-                    bkmonitor:dbm_system:mem:total{instance_role="redis_master",%s}
-            ))""",
+            bkmonitor:exporter_dbm_redis_exporter:redis_config_maxmemory{instance_role="redis_master",%s}
+        )""",
     },
     ClusterType.TwemproxyTendisSSDInstance: {
         "range": 5,
