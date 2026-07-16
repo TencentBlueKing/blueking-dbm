@@ -15,6 +15,10 @@ const (
 	// EnvGuardProcess is set when the process is the forked guard (not the launcher).
 	// When set, DaemonStartCmdRunE runs RunWithGuard directly instead of forking again.
 	EnvGuardProcess = "DBHA_GUARD_PROCESS"
+
+	// gracefulDrainTimeout bounds how long the guard waits for the child to exit
+	// gracefully after a stop request before falling back to ensureChildDead.
+	gracefulDrainTimeout = 3 * time.Second
 )
 
 var (
@@ -86,6 +90,16 @@ func ensureChildDead(childProc *os.Process) {
 	}
 }
 
+// drainChildWait waits for the child's Wait() result up to timeout. On timeout it
+// returns and lets the caller force-kill via ensureChildDead; the spawnChildWait
+// goroutine still delivers to the buffered channel later, so no goroutine leaks.
+func drainChildWait(waitDone <-chan childWaitResult, timeout time.Duration) {
+	select {
+	case <-waitDone:
+	case <-time.After(timeout):
+	}
+}
+
 func guardWaitForChild(
 	waiter *StopWaiter,
 	childProc *os.Process,
@@ -106,9 +120,9 @@ func guardWaitForChild(
 
 		case <-waiter.Shutdown:
 			// Stop requested: nudge child toward graceful shutdown, wait for
-			// it to exit, force kill as a last resort, then exit the guard.
+			// it to exit (bounded), force kill as a last resort, then exit the guard.
 			guardStopChild(childProc)
-			<-waitDone // drain Wait
+			drainChildWait(waitDone, gracefulDrainTimeout)
 			ensureChildDead(childProc)
 			return nil, nil, true
 		}

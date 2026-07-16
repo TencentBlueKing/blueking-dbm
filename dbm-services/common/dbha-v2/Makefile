@@ -230,6 +230,7 @@ package-probe: probe
 # windows probe package: dbha-probe.exe + PowerShell scripts + render_configs.py
 # + probe templates/rc; deliberately excludes bash scripts and guard-utils.sh.
 package-probe-windows: probe-windows
+	@command -v zip >/dev/null 2>&1 || { echo "ERROR: 'zip' is required for package-probe-windows"; exit 1; }
 	@echo "Packaging $(PROBE_WINDOWS_PKG_NAME)..."
 	@rm -rf $(PROBE_WINDOWS_PKG_DIR)
 	@mkdir -p $(PROBE_WINDOWS_PKG_DIR)/bin $(PROBE_WINDOWS_PKG_DIR)/etc \

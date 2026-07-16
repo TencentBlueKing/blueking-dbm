@@ -269,8 +269,9 @@ func resolveGenConfigLocalIP(localIPInterface, adminEndpointsStr string) (string
 }
 
 func parseAdminEndpoints(s string) []string {
+	sep := constant.Delimiter
 	raw := strings.FieldsFunc(s, func(r rune) bool {
-		return r == rune(constant.Delimiter[0]) || unicode.IsSpace(r)
+		return (len(sep) > 0 && strings.ContainsRune(sep, r)) || unicode.IsSpace(r)
 	})
 
 	var out []string

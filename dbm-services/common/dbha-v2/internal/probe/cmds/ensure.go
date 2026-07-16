@@ -250,6 +250,13 @@ func stopKeepaliveProcs(procs []process.ProbeProc, addr string) error {
 	if err := process.SignalKeepaliveStop(addr); err != nil && !errors.Is(err, process.ErrProcessNotRunning) {
 		return err
 	}
+	for _, p := range procs {
+		proc, err := os.FindProcess(int(p.Pid))
+		if err != nil {
+			continue
+		}
+		_ = process.TermKeepaliveProc(proc)
+	}
 	time.Sleep(time.Second)
 	for _, p := range procs {
 		alive, _ := process.IsAlive(p.Pid)
