@@ -150,7 +150,7 @@
     }
 
     .hint-warning {
-      color: rgb(255, 156, 1);
+      color: rgb(255 156 1);
     }
   }
 </style>

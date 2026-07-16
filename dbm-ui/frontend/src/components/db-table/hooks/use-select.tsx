@@ -4,9 +4,8 @@ import { Checkbox, Radio } from 'tdesign-vue-next';
 import { defineComponent, getCurrentInstance, type Reactive, type Ref, ref, shallowRef, type UnwrapRef } from 'vue';
 import { useI18n } from 'vue-i18n';
 
-import { TableColumn } from '@blueking/tdesign-ui';
-
 import DbIcon from '@components/db-icon/index';
+import { TableColumn } from '@components/tdesign-ui/table';
 
 import { type Exposes, type Props } from '../IndexNew.vue';
 

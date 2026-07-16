@@ -28,7 +28,7 @@
   import type { ComponentSlots } from 'vue-component-type-helpers';
   import { useI18n } from 'vue-i18n';
 
-  import { TableColumn } from '@blueking/tdesign-ui';
+  import { TableColumn } from '@components/tdesign-ui/table';
 
   import { execCopy } from '@utils';
 
