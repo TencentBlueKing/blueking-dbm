@@ -18,11 +18,12 @@ from backend.iam_app.dataclass.actions import ActionEnum
 from backend.ticket import builders
 from backend.ticket.builders.common.base import TicketBaseValidateSerializerMixin
 from backend.ticket.builders.surrealdb.base import BaseSurrealDBTicketFlowBuilder
+from backend.ticket.builders.surrealdb.enums import SurrealDBOperationType
 from backend.ticket.constants import TicketType
 
 
 class K8sSurrealDBEnableDetailSerializer(TicketBaseValidateSerializerMixin, serializers.Serializer):
-    cluster_id = serializers.CharField(help_text=_("集群ID"))
+    cluster_id = serializers.IntegerField(help_text=_("集群ID"))
 
 
 class K8sSurrealDBEnableFlowParamBuilder(builders.FlowParamBuilder):
@@ -36,3 +37,4 @@ class K8sSurrealDBEnableFlowBuilder(BaseSurrealDBTicketFlowBuilder):
     serializer = K8sSurrealDBEnableDetailSerializer
     inner_flow_builder = K8sSurrealDBEnableFlowParamBuilder
     inner_flow_name = _("Surrealdb集群启动")
+    operation_type = SurrealDBOperationType.StartCluster
