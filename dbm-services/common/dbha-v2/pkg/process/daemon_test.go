@@ -127,3 +127,36 @@ func TestErrExecutableEmpty(t *testing.T) {
 		t.Fatal("ErrExecutableEmpty should not be nil")
 	}
 }
+
+// TestDrainChildWait_ReturnsWhenChildExits covers the happy path: when Wait()
+// has already completed, drainChildWait must return immediately without waiting
+// for the full timeout (zero-regression for the normal stop path).
+func TestDrainChildWait_ReturnsWhenChildExits(t *testing.T) {
+	waitDone := make(chan childWaitResult, 1)
+	waitDone <- childWaitResult{}
+
+	start := time.Now()
+	drainChildWait(waitDone, 2*time.Second)
+	elapsed := time.Since(start)
+	if elapsed > 200*time.Millisecond {
+		t.Fatalf("drainChildWait took %v, want immediate return when child already exited", elapsed)
+	}
+}
+
+// TestDrainChildWait_TimesOut is the hang-prevention regression: if Wait() never
+// completes, drainChildWait must return after timeout so ensureChildDead can run.
+func TestDrainChildWait_TimesOut(t *testing.T) {
+	waitDone := make(chan childWaitResult) // unbuffered, never sent
+
+	timeout := 50 * time.Millisecond
+	start := time.Now()
+	drainChildWait(waitDone, timeout)
+	elapsed := time.Since(start)
+
+	if elapsed < timeout {
+		t.Fatalf("drainChildWait returned after %v, want at least timeout %v", elapsed, timeout)
+	}
+	if elapsed > 500*time.Millisecond {
+		t.Fatalf("drainChildWait took %v, want bounded by timeout (~%v)", elapsed, timeout)
+	}
+}
