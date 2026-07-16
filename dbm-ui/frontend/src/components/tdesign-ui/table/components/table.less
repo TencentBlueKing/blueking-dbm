@@ -1,0 +1,303 @@
+/* stylelint-disable declaration-no-important */
+.t-table {
+  &.t-font-size-l {
+    font-size: 14px;
+  }
+
+  &.t-size-xs {
+    th,
+    td {
+      padding: calc(var(--td-comp-paddingTB-xs) + 1px) var(--td-comp-paddingLR-l);
+    }
+  }
+
+  &.t-size-s {
+    th,
+    td {
+      padding: var(--td-comp-paddingTB-s) var(--td-comp-paddingLR-l);
+    }
+  }
+
+  &.t-size-m {
+    th,
+    td {
+      padding: calc(var(--td-comp-paddingTB-m) - 1px) var(--td-comp-paddingLR-l);
+    }
+  }
+
+  &.t-size-l {
+    th,
+    td {
+      padding: calc(var(--td-comp-paddingTB-l) + 2px) var(--td-comp-paddingLR-l);
+    }
+  }
+
+  thead td,
+  th {
+    color: #313238 !important;
+
+    &.__table-custom-setting-col__ {
+      padding: 0 !important;
+    }
+
+    .t-table__cell--title {
+      color: #313238;
+
+      .t-text-ellipsis {
+        width: inherit;
+        max-width: 100%;
+      }
+    }
+  }
+
+  .t-table__last-full-row,
+  .t-table__first-full-row {
+    td {
+      padding: 0 !important;
+    }
+  }
+
+  .t-table__header {
+    th {
+      background-color: #fafbfd;
+
+      &:hover {
+        cursor: pointer;
+        background: #f0f1f5;
+      }
+
+      :where(.t-table__sort-icon, .t-table__filter-icon) {
+        color: #c0c4cc;
+      }
+
+      .t-table__sort-icon--active {
+        color: var(--td-brand-color);
+      }
+    }
+  }
+
+  .t-table__affixed-header-elm-wrap {
+    width: 100% !important;
+
+    .t-table__affixed-header-elm {
+      width: 100% !important;
+      overflow-y: hidden;
+    }
+  }
+
+  .t-table__sort-icon .t-is-focus,
+  .t-table__sort-icon.t-is-focus,
+  .t-table__sort-icon:hover {
+    color: var(--td-brand-color);
+    border-radius: var(--td-radius-circle);
+    transition: 0.2s linear;
+  }
+
+  .t-table__filter-icon .t-is-focus,
+  .t-table__filter-icon.t-is-focus,
+  .t-table__filter-icon:hover {
+    color: var(--td-brand-color);
+    transition: 0.2s linear;
+  }
+
+  &.t-table__content--scrollable-to-left .t-table__cell--fixed-left-last::before,
+  &.t-table__content--scrollable-to-right .t-table__cell--fixed-right-first::before {
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    content: '';
+    background: inherit;
+  }
+
+  &.t-table__content--scrollable-to-left .t-table__cell--fixed-left-last::after {
+    border-right: none;
+    box-shadow: 0 0 10px 2px rgb(0 0 0 / 12%);
+  }
+
+  &.t-table__content--scrollable-to-right .t-table__cell--fixed-right-first::after {
+    border-left: none;
+    box-shadow: 0 0 10px 2px rgb(0 0 0 / 12%);
+  }
+
+  &.t-table__custom-scroll {
+    .t-table__content {
+      &::-webkit-scrollbar {
+        width: 0;
+        height: 0;
+      }
+    }
+
+    &:hover {
+      .t-table--scroll-vertical,
+      .t-table--scroll-horizontal {
+        opacity: 1;
+      }
+    }
+
+    .t-table--scroll-vertical,
+    .t-table--scroll-horizontal {
+      z-index: 999;
+      cursor: pointer;
+      opacity: 0;
+      transition: 0.15s;
+
+      &::-webkit-scrollbar-thumb {
+        background-color: rgb(151 155 165 / 80%);
+        border-radius: 3px;
+      }
+
+      &:hover {
+        opacity: 1;
+
+        &::-webkit-scrollbar-thumb {
+          background-color: rgb(151 155 165 / 90%);
+          border-radius: 7px;
+        }
+      }
+    }
+
+    .t-table--scroll-vertical {
+      position: absolute;
+      top: 0;
+      right: 0;
+      bottom: 0;
+      width: 14px;
+      overflow: hidden scroll;
+      border-radius: 2px;
+
+      &::-webkit-scrollbar {
+        width: 6px;
+      }
+
+      &:hover {
+        &::-webkit-scrollbar {
+          width: 14px !important;
+        }
+      }
+
+      .t-table--scroll-bar {
+        width: 100%;
+      }
+    }
+
+    .t-table--scroll-horizontal {
+      position: absolute;
+      right: 0;
+      bottom: 0;
+      left: 0;
+      height: 14px;
+      overflow: scroll hidden;
+      border-radius: 2px;
+
+      &::-webkit-scrollbar {
+        height: 6px;
+      }
+
+      &:hover {
+        &::-webkit-scrollbar {
+          height: 14px !important;
+        }
+      }
+
+      .t-table--scroll-bar {
+        height: 100%;
+      }
+    }
+  }
+}
+
+// 自定义 filter (type: single、 multple)
+.t-table__filter-pop {
+  .t-table__filter-pop-content {
+    min-width: 80px;
+
+    .t-table__filter-pop-content-inner {
+      padding: 8px 12px;
+    }
+
+    .t-table__filter-pop-search {
+      .t-input {
+        border: none;
+        border-bottom: 1px solid #eaebf0;
+        border-radius: 0;
+        box-shadow: none;
+
+        &--focused {
+          border-color: var(--td-brand-color);
+        }
+      }
+    }
+
+    .t-table__filter-pop-wrapper {
+      max-height: 350px;
+      padding-right: 12px;
+      margin-top: 4px;
+      margin-right: -12px;
+      overflow: auto;
+    }
+
+    .t-table__filter-pop-item {
+      display: flex;
+      align-items: center;
+      height: 32px;
+    }
+
+    .t-table__filter-pop-search-empty {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 40px;
+      padding-top: 6px;
+      color: #979ba5;
+      text-align: center;
+    }
+  }
+}
+
+// .t-affix {
+//   .t-table__scrollbar--obvious {
+//     position: relative;
+//     min-height: 14px;
+//     font-size: 0;
+//     line-height: 0;
+//     scrollbar-gutter: stable;
+
+//     & > div {
+//       height: 1px !important;
+
+//       &:after {
+//         content: '&nbsp;';
+//       }
+//     }
+
+//     &::-webkit-scrollbar-thumb {
+//       background-color: rgb(151 155 165 / 80%);
+//       border-radius: 3px;
+//     }
+
+//     *::-webkit-scrollbar {
+//       background-color: transparent !important;
+//     }
+
+//     &:hover {
+//       &::-webkit-scrollbar {
+//         height: 14px !important;
+//       }
+
+//       &::-webkit-scrollbar-thumb {
+//         background-color: rgb(151 155 165 / 90%);
+//         border-radius: 7px;
+//       }
+
+//       &::after {
+//         position: absolute;
+//       }
+//     }
+
+//     &::after {
+//       float: left;
+//       height: 10px;
+//       content: '';
+//     }
+//   }
+// }

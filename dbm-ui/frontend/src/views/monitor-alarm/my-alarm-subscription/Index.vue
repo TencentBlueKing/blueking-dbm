@@ -268,8 +268,6 @@
   import { useRequest } from 'vue-request';
   import { useRouter } from 'vue-router';
 
-  import type { TableChangeData, TableColumnFilter } from '@blueking/tdesign-ui';
-
   import { deleteSubscribe, saveSubscribe } from '@services/source/monitorSubscribe';
 
   import { useAlarmSubscribe } from '@hooks';
@@ -279,6 +277,7 @@
   import { DBTypeInfos } from '@common/const';
 
   import EmptyStatus from '@components/empty-status/EmptyStatus.vue';
+  import type { TableChangeData, TableColumnFilter } from '@components/tdesign-ui/table';
 
   import BatchDeleteSubscription from '@views/db-manage/common/cluster-batch-delete-subscription/Index.vue';
   import AlertSeverityGroup from '@views/db-manage/common/cluster-batch-edit-subscription/components/content/components/AlertSeverityGroup.vue';
