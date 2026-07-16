@@ -41,6 +41,7 @@ import (
 	"dbm-services/common/dbha-v2/pkg/hanet"
 	"dbm-services/common/dbha-v2/pkg/logger"
 	"dbm-services/common/dbha-v2/pkg/machine"
+	"dbm-services/common/dbha-v2/pkg/storage/hamysql"
 	"dbm-services/common/dbha-v2/pkg/storage/haprobe"
 )
 
@@ -52,6 +53,9 @@ const (
 	MySqlBindPort        = "mysql.port"
 	MySqlBindAddress     = "mysqld.bind-address"
 	MySqlConnectionProto = "tcp"
+
+	mysqlCollectStateOk     = "ok"
+	mysqlCollectStateFailed = "failed"
 )
 
 var (
@@ -222,43 +226,61 @@ func (m *MySql) loadCollectors() {
 	}
 }
 
-// collectProxyServicePort handles a TendbHA mysql-proxy data (service) port with a
-// lightweight reachability probe (SELECT 1) followed by a write-heartbeat path: open the
-// data port with the probeMysql backend account, do SELECT 1 for reachability, then write
-// one heartbeat that proxy forwards to the backend master, verifying the proxy->backend
-// write path. It deliberately skips obtainGlobalStatus / obtainHostStatus /
-// obtainSlaveStatus (all forward to the backend master and only duplicate the direct
-// backend probe). It returns true when it has fully handled the collector (caller must
-// stop), false when not a proxy data port. A successful probe leaves the connection on
-// c.db for the caller's deferred close().
-func (m *MySql) collectProxyServicePort(c *collector, data *plugin.HarvestData, status *haprobe.MySqlStatus) bool {
-	if !c.isTendbHaProxy() || c.isAdmin() {
-		return false
-	}
+// collectProxyServicePort handles a TendbHA mysql-proxy data (service) port with
+// a lightweight reachability probe (SELECT 1) followed by a write-heartbeat path.
+// It deliberately skips obtainGlobalStatus / obtainHostStatus / obtainSlaveStatus
+// (all forward to the backend master and only duplicate the direct backend probe).
+// It assumes c.db is already opened by the caller.
+func (m *MySql) collectProxyServicePort(c *collector, status *haprobe.MySqlStatus) {
 
-	servicePortStatus, dbEvent, err := c.obtainTendbHaProxyServicePortStatus()
-
+	servicePortStatus, err := c.obtainTendbHaProxyServicePortStatus()
 	status.ProxyServicePortStatus = servicePortStatus
-
 	if err != nil {
-		dbEvent.BkCloudID = m.bkCloudID
-		data.Events = []*haprobe.DbEvent{dbEvent}
 		logger.Warn(
 			"failed to probe tendbha proxy data port, ip: %s, port: %d, errmsg: %s",
 			c.endpoint.Host, c.endpoint.Port, err,
 		)
-		return true
 	}
 
 	heartbeatStatus, err := c.obtainHeartbeatStatus(false)
+	status.HeartbeatStatus = heartbeatStatus
 	if err != nil {
 		logger.Warn(
 			"failed to write heartbeat via tendbha proxy data port, ip: %s, port: %d, errmsg: %s",
 			c.endpoint.Host, c.endpoint.Port, err,
 		)
 	}
-	status.HeartbeatStatus = heartbeatStatus
-	return true
+}
+
+func collectStatusResult(err error) (string, string) {
+	if err != nil {
+		return mysqlCollectStateFailed, hamysql.SanitizeConnectionError(err)
+	}
+	return mysqlCollectStateOk, ""
+}
+
+func (m *MySql) collectProxyAdminPort(c *collector, status *haprobe.MySqlStatus) {
+	dbStatus, err := c.obtainTendbHaProxyStatus()
+	if dbStatus == nil {
+		dbStatus = &haprobe.MySqlProxyStatus{}
+	}
+	dbStatus.State, dbStatus.FailureReason = collectStatusResult(err)
+	status.ProxyStatus = dbStatus
+	if err != nil {
+		logger.Warn("failed to obtain the MySQL(TendbHaProxy) status, errmsg: %s", err)
+	}
+}
+
+func (m *MySql) collectSpiderCtlStatus(c *collector, status *haprobe.MySqlStatus) {
+	dbStatus, err := c.obtainTendbClusterProxyStatus()
+	if dbStatus == nil {
+		dbStatus = &haprobe.MySqlSpiderCtlStatus{}
+	}
+	dbStatus.State, dbStatus.FailureReason = collectStatusResult(err)
+	status.SpiderCtlStatus = dbStatus
+	if err != nil {
+		logger.Warn("failed to obtain the MySQL(TendbClusterProxy) status, errmsg: %s", err)
+	}
 }
 
 func (m *MySql) collecting(c *collector, dataC chan<- *plugin.HarvestData) {
@@ -282,24 +304,19 @@ func (m *MySql) collecting(c *collector, dataC chan<- *plugin.HarvestData) {
 
 	defer func() {
 		c.close()
-
 		data.Value = status
 		data.ReportTimestamp = uint64(time.Now().Unix())
-
 		dataC <- data
 	}()
 
-	// TendbHA mysql-proxy data (service) port: SELECT 1 reachability probe + write-heartbeat
-	// path; it skips host metrics and collectCommonStatus. Non-proxy and admin paths fall through
-	// to normal collection.
-	if m.collectProxyServicePort(c, data, status) {
-		return
-	}
+	isProxyServicePort := c.isTendbHaProxy() && !c.isAdmin()
 
-	if hostStatus, err := c.obtainHostStatus(); err != nil {
-		logger.Warn("failed to obtain the host status, errmsg: %s", err)
-	} else {
-		data.Host = hostStatus
+	if !isProxyServicePort {
+		if hostStatus, err := c.obtainHostStatus(); err != nil {
+			logger.Warn("failed to obtain the host status, errmsg: %s", err)
+		} else {
+			data.Host = hostStatus
+		}
 	}
 
 	dbEvent, err := c.open()
@@ -310,15 +327,14 @@ func (m *MySql) collecting(c *collector, dataC chan<- *plugin.HarvestData) {
 		return
 	}
 
+	if isProxyServicePort {
+		m.collectProxyServicePort(c, status)
+		return
+	}
+
 	// Proxy admin port is not MySQL; special-case and return early.
 	if c.isTendbHaProxy() && c.isAdmin() {
-		dbStatus, err := c.obtainTendbHaProxyStatus()
-		if err != nil {
-			logger.Warn("failed to obtain the MySQL(TendbHaProxy) status, errmsg: %s", err)
-			return
-		}
-
-		status.ProxyStatus = dbStatus
+		m.collectProxyAdminPort(c, status)
 		return
 	}
 
@@ -330,13 +346,7 @@ func (m *MySql) collecting(c *collector, dataC chan<- *plugin.HarvestData) {
 
 	// special case for tdbctl
 	if c.isTendbClusterProxy() && c.isAdmin() {
-		dbStatus, err := c.obtainTendbClusterProxyStatus()
-		if err != nil {
-			logger.Warn("failed to obtain the MySQL(TendbClusterProxy) status, errmsg: %s", err)
-			return
-		}
-
-		status.SpiderCtlStatus = dbStatus
+		m.collectSpiderCtlStatus(c, status)
 	}
 
 	c.collectCommonStatus(status)
@@ -345,30 +355,33 @@ func (m *MySql) collecting(c *collector, dataC chan<- *plugin.HarvestData) {
 // collectCommonStatus collects the common status for all mysql instances.
 func (c *collector) collectCommonStatus(status *haprobe.MySqlStatus) {
 	dbStatus, err := c.obtainGlobalStatus()
+	if dbStatus == nil {
+		dbStatus = &haprobe.MySqlGlobalStatus{}
+	}
+	dbStatus.State, dbStatus.FailureReason = collectStatusResult(err)
+	status.GlobalStatus = dbStatus
 	if err != nil {
 		logger.Warn("failed to obtain the MySQL status, errmsg: %s", err)
-		return
 	}
-
-	status.GlobalStatus = dbStatus
 
 	isSlave := c.isSlave()
 
 	heartbeatStatus, err := c.obtainHeartbeatStatus(!isSlave)
+	status.HeartbeatStatus = heartbeatStatus
 	if err != nil {
 		logger.Warn("failed to obtain the heartbeat status, errmsg: %s", err)
-		return
 	}
-
-	status.HeartbeatStatus = heartbeatStatus
 
 	if isSlave {
 		slaveStatus, err := c.obtainSlaveStatus()
+		if slaveStatus == nil {
+			slaveStatus = &haprobe.MySqlSlaveStatus{}
+		}
+		slaveStatus.State, slaveStatus.FailureReason = collectStatusResult(err)
+		status.SlaveStatus = slaveStatus
 		if err != nil {
 			logger.Warn("failed to obtain the slave status, errmsg: %s", err)
-			return
 		}
-		status.SlaveStatus = slaveStatus
 	}
 }
 

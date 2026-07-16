@@ -41,7 +41,9 @@ type MySqlProxyBackend struct {
 
 // MySqlProxyStatus MySQL proxy status for the TendbHA cluster.
 type MySqlProxyStatus struct {
-	Backends []MySqlProxyBackend `json:"backends"`
+	State         string              `json:"state"`
+	FailureReason string              `json:"failure_reason"`
+	Backends      []MySqlProxyBackend `json:"backends"`
 }
 
 // Proxy service (data) port probe verdicts used by MySqlProxyServicePortStatus.State.

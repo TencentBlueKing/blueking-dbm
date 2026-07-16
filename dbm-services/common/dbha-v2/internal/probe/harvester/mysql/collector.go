@@ -148,19 +148,17 @@ func (c *collector) obtainTendbClusterProxyStatus() (*haprobe.MySqlSpiderCtlStat
 		return nil, err
 	}
 
+	status := &haprobe.MySqlSpiderCtlStatus{Routes: routes}
+
 	var nodes []haprobe.MySqlSpiderCtlNode
 	err = c.db.DB().WithContext(ctx).Raw("select * from information_schema.TDBCTL_NODES").Scan(&nodes).Error
 
 	if err != nil {
 		logger.Warn("failed to get MySQL spider nodes, errmsg: %s", err)
-		return nil, err
+		return status, err
 	}
 
-	status := &haprobe.MySqlSpiderCtlStatus{
-		Routes:   routes,
-		CtlNodes: nodes,
-	}
-
+	status.CtlNodes = nodes
 	return status, nil
 }
 
@@ -180,33 +178,21 @@ func (c *collector) obtainTendbHaProxyStatus() (*haprobe.MySqlProxyStatus, error
 }
 
 // obtainTendbHaProxyServicePortStatus performs a lightweight reachability probe of a TendbHA
-// mysql-proxy data (service) port using the probeMysql backend account. open() establishes the
-// connection pool; a successful SELECT 1 is the probe verdict so reachability does not depend
-// on gorm initialization options. On failure it returns a connection-exception DbEvent so the
-// caller can reuse the existing failure reporting path.
-func (c *collector) obtainTendbHaProxyServicePortStatus() (
-	*haprobe.MySqlProxyServicePortStatus, *haprobe.DbEvent, error,
-) {
-	dbEvent, err := c.open()
-	if err != nil {
-		return &haprobe.MySqlProxyServicePortStatus{
-			State:         haprobe.MySqlProxyServicePortStateFailed,
-			FailureReason: dbEvent.Message,
-		}, dbEvent, err
-	}
-
+// mysql-proxy data (service) port using the probeMysql backend account. A successful SELECT 1
+// is the probe verdict so reachability does not depend on gorm initialization options.
+// It assumes c.db is already opened by the caller.
+func (c *collector) obtainTendbHaProxyServicePortStatus() (*haprobe.MySqlProxyServicePortStatus, error) {
 	ctx, cancel := c.queryCtx()
 	defer cancel()
 
 	var one int
 	if err := c.db.DB().WithContext(ctx).Raw("SELECT 1").Scan(&one).Error; err != nil {
-		dbEvent = c.connectionExceptionEvent(err)
 		return &haprobe.MySqlProxyServicePortStatus{
 			State:         haprobe.MySqlProxyServicePortStateFailed,
-			FailureReason: dbEvent.Message,
-		}, dbEvent, err
+			FailureReason: hamysql.SanitizeConnectionError(err),
+		}, err
 	}
-	return &haprobe.MySqlProxyServicePortStatus{State: haprobe.MySqlProxyServicePortStateOk}, nil, nil
+	return &haprobe.MySqlProxyServicePortStatus{State: haprobe.MySqlProxyServicePortStateOk}, nil
 }
 
 func (c *collector) obtainGlobalStatus() (*haprobe.MySqlGlobalStatus, error) {
@@ -225,7 +211,7 @@ func (c *collector) obtainGlobalStatus() (*haprobe.MySqlGlobalStatus, error) {
 	err = c.db.DB().WithContext(ctx).Raw("SELECT VERSION() as version").Scan(&version).Error
 	if err != nil {
 		logger.Warn("failed to get mysql version, errmsg: %s", err)
-		return nil, err
+		return dbStatus, err
 	}
 	dbStatus.Version = version
 
@@ -233,13 +219,13 @@ func (c *collector) obtainGlobalStatus() (*haprobe.MySqlGlobalStatus, error) {
 	err = c.db.DB().WithContext(ctx).Raw("SHOW VARIABLES LIKE 'port'").Scan(&portResult).Error
 	if err != nil {
 		logger.Warn("failed to get mysql listen port, result: %s, errmsg: %s", portResult, err)
-		return nil, err
+		return dbStatus, err
 	}
 
 	port, err := converter.ToInt(portResult.Value)
 	if err != nil {
 		logger.Error("failed to convert mysql listen port to int, port: %v, errmsg: %s", portResult.Value, err)
-		return nil, err
+		return dbStatus, err
 	}
 
 	logger.Debug("mysql listen port:%v", port)
