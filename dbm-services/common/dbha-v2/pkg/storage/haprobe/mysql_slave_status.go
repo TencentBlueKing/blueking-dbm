@@ -26,6 +26,8 @@ package haprobe
 
 // MySqlSlaveStatus MySQL slave status
 type MySqlSlaveStatus struct {
+	State               string `json:"state"`
+	FailureReason       string `json:"failure_reason"`
 	MasterHost          string `json:"master_host"`
 	MasterPort          int    `json:"master_port"`
 	SlaveIORunning      string `json:"slave_io_running"`

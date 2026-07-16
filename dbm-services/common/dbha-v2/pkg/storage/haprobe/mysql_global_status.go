@@ -25,7 +25,9 @@
 package haprobe
 
 type MySqlGlobalStatus struct {
-	ListenPort int `json:"listen_port,omitempty"`
+	State         string `json:"state"`
+	FailureReason string `json:"failure_reason"`
+	ListenPort    int    `json:"listen_port,omitempty"`
 
 	// Base Status
 	Version                string `json:"mysql_version,omitempty"`

@@ -49,6 +49,8 @@ type MySqlSpiderCtlNode struct {
 
 // MySqlSpiderCtlStatus MySQL spider status for the TendbCluster.
 type MySqlSpiderCtlStatus struct {
-	Routes   []MySqlSpiderCtlRoute `json:"routes"`
-	CtlNodes []MySqlSpiderCtlNode  `json:"ctl_nodes"`
+	State         string                `json:"state"`
+	FailureReason string                `json:"failure_reason"`
+	Routes        []MySqlSpiderCtlRoute `json:"routes"`
+	CtlNodes      []MySqlSpiderCtlNode  `json:"ctl_nodes"`
 }
