@@ -115,8 +115,8 @@
     {
       message: t('格式不正确，请勿使用空格或特殊符号'),
       trigger: 'blur',
-      // 支持中文、字母、数字、连字符、下划线、点号、逗号
-      validator: (value: string) => /^[\u4e00-\u9fa5a-zA-Z0-9\-_.,]+$/.test(value),
+      // 支持中文、字母、数字、连字符、下划线、点号
+      validator: (value: string) => /^[\u4e00-\u9fa5a-zA-Z0-9\-_.]+$/.test(value),
     },
   ];
 

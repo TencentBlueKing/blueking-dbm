@@ -173,8 +173,8 @@
         continue;
       }
 
-      // 支持中文、字母、数字、连字符、下划线、点号、逗号
-      if (!/^[\u4e00-\u9fa5a-zA-Z0-9\-_.,]+$/.test(value)) {
+      // 支持中文、字母、数字、连字符、下划线、点号
+      if (!/^[\u4e00-\u9fa5a-zA-Z0-9\-_.]+$/.test(value)) {
         errorTipList.value.push({
           line: i + 1,
           tip: t('标签值包含不支持的字符'),

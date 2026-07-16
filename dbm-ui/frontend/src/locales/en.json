@@ -6080,7 +6080,7 @@
   "{timeRange}内无预警或异常，若想查看更早结果，请扩大时间范围": "No warnings or exceptions in the {timeRange}. To view earlier results, please expand the time range",
   "近 24 小时": "last 24 hours",
   "标签键：支持中文、字母、数字、连字符、下划线、点号": "Tag key: supports Chinese, letters, numbers, hyphens, underscores, dots",
-  "标签值：支持中文、字母、数字、连字符、下划线、点号、逗号": "Tag value: supports Chinese, letters, numbers, hyphens, underscores, dots, comma",
+  "标签键 / 值：支持中文、字母、数字、连字符、下划线、点号": "Tag key / value: supports Chinese, letters, numbers, hyphens, underscores, dots",
   "每行一个标签，格式n": "One tag per line, format {n}",
   "请选择或输入name": "Please select or input {name}",
   "切换网格编辑": "Switch to grid editing",
