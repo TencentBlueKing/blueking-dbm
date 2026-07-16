@@ -40,7 +40,7 @@ from backend.db_services.ipchooser.serializers.base import PaginationSer
 from backend.exceptions import HostImportValidationError
 from backend.ticket.builders.common.base import HostInfoSerializer
 from backend.ticket.builders.common.field import DBTimezoneField
-from backend.ticket.constants import TICKET_RUNNING_STATUS_SET, TicketStatus, TicketType
+from backend.ticket.constants import TICKET_RUNNING_STATUS_SET, ReplenishTypeEnum, TicketStatus, TicketType
 from backend.ticket.models import Ticket
 
 
@@ -751,6 +751,7 @@ class ResourceHcmReplenishSerializer(serializers.Serializer):
 class CreateResourceReplenishSerializer(serializers.Serializer):
     infos = serializers.ListSerializer(help_text=_("资源补货信息"), child=ResourceHcmReplenishSerializer())
     bk_biz_id = serializers.IntegerField(help_text=_("业务ID"))
+    replenish_type = serializers.ChoiceField(help_text=_("补货类型"), choices=ReplenishTypeEnum.get_choices())
     remark = serializers.CharField(help_text=_("备注"), required=False, default="")
 
 
