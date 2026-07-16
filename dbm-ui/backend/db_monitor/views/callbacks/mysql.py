@@ -50,7 +50,7 @@ def extract_callback_key_info(callback_data: dict) -> dict:
 
     # 构建精简后的回调信息
     result = {
-        "appointees": callback_data.get("appointees", ""),
+        "appointees": callback_data.get("appointees", []),
         "callback_message": {
             "current_value": callback_message.get("current_value", ""),
             "description": callback_message.get("description", ""),
@@ -251,12 +251,15 @@ def call_mysql_alarm_analyzer(callback_data: dict, alarm_base_info: dict):
 
     try:
         # 调用 AI Agent 进行慢查询分析
-        logger.info(_("[mysql_alarm_analyzer] 告警触发 AI 分析分析，集群: {}").format(cluster_domain))
+        user_prompt = extract_callback_key_info(callback_data)
+        logger.info(
+            _("[mysql_alarm_analyzer] 告警触发 AI 分析开始，集群: {}. user prompt: {}").format(cluster_domain, user_prompt)
+        )
         # only return summary that length < 2000, otherwise notify will send failed
         result_summary = AgentHandler.ask_agent_with_command(
             command=MySQLAlarmAnalyzerCommand.command,
             command_params={
-                "alarm_content": extract_callback_key_info(callback_data["callback_message"]),
+                "alarm_content": user_prompt,
             },
         )
 
