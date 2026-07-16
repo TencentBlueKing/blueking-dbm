@@ -1,6 +1,13 @@
 package cmd
 
 import (
+	"encoding/json"
+	"fmt"
+	"log/slog"
+	"os"
+	"os/user"
+	"path/filepath"
+
 	reversemysqlapi "dbm-services/common/reverseapi/apis/mysql"
 	reversemysqldef "dbm-services/common/reverseapi/define/mysql"
 	"dbm-services/common/reverseapi/pkg/core"
@@ -9,12 +16,6 @@ import (
 	"dbm-services/mysql/db-tools/dbactuator/pkg/tools"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/util/osutil"
 	"dbm-services/mysql/db-tools/mysql-table-checksum/pkg/config"
-	"encoding/json"
-	"fmt"
-	"log/slog"
-	"os"
-	"os/user"
-	"path/filepath"
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
