@@ -55,6 +55,8 @@ class RedisClusterApplyDetailSerializer(
     nodes = serializers.JSONField(help_text=_("部署节点"), required=False)
     resource_spec = serializers.JSONField(help_text=_("proxy部署方案"), required=False)
     cluster_shard_num = serializers.IntegerField(help_text=_("集群分片数"), required=False)
+    apply_clb = serializers.BooleanField(help_text=_("集群部署成功后是否创建CLB"), required=False, default=False)
+    apply_polaris = serializers.BooleanField(help_text=_("集群部署成功后是否创建北极星"), required=False, default=False)
 
     # display fields
     bk_cloud_name = serializers.SerializerMethodField(help_text=_("云区域"), read_only=True)
