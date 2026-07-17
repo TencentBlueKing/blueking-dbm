@@ -11,13 +11,12 @@ specific language governing permissions and limitations under the License.
 from backend.flow.engine.bamboo.scene.surrealdb.surrealdb_destroy_flow import K8sSurrealDBDestroyFlow
 from backend.flow.engine.bamboo.scene.surrealdb.surrealdb_disable_flow import K8sSurrealDBDisableFlow
 from backend.flow.engine.bamboo.scene.surrealdb.surrealdb_enable_flow import K8sSurrealDBEnableFlow
+from backend.flow.engine.bamboo.scene.surrealdb.surrealdb_ha.surrealdb_ha_apply_flow import K8sSurrealdbApplyFlow
 from backend.flow.engine.bamboo.scene.surrealdb.surrealdb_restart_flow import K8sSurrealDBRestartFlow
 from backend.flow.engine.bamboo.scene.surrealdb.surrealdb_single.surrealdb_single_apply_flow import (
     K8sSurrealDBSingleApplyFlow,
 )
 from backend.flow.engine.controller.base import BaseController
-from backend.flow.engine.bamboo.scene.surrealdb.surrealdb_ha.surrealdb_ha_apply_flow import K8sSurrealdbApplyFlow
-
 
 
 class SurrealDBController(BaseController):
