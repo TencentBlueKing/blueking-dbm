@@ -38,3 +38,18 @@ class QuickSearchSerializer(serializers.Serializer):
         if not attrs.get("keyword") and not attrs.get("short_code"):
             raise serializers.ValidationError(_("keyword 和 short_code 不能同时为空"))
         return attrs
+
+
+class QuickSearchResultSerializer(QuickSearchSerializer):
+    # 结果页：按单个资源类型筛选
+    resource_type = serializers.ChoiceField(help_text=_("资源类型"), choices=ResourceType.get_choices(), required=True)
+    # 分页参数：偏移量 / 每页大小
+    offset = serializers.IntegerField(help_text=_("偏移量，从 0 开始"), required=False, default=0)
+
+    def validate(self, attrs):
+        # keyword 和 short_code 不能同时为空
+        if not attrs.get("keyword") and not attrs.get("short_code"):
+            raise serializers.ValidationError(_("keyword 和 short_code 不能同时为空"))
+        if attrs.get("offset", 0) < 0:
+            raise serializers.ValidationError(_("offset 不能为负"))
+        return attrs
