@@ -30,7 +30,9 @@ type MySQLRPCEmbed struct {
 }
 
 // MakeConnection mysql 建立连接
-func (c *MySQLRPCEmbed) MakeConnection(address string, user string, password string, timeout int, timezone string, charset string) (*sqlx.DB, error) {
+func (c *MySQLRPCEmbed) MakeConnection(
+	address string, user string, password string, timeout int, timezone string, charset string,
+) (*sqlx.DB, error) {
 	slog.Info(
 		"make connection",
 		slog.String("address", address),
@@ -64,13 +66,16 @@ CONNSTART:
 		fmt.Sprintf(`%s:%s@tcp(%s)/?%s`, user, password, address, connectParam),
 	)
 	if err != nil {
-		slog.Warn("first time connect to mysql",
+		slog.Warn(
+			"first time connect to mysql",
 			slog.String("err", err.Error()),
 			slog.String("address", address),
 			slog.String("user", user),
 			slog.String("password", password),
 		)
-
+		if db != nil {
+			_ = db.Close()
+		}
 		time.Sleep(2 * time.Second)
 		goto CONNSTART
 	}
@@ -78,16 +83,26 @@ CONNSTART:
 	sr, err := db.Queryx("SELECT 1")
 	if err != nil {
 		slog.Warn("try select 1 failed", slog.String("err", err.Error()), slog.String("address", address))
+		if db != nil {
+			_ = db.Close()
+		}
+		if sr != nil {
+			_ = sr.Close()
+		}
 		time.Sleep(2 * time.Second)
 		goto CONNSTART
 	}
 	defer func() {
-		_ = sr.Close()
+		if sr != nil {
+			_ = sr.Close()
+		}
 	}()
 
 	if charset == "default" {
 		defer func() {
-			_ = db.Close()
+			if db != nil {
+				_ = db.Close()
+			}
 		}()
 
 		slog.Info("recursion mysql connection", slog.String("charset", charset))
