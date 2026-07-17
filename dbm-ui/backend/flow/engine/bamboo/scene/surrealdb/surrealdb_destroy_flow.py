@@ -40,7 +40,7 @@ class K8sSurrealDBDestroyFlow(K8sSurrealDBBaseFlow):
         """
         super().__init__(root_id, data)
 
-    def deploy_surrealdb_flow(self):
+    def destroy_surrealdb_flow(self):
         """
         删除surrealdb集群
         """
