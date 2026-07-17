@@ -15,6 +15,7 @@ import pytest
 from backend.components.dbresource.client import DBResourceApi
 from backend.db_meta.enums import ClusterType
 from backend.db_meta.models import Cluster, Machine
+from backend.db_services.quick_search.serializers import QuickSearchResultSerializer
 from backend.db_services.quick_search.views import QuickSearchViewSet
 from backend.tests.mock_data.iam_app.permission import PermissionMock
 from backend.utils.pytest import AuthorizedAPIRequestFactory
@@ -52,6 +53,16 @@ class TestQuickSearchViewSet:
 
         request = factory.post("/apis/quick_search/search/", data=query, format="json")
         quick_search_viewset = QuickSearchViewSet.as_view({"post": "search"})
+        response = quick_search_viewset(request)
+        return response
+
+    def _request_search_result(self, resource_list_mock, query):
+        resource_list_mock.return_value = {"count": 0, "details": []}
+
+        request = factory.post("/apis/quick_search/search_result/", data=query, format="json")
+        quick_search_viewset = QuickSearchViewSet.as_view(
+            {"post": "search_result"}, serializer_class=QuickSearchResultSerializer
+        )
         response = quick_search_viewset(request)
         return response
 
@@ -176,3 +187,55 @@ class TestQuickSearchViewSet:
         assert response.status_code == 200
         result = [cluster.get("id") for cluster in response.data.get("ticket")]
         assert init_ticket.id in result
+
+    @pytest.mark.parametrize("query", [QUICK_SEARCH_CONTAINS_PARAMS, QUICK_SEARCH_EXACT_PARAMS])
+    @patch.object(DBResourceApi, "resource_list")
+    @patch("backend.db_services.quick_search.handlers.Permission", PermissionMock)
+    def test_search_result_for_cluster(self, resource_list_mock, query, init_mysql_cluster):
+        """
+        测试结果页接口：按 resource_type=cluster 筛选，仅返回 cluster 数据并支持分页
+        """
+        cluster = Cluster.objects.filter(cluster_type=ClusterType.TenDBHA).first()
+
+        query["keyword"] = self._get_keyword(query, cluster.immute_domain)
+        query["resource_type"] = "cluster"
+        query["offset"] = 0
+        query["limit"] = 10
+
+        response = self._request_search_result(resource_list_mock, query)
+        assert response.status_code == 200
+        # 结果页应包含自定义分页字段 limit / offset / count / results
+        assert "limit" in response.data
+        assert "offset" in response.data
+        assert "count" in response.data
+        assert "results" in response.data
+        assert response.data.get("resource_type") == "cluster"
+        # 不应返回其他资源类型的数组（结果页仅按单个类型返回）
+        assert "instance" not in response.data
+        assert "ticket" not in response.data
+        # 命中数据包含目标集群
+        cluster_ids = [c.get("id") for c in response.data.get("results", [])]
+        assert cluster.id in cluster_ids
+        # count 为匹配总数
+        assert response.data.get("count") >= 1
+
+    @pytest.mark.parametrize("query", [QUICK_SEARCH_CONTAINS_PARAMS, QUICK_SEARCH_EXACT_PARAMS])
+    @patch.object(DBResourceApi, "resource_list")
+    @patch("backend.db_services.quick_search.handlers.Permission", PermissionMock)
+    def test_search_result_pagination(self, resource_list_mock, query, init_mysql_cluster):
+        """
+        测试结果页接口分页：limit=1 时 results 长度不超过 1，count 为匹配总数
+        """
+        cluster = Cluster.objects.filter(cluster_type=ClusterType.TenDBHA).first()
+
+        query["keyword"] = self._get_keyword(query, cluster.immute_domain)
+        query["resource_type"] = "cluster"
+        query["offset"] = 0
+        query["limit"] = 1
+
+        response = self._request_search_result(resource_list_mock, query)
+        assert response.status_code == 200
+        assert len(response.data.get("results", [])) <= 1
+        assert response.data.get("count") >= 1
+        assert response.data.get("offset") == 0
+        assert response.data.get("limit") == 1

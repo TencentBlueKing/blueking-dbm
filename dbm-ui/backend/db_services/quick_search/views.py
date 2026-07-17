@@ -19,7 +19,7 @@ from rest_framework.response import Response
 from backend.bk_web import viewsets
 from backend.bk_web.swagger import common_swagger_auto_schema
 from backend.db_services.quick_search.handlers import QSearchHandler
-from backend.db_services.quick_search.serializers import QuickSearchSerializer
+from backend.db_services.quick_search.serializers import QuickSearchResultSerializer, QuickSearchSerializer
 
 logger = logging.getLogger("root")
 SWAGGER_TAG = [_("全局搜索")]
@@ -50,3 +50,36 @@ class QuickSearchViewSet(viewsets.SystemViewSet):
         result = QSearchHandler(**params).search(keyword)
         result.update({"short_code": short_code, "keyword": keyword})
         return Response(result)
+
+    @common_swagger_auto_schema(
+        operation_summary=_("[quick_search] 结果页查询（按类型筛选 + 分页）"),
+        request_body=QuickSearchResultSerializer(),
+        tags=[SWAGGER_TAG],
+    )
+    @action(methods=["POST"], detail=False, serializer_class=QuickSearchResultSerializer)
+    def search_result(self, request, *args, **kwargs):
+        params = self.params_validate(self.get_serializer_class())
+        keyword = params.pop("keyword", "")
+        short_code = params.pop("short_code", "")
+        resource_type = params.pop("resource_type")
+        limit = params.pop("limit", 10)
+        offset = params.pop("offset", 0)
+        params["user"] = request.user.username
+        # 优先使用短码
+        if short_code:
+            keyword = cache.get(f"shot_code_{short_code}")
+        else:
+            short_code = md5(keyword.encode("utf-8")).hexdigest()
+            cache.set(f"shot_code_{short_code}", keyword, 60 * 60 * 24)
+
+        result, total = QSearchHandler(**params).search_result(keyword, resource_type, limit=limit, offset=offset)
+        payload = {
+            "limit": limit,
+            "offset": offset,
+            "count": total,
+            "results": result,
+            "keyword": keyword,
+            "short_code": short_code,
+            "resource_type": resource_type,
+        }
+        return Response(payload)
