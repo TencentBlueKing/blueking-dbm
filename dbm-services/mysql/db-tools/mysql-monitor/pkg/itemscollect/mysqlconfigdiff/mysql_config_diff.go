@@ -11,6 +11,7 @@ package mysqlconfigdiff
 
 import (
 	"bytes"
+	"dbm-services/mysql/db-tools/mysql-monitor/pkg"
 	"encoding/json"
 	"fmt"
 	"log/slog"
@@ -80,7 +81,7 @@ type Checker struct {
 }
 
 // Run TODO
-func (c *Checker) Run() (msg string, err error) {
+func (c *Checker) Run() (warnDB *pkg.MySQLMonitorDBH, msg string, err error) {
 	var cnfFile string
 	if config.MonitorConfig.Port == 3306 {
 		cnfFile = "/etc/my.cnf.3306"
@@ -111,27 +112,27 @@ func (c *Checker) Run() (msg string, err error) {
 
 	err = diffCmd.Run()
 	if err == nil {
-		return "", nil
+		return nil, "", nil
 	}
 
 	var exitError *exec.ExitError
 	var ok bool
 	if ok = errors.As(err, &exitError); !ok {
 		slog.Error("compare mysql config", slog.String("error", err.Error()))
-		return "", err
+		return nil, "", err
 	}
 
 	if exitError.ExitCode() != 1 {
 		unexpectErr := errors.Errorf("unexpect error: %s, stderr: %s", err.Error(), stderr.String())
 		slog.Error("compare mysql config", slog.String("error", unexpectErr.Error()))
-		return "", unexpectErr
+		return nil, "", unexpectErr
 	}
 
 	diffs := make(map[string]map[string]interface{})
 	jerr := json.Unmarshal(stdout.Bytes(), &diffs)
 	if jerr != nil {
 		slog.Error("unmarshal variables diffs", slog.String("error", err.Error()))
-		return "", jerr
+		return nil, "", jerr
 	}
 
 	var res []string
@@ -166,7 +167,7 @@ func (c *Checker) Run() (msg string, err error) {
 			),
 		)
 	}
-	return strings.Join(res, "\n"), nil
+	return nil, strings.Join(res, "\n"), nil
 }
 
 // Name TODO

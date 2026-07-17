@@ -9,6 +9,7 @@
 package mysqlconnlog
 
 import (
+	"dbm-services/mysql/db-tools/mysql-monitor/pkg"
 	"fmt"
 	"io/fs"
 	"log/slog"
@@ -17,12 +18,10 @@ import (
 	"strings"
 
 	"dbm-services/mysql/db-tools/mysql-monitor/pkg/internal/cst"
-
-	"github.com/jmoiron/sqlx"
 )
 
 // 废弃
-func mysqlConnLogSize(db *sqlx.DB) (string, error) {
+func mysqlConnLogSize(db *pkg.MySQLMonitorDBH) (string, error) {
 	var dataDir string
 	err := db.QueryRowx(`SELECT @@datadir`).Scan(&dataDir)
 	if err != nil {

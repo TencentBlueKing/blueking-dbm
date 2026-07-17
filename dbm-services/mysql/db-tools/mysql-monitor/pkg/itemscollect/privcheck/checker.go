@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"dbm-services/common/go-pubpkg/cmutil"
 	"dbm-services/common/go-pubpkg/reportlog"
+	"dbm-services/mysql/db-tools/mysql-monitor/pkg"
 	"dbm-services/mysql/db-tools/mysql-monitor/pkg/config"
 	"dbm-services/mysql/db-tools/mysql-monitor/pkg/internal/cst"
 	"dbm-services/mysql/db-tools/mysql-monitor/pkg/itemscollect/privcheck/internal/checker"
@@ -16,14 +17,13 @@ import (
 	"regexp"
 	"time"
 
-	"github.com/jmoiron/sqlx"
 	"github.com/pkg/errors"
 )
 
 var name = "priv-check"
 
 type Checker struct {
-	db *sqlx.DB
+	db *pkg.MySQLMonitorDBH
 	az *checker.Analyzer
 }
 
@@ -38,7 +38,7 @@ type reportType struct {
 	*checker.PrivErrorInfo
 }
 
-func (c *Checker) Run() (msg string, err error) {
+func (c *Checker) Run() (warnDB *pkg.MySQLMonitorDBH, msg string, err error) {
 	//privs, err := c.showAllPrivileges()
 	//if err != nil {
 	//	slog.Error("show all privs", slog.String("err", err.Error()))
@@ -48,7 +48,7 @@ func (c *Checker) Run() (msg string, err error) {
 	privs, err := c.readPrivBackupFile()
 	if err != nil {
 		slog.Error("read backup file", slog.String("err", err.Error()))
-		return "", err
+		return nil, "", err
 	}
 
 	slog.Info("priv-check read priv success")
@@ -67,7 +67,7 @@ func (c *Checker) Run() (msg string, err error) {
 	err = os.MkdirAll(privCheckReportBaseDir, os.ModePerm)
 	if err != nil {
 		slog.Error("create priv check report dir", slog.String("err", err.Error()))
-		return "", err
+		return nil, "", err
 	}
 
 	resultReport, err := reportlog.NewReporter(
@@ -77,24 +77,26 @@ func (c *Checker) Run() (msg string, err error) {
 	)
 	if err != nil {
 		slog.Error("create priv check report", slog.String("err", err.Error()))
-		return "", err
+		return nil, "", err
 	}
 	reportTs := cmutil.TimeToSecondPrecision(time.Now())
 
 	for _, r := range report {
-		resultReport.Println(reportType{
-			BkBizId:       config.MonitorConfig.BkBizId,
-			BkCloudId:     *config.MonitorConfig.BkCloudID,
-			ClusterDomain: config.MonitorConfig.ImmuteDomain,
-			MachineType:   config.MonitorConfig.MachineType,
-			Ip:            config.MonitorConfig.Ip,
-			Port:          config.MonitorConfig.Port,
-			ReportTime:    reportTs,
-			PrivErrorInfo: r,
-		})
+		resultReport.Println(
+			reportType{
+				BkBizId:       config.MonitorConfig.BkBizId,
+				BkCloudId:     *config.MonitorConfig.BkCloudID,
+				ClusterDomain: config.MonitorConfig.ImmuteDomain,
+				MachineType:   config.MonitorConfig.MachineType,
+				Ip:            config.MonitorConfig.Ip,
+				Port:          config.MonitorConfig.Port,
+				ReportTime:    reportTs,
+				PrivErrorInfo: r,
+			},
+		)
 	}
 
-	return "", nil
+	return nil, "", nil
 }
 
 func (c *Checker) readPrivBackupFile() (privs []string, err error) {
@@ -113,25 +115,27 @@ func (c *Checker) readPrivBackupFile() (privs []string, err error) {
 	var latestPrivFilePath string
 
 	for _, dir := range dbBackupBaseDirs {
-		err := filepath.WalkDir(dir, func(path string, d fs.DirEntry, err error) error {
-			if err != nil {
-				return err
-			}
-
-			if !d.IsDir() && filePattern.MatchString(d.Name()) {
-				info, err := d.Info()
+		err := filepath.WalkDir(
+			dir, func(path string, d fs.DirEntry, err error) error {
 				if err != nil {
 					return err
 				}
-				if latestPrivFileEntry == nil || info.ModTime().After((*latestPrivFileInfo).ModTime()) {
-					latestPrivFileEntry = &d
-					latestPrivFileInfo = &info
-					latestPrivFilePath = path
-				}
-			}
 
-			return nil
-		})
+				if !d.IsDir() && filePattern.MatchString(d.Name()) {
+					info, err := d.Info()
+					if err != nil {
+						return err
+					}
+					if latestPrivFileEntry == nil || info.ModTime().After((*latestPrivFileInfo).ModTime()) {
+						latestPrivFileEntry = &d
+						latestPrivFileInfo = &info
+						latestPrivFilePath = path
+					}
+				}
+
+				return nil
+			},
+		)
 		if err != nil {
 			return nil, err
 		}

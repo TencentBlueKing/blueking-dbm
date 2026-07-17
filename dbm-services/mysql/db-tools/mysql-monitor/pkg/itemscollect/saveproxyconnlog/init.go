@@ -3,6 +3,7 @@ package saveproxyconnlog
 
 import (
 	"context"
+	"dbm-services/mysql/db-tools/mysql-monitor/pkg"
 	"fmt"
 	"log/slog"
 
@@ -10,7 +11,6 @@ import (
 	"dbm-services/mysql/db-tools/mysql-monitor/pkg/monitoriteminterface"
 
 	"github.com/go-viper/mapstructure/v2"
-	"github.com/jmoiron/sqlx"
 )
 
 var name = "save-proxy-connlog"
@@ -19,7 +19,7 @@ const defaultMaxLines = 10000 // 默认过载保护阈值
 
 // Checker 保存 proxy connlog 到后端 MySQL
 type Checker struct {
-	db *sqlx.DB
+	db *pkg.MySQLMonitorDBH
 
 	// MaxLines 每一次处理的最大行数, 默认 10000. 超过阈值的 conn_log 会被丢弃掉
 	MaxLines int `mapstructure:"max_lines"`
@@ -33,14 +33,14 @@ type Checker struct {
 // 3. 获取后端 MySQL 连接，建表并清理历史数据
 // 4. 批量写入扫描到的日志条目
 // 5. 保存新的 offset
-func (c *Checker) Run() (msg string, err error) {
+func (c *Checker) Run() (warnDB *pkg.MySQLMonitorDBH, msg string, err error) {
 	// 获取 connlog 文件路径
 	connLogFilePath := fmt.Sprintf(`/data/mysql-proxy/%d/log/mysql-proxy.log`, config.MonitorConfig.Port)
 
 	// 基于 offset 扫描新增日志
 	entries, newOffset, err := scanConnLog(connLogFilePath, c.MaxLines)
 	if err != nil {
-		return "", err
+		return nil, "", err
 	}
 
 	// 无论是否有新数据，都保存 offset（更新 inode 信息）
@@ -52,7 +52,7 @@ func (c *Checker) Run() (msg string, err error) {
 
 	// 没有新数据，直接返回
 	if len(entries) == 0 {
-		return "", nil
+		return nil, "", nil
 	}
 
 	slog.Info("scanned new connlog entries", slog.Int("count", len(entries)))
@@ -61,7 +61,7 @@ func (c *Checker) Run() (msg string, err error) {
 	conn, err := c.db.Connx(context.Background())
 	if err != nil {
 		slog.Error("get backend connection failed", slog.String("error", err.Error()))
-		return "", err
+		return nil, "", err
 	}
 	defer func() {
 		_ = conn.Close()
@@ -70,13 +70,13 @@ func (c *Checker) Run() (msg string, err error) {
 	// 初始化连接（关闭 binlog）
 	err = initConn(context.Background(), conn)
 	if err != nil {
-		return "", err
+		return nil, "", err
 	}
 
 	// 批量写入
 	err = batchWrite(context.Background(), conn, entries, config.MonitorConfig.Ip, c.WriteBatch)
 	if err != nil {
-		return "", err
+		return nil, "", err
 	}
 
 	// 清理历史数据
@@ -86,7 +86,7 @@ func (c *Checker) Run() (msg string, err error) {
 		// 清理失败不影响主流程
 	}
 
-	return "", nil
+	return nil, "", nil
 }
 
 // Name 监控项名称

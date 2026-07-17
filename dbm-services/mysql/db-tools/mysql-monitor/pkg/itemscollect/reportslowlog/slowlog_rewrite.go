@@ -3,6 +3,7 @@ package reportslowlog
 import (
 	"bufio"
 	"bytes"
+	"dbm-services/mysql/db-tools/mysql-monitor/pkg"
 	"errors"
 	"fmt"
 	"log/slog"
@@ -20,7 +21,6 @@ import (
 	"dbm-services/mysql/db-tools/mysql-monitor/pkg/monitoriteminterface"
 
 	"github.com/gofrs/flock"
-	"github.com/jmoiron/sqlx"
 )
 
 var executable string
@@ -39,7 +39,7 @@ type SlowlogReport struct {
 	// SlowLogFile 手动指定 log file path
 	SlowLogFile string `mapstructure:"slow_log_file"`
 
-	db                         *sqlx.DB
+	db                         *pkg.MySQLMonitorDBH
 	currentDB                  string
 	currentDBRegFilePath       string
 	commentHeadTime            string
@@ -232,19 +232,20 @@ func (c *SlowlogReport) ProcessSlowLog(slowLogPath string) (string, error) {
 	return "", nil
 }
 
-func (c *SlowlogReport) Run() (msg string, err error) {
+func (c *SlowlogReport) Run() (warnDB *pkg.MySQLMonitorDBH, msg string, err error) {
 	if c.SlowLogFile == "" {
 		slowLogOn, slowLogPath, err := slowLogStatus(c.db)
 		if err != nil {
-			return "", err
+			return nil, "", err
 		}
 		if !slowLogOn {
-			return "", nil
+			return nil, "", nil
 		}
 		c.SlowLogFile = slowLogPath
 	}
 
-	return c.ProcessSlowLog(c.SlowLogFile)
+	msg, err = c.ProcessSlowLog(c.SlowLogFile)
+	return nil, msg, err
 }
 
 // updateOffset 尽可能保证原子操作
@@ -825,7 +826,7 @@ func (c *SlowlogReport) Name() string {
 	return reporterName
 }
 
-func NewSlowlogReport(db *sqlx.DB) *SlowlogReport {
+func NewSlowlogReport(db *pkg.MySQLMonitorDBH) *SlowlogReport {
 	r := &SlowlogReport{
 		// SlowLogFile: "",
 		db: db,

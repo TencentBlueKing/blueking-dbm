@@ -11,6 +11,7 @@ package proxybackend
 
 import (
 	"bufio"
+	"dbm-services/mysql/db-tools/mysql-monitor/pkg"
 	"fmt"
 	"log/slog"
 	"math/big"
@@ -24,7 +25,6 @@ import (
 	"dbm-services/mysql/db-tools/mysql-monitor/pkg/monitoriteminterface"
 	"dbm-services/mysql/db-tools/mysql-monitor/pkg/utils"
 
-	"github.com/jmoiron/sqlx"
 	"github.com/pkg/errors"
 )
 
@@ -32,16 +32,16 @@ var name = "proxy-backend"
 
 // Checker TODO
 type Checker struct {
-	db *sqlx.DB
+	db *pkg.MySQLMonitorDBH
 }
 
 // Run TODO
-func (c *Checker) Run() (msg string, err error) {
+func (c *Checker) Run() (warnDB *pkg.MySQLMonitorDBH, msg string, err error) {
 	cnfPath := filepath.Join("/etc", fmt.Sprintf(`proxy.cnf.%d`, config.MonitorConfig.Port))
 	f, err := os.Open(cnfPath)
 	if err != nil {
 		slog.Error("open proxy cnf file", slog.String("error", err.Error()))
-		return "", err
+		return c.db, "", err
 	}
 	defer func() {
 		_ = f.Close()
@@ -54,7 +54,7 @@ func (c *Checker) Run() (msg string, err error) {
 		line := scanner.Text()
 		if err := scanner.Err(); err != nil {
 			slog.Error("scan proxy cnf file", slog.String("error", err.Error()))
-			return "", err
+			return nil, "", err
 		}
 
 		if pattern.MatchString(line) {
@@ -66,7 +66,7 @@ func (c *Checker) Run() (msg string, err error) {
 	if backendLine == "" {
 		err := errors.Errorf("proxy-backend-addresses not found in cnf")
 		slog.Error("find backend in cnf", slog.String("error", err.Error()))
-		return "", nil
+		return c.db, "", nil
 	}
 
 	splitPattern := regexp.MustCompile(`\s*=\s*`)
@@ -74,7 +74,7 @@ func (c *Checker) Run() (msg string, err error) {
 	if len(splitLine) != 2 {
 		err := errors.Errorf("invalid config: %s", backendLine)
 		slog.Error("split proxy-backend-addresses", slog.String("error", err.Error()))
-		return "", nil
+		return c.db, "", nil
 	}
 
 	backendAddr := splitLine[1]
@@ -85,7 +85,7 @@ func (c *Checker) Run() (msg string, err error) {
 	).MapScan(backendInfo)
 	if err != nil {
 		slog.Error("query backends", slog.String("error", err.Error()))
-		return "", err
+		return c.db, "", err
 	}
 
 	slog.Info("query backends: %v", slog.Any("backend info", backendInfo))
@@ -94,22 +94,23 @@ func (c *Checker) Run() (msg string, err error) {
 	queryAddr := string(b)
 	slog.Info("query backends", slog.String("query addr", queryAddr))
 	if backendAddr == "" || !ok || backendAddr != queryAddr {
-		slog.Info("query backends",
+		slog.Info(
+			"query backends",
 			slog.String("query addr", queryAddr),
 			slog.Bool("ok", ok),
 		)
 		msg = fmt.Sprintf("cnf.backend=%s, mem.backend=%s", backendAddr, queryAddr)
-		return msg, nil
+		return c.db, msg, nil
 	}
 
 	backendIp := strings.Split(backendAddr, ":")[0]
 	if net.ParseIP(backendIp) == nil {
 		msg = fmt.Sprintf("%s not a valid ip", backendIp)
-		return msg, nil
+		return c.db, msg, nil
 	}
 	if net.ParseIP(backendIp).To4() == nil {
 		msg = fmt.Sprintf("%s not a v4 ip", backendIp)
-		return msg, nil
+		return c.db, msg, nil
 	}
 
 	utils.SendMonitorMetrics(
@@ -118,7 +119,7 @@ func (c *Checker) Run() (msg string, err error) {
 		nil,
 	)
 
-	return msg, nil
+	return c.db, msg, nil
 }
 
 // Name TODO

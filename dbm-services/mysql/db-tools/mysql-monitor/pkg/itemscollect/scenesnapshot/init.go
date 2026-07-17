@@ -20,10 +20,9 @@ package scenesnapshot
 */
 
 import (
+	"dbm-services/mysql/db-tools/mysql-monitor/pkg"
 	"os"
 	"path/filepath"
-
-	"github.com/jmoiron/sqlx"
 
 	"dbm-services/mysql/db-tools/mysql-monitor/pkg/monitoriteminterface"
 )
@@ -44,21 +43,21 @@ func init() {
 }
 
 type Checker struct {
-	db *sqlx.DB
+	db *pkg.MySQLMonitorDBH
 }
 
-func (c *Checker) Run() (msg string, err error) {
+func (c *Checker) Run() (warnDB *pkg.MySQLMonitorDBH, msg string, err error) {
 	err = processListScene(c.db)
 	if err != nil {
-		return "", err
+		return nil, "", err
 	}
 
 	err = engineInnodbStatusScene(c.db)
 	if err != nil {
-		return "", err
+		return nil, "", err
 	}
 
-	return "", nil
+	return nil, "", nil
 }
 
 func (c *Checker) Name() string {

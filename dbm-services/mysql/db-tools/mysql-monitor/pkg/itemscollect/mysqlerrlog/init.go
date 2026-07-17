@@ -9,6 +9,7 @@
 package mysqlerrlog
 
 import (
+	"dbm-services/mysql/db-tools/mysql-monitor/pkg"
 	"fmt"
 	"log/slog"
 	"os"
@@ -21,7 +22,6 @@ import (
 	"dbm-services/mysql/db-tools/mysql-monitor/pkg/monitoriteminterface"
 
 	"github.com/dlclark/regexp2"
-	"github.com/jmoiron/sqlx"
 )
 
 var executable string
@@ -115,31 +115,35 @@ func init() {
 
 // Checker TODO
 type Checker struct {
-	db   *sqlx.DB
+	db   *pkg.MySQLMonitorDBH
 	name string
 	f    func() (string, error)
 }
 
 // Run TODO
-func (c *Checker) Run() (msg string, err error) {
+func (c *Checker) Run() (warnDB *pkg.MySQLMonitorDBH, msg string, err error) {
 	offsetRegFile = filepath.Join(
 		filepath.Dir(executable),
 		fmt.Sprintf("errlog_offset.%d.reg", config.MonitorConfig.Port),
 	)
-	errLogRegFile = filepath.Join(filepath.Dir(executable),
+	errLogRegFile = filepath.Join(
+		filepath.Dir(executable),
 		fmt.Sprintf("errlog.%d.reg", config.MonitorConfig.Port),
 	)
 
-	once.Do(func() {
-		snapShotErr = snapShot(c.db)
-	})
+	once.Do(
+		func() {
+			snapShotErr = snapShot(c.db)
+		},
+	)
 	//err = snapShot(c.db)
 	if snapShotErr != nil {
 		slog.Error(c.name, slog.String("error", snapShotErr.Error()))
-		return "", snapShotErr
+		return nil, "", snapShotErr
 	}
 
-	return c.f()
+	msg, err = c.f()
+	return nil, msg, err
 }
 
 // Name TODO

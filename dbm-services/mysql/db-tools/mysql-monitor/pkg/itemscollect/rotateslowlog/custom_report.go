@@ -4,6 +4,7 @@ import (
 	"dbm-services/common/go-pubpkg/reportlog"
 	offsetlinescanner "dbm-services/common/reglinescanner"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/core/cst"
+	"dbm-services/mysql/db-tools/mysql-monitor/pkg"
 	"dbm-services/mysql/db-tools/mysql-monitor/pkg/config"
 	"dbm-services/mysql/db-tools/mysql-monitor/pkg/monitoriteminterface"
 	"errors"
@@ -16,7 +17,6 @@ import (
 	"time"
 
 	"github.com/gofrs/flock"
-	"github.com/jmoiron/sqlx"
 )
 
 var executable string
@@ -38,7 +38,7 @@ func init() {
 }
 
 type SlowlogReport struct {
-	db                         *sqlx.DB
+	db                         *pkg.MySQLMonitorDBH
 	currentDB                  string
 	currentDBRegFilePath       string
 	commentHeadTime            string
@@ -46,14 +46,14 @@ type SlowlogReport struct {
 	reporter                   *reportlog.Reporter
 }
 
-func (c *SlowlogReport) Run() (msg string, err error) {
+func (c *SlowlogReport) Run() (warnDB *pkg.MySQLMonitorDBH, msg string, err error) {
 	slowLogOn, slowLogPath, err := slowLogStatus(c.db)
 	if err != nil {
-		return "", err
+		return nil, "", err
 	}
 
 	if !slowLogOn {
-		return "", nil
+		return nil, "", nil
 	}
 
 	lockFilePath := filepath.Join(
@@ -66,25 +66,25 @@ func (c *SlowlogReport) Run() (msg string, err error) {
 
 	locked, err := fl.TryLock()
 	if err != nil {
-		return "", err
+		return nil, "", err
 	}
 	if !locked {
-		return "", nil
+		return nil, "", nil
 	}
 
 	err = c.loadCurrentDBFromDisk()
 	if err != nil {
-		return "", err
+		return nil, "", err
 	}
 
 	err = c.loadCommentHeadTimeFromDisk()
 	if err != nil {
-		return "", err
+		return nil, "", err
 	}
 
 	err = c.initLogReporter()
 	if err != nil {
-		return "", err
+		return nil, "", err
 	}
 
 	offsetRegFilePath := filepath.Join(
@@ -93,7 +93,7 @@ func (c *SlowlogReport) Run() (msg string, err error) {
 
 	scanner, err := offsetlinescanner.NewOffsetScanner(slowLogPath, offsetRegFilePath)
 	if err != nil {
-		return "", err
+		return nil, "", err
 	}
 
 	scanner.Buffer(make([]byte, 1024*1024*100), 1024*1024*100)
@@ -113,16 +113,16 @@ func (c *SlowlogReport) Run() (msg string, err error) {
 		if !strings.HasPrefix(line, "#") && !strings.HasPrefix(line, "SET timestamp") {
 			err := c.rewriteSeg(slowQuerySeg)
 			if err != nil {
-				return "", err
+				return nil, "", err
 			}
 
 			slowQuerySeg = []string{}
 		}
 	}
 	if err := scanner.Err(); err != nil {
-		return "", err
+		return nil, "", err
 	}
-	return "", nil
+	return nil, "", nil
 }
 
 func (c *SlowlogReport) initLogReporter() error {
@@ -309,7 +309,7 @@ func (c *SlowlogReport) Name() string {
 	return reporterName
 }
 
-func NewSlowlogReport(db *sqlx.DB) *SlowlogReport {
+func NewSlowlogReport(db *pkg.MySQLMonitorDBH) *SlowlogReport {
 	r := &SlowlogReport{
 		db: db,
 		currentDBRegFilePath: filepath.Join(

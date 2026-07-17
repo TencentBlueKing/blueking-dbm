@@ -2,13 +2,12 @@ package dbhaheartbeat
 
 import (
 	"database/sql"
+	"dbm-services/mysql/db-tools/mysql-monitor/pkg"
 	"dbm-services/mysql/db-tools/mysql-monitor/pkg/utils"
 	"fmt"
 	"log/slog"
 	"strings"
 	"time"
-
-	"github.com/jmoiron/sqlx"
 
 	"dbm-services/mysql/db-tools/mysql-monitor/pkg/monitoriteminterface"
 )
@@ -23,28 +22,30 @@ var name = "dbha-heartbeat"
 var beatName string
 
 type Checker struct {
-	db *sqlx.DB
+	db *pkg.MySQLMonitorDBH
 }
 
 func init() {
 	beatName = strings.Replace(name, "-", "_", -1)
 }
 
-func (c *Checker) Run() (msg string, err error) {
+func (c *Checker) Run() (warnDB *pkg.MySQLMonitorDBH, msg string, err error) {
 	var res sql.NullTime
 	err = c.db.QueryRowx(
 		`SELECT MAX(ck_time) FROM infodba_schema.check_heartbeat WHERE uid = @@server_id`,
 	).Scan(&res)
 
 	if v, err := res.Value(); err != nil {
-		return "", err
+		return nil, "", err
 	} else {
 		if v == nil {
-			return fmt.Sprintf("empty dbha heartbeat ck_time"), nil
+			return nil, fmt.Sprintf("empty dbha heartbeat ck_time"), nil
 		}
 
-		slog.Info("dbha-heartbeat",
-			slog.Time("latest heartbeat", res.Time))
+		slog.Info(
+			"dbha-heartbeat",
+			slog.Time("latest heartbeat", res.Time),
+		)
 
 		//// 最近2分钟没有新的心跳
 		//if res.Time.Add(2 * time.Minute).Before(time.Now()) {
@@ -57,7 +58,7 @@ func (c *Checker) Run() (msg string, err error) {
 		}
 	}
 
-	return "", nil
+	return nil, "", nil
 }
 
 func (c *Checker) Name() string {

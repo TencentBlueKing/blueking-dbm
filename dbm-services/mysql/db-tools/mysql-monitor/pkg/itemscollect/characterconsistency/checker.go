@@ -9,6 +9,7 @@
 package characterconsistency
 
 import (
+	"dbm-services/mysql/db-tools/mysql-monitor/pkg"
 	"fmt"
 
 	"dbm-services/mysql/db-tools/mysql-monitor/pkg/config"
@@ -22,16 +23,16 @@ var name = "character-consistency"
 
 // Checker TODO
 type Checker struct {
-	db *sqlx.DB
+	db *pkg.MySQLMonitorDBH
 }
 
 // Run TODO
-func (c *Checker) Run() (msg string, err error) {
+func (c *Checker) Run() (warnDB *pkg.MySQLMonitorDBH, msg string, err error) {
 
 	var characterSetServer string
 	err = c.db.Get(&characterSetServer, `SELECT @@character_set_server`)
 	if err != nil {
-		return "", errors.Wrap(err, "get character_set_server") // ToDo 这里需要发告警么?
+		return nil, "", errors.Wrap(err, "get character_set_server") // ToDo 这里需要发告警么?
 	}
 
 	q, args, err := sqlx.In(
@@ -42,7 +43,7 @@ func (c *Checker) Run() (msg string, err error) {
 		config.MonitorConfig.DBASysDbs,
 	)
 	if err != nil {
-		return "", errors.Wrap(err, "build IN query db charset")
+		return nil, "", errors.Wrap(err, "build IN query db charset")
 	}
 
 	var res []struct {
@@ -51,14 +52,14 @@ func (c *Checker) Run() (msg string, err error) {
 	}
 	err = c.db.Select(&res, c.db.Rebind(q), args...)
 	if err != nil {
-		return "", errors.Wrap(err, "query charset inconsistent dbs")
+		return nil, "", errors.Wrap(err, "query charset inconsistent dbs")
 	}
 
 	if len(res) > 0 {
-		return fmt.Sprintf("%v charset inconsistent with server charset", res), nil
-	} else {
-		return "", nil
+		return nil, fmt.Sprintf("%v charset inconsistent with server charset", res), nil
 	}
+
+	return nil, "", nil
 }
 
 // Name TODO

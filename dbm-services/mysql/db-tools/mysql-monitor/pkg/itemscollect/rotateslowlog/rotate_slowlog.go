@@ -11,6 +11,7 @@ package rotateslowlog
 
 import (
 	"bytes"
+	"dbm-services/mysql/db-tools/mysql-monitor/pkg"
 	"fmt"
 	"log/slog"
 	"os"
@@ -19,15 +20,13 @@ import (
 	"time"
 
 	"dbm-services/mysql/db-tools/mysql-monitor/pkg/monitoriteminterface"
-
-	"github.com/jmoiron/sqlx"
 )
 
 var rotatorName = "rotate-slowlog"
 
 // SlowlogRotator TODO
 type SlowlogRotator struct {
-	db *sqlx.DB
+	db *pkg.MySQLMonitorDBH
 }
 
 /*
@@ -44,14 +43,14 @@ qq{set global slow_query_log=\@sq_log_save},
 */
 
 // Run 运行
-func (d *SlowlogRotator) Run() (msg string, err error) {
+func (d *SlowlogRotator) Run() (warnDB *pkg.MySQLMonitorDBH, msg string, err error) {
 	slowLogOn, slowLogPath, err := slowLogStatus(d.db)
 	if err != nil {
-		return "", err
+		return nil, "", err
 	}
 
 	if !slowLogOn {
-		return "", nil
+		return nil, "", nil
 	}
 
 	slowLogDir := filepath.Dir(slowLogPath)
@@ -74,7 +73,7 @@ func (d *SlowlogRotator) Run() (msg string, err error) {
 				slog.String("error", err.Error()),
 				slog.String("history file path", historySlowLogFilePath),
 			)
-			return "", nil
+			return nil, "", nil
 		}
 		// 文件不存在
 	} else {
@@ -87,7 +86,7 @@ func (d *SlowlogRotator) Run() (msg string, err error) {
 				slog.Time("history file mod time", st.ModTime()),
 				slog.String("history file", historySlowLogFilePath),
 			)
-			return "", nil
+			return nil, "", nil
 		}
 	}
 
@@ -106,7 +105,7 @@ func (d *SlowlogRotator) Run() (msg string, err error) {
 			slog.String("error", err.Error()),
 			slog.String("stderr", stderr.String()),
 		)
-		return "", err
+		return nil, "", err
 	}
 
 	touchCmd := exec.Command("touch", slowLogPath)
@@ -119,16 +118,16 @@ func (d *SlowlogRotator) Run() (msg string, err error) {
 			slog.String("error", err.Error()),
 			slog.String("stderr", stderr.String()),
 		)
-		return "", err
+		return nil, "", err
 	}
 
 	_, err = d.db.Exec(`FLUSH SLOW LOGS`)
 	if err != nil {
 		slog.Error("flush slow logs", slog.String("error", err.Error()))
-		return "", err
+		return nil, "", err
 	}
 
-	return "", nil
+	return nil, "", nil
 }
 
 // Name 监控项名

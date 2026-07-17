@@ -3,13 +3,13 @@ package scenesnapshot
 import (
 	"bytes"
 	"database/sql"
+	"dbm-services/mysql/db-tools/mysql-monitor/pkg"
 	"log/slog"
+
+	"dbm-services/mysql/db-tools/mysql-monitor/pkg/itemscollect/scenesnapshot/internal/archivescenes"
 
 	"github.com/jedib0t/go-pretty/v6/table"
 	"github.com/jedib0t/go-pretty/v6/text"
-	"github.com/jmoiron/sqlx"
-
-	"dbm-services/mysql/db-tools/mysql-monitor/pkg/itemscollect/scenesnapshot/internal/archivescenes"
 )
 
 type mysqlProcess struct {
@@ -25,7 +25,7 @@ type mysqlProcess struct {
 
 var processListName = "processlist"
 
-func queryProcesslist(db *sqlx.DB) (res []*mysqlProcess, err error) {
+func queryProcesslist(db *pkg.MySQLMonitorDBH) (res []*mysqlProcess, err error) {
 	err = db.Select(
 		&res,
 		`SELECT ID, USER, HOST, DB, COMMAND, TIME, STATE, INFO FROM INFORMATION_SCHEMA.PROCESSLIST ORDER BY TIME DESC`,
@@ -38,7 +38,7 @@ func queryProcesslist(db *sqlx.DB) (res []*mysqlProcess, err error) {
 	return
 }
 
-func processListScene(db *sqlx.DB) error {
+func processListScene(db *pkg.MySQLMonitorDBH) error {
 	err := archivescenes.DeleteOld(processListName, sceneBase, 1)
 	if err != nil {
 		return err

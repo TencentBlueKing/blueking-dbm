@@ -9,12 +9,11 @@
 package mysqlprocesslist
 
 import (
+	"dbm-services/mysql/db-tools/mysql-monitor/pkg"
 	"os"
 	"sync"
 
 	"dbm-services/mysql/db-tools/mysql-monitor/pkg/monitoriteminterface"
-
-	"github.com/jmoiron/sqlx"
 )
 
 // var stored = false
@@ -34,13 +33,13 @@ func init() {
 
 // Checker TODO
 type Checker struct {
-	db   *sqlx.DB
+	db   *pkg.MySQLMonitorDBH
 	name string
 	f    func() (string, error)
 }
 
 // Run TODO
-func (c *Checker) Run() (msg string, err error) {
+func (c *Checker) Run() (warnDB *pkg.MySQLMonitorDBH, msg string, err error) {
 	once.Do(
 		func() {
 			snapShotErr = snapShot(c.db)
@@ -48,9 +47,10 @@ func (c *Checker) Run() (msg string, err error) {
 	)
 
 	if snapShotErr != nil {
-		return "", snapShotErr
+		return nil, "", snapShotErr
 	}
-	return c.f()
+	msg, err = c.f()
+	return nil, msg, err
 }
 
 // Name TODO

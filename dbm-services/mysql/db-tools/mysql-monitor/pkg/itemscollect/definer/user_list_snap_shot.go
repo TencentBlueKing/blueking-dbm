@@ -9,12 +9,11 @@
 package definer
 
 import (
+	"dbm-services/mysql/db-tools/mysql-monitor/pkg"
 	"log/slog"
-
-	"github.com/jmoiron/sqlx"
 )
 
-func snapshot(db *sqlx.DB) error {
+func snapshot(db *pkg.MySQLMonitorDBH) error {
 	err := db.Select(&mysqlUsers, `SELECT user FROM mysql.user`)
 	if err != nil {
 		slog.Error("query users", slog.String("error", err.Error()))

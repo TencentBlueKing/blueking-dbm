@@ -1,20 +1,16 @@
 package spiderctlchecker
 
 import (
-	"dbm-services/mysql/db-tools/mysql-monitor/pkg/config"
+	"dbm-services/mysql/db-tools/mysql-monitor/pkg"
 	"dbm-services/mysql/db-tools/mysql-monitor/pkg/monitoriteminterface"
-	"dbm-services/mysql/db-tools/mysql-monitor/pkg/utils"
 	"fmt"
 	"log/slog"
-	"strconv"
-
-	"github.com/jmoiron/sqlx"
 )
 
 var getCtlPrimaryCheckerName = "get-ctl-primary"
 
 type GetCtlPrimaryChecker struct {
-	db *sqlx.DB
+	db *pkg.MySQLMonitorDBH
 }
 
 type primaryDesc struct {
@@ -24,20 +20,14 @@ type primaryDesc struct {
 	IsThisServer uint32 `db:"IS_THIS_SERVER"`
 }
 
-func (c *GetCtlPrimaryChecker) Run() (msg string, err error) {
+func (c *GetCtlPrimaryChecker) Run() (warnDB *pkg.MySQLMonitorDBH, msg string, err error) {
 	_, err = c.getPrimary()
 	if err != nil {
 		slog.Error("Get primary checker error", slog.String("err", err.Error()))
+		return c.db, fmt.Sprintf("get primary failed: %s", err.Error()), nil
 
-		utils.SendMonitorEvent(
-			getCtlPrimaryCheckerName,
-			fmt.Sprintf("get primary failed: %s", err.Error()),
-			map[string]interface{}{
-				"instance_port": strconv.Itoa(config.MonitorConfig.Port + 1000),
-			},
-		)
 	}
-	return "", nil
+	return nil, "", nil
 }
 
 func (c *GetCtlPrimaryChecker) getPrimary() (*primaryDesc, error) {

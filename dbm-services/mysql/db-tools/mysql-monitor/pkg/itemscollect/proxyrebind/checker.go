@@ -3,6 +3,7 @@ package proxyrebind
 import (
 	"bufio"
 	"bytes"
+	"dbm-services/mysql/db-tools/mysql-monitor/pkg"
 	"dbm-services/mysql/db-tools/mysql-monitor/pkg/config"
 	"dbm-services/mysql/db-tools/mysql-monitor/pkg/monitoriteminterface"
 	"fmt"
@@ -12,8 +13,6 @@ import (
 	"path/filepath"
 	"regexp"
 	"strings"
-
-	"github.com/pkg/errors"
 )
 
 var name = "proxy-rebind"
@@ -74,7 +73,7 @@ type Checker struct {
 	//db *sqlx.DB
 }
 
-func (c *Checker) Run() (msg string, err error) {
+func (c *Checker) Run() (warnDB *pkg.MySQLMonitorDBH, msg string, err error) {
 	re = regexp.MustCompile(
 		fmt.Sprintf(
 			`^.*%s:%d\s+\(LISTEN\).*$`,
@@ -86,7 +85,7 @@ func (c *Checker) Run() (msg string, err error) {
 	commandPath, err := findCommand("lsof")
 	if err != nil {
 		slog.Error("find lsof failed, skip check", slog.String("error", err.Error()))
-		return "", nil
+		return nil, "", nil
 	}
 	slog.Info("find lsof command", slog.String("path", commandPath))
 
@@ -100,11 +99,11 @@ func (c *Checker) Run() (msg string, err error) {
 
 	if err != nil {
 		slog.Error("run lsof", slog.String("err", err.Error()))
-		return "", err
+		return nil, "", err
 	}
 	if stderr.String() != "" {
 		slog.Error("run lsof", slog.String("stderr", stderr.String()))
-		return "", errors.New(stderr.String())
+		return nil, "", err
 	}
 
 	scanner := bufio.NewScanner(strings.NewReader(strings.TrimSpace(stdout.String())))
@@ -118,11 +117,11 @@ func (c *Checker) Run() (msg string, err error) {
 	}
 	if err := scanner.Err(); err != nil {
 		slog.Error("run lsof", slog.String("err", err.Error()))
-		return "", err
+		return nil, "", err
 	}
 
 	if cnt > 1 {
-		return fmt.Sprintf(
+		return nil, fmt.Sprintf(
 			"%s:%d bind to %d mysql-proxy",
 			config.MonitorConfig.Ip,
 			config.MonitorConfig.Port,
@@ -130,7 +129,7 @@ func (c *Checker) Run() (msg string, err error) {
 		), nil
 	}
 
-	return "", nil
+	return nil, "", nil
 }
 
 func (c *Checker) Name() string {

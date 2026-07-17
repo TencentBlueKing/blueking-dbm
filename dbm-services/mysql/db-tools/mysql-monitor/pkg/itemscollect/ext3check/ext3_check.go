@@ -2,13 +2,11 @@
 package ext3check
 
 import (
+	"dbm-services/mysql/db-tools/mysql-monitor/pkg"
 	"fmt"
 	"strings"
 
 	"dbm-services/mysql/db-tools/mysql-monitor/pkg/monitoriteminterface"
-
-	"github.com/jmoiron/sqlx"
-	"github.com/pkg/errors"
 )
 
 /*
@@ -36,31 +34,31 @@ func init() {
 }
 
 type ext3Check struct {
-	db *sqlx.DB
+	db *pkg.MySQLMonitorDBH
 }
 
 // Run TODO
-func (e *ext3Check) Run() (msg string, err error) {
+func (e *ext3Check) Run() (warnDB *pkg.MySQLMonitorDBH, msg string, err error) {
 	dirs, err := mysqlDirs(e.db, mysqlDirVariables)
 	if err != nil {
-		return "", errors.Wrap(err, "get mysql variable dirs")
+		return nil, "", err
 	}
 
 	ftDirs, err := filterDirFs(uniqueDirs(dirs), "ext3")
 	if err != nil {
-		return "", errors.Wrap(err, "filter dirs by fs")
+		return nil, "", err
 	}
 
 	hugeFiles, err := findHugeFile(ftDirs, hugeSize)
 	if err != nil {
-		return "", errors.Wrap(err, "find huge file")
+		return nil, "", err
 	}
 
 	if len(hugeFiles) > 0 {
-		return fmt.Sprintf("ext3 FS huge file found: %s", strings.Join(hugeFiles, ",")), nil
-	} else {
-		return "", nil
+		return nil, fmt.Sprintf("ext3 FS huge file found: %s", strings.Join(hugeFiles, ",")), nil
 	}
+
+	return nil, "", nil
 }
 
 // Name TODO

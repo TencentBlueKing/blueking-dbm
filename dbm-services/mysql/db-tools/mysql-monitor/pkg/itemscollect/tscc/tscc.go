@@ -12,6 +12,7 @@
 package tscc
 
 import (
+	"dbm-services/mysql/db-tools/mysql-monitor/pkg"
 	"encoding/json"
 	"fmt"
 	"log/slog"
@@ -40,7 +41,8 @@ var schemas = []string{
 		checksum_result json COMMENT "差异表结构信息,tdbctl checksum table 的结果",
 		update_time timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
 		PRIMARY KEY (db,tbl)
-	);`}
+	);`,
+}
 var ignoreDbs = []string{"sys", "information_schema", "mysql", "performance_schema", "infodba_schema", "test"}
 
 const (
@@ -49,7 +51,7 @@ const (
 )
 
 type tableSchemaConsistencyCheck struct {
-	ctldb *sqlx.DB
+	ctldb *pkg.MySQLMonitorDBH
 }
 
 // Name TODO
@@ -96,9 +98,9 @@ func (rs SchemaCheckResults) CheckResult() (inconsistencyItems []SchemaCheckResu
 }
 
 // Run TODO
-func (c *tableSchemaConsistencyCheck) Run() (msg string, err error) {
+func (c *tableSchemaConsistencyCheck) Run() (warnDB *pkg.MySQLMonitorDBH, msg string, err error) {
 	slog.Info("start check cluster schema ....")
-	defer c.ctldb.Close()
+
 	// 如果不是主节点,无需运行
 	var ps PrimaryCtlInfo
 	err = c.ctldb.Get(&ps, "TDBCTL GET PRIMARY")
@@ -108,7 +110,7 @@ func (c *tableSchemaConsistencyCheck) Run() (msg string, err error) {
 	}
 	if ps.IsThisServer == 0 {
 		slog.Info("is not primary tdbctl,no need to run")
-		return "", nil
+		return nil, "", nil
 	}
 	initSQLs := []string{"set tc_admin = 0;", "use infodba_schema;"}
 	initSQLs = append(initSQLs, schemas...)
@@ -126,14 +128,16 @@ func (c *tableSchemaConsistencyCheck) Run() (msg string, err error) {
 	}
 	if count < 50 {
 		query, args, err := sqlx.In(
-			"insert ignore into tscc_pending_execute_tbl select TABLE_SCHEMA,TABLE_NAME,CREATE_TIME from information_schema.tables where TABLE_SCHEMA not in (?) ", ignoreDbs)
+			"insert ignore into tscc_pending_execute_tbl select TABLE_SCHEMA,TABLE_NAME,CREATE_TIME from information_schema.tables where TABLE_SCHEMA not in (?) ",
+			ignoreDbs,
+		)
 		if err != nil {
 			slog.Error("get check tables failed", slog.String("error", err.Error()))
-			return msg, err
+			return nil, msg, err
 		}
 		_, err = c.ctldb.Exec(c.ctldb.Rebind(query), args...)
 		if err != nil {
-			return msg, err
+			return nil, msg, err
 		}
 	}
 	timer := time.NewTimer(2 * time.Hour)
@@ -155,7 +159,7 @@ func (c *tableSchemaConsistencyCheck) Run() (msg string, err error) {
 			}
 			for _, tblRow := range tblRows {
 				var result SchemaCheckResults
-				c.ctldb.Exec("set tc_admin = 1;")
+				_, _ = c.ctldb.Exec("set tc_admin = 1;")
 				err = c.ctldb.Select(&result, fmt.Sprintf("tdbctl check table `%s`.`%s`;", tblRow.Db, tblRow.Tbl))
 				if err != nil {
 					errChan <- err
@@ -168,7 +172,7 @@ func (c *tableSchemaConsistencyCheck) Run() (msg string, err error) {
 					slog.Error("exec tdbctl check table failed", slog.String("error", err.Error()))
 					continue
 				}
-				c.ctldb.Exec("set tc_admin = 0;")
+				_, _ = c.ctldb.Exec("set tc_admin = 0;")
 				inconsistentItems := result.CheckResult()
 				if err = c.atomUpdateCheckResult(tblRow.Db, tblRow.Tbl, inconsistentItems); err == nil {
 					slog.Info("update checkresult ok")
@@ -191,7 +195,7 @@ func (c *tableSchemaConsistencyCheck) Run() (msg string, err error) {
 	case <-timer.C:
 		slog.Info("check table timeout")
 		timer.Stop()
-		return "check table timeout", nil
+		return nil, "check table timeout", nil
 	case <-stopChan:
 		timer.Stop()
 		slog.Info("stop check table")
@@ -200,7 +204,8 @@ func (c *tableSchemaConsistencyCheck) Run() (msg string, err error) {
 }
 
 func (c *tableSchemaConsistencyCheck) atomUpdateCheckResult(db, tbl string, inconsistentItems []SchemaCheckResult) (
-	err error) {
+	err error,
+) {
 	var status string
 	status = SchemaCheckOk
 	tx, err := c.ctldb.Begin()
@@ -216,9 +221,11 @@ func (c *tableSchemaConsistencyCheck) atomUpdateCheckResult(db, tbl string, inco
 		}
 		status = ""
 	}
-	_, err = tx.Exec("replace into infodba_schema.tscc_schema_checksum values(?,?,?,?,?)", db, tbl, status,
+	_, err = tx.Exec(
+		"replace into infodba_schema.tscc_schema_checksum values(?,?,?,?,?)", db, tbl, status,
 		checkResult,
-		time.Now())
+		time.Now(),
+	)
 	if err != nil {
 		slog.Error("replace checksum record failed", slog.String("error", err.Error()))
 		return

@@ -9,6 +9,7 @@
 package slavestatus
 
 import (
+	"dbm-services/mysql/db-tools/mysql-monitor/pkg"
 	"fmt"
 	"log/slog"
 	"slices"
@@ -33,23 +34,23 @@ type getPrimaryRes struct {
 var ctlErrNos = []int{1505, 1396, 1032}
 
 // Run 运行
-func (c *ctlReplicateChecker) Run() (msg string, err error) {
+func (c *ctlReplicateChecker) Run() (warnDB *pkg.MySQLMonitorDBH, msg string, err error) {
 	isPrimary, err := c.isPrimary()
 	if err != nil {
-		return "", err
+		return c.db, "", err
 	}
 
 	if isPrimary {
-		return "", nil
+		return c.db, "", nil
 	}
 
 	err = c.fetchSlaveStatus()
 	if err != nil {
-		return "", err
+		return c.db, "", err
 	}
 
 	if c.slaveStatus == nil || len(c.slaveStatus) == 0 {
-		return "empty slave status", nil
+		return c.db, "empty slave status", nil
 	}
 
 	if !c.isOk() {
@@ -72,15 +73,15 @@ func (c *ctlReplicateChecker) Run() (msg string, err error) {
 					)
 				} else {
 					slog.Info("skip err success")
-					return "", nil
+					return c.db, "", nil
 				}
 			}
 		}
 		slaveErr, err := c.collectError()
 		if err != nil {
-			return "", err
+			return c.db, "", err
 		}
-		return fmt.Sprintf("IO/SQL thread not running: %s", slaveErr), nil
+		return c.db, fmt.Sprintf("IO/SQL thread not running: %s", slaveErr), nil
 	}
 	slog.Info(
 		"tdbctl primary is master",
@@ -93,9 +94,9 @@ func (c *ctlReplicateChecker) Run() (msg string, err error) {
 			c.masterHost(), c.primary.Host,
 		)
 		slog.Error("tdbctl primary is master", slog.String("err", err.Error()))
-		return "", err
+		return c.db, "", err
 	}
-	return "", nil
+	return c.db, "", nil
 }
 
 func (c *ctlReplicateChecker) isPrimary() (bool, error) {

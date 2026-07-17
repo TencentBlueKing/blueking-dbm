@@ -2,17 +2,16 @@ package timezonechange
 
 import (
 	"bufio"
+	"dbm-services/mysql/db-tools/mysql-monitor/pkg"
 	"fmt"
 	"log/slog"
 	"os"
 	"path/filepath"
 
-	"github.com/jmoiron/sqlx"
-
 	"dbm-services/mysql/db-tools/mysql-monitor/pkg/config"
 )
 
-func mysqlTzChange(db *sqlx.DB) (msg string, err error) {
+func mysqlTzChange(db *pkg.MySQLMonitorDBH) (msg string, err error) {
 	lastTz, err := readLastMysqlTz()
 	if err != nil {
 		return "", err

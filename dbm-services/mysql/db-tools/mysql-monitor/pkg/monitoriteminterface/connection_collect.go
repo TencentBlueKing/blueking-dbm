@@ -9,39 +9,39 @@
 package monitoriteminterface
 
 import (
+	"dbm-services/mysql/db-tools/mysql-monitor/pkg"
 	"dbm-services/mysql/db-tools/mysql-monitor/pkg/config"
 	"dbm-services/mysql/db-tools/mysql-monitor/pkg/monitoriteminterface/internal"
 	"log/slog"
 
-	"github.com/jmoiron/sqlx"
 	"github.com/pkg/errors"
 )
 
 // ConnectionCollect DB连接对象
 type ConnectionCollect struct {
-	MySqlDB      *sqlx.DB // spider 也用这个
-	ProxyDB      *sqlx.DB
-	ProxyAdminDB *sqlx.DB
-	CtlDB        *sqlx.DB
+	MySqlDB      *pkg.MySQLMonitorDBH //*sqlx.DB // spider 也用这个
+	ProxyDB      *pkg.MySQLMonitorDBH //*sqlx.DB
+	ProxyAdminDB *pkg.MySQLMonitorDBH //*sqlx.DB
+	CtlDB        *pkg.MySQLMonitorDBH //*sqlx.DB
 
 	itemOptions map[string]ItemOptions
 }
 
 // Close 关闭所有连接
 func (c *ConnectionCollect) Close() {
-	if c.MySqlDB != nil {
+	if c.MySqlDB != nil && c.MySqlDB.DB != nil {
 		_ = c.MySqlDB.Close()
 	}
 
-	if c.ProxyDB != nil {
+	if c.ProxyDB != nil && c.ProxyDB.DB != nil {
 		_ = c.ProxyDB.Close()
 	}
 
-	if c.ProxyAdminDB != nil {
+	if c.ProxyAdminDB != nil && c.ProxyAdminDB.DB != nil {
 		_ = c.ProxyAdminDB.Close()
 	}
 
-	if c.CtlDB != nil {
+	if c.CtlDB != nil && c.CtlDB.DB != nil {
 		_ = c.CtlDB.Close()
 	}
 }

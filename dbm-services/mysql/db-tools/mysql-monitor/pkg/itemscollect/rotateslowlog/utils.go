@@ -1,12 +1,11 @@
 package rotateslowlog
 
 import (
+	"dbm-services/mysql/db-tools/mysql-monitor/pkg"
 	"log/slog"
-
-	"github.com/jmoiron/sqlx"
 )
 
-func slowLogStatus(db *sqlx.DB) (slowLogOn bool, slowLogPath string, err error) {
+func slowLogStatus(db *pkg.MySQLMonitorDBH) (slowLogOn bool, slowLogPath string, err error) {
 	err = db.QueryRowx(
 		`SELECT @@slow_query_log, @@slow_query_log_file`,
 	).Scan(&slowLogOn, &slowLogPath)

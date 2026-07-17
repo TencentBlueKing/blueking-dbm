@@ -39,7 +39,6 @@ import (
 	"dbm-services/mysql/db-tools/mysql-monitor/pkg/itemscollect/spiderctlchecker"
 	"dbm-services/mysql/db-tools/mysql-monitor/pkg/itemscollect/spiderremote"
 	"dbm-services/mysql/db-tools/mysql-monitor/pkg/itemscollect/timezonechange"
-	"dbm-services/mysql/db-tools/mysql-monitor/pkg/itemscollect/tscc"
 	mi "dbm-services/mysql/db-tools/mysql-monitor/pkg/monitoriteminterface"
 )
 
@@ -93,7 +92,7 @@ func init() {
 	_ = registerItemConstructor(ibdstatistic.Register())
 	_ = registerItemConstructor(slavestatus.RegisterCtlReplicateChecker())
 	_ = registerItemConstructor(spiderremote.Register())
-	_ = registerItemConstructor(tscc.Register())
+	//_ = registerItemConstructor(tscc.Register()) // 废弃
 	_ = registerItemConstructor(dbhaheartbeat.Register())
 	_ = registerItemConstructor(spiderctlchecker.UniqueCtlCheckerRegister())
 	_ = registerItemConstructor(scenesnapshot.Register())

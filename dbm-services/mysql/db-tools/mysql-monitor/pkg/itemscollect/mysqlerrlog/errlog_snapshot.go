@@ -10,15 +10,14 @@ package mysqlerrlog
 
 import (
 	"bufio"
+	"dbm-services/mysql/db-tools/mysql-monitor/pkg"
 	"log/slog"
 	"os"
 	"path/filepath"
 	"strconv"
-
-	"github.com/jmoiron/sqlx"
 )
 
-func snapShot(db *sqlx.DB) error {
+func snapShot(db *pkg.MySQLMonitorDBH) error {
 	errLogPath, err := findErrLogFile(db)
 	if err != nil {
 		return err
@@ -102,7 +101,7 @@ func loadSnapShot() (*bufio.Scanner, error) {
 	return bufio.NewScanner(f), nil
 }
 
-func findErrLogFile(db *sqlx.DB) (string, error) {
+func findErrLogFile(db *pkg.MySQLMonitorDBH) (string, error) {
 	var errLogPath, dataDir string
 	err := db.QueryRowx(`SELECT @@LOG_ERROR, @@DATADIR`).Scan(&errLogPath, &dataDir)
 	if err != nil {
@@ -122,6 +121,11 @@ func newScanner(logPath string) (*bufio.Scanner, int64, error) {
 		slog.Error("open err log", slog.String("error", err.Error()))
 		return nil, 0, err
 	}
+	defer func() {
+		if err != nil && f != nil {
+			_ = f.Close()
+		}
+	}()
 
 	st, err := f.Stat()
 	if err != nil {

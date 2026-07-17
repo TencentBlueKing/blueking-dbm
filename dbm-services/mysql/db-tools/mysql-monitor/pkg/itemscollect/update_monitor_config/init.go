@@ -4,6 +4,7 @@ import (
 	"dbm-services/common/reverseapi/define"
 	"dbm-services/common/reverseapi/define/mysql"
 	acst "dbm-services/mysql/db-tools/dbactuator/pkg/core/cst"
+	"dbm-services/mysql/db-tools/mysql-monitor/pkg"
 	"dbm-services/mysql/db-tools/mysql-monitor/pkg/config"
 	"encoding/json"
 	"errors"
@@ -25,11 +26,11 @@ var name = "update-monitor-config"
 type Checker struct {
 }
 
-func (c *Checker) Run() (msg string, err error) {
+func (c *Checker) Run() (warnDB *pkg.MySQLMonitorDBH, msg string, err error) {
 	err = checkOutOfDate()
 	if err != nil {
 		slog.Error("check out of date", slog.String("err", err.Error()))
-		return "", err
+		return nil, "", err
 	}
 
 	// 目前只更新 monitor config
@@ -38,19 +39,19 @@ func (c *Checker) Run() (msg string, err error) {
 	case "backend", "remote", "single":
 		selfInfo, err := c.GetSelfInfoStorage()
 		if err != nil {
-			return "", err
+			return nil, "", err
 		}
 		slog.Info(name, slog.Any("self info storage", selfInfo))
 		err = c.updateConfigFile(selfInfo)
 		if err != nil {
-			return "", err
+			return nil, "", err
 		}
 
 	default:
 		// spider, proxy 暂时不自动更新
-		return "", nil
+		return nil, "", nil
 	}
-	return "", nil
+	return nil, "", nil
 }
 
 func checkOutOfDate() (err error) {

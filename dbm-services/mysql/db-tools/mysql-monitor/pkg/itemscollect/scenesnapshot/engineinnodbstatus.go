@@ -1,9 +1,8 @@
 package scenesnapshot
 
 import (
+	"dbm-services/mysql/db-tools/mysql-monitor/pkg"
 	"fmt"
-
-	"github.com/jmoiron/sqlx"
 
 	"dbm-services/mysql/db-tools/mysql-monitor/pkg/itemscollect/scenesnapshot/internal/archivescenes"
 )
@@ -16,7 +15,7 @@ type engineInnodbStatus struct {
 
 var engineInnodbStatusName = "engine-innodb-status"
 
-func engineInnodbStatusScene(db *sqlx.DB) error {
+func engineInnodbStatusScene(db *pkg.MySQLMonitorDBH) error {
 	err := archivescenes.DeleteOld(engineInnodbStatusName, sceneBase, 1)
 	if err != nil {
 		return err
@@ -37,7 +36,7 @@ func engineInnodbStatusScene(db *sqlx.DB) error {
 	return nil
 }
 
-func queryEngineInnodbStatus(db *sqlx.DB) (res []*engineInnodbStatus, err error) {
+func queryEngineInnodbStatus(db *pkg.MySQLMonitorDBH) (res []*engineInnodbStatus, err error) {
 	err = db.Select(
 		&res,
 		`SHOW ENGINE INNODB STATUS`,
