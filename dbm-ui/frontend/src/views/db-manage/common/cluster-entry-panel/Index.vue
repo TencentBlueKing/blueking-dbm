@@ -1,6 +1,5 @@
 <template>
   <BkPopover
-    :disabled="!showContent"
     ext-cls="cluster-entry-panel-popover"
     placement="top"
     :popover-delay="[200, 100]"
@@ -73,14 +72,12 @@
     clusterId: number;
     entryType: 'clb' | 'polaris';
     panelWidth?: number;
-    showContent?: boolean;
     size?: 'defalut' | 'big';
   }
 
   const props = withDefaults(defineProps<Props>(), {
     clbRole: '',
     panelWidth: 250,
-    showContent: true,
     size: 'defalut',
   });
 

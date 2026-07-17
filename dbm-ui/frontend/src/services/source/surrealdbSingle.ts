@@ -51,7 +51,7 @@ export function getSurrealdbSingleList(params: {
 /**
  * 获取集群详情
  */
-export function retrieveSurrealdbSingleDetail(params: { id: number }) {
+export function getSurrealdbSingleDetail(params: { id: number }) {
   return http
     .get<SurrealdbSingleDetailModel>(`${getRootPath()}/${params.id}/`)
     .then((res) => new SurrealdbSingleDetailModel(res));

@@ -110,7 +110,6 @@
   import SurrealdbHaDetailModel from '@services/model/surrealdb/surrealdb-ha-detail';
   import { getSurrealdbHaDetail } from '@services/source/surrealdbHa';
 
-  // import { getTendbhaDetail as getSurrealdbHaDetail } from '@services/source/tendbha';
   import { ClusterTypes } from '@common/const';
 
   import {

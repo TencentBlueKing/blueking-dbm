@@ -126,12 +126,20 @@ export const useClusterQuickSearch = (cluster_type: ClusterTypes | ClusterTypes[
           return !ipPort.test(value) && !ipv4.test(value) && !domainRegex.test(value) && !domainPort.test(value);
         },
       },
-      {
-        id: 'db_module_id',
-        name: t('模块'),
-        remoteMethod: () => getBizClusterAttrs('db_module_id'),
-        type: 'multiple',
-      },
+      !Array.isArray(cluster_type) &&
+        [
+          ClusterTypes.RIAK,
+          ClusterTypes.SQLSERVER_HA,
+          ClusterTypes.SQLSERVER_SINGLE,
+          ClusterTypes.TENDBCLUSTER,
+          ClusterTypes.TENDBHA,
+          ClusterTypes.TENDBSINGLE,
+        ].includes(cluster_type) && {
+          id: 'db_module_id',
+          name: t('模块'),
+          remoteMethod: () => getBizClusterAttrs('db_module_id'),
+          type: 'multiple',
+        },
       {
         id: 'status',
         list: [
@@ -145,12 +153,6 @@ export const useClusterQuickSearch = (cluster_type: ClusterTypes | ClusterTypes[
           },
         ],
         name: t('状态'),
-        type: 'multiple',
-      },
-      {
-        id: 'db_module_id',
-        name: t('模块'),
-        remoteMethod: () => getBizClusterAttrs('db_module_id'),
         type: 'multiple',
       },
       {

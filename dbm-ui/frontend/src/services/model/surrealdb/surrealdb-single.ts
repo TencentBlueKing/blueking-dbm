@@ -147,6 +147,11 @@ export default class SurrealdbSingle extends ClusterBase {
   get isStarting() {
     return Boolean(this.operations.find((item) => item.ticket_type === TicketTypes.K8S_SURREALDB_ENABLE));
   }
+
+  get masterDomain() {
+    return this.masterDomainDisplayName;
+  }
+
   get masterDomainDisplayName() {
     const domainItem = this.cluster_entry.find((item) => item.cluster_entry_type === 'clbDns');
     const displayName = domainItem?.entry || '';

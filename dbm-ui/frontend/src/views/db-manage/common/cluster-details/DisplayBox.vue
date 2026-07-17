@@ -6,12 +6,11 @@
       </div>
       <slot name="clb">
         <div
-          v-if="data.isOnlineCLB"
+          v-if="!data.cluster_type.includes('k8s') && data.isOnlineCLB"
           class="ml-4">
           <ClusterEntryPanel
             :cluster-id="data.id"
             entry-type="clb"
-            :show-content="!data.cluster_type.includes('k8s')"
             size="big" />
         </div>
       </slot>

@@ -102,6 +102,7 @@
                   v-bk-tooltips="{
                     disabled: data.isOffline,
                     content: t('请先禁用集群'),
+                    placement: 'right',
                   }"
                   action-id="k8s_qdrant_destroy"
                   :disabled="data.isOnline || Boolean(data.operationTicketId)"
@@ -126,7 +127,7 @@
           :selected-list="selectedList"
           @go-detail="handleToDetails"
           @refresh="fetchData">
-          <template #append="{ data }">
+          <!-- <template #append="{ data }">
             <div
               v-if="data.isOnlineCLB"
               class="ml-4">
@@ -135,7 +136,7 @@
                 entry-type="clb"
                 :show-content="false" />
             </div>
-          </template>
+          </template> -->
         </MasterDomainColumn>
       </template>
     </ClusterTable>
@@ -161,7 +162,7 @@
 
   import { ClusterTypes, TicketTypes, UserPersonalSettings } from '@common/const';
 
-  import ClusterEntryPanel from '@views/db-manage/common/cluster-entry-panel/Index.vue';
+  // import ClusterEntryPanel from '@views/db-manage/common/cluster-entry-panel/Index.vue';
   import ClusterTable, { MasterDomainColumn, OperationColumn } from '@views/db-manage/common/cluster-table/Index.vue';
   import DropdownExportExcel from '@views/db-manage/common/dropdown-export-excel/index.vue';
   import { useK8sClusterRestart, useOperateClusterBasic } from '@views/db-manage/common/hooks';

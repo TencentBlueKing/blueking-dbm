@@ -14,7 +14,7 @@
   defineExpose({
     routerBack() {
       router.push({
-        name: 'SurrealdbHaList',
+        name: 'SurrealdbSingleList',
       });
     },
   });

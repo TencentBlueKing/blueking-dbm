@@ -77,7 +77,7 @@
           <K8SInstanceList
             :cluster-data="data"
             :cluster-type="ClusterTypes.K8S_SURREALDB_SINGLE"
-            :role="role"
+            role="surreal"
             @refresh="handleRefresh">
           </K8SInstanceList>
         </template>
@@ -90,10 +90,9 @@
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
-  import SurrealdbHaDetailModel from '@services/model/surrealdb/surrealdb-ha-detail';
-  import { getSurrealdbHaDetail } from '@services/source/surrealdbHa';
+  import SurrealdbSingleDetailModel from '@services/model/surrealdb/surrealdb-single-detail';
+  import { getSurrealdbSingleDetail } from '@services/source/surrealdbSingle';
 
-  // import { getTendbhaDetail as getSurrealdbHaDetail } from '@services/source/tendbha';
   import { ClusterTypes } from '@common/const';
 
   import {
@@ -118,11 +117,10 @@
 
   const { t } = useI18n();
 
-  const data = ref<SurrealdbHaDetailModel>();
+  const data = ref<SurrealdbSingleDetailModel>();
   const isLoading = ref(false);
-  const role = ref('surreal');
 
-  const { run: fetchClusterDetail } = useRequest(getSurrealdbHaDetail, {
+  const { run: fetchClusterDetail } = useRequest(getSurrealdbSingleDetail, {
     manual: true,
     onAfter() {
       isLoading.value = false;

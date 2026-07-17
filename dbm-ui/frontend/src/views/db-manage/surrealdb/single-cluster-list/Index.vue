@@ -39,7 +39,7 @@
       :bk-ui-settings="settings"
       :cluster-id="clusterId"
       :cluster-type="ClusterTypes.K8S_SURREALDB_SINGLE"
-      :data-source="getSurrealdbHaList"
+      :data-source="getSurrealdbSingleList"
       :filter-value="searchValue"
       @bk-ui-settings-change="updateTableSettings"
       @filter-change="handleFilterChange"
@@ -102,6 +102,7 @@
                   v-bk-tooltips="{
                     disabled: data.isOffline,
                     content: t('请先禁用集群'),
+                    placement: 'right',
                   }"
                   action-id="k8s_surrealdb_destroy"
                   :disabled="data.isOnline || Boolean(data.operationTicketId)"
@@ -126,7 +127,7 @@
           :selected-list="selectedList"
           @go-detail="handleToDetails"
           @refresh="fetchData">
-          <template #append="{ data }">
+          <!-- <template #append="{ data }">
             <div
               v-if="data.isOnlineCLB"
               class="ml-4">
@@ -135,7 +136,7 @@
                 entry-type="clb"
                 :show-content="false" />
             </div>
-          </template>
+          </template> -->
         </MasterDomainColumn>
       </template>
     </ClusterTable>
@@ -155,13 +156,13 @@
   import { useI18n } from 'vue-i18n';
 
   import SurrealdbSingleModel from '@services/model/surrealdb/surrealdb-single';
-  import { getSurrealdbHaList } from '@services/source/surrealdbHa';
+  import { getSurrealdbSingleList } from '@services/source/surrealdbSingle';
 
   import { useClusterQuickSearch, useTableSettings } from '@hooks';
 
   import { ClusterTypes, TicketTypes, UserPersonalSettings } from '@common/const';
 
-  import ClusterEntryPanel from '@views/db-manage/common/cluster-entry-panel/Index.vue';
+  // import ClusterEntryPanel from '@views/db-manage/common/cluster-entry-panel/Index.vue';
   import ClusterTable, { MasterDomainColumn, OperationColumn } from '@views/db-manage/common/cluster-table/Index.vue';
   import DropdownExportExcel from '@views/db-manage/common/dropdown-export-excel/index.vue';
   import { useK8sClusterRestart, useOperateClusterBasic } from '@views/db-manage/common/hooks';

@@ -66,7 +66,7 @@ export const useK8sInstanceOperations = (options: { onSuccess: () => void }) => 
       content: () => (
         <>
           <div style='background-color: #F5F7FA; padding: 8px 16px;'>
-            {t('将对 surreal 组件下的 n 个实例执行滚动重启，期间服务可能短暂受影响。', { n: count })}
+            {t('将对 role 组件下的 n 个实例执行滚动重启，期间服务可能短暂受影响。', { n: count, role })}
           </div>
           <BkAlert
             class='mt-12'
@@ -82,7 +82,7 @@ export const useK8sInstanceOperations = (options: { onSuccess: () => void }) => 
           handleSuccess();
         });
       },
-      title: t('确定禁重启 n 个 role 实例？', { n: count, role }),
+      title: t('确定重启 n 个 role 实例？', { n: count, role }),
       width: 400,
     });
   };
