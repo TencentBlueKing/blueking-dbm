@@ -83,7 +83,7 @@ class ResourceImportSerializer(serializers.Serializer):
         exist_hosts = list(Machine.objects.filter(ip__in=ips).values("ip", "bk_cloud_id"))
         for host in exist_hosts:
             if (host["ip"], host["bk_cloud_id"]) in ip_cloud_tuples:
-                error_groups.setdefault("duplicate_ip", []).append(host["ip"])
+                error_groups.setdefault("machine_exists", []).append(host["ip"])
 
         dissolved_switch = SystemSettings.get_setting_value(
             key=SystemSettingsEnum.HOST_DISSOLVED_SWITCH, default=False
@@ -133,7 +133,6 @@ class ResourceImportSerializer(serializers.Serializer):
 
         error_map = {
             "machine_exists": _("主机已被 DBM 管理，无法重复导入"),
-            "duplicate_ip": _("主机已被 DBM 管理，无法重复导入"),
             "uwork_xwork": _("主机存在关联的 uwork/xwork 单据"),
             "dissolved": _("主机处于待裁撤状态"),
             "recycling_ticket": _("主机存在进行中的「已下架主机处理」单据"),
