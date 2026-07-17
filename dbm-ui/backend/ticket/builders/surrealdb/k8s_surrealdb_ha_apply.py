@@ -13,7 +13,7 @@ from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
 from backend.db_meta.enums import ClusterType
-from backend.flow.engine.controller.surrealdb_temp import SurrealDBController
+from backend.flow.engine.controller.surrealdb import SurrealdbHaController
 from backend.iam_app.dataclass.actions import ActionEnum
 from backend.ticket import builders
 from backend.ticket.builders.common.base import TicketBaseValidateSerializerMixin
@@ -46,7 +46,7 @@ class K8sSurrealDBApplyDetailSerializer(TicketBaseValidateSerializerMixin, seria
 
 
 class K8sSurrealDBApplyFlowParamBuilder(builders.FlowParamBuilder):
-    controller = SurrealDBController.placeholder
+    controller = SurrealdbHaController.surrealdb_apply_scene
 
 
 @builders.BuilderFactory.register(
