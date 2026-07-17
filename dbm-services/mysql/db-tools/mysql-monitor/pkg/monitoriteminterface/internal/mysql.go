@@ -1,14 +1,13 @@
 package internal
 
 import (
+	"dbm-services/mysql/db-tools/mysql-monitor/pkg"
 	"dbm-services/mysql/db-tools/mysql-monitor/pkg/config"
 	"fmt"
 	"log/slog"
-
-	"github.com/jmoiron/sqlx"
 )
 
-func ConnectMySQL() (*sqlx.DB, error) {
+func ConnectMySQL() (*pkg.MySQLMonitorDBH, error) {
 	db, err := connectDB(
 		config.MonitorConfig.Ip,
 		config.MonitorConfig.Port,
@@ -23,7 +22,7 @@ func ConnectMySQL() (*sqlx.DB, error) {
 			slog.String("ip", config.MonitorConfig.Ip),
 			slog.Int("port", config.MonitorConfig.Port),
 		)
-		return nil, err
+		return db, err
 	}
 	return db, nil
 }

@@ -10,18 +10,18 @@ package ext3check
 
 import (
 	"database/sql"
+	"dbm-services/mysql/db-tools/mysql-monitor/pkg"
 	"fmt"
 	"path/filepath"
 
 	"dbm-services/mysql/db-tools/mysql-monitor/pkg/config"
 
-	"github.com/jmoiron/sqlx"
 	"github.com/pkg/errors"
 	"github.com/shopspring/decimal"
 	"gopkg.in/ini.v1"
 )
 
-func mysqlDirs(db *sqlx.DB, variables []string) (dirs []string, err error) {
+func mysqlDirs(db *pkg.MySQLMonitorDBH, variables []string) (dirs []string, err error) {
 	var datadir string
 
 	for _, v := range variables {
@@ -80,12 +80,14 @@ func mysqlDirs(db *sqlx.DB, variables []string) (dirs []string, err error) {
 			myCnfPath = fmt.Sprintf("/etc/my.cnf.%d", config.MonitorConfig.Port)
 		}
 
-		myCnf, err := ini.LoadSources(ini.LoadOptions{
-			PreserveSurroundedQuote: true,
-			IgnoreInlineComment:     true,
-			AllowBooleanKeys:        true,
-			AllowShadows:            true,
-		}, myCnfPath)
+		myCnf, err := ini.LoadSources(
+			ini.LoadOptions{
+				PreserveSurroundedQuote: true,
+				IgnoreInlineComment:     true,
+				AllowBooleanKeys:        true,
+				AllowShadows:            true,
+			}, myCnfPath,
+		)
 		if err != nil {
 			return nil, errors.Wrapf(err, "load %s failed", myCnfPath)
 		}

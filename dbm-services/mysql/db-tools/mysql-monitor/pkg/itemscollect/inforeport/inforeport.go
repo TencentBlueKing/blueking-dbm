@@ -10,6 +10,7 @@
 package inforeport
 
 import (
+	"dbm-services/mysql/db-tools/mysql-monitor/pkg"
 	"fmt"
 	"log/slog"
 	"strings"
@@ -21,8 +22,6 @@ import (
 	"dbm-services/mysql/db-tools/mysql-monitor/pkg/itemscollect/inforeport/configreport"
 	"dbm-services/mysql/db-tools/mysql-monitor/pkg/itemscollect/inforeport/pkgversion"
 	"dbm-services/mysql/db-tools/mysql-monitor/pkg/monitoriteminterface"
-
-	"github.com/jmoiron/sqlx"
 )
 
 var name = "config-report"
@@ -32,11 +31,11 @@ func init() {
 
 type infoReport struct {
 	optionMap monitoriteminterface.ItemOptions
-	db        *sqlx.DB
+	db        *pkg.MySQLMonitorDBH
 }
 
 // Run TODO
-func (c *infoReport) Run() (msg string, err error) {
+func (c *infoReport) Run() (warnDB *pkg.MySQLMonitorDBH, msg string, err error) {
 	dbPort := config.MonitorConfig.Port
 	if err := configreport.ReportDbbackupConfig(dbPort); err != nil {
 		slog.Warn("config-report", slog.String("error", err.Error()))
@@ -50,7 +49,7 @@ func (c *infoReport) Run() (msg string, err error) {
 	if err := reportMycnfConfig(c); err != nil {
 		slog.Warn("config-report", slog.String("error", err.Error()))
 	}
-	return "", nil
+	return nil, "", nil
 }
 
 // Name TODO

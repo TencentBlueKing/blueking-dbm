@@ -1,6 +1,7 @@
 package internal
 
 import (
+	"dbm-services/mysql/db-tools/mysql-monitor/pkg"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -22,10 +23,9 @@ import (
 
 	"github.com/go-sql-driver/mysql"
 	"github.com/gofrs/flock"
-	"github.com/jmoiron/sqlx"
 )
 
-func ConnectProxy() (pdb *sqlx.DB, padb *sqlx.DB, err error) {
+func ConnectProxy() (pdb *pkg.MySQLMonitorDBH, padb *pkg.MySQLMonitorDBH, err error) {
 	// 服务端口连接失败做重启尝试
 	pdb, err = connectProxy()
 	if err != nil {
@@ -41,7 +41,7 @@ func ConnectProxy() (pdb *sqlx.DB, padb *sqlx.DB, err error) {
 			"connect proxy failed skip reboot",
 			slog.String("err", err.Error()),
 		)
-		return nil, nil, err
+		return pdb, nil, err
 	}
 
 	// 管理端口连接失败只告警
@@ -53,10 +53,14 @@ func ConnectProxy() (pdb *sqlx.DB, padb *sqlx.DB, err error) {
 // 第一次连接失败进入排他重试阶段
 // 先尝试重连, 失败则拉起进场, 再尝试连接
 // 为了防止不同周期的监控同时操作, 这里按端口文件锁排他
-func retryAndRestartProxy() (pdb *sqlx.DB, padb *sqlx.DB, err error) {
+func retryAndRestartProxy() (pdb *pkg.MySQLMonitorDBH, padb *pkg.MySQLMonitorDBH, err error) {
 	fl, err := addExLock()
 	if err != nil {
-		return nil, nil, err
+		return &pkg.MySQLMonitorDBH{
+			DB:   nil,
+			Host: config.MonitorConfig.Ip,
+			Port: config.MonitorConfig.Port,
+		}, nil, err
 	}
 
 	defer func() {
@@ -72,14 +76,33 @@ func retryAndRestartProxy() (pdb *sqlx.DB, padb *sqlx.DB, err error) {
 	}
 	slog.Info("retry connect proxy failed, need reboot")
 
-	running, err := confirmSelfIsRunning()
-	if err != nil {
-		return nil, nil, err
+	if pdb != nil && pdb.DB != nil {
+		_ = pdb.DB.Close()
+		pdb.DB = nil
+	}
+	if padb != nil && padb.DB != nil {
+		_ = padb.DB.Close()
+		padb.DB = nil
+	}
+
+	running, errr := confirmSelfIsRunning()
+	if errr != nil {
+		return &pkg.MySQLMonitorDBH{
+				DB:   nil,
+				Host: config.MonitorConfig.Ip,
+				Port: config.MonitorConfig.Port,
+			}, nil, fmt.Errorf(
+				"connect proxy failed %s, confirm proxy status failed: %s", err.Error(), errr.Error(),
+			)
 	}
 	if !running {
 		err = errors.New("self isn't running, skip reboot")
 		slog.Error("reboot proxy", slog.String("err", err.Error()))
-		return nil, nil, err
+		return &pkg.MySQLMonitorDBH{
+			DB:   nil,
+			Host: config.MonitorConfig.Ip,
+			Port: config.MonitorConfig.Port,
+		}, nil, err
 	}
 
 	_ = proxyutil.KillDownProxy(config.MonitorConfig.Port)
@@ -101,7 +124,11 @@ func retryAndRestartProxy() (pdb *sqlx.DB, padb *sqlx.DB, err error) {
 			slog.Int("port", config.MonitorConfig.Port),
 			slog.String("error", err.Error()),
 		)
-		return nil, nil, err
+		return &pkg.MySQLMonitorDBH{
+			DB:   nil,
+			Host: config.MonitorConfig.Ip,
+			Port: config.MonitorConfig.Port,
+		}, nil, err
 	}
 
 	slog.Info("reboot proxy", slog.Int("port", config.MonitorConfig.Port))
@@ -116,14 +143,14 @@ func retryAndRestartProxy() (pdb *sqlx.DB, padb *sqlx.DB, err error) {
 			"connect proxy after reboot",
 			slog.String("err", err.Error()),
 		)
-		return nil, nil, err
+		return pdb, padb, err
 	}
 
 	slog.Info("connect proxy after reboot success")
 	return pdb, padb, nil
 }
 
-func connectProxy() (db *sqlx.DB, err error) {
+func connectProxy() (db *pkg.MySQLMonitorDBH, err error) {
 	db, err = connectDB(
 		config.MonitorConfig.Ip,
 		config.MonitorConfig.Port,
@@ -138,13 +165,13 @@ func connectProxy() (db *sqlx.DB, err error) {
 			slog.String("ip", config.MonitorConfig.Ip),
 			slog.Int("port", config.MonitorConfig.Port),
 		)
-		return nil, err
+		return db, err
 	}
 
 	return db, nil
 }
 
-func connectProxyAdmin() (db *sqlx.DB, err error) {
+func connectProxyAdmin() (db *pkg.MySQLMonitorDBH, err error) {
 	adminPort := config.MonitorConfig.Port + 1000
 	db, err = connectDB(
 		config.MonitorConfig.Ip,
@@ -167,12 +194,12 @@ func connectProxyAdmin() (db *sqlx.DB, err error) {
 			slog.String("ip", config.MonitorConfig.Ip),
 			slog.Int("port", adminPort),
 		)
-		return nil, err
+		return db, err
 	}
 	return db, nil
 }
 
-func connectPair() (pdb *sqlx.DB, padb *sqlx.DB, err error) {
+func connectPair() (pdb *pkg.MySQLMonitorDBH, padb *pkg.MySQLMonitorDBH, err error) {
 	pdb, e := connectProxy()
 	if e != nil {
 		err = errors.Join(err, e)

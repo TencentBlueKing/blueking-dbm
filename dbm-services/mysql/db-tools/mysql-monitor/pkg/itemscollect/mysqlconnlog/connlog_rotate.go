@@ -11,6 +11,7 @@ package mysqlconnlog
 import (
 	"context"
 	"database/sql"
+	"dbm-services/mysql/db-tools/mysql-monitor/pkg"
 	"encoding/json"
 	"fmt"
 	"log/slog"
@@ -31,7 +32,7 @@ import (
 /*
 1. binlog 是 session 变量, 所以只需要禁用就行了
 */
-func mysqlConnLogRotate(db *sqlx.DB) (string, error) {
+func mysqlConnLogRotate(db *pkg.MySQLMonitorDBH) (string, error) {
 	conn, err := prepareRotate(db)
 	if err != nil {
 		return "", err
@@ -76,12 +77,17 @@ func mysqlConnLogRotate(db *sqlx.DB) (string, error) {
 	return "", nil
 }
 
-func prepareRotate(db *sqlx.DB) (conn *sqlx.Conn, err error) {
+func prepareRotate(db *pkg.MySQLMonitorDBH) (conn *sqlx.Conn, err error) {
 	conn, err = db.Connx(context.Background())
 	if err != nil {
 		slog.Error("connlog rotate get conn from db", slog.String("error", err.Error()))
 		return nil, err
 	}
+	defer func() {
+		if err != nil && conn != nil {
+			_ = conn.Close()
+		}
+	}()
 
 	var _r interface{}
 	err = conn.GetContext(
@@ -95,10 +101,10 @@ func prepareRotate(db *sqlx.DB) (conn *sqlx.Conn, err error) {
 			err = errors.Errorf("conn_log table not found")
 			slog.Error(err.Error())
 			return nil, err
-		} else {
-			slog.Error("check conn_log exists", slog.String("error", err.Error()))
-			return nil, err
 		}
+
+		slog.Error("check conn_log exists", slog.String("error", err.Error()))
+		return nil, err
 	}
 
 	_, err = conn.ExecContext(context.Background(), `SET SQL_LOG_BIN=0`)
@@ -129,6 +135,9 @@ func report(conn *sqlx.Conn) error {
 		slog.Error("open conn log report file", slog.String("error", err.Error()))
 		return err
 	}
+	defer func() {
+		_ = f.Close()
+	}()
 	slog.Info("open conn report file", slog.String("file path", f.Name()))
 
 	lf := ratelimit.Writer(f, ratelimit.NewBucketWithRate(float64(speedLimit), speedLimit))

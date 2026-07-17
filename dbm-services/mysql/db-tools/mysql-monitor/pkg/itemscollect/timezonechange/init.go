@@ -1,10 +1,9 @@
 package timezonechange
 
 import (
+	"dbm-services/mysql/db-tools/mysql-monitor/pkg"
 	"os"
 	"path/filepath"
-
-	"github.com/jmoiron/sqlx"
 
 	"dbm-services/mysql/db-tools/mysql-monitor/pkg/monitoriteminterface"
 )
@@ -13,8 +12,8 @@ var nameSysTz = "sys-timezone-change"
 var nameMySQLTz = "mysql-timezone-change"
 
 type Checker struct {
-	db   *sqlx.DB
-	f    func(*sqlx.DB) (string, error)
+	db   *pkg.MySQLMonitorDBH
+	f    func(dbh *pkg.MySQLMonitorDBH) (string, error)
 	name string
 }
 
@@ -27,8 +26,9 @@ func init() {
 	_ = os.MkdirAll(contextBase, 0755)
 }
 
-func (c *Checker) Run() (msg string, err error) {
-	return c.f(c.db)
+func (c *Checker) Run() (warnDB *pkg.MySQLMonitorDBH, msg string, err error) {
+	msg, err = c.f(c.db)
+	return nil, msg, err
 }
 
 func (c *Checker) Name() string {

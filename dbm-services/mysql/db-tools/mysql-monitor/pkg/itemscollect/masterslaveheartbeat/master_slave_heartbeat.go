@@ -4,6 +4,7 @@ package masterslaveheartbeat
 import (
 	"context"
 	"database/sql"
+	"dbm-services/mysql/db-tools/mysql-monitor/pkg"
 
 	//"errors"
 	"fmt"
@@ -18,7 +19,6 @@ import (
 	"dbm-services/mysql/db-tools/mysql-monitor/pkg/monitoriteminterface"
 
 	"github.com/go-sql-driver/mysql"
-	"github.com/jmoiron/sqlx"
 	"github.com/pkg/errors"
 )
 
@@ -42,7 +42,7 @@ var (
 
 // Checker TODO
 type Checker struct {
-	db             *sqlx.DB
+	db             *pkg.MySQLMonitorDBH
 	heartBeatTable string
 }
 
@@ -93,7 +93,7 @@ func (c *Checker) updateHeartbeat() error {
 	binlogSQL := "SET SESSION binlog_format='STATEMENT'"
 	insertSQL := fmt.Sprintf(
 		`REPLACE INTO %s(master_server_id, slave_server_id, master_time, slave_time, delay_sec) 
-VALUES('%s', @@server_id, now(), sysdate(), timestampdiff(SECOND, now(),sysdate()))`,
+VALUES('%s', @@server_id, now(), sysdate(), timestamp(SECOND, now(),sysdate()))`,
 		c.heartBeatTable, masterServerId,
 	)
 
@@ -228,15 +228,17 @@ func (c *Checker) initTableHeartbeat() (sql.Result, error) {
 }
 
 // Run TODO
-func (c *Checker) Run() (msg string, err error) {
-	// check if dbbackup loadbackup running, skip this round
+func (c *Checker) Run() (warnDB *pkg.MySQLMonitorDBH, msg string, err error) {
+	// check if dbbackup load backup running, skip this round
 	slog.Info(name, slog.String("role", *config.MonitorConfig.Role))
 	slog.Info(name, slog.String("machine type", config.MonitorConfig.MachineType))
 	if config.MonitorConfig.MachineType == "spider" {
-		return c.heartBeatOnSpider()
+		msg, err = c.heartBeatOnSpider()
+		return c.db, msg, err
 	}
 
-	return c.heartBeatOnStorage()
+	msg, err = c.heartBeatOnStorage()
+	return c.db, msg, err
 }
 
 func (c *Checker) heartBeatOnSpider() (msg string, err error) {
@@ -279,7 +281,7 @@ func (c *Checker) heartBeatOnStorage() (msg string, err error) {
 		return c.reportHeartbeatDelay()
 
 	default:
-		return "", errors.Errorf("unkown role: %s", *config.MonitorConfig.Role)
+		return "", errors.Errorf("unknown role: %s", *config.MonitorConfig.Role)
 	}
 	return "", nil
 }

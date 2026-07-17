@@ -11,12 +11,11 @@ package mysqlconnlog
 import (
 	"context"
 	"database/sql"
+	"dbm-services/mysql/db-tools/mysql-monitor/pkg"
 	"log/slog"
 
 	"dbm-services/mysql/db-tools/mysql-monitor/pkg/config"
 	"dbm-services/mysql/db-tools/mysql-monitor/pkg/monitoriteminterface"
-
-	"github.com/jmoiron/sqlx"
 )
 
 var nameMySQLConnLogSize = "mysql-connlog-size"
@@ -27,13 +26,13 @@ var speedLimit int64 = 1024 * 1024 * 10
 
 // Checker TODO
 type Checker struct {
-	db   *sqlx.DB
+	db   *pkg.MySQLMonitorDBH
 	name string
-	f    func(*sqlx.DB) (string, error)
+	f    func(dbh *pkg.MySQLMonitorDBH) (string, error)
 }
 
 // Run TODO
-func (c *Checker) Run() (msg string, err error) {
+func (c *Checker) Run() (warnDB *pkg.MySQLMonitorDBH, msg string, err error) {
 	ctx, cancel := context.WithTimeout(context.Background(), config.MonitorConfig.InteractTimeout)
 	defer cancel()
 
@@ -41,7 +40,7 @@ func (c *Checker) Run() (msg string, err error) {
 	err = c.db.QueryRowxContext(ctx, `SELECT @@init_connect`).Scan(&initConnLog)
 	if err != nil {
 		slog.Error("select @@init_connect", slog.String("error", err.Error()))
-		return "", err
+		return nil, "", err
 	}
 	slog.Info(
 		"select @@init_connect",
@@ -54,7 +53,8 @@ func (c *Checker) Run() (msg string, err error) {
 	//	return "", nil
 	//}
 
-	return c.f(c.db)
+	msg, err = c.f(c.db)
+	return nil, msg, err
 }
 
 // Name TODO

@@ -9,6 +9,7 @@
 package definer
 
 import (
+	"dbm-services/mysql/db-tools/mysql-monitor/pkg"
 	"fmt"
 	"log/slog"
 
@@ -18,7 +19,7 @@ import (
 	"github.com/pkg/errors"
 )
 
-func routines(db *sqlx.DB) (msg []string, err error) {
+func routines(db *pkg.MySQLMonitorDBH) (msg []string, err error) {
 	q, args, err := sqlx.In(
 		`SELECT ROUTINE_TYPE, ROUTINE_NAME, ROUTINE_SCHEMA, DEFINER 
 					FROM information_schema.ROUTINES 

@@ -10,17 +10,17 @@ package configreport
 
 import (
 	"context"
+	"dbm-services/mysql/db-tools/mysql-monitor/pkg"
 	"fmt"
 	"strconv"
 	"strings"
 	"time"
 
-	"github.com/jmoiron/sqlx"
 	"github.com/samber/lo"
 )
 
 // QueryMycnfConfig 查询 mysqld 的参数
-func QueryMycnfConfig(variables []string, db *sqlx.DB) (map[string]interface{}, error) {
+func QueryMycnfConfig(variables []string, db *pkg.MySQLMonitorDBH) (map[string]interface{}, error) {
 	inCause := lo.Map(variables, func(item string, _ int) string {
 		return strconv.Quote(item)
 	})

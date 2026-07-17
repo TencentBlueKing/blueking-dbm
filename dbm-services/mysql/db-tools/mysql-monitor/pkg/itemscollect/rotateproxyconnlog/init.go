@@ -2,6 +2,7 @@ package rotateproxyconnlog
 
 import (
 	"bytes"
+	"dbm-services/mysql/db-tools/mysql-monitor/pkg"
 	"dbm-services/mysql/db-tools/mysql-monitor/pkg/config"
 	"dbm-services/mysql/db-tools/mysql-monitor/pkg/monitoriteminterface"
 	"fmt"
@@ -9,17 +10,15 @@ import (
 	"os"
 	"os/exec"
 	"time"
-
-	"github.com/jmoiron/sqlx"
 )
 
 var name = "rotate-proxy-connlog"
 
 type Dummy struct {
-	db *sqlx.DB
+	db *pkg.MySQLMonitorDBH
 }
 
-func (d *Dummy) Run() (msg string, err error) {
+func (d *Dummy) Run() (warnDB *pkg.MySQLMonitorDBH, msg string, err error) {
 	defer func() {
 		_ = d.enableConnlog()
 	}()
@@ -29,10 +28,10 @@ func (d *Dummy) Run() (msg string, err error) {
 	_, err = os.Stat(connLogFilePath)
 	if err != nil {
 		if os.IsNotExist(err) {
-			return "", nil
+			return nil, "", nil
 		}
 		slog.Error("get proxy conn log stat", slog.String("err", err.Error()))
-		return "", err
+		return nil, "", err
 	}
 
 	historyFilePath := fmt.Sprintf(`%s.%d.gz`, connLogFilePath, time.Now().Weekday())
@@ -44,7 +43,7 @@ func (d *Dummy) Run() (msg string, err error) {
 				slog.String("historyFilePath", historyFilePath),
 				slog.String("err", err.Error()),
 			)
-			return "", err
+			return nil, "", err
 		}
 	} else {
 		if time.Now().Sub(st.ModTime()) < 3*24*time.Hour {
@@ -54,19 +53,22 @@ func (d *Dummy) Run() (msg string, err error) {
 				slog.Time("history file mod time", st.ModTime()),
 				slog.String("historyFilePath", historyFilePath),
 			)
-			return "", nil
+			return nil, "", nil
 		}
 	}
 
 	hf, err := os.OpenFile(historyFilePath, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0666)
 	if err != nil {
 		slog.Error("create history file", slog.String("err", err.Error()))
-		return "", err
+		return nil, "", err
 	}
+	defer func() {
+		_ = hf.Close()
+	}()
 
 	err = d.disableConnlog()
 	if err != nil {
-		return "", err
+		return nil, "", err
 	}
 
 	gzCmd := exec.Command("gzip", "-c", connLogFilePath)
@@ -77,11 +79,12 @@ func (d *Dummy) Run() (msg string, err error) {
 	gzCmd.Stderr = &stderr
 	err = gzCmd.Run()
 	if err != nil {
-		slog.Error("gzip connlog",
+		slog.Error(
+			"gzip connlog",
 			slog.String("error", err.Error()),
 			slog.String("stderr", stderr.String()),
 		)
-		return "", err
+		return nil, "", err
 	}
 	slog.Info(
 		"gzip connlog file",
@@ -96,11 +99,11 @@ func (d *Dummy) Run() (msg string, err error) {
 			slog.String("err", err.Error()),
 			slog.String("file", connLogFilePath),
 		)
-		return "", err
+		return nil, "", err
 	}
 	slog.Info("truncate conn log file", slog.String("file", connLogFilePath))
 
-	return "", nil
+	return nil, "", nil
 }
 
 func (d *Dummy) disableConnlog() error {

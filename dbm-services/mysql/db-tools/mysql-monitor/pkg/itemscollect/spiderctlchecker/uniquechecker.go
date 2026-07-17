@@ -1,7 +1,9 @@
 package spiderctlchecker
 
 import (
+	"dbm-services/mysql/db-tools/mysql-monitor/pkg"
 	"dbm-services/mysql/db-tools/mysql-monitor/pkg/config"
+	"fmt"
 	"log/slog"
 	"math/big"
 	"net"
@@ -23,10 +25,10 @@ type UniqueCtlChecker struct {
 	GetCtlPrimaryChecker
 }
 
-func (c *UniqueCtlChecker) Run() (msg string, err error) {
+func (c *UniqueCtlChecker) Run() (warnDB *pkg.MySQLMonitorDBH, msg string, err error) {
 	p, err := c.getPrimary()
 	if err != nil {
-		return "", err
+		return c.db, fmt.Sprintf("get primary failed: %s", err.Error()), nil
 	}
 
 	slog.Info(
@@ -46,7 +48,7 @@ func (c *UniqueCtlChecker) Run() (msg string, err error) {
 		},
 	)
 
-	return "", nil
+	return nil, "", nil
 }
 
 func (c *UniqueCtlChecker) Name() string {

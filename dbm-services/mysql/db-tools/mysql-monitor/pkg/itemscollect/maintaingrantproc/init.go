@@ -2,6 +2,7 @@ package maintaingrantproc
 
 import (
 	"dbm-services/mysql/db-tools/dbactuator/pkg/core/staticembed"
+	"dbm-services/mysql/db-tools/mysql-monitor/pkg"
 	"dbm-services/mysql/db-tools/mysql-monitor/pkg/monitoriteminterface"
 	"errors"
 	"log/slog"
@@ -9,19 +10,18 @@ import (
 	"strings"
 
 	"github.com/go-sql-driver/mysql"
-	"github.com/jmoiron/sqlx"
 )
 
 var name = "maintaingrantproc"
 
 type Checker struct {
-	db *sqlx.DB
+	db *pkg.MySQLMonitorDBH
 }
 
-func (c *Checker) Run() (msg string, err error) {
+func (c *Checker) Run() (warnDB *pkg.MySQLMonitorDBH, msg string, err error) {
 	grantProcContent, err := staticembed.ProcedureSQL.ReadFile(staticembed.GrantProcedureSQLFileName)
 	if err != nil {
-		return "", err
+		return nil, "", err
 	}
 
 	// 兼容
@@ -39,7 +39,7 @@ func (c *Checker) Run() (msg string, err error) {
 	}
 
 	if len(sqls) < 2 {
-		return "", nil // 忽略错误
+		return nil, "", nil
 	}
 
 	// 不管错误
@@ -59,16 +59,16 @@ func (c *Checker) Run() (msg string, err error) {
 					slog.Debug(name, slog.String("sql", sql))
 				} else {
 					slog.Error(name, slog.String("sql", sql), slog.String("error", err.Error()))
-					return "", err // 其他 mysql 错误也要报告下
+					return nil, "", err
 				}
 			} else {
 				slog.Error(name, slog.String("sql", sql), slog.String("error", err.Error()))
-				return "", err // 非 mysql 错误就要报告下了
+				return nil, "", err
 			}
 		}
 	}
 
-	return "", nil
+	return nil, "", nil
 }
 
 func (c *Checker) Name() string {

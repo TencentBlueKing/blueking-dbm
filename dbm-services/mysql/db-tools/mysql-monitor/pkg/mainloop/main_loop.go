@@ -11,6 +11,7 @@ package mainloop
 
 import (
 	"dbm-services/mysql/db-tools/dbactuator/pkg/core/cst"
+	"dbm-services/mysql/db-tools/mysql-monitor/pkg"
 	"dbm-services/mysql/db-tools/mysql-monitor/pkg/itemscollect/update_monitor_config"
 	"fmt"
 	"log/slog"
@@ -51,10 +52,33 @@ func Run(hardcode bool) error {
 		}
 	}()
 
+	if cc == nil {
+		slog.Error("failed to instantiate connection collect", slog.String("err", err.Error()))
+		utils.SendMonitorEvent(
+			"monitor-internal-error",
+			fmt.Sprintf("failed to instantiate connection collect. err: %s", err.Error()),
+			nil,
+		)
+		return err
+	}
+
 	if hardcode {
 		if err != nil && slices.Index(iNames, "db-up") >= 0 {
-			utils.SendMonitorEvent("db-up", err.Error(), nil)
-			return nil
+			eventSent := false
+			for _, h := range []*pkg.MySQLMonitorDBH{cc.MySqlDB, cc.ProxyDB, cc.ProxyAdminDB, cc.CtlDB} {
+				if h != nil && h.DB == nil {
+					eventSent = true
+					utils.SendMonitorEvent(
+						"db-up", err.Error(), map[string]interface{}{
+							"instance_host": h.Host,
+							"instance_port": h.Port,
+						},
+					)
+				}
+			}
+			if !eventSent {
+				utils.SendMonitorEvent("db-up", err.Error(), nil) // 兜底
+			}
 		}
 
 		return hardcodeRun(iNames)
@@ -73,7 +97,7 @@ func hardcodeRun(iNames []string) error {
 	slog.Info("main loop hardcode-run")
 
 	if slices.Index(iNames, "update-monitor-config") >= 0 {
-		msg, err := (&update_monitor_config.Checker{}).Run()
+		_, msg, err := (&update_monitor_config.Checker{}).Run()
 		if err != nil {
 			slog.Error(
 				"main loop",
@@ -123,7 +147,12 @@ func itemsRun(iNames []string, cc *monitoriteminterface.ConnectionCollect) error
 		if idx < 0 {
 			err := fmt.Errorf("item %s not found in items config", iName)
 			slog.Error("run monitor item", slog.String("error", err.Error()))
-			return err
+			utils.SendMonitorEvent(
+				"monitor-internal-error",
+				fmt.Sprintf("item %s not found in items config", iName),
+				nil,
+			)
+			continue
 		}
 		itemConfig := config.ItemsConfig[idx]
 		if !itemConfig.IsMatchRole() {
@@ -132,13 +161,21 @@ func itemsRun(iNames []string, cc *monitoriteminterface.ConnectionCollect) error
 		}
 
 		if constructor, ok := itemscollect.RegisteredItemConstructor()[iName]; ok {
-			msg, err := constructor(cc).Run()
+			warnDB, msg, err := constructor(cc).Run()
+			var customDim map[string]interface{}
+			if warnDB != nil {
+				customDim = map[string]interface{}{
+					"instance_port": warnDB.Port,
+					"instance_host": warnDB.Host,
+				}
+			}
+
 			if err != nil {
 				slog.Error("run monitor item", slog.String("error", err.Error()), slog.String("name", iName))
 				utils.SendMonitorEvent(
 					"monitor-internal-error",
 					fmt.Sprintf("run monitor item %s failed: %s", iName, err.Error()),
-					nil,
+					customDim,
 				)
 				continue
 			}
@@ -148,7 +185,7 @@ func itemsRun(iNames []string, cc *monitoriteminterface.ConnectionCollect) error
 					"run monitor items",
 					slog.String("msg", msg),
 				)
-				utils.SendMonitorEvent(iName, msg, nil)
+				utils.SendMonitorEvent(iName, msg, customDim)
 				continue
 			}
 			slog.Info("run monitor item pass")

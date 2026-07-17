@@ -3,6 +3,7 @@ package ibdstatistic
 
 import (
 	"database/sql"
+	"dbm-services/mysql/db-tools/mysql-monitor/pkg"
 	"encoding/base64"
 	"encoding/json"
 	"log/slog"
@@ -18,7 +19,6 @@ import (
 	"dbm-services/mysql/db-tools/mysql-monitor/pkg/monitoriteminterface"
 
 	"github.com/go-viper/mapstructure/v2"
-	"github.com/jmoiron/sqlx"
 	"github.com/pkg/errors"
 )
 
@@ -34,7 +34,6 @@ import (
 
 var name = "ibd-statistic"
 
-var ibdExt string
 var tableSpaceExt []string
 var partitionPattern *regexp.Regexp
 var defaultMergeRules []*MergeRuleDef
@@ -50,7 +49,6 @@ var systemDBs = []string{
 }
 
 func init() {
-	ibdExt = ".ibd"
 	tableSpaceExt = []string{".ibd", ".myi", ".myd"} // to lower
 	partitionPattern = regexp.MustCompile(`^(.*)#[pP]#.*`)
 }
@@ -76,28 +74,28 @@ type ibdStatistic struct {
 	optionMap        monitoriteminterface.ItemOptions
 	reMergeRulesFrom []*regexp.Regexp
 	reMergeRulesTo   []string
-	db               *sqlx.DB
+	db               *pkg.MySQLMonitorDBH
 }
 
 // Run TODO
-func (c *ibdStatistic) Run() (msg string, err error) {
+func (c *ibdStatistic) Run() (warnDB *pkg.MySQLMonitorDBH, msg string, err error) {
 	var dataDir sql.NullString
 	var dbPort int
 	row := c.db.QueryRowx(`SELECT @@datadir, @@port`)
 	if err := row.Scan(&dataDir, &dbPort); err != nil {
 		slog.Error("ibd-statistic", slog.String("error", err.Error()))
-		return "", err
+		return nil, "", err
 	}
 
 	if !dataDir.Valid {
 		err := errors.Errorf("invalid datadir: '%s'", dataDir.String)
 		slog.Error("ibd-statistic", slog.String("error", err.Error()))
-		return "", err
+		return nil, "", err
 	}
 
 	dbTableSize, dbSize, err := c.collectResult2(dataDir.String)
 	if err != nil {
-		return "", err
+		return nil, "", err
 	}
 
 	if c.TopkNum > 0 {
@@ -111,9 +109,11 @@ func (c *ibdStatistic) Run() (msg string, err error) {
 			dbTableSizeSorted = append(dbTableSizeSorted, dbTableInfo{dbTableName: k, size: v})
 		}
 		// 降序
-		sort.Slice(dbTableSizeSorted, func(i, j int) bool {
-			return dbTableSizeSorted[i].size > dbTableSizeSorted[j].size
-		})
+		sort.Slice(
+			dbTableSizeSorted, func(i, j int) bool {
+				return dbTableSizeSorted[i].size > dbTableSizeSorted[j].size
+			},
+		)
 		dbTableSize = nil
 		dbTableSize = make(map[string]int64) // reuse
 		for i, sz := range dbTableSizeSorted {
@@ -127,10 +127,10 @@ func (c *ibdStatistic) Run() (msg string, err error) {
 	//reportMetrics()
 	err = reportLog2(dbPort, dbTableSize, dbSize)
 	if err != nil {
-		return "", err
+		return nil, "", err
 	}
 
-	return "", nil
+	return nil, "", nil
 }
 
 // Name TODO
@@ -214,16 +214,20 @@ func New(cc *monitoriteminterface.ConnectionCollect) monitoriteminterface.Monito
 			}
 			var mergeRules []*MergeRuleDef
 			if err = yaml.Unmarshal(decodedBytes, &mergeRules); err != nil {
-				slog.Error("ibd-statistic",
-					slog.String("msg", "options.merge_rules unmarshal yaml"), slog.Any("error", err))
+				slog.Error(
+					"ibd-statistic",
+					slog.String("msg", "options.merge_rules unmarshal yaml"), slog.Any("error", err),
+				)
 			} else {
 				opts[k] = mergeRules
 				continue
 			}
 
 			if err = json.Unmarshal(decodedBytes, &mergeRules); err != nil {
-				slog.Error("ibd-statistic",
-					slog.String("msg", "options.merge_rules unmarshal json"), slog.Any("error", err))
+				slog.Error(
+					"ibd-statistic",
+					slog.String("msg", "options.merge_rules unmarshal json"), slog.Any("error", err),
+				)
 			} else {
 				opts[k] = mergeRules
 				continue
@@ -236,8 +240,10 @@ func New(cc *monitoriteminterface.ConnectionCollect) monitoriteminterface.Monito
 
 	var itemObj ibdStatistic
 	if err := mapstructure.Decode(opts, &itemObj); err != nil { // map interface to struct
-		slog.Error("ibd-statistic",
-			slog.String("msg", "options.merge_rules format error"), slog.Any("error", err))
+		slog.Error(
+			"ibd-statistic",
+			slog.String("msg", "options.merge_rules format error"), slog.Any("error", err),
+		)
 		panic(err)
 	}
 	itemObj.db = cc.MySqlDB
@@ -248,11 +254,15 @@ func New(cc *monitoriteminterface.ConnectionCollect) monitoriteminterface.Monito
 	if !itemObj.DisableMergeRules {
 		if len(itemObj.MergeRules) == 0 {
 			itemObj.MergeRules = defaultMergeRules
-			slog.Info("ibd-statistic", slog.String("msg", "use default merge rules"),
-				slog.Int("count", len(itemObj.MergeRules)))
+			slog.Info(
+				"ibd-statistic", slog.String("msg", "use default merge rules"),
+				slog.Int("count", len(itemObj.MergeRules)),
+			)
 		} else {
-			slog.Info("ibd-statistic", slog.String("msg", "use custom merge rules"),
-				slog.Int("count", len(itemObj.MergeRules)))
+			slog.Info(
+				"ibd-statistic", slog.String("msg", "use custom merge rules"),
+				slog.Int("count", len(itemObj.MergeRules)),
+			)
 		}
 	}
 	return &itemObj

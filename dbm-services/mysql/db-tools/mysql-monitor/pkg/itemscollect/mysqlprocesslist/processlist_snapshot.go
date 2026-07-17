@@ -10,6 +10,7 @@ package mysqlprocesslist
 
 import (
 	"database/sql"
+	"dbm-services/mysql/db-tools/mysql-monitor/pkg"
 	"encoding/json"
 	"fmt"
 	"log/slog"
@@ -17,8 +18,6 @@ import (
 	"path/filepath"
 
 	"dbm-services/mysql/db-tools/mysql-monitor/pkg/config"
-
-	"github.com/jmoiron/sqlx"
 )
 
 type mysqlProcess struct {
@@ -63,7 +62,7 @@ func (c *mysqlProcess) JsonString() (string, error) {
 	return string(content), nil
 }
 
-func snapShot(db *sqlx.DB) error {
+func snapShot(db *pkg.MySQLMonitorDBH) error {
 	processList, err := queryProcessList(db)
 	if err != nil {
 		return err
@@ -71,7 +70,8 @@ func snapShot(db *sqlx.DB) error {
 
 	regFilePath := filepath.Join(
 		filepath.Dir(executable),
-		fmt.Sprintf("processlist.%d.reg", config.MonitorConfig.Port))
+		fmt.Sprintf("processlist.%d.reg", config.MonitorConfig.Port),
+	)
 	f, err := os.OpenFile(
 		regFilePath,
 		os.O_CREATE|os.O_TRUNC|os.O_RDWR,
@@ -85,6 +85,9 @@ func snapShot(db *sqlx.DB) error {
 		)
 		return err
 	}
+	defer func() {
+		_ = f.Close()
+	}()
 
 	content, err := json.Marshal(processList)
 	if err != nil {
@@ -123,9 +126,10 @@ func loadSnapShot() ([]*mysqlProcess, error) {
 	return res, nil
 }
 
-func queryProcessList(db *sqlx.DB) ([]mysqlProcess, error) {
+func queryProcessList(db *pkg.MySQLMonitorDBH) ([]mysqlProcess, error) {
 	rows, err := db.Queryx(
-		`SELECT ID, USER, HOST, DB, COMMAND, TIME, STATE, INFO FROM INFORMATION_SCHEMA.PROCESSLIST`)
+		`SELECT ID, USER, HOST, DB, COMMAND, TIME, STATE, INFO FROM INFORMATION_SCHEMA.PROCESSLIST`,
+	)
 	if err != nil {
 		slog.Error("show full processlist", slog.String("error", err.Error()))
 		return nil, err

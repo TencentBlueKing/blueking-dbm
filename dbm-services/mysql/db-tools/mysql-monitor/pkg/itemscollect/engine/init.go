@@ -10,6 +10,7 @@ package engine
 
 import (
 	"database/sql"
+	"dbm-services/mysql/db-tools/mysql-monitor/pkg"
 	"dbm-services/mysql/db-tools/mysql-monitor/pkg/config"
 	"dbm-services/mysql/db-tools/mysql-monitor/pkg/monitoriteminterface"
 	"encoding/json"
@@ -20,7 +21,6 @@ import (
 	"regexp"
 	"slices"
 
-	"github.com/jmoiron/sqlx"
 	"github.com/pkg/errors"
 )
 
@@ -42,7 +42,7 @@ var systemDBs = []string{
 
 // Checker TODO
 type Checker struct {
-	db *sqlx.DB
+	db *pkg.MySQLMonitorDBH
 }
 
 func init() {
@@ -51,7 +51,7 @@ func init() {
 }
 
 // Run TODO
-func (c *Checker) Run() (msg string, err error) {
+func (c *Checker) Run() (warnDB *pkg.MySQLMonitorDBH, msg string, err error) {
 	var report = &engineReport{}
 
 	regFilePath := filepath.Join(
@@ -63,7 +63,7 @@ func (c *Checker) Run() (msg string, err error) {
 		os.O_CREATE|os.O_TRUNC|os.O_RDWR,
 		0777)
 	if err != nil {
-		return "", errors.Wrap(err, "failed to open reg file")
+		return nil, "", err
 	}
 	defer func() {
 		jsonString, _ := json.Marshal(*report)
@@ -75,19 +75,19 @@ func (c *Checker) Run() (msg string, err error) {
 	err = c.db.Get(&dataDir, `SELECT @@datadir`)
 	if err != nil {
 		slog.Error("ibd-statistic", slog.String("error", err.Error()))
-		return "", err
+		return nil, "", err
 	}
 
 	if !dataDir.Valid {
 		err := errors.Errorf("invalid datadir: '%s'", dataDir.String)
 		slog.Error("ibd-statistic", slog.String("error", err.Error()))
-		return "", err
+		return nil, "", err
 	}
 	slog.Info("engine", slog.String("datadir", dataDir.String))
 
 	report, err = c.idEngine(dataDir.String)
 	if err != nil {
-		return "", err
+		return nil, "", err
 	}
 
 	sid := slices.IndexFunc(report.Summaries, func(summary *engineSummary) bool {
@@ -104,7 +104,7 @@ func (c *Checker) Run() (msg string, err error) {
 		)
 	}
 
-	return msg, nil
+	return nil, msg, nil
 }
 
 // Name TODO

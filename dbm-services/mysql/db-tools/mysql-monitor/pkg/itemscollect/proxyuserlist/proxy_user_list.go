@@ -2,48 +2,42 @@
 package proxyuserlist
 
 import (
+	"dbm-services/mysql/db-tools/mysql-monitor/pkg"
 	"fmt"
 	"log/slog"
 	"strings"
 
 	"dbm-services/mysql/db-tools/mysql-monitor/pkg/monitoriteminterface"
-
-	"github.com/jmoiron/sqlx"
 )
 
 var name = "proxy-user-list"
 
 // Checker TODO
 type Checker struct {
-	adminDB *sqlx.DB
-	db      *sqlx.DB
+	adminDB *pkg.MySQLMonitorDBH
+	db      *pkg.MySQLMonitorDBH
 }
 
 // Run TODO
-func (c *Checker) Run() (msg string, err error) {
+func (c *Checker) Run() (warnDB *pkg.MySQLMonitorDBH, msg string, err error) {
 	err = c.cleanOldBackup()
 	if err != nil {
-		return "", err
+		return c.db, "", err
 	}
 
 	usersFromMem, err := c.loadUsersFromMem()
 	if err != nil {
-		return "", err
+		return c.db, "", err
 	}
 
 	err = c.backupToBackend(usersFromMem)
 	if err != nil {
-		return "", err
+		return nil, "", err
 	}
-
-	//err = c.backupToBackend(usersFromMem)
-	//if err != nil {
-	//	return "", err
-	//}
 
 	usersFromFile, err := c.loadUsersFromFile()
 	if err != nil {
-		return "", err
+		return c.db, "", err
 	}
 
 	onlyInMem, onlyInFile := c.compareMemAndFile(usersFromMem, usersFromFile)
@@ -57,12 +51,14 @@ func (c *Checker) Run() (msg string, err error) {
 		slog.Info("user only in memory", slog.String("users", strings.Join(onlyInMem, ",")))
 		err := c.refreshUsersToFile(onlyInMem)
 		if err != nil {
-			msgs = append(msgs,
-				fmt.Sprintf("refresh users [%v] failed: %s", onlyInMem, err.Error()))
+			msgs = append(
+				msgs,
+				fmt.Sprintf("refresh users [%v] failed: %s", onlyInMem, err.Error()),
+			)
 		}
 	}
 
-	return strings.Join(msgs, "\n"), nil
+	return nil, strings.Join(msgs, "\n"), nil
 }
 
 // Name TODO

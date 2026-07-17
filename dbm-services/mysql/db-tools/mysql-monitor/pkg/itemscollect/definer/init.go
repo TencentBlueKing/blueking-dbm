@@ -1,14 +1,11 @@
 package definer
 
 import (
-	"fmt"
+	"dbm-services/mysql/db-tools/mysql-monitor/pkg"
 	"strings"
 	"sync"
 
 	"dbm-services/mysql/db-tools/mysql-monitor/pkg/monitoriteminterface"
-
-	"github.com/jmoiron/sqlx"
-	"github.com/pkg/errors"
 )
 
 var nameRoutine = "routine-definer"
@@ -22,26 +19,26 @@ var once sync.Once
 
 // Checker TODO
 type Checker struct {
-	db   *sqlx.DB
+	db   *pkg.MySQLMonitorDBH
 	name string
-	f    func(*sqlx.DB) ([]string, error)
+	f    func(dbh *pkg.MySQLMonitorDBH) ([]string, error)
 }
 
 // Run TODO
-func (c *Checker) Run() (msg string, err error) {
+func (c *Checker) Run() (warnDB *pkg.MySQLMonitorDBH, msg string, err error) {
 	once.Do(func() {
 		snapErr = snapshot(c.db)
 	})
 	if snapErr != nil {
-		return "", snapErr
+		return nil, "", snapErr
 	}
 
 	msgSlice, err := c.f(c.db)
 	if err != nil {
-		return "", errors.Wrap(err, fmt.Sprintf("run %s", c.name))
+		return nil, "", err
 	}
 
-	return strings.Join(msgSlice, ". "), nil
+	return nil, strings.Join(msgSlice, ". "), nil
 }
 
 // Name TODO

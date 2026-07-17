@@ -9,13 +9,11 @@
 package spiderremote
 
 import (
+	"dbm-services/mysql/db-tools/mysql-monitor/pkg"
 	"encoding/json"
 	"fmt"
 	"hash/crc32"
 	"log/slog"
-
-	"github.com/jmoiron/sqlx"
-	"github.com/pkg/errors"
 
 	"dbm-services/mysql/db-tools/mysql-monitor/pkg/config"
 	"dbm-services/mysql/db-tools/mysql-monitor/pkg/monitoriteminterface"
@@ -32,10 +30,10 @@ import (
 var name = "spider-remote"
 
 type spiderRemoteCheck struct {
-	db *sqlx.DB
+	db *pkg.MySQLMonitorDBH
 }
 
-func (c *spiderRemoteCheck) Run() (msg string, err error) {
+func (c *spiderRemoteCheck) Run() (warnDB *pkg.MySQLMonitorDBH, msg string, err error) {
 	var res []struct {
 		ServerName string `db:"Server_name"`
 		Host       string `db:"Host"`
@@ -45,12 +43,12 @@ func (c *spiderRemoteCheck) Run() (msg string, err error) {
 		&res,
 		`SELECT Server_name, Host, Port FROM mysql.servers WHERE Wrapper = 'mysql' ORDER BY Server_name`)
 	if err != nil {
-		return "", errors.Wrap(err, "query mysql.servers")
+		return nil, "", err
 	}
 
 	if len(res) <= 0 {
 		msg = fmt.Sprintf("remote routine not found in mysql.servers")
-		return msg, nil
+		return nil, msg, nil
 	}
 
 	b, err := json.Marshal(res)
@@ -59,7 +57,7 @@ func (c *spiderRemoteCheck) Run() (msg string, err error) {
 			slog.String("error", err.Error()),
 			slog.Any("res", res),
 		)
-		return "", err
+		return nil, "", err
 	}
 
 	remoteCrc := crc32.ChecksumIEEE(b)
@@ -75,7 +73,7 @@ func (c *spiderRemoteCheck) Run() (msg string, err error) {
 		},
 	)
 
-	return msg, nil
+	return nil, msg, nil
 }
 
 func (c *spiderRemoteCheck) Name() string {

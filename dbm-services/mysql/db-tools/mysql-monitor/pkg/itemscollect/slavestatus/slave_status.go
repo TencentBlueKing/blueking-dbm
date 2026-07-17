@@ -9,6 +9,7 @@
 package slavestatus
 
 import (
+	"dbm-services/mysql/db-tools/mysql-monitor/pkg"
 	"fmt"
 	"log/slog"
 	"slices"
@@ -22,7 +23,6 @@ import (
 
 	"dbm-services/mysql/db-tools/mysql-monitor/pkg/monitoriteminterface"
 
-	"github.com/jmoiron/sqlx"
 	"github.com/pkg/errors"
 )
 
@@ -30,22 +30,22 @@ var slaveStatusName = "slave-status"
 var skipErrNos = []int{1062, 1235}
 
 type slaveStatusChecker struct {
-	db          *sqlx.DB
+	db          *pkg.MySQLMonitorDBH
 	slaveStatus map[string]interface{}
 }
 
 // Run 运行
-func (s *slaveStatusChecker) Run() (msg string, err error) {
+func (s *slaveStatusChecker) Run() (warnDB *pkg.MySQLMonitorDBH, msg string, err error) {
 	err = s.fetchSlaveStatus()
 	if err != nil {
-		return "", err
+		return nil, "", err
 	}
 
 	if s.slaveStatus == nil || len(s.slaveStatus) == 0 {
 		if s.isDBHASwitched() {
-			return "", nil
+			return nil, "", nil
 		}
-		return "empty slave status", nil
+		return nil, "empty slave status", nil
 	}
 
 	if !s.isOk() {
@@ -68,19 +68,19 @@ func (s *slaveStatusChecker) Run() (msg string, err error) {
 					)
 				} else {
 					slog.Info("skip err success")
-					return "", nil
+					return nil, "", nil
 				}
 			}
 		}
 
 		slaveErr, err := s.collectError()
 		if err != nil {
-			return "", err
+			return nil, "", err
 		}
-		return fmt.Sprintf("IO/SQL thread not running: %s", slaveErr), nil
+		return nil, fmt.Sprintf("IO/SQL thread not running: %s", slaveErr), nil
 	}
 
-	return "", nil
+	return nil, "", nil
 }
 
 func (s *slaveStatusChecker) skipErr() error {
@@ -258,7 +258,7 @@ func (s *slaveStatusChecker) isDBHASwitched() bool {
 		return false
 	}
 
-	msg, err := monitorConfigUpdater.Run()
+	_, msg, err := monitorConfigUpdater.Run()
 	if err != nil {
 		slog.Error("is dbha switch", slog.String("error", err.Error()))
 		return false
