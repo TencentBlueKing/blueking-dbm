@@ -32,11 +32,14 @@ from backend.utils.string import split_str_to_list
 
 
 class QSearchHandler(object):
-    def __init__(self, bk_biz_ids=None, db_types=None, resource_types=None, filter_type=None, limit=None, user=None):
+    def __init__(
+        self, bk_biz_ids=None, db_types=None, resource_types=None, filter_type=None, limit=None, offset=0, user=None
+    ):
         self.db_types = db_types
         self.resource_types = resource_types
         self.filter_type = filter_type
         self.limit = limit or constants.DEFAULT_LIMIT
+        self.offset = offset
         self.user = user
 
         # db_type -> cluster_type
@@ -49,6 +52,8 @@ class QSearchHandler(object):
 
     def search(self, keyword: str):
         result = {}
+        # 资源类型 -> 匹配总数（未截断），供前端展示命中数量
+        count_result = {}
         target_resource_types = self.resource_types or ResourceType.get_values()
         keyword_list = split_str_to_list(keyword)
         # 当搜索关键字数量大于一定数量时，只允许精确搜索（模糊搜索查询效率太差）
@@ -58,11 +63,45 @@ class QSearchHandler(object):
         for target_resource_type in target_resource_types:
             filter_func = getattr(self, f"filter_{target_resource_type}", None)
             if not self.permission and target_resource_type != ResourceType.MACHINE.value:
+                # 无权限（机器资源除外）时直接返回空，命中数为 0
                 result[target_resource_type] = []
+                count_result[target_resource_type] = 0
             elif callable(filter_func):
-                result[target_resource_type] = filter_func(keyword_list)
+                data_list, total = filter_func(keyword_list)
+                result[target_resource_type] = data_list
+                count_result[target_resource_type] = total
 
+        result["count"] = count_result
         return result
+
+    def search_result(self, keyword: str, resource_type: str, limit: int = 10, offset: int = 0):
+        """结果页查询：按单个资源类型筛选，并按 limit / offset 分页
+
+        返回 (当前页数据列表, 匹配总数)
+        """
+        if resource_type not in ResourceType.get_values():
+            return [], 0
+
+        keyword_list = split_str_to_list(keyword)
+        # 当搜索关键字数量大于一定数量时，只允许精确搜索（模糊搜索查询效率太差）
+        if len(keyword_list) > constants.CONTAINS_SEARCH_MAX_SIZE:
+            self.filter_type = FilterType.EXACT.value
+
+        filter_func = getattr(self, f"filter_{resource_type}", None)
+        if not self.permission and resource_type != ResourceType.MACHINE.value:
+            return [], 0
+        if not callable(filter_func):
+            return [], 0
+
+        self.offset = offset
+        self.limit = limit
+        return filter_func(keyword_list)
+
+    def _slice(self, objs):
+        """按 self.offset / self.limit 切片；limit 为 -1 时返回全量"""
+        if self.limit == -1:
+            return objs
+        return objs[self.offset : self.offset + self.limit]
 
     def get_permission_biz_ids(self, bk_biz_ids, filter_type):
         """获取有权限的业务id"""
@@ -154,22 +193,30 @@ class QSearchHandler(object):
 
         return qs
 
-    def common_filter(self, objs, return_type="list", fields=None, limit=None):
+    def common_filter(self, objs, return_type="list", fields=None, limit=None, offset=None):
         """
         return_type: list | objects
+        返回 (数据列表, 匹配总数)，总数不受 limit 截断影响
         """
         if self.bk_biz_ids:
             objs = objs.filter(bk_biz_id__in=self.bk_biz_ids)
         if self.db_types:
             objs = objs.filter(cluster_type__in=self.cluster_types)
 
-        limit = limit or self.limit
+        limit = self.limit if limit is None else limit
+        offset = offset or self.offset
+        total = objs.count()
+
+        # limit 为 None 表示不分页（返回全量）
+        sliced = self._slice(objs)
 
         if return_type == "objects":
-            return objs[:limit]
+            return sliced, total
 
         fields = fields or []
-        return list(objs[:limit].values(*fields))
+        if isinstance(sliced, list):
+            return sliced, total
+        return list(sliced.values(*fields)), total
 
     def supplementary_fields(self, objects_list: list):
         """补充 主dba和db类型字段"""
@@ -230,10 +277,18 @@ class QSearchHandler(object):
                     pass
         resource_cls.cluster_types = cluster_types
 
-        # 获取集群ID列表，调用 _list_clusters 进行序列化
-        cluster_ids = list(objs.values_list("id", flat=True)[: self.limit])
+        # 统计匹配总数（不受 limit 截断影响），但需先应用业务 / db_type 过滤
+        total_objs = objs
+        if self.bk_biz_ids:
+            total_objs = total_objs.filter(bk_biz_id__in=self.bk_biz_ids)
+        if self.db_types:
+            total_objs = total_objs.filter(cluster_type__in=self.cluster_types)
+        total = total_objs.count()
+
+        # 获取集群ID列表（按分页 offset/limit 切片，limit 为 None 时取全量），调用 _list_clusters 进行序列化
+        cluster_ids = list(self._slice(objs.values_list("id", flat=True)))
         if not cluster_ids:
-            return []
+            return [], total
 
         # 构造 query_params，通过 id__in 来精确查询
         query_params = {"id": ",".join(map(str, cluster_ids))}
@@ -244,7 +299,7 @@ class QSearchHandler(object):
             offset=0,
         )
 
-        return self.supplementary_fields(resource_list.data)
+        return self.supplementary_fields(resource_list.data), total
 
     def _build_tag_filter(self, keyword_list: list) -> Q:
         """构建标签过滤条件，支持 标签:标签值 格式
@@ -348,16 +403,19 @@ class QSearchHandler(object):
             StorageInstance.objects.prefetch_related("cluster", "machine")
             .annotate(role=F("instance_role"), **common_fields)
             .filter(qs)
-            .values(*fields)[: self.limit]
         )
         proxy_objs = (
             ProxyInstance.objects.prefetch_related("cluster", "machine")
             .annotate(role=F("access_layer"), **common_fields)
             .filter(qs)
-            .values(*fields)[: self.limit]
         )
 
-        return self.supplementary_fields(list(storage_objs) + list(proxy_objs))
+        # 统计匹配总数（storage + proxy 各自命中数之和，不受 limit 截断影响）
+        total = storage_objs.count() + proxy_objs.count()
+        combined = list(storage_objs.values(*fields)) + list(proxy_objs.values(*fields))
+        combined = self._slice(combined)
+
+        return self.supplementary_fields(combined), total
 
     def filter_task(self, keyword_list: list):
         """过滤任务"""
@@ -366,31 +424,35 @@ class QSearchHandler(object):
         if self.bk_biz_ids:
             objs = objs.filter(bk_biz_id__in=self.bk_biz_ids)
 
+        total = objs.count()
+
         results = list(
-            objs[: self.limit].values(
+            self._slice(objs).values(
                 "uid", "bk_biz_id", "ticket_type", "root_id", "status", "created_by", "created_at"
             )
         )
         # 补充 ticket_type_display
         for ticket in results:
             ticket["ticket_type_display"] = TicketType.get_choice_label(ticket["ticket_type"])
-        return results
+        return results, total
 
     def filter_machine(self, keyword_list: list):
         """过滤主机"""
         qs = self.generate_filter_for_ip_port("ip", keyword_list, not_port=True)
-        objs = DirtyMachine.objects.filter(qs)[: self.limit]
+        objs = DirtyMachine.objects.filter(qs)
+        total = objs.count()
+        objs = self._slice(objs)
         machine_data = ListMachinePoolSerializer(objs, many=True).data
         # 补充主机agent状态
         ResourceQueryHelper.fill_agent_status(machine_data, fill_key="agent_status")
 
-        return machine_data
+        return machine_data, total
 
     def filter_ticket(self, keyword_list: list):
         """过滤单据，单号为递增数字，采用startswith过滤"""
         ticket_ids = [int(keyword) for keyword in keyword_list if isinstance(keyword, int) or keyword.isdigit()]
         if not ticket_ids:
-            return []
+            return [], 0
 
         if self.filter_type == FilterType.EXACT.value:
             qs = Q(id__in=ticket_ids)
@@ -402,12 +464,13 @@ class QSearchHandler(object):
         if self.bk_biz_ids:
             qs = qs & Q(bk_biz_id__in=self.bk_biz_ids)
         tickets = Ticket.objects.filter(qs).order_by("id")
+        total = tickets.count()
         results = list(
-            tickets[: self.limit].values(
+            self._slice(tickets).values(
                 "id", "creator", "create_at", "bk_biz_id", "ticket_type", "group", "status", "is_reviewed"
             )
         )
         # 补充 ticket_type_display
         for ticket in results:
             ticket["ticket_type_display"] = TicketType.get_choice_label(ticket["ticket_type"])
-        return results
+        return results, total
