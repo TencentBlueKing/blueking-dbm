@@ -31,7 +31,7 @@ dependencies:
   - condition: dbconfig.enabled
     name: dbconfig
     repository: file://charts/dbconfig
-    version: 0.1.14
+    version: 0.1.15
   - condition: dbpriv.enabled
     name: dbpriv
     repository: file://charts/dbpriv
@@ -103,5 +103,5 @@ dependencies:
 description: A Helm chart for bk-dbm
 name: bk-dbm
 type: application
-version: 1.5.0-tenant.15
-appVersion: 1.5.0-tenant.15
+version: 1.5.0-alpha.92
+appVersion: 1.5.0-alpha.92
