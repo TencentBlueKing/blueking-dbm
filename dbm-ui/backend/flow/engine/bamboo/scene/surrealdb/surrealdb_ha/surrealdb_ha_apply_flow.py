@@ -18,20 +18,18 @@ from backend.flow.consts import DnsOpType
 from backend.flow.engine.bamboo.scene.common.builder import Builder
 from backend.flow.engine.bamboo.scene.surrealdb.surrealdb_base_flow import K8sSurrealDBBaseFlow
 from backend.flow.plugins.components.collections.surrealdb.surrealdb_apply_clb import ApplySurrealDBClbComponent
-from backend.flow.plugins.components.collections.surrealdb.surrealdb_ha.surrealdb_deploy_ha import (
-    DeployK8sSurrealdbHaComponent,
-)
+from backend.flow.plugins.components.collections.surrealdb.surrealdb_clb_detail import GetSurrealDBClbDetailComponent
+from backend.flow.plugins.components.collections.surrealdb.surrealdb_dns_manage import SurrealDBDnsManageComponent
 from backend.flow.plugins.components.collections.surrealdb.surrealdb_expose_service import (
     ExposeSurrealDBServiceComponent,
 )
-from backend.flow.plugins.components.collections.surrealdb.surrealdb_clb_detail import (
-    GetSurrealDBClbDetailComponent,
+from backend.flow.plugins.components.collections.surrealdb.surrealdb_ha.surrealdb_db_meta import (
+    SurrealdbDBMetaComponent,
 )
-from backend.flow.plugins.components.collections.surrealdb.surrealdb_ha.surrealdb_db_meta import SurrealdbDBMetaComponent
-from backend.flow.plugins.components.collections.surrealdb.surrealdb_dns_manage import SurrealDBDnsManageComponent
-from backend.flow.plugins.components.collections.surrealdb.surrealdb_sync_cluster import (
-    SurrealDBSyncClusterComponent,
+from backend.flow.plugins.components.collections.surrealdb.surrealdb_ha.surrealdb_deploy_ha import (
+    DeployK8sSurrealdbHaComponent,
 )
+from backend.flow.plugins.components.collections.surrealdb.surrealdb_sync_cluster import SurrealDBSyncClusterComponent
 from backend.flow.utils.surrealdb.surrealdb_context_dataclass import (
     DnsKwargs,
     K8sSurrealDBActKwargs,
@@ -120,4 +118,3 @@ class K8sSurrealdbApplyFlow(K8sSurrealDBBaseFlow):
         )
 
         surrealdb_pipeline.run_pipeline()
-

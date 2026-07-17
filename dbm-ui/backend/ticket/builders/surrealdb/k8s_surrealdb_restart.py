@@ -23,6 +23,7 @@ from backend.ticket.constants import TicketType
 
 class K8sSurrealDBRestartDetailSerializer(TicketBaseValidateSerializerMixin, serializers.Serializer):
     cluster_id = serializers.IntegerField(help_text=_("集群ID"))
+    clusters = serializers.DictField(help_text=_("集群信息"), required=False, default=dict)
 
 
 class K8sSurrealDBRestartFlowParamBuilder(builders.FlowParamBuilder):
