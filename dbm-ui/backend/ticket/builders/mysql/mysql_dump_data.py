@@ -84,6 +84,7 @@ class MySQLDumpDataFlowBuilder(BaseMySQLTicketFlowBuilder):
     inner_flow_name = _("数据导出执行")
     itsm_flow_maintainer_builder = MySQLDumpDataItsmMaintainerFlowParamsBuilder
     itsm_flow_productor_builder = MySQLDumpDataItsmProductorFlowParamsBuilder
+    validator = MySQLController.dbconsole_dump_scene.validator
     editable = False
 
     def init_ticket_flows(self):
