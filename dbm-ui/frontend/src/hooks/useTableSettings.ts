@@ -16,7 +16,21 @@ import { useUserProfile } from '@stores';
 interface Settings {
   checked?: string[];
   disabled?: string[];
+  fontSize?: 'large' | 'medium';
+  order?: string[];
+  rowSize?: 'large' | 'medium' | 'mini' | 'small';
+  /**
+   * 兼容历史用户配置，新增配置统一使用 rowSize。
+   */
   size?: 'medium' | 'mini' | 'small';
+}
+
+interface SettingsChangePayload {
+  columns?: string[];
+  fontSize?: Settings['fontSize'];
+  order?: string[];
+  rowSize?: Settings['rowSize'];
+  size?: Settings['size'];
 }
 
 /**
@@ -27,24 +41,35 @@ export const useTableSettings = (key: string, defaultSettings: Settings) => {
 
   // 获取用户配置的表头信息
   const settings = computed<Settings>(() => {
+    const profileSettings = userProfileStore.profile[key];
+    const rowSize =
+      profileSettings?.rowSize ?? profileSettings?.size ?? defaultSettings.rowSize ?? defaultSettings.size ?? 'small';
+
     return {
-      checked: userProfileStore.profile[key]?.checked || defaultSettings.checked,
+      checked: profileSettings?.checked ?? defaultSettings.checked,
       disabled: defaultSettings.disabled,
-      size: userProfileStore.profile[key]?.size || defaultSettings.size || 'small',
+      fontSize: profileSettings?.fontSize ?? defaultSettings.fontSize ?? 'medium',
+      order: profileSettings?.order ?? defaultSettings.order,
+      rowSize,
+      size: rowSize === 'large' ? undefined : rowSize,
     };
   });
 
   /**
    * 更新表头设置
    */
-  const updateTableSettings = (payload?: { columns?: string[]; size?: string }) => {
+  const updateTableSettings = (payload?: SettingsChangePayload) => {
     if (!payload) return;
 
+    const rowSize = payload.rowSize ?? payload.size;
     userProfileStore.updateProfile({
       label: key,
       values: {
         checked: payload.columns,
-        size: payload.size,
+        fontSize: payload.fontSize,
+        order: payload.order,
+        rowSize,
+        size: rowSize,
       },
     });
   };

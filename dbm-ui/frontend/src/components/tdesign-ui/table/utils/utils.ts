@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 /*
  * Tencent is pleased to support the open source community by making
  * 蓝鲸智云PaaS平台 (BlueKing PaaS) available.
@@ -31,10 +30,13 @@ export const camelCase = (str: string) => {
 
 export const camelCaseObject = <T extends Record<string, any>>(obj: T) => {
   if (!obj) return {};
-  return Object.entries(obj).reduce((acc, [key, value]) => {
-    acc[camelCase(key)] = value;
-    return acc;
-  }, {}) as T;
+  return Object.entries(obj).reduce<T>(
+    (acc, [key, value]) => ({
+      ...acc,
+      [camelCase(key)]: value,
+    }),
+    {} as T,
+  );
 };
 
 export const camelCaseArray = <T extends Record<string, any>>(arr: T[]) => {
@@ -44,17 +46,21 @@ export const camelCaseArray = <T extends Record<string, any>>(arr: T[]) => {
 
 export const deleteUndefinedProps = <T extends Record<string, any>>(obj: T) => {
   if (!obj) return obj;
-  return Object.entries(obj).reduce((acc, [key, value]) => {
-    if (value !== undefined) {
-      acc[key] = value;
-    }
-    return acc;
-  }, {}) as T;
+  return Object.entries(obj).reduce<T>(
+    (acc, [key, value]) =>
+      value === undefined
+        ? acc
+        : {
+            ...acc,
+            [key]: value,
+          },
+    {} as T,
+  );
 };
 
 export const makeMap = (list: Array<number | string> = []): Record<number | string, boolean> => {
   const map = Object.create(null);
-  list.forEach(item => {
+  list.forEach((item) => {
     map[item] = true;
   });
   return map;

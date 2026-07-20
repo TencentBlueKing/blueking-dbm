@@ -24,18 +24,20 @@
  * IN THE SOFTWARE.
  */
 export const lang = {
-  字段设置: 'Field Settings',
-  外观设置: 'Appearance Settings',
-  全选: 'Select All',
-  输入关键词: 'Enter keyword',
-  字体大小: 'Font Size',
-  表格行高: 'Row Height',
-  标准: 'Standard',
-  偏大: 'Large',
-  迷你: 'Mini',
-  小: 'Small',
   中: 'Medium',
+  偏大: 'Large',
+  全选: 'Select All',
+  取消: 'Cancel',
+  外观设置: 'Appearance Settings',
   大: 'Large',
+  字体大小: 'Font Size',
+  字段设置: 'Field Settings',
+  小: 'Small',
+  标准: 'Standard',
+  确定: 'Confirm',
+  表格行高: 'Row Height',
+  输入关键词: 'Enter keyword',
+  迷你: 'Mini',
 } as const;
 
 /** 获取 cookie */
