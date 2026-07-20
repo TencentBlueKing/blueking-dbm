@@ -149,6 +149,7 @@ class TicketViewSet(viewsets.AuditedModelViewSet):
             "get_inner_flow_infos",
             "revoke_ticket",
             "ticket_group_types",
+            "check_domain_repeat",
         ]:
             return []
         # 回调和处理无需鉴权
