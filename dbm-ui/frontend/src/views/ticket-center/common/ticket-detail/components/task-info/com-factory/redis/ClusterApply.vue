@@ -107,6 +107,15 @@
           </BkTag>
         </InfoItem>
         <InfoItem
+          v-if="isLoadBalanceShow"
+          :label="t('负载均衡')">
+          {{
+            [ticketDetails.details.apply_clb ? 'CLB' : '', ticketDetails.details.apply_polaris ? t('北极星') : '']
+              .filter((item) => item)
+              .join('，') || '--'
+          }}
+        </InfoItem>
+        <InfoItem
           :label="t('后端存储')"
           style="flex: 1 0 100%">
           <TicketInfoTable
@@ -194,7 +203,7 @@
     redisIpSources,
   } from '@views/db-manage/redis/REDIS_CLUSTER_APPLY/common/const';
 
-  import { firstLetterToUpper } from '@utils';
+  import { checkDbConsole, firstLetterToUpper } from '@utils';
 
   import InfoList, { Item as InfoItem } from '../components/info-list/Index.vue';
   import NotifyRelatedPersons from '../components/NotifyRelatedPersons.vue';
@@ -211,6 +220,7 @@
   const props = defineProps<Props>();
   const { t } = useI18n();
 
+  const isLoadBalanceShow = checkDbConsole('common.clb') || checkDbConsole('common.polaris');
   const backendGroupSpec = props.ticketDetails.details.resource_spec.backend_group.spec_info;
 
   const previewState = reactive({
