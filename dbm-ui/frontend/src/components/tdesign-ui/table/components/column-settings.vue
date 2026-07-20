@@ -41,30 +41,49 @@
               </Input>
             </div>
             <div class="settings-wrapper-content">
-              <CheckboxGroup
+              <div
                 v-if="activeTab === 0"
-                class="content-check-list"
-                :model-value="displayColumns"
-                @change="handleCheckChange">
-                <Checkbox
+                class="content-check-list">
+                <div
                   v-if="hasCheckAll"
                   v-show="!keyword?.length"
-                  check-all
-                  class="content-check-all"
-                  :label="t('全选')"
-                  value="all" />
-                <Checkbox
-                  v-for="column in columns"
-                  v-show="
-                    column.field?.toLocaleLowerCase().includes(keyword.toLocaleLowerCase()) ||
-                    column.label?.toString().toLocaleLowerCase().includes(keyword.toLocaleLowerCase())
-                  "
-                  :key="column.field"
-                  class="content-check-item"
-                  :disabled="!!column.disabled"
-                  :label="typeof column.label === 'string' ? column.label : column.field"
-                  :value="column.field" />
-              </CheckboxGroup>
+                  class="content-check-all">
+                  <Checkbox
+                    :checked="isAllChecked"
+                    :indeterminate="isIndeterminate"
+                    @change="handleCheckAllChange" />
+                  <span>{{ t('全选') }}</span>
+                </div>
+                <CheckboxGroup
+                  class="content-check-group"
+                  :model-value="draftChecked"
+                  @change="handleCheckChange">
+                  <Vuedraggable
+                    v-model="draftColumns"
+                    :animation="150"
+                    :disabled="Boolean(keyword)"
+                    handle=".column-drag-handle"
+                    item-key="field"
+                    :move="handleMove">
+                    <template #item="{ element: column }">
+                      <div
+                        v-show="isColumnMatched(column)"
+                        class="content-check-item"
+                        :class="{ 'is-disabled': column.disabled }">
+                        <Checkbox
+                          :disabled="!!column.disabled"
+                          :value="column.field" />
+                        <span>{{ typeof column.label === 'string' ? column.label : column.field }}</span>
+                        <span
+                          class="column-drag-handle"
+                          :class="{ 'is-disabled': column.disabled || keyword }">
+                          <DbIcon type="drag" />
+                        </span>
+                      </div>
+                    </template>
+                  </Vuedraggable>
+                </CheckboxGroup>
+              </div>
               <div
                 v-else
                 class="appearance-settings">
@@ -72,7 +91,7 @@
                   {{ t('字体大小') }}
                 </div>
                 <div class="appearance-settings-content">
-                  <RadioGroup v-model:value="fontSize">
+                  <RadioGroup v-model:value="draftFontSize">
                     <RadioButton value="medium">{{ t('标准') }}</RadioButton>
                     <RadioButton value="large">{{ t('偏大') }}</RadioButton>
                   </RadioGroup>
@@ -81,7 +100,7 @@
                   {{ t('表格行高') }}
                 </div>
                 <div class="appearance-settings-content">
-                  <RadioGroup v-model:value="rowSize">
+                  <RadioGroup v-model:value="draftRowSize">
                     <RadioButton value="mini">{{ t('迷你') }}</RadioButton>
                     <RadioButton value="small">{{ t('小') }}</RadioButton>
                     <RadioButton value="medium">{{ t('标准') }}</RadioButton>
@@ -106,46 +125,125 @@
   import { SearchIcon, SettingIcon } from 'tdesign-icons-vue-next';
   import type { CheckboxGroupValue, TableProps } from 'tdesign-vue-next';
   import { Checkbox, CheckboxGroup, Input, Popup, RadioButton, RadioGroup } from 'tdesign-vue-next';
-  import { shallowRef } from 'vue';
+  import { computed, ref, shallowRef } from 'vue';
+  import Vuedraggable from 'vuedraggable';
 
   import { t } from '../lang/lang';
-  import type { BkUiSettings, FontSizeEnum, RowSizeEnum } from '../types/table';
+  import type { BkUiSettingsField, FontSizeEnum, RowSizeEnum } from '../types/table';
+
+  interface Props {
+    columns?: BkUiSettingsField[];
+    displayColumns?: TableProps['displayColumns'];
+    fontSize?: FontSizeEnum;
+    hasCheckAll?: boolean;
+    onColumnControllerVisibleChange?: (visible: boolean, trigger: 'cancel' | 'confirm' | 'open') => void;
+    onConfirm?: (settings: {
+      columns: string[];
+      fontSize: FontSizeEnum;
+      order: string[];
+      rowSize: RowSizeEnum;
+    }) => void;
+    order?: string[];
+    rowSize?: RowSizeEnum;
+  }
+
+  interface DragMoveEvent {
+    draggedContext: {
+      element: BkUiSettingsField;
+    };
+    relatedContext: {
+      element?: BkUiSettingsField;
+    };
+  }
 
   defineOptions({
     name: 'ColumnSettings',
     inheritAttrs: true,
   });
 
-  const props = defineProps<
-    Pick<TableProps, 'displayColumns' | 'onDisplayColumnsChange'> & {
-      columns?: BkUiSettings['fields'];
-      hasCheckAll?: boolean;
-      onChange?: () => void;
-    }
-  >();
-  const fontSize = defineModel<FontSizeEnum>('fontSize', {
-    default: 'medium',
-    type: String as () => FontSizeEnum,
+  const props = withDefaults(defineProps<Props>(), {
+    columns: () => [],
+    displayColumns: () => [],
+    fontSize: 'medium',
+    hasCheckAll: true,
+    onColumnControllerVisibleChange: undefined,
+    onConfirm: undefined,
+    order: () => [],
+    rowSize: 'medium',
   });
-  const rowSize = defineModel<RowSizeEnum>('rowSize', {
-    default: 'medium',
-    type: String as () => RowSizeEnum,
-  });
+
   const keyword = shallowRef('');
   const activeTab = shallowRef(0);
   const visible = shallowRef(false);
+  const draftColumns = ref<BkUiSettingsField[]>([]);
+  const draftChecked = ref<string[]>([]);
+  const draftFontSize = shallowRef<FontSizeEnum>('medium');
+  const draftRowSize = shallowRef<RowSizeEnum>('medium');
+
+  const selectableColumns = computed(() => draftColumns.value.filter((column) => !column.disabled));
+  const isAllChecked = computed(
+    () =>
+      selectableColumns.value.length > 0 &&
+      selectableColumns.value.every((column) => draftChecked.value.includes(column.field)),
+  );
+  const isIndeterminate = computed(
+    () => !isAllChecked.value && selectableColumns.value.some((column) => draftChecked.value.includes(column.field)),
+  );
+
+  const handleCheckAllChange = (checked: boolean) => {
+    draftChecked.value = draftColumns.value
+      .filter((column) => checked || column.disabled)
+      .map((column) => column.field);
+  };
 
   const handleCheckChange = (value: CheckboxGroupValue) => {
-    props.onDisplayColumnsChange?.(
-      props.columns?.filter((item) => value?.includes(item.field) || item.disabled).map((item) => item.field) || [],
+    draftChecked.value = draftColumns.value
+      .filter((item) => value?.includes(item.field) || item.disabled)
+      .map((item) => item.field);
+  };
+
+  const initDraft = () => {
+    const columnMap = new Map(props.columns.map((column) => [column.field, column]));
+    const orderedColumns = props.order.map((field) => columnMap.get(field)).filter((column) => column !== undefined);
+    const orderedSet = new Set(orderedColumns);
+    draftColumns.value = orderedColumns.concat(props.columns.filter((column) => !orderedSet.has(column)));
+    const displayColumns = (props.displayColumns ?? []).filter((field): field is string => typeof field === 'string');
+    draftChecked.value = Array.from(
+      new Set(displayColumns.concat(props.columns.filter((column) => column.disabled).map((column) => column.field))),
+    );
+    draftFontSize.value = props.fontSize;
+    draftRowSize.value = props.rowSize;
+    keyword.value = '';
+    activeTab.value = 0;
+  };
+
+  const handleVisibleChange = (nextVisible: boolean) => {
+    if (nextVisible) {
+      initDraft();
+      props.onColumnControllerVisibleChange?.(true, 'open');
+      return;
+    }
+    props.onConfirm?.({
+      columns: draftColumns.value
+        .filter((column) => draftChecked.value.includes(column.field) || column.disabled)
+        .map((column) => column.field),
+      fontSize: draftFontSize.value,
+      order: draftColumns.value.map((column) => column.field),
+      rowSize: draftRowSize.value,
+    });
+    props.onColumnControllerVisibleChange?.(false, 'confirm');
+  };
+
+  const isColumnMatched = (column: BkUiSettingsField) => {
+    const normalizedKeyword = keyword.value.toLocaleLowerCase();
+    return (
+      column.field.toLocaleLowerCase().includes(normalizedKeyword) ||
+      column.label.toString().toLocaleLowerCase().includes(normalizedKeyword)
     );
   };
 
-  const handleVisibleChange = (visible: boolean) => {
-    // 如果隐藏了设置面板，触发 onChange 事件
-    if (!visible) {
-      props.onChange?.();
-    }
+  const handleMove = (event: DragMoveEvent) => {
+    return !event.draggedContext.element.disabled && !event.relatedContext.element?.disabled;
   };
 </script>
 <style lang="less">
@@ -211,12 +309,34 @@
           flex-direction: column;
           gap: 0;
 
+          .content-check-group {
+            display: flex;
+            flex-direction: column;
+          }
+
           .content-check-item,
           .content-check-all {
             display: flex;
             flex: 0 0 32px;
             align-items: center;
             height: 32px;
+          }
+
+          .content-check-item {
+            width: 100%;
+
+            .column-drag-handle {
+              display: inline-flex;
+              padding: 8px 0 8px 16px;
+              margin-left: auto;
+              color: #979ba5;
+              cursor: move;
+
+              &.is-disabled {
+                color: #c4c6cc;
+                cursor: not-allowed;
+              }
+            }
           }
         }
 
