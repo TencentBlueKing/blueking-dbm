@@ -288,19 +288,15 @@ def _check_callee_plan(callee_mcp_id, request, request_slz, checker):
 
     username = request.user.username
 
-    callee_plan = (
-        McpCalleePlan.objects.select_for_update()
-        .filter(
-            username=username,
-            callee_mcp_id=callee_mcp_id,
-            status=McpCalleePlanStatus.APPROVED,
-            time_window_start__lte=now,
-            time_window_end__gte=now,
-        )
-        .first()
+    callee_plans = McpCalleePlan.objects.select_for_update().filter(
+        username=username,
+        callee_mcp_id=callee_mcp_id,
+        status=McpCalleePlanStatus.APPROVED,
+        time_window_start__lte=now,
+        time_window_end__gte=now,
     )
 
-    if not callee_plan:
+    if not callee_plans.exists():
         raise DBMMcpCalleePlanException(
             msg=f"No approved plan found for `{callee_mcp_id}`. "
             f"Before calling this tool, you MUST first announce your execution plan "
@@ -309,29 +305,43 @@ def _check_callee_plan(callee_mcp_id, request, request_slz, checker):
             f"After the plan is approved, retry this call."
         )
 
-    slz_planned = request_slz(data=callee_plan.params)
-    slz_planned.is_valid(raise_exception=True)
-
     slz_requested = request_slz(data=request.data)
     slz_requested.is_valid(raise_exception=True)
 
-    try:
-        checker(slz_planned, slz_requested)
-    except Exception as e:
-        raise DBMMcpCalleePlanException(
-            msg=f"The parameters in this request do not match those registered in the plan. "
-            f"Detail: {e}. "
-            f"You must call this tool with exactly the same parameters you announced, "
-            f"or create a new plan via `register_callee_plan` with the correct parameters."
-        )
+    # 尝试所有的 username, 时间, mcp id 匹配的计划
+    for callee_plan in callee_plans:
+        slz_planned = request_slz(data=callee_plan.params)
+        try:
+            slz_planned.is_valid(raise_exception=True)
+        except Exception as e:  # noqa
+            logger.info(
+                f"exception: {e}, "
+                f"register param {callee_plan.params} not match to {slz_planned} struct, "
+                f"may be the mcp input definition has changed, try next"
+            )
+            continue
 
-    if callee_plan.current_call_count >= callee_plan.max_call_count:
-        raise DBMMcpCalleePlanException(
-            msg=f"The plan for `{callee_mcp_id}` has reached its maximum call count "
-            f"({callee_plan.current_call_count}/{callee_plan.max_call_count}). "
-            f"To continue, create a new plan by calling `register_callee_plan` again."
-        )
+        try:
+            checker(slz_planned, slz_requested)
+        except Exception as e:  # noqa
+            logger.info(
+                f"exception: {e}, "
+                f"param match check failed, "
+                f"plan param={slz_planned.data}, request param= {slz_requested.data}, try next"
+            )
+            continue
 
-    callee_plan.current_call_count = models.F("current_call_count") + 1
-    callee_plan.save(update_fields=["current_call_count"])
-    callee_plan.refresh_from_db()
+        if callee_plan.current_call_count >= callee_plan.max_call_count:
+            logger.exception("call count check failed, try next")
+            continue
+
+        callee_plan.current_call_count = models.F("current_call_count") + 1
+        callee_plan.save(update_fields=["current_call_count"])
+        callee_plan.refresh_from_db()
+        return
+
+    raise DBMMcpCalleePlanException(
+        msg="The parameters in this request do not match those registered in the plan. "
+        "You must call this tool with exactly the same parameters you announced, "
+        "or create a new plan via `register_callee_plan` with the correct parameters."
+    )

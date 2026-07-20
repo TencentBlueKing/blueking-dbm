@@ -15,4 +15,4 @@ from rest_framework import serializers
 class KillConnectionInputSerializer(serializers.Serializer):
     bk_cloud_id = serializers.IntegerField(help_text=_("云区域 ID"))
     address = serializers.CharField(help_text=_("实例地址, ip:port 格式"))
-    connection_id = serializers.IntegerField(help_text=_("要杀死的连接 ID"))
+    connection_ids = serializers.ListField(child=serializers.IntegerField(help_text="要杀死的连接 id 列表"))
