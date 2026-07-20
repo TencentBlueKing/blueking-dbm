@@ -18,14 +18,14 @@ from django.utils.translation import gettext as _
 from backend.components.db_remote_service.client import DRSApi
 from backend.configuration.constants import DBType
 from backend.constants import IP_PORT_DIVIDER
-from backend.db_meta.enums.cluster_type import ClusterType
-from backend.db_meta.enums.instance_role import InstanceRole, TenDBClusterSpiderRole
-from backend.db_meta.models import Cluster, ProxyInstance, StorageInstance
+from backend.db_meta.enums.instance_role import InstanceRole
+from backend.db_meta.models import Cluster
 from backend.db_proxy.constants import ExtensionType
 from backend.db_proxy.models import DBExtension
 from backend.flow.consts import ACCOUNT_PREFIX, LONG_JOB_TIMEOUT
 from backend.flow.engine.bamboo.scene.common.builder import Builder
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
+from backend.flow.engine.bamboo.scene.mysql.common.dbconsole_util import get_dbconsole_read_instance
 from backend.flow.plugins.components.collections.mysql.create_user import AddUserComponent
 from backend.flow.plugins.components.collections.mysql.drop_user import DropUserComponent
 from backend.flow.plugins.components.collections.mysql.exec_actuator_script import ExecuteDBActuatorScriptComponent
@@ -134,28 +134,7 @@ class DbConsoleDumpSqlFlow(object):
         p.run_pipeline(is_drop_random_user=True)
 
     def __get_read_instance(self, cluster: Cluster) -> dict:
-        if cluster.cluster_type == ClusterType.TenDBCluster:
-            backend_info = ProxyInstance.objects.filter(
-                cluster=cluster,
-                tendbclusterspiderext__spider_role=TenDBClusterSpiderRole.SPIDER_SLAVE,
-            ).first()
-            # 如果不存在slave spider,则使用master spider
-            if backend_info is None:
-                backend_info = ProxyInstance.objects.filter(
-                    cluster=cluster,
-                    tendbclusterspiderext__spider_role=TenDBClusterSpiderRole.SPIDER_MASTER,
-                ).first()
-        else:
-            backend_info = StorageInstance.objects.filter(
-                cluster=cluster,
-                instance_role__in=[
-                    InstanceRole.ORPHAN,
-                    InstanceRole.BACKEND_SLAVE,
-                ],
-            ).first()
-        if backend_info is None:
-            raise Exception(_("查询不到可执行的实例！！！"))
-
+        backend_info = get_dbconsole_read_instance(cluster)
         logger.info(f"get backend info: {backend_info}")
         return {
             "id": cluster.id,

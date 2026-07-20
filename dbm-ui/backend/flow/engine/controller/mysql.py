@@ -71,6 +71,7 @@ from backend.flow.engine.bamboo.scene.mysql.mysql_upgrade import MySQLStorageLoc
 from backend.flow.engine.bamboo.scene.mysql.pt_table_sync import PtTableSyncFlow
 from backend.flow.engine.bamboo.scene.mysql.revoke.mysql_ha_apply_revoke_flow import MySQLHAApplyRevokeFlow
 from backend.flow.engine.bamboo.scene.mysql.revoke.mysql_single_apply_revoke_flow import MySQLSingleApplyRevokeFlow
+from backend.flow.engine.bamboo.scene.mysql.validate.dbconsole_dump_validator import DbConsoleDumpFlowValidator
 from backend.flow.engine.bamboo.scene.mysql.validate.mysql_local_upgrade_validator import MySQLLocalUpgradeValidator
 from backend.flow.engine.bamboo.scene.mysql.validate.mysql_proxy_add_validator import MySQLProxyClusterAddFlowValidator
 from backend.flow.engine.bamboo.scene.mysql.validate.mysql_proxy_rebuild_validator import (
@@ -681,6 +682,7 @@ class MySQLController(BaseController):
         flow = DownloadDbactorFlow(root_id=self.root_id, data=self.ticket_data)
         flow.download_dbactor_flow()
 
+    @validates_with(DbConsoleDumpFlowValidator)
     def dbconsole_dump_scene(self):
         """
         dbconsole dump sql
