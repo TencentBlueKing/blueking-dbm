@@ -216,6 +216,8 @@ class ClusterType(StrStructuredEnum):
             cls.Kafka.value: "kafka",
             cls.Doris.value: "doris",
             cls.K8sQdrantHa.value: "qdrant",
+            cls.K8sSurrealdbSingle: "surrealdb",
+            cls.K8sSurrealdbHa: "surrealdb",
         }
 
     @classmethod
