@@ -586,8 +586,8 @@ REDIS_LOAD_QUERY_TEMPLATE = {
     'cluster_domain=~"{cluster_domains}",instance_role="redis_master"}[1m]))',
     # 主机磁盘使用率
     "redis_host_disk": "max by (cluster_domain,bk_target_cloud_id) ("
-    'bkmonitor:exporter_dbm_redis_exporter:redis_datadir_df_usage{cluster_domain="{'
-    'cluster_domain}",instance_role="redis_master"})',
+    'bkmonitor:exporter_dbm_redis_exporter:redis_datadir_df_usage{cluster_domain=~"{'
+    'cluster_domains}",instance_role="redis_master"})',
     # "主机io"
     "redis_host_io": "max by (cluster_domain,ip) (max_over_time(bkmonitor:dbm_system:io:util{"
     'cluster_domain=~"{cluster_domains}",instance_role="redis_master"}[1m]))',
@@ -595,12 +595,12 @@ REDIS_LOAD_QUERY_TEMPLATE = {
     "redis_host_mem": "max by (cluster_domain,ip) (max_over_time(bkmonitor:dbm_system:mem:pct_used{"
     'cluster_domain=~"{cluster_domains}",instance_role="redis_master"}[1m]))',
     # redis proxy主机内存使用率
-    "proxy_host_mem": 'max by (cluster_domain,ip) (max_over_time(bkmonitor:dbm_system:mem:pct_used{cluster_domain="{'
-    'cluster_domain}",instance_role="proxy"}[1m]))',
+    "proxy_host_mem": 'max by (cluster_domain,ip) (max_over_time(bkmonitor:dbm_system:mem:pct_used{cluster_domain=~"{'
+    'cluster_domains}",instance_role="proxy"}[1m]))',
     # redis连接数
     "redis_connections": "sum by (cluster_domain,instance) ("
-    'bkmonitor:exporter_dbm_redis_exporter:redis_connected_clients{cluster_domain="{'
-    'cluster_domain}",instance_role="redis_master"})',
+    'bkmonitor:exporter_dbm_redis_exporter:redis_connected_clients{cluster_domain=~"{'
+    'cluster_domains}",instance_role="redis_master"})',
     # predixy连接数
     "predixy_connections": "sum by (cluster_domain,instance_host) (bkmonitor:exporter_dbm_predixy_exporter"
     ':predixy_cluster_connections{cluster_domain=~"{cluster_domains}"})',
