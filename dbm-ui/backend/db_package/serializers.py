@@ -67,13 +67,15 @@ class SyncMediumSerializer(serializers.Serializer):
         create_at = serializers.DateTimeField(required=False, default=datetime.now(timezone.utc))
         update_at = serializers.DateTimeField(required=False, default=datetime.now(timezone.utc))
         pkg_type = serializers.CharField(help_text=_("包类型"), required=False)
-        distribution_name = serializers.CharField(help_text=_("发行版名称"), required=False, default="DBM")
-        distribution_engine = serializers.CharField(help_text=_("发行版引擎"), required=False, default="DBM")
-        version_series = serializers.CharField(help_text=_("版本系列"), required=False, default="")
-        phase = serializers.CharField(help_text=_("阶段"), required=False, default="release")
-        description = serializers.CharField(help_text=_("描述"), required=False, default="")
-        full_version = serializers.CharField(help_text=_("完整版本(6分式)"), required=False, default="1.0.0.0.0.0")
-        version_name = serializers.CharField(help_text=_("版本名称"), required=False, default="")
+        distribution_name = serializers.CharField(help_text=_("发行版"), required=False, default="DBM", allow_blank=True)
+        distribution_engine = serializers.CharField(help_text=_("引擎"), required=False, default="", allow_blank=True)
+        version_series = serializers.CharField(help_text=_("版本系列"), required=False, default="", allow_blank=True)
+        phase = serializers.CharField(help_text=_("阶段"), required=False, default="release", allow_blank=True)
+        description = serializers.CharField(help_text=_("描述"), required=False, default="", allow_blank=True)
+        full_version = serializers.CharField(
+            help_text=_("完整版本"), required=False, default="1.0.0.0.0.0", allow_blank=True
+        )
+        version_name = serializers.CharField(help_text=_("版本名称"), required=False, default="", allow_blank=True)
 
         class Meta:
             model = Package
