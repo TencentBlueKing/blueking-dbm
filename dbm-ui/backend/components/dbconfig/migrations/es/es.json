@@ -132,6 +132,18 @@
     "level_versioned": "cluster"
   },
   {
+    "conf_type": "dbconf",
+    "conf_file": "9.4.3",
+    "conf_name_validate": 1,
+    "conf_value_validate": 1,
+    "value_type_strict": 0,
+    "description": "es配置文件",
+    "conf_type_lc": "elasticsearch.yml配置",
+    "conf_file_lc": "ES-9.4.3",
+    "level_names": "plat,app,cluster",
+    "level_versioned": "cluster"
+  },
+  {
     "conf_type": "deploy",
     "conf_file": "5.2.1",
     "conf_name_validate": 1,
@@ -260,6 +272,18 @@
     "description": "es8.15.1插件列表",
     "conf_type_lc": "安装插件列表",
     "conf_file_lc": "es-plugin-8.15.1",
+    "level_names": "plat,app,cluster",
+    "level_versioned": "cluster"
+  },
+  {
+    "conf_type": "deploy",
+    "conf_file": "9.4.3",
+    "conf_name_validate": 1,
+    "conf_value_validate": 1,
+    "value_type_strict": 0,
+    "description": "es9.4.3插件列表",
+    "conf_type_lc": "安装插件列表",
+    "conf_file_lc": "es-plugin-9.4.3",
     "level_names": "plat,app,cluster",
     "level_versioned": "cluster"
   }
