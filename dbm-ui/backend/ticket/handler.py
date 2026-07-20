@@ -376,6 +376,33 @@ class TicketHandler:
         return TicketHandler.batch_process_todo(user=username, action=action, operations=operations)
 
     @classmethod
+    def check_ticket_flow_config_cluster_repeat(cls, bk_biz_id, cluster_ids, ticket_type, config_id=None):
+        """给前端预校验使用，返回每个集群是否已命中已有流程配置。"""
+        current_cluster_ids = set(cluster_ids)
+        if not current_cluster_ids:
+            return []
+
+        cluster_configs = TicketFlowsConfig.objects.filter(bk_biz_id=bk_biz_id, ticket_type=ticket_type).exclude(
+            cluster_ids=[]
+        )
+        if config_id is not None:
+            cluster_configs = cluster_configs.exclude(id=config_id)
+
+        existed_cluster_ids = set()
+        for cluster_config in cluster_configs:
+            existed_cluster_ids.update(cluster["id"] for cluster in cluster_config.cluster_ids)
+
+        duplicate_cluster_ids = current_cluster_ids & existed_cluster_ids
+
+        return [
+            {
+                "id": cluster_id,
+                "validate": cluster_id in duplicate_cluster_ids,
+            }
+            for cluster_id in cluster_ids
+        ]
+
+    @classmethod
     def create_ticket_flow_config(
         cls, bk_biz_id, cluster_ids, ticket_types, configs, operator, remark, cluster_tags=None
     ):
@@ -394,14 +421,6 @@ class TicketHandler:
 
         cluster_tags = cluster_tags or []
 
-        def extract_cluster_id_set(clusters):
-            cluster_id_set = set()
-            for cluster in clusters or []:
-                cluster_id = cluster.get("id") if isinstance(cluster, dict) else cluster
-                if cluster_id is not None:
-                    cluster_id_set.add(cluster_id)
-            return cluster_id_set
-
         def check_create_config(ticket_type):
             if not bk_biz_id:
                 raise TicketFlowsConfigException(_("不允许新增平台级别的流程设置"))
@@ -416,18 +435,21 @@ class TicketHandler:
                 raise TicketFlowsConfigException(_("业务级别不允许编辑[人工确认]设置"))
 
             biz_cfg = biz_configs.filter(cluster_ids=[], cluster_tags=[]).first()
-            cluster_configs = biz_configs.exclude(cluster_ids=[])
 
             # 不允许创建相同维度的流程
             if biz_cfg and not cluster_ids and not cluster_tags:
                 raise TicketFlowsConfigException(_("业务[{}]已存在{}的流程配置").format(bk_biz_id, ticket_type))
             if cluster_ids:
-                current_cluster_ids = extract_cluster_id_set(cluster_ids)
-                existed_cluster_ids = set()
-                for cluster_config in cluster_configs:
-                    existed_cluster_ids.update(extract_cluster_id_set(cluster_config.cluster_ids))
-
-                duplicate_cluster_ids = current_cluster_ids & existed_cluster_ids
+                checking_cluster_ids = [
+                    cluster.get("id") if isinstance(cluster, dict) else cluster for cluster in cluster_ids
+                ]
+                duplicate_cluster_ids = [
+                    cluster["id"]
+                    for cluster in cls.check_ticket_flow_config_cluster_repeat(
+                        bk_biz_id=bk_biz_id, cluster_ids=checking_cluster_ids, ticket_type=ticket_type
+                    )
+                    if cluster["validate"]
+                ]
                 if duplicate_cluster_ids:
                     raise TicketFlowsConfigException(
                         _("业务[{}]已存在{}的集群流程配置，重复集群ID: {}").format(
