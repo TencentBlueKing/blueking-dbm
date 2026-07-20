@@ -69,6 +69,7 @@ from backend.ticket.serializers import (
     BatchTicketOperateSerializer,
     BatchTodoOperateSerializer,
     CheckDomainRepeatSerializer,
+    CheckTicketFlowConfigClusterRepeatSerializer,
     ClusterDisableTodoSerializer,
     ClusterModifyOpSerializer,
     CreateTicketFlowConfigSerializer,
@@ -156,6 +157,7 @@ class TicketViewSet(viewsets.AuditedModelViewSet):
             "revoke_ticket",
             "ticket_group_types",
             "check_domain_repeat",
+            "check_ticket_flow_config_cluster_repeat",
         ]:
             return []
         # 回调和处理无需鉴权
@@ -729,6 +731,16 @@ class TicketViewSet(viewsets.AuditedModelViewSet):
         data = self.params_validate(self.get_serializer_class())
         TicketHandler.create_ticket_flow_config(**data, operator=request.user.username)
         return Response()
+
+    @swagger_auto_schema(
+        operation_summary=_("查询单据流程规则集群是否重复"),
+        query_serializer=CheckTicketFlowConfigClusterRepeatSerializer(),
+        tags=[TICKET_TAG],
+    )
+    @action(methods=["GET"], detail=False, serializer_class=CheckTicketFlowConfigClusterRepeatSerializer)
+    def check_ticket_flow_config_cluster_repeat(self, request, *args, **kwargs):
+        data = self.params_validate(self.get_serializer_class())
+        return Response(TicketHandler.check_ticket_flow_config_cluster_repeat(**data))
 
     @swagger_auto_schema(
         operation_summary=_("删除单据流程规则"),
