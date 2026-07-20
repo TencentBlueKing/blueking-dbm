@@ -276,9 +276,7 @@
             <div
               v-else
               class="mb-24">
-              <BkFormItem
-                label="Proxy"
-                required>
+              <BkFormItem label="Proxy">
                 <div class="resource-pool-item">
                   <BkFormItem
                     :label="t('规格')"
@@ -318,11 +316,24 @@
                       type="number" />
                     <span class="input-desc">{{ t('至少n台', { n: 2 }) }}</span>
                   </BkFormItem>
+                  <BkFormItem
+                    v-if="isLoadBalanceShow"
+                    :label="t('负载均衡')"
+                    :required="false">
+                    <BkCheckbox
+                      v-model="formData.details.apply_clb"
+                      v-db-console="'common.clb'">
+                      CLB
+                    </BkCheckbox>
+                    <BkCheckbox
+                      v-model="formData.details.apply_polaris"
+                      v-db-console="'common.polaris'">
+                      {{ t('北极星') }}
+                    </BkCheckbox>
+                  </BkFormItem>
                 </div>
               </BkFormItem>
-              <BkFormItem
-                :label="t('后端存储')"
-                required>
+              <BkFormItem :label="t('后端存储')">
                 <BackendQPSSpec
                   ref="specBackendRef"
                   v-model="formData.details.resource_spec.backend_group"
@@ -434,7 +445,7 @@
   import { QueryKeyMap } from '@views/db-manage/redis/common/const';
   import { serviceApplyKey } from '@views/service-apply/const.ts';
 
-  import { generateId } from '@utils';
+  import { checkDbConsole, generateId } from '@utils';
 
   import { specClusterMachineMap } from '../common/const';
 
@@ -457,6 +468,8 @@
   const route = useRoute();
   const router = useRouter();
 
+  const isLoadBalanceShow = checkDbConsole('common.clb') || checkDbConsole('common.polaris');
+
   useTicketDetail<Redis.ClusterApply>(TicketTypes.REDIS_CLUSTER_APPLY, {
     onSuccess(ticketDetail) {
       const { details } = ticketDetail;
@@ -473,6 +486,8 @@
         },
       });
       Object.assign(formData.details, {
+        apply_clb: details.apply_clb,
+        apply_polaris: details.apply_polaris,
         bk_cloud_id: details.bk_cloud_id,
         city_code: details.city_code,
         cluster_alias: details.cluster_alias,
@@ -528,6 +543,8 @@
   const initData = () => ({
     bk_biz_id: '' as number | '',
     details: {
+      apply_clb: false,
+      apply_polaris: false,
       bk_cloud_id: 0,
       cap_key: '',
       city_code: '',
