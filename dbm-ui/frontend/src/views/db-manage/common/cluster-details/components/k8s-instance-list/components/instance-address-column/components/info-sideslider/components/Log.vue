@@ -122,11 +122,11 @@
   const { loading: isLoading, run: getLogs } = useRequest(getPodLog, {
     manual: true,
     onSuccess(logResult) {
-      // const formattedLogs = formatLogs(logResult.result);
-      // editor.setValue(formattedLogs.join('\n'));
+      const formattedLogs = logResult.result.map((item) => item.message);
+      editor.setValue(formattedLogs.join('\n'));
       // highlightLinesByLevel(editor, formattedLogs);
-      const formattedLogs = logResult.result.map((item) => `${item.timestamp} ${item.message}`).join('\n');
-      editor.setValue(formattedLogs);
+      // const formattedLogs = logResult.result.map((item) => `${item.timestamp} ${item.message}`).join('\n');
+      // editor.setValue(formattedLogs);
     },
   });
 
@@ -192,11 +192,15 @@
     monaco.languages.setMonarchTokensProvider('structured-log', {
       tokenizer: {
         root: [
-          // [/\[\d{4}-\d{2}-\d{2}(?:\s\d{2}:\d{2}:\d{2}(?:\s\+\d{4})?)?\]/, 'log-timestamp'],
-          [/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}/, 'log-timestamp'],
-          // [/\[INFO\]/, 'log-info'],
-          // [/\[WARN\]/, 'log-warn'],
-          // [/\[ERROR\]/, 'log-error'],
+          // 匹配时间戳
+          [/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d+Z/, 'log-timestamp'],
+          // 匹配日志级别：INFO, WARN, ERROR, DEBUG, TRACE
+          [/\s(INFO)\s/, { cases: { $1: 'log-info' } }],
+          [/\s(WARN)\s/, { cases: { $1: 'log-warn' } }],
+          [/\s(ERROR)\s/, { cases: { $1: 'log-error' } }],
+          [/\s(DEBUG|TRACE)\s/, 'log-debug'],
+          // 匹配模块路径：xxx::xxx: 格式（如 actix_web::middleware::logger:）
+          [/[a-zA-Z_]\w*(?:::[a-zA-Z_]\w*)+:/, 'log-module'],
         ],
       },
     });
@@ -207,10 +211,12 @@
       colors: { 'editor.background': '#1E1E1E' },
       inherit: true,
       rules: [
-        { fontStyle: 'bold', foreground: '#858585', token: 'log-timestamp' },
-        // { fontStyle: 'bold', foreground: '2dcb56', token: 'log-info' },
-        // { fontStyle: 'bold', foreground: 'ff9c01', token: 'log-warn' },
-        // { fontStyle: 'bold', foreground: 'ea3636', token: 'log-error' },
+        { foreground: '#858585', token: 'log-timestamp' }, // 时间灰色
+        { foreground: '2dcb56', token: 'log-info' }, // INFO绿色
+        { foreground: '#ff9c01', token: 'log-warn' }, // WARN黄色
+        { foreground: '#ea3636', token: 'log-error' }, // ERROR红色
+        { foreground: '#858585', token: 'log-debug' }, // DEBUG/TRACE灰色
+        { foreground: '#858585', token: 'log-module' }, // 模块路径灰色
       ],
     });
   };

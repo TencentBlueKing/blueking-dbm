@@ -321,14 +321,14 @@
       children: [
         {
           controllerId: 'k8s_surrealdb',
-          icon: 'pulsar',
+          icon: 'node',
           id: k8sType[TicketTypes.K8S_SURREALDB_HA_APPLY].id,
           name: k8sType[TicketTypes.K8S_SURREALDB_HA_APPLY].name,
           routeName: TicketTypes.K8S_SURREALDB_HA_APPLY,
         },
         {
           controllerId: 'k8s_surrealdb',
-          icon: 'kafka',
+          icon: 'cluster',
           id: k8sType[TicketTypes.K8S_SURREALDB_SINGLE_APPLY].id,
           name: k8sType[TicketTypes.K8S_SURREALDB_SINGLE_APPLY].name,
           routeName: TicketTypes.K8S_SURREALDB_SINGLE_APPLY,

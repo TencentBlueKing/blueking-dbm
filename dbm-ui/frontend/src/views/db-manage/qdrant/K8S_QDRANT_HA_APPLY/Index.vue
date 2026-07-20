@@ -25,7 +25,11 @@
             v-model:biz-id="formData.bk_biz_id"
             perrmision-action-id="k8s_qdrant_apply"
             @change-biz="handleChangeBiz" />
-          <ClusterName v-model="formData.details.cluster_name" />
+          <ClusterName
+            v-model="formData.details.cluster_name"
+            :biz-id="formData.bk_biz_id"
+            :cluster-type="ClusterTypes.K8S_QDRANT_HA"
+            :db-app-abbr="formData.details.db_app_abbr" />
           <ClusterAlias
             v-model="formData.details.cluster_alias"
             :biz-id="formData.bk_biz_id"

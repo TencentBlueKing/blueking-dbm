@@ -13,17 +13,14 @@
 
 <template>
   <div class="k8s-instance-list-usage-rate">
-    <template v-if="data">
-      <BkProgress
-        bg-color="#EAEBF0"
-        :color="color"
-        :percent="percent"
-        :show-text="false" />
-      <span class="ml-8">
-        <span class="usage-rate">{{ percent }}%</span>
-      </span>
-    </template>
-    <span v-else>--</span>
+    <BkProgress
+      bg-color="#EAEBF0"
+      :color="color"
+      :percent="percent"
+      :show-text="false" />
+    <span class="ml-8">
+      <span class="usage-rate">{{ percent }}%</span>
+    </span>
   </div>
 </template>
 <script setup lang="ts">
