@@ -45,3 +45,6 @@ cypress/screenshots
 runner-results/
 cypress.env.json
 multi-reporter-config.json
+
+openspec/
+tapd-config.json
