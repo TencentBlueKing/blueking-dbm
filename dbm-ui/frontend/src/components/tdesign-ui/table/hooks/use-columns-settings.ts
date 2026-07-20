@@ -1,10 +1,18 @@
-import type { TableCol, TableProps } from 'tdesign-vue-next';
+import type { TableProps } from 'tdesign-vue-next';
 import { computed, type ComputedRef, type ExtractPropTypes, type h, type Ref, shallowRef, useSlots, watch } from 'vue';
 
 import ColumnSettings from '../components/column-settings.vue';
 import FilterMultiple from '../components/filter-multiple.vue';
 import FilterSingle from '../components/filter-single.vue';
-import type { BkUiSettings, commonTableProps, FontSizeEnum, IRegisteredColumnProps, RowSizeEnum } from '../types/table';
+import type {
+  BkUiSettings,
+  BkUiTableCol,
+  commonTableProps,
+  FontSizeEnum,
+  IRegisteredColumnProps,
+  RowSizeEnum,
+} from '../types/table';
+import { getSettingsFields, reorderTableColumns, resolveColumnSettings } from '../utils/column-settings';
 import { BKUI_SETTINGS_COLUMN_NAME, BUILT_IN_COLUMN_KEYS, TABLE_COLUMN_ID_ATTRIBUTE } from '../utils/constant';
 import { camelCaseArray, deleteUndefinedProps, makeMap } from '../utils/utils';
 
@@ -56,7 +64,7 @@ export const useColumnsSettings = (
 ) => {
   const slots = useSlots();
   const tableColumnsMap = shallowRef<Record<string, ComputedRef<IRegisteredColumnProps>>>({});
-  const tableColumns = computed<TableCol[]>(() => {
+  const tableColumns = computed<BkUiTableCol[]>(() => {
     if (props.columns?.length) {
       return props.columns;
     }
@@ -64,12 +72,12 @@ export const useColumnsSettings = (
       return [];
     }
 
-    const list: TableCol[] = [];
+    const list: BkUiTableCol[] = [];
     Array.from(tableColumnRef.value?.querySelectorAll(`[${TABLE_COLUMN_ID_ATTRIBUTE}]`) || [])
       .map((node) => node.getAttribute(TABLE_COLUMN_ID_ATTRIBUTE) as string)
       .forEach((columnId) => {
         if (columnId && tableColumnsMap.value[columnId]) {
-          list.push(tableColumnsMap.value[columnId]?.value as TableCol);
+          list.push(tableColumnsMap.value[columnId]?.value as BkUiTableCol);
         }
       });
     return camelCaseArray(list);
@@ -94,12 +102,40 @@ export const useColumnsSettings = (
     return Boolean(props.bkUiSettings);
   });
 
+  const settingsFields = computed(() => getSettingsFields(tableColumns.value, props.bkUiSettings));
+  const localColumnSettings = shallowRef(resolveColumnSettings([]));
+  const fontSize = shallowRef<FontSizeEnum>(props.bkUiSettings?.fontSize || 'medium');
+  const rowSize = shallowRef<RowSizeEnum>(props.bkUiSettings?.rowSize || props.size || 'medium');
+
+  watch(
+    () => [props.displayColumns, props.bkUiSettings, settingsFields.value] as const,
+    () => {
+      localColumnSettings.value = resolveColumnSettings(settingsFields.value, {
+        checked: props.displayColumns?.length ? (props.displayColumns as string[]) : props.bkUiSettings?.checked,
+        order: props.bkUiSettings?.order,
+      });
+      fontSize.value = props.bkUiSettings?.fontSize || 'medium';
+      rowSize.value = props.bkUiSettings?.rowSize || props.size || 'medium';
+    },
+    {
+      immediate: true,
+    },
+  );
+
+  const displayColumns = computed(() => {
+    if (isBkuiSettingsControl.value || props.displayColumns) {
+      return Array.from(new Set(localColumnSettings.value.checked.concat(BUILT_IN_COLUMN_KEYS)));
+    }
+
+    return undefined;
+  });
+
   const customProps = computed<
     {
       bkUiSettings?: BkUiSettings;
     } & TableProps
   >(() => {
-    const columns = [...tableColumns.value];
+    const columns = reorderTableColumns(tableColumns.value, localColumnSettings.value.order);
 
     let lastDisplayColumnColKey = columns.at(-1)?.colKey;
     if (displayColumns.value) {
@@ -119,31 +155,34 @@ export const useColumnsSettings = (
           return createElement(
             ColumnSettings,
             {
-              columns: settingsColumns.value,
-              displayColumns: localSettingsColumnesValue.value,
+              columns: localColumnSettings.value.fields,
+              displayColumns: localColumnSettings.value.checked,
               fontSize: fontSize.value,
               hasCheckAll: props.bkUiSettings?.hasCheckAll,
-              onChange: () => {
-                props.onBkUiSettingsChange?.({
-                  columns: localSettingsColumnesValue.value as string[],
-                  fontSize: fontSize.value,
-                  rowSize: rowSize.value,
-                });
-              },
               onColumnControllerVisibleChange: (v: boolean, trigger: 'cancel' | 'confirm' | 'open') => {
                 props.onColumnControllerVisibleChange?.(v, { trigger });
               },
-              onDisplayColumnsChange: (cols) => {
-                localSettingsColumnesValue.value = cols;
-                props.onDisplayColumnsChange?.(cols);
+              onConfirm: (settings: {
+                columns: string[];
+                fontSize: FontSizeEnum;
+                order: string[];
+                rowSize: RowSizeEnum;
+              }) => {
+                localColumnSettings.value = resolveColumnSettings(settingsFields.value, {
+                  checked: settings.columns,
+                  order: settings.order,
+                });
+                fontSize.value = settings.fontSize;
+                rowSize.value = settings.rowSize;
+                props.onDisplayColumnsChange?.(localColumnSettings.value.checked);
+                props.onBkUiSettingsChange?.({
+                  columns: localColumnSettings.value.checked,
+                  fontSize: fontSize.value,
+                  order: localColumnSettings.value.order,
+                  rowSize: rowSize.value,
+                });
               },
-
-              'onUpdate:fontSize'(size) {
-                fontSize.value = size;
-              },
-              'onUpdate:rowSize'(size) {
-                rowSize.value = size || 'medium';
-              },
+              order: localColumnSettings.value.order,
               rowSize: rowSize.value,
             },
             {
@@ -175,64 +214,9 @@ export const useColumnsSettings = (
     });
   });
 
-  const settingsColumns = computed(() => {
-    const { disabled, fields } = props.bkUiSettings || {};
-    if (fields?.length) {
-      return fields.map((item) => {
-        return {
-          disabled: item.disabled ?? !!disabled?.includes?.(item.field),
-          field: item.field,
-          label: item.label,
-        };
-      });
-    }
-    return customProps.value
-      .columns!.map((item) => {
-        if (!item.colKey || BUILT_IN_COLUMN_KEYS.includes(item.colKey)) {
-          return undefined;
-        }
-        return {
-          disabled: !!disabled?.includes?.(item.colKey),
-          field: item.colKey,
-          // @ts-expect-error titleText 是解决部分场景问题的自定义属性，通过 TableColumn 组件注入
-          label: item.titleText ?? (typeof item.title === 'string' ? item.title! : item.colKey),
-        };
-      })
-      .filter((v) => v !== undefined);
-  });
-
-  const localSettingsColumnesValue = shallowRef<NonNullable<TableProps['displayColumns']>>([]);
-  watch(
-    () => [props.displayColumns, props.bkUiSettings, tableColumns.value],
-    () => {
-      if (props.displayColumns?.length) {
-        localSettingsColumnesValue.value = props.displayColumns;
-      } else if (props.bkUiSettings?.checked?.length) {
-        localSettingsColumnesValue.value = props.bkUiSettings.checked.concat(props.bkUiSettings.disabled ?? []);
-      } else {
-        localSettingsColumnesValue.value = tableColumns.value
-          .map((item) => item.colKey)
-          .filter((item) => item !== undefined) as string[];
-      }
-    },
-    {
-      immediate: true,
-    },
-  );
-
-  const displayColumns = computed(() => {
-    if (localSettingsColumnesValue.value.length) {
-      return localSettingsColumnesValue.value.concat(BUILT_IN_COLUMN_KEYS);
-    }
-
-    return undefined;
-  });
-
   const columnController = computed<TableProps['columnController']>(() =>
     isBkuiSettingsControl.value ? undefined : props.columnController,
   );
-  const fontSize = shallowRef<FontSizeEnum>(props.bkUiSettings?.fontSize || 'medium');
-  const rowSize = shallowRef<RowSizeEnum>(props.bkUiSettings?.rowSize || customProps.value.size || 'medium');
   const tableSizeClass = computed(() => {
     if (rowSize.value === 'mini') {
       return 't-size-xs';
@@ -243,7 +227,10 @@ export const useColumnsSettings = (
     return `t-font-size-${fontSize.value.charAt(0).toLowerCase()}`;
   });
   const onDisplayColumnsChange = (columns: NonNullable<TableProps['displayColumns']>) => {
-    localSettingsColumnesValue.value = columns;
+    localColumnSettings.value = resolveColumnSettings(settingsFields.value, {
+      checked: columns as string[],
+      order: localColumnSettings.value.order,
+    });
   };
   return {
     columnController,

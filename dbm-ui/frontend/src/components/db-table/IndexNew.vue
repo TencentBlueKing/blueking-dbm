@@ -97,7 +97,7 @@
   import { useUrlSearch } from '@hooks';
 
   import EmptyStatus from '@components/empty-status/EmptyStatus.vue';
-  import { PrimaryTable } from '@components/tdesign-ui/table';
+  import { type BkUiSettingsChangePayload, PrimaryTable } from '@components/tdesign-ui/table';
 
   import { getOffset } from '@utils';
 
@@ -138,7 +138,7 @@
     (e: 'change', data: TableChangeData, context: TableChangeContext<TableRowData>): void;
     (e: 'sortChange', sort: TableSort, options: SortOptions<TableRowData>): void;
     (e: 'filterChange', filterValue: FilterValue): void;
-    (e: 'bkUiSettingsChange', payload: Props['bkUiSettings']): void;
+    (e: 'bkUiSettingsChange', payload: BkUiSettingsChangePayload): void;
   }
 
   export interface Slots {
@@ -156,6 +156,7 @@
     getData: <T>() => Array<T>;
     loading: Ref<boolean>;
     removeSelectByKey: (key: string) => void;
+    updateTableHeight: (containerHeight?: number) => void;
     updateTableKey: () => void;
   }
 
@@ -412,7 +413,7 @@
     fetchListData();
   };
 
-  const handleDisplayColumnsChange = (payload: Props['bkUiSettings']) => {
+  const handleDisplayColumnsChange = (payload: BkUiSettingsChangePayload) => {
     emits('bkUiSettingsChange', payload);
   };
 
@@ -438,6 +439,14 @@
 
       const tableRowTotalHeight = totalHeight - top - pageOffsetBottom - paginationHeight;
       tableMaxHeight.value = tableRowTotalHeight;
+    });
+  };
+
+  const updateTableHeight = (containerHeight = window.innerHeight) => {
+    const paginationHeight = 60;
+    tableMaxHeight.value = containerHeight - paginationHeight;
+    nextTick(() => {
+      bkTableRef.value?.refreshTable();
     });
   };
 
@@ -471,6 +480,7 @@
     removeSelectByKey(key: string) {
       delete selectedRowMap.value[key];
     },
+    updateTableHeight,
     updateTableKey() {
       tableKey.value = Date.now().toString();
     },
