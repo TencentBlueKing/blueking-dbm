@@ -44,6 +44,7 @@ func RedisCli(address, redisPass, cmd string, dbNum int, rawMode bool) (interfac
 	if err != nil {
 		return nil, errors.Wrap(err, fmt.Sprintf("connect to %s failed", address))
 	}
+	defer conn.Close()
 	cmdFields := strings.Fields(cmd)
 
 	isStatusCmd, cmdRet, err := doCommand(conn.InstanceClient, cmdFields)
