@@ -26,9 +26,9 @@
             "data_source_label": "prometheus",
             "data_type_label": "time_series",
             "alias": "a",
-            "metric_id": "max by (bk_target_service_instance_id, datanode) (max_over_time(bkmonitor:exporter_dbm_hdfs_exporter:hadoop_namenode_live_nodes_",
+            "metric_id": "max by (app, appid, cluster_domain, bk_target_service_instance_id, datanode) (max_over_time(bkmonitor:exporter_dbm_hdfs_exporter:hadoop_namenode_live_nodes_",
             "functions": [],
-            "promql": "max by (bk_target_service_instance_id, datanode) (max_over_time(bkmonitor:exporter_dbm_hdfs_exporter:hadoop_namenode_live_nodes_last_contact{instance_role=\"hdfs_namenode\"}[1m])) * ignoring(datanode) group_left avg by (bk_target_service_instance_id) (avg_over_time(bkmonitor:exporter_dbm_hdfs_exporter:hadoop_namenode_State{instance_role=\"hdfs_namenode\"}[1m]))",
+            "promql": "max by (app, appid, cluster_domain, bk_target_service_instance_id, datanode) (max_over_time(bkmonitor:exporter_dbm_hdfs_exporter:hadoop_namenode_live_nodes_last_contact{instance_role=\"hdfs_namenode\"}[1m])) * ignoring(datanode) group_left avg by (app, appid, cluster_domain, bk_target_service_instance_id) (avg_over_time(bkmonitor:exporter_dbm_hdfs_exporter:hadoop_namenode_State{instance_role=\"hdfs_namenode\"}[1m]))",
             "agg_interval": 60,
             "name": ""
           }

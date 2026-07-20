@@ -28,7 +28,7 @@
             "alias": "a",
             "metric_id": "",
             "functions": [],
-            "promql": "avg(irate(bkmonitor:pushgateway_dbm_doris_bkpull:doris_fe_txn_counter{app=\"$app\",cluster_domain=\"$cluster_domain\",type=\"reject\"}[2m]))",
+            "promql": "avg by (app, cluster_domain, bk_target_service_instance_id, appid) (irate(bkmonitor:pushgateway_dbm_doris_bkpull:doris_fe_txn_counter{type=\"reject\"}[2m]))",
             "agg_interval": 60,
             "name": ""
           }
@@ -41,7 +41,7 @@
               [
                 {
                   "method": "gte",
-                  "threshold": 10
+                  "threshold": 5
                 }
               ]
             ],
@@ -54,7 +54,7 @@
               [
                 {
                   "method": "gte",
-                  "threshold": 50
+                  "threshold": 10
                 }
               ]
             ],

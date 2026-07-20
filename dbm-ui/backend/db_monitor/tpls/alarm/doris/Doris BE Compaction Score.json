@@ -28,7 +28,7 @@
             "alias": "a",
             "metric_id": "",
             "functions": [],
-            "promql": "avg by (app, cluster_domain, bk_target_service_instance_id, backend) (bkmonitor:pushgateway_dbm_doris_bkpull:doris_fe_tablet_max_compaction_score) * ignoring(backend) group_left avg by (app, cluster_domain, bk_target_service_instance_id) (bkmonitor:pushgateway_dbm_doris_bkpull:node_info{type=\"is_master\"})",
+            "promql": "avg by (app, cluster_domain, bk_target_service_instance_id, appid, backend) (bkmonitor:pushgateway_dbm_doris_bkpull:doris_fe_tablet_max_compaction_score) * ignoring(backend) group_left avg by (app, cluster_domain, bk_target_service_instance_id, appid) (bkmonitor:pushgateway_dbm_doris_bkpull:node_info{type=\"is_master\"})",
             "agg_interval": 60,
             "name": ""
           }

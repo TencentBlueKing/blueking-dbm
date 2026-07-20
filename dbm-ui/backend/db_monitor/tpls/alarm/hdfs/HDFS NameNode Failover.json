@@ -44,7 +44,7 @@
             "agg_interval": 60,
             "agg_dimension": [
               "app",
-              "cluster_name",
+              "cluster_domain",
               "bk_target_service_instance_id",
               "appid"
             ],

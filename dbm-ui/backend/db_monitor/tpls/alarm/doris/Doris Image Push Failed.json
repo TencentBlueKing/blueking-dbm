@@ -28,7 +28,7 @@
             "alias": "a",
             "metric_id": "",
             "functions": [],
-            "promql": "avg by (app, cluster_domain, instance_host, bk_target_service_instance_id) (bkmonitor:pushgateway_dbm_doris_bkpull:doris_fe_image_push{type=\"failed\"})",
+            "promql": "avg by (app, cluster_domain, instance_host, bk_target_service_instance_id, appid) (bkmonitor:pushgateway_dbm_doris_bkpull:doris_fe_image_push{type=\"failed\"})",
             "agg_interval": 60,
             "name": ""
           }
