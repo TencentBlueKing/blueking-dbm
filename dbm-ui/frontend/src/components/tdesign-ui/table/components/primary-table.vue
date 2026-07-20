@@ -34,14 +34,14 @@
 </template>
 
 <script setup lang="ts">
-  import { PrimaryTable, type TableCol } from 'tdesign-vue-next';
+  import { PrimaryTable } from 'tdesign-vue-next';
   import baseTableProps from 'tdesign-vue-next/es/table/base-table-props';
   import primaryTableProps from 'tdesign-vue-next/es/table/primary-table-props';
   import { h, useAttrs, useTemplateRef } from 'vue';
 
   import { useColumnsSettings } from '../hooks/use-columns-settings';
   import { useTableExpose } from '../hooks/use-table-expose';
-  import { commonTableProps, type PrimaryTableRefExpose } from '../types/table';
+  import { type BkUiTableCol, commonTableProps, type PrimaryTableRefExpose } from '../types/table';
 
   import CustomScroll from './custom-scroll.vue';
   import { filterIcon, sortIcon } from './icons';
@@ -61,7 +61,7 @@
     ...slots
   } = defineSlots<{
     bkUiAppearanceSettings(): void;
-    default(): { props: TableCol }[];
+    default(): { props: BkUiTableCol }[];
   }>();
   const attrs = useAttrs();
 
