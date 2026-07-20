@@ -16,8 +16,10 @@
           "continuous": 10,
           "is_enabled": false,
           "agg_dimension": [
+            "appid",
             "bk_target_ip",
-            "bk_target_cloud_id"
+            "bk_target_cloud_id",
+            "mount_point"
           ]
         },
         "target": [],
