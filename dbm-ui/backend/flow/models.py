@@ -305,3 +305,33 @@ class FlowBkJobInstance(models.Model):
                 name="flow_bk_jobinst_rnv_idx",
             ),
         ]
+
+
+class RedisClusterShutdownMetaSnapshot(models.Model):
+    """
+    Redis集群下架前的元数据快照
+    在下架流程执行的第一个节点触发保存，用于集群下架后的审计与追溯
+    """
+
+    bk_biz_id = models.IntegerField(_("业务ID"))
+    cluster_id = models.IntegerField(_("集群ID"), db_index=True)
+    cluster_name = models.CharField(_("集群名称"), max_length=64, blank=True, default="")
+    domain_name = models.CharField(_("域名"), max_length=255, blank=True, default="")
+    port = models.IntegerField(_("访问端口"), null=True, blank=True)
+    cluster_type = models.CharField(_("架构类型"), max_length=64, blank=True, default="")
+    db_version = models.CharField(_("版本"), max_length=64, blank=True, default="")
+    region = models.CharField(_("地区"), max_length=128, blank=True, default="")
+    proxy_password = models.CharField(_("Proxy密码"), max_length=255, blank=True, default="")
+    redis_password = models.CharField(_("Redis密码"), max_length=255, blank=True, default="")
+    proxies = models.JSONField(_("Proxy列表"), default=list, blank=True)
+    master_slave_pairs = models.JSONField(_("主从关系及分片"), default=list, blank=True)
+    spec_config = models.JSONField(_("规格"), default=list, blank=True)
+    root_id = models.CharField(_("流程ID"), max_length=33, blank=True, default="")
+    created_at = models.DateTimeField(_("创建时间"), auto_now_add=True, blank=True)
+
+    class Meta:
+        db_table = "flow_redis_cluster_shutdown_meta_snapshot"
+        indexes = [
+            models.Index(fields=["cluster_id"]),
+            models.Index(fields=["bk_biz_id"]),
+        ]

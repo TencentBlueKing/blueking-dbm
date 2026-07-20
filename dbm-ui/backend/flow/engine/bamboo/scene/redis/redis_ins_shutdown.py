@@ -24,6 +24,9 @@ from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
 from backend.flow.engine.bamboo.scene.redis.atom_jobs import AccessManagerAtomJob
 from backend.flow.plugins.components.collections.redis.exec_actuator_script import ExecuteDBActuatorScriptComponent
 from backend.flow.plugins.components.collections.redis.get_redis_payload import GetRedisActPayloadComponent
+from backend.flow.plugins.components.collections.redis.redis_cluster_shutdown_snapshot import (
+    RedisClusterShutdownMetaSnapshotComponent,
+)
 from backend.flow.plugins.components.collections.redis.redis_db_meta import RedisDBMetaComponent
 from backend.flow.plugins.components.collections.redis.trans_flies import TransFileComponent
 from backend.flow.utils.redis.redis_act_playload import RedisActPayload
@@ -113,6 +116,15 @@ class RedisInsShutdownFlow(object):
             6、删除元数据
         """
         redis_pipeline = Builder(root_id=self.root_id, data=self.data)
+
+        # 第一个节点：保存主从实例下架前的元数据快照，用于审计与追溯
+        for cluster_id in self.data["cluster_ids"]:
+            redis_pipeline.add_act(
+                act_name=_("保存下架集群元数据快照-{}").format(cluster_id),
+                act_component_code=RedisClusterShutdownMetaSnapshotComponent.code,
+                kwargs={"bk_biz_id": self.data["bk_biz_id"], "cluster_id": cluster_id},
+            )
+
         trans_files = GetFileList(db_type=DBType.Redis)
         all_ins_info = self.__get_ins_info(self.data["bk_biz_id"], self.data["cluster_ids"])
         master_ips = all_ins_info["master_ips"]
