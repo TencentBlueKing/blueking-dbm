@@ -10,9 +10,11 @@
   import { computed, onBeforeUnmount, onMounted, useId } from 'vue';
 
   import { useTableInject } from '../hooks/use-table-inject';
+  import type { BkUiTableCol } from '../types/table';
   import { TABLE_COLUMN_ID_ATTRIBUTE } from '../utils/constant';
 
-  const props = withDefaults(defineProps<TableCol>(), {
+  // eslint-disable-next-line vue/no-unused-properties
+  const props = withDefaults(defineProps<BkUiTableCol>(), {
     resizable: true,
   });
 
