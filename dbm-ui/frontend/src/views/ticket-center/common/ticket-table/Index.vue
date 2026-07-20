@@ -318,6 +318,7 @@
 
   import EmptyStatus from '@components/empty-status/EmptyStatus.vue';
   import TagBlock from '@components/tag-block/Index.vue';
+  import type { BkUiSettingsChangePayload } from '@components/tdesign-ui/table';
   import TicketDetail from '@components/ticket-detail/index.vue';
   import TicketStatusTag from '@components/ticket-status-tag/Index.vue';
 
@@ -389,7 +390,12 @@
   const tableSettings = computed(() => ({
     checked: userProfileStore.profile[TABLE_SETTING_KEY]?.checked,
     disabled: ['ids', 'ticket_type__in'],
-    size: userProfileStore.profile[TABLE_SETTING_KEY]?.size || 'small',
+    fontSize: userProfileStore.profile[TABLE_SETTING_KEY]?.fontSize || 'medium',
+    order: userProfileStore.profile[TABLE_SETTING_KEY]?.order,
+    rowSize:
+      userProfileStore.profile[TABLE_SETTING_KEY]?.rowSize ||
+      userProfileStore.profile[TABLE_SETTING_KEY]?.size ||
+      'small',
   }));
 
   const isSearching = computed(() => Object.keys(quickSearchValue.value).length > 0);
@@ -450,13 +456,15 @@
     });
   });
 
-  const handleDisplayColumnsChange = (payload: { columns: string[]; fontSize: string; rowSize: string }) => {
+  const handleDisplayColumnsChange = (payload: BkUiSettingsChangePayload) => {
     userProfileStore.updateProfile({
       label: TABLE_SETTING_KEY,
       values: {
         checked: payload.columns,
         fontSize: payload.fontSize,
+        order: payload.order,
         rowSize: payload.rowSize,
+        size: payload.rowSize,
         view_mode: viewMode.value,
       },
     });
