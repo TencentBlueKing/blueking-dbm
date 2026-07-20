@@ -4,6 +4,7 @@ import { type DbInfoType } from './index';
 
 export const k8s: DbInfoType = {
   [DBTypes.K8S_QRRANT]: {
+    icon: 'cluster',
     id: DBTypes.K8S_QRRANT,
     machineList: [],
     moduleId: 'k8s',
@@ -11,6 +12,7 @@ export const k8s: DbInfoType = {
     routeIndexName: 'QdrantManage',
   },
   [DBTypes.K8S_SURREALDB]: {
+    icon: 'cluster',
     id: DBTypes.K8S_SURREALDB,
     machineList: [],
     moduleId: 'k8s',

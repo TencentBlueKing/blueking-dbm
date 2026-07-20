@@ -68,7 +68,7 @@
   import { getAdmins } from '@services/source/dbadmin';
   import { queryClusterInstanceCount } from '@services/source/dbbase';
 
-  import { ClusterCountMap, ClusterTypes, DBTypeInfos, DBTypes } from '@common/const';
+  import { ClusterCountMap, ClusterK8sCountMap, ClusterTypes, DBTypeInfos, DBTypes } from '@common/const';
 
   import Table from './components/Table.vue';
 
@@ -103,7 +103,7 @@
 
     if (props.countData) {
       Object.keys(DBTypeInfos).forEach((dbType) => {
-        const clusterTypes = ClusterCountMap[dbType];
+        const clusterTypes = ClusterCountMap[dbType] || ClusterK8sCountMap[dbType];
         let clusterCount = 0;
 
         if (clusterTypes) {
@@ -112,7 +112,6 @@
             0,
           );
         } else {
-          // TODO 兼容k8s集群
           clusterCount = props.countData![dbType as ClusterTypes]?.cluster_count || 0;
         }
 

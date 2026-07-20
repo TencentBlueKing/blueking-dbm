@@ -20,6 +20,7 @@ import { useFunController, useUserProfile } from '@stores';
 
 import {
   ClusterCountMap,
+  ClusterK8sCountMap,
   ClusterTypes,
   type DBInfoItem,
   DBTypeInfos,
@@ -56,11 +57,6 @@ export function useBizDbDisplay(options?: { ignoreClusterCount?: boolean; manual
         return;
       }
 
-      const K8sCountMap: Record<string, string[]> = {
-        [DBTypes.K8S_QRRANT]: [ClusterTypes.K8S_QDRANT_HA],
-        [DBTypes.K8S_SURREALDB]: [ClusterTypes.K8S_SURREALDB_SINGLE, ClusterTypes.K8S_SURREALDB_HA],
-      };
-
       try {
         const resultList = Object.keys(DBTypeInfos).reduce<DBInfoItem[]>((prevList, dbType) => {
           const dbTypeInfo = DBTypeInfos[dbType as DBTypes];
@@ -86,7 +82,7 @@ export function useBizDbDisplay(options?: { ignoreClusterCount?: boolean; manual
                 if (ignoreClusterCount) {
                   return prevList.concat(dbTypeInfo);
                 } else {
-                  const clusterCount = K8sCountMap[dbTypeInfo.id as string]!.reduce(
+                  const clusterCount = ClusterK8sCountMap[dbTypeInfo.id as string]!.reduce(
                     (prevCount, key) =>
                       prevCount + (clusterInstanceCount.value![key as ClusterTypes]?.cluster_count || 0),
                     0,

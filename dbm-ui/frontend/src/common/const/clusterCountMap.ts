@@ -12,3 +12,8 @@ export const ClusterCountMap: Record<string, string[]> = {
   [DBTypes.SQLSERVER]: [ClusterTypes.SQLSERVER_SINGLE, ClusterTypes.SQLSERVER_HA],
   [DBTypes.TENDBCLUSTER]: [ClusterTypes.TENDBCLUSTER],
 };
+
+export const ClusterK8sCountMap: Record<string, string[]> = {
+  [DBTypes.K8S_QRRANT]: [ClusterTypes.K8S_QDRANT_HA],
+  [DBTypes.K8S_SURREALDB]: [ClusterTypes.K8S_SURREALDB_SINGLE, ClusterTypes.K8S_SURREALDB_HA],
+};
