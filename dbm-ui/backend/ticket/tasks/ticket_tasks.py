@@ -621,6 +621,18 @@ def build_html_table_from_data(data_list):
     return "<br>".join(html_parts)
 
 
+def get_mail_context(ticket_id, flow_summary, ticket_dir):
+    context = _('<p>单据 <a href="{ticket_dir}">{ticket_id}</a> 已完成，交付信息如下：</p><br>').format(
+        ticket_dir=ticket_dir, ticket_id=ticket_id
+    )
+    for summary in flow_summary:
+        html_context = build_html_table_from_data(summary.summary)
+        context += html_context
+    context += _("<br>密码等访问凭据请登录 DBM，在对应集群的「连接信息查看」中获取")
+
+    return context
+
+
 @shared_task
 def send_ticket_delivery_info(ticket_id):
     ticket = Ticket.objects.get(id=ticket_id)
@@ -631,14 +643,11 @@ def send_ticket_delivery_info(ticket_id):
 
     ticket_dir = f"{env.BK_SAAS_HOST}/ticket-platform-manage/{ticket_id}?current=1&limit=50&ordering="
     title = _("【DBM交付】 {}").format(TicketType.get_choice_label(ticket.ticket_type))
-    context = _('<p><a href="{}">单据 {} 已完成，交付信息如下：</a></p><br>').format(ticket_dir, ticket_id)
-    for summary in flow_summary:
-        html_context = build_html_table_from_data(summary.summary)
-        context += html_context
-    context += _("<br>密码等访问凭据请登录 DBM，在对应集群的「连接信息查看」中获取")
+
     receivers = ticket.config["send_msg_config"]["receiver__username"].split(",")
     for msg_type in ticket.config["send_msg_config"]["msg_type"]:
         if msg_type == notify.constants.MsgType.MAIL.value:
+            context = get_mail_context(ticket_id, flow_summary, ticket_dir)
             notify.handlers.CmsiHandler(title, context, receivers).send_msg(
                 notify.constants.MsgType.MAIL.value, context=None
             )
