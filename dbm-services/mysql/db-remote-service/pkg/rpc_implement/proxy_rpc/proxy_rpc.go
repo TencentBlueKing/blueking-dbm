@@ -49,10 +49,13 @@ func (c *ProxyRPCEmbed) MakeConnection(address string, user string, password str
 			slog.String("err", err.Error()),
 			slog.String("address", address),
 		)
+		if db != nil {
+			_ = db.Close()
+		}
 
 		time.Sleep(2 * time.Second)
 
-		db, err := sqlx.Open(
+		db, err = sqlx.Open(
 			"mysql",
 			fmt.Sprintf(`%s:%s@tcp(%s)/?%s`, user, password, address, connectParam),
 		)
@@ -62,6 +65,9 @@ func (c *ProxyRPCEmbed) MakeConnection(address string, user string, password str
 				slog.String("error", err.Error()),
 				slog.String("address", address),
 			)
+			if db != nil {
+				_ = db.Close()
+			}
 			return nil, err
 		}
 		return db, nil
