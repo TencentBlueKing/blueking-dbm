@@ -44,11 +44,13 @@ class ApplySurrealDBClbService(BaseService):
 
         # 匹配clusterName与cluster_name一致的数据，获取vpcID和regionCode
         region_code = ""
+        region_name = ""
         vpc_id = ""
         for region in regions_resp:
             for k8s_cluster in region.get("k8sClusterList", []):
                 if k8s_cluster.get("clusterName") == cluster_name:
                     region_code = region.get("regionCode", "")
+                    region_name = region.get("regionName", "")
                     vpc_id = k8s_cluster.get("vpcID", "")
                     break
             if region_code:
@@ -78,6 +80,7 @@ class ApplySurrealDBClbService(BaseService):
         trans_data.clb_id = clb_id
         trans_data.vpc_id = vpc_id
         trans_data.region_code = region_code
+        trans_data.region_name = region_name
         data.outputs["trans_data"] = trans_data
         return True
 
