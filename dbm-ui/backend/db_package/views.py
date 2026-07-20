@@ -129,17 +129,24 @@ class DBPackageViewSet(viewsets.AuditedModelViewSet):
     )
     @action(methods=["POST"], detail=False, serializer_class=SyncMediumSerializer)
     def sync_medium(self, request, *args, **kwargs):
-        def package_md5_key(pkg):
-            return pkg.md5 if isinstance(pkg, Package) else pkg["md5"]
+        def package_identity_key(pkg):
+            # 介质唯一身份：version 存的是 version_series 名，同一 series 下可有多个 full_version，故需叠加 full_version
+            if isinstance(pkg, Package):
+                full_version = pkg.db_version.full_version if pkg.db_version_id else ""
+                return pkg.name, pkg.version, pkg.pkg_type, pkg.db_type, full_version
+            return pkg["name"], pkg["version"], pkg["pkg_type"], pkg["db_type"], pkg["full_version"]
 
         def patch_version_model(info):
-            # 获取发行版
-            distribution, __ = Distribution.objects.get_or_create(
+            # 获取发行版，不存在则不自动创建，返回 None 以跳过该介质的同步
+            distribution = Distribution.objects.filter(
                 name=info.pop("distribution_name"),
                 engine=info.pop("distribution_engine"),
                 db_type=info["db_type"],
                 pkg_type=info["pkg_type"],
-            )
+            ).first()
+            if not distribution:
+                logger.warning(f"distribution not found for medium: {info}, skip sync")
+                return None
             # 获取版本系列
             version_series, __ = VersionSeries.objects.get_or_create(
                 name=info.pop("version_series"), distribution=distribution
@@ -164,9 +171,9 @@ class DBPackageViewSet(viewsets.AuditedModelViewSet):
         if not sync_medium_infos:
             return Response()
 
-        # 获取原来介质的优先级信息
-        old_packages = Package.objects.filter(db_type=db_type)
-        old_package_map: Dict[str, Tuple[int, bool]] = {f"{package_md5_key(pkg)}": pkg for pkg in old_packages}
+        # 获取原来介质的优先级信息（关联 db_version 以取到 full_version，避免 N+1 查询）
+        old_packages = Package.objects.filter(db_type=db_type).select_related("db_version")
+        old_package_map: Dict[Tuple, Package] = {package_identity_key(pkg): pkg for pkg in old_packages}
         # 更新新介质的优先级和启用信息，如果没有在原来介质中存在，则默认为0和启用
         update_packages, create_packages = [], []
         for info in sync_medium_infos:
@@ -174,12 +181,14 @@ class DBPackageViewSet(viewsets.AuditedModelViewSet):
                 logger.warning(f"pkg type({info.get('pkg_type')}) not in PackageType Enum, ignore")
                 continue
 
-            pkg_key = package_md5_key(info)
+            pkg_key = package_identity_key(info)
             if pkg_key in old_package_map:
                 old_package_map[pkg_key].__dict__.update(info)
                 update_packages.append(old_package_map[pkg_key])
             else:
                 info = patch_version_model(info)
+                if info is None:
+                    continue
                 info.update(priority=0, enable=True)
                 create_packages.append(Package(**info))
 
