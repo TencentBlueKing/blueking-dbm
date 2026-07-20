@@ -75,6 +75,7 @@
   import { useI18n } from 'vue-i18n';
 
   import DbTable from '@components/db-table/IndexNew.vue';
+  import type { BkUiSettingsChangePayload } from '@components/tdesign-ui/table';
 
   import ClusterAliasColumn from './ClusterAliasColumn.vue';
   import ClusterNameColumn from './ClusterNameColumn.vue';
@@ -121,7 +122,7 @@
 
   export interface Emits<C extends ISupportClusterType> {
     (e: 'selection', key: number[], list: ClusterModel<C>[]): void;
-    (e: 'setting-change', params: NonNullable<Props<C>['bkUiSettings']>): void;
+    (e: 'setting-change', params: BkUiSettingsChangePayload): void;
     (e: 'filter-change', params: Record<string, string>): void;
   }
 
@@ -218,7 +219,7 @@
     emits('selection', keyList, list);
   };
 
-  const handleTableSettings = (payload: Props<ISupportClusterType>['bkUiSettings']) => {
+  const handleTableSettings = (payload: BkUiSettingsChangePayload) => {
     userProfileStore.updateProfile({
       label: TABLE_VIEW_MODE_SETTING_KEY,
       values: viewMode.value,

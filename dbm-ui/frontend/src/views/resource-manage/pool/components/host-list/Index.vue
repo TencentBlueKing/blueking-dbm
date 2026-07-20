@@ -12,11 +12,14 @@
 -->
 
 <template>
-  <div class="resource-pool-list-page">
-    <SearchBox
+  <div
+    ref="pageRef"
+    class="resource-pool-list-page">
+    <div
       ref="searchBoxRef"
-      class="mb-25"
-      @change="handleSearch" />
+      class="mb-25">
+      <SearchBox @change="handleSearch" />
+    </div>
     <div class="action-box mb-16">
       <template v-if="type === ResourcePool.public">
         <AuthButton
@@ -146,6 +149,7 @@
     <DbTable
       ref="tableRef"
       class="db-instance-table"
+      :container-height="tableContentHeight"
       :data-source="dataSource"
       releate-url-query
       row-class-name="my-row-cls"
@@ -355,6 +359,8 @@
 
   import { execCopy, messageWarn } from '@utils';
 
+  import { useResizeObserver } from '@vueuse/core';
+
   import { ResourcePool } from '../../type';
 
   import BatchAddTags from './components/batch-add-tags/Index.vue';
@@ -379,7 +385,9 @@
 
   const { t } = useI18n();
   const { currentBizId } = useGlobalBizs();
+  const tableContentHeight = ref(window.innerHeight - 320);
 
+  const pageRef = useTemplateRef('pageRef');
   const searchBoxRef = useTemplateRef('searchBoxRef');
   const tableRef = useTemplateRef('tableRef');
 
@@ -419,6 +427,13 @@
 
   const copyAllHostText = computed(() => {
     return `${t('所有 IP')}（${isFilter.value ? t('筛选后') : t('全量')}）`;
+  });
+
+  useResizeObserver(searchBoxRef, () => {
+    const targetPageHeight = window.innerHeight - 200;
+    const pageHeightDiff = pageRef.value!.getBoundingClientRect().height - targetPageHeight;
+    tableContentHeight.value -= pageHeightDiff;
+    tableRef.value?.updateTableHeight(tableContentHeight.value);
   });
 
   const dataSource = (params: ServiceParameters<typeof fetchList>) =>
