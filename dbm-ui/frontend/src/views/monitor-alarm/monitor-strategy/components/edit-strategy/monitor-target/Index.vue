@@ -55,24 +55,21 @@
             :placeholder="t('输入通配符匹配模式（如 *test*），留空表示匹配全部')"
             @change="handleChange" />
           <template v-else>
-            <BkTagInput
+            <DbTagInput
               v-if="item.id === MonitorTargetLevel.CLUSTER"
               v-model="item.valueList"
-              collapse-tags
               :content-width="500"
-              has-delete-icon
               :list="item.selectList"
-              :paste-fn="pasteCallback"
+              mode="only-candidate"
+              multiple
               :placeholder="t('留空表示匹配全部')"
-              trigger="focus"
               @change="handleChange" />
-            <BkTagInput
+            <DbTagInput
               v-else
               v-model="item.valueList"
               allow-create
-              collapse-tags
-              has-delete-icon
-              :paste-fn="pasteCallback"
+              mode="free-input"
+              multiple
               :placeholder="t('留空表示匹配全部')"
               @change="handleChange" />
           </template>
@@ -91,7 +88,6 @@
 </template>
 
 <script setup lang="ts">
-  import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
 
   import MonitorPolicyModel from '@services/model/monitor/monitor-policy';
@@ -99,7 +95,8 @@
   import { useGlobalBizs } from '@stores';
 
   import { MonitorTargetLevel } from '@common/const';
-  import { batchSplitRegex } from '@common/regex';
+
+  import DbTagInput from '@components/db-tag-input/Index.vue';
 
   type TargetItem = MonitorPolicyModel['targets'][number];
   type CustomItem = MonitorPolicyModel['custom_conditions'][number];
@@ -265,16 +262,6 @@
     },
   );
 
-  const pasteCallback = (text: string) => {
-    if (!_.trim(text)) {
-      return [];
-    }
-    return text.split(batchSplitRegex).map((item) => ({
-      id: item,
-      name: item,
-    }));
-  };
-
   const handleChange = () => {
     formItemRef.value!.validate();
     emits('change');
@@ -357,7 +344,7 @@
     border-top: 1px solid rgb(234 235 240);
 
     &.bk-form-item.is-error {
-      .bk-tag-input-trigger {
+      .db-tag-input-panel {
         border-color: #ea3636;
         transition: all 0.15s;
       }
