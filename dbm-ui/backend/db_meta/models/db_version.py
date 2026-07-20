@@ -60,15 +60,15 @@ class Distribution(AuditedModel):
     def init_distribution(cls):
         """
         初始化发行版，只在一个环境初始化的时候发起
-        以 INIT_DB_PKG_SETTINGS 为准, 而不是 DBType x PackageType 的笛卡尔积
-        MySQL/TendbCluster 需要单独维护发行版(Tokudb/Rocksdb 等), 不在这里初始化占位
+        以 INIT_DB_PKG_SETTINGS 为准, 发行版/引擎取值参考 medium.lock，缺省为 ("DBM", "")
         """
         from backend.db_package.constants import INIT_DB_PKG_SETTINGS
 
         distribution_list = [
-            cls(name="DBM", engine="", db_type=db_type, pkg_type=str(pkg["value"]))
+            cls(name=name, engine=engine, db_type=db_type, pkg_type=str(pkg["value"]))
             for db_type, pkgs in INIT_DB_PKG_SETTINGS.items()
             for pkg in pkgs
+            for name, engine in pkg.get("distributions", [("DBM", "")])
         ]
         cls.objects.bulk_create(distribution_list)
 
