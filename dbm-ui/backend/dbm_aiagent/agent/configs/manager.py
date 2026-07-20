@@ -22,6 +22,7 @@ from backend.components import bk
 from backend.components.base import DataAPI
 from backend.configuration.constants import SystemSettingsEnum
 from backend.configuration.models import SystemSettings
+from backend.env import DEFAULT_USERNAME
 from backend.utils.local import local
 
 logger = logging.getLogger("root")
@@ -130,7 +131,7 @@ class DBMAgentResourceManager(AgentResourceManager):
         """
         _username = username or self.username
         # 后台/虚拟用户直接使用 DBM 平台虚拟账户 access_token
-        if _username in ("admin", settings.DBM_APP_USER):
+        if _username in ("admin", settings.DBM_APP_USER, DEFAULT_USERNAME):
             return settings.DBM_APP_ACCESS_TOKEN
         # 显式传入 access_token 优先
         if self.access_token:
