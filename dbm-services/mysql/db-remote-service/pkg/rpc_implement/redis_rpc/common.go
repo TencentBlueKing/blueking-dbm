@@ -159,6 +159,7 @@ func GetValueSize(address, pass string, cmdLine string, dbNum int) (int, bool, e
 		Password: pass,
 		DB:       dbNum, // use default DB
 	})
+	defer rdb.Close()
 
 	// 检测是否连接到redis数据库
 	pong, err := rdb.Ping(ctx).Result()
