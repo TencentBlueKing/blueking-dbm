@@ -651,6 +651,8 @@
   "成功添加授权规则": "Authorization Rule Added Successfully",
   "请设置权限": "Please set permissions",
   "全选": "Select All",
+  "全选（n）": "Select All ({n})",
+  "已忽略 n 个无效值": "{n} invalid value(s) ignored",
   "权限设置": "Permission Settings",
   "该账号下已存在xx规则": "{0} rule(s) already exist under this account",
   "收藏成功": "Favorited Successfully",
