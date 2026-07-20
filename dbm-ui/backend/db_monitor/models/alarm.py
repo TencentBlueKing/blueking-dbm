@@ -1321,7 +1321,7 @@ class MonitorPolicy(AuditedModel):
             for callback_name, callback in callback_actions.items():
                 if (
                     callback["label_starts"]
-                    and label.startswith(callback["label_starts"])
+                    and any(label.startswith(prefix) for prefix in callback["label_starts"])
                     and callback.get("action_id", None) is not None
                 ):
                     callbacks.append(
