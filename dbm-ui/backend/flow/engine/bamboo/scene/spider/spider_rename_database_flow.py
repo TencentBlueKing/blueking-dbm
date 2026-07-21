@@ -14,11 +14,13 @@ from collections import defaultdict
 from dataclasses import asdict
 from typing import Dict, Optional
 
+from django.core.exceptions import ObjectDoesNotExist
 from django.utils.translation import gettext as _
 
 from backend.configuration.constants import DBType
 from backend.constants import IP_PORT_DIVIDER
 from backend.db_meta.enums import InstanceInnerRole, MachineType, TenDBClusterSpiderRole
+from backend.db_meta.exceptions import DBMetaException
 from backend.db_meta.models import Cluster, Machine, StorageInstanceTuple
 from backend.flow.consts import DBA_SYSTEM_USER
 from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
@@ -187,11 +189,17 @@ class SpiderRenameDatabaseFlow(object):
             ):
                 ip = remote_master_instance.machine.ip
                 port = remote_master_instance.port
-                shard_id = (
-                    StorageInstanceTuple.objects.filter(ejector=remote_master_instance)
-                    .first()
-                    .tendbclusterstorageset.shard_id
-                )
+                try:
+                    shard_id = (
+                        StorageInstanceTuple.objects.filter(ejector=remote_master_instance, receiver__is_stand_by=True)
+                        .get()
+                        .tendbclusterstorageset.shard_id
+                    )
+                except ObjectDoesNotExist as e:  # noqa
+                    raise DBMetaException(
+                        message=f"query {remote_master_instance.ip_port} stand_by tuple record failed: {e}"
+                    )
+
                 remote_master_machine_port_shard_id[ip][port] = shard_id
 
             # 在 remote 上删除目标库
