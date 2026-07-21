@@ -18,6 +18,8 @@ from backend.configuration.constants import DBType
 from backend.db_meta.enums import ClusterType, MachineType
 from blue_krill.data_types.enum import EnumField, IntStructuredEnum, StrStructuredEnum
 
+CLUSTER_LOAD_QUERY_RANGE = 60 * 24
+
 DB_MONITOR_TPLS_DIR = os.path.join(settings.BASE_DIR, "backend/db_monitor/tpls")
 TPLS_COLLECT_DIR = os.path.join(DB_MONITOR_TPLS_DIR, "collect")
 TPLS_ALARM_DIR = os.path.join(DB_MONITOR_TPLS_DIR, "alarm")
