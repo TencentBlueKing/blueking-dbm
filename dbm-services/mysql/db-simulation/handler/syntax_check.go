@@ -13,6 +13,7 @@ package handler
 import (
 	"os"
 	"path"
+	"strconv"
 	"strings"
 	"time"
 
@@ -82,6 +83,21 @@ type CheckFileParam struct {
 	Path           string                     `json:"path" binding:"required"`
 	Files          []string                   `json:"files" binding:"gt=0,dive,required"`
 	ExecuteObjects []syntax.ExecuteSQLFileObj `json:"execute_objects"`
+}
+
+// fillBkBizIDFromPath 当 bk_biz_id 为 0 时，尝试从 path 最后一段解析业务 ID
+// 例如 path="mysql/sqlfile/123" 时解析得到 bk_biz_id=123
+func (p *CheckFileParam) fillBkBizIDFromPath() {
+	if p.BkBizID != 0 {
+		return
+	}
+	lastSeg := path.Base(strings.TrimRight(p.Path, "/"))
+	bizID, err := strconv.Atoi(lastSeg)
+	if err != nil || bizID <= 0 {
+		return
+	}
+	p.BkBizID = bizID
+	logger.Info("bk_biz_id is 0, parsed from path %s as %d", p.Path, bizID)
 }
 
 // CheckSQLStringParam sql string 语法检查参数
@@ -168,6 +184,7 @@ func (s *SyntaxHandler) SyntaxCheckFile(r *gin.Context) {
 		logger.Error("ShouldBind failed %s", err)
 		return
 	}
+	param.fillBkBizIDFromPath()
 
 	if len(param.Versions) == 0 {
 		versions = []string{""}
