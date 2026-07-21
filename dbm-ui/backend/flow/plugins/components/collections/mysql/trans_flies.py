@@ -112,8 +112,9 @@ class TransFileService(BkJobService):
         # 请求传输
         resp = JobApi.fast_transfer_file(payload, raw=True)
 
-        # 传入调用结果，并单调监听任务状态
+        # 传入调用结果，并单调监听任务状态（exec_ips 供 _schedule 与 BkJobService 落库 IP 关系使用）
         data.outputs.ext_result = resp
+        data.outputs.exec_ips = exec_ips
         return True
 
 

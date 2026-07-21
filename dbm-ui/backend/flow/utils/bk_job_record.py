@@ -4,9 +4,14 @@
 """
 from __future__ import annotations
 
+import logging
 from typing import Any, List, Optional
 
-from backend.flow.models import FlowBkJobInstance
+from django.utils.translation import gettext as _
+
+from backend.flow.models import FlowBkJobInstance, FlowExecIpRecord
+
+logger = logging.getLogger("flow")
 
 
 def _as_positive_int(value: Any) -> Optional[int]:
@@ -95,6 +100,83 @@ def try_resolve_cluster_id(kwargs: Optional[dict], global_data: Any) -> Optional
             if cid is not None:
                 return cid
     return None
+
+
+def resolve_ticket_id_from_global_data(global_data: Any) -> Optional[int]:
+    """从 global_data['uid'] 解析单据 ID，无单据或非法值时返回 None。"""
+    if not isinstance(global_data, dict):
+        return None
+    return _as_positive_int(global_data.get("uid"))
+
+
+def _extract_ip_cloud_pairs(exec_ips: Any, default_bk_cloud_id: int) -> List[tuple]:
+    """
+    将 exec_ips 归一化为 (bk_cloud_id, ip) 去重列表，兼容两种格式：
+    1) ["1.1.1.1", "1.1.1.2", ...]                   → 全部用 default_bk_cloud_id
+    2) [{"ip": "1.1.1.1", "bk_cloud_id": 0}, ...]    → 使用条目自带 bk_cloud_id，缺失时回退 default
+    其它非法形态（如 None、空、非 list）一律返回空列表
+    """
+    if not isinstance(exec_ips, list) or not exec_ips:
+        return []
+    seen = set()
+    pairs: List[tuple] = []
+    for item in exec_ips:
+        ip: Optional[str] = None
+        cloud_id = default_bk_cloud_id
+        if isinstance(item, str):
+            ip = item.strip() or None
+        elif isinstance(item, dict):
+            raw_ip = item.get("ip")
+            if isinstance(raw_ip, str):
+                ip = raw_ip.strip() or None
+            raw_cid = item.get("bk_cloud_id")
+            cid_int = _int_id_or_none(raw_cid)
+            if cid_int is not None:
+                cloud_id = cid_int
+        if not ip:
+            continue
+        key = (cloud_id, ip)
+        if key in seen:
+            continue
+        seen.add(key)
+        pairs.append(key)
+    return pairs
+
+
+def record_flow_exec_ips(
+    *,
+    ticket_id: Optional[int],
+    root_id: str,
+    bk_cloud_id: int,
+    exec_ips: Any,
+) -> None:
+    """
+    扁平化记录 (ip, bk_cloud_id, ticket_id, root_id) 关联关系，写入 flow_exec_ip_record。
+
+    同一流程多节点常重复写同一批 IP，使用 bulk_create(ignore_conflicts=True)（底层 INSERT IGNORE /
+    ON CONFLICT DO NOTHING）：与唯一键冲突的行被数据库直接跳过，不抛 IntegrityError、不按行刷重复键错误日志。
+    唯一键为 (bk_cloud_id, ip, root_id)（不含可空的 ticket_id、不含 node_id）；单次调用内另由 _extract_ip_cloud_pairs 去重。
+
+    仅真实异常（连库失败等）才 logger.warning，不影响主流程。
+    """
+    try:
+        if not root_id:
+            return
+        pairs = _extract_ip_cloud_pairs(exec_ips, default_bk_cloud_id=bk_cloud_id)
+        if not pairs:
+            return
+        records = [
+            FlowExecIpRecord(
+                ticket_id=ticket_id,
+                root_id=root_id,
+                bk_cloud_id=cloud_id,
+                ip=ip,
+            )
+            for cloud_id, ip in pairs
+        ]
+        FlowExecIpRecord.objects.bulk_create(records, ignore_conflicts=True)
+    except Exception as e:
+        logger.warning(_("写入流程执行IP关系失败(已忽略,不影响任务执行): {}").format(str(e)))
 
 
 def record_bk_job_instance(
