@@ -40,20 +40,21 @@ class NotifyGroupPermission(ResourceActionPermission):
 
     def instance_ids_getter(self, request, view):
         # 从业务或告警组后，决定动作和资源类型
-        if view.action in ["list", "create"]:
-            self.actions = [getattr(ActionEnum, f"NOTIFY_GROUP_{self.view_action.upper()}")]
+        if view.action in ["list"]:
+            self.actions = [ActionEnum.DB_MANAGE]
             self.resource_meta = ResourceEnum.BUSINESS
             return [get_request_key_id(request, key="bk_biz_id")]
-        elif view.action in ["partial_update", "update", "destroy"]:
+        elif view.action in ["partial_update", "update", "destroy", "create"]:
             notify_group = NoticeGroup.objects.get(id=view.kwargs.get("pk"))
             bk_biz_id = notify_group.bk_biz_id
-            if view.action == "destroy":
-                action = ActionEnum.NOTIFY_GROUP_DESTROY
+            if bk_biz_id:
+                self.actions = [ActionEnum.NOTIFY_GROUP_MANAGE]
+                self.resource_meta = ResourceEnum.BUSINESS
+                return [bk_biz_id]
             else:
-                action = ActionEnum.NOTIFY_GROUP_UPDATE if bk_biz_id else ActionEnum.GLOBAL_NOTIFY_GROUP_UPDATE
-            self.actions = [action]
-            self.resource_meta = ResourceEnum.NOTIFY_GROUP
-            return [notify_group.id]
+                self.actions = [ActionEnum.GLOBAL_NOTIFY_GROUP_UPDATE]
+                self.resource_meta = ResourceEnum.NOTIFY_GROUP
+                return [notify_group.id]
         else:
             raise ActionNotExistError(_("不合法的告警组任务ID：{}").format(view.action))
 
@@ -126,7 +127,7 @@ class AlertShieldPermission(ResourceActionPermission):
     def instance_ids_getter(self, request, view):
         # 创建动作 -- 告警屏蔽创建鉴权
         if view.action == "create":
-            self.actions = [ActionEnum.ALERT_SHIELD_CREATE]
+            self.actions = [ActionEnum.ALERT_SHIELD_MANAGE]
             return [get_alarm_shield_request_key_id(request, "bk_biz_id")]
 
         # 从监控获得告警屏蔽详情
