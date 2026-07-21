@@ -211,6 +211,7 @@ class RedisActPayload(object):
                 "bk_biz_id": bk_biz_id,
                 "level_name": level_name,
                 "level_value": level_value,
+                "level_info": {"module": str(DEFAULT_DB_MODULE_ID)},
                 "conf_file": conf_file,
                 "conf_type": conf_type,
                 "namespace": namespace,
