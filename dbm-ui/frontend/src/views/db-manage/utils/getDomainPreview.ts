@@ -23,10 +23,7 @@ const DomainPlaceholders = {
 
 /** MySQL / SQLServer 集群类型集合 */
 type MysqlSqlserverType =
-  | ClusterTypes.TENDBHA
-  | ClusterTypes.TENDBSINGLE
-  | ClusterTypes.SQLSERVER_HA
-  | ClusterTypes.SQLSERVER_SINGLE;
+  ClusterTypes.TENDBHA | ClusterTypes.TENDBSINGLE | ClusterTypes.SQLSERVER_HA | ClusterTypes.SQLSERVER_SINGLE;
 
 /** 大数据集群类型集合 */
 type BigDataType = ClusterTypes.DORIS | ClusterTypes.ES | ClusterTypes.HDFS | ClusterTypes.KAFKA | ClusterTypes.PULSAR;
@@ -221,6 +218,7 @@ const strategyMap: Partial<Record<ClusterTypes, BaseDomainStrategy>> = {
   [ClusterTypes.MONGO_SHARED_CLUSTER]: mongodbStrategy,
   [ClusterTypes.PREDIXY_REDIS_CLUSTER]: redisStrategy,
   [ClusterTypes.PREDIXY_TENDISPLUS_CLUSTER]: redisStrategy,
+  [ClusterTypes.PREDIXY_TENDISPLUS_INSTANCE]: redisStrategy,
   [ClusterTypes.PULSAR]: bigDataNoModuleStrategy,
   [ClusterTypes.REDIS_INSTANCE]: redisStrategy,
   [ClusterTypes.RIAK]: bigDataWithModuleStrategy,
