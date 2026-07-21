@@ -258,6 +258,7 @@ class KubernetesBaseListRetrieveResource(query.ListRetrieveResource, KubernetesB
                 # 每个 pod 关联它所属的集群 ID
                 for pod in pods:
                     pod["cluster_id"] = current_cluster_id
+                    pod["componentName"] = role
                 result["data"].extend(pods)
 
         return ResourceList(**result)
