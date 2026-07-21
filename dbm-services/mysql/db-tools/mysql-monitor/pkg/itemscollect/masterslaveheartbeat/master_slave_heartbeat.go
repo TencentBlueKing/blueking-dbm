@@ -123,12 +123,12 @@ VALUES('%s', @@server_id, now(), sysdate(), timestamp(SECOND, now(),sysdate()))`
 	return nil
 }
 
-func (c *Checker) reportHeartbeatDelay() (string, error) {
+func (c *Checker) reportHeartbeatDelay() (*pkg.MySQLMonitorDBH, string, error) {
 	slaveStatus := make(map[string]interface{})
 	rows, err := c.db.Queryx(`SHOW SLAVE STATUS`)
 	if err != nil {
 		slog.Error(name, slog.String("error", err.Error()))
-		return "", err
+		return c.db, "", err
 	}
 	defer func() {
 		_ = rows.Close()
@@ -138,7 +138,7 @@ func (c *Checker) reportHeartbeatDelay() (string, error) {
 		err := rows.MapScan(slaveStatus)
 		if err != nil {
 			slog.Error(name, slog.String("error", err.Error()))
-			return "", err
+			return c.db, "", err
 		}
 		break
 	}
@@ -150,12 +150,12 @@ func (c *Checker) reportHeartbeatDelay() (string, error) {
 	}
 	if len(slaveStatus) == 0 {
 		slog.Error(name, slog.String("error", "slave status is empty"))
-		return "slave status is empty", nil
+		return c.db, "slave status is empty", nil
 	}
 	masterServerId, err := strconv.ParseInt(slaveStatus["Master_Server_Id"].(string), 10, 64)
 	if err != nil {
 		slog.Error(name, slog.String("error", err.Error()))
-		return "", err
+		return c.db, err.Error(), nil
 	}
 
 	slog.Info(name, slog.Any("master server id", masterServerId))
@@ -169,7 +169,7 @@ func (c *Checker) reportHeartbeatDelay() (string, error) {
 	).Scan(&_useless, &uptime)
 	if err != nil {
 		slog.Error(name, slog.String("error", err.Error()))
-		return "", err
+		return c.db, err.Error(), nil
 	}
 	slog.Info(name, slog.Int64("uptime", uptime))
 
@@ -201,7 +201,7 @@ func (c *Checker) reportHeartbeatDelay() (string, error) {
 					//_, _ = c.db.Exec("set global max_prepared_stmt_count=@@max_prepared_stmt_count+100")
 				} else {
 					slog.Error(name, slog.String("error", err.Error()))
-					return "", err
+					return c.db, err.Error(), nil
 				}
 			}
 		}
@@ -216,10 +216,12 @@ func (c *Checker) reportHeartbeatDelay() (string, error) {
 			"master-server_id": masterServerId,
 			"master-host":      slaveStatus["Master_Host"],
 			"master-port":      slaveStatus["Master_Port"],
+			"instance_host":    c.db.Host,
+			"instance_port":    c.db.Port,
 		},
 	)
 
-	return "", nil
+	return nil, "", nil
 }
 
 func (c *Checker) initTableHeartbeat() (sql.Result, error) {
@@ -233,42 +235,40 @@ func (c *Checker) Run() (warnDB *pkg.MySQLMonitorDBH, msg string, err error) {
 	slog.Info(name, slog.String("role", *config.MonitorConfig.Role))
 	slog.Info(name, slog.String("machine type", config.MonitorConfig.MachineType))
 	if config.MonitorConfig.MachineType == "spider" {
-		msg, err = c.heartBeatOnSpider()
-		return c.db, msg, err
+		return c.heartBeatOnSpider()
 	}
 
-	msg, err = c.heartBeatOnStorage()
-	return c.db, msg, err
+	return c.heartBeatOnStorage()
 }
 
-func (c *Checker) heartBeatOnSpider() (msg string, err error) {
+func (c *Checker) heartBeatOnSpider() (warnDB *pkg.MySQLMonitorDBH, msg string, err error) {
 	if *config.MonitorConfig.Role != "spider_master" {
-		return "", nil
+		return nil, "", nil
 	}
 
 	res := primaryDesc{}
 	err = c.db.QueryRowx(`tdbctl get primary`).StructScan(&res)
 	if err != nil {
 		slog.Error(name, slog.String("err", err.Error()))
-		return err.Error(), nil // 获取 primary 失败转成明确的告警
+		return c.db, err.Error(), nil // 获取 primary 失败转成明确的告警
 	}
 	slog.Info(name, slog.Bool("is primary", res.IsThisServer == 1))
 	if res.IsThisServer == 1 {
 		err = c.updateHeartbeat()
 	} else {
-		msg, err = c.reportHeartbeatDelay()
+		warnDB, msg, err = c.reportHeartbeatDelay()
 	}
 
-	return msg, err
+	return warnDB, msg, err
 }
 
-func (c *Checker) heartBeatOnStorage() (msg string, err error) {
+func (c *Checker) heartBeatOnStorage() (warnDB *pkg.MySQLMonitorDBH, msg string, err error) {
 	slog.Info(name, slog.String("machine type", config.MonitorConfig.MachineType))
 	switch *config.MonitorConfig.Role {
 	case "master":
 		err = c.updateHeartbeat()
 		if err != nil {
-			return "", err
+			return c.db, err.Error(), nil
 		}
 	case "slave":
 		return c.reportHeartbeatDelay()
@@ -276,14 +276,14 @@ func (c *Checker) heartBeatOnStorage() (msg string, err error) {
 	case "repeater":
 		err = c.updateHeartbeat()
 		if err != nil {
-			return "", err
+			return c.db, err.Error(), nil
 		}
 		return c.reportHeartbeatDelay()
 
 	default:
-		return "", errors.Errorf("unknown role: %s", *config.MonitorConfig.Role)
+		return c.db, fmt.Sprintf("unknown role: %s", *config.MonitorConfig.Role), nil
 	}
-	return "", nil
+	return nil, "", nil
 }
 
 // Name TODO
