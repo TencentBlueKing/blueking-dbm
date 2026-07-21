@@ -137,6 +137,7 @@ class InstanceHandler:
         for inst in storages_proxies_instances:
             db_inst = DBInstance.from_inst_obj(inst)
             db_inst_address = f"{db_inst.ip}:{db_inst.port}"
+            instance_id = inst.get("instance_id") or inst.get("id") if isinstance(inst, Dict) else inst.id
 
             # 如果实例不存在与关联集群映射，则忽略。比如对于无意义的admin_proxies
             db_inst_related_cluster = inst_address__related_clusters_map.get(db_inst_address)
@@ -146,6 +147,7 @@ class InstanceHandler:
             cluster_info = db_inst_related_cluster.get("cluster_info", {})
             host_id_instance_map[str(db_inst)] = {
                 **asdict(db_inst),
+                "instance_id": instance_id,
                 "bk_cloud_name": cloud_info[str(db_inst.bk_cloud_id)]["bk_cloud_name"],
                 "instance_address": f"{db_inst.ip}{IP_PORT_DIVIDER}{db_inst.port}",
                 "cluster_id": cluster_info["id"] if cluster_info else None,

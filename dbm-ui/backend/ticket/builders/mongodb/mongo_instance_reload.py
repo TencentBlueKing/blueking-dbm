@@ -27,6 +27,7 @@ class MongoDBInstanceReloadDetailSerializer(BaseMongoDBOperateDetailSerializer):
     class InstanceReloadDetailSerializer(serializers.Serializer):
         cluster_id = serializers.IntegerField(help_text=_("集群ID"), required=False)
         bk_host_id = serializers.IntegerField(help_text=_("实例主机ID"), required=False)
+        ip = serializers.CharField(help_text=_("IP地址"), required=False)
         instance_id = serializers.IntegerField(help_text=_("实例ID"), required=False)
         port = serializers.IntegerField(help_text=_("实例Port"), required=False)
         role = serializers.CharField(help_text=_("角色"), required=False)
@@ -43,7 +44,7 @@ class MongoDBInstanceReloadDetailSerializer(BaseMongoDBOperateDetailSerializer):
         target_select_mode = attrs["target_select_mode"]
         required_fields_map = {
             OperaObjType.CLUSTER: ["cluster_id"],
-            OperaObjType.MACHINE: ["bk_host_id"],
+            OperaObjType.MACHINE: ["bk_host_id", "ip"],
             OperaObjType.INSTANCE: ["cluster_id", "bk_host_id", "instance_id", "port"],
         }
         required_fields = required_fields_map[target_select_mode]
