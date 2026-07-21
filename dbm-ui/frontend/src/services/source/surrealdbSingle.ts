@@ -64,7 +64,7 @@ export const getSurrealdbSingleInstanceList = function (params: {
   cluster_name: string;
   k8s_cluster_name: string;
   namespace: string;
-  role: string;
+  // role: string;
 }) {
   return http
     .get<ListBase<SurrealdbSingleInstanceModel[]>>(`${getRootPath()}/list_instances/`, params)

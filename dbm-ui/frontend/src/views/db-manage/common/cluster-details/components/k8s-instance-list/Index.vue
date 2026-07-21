@@ -267,7 +267,10 @@
     role: string;
   }
 
-  export type Emits = (e: 'refresh') => void;
+  export interface Emits {
+    (e: 'refresh'): void;
+    (e: 'request-success', list: IColumnData[]): void;
+  }
 
   export interface Slots {
     role: () => VNode;
@@ -303,25 +306,35 @@
   const selectedRowKeys = ref<number[]>([]);
   const selectedList = shallowRef<IColumnData[]>([]);
 
-  const originalData = computed(() => (instanceData.value?.results || []) as IColumnData[]);
+  const originalData = computed(() => {
+    const currentComponentName = props.role;
+    return (instanceData.value?.results || []).filter(
+      (item) => item.componentName === currentComponentName,
+    ) as IColumnData[];
+  });
 
   const { data: instanceData, run } = useRequest(requestHandler, {
     manual: true,
     onAfter() {
       isLoading.value = false;
     },
-    onSuccess() {
-      handleQuickSearchChange();
+    onSuccess(result) {
+      emits('request-success', result.results);
+      // handleQuickSearchChange();
     },
     pollingInterval: 10 * 1000,
   });
 
-  watch(
-    () => props.role,
-    () => {
-      fetchData();
-    },
-  );
+  watch(originalData, () => {
+    handleQuickSearchChange();
+  });
+
+  // watch(
+  //   () => props.role,
+  //   () => {
+  //     fetchData();
+  //   },
+  // );
 
   const getBatchCopyData = () => {
     return Promise.resolve(originalData.value);
@@ -333,7 +346,7 @@
       cluster_name: props.clusterData.cluster_name,
       k8s_cluster_name: props.clusterData.k8s_cluster_name,
       namespace: props.clusterData.namespace,
-      role: props.role,
+      // role: props.role,
     });
   };
 

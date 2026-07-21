@@ -215,7 +215,7 @@
         { foreground: '2dcb56', token: 'log-info' }, // INFO绿色
         { foreground: '#ff9c01', token: 'log-warn' }, // WARN黄色
         { foreground: '#ea3636', token: 'log-error' }, // ERROR红色
-        { foreground: '#858585', token: 'log-debug' }, // DEBUG/TRACE灰色
+        // { foreground: '#858585', token: 'log-debug' }, // DEBUG/TRACE灰色
         { foreground: '#858585', token: 'log-module' }, // 模块路径灰色
       ],
     });
