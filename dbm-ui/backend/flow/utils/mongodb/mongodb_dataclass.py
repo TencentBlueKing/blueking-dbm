@@ -1815,7 +1815,12 @@ class ActKwargs:
     def get_host_increase_node(self, info: dict):
         """cluster增加node获取主机"""
 
-        flow_db_version = resolve_mongodb_flow_db_version(Cluster.objects.get(pk=info["cluster_id"]))
+        # 副本集流程 info 为多副本集(cluster_ids)，分片集群流程 info 为单集群(cluster_id)
+        if self.payload["cluster_type"] == ClusterType.MongoReplicaSet.value:
+            cluster_id = info["cluster_ids"][0]
+        else:
+            cluster_id = info["cluster_id"]
+        flow_db_version = resolve_mongodb_flow_db_version(Cluster.objects.get(pk=cluster_id))
 
         hosts = []
         if self.payload["cluster_type"] == ClusterType.MongoReplicaSet.value:
