@@ -32,6 +32,7 @@ from backend.core.notify.handlers import BkChatHandler, CmsiHandler
 from backend.db_meta.enums import ClusterType
 from backend.db_meta.models import Cluster
 from backend.db_monitor.constants import (
+    CLUSTER_LOAD_QUERY_RANGE,
     CLUSTER_MACHINE_LOAD_QUERY_TEMPLATE,
     CLUSTER_TYPE_LOAD_RULES,
     DEFAULT_ALERT_NOTICE,
@@ -269,7 +270,7 @@ def query_capacity_for_clusters(bk_biz_id, cluster_type, immute_domains) -> (dic
     return cluster_cap_bytes, no_stats
 
 
-def query_cluster_load(cluster_type, clusters) -> (dict, dict):
+def query_cluster_load(cluster_type, clusters, time_range=60) -> (dict, dict):
     """查询集群负载"""
 
     if cluster_type not in CLUSTER_TYPE_LOAD_RULES:
@@ -283,7 +284,7 @@ def query_cluster_load(cluster_type, clusters) -> (dict, dict):
     # 默认查询前后1h的数据
     now = datetime.datetime.now(timezone.utc)
     common_params["end_time"] = int(now.timestamp())
-    common_params["start_time"] = int((now - datetime.timedelta(minutes=60)).timestamp())
+    common_params["start_time"] = int((now - datetime.timedelta(minutes=time_range)).timestamp())
 
     # 初始化cluster负载数据结构
     load_tpl_map = defaultdict(dict)
@@ -349,8 +350,8 @@ def sync_cluster_load_by_cluster_type(bk_biz_id, cluster_type):
         .values_list("immute_domain", flat=True)
         .distinct()
     )
-    # TODO: 是否需要cache?
-    return query_cluster_load(cluster_type, cluster_domains)
+    # 查询最近24h的负载情况
+    return query_cluster_load(cluster_type, cluster_domains, time_range=CLUSTER_LOAD_QUERY_RANGE)
 
 
 @current_app.task
