@@ -155,21 +155,46 @@
     {
       message: t('集群域名格式不正确'),
       trigger: 'change',
-      validator: () => modelValue.value.every((item) => domainRegex.test(item.master_domain)),
+      validator: () => {
+        const invalidDomains = modelValue.value
+          .filter((item) => !domainRegex.test(item.master_domain))
+          .map((item) => item.master_domain);
+        if (invalidDomains.length === 0) return true;
+        return `${t('集群域名格式不正确')}: ${invalidDomains.join('、')}`;
+      },
     },
     {
       message: t('不允许高版本往低版本迁移'),
-      trigger: 'change',
-      validator: () =>
-        modelValue.value.every(
-          (item) =>
-            !props.srcCluster.major_version || !compareVersion(item.major_version, props.srcCluster.major_version),
-        ),
+      trigger: 'blur',
+      validator: () => {
+        if (!props.srcCluster.major_version) return true;
+        const invalidDomains = modelValue.value
+          .filter((item) => item.major_version && compareVersion(item.major_version, props.srcCluster.major_version))
+          .map((item) => item.master_domain);
+        if (invalidDomains.length === 0) return true;
+        return `${t('不允许高版本往低版本迁移')}: ${invalidDomains.join('、')}`;
+      },
+    },
+    {
+      message: t('目标集群重复'),
+      trigger: 'blur',
+      validator: () => {
+        const domains = modelValue.value.map((item) => item.master_domain);
+        const duplicateDomains = domains.filter((domain, index) => domains.indexOf(domain) !== index);
+        if (duplicateDomains.length === 0) return true;
+        return `${t('目标集群重复')}: ${[...new Set(duplicateDomains)].join('、')}`;
+      },
     },
     {
       message: t('目标集群不存在'),
       trigger: 'blur',
-      validator: () => modelValue.value.every((item) => !!item.id),
+      validator: () => {
+        const invalidDomains = modelValue.value
+          .filter((item) => !item.id)
+          .map((item) => item.master_domain);
+        if (invalidDomains.length === 0) return true;
+        return `${t('目标集群不存在')}: ${invalidDomains.join('、')}`;
+      },
     },
   ];
 
@@ -183,6 +208,7 @@
 
   const fetchClusterData = async (domainStr: string): Promise<typeof modelValue.value> => {
     loading.value = true;
+    const domains = domainStr.split(batchSplitRegex).filter(Boolean);
     return Promise.all([
       getHaClusterList({
         domain: domainStr,
@@ -194,10 +220,11 @@
       }),
     ])
       .then((dataList) => {
-        const temp: typeof modelValue.value = [];
+        // 收集所有查询到的集群结果
+        const allResults: typeof modelValue.value = [];
         dataList.forEach((data) => {
           if (data.count) {
-            temp.push(
+            allResults.push(
               ...data.results.map((item) => ({
                 cluster_type: item.cluster_type,
                 id: item.id,
@@ -207,7 +234,18 @@
             );
           }
         });
-        return temp;
+        // 回填到原始域名列表：匹配到的填充完整信息，未匹配到的保留 id: undefined 以便校验规则捕获
+        return domains.map((domain) => {
+          const found = allResults.find((item) => item.master_domain === domain);
+          return (
+            found || {
+              cluster_type: '' as ClusterTypes,
+              id: undefined,
+              major_version: '',
+              master_domain: domain,
+            }
+          );
+        });
       })
       .finally(() => {
         loading.value = false;
