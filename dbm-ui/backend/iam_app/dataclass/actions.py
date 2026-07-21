@@ -2287,8 +2287,7 @@ class ActionEnum:
         type="execute",
         related_actions=[DB_MANAGE.id],
         related_resource_types=[ResourceEnum.SQLSERVER],
-        group=_("SQLServer"),
-        subgroup=_("集群管理"),
+        group=_("已废弃"),
     )
 
     SQLSERVER_APPLY = ActionMeta(
@@ -2323,8 +2322,7 @@ class ActionEnum:
         type="create",
         related_actions=[],
         related_resource_types=[ResourceEnum.BUSINESS],
-        group=_("SQLServer"),
-        subgroup=_("已废弃"),
+        group=_("已废弃"),
         common_labels=[CommonActionLabel.BIZ_MAINTAIN],
     )
 
@@ -2335,8 +2333,7 @@ class ActionEnum:
         type="delete",
         related_actions=[],
         related_resource_types=[ResourceEnum.SQLSERVER_ACCOUNT],
-        group=_("SQLServer"),
-        subgroup=_("已废弃"),
+        group=_("已废弃"),
         common_labels=[CommonActionLabel.BIZ_MAINTAIN],
     )
 
@@ -2347,8 +2344,7 @@ class ActionEnum:
         type="create",
         related_actions=[DB_MANAGE.id],
         related_resource_types=[ResourceEnum.SQLSERVER_ACCOUNT],
-        group=_("SQLServer"),
-        subgroup=_("已废弃"),
+        group=_("已废弃"),
         common_labels=[CommonActionLabel.BIZ_MAINTAIN],
     )
 
@@ -2359,8 +2355,7 @@ class ActionEnum:
         type="view",
         related_actions=[DB_MANAGE.id],
         related_resource_types=[ResourceEnum.BUSINESS],
-        group=_("SQLServer"),
-        subgroup=_("权限管理"),
+        group=_("已废弃"),
         common_labels=[CommonActionLabel.BIZ_MAINTAIN, CommonActionLabel.DEVELOPER],
     )
 
@@ -2371,8 +2366,7 @@ class ActionEnum:
         type="execute",
         related_actions=[DB_MANAGE.id],
         related_resource_types=[ResourceEnum.SQLSERVER_ACCOUNT, ResourceEnum.SQLSERVER],
-        group=_("SQLServer"),
-        subgroup=_("已废弃"),
+        group=_("已废弃"),
         common_labels=[CommonActionLabel.BIZ_MAINTAIN],
     )
 
@@ -2383,8 +2377,7 @@ class ActionEnum:
         type="execute",
         related_actions=[DB_MANAGE.id],
         related_resource_types=[ResourceEnum.BUSINESS],
-        group=_("SQLServer"),
-        subgroup=_("已废弃"),
+        group=_("已废弃"),
         common_labels=[CommonActionLabel.BIZ_MAINTAIN],
     )
 
