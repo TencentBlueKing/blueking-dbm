@@ -205,11 +205,17 @@ class SpiderTruncateDatabaseFlow(object):
             ):
                 ip = remote_master_instance.machine.ip
                 port = remote_master_instance.port
-                shard_id = (
-                    StorageInstanceTuple.objects.filter(ejector=remote_master_instance)
-                    .first()
-                    .tendbclusterstorageset.shard_id
-                )
+                try:
+                    shard_id = (
+                        StorageInstanceTuple.objects.filter(ejector=remote_master_instance, receiver__is_stand_by=True)
+                        .get()
+                        .tendbclusterstorageset.shard_id
+                    )
+                except ObjectDoesNotExist as e:  # noqa
+                    raise DBMetaException(
+                        message=f"query {remote_master_instance.ip_port} stand_by tuple record failed: {e}"
+                    )
+
                 remote_master_machine_port_shard_id[ip][port] = shard_id
 
             # 在 remote 上删除备份库
