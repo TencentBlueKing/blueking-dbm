@@ -29,7 +29,7 @@ class EsActKwargs:
     plugin_list: list = field(default_factory=list)  # 插件列表，默认空字典
     cluster: dict = field(default_factory=dict)  # 集群信息
     rack_id: str = None  # 机架id,默认值空不写入配置
-    idc_id: str = None  # 机房id,默认值空不写入配置
+    idc_id: int = 0  # 机房id,默认值0
     sub_zone_id: str = None  # 园区id,默认值空不写入配置
 
 
