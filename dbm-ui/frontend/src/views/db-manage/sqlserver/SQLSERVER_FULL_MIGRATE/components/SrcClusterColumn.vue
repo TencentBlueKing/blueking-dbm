@@ -191,16 +191,11 @@
   };
 
   const handleDomainChange = (value: string) => {
-    if (value && !modelValue.value.id) {
-      modelValue.value.id = undefined;
-      queryCluster({
-        bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
-        exact_domain: value,
-      });
-    }
-    if (!value) {
-      modelValue.value.id = undefined;
-    }
+    modelValue.value.id = undefined;
+    queryCluster({
+      bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
+      exact_domain: value,
+    });
   };
 
   const handleBatchSelect = () => {
