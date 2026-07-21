@@ -59,6 +59,18 @@
     "level_names": "plat,app,cluster",
     "level_versioned": "cluster"
   },
+    {
+    "conf_type": "doris_runtime_config",
+    "conf_file": "2.1.5",
+    "conf_name_validate": 1,
+    "conf_value_validate": 1,
+    "value_type_strict": 0,
+    "description": "doris-2.1.5运行时配置（全局变量、用户属性、资源配额）",
+    "conf_type_lc": "doris运行时配置",
+    "conf_file_lc": "doris-2.1.5",
+    "level_names": "plat,app,cluster",
+    "level_versioned": "cluster"
+  },
   {
     "conf_type": "doris_runtime_config",
     "conf_file": "3.0.4",
