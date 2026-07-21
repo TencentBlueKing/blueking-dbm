@@ -153,6 +153,7 @@ class SQLHandler(object):
                 "cluster_type": self.cluster_type,
                 "versions": versions,
                 "execute_objects": execute_objects,
+                "bk_biz_id": self.bk_biz_id,
             }
         )
 
