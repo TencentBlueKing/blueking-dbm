@@ -2509,6 +2509,18 @@ class ActionEnum:
         common_labels=[CommonActionLabel.BIZ_MAINTAIN, CommonActionLabel.DEVELOPER],
     )
 
+    NOTIFY_GROUP_MANAGE = ActionMeta(
+        id="notify_group_manage",
+        name=_("告警组管理"),
+        name_en="notify_group_manage",
+        type="manage",
+        related_actions=[DB_MANAGE.id],
+        related_resource_types=[ResourceEnum.BUSINESS],
+        group=_("业务配置"),
+        subgroup=_("告警管理"),
+        common_labels=[CommonActionLabel.BIZ_MAINTAIN, CommonActionLabel.DEVELOPER],
+    )
+
     NOTIFY_GROUP_LIST = ActionMeta(
         id="notify_group_list",
         name=_("告警组查看"),
@@ -2516,8 +2528,7 @@ class ActionEnum:
         type="view",
         related_actions=[DB_MANAGE.id],
         related_resource_types=[ResourceEnum.BUSINESS],
-        group=_("业务配置"),
-        subgroup=_("告警组"),
+        group=_("已废弃"),
         common_labels=[CommonActionLabel.BIZ_MAINTAIN, CommonActionLabel.DEVELOPER],
     )
 
@@ -2528,8 +2539,7 @@ class ActionEnum:
         type="create",
         related_actions=[DB_MANAGE.id],
         related_resource_types=[ResourceEnum.BUSINESS],
-        group=_("业务配置"),
-        subgroup=_("告警组"),
+        group=_("已废弃"),
         common_labels=[CommonActionLabel.BIZ_MAINTAIN],
     )
 
@@ -2540,8 +2550,7 @@ class ActionEnum:
         type="manage",
         related_actions=[DB_MANAGE.id],
         related_resource_types=[ResourceEnum.NOTIFY_GROUP],
-        group=_("业务配置"),
-        subgroup=_("告警组"),
+        group=_("已废弃"),
         common_labels=[CommonActionLabel.BIZ_MAINTAIN],
     )
 
@@ -2552,8 +2561,7 @@ class ActionEnum:
         type="delete",
         related_actions=[DB_MANAGE.id],
         related_resource_types=[ResourceEnum.NOTIFY_GROUP],
-        group=_("业务配置"),
-        subgroup=_("告警组"),
+        group=_("已废弃"),
         common_labels=[CommonActionLabel.BIZ_MAINTAIN],
     )
 
@@ -2569,6 +2577,18 @@ class ActionEnum:
         hidden=True,
     )
 
+    MONITOR_POLICY_MANAGE = ActionMeta(
+        id="monitor_policy_manage",
+        name=_("告警策略管理"),
+        name_en="monitor_policy_manage",
+        type="manage",
+        related_actions=[DB_MANAGE.id],
+        related_resource_types=[ResourceEnum.BUSINESS, ResourceEnum.DBTYPE],
+        group=_("业务配置"),
+        subgroup=_("告警管理"),
+        common_labels=[CommonActionLabel.BIZ_MAINTAIN, CommonActionLabel.DEVELOPER],
+    )
+
     MONITOR_POLICY_LIST = ActionMeta(
         id="monitor_policy_view",
         name=_("监控策略查看"),
@@ -2576,8 +2596,7 @@ class ActionEnum:
         type="view",
         related_actions=[DB_MANAGE.id],
         related_resource_types=[ResourceEnum.BUSINESS, ResourceEnum.DBTYPE],
-        group=_("业务配置"),
-        subgroup=_("监控策略"),
+        group=_("已废弃"),
         common_labels=[CommonActionLabel.BIZ_MAINTAIN, CommonActionLabel.DEVELOPER],
     )
 
@@ -2600,8 +2619,7 @@ class ActionEnum:
         type="manage",
         related_actions=[DB_MANAGE.id],
         related_resource_types=[ResourceEnum.MONITOR_POLICY],
-        group=_("业务配置"),
-        subgroup=_("监控策略"),
+        group=_("已废弃"),
         common_labels=[CommonActionLabel.BIZ_MAINTAIN],
     )
 
@@ -2624,8 +2642,7 @@ class ActionEnum:
         type="delete",
         related_actions=[DB_MANAGE.id],
         related_resource_types=[ResourceEnum.MONITOR_POLICY],
-        group=_("业务配置"),
-        subgroup=_("监控策略"),
+        group=_("已废弃"),
         common_labels=[CommonActionLabel.BIZ_MAINTAIN],
     )
 
@@ -2636,8 +2653,7 @@ class ActionEnum:
         type="manage",
         related_actions=[DB_MANAGE.id],
         related_resource_types=[ResourceEnum.MONITOR_POLICY],
-        group=_("业务配置"),
-        subgroup=_("监控策略"),
+        group=_("已废弃"),
         common_labels=[CommonActionLabel.BIZ_MAINTAIN],
     )
 
@@ -2660,8 +2676,7 @@ class ActionEnum:
         type="create",
         related_actions=[DB_MANAGE.id],
         related_resource_types=[ResourceEnum.BUSINESS, ResourceEnum.DBTYPE],
-        group=_("业务配置"),
-        subgroup=_("监控策略"),
+        group=_("已废弃"),
         common_labels=[CommonActionLabel.BIZ_MAINTAIN],
     )
 
@@ -2672,8 +2687,7 @@ class ActionEnum:
         type="create",
         related_actions=[DB_MANAGE.id],
         related_resource_types=[ResourceEnum.BUSINESS],
-        group=_("业务配置"),
-        subgroup=_("监控策略"),
+        group=_("已废弃"),
         common_labels=[CommonActionLabel.BIZ_MAINTAIN],
     )
 
@@ -2685,7 +2699,7 @@ class ActionEnum:
         related_actions=[DB_MANAGE.id],
         related_resource_types=[ResourceEnum.BUSINESS],
         group=_("业务配置"),
-        subgroup=_("监控策略"),
+        subgroup=_("告警管理"),
         common_labels=[CommonActionLabel.BIZ_MAINTAIN],
     )
 
