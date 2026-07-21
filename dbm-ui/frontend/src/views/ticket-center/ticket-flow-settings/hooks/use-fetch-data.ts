@@ -163,140 +163,106 @@ export const useFetchData = () => {
     return parentRows;
   };
 
-  /** 检查节点是否匹配搜索条件 */
+  /** 拆分逗号分隔的多选值为数组 */
+  const splitMultiValue = (value: string) =>
+    value
+      .split(',')
+      .map((v) => v.trim())
+      .filter(Boolean);
+
+  /** 检查节点是否匹配搜索条件（多条件取 AND） */
   const isMatchSearch = (node: TableRow, searchMap: Record<string, string>): boolean => {
-    const hasSearchCondition = Object.values(searchMap).some((v) => v !== '');
-    if (!hasSearchCondition) {
+    if (!Object.values(searchMap).some((v) => v !== '')) {
       return true;
     }
 
-    let match = true;
-
     // 单据类型：cascader 实际过滤值（纯 ticket_type，如 mysql.BACKUP）在 ticket_type__in 中
-    if (searchMap.ticket_type__in) {
-      const ticketTypes = searchMap.ticket_type__in.split(',').filter(Boolean);
-      match = match && ticketTypes.includes(node.ticket_type);
+    if (searchMap.ticket_type__in && !splitMultiValue(searchMap.ticket_type__in).includes(node.ticket_type)) {
+      return false;
     }
 
     // 集群域名：模糊匹配节点下任意集群的 immute_domain（多选取并集，任一命中即通过）
     if (searchMap.immute_domain) {
-      const domains = searchMap.immute_domain
-        .split(',')
-        .map((domain) => domain.trim().toLowerCase())
-        .filter(Boolean);
-      match =
-        match &&
-        domains.some((domain) => node.clusters.some((cluster) => cluster.immute_domain.toLowerCase().includes(domain)));
+      const domains = splitMultiValue(searchMap.immute_domain).map((d) => d.toLowerCase());
+      const hit = domains.some((domain) =>
+        node.clusters.some((cluster) => cluster.immute_domain.toLowerCase().includes(domain)),
+      );
+      if (!hit) return false;
     }
 
     // 是否审批：多选值取 OR 逻辑（任一命中即通过）
     if (searchMap.need_itsm) {
-      const needItsmValues = searchMap.need_itsm.split(',').filter(Boolean);
-      match = match && needItsmValues.some((value) => String(node.configs.need_itsm) === value);
+      const values = splitMultiValue(searchMap.need_itsm);
+      if (!values.some((value) => String(node.configs.need_itsm) === value)) return false;
     }
 
     // 更新人：模糊匹配
-    if (searchMap.updater) {
-      const keyword = searchMap.updater.toLowerCase();
-      match = match && node.updater.toLowerCase().includes(keyword);
+    if (searchMap.updater && !node.updater.toLowerCase().includes(searchMap.updater.toLowerCase())) {
+      return false;
     }
 
     // 更新时间：根据 __gte / __lte 端点比较
     if (searchMap.update_at__gte || searchMap.update_at__lte) {
       const nodeTime = new Date(node.updateAtDisplay || 0).getTime();
       if (!Number.isNaN(nodeTime)) {
-        if (searchMap.update_at__gte) {
-          const gte = new Date(searchMap.update_at__gte).getTime();
-          if (!Number.isNaN(gte) && nodeTime < gte) {
-            match = false;
-          }
-        }
-        if (searchMap.update_at__lte) {
-          const lte = new Date(searchMap.update_at__lte).getTime();
-          if (!Number.isNaN(lte) && nodeTime > lte) {
-            match = false;
-          }
-        }
+        const gte = searchMap.update_at__gte ? new Date(searchMap.update_at__gte).getTime() : -Infinity;
+        const lte = searchMap.update_at__lte ? new Date(searchMap.update_at__lte).getTime() : Infinity;
+        if (!Number.isNaN(gte) && nodeTime < gte) return false;
+        if (!Number.isNaN(lte) && nodeTime > lte) return false;
       }
     }
 
     // 备注：模糊匹配
-    if (searchMap.remark) {
-      const keyword = searchMap.remark.toLowerCase();
-      match = match && (node.remark || '').toLowerCase().includes(keyword);
+    if (searchMap.remark && !(node.remark || '').toLowerCase().includes(searchMap.remark.toLowerCase())) {
+      return false;
     }
 
-    return match;
+    return true;
   };
 
-  /** 递归过滤树形数据 */
-  const filterTreeData = (nodes: TableRow[], searchMap: Record<string, string>): TableRow[] => {
-    const filtered: TableRow[] = [];
+  /** 递归过滤树形数据（子节点匹配则保留父节点） */
+  const filterTreeData = (nodes: TableRow[], searchMap: Record<string, string>): TableRow[] =>
+    nodes
+      .map((node) => {
+        // 递归过滤子节点
+        const filteredChildren =
+          node.children && node.children.length > 0 ? filterTreeData(node.children, searchMap) : undefined;
 
-    nodes.forEach((node) => {
-      // 检查当前节点是否匹配
-      let selfMatch = false;
+        // Tab 过滤：免审批 tab 下，父行本身免审批或任一子行免审批
+        const tabMatch =
+          activeTab.value !== 'noApproval' ||
+          !node.configs.need_itsm ||
+          (node.children?.some((c) => !c.configs.need_itsm) ?? false);
 
-      if (activeTab.value === 'noApproval') {
-        // Tab 过滤：父行本身免审批，或任一子行免审批
-        const childrenNoApproval = node.children?.some((c) => !c.configs.need_itsm);
-        selfMatch = !node.configs.need_itsm || (childrenNoApproval ?? false);
-      } else {
-        selfMatch = true;
-      }
+        // 搜索过滤 + 子节点匹配则保留父节点
+        const selfMatch = tabMatch && isMatchSearch(node, searchMap);
+        const matched = selfMatch || (filteredChildren && filteredChildren.length > 0);
 
-      // 搜索过滤
-      selfMatch = selfMatch && isMatchSearch(node, searchMap);
+        if (!matched) return null;
 
-      // 递归过滤子节点
-      let filteredChildren: TableRow[] | undefined;
-      if (node.children && node.children.length > 0) {
-        filteredChildren = filterTreeData(node.children, searchMap);
-        if (filteredChildren.length > 0) {
-          selfMatch = true; // 子节点匹配，父节点也要保留
-        }
-      }
+        // 父节点匹配但子节点不匹配时丢弃 children
+        const rest = { ...node };
+        delete rest.children;
+        return filteredChildren && filteredChildren.length > 0 ? { ...rest, children: filteredChildren } : rest;
+      })
+      .filter((node): node is TableRow => node !== null);
 
-      if (selfMatch) {
-        const newNode = { ...node };
-        if (filteredChildren && filteredChildren.length > 0) {
-          newNode.children = filteredChildren;
-        } else if (node.children) {
-          // 父节点匹配但子节点不匹配，保留空 children 或不设置
-          delete newNode.children;
-        }
-        filtered.push(newNode);
-      }
-    });
-
-    return filtered;
-  };
-
-  /** 应用排序 */
+  /** 应用排序（递归排序子节点） */
   const applySort = (nodes: TableRow[], sort: SortInfo): TableRow[] => {
     if (!sort.sortBy) return nodes;
 
-    const sorted = [...nodes];
-    sorted.sort((a, b) => {
-      let compare = 0;
-      if (sort.sortBy === 'updateAtDisplay') {
-        // 按更新时间排序
-        const dateA = new Date(a.updateAtDisplay || 0).getTime();
-        const dateB = new Date(b.updateAtDisplay || 0).getTime();
-        compare = dateA - dateB;
-      }
+    const sorted = [...nodes].sort((a, b) => {
+      // 当前仅支持按更新时间排序
+      const compare =
+        sort.sortBy === 'updateAtDisplay'
+          ? new Date(a.updateAtDisplay || 0).getTime() - new Date(b.updateAtDisplay || 0).getTime()
+          : 0;
       return sort.descending ? -compare : compare;
     });
 
-    // 递归排序子节点（避免直接修改函数参数）
-    const result = sorted.map((node) => {
-      if (node.children && node.children.length > 0) {
-        return { ...node, children: applySort(node.children, sort) };
-      }
-      return node;
-    });
-
-    return result;
+    return sorted.map((node) =>
+      node.children && node.children.length > 0 ? { ...node, children: applySort(node.children, sort) } : node,
+    );
   };
 
   /** 应用分页 */
@@ -311,47 +277,34 @@ export const useFetchData = () => {
     paginatedData.value = allTreeData.value.slice(start, end);
   };
 
-  /**
-   * 递归遍历树形数据，对每个节点执行 callback
-   */
-  const traverseTree = (nodes: TableRow[], callback: (node: TableRow) => void) => {
-    nodes.forEach((node) => {
-      callback(node);
-      if (node.children) {
-        traverseTree(node.children, callback);
-      }
-    });
-  };
-
   /** 递归统计所有节点总数（含子节点） */
-  const countAllNodes = (nodes: TableRow[]): number => {
-    let count = 0;
-    traverseTree(nodes, () => count++);
-    return count;
-  };
+  const countAllNodes = (nodes: TableRow[]): number =>
+    nodes.reduce((sum, node) => sum + 1 + (node.children ? countAllNodes(node.children) : 0), 0);
 
-  /**
-   * 获取所有有子节点的父行 ID（用于默认展开）
-   */
+  /** 递归统计免审批节点总数 */
+  const countNoApproval = (nodes: TableRow[]): number =>
+    nodes.reduce(
+      (sum, node) => sum + (node.configs.need_itsm ? 0 : 1) + (node.children ? countNoApproval(node.children) : 0),
+      0,
+    );
+
+  /** 获取所有有子节点的父行 ID（用于默认展开） */
   const getAllParentIds = (nodes: TableRow[]): (string | number)[] =>
-    nodes.filter((node) => node.children && node.children.length > 0).map((node) => node.id);
+    nodes.flatMap((node) => (node.children && node.children.length > 0 ? [node.id] : []));
 
   /** 应用本地过滤（tab、搜索、排序、分页），不请求接口 */
   const applyLocalFilter = () => {
     // 所有搜索条件统一由 filterTreeData -> isMatchSearch 处理（多条件取 AND，子节点匹配则保留父节点）
-    let filtered = filterTreeData(rawTreeData.value, searchValue.value);
+    const filtered = filterTreeData(rawTreeData.value, searchValue.value);
 
     // 应用排序（如"更新时间"列）
-    if (tableSort.value && tableSort.value.sortBy) {
-      filtered = applySort(filtered, tableSort.value);
-    }
+    const sorted = tableSort.value?.sortBy ? applySort(filtered, tableSort.value) : filtered;
 
-    pagination.count = countAllNodes(filtered);
-
-    allTreeData.value = filtered;
+    pagination.count = countAllNodes(sorted);
+    allTreeData.value = sorted;
 
     // 默认展开所有有子节点的行
-    expandedTreeNodes.value = getAllParentIds(filtered);
+    expandedTreeNodes.value = getAllParentIds(sorted);
 
     applyPagination();
 
@@ -392,11 +345,10 @@ export const useFetchData = () => {
   // 排序变化（本地排序）
   const handleSortChange = (sort: SortInfo | SortInfo[]) => {
     pagination.current = 1;
-    if (sort && !Array.isArray(sort) && sort.sortBy) {
-      tableSort.value = { descending: sort.descending, sortBy: sort.sortBy } as SortInfo;
-    } else {
-      tableSort.value = undefined;
-    }
+    tableSort.value =
+      sort && !Array.isArray(sort) && sort.sortBy
+        ? ({ descending: sort.descending, sortBy: sort.sortBy } as SortInfo)
+        : undefined;
     applyLocalFilter();
   };
 
@@ -465,13 +417,7 @@ export const useFetchData = () => {
   // 统计数量（基于原始全量数据，不受 tab 切换影响）
   const allCount = computed(() => countAllNodes(rawTreeData.value));
 
-  const noApprovalCount = computed(() => {
-    let count = 0;
-    traverseTree(rawTreeData.value, (node) => {
-      if (!node.configs.need_itsm) count++;
-    });
-    return count;
-  });
+  const noApprovalCount = computed(() => countNoApproval(rawTreeData.value));
 
   return {
     activeTab,

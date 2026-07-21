@@ -89,7 +89,6 @@
   <EditPolicySide
     v-model:is-show="editPolicyVisible"
     :data="currentPolicyData"
-    :existing-cluster-ids="currentExistingClusterIds"
     :is-edit="isEditPolicy"
     :parent-approval-setting="parentApprovalSetting"
     @success="fetchListData" />
@@ -158,8 +157,6 @@
   const isEditPolicy = ref(false);
   const currentPolicyData = ref<TicketFlowDescribeModel>(new TicketFlowDescribeModel());
   const parentApprovalSetting = ref<boolean | undefined>(undefined);
-  // 当前编辑/新建子策略时，同一单据类型下已有按集群子策略的集群 id 集合（用于不重复校验）
-  const currentExistingClusterIds = ref<number[]>([]);
 
   const { quickSearchData } = useSearchSelect();
 
@@ -187,18 +184,25 @@
     tableSort,
   } = useFetchData();
 
-  // 自定义树形展开/折叠图标 (TDesign: (h, { type, row }) => VNode)
-  const treeExpandAndFoldIcon = ((h: any, { type }: { row: TableRow; type: 'expand' | 'fold' }) => {
-    return h(DbIcon, { style: { color: '#C4C6CC' }, type: type === 'expand' ? 'right-shape' : 'down-shape' });
-  }) as any;
+  // 自定义树形展开/折叠图标：始终使用 down-shape，通过 rotate 过渡（fold: 0deg 指向下，expand: -90deg 指向右）
+  // TDesign 的 treeExpandAndFoldIcon 参数类型为 TableRowData（非本项目 TableRow），需断言兼容
+  const treeExpandAndFoldIcon = ((_h: any, { type }: { row: TableRow; type: 'expand' | 'fold' }) => (
+    <DbIcon
+      class='tree-expand-icon'
+      style={{ color: '#C4C6CC', transform: type === 'fold' ? 'rotate(0deg)' : 'rotate(-90deg)' }}
+      type='down-shape'
+    />
+  )) as any;
 
   // 行自定义 class（用于树形连接线 + 重复策略置灰）
-  const rowClassName = ({ row }: { row: TableRow }) => {
-    if (row.isDuplicate) return 'is-duplicate-row';
-    if (row.isChildRow) return 'is-child-row';
-    if (row.children && row.children.length > 0) return 'is-parent-with-children';
-    return '';
-  };
+  const rowClassName = ({ row }: { row: TableRow }) =>
+    row.isDuplicate
+      ? 'is-duplicate-row'
+      : row.isChildRow
+        ? 'is-child-row'
+        : row.children && row.children.length > 0
+          ? 'is-parent-with-children'
+          : '';
 
   /**
    * 列定义
@@ -406,65 +410,69 @@
     },
   ]);
 
-  /**
-   * 收集同一单据类型下已有按集群子策略的集群 id（用于按集群不重复校验）
-   * 编辑态排除当前行自身已选集群，避免自校验误报
-   */
-  const collectExistingClusterIds = (ticketType: string, excludeRowId?: number): number[] => {
-    const ids: number[] = [];
-    const parent = allTreeData.value.find((n) => n.ticket_type === ticketType && !n.isChildRow);
-    parent?.children?.forEach((child) => {
-      if (child.scopeType !== 'cluster') return;
-      if (excludeRowId !== undefined && child.id === excludeRowId) return;
-      child.clusters.forEach((c) => ids.push(c.cluster_id));
-    });
-    return ids;
-  };
-
   const handleEdit = (data: TableRow) => {
     isEditPolicy.value = true;
     currentPolicyData.value = data.rawData;
-    if (data.rawData.isChildPolicy) {
-      // 找到父策略行以获取审批设置
-      const parentRow = allTreeData.value.find((n) => n.ticket_type === data.ticket_type && !n.isChildRow);
-      parentApprovalSetting.value = parentRow?.configs.need_itsm;
-      // 编辑态：排除当前行自身已选集群
-      currentExistingClusterIds.value = collectExistingClusterIds(data.ticket_type, data.id);
-    } else {
-      parentApprovalSetting.value = undefined;
-      currentExistingClusterIds.value = [];
-    }
+    // 子策略编辑：找到父策略行以获取审批设置
+    parentApprovalSetting.value = data.rawData.isChildPolicy
+      ? allTreeData.value.find((n) => n.ticket_type === data.ticket_type && !n.isChildRow)?.configs.need_itsm
+      : undefined;
     editPolicyVisible.value = true;
   };
 
   const handleAddChild = (data: TableRow) => {
-    const newData = new TicketFlowDescribeModel(
-      Object.assign({}, data.rawData, {
-        bk_biz_id: currentBizId,
-        cluster_ids: [],
-        clusters: [],
-        configs: {
-          expire_config: {
-            flow_todo_expire: -1,
-            inner_flow_expire: -1,
-            itsm_expire: -1,
-          },
-          need_itsm: data.configs.need_itsm,
-        },
-        id: 0,
-        is_child_config: true,
-        parent_id: data.rawData.id,
-        remark: '',
-        update_at: '',
-        updater: '',
-      }),
-    );
+    // 基于父策略构造子策略初始数据：继承过期配置，重置审批/范围/标识字段
+    const newData = new TicketFlowDescribeModel({
+      ...data.rawData,
+      bk_biz_id: currentBizId,
+      cluster_ids: [],
+      clusters: [],
+      configs: {
+        ...data.rawData.configs,
+        need_itsm: data.configs.need_itsm,
+      },
+      id: 0,
+      is_child_config: true,
+      parent_id: data.rawData.id,
+      remark: '',
+      update_at: '',
+      updater: '',
+    } as unknown as TicketFlowDescribeModel);
     isEditPolicy.value = false;
     currentPolicyData.value = newData;
     parentApprovalSetting.value = data.configs.need_itsm;
-    // 新建态：收集同一单据类型下所有按集群子策略的集群 id
-    currentExistingClusterIds.value = collectExistingClusterIds(data.ticket_type);
     editPolicyVisible.value = true;
+  };
+
+  // 删除配置并刷新列表（删除子策略 / 恢复默认共用）
+  const removeConfig = async (configId: number) => {
+    try {
+      await deleteTicketFlowConfig({ config_ids: [configId] });
+      messageSuccess(t('操作成功'));
+      fetchListData();
+      return true;
+    } catch {
+      return false;
+    }
+  };
+
+  const handleRestoreDefault = (data: TableRow) => {
+    InfoBox({
+      cancelText: t('取消'),
+      confirmText: t('确认'),
+      content: () => (
+        <div class='infobox-content'>
+          <div class='infobox-row'>
+            <span class='infobox-label'>{t('单据类型：')}</span>
+            <span class='infobox-value'>{data.ticket_type_display}</span>
+          </div>
+          <p class='infobox-tip'>{t('恢复后该单据重新继承全局审批策略，随全局策略更新而自动同步。')}</p>
+        </div>
+      ),
+      extCls: 'ticket-flow-settings-infobox',
+      onConfirm: () => removeConfig(data.rawData.id),
+      title: t('确认恢复为默认？'),
+    });
   };
 
   const handleDeleteChild = (data: TableRow) => {
@@ -546,49 +554,8 @@
         );
       },
       extCls: 'ticket-flow-settings-infobox',
-      onConfirm: async () => {
-        try {
-          await deleteTicketFlowConfig({
-            config_ids: [data.rawData.id],
-          });
-          messageSuccess(t('操作成功'));
-          fetchListData();
-          return true;
-        } catch {
-          return false;
-        }
-      },
+      onConfirm: () => removeConfig(data.rawData.id),
       title: t('确认删除子策略？'),
-    });
-  };
-
-  const handleRestoreDefault = (data: TableRow) => {
-    InfoBox({
-      cancelText: t('取消'),
-      confirmText: t('确认'),
-      content: () => (
-        <div class='infobox-content'>
-          <div class='infobox-row'>
-            <span class='infobox-label'>{t('单据类型：')}</span>
-            <span class='infobox-value'>{data.ticket_type_display}</span>
-          </div>
-          <p class='infobox-tip'>{t('恢复后该单据重新继承全局审批策略，随全局策略更新而自动同步。')}</p>
-        </div>
-      ),
-      extCls: 'ticket-flow-settings-infobox',
-      onConfirm: async () => {
-        try {
-          await deleteTicketFlowConfig({
-            config_ids: [data.rawData.id],
-          });
-          messageSuccess(t('操作成功'));
-          fetchListData();
-          return true;
-        } catch {
-          return false;
-        }
-      },
-      title: t('确认恢复为默认？'),
     });
   };
 </script>
@@ -905,6 +872,12 @@
         .t-table__tree-op-icon,
         .tree-child-tag {
           margin: 0 16px 0 8px;
+        }
+
+        // 树形展开/折叠图标旋转过渡动画
+        .tree-expand-icon {
+          display: inline-flex;
+          transition: transform 0.2s ease-in-out;
         }
       }
 
