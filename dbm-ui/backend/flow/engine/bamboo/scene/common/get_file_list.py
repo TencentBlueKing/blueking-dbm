@@ -104,7 +104,7 @@ class GetFileList(object):
                 pass
 
             # 默认情况下
-            db_backup_pkg = Package.get_latest_package(version=MediumEnum.Latest, pkg_type=MediumEnum.DbBackup)
+            db_backup_pkg = Package.get_latest_package_v2_release(pkg_type=MediumEnum.DbBackup)
             pkg_list.append(f"{env.BKREPO_PROJECT}/{env.BKREPO_BUCKET}/{db_backup_pkg.path}")
 
         return pkg_list
@@ -639,7 +639,7 @@ class GetFileList(object):
         tdbctl_pkg = Package.get_latest_package(
             version=MediumEnum.Latest, pkg_type=MediumEnum.tdbCtl, db_type=DBType.MySQL
         )
-        db_backup_pkg = Package.get_latest_package(version=MediumEnum.Latest, pkg_type=MediumEnum.DbBackup)
+        db_backup_pkg = Package.get_latest_package_v2_release(pkg_type=MediumEnum.DbBackup)
 
         return [
             f"{env.BKREPO_PROJECT}/{env.BKREPO_BUCKET}/{self.actuator_pkg.path}",

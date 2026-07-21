@@ -1943,7 +1943,7 @@ class MysqlActPayload(PayloadHandler, ProxyActPayload, TBinlogDumperActPayload):
             logger.warning("db_backup_pkg_type is null, default dbbackup")
             db_backup_pkg_type = MediumEnum.DbBackup
 
-        db_backup_pkg = Package.get_latest_package(version=MediumEnum.Latest, pkg_type=db_backup_pkg_type)
+        db_backup_pkg = Package.get_latest_package_v2_release(pkg_type=db_backup_pkg_type)
 
         return {
             "db_type": DBActuatorTypeEnum.MySQL.value,

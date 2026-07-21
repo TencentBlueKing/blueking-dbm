@@ -50,7 +50,12 @@ def dbbackup_config(bk_cloud_id: int, ip: str, port_list: Optional[List[int]] = 
         if not i.cluster.exists():
             continue
 
-        ini = get_backup_ini_config(bk_biz_id=i.bk_biz_id, db_module_id=i.db_module_id, cluster_type=i.cluster_type)
+        ini = get_backup_ini_config(
+            bk_biz_id=i.bk_biz_id,
+            db_module_id=i.db_module_id,
+            cluster_type=i.cluster_type,
+            cluster_domain=i.cluster.first().immute_domain,
+        )
         backup_options = get_backup_options_config(
             bk_biz_id=i.bk_biz_id,
             db_module_id=i.db_module_id,

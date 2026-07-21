@@ -69,10 +69,18 @@ func (l *LogicalDumper) Execute(ctx context.Context) error {
 		"-o", filepath.Join(l.cnf.Public.BackupDir, l.cnf.Public.TargetName()),
 		"--long-query-retry-interval=10",
 		fmt.Sprintf("--long-query-retries=%d", l.cnf.LogicalBackup.FlushRetryCount),
-		fmt.Sprintf("--set-names=%s", l.cnf.Public.MysqlCharset),
 		fmt.Sprintf("--chunk-filesize=%d", l.cnf.LogicalBackup.ChunkFilesize),
 		fmt.Sprintf("--threads=%d", l.cnf.LogicalBackup.Threads),
 		// "--disk-limits=1GB:5GB",
+	}
+	if ok, _ := MydumperHasOption(binPath, "--default-character-set"); ok {
+		args = append(args,
+			fmt.Sprintf("--set-names=utf8,%s", l.cnf.Public.MysqlCharset),
+			fmt.Sprintf("--default-character-set=utf8,%s", l.cnf.Public.MysqlCharset))
+	} else {
+		// --schema-set-names=utf8 内部定制参数
+		args = append(args,
+			"--set-names", l.cnf.Public.MysqlCharset)
 	}
 	if ok, _ := MydumperHasOption(binPath, "--source-data"); ok {
 		args = append(args, "--source-data", "--replica-data")
