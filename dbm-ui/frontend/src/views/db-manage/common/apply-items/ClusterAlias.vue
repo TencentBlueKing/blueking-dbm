@@ -26,7 +26,7 @@
       show-word-limit />
     <template #hint>
       {{ t('支持中文、字母、数字、连字符、下划线、点号，') }}
-      <span class="hint-warning">{{ t('创建后不可改') }}</span>
+      <span class="hint-warning">{{ t('创建后可改') }}</span>
     </template>
   </FormItemWithHint>
 </template>
