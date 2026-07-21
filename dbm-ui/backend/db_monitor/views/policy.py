@@ -161,15 +161,29 @@ class MonitorPolicyViewSet(AuditedModelViewSet):
         elif self.action == "clone_strategy":
             policy = MonitorPolicy.objects.get(id=self.request.data["parent_id"])
             permission = BizDBTypeResourceActionPermission(
-                [ActionEnum.MONITOR_POLICY_CLONE_STRATEGY],
+                [ActionEnum.MONITOR_POLICY_MANAGE],
                 instance_biz_getter=self.instance_getter("bk_biz_id"),
                 instance_dbtype_getter=lambda request, view: [policy.db_type],
             )
             return [permission]
-        elif self.action in ["update_strategy", "destroy"]:
-            return [MonitorPolicyPermission(view_action=self.action)]
-        elif self.action in ["disable", "enable"]:
-            return [MonitorPolicyPermission(view_action="enable_disable")]
+        elif self.action in ["update_strategy", "destroy", "disable", "enable"]:
+            policy_id = self.kwargs.get("pk")
+            bk_biz_id = str(MonitorPolicy.objects.get(id=policy_id).bk_biz_id)
+            if not int(bk_biz_id):
+                view_action_map = {
+                    "update_strategy": "update_strategy",
+                    "destroy": "destroy",
+                    "disable": "enable_disable",
+                    "enable": "enable_disable",
+                }
+                return [MonitorPolicyPermission(view_action=view_action_map[self.action])]
+            else:
+                permission = BizDBTypeResourceActionPermission(
+                    [ActionEnum.MONITOR_POLICY_MANAGE],
+                    instance_biz_getter=lambda request, view: [policy.bk_biz_id],
+                    instance_dbtype_getter=lambda request, view: [policy.db_type],
+                )
+                return [permission]
         elif self.action in ["callback"]:
             return []
         return [DBManagePermission()]
@@ -191,7 +205,7 @@ class MonitorPolicyViewSet(AuditedModelViewSet):
 
     @Permission.decorator_external_permission_field(
         param_field=lambda d: {ResourceEnum.DBTYPE.id: d["db_type"], ResourceEnum.BUSINESS.id: d["bk_biz_id"]},
-        actions=[ActionEnum.MONITOR_POLICY_CLONE_STRATEGY],
+        actions=[ActionEnum.MONITOR_POLICY_MANAGE],
         resource_meta=[ResourceEnum.DBTYPE, ResourceEnum.BUSINESS],
     )
     @Permission.decorator_permission_field(
