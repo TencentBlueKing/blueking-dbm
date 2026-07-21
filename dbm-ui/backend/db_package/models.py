@@ -18,9 +18,11 @@ from django.utils.translation import gettext_lazy as _
 from backend.bk_web.constants import LEN_LONG, LEN_NORMAL, LEN_SHORT
 from backend.bk_web.models import AuditedModel
 from backend.configuration.constants import DBType
+from backend.db_meta.enums.version_phase import PkgSeries, VersionPhase
 from backend.db_meta.models.db_version import DBVersion
 from backend.db_package.constants import PackageMode, PackageType
 from backend.db_package.exceptions import PackageNotExistException, VersionNoNotExistException
+from backend.db_services.ipchooser.constants import BkOsType
 from backend.flow.consts import MediumEnum
 
 
@@ -109,3 +111,78 @@ class Package(AuditedModel):
 
         # 取最新的版本
         return packages.latest("update_at")
+
+    @classmethod
+    def get_package_v2_by_phase(
+        cls,
+        pkg_type: str,
+        series: str,
+        phase: str = VersionPhase.RELEASE.value,
+        db_type: Optional[str] = DBType.MySQL,
+        permit_os_type: str = BkOsType.LINUX.value,
+        only_enable_pkg: bool = False,
+    ) -> Optional["Package"]:
+        """
+        获取指定数据库类型、介质类型和版本阶段（phase）的 V2 备份介质包
+
+        逻辑说明：
+        - 根据给定的 db_type、pkg_type、phase 检索可用、并启用的备份包，限定 version_series 名称为 beta
+        - 默认按 permit_os_type=Linux 过滤介质包
+        - 若存在多个备份包，优先选择 full_version 数值最大者；
+          同一版本时，优先选择 recommend 和 priority 高的包
+
+        返回：
+        - 若找到符合条件的 Package 实例则返回，否则返回 None
+        """
+        # 如果 series 为空，不加过滤条件
+        filters = {
+            "permit_os_type": permit_os_type,
+            "db_version__phase": phase,
+            "db_version__version_series__distribution__db_type": db_type,
+            "db_version__version_series__distribution__pkg_type": pkg_type,
+        }
+        if only_enable_pkg:
+            filters["enable"] = only_enable_pkg
+        if series:
+            filters["db_version__version_series__name"] = series
+
+        packages = list(Package.objects.filter(**filters).select_related("db_version"))
+        if not packages:
+            return None
+        # 按 full_version 数值比较取最大版本，recommend/priority 作为同版本时的 tiebreaker
+        return max(
+            packages,
+            key=lambda pkg: (pkg.db_version.full_version_n, pkg.db_version.recommend, pkg.priority),
+        )
+
+    @classmethod
+    def get_latest_package_v2_release(
+        cls, pkg_type: str, series: str = PkgSeries.LATEST.value, db_type: Optional[str] = DBType.MySQL
+    ) -> Optional["Package"]:
+        # series: version_series, or version_no
+        return cls.get_package_v2_by_phase(
+            pkg_type=pkg_type,
+            series=series,
+            phase=str(VersionPhase.RELEASE.value),
+            permit_os_type=str(BkOsType.LINUX.value),
+            db_type=db_type,
+            only_enable_pkg=True,
+        )
+
+    @classmethod
+    def get_latest_package_v2_alpha(
+        cls,
+        pkg_type: str,
+        series: str = PkgSeries.LATEST.value,
+        db_type: Optional[str] = DBType.MySQL,
+    ) -> Optional["Package"]:
+        phase = str(VersionPhase.ALPHA.value)
+        permit_os_type = str(BkOsType.LINUX.value)
+        return cls.get_package_v2_by_phase(
+            pkg_type=pkg_type,
+            series=series,
+            phase=phase,
+            permit_os_type=permit_os_type,
+            db_type=db_type,
+            only_enable_pkg=True,
+        )

@@ -19,3 +19,7 @@ class VersionPhase(StrStructuredEnum):
     BETA = EnumField("beta", _("beta"))
     RC = EnumField("rc", _("rc"))
     RELEASE = EnumField("release", _("release"))
+
+
+class PkgSeries(StrStructuredEnum):
+    LATEST = EnumField("latest", _("latest"))  # 通常给周边介质使用

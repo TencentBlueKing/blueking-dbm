@@ -60,8 +60,8 @@ def rotatebinlog_config(bk_cloud_id: int, ip: str, port_list: Optional[List[int]
                 "configs": DBConfigApi.query_conf_item(
                     {
                         "bk_biz_id": str(i.bk_biz_id),
-                        "level_name": LevelName.MODULE,
-                        "level_value": str(i.db_module_id),
+                        "level_name": LevelName.CLUSTER,
+                        "level_value": i.cluster.first().immute_domain,
                         "conf_file": "binlog_rotate.yaml",
                         "conf_type": "backup",
                         "namespace": i.cluster_type,

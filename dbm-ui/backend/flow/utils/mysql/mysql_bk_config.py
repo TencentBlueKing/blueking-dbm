@@ -89,7 +89,7 @@ def get_mysql_version_and_charset(bk_biz_id, db_module_id, cluster_type) -> Any:
     return data["charset"], data["db_version"]
 
 
-def get_backup_ini_config(bk_biz_id: int, db_module_id: int, cluster_type: str):
+def get_backup_ini_config(bk_biz_id: int, db_module_id: int, cluster_type: str, cluster_domain: str):
     """
     根据集群维度，获取备份options配置
     @param bk_biz_id: 业务id
@@ -99,8 +99,8 @@ def get_backup_ini_config(bk_biz_id: int, db_module_id: int, cluster_type: str):
     data = DBConfigApi.query_conf_item(
         {
             "bk_biz_id": str(bk_biz_id),
-            "level_name": LevelName.MODULE,
-            "level_value": str(db_module_id),
+            "level_name": LevelName.CLUSTER,
+            "level_value": cluster_domain,
             "conf_file": "dbbackup.ini",
             "conf_type": "backup",
             "namespace": cluster_type,

@@ -103,12 +103,12 @@ class PeripheralToolsPayload(PayloadBase, MySQLAccountMixed, ProxyAccountMixed):
                     db_version = Cluster.objects.filter(storageinstance__machine__ip=ip).first().major_version
                     dbbackup_pkg_type = MysqlVersionToDBBackupForMap[db_version]
 
-                dbbackup_pkg = Package.get_latest_package(version=MediumEnum.Latest, pkg_type=dbbackup_pkg_type)
+                db_backup_pkg = Package.get_latest_package_v2_release(pkg_type=dbbackup_pkg_type)
                 # path like /mysql/dbbackup/latest/dbbackup-go-universal.tar.gz
                 # path.basename may be different from pkg.name for dbbackup/dbbackup-txsql
                 depart_pkgs[DeployPeripheralToolsDepart.MySQLDBBackup] = {
-                    "pkg": pathlib.Path(dbbackup_pkg.path).name,  # dbbackup_pkg.name,
-                    "pkg_md5": dbbackup_pkg.md5,
+                    "pkg": pathlib.Path(db_backup_pkg.path).name,  # dbbackup_pkg.name,
+                    "pkg_md5": db_backup_pkg.md5,
                 }
 
         for depart in departs:

@@ -13,6 +13,7 @@ from typing import Dict, List, Optional, Union
 from django.db.models import Q
 
 from backend.components import DBConfigApi
+from backend.components.dbconfig.constants import LevelName
 from backend.db_meta.enums import AccessLayer
 from backend.db_meta.models import Machine, ProxyInstance, StorageInstance
 
@@ -40,7 +41,7 @@ def monitor_items_config(bk_cloud_id: int, ip: str, port_list: Optional[List[int
         res[i.port] = DBConfigApi.query_conf_item(
             {
                 "bk_biz_id": f"{i.bk_biz_id}",
-                "level_name": "cluster",
+                "level_name": LevelName.CLUSTER,
                 "level_value": i.cluster.first().immute_domain,
                 "conf_file": "items-config.yaml",
                 "conf_type": "mysql_monitor",

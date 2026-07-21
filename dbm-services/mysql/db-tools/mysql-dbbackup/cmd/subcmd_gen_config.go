@@ -104,7 +104,6 @@ func generateOneDbbackupConfig(cfg *reversemysqldef.DBBackupConfig) error {
 	if err != nil {
 		return err
 	}
-
 	/*
 			if err = mapstructure.Decode(cfg.ConfigsTemplate, &backupConfig); err != nil {
 				return errors.WithMessagef(err, "failed to decode configs template")
@@ -173,8 +172,8 @@ func generateOneIniConfig(cfg *reversemysqldef.DBBackupConfig, opt *dbbackup.Bac
 			ClusterAddress:  cfg.ImmuteDomain,
 			ClusterId:       cfg.ClusterId,
 			ShardValue:      cfg.ShardId,
-			BackupType:      opt.BackupType,
-			DataSchemaGrant: dsg,
+			BackupType:      strings.ToLower(opt.BackupType),
+			DataSchemaGrant: strings.ToLower(dsg),
 		},
 		BackupClient: config.BackupClient{
 			EnableBackupClient: opt.EnableBackupClient,
