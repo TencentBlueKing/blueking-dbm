@@ -2,25 +2,27 @@
   <DbSideslider
     v-model:is-show="isShow"
     :before-close="handleBeforeClose"
+    :cancel-handler="handleCancel"
     class="edit-policy-side"
-    :width="840"
-    @closed="handleClosed">
+    :confirm-handler="handleConfirm"
+    quick-close
+    render-directive="if"
+    :width="960">
     <template #header>
       <span>{{ titleText }}</span>
       <span class="ticket-type-subtitle">{{ data.ticket_type_display }}</span>
     </template>
     <DbForm
-      ref="formRef"
       class="edit-policy-form"
       form-type="vertical">
-      <BkFormItem
+      <DbFormItem
         :label="t('单据类型')"
         required>
         <BkInput
           disabled
           :model-value="data.ticket_type_display" />
-      </BkFormItem>
-      <BkFormItem
+      </DbFormItem>
+      <DbFormItem
         :label="t('生效范围')"
         required>
         <template v-if="showBusinessPolicyReadOnly">
@@ -31,29 +33,35 @@
         <template v-else>
           <!-- 范围类型：按集群 / 按标签（仅子策略显示） -->
           <BkRadioGroup
-            v-model="scopeType"
+            v-model="formData.scope_type"
             type="card">
             <BkRadioButton label="cluster">{{ t('按集群') }}</BkRadioButton>
             <BkRadioButton label="tag">{{ t('按标签') }}</BkRadioButton>
           </BkRadioGroup>
         </template>
-      </BkFormItem>
+      </DbFormItem>
       <!-- 按集群 -->
       <SelectClusters
-        v-if="!showBusinessPolicyReadOnly && scopeType === 'cluster'"
-        ref="targetRef"
-        v-model="selectedClusters"
+        v-if="!showBusinessPolicyReadOnly && formData.scope_type === 'cluster'"
+        ref="selectClustersRef"
+        v-model="formData.cluster_ids"
         :biz-id="selectClustersData.bizId"
-        :db-type="selectClustersData.dbType" />
+        :config-id="isEdit ? data.id : undefined"
+        :db-type="selectClustersData.dbType"
+        :ticket-type="data.ticket_type" />
       <!-- 按标签 -->
-      <TagScopeEditor
-        v-else-if="!showBusinessPolicyReadOnly && scopeType === 'tag'"
-        ref="tagScopeRef"
-        :cluster-tags="data.cluster_tags"
-        :get-tag-id="getTagId"
-        :key-value-map="keyValueMap" />
-      <BkFormItem
-        :label="t('免审批')"
+      <DbFormItem
+        v-else-if="!showBusinessPolicyReadOnly && formData.scope_type === 'tag'"
+        :label="t('标签条件')"
+        required>
+        <TagScopeEditor
+          ref="tagScopeRef"
+          :cluster-tags="data.cluster_tags"
+          :get-tag-id="getTagId"
+          :key-value-map="keyValueMap" />
+      </DbFormItem>
+      <DbFormItem
+        :label="t('是否审批')"
         required>
         <BkSwitcher
           v-model="formData.need_itsm"
@@ -61,49 +69,37 @@
         <span class="form-tip ml-8">
           <I18nT
             v-if="!formData.need_itsm"
-            keypath="开启免审批，单据提交后 {action}，直接进入下一阶段">
+            keypath="免审批，单据提交后 {action}，直接进入下一阶段">
             <template #action>
               <strong>{{ t('跳过 DBA 审批') }}</strong>
             </template>
           </I18nT>
           <I18nT
             v-else
-            keypath="关闭免审批，单据提交后 {action}，才可进入下一阶段">
+            keypath="需审批，单据提交后 {action}，才可进入下一阶段">
             <template #action>
               <strong>{{ t('需经 DBA 审批') }}</strong>
             </template>
           </I18nT>
         </span>
-      </BkFormItem>
+      </DbFormItem>
       <BkAlert
         v-if="isChildPolicy && isSameAsParent"
         class="mb-24"
         theme="warning">
         {{ t('当前审批设置与父策略相同，该子策略不会产生实际效果') }}
       </BkAlert>
-      <BkFormItem :label="t('备注')">
+      <DbFormItem
+        :label="t('备注')"
+        property="remark">
         <BkInput
           v-model="formData.remark"
           :autosize="{ minRows: 3, maxRows: 10 }"
           :maxlength="500"
           :resize="false"
           type="textarea" />
-      </BkFormItem>
+      </DbFormItem>
     </DbForm>
-    <template #footer>
-      <BkButton
-        class="w-88 mr-8"
-        :loading="isSubmitting"
-        theme="primary"
-        @click="handleSubmit">
-        {{ t('确定') }}
-      </BkButton>
-      <BkButton
-        class="w-88"
-        @click="handleCancel">
-        {{ t('取消') }}
-      </BkButton>
-    </template>
   </DbSideslider>
 </template>
 
@@ -118,25 +114,30 @@
 
   import { DBTypes } from '@common/const';
 
-  import { messageError, messageSuccess } from '@utils';
+  import { messageSuccess } from '@utils';
 
   import { useClusterTags } from '../hooks/use-cluster-tags';
 
-  import SelectClusters, { type SelectedCluster } from './SelectClusters.vue';
+  import SelectClusters from './SelectClusters.vue';
   import TagScopeEditor from './TagScopeEditor.vue';
 
   interface Props {
     data: TicketFlowDescribeModel;
-    /** 已有子策略的集群 id 集合（用于不重复校验） */
-    existingClusterIds?: number[];
     isEdit?: boolean;
     parentApprovalSetting?: boolean;
   }
 
   type Emits = (e: 'success') => void;
 
+  interface FormData {
+    cluster_ids: number[];
+    cluster_tags: number[];
+    need_itsm: boolean;
+    remark: string;
+    scope_type: ScopeType;
+  }
+
   const props = withDefaults(defineProps<Props>(), {
-    existingClusterIds: () => [],
     isEdit: false,
     parentApprovalSetting: undefined,
   });
@@ -152,22 +153,20 @@
   // 标签键值聚合（失效判定由后端 is_invalid 字段提供）
   const { getTagId, keyValueMap } = useClusterTags();
 
-  const formData = reactive({
-    need_itsm: false,
-    remark: '',
-  });
-
-  const selectedClusters = ref<SelectedCluster[]>([]);
-  const scopeType = ref<ScopeType>('cluster');
-
-  const targetRef = ref<InstanceType<typeof SelectClusters>>();
+  const selectClustersRef = ref<InstanceType<typeof SelectClusters>>();
   const tagScopeRef = ref<InstanceType<typeof TagScopeEditor>>();
 
-  const isSubmitting = ref(false);
+  const formData = reactive<FormData>({
+    cluster_ids: [],
+    cluster_tags: [],
+    need_itsm: false,
+    remark: '',
+    scope_type: 'cluster',
+  });
 
   const isChildPolicy = computed(() => props.data.isChildPolicy);
 
-  // 编辑父策略时为只读模式（生效范围固定为业务下全部集群）
+  // 编辑父策略为只读：生效范围固定为业务下全部集群
   const showBusinessPolicyReadOnly = computed(() => props.isEdit && !isChildPolicy.value);
 
   const titleText = computed(() => {
@@ -203,94 +202,52 @@
 
   watch(
     () => props.data,
-    () => {
-      formData.need_itsm = props.data.configs?.need_itsm ?? false;
-      formData.remark = props.data.remark || '';
+    (data) => {
+      formData.need_itsm = data.configs?.need_itsm ?? false;
+      formData.remark = data.remark || '';
       // 编辑态按 data.scopeType 回填，新建态默认按集群
-      scopeType.value = props.isEdit ? props.data.scopeType : 'cluster';
-      // 按集群回填：cluster_ids 为对象数组 [{id, immute_domain}]
-      selectedClusters.value =
-        props.data.scopeType === 'cluster'
-          ? (props.data.cluster_ids || []).map((item) => ({
-              id: item.id,
-              immute_domain: item.immute_domain || '',
-            }))
-          : [];
+      formData.scope_type = props.isEdit ? data.scopeType : 'cluster';
+      // 按集群仅存 id；非集群范围时清空
+      formData.cluster_ids = data.scopeType === 'cluster' ? (data.cluster_ids || []).map((item) => item.id) : [];
+      formData.cluster_tags = (data.cluster_tags || []).map((item) => item.id);
     },
     { immediate: true },
   );
 
-  const handleSubmit = async () => {
-    isSubmitting.value = true;
+  const handleConfirm = async () => {
+    const isClusterScope = isChildPolicy.value && formData.scope_type === 'cluster';
+    const isTagScope = isChildPolicy.value && formData.scope_type === 'tag';
+    // getValue 内部触发校验并报红，失败 reject 中断提交
+    const clusterIds: ClusterIdItem[] = isClusterScope ? await selectClustersRef.value!.getValue() : [];
+    const clusterTags: ClusterTagItem[] = isTagScope ? (await tagScopeRef.value!.getValue()).clusterTags : [];
 
-    try {
-      let clusterIds: ClusterIdItem[] = [];
-      let clusterTags: ClusterTagItem[] = [];
+    const params = {
+      bk_biz_id: props.data.bk_biz_id || window.PROJECT_CONFIG.BIZ_ID,
+      cluster_ids: clusterIds,
+      cluster_tags: clusterTags,
+      configs: {
+        need_itsm: formData.need_itsm,
+      },
+      remark: formData.remark,
+      ticket_types: [props.data.ticket_type],
+      ...(props.isEdit ? { config_ids: [props.data.id] } : {}),
+    } as Parameters<typeof saveTicketFlowConfig>[0];
 
-      // 子策略需校验生效范围
-      if (isChildPolicy.value) {
-        if (scopeType.value === 'cluster') {
-          // 按集群：校验至少一个集群
-          const clusters = await targetRef.value?.getValue();
-          if (!clusters || clusters.length === 0) {
-            messageError(t('请至少选择一个集群'));
-            isSubmitting.value = false;
-            return;
-          }
-          // 按集群不重复校验：同一单据类型下，一集群仅属一条按集群子策略
-          const existingSet = new Set(props.existingClusterIds);
-          // 编辑态排除自身已选集群（cluster_ids 为对象数组，提取 id）
-          const selfIds = new Set((props.data.cluster_ids || []).map((item) => item.id));
-          const duplicate = clusters.find((c) => existingSet.has(c.id) && !selfIds.has(c.id));
-          if (duplicate) {
-            messageError(t('集群 x 已在另一条按集群子策略中，不可重复', { x: duplicate.immute_domain }));
-            isSubmitting.value = false;
-            return;
-          }
-          clusterIds = clusters.map((c) => ({ id: c.id, immute_domain: c.immute_domain }));
-        } else {
-          // 按标签：校验标签条件
-          const tagResult = await tagScopeRef.value?.getValue();
-          if (!tagResult) {
-            messageError(t('请选择标签键与匹配条件'));
-            isSubmitting.value = false;
-            return;
-          }
-          clusterTags = tagResult.clusterTags;
-        }
-      }
-
-      const params = {
-        bk_biz_id: props.data.bk_biz_id || window.PROJECT_CONFIG.BIZ_ID,
-        cluster_ids: clusterIds,
-        cluster_tags: clusterTags,
-        configs: {
-          need_itsm: formData.need_itsm,
-        },
-        remark: formData.remark,
-        ticket_types: [props.data.ticket_type],
-      } as Parameters<typeof saveTicketFlowConfig>[0];
-
-      if (props.isEdit) {
-        params.config_ids = [props.data.id];
-      }
-
-      saveRun(params);
-    } finally {
-      isSubmitting.value = false;
-    }
+    await saveRun(params);
+    return true;
   };
 
-  const handleCancel = () => {
+  const handleCancel = async () => {
     isShow.value = false;
-  };
-
-  const handleClosed = () => {
-    formData.need_itsm = false;
-    formData.remark = '';
-    selectedClusters.value = [];
-    scopeType.value = 'cluster';
-    tagScopeRef.value?.reset();
+    Object.assign(formData, {
+      cluster_ids: [],
+      cluster_tags: [],
+      need_itsm: false,
+      remark: '',
+      scope_type: 'cluster',
+    });
+    selectClustersRef.value?.clearValidate?.();
+    tagScopeRef.value?.clearValidate?.();
   };
 </script>
 

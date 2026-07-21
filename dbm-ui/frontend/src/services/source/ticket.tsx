@@ -400,6 +400,29 @@ export function saveTicketFlowConfig(params: {
   }>(`${path}/save_ticket_flow_config/`, params);
 }
 
+/**
+ * 校验按集群子策略的集群是否已在其他按集群子策略中（同一单据类型下不可重复）
+ *
+ * 响应中 validate 为 true 表示该集群已存在重复（需拦截）；
+ * validate 为 false 表示可用。
+ */
+export function checkTicketFlowConfigClusterRepeat(params: {
+  bk_biz_id: number;
+  /** 集群 id 列表，逗号分隔 */
+  cluster_ids: string;
+  /** 当前编辑的子策略 id，仅编辑态传入（用于排除自身） */
+  config_id?: number;
+  /** 单据类型 */
+  ticket_type: string;
+}) {
+  return http.get<
+    Array<{
+      id: number;
+      validate: boolean;
+    }>
+  >(`${path}/check_ticket_flow_config_cluster_repeat/`, params);
+}
+
 export function getTicketStatus(params: { ticket_ids: string }) {
   return http.post<Record<string, string>>(`${path}/list_ticket_status/`, params, {
     cache: 1000,

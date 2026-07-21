@@ -1,116 +1,136 @@
 <template>
-  <BkFormItem
-    class="target-form-item"
-    :class="{
-      'is-error': Boolean(errorMessage),
-    }"
-    :label="t('集群')"
-    property="cluster_ids"
-    required>
-    <BkSelect
-      v-model="selectedIds"
-      class="target-select"
-      :class="{
-        'is-error': Boolean(errorMessage),
-      }"
-      :clearable="false"
-      collapse-tags
-      :filter-option="handleSearch"
-      filterable
-      :input-search="false"
-      multiple
-      multiple-mode="tag"
-      :search-placeholder="t('输入域名（多域名以换行、空格、竖线、; 分隔，回车完成输入）')"
-      @change="handleChange"
-      @search-change="handleSearchChange">
-      <BkOption
-        v-for="item in clusterList"
-        :key="item.id"
-        :label="item.immute_domain"
-        :value="item.id" />
-    </BkSelect>
-    <div
-      v-if="errorMessage"
-      class="error-icon">
-      <DbIcon
-        v-bk-tooltips="errorMessage"
-        type="exclamation-fill" />
-    </div>
-    <p class="target-form-tip">{{ t('按集群子策略之间集群不可重叠') }}</p>
-  </BkFormItem>
+  <DbForm
+    form-type="vertical"
+    :model="formModel">
+    <FormItemWithHint
+      ref="formItemRef"
+      class="mb-48"
+      :label="t('集群')"
+      :model="modelValue"
+      property="cluster_ids"
+      required
+      :rules="clusterRepeatRules">
+      <BkTagInput
+        v-model="selectedDomains"
+        collapse-tags
+        :content-width="500"
+        has-delete-icon
+        :list="tagInputList"
+        :paste-fn="pasteCallback"
+        :placeholder="t('输入域名（多域名以换行、空格、竖线、; 分隔，回车完成输入）')"
+        trigger="focus"
+        :with-validate="false"
+        @change="handleChange" />
+      <template #hint>
+        {{ t('同一集群仅可归属一条按集群子策略') }}
+      </template>
+    </FormItemWithHint>
+  </DbForm>
 </template>
 
 <script setup lang="ts">
+  import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
   import { queryAllTypeCluster } from '@services/source/dbbase';
+  import { checkTicketFlowConfigClusterRepeat, type ClusterIdItem } from '@services/source/ticket';
 
   import { DBTypes, queryClusterTypes } from '@common/const';
   import { batchSplitRegex } from '@common/regex';
 
-  import useValidtor from '@components/render-table/hooks/useValidtor';
-
-  // 按集群子策略的集群元素
-  export interface SelectedCluster {
-    id: number;
-    immute_domain: string;
-  }
+  import FormItemWithHint from '@components/form-item-with-hint/Index.vue';
 
   interface Props {
     bizId: number;
+    /** 当前编辑的子策略 id，仅编辑态传入（用于后端重复校验排除自身） */
+    configId?: number;
     dbType: DBTypes;
+    /** 当前编辑的单据类型（用于后端重复校验入参） */
+    ticketType: string;
   }
 
-  type Emits = (e: 'change', value: SelectedCluster[]) => void;
-
   interface Exposes {
-    getValue: () => Promise<SelectedCluster[]>;
+    clearValidate: () => void;
+    /** 校验并返回 cluster_ids 结构（含 id/immute_domain） */
+    getValue: () => Promise<ClusterIdItem[]>;
   }
 
   const props = defineProps<Props>();
 
-  const emits = defineEmits<Emits>();
-
-  // 对外暴露对象数组；内部用原始 id 数组驱动 BkSelect 多选
-  const modelValue = defineModel<SelectedCluster[]>({
-    default: [],
+  // 父组件仅存集群 id 列表
+  const modelValue = defineModel<number[]>({
+    required: true,
   });
 
   const { t } = useI18n();
 
-  const rules = [
+  const formItemRef = ref<InstanceType<typeof FormItemWithHint>>();
+
+  // BkForm 值上下文：property=cluster_ids 由此取值做 required + 重复校验，
+  // 直接派生自 modelValue，无需手动同步
+  const formModel = computed(() => ({ cluster_ids: modelValue.value }));
+
+  // 全量集群列表（id/immute_domain），用于回填、转换与组装提交结构
+  const clusterList = ref<ClusterIdItem[]>([]);
+
+  const tagInputList = computed(() =>
+    clusterList.value.map((item) => ({ id: item.immute_domain, name: item.immute_domain })),
+  );
+
+  const { run: fetchData } = useRequest(queryAllTypeCluster, {
+    manual: true,
+    onSuccess(list) {
+      clusterList.value = list.map((item) => ({ id: item.id, immute_domain: item.immute_domain }));
+    },
+  });
+
+  // 按集群子策略重复校验：blur / 提交时调后端拦截重复集群；
+  // 缓存最近一次入参与错误，blur 恢复时复用避免多调一次接口
+  const repeatValidateCache = ref<{ clusterIds: string; error: string }>({ clusterIds: '', error: '' });
+
+  const validateClusterRepeat = async (value: number[]): Promise<string> => {
+    if (!value?.length || !props.bizId || !props.ticketType) {
+      return '';
+    }
+    const clusterIds = value.join(',');
+    if (repeatValidateCache.value.clusterIds === clusterIds) {
+      return repeatValidateCache.value.error;
+    }
+    const result = await checkTicketFlowConfigClusterRepeat({
+      bk_biz_id: props.bizId,
+      cluster_ids: clusterIds,
+      config_id: props.configId,
+      ticket_type: props.ticketType,
+    });
+    const repeatDomains = (result || [])
+      .filter((item) => item.validate)
+      .map((item) => clusterList.value.find((cluster) => cluster.id === item.id)?.immute_domain)
+      .filter((domain): domain is string => !!domain);
+    const error =
+      repeatDomains.length === 0
+        ? ''
+        : t('集群 clusters 已在其他按集群子策略中，不可重复', { clusters: repeatDomains.join('、') });
+    repeatValidateCache.value = { clusterIds, error };
+    return error;
+  };
+
+  const clusterRepeatRules = [
     {
-      message: t('至少选择一个集群'),
-      validator: (value: SelectedCluster[]) => value.length > 0,
+      trigger: 'blur',
+      validator: async (value: number[]) => (await validateClusterRepeat(value)) || true,
     },
   ];
 
-  const { message: errorMessage, validator } = useValidtor(rules);
+  // id ↔ 域名 互查
+  const getDomainById = (id: number) => clusterList.value.find((item) => item.id === id)?.immute_domain;
+  const getIdByDomain = (domain: string) => clusterList.value.find((item) => item.immute_domain === domain)?.id;
 
-  const { data: clusterList, run: fetchData } = useRequest(queryAllTypeCluster, {
-    manual: true,
-  });
-
-  // 过滤项
-  const filterOption = ref<ServiceReturnType<typeof queryAllTypeCluster>>([]);
-
-  // 内部选中的原始 id 列表（驱动 BkSelect）
-  const selectedIds = computed<number[]>({
-    get: () => modelValue.value.map((item) => item.id),
-    set: (ids: number[]) => {
-      const map = new Map((clusterList.value || []).map((item) => [item.id, item]));
-      modelValue.value = ids
-        .map((id) => {
-          const cluster = map.get(id);
-          if (cluster) {
-            return { id: cluster.id, immute_domain: cluster.immute_domain };
-          }
-          // 回填场景：clusterList 尚未加载但 modelValue 已有值，保留原对象
-          const existing = modelValue.value.find((item) => item.id === id);
-          return existing;
-        })
-        .filter((item): item is SelectedCluster => !!item);
+  // BkTagInput 以域名驱动，modelValue 以 id 存储
+  const selectedDomains = computed<string[]>({
+    get: () => modelValue.value.map(getDomainById).filter((domain): domain is string => !!domain),
+    set: (domains: string[]) => {
+      modelValue.value = domains.map(getIdByDomain).filter((id): id is number => id !== undefined);
     },
   });
 
@@ -130,88 +150,35 @@
     },
   );
 
-  const handleChange = (value: number[]) => {
-    // Enter 提交场景下 v-model 未更新，需手动赋值触发 setter
-    selectedIds.value = value;
-    // 等待 modelValue 更新完成后再校验，避免读到旧值导致误报
-    nextTick(() => {
-      validator(modelValue.value);
-      emits('change', modelValue.value);
-    });
+  // 延迟到 nextTick 校验：避免 model 变更后 FormItemWithHint 内部 watch 立即 clearValidate
+  const handleChange = () => {
+    nextTick(() => formItemRef.value?.validate?.());
   };
 
-  const matchKeywords = (keywords: string[], target: string) =>
-    keywords.some((kw) => target.toLowerCase().includes(kw.toLowerCase()));
-
-  const handleSearch = (keyword: string, data: { label: string }) => {
-    const keywords = keyword.split(batchSplitRegex).filter(Boolean);
-    return matchKeywords(keywords, data.label);
-  };
-
-  const handleSearchChange = (keyword: string) => {
-    const keywords = keyword.split(batchSplitRegex).filter(Boolean);
-    filterOption.value = (clusterList.value || []).filter((item) => matchKeywords(keywords, item.immute_domain));
-  };
-
-  // Enter 触发提交
-  const handleKeyDown = (event: KeyboardEvent) => {
-    if (event.isComposing) {
-      // 跳过输入法复合事件
-      return;
+  // 粘贴：按分隔符拆分，仅保留已知集群域名
+  const pasteCallback = (text: string) => {
+    if (!_.trim(text)) {
+      return [];
     }
-    if (event.code === 'Enter') {
-      handleChange(filterOption.value.map((item) => item.id));
-    }
+    const domains = new Set(clusterList.value.map((item) => item.immute_domain));
+    return text
+      .split(batchSplitRegex)
+      .filter(Boolean)
+      .filter((keyword) => domains.has(keyword))
+      .map((keyword) => ({
+        id: keyword,
+        name: keyword,
+      }));
   };
-
-  onMounted(() => {
-    window.addEventListener('keydown', handleKeyDown);
-  });
-
-  onBeforeUnmount(() => {
-    window.removeEventListener('keydown', handleKeyDown);
-  });
 
   defineExpose<Exposes>({
-    getValue() {
-      return validator(modelValue.value).then(() => Promise.resolve(modelValue.value));
+    clearValidate: () => formItemRef.value?.clearValidate?.(),
+    async getValue() {
+      // validate 失败会 reject，由父组件捕获后不提交
+      await formItemRef.value?.validate?.();
+      return modelValue.value
+        .map((id) => clusterList.value.find((item) => item.id === id))
+        .filter((item): item is ClusterIdItem => !!item);
     },
   });
 </script>
-
-<style lang="less" scoped>
-  .target-form-item {
-    position: relative;
-
-    :deep(.bk-form-control) {
-      .target-select {
-        flex: 1;
-      }
-    }
-
-    .error-icon {
-      position: absolute;
-      right: 26px;
-      top: 0;
-      display: flex;
-      height: 32px;
-      font-size: 14px;
-      color: #ea3636;
-      align-items: center;
-      z-index: 1;
-    }
-  }
-
-  .is-error {
-    :deep(.bk-select-tag) {
-      background-color: #fff0f1 !important;
-    }
-  }
-
-  .target-form-tip {
-    margin-top: 6px;
-    font-size: 12px;
-    line-height: 16px;
-    color: #979ba5;
-  }
-</style>
