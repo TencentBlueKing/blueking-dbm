@@ -194,7 +194,7 @@ class EsApplyFlow(EsFlow):
                 act_kwargs.instance_num = instance_num
                 # 写入亲合度相关信息，目前为园区、机房、机架三个维度
                 act_kwargs.sub_zone_id = node.get("sub_zone_id") or ""
-                act_kwargs.idc_id = node.get("idc_id") or ""
+                act_kwargs.idc_id = node.get("idc_id") or 0
                 act_kwargs.rack_id = node.get("rack_id") or ""
                 # 安装插件列表
                 act_kwargs.plugin_list = self.plugin_list
