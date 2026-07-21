@@ -16,6 +16,7 @@ import { ClusterK8sInstStatusKeys } from '@common/const';
 import { utcDisplayTime } from '@/utils';
 
 export default class SurrealHaInstance {
+  componentName: string;
   createdTime: string;
   instance_address: string;
   manifest: string; // json字符串
@@ -39,6 +40,7 @@ export default class SurrealHaInstance {
   status: string;
 
   constructor(payload = {} as SurrealHaInstance) {
+    this.componentName = payload.componentName;
     this.createdTime = payload.createdTime || '';
     this.instance_address = payload.instance_address;
     this.manifest = payload.manifest;

@@ -1,11 +1,7 @@
-import _ from 'lodash';
-import { computed, watch } from 'vue';
-import { useRoute } from 'vue-router';
+import { computed, type UnwrapRef } from 'vue';
 
 export default () => {
-  const route = useRoute();
-
-  const defaultRole = ref('');
+  const defaultRole = ref('surreal');
   const countData = ref({
     pd: 0,
     surreal: 0,
@@ -32,21 +28,26 @@ export default () => {
     ];
   });
 
-  const routeParamsStatus = String(route.params.status);
-  if (routeParamsStatus && _.find(list.value, (item) => item.id === routeParamsStatus)) {
-    defaultRole.value = routeParamsStatus;
-  } else {
-    defaultRole.value = _.find(list.value, (item) => item.count > 0)?.id ?? 'surreal';
-  }
+  // const routeParamsStatus = String(route.params.status);
+  // if (routeParamsStatus && _.find(list.value, (item) => item.id === routeParamsStatus)) {
+  //   defaultRole.value = routeParamsStatus;
+  // } else {
+  //   defaultRole.value = _.find(list.value, (item) => item.count > 0)?.id ?? 'surreal';
+  // }
 
-  watch(list, () => {
-    if (route.params.status) {
-      return;
-    }
-    defaultRole.value = _.find(list.value, (item) => item.count > 0)?.id ?? 'surreal';
-  });
+  // watch(list, () => {
+  //   if (route.params.status) {
+  //     return;
+  //   }
+  //   defaultRole.value = _.find(list.value, (item) => item.count > 0)?.id ?? 'surreal';
+  // });
+
+  const changeCountData = (data: UnwrapRef<typeof countData>) => {
+    countData.value = data;
+  };
 
   return {
+    changeCountData,
     defaultRole,
     list,
   };

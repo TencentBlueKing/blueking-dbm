@@ -16,6 +16,7 @@ import { ClusterK8sInstStatusKeys } from '@common/const';
 import { utcDisplayTime } from '@utils';
 
 export default class QdrantHaInstance {
+  componentName: string;
   createdTime: string;
   instance_address: string;
   manifest: string;
@@ -39,6 +40,7 @@ export default class QdrantHaInstance {
   status: string;
 
   constructor(payload = {} as QdrantHaInstance) {
+    this.componentName = payload.componentName;
     this.createdTime = payload.createdTime || '';
     this.manifest = payload.manifest;
     this.instance_address = payload.instance_address;

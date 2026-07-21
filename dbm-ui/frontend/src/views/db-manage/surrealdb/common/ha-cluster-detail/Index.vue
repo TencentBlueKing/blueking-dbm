@@ -83,7 +83,8 @@
             :cluster-data="data"
             :cluster-type="ClusterTypes.K8S_SURREALDB_HA"
             :role="role"
-            @refresh="handleRefresh">
+            @refresh="handleRefresh"
+            @request-success="handleRequestSuccess">
             <template #role>
               <BkRadioGroup
                 v-model="role"
@@ -108,6 +109,7 @@
   import { useRequest } from 'vue-request';
 
   import SurrealdbHaDetailModel from '@services/model/surrealdb/surrealdb-ha-detail';
+  import SurrealdbHaInstanceModel from '@services/model/surrealdb/surrealdb-ha-instance';
   import { getSurrealdbHaDetail } from '@services/source/surrealdbHa';
 
   import { ClusterTypes } from '@common/const';
@@ -142,7 +144,7 @@
   const data = ref<SurrealdbHaDetailModel>();
   const isLoading = ref(false);
 
-  const { defaultRole: role, list: roleList } = useRoleList();
+  const { changeCountData, defaultRole: role, list: roleList } = useRoleList();
   const { run: fetchClusterDetail } = useRequest(getSurrealdbHaDetail, {
     manual: true,
     onAfter() {
@@ -186,6 +188,20 @@
       immediate: true,
     },
   );
+
+  const handleRequestSuccess = (list: SurrealdbHaInstanceModel[]) => {
+    const currantCountData = list.reduce(
+      (acc, cur) => {
+        return Object.assign(acc, { [cur.componentName]: (acc[cur.componentName as keyof typeof acc] || 0) + 1 });
+      },
+      {
+        pd: 0,
+        surreal: 0,
+        tikv: 0,
+      } as Parameters<typeof changeCountData>[0],
+    );
+    changeCountData(currantCountData);
+  };
 
   const handleRefresh = () => {
     fetchDetailData();
