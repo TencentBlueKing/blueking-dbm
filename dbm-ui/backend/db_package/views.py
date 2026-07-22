@@ -152,16 +152,21 @@ class DBPackageViewSet(viewsets.AuditedModelViewSet):
                 name=info.pop("version_series"), distribution=distribution
             )
             # 获取介质版本
-            dbversion, __ = DBVersion.objects.get_or_create(
-                defaults={
-                    "distribution_snapshot": distribution.snapshot(),
-                    "description": info.pop("description", ""),
-                    "phase": info.pop("phase"),
-                    "name": info.pop("version_name"),
-                },
-                full_version=info.pop("full_version"),
-                version_series=version_series,
-            )
+            full_version = info.pop("full_version")
+            dbversion = DBVersion.objects.filter(full_version=full_version, version_series=version_series).first()
+            # 如果已存在则只修改更新时间
+            if dbversion:
+                dbversion.updated_at = info["update_at"]
+                dbversion.save(update_fields=["update_at"])
+            else:
+                dbversion = DBVersion.objects.create(
+                    full_version=full_version,
+                    version_series=version_series,
+                    distribution_snapshot=distribution.snapshot(),
+                    description=info.pop("description", ""),
+                    phase=info.pop("phase"),
+                    name=info.pop("version_name"),
+                )
             info.update(db_version=dbversion)
             return info
 
