@@ -29,6 +29,7 @@ export interface InstanceInfos {
   db_module_id: number;
   host_info: HostInfo;
   instance_address: string;
+  instance_id: number;
   ip: string;
   master_domain: string;
   port: number;

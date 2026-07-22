@@ -100,6 +100,12 @@ export const toolboxMenuList = [
         name: t('版本升级'),
         parentId: 'mongo_manage',
       },
+      {
+        dbConsoleValue: 'mongodb.toolbox.instanceReload',
+        id: TicketTypes.MONGODB_INSTANCE_RELOAD,
+        name: t('滚动重启'),
+        parentId: 'mongo_manage',
+      },
     ],
     icon: 'db-icon-cluster',
     id: 'mongo_manage',
