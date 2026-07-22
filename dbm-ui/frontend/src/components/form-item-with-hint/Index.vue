@@ -122,6 +122,11 @@
         border-color: #ea3636;
         transition: all 0.15s;
       }
+
+      :deep(.db-tag-input-panel) {
+        border-color: #ea3636;
+        transition: all 0.15s;
+      }
     }
 
     :deep(.bk-form-error) {

@@ -10,16 +10,12 @@
       property="cluster_ids"
       required
       :rules="clusterRepeatRules">
-      <BkTagInput
+      <DbTagInput
         v-model="selectedDomains"
-        collapse-tags
         :content-width="500"
-        has-delete-icon
         :list="tagInputList"
-        :paste-fn="pasteCallback"
+        multiple
         :placeholder="t('输入域名（多域名以换行、空格、竖线、; 分隔，回车完成输入）')"
-        trigger="focus"
-        :with-validate="false"
         @change="handleChange" />
       <template #hint>
         {{ t('同一集群仅可归属一条按集群子策略') }}
@@ -29,7 +25,6 @@
 </template>
 
 <script setup lang="ts">
-  import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
@@ -37,8 +32,8 @@
   import { checkTicketFlowConfigClusterRepeat, type ClusterIdItem } from '@services/source/ticket';
 
   import { DBTypes, queryClusterTypes } from '@common/const';
-  import { batchSplitRegex } from '@common/regex';
 
+  import DbTagInput from '@components/db-tag-input/Index.vue';
   import FormItemWithHint from '@components/form-item-with-hint/Index.vue';
 
   interface Props {
@@ -126,7 +121,7 @@
   const getDomainById = (id: number) => clusterList.value.find((item) => item.id === id)?.immute_domain;
   const getIdByDomain = (domain: string) => clusterList.value.find((item) => item.immute_domain === domain)?.id;
 
-  // BkTagInput 以域名驱动，modelValue 以 id 存储
+  // DbTagInput 以域名驱动，modelValue 以 id 存储
   const selectedDomains = computed<string[]>({
     get: () => modelValue.value.map(getDomainById).filter((domain): domain is string => !!domain),
     set: (domains: string[]) => {
@@ -153,22 +148,6 @@
   // 延迟到 nextTick 校验：避免 model 变更后 FormItemWithHint 内部 watch 立即 clearValidate
   const handleChange = () => {
     nextTick(() => formItemRef.value?.validate?.());
-  };
-
-  // 粘贴：按分隔符拆分，仅保留已知集群域名
-  const pasteCallback = (text: string) => {
-    if (!_.trim(text)) {
-      return [];
-    }
-    const domains = new Set(clusterList.value.map((item) => item.immute_domain));
-    return text
-      .split(batchSplitRegex)
-      .filter(Boolean)
-      .filter((keyword) => domains.has(keyword))
-      .map((keyword) => ({
-        id: keyword,
-        name: keyword,
-      }));
   };
 
   defineExpose<Exposes>({

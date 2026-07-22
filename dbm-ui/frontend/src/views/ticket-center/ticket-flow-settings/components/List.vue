@@ -52,8 +52,10 @@
           v-model:expanded-tree-nodes="expandedTreeNodes"
           :columns="columns"
           :data="paginatedData"
+          :filter-row="null"
           :filter-value="searchValue"
           :max-height="tableMaxHeight"
+          resizable
           :row-class-name="rowClassName"
           row-key="id"
           :sort="tableSort"
