@@ -18,7 +18,9 @@ import (
 // CC主机属性
 // 字段名与CCDeviceInfo的一致，主要方便做映射
 type Host struct {
-	AssetID            string      `json:"bk_asset_id,omitempty"`
+	AssetID string `json:"bk_asset_id,omitempty"`
+	// BkSvrOwnerAssetID 母机固资号
+	BkSvrOwnerAssetID  string      `json:"bk_svr_owner_asset_id,omitempty"`
 	HostID             int         `json:"svr_id,omitempty"`
 	BKHostId           int         `json:"bk_host_id,omitempty"`
 	SN                 string      `json:"bk_sn,omitempty"`

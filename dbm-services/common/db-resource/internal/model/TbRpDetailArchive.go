@@ -21,15 +21,17 @@ import (
 // TbRpDetailArchive 资源池资源归档表
 // nolint
 type TbRpDetailArchive struct {
-	ID                  int                      `gorm:"primary_key;auto_increment;not_null" json:"-"`
-	BkCloudID           int                      `gorm:"column:bk_cloud_id;type:int(11);not null;comment:'云区域 ID'" json:"bk_cloud_id"`
-	BkBizId             int                      `gorm:"column:bk_biz_id;type:int(11);not null;comment:'机器当前所属业务'" json:"bk_biz_id"`
-	DedicatedBiz        int                      `gorm:"column:dedicated_biz;type:int(11);default:0;comment:专属业务" json:"dedicated_biz"`
-	RsType              string                   `gorm:"column:rs_type;type:varchar(64);default:'PUBLIC';comment:资源专用组件类型" json:"rs_type"`
-	Bizs                map[string]string        `gorm:"-" json:"-"`
-	BkHostID            int                      `gorm:"column:bk_host_id;type:int(11);not null;comment:'bk主机ID'" json:"bk_host_id"`
-	IP                  string                   `gorm:"column:ip;type:varchar(20);not null" json:"ip"` //  svr ip
-	AssetID             string                   `gorm:"column:asset_id;type:varchar(64);not null;comment:'固定资产编号'" json:"asset_id"`
+	ID           int               `gorm:"primary_key;auto_increment;not_null" json:"-"`
+	BkCloudID    int               `gorm:"column:bk_cloud_id;type:int(11);not null;comment:'云区域 ID'" json:"bk_cloud_id"`
+	BkBizId      int               `gorm:"column:bk_biz_id;type:int(11);not null;comment:'机器当前所属业务'" json:"bk_biz_id"`
+	DedicatedBiz int               `gorm:"column:dedicated_biz;type:int(11);default:0;comment:专属业务" json:"dedicated_biz"`
+	RsType       string            `gorm:"column:rs_type;type:varchar(64);default:'PUBLIC';comment:资源专用组件类型" json:"rs_type"`
+	Bizs         map[string]string `gorm:"-" json:"-"`
+	BkHostID     int               `gorm:"column:bk_host_id;type:int(11);not null;comment:'bk主机ID'" json:"bk_host_id"`
+	IP           string            `gorm:"column:ip;type:varchar(20);not null" json:"ip"` //  svr ip
+	AssetID      string            `gorm:"column:asset_id;type:varchar(64);not null;comment:'固定资产编号'" json:"asset_id"`
+	// BkSvrOwnerAssetID 母机固资号（CMDB: bk_svr_owner_asset_id）
+	BkSvrOwnerAssetID   string                   `gorm:"column:bk_svr_owner_asset_id;type:varchar(64);not null;default:'';comment:'母机固资号'" json:"bk_svr_owner_asset_id"`
 	DeviceClass         string                   `gorm:"column:device_class;type:varchar(64);not null" json:"device_class"` //  对应机型 A30,D3
 	SvrTypeName         string                   `gorm:"column:svr_type_name;type:varchar(64);not null;comment:'服务器型号,判断是否是云机器'" json:"svr_type_name"`
 	CPUNum              int                      `gorm:"column:cpu_num;type:int(11);not null;comment:'cpu核数'" json:"cpu_num"`
@@ -86,13 +88,13 @@ type TbRpDetailArchive struct {
 func initarchive() {
 	tx := DB.Self.Begin()
 	if err := tx.Exec(`insert into tb_rp_detail_archive 
-		(id, bk_cloud_id, bk_biz_id, dedicated_biz, rs_type, bk_host_id, ip, asset_id, 
+		(id, bk_cloud_id, bk_biz_id, dedicated_biz, rs_type, bk_host_id, ip, asset_id, bk_svr_owner_asset_id,
 		device_class, svr_type_name, cpu_num, dram_cap, storage_device, total_storage_cap, 
 		total_data_storage_cap, os_type, os_bit, os_version, os_name, os_name_origin, 
 		raid, city_id, city, sub_zone, sub_zone_id, idc_name, idc_id, rack_id, net_device_id, labels, 
 		is_init, is_idle, status, bk_agent_id, gse_agent_status_code, agent_status_update_time, 
 		operator, consume_time, update_time, create_time) 
-		select id, bk_cloud_id, bk_biz_id, dedicated_biz, rs_type, bk_host_id, ip, asset_id, 
+		select id, bk_cloud_id, bk_biz_id, dedicated_biz, rs_type, bk_host_id, ip, asset_id, bk_svr_owner_asset_id,
 		device_class, svr_type_name, cpu_num, dram_cap, storage_device, total_storage_cap, 
 		total_data_storage_cap, os_type, os_bit, os_version, os_name, os_name_origin, 
 		raid, city_id, city, sub_zone, sub_zone_id, idc_name, idc_id, rack_id, net_device_id, labels, 
@@ -131,13 +133,13 @@ func ArchiveResource(ids []int) (err error) {
 		}
 	}()
 	if err = tx.Exec(`insert into tb_rp_detail_archive 
-		(id, bk_cloud_id, bk_biz_id, dedicated_biz, rs_type, bk_host_id, ip, asset_id, 
+		(id, bk_cloud_id, bk_biz_id, dedicated_biz, rs_type, bk_host_id, ip, asset_id, bk_svr_owner_asset_id,
 		device_class, svr_type_name, cpu_num, dram_cap, storage_device, total_storage_cap, 
 		total_data_storage_cap, os_type, os_bit, os_version, os_name, os_name_origin, 
 		raid, city_id, city, sub_zone, sub_zone_id, idc_name, idc_id, rack_id, net_device_id, labels, 
 		is_init, is_idle, status, bk_agent_id, gse_agent_status_code, agent_status_update_time, 
 		operator, consume_time, update_time, create_time) 
-		select id, bk_cloud_id, bk_biz_id, dedicated_biz, rs_type, bk_host_id, ip, asset_id, 
+		select id, bk_cloud_id, bk_biz_id, dedicated_biz, rs_type, bk_host_id, ip, asset_id, bk_svr_owner_asset_id,
 		device_class, svr_type_name, cpu_num, dram_cap, storage_device, total_storage_cap, 
 		total_data_storage_cap, os_type, os_bit, os_version, os_name, os_name_origin, 
 		raid, city_id, city, sub_zone, sub_zone_id, idc_name, idc_id, rack_id, net_device_id, labels, 
