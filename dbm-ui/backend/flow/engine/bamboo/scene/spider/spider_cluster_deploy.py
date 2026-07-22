@@ -640,6 +640,35 @@ class TenDBClusterApplyFlow(object):
             )
         )
 
+        # 阶段11 remote只安装备份不推送备份定时任务
+        deploy_pipeline.add_sub_pipeline(
+            sub_flow=standardize_mysql_cluster_subflow(
+                root_id=self.root_id,
+                data=copy.deepcopy(self.data),
+                bk_cloud_id=int(self.data["bk_cloud_id"]),
+                bk_biz_id=int(self.data["bk_biz_id"]),
+                instances=[
+                    "{}:{}".format(ip["ip"], port)
+                    for ip in self.data["mysql_ip_list"]
+                    for port in self.data["mysql_ports"]
+                ]
+                + [
+                    "{}:{}".format(ip["ip"], port)
+                    for ip in self.data["spider_ip_list"]
+                    for port in self.data["spider_ports"]
+                ],
+                with_actuator=False,
+                with_bk_plugin=False,
+                with_collect_sysinfo=False,
+                with_backup_client=False,
+                with_instance_standardize=False,
+                with_push_config=False,
+                with_cc_standardize=False,
+                with_exporter_config=False,
+                departs=[DeployPeripheralToolsDepart.MySQLDBBackup],
+            )
+        )
+
         pipeline.add_sub_pipeline(
             sub_flow=deploy_pipeline.build_sub_process(sub_name=_("{}集群部署").format(self.data["cluster_name"]))
         )
