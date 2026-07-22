@@ -221,6 +221,7 @@ export function getClusterOperateRecords(params: { cluster_id: number } & Record
         creator: string;
         op_status: 'PENDING' | 'RUNNING' | 'SUCCEEDED' | 'FAILED' | 'REVOKED';
         op_type: string;
+        remark: string;
         ticket_id: number;
       }[]
     >

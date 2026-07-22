@@ -12,7 +12,7 @@
 -->
 
 <template>
-  <div class="conf-tab-wrapper mt-16">
+  <div class="conf-tab-wrapper">
     <BkTab
       v-model:active="activeTab"
       type="unborder-card">
@@ -199,6 +199,8 @@
 
 <style lang="less">
   .conf-tab-wrapper .bk-tab.bk-tab--unborder-card {
+    padding: 16px 0;
+
     .bk-tab-header {
       background: transparent;
     }

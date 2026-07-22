@@ -65,6 +65,14 @@
         </template>
       </TableColumn>
       <TableColumn
+        col-key="remark"
+        :min-width="150"
+        :title="t('备注')">
+        <template #default="{ row }: { row: IRowData }">
+          {{ row.remark || '--' }}
+        </template>
+      </TableColumn>
+      <TableColumn
         col-key="creator"
         :min-width="150"
         :title="t('提单人')">
@@ -167,3 +175,8 @@
     fetchData();
   });
 </script>
+<style lang="less">
+  .cluster-detail-event-change {
+    padding: 16px 0;
+  }
+</style>
