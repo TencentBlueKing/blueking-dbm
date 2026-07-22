@@ -92,14 +92,14 @@ func (c *IncrFileContext) TryIncr(incr int) error {
 func (c *IncrFileContext) IncrWithRetries(incr int, maxRetries int) error {
 	keyCurr := "current"
 	keyMax := "max"
-	c.fl = flock.New(c.contextFile)
-	lockSucc, err := c.fl.TryLock() // 因为其他进程已经获得锁，返回的是 err = nil
+	fl := flock.New(c.contextFile)
+	lockSucc, err := fl.TryLock() // 因为其他进程已经获得锁，返回的是 err = nil
 	if err != nil {
 		// 可能因为文件权限或其他未知异常，导致的不可重试错误
 		return fmt.Errorf("TryLock %s failed: %s", c.contextFile, err.Error())
 	}
 	if lockSucc {
-		defer c.fl.Unlock()
+		defer fl.Unlock()
 	} else { // 获取文件锁失败，需要排队阻塞
 		if maxRetries == 0 {
 			return fmt.Errorf("file lock is acquired by other process: %s", c.contextFile)
@@ -135,7 +135,7 @@ func (c *IncrFileContext) IncrWithRetries(incr int, maxRetries int) error {
 				c.contextFile, curVal, incr, maxVal)
 		}
 		if maxRetries > 1 || maxRetries < 0 {
-			c.fl.Unlock() // 在进入递归之前释放锁
+			fl.Unlock() // 在进入递归之前释放锁
 			logger.Info("lock full(waiting): incr %s (%d+%d) > max %d, sleep %v secs",
 				c.contextFile, curVal, incr, maxVal, c.retryInterval)
 			time.Sleep(c.retryInterval)
@@ -196,14 +196,14 @@ func (c *IncrFileContext) IncrWithKey(incr int, maxRetries int) error {
 	if c.key == "" {
 		return fmt.Errorf("incr key is empty")
 	}
-	c.fl = flock.New(c.contextFile)
-	lockSucc, err := c.fl.TryLock() // 因为其他进程已经获得锁，返回的是 err = nil
+	fl := flock.New(c.contextFile)
+	lockSucc, err := fl.TryLock() // 因为其他进程已经获得锁，返回的是 err = nil
 	if err != nil {
 		// 可能因为文件权限或文件不存在等错误，不可重试
 		return fmt.Errorf("TryLock %s failed: %s", c.contextFile, err.Error())
 	}
 	if lockSucc {
-		defer c.fl.Unlock()
+		defer fl.Unlock()
 	} else { // 获取文件锁失败，需要排队阻塞
 		if maxRetries == 0 {
 			return fmt.Errorf("file lock is acquired by other process: %s", c.contextFile)
@@ -232,7 +232,7 @@ func (c *IncrFileContext) IncrWithKey(incr int, maxRetries int) error {
 				c.contextFile, c.key, conc.Current-1, conc.Max)
 		}
 		if maxRetries > 1 || maxRetries < 0 {
-			c.fl.Unlock() // 在进入递归之前释放锁
+			fl.Unlock() // 在进入递归之前释放锁
 			logger.Info("lock full(waiting): incr %s:%s current %d > max %d, sleep %v secs",
 				c.contextFile, c.key, conc.Current-1, conc.Max, c.retryInterval)
 			time.Sleep(c.retryInterval)
