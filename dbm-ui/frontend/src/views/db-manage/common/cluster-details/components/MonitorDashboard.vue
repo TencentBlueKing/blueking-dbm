@@ -90,7 +90,7 @@
 
 <style lang="less">
   .cluster-detail-monitor-dashboard-box {
-    padding: 14px 0;
+    padding: 16px 0;
     background-color: white;
 
     .action-box {

@@ -112,23 +112,11 @@
         <slot name="record">
           <BkTabPanel
             :key="clusterData.id"
-            :label="t('操作记录')"
+            :label="t('单据记录')"
             name="record">
-            <div
-              v-if="activePanel === 'record'"
-              class="conf-tab-wrapper mt-16">
-              <BkTab
-                v-model:active="recordSubTab"
-                type="unborder-card">
-                <BkTabPanel
-                  :label="t('单据记录')"
-                  name="ticketRecord">
-                  <OperationRecord
-                    :id="clusterData.id"
-                    :key="clusterData.id" />
-                </BkTabPanel>
-              </BkTab>
-            </div>
+            <TicketRecord
+              :id="clusterData.id"
+              :key="clusterData.id" />
           </BkTabPanel>
         </slot>
       </BkTab>
@@ -170,8 +158,8 @@
   import HostList from './components/HostList.vue';
   import Instancelist from './components/InstanceList.vue';
   import MonitorDashboard from './components/MonitorDashboard.vue';
-  import OperationRecord from './components/OperationRecord.vue';
   import ParamConfig from './components/ParamConfig.vue';
+  import TicketRecord from './components/TicketRecord.vue';
   import {
     URL_CLUSTER_DETAIL_MEMO_KEY,
     URL_HOST_MEMO_KEY,
@@ -238,7 +226,6 @@
   const { metricsMap } = useAlarmSubscribe();
 
   const isFixedTab = ref(false);
-  const recordSubTab = ref('ticketRecord');
 
   const rootRef = useTemplateRef('root');
   const activePanel = ref(String(route.query[URL_CLUSTER_DETAIL_MEMO_KEY]) || '');
