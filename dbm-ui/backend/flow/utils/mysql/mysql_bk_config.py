@@ -105,6 +105,7 @@ def get_backup_ini_config(bk_biz_id: int, db_module_id: int, cluster_type: str, 
             "conf_type": "backup",
             "namespace": cluster_type,
             "format": FormatType.MAP_LEVEL,
+            "level_info": {"module": str(db_module_id)},
         }
     )
     return data["content"]
