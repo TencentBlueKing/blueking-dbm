@@ -112,7 +112,39 @@ else
     cat db-remote-service-apply.log
     exit 1
 fi
-"""
+
+# 增加对drs进程自动重启
+monitor_script_path="$path/drs/monitor.sh";
+echo -e "
+#!/bin/bash
+
+DRS_BIN="$path/drs"
+LOG_PATH="$path/drs/monitor.log"
+
+# 检测进程是否存在
+check_drs() {
+    pgrep -f 'db-remote-service' >/dev/null 2>&1
+    return \$?
+}
+
+# 重启drs服务
+restart_drs() {
+    now=\$(date +'%Y-%m-%d %H:%M:%S')
+    echo "[\$now]检测到DRS未运行，尝试重启DRS..." >> \$LOG_PATH
+    cd \$DRS_BIN && source drs.env && nohup ./db-remote-service -> db-remote-service-apply.log 2>&1 &
+}
+
+if ! check_drs; then
+    restart_drs
+    exit \$?
+fi
+" > $monitor_script_path;
+
+chmod +x $monitor_script_path;
+
+# 每分钟定时探测执行
+(crontab -l ; echo "* * * * * /bin/bash $monitor_script_path") 2>&1 | grep -v "no crontab" | sort | uniq | crontab -
+"""  # noqa
 
 stop_drs_service_template = """
 path=/usr/local/bkdb;
@@ -125,4 +157,7 @@ fi
 
 # 清理drs相关文件
 rm -rf $path/drs;
+
+# 清理crontab相关定时任务
+crontab -l | grep -v '/usr/local/bkdb/drs/monitor.sh' | crontab -
 """
