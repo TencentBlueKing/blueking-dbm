@@ -42,6 +42,11 @@ class _DBResourceApi(BaseApi):
             url="resource/list/all",
             description=_("资源池全部资源列表"),
         )
+        self.same_svr_owner_ips = self.generate_data_api(
+            method="POST",
+            url="resource/same_svr_owner/ips",
+            description=_("查询同母机 IP"),
+        )
         self.resource_apply = self.generate_data_api(
             method="POST",
             url="resource/apply",
