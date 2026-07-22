@@ -10,7 +10,6 @@ import (
 	"sync"
 
 	"github.com/go-viper/mapstructure/v2"
-	"github.com/gofrs/flock"
 	"github.com/pkg/errors"
 	"github.com/spf13/cast"
 	"gopkg.in/yaml.v2"
@@ -47,7 +46,6 @@ type FileContext struct {
 
 	data   map[string]interface{} //`json:"data" mapstructure:"data"`
 	suffix string
-	fl     *flock.Flock
 	mu     sync.Mutex
 }
 
