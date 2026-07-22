@@ -25,6 +25,7 @@ from backend.flow.plugins.components.collections.mysql.dns_manage import MySQLDn
 from backend.flow.plugins.components.collections.mysql.exec_actuator_script import ExecuteDBActuatorScriptComponent
 from backend.flow.plugins.components.collections.mysql.mysql_db_meta import MySQLDBMetaComponent
 from backend.flow.plugins.components.collections.mysql.trans_flies import TransFileComponent
+from backend.flow.utils.mysql.common.mysql_cluster_info import get_mysql_init_os_timezone_kwargs_for_apply
 from backend.flow.utils.mysql.mysql_act_dataclass import (
     CreateDnsKwargs,
     DBMetaOPKwargs,
@@ -62,6 +63,36 @@ class MySQLSingleApplyFlow(object):
             install_mysql_ports.append(self.data["start_mysql_port"] + i)
 
         return install_mysql_ports
+
+    def __build_init_os_tz_kwargs(self, exec_ips: list):
+        """部署场景专用：根据单据 ticket_data 构造机器时区初始化 kwargs。
+
+        设计要点 / 怎么做：
+          - 数据源：TenDBSingle 部署阶段集群尚未落库，无法用 ``cluster_id`` 反查 db_meta；
+            所需字段仅需 ``self.data``（ticket_data）里的 ``bk_biz_id / bk_cloud_id /
+            db_module_id`` 三项，由 :meth:`MysqlSingleApplyFlowBuilder.patch_dbconfig`
+            阶段预写入 ticket_data 顶层。
+          - TenDBSingle 单据下一台机器上即便按 ``inst_num`` 部署多个 TenDBSingle 集群，
+            也共享同一个 ``db_module_id``（ticket_data 顶层标量），因此机器时区只需按
+            "单一 module" 调用组件即可。
+          - 时区来源已统一为 dbconfig 模块级 ``deploy_info.system_time_zone``，无需
+            再关心 ``db_version`` / ``immute_domain`` / ``spider_version``。
+
+        :param exec_ips: 目标机器 IP 列表；Single 场景为单元素列表（``info["new_ip"]["ip"]``）
+        :return: :class:`MySQLInitOsTimeZoneKwargs` 实例
+
+        边界 / 异常：
+          - exec_ips 为空 / 单据字段类型不合法 →
+            由底层 :func:`get_mysql_init_os_timezone_kwargs_for_apply` 抛异常；
+          - ticket_data 缺少 ``db_module_id`` → KeyError（属于单据侧数据契约问题）。
+        """
+        return get_mysql_init_os_timezone_kwargs_for_apply(
+            bk_biz_id=int(self.data["bk_biz_id"]),
+            bk_cloud_id=int(self.data["bk_cloud_id"]),
+            exec_ip=exec_ips,
+            db_module_id=int(self.data["db_module_id"]),
+            cluster_type=ClusterType.TenDBSingle,
+        )
 
     def deploy_flow(self):
         """
@@ -139,6 +170,10 @@ class MySQLSingleApplyFlow(object):
                     init_check_ips=[info["new_ip"]["ip"]],
                     yum_install_perl_ips=[info["new_ip"]["ip"]],
                     bk_host_ids=bk_host_ids,
+                    # 部署阶段无 db_meta，直接依据单据 ticket_data + 当前 apply_info 组装机器时区初始化 kwargs
+                    init_os_tz_kwargs=self.__build_init_os_tz_kwargs(
+                        exec_ips=[info["new_ip"]["ip"]],
+                    ),
                 )
             )
             sub_pipeline.add_act(

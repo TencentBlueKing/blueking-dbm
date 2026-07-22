@@ -32,6 +32,7 @@ from backend.flow.plugins.components.collections.common.disable_alarm_shield imp
 from backend.flow.plugins.components.collections.mysql.clear_machine import SpiderRemoteClearMachineComponent
 from backend.flow.plugins.components.collections.mysql.dns_manage import MySQLDnsManageComponent
 from backend.flow.plugins.components.collections.mysql.exec_actuator_script import ExecuteDBActuatorScriptComponent
+from backend.flow.plugins.components.collections.mysql.mysql_os_init import GetOsSysParamComponent
 from backend.flow.plugins.components.collections.mysql.sync_master import SyncMasterComponent
 from backend.flow.plugins.components.collections.mysql.trans_flies import TransFileComponent
 from backend.flow.plugins.components.collections.spider.add_spider_system_user import AddSpiderSystemUserComponent
@@ -46,6 +47,7 @@ from backend.flow.plugins.components.collections.spider.install_spider_with_copy
 from backend.flow.plugins.components.collections.spider.remote_migrate_cut_over import RemoteMigrateCutOverComponent
 from backend.flow.plugins.components.collections.spider.spider_db_meta import SpiderDBMetaComponent
 from backend.flow.utils.base.base_dataclass import Instance
+from backend.flow.utils.mysql.common.mysql_cluster_info import get_mysql_init_os_timezone_kwargs
 from backend.flow.utils.mysql.mysql_act_dataclass import (
     CreateDnsKwargs,
     DBMetaOPKwargs,
@@ -207,6 +209,7 @@ def add_spider_slaves_sub_flow(
         tmp_spider = None
         spider_port = int(parent_global_data["spider_port"])
         is_clone_user = False
+        is_clone_sys_config = False
     else:
         # 获取到集群对应的spider端口，作为这次的安装
         # 获取模板spider作为模板spider节点，从spider_slave列表中获取
@@ -217,10 +220,12 @@ def add_spider_slaves_sub_flow(
         if spiders:
             tmp_spider = spiders[0]
             spider_port = tmp_spider.port
+            is_clone_sys_config = True
         else:
             # 如果集群没有running同角色spider实例，会存在克隆权限的风险，这里先不退出，给tmp_spider属性设置None，到下层判断是否要做权限克隆
             # spider_port 属性拿spider master角色，如果是第一次部署slave集群，则默认spider master端口和spider slave 是一致的
             tmp_spider = None
+            is_clone_sys_config = False
             spider_port = cluster.proxyinstance_set.filter(
                 tendbclusterspiderext__spider_role=TenDBClusterSpiderRole.SPIDER_MASTER
             )[0].port
@@ -246,6 +251,16 @@ def add_spider_slaves_sub_flow(
     # 机器系统初始化
     exec_ips = [ip_info["ip"] for ip_info in add_spider_slaves]
     bk_host_ids = [ip_info["bk_host_id"] for ip_info in add_spider_slaves]
+
+    # 收集集群中同角色源spider节点的系统参数
+    # 跳过场景：全销毁冷备恢复(is_clone_sys_config=False)、首次加入无同源节点(tmp_spider=None)、重建场景(is_rebuild=True)
+    if is_clone_sys_config and (tmp_spider is not None) and (not is_rebuild):
+        sub_pipeline.add_act(
+            act_name=_("获取同源节点[{}]的核心操作系统参数".format(tmp_spider.machine.ip)),
+            act_component_code=GetOsSysParamComponent.code,
+            kwargs=asdict(ExecActuatorKwargs(bk_cloud_id=cluster.bk_cloud_id, exec_ip=tmp_spider.machine.ip)),
+        )
+
     # 初始新机器
     # 如果是重建场景，不需要再做初始化
     if not is_rebuild:
@@ -258,6 +273,7 @@ def add_spider_slaves_sub_flow(
                 init_check_ips=exec_ips,
                 yum_install_perl_ips=exec_ips,
                 bk_host_ids=bk_host_ids,
+                init_os_tz_kwargs=get_mysql_init_os_timezone_kwargs(cluster=cluster, exec_ip=exec_ips),
             )
         )
 
@@ -447,6 +463,31 @@ def add_spider_masters_sub_flow(
     else:
         role = TenDBClusterSpiderRole.SPIDER_MASTER.value
 
+    # 这里获取集群内running状态的spider节点作为这次克隆权限的依据
+    # 同时作为克隆系统参数的依据
+    spiders = cluster.proxyinstance_set.filter(status=InstanceStatus.RUNNING, tendbclusterspiderext__spider_role=role)
+    if cold_disaster_recover:
+        is_clone_user = False
+        is_clone_sys_config = False
+        tmp_spider = None
+    elif not spiders and role == TenDBClusterSpiderRole.SPIDER_MNT.value:
+        # 如果添加节点的角色是spider_mnt, 但是集群没有相应的角色，作为第一次添加，不做权限克隆
+        is_clone_user = False
+        is_clone_sys_config = False
+        tmp_spider = None
+    elif spiders:
+        # 正常获取第一个节点做模板
+        is_clone_user = True
+        is_clone_sys_config = True
+        tmp_spider = spiders[0]
+    else:
+        # 如果扩容角色是master，且spiders没有running状态的节点，则扩容时无法做权限克隆，故异常，表示构建流程失败
+        raise AddSpiderNodeFailedException(
+            message=_(
+                "[{}]构建流程失败，集群找不到相应角色[{}]的且running状态的spider实例作为权限克隆的来源，请检查集群".format(cluster.immute_domain, role)
+            )
+        )
+
     # 声明子流程
     sub_pipeline = SubBuilder(root_id=root_id, data=parent_global_data)
 
@@ -456,6 +497,15 @@ def add_spider_masters_sub_flow(
         bk_cloud_id=cluster.bk_cloud_id,
     )
     # 机器系统初始化
+
+    # 收集集群中同角色源spider节点的系统参数
+    # 跳过场景：全销毁冷备恢复(is_clone_sys_config=False)、首次加入无同源节点(tmp_spider=None)、重建场景(is_rebuild=True)
+    if is_clone_sys_config and (tmp_spider is not None) and (not is_rebuild):
+        sub_pipeline.add_act(
+            act_name=_("获取同源节点[{}]的核心操作系统参数".format(tmp_spider.machine.ip)),
+            act_component_code=GetOsSysParamComponent.code,
+            kwargs=asdict(ExecActuatorKwargs(bk_cloud_id=cluster.bk_cloud_id, exec_ip=tmp_spider.machine.ip)),
+        )
 
     exec_ips = [ip_info["ip"] for ip_info in add_spider_masters]
     bk_host_ids = [ip_info["bk_host_id"] for ip_info in add_spider_masters]
@@ -471,6 +521,7 @@ def add_spider_masters_sub_flow(
                 init_check_ips=exec_ips,
                 yum_install_perl_ips=exec_ips,
                 bk_host_ids=bk_host_ids,
+                init_os_tz_kwargs=get_mysql_init_os_timezone_kwargs(cluster=cluster, exec_ip=exec_ips),
             )
         )
     # 阶段1 下发spider安装介质包
@@ -558,27 +609,6 @@ def add_spider_masters_sub_flow(
                     add_spider_role=role,
                     spider_pass=tdbctl_pass,
                 ),
-            )
-        )
-
-    # 这里获取集群内running状态的spider节点作为这次克隆权限的依据
-    spiders = cluster.proxyinstance_set.filter(status=InstanceStatus.RUNNING, tendbclusterspiderext__spider_role=role)
-    if cold_disaster_recover:
-        is_clone_user = False
-        tmp_spider = None
-    elif not spiders and role == TenDBClusterSpiderRole.SPIDER_MNT.value:
-        # 如果添加节点的角色是spider_mnt, 但是集群没有相应的角色，作为第一次添加，不做权限克隆
-        is_clone_user = False
-        tmp_spider = None
-    elif spiders:
-        # 正常获取第一个节点做模板
-        is_clone_user = True
-        tmp_spider = spiders[0]
-    else:
-        # 如果扩容角色是master，且spiders没有running状态的节点，则扩容时无法做权限克隆，故异常，表示构建流程失败
-        raise AddSpiderNodeFailedException(
-            message=_(
-                "[{}]构建流程失败，集群找不到相应角色[{}]的且running状态的spider实例作为权限克隆的来源，请检查集群".format(cluster.immute_domain, role)
             )
         )
 

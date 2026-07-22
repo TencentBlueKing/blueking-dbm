@@ -40,6 +40,7 @@ from backend.flow.plugins.components.collections.spider.add_system_user_in_clust
 )
 from backend.flow.plugins.components.collections.spider.spider_db_meta import SpiderDBMetaComponent
 from backend.flow.utils.base.base_dataclass import Instance
+from backend.flow.utils.mysql.common.mysql_cluster_info import get_mysql_init_os_timezone_kwargs_for_apply
 from backend.flow.utils.mysql.mysql_act_dataclass import (
     AddSpiderSystemUserKwargs,
     CreateDnsKwargs,
@@ -172,6 +173,34 @@ class TenDBClusterApplyFlow(object):
             )
         return info
 
+    def __build_init_os_tz_kwargs(self, exec_ips: List[str]):
+        """部署场景专用：根据单据 ticket_data 直接构造机器时区初始化 kwargs。
+
+        设计要点 / 怎么做：
+          - 部署阶段集群尚未落库，无法用 ``cluster_id`` 反查 db_meta；本类持有的
+            ``self.data`` 已包含所有关键字段（immutable_domain / db_module_id /
+            db_version / spider_version / bk_biz_id / bk_cloud_id），由
+            :class:`TenDBClusterApplyFlowBuilder.patch_ticket_detail` 从 dbconfig
+            预拉取写入，因此这里"直接组装"即可，不再访问 ORM / dbconfig。
+          - 单集群 apply：``cluster_items`` 只放一项，携带 spider_version 以便
+            组件侧同时校验存储层与接入层 dbconfig 的 default_time_zone 一致性。
+
+        :param exec_ips: 目标机器 IP 列表（去重后传入），必填非空
+        :return: :class:`MySQLInitOsTimeZoneKwargs` 实例，供
+                 :func:`init_machine_sub_flow` 的 ``init_os_tz_kwargs`` 入参使用
+
+        边界 / 异常：
+          - ``exec_ips`` 为空 / 单据字段类型不合法 → 由底层
+            :func:`get_mysql_init_os_timezone_kwargs_for_apply` 抛异常
+        """
+        return get_mysql_init_os_timezone_kwargs_for_apply(
+            bk_biz_id=int(self.data["bk_biz_id"]),
+            bk_cloud_id=int(self.data["bk_cloud_id"]),
+            exec_ip=exec_ips,
+            db_module_id=int(self.data["db_module_id"]),
+            cluster_type=ClusterType.TenDBCluster.value,
+        )
+
     def deploy_cluster(self):
         """
         机器通过手动输入IP而触发的场景
@@ -213,6 +242,12 @@ class TenDBClusterApplyFlow(object):
                     ip_info["ip"] for ip_info in self.data["mysql_ip_list"] + self.data["spider_ip_list"]
                 ],
                 bk_host_ids=bk_host_ids,
+                # 部署阶段无 db_meta，直接依据单据 ticket_data 组装机器时区初始化 kwargs
+                init_os_tz_kwargs=self.__build_init_os_tz_kwargs(
+                    exec_ips=sorted(
+                        {ip_info["ip"] for ip_info in self.data["mysql_ip_list"] + self.data["spider_ip_list"]}
+                    )
+                ),
             )
         )
         # 阶段1 并行分发安装文件
@@ -410,7 +445,7 @@ class TenDBClusterApplyFlow(object):
                 ],
                 with_actuator=False,
                 with_bk_plugin=False,
-                with_collect_sysinfo=False,
+                with_collect_sysinfo=True,
                 with_instance_standardize=False,
             )
         )
@@ -464,6 +499,12 @@ class TenDBClusterApplyFlow(object):
                     ip_info["ip"] for ip_info in self.data["mysql_ip_list"] + self.data["spider_ip_list"]
                 ],
                 bk_host_ids=bk_host_ids,
+                # 部署阶段无 db_meta，直接依据单据 ticket_data 组装机器时区初始化 kwargs
+                init_os_tz_kwargs=self.__build_init_os_tz_kwargs(
+                    exec_ips=sorted(
+                        {ip_info["ip"] for ip_info in self.data["mysql_ip_list"] + self.data["spider_ip_list"]}
+                    )
+                ),
             )
         )
         # 阶段1 并行分发安装文件

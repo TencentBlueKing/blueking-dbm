@@ -52,6 +52,7 @@ from backend.flow.plugins.components.collections.mysql.exec_actuator_script impo
 from backend.flow.plugins.components.collections.mysql.mysql_db_meta import MySQLDBMetaComponent
 from backend.flow.plugins.components.collections.mysql.trans_flies import TransFileComponent
 from backend.flow.utils.base.base_dataclass import AddUnLockTicketTypeKwargs, ReleaseUnLockTicketTypeKwargs
+from backend.flow.utils.mysql.common.mysql_cluster_info import get_mysql_init_os_timezone_kwargs
 from backend.flow.utils.mysql.mysql_act_dataclass import (
     CheckClientConnKwargs,
     CloneProxyClientInBackendKwargs,
@@ -236,6 +237,10 @@ class MySQLProxyClusterSwitchFlow(object):
                     init_check_ips=[info["target_proxy"]["ip"]],
                     yum_install_perl_ips=[info["target_proxy"]["ip"]],
                     bk_host_ids=[info["target_proxy"]["bk_host_id"]],
+                    init_os_tz_kwargs=get_mysql_init_os_timezone_kwargs(
+                        cluster=Cluster.objects.get(id=info["cluster_ids"][0]),
+                        exec_ip=[info["target_proxy"]["ip"]],
+                    ),
                 )
             )
 

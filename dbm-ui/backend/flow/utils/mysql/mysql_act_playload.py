@@ -14,13 +14,11 @@ import logging
 import os
 import uuid
 from collections import defaultdict
-from typing import Any, List
+from typing import List
 
 from django.conf import settings
 from django.utils.translation import gettext as _
 
-from backend.components import DBConfigApi
-from backend.components.dbconfig.constants import FormatType, LevelName, ReqType
 from backend.constants import IP_PORT_DIVIDER
 from backend.core.consts import BK_PKG_INSTALL_PATH
 from backend.core.encrypt.constants import AsymmetricCipherConfigType
@@ -50,6 +48,11 @@ from backend.flow.consts import (
 from backend.flow.engine.bamboo.scene.common.get_real_version import get_mysql_real_version, get_spider_real_version
 from backend.flow.utils.base.bkrepo import get_bk_repo_url
 from backend.flow.utils.base.payload_handler import PayloadHandler
+from backend.flow.utils.mysql.mysql_bk_config import (
+    get_mysql_config,
+    get_mysql_version_and_charset,
+    get_system_time_zone_in_bk_config,
+)
 from backend.flow.utils.mysql.proxy_act_payload import ProxyActPayload
 from backend.flow.utils.tbinlogdumper.tbinlogdumper_act_payload import TBinlogDumperActPayload
 from backend.ticket.constants import TicketType
@@ -63,75 +66,6 @@ class MysqlActPayload(PayloadHandler, ProxyActPayload, TBinlogDumperActPayload):
     todo 后续要优化这块代码，因为类太大，建议按照场景拆分，然后继承，例如TBinlogDumperActPayload继承TBinlogDumper相关的方法
     todo 比如spider场景拆出来、公共部分的拆出来等
     """
-
-    @staticmethod
-    def get_mysql_config(
-        bk_biz_id: int | str,
-        db_module_id: int | str,
-        cluster_type: str,
-        immutable_domain: str,
-        db_version: str,
-        conf_type: str = ConfigTypeEnum.DBConf,
-    ) -> dict:
-        """
-        生成并获取mysql实例配置,集群级别配置
-        spider/spider-ctl/spider-mysql实例统一用这里拿去配置
-        @param immutable_domain: 集群域名
-        @param db_version: 数据库版本
-        @param conf_type: 配置类型， 默认为 ConfigTypeEnum.DBConf
-        """
-        if db_version != "Tdbctl" and int(db_module_id) == 0:
-            # 这里做一层判断，对传入的db_module_id值判断，非Tdbctl实例，传入的db_module_id必须是合理且存在的值，否则抛出异常
-            raise Exception(
-                f"The db_module_id parameter is illegal, db_module_id:{db_module_id}, db_version:{db_version}"
-            )
-        data = DBConfigApi.get_or_generate_instance_config(
-            {
-                "bk_biz_id": str(bk_biz_id),
-                "level_name": LevelName.CLUSTER,
-                "level_value": immutable_domain,
-                "level_info": {"module": str(db_module_id)},
-                "conf_file": db_version,
-                "conf_type": conf_type,
-                "namespace": cluster_type,
-                "format": FormatType.MAP_LEVEL,
-                "method": ReqType.GENERATE_AND_PUBLISH,
-            }
-        )
-        return data["content"]
-
-    def __get_version_and_charset(self, db_module_id) -> Any:
-        """获取版本号和字符集信息"""
-        data = DBConfigApi.query_conf_item(
-            {
-                "bk_biz_id": str(self.ticket_data["bk_biz_id"]),
-                "level_name": LevelName.MODULE,
-                "level_value": str(db_module_id),
-                "conf_file": "deploy_info",
-                "conf_type": "deploy",
-                "namespace": self.cluster_type,
-                "format": FormatType.MAP,
-            }
-        )["content"]
-        logger.info(f"Get mysql version,charset,engine from dbconfig: {data}")
-        return data["charset"], data["db_version"]
-
-    def __get_mysql_rotatebinlog_config(self) -> dict:
-        """
-        远程获取rotate_binlog配置
-        """
-        data = DBConfigApi.query_conf_item(
-            {
-                "bk_biz_id": str(self.ticket_data["bk_biz_id"]),
-                "level_name": LevelName.MODULE,
-                "level_value": str(self.db_module_id),
-                "conf_file": "binlog_rotate.yaml",
-                "conf_type": "backup",
-                "namespace": self.cluster_type,
-                "format": FormatType.MAP_LEVEL,
-            }
-        )
-        return data["content"]
 
     def get_sys_init_payload(self, **kwargs) -> dict:
         """
@@ -265,10 +199,21 @@ class MysqlActPayload(PayloadHandler, ProxyActPayload, TBinlogDumperActPayload):
             charset, db_version = self.ticket_data.get("charset"), self.ticket_data.get("db_version")
         else:
             # 如果没有传入，则通过db_config获取
-            charset, db_version = self.__get_version_and_charset(db_module_id=self.db_module_id)
+            charset, db_version = get_mysql_version_and_charset(
+                bk_biz_id=self.ticket_data["bk_biz_id"],
+                db_module_id=self.db_module_id,
+                cluster_type=self.cluster_type,
+            )
+
+        # 获取操作系统所期望的时区配置
+        expected_sys_time_zone = get_system_time_zone_in_bk_config(
+            bk_biz_id=self.ticket_data["bk_biz_id"],
+            db_module_id=self.db_module_id,
+            cluster_type=self.cluster_type,
+        )
 
         for cluster in self.ticket_data["clusters"]:
-            init_mysql_config[cluster["mysql_port"]] = self.get_mysql_config(
+            init_mysql_config[cluster["mysql_port"]] = get_mysql_config(
                 bk_biz_id=self.ticket_data["bk_biz_id"],
                 db_module_id=self.db_module_id,
                 cluster_type=self.cluster_type,
@@ -314,6 +259,7 @@ class MysqlActPayload(PayloadHandler, ProxyActPayload, TBinlogDumperActPayload):
                     "charset": charset,
                     "engine": engine,
                     "inst_mem": 0,
+                    "expected_sys_time_zone": expected_sys_time_zone,
                     "ports": self.ticket_data.get("mysql_ports", []),
                     "super_account": drs_account,
                     "dbha_account": dbha_account,
@@ -327,11 +273,18 @@ class MysqlActPayload(PayloadHandler, ProxyActPayload, TBinlogDumperActPayload):
     def get_install_spider_payload(self, **kwargs):
         """
         拼接spider节点安装的payload
-        todo 后续需要考虑兼容字符集和版本信息的多获取路径
         """
 
         spider_charset = self.ticket_data["spider_charset"]
         spider_version = self.ticket_data["spider_version"]
+
+        # 获取操作系统所期望的时区配置
+        expected_sys_time_zone = get_system_time_zone_in_bk_config(
+            bk_biz_id=self.ticket_data["bk_biz_id"],
+            db_module_id=self.db_module_id,
+            cluster_type=self.cluster_type,
+        )
+
         # 如果指定安装包
         if self.cluster.get("pkg_id"):
             pkg_id = self.cluster["pkg_id"]
@@ -348,7 +301,7 @@ class MysqlActPayload(PayloadHandler, ProxyActPayload, TBinlogDumperActPayload):
 
         for port in install_spider_ports:
             spider_config[port] = copy.deepcopy(
-                self.get_mysql_config(
+                get_mysql_config(
                     bk_biz_id=self.ticket_data["bk_biz_id"],
                     db_module_id=self.db_module_id,
                     cluster_type=self.cluster_type,
@@ -377,6 +330,7 @@ class MysqlActPayload(PayloadHandler, ProxyActPayload, TBinlogDumperActPayload):
                     "mysql_version": version_no,
                     "charset": spider_charset,
                     "inst_mem": 0,
+                    "expected_sys_time_zone": expected_sys_time_zone,
                     "ports": self.ticket_data["spider_ports"],
                     "super_account": drs_account,
                     "dbha_account": dbha_account,
@@ -429,7 +383,7 @@ class MysqlActPayload(PayloadHandler, ProxyActPayload, TBinlogDumperActPayload):
                     "webconsolers_account": self.get_webconsolers_account(),
                     "partition_yw_account": self.get_partition_yw_account(),
                     "mycnf_configs": {
-                        self.cluster["ctl_port"]: self.get_mysql_config(
+                        self.cluster["ctl_port"]: get_mysql_config(
                             bk_biz_id=self.ticket_data["bk_biz_id"],
                             db_module_id=self.db_module_id,
                             cluster_type=self.cluster_type,
@@ -503,6 +457,13 @@ class MysqlActPayload(PayloadHandler, ProxyActPayload, TBinlogDumperActPayload):
         """
         ctl_charset = self.ticket_data["ctl_charset"]
 
+        # 获取操作系统所期望的时区配置
+        expected_sys_time_zone = get_system_time_zone_in_bk_config(
+            bk_biz_id=self.ticket_data["bk_biz_id"],
+            db_module_id=self.db_module_id,
+            cluster_type=self.cluster_type,
+        )
+
         ctl_pkg = Package.get_latest_package(version=MediumEnum.Latest, pkg_type=MediumEnum.tdbCtl)
         version_no = get_mysql_real_version(ctl_pkg.name)
 
@@ -519,13 +480,14 @@ class MysqlActPayload(PayloadHandler, ProxyActPayload, TBinlogDumperActPayload):
                     "mysql_version": version_no,
                     "charset": ctl_charset,
                     "inst_mem": 0,
+                    "expected_sys_time_zone": expected_sys_time_zone,
                     "ports": [self.ticket_data["ctl_port"]],
                     "super_account": drs_account,
                     "dbha_account": dbha_account,
                     "webconsolers_account": self.get_webconsolers_account(),
                     "partition_yw_account": self.get_partition_yw_account(),
                     "mycnf_configs": {
-                        self.ticket_data["ctl_port"]: self.get_mysql_config(
+                        self.ticket_data["ctl_port"]: get_mysql_config(
                             bk_biz_id=self.ticket_data["bk_biz_id"],
                             db_module_id=self.db_module_id,
                             cluster_type=self.cluster_type,

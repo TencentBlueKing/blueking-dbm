@@ -84,6 +84,10 @@ class TestTenDBClusterFlow(BaseTicketTest):
             [
                 patch("backend.db_services.mysql.remote_service.handlers.DRSApi", DRSApiMock),
                 patch("backend.flow.utils.spider.spider_bk_config.DBConfigApi", DBConfigApiMock),
+                # spider 侧 calc_spider_max_count 现在经由 mysql_bk_config.get_mysql_config 间接调用
+                # DBConfigApi.get_or_generate_instance_config，需要在 mysql_bk_config 模块内也拦截，
+                # 否则 CI 环境下会真实发起 HTTP 请求（bk-dbm-dbconfig 无法解析）导致用例失败
+                patch("backend.flow.utils.mysql.mysql_bk_config.DBConfigApi", DBConfigApiMock),
                 patch("backend.ticket.builders.tendbcluster.tendb_apply.DBConfigApi", DBConfigApiMock),
                 patch(
                     "backend.ticket.builders.tendbcluster.tendb_fixpoint_rollback.MySQLFixPointRollbackDetailSerializer",

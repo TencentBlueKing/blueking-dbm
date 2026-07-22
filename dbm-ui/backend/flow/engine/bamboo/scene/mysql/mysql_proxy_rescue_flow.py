@@ -38,6 +38,7 @@ from backend.flow.plugins.components.collections.mysql.clone_proxy_client_in_bac
 from backend.flow.plugins.components.collections.mysql.exec_actuator_script import ExecuteDBActuatorScriptComponent
 from backend.flow.plugins.components.collections.mysql.mysql_db_meta import MySQLDBMetaComponent
 from backend.flow.plugins.components.collections.mysql.trans_flies import TransFileComponent
+from backend.flow.utils.mysql.common.mysql_cluster_info import get_mysql_init_os_timezone_kwargs
 from backend.flow.utils.mysql.mysql_act_dataclass import (
     CloneProxyClientInBackendKwargs,
     DBMetaOPKwargs,
@@ -221,6 +222,7 @@ class MySQLProxyRescueFlow(object):
         # ---------- 阶段1 + 1.5: 上架新 Proxy & 后端授权（并行）----------
         install_sub = SubBuilder(root_id=self.root_id, data=copy.deepcopy(sub_ctx))
 
+        # 增加机器时区处理逻辑
         install_sub.add_sub_pipeline(
             sub_flow=init_machine_sub_flow(
                 uid=sub_ctx["uid"],
@@ -230,6 +232,10 @@ class MySQLProxyRescueFlow(object):
                 init_check_ips=[p["ip"] for p in new_proxies],
                 yum_install_perl_ips=[p["ip"] for p in new_proxies],
                 bk_host_ids=[p["bk_host_id"] for p in new_proxies],
+                init_os_tz_kwargs=get_mysql_init_os_timezone_kwargs(
+                    cluster=cluster,
+                    exec_ip=[p["ip"] for p in new_proxies],
+                ),
             )
         )
 
