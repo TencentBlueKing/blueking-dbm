@@ -298,11 +298,11 @@
         newList.push(
           createRowData({
             cluster: {
-              cluster_type: item.cluster_type,
-              cluster_type_name: item.cluster_type_name,
-              id: item.id,
+              // cluster_type: item.cluster_type,
+              // cluster_type_name: item.cluster_type_name,
+              // id: item.id,
               master_domain: item.master_domain,
-            },
+            } as IDataRow['cluster'],
           }),
         );
       }
