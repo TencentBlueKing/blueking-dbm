@@ -354,6 +354,11 @@ class OpRecordSerializer(serializers.Serializer):
 class ClusterModifyOpSerializer(OpRecordSerializer):
     cluster_id = serializers.IntegerField(help_text=_("集群ID"))
 
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        data["remark"] = instance.ticket.remark
+        return data
+
 
 class InstanceModifyOpSerializer(OpRecordSerializer):
     instance_id = serializers.IntegerField(help_text=_("实例ID"))
