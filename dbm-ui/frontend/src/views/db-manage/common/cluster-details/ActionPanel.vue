@@ -118,23 +118,11 @@
           name="record">
           <BkTabPanel
             :key="clusterData.id"
-            :label="t('操作记录')"
+            :label="t('单据记录')"
             name="record">
-            <div
-              v-if="activePanel === 'record'"
-              class="conf-tab-wrapper mt-16">
-              <BkTab
-                v-model:active="recordSubTab"
-                type="unborder-card">
-                <BkTabPanel
-                  :label="t('单据记录')"
-                  name="ticketRecord">
-                  <TicketRecord
-                    :id="clusterData.id"
-                    :key="clusterData.id" />
-                </BkTabPanel>
-              </BkTab>
-            </div>
+            <TicketRecord
+              :id="clusterData.id"
+              :key="clusterData.id" />
           </BkTabPanel>
         </slot>
         <slot
@@ -268,7 +256,6 @@
   const { metricsMap } = useAlarmSubscribe();
 
   const isFixedTab = ref(false);
-  const recordSubTab = ref('ticketRecord');
 
   const rootRef = useTemplateRef('root');
   const activePanel = ref(String(route.query[URL_CLUSTER_DETAIL_MEMO_KEY]) || '');
@@ -280,9 +267,7 @@
   const isAbleSubscribe = computed(() => metricsMap.value[props.clusterData.cluster_type]?.list?.length > 0);
 
   type ExludeClusterTypes =
-    | ClusterTypes.K8S_SURREALDB_HA
-    | ClusterTypes.K8S_SURREALDB_SINGLE
-    | ClusterTypes.K8S_QDRANT_HA;
+    ClusterTypes.K8S_SURREALDB_HA | ClusterTypes.K8S_SURREALDB_SINGLE | ClusterTypes.K8S_QDRANT_HA;
   const hostListRelatedClusterTypes = computed(
     () => props.clusterType as Exclude<keyof ClusterTypeRelateClusterModel, ExludeClusterTypes>,
   );

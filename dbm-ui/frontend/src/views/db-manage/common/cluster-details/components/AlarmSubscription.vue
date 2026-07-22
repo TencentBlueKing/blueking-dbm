@@ -197,6 +197,7 @@
 <style lang="less">
   .alarm-subscription-main {
     font-family: MicrosoftYaHei, Arial, sans-serif;
+    padding: 16px 0;
 
     .empty-main {
       margin-top: 80px;

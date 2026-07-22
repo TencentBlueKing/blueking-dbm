@@ -246,7 +246,7 @@
 </script>
 <style lang="less">
   .big-data-cluster-detail-instance-list-box {
-    padding: 18px 0;
+    padding: 16px 0;
 
     .action-box {
       display: flex;
