@@ -205,6 +205,7 @@ class ResourceListSerializer(serializers.Serializer):
 
     limit = serializers.IntegerField(help_text=_("单页数量"))
     offset = serializers.IntegerField(help_text=_("偏移量"))
+    ordering = serializers.CharField(help_text=_("排序字段，前缀 - 表示倒序"), required=False)
 
     @staticmethod
     def format_fields(attrs, fields):
@@ -281,6 +282,20 @@ class ResourceListSerializer(serializers.Serializer):
         # 格式化agent参数
         attrs["gse_agent_alive"] = str(attrs.get("agent_status", "")).lower()
 
+    @staticmethod
+    def format_ordering(attrs):
+        ordering = attrs.get("ordering", "").strip()
+        if not ordering:
+            return
+
+        is_desc = ordering.startswith("-")
+        order_by = ordering[1:] if is_desc else ordering
+        if not order_by:
+            raise serializers.ValidationError({"ordering": _("排序字段不能为空")})
+
+        attrs["order_by"] = order_by
+        attrs["order"] = "desc" if is_desc else "asc"
+
     def validate(self, attrs):
         self.format_fields(
             attrs,
@@ -300,12 +315,17 @@ class ResourceListSerializer(serializers.Serializer):
                 "status",
             ],
         )
+        self.format_ordering(attrs)
         return attrs
 
 
 class ResourceListResponseSerializer(serializers.Serializer):
     class Meta:
         swagger_schema_fields = {"example": RESOURCE_LIST_DATA}
+
+
+class SameSvrOwnerIpsSerializer(serializers.Serializer):
+    bk_host_id = serializers.IntegerField(help_text=_("主机 ID"))
 
 
 class ListDBAHostsSerializer(PaginationSer):
