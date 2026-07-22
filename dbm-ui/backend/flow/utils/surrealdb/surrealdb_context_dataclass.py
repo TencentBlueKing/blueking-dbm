@@ -31,6 +31,7 @@ class K8sSurrealDBApplyContext:
 
     clb_id: Optional[int] = None
     region_code: Optional[str] = None
+    region_name: Optional[str] = None
     domain: Optional[str] = None
     vpc_id: Optional[str] = None
     clb_detail: Optional[dict] = None
