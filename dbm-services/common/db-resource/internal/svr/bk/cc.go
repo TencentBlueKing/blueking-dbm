@@ -74,6 +74,7 @@ func InitCCClient() {
 		"bk_cloud_id",
 		"bk_host_innerip",
 		"bk_asset_id",
+		"bk_svr_owner_asset_id",
 		"svr_device_class",
 		"bk_mem",
 		"bk_cpu",

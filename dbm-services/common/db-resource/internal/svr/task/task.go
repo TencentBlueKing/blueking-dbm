@@ -26,6 +26,7 @@ import (
 	"dbm-services/common/db-resource/internal/svr/dbmapi"
 	"dbm-services/common/db-resource/internal/util"
 	"dbm-services/common/go-pubpkg/cc.v3"
+	"dbm-services/common/go-pubpkg/cmutil"
 	"dbm-services/common/go-pubpkg/logger"
 )
 
@@ -279,6 +280,10 @@ func AsyncBkCmdbAttributes() (err error) {
 			"os_name_origin": ccInfo.OSName,
 			"idc_id":         ccInfo.IDCID,
 			"idc_name":       ccInfo.IDC,
+		}
+		// 空值不覆盖：CMDB 未返回母机固资号时保留库内已有值
+		if cmutil.IsNotEmpty(ccInfo.BkSvrOwnerAssetID) {
+			updates["bk_svr_owner_asset_id"] = ccInfo.BkSvrOwnerAssetID
 		}
 		if ccInfo.BkDisk > 0 {
 			updates["total_storage_cap"] = ccInfo.BkDisk
