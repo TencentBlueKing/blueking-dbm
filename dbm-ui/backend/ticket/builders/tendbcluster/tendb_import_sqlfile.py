@@ -54,7 +54,8 @@ class TenDBClusterSqlImportFlowParamBuilder(MysqlSqlImportFlowParamBuilder):
 
 
 @builders.BuilderFactory.register(TicketType.TENDBCLUSTER_IMPORT_SQLFILE)
-class TenDBClusterSqlImportFlowBuilder(MysqlSqlImportFlowBuilder, BaseTendbTicketFlowBuilder):
+class TenDBClusterSqlImportFlowBuilder(BaseTendbTicketFlowBuilder, MysqlSqlImportFlowBuilder):
+    group = DBType.TenDBCluster.value
     serializer = TenDBClusterSqlImportDetailSerializer
     # 定义流程所用到的cls，方便继承复用
     itsm_flow_builder = TenDBClusterSqlImportItsmParamBuilder
