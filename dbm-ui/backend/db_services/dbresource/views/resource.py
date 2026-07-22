@@ -49,6 +49,7 @@ from backend.db_services.dbresource.serializers import (  # CheckFaultHostsSeria
     ResourceSummaryResponseSerializer,
     ResourceSummarySerializer,
     ResourceUpdateSerializer,
+    SameSvrOwnerIpsSerializer,
     SpecCostEstimateSerializer,
     SpecCountResourceResponseSerializer,
     SpecCountResourceSerializer,
@@ -93,6 +94,7 @@ class DBResourceViewSet(viewsets.SystemViewSet):
             "resource_import_urls",
             "get_os_types",
             "check_fault_hosts",
+            "same_svr_owner_ips",
         ): [],
     }
     default_permission_class = [ResourceActionPermission([ActionEnum.RESOURCE_MANAGE])]
@@ -114,6 +116,21 @@ class DBResourceViewSet(viewsets.SystemViewSet):
     def resource_list(self, request):
         params = self.params_validate(self.get_serializer_class())
         return Response(ResourceHandler.resource_list(params))
+
+    @common_swagger_auto_schema(
+        operation_summary=_("查询同母机 IP"),
+        request_body=SameSvrOwnerIpsSerializer(),
+        tags=[SWAGGER_TAG],
+    )
+    @action(
+        detail=False,
+        methods=["POST"],
+        url_path="same_svr_owner_ips",
+        serializer_class=SameSvrOwnerIpsSerializer,
+    )
+    def same_svr_owner_ips(self, request):
+        params = self.params_validate(self.get_serializer_class())
+        return Response(DBResourceApi.same_svr_owner_ips(params=params))
 
     @common_swagger_auto_schema(
         operation_summary=_("获取DBA业务下的主机信息"),
