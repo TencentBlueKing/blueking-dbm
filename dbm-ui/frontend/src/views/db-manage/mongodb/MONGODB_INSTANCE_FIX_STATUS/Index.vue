@@ -34,7 +34,10 @@
           :key="index">
           <HostColumn
             v-model="item.host"
+            :cluster-types="[ClusterTypes.MONGO_SHARED_CLUSTER]"
+            :columns="['instance']"
             :selected="selected"
+            :tab-list-config="tabListConfig"
             @batch-edit="handleBatchEdit" />
           <OperationColumn
             v-model:table-data="formData.tableData"
@@ -69,20 +72,23 @@
   import type { ComponentProps } from 'vue-component-type-helpers';
   import { useI18n } from 'vue-i18n';
 
+  import MongodbModel from '@services/model/mongodb/mongodb';
   import type { Mongodb } from '@services/model/ticket/ticket';
+  import { getMongoInstancesList, getMongoTopoList } from '@services/source/mongodb';
 
   import { useCreateTicket, useTicketDetail } from '@hooks';
 
-  import { TicketTypes } from '@common/const';
+  import { ClusterTypes, TicketTypes } from '@common/const';
+
+  import { type PanelListType } from '@components/instance-selector/Index.vue';
 
   import BatchInput from '@views/db-manage/common/batch-input/Index.vue';
   import TicketPayload, {
     createTicketPayload,
   } from '@views/db-manage/common/toolbox-field/form-item/ticket-payload/Index.vue';
+  import HostColumn, { type SelectorHost } from '@views/db-manage/mongodb/common/toolbox-field/host-column/Index.vue';
 
   import { random } from '@utils';
-
-  import HostColumn, { type SelectorHost } from './components/HostColumn.vue';
 
   defineOptions({
     name: TicketTypes.MONGODB_INSTANCE_FIX_STATUS,
@@ -123,6 +129,38 @@
     payload: createTicketPayload(),
     tableData: [createTableRow()],
   });
+
+  const tabListConfig = {
+    mongoCluster: [
+      {
+        id: 'mongoCluster',
+        name: t('目标主机'),
+        tableConfig: {
+          firsrColumn: {
+            field: 'ip',
+            label: t('目标主机'),
+          },
+          getTableList: (params: ServiceParameters<typeof getMongoInstancesList>) =>
+            getMongoInstancesList(
+              Object.assign({}, params, {
+                cluster_type: ClusterTypes.MONGO_SHARED_CLUSTER,
+                role: 'proxy',
+              }),
+            ),
+          multiple: true,
+        },
+        topoConfig: {
+          countFunc: (data: MongodbModel) => data.mongos.length,
+          getTopoList: (params: ServiceParameters<typeof getMongoTopoList>) =>
+            getMongoTopoList(
+              Object.assign({}, params, {
+                cluster_type: ClusterTypes.MONGO_SHARED_CLUSTER,
+              }),
+            ),
+        },
+      },
+    ],
+  } as Record<string, PanelListType>;
 
   const formData = reactive(defaultData());
   const tableKey = ref(random());
