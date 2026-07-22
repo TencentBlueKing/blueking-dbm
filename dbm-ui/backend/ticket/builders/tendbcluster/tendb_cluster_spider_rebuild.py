@@ -11,6 +11,7 @@ specific language governing permissions and limitations under the License.
 from django.utils.translation import gettext as _
 from rest_framework import serializers
 
+from backend.configuration.constants import DBType
 from backend.flow.engine.controller.spider import SpiderController
 from backend.ticket import builders
 from backend.ticket.builders.mysql.base import BaseMySQLHATicketFlowBuilder
@@ -36,6 +37,7 @@ class TendbClusterSpiderRebuildParamBuilder(builders.FlowParamBuilder):
 
 @builders.BuilderFactory.register(TicketType.TENDBCLUSTER_SPIDER_REBUILD)
 class TendbClusterSpiderRebuildFlowBuilder(BaseMySQLHATicketFlowBuilder):
+    group = DBType.TenDBCluster.value
     serializer = TendbClusterSpiderRebuildDetailSerializer
     inner_flow_builder = TendbClusterSpiderRebuildParamBuilder
     inner_flow_name = _("TenDBCluster 接入层原地重建")
