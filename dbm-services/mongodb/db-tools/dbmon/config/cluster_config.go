@@ -71,11 +71,13 @@ const SegmentAlarm = "alarm"
 const SegmentLog = "log"
 const SegmentBackup = "backup"
 const SegmentParseLog = "parselog"
+const SegmentDBTableSize = "dbtablesize"
 
 const KeyLoginTimeout = "loginTimeout"
 const KeyShield = "shield"
 
 const KeyEnable = "enable"
+const KeyTimeout = "timeout"
 const KeyZip = "zip"
 const KeyFullTag = "full-tag"
 const KeyFullFreq = "full-freq"
@@ -112,6 +114,8 @@ func GetAllClusterConfigRows() []ClusterConfigItem {
 		{Segment: SegmentAlarm, Key: ShieldEndTimeKey, Value: ""},              // 屏蔽结束时间，为空为0都表示永久屏蔽
 		{Segment: SegmentParseLog, Key: KeyEnable, Value: ValueTrue},           // 是否开启日志解析
 		{Segment: SegmentParseLog, Key: KeyMaxRecordPerSecond, Value: "10000"}, // 每秒解析的最大日志数
+		{Segment: SegmentDBTableSize, Key: KeyEnable, Value: ValueTrue},        // 是否开启库表容量采集
+		{Segment: SegmentDBTableSize, Key: KeyTimeout, Value: "300"},           // 单实例采集超时时间，单位秒
 		// mongo.log.* 文件最大时间，超过这个时间就删除 2592000 = 30天
 		{Segment: SegmentLog, Key: KeyMaxTime, Value: "2592000"},
 		// mongo.log.* 文件最大大小，超过这个大小就删除，从最旧的开始删除

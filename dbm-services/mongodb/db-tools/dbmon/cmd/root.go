@@ -5,7 +5,9 @@ import (
 	"context"
 	"dbm-services/mongodb/db-tools/dbmon/cmd/backupjob"
 	"dbm-services/mongodb/db-tools/dbmon/cmd/checkhealthjob"
+	"dbm-services/mongodb/db-tools/dbmon/cmd/datadirjob"
 	"dbm-services/mongodb/db-tools/dbmon/cmd/dbmonheartbeat"
+	"dbm-services/mongodb/db-tools/dbmon/cmd/dbtablesizejob"
 	"dbm-services/mongodb/db-tools/dbmon/cmd/dstatjob"
 	"dbm-services/mongodb/db-tools/dbmon/cmd/logparserjob"
 	"dbm-services/mongodb/db-tools/dbmon/config"
@@ -174,6 +176,8 @@ func main(cmd *cobra.Command, args []string) {
 	// logparserjob 任务
 	job4 := logparserjob.GetJob(dbmonConf, mylog.Logger, "logparser", osCtx, &rootWg)
 	job5 := dstatjob.GetJob(dbmonConf, mylog.Logger, "dstat", workDir)
+	job6 := datadirjob.GetJob(dbmonConf, mylog.Logger, "datadir")
+	job7 := dbtablesizejob.GetJob(dbmonConf, mylog.Logger, "dbtablesize")
 	for _, row := range []struct {
 		job  cron.Job
 		cron string
@@ -184,6 +188,8 @@ func main(cmd *cobra.Command, args []string) {
 		{job: job3, cron: "@every 1m", name: job3.Name},
 		{job: job4, cron: "@every 1m", name: job4.Name},
 		{job: job5, cron: "@every 2m", name: job5.Name}, // dstat 任务间隔为2分钟
+		{job: job6, cron: "@every 5m", name: job6.Name},
+		{job: job7, cron: "@every 10m", name: job7.Name},
 	} {
 		if entryID, err := c.AddJob(row.cron,
 			cron.NewChain(cron.SkipIfStillRunning(mylog.AdapterLog)).Then(row.job)); err == nil {
