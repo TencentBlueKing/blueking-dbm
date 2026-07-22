@@ -136,12 +136,14 @@ class SQLServerRollbackCommonFlowBuilder(BaseSQLServerTicketFlowBuilder):
             flow_type=FlowType.INNER_FLOW.value,
             details=SQLServerDataMigrateFlowParamBuilder(self.ticket).get_params(),
             flow_alias=_("SQLServer 定点构造执行"),
+            retry_type=FlowRetryType.MANUAL_RETRY,
         )
         dbrename_flow = Flow(
             ticket=self.ticket,
             flow_type=FlowType.INNER_FLOW.value,
             details=SQLServerRollbackRenameFlowParamBuilder(ticket=self.ticket).get_params(),
             flow_alias=_("SQLServer 数据库重命名"),
+            retry_type=FlowRetryType.MANUAL_RETRY,
         )
 
         backup_flow = Flow(
@@ -149,6 +151,7 @@ class SQLServerRollbackCommonFlowBuilder(BaseSQLServerTicketFlowBuilder):
             flow_type=FlowType.INNER_FLOW.value,
             details=SQLServerRollbackBackupFlowParamBuilder(ticket=self.ticket).get_params(),
             flow_alias=_("SQLServer 库表备份执行"),
+            retry_type=FlowRetryType.MANUAL_RETRY,
         )
         flows = []
 
