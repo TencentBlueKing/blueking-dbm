@@ -141,7 +141,7 @@
     add_proxy_num: number;
     cluster: {
       bk_cloud_id: number;
-      cluster_type: string;
+      cluster_type: ClusterTypes;
       id: number;
       master_domain: string;
       mongos: MongodbModel['mongos'];
@@ -288,12 +288,12 @@
         newList.push(
           createRowData({
             cluster: {
-              bk_cloud_id: item.bk_cloud_id,
-              cluster_type: item.cluster_type,
-              id: item.id,
+              // bk_cloud_id: item.bk_cloud_id,
+              // cluster_type: item.cluster_type,
+              // id: item.id,
               master_domain: item.master_domain,
-              mongos: item.mongos,
-              region: item.region,
+              // mongos: item.mongos,
+              // region: item.region,
             },
           }),
         );

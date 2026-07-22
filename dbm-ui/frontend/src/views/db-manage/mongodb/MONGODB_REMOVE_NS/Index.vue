@@ -128,7 +128,7 @@
 
   import { useCreateTicket, useTicketDetail } from '@hooks';
 
-  import { TicketTypes } from '@common/const';
+  import { ClusterTypes, TicketTypes } from '@common/const';
 
   import BatchInput from '@views/db-manage/common/batch-input/Index.vue';
   import OperationColumn from '@views/db-manage/common/toolbox-field/column/operation-column/Index.vue';
@@ -146,7 +146,7 @@
 
   export interface IDataRow {
     cluster: {
-      cluster_type: string;
+      cluster_type: ClusterTypes;
       cluster_type_name: string;
       id: number;
       master_domain: string;
@@ -269,11 +269,11 @@
         newList.push(
           createRowData({
             cluster: {
-              cluster_type: item.cluster_type,
-              cluster_type_name: item.cluster_type_name,
-              id: item.id,
+              // cluster_type: item.cluster_type,
+              // cluster_type_name: item.cluster_type_name,
+              // id: item.id,
               master_domain: item.master_domain,
-            },
+            } as IDataRow['cluster'],
           }),
         );
       }
