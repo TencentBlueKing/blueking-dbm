@@ -22,7 +22,7 @@
         <BkButton
           class="w-88"
           :disabled="!isSelected"
-          @click="handleChangeInstanceOnline(selectedList)">
+          @click="handleBatchRestart(selectedList)">
           {{ t('批量重启') }}
         </BkButton>
       </span>
@@ -73,7 +73,7 @@
                   :disabled="data.isRebooting"
                   text
                   theme="primary"
-                  @click="handleChangeInstanceOnline([data])">
+                  @click="handleSingleRestart(data)">
                   {{ t('重启') }}
                 </BkButton>
               </OperationBtnStatusTips>
@@ -125,14 +125,12 @@
 </template>
 
 <script setup lang="tsx">
-  import { InfoBox } from 'bkui-vue';
   import { useI18n } from 'vue-i18n';
 
   import MongodbInstanceModel from '@services/model/mongodb/mongodb-instance';
   import { getMongoInstancesList } from '@services/source/mongodb';
-  import { createTicket } from '@services/source/ticket';
 
-  import { useInstanceQuickSearch, useTableSettings, useTicketMessage } from '@hooks';
+  import { useInstanceQuickSearch, useTableSettings } from '@hooks';
 
   import { ClusterTypes, TicketTypes, UserPersonalSettings } from '@common/const';
 
@@ -151,7 +149,7 @@
   import useClusterTableSelect from '@views/db-manage/hooks/useClusterTableSelect';
 
   const { t } = useI18n();
-  const ticketMessage = useTicketMessage();
+  const router = useRouter();
 
   const { isSearching, quickSearchData, quickSearchValue } = useInstanceQuickSearch({
     cluster_type: ClusterTypes.MONGO_SHARED_CLUSTER,
@@ -192,42 +190,25 @@
     fetchData();
   };
 
-  const handleChangeInstanceOnline = (data: MongodbInstanceModel[]) => {
-    InfoBox({
-      cancelText: t('取消'),
-      confirmText: t('确认'),
-      contentAlign: 'center',
-      footerAlign: 'center',
-      headerAlign: 'center',
-      infoType: 'warning',
-      onConfirm: () => {
-        const params = {
-          bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
-          details: {
-            infos: data.map((item) => ({
-              bk_host_id: item.bk_host_id,
-              cluster_id: item.cluster_id,
-              instance_id: item.id,
-              port: item.port,
-              role: item.role,
-            })),
-          },
-          ticket_type: TicketTypes.MONGODB_INSTANCE_RELOAD,
-        };
-        return createTicket(params).then((res) => {
-          ticketMessage(res.id);
-          fetchData();
-        });
-      },
-      subTitle: (
-        <>
-          {data.map((item) => (
-            <div>{`${item.ip}:${item.port}`}</div>
-          ))}
-        </>
-      ),
-      title: t('确认重启实例？'),
+  // 跳转到工具箱滚动重启页面，携带已选实例
+  const navigateToToolbox = (instances: MongodbInstanceModel[]) => {
+    if (instances.length === 0) {
+      return;
+    }
+
+    const routeInfo = router.resolve({
+      name: TicketTypes.MONGODB_INSTANCE_RELOAD,
+      query: { instances: instances.map((item) => item.instance_address).join(',') },
     });
+    window.open(routeInfo.href, '_blank');
+  };
+
+  const handleBatchRestart = (data: MongodbInstanceModel[]) => {
+    navigateToToolbox(data);
+  };
+
+  const handleSingleRestart = (data: MongodbInstanceModel) => {
+    navigateToToolbox([data]);
   };
 </script>
 
