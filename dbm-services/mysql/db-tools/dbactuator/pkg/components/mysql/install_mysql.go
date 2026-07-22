@@ -68,7 +68,11 @@ type InstallMySQLParams struct {
 	// Ports
 	Ports []int `json:"ports" validate:"required,gt=0,dive"`
 	// 安装实例的内存大小，可以不指定，会自动计算
-	InstMem                  uint64            `json:"inst_mem"`
+	InstMem uint64 `json:"inst_mem"`
+	// ExpectedSysTimeZone 期望的机器时区（形如 "+08:00"），安装前会与机器实际时区做校验，不一致则中止安装
+	// 允许为空或不传：为空/不传时走 CheckTimeZoneSetting（校验实例配置与系统时区是否一致），
+	// 传入实际值时走 CheckSysTimeZoneSetting（校验系统时区与期望值是否一致）
+	ExpectedSysTimeZone      string            `json:"expected_sys_time_zone"`
 	Host                     string            `json:"host" validate:"required,ip" `
 	SuperAccount             AdditionalAccount `json:"super_account"`
 	DBHAAccount              AdditionalAccount `json:"dbha_account"`
@@ -115,14 +119,15 @@ type RenderConfigs struct {
 
 // Mysqld mysqld config section
 type Mysqld struct {
-	Port                         string                  `json:"port"`
-	Datadir                      string                  `json:"datadir"`
-	Logdir                       string                  `json:"logdir"`
-	CharacterSetServer           string                  `json:"character_set_server"`
-	CollationServer              string                  `json:"collation_server"`
-	BindAddress                  string                  `json:"bind-address"`
-	ServerId                     uint64                  `json:"server_id"`
-	InnodbBufferPoolSize         string                  `json:"innodb_buffer_pool_size"`
+	Port                 string `json:"port"`
+	Datadir              string `json:"datadir"`
+	Logdir               string `json:"logdir"`
+	CharacterSetServer   string `json:"character_set_server"`
+	CollationServer      string `json:"collation_server"`
+	BindAddress          string `json:"bind-address"`
+	ServerId             uint64 `json:"server_id"`
+	InnodbBufferPoolSize string `json:"innodb_buffer_pool_size"`
+	// spider config
 	SpiderAutoIncrementModeValue SpiderAutoIncrModeValue `json:"spider_auto_increment_mode_value"`
 	// rocksdb
 	RocksdbBlockCacheSize string `json:"rocksdb_block_cache_size"`
@@ -144,10 +149,11 @@ func (i *InstallMySQLComp) Example() interface{} {
 				Pkg:    "mysql-5.6.24-linux-x86_64-tmysql-2.2.3-gcs.tar.gz",
 				PkgMd5: "a2dba04a7d96928473ab8ac5132edee1",
 			},
-			MysqlVersion: "",
-			CharSet:      "utf8",
-			Ports:        []int{20000, 20001},
-			InstMem:      0,
+			MysqlVersion:        "",
+			CharSet:             "utf8",
+			Ports:               []int{20000, 20001},
+			InstMem:             0,
+			ExpectedSysTimeZone: "+08:00",
 			SuperAccount: AdditionalAccount{
 				User:        "user",
 				Pwd:         "xxx",
@@ -318,7 +324,13 @@ func replenishTokudbCnf(cfg *util.CnfFile, size uint64, datadir string) (err err
 
 // PreCheck do precheck
 func (i *InstallMySQLComp) PreCheck() error {
-	i.Checkfunc = append(i.Checkfunc, i.CheckTimeZoneSetting)
+	// 时区校验：若显式传入了期望的机器时区，则校验系统时区与期望值是否一致；
+	// 若为空（未传），则校验实例 my.cnf 配置时区与系统时区是否一致
+	if i.Params.ExpectedSysTimeZone != "" {
+		i.Checkfunc = append(i.Checkfunc, i.CheckSysTimeZoneSetting)
+	} else {
+		i.Checkfunc = append(i.Checkfunc, i.CheckTimeZoneSetting)
+	}
 	i.Checkfunc = append(i.Checkfunc, i.precheckMysqlDir)
 	i.Checkfunc = append(i.Checkfunc, i.precheckMysqlProcess)
 	i.Checkfunc = append(i.Checkfunc, i.precheckMysqlPackageBitOS)
@@ -1157,6 +1169,25 @@ func (i *InstallMySQLComp) InitDefaultPrivAndSchemaWithResetMaster() (err error)
 		}
 	}
 	logger.Info("flush privileges successfully")
+	return nil
+}
+
+// 校验入参 ExpectedSysTimeZone（期望时区）与机器实际时区是否一致，不一致直接中止安装
+func (i *InstallMySQLComp) CheckSysTimeZoneSetting() (err error) {
+	execCmd := "date +%:z"
+	sysTimeZone, err := osutil.ExecShellCommand(false, execCmd)
+	if err != nil {
+		logger.Error("exec get date script failed %s", err.Error())
+		return err
+	}
+	// 校验机器实际时区与入参期望时区是否一致
+	if i.Params.ExpectedSysTimeZone != osutil.CleanExecShellOutput(sysTimeZone) {
+		return fmt.Errorf(
+			"the expected time zone is %s, but the operating system's time zone is %s; "+
+				"the two do not match. Please check",
+			i.Params.ExpectedSysTimeZone, sysTimeZone,
+		)
+	}
 	return nil
 }
 

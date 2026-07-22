@@ -9,13 +9,18 @@ specific language governing permissions and limitations under the License.
 """
 
 import logging.config
+from collections import defaultdict
 from dataclasses import asdict
-from typing import Dict, Optional
+from typing import Dict, List, Optional
 
 from django.utils.translation import gettext as _
 
 from backend.flow.engine.bamboo.scene.common.builder import Builder
 from backend.flow.plugins.components.collections.common.exec_clear_machine import ClearMachineScriptComponent
+from backend.flow.plugins.components.collections.common.reset_os_timezone import (
+    OsTimeZoneResetComponent,
+    OsTimeZoneResetKwargs,
+)
 from backend.flow.plugins.components.collections.mysql.mysql_db_meta import MySQLDBMetaComponent
 from backend.flow.utils.mysql.mysql_act_dataclass import DBMetaOPKwargs
 from backend.flow.utils.mysql.mysql_db_meta import MySQLDBMeta
@@ -38,12 +43,33 @@ class ClearMysqlMachineFlow(object):
         self.data = data
         self.data["clear_hosts"] = self.data.pop("hosts")
 
+    def _group_hosts_by_cloud(self) -> Dict[int, List[str]]:
+        """按 bk_cloud_id 对 clear_hosts 做分组聚合。
+
+        功能说明 / 怎么做：
+            - 遍历 ``self.data["clear_hosts"]``（每项形如 ``{"ip": xxx, "bk_cloud_id": xxx, ...}``），
+              以 ``bk_cloud_id`` 为 key 将同云区域的 ip 收敛到同一个列表；
+            - 供并行下发 OS 时区重置节点时按云区域拆分并发使用。
+
+        :return: dict，key 为 bk_cloud_id (int)，value 为该云区域下的 ip 列表 (List[str])
+
+        边界 / 异常：
+            - ``clear_hosts`` 为空 -> 返回空 dict，调用方需自行判空避免生成空的并行网关；
+            - 单个 host 缺失 ``ip`` 或 ``bk_cloud_id`` 字段 -> 直接抛 KeyError，属于上游数据错误，
+              不做静默兼容，快速失败。
+        """
+        cloud_to_ips: Dict[int, List[str]] = defaultdict(list)
+        for host in self.data["clear_hosts"]:
+            cloud_to_ips[host["bk_cloud_id"]].append(host["ip"])
+        return dict(cloud_to_ips)
+
     def run_flow(self):
         """
         定义清理机器的执行流程
         执行逻辑：
         1: 清理和机器相关的dbm元数据
         2: 清理机器
+        3: 按 bk_cloud_id 并行重置各云区域机器的 OS 时区
         """
         # 定义主流程
         main_pipeline = Builder(root_id=self.root_id, data=self.data)
@@ -59,5 +85,26 @@ class ClearMysqlMachineFlow(object):
             act_component_code=ClearMachineScriptComponent.code,
             kwargs={"exec_ips": self.data["clear_hosts"]},
         )
+
+        # 按 bk_cloud_id 拆分：每个云区域生成一个独立 act，最终通过并行网关一次性下发
+        # 目标时区值由组件侧 OsTimeZoneReset._resolve_time_zone 从环境变量
+        # ENABLE_DB_MACHINE_TIMEZONE_RESET 读取；env 为空时组件基类 _execute 会走空值短路
+        # （不下发 Job、直接短路成功），因此本 flow 不做上游预筛，保持"编排"与"值判断"职责分离
+        cloud_to_ips: Dict[int, List[str]] = self._group_hosts_by_cloud()
+        if cloud_to_ips:
+            timezone_acts: List[Dict] = [
+                {
+                    "act_name": _("主机时区重置调整(bk_cloud_id={})").format(bk_cloud_id),
+                    "act_component_code": OsTimeZoneResetComponent.code,
+                    "kwargs": asdict(
+                        OsTimeZoneResetKwargs(
+                            bk_cloud_id=bk_cloud_id,
+                            exec_ip=exec_ips,
+                        )
+                    ),
+                }
+                for bk_cloud_id, exec_ips in cloud_to_ips.items()
+            ]
+            main_pipeline.add_parallel_acts(acts_list=timezone_acts)
 
         main_pipeline.run_pipeline()

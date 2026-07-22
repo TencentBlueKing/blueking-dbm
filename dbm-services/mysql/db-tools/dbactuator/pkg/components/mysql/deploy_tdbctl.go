@@ -82,7 +82,6 @@ func (i *InstallMySQLComp) InitTdbctlDeploy() (err error) {
 	if err := i.replacecnf(); err != nil {
 		return err
 	}
-	i.Checkfunc = append(i.Checkfunc, i.CheckTimeZoneSetting)
 	i.Checkfunc = append(i.Checkfunc, i.precheckMysqlPackageBitOS)
 	i.Checkfunc = append(i.Checkfunc, i.Params.Medium.Check)
 	return nil

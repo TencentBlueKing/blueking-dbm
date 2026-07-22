@@ -309,3 +309,12 @@ ENABLE_DBHA_V2 = get_type_env(key="ENABLE_DBHA_V2", _type=bool, default=False)
 
 # dbha-v2 切换日志接口开关，默认关闭
 ENABLE_DBHA_V2_SWITCH_LOG = get_type_env(key="ENABLE_DBHA_V2_SWITCH_LOG", _type=bool, default=False)
+
+# DB 机器 OS 时区重置目标值：控制"机器退回资源池"等收尾流程中，OS 时区要被重置到哪个基线
+# 语义（字符串开关，二合一——是否开启 + 目标值）：
+#   - 空串 ""（默认）  -> 视为"未设置"，流程完全跳过时区重置段，不生成任何相关 act，保持存量行为
+#   - 非空 "±HH:00"    -> 视为"已开启"，流程按 bk_cloud_id 并行下发 OS 时区重置，目标即本值
+# 取值约束：非空时必须匹配 ``±HH:00`` 整点偏移格式，范围 ``-12:00 ~ +12:00``，
+#          否则会在下游 OsTimeZoneInitBase._resolve_offset 阶段抛异常（快速失败，不做静默兼容）。
+# 示例：ENABLE_DB_MACHINE_TIMEZONE_RESET="+08:00" -> 归还机器前统一还原为东八区
+ENABLE_DB_MACHINE_TIMEZONE_RESET = get_type_env(key="ENABLE_DB_MACHINE_TIMEZONE_RESET", _type=str, default="")

@@ -45,9 +45,14 @@ from backend.flow.plugins.components.collections.mysql.mysql_os_init import (
     MySQLOsInitComponent,
     SysInitComponent,
 )
+from backend.flow.plugins.components.collections.mysql.mysql_os_timezone_init import (
+    MySQLInitOsTimeZoneComponent,
+    MySQLInitOsTimeZoneKwargs,
+)
 from backend.flow.plugins.components.collections.mysql.trans_flies import TransFileComponent
 from backend.flow.plugins.components.collections.mysql.verify_checksum import VerifyChecksumComponent
 from backend.flow.utils.common_act_dataclass import InitCheckKwargs
+from backend.flow.utils.mysql.common.mysql_cluster_info import get_mysql_init_os_timezone_kwargs
 from backend.flow.utils.mysql.mysql_act_dataclass import (
     AuthorizeKwargs,
     CheckClientConnKwargs,
@@ -217,6 +222,7 @@ def install_mysql_in_cluster_sub_flow(
             init_check_ips=new_mysql_list,
             yum_install_perl_ips=new_mysql_list,
             bk_host_ids=bk_host_ids,
+            init_os_tz_kwargs=get_mysql_init_os_timezone_kwargs(cluster=cluster, exec_ip=new_mysql_list),
         )
     )
 
@@ -448,6 +454,7 @@ def init_machine_sub_flow(
     root_id: str,
     bk_cloud_id: int,
     sys_init_ips: list,
+    init_os_tz_kwargs: MySQLInitOsTimeZoneKwargs = None,
     init_check_ips: list = None,
     yum_install_perl_ips: list = None,
     bk_host_ids: List[int] = None,
@@ -508,14 +515,6 @@ def init_machine_sub_flow(
         except PackageNotExistException:
             logger.info(_("tlinux4依赖包不存在，跳过安装步骤"))
         sub_pipeline.add_parallel_acts(acts_list=act_list)
-        # sub_pipeline.add_parallel_acts(acts_list=act_list)
-        #     act_name=_("初始化机器"),
-        #     act_component_code=SysInitComponent.code,
-        #     kwargs={
-        #         "exec_ip": sys_init_ips,
-        #         "bk_cloud_id": bk_cloud_id,
-        #     },
-        # )
 
     # 安装插件
     if bk_host_ids:
@@ -533,6 +532,15 @@ def init_machine_sub_flow(
                 )
             ),
         )
+
+    # 初始化操作系统的时区
+    if init_os_tz_kwargs:
+        sub_pipeline.add_act(
+            act_name=_("初始化操作系统时区"),
+            act_component_code=MySQLInitOsTimeZoneComponent.code,
+            kwargs=asdict(init_os_tz_kwargs),
+        )
+
     return sub_pipeline.build_sub_process(sub_name=_("机器初始化"))
 
 

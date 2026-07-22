@@ -39,6 +39,7 @@ from backend.flow.plugins.components.collections.mysql.clone_proxy_user_in_clust
 from backend.flow.plugins.components.collections.mysql.exec_actuator_script import ExecuteDBActuatorScriptComponent
 from backend.flow.plugins.components.collections.mysql.mysql_db_meta import MySQLDBMetaComponent
 from backend.flow.plugins.components.collections.mysql.trans_flies import TransFileComponent
+from backend.flow.utils.mysql.common.mysql_cluster_info import get_mysql_init_os_timezone_kwargs
 from backend.flow.utils.mysql.mysql_act_dataclass import (
     CloneProxyClientInBackendKwargs,
     CloneProxyUsersKwargs,
@@ -208,6 +209,7 @@ class MySQLProxyClusterAddFlow(object):
 
             # 初始新机器
             # 对新加入的 proxy 机器做基础系统初始化：操作系统检查、环境准备、安装 perl 等依赖
+            # 同机部署的集群，理论上模块id、业务id、云区域一致，所以取第一个集群的模块id、业务id、云区域即可
             sub_pipeline.add_sub_pipeline(
                 sub_flow=init_machine_sub_flow(
                     uid=sub_flow_context["uid"],
@@ -217,6 +219,10 @@ class MySQLProxyClusterAddFlow(object):
                     init_check_ips=[i["ip"] for i in info["new_proxies"]],
                     yum_install_perl_ips=[i["ip"] for i in info["new_proxies"]],
                     bk_host_ids=[i["bk_host_id"] for i in info["new_proxies"]],
+                    init_os_tz_kwargs=get_mysql_init_os_timezone_kwargs(
+                        cluster=Cluster.objects.get(id=info["cluster_ids"][0]),
+                        exec_ip=[i["ip"] for i in info["new_proxies"]],
+                    ),
                 )
             )
 

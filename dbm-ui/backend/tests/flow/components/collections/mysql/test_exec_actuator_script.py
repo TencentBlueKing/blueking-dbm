@@ -41,8 +41,10 @@ class TestExecActuatorScriptComponent(MySQLSingleApplyComponentTest, TestCase):
         patchers = super(MySQLSingleApplyComponentTest, self).get_patchers()
         patchers.extend(
             [
+                # 相关调用被下沉到 mysql_bk_config 模块（get_mysql_config / get_system_time_zone_in_bk_config 等），
+                # 因此 patch 目标同步迁移到 mysql_bk_config.DBConfigApi，保持与生产代码结构一致。
                 Patcher(
-                    target="backend.flow.utils.mysql.mysql_act_playload.DBConfigApi",
+                    target="backend.flow.utils.mysql.mysql_bk_config.DBConfigApi",
                     new=DBConfigApiMock,
                 ),
                 Patcher(

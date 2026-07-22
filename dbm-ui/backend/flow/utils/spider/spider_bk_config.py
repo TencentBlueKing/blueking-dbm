@@ -14,7 +14,7 @@ from backend.components.dbconfig.constants import FormatType, LevelName
 from backend.db_meta.enums import ClusterType
 from backend.flow.consts import ConfigTypeEnum
 from backend.flow.engine.bamboo.scene.spider.common.exceptions import NormalSpiderFlowException
-from backend.flow.utils.mysql.mysql_act_playload import MysqlActPayload
+from backend.flow.utils.mysql.mysql_bk_config import get_mysql_config
 
 
 def get_spider_version_and_charset(bk_biz_id, db_module_id) -> Any:
@@ -52,7 +52,7 @@ def calc_spider_max_count(bk_biz_id, db_module_id, db_version, immute_domain: st
     @param db_version: spider版本
     @param immute_domain: 域名信息
     """
-    config = MysqlActPayload.get_mysql_config(
+    config = get_mysql_config(
         bk_biz_id=bk_biz_id,
         db_module_id=db_module_id,
         cluster_type=ClusterType.TenDBCluster,

@@ -224,7 +224,7 @@ class SysInit(BkJobService):
                     if "sys_max_open_file" in max_open_file_old:
                         max_open_file = max_open_file_old["sys_max_open_file"]
         except Exception:
-            pass
+            self.log_warning("get max_open_file_old failed in trans_data.system_info")
 
         nginx_addrs_init = """
         echo '{}' >> /home/mysql/common_config/nginx_proxy.list
