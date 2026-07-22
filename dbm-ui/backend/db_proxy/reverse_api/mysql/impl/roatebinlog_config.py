@@ -65,6 +65,7 @@ def rotatebinlog_config(bk_cloud_id: int, ip: str, port_list: Optional[List[int]
                         "conf_file": "binlog_rotate.yaml",
                         "conf_type": "backup",
                         "namespace": i.cluster_type,
+                        "level_info": {"module": str(i.db_module_id)},
                         "format": FormatType.MAP_LEVEL,
                     }
                 )["content"],
