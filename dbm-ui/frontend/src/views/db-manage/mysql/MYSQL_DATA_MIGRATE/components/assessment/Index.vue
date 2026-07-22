@@ -279,6 +279,7 @@
         factor: 1, // db克隆传1
         migrations: tableData.value.map((item) => ({
           clone_db_list: item.clone_db_list,
+          data_schema_grant: item.data_schema_grant,
           db_list: item.db_list as string[],
           ignore_db_list: item.ignore_db_list,
           source_cluster: item.source_cluster.id,
