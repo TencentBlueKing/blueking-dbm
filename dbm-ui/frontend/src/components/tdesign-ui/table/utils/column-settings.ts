@@ -18,7 +18,6 @@ export const getSettingsFields = (columns: BkUiTableCol[], settings?: BkUiSettin
   const columnFields = columns
     .filter((column) => column.colKey && !BUILT_IN_COLUMN_KEYS.includes(column.colKey))
     .map((column) => ({
-      defaultChecked: column.defaultChecked,
       field: column.colKey!,
       label:
         // @ts-expect-error titleText 是 TableColumn 组件为设置面板注入的扩展属性
@@ -34,9 +33,7 @@ export const getSettingsFields = (columns: BkUiTableCol[], settings?: BkUiSettin
     if (!field.field || BUILT_IN_COLUMN_KEYS.includes(field.field) || fieldsMap.has(field.field)) {
       return;
     }
-    const column = columnMap.get(field.field);
     fieldsMap.set(field.field, {
-      defaultChecked: field.defaultChecked ?? column?.defaultChecked,
       disabled: field.disabled ?? disabledSet.has(field.field),
       field: field.field,
       label: field.label,
@@ -63,12 +60,10 @@ export const resolveColumnSettings = (
           .concat(definitionOrder.filter((field) => !disabledSet.has(field) && !savedOrderSet.has(field)))
       : definitionOrder.filter((field) => !disabledSet.has(field));
   const order = disabledOrder.concat(normalOrder);
-  const checkedSet = new Set((settings?.checked ?? []).filter((field) => validFields.has(field)));
-  const configuredSet = new Set([...(settings?.checked ?? []), ...(settings?.order ?? [])]);
-  const isLegacySettings = Boolean(settings?.checked?.length && !settings.order?.length);
+  const checkedSet = new Set((settings?.checked ?? definitionOrder).filter((field) => validFields.has(field)));
 
   fields.forEach((field) => {
-    if (field.disabled || (!isLegacySettings && !configuredSet.has(field.field) && field.defaultChecked !== false)) {
+    if (field.disabled) {
       checkedSet.add(field.field);
     }
   });

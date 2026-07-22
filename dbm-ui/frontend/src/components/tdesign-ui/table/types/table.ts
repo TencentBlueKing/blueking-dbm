@@ -8,15 +8,9 @@ import type {
 } from 'tdesign-vue-next';
 import type { PropType, Ref } from 'vue';
 
-export type BkUiTableCol = {
-  /**
-   * 未进入用户配置的新列是否默认显示
-   */
-  defaultChecked?: boolean;
-} & TableCol;
+export type BkUiTableCol = TableCol;
 
 export interface BkUiSettingsField {
-  defaultChecked?: boolean;
   disabled?: boolean;
   field: string;
   label: string;
