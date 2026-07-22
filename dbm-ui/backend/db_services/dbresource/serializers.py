@@ -205,6 +205,8 @@ class ResourceListSerializer(serializers.Serializer):
 
     limit = serializers.IntegerField(help_text=_("单页数量"))
     offset = serializers.IntegerField(help_text=_("偏移量"))
+    order_by = serializers.CharField(help_text=_("排序字段"), required=False)
+    order = serializers.CharField(help_text=_("排序方向"), required=False)
 
     @staticmethod
     def format_fields(attrs, fields):
@@ -306,6 +308,10 @@ class ResourceListSerializer(serializers.Serializer):
 class ResourceListResponseSerializer(serializers.Serializer):
     class Meta:
         swagger_schema_fields = {"example": RESOURCE_LIST_DATA}
+
+
+class SameSvrOwnerIpsSerializer(serializers.Serializer):
+    bk_host_id = serializers.IntegerField(help_text=_("主机 ID"))
 
 
 class ListDBAHostsSerializer(PaginationSer):
