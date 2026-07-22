@@ -117,7 +117,7 @@
 <style lang="less">
   .cluster-detail-host-list-box {
     height: 100%;
-    padding: 18px 0;
+    padding: 16px 0;
 
     .action-box {
       display: flex;
