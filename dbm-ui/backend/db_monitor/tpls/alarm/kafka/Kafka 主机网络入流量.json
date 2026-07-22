@@ -259,9 +259,9 @@
     "edit_allowed": true,
     "metric_type": "time_series",
     "data_source_type": "监控采集指标",
-    "is_enabled": true
+    "is_enabled": false
   },
-  "is_enabled": true,
+  "is_enabled": false,
   "monitor_indicator": "AVG(网卡入流量)",
   "version": 23,
   "alert_source": "time_series",
