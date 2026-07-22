@@ -3,7 +3,6 @@
     <div class="action-box mb-16">
       <BkButton
         :disabled="selectedList.length < 1"
-        :loading="isRestartLoading"
         style="width: 105px"
         theme="primary"
         @click="handleBatchRestart">
@@ -70,7 +69,7 @@
           <BkButton
             text
             theme="primary"
-            @click="handleRestart([row])">
+            @click="handleSingleRestart(row)">
             {{ t('重启') }}
           </BkButton>
         </template>
@@ -79,14 +78,12 @@
   </div>
 </template>
 <script setup lang="tsx">
-  import { InfoBox } from 'bkui-vue';
   import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
 
   import MongodbInstanceModel from '@services/model/mongodb/mongodb-instance';
-  import { createTicket } from '@services/source/ticket';
 
-  import { useInstanceColumnFilter, useInstanceQuickSearch, useTicketMessage, useUrlSearch } from '@hooks';
+  import { useInstanceColumnFilter, useInstanceQuickSearch, useUrlSearch } from '@hooks';
 
   import { ClusterTypes, TicketTypes } from '@common/const';
 
@@ -108,7 +105,6 @@
   const route = useRoute();
   const router = useRouter();
   const { getSearchParams } = useUrlSearch();
-  const ticketMessage = useTicketMessage();
 
   const requestHandler = useClusterInstanceList(props.clusterType);
   const { handleSelection, selectedList } = useClusterTableSelect<MongodbInstanceModel>();
@@ -126,7 +122,6 @@
     });
 
   const instanceTableRef = useTemplateRef('instanceTable');
-  const isRestartLoading = ref(false);
 
   const fetchData = () => {
     instanceTableRef.value?.fetchData(quickSearchValue.value);
@@ -152,53 +147,25 @@
     fetchData();
   };
 
-  const handleRestart = (data: MongodbInstanceModel[]) => {
-    isRestartLoading.value = true;
-    InfoBox({
-      cancelText: t('取消'),
-      confirmText: t('确认'),
-      contentAlign: 'center',
-      footerAlign: 'center',
-      headerAlign: 'center',
-      infoType: 'warning',
-      onCancel: () => {
-        isRestartLoading.value = false;
-      },
-      onConfirm: () => {
-        return createTicket({
-          bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
-          details: {
-            infos: data.map((item) => ({
-              bk_host_id: item.bk_host_id,
-              cluster_id: item.cluster_id,
-              instance_id: item.id,
-              port: item.port,
-              role: item.role,
-            })),
-          },
-          ticket_type: TicketTypes.MONGODB_INSTANCE_RELOAD,
-        })
-          .then((res) => {
-            ticketMessage(res.id);
-            fetchData();
-          })
-          .finally(() => {
-            isRestartLoading.value = false;
-          });
-      },
-      subTitle: () => (
-        <div>
-          {data.map((item) => (
-            <div>{`${item.ip}:${item.port}`}</div>
-          ))}
-        </div>
-      ),
-      title: t('确认重启实例？'),
+  // 跳转到工具箱滚动重启页面，携带已选实例
+  const navigateToToolbox = (instances: MongodbInstanceModel[]) => {
+    if (instances.length === 0) {
+      return;
+    }
+
+    const routeInfo = router.resolve({
+      name: TicketTypes.MONGODB_INSTANCE_RELOAD,
+      query: { instances: instances.map((item) => item.instance_address).join(',') },
     });
+    window.open(routeInfo.href, '_blank');
   };
 
   const handleBatchRestart = () => {
-    handleRestart(selectedList.value);
+    navigateToToolbox(selectedList.value);
+  };
+
+  const handleSingleRestart = (data: MongodbInstanceModel) => {
+    navigateToToolbox([data]);
   };
 
   onMounted(() => {
