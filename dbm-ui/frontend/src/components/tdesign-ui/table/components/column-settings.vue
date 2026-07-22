@@ -41,44 +41,49 @@
               </Input>
             </div>
             <div class="settings-wrapper-content">
-              <CheckboxGroup
+              <div
                 v-if="activeTab === 0"
-                class="content-check-list"
-                :model-value="draftChecked"
-                @change="handleCheckChange">
+                class="content-check-list">
                 <div
                   v-if="hasCheckAll"
                   v-show="!keyword?.length"
                   class="content-check-all">
                   <Checkbox
-                    check-all
-                    value="all" />
+                    :checked="isAllChecked"
+                    :indeterminate="isIndeterminate"
+                    @change="handleCheckAllChange" />
                   <span>{{ t('全选') }}</span>
                 </div>
-                <Vuedraggable
-                  v-model="draftColumns"
-                  :disabled="Boolean(keyword)"
-                  handle=".column-drag-handle"
-                  item-key="field"
-                  :move="handleMove">
-                  <template #item="{ element: column }">
-                    <div
-                      v-show="isColumnMatched(column)"
-                      class="content-check-item"
-                      :class="{ 'is-disabled': column.disabled }">
-                      <Checkbox
-                        :disabled="!!column.disabled"
-                        :value="column.field" />
-                      <span
-                        class="column-drag-handle"
-                        :class="{ 'is-disabled': column.disabled || keyword }">
-                        <DbIcon type="drag" />
-                      </span>
-                      <span>{{ typeof column.label === 'string' ? column.label : column.field }}</span>
-                    </div>
-                  </template>
-                </Vuedraggable>
-              </CheckboxGroup>
+                <CheckboxGroup
+                  class="content-check-group"
+                  :model-value="draftChecked"
+                  @change="handleCheckChange">
+                  <Vuedraggable
+                    v-model="draftColumns"
+                    :animation="150"
+                    :disabled="Boolean(keyword)"
+                    handle=".column-drag-handle"
+                    item-key="field"
+                    :move="handleMove">
+                    <template #item="{ element: column }">
+                      <div
+                        v-show="isColumnMatched(column)"
+                        class="content-check-item"
+                        :class="{ 'is-disabled': column.disabled }">
+                        <Checkbox
+                          :disabled="!!column.disabled"
+                          :value="column.field" />
+                        <span>{{ typeof column.label === 'string' ? column.label : column.field }}</span>
+                        <span
+                          class="column-drag-handle"
+                          :class="{ 'is-disabled': column.disabled || keyword }">
+                          <DbIcon type="drag" />
+                        </span>
+                      </div>
+                    </template>
+                  </Vuedraggable>
+                </CheckboxGroup>
+              </div>
               <div
                 v-else
                 class="appearance-settings">
@@ -120,7 +125,7 @@
   import { SearchIcon, SettingIcon } from 'tdesign-icons-vue-next';
   import type { CheckboxGroupValue, TableProps } from 'tdesign-vue-next';
   import { Checkbox, CheckboxGroup, Input, Popup, RadioButton, RadioGroup } from 'tdesign-vue-next';
-  import { ref, shallowRef } from 'vue';
+  import { computed, ref, shallowRef } from 'vue';
   import Vuedraggable from 'vuedraggable';
 
   import { t } from '../lang/lang';
@@ -160,7 +165,7 @@
     columns: () => [],
     displayColumns: () => [],
     fontSize: 'medium',
-    hasCheckAll: false,
+    hasCheckAll: true,
     onColumnControllerVisibleChange: undefined,
     onConfirm: undefined,
     order: () => [],
@@ -174,6 +179,22 @@
   const draftChecked = ref<string[]>([]);
   const draftFontSize = shallowRef<FontSizeEnum>('medium');
   const draftRowSize = shallowRef<RowSizeEnum>('medium');
+
+  const selectableColumns = computed(() => draftColumns.value.filter((column) => !column.disabled));
+  const isAllChecked = computed(
+    () =>
+      selectableColumns.value.length > 0 &&
+      selectableColumns.value.every((column) => draftChecked.value.includes(column.field)),
+  );
+  const isIndeterminate = computed(
+    () => !isAllChecked.value && selectableColumns.value.some((column) => draftChecked.value.includes(column.field)),
+  );
+
+  const handleCheckAllChange = (checked: boolean) => {
+    draftChecked.value = draftColumns.value
+      .filter((column) => checked || column.disabled)
+      .map((column) => column.field);
+  };
 
   const handleCheckChange = (value: CheckboxGroupValue) => {
     draftChecked.value = draftColumns.value
@@ -288,6 +309,11 @@
           flex-direction: column;
           gap: 0;
 
+          .content-check-group {
+            display: flex;
+            flex-direction: column;
+          }
+
           .content-check-item,
           .content-check-all {
             display: flex;
@@ -299,13 +325,10 @@
           .content-check-item {
             width: 100%;
 
-            .t-checkbox__label {
-              margin-left: 0;
-            }
-
             .column-drag-handle {
               display: inline-flex;
-              padding: 8px;
+              padding: 8px 0 8px 16px;
+              margin-left: auto;
               color: #979ba5;
               cursor: move;
 
