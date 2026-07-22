@@ -19,7 +19,7 @@
       <BkInput
         v-model.tirm="serachKey"
         clearable
-        :placeholder="t('请输入')"
+        :placeholder="t('请输入云区域ID/名称')"
         type="search" />
     </div>
     <EmptyStatus
@@ -66,7 +66,11 @@
     if (serachKey.value === '') {
       return availableClouds.value || [];
     }
-    return _.filter(availableClouds.value, (cloudItem) => cloudItem.bk_cloud_name.includes(serachKey.value));
+    return _.filter(
+      availableClouds.value,
+      (cloudItem) =>
+        `${cloudItem.bk_cloud_id}`.includes(serachKey.value) || cloudItem.bk_cloud_name.includes(serachKey.value),
+    );
   });
 
   const {
