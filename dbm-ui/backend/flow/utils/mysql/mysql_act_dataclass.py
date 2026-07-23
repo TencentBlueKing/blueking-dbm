@@ -489,6 +489,7 @@ class CheckClientConnKwargs:
     @attributes check_instances: 检测实例
     @attributes is_filter_sleep: 是否过滤sleep状态的线程， 默认否
     @attributes is_proxy: 检测实例是否都是mysql-proxy，默认否
+    @attributes long_process_time: 超过多少秒的活跃连接视为长连接，默认-1表示不按时间过滤
     @attributes filter_hosts: 需要过滤的主机列表，默认空列表
     """
 

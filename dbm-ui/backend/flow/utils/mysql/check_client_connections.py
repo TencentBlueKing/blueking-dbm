@@ -29,6 +29,8 @@ def check_client_connection(
     @param instances: 需要判断的实例列表，每个元素的str:{ip:port}
     @param is_filter_sleep: 本次检测是否过滤sleep状态的连接，默认不过滤
     @param is_proxy: 本地检测的节点是否是mysql_proxy节点， 默认不是
+    @param filter_hosts: 需要忽略的来源主机列表，支持 ip 或 ip:port
+    @param long_query_time: 超过多少秒的连接视为长连接，默认-1表示不按时间过滤
     """
     if is_proxy:
         # proxy 查询
@@ -64,8 +66,10 @@ def check_client_connection(
     else:
         check_sql = f"select * from information_schema.processlist where User not in ({users})"
     if filter_hosts:
-        host_values = ",".join([f"'{str(x)}'" for x in filter_hosts])
-        check_sql += f" and Host not in ({host_values})"
+        # processlist 的 Host 为 ip:port，调用方通常只传 IP；统一按 IP 过滤
+        host_ips = [str(x).split(":")[0] for x in filter_hosts]
+        host_values = ",".join([f"'{ip}'" for ip in host_ips])
+        check_sql += f" and SUBSTRING_INDEX(Host, ':', 1) not in ({host_values})"
     if long_query_time > 0:
         check_sql += f" and Time > {long_query_time}"
     res = DRSApi.rpc(

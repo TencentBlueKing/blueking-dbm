@@ -120,7 +120,8 @@ class CheckClientConnService(BaseService):
             is_filter_sleep=kwargs.get("is_filter_sleep", False),
             is_proxy=kwargs.get("is_proxy", False),
             filter_hosts=kwargs.get("filter_hosts", []),
-            long_query_time=kwargs.get("long_query_time", -1),
+            # CheckClientConnKwargs 字段名为 long_process_time，需与 dataclass 对齐
+            long_query_time=kwargs.get("long_process_time", -1),
         )
         process_infos = []
         for res in results:
