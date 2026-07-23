@@ -92,10 +92,11 @@
 
 <script setup lang="tsx">
   import { InfoBox } from 'bkui-vue';
+  import type { Dayjs } from 'dayjs';
   import { useI18n } from 'vue-i18n';
   import { useRouter } from 'vue-router';
 
-  import DatePicker, { DateRange } from '@blueking/date-picker';
+  import DatePicker, { DateRange, type DateValue } from '@blueking/date-picker';
 
   import RedisDSTHistoryJobModel, { CopyModes, TransmissionTypes } from '@services/model/redis/redis-dst-history-job';
   import { getRedisDTSHistoryJobs, setJobDisconnectSync } from '@services/source/redisDts';
@@ -107,8 +108,6 @@
   import useResetTableHeight from '@views/db-manage/redis/common/hooks/useResetTableHeight';
 
   import { utcDisplayTime } from '@utils';
-
-  import '@blueking/date-picker/dist/vue3-full.css';
 
   import DataCopyTransferDetail from './components/DataCopyTransferDetail.vue';
   import ExecuteStatus from './components/ExecuteStatus.vue';
@@ -228,8 +227,8 @@
       <div style="color:#3A84FF;cursor:pointer;'">
         {showRecopy ? (
           <bk-button
-            theme='primary'
             text
+            theme='primary'
             onClick={() => handleClickRecopy(data)}>
             {t('重新复制')}
           </bk-button>
@@ -237,15 +236,15 @@
           <>
             <bk-button
               style={{ color: showDisconnect ? '#3A84FF' : '#C4C6CC' }}
-              theme='primary'
               text
+              theme='primary'
               onClick={() => handleClickDisconnectSync(data, index, showDisconnect)}>
               {t('断开同步')}
             </bk-button>
             <bk-button
               style={{ color: showDataCheckAndRepair ? '#3A84FF' : '#C4C6CC', marginLeft: '10px' }}
-              theme='primary'
               text
+              theme='primary'
               onClick={() => handleClickDataCheckAndRepair(data, showDataCheckAndRepair)}>
               {t('数据校验与修复')}
             </bk-button>
@@ -324,13 +323,13 @@
       render: ({ data }: { data: RedisDSTHistoryJobModel }) =>
         data.bill_id ? (
           <router-link
+            target='_blank'
             to={{
               name: 'bizTicketManage',
               params: {
                 ticketId: data.bill_id,
               },
-            }}
-            target='_blank'>
+            }}>
             {data.bill_id}
           </router-link>
         ) : (
@@ -437,8 +436,16 @@
 
   fetchHostNodes();
 
-  const handleValueChange = (value: number[], info: { formatText: string }[]) => {
-    const [{ formatText: startDate }, { formatText: endDate }] = info;
+  const handleValueChange = (
+    _value: DateValue | undefined,
+    info: { dayjs: Dayjs | null; formatText: string | null }[],
+  ) => {
+    const [startInfo, endInfo] = info;
+    if (!startInfo?.formatText || !endInfo?.formatText) {
+      return;
+    }
+    const { formatText: startDate } = startInfo;
+    const { formatText: endDate } = endInfo;
     dateTimeRangeUTC.value = generateUTCDateTime([startDate, endDate]);
     nextTick(() => {
       fetchHostNodes();
