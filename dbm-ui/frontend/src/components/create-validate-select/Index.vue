@@ -192,6 +192,7 @@
       }
     },
     {
+      deep: true,
       immediate: true,
     },
   );
