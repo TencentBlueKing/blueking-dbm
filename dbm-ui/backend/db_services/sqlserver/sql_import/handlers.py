@@ -45,7 +45,9 @@ class SQLHandler(object):
         """
         # 逻辑同mysql的sql文件上传，直接复用即可
         upload_sql_path = BKREPO_SQLSERVER_SQLFILE_PATH.format(biz=bk_biz_id)
-        sql_file_info_list = MySQLSQLHandler.upload_sql_file(upload_sql_path, sql_content, sql_files)
+        sql_file_info_list = MySQLSQLHandler.upload_sql_file(
+            upload_sql_path, sql_content, sql_files, encoding="utf8-bom"
+        )
         for sql_file_info in sql_file_info_list:
             sql_file_info["raw_file_name"] = sql_file_info["sql_path"].split("/")[-1]
         return sql_file_info_list
