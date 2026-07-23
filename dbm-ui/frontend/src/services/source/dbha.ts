@@ -45,6 +45,7 @@ export function getEventSwitchList(params: Record<string, any>, payload = {} as 
       switch_finished_time: string;
       switch_result: string;
       switch_start_time: string;
+      switch_version?: string;
       uid: number;
     }[]
   >(`${path}/ls/`, params, payload);
