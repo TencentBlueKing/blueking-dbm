@@ -10044,7 +10044,9 @@ sub main {
          }
       }
 
-=pod
+      # Disabled binlog_format cross-check; do not use =pod/=cut here because
+      # read_para_after(MAGIC_create_replicate) scans from the first =pod in file.
+      if (0) {
       # https://bugs.launchpad.net/percona-toolkit/+bug/938068
       if ( $o->get('check-binlog-format') ) {
          my $master_binlog = 'STATEMENT';
@@ -10076,7 +10078,7 @@ sub main {
          }
          die $err if $err;
       }
-=cut
+      }
 
       if ( $cluster_name_for{$master_cxn} ) {
          if ( !@$slaves ) {

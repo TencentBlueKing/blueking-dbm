@@ -19,6 +19,8 @@ var generalForceSwitchStrategies []switchStrategy
 var generalDefaultSwitchStrategies []switchStrategy
 var demandForceSwitchStrategies []switchStrategy
 var demandDefaultSwitchStrategies []switchStrategy
+var dtsForceSwitchStrategies []switchStrategy
+var dtsDefaultSwitchStrategies []switchStrategy
 
 var commonDefaultKVStrategies []kvStrategy
 var commonForceKVStrategies []kvStrategy
@@ -26,6 +28,8 @@ var generalDefaultKVStrategies []kvStrategy
 var generalForceKVStrategies []kvStrategy
 var demandDefaultKVStrategies []kvStrategy
 var demandForceKVStrategies []kvStrategy
+var dtsDefaultKVStrategies []kvStrategy
+var dtsForceKVStrategies []kvStrategy
 
 func init() {
 	PtExitFlagMap = map[int]PtExitFlag{
@@ -49,7 +53,7 @@ func init() {
 		{Name: "quiet", Value: false, HasOpposite: false},
 		{Name: "binary-index", Value: true, HasOpposite: false},
 		{Name: "version-check", Value: false, HasOpposite: true},
-		{Name: "create-replicate-table", Value: false, HasOpposite: true},
+		{Name: "create-replicate-table", Value: true, HasOpposite: true},
 	}
 	commonDefaultSwitchStrategies = []switchStrategy{}
 	commonForceKVStrategies = []kvStrategy{
@@ -103,6 +107,8 @@ func init() {
 	*/
 	generalForceSwitchStrategies = []switchStrategy{
 		{Name: "resume", Value: true, HasOpposite: false},
+		// no-replicate-check：关闭 pt 每表跑完后在 slave replicate 表上比 this_crc/master_crc（查数据不一致）。
+		// 不是 SHOW SLAVE STATUS / IO·SQL 线程监控；与 dbactuator checkSlaveStatus 不是一回事。
 		{Name: "replicate-check", Value: false, HasOpposite: true},
 		// {Name: "check-slave-tables", Value: false, HasOpposite: true},
 	}
@@ -131,7 +137,8 @@ func init() {
 	*/
 	demandForceSwitchStrategies = []switchStrategy{
 		{Name: "resume", Value: false, HasOpposite: false},
-		{Name: "replicate-check", Value: true, HasOpposite: true},
+		// no-replicate-check：同上，不做 per-table crc diff；不能替代复制线程健康检查。
+		{Name: "replicate-check", Value: false, HasOpposite: true},
 	}
 	demandDefaultSwitchStrategies = []switchStrategy{}
 	demandForceKVStrategies = []kvStrategy{
@@ -152,9 +159,39 @@ func init() {
 			Enable: true,
 		},
 		{
+			// max-lag：pt 读 Seconds_Behind_Master，超过阈值则暂停 checksum 等待追上。
+			// slave 停/copy 线程挂时 lag 可能为 NULL，pt 会打印 "Replica is stopped. Waiting." 一直等，不会 fail。
+			// 不是 IO/SQL Running 监控；复制断了要快停靠 dbactuator DoChecksumV2 的 checkSlaveStatus。
 			Name: "max-lag",
 			Value: func(checker *Checker) interface{} {
 				return 10
+			},
+			Enable: true,
+		},
+	}
+	/*
+		dts 模式校验
+	*/
+	dtsForceSwitchStrategies = []switchStrategy{
+		{Name: "resume", Value: false, HasOpposite: false},
+		// no-replicate-check：同上，不做 per-table crc diff；不能替代复制线程健康检查。
+		{Name: "replicate-check", Value: false, HasOpposite: true},
+	}
+	dtsDefaultSwitchStrategies = []switchStrategy{}
+	dtsForceKVStrategies = []kvStrategy{
+		{
+			Name: "recursion-method",
+			Value: func(checker *Checker) interface{} {
+				return "none"
+			},
+			Enable: true,
+		},
+	}
+	dtsDefaultKVStrategies = []kvStrategy{
+		{
+			Name: "run-time",
+			Value: func(checker *Checker) interface{} {
+				return time.Hour * 48
 			},
 			Enable: true,
 		},

@@ -93,7 +93,7 @@ func (c *Checker) updateHeartbeat() error {
 	binlogSQL := "SET SESSION binlog_format='STATEMENT'"
 	insertSQL := fmt.Sprintf(
 		`REPLACE INTO %s(master_server_id, slave_server_id, master_time, slave_time, delay_sec) 
-VALUES('%s', @@server_id, now(), sysdate(), timestamp(SECOND, now(),sysdate()))`,
+VALUES('%s', @@server_id, now(), sysdate(), timestampdiff(SECOND, now(),sysdate()))`,
 		c.heartBeatTable, masterServerId,
 	)
 

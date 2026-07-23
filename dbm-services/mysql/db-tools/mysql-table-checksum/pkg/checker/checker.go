@@ -47,11 +47,6 @@ func NewChecker(mode config.CheckMode) (*Checker, error) {
 		return nil, err
 	}
 
-	err := checker.prepareReplicateTable()
-	if err != nil {
-		return nil, err
-	}
-
 	checker.applyForceSwitchStrategy(commonForceSwitchStrategies)
 	checker.applyDefaultSwitchStrategy(commonDefaultSwitchStrategies)
 	checker.applyForceKVStrategy(commonForceKVStrategies)
@@ -62,11 +57,8 @@ func NewChecker(mode config.CheckMode) (*Checker, error) {
 		checker.applyDefaultSwitchStrategy(generalDefaultSwitchStrategies)
 		checker.applyForceKVStrategy(generalForceKVStrategies)
 		checker.applyDefaultKVStrategy(generalDefaultKVStrategies)
-
-		//if err := checker.validateHistoryTable(); err != nil {
-		//	return nil, err
-		//}
-	} else {
+	} else if checker.Mode == config.DemandMode {
+		// demand 侧 pt 参数见 init.go demandForce* / demandDefault*（replicate-check、max-lag 等）
 		checker.applyForceSwitchStrategy(demandForceSwitchStrategies)
 		checker.applyDefaultSwitchStrategy(demandDefaultSwitchStrategies)
 		checker.applyForceKVStrategy(demandForceKVStrategies)
@@ -79,6 +71,11 @@ func NewChecker(mode config.CheckMode) (*Checker, error) {
 		if err := checker.prepareDsnsTable(); err != nil {
 			return nil, err
 		}
+	} else {
+		checker.applyForceSwitchStrategy(dtsForceSwitchStrategies)
+		checker.applyDefaultSwitchStrategy(dtsDefaultSwitchStrategies)
+		checker.applyForceKVStrategy(dtsForceKVStrategies)
+		checker.applyDefaultKVStrategy(dtsDefaultKVStrategies)
 	}
 
 	checker.buildCommandArgs()
@@ -158,40 +155,40 @@ func (r *Checker) validateSlaves() error {
 	return nil
 }
 
-func (r *Checker) prepareReplicateTable() error {
-	if !r.Config.Enable {
-		slog.Info("checksum disabled, skip create replicate table")
-		return nil
-	}
-
-	ctSql := fmt.Sprintf(
-		`CREATE TABLE IF NOT EXISTS %s.%s (
-    master_ip      CHAR(32)     default '0.0.0.0',
-    master_port    INT          default 3306,
-    db             CHAR(64)     NOT NULL,
-    tbl            CHAR(64)     NOT NULL,
-    chunk          INT          NOT NULL,
-    chunk_time     FLOAT            NULL,
-    chunk_index    VARCHAR(200)     NULL,
-    lower_boundary BLOB             NULL,
-    upper_boundary BLOB             NULL,
-    this_crc       CHAR(40)     NOT NULL,
-    this_cnt       INT          NOT NULL,
-    master_crc     CHAR(40)         NULL,
-    master_cnt     INT              NULL,
-    ts             TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    PRIMARY KEY (master_ip, master_port, db, tbl, chunk),
-    INDEX db_tbl_chunk (db, tbl, chunk),
-    INDEX ts_db_tbl (ts, db, tbl)
- ) ENGINE=InnoDB DEFAULT CHARSET=utf8;`, r.resultDB, r.resultTbl,
-	)
-	_, err := r.db.Exec(ctSql)
-	if err != nil {
-		slog.Error("prepare replicate table error", slog.String("error", err.Error()))
-		return err
-	}
-	return nil
-}
+//func (r *Checker) prepareReplicateTable(mode config.CheckMode) error {
+//	if mode == config.GeneralMode && !r.Config.Enable {
+//		slog.Info("checksum disabled, skip create replicate table")
+//		return nil
+//	}
+//
+//	ctSql := fmt.Sprintf(
+//		`CREATE TABLE IF NOT EXISTS %s.%s (
+//    master_ip      CHAR(32)     default '0.0.0.0',
+//    master_port    INT          default 3306,
+//    db             CHAR(64)     NOT NULL,
+//    tbl            CHAR(64)     NOT NULL,
+//    chunk          INT          NOT NULL,
+//    chunk_time     FLOAT            NULL,
+//    chunk_index    VARCHAR(200)     NULL,
+//    lower_boundary BLOB             NULL,
+//    upper_boundary BLOB             NULL,
+//    this_crc       CHAR(40)     NOT NULL,
+//    this_cnt       INT          NOT NULL,
+//    master_crc     CHAR(40)         NULL,
+//    master_cnt     INT              NULL,
+//    ts             TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+//    PRIMARY KEY (master_ip, master_port, db, tbl, chunk),
+//    INDEX db_tbl_chunk (db, tbl, chunk),
+//    INDEX ts_db_tbl (ts, db, tbl)
+// ) ENGINE=InnoDB DEFAULT CHARSET=utf8;`, r.resultDB, r.resultTbl,
+//	)
+//	_, err := r.db.Exec(ctSql)
+//	if err != nil {
+//		slog.Error("prepare replicate table error", slog.String("error", err.Error()))
+//		return err
+//	}
+//	return nil
+//}
 
 func (r *Checker) prepareDsnsTable() error {
 	_, err := r.db.Exec(fmt.Sprintf(`DROP TABLE IF EXISTS %s.dsns`, r.resultDB))
@@ -225,143 +222,3 @@ func (r *Checker) prepareDsnsTable() error {
 	}
 	return nil
 }
-
-//func (r *Checker) validateHistoryTable() error {
-//	r.hasHistoryTable = false
-//
-//	var _r interface{}
-//	err := r.db.Get(
-//		&_r,
-//		`SELECT 1 FROM INFORMATION_SCHEMA.TABLES `+
-//			`WHERE TABLE_SCHEMA = ? AND TABLE_NAME = ? AND TABLE_TYPE='BASE TABLE'`,
-//		r.resultDB,
-//		r.resultHistoryTable,
-//	)
-//	if err != nil {
-//		if errors.Is(err, sql.ErrNoRows) {
-//			slog.Info("history table not found")
-//			if r.Config.InnerRole == config.RoleSlave {
-//				slog.Info("no need create history table", slog.String("inner role", string(r.Config.InnerRole)))
-//				return nil
-//			} else {
-//				slog.Info("create history table", slog.String("inner role", string(r.Config.InnerRole)))
-//
-//				err := r.db.Get(
-//					&_r,
-//					`SELECT 1 FROM INFORMATION_SCHEMA.TABLES `+
-//						`WHERE TABLE_SCHEMA = ? AND TABLE_NAME = ? AND TABLE_TYPE='BASE TABLE'`,
-//					r.resultDB,
-//					r.resultTbl,
-//				)
-//
-//				if err != nil {
-//					if errors.Is(err, sql.ErrNoRows) {
-//						slog.Info("checksum result table not found")
-//						return nil
-//					} else {
-//						slog.Error("try to find checksum result table failed", slog.String("error", err.Error()))
-//						return err
-//					}
-//				}
-//
-//				// 为了兼容 flashback, 这里拼上库前缀
-//				_, err = r.db.Exec(
-//					fmt.Sprintf(
-//						`CREATE TABLE IF NOT EXISTS %s.%s LIKE %s.%s`,
-//						r.resultDB,
-//						r.resultHistoryTable,
-//						r.resultDB,
-//						r.resultTbl,
-//					),
-//				)
-//				if err != nil {
-//					slog.Error("create history table", slog.String("error", err.Error()))
-//					return err
-//				}
-//
-//				// 为了兼容 flashback, 这里拼上库前缀
-//				_, err = r.db.Exec(
-//					fmt.Sprintf(
-//						`ALTER TABLE %s.%s ADD reported int default 0, `+
-//							`ADD INDEX idx_reported(reported), `+
-//							`DROP PRIMARY KEY, `+
-//							`MODIFY ts timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP, `+
-//							`ADD PRIMARY KEY(master_ip, master_port, db, tbl, chunk, ts)`,
-//						r.resultDB,
-//						r.resultHistoryTable,
-//					),
-//				)
-//				if err != nil {
-//					slog.Error("add column and index to history table", slog.String("error", err.Error()))
-//					return err
-//				}
-//			}
-//		} else {
-//			slog.Error("check history table exists", slog.String("error", err.Error()))
-//			return err
-//		}
-//	}
-//	r.hasHistoryTable = true
-//
-//	/*
-//		1. 对比结果表和历史表结构, 历史表应该多出一个 reported int default 0
-//		2. 历史表主键检查
-//	*/
-//	var diffColumn struct {
-//		TableName       string `db:"TABLE_NAME"`
-//		ColumnName      string `db:"COLUMN_NAME"`
-//		OrdinalPosition int    `db:"ORDINAL_POSITION"`
-//		DataType        string `db:"DATA_TYPE"`
-//		ColumnType      string `db:"COLUMN_TYPE"`
-//		RowCount        int    `db:"ROW_COUNT"`
-//	}
-//	err = r.db.Get(
-//		&diffColumn,
-//		fmt.Sprintf(
-//			`SELECT `+
-//				`TABLE_NAME, COLUMN_NAME, ORDINAL_POSITION, DATA_TYPE, COLUMN_TYPE, COUNT(1) as ROW_COUNT `+
-//				`FROM INFORMATION_SCHEMA.COLUMNS WHERE `+
-//				`TABLE_SCHEMA = '%s' AND TABLE_NAME in ('%s', '%s') `+
-//				`GROUP BY TABLE_NAME, COLUMN_NAME, ORDINAL_POSITION, DATA_TYPE, COLUMN_TYPE HAVING ROW_COUNT <> 2`,
-//			r.resultDB,
-//			r.resultTbl,
-//			r.resultHistoryTable,
-//		),
-//	)
-//	if err != nil {
-//		slog.Error("compare result table column", slog.String("error", err.Error()))
-//		return err
-//	}
-//
-//	if diffColumn.TableName != r.resultHistoryTable ||
-//		diffColumn.ColumnName != "reported" ||
-//		diffColumn.DataType != "int" {
-//		err = fmt.Errorf("%s need column as 'reported int default 0'", r.resultHistoryTable)
-//		slog.Error("check history table reported column", slog.String("error", err.Error()))
-//		return nil
-//	}
-//
-//	var pkColumns []string
-//	err = r.db.Select(
-//		&pkColumns,
-//		fmt.Sprintf(
-//			`SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.STATISTICS `+
-//				`WHERE TABLE_SCHEMA = '%s' AND TABLE_NAME = '%s' AND INDEX_NAME = 'PRIMARY' `+
-//				`ORDER BY SEQ_IN_INDEX`,
-//			r.resultDB,
-//			r.resultHistoryTable,
-//		),
-//	)
-//	if err != nil {
-//		slog.Error("check history table primary key", slog.String("error", err.Error()))
-//		return err
-//	}
-//
-//	if slices.Compare(pkColumns, []string{"master_ip", "master_port", "db", "tbl", "chunk", "ts"}) != 0 {
-//		err = fmt.Errorf("history table must has primary as (master_ip, master_port, db, tbl, chunk, ts])")
-//		slog.Error("check history table primary key", slog.String("error", err.Error()))
-//		return err
-//	}
-//
-//	return nil
-//}

@@ -1,14 +1,12 @@
 package checker
 
 import (
-	"bufio"
 	"bytes"
 	"context"
 
 	"errors"
 	"fmt"
 	"log/slog"
-	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
@@ -70,8 +68,7 @@ func (r *Checker) Run() error {
 			return err
 		}
 		return nil
-	case config.DemandMode:
-
+	case config.DemandMode, config.DtsMode:
 		err := r.runDemand()
 		if err != nil {
 			return err
@@ -111,7 +108,7 @@ func (r *Checker) preRunGeneral() error {
 	}
 	_, err = r.conn.ExecContext(
 		context.Background(),
-		fmt.Sprintf(`DELETE FROM %s WHERE ts < NOW() - INTERVAL 10 DAY`, r.resultHistoryTable),
+		fmt.Sprintf("DELETE FROM `%s`.`%s` WHERE ts < NOW() - INTERVAL 10 DAY", r.resultDB, r.resultHistoryTable),
 	)
 	if err != nil {
 		slog.Error("run checksum", slog.String("error", err.Error()))
@@ -352,102 +349,82 @@ func (r *Checker) run() (output *Output, err error, pterr error) {
 	slog.Info("sleep 2s")
 	time.Sleep(2 * time.Second) // 故意休眠 2s, 让时间往前走一下, mysql 时间戳精度不够, 这里太快了会有问题
 	err = command.Run()
-	if err != nil {
-		var exitError *exec.ExitError
-		if !errors.As(err, &exitError) {
-			slog.Error("run pt-table-checksum got unexpected error", slog.String("error", err.Error()))
-			return nil, err, nil
-		}
-	}
-
-	var ptErr *exec.ExitError
-	_ = errors.As(err, &ptErr)
-	if ptErr != nil {
-		slog.Info("run pt-table-checksum success", slog.String("pt err", ptErr.String()))
-	} else {
-		slog.Info("run pt-table-checksum success without any err")
-	}
 
 	/*
-		这一段是最难受的逻辑, 根据 pt-table-checksum 的文档
+			pt-table-checksum 退出码解析已迁移至 pt_result.go 的 HandlePtChecksumResult。
+			详见该文件注释; 旧实现存在以下问题, 故整体注释保留备查:
+			  - exit 255 未处理, collectFlags(255) 会把所有 flag 误报
+			  - ALREADY_RUNNING(2)/CAUGHT_SIGNAL(4) 依赖 stderr 非空才返回 pterr, 可能漏报
+			  - 业务 flag (TABLE_DIFF/SKIP_CHUNK 等) 与 fatal 边界不清晰
+			下方 if err != nil 的非 ExitError 提前 return 也已由 HandlePtChecksumResult 统一处理。
 
-		pt-table-checksum has three possible exit statuses: zero, 255, and any other value is a bitmask with flags for different problems.
-
-		A zero exit status indicates no errors, warnings, or checksum differences, or skipped chunks or tables.
-
-		A 255 exit status indicates a fatal error. In other words: the tool died or crashed. The error is printed to STDERR.
-
-		If the exit status is not zero or 255, then its value functions as a bitmask with these flags:
-		... balabala...
-
-		看起来似乎把错误都归类到各种 bit flag 了, 其实根本不是, 在它代码中有大量的 die, 这些全都不在文档描述的 flag 里面
-		而它的这些 flag 又和系统的 errno 严重冲突, 所以照着文档写出来的错误捕捉根本不能用
-		只能暴力的, 不管怎样, 只要有 stderr 就返回错误, 然后再按照 flag 来
-
-		然而
-		FLAG              BIT VALUE  MEANING
-		================  =========  ==========================================
-		ERROR                     1  A non-fatal error occurred
-		ALREADY_RUNNING           2  --pid file exists and the PID is running
-		CAUGHT_SIGNAL             4  Caught SIGHUP, SIGINT, SIGPIPE, or SIGTERM
-		NO_SLAVES_FOUND           8  No replicas or cluster nodes were found
-		TABLE_DIFF               16  At least one diff was found
-		SKIP_CHUNK               32  At least one chunk was skipped
-		SKIP_TABLE               64  At least one table was skipped
-		REPLICATION_STOPPED     128  Replica is down or stopped
-
-		这些 flag 咋办
-		是当作错误抛出还是当作正常的执行结果返回给调用方, 让调用方自己去处理?
-
-		1 不能当做错误, 表分块超时也会返回这个值
-		2, 4 肯定要当错误, 其他的先扔回去?
-	*/
-	var eLines []string
-	if stderr.Len() > 0 {
-		scanner := bufio.NewScanner(strings.NewReader(stderr.String()))
-		scanner.Split(bufio.ScanLines)
-		for scanner.Scan() {
-			line := scanner.Text()
-			line = strings.TrimSpace(line)
-			if line != "" && !strings.Contains(line, "There is no good index and the table is oversized") {
-				eLines = append(eLines, line)
+		if err != nil {
+			var exitError *exec.ExitError
+			if !errors.As(err, &exitError) {
+				slog.Error("run pt-table-checksum got unexpected error", slog.String("error", err.Error()))
+				return nil, err, nil
 			}
 		}
-	}
 
-	ptFlags := make([]PtExitFlag, 0)
-	if ptErr != nil {
-		ptFlags = collectFlags(ptErr)
-	}
-
-	summaries, err := summary(stdout.String())
-	if err != nil {
-		slog.Error(
-			"trans pt-table-checksum stdout to summary",
-			slog.String("error", err.Error()),
-			slog.String("pt stdout", stdout.String()),
-		)
-		return nil, err, nil
-	}
-	slog.Info("checksum summary", slog.String("summary", stdout.String()))
-
-	output = &Output{
-		PtStderr:    stderr.String(),
-		Summaries:   summaries,
-		PtExitFlags: ptFlags,
-	}
-
-	if ptErr != nil && (ptErr.ExitCode()&2 != 0 || ptErr.ExitCode()&4 != 0) {
-		pterr = errors.New(output.String())
-		if len(eLines) > 0 {
-			slog.Error(
-				"run pt-table-checksum bad flag found",
-				slog.String("error", strings.Join(eLines, "\n")),
-			)
-			_, _ = fmt.Fprintf(os.Stderr, output.String())
-			return output, nil, pterr
+		var ptErr *exec.ExitError
+		_ = errors.As(err, &ptErr)
+		if ptErr != nil {
+			slog.Info("run pt-table-checksum success", slog.String("pt err", ptErr.String()))
+		} else {
+			slog.Info("run pt-table-checksum success without any err")
 		}
-	}
 
-	return output, nil, nil
+		var eLines []string
+		if stderr.Len() > 0 {
+			scanner := bufio.NewScanner(strings.NewReader(stderr.String()))
+			scanner.Split(bufio.ScanLines)
+			for scanner.Scan() {
+				line := scanner.Text()
+				line = strings.TrimSpace(line)
+				if line != "" && !strings.Contains(line, "There is no good index and the table is oversized") {
+					eLines = append(eLines, line)
+				}
+			}
+		}
+
+		ptFlags := make([]PtExitFlag, 0)
+		if ptErr != nil {
+			ptFlags = collectFlags(ptErr)
+		}
+
+		summaries, err := summary(stdout.String())
+		if err != nil {
+			slog.Error(
+				"trans pt-table-checksum stdout to summary",
+				slog.String("error", err.Error()),
+				slog.String("pt stdout", stdout.String()),
+			)
+			return nil, err, nil
+		}
+		slog.Info("checksum summary", slog.String("summary", stdout.String()))
+
+		output = &Output{
+			PtStderr:    stderr.String(),
+			Summaries:   summaries,
+			PtExitFlags: ptFlags,
+		}
+
+		if ptErr != nil && (ptErr.ExitCode()&2 != 0 || ptErr.ExitCode()&4 != 0) {
+			pterr = errors.New(output.String())
+			if len(eLines) > 0 {
+				slog.Error(
+					"run pt-table-checksum bad flag found",
+					slog.String("error", strings.Join(eLines, "\n")),
+				)
+				_, _ = fmt.Fprintf(os.Stderr, output.String())
+				return output, nil, pterr
+			}
+		}
+
+		return output, nil, nil
+	*/
+
+	// command.Run() 的 err 原样传入: exit 0 为 nil, exit 非 0 为 *exec.ExitError, 其余为 Go 执行错误。
+	// HandlePtChecksumResult 负责 stdout/stderr 解析、exit flag 分类和 fatal 判定。
+	return HandlePtChecksumResult(stdout.String(), stderr.String(), err)
 }

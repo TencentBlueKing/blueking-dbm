@@ -60,7 +60,7 @@ func summary(stdout string) (summaries []ChecksumSummary, err error) {
 			cs.DiffRows = 0
 			cs.Chunks, _ = strconv.Atoi(splitRow[4])
 			cs.Skipped, _ = strconv.Atoi(splitRow[5])
-			cs.Time, _ = strconv.Atoi(splitRow[6])
+			cs.Time, _ = strconv.ParseFloat(splitRow[6], 64)
 			cs.Table = splitRow[7]
 
 			summaries = append(summaries, cs)

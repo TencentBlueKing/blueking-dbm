@@ -28,6 +28,7 @@ create table if not exists infodba_schema.`checksum`(
     master_cnt int(11) DEFAULT NULL,
     ts timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     PRIMARY KEY (`master_ip`,`master_port`,`db`,`tbl`,`chunk`),
+    KEY `db_tbl_chunk` (`db`,`tbl`,`chunk`),
     KEY `ts_db_tbl` (`ts`,`db`,`tbl`)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 replace into infodba_schema.checksum
