@@ -2,7 +2,9 @@
 
 Probe 按配置启动 harvester 插件，周期采集实例状态，经 reporter 上报到 Receiver（gRPC）或 GSE；Receiver 将数据 sink 到 MySQL，供 Analysis 消费。
 
-相关文档：[架构总览](../architecture/overview.md) · [配置下发](config-sync.md) · [流程索引](README.md)
+相关文档：[架构总览](../architecture/overview.md) · [配置下发](config-sync.md) · [文档索引](../README.md)
+
+Admin 下发默认写入 GSE reporter 块；运行时 gRPC / GSE 二选一见下。改 gRPC 上报需改本地 `probe.yaml`（见 [配置下发](config-sync.md)）。
 
 ## 1. 参与方
 
@@ -39,17 +41,17 @@ sequenceDiagram
   participant Probe as dbha_probe
   participant Reporter as reporter
   participant Recv as dbha_receiver
-  participant MySQL as t_dbha_status
+  participant Status as t_dbha_status
 
   loop 周期采集
     Harvester->>Probe: HarvestData
     Probe->>Reporter: JSON Post
     alt gRPC
       Reporter->>Recv: PushDataUnary
-      Recv->>MySQL: sink
+      Recv->>Status: sink
     else GSE
       Reporter->>Reporter: 写入 GSE Agent
-      Note over Recv,MySQL: 可选经 Kafka 再入 receiver
+      Note over Recv,Status: 可选经 Kafka 再入 receiver
     end
   end
 ```
@@ -66,6 +68,8 @@ sequenceDiagram
 | Receiver 入库 | [`internal/receiver/source`](../../internal/receiver/source)、[`internal/receiver/sink`](../../internal/receiver/sink) |
 | 状态模型 | [`pkg/storage/hamodel/hadata.go`](../../pkg/storage/hamodel/hadata.go)、[`pkg/storage/haprobe`](../../pkg/storage/haprobe) |
 
-## 5. Keepalive（辅助）
+## 5. Keepalive（运维可选）
 
-Probe 可另开 keepalive HTTP（`--ping-http-addr`），供 analysis 二次探测时确认边缘进程可达。启停脚本见 `scripts/start-probe-keepalive.*`。该路径**不替代**业务实例探测，只辅助主机 / 进程存活判断。
+Probe 可另开 keepalive HTTP（`--ping-http-addr`），供运维 / 人工确认边缘进程可达。启停脚本见 `scripts/start-probe-keepalive.*`。该路径与 analysis 二次探测（SSH + `dbha-probe health -j`）**解耦**，**不替代**业务实例探测，也不参与入窗判定。
+
+harvester 建连失败会 emit `DetectFailure`（`connection exception`），写入 `HarvestData.Events` 后仅作为 Analysis 二次探测候选，**不直接入窗**；入窗细则见 [mysql-detection-design.md §5](../detection/mysql-detection-design.md) 与 [故障判定与切换](failure-detection-and-failover.md)。
