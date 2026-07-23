@@ -58,8 +58,8 @@ class DBMAgentResourceManager(AgentResourceManager):
     def __init__(self, username="", agent_code: str = None, agent_secret: str = None):
         agent_code = agent_code or settings.AGENT_APP_CODE
         agent_secret = agent_secret or settings.AGENT_APP_SECRET
-        # 如果用户是admin，则替换成虚拟用户请求
-        username = settings.DBM_APP_USER if username == "admin" else username
+        # TODO：这里不能传递真实的username，暂时为空
+        username = "" if username == DEFAULT_USERNAME else username
         super().__init__(agent_code=agent_code, agent_secret=agent_secret, username=username)
 
     @classmethod
@@ -141,6 +141,8 @@ class DBMAgentResourceManager(AgentResourceManager):
     def get_paas_sbx_client(self, executor_info: dict, **kwargs):
         """修改paas sandbox的鉴权配置"""
         client = super().get_paas_sbx_client(executor_info, **kwargs)
+        if executor_info.get("executor", "") not in ["", "admin", DEFAULT_USERNAME]:
+            return client
         # 手动修改url里面的app_code为项目app_code，保持应用鉴权一致性
         sandbox_app_urls = [
             "create_sandbox",
@@ -152,9 +154,8 @@ class DBMAgentResourceManager(AgentResourceManager):
             ins = getattr(client, url)
             ins.path = ins.path.replace("{app_code}", settings.APP_CODE)
         # 如果是后台请求，则使用虚拟身份调用
-        if executor_info.get("executor", "") in ["", "admin"]:
-            user, access_token = settings.DBM_APP_USER, settings.DBM_APP_ACCESS_TOKEN
-            client.update_bkapi_authorization(access_token=access_token, bk_username=user)
+        user, access_token = settings.DBM_APP_USER, settings.DBM_APP_ACCESS_TOKEN
+        client.update_bkapi_authorization(access_token=access_token, bk_username=user)
         return client
 
 
