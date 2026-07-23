@@ -22,7 +22,7 @@ from backend.db_meta.models import Cluster, ProxyInstance, StorageInstance, Stor
 from backend.db_package.models import Package
 from backend.flow.consts import MediumEnum
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
-from backend.flow.engine.bamboo.scene.mysql.mysql_upgrade import upgrade_version_check
+from backend.flow.engine.bamboo.scene.mysql.common.mysql_upgrade_utils import upgrade_version_check
 from backend.flow.plugins.components.collections.common.add_alarm_shield import AddAlarmShieldComponent
 from backend.flow.plugins.components.collections.common.disable_alarm_shield import DisableAlarmShieldComponent
 from backend.flow.plugins.components.collections.mysql.mysql_crond_control import MysqlCrondMonitorControlComponent

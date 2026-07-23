@@ -16,7 +16,7 @@ from typing import Dict, Optional
 
 from django.utils.translation import gettext as _
 
-from backend.configuration.constants import MYSQL8_VER_PARSE_NUM, DBType
+from backend.configuration.constants import DBType
 from backend.db_meta.enums import ClusterType, InstanceRole, MachineType
 from backend.db_meta.exceptions import DBMetaException
 from backend.db_meta.models import Cluster, StorageInstance
@@ -42,51 +42,12 @@ from backend.flow.utils.mysql.common.mysql_cluster_info import get_version_and_c
 from backend.flow.utils.mysql.mysql_act_dataclass import DBMetaOPKwargs, DownloadMediaKwargs
 from backend.flow.utils.mysql.mysql_context_dataclass import MySQLUpgradeContext
 from backend.flow.utils.mysql.mysql_db_meta import MySQLDBMeta
-from backend.flow.utils.mysql.mysql_version_parse import (
-    get_sub_version_by_pkg_name,
-    mysql_version_parse,
-    tmysql_version_parse,
-)
+from backend.flow.utils.mysql.mysql_version_parse import get_sub_version_by_pkg_name
 
 logger = logging.getLogger("flow")
 
 
-def upgrade_version_check(origin_ver: str, new_ver: str):
-    new_version_num = mysql_version_parse(new_ver)
-    original_version_num = mysql_version_parse(origin_ver)
-    if new_version_num >= MYSQL8_VER_PARSE_NUM:
-        new_version_num = convert_mysql8_version_num(new_version_num)
-    if new_version_num // 1000 - original_version_num // 1000 > 1:
-        logger.error("upgrades across multiple major versions are not allowed")
-        raise DBMetaException(message=_("不允许跨多个大版本升级"))
-    if original_version_num > new_version_num:
-        logger.error(
-            "the upgrade version {} needs to be larger than the current version {}".format(
-                new_version_num, original_version_num
-            )
-        )
-        raise DBMetaException(message=_("当前集群MySQL升级版本大于新版本,请确认"))
-    elif original_version_num == new_version_num:
-        new_tmysql_version = tmysql_version_parse(new_ver)
-        origin_tmysql_version = tmysql_version_parse(origin_ver)
-        if new_tmysql_version > origin_tmysql_version:
-            logger.info("the tmysql version upgrade {} -> {}".format(origin_tmysql_version, new_tmysql_version))
-        else:
-            logger.error(
-                "the tmysql version {} needs to be larger than the current tmysql version {}".format(
-                    new_tmysql_version, origin_tmysql_version
-                )
-            )
-            raise DBMetaException(message=_("当前集群MySQL升级版本大于新版本,请确认"))
-
-
-def convert_mysql8_version_num(ver_num: int) -> int:
-    # MySQL的发行版本号并不连续 MySQL 5.5 5.6 5.7 8.0
-    # 为了方便比较将8.0 装换成 parse 之后的5.8的版本号来做比较
-    return 5008 * 1000 + ver_num % 1000
-
-
-class MySQLStorageLocalUpgradeFlow(object):
+class MySQLLocalUpgradeFlow(object):
     """
     MySQL集群原地升级，先升级从库，在进行主从切换，在升级
     {
