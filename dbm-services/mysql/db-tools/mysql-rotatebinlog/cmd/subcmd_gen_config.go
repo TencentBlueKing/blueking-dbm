@@ -1,13 +1,15 @@
 package cmd
 
 import (
-	reversemysqlapi "dbm-services/common/reverseapi/apis/mysql"
-	"dbm-services/common/reverseapi/pkg/core"
 	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
 	"reflect"
+
+	reversemysqlapi "dbm-services/common/reverseapi/apis/mysql"
+	"dbm-services/common/reverseapi/pkg/core"
+	"dbm-services/mysql/db-tools/dbactuator/pkg/components/peripheraltools/v2/dbbackup"
 
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/cst"
 	"dbm-services/mysql/db-tools/mysql-rotatebinlog/pkg/backup"
@@ -22,16 +24,17 @@ import (
 )
 
 type rotateBinlogConfig struct {
-	Ip            string        `json:"ip"`
-	Port          int           `json:"port"`
-	Role          string        `json:"role"`
-	BkBizId       int           `json:"bk_biz_id"`
-	BkCloudId     int           `json:"bk_cloud_id"`
-	ClusterDomain string        `json:"cluster_domain"`
-	ClusterId     int           `json:"cluster_id"`
-	Configs       rotate.Config `json:"configs"`
-	User          string        `json:"user"`
-	Password      string        `json:"password"`
+	Ip            string                 `json:"ip"`
+	Port          int                    `json:"port"`
+	Role          string                 `json:"role"`
+	BkBizId       int                    `json:"bk_biz_id"`
+	BkCloudId     int                    `json:"bk_cloud_id"`
+	ClusterDomain string                 `json:"cluster_domain"`
+	ClusterId     int                    `json:"cluster_id"`
+	User          string                 `json:"user"`
+	Password      string                 `json:"password"`
+	Configs       rotate.Config          `json:"configs"`
+	Options       dbbackup.BackupOptions `json:"options"`
 }
 
 var subCmdGenConfig = &cobra.Command{
@@ -157,7 +160,8 @@ func generateOneMainConfig(cfg *rotateBinlogConfig) error {
 			cfg.Configs.BackupClient[k] = mapObj
 		}
 	}
-
+	// 使用统一的 备份控制参数 来决定是否启用 binlog 上传
+	cfg.Configs.Public.BackupEnable = cfg.Options.EnableBackupClient
 	cfg.Configs.Servers = nil
 	b, err := gyaml.Marshal(cfg.Configs)
 	if err != nil {

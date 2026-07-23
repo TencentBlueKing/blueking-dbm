@@ -29,9 +29,9 @@
     "conf_name_validate": 1,
     "conf_value_validate": 1,
     "value_type_strict": 0,
-    "description": "全备控制选项",
-    "conf_type_lc": "全备控制选项",
-    "conf_file_lc": "全备控制选项",
+    "description": "备份控制参数",
+    "conf_type_lc": "备份控制参数",
+    "conf_file_lc": "备份控制参数",
     "level_names": "plat,app,module,cluster",
     "level_versioned": ""
   },

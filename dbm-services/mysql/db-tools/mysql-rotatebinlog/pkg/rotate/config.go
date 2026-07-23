@@ -62,8 +62,6 @@ type PublicCfg struct {
 
 // ReportCfg report config
 type ReportCfg struct {
-	// Enable 是否上报备份系统. repeater/orphan/slave 受此选项影响, master 一定会上报备份系统
-	Enable        bool   `json:"enable" mapstructure:"enable"`
 	Filepath      string `json:"filepath" mapstructure:"filepath"`
 	LogMaxsize    int    `json:"log_maxsize" mapstructure:"log_maxsize"`
 	LogMaxbackups int    `json:"log_maxbackups" mapstructure:"log_maxbackups"`
