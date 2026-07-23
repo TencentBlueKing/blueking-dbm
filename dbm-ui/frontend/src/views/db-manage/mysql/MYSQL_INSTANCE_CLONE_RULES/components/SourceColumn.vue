@@ -108,12 +108,10 @@
       if (item) {
         bkCloudId.value = item.bk_cloud_id;
         bkHostId.value = item.bk_host_id;
-        source.value = item.instance_address;
         clusterDomain.value = item.master_domain;
       } else {
         bkCloudId.value = 0;
         bkHostId.value = 0;
-        source.value = '';
         clusterDomain.value = '';
       }
     },
@@ -129,14 +127,18 @@
 
   watch(
     source,
-    () => {
-      if (!bkHostId.value && source.value) {
+    (sourceValue) => {
+      bkCloudId.value = 0;
+      bkHostId.value = 0;
+      if (sourceValue) {
         queryInstance({
           bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
           cluster_type: [ClusterTypes.TENDBHA, ClusterTypes.TENDBSINGLE],
           db_type: DBTypes.MYSQL,
-          instance_addresses: [source.value],
+          instance_addresses: [sourceValue],
         });
+      } else {
+        clusterDomain.value = '';
       }
     },
     {

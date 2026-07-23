@@ -65,7 +65,7 @@
   const modelValue = defineModel<
     {
       cluster_type: string;
-      id: number;
+      id?: number;
       master_domain: string;
     }[]
   >({
@@ -109,6 +109,7 @@
   });
   let formatError = '';
   let existError = '';
+  let queryingDomains: string[] = [];
 
   const rules = [
     {
@@ -157,28 +158,58 @@
   const { loading, run: queryClustersRun } = useRequest(queryClusters, {
     manual: true,
     onSuccess: (data) => {
-      if (data.length) {
-        modelValue.value = data.map((cluster) => ({
-          cluster_type: cluster.cluster_type,
-          id: cluster.id,
-          master_domain: cluster.master_domain,
-        }));
-        localValue.value = data.map((item) => item.master_domain).join(',');
-        selectedClusters.value = data.reduce<typeof selectedClusters.value>(
-          (acc, item) => {
-            Object.assign(acc, {
-              [item.cluster_type]: [...acc[item.cluster_type], item],
-            });
-            return acc;
-          },
-          {
-            [ClusterTypes.TENDBHA]: [],
-            [ClusterTypes.TENDBSINGLE]: [],
-          },
-        );
-      }
+      const clusterMap = new Map(data.map((cluster) => [cluster.master_domain, cluster]));
+      modelValue.value = queryingDomains.map((domain) => {
+        const cluster = clusterMap.get(domain);
+        return cluster
+          ? {
+              cluster_type: cluster.cluster_type,
+              id: cluster.id,
+              master_domain: cluster.master_domain,
+            }
+          : {
+              cluster_type: '',
+              id: undefined,
+              master_domain: domain,
+            };
+      });
+      selectedClusters.value = data.reduce<typeof selectedClusters.value>(
+        (acc, item) => {
+          Object.assign(acc, {
+            [item.cluster_type]: [...acc[item.cluster_type], item],
+          });
+          return acc;
+        },
+        {
+          [ClusterTypes.TENDBHA]: [],
+          [ClusterTypes.TENDBSINGLE]: [],
+        },
+      );
     },
   });
+
+  const queryClusterByDomains = (domains: string[]) => {
+    queryingDomains = domains;
+    localValue.value = domains.join(',');
+    modelValue.value = domains.map((domain) => ({
+      cluster_type: '',
+      id: undefined,
+      master_domain: domain,
+    }));
+    if (!domains.length) {
+      selectedClusters.value = {
+        [ClusterTypes.TENDBHA]: [],
+        [ClusterTypes.TENDBSINGLE]: [],
+      };
+      return;
+    }
+    queryClustersRun({
+      bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
+      cluster_filters: domains.map((item) => ({
+        immute_domain: item,
+      })),
+    });
+  };
 
   const disabledMethod = (rowData?: any) => {
     if (!rowData.source_cluster.id) {
@@ -192,16 +223,7 @@
   };
 
   const handleInputChange = (value: string) => {
-    if (!value) {
-      return;
-    }
-    modelValue.value = [];
-    queryClustersRun({
-      bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
-      cluster_filters: value.split(batchSplitRegex).map((item) => ({
-        immute_domain: item,
-      })),
-    });
+    queryClusterByDomains(value.split(batchSplitRegex).filter(Boolean));
   };
 
   const handleSelectorChange = (selected: Record<string, TendbhaModel[]>) => {
@@ -226,12 +248,7 @@
     modelValue,
     () => {
       if (!localValue.value && modelValue.value?.[0]?.master_domain) {
-        queryClustersRun({
-          bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
-          cluster_filters: modelValue.value.map((item) => ({
-            immute_domain: item.master_domain,
-          })),
-        });
+        queryClusterByDomains(modelValue.value.map((item) => item.master_domain));
       }
     },
     {

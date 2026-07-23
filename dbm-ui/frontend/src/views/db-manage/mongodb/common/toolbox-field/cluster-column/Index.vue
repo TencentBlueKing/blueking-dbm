@@ -117,23 +117,29 @@
     },
   });
 
+  const queryCluster = (domain: string) => {
+    const params = {
+      bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
+      exact_domain: domain,
+    };
+    if (props.clusterTypes.length === 1) {
+      Object.assign(params, { cluster_type: props.clusterTypes[0] });
+    }
+    runFilterClusters(params);
+  };
+
   watch(
     () => modelValue.value.master_domain,
-    () => {
-      if (!modelValue.value.id && modelValue.value.master_domain) {
-        modelValue.value.id = 0;
-
-        const params = {
-          bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
-          exact_domain: modelValue.value.master_domain,
-        };
-        if (props.clusterTypes.length === 1) {
-          Object.assign(params, { cluster_type: props.clusterTypes[0] });
-        }
-        runFilterClusters(params);
-      }
-      if (!modelValue.value.master_domain) {
-        modelValue.value.id = 0;
+    (masterDomain) => {
+      if (masterDomain) {
+        modelValue.value = {
+          master_domain: masterDomain,
+        } as typeof modelValue.value;
+        queryCluster(masterDomain);
+      } else {
+        modelValue.value = {
+          master_domain: '',
+        } as typeof modelValue.value;
       }
     },
     {

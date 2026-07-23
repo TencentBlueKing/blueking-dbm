@@ -163,40 +163,53 @@
     },
   });
 
+  const queryHost = (ip: string) => {
+    isLoading.value = true;
+    getGlobalMachine({
+      bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
+      db_type: DBTypes.REDIS,
+      ip,
+    })
+      .then((data) => {
+        if (data.results.length > 0) {
+          modelValue.value = {
+            ...data.results[0],
+            pair_machine: {
+              bk_host_id: 0,
+              ip: '',
+              related_clusters: [] as UnwrapRef<typeof modelValue>['pair_machine']['related_clusters'],
+            },
+          };
+          if (data.results[0].instance_role === 'redis_master') {
+            runQueryMachineInstancePair({
+              machines: [`${data.results[0].bk_cloud_id}:${data.results[0].ip}`],
+            });
+          }
+        }
+      })
+      .finally(() => {
+        isLoading.value = false;
+      });
+  };
+
   watch(
     () => modelValue.value.ip,
-    () => {
-      if (!modelValue.value.bk_host_id && modelValue.value.ip) {
-        isLoading.value = true;
-        modelValue.value.bk_host_id = 0;
-        getGlobalMachine({
-          bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
-          db_type: DBTypes.REDIS,
-          ip: modelValue.value.ip,
-        })
-          .then((data) => {
-            if (data.results.length > 0) {
-              modelValue.value = {
-                ...data.results[0],
-                pair_machine: {
-                  bk_host_id: 0,
-                  ip: '',
-                  related_clusters: [] as UnwrapRef<typeof modelValue>['pair_machine']['related_clusters'],
-                },
-              };
-              if (data.results[0].instance_role === 'redis_master') {
-                runQueryMachineInstancePair({
-                  machines: [`${data.results[0].bk_cloud_id}:${data.results[0].ip}`],
-                });
-              }
-            }
-          })
-          .finally(() => {
-            isLoading.value = false;
-          });
-      }
-      if (!modelValue.value.ip) {
-        modelValue.value.bk_host_id = 0;
+    (ip) => {
+      modelValue.value = {
+        bk_cloud_id: 0,
+        bk_host_id: 0,
+        cluster_type: '',
+        instance_role: '',
+        ip,
+        pair_machine: {
+          bk_host_id: 0,
+          ip: '',
+          related_clusters: [],
+        },
+        related_clusters: [],
+      };
+      if (ip) {
+        queryHost(ip);
       }
     },
     {
