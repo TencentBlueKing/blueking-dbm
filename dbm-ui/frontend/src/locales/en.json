@@ -4136,6 +4136,7 @@
   "TendisCache后端存储": "TendisCache Backend Storage",
   "TendisSSD后端存储": "TendisSSD Backend Storage",
   "TendisPlus后端存储": "TendisPlus Backend Storage",
+  "TendisPlus 集群版": "TendisPlus Cluster Edition",
   "DataNode节点": "DataNode Node",
   "副本集/ShardSvr": "Replica Set/ShardSvr",
   "必须要能除尽总分片数": "Must be divisible by the total shard count",
