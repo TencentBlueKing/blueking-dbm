@@ -36,7 +36,7 @@
 </script>
 <style lang="postcss">
   .dbm-ai-chat-dialog {
-    .shortcut-btns {
+    .ai-shortcut-btns {
       display: none !important;
     }
   }
