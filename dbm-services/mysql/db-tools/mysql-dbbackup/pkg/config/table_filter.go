@@ -23,15 +23,15 @@ import (
 // 3. regex 正则过滤，优先用于 myloader
 // Regex myloader regex format
 type TableFilter struct {
-	Databases        string `ini:"Databases"`
-	Tables           string `ini:"Tables"`
-	ExcludeDatabases string `ini:"ExcludeDatabases"`
-	ExcludeTables    string `ini:"ExcludeTables"`
+	Databases        string `ini:"Databases" json:"Databases"`
+	Tables           string `ini:"Tables" json:"Tables"`
+	ExcludeDatabases string `ini:"ExcludeDatabases" json:"ExcludeDatabases"`
+	ExcludeTables    string `ini:"ExcludeTables" json:"ExcludeTables"`
 
 	// TablesList db1.table1 format
-	TablesList string `ini:"TablesList"`
+	TablesList string `ini:"TablesList" json:"TablesList"`
 
-	Regex string `ini:"Regex"`
+	Regex string `ini:"Regex" json:"Regex"`
 
 	// 是否备份实例所有业务db
 	isAllDatabases bool

@@ -12,14 +12,12 @@ import (
 
 	"github.com/go-viper/mapstructure/v2"
 
-	"dbm-services/common/go-pubpkg/cmutil"
 	"dbm-services/common/go-pubpkg/mysqlcomm"
 	reversemysqlapi "dbm-services/common/reverseapi/apis/mysql"
 	reversemysqldef "dbm-services/common/reverseapi/define/mysql"
 	"dbm-services/common/reverseapi/pkg/core"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/components/peripheraltools/v2/dbbackup"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/core/cst"
-	"dbm-services/mysql/db-tools/dbactuator/pkg/native"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/util"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/util/db_table_filter"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/util/osutil"
@@ -100,7 +98,7 @@ func generateOneDbbackupConfig(cfg *reversemysqldef.DBBackupConfig) error {
 		return err
 	}
 
-	filter, err := generateOneFilter(backupOptions)
+	filter, err := generateOneFilter(cfg)
 	if err != nil {
 		return err
 	}
@@ -133,16 +131,22 @@ func generateOneBackupOptions(cfg *reversemysqldef.DBBackupConfig) (*dbbackup.Ba
 	return &opt, nil
 }
 
-func generateOneFilter(opt *dbbackup.BackupOptions) (*db_table_filter.DbTableFilter, error) {
-	var ignoreDbs, ignoreTbls []string
+func generateOneFilter(cfg *reversemysqldef.DBBackupConfig) (*db_table_filter.DbTableFilter, error) {
 
-	ignoreDbs = strings.Split(opt.IgnoreObjs.IgnoreDatabases, ",")
-	ignoreDbs = append(ignoreDbs, native.DBSys...)
-	ignoreDbs = cmutil.StringsRemove(ignoreDbs, native.INFODBA_SCHEMA)
+	logicalBackup := &config.TableFilter{}
+	if err := mapstructure.Decode(cfg.ConfigsTemplate["LogicalBackup"], &logicalBackup); err != nil {
+		return nil, errors.WithMessagef(err, "failed to decode LogicalBackup template")
+	}
 
-	ignoreTbls = strings.Split(opt.IgnoreObjs.IgnoreTables, ",")
-
-	return db_table_filter.NewFilter([]string{"*"}, []string{"*"}, ignoreDbs, ignoreTbls)
+	dbList := strings.Split(logicalBackup.Databases, ",")
+	tbList := strings.Split(logicalBackup.Tables, ",")
+	dbListExclude := strings.Split(logicalBackup.ExcludeDatabases, ",")
+	tbListExclude := strings.Split(logicalBackup.ExcludeTables, ",")
+	filter, err := db_table_filter.NewFilter(dbList, tbList, dbListExclude, tbListExclude)
+	if err != nil {
+		return nil, err
+	}
+	return filter, nil
 }
 
 func generateOneDSGString(cfg *reversemysqldef.DBBackupConfig, opt *dbbackup.BackupOptions) (string, error) {
@@ -175,6 +179,7 @@ func generateOneIniConfig(cfg *reversemysqldef.DBBackupConfig, opt *dbbackup.Bac
 			BackupType:      strings.ToLower(opt.BackupType),
 			DataSchemaGrant: strings.ToLower(dsg),
 		},
+		// 使用统一的 备份控制参数 来决定是否启用全备上传
 		BackupClient: config.BackupClient{
 			EnableBackupClient: opt.EnableBackupClient,
 		},
@@ -189,7 +194,7 @@ func generateOneIniConfig(cfg *reversemysqldef.DBBackupConfig, opt *dbbackup.Bac
 		Schedule: config.Schedule{
 			Command:  backupConfig.Schedule.Command,
 			JobName:  backupConfig.Schedule.JobName,
-			CronTime: opt.CrontabTime,
+			CronTime: opt.CrontabTime, // 使用 备份控制参数 里面的 crontab 时间
 		},
 	}
 	cfg.ConfigsTemplate["Schedule"]["JobName"] = backupConfig.Schedule.JobName

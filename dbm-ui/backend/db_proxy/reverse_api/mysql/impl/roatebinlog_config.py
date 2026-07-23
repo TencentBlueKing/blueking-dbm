@@ -17,6 +17,7 @@ from backend.components.dbconfig.constants import FormatType, LevelName
 from backend.db_meta.enums import AccessLayer, MachineType
 from backend.db_meta.models import Machine, ProxyInstance, StorageInstance
 from backend.flow.utils.mysql.act_payload.mixed.account_mixed.mysql_account_mixed import MySQLAccountMixed
+from backend.flow.utils.mysql.mysql_bk_config import get_backup_options_config
 
 
 def rotatebinlog_config(bk_cloud_id: int, ip: str, port_list: Optional[List[int]] = None) -> List:
@@ -47,7 +48,13 @@ def rotatebinlog_config(bk_cloud_id: int, ip: str, port_list: Optional[List[int]
             MachineType.SINGLE,
         ]:  # , MachineType.SPIDER]:
             continue
-
+        # 备份控制参数 里面有控制 binlog 是否上传的参数
+        backup_options = get_backup_options_config(
+            bk_biz_id=i.bk_biz_id,
+            db_module_id=i.db_module_id,
+            cluster_type=i.cluster_type,
+            cluster_domain=i.cluster.first().immute_domain,
+        )
         res.append(
             {
                 "ip": ip,
@@ -69,6 +76,7 @@ def rotatebinlog_config(bk_cloud_id: int, ip: str, port_list: Optional[List[int]
                         "format": FormatType.MAP_LEVEL,
                     }
                 )["content"],
+                "options": backup_options,
                 "user": usermap["monitor_user"],
                 "password": usermap["monitor_pwd"],
             }
