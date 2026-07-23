@@ -155,16 +155,23 @@
 
   watch(
     () => modelValue.value.master_domain,
-    () => {
-      if (!modelValue.value.id && modelValue.value.master_domain) {
-        modelValue.value.id = 0;
+    (masterDomain) => {
+      if (masterDomain) {
+        modelValue.value = {
+          id: 0,
+          master_domain: masterDomain,
+          related_clusters: [],
+        } as typeof modelValue.value;
         runFilterClusters({
           bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
-          exact_domain: modelValue.value.master_domain,
+          exact_domain: masterDomain,
         });
-      }
-      if (!modelValue.value.master_domain) {
-        modelValue.value.id = 0;
+      } else {
+        modelValue.value = {
+          id: 0,
+          master_domain: '',
+          related_clusters: [],
+        } as typeof modelValue.value;
       }
     },
     {

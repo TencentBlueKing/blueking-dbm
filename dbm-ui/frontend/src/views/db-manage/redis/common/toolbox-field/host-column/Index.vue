@@ -98,28 +98,32 @@
       }) as unknown as InstanceSelectorValues<IValue>,
   );
 
+  const queryHost = (ip: string) => {
+    isLoading.value = true;
+    getGlobalMachine({
+      bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
+      db_type: DBTypes.REDIS,
+      ip,
+    })
+      .then((data) => {
+        if (data.results.length > 0) {
+          [modelValue.value] = data.results;
+        }
+      })
+      .finally(() => {
+        isLoading.value = false;
+      });
+  };
+
   watch(
     () => modelValue.value.ip,
-    () => {
-      if (!modelValue.value.bk_host_id && modelValue.value.ip) {
-        isLoading.value = true;
-        modelValue.value.bk_host_id = 0;
-        getGlobalMachine({
-          bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
-          db_type: DBTypes.REDIS,
-          ip: modelValue.value.ip,
-        })
-          .then((data) => {
-            if (data.results.length > 0) {
-              [modelValue.value] = data.results;
-            }
-          })
-          .finally(() => {
-            isLoading.value = false;
-          });
-      }
-      if (!modelValue.value.ip) {
-        modelValue.value.bk_host_id = 0;
+    (ip) => {
+      modelValue.value = {
+        bk_host_id: 0,
+        ip,
+      };
+      if (ip) {
+        queryHost(ip);
       }
     },
     {
