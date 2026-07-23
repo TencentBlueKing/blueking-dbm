@@ -116,7 +116,7 @@ class DorisDnsManageService(BaseService):
             # 获取当前域名映射的IP
             dns_ips = [item["ip"] for item in dns_manage.get_domain(domain_name=cluster.immute_domain)]
             shrink_ips = get_all_node_ips_in_ticket(data=global_data)
-            if set(dns_ips) - set(shrink_ips) == 0:
+            if not set(dns_ips) - set(shrink_ips):
                 # 原域名IP 均需要被删除
                 for role in self.order_list:
                     instance_role = self.instance_role_map[role]
@@ -144,6 +144,22 @@ class DorisDnsManageService(BaseService):
         elif dns_op_type == DnsOpType.CLUSTER_DELETE:
             # 集群下架场景 清理域名
             result = dns_manage.delete_domain(cluster_id=global_data["cluster_id"])
+        elif dns_op_type == DnsOpType.ADD_AND_DELETE:
+            # 增量更新域名映射，适用于 FE 滚动替换场景：
+            # 直接使用 kwargs 中传入的 add_ips / del_ips，不依赖 DBMeta 状态
+            # （滚动替换过程中 DBMeta 尚未更新，UPDATE 分支无法正确工作）
+            domain_name = kwargs["domain_name"]
+            port = kwargs["dns_op_exec_port"]
+            add_ips = kwargs.get("add_ips", []) or []
+            del_ips = kwargs.get("del_ips", []) or []
+
+            if add_ips:
+                add_instance_list = [f"{ip}#{port}" for ip in add_ips]
+                dns_manage.create_domain(instance_list=add_instance_list, add_domain_name=domain_name)
+            if del_ips:
+                del_instance_list = [f"{ip}#{port}" for ip in del_ips]
+                dns_manage.remove_domain_ip(domain=domain_name, del_instance_list=del_instance_list)
+            result = True
         else:
             self.log_error(_("无法适配到传入的域名处理类型,请联系系统管理员:{}").format(dns_op_type))
             return result

@@ -117,7 +117,7 @@ class DorisShrinkFlow(DorisBaseFlow):
         # 更新域名
         dns_kwargs = DnsKwargs(
             bk_cloud_id=shrink_data["bk_cloud_id"],
-            dns_op_type=DnsOpType.UPDATE,
+            dns_op_type=DnsOpType.RECYCLE_RECORD,
             domain_name=self.domain,
             dns_op_exec_port=self.http_port,
         )
