@@ -43,4 +43,5 @@ class SQLServerRollbackLocalFlowBuilder(SQLServerRollbackCommonFlowBuilder):
     # rollback 内部流程走本地(原地)构造场景：db_rollback_in_local_scene
     rollback_flow_param_builder = SQLServerDBRollbackInLocalFlowParamBuilder
     inner_flow_builder = SQLServerDBRollbackInLocalFlowParamBuilder
+    rollback_flow_alias = _("SQLServer 原地回档执行")
     validator = SqlserverController.db_rollback_in_local_scene.validator
