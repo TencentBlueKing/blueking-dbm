@@ -11,3 +11,15 @@ import pytest
 def check_exporter(django_db_setup, django_db_blocker):
     with django_db_blocker.unblock():
         return importlib.import_module("backend.db_periodic_task.local_tasks.redis_tasks.check_exporter")
+
+
+@pytest.fixture(scope="module")
+def redis_report_op_module(django_db_setup, django_db_blocker):
+    with django_db_blocker.unblock():
+        return importlib.import_module("backend.db_periodic_task.local_tasks.redis_tasks.report_op")
+
+
+@pytest.fixture(scope="module")
+def redis_local_task_cmd_module(django_db_setup, django_db_blocker):
+    with django_db_blocker.unblock():
+        return importlib.import_module("backend.dbm_tools.management.commands.redis_local_task")

@@ -28,7 +28,7 @@ from backend.db_report.enums.mongodb_check_sub_type import MongodbAffinityCheckS
 from backend.db_report.repo.task_record_repo import get_report_day_from_time
 from backend.flow.utils.mongodb.mongodb_repo import MongoDBCluster, MongoRepository
 
-logger = logging.getLogger("root")
+logger = logging.getLogger("celery")
 
 
 def is_shardsvr_set(set_name: str) -> bool:
@@ -57,27 +57,54 @@ class CheckMongodbAffinityTask:
     def __init__(self):
         self.check_type = MongodbAffinityCheckSubType.ClusterAffinity.value
 
-    def start(self, report_day: int = None, batch_size: int = 20) -> tuple[int, int, int, int]:
+    def start(
+        self,
+        report_day: int = None,
+        batch_size: int = 20,
+        cluster_domain: str | None = None,
+        bk_biz_id: int | None = None,
+    ) -> tuple[int, int, int, int]:
+        if cluster_domain and bk_biz_id is not None:
+            raise ValueError("cluster_domain and bk_biz_id are mutually exclusive")
+        # 两者皆空时 scoped=False，走全量清理/巡检；任一有值则为 scoped，仅删目标集群当天记录。
+        scoped = bool(cluster_domain) or bk_biz_id is not None
+
         if report_day is None:
             report_day = get_report_day_from_time(timezone.now())
         record_batch_ops = RecordBatchOps(self.check_type, report_day)
-        deleted_count = record_batch_ops.delete_old_record(360)
-        logger.info(
-            f"CheckMongodbAffinityTask report_day: {report_day} "
-            f"sub_type: {self.check_type} "
-            f"deleted_count: {deleted_count}"
-        )
-        deleted_count = record_batch_ops.delete_today_record()
-        logger.info(
-            f"CheckMongodbAffinityTask report_day: {report_day} "
-            f"sub_type: {self.check_type} "
-            f"deleted_count: {deleted_count}"
-        )
 
         query = Q(cluster_type__in=[ClusterType.MongoShardedCluster, ClusterType.MongoReplicaSet]) & Q(
             create_at__lt=timezone.now() - timedelta(hours=1)
         )
+        if cluster_domain:
+            query &= Q(immute_domain=cluster_domain)
+        if bk_biz_id is not None:
+            query &= Q(bk_biz_id=bk_biz_id)
+
         cluster_id_list = [cluster.id for cluster in Cluster.objects.filter(query)]
+
+        if scoped:
+            deleted_count = record_batch_ops.delete_today_record_for_clusters(cluster_id_list)
+            logger.info(
+                f"CheckMongodbAffinityTask report_day: {report_day} "
+                f"sub_type: {self.check_type} "
+                f"delete_today_record_for_clusters: {deleted_count} "
+                f"cluster_domain: {cluster_domain or '-'} bk_biz_id: {bk_biz_id if bk_biz_id is not None else '-'}"
+            )
+        else:
+            deleted_count = record_batch_ops.delete_old_record(360)
+            logger.info(
+                f"CheckMongodbAffinityTask report_day: {report_day} "
+                f"sub_type: {self.check_type} "
+                f"deleted_count: {deleted_count}"
+            )
+            deleted_count = record_batch_ops.delete_today_record()
+            logger.info(
+                f"CheckMongodbAffinityTask report_day: {report_day} "
+                f"sub_type: {self.check_type} "
+                f"deleted_count: {deleted_count}"
+            )
+
         total_num = 0
         success_num = 0
         warning_num = 0
@@ -325,6 +352,10 @@ def collect_topology_by_set(nodes: list, is_sharded_cluster: bool = False) -> di
     grouped_topology = {}
     for set_name, result in topology_by_set.items():
         if not is_shardsvr_set(set_name):
+            grouped_topology[set_name] = result
+            continue
+        # 元数据不完整时无法按机器合并，保留 MongoDB 原始 set_name 作为 shard
+        if not result["nodes"]:
             grouped_topology[set_name] = result
             continue
         group_key = build_shardsvr_group_key(result["nodes"])

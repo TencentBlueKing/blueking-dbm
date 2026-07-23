@@ -25,7 +25,7 @@ from backend.db_report.repo.task_record_repo import get_report_day_from_time
 from backend.db_services.mongodb.restore.handlers import MongoDBRestoreHandler
 from backend.flow.utils.mongodb.mongodb_repo import MongoDBCluster, MongoRepository
 
-logger = logging.getLogger("root")
+logger = logging.getLogger("celery")
 
 # CheckMongoBackupRecordTask 用于检查备份记录，全备和增量备份都检查
 # 检查结果:
@@ -47,41 +47,63 @@ class CheckMongoBackupRecordTask:
     def __init__(self):
         self.check_type = MongodbBackupCheckSubType.FullBackup.value
 
-    def start(self, report_day: int = None, batch_size: int = 20) -> tuple[int, int, int, int]:
+    def start(
+        self,
+        report_day: int = None,
+        batch_size: int = 20,
+        cluster_domain: str | None = None,
+        bk_biz_id: int | None = None,
+    ) -> tuple[int, int, int, int]:
         """
         cluster_type: replicaset, sharded cluster
-        1, list all cluster
+        1, list all cluster (or scoped by cluster_domain / bk_biz_id)
         2, filter failed, write to db
         """
+        if cluster_domain and bk_biz_id is not None:
+            raise ValueError("cluster_domain and bk_biz_id are mutually exclusive")
+        scoped = bool(cluster_domain) or bk_biz_id is not None
 
-        """
-        Delete records older than 60 days, both full backup and binlog are in the same table
-        """
         if report_day is None:
             report_day = get_report_day_from_time(timezone.now())
         record_batch_ops = RecordBatchOps(self.check_type, report_day)
-        deleted_count = record_batch_ops.delete_old_record(360)
-        logger.info(
-            f"CheckMongoBackupRecordTask report_day: {report_day} "
-            f"sub_type: {self.check_type} "
-            f"delete_old_record: {deleted_count}"
-        )
-        deleted_count = record_batch_ops.delete_today_record()
-        logger.info(
-            f"CheckMongoBackupRecordTask report_day: {report_day} "
-            f"sub_type: {self.check_type} "
-            f"delete_today_record: {deleted_count}"
-        )
+
         # Build query conditions: cluster creation time greater than 8 hours
         query = Q(cluster_type__in=[ClusterType.MongoShardedCluster, ClusterType.MongoReplicaSet]) & Q(
             create_at__lt=timezone.now() - timedelta(hours=8)
         )
+        if cluster_domain:
+            query &= Q(immute_domain=cluster_domain)
+        if bk_biz_id is not None:
+            query &= Q(bk_biz_id=bk_biz_id)
+
+        cluster_id_list = [c.id for c in Cluster.objects.filter(query)]
+
+        if scoped:
+            deleted_count = record_batch_ops.delete_today_record_for_clusters(cluster_id_list)
+            logger.info(
+                f"CheckMongoBackupRecordTask report_day: {report_day} "
+                f"sub_type: {self.check_type} "
+                f"delete_today_record_for_clusters: {deleted_count} "
+                f"cluster_domain: {cluster_domain or '-'} bk_biz_id: {bk_biz_id if bk_biz_id is not None else '-'}"
+            )
+        else:
+            deleted_count = record_batch_ops.delete_old_record(360)
+            logger.info(
+                f"CheckMongoBackupRecordTask report_day: {report_day} "
+                f"sub_type: {self.check_type} "
+                f"delete_old_record: {deleted_count}"
+            )
+            deleted_count = record_batch_ops.delete_today_record()
+            logger.info(
+                f"CheckMongoBackupRecordTask report_day: {report_day} "
+                f"sub_type: {self.check_type} "
+                f"delete_today_record: {deleted_count}"
+            )
 
         total_num = 0
         success_num = 0
         warning_num = 0
         abnormal_num = 0
-        cluster_id_list = [c.id for c in Cluster.objects.filter(query)]  # fetch all cluster_id
         for i in range(0, len(cluster_id_list), batch_size):
             for cluster_id in cluster_id_list[i : i + batch_size]:
                 cluster = MongoRepository.fetch_one_cluster(with_tags=True, id=cluster_id)

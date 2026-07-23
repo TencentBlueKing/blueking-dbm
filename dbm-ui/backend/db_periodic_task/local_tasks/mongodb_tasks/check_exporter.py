@@ -23,13 +23,13 @@ from backend.components import BKMonitorV3Api
 from backend.db_meta.enums import ClusterType
 from backend.db_meta.models import Cluster
 from backend.db_periodic_task.local_tasks.db_meta.constants import UNIFY_QUERY_PARAMS
-from backend.db_periodic_task.local_tasks.mongodb_tasks.report_op import ClusterReport, RecordBatchOps, addr, dev_debug
+from backend.db_periodic_task.local_tasks.mongodb_tasks.report_op import ClusterReport, RecordBatchOps, addr
 from backend.db_report.enums import ReportStateType
 from backend.db_report.enums.mongodb_check_sub_type import MongodbExporterCheckSubType
 from backend.db_report.repo.task_record_repo import get_report_day_from_time
 from backend.flow.utils.mongodb.mongodb_repo import MongoDBCluster, MongoRepository
 
-logger = logging.getLogger("root")
+logger = logging.getLogger("celery")
 
 
 class CheckMongodbUpMetricTask:
@@ -40,41 +40,71 @@ class CheckMongodbUpMetricTask:
     def __init__(self):
         self.check_type = MongodbExporterCheckSubType.Up.value
 
-    def start(self, report_day: int = None, batch_size: int = 20) -> tuple[int, int, int, int]:
+    def start(
+        self,
+        report_day: int = None,
+        batch_size: int = 20,
+        cluster_domain: str | None = None,
+        bk_biz_id: int | None = None,
+    ) -> tuple[int, int, int, int]:
         """
         replicaset, sharded cluster 2种架构：
-        1, list all cluster
+        1, list all cluster (or scoped by cluster_domain / bk_biz_id)
         2, filter failed, write to db
         """
+        if cluster_domain and bk_biz_id is not None:
+            raise ValueError("cluster_domain and bk_biz_id are mutually exclusive")
+        scoped = bool(cluster_domain) or bk_biz_id is not None
+
         if report_day is None:
             report_day = get_report_day_from_time(timezone.now())
         record_batch_ops = RecordBatchOps(self.check_type, report_day)
-        deleted_count = record_batch_ops.delete_old_record(360)
-        logger.info(
-            f"CheckMongodbUpMetricTask report_day: {report_day} "
-            f"sub_type: {self.check_type} "
-            f"deleted_count: {deleted_count}"
-        )
-        deleted_count = record_batch_ops.delete_today_record()
-        logger.info(
-            f"CheckMongodbUpMetricTask report_day: {report_day} "
-            f"sub_type: {self.check_type} "
-            f"deleted_count: {deleted_count}"
-        )
 
         # 构建查询条件: 集群创建时间大于1小时
         query = Q(cluster_type__in=[ClusterType.MongoShardedCluster, ClusterType.MongoReplicaSet]) & Q(
             create_at__lt=timezone.now() - timedelta(hours=1)
         )
-        cluster_list = Cluster.objects.filter(query)
-        logger.info(cluster_list.query)
+        if cluster_domain:
+            query &= Q(immute_domain=cluster_domain)
+        if bk_biz_id is not None:
+            query &= Q(bk_biz_id=bk_biz_id)
+
+        cluster_id_list = [c.id for c in Cluster.objects.filter(query)]
+        logger.info(
+            "CheckMongodbUpMetricTask clusters=%s cluster_domain=%s bk_biz_id=%s",
+            len(cluster_id_list),
+            cluster_domain or "-",
+            bk_biz_id if bk_biz_id is not None else "-",
+        )
+
+        if scoped:
+            deleted_count = record_batch_ops.delete_today_record_for_clusters(cluster_id_list)
+            logger.info(
+                f"CheckMongodbUpMetricTask report_day: {report_day} "
+                f"sub_type: {self.check_type} "
+                f"delete_today_record_for_clusters: {deleted_count}"
+            )
+        else:
+            deleted_count = record_batch_ops.delete_old_record(360)
+            logger.info(
+                f"CheckMongodbUpMetricTask report_day: {report_day} "
+                f"sub_type: {self.check_type} "
+                f"deleted_count: {deleted_count}"
+            )
+            deleted_count = record_batch_ops.delete_today_record()
+            logger.info(
+                f"CheckMongodbUpMetricTask report_day: {report_day} "
+                f"sub_type: {self.check_type} "
+                f"deleted_count: {deleted_count}"
+            )
+
         total_num = 0
         success_num = 0
         warning_num = 0
         abnormal_num = 0
-        for i in range(0, len(cluster_list), batch_size):
-            for c in cluster_list[i : i + batch_size]:
-                cluster = MongoRepository.fetch_one_cluster(with_tags=True, id=c.id)
+        for i in range(0, len(cluster_id_list), batch_size):
+            for cluster_id in cluster_id_list[i : i + batch_size]:
+                cluster = MongoRepository.fetch_one_cluster(with_tags=True, id=cluster_id)
                 rows = self.check_cluster(cluster, report_day)
                 total_num += 1
                 if rows:
@@ -136,7 +166,7 @@ class CheckMongodbUpMetricTask:
         cluster_report = ClusterReport(cluster, report_day, self.check_type)
         skipped, reason = self.is_skip_check(cluster)
         if skipped:
-            dev_debug(f"=== check_one {cluster.cluster_id} {cluster.immute_domain} {reason} === ")
+            logger.debug("=== check_one %s %s %s ===", cluster.cluster_id, cluster.immute_domain, reason)
             return cluster_report.make_skip_record(reason)
 
         all_node = get_all_nodes(cluster)
@@ -209,7 +239,7 @@ def fetch_metric_by_cluster(cluster_domain):
     params["end_time"] = int(end_time.timestamp())
     # 设置要查询的 cluster_domain 变量
     params["query_configs"][0]["promql"] = query_template["up"].format(cluster_domain=cluster_domain)
-    dev_debug("params: {}".format(params["query_configs"][0]["promql"]))
+    logger.debug("params: %s", params["query_configs"][0]["promql"])
 
     metric_result = defaultdict(dict)
     try:
@@ -218,7 +248,7 @@ def fetch_metric_by_cluster(cluster_domain):
     except Exception as e:
         logger.error("query metric error: {}".format(e))
         return None
-    dev_debug("cluster_domain: {} series: {}".format(cluster_domain, series))
+    logger.debug("cluster_domain: %s series: %s", cluster_domain, series)
     for item in series:
         logger.info("cluster_domain: {} item: {}".format(cluster_domain, item))
         try:
