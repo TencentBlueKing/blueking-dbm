@@ -5111,13 +5111,6 @@ class ActionEnum:
         subgroup=_("集群管理"),
     )
 
-    SQLSERVER_ROLLBACK = ActionMeta(
-        id=TicketType.SQLSERVER_ROLLBACK.lower(),
-        subgroup=_("数据处理"),
-        is_ticket_action=True,
-        common_labels=[CommonActionLabel.BIZ_MAINTAIN],
-    )
-
     # SQLServer 原地回档：重新定义权限，不挂到常用操作 BIZ_MAINTAIN 下
     SQLSERVER_ROLLBACK_LOCAL = ActionMeta(
         id="sqlserver_rollback_local",
@@ -5129,7 +5122,6 @@ class ActionEnum:
         related_resource_types=[ResourceEnum.SQLSERVER],
         group=_("SQLServer"),
         subgroup=_("数据处理"),
-        common_labels=[CommonActionLabel.BIZ_MAINTAIN],
     )
 
     ORACLE_MANAGE = ActionMeta(
