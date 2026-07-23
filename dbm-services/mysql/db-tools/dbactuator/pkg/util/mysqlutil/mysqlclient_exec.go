@@ -150,8 +150,8 @@ func (e ExecuteSqlAtLocal) ExecuteCommand(command string, report bool) (err erro
 	// 写入error 文件
 	ef, errO := os.OpenFile(e.ErrFile, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0644)
 	if errO != nil {
-		logger.Warn("打开日志时失败! %s", errO.Error())
-		return
+		logger.Error("打开错误日志失败! %s", errO.Error())
+		return errors.Wrapf(errO, "打开错误日志失败: %s", e.ErrFile)
 	}
 	defer ef.Close()
 	defer ef.Sync()
@@ -183,15 +183,19 @@ func (e ExecuteSqlAtLocal) ExecuteCommand(command string, report bool) (err erro
 
 	wg.Wait()
 
+	// Start 成功后必须 Wait，避免 capture 失败时留下残留进程
+	waitErr := cmd.Wait()
 	if errStdout != nil || errStderr != nil {
 		logger.Error("failed to capture stdout or stderr\n")
-		return
+		return errors.Errorf(
+			"failed to capture stdout or stderr: stdout=%v, stderr=%v, wait=%v",
+			errStdout, errStderr, waitErr,
+		)
 	}
-
-	if err = cmd.Wait(); err != nil {
+	if waitErr != nil {
 		errStr := string(stderrBuf.Bytes())
-		logger.Error("exec failed:%s,stderr: %s", err.Error(), errStr)
-		return
+		logger.Error("exec failed:%s,stderr: %s", waitErr.Error(), errStr)
+		return waitErr
 	}
 
 	return nil
@@ -268,11 +272,35 @@ func (e ExecuteSqlAtLocal) MyExecuteCommand(command string) (err error) {
 	return nil
 }
 
+// LinuxNameMax Linux 单段文件名长度上限（NAME_MAX）。
+const LinuxNameMax = 255
+
+// ErrLogTimestampPlaceholder MyExecuteSqlByMySQLClientOne 使用的时间戳占位（与 cst.TimeLayoutDir 等长）。
+const ErrLogTimestampPlaceholder = "20060102150405"
+
+// BuildMyExecuteErrFileBase 拼装 MyExecuteSqlByMySQLClientOne 的 err 文件名（不含目录）。
+// 格式: {sqlfile}.{db}.{timestamp}.err
+func BuildMyExecuteErrFileBase(sqlfile, db, timestamp string) string {
+	return fmt.Sprintf("%s.%s.%s.err", path.Base(sqlfile), db, timestamp)
+}
+
+// CheckMyExecuteErrFileNameLen 校验 {sqlfile}.{db}.{timestamp}.err 不超过 NAME_MAX。
+func CheckMyExecuteErrFileNameLen(sqlfile, db string) error {
+	errBase := BuildMyExecuteErrFileBase(sqlfile, db, ErrLogTimestampPlaceholder)
+	if len(errBase) > LinuxNameMax {
+		return errors.Errorf(
+			"err log 文件名过长:%s, 长度%d, 上限%d(拼装为 {sqlfile}.{db}.{timestamp}.err), sqlfile=%s db=%s, 请缩短库名或文件名",
+			errBase, len(errBase), LinuxNameMax, path.Base(sqlfile), db,
+		)
+	}
+	return nil
+}
+
 // MyExecuteSqlByMySQLClientOne 只输出错误到控制台，
 func (e ExecuteSqlAtLocal) MyExecuteSqlByMySQLClientOne(sqlfile string, db string) (err error) {
 	command := e.CreateLoadSQLCommand()
 	command = command + " " + db + "<" + path.Join(e.WorkDir, sqlfile)
-	e.ErrFile = path.Join(e.WorkDir, fmt.Sprintf("%s.%s.%s.err", sqlfile, db, time.Now().Format(cst.TimeLayoutDir)))
+	e.ErrFile = path.Join(e.WorkDir, BuildMyExecuteErrFileBase(sqlfile, db, time.Now().Format(cst.TimeLayoutDir)))
 	err = e.ExecuteCommandIgnoreStdo(command)
 	if err != nil {
 		return err
@@ -283,17 +311,16 @@ func (e ExecuteSqlAtLocal) MyExecuteSqlByMySQLClientOne(sqlfile string, db strin
 // ExecuteCommandIgnoreStdo 用于mysql数据迁移的的命令执行 只打印错误
 func (e ExecuteSqlAtLocal) ExecuteCommandIgnoreStdo(command string) (err error) {
 	var stderrBuf bytes.Buffer
-	var errStdout, errStderr error
+	var errStderr error
 	logger.Info("The Command Is %s", mysqlcomm.ClearSensitiveInformation(command))
 	cmd := exec.Command("/bin/bash", "-c", command)
-	// stdoutIn, _ := cmd.StdoutPipe()
 	stderrIn, _ := cmd.StderrPipe()
 
 	// 写入error 文件
 	ef, errO := os.OpenFile(e.ErrFile, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0644)
 	if errO != nil {
-		logger.Warn("打开日志时失败! %s", errO.Error())
-		return
+		logger.Error("打开错误日志失败! %s", errO.Error())
+		return errors.Wrapf(errO, "打开错误日志失败: %s", e.ErrFile)
 	}
 	defer ef.Close()
 	defer ef.Sync()
@@ -305,26 +332,21 @@ func (e ExecuteSqlAtLocal) ExecuteCommandIgnoreStdo(command string) (err error) 
 		return
 	}
 
-	var wg sync.WaitGroup
-	wg.Add(1)
-
-	go func() {
-		// _, errStdout = io.Copy(stdout, stdoutIn)
-		wg.Done()
-	}()
-
 	_, errStderr = io.Copy(stderr, stderrIn)
-	wg.Wait()
 
-	if errStdout != nil || errStderr != nil {
-		logger.Error("failed to capture stdout or stderr\n")
-		return
+	// Start 成功后必须 Wait，避免 capture 失败时留下残留进程
+	waitErr := cmd.Wait()
+	if errStderr != nil {
+		logger.Error("failed to capture stderr\n")
+		return errors.Errorf(
+			"failed to capture stderr: stderr=%v, wait=%v",
+			errStderr, waitErr,
+		)
 	}
-
-	if err = cmd.Wait(); err != nil {
+	if waitErr != nil {
 		errStr := string(stderrBuf.Bytes())
-		logger.Error("exec failed:%s,stderr: %s", err.Error(), errStr)
-		return
+		logger.Error("exec failed:%s,stderr: %s", waitErr.Error(), errStr)
+		return waitErr
 	}
 
 	return nil

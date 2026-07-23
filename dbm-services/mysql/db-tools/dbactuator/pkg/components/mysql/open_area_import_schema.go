@@ -11,6 +11,7 @@
 package mysql
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"path"
@@ -25,7 +26,7 @@ import (
 	"dbm-services/mysql/db-tools/dbactuator/pkg/util/mysqlutil"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/util/osutil"
 
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 )
 
 // OpenAreaImportSchemaComp TODO
@@ -148,13 +149,42 @@ func (c *OpenAreaImportSchemaComp) Init() (err error) {
 func (c *OpenAreaImportSchemaComp) Precheck() (err error) {
 	if !util.FileExists(c.tarFilePath) {
 		logger.Error("tar file(*s) does not exist.", c.tarFilePath)
-		return errors.New("压缩文件不存在")
+		return pkgerrors.New("压缩文件不存在")
 	}
 	if !util.FileExists(c.md5FilePath) {
 		logger.Error("tar file(*s) does not exist.", c.tarFilePath)
-		return errors.New("md5sum文件不存在")
+		return pkgerrors.New("md5sum文件不存在")
+	}
+	if err = c.checkImportErrFileNameLength(); err != nil {
+		logger.Error("开区导入 err log 文件名长度检查失败:%s", err.Error())
+		return err
 	}
 	return
+}
+
+// checkImportErrFileNameLength 按 MyExecuteSqlByMySQLClientOne 的拼装规则校验 err 文件名长度。
+// err log: {sqlfile}.{db}.{timestamp}.err
+func (c *OpenAreaImportSchemaComp) checkImportErrFileNameLength() error {
+	var errs []error
+	for _, item := range c.Params.OpenAreaParam {
+		// 开区导入表结构: {Schema}.sql.{NewDB}.new -> NewDB
+		schemaFile := fmt.Sprintf("%s.sql.%s.new", item.Schema, item.NewDB)
+		if err := mysqlutil.CheckMyExecuteErrFileNameLen(schemaFile, item.NewDB); err != nil {
+			errs = append(errs, err)
+		}
+		// 开区导入数据: {Schema}.sql -> NewDB
+		dataFile := fmt.Sprintf("%s.sql", item.Schema)
+		if err := mysqlutil.CheckMyExecuteErrFileNameLen(dataFile, item.NewDB); err != nil {
+			errs = append(errs, err)
+		}
+		// 数据迁移导入: {db}.sql -> db
+		for _, db := range item.DbList {
+			if err := mysqlutil.CheckMyExecuteErrFileNameLen(fmt.Sprintf("%s.sql", db), db); err != nil {
+				errs = append(errs, err)
+			}
+		}
+	}
+	return errors.Join(errs...)
 }
 
 // DecompressDumpDir TODO
@@ -174,7 +204,7 @@ func (c *OpenAreaImportSchemaComp) DecompressDumpDir() (err error) {
 		msg := fmt.Sprintf("realMD5Sum(%s) is not equal to md5sum(%s) recored in the file(%s)",
 			realMd5sumVal, sourceMd5sumVal, c.md5FilePath)
 		logger.Error(msg)
-		return errors.New(msg)
+		return pkgerrors.New(msg)
 	}
 	logger.Info("get tar file sucess!")
 	decopressCmd := fmt.Sprintf("tar -zxf %s -C %s", c.tarFilePath, c.decompressDir)
