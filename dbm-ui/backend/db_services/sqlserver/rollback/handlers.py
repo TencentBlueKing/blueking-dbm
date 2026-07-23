@@ -369,7 +369,7 @@ class SQLServerRollbackHandler(object):
         @param restore_time: 回档时间
         """
         if restore_time:
-            backup_logs = self.query_latest_backup_log(restore_time)
+            backup_logs = self.query_latest_backup_log_from_model(restore_time)
 
         db_names = [log["dbname"] for log in backup_logs["logs"]]
         real_db_names = sqlserver_match_dbs(db_names, db_pattern, ignore_db)
