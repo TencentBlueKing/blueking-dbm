@@ -137,6 +137,7 @@
       }
     },
     {
+      deep: true,
       immediate: true,
     },
   );
