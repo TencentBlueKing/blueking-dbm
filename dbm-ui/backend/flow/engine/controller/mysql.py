@@ -38,15 +38,14 @@ from backend.flow.engine.bamboo.scene.mysql.mysql_ha_apply_flow import MySQLHAAp
 from backend.flow.engine.bamboo.scene.mysql.mysql_ha_destroy_flow import MySQLHADestroyFlow
 from backend.flow.engine.bamboo.scene.mysql.mysql_ha_disable_flow import MySQLHADisableFlow
 from backend.flow.engine.bamboo.scene.mysql.mysql_ha_enable_flow import MySQLHAEnableFlow
-from backend.flow.engine.bamboo.scene.mysql.mysql_ha_upgrade import (
-    DestroyNonStanbySlaveMySQLFlow,
-    TendbClusterUpgradeFlow,
-)
+from backend.flow.engine.bamboo.scene.mysql.mysql_local_upgrade_flow import MySQLLocalUpgradeFlow
 from backend.flow.engine.bamboo.scene.mysql.mysql_machine_clear_flow import ClearMysqlMachineFlow
 from backend.flow.engine.bamboo.scene.mysql.mysql_master_fail_over import MySQLMasterFailOverFlow
 from backend.flow.engine.bamboo.scene.mysql.mysql_master_slave_switch import MySQLMasterSlaveSwitchFlow
 from backend.flow.engine.bamboo.scene.mysql.mysql_migrate_cluster_remote_flow import MySQLMigrateClusterRemoteFlow
 from backend.flow.engine.bamboo.scene.mysql.mysql_migrate_single_flow import MySQLMigrateSingleFlow
+from backend.flow.engine.bamboo.scene.mysql.mysql_migrate_upgrade_flow import TenDBHAMigrateUpgradeFlow
+from backend.flow.engine.bamboo.scene.mysql.mysql_non_standby_slave_destroy_flow import DestroyNonStanbySlaveMySQLFlow
 from backend.flow.engine.bamboo.scene.mysql.mysql_open_area_flow import MysqlOpenAreaFlow
 from backend.flow.engine.bamboo.scene.mysql.mysql_partition import MysqlPartitionFlow
 from backend.flow.engine.bamboo.scene.mysql.mysql_partition_cron import MysqlPartitionCronFlow
@@ -67,7 +66,6 @@ from backend.flow.engine.bamboo.scene.mysql.mysql_single_destroy_flow import MyS
 from backend.flow.engine.bamboo.scene.mysql.mysql_single_disable_flow import MySQLSingleDisableFlow
 from backend.flow.engine.bamboo.scene.mysql.mysql_single_enable_flow import MySQLSingleEnableFlow
 from backend.flow.engine.bamboo.scene.mysql.mysql_truncate_flow import MySQLTruncateFlow
-from backend.flow.engine.bamboo.scene.mysql.mysql_upgrade import MySQLStorageLocalUpgradeFlow
 from backend.flow.engine.bamboo.scene.mysql.pt_table_sync import PtTableSyncFlow
 from backend.flow.engine.bamboo.scene.mysql.revoke.mysql_ha_apply_revoke_flow import MySQLHAApplyRevokeFlow
 from backend.flow.engine.bamboo.scene.mysql.revoke.mysql_single_apply_revoke_flow import MySQLSingleApplyRevokeFlow
@@ -663,7 +661,7 @@ class MySQLController(BaseController):
             ]
         }
         """
-        flow = MySQLStorageLocalUpgradeFlow(root_id=self.root_id, ticket_data=self.ticket_data)
+        flow = MySQLLocalUpgradeFlow(root_id=self.root_id, ticket_data=self.ticket_data)
         flow.upgrade_mysql_flow()
 
     def mysql_data_migrate_scene(self):
@@ -708,7 +706,7 @@ class MySQLController(BaseController):
         """
         非Standby从库升级
         """
-        flow = TendbClusterUpgradeFlow(root_id=self.root_id, ticket_data=self.ticket_data)
+        flow = TenDBHAMigrateUpgradeFlow(root_id=self.root_id, ticket_data=self.ticket_data)
         flow.upgrade_ro_slaves()
 
     @validates_with(TenDBHAUpgradeValidator)
@@ -716,7 +714,7 @@ class MySQLController(BaseController):
         """
         tendbha 迁移升级,兼容一主多从的场景
         """
-        flow = TendbClusterUpgradeFlow(root_id=self.root_id, ticket_data=self.ticket_data)
+        flow = TenDBHAMigrateUpgradeFlow(root_id=self.root_id, ticket_data=self.ticket_data)
         flow.upgrade_tendbha_cluster()
 
     def non_standby_slaves_destroy_scene(self):

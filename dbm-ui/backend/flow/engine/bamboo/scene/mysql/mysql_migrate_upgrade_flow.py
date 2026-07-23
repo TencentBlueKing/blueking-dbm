@@ -19,7 +19,7 @@ from backend.configuration.constants import DBType
 from backend.constants import IP_PORT_DIVIDER
 from backend.db_meta.enums import ClusterType, InstanceInnerRole, InstanceStatus
 from backend.db_meta.exceptions import DBMetaException
-from backend.db_meta.models import Cluster, StorageInstance
+from backend.db_meta.models import Cluster
 from backend.db_package.models import Package
 from backend.flow.consts import MediumEnum
 from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
@@ -33,6 +33,7 @@ from backend.flow.engine.bamboo.scene.mysql.common.mysql_resotre_data_sub_flow i
     mysql_restore_data_sub_flow,
     mysql_restore_master_slave_sub_flow,
 )
+from backend.flow.engine.bamboo.scene.mysql.common.mysql_upgrade_utils import adapt_mycnf_for_upgrade
 from backend.flow.engine.bamboo.scene.mysql.common.slave_recover_switch import slave_migrate_switch_sub_flow
 from backend.flow.engine.bamboo.scene.mysql.common.uninstall_instance import uninstall_instance_sub_flow
 from backend.flow.engine.bamboo.scene.mysql.deploy_peripheraltools.departs import (
@@ -73,9 +74,9 @@ from backend.ticket.constants import TicketType
 logger = logging.getLogger("flow")
 
 
-class TendbClusterUpgradeFlow(object):
+class TenDBHAMigrateUpgradeFlow(object):
     """
-    一主多从非stand by slaves升级
+    TenDBHA 迁移升级（换机升级），兼容一主多从；含非 standby RO slave 升级
     """
 
     def __init__(self, root_id: str, ticket_data: Optional[Dict]):
@@ -95,10 +96,14 @@ class TendbClusterUpgradeFlow(object):
 
     def __pre_check(self):
         """
-        升级前置检查
+        升级前置检查（MySQL 8.0 新节点 OS / tlinux 版本）
+
+        注意：本检查必须留在 flow 编排阶段，不能提前到 TenDBHAUpgradeValidator。
+        原因：资源池单据的 new_master / new_slave / os_name 要等资源申请
+        post_callback 写入后才有；validator 执行时尚无这些字段，提前检查会漏检或误跳过。
         """
         for info in self.ticket_data["infos"]:
-            # 检查操作系统版本（如果升级到 8.0）
+            # 检查操作系统版本（如果升级到 8.0）；须在资源申请完成后执行，见上方 docstring
             pkg_id = info.get("pkg_id")
             if pkg_id:
                 try:
@@ -532,26 +537,6 @@ def tendbha_cluster_upgrade_subflow(
         )
     sub_pipeline.add_parallel_sub_pipeline(sub_flow_list=uninstall_flows)
     return sub_pipeline.build_sub_process(sub_name=_("{}:整体迁移升级").format(cluster_cls.immute_domain))
-
-
-def adapt_mycnf_for_upgrade(pkg_name, db_version: str, db_config: dict):
-    if mysql_version_parse(db_version) >= mysql_version_parse("5.7.0"):
-        will_del_keys = ["slave_parallel_type", "replica_parallel_type"]
-        # 如果不是tmysql的话，需要删除一些配置
-        if "tmysql" not in pkg_name:
-            will_del_keys.append("log_bin_compress")
-            will_del_keys.append("relay_log_uncompress")
-        for port in db_config:
-            for key in will_del_keys:
-                if db_config[port].get(key):
-                    del db_config[port][key]
-    if mysql_version_parse(db_version) >= mysql_version_parse("8.0.0"):
-        will_del_keys = ["innodb_large_prefix"]
-        for port in db_config:
-            for key in will_del_keys:
-                if db_config[port].get(key):
-                    del db_config[port][key]
-    return db_config
 
 
 def non_standby_slaves_upgrade_subflow(
@@ -1262,92 +1247,3 @@ def build_uninstall_surrounding_sub_pipeline(
         acts_list=acts,
     )
     return sub_pipeline.build_sub_process(sub_name=_("清理实例级别周边配置"))
-
-
-class DestroyNonStanbySlaveMySQLFlow(object):
-    """
-    下架非standby slave MySQL实例的流程
-    """
-
-    def __init__(self, root_id: str, ticket_data: Optional[Dict]):
-        """
-        @param root_id : 任务流程定义的root_id
-        @param tick_data : 单据传递过来的参数列表，是dict格式
-        """
-        self.root_id = root_id
-        self.ticket_data = ticket_data
-        if not self.ticket_data.get("force"):
-            self.ticket_data["force"] = False
-
-    def destroy(self):
-        """
-        {
-            "uid": "2022051612120001",
-            "created_by": "xxxx",
-            "bk_biz_id": "152",
-            "ticket_type": "MYSQL_RESTORE_SLAVE",
-            "infos": {
-                    "cluster_ids": [1001,1002],
-                    "slave_ip": "1.1.1.1",
-            }
-        }
-        """
-        cluster_ids = self.ticket_data["infos"]["cluster_ids"]
-        slave_ip = self.ticket_data["infos"]["slave_ip"]
-        cluster_class = Cluster.objects.get(id=cluster_ids[0])
-        ports = get_ports(cluster_ids)
-        slave_ins_list = StorageInstance.objects.filter(machine__ip=slave_ip)
-
-        for slave_ins in slave_ins_list:
-            if slave_ins.is_stand_by:
-                raise DBMetaException(message=_("{}:{}实例是standby slave,请确认").format(slave_ip, slave_ins.port))
-
-        p = Builder(
-            root_id=self.root_id,
-            data=copy.deepcopy(self.ticket_data),
-            need_random_pass_cluster_ids=list(set(cluster_ids)),
-        )
-
-        p.add_act(
-            act_name=_("卸载实例前先删除元数据"),
-            act_component_code=MySQLDBMetaComponent.code,
-            kwargs=asdict(
-                DBMetaOPKwargs(
-                    db_meta_class_func=MySQLDBMeta.ro_slave_recover_del_instance.__name__,
-                    cluster={"uninstall_ip": slave_ip, "cluster_ids": cluster_ids},
-                )
-            ),
-        )
-
-        p.add_act(
-            act_name=_("下发db-actor到节点{}").format(slave_ip),
-            act_component_code=TransFileComponent.code,
-            kwargs=asdict(
-                DownloadMediaKwargs(
-                    bk_cloud_id=cluster_class.bk_cloud_id,
-                    exec_ip=slave_ip,
-                    file_list=GetFileList(db_type=DBType.MySQL).get_db_actuator_package(),
-                )
-            ),
-        )
-
-        p.add_act(
-            act_name=_("清理机器配置"),
-            act_component_code=MySQLClearMachineComponent.code,
-            kwargs=asdict(
-                ClearMachineKwargs(
-                    exec_ip=slave_ip,
-                    bk_cloud_id=cluster_class.bk_cloud_id,
-                )
-            ),
-        )
-
-        p.add_sub_pipeline(
-            sub_flow=uninstall_instance_sub_flow(
-                root_id=self.root_id,
-                ticket_data=copy.deepcopy(self.ticket_data),
-                ip=slave_ip,
-                ports=ports,
-            )
-        )
-        p.run_pipeline(is_drop_random_user=False)

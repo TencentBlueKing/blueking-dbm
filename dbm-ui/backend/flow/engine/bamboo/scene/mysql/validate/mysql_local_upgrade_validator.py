@@ -18,7 +18,7 @@ from backend.db_meta.exceptions import DBMetaException
 from backend.db_meta.models import Cluster, StorageInstance
 from backend.db_package.models import Package
 from backend.flow.consts import MediumEnum
-from backend.flow.engine.bamboo.scene.mysql.mysql_upgrade import upgrade_version_check
+from backend.flow.engine.bamboo.scene.mysql.common.mysql_upgrade_utils import upgrade_version_check
 from backend.flow.engine.bamboo.scene.mysql.validate.exception import (
     MySQLMasterSlaveVersionFailedException,
     MySQLUpgradeVersionFailedException,
@@ -256,7 +256,7 @@ class MySQLLocalUpgradeValidator(MysqlBaseValidator):
 
     def pre_check_mysql_upgrade_version(self):
         """
-        检查MySQL升级版本的合法性（从mysql_upgrade.py中的_pre_upgrade_version_check抽取）
+        检查MySQL升级版本的合法性（从mysql_upgrade_utils.py中的upgrade_version_check抽取）
 
         校验逻辑：
         1. 遍历所有待升级的集群信息
@@ -394,7 +394,7 @@ class MySQLLocalUpgradeValidator(MysqlBaseValidator):
             # MySQL主从版本一致性检查失败，抛出专门的异常
             raise MySQLMasterSlaveVersionFailedException("\n".join(master_slave_version_errors))
 
-        # 阶段4 检查升级版本的合法性（从mysql_upgrade.py抽取的逻辑）
+        # 阶段4 检查升级版本的合法性（mysql_upgrade_utils.upgrade_version_check）
         upgrade_version_errors = self.pre_check_mysql_upgrade_version()
         if upgrade_version_errors:
             # 升级版本检查失败，抛出专门的异常

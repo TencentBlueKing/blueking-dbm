@@ -32,7 +32,7 @@ logger = logging.getLogger("flow")
 UPGRADE_CHECK_PARAMS = ["log_bin_compress"]
 PARAM_OFF_VALUES = ["0", "off", "OFF", "NONE", "none", ""]
 
-# 升级到 MySQL 8.0 需要的最低 tlinux 版本
+# 升级到 MySQL 8.0 需要的最低 tlinux 版本（OS 检查在 flow.__pre_check，见类 docstring）
 MIN_TLINUX_VERSION = (1, 2)
 
 
@@ -46,8 +46,12 @@ class TenDBHAUpgradeValidator(MysqlBaseValidator):
        - 检查 master 实例的以下参数必须已关闭：
          * log_bin_compress: 必须为 0 或 OFF
          * binlog_checksum: 必须为 0、OFF 或 NONE
-       - 检查新主机的操作系统版本：
-         * tlinux 版本必须大于 1.2
+
+    新主机操作系统 / tlinux 版本检查（升级到 MySQL 8.0 时 tlinux 须大于 1.2）：
+    不要放在本 validator。资源池场景下 new_master / new_slave / os_name 仅在资源申请
+    post_callback 之后才写入单据；本校验执行时尚无 OS 信息，提前检查会漏检。
+    该检查保留在 mysql_migrate_upgrade_flow.TenDBHAMigrateUpgradeFlow.__pre_check。
+    下方 _parse_tlinux_version / _is_tlinux_version_valid 供后续复用，当前未在 __call__ 中调用。
 
     数据格式：
     {
@@ -62,11 +66,7 @@ class TenDBHAUpgradeValidator(MysqlBaseValidator):
                     "old_slave": [...]
                 }
             }
-        ],
-        "nodes": {
-            "0_new_master": [{"ip": "127.0.0.2", "os_name": "tlinux-2.6", ...}],
-            "0_new_slave": [{"ip": "127.0.0.3", "os_name": "tlinux-2.6", ...}]
-        }
+        ]
     }
 
     注意：注释中的 IP 地址必须使用 127.0.0.x 格式，避免敏感信息泄露。

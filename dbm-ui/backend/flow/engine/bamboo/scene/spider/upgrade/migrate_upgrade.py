@@ -27,6 +27,7 @@ from backend.flow.engine.bamboo.scene.mysql.common.get_master_config import get_
 from backend.flow.engine.bamboo.scene.mysql.common.mysql_resotre_data_sub_flow import (
     mysql_restore_master_slave_sub_flow,
 )
+from backend.flow.engine.bamboo.scene.mysql.common.mysql_upgrade_utils import adapt_mycnf_for_upgrade
 from backend.flow.engine.bamboo.scene.mysql.common.uninstall_instance import uninstall_instance_sub_flow
 from backend.flow.engine.bamboo.scene.mysql.deploy_peripheraltools.departs import (
     ALLDEPARTS,
@@ -34,7 +35,6 @@ from backend.flow.engine.bamboo.scene.mysql.deploy_peripheraltools.departs impor
     remove_departs,
 )
 from backend.flow.engine.bamboo.scene.mysql.deploy_peripheraltools.subflow import standardize_mysql_cluster_subflow
-from backend.flow.engine.bamboo.scene.mysql.mysql_ha_upgrade import adapt_mycnf_for_upgrade
 from backend.flow.engine.bamboo.scene.spider.common.common_sub_flow import remote_migrate_switch_sub_flow
 from backend.flow.engine.bamboo.scene.spider.common.exceptions import TendbGetBackupInfoFailedException
 from backend.flow.plugins.components.collections.common.download_backup_client import DownloadBackupClientComponent
