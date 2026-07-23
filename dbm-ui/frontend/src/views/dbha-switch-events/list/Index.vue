@@ -63,7 +63,10 @@
       </div>
     </template>
     <SwtichEventDetatils
+      :ip="logState.data.ip"
       :is-active="logState.isShow"
+      :port="logState.data.port"
+      :switch-version="logState.data.switch_version || ''"
       :uid="logState.data.uid" />
   </DbSideslider>
 </template>
