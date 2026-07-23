@@ -23,12 +23,11 @@ from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
 from backend.flow.engine.bamboo.scene.doris.doris_base_flow import (
     DorisBaseFlow,
     get_all_node_ips_in_ticket,
+    make_be_map_from_ticket,
+    make_fe_map_from_ticket,
     make_meta_host_map,
 )
-from backend.flow.engine.bamboo.scene.doris.exceptions import (
-    ReplaceMachineCountException,
-    RoleMachineCountMustException,
-)
+from backend.flow.engine.bamboo.scene.doris.exceptions import ReplaceMachineCountException
 from backend.flow.plugins.components.collections.doris.doris_db_meta import DorisMetaComponent
 from backend.flow.plugins.components.collections.doris.doris_dns_manage import DorisDnsManageComponent
 from backend.flow.plugins.components.collections.doris.exec_doris_actuator_script import (
@@ -36,7 +35,6 @@ from backend.flow.plugins.components.collections.doris.exec_doris_actuator_scrip
 )
 from backend.flow.plugins.components.collections.doris.get_doris_payload import GetDorisActPayloadComponent
 from backend.flow.plugins.components.collections.es.trans_files import TransFileComponent
-from backend.flow.utils.doris.consts import DORIS_FOLLOWER_MUST_COUNT
 from backend.flow.utils.doris.doris_act_payload import DorisActPayload
 from backend.flow.utils.doris.doris_context_dataclass import DorisActKwargs, DorisApplyContext
 from backend.ticket.constants import TicketType
@@ -46,9 +44,10 @@ logger = logging.getLogger("flow")
 
 class DorisReplaceFlow(DorisBaseFlow):
     """
-    Doris替换流程
-    FE 替换采用逐个滚动替换模式，保证集群在替换过程中始终有足够的可用节点。
-    BE 替换保持先扩后缩的两阶段模式。
+    Doris替换流程，分为三大部分：
+    1. Observer 替换：先扩后缩（Observer 不参与选主，可批量操作）
+    2. Follower 滚动替换：逐个 ADD→启动→DNS→停旧→DNS→DROP→DBMeta
+    3. BE 替换：先扩后缩
     """
 
     def __init__(self, root_id: str, data: Optional[Dict]):
@@ -60,37 +59,28 @@ class DorisReplaceFlow(DorisBaseFlow):
         self.new_nodes = data["new_nodes"]
         self.old_nodes = data["old_nodes"]
 
-    def __get_fe_replace_order(self) -> List[Tuple[str, str, str]]:
+    def __get_follower_replace_order(self) -> List[Tuple[str, str, str]]:
         """
-        确定 FE 替换顺序：follower（先） → observer（后）
-        follower 统一使用 Stop → DROP 顺序，避免 "can not drop current master node" 错误
+        确定 Follower 滚动替换顺序
 
         :return: [(old_ip, new_ip, role), ...] 按替换顺序排列
         """
-        fe_roles = [DorisRoleEnum.FOLLOWER.value, DorisRoleEnum.OBSERVER.value]
-        followers = []
-        observers = []
+        role = DorisRoleEnum.FOLLOWER.value
+        replace_order = []
 
-        for role in fe_roles:
-            if role not in self.old_nodes or role not in self.new_nodes:
-                continue
-            old_ips = [node["ip"] for node in self.old_nodes[role]]
-            new_ips = [node["ip"] for node in self.new_nodes[role]]
-            if len(old_ips) != len(new_ips):
-                raise ReplaceMachineCountException(
-                    doris_role=role,
-                    old_count=len(old_ips),
-                    new_count=len(new_ips),
-                )
-            for i, old_ip in enumerate(old_ips):
-                new_ip = new_ips[i]
-                if role == DorisRoleEnum.FOLLOWER.value:
-                    followers.append((old_ip, new_ip, role))
-                else:
-                    observers.append((old_ip, new_ip, role))
+        if role not in self.old_nodes or role not in self.new_nodes:
+            return replace_order
 
-        replace_order = followers + observers
-        logger.info("FE replace order: %s", replace_order)
+        old_ips = [node["ip"] for node in self.old_nodes[role]]
+        new_ips = [node["ip"] for node in self.new_nodes[role]]
+        if len(old_ips) != len(new_ips):
+            raise ReplaceMachineCountException(
+                doris_role=role,
+                old_count=len(old_ips),
+                new_count=len(new_ips),
+            )
+        for i, old_ip in enumerate(old_ips):
+            replace_order.append((old_ip, new_ips[i], role))
         return replace_order
 
     def __get_flow_data(self) -> dict:
@@ -100,42 +90,14 @@ class DorisReplaceFlow(DorisBaseFlow):
         flow_data["master_fe_ip"] = self.follower_ips[0]
         return flow_data
 
-    def __get_scale_up_flow_data(self) -> dict:
-        flow_data = self.get_flow_base_data()
-        flow_data["nodes"] = self.new_nodes
-        flow_data["ticket_type"] = TicketType.DORIS_SCALE_UP.value
-        follower_ips = self.get_role_ips_in_dbmeta(InstanceRole.DORIS_FOLLOWER)
-        if len(follower_ips) < DORIS_FOLLOWER_MUST_COUNT:
-            logger.error("get follower ips from dbmeta, count is {}, invalid".format(len(follower_ips)))
-            raise RoleMachineCountMustException(
-                doris_role=DorisRoleEnum.FOLLOWER, must_count=DORIS_FOLLOWER_MUST_COUNT
-            )
-        flow_data["master_fe_ip"] = follower_ips[0]
-        host_map = make_meta_host_map(flow_data)
-        flow_data["host_meta_map"] = host_map
-        return flow_data
-
-    def __get_shrink_flow_data(self) -> dict:
-        flow_data = self.get_flow_base_data()
-        flow_data["nodes"] = self.old_nodes
-        flow_data["ticket_type"] = TicketType.DORIS_SHRINK.value
-        if DorisRoleEnum.FOLLOWER in self.new_nodes and self.new_nodes[DorisRoleEnum.FOLLOWER]:
-            new_follower_ips = [node["ip"] for node in self.new_nodes[DorisRoleEnum.FOLLOWER]]
-            flow_data["master_fe_ip"] = new_follower_ips[0]
-        else:
-            follower_ips = self.get_role_ips_in_dbmeta(InstanceRole.DORIS_FOLLOWER)
-            if len(follower_ips) < DORIS_FOLLOWER_MUST_COUNT:
-                logger.error("get follower ips from dbmeta, count is {}, invalid".format(len(follower_ips)))
-                raise RoleMachineCountMustException(
-                    doris_role=DorisRoleEnum.FOLLOWER, must_count=DORIS_FOLLOWER_MUST_COUNT
-                )
-            flow_data["master_fe_ip"] = follower_ips[0]
-        return flow_data
-
-    def replace_doris_flow(self):
+    def replace_doris_flow(self):  # noqa: C901
         """
         Doris 替换流程
-        FE 采用逐个滚动替换，BE 保持先扩后缩两阶段模式
+        Pipeline 1: 介质准备与节点预初始化
+        Pipeline 2: Observer 替换（先扩后缩）
+        Pipeline 3: Follower 滚动替换
+        Pipeline 4: BE 替换（先扩后缩）
+        Pipeline 5: 收尾清理
         """
         replace_data = self.__get_flow_data()
         self.check_replace_role_ip_count(replace_data)
@@ -188,159 +150,322 @@ class DorisReplaceFlow(DorisBaseFlow):
 
         doris_pipeline.add_sub_pipeline(sub_flow=preinit_pipeline.build_sub_process(sub_name=_("介质准备与节点预初始化")))
 
-        # ================================================================
-        # Pipeline 2: FE 替换（逐个滚动替换）
-        # ================================================================
-        fe_replace_order = self.__get_fe_replace_order()
-
-        # 追踪当前确定在线的 FE IP（follower 或 observer 均可）。
-        # 用于 ADD FOLLOWER、helper 启动、BE 元数据更新等需要连接集群的操作。
-        # 第1个替换用当前 master，之后的替换用上一个已启动成功的新 FE。
-        # 全部替换完成后它就是最后一个新 FE，传给 BE 替换阶段使用。
-        #
-        # 注意：active_target_ip 的更新发生在每轮迭代末尾，它假设上一轮
-        # 的新 FE 已成功启动。但若上一轮的新 FE 启动失败，active_target_ip 已指向一个
-        # 未上线的节点，而该轮迭代的旧 FE 可能已被 DROP，导致下一轮 ADD 无可用连接。
-        # 此处依赖 sub_pipeline 的串行执行语义：任意子步骤失败会立即中止整个流程，
-        # 不会进入下一轮迭代，因此不会出现"旧 FE 已删、新 FE 未启"的中间态被后续
-        # 迭代使用的问题。
+        # active_target_ip 追踪当前确定在线的 Follower IP，用于 ADD/DROP 元数据、
+        # helper 启动等需要连接集群的操作。初始值为 DBMeta 中现有的第一个 follower。
+        # Observer 替换阶段不会改变 follower，Follower 滚动替换阶段每轮更新为新 follower。
         active_target_ip = self.follower_ips[0]
-        logger.info("replace flow: initial active_target_ip=%s", active_target_ip)
 
-        if fe_replace_order:
-            fe_replace_pipeline = SubBuilder(root_id=self.root_id, data=replace_data)
+        # 查询集群当前 Observer IP 列表（构建时查询，反映 DBMeta 初始状态）
+        # 用于： Follower 滚动替换判断是否需要更新 DNS
+        existing_observer_ips = self.get_role_ips_in_dbmeta(InstanceRole.DORIS_OBSERVER)
+        has_observer_in_dbmeta = len(existing_observer_ips) > 0
 
-            for idx, (old_ip, new_ip, role) in enumerate(fe_replace_order):
+        # ================================================================
+        # Pipeline 2: Observer 替换（先扩后缩）
+        # Observer 不参与选主，可以像 BE 一样先扩后缩，无需滚动。
+        # ================================================================
+        observer_role = DorisRoleEnum.OBSERVER.value
+        observer_has_new = observer_role in self.new_nodes and self.new_nodes[observer_role]
+        observer_has_old = observer_role in self.old_nodes and self.old_nodes[observer_role]
+
+        if observer_has_new or observer_has_old:
+            observer_replace_pipeline = SubBuilder(root_id=self.root_id, data=replace_data)
+
+            # --- Observer 扩容 ---
+            if observer_has_new:
+                obs_scale_up_nodes = {observer_role: self.new_nodes[observer_role]}
+
+                obs_scale_up_data = self.get_flow_base_data()
+                obs_scale_up_data["nodes"] = obs_scale_up_nodes
+                obs_scale_up_data["ticket_type"] = TicketType.DORIS_SCALE_UP.value
+                obs_scale_up_data["master_fe_ip"] = active_target_ip
+                obs_scale_up_data["host_meta_map"] = make_meta_host_map(obs_scale_up_data)
+
+                obs_scale_up_sub = SubBuilder(root_id=self.root_id, data=obs_scale_up_data)
+
+                obs_up_kwargs = DorisActKwargs(bk_cloud_id=self.bk_cloud_id)
+                obs_up_kwargs.set_trans_data_dataclass = DorisApplyContext.__name__
+
+                obs_scale_up_sub.add_act(
+                    act_name=_("获取Payload"),
+                    act_component_code=GetDorisActPayloadComponent.code,
+                    kwargs=asdict(obs_up_kwargs),
+                )
+
+                # ADD OBSERVER 元数据
+                obs_up_kwargs.exec_ip = obs_scale_up_data["master_fe_ip"]
+                obs_up_kwargs.get_doris_payload_func = DorisActPayload.get_add_metadata_payload.__name__
+                obs_scale_up_sub.add_act(
+                    act_name=_("Observer集群元数据更新"),
+                    act_component_code=ExecuteDorisActuatorScriptComponent.code,
+                    kwargs=asdict(obs_up_kwargs),
+                )
+
+                # 启动新 Observer（helper 启动 → supervisor 接管）
+                obs_up_kwargs.get_doris_payload_func = DorisActPayload.get_start_fe_by_helper_payload.__name__
+                for node in self.new_nodes[observer_role]:
+                    obs_up_kwargs.exec_ip = node["ip"]
+                    obs_up_kwargs.doris_role = observer_role
+                    obs_scale_up_sub.add_act(
+                        act_name=_("helper启动新Observer-{}").format(node["ip"]),
+                        act_component_code=ExecuteDorisActuatorScriptComponent.code,
+                        kwargs=asdict(obs_up_kwargs),
+                    )
+                    obs_up_kwargs.get_doris_payload_func = DorisActPayload.get_install_doris_payload.__name__
+                    obs_scale_up_sub.add_act(
+                        act_name=_("supervisor接管新Observer-{}").format(node["ip"]),
+                        act_component_code=ExecuteDorisActuatorScriptComponent.code,
+                        kwargs=asdict(obs_up_kwargs),
+                    )
+                    obs_up_kwargs.get_doris_payload_func = DorisActPayload.get_start_fe_by_helper_payload.__name__
+
+                # 检查新 Observer 启动
+                for node in self.new_nodes[observer_role]:
+                    obs_up_kwargs.exec_ip = node["ip"]
+                    obs_up_kwargs.doris_role = observer_role
+                    obs_up_kwargs.get_doris_payload_func = DorisActPayload.get_check_start_payload.__name__
+                    obs_scale_up_sub.add_act(
+                        act_name=_("检查新Observer启动-{}").format(node["ip"]),
+                        act_component_code=ExecuteDorisActuatorScriptComponent.code,
+                        kwargs=asdict(obs_up_kwargs),
+                    )
+
+                # 写 DBMeta（scale_up 把新 Observer 写入 DBMeta）
+                obs_scale_up_sub.add_act(
+                    act_name=_("添加到DBMeta"),
+                    act_component_code=DorisMetaComponent.code,
+                    kwargs=asdict(obs_up_kwargs),
+                )
+
+                # 更新域名：基于 DBMeta 按优先级重算（有 Observer 则只绑 Observer，
+                # 自动把 Follower 从域名中移除）
+                obs_scale_up_sub.add_act(
+                    act_name=_("更新域名"),
+                    act_component_code=DorisDnsManageComponent.code,
+                    kwargs={
+                        "bk_cloud_id": self.bk_cloud_id,
+                        "dns_op_type": DnsOpType.UPDATE,
+                        "domain_name": self.domain,
+                        "dns_op_exec_port": self.http_port,
+                    },
+                )
+
+                observer_replace_pipeline.add_sub_pipeline(
+                    sub_flow=obs_scale_up_sub.build_sub_process(sub_name=_("Observer扩容"))
+                )
+
+            # --- Observer 缩容 ---
+            if observer_has_old:
+                obs_shrink_nodes = {observer_role: self.old_nodes[observer_role]}
+
+                obs_shrink_data = self.get_flow_base_data()
+                obs_shrink_data["nodes"] = obs_shrink_nodes
+                obs_shrink_data["ticket_type"] = TicketType.DORIS_SHRINK.value
+                obs_shrink_data["master_fe_ip"] = active_target_ip
+                obs_shrink_data["host_meta_map"] = make_fe_map_from_ticket({"nodes": obs_shrink_nodes})
+
+                obs_shrink_sub = SubBuilder(root_id=self.root_id, data=obs_shrink_data)
+
+                obs_down_kwargs = DorisActKwargs(bk_cloud_id=self.bk_cloud_id)
+                obs_down_kwargs.set_trans_data_dataclass = DorisApplyContext.__name__
+
+                obs_shrink_sub.add_act(
+                    act_name=_("获取Payload"),
+                    act_component_code=GetDorisActPayloadComponent.code,
+                    kwargs=asdict(obs_down_kwargs),
+                )
+
+                # 从域名移除旧 Observer（必须在停止旧 Observer 之前完成，
+                # 确保客户端不会再解析到即将下线的旧 Observer）
+                old_observer_ips = [node["ip"] for node in self.old_nodes[observer_role]]
+                obs_shrink_sub.add_act(
+                    act_name=_("更新域名"),
+                    act_component_code=DorisDnsManageComponent.code,
+                    kwargs={
+                        "bk_cloud_id": self.bk_cloud_id,
+                        "dns_op_type": DnsOpType.ADD_AND_DELETE,
+                        "domain_name": self.domain,
+                        "dns_op_exec_port": self.http_port,
+                        "add_ips": [],
+                        "del_ips": old_observer_ips,
+                    },
+                )
+
+                # 并行停止旧 Observer 进程
+                stop_obs_acts = []
+                for fe_node in self.old_nodes[observer_role]:
+                    obs_down_kwargs.exec_ip = fe_node["ip"]
+                    obs_down_kwargs.doris_role = observer_role
+                    obs_down_kwargs.get_doris_payload_func = DorisActPayload.get_stop_process_payload.__name__
+                    stop_obs_acts.append(
+                        {
+                            "act_name": _("停止DorisObserver-{}").format(fe_node["ip"]),
+                            "act_component_code": ExecuteDorisActuatorScriptComponent.code,
+                            "kwargs": asdict(obs_down_kwargs),
+                        }
+                    )
+                if stop_obs_acts:
+                    obs_shrink_sub.add_parallel_acts(acts_list=stop_obs_acts)
+
+                # 删除旧 Observer 元数据
+                obs_down_kwargs.exec_ip = obs_shrink_data["master_fe_ip"]
+                obs_down_kwargs.get_doris_payload_func = DorisActPayload.get_drop_metadata_payload.__name__
+                obs_shrink_sub.add_act(
+                    act_name=_("集群元数据更新-drop-observer"),
+                    act_component_code=ExecuteDorisActuatorScriptComponent.code,
+                    kwargs=asdict(obs_down_kwargs),
+                )
+
+                # 更新 DBMeta
+                obs_shrink_sub.add_act(
+                    act_name=_("更新DBMeta"),
+                    act_component_code=DorisMetaComponent.code,
+                    kwargs=asdict(obs_down_kwargs),
+                )
+
+                observer_replace_pipeline.add_sub_pipeline(
+                    sub_flow=obs_shrink_sub.build_sub_process(sub_name=_("Observer缩容"))
+                )
+
+            doris_pipeline.add_sub_pipeline(
+                sub_flow=observer_replace_pipeline.build_sub_process(sub_name=_("Observer替换"))
+            )
+
+        # ================================================================
+        # Pipeline 3: Follower 滚动替换
+        # Follower 参与选主，必须逐个滚动替换，保证集群始终有足够可用节点。
+        # 每轮：ADD 新 → 启动 → 检查 → 更新DNS(仅无observer时) → 停旧 → DROP旧 → 更新DBMeta
+        # ================================================================
+        follower_replace_order = self.__get_follower_replace_order()
+
+        if follower_replace_order:
+            follower_replace_pipeline = SubBuilder(root_id=self.root_id, data=replace_data)
+
+            for idx, (old_ip, new_ip, role) in enumerate(follower_replace_order):
                 logger.info(
-                    "FE rolling replace [%d/%d]: old=%s new=%s role=%s target=%s",
+                    "Follower rolling replace [%d/%d]: old=%s new=%s target=%s",
                     idx + 1,
-                    len(fe_replace_order),
+                    len(follower_replace_order),
                     old_ip,
                     new_ip,
-                    role,
                     active_target_ip,
                 )
 
-                # 每个迭代创建独立的数据副本，避免共享引用导致 master_fe_ip 被后续迭代覆盖
                 iter_data = copy.deepcopy(replace_data)
                 iter_data["master_fe_ip"] = active_target_ip
-                # ADD 使用的 host_meta_map
                 iter_data["host_meta_map"] = {role: [new_ip]}
-                # DROP 使用的 host_meta_map（存在不同 key，避免与 ADD 冲突）
                 iter_data["host_meta_map_del"] = {role: [old_ip]}
                 iter_data["master_fe_ip_del"] = new_ip
+                iter_data["new_nodes"] = {role: [{"ip": new_ip}]}
+                iter_data["old_nodes"] = {role: [{"ip": old_ip}]}
+                iter_data["ticket_type"] = TicketType.DORIS_REPLACE.value
 
                 rolling_pipeline = SubBuilder(root_id=self.root_id, data=iter_data)
 
                 rolling_kwargs = DorisActKwargs(bk_cloud_id=self.bk_cloud_id)
                 rolling_kwargs.set_trans_data_dataclass = DorisApplyContext.__name__
 
-                # --- Step 1: 获取主 Payload ---
                 rolling_pipeline.add_act(
                     act_name=_("获取Payload"),
                     act_component_code=GetDorisActPayloadComponent.code,
                     kwargs=asdict(rolling_kwargs),
                 )
 
-                # --- Step 2: 添加新 FE 元数据 ---
+                # ADD 新 Follower 元数据
                 rolling_kwargs.exec_ip = active_target_ip
                 rolling_kwargs.get_doris_payload_func = DorisActPayload.get_add_metadata_payload.__name__
                 rolling_pipeline.add_act(
-                    act_name=_("添加新FE元数据-{}-{}").format(role, new_ip),
+                    act_name=_("添加新Follower元数据-{}").format(new_ip),
                     act_component_code=ExecuteDorisActuatorScriptComponent.code,
                     kwargs=asdict(rolling_kwargs),
                 )
 
-                # --- Step 3: 启动新 FE ---
+                # 启动新 Follower
                 rolling_kwargs.exec_ip = new_ip
                 rolling_kwargs.doris_role = role
                 rolling_kwargs.get_doris_payload_func = DorisActPayload.get_start_fe_by_helper_payload.__name__
                 rolling_pipeline.add_act(
-                    act_name=_("helper启动新FE-{}-{}").format(role, new_ip),
+                    act_name=_("helper启动新Follower-{}").format(new_ip),
                     act_component_code=ExecuteDorisActuatorScriptComponent.code,
                     kwargs=asdict(rolling_kwargs),
                 )
-
                 rolling_kwargs.get_doris_payload_func = DorisActPayload.get_install_doris_payload.__name__
                 rolling_pipeline.add_act(
-                    act_name=_("supervisor接管新FE-{}-{}").format(role, new_ip),
+                    act_name=_("supervisor接管新Follower-{}").format(new_ip),
                     act_component_code=ExecuteDorisActuatorScriptComponent.code,
                     kwargs=asdict(rolling_kwargs),
                 )
 
-                # --- Step 4: 检查新 FE 启动 ---
+                # 检查新 Follower 启动
                 rolling_kwargs.get_doris_payload_func = DorisActPayload.get_check_start_payload.__name__
                 rolling_pipeline.add_act(
-                    act_name=_("检查新FE启动-{}-{}").format(role, new_ip),
+                    act_name=_("检查新Follower启动-{}").format(new_ip),
                     act_component_code=ExecuteDorisActuatorScriptComponent.code,
                     kwargs=asdict(rolling_kwargs),
                 )
 
-                # --- Step 5: 停止旧 FE 进程 ---
+                # 更新 FE 域名：一步完成加入新 Follower + 移除旧 Follower
+                # 必须在停止旧 FE 之前完成，确保客户端不会再解析到即将下线的旧 FE
+                if not has_observer_in_dbmeta:
+                    rolling_pipeline.add_act(
+                        act_name=_("更新FE域名"),
+                        act_component_code=DorisDnsManageComponent.code,
+                        kwargs={
+                            "bk_cloud_id": self.bk_cloud_id,
+                            "dns_op_type": DnsOpType.ADD_AND_DELETE,
+                            "domain_name": self.domain,
+                            "dns_op_exec_port": self.http_port,
+                            "add_ips": [new_ip],
+                            "del_ips": [old_ip],
+                        },
+                    )
+
+                # 停止旧 Follower 进程
                 rolling_kwargs.exec_ip = old_ip
                 rolling_kwargs.doris_role = role
                 rolling_kwargs.get_doris_payload_func = DorisActPayload.get_stop_process_payload.__name__
                 rolling_pipeline.add_act(
-                    act_name=_("停止旧FE进程-{}-{}").format(role, old_ip),
+                    act_name=_("停止旧Follower进程-{}").format(old_ip),
                     act_component_code=ExecuteDorisActuatorScriptComponent.code,
                     kwargs=asdict(rolling_kwargs),
                 )
 
-                # --- Step 6: 删除旧 FE 元数据 ---
+                # DROP 旧 Follower 元数据
                 rolling_kwargs.exec_ip = new_ip
                 rolling_kwargs.get_doris_payload_func = DorisActPayload.get_drop_metadata_for_replace_payload.__name__
                 rolling_pipeline.add_act(
-                    act_name=_("删除旧FE元数据-{}-{}").format(role, old_ip),
+                    act_name=_("删除旧Follower元数据-{}").format(old_ip),
                     act_component_code=ExecuteDorisActuatorScriptComponent.code,
                     kwargs=asdict(rolling_kwargs),
                 )
 
-                fe_replace_pipeline.add_sub_pipeline(
+                # 更新 DBMeta（单台粒度）
+                rolling_pipeline.add_act(
+                    act_name=_("更新DBMeta"),
+                    act_component_code=DorisMetaComponent.code,
+                    kwargs={},
+                )
+
+                follower_replace_pipeline.add_sub_pipeline(
                     sub_flow=rolling_pipeline.build_sub_process(
                         sub_name=_(
-                            "滚动替换FE [{}/{}] {}-{}→{}".format(idx + 1, len(fe_replace_order), role, old_ip, new_ip)
+                            "滚动替换Follower [{}/{}] {}→{}".format(idx + 1, len(follower_replace_order), old_ip, new_ip)
                         )
                     )
                 )
 
-                # 本轮替换完成后，新 FE 已在线，下一个替换用这个新 FE 作为连接目标
                 active_target_ip = new_ip
                 logger.info(
-                    "FE rolling replace [%d/%d] done, next active_target_ip=%s",
+                    "Follower rolling replace [%d/%d] done, next active_target_ip=%s",
                     idx + 1,
-                    len(fe_replace_order),
+                    len(follower_replace_order),
                     active_target_ip,
                 )
 
-            # FE 替换完成，立即更新 DBMeta 和域名（只更新 FE 相关节点）
-            fe_meta_data = copy.deepcopy(replace_data)
-            fe_roles = [DorisRoleEnum.FOLLOWER.value, DorisRoleEnum.OBSERVER.value]
-            fe_meta_data["new_nodes"] = {k: v for k, v in self.new_nodes.items() if k in fe_roles}
-            fe_meta_data["old_nodes"] = {k: v for k, v in self.old_nodes.items() if k in fe_roles}
-            fe_meta_data["ticket_type"] = TicketType.DORIS_REPLACE.value
-
-            fe_meta_sub = SubBuilder(root_id=self.root_id, data=fe_meta_data)
-            fe_meta_sub.add_act(
-                act_name=_("更新FE-DBMeta"),
-                act_component_code=DorisMetaComponent.code,
-                kwargs={},
-            )
-            fe_meta_sub.add_act(
-                act_name=_("更新FE域名"),
-                act_component_code=DorisDnsManageComponent.code,
-                kwargs={
-                    "bk_cloud_id": self.bk_cloud_id,
-                    "dns_op_type": DnsOpType.UPDATE,
-                    "domain_name": self.domain,
-                    "dns_op_exec_port": self.http_port,
-                },
-            )
-            fe_replace_pipeline.add_sub_pipeline(fe_meta_sub.build_sub_process(sub_name=_("更新FE元数据")))
-
-            doris_pipeline.add_sub_pipeline(fe_replace_pipeline.build_sub_process(sub_name=_("FE替换")))
+            doris_pipeline.add_sub_pipeline(follower_replace_pipeline.build_sub_process(sub_name=_("Follower滚动替换")))
 
         # ================================================================
-        # Pipeline 3: BE 替换（先扩后缩）
+        # Pipeline 4: BE 替换（先扩后缩）
         # ================================================================
         be_roles = [DorisRoleEnum.HOT.value, DorisRoleEnum.WARM.value, DorisRoleEnum.COLD.value]
         be_has_new = any(role in self.new_nodes and self.new_nodes[role] for role in be_roles)
@@ -351,88 +476,145 @@ class DorisReplaceFlow(DorisBaseFlow):
 
             # --- BE 扩容 ---
             if be_has_new:
-                scale_up_data = self.__get_scale_up_flow_data()
+                be_scale_up_new_nodes = {k: v for k, v in self.new_nodes.items() if k in be_roles}
+
+                scale_up_data = self.get_flow_base_data()
+                scale_up_data["nodes"] = be_scale_up_new_nodes
+                scale_up_data["ticket_type"] = TicketType.DORIS_SCALE_UP.value
                 scale_up_data["master_fe_ip"] = active_target_ip
-                # 只更新 BE 节点元数据，FE 已在 FE 替换阶段逐个 ADD 完毕
-                scale_up_data["host_meta_map"] = {
-                    k: v for k, v in scale_up_data["host_meta_map"].items() if k in be_roles
-                }
-                be_expand_sub = SubBuilder(root_id=self.root_id, data=scale_up_data)
+                scale_up_data["host_meta_map"] = make_meta_host_map(scale_up_data)
 
-                expand_kwargs = DorisActKwargs(bk_cloud_id=self.bk_cloud_id)
-                expand_kwargs.set_trans_data_dataclass = DorisApplyContext.__name__
+                scale_up_sub_pipeline = SubBuilder(root_id=self.root_id, data=scale_up_data)
 
-                # 节点初始化已在 Pipeline 1 完成，这里只需 GetPayload + ADD + 启动
-                be_expand_sub.add_act(
+                new_act_kwargs = DorisActKwargs(bk_cloud_id=self.bk_cloud_id)
+                new_act_kwargs.set_trans_data_dataclass = DorisApplyContext.__name__
+
+                scale_up_sub_pipeline.add_act(
                     act_name=_("获取Payload"),
                     act_component_code=GetDorisActPayloadComponent.code,
-                    kwargs=asdict(expand_kwargs),
+                    kwargs=asdict(new_act_kwargs),
                 )
 
-                expand_kwargs.exec_ip = scale_up_data["master_fe_ip"]
-                expand_kwargs.get_doris_payload_func = DorisActPayload.get_add_metadata_payload.__name__
-                be_expand_sub.add_act(
+                new_act_kwargs.exec_ip = scale_up_data["master_fe_ip"]
+                new_act_kwargs.get_doris_payload_func = DorisActPayload.get_add_metadata_payload.__name__
+                scale_up_sub_pipeline.add_act(
                     act_name=_("BE集群元数据更新"),
                     act_component_code=ExecuteDorisActuatorScriptComponent.code,
-                    kwargs=asdict(expand_kwargs),
+                    kwargs=asdict(new_act_kwargs),
                 )
 
-                sub_new_be_acts = self.new_be_sub_acts(act_kwargs=expand_kwargs, data=scale_up_data)
+                sub_new_be_acts = self.new_be_sub_acts(act_kwargs=new_act_kwargs, data=scale_up_data)
                 if sub_new_be_acts:
-                    be_expand_sub.add_parallel_acts(acts_list=sub_new_be_acts)
+                    scale_up_sub_pipeline.add_parallel_acts(acts_list=sub_new_be_acts)
 
-                be_replace_pipeline.add_sub_pipeline(be_expand_sub.build_sub_process(sub_name=_("BE扩容")))
+                # 检查新 BE 节点是否已加入集群且 Alive
+                new_act_kwargs.exec_ip = scale_up_data["master_fe_ip"]
+                new_act_kwargs.get_doris_payload_func = DorisActPayload.get_check_backends_alive_payload.__name__
+                scale_up_sub_pipeline.add_act(
+                    act_name=_("检查新BE节点状态"),
+                    act_component_code=ExecuteDorisActuatorScriptComponent.code,
+                    kwargs=asdict(new_act_kwargs),
+                )
+
+                scale_up_sub_pipeline.add_act(
+                    act_name=_("添加到DBMeta"),
+                    act_component_code=DorisMetaComponent.code,
+                    kwargs=asdict(new_act_kwargs),
+                )
+
+                be_replace_pipeline.add_sub_pipeline(
+                    sub_flow=scale_up_sub_pipeline.build_sub_process(sub_name=_("BE扩容"))
+                )
 
             # --- BE 缩容 ---
             if be_has_old:
-                shrink_data = self.__get_shrink_flow_data()
+                be_shrink_old_nodes = {k: v for k, v in self.old_nodes.items() if k in be_roles}
+
+                shrink_data = self.get_flow_base_data()
+                shrink_data["nodes"] = be_shrink_old_nodes
+                shrink_data["ticket_type"] = TicketType.DORIS_SHRINK.value
                 shrink_data["master_fe_ip"] = active_target_ip
-                # 把新 BE 的 host_meta_map 注入 shrink_data，供退役前检查使用
-                if be_has_new:
-                    shrink_data["host_meta_map_new"] = {
-                        k: v for k, v in scale_up_data["host_meta_map"].items() if k in be_roles
-                    }
-                del_be_pipeline = self.build_del_be_sub_flow(data=shrink_data)
-                be_replace_pipeline.add_sub_pipeline(del_be_pipeline.build_sub_process(sub_name=_("BE缩容")))
+                shrink_data["host_meta_map"] = make_be_map_from_ticket({"nodes": be_shrink_old_nodes})
 
-            # BE 替换完成，立即更新 DBMeta 和域名（只更新 BE 相关节点）
-            be_meta_data = copy.deepcopy(replace_data)
-            be_meta_data["new_nodes"] = {k: v for k, v in self.new_nodes.items() if k in be_roles}
-            be_meta_data["old_nodes"] = {k: v for k, v in self.old_nodes.items() if k in be_roles}
-            be_meta_data["ticket_type"] = TicketType.DORIS_REPLACE.value
+                shrink_sub_pipeline = SubBuilder(root_id=self.root_id, data=shrink_data)
 
-            be_meta_sub = SubBuilder(root_id=self.root_id, data=be_meta_data)
-            be_meta_sub.add_act(
-                act_name=_("更新BE-DBMeta"),
-                act_component_code=DorisMetaComponent.code,
-                kwargs={},
-            )
-            be_meta_sub.add_act(
-                act_name=_("更新BE域名"),
-                act_component_code=DorisDnsManageComponent.code,
-                kwargs={
-                    "bk_cloud_id": self.bk_cloud_id,
-                    "dns_op_type": DnsOpType.UPDATE,
-                    "domain_name": self.domain,
-                    "dns_op_exec_port": self.http_port,
-                },
-            )
-            be_replace_pipeline.add_sub_pipeline(be_meta_sub.build_sub_process(sub_name=_("更新BE元数据")))
+                shrink_act_kwargs = DorisActKwargs(bk_cloud_id=shrink_data["bk_cloud_id"])
+                shrink_act_kwargs.set_trans_data_dataclass = DorisApplyContext.__name__
 
-            doris_pipeline.add_sub_pipeline(be_replace_pipeline.build_sub_process(sub_name=_("BE替换")))
+                shrink_sub_pipeline.add_act(
+                    act_name=_("获取Payload"),
+                    act_component_code=GetDorisActPayloadComponent.code,
+                    kwargs=asdict(shrink_act_kwargs),
+                )
+
+                # 退役 BE 元数据
+                shrink_act_kwargs.exec_ip = shrink_data["master_fe_ip"]
+                shrink_act_kwargs.get_doris_payload_func = DorisActPayload.get_decommission_metadata_payload.__name__
+                shrink_sub_pipeline.add_act(
+                    act_name=_("集群元数据更新-退役-BE"),
+                    act_component_code=ExecuteDorisActuatorScriptComponent.code,
+                    kwargs=asdict(shrink_act_kwargs),
+                )
+
+                # 等待数据搬迁完成
+                shrink_act_kwargs.get_doris_payload_func = DorisActPayload.get_check_decommission_payload.__name__
+                shrink_sub_pipeline.add_act(
+                    act_name=_("检查数据节点是否退役"),
+                    act_component_code=ExecuteDorisActuatorScriptComponent.code,
+                    kwargs=asdict(shrink_act_kwargs),
+                )
+
+                # 删除 BE 元数据
+                shrink_act_kwargs.get_doris_payload_func = DorisActPayload.get_force_drop_metadata_payload.__name__
+                shrink_sub_pipeline.add_act(
+                    act_name=_("集群元数据更新-删除-BE"),
+                    act_component_code=ExecuteDorisActuatorScriptComponent.code,
+                    kwargs=asdict(shrink_act_kwargs),
+                )
+
+                # 并行停止旧 BE 进程
+                stop_be_acts = []
+                for role, role_nodes in be_shrink_old_nodes.items():
+                    if role in be_roles:
+                        for be_node in role_nodes:
+                            shrink_act_kwargs.exec_ip = be_node["ip"]
+                            shrink_act_kwargs.doris_role = role
+                            shrink_act_kwargs.get_doris_payload_func = (
+                                DorisActPayload.get_stop_process_payload.__name__
+                            )
+                            stop_be_acts.append(
+                                {
+                                    "act_name": _("停止DorisBE-{}-{}").format(role, be_node["ip"]),
+                                    "act_component_code": ExecuteDorisActuatorScriptComponent.code,
+                                    "kwargs": asdict(shrink_act_kwargs),
+                                }
+                            )
+                if stop_be_acts:
+                    shrink_sub_pipeline.add_parallel_acts(acts_list=stop_be_acts)
+
+                # 更新 DBMeta
+                shrink_sub_pipeline.add_act(
+                    act_name=_("更新DBMeta"),
+                    act_component_code=DorisMetaComponent.code,
+                    kwargs=asdict(shrink_act_kwargs),
+                )
+
+                be_replace_pipeline.add_sub_pipeline(
+                    sub_flow=shrink_sub_pipeline.build_sub_process(sub_name=_("BE缩容"))
+                )
+
+            doris_pipeline.add_sub_pipeline(sub_flow=be_replace_pipeline.build_sub_process(sub_name=_("BE替换")))
 
         # ================================================================
-        # Pipeline 4: 收尾步骤（只清理旧节点数据目录）
+        # Pipeline 5: 收尾步骤（清理所有旧节点数据目录）
         # ================================================================
         cleanup_pipeline = SubBuilder(root_id=self.root_id, data=replace_data)
 
-        # 收集所有待清理的旧节点（FE + BE）
         all_old_cleanup_ips = get_all_node_ips_in_ticket(data={"nodes": self.old_nodes})
 
         cleanup_kwargs = DorisActKwargs(bk_cloud_id=self.bk_cloud_id)
         cleanup_kwargs.set_trans_data_dataclass = DorisApplyContext.__name__
 
-        # 必须先 GetPayload 初始化 trans_data.doris_act_payload
         cleanup_pipeline.add_act(
             act_name=_("获取Payload"),
             act_component_code=GetDorisActPayloadComponent.code,
@@ -441,12 +623,7 @@ class DorisReplaceFlow(DorisBaseFlow):
 
         if all_old_cleanup_ips:
             cleanup_acts = []
-            # 注意：循环中多次修改 cleanup_kwargs 后通过 asdict() 生成 dict 追加到列表。
-            # asdict() 每次调用都会将 dataclass 转换为新的 dict，因此各迭代的 kwargs
-            # 互不影响。切勿改为直接传 cleanup_kwargs 对象，否则所有 act 将共享同一
-            # 引用，最终全部指向循环末尾的值。
             for ip in all_old_cleanup_ips:
-                # 从 old_nodes 中查找该 IP 对应的角色
                 ip_role = ""
                 for role, nodes in self.old_nodes.items():
                     if any(node["ip"] == ip for node in nodes):
