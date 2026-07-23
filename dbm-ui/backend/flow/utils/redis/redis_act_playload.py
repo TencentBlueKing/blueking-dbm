@@ -373,6 +373,27 @@ class RedisActPayload(object):
             conf_names.append("databases")
         return conf_names, None
 
+    # Redis 5.0+ 将 slave-* 配置项重命名为 replica-*（新增配置项名不在此列，因为新老版本都识别新名）
+    _REDIS_5_LEGACY_CONF_NAME_MAP = {
+        "slave-lazy-flush": "replica-lazy-flush",
+    }
+
+    # Valkey-8.0 相比 Redis-7.4，将部分 slave-*/ziplist-* 遗留配置项重命名为 replica-*/listpack-*
+    # 迁移/升级到 Valkey 时，若源端仍使用旧名，需要转换为 Valkey 认识的新名，否则配置会丢失
+    _VALKEY_8_LEGACY_CONF_NAME_MAP = {
+        "slave-priority": "replica-priority",
+        "slave-read-only": "replica-read-only",
+        "slave-serve-stale-data": "replica-serve-stale-data",
+        "slave-lazy-flush": "replica-lazy-flush",
+        "cluster-slave-no-failover": "cluster-replica-no-failover",
+        "cluster-slave-validity-factor": "cluster-replica-validity-factor",
+        "hash-max-ziplist-entries": "hash-max-listpack-entries",
+        "hash-max-ziplist-value": "hash-max-listpack-value",
+        "list-max-ziplist-size": "list-max-listpack-size",
+        "zset-max-ziplist-entries": "zset-max-listpack-entries",
+        "zset-max-ziplist-value": "zset-max-listpack-value",
+    }
+
     def _replace_legacy_conf_name(self, conf_name: str, target_version: str = None) -> str:
         """
         替换旧版本配置项名称为新版本配置项名称
@@ -386,14 +407,21 @@ class RedisActPayload(object):
         """
         from backend.flow.utils.redis.redis_util import version_ge
 
-        # Redis 5.0+ 将 slave-* 配置项重命名为 replica-*
+        if not target_version:
+            return conf_name
+
+        # 目标为 Valkey：将 Redis 遗留的 slave-*/ziplist-* 配置项名替换为 Valkey 的 replica-*/listpack-* 新名
+        if target_version.startswith("Valkey") and conf_name in self._VALKEY_8_LEGACY_CONF_NAME_MAP:
+            return self._VALKEY_8_LEGACY_CONF_NAME_MAP[conf_name]
+
+        # 目标为 Redis 5.0+：将 slave-* 配置项重命名为 replica-*
         if (
-            target_version
-            and target_version.startswith("Redis")
+            target_version.startswith("Redis")
             and version_ge(target_version, "5")
-            and conf_name == "slave-lazy-flush"
+            and conf_name in self._REDIS_5_LEGACY_CONF_NAME_MAP
         ):
-            return "replica-lazy-flush"
+            return self._REDIS_5_LEGACY_CONF_NAME_MAP[conf_name]
+
         return conf_name
 
     def dts_swap_redis_config(self, cluster_map: dict):
