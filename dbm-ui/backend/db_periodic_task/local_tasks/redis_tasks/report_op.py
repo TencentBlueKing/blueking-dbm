@@ -223,3 +223,12 @@ class RedisCheckReportBatchOps:
         """删除今天的记录"""
         deleted_count, _ = RedisCheckReport.objects.filter(report_day=self.report_day, subtype=self.sub_type).delete()
         return deleted_count
+
+    def delete_today_record_for_clusters(self, cluster_ids: list[int]) -> int:
+        """删除指定集群当天该 subtype 的记录（用于 scoped 巡检，避免误删其它集群）。"""
+        if not cluster_ids:
+            return 0
+        deleted_count, _ = RedisCheckReport.objects.filter(
+            report_day=self.report_day, subtype=self.sub_type, cluster_id__in=cluster_ids
+        ).delete()
+        return deleted_count

@@ -23,3 +23,27 @@ def mongodb_tasks_task_module(django_db_setup, django_db_blocker):
 def check_affinity_module(django_db_setup, django_db_blocker):
     with django_db_blocker.unblock():
         return importlib.import_module("backend.db_periodic_task.local_tasks.mongodb_tasks.check_affinity")
+
+
+@pytest.fixture(scope="module")
+def check_backup_module(django_db_setup, django_db_blocker):
+    with django_db_blocker.unblock():
+        return importlib.import_module("backend.db_periodic_task.local_tasks.mongodb_tasks.check_backup")
+
+
+@pytest.fixture(scope="module")
+def check_exporter_module(django_db_setup, django_db_blocker):
+    with django_db_blocker.unblock():
+        return importlib.import_module("backend.db_periodic_task.local_tasks.mongodb_tasks.check_exporter")
+
+
+@pytest.fixture(scope="module")
+def report_op_module(django_db_setup, django_db_blocker):
+    with django_db_blocker.unblock():
+        return importlib.import_module("backend.db_periodic_task.local_tasks.mongodb_tasks.report_op")
+
+
+@pytest.fixture(scope="module")
+def mongodb_local_task_cmd_module(django_db_setup, django_db_blocker):
+    with django_db_blocker.unblock():
+        return importlib.import_module("backend.dbm_tools.management.commands.mongodb_local_task")

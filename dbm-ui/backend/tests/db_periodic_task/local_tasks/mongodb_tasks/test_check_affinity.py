@@ -186,6 +186,38 @@ class TestTopologyHelpers:
         assert "logical_city name is empty" in ret["rs0"]["missing_messages"][0]["msg"]
         assert ret["rs0"]["nodes"] == []
 
+    def test_collect_topology_empty_sub_zone_uses_original_set_name(self, check_affinity_module):
+        nodes = [
+            SimpleNamespace(ip="127.0.0.10", port=27001, bk_cloud_id=0, set_name="shard0", instance_role="m1"),
+            SimpleNamespace(ip="127.0.0.11", port=27001, bk_cloud_id=0, set_name="shard0", instance_role="m2"),
+        ]
+        machine_rows = [
+            {
+                "ip": "127.0.0.10",
+                "bk_sub_zone_id": None,
+                "bk_rack_id": 11,
+                "bk_cloud_id": 0,
+                "bk_city__logical_city__name": "MetroA",
+            },
+            {
+                "ip": "127.0.0.11",
+                "bk_sub_zone_id": None,
+                "bk_rack_id": 12,
+                "bk_cloud_id": 0,
+                "bk_city__logical_city__name": "MetroA",
+            },
+        ]
+        with patch(
+            "backend.db_periodic_task.local_tasks.mongodb_tasks.check_affinity.Machine.objects.filter"
+        ) as machine_filter:
+            machine_filter.return_value.values.return_value = machine_rows
+            ret = check_affinity_module.collect_topology_by_set(nodes, is_sharded_cluster=True)
+
+        assert "shard0" in ret
+        assert not any(key.startswith("shardsvr_group:") for key in ret)
+        assert len(ret["shard0"]["missing_messages"]) == 2
+        assert ret["shard0"]["nodes"] == []
+
     def test_collect_topology_merge_shardsvr_by_machine_group(self, check_affinity_module):
         nodes = [
             SimpleNamespace(ip="127.0.0.1", port=27017, bk_cloud_id=0, set_name="shard0", instance_role="m1"),
