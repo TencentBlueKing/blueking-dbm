@@ -47,7 +47,7 @@ from backend.db_meta.exceptions import ClusterExclusiveOperateException, DBMetaE
 from backend.db_meta.models.tag import Tag
 from backend.db_services.version.constants import LATEST, PredixyVersion, TwemproxyVersion
 from backend.exceptions import ApiError
-from backend.flow.consts import DEFAULT_RIAK_PORT
+from backend.flow.consts import DEFAULT_QDRANT_PORT, DEFAULT_RIAK_PORT, DEFAULT_SURREALDB_PORT
 from backend.ticket.constants import TicketType
 from backend.ticket.models import ClusterOperateRecord
 
@@ -282,6 +282,10 @@ class Cluster(AuditedModel):
                 return self.storageinstance_set.filter(machine_type=MachineType.MONGODB).first().port
             elif self.cluster_type == ClusterType.Doris:
                 return self.storageinstance_set.filter(instance_role=InstanceRole.DORIS_FOLLOWER).first().port
+            elif self.cluster_type == ClusterType.K8sQdrantHa:
+                return DEFAULT_QDRANT_PORT
+            elif self.cluster_type in [ClusterType.K8sSurrealdbSingle, ClusterType.K8sSurrealdbHa]:
+                return DEFAULT_SURREALDB_PORT
         except (AttributeError, IndexError, Exception):
             logger.warning(_("无法访问集群[]的访问端口，请检查实例信息").format(self.name))
             return 0
