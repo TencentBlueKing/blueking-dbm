@@ -440,6 +440,12 @@ func (job *RedisInstall) IsRedisInstalled(port int) (installed bool, err error) 
 		return false, err
 	}
 	serverVer := infoMap["redis_version"]
+	// valkey 兼容 redis 协议, INFO 中 redis_version 是兼容版本号(如 7.2.4), 真实版本见 valkey_version
+	if strings.EqualFold(infoMap["server_name"], "valkey") {
+		if vv := infoMap["valkey_version"]; vv != "" {
+			serverVer = vv
+		}
+	}
 	// 版本格式兼容tendisSSD的情况
 	// tendisSSD 包名 redis-2.8.17-rocksdb-v1.2.20.tar.gz, 版本名(redis_version) 2.8.17-TRedis-v1.2.20
 	serverVer = strings.ReplaceAll(serverVer, "TRedis", "rocksdb")
