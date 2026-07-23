@@ -168,13 +168,15 @@ class SQLServerRollbackCommonFlowBuilder(BaseSQLServerTicketFlowBuilder):
     # inner_flow_builder 保留为通用基类；子类可按需覆写，用于 BuilderFactory 的注册元信息
     inner_flow_builder = SQLServerDBRollbackFlowParamBuilder
     retry_type = FlowRetryType.MANUAL_RETRY
+    # rollback 流程的展示名称；子类（如原地回档）可按需覆写
+    rollback_flow_alias = _("SQLServer 定点构造执行")
 
     def custom_ticket_flows(self):
         rollback_flow = Flow(
             ticket=self.ticket,
             flow_type=FlowType.INNER_FLOW.value,
             details=self.rollback_flow_param_builder(self.ticket).get_params(),
-            flow_alias=_("SQLServer 定点构造执行"),
+            flow_alias=self.rollback_flow_alias,
             retry_type=FlowRetryType.MANUAL_RETRY,
         )
         dbrename_flow = Flow(
