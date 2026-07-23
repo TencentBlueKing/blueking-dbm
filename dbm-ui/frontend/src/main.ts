@@ -44,6 +44,7 @@ import 'dayjs/locale/zh-cn';
 
 import('tippy.js/dist/tippy.css');
 import('tippy.js/themes/light.css');
+import('@blueking/date-picker/vue3/vue3.css');
 
 dayjs.extend(utc);
 dayjs.extend(tz);
