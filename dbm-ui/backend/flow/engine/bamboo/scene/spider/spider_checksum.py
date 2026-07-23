@@ -12,7 +12,7 @@ import collections
 import copy
 import logging
 from dataclasses import asdict
-from typing import Dict, Optional
+from typing import Dict
 
 from django.utils.crypto import get_random_string
 from django.utils.translation import gettext as _
@@ -100,7 +100,7 @@ class SpiderChecksumFlow(object):
     ]}
     """
 
-    def __init__(self, root_id: str, data: Optional[Dict]):
+    def __init__(self, root_id: str, data: Dict):
         self.root_id = root_id
         self.data = data
 
@@ -294,7 +294,7 @@ class SpiderChecksumFlow(object):
                     split_pipeline.build_sub_process(
                         sub_name=_(
                             "分片{}:master[{}{}{}]的校验任务".format(
-                                shard["shard_id"], inner_data["master_ip"], IP_PORT_DIVIDER, inner_data["master_port"]
+                                shard["shard_id"], shard["master"]["ip"], IP_PORT_DIVIDER, shard["master"]["port"]
                             )
                         )
                     )

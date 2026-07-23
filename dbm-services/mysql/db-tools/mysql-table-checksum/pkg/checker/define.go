@@ -39,7 +39,7 @@ type ChecksumSummary struct {
 	DiffRows int       `json:"diff_rows"`
 	Chunks   int       `json:"chunks"`
 	Skipped  int       `json:"skipped"`
-	Time     int       `json:"time"`
+	Time     float64   `json:"time"`
 	Table    string    `json:"table"`
 }
 

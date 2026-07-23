@@ -12,7 +12,7 @@ import collections
 import copy
 import logging
 from dataclasses import asdict
-from typing import Dict, Optional
+from typing import Dict
 
 from django.utils.crypto import get_random_string
 from django.utils.translation import gettext as _
@@ -51,7 +51,8 @@ class MysqlChecksumFlow(object):
     "ticket_type": "MYSQL_CHECKSUM",
     "timing": "2022-11-21 12:04:10",
     "is_sync_non_innodb": true,
-    "runtime_hour": 48
+    "runtime_hour": 48,
+    "dts_mode": false,
     "infos": [
         {
             "cluster_id": 2,
@@ -67,7 +68,7 @@ class MysqlChecksumFlow(object):
     }
     """
 
-    def __init__(self, root_id: str, data: Optional[Dict]):
+    def __init__(self, root_id: str, data: Dict):
         self.root_id = root_id
         self.data = data
 
@@ -84,6 +85,8 @@ class MysqlChecksumFlow(object):
         （5）删除临时账号
         （6）每个从库生成一份校验报告（如果数据不一致，生成修复单据）
         """
+        dts_mode = self.data.get("dts_mode", False)
+
         cluster_ids = [i["cluster_id"] for i in self.data["infos"]]
         checksum_pipeline = Builder(
             root_id=self.root_id, data=self.data, need_random_pass_cluster_ids=list(set(cluster_ids))
@@ -156,36 +159,32 @@ class MysqlChecksumFlow(object):
                 data={**info, **sub_data, **immute_domain_obj, **time_zone_obj}
                 # root_id = self.root_id, data = {**info, **sub_data, **ran_str_obj, **immute_domain_obj, **time_zone_obj}
             )
-            sub_pipeline.add_act(
-                act_name=_("检查元数据信息是否存在主备关系"),
-                act_component_code=MysqlMasterSlaveRelationshipCheckServiceComponent.code,
-                kwargs={},
-            )
-            # 删除flow中的定时
-            # sub_pipeline.add_act(
-            #     act_name=_("定时"),
-            #     act_component_code=SleepTimerComponent.code,
-            #     kwargs=asdict(IfTimingAfterNowKwargs(True)),
-            # )
 
-            acts_list = []
-            for slave in info["slaves"]:
-                add_temp_user_kwargs = AddTempUserKwargs(
-                    bk_cloud_id=bk_cloud_id,
-                    hosts=[info["master"]["ip"]],
-                    user=random_account,
-                    psw=ran_str,
-                    address="{}{}{}".format(slave["ip"], IP_PORT_DIVIDER, slave["port"]),
-                    dbname="%",
-                    dml_ddl_priv="SELECT",
-                    global_priv="REPLICATION CLIENT",
+            if not dts_mode:
+                sub_pipeline.add_act(
+                    act_name=_("检查元数据信息是否存在主备关系"),
+                    act_component_code=MysqlMasterSlaveRelationshipCheckServiceComponent.code,
+                    kwargs={},
                 )
-                act_info = dict()
-                act_info["act_name"] = _("创建临时用户")
-                act_info["act_component_code"] = CreateUserComponent.code
-                act_info["kwargs"] = asdict(add_temp_user_kwargs)
-                acts_list.append(act_info)
-            sub_pipeline.add_parallel_acts(acts_list=acts_list)
+
+                acts_list = []
+                for slave in info["slaves"]:
+                    add_temp_user_kwargs = AddTempUserKwargs(
+                        bk_cloud_id=bk_cloud_id,
+                        hosts=[info["master"]["ip"]],
+                        user=random_account,
+                        psw=ran_str,
+                        address="{}{}{}".format(slave["ip"], IP_PORT_DIVIDER, slave["port"]),
+                        dbname="%",
+                        dml_ddl_priv="SELECT",
+                        global_priv="REPLICATION CLIENT",
+                    )
+                    act_info = dict()
+                    act_info["act_name"] = _("创建临时用户")
+                    act_info["act_component_code"] = CreateUserComponent.code
+                    act_info["kwargs"] = asdict(add_temp_user_kwargs)
+                    acts_list.append(act_info)
+                sub_pipeline.add_parallel_acts(acts_list=acts_list)
 
             sub_pipeline.add_act(
                 act_name=_("actuator执行checksum"),
@@ -202,51 +201,53 @@ class MysqlChecksumFlow(object):
                 write_payload_var="checksum_report",
             )
 
-            acts_list = []
-            for slave in info["slaves"]:
-                drop_user_kwargs = DropUserKwargs(
-                    bk_cloud_id=bk_cloud_id,
-                    host=info["master"]["ip"],
-                    user=random_account,
-                    address="{}{}{}".format(slave["ip"], IP_PORT_DIVIDER, slave["port"]),
-                )
-                act_info = dict()
-                act_info["act_name"] = _("删除临时用户")
-                act_info["act_component_code"] = DropUserComponent.code
-                act_info["kwargs"] = asdict(drop_user_kwargs)
-                acts_list.append(act_info)
-            sub_pipeline.add_parallel_acts(acts_list=acts_list)
+            if not dts_mode:
+                acts_list = []
+                for slave in info["slaves"]:
+                    drop_user_kwargs = DropUserKwargs(
+                        bk_cloud_id=bk_cloud_id,
+                        host=info["master"]["ip"],
+                        user=random_account,
+                        address="{}{}{}".format(slave["ip"], IP_PORT_DIVIDER, slave["port"]),
+                    )
+                    act_info = dict()
+                    act_info["act_name"] = _("删除临时用户")
+                    act_info["act_component_code"] = DropUserComponent.code
+                    act_info["kwargs"] = asdict(drop_user_kwargs)
+                    acts_list.append(act_info)
+                sub_pipeline.add_parallel_acts(acts_list=acts_list)
 
-            # 每个slave生成一个校验报告
-            inner_pipelines = []
-            for slave in info["slaves"]:
-                inner_data = {
-                    "slave_ip": slave["ip"],
-                    "slave_port": slave["port"],
-                    "master_ip": info["master"]["ip"],
-                    "master_port": info["master"]["port"],
-                }
-                inner_pipeline = SubBuilder(
-                    root_id=self.root_id, data={**inner_data, **info, **sub_data}  # , **ran_str_obj}
-                )
-                inner_pipeline.add_act(
-                    act_name=_("生成校验报告"),
-                    act_component_code=MysqlChecksumReportComponent.code,
-                    kwargs={"bk_cloud_id": bk_cloud_id, "repl_table": info["repl_table"]},
-                )
-                inner_pipelines.append(
-                    inner_pipeline.build_sub_process(
-                        sub_name=_("master[{}{}{}],slave[{}{}{}]的校验结果").format(
-                            inner_data["master_ip"],
-                            IP_PORT_DIVIDER,
-                            inner_data["master_port"],
-                            inner_data["slave_ip"],
-                            IP_PORT_DIVIDER,
-                            inner_data["slave_port"],
+                # 每个slave生成一个校验报告
+                inner_pipelines = []
+                for slave in info["slaves"]:
+                    inner_data = {
+                        "slave_ip": slave["ip"],
+                        "slave_port": slave["port"],
+                        "master_ip": info["master"]["ip"],
+                        "master_port": info["master"]["port"],
+                    }
+                    inner_pipeline = SubBuilder(
+                        root_id=self.root_id, data={**inner_data, **info, **sub_data}  # , **ran_str_obj}
+                    )
+                    inner_pipeline.add_act(
+                        act_name=_("生成校验报告"),
+                        act_component_code=MysqlChecksumReportComponent.code,
+                        kwargs={"bk_cloud_id": bk_cloud_id, "repl_table": info["repl_table"]},
+                    )
+                    inner_pipelines.append(
+                        inner_pipeline.build_sub_process(
+                            sub_name=_("master[{}{}{}],slave[{}{}{}]的校验结果").format(
+                                inner_data["master_ip"],
+                                IP_PORT_DIVIDER,
+                                inner_data["master_port"],
+                                inner_data["slave_ip"],
+                                IP_PORT_DIVIDER,
+                                inner_data["slave_port"],
+                            )
                         )
                     )
-                )
-            sub_pipeline.add_parallel_sub_pipeline(sub_flow_list=inner_pipelines)
+                sub_pipeline.add_parallel_sub_pipeline(sub_flow_list=inner_pipelines)
+
             sub_pipelines.append(
                 sub_pipeline.build_sub_process(
                     sub_name=_("master[{}{}{}]的校验任务").format(
@@ -254,6 +255,7 @@ class MysqlChecksumFlow(object):
                     )
                 )
             )
+
         checksum_pipeline.add_parallel_sub_pipeline(sub_flow_list=sub_pipelines)
         logger.info(_("构建checksum流程成功"))
         # checksum_pipeline.run_pipeline(init_trans_data_class=MysqlChecksumContext(), is_drop_random_user=True)

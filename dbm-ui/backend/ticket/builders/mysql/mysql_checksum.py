@@ -50,6 +50,8 @@ class MySQLChecksumDetailSerializer(MySQLBaseOperateDetailSerializer):
     data_repair = serializers.DictField(help_text=_("数据修复信息"))
     is_sync_non_innodb = serializers.BooleanField(help_text=_("非innodb表是否修复"), required=False, default=False)
     need_manual_confirm = serializers.BooleanField(help_text=_("是否需要人工确认"), default=False)
+    # dts 模式下, data_repair, is_sync_non_innodb 会强制为 False
+    dts_mode = serializers.BaseSerializer(help_text=_("dts 迁移校验"), default=False)
 
     def validate(self, attrs):
         """验证库表数据库的数据"""
@@ -68,6 +70,10 @@ class MySQLChecksumDetailSerializer(MySQLBaseOperateDetailSerializer):
                 repl_table = info["repl_table"].strip()
                 if "." in repl_table:
                     raise serializers.ValidationError("repl_table can't contain '.'")
+
+        if attrs.get("dts_mode"):
+            attrs["is_sync_non_innodb"] = False
+            attrs["data_repair"] = {"is_repair": False, "mode": MySQLChecksumTicketMode.MANUAL}
 
         return attrs
 
@@ -169,9 +175,14 @@ class MySQLChecksumFlowBuilder(BaseMySQLHATicketFlowBuilder):
             }
             for master in masters
         }
+
+        # if not self.ticket.details.get('dts_mode', False):
         for info in self.ticket.details["infos"]:
             # 填充master信息
             info["master"] = cluster_id__master_map[info["cluster_id"]]
+            if self.ticket.details.get("dts_mode", False):
+                continue
+
             # 补充slave信息
             slave_insts = StorageInstance.find_insts_by_addresses(info["slaves"])
             ip_port__slave_info = {f"{slave['ip']}:{slave['port']}": slave for slave in info.pop("slaves")}

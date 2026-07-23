@@ -275,6 +275,7 @@ class TicketType(StrStructuredEnum):
     MYSQL_HA_TRUNCATE_DATA = TicketEnumField("MYSQL_HA_TRUNCATE_DATA", _("MySQL 高可用清档"), _("数据处理"))
     MYSQL_HA_DB_TABLE_BACKUP = TicketEnumField("MYSQL_HA_DB_TABLE_BACKUP", _("MySQL 库表备份"), _("备份"))
     MYSQL_CHECKSUM = TicketEnumField("MYSQL_CHECKSUM", _("MySQL 数据校验修复"), _("数据处理"))
+    MYSQL_DTS_CHECKSUM = TicketEnumField("MYSQL_DTS_CHECKSUM", _("MySQL DTS 数据校验"), _("数据处理"))
     MYSQL_CHECKSUM_CRON = TicketEnumField("MYSQL_CHECKSUM_CRON", _("MySQL 数据校验定时任务"), register_iam=False)
     MYSQL_PARTITION = TicketEnumField("MYSQL_PARTITION", _("MySQL 分区"), _("分区管理"))
     MYSQL_PARTITION_CRON = TicketEnumField("MYSQL_PARTITION_CRON", _("MySQL 分区定时任务"), register_iam=False)  # noqa
@@ -335,6 +336,7 @@ class TicketType(StrStructuredEnum):
     TENDBCLUSTER_OPEN_AREA = TicketEnumField("TENDBCLUSTER_OPEN_AREA", _("TenDB Cluster 开区"), _("克隆开区"),
                                              register_iam=False)  # noqa
     TENDBCLUSTER_CHECKSUM = TicketEnumField("TENDBCLUSTER_CHECKSUM", _("TenDB Cluster 数据校验修复"), _("数据处理"))
+    # TENDBCLUSTER_DTS_CHECKSUM = TicketEnumField("TENDBCLUSTER_DTS_CHECKSUM", _("TenDB Cluster DTS 数据校验"), _("数据处理"))
     TENDBCLUSTER_CHECKSUM_CRON = TicketEnumField("TENDBCLUSTER_CHECKSUM_CRON", _("TenDB Cluster 数据校验定时任务"),
                                                  register_iam=False)
     TENDBCLUSTER_DATA_REPAIR = TicketEnumField("TENDBCLUSTER_DATA_REPAIR", _("TenDB Cluster 数据修复"),

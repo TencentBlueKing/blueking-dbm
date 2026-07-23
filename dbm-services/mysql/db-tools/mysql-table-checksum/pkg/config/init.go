@@ -8,6 +8,7 @@ const (
 	GeneralMode CheckMode = "general"
 	// DemandMode 单据校验
 	DemandMode = "demand"
+	DtsMode    = "dts"
 )
 
 // String 用于打印

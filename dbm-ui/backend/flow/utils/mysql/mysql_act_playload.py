@@ -1011,6 +1011,8 @@ class MysqlActPayload(PayloadHandler, ProxyActPayload, TBinlogDumperActPayload):
         """
         数据校验
         """
+        dts_mode = self.ticket_data.get("dts_mode", False)
+
         db_patterns = []
         ignore_dbs = []
         if self.ticket_data["ticket_type"] == TicketType.TENDBCLUSTER_CHECKSUM:
@@ -1025,6 +1027,7 @@ class MysqlActPayload(PayloadHandler, ProxyActPayload, TBinlogDumperActPayload):
         elif self.ticket_data["ticket_type"] == TicketType.MYSQL_CHECKSUM:
             db_patterns = self.ticket_data["db_patterns"]
             ignore_dbs = self.ticket_data["ignore_dbs"]
+
         return {
             "db_type": DBActuatorTypeEnum.MySQL.value,
             "action": DBActuatorActionEnum.Checksum.value,
@@ -1037,7 +1040,7 @@ class MysqlActPayload(PayloadHandler, ProxyActPayload, TBinlogDumperActPayload):
                     "master_ip": self.ticket_data["master"]["ip"],
                     "master_port": self.ticket_data["master"]["port"],
                     "inner_role": self.ticket_data["master"]["instance_inner_role"],
-                    "slaves": self.ticket_data["slaves"],
+                    "slaves": self.ticket_data.get("slaves", []),
                     "master_access_slave_user": kwargs["trans_data"]["master_access_slave_user"],
                     "master_access_slave_password": kwargs["trans_data"]["master_access_slave_password"],
                     "db_patterns": db_patterns,
@@ -1049,6 +1052,7 @@ class MysqlActPayload(PayloadHandler, ProxyActPayload, TBinlogDumperActPayload):
                     "system_dbs": SYSTEM_DBS,
                     "stage_db_header": STAGE_DB_HEADER,
                     "rollback_db_tail": ROLLBACK_DB_TAIL,
+                    "dts_mode": dts_mode,
                 },
             },
         }

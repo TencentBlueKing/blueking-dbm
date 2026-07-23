@@ -52,6 +52,7 @@ type PtTableChecksumParam struct {
 	SystemDbs                 []string    `json:"system_dbs"`                   // 系统表
 	StageDBHeader             string      `json:"stage_db_header"`
 	RollbackDBTail            string      `json:"rollback_db_tail"`
+	DtsMode                   bool        `json:"dts_mode"`
 }
 
 // SlaveInfo slave 描述
@@ -111,23 +112,26 @@ func (c *PtTableChecksumComp) Precheck() (err error) {
 		return err
 	}
 
-	for _, slave := range c.Params.Slaves {
-		_, err = native.InsObject{
-			Host: slave.Ip,
-			Port: slave.Port,
-			User: c.Params.MasterAccessSlaveUser,
-			Pwd:  c.Params.MasterAccessSlavePassword,
-		}.Conn()
+	logger.Info("dts mode: %v", c.Params.DtsMode)
+	if !c.Params.DtsMode {
+		for _, slave := range c.Params.Slaves {
+			_, err = native.InsObject{
+				Host: slave.Ip,
+				Port: slave.Port,
+				User: c.Params.MasterAccessSlaveUser,
+				Pwd:  c.Params.MasterAccessSlavePassword,
+			}.Conn()
+			if err != nil {
+				logger.Error("connect slave %s:%d failed:%s", slave.Ip, slave.Port, err.Error())
+				return err
+			}
+		}
+
+		err = c.checkSlaveStatus()
 		if err != nil {
-			logger.Error("connect slave %s:%d failed:%s", slave.Ip, slave.Port, err.Error())
+			logger.Error("slave status check failed: %s", err.Error())
 			return err
 		}
-	}
-
-	err = c.checkSlaveStatus()
-	if err != nil {
-		logger.Error("slave status check failed: %s", err.Error())
-		return err
 	}
 
 	c.tools, err = tools.NewToolSetWithPick(tools.ToolMysqlTableChecksum, tools.ToolPtTableChecksum)
@@ -212,25 +216,28 @@ func (c *PtTableChecksumComp) GenerateConfigFile() (err error) {
 	return nil
 }
 
-func (c *PtTableChecksumComp) DoChecksum() (err error) {
+func (c *PtTableChecksumComp) DoChecksumOld() (err error) {
 	errCh1 := make(chan error)
 	errCh2 := make(chan error)
 	doneCh := make(chan bool)
-	go func() {
-		ticker := time.NewTicker(5 * time.Second)
-		defer ticker.Stop()
-		for {
-			select {
-			case <-doneCh:
-				return
-			case <-ticker.C:
-				err := c.checkSlaveStatus()
-				if err != nil {
-					errCh1 <- err
+
+	if !c.Params.DtsMode {
+		go func() {
+			ticker := time.NewTicker(5 * time.Second)
+			defer ticker.Stop()
+			for {
+				select {
+				case <-doneCh:
+					return
+				case <-ticker.C:
+					err := c.checkSlaveStatus()
+					if err != nil {
+						errCh1 <- err
+					}
 				}
 			}
-		}
-	}()
+		}()
+	}
 
 	time.Sleep(6 * time.Second) // 稍微暂停下, 确保检查循环真的起来了
 
@@ -239,36 +246,113 @@ func (c *PtTableChecksumComp) DoChecksum() (err error) {
 	}()
 
 	for {
-		select {
-		case err := <-errCh1:
-			logger.Error("slave status check failed: %s", err.Error())
-			doneCh <- true
-			return err
-		case err := <-errCh2:
-			doneCh <- true
-			if err != nil {
-				logger.Error("pt table checksum check failed: %s", err.Error())
-				return err
+		if c.Params.DtsMode {
+			select {
+			case err := <-errCh2:
+				doneCh <- true
+				if err != nil {
+					logger.Error("pt table checksum check failed: %s", err.Error())
+					return err
+				}
+				return nil
+			default:
 			}
-			return nil
-		default:
+		} else {
+			select {
+			case err := <-errCh1:
+				logger.Error("slave status check failed: %s", err.Error())
+				doneCh <- true
+				return err
+			case err := <-errCh2:
+				doneCh <- true
+				if err != nil {
+					logger.Error("pt table checksum check failed: %s", err.Error())
+					return err
+				}
+				return nil
+			default:
+			}
 		}
 	}
 }
 
-// DoChecksum 执行校验
-func (c *PtTableChecksumComp) doChecksum() (err error) {
+const slaveStatusWatchInterval = 5 * time.Second
+
+// DoChecksum 跑 demand 校验，非 DtsMode 时并行监控 slave 复制；复制异常则 cancel 子进程。
+func (c *PtTableChecksumComp) DoChecksum() (err error) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	if c.Params.DtsMode {
+		return c.doChecksumCtx(ctx)
+	}
+
+	slaveErrCh := make(chan error, 1)
+	go c.watchSlaveStatus(ctx, cancel, slaveErrCh)
+
+	checksumErrCh := make(chan error, 1)
+	go func() {
+		checksumErrCh <- c.doChecksumCtx(ctx)
+	}()
+
+	select {
+	case err := <-slaveErrCh:
+		logger.Error("slave status check failed: %s", err.Error())
+		<-checksumErrCh
+		return err
+	case err := <-checksumErrCh:
+		if err != nil {
+			if ctx.Err() != nil {
+				return ctx.Err()
+			}
+			logger.Error("pt table checksum check failed: %s", err.Error())
+			return err
+		}
+		return nil
+	}
+}
+
+func (c *PtTableChecksumComp) watchSlaveStatus(
+	ctx context.Context, cancel context.CancelFunc, errCh chan<- error,
+) {
+	ticker := time.NewTicker(slaveStatusWatchInterval)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case <-ticker.C:
+			if err := c.checkSlaveStatus(); err != nil {
+				select {
+				case errCh <- err:
+				default:
+				}
+				cancel()
+				return
+			}
+		}
+	}
+}
+
+func (c *PtTableChecksumComp) doChecksumCtx(ctx context.Context) (err error) {
 	mysqlTableChecksumPath, err := c.tools.Get(tools.ToolMysqlTableChecksum)
 	if err != nil {
 		logger.Error("get %s failed: %s", tools.ToolMysqlTableChecksum, err.Error())
 		return err
 	}
-	command := exec.Command(
-		mysqlTableChecksumPath, []string{
-			"demand",
-			"--config", c.cfgFile,
-			"--uuid", c.uid,
-		}...,
+
+	checksumMode := "demand"
+	if c.Params.DtsMode {
+		checksumMode = "dts-mode"
+	}
+
+	command := exec.CommandContext(
+		ctx,
+		mysqlTableChecksumPath,
+		checksumMode,
+		"--config", c.cfgFile,
+		"--uuid", c.uid,
 	)
 	logger.Info("command: %s", command)
 	var stdout, stderr bytes.Buffer
@@ -276,6 +360,9 @@ func (c *PtTableChecksumComp) doChecksum() (err error) {
 	command.Stderr = &stderr
 
 	err = command.Run()
+	if ctx.Err() != nil {
+		return ctx.Err()
+	}
 	if err != nil {
 		logger.Error("execute check command failed: %s, %s", err.Error(), stderr.String())
 		return err
@@ -287,6 +374,10 @@ func (c *PtTableChecksumComp) doChecksum() (err error) {
 
 	fmt.Println(components.WrapperOutputString(string(b)))
 	return nil
+}
+
+func (c *PtTableChecksumComp) doChecksum() (err error) {
+	return c.doChecksumCtx(context.Background())
 }
 
 func (c *PtTableChecksumComp) checkSlaveStatus() (err error) {

@@ -43,7 +43,7 @@ def is_autofix_disabled(row: dict, cluster_obj) -> bool:
     """
     rules: list[dict] = SystemSettings.get_setting_value(SystemSettingsEnum.DISABLE_DBHA_AUTOFIX_APPS.value) or []
     for rule in rules:
-        if rule["bk_biz_id"] != row["bk_biz_id"]:
+        if int(rule["bk_biz_id"]) != int(row["bk_biz_id"]):
             continue
         if rule["cluster_type"] != cluster_obj.cluster_type:
             continue
