@@ -38,7 +38,7 @@
           :label="t('目标 DB')"
           property="dblikes"
           required>
-          <BkTagInput
+          <DbTagInput
             v-model="formData.dblikes"
             allow-create
             :disabled="isEditMode"
@@ -53,7 +53,7 @@
             placement="top"
             theme="light"
             trigger="manual">
-            <BkTagInput
+            <DbTagInput
               v-model="formData.tblikes"
               allow-create
               :disabled="isEditMode"
@@ -222,6 +222,8 @@
 
   import { ClusterTypes, dbSysExclude } from '@common/const';
   import { dbRegex } from '@common/regex';
+
+  import DbTagInput from '@components/db-tag-input/Index.vue';
 
   interface Props {
     data?: PartitionModel;

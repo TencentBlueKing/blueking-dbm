@@ -38,10 +38,11 @@
           :label="t('目标 DB')"
           property="dblikes"
           required>
-          <BkTagInput
+          <DbTagInput
             v-model="formData.dblikes"
             allow-create
             :disabled="isEditMode"
+            multiple
             :placeholder="t('请输入目标 DB')" />
         </DbFormItem>
         <DbFormItem
@@ -53,10 +54,11 @@
             placement="top"
             theme="light"
             trigger="manual">
-            <BkTagInput
+            <DbTagInput
               v-model="formData.tblikes"
               allow-create
               :disabled="isEditMode"
+              multiple
               :placeholder="t('支持多张表')"
               @blur="handleTblikeBlur"
               @focus="handleTblikeFocus" />
@@ -152,55 +154,28 @@
     </div>
     <template #footer>
       <template v-if="isEditMode">
-        <BkPopConfirm
-          :is-show="warnConfirming"
-          :title="t('确定保存并执行？')"
-          trigger="manual"
-          width="350"
-          @cancel="handleVerifyCancel"
-          @confirm="handleVerifyConfirm">
-          <BkButton
-            :loading="confirmLoading"
-            style="width: 100px"
-            theme="primary"
-            @click="handleSubmit">
-            {{ t('保存并执行') }}
-          </BkButton>
-        </BkPopConfirm>
-        <BkPopConfirm
-          :confirm-config="{ theme: 'danger' }"
-          :confirm-text="t('确认初始化')"
-          :content="t('重新初始化会立刻对当前表结构进行变更，请谨慎操作')"
-          :is-show="warnResetConfirming"
-          :title="t('确认重新初始化？')"
-          trigger="manual"
-          width="350"
-          @cancel="handleResetCancel"
-          @confirm="handleResetConfirm">
-          <BkButton
-            class="ml-8"
-            :disabled="isDisabledResetButton"
-            :loading="resetLoading"
-            @click="handleResetSubmit">
-            {{ t('保存并重新初始化') }}
-          </BkButton>
-        </BkPopConfirm>
+        <BkButton
+          :loading="confirmLoading"
+          style="width: 100px"
+          theme="primary"
+          @click="handleSubmit">
+          {{ t('保存并执行') }}
+        </BkButton>
+        <BkButton
+          class="ml-8"
+          :disabled="isDisabledResetButton"
+          :loading="resetLoading"
+          @click="handleResetSubmit">
+          {{ t('保存并重新初始化') }}
+        </BkButton>
       </template>
       <template v-else>
-        <BkPopConfirm
-          :is-show="warnConfirming"
-          :title="t('确定提交？')"
-          trigger="manual"
-          width="350"
-          @cancel="handleVerifyCancel"
-          @confirm="handleVerifyConfirm">
-          <BkButton
-            :loading="confirmLoading"
-            theme="primary"
-            @click="handleSubmit">
-            {{ t('提交') }}
-          </BkButton>
-        </BkPopConfirm>
+        <BkButton
+          :loading="confirmLoading"
+          theme="primary"
+          @click="handleSubmit">
+          {{ t('提交') }}
+        </BkButton>
       </template>
       <BkButton
         class="ml-8"
@@ -222,6 +197,8 @@
 
   import { dbSysExclude } from '@common/const';
   import { dbRegex } from '@common/regex';
+
+  import DbTagInput from '@components/db-tag-input/Index.vue';
 
   interface Props {
     data?: PartitionModel;
@@ -249,7 +226,6 @@
     tblikes: [] as string[],
   });
 
-  let showPopConfirm = false;
   let partionColumnVerifyErrorText = '';
   let motifyBefore = {
     partition_column: '',
@@ -263,8 +239,6 @@
   const isEditMode = ref(false);
   const isTblikePopShow = ref(false);
   const confirmLoading = ref(false);
-  const warnConfirming = ref(false);
-  const warnResetConfirming = ref(false);
   const resetLoading = ref(false);
   const partitionColumnTypeDisabled = ref(true);
 
@@ -336,11 +310,9 @@
           })
             .then((result) => {
               if (result) {
-                showPopConfirm = true;
                 partitionColumnTypeDisabled.value = true;
                 formData.partition_column_type = result;
               } else {
-                showPopConfirm = false;
                 partitionColumnTypeDisabled.value = false;
                 formData.partition_column_type = '';
               }
@@ -449,71 +421,41 @@
     formData.cluster_id = value;
   };
 
-  const handleVerifyCancel = () => {
-    warnConfirming.value = false;
-  };
-
-  const submitPartition = async () => {
-    confirmLoading.value = true;
-
-    const apiFn = isEditMode.value ? saveAndExecute : createPartition;
-
-    try {
-      const data = await apiFn({ ...formData });
-
-      ticketMessage(data[0].id);
-      handleCancel();
-
-      if (isEditMode.value) {
-        emits('editSuccess');
-      } else {
-        emits('createSuccess');
-      }
-    } finally {
-      confirmLoading.value = false;
-    }
-  };
-
-  const handleVerifyConfirm = () => {
-    showPopConfirm = false;
-    warnConfirming.value = false;
-    submitPartition();
-  };
-
   const handleSubmit = () => {
     formRef.value.validate().then(() => {
-      if (showPopConfirm) {
-        warnConfirming.value = true;
-        return;
-      }
-      submitPartition();
+      confirmLoading.value = true;
+      const apiFn = isEditMode.value ? saveAndExecute : createPartition;
+      apiFn({ ...formData })
+        .then((data) => {
+          ticketMessage(data[0].id);
+          handleCancel();
+          if (isEditMode.value) {
+            emits('editSuccess');
+          } else {
+            emits('createSuccess');
+          }
+        })
+        .finally(() => {
+          confirmLoading.value = false;
+        });
     });
-  };
-
-  const handleResetConfirm = () => {
-    warnResetConfirming.value = false;
-    resetLoading.value = true;
-    saveAndExecute({
-      ...formData,
-      force: true,
-    })
-      .then((data) => {
-        ticketMessage(data[0].id);
-        handleCancel();
-        emits('editSuccess');
-      })
-      .finally(() => {
-        resetLoading.value = false;
-      });
-  };
-
-  const handleResetCancel = () => {
-    warnResetConfirming.value = false;
   };
 
   const handleResetSubmit = () => {
     formRef.value.validate().then(() => {
-      warnResetConfirming.value = true;
+      resetLoading.value = true;
+      saveAndExecute({
+        ...formData,
+        force: true,
+      })
+        .then((data) => {
+          ticketMessage(data[0].id);
+          handleCancel();
+          emits('editSuccess');
+        })
+        .finally(() => {
+          resetLoading.value = false;
+        });
     });
   };
 </script>
