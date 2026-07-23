@@ -27,7 +27,10 @@
   import DbLog from '@components/db-log/index.vue';
 
   interface Props {
+    ip: string;
     isActive: boolean;
+    port: number;
+    switchVersion: string;
     uid: number;
   }
 
@@ -47,7 +50,12 @@
     () => {
       if (props.isActive) {
         if (props.uid) {
-          fetchEventSwitchLog({ sw_id: props.uid });
+          fetchEventSwitchLog({
+            ip: props.ip,
+            port: props.port,
+            sw_id: props.uid,
+            switch_version: props.switchVersion || '',
+          });
         }
         setTimeout(() => {
           logRef.value?.init();
