@@ -69,6 +69,11 @@ type ExecuteSQLFileParam struct {
 	BillId            uint                        `json:"bill_id"` // billId
 }
 
+// MaxSQLFileNameLen SQL 文件名最大长度。
+// err log 拼装为 {sqlfile}.{db}.err，Linux NAME_MAX=255，MySQL 库名最长 64，
+// 因此 255 - 1 - 64 - 4 = 186。
+const MaxSQLFileNameLen = 186
+
 // ExecuteSQLFileObj 单个文件的执行对象
 // 一次可以多个文件操作不同的数据库
 type ExecuteSQLFileObj struct {
@@ -130,6 +135,10 @@ func (e *ExecuteSQLFileComp) Example() interface{} {
 
 // PreCheck do some check step
 func (e *ExecuteSQLFileComp) PreCheck() (err error) {
+	if err = e.CheckSQLFileNameLength(); err != nil {
+		logger.Error("SQL文件名长度检查失败:%s", err.Error())
+		return err
+	}
 	if err = e.CheckSQLFileExist(); err != nil {
 		logger.Error("SQL文件存在性检查失败:%s", err.Error())
 		return err
@@ -163,6 +172,30 @@ func (e *ExecuteSQLFileComp) cleanHistorySQLDir() {
 		return
 	}
 	logger.Info("clean sql file success")
+}
+
+// CheckSQLFileNameLength 检查 SQL 文件名长度，避免拼装 err log 时超过文件系统 NAME_MAX
+func (e *ExecuteSQLFileComp) CheckSQLFileNameLength() (err error) {
+	var sqlFiles []string
+	for _, f := range e.Params.ExecuteObjects {
+		sqlFiles = append(sqlFiles, f.SQLFiles...)
+	}
+	return checkSQLFileNameLength(sqlFiles)
+}
+
+// checkSQLFileNameLength 校验 SQL 文件名长度（纯函数，便于单测）
+func checkSQLFileNameLength(sqlFiles []string) error {
+	var errs []error
+	for _, sqlFile := range sqlFiles {
+		baseName := path.Base(sqlFile)
+		if len(baseName) > MaxSQLFileNameLen {
+			errs = append(errs, fmt.Errorf(
+				"SQL文件名过长:%s, 长度%d, 上限%d(err log 为 {sqlfile}.{db}.err, 需满足 NAME_MAX=255), 请缩短文件名",
+				baseName, len(baseName), MaxSQLFileNameLen,
+			))
+		}
+	}
+	return errors.Join(errs...)
 }
 
 // CheckSQLFileExist 检查文件是否存在
