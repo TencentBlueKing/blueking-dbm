@@ -46,7 +46,12 @@ export function fetchReplenish(params: {
 /**
  * 海磊资源池主机补货
  */
-export function createResourceReplenish(params: { bk_biz_id: number; infos: CreateReplenish[]; remark?: string }) {
+export function createResourceReplenish(params: {
+  bk_biz_id: number;
+  infos: CreateReplenish[];
+  remark?: string;
+  replenish_type?: 'full' | 'increment';
+}) {
   return http.post(`${path}/create_resource_replenish/`, params);
 }
 
