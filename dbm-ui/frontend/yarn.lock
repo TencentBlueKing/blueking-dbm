@@ -548,6 +548,13 @@
     lodash "^4.17.23"
     sortablejs "^1.15.6"
 
+"@blueking/bkui-library@0.0.0-beta.6":
+  version "0.0.0-beta.6"
+  resolved "https://mirrors.tencent.com/npm/@blueking/bkui-library/-/bkui-library-0.0.0-beta.6.tgz#033e9f7efb5902d1c3fcf291012830a1a710e10d"
+  integrity sha512-1M6pNDIOQYWzOu3uVRxo0h67d+huTbBQYDjj8+QF4Ka3HSe/mLgSrIkaZhhUVlJJl5zP8HK+UwXpkWcjL8zIsw==
+  dependencies:
+    "@vue/runtime-dom" "^3.4.27"
+
 "@blueking/chat-helper@0.0.12-beta.9":
   version "0.0.12-beta.9"
   resolved "https://registry.yarnpkg.com/@blueking/chat-helper/-/chat-helper-0.0.12-beta.9.tgz#98be5295d90ef722ffb625cd804e7b2e0423a23a"
@@ -578,17 +585,25 @@
     vue-tippy "^6.7.1"
     zod "^4.3.6"
 
-"@blueking/date-picker@1.0.1":
-  version "1.0.1"
-  resolved "https://mirrors.tencent.com/npm/@blueking/date-picker/-/date-picker-1.0.1.tgz#e673f262aa9be83ae5a453a7a1282e75c2ad9f9b"
-  integrity sha512-YtmVtYScUkGvpXqmOChGv9eE2GD6cnwKiecQpOYKRBWSbg4h2ed0LUMwVqvHsWcUCMQvIktDgltF0uXaZp099A==
-  dependencies:
-    dayjs "^1.11.10"
+"@blueking/date-picker@3.0.8":
+  version "3.0.8"
+  resolved "https://mirrors.tencent.com/npm/@blueking/date-picker/-/date-picker-3.0.8.tgz#f24beb4d450e9592d14d277db73c4e79e9844d36"
+  integrity sha512-Umkfav7ZO3Gy/9+o1w+buJeaaox/9QZP4Do1OdUiE9zAnlwerpn1ZH7H1J5hJ4W2xnwnC12PWvppnjFGQApjeg==
 
-"@blueking/ip-selector@0.3.0-beta.23":
-  version "0.3.0-beta.23"
-  resolved "https://mirrors.tencent.com/npm/@blueking/ip-selector/-/ip-selector-0.3.0-beta.23.tgz#4b1dac30e6de8233a81b3b3cc284a350420c0236"
-  integrity sha512-jvm3e1JEnoLAxCjLt+1BU/kL9NHtEkGTPUW4mur+U0WXBlwUvJOROuZQTd6rPmVob9Yh2Phv/gLDY8zXo1s22A==
+"@blueking/functional-dependency@0.0.1-beta.12":
+  version "0.0.1-beta.12"
+  resolved "https://mirrors.tencent.com/npm/@blueking/functional-dependency/-/functional-dependency-0.0.1-beta.12.tgz#f046e2512473a421ba2a5462f952f35536724b2b"
+  integrity sha512-nMrPRSe/J53DXeLAALGBQn8PxoRa0QNjsXeypwRJfoDJ175U+RAQvlBtQVNBzbRnQqacXBZbCs1n/lafT3glig==
+
+"@blueking/ip-selector@1.0.3":
+  version "1.0.3"
+  resolved "https://mirrors.tencent.com/npm/@blueking/ip-selector/-/ip-selector-1.0.3.tgz#417dd3af556aa6cf035b62e9ede175111b8ded3e"
+  integrity sha512-yEGwfJQu28eTRN/cw+j/HieLauejfQX/ExBIRIqt3r4U5hPEQJjAMffLueWDKdqH02tobcQO79vWkQPt0nlODQ==
+  dependencies:
+    "@blueking/bkui-library" "0.0.0-beta.6"
+    "@blueking/functional-dependency" "0.0.1-beta.12"
+    "@blueking/user-selector" "^1.0.14"
+    vue-i18n "8.14.1"
 
 "@blueking/login-modal@1.0.6":
   version "1.0.6"
@@ -628,6 +643,15 @@
     "@blueking/vxe-table" "4.10.6-beta.6"
     "@types/lodash" "^4.17.4"
     lodash "^4.17.21"
+
+"@blueking/user-selector@^1.0.14":
+  version "1.0.14"
+  resolved "https://mirrors.tencent.com/npm/@blueking/user-selector/-/user-selector-1.0.14.tgz#9337ddc47726055108847c851c61eb597e77fae9"
+  integrity sha512-P2ksMb6kipY+yQ49SI8IMb6JIiurWDkK3fHSXTLWn23O5q0zlN7GM+Edv9IfeG8gqK7q5LrDH+H8lQVoviUPoA==
+  dependencies:
+    "@icon-cool/bk-icon-bk-biz-components" "^0.0.4"
+    lodash.throttle "^4.1.1"
+    tippy.js "^6.2.3"
 
 "@blueking/vxe-table@4.10.6-beta.6":
   version "4.10.6-beta.6"
@@ -1284,7 +1308,7 @@
   resolved "https://mirrors.tencent.com/npm/@humanwhocodes/retry/-/retry-0.4.3.tgz#c2b9d2e374ee62c586d3adbea87199b1d7a7a6ba"
   integrity sha512-bV0Tgo9K4hfPCek+aMAn81RppFKv2ySDQeMoSZuvTASywNTnVJCArCZE2FWqpvIatKu7VMRLWlR1EazvVhDyhQ==
 
-"@icon-cool/bk-icon-bk-biz-components@0.0.4":
+"@icon-cool/bk-icon-bk-biz-components@0.0.4", "@icon-cool/bk-icon-bk-biz-components@^0.0.4":
   version "0.0.4"
   resolved "https://mirrors.tencent.com/npm/@icon-cool/bk-icon-bk-biz-components/-/bk-icon-bk-biz-components-0.0.4.tgz#bab349dbc9d29d89717848b09676f0780bde1e70"
   integrity sha512-6RnPbu3urilXn6AP+vIyN5tabqGCTyzUrAGZzeR0Stw4TfJbha+4hvj0GOR7pmbG3Jd5DAXeGONP2I3LUELb0A==
@@ -2813,7 +2837,7 @@
     "@vue/shared" "3.5.35"
     csstype "^3.2.3"
 
-"@vue/runtime-dom@3.5.40":
+"@vue/runtime-dom@3.5.40", "@vue/runtime-dom@^3.4.27":
   version "3.5.40"
   resolved "https://mirrors.tencent.com/npm/@vue/runtime-dom/-/runtime-dom-3.5.40.tgz#ed72f072c31e7868c0c59ad5883138cd7e0d88a5"
   integrity sha512-ZfrX8ssZQds900L9pr8AuK05ddnMsR4MPMZr8cPN9GoqoPWcXLhjvvbIA2SMv+7a97sJ1vv9pj/zxK0Cq/eEFQ==
@@ -10115,7 +10139,7 @@ tinyglobby@^0.2.15, tinyglobby@^0.2.16, tinyglobby@^0.2.17:
     fdir "^6.5.0"
     picomatch "^4.0.4"
 
-tippy.js@6.3.7, tippy.js@^6.3.7:
+tippy.js@6.3.7, tippy.js@^6.2.3, tippy.js@^6.3.7:
   version "6.3.7"
   resolved "https://mirrors.tencent.com/npm/tippy.js/-/tippy.js-6.3.7.tgz#8ccfb651d642010ed9a32ff29b0e9e19c5b8c61c"
   integrity sha512-E1d3oP2emgJ9dRQZdf3Kkn0qJgI6ZLpyS5z6ZkY1DF3kaQaBsGZsndEpHwx+eC+tYM41HaSNvNtLx8tU57FzTQ==
@@ -10731,6 +10755,11 @@ vue-i18n@11.4.7:
     "@intlify/devtools-types" "11.4.7"
     "@intlify/shared" "11.4.7"
     "@vue/devtools-api" "^6.5.0"
+
+vue-i18n@8.14.1:
+  version "8.14.1"
+  resolved "https://mirrors.tencent.com/npm/vue-i18n/-/vue-i18n-8.14.1.tgz#0ca0a2742c14e0144481655157fffcc7cc313e50"
+  integrity sha512-uHzw5GTFyf/TmjJXveSl3L4CG61KI4lvhKOQvx8W4Y8P2LZ3v3l/qw4KRs1C6pWyjkfY9p0rezYNFO5YzMEQ8A==
 
 vue-request@2.0.4:
   version "2.0.4"
