@@ -12,12 +12,15 @@ import json
 import logging
 import re
 import time
+from datetime import datetime
+from datetime import time as dt_time
 from datetime import timedelta
 from datetime import timezone as dt_timezone
 
 from blueapps.core.celery.celery import app
 from celery.schedules import crontab
 from django.core.cache import cache
+from django.db.models.functions import Mod
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 from jsonschema.exceptions import ValidationError
@@ -75,8 +78,18 @@ def _parse_skew_report_res(res: str):
     return {"summary": summary, "share_url": share_url}
 
 
-@register_periodic_task(run_every=crontab(minute=3, hour=2))
+@register_periodic_task(run_every=crontab(minute=3, hour="*"))
 def generate_report():
+    """分发 MySQL 集群倾斜报告生成任务。
+
+    调度策略：
+    1. 分片：每小时触发，cluster_id % 24 == 当前小时，每个集群每天只调度一次。
+    2. 错峰：countdown 平摊到 30 分钟内，避免瞬时打满 AI；窗口须短于 Redis broker
+       visibility_timeout（默认 1h），否则 countdown 任务会被重复投递。
+    3. 防重调度：投递前 cache.add 占位，避免同集群同一天重复 apply_async（如 Beat 重复触发）。
+       - key 带 schedule_date：「是否已调度」由日期区分，次日自动换新 key，不必把 TTL 绑成 24h 业务周期。
+       - TTL 25h：只负责回收 cache 条目；防重语义在 key，不在 TTL 时长。不主动 delete，任务结束也不释锁。
+    """
     if not env.ENABLE_DBM_AI:
         logger.warning("ai not enabled")
         return
@@ -87,20 +100,38 @@ def generate_report():
         logger.warning("dispatch skip, doris unavailable")
         return
 
-    cluster_objs = Cluster.objects.filter(cluster_type__in=[ClusterType.TenDBHA, ClusterType.TenDBCluster])
+    current_hour = timezone.localtime().hour
+    schedule_date = timezone.localdate()
+    logger.info(
+        "dispatch start: schedule_date=%s current_hour=%d",
+        schedule_date,
+        current_hour,
+    )
+
+    cluster_objs = (
+        Cluster.objects.filter(cluster_type__in=[ClusterType.TenDBHA, ClusterType.TenDBCluster])
+        .annotate(id_mod_hour=Mod("id", 24))
+        .filter(id_mod_hour=current_hour)
+    )
     cluster_count = cluster_objs.count()
+    logger.info(
+        "dispatch batch: cluster_count=%d cluster_id_mod_24=%d",
+        cluster_count,
+        current_hour,
+    )
 
     scheduled, skipped_lock = 0, 0
 
     for index, cluster_obj in enumerate(cluster_objs):
-        lock_key = f"generate_mysql_skew_report:{cluster_obj.immute_domain}"
+        lock_key = f"generate_mysql_skew_report:{cluster_obj.immute_domain}:{schedule_date}"
 
-        if not cache.add(lock_key, 1, timeout=3600 * 13):
+        # 25h TTL：略长于 1 天，仅清理过期 key；是否与 24h 报告 span 无关
+        if not cache.add(lock_key, 1, timeout=3600 * 25):
             skipped_lock += 1
             logger.warning("report skip, lock held: lock_key=%s", lock_key)
             continue
 
-        countdown = calculate_countdown(count=cluster_count, index=index, duration=12 * TimeUnit.HOUR)
+        countdown = calculate_countdown(count=cluster_count, index=index, duration=30 * TimeUnit.MINUTE)
 
         try:
             with start_new_span(_generate_cluster_skew_report):
@@ -122,7 +153,6 @@ def generate_report():
             )
         except Exception:  # noqa
             logger.exception("report schedule failed: lock_key=%s", lock_key)
-            cache.delete(lock_key)
 
     logger.info(
         "dispatch done: scheduled=%d skipped_lock=%d total=%d",
@@ -136,64 +166,110 @@ def generate_report():
 def _generate_cluster_skew_report(cluster_type: str, domain: str, lock_key: str, bk_biz_id: int):
     logger.info("generate %s skew report start: lock_key=%s", domain, lock_key)
     try:
-        # UTC naive，与 Doris detect_time 一致，用于查询和落库
-        report_to_utc = timezone.now().replace(tzinfo=None)
-        report_from_utc = report_to_utc - timedelta(hours=24)
-        report_from_utc -= timedelta(hours=1)
-        report_to_utc += timedelta(hours=1)
+        # 本地墙钟时间，不带时区，与 Doris detect_time、倾斜检测写入方式一致
+        local_today = timezone.localdate()
+        report_to_utc = datetime.combine(local_today, dt_time.min)
+        report_from_utc = report_to_utc - timedelta(days=1)
+        logger.info(
+            "generate %s skew report period: lock_key=%s report_from=%s report_to=%s",
+            domain,
+            lock_key,
+            report_from_utc,
+            report_to_utc,
+        )
 
         cluster_obj = Cluster.objects.get(immute_domain=domain, cluster_type=cluster_type)
         if not has_cluster_skew(cluster_obj, report_from_utc, report_to_utc):
-            logger.info("generate %s skew report skip, no skew: lock_key=%s", domain, lock_key)
+            logger.info(
+                "generate %s skew report skip, no skew: lock_key=%s report_from=%s report_to=%s",
+                domain,
+                lock_key,
+                report_from_utc,
+                report_to_utc,
+            )
             return
 
-        report_from_str = _localize_time(report_from_utc)
-        report_to_str = _localize_time(report_to_utc)
+        report_from_str = f"{report_from_utc.strftime('%Y-%m-%d %H:%M:%S')} {DEFAULT_TIME_ZONE_AREA}"
+        report_to_str = f"{report_to_utc.strftime('%Y-%m-%d %H:%M:%S')} {DEFAULT_TIME_ZONE_AREA}"
+
+        try:
+            report_obj = MysqlClusterSkewReport.objects.create(
+                bk_biz_id=bk_biz_id,
+                cluster_type=cluster_type,
+                cluster_domain=domain,
+                report_from=report_from_utc,
+                report_to=report_to_utc,
+                summary="",
+                share_url="",
+                creator="system",
+                updater="system",
+            )
+            logger.info(
+                "generate %s skew report placeholder created: lock_key=%s id=%s",
+                domain,
+                lock_key,
+                report_obj.id,
+            )
+        except Exception:  # noqa
+            logger.exception("generate %s skew report placeholder create failed: lock_key=%s", domain, lock_key)
+            return
+
+        logger.info("generate %s skew report calling agent: lock_key=%s id=%s", domain, lock_key, report_obj.id)
         t_start = time.monotonic()
         res = AgentHandler.ask_agent_with_content(
-            agent_code=DBMAgentCode.MYSQL_WORKBENCH,
+            agent_code=DBMAgentCode.MYSQL_SKEW_REPORT,
             content=str(
-                _("{} 生成从 {} 到 {} 的集群倾斜报告, 给我 {{'summary':<内容摘要>, 'share_url':<报告链接>}} 格式的结果").format(
-                    domain, report_from_str, report_to_str
-                )
+                _(
+                    "bk_biz_id: {}, cluster_type:{}, cluster_domain: {} "
+                    "生成从 {} 到 {} 的集群倾斜报告, 给我 {{'summary':<内容摘要>, 'share_url':<报告链接>}} 格式的结果"
+                ).format(cluster_obj.bk_biz_id, cluster_obj.cluster_type, domain, report_from_str, report_to_str)
             ),
             timeout=300,
         )
         t_done = time.monotonic()
+        logger.info(
+            "generate %s skew report agent returned: lock_key=%s used_time=%.2fs",
+            domain,
+            lock_key,
+            t_done - t_start,
+        )
         report = _parse_skew_report_res(res)
         if report:
             logger.info(
-                "generate %s skew report done: lock_key=%s used_time=%.2fs summary=%s share_url=%s",
+                "generate %s skew report done: lock_key=%s id=%s used_time=%.2fs summary=%s share_url=%s",
                 domain,
                 lock_key,
+                report_obj.id,
                 t_done - t_start,
                 report["summary"],
                 report["share_url"],
             )
             try:
-                MysqlClusterSkewReport.objects.create(
-                    bk_biz_id=bk_biz_id,
-                    cluster_type=cluster_type,
-                    cluster_domain=domain,
-                    report_from=report_from_utc,
-                    report_to=report_to_utc,
-                    summary=report["summary"],
-                    share_url=report["share_url"],
-                    creator="system",
-                    updater="system",
+                report_obj.summary = report["summary"]
+                report_obj.share_url = report["share_url"]
+                report_obj.updater = "system"
+                report_obj.save(update_fields=["summary", "share_url", "updater", "update_at"])
+                logger.info(
+                    "generate %s skew report updated: lock_key=%s id=%s",
+                    domain,
+                    lock_key,
+                    report_obj.id,
                 )
             except Exception:  # noqa
-                logger.exception("generate %s skew report save failed: lock_key=%s", domain, lock_key)
+                logger.exception(
+                    "generate %s skew report update failed: lock_key=%s id=%s",
+                    domain,
+                    lock_key,
+                    report_obj.id,
+                )
         else:
             logger.warning(
-                "generate %s skew report parse failed: lock_key=%s used_time=%.2fs res=%s",
+                "generate %s skew report parse failed: lock_key=%s id=%s used_time=%.2fs res=%s",
                 domain,
                 lock_key,
+                report_obj.id,
                 t_done - t_start,
                 res,
             )
     except Exception:  # noqa
         logger.exception("generate %s skew report failed: lock_key=%s", domain, lock_key)
-    finally:
-        if cache.get(lock_key) == 1:
-            cache.delete(lock_key)

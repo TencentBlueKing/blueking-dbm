@@ -64,3 +64,4 @@ class DBMAgentCode(StrStructuredEnum):
     HDFS_TASK_GUARDIAN = EnumField("ai-hdfs-taskgd", _("HDFS单据值守"))
     DORIS_TASK_GUARDIAN = EnumField("ai-doris-taskgd", _("Doris单据值守"))
     MYSQL_WORKBENCH = EnumField("ai-mysql-workb", _("ai-mysql-workb"))
+    MYSQL_SKEW_REPORT = EnumField("ai-mysql-skew", _("MySQL 集群倾向报告"))
