@@ -27,7 +27,7 @@ class ResourceReplenishRecord(models.Model):
         verbose_name=_("补货类型"),
         choices=ReplenishTypeEnum.get_choices(),
         max_length=LEN_NORMAL,
-        default=ReplenishTypeEnum.FULL,
+        default=ReplenishTypeEnum.FULL.value,
     )
 
     class Meta:
