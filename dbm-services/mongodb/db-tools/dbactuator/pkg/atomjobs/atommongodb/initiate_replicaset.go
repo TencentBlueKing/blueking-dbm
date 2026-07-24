@@ -221,17 +221,30 @@ func (i *InitiateReplicaset) makeConfContent() error {
 	jsonConfReplicaset := common.NewJsonConfReplicaset()
 	jsonConfReplicaset.Id = i.ClusterId
 	localMember := fmt.Sprintf("%s:%d", i.ConfParams.IP, i.ConfParams.Port)
+	singleMember := len(i.ConfParams.Ips) == 1
 	for index, value := range i.ConfParams.Ips {
 		member := common.NewMember()
 		member.Id = index
 		member.Host = value
 		prio := i.ConfParams.Priority[value]
-		// 提高当前执行节点的 priority，避免因 ips 数组顺序与执行节点不一致时选主错误。
-		if value == localMember {
+		hidden := i.ConfParams.Hidden[value]
+		// 单节点复制集必须可选举，不能 hidden
+		if singleMember {
+			hidden = false
+			if prio <= 0 {
+				prio = 1
+			}
+		}
+		// MongoDB 要求 hidden=true 时 priority 必须为 0；勿对 hidden 节点做 priority++
+		if !hidden && value == localMember {
+			// 提高当前执行节点的 priority，避免因 ips 数组顺序与执行节点不一致时选主错误。
 			prio++
 		}
+		if hidden {
+			prio = 0
+		}
 		member.Priority = prio
-		member.Hidden = i.ConfParams.Hidden[value]
+		member.Hidden = hidden
 		jsonConfReplicaset.Members = append(jsonConfReplicaset.Members, member)
 	}
 	jsonConfReplicaset.ConfigSvr = i.ConfParams.ConfigSvr

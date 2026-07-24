@@ -663,12 +663,13 @@ class ActKwargs:
         instances = [
             "{}:{}".format(node["ip"], str(self.replicaset_info["port"])) for node in self.replicaset_info["nodes"]
         ]
-        node_count = self.payload["node_count"]
+        # Use this RS member count, not payload node_count (shard size); configsvr size differs.
+        member_count = len(instances)
         for index, instance in enumerate(instances):
-            if node_count == 1:
+            if member_count == 1:
                 priority[instance] = 1
                 hidden[instance] = False
-            elif node_count > 1:
+            elif member_count > 1:
                 if index == len(instances) - 1:
                     priority[instance] = 0
                     hidden[instance] = True
@@ -763,15 +764,17 @@ class ActKwargs:
             info["proxies"] = [
                 {"ip": node["ip"], "port": self.payload["mongos"]["port"]} for node in self.payload["mongos"]["nodes"]
             ]
-            # config
+            # config — use config member count, not shard node_count (configsvr may be 1 while shards are N)
             info["configs"] = []
             config = {
                 "shard": self.payload["config"]["set_id"],
                 "nodes": [],
             }
-            if len(self.payload["config"]["nodes"]) <= 11:
-                for index, node in enumerate(self.payload["config"]["nodes"]):
-                    if node_count == 1:
+            config_nodes = self.payload["config"]["nodes"]
+            config_node_count = len(config_nodes)
+            if config_node_count <= 11:
+                for index, node in enumerate(config_nodes):
+                    if config_node_count == 1:
                         config["nodes"].append(
                             {
                                 "ip": node["ip"],
@@ -779,8 +782,8 @@ class ActKwargs:
                                 "role": self.instance_role[index],
                             }
                         )
-                    elif node_count > 1:
-                        if index == len(self.payload["config"]["nodes"]) - 1:
+                    elif config_node_count > 1:
+                        if index == config_node_count - 1:
                             config["nodes"].append(
                                 {
                                     "ip": node["ip"],
@@ -907,7 +910,6 @@ class ActKwargs:
                     "script": script,
                     "type": mongo_type,
                     "scriptName": script_name,
-                    "secondary": False,
                     "adminUsername": MongoDBManagerUser.DbaUser.value,
                     "adminPassword": self.payload["passwords"][MongoDBManagerUser.DbaUser.value],
                     "repoUrl": "",
@@ -1073,6 +1075,7 @@ class ActKwargs:
             db_type = "replicaset"
         elif self.cluster_type == ClusterType.MongoShardedCluster.value:
             db_type = "cluster"
+        cluster_name = Cluster.objects.get(id=cluster_id).name
         return {
             "set_trans_data_dataclass": CommonContext.__name__,
             "get_trans_data_ip_var": None,
@@ -1088,7 +1091,10 @@ class ActKwargs:
                     "port": self.payload["port"],
                     "scriptNameList": self.payload["script_files"],
                     "Type": db_type,
-                    "secondary": False,
+                    # 结果文件名：{clusterName}_{脚本编号}_{scriptBase}_result.txt
+                    "clusterName": cluster_name,
+                    # 实例真实版本，供 actuator 选择 mongo/mongosh（勿用共享主机 /usr/local 上的 mongod）
+                    "dbVersion": self.payload.get("db_version") or "",
                     "adminUsername": admin_user,
                     "adminPassword": self.payload["admin_password"],
                     "repoUrl": settings.BKREPO_ENDPOINT_URL,
@@ -1815,7 +1821,13 @@ class ActKwargs:
     def get_host_increase_node(self, info: dict):
         """cluster增加node获取主机"""
 
-        flow_db_version = resolve_mongodb_flow_db_version(Cluster.objects.get(pk=info["cluster_id"]))
+        # 副本集流程 info 为多副本集(cluster_ids)，分片集群流程 info 为单集群(cluster_id)
+        # close #19041：副本集扩容勿直接取 info["cluster_id"]，否则 KeyError
+        if self.payload["cluster_type"] == ClusterType.MongoReplicaSet.value:
+            cluster_id = info["cluster_ids"][0]
+        else:
+            cluster_id = info["cluster_id"]
+        flow_db_version = resolve_mongodb_flow_db_version(Cluster.objects.get(pk=cluster_id))
 
         hosts = []
         if self.payload["cluster_type"] == ClusterType.MongoReplicaSet.value:
@@ -2243,7 +2255,6 @@ class ActKwargs:
                     "port": self.payload["mongos"]["port"],
                     "script": mongodb_script_template.mongodb_cluster_inti_js_script,
                     "type": "cluster",
-                    "secondary": False,
                     "adminUsername": MongoDBManagerUser.DbaUser.value,
                     "adminPassword": self.payload["passwords"][MongoDBManagerUser.DbaUser.value],
                     "repoUrl": "",

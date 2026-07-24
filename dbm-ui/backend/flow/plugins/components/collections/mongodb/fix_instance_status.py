@@ -22,7 +22,6 @@ from backend.flow.consts import InstanceStatus, MongoDBClusterRole
 from backend.flow.plugins.components.collections.common.base_service import BaseService
 from backend.flow.utils.clb_manage import get_clb_by_ip
 from backend.flow.utils.dns_manage import DnsManage
-from backend.flow.utils.mongodb.mongodb_util import MongoUtil
 
 logger = logging.getLogger("json")
 
@@ -211,7 +210,7 @@ def fix_instance_cluster_entry(ip: str, port: int, bk_cloud_id: int, role_type: 
             for row in inst.bind_entry.all():
                 if row.cluster_entry_type == ClusterEntryType.DNS.value:
                     domain = row.entry
-                    code, msg = MongoUtil.fix_instance_dns_entry(
+                    code, msg = fix_instance_dns_entry(
                         ip=ip, port=port, bk_cloud_id=bk_cloud_id, bk_biz_id=bk_biz_id, domain=domain
                     )
                     fix_entry_list.append(

@@ -93,6 +93,15 @@ class DNSServerSetService(BkJobService):
         FlowNode.objects.filter(root_id=root_id, node_id=node_id).update(hosts=exec_ips)
 
         dns_server_config = self.__get_dns_server_list(cluster["bk_cloud_id"], cluster["bk_city"])
+        if "nameserver" not in dns_server_config:
+            self.log_error(
+                _(
+                    "未配置可访问的 DNS，无法写入 /etc/resolv.conf。"
+                    "请检查云区域 bk_cloud_id={bk_cloud_id}、城市 bk_city={bk_city} 下 "
+                    "DBExtension(ExtensionType.DNS) 是否已登记且 is_access=true"
+                ).format(bk_cloud_id=cluster["bk_cloud_id"], bk_city=cluster["bk_city"])
+            )
+            return False
 
         # 强制模式
         if cluster["force"]:

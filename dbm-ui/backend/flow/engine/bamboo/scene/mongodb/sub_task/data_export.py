@@ -17,13 +17,16 @@ from django.utils.translation import gettext as _
 
 from backend.core.encrypt.handlers import AsymmetricCipherConfigType, AsymmetricHandler
 from backend.flow.consts import MONGODB_DATA_EXPORT_PATH, MongoDBActuatorActionEnum
+from backend.flow.engine.bamboo.scene.common.atom_jobs.set_dns_sub_job import set_dns_atom_job
 from backend.flow.engine.bamboo.scene.common.builder import SubBuilder
 from backend.flow.engine.bamboo.scene.mongodb.sub_task.base_subtask import BaseSubTask
 from backend.flow.plugins.components.collections.mongodb.exec_actuator_job2 import ExecJobComponent2
 from backend.flow.utils.base.bkrepo import get_bk_repo_url
+from backend.flow.utils.common_act_dataclass import DNSContext
 from backend.flow.utils.mongodb.mongodb_dataclass import CommonContext
 from backend.flow.utils.mongodb.mongodb_repo import MongoDBCluster, MongoDBNsFilter, MongoNode, MongoNodeWithLabel
 from backend.flow.utils.mongodb.mongodb_util import MongoUtil
+from backend.flow.utils.redis.redis_context_dataclass import ActKwargs as RedisActKwargs
 
 logger = logging.getLogger("flow")
 
@@ -118,11 +121,35 @@ class DataExportSubTask(BaseSubTask):
             file_path=file_path,
             pkg_name=task_info["mongodb_package_name"],
         )
-        kwargs = cls.make_kwargs(cluster, config)
 
+        # 导出中心配置 DNS，保证能解析制品库域名；上传失败时可重试本节点
+        redis_actkwargs = RedisActKwargs()
+        redis_actkwargs.cluster = {}
+        redis_actkwargs.set_trans_data_dataclass = DNSContext.__name__
+        redis_actkwargs.is_update_trans_data = True
+        redis_actkwargs.bk_cloud_id = cluster.bk_cloud_id
+        dns_param = {
+            "force": True,
+            "ip": config.export_center_ip,
+            "bk_biz_id": str(cluster.bk_biz_id),
+            "bk_cloud_id": str(cluster.bk_cloud_id),
+            # DNS DBExtension 常按城市匹配；空 region 时用 default
+            "bk_city": cluster.region or "default",
+        }
+        builder.add_sub_pipeline(
+            set_dns_atom_job(
+                root_id=root_id,
+                ticket_data=data,
+                act_kwargs=redis_actkwargs,
+                param=dns_param,
+            )
+        )
+
+        kwargs = cls.make_kwargs(cluster, config)
         builder.add_act(
             act_name=_("访问节点： {}".format(config.access_node.addr())),
             act_component_code=ExecJobComponent2.code,
             kwargs=kwargs,
+            retryable=True,
         )
         return builder.build_sub_process(_("{}-数据导出".format(cluster.immute_domain)))

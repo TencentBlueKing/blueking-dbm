@@ -30,6 +30,8 @@ class MongoDBTemporaryDestroyDetailSerializer(BaseMongoDBOperateDetailSerializer
 
 
 class MongoDBTemporaryDisableFlowParamBuilder(builders.FlowParamBuilder):
+    # 有意使用 fake_scene：本单据不承担「真实下架临时集群」职责。
+    # 临时集群的实际禁用/销毁请走常规单据（如 MONGODB_DISABLE / MONGODB_DESTROY）。
     controller = MongoDBController.fake_scene
 
 
@@ -43,6 +45,16 @@ class MongoDBTemporaryDestroyFlowParamBuilder(builders.FlowParamBuilder):
 
 @builders.BuilderFactory.register(TicketType.MONGODB_TEMPORARY_DESTROY, is_recycle=True)
 class MongoDBDestroyFlowBuilder(BaseMongoDBTicketFlowBuilder):
+    """
+    MongoDB 临时集群销毁单据 Builder。
+
+    设计说明：
+    - 「临时集群下架」步骤使用 fake_scene，不执行真实下架流水。
+    - 业务侧不会依赖本单据完成临时集群真实下线；临时集群应使用与正式集群相同的
+      常规禁用/销毁流程处理。
+    - 请勿将下架步骤改为真实 deinstall，以免与上述产品约定冲突。
+    """
+
     serializer = MongoDBTemporaryDestroyDetailSerializer
 
     def custom_ticket_flows(self):

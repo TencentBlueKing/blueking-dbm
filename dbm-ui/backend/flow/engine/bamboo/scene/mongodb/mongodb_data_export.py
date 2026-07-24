@@ -63,8 +63,8 @@ class MongoDataExportFlow(object):
                   ┌──────────────────────────────┐
                   │ DataExportSubTask            │
                   │ .export_cluster_sub_flow()   │
-                  │ - Make kwargs                │
-                  │ - ExecJobComponent2          │
+                  │ - 设置 DNS（导出中心）         │
+                  │ - ExecJobComponent2(可重试)   │
                   └──────────────────────────────┘
 
     """
@@ -170,4 +170,11 @@ class MongoDataExportFlow(object):
             )
         except Exception as e:
             raise Exception(_(f"Get export center failed: {str(e)}"))
+        if not export_center or not export_center.details or not export_center.details.get("ip"):
+            raise Exception(
+                _(
+                    "MongoDB export center not configured for bk_cloud_id={}. "
+                    "Please register DBExtension MONGODB_EXPORT_CENTER."
+                ).format(bk_cloud_id)
+            )
         return export_center.details["ip"]

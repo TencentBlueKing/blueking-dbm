@@ -22,28 +22,34 @@ import (
 	"github.com/go-playground/validator/v10"
 )
 
+const scriptExecDoneMarker = ".script_exec_done"
+
 // ExecScriptConfParams 参数
 type ExecScriptConfParams struct {
 	IP             string   `json:"ip" validate:"required"`
 	Port           int      `json:"port" validate:"required"`
-	Type           string   `json:"type" validate:"required"` // cluster：执行脚本为传入的mongos replicaset：执行脚本为指定节点
-	Secondary      bool     `json:"secondary"`                // 复制集是否在secondary节点执行script
+	Type           string   `json:"type" validate:"required"` // cluster：mongos；replicaset：副本集
 	TaskId         string   `json:"taskid" validate:"required"`
-	ScriptFile     bool     `json:"scriptFile"`     // 判断是否为通过脚本文件走制品库
-	Script         string   `json:"script"`         // 集群初始化在primary执行的脚本内容
-	ScriptName     string   `json:"scriptName"`     // 脚本名称
-	ScriptNameList []string `json:"scriptNameList"` // 脚本名称列表
+	ScriptFile     bool     `json:"scriptFile"`     // true：脚本文件已由制品库下发；false：使用 Script 内容现场写文件
+	Script         string   `json:"script"`         // ScriptFile=false 时的脚本内容
+	ScriptName     string   `json:"scriptName"`     // ScriptFile=false 时的脚本名
+	ScriptNameList []string `json:"scriptNameList"` // ScriptFile=true 时的脚本名列表
 	AdminUsername  string   `json:"adminUsername" validate:"required"`
 	AdminPassword  string   `json:"adminPassword" validate:"required"`
-	RepoUrl        string   `json:"repoUrl"`      // 制品库url
-	RepoUsername   string   `json:"repoUsername"` // 制品库用户名
-	RepoToken      string   `json:"repoToken"`    // 制品库token
-	RepoProject    string   `json:"repoProject"`  // 制品库project
-	RepoRepo       string   `json:"repoRepo"`     // 制品库repo
-	RepoPath       string   `json:"repoPath"`     // 制品库路径
+	// ClusterName 集群名称，用于结果文件命名（与脚本编号一起区分多集群/多脚本结果）
+	ClusterName string `json:"clusterName"`
+	// DbVersion 实例主版本（如 mongodb-3.0.15 / 3.0.15）。多版本共享主机上
+	// /usr/local/mongodb 可能指向其它版本，不能用来选 mongo/mongosh。
+	DbVersion    string `json:"dbVersion"`
+	RepoUrl      string `json:"repoUrl"`
+	RepoUsername string `json:"repoUsername"`
+	RepoToken    string `json:"repoToken"`
+	RepoProject  string `json:"repoProject"`
+	RepoRepo     string `json:"repoRepo"`
+	RepoPath     string `json:"repoPath"`
 }
 
-// ExecScript 添加分片到集群
+// ExecScript MongoDB 脚本执行原子任务
 type ExecScript struct {
 	BaseJob
 	runtime            *jobruntime.JobGenericRuntime
@@ -56,8 +62,6 @@ type ExecScript struct {
 	ExecuteDir         string
 	ScriptFilePathList []string
 	ResultFilePathList []string
-	ScriptFilePath     string
-	ResultFilePath     string
 	ConfParams         *ExecScriptConfParams
 	MainVersion        float64
 }
@@ -74,36 +78,33 @@ func (e *ExecScript) Name() string {
 
 // Run 运行原子任务
 func (e *ExecScript) Run() error {
-	// 获取主版本并设置客户端（mongo/mongosh）
-	if err := e.resolveMongoShellByVersion(); err != nil {
-		return err
+	// 上传失败重试：若上次脚本已成功（完成标记 + 结果文件齐全），跳过再执行，只补上传
+	if e.canSkipRunScripts() {
+		e.runtime.Logger.Info(
+			"skip runScripts: done marker and result files exist under %s, upload only",
+			e.ExecuteDir)
+	} else {
+		if err := e.resolveMongoShellByVersion(); err != nil {
+			return err
+		}
+		if err := e.createScriptFile(); err != nil {
+			return err
+		}
+		// 兼容 mongosh: 老脚本里可能使用 mongo shell 的别名 getSisterDB
+		if err := e.normalizeScriptCompatibility(); err != nil {
+			return err
+		}
+		if err := e.runScripts(); err != nil {
+			return err
+		}
+		if err := e.writeExecDoneMarker(); err != nil {
+			return err
+		}
 	}
 
-	// 脚本内容创建脚本文件 不走制品库
-	if err := e.createScriptFile(); err != nil {
-		return err
-	}
-
-	// 判断是否在secondary节点执行script
-	if err := e.secondaryExecuteScriptChange(); err != nil {
-		return err
-	}
-
-	// 兼容 mongosh: 老脚本里可能使用 mongo shell 的别名 getSisterDB，mongosh 仅支持 getSiblingDB。
-	if err := e.normalizeScriptCompatibility(); err != nil {
-		return err
-	}
-
-	// 执行脚本生成结果文件
-	if err := e.execScript(); err != nil {
-		return err
-	}
-
-	// 上传结果文件到制品库
 	if err := e.uploadFile(); err != nil {
 		return err
 	}
-
 	return nil
 }
 
@@ -119,156 +120,152 @@ func (e *ExecScript) Rollback() error {
 
 // Init 初始化
 func (e *ExecScript) Init(runtime *jobruntime.JobGenericRuntime) error {
-	// 获取安装参数
 	e.runtime = runtime
 	e.runtime.Logger.Info("start to init")
 	e.BinDir = consts.GetMongoBinDir()
 	e.OsUser = consts.GetProcessUser()
 	e.OsGroup = consts.GetProcessUserGroup()
 
-	// 获取MongoDB配置文件参数
 	if err := json.Unmarshal([]byte(e.runtime.PayloadDecoded), &e.ConfParams); err != nil {
-		e.runtime.Logger.Error(
-			"get parameters of execScript fail by json.Unmarshal, error:%s", err)
+		e.runtime.Logger.Error("get parameters of execScript fail by json.Unmarshal, error:%s", err)
 		return fmt.Errorf("get parameters of execScript fail by json.Unmarshal, error:%s", err)
 	}
 
-	// 获取各种目录
+	// Init 阶段统一用 mongo（环境保证 ≥5 也带 mongo）；Run 里再按版本切 mongosh
 	e.Mongo = filepath.Join(e.BinDir, "mongodb", "bin", "mongo")
-
 	e.ExecuteDir = filepath.Join(consts.PackageSavePath, "dbactuator-"+e.ConfParams.TaskId)
-	// 端口
+
 	strPort := strconv.Itoa(e.ConfParams.Port)
-	if e.ConfParams.ScriptFile == true {
-		// 通过脚本文件走制品库
-		for _, file := range e.ConfParams.ScriptNameList {
+	if e.ConfParams.ScriptFile {
+		for i, file := range e.ConfParams.ScriptNameList {
 			e.ScriptFilePathList = append(e.ScriptFilePathList, filepath.Join(e.ExecuteDir, file))
-			e.ResultFilePathList = append(e.ResultFilePathList, filepath.Join(e.ExecuteDir, strings.TrimSuffix(file, filepath.Ext(file))+"_"+strPort+"_result.txt"))
+			scriptBase := strings.TrimSuffix(file, filepath.Ext(file))
+			resultName := buildScriptResultFileName(e.ConfParams.ClusterName, i+1, scriptBase)
+			e.ResultFilePathList = append(e.ResultFilePathList, filepath.Join(e.ExecuteDir, resultName))
 		}
 	} else {
-		// 不通过脚本文件走制品库
-		e.ScriptFilePath = filepath.Join(e.ExecuteDir, strings.Join([]string{
-			e.ConfParams.ScriptName + "_" + strPort + "_" + "script", "js"}, "."))
-		e.ResultFilePath = filepath.Join(e.ExecuteDir, strings.Join([]string{
-			e.ConfParams.ScriptName, strPort, strings.Join([]string{"result", "txt"}, ".")}, "_"))
-		e.ScriptFilePathList = append(e.ScriptFilePathList, e.ScriptFilePath)
-		e.ResultFilePathList = append(e.ResultFilePathList, e.ResultFilePath)
-	}
-	// 修改执行目录属组
-	if _, err := util.RunBashCmd(
-		fmt.Sprintf("chown -R %s:%s %s", e.OsUser, e.OsGroup, e.ExecuteDir),
-		"", nil,
-		60*time.Second); err != nil {
-		e.runtime.Logger.Error("chown execute dir fail, error:%s", err)
-		return fmt.Errorf("chown execute dir fail, error:%s", err)
+		scriptPath := filepath.Join(e.ExecuteDir, fmt.Sprintf("%s_%s_script.js", e.ConfParams.ScriptName, strPort))
+		resultName := buildScriptResultFileName(e.ConfParams.ClusterName, 1, e.ConfParams.ScriptName)
+		resultPath := filepath.Join(e.ExecuteDir, resultName)
+		e.ScriptFilePathList = append(e.ScriptFilePathList, scriptPath)
+		e.ResultFilePathList = append(e.ResultFilePathList, resultPath)
 	}
 
-	// 复制集获取执行脚本的IP端口 默认为primary节点 可以指定secondary节点
-	if e.ConfParams.Type == "cluster" {
+	if err := e.chownExecuteDir(); err != nil {
+		return err
+	}
+
+	// 复制集在 primary 上执行；分片集群使用传入的 mongos
+	switch e.ConfParams.Type {
+	case "cluster":
 		e.execIP = e.ConfParams.IP
 		e.execPort = e.ConfParams.Port
-	}
-	if e.ConfParams.Type == "replicaset" {
-		primaryInfo, err := common.AuthGetPrimaryInfo(e.Mongo, e.ConfParams.AdminUsername,
-			e.ConfParams.AdminPassword,
+	case "replicaset":
+		primaryInfo, err := common.AuthGetPrimaryInfo(
+			e.Mongo, e.ConfParams.AdminUsername, e.ConfParams.AdminPassword,
 			e.ConfParams.IP, e.ConfParams.Port)
 		if err != nil {
 			e.runtime.Logger.Error("init get primary info fail, error:%s", err)
 			return fmt.Errorf("init get primary info fail, error:%s", err)
 		}
-		e.execIP = strings.Split(primaryInfo, ":")[0]
-		e.execPort, _ = strconv.Atoi(strings.Split(primaryInfo, ":")[1])
-		if e.ConfParams.Secondary == true {
-			_, _, _, _, _, memberInfo, err := common.GetNodeInfo(e.Mongo, e.ConfParams.IP, e.ConfParams.Port,
-				e.ConfParams.AdminUsername, e.ConfParams.AdminPassword, e.ConfParams.IP, e.ConfParams.Port)
-			if err != nil {
-				e.runtime.Logger.Error("init get member info fail, error:%s", err)
-				return fmt.Errorf("init get member info fail, error:%s", err)
-			}
-			for _, v := range memberInfo {
-				if v["state"] == "2" && v["hidden"] == "false" {
-					e.execIP = strings.Split(v["name"], ":")[0]
-					e.execPort, _ = strconv.Atoi(strings.Split(v["name"], ":")[1])
-				}
-			}
+		parts := strings.Split(primaryInfo, ":")
+		if len(parts) != 2 {
+			return fmt.Errorf("invalid primary info: %s", primaryInfo)
 		}
+		e.execIP = parts[0]
+		e.execPort, _ = strconv.Atoi(parts[1])
 	}
 
 	e.runtime.Logger.Info("init successfully")
+	return e.checkParams()
+}
 
-	// 进行校验
-	if err := e.checkParams(); err != nil {
-		return err
+// buildScriptResultFileName 结果文件名：{集群名称}_{脚本编号}_{脚本名}_result.txt
+// scriptNo 从 1 起；clusterName 为空时用 cluster 占位，兼容旧 payload。
+func buildScriptResultFileName(clusterName string, scriptNo int, scriptBase string) string {
+	if clusterName == "" {
+		clusterName = "cluster"
 	}
+	return fmt.Sprintf("%s_%d_%s_result.txt", clusterName, scriptNo, scriptBase)
+}
 
+func (e *ExecScript) chownExecuteDir() error {
+	if _, err := mycmd.New("chown", "-R", e.OsUser+":"+e.OsGroup, e.ExecuteDir).Run(60 * time.Second); err != nil {
+		e.runtime.Logger.Error("chown execute dir fail, error:%s", err)
+		return fmt.Errorf("chown execute dir fail, error:%s", err)
+	}
 	return nil
+}
+
+// newMongoCmd 构造带认证的 mongo/mongosh 命令（不含脚本参数）
+func (e *ExecScript) newMongoCmd(extra ...any) *mycmd.CmdBuilder {
+	args := []any{
+		e.Mongo,
+		"-u", e.ConfParams.AdminUsername,
+		"-p", mycmd.Password(e.ConfParams.AdminPassword),
+		"--host", e.execIP,
+		"--port", strconv.Itoa(e.execPort),
+		"--authenticationDatabase=admin",
+		"--quiet",
+	}
+	return mycmd.New(append(args, extra...)...)
 }
 
 // checkParams 校验参数
 func (e *ExecScript) checkParams() error {
-	// 校验配置参数
 	e.runtime.Logger.Info("start to validate parameters")
-	validate := validator.New()
-	e.runtime.Logger.Info("start to validate parameters of deInstall")
-	if err := validate.Struct(e.ConfParams); err != nil {
+	if err := validator.New().Struct(e.ConfParams); err != nil {
 		e.runtime.Logger.Error("validate parameters of execScript fail, error:%s", err)
 		return fmt.Errorf("validate parameters of execScript fail, error:%s", err)
 	}
-	if e.ConfParams.ScriptFile == false {
+	if !e.ConfParams.ScriptFile {
 		if e.ConfParams.Script == "" {
-			e.runtime.Logger.Error("ScriptFile parameters is false, validate parameters of Script fail, error: Script is empty")
-			return fmt.Errorf("ScriptFile parameters is false, validate parameters of Script fail, error: Script is empty")
+			return fmt.Errorf("ScriptFile is false but Script is empty")
 		}
-	} else {
-		if len(e.ConfParams.ScriptNameList) == 0 {
-			e.runtime.Logger.Error("ScriptFile parameters is true, validate parameters of ScriptNameList fail, error: ScriptNameList is empty")
-			return fmt.Errorf("ScriptFile parameters is true, validate parameters of ScriptNameList fail, error: ScriptNameList is empty")
-		}
+	} else if len(e.ConfParams.ScriptNameList) == 0 {
+		return fmt.Errorf("ScriptFile is true but ScriptNameList is empty")
 	}
 	e.runtime.Logger.Info("validate parameters successfully")
 	return nil
 }
 
-// createScriptFile 创建script文件
+// createScriptFile 创建script文件（仅 ScriptFile=false）
 func (e *ExecScript) createScriptFile() error {
-	if e.ConfParams.ScriptFile == true {
+	if e.ConfParams.ScriptFile {
 		return nil
 	}
-	// 创建文件
-	e.runtime.Logger.Info("start to create script file")
-	script, err := os.OpenFile(e.ScriptFilePath, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, DefaultPerm)
-	if err != nil {
+	if len(e.ScriptFilePathList) == 0 {
+		return fmt.Errorf("script file path list is empty")
+	}
+	scriptPath := e.ScriptFilePathList[0]
+	e.runtime.Logger.Info("start to create script file: %s", scriptPath)
+	if err := os.WriteFile(scriptPath, []byte(e.ConfParams.Script), DefaultPerm); err != nil {
 		e.runtime.Logger.Error("create script file fail, error:%s", err)
 		return fmt.Errorf("create script file fail, error:%s", err)
 	}
-	defer script.Close()
-	if _, err = script.WriteString(e.ConfParams.Script); err != nil {
-		e.runtime.Logger.Error("script file write content fail, error:%s", err)
-		return fmt.Errorf("script file write content fail, error:%s",
-			err)
-	}
-	e.runtime.Logger.Info("create script file successfully")
-	// 修改配置文件属主
-	e.runtime.Logger.Info("start to execute chown command for script file")
-	if _, err = util.RunBashCmd(
-		fmt.Sprintf("chown -R %s:%s %s", e.OsUser, e.OsGroup, e.ExecuteDir),
-		"", nil,
-		60*time.Second); err != nil {
-		e.runtime.Logger.Error("chown script file fail, error:%s", err)
-		return fmt.Errorf("chown script file fail, error:%s", err)
-	}
-	e.runtime.Logger.Info("execute chown command for script file successfully")
-	return nil
+	return e.chownExecuteDir()
 }
 
-// resolveMongoShellByVersion 获取主版本并选择 mongo shell 客户端
+// resolveMongoShellByVersion 获取主版本并选择 mongo shell 客户端。
+// 优先使用 payload.dbVersion / 实例探测版本；不要用 BinDir 下 mongod -version。
 func (e *ExecScript) resolveMongoShellByVersion() error {
-	// 获取mongo版本呢
-	mongoName := "mongod"
-	version, err := common.CheckMongoVersion(e.BinDir, mongoName)
-	if err != nil {
-		e.runtime.Logger.Error("get mongo service main version fail, error:%s", err)
-		return fmt.Errorf("get mongo service main version fail, error:%s", err)
+	version := strings.TrimSpace(e.ConfParams.DbVersion)
+	if version != "" {
+		e.runtime.Logger.Info("resolveMongoShellByVersion use payload dbVersion:%s", version)
+	} else {
+		probed, err := e.probeInstanceVersion()
+		if err != nil {
+			e.runtime.Logger.Warn(
+				"probe instance version fail (%v), fallback to binDir mongod -version", err)
+			version, err = common.CheckMongoVersion(e.BinDir, "mongod")
+			if err != nil {
+				e.runtime.Logger.Error("get mongo service main version fail, error:%s", err)
+				return fmt.Errorf("get mongo service main version fail, error:%s", err)
+			}
+		} else {
+			version = probed
+			e.runtime.Logger.Info("resolveMongoShellByVersion probed instance version:%s", version)
+		}
 	}
 	mainVersion, err := strconv.ParseFloat(versionMajorMinor(version), 64)
 	if err != nil {
@@ -281,44 +278,30 @@ func (e *ExecScript) resolveMongoShellByVersion() error {
 		mongoExeName = "mongosh"
 	}
 	e.Mongo = filepath.Join(e.BinDir, "mongodb", "bin", mongoExeName)
-	e.runtime.Logger.Info("resolveMongoShellByVersion successfully, mongoExeName:%s, mainVersion:%f", mongoExeName, mainVersion)
+	e.runtime.Logger.Info(
+		"resolveMongoShellByVersion successfully, mongoExeName:%s, mainVersion:%f", mongoExeName, mainVersion)
 	return nil
 }
 
-// secondaryExecuteScriptChange secondary执行script需要添加rs.slaveOk或者rs.secondaryOk
-func (e *ExecScript) secondaryExecuteScriptChange() error {
-	// 复制集，判断在primary节点还是在secondary节点执行脚本
-	if e.ConfParams.Type != "replicaset" || !e.ConfParams.Secondary {
-		return nil
+// probeInstanceVersion 用 Init 阶段的 mongo 客户端探测实例版本
+func (e *ExecScript) probeInstanceVersion() (string, error) {
+	ret, err := e.newMongoCmd("--eval", "db.version()").Run(60 * time.Second)
+	if err != nil {
+		return "", fmt.Errorf(
+			"probe instance version fail: exit=%d err=%v stdout=%q stderr=%q",
+			ret.ExitCode, err, ret.GetStdout(), ret.GetStderr(),
+		)
 	}
-
-	e.runtime.Logger.Info("secondary execute script start to add rs content")
-	secondaryOk := "rs.slaveOk()\n"
-	if e.MainVersion >= 3.6 {
-		secondaryOk = "rs.secondaryOk()\n"
+	version := strings.TrimSpace(ret.GetStdout())
+	if version == "" {
+		return "", fmt.Errorf("probe instance version returned empty")
 	}
-
-	for _, script := range e.ScriptFilePathList {
-		content, err := os.ReadFile(script)
-		if err != nil {
-			e.runtime.Logger.Error("read script file %s fail, error:%s", script, err)
-			return fmt.Errorf("read script file %s fail, error:%s", script, err)
-		}
-		if strings.HasPrefix(string(content), secondaryOk) {
-			e.runtime.Logger.Info("%s already has %s content", script, strings.TrimSpace(secondaryOk))
-			continue
-		}
-		if err := os.WriteFile(script, append([]byte(secondaryOk), content...), DefaultPerm); err != nil {
-			e.runtime.Logger.Error("%s add %s content fail, error:%s", script, strings.TrimSpace(secondaryOk), err)
-			return fmt.Errorf("%s add %s content fail, error:%s", script, strings.TrimSpace(secondaryOk), err)
-		}
-		e.runtime.Logger.Info("%s add %s content successfully", script, strings.TrimSpace(secondaryOk))
-	}
-	e.runtime.Logger.Info("secondary execute script add rs content successfully")
-	return nil
+	return version, nil
 }
 
 // normalizeScriptCompatibility 执行前兼容老 mongo shell 脚本写法
+// 替换 getSisterDB 为 getSiblingDB
+// 因为 mongosh 5.0 开始弃用 getSisterDB，改为 getSiblingDB
 func (e *ExecScript) normalizeScriptCompatibility() error {
 	for _, script := range e.ScriptFilePathList {
 		content, err := os.ReadFile(script)
@@ -339,69 +322,89 @@ func (e *ExecScript) normalizeScriptCompatibility() error {
 	return nil
 }
 
-// execScript 执行脚本（使用 mycmd 调用 mongo，避免 RunBashCmd 记录明文密码）
-func (e *ExecScript) execScript() error {
-	e.runtime.Logger.Info("start to execute script")
-	timeout := 86400 * 3 * time.Second // 3天
-	for index, script := range e.ScriptFilePathList {
-		e.runtime.Logger.Info("start to execute %s", script)
-		resultFile := e.ResultFilePathList[index]
-		resultF, err := os.OpenFile(resultFile, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, DefaultPerm)
-		if err != nil {
-			e.runtime.Logger.Error("open result file fail:%s", err)
-			return fmt.Errorf("open result file %s: %w", resultFile, err)
-		}
+func (e *ExecScript) execDoneMarkerPath() string {
+	return filepath.Join(e.ExecuteDir, scriptExecDoneMarker)
+}
 
-		var stderrBuf bytes.Buffer
-		var cmdBuilder *mycmd.CmdBuilder
-		if strings.HasSuffix(e.Mongo, "mongosh") {
-			cmdBuilder = mycmd.New(
-				e.Mongo,
-				"-u", e.ConfParams.AdminUsername,
-				"-p", mycmd.Password(e.ConfParams.AdminPassword),
-				"--host", e.execIP,
-				"--port", strconv.Itoa(e.execPort),
-				"--authenticationDatabase=admin",
-				"--quiet",
-				"--file",
-				script,
-			)
-		} else {
-			cmdBuilder = mycmd.New(
-				e.Mongo,
-				"-u", e.ConfParams.AdminUsername,
-				"-p", mycmd.Password(e.ConfParams.AdminPassword),
-				"--host", e.execIP,
-				"--port", strconv.Itoa(e.execPort),
-				"--authenticationDatabase=admin",
-				"--quiet",
-				script,
-			)
-		}
-
-		maskedCmdline := cmdBuilder.GetCmdLine("", true)
-		ret, err := cmdBuilder.Run3(timeout, resultF, &stderrBuf)
-		if err != nil {
-			stderr := strings.TrimSpace(stderrBuf.String())
-			e.runtime.Logger.Error(
-				"execute mongo script fail, cmd:%q, exitCode:%d, stdout:%q, stderr:%q, err:%v",
-				maskedCmdline, ret.ExitCode, ret.GetStdout(), stderr, err,
-			)
-			if stderr != "" {
-				return fmt.Errorf("execute mongo script fail: %w (stderr: %s)", err, stderr)
-			}
-			return fmt.Errorf("execute mongo script fail: %w", err)
-		}
-		resultF.Close()
-		e.runtime.Logger.Info("execute cmd:%s successfully", maskedCmdline)
+// canSkipRunScripts 判断上次脚本是否已成功执行（完成标记 + 非空结果文件），用于上传失败后的重试。
+func (e *ExecScript) canSkipRunScripts() bool {
+	if e.ExecuteDir == "" || len(e.ResultFilePathList) == 0 {
+		return false
 	}
+	if !util.FileExists(e.execDoneMarkerPath()) {
+		return false
+	}
+	for _, resultFile := range e.ResultFilePathList {
+		fi, err := os.Stat(resultFile)
+		if err != nil || fi.Size() == 0 {
+			return false
+		}
+	}
+	return true
+}
 
-	e.runtime.Logger.Info("execute mongo script successfully")
+// writeExecDoneMarker 脚本全部成功后写入完成标记，供重试时跳过再执行。
+func (e *ExecScript) writeExecDoneMarker() error {
+	content := fmt.Sprintf("taskid=%s\nport=%d\n", e.ConfParams.TaskId, e.ConfParams.Port)
+	if err := os.WriteFile(e.execDoneMarkerPath(), []byte(content), DefaultPerm); err != nil {
+		e.runtime.Logger.Error("write script exec done marker fail, error:%s", err)
+		return fmt.Errorf("write script exec done marker fail, error:%s", err)
+	}
+	e.runtime.Logger.Info("write script exec done marker successfully: %s", e.execDoneMarkerPath())
 	return nil
 }
 
-// Output 请求响应结构体
-type Output struct {
+// runScripts 执行脚本（使用 mycmd 调用 mongo，避免 RunBashCmd 记录明文密码）
+func (e *ExecScript) runScripts() error {
+	e.runtime.Logger.Info("start to execute %d scripts on primary node %s:%d", len(e.ScriptFilePathList), e.execIP, e.execPort)
+	timeout := 86400 * 3 * time.Second // 3天
+
+	for index, script := range e.ScriptFilePathList {
+		if err := e.runOneScript(script, e.ResultFilePathList[index], timeout); err != nil {
+			return err
+		}
+	}
+
+	e.runtime.Logger.Info("execute %d scripts on primary node %s:%d successfully", len(e.ScriptFilePathList), e.execIP, e.execPort)
+	return nil
+}
+
+func (e *ExecScript) runOneScript(script, resultFile string, timeout time.Duration) error {
+	e.runtime.Logger.Info("start to execute %s", script)
+	resultF, err := os.OpenFile(resultFile, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, DefaultPerm)
+	if err != nil {
+		e.runtime.Logger.Error("open result file fail:%s", err)
+		return fmt.Errorf("open result file %s: %w", resultFile, err)
+	}
+	defer resultF.Close()
+
+	cmdBuilder := e.newMongoCmd()
+	// mongosh 需 --file；mongo shell 直接跟脚本路径
+	if strings.HasSuffix(e.Mongo, "mongosh") {
+		cmdBuilder.Append("--file")
+	}
+	cmdBuilder.Append(script)
+
+	maskedCmdline := cmdBuilder.GetCmdLine("", true)
+	var stderrBuf bytes.Buffer
+	ret, err := cmdBuilder.Run3(timeout, resultF, &stderrBuf)
+	if err != nil {
+		stderr := strings.TrimSpace(stderrBuf.String())
+		e.runtime.Logger.Error(
+			"execute mongo script fail, cmd:%q, exitCode:%d, stdout:%q, stderr:%q, err:%v",
+			maskedCmdline, ret.ExitCode, ret.GetStdout(), stderr, err,
+		)
+		if stderr != "" {
+			return fmt.Errorf("execute mongo script fail: %w (stderr: %s)", err, stderr)
+		}
+		return fmt.Errorf("execute mongo script fail: %w", err)
+	}
+	e.runtime.Logger.Info("execute cmd:%s successfully", maskedCmdline)
+	return nil
+}
+
+// execScriptUploadResp 制品库上传响应
+type execScriptUploadResp struct {
 	Code    int    `json:"code"`
 	Message string `json:"message"`
 }
@@ -412,54 +415,57 @@ func (e *ExecScript) uploadFile() error {
 		return nil
 	}
 	e.runtime.Logger.Info("start to upload result file")
+	client := &http.Client{Timeout: 5 * time.Minute}
 	for _, resultFile := range e.ResultFilePathList {
-		// url
-		url := strings.Join([]string{e.ConfParams.RepoUrl, "generic", e.ConfParams.RepoProject, e.ConfParams.RepoRepo,
-			e.ConfParams.RepoPath, filepath.Base(resultFile)}, "/")
-		e.runtime.Logger.Info("upload file url: %s", url)
+		uploadURL := strings.Join([]string{
+			strings.TrimRight(e.ConfParams.RepoUrl, "/"),
+			"generic", e.ConfParams.RepoProject, e.ConfParams.RepoRepo,
+			strings.Trim(e.ConfParams.RepoPath, "/"),
+			filepath.Base(resultFile),
+		}, "/")
+		e.runtime.Logger.Info("upload file url: %s", uploadURL)
 
-		// 生成请求body内容
 		file, err := os.ReadFile(resultFile)
 		if err != nil {
 			e.runtime.Logger.Error("get result file:%s content fail, error:%s", resultFile, err)
 			return fmt.Errorf("get result file:%s content fail, error:%s", resultFile, err)
 		}
 
-		// 生成请求
-		request, err := http.NewRequest("PUT", url, strings.NewReader(string(file)))
+		request, err := http.NewRequest(http.MethodPut, uploadURL, bytes.NewReader(file))
 		if err != nil {
 			e.runtime.Logger.Error("create request for uploading result file:%s fail, error:%s", resultFile, err)
 			return fmt.Errorf("create request for uploading result file:%s fail, error:%s", resultFile, err)
 		}
-
-		// 设置请求头
-		auth := base64.StdEncoding.EncodeToString([]byte(strings.Join([]string{e.ConfParams.RepoUsername,
-			e.ConfParams.RepoToken}, ":")))
+		auth := base64.StdEncoding.EncodeToString([]byte(
+			e.ConfParams.RepoUsername + ":" + e.ConfParams.RepoToken))
 		request.Header.Set("Authorization", "Basic "+auth)
 		request.Header.Set("X-BKREPO-EXPIRES", "30")
 		request.Header.Set("X-BKREPO-OVERWRITE", "true")
-		request.Header.Set("Content-Type", "multipart/form-data")
+		request.Header.Set("Content-Type", "application/octet-stream")
 
-		// 执行请求
-		response, err := http.DefaultClient.Do(request)
+		response, err := client.Do(request)
 		if err != nil {
 			e.runtime.Logger.Error("request server for uploading result file fail, error:%s", err)
 			return fmt.Errorf("request server for uploading result file fail, error:%s", err)
 		}
-
-		// 解析响应
-		resp, err := io.ReadAll(response.Body)
+		respBody, err := io.ReadAll(response.Body)
+		_ = response.Body.Close()
 		if err != nil {
 			e.runtime.Logger.Error("read data from response fail, error:%s", err)
 			return fmt.Errorf("read data from response fail, error:%s", err)
 		}
-		output := Output{}
-		_ = json.Unmarshal(resp, &output)
-		if output.Code != 0 && output.Message == "" {
-			e.runtime.Logger.Error("upload file:%s fail, error:%s", resultFile, output.Message)
-			return fmt.Errorf("upload file:%s fail, error:%s", resultFile, output.Message)
+		if response.StatusCode < 200 || response.StatusCode >= 300 {
+			return fmt.Errorf(
+				"upload file:%s fail, http status=%d body=%s",
+				resultFile, response.StatusCode, string(respBody))
 		}
-		response.Body.Close()
+		var output execScriptUploadResp
+		if err := json.Unmarshal(respBody, &output); err != nil {
+			e.runtime.Logger.Warn("upload response not json, status=%d body=%s", response.StatusCode, string(respBody))
+		} else if output.Code != 0 {
+			e.runtime.Logger.Error("upload file:%s fail, code=%d message=%s", resultFile, output.Code, output.Message)
+			return fmt.Errorf("upload file:%s fail, code=%d message=%s", resultFile, output.Code, output.Message)
+		}
 		e.runtime.Logger.Info("upload result file:%s successfully", resultFile)
 	}
 

@@ -61,8 +61,6 @@ func newTestExecScript(t *testing.T, tempDir, mongoBin string) *ExecScript {
 		Mongo:              mongoBin,
 		execIP:             host,
 		execPort:           port,
-		ScriptFilePath:     scriptPath,
-		ResultFilePath:     resultPath,
 		ScriptFilePathList: []string{scriptPath},
 		ResultFilePathList: []string{resultPath},
 		ConfParams: &ExecScriptConfParams{
@@ -81,18 +79,18 @@ func writeFakeMongo(t *testing.T, tempDir, scriptContent string) string {
 	return fakeMongo
 }
 
-func TestExecScriptOnly_Success(t *testing.T) {
+func TestRunScripts_Success(t *testing.T) {
 	t.Parallel()
 
 	tempDir := t.TempDir()
 	fakeMongo := writeFakeMongo(t, tempDir, "#!/usr/bin/env bash\nset -e\nprintf 'js-executed\\n'\n")
 	job := newTestExecScript(t, tempDir, fakeMongo)
 
-	if err := job.execScript(); err != nil {
-		t.Fatalf("execScript failed: %v", err)
+	if err := job.runScripts(); err != nil {
+		t.Fatalf("runScripts failed: %v", err)
 	}
 
-	data, err := os.ReadFile(job.ResultFilePath)
+	data, err := os.ReadFile(job.ResultFilePathList[0])
 	if err != nil {
 		t.Fatalf("read result file failed: %v", err)
 	}
@@ -101,7 +99,7 @@ func TestExecScriptOnly_Success(t *testing.T) {
 	}
 }
 
-func TestExecScriptOnly_Fail(t *testing.T) {
+func TestRunScripts_Fail(t *testing.T) {
 	t.Parallel()
 
 	tempDir := t.TempDir()
@@ -112,11 +110,27 @@ func TestExecScriptOnly_Fail(t *testing.T) {
 	)
 	job := newTestExecScript(t, tempDir, fakeMongo)
 
-	err := job.execScript()
+	err := job.runScripts()
 	if err == nil {
-		t.Fatal("expected execScript error, got nil")
+		t.Fatal("expected runScripts error, got nil")
 	}
 	if !strings.Contains(err.Error(), "stderr: run js failed") {
 		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
+func TestBuildScriptResultFileName(t *testing.T) {
+	t.Parallel()
+
+	got := buildScriptResultFileName("billrs1", 1, "ping")
+	want := "billrs1_1_ping_result.txt"
+	if got != want {
+		t.Fatalf("got %q, want %q", got, want)
+	}
+
+	got = buildScriptResultFileName("", 2, "insert")
+	want = "cluster_2_insert_result.txt"
+	if got != want {
+		t.Fatalf("empty clusterName: got %q, want %q", got, want)
 	}
 }
