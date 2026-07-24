@@ -355,12 +355,12 @@ DATABASE_ROUTERS = [
     "backend.db_report.database_router.SkipMigrateRouter",
 ]
 
-# Cache - 缓存后端采用redis
-# https://docs.djangoproject.com/en/3.2/ref/settings/#cache
-CACHES = {
-    "default": {
+
+def _redis_cache(location: str) -> dict:
+    """Shared Django cache backend options for one Redis URL."""
+    return {
         "BACKEND": "django_redis.cache.RedisCache",
-        "LOCATION": env.CACHE_URL,
+        "LOCATION": location,
         "OPTIONS": {
             "CLIENT_CLASS": "django_redis.client.DefaultClient",
             "REDIS_CLIENT_CLASS": "redis.client.StrictRedis",
@@ -376,9 +376,28 @@ CACHES = {
             "MAX_ENTRIES": 100000,
             "CULL_FREQUENCY": 10,
         },
-    },
+    }
+
+
+# Cache - 缓存后端采用redis
+# https://docs.djangoproject.com/en/3.2/ref/settings/#cache
+CACHES = {
+    "default": _redis_cache(env.CACHE_URL),
     "login_db": {"BACKEND": "django.core.cache.backends.db.DatabaseCache", "LOCATION": "account_cache"},
 }
+
+# Dispatch pool aliases are derived in the same loop that creates the cache
+# entries, so ``DISPATCH_REDIS_ALIASES`` can never drift from the aliases
+# ``get_redis_connection`` actually accepts. 0-based to match dispatch_0.
+# IMPORTANT: ``DISPATCH_REDIS_URL_LIST`` order is persistent routing identity:
+# never reorder or remove an existing entry in place, because route rows store
+# aliases such as ``dispatch_0``. Append new Redis URLs, and remap namespaces
+# before retiring the corresponding entry.
+DISPATCH_REDIS_ALIASES = []
+for _dispatch_index, _dispatch_url in enumerate(env.DISPATCH_REDIS_URL_LIST):
+    _dispatch_alias = f"dispatch_{_dispatch_index}"
+    CACHES[_dispatch_alias] = _redis_cache(_dispatch_url)
+    DISPATCH_REDIS_ALIASES.append(_dispatch_alias)
 
 # blueapps
 BK_COMPONENT_API_URL = env.BK_COMPONENT_API_URL

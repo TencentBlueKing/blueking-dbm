@@ -304,7 +304,7 @@ class CheckFullBackupTask:
                     err_msg = entry.get("backup_status_info", "upload failed")
                     if err_msg not in inst_errors[inst_addr]:
                         inst_errors[inst_addr].append(err_msg)
-                # to_backup_system_start entries not confirmed by the API are in-flight
+                # to_backup_system_start entries not confirmed by the API are reserved
                 # uploads -- not an error; they are intentionally left unreported.
 
         if api_promoted_per_inst:

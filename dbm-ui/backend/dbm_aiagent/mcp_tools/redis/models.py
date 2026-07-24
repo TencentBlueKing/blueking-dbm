@@ -54,7 +54,8 @@ class MetricsQueryParams:
     metric_type: MetricType  # Type of metric being queried (CPU, MEMORY, etc.)
     metric_config: dict  # Configuration dict with template-based PromQL config
     aggregation_level: MetricsAggregationLevel  # Level of aggregation (CLUSTER, MACHINE, or INSTANCE)
-    time_window: int = 60  # Time window in seconds
+    # unify_query step/interval (seconds) between returned points. Not PromQL lookback.
+    time_window: int = 60
 
     # Filtering options
     instance_role: Optional[MetricsInstanceRole] = None  # Role of instances to query

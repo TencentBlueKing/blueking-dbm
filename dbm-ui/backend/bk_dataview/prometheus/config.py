@@ -13,8 +13,39 @@ import sys
 
 from backend import env
 
+# Singleton dispatch Collector + explicit registration marker. The marker (not
+# a swallowed ``ValueError``) is what makes ``register_dispatch_collector``
+# idempotent, so a genuine metric-name collision still raises loudly. The
+# marker is per-process: each forked Web/Celery worker carries its own copy and
+# never double-registers.
+_dispatch_collector = None
+_dispatch_collector_registered = False
+
+
+def register_dispatch_collector() -> None:
+    """Idempotently register the dispatch metrics Collector on the default REGISTRY.
+
+    Called when the monitor reporter is enabled, before the Web/Celery
+    ``MonitorReporter`` starts, so the periodic push includes dispatch samples.
+    The collector is a pure reader of the ``dispatch:prometheus:latest`` cache;
+    a 30s export lease keeps only one process emitting dispatch samples per
+    scrape slot.
+    """
+    global _dispatch_collector, _dispatch_collector_registered
+    if _dispatch_collector_registered:
+        return
+    from prometheus_client import REGISTRY
+
+    from backend.bk_dataview.prometheus.dispatch_metrics import DispatchMetricsCollector
+
+    if _dispatch_collector is None:
+        _dispatch_collector = DispatchMetricsCollector()
+    REGISTRY.register(_dispatch_collector)
+    _dispatch_collector_registered = True
+
 
 def monitor_celery_report_config():
+    register_dispatch_collector()
     boot_cmd = " ".join(sys.argv)
     print(boot_cmd)
     if "celery" in boot_cmd and "-A config.prod worker" in boot_cmd:
@@ -67,6 +98,7 @@ def monitor_celery_report_config():
 
 
 def monitor_web_report_config():
+    register_dispatch_collector()
     boot_cmd = " ".join(sys.argv)
     print(boot_cmd)
     if "gunicorn" in boot_cmd or "runserver" in boot_cmd:

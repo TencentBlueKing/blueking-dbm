@@ -22,6 +22,7 @@ from backend.dbm_aiagent.mcp_tools.redis.constants import (
     METRIC_REGISTRY,
     METRICS_END_TIME_MAX_FUTURE_SKEW_SECONDS,
     METRICS_MAX_QUERY_RANGE_SECONDS,
+    METRICS_PROMQL_LOOKBACK_SECONDS,
     METRICS_QUERY_MAX_ATTEMPTS,
     METRICS_QUERY_RETRY_DELAY_SEC,
     TREND_UNIT_BY_METRIC_KEY,
@@ -310,7 +311,7 @@ class RedisMetricsQueryService:
             upper_inner = upper_template.format(
                 group_by=inner_dims,
                 filters=filters_str,
-                time_window=params.time_window,
+                time_window=METRICS_PROMQL_LOOKBACK_SECONDS,
                 le_upper=le_upper,
             )
 
@@ -319,7 +320,7 @@ class RedisMetricsQueryService:
                 lower_inner = lower_template.format(
                     group_by=inner_dims,
                     filters=filters_str,
-                    time_window=params.time_window,
+                    time_window=METRICS_PROMQL_LOOKBACK_SECONDS,
                     le_lower=le_lower,
                 )
                 # Build inner expression: upper - lower
@@ -456,12 +457,12 @@ class RedisMetricsQueryService:
             # Build part a and b base queries (no aggregation params for composite metrics)
             part_a_base = part_a_template.format(
                 filters=filters_str,
-                time_window=params.time_window,
+                time_window=METRICS_PROMQL_LOOKBACK_SECONDS,
             )
 
             part_b_base = part_b_template.format(
                 filters=filters_str,
-                time_window=params.time_window,
+                time_window=METRICS_PROMQL_LOOKBACK_SECONDS,
             )
 
             # Wrap base queries with inner aggregation explicitly
@@ -484,7 +485,7 @@ class RedisMetricsQueryService:
                 overall_agg=overall_agg.value,
                 group_by=inner_dims,
                 filters=filters_str,
-                time_window=params.time_window,
+                time_window=METRICS_PROMQL_LOOKBACK_SECONDS,
             )
 
         # Step 5: Build the overall time-series query (timeline stats are derived from it later)
@@ -917,7 +918,7 @@ class RedisMetricsQueryService:
         Args:
             metric_series: MetricSeries object with parsed datapoints
             metric_config: Metric configuration dict from METRIC_REGISTRY (reserved for future use)
-            time_window: Time between consecutive data points (seconds), used to normalize trend to per-minute
+            time_window: Step/interval between consecutive data points (seconds), used to normalize trend
             metric_key: Key from METRIC_REGISTRY, used to resolve trend_unit for output
         """
         if metric_series.statistics is None:
@@ -1100,7 +1101,7 @@ class RedisMetricsQueryService:
             clusters: Cluster objects
             metric_type: Type of metric (MetricType enum)
             time_range: Tuple of (start_time, end_time) in Unix timestamp
-            time_window: Time window in seconds
+            time_window: unify_query step/interval in seconds (not PromQL lookback)
             instance_role: Role of instances to query (InstanceRole enum)
             ip_filters: Optional IP filters
             instance_filters: Optional ip:port pair filters

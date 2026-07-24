@@ -19,3 +19,44 @@ class DBPeriodicTaskAdmin(admin.ModelAdmin):
     search_fields = ["name"]
     list_filter = ["task_type", "is_frozen"]
     raw_id_fields = ["task"]
+
+
+class AuditedDispatchSettingsAdmin(admin.ModelAdmin):
+    readonly_fields = ["creator", "create_at", "updater", "update_at"]
+
+    def save_model(self, request, obj, form, change):
+        username = request.user.username or "admin"
+        if not change:
+            obj.creator = username
+        obj.updater = username
+        super().save_model(request, obj, form, change)
+
+
+@admin.register(models.DispatchQueueSettings)
+class DispatchQueueSettingsAdmin(AuditedDispatchSettingsAdmin):
+    list_display = ["namespace", "updater", "update_at"]
+    search_fields = ["namespace"]
+
+
+@admin.register(models.DispatchTaskSettings)
+class DispatchTaskSettingsAdmin(AuditedDispatchSettingsAdmin):
+    list_display = ["task_key", "queue", "updater", "update_at"]
+    search_fields = ["task_key", "queue__namespace"]
+    list_filter = ["queue"]
+    autocomplete_fields = ["queue"]
+
+
+@admin.register(models.DispatchQueueRoute)
+class DispatchQueueRouteAdmin(AuditedDispatchSettingsAdmin):
+    """Route rows are read-only in admin: remap_namespace() is the mutation path."""
+
+    list_display = ["namespace", "redis_alias", "updater", "update_at"]
+    search_fields = ["namespace", "redis_alias"]
+    readonly_fields = ["namespace", "redis_alias", "creator", "create_at", "updater", "update_at"]
+
+    def has_add_permission(self, request):
+        # Routes are created assign-once by routing.assign_route / bootstrap_routes.
+        return False
+
+    def has_delete_permission(self, request, obj=None):
+        return False
