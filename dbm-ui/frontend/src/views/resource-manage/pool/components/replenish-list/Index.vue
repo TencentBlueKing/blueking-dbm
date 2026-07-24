@@ -356,6 +356,7 @@
           bk_biz_id: systemEnvironStore.urls.RESOURCE_INDEPENDENT_BIZ,
           infos: replenishList,
           remark: t('手动补货'),
+          replenish_type: rowData ? 'increment' : 'full',
         });
       },
       title: t('确认一键补货 n 台？', [totalReplenish]),
