@@ -26,7 +26,11 @@ from backend.bk_dataview.prometheus import metrics
 from backend.bk_dataview.prometheus.handlers import observe
 from backend.bk_web import viewsets
 from backend.bk_web.pagination import AuditedLimitOffsetPagination
-from backend.bk_web.swagger import PaginatedResponseSwaggerAutoSchema, common_swagger_auto_schema
+from backend.bk_web.swagger import (
+    PaginatedResponseSwaggerAutoSchema,
+    ResponseSwaggerAutoSchema,
+    common_swagger_auto_schema,
+)
 from backend.configuration.constants import DBType
 from backend.db_meta.models import Cluster
 from backend.db_services.ipchooser.query.resource import ResourceQueryHelper
@@ -100,6 +104,19 @@ from backend.ticket.todos import TodoActorFactory
 logger = logging.getLogger("ticket.views")
 
 TICKET_TAG = "ticket"
+
+
+class _NoFilterSwaggerAutoSchema(ResponseSwaggerAutoSchema):
+    """Swagger schema that skips filter/paginator parameter generation.
+    Use on custom @action endpoints whose query_serializer fields overlap
+    with the viewset's filter_backends or paginator_class.
+    """
+
+    def should_filter(self):
+        return False
+
+    def should_page(self):
+        return False
 
 
 class TicketViewSet(viewsets.AuditedModelViewSet):
@@ -737,6 +754,7 @@ class TicketViewSet(viewsets.AuditedModelViewSet):
     @swagger_auto_schema(
         operation_summary=_("查询单据流程规则集群是否重复"),
         query_serializer=CheckTicketFlowConfigClusterRepeatSerializer(),
+        auto_schema=_NoFilterSwaggerAutoSchema,
         tags=[TICKET_TAG],
     )
     @action(methods=["GET"], detail=False, serializer_class=CheckTicketFlowConfigClusterRepeatSerializer)
