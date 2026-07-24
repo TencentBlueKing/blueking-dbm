@@ -403,6 +403,72 @@ class TicketHandler:
         ]
 
     @classmethod
+    def build_ticket_flow_config_tag_rules(cls, cluster_tags):
+        """将标签列表整理成 {tag_key: {tag_value}}，用于判断两个标签条件是否存在命中范围交集。"""
+        tag_rules = defaultdict(set)
+        for tag in cluster_tags:
+            tag_rules[tag.get("tag_key")].add(tag.get("tag_value"))
+        return tag_rules
+
+    @classmethod
+    def is_ticket_flow_config_tag_scope_overlap(cls, left_rules, right_rules):
+        """判断拟保存标签条件(left)是否命中已有标签条件(right)。"""
+        # 已有配置中的“任意值”表示覆盖所有标签取值范围，会拦截任意拟保存条件。
+        right_has_wildcard = any(CLUSTER_TAG_WILDCARD_VALUE in values for values in right_rules.values())
+        if right_has_wildcard:
+            return True
+
+        # 没有共同 tag_key 时，普通标签条件不存在冲突可能。
+        common_keys = set(left_rules) & set(right_rules)
+        if not common_keys:
+            return False
+
+        # 所有共同 tag_key 都必须存在取值交集，才认为两组条件覆盖范围有交集。
+        for tag_key in common_keys:
+            left_values = left_rules[tag_key]
+            right_values = right_rules[tag_key]
+            if not (left_values & right_values):
+                return False
+        return True
+
+    @classmethod
+    def check_ticket_flow_config_cluster_tag_repeat(cls, bk_biz_id, cluster_tags, ticket_type, config_id=None):
+        """给前端预校验使用，返回每个集群标签是否已命中已有流程配置。"""
+        if not cluster_tags:
+            return []
+
+        current_tag_rules = cls.build_ticket_flow_config_tag_rules(cluster_tags)
+        tag_configs = TicketFlowsConfig.objects.filter(bk_biz_id=bk_biz_id, ticket_type=ticket_type).exclude(
+            cluster_tags=[]
+        )
+        if config_id is not None:
+            tag_configs = tag_configs.exclude(id=config_id)
+
+        conflict_tag_pairs = set()
+        existed_has_wildcard = False
+        for tag_config in tag_configs:
+            existed_tag_rules = cls.build_ticket_flow_config_tag_rules(tag_config.cluster_tags)
+            if cls.is_ticket_flow_config_tag_scope_overlap(current_tag_rules, existed_tag_rules):
+                existed_has_wildcard = any(
+                    CLUSTER_TAG_WILDCARD_VALUE in values for values in existed_tag_rules.values()
+                )
+                if existed_has_wildcard:
+                    break
+
+                # 普通标签只标记真正有取值交集的 tag_key/tag_value，避免同 key 下无重叠取值被误报。
+                for tag_key in set(current_tag_rules) & set(existed_tag_rules):
+                    for tag_value in current_tag_rules[tag_key] & existed_tag_rules[tag_key]:
+                        conflict_tag_pairs.add((tag_key, tag_value))
+
+        return [
+            {
+                **tag,
+                "validate": existed_has_wildcard or (tag.get("tag_key"), tag.get("tag_value")) in conflict_tag_pairs,
+            }
+            for tag in cluster_tags
+        ]
+
+    @classmethod
     def create_ticket_flow_config(
         cls, bk_biz_id, cluster_ids, ticket_types, configs, operator, remark, cluster_tags=None
     ):
@@ -455,6 +521,18 @@ class TicketHandler:
                         _("业务[{}]已存在{}的集群流程配置，重复集群ID: {}").format(
                             bk_biz_id, ticket_type, sorted(duplicate_cluster_ids)
                         )
+                    )
+            if cluster_tags:
+                duplicate_tags = [
+                    tag
+                    for tag in cls.check_ticket_flow_config_cluster_tag_repeat(
+                        bk_biz_id=bk_biz_id, cluster_tags=cluster_tags, ticket_type=ticket_type
+                    )
+                    if tag["validate"]
+                ]
+                if duplicate_tags:
+                    raise TicketFlowsConfigException(
+                        _("业务[{}]已存在{}的集群标签流程配置，冲突标签: {}").format(bk_biz_id, ticket_type, duplicate_tags)
                     )
 
         flows_config_list = []
@@ -515,7 +593,7 @@ class TicketHandler:
     @classmethod
     def query_ticket_flows_describe(cls, bk_biz_id, db_type, ticket_types=None):
         # 根据条件过滤单据配置
-        config_filter = Q(bk_biz_id__in=[bk_biz_id, PLAT_BIZ_ID], group=db_type, editable=True)
+        config_filter = Q(bk_biz_id__in=[bk_biz_id, PLAT_BIZ_ID], group=db_type)
         if ticket_types:
             config_filter &= Q(ticket_type__in=ticket_types)
         candidate_flow_configs = TicketFlowsConfig.objects.filter(config_filter)
