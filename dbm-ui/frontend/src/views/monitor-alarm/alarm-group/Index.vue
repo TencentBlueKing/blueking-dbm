@@ -15,7 +15,7 @@
   <div class="alert-group">
     <div class="alert-group-operations mb-16">
       <AuthButton
-        action-id="notify_group_create"
+        action-id="notify_group_manage"
         theme="primary"
         @click="handleOpenDetail('add')">
         {{ t('新建') }}
@@ -63,12 +63,17 @@
               </BkTag>
             </template>
             <template #default>
+              <BkButton
+                v-if="row.is_built_in"
+                text
+                theme="primary"
+                @click="handleOpenDetail('edit', row)">
+                {{ row.name }}
+              </BkButton>
               <AuthButton
-                :action-id="row.is_built_in ? 'global_notify_group_update' : 'notify_group_update'"
-                :permission="
-                  row.is_built_in ? row.permission.global_notify_group_update : row.permission.notify_group_update
-                "
-                :resource="row.id"
+                v-else
+                action-id="notify_group_manage"
+                :permission="row.permission.notify_group_manage"
                 text
                 theme="primary"
                 @click="handleOpenDetail('edit', row)">
@@ -103,7 +108,7 @@
             theme="light"
             trigger="click"
             :width="180">
-            <span style="cursor: pointer; color: #3a84ff">{{ row.usedCountTotal }}</span>
+            <span style="color: #3a84ff; cursor: pointer">{{ row.usedCountTotal }}</span>
             <template #content>
               <div>
                 <I18nT
@@ -176,19 +181,18 @@
               content: t('内置告警组不可编辑，可通过克隆创建自定义副本后再编辑'),
               disabled: !row.is_built_in,
             }"
-            action-id="notify_group_update"
+            action-id="notify_group_manage"
             :disabled="row.is_built_in"
-            :permission="row.permission.notify_group_update"
-            :resource="row.id"
+            :permission="row.permission.notify_group_manage"
             text
             theme="primary"
             @click="handleOpenDetail('edit', row)">
             {{ t('编辑') }}
           </AuthButton>
           <AuthButton
-            action-id="notify_group_create"
+            action-id="notify_group_manage"
             class="ml-16"
-            :permission="row.permission.notify_group_create"
+            :permission="row.permission.notify_group_manage"
             text
             theme="primary"
             @click="handleOpenDetail('copy', row)">
@@ -203,11 +207,10 @@
                   : '',
               disabled: !(row.is_built_in || row.usedCountTotal > 0),
             }"
-            action-id="notify_group_delete"
+            action-id="notify_group_manage"
             class="ml-16"
             :disabled="row.is_built_in || row.usedCountTotal > 0"
-            :permission="row.permission.notify_group_delete"
-            :resource="row.id"
+            :permission="row.permission.notify_group_manage"
             text
             theme="primary"
             @click="handleDelete(row.id)">

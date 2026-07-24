@@ -95,26 +95,31 @@
               :title="t('是否启用')"
               :width="120">
               <template #default="{ row: data }: { row: VersionFileModel }">
-                <BkPopConfirm
-                  :confirm-text="data.enable ? t('停用') : t('启用')"
-                  :content="
-                    data.enable
-                      ? t('停用后，在选择版本时，将不可见，且不可使用')
-                      : t('启用后，在选择版本时，将开放选择')
-                  "
-                  placement="bottom"
-                  :title="data.enable ? t('确认停用该版本？') : t('确认启用该版本？')"
-                  trigger="click"
-                  width="308"
-                  @confirm="() => handleConfirmSwitch(data)">
-                  <AuthSwitcher
-                    action-id="package_manage"
-                    :model-value="data.enable"
-                    :permission="data.permission.package_manage"
-                    :resource="info.name"
-                    size="small"
-                    theme="primary" />
-                </BkPopConfirm>
+                <AuthTemplate
+                  action-id="package_manage"
+                  :permission="data.permission.package_manage"
+                  :resource="info.name">
+                  <BkPopConfirm
+                    :confirm-text="data.enable ? t('停用') : t('启用')"
+                    :content="
+                      data.enable
+                        ? t('停用后，在选择版本时，将不可见，且不可使用')
+                        : t('启用后，在选择版本时，将开放选择')
+                    "
+                    placement="bottom"
+                    :title="data.enable ? t('确认停用该版本？') : t('确认启用该版本？')"
+                    trigger="click"
+                    width="308"
+                    @confirm="() => handleConfirmSwitch(data)">
+                    <AuthSwitcher
+                      action-id="package_manage"
+                      :model-value="data.enable"
+                      :permission="data.permission.package_manage"
+                      :resource="info.name"
+                      size="small"
+                      theme="primary" />
+                  </BkPopConfirm>
+                </AuthTemplate>
               </template>
             </TableColumn>
             <TableColumn
