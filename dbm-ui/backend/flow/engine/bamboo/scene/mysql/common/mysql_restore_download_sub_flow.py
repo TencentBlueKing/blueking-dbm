@@ -7,10 +7,12 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+import logging
 from dataclasses import asdict
 
 from django.utils.translation import gettext as _
 
+from backend.components.mysql_backup.client import MysqlBackupApi
 from backend.configuration.constants import DBType
 from backend.flow.engine.bamboo.scene.common.builder import SubBuilder
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
@@ -27,6 +29,8 @@ from backend.flow.utils.mysql.mysql_act_dataclass import (
     P2PFileKwargs,
 )
 from backend.flow.utils.mysql.mysql_act_playload import MysqlActPayload
+
+logger = logging.getLogger("flow")
 
 
 def mysql_restore_download_sub_flow(
@@ -126,3 +130,22 @@ def mysql_restore_download_sub_flow(
                 ),
             )
     return sub_pipeline.build_sub_process(sub_name=_("下载文件 总数: {} 总批次: {}".format(len(task_ids), len(task_ids_split))))
+
+
+def check_backup_file_in_backup_system(task_ids: list):
+    """
+    根据传入的task_id列表，查询备份文件是否成功上传到备份系统
+    """
+    logger.info("check backup taskid {} ".format(task_ids))
+    try:
+        check_result = MysqlBackupApi.query_for_task_ids({"task_ids": task_ids})
+    except Exception as e:
+        logger.error("query backup system for task_ids {} failed: {}".format(task_ids, e))
+        return ""
+    not_success_task_id_list = []
+    for info in check_result:
+        if info["status"] != 4:
+            not_success_task_id_list.append(info["task_id"])
+    if not_success_task_id_list:
+        return _("部分文件上传状态不正常，请检查。 异常上传ID列表{}".format(not_success_task_id_list))
+    return ""
