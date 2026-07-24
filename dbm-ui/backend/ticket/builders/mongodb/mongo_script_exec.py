@@ -11,6 +11,7 @@ specific language governing permissions and limitations under the License.
 from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
+from backend.db_meta.models import Cluster
 from backend.flow.engine.controller.mongodb import MongoDBController
 from backend.ticket import builders
 from backend.ticket.builders.common.constants import MongoDBScriptImportMode
@@ -57,11 +58,12 @@ class MongoDBScriptExecFlowParamBuilder(builders.FlowParamBuilder):
     controller = MongoDBController.exec_script
 
     def format_ticket_data(self):
-        # 传递JS脚本文件执行结果地址
+        # 传递JS脚本文件执行结果地址：mongodb/script_result/{uid}.{clusterName}
+        id__cluster = Cluster.objects.in_bulk(self.ticket_data["cluster_ids"])
         self.ticket_data["rules"] = [
             {
                 "cluster_id": cluster_id,
-                "path": f"{MONGODB_JS_FILE_PREFIX.format(uid=self.ticket.id,cluster_id=cluster_id)}",
+                "path": MONGODB_JS_FILE_PREFIX.format(uid=self.ticket.id, cluster_name=id__cluster[cluster_id].name),
             }
             for cluster_id in self.ticket_data["cluster_ids"]
         ]

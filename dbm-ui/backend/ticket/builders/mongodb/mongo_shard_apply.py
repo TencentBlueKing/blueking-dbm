@@ -67,8 +67,15 @@ class MongoShardedClusterApplyDetailSerializer(TicketBaseValidateSerializerMixin
         return self.context["ticket_ctx"].city_map.get(city_code, city_code)
 
     def validate(self, attrs):
-        """TODO: validate"""
         attrs = super().validate(attrs)
+        # shardsvr 每片成员数 = mongodb 总机器数 / 机器组数（一组机器构成一个分片副本集）
+        # configsvr 成员数 = mongo_config.count
+        shard_machine_group = attrs["shard_machine_group"]
+        shardsvr_members = attrs["resource_spec"]["mongodb"]["count"] // shard_machine_group
+        configsvr_members = attrs["resource_spec"]["mongo_config"]["count"]
+        # 允许双方均为 1（单节点联调）；shardsvr 多成员时 configsvr 必须为 3
+        if shardsvr_members != 1 and configsvr_members != 3:
+            raise serializers.ValidationError(_("当 shardsvr 副本集成员数大于 1 时，configsvr 必须是 3 个成员"))
         return attrs
 
 

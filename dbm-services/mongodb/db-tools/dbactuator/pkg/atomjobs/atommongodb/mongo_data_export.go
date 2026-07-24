@@ -12,6 +12,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/url"
+	"os"
 	"path"
 	"reflect"
 	"strings"
@@ -208,28 +209,76 @@ func (s *mongoDataExport) Run() error {
 	}
 	defer lock.Unlock()
 
-	outputPath, err := s.prepareOutputPath()
-	if err != nil {
-		return errors.Wrap(err, "prepareOutputPath")
-	}
-
-	if s.ConfParams.Args.IsDumping {
-		err = s.doDumpData(outputPath)
+	// 上传失败后节点可重试：若本地压缩包已存在则跳过再导出，只补上传
+	if existing := s.existingArchivePath(); existing != "" {
+		s.runtime.Logger.Info(
+			"skip export: archive already exists at %s, upload only", existing)
+		s.OutputPath = existing
 	} else {
-		err = s.doExportData(outputPath)
-	}
-	if err != nil {
-		return err
+		outputPath, prepErr := s.prepareOutputPath()
+		if prepErr != nil {
+			return errors.Wrap(prepErr, "prepareOutputPath")
+		}
+
+		if s.ConfParams.Args.IsDumping {
+			err = s.doDumpData(outputPath)
+		} else {
+			err = s.doExportData(outputPath)
+		}
+		if err != nil {
+			return err
+		}
 	}
 
-	// Upload archive file to bkrepo.
+	// Upload archive file to bkrepo（失败则阻断，保留本地文件供重试上传）
 	if err := s.ConfParams.UploadDetail.Upload(s.OutputPath); err != nil {
 		s.runtime.Logger.Error("Failed to upload result archive file: %v", err)
 		return errors.Wrap(err, "uploadArchiveFile")
 	}
-	s.runtime.Logger.Info("Upload to to %s successfully", s.ConfParams.UploadDetail.FileServer.URL)
+	s.runtime.Logger.Info("Upload to %s successfully", s.ConfParams.UploadDetail.FileServer.URL)
 
-	return errors.Wrap(s.removeDir(s.OutputPath), "deleteTarFile")
+	if err := s.removeDir(s.OutputPath); err != nil {
+		return errors.Wrap(err, "deleteTarFile")
+	}
+	return nil
+}
+
+// existingArchivePath 返回可安全跳过再导出的完整压缩包路径。
+// 仅当文件存在且 tar 可读（非打包中断半成品）时返回。
+func (s *mongoDataExport) existingArchivePath() string {
+	base := path.Join(consts.GetMongoBackupDir(), "dbbak", "mongodb-data-export", s.ConfParams.FileName)
+	for _, suffix := range []string{".tar.gz", ".tar"} {
+		p := base + suffix
+		if !util.FileExists(p) {
+			continue
+		}
+		if err := s.verifyArchiveReadable(p); err != nil {
+			s.runtime.Logger.Warn(
+				"local archive %s exists but not readable (likely incomplete), will re-export: %v", p, err)
+			_ = os.Remove(p)
+			continue
+		}
+		return p
+	}
+	return ""
+}
+
+// verifyArchiveReadable 用 tar 列目录校验压缩包完整可读，避免上传打包中断留下的半成品。
+func (s *mongoDataExport) verifyArchiveReadable(archivePath string) error {
+	var cmd *mycmd.CmdBuilder
+	if strings.HasSuffix(archivePath, ".tar.gz") || strings.HasSuffix(archivePath, ".tgz") {
+		cmd = mycmd.New("tar", "tzf", archivePath)
+	} else {
+		cmd = mycmd.New("tar", "tf", archivePath)
+	}
+	result, err := cmd.Run(5 * time.Minute)
+	if err != nil {
+		return err
+	}
+	if result.ExitCode != 0 {
+		return errors.Errorf("tar list exitCode=%d", result.ExitCode)
+	}
+	return nil
 }
 
 // doDumpData performs the actual data dump operation
@@ -439,22 +488,31 @@ func (s *mongoDataExport) validateParams() error {
 	return nil
 }
 
-// compressOutput compresses the outputPath and then remove it
+// compressOutput compresses the outputPath and then remove it.
+// 先写到 .partial，成功后再 rename 为最终名，避免打包中断留下半成品被重试逻辑误当作完整包上传。
 func (s *mongoDataExport) compressOutput(outputPath string) error {
 	// Create gzip-compressed tar file.
 	targetFolder := path.Base(outputPath)
 	tarFile := fmt.Sprintf("%s.tar.gz", targetFolder)
 	tarPath := path.Join(path.Dir(outputPath), tarFile)
+	partialPath := tarPath + ".partial"
+	_ = os.Remove(partialPath)
 
-	tarCmd := mycmd.New("tar", "czvf", tarPath, "-C", path.Dir(outputPath), targetFolder)
+	tarCmd := mycmd.New("tar", "czvf", partialPath, "-C", path.Dir(outputPath), targetFolder)
 	execResult, err := tarCmd.Run(time.Hour * 2)
 	s.runtime.Logger.Info("exec cmd: %q, exitCode:%d, err:%v", tarCmd.GetCmdLine2(true), execResult.ExitCode, err)
 
 	if execResult.ExitCode != 0 {
+		_ = os.Remove(partialPath)
 		if err != nil {
 			return errors.Wrap(err, "tar compression failed")
 		}
 		return errors.Errorf("tar compression failed, exitCode:%d", execResult.ExitCode)
+	}
+
+	if err = os.Rename(partialPath, tarPath); err != nil {
+		_ = os.Remove(partialPath)
+		return errors.Wrap(err, "rename partial archive")
 	}
 
 	// Remove original directory after successful compression
