@@ -13,7 +13,6 @@ package spider
 import (
 	"errors"
 	"fmt"
-	"path"
 
 	"dbm-services/common/go-pubpkg/cmutil"
 	"dbm-services/common/go-pubpkg/logger"
@@ -156,7 +155,8 @@ func (i *UpgradeSpiderComp) CreateSpiderTable() (err error) {
 			User:     i.adminUser,
 			Password: i.adminPwd,
 			Socket:   socket,
-		}.ExecuteSqlByMySQLClientOne(path.Join(cst.MysqldInstallPath, "scripts/install_spider.sql"), "", true)
+			WorkDir:  cst.MysqldInstallPath,
+		}.ExecuteSqlByMySQLClientOne("scripts/install_spider.sql", "", true)
 		if err != nil {
 			logger.Error("%d excute create spider table failed: %s", port, err.Error())
 			return err

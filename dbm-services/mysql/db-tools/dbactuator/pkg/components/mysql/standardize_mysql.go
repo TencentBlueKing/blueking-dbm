@@ -6,6 +6,7 @@ import (
 	"dbm-services/common/go-pubpkg/logger"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/components"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/components/mysql/common"
+	"dbm-services/mysql/db-tools/dbactuator/pkg/core/cst"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/native"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/rollback"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/util/osutil"
@@ -55,6 +56,7 @@ func (c *StandardizeMySQLComp) Init() error {
 	c.inner.Params.Medium = c.Params.Medium
 	c.inner.Params.Host = c.Params.IP
 	c.inner.InsPorts = c.Params.Ports
+	c.inner.MysqlInstallDir = cst.MysqldInstallPath
 	c.inner.WorkUser = c.GeneralParam.RuntimeAccountParam.AdminUser
 	c.inner.WorkPassword = c.GeneralParam.RuntimeAccountParam.AdminPwd
 	c.inner.AvoidReset = true

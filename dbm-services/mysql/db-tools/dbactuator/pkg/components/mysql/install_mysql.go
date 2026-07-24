@@ -1425,12 +1425,17 @@ func (i *InstallMySQLComp) getSuperUserAccountForSpider(ver string) (initAccount
 
 func (i *InstallMySQLComp) createSpiderTable(socket string) (err error) {
 	logger.Info("exec scripts/install_spider.sql ")
+	mysqlInstallDir := i.MysqlInstallDir
+	if mysqlInstallDir == "" {
+		mysqlInstallDir = cst.MysqldInstallPath
+	}
 	return mysqlutil.ExecuteSqlAtLocal{
 		User:     i.WorkUser,     // "root",
 		Password: i.WorkPassword, // "",
 		Socket:   socket,
 		Charset:  i.Params.CharSet,
-	}.ExecuteSqlByMySQLClientOne(path.Join(i.MysqlInstallDir, "scripts/install_spider.sql"), "", true)
+		WorkDir:  mysqlInstallDir,
+	}.ExecuteSqlByMySQLClientOne("scripts/install_spider.sql", "", true)
 }
 
 // CreateExporterCnf 根据mysql部署端口生成对应的exporter配置文件

@@ -99,6 +99,18 @@ func (e ExecuteSqlAtLocal) ExecuteSqlWithOutReport(sqlfile string, targetdbs []s
 	return nil
 }
 
+// BuildExecuteErrFileBase 拼装 ExecuteSqlByMySQLClientOne 的 err 文件名（不含目录）。
+// 格式: {sqlfile}.{db}.err；db 为空时为 {sqlfile}.err。
+// 始终使用 path.Base(sqlfile)，避免 sqlfile 含目录时把 ErrFile 写到不存在的相对子目录。
+func BuildExecuteErrFileBase(sqlfile, db string) string {
+	base := path.Base(sqlfile)
+	db = strings.TrimSpace(db)
+	if db == "" {
+		return fmt.Sprintf("%s.err", base)
+	}
+	return fmt.Sprintf("%s.%s.err", base, db)
+}
+
 // ExecuteSqlByMySQLClientOne 使用本地mysqlclient 去执行sql
 //
 //	@receiver e
@@ -108,7 +120,7 @@ func (e ExecuteSqlAtLocal) ExecuteSqlWithOutReport(sqlfile string, targetdbs []s
 func (e ExecuteSqlAtLocal) ExecuteSqlByMySQLClientOne(sqlfile string, db string, report bool) (err error) {
 	command := e.CreateLoadSQLCommand()
 	command = command + " " + db + "<" + path.Join(e.WorkDir, sqlfile)
-	e.ErrFile = path.Join(e.WorkDir, fmt.Sprintf("%s.%s.err", sqlfile, db)) // 删除原有的时间戳方便调用方拼接
+	e.ErrFile = path.Join(e.WorkDir, BuildExecuteErrFileBase(sqlfile, db)) // 删除原有的时间戳方便调用方拼接
 	logger.Info("Run sql file %s", mysqlcomm.ClearSensitiveInformation(command))
 
 	// 通过 marker 协议向 stdout 发出 begin/end 事件，便于上游 (dbm-ui backend)
