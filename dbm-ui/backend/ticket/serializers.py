@@ -421,6 +421,27 @@ class CheckTicketFlowConfigClusterRepeatSerializer(serializers.Serializer):
         return value
 
 
+class CheckTicketFlowConfigClusterTagRepeatSerializer(serializers.Serializer):
+    bk_biz_id = serializers.IntegerField(help_text=_("业务ID"), required=False, default=PLAT_BIZ_ID)
+    cluster_tags = serializers.ListSerializer(help_text=_("集群标签列表"), child=serializers.DictField())
+    ticket_type = serializers.CharField(help_text=_("单据类型"))
+    config_id = serializers.IntegerField(help_text=_("流程配置ID"), required=False, default=None)
+
+    def validate_cluster_tags(self, value):
+        for tag in value:
+            if "tag_key" not in tag or "tag_value" not in tag:
+                raise serializers.ValidationError(_("cluster_tags 的元素必须包含 tag_key 和 tag_value"))
+            if not isinstance(tag["tag_value"], str):
+                raise serializers.ValidationError(_("cluster_tags 的 tag_value 必须是字符串"))
+
+        return value
+
+    def validate_ticket_type(self, value):
+        if value not in TicketType.get_values():
+            raise serializers.ValidationError(_("单据类型{}不合法").format(value))
+        return value
+
+
 class UpdateTicketFlowConfigSerializer(CreateTicketFlowConfigSerializer):
     config_ids = serializers.ListField(
         help_text=_("流程规则ID列表)"), child=serializers.IntegerField(), required=False, default=[]
