@@ -66,8 +66,8 @@
       });
       // data is Array<{ cluster_id: number; databases: string[]; system_databases: string[] }>
       const clusterData = data.find((item) => item.cluster_id === props.clusterId);
-      const dbNames = clusterData ? [...clusterData.databases, ...clusterData.system_databases] : [];
-      options.value = dbNames.map((name) => ({
+      // 只展示用户库，过滤掉系统库（mysql、sys、information_schema、performance_schema 等）
+      options.value = (clusterData?.databases ?? []).map((name) => ({
         label: name,
         value: name,
       }));

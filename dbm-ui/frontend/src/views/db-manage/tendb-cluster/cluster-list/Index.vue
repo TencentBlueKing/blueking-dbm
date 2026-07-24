@@ -99,7 +99,7 @@
                 :permission="data.permission.tendbcluster_dump_data"
                 :resource="data.id"
                 text
-                @click="() => handleShowDataExportSlider(data)">
+                @click="() => handleGoToDataExport(data)">
                 {{ t('导出数据') }}
               </AuthButton>
             </div>
@@ -382,11 +382,6 @@
     v-model:is-show="excelAuthorizeShow"
     :cluster-type="ClusterTypes.TENDBCLUSTER"
     :ticket-type="TicketTypes.TENDBCLUSTER_EXCEL_AUTHORIZE_RULES" />
-  <ClusterExportData
-    v-if="currentData"
-    v-model:is-show="showDataExportSlider"
-    :data="currentData"
-    :ticket-type="TicketTypes.TENDBCLUSTER_DUMP_DATA" />
   <TableDetailDialog
     v-model="isShowDetail"
     :default-offset-left="300"
@@ -414,7 +409,6 @@
   import ClusterBatchOperation from '@views/db-manage/common/cluster-batch-opration/Index.vue';
   import ClusterDomainDnsRelation from '@views/db-manage/common/cluster-domain-dns-relation/Index.vue';
   import ClusterEntryPanel from '@views/db-manage/common/cluster-entry-panel/Index.vue';
-  import ClusterExportData from '@views/db-manage/common/cluster-export-data/Index.vue';
   import ClusterIpCopy from '@views/db-manage/common/cluster-ip-copy/Index.vue';
   import ClusterTable, {
     MasterDomainColumn,
@@ -466,8 +460,6 @@
   const tableRef = useTemplateRef<ComponentExposed<typeof ClusterTable>>('clusterTable');
   const excelAuthorizeShow = ref(false);
   const clusterAuthorizeShow = ref(false);
-  const showDataExportSlider = ref(false);
-  const currentData = ref<TendbClusterModel>();
   const clusterPrimaryMap = ref<Record<string, boolean>>({});
 
   const getTableInstance = () => tableRef.value;
@@ -538,9 +530,13 @@
     fetchData();
   };
 
-  const handleShowDataExportSlider = (data: TendbClusterModel) => {
-    currentData.value = data;
-    showDataExportSlider.value = true;
+  const handleGoToDataExport = (data: TendbClusterModel) => {
+    router.push({
+      name: TicketTypes.TENDBCLUSTER_DUMP_DATA,
+      query: {
+        clusterId: data.id.toString(),
+      },
+    });
   };
 
   const handleShowExcelAuthorize = () => {
