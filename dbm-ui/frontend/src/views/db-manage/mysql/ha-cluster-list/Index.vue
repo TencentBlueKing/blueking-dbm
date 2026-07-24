@@ -96,7 +96,7 @@
                 :permission="data.permission.mysql_dump_data"
                 :resource="data.id"
                 text
-                @click="handleShowDataExportSlider(data)">
+                @click="handleGoToDataExport(data)">
                 {{ t('导出数据') }}
               </AuthButton>
             </div>
@@ -304,11 +304,6 @@
     v-model="isShowCreateSubscribeRule"
     :selected-clusters="[currentData]"
     show-tab-panel />
-  <ClusterExportData
-    v-if="currentData"
-    v-model:is-show="isShowDataExport"
-    :data="currentData"
-    :ticket-type="TicketTypes.MYSQL_DUMP_DATA" />
   <TableDetailDialog
     v-model="isShowDetail"
     :default-offset-left="300"
@@ -338,7 +333,6 @@
   import ClusterBatchOperation from '@views/db-manage/common/cluster-batch-opration/Index.vue';
   import ClusterDomainDnsRelation from '@views/db-manage/common/cluster-domain-dns-relation/Index.vue';
   import ClusterEntryPanel from '@views/db-manage/common/cluster-entry-panel/Index.vue';
-  import ClusterExportData from '@views/db-manage/common/cluster-export-data/Index.vue';
   import ClusterIpCopy from '@views/db-manage/common/cluster-ip-copy/Index.vue';
   import ClusterTable, {
     MasterDomainColumn,
@@ -388,7 +382,6 @@
   const tableRef = useTemplateRef<ComponentExposed<typeof ClusterTable>>('clusterTable');
   const isShowExcelAuthorize = ref(false);
   const isShowCreateSubscribeRule = ref(false);
-  const isShowDataExport = ref(false);
   const isShowAuthorize = ref(false);
   const currentData = ref<TendbhaModel>();
 
@@ -421,9 +414,13 @@
     isShowCreateSubscribeRule.value = true;
   };
 
-  const handleShowDataExportSlider = (data: TendbhaModel) => {
-    currentData.value = data;
-    isShowDataExport.value = true;
+  const handleGoToDataExport = (data: TendbhaModel) => {
+    router.push({
+      name: TicketTypes.MYSQL_DUMP_DATA,
+      query: {
+        clusterId: data.id.toString(),
+      },
+    });
   };
 
   const handleClearSelected = () => {
