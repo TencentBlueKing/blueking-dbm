@@ -51,7 +51,7 @@ export const getPasswordPolicy = (params: { name: string }) =>
 /**
  * 更新密码安全策略
  */
-export const updatePasswordPolicy = (params: { reset: boolean } & PasswordPolicy) =>
+export const updatePasswordPolicy = (params: { db_type: DBTypes; reset: boolean } & PasswordPolicy) =>
   http.post(`${path}/update_password_policy/`, params);
 
 /**
@@ -63,7 +63,8 @@ export const queryRandomCycle = (params = {}, payload = {} as IRequestPayload) =
 /**
  * 更新随机化周期
  */
-export const modifyRandomCycle = (params: RamdomCycle) => http.post(`${path}/modify_random_cycle/`, params);
+export const modifyRandomCycle = (params: { db_type: DBTypes } & RamdomCycle) =>
+  http.post(`${path}/modify_random_cycle/`, params);
 
 /**
  * 获取符合密码强度的字符串

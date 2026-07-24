@@ -110,8 +110,9 @@
     </DbForm>
     <div class="password-randomization-footer">
       <AuthButton
-        action-id="password_policy_set"
+        action-id="set_password_policy"
         class="mr-8"
+        :resource="DBTypes.MYSQL"
         theme="primary"
         @click="handleSubmit()">
         {{ t('保存') }}
@@ -120,9 +121,11 @@
         :confirm-handler="handleReset"
         :content="t('重置将会恢复默认设置的内容！')"
         :title="t('确认重置当前配置？')">
-        <BkButton>
+        <AuthButton
+          action-id="set_password_policy"
+          :resource="DBTypes.MYSQL">
           {{ t('重置') }}
-        </BkButton>
+        </AuthButton>
       </DbPopconfirm>
     </div>
   </BkLoading>
@@ -134,6 +137,8 @@
   import { useRequest } from 'vue-request';
 
   import { getPasswordPolicy, modifyRandomCycle, queryRandomCycle } from '@services/source/permission';
+
+  import { DBTypes } from '@common/const';
 
   const initData = () => ({
     monthValue: [] as string[],
@@ -334,6 +339,7 @@
         hour: '0',
         minute: '0',
       },
+      db_type: DBTypes.MYSQL,
     });
   };
 
@@ -342,13 +348,14 @@
 
     const { monthValue, timeValue, typeValue, weekValue } = formData.timeData;
     const [hour, minute] = timeValue.split(':');
-    const params: ServiceReturnType<typeof queryRandomCycle> = {
+    const params: { db_type: DBTypes } & ServiceReturnType<typeof queryRandomCycle> = {
       crontab: {
         day_of_month: '*',
         day_of_week: '*',
         hour,
         minute,
       },
+      db_type: DBTypes.MYSQL,
     };
 
     if (typeValue === 'week') {

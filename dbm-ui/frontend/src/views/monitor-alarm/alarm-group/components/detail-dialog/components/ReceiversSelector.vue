@@ -15,6 +15,7 @@
   <div class="receivers-selector-wrapper">
     <MemberSelector
       v-model="modelValue"
+      :disabled="disabled"
       :placeholder="t('请选择通知对象')" />
     <div
       v-if="memberList.length > 0"
@@ -44,6 +45,10 @@
 
   type UserGroup = ServiceReturnType<typeof getUserGroupList>[number];
 
+  interface Props {
+    disabled: boolean;
+  }
+
   interface Exposes {
     getSelectedReceivers: () => ServiceReturnType<typeof getAlarmGroupList>['results'][number]['receivers'];
   }
@@ -54,6 +59,7 @@
     username: string;
   }
 
+  defineProps<Props>();
   const modelValue = defineModel<string[]>({
     required: true,
   });

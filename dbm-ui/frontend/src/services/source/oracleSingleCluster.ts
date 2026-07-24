@@ -37,7 +37,7 @@ export function getOracleSingleClusterList(params: {
   return http.get<ListBase<OracleSingleModel[]>>(`${getPath()}/`, params).then((data) => ({
     ...data,
     results: data.results.map(
-      (item) => new OracleSingleModel(Object.assign({}, item, Object.assign(item.permission, data.permission))),
+      (item) => new OracleSingleModel(Object.assign({}, item, Object.assign({}, item.permission, data.permission))),
     ),
   }));
 }

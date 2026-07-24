@@ -22,23 +22,27 @@
       " />
     <div class="monitor-strategy-type-content mt-16">
       <div class="content-head mb-16">
-        <BkButton
+        <AuthButton
+          action-id="monitor_policy_manage"
           :disabled="!selected.length"
+          :resource="dbType"
           theme="primary"
           @click="batchEditNoticeGroup">
           {{ t('批量设置告警组') }}
-        </BkButton>
-        <BkButton
+        </AuthButton>
+        <AuthButton
           v-bk-tooltips="{
             content: t('请选择至少一条自定义父策略'),
             disabled: !batchResetToDefaultDisabled,
           }"
+          action-id="monitor_policy_manage"
           class="ml-8"
           :disabled="batchResetToDefaultDisabled"
+          :resource="dbType"
           theme="primary"
           @click="batchResetToDefault">
           {{ t('批量恢复默认') }}
-        </BkButton>
+        </AuthButton>
         <DbQuickSearch
           v-model="searchValue"
           :data="quickSearchData"
@@ -119,11 +123,9 @@
                   <div style="display: flex">
                     <TextOverflowLayout>
                       <AuthButton
-                        :action-id="row.isInnerReal ? 'monitor_policy_clone' : 'monitor_policy_edit'"
-                        :permission="
-                          row.isInnerReal ? row.permission.monitor_policy_clone : row.permission.monitor_policy_edit
-                        "
-                        :resource="row.id"
+                        action-id="monitor_policy_manage"
+                        :permission="row.permission.monitor_policy_manage"
+                        :resource="dbType"
                         text
                         theme="primary"
                         @click="() => handleOpenSlider(row, row.isInnerReal ? 'clone' : 'edit')">
@@ -202,34 +204,44 @@
                     :model-value="row.is_enabled"
                     size="small"
                     theme="primary" />
-                  <BkPopConfirm
+                  <AuthTemplate
                     v-else-if="getEnablePopConfirmInfo(row).content"
-                    :content="getEnablePopConfirmInfo(row).content"
-                    :is-show="showTipMap[row.id]"
-                    placement="bottom"
-                    :title="getEnablePopConfirmInfo(row).title"
-                    trigger="manual"
-                    :width="320"
-                    @cancel="() => handleCancelConfirm(row)"
-                    @confirm="() => handleClickConfirm(row)">
+                    action-id="monitor_policy_manage"
+                    :permission="row.permission.monitor_policy_manage"
+                    :resource="dbType">
+                    <BkPopConfirm
+                      :content="getEnablePopConfirmInfo(row).content"
+                      :is-show="showTipMap[row.id]"
+                      placement="bottom"
+                      :title="getEnablePopConfirmInfo(row).title"
+                      trigger="manual"
+                      :width="320"
+                      @cancel="() => handleCancelConfirm(row)"
+                      @confirm="() => handleClickConfirm(row)">
+                      <AuthSwitcher
+                        v-model="row.is_enabled"
+                        action-id="monitor_policy_manage"
+                        :permission="row.permission.monitor_policy_manage"
+                        :resource="dbType"
+                        size="small"
+                        theme="primary"
+                        @change="() => handleChangeSwitchPopConfirm(row)" />
+                    </BkPopConfirm>
+                  </AuthTemplate>
+                  <AuthTemplate
+                    v-else
+                    action-id="monitor_policy_manage"
+                    :permission="row.permission.monitor_policy_manage"
+                    :resource="dbType">
                     <AuthSwitcher
                       v-model="row.is_enabled"
-                      action-id="monitor_policy_start_stop"
-                      :permission="row.permission.monitor_policy_start_stop"
-                      :resource="row.id"
+                      action-id="monitor_policy_manage"
+                      :permission="row.permission.monitor_policy_manage"
+                      :resource="dbType"
                       size="small"
                       theme="primary"
-                      @change="() => handleChangeSwitchPopConfirm(row)" />
-                  </BkPopConfirm>
-                  <AuthSwitcher
-                    v-else
-                    v-model="row.is_enabled"
-                    action-id="monitor_policy_start_stop"
-                    :permission="row.permission.monitor_policy_start_stop"
-                    :resource="row.id"
-                    size="small"
-                    theme="primary"
-                    @change="() => handleChangeSwitchCommon(row)" />
+                      @change="() => handleChangeSwitchCommon(row)" />
+                  </AuthTemplate>
                 </template>
               </TableColumn>
               <TableColumn
@@ -298,11 +310,9 @@
                 :width="180">
                 <template #default="{ row }: { row: MonitorPolicyModel }">
                   <AuthButton
-                    :action-id="row.isInnerReal ? 'monitor_policy_clone' : 'monitor_policy_edit'"
-                    :permission="
-                      row.isInnerReal ? row.permission.monitor_policy_clone : row.permission.monitor_policy_edit
-                    "
-                    :resource="row.id"
+                    action-id="monitor_policy_manage"
+                    :permission="row.permission.monitor_policy_manage"
+                    :resource="dbType"
                     text
                     theme="primary"
                     @click="() => handleOpenSlider(row, row.isInnerReal ? 'clone' : 'edit')">
@@ -310,9 +320,9 @@
                   </AuthButton>
                   <AuthButton
                     v-if="!row.isChild"
-                    action-id="monitor_policy_clone"
+                    action-id="monitor_policy_manage"
                     class="ml-8"
-                    :permission="row.permission.monitor_policy_clone"
+                    :permission="row.permission.monitor_policy_manage"
                     :resource="dbType"
                     text
                     theme="primary"
@@ -321,9 +331,9 @@
                   </AuthButton>
                   <AuthButton
                     v-if="row.isChild"
-                    action-id="monitor_policy_clone"
+                    action-id="monitor_policy_manage"
                     class="ml-8"
-                    :permission="row.permission.monitor_policy_clone"
+                    :permission="row.permission.monitor_policy_manage"
                     :resource="dbType"
                     text
                     theme="primary"
@@ -332,10 +342,10 @@
                   </AuthButton>
                   <AuthButton
                     v-if="row.isCustom"
-                    action-id="monitor_policy_edit"
+                    action-id="monitor_policy_manage"
                     class="ml-8"
-                    :permission="row.permission.monitor_policy_edit"
-                    :resource="row.id"
+                    :permission="row.permission.monitor_policy_manage"
+                    :resource="dbType"
                     text
                     theme="primary"
                     @click="() => handleResetToDefault(row)">
@@ -343,11 +353,10 @@
                   </AuthButton>
                   <AuthButton
                     v-if="row.isChild"
-                    action-id="monitor_policy_delete"
+                    action-id="monitor_policy_manage"
                     class="ml-8"
-                    :permission="row.permission.monitor_policy_delete"
-                    :resource="row.id"
-                    :results="row.permission.monitor_policy_delete"
+                    :permission="row.permission.monitor_policy_manage"
+                    :resource="dbType"
                     text
                     theme="primary"
                     @click="() => handleClickDelete(row)">

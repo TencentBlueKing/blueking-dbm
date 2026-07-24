@@ -37,7 +37,7 @@ export function getOracleHaClusterList(params: {
   return http.get<ListBase<OracleHaModel[]>>(`${getPath()}/`, params).then((data) => ({
     ...data,
     results: data.results.map(
-      (item) => new OracleHaModel(Object.assign({}, item, Object.assign(item.permission, data.permission))),
+      (item) => new OracleHaModel(Object.assign({}, item, Object.assign({}, item.permission, data.permission))),
     ),
   }));
 }

@@ -56,9 +56,7 @@ export default class DutyRule {
   is_show_edit: boolean;
   name: string;
   permission: {
-    duty_rule_create: boolean;
-    duty_rule_destroy: boolean;
-    duty_rule_update: boolean;
+    duty_rule_manage: boolean;
   };
   priority: number;
   status: string;

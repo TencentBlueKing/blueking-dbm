@@ -17,7 +17,7 @@
       <div class="create-box">
         <AuthButton
           v-if="activeDbType"
-          action-id="duty_rule_create"
+          action-id="duty_rule_manage"
           class="w-88 mb-14"
           :resource="activeDbType"
           theme="primary"
@@ -40,8 +40,8 @@
             <template #default="{ row }: { row: DutyRuleModel }">
               <TextOverflowLayout>
                 <AuthButton
-                  action-id="duty_rule_update"
-                  :permission="row.permission.duty_rule_update"
+                  action-id="duty_rule_manage"
+                  :permission="row.permission.duty_rule_manage"
                   :resource="activeDbType"
                   text
                   theme="primary"
@@ -84,8 +84,8 @@
               <div class="priority-box">
                 <AuthTemplate
                   v-if="row.is_show_edit"
-                  action-id="duty_rule_update"
-                  :permission="row.permission.duty_rule_update"
+                  action-id="duty_rule_manage"
+                  :permission="row.permission.duty_rule_manage"
                   :resource="activeDbType">
                   <PriorityInput
                     :model-value="row.priority"
@@ -102,8 +102,8 @@
                     {{ row.priority }}
                   </BkTag>
                   <AuthTemplate
-                    action-id="duty_rule_update"
-                    :permission="row.permission.duty_rule_update"
+                    action-id="duty_rule_manage"
+                    :permission="row.permission.duty_rule_manage"
                     :resource="activeDbType">
                     <DbIcon
                       class="edit-icon"
@@ -176,24 +176,29 @@
             :title="t('启停')"
             :width="80">
             <template #default="{ row }: { row: DutyRuleModel }">
-              <BkPopConfirm
-                :content="t('停用后，所有的业务将会停用该策略，请谨慎操作！')"
-                :is-show="showTipMap[row.id]"
-                placement="bottom"
-                :title="t('确认停用该策略？')"
-                trigger="manual"
-                width="320"
-                @cancel="() => handleCancelConfirm(row)"
-                @confirm="() => handleClickConfirm(row)">
-                <AuthSwitcher
-                  v-model="row.is_enabled"
-                  action-id="duty_rule_update"
-                  :before-change="(isEnable: boolean) => enableRequestHandler(isEnable, row)"
-                  :permission="row.permission.duty_rule_update"
-                  :resource="activeDbType"
-                  size="small"
-                  theme="primary" />
-              </BkPopConfirm>
+              <AuthTemplate
+                action-id="duty_rule_manage"
+                :permission="row.permission.duty_rule_manage"
+                :resource="activeDbType">
+                <BkPopConfirm
+                  :content="t('停用后，所有的业务将会停用该策略，请谨慎操作！')"
+                  :is-show="showTipMap[row.id]"
+                  placement="bottom"
+                  :title="t('确认停用该策略？')"
+                  trigger="manual"
+                  width="320"
+                  @cancel="() => handleCancelConfirm(row)"
+                  @confirm="() => handleClickConfirm(row)">
+                  <AuthSwitcher
+                    v-model="row.is_enabled"
+                    action-id="duty_rule_manage"
+                    :before-change="(isEnable: boolean) => enableRequestHandler(isEnable, row)"
+                    :permission="row.permission.duty_rule_manage"
+                    :resource="activeDbType"
+                    size="small"
+                    theme="primary" />
+                </BkPopConfirm>
+              </AuthTemplate>
             </template>
           </TableColumn>
           <TableColumn
@@ -204,8 +209,8 @@
             <template #default="{ row }: { row: DutyRuleModel }">
               <div class="operate-box">
                 <AuthButton
-                  action-id="duty_rule_update"
-                  :permission="row.permission.duty_rule_update"
+                  action-id="duty_rule_manage"
+                  :permission="row.permission.duty_rule_manage"
                   :resource="activeDbType"
                   text
                   theme="primary"
@@ -213,8 +218,8 @@
                   {{ t('编辑') }}
                 </AuthButton>
                 <AuthButton
-                  action-id="duty_rule_create"
-                  :permission="row.permission.duty_rule_create"
+                  action-id="duty_rule_manage"
+                  :permission="row.permission.duty_rule_manage"
                   :resource="activeDbType"
                   text
                   theme="primary"
@@ -223,8 +228,8 @@
                 </AuthButton>
                 <AuthButton
                   v-if="!row.is_enabled"
-                  action-id="duty_rule_destroy"
-                  :permission="row.permission.duty_rule_destroy"
+                  action-id="duty_rule_manage"
+                  :permission="row.permission.duty_rule_manage"
                   :resource="activeDbType"
                   text
                   theme="primary"
