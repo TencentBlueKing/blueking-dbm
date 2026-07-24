@@ -179,8 +179,7 @@ const mysqlToolboxRouter = {
     createRouteItem(TicketTypes.MYSQL_FIXPOINT_NEW_CLUSTER, t('构造'), { dbConsole: 'mysql.toolbox.fixpoint' }),
     createRouteItem(TicketTypes.MYSQL_PROXY_REBUILD, t('Proxy 原地重建'), { dbConsole: 'mysql.toolbox.proxyRebuild' }),
     createRouteItem(TicketTypes.MYSQL_PROXY_RESCUE, t('Proxy 灾难重建'), { dbConsole: 'mysql.toolbox.proxyRescue' }),
-    // TODO 功能未合主分支，注释
-    // createRouteItem(TicketTypes.MYSQL_DUMP_DATA, t('数据导出'), { dbConsole: 'mysql.toolbox.dataExport' }),
+    createRouteItem(TicketTypes.MYSQL_DUMP_DATA, t('数据导出'), { dbConsole: 'mysql.toolbox.dataExport' }),
     {
       path: 'webconsole',
       name: 'MySQLWebconsole',

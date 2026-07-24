@@ -46,13 +46,17 @@
             Webconsole
           </BkButton>
         </AuthRouterLink>
-        <BkButton
+        <AuthButton
+          v-db-console="'mysql.haClusterList.exportData'"
+          action-id="mysql_dump_data"
           class="ml-4"
           :disabled="data.isOffline"
+          :permission="data.permission.mysql_dump_data"
+          :resource="data.id"
           size="small"
           @click="handleShowDataExportSlider">
           {{ t('导出数据') }}
-        </BkButton>
+        </AuthButton>
         <MoreActionExtend>
           <template #trigger>
             <BkButton
@@ -197,10 +201,6 @@
         :account-type="AccountTypes.MYSQL"
         :cluster-types="[ClusterTypes.TENDBHA, 'tendbhaSlave']"
         :selected="[data]" />
-      <ClusterExportData
-        v-model:is-show="isShowDataExport"
-        :data="data"
-        :ticket-type="TicketTypes.MYSQL_DUMP_DATA" />
       <CreateSubscribeRuleSlider
         v-model="isShowCreateSubscribeRule"
         :selected-clusters="[data]"
@@ -211,6 +211,7 @@
 
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
+  import { useRouter } from 'vue-router';
   import { useRequest } from 'vue-request';
 
   import type { MySQLFunctions } from '@services/model/function-controller/functionController';
@@ -232,7 +233,6 @@
     SlaveDomain,
   } from '@views/db-manage/common/cluster-details';
   import ClusterDomainDnsRelation from '@views/db-manage/common/cluster-domain-dns-relation/Index.vue';
-  import ClusterExportData from '@views/db-manage/common/cluster-export-data/Index.vue';
   import { useAddClb, useBindOrUnbindClb, useOperateClusterBasic } from '@views/db-manage/common/hooks';
   import OperationBtnStatusTips from '@views/db-manage/common/OperationBtnStatusTips.vue';
   import CreateSubscribeRuleSlider from '@views/db-manage/mysql/dumper/components/create-rule/Index.vue';
@@ -249,6 +249,7 @@
   const { ClbInfo, ModuleNameInfo } = BaseInfoField;
 
   const { t } = useI18n();
+  const router = useRouter();
   const funControllerStore = useFunController();
   const { handleAddClb } = useAddClb<{
     bk_cloud_id: number;
@@ -263,7 +264,6 @@
 
   /** 集群授权 */
   const isAuthorizeShow = ref(false);
-  const isShowDataExport = ref(false);
   const isShowCreateSubscribeRule = ref(false);
 
   const clusterRoleNodeGroup = computed(() => {
@@ -325,7 +325,12 @@
   };
 
   const handleShowDataExportSlider = () => {
-    isShowDataExport.value = true;
+    router.push({
+      name: TicketTypes.MYSQL_DUMP_DATA,
+      query: {
+        clusterId: data.value?.id.toString() || '',
+      },
+    });
   };
 
   const handleShowCreateSubscribeRuleSlider = () => {
