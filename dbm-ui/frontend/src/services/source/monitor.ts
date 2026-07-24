@@ -308,7 +308,7 @@ export const getAlarmShieldList = (params: {
     .get<{
       count: number;
       permission: {
-        alert_shield_create: boolean;
+        // alert_shield_create: boolean;
         alert_shield_manage: boolean;
       };
       shield_list: AlarmShieldModel[];

@@ -53,9 +53,10 @@ export default class NoticGroup {
   name: string;
   permission: {
     global_notify_group_update: boolean;
-    notify_group_create: boolean;
-    notify_group_delete: boolean;
-    notify_group_update: boolean;
+    // notify_group_create: boolean;
+    // notify_group_delete: boolean;
+    notify_group_manage: boolean;
+    // notify_group_update: boolean;
   };
   receivers: {
     id: string;

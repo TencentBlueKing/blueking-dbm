@@ -3,7 +3,7 @@ declare module 'vue' {
     AuthButton: typeof import('@components/auth-component/button.vue').default;
     AuthOption: typeof import('@components/auth-component/option.vue').default;
     AuthRouterLink: typeof import('@components/auth-component/router-link.vue').default;
-    AuthSwitch: typeof import('@components/auth-component/switch.vue').default;
+    AuthSwitcher: typeof import('@components/auth-component/switch.vue').default;
     AuthTemplate: typeof import('@components/auth-component/component.vue').default;
     BkTable: typeof import('@blueking/table/typings/BkTable.vue');
     BkTableColumn: typeof import('@blueking/table/typings/BkTableColumn.vue');
