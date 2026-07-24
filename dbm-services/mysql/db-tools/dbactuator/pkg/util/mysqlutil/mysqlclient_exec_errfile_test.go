@@ -20,6 +20,51 @@ import (
 	"dbm-services/mysql/db-tools/dbactuator/pkg/util/mysqlutil"
 )
 
+func TestBuildExecuteErrFileBase(t *testing.T) {
+	t.Parallel()
+	tests := []struct {
+		name    string
+		sqlfile string
+		db      string
+		want    string
+	}{
+		{
+			name:    "basename with db",
+			sqlfile: "a.sql",
+			db:      "db1",
+			want:    "a.sql.db1.err",
+		},
+		{
+			name:    "path-like sqlfile uses basename",
+			sqlfile: "scripts/install_spider.sql",
+			db:      "db1",
+			want:    "install_spider.sql.db1.err",
+		},
+		{
+			name:    "empty db omits double-dot",
+			sqlfile: "scripts/install_spider.sql",
+			db:      "",
+			want:    "install_spider.sql.err",
+		},
+		{
+			name:    "whitespace db treated as empty",
+			sqlfile: "/usr/local/mysql/scripts/install_spider.sql",
+			db:      "  ",
+			want:    "install_spider.sql.err",
+		},
+	}
+	for _, tt := range tests {
+		tt := tt
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			got := mysqlutil.BuildExecuteErrFileBase(tt.sqlfile, tt.db)
+			if got != tt.want {
+				t.Fatalf("BuildExecuteErrFileBase(%q, %q)=%q, want %q", tt.sqlfile, tt.db, got, tt.want)
+			}
+		})
+	}
+}
+
 func TestExecuteCommandOpenErrFileFailed(t *testing.T) {
 	dir := t.TempDir()
 	// Linux NAME_MAX is typically 255; a 300-char basename makes OpenFile fail.
