@@ -55,7 +55,7 @@
             </template>
 
             <i
-              v-if="tagClearable && tagType === 'tag'"
+              v-if="tagClearable && tagType === 'tag' && !disabled"
               class="user-selector-selected-clear bk-biz-components-icon bk-biz-icon-close"
               @click.stop.prevent="handleRemoveSelected(user, index)"
               @mousedown.left.stop="handleRemoveMouseDown"

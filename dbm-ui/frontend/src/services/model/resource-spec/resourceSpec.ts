@@ -36,8 +36,7 @@ export default class ResourceSpec {
   };
   permission: {
     spec_create: boolean;
-    spec_delete: boolean;
-    spec_update: boolean;
+    spec_manage: boolean;
   };
   qps: {
     max: number;
@@ -55,15 +54,15 @@ export default class ResourceSpec {
     size?: number;
     type: string;
   }[];
-  update_at: string;
-  updater: string;
   tags: {
     id: number;
-    key: string;
-    value: string;
     is_builtin: boolean;
+    key: string;
     system: boolean;
+    value: string;
   }[];
+  update_at: string;
+  updater: string;
 
   constructor(payload = {} as ResourceSpec) {
     this.capacity = payload.capacity;
@@ -101,6 +100,10 @@ export default class ResourceSpec {
     return this.spec_name;
   }
 
+  get needReplenish() {
+    return this.tags.some((tag) => tag.key === 'replenish' && tag.value === 'True');
+  }
+
   get qpsText() {
     if (this.qps) {
       return `${this.qps.min} ~ ${this.qps.max}`;
@@ -111,9 +114,5 @@ export default class ResourceSpec {
 
   get updateAtDisplay() {
     return utcDisplayTime(this.update_at);
-  }
-
-  get needReplenish() {
-    return this.tags.some((tag) => tag.key === 'replenish' && tag.value === 'True');
   }
 }

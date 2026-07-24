@@ -144,8 +144,8 @@
         <template #default="{ row }: { row: ResourceSpecModel }">
           <TextOverflowLayout>
             <AuthButton
-              action-id="spec_update"
-              :permission="row.permission.spec_update"
+              action-id="spec_manage"
+              :permission="row.permission.spec_manage"
               :resource="dbType"
               text
               theme="primary"
@@ -183,26 +183,31 @@
         :title="t('启停')"
         :width="120">
         <template #default="{ row }: { row: ResourceSpecModel }">
-          <BkPopConfirm
-            :confirm-text="row.enable ? t('停用') : t('启用')"
-            :content="
-              row.enable
-                ? t('停用后，存量集群的变更操作不受影响，新增集群不可使用此规格')
-                : t('启用后，所有场景均可使用，如：部署、扩容、迁移规格')
-            "
-            placement="bottom"
-            :title="row.enable ? t('确认停用该规格？') : t('确认启用该规格？')"
-            trigger="click"
-            width="308"
-            @confirm="() => handleConfirmSwitch(row)">
-            <AuthSwitcher
-              action-id="spec_update"
-              :model-value="row.enable"
-              :permission="row.permission.spec_update"
-              :resource="dbType"
-              size="small"
-              theme="primary" />
-          </BkPopConfirm>
+          <AuthTemplate
+            action-id="spec_manage"
+            :permission="row.permission.spec_manage"
+            :resource="dbType">
+            <BkPopConfirm
+              :confirm-text="row.enable ? t('停用') : t('启用')"
+              :content="
+                row.enable
+                  ? t('停用后，存量集群的变更操作不受影响，新增集群不可使用此规格')
+                  : t('启用后，所有场景均可使用，如：部署、扩容、迁移规格')
+              "
+              placement="bottom"
+              :title="row.enable ? t('确认停用该规格？') : t('确认启用该规格？')"
+              trigger="click"
+              width="308"
+              @confirm="() => handleConfirmSwitch(row)">
+              <AuthSwitcher
+                action-id="spec_manage"
+                :model-value="row.enable"
+                :permission="row.permission.spec_manage"
+                :resource="dbType"
+                size="small"
+                theme="primary" />
+            </BkPopConfirm>
+          </AuthTemplate>
         </template>
       </TableColumn>
       <TableColumn
@@ -211,23 +216,31 @@
         :title="t('自动补货')"
         :width="120">
         <template #default="{ row }: { row: ResourceSpecModel }">
-          <BkPopConfirm
-            :confirm-text="row.needReplenish ? t('停用') : t('开启')"
-            :content="
-              row.needReplenish
-                ? t('停用后，当资源池主机数低于资源水位时，不触发自动补货')
-                : t('开启后，当资源池主机数低于参考水位时，将自动补货至目标配置')
-            "
-            placement="bottom"
-            :title="row.needReplenish ? t('确认停用自动补货？') : t('确认开启自动补货？')"
-            trigger="click"
-            width="308"
-            @confirm="() => handleConfirmNeedReplenish(row)">
-            <BkSwitcher
-              v-model="row.needReplenish"
-              size="small"
-              theme="primary" />
-          </BkPopConfirm>
+          <AuthTemplate
+            action-id="spec_manage"
+            :permission="row.permission.spec_manage"
+            :resource="dbType">
+            <BkPopConfirm
+              :confirm-text="row.needReplenish ? t('停用') : t('开启')"
+              :content="
+                row.needReplenish
+                  ? t('停用后，当资源池主机数低于资源水位时，不触发自动补货')
+                  : t('开启后，当资源池主机数低于参考水位时，将自动补货至目标配置')
+              "
+              placement="bottom"
+              :title="row.needReplenish ? t('确认停用自动补货？') : t('确认开启自动补货？')"
+              trigger="click"
+              width="308"
+              @confirm="() => handleConfirmNeedReplenish(row)">
+              <AuthSwitcher
+                v-model="row.needReplenish"
+                action-id="spec_manage"
+                :permission="row.permission.spec_manage"
+                :resource="dbType"
+                size="small"
+                theme="primary" />
+            </BkPopConfirm>
+          </AuthTemplate>
         </template>
       </TableColumn>
       <TableColumn
@@ -272,9 +285,9 @@
         :width="120">
         <template #default="{ row }: { row: ResourceSpecModel }">
           <AuthButton
-            action-id="spec_update"
+            action-id="spec_manage"
             class="mr-12"
-            :permission="row.permission.spec_update"
+            :permission="row.permission.spec_manage"
             :resource="dbType"
             text
             theme="primary"
@@ -296,9 +309,9 @@
             v-bk-tooltips="t('仅可删除“未使用”的规格')"
             class="inline-block;">
             <AuthButton
-              action-id="spec_delete"
+              action-id="spec_manage"
               disabled
-              :permission="row.permission.spec_delete"
+              :permission="row.permission.spec_manage"
               :resource="dbType"
               text
               theme="primary">
@@ -307,8 +320,8 @@
           </span>
           <AuthButton
             v-else
-            action-id="spec_delete"
-            :permission="row.permission.spec_delete"
+            action-id="spec_manage"
+            :permission="row.permission.spec_manage"
             :resource="dbType"
             text
             theme="primary"
@@ -508,7 +521,9 @@
     },
   });
 
-  const { data: ratioMap, run: fetchRadioMap } = useRequest(getSpecReplenishRatio);
+  const { data: ratioMap, run: fetchRadioMap } = useRequest(getSpecReplenishRatio, {
+    manual: true,
+  });
 
   watch(
     () => [props.dbType, props.machineType],

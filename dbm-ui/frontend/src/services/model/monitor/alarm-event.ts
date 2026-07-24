@@ -79,7 +79,8 @@ export default class AlarmEvent {
     name: string;
   }[];
   permission: {
-    alert_shield_create: boolean;
+    // alert_shield_create: boolean;
+    alert_shield_manage: boolean;
   };
   plugin_display_name: string;
   plugin_id: string;

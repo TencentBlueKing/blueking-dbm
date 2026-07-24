@@ -20,7 +20,7 @@ import AuthButton from '@components/auth-component/button.vue';
 import AuthTemplate from '@components/auth-component/component.vue';
 import AuthOption from '@components/auth-component/option.vue';
 import AuthRouterLink from '@components/auth-component/router-link.vue';
-import AuthSwitch from '@components/auth-component/switch.vue';
+import AuthSwitcher from '@components/auth-component/switcher.vue';
 import DbInput from '@components/bkui-vue/input/Index.vue';
 import DbCard from '@components/db-card/index.vue';
 import DbDateTimePicker from '@components/db-date-time-picker/Index.vue';
@@ -101,7 +101,7 @@ export const setGlobalComps = (app: App<Element>) => {
   app.component('AuthButton', AuthButton);
   app.component('AuthTemplate', AuthTemplate);
   app.component('AuthOption', AuthOption);
-  app.component('AuthSwitcher', AuthSwitch);
+  app.component('AuthSwitcher', AuthSwitcher);
   app.component('AuthRouterLink', AuthRouterLink);
   app.component('TableDetailDialog', TableDetailDialog);
   app.component('NewFeatureGuide', NewFeatureGuide);

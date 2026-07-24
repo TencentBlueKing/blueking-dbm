@@ -192,10 +192,10 @@
               disabled: row.dbm_event,
               content: t('暂不支持，请去监控平台操作'),
             }"
-            action-id="alert_shield_create"
+            action-id="alert_shield_manage"
             :biz-id="row.alarmBizId"
             :disabled="!row.dbm_event"
-            :permission="row.dbm_event ? row.permission.alert_shield_create : true"
+            :permission="row.dbm_event ? row.permission.alert_shield_manage : true"
             text
             theme="primary"
             @click="() => handleOpenShieldAlarms(true, row)">
