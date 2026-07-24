@@ -9,11 +9,15 @@
 package backupdemand
 
 import (
+	"bufio"
+	"dbm-services/common/reverseapi/define"
+	"dbm-services/mysql/db-tools/dbactuator/pkg/components/peripheraltools/v2/dbbackup"
 	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
 	"slices"
+	"strconv"
 	"strings"
 	"time"
 
@@ -124,11 +128,67 @@ func (c *Component) Init() (err error) {
 	return nil
 }
 
-func (c *Component) GenerateBackupConfig() error {
+func (c *Component) GenerateBackupConfig() (err error) {
 	dailyBackupConfigPath := filepath.Join(
 		cst.DbbackupGoInstallPath,
 		fmt.Sprintf("dbbackup.%d.ini", c.backupPort),
 	)
+
+	// 如果配置文件不存在就给新生成一个
+	_, err = os.Stat(dailyBackupConfigPath)
+	if err != nil {
+		if os.IsNotExist(err) {
+			f, err := os.OpenFile(
+				filepath.Join(define.DefaultCommonConfigDir, define.DefaultNginxProxyAddrsFileName),
+				os.O_RDONLY, os.ModePerm,
+			)
+			if err != nil {
+				logger.Error("open nginx proxy addrs file failed: %s", err.Error())
+				return err
+			}
+			defer func() {
+				_ = f.Close()
+			}()
+
+			var bkCloudId int64 = 0
+			var nginxAddrs []string
+
+			scanner := bufio.NewScanner(f)
+			for scanner.Scan() {
+				line := scanner.Text()
+				splitLine := strings.Split(line, ":")
+				switch len(splitLine) {
+				case 2:
+					nginxAddrs = append(nginxAddrs, line)
+				case 3:
+					bkCloudId, err = strconv.ParseInt(splitLine[0], 10, 64)
+					if err != nil {
+						logger.Error("bad nginx bk cloud id: %s", line)
+						return err
+					}
+					nginxAddrs = append(nginxAddrs, fmt.Sprintf("%s:%s", splitLine[1], splitLine[2]))
+				default:
+					err = fmt.Errorf("invalid nginx addrs file: %s", line)
+					logger.Error(err.Error())
+					return err
+				}
+			}
+			if err := scanner.Err(); err != nil {
+				logger.Error("read nginx proxy addrs file failed: %s", err.Error())
+				return err
+			}
+
+			err = dbbackup.GenConfig(bkCloudId, nginxAddrs, []int{c.Params.Port})
+			if err != nil {
+				logger.Error("gen dbbackup config failed: %s", err.Error())
+				return err
+			}
+			logger.Info("gen dbbackup config: %s success", dailyBackupConfigPath)
+		} else {
+			logger.Error("backup config file %s stat failed: %s", dailyBackupConfigPath, err.Error())
+			return err
+		}
+	}
 
 	dailyBackupConfigFile, err := ini.LoadSources(
 		ini.LoadOptions{
