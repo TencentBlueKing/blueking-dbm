@@ -26,13 +26,12 @@ export const toolboxMenuList: ToolboxTreeNode[] = [
         id: TicketTypes.MYSQL_IMPORT_SQLFILE,
         name: t('变更 SQL 执行'),
       },
-      // TODO 功能未合主分支，注释
-      // {
-      //   dbConsoleValue: 'mysql.toolbox.dataExport',
-      //   desc: t('把 DB 数据导出为文件'),
-      //   id: TicketTypes.MYSQL_DUMP_DATA,
-      //   name: t('数据导出'),
-      // },
+      {
+        dbConsoleValue: 'mysql.toolbox.dataExport',
+        desc: t('把 DB 数据导出为文件'),
+        id: TicketTypes.MYSQL_DUMP_DATA,
+        name: t('数据导出'),
+      },
       {
         dbConsoleValue: 'mysql.toolbox.webconsole',
         desc: t('只读 client，连接 DB 查询'),
