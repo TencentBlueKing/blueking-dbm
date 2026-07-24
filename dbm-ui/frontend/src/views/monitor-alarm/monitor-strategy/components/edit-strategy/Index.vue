@@ -203,13 +203,13 @@
       </BkButton>
       <AuthButton
         v-if="data.isCustom && isCustomEdit"
-        action-id="monitor_policy_edit"
+        action-id="monitor_policy_manage"
         class="ml-8"
         :disabled="isConfirmLoading"
         :loading="isdeleteLoading"
         outline
-        :permission="data.permission.monitor_policy_edit"
-        :resource="data.id"
+        :permission="data.permission.monitor_policy_manage"
+        :resource="dbType"
         theme="primary"
         @click="() => handleResetToDefault()">
         {{ t('恢复默认') }}

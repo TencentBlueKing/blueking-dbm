@@ -47,11 +47,8 @@
           <BkFormItem
             :label="t('是否启用')"
             required>
-            <AuthSwitcher
+            <BkSwitcher
               v-model="formModel.isEnabled"
-              action-id="global_monitor_policy_start_stop"
-              :permission="data.permission.global_monitor_policy_start_stop"
-              :resource="data.id"
               size="small"
               theme="primary" />
           </BkFormItem>
@@ -145,23 +142,23 @@
         :width="320"
         @confirm="() => handleConfirm()">
         <AuthButton
-          action-id="global_monitor_policy_edit"
+          action-id="global_alarm_policy_manage"
           :disabled="resetLoading"
           :loading="updateLoading"
-          :permission="data.permission.global_monitor_policy_edit"
-          :resource="data.id"
+          :permission="data.permission.global_alarm_policy_manage"
+          :resource="dbType"
           theme="primary">
           {{ t('确定') }}
         </AuthButton>
       </BkPopConfirm>
       <AuthButton
-        action-id="global_monitor_policy_edit"
+        action-id="global_alarm_policy_manage"
         class="ml-8"
         :disabled="updateLoading"
         :loading="resetLoading"
         outline
-        :permission="data.permission.global_monitor_policy_edit"
-        :resource="data.id"
+        :permission="data.permission.global_alarm_policy_manage"
+        :resource="dbType"
         theme="primary"
         @click="() => handleResetClickConfirm()">
         {{ t('恢复初始值') }}

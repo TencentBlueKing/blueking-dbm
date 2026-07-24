@@ -113,11 +113,15 @@
           </ul>
         </BkFormItem>
       </DbCard>
-      <BkFormItem class="password-policy-footer">
+      <BkFormItem
+        v-if="dbType"
+        :key="dbType"
+        class="password-policy-footer">
         <AuthButton
-          action-id="password_policy_set"
+          action-id="set_password_policy"
           class="mr-8"
           :loading="isSubmitting"
+          :resource="dbType"
           theme="primary"
           @click="handleSubmit">
           {{ t('保存') }}
@@ -126,9 +130,11 @@
           :confirm-handler="handleReset"
           :content="t('重置将会恢复默认设置的内容')"
           :title="t('确认重置')">
-          <BkButton>
+          <AuthButton
+            action-id="set_password_policy"
+            :resource="dbType">
             {{ t('重置') }}
-          </BkButton>
+          </AuthButton>
         </DbPopconfirm>
       </BkFormItem>
     </DbForm>
@@ -275,6 +281,7 @@
       await formRef.value.validate();
       await updatePasswordPolicyRunAsync({
         ...passwordPolicyData,
+        db_type: props.dbType,
         reset: false,
         rule: {
           ...formData,
@@ -291,6 +298,7 @@
   const handleReset = () =>
     updatePasswordPolicyRunAsync({
       ...passwordPolicyData,
+      db_type: props.dbType,
       reset: true,
       rule: {
         ...formData,

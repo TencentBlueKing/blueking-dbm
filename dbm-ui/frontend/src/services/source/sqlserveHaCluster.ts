@@ -38,7 +38,7 @@ export function getHaClusterList(params: {
   return http.get<ListBase<SqlServerHaModel[]>>(`${getRootPath()}/`, params).then((data) => ({
     ...data,
     results: data.results.map(
-      (item) => new SqlServerHaModel(Object.assign({}, item, Object.assign(item.permission, data.permission))),
+      (item) => new SqlServerHaModel(Object.assign({}, item, Object.assign({}, item.permission, data.permission))),
     ),
   }));
 }
@@ -54,7 +54,7 @@ export function getHaClusterWholeList() {
     })
     .then((data) =>
       data.results.map(
-        (item) => new SqlServerHaModel(Object.assign({}, item, Object.assign(item.permission, data.permission))),
+        (item) => new SqlServerHaModel(Object.assign({}, item, Object.assign({}, item.permission, data.permission))),
       ),
     );
 }

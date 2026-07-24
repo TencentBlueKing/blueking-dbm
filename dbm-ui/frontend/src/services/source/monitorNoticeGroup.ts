@@ -38,7 +38,7 @@ export function getAlarmGroupList(
       (item) =>
         new NoticGroupModel(
           Object.assign(item, {
-            permission: Object.assign(item.permission, data.permission),
+            permission: Object.assign({}, item.permission, data.permission),
           }),
         ),
     ),
