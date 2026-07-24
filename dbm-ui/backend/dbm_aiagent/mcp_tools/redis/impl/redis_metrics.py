@@ -29,6 +29,7 @@ _BACKEND_ONLY_METRICS = {MetricType.CAPACITY}
 class ResolutionResult:
     batches: Optional[List[MetricsQueryBatch]] = None
     time_range: Optional[tuple] = None
+    # unify_query step/interval seconds (datapoint spacing); PromQL lookback is fixed separately
     time_window: Optional[int] = None
     error: Optional[dict] = None
     partial_errors: Optional[List[dict]] = None

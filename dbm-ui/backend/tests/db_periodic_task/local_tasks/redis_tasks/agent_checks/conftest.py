@@ -9,10 +9,6 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 # Shared fixtures for agent_checks unit tests.
-#
-# ``base`` is imported lazily behind ``django_db_blocker.unblock`` (mirroring
-# the pattern used by ``local_tasks/redis_tasks/conftest.py``) because
-# importing the module triggers periodic-task registration and DB access.
 import importlib
 from dataclasses import dataclass
 from datetime import timedelta
@@ -21,41 +17,37 @@ from unittest.mock import MagicMock
 
 import pytest
 
+from backend.db_periodic_task.dispatch.config import DEFAULT_MAX_REQUEUE_ATTEMPTS, DEFAULT_REQUEUE_COOLDOWN_SECONDS
+
 
 @pytest.fixture(scope="module")
 def base(django_db_setup, django_db_blocker):
     with django_db_blocker.unblock():
-        return importlib.import_module("backend.db_periodic_task.local_tasks.redis_tasks.agent_checks.base")
+        return importlib.import_module("backend.db_periodic_task.local_tasks.redis_tasks.agent_checks.config")
 
 
 @pytest.fixture(scope="module")
-def signals(base, django_db_blocker):
-    # ``signals`` re-exports the failure handler and registers it with celery's
-    # task_failure signal. Loading it transitively imports the concrete check_*
-    # modules, so we keep the same lazy-under-django-db-blocker pattern used
-    # for ``base`` to avoid touching the real DB at collection time.
+def redis_adapter(django_db_setup, django_db_blocker):
     with django_db_blocker.unblock():
-        return importlib.import_module("backend.db_periodic_task.local_tasks.redis_tasks.agent_checks.signals")
+        return importlib.import_module("backend.db_periodic_task.local_tasks.redis_tasks.agent_checks.redis_adapter")
+
+
+@pytest.fixture(scope="module")
+def ai_tasks(django_db_setup, django_db_blocker):
+    with django_db_blocker.unblock():
+        return importlib.import_module("backend.dbm_aiagent.tasks")
 
 
 @pytest.fixture
 def make_config(base):
-    """Factory for a lightweight stand-in of ``BaseCheckConfig``.
-
-    Real ``BaseCheckConfig`` works fine for most tests, but a ``SimpleNamespace``
-    is friendlier when a test wants to override a single field without
-    listing every default.
-    """
-
     def _make(**overrides):
         defaults = dict(
             lookback_days=14,
             ignore_cluster_domains=[],
-            rate_limit_cooldown_seconds=60,
-            max_rate_limit_retries=3,
-            agent_invoke_timeout_seconds=base.DEFAULT_AGENT_INVOKE_TIMEOUT_SECONDS,
-            agent_soft_time_limit_seconds=base.DEFAULT_AGENT_SOFT_TIME_LIMIT_SECONDS,
-            agent_hard_time_limit_seconds=base.DEFAULT_AGENT_HARD_TIME_LIMIT_SECONDS,
+            requeue_cooldown_seconds=DEFAULT_REQUEUE_COOLDOWN_SECONDS,
+            max_requeue_attempts=DEFAULT_MAX_REQUEUE_ATTEMPTS,
+            execution_timeout_seconds=540,
+            enabled=True,
         )
         defaults.update(overrides)
         return SimpleNamespace(**defaults)
@@ -65,8 +57,6 @@ def make_config(base):
 
 @pytest.fixture
 def make_cluster():
-    """Factory for a fake Cluster row suitable for ``_should_skip`` / ``execute_agent_check``."""
-
     def _make(
         *,
         cluster_id: int = 1,
@@ -88,7 +78,6 @@ def make_cluster():
 
 @pytest.fixture
 def celery_task_mock():
-    """Mock bound Celery task: carries ``name``/``request.retries`` and a fake ``retry()``."""
     task = MagicMock()
     task.name = "backend.db_periodic_task.local_tasks.redis_tasks.agent_checks.fake_task"
     task.request.retries = 0
@@ -107,22 +96,26 @@ class _ClusterIds:
 
 
 @pytest.fixture
-def fake_task_instance(base, make_config):
-    """Build a minimal ``BaseRedisAgentCheckTask`` subclass instance for ``start()`` tests."""
+def fake_task_instance(redis_adapter, base, make_config):
     from backend.db_report.enums.redis_sub_type import RedisCheckSubType
     from backend.dbm_aiagent.agent.constants import DBMAgentCode
 
     def _make(**config_overrides):
-        class _FakeTask(base.BaseRedisAgentCheckTask):
+        class _FakeTask(redis_adapter.RedisAgentCheckTask):
+            config_cls = base.RedisAgentCheckConfig
             subtype = RedisCheckSubType.ClusterCapacityGrowthRisk
             agent_code = DBMAgentCode.REDIS_CLUSTER_CAPACITY_GROWTH_CHECK
             prompt_template = "cluster={cluster_domain}"
+            task_key = "test.fake"
 
             def load_config(self):
-                return base.BaseCheckConfig(enabled=True, **config_overrides)
+                return base.RedisAgentCheckConfig(enabled=True, **config_overrides)
 
-            def get_celery_task(self):
-                return MagicMock(name="fake_celery_task")
+            def build_request(self, item, *, overrides=None):
+                from backend.dbm_aiagent.tasks.invoker import AgentRequest
+
+                domain = item.get("cluster_domain", f"cluster-{item['cluster_id']}.db")
+                return AgentRequest(content=self.prompt_template.format(cluster_domain=domain))
 
         return _FakeTask()
 

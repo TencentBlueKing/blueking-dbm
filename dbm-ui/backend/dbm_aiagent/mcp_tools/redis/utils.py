@@ -25,6 +25,7 @@ from backend.dbm_aiagent.mcp_tools.redis.constants import (
     METRICS_END_TIME_MAX_FUTURE_SKEW_SECONDS,
     METRICS_MAX_DATAPOINTS_LIMIT,
     METRICS_MAX_QUERY_RANGE_SECONDS,
+    METRICS_PROMQL_LOOKBACK_SECONDS,
 )
 from backend.dbm_aiagent.mcp_tools.redis.enums import MetricsInstanceRole as InstanceRole
 from backend.dbm_aiagent.mcp_tools.redis.enums import MetricType
@@ -109,10 +110,14 @@ def calculate_time_range_window(
     enforce_max_datapoints_limit: bool = True,
 ) -> Tuple[tuple, int]:
     """
-    Calculate time range and window for metric queries.
+    Calculate query time range and unify_query step/interval.
+
+    PromQL range-vector lookback (max_over_time/rate[Xs]) is intentionally NOT derived
+    here — callers must use METRICS_PROMQL_LOOKBACK_SECONDS so long-range downsampling
+    does not inflate max_over_time windows.
 
     Args:
-        max_len_datapoints: Maximum number of data points to return (0 = use default window only)
+        max_len_datapoints: Maximum number of data points to return (0 = use default step only)
         start_time: Optional start time
         end_time: Optional end time
         enforce_max_datapoints_limit: When True (default), reject values above
@@ -120,13 +125,15 @@ def calculate_time_range_window(
             denser resolution improves accuracy without inflating response size.
 
     Returns:
-        Tuple of ((start_timestamp, end_timestamp), time_window_seconds)
+        Tuple of ((start_timestamp, end_timestamp), step_seconds)
+        step_seconds is the unify_query interval between returned points.
 
     Raises:
         ValueError: If bounds are invalid, range exceeds METRICS_MAX_QUERY_RANGE_SECONDS, end is too far
         in the future, or max_len_datapoints is out of range.
     """
-    time_window = 60  # Default interval in seconds
+    # Default step matches lookback / scrape cadence; may grow for long ranges.
+    step_seconds = METRICS_PROMQL_LOOKBACK_SECONDS
 
     if max_len_datapoints < 0:
         raise ValueError("max_len_datapoints must be non-negative")
@@ -162,6 +169,6 @@ def calculate_time_range_window(
     time_range = (start_ts, end_ts)
 
     if max_len_datapoints > 0:
-        time_window = max(time_window, math.ceil(time_range_diff_sec / max_len_datapoints))
+        step_seconds = max(step_seconds, math.ceil(time_range_diff_sec / max_len_datapoints))
 
-    return time_range, time_window
+    return time_range, step_seconds
