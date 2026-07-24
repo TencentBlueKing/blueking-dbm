@@ -6,7 +6,7 @@
   </Teleport>
   <BkLoading :loading="isDetailLoading">
     <SmartAction :offset-target="getSmartActionOffsetTarget">
-      <BkForm
+      <DbForm
         ref="form"
         class="openarea-source-cluster mb-32"
         :model="formData">
@@ -50,7 +50,7 @@
               v-model:source-cluster-id="formData.source_cluster_id" />
           </BkFormItem>
         </DbCard>
-      </BkForm>
+      </DbForm>
       <template #action>
         <BkButton
           class="w-88"

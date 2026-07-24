@@ -6,11 +6,12 @@
       @click="handleShowDialog">
       {{ title }}
     </BkButton>
-    <BkDialog
+    <DbDialog
       v-model:is-show="isShow"
       class="ticket-self-todo-batch-operation"
+      :confirm-handler="handleSubmit"
       :title="title">
-      <BkForm
+      <DbForm
         ref="form"
         form-type="vertical"
         :model="formData">
@@ -32,22 +33,8 @@
             :rows="3"
             type="textarea" />
         </BkFormItem>
-      </BkForm>
-      <template #footer>
-        <BkButton
-          :loading="isSubmiting"
-          theme="primary"
-          @click="handleSubmit">
-          {{ t('确定') }}
-        </BkButton>
-        <BkButton
-          class="ml-8"
-          :disabled="isSubmiting"
-          @click="handleCancle">
-          {{ t('取消') }}
-        </BkButton>
-      </template>
-    </BkDialog>
+      </DbForm>
+    </DbDialog>
   </div>
 </template>
 <script setup lang="ts">
@@ -100,7 +87,6 @@
   const isShow = ref(false);
 
   const formRef = useTemplateRef('form');
-  const isSubmiting = ref(false);
   const formData = reactive(genDefaultValue());
 
   const isRender = computed(() => Boolean(titleMap[props.ticketStatus]));
@@ -115,8 +101,7 @@
   };
 
   const handleSubmit = () => {
-    isSubmiting.value = true;
-    formRef
+    return formRef
       .value!.validate()
       .then(() =>
         batchProcessTicket({
@@ -128,17 +113,9 @@
         }),
       )
       .then(() => {
-        isShow.value = false;
         messageSuccess(t('操作成功'));
         eventBus.emit('refreshTicketStatus');
-      })
-      .finally(() => {
-        isSubmiting.value = false;
       });
-  };
-
-  const handleCancle = () => {
-    isShow.value = false;
   };
 </script>
 <style lang="less">

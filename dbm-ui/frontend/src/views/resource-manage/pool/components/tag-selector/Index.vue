@@ -13,7 +13,7 @@
       :label="item.value"
       :value="item.id" />
     <template #extension>
-      <BkForm
+      <DbForm
         v-if="isEdit"
         ref="formRef"
         class="edit-form"
@@ -46,7 +46,7 @@
               type="close" />
           </BkButton>
         </div>
-      </BkForm>
+      </DbForm>
       <div
         v-else
         class="operation-wrapper">

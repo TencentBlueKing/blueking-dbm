@@ -7,7 +7,7 @@
       <DbIcon type="add" />
     </div>
   </BkLoading>
-  <BkDialog
+  <DbDialog
     v-model:is-show="isShow"
     class="navigation-database-module-config-dialog"
     :width="940">
@@ -91,7 +91,7 @@
         {{ t('取消') }}
       </BkButton>
     </template>
-  </BkDialog>
+  </DbDialog>
 </template>
 <script setup lang="ts">
   import { ref, watch } from 'vue';

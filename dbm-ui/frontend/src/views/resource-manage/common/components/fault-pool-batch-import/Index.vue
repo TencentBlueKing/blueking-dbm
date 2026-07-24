@@ -1,6 +1,11 @@
 <template>
-  <BkDialog
+  <DbDialog
     class="batch-import-dialog"
+    :confirm-button-disable-info="{
+      disabled: !hostList.length,
+      tooltips: submitButtonTooltips,
+    }"
+    :confirm-handler="handleSubmit"
     :esc-close="false"
     :is-show="isShow"
     :quick-close="false"
@@ -25,28 +30,11 @@
           @update:host-list="handleUpdate" />
       </template>
     </BkResizeLayout>
-    <template #footer>
-      <div>
-        <BkButton
-          v-bk-tooltips="submitButtonTooltips"
-          :disabled="!submitButtonTooltips.disabled"
-          :loading="isUpdating"
-          theme="primary"
-          @click="handleSubmit">
-          {{ t('确定') }}
-        </BkButton>
-        <BkButton
-          class="ml-8"
-          @click="handleCancel">
-          {{ t('取消') }}
-        </BkButton>
-      </div>
-    </template>
     <ImportResourceErrorMessage
       v-model="isErrorMessageShow"
       :ips="errorHostList"
       :message-list="errorMessageList" />
-  </BkDialog>
+  </DbDialog>
 </template>
 
 <script setup lang="tsx">
@@ -117,14 +105,13 @@
     };
   });
 
-  const { loading: isUpdating, run: runImport } = useRequest(importResource, {
+  const { run: runImport } = useRequest(importResource, {
     manual: true,
     onError(error) {
       handleErrorChange(error.message);
       isErrorMessageShow.value = true;
     },
     onSuccess({ ticket_ids: ticketIds }) {
-      handleCancel();
       ticketMessage(ticketIds);
     },
   });
@@ -135,7 +122,7 @@
 
   const handleSubmit = async () => {
     const data = await formPanelRef.value!.getValue();
-    runImport({
+    return runImport({
       bk_biz_id: systemEnvironStore.urls.RESOURCE_INDEPENDENT_BIZ,
       for_biz: data.for_biz as number,
       hosts: hostList.value.map((item) => ({

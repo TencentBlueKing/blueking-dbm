@@ -12,9 +12,10 @@
 -->
 
 <template>
-  <BkDialog
+  <DbDialog
+    v-model:is-show="isShow"
     class="cluster-add-tag-dialog-main"
-    :is-show="isShow"
+    :confirm-handler="handleConfirm"
     :quick-close="false"
     render-directive="if"
     :width="660"
@@ -30,21 +31,7 @@
     <TagOperation
       ref="tagOperationRef"
       :data="data" />
-    <template #footer>
-      <div class="footer-wrapper">
-        <BkButton
-          class="mr-8"
-          :loading="confirmLoading"
-          theme="primary"
-          @click="handleConfirm">
-          {{ t('确定') }}
-        </BkButton>
-        <BkButton @click="handleClose">
-          {{ t('取消') }}
-        </BkButton>
-      </div>
-    </template>
-  </BkDialog>
+  </DbDialog>
 </template>
 
 <script setup lang="ts">
@@ -75,20 +62,17 @@
   const { t } = useI18n();
 
   const tagOperationRef = ref<InstanceType<typeof TagOperation>>();
-  const confirmLoading = ref(false);
 
-  const { run: handleAddClusterTagKeys } = useRequest(addClusterTagKeys, {
+  const { runAsync: handleAddClusterTagKeys } = useRequest(addClusterTagKeys, {
     manual: true,
     onSuccess() {
-      isShow.value = false;
       emits('success');
     },
   });
 
-  const { run: handleUpdateClusterTag } = useRequest(updateClusterTag, {
+  const { runAsync: handleUpdateClusterTag } = useRequest(updateClusterTag, {
     manual: true,
     onSuccess() {
-      isShow.value = false;
       emits('success');
     },
   });
@@ -98,32 +82,43 @@
   };
 
   const handleConfirm = async () => {
-    try {
-      confirmLoading.value = true;
-      const tagsInfo = await tagOperationRef.value!.getValue();
-      if (tagsInfo) {
-        const tags = tagsInfo.map((item) => ({
-          [item.key]: item.value,
-        }));
-        if (!props.data.length) {
-          // 新增
-          handleAddClusterTagKeys({
-            bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
-            cluster_ids: [props.clusterId],
-            tags,
-          });
-        } else {
-          // 更新
-          handleUpdateClusterTag({
-            bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
-            cluster_id: props.clusterId,
-            tags,
-          });
-        }
+    const tagsInfo = await tagOperationRef.value!.getValue();
+    if (tagsInfo) {
+      const tags = tagsInfo.map((item) => ({
+        [item.key]: item.value,
+      }));
+      if (!props.data.length) {
+        // 新增
+        handleAddClusterTagKeys({
+          bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
+          cluster_ids: [props.clusterId],
+          tags,
+        });
+      } else {
+        // 更新
+        handleUpdateClusterTag({
+          bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
+          cluster_id: props.clusterId,
+          tags,
+        });
       }
-    } finally {
-      confirmLoading.value = false;
     }
+
+    const tags = Object.values(tagsInfo).map((item) => item.value) as number[];
+    if (!props.data.length) {
+      // 新增
+      return handleAddClusterTagKeys({
+        bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
+        cluster_ids: [props.clusterId],
+        tags,
+      });
+    }
+    // 更新
+    return handleUpdateClusterTag({
+      bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
+      cluster_id: props.clusterId,
+      tags,
+    });
   };
 </script>
 
@@ -159,12 +154,6 @@
         .bk-modal-content {
           max-height: calc(80vh - 100px) !important;
           overflow-y: auto;
-        }
-      }
-
-      .footer-wrapper {
-        button {
-          width: 64px;
         }
       }
     }

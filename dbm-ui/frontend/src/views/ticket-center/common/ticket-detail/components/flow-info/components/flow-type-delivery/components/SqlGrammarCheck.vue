@@ -42,7 +42,7 @@
             v-if="ticketDetail.details.grammar_check_info[fileName].highrisk_warnings?.length > 0"
             keypath="包含n个高危语句"
             scope="global">
-            <span style="color: #ff9c01; font-weight: 700">
+            <span style="font-weight: 700; color: #ff9c01">
               {{ ticketDetail.details.grammar_check_info[fileName].highrisk_warnings.length }}
             </span>
           </I18nT>
@@ -70,7 +70,7 @@
     </div>
   </div>
 
-  <BkSideslider
+  <DbSideslider
     class="sql-log-sideslider"
     :is-show="isShowSqlFile"
     :width="960"
@@ -114,7 +114,7 @@
           :title="selectFileName" />
       </div>
     </div>
-  </BkSideslider>
+  </DbSideslider>
 </template>
 <script setup lang="tsx">
   import _ from 'lodash';

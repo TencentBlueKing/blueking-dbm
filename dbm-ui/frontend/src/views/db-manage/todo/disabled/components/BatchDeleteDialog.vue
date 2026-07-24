@@ -1,7 +1,9 @@
 <template>
-  <BkDialog
+  <DbDialog
     v-model:is-show="moduleValue"
     class="todo-batch-delete-dialog"
+    :confirm-handler="handleSubmit"
+    :confirm-text="t('确认提交')"
     quick-close
     :title="t('批量下架')"
     :width="500">
@@ -55,21 +57,7 @@
         </div>
       </BkCard>
     </div>
-    <template #footer>
-      <BkButton
-        class="mr-8"
-        :loading="isLoading"
-        theme="primary"
-        @click="handleSubmit">
-        {{ t('确认提交') }}
-      </BkButton>
-      <BkButton
-        :disabled="isLoading"
-        @click="handleCancel">
-        {{ t('取消') }}
-      </BkButton>
-    </template>
-  </BkDialog>
+  </DbDialog>
 </template>
 
 <script setup lang="tsx">
@@ -101,8 +89,6 @@
   const { locale, t } = useI18n();
   const { getBizInfoById } = useGlobalBizs();
   const bizTypeDType = [DBTypes.MYSQL, DBTypes.REDIS];
-
-  const isLoading = ref(false);
 
   const isSplitOrder = computed(
     () => bizTypeDType.includes(props.dbType) || _.uniqBy(props.selected, 'bk_biz_id').length > 1,
@@ -155,7 +141,7 @@
       ticket_type: ticketTypeMap[ticketItem[0].cluster_type],
     }));
 
-    doRequest(tickets);
+    return doRequest(tickets);
   };
 
   const getTicketRoute = (res: ServiceReturnType<typeof createTicketBatch>) => {
@@ -180,7 +166,6 @@
 
   const doRequest = async (tickets: ServiceParameters<typeof createTicketBatch>['tickets']) => {
     try {
-      isLoading.value = true;
       const res = await createTicketBatch({ tickets });
 
       Message({
@@ -263,13 +248,8 @@
       } else {
         messageError(message);
       }
-    } finally {
-      isLoading.value = false;
+      throw e;
     }
-  };
-
-  const handleCancel = () => {
-    moduleValue.value = false;
   };
 </script>
 

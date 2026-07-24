@@ -502,7 +502,7 @@
             </div>
             <div>{typeInfo[type].subtitle}</div>
           </div>
-          <BkForm
+          <DbForm
             ref={formRef}
             class='mt-20'
             form-type='vertical'
@@ -518,7 +518,7 @@
                 type='textarea'
               />
             </BkFormItem>
-          </BkForm>
+          </DbForm>
         </>
       ),
       infoType: 'warning',

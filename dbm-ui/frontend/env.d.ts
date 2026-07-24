@@ -88,6 +88,7 @@ type LeftIsExtendsRightReturnValue<L, R, V> = L extends R ? never : V;
 declare interface Window {
   BKApp: App<Element>;
   changeConfirm: boolean | 'popover';
+  routerFlashBack: boolean;
   clipboardData: {
     getData: (params: string) => string;
   };

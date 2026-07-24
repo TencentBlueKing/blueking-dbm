@@ -1,5 +1,5 @@
 <template>
-  <BkDialog
+  <DbDialog
     v-model:is-show="isShow"
     class="close-risk-dialog-main"
     quick-close
@@ -44,7 +44,7 @@
         </BkButton>
       </div>
     </div>
-  </BkDialog>
+  </DbDialog>
 </template>
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
@@ -102,44 +102,44 @@
     .close-risk-main {
       .main-title {
         width: 100%;
+        margin-bottom: 16px;
         font-size: 20px;
         color: #313238;
         text-align: center;
-        margin-bottom: 16px;
       }
 
       .risk-name {
-        font-size: 14px;
         display: flex;
+        font-size: 14px;
 
         .title {
           color: #4d4f56;
         }
 
         .name {
-          flex: 1;
           overflow: hidden;
+          color: #313238;
           text-overflow: ellipsis;
           white-space: nowrap;
-          color: #313238;
+          flex: 1;
         }
       }
 
       .tip-main {
-        margin-top: 16px;
         width: 100%;
+        padding: 12px 16px;
+        margin-top: 16px;
+        margin-bottom: 12px;
         background: #f5f7fa;
         border-radius: 2px;
-        padding: 12px 16px;
-        margin-bottom: 12px;
       }
 
       .operate-main {
-        width: 100%;
         display: flex;
+        width: 100%;
+        margin-top: 18px;
         justify-content: center;
         gap: 8px;
-        margin-top: 18px;
       }
     }
 

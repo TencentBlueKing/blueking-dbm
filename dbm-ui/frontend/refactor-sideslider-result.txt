@@ -1,0 +1,63 @@
+# DbSideslider 重构结果
+
+重构说明：将 DbSideslider 的 #footer 插槽（仅包含标准「确定/提交 + 取消」按钮的场景）改为使用
+DbSideslider 的 confirmHandler / cancelHandler / confirmText / cancelText / confirmButtonDisableInfo
+等 props 实现。confirmHandler 返回 Promise（resolve 后由 DbSideslider 自动关闭并自动管理 loading），
+并移除手动 isShow=false / loading 等冗余逻辑。
+
+共扫描 36 个同时使用 `<DbSideslider>` 与 `#footer` 的文件，重构 16 个，跳过 20 个。
+
+## 已重构文件（16）
+
+src/views/version-files/v2/components/list/components/sub-version-list/components/edit-version/Index.vue
+src/views/version-files/v2/components/list/components/release-version-list/components/EditRelease.vue
+src/views/monitor-alarm/my-alarm-subscription/components/EditSingleSubscription.vue
+src/views/monitor-alarm/alarm-group/components/detail-dialog/Index.vue
+src/views/duty-rule-manage/index/components/edit-rule/Index.vue
+src/views/db-manage/tendb-cluster/TENDBCLUSTER_NODE_REBALANCE/components/capacity-column/CapacityChange.vue
+src/views/db-manage/sqlserver/SQLSERVER_ROLLBACK/components/common/final-db-column/Index.vue
+src/views/db-manage/sqlserver/SQLSERVER_IMPORT_SQLFILE/components/execute-objects/components/RenderSql/components/sql-content/Index.vue
+src/views/db-manage/sqlserver/SQLSERVER_FULL_MIGRATE/components/edit-rename-info/Index.vue
+src/views/db-manage/mysql/dumper/components/render-list/components/append-subscribe/Index.vue
+src/views/db-manage/mysql/dumper/components/create-rule/Index.vue
+src/views/db-manage/kafka/list/components/TopicRebalance.vue
+src/views/db-manage/common/sql-execute/common/RenderSql/components/sql-content/Index.vue
+src/views/db-manage/common/permission/components/mongo/CreateRule.vue
+src/views/db-configure/platform/detail/components/ParamFormSideslider.vue
+src/views/resource-manage/pool/components/host-list/components/batch-setting/Index.vue
+
+## 已跳过文件（20，footer 非标准「确定+取消」按钮，无法套用 props 方案）
+
+# footer 含额外自定义内容（额外按钮 / 第三按钮 / 多步骤 / RulesPreview 等）
+src/views/monitor-alarm/global-strategy/components/edit-strategy/Index.vue        # 含「恢复初始值」第三按钮 + AuthButton(BkPopConfirm)
+src/views/monitor-alarm/monitor-strategy/components/edit-strategy/Index.vue       # 含 AuthButton(恢复默认) + 条件 BkPopConfirm
+src/views/db-manage/tendb-cluster/partition-manage/components/Operation.vue        # 多按钮（保存并执行/保存并重新初始化）包裹在 BkPopConfirm
+src/views/db-manage/mysql/partition-manage/components/Operation.vue                # 同上，多按钮 + 条件分支
+src/views/db-manage/common/permission/components/mysql/create-rule/Index.vue       # 条件「下一步/差异确认」多步骤 + BkPopConfirm
+src/views/db-manage/common/cluster-authorize/Index.vue                             # confirm 与 cancel 之间含 <RulesPreview> 额外元素
+src/views/db-configure/components/BatchEditSideslider.vue                          # 步骤式 footer（上一步/下一步/保存/取消）
+src/views/db-configure/business/create-module/components/BatchEditSideslider.vue   # 步骤式多按钮 footer
+
+# confirm 为 AuthButton，无法用 confirmHandler 表达
+src/views/backup-storage/components/OperateSideslider.vue                          # confirm 为 <AuthButton action-id="dbconfig_edit">
+
+# confirm 为二次确认（InfoBox）/ 吞错的 useCreateTicket，套用 confirmHandler 会导致提前自动关闭或回归
+src/views/db-manage/common/machine-replace-es/Index.vue
+src/views/db-manage/common/machine-expansion-es/Index.vue
+src/views/db-manage/common/machine-shrink/Index.vue
+src/views/db-manage/common/machine-replace/Index.vue
+src/views/db-manage/common/machine-expansion/Index.vue
+
+# confirm 按钮 loading 由外部操作驱动（非提交动作），无法忠实表达
+src/views/db-manage/redis/REDIS_SCALE_UPDOWN/components/target-capacity-column/cluster-deploy-plan/Index.vue
+
+# cancel 使用自定义 useBeforeClose 未保存守卫 / emits，cancelHandler 无法忠实表达
+src/views/db-manage/mysql/dumper/components/render-list/components/instance-list/manual-migration/Index.vue
+
+# 关闭流程脆弱（强制 leaveConfirm / changeConfirm），footer-only 改造会破坏取消/关闭行为
+src/views/db-manage/common/permission/components/sqlserver/CreateRule.vue
+src/views/ticket-center/ticket-flow-settings/components/AppendConfigSide.vue
+
+# footer 仅含单个「关闭」按钮 / 该 #footer 属于 DbDialog 而非 DbSideslider
+src/views/ticket-center/common/ticket-detail/components/task-info/com-factory/sqlserver/common/data-migrate/components/rename-infos/Index.vue
+src/views/db-manage/hdfs/list/Index.vue

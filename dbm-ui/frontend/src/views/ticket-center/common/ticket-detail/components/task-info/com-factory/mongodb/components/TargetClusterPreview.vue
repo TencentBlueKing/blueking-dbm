@@ -12,7 +12,7 @@
 -->
 
 <template>
-  <BkDialog
+  <DbDialog
     class="cluster-preview-dialog"
     :is-show="isShow"
     :title="title"
@@ -45,7 +45,7 @@
         {{ t('关闭') }}
       </BkButton>
     </template>
-  </BkDialog>
+  </DbDialog>
 </template>
 
 <script setup lang="tsx">

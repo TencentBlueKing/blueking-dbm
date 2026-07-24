@@ -176,14 +176,16 @@
     </div>
   </ApplyPermissionCatch>
   <!-- 新增版本 -->
-  <BkDialog
+  <DbDialog
     v-model:is-show="createFileState.isShow"
+    :confirm-handler="handleConfirmCreate"
     :mask-close="false"
     render-directive="if"
     theme="primary"
     :title="t('新增版本')"
-    :width="480">
-    <BkForm
+    :width="480"
+    @closed="handleClose">
+    <DbForm
       ref="versionFormRef"
       class="create-new-version-dialog"
       form-type="vertical"
@@ -248,22 +250,8 @@
           @delete="handleDeleteFile"
           @success="handleUpdateSuccess" />
       </BkFormItem>
-    </BkForm>
-    <template #footer>
-      <BkButton
-        class="mr-8"
-        :loading="createFileState.isLoading"
-        theme="primary"
-        @click="handleConfirmCreate">
-        {{ t('确定') }}
-      </BkButton>
-      <BkButton
-        :disabled="createFileState.isLoading"
-        @click="handleClose">
-        {{ t('取消') }}
-      </BkButton>
-    </template>
-  </BkDialog>
+    </DbForm>
+  </DbDialog>
 </template>
 <script setup lang="ts">
   import { Form, Message } from 'bkui-vue';
@@ -323,7 +311,6 @@
   /** 新增文件功能 */
   const createFileState = reactive({
     formdata: initCreateFormdata(),
-    isLoading: false,
     isLoadVersions: false,
     isShow: false,
     uploadUrl: '',
@@ -564,10 +551,9 @@
   };
 
   /**
-   * 取消新增
+   * 关闭弹窗后重置表单
    */
   const handleClose = () => {
-    createFileState.isShow = false;
     Object.assign(createFileState.formdata, initCreateFormdata());
   };
 
@@ -576,23 +562,15 @@
    */
   const handleConfirmCreate = async () => {
     await versionFormRef.value?.validate();
-    createFileState.isLoading = true;
-
-    createPackage({
+    await createPackage({
       ...createFileState.formdata,
       ...typeParams.value,
-    })
-      .then(() => {
-        Message({
-          message: t('新增成功'),
-          theme: 'success',
-        });
-        handleClose();
-        handleChangePage(1);
-      })
-      .finally(() => {
-        createFileState.isLoading = false;
-      });
+    });
+    Message({
+      message: t('新增成功'),
+      theme: 'success',
+    });
+    handleChangePage(1);
   };
 
   /**

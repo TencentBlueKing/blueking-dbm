@@ -26,7 +26,7 @@
       <div style="margin-bottom: 8px; font-size: 16px; font-weight: bold">
         {{ t('编辑集群别名') }}
       </div>
-      <BkForm
+      <DbForm
         ref="bkform"
         form-type="vertical"
         :model="formData">
@@ -39,7 +39,7 @@
             style="width: 300px; margin-top: 8px" />
           <div style="display: flex; margin-top: 8px"></div>
         </BkFormItem>
-      </BkForm>
+      </DbForm>
       <div style="display: flex">
         <BkButton
           :loading="isUpdateing"

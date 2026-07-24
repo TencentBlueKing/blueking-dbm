@@ -13,9 +13,12 @@
 
 <template>
   <SmartAction>
-    <BkDialog
+    <DbDialog
       v-model:is-show="isShow"
-      :disabled-confirm="isExistedErrorMsg"
+      :cancel-text="t('关闭')"
+      :confirm-button-disable-info="{ disabled: isExistedErrorMsg, tooltips: { content: '', disabled: true } }"
+      :confirm-handler="handleSubmit"
+      :confirm-text="t('提交')"
       :height="760"
       :title="t('请确认以下开区内容：')"
       :width="1536">
@@ -55,21 +58,7 @@
           </template>
         </BkTableColumn>
       </BkTable>
-      <template #footer>
-        <BkButton
-          class="mr-2"
-          :loading="isSubmitting"
-          theme="primary"
-          @click="handleSubmit">
-          {{ t('提交') }}
-        </BkButton>
-        <BkButton
-          :disabled="isSubmitting"
-          @click="handleClose">
-          {{ t('关闭') }}
-        </BkButton>
-      </template>
-    </BkDialog>
+    </DbDialog>
   </SmartAction>
 </template>
 
@@ -85,8 +74,6 @@
   import { TicketTypes } from '@common/const';
 
   import RenderTagOverflow from '@components/render-tag-overflow/Index.vue';
-
-  import { messageError } from '@utils';
 
   type RowData = {
     target_cluster_domain: string;
@@ -111,7 +98,7 @@
     props.data?.config_data.some((item) => item.execute_objects.some((obj) => obj.error_msg)),
   );
 
-  const { loading: isSubmitting, run: createTicketRun } = useCreateTicket<
+  const { run: createTicketRun } = useCreateTicket<
     {
       cluster_id: number;
       force: boolean;
@@ -146,17 +133,7 @@
     },
   );
 
-  const handleClose = () => {
-    isShow.value = false;
-  };
-
-  const handleSubmit = () => {
-    const errorRow = tableData.value.find((item) => item.error_msg);
-    if (errorRow) {
-      messageError(errorRow.error_msg);
-      return;
-    }
-
+  const handleSubmit = () =>
     createTicketRun({
       details: {
         cluster_id: props.sourceClusterId,
@@ -164,5 +141,4 @@
         ...props.data,
       },
     });
-  };
 </script>

@@ -11,7 +11,13 @@
  * the specific language governing permissions and limitations under the License.
  */
 import _ from 'lodash';
-import { createRouter, createWebHistory, type Router, type RouteRecordRaw } from 'vue-router';
+import {
+  createRouter,
+  createWebHistory,
+  type RouteLocationNormalizedLoadedGeneric,
+  type Router,
+  type RouteRecordRaw,
+} from 'vue-router';
 
 import { connectToMain, rootPath } from '@blueking/sub-saas';
 
@@ -44,7 +50,7 @@ import getTodoRemindRoutes from '@views/todo-remind/routes';
 import getVersionFilesRoutes from '@views/version-files/routes';
 import getWhitelistRoutes from '@views/whitelist/routes';
 
-import { checkDbConsole } from '@utils';
+import { checkDbConsole, leaveConfirm } from '@utils';
 
 let appRouter: Router;
 
@@ -155,8 +161,6 @@ export default () => {
     },
   ];
 
-  console.log('routes = ', routes);
-
   if (!bizPermission) {
     renderPageWithComponent(routes[1]!, BizPermission);
   }
@@ -171,13 +175,40 @@ export default () => {
   const routerPush = appRouter.push;
   const routerReplace = appRouter.replace;
 
-  appRouter.push = (params) => {
-    lastRouterHrefCache = appRouter.resolve(params).href;
-    return routerPush(params);
+  const leaveConfirmHandler = (currentRoute: RouteLocationNormalizedLoadedGeneric) => {
+    // 在业务逻辑中可以找到当前路由的 meta 挂在自定义 leavaConfirm
+    if (
+      Object.prototype.hasOwnProperty.call(currentRoute, 'meta') &&
+      Object.prototype.hasOwnProperty.call(currentRoute.meta, 'leavaConfirm') &&
+      typeof currentRoute.meta.leavaConfirm === 'function'
+    ) {
+      return currentRoute.meta.leavaConfirm();
+    }
+    return leaveConfirm();
   };
-  appRouter.replace = (params) => {
-    lastRouterHrefCache = appRouter.resolve(params).href;
-    return routerReplace(params);
+
+  // 路由切换时
+  // 检测页面数据的编辑状态——弹出确认框提示用户确认
+  // 如果需要路由回溯（window.routerFlashBack === true）查找缓存是否有跳转目标的路由缓存数据
+  appRouter.push = (params: RouteRecordRaw) => {
+    const { currentRoute } = appRouter;
+    // 检测当前路由自定义离开确认交互
+    return leaveConfirmHandler(currentRoute.value).then(() => {
+      lastRouterHrefCache = appRouter.resolve(params).href;
+      return routerPush(params);
+    });
+  };
+
+  // 路由切换时
+  // 检测页面数据的编辑状态——弹出确认框提示用户确认
+  // 如果需要路由回溯（window.routerFlashBack === true）查找缓存是否有跳转目标的路由缓存数据
+  appRouter.replace = (params: RouteRecordRaw) => {
+    // 检测当前路由自定义离开确认交互
+    const { currentRoute } = appRouter;
+    return leaveConfirmHandler(currentRoute.value).then(() => {
+      lastRouterHrefCache = appRouter.resolve(params).href;
+      return routerReplace(params);
+    });
   };
 
   if (import.meta.env.MODE === 'production') {

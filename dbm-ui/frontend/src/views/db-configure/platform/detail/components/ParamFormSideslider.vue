@@ -9,8 +9,13 @@
 -->
 
 <template>
-  <BkSideslider
+  <DbSideslider
     v-if="isShowAddParam"
+    :cancel-handler="handleCancel"
+    :cancel-text="t('取消')"
+    :confirm-button-disable-info="confirmButtonDisableInfo"
+    :confirm-handler="handleAddParamConfirm"
+    :confirm-text="t('确定')"
     :is-show="isShowAddParam"
     quick-close
     width="60%"
@@ -24,7 +29,7 @@
       </span>
     </template>
     <div class="add-param-content">
-      <BkForm
+      <DbForm
         ref="addFormRef"
         form-type="vertical"
         :model="addParamForm"
@@ -207,26 +212,9 @@
             type="textarea"
             @change="markDirty" />
         </BkFormItem>
-      </BkForm>
+      </DbForm>
     </div>
-    <template #footer>
-      <BkButton
-        v-bk-tooltips="{
-          disabled: isAddParamFormDirty,
-          content: t('当前无变更，请先修改内容'),
-        }"
-        class="mr-8"
-        :disabled="!isAddParamFormDirty"
-        :loading="submitLoading"
-        theme="primary"
-        @click="handleAddParamConfirm">
-        {{ t('确定') }}
-      </BkButton>
-      <BkButton @click="isShowAddParam = false">
-        {{ t('取消') }}
-      </BkButton>
-    </template>
-  </BkSideslider>
+  </DbSideslider>
 </template>
 
 <script setup lang="ts">
@@ -267,7 +255,6 @@
 
   const isShowAddParam = ref(false);
   const isEditMode = ref(false);
-  const submitLoading = ref(false);
 
   // 新增/编辑表单
   const addParamForm = reactive({
@@ -309,6 +296,15 @@
   const markDirty = () => {
     isAddParamFormDirty.value = true;
   };
+
+  // 确定按钮禁用信息（无变更时禁用并提示）
+  const confirmButtonDisableInfo = computed(() => ({
+    disabled: !isAddParamFormDirty.value,
+    tooltips: {
+      content: t('当前无变更，请先修改内容'),
+      disabled: isAddParamFormDirty.value,
+    },
+  }));
 
   // 数据类型选项（接口返回的 key 列表）
   const valueTypeOptions = computed(() => Object.keys(props.confNameTypeMap).map((v) => ({ label: v, value: v })));
@@ -509,6 +505,12 @@
     isEditMode.value = false;
   };
 
+  // 取消
+  const handleCancel = () => {
+    isShowAddParam.value = false;
+    return Promise.resolve();
+  };
+
   // 提交新建/编辑参数
   const handleAddParamConfirm = async () => {
     try {
@@ -517,43 +519,38 @@
       return;
     }
 
-    try {
-      submitLoading.value = true;
-      await changeConfNames({
-        conf_file: props.version,
-        conf_names: [
-          {
-            conf_name: addParamForm.conf_name,
-            conf_name_lc: addParamForm.conf_name_lc,
-            description: addParamForm.description,
-            flag_encrypt: addParamForm.flag_encrypt ? 1 : 0,
-            flag_readonly: addParamForm.flag_readonly_inverse ? 0 : 1,
-            flag_visible: addParamForm.flag_visible ? 1 : 0,
-            need_restart: addParamForm.need_restart ? 1 : 0,
-            op_type: isEditMode.value ? 'update' : 'add',
-            value_allowed: addParamForm.value_allowed,
-            value_default: addParamForm.value_default,
-            value_type: addParamForm.value_type,
-            value_type_sub: addParamForm.value_type_sub === NO_CONSTRAINT ? '' : addParamForm.value_type_sub,
-          },
-        ],
-        conf_type: props.confType,
-        meta_cluster_type: props.namespace,
-      });
-      isShowAddParam.value = false;
-      // Toast 分流：系统定义未修改首次编辑 → 转为平台自定义；其余编辑 → 已修改；新建 → 新增成功
-      if (isEditMode.value && originalCreateFrom.value === '') {
-        messageSuccess(t('操作成功_参数已转为平台自定义'));
-      } else if (isEditMode.value) {
-        messageSuccess(t('操作成功_参数已修改'));
-      } else {
-        messageSuccess(t('新增成功'));
-      }
-      isEditMode.value = false;
-      emit('success');
-    } finally {
-      submitLoading.value = false;
+    await changeConfNames({
+      conf_file: props.version,
+      conf_names: [
+        {
+          conf_name: addParamForm.conf_name,
+          conf_name_lc: addParamForm.conf_name_lc,
+          description: addParamForm.description,
+          flag_encrypt: addParamForm.flag_encrypt ? 1 : 0,
+          flag_readonly: addParamForm.flag_readonly_inverse ? 0 : 1,
+          flag_visible: addParamForm.flag_visible ? 1 : 0,
+          need_restart: addParamForm.need_restart ? 1 : 0,
+          op_type: isEditMode.value ? 'update' : 'add',
+          value_allowed: addParamForm.value_allowed,
+          value_default: addParamForm.value_default,
+          value_type: addParamForm.value_type,
+          value_type_sub: addParamForm.value_type_sub === NO_CONSTRAINT ? '' : addParamForm.value_type_sub,
+        },
+      ],
+      conf_type: props.confType,
+      meta_cluster_type: props.namespace,
+    });
+    isShowAddParam.value = false;
+    // Toast 分流：系统定义未修改首次编辑 → 转为平台自定义；其余编辑 → 已修改；新建 → 新增成功
+    if (isEditMode.value && originalCreateFrom.value === '') {
+      messageSuccess(t('操作成功_参数已转为平台自定义'));
+    } else if (isEditMode.value) {
+      messageSuccess(t('操作成功_参数已修改'));
+    } else {
+      messageSuccess(t('新增成功'));
     }
+    isEditMode.value = false;
+    emit('success');
   };
 
   /** 打开新建模式 */
@@ -629,8 +626,8 @@
     padding: 24px;
 
     .form-section {
-      margin-bottom: 24px;
       padding: 16px 20px;
+      margin-bottom: 24px;
       background: #fafbfd;
       border-radius: 2px;
     }
@@ -651,8 +648,8 @@
 
     .form-section-title-tips {
       margin-left: 4px;
-      font-weight: normal;
       font-size: 12px;
+      font-weight: normal;
       color: #979ba5;
     }
 
@@ -666,10 +663,10 @@
     }
 
     .form-item-tips {
+      position: absolute;
       font-size: 12px;
       line-height: 20px;
       color: #979ba5;
-      position: absolute;
     }
 
     .default-value-row {
@@ -693,9 +690,9 @@
     }
 
     .checkbox-desc {
+      margin-left: 4px;
       font-size: 12px;
       color: #979ba5;
-      margin-left: 4px;
     }
   }
 
@@ -713,8 +710,8 @@
       left: 0;
       width: 1px;
       height: 14px;
-      content: '';
       background: #dcdee5;
+      content: '';
       transform: translateY(-50%);
     }
   }

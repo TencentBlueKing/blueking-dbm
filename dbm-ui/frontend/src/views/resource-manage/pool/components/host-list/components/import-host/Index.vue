@@ -12,9 +12,14 @@
 -->
 
 <template>
-  <BkDialog
+  <DbDialog
     v-model:is-show="modelValue"
     class="import-host-dialog"
+    :confirm-button-disable-info="{
+      disabled: hostSelectList.length === 0,
+      tooltips: submitButtonTooltips,
+    }"
+    :confirm-handler="handleSubmit"
     :esc-close="false"
     :quick-close="false"
     render-directive="if"
@@ -40,33 +45,14 @@
           :error-host-map="errorHostMap" />
       </template>
     </BkResizeLayout>
-    <template #footer>
-      <div>
-        <BkButton
-          v-bk-tooltips="submitButtonTooltips"
-          :disabled="!submitButtonTooltips.disabled"
-          :loading="isSubmitting"
-          theme="primary"
-          @click="handleSubmit">
-          {{ t('确定') }}
-        </BkButton>
-        <BkButton
-          class="ml-8"
-          :disabled="isSubmitting"
-          @click="handleCancel">
-          {{ t('取消') }}
-        </BkButton>
-      </div>
-    </template>
     <ImportResourceErrorMessage
       v-model="isErrorMessageShow"
       :ips="errorHostList"
       :message-list="errorMessageList" />
-  </BkDialog>
+  </DbDialog>
 </template>
 <script setup lang="tsx">
-  import BkButton from 'bkui-vue/lib/button';
-  import { ref, shallowRef } from 'vue';
+  import { shallowRef } from 'vue';
   import { useI18n } from 'vue-i18n';
 
   import { importResource } from '@services/source/dbresourceResource';
@@ -107,7 +93,6 @@
   const formRef = useTemplateRef('formRef');
   const selectHostPanelRef = useTemplateRef('selectHostPanelRef');
 
-  const isSubmitting = ref(false);
   const hostSelectList = shallowRef<HostInfo[]>([]);
   const isErrorMessageShow = ref(false);
 
@@ -140,11 +125,10 @@
     height: `${contentHeight}px`,
   };
 
-  const handleSubmit = () => {
-    isSubmitting.value = true;
-    Promise.all([selectHostPanelRef.value!.getValue(), formRef.value!.getValue()])
-      .then(([selectHostPanelData, fromData]) => {
-        return importResource({
+  const handleSubmit = () =>
+    Promise.all([selectHostPanelRef.value!.getValue(), formRef.value!.getValue()]).then(
+      ([selectHostPanelData, fromData]) =>
+        importResource({
           ...selectHostPanelData,
           ...fromData,
           hosts: hostSelectList.value.map((item) => ({
@@ -162,12 +146,8 @@
           .catch((error) => {
             handleErrorChange(error.message);
             isErrorMessageShow.value = true;
-          });
-      })
-      .finally(() => {
-        isSubmitting.value = false;
-      });
-  };
+          }),
+    );
 
   const handleCancel = () => {
     modelValue.value = false;

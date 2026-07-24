@@ -195,7 +195,7 @@
   </SmartAction>
 
   <!-- 废弃参数侧滑 -->
-  <BkSideslider
+  <DbSideslider
     :is-show="isShowSlider"
     quick-close
     width="600px"
@@ -217,7 +217,7 @@
           :title="t('参数名')" />
       </DbTable>
     </div>
-  </BkSideslider>
+  </DbSideslider>
 
   <Teleport to="#dbContentTitleAppend">
     <span class="clone-module-meta">

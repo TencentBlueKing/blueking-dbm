@@ -23,6 +23,7 @@ import AuthRouterLink from '@components/auth-component/router-link.vue';
 import AuthSwitch from '@components/auth-component/switch.vue';
 import DbCard from '@components/db-card/index.vue';
 import DbDateTimePicker from '@components/db-date-time-picker/Index.vue';
+import DbDialog from '@components/db-dialog/Index.vue';
 import DbForm from '@components/db-form/index.vue';
 import DbFormItem from '@components/db-form/item.vue';
 import DbIcon from '@components/db-icon';
@@ -79,6 +80,7 @@ export const setGlobalComps = (app: App<Element>) => {
   app.component('OperationColumn', OperationColumn);
   app.component('DbCard', DbCard);
   app.component('DbForm', DbForm);
+  app.component('DbDialog', DbDialog);
   app.component('DbFormItem', DbFormItem);
   app.component('DbIcon', DbIcon);
   app.component('DbPopconfirm', DbPopconfirm);

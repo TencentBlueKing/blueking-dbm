@@ -21,7 +21,7 @@
         {{ data.tagText }}
       </BkTag>
     </div>
-    <BkForm form-type="vertical">
+    <DbForm form-type="vertical">
       <BkFormItem>
         <ResourcePoolSelector
           v-if="ipSource === 'resource_pool'"
@@ -36,7 +36,7 @@
           :db-type="dbType">
         </ResourceHostSelect>
       </BkFormItem>
-    </BkForm>
+    </DbForm>
   </div>
 </template>
 <script setup lang="tsx">

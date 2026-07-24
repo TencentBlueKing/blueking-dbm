@@ -22,7 +22,7 @@
       type="download-line" />
     <span class="ml-2">{{ t('下载结果文件') }}</span>
   </BkButton>
-  <BkDialog
+  <DbDialog
     dialog-type="show"
     :is-show="isShow"
     :title="t('下载结果文件')"
@@ -88,7 +88,7 @@
         </template>
       </BkTableColumn>
     </BkTable>
-  </BkDialog>
+  </DbDialog>
 </template>
 
 <script setup lang="tsx">

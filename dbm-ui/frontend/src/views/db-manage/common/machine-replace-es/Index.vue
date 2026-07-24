@@ -158,7 +158,7 @@
   }
 </script>
 <script setup lang="tsx">
-  interface Props {
+  export interface Props {
     clusterData: EsModel;
     machineDisableMethod?: (machine: TReplaceNode['hostList'][0], role: string) => boolean | string;
     title: string;

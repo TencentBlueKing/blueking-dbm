@@ -25,8 +25,9 @@
       <i class="bk-dbm-icon db-icon-add" />
       {{ t('批量录入') }}
     </BkButton>
-    <BkDialog
-      :is-show="isShow"
+    <DbDialog
+      v-model:is-show="isShow"
+      :confirm-handler="handleConfirm"
       :quick-close="false"
       :title="t('xx_批量录入', { title: route.meta.navName })"
       :width="1200"
@@ -64,20 +65,7 @@
           type="textarea" />
         <BkCheckbox v-model="isClear">{{ t('覆盖表格已有数据') }}</BkCheckbox>
       </div>
-      <template #footer>
-        <BkButton
-          class="mr-8 w-88"
-          theme="primary"
-          @click="handleConfirm">
-          {{ t('确定') }}
-        </BkButton>
-        <BkButton
-          class="w-88"
-          @click="handleClose">
-          {{ t('取消') }}
-        </BkButton>
-      </template>
-    </BkDialog>
+    </DbDialog>
   </div>
 </template>
 
@@ -129,8 +117,7 @@
 
   const handleConfirm = () => {
     if (inputValue.value === '') {
-      handleClose();
-      return;
+      return Promise.resolve();
     }
 
     const lines = inputValue.value.split(/\n/).filter((text) => text);
@@ -156,7 +143,7 @@
 
     emits('change', result, isClear.value);
     window.changeConfirm = true;
-    handleClose();
+    return Promise.resolve();
   };
 </script>
 

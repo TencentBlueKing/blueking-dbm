@@ -19,7 +19,7 @@
       :title="
         t('MongoDB版本升级将按版本链逐级执行_如4_4_6_0自动拆分为4_4_5_0_6_0两阶段__同一主机上的关联集群需一并升级')
       " />
-    <BkForm
+    <DbForm
       class="toolbox-form"
       form-type="vertical"
       :model="modelValue">
@@ -44,7 +44,7 @@
         </div>
       </BkFormItem>
       <slot />
-    </BkForm>
+    </DbForm>
   </div>
 </template>
 

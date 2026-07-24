@@ -1,6 +1,8 @@
 <template>
-  <BkSideslider
+  <DbSideslider
     v-model:is-show="isShow"
+    :confirm-handler="handleSubmit"
+    :confirm-text="t('保存')"
     :width="900">
     <template #header>
       <span>{{ t('手动修改迁移的 DB 名') }}</span>
@@ -31,20 +33,7 @@
         v-model="localValue"
         :data="data" />
     </div>
-    <template #footer>
-      <BkButton
-        class="w-88"
-        theme="primary"
-        @click="handleSubmit">
-        {{ t('保存') }}
-      </BkButton>
-      <BkButton
-        class="w-88 ml-8"
-        @click="handleCancel">
-        {{ t('取消') }}
-      </BkButton>
-    </template>
-  </BkSideslider>
+  </DbSideslider>
 </template>
 <script setup lang="ts">
   import _ from 'lodash';
@@ -112,11 +101,8 @@
       emits('submit', localValue.value);
     } catch {
       messageError(t('请修改冲突的 DB 名'));
+      return Promise.reject();
     }
-  };
-
-  const handleCancel = () => {
-    isShow.value = false;
   };
 
   watch(isShow, () => {

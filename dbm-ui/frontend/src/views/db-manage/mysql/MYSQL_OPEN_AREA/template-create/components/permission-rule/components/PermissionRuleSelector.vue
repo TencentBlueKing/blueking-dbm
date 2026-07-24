@@ -1,5 +1,5 @@
 <template>
-  <BkDialog
+  <DbDialog
     v-model:is-show="isShow"
     :title="t('添加授权规则')"
     width="80%">
@@ -125,7 +125,7 @@
         </BkButton>
       </div>
     </template>
-  </BkDialog>
+  </DbDialog>
 </template>
 <script setup lang="tsx">
   import type { ISearchValue } from 'bkui-vue/lib/search-select/utils';
@@ -330,8 +330,8 @@
     }
 
     .inner-row {
-      height: 28px;
       display: flex;
+      height: 28px;
       align-items: center;
     }
 

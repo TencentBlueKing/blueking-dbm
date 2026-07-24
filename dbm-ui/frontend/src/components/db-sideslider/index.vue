@@ -39,12 +39,12 @@
           style="min-width: 88px"
           theme="primary"
           @click="handleConfirm">
-          {{ confirmText || $t('提交') }}
+          {{ confirmText || t('提交') }}
         </BkButton>
         <BkButton
           style="min-width: 88px"
           @click="handleCancle">
-          {{ cancelText || $t('取消') }}
+          {{ cancelText || t('取消') }}
         </BkButton>
       </slot>
     </template>
@@ -53,17 +53,27 @@
 <script setup lang="ts">
   import _ from 'lodash';
   import { ref, useAttrs, useSlots, watch } from 'vue';
+  import { useI18n } from 'vue-i18n';
 
   import { useModelProvider } from '@hooks';
 
   import { leaveConfirm } from '@utils';
 
   interface Props {
+    cancelHandler?: () => Promise<unknown>;
     cancelText?: string;
+    confirmButtonDisableInfo?: {
+      disabled: boolean;
+      tooltips: {
+        content: string;
+        disabled: boolean;
+      };
+    };
+    confirmHandler?: () => Promise<unknown>;
     confirmText?: string;
     disabledConfirm?: boolean | string;
-    // eslint-disable-next-line vue/no-required-prop-with-default
-    isShow: boolean;
+
+    isShow?: boolean;
     renderDirective?: 'if' | 'show';
     showConfirm?: boolean;
     showFooter?: boolean;
@@ -77,7 +87,10 @@
   }
 
   const props = withDefaults(defineProps<Props>(), {
+    cancelHandler: undefined,
     cancelText: '',
+    confirmButtonDisableInfo: undefined,
+    confirmHandler: undefined,
     confirmText: '',
     disabledConfirm: false,
     isShow: false,
@@ -91,11 +104,15 @@
 
   const attrs = useAttrs();
   const slots = useSlots();
+  const { t } = useI18n();
 
   const isLoading = ref(false);
   let pageChangeConfirm: boolean | 'popover' = false;
 
   const submitButtonDisabledInfo = computed(() => {
+    if (props.confirmButtonDisableInfo) {
+      return props.confirmButtonDisableInfo;
+    }
     const info = {
       disabled: false,
       tooltips: {
@@ -130,7 +147,9 @@
 
   const getModelProvier = useModelProvider();
 
-  const beforeCloseCallback = () => leaveConfirm();
+  const beforeCloseCallback = () => {
+    return leaveConfirm();
+  };
   const close = () => {
     window.changeConfirm = pageChangeConfirm;
     emit('update:isShow', false);
@@ -142,6 +161,20 @@
 
   // 确定
   const handleConfirm = () => {
+    if (props.confirmButtonDisableInfo?.disabled) {
+      return;
+    }
+    if (props.confirmHandler) {
+      isLoading.value = true;
+      Promise.resolve(props.confirmHandler())
+        .then(() => {
+          close();
+        })
+        .finally(() => {
+          isLoading.value = false;
+        });
+      return;
+    }
     isLoading.value = true;
     const { submit } = getModelProvier();
     submit()
@@ -155,6 +188,15 @@
 
   // 取消
   const handleCancle = () => {
+    if (props.cancelHandler) {
+      isLoading.value = true;
+      return leaveConfirm()
+        .then(() => props.cancelHandler!())
+        .then(() => close())
+        .finally(() => {
+          isLoading.value = false;
+        });
+    }
     const { cancel } = getModelProvier();
     if (!props.showLeaveConfirm) {
       return Promise.resolve(cancel()).then(() => close());

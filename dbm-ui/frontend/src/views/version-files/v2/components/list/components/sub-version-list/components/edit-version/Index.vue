@@ -1,8 +1,12 @@
 <template>
-  <BkSideslider
+  <DbSideslider
     v-model:is-show="isShow"
     :before-close="handleBeforeClose"
+    :cancel-text="t('取消')"
     class="edit-version-slider-main"
+    :confirm-button-disable-info="confirmButtonDisableInfo"
+    :confirm-handler="handleSubmit"
+    :confirm-text="t('确定')"
     render-directive="if"
     :width="960"
     @closed="handleCancel">
@@ -16,7 +20,7 @@
       </div>
     </template>
     <div class="content-main">
-      <BkForm
+      <DbForm
         ref="formRef"
         class="form-main"
         form-type="vertical"
@@ -152,28 +156,9 @@
             theme="primary"
             @change="handleValueChange" />
         </BkFormItem>
-      </BkForm>
-      <div class="operate-main">
-        <BkButton
-          v-bk-tooltips="{
-            disabled: !confirmDisabled,
-            content: t('当前无变更，请先修改内容'),
-          }"
-          class="operate-button"
-          :disabled="confirmDisabled || confirmLoading"
-          :loading="confirmLoading"
-          theme="primary"
-          @click="handleSubmit">
-          {{ t('确定') }}
-        </BkButton>
-        <BkButton
-          class="operate-button"
-          @click="handleCancel">
-          {{ t('取消') }}
-        </BkButton>
-      </div>
+      </DbForm>
     </div>
-  </BkSideslider>
+  </DbSideslider>
 </template>
 <script setup lang="ts">
   import _ from 'lodash';
@@ -273,14 +258,13 @@
       : `${props.pkgType}_${formModel.value.full_version}`,
   );
 
-  const confirmLoading = computed(() => {
-    return (
-      createDbVersionLoading.value ||
-      batchCreatePackagesLoading.value ||
-      updateDbVersionLoading.value ||
-      batchDeletePackagesLoading.value
-    );
-  });
+  const confirmButtonDisableInfo = computed(() => ({
+    disabled: confirmDisabled.value,
+    tooltips: {
+      content: t('当前无变更，请先修改内容'),
+      disabled: !confirmDisabled.value,
+    },
+  }));
 
   const formRules = computed(() => ({
     files: [
@@ -369,30 +353,27 @@
       pkg_type: props.pkgType,
       version: seriesLabel,
     }));
-    runBatchCreatePackages({ packages: updateParams });
+    return runBatchCreatePackages({ packages: updateParams });
   };
 
-  const { loading: createDbVersionLoading, run: runCreateDbVersion } = useRequest(createDbVersion, {
+  const { runAsync: runCreateDbVersion } = useRequest(createDbVersion, {
     manual: true,
-    onSuccess: handleBatchCreatePackages,
   });
 
-  const { loading: updateDbVersionLoading, run: runUpdateDbVersion } = useRequest(updateDbVersion, {
+  const { runAsync: runUpdateDbVersion } = useRequest(updateDbVersion, {
     manual: true,
-    onSuccess: handleBatchCreatePackages,
   });
 
-  const { loading: batchCreatePackagesLoading, run: runBatchCreatePackages } = useRequest(batchCreatePackages, {
+  const { runAsync: runBatchCreatePackages } = useRequest(batchCreatePackages, {
     manual: true,
     onSuccess: () => {
       emits('success', formModel.value.version_series);
       messageSuccess(t('操作成功'));
       formModel.value = initFormModel();
-      isShow.value = false;
     },
   });
 
-  const { loading: batchDeletePackagesLoading, run: runBatchDeletePackages } = useRequest(batchDeletePackages, {
+  const { run: runBatchDeletePackages } = useRequest(batchDeletePackages, {
     manual: true,
   });
 
@@ -442,7 +423,7 @@
       !result && !!formModel.value[property as keyof typeof formModel.value];
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = () =>
     formRef.value.validate().then(() => {
       const commonParams = {
         description: formModel.value.description,
@@ -473,19 +454,17 @@
         if (packageIdsToDelete.length > 0) {
           runBatchDeletePackages({ package_ids: packageIdsToDelete });
         }
-        runUpdateDbVersion({
+        return runUpdateDbVersion({
           ...commonParams,
           id: props.dbVersion!.id,
           recommend: props.dbVersion!.recommend,
-        });
-      } else {
-        runCreateDbVersion({
-          ...commonParams,
-          recommend: false,
-        });
+        }).then(handleBatchCreatePackages);
       }
+      return runCreateDbVersion({
+        ...commonParams,
+        recommend: false,
+      }).then(handleBatchCreatePackages);
     });
-  };
 
   const handleCancel = () => {
     isShow.value = false;
