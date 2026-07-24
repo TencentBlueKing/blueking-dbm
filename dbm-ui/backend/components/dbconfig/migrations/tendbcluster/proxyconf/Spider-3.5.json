@@ -3393,7 +3393,7 @@
   },
   {
     "conf_name": "mysqld.slave_compressed_protocol",
-    "value_default": "1",
+    "value_default": "0",
     "value_allowed": "1 | 0",
     "value_type": "INT",
     "value_type_sub": "ENUM",

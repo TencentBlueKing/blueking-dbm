@@ -9,7 +9,8 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 import logging
-from datetime import timedelta
+from datetime import datetime, timedelta
+from datetime import timezone as dt_timezone
 
 from celery import shared_task
 from django.utils import timezone
@@ -112,6 +113,10 @@ class MySQLAlarm(AlarmCallback):
         strategy_name = callback_message.get("strategy", {}).get("name", "")
         event_level = callback_message.get("event", {}).get("level")
         alarm_time = callback_message.get("latest_anomaly_record", {}).get("create_time")
+        # 将 alarm_time 从 UTC 转换为东八区时间
+        if alarm_time:
+            utc_time = datetime.strptime(alarm_time, "%Y-%m-%d %H:%M:%S").replace(tzinfo=dt_timezone.utc)
+            alarm_time = utc_time.astimezone(dt_timezone(timedelta(hours=8))).strftime("%Y-%m-%d %H:%M:%S%z")
 
         # 优先从 dimensions 中获取 cluster_type，没有则通过 cluster_domain 查询
         dimensions = callback_message.get("event", {}).get("dimensions", {})
