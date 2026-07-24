@@ -30,8 +30,10 @@
       </EditableBlock>
     </BkLoading>
   </EditableColumn>
-  <BkSideslider
+  <DbSideslider
     v-model:is-show="isShowEditName"
+    :confirm-handler="handleSubmit"
+    :confirm-text="t('保存')"
     render-directive="if"
     :width="900">
     <template #header>
@@ -46,20 +48,7 @@
       :db-name="dbName"
       :rename-info-list="moduleValue"
       :target-cluster-id="targetClusterId" />
-    <template #footer>
-      <BkButton
-        class="w-88"
-        theme="primary"
-        @click="handleSubmit">
-        {{ t('保存') }}
-      </BkButton>
-      <BkButton
-        class="w-88 ml-8"
-        @click="handleCancel">
-        {{ t('取消') }}
-      </BkButton>
-    </template>
-  </BkSideslider>
+  </DbSideslider>
 </template>
 <script setup lang="ts">
   import _ from 'lodash';
@@ -196,9 +185,8 @@
     return props.isLocal ? t('请先设置集群、构造 DB、回档信息') : t('请先设置集群、目标集群、构造 DB、回档信息');
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = () =>
     editNameRef.value!.submit().then((result) => {
-      isShowEditName.value = false;
       hasEditDbName.value = true;
       dbName.value = result.dbName;
       dbIgnoreName.value = result.dbIgnoreName;
@@ -206,11 +194,6 @@
 
       editableColumnRef.value!.validate();
     });
-  };
-
-  const handleCancel = () => {
-    isShowEditName.value = false;
-  };
 </script>
 
 <style lang="less" scoped>

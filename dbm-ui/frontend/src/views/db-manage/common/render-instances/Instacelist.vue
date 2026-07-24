@@ -1,5 +1,5 @@
 <template>
-  <BkDialog
+  <DbDialog
     v-model:is-show="isShow"
     :title="title"
     :width="1100">
@@ -52,7 +52,7 @@
         {{ t('关闭') }}
       </BkButton>
     </template>
-  </BkDialog>
+  </DbDialog>
 </template>
 <script setup lang="ts">
   import _ from 'lodash';

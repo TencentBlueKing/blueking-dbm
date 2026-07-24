@@ -17,7 +17,7 @@
       class="mb-20"
       closable
       :title="t('数据迁移：数据同步复制到新集群，迁移后将会对原库进行')" />
-    <BkForm
+    <DbForm
       class="mb-20"
       form-type="vertical"
       :model="formData">
@@ -99,7 +99,7 @@
         </BkRadioGroup>
       </BkFormItem>
       <TicketPayload v-model="formData.payload" />
-    </BkForm>
+    </DbForm>
     <template #action>
       <BkButton
         class="mr-8 w-88"

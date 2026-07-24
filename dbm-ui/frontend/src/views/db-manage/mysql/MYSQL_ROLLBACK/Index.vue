@@ -4,7 +4,7 @@
       class="mb-20"
       closable
       :title="t('回档：在选择原集群上进行原地数据回滚，支持构造回档、库表闪回、记录级闪回。')" />
-    <BkForm
+    <DbForm
       ref="formRef"
       class="mb-24 toolbox-form"
       form-type="vertical"
@@ -121,7 +121,7 @@
         </EditableRow>
       </EditableTable>
       <TicketPayload v-model="formData.payload" />
-    </BkForm>
+    </DbForm>
     <template #action>
       <BkButton
         class="mr-8 w-88"

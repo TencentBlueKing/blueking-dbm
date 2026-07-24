@@ -4,7 +4,7 @@
 -->
 
 <template>
-  <BkDialog
+  <DbDialog
     :esc-close="false"
     :is-show="isShow"
     :quick-close="false"
@@ -65,7 +65,7 @@
         </BkButton>
       </template>
     </template>
-  </BkDialog>
+  </DbDialog>
 </template>
 
 <script setup lang="ts">

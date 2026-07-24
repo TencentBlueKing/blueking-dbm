@@ -8,9 +8,12 @@
     @click="handleDownloadClick">
     {{ t('下载') }}
   </BkButton>
-  <BkDialog
+  <DbDialog
     v-model:is-show="isShow"
     class="download-package-dialog"
+    :confirm-button-disable-info="{ disabled: !checkedPackages.length, tooltips: { content: '', disabled: true } }"
+    :confirm-handler="handleDownloadPackages"
+    :confirm-text="t('下载')"
     quick-close
     render-directive="if"
     :title="t('下载版本文件')"
@@ -31,20 +34,7 @@
         </BkCheckbox>
       </BkCheckboxGroup>
     </div>
-    <template #footer>
-      <BkButton
-        class="mr-8"
-        :disabled="!checkedPackages.length"
-        :loading="downloadPackagesLoading"
-        theme="primary"
-        @click="handleDownloadPackages">
-        {{ t('下载') }}
-      </BkButton>
-      <BkButton @click="handleCancel">
-        {{ t('取消') }}
-      </BkButton>
-    </template>
-  </BkDialog>
+  </DbDialog>
 </template>
 
 <script setup lang="ts">
@@ -64,7 +54,6 @@
   const { t } = useI18n();
 
   const isShow = ref(false);
-  const downloadPackagesLoading = ref(false);
   const downloadSinglePackageLoading = ref(false);
   const checkedPackages = ref<string[]>([]);
   const isSelectAll = ref(false);
@@ -107,24 +96,10 @@
   };
 
   const handleDownloadPackages = async () => {
-    if (!checkedPackages.value.length) {
-      return;
-    }
-
-    try {
-      downloadPackagesLoading.value = true;
-      const tokenResult = await batchCreateBkrepoAccessToken({ file_path_list: checkedPackages.value });
-      const urls = tokenResult.map((item) => generateBkRepoDownloadUrl(item));
-      urls.forEach((url) => downloadUrl(url));
-      messageSuccess(t('下载成功'));
-      isShow.value = false;
-    } finally {
-      downloadPackagesLoading.value = false;
-    }
-  };
-
-  const handleCancel = () => {
-    isShow.value = false;
+    const tokenResult = await batchCreateBkrepoAccessToken({ file_path_list: checkedPackages.value });
+    const urls = tokenResult.map((item) => generateBkRepoDownloadUrl(item));
+    urls.forEach((url) => downloadUrl(url));
+    messageSuccess(t('下载成功'));
   };
 
   const handleDialogClosed = () => {

@@ -21,7 +21,7 @@
           '构造：通过全备 + binlog 的方式，将数据库恢复到过去的某一时间点或者某个指定备份文件的状态。数据可以构造到新临时单节点，可以选择已有的集群。',
         )
       " />
-    <BkForm
+    <DbForm
       ref="formRef"
       class="mb-24 toolbox-form"
       form-type="vertical"
@@ -48,7 +48,7 @@
         </BkRadioGroup>
       </BkFormItem>
       <slot />
-    </BkForm>
+    </DbForm>
   </div>
 </template>
 <script lang="ts" setup>

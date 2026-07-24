@@ -1,5 +1,5 @@
 <template>
-  <BkSideslider
+  <DbSideslider
     v-model:is-show="moduleValue"
     width="1400">
     <template #header>
@@ -84,7 +84,7 @@
         </PrimaryTable>
       </BkLoading>
     </div>
-  </BkSideslider>
+  </DbSideslider>
 </template>
 <script setup lang="tsx">
   import { useI18n } from 'vue-i18n';

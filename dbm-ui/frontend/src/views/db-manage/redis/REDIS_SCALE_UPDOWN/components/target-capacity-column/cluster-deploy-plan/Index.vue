@@ -12,7 +12,7 @@
 -->
 
 <template>
-  <BkSideslider
+  <DbSideslider
     :before-close="handleBeforeClose"
     :is-show="isShow"
     :width="800"
@@ -62,7 +62,7 @@
         {{ t('取消') }}
       </BkButton>
     </template>
-  </BkSideslider>
+  </DbSideslider>
 </template>
 <script setup lang="tsx">
   import type { UnwrapRef } from 'vue';

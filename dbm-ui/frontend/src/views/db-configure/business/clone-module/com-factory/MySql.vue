@@ -183,7 +183,7 @@
   </SmartAction>
 
   <!-- 废弃参数侧滑 -->
-  <BkSideslider
+  <DbSideslider
     :is-show="isShowSlider"
     quick-close
     width="600px"
@@ -205,7 +205,7 @@
           :title="t('参数名')" />
       </DbTable>
     </div>
-  </BkSideslider>
+  </DbSideslider>
 
   <Teleport to="#dbContentTitleAppend">
     <span class="clone-module-meta">
@@ -629,7 +629,7 @@
     padding: 24px;
     background: #fff;
     border-radius: 2px;
-    box-shadow: 0 2px 4px 0 rgba(25, 25, 41, 0.05);
+    box-shadow: 0 2px 4px 0 rgb(25 25 41 / 5%);
   }
 
   .form-item-name {
@@ -672,8 +672,8 @@
   .param-config-wrapper {
     margin-top: 16px;
     background: #fff;
-    box-shadow: 0 2px 4px 0 rgba(25, 25, 41, 0.05);
     border-radius: 2px;
+    box-shadow: 0 2px 4px 0 rgb(25 25 41 / 5%);
 
     :deep(.bk-tab-content) {
       padding: 16px 16px 0;
@@ -689,12 +689,12 @@
 
   .action-bar {
     display: flex;
-    align-items: center;
-    gap: 8px;
-    margin-top: 16px;
     padding: 16px 24px;
+    margin-top: 16px;
     background: #fff;
     border-radius: 2px;
+    align-items: center;
+    gap: 8px;
   }
 
   .sideslider-sub-title {
@@ -712,30 +712,30 @@
       left: 0;
       width: 1px;
       height: 14px;
-      content: '';
       background: #dcdee5;
+      content: '';
       transform: translateY(-50%);
     }
   }
 
   .clone-module-meta {
     display: inline-flex;
-    align-items: center;
-    gap: 8px;
+    margin-left: 8px;
     font-size: 14px;
     color: #979ba5;
-    margin-left: 8px;
+    align-items: center;
+    gap: 8px;
 
     & > span + span {
       margin-left: 8px;
     }
 
     &::before {
-      content: '';
       display: inline-block;
       width: 1px;
       height: 14px;
       background: #dcdee5;
+      content: '';
     }
   }
 
@@ -750,15 +750,15 @@
 
     .stat-num {
       display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      min-width: 18px;
       height: 18px;
+      min-width: 18px;
       padding: 0 5px;
-      border-radius: 9px;
       font-size: 11px;
       font-weight: 600;
       color: #fff;
+      border-radius: 9px;
+      align-items: center;
+      justify-content: center;
     }
 
     &.custom .stat-num {

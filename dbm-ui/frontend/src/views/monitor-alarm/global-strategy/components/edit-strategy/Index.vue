@@ -12,7 +12,7 @@
 -->
 
 <template>
-  <BkSideslider
+  <DbSideslider
     :before-close="handleClose"
     :is-show="isShow"
     render-directive="if"
@@ -30,7 +30,7 @@
       </div>
     </template>
     <div class="edit-strategy-main-box">
-      <BkForm
+      <DbForm
         ref="formRef"
         form-type="vertical"
         :model="formModel">
@@ -134,7 +134,7 @@
               :data="data.notify_config" />
           </BkFormItem>
         </BkCard>
-      </BkForm>
+      </DbForm>
     </div>
     <template #footer>
       <BkPopConfirm
@@ -173,7 +173,7 @@
         {{ t('取消') }}
       </BkButton>
     </template>
-  </BkSideslider>
+  </DbSideslider>
 </template>
 
 <script setup lang="tsx">

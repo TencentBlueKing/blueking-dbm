@@ -221,8 +221,9 @@
       </BkTableColumn>
     </DbTable>
   </div>
-  <BkDialog
+  <DbDialog
     class="create-tag-dialog-main"
+    :confirm-handler="handleConfirm"
     :is-show="isCreateTagDialogShow"
     :quick-close="false"
     render-directive="if"
@@ -232,21 +233,7 @@
     <CreateTag
       ref="createTagRef"
       :existed-keys="existedKeyList" />
-    <template #footer>
-      <div class="footer-wrapper">
-        <BkButton
-          class="mr-8"
-          :loading="confirmLoading"
-          theme="primary"
-          @click="handleConfirm">
-          {{ t('确定') }}
-        </BkButton>
-        <BkButton @click="handleClose">
-          {{ t('取消') }}
-        </BkButton>
-      </div>
-    </template>
-  </BkDialog>
+  </DbDialog>
 </template>
 
 <script setup lang="tsx">
@@ -333,10 +320,9 @@
     },
   });
 
-  const { loading: confirmLoading, run: runBatchCreate } = useRequest(batchCreateTags, {
+  const { run: runBatchCreate, runAsync: runBatchCreateAsync } = useRequest(batchCreateTags, {
     manual: true,
     onSuccess() {
-      handleClose();
       fetchData();
       messageSuccess(t('新建标签成功'));
     },
@@ -570,7 +556,7 @@
   const handleConfirm = () => {
     const inputData = createTagRef.value!.getValue();
     if (!inputData) {
-      return;
+      return Promise.reject(new Error());
     }
 
     const tags = Object.entries(inputData).reduce<
@@ -589,7 +575,7 @@
       return results;
     }, []);
 
-    runBatchCreate({
+    return runBatchCreateAsync({
       bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
       tags,
       type: 'cluster',

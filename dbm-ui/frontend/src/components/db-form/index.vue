@@ -13,7 +13,7 @@
 
 <template>
   <BkForm
-    ref="dbFormRef"
+    ref="bkFormRef"
     :form-type="formType"
     :model="model"
     v-bind="$attrs"
@@ -43,7 +43,7 @@
     scrollAlignToTop: true,
   });
 
-  const dbFormRef = ref();
+  const bkFormRef = ref();
 
   watch(
     () => props.model,
@@ -52,16 +52,20 @@
         window.changeConfirm = true;
       }
     },
-    { deep: true },
+    {
+      deep: true,
+    },
   );
 
   /** 用户主动操作变更表单 */
   const isUserChange = ref(false);
-  const handleUserChange = () => (isUserChange.value = true);
+  const handleUserChange = () => {
+    isUserChange.value = true;
+  };
 
   const getCssStyle = (el: HTMLElement, prop: string) => window.getComputedStyle(el, null).getPropertyValue(prop);
   const calcLableWidth = () => {
-    const formWrapper = dbFormRef.value?.$el as HTMLFormElement;
+    const formWrapper = bkFormRef.value?.$el as HTMLFormElement;
     if (formWrapper) {
       const labels: HTMLDivElement[] = Array.from(formWrapper.querySelectorAll('.bk-form-label'));
       const div = document.createElement('div');
@@ -100,7 +104,7 @@
 
       const observer = new MutationObserver(debounce(calcLableWidth, 40));
 
-      observer.observe(dbFormRef.value.$el, {
+      observer.observe(bkFormRef.value.$el, {
         childList: true,
         subtree: true,
       });
@@ -116,10 +120,10 @@
   });
 
   defineExpose({
-    clearValidate: () => dbFormRef.value.clearValidate(),
+    clearValidate: () => bkFormRef.value.clearValidate(),
     validate: (fields?: string | Array<string>) =>
-      dbFormRef.value.validate(fields).catch((error: Error) => {
-        const errorItemEl = dbFormRef.value.$el.querySelector('.bk-form-item.is-error');
+      bkFormRef.value.validate(fields).catch((error: Error) => {
+        const errorItemEl = bkFormRef.value.$el.querySelector('.bk-form-item.is-error');
         if (errorItemEl) {
           errorItemEl.scrollIntoView(props.scrollAlignToTop);
         }

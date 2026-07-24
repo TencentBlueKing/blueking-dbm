@@ -1,5 +1,9 @@
 <template>
   <DbSideslider
+    :cancel-text="t('取消')"
+    :confirm-handler="handleSubmit"
+    :confirm-text="t('确定')"
+    :disabled-confirm="isSubmitDisabled"
     :is-show="isShow"
     :width="800"
     @update:is-show="handleCancel">
@@ -57,21 +61,6 @@
         </DbForm>
       </BkLoading>
     </div>
-    <template #footer>
-      <BkButton
-        :disabled="isSubmitDisabled"
-        :loading="isSubmiting"
-        theme="primary"
-        @click="handleSubmit">
-        {{ t('确定') }}
-      </BkButton>
-      <BkButton
-        class="ml-8"
-        :disabled="isSubmiting"
-        @click="handleCancel">
-        {{ t('取消') }}
-      </BkButton>
-    </template>
   </DbSideslider>
 </template>
 <script setup lang="ts">
@@ -166,7 +155,6 @@
     InstanceType<typeof City | typeof DeviceClassItem | typeof Rack | typeof StorageDevice | typeof SubZone>[]
   >([]);
 
-  const isSubmiting = ref(false);
   const selectedOptions = ref<string[]>([]);
 
   const formData = reactive(genDefaultData());
@@ -215,79 +203,73 @@
   };
 
   const handleSubmit = () => {
-    isSubmiting.value = true;
     const valuePromiseList = itemRef.value!.map((item) => Promise.resolve(item.getValue()));
-    Promise.all(valuePromiseList)
-      .then((result) => {
-        const params: Pick<
-          ServiceParameters<typeof updateResource>,
-          'city_meta' | 'device_class' | 'rack_id' | 'storage_device' | 'sub_zone_meta'
-        > = result.reduce<Record<string, any>>((prev, resultItem) => {
-          return Object.assign(prev, resultItem);
-        }, {});
+    return Promise.all(valuePromiseList).then((result) => {
+      const params: Pick<
+        ServiceParameters<typeof updateResource>,
+        'city_meta' | 'device_class' | 'rack_id' | 'storage_device' | 'sub_zone_meta'
+      > = result.reduce<Record<string, any>>((prev, resultItem) => {
+        return Object.assign(prev, resultItem);
+      }, {});
 
-        const cityAfter = params.city_meta?.city || '';
-        const subZoneAfter = params.sub_zone_meta?.sub_zone || '';
-        const rackIdAfter = params.rack_id || '';
-        const deviceClassAfter = params.device_class || '';
-        const storageDeviceAfter = params.storage_device
-          ? `（${Object.entries(params.storage_device)
+      const cityAfter = params.city_meta?.city || '';
+      const subZoneAfter = params.sub_zone_meta?.sub_zone || '';
+      const rackIdAfter = params.rack_id || '';
+      const deviceClassAfter = params.device_class || '';
+      const storageDeviceAfter = params.storage_device
+        ? `（${Object.entries(params.storage_device)
+            .map(([key, item]) => `${key}:${item.size}G:${deviceClassDisplayMap[item.disk_type as DeviceClass]}`)
+            .join(';')}）`
+        : '';
+
+      const remarkList = props.selected.map((item) => {
+        const cityBefore = item.city;
+        const subZoneBefore = item.sub_zone;
+        const rackIdBefore = item.rack_id;
+        const deviceClassBefore = item.device_class;
+        const storageDeviceBefore = _.isEmpty(item.storage_device)
+          ? ''
+          : `（${Object.entries(item.storage_device)
               .map(([key, item]) => `${key}:${item.size}G:${deviceClassDisplayMap[item.disk_type as DeviceClass]}`)
-              .join(';')}）`
-          : '';
+              .join(';')}）`;
 
-        const remarkList = props.selected.map((item) => {
-          const cityBefore = item.city;
-          const subZoneBefore = item.sub_zone;
-          const rackIdBefore = item.rack_id;
-          const deviceClassBefore = item.device_class;
-          const storageDeviceBefore = _.isEmpty(item.storage_device)
-            ? ''
-            : `（${Object.entries(item.storage_device)
-                .map(([key, item]) => `${key}:${item.size}G:${deviceClassDisplayMap[item.disk_type as DeviceClass]}`)
-                .join(';')}）`;
-
-          const remarkItem = {} as NonNullable<ServiceParameters<typeof updateResource>['remark']>[number];
-          if (cityAfter) {
-            Object.assign(remarkItem, { city: { after_value: cityAfter, before_value: cityBefore } });
-          }
-          if (subZoneAfter) {
-            Object.assign(remarkItem, { sub_zone: { after_value: subZoneAfter, before_value: subZoneBefore } });
-          }
-          if (rackIdAfter) {
-            Object.assign(remarkItem, { rack_id: { after_value: rackIdAfter, before_value: rackIdBefore } });
-          }
-          if (deviceClassAfter) {
-            Object.assign(remarkItem, {
-              device_class: { after_value: deviceClassAfter, before_value: deviceClassBefore },
-            });
-          }
-          if (storageDeviceAfter) {
-            Object.assign(remarkItem, {
-              storage_device: { after_value: storageDeviceAfter, before_value: storageDeviceBefore },
-            });
-          }
-          return remarkItem;
-        });
-
-        return updateResource({
-          bk_biz_id: isBusiness ? window.PROJECT_CONFIG.BIZ_ID : defaultBizId,
-          bk_host_ids: props.selected.map((item) => item.bk_host_id),
-          host_id_ip_map: props.selected.reduce<Record<string, string>>((prev, item) => {
-            return Object.assign(prev, { [item.bk_host_id]: item.ip });
-          }, {}),
-          remark: remarkList,
-          update_type: MachineEvents.HOST_ATTRIBUTE,
-          ...params,
-        }).then(() => {
-          window.changeConfirm = false;
-          emits('success');
-          handleCancel();
-        });
-      })
-      .finally(() => {
-        isSubmiting.value = false;
+        const remarkItem = {} as NonNullable<ServiceParameters<typeof updateResource>['remark']>[number];
+        if (cityAfter) {
+          Object.assign(remarkItem, { city: { after_value: cityAfter, before_value: cityBefore } });
+        }
+        if (subZoneAfter) {
+          Object.assign(remarkItem, { sub_zone: { after_value: subZoneAfter, before_value: subZoneBefore } });
+        }
+        if (rackIdAfter) {
+          Object.assign(remarkItem, { rack_id: { after_value: rackIdAfter, before_value: rackIdBefore } });
+        }
+        if (deviceClassAfter) {
+          Object.assign(remarkItem, {
+            device_class: { after_value: deviceClassAfter, before_value: deviceClassBefore },
+          });
+        }
+        if (storageDeviceAfter) {
+          Object.assign(remarkItem, {
+            storage_device: { after_value: storageDeviceAfter, before_value: storageDeviceBefore },
+          });
+        }
+        return remarkItem;
       });
+
+      return updateResource({
+        bk_biz_id: isBusiness ? window.PROJECT_CONFIG.BIZ_ID : defaultBizId,
+        bk_host_ids: props.selected.map((item) => item.bk_host_id),
+        host_id_ip_map: props.selected.reduce<Record<string, string>>((prev, item) => {
+          return Object.assign(prev, { [item.bk_host_id]: item.ip });
+        }, {}),
+        remark: remarkList,
+        update_type: MachineEvents.HOST_ATTRIBUTE,
+        ...params,
+      }).then(() => {
+        window.changeConfirm = false;
+        emits('success');
+      });
+    });
   };
 
   const handleDelete = (key: string) => {

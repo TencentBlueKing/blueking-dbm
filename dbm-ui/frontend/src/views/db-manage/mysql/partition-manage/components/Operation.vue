@@ -1,5 +1,5 @@
 <template>
-  <BkSideslider
+  <DbSideslider
     v-model:is-show="isShow"
     render-directive="if"
     :title="data ? (data.id ? t('编辑分区策略') : t('克隆分区策略')) : t('新建分区策略')"
@@ -208,7 +208,7 @@
         {{ t('取消') }}
       </BkButton>
     </template>
-  </BkSideslider>
+  </DbSideslider>
 </template>
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';

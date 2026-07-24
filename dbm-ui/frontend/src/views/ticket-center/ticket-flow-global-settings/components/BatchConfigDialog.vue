@@ -1,5 +1,5 @@
 <template>
-  <BkDialog
+  <DbDialog
     :is-show="isShow"
     :quick-close="false"
     theme="primary"
@@ -17,7 +17,7 @@
       v-model="item.checked">
       {{ item.label }}
     </BkCheckbox>
-  </BkDialog>
+  </DbDialog>
 </template>
 <script setup lang="ts">
   import _ from 'lodash';

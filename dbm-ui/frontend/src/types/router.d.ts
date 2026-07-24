@@ -18,6 +18,7 @@ declare module 'vue-router' {
     aiBlueking?: boolean; // 用于判断是否显示 AI 蓝鲸 (明确设置为 false 时不显示)
     fullscreen?: boolean; // 用于判断是否满屏幕
     hideTitle?: boolean; // 用于判断是否隐藏面包屑 title
+    leavaConfirm?: () => Promise<boolean>; // 用于设置离开确认
     navName?: string; // 用于设置面包屑 name
   }
 }

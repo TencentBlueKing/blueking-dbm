@@ -25,7 +25,7 @@
         title-prefix-type="select"
         @change="handleBatchEdit">
         <template #content>
-          <BkForm
+          <DbForm
             form-type="vertical"
             :model="formData">
             <BkFormItem
@@ -40,7 +40,7 @@
                 style="width: 360px"
                 type="datetime" />
             </BkFormItem>
-          </BkForm>
+          </DbForm>
         </template>
       </BatchEditColumn>
       <span

@@ -1,7 +1,8 @@
 <template>
-  <BkDialog
+  <DbDialog
     v-model:is-show="moduleValue"
     class="batch-reset-to-default-dialog"
+    :confirm-handler="handleSubmit"
     quick-close
     :title="t('确定批量恢复 n 个自定义策略的默认配置？', { n: validCount })"
     :width="500">
@@ -26,21 +27,7 @@
         </div>
       </div>
     </div>
-    <template #footer>
-      <BkButton
-        class="mr-8"
-        :loading="isSubmitting"
-        theme="primary"
-        @click="handleSubmit">
-        {{ t('确定') }}
-      </BkButton>
-      <BkButton
-        :disabled="isSubmitting"
-        @click="handleCancel">
-        {{ t('取消') }}
-      </BkButton>
-    </template>
-  </BkDialog>
+  </DbDialog>
 </template>
 
 <script setup lang="ts">
@@ -64,11 +51,10 @@
 
   const { t } = useI18n();
 
-  const { loading: isSubmitting, run: runPatchDeletePolicy } = useRequest(patchDeletePolicy, {
+  const { runAsync: runPatchDeletePolicy } = useRequest(patchDeletePolicy, {
     manual: true,
     onSuccess() {
       messageSuccess(t('批量恢复默认成功'));
-      moduleValue.value = false;
       emits('suceess');
     },
   });
@@ -77,13 +63,7 @@
   const validCount = computed(() => validList.value.length);
   const invalidCount = computed(() => props.selected.length - validCount.value);
 
-  const handleSubmit = () => {
-    runPatchDeletePolicy({ ids: validList.value.map((item) => item.id) });
-  };
-
-  const handleCancel = () => {
-    moduleValue.value = false;
-  };
+  const handleSubmit = () => runPatchDeletePolicy({ ids: validList.value.map((item) => item.id) });
 </script>
 
 <style lang="less">

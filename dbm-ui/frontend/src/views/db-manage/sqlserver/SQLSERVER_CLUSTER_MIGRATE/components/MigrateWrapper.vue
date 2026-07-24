@@ -13,7 +13,7 @@
 
 <template>
   <div class="db-toolbox">
-    <BkForm
+    <DbForm
       class="toolbox-form mb-20"
       form-type="vertical"
       :model="modelValue">
@@ -42,7 +42,7 @@
         </div>
       </BkFormItem>
       <slot />
-    </BkForm>
+    </DbForm>
   </div>
 </template>
 <script lang="ts" setup>

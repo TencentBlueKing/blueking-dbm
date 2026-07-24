@@ -1,5 +1,5 @@
 <template>
-  <BkDialog
+  <DbDialog
     v-model:is-show="isShow"
     class="batch-delete-subscription-dialog"
     :esc-close="false"
@@ -74,7 +74,7 @@
         </BkButton>
       </div>
     </div>
-  </BkDialog>
+  </DbDialog>
 </template>
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';

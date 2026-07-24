@@ -12,16 +12,24 @@
 -->
 
 <template>
-  <BkDialog
+  <DbDialog
+    v-model:is-show="isShow"
     class="account-dialog"
+    :confirm-button-disable-info="{
+      disabled: !passwordIsPass,
+      tooltips: {
+        content: t('密码不符合要求'),
+        disabled: !Boolean(state.formdata.password) || passwordIsPass,
+      },
+    }"
+    :confirm-handler="handleSubmit"
     :draggable="false"
     :esc-close="false"
-    :is-show="isShow"
     :quick-close="false"
     :title="t('新建账号')"
     :width="580"
     @closed="handleClose">
-    <BkForm
+    <DbForm
       v-if="isShow"
       ref="accountRef"
       form-type="vertical"
@@ -71,27 +79,8 @@
           {{ t('复制密码') }}
         </BkButton>
       </div>
-    </BkForm>
-    <template #footer>
-      <BkButton
-        v-bk-tooltips="{
-          content: t('密码不符合要求'),
-          disabled: !Boolean(state.formdata.password) || passwordIsPass,
-        }"
-        class="mr-8"
-        :disabled="!passwordIsPass"
-        :loading="state.isLoading"
-        theme="primary"
-        @click="handleSubmit">
-        {{ t('确定') }}
-      </BkButton>
-      <BkButton
-        :disabled="state.isLoading"
-        @click="handleClose">
-        {{ t('取消') }}
-      </BkButton>
-    </template>
-  </BkDialog>
+    </DbForm>
+  </DbDialog>
 </template>
 <script setup lang="ts">
   import { Message } from 'bkui-vue';
@@ -140,7 +129,6 @@
       password: '',
       user: '',
     },
-    isLoading: false,
     publicKey: '',
   });
   const accountRef = ref();
@@ -221,7 +209,6 @@
    */
   const handleSubmit = async () => {
     await accountRef.value.validate();
-    state.isLoading = true;
 
     const password = passwordRef.value!.getEncyptPassword();
     const apiMap = {
@@ -230,22 +217,17 @@
       [AccountTypes.SQLSERVER]: createSqlserverAccount,
       [AccountTypes.TENDBCLUSTER]: createMysqlAccount,
     };
-    apiMap[props.accountType]({
+    return apiMap[props.accountType]({
       ...state.formdata,
       account_type: props.accountType,
       password,
-    })
-      .then(() => {
-        Message({
-          message: t('账号创建成功'),
-          theme: 'success',
-        });
-        emits('success');
-        handleClose();
-      })
-      .finally(() => {
-        state.isLoading = false;
+    }).then(() => {
+      Message({
+        message: t('账号创建成功'),
+        theme: 'success',
       });
+      emits('success');
+    });
   };
 
   /**

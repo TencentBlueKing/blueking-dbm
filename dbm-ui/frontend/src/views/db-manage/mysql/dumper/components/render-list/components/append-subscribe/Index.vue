@@ -12,9 +12,10 @@
 -->
 
 <template>
-  <BkSideslider
+  <DbSideslider
+    v-model:is-show="isShow"
     :before-close="handleClose"
-    :is-show="isShow"
+    :confirm-handler="handleConfirm"
     render-directive="if"
     :width="1100"
     @closed="handleClose">
@@ -24,7 +25,7 @@
       </div>
     </template>
     <div class="append-rule-edit-box">
-      <BkForm
+      <DbForm
         ref="formRef"
         class="edit-form"
         form-type="vertical">
@@ -56,24 +57,9 @@
             </BkRadio>
           </BkRadioGroup>
         </BkFormItem>
-      </BkForm>
+      </DbForm>
     </div>
-    <template #footer>
-      <BkButton
-        class="mr-8"
-        :disabled="isSubmitting"
-        :loading="isSubmitting"
-        theme="primary"
-        @click="handleConfirm">
-        {{ t('提交') }}
-      </BkButton>
-      <BkButton
-        :disabled="isSubmitting"
-        @click="handleClose">
-        {{ t('取消') }}
-      </BkButton>
-    </template>
-  </BkSideslider>
+  </DbSideslider>
 </template>
 
 <script setup lang="tsx">
@@ -90,8 +76,10 @@
 
   import ReceiverData from '@views/db-manage/mysql/dumper/components/create-rule/components/receiver-data/Index.vue';
 
+  type DumperConfig = ServiceReturnType<typeof listDumperConfig>['results'][number];
+
   interface Props {
-    data: DumperConfig | null;
+    data?: DumperConfig;
   }
 
   interface Emits {
@@ -99,10 +87,8 @@
     (e: 'cancel'): void;
   }
 
-  type DumperConfig = ServiceReturnType<typeof listDumperConfig>['results'][number];
-
   const props = withDefaults(defineProps<Props>(), {
-    data: null,
+    data: undefined,
   });
   const emits = defineEmits<Emits>();
   const isShow = defineModel<boolean>();
@@ -115,7 +101,6 @@
   const receiverDataRef = ref();
   const deployPlace = ref('master');
   const syncType = ref('full_sync');
-  const isSubmitting = ref(false);
 
   // 点击确定
   const handleConfirm = async () => {
@@ -134,18 +119,12 @@
       remark: '',
       ticket_type: TicketTypes.TBINLOGDUMPER_INSTALL,
     };
-    isSubmitting.value = true;
-    try {
-      const data = await createTicket(params);
-      if (data.id) {
-        ticketMessage(data.id);
-        emits('success');
-        isShow.value = false;
-      }
-      window.changeConfirm = false;
-    } finally {
-      isSubmitting.value = false;
+    const data = await createTicket(params);
+    if (data.id) {
+      ticketMessage(data.id);
+      emits('success');
     }
+    window.changeConfirm = false;
   };
 
   const handleClose = async () => {

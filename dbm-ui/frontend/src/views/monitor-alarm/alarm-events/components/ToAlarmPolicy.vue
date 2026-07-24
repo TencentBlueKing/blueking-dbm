@@ -6,9 +6,10 @@
     @click="() => (isShow = true)">
     {{ t('调整策略') }}
   </BkButton>
-  <BkDialog
+  <DbDialog
     v-model:is-show="isShow"
     class="to-alarm-policy-dialog"
+    :confirm-handler="handleConfirm"
     quick-close
     :title="t('调整告警策略')"
     :width="500">
@@ -44,18 +45,7 @@
         </template>
       </BkRadioGroup>
     </div>
-    <template #footer>
-      <BkButton
-        class="mr-8"
-        theme="primary"
-        @click="handleConfirm">
-        {{ t('确定') }}
-      </BkButton>
-      <BkButton @click="handleCancel">
-        {{ t('取消') }}
-      </BkButton>
-    </template>
-  </BkDialog>
+  </DbDialog>
 </template>
 
 <script setup lang="ts">
@@ -103,11 +93,7 @@
 
   const handleConfirm = () => {
     emits('confirm', type.value as string);
-    isShow.value = false;
-  };
-
-  const handleCancel = () => {
-    isShow.value = false;
+    return Promise.resolve();
   };
 </script>
 

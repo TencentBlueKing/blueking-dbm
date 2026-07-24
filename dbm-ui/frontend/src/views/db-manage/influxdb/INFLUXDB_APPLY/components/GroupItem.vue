@@ -47,7 +47,7 @@
               {{ $t('新建分组') }}
             </BkButton>
           </span>
-          <BkForm
+          <DbForm
             v-else
             ref="formRef"
             :model="createState">
@@ -80,7 +80,7 @@
                   @click="handleClose" />
               </a>
             </BkFormItem>
-          </BkForm>
+          </DbForm>
         </div>
       </template>
     </BkSelect>

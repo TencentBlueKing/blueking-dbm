@@ -12,7 +12,7 @@
 -->
 
 <template>
-  <BkSideslider
+  <DbSideslider
     :before-close="handleClose"
     :is-show="isShow"
     render-directive="if"
@@ -79,7 +79,7 @@
       <div class="info-title mb-16">
         {{ t('迁移目标信息') }}
       </div>
-      <BkForm
+      <DbForm
         ref="formRef"
         class="edit-form"
         form-type="vertical"
@@ -107,7 +107,7 @@
             :min="1"
             type="number" />
         </BkFormItem>
-      </BkForm>
+      </DbForm>
     </div>
     <template #footer>
       <BkButton
@@ -124,7 +124,7 @@
         {{ t('取消') }}
       </BkButton>
     </template>
-  </BkSideslider>
+  </DbSideslider>
 </template>
 
 <script setup lang="tsx">

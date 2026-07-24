@@ -1,9 +1,10 @@
 <template>
   <DbSideslider
-    :before-close="handleClose"
-    :is-show="isShow"
-    :width="960"
-    @closed="handleClose">
+    v-model:is-show="isShow"
+    :cancel-text="t('取消')"
+    :confirm-handler="handleConfirm"
+    :confirm-text="t('确定')"
+    :width="960">
     <template #header>
       <span>
         {{ t('选择集群目标方案_n', { n: cluster.master_domain }) }}
@@ -46,7 +47,7 @@
           </div>
         </div>
       </div>
-      <BkForm label-width="135">
+      <DbForm label-width="135">
         <ClusterSpecPlanSelector
           v-model="modelValue.spec_id"
           v-model:custom-spec-info="customSpecInfo"
@@ -55,27 +56,14 @@
           cluster-type="tendbcluster"
           machine-type="backend"
           @change="handlePlanChange" />
-      </BkForm>
+      </DbForm>
     </div>
-    <template #footer>
-      <BkButton
-        class="mr-8"
-        theme="primary"
-        @click="handleConfirm">
-        {{ t('确定') }}
-      </BkButton>
-      <BkButton @click="handleClose">
-        {{ t('取消') }}
-      </BkButton>
-    </template>
   </DbSideslider>
 </template>
 <script lang="ts" setup>
   import { useI18n } from 'vue-i18n';
 
   import TendbClusterModel from '@services/model/tendbcluster/tendbcluster';
-
-  import { useBeforeClose } from '@hooks';
 
   import ClusterSpecPlanSelector, { type TicketSpecInfo } from './components/cluster-spec-plan-selector/Index.vue';
 
@@ -112,7 +100,6 @@
     }),
   });
   const { t } = useI18n();
-  const handleBeforeClose = useBeforeClose();
 
   const futureSpec = reactive<TicketSpecInfo>({
     cluster_capacity: 0,
@@ -120,7 +107,6 @@
     spec_id: 0,
     spec_name: '',
   });
-  const choosedSpecId = ref(-1);
   const customSpecInfo = reactive({
     count: 1,
     specId: '',
@@ -128,7 +114,6 @@
 
   watch(isShow, () => {
     if (isShow.value) {
-      choosedSpecId.value = modelValue.value.spec_id;
       Object.assign(futureSpec, modelValue.value);
       Object.assign(customSpecInfo, {
         count: modelValue.value.machine_pair,
@@ -137,22 +122,13 @@
     }
   });
 
-  async function handleClose() {
-    const result = await handleBeforeClose(choosedSpecId.value !== -1);
-    if (!result) {
-      return;
-    }
-    isShow.value = false;
-  }
-
   const handlePlanChange = (specId: number, specData: TicketSpecInfo) => {
-    choosedSpecId.value = specId;
     Object.assign(futureSpec, specData);
   };
 
   const handleConfirm = () => {
     modelValue.value = futureSpec;
-    isShow.value = false;
+    return Promise.resolve();
   };
 </script>
 <style lang="less" scoped>

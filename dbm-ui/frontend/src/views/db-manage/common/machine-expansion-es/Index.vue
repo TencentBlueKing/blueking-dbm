@@ -82,7 +82,6 @@
   import DbResourceModel from '@services/model/db-resource/DbResource';
   import ESModel from '@services/model/es/es';
   import EsMachineModel from '@services/model/es/es-machine';
-  import { createTicket } from '@services/source/ticket';
 
   import { useCreateTicket } from '@hooks';
 
@@ -130,7 +129,7 @@
   }
 </script>
 <script setup lang="tsx">
-  interface Props {
+  export interface Props {
     clusterData: ESModel;
     title: string;
   }

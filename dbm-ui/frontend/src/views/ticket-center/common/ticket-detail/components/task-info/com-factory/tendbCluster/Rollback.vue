@@ -144,7 +144,7 @@
       </template>
     </TicketInfoTableColumn>
   </TicketInfoTable>
-  <BkSideslider
+  <DbSideslider
     v-if="rowData"
     v-model:is-show="isShowSlider"
     :width="900">
@@ -194,7 +194,7 @@
         </TableColumn>
       </PrimaryTable>
     </div>
-  </BkSideslider>
+  </DbSideslider>
 </template>
 
 <script setup lang="ts">

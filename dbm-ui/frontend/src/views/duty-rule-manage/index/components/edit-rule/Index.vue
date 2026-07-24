@@ -12,10 +12,12 @@
 -->
 
 <template>
-  <BkSideslider
-    :before-close="handleClose"
+  <DbSideslider
+    v-model:is-show="isShow"
+    :cancel-text="t('取消')"
     class="rotate-setting-edit-rule"
-    :is-show="isShow"
+    :confirm-handler="handleConfirm"
+    :confirm-text="t('确定')"
     render-directive="if"
     :width="960"
     @closed="handleClose">
@@ -28,7 +30,7 @@
       </span>
     </template>
     <div class="rotation-edit-rule">
-      <BkForm
+      <DbForm
         ref="formRef"
         form-type="vertical"
         :model="formModel"
@@ -39,7 +41,7 @@
           required>
           <BkInput v-model="formModel.ruleName" />
         </BkFormItem>
-      </BkForm>
+      </DbForm>
       <div class="name-tip">
         {{ nameTip }}
       </div>
@@ -69,21 +71,7 @@
           :data="data" />
       </KeepAlive>
     </div>
-    <template #footer>
-      <BkButton
-        class="mr-8"
-        :loading="isCreateLoading || isUpdateLoading"
-        theme="primary"
-        @click="handleConfirm">
-        {{ t('确定') }}
-      </BkButton>
-      <BkButton
-        :disabled="isCreateLoading || isUpdateLoading"
-        @click="handleClose">
-        {{ t('取消') }}
-      </BkButton>
-    </template>
-  </BkSideslider>
+  </DbSideslider>
 </template>
 
 <script setup lang="tsx">
@@ -92,8 +80,6 @@
 
   import DutyRuleModel from '@services/model/monitor/duty-rule';
   import { createDutyRule, updateDutyRule } from '@services/source/monitor';
-
-  import { useBeforeClose } from '@hooks';
 
   import { messageSuccess } from '@utils';
 
@@ -119,7 +105,6 @@
   const isShow = defineModel<boolean>();
 
   const { t } = useI18n();
-  const handleBeforeClose = useBeforeClose();
 
   const nameTip = ref('');
   const rotateType = ref('handoff');
@@ -187,22 +172,22 @@
     ],
   };
 
-  const { loading: isCreateLoading, run: runCreateDutyRule } = useRequest(createDutyRule, {
+  const { runAsync: runCreateDutyRule } = useRequest(createDutyRule, {
     manual: true,
     onSuccess: () => {
+      window.changeConfirm = false;
       messageSuccess(t('保存成功'));
       emits('success');
-      isShow.value = false;
     },
   });
 
-  const { loading: isUpdateLoading, run: runUpdateDutyRule } = useRequest(updateDutyRule, {
+  const { runAsync: runUpdateDutyRule } = useRequest(updateDutyRule, {
     manual: true,
     onSuccess: () => {
       // 成功
+      window.changeConfirm = false;
       messageSuccess(t('编辑成功'));
       emits('success');
-      isShow.value = false;
     },
   });
 
@@ -238,14 +223,13 @@
       };
       if (isCreate.value) {
         // 新建/克隆
-        runCreateDutyRule(cycleParams);
-      } else {
-        // 克隆或者编辑
-        if (props.data) {
-          cycleParams.effective_time = cycleValues.effective_time;
-          cycleParams.end_time = cycleValues.end_time;
-          runUpdateDutyRule(props.data.id, cycleParams);
-        }
+        return runCreateDutyRule(cycleParams);
+      }
+      // 克隆或者编辑
+      if (props.data) {
+        cycleParams.effective_time = cycleValues.effective_time;
+        cycleParams.end_time = cycleValues.end_time;
+        return runUpdateDutyRule(props.data.id, cycleParams);
       }
     } else {
       // 自定义轮值
@@ -262,25 +246,17 @@
       };
       if (isCreate.value) {
         // 新建/克隆
-        runCreateDutyRule(customParams);
-      } else {
-        // 克隆或者编辑
-        if (props.data) {
-          runUpdateDutyRule(props.data.id, customParams);
-        }
+        return runCreateDutyRule(customParams);
+      }
+      // 克隆或者编辑
+      if (props.data) {
+        return runUpdateDutyRule(props.data.id, customParams);
       }
     }
   };
 
   async function handleClose() {
-    const result = await handleBeforeClose();
-
-    if (!result) {
-      return false;
-    }
-    window.changeConfirm = false;
     isShow.value = false;
-    return true;
   }
 </script>
 

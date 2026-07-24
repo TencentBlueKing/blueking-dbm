@@ -11,7 +11,7 @@
  * the specific language governing permissions and limitations under the License.
  */
 
-import InfoBox from 'bkui-vue/lib/info-box';
+import { InfoBox } from 'bkui-vue';
 
 import { t } from '@locales/index';
 

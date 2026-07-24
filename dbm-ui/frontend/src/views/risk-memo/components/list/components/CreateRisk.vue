@@ -1,5 +1,5 @@
 <template>
-  <BkSideslider
+  <DbSideslider
     v-model:is-show="isShow"
     :before-close="handleBeforeClose"
     class="create-risk-slider-main"
@@ -8,7 +8,7 @@
     :title="isSpecial ? t('新建要求') : t('新建风险')"
     :width="960"
     @closed="handleClosed">
-    <BkForm
+    <DbForm
       ref="formRef"
       form-type="vertical"
       :model="formData"
@@ -75,7 +75,7 @@
           class="rich-text-editor-main"
           :placeholder="isSpecial ? t('请输入具体的要求') : t('请输入风险描述')" />
       </BkFormItem>
-    </BkForm>
+    </DbForm>
     <div class="operate-main">
       <BkButton
         class="w-88"
@@ -90,7 +90,7 @@
         {{ t('取消') }}
       </BkButton>
     </div>
-  </BkSideslider>
+  </DbSideslider>
 </template>
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';

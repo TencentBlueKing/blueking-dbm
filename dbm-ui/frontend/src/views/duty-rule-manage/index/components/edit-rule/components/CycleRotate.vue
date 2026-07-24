@@ -12,7 +12,7 @@
 -->
 
 <template>
-  <BkForm
+  <DbForm
     ref="formRef"
     class="mt-24"
     form-type="vertical"
@@ -56,7 +56,7 @@
         </BkInput>
       </BkFormItem>
     </div>
-  </BkForm>
+  </DbForm>
   <div class="title-spot cycle-table-box mt-24">{{ t('轮值起止时间') }}<span class="required" /></div>
   <BkDatePicker
     ref="datePickerRef"

@@ -12,9 +12,11 @@
 -->
 
 <template>
-  <BkDialog
+  <DbDialog
     class="dbm-resource-selector"
     :close-icon="false"
+    :confirm-button-disable-info="{ disabled: localSelected.length === 0, tooltips: { content: '', disabled: true } }"
+    :confirm-handler="handleSubmit"
     :draggable="false"
     :esc-close="false"
     :is-show="isShow"
@@ -50,25 +52,10 @@
         <PreviewResult v-model:selected="localSelected" />
       </template>
     </BkResizeLayout>
-    <template #footer>
-      <BkButton
-        class="w-88"
-        :disabled="localSelected.length === 0"
-        theme="primary"
-        @click="handleSubmit">
-        {{ t('确定') }}
-      </BkButton>
-      <BkButton
-        class="ml-8 w-88"
-        @click="handleClose">
-        {{ t('取消') }}
-      </BkButton>
-    </template>
-  </BkDialog>
+  </DbDialog>
 </template>
 <script setup lang="ts">
   import _ from 'lodash';
-  import { useI18n } from 'vue-i18n';
 
   import PreviewResult from './components/PreviewResult.vue';
   import RenderTable, { type IValue as IHost } from './components/RenderTable.vue';
@@ -89,8 +76,6 @@
     required: true,
   });
 
-  const { t } = useI18n();
-
   const selectNode = ref<TopoTreeNode>();
   const localSelected = shallowRef<IValue[]>([]);
 
@@ -109,7 +94,7 @@
 
   const handleSubmit = () => {
     emits('change', localSelected.value);
-    handleClose();
+    return Promise.resolve();
   };
 </script>
 <style lang="less">

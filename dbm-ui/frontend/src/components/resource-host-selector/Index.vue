@@ -1,5 +1,5 @@
 <template>
-  <BkDialog
+  <DbDialog
     v-test="{ type: 'dialog', value: 'resourceHostSelector' }"
     class="resource-host-selector"
     :close-icon="false"
@@ -133,7 +133,7 @@
         {{ t('取消') }}
       </BkButton>
     </template>
-  </BkDialog>
+  </DbDialog>
 </template>
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
