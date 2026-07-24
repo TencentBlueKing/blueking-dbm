@@ -195,10 +195,10 @@
               disabled: data.dbm_event,
               content: t('暂不支持，请去监控平台操作'),
             }"
-            action-id="alert_shield_create"
+            action-id="alert_shield_manage"
             :biz-id="data.alarmBizId"
             :disabled="!data.dbm_event"
-            :permission="data.dbm_event ? data.permission.alert_shield_create : true"
+            :permission="data.dbm_event ? data.permission.alert_shield_manage : true"
             text
             theme="primary"
             @click="() => handleOpenShieldAlarms(true, data)">

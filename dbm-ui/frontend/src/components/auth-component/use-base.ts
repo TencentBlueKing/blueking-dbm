@@ -45,12 +45,13 @@ const withBizActionList = [
   'hdfs_apply',
   'pulsar_apply',
   'influxdb_apply',
-  'monitor_policy_view',
-  'notify_group_create',
-  'notify_group_update',
-  'notify_group_list',
-  'notify_group_create',
-  'notify_group_delete',
+  'notify_group_manage',
+  'monitor_policy_manage',
+  // 'monitor_policy_view', // 旧权限
+  // 'notify_group_create', // 旧权限
+  // 'notify_group_update', // 旧权限
+  // 'notify_group_list', // 旧权限
+  // 'notify_group_delete', // 旧权限
   'dbconfig_view',
   'dbconfig_edit',
   'dba_admin_edit',
@@ -61,7 +62,7 @@ const withBizActionList = [
   'access_entry_edit',
   'admin_pwd_view',
   'riak_cluster_apply',
-  'monitor_policy_clone',
+  // 'monitor_policy_clone', // 旧权限
   'mongodb_apply',
   'mongodb_account_create',
   'mongodb_account_rules_view',

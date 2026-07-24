@@ -3,7 +3,7 @@
     <div class="operation-main">
       <div class="left-operation">
         <AuthButton
-          action-id="alert_shield_create"
+          action-id="alert_shield_manage"
           :biz-id="currentBizId"
           class="w-64 mr-8"
           theme="primary"
@@ -143,11 +143,11 @@
               disabled: data.isEdiatable,
               content: t('暂不支持'),
             }"
-            action-id="alert_shield_create"
+            action-id="alert_shield_manage"
             :biz-id="data.bk_biz_id"
             class="ml-8 mr-8"
             :disabled="!data.isEdiatable"
-            :permission="!data.isEdiatable ? true : data.permission.alert_shield_create"
+            :permission="!data.isEdiatable ? true : data.permission.alert_shield_manage"
             text
             theme="primary"
             @click="() => handleOpenShieldAlarms('clone', data)">

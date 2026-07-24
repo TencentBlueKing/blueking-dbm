@@ -61,7 +61,7 @@ export default class AlarmShield {
   is_enabled: boolean;
   notice_config: string;
   permission: {
-    alert_shield_create: boolean;
+    // alert_shield_create: boolean;
     alert_shield_manage: boolean;
   };
   shield_notice: boolean;
