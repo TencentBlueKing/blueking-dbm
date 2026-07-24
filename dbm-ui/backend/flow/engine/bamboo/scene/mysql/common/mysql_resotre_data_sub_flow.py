@@ -31,6 +31,7 @@ from backend.flow.engine.bamboo.scene.common.builder import SubBuilder
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
 from backend.flow.engine.bamboo.scene.mysql.common.get_local_backup import check_binlog_missing
 from backend.flow.engine.bamboo.scene.mysql.common.mysql_restore_download_sub_flow import (
+    check_backup_file_in_backup_system,
     mysql_restore_download_sub_flow,
 )
 from backend.flow.engine.bamboo.scene.spider.common.exceptions import (
@@ -547,6 +548,11 @@ def priv_recover_sub_flow(
         return None
     # 这里流程是提前生成的，这里新的ip还查询不到。所以只能通过指定ip
     master = cluster_model.storageinstance_set.get(instance_inner_role=InstanceInnerRole.MASTER.value)
+    # 备份文件上传状态只需检查一次，避免对相同 task_ids 重复查询备份系统
+    check_backup_info = check_backup_file_in_backup_system(backup_info["task_ids"])
+    if check_backup_info != "":
+        logger.warning(check_backup_info)
+        return None
     priv_sub_pipeline_list = []
     for restore_ip in ips:
         priv_sub_pipeline = SubBuilder(root_id=root_id, data=ticket_data)
@@ -557,7 +563,6 @@ def priv_recover_sub_flow(
             "port": master.port,
             "force": False,
         }
-
         sub_pipeline.add_sub_pipeline(
             sub_flow=mysql_restore_download_sub_flow(
                 root_id=root_id,
