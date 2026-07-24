@@ -61,6 +61,7 @@
         ref="paramTableRef"
         :data-source="paramDataSource"
         :default-limit="100"
+        :disable-select-method="disableSelectMethod"
         :filter-value="searchValue"
         :fixed-pagination="fixedPagination"
         :row-key="rowKey"
@@ -687,6 +688,14 @@
   /** 选中变化 */
   const handleSelectionChange = (_keys: string[], list: ConfItem[]) => {
     selectedRows.value = list;
+  };
+
+  /** 只读项禁用选择，hover 提示 */
+  const disableSelectMethod = (row: ConfItem) => {
+    if (row.flag_readonly === 1) {
+      return t('该参数不允许业务编辑');
+    }
+    return false;
   };
 
   /** 添加参数（若有未完成的编辑，先丢弃） */
