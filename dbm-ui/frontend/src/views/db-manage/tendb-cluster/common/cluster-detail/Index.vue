@@ -304,10 +304,6 @@
         :account-type="AccountTypes.TENDBCLUSTER"
         :cluster-types="[ClusterTypes.TENDBCLUSTER, 'tendbclusterSlave']"
         :selected="[data]" />
-      <ClusterExportData
-        v-model:is-show="isShowDataExport"
-        :data="data"
-        :ticket-type="TicketTypes.TENDBCLUSTER_DUMP_DATA" />
     </template>
   </div>
 </template>
@@ -338,7 +334,6 @@
   } from '@views/db-manage/common/cluster-details';
   import ClusterDomainDnsRelation from '@views/db-manage/common/cluster-domain-dns-relation/Index.vue';
   import ClusterEntryPanel from '@views/db-manage/common/cluster-entry-panel/Index.vue';
-  import ClusterExportData from '@views/db-manage/common/cluster-export-data/Index.vue';
   import { useAddClb, useBindOrUnbindClb, useOperateClusterBasic } from '@views/db-manage/common/hooks';
   import OperationBtnStatusTips from '@views/db-manage/common/OperationBtnStatusTips.vue';
 
@@ -355,6 +350,7 @@
 
   const { ClbInfo, ModuleNameInfo } = BaseInfoField;
 
+  const router = useRouter();
   const { t } = useI18n();
   const ticketMessage = useTicketMessage();
 
@@ -371,7 +367,6 @@
 
   const data = ref<TendbClusterDetailModel>();
   const isAuthorizeShow = ref(false);
-  const isShowDataExport = ref(false);
   const removeMNTInstances = ref<string[]>([]);
   const clusterPrimaryMap = shallowRef<Record<string, boolean>>({});
 
@@ -458,7 +453,12 @@
   };
 
   const handleShowDataExportSlider = () => {
-    isShowDataExport.value = true;
+    router.push({
+      name: TicketTypes.TENDBCLUSTER_DUMP_DATA,
+      query: {
+        clusterId: data.value?.id.toString() || '',
+      },
+    });
   };
 
   // 下架只读集群

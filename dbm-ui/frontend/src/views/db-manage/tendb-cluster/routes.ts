@@ -93,10 +93,9 @@ const spiderToolboxRoute = {
     createRouteItem(TicketTypes.TENDBCLUSTER_RENAME_DATABASE, t('DB 重命名'), {
       dbConsole: 'tendbCluster.toolbox.dbRename',
     }),
-    // TODO 功能未合主分支，注释
-    // createRouteItem(TicketTypes.TENDBCLUSTER_DUMP_DATA, t('数据导出'), {
-    //   dbConsole: 'tendbCluster.toolbox.dataExport',
-    // }),
+    createRouteItem(TicketTypes.TENDBCLUSTER_DUMP_DATA, t('数据导出'), {
+      dbConsole: 'tendbCluster.toolbox.dataExport',
+    }),
     createRouteItem(TicketTypes.TENDBCLUSTER_MASTER_SLAVE_SWITCH, t('主从互切'), {
       dbConsole: 'tendbCluster.toolbox.masterSlaveSwap',
     }),
