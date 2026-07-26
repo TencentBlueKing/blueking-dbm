@@ -446,6 +446,134 @@ def calculate_cluster_add_shard(payload: dict) -> dict:
     return add_shard_payload
 
 
+def _validate_co_located_shard_group(all_shards: list, selected_names: set) -> None:
+    """
+    整机组约束：选中任一 shard 时，同机共存的其它 shard 必须一并选中。
+    all_shards: ReplicaSet list（不含 configsvr）
+    """
+
+    ip_to_shards = {}
+    shard_to_ips = {}
+    for shard in all_shards:
+        ips = {member.ip for member in shard.members}
+        shard_to_ips[shard.set_name] = ips
+        for ip in ips:
+            ip_to_shards.setdefault(ip, set()).add(shard.set_name)
+
+    for selected in selected_names:
+        required = set()
+        for ip in shard_to_ips.get(selected, set()):
+            required |= ip_to_shards.get(ip, set())
+        missing = required - selected_names
+        if missing:
+            raise ValueError(
+                "co-located shard group incomplete: selected={} requires also {}".format(selected, sorted(missing))
+            )
+
+
+def calculate_cluster_reduce_shard(payload: dict) -> dict:
+    """分片集群减少 shard 计算与校验"""
+
+    reduce_payload = {
+        "uid": payload["uid"],
+        "created_by": payload["created_by"],
+        "bk_biz_id": payload["bk_biz_id"],
+        "ticket_type": payload.get("ticket_type", "MongoDBReduceShardFlow"),
+        "bk_cloud_id": payload.get("bk_cloud_id", 0),
+        "cluster_type": ClusterType.MongoShardedCluster.value,
+    }
+    if "ticket_id" in payload:
+        reduce_payload["ticket_id"] = payload["ticket_id"]
+    if "bk_app_abbr" in payload:
+        reduce_payload["bk_app_abbr"] = payload["bk_app_abbr"]
+
+    cluster_reduce_shard_info = []
+    for cluster in payload["infos"]:
+        cluster_id = cluster["cluster_id"]
+        shard_names = list(cluster.get("shard_names") or [])
+        if not shard_names:
+            raise ValueError("cluster_id={} shard_names can not be empty".format(cluster_id))
+
+        selected = set(shard_names)
+        if len(selected) != len(shard_names):
+            raise ValueError("cluster_id={} shard_names has duplicates".format(cluster_id))
+
+        cluster_info_from_db = MongoRepository().fetch_one_cluster(id=cluster_id)
+        if cluster_info_from_db is None:
+            raise ValueError("cluster_id={} not found".format(cluster_id))
+        if cluster_info_from_db.cluster_type != ClusterType.MongoShardedCluster.value:
+            raise ValueError("cluster_id={} is not MongoShardedCluster".format(cluster_id))
+
+        all_shards = cluster_info_from_db.get_shards()
+        all_shard_names = {shard.set_name for shard in all_shards}
+        unknown = selected - all_shard_names
+        if unknown:
+            raise ValueError("cluster_id={} unknown shard_names={}".format(cluster_id, sorted(unknown)))
+
+        config = cluster_info_from_db.get_config()
+        if config and config.set_name in selected:
+            raise ValueError("cluster_id={} can not remove configsvr shard {}".format(cluster_id, config.set_name))
+
+        remaining = len(all_shard_names) - len(selected)
+        if remaining < 1:
+            raise ValueError("cluster_id={} would remove all shards, remaining must be >= 1".format(cluster_id))
+
+        _validate_co_located_shard_group(all_shards, selected)
+
+        bk_cloud_id = cluster.get("bk_cloud_id", cluster_info_from_db.bk_cloud_id)
+        mongos = cluster_info_from_db.get_mongos()[0]
+        mongos_nodes = [
+            {
+                "ip": mongos.ip,
+                "bk_cloud_id": mongos.bk_cloud_id,
+                "port": mongos.port,
+            }
+        ]
+
+        reduce_shards = []
+        storages = []
+        old_instances = []
+        shard_host_map = {}
+        for shard in all_shards:
+            if shard.set_name not in selected:
+                continue
+            nodes = []
+            for member in shard.members:
+                node = {
+                    "ip": member.ip,
+                    "port": int(member.port),
+                    "bk_cloud_id": member.bk_cloud_id,
+                    "set_id": shard.set_name,
+                }
+                nodes.append({"ip": member.ip, "port": int(member.port)})
+                old_instances.append(node)
+                shard_host_map[member.ip] = {"ip": member.ip, "bk_cloud_id": member.bk_cloud_id}
+            reduce_shards.append(shard.set_name)
+            storages.append({"shard": shard.set_name, "nodes": nodes})
+
+        # mongos + 待删 shard 主机都需要下发介质（removeShard 在 mongos 执行）
+        hosts = list(shard_host_map.values())
+        if mongos.ip not in shard_host_map:
+            hosts.append({"ip": mongos.ip, "bk_cloud_id": mongos.bk_cloud_id})
+
+        cluster_reduce_shard_info.append(
+            {
+                "cluster_id": cluster_id,
+                "cluster_name": cluster_info_from_db.name,
+                "bk_cloud_id": bk_cloud_id,
+                "mongos": {"port": mongos.port, "nodes": mongos_nodes},
+                "reduce_shards": reduce_shards,
+                "storages": storages,
+                "hosts": hosts,
+                "old_instances": old_instances,
+                "old_hosts": list(shard_host_map.values()),
+            }
+        )
+
+    reduce_payload["cluster_reduce_shard_info"] = cluster_reduce_shard_info
+    return reduce_payload
+
+
 def calc_cluster_standardization(payload: dict) -> dict:
     """计算集群标准化"""
 

@@ -132,6 +132,7 @@ func (m *JobGenericManager) RegisterAtomJob() {
 			atommongodb.NewMongoSInstall,
 			atommongodb.NewInitiateReplicaset,
 			atommongodb.NewAddShardToCluster,
+			atommongodb.NewRemoveShardFromCluster,
 			atommongodb.NewAddUser,
 			atommongodb.NewDelUser,
 			atommongodb.NewMongoDReplace,

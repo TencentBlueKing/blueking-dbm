@@ -256,14 +256,16 @@ class MongoDBListRetrieveResource(query.ListRetrieveResource, MongoDBExportQuery
         # 获取单机分片数
         single_host_shard_num = shard_num / mongodb_machine_pair
 
-        # 获取shard分片规格
-        mongodb_spec = mongodb_insts[0].machine.spec_config
+        # 获取shard分片规格（历史机器可能缺 storage_spec，兜底为空列表）
+        mongodb_spec = dict(mongodb_insts[0].machine.spec_config or {})
         mount_point__size = {
             disk["mount_point"]: disk["min"] if "min" in disk else disk.get("size")
-            for disk in mongodb_spec["storage_spec"]
+            for disk in (mongodb_spec.get("storage_spec") or [])
+            if disk.get("mount_point")
         }
+        data_size = mount_point__size.get("/data1") or (mount_point__size.get("/data") or 0) / 2
         mongodb_spec.update(
-            capacity=mount_point__size.get("/data1") or mount_point__size["/data"] / 2,
+            capacity=data_size,
             machine_pair=mongodb_machine_pair,
         )
         shard_spec = MongoDBShardSpecFilter.get_shard_spec(mongodb_spec, shard_num)
