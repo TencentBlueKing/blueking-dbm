@@ -606,6 +606,7 @@ class MongoDBActuatorActionEnum(StrStructuredEnum):
     mongoSInstall = EnumField("mongos_install", _("mongos_install"))
     InitReplicaset = EnumField("init_replicaset", _("init_replicaset"))
     AddShardToCluster = EnumField("add_shard_to_cluster", _("add_shard_to_cluster"))
+    RemoveShardFromCluster = EnumField("remove_shard_from_cluster", _("remove_shard_from_cluster"))
     AddUser = EnumField("add_user", _("add_user"))
     DeleteUser = EnumField("delete_user", _("delete_user"))
     MongoExecuteScript = EnumField("mongo_execute_script", _("mongo_execute_script"))

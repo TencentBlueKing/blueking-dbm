@@ -874,6 +874,48 @@ class ActKwargs:
             },
         }
 
+    def get_remove_shard_from_cluster_kwargs(self) -> dict:
+        """从 cluster 移除 shard 的 kwargs"""
+
+        return {
+            "set_trans_data_dataclass": CommonContext.__name__,
+            "get_trans_data_ip_var": None,
+            "bk_cloud_id": self.payload["mongos"]["nodes"][0]["bk_cloud_id"],
+            "exec_ip": self.payload["mongos"]["nodes"][0]["ip"],
+            "db_act_template": {
+                "action": MongoDBActuatorActionEnum.RemoveShardFromCluster,
+                "file_path": self.file_path,
+                "payload": {
+                    "ip": self.payload["mongos"]["nodes"][0]["ip"],
+                    "port": self.payload["mongos"]["port"],
+                    "adminUsername": MongoDBManagerUser.DbaUser.value,
+                    "adminPassword": self.payload["passwords"][MongoDBManagerUser.DbaUser.value],
+                    "shards": self.payload["reduce_shards"],
+                },
+            },
+        }
+
+    def get_reduce_shard_to_meta_kwargs(self, info: dict) -> dict:
+        """分片集群减少 shard 清理 meta 的 kwargs"""
+
+        return {
+            "bk_biz_id": self.payload["bk_biz_id"],
+            "cluster_id": info["cluster_id"],
+            "creator": self.payload["created_by"],
+            "storages": info["storages"],
+            "bk_cloud_id": info["bk_cloud_id"],
+        }
+
+    def get_reduce_shard_delete_pwd_kwargs(self, instances: list) -> dict:
+        """减少分片后删除实例密码"""
+
+        return {
+            "instances": [
+                {"ip": inst["ip"], "port": inst["port"], "bk_cloud_id": inst["bk_cloud_id"]} for inst in instances
+            ],
+            "usernames": self.manager_users,
+        }
+
     def get_init_exec_script_kwargs(self, script_type: str) -> dict:
         """通过执行脚本"""
 

@@ -11,6 +11,7 @@ specific language governing permissions and limitations under the License.
 from backend.flow.engine.bamboo.scene.mongodb.mongodb_autofix import MongoAutofixFlow
 from backend.flow.engine.bamboo.scene.mongodb.mongodb_backup import MongoBackupFlow
 from backend.flow.engine.bamboo.scene.mongodb.mongodb_cluster_add_shard import MongoDBClusterAddShardFlow
+from backend.flow.engine.bamboo.scene.mongodb.mongodb_cluster_reduce_shard import MongoDBClusterReduceShardFlow
 from backend.flow.engine.bamboo.scene.mongodb.mongodb_cluster_scale_mongos import ScaleMongoSFlow
 from backend.flow.engine.bamboo.scene.mongodb.mongodb_data_export import MongoDataExportFlow
 from backend.flow.engine.bamboo.scene.mongodb.mongodb_deinstall import MongoDBDeInstallFlow
@@ -228,6 +229,14 @@ class MongoDBController(BaseController):
 
         flow = MongoDBClusterAddShardFlow(root_id=self.root_id, data=self.ticket_data)
         flow.multi_cluster_add_shard_flow()
+
+    def cluster_reduce_shard(self):
+        """
+        减少分片
+        """
+
+        flow = MongoDBClusterReduceShardFlow(root_id=self.root_id, data=self.ticket_data)
+        flow.multi_cluster_reduce_shard_flow()
 
     @validates_with(MongodbInstanceMigrateValidator)
     def instance_migrate(self):

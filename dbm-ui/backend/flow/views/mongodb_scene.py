@@ -337,6 +337,18 @@ class MongoDBClusterAddShardView(FlowTestView):
         return Response({"root_id": root_id})
 
 
+class MongoDBClusterReduceShardView(FlowTestView):
+    """
+    cluster减少shard
+    """
+
+    @staticmethod
+    def post(request):
+        root_id = uuid.uuid1().hex
+        MongoDBController(root_id=root_id, ticket_data=request.data).cluster_reduce_shard()
+        return Response({"root_id": root_id})
+
+
 class MongoDBInstanceMigrateView(FlowTestView):
     """
     instance迁移
