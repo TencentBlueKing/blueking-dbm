@@ -29,4 +29,6 @@ class QdrantHaListRetrieveResource(KubernetesBaseListRetrieveResource):
     ) -> dict:
         cluster = Cluster.objects.get(bk_biz_id=bk_biz_id, id=cluster_id)
         graph = scan_cluster(cluster, bcs_cluster_name, namespace).to_dict()
+        # 为 pod 节点的 node_id 追加 cluster_access_port
+        graph = cls._enrich_topo_graph_node_port(graph, cluster.access_port)
         return graph
