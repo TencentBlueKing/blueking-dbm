@@ -56,5 +56,5 @@ func (m *MySqlStatus) Process(task json.RawMessage) (*haprobe.DbEvent, error) {
 }
 
 func init() {
-	Parsers[haprobe.DbTypeMySql] = &MySqlStatus{}
+	Register(haprobe.DbTypeMySql, &MySqlStatus{})
 }

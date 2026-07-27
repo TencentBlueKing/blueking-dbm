@@ -24,79 +24,33 @@
 
 package config
 
+import (
+	"sort"
+
+	"gopkg.in/yaml.v3"
+)
+
 // probeYAML is used only for GenProbeYAML output. Reuses LogConfig from config.go.
-//
-// Locally owned blocks (ServiceID, Client, Admin, ClearPorts) use omitempty so a render that
-// does not inject them stays free of empty blocks, while LocalFields fills them in when
-// rewriting an existing file. A brand-new file injects only Admin and ClearPorts, which have a
-// real source on that path (the resolved pull parameters and --clear-port); the rest would come
-// from defaultConfiguration() and stay omitted.
 type probeYAML struct {
-	Name       string             `yaml:"name"`
-	Version    string             `yaml:"version"`
-	ServiceID  string             `yaml:"serviceID,omitempty"`
-	PidFile    string             `yaml:"pidFile"`
-	Reporter   probeReporterYAML  `yaml:"reporter"`
-	Client     *probeClientYAML   `yaml:"client,omitempty"`
-	Admin      *probeAdminYAML    `yaml:"admin,omitempty"`
-	Harvester  probeHarvesterYAML `yaml:"harvester"`
-	Log        LogConfig          `yaml:"log"`
-	ClearPorts []int              `yaml:"clearPorts,omitempty"`
+	Name      string             `yaml:"name"`
+	Version   string             `yaml:"version"`
+	PidFile   string             `yaml:"pidFile"`
+	Reporter  probeReporterYAML  `yaml:"reporter"`
+	Harvester probeHarvesterYAML `yaml:"harvester"`
+	Log       LogConfig          `yaml:"log"`
 }
 
 // probeReporterYAML has ConnTimeout as string for YAML output (e.g. "5s"); ReporterConfig uses time.Duration.
 type probeReporterYAML struct {
-	Name        string `yaml:"name"`
-	Endpoint    string `yaml:"endpoint"`
-	DataID      uint64 `yaml:"dataID"`
-	ConnTimeout string `yaml:"connTimeout"`
-	// omitempty: admin does not send it; 0 keeps existing YAML unchanged.
-	BkCloudID int `yaml:"bkCloudID,omitempty"`
-	// omitempty: omit when 0 so Linux YAML stays byte-identical.
-	LocalSocketPort uint `yaml:"localSocketPort,omitempty"`
+	Name            string `yaml:"name"`
+	Endpoint        string `yaml:"endpoint"`
+	DataID          uint64 `yaml:"dataID"`
+	ConnTimeout     string `yaml:"connTimeout"`
+	LocalSocketPort uint   `yaml:"localSocketPort,omitempty"` // omitempty: omit when 0 so Linux YAML stays byte-identical
 }
 
-// probeClientYAML mirrors ClientConfig, and probeAdminYAML mirrors AdminConfig.
-//
-// They exist because of a convention this file already follows for the harvester blocks:
-// durations render as strings here ("5s"), while the Configuration side uses time.Duration.
-// Reusing the Configuration types directly would write durations as their nanosecond count,
-// which is both unreadable and not what an operator editing the file expects.
-//
-// Every field carries omitempty, which matters most for the durations: a zero time.Duration
-// renders to the empty string and viper refuses to parse `pingTime: ""` back into a duration,
-// so an omitted key is the only correct rendering of a zero value. Omitting it round-trips
-// cleanly, since a missing key parses back to zero.
-//
-// TestMirrorStructsCoverSource keeps these in step with the types they mirror.
-type probeClientYAML struct {
-	PingTime                     string `yaml:"pingTime,omitempty"`
-	PingTimeout                  string `yaml:"pingTimeout,omitempty"`
-	MaxReceiveMessageSize        int    `yaml:"maxReceiveMessageSize,omitempty"`
-	MaxSendMessageSize           int    `yaml:"maxSendMessageSize,omitempty"`
-	ReceiverReconnectInterval    string `yaml:"receiverReconnectInterval,omitempty"`
-	ReceiverMaxReconnectAttempts int    `yaml:"receiverMaxReconnectAttempts,omitempty"`
-}
-
-type probeAdminYAML struct {
-	Endpoints    []string `yaml:"endpoints,omitempty"`
-	BkCloudID    uint64   `yaml:"bkCloudID,omitempty"`
-	LocalIP      string   `yaml:"localIP,omitempty"`
-	SyncInterval string   `yaml:"syncInterval,omitempty"`
-}
-
-// probeHarvesterYAML uses string for Interval/Timeout in YAML output; reuses DbEndpointConfig for Endpoints.
-type probeMySQLHarvesterYAML struct {
-	User              string             `yaml:"user"`
-	Password          string             `yaml:"password"`
-	Interval          string             `yaml:"interval"`
-	HeartbeatInterval string             `yaml:"heartbeatInterval,omitempty"`
-	ReplDelayInterval string             `yaml:"replDelayInterval,omitempty"`
-	Timeout           string             `yaml:"timeout"`
-	Endpoints         []DbEndpointConfig `yaml:"endpoints"`
-}
-
-type probeRedisHarvesterYAML struct {
+// probeGenericHarvesterYAML is the on-wire shape shared by named and extra harvester blocks.
+type probeGenericHarvesterYAML struct {
 	User      string             `yaml:"user"`
 	Password  string             `yaml:"password"`
 	Interval  string             `yaml:"interval"`
@@ -104,8 +58,51 @@ type probeRedisHarvesterYAML struct {
 	Endpoints []DbEndpointConfig `yaml:"endpoints"`
 }
 
+type probeMySQLHarvesterYAML = probeGenericHarvesterYAML
+type probeRedisHarvesterYAML = probeGenericHarvesterYAML
+
+// probeHarvesterYAML keeps named mysql/redis/proxyAdmin blocks for zero regression and
+// Extra for newly added DB types. MarshalYAML emits a flat mapping.
 type probeHarvesterYAML struct {
-	MySQL           *probeMySQLHarvesterYAML `yaml:"mysql,omitempty"`
-	MySQLProxyAdmin *probeMySQLHarvesterYAML `yaml:"mysqlProxyAdmin,omitempty"`
-	Redis           *probeRedisHarvesterYAML `yaml:"redis,omitempty"`
+	MySQL           *probeMySQLHarvesterYAML
+	MySQLProxyAdmin *probeMySQLHarvesterYAML
+	Redis           *probeRedisHarvesterYAML
+	Extra           map[string]*probeGenericHarvesterYAML
+}
+
+// MarshalYAML flattens named + Extra blocks into one harvester mapping.
+// Relies on yaml.v3 sorting map keys; the three well-known blocks' lexicographic
+// order happens to match the historical field order. Adding a new named block
+// may change the emitted key order relative to Extra keys.
+func (h probeHarvesterYAML) MarshalYAML() (interface{}, error) {
+	out := map[string]*probeGenericHarvesterYAML{}
+	if h.MySQL != nil {
+		out[HarvesterBlockMySQL] = h.MySQL
+	}
+	if h.MySQLProxyAdmin != nil {
+		out[HarvesterBlockMySQLProxyAdmin] = h.MySQLProxyAdmin
+	}
+	if h.Redis != nil {
+		out[HarvesterBlockRedis] = h.Redis
+	}
+	for name, block := range h.Extra {
+		if block == nil {
+			continue
+		}
+		out[name] = block
+	}
+	return out, nil
+}
+
+// Ensure yaml.Marshaler is satisfied at compile time.
+var _ yaml.Marshaler = probeHarvesterYAML{}
+
+// sortedExtraBlockNames returns Extra keys in deterministic order (for tests / callers).
+func sortedExtraBlockNames(extra map[string][]DbEndpointConfig) []string {
+	names := make([]string, 0, len(extra))
+	for name := range extra {
+		names = append(names, name)
+	}
+	sort.Strings(names)
+	return names
 }

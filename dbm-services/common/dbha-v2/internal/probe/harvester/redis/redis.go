@@ -61,13 +61,13 @@ type Redis struct {
 	machineID string
 	serviceID string
 	wg        sync.WaitGroup
-	cfg       *config.RedisHarvesterConfig
+	cfg       *config.RawHarvesterConfig
 	// key: the redis endpoint
 	collectors map[string]*collector
 }
 
 // NewRedis constructor
-func NewRedis(cfg *config.RedisHarvesterConfig) (*Redis, error) {
+func NewRedis(cfg *config.RawHarvesterConfig) (*Redis, error) {
 	r := &Redis{
 		cfg: cfg,
 	}

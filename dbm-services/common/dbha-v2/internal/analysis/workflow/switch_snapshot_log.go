@@ -66,8 +66,8 @@ func NewSwitchingSnapshotData(
 
 	// marshal metadata set
 	metaSet := []*dbm.DbInstMetadata{}
-	if req.MySqlInstData != nil {
-		metaSet = req.MySqlInstData
+	if req.InstData != nil {
+		metaSet = req.InstData
 	}
 
 	// build a lookup of instance detection times (from the SSH double-check) keyed by instance

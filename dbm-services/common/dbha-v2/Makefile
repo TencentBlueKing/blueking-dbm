@@ -63,9 +63,9 @@ define GO_BUILD
 				-o $(BUILD_DIR)/$(BIN_PREFIX)$(1) cmd/$(1)/main.go
 endef
 
-.PHONY: all proto $(SERVICES) doc toolkits cluster bwmgr probe-sandbox-mock \
-        clean format test package package-server package-probe help \
-        probe-windows package-probe-windows check-windows
+.PHONY: all proto $(SERVICES) doc toolkits cluster bwmgr clean format test \
+        package package-server package-probe help \
+        probe-windows package-probe-windows check-windows check-generate
 
 # package
 SERVER_PKG_DIR  = $(BUILD_DIR)/$(PROJECT)-server
@@ -96,8 +96,7 @@ SERVER_SCRIPTS  = scripts/setup.sh scripts/start-server.sh scripts/stop-server.s
                   scripts/deploy.sh scripts/render_configs.py
 PROBE_SCRIPTS   = scripts/start-probe.sh scripts/stop-probe.sh \
                   scripts/start-probe-keepalive.sh scripts/stop-probe-keepalive.sh \
-                  scripts/deploy.sh scripts/render_configs.py \
-                  scripts/compare_probe_config.py
+                  scripts/deploy.sh scripts/render_configs.py
 
 # Windows probe ships PowerShell scripts only; bash scripts and the bash-only
 # guard-utils.sh library are intentionally excluded. render_configs.py is Python
@@ -163,13 +162,6 @@ bwmgr:
 	CGO_ENABLED=0 GOOS=${GO_OS} GOARCH=amd64 go build -ldflags=$(BUILD_FLAG) -gcflags="all=-trimpath=$(PWD)" \
 				-asmflags="all=-trimpath=$(PWD)" -o $(BUILD_DIR)/$(BIN_PREFIX)$@ ./tools/cmd/bwmgr
 
-# local full-path mock (admin + receiver + redis); not packaged with toolkits
-probe-sandbox-mock:
-	@mkdir -p $(BUILD_DIR)
-	CGO_ENABLED=0 GOOS=${GO_OS} GOARCH=amd64 go build -ldflags=$(BUILD_FLAG) \
-				-gcflags="all=-trimpath=$(PWD)" -asmflags="all=-trimpath=$(PWD)" \
-				-o $(BUILD_DIR)/$(BIN_PREFIX)$@ ./tools/cmd/probe-sandbox-mock
-
 # build protobuf to go
 $(GEN_DIR)/%.pb.go: $(PROTO_DIR)/%.proto
 	@mkdir -p $(GEN_DIR)
@@ -179,8 +171,19 @@ format:
 	@goimports -w . && find . -name go.mod -execdir go mod tidy \;
 
 # run tests
-test:
+test: check-generate
 	go test -v -race -cover ./...
+
+# ensure provider aggregate blank-imports are up to date with manifest.go
+# Fail on working-tree drift vs index OR untracked files under all* (staged-but-uncommitted is OK).
+check-generate:
+	CGO_ENABLED=0 go generate ./internal/provider/...
+	@if ! git diff --quiet -- 'internal/provider/all*' || \
+		[ -n "$$(git ls-files --others --exclude-standard -- 'internal/provider/all*')" ]; then \
+		echo "provider aggregates out of date; run: go generate ./internal/provider/..."; \
+		git status --porcelain -- 'internal/provider/all*'; \
+		exit 1; \
+	fi
 
 # build and package
 package: package-server package-probe package-probe-windows
@@ -220,8 +223,7 @@ package-probe: probe
 		$(PROBE_PKG_DIR)/logs $(PROBE_PKG_DIR)/pids
 	@cp $(addprefix $(BUILD_DIR)/,$(PROBE_BINS)) $(PROBE_PKG_DIR)/bin/
 	@cp $(PROBE_SCRIPTS) $(PROBE_PKG_DIR)/
-	@chmod +x $(PROBE_PKG_DIR)/render_configs.py \
-		$(PROBE_PKG_DIR)/compare_probe_config.py
+	@chmod +x $(PROBE_PKG_DIR)/render_configs.py
 	@mkdir -p $(PROBE_PKG_DIR)/lib
 	@cp $(GUARD_UTILS_LIB) $(PROBE_PKG_DIR)/lib/
 	@chmod +x $(PROBE_PKG_DIR)/lib/guard-utils.sh
@@ -278,12 +280,12 @@ help:
 	@echo "  toolkits   - Build toolkit binaries (cluster, bwmgr)"
 	@echo "  cluster    - Build cluster toolkit (dbha-cluster)"
 	@echo "  bwmgr      - Build black-white list manager (dbha-bwmgr)"
-	@echo "  probe-sandbox-mock - Build local probe full-path mock (not packaged)"
 	@echo "  package    - Build and create both server and probe release packages"
 	@echo "  package-server - Create server release package (services + toolkits + etc templates)"
 	@echo "  package-probe  - Create probe release package ($(VERSION)-probe.tar.gz)"
 	@echo "  package-probe-windows - Create Windows probe release package ($(VERSION)-probe-windows.zip)"
 	@echo "  format     - Format code and tidy modules"
 	@echo "  test       - Run tests"
+	@echo "  check-generate - Regenerate provider aggregates and fail if dirty"
 	@echo "  clean      - Clean build artifacts"
 	@echo "  help       - Show this help message"

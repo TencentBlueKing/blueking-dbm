@@ -81,13 +81,10 @@ probeGse:
 # interval/timeout: zero or below the minimum is auto-clamped at admin load
 # (interval minimum: 5s, timeout minimum: 1s). The value MUST be a valid Go duration
 # (e.g. "20s", "1m"); empty strings make admin config Load fail before clamping.
-# heartbeatInterval minimum: 1s; replDelayInterval minimum: 5s.
 probeMysql:
   user: "{{ADMIN_PROBE_MYSQL_USER}}"
   password: "{{ADMIN_PROBE_MYSQL_PASSWORD}}"
   interval: {{ADMIN_PROBE_MYSQL_INTERVAL}}
-  heartbeatInterval: {{ADMIN_PROBE_MYSQL_HEARTBEAT_INTERVAL}}
-  replDelayInterval: {{ADMIN_PROBE_MYSQL_REPL_DELAY_INTERVAL}}
   timeout: {{ADMIN_PROBE_MYSQL_TIMEOUT}}
 
 probeRedis:
@@ -100,21 +97,17 @@ probeProxyAdmin:
   user: "{{ADMIN_PROBE_PROXY_ADMIN_USER}}"
   password: "{{ADMIN_PROBE_PROXY_ADMIN_PASSWORD}}"
   interval: {{ADMIN_PROBE_PROXY_ADMIN_INTERVAL}}
-  heartbeatInterval: {{ADMIN_PROBE_PROXY_ADMIN_HEARTBEAT_INTERVAL}}
-  replDelayInterval: {{ADMIN_PROBE_PROXY_ADMIN_REPL_DELAY_INTERVAL}}
   timeout: {{ADMIN_PROBE_PROXY_ADMIN_TIMEOUT}}
 
-# Freshness bounds for admin's local metadata cache (t_dbm_metadata) when answering
-# GetProbeConfig. If any cached row for the requesting IP is older than cacheMaxAge, the whole
-# machine is re-read from the DBM API, so a probe never builds its config from a partially
-# updated view. Rows older than tombstoneAge are ignored entirely: metadata sync never deletes,
-# so rows left behind by decommissioned instances would otherwise be permanently stale and send
-# every request for that IP to DBM.
-# Both accept a Go duration; an empty or zero value means "use the default"
-# (cacheMaxAge 10m, tombstoneAge 24h). cacheMaxAge is clamped up to 1m.
-probeMetadata:
-  cacheMaxAge: {{ADMIN_PROBE_METADATA_CACHE_MAX_AGE}}
-  tombstoneAge: {{ADMIN_PROBE_METADATA_TOMBSTONE_AGE}}
+# Optional generic harvester credentials for newly added DB types.
+# Keys become ProbeConfigPayload.harvesters and must match HarvestBlock.PayloadKey / BlockName.
+# Example:
+# probeHarvesters:
+#   kafka:
+#     user: ""
+#     password: ""
+#     interval: 20s
+#     timeout: 5s
 
 log:
   path: "{{ADMIN_LOG_PATH}}"
