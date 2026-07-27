@@ -126,6 +126,7 @@ def query_versions_by_key(query_key):
         ClusterType.TendisTwemproxyTendisplusIns,
         ClusterType.TendisTendisplusInsance,
         ClusterType.TendisTendisplusCluster,
+        ClusterType.TendisPredixyTendisplusInstance,
     ]:
         versions = constants.TendisPlusVersion.get_values()
     elif query_key in [

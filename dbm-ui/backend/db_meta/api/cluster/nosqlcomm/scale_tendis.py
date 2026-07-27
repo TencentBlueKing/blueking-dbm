@@ -263,6 +263,7 @@ def switch_tendis(cluster: Cluster, tendisss: List[Dict], switch_type: str = Syn
                 ClusterType.TendisTwemproxyRedisInstance,
                 ClusterType.TwemproxyTendisSSDInstance,
                 ClusterType.TendisTwemproxyTendisplusIns,
+                ClusterType.TendisPredixyTendisplusInstance,
             ]:
                 logger.info(
                     "change cluster {} setdtl master from {} to {}".format(cluster, old_ejector_obj, new_ejector_obj)

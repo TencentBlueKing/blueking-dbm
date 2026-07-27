@@ -48,6 +48,8 @@ def RedisClusterMasterReplaceJob(root_id, ticket_data, sub_kwargs: ActKwargs, ma
         ClusterType.TwemproxyTendisSSDInstance,
         ClusterType.TendisTwemproxyRedisInstance,
         ClusterType.TendisRedisInstance,
+        # tendisplus 主从版(predixy)，替换流程与twemproxy-cache/ssd一致
+        ClusterType.TendisPredixyTendisplusInstance,
     ]:
         return TwemproxyClusterMasterReplaceJob(root_id, ticket_data, sub_kwargs, master_replace_info)
 

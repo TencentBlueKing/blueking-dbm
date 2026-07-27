@@ -380,6 +380,8 @@ class RedisActPayload(object):
 
     # Valkey-8.0 相比 Redis-7.4，将部分 slave-*/ziplist-* 遗留配置项重命名为 replica-*/listpack-*
     # 迁移/升级到 Valkey 时，若源端仍使用旧名，需要转换为 Valkey 认识的新名，否则配置会丢失
+    # 注：该映射与源版本无关，只要 conf_name 命中即替换，因此 Redis-4/5/6/7.x 等更早版本
+    # 直接跨版本升级到 Valkey-8/Valkey-9 时同样适用（这些旧配置名从 Redis-4 起就未变过）
     _VALKEY_8_LEGACY_CONF_NAME_MAP = {
         "slave-priority": "replica-priority",
         "slave-read-only": "replica-read-only",
@@ -392,6 +394,18 @@ class RedisActPayload(object):
         "list-max-ziplist-size": "list-max-listpack-size",
         "zset-max-ziplist-entries": "zset-max-listpack-entries",
         "zset-max-ziplist-value": "zset-max-listpack-value",
+    }
+
+    # Valkey-9.0 相比 Valkey-8.0，新增 commandlog-* 配置项替代原 slowlog-* 配置项
+    # （官方 valkey.conf 说明：slowlog-log-slower-than/slowlog-max-len 仍支持但已 deprecated，
+    #  推荐使用 commandlog-execution-slower-than/commandlog-slow-execution-max-len）
+    # 迁移/升级到 Valkey-9+ 时，若源端仍使用旧名，需要转换为 Valkey-9 推荐的新名，否则配置会丢失
+    # 注：判断条件只依赖 target_version，与源版本无关，故 Redis-4 等更早版本直接升级到
+    # Valkey-9 时，会先命中 _VALKEY_8_LEGACY_CONF_NAME_MAP（slave-*/ziplist-*），
+    # 再命中本映射（slowlog-*），两者不冲突，可叠加生效
+    _VALKEY_9_LEGACY_CONF_NAME_MAP = {
+        "slowlog-log-slower-than": "commandlog-execution-slower-than",
+        "slowlog-max-len": "commandlog-slow-execution-max-len",
     }
 
     def _replace_legacy_conf_name(self, conf_name: str, target_version: str = None) -> str:
@@ -413,6 +427,14 @@ class RedisActPayload(object):
         # 目标为 Valkey：将 Redis 遗留的 slave-*/ziplist-* 配置项名替换为 Valkey 的 replica-*/listpack-* 新名
         if target_version.startswith("Valkey") and conf_name in self._VALKEY_8_LEGACY_CONF_NAME_MAP:
             return self._VALKEY_8_LEGACY_CONF_NAME_MAP[conf_name]
+
+        # 目标为 Valkey-9+：将 slowlog-* 配置项重命名为 commandlog-* 新名
+        if (
+            target_version.startswith("Valkey")
+            and version_ge(target_version, "9")
+            and conf_name in self._VALKEY_9_LEGACY_CONF_NAME_MAP
+        ):
+            return self._VALKEY_9_LEGACY_CONF_NAME_MAP[conf_name]
 
         # 目标为 Redis 5.0+：将 slave-* 配置项重命名为 replica-*
         if (
