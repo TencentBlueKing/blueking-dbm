@@ -92,7 +92,7 @@ def checksum_config(bk_cloud_id: int, ip: str, port_list: Optional[List[int]] = 
                     "ignore_tables": filter_config.get("ignore_tables", []),
                     "ignore_tables_regex": filter_config.get("ignore_tables_regex", []),
                 },
-                "run-time": checksum_yaml.get("pt_checksum.args.run-time", "2h"),  # remove later, use pt_checksum_args
+                "run-time": checksum_yaml.get("pt_checksum", {}).get("args.run-time", "2h"),
                 "pt_checksum_args": checksum_yaml.get("pt_checksum", {}).get("args", {}),
                 "pt_checksum_switches": checksum_yaml.get("pt_checksum", {}).get("switches", []),
             }
