@@ -109,9 +109,11 @@ class DorisShrinkFlow(DorisBaseFlow):
         )
 
         # 更新dbactor介质包
-        act_kwargs.exec_ip = get_all_node_ips_in_ticket(data=shrink_data)
+        # 缩容过程中 dbactuator 不仅会在待缩容节点上执行，还会在 FE 节点（master_fe_ip）上
+        # 执行元数据变更操作（如退役 BE、删除 FE/BE 元数据等），因此需要对所有集群节点下发介质
+        act_kwargs.exec_ip = self.get_all_node_ips_in_dbmeta()
         doris_pipeline.add_act(
-            act_name=_("下发DORIS介质"), act_component_code=TransFileComponent.code, kwargs=asdict(act_kwargs)
+            act_name=_("下发dbactuator介质"), act_component_code=TransFileComponent.code, kwargs=asdict(act_kwargs)
         )
 
         # 更新域名

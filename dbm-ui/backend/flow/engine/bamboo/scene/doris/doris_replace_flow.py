@@ -120,28 +120,39 @@ class DorisReplaceFlow(DorisBaseFlow):
             kwargs=asdict(preinit_kwargs),
         )
 
-        # --- A. 所有旧节点下发最新 dbactuator 介质 ---
-        all_old_ips = get_all_node_ips_in_ticket(data={"nodes": self.old_nodes})
-        if all_old_ips:
-            preinit_kwargs.exec_ip = all_old_ips
-            preinit_kwargs.file_list = trans_files.doris_actuator()
-            preinit_pipeline.add_act(
-                act_name=_("旧节点下发dbactuator介质"),
-                act_component_code=TransFileComponent.code,
-                kwargs=asdict(preinit_kwargs),
-            )
+        # --- A. 所有节点下发最新 dbactuator 介质 ---
+        # 替换过程中需要在 FE 节点（active_target_ip）上执行元数据变更操作
+        # （如 ADD/DROP OBSERVER、ADD FOLLOWER、退役 BE 等），而这些 FE 节点
+        # 可能既不在旧节点也不在新节点中，因此需要对所有集群节点下发介质
+        preinit_kwargs.exec_ip = self.get_all_node_ips_in_dbmeta()
+        preinit_kwargs.file_list = trans_files.doris_actuator()
+        dbactuator_act = {
+            "act_name": _("下发dbactuator介质"),
+            "act_component_code": TransFileComponent.code,
+            "kwargs": asdict(preinit_kwargs),
+        }
 
-        # --- B. 所有新节点下发 Doris 介质 + 并发初始化 ---
+        parallel_acts = [dbactuator_act]
         all_new_ips = get_all_node_ips_in_ticket(data={"nodes": self.new_nodes})
+
+        # --- B. 所有新节点下发 Doris 介质 ---
+        # 与 dbactuator 并发执行，互不依赖
         if all_new_ips:
             preinit_kwargs.exec_ip = all_new_ips
             preinit_kwargs.file_list = trans_files.doris_apply(db_version=self.db_version)
-            preinit_pipeline.add_act(
-                act_name=_("新节点下发Doris介质"),
-                act_component_code=TransFileComponent.code,
-                kwargs=asdict(preinit_kwargs),
+            parallel_acts.append(
+                {
+                    "act_name": _("下发Doris介质"),
+                    "act_component_code": TransFileComponent.code,
+                    "kwargs": asdict(preinit_kwargs),
+                }
             )
 
+        preinit_pipeline.add_parallel_acts(acts_list=parallel_acts)
+
+        # --- 新节点并发初始化 ---
+        # 依赖 Doris 介质已下发到新节点
+        if all_new_ips:
             new_init_data = copy.deepcopy(replace_data)
             new_init_data["nodes"] = self.new_nodes
             sub_common_pipelines = self.new_common_sub_flows(act_kwargs=preinit_kwargs, data=new_init_data)

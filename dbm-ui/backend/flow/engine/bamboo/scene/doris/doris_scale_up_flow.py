@@ -106,10 +106,31 @@ class DorisScaleUpFlow(DorisBaseFlow):
         # 增加逻辑：仅扩容冷存储资源，没有节点变更
         if not self.check_only_scale_up_resource(data=scale_up_data):
 
+            # 并发下发介质：
+            # - DORIS 完整安装包到新增节点
+            # - dbactuator 介质到所有节点（master_fe_ip 是 DBMeta 中的 Follower，不在新增节点中，
+            #   但后续元数据操作需要在其上执行 dbactuator，Follower 不支持扩容）
             act_kwargs.exec_ip = get_all_node_ips_in_ticket(data=scale_up_data)
-            doris_pipeline.add_act(
-                act_name=_("下发DORIS介质"), act_component_code=TransFileComponent.code, kwargs=asdict(act_kwargs)
-            )
+            act_kwargs.file_list = trans_files.doris_apply(db_version=self.db_version)
+            doris_media_kwargs = asdict(act_kwargs)
+
+            act_kwargs.exec_ip = self.get_all_node_ips_in_dbmeta()
+            act_kwargs.file_list = trans_files.doris_actuator()
+            dbactuator_kwargs = asdict(act_kwargs)
+
+            parallel_acts = [
+                {
+                    "act_name": _("下发DORIS介质"),
+                    "act_component_code": TransFileComponent.code,
+                    "kwargs": doris_media_kwargs,
+                },
+                {
+                    "act_name": _("下发dbactuator介质"),
+                    "act_component_code": TransFileComponent.code,
+                    "kwargs": dbactuator_kwargs,
+                },
+            ]
+            doris_pipeline.add_parallel_acts(acts_list=parallel_acts)
 
             # 新节点统一初始化流程
             sub_common_pipelines = self.new_common_sub_flows(
