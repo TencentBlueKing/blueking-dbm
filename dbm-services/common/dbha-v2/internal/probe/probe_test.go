@@ -61,10 +61,10 @@ func (f *fakePlugin) Close() error { return nil }
 // so each test can drive startRuntime with controlled factories.
 func withPluginEntries(t *testing.T, entries []pluginEntry) {
 	t.Helper()
-	saved := pluginEntries
-	pluginEntries = entries
+	saved := pluginEntriesOverride
+	pluginEntriesOverride = entries
 	t.Cleanup(func() {
-		pluginEntries = saved
+		pluginEntriesOverride = saved
 	})
 }
 

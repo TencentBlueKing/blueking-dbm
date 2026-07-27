@@ -47,6 +47,13 @@ type SwitchSnapshotLogger[T any] interface {
 
 type SnapshotLogger = SwitchSnapshotLogger[*SwitchingSnapshotData]
 
+type SwitchSnapshotLogType string
+
+const (
+	SwitchSnapshotLogTypePre  SwitchSnapshotLogType = "pre-switch"
+	SwitchSnapshotLogTypePost SwitchSnapshotLogType = "post-switch"
+)
+
 // StdSwitchingSnapshotData is the data structure for switching snapshot logging to standard output.
 type StdSwitchingSnapshotData struct {
 	StartTime            *time.Time      `json:"start_time,omitempty"`
@@ -58,13 +65,10 @@ type StdSwitchingSnapshotData struct {
 	Status               string          `json:"status,omitempty"`
 	DbType               string          `json:"db_type,omitempty"`
 	ActionScope          string          `json:"action_scope,omitempty"`
-	Action               string          `json:"action,omitempty"`
 	StrategyJSON         json.RawMessage `json:"strategy,omitempty"`
-	StrategiesJSON       json.RawMessage `json:"strategies,omitempty"`
 	FailureInstancesJSON json.RawMessage `json:"failure_instances,omitempty"`
 	MetadataSetJSON      json.RawMessage `json:"metadata_set,omitempty"`
 	InstancesJSON        json.RawMessage `json:"instances,omitempty"`
-	OriginInstancesJSON  json.RawMessage `json:"origin_instances,omitempty"`
 }
 
 // SwitchingSnapshotData is the data structure for switching snapshot logging.

@@ -26,12 +26,16 @@ package probe
 import (
 	"context"
 	"os"
+	"strings"
 
 	"dbm-services/common/dbha-v2/internal/probe/config"
+	"dbm-services/common/dbha-v2/internal/probe/harvester"
+	"dbm-services/common/dbha-v2/pkg/dbtype"
 	"dbm-services/common/dbha-v2/pkg/gerrors"
 	"dbm-services/common/dbha-v2/pkg/logger"
 	"dbm-services/common/dbha-v2/pkg/machine"
 	"dbm-services/common/dbha-v2/pkg/process"
+	"dbm-services/common/dbha-v2/pkg/storage/haprobe"
 
 	"github.com/spf13/cobra"
 )
@@ -103,6 +107,10 @@ func Run(cmd *cobra.Command, args []string) error {
 	logger.Debug("probe startup config, log_path: %s, log_level: %s",
 		config.Cfg.Log.Path, config.Cfg.Log.Level)
 
+	if err := logProbeProviderSelfCheck(); err != nil {
+		return err
+	}
+
 	clientID, err := machine.ID()
 	if err != nil {
 		return gerrors.Newf(gerrors.Failure, "generate machine-id failed, %v", err)
@@ -116,4 +124,33 @@ func Run(cmd *cobra.Command, args []string) error {
 	}
 
 	return p.Run(ctx)
+}
+
+func logProbeProviderSelfCheck() error {
+	entries := harvester.Entries()
+	blockNames := make([]string, 0, len(entries))
+	for _, e := range entries {
+		blockNames = append(blockNames, e.BlockName)
+	}
+	logger.Info(
+		"probe provider self-check, registered_db_types: %s, provider_owned_db_types: %s, harvester_blocks: %s",
+		joinDbTypes(dbtype.RegisteredDbTypes()),
+		joinDbTypes(dbtype.ProviderOwnedDbTypes()),
+		strings.Join(blockNames, ","),
+	)
+	if len(entries) == 0 {
+		return gerrors.Newf(gerrors.Failure, "no harvester plugins registered; blank-import provider/allprobe")
+	}
+	return nil
+}
+
+func joinDbTypes(types []haprobe.DbType) string {
+	if len(types) == 0 {
+		return ""
+	}
+	parts := make([]string, 0, len(types))
+	for _, dt := range types {
+		parts = append(parts, string(dt))
+	}
+	return strings.Join(parts, ",")
 }
