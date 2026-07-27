@@ -64,6 +64,12 @@ func GetNestedField(t reflect.Type, path []string) (reflect.StructField, bool) {
 }
 
 // ValidateError 检查是否是字段校验失败
+//
+// 消息选取优先级：
+//  1. 若当前触发的校验 tag 在 TagMessages 中有专属消息（如 cpuRequestLteLimit），优先使用
+//  2. 否则回退到字段上的 msg tag
+//  3. 若字段无 msg tag，则使用 tag 兜底映射
+//  4. 若均未匹配，则使用 fe.Error()
 func ValidateError(err error, request any) (bool, string) {
 	var ve validator.ValidationErrors
 	if errors.As(err, &ve) {
@@ -72,11 +78,18 @@ func ValidateError(err error, request any) (bool, string) {
 			path := strings.Split(filedName, ".")[1:]
 			field, ok := GetNestedField(reflect.TypeOf(request), path)
 			if ok {
+				if tagMsg, tagOK := TagMessages[fe.Tag()]; tagOK {
+					return true, tagMsg
+				}
 				msg := field.Tag.Get("msg")
 				if msg == "" {
 					msg = fe.Error()
 				}
 				return true, msg
+			}
+			// 字段路径无法反射定位（例如结构体级校验），退化到 tag 兜底
+			if tagMsg, tagOK := TagMessages[fe.Tag()]; tagOK {
+				return true, tagMsg
 			}
 		}
 	}
