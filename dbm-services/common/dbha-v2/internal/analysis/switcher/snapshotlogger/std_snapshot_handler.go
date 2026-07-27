@@ -105,9 +105,10 @@ func (hdl *StdSnapshotHandler) PostSwitchLog(record *SwitchingSnapshotData) erro
 	}
 
 	payload := StdSwitchingSnapshotData{
-		FinishedTime: record.DbSwitchingSnapshotLog.FinishedTime,
-		Result:       record.DbSwitchingSnapshotLog.Result,
-		Status:       record.DbSwitchingSnapshotLog.Status.String(),
+		FinishedTime:  record.DbSwitchingSnapshotLog.FinishedTime,
+		Result:        record.DbSwitchingSnapshotLog.Result,
+		Status:        record.DbSwitchingSnapshotLog.Status.String(),
+		InstancesJSON: record.InstancesJSON,
 	}
 
 	body, err := json.Marshal(&payload)

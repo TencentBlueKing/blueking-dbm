@@ -179,6 +179,17 @@ func (s *SwitchingSnapshotReport) ReportAfterSwitchingSnapshot(rsp *switcher.Res
 		}
 	}
 
+	if instances.Valid {
+		// marshal instances
+		instancesJSON, err := json.Marshal(instances.Data)
+		if err != nil {
+			logger.Warn(
+				"failed to marshal instances for switching snapshot, switchId: %s, errmsg: %s",
+				s.SnapshotData.DbSwitchingSnapshotLog.SwitchID, err)
+		}
+		s.SnapshotData.InstancesJSON = instancesJSON
+	}
+
 	// set finished time, status and result based on the switch response
 	now := time.Now()
 	s.SnapshotData.DbSwitchingSnapshotLog.FinishedTime = &now
