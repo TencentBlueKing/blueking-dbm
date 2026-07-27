@@ -24,6 +24,12 @@
 
 package config
 
+import (
+	"sort"
+
+	"gopkg.in/yaml.v3"
+)
+
 // probeYAML is used only for GenProbeYAML output. Reuses LogConfig from config.go.
 type probeYAML struct {
 	Name      string             `yaml:"name"`
@@ -43,8 +49,8 @@ type probeReporterYAML struct {
 	LocalSocketPort uint   `yaml:"localSocketPort,omitempty"` // omitempty: omit when 0 so Linux YAML stays byte-identical
 }
 
-// probeHarvesterYAML uses string for Interval/Timeout in YAML output; reuses DbEndpointConfig for Endpoints.
-type probeMySQLHarvesterYAML struct {
+// probeGenericHarvesterYAML is the on-wire shape shared by named and extra harvester blocks.
+type probeGenericHarvesterYAML struct {
 	User      string             `yaml:"user"`
 	Password  string             `yaml:"password"`
 	Interval  string             `yaml:"interval"`
@@ -52,16 +58,51 @@ type probeMySQLHarvesterYAML struct {
 	Endpoints []DbEndpointConfig `yaml:"endpoints"`
 }
 
-type probeRedisHarvesterYAML struct {
-	User      string             `yaml:"user"`
-	Password  string             `yaml:"password"`
-	Interval  string             `yaml:"interval"`
-	Timeout   string             `yaml:"timeout"`
-	Endpoints []DbEndpointConfig `yaml:"endpoints"`
-}
+type probeMySQLHarvesterYAML = probeGenericHarvesterYAML
+type probeRedisHarvesterYAML = probeGenericHarvesterYAML
 
+// probeHarvesterYAML keeps named mysql/redis/proxyAdmin blocks for zero regression and
+// Extra for newly added DB types. MarshalYAML emits a flat mapping.
 type probeHarvesterYAML struct {
-	MySQL           *probeMySQLHarvesterYAML `yaml:"mysql,omitempty"`
-	MySQLProxyAdmin *probeMySQLHarvesterYAML `yaml:"mysqlProxyAdmin,omitempty"`
-	Redis           *probeRedisHarvesterYAML `yaml:"redis,omitempty"`
+	MySQL           *probeMySQLHarvesterYAML
+	MySQLProxyAdmin *probeMySQLHarvesterYAML
+	Redis           *probeRedisHarvesterYAML
+	Extra           map[string]*probeGenericHarvesterYAML
+}
+
+// MarshalYAML flattens named + Extra blocks into one harvester mapping.
+// Relies on yaml.v3 sorting map keys; the three well-known blocks' lexicographic
+// order happens to match the historical field order. Adding a new named block
+// may change the emitted key order relative to Extra keys.
+func (h probeHarvesterYAML) MarshalYAML() (interface{}, error) {
+	out := map[string]*probeGenericHarvesterYAML{}
+	if h.MySQL != nil {
+		out[HarvesterBlockMySQL] = h.MySQL
+	}
+	if h.MySQLProxyAdmin != nil {
+		out[HarvesterBlockMySQLProxyAdmin] = h.MySQLProxyAdmin
+	}
+	if h.Redis != nil {
+		out[HarvesterBlockRedis] = h.Redis
+	}
+	for name, block := range h.Extra {
+		if block == nil {
+			continue
+		}
+		out[name] = block
+	}
+	return out, nil
+}
+
+// Ensure yaml.Marshaler is satisfied at compile time.
+var _ yaml.Marshaler = probeHarvesterYAML{}
+
+// sortedExtraBlockNames returns Extra keys in deterministic order (for tests / callers).
+func sortedExtraBlockNames(extra map[string][]DbEndpointConfig) []string {
+	names := make([]string, 0, len(extra))
+	for name := range extra {
+		names = append(names, name)
+	}
+	sort.Strings(names)
+	return names
 }

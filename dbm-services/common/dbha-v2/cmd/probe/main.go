@@ -30,6 +30,8 @@ import (
 
 	"dbm-services/common/dbha-v2/internal/probe"
 
+	_ "dbm-services/common/dbha-v2/internal/provider/allprobe"
+
 	"github.com/spf13/cobra"
 )
 
