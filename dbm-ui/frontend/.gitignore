@@ -40,6 +40,7 @@ cypress/parallel-weights.json
 
 !.cursor/
 !.codebuddy/
+!AGENTS.md
 cypress/parallel-weights.json
 cypress/screenshots
 runner-results/
@@ -47,5 +48,4 @@ cypress.env.json
 multi-reporter-config.json
 
 openspec/
-tapd-config.json
 agent-flow.config.json
