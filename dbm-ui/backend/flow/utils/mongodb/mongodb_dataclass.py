@@ -412,11 +412,12 @@ class ActKwargs:
         return resp["backup_dir"]
 
     def get_pkg(self):
+        from backend.db_package.exceptions import PackageNotExistException
         from backend.flow.utils.mongodb.version_utils import lookup_mongodb_package
 
         self.pkg = lookup_mongodb_package(self.db_release_version)
         if self.pkg is None:
-            self.pkg = Package.get_latest_package(
+            raise PackageNotExistException(
                 version=self.db_release_version, pkg_type=MediumEnum.MongoDB, db_type=DBType.MongoDB
             )
 

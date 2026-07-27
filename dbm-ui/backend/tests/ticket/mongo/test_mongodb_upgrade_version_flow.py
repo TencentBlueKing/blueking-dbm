@@ -67,7 +67,12 @@ def _payload():
 
 
 def _mock_pkg(version):
-    return SimpleNamespace(path="mongodb.tgz", md5="mock-md5", version=version)
+    # Persist path requires a resolvable full version; mocks use V1-style Package.version.
+    try:
+        full = normalize_mongodb_full_version(version)
+    except ValueError:
+        full = version
+    return SimpleNamespace(path="mongodb.tgz", md5="mock-md5", version=full, db_version=None, db_version_id=None)
 
 
 def test_serializer_reject_same_version():
@@ -83,8 +88,8 @@ def test_normalize_infos_for_replicaset(monkeypatch):
         lambda **kwargs: {1: _FakeCluster(1, ClusterType.MongoReplicaSet)},
     )
     monkeypatch.setattr(
-        "backend.flow.engine.bamboo.scene.mongodb.mongodb_upgrade_version.Package.get_latest_package",
-        lambda **kwargs: _mock_pkg(kwargs["version"]),
+        "backend.flow.engine.bamboo.scene.mongodb.mongodb_upgrade_version.lookup_mongodb_package",
+        lambda version, package=None: _mock_pkg(version),
     )
 
     flow = MongoUpgradeVersionFlow(root_id="r1", data=_payload())
@@ -105,8 +110,12 @@ def test_pipeline_contains_cluster_subflow(monkeypatch):
         lambda **kwargs: {1: _FakeCluster(1, ClusterType.MongoShardedCluster)},
     )
     monkeypatch.setattr(
-        "backend.flow.engine.bamboo.scene.mongodb.mongodb_upgrade_version.Package.get_latest_package",
-        lambda **kwargs: _mock_pkg(kwargs["version"]),
+        "backend.flow.engine.bamboo.scene.mongodb.mongodb_upgrade_version.lookup_mongodb_package",
+        lambda version, package=None: _mock_pkg(version),
+    )
+    monkeypatch.setattr(
+        "backend.flow.utils.mongodb.version_utils.get_mongodb_package_v2_release",
+        lambda pkg_type, series="latest": _mock_pkg(series),
     )
     monkeypatch.setattr(
         "backend.flow.engine.bamboo.scene.mongodb.mongodb_upgrade_version.Builder",
@@ -119,6 +128,10 @@ def test_pipeline_contains_cluster_subflow(monkeypatch):
     monkeypatch.setattr(
         "backend.flow.engine.bamboo.scene.mongodb.mongodb_upgrade_version.SendMedia.act",
         lambda **kwargs: kwargs,
+    )
+    monkeypatch.setattr(
+        "backend.flow.engine.bamboo.scene.mongodb.mongodb_upgrade_version.GetFileList.mongodb_pkg",
+        lambda self, db_version: [f"mongodb-{db_version}.tgz"],
     )
     monkeypatch.setattr(
         "backend.flow.engine.bamboo.scene.mongodb.sub_task.instance_op.MongoUtil.get_mongo_user_password",
@@ -182,8 +195,8 @@ def test_patch_upgrade_flow_init_success(monkeypatch):
         lambda **kwargs: {1: _FakeCluster(1, ClusterType.MongoReplicaSet, major_version="mongodb-6.0.6")},
     )
     monkeypatch.setattr(
-        "backend.flow.engine.bamboo.scene.mongodb.mongodb_upgrade_version.Package.get_latest_package",
-        lambda **kwargs: _mock_pkg("mongodb-6.0.27"),
+        "backend.flow.engine.bamboo.scene.mongodb.mongodb_upgrade_version.lookup_mongodb_package",
+        lambda version, package=None: _mock_pkg("mongodb-6.0.27"),
     )
 
     flow = MongoUpgradeVersionFlow(root_id="r1", data=data)
@@ -197,8 +210,8 @@ def test_patch_upgrade_flow_init_success(monkeypatch):
 
 def test_get_target_package_for_exact_dest_version(monkeypatch):
     monkeypatch.setattr(
-        "backend.flow.engine.bamboo.scene.mongodb.mongodb_upgrade_version.Package.get_latest_package",
-        lambda **kwargs: _mock_pkg("mongodb-6.0.27"),
+        "backend.flow.engine.bamboo.scene.mongodb.mongodb_upgrade_version.lookup_mongodb_package",
+        lambda version, package=None: _mock_pkg("mongodb-6.0.27"),
     )
     pkg = MongoUpgradeVersionFlow._get_target_package_for_dest("mongodb-6.0.27")
     assert pkg.version == "mongodb-6.0.27"
@@ -223,8 +236,8 @@ def test_reject_inconsistent_upgrade_path_across_clusters(monkeypatch):
         },
     )
     monkeypatch.setattr(
-        "backend.flow.engine.bamboo.scene.mongodb.mongodb_upgrade_version.Package.get_latest_package",
-        lambda **kwargs: _mock_pkg(kwargs["version"]),
+        "backend.flow.engine.bamboo.scene.mongodb.mongodb_upgrade_version.lookup_mongodb_package",
+        lambda version, package=None: _mock_pkg(version),
     )
     with pytest.raises(ValidationError):
         MongoUpgradeVersionFlow(root_id="r1", data=data)
@@ -257,8 +270,12 @@ def test_multi_hop_media_contains_intermediate_versions(monkeypatch):
         lambda **kwargs: {1: _FakeCluster(1, ClusterType.MongoShardedCluster)},
     )
     monkeypatch.setattr(
-        "backend.flow.engine.bamboo.scene.mongodb.mongodb_upgrade_version.Package.get_latest_package",
-        lambda **kwargs: _mock_pkg(kwargs["version"]),
+        "backend.flow.engine.bamboo.scene.mongodb.mongodb_upgrade_version.lookup_mongodb_package",
+        lambda version, package=None: _mock_pkg(version),
+    )
+    monkeypatch.setattr(
+        "backend.flow.utils.mongodb.version_utils.get_mongodb_package_v2_release",
+        lambda pkg_type, series="latest": _mock_pkg(series),
     )
     monkeypatch.setattr(
         "backend.flow.engine.bamboo.scene.mongodb.mongodb_upgrade_version.Builder",
@@ -274,7 +291,7 @@ def test_multi_hop_media_contains_intermediate_versions(monkeypatch):
     )
     monkeypatch.setattr(
         "backend.flow.engine.bamboo.scene.mongodb.mongodb_upgrade_version.GetFileList.mongodb_pkg",
-        lambda self, db_version: [f"mongodb-{db_version}.tgz"],
+        lambda self, db_version: [f"{db_version}.tgz"],
     )
     monkeypatch.setattr(
         "backend.flow.engine.bamboo.scene.mongodb.sub_task.instance_op.MongoUtil.get_mongo_user_password",
@@ -287,14 +304,15 @@ def test_multi_hop_media_contains_intermediate_versions(monkeypatch):
     assert fake_builder.add_sub_pipeline.call_count == 3
     acts = fake_builder.add_parallel_acts.call_args[0][0]
     file_list = acts[0]["file_list"]
-    assert "mongodb-5.0.tgz" in file_list
-    assert "mongodb-6.0.tgz" in file_list
+    # Hop dest major.minor resolves to full persist version via mock package.
+    assert "mongodb-5.0.0.tgz" in file_list
+    assert "mongodb-6.0.0.tgz" in file_list
 
 
 def test_get_target_package_fallback_to_prefix_query(monkeypatch):
     monkeypatch.setattr(
-        "backend.flow.engine.bamboo.scene.mongodb.mongodb_upgrade_version.Package.get_latest_package",
-        lambda **kwargs: (_ for _ in ()).throw(Exception("not found")),
+        "backend.flow.engine.bamboo.scene.mongodb.mongodb_upgrade_version.lookup_mongodb_package",
+        lambda version, package=None: None,
     )
 
     class _FakeQuery:
@@ -313,13 +331,13 @@ def test_get_target_package_fallback_to_prefix_query(monkeypatch):
     )
 
     pkg = MongoUpgradeVersionFlow._get_target_package("3.6")
-    assert pkg.version == "3.6.18"
+    assert pkg.version == "mongodb-3.6.18"
 
 
 def test_get_target_package_fallback_match_mongodb_prefixed_version(monkeypatch):
     monkeypatch.setattr(
-        "backend.flow.engine.bamboo.scene.mongodb.mongodb_upgrade_version.Package.get_latest_package",
-        lambda **kwargs: (_ for _ in ()).throw(Exception("not found")),
+        "backend.flow.engine.bamboo.scene.mongodb.mongodb_upgrade_version.lookup_mongodb_package",
+        lambda version, package=None: None,
     )
 
     class _FakeQuery:
@@ -353,6 +371,30 @@ def test_normalize_mongodb_full_version():
 def test_resolve_persist_version_prefers_pkg():
     pkg = _mock_pkg("mongodb-5.0.14")
     assert MongoUpgradeVersionFlow._resolve_persist_version(pkg, "5.0") == "mongodb-5.0.14"
+
+
+def test_resolve_persist_version_series_pkg_uses_db_version(monkeypatch):
+    pkg = SimpleNamespace(
+        version="mongodb-7.0",
+        db_version=SimpleNamespace(base_version="7.0.28", name="mongodb-7.0.28"),
+        db_version_id=14,
+    )
+    # Force primary path to fail so fallback uses _resolve_package_full_version
+    monkeypatch.setattr(
+        "backend.flow.engine.bamboo.scene.mongodb.mongodb_upgrade_version.resolve_mongodb_persist_version",
+        lambda *args, **kwargs: (_ for _ in ()).throw(ValueError("boom")),
+    )
+    assert MongoUpgradeVersionFlow._resolve_persist_version(pkg, "mongodb-7.0") == "mongodb-7.0.28"
+
+
+def test_resolve_persist_version_series_pkg_without_db_version_raises(monkeypatch):
+    pkg = SimpleNamespace(version="mongodb-7.0", db_version=None, db_version_id=None)
+    monkeypatch.setattr(
+        "backend.flow.engine.bamboo.scene.mongodb.mongodb_upgrade_version.resolve_mongodb_persist_version",
+        lambda *args, **kwargs: (_ for _ in ()).throw(ValueError("boom")),
+    )
+    with pytest.raises(ValidationError):
+        MongoUpgradeVersionFlow._resolve_persist_version(pkg, "mongodb-7.0")
 
 
 def test_reject_version_beyond_chain():

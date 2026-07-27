@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -57,15 +58,46 @@ def test_query_mongodb_versions_fallback_to_package(
     empty_qs.order_by.return_value.values_list.return_value = []
     mock_dbversion_objects.filter.return_value.order_by.return_value = empty_qs
 
+    packages = [
+        SimpleNamespace(version="3.4.24.0.0.0", db_version=None),
+        SimpleNamespace(version="5.0.28.0.0.0", db_version=None),
+    ]
     package_qs = MagicMock()
-    package_qs.order_by.return_value.values_list.return_value = ["3.4.24.0.0.0", "5.0.28.0.0.0"]
+    package_qs.select_related.return_value = packages
     mock_package_objects.filter.return_value = package_qs
 
     versions = query_mongodb_versions()
 
     mock_package_objects.filter.assert_called_once_with(pkg_type=PackageType.MongoDB, enable=True)
-    package_qs.order_by.assert_called_once_with("-version")
+    package_qs.select_related.assert_called_once_with("db_version")
     assert versions == ["5.0.28", "3.4.24"]
+
+
+@patch("backend.db_services.version.utils.Package.objects")
+@patch("backend.db_services.version.utils.DBVersion.objects")
+@patch("backend.db_services.version.utils.Distribution.objects")
+def test_query_mongodb_versions_fallback_resolves_series_via_db_version(
+    mock_distribution_objects, mock_dbversion_objects, mock_package_objects
+):
+    mock_distribution_objects.filter.return_value.values_list.return_value = []
+    empty_qs = MagicMock()
+    empty_qs.order_by.return_value.values_list.return_value = []
+    mock_dbversion_objects.filter.return_value.order_by.return_value = empty_qs
+
+    packages = [
+        SimpleNamespace(
+            version="mongodb-7.0",
+            db_version=SimpleNamespace(base_version="7.0.28", name="mongodb-7.0.28"),
+            db_version_id=14,
+        ),
+        SimpleNamespace(version="mongodb-7.0", db_version=None, db_version_id=None),
+    ]
+    package_qs = MagicMock()
+    package_qs.select_related.return_value = packages
+    mock_package_objects.filter.return_value = package_qs
+
+    versions = query_mongodb_versions()
+    assert versions == ["7.0.28"]
 
 
 @patch("backend.db_services.version.utils.Package.objects")
@@ -79,8 +111,12 @@ def test_query_mongodb_versions_skips_legacy_package_version(
     empty_qs.order_by.return_value.values_list.return_value = []
     mock_dbversion_objects.filter.return_value.order_by.return_value = empty_qs
 
+    packages = [
+        SimpleNamespace(version="percona_mongodb-4", db_version=None),
+        SimpleNamespace(version="5.0.28.0.0.0", db_version=None),
+    ]
     package_qs = MagicMock()
-    package_qs.order_by.return_value.values_list.return_value = ["percona_mongodb-4", "5.0.28.0.0.0"]
+    package_qs.select_related.return_value = packages
     mock_package_objects.filter.return_value = package_qs
 
     versions = query_mongodb_versions()
