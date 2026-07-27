@@ -59,7 +59,7 @@ type StdSwitchingSnapshotData struct {
 	StartTime            *time.Time      `json:"start_time,omitempty"`
 	FinishedTime         *time.Time      `json:"finished_time,omitempty"`
 	BkBizID              int             `json:"bk_biz_id,omitempty"`
-	BkCloudID            int             `json:"bk_cloud_id,omitempty"`
+	BkCloudID            int             `json:"bk_cloud_id"`
 	ClusterID            int             `json:"cluster_id,omitempty"`
 	ClusterName          string          `json:"cluster_name,omitempty"`
 	Reason               string          `json:"reason,omitempty"`
@@ -70,6 +70,7 @@ type StdSwitchingSnapshotData struct {
 	StrategyJSON         json.RawMessage `json:"strategy,omitempty"`
 	FailureInstancesJSON json.RawMessage `json:"failure_instances,omitempty"`
 	MetadataSetJSON      json.RawMessage `json:"metadata_set,omitempty"`
+	InstancesJSON        json.RawMessage `json:"instances,omitempty"`
 }
 
 // SwitchingSnapshotData is the data structure for switching snapshot logging.
