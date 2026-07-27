@@ -212,6 +212,8 @@ class SystemSettingsEnum(StrStructuredEnum):
     PACKAGE_SUPPORT_SYSTEMS = EnumField("PACKAGE_SUPPORT_SYSTEMS", _("介质支持的操作系统"))
     DB_PACKAGE_SETTINGS = EnumField("DB_PACKAGE_SETTINGS", _("DB介质配置表"))
     DISABLE_DBHA_AUTOFIX_APPS = EnumField("DISABLE_DBHA_AUTOFIX_APPS", _("DBHA业务自动修复开关"))
+    # 平台内置兜底告警组信息
+    PLATFORM_ALERT_GROUP_INFO = EnumField("PLATFORM_ALERT_GROUP_INFO", _("平台内置兜底告警组信息"))
 
 
 class DisableDBHAAutofixLevel(StrStructuredEnum):
