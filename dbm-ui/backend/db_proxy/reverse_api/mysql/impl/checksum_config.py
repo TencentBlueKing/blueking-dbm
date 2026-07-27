@@ -62,9 +62,10 @@ def checksum_config(bk_cloud_id: int, ip: str, port_list: Optional[List[int]] = 
                 "conf_type": "checksum",
                 "namespace": i.cluster.first().cluster_type.lower(),
                 "level_info": {"module": f"{i.db_module_id}"},
-                "format": "map",
+                "format": "map.",
             }
         )["content"]
+        filter_config = checksum_yaml.get("filter", {})
 
         res.append(
             {
@@ -81,17 +82,19 @@ def checksum_config(bk_cloud_id: int, ip: str, port_list: Optional[List[int]] = 
                 "password": usermap["monitor_pwd"],
                 "enable": engine.lower() not in ["rocksdb", "tokudb"] and checksum_yaml.get("enable", True),
                 "filter": {
-                    "databases": checksum_yaml.get("filter.databases", []),
-                    "databases_regex": checksum_yaml.get("filter.databases_regex", []),
-                    "tables": checksum_yaml.get("filter.tables", []),
-                    "tables_regex": checksum_yaml.get("filter.tables_regex", []),
-                    "ignore_databases": checksum_yaml.get("filter.ignore_databases", []) + SYSTEM_DBS,
-                    "ignore_databases_regex": checksum_yaml.get("filter.ignore_databases_regex", [])
+                    "databases": filter_config.get("databases", []),
+                    "databases_regex": filter_config.get("databases_regex", []),
+                    "tables": filter_config.get("tables", []),
+                    "tables_regex": filter_config.get("tables_regex", []),
+                    "ignore_databases": filter_config.get("ignore_databases", []) + SYSTEM_DBS,
+                    "ignore_databases_regex": filter_config.get("ignore_databases_regex", [])
                     + [f"{STAGE_DB_HEADER}%", f"%{ROLLBACK_DB_TAIL}"],
-                    "ignore_tables": checksum_yaml.get("filter.ignore_tables", []),
-                    "ignore_tables_regex": checksum_yaml.get("filter.ignore_tables_regex", []),
+                    "ignore_tables": filter_config.get("ignore_tables", []),
+                    "ignore_tables_regex": filter_config.get("ignore_tables_regex", []),
                 },
-                "run-time": checksum_yaml.get("pt_checksum.args.run-time", "2h"),
+                "run-time": checksum_yaml.get("pt_checksum.args.run-time", "2h"),  # remove later, use pt_checksum_args
+                "pt_checksum_args": checksum_yaml.get("pt_checksum", {}).get("args", {}),
+                "pt_checksum_switches": checksum_yaml.get("pt_checksum", {}).get("switches", []),
             }
         )
 

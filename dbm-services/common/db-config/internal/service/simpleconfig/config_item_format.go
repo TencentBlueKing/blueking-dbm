@@ -179,6 +179,27 @@ func CastValueType(confName string, confValue string, f api.BaseConfFileDef, val
 				}
 			*/
 			return mapI
+		} else if valueSubType == validatestruct.DTypeSubJson {
+			// 如果以 [ 开头则用 list 解析，如果以 { 开头则以 map 解析
+			confValueTrimmed := strings.TrimSpace(confValue)
+			if strings.HasPrefix(confValueTrimmed, "[") {
+				listI := make([]map[string]interface{}, 0) // [{},{}] 约定默认格式，应该够用了...
+				err := json.Unmarshal([]byte(confValueTrimmed), &listI)
+				if err != nil {
+					logger.Error("fail to unmarshal conf_value as list %s. err:%s", confValue, err.Error())
+					return confValue
+				}
+				return listI
+			} else if strings.HasPrefix(confValueTrimmed, "{") {
+				mapI := make(map[string]interface{})
+				err := json.Unmarshal([]byte(confValueTrimmed), &mapI)
+				if err != nil {
+					logger.Error("fail to unmarshal conf_value as map %s. err:%s", confValue, err.Error())
+					return confValue
+				}
+				return mapI
+			}
+			return confValue
 		}
 		return confValue
 	} else {

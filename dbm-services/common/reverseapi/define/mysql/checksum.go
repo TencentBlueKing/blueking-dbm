@@ -23,5 +23,7 @@ type ChecksumConfig struct {
 		TablesRegex          []string `json:"tables_regex"`
 		IgnoreTablesRegex    []string `json:"ignore_tables_regex"`
 	} `json:"filter"`
-	Runtime string `json:"run-time"`
+	Runtime            string            `json:"run-time"`
+	PtChecksumArgs     map[string]string `json:"pt_checksum_args"`
+	PtChecksumSwitches []string          `json:"pt_checksum_switches"`
 }
