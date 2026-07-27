@@ -47,7 +47,7 @@ class DBMAgentResourceManager(AgentResourceManager):
     def __init__(self, agent_code: str = None, agent_secret: str = None, username: str = ""):
         agent_code = agent_code or settings.AGENT_APP_CODE
         agent_secret = agent_secret or settings.AGENT_APP_SECRET
-        super().__init__(agent_code=agent_code, agent_secret=agent_secret)
+        super().__init__(app_code=agent_code, app_secret=agent_secret)
 
     @classmethod
     def set_backend_mcp_config(cls, agent_config: AgentConfig):
