@@ -60,7 +60,7 @@ class DBMAgentResourceManager(AgentResourceManager):
         agent_secret = agent_secret or settings.AGENT_APP_SECRET
         # TODO：这里不能传递真实的username，暂时为空
         username = "" if username == DEFAULT_USERNAME else username
-        super().__init__(agent_code=agent_code, agent_secret=agent_secret, username=username)
+        super().__init__(app_code=agent_code, app_secret=agent_secret, username=username)
 
     @classmethod
     def set_backend_mcp_config(cls, agent_config: AgentConfig):
