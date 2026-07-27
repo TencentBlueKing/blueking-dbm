@@ -27,7 +27,6 @@ package workflow
 import (
 	"fmt"
 	"sort"
-	"strings"
 
 	"dbm-services/common/dbha-v2/internal/analysis/switcher/switchcore"
 	"dbm-services/common/dbha-v2/pkg/storage/hamodel"
@@ -35,9 +34,8 @@ import (
 )
 
 // SpecialMatchFunc is the function signature for special strategy matching.
-// It takes the unbound instances and the strategy trigger count, and returns the matched
-// failure instances, or nil if the matched unit count is below the threshold.
-type SpecialMatchFunc func(instances []FailureInstanceInfo, threshold int) []FailureInstanceInfo
+// It takes all instances in a group and returns the count of matched special conditions.
+type SpecialMatchFunc func(instances []FailureInstanceInfo) int
 
 // specialStrategyRegistry is the registry of special strategies.
 // key: the event name bound to the strategy (TriggerEventName), value: the corresponding match function.
@@ -55,9 +53,8 @@ func GetSpecialMatchFunc(eventName haprobe.DbEventName) SpecialMatchFunc {
 // MatchProxyBackendSimultaneous matches cases where proxy and backend master fail simultaneously
 // within the same cluster (BkCloudID:ClusterID).
 // A backend master must satisfy both MachineType == backend and InstanceRole == MySQLStorageMaster.
-// It returns the failure instances of clusters whose simultaneous-failure count reaches the
-// threshold (counted per cluster).
-func MatchProxyBackendSimultaneous(instances []FailureInstanceInfo, threshold int) []FailureInstanceInfo {
+// Returns the count of matched clusters.
+func MatchProxyBackendSimultaneous(instances []FailureInstanceInfo) int {
 	// sub-group by BkCloudID:ClusterID, reusing switchcore.GenerateClusterKey
 	clusterGroups := make(map[switchcore.ClusterKey][]FailureInstanceInfo)
 	for _, inst := range instances {
@@ -65,9 +62,8 @@ func MatchProxyBackendSimultaneous(instances []FailureInstanceInfo, threshold in
 		clusterGroups[key] = append(clusterGroups[key], inst)
 	}
 
-	clusterCounts := make(map[switchcore.ClusterKey]int)
-	var matched []FailureInstanceInfo
-	for key, group := range clusterGroups {
+	count := 0
+	for _, group := range clusterGroups {
 		hasProxy := false
 		hasBackendMaster := false
 		for _, inst := range group {
@@ -86,24 +82,18 @@ func MatchProxyBackendSimultaneous(instances []FailureInstanceInfo, threshold in
 			}
 		}
 		if hasProxy && hasBackendMaster {
-			clusterCounts[key]++
+			count++
 		}
 	}
 
-	for key, count := range clusterCounts {
-		if count >= threshold {
-			matched = append(matched, clusterGroups[key]...)
-		}
-	}
-	return matched
+	return count
 }
 
 // MatchSpiderRemoteMasterSimultaneous matches cases where spider and remote master fail simultaneously
 // within the same cluster (BkCloudID:ClusterID).
 // A remote master must satisfy both MachineType == remote and InstanceRole == TenDBClusterStorageMaster.
-// It returns the failure instances of clusters whose simultaneous-failure count reaches the
-// threshold (counted per cluster).
-func MatchSpiderRemoteMasterSimultaneous(instances []FailureInstanceInfo, threshold int) []FailureInstanceInfo {
+// Returns the count of matched clusters.
+func MatchSpiderRemoteMasterSimultaneous(instances []FailureInstanceInfo) int {
 	// sub-group by BkCloudID:ClusterID, reusing switchcore.GenerateClusterKey
 	clusterGroups := make(map[switchcore.ClusterKey][]FailureInstanceInfo)
 	for _, inst := range instances {
@@ -111,9 +101,8 @@ func MatchSpiderRemoteMasterSimultaneous(instances []FailureInstanceInfo, thresh
 		clusterGroups[key] = append(clusterGroups[key], inst)
 	}
 
-	clusterCounts := make(map[switchcore.ClusterKey]int)
-	var matched []FailureInstanceInfo
-	for key, group := range clusterGroups {
+	count := 0
+	for _, group := range clusterGroups {
 		hasSpider := false
 		hasRemoteMaster := false
 		for _, inst := range group {
@@ -132,40 +121,30 @@ func MatchSpiderRemoteMasterSimultaneous(instances []FailureInstanceInfo, thresh
 			}
 		}
 		if hasSpider && hasRemoteMaster {
-			clusterCounts[key]++
+			count++
 		}
 	}
 
-	for key, count := range clusterCounts {
-		if count >= threshold {
-			matched = append(matched, clusterGroups[key]...)
-		}
-	}
-	return matched
+	return count
 }
 
-// FilterInstancesByEventAndCount returns the instances whose event name matches the given event
-// name and whose trigger count reaches the threshold.
-func FilterInstancesByEventAndCount(instances []FailureInstanceInfo, eventName haprobe.DbEventName, threshold int) []FailureInstanceInfo {
-	out := make([]FailureInstanceInfo, 0, len(instances))
+// CountInstancesByEventName counts the number of instances matching the specified event name.
+func CountInstancesByEventName(instances []FailureInstanceInfo, eventName haprobe.DbEventName) int {
+	count := 0
 	for _, inst := range instances {
-		if inst.EventName == eventName && inst.Count >= threshold {
-			out = append(out, inst)
+		if inst.EventName == eventName {
+			count++
 		}
 	}
-	return out
+	return count
 }
 
 // SortCandidates sorts the candidate strategy list by priority.
 // Sorting rules (compared from high to low):
 //  1. Biz-level strategies (BkBizID != 0) take priority over global strategies (BkBizID == 0)
 //  2. Lower Priority value means higher priority
-//  3. When priority is equal, switch action takes priority over notify action
-//
-// The sort is stable: strategies that are equal on all tiers keep their original (query) order,
-// which makes the match order deterministic for strategies with identical priority.
 func SortCandidates(candidates []*hamodel.DbSwitchingStrategy) {
-	sort.SliceStable(candidates, func(i, j int) bool {
+	sort.Slice(candidates, func(i, j int) bool {
 		// tier 1: biz-level strategy > global strategy
 		iBiz := candidates[i].BkBizID != 0
 		jBiz := candidates[j].BkBizID != 0
@@ -174,27 +153,23 @@ func SortCandidates(candidates []*hamodel.DbSwitchingStrategy) {
 		}
 
 		// tier 2: lower priority value first
-		if candidates[i].Priority != candidates[j].Priority {
-			return candidates[i].Priority < candidates[j].Priority
-		}
-
-		// tier 3: switch action > notify action when priority is equal
-		iSwitch := candidates[i].Action == hamodel.ActionTypeSwitch
-		jSwitch := candidates[j].Action == hamodel.ActionTypeSwitch
-		return iSwitch && !jSwitch
+		return candidates[i].Priority < candidates[j].Priority
 	})
 }
 
-// FormatInstanceNotifySummary formats instance details (cluster, ip:port, event, reason)
-// for notification content, so the notify alarm can be located to specific instances.
-func FormatInstanceNotifySummary(instances []FailureInstanceInfo) string {
-	parts := make([]string, 0, len(instances))
+// FormatInstanceEventSummary summarizes event names and their counts for all instances in a group, used for logging.
+func FormatInstanceEventSummary(instances []FailureInstanceInfo) string {
+	eventCounts := make(map[haprobe.DbEventName]int)
 	for _, inst := range instances {
-		parts = append(parts, fmt.Sprintf(
-			"cluster:%s(%d),inst:%s:%d,event:%s,reason:%s",
-			inst.Cluster, inst.ClusterID, inst.IP, inst.Port,
-			inst.EventName.String(), inst.EventNameReason.Str().String(),
-		))
+		eventCounts[inst.EventName]++
 	}
-	return strings.Join(parts, " | ")
+
+	summary := ""
+	for name, count := range eventCounts {
+		if summary != "" {
+			summary += ", "
+		}
+		summary += fmt.Sprintf("%s:%d", name, count)
+	}
+	return summary
 }

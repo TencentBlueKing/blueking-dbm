@@ -26,17 +26,61 @@ package parser
 
 import (
 	"encoding/json"
+	"fmt"
+	"sync"
 
 	"dbm-services/common/dbha-v2/pkg/storage/haprobe"
 )
 
+// Processer parses one raw status payload into a DB event.
 type Processer interface {
 	Process(task json.RawMessage) (*haprobe.DbEvent, error)
 }
 
+// DBTyperWrapper pairs a DbType with its raw status payload.
 type DBTyperWrapper struct {
 	DbTypeName haprobe.DbType
 	Value      json.RawMessage
 }
 
-var Parsers = map[haprobe.DbType]Processer{}
+var (
+	parsersMu sync.RWMutex
+	parsers   = map[haprobe.DbType]Processer{}
+)
+
+// Register registers a Processer for a DbType. Panics on duplicate, nil, or invalid DbType.
+func Register(dbType haprobe.DbType, p Processer) {
+	if dbType == haprobe.DbTypeNone || dbType == haprobe.DbTypeUnknown {
+		panic(fmt.Sprintf("parser: refuse to register invalid DbType: %q", dbType))
+	}
+	if p == nil {
+		panic(fmt.Sprintf("parser: refuse to register nil Processer for DbType: %s", dbType))
+	}
+
+	parsersMu.Lock()
+	defer parsersMu.Unlock()
+
+	if _, exists := parsers[dbType]; exists {
+		panic(fmt.Sprintf("parser: duplicate DbType registration: %s", dbType))
+	}
+	parsers[dbType] = p
+}
+
+// Lookup returns the registered Processer for a DbType, if any.
+func Lookup(dbType haprobe.DbType) (Processer, bool) {
+	parsersMu.RLock()
+	defer parsersMu.RUnlock()
+	p, ok := parsers[dbType]
+	return p, ok
+}
+
+// RegisteredDbTypes returns all registered DbTypes (unordered).
+func RegisteredDbTypes() []haprobe.DbType {
+	parsersMu.RLock()
+	defer parsersMu.RUnlock()
+	out := make([]haprobe.DbType, 0, len(parsers))
+	for dt := range parsers {
+		out = append(out, dt)
+	}
+	return out
+}

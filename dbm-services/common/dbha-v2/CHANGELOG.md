@@ -1,15 +1,6 @@
 # DBHA-v2 Change Log
 
-## v2.0.1-beta.3
-
-- 【新增】Linux Probe 启停脚本按操作发起时间判先后，并发下发 start 和 stop 时以更晚的那次为准。发起时间由调用方通过 `--intent-ts` 或 `DBHA_INTENT_TS` 传入，不传则取脚本启动时间，只能近似下发顺序。
-- 【新增】start 发现自己已被更晚的 stop 取代时不再拉起进程，改为确认 probe 确实已停，确认通过退 0，等超时退 1。stop 被更晚的 start 取代时直接退 1，让调用方停在这一步，不要继续做删目录这类动作。
-- 【新增】start 和 stop 会清掉安装目录被删后仍在跑的 probe 进程（`/proc/<pid>/exe` 带 `(deleted)` 且指向本安装路径），这类进程此前既扫不到也停不掉。设 `DBHA_REAP_DELETED_EXE=0` 则只告警不清理。
-- 【优化】start 和 stop 全程持 action 锁，并发执行不会留下两组 guard。stop 退 0 表示本安装已经没有 probe 进程在跑，crontab 里也没有守护行。
-- 【优化】新增 `make test-scripts` 跑启停相关的 shell 测试。桩二进制编不出来时测试直接失败，不再跳过后报成功。
-
 ## v2.0.1-beta.2
-
 - 【新增】Probe 支持进程内热加载：gen-config --reload 与 dbha-probe reload 会重读配置并替换 harvester 世代；配置未变则跳过，解析失败不影响运行中配置。
 - 【新增】gen-config 增加 --clear-port，按逗号或分号剔除 ports / adminPorts，避免采集指定端口。
 - 【新增】gen-config 增加 --reload，写完配置后向运行中的 probe 发 reload 信号（当前热加载仍为 log-only stub）。
@@ -22,10 +13,7 @@
 - 【修复】Probe 停止 repldelay 采集，不再向 infodba_schema.dbha_repl_heartbeat 写入，避免主从同步异常。
 - 【修复】切换时从库延迟改为看 SHOW SLAVE STATUS 的 Seconds_Behind_Master，新增配置 slaveAllowedMaxSecondsBehindMaster（默认 600 秒）。
 
-
-
 ## v2.0.1-beta.1
-
 - 【新增】Probe 对 MySQL 按 default / heartbeat / repldelay 三类异步采集：default 按原间隔上报全量状态。
 - 【新增】heartbeat 按较短间隔写 infodba_schema.dbha_heartbeat（sql_log_bin=OFF，只验本机可写）。
 - 【新增】repldelay 按独立间隔写 infodba_schema.dbha_repl_heartbeat（sql_log_bin=ON，复制到从库并据此报延迟）。
@@ -34,8 +22,6 @@
 - 【优化】写 dbha_heartbeat 失败会报事件dbha_heartbeat_write_failure，Analysis 据此做 SSH 二次探测；同实例多条事件按实例去重，避免重复探测。
 - 【修复】快照日志表将集群名称与集群ID字段与实例绑定，修复多个集群时名称展示错误问题。
 - 【修复】dbha-cluster show nodes 展示节点信息时排除同机不同集群的实例。
-
-
 
 ## v2.0.0
 
@@ -47,8 +33,6 @@
 - 【优化】完善快照日志信息的检查开始和检查结束时间，同时填充切换日志列表接口数据。
 - 【修复】排除策略匹配中不可用状态的实例。
 
-
-
 ## v2.0.0-beta.12
 
 - 【新增】增加 proxy 节点非管理端口写心跳功能。
@@ -58,8 +42,6 @@
 - 【优化】优化切换快照日志的写入流程与数据结构，完善 BkIdcID，Status，NewMasterIP，NewMasterPort 字段内容。
 - 【优化】完善快照日志信息的检查开始和检查结束时间，同时填充切换日志列表接口数据。
 - 【修复】排除策略匹配中不可用状态的实例。
-
-
 
 ## v2.0.0-beta.11
 
