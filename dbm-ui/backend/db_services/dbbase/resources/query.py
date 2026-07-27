@@ -18,7 +18,7 @@ from django.http import HttpResponse
 from django.utils.translation import gettext_lazy as _
 
 from backend.constants import IP_PORT_DIVIDER
-from backend.db_meta.enums import ClusterEntryType, ClusterType, InstanceRole
+from backend.db_meta.enums import ClusterEntryType, ClusterType, InstanceRole, MachineType
 from backend.db_meta.enums.comm import SystemTagEnum
 from backend.db_meta.models import (
     AppCache,
@@ -749,6 +749,8 @@ class ListRetrieveResource(BaseListRetrieveResource, CommonExportQueryResourceMi
             cluster_spec_id = storage.machine.spec_id if storage else 0
             cluster_spec = kwargs["remote_spec_map"].get(cluster_spec_id)
 
+        machine_specs = cls.get_machine_specs(cluster, kwargs["remote_spec_map"])
+
         return {
             "id": cluster.id,
             "db_type": str(ClusterType.cluster_type_to_db_type(cluster.cluster_type)),
@@ -784,9 +786,63 @@ class ListRetrieveResource(BaseListRetrieveResource, CommonExportQueryResourceMi
             "create_at": datetime2str(cluster.create_at),
             "update_at": datetime2str(cluster.update_at),
             "cluster_spec": cluster_spec.to_dict() if cluster_spec else None,
+            "machine_specs": machine_specs,
             "tags": [tag.desc for tag in cluster.tags.all()],
             "zone_list": cluster.zone_list,
         }
+
+    @classmethod
+    def get_machine_specs(cls, cluster: Cluster, remote_spec_map: Dict[int, Spec]) -> List[Dict[str, Any]]:
+        """
+        按 MachineType 和规格分组，返回集群各角色的规格与主机台数。
+        同一台主机可能挂多个实例，这里按主机去重后再统计。
+        """
+        machine_map = {}
+        for instance in list(cluster.proxies) + list(cluster.storages):
+            machine = instance.machine
+            machine_key = machine.bk_host_id or f"{machine.bk_cloud_id}:{machine.ip}"
+            machine_map[machine_key] = machine
+
+        grouped_specs = {}
+        for machine in machine_map.values():
+            spec = remote_spec_map.get(machine.spec_id)
+            spec_name = spec.spec_name if spec else str(_("未绑定"))
+            group_key = (machine.machine_type, spec_name)
+            grouped_spec = grouped_specs.setdefault(
+                group_key,
+                {
+                    "ips": set(),
+                    "spec_ids": set(),
+                    "enable": spec.enable if spec else None,
+                },
+            )
+            grouped_spec["ips"].add(machine.ip)
+            grouped_spec["spec_ids"].add(machine.spec_id)
+
+        machine_specs = []
+        for (machine_type, spec_name), grouped_spec in grouped_specs.items():
+            ips = sorted(grouped_spec["ips"])
+            spec_ids = sorted(grouped_spec["spec_ids"])
+            machine_specs.append(
+                {
+                    "ips": ips,
+                    "machine_type": machine_type,
+                    "spec_ids": spec_ids,
+                    "spec_name": spec_name,
+                    "enable": grouped_spec["enable"],
+                    "count": len(ips),
+                }
+            )
+        # 按MachineType 枚举序 + 数量倒序 + 规格名 排序
+        machine_type_order_map = {machine_type: index for index, machine_type in enumerate(MachineType.get_values())}
+        return sorted(
+            machine_specs,
+            key=lambda item: (
+                machine_type_order_map.get(item["machine_type"], len(machine_type_order_map)),
+                -item["count"],
+                item["spec_name"],
+            ),
+        )
 
     @classmethod
     def _list_instances(
@@ -1153,6 +1209,7 @@ class ListRetrieveResource(BaseListRetrieveResource, CommonExportQueryResourceMi
             "spec_id": machine.spec_id,
             "spec_config": machine.spec_config,
             "spec_name": machine_spec.spec_name if machine_spec else "",
+            "spec_enable": machine_spec.enable if machine_spec else None,
             "bk_sub_zone": machine.bk_sub_zone,
             "bk_os_name": machine.bk_os_name,
             "bk_rack_id": machine.bk_rack_id,
