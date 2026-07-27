@@ -261,7 +261,7 @@ def RedisClusterSwitchAtomJob(root_id, data, act_kwargs: ActKwargs, sync_params:
     act_kwargs.cluster["meta_func_name"] = RedisDBMeta.tendis_switch_4_scene.__name__
     sub_pipeline.add_act(act_name=_("元数据切换"), act_component_code=RedisDBMetaComponent.code, kwargs=asdict(act_kwargs))
 
-    # 刷新dbmon 【twemproxy架构、单实例均需要补充信息】
+    # 刷新dbmon 【twemproxy架构、主从版本 -- 不在这里刷新】
     acts_list = []
     for ip in new_ips.keys():
         kwargs = deepcopy(act_kwargs)
@@ -279,7 +279,7 @@ def RedisClusterSwitchAtomJob(root_id, data, act_kwargs: ActKwargs, sync_params:
                 "kwargs": asdict(kwargs),
             }
         )
-    if acts_list:
+    if acts_list and act_kwargs.cluster["cluster_type"] not in [ClusterType.TendisRedisInstance.value]:
         sub_pipeline.add_parallel_acts(acts_list=acts_list)
 
     return sub_pipeline.build_sub_process(sub_name=_("{}-实例切换").format(act_kwargs.cluster["immute_domain"]))
