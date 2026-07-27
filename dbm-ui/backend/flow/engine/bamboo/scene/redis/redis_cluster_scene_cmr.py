@@ -34,6 +34,7 @@ from backend.flow.engine.bamboo.scene.redis.atom_jobs import (
     ProxyUnInstallAtomJob,
     RedisClusterMasterReplaceJob,
     RedisClusterSlaveReplaceJob,
+    RedisInstanceSlaveReplaceJob,
 )
 from backend.flow.plugins.components.collections.common.pause import PauseComponent
 from backend.flow.plugins.components.collections.redis.get_redis_payload import GetRedisActPayloadComponent
@@ -192,31 +193,160 @@ class RedisClusterCMRSceneFlow(object):
         self._prefetch_cluster_cache(list(unique_cluster_ids))
 
         for cluster_replacement in self.data["infos"]:
-            for cluster_id in cluster_replacement["cluster_ids"]:
-                cluster_ids.append(int(cluster_id))
-                cluster_kwargs = deepcopy(act_kwargs)
-                cluster_info = self.get_cluster_info(cluster_id)
-                sync_type = SyncType.SYNC_MMS.value  # ssd sync from master
-                if cluster_info["cluster_type"] == ClusterType.TendisTwemproxyRedisInstance.value:
-                    sync_type = SyncType.SYNC_SMS.value
+            if len(cluster_replacement["cluster_ids"]) > 1:
+                # 单机多实例，主从架构的整机替换单据
+                sub_pipeline = self.generate_single_replacement(self.data, deepcopy(act_kwargs), cluster_replacement)
+                sub_pipelines.append(sub_pipeline)
+            else:
+                for cluster_id in cluster_replacement["cluster_ids"]:
+                    cluster_ids.append(int(cluster_id))
+                    cluster_kwargs = deepcopy(act_kwargs)
+                    cluster_info = self.get_cluster_info(cluster_id)
+                    sync_type = SyncType.SYNC_MMS.value  # ssd sync from master
+                    if cluster_info["cluster_type"] == ClusterType.TendisTwemproxyRedisInstance.value:
+                        sync_type = SyncType.SYNC_SMS.value
 
-                flow_data = self.data
-                cluster_kwargs.bk_cloud_id = cluster_info["bk_cloud_id"]  # 海外多云区域
-                cluster_kwargs.cluster.update(cluster_info)
-                cluster_kwargs.cluster["created_by"] = self.data["created_by"]
-                flow_data["sync_type"] = sync_type
-                flow_data["replace_info"] = cluster_replacement
+                    flow_data = self.data
+                    cluster_kwargs.bk_cloud_id = cluster_info["bk_cloud_id"]  # 海外多云区域
+                    cluster_kwargs.cluster.update(cluster_info)
+                    cluster_kwargs.cluster["created_by"] = self.data["created_by"]
+                    flow_data["sync_type"] = sync_type
+                    flow_data["replace_info"] = cluster_replacement
 
-                sub_pipeline = self.generate_cluster_replacement(flow_data, cluster_kwargs, cluster_replacement)
-                # 如果有单实例的集群，那么先让他串行搞；完成后再搞非单实例集群
-                if cluster_info["cluster_type"] == ClusterType.RedisInstance.value:
-                    redis_pipeline.add_sub_pipeline(sub_pipeline)
-                else:
+                    sub_pipeline = self.generate_cluster_replacement(flow_data, cluster_kwargs, cluster_replacement)
                     sub_pipelines.append(sub_pipeline)
+
         if len(sub_pipelines) > 0:
             redis_pipeline.add_parallel_sub_pipeline(sub_flow_list=sub_pipelines)
         # return redis_pipeline.run_pipeline()
         return redis_pipeline.run_pipeline_with_sidecar(check_ai_monitor_cluster_list=cluster_ids)
+
+    @staticmethod
+    def _split_ip_port(item):
+        """从 "ip:port" 或 "ip:port seg_range" 中拆出 (ip, int(port))"""
+        ip, port = item.split()[0].split(":")
+        return ip, int(port)
+
+    def _build_clusters_instance_map(self, cluster_ids):
+        """
+        聚合本单据下所有主从集群的实例信息，返回字典。
+        tendis_cluster 返回的 *_set 元素为 "ip:port" 或 "ip:port seg_range"。
+        """
+        clusters_detail = api.cluster.nosqlcomm.other.get_clusters_details(cluster_ids)
+
+        info = {
+            "master_ports": {},  # master ip -> [port1, port2, ...]
+            "slave_ports": {},  # slave ip -> [port1, port2, ...]
+            # 实例/IP 主从映射
+            "ins_pair_map": {},  # master ip:port -> slave ip:port
+            "slave_ins_map": {},  # slave ip:port -> master ip:port
+            "master_slave_map": {},  # master ip -> slave ip
+            "slave_master_map": {},  # slave ip -> master ip
+            # master 实例(ip:port) -> 所属集群
+            "master_cid_relation": {},
+        }
+
+        for cluster_detail in clusters_detail:
+            for m_item, s_item in zip(cluster_detail["redis_master_set"], cluster_detail["redis_slave_set"]):
+                m_ip, m_port = self._split_ip_port(m_item)
+                s_ip, s_port = self._split_ip_port(s_item)
+                m_ip_port = "{}:{}".format(m_ip, m_port)
+                s_ip_port = "{}:{}".format(s_ip, s_port)
+
+                info["master_ports"].setdefault(m_ip, []).append(m_port)
+                info["slave_ports"].setdefault(s_ip, []).append(s_port)
+                info["ins_pair_map"][m_ip_port] = s_ip_port
+                info["slave_ins_map"][s_ip_port] = m_ip_port
+                info["master_slave_map"][m_ip] = s_ip
+                info["slave_master_map"][s_ip] = m_ip
+                # master 实例 -> 所属集群
+                info["master_cid_relation"][m_ip_port] = cluster_detail
+
+        return clusters_detail, info
+
+    # 单机多实例, 并行
+    def generate_single_replacement(self, flow_data, act_kwargs, replacement_param):
+        sub_pipeline = SubBuilder(root_id=self.root_id, data=flow_data)
+        act_kwargs.cluster["created_by"] = self.data["created_by"]
+        act_kwargs.cluster["sync_type"] = SyncType.SYNC_MMS.value
+        # 提取本单据下所有主从集群的集群信息与实例信息
+        cluster_ids = replacement_param["cluster_ids"]
+        clusters_detail, ins_info = self._build_clusters_instance_map(cluster_ids)
+
+        # 以第一个集群为基准，回填集群元信息（bk_cloud_id/immute_domain 等）
+        base_info = clusters_detail[0]
+        act_kwargs.bk_cloud_id = base_info["bk_cloud_id"]  # 海外多云区域
+        act_kwargs.cluster.update(
+            {
+                "bk_biz_id": base_info["bk_biz_id"],
+                "bk_cloud_id": base_info["bk_cloud_id"],
+                "cluster_id": base_info["id"],
+                "cluster_name": base_info["name"],
+                "immute_domain": base_info["immute_domain"],
+                "cluster_type": base_info["cluster_type"],
+                "major_version": base_info["major_version"],
+                "db_version": base_info["major_version"],
+                "region": base_info["region"],
+            }
+        )
+        act_kwargs.cluster.update(ins_info)
+        act_kwargs.cluster["cluster_ids"] = list(map(int, cluster_ids))
+
+        sub_pipeline.add_act(
+            act_name=_("初始化-{}".format(cluster_ids)),
+            act_component_code=GetRedisActPayloadComponent.code,
+            kwargs=asdict(act_kwargs),
+        )
+
+        # 先添加 Slave 替换流程
+        redis_slave = replacement_param.get("redis_slave")
+        if redis_slave:
+            slave_kwargs = deepcopy(act_kwargs)
+            slave_target = redis_slave[0].get("target", {})
+            slave_replace_pipe = RedisInstanceSlaveReplaceJob(
+                self.root_id,
+                flow_data,
+                slave_kwargs,
+                {
+                    "redis_slave": redis_slave,
+                    "slave_spec": slave_target.get("spec", {}),
+                },
+            )
+            sub_pipeline.add_sub_pipeline(slave_replace_pipe)
+
+        # 最后添加 Master 替换流程, reget proxy info.
+        redis_master = replacement_param.get("redis_master")
+        if redis_master:
+            master_kwargs = deepcopy(act_kwargs)
+            master_target = redis_master[0].get("target", {})
+            master_replace_pipe = RedisClusterMasterReplaceJob(
+                self.root_id,
+                flow_data,
+                master_kwargs,
+                {
+                    "redis_master": redis_master,
+                    "master_spec": master_target.get("master", {}).get("spec", {}),
+                    "slave_spec": master_target.get("slave", {}).get("spec", {}),
+                },
+            )
+            sub_pipeline.add_sub_pipeline(master_replace_pipe)
+
+        version_acts = []
+        for cluster_detail in clusters_detail:
+            version_kwargs = deepcopy(act_kwargs)
+            version_kwargs.cluster["cluster_id"] = cluster_detail["id"]
+            version_kwargs.cluster["immute_domain"] = cluster_detail["immute_domain"]
+            version_kwargs.cluster["update_storage"] = True
+            version_acts.append(
+                {
+                    "act_name": _("{}-更新版本").format(cluster_detail["immute_domain"]),
+                    "act_component_code": RedisUpdateVersionComponent.code,
+                    "kwargs": asdict(version_kwargs),
+                }
+            )
+        sub_pipeline.add_parallel_acts(acts_list=version_acts)
+
+        return sub_pipeline.build_sub_process(sub_name=_("整机替换-{}").format(act_kwargs.cluster["immute_domain"]))
 
     # 组装&控制 集群替换流程
     def generate_cluster_replacement(self, flow_data, act_kwargs, replacement_param):
