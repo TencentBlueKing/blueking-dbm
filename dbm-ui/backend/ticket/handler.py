@@ -578,14 +578,23 @@ class TicketHandler:
         config_ids = config_ids or []
 
         config_qs = TicketFlowsConfig.objects.filter(bk_biz_id=bk_biz_id, ticket_type__in=ticket_types)
+
+        def check_editable_configs(configs_qs):
+            uneditable_configs = list(configs_qs.filter(editable=False).values_list("id", "ticket_type"))
+            if uneditable_configs:
+                raise TicketFlowsConfigException(_("流程配置不允许编辑，配置ID和单据类型: {}").format(uneditable_configs))
+
         # 平台全局配置直接更新
         if not bk_biz_id:
+            check_editable_configs(config_qs)
             config_qs.update(configs=configs)
             return
 
         # 业务级别先删除，再创建，可以复用校验流程
         with transaction.atomic():
-            config_qs.filter(id__in=config_ids).exclude(bk_biz_id=PLAT_BIZ_ID).delete()
+            update_config_qs = config_qs.filter(id__in=config_ids).exclude(bk_biz_id=PLAT_BIZ_ID)
+            check_editable_configs(update_config_qs)
+            update_config_qs.delete()
             cls.create_ticket_flow_config(
                 bk_biz_id, cluster_ids, ticket_types, configs, operator, remark, cluster_tags
             )
