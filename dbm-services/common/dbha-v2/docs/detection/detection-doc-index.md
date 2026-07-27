@@ -4,11 +4,11 @@
 
 聚焦 **MySQL 家族**（`tendbha` / `tendbcluster`）故障探测/切换设计文档。通用架构与组件职责以 [架构总览](../architecture/overview.md) 为准；本文侧重探测域总览与索引。
 
-- Probe harvester 实际加载 3 个插件实例：`mysql`、`mysqlProxyAdmin`（MySQL 插件变体，专用于 TenDBHA proxy admin 端口）、`redis`。
-- Analysis 侧 **switcher 仅注册 MySQL**（[workflow.go](../../internal/analysis/workflow/workflow.go) 的 `switchers` 只含 `DbTypeMySql`）；其余 `DbType` 可采集、可因 SSH dial/session 失败入窗（入窗 EventName 仍为 `DoubleCheckSshFailureV1`），但暂不执行自动切换。
+- Probe harvester 实际加载 3 个插件实例：`mysql`、`mysqlProxyAdmin`（MySQL 插件变体，专用于 TenDBHA proxy admin 端口）、`redis`（由 `provider/*/harvest` 经 `harvester.Register` 自注册，probe 入口 blank-import `provider/allprobe`）。
+- Analysis 侧 **switcher 仅注册 MySQL**（由 `provider/mysql/switch` 经 `switcher.Register` 自注册，`workflow.New` 调用 `switcher.Build()`；analysis 入口 blank-import `provider/allanalysis`）；其余 `DbType` 可采集、可因 SSH dial/session 失败入窗（入窗 EventName 仍为 `DoubleCheckSshFailureV1`），但暂不执行自动切换。
 - Analysis 侧基于 metrics 的一次解析（status parser）**当前为 stub**（见下文），故障主链路依赖「probe 直报事件 + missed probe + SSH 二次探测」。
 
-入窗细则以 [mysql-detection-design.md §5](./mysql-detection-design.md) 为准；窗口 / 锁 / 策略运行时路径见 [故障判定与切换](../flows/failure-detection-and-failover.md)。总入口见 [文档索引](../README.md)。
+入窗细则以 [mysql-detection-design.md §5](./mysql-detection-design.md) 为准；窗口 / 锁 / 策略运行时路径见 [故障判定与切换](../flows/failure-detection-and-failover.md)。总入口见 [文档索引](../README.md)。新增 DB 类型请阅读 [新增 DB 类型扩展指南](./add-db-type-guide.md)（含块名归一、Match 谓词、builtin 弱注册与 provider 骨架）。admin / receiver 通过 blank-import `provider/alldesc` 链接 CapDesc 映射。
 
 ---
 
@@ -173,8 +173,15 @@ type EventData struct {
 
 - `Plugin` 接口（[harvester/plugin/plugin.go](../../internal/probe/harvester/plugin/plugin.go)）：新增 DB 采集只需实现 `Name` / `Harvest` / `Close`。
 - `DBTyper` / `HarvestData`（[pkg/storage/haprobe](../../pkg/storage/haprobe)）：`Value` 通过 `GetDbType()` 标识 DB 类型。
-- `DbType -> Switcher` 映射（[workflow.go](../../internal/analysis/workflow/workflow.go)）：新增可切换 DB 需注册 `switcher.Switcher`。
+- **Provider 注册表（推荐）**：在 `internal/provider/<db>/` 按能力分子包自注册，并在 [`manifest.go`](../../internal/provider/manifest.go) 登记后 `go generate`；详见 [新增 DB 类型扩展指南](./add-db-type-guide.md)。
+- `harvester.Register`（[harvester/registry.go](../../internal/probe/harvester/registry.go)）：采集块名 + DbType + Factory。
+- `switcher.Register` / `Build`（[switcher/registry.go](../../internal/analysis/switcher/registry.go)）：DbType -> Switcher。
+- `pkg/dbtype` catalog（[pkg/dbtype](../../pkg/dbtype)）：`ClusterType -> DbType`；MySQL 等内建，Redis 等走 provider `dbtypedesc`。
 - `switchcore` 抽象（[switcher/switchcore](../../internal/analysis/switcher/switchcore)）：标准切换流程接口。
+
+### 非对称性
+
+MySQL 的切换/解析实现主体仍在框架包（`internal/analysis/switcher`、`workflow/parser`），provider 仅负责注册；**新 DB 实现应放在 provider 子包**。后续可择机将 MySQL 实现迁入 `provider/mysql/`。
 
 ---
 
@@ -186,3 +193,4 @@ type EventData struct {
 - [采集与上报](../flows/probe-harvest-and-report.md)
 - [故障判定与切换](../flows/failure-detection-and-failover.md)
 - [MySQL 探测设计](./mysql-detection-design.md)
+- [新增 DB 类型扩展指南](./add-db-type-guide.md)

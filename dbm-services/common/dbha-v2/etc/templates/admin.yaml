@@ -99,6 +99,16 @@ probeProxyAdmin:
   interval: {{ADMIN_PROBE_PROXY_ADMIN_INTERVAL}}
   timeout: {{ADMIN_PROBE_PROXY_ADMIN_TIMEOUT}}
 
+# Optional generic harvester credentials for newly added DB types.
+# Keys become ProbeConfigPayload.harvesters and must match HarvestBlock.PayloadKey / BlockName.
+# Example:
+# probeHarvesters:
+#   kafka:
+#     user: ""
+#     password: ""
+#     interval: 20s
+#     timeout: 5s
+
 log:
   path: "{{ADMIN_LOG_PATH}}"
   level: {{COMMON_LOG_LEVEL}}

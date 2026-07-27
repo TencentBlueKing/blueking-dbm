@@ -25,7 +25,6 @@
 package probe
 
 import (
-	"dbm-services/common/dbha-v2/internal/probe/config"
 	"dbm-services/common/dbha-v2/internal/probe/harvester"
 	"dbm-services/common/dbha-v2/internal/probe/harvester/plugin"
 )
@@ -39,36 +38,17 @@ type pluginEntry struct {
 	factory pluginFactory
 }
 
-// pluginEntries enumerates all harvester plugins to be started by Probe.
-// Factories read config.Cfg lazily at call time, so package-level definition is safe.
-// Each factory returns (nil, nil) when its corresponding cfg block is absent so probe
-// won't start a plugin with a nil cfg (which would panic on Harvest at m.cfg.Interval).
-var pluginEntries = []pluginEntry{
-	{
-		name: "mysql",
-		factory: func() (plugin.Plugin, error) {
-			if config.Cfg.Harvester.MySql == nil {
-				return nil, nil
-			}
-			return harvester.NewPluginMySql(config.Cfg.Harvester.MySql)
-		},
-	},
-	{
-		name: "mysqlProxyAdmin",
-		factory: func() (plugin.Plugin, error) {
-			if config.Cfg.Harvester.MySqlProxyAdmin == nil {
-				return nil, nil
-			}
-			return harvester.NewPluginMySqlProxyAdmin(config.Cfg.Harvester.MySqlProxyAdmin)
-		},
-	},
-	{
-		name: "redis",
-		factory: func() (plugin.Plugin, error) {
-			if config.Cfg.Harvester.Redis == nil {
-				return nil, nil
-			}
-			return harvester.NewPluginRedis(config.Cfg.Harvester.Redis)
-		},
-	},
+// pluginEntriesOverride, when non-nil, replaces registry-backed entries (tests only).
+var pluginEntriesOverride []pluginEntry
+
+func effectivePluginEntries() []pluginEntry {
+	if pluginEntriesOverride != nil {
+		return pluginEntriesOverride
+	}
+	reg := harvester.Entries()
+	out := make([]pluginEntry, 0, len(reg))
+	for _, e := range reg {
+		out = append(out, pluginEntry{name: e.BlockName, factory: pluginFactory(e.Factory)})
+	}
+	return out
 }

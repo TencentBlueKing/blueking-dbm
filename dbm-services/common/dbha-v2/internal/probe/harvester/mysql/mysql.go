@@ -24,7 +24,7 @@
 
 // Package mysql implements the MySQL harvester plugin used to collect status from
 // MySQL-family backends (TendbHA mysql storage, TendbHA mysql-proxy admin ports,
-// TendbCluster spider / spider-ctl). The plugin is driven by config.MySqlHarvesterConfig:
+// TendbCluster spider / spider-ctl). The plugin is driven by config.RawHarvesterConfig:
 // admin owns the credentials and Interval / Timeout, probe routes endpoints into either
 // the regular mysql instance or the dedicated mysqlProxyAdmin instance.
 package mysql
@@ -75,23 +75,23 @@ type MySql struct {
 	serviceID string
 	name      string
 	wg        sync.WaitGroup
-	cfg       *config.MySqlHarvesterConfig
+	cfg       *config.RawHarvesterConfig
 	// key: the mysql endpoint
 	collectors map[string]*collector
 }
 
 // NewMySql constructs a MySql harvester named Name; used for regular mysql storage / spider endpoints.
-func NewMySql(cfg *config.MySqlHarvesterConfig) (*MySql, error) {
+func NewMySql(cfg *config.RawHarvesterConfig) (*MySql, error) {
 	return newMySql(cfg, Name)
 }
 
 // NewMySqlProxyAdmin constructs a MySql harvester named NameMySqlProxyAdmin; used for TendbHA
 // mysql-proxy admin ports so logs can distinguish it from the regular mysql plugin instance.
-func NewMySqlProxyAdmin(cfg *config.MySqlHarvesterConfig) (*MySql, error) {
+func NewMySqlProxyAdmin(cfg *config.RawHarvesterConfig) (*MySql, error) {
 	return newMySql(cfg, NameMySqlProxyAdmin)
 }
 
-func newMySql(cfg *config.MySqlHarvesterConfig, name string) (*MySql, error) {
+func newMySql(cfg *config.RawHarvesterConfig, name string) (*MySql, error) {
 	if name == "" {
 		name = Name
 	}
