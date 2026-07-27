@@ -155,7 +155,7 @@ export default class SurrealdbHa extends ClusterBase {
   get masterDomainDisplayName() {
     const domainItem = this.cluster_entry.find((item) => item.cluster_entry_type === 'clbDns');
     const displayName = domainItem?.entry || '';
-    return displayName;
+    return `${displayName}:${this.cluster_access_port}`;
   }
 
   get operationDisabled() {
