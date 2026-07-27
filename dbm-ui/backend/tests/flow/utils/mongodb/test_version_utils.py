@@ -284,11 +284,13 @@ def test_lookup_mongodb_package_full_patch_matches_major_minor_package():
     pkg_624 = SimpleNamespace(
         id=145,
         version="mongodb-6.0",
+        enable=True,
         db_version=SimpleNamespace(base_version="6.0.24", name="6.0.24"),
     )
     pkg_627 = SimpleNamespace(
         id=153,
         version="mongodb-6.0",
+        enable=True,
         db_version=SimpleNamespace(base_version="6.0.27", name="6.0.27"),
     )
 
@@ -327,6 +329,95 @@ def test_lookup_mongodb_package_full_patch_matches_major_minor_package():
         Package.objects = original_objects
 
 
+def test_lookup_mongodb_package_major_minor_picks_highest_enable_patch():
+    pkg_low = SimpleNamespace(
+        id=1,
+        version="mongodb-7.0.20",
+        enable=True,
+        db_version=None,
+    )
+    pkg_high = SimpleNamespace(
+        id=2,
+        version="mongodb-7.0.28",
+        enable=True,
+        db_version=None,
+    )
+    pkg_disabled_newer = SimpleNamespace(
+        id=3,
+        version="mongodb-7.0.30",
+        enable=False,
+        db_version=None,
+    )
+
+    class FakeQuerySet:
+        def __init__(self, items):
+            self._items = items
+
+        def filter(self, *args, **kwargs):
+            enable = kwargs.get("enable")
+            if enable is True:
+                return FakeQuerySet([p for p in self._items if p.enable])
+            return FakeQuerySet(self._items)
+
+        def select_related(self, *args, **kwargs):
+            return self
+
+        def __iter__(self):
+            return iter(self._items)
+
+    import backend.flow.utils.mongodb.version_utils as vu
+    from backend.db_package.models import Package
+
+    original_objects = Package.objects
+
+    class FakeManager:
+        def filter(self, *args, **kwargs):
+            return FakeQuerySet([pkg_low, pkg_high, pkg_disabled_newer])
+
+    Package.objects = FakeManager()
+    try:
+        assert vu.lookup_mongodb_package("mongodb-7.0").id == 2
+    finally:
+        Package.objects = original_objects
+
+
+def test_lookup_mongodb_package_full_patch_ignores_enable():
+    pkg = SimpleNamespace(
+        id=99,
+        version="mongodb-6.0.27",
+        enable=False,
+        db_version=None,
+    )
+
+    class FakeQuerySet:
+        def __init__(self, items):
+            self._items = items
+
+        def filter(self, *args, **kwargs):
+            return self
+
+        def select_related(self, *args, **kwargs):
+            return self
+
+        def __iter__(self):
+            return iter(self._items)
+
+    import backend.flow.utils.mongodb.version_utils as vu
+    from backend.db_package.models import Package
+
+    original_objects = Package.objects
+
+    class FakeManager:
+        def filter(self, *args, **kwargs):
+            return FakeQuerySet([pkg])
+
+    Package.objects = FakeManager()
+    try:
+        assert vu.lookup_mongodb_package("mongodb-6.0.27").id == 99
+    finally:
+        Package.objects = original_objects
+
+
 def test_resolve_replaced_instance_version_prefers_old():
     cluster, storage_items, _ = _make_cluster(["mongodb-6.0.27"], major_version="mongodb-6.0")
     old = storage_items[0]
@@ -345,3 +436,26 @@ def test_resolve_mongodb_flow_db_version_raises_without_package():
             resolve_mongodb_flow_db_version(cluster)
     finally:
         vu.lookup_mongodb_package = original
+
+
+def test_get_mongodb_package_v2_release_raises_when_missing(monkeypatch):
+    from backend.db_package.exceptions import PackageNotExistException
+    from backend.flow.utils.mongodb import version_utils as vu
+
+    monkeypatch.setattr(
+        "backend.db_package.models.Package.get_latest_package_v2_release",
+        lambda **kwargs: None,
+    )
+    with pytest.raises(PackageNotExistException):
+        vu.get_mongodb_package_v2_release("actuator", series="latest")
+
+
+def test_get_mongodb_package_v2_release_returns_pkg(monkeypatch):
+    from backend.flow.utils.mongodb import version_utils as vu
+
+    pkg = SimpleNamespace(path="actuator.tgz", version="1.0")
+    monkeypatch.setattr(
+        "backend.db_package.models.Package.get_latest_package_v2_release",
+        lambda **kwargs: pkg,
+    )
+    assert vu.get_mongodb_package_v2_release("actuator") is pkg

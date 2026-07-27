@@ -30,9 +30,11 @@ from backend.flow.plugins.components.collections.mongodb.mongo_update_version im
 from backend.flow.utils.mongodb.mongodb_repo import MongoDBCluster, MongoNode, MongoRepository, ReplicaSet
 from backend.flow.utils.mongodb.mongodb_util import MongoUtil
 from backend.flow.utils.mongodb.version_utils import (
+    _resolve_package_full_version,
     compare_mongodb_versions,
     get_cluster_live_instance_version,
     is_mongodb_major_minor_only,
+    lookup_mongodb_package,
     normalize_mongodb_full_version,
     resolve_mongodb_persist_version,
 )
@@ -319,27 +321,7 @@ class MongoUpgradeVersionFlow(MongoBaseFlow):
         if is_mongodb_major_minor_only(dest_full):
             return cls._get_target_package(cls._version_major_minor(dest_full))
 
-        normalized = normalize_mongodb_full_version(dest_full)
-        candidate_versions = [
-            dest_full,
-            normalized,
-            normalized.removeprefix("mongodb-"),
-        ]
-        for version in candidate_versions:
-            try:
-                return Package.get_latest_package(version=version, pkg_type=MediumEnum.MongoDB, db_type=DBType.MongoDB)
-            except Exception:
-                continue
-        package = (
-            Package.objects.filter(
-                Q(version=normalized) | Q(version=normalized.removeprefix("mongodb-")) | Q(version__iexact=dest_full),
-                pkg_type=MediumEnum.MongoDB,
-                db_type=DBType.MongoDB,
-                enable=True,
-            )
-            .order_by("-update_at")
-            .first()
-        )
+        package = lookup_mongodb_package(dest_full)
         if package:
             return package
         return cls._get_target_package(cls._version_major_minor(dest_full))
@@ -353,10 +335,9 @@ class MongoUpgradeVersionFlow(MongoBaseFlow):
             f"mongodb-{dest_version_mm}.0",
         ]
         for version in candidate_versions:
-            try:
-                return Package.get_latest_package(version=version, pkg_type=MediumEnum.MongoDB, db_type=DBType.MongoDB)
-            except Exception:
-                continue
+            package = lookup_mongodb_package(version)
+            if package:
+                return package
         # Fallback: pick latest package whose version starts with major.minor (e.g. 3.6 -> 3.6.0/3.6.18)
         package = (
             Package.objects.filter(
@@ -755,8 +736,15 @@ class MongoUpgradeVersionFlow(MongoBaseFlow):
                 getattr(target_pkg, "version", None),
                 err,
             )
-            if target_pkg and getattr(target_pkg, "version", None):
-                return normalize_mongodb_full_version(target_pkg.version)
+            if target_pkg is not None:
+                try:
+                    return _resolve_package_full_version(target_pkg)
+                except ValueError:
+                    pass
+                pkg_version = getattr(target_pkg, "version", None)
+                # Do not synthesize M.m.0 from V2 series-only Package.version
+                if pkg_version and not is_mongodb_major_minor_only(pkg_version):
+                    return normalize_mongodb_full_version(pkg_version)
             raise serializers.ValidationError(_("无法解析目标版本 {} 的持久化版本").format(dest_version)) from err
 
     @staticmethod

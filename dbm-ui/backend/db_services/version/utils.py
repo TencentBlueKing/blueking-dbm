@@ -85,12 +85,22 @@ def query_mongodb_versions():
         .values_list("full_version", flat=True)
     )
     if not versions:
-        versions = list(
-            Package.objects.filter(pkg_type=PackageType.MongoDB, enable=True)
-            .order_by("-version")
-            .values_list("version", flat=True)
-        )
+        from backend.flow.utils.mongodb.version_utils import _resolve_package_full_version, is_mongodb_major_minor_only
 
+        # V2 Package.version may be series (mongodb-x.y); resolve patch from db_version
+        for pkg in Package.objects.filter(pkg_type=PackageType.MongoDB, enable=True).select_related("db_version"):
+            try:
+                versions.append(_resolve_package_full_version(pkg))
+                continue
+            except ValueError:
+                pass
+            pkg_version = getattr(pkg, "version", None) or ""
+            # Do not synthesize M.m.0 from series-only Package.version without db_version
+            if not pkg_version or is_mongodb_major_minor_only(pkg_version):
+                continue
+            short_version = _normalize_mongodb_list_version(pkg_version)
+            if short_version:
+                versions.append(short_version)
     seen = set()
     result = []
     for version in versions:

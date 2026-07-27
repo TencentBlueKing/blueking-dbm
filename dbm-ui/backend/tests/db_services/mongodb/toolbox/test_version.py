@@ -12,6 +12,9 @@ class _FakePackageQuerySet(list):
     def order_by(self, *args, **kwargs):
         return self
 
+    def select_related(self, *args, **kwargs):
+        return self
+
 
 class _FakePackageManager:
     def __init__(self, packages):
@@ -46,6 +49,29 @@ def test_list_available_versions_from_4_4_success(monkeypatch):
         {"major": "mongodb-6.0", "full_list": ["mongodb-6.0.9"]},
         {"major": "mongodb-7.0", "full_list": ["mongodb-7.0.3"]},
     ]
+
+
+def test_list_available_versions_resolves_series_version_via_db_version(monkeypatch):
+    """V2 Package.version may be series mongodb-x.y; full patch comes from db_version."""
+    monkeypatch.setattr(
+        "backend.db_services.mongodb.toolbox.handlers.Cluster.objects.filter",
+        lambda **kwargs: [SimpleNamespace(id=100, major_version="mongodb-6.0.27")],
+    )
+    monkeypatch.setattr(
+        "backend.db_services.mongodb.toolbox.handlers.Package.objects",
+        _FakePackageManager(
+            [
+                SimpleNamespace(
+                    version="mongodb-7.0",
+                    db_version=SimpleNamespace(base_version="7.0.28", name="mongodb-7.0.28"),
+                    db_version_id=14,
+                ),
+            ]
+        ),
+    )
+
+    data = ToolboxHandler(bk_biz_id=1).list_available_versions(cluster_ids=[100])
+    assert data == [{"major": "mongodb-7.0", "full_list": ["mongodb-7.0.28"]}]
 
 
 def test_list_available_versions_same_line_and_higher_lines(monkeypatch):

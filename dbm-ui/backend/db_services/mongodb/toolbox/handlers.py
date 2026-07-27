@@ -27,6 +27,7 @@ from backend.db_services.mysql.sql_import.handlers import SQLHandler as MySQLSQL
 from backend.flow.consts import MediumEnum
 from backend.flow.engine.bamboo.scene.mongodb.mongodb_upgrade_version import MONGODB_MAJOR_MINOR_UPGRADE_CHAIN
 from backend.flow.utils.mongodb.version_utils import (
+    _resolve_package_full_version,
     extract_mongodb_version_tuple,
     get_cluster_live_instance_version,
     normalize_mongodb_full_version,
@@ -80,6 +81,22 @@ class ToolboxHandler(ClusterServiceHandler):
         return ".".join(normalized.removeprefix("mongodb-").split(".")[:2])
 
     @classmethod
+    def _resolve_package_listed_version(cls, package) -> str:
+        """
+        Resolve full mongodb-x.y.z for toolbox listing.
+        V2 packages may store Package.version as series (mongodb-x.y); prefer db_version patch.
+        """
+        try:
+            return _resolve_package_full_version(package)
+        except ValueError:
+            # Do not synthesize M.m.0 from series-only Package.version without db_version
+            from backend.flow.utils.mongodb.version_utils import is_mongodb_major_minor_only
+
+            if is_mongodb_major_minor_only(getattr(package, "version", "") or ""):
+                raise
+            return normalize_mongodb_full_version(package.version)
+
+    @classmethod
     def _extract_full_version_tuple(cls, version: str):
         major, minor, patch = extract_mongodb_version_tuple(version)
         if patch is None:
@@ -106,9 +123,9 @@ class ToolboxHandler(ClusterServiceHandler):
         by_line: Dict[str, Set[str]] = {}
         for package in packages:
             try:
-                normalized_version = normalize_mongodb_full_version(package.version)
-                package_mm = cls._extract_major_minor_from_package(package.version)
-                package_tuple = cls._extract_full_version_tuple(package.version)
+                normalized_version = cls._resolve_package_listed_version(package)
+                package_mm = cls._extract_major_minor(normalized_version)
+                package_tuple = cls._extract_full_version_tuple(normalized_version)
             except ValueError:
                 continue
 
@@ -150,11 +167,15 @@ class ToolboxHandler(ClusterServiceHandler):
         missing_cluster_ids = sorted(set(cluster_ids) - set(cluster_map.keys()))
         if missing_cluster_ids:
             raise serializers.ValidationError(_("集群不存在：{}").format(",".join(map(str, missing_cluster_ids))))
-        packages = Package.objects.filter(
-            pkg_type=MediumEnum.MongoDB,
-            db_type=DBType.MongoDB,
-            enable=True,
-        ).order_by("-update_at")
+        packages = (
+            Package.objects.filter(
+                pkg_type=MediumEnum.MongoDB,
+                db_type=DBType.MongoDB,
+                enable=True,
+            )
+            .select_related("db_version")
+            .order_by("-update_at")
+        )
 
         maps: List[Dict[str, Set[str]]] = []
         for cluster_id in cluster_ids:

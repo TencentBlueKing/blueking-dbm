@@ -16,8 +16,6 @@ from django.utils.translation import gettext as _
 from rest_framework import serializers
 
 from backend import env
-from backend.configuration.constants import DBType
-from backend.db_package.models import Package
 from backend.flow.consts import MediumEnum
 from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
 from backend.flow.engine.bamboo.scene.mongodb.base_flow import MongoBaseFlow
@@ -29,25 +27,16 @@ from backend.flow.engine.bamboo.scene.mongodb.sub_task.send_media import SendMed
 from backend.flow.utils.mongodb.mongodb_dataclass import ActKwargs
 from backend.flow.utils.mongodb.mongodb_repo import MongoNodeWithLabel, MongoRepository
 from backend.flow.utils.mongodb.mongodb_util import MongoUtil
+from backend.flow.utils.mongodb.version_utils import get_mongodb_package_v2_release
 
 logger = logging.getLogger("flow")
 
 
 def get_pkg_info():
-    # repo_version 如果REPO_VERSION_FOR_DEV有值，则使用REPO_VERSION_FOR_DEV，否则使用最新版本
-    # 正式环境中，REPO_VERSION_FOR_DEV为空
-    # 个人测试环境中，REPO_VERSION_FOR_DEV 按需配置
-    dev_env = str(env.REPO_VERSION_FOR_DEV)
-    repo_version = dev_env if dev_env != "" else MediumEnum.Latest
-    actuator_pkg = Package.get_latest_package(
-        version=repo_version, pkg_type=MediumEnum.DBActuator, db_type=DBType.MongoDB
-    )
-
-    dbtools_pkg = Package.get_latest_package(version=MediumEnum.Latest, pkg_type="dbtools", db_type=DBType.MongoDB)
-    toolkit_pkg = Package.get_latest_package(
-        version=MediumEnum.Latest, pkg_type="mongo-toolkit", db_type=DBType.MongoDB
-    )
-    dbmon_pkg = Package.get_latest_package(version=MediumEnum.Latest, pkg_type="dbmon", db_type=DBType.MongoDB)
+    actuator_pkg = get_mongodb_package_v2_release(MediumEnum.DBActuator.value)
+    dbtools_pkg = get_mongodb_package_v2_release(MediumEnum.DBTools.value)
+    toolkit_pkg = get_mongodb_package_v2_release(MediumEnum.MongoToolKit.value)
+    dbmon_pkg = get_mongodb_package_v2_release(MediumEnum.DbMon.value)
     return {
         "actuator_pkg": actuator_pkg,
         "dbmon_pkg": dbmon_pkg,

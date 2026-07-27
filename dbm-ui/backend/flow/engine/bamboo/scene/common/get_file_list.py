@@ -13,6 +13,7 @@ from typing import Optional
 from backend import env
 from backend.components.constants import SSLEnum
 from backend.configuration.constants import DBType
+from backend.db_package.exceptions import PackageNotExistException
 from backend.db_package.models import Package
 from backend.db_services.redis.util import is_predixy_proxy_type
 from backend.db_services.version.constants import PredixyVersion, TwemproxyVersion
@@ -30,14 +31,15 @@ class GetFileList(object):
         """
         @param db_type: db类型，默认是MySQL，如果是Redis这actuator包不一样
         """
-        # repo_version 如果REPO_VERSION_FOR_DEV有值，则使用REPO_VERSION_FOR_DEV，否则使用最新版本
-        # 正式环境: REPO_VERSION_FOR_DEV为空 个人测试环境中，REPO_VERSION_FOR_DEV 按需配置
-        dev_env = str(env.REPO_VERSION_FOR_DEV)
-        repo_version = dev_env if dev_env != "" and db_type == DBType.MongoDB.value else MediumEnum.Latest
+        # Mongo 周边介质只走 V2（series=latest）；其他 DB 暂保留 V1
+        if str(db_type) == DBType.MongoDB.value:
+            from backend.flow.utils.mongodb.version_utils import get_mongodb_package_v2_release
 
-        self.actuator_pkg = Package.get_latest_package(
-            version=repo_version, pkg_type=MediumEnum.DBActuator, db_type=db_type
-        )
+            self.actuator_pkg = get_mongodb_package_v2_release(MediumEnum.DBActuator.value)
+        else:
+            self.actuator_pkg = Package.get_latest_package(
+                version=MediumEnum.Latest, pkg_type=MediumEnum.DBActuator, db_type=db_type
+            )
 
     def get_db_actuator_download_info(self) -> tuple:
         """
@@ -717,16 +719,10 @@ class GetFileList(object):
 
         mongodb_pkg = lookup_mongodb_package(db_version)
         if mongodb_pkg is None:
-            mongodb_pkg = Package.get_latest_package(
-                version=db_version, pkg_type=MediumEnum.MongoDB, db_type=DBType.MongoDB
-            )
-        # bkdbmon_pkg = Package.get_latest_package(
-        #     version=MediumEnum.Latest, pkg_type=MediumEnum.DbMon, db_type=DBType.MongoDB
-        # )
+            raise PackageNotExistException(version=db_version, pkg_type=MediumEnum.MongoDB, db_type=DBType.MongoDB)
         return [
             f"{env.BKREPO_PROJECT}/{env.BKREPO_BUCKET}/{self.actuator_pkg.path}",
             f"{env.BKREPO_PROJECT}/{env.BKREPO_BUCKET}/{mongodb_pkg.path}",
-            # f"{env.BKREPO_PROJECT}/{env.BKREPO_BUCKET}/{bkdbmon_pkg.path}",
         ]
 
     def mongodb_actuator_pkg(self) -> list:

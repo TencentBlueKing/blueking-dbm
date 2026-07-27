@@ -7,6 +7,8 @@ You may obtain a copy of the License at https://opensource.org/licenses/MIT
 Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
+
+MongoDB 介质版本选择规则见同目录 VERSION_SELECTION.md。
 """
 import logging
 import re
@@ -17,6 +19,28 @@ logger = logging.getLogger("flow")
 _MAJOR_MINOR_RE = re.compile(r"^\d+\.\d+$")
 _FULL_VERSION_RE = re.compile(r"^\d+\.\d+\.\d+(?:[-+][0-9A-Za-z.\-]+)?$")
 _MONGODB_PREFIX = "mongodb-"
+
+
+def get_mongodb_package_v2_release(pkg_type: str, series: str = "latest"):
+    """
+    Fetch Mongo medium via Package V2 release API (Distribution/VersionSeries/DBVersion).
+    Raises PackageNotExistException when no enabled Linux release package is found.
+    See VERSION_SELECTION.md for series / selection rules.
+    """
+    from backend.configuration.constants import DBType
+    from backend.db_meta.enums.version_phase import PkgSeries
+    from backend.db_package.exceptions import PackageNotExistException
+    from backend.db_package.models import Package
+
+    series = series or PkgSeries.LATEST.value
+    pkg = Package.get_latest_package_v2_release(
+        pkg_type=pkg_type,
+        series=series,
+        db_type=DBType.MongoDB.value,
+    )
+    if not pkg:
+        raise PackageNotExistException(version=series, pkg_type=pkg_type, db_type=DBType.MongoDB)
+    return pkg
 
 
 def _strip_mongodb_prefix(version: str) -> str:
@@ -293,59 +317,79 @@ def _pick_highest_patch_mongodb_package(packages) -> Optional[object]:
     return best
 
 
-def lookup_mongodb_package(raw_version: str, package=None):
-    """Find MongoDB package for version resolution; returns package or None."""
-    if package is not None:
-        return package
-    from django.db.models import Q
-
+def _mongodb_mongodb_package_queryset():
     from backend.configuration.constants import DBType
     from backend.db_package.models import Package
     from backend.flow.consts import MediumEnum
 
-    if not raw_version:
-        return None
-    if is_mongodb_major_minor_only(raw_version):
-        stripped = raw_version.strip()
-        if stripped.lower().startswith(_MONGODB_PREFIX):
-            stripped = stripped.split("-", 1)[1]
-        major_minor = ".".join(stripped.split(".")[:2])
-        candidates = Package.objects.filter(
-            Q(version__startswith="{}.".format(major_minor))
-            | Q(version__istartswith="mongodb-{}.".format(major_minor))
-            | Q(version__iexact=raw_version)
-            | Q(version__iexact="mongodb-{}".format(major_minor)),
-            pkg_type=MediumEnum.MongoDB,
-            db_type=DBType.MongoDB,
-            enable=True,
-        ).select_related("db_version")
-        return _pick_highest_patch_mongodb_package(candidates)
-    try:
-        normalized = normalize_mongodb_full_version(raw_version)
-    except ValueError:
-        normalized = raw_version
-    raw = normalized.removeprefix("mongodb-")
-    major_minor = ".".join(raw.split(".", 2)[:2])
-    candidates = Package.objects.filter(
-        Q(version=normalized)
-        | Q(version=raw)
+    return Package.objects.filter(pkg_type=MediumEnum.MongoDB, db_type=DBType.MongoDB).select_related("db_version")
+
+
+def _major_minor_version_filter(raw_version: str):
+    from django.db.models import Q
+
+    stripped = raw_version.strip()
+    if stripped.lower().startswith(_MONGODB_PREFIX):
+        stripped = stripped.split("-", 1)[1]
+    major_minor = ".".join(stripped.split(".")[:2])
+    return (
+        Q(version__startswith="{}.".format(major_minor))
+        | Q(version__istartswith="mongodb-{}.".format(major_minor))
+        | Q(version__iexact=raw_version)
         | Q(version__iexact="mongodb-{}".format(major_minor))
         | Q(version__iexact=major_minor)
+    )
+
+
+def _lookup_mongodb_package_major_minor(raw_version: str) -> Optional[object]:
+    """mongodb-x.y: among enable=True packages, pick highest patch (z)."""
+    candidates = _mongodb_mongodb_package_queryset().filter(_major_minor_version_filter(raw_version), enable=True)
+    return _pick_highest_patch_mongodb_package(candidates)
+
+
+def _lookup_mongodb_package_exact(normalized: str) -> Optional[object]:
+    """mongodb-x.y.z: exact full version match; enable is not considered."""
+    from django.db.models import Q
+
+    raw = normalized.removeprefix("mongodb-")
+    major_minor = ".".join(raw.split(".", 2)[:2])
+    candidates = _mongodb_mongodb_package_queryset().filter(
+        Q(version=normalized)
+        | Q(version=raw)
         | Q(version__startswith="{}.".format(major_minor))
-        | Q(version__startswith="mongodb-{}.".format(major_minor)),
-        pkg_type=MediumEnum.MongoDB,
-        db_type=DBType.MongoDB,
-        enable=True,
-    ).select_related("db_version")
-    if is_mongodb_major_minor_only(normalized):
-        return _pick_highest_patch_mongodb_package(candidates)
+        | Q(version__istartswith="mongodb-{}.".format(major_minor))
+        | Q(version__iexact="mongodb-{}".format(major_minor))
+    )
     for package in candidates:
         try:
             if _resolve_package_full_version(package) == normalized:
                 return package
         except ValueError:
             continue
-    return _pick_highest_patch_mongodb_package(candidates)
+    return None
+
+
+def lookup_mongodb_package(raw_version: str, package=None):
+    """
+    Find MongoDB main medium package.
+
+    - mongodb-x.y (major.minor): enable=True only, highest patch z.
+    - mongodb-x.y.z (full): exact match on full version, ignore enable.
+
+    Full rules: VERSION_SELECTION.md
+    """
+    if package is not None:
+        return package
+
+    if not raw_version:
+        return None
+    if is_mongodb_major_minor_only(raw_version):
+        return _lookup_mongodb_package_major_minor(raw_version)
+    try:
+        normalized = normalize_mongodb_full_version(raw_version)
+    except ValueError:
+        return None
+    return _lookup_mongodb_package_exact(normalized)
 
 
 def apply_mongodb_metadata_versions_to_cluster(cluster, raw_version: str, *, package=None, instance_ids=None) -> None:
