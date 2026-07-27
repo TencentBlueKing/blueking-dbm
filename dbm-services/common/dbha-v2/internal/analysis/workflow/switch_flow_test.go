@@ -897,8 +897,8 @@ func TestExcludeUnavailableInstances(t *testing.T) {
 		excludeUnavailableInstancesMakeInst(0, "127.0.0.2", 3306, haprobe.DbEventNameDetectFailure), // unavailable, not in req
 	}
 	req := &switcher.Request{
-		DbType:        haprobe.DbTypeMySql,
-		MySqlInstData: []*dbm.DbInstMetadata{excludeUnavailableInstancesMakeMeta(0, "127.0.0.1", 3306)},
+		DbType:   haprobe.DbTypeMySql,
+		InstData: []*dbm.DbInstMetadata{excludeUnavailableInstancesMakeMeta(0, "127.0.0.1", 3306)},
 	}
 
 	got := excludeUnavailableInstances(group, req)
@@ -966,7 +966,7 @@ func TestMatchStrategyForGroup_SpecialStrategyExcludesStaleInstances(t *testing.
 	// DBM only returns the available instances of cluster 10.
 	req := &switcher.Request{
 		DbType: haprobe.DbTypeMySql,
-		MySqlInstData: []*dbm.DbInstMetadata{
+		InstData: []*dbm.DbInstMetadata{
 			{BkCloudID: 1, IP: "127.0.0.10", Port: 3306, BkBizID: 21, Status: dbm.Running},
 			{BkCloudID: 1, IP: "127.0.0.11", Port: 3306, BkBizID: 21, Status: dbm.Running},
 		},

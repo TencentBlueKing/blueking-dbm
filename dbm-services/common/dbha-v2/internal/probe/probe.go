@@ -122,7 +122,7 @@ func (p *Probe) startPlugin(ctx context.Context, dbType string, factory pluginFa
 }
 
 func (p *Probe) loadPlugins(ctx context.Context) error {
-	for _, e := range pluginEntries {
+	for _, e := range effectivePluginEntries() {
 		p.startPlugin(ctx, e.name, e.factory)
 	}
 	return nil

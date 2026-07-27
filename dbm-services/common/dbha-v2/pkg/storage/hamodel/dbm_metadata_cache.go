@@ -29,6 +29,7 @@ import (
 	"encoding/json"
 	"time"
 
+	"dbm-services/common/dbha-v2/pkg/dbtype"
 	"dbm-services/common/dbha-v2/pkg/gerrors"
 	"dbm-services/common/dbha-v2/pkg/storage/haprobe"
 )
@@ -129,48 +130,11 @@ type DbmMetadata struct {
 }
 
 // GetDbType returns the database type derived from the cluster type.
+// Prerequisite: provider CapDesc packages that own non-builtin mappings must be
+// blank-imported (e.g. via provider/alldesc / allprobe / allanalysis); otherwise
+// provider-owned cluster types such as Redis map to DbTypeNone.
 func (t DbmMetadata) GetDbType() haprobe.DbType {
-	switch t.ClusterType {
-	case haprobe.DbmMetadataClusterTypeTendbha,
-		haprobe.DbmMetadataClusterTypeTendbCluster:
-		return haprobe.DbTypeMySql
-
-	case haprobe.DbmMetadataClusterTypeTwemproxyRedis,
-		haprobe.DbmMetadataClusterTypeRedis,
-		haprobe.DbmMetadataClusterTypeTwemproxyTendisSSD,
-		haprobe.DbmMetadataClusterTypePredixyTendisplusCluster,
-		haprobe.DbmMetadataClusterTypePredixyRedisCluster:
-		return haprobe.DbTypeRedis
-
-	case haprobe.DbmMetadataClusterTypeSqlServer,
-		haprobe.DbmMetadataClusterTypeSqlServerSingle:
-		return haprobe.DbTypeSqlServer
-
-	case haprobe.DbmMetadataClusterTypeMongoReplicaSet,
-		haprobe.DbmMetadataClusterTypeMongoShardeCluster:
-		return haprobe.DbTypeMongo
-
-	case haprobe.DbmMetadataClusterTypeRiak:
-		return haprobe.DbTypeRiak
-
-	case haprobe.DbmMetadataClusterTypeHdfs:
-		return haprobe.DbTypeHdfs
-
-	case haprobe.DbmMetadataClusterTypeEs:
-		return haprobe.DbTypeEs
-
-	case haprobe.DbmMetadataClusterTypeKafka:
-		return haprobe.DbTypeKafka
-
-	case haprobe.DbmMetadataClusterTypeDoris:
-		return haprobe.DbTypeDoris
-
-	case haprobe.DbmMetadataClusterTypePulsar:
-		return haprobe.DbTypePulsar
-
-	default:
-		return haprobe.DbTypeNone
-	}
+	return dbtype.DbTypeOf(t.ClusterType)
 }
 
 // TableName returns the table name for the DbmMetadata model.

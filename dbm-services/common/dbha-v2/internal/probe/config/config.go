@@ -28,6 +28,7 @@ package config
 import (
 	"time"
 
+	"dbm-services/common/dbha-v2/pkg/dbtype"
 	"dbm-services/common/dbha-v2/pkg/logger"
 	"dbm-services/common/dbha-v2/pkg/storage/haprobe"
 
@@ -87,11 +88,10 @@ type DbEndpointConfig struct {
 	AdminPorts   []string                           `yaml:"adminPorts"   mapstructure:"adminPorts"`
 }
 
-// MySqlHarvesterConfig MySQL harvester config.
-// Timeout bounds both DSN dial timeout (go-sql-driver "timeout=..." DSN parameter) and per-query
-// context timeout (gorm WithContext) for every collector built from this block. Admin clamps the
-// upstream value at minProbeHarvesterTimeout before sending.
-type MySqlHarvesterConfig struct {
+// RawHarvesterConfig is the common shape of a probe harvester YAML block.
+// Known blocks (mysql / mysqlProxyAdmin / redis) and future DB types share this layout.
+// Timeout bounds both DSN dial timeout and per-query context timeout for MySQL collectors.
+type RawHarvesterConfig struct {
 	User      string             `yaml:"user"      mapstructure:"user"`
 	Password  string             `yaml:"password"  mapstructure:"password"`
 	Interval  time.Duration      `yaml:"interval"  mapstructure:"interval"`
@@ -99,23 +99,53 @@ type MySqlHarvesterConfig struct {
 	Endpoints []DbEndpointConfig `yaml:"endpoints" mapstructure:"endpoints"`
 }
 
-// RedisHarvesterConfig Redis harvester config
-type RedisHarvesterConfig struct {
-	User      string             `yaml:"user"      mapstructure:"user"`
-	Password  string             `yaml:"password"  mapstructure:"password"`
-	Interval  time.Duration      `yaml:"interval"  mapstructure:"interval"`
-	Timeout   time.Duration      `yaml:"timeout"   mapstructure:"timeout"`
-	Endpoints []DbEndpointConfig `yaml:"endpoints" mapstructure:"endpoints"`
-}
+// Well-known harvester block names (YAML keys under harvester:).
+const (
+	HarvesterBlockMySQL           = "mysql"
+	HarvesterBlockMySQLProxyAdmin = "mysqlProxyAdmin"
+	HarvesterBlockRedis           = "redis"
+)
 
-// HarvesterConfig harvester config.
-// MySqlProxyAdmin reuses MySqlHarvesterConfig but carries proxy-admin credentials and admin-port-only
-// endpoints; probe loads it as a separate MySQL plugin instance so proxy admin ports are probed with
-// distinct creds from regular mysql storage/spider endpoints.
+// Precomputed normalized forms of the well-known block names for Block() lookups.
+var (
+	normBlockMySQL           = dbtype.NormalizeBlockName(HarvesterBlockMySQL)
+	normBlockMySQLProxyAdmin = dbtype.NormalizeBlockName(HarvesterBlockMySQLProxyAdmin)
+	normBlockRedis           = dbtype.NormalizeBlockName(HarvesterBlockRedis)
+)
+
+// HarvesterConfig keeps named mysql/redis/proxyAdmin fields for viper/mapstructure
+// zero regression (viper lowercases bare map keys), and Extra collects new DB blocks
+// via mapstructure ",remain".
 type HarvesterConfig struct {
-	MySql           *MySqlHarvesterConfig `yaml:"mysql"           mapstructure:"mysql"`
-	MySqlProxyAdmin *MySqlHarvesterConfig `yaml:"mysqlProxyAdmin" mapstructure:"mysqlProxyAdmin"`
-	Redis           *RedisHarvesterConfig `yaml:"redis"           mapstructure:"redis"`
+	MySql           *RawHarvesterConfig            `yaml:"mysql"           mapstructure:"mysql"`
+	MySqlProxyAdmin *RawHarvesterConfig            `yaml:"mysqlProxyAdmin" mapstructure:"mysqlProxyAdmin"`
+	Redis           *RawHarvesterConfig            `yaml:"redis"           mapstructure:"redis"`
+	Extra           map[string]*RawHarvesterConfig `yaml:",inline"        mapstructure:",remain"`
+}
+
+// Block returns the config for a harvester block name, or nil if absent.
+// The name is normalized so camelCase and lowercase lookups are equivalent.
+func (h HarvesterConfig) Block(name string) *RawHarvesterConfig {
+	n := dbtype.NormalizeBlockName(name)
+	switch n {
+	case normBlockMySQL:
+		return h.MySql
+	case normBlockMySQLProxyAdmin:
+		return h.MySqlProxyAdmin
+	case normBlockRedis:
+		return h.Redis
+	default:
+		if h.Extra == nil {
+			return nil
+		}
+		return h.Extra[n]
+	}
+}
+
+// HasEndpoints reports whether the named block exists and lists at least one endpoint.
+func (h HarvesterConfig) HasEndpoints(name string) bool {
+	b := h.Block(name)
+	return b != nil && len(b.Endpoints) > 0
 }
 
 // LogConfig log configuration
@@ -156,9 +186,26 @@ func Load(configFilePath string) error {
 		return err
 	}
 
+	normalizeHarvesterExtraKeys()
+
 	if Cfg.PidFile == "" {
 		Cfg.PidFile = defaultPidFile
 	}
 
 	return nil
+}
+
+// normalizeHarvesterExtraKeys rebuilds Extra so every map key is normalized.
+// viper already lowercases bare map keys; this keeps the invariant explicit for
+// any future loader that might preserve camelCase.
+func normalizeHarvesterExtraKeys() {
+	extra := Cfg.Harvester.Extra
+	if len(extra) == 0 {
+		return
+	}
+	normalized := make(map[string]*RawHarvesterConfig, len(extra))
+	for k, v := range extra {
+		normalized[dbtype.NormalizeBlockName(k)] = v
+	}
+	Cfg.Harvester.Extra = normalized
 }

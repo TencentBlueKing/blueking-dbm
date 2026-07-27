@@ -28,6 +28,8 @@ import (
 	"dbm-services/common/dbha-v2/internal/admin"
 	"dbm-services/common/dbha-v2/pkg/logger"
 
+	_ "dbm-services/common/dbha-v2/internal/provider/alldesc"
+
 	"github.com/spf13/cobra"
 )
 

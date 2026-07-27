@@ -165,13 +165,13 @@ func (m *Mysql) InstanceLevelSwitch(ctx context.Context, switchLoggers []switchl
 	start := time.Now()
 
 	rsp := &Response{
-		MySqlFailureInsts: map[switchcore.MetadataKey]*dbm.DbInstMetadata{},
+		FailureInsts: map[switchcore.MetadataKey]*dbm.DbInstMetadata{},
 	}
 
 	seenInsts := make(map[switchcore.MetadataKey]struct{})
 	var wg sync.WaitGroup
 
-	for _, inst := range req.MySqlInstData {
+	for _, inst := range req.InstData {
 		if inst == nil {
 			logger.Warn("Mysql switcher get nil instance")
 			continue
@@ -224,7 +224,7 @@ func (m *Mysql) InstanceLevelSwitch(ctx context.Context, switchLoggers []switchl
 
 	m.reportMysqlSwitchingMetrics(apm.MysqlInstanceSwitchingTimeConsumingMs, start, req, rsp)
 
-	if len(rsp.MySqlFailureInsts) == 0 {
+	if rsp.FailureInstCount() == 0 {
 		return rsp
 	}
 
@@ -235,7 +235,7 @@ func (m *Mysql) InstanceLevelSwitch(ctx context.Context, switchLoggers []switchl
 // buildIpGroup builds a map of IP to instance metadata
 func (m *Mysql) buildIpGroup(req *Request) map[switchcore.HostKey]switchcore.InstMetadataMap {
 	ipGroup := make(map[switchcore.HostKey]switchcore.InstMetadataMap)
-	for _, instData := range req.MySqlInstData {
+	for _, instData := range req.InstData {
 		if instData == nil {
 			logger.Warn("Mysql switcher get nil instance")
 			continue
@@ -262,7 +262,7 @@ func (m *Mysql) buildIpGroup(req *Request) map[switchcore.HostKey]switchcore.Ins
 // buildClusterGroup builds a map of cluster to instance metadata
 func (m *Mysql) buildClusterGroup(req *Request) map[switchcore.ClusterKey]switchcore.InstMetadataMap {
 	clusterGroup := make(map[switchcore.ClusterKey]switchcore.InstMetadataMap)
-	for _, instData := range req.MySqlInstData {
+	for _, instData := range req.InstData {
 		if instData == nil {
 			logger.Warn("Mysql switcher get nil instance")
 			continue
@@ -338,7 +338,7 @@ func (m *Mysql) HostLevelSwitch(ctx context.Context, switchLoggers []switchlogge
 	start := time.Now()
 
 	rsp := &Response{
-		MySqlFailureInsts: map[switchcore.MetadataKey]*dbm.DbInstMetadata{},
+		FailureInsts: map[switchcore.MetadataKey]*dbm.DbInstMetadata{},
 	}
 
 	addAllInstsAsFailure := func(instDataMap switchcore.InstMetadataMap) {
@@ -409,7 +409,7 @@ func (m *Mysql) HostLevelSwitch(ctx context.Context, switchLoggers []switchlogge
 
 	wg.Wait()
 
-	if len(rsp.MySqlFailureInsts) > 0 {
+	if rsp.FailureInstCount() > 0 {
 		rsp.Err = ErrSwitchPartialSuccess
 	}
 
@@ -422,7 +422,7 @@ func (m *Mysql) ClusterLevelSwitch(ctx context.Context, switchLoggers []switchlo
 	start := time.Now()
 
 	rsp := &Response{
-		MySqlFailureInsts: map[switchcore.MetadataKey]*dbm.DbInstMetadata{},
+		FailureInsts: map[switchcore.MetadataKey]*dbm.DbInstMetadata{},
 	}
 
 	addAllInstsAsFailure := func(instDataMap switchcore.InstMetadataMap) {
@@ -478,7 +478,7 @@ func (m *Mysql) ClusterLevelSwitch(ctx context.Context, switchLoggers []switchlo
 
 	m.reportMysqlSwitchingMetrics(apm.MysqlClusterSwitchingTimeConsumingMs, start, req, rsp)
 
-	if len(rsp.MySqlFailureInsts) > 0 {
+	if rsp.FailureInstCount() > 0 {
 		rsp.Err = ErrSwitchPartialSuccess
 	}
 
@@ -497,11 +497,12 @@ func (m *Mysql) reportMysqlSwitchingMetrics(timeConsumingMetric *haapm.HaHistogr
 		logger.Error("failed to update mysql switching time consuming metric, errmsg: %s", err.Error())
 	}
 
+	failCount := rsp.FailureInstCount()
 	// report the mysql switching success total
 	if err := apm.MysqlSwitchingSuccessTotal.AddWithLabels(map[string]string{
 		apm.MetricLabelActionScope: string(req.ActionScope),
 		apm.MetricLabelDbType:      string(m.DbTypeName()),
-	}, float64(len(req.MySqlInstData)-len(rsp.MySqlFailureInsts))); err != nil {
+	}, float64(len(req.InstData)-failCount)); err != nil {
 		logger.Error("failed to update mysql switching success total metric, errmsg: %s", err.Error())
 	}
 
@@ -509,7 +510,7 @@ func (m *Mysql) reportMysqlSwitchingMetrics(timeConsumingMetric *haapm.HaHistogr
 	if err := apm.MysqlSwitchingErrorTotal.AddWithLabels(map[string]string{
 		apm.MetricLabelActionScope: string(req.ActionScope),
 		apm.MetricLabelDbType:      string(m.DbTypeName()),
-	}, float64(len(rsp.MySqlFailureInsts))); err != nil {
+	}, float64(failCount)); err != nil {
 		logger.Error("failed to update mysql switching error total metric, errmsg: %s", err.Error())
 	}
 }
@@ -517,7 +518,7 @@ func (m *Mysql) reportMysqlSwitchingMetrics(timeConsumingMetric *haapm.HaHistogr
 // Switch handles MySQL switching operations on different levels
 func (m *Mysql) Switch(ctx context.Context, req *Request) *Response {
 	rsp := &Response{
-		MySqlFailureInsts: map[switchcore.MetadataKey]*dbm.DbInstMetadata{},
+		FailureInsts: map[switchcore.MetadataKey]*dbm.DbInstMetadata{},
 	}
 
 	if req == nil {

@@ -200,8 +200,8 @@ func (w *Workflow) filterByWhitelistForSwitch(ctx context.Context, group *Failur
 
 	whiteList, err := w.dbmSync.queryBlackWhiteListFromDbhaV1(ctx, bkBizID, group.BkCloudID)
 	if err != nil {
-		instanceAddrs := make([]string, 0, len(req.MySqlInstData))
-		for _, meta := range req.MySqlInstData {
+		instanceAddrs := make([]string, 0, len(req.InstData))
+		for _, meta := range req.InstData {
 			instanceAddrs = append(instanceAddrs, instanceKey(meta.BkCloudID, meta.IP, meta.Port))
 		}
 
@@ -212,7 +212,7 @@ func (w *Workflow) filterByWhitelistForSwitch(ctx context.Context, group *Failur
 		logger.Warn("%s", msg)
 		w.alarm.TriggerWithBizId(bkBizID, msg)
 
-		req.MySqlInstData = make([]*dbm.DbInstMetadata, 0)
+		req.InstData = make([]*dbm.DbInstMetadata, 0)
 		return gerrors.Newf(gerrors.InternalServerFailure, "%s", msg)
 	}
 
@@ -227,7 +227,7 @@ func (w *Workflow) filterByWhitelistForSwitch(ctx context.Context, group *Failur
 	whitelistedMetas := make([]*dbm.DbInstMetadata, 0)
 	remaining := make([]*dbm.DbInstMetadata, 0)
 
-	for _, meta := range req.MySqlInstData {
+	for _, meta := range req.InstData {
 		clusterKey := whitelistCluster{
 			BkBizID: meta.BkBizID, BkCloudID: meta.BkCloudID, ClusterID: meta.ClusterID,
 		}.String()
@@ -241,7 +241,7 @@ func (w *Workflow) filterByWhitelistForSwitch(ctx context.Context, group *Failur
 	}
 
 	// only whitelisted instances proceed to switching
-	req.MySqlInstData = whitelistedMetas
+	req.InstData = whitelistedMetas
 
 	if len(remaining) == 0 {
 		return nil
