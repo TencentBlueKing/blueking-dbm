@@ -117,14 +117,9 @@ func generateOneRuntimeConfig(cfg *reversemysqldef.ChecksumConfig) error {
 		Slaves:     nil,
 		Filter:     config.Filter{},
 		PtChecksum: config.PtChecksum{
-			Path:     ptChecksumPath,
-			Switches: []string{},
-			Args: []map[string]interface{}{
-				{
-					"name":  "run-time",
-					"value": cfg.Runtime,
-				},
-			},
+			Path:      ptChecksumPath,
+			Switches:  cfg.PtChecksumSwitches,
+			Args:      make([]map[string]interface{}, 0),
 			Replicate: fmt.Sprintf("%s.checksum", native.INFODBA_SCHEMA),
 		},
 		Log: &config.LogConfig{
@@ -141,6 +136,34 @@ func generateOneRuntimeConfig(cfg *reversemysqldef.ChecksumConfig) error {
 
 	if cfg.Enable != nil && *cfg.Enable == false {
 		rcfg.Enable = false
+	}
+	runTimeValue := ""
+	if value, ok := cfg.PtChecksumArgs["run-time"]; ok {
+		// 为了兼容，优先以 cfg.Runtime 为准, 如果 cfg.Runtime 为空，则以 args.run-time 为准
+		if cfg.Runtime != "" {
+			runTimeValue = cfg.Runtime
+		} else {
+			runTimeValue = value
+		}
+		delete(cfg.PtChecksumArgs, "run-time")
+	} else {
+		if cfg.Runtime != "" {
+			runTimeValue = cfg.Runtime
+		} else {
+			runTimeValue = "2h"
+		}
+	}
+	rcfg.PtChecksum.Args = append(rcfg.PtChecksum.Args, map[string]interface{}{
+		"name":  "run-time",
+		"value": runTimeValue,
+	})
+	for name, value := range cfg.PtChecksumArgs {
+		rcfg.PtChecksum.Args = append(rcfg.PtChecksum.Args,
+			map[string]interface{}{
+				"name":  name,
+				"value": value,
+			},
+		)
 	}
 
 	var ignoreDbs []string
