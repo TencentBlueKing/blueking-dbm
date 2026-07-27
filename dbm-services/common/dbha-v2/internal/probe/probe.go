@@ -37,71 +37,17 @@ import (
 	"dbm-services/common/dbha-v2/pkg/logger"
 )
 
-// Probe is the main harvest/report framework. Lifecycle fields (parent, shutdown,
-// reloadC) are initialized by newProbe before setupGracefulShutdown so early
-// signals never observe nil channels or cancel funcs.
+// Probe probe main framework
 type Probe struct {
-	clientID         string
-	machineID        string
-	pidFile          string
-	parent           context.Context
-	runCancel        context.CancelFunc
-	shutdown         chan struct{}
-	shutdownOnce     sync.Once
-	reloadC          chan struct{}
-	reloadWorkerDone chan struct{}
-	runtime          *harvestRuntime
-	reporter         *reporterUnit
-	configPath       string
+	clientID  string
+	machineID string
+	serviceID string
+	reporter  client.Reporter
+	quit      chan struct{}
+	wg        sync.WaitGroup
 }
 
-// newProbe builds a Probe with all lifecycle fields ready for signal handling.
-// pidFile is snapshotted from config.Cfg so the shutdown path never races with
-// hot-reload writes to the package-level configuration.
-func newProbe(ctx context.Context, clientID string) *Probe {
-	parent, runCancel := context.WithCancel(ctx)
-	return &Probe{
-		clientID:         clientID,
-		machineID:        clientID,
-		pidFile:          config.Cfg.PidFile,
-		parent:           parent,
-		runCancel:        runCancel,
-		shutdown:         make(chan struct{}),
-		reloadC:          make(chan struct{}, 1),
-		reloadWorkerDone: make(chan struct{}),
-		reporter:         &reporterUnit{},
-		configPath:       ConfigFilePath,
-	}
-}
-
-// Run starts harvest plugins and the reporter, then blocks until Close signals
-// shutdown. The context argument is unused; cancelation uses p.parent which was
-// set by newProbe before signal listening began.
-func (p *Probe) Run(ctx context.Context) error {
-	_ = ctx
-	p.runtime = p.startRuntime(p.parent, config.Cfg.ServiceID)
-	p.reporter.start(p.parent, config.Cfg.Reporter)
-	go p.runReloadWorker()
-	go p.runAdminSync()
-	<-p.shutdown
-	return nil
-}
-
-// Close signals the probe to stop. It does not wait for harvester or reporter
-// goroutines; the shutdown path in setupGracefulShutdown exits the process after
-// Close returns.
-func (p *Probe) Close() {
-	p.shutdownOnce.Do(func() {
-		if p.runCancel != nil {
-			p.runCancel()
-		}
-		if p.shutdown != nil {
-			close(p.shutdown)
-		}
-	})
-}
-
-func (p *Probe) runPlugin(ctx context.Context, plug plugin.Plugin, serviceID string) {
+func (p *Probe) runPlugin(ctx context.Context, plug plugin.Plugin) {
 	name, _ := plug.Name()
 
 	defer func() {
@@ -110,7 +56,7 @@ func (p *Probe) runPlugin(ctx context.Context, plug plugin.Plugin, serviceID str
 		}
 	}()
 
-	eventC, err := plug.Harvest(ctx, p.machineID, serviceID)
+	eventC, err := plug.Harvest(ctx, p.machineID, p.serviceID)
 	if err != nil {
 		logger.Warn("start harvester plugin failed, plugin: %s, errmsg: %s", name, err)
 		return
@@ -118,6 +64,9 @@ func (p *Probe) runPlugin(ctx context.Context, plug plugin.Plugin, serviceID str
 
 	for {
 		select {
+		case <-p.quit:
+			return
+
 		case <-ctx.Done():
 			return
 
@@ -127,40 +76,35 @@ func (p *Probe) runPlugin(ctx context.Context, plug plugin.Plugin, serviceID str
 				return
 			}
 
-			rep := p.reporter.get()
-			if rep == nil {
-				continue
-			}
+			baseInfo := p.reporter.GetBaseInfo()
 
-			baseInfo := rep.GetBaseInfo()
 			data.AgentID = baseInfo.AgentID
 			data.BkCloudID = baseInfo.BkCloudID
 			data.DbTypeName = data.Value.GetDbType()
 
 			dataEncoded, err := json.Marshal(data)
 			if err != nil {
-				logger.Warn("encode data to json failed, plugin: %s, data: %v, errmsg: %s",
-					name, data.Value, err)
+				logger.Warn("encode data to json failed, plugin: %s, data: %v, errmsg: %s", name, data.Value, err)
 				continue
 			}
 
 			logger.Debug("harvester reported data: %s", string(dataEncoded))
 
-			if err := rep.Post(ctx, dataEncoded); err != nil {
-				logger.Warn("post data to receiver failed, plugin: %s, reporter: %s, errmsg: %s",
-					name, rep.Name(), err)
+			if p.reporter != nil {
+				if err := p.reporter.Post(ctx, dataEncoded); err != nil {
+					logger.Warn("post data to receiver failed, plugin: %s, reporter: %s, errmsg: %s",
+						name, p.reporter.Name(), err)
+				}
 			}
 		}
 	}
 }
 
-// startPlugin creates a plugin via factory and runs it under rt.
+// startPlugin creates a plugin via factory and runs it in a goroutine.
 // A factory may return (nil, nil) to signal that the plugin is not configured
-// (e.g. probe yaml omits the corresponding harvester block); in that case
-// startPlugin silently skips so we never run a plugin with a nil cfg.
-func (p *Probe) startPlugin(
-	ctx context.Context, rt *harvestRuntime, dbType string, factory pluginFactory, serviceID string,
-) {
+// (e.g. probe yaml omits the corresponding harvester block); in that case startPlugin
+// silently skips so we never run a plugin with a nil cfg.
+func (p *Probe) startPlugin(ctx context.Context, dbType string, factory pluginFactory) {
 	plug, err := factory()
 	if err != nil {
 		logger.Warn("failed to create a new harvester, dbType: %s, errmsg: %s", dbType, err)
@@ -170,152 +114,80 @@ func (p *Probe) startPlugin(
 		logger.Info("harvester not configured, skip, dbType: %s", dbType)
 		return
 	}
-	rt.wg.Add(1)
+	p.wg.Add(1)
 	go func() {
-		defer rt.wg.Done()
-		p.runPlugin(ctx, plug, serviceID)
+		defer p.wg.Done()
+		p.runPlugin(ctx, plug)
 	}()
 }
 
-func (p *Probe) startRuntime(parent context.Context, serviceID string) *harvestRuntime {
-	ctx, cancel := context.WithCancel(parent)
-	rt := &harvestRuntime{cancel: cancel}
-	for _, e := range pluginEntries {
-		p.startPlugin(ctx, rt, e.name, e.factory, serviceID)
+func (p *Probe) loadPlugins(ctx context.Context) error {
+	for _, e := range effectivePluginEntries() {
+		p.startPlugin(ctx, e.name, e.factory)
 	}
-	return rt
+	return nil
 }
 
-// harvestRuntime owns one generation of harvester plugins.
-type harvestRuntime struct {
-	cancel context.CancelFunc
-	wg     sync.WaitGroup
-}
+func (p *Probe) createReporter() {
+	// Once the reporter is created successfully, the network abnormalities of the reporter itself
+	// need to be maintained by the reporter itself.
 
-func (rt *harvestRuntime) stop() {
-	if rt == nil {
-		return
-	}
-	if rt.cancel != nil {
-		rt.cancel()
-	}
-	rt.wg.Wait()
-}
-
-// reporterUnit owns the reporter create/retry goroutine and the live Reporter
-// instance across harvester generations.
-type reporterUnit struct {
-	cfg      *config.ReporterConfig
-	cancel   context.CancelFunc
-	wg       sync.WaitGroup
-	reporter client.Reporter
-	mu       sync.Mutex
-}
-
-func (u *reporterUnit) get() client.Reporter {
-	u.mu.Lock()
-	defer u.mu.Unlock()
-	return u.reporter
-}
-
-// quiesce cancels the create/retry goroutine and waits for it to exit without
-// closing an already-created Reporter instance.
-func (u *reporterUnit) quiesce() {
-	if u == nil {
-		return
-	}
-	if u.cancel != nil {
-		u.cancel()
-		u.cancel = nil
-	}
-	u.wg.Wait()
-}
-
-// start launches (or clears) the reporter. When cfg is nil the live instance is
-// set to nil so runPlugin skips events instead of nil-panicking in GetBaseInfo.
-func (u *reporterUnit) start(parent context.Context, cfg *config.ReporterConfig) {
-	u.cfg = cfg
-	if cfg == nil {
-		u.mu.Lock()
-		u.reporter = nil
-		u.mu.Unlock()
+	if config.Cfg.Reporter == nil {
 		return
 	}
 
-	copied := *cfg
-	ctx, cancel := context.WithCancel(parent)
-	u.cancel = cancel
-	u.wg.Add(1)
+	cfg := *config.Cfg.Reporter
+	p.wg.Add(1)
 	go func() {
-		defer u.wg.Done()
-		u.createLoop(ctx, copied)
-	}()
-}
+		defer p.wg.Done()
 
-func (u *reporterUnit) createLoop(ctx context.Context, cfg config.ReporterConfig) {
-	for {
-		select {
-		case <-ctx.Done():
-			return
-		default:
-		}
-
-		r, err := client.NewReporter(cfg)
-		if err != nil {
-			logger.Warn("create new reporter failed, reporter: %s, errmsg: %s", cfg.Name, err)
+		for {
 			select {
-			case <-ctx.Done():
+			case <-p.quit:
 				return
-			case <-time.After(100 * time.Millisecond):
-				continue
+
+			default:
+				r, err := client.NewReporter(cfg)
+				if err != nil {
+					logger.Warn("create new reporter failed, reporter: %s, errmsg: %s", cfg.Name, err)
+					time.Sleep(100 * time.Millisecond)
+					continue
+				}
+
+				p.reporter = r
+				logger.Info("created reporter successfully, reporter(%s)", cfg.Name)
+				return
 			}
 		}
+	}()
+}
 
-		u.mu.Lock()
-		if ctx.Err() != nil {
-			u.mu.Unlock()
-			r.Close()
-			return
+// Run starts the probe: loads plugins, creates the reporter, and runs the event loop until quit.
+func (p *Probe) Run(ctx context.Context) error {
+	p.quit = make(chan struct{})
+
+	if err := p.loadPlugins(ctx); err != nil {
+		return err
+	}
+
+	p.createReporter()
+
+	// event loop
+	for {
+		select {
+		case <-p.quit:
+			return nil
+
+		default:
+			// Avoid having all goroutines asleep.
+			time.Sleep(1 * time.Second)
 		}
-		u.reporter = r
-		u.mu.Unlock()
-		logger.Info("created reporter successfully, reporter: %s", cfg.Name)
-		return
 	}
 }
 
-// applyAfterReload closes the previous reporter when rebuild is true, then
-// starts a new create loop (or clears the instance when cfg is nil). When
-// rebuild is false and an instance is already live, the instance is left alone;
-// if the instance is still nil (create was interrupted by quiesce), create is
-// restarted with a fresh context.
-func (u *reporterUnit) applyAfterReload(
-	parent context.Context, next *config.ReporterConfig, rebuild bool,
-) {
-	if !rebuild {
-		if u.get() != nil {
-			return
-		}
-		u.start(parent, next)
-		return
+// Close signals the probe to stop and waits for goroutines to exit.
+func (p *Probe) Close() {
+	if p.quit != nil {
+		close(p.quit) // Notify all goroutines exited.
 	}
-
-	u.mu.Lock()
-	old := u.reporter
-	u.reporter = nil
-	u.mu.Unlock()
-	if old != nil {
-		old.Close()
-	}
-	u.start(parent, next)
-}
-
-func reporterConfigEqual(a, b *config.ReporterConfig) bool {
-	if a == nil && b == nil {
-		return true
-	}
-	if a == nil || b == nil {
-		return false
-	}
-	return *a == *b
 }

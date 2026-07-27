@@ -28,15 +28,13 @@ package cmds
 import (
 	"encoding/json"
 	"fmt"
-	"os"
-	"os/exec"
-	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
 	"unicode"
 
 	"dbm-services/common/dbha-v2/internal/probe/config"
+	"dbm-services/common/dbha-v2/internal/probe/harvester"
 	"dbm-services/common/dbha-v2/pkg/constant"
 	"dbm-services/common/dbha-v2/pkg/machine"
 	"dbm-services/common/dbha-v2/pkg/process"
@@ -61,10 +59,6 @@ const DefaultGenConfigTimeout = 30 * time.Second
 // held by a concurrent gen-config.
 const DefaultGenConfigLockTimeout = 10 * time.Second
 
-// DefaultDiskWriteDirs is the fallback write-verification dirs used by the
-// health command when no diskWriteDirs are configured.
-var DefaultDiskWriteDirs = []string{"/data1/dbha", "/data/dbha"}
-
 // ProbeHealthInfo extends base process health with probe-specific db types (MySQL, Redis, etc.).
 type ProbeHealthInfo struct {
 	*process.HealthInfo
@@ -78,22 +72,18 @@ func procName() string {
 	return process.NameProbe
 }
 
-func mysqlHarvesterHasEndpoints(c *config.MySqlHarvesterConfig) bool {
-	return c != nil && len(c.Endpoints) > 0
-}
-
-func redisHarvesterHasEndpoints(c *config.RedisHarvesterConfig) bool {
-	return c != nil && len(c.Endpoints) > 0
-}
-
 func getConfiguredDbTypes() []haprobe.DbType {
+	seen := map[haprobe.DbType]struct{}{}
 	var dbTypes []haprobe.DbType
-	if mysqlHarvesterHasEndpoints(config.Cfg.Harvester.MySql) ||
-		mysqlHarvesterHasEndpoints(config.Cfg.Harvester.MySqlProxyAdmin) {
-		dbTypes = append(dbTypes, haprobe.DbTypeMySql)
-	}
-	if redisHarvesterHasEndpoints(config.Cfg.Harvester.Redis) {
-		dbTypes = append(dbTypes, haprobe.DbTypeRedis)
+	for _, e := range harvester.Entries() {
+		if !config.Cfg.Harvester.HasEndpoints(e.BlockName) {
+			continue
+		}
+		if _, ok := seen[e.DbType]; ok {
+			continue
+		}
+		seen[e.DbType] = struct{}{}
+		dbTypes = append(dbTypes, e.DbType)
 	}
 	return dbTypes
 }
@@ -149,31 +139,6 @@ func DaemonStartCmdRunE(cmd *cobra.Command, args []string) error {
 	return process.DaemonStartCmdRunE(cmd, args, config.Cfg.PidFile, procName(), process.DefaultGuardRestartDelay)
 }
 
-// verifyWriteDirs writes a marker file into each configured dir to verify the local disk is writable.
-// Non-existent or non-directory entries are skipped.
-// callers fall back to DefaultDiskWriteDirs when no dirs are configured.
-// TODO: Compatible with Windows disk write.
-func verifyWriteDirs(dirs []string) error {
-	for _, dir := range dirs {
-		dir = strings.TrimSpace(dir)
-		if dir == "" {
-			continue
-		}
-
-		info, err := os.Stat(dir)
-		if err != nil || !info.IsDir() {
-			continue
-		}
-
-		path := filepath.Join(dir, process.ProbeHealthMarkerFile)
-		cmd := exec.Command("touch", path)
-		if output, err := cmd.CombinedOutput(); err != nil {
-			return fmt.Errorf("touch verification failed, path: %s, errmsg: %s, output: %s", path, err, string(output))
-		}
-	}
-	return nil
-}
-
 // HealthCmdRunE prints probe health info (base + db types) to stdout, optionally as JSON.
 func HealthCmdRunE(cmd *cobra.Command, _ []string) error {
 	if err := config.Load(ConfigFilePath); err != nil {
@@ -185,24 +150,6 @@ func HealthCmdRunE(cmd *cobra.Command, _ []string) error {
 		data, _ := json.Marshal(baseHealth)
 		fmt.Fprintln(cmd.OutOrStdout(), string(data))
 		return nil
-	}
-
-	// Write verification: exit with a dedicated code on failure.
-	// Falls back to default dirs when no write dirs are configured.
-	diskWriteDirs := config.Cfg.Health.DiskWriteDirs
-	if len(diskWriteDirs) == 0 {
-		diskWriteDirs = DefaultDiskWriteDirs
-	}
-	if err := verifyWriteDirs(diskWriteDirs); err != nil {
-		fmt.Fprintln(cmd.ErrOrStderr(), err.Error())
-		os.Exit(process.ExitCodeHealthDiskWriteFail)
-	}
-
-	// Uptime collection: exit with a dedicated code on failure.
-	// TODO: report the collected uptime value in the health JSON output.
-	if _, err := machine.UptimeSeconds(); err != nil {
-		fmt.Fprintln(cmd.ErrOrStderr(), err.Error())
-		os.Exit(process.ExitCodeHealthUptimeFail)
 	}
 
 	baseHealth := process.GetBaseHealthInfo(config.Cfg.PidFile, procName())

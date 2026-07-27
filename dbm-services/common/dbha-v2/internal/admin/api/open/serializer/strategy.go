@@ -26,7 +26,6 @@ package serializer
 
 import (
 	"context"
-	"fmt"
 	"time"
 
 	"dbm-services/common/dbha-v2/internal/admin/strategy"
@@ -36,11 +35,6 @@ import (
 
 	validator "github.com/go-playground/validator/v10"
 )
-
-// MaxBizStrategyPriority is the exclusive upper bound of a business strategy's priority.
-// Global default strategies must use a priority >= this value, so business strategies always
-// rank before the default global strategies.
-const MaxBizStrategyPriority = 9000
 
 // StrategyPathParam strategy path param
 type StrategyPathParam struct {
@@ -60,7 +54,7 @@ type StrategyInfo struct {
 	BkBizID          int                     `json:"bk_biz_id"          binding:"required"`
 	TriggerEventName haprobe.DbEventName     `json:"trigger_event_name" validate:"triggerEventName"`
 	TriggerCount     int                     `json:"trigger_count"      validate:"triggerCount"`
-	Priority         int                     `json:"priority"           validate:"bizPriority"`
+	Priority         int                     `json:"priority"           validate:"priority"`
 	Scope            hamodel.ActionScopeType `json:"scope"              validate:"scope"`
 	Action           hamodel.ActionType      `json:"action"             validate:"action"`
 	Description      string                  `json:"description"`
@@ -133,7 +127,7 @@ type GlobalStrategyCreateRequest struct {
 	Name             string                  `json:"name"               binding:"required"`
 	TriggerEventName haprobe.DbEventName     `json:"trigger_event_name" validate:"triggerEventName"`
 	TriggerCount     int                     `json:"trigger_count"      validate:"triggerCount"`
-	Priority         int                     `json:"priority"           validate:"globalPriority"`
+	Priority         int                     `json:"priority"           validate:"priority"`
 	Scope            hamodel.ActionScopeType `json:"scope"              validate:"scope"`
 	Action           hamodel.ActionType      `json:"action"             validate:"action"`
 	Description      string                  `json:"description"`
@@ -154,7 +148,7 @@ type GlobalStrategyUpdateRequest struct {
 	Name             string                  `json:"name"               binding:"required"`
 	TriggerEventName haprobe.DbEventName     `json:"trigger_event_name" validate:"triggerEventName"`
 	TriggerCount     int                     `json:"trigger_count"      validate:"triggerCount"`
-	Priority         int                     `json:"priority"           validate:"globalPriority"`
+	Priority         int                     `json:"priority"           validate:"priority"`
 	Scope            hamodel.ActionScopeType `json:"scope"              validate:"scope"`
 	Action           hamodel.ActionType      `json:"action"             validate:"action"`
 	Description      string                  `json:"description"`
@@ -235,15 +229,13 @@ func CheckTriggerCount(fl validator.FieldLevel) bool {
 	return true
 }
 
-// CheckBizStrategyPriority checks business strategy priority: must be in [0, 9000).
-func CheckBizStrategyPriority(fl validator.FieldLevel) bool {
+// CheckPriority check priority
+func CheckPriority(fl validator.FieldLevel) bool {
 	value := fl.Field().Int()
-	return value >= 0 && value < MaxBizStrategyPriority
-}
-
-// CheckGlobalStrategyPriority checks global strategy priority: must be >= 9000.
-func CheckGlobalStrategyPriority(fl validator.FieldLevel) bool {
-	return fl.Field().Int() >= MaxBizStrategyPriority
+	if value < 0 {
+		return false
+	}
+	return true
 }
 
 // CheckScope check scope
@@ -276,10 +268,7 @@ func CheckStatus(fl validator.FieldLevel) bool {
 func init() {
 	hanet.AddValidation("triggerEventName", CheckTriggerEventName, "event name is invalid")
 	hanet.AddValidation("triggerCount", CheckTriggerCount, "must be greater than 0")
-	hanet.AddValidation("bizPriority", CheckBizStrategyPriority,
-		fmt.Sprintf("business strategy priority must be in range [0, %d]", MaxBizStrategyPriority-1))
-	hanet.AddValidation("globalPriority", CheckGlobalStrategyPriority,
-		fmt.Sprintf("global strategy priority must be greater than or equal to %d", MaxBizStrategyPriority))
+	hanet.AddValidation("priority", CheckPriority, "must be greater than or equal to 0")
 	hanet.AddValidation("scope", CheckScope, "must be one of cluster, host")
 	hanet.AddValidation("action", CheckAction, "must be one of notify, switch")
 	hanet.AddValidation("status", CheckStatus, "must be one of enabled, disabled")
