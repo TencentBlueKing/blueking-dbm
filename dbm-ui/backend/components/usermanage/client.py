@@ -19,6 +19,20 @@ class _UserManageApi(BaseApi):
     MODULE = _("用户管理模块")
     BASE = USER_MANAGE_APIGW_DOMAIN
 
+    def after_batch_query_user_display_info(self, response):
+        # 兼容esb的请求，用的是 list_user 接口
+        if not self.is_esb():
+            return response
+
+        if response.get("data", {}).get("results") is None:
+            return response
+
+        response["data"] = [
+            {"bk_username": info["username"], "display_name": info["display_name"]}
+            for info in response["data"]["results"]
+        ]
+        return response
+
     def __init__(self):
         is_esb = self.is_esb()
         self.list_user = self.generate_data_api(
@@ -38,9 +52,10 @@ class _UserManageApi(BaseApi):
             description=_("获取租户的管理员用户"),
         )
         self.batch_query_user_display_info = self.generate_data_api(
-            method="POST",
-            url="tenant/users/-/display_info/",
+            method="GET" if is_esb else "POST",
+            url="list_users/?exact_lookups={bk_usernames}" if is_esb else "tenant/users/-/display_info/",
             description=_("批量查询用户展示信息"),
+            after_request=self.after_batch_query_user_display_info,
         )
 
 
