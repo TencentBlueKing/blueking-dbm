@@ -270,16 +270,6 @@ flowchart TD
     TwemOK -->|是| TwemSucc["结果: DB_check_success"]
     TwemOK -->|否| TwemErr["异常事件: DB_check_failed 鉴权错误转Redis_auth_failed"]
 
-    TypeBranch -->|PredixyRedisCluster下redis| ClusterInfo["指令: INFO Replication"]
-    ClusterInfo --> ClusterInfoOK{成功?}
-    ClusterInfoOK -->|否| ClusterInfoErr["异常事件: DB_check_failed 鉴权错误转Redis_auth_failed"]
-    ClusterInfoOK -->|是| ClusterRole{"role == master?"}
-    ClusterRole -->|否| ClusterReplicaOK["结果: DB_check_success"]
-    ClusterRole -->|是| ClusterSet["指令: SET dbha:agent:ip time"]
-    ClusterSet --> ClusterSetOK{"返回OK或MOVED?"}
-    ClusterSetOK -->|是| ClusterMasterOK["结果: DB_check_success"]
-    ClusterSetOK -->|否| ClusterSetErr["异常事件: DB_check_failed"]
-
     CacheInfoErr --> SSHFallback
     CacheSelectErr --> SSHFallback
     CacheSetErr --> SSHFallback
@@ -288,8 +278,6 @@ flowchart TD
     PlusSetErr --> SSHFallback
     PredixyErr --> SSHFallback
     TwemErr --> SSHFallback
-    ClusterInfoErr --> SSHFallback
-    ClusterSetErr --> SSHFallback
 
     SSHFallback["兜底指令: SSH touch 判断机器可达"] --> SSHOK{SSH成功?}
     SSHOK -->|是| SSHSucc["异常事件: SSH_check_success"]
@@ -301,7 +289,6 @@ flowchart TD
     PlusInfoErr --> RedisAuthEnd
     PredixyErr --> RedisAuthEnd
     TwemErr --> RedisAuthEnd
-    ClusterInfoErr --> RedisAuthEnd
 ```
 
 代码：
@@ -320,7 +307,7 @@ flowchart TD
 - `SELECT 0/1`：用于切换逻辑库，确保后续 `SET` 落在预期 DB，是写探测前置步骤，并非健康判定本身。
 - SSH 回退：Redis 命令失败（非 Redis 鉴权失败）后执行 `touch` 判断机器可达，据结果置 `SSH_check_success` / `SSH_check_failed` / `SSH_auth_failed`；`Redis_auth_failed` 会提前返回，不走 SSH 兜底。
 - 上报决策（与第 6 节一致）：`DB_check_success` / `SSH_check_success` 不进入 GM，其余异常进入 GM 二次探测。
-- `PredixyRedisCluster` 范围说明：Agent 主动拉取阶段（`RedisClusterNewIns`）仅为 `predixy` 代理生成探测实例；图中 “PredixyRedisCluster下redis” 分支（`INFO Replication` + `SET`）由 `RedisClusterDetectInstance` 实现，主要在 GM 反序列化（`RedisClusterDeserialize`）与二次探测路径上触发。
+- `PredixyRedisCluster` 范围说明：Agent 主动拉取阶段（`RedisClusterNewIns`）仅为 `predixy` 代理生成探测实例；**故图中不再绘制 “PredixyRedisCluster下redis” 分支**。该分支（`INFO Replication` + `SET`，由 `RedisClusterDetectInstance` 实现）在**正常数据流中不可达**：Agent 不为 PredixyRedisCluster 上报 tendiscache 报文，GM 反序列化（`RedisClusterDeserialize`）不会命中 `RedisMetaType` 分支，故无论 Agent 主动探测还是 GM 二次探测都不会实际探测其 redis 存储；代码仅作为预留入口存在。
 
 ---
 
@@ -429,12 +416,9 @@ flowchart TD
     Start[Agent执行Redis一次探测] --> FirstResult{一次探测结果}
 
     FirstResult -->|DB_check_success| ReportOnly["状态正常 按策略上报HADB"]
-    FirstResult -->|SSH_check_success| ReportOnly
 
     FirstResult -->|DB_check_failed| FallbackSSH[Redis检测失败后进入SSH检查]
     FirstResult -->|Redis_auth_failed| NeedDoubleCheck[触发二次探测入口]
-    FirstResult -->|SSH_check_failed| NeedDoubleCheck
-    FirstResult -->|SSH_auth_failed| NeedDoubleCheck
 
     FallbackSSH --> SSHResult{SSH检查结果}
     SSHResult -->|SSH_check_success| ReportOnly
