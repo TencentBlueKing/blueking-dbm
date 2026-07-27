@@ -72,11 +72,8 @@ func (hdl *StdSnapshotHandler) PreSwitchLog(record *SwitchingSnapshotData) error
 		Reason:               record.DbSwitchingSnapshotLog.Reason,
 		DbType:               record.DbSwitchingSnapshotLog.DbType,
 		ActionScope:          record.DbSwitchingSnapshotLog.ActionScope,
-		Action:               record.DbSwitchingSnapshotLog.Action.String(),
 		StrategyJSON:         record.StrategyJSON,
-		StrategiesJSON:       record.StrategiesJSON,
 		FailureInstancesJSON: record.FailureInstancesJSON,
-		OriginInstancesJSON:  record.OriginInstancesJSON,
 		MetadataSetJSON:      record.MetadataSetJSON,
 	}
 
@@ -87,9 +84,7 @@ func (hdl *StdSnapshotHandler) PreSwitchLog(record *SwitchingSnapshotData) error
 			record.DbSwitchingSnapshotLog.SwitchID, err)
 	}
 
-	// the log type column is simply the snapshot action (pre-switch / notify)
-	hdl.logger.Info("%s\t%s\t%s", record.DbSwitchingSnapshotLog.SwitchID,
-		record.DbSwitchingSnapshotLog.Action.String(), string(body))
+	hdl.logger.Info("%s\t%s\t%s", record.DbSwitchingSnapshotLog.SwitchID, SwitchSnapshotLogTypePre, string(body))
 
 	return nil
 }
@@ -111,7 +106,6 @@ func (hdl *StdSnapshotHandler) PostSwitchLog(record *SwitchingSnapshotData) erro
 		FinishedTime:  record.DbSwitchingSnapshotLog.FinishedTime,
 		Result:        record.DbSwitchingSnapshotLog.Result,
 		Status:        record.DbSwitchingSnapshotLog.Status.String(),
-		Action:        record.DbSwitchingSnapshotLog.Action.String(),
 		InstancesJSON: record.InstancesJSON,
 	}
 
@@ -122,8 +116,7 @@ func (hdl *StdSnapshotHandler) PostSwitchLog(record *SwitchingSnapshotData) erro
 			record.DbSwitchingSnapshotLog.SwitchID, err)
 	}
 
-	hdl.logger.Info("%s\t%s\t%s", record.DbSwitchingSnapshotLog.SwitchID,
-		record.DbSwitchingSnapshotLog.Action.String(), string(body))
+	hdl.logger.Info("%s\t%s\t%s", record.DbSwitchingSnapshotLog.SwitchID, SwitchSnapshotLogTypePost, string(body))
 
 	return nil
 }

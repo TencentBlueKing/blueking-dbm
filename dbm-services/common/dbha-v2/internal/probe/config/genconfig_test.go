@@ -29,8 +29,11 @@ import (
 	"sort"
 	"testing"
 
+	"dbm-services/common/dbha-v2/pkg/dbtype"
 	"dbm-services/common/dbha-v2/pkg/probeconfig"
 	"dbm-services/common/dbha-v2/pkg/storage/haprobe"
+
+	_ "dbm-services/common/dbha-v2/internal/provider/redis/dbtypedesc"
 
 	"gopkg.in/yaml.v3"
 )
@@ -710,5 +713,183 @@ func TestGenProbeYAML_DeterministicOrder(t *testing.T) {
 	sort.Strings(sorted)
 	if !reflect.DeepEqual(ips, sorted) {
 		t.Errorf("endpoint order not sorted, got: %v", ips)
+	}
+}
+
+func ensureKafkaHarvestBlockForTest(t *testing.T) {
+	t.Helper()
+	if _, ok := dbtype.HarvestBlockByName("kafka"); ok {
+		return
+	}
+	dbtype.RegisterHarvestBlock(dbtype.HarvestBlock{
+		BlockName:  "kafka",
+		DbType:     haprobe.DbTypeKafka,
+		PayloadKey: "kafka",
+	})
+}
+
+func TestGenProbeYAML_ExtraHarvesterBlock(t *testing.T) {
+	ensureKafkaHarvestBlockForTest(t)
+
+	payload := newPayload([]probeconfig.ProbeMetadataItem{
+		{
+			IP:          "127.0.0.31",
+			Port:        9092,
+			ClusterType: string(haprobe.DbmMetadataClusterTypeKafka),
+			MachineType: string(haprobe.DbmMetadataMachineTypeBroker),
+			AccessLayer: string(haprobe.DbmMetadataAccessLayerTypeStorage),
+		},
+	})
+	payload.Harvesters = map[string]probeconfig.ProbeHarvesterConfig{
+		"kafka": {
+			User:     "kafka_user",
+			Password: "kafka_pwd",
+			Interval: "20s",
+			Timeout:  "5s",
+		},
+	}
+
+	out, err := GenProbeYAML(payload)
+	if err != nil {
+		t.Fatalf("GenProbeYAML failed, errmsg: %s", err)
+	}
+
+	var raw map[string]any
+	if err := yaml.Unmarshal([]byte(out), &raw); err != nil {
+		t.Fatalf("yaml unmarshal failed, errmsg: %s", err)
+	}
+	harvester, ok := raw["harvester"].(map[string]any)
+	if !ok {
+		t.Fatalf("harvester missing or wrong type: %#v", raw["harvester"])
+	}
+	kafka, ok := harvester["kafka"].(map[string]any)
+	if !ok {
+		t.Fatalf("expected kafka block, got keys: %v", harvester)
+	}
+	if kafka["user"] != "kafka_user" {
+		t.Errorf("unexpected kafka user: %v", kafka["user"])
+	}
+	if harvester["mysql"] != nil || harvester["redis"] != nil {
+		t.Errorf("named blocks should be absent for kafka-only metadata, got: %v", harvester)
+	}
+}
+
+func ensureCamelEsHarvestBlockForTest(t *testing.T) {
+	t.Helper()
+	if _, ok := dbtype.HarvestBlockByName("camelEsTest"); ok {
+		return
+	}
+	dbtype.RegisterHarvestBlock(dbtype.HarvestBlock{
+		BlockName:  "camelEsTest",
+		DbType:     haprobe.DbTypeEs,
+		PayloadKey: "camelEsTest",
+	})
+}
+
+func TestGenProbeYAML_ExtraHarvesterCamelCasePayloadKey(t *testing.T) {
+	ensureCamelEsHarvestBlockForTest(t)
+
+	payload := newPayload([]probeconfig.ProbeMetadataItem{
+		{
+			IP:          "127.0.0.32",
+			Port:        9200,
+			ClusterType: string(haprobe.DbmMetadataClusterTypeEs),
+			MachineType: string(haprobe.DbmMetadataMachineTypeBroker),
+			AccessLayer: string(haprobe.DbmMetadataAccessLayerTypeStorage),
+		},
+	})
+	// Simulate admin viper lowercasing of probeHarvesters keys.
+	payload.Harvesters = map[string]probeconfig.ProbeHarvesterConfig{
+		"camelestest": {
+			User: "camel_user", Password: "pwd", Interval: "20s", Timeout: "5s",
+		},
+	}
+
+	out, err := GenProbeYAML(payload)
+	if err != nil {
+		t.Fatalf("GenProbeYAML failed, errmsg: %s", err)
+	}
+	var raw map[string]any
+	if err := yaml.Unmarshal([]byte(out), &raw); err != nil {
+		t.Fatalf("yaml unmarshal failed, errmsg: %s", err)
+	}
+	harvester := raw["harvester"].(map[string]any)
+	block, ok := harvester["camelEsTest"].(map[string]any)
+	if !ok {
+		t.Fatalf("expected camelEsTest block from normalized payload key, keys: %v", harvester)
+	}
+	if block["user"] != "camel_user" {
+		t.Errorf("unexpected user: %v", block["user"])
+	}
+}
+
+func ensureDorisMatchBlocksForTest(t *testing.T) {
+	t.Helper()
+	if _, ok := dbtype.HarvestBlockByName("dorisProxyMatchTest"); ok {
+		return
+	}
+	dbtype.RegisterHarvestBlock(dbtype.HarvestBlock{
+		BlockName:  "dorisProxyMatchTest",
+		DbType:     haprobe.DbTypeDoris,
+		PayloadKey: "dorisproxymatchtest",
+		Match: func(a dbtype.EndpointAttrs) bool {
+			return a.AccessLayer == haprobe.DbmMetadataAccessLayerTypeProxy
+		},
+	})
+	dbtype.RegisterHarvestBlock(dbtype.HarvestBlock{
+		BlockName:  "dorisStorageMatchTest",
+		DbType:     haprobe.DbTypeDoris,
+		PayloadKey: "dorisstoragematchtest",
+		Match:      nil, // fallback
+	})
+}
+
+func TestGenProbeYAML_MatchRoutesByAccessLayer(t *testing.T) {
+	ensureDorisMatchBlocksForTest(t)
+
+	payload := newPayload([]probeconfig.ProbeMetadataItem{
+		{
+			IP:          "127.0.0.33",
+			Port:        8030,
+			ClusterType: string(haprobe.DbmMetadataClusterTypeDoris),
+			MachineType: string(haprobe.DbmMetadataMachineTypeBroker),
+			AccessLayer: string(haprobe.DbmMetadataAccessLayerTypeProxy),
+		},
+		{
+			IP:          "127.0.0.34",
+			Port:        9050,
+			ClusterType: string(haprobe.DbmMetadataClusterTypeDoris),
+			MachineType: string(haprobe.DbmMetadataMachineTypeBroker),
+			AccessLayer: string(haprobe.DbmMetadataAccessLayerTypeStorage),
+		},
+	})
+	payload.Harvesters = map[string]probeconfig.ProbeHarvesterConfig{
+		"dorisproxymatchtest": {
+			User: "proxy_u", Password: "p", Interval: "20s", Timeout: "5s",
+		},
+		"dorisstoragematchtest": {
+			User: "store_u", Password: "p", Interval: "20s", Timeout: "5s",
+		},
+	}
+
+	out, err := GenProbeYAML(payload)
+	if err != nil {
+		t.Fatalf("GenProbeYAML failed, errmsg: %s", err)
+	}
+	var raw map[string]any
+	if err := yaml.Unmarshal([]byte(out), &raw); err != nil {
+		t.Fatalf("yaml unmarshal failed, errmsg: %s", err)
+	}
+	harvester := raw["harvester"].(map[string]any)
+	proxyBlock, ok := harvester["dorisProxyMatchTest"].(map[string]any)
+	if !ok {
+		t.Fatalf("expected dorisProxyMatchTest block, keys: %v", harvester)
+	}
+	storeBlock, ok := harvester["dorisStorageMatchTest"].(map[string]any)
+	if !ok {
+		t.Fatalf("expected dorisStorageMatchTest block, keys: %v", harvester)
+	}
+	if proxyBlock["user"] != "proxy_u" || storeBlock["user"] != "store_u" {
+		t.Fatalf("unexpected users: proxy=%v store=%v", proxyBlock["user"], storeBlock["user"])
 	}
 }

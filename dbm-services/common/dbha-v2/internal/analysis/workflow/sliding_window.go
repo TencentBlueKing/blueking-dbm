@@ -34,11 +34,11 @@ import (
 	"dbm-services/common/dbha-v2/pkg/storage/haprobe"
 )
 
-// FailureWindowEntry represents a merged failure event for one DB instance and one event in the
-// sliding window. Same instance (BkCloudID, IP, Port, DbType) with the same event is merged and
-// Count is incremented.
+// FailureWindowEntry represents a merged failure event for one DB instance in the sliding window.
+// Same instance (BkCloudID, IP, Port, DbType) is merged and Count is incremented.
 type FailureWindowEntry struct {
 	FailureInstanceInfo
+	Count   int       // number of failure occurrences in the window
 	FirstAt time.Time // first occurrence time in the window (used for slide-out)
 }
 
@@ -175,9 +175,8 @@ func (m *BizWindowManager) WindowLen(bizId int) int {
 }
 
 // slidingWindow is a time-based sliding window that caches detection failure events.
-// Same DB instance (BkCloudID, IP, Port, DbType) with the same event is merged and Count is
-// incremented on push. pop returns only entries that have slid out of the window
-// (FirstAt + windowDuration < now).
+// Same DB instance (BkCloudID, IP, Port, DbType) is merged and Count is incremented on push.
+// pop returns only entries that have slid out of the window (FirstAt + windowDuration < now).
 // slidingWindow is NOT safe for concurrent use; callers must hold the BizWindowManager lock.
 type slidingWindow struct {
 	windowDuration time.Duration
@@ -196,25 +195,21 @@ func newSlidingWindow(windowDuration time.Duration, bizId int, serviceID string)
 	}
 }
 
-// push adds a failure event into the window. If the same instance and event already exists,
+// push adds a failure event into the window. If the same DB instance already exists,
 // it is merged and Count is incremented; otherwise a new entry is added.
 func (w *slidingWindow) push(inst *FailureInstanceInfo, at time.Time) {
-	key := instanceWindowEventKey(inst.BkCloudID, inst.IP, inst.Port, inst.DbType, inst.EventName)
+	key := instanceWindowKey(inst.BkCloudID, inst.IP, inst.Port, inst.DbType)
 
-	// merge into the existing entry: increment Count but keep FirstAt unchanged,
-	// so the entry slides out of the window based on its first occurrence time.
 	if e, ok := w.byKey[key]; ok {
 		e.Count++
 		return
 	}
 
-	// new entry: the first occurrence, so Count starts at 1.
-	entry := &FailureWindowEntry{
+	w.byKey[key] = &FailureWindowEntry{
 		FailureInstanceInfo: *inst,
+		Count:               1,
 		FirstAt:             at,
 	}
-	entry.Count = 1
-	w.byKey[key] = entry
 }
 
 // pop returns all entries that have slid out of the window (FirstAt < now - windowDuration),
@@ -237,18 +232,12 @@ func (w *slidingWindow) pop(now time.Time) []*FailureWindowEntry {
 	return result
 }
 
-// len returns the number of distinct instance+event entries currently in the window.
+// len returns the number of distinct instances currently in the window.
 func (w *slidingWindow) len() int {
 	return len(w.byKey)
 }
 
-// instanceWindowKey returns a unique key for the same DB instance (used for inflight tracking).
+// instanceWindowKey returns a unique key for the same DB instance (used for merge and inflight tracking).
 func instanceWindowKey(bkCloudID int, ip string, port int, dbType haprobe.DbType) string {
 	return fmt.Sprintf("%d:%s:%d:%s", bkCloudID, ip, port, dbType)
-}
-
-// instanceWindowEventKey returns a unique key for the same instance and event, so that the same
-// instance reporting different events are kept as separate entries in the window.
-func instanceWindowEventKey(bkCloudID int, ip string, port int, dbType haprobe.DbType, eventName haprobe.DbEventName) string {
-	return fmt.Sprintf("%d:%s:%d:%s:%s", bkCloudID, ip, port, dbType, eventName)
 }

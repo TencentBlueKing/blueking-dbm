@@ -38,6 +38,7 @@ import (
 	"dbm-services/common/dbha-v2/internal/analysis/switcher"
 	"dbm-services/common/dbha-v2/internal/analysis/switcher/snapshotlogger"
 	"dbm-services/common/dbha-v2/internal/analysis/switcher/switchcore"
+	"dbm-services/common/dbha-v2/pkg/dbtype"
 	"dbm-services/common/dbha-v2/pkg/haapm"
 	"dbm-services/common/dbha-v2/pkg/logger"
 	"dbm-services/common/dbha-v2/pkg/machine"
@@ -117,114 +118,59 @@ func (e *SwitchExecutor) CreateRequestWithGroup(ctx context.Context, group *Fail
 	return req
 }
 
-// MatchResult is the result of one strategy-matching pass over a failure group.
-type MatchResult struct {
-	// Groups contains the switch groups and notify groups that matched a strategy, plus the
-	// notify group of instances that matched no strategy (its Strategy is nil). A single
-	// instance+event is bound to at most one group; the same instance may appear in multiple
-	// groups for different events.
-	Groups []*FailureGroup
-	// Strategies is the full list of strategies queried from DB in this pass (biz + global),
-	// kept for tracing the match decision afterwards.
-	Strategies []*hamodel.DbSwitchingStrategy
-}
-
-// MatchStrategies loads biz-level and global strategies, sorts them by
-// (biz > priority > action(switch>notify)), and iterates each strategy to greedily bind
-// unbound failure instances. Normal strategies bind instances by event name and trigger count;
-// special strategies bind all failure instances of the matched clusters. Each matched strategy
-// forms one FailureGroup. Instances already bound to a higher-priority strategy are not matched again.
-func (e *SwitchExecutor) MatchStrategies(ctx context.Context, group *FailureGroup) *MatchResult {
+// MatchStrategyForGroup loads biz-level and global strategies, iterates each strategy for matching
+// (normal strategies count instances by event name, special strategies invoke registered match functions),
+// adds strategies meeting the triggerCount threshold to the candidate list, and returns the highest
+// priority strategy after sorting (biz-level first > lower priority value first).
+func (e *SwitchExecutor) MatchStrategyForGroup(ctx context.Context, group *FailureGroup) (matched bool, strategy *hamodel.DbSwitchingStrategy) {
 	if len(group.Instances) == 0 {
-		return nil
+		return false, nil
 	}
 
-	bkBizID := group.BkBizID
+	bkBizID := group.Instances[0].BkBizID
 	qCtx, cancel := context.WithTimeout(ctx, config.Cfg.Storage.Timeout)
 	defer cancel()
 
 	strategies, err := e.hadata.ReadSwitchingStrategyWithBkBizId(qCtx, bkBizID)
 	if err != nil {
 		logger.Warn("failed to read switching strategy, bkBizId: %d, errmsg: %s", bkBizID, err)
-		return nil
+		return false, nil
 	}
 
-	result := &MatchResult{Strategies: strategies}
-
-	// sort by (biz > priority > action(switch>notify))
-	SortCandidates(strategies)
-
-	bound := make(map[string]struct{}, len(group.Instances))
+	var candidates []*hamodel.DbSwitchingStrategy
 	for _, s := range strategies {
-		// skip instances already bound to a higher-priority strategy
-		unbound := filterUnboundInstances(group.Instances, bound)
-		if len(unbound) == 0 {
-			break
-		}
-
 		threshold := s.TriggerCount
 		if threshold <= 0 {
 			threshold = 1
 		}
 
-		var matched []FailureInstanceInfo
+		var count int
+
+		// check if this is a special strategy, invoke the corresponding match function
 		if matchFunc := GetSpecialMatchFunc(s.TriggerEventName); matchFunc != nil {
-			matched = matchFunc(unbound, threshold)
+			count = matchFunc(group.Instances)
 		} else {
-			matched = FilterInstancesByEventAndCount(unbound, s.TriggerEventName, threshold)
-		}
-		if len(matched) == 0 {
-			continue
+			// normal strategy: count instances matching the event name in the group
+			count = CountInstancesByEventName(group.Instances, s.TriggerEventName)
 		}
 
-		for _, inst := range matched {
-			bound[instanceEventKey(inst.BkCloudID, inst.IP, inst.Port, inst.EventName)] = struct{}{}
-		}
-
-		result.Groups = append(result.Groups, &FailureGroup{
-			BkBizID:         group.BkBizID,
-			BkCloudID:       group.BkCloudID,
-			DbType:          group.DbType,
-			Strategy:        s,
-			Instances:       matched,
-			OriginInstances: group.OriginInstances,
-		})
-	}
-
-	// collect the instances not bound to any strategy into a notify group with a nil strategy
-	var unmatched []FailureInstanceInfo
-	for _, inst := range group.Instances {
-		if _, ok := bound[instanceEventKey(inst.BkCloudID, inst.IP, inst.Port, inst.EventName)]; !ok {
-			unmatched = append(unmatched, inst)
+		if count >= threshold {
+			candidates = append(candidates, s)
 		}
 	}
-	if len(unmatched) > 0 {
-		result.Groups = append(result.Groups, &FailureGroup{
-			BkBizID:         group.BkBizID,
-			BkCloudID:       group.BkCloudID,
-			DbType:          group.DbType,
-			Instances:       unmatched,
-			OriginInstances: group.OriginInstances,
-		})
+
+	if len(candidates) == 0 {
+		return false, nil
 	}
 
-	return result
-}
+	// sort by priority: biz-level first > lower priority value first
+	SortCandidates(candidates)
 
-// filterUnboundInstances returns the instances that are not yet bound to any strategy.
-func filterUnboundInstances(instances []FailureInstanceInfo, bound map[string]struct{}) []FailureInstanceInfo {
-	out := make([]FailureInstanceInfo, 0, len(instances))
-	for _, inst := range instances {
-		if _, ok := bound[instanceEventKey(inst.BkCloudID, inst.IP, inst.Port, inst.EventName)]; ok {
-			continue
-		}
-		out = append(out, inst)
-	}
-	return out
+	return true, candidates[0]
 }
 
 // excludeUnavailableInstances keeps only the group instances that appear in DBM's query result
-// (req.MySqlInstData); exclude unavailable instances.
+// (req.InstData); exclude unavailable instances.
 //
 // Problem it solves: after a successful switch the failed instance may not recover immediately,
 // so its stale failure event can be pushed into the sliding window again. Counting those already-switched
@@ -233,12 +179,12 @@ func filterUnboundInstances(instances []FailureInstanceInfo, bound map[string]st
 // The original group is left untouched so downstream logging and inflight cleanup still see the
 // full failure set.
 func excludeUnavailableInstances(groupInsts []FailureInstanceInfo, req *switcher.Request) []FailureInstanceInfo {
-	if req == nil || len(req.MySqlInstData) == 0 {
+	if req == nil || len(req.InstData) == 0 {
 		return nil
 	}
 
-	reqKeys := make(map[string]struct{}, len(req.MySqlInstData))
-	for _, meta := range req.MySqlInstData {
+	reqKeys := make(map[string]struct{}, len(req.InstData))
+	for _, meta := range req.InstData {
 		reqKeys[instanceKey(meta.BkCloudID, meta.IP, meta.Port)] = struct{}{}
 	}
 
@@ -254,32 +200,9 @@ func excludeUnavailableInstances(groupInsts []FailureInstanceInfo, req *switcher
 	return out
 }
 
-// filterRequestByHosts builds a request containing only the metadata of instances whose IP
-// belongs to the given failure instances.
-func filterRequestByHosts(req *switcher.Request, instances []FailureInstanceInfo) *switcher.Request {
-	if req == nil || len(instances) == 0 {
-		return nil
-	}
-
-	hostSet := make(map[string]struct{}, len(instances))
-	for _, inst := range instances {
-		hostSet[hostKey(inst.BkCloudID, inst.IP)] = struct{}{}
-	}
-
-	groupReq := &switcher.Request{DbType: req.DbType}
-	for _, meta := range req.MySqlInstData {
-		if _, ok := hostSet[hostKey(meta.BkCloudID, meta.IP)]; ok {
-			groupReq.AddDbInstMetadata(meta)
-		}
-	}
-	return groupReq
-}
-
 // TriggerSwitching runs the switcher for the given db type and posts success/failure alarms.
-// snapshotLoggers are borrowed from the enclosing failure group: they are neither created nor
-// closed here, so that one group keeps a single database connection across all its tasks.
 func (e *SwitchExecutor) TriggerSwitching(dbType haprobe.DbType, req *switcher.Request,
-	snapshotLoggers []snapshotlogger.SnapshotLogger, snapshotData *snapshotlogger.SwitchingSnapshotData) {
+	snapshotData *snapshotlogger.SwitchingSnapshotData) {
 
 	if !config.Cfg.Workflow.EnableSwitching {
 		logger.Warn("switching operation is disabled")
@@ -293,7 +216,12 @@ func (e *SwitchExecutor) TriggerSwitching(dbType haprobe.DbType, req *switcher.R
 	}
 
 	start := time.Now()
-	switchingSnapshotLogger := NewSwitchingSnapshotReport(snapshotLoggers, snapshotData, start)
+	switchingSnapshotLogger := NewSwitchingSnapshotReport(snapshotData, start)
+	defer func() {
+		for _, swLogger := range switchingSnapshotLogger.SnapshotLoggers {
+			swLogger.Close()
+		}
+	}()
 
 	// Report before switching snapshot
 	switchingSnapshotLogger.ReportBeforeSwitchingSnapshot()
@@ -346,7 +274,7 @@ func (e *SwitchExecutor) reportSwitchingMetrics(start time.Time, req *switcher.R
 	}
 
 	// Report the switching instance success total and error total
-	successCount := float64(len(req.MySqlInstData) - len(rsp.MySqlFailureInsts))
+	successCount := float64(len(req.InstData) - rsp.FailureInstCount())
 	if err := apm.SwitchingInstanceSuccessTotal.AddWithLabels(map[string]string{
 		haapm.MetricLabelServiceID:   e.myServiceID,
 		haapm.MetricLabelServiceName: apm.MetricServerName,
@@ -358,21 +286,23 @@ func (e *SwitchExecutor) reportSwitchingMetrics(start time.Time, req *switcher.R
 	if err := apm.SwitchingInstanceErrorTotal.AddWithLabels(map[string]string{
 		haapm.MetricLabelServiceID:   e.myServiceID,
 		haapm.MetricLabelServiceName: apm.MetricServerName,
-	}, float64(len(rsp.MySqlFailureInsts))); err != nil {
+	}, float64(rsp.FailureInstCount())); err != nil {
 		logger.Error("failed to update switching instance error total metric, errmsg: %s", err)
 	}
 }
 
 func (e *SwitchExecutor) postSuccessAlarms(req *switcher.Request, rsp *switcher.Response,
 	dbType haprobe.DbType) {
+	failureInsts := rsp.GetFailureInsts()
+	successEvent := dbtype.SwitchSuccessEventName(dbType)
 	for _, inst := range req.GetDbInstMetadata() {
 		instKey := switchcore.GenerateMetadataKey(inst.BkCloudID, inst.IP, inst.Port)
-		if _, exists := rsp.MySqlFailureInsts[instKey]; exists {
+		if _, exists := failureInsts[instKey]; exists {
 			continue
 		}
 
 		monitorEvent := &monitor.EventData{
-			Name:      string(haprobe.DbEventNameMysqlSwitchSuccessV1),
+			Name:      string(successEvent),
 			Target:    string(instKey),
 			Timestamp: uint64(time.Now().UnixMilli()),
 		}
@@ -384,7 +314,7 @@ func (e *SwitchExecutor) postSuccessAlarms(req *switcher.Request, rsp *switcher.
 		monitorEvent.Dimension.IP = inst.IP
 		monitorEvent.Dimension.Port = inst.Port
 		monitorEvent.Dimension.DbTypeName = dbType
-		monitorEvent.Dimension.DbEventName = haprobe.DbEventNameMysqlSwitchSuccessV1
+		monitorEvent.Dimension.DbEventName = successEvent
 
 		// Populate the v1 dimensions to support self-healing tickets.
 		monitorEvent.Dimension.SwitchInfoServerIpV1 = inst.IP
@@ -415,9 +345,10 @@ func (e *SwitchExecutor) postSuccessAlarms(req *switcher.Request, rsp *switcher.
 }
 
 func (e *SwitchExecutor) postFailureAlarms(req *switcher.Request, rsp *switcher.Response, dbType haprobe.DbType) {
+	failureEvent := dbtype.SwitchFailureEventName(dbType)
 	for instKey, inst := range rsp.GetFailureInsts() {
 		monitorEvent := &monitor.EventData{
-			Name:      string(haprobe.DbEventNameMysqlSwitchFailureV1),
+			Name:      string(failureEvent),
 			Target:    string(instKey),
 			Timestamp: uint64(time.Now().UnixMilli()),
 		}
@@ -429,7 +360,7 @@ func (e *SwitchExecutor) postFailureAlarms(req *switcher.Request, rsp *switcher.
 		monitorEvent.Dimension.IP = inst.IP
 		monitorEvent.Dimension.Port = inst.Port
 		monitorEvent.Dimension.DbTypeName = dbType
-		monitorEvent.Dimension.DbEventName = haprobe.DbEventNameMysqlSwitchFailureV1
+		monitorEvent.Dimension.DbEventName = failureEvent
 
 		if err := monitor.PostBKMonitor(config.Cfg.Monitor.Timeout, monitorEvent); err != nil {
 			logger.Warn("switching failure, failed to post the alarm, inst: %s, errmsg: %s", instKey, err)
