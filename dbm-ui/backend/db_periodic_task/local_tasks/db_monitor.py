@@ -8,12 +8,12 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+import copy
 import itertools
 import json
 import logging
 from datetime import datetime, timedelta
 
-from blueapps.core.celery.celery import app
 from celery import shared_task
 from celery.schedules import crontab
 from django.core.cache import cache
@@ -29,11 +29,17 @@ from backend.core.notify.constants import MsgType
 from backend.core.notify.handlers import BkChatHandler, CmsiHandler
 from backend.db_meta.enums import ClusterType
 from backend.db_meta.models import Cluster
-from backend.db_monitor.constants import MONITOR_EVENTS, MonitorEventType
+from backend.db_monitor.constants import (
+    BK_MONITOR_SAVE_DISPATCH_GROUP_TEMPLATE,
+    BK_MONITOR_SAVE_USER_GROUP_TEMPLATE,
+    DEFAULT_PLAT_PRIORITY,
+    MONITOR_EVENTS,
+    MonitorEventType,
+)
 from backend.db_monitor.dataclass import BaseEventBody, MonitorEvent
 from backend.db_monitor.exceptions import DutyNoticeScheduleException
 from backend.db_monitor.models import CollectInstance, DispatchGroup, DutyRule, MonitorPolicy, NoticeGroup
-from backend.db_monitor.tasks import update_app_policy, update_dba_notice_group
+from backend.db_monitor.tasks import sync_biz_dispatch_policy, update_app_policy, update_dba_notice_group
 from backend.db_periodic_task.constants import GET_AND_DELETE_SET_LUA
 from backend.db_periodic_task.local_tasks.context_manager import start_new_span
 from backend.db_periodic_task.local_tasks.register import register_periodic_task
@@ -72,6 +78,82 @@ def sync_plat_monitor_policy(action_id=None, db_type=None, force=False):
     MonitorPolicy.sync_plat_monitor_policy(callback_actions=action_id, db_type=db_type, force=force)
 
 
+@register_periodic_task(run_every=crontab(minute="0", hour="2"))
+def sync_plat_default_dispatch_policy():
+    """同步平台兜底策略"""
+    # 先获取平台兜底策略相关配置
+    platform_alert_group = SystemSettings.get_setting_value(
+        key=SystemSettingsEnum.PLATFORM_ALERT_GROUP_INFO, default={}
+    )
+    monitor_group_id = platform_alert_group.get("monitor_group_id")
+    monitor_dispatch_id = platform_alert_group.get("monitor_dispatch_id")
+    details = platform_alert_group.get("details", {})
+    users = platform_alert_group.get("users", ["admin"])
+    rules = []
+
+    # 先更新或者创建告警组，目的是防止users发生了变化
+    save_monitor_group_params = copy.deepcopy(BK_MONITOR_SAVE_USER_GROUP_TEMPLATE)
+    # 更新差异字段
+    save_monitor_group_params.update(
+        {
+            "name": _("DBM平台兜底告警组"),
+            "bk_biz_id": env.DBA_APP_BK_BIZ_ID,
+        }
+    )
+    duty_arranges_users = [{"id": user, "type": "user"} for user in users]
+    save_monitor_group_params["duty_arranges"][0]["users"] = duty_arranges_users
+
+    # 有则修改， 没有则创建
+    if monitor_group_id:
+        save_monitor_group_params["id"] = monitor_group_id
+
+    resp = BKMonitorV3Api.save_user_group(save_monitor_group_params, use_admin=True, raw=True)
+    if not monitor_group_id:
+        monitor_group_id = resp["data"]["id"]
+        platform_alert_group["monitor_group_id"] = monitor_group_id
+
+    # 创建或者修改兜底分派规则
+    # 兜底分派规则和内置规则一致，但需要剔除appid
+    latest_rules = DispatchGroup.get_rules(PLAT_BIZ_ID)
+    # 剔除appid, 更换告警组
+    for db_type_rules in latest_rules:
+        db_type_rules["user_groups"] = [monitor_group_id]
+        new_conditions = []
+        for condition in db_type_rules.get("conditions", []):
+            if condition["field"] != "appid":
+                new_conditions.append(condition)
+        # 覆盖conditions
+        db_type_rules["conditions"] = new_conditions
+
+    data = copy.deepcopy(BK_MONITOR_SAVE_DISPATCH_GROUP_TEMPLATE)
+    data.update(
+        {
+            "name": _("DBM平台兜底规则_勿动"),
+            "bk_biz_id": env.DBA_APP_BK_BIZ_ID,
+            # 优先级最低
+            "priority": DEFAULT_PLAT_PRIORITY,
+            "rules": latest_rules,
+        }
+    )
+
+    if monitor_dispatch_id:
+        data["id"] = monitor_dispatch_id
+        data["assign_group_id"] = monitor_dispatch_id
+
+        # 复用旧的rule_id
+        for index, rule_id in enumerate(details.get("rules", [])[: len(rules)]):
+            data["rules"][index]["id"] = rule_id
+
+    res = BKMonitorV3Api.save_rule_group(data)
+    platform_alert_group["monitor_dispatch_id"] = res.get("assign_group_id", 0)
+    platform_alert_group["details"] = res
+
+    # 保存系统配置
+    SystemSettings.insert_setting_value(
+        key=SystemSettingsEnum.PLATFORM_ALERT_GROUP_INFO, value=platform_alert_group, value_type="dict"
+    )
+
+
 @register_periodic_task(run_every=crontab(minute=0, hour="*/2"))
 def sync_plat_dispatch_policy():
     """同步平台分派通知策略
@@ -89,20 +171,6 @@ def sync_plat_dispatch_policy():
         logger.info("biz({}) sync dispatch policy will be run after {} seconds.".format(bk_biz_id, countdown))
         with start_new_span(sync_biz_dispatch_policy):
             sync_biz_dispatch_policy.apply_async(kwargs={"bk_biz_id": bk_biz_id}, countdown=countdown)
-
-
-@app.task
-def sync_biz_dispatch_policy(bk_biz_id):
-    latest_rules = DispatchGroup.get_rules(bk_biz_id)
-    try:
-        dispatch_group = DispatchGroup.objects.get(bk_biz_id=bk_biz_id)
-        logger.info("sync_plat_dispatch_policy: update biz_rules(%s)\n %s \n", bk_biz_id, latest_rules)
-        dispatch_group.rules = latest_rules
-        dispatch_group.save()
-    except DispatchGroup.DoesNotExist:
-        logger.info("sync_plat_dispatch_policy: create biz_rules(%s)\n %s \n", bk_biz_id, latest_rules)
-        dispatch_group = DispatchGroup(bk_biz_id=bk_biz_id, rules=latest_rules)
-        dispatch_group.save()
 
 
 @register_periodic_task(run_every=crontab(minute="*/5"))
