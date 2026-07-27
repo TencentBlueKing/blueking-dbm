@@ -97,6 +97,7 @@ DEFAULT_CLUSTER_DATA = {
     "create_at": "",
     "update_at": "",
     "cluster_spec": {},
+    "machine_specs": [],
     "tags": [],
     "zone_list": [],
 }
