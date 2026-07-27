@@ -20,6 +20,17 @@ import (
 	"dbm-services/mysql/db-tools/dbactuator/pkg/util/mysqlutil"
 )
 
+func TestExecuteSqlByMySQLClientOneRequireWorkDir(t *testing.T) {
+	t.Parallel()
+	err := mysqlutil.ExecuteSqlAtLocal{}.ExecuteSqlByMySQLClientOne("a.sql", "db1", false)
+	if err == nil {
+		t.Fatal("expected error when WorkDir is empty")
+	}
+	if !strings.Contains(err.Error(), "WorkDir") {
+		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
 func TestBuildExecuteErrFileBase(t *testing.T) {
 	t.Parallel()
 	tests := []struct {

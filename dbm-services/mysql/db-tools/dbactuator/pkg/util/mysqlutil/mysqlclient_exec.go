@@ -33,10 +33,11 @@ import (
 	"dbm-services/mysql/db-tools/dbactuator/pkg/util/marker"
 )
 
-// ExecuteSqlAtLocal TODO
+// ExecuteSqlAtLocal 本地 mysql client 执行 SQL。
+// WorkDir 必传：sql 文件与 ErrFile 均相对该目录拼接；为空会在执行入口直接报错。
 type ExecuteSqlAtLocal struct {
 	MySQLBinPath     string
-	WorkDir          string `json:"workdir"`
+	WorkDir          string `json:"workdir"` // 必传，sql/err 文件工作目录
 	IsForce          bool   `json:"isForce"`
 	Charset          string `json:"charset"`
 	NeedShowWarnings bool   `json:"needShowWarnings"`
@@ -46,6 +47,13 @@ type ExecuteSqlAtLocal struct {
 	User             string `json:"user"`
 	Password         string `json:"password"`
 	ErrFile          string
+}
+
+func (e ExecuteSqlAtLocal) requireWorkDir() error {
+	if util.StrIsEmpty(e.WorkDir) {
+		return errors.New("ExecuteSqlAtLocal.WorkDir 不能为空，请显式指定 sql/err 文件所在目录")
+	}
+	return nil
 }
 
 // CreateLoadSQLCommand TODO
@@ -118,6 +126,9 @@ func BuildExecuteErrFileBase(sqlfile, db string) string {
 //	@receiver targetdbs
 //	@return err
 func (e ExecuteSqlAtLocal) ExecuteSqlByMySQLClientOne(sqlfile string, db string, report bool) (err error) {
+	if err = e.requireWorkDir(); err != nil {
+		return err
+	}
 	command := e.CreateLoadSQLCommand()
 	command = command + " " + db + "<" + path.Join(e.WorkDir, sqlfile)
 	e.ErrFile = path.Join(e.WorkDir, BuildExecuteErrFileBase(sqlfile, db)) // 删除原有的时间戳方便调用方拼接
@@ -140,6 +151,9 @@ func (e ExecuteSqlAtLocal) ExecuteSqlByMySQLClientOne(sqlfile string, db string,
 
 // TestConnectionByMySQLClient TODO
 func (e ExecuteSqlAtLocal) TestConnectionByMySQLClient(db string, report bool) (err error) {
+	if err = e.requireWorkDir(); err != nil {
+		return err
+	}
 	command := e.CreateLoadSQLCommand()
 	command = fmt.Sprintf(`echo "select version()" | %s %s`, command, db)
 	e.ErrFile = path.Join(e.WorkDir, fmt.Sprintf("test_connection_%s.err", db)) // 删除原有的时间戳方便调用方拼接
@@ -310,6 +324,9 @@ func CheckMyExecuteErrFileNameLen(sqlfile, db string) error {
 
 // MyExecuteSqlByMySQLClientOne 只输出错误到控制台，
 func (e ExecuteSqlAtLocal) MyExecuteSqlByMySQLClientOne(sqlfile string, db string) (err error) {
+	if err = e.requireWorkDir(); err != nil {
+		return err
+	}
 	command := e.CreateLoadSQLCommand()
 	command = command + " " + db + "<" + path.Join(e.WorkDir, sqlfile)
 	e.ErrFile = path.Join(e.WorkDir, BuildMyExecuteErrFileBase(sqlfile, db, time.Now().Format(cst.TimeLayoutDir)))
