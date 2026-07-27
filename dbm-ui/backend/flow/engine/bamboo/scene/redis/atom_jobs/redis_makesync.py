@@ -87,10 +87,12 @@ def RedisMakeSyncAtomJob(root_id, ticket_data, sub_kwargs: ActKwargs, params: Di
     )
 
     # 建立Sync关系
-    if (
-        act_kwargs.cluster["cluster_type"] == ClusterType.TendisTwemproxyRedisInstance
-        or act_kwargs.cluster["cluster_type"] == ClusterType.TendisRedisInstance
-    ):
+    if act_kwargs.cluster["cluster_type"] in [
+        ClusterType.TendisTwemproxyRedisInstance,
+        ClusterType.TendisRedisInstance,
+        # tendisplus 主从版(predixy)同样基于slaveof建立同步关系，与cache一致
+        ClusterType.TendisPredixyTendisplusInstance,
+    ]:
         RedisCacheMakeSyncAtomJob(sub_pipeline=sub_pipeline, act_kwargs=act_kwargs, params=params)
         #  sub_pipeline = RedisCacheMakeSyncAtomJob(sub_pipeline=sub_pipeline, act_kwargs=act_kwargs, params=params)
     elif act_kwargs.cluster["cluster_type"] == ClusterType.TwemproxyTendisSSDInstance:

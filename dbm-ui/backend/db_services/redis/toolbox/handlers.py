@@ -235,7 +235,11 @@ class ToolboxHandler(ClusterServiceHandler):
             host_ids = list(cluster.storageinstance_set.values_list("machine__bk_host_id", flat=True))
             host_ids.extend(list(cluster.proxyinstance_set.values_list("machine__bk_host_id", flat=True)))
         # 只连接Proxy的
-        elif cluster_type in [ClusterType.TendisTwemproxyRedisInstance, ClusterType.TwemproxyTendisSSDInstance]:
+        elif cluster_type in [
+            ClusterType.TendisTwemproxyRedisInstance,
+            ClusterType.TwemproxyTendisSSDInstance,
+            ClusterType.TendisPredixyTendisplusInstance,
+        ]:
             host_ids = list(cluster.proxyinstance_set.values_list("machine__bk_host_id", flat=True))
         # 只连接后端Master节点的
         elif cluster_type in [ClusterType.TendisRedisInstance]:

@@ -547,7 +547,11 @@ class RedisDataStructureFlow(object):
         # 2、长度相等，再检验是否每个节点都存在
         # ssd、cache 去掉shard信息
         all_master_list = []
-        if cluster_type in [ClusterType.TendisTwemproxyRedisInstance, ClusterType.TwemproxyTendisSSDInstance]:
+        if cluster_type in [
+            ClusterType.TendisTwemproxyRedisInstance,
+            ClusterType.TwemproxyTendisSSDInstance,
+            ClusterType.TendisPredixyTendisplusInstance,
+        ]:
             for instance_shard in all_master_instances:
                 instance = instance_shard.split(" ")[0]
                 all_master_list.append(instance)
@@ -600,8 +604,12 @@ class RedisDataStructureFlow(object):
             logger.warning(_("重复的instance值，duplicate_instances: {}".format(duplicate_instances)))
         else:
             logger.info(_("没有重复的instance值，cluster_id: {}".format(info["cluster_id"])))
-        # ssd、cache
-        if cluster_type in [ClusterType.TendisTwemproxyRedisInstance, ClusterType.TwemproxyTendisSSDInstance]:
+        # ssd、cache、tendisplus(predixy主从)
+        if cluster_type in [
+            ClusterType.TendisTwemproxyRedisInstance,
+            ClusterType.TwemproxyTendisSSDInstance,
+            ClusterType.TendisPredixyTendisplusInstance,
+        ]:
             missing_ranges = set(range(DEFAULT_TWEMPROXY_SEG_MIN_NUM, DEFAULT_TWEMPROXY_SEG_TOTOL_NUM)) - set(
                 missing_ranges
             )

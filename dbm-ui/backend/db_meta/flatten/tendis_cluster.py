@@ -55,6 +55,7 @@ def tendis_cluster(clusters: QuerySet) -> List[Dict]:
             cluster.cluster_type == ClusterType.TendisTwemproxyRedisInstance
             or cluster.cluster_type == ClusterType.TendisTwemproxyTendisplusIns
             or cluster.cluster_type == ClusterType.TwemproxyTendisSSDInstance
+            or cluster.cluster_type == ClusterType.TendisPredixyTendisplusInstance
         ):
             for seg_obj in cluster.nosqlstoragesetdtl_set.all().order_by("seg_range"):
                 master_instance_set.append(

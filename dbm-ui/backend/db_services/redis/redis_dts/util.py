@@ -98,6 +98,7 @@ def get_redis_type_by_cluster_type(cluster_type: str) -> str:
         ClusterType.TendisTwemproxyTendisplusIns,
         ClusterType.TendisTendisplusInsance,
         ClusterType.TendisTendisplusCluster,
+        ClusterType.TendisPredixyTendisplusInstance,
     ]:
         return ClusterType.TendisTendisplusInsance.value
     elif cluster_type in [ClusterType.TwemproxyTendisSSDInstance, ClusterType.TwemproxyTendisSSDInstance]:

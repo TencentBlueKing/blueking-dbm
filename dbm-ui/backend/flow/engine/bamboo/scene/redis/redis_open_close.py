@@ -126,6 +126,7 @@ class RedisClusterOpenCloseFlow(object):
             redis_pipeline.add_parallel_acts(acts_list)
 
         sub_pipelines = []
+        status_update_acts_list = []
         status = (
             InstanceStatus.UNAVAILABLE.value
             if self.data["ticket_type"] == TicketType.REDIS_PROXY_CLOSE
@@ -142,10 +143,12 @@ class RedisClusterOpenCloseFlow(object):
                 "meta_update_ports": [port],
                 "meta_update_status": status,
             }
-            redis_pipeline.add_act(
-                act_name=_("{}-更新proxy状态".format(ip)),
-                act_component_code=RedisDBMetaComponent.code,
-                kwargs=asdict(act_kwargs),
+            status_update_acts_list.append(
+                {
+                    "act_name": _("{}-更新proxy状态".format(ip)),
+                    "act_component_code": RedisDBMetaComponent.code,
+                    "kwargs": asdict(act_kwargs),
+                }
             )
             meta_role = MachineType.TWEMPROXY.value
             if cluster_info["cluster_type"] in [
@@ -200,6 +203,8 @@ class RedisClusterOpenCloseFlow(object):
             sub_pipelines.append(
                 sub_pipeline.build_sub_process(sub_name=_("集群[{}]启停").format(cluster_info["domain_name"]))
             )
+
+        redis_pipeline.add_parallel_acts(status_update_acts_list)
 
         # 更新集群状态
         act_kwargs.cluster = {

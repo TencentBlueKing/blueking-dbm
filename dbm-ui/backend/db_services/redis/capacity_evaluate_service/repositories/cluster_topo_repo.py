@@ -111,6 +111,7 @@ class ClusterTopoInfo:
         return self.cluster_type in [
             ClusterType.TendisPredixyTendisplusCluster.value,
             ClusterType.TendisTwemproxyTendisplusIns.value,
+            ClusterType.TendisPredixyTendisplusInstance.value,
         ]
 
     def is_mongodb(self) -> bool:
