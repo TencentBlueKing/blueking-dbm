@@ -88,6 +88,7 @@
     errorHostMap,
     errorMessageList,
     handleChange: handleErrorChange,
+    handleReset: handleErrorReset,
   } = useImportResourceErrorMessage();
 
   const formRef = useTemplateRef('formRef');
@@ -144,7 +145,7 @@
             emits('change');
           })
           .catch((error) => {
-            handleErrorChange(error.message);
+            handleErrorChange(error);
             isErrorMessageShow.value = true;
           }),
     );
@@ -154,7 +155,7 @@
   };
 
   const handleHidden = () => {
-    handleErrorChange('');
+    handleErrorReset();
     isErrorMessageShow.value = false;
   };
 </script>

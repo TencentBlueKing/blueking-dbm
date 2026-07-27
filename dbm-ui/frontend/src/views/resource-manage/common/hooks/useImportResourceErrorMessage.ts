@@ -38,17 +38,27 @@ export const useImportResourceErrorMessage = () => {
 
   const errorHostMap = computed(() => Object.fromEntries(errorHostList.value.map((ip) => [ip, true])));
 
-  const handleChange = (message: string) => {
-    const messageList: {
-      ips: string[];
-      message: string;
-      tickets?: {
-        bk_biz_id: number;
-        id: number;
-      }[];
-    }[] = parsePythonDict(message) || [];
-    errorHostList.value = messageList.flatMap((item) => item.ips);
-    errorMessageList.value = messageList;
+  const handleChange = (error: { code: number; message: string }) => {
+    if (error.code === 8700026) {
+      const messageList: {
+        ips: string[];
+        message: string;
+        tickets?: {
+          bk_biz_id: number;
+          id: number;
+        }[];
+      }[] = parsePythonDict(error.message) || [];
+      errorHostList.value = messageList.flatMap((item) => item.ips);
+      errorMessageList.value = messageList;
+    } else {
+      errorHostList.value = [];
+      errorMessageList.value = [{ ips: [], message: error.message }];
+    }
+  };
+
+  const handleReset = () => {
+    errorHostList.value = [];
+    errorMessageList.value = [];
   };
 
   return {
@@ -56,5 +66,6 @@ export const useImportResourceErrorMessage = () => {
     errorHostMap,
     errorMessageList,
     handleChange,
+    handleReset,
   };
 };
