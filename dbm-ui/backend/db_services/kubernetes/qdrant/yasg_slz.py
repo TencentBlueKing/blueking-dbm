@@ -42,36 +42,39 @@ paginated_resource_example = {
 }
 
 resource_topo_graph_example = {
-    "node_id": "qdrant-cluster-db.ha-test2.blueking.db",
+    "node_id": "qdrant-cluster-db.ha-test2.blueking.db:6333",
     "nodes": [
-        {"node_id": "peer1_ip#port", "node_type": "qdrant::peer_node"},
-        {"node_id": "peer2_ip#port", "node_type": "qdrant::peer_node"},
-        {"node_id": "peer3_ip#port", "node_type": "qdrant::peer_node"},
-        {"node_id": "qdrant-cluster-db.ha-test2.blueking.db", "node_type": "entry_dns"},
+        {"node_id": "qdrant-pod-0", "node_type": "qdrant::peer_node"},
+        {"node_id": "qdrant-pod-1", "node_type": "qdrant::peer_node"},
+        {"node_id": "qdrant-pod-2", "node_type": "qdrant::peer_node"},
+        {"node_id": "qdrant-cluster-db.ha-test2.blueking.db:6333", "node_type": "entry_dns"},
     ],
     "groups": [
-        {"node_id": "qdrant::peer_nodes", "children_id": ["peer1_ip#port", "peer2_ip#port", "peer3_ip#port"]},
+        {
+            "node_id": "qdrant::peer_nodes",
+            "children_id": ["qdrant-pod-0", "qdrant-pod-1", "qdrant-pod-2"],
+        },
         {"node_id": "entry_dns", "children_id": ["qdrant-cluster-db.ha-test2.blueking.db"]},
     ],
     "lines": [
         {
-            "source": "peer1_ip#port",
+            "source": "qdrant-pod-0",
             "source_type": "node",
-            "target": "peer2_ip#port",
+            "target": "qdrant-pod-1",
             "target_type": "node",
             "label": "raft",
         },
         {
-            "source": "peer1_ip#port",
+            "source": "qdrant-pod-0",
             "source_type": "node",
-            "target": "peer3_ip#port",
+            "target": "qdrant-pod-2",
             "target_type": "node",
             "label": "raft",
         },
         {
-            "source": "peer2_ip#port",
+            "source": "qdrant-pod-1",
             "source_type": "node",
-            "target": "peer3_ip#port",
+            "target": "qdrant-pod-2",
             "target_type": "node",
             "label": "raft",
         },
