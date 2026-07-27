@@ -18,7 +18,7 @@ from django.utils.translation import gettext_lazy as _
 
 from backend import env
 from backend.components import BKMonitorV3Api, CCApi
-from backend.configuration.constants import DBType
+from backend.configuration.constants import PLAT_BIZ_ID, DBType
 from backend.configuration.models import DBAdministrator
 from backend.db_meta.constants import AppManagedStatus, AppOperateType
 from backend.db_meta.enums import ClusterPhase, ClusterType
@@ -142,6 +142,8 @@ class DBAdministratorHandler(object):
 
     @staticmethod
     def manage_biz(bk_biz_id, db_admins, username, app_code=None):
+        from backend.db_monitor.tasks import sync_biz_dispatch_policy
+
         app_instance = AppCache.objects.filter(bk_biz_id=bk_biz_id).first()
 
         # 如果有app_code，说明是用户填写的, cc那边没有需要更新cc
@@ -202,6 +204,8 @@ class DBAdministratorHandler(object):
         app_instance.managed_time = datetime.datetime.now(timezone.utc)
         app_instance.status = AppManagedStatus.MANAGED
         app_instance.save()
+
+        sync_biz_dispatch_policy.apply_async(kwargs={"bk_biz_id": PLAT_BIZ_ID})
 
         # 添加操作记录
         DBAdministratorHandler.create_app_operate(username, operates)
