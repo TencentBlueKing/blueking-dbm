@@ -27,7 +27,7 @@ from backend.components import BKMonitorV3Api
 from backend.configuration.constants import PLAT_BIZ_ID, DBType, SystemSettingsEnum
 from backend.configuration.models import SystemSettings
 from backend.db_meta.enums import ClusterType
-from backend.db_meta.models import AppMonitorTopo, DBModule
+from backend.db_meta.models import AppCache, AppMonitorTopo, DBModule
 from backend.db_monitor.constants import (
     APP_PRIORITY,
     BK_MONITOR_DISPATCH_RULE_MIXIN,
@@ -521,6 +521,16 @@ class DispatchGroup(AuditedModel):
             ]
             if bk_biz_id != PLAT_BIZ_ID:
                 conditions.append({"field": "appid", "method": "eq", "value": [str(bk_biz_id)], "condition": "and"})
+            elif bk_biz_id == PLAT_BIZ_ID:
+                all_managed_biz = AppCache.objects.filter(status="managed").values_list("bk_biz_id", flat=True)
+                conditions.append(
+                    {
+                        "field": "appid",
+                        "method": "eq",
+                        "value": [str(managed_biz) for managed_biz in all_managed_biz],
+                        "condition": "and",
+                    }
+                )
             rules.append(
                 {
                     "user_groups": user_groups,
@@ -537,6 +547,16 @@ class DispatchGroup(AuditedModel):
             # 业务级分派策略
             if bk_biz_id != PLAT_BIZ_ID:
                 conditions.append({"field": "appid", "value": [str(bk_biz_id)], "method": "eq", "condition": "and"})
+            elif bk_biz_id == PLAT_BIZ_ID:
+                all_managed_biz = AppCache.objects.filter(status="managed").values_list("bk_biz_id", flat=True)
+                conditions.append(
+                    {
+                        "field": "appid",
+                        "method": "eq",
+                        "value": [str(managed_biz) for managed_biz in all_managed_biz],
+                        "condition": "and",
+                    }
+                )
 
             rules.append(
                 {
