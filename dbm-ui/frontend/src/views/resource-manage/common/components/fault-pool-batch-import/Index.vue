@@ -76,6 +76,7 @@
     errorHostMap,
     errorMessageList,
     handleChange: handleErrorChange,
+    handleReset: handleErrorReset,
   } = useImportResourceErrorMessage();
 
   const width = Math.ceil(window.innerWidth * 0.8);
@@ -108,7 +109,7 @@
   const { run: runImport } = useRequest(importResource, {
     manual: true,
     onError(error) {
-      handleErrorChange(error.message);
+      handleErrorChange(error);
       isErrorMessageShow.value = true;
     },
     onSuccess({ ticket_ids: ticketIds }) {
@@ -138,7 +139,7 @@
   };
 
   const handleCancel = () => {
-    handleErrorChange('');
+    handleErrorReset();
     isErrorMessageShow.value = false;
 
     emits('refresh');

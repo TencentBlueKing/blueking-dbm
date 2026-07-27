@@ -11,9 +11,14 @@
           class="mr-4"
           type="exclamation-fill" />
         <span class="header-title">
-          {{ t('以下 n 台主机校验不通过，请确认机器情况或清除有问题的机器后重新导入', { n: uniqIps.length }) }}
+          {{
+            uniqIps.length > 0
+              ? t('以下 n 台主机校验不通过，请确认机器情况或清除有问题的机器后重新导入', { n: uniqIps.length })
+              : t('系统异常，请处理后重新导入')
+          }}
         </span>
         <BkButton
+          v-if="uniqIps.length > 0"
           class="header-copy"
           text
           theme="primary"
@@ -26,27 +31,34 @@
       </div>
     </template>
     <div class="import-resource-error-message-content">
-      <div
-        v-for="(item, index) in messageList"
-        :key="index"
-        class="content-item">
-        <div class="content-item-title">• {{ item.message }}（{{ item.ips.length }}{{ t('台') }}）</div>
-        <div class="content-item-ips">
-          <span
-            v-for="(ip, ipIndex) in item.ips"
-            :key="ipIndex">
-            <span v-if="ipIndex !== 0">,</span>
-            {{ ip }}
-            <BkButton
-              v-if="item.tickets && item.tickets[ipIndex]"
-              class="mr-4"
-              text
-              theme="primary"
-              @click="() => toTicketManage(item.tickets![ipIndex])">
-              [{{ item.tickets![ipIndex].id }}]
-            </BkButton>
-          </span>
+      <template v-if="uniqIps.length > 0">
+        <div
+          v-for="(item, index) in messageList"
+          :key="index"
+          class="content-item">
+          <div class="content-item-title">• {{ item.message }}（{{ item.ips.length }}{{ t('台') }}）</div>
+          <div class="content-item-ips">
+            <span
+              v-for="(ip, ipIndex) in item.ips"
+              :key="ipIndex">
+              <span v-if="ipIndex !== 0">,</span>
+              {{ ip }}
+              <BkButton
+                v-if="item.tickets && item.tickets[ipIndex]"
+                class="mr-4"
+                text
+                theme="primary"
+                @click="() => toTicketManage(item.tickets![ipIndex])">
+                [{{ item.tickets![ipIndex].id }}]
+              </BkButton>
+            </span>
+          </div>
         </div>
+      </template>
+      <div
+        v-else
+        class="content-item">
+        <div class="content-item-title">{{ messageList?.[0].message }}</div>
       </div>
     </div>
   </BkDialog>
