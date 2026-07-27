@@ -303,6 +303,7 @@ class RedisListRetrieveResource(query.ListRetrieveResource, RedisExportQueryReso
             cluster_stats_map,
             cluster_zone_map,
             dns_to_clb,
+            **kwargs,
         )
         cluster_info.update(cluster_extra_info)
         return cluster_info
