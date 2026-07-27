@@ -638,7 +638,7 @@ func GenBoostScript() []byte {
 	esdirs=$(ls -F|grep 'es.*@'|awk -F @ '{print $1}')
 	http_port=$(grep -w 'port:' /data/esenv/es_1/config/elasticsearch.yml|awk '{print $2}'|sed 's/"//g')
 	
-	if [[ $version =~ "7.14" || $version =~ ^8\. ]];then
+	if [[ $version =~ "7.14" || $version =~ ^8\. || $version =~ ^9\. ]];then
 		adminPassword=$(cat /data/esenv/es_1/config/es_passfile)
 		curl -s -u "elastic:${adminPassword}" \
 		-XPOST "http://${local_ip}:${http_port}/_security/user/${creater_user}" \
