@@ -321,6 +321,10 @@ class Cluster(AuditedModel):
             return next(inst.port for inst in self.storages if inst.machine_type == MachineType.MONGODB)
         elif self.cluster_type == ClusterType.Doris:
             return next(inst.port for inst in self.storages if inst.instance_role == InstanceRole.DORIS_FOLLOWER)
+        elif self.cluster_type == ClusterType.K8sQdrantHa:
+            return DEFAULT_QDRANT_PORT
+        elif self.cluster_type in [ClusterType.K8sSurrealdbSingle, ClusterType.K8sSurrealdbHa]:
+            return DEFAULT_SURREALDB_PORT
         else:
             return 0
 
