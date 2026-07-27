@@ -70,6 +70,48 @@ class KubernetesBaseListRetrieveResource(query.ListRetrieveResource, KubernetesB
         raise NotImplementedError()
 
     @classmethod
+    def _enrich_topo_graph_node_port(cls, graph: dict, port: int) -> dict:
+        """
+        为拓扑图中所有入口节点（pod 节点）的 node_id 追加 :port 后缀，
+
+        入口节点（node_type 以 "entry_" 开头）追加端口号.
+        """
+        if not port:
+            return graph
+
+        # 1. 收集需要追加端口号的节点 ID（入口节点）
+        node_ids_to_update: set = set()
+        for node in graph.get("nodes", []):
+            node_type = node.get("node_type", "")
+            node_id = node.get("node_id", "")
+            # 入口节点（entry_dns / entry_clb 等）追加端口
+            if node_type.startswith("entry_") and node_id:
+                node_ids_to_update.add(node_id)
+
+        if not node_ids_to_update:
+            return graph
+
+        port_suffix = f":{port}"
+
+        # 2. 更新 nodes 的 node_id: pod_name -> pod_name:port
+        for node in graph.get("nodes", []):
+            node_id = node.get("node_id", "")
+            if node_id in node_ids_to_update:
+                node["node_id"] = f"{node_id}{port_suffix}"
+
+        # 3. 更改node_id
+        graph["node_id"] = f"{graph.get('node_id')}{port_suffix}"
+
+        # 4. 更改groups里的children_id
+        for group in graph.get("groups", []):
+            group["children_id"] = [
+                f"{child_id}{port_suffix}" if child_id in node_ids_to_update else child_id
+                for child_id in group.get("children_id", [])
+            ]
+
+        return graph
+
+    @classmethod
     def _list_clusters(
         cls,
         bk_biz_id: int,
