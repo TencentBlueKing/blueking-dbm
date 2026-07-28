@@ -4,12 +4,18 @@ import { t } from '@locales/index';
  * 集群实例状态
  */
 export enum ClusterInstStatusKeys {
+  AVAILABLE = 'available', // 同running，暂时性兼容
   RESTORING = 'restoring',
   RUNNING = 'running',
   UNAVAILABLE = 'unavailable',
   UPGRADING = 'upgrading',
 }
 export const clusterInstStatus = {
+  [ClusterInstStatusKeys.AVAILABLE]: {
+    icon: 'normal',
+    key: ClusterInstStatusKeys.AVAILABLE,
+    text: t('运行中'),
+  },
   [ClusterInstStatusKeys.RESTORING]: {
     icon: 'sync-pending',
     key: ClusterInstStatusKeys.RESTORING,

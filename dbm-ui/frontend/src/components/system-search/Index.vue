@@ -31,7 +31,7 @@
       @paste="handlePaste">
       <template #prefix>
         <FilterTypeSelect
-          v-model="filterType"
+          v-model="formData.filter_type"
           icon-type="down-big"
           title-color="#fff"
           trigger-class-name="system-search-top-filter-type-select" />
@@ -61,7 +61,7 @@
       v-if="isPopMenuShow"
       ref="searchResultRef"
       v-model="serach"
-      :filter-type="filterType">
+      @to-result="handleTypeRedirect">
       <SearchHistory
         v-if="!serach"
         v-model="serach" />
@@ -69,14 +69,16 @@
   </div>
 </template>
 <script setup lang="ts">
+  import { storeToRefs } from 'pinia';
   import tippy, { type Instance, type SingleTarget } from 'tippy.js';
-  import { computed, onBeforeUnmount, ref, type UnwrapRef } from 'vue';
+  import { computed, onBeforeUnmount, ref } from 'vue';
   import { useI18n } from 'vue-i18n';
 
   import { quickSearch } from '@services/source/quickSearch';
 
+  import { useSystemSearchStore } from '@stores';
+
   import { systemSearchCache } from '@common/cache';
-  import { FilterType } from '@common/const';
   import { batchSplitRegex } from '@common/regex';
 
   import { buildURLParams } from '@utils';
@@ -89,17 +91,18 @@
   const { t } = useI18n();
   const route = useRoute();
   const router = useRouter();
+  const systemSearchStore = useSystemSearchStore();
 
   let tippyIns: Instance | undefined;
 
-  const serach = ref('');
+  const { formData, keyword: serach } = storeToRefs(systemSearchStore);
+
   const rootRef = ref<HTMLElement>();
   const popRef = ref();
   const searchResultRef = ref<InstanceType<typeof SearchResult>>();
   const isFocused = ref(false);
   const popContentStyle = ref({});
   const isPopMenuShow = ref(false);
-  const filterType = ref(FilterType.EXACT);
 
   const styles = computed(() => ({
     flex: isFocused.value ? '1' : '0 0 auto',
@@ -156,47 +159,63 @@
     rootRef.value!.querySelector('input')!.focus();
   };
 
+  const isQuickSearchPage = computed(() => route.name === 'QuickSearch');
+
+  const getURLParams = (options: {
+    bk_biz_ids: number[];
+    db_types: string[];
+    filter_type: string;
+    from: string;
+    resource_types: string[];
+    short_code?: string;
+  }) => {
+    const query = Object.keys(options).reduce((prevQuery, optionKey) => {
+      const optionItem = options[optionKey as keyof typeof options];
+
+      if (optionItem !== '' && !(Array.isArray(optionItem) && optionItem.length === 0)) {
+        return {
+          ...prevQuery,
+          [optionKey]: Array.isArray(optionItem) ? optionItem.join(',') : optionItem,
+        };
+      }
+
+      return prevQuery;
+    }, {});
+
+    return buildURLParams(query);
+  };
+
   const handleSearch = () => {
-    // 页面跳转参数处理
-    const { formData, keyword } = searchResultRef.value!.getFilterOptions();
-    const getURLParams = (options: { from: string; short_code?: string } & UnwrapRef<typeof formData>) => {
-      const query = Object.keys(options).reduce((prevQuery, optionKey) => {
-        const optionItem = options[optionKey as keyof typeof options];
+    // 空输入静默拦截
+    if (!serach.value) {
+      return;
+    }
 
-        if (optionItem !== '' && !(Array.isArray(optionItem) && optionItem.length === 0)) {
-          return {
-            ...prevQuery,
-            [optionKey]: Array.isArray(optionItem) ? optionItem.join(',') : optionItem,
-          };
-        }
+    const keyword = serach.value;
 
-        return prevQuery;
-      }, {});
-
-      return buildURLParams(query);
-    };
-
+    // 记录搜索历史
     systemSearchCache.appendItem(keyword);
 
+    // 判断当前是否在结果页
+    if (isQuickSearchPage.value && keyword) {
+      // 在结果页时，通过 store 触发刷新
+      systemSearchStore.triggerRefresh(keyword);
+      return;
+    }
+
+    // 非结果页，新开 Tab
     if (keyword) {
       quickSearch({
-        ...formData,
+        ...formData.value,
         keyword,
       }).then((quickSearchResult) => {
         const options = {
-          ...formData,
+          ...formData.value,
           from: route.name as string,
           short_code: quickSearchResult.short_code,
         };
         handleRedirect(getURLParams(options));
       });
-    } else {
-      handleRedirect(
-        getURLParams({
-          ...formData,
-          from: route.name as string,
-        }),
-      );
     }
   };
 
@@ -207,8 +226,30 @@
     window.open(`${url.href}?${query}`, '_blank');
   };
 
+  const handleTypeRedirect = (resourceType: string) => {
+    const params = {
+      ...formData.value,
+      tabName: resourceType,
+    };
+    quickSearch({
+      ...params,
+      keyword: serach.value,
+    }).then((quickSearchResult) => {
+      const options = {
+        ...params,
+        from: route.name as string,
+        short_code: quickSearchResult.short_code,
+      };
+      handleRedirect(getURLParams(options));
+    });
+  };
+
   const handleEnter = () => {
     if (activeIndex.value > -1) {
+      return;
+    }
+    // 空输入静默拦截
+    if (!serach.value) {
       return;
     }
     handleSearch();

@@ -1,7 +1,6 @@
 <template>
   <div>
     <DbCard
-      v-if="data.length"
       class="search-result-machine search-result-card"
       mode="collapse"
       :title="t('主机')">
@@ -12,124 +11,115 @@
           style="color: #63656e"
           tag="span">
           <template #n>
-            <strong>{{ data.length }}</strong>
+            <strong>{{ count }}</strong>
           </template>
         </I18nT>
       </template>
-      <DbOriginalTable
-        class="search-result-table mt-14 mb-8"
-        :data="data"
-        :pagination="pagination"
-        :settings="tableSetting"
-        show-settings
-        @setting-change="updateTableSettings">
-        <BkTableColumn
-          field="ip"
+      <DbTable
+        ref="table"
+        class="search-result-table mt-14"
+        :data-source="dataSource"
+        row-key="ip"
+        @clear-search="handleClearSearch"
+        @request-success="handleReqestSuccess">
+        <TableColumn
+          col-key="ip"
           fixed="left"
-          label="IP"
+          title="IP"
           :width="150">
-          <template #default="{ data: rowData }: { data: FaultOrRecycleMachineModel }">
+          <template #default="{ row }: { row: FaultOrRecycleMachineModel }">
             <TextOverflowLayout>
               <BkButton
                 text
-                @click="() => handleGo(rowData)">
+                theme="primary"
+                @click="handleGo(row)">
                 <TextHighlight
                   high-light-color="#FF9C01"
-                  :keyword="props.keyword"
-                  :text="rowData.ip" />
+                  :keyword="keyword"
+                  :text="row.ip" />
               </BkButton>
               <template #append>
                 <BkButton
                   class="ml-4"
                   text
                   theme="primary"
-                  @click="() => handleCopy(rowData.ip)">
+                  @click="handleCopy(row.ip)">
                   <DbIcon type="copy" />
                 </BkButton>
               </template>
             </TextOverflowLayout>
           </template>
-        </BkTableColumn>
-        <BkTableColumn
-          field="poolDispaly"
-          :label="t('所属池')"
-          :width="130">
-        </BkTableColumn>
-        <BkTableColumn
-          field="city"
-          :label="t('地域')">
-        </BkTableColumn>
-        <BkTableColumn
-          field="sub_zone"
-          :label="t('园区')">
-        </BkTableColumn>
-        <BkTableColumn
-          field="rack_id"
-          :label="t('机架')">
-        </BkTableColumn>
-        <BkTableColumn
-          field="os_name"
-          :label="t('操作系统')"
-          show-overflow="tooltip"
-          :width="180">
-        </BkTableColumn>
-        <BkTableColumn
-          field="device_class"
-          :label="t('机型')">
-        </BkTableColumn>
-        <BkTableColumn
-          field="bk_cpu"
-          :label="t('CPU (核)')"
-          :width="160">
-        </BkTableColumn>
-        <BkTableColumn
-          field="bkMemText"
-          :label="t('内存（G）')"
-          show-overflow
+        </TableColumn>
+        <TableColumn
+          col-key="poolDispaly"
+          :title="t('所属池')"
+          :width="130" />
+        <TableColumn
+          col-key="city"
+          :title="t('地域')" />
+        <TableColumn
+          col-key="sub_zone"
+          :title="t('园区')" />
+        <TableColumn
+          col-key="rack_id"
+          :title="t('机架')" />
+        <TableColumn
+          col-key="os_name"
+          show-overflow-tooltip
+          :title="t('操作系统')"
+          :width="180" />
+        <TableColumn
+          col-key="device_class"
+          :title="t('机型')" />
+        <TableColumn
+          col-key="bk_cpu"
+          :title="t('CPU (核)')"
+          :width="160" />
+        <TableColumn
+          col-key="bkMemText"
+          show-overflow-tooltip
+          :title="t('内存（G）')"
           :width="120" />
-        <BkTableColumn
-          field="bk_disk"
-          :label="t('磁盘 (G)')">
-        </BkTableColumn>
-      </DbOriginalTable>
+        <TableColumn
+          col-key="bk_disk"
+          :title="t('磁盘 (G)')" />
+      </DbTable>
     </DbCard>
-    <EmptyStatus
-      v-else
-      class="empty-status"
-      :is-anomalies="isAnomalies"
-      :is-searching="isSearching"
-      @clear-search="handleClearSearch"
-      @refresh="handleRefresh" />
   </div>
 </template>
 
-<script setup lang="tsx">
+<script setup lang="ts">
   import { useI18n } from 'vue-i18n';
 
   import FaultOrRecycleMachineModel from '@services/model/db-resource/FaultOrRecycleMachine';
+  import { quickSearchResult } from '@services/source/quickSearch';
 
-  import { useLocation, useTableSettings } from '@hooks';
+  import { useLocation } from '@hooks';
 
-  import { UserPersonalSettings } from '@common/const';
+  import { batchSplitRegex } from '@common/regex';
 
-  import EmptyStatus from '@components/empty-status/EmptyStatus.vue';
+  import DbIcon from '@components/db-icon/';
+  import DbTable from '@components/db-table/IndexNew.vue';
   import TextHighlight from '@components/text-highlight/Index.vue';
   import TextOverflowLayout from '@components/text-overflow-layout/Index.vue';
 
   import { execCopy } from '@utils';
 
   interface Props {
-    // bizIdNameMap: Record<number, string>;
-    data: FaultOrRecycleMachineModel[];
-    isAnomalies: boolean;
-    isSearching: boolean;
+    formData: {
+      bk_biz_ids: number[];
+      db_types: string[];
+      filter_type: string;
+      resource_types: string[];
+    };
     keyword: string;
   }
 
-  interface Emits {
-    (e: 'refresh'): void;
-    (e: 'clearSearch'): void;
+  interface Exposed {
+    fetchData: () => void;
   }
+
+  type Emits = (e: 'clear-search') => void;
 
   const props = defineProps<Props>();
   const emits = defineEmits<Emits>();
@@ -137,29 +127,36 @@
   const { t } = useI18n();
   const location = useLocation();
 
-  const pagination = ref({
-    count: props.data.length,
-    limit: 10,
-  });
+  const tableRef = useTemplateRef('table');
 
-  const { settings: tableSetting, updateTableSettings } = useTableSettings(
-    UserPersonalSettings.QUICK_SEARCH_RESOURCE_POOL,
-    {
-      checked: [
-        'ip',
-        'poolDispaly',
-        'city',
-        'sub_zone',
-        'rack_id',
-        'os_name',
-        'device_class',
-        'bk_cpu',
-        'bkMemText',
-        'bk_disk',
-      ],
-      disabled: ['ip'],
-    },
-  );
+  const count = ref(0);
+
+  const fetchData = () => {
+    if (props.formData.resource_types.length > 0 && !props.formData.resource_types.includes('machine')) {
+      return;
+    }
+    tableRef.value?.fetchData();
+  };
+
+  // watch(
+  //   () => props.keyword,
+  //   () => {
+  //     fetchData();
+  //   },
+  // );
+
+  const dataSource = (params: ServiceParameters<typeof quickSearchResult>) => {
+    return quickSearchResult({
+      ...params,
+      ...props.formData,
+      keyword: props.keyword.replace(batchSplitRegex, ' '),
+      resource_type: 'machine',
+    });
+  };
+
+  const handleReqestSuccess = (data: ServiceReturnType<typeof quickSearchResult>) => {
+    count.value = data.count;
+  };
 
   const handleCopy = (content: string) => {
     execCopy(content, t('复制成功，共n条', { n: 1 }));
@@ -174,13 +171,21 @@
     });
   };
 
-  const handleRefresh = () => {
-    emits('refresh');
+  const handleClearSearch = () => {
+    emits('clear-search');
   };
 
-  const handleClearSearch = () => {
-    emits('clearSearch');
-  };
+  // onMounted(() => {
+  //   fetchData();
+  // });
+
+  onActivated(() => {
+    fetchData();
+  });
+
+  defineExpose<Exposed>({
+    fetchData,
+  });
 </script>
 
 <style lang="less" scoped>

@@ -1,7 +1,8 @@
 <template>
   <Component
     :is="renderCom"
-    v-bind="attrs" />
+    v-bind="attrs"
+    @to-result="handleToResult" />
 </template>
 <script setup lang="ts">
   import { computed, useAttrs } from 'vue';
@@ -16,7 +17,10 @@
     name: string;
   }
 
+  type Emits = (e: 'to-result', resourceType: string) => void;
+
   const props = defineProps<Props>();
+  const emits = defineEmits<Emits>();
 
   const attrs = useAttrs();
 
@@ -34,4 +38,8 @@
     }
     return 'div';
   });
+
+  const handleToResult = (resourceType: string) => {
+    emits('to-result', resourceType);
+  };
 </script>
