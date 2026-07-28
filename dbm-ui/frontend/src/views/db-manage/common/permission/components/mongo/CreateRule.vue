@@ -317,6 +317,7 @@
       ...formData,
       access_db: formData.access_db.replace(replaceReg, ','), // 统一分隔符
       account_type: AccountTypes.MONGODB,
+      bizId: window.PROJECT_CONFIG.BIZ_ID,
     };
     return addMongodbAccountRuleRun(params);
   };
