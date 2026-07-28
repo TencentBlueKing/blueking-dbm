@@ -15,7 +15,7 @@
   <div>
     <InfoList>
       <InfoItem :label="t('目标选择模式')">
-        {{ modeTextMap[ticketDetails.details.target_select_mode] }}
+        {{ modeTextMap[targetSelectMode] }}
       </InfoItem>
       <InfoItem :label="t('强制重启')">
         {{ ticketDetails.details.force ? t('是') : t('否') }}
@@ -23,7 +23,7 @@
     </InfoList>
 
     <!-- 按集群模式展示 -->
-    <template v-if="ticketDetails.details.target_select_mode === 'cluster'">
+    <template v-if="targetSelectMode === 'cluster'">
       <TicketInfoTable
         :data="ticketDetails.details.infos"
         row-key="cluster_id">
@@ -35,11 +35,18 @@
             {{ ticketDetails.details.clusters?.[row.cluster_id]?.immute_domain || '--' }}
           </template>
         </TicketInfoTableColumn>
+        <TicketInfoTableColumn
+          col-key="cluster_type"
+          :title="t('集群类型')">
+          <template #default="{ row }: { row: { cluster_id: number }}">
+            {{ ticketDetails.details.clusters?.[row.cluster_id]?.cluster_type_name || '--' }}
+          </template>
+        </TicketInfoTableColumn>
       </TicketInfoTable>
     </template>
 
     <!-- 按主机模式展示 -->
-    <template v-if="ticketDetails.details.target_select_mode === 'machine'">
+    <template v-if="targetSelectMode === 'machine'">
       <TicketInfoTable
         :data="ticketDetails.details.infos"
         row-key="bk_host_id">
@@ -55,7 +62,7 @@
     </template>
 
     <!-- 按实例模式展示（保持原有逻辑） -->
-    <template v-if="ticketDetails.details.target_select_mode === 'instance'">
+    <template v-if="targetSelectMode === 'instance'">
       <TicketInfoTable
         :data="ticketDetails.details.infos"
         row-key="instance_id">
@@ -107,7 +114,7 @@
     inheritAttrs: false,
   });
 
-  defineProps<Props>();
+  const props = defineProps<Props>();
 
   interface Props {
     ticketDetails: TicketModel<Mongodb.InstanceReload>;
@@ -121,4 +128,6 @@
     instance: t('按实例'),
     machine: t('按主机'),
   };
+
+  const targetSelectMode = props.ticketDetails.details.target_select_mode || 'instance';
 </script>
