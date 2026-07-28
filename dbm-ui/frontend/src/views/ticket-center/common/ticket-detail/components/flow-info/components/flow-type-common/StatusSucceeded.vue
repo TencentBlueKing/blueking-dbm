@@ -79,6 +79,8 @@
     title: () => VNode;
   }>();
 
+  console.log('props.ticketDetail', props.ticketDetail);
+
   const { t } = useI18n({
     useScope: 'global',
   });
