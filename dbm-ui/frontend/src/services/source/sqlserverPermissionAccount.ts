@@ -27,6 +27,7 @@ export function addAccountRule(params: {
   access_db: string;
   account_id: number;
   account_type: AccountTypesValues;
+  bizId: number;
   privilege: {
     sqlserver_dml?: string[];
     sqlserver_owner?: string[];
