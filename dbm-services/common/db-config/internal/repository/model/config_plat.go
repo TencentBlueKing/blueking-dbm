@@ -103,7 +103,7 @@ func (op *ConfNameOperation) BatchDelete(db *gorm.DB, confNames []*ConfigNameDef
 			if err != nil {
 				return err
 			}
-			if len(nodes) > 0 && opType == constvar.OPTypeRemove { // 下级存在引用，不能删除
+			if len(nodes) > 0 && opType == constvar.OPTypeRemove && op.OpUser != "system" { // 下级存在引用，不能删除
 				return errors.Errorf("conf_name=%s is used by app::%s", c.ConfName,
 					strings.Join(lo.Map(nodes, func(node *ConfigModel, _ int) string {
 						return fmt.Sprintf("bk_biz_id=%s(%s=%s)", node.BKBizID, node.LevelName, node.LevelValue)
