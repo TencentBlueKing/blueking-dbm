@@ -23,6 +23,7 @@ from backend.dbm_aiagent.mcp_tools.common.views import (
     TicketOperationMcpToolsViewSet,
 )
 from backend.dbm_aiagent.mcp_tools.common.views.alarm_query import MonitorQueryMcpToolsViewSet
+from backend.dbm_aiagent.mcp_tools.common.views.bkcc_wrap import BKCCWrapMcpToolsViewSet
 from backend.dbm_aiagent.mcp_tools.common.views.mcp_callee_plan import McpCalleePlanMcpToolsViewSet
 
 routers = DefaultRouter(trailing_slash=True)
@@ -39,4 +40,5 @@ routers.register(r"", PromQLQueryMcpToolsViewSet, basename="mcp-promql-query")
 routers.register(r"", McpCalleePlanMcpToolsViewSet, basename="mcp-callee-plan")
 routers.register(r"", AiReportMcpToolsViewSet, basename="mcp-ai-report")
 routers.register(r"", PortraitQueryMcpToolsViewSet, basename="mcp-portrait-query")
+routers.register(r"", BKCCWrapMcpToolsViewSet, basename="mcp-bkcc-wrap")
 urlpatterns = routers.urls
