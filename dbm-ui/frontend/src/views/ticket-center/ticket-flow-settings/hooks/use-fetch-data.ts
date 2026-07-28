@@ -224,11 +224,8 @@ export const useFetchData = () => {
         const filteredChildren =
           node.children && node.children.length > 0 ? filterTreeData(node.children, searchMap) : undefined;
 
-        // Tab 过滤：免审批 tab 下，父行本身免审批或任一子行免审批
-        const tabMatch = !node.configs.need_itsm || (node.children?.some((c) => !c.configs.need_itsm) ?? false);
-
         // 搜索过滤 + 子节点匹配则保留父节点
-        const selfMatch = tabMatch && isMatchSearch(node, searchMap);
+        const selfMatch = isMatchSearch(node, searchMap);
         const matched = selfMatch || (filteredChildren && filteredChildren.length > 0);
 
         if (!matched) return null;
