@@ -22,52 +22,38 @@
  * SOFTWARE.
  */
 
-package workflow
+// Package mysqlparse registers the MySQL status parser (Processer).
+package mysqlparse
 
 import (
+	"encoding/json"
+
 	"dbm-services/common/dbha-v2/internal/analysis/parser"
 	"dbm-services/common/dbha-v2/pkg/gerrors"
 	"dbm-services/common/dbha-v2/pkg/logger"
 	"dbm-services/common/dbha-v2/pkg/storage/haprobe"
 )
 
-var (
-	ErrUnknownDbType = gerrors.Newf(gerrors.InvalidParameter, "unknown DB type")
-)
+var _ parser.Processer = (*Status)(nil)
 
-// StatusParser used to parse all DB statuses.
-type StatusParser struct{}
+var errInvalidMySqlStatus = gerrors.Newf(gerrors.InvalidParameter, "invalid MySQL status")
 
-// ParseDbStatus Parse the DB status
-func (s *StatusParser) ParseDbStatus(dbStatus []parser.DBTyperWrapper) ([]*haprobe.DbEvent, error) {
-	var dbEvents []*haprobe.DbEvent
+// Status parses MySQL probe status payloads.
+type Status struct{}
 
-	for _, v := range dbStatus {
-		logger.Debug("parse DB status, DB type: %v", v.DbTypeName)
-
-		processer, ok := parser.Lookup(v.DbTypeName)
-		if !ok {
-			logger.Warn("no processer for DB type: %v", v.DbTypeName)
-			continue
-		}
-
-		event, err := processer.Process(v.Value)
-		if err != nil {
-			logger.Warn("failed to parse DB status, DB type: %s, errmsg: %s", v.DbTypeName, err)
-			continue
-		}
-
-		if event != nil {
-			dbEvents = append(dbEvents, event)
-		}
-
+// Process parses one MySQL raw status payload into a DB event.
+func (s *Status) Process(task json.RawMessage) (*haprobe.DbEvent, error) {
+	var mySqlStatus haprobe.MySqlStatus
+	if err := json.Unmarshal(task, &mySqlStatus); err != nil {
+		logger.Warn("failed to unmarshal MySQL status, errmsg: %s", err)
+		return nil, errInvalidMySqlStatus
 	}
 
-	return dbEvents, nil
+	// Note: MySqlStatus fields are pointers and may be nil; guard before dereferencing.
+	logger.Debug("process MySQL status: %v, raw: %s", mySqlStatus.GlobalStatus, string(task))
+	return nil, nil
 }
 
-// ParseHostStatus Parse the host status
-func (s *StatusParser) ParseHostStatus(dbStatus []*haprobe.HostMetric) ([]*haprobe.DbEvent, error) {
-	// TODO:
-	return nil, nil
+func init() {
+	parser.Register(haprobe.DbTypeMySql, &Status{})
 }
