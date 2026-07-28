@@ -14,6 +14,7 @@ from typing import Union
 from backend.components import DBConfigApi
 from backend.components.dbconfig.constants import FormatType, LevelName, ReqType
 from backend.configuration.constants import DBType
+from backend.constants import BIND_ALL_IP
 from backend.db_meta.enums import InstanceRole
 from backend.db_meta.models import Cluster, ProxyInstance, StorageInstance
 from backend.flow.consts import ConfigTypeEnum, NameSpaceEnum
@@ -25,6 +26,13 @@ logger = logging.getLogger("flow")
 
 class DorisCCTopoOperator(CCTopoOperator):
     db_type = DBType.Doris.value
+
+    def get_listen_ip(self, ins: Union[StorageInstance, ProxyInstance]) -> str:
+        """
+        Doris FE/BE 默认绑定 0.0.0.0，不支持配置绑定到具体 IP，
+        所以 CMDB 写入的监听 IP 必须为 0.0.0.0，否则监控平台的进程端口探测会告警。
+        """
+        return BIND_ALL_IP
 
     def generate_custom_labels(self, ins: Union[StorageInstance, ProxyInstance], cluster: Cluster) -> dict:
         # 定义注册Doris服务监控实例需要的labels标签结构
