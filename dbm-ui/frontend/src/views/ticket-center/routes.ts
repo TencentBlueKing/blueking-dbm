@@ -108,7 +108,7 @@ export default () => {
         name: 'TicketFlowSetting',
         meta: {
           fullscreen: true,
-          navName: t('单据免审批设置'),
+          navName: t('单据审批设置'),
         },
         component: () => import('@views/ticket-center/ticket-flow-settings/Index.vue'),
       },

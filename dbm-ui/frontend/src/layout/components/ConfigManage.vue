@@ -115,7 +115,7 @@
             <span
               v-overflow-tips.right
               class="text-overflow">
-              {{ t('单据免审批设置') }}
+              {{ t('单据审批设置') }}
             </span>
           </BkMenuItem>
           <BkMenuItem
