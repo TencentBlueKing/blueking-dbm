@@ -97,10 +97,7 @@ class DBVersionViewSet(viewsets.AuditedModelViewSet):
             version_series_id = request.data.get("version_series")
             version_series = VersionSeries.objects.filter(id=version_series_id).first()
             if version_series and version_series.distribution:
-                # 清除该发行版下所有现有版本的推荐标记
-                DBVersion.objects.filter(version_series__distribution=version_series.distribution.id).update(
-                    recommend=False
-                )
+                _clear_distribution_recommend(version_series.distribution)
         return super().create(request, *args, **kwargs)
 
     @common_swagger_auto_schema(
@@ -140,13 +137,14 @@ class DBVersionViewSet(viewsets.AuditedModelViewSet):
             if request.data.get("enable") is False:
                 request.data["recommend"] = False
 
-        # 设置了推荐字段的话，其他版本的推荐字段需要设置为False
         if request.data.get("recommend") is not None:
-            distribution = self.get_object().version_series.distribution
-            DBVersion.objects.filter(version_series__distribution=distribution.id).update(recommend=False)
-            # 联动修改v1的推荐字段
-            Package.objects.filter(db_type=distribution.db_type, pkg_type=distribution.pkg_type).update(priority=0)
-            Package.objects.filter(db_version=instance).update(priority=request.data["recommend"])
+            recommend = bool(request.data["recommend"])
+            # 一个发行版下只允许一个推荐版本，因此设为推荐时才需要清理其他版本的推荐标记
+            if recommend:
+                distribution = instance.version_series.distribution
+                _clear_distribution_recommend(distribution, exclude_version_id=instance.id)
+            # 联动修改v1的推荐字段，取消推荐仅影响当前版本自身
+            Package.objects.filter(db_version=instance).update(priority=int(recommend))
 
         return super().partial_update(request, *args, **kwargs)
 
@@ -315,6 +313,21 @@ class DBVersionViewSet(viewsets.AuditedModelViewSet):
         Distribution.objects.filter(id__in=cascade_distribution_ids).delete()
 
         return Response()
+
+
+def _clear_distribution_recommend(distribution: Distribution, exclude_version_id: Optional[int] = None) -> None:
+    """
+    清除某发行版下的推荐标记, 用于保证一个发行版下最多只有一个推荐版本
+    v1 中推荐版本由 Package.priority 表达, 需要一起清零
+    """
+    versions = DBVersion.objects.filter(version_series__distribution=distribution.id)
+    packages = Package.objects.filter(db_type=distribution.db_type, pkg_type=distribution.pkg_type)
+    if exclude_version_id is not None:
+        versions = versions.exclude(id=exclude_version_id)
+        packages = packages.exclude(db_version_id=exclude_version_id)
+
+    versions.update(recommend=False)
+    packages.update(priority=0)
 
 
 def _build_pkg_delete_rules(db_type: str, pkg_types: Iterable[str]) -> Dict[str, Optional[List[int]]]:

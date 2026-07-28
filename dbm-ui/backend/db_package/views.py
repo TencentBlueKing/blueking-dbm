@@ -252,16 +252,19 @@ class DBPackageViewSet(viewsets.AuditedModelViewSet):
         tags=[DB_PACKAGE_TAG],
     )
     def partial_update(self, request, *args, **kwargs):
-        # 如果有进行默认版本的变更，则需要把当前类型下的默认版本清零
         if "priority" in self.request.data:
-            instance = self.get_object()
-            Package.objects.filter(db_type=instance.db_type, pkg_type=instance.pkg_type).update(priority=0)
-            # 联动修改V2推荐字段
-            if instance.db_version:
-                dbs = Distribution.objects.filter(db_type=instance.db_type, pkg_type=instance.pkg_type)
-                db_ids = list(dbs.values_list("id", flat=True))
-                DBVersion.objects.filter(distribution_id__in=db_ids).update(recommend=False)
-                DBVersion.objects.filter(package=instance).update(recommend=self.request.data["priority"] > 0)
+            obj = self.get_object()
+            is_default = int(self.request.data["priority"]) > 0
+            # 设为默认版本时，才需要把当前类型下其他的默认版本清零；取消默认仅影响自身
+            if is_default:
+                pkgs = Package.objects.filter(db_type=obj.db_type, pkg_type=obj.pkg_type)
+                pkgs.exclude(id=obj.id).update(priority=0)
+            # 联动修改V2推荐字段，一个发行版下只允许一个推荐版本
+            if obj.db_version:
+                if is_default:
+                    dbs = DBVersion.objects.filter(distribution_id=obj.db_version.distribution_id)
+                    dbs.exclude(id=obj.db_version_id).update(recommend=False)
+                DBVersion.objects.filter(id=obj.db_version_id).update(recommend=is_default)
 
         super().partial_update(request, *args, **kwargs)
         return Response()
