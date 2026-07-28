@@ -126,7 +126,8 @@ func SetEnv(backupType string, mysqlVersionStr string) error {
 	if strings.ToLower(backupType) == cst.BackupLogical {
 		libPath = append(libPath, filepath.Join(ExecuteHome, "lib/libmydumper"))
 	} else if strings.ToLower(backupType) == cst.BackupPhysical {
-		_, isOfficial := util.VersionParser(mysqlVersionStr)
+		parsedVersion, isOfficial := util.VersionParser(mysqlVersionStr)
+
 		if isOfficial {
 			libPath = append(libPath, filepath.Join(ExecuteHome, "lib/libxtra_57_official/private"))
 			libPath = append(libPath, filepath.Join(ExecuteHome, "lib/libxtra_57_official/plugin"))

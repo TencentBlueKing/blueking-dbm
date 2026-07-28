@@ -512,10 +512,20 @@ func (h *DbWorker) ShowSocket() (socket string, err error) {
 }
 
 // GetSingleGlobalVar get single global variable
+// 兼容 8.4 去除了 slave 关键字
 func (h *DbWorker) GetSingleGlobalVar(varName string) (val string, err error) {
 	var item MySQLGlobalVariableItem
 	sqlstr := fmt.Sprintf("show global variables like '%s'", varName)
 	if err = h.Queryxs(&item, sqlstr); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			if strings.Contains(varName, "slave_") || strings.Contains(varName, "master_") {
+				varName = strings.ReplaceAll(
+					strings.ReplaceAll(varName, "slave_", "replica_"),
+					"master_", "source_")
+				return h.GetSingleGlobalVar(varName)
+			}
+			return "", err
+		}
 		return "", err
 	}
 	return item.Value, nil
@@ -534,6 +544,7 @@ func (h *DbWorker) SetSingleGlobalVarAndReturnOrigin(varName, varValue string) (
 }
 
 // SetSingleGlobalVar set global, 会自动识别数字/bool/string
+// 已兼容 8.4 的 slave -> replica
 func (h *DbWorker) SetSingleGlobalVar(varName, varValue string) error {
 	var setSqlStr string
 	if valLower := strings.ToLower(varValue); slices.Contains([]string{"on", "off"}, valLower) {
@@ -544,7 +555,16 @@ func (h *DbWorker) SetSingleGlobalVar(varName, varValue string) error {
 		setSqlStr = fmt.Sprintf("SET GLOBAL %s='%s'", varName, varValue)
 	}
 	logger.Info("setSqlStr: %s, varValue: %s", setSqlStr, varValue)
-	if err := h.ExecuteAdminSql(setSqlStr); err != nil {
+	if err := h.ExecuteAdminSql(setSqlStr); err != nil { // ERROR 1193 (HY000): Unknown system variable 'xxx'
+		if strings.Contains(strings.ToLower(err.Error()), "error 1193 ") {
+			if strings.Contains(varName, "slave_") || strings.Contains(varName, "master_") {
+				varName = strings.ReplaceAll(
+					strings.ReplaceAll(varName, "slave_", "replica_"),
+					"master_", "source_")
+				return h.SetSingleGlobalVar(varName, varValue)
+			}
+			return err
+		}
 		return err
 	}
 	return nil

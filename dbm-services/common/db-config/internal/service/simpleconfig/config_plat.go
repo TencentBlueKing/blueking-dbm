@@ -48,7 +48,7 @@ func ConfigNamesBatchUpsert(db *gorm.DB, cf api.BaseConfFileDef,
 			return fmt.Errorf("invalid op_type %s for %s", cn.OPType, cn.ConfName)
 		}
 	}
-	if len(needCheckInherit) > 0 {
+	if len(needCheckInherit) > 0 && opUser != "system" {
 		configNodes, err := CheckConfigInherit(db, cf, needCheckInherit)
 		if err != nil {
 			return err

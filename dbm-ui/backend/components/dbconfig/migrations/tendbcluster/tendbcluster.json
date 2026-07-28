@@ -145,6 +145,18 @@
   },
   {
     "conf_type": "dbconf",
+    "conf_file": "MySQL-8.4-Community",
+    "conf_name_validate": 1,
+    "conf_value_validate": 1,
+    "value_type_strict": 0,
+    "description": "MySQL8.4社区版配置",
+    "conf_type_lc": "my.cnf配置",
+    "conf_file_lc": "MYSQL-8.4-Community",
+    "level_names": "plat,app,module,cluster",
+    "level_versioned": "cluster"
+  },
+  {
+    "conf_type": "dbconf",
     "conf_file": "Spider-1",
     "conf_name_validate": 1,
     "conf_value_validate": 1,
