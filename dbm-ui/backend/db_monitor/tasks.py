@@ -32,7 +32,7 @@ from backend.core.notify.handlers import BkChatHandler, CmsiHandler
 from backend.db_meta.enums import ClusterType
 from backend.db_meta.models import Cluster
 from backend.db_monitor.constants import (
-    CLUSTER_LOAD_QUERY_RANGE,
+    CLUSTER_LOAD_QUERY_RANGE_HOURS,
     CLUSTER_MACHINE_LOAD_QUERY_TEMPLATE,
     CLUSTER_TYPE_LOAD_RULES,
     DEFAULT_ALERT_NOTICE,
@@ -341,17 +341,18 @@ def query_cluster_load(cluster_type, clusters, time_range=60) -> (dict, dict):
     return load_status_map, cluster_load_map
 
 
-def sync_cluster_load_by_cluster_type(bk_biz_id, cluster_type):
+def sync_cluster_load_by_cluster_type(bk_biz_id, cluster_type, time_range_hours=CLUSTER_LOAD_QUERY_RANGE_HOURS):
     """
     按集群类型同步各集群负载状态
+    :param time_range_hours: 负载查询时间窗口(单位: 小时)，默认 24h
     """
     cluster_domains = list(
         Cluster.objects.filter(bk_biz_id=bk_biz_id, cluster_type=cluster_type)
         .values_list("immute_domain", flat=True)
         .distinct()
     )
-    # 查询最近24h的负载情况
-    return query_cluster_load(cluster_type, cluster_domains, time_range=CLUSTER_LOAD_QUERY_RANGE)
+    # 时间窗口由接口参数决定(小时)，转换为分钟供底层查询使用
+    return query_cluster_load(cluster_type, cluster_domains, time_range=time_range_hours * 60)
 
 
 @current_app.task

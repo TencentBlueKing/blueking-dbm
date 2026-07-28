@@ -381,6 +381,16 @@ class TestDBBaseViewSet:
         # 检查响应格式
         assert "cluster_load_status_map" in data
         assert "cluster_load_data_map" in data
+        # time_range 缺省时默认 24 小时
+        assert data["time_range"] == 24
+
+        # 显式传入 time_range 时，响应回显该窗口
+        response = client.get(
+            url,
+            {"bk_biz_id": cluster.bk_biz_id, "cluster_type": ClusterType.RedisInstance.value, "time_range": 12},
+        )
+        assert response.status_code == 200
+        assert response.json()["data"]["time_range"] == 12
 
     def test_get_ips_list_mysql(self, test_cluster_with_entries):
         """测试根据db类型查询ip列表 - MySQL"""
