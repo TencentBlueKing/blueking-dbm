@@ -323,9 +323,11 @@
                 :panel-width="418" />
             </div>
             <ClusterLoad
+              :cluster-id="data.id"
               :cluster-type="ClusterTypes.REDIS"
               :domain="data.master_domain"
-              size="small" />
+              size="small"
+              @go-detail="(id, event) => handleToDetails(id, event, 'clusterMonitoringView')" />
           </template>
         </MasterDomainColumn>
       </template>

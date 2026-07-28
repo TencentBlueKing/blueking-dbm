@@ -251,9 +251,11 @@
           @refresh="fetchData">
           <template #append="{ data }">
             <ClusterLoad
+              :cluster-id="data.id"
               :cluster-type="ClusterTypes.REDIS_INSTANCE"
               :domain="data.master_domain"
-              size="small" />
+              size="small"
+              @go-detail="(id, event) => handleToDetails(id, event, 'clusterMonitoringView')" />
           </template>
         </MasterDomainColumn>
       </template>
