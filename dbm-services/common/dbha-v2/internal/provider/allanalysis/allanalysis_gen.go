@@ -28,6 +28,7 @@ package allanalysis
 
 // Blank-import all analysis-side provider capabilities (dbtypedesc + switch + parse).
 import (
+	_ "dbm-services/common/dbha-v2/internal/provider/mysql/parse"
 	_ "dbm-services/common/dbha-v2/internal/provider/mysql/switch"
 	_ "dbm-services/common/dbha-v2/internal/provider/redis/dbtypedesc"
 )

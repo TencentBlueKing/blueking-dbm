@@ -62,7 +62,7 @@ var Entries = []Entry{
 	{
 		Name:     "mysql",
 		BasePath: providerRoot + "/mysql",
-		Caps:     []Capability{CapHarvest, CapSwitch},
+		Caps:     []Capability{CapHarvest, CapSwitch, CapParse},
 	},
 	{
 		Name:     "redis",
