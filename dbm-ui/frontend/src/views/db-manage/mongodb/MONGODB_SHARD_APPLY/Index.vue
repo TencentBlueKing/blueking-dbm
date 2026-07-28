@@ -403,7 +403,7 @@
     ],
     'details.resource_spec.mongodb.machine_group_shard_num': [
       {
-        message: t('集群 Shared 数 / 机器组数，需要整除'),
+        message: t('集群 Shard 数 / 机器组数，需要整除'),
         trigger: 'change',
         validator: () => {
           const { shard_machine_group: shardMachineGroup, shards_num: shardsNum } =
@@ -431,7 +431,7 @@
     ],
     'details.resource_spec.mongodb.shards_num': [
       {
-        message: t('集群 Shared 数不能为空'),
+        message: t('集群 Shard 数不能为空'),
         trigger: 'change',
         validator: (value: number) => !!value,
       },
