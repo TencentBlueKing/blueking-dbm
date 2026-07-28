@@ -148,5 +148,5 @@ class MongoDBInstanceReloadFlowParamBuilder(builders.FlowParamBuilder):
 class MongoDBInstanceReloadApplyFlowBuilder(BaseMongoDBTicketFlowBuilder):
     serializer = MongoDBInstanceReloadDetailSerializer
     inner_flow_builder = MongoDBInstanceReloadFlowParamBuilder
-    inner_flow_name = _("MongoDB 实例重启")
+    inner_flow_name = _("MongoDB重启")
     need_patch_instance_details = True
