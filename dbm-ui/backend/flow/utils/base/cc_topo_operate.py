@@ -216,6 +216,14 @@ class CCTopoOperator:
 
         return labels
 
+    def get_listen_ip(self, ins: Union[StorageInstance, ProxyInstance]) -> str:
+        """
+        获取 CMDB 服务实例的监听 IP。
+        子类可覆盖此方法以处理绑定所有接口的组件（如 Doris 返回 constants.BIND_ALL_IP）。
+        默认返回机器的实际 IP。
+        """
+        return ins.machine.ip
+
     def generate_custom_labels(self, ins: Union[StorageInstance, ProxyInstance], cluster: Cluster) -> dict:
         """
         生成自定义标签，即 CommonInstanceLabels 不满足的标签
@@ -238,7 +246,7 @@ class CCTopoOperator:
         bk_instance_id = CcManage(self.bk_biz_id, cluster.cluster_type).add_service_instance(
             bk_module_id=bk_module_id,
             bk_host_id=ins.machine.bk_host_id,
-            listen_ip=ins.machine.ip,
+            listen_ip=self.get_listen_ip(ins),
             listen_port=ins.port,
             func_name=func_name,
             bk_process_name=f"{self.db_type}-{ins.machine_type}",

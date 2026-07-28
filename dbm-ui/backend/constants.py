@@ -21,6 +21,9 @@ DEFAULT_SYSTEM_USER = "system"
 # 一些常量值
 INT_MAX = 2**31 - 1
 
+# 进程绑定所有网络接口的 IP 地址
+BIND_ALL_IP = "0.0.0.0"
+
 # IP 端口分隔符
 IP_PORT_DIVIDER = ":"
 IP_PORT_DIVIDER_FOR_DNS = "#"
