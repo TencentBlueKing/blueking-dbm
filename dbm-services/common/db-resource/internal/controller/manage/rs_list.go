@@ -52,6 +52,8 @@ type MachineResourceGetterInputParam struct {
 	StorageSpecs  []meta.DiskSpec    `json:"storage_spec"`
 	CreateTime    string             `json:"create_time"`
 	EmptyLabels   bool               `json:"empty_labels"`
+	// 资源状态过滤，默认 Unused；可传多个如 Unused/FaultHazard/Dissolved
+	Status []string `json:"status"`
 	// true,false,""
 	GseAgentAlive string `json:"gse_agent_alive"`
 	Limit         int    `json:"limit"`
@@ -198,7 +200,11 @@ func (c *MachineResourceGetterInputParam) matchSpec(db *gorm.DB) {
 	c.Mem.MatchMem(db)
 }
 func (c *MachineResourceGetterInputParam) queryBs(db *gorm.DB) (err error) {
-	db.Where("status = ? ", model.Unused)
+	statuses := c.Status
+	if len(statuses) == 0 {
+		statuses = []string{model.Unused}
+	}
+	db.Where("status in (?) ", statuses)
 	if len(c.Hosts) > 0 {
 		db.Where("ip in (?)", c.Hosts)
 	}

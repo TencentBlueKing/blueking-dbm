@@ -16,11 +16,13 @@ from rest_framework.response import Response
 from backend.bk_web import viewsets
 from backend.bk_web.pagination import AuditedLimitOffsetPagination
 from backend.bk_web.swagger import common_swagger_auto_schema
+from backend.components.hcm.client import HCMApi
 from backend.db_dirty.constants import SWAGGER_TAG, MachineEventType
 from backend.db_dirty.filters import DirtyMachinePoolFilter, MachineEventFilter
 from backend.db_dirty.handlers import DBDirtyMachineHandler
 from backend.db_dirty.models import DirtyMachine, MachineEvent
 from backend.db_dirty.serializers import (
+    CheckHostIsDissolvedSerializer,
     GetHostCurrentEvents,
     ListMachineEventResponseSerializer,
     ListMachineEventSerializer,
@@ -42,6 +44,7 @@ class DBDirtyMachineViewSet(viewsets.SystemViewSet):
             "list_machine_events",
             "get_host_current_events",
             "query_machine_pool",
+            "check_host_is_dissolved",
         ): [ResourceActionPermission([ActionEnum.RESOURCE_MANAGE])],
         ("transfer_hosts_to_pool",): [ResourceActionPermission([ActionEnum.RESOURCE_POLL_MANAGE])],
     }
@@ -56,6 +59,16 @@ class DBDirtyMachineViewSet(viewsets.SystemViewSet):
     def transfer_hosts_to_pool(self, request):
         data = self.params_validate(self.get_serializer_class())
         return Response(DBDirtyMachineHandler.transfer_hosts_to_pool(operator=request.user.username, **data))
+
+    @common_swagger_auto_schema(
+        operation_summary=_("查询主机是否为待裁撤"),
+        request_body=CheckHostIsDissolvedSerializer(),
+        tags=[SWAGGER_TAG],
+    )
+    @action(detail=False, methods=["POST"], serializer_class=CheckHostIsDissolvedSerializer)
+    def check_host_is_dissolved(self, request):
+        data = self.params_validate(self.get_serializer_class())
+        return Response(HCMApi.check_host_is_dissolved(data["bk_host_ids"]))
 
     @common_swagger_auto_schema(
         operation_summary=_("机器事件列表"),

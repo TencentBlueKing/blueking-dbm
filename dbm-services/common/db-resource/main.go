@@ -213,6 +213,17 @@ func registerCrontab(localcron *cron.Cron) {
 				}
 			},
 		},
+		{
+			Name: "检查待裁撤主机",
+			Spec: "@every 8h",
+			Func: func() {
+				logger.Info("Start dissolve host check .....")
+				if err := task.DissolveHostCheck(); err != nil {
+					logger.Error("check dissolve hosts failed %s", err.Error())
+				}
+				logger.Info("dissolve host check end")
+			},
+		},
 	}
 	for _, cron := range localCrontabs {
 		if _, err := localcron.AddFunc(cron.Spec, cron.Func); err != nil {

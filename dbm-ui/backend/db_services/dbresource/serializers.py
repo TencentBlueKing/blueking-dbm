@@ -200,6 +200,8 @@ class ResourceListSerializer(serializers.Serializer):
     agent_status = serializers.BooleanField(help_text=_("agent状态"), required=False)
     labels = serializers.CharField(help_text=_("标签列表id"), required=False)
     label_names = serializers.CharField(help_text=_("标签名称"), required=False)
+    # 资源状态：Unused/FaultHazard/Dissolved 等，逗号分隔；不传则 db-resource 默认按 Unused 过滤
+    status = serializers.CharField(help_text=_("资源状态"), required=False)
 
     limit = serializers.IntegerField(help_text=_("单页数量"))
     offset = serializers.IntegerField(help_text=_("偏移量"))
@@ -295,6 +297,7 @@ class ResourceListSerializer(serializers.Serializer):
                 "bk_cloud_ids",
                 "labels",
                 "label_names",
+                "status",
             ],
         )
         return attrs

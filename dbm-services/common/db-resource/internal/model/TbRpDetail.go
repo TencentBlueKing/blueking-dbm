@@ -39,6 +39,8 @@ const (
 	UsedByOther = "UsedByOther"
 	// FaultHazard 故障隐患
 	FaultHazard = "FaultHazard"
+	// Dissolved 待裁撤
+	Dissolved = "Dissolved"
 )
 
 const (
