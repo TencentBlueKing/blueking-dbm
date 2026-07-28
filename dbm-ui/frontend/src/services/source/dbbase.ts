@@ -315,36 +315,26 @@ export function getGlobalCluster<
  */
 export function queryClusterLoad(params: { bk_biz_id: number; cluster_type: string }, payload = {} as IRequestPayload) {
   return http.get<{
+    // 集群域名 → 机器类型（由集群类型决定，非固定）→ 指标
     cluster_load_data_map: {
       [domain: string]: {
-        [cluster_type: string]: {
-          connections: {
-            [ip: string]: number;
-          } & {
-            status: ClusterLoad;
-          };
-          cpu: {
-            [ip: string]: number;
-          } & {
-            status: ClusterLoad;
-          };
-          mem: {
-            [ip: string]: number;
-          } & {
-            status: ClusterLoad;
-          };
-        };
+        [machine_type: string]: Partial<
+          // status 与实例键混在同一层，指标无监控数据时整个对象为 {}
+          Record<'connections' | 'cpu' | 'disk' | 'io' | 'mem', Record<string, ClusterLoad | number | ''>>
+        >;
       };
     };
     cluster_load_status_map: {
       [domain: string]: {
-        [cluster_type: string]: {
+        [machine_type: string]: {
           status: ClusterLoad;
         };
       } & {
         status: ClusterLoad;
       };
     };
+    // 负载数据的时间窗口，单位小时
+    time_range?: number;
   }>(`${path}/query_cluster_load/`, params, payload);
 }
 
