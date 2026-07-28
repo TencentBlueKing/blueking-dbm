@@ -40,6 +40,8 @@ export interface TableRow {
   isChildRow: boolean;
   isCustom: boolean;
   isDuplicate: boolean;
+  /** 是否为同父策略下的最后一个子策略（用于树形连接线截断） */
+  isLastChild?: boolean;
   /** 标签键是否已失效（仅按标签子策略有意义） */
   isTagInvalid: boolean;
   permission: {
@@ -104,10 +106,7 @@ export const useFetchData = () => {
   const allTreeData = ref<TableRow[]>([]);
   const paginatedData = ref<TableRow[]>([]);
   const expandedTreeNodes = ref<(string | number)[]>([]);
-  const tableSort = ref<SortInfo | undefined>({
-    descending: true,
-    sortBy: 'updated_at',
-  } as SortInfo);
+  const tableSort = ref<SortInfo | undefined>();
 
   const buildTreeData = (results: TicketFlowDescribeModel[]): TableRow[] => {
     const parentRows: TableRow[] = [];
@@ -148,10 +147,24 @@ export const useFetchData = () => {
       }
     });
 
-    // 构建 children 字段
+    // 父策略按 ticket_type 自然序排序
+    parentRows.sort((a, b) => a.ticket_type.localeCompare(b.ticket_type));
+
+    // 构建 children 字段并排序：先「按集群」后「按标签」，组内按 id 升序（新建在后）
+    // 同时标记每个父策略的最后一个子策略（用于树形连接线截断）
     parentRows.forEach((parentRow, index) => {
       const children = childMap.get(parentRow.ticket_type);
       if (children && children.length > 0) {
+        children.sort((a, b) => {
+          if (a.scopeType !== b.scopeType) {
+            return a.scopeType === 'cluster' ? -1 : 1;
+          }
+          return a.rawData.id - b.rawData.id;
+        });
+        children.forEach((child, i) => {
+          children[i] = { ...child, isLastChild: false };
+        });
+        children[children.length - 1] = { ...children[children.length - 1], isLastChild: true };
         parentRows[index] = { ...parentRow, children };
       }
     });
@@ -224,11 +237,8 @@ export const useFetchData = () => {
         const filteredChildren =
           node.children && node.children.length > 0 ? filterTreeData(node.children, searchMap) : undefined;
 
-        // Tab 过滤：免审批 tab 下，父行本身免审批或任一子行免审批
-        const tabMatch = !node.configs.need_itsm || (node.children?.some((c) => !c.configs.need_itsm) ?? false);
-
         // 搜索过滤 + 子节点匹配则保留父节点
-        const selfMatch = tabMatch && isMatchSearch(node, searchMap);
+        const selfMatch = isMatchSearch(node, searchMap);
         const matched = selfMatch || (filteredChildren && filteredChildren.length > 0);
 
         if (!matched) return null;
@@ -236,7 +246,14 @@ export const useFetchData = () => {
         // 父节点匹配但子节点不匹配时丢弃 children
         const rest = { ...node };
         delete rest.children;
-        return filteredChildren && filteredChildren.length > 0 ? { ...rest, children: filteredChildren } : rest;
+        const finalChildren =
+          filteredChildren && filteredChildren.length > 0
+            ? filteredChildren.map((child, i) => {
+                const restChildren = { ...child, isLastChild: false };
+                return i === filteredChildren.length - 1 ? { ...restChildren, isLastChild: true } : restChildren;
+              })
+            : null;
+        return finalChildren ? { ...rest, children: finalChildren } : rest;
       })
       .filter((node): node is TableRow => node !== null);
 
@@ -253,9 +270,21 @@ export const useFetchData = () => {
       return sort.descending ? -compare : compare;
     });
 
-    return sorted.map((node) =>
-      node.children && node.children.length > 0 ? { ...node, children: applySort(node.children, sort) } : node,
-    );
+    return sorted.map((node) => {
+      const sortedChildren =
+        node.children && node.children.length > 0 ? applySort(node.children, sort) : node.children;
+      // 排序后重新标记最后一个子节点
+      if (sortedChildren && sortedChildren.length > 0) {
+        sortedChildren.forEach((child, i) => {
+          sortedChildren[i] = { ...child, isLastChild: false };
+        });
+        sortedChildren[sortedChildren.length - 1] = {
+          ...sortedChildren[sortedChildren.length - 1],
+          isLastChild: true,
+        };
+      }
+      return sortedChildren ? { ...node, children: sortedChildren } : node;
+    });
   };
 
   /** 应用分页 */

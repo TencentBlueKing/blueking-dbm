@@ -50,11 +50,13 @@
   watch(
     activeTab,
     (value) => {
-      router.replace({
-        params: {
-          dbType: value,
-        },
-      });
+      if (value) {
+        router.replace({
+          params: {
+            dbType: value,
+          },
+        });
+      }
     },
     {
       immediate: true,
