@@ -1,7 +1,6 @@
 <template>
   <div>
     <DbCard
-      v-if="data.length"
       class="search-result-task search-result-card"
       mode="collapse"
       :title="t('任务')">
@@ -12,53 +11,122 @@
           style="color: #63656e"
           tag="span">
           <template #n>
-            <strong>{{ data.length }}</strong>
+            <strong>{{ count }}</strong>
           </template>
         </I18nT>
       </template>
-      <DbOriginalTable
-        class="mt-14 mb-8"
-        :columns="columns"
-        :data="data"
-        :pagination="pagination"
-        :settings="tableSetting"
-        @setting-change="updateTableSettings" />
+      <DbTable
+        ref="table"
+        class="mt-14"
+        :data-source="dataSource"
+        row-key="root_id"
+        @clear-search="handleClearSearch"
+        @request-success="handleReqestSuccess">
+        <TableColumn
+          col-key="root_id"
+          title="ID"
+          :width="160">
+          <template #default="{ row }: { row: TaskFlowModel }">
+            <BkButton
+              text
+              theme="primary"
+              @click="handleToTask(row)">
+              <TextHighlight
+                high-light-color="#FF9C01"
+                :keyword="keyword"
+                :text="String(row.root_id)" />
+            </BkButton>
+          </template>
+        </TableColumn>
+        <TableColumn
+          col-key="ticket_type_display"
+          :title="t('任务类型')"
+          :width="200">
+          <template #default="{ row }: { row: TaskFlowModel }">
+            {{ row.ticket_type_display || '--' }}
+          </template>
+        </TableColumn>
+        <TableColumn
+          col-key="status"
+          :title="t('状态')">
+          <template #default="{ row }: { row: TaskFlowModel }">
+            <DbStatus
+              :theme="row.statusTheme"
+              type="linear">
+              {{ t(row.statusText) }}
+            </DbStatus>
+          </template>
+        </TableColumn>
+        <TableColumn
+          col-key="bk_biz_id"
+          :title="t('业务')">
+          <template #default="{ row }: { row: TaskFlowModel }">
+            {{ bizIdNameMap[row.bk_biz_id] || '--' }}
+          </template>
+        </TableColumn>
+        <TableColumn
+          col-key="uid"
+          :title="t('关联单据')">
+          <template #default="{ row }: { row: TaskFlowModel }">
+            <BkButton
+              v-if="row.uid"
+              text
+              theme="primary"
+              @click="handleToTicket(row.uid)">
+              {{ row.uid }}
+            </BkButton>
+            <span v-else>--</span>
+          </template>
+        </TableColumn>
+        <TableColumn
+          col-key="created_by"
+          :title="t('执行人')">
+          <template #default="{ row }: { row: TaskFlowModel }">
+            {{ row.created_by || '--' }}
+          </template>
+        </TableColumn>
+        <TableColumn
+          col-key="created_at"
+          :title="t('执行时间')">
+          <template #default="{ row }: { row: TaskFlowModel }">
+            {{ row.createAtDisplay || '--' }}
+          </template>
+        </TableColumn>
+      </DbTable>
     </DbCard>
-    <EmptyStatus
-      v-else
-      class="empty-status"
-      :is-anomalies="isAnomalies"
-      :is-searching="isSearching"
-      @clear-search="handleClearSearch"
-      @refresh="handleRefresh" />
   </div>
 </template>
 
-<script setup lang="tsx">
+<script setup lang="ts">
   import { useI18n } from 'vue-i18n';
 
   import TaskFlowModel from '@services/model/taskflow/taskflow';
+  import { quickSearchResult } from '@services/source/quickSearch';
 
-  import { useLocation, useTableSettings } from '@hooks';
+  import { useLocation } from '@hooks';
 
-  import { UserPersonalSettings } from '@common/const';
+  import { batchSplitRegex } from '@common/regex';
 
   import DbStatus from '@components/db-status/index.vue';
-  import EmptyStatus from '@components/empty-status/EmptyStatus.vue';
+  import DbTable from '@components/db-table/IndexNew.vue';
   import TextHighlight from '@components/text-highlight/Index.vue';
 
   interface Props {
     bizIdNameMap: Record<number, string>;
-    data: TaskFlowModel[];
-    isAnomalies: boolean;
-    isSearching: boolean;
+    formData: {
+      bk_biz_ids: number[];
+      db_types: string[];
+      filter_type: string;
+      resource_types: string[];
+    };
     keyword: string;
   }
 
-  interface Emits {
-    (e: 'refresh'): void;
-    (e: 'clearSearch'): void;
+  interface Exposed {
+    fetchData: () => void;
   }
+
+  type Emits = (e: 'clear-search') => void;
 
   const props = defineProps<Props>();
   const emits = defineEmits<Emits>();
@@ -67,131 +135,38 @@
   const router = useRouter();
   const location = useLocation();
 
-  const pagination = ref({
-    count: props.data.length,
-    limit: 10,
-  });
+  const tableRef = useTemplateRef('table');
 
-  const filterMap = computed(() => {
-    const currentBizNameMap = props.bizIdNameMap;
-    const bizNameMap: Props['bizIdNameMap'] = {};
-    const ticketTypeSet = new Set<string>();
+  const count = ref(0);
 
-    props.data.forEach((dataItem) => {
-      if (!bizNameMap[dataItem.bk_biz_id]) {
-        bizNameMap[dataItem.bk_biz_id] = currentBizNameMap[dataItem.bk_biz_id];
-      }
-
-      ticketTypeSet.add(dataItem.ticket_type_display);
-    });
-
-    return {
-      bizNameMap,
-      ticketTypeSet,
-    };
-  });
-
-  const columns = computed(() => [
-    {
-      field: 'root_id',
-      label: 'ID',
-      render: ({ data }: { data: TaskFlowModel }) => (
-        <bk-button
-          text
-          theme='primary'
-          onclick={() => handleToTask(data)}>
-          <TextHighlight
-            keyword={props.keyword}
-            highLightColor='#FF9C01'
-            text={data.root_id}
-          />
-        </bk-button>
-      ),
-      width: 160,
-    },
-    {
-      field: 'ticket_type_display',
-      filter: {
-        list: Array.from(filterMap.value.ticketTypeSet).map((ticketTypeItem) => ({
-          text: ticketTypeItem,
-          value: ticketTypeItem,
-        })),
-      },
-      label: t('任务类型'),
-      render: ({ data }: { data: TaskFlowModel }) => data.ticket_type_display || '--',
-      width: 200,
-    },
-    {
-      field: 'status',
-      label: t('状态'),
-      render: ({ data }: { data: TaskFlowModel }) => (
-        <DbStatus
-          theme={data.statusTheme}
-          type='linear'>
-          {t(data.statusText)}
-        </DbStatus>
-      ),
-    },
-    {
-      field: 'bk_biz_id',
-      filter: {
-        list: Object.entries(filterMap.value.bizNameMap).map((bizItem) => ({
-          text: bizItem[1],
-          value: Number(bizItem[0]),
-        })),
-      },
-      label: t('业务'),
-      render: ({ data }: { data: TaskFlowModel }) => filterMap.value.bizNameMap[data.bk_biz_id] || '--',
-    },
-    {
-      field: 'bk_idc_name',
-      label: t('关联单据'),
-      render: ({ data }: { data: TaskFlowModel }) => (
-        <bk-button
-          text
-          theme='primary'
-          onClick={() => handleToTicket(data.uid)}>
-          {data.uid}
-        </bk-button>
-      ),
-    },
-    {
-      field: 'created_by',
-      label: t('执行人'),
-      render: ({ data }: { data: TaskFlowModel }) => data.created_by || '--',
-      sort: true,
-    },
-    {
-      field: 'created_at',
-      label: t('执行时间'),
-      render: ({ data }: { data: TaskFlowModel }) => data.createAtDisplay,
-      sort: true,
-    },
-    // {
-    //   label: t('耗时'),
-    //   field: 'bk_idc_name',
-    //   render: ({ data }: { data: TaskFlowModel }) => data.bk_idc_name || '--',
-    // },
-  ]);
-
-  // 设置用户个人表头信息
-  const defaultSettings = {
-    checked: ['root_id', 'ticket_type_display', 'status', 'bk_biz_id', 'bk_idc_name', 'created_by', 'created_at'],
-    fields: (columns.value || [])
-      .filter((item) => item.field)
-      .map((item) => ({
-        disabled: item.field === 'root_id',
-        field: item.field as string,
-        label: item.label as string,
-      })),
+  const fetchData = () => {
+    if (props.formData.resource_types.length > 0 && !props.formData.resource_types.includes('task')) {
+      return;
+    }
+    tableRef.value?.fetchData();
   };
 
-  const { settings: tableSetting, updateTableSettings } = useTableSettings(
-    UserPersonalSettings.QUICK_SEARCH_TASK,
-    defaultSettings,
-  );
+  // watch(
+  //   () => props.keyword,
+  //   () => {
+  //     fetchData();
+  //   },
+  // );
 
-  const handleToTask = (data: Props['data'][number]) => {
+  const dataSource = (params: ServiceParameters<typeof quickSearchResult>) => {
+    return quickSearchResult({
+      ...params,
+      ...props.formData,
+      keyword: props.keyword.replace(batchSplitRegex, ' '),
+      resource_type: 'task',
+    });
+  };
+
+  const handleReqestSuccess = (data: ServiceReturnType<typeof quickSearchResult>) => {
+    count.value = data.count;
+  };
+
+  const handleToTask = (data: TaskFlowModel) => {
     location(
       {
         name: 'taskHistoryDetail',
@@ -213,13 +188,21 @@
     window.open(url.href, '_blank');
   };
 
-  const handleRefresh = () => {
-    emits('refresh');
+  const handleClearSearch = () => {
+    emits('clear-search');
   };
 
-  const handleClearSearch = () => {
-    emits('clearSearch');
-  };
+  // onMounted(() => {
+  //   fetchData();
+  // });
+
+  onActivated(() => {
+    fetchData();
+  });
+
+  defineExpose<Exposed>({
+    fetchData,
+  });
 </script>
 
 <style lang="less" scoped>

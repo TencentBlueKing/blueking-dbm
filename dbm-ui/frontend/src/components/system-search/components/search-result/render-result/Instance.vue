@@ -19,6 +19,9 @@
         {{ bizIdNameMap[item.bk_biz_id] }}
       </div>
     </div>
+    <Total
+      :count="count"
+      @to-result="handleToResult" />
   </div>
 </template>
 <script setup lang="ts">
@@ -27,8 +30,11 @@
   import { useRedirect } from '@components/system-search/hooks/useRedirect';
   import TextHighlight from '@components/text-highlight/Index.vue';
 
+  import Total from './components/Total.vue';
+
   interface Props {
     bizIdNameMap: Record<number, string>;
+    count: number;
     data: {
       bk_biz_id: number;
       cluster_domain: string;
@@ -42,7 +48,10 @@
     keyWord: string;
   }
 
+  type Emits = (e: 'to-result', resourceType: string) => void;
+
   const props = defineProps<Props>();
+  const emits = defineEmits<Emits>();
 
   const handleRedirect = useRedirect();
 
@@ -63,5 +72,9 @@
       },
       data.bk_biz_id,
     );
+  };
+
+  const handleToResult = () => {
+    emits('to-result', 'instance');
   };
 </script>
