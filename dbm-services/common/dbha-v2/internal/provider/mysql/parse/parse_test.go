@@ -22,55 +22,44 @@
  * SOFTWARE.
  */
 
-package parser
+package mysqlparse
 
 import (
 	"encoding/json"
+	"errors"
 	"testing"
 
+	"dbm-services/common/dbha-v2/internal/analysis/parser"
 	"dbm-services/common/dbha-v2/pkg/storage/haprobe"
 )
 
-type stubProcesser struct{}
-
-func (stubProcesser) Process(json.RawMessage) (*haprobe.DbEvent, error) { return nil, nil }
-
-func TestRegisterDuplicatePanics(t *testing.T) {
-	t.Cleanup(snapshotForTest())
-
-	Register(haprobe.DbTypeRedis, stubProcesser{})
-	defer func() {
-		if r := recover(); r == nil {
-			t.Fatal("expected panic on duplicate Register")
-		}
-	}()
-	Register(haprobe.DbTypeRedis, stubProcesser{})
+// Verifies this package's own init registration; the allanalysis aggregation
+// path is covered by workflow.TestAnalysisProvidersRegisterMySQLParser.
+func TestMySQLProcesserRegistered(t *testing.T) {
+	p, ok := parser.Lookup(haprobe.DbTypeMySql)
+	if !ok || p == nil {
+		t.Fatal("mysql processer not registered via mysqlparse init")
+	}
 }
 
-func TestRegisterNilPanics(t *testing.T) {
-	t.Cleanup(snapshotForTest())
-
-	defer func() {
-		if r := recover(); r == nil {
-			t.Fatal("expected panic on nil Processer")
-		}
-	}()
-	Register(haprobe.DbTypeRedis, nil)
+func TestStatusProcessInvalidJSON(t *testing.T) {
+	var s Status
+	_, err := s.Process(json.RawMessage(`{not-json`))
+	if err == nil {
+		t.Fatal("expected error for invalid JSON")
+	}
+	if !errors.Is(err, errInvalidMySqlStatus) || err.Error() != errInvalidMySqlStatus.Error() {
+		t.Fatalf("unexpected errmsg: %s", err)
+	}
 }
 
-func TestRegisterInvalidDbTypePanics(t *testing.T) {
-	t.Cleanup(snapshotForTest())
-
-	defer func() {
-		if r := recover(); r == nil {
-			t.Fatal("expected panic on invalid DbType")
-		}
-	}()
-	Register(haprobe.DbTypeNone, stubProcesser{})
-}
-
-func TestMySqlRegistered(t *testing.T) {
-	if _, ok := Lookup(haprobe.DbTypeMySql); !ok {
-		t.Fatal("mysql processer not registered")
+func TestStatusProcessValidJSON(t *testing.T) {
+	var s Status
+	event, err := s.Process(json.RawMessage(`{}`))
+	if err != nil {
+		t.Fatalf("unexpected errmsg: %s", err)
+	}
+	if event != nil {
+		t.Fatalf("expected nil event for stub Process, got: %#v", event)
 	}
 }

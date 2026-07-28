@@ -132,9 +132,13 @@ func init() {
 
 ## 非对称性说明
 
-- **MySQL 切换/解析逻辑**仍主要位于框架包 `internal/analysis/switcher`、`workflow/parser`；provider 仅做注册。
-- **新 DB** 的实现应放在 `provider/<db>/` 子包，通过注册表挂接。
-- 后续可将 MySQL 实现逐步迁入 `provider/mysql/`，但不阻塞新 DB 扩展。
+| 能力 | MySQL 现状 | 新 DB 要求 |
+|------|------------|------------|
+| parse | 实现 + 注册均在 `provider/mysql/parse` | 同左 |
+| switch | 实现在 `switcher`；`provider/mysql/switch` 只注册 | 实现与注册放在 `provider/<db>/switch` |
+| harvest | 已在 `provider/mysql/harvest` | 同左 |
+
+框架包 `internal/analysis/parser` 仅保留 `Processer` 接口与注册表；analysis 启动要求 parser 注册表非空（当前由 MySQL `CapParse` 满足）。
 
 ## 自检清单
 
@@ -146,4 +150,4 @@ func init() {
 - [ ] 若有采集：admin `probeHarvesters` + HarvestBlock 已配置；块名大小写符合规范
 - [ ] 若有多块：Match 谓词与至多一个兜底块已验证
 - [ ] 若有切换：switcher + 告警事件名已注册；启动自检通过
-- [ ] 若有解析：`parser.Register` 已调用
+- [ ] 若有解析：`parser.Register` 已调用；analysis 启动日志 `parser_db_types` 非空

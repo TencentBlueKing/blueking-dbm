@@ -33,6 +33,7 @@ import (
 )
 
 // Processer parses one raw status payload into a DB event.
+// Concrete implementations live in provider/<db>/parse and register via Register.
 type Processer interface {
 	Process(task json.RawMessage) (*haprobe.DbEvent, error)
 }

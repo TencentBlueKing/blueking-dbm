@@ -26,35 +26,45 @@ package parser
 
 import (
 	"encoding/json"
+	"testing"
 
-	"dbm-services/common/dbha-v2/pkg/gerrors"
-	"dbm-services/common/dbha-v2/pkg/logger"
 	"dbm-services/common/dbha-v2/pkg/storage/haprobe"
 )
 
-var _ Processer = (*MySqlStatus)(nil)
+type stubProcesser struct{}
 
-var (
-	ErrInvalidMySqlStatus = gerrors.Newf(gerrors.InvalidParameter, "invalid MySQL status")
-)
+func (stubProcesser) Process(json.RawMessage) (*haprobe.DbEvent, error) { return nil, nil }
 
-// MySqlStatus parses MySQL probe status payloads.
-type MySqlStatus struct {
+func TestRegisterDuplicatePanics(t *testing.T) {
+	t.Cleanup(snapshotForTest())
+
+	Register(haprobe.DbTypeRedis, stubProcesser{})
+	defer func() {
+		if r := recover(); r == nil {
+			t.Fatal("expected panic on duplicate Register")
+		}
+	}()
+	Register(haprobe.DbTypeRedis, stubProcesser{})
 }
 
-// Process parses one MySQL raw status payload into a DB event.
-func (m *MySqlStatus) Process(task json.RawMessage) (*haprobe.DbEvent, error) {
-	var mySqlStatus haprobe.MySqlStatus
-	if err := json.Unmarshal(task, &mySqlStatus); err != nil {
-		logger.Warn("failed to unmarshal MySQL status, errmsg: %s", err)
-		return nil, ErrInvalidMySqlStatus
-	}
+func TestRegisterNilPanics(t *testing.T) {
+	t.Cleanup(snapshotForTest())
 
-	// Note: MySqlStatus fields are pointers and may be nil; guard before dereferencing.
-	logger.Debug("process MySQL status: %v, raw: %s", mySqlStatus.GlobalStatus, string(task))
-	return nil, nil
+	defer func() {
+		if r := recover(); r == nil {
+			t.Fatal("expected panic on nil Processer")
+		}
+	}()
+	Register(haprobe.DbTypeRedis, nil)
 }
 
-func init() {
-	Register(haprobe.DbTypeMySql, &MySqlStatus{})
+func TestRegisterInvalidDbTypePanics(t *testing.T) {
+	t.Cleanup(snapshotForTest())
+
+	defer func() {
+		if r := recover(); r == nil {
+			t.Fatal("expected panic on invalid DbType")
+		}
+	}()
+	Register(haprobe.DbTypeNone, stubProcesser{})
 }

@@ -27,6 +27,7 @@ package workflow_test
 import (
 	"testing"
 
+	"dbm-services/common/dbha-v2/internal/analysis/parser"
 	"dbm-services/common/dbha-v2/internal/analysis/switcher"
 	"dbm-services/common/dbha-v2/pkg/dbtype"
 	"dbm-services/common/dbha-v2/pkg/storage/haprobe"
@@ -49,5 +50,12 @@ func TestAnalysisProvidersRegisterMySQLSwitcher(t *testing.T) {
 	}
 	if got := dbtype.SwitchFailureEventName(haprobe.DbTypeMySql); got != haprobe.DbEventNameMysqlSwitchFailureV1 {
 		t.Errorf("failure event = %s, want %s", got, haprobe.DbEventNameMysqlSwitchFailureV1)
+	}
+}
+
+func TestAnalysisProvidersRegisterMySQLParser(t *testing.T) {
+	p, ok := parser.Lookup(haprobe.DbTypeMySql)
+	if !ok || p == nil {
+		t.Fatal("expected MySQL processer registered via allanalysis")
 	}
 }
