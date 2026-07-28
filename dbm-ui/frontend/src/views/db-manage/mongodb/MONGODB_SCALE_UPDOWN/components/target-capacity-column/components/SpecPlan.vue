@@ -181,7 +181,7 @@
             type="number" />
         </BkFormItem>
         <BkFormItem
-          :label="t('集群 Shared 数')"
+          :label="t('集群 Shard 数')"
           property="shards_num"
           required>
           <BkInput
@@ -204,7 +204,7 @@
           <span class="input-desc">{{ t('组') }}</span>
         </BkFormItem>
         <BkFormItem
-          :label="t('每组机器 Shared 数')"
+          :label="t('每组机器 Shard 数')"
           property="machine_group_shard_num">
           <BkInput
             v-if="formData.machine_group_shard_num === 0"
@@ -300,19 +300,19 @@
   // 副本集容量变更自定义方案
   // 1.规格 可选
   // 2.每个 Shard 节点数  不变
-  // 3.集群 Shared 数 不变
+  // 3.集群 Shard 数 不变
   // 4.机器组数 不变
-  // 5.每组机器 Shared 数 自动计算
+  // 5.每组机器 Shard 数 自动计算
   // 6.总机器数 自动计算
 
   // 分片集群容量变更自定义方案
   // 1.规格 可选
   // 2.每个 Shard 节点数  不变
-  // 3.集群 Shared 数 不变
+  // 3.集群 Shard 数 不变
   // 4.机器组数 可选
-  // 5.每组机器 Shared 数 自动计算
+  // 5.每组机器 Shard 数 自动计算
   // 6.总机器数 自动计算
-  // 7.集群 Shared 数/机器组数 需要整除
+  // 7.集群 Shard 数/机器组数 需要整除
 
   const getDefaultFormData = () => {
     if (props.clusterData.cluster_type === ClusterTypes.MONGO_SHARED_CLUSTER) {
@@ -367,7 +367,7 @@
     ],
     machine_group_shard_num: [
       {
-        message: t('集群 Shared 数 / 机器组数，需要整除'),
+        message: t('集群 Shard 数 / 机器组数，需要整除'),
         trigger: 'change',
         validator: () => {
           const { shard_machine_group: shardMachineGroup, shards_num: shardsNum } = formData;
@@ -394,7 +394,7 @@
     ],
     shards_num: [
       {
-        message: t('集群 Shared 数不能为空'),
+        message: t('集群 Shard 数不能为空'),
         trigger: 'change',
         validator: (value: number) => !!value,
       },

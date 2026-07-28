@@ -196,7 +196,7 @@
           type="number" />
       </BkFormItem>
       <BkFormItem
-        :label="t('集群 Shared 数')"
+        :label="t('集群 Shard 数')"
         property="details.resource_spec.mongodb.shards_num"
         required>
         <BkInput
@@ -215,7 +215,7 @@
         <span class="input-desc">{{ t('组') }}</span>
       </BkFormItem>
       <BkFormItem
-        :label="t('每组机器 Shared 数')"
+        :label="t('每组机器 Shard 数')"
         property="details.resource_spec.mongodb.machine_group_shard_num">
         <BkInput
           v-if="modelValue.machine_group_shard_num === 0"
