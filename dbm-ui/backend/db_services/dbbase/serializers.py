@@ -17,6 +17,7 @@ from backend.configuration.constants import DBType
 from backend.db_dirty.models import DirtyMachine
 from backend.db_meta.enums import ClusterPhase, ClusterType
 from backend.db_meta.models import Cluster
+from backend.db_monitor.constants import CLUSTER_LOAD_QUERY_RANGE_HOURS
 from backend.db_services.dbbase.constants import ResourceType
 from backend.db_services.dbbase.resources.serializers import (
     ListClusterEntriesSLZ,
@@ -274,6 +275,12 @@ class QueryClusterCapSerializer(serializers.Serializer):
 class QueryClusterCapResponseSerializer(serializers.Serializer):
     class Meta:
         swagger_schema_fields = {"example": {"cluster1": {"used": 1, "total": 2, "in_use": 50}}}
+
+
+class QueryClusterLoadSerializer(QueryClusterCapSerializer):
+    time_range = serializers.IntegerField(
+        help_text=_("负载查询时间窗口(单位: 小时)"), required=False, default=CLUSTER_LOAD_QUERY_RANGE_HOURS, min_value=1
+    )
 
 
 class UpdateClusterAliasSerializer(serializers.Serializer):

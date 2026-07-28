@@ -68,6 +68,7 @@ from backend.db_services.dbbase.serializers import (
     QueryClusterCapResponseSerializer,
     QueryClusterCapSerializer,
     QueryClusterInstanceCountSerializer,
+    QueryClusterLoadSerializer,
     QueryGlobalClusterSerializer,
     QueryGlobalInstanceSerializer,
     QueryGlobalMachineSerializer,
@@ -754,21 +755,27 @@ class DBBaseViewSet(viewsets.SystemViewSet):
     @common_swagger_auto_schema(
         operation_summary=_("查询集群负载"),
         auto_schema=ResponseSwaggerAutoSchema,
-        query_serializer=QueryClusterCapSerializer(),
+        query_serializer=QueryClusterLoadSerializer(),
         responses={status.HTTP_200_OK: QueryClusterCapResponseSerializer()},
         tags=[SWAGGER_TAG],
     )
-    @action(methods=["GET"], detail=False, serializer_class=QueryClusterCapSerializer, pagination_class=None)
+    @action(methods=["GET"], detail=False, serializer_class=QueryClusterLoadSerializer, pagination_class=None)
     def query_cluster_load(self, request, *args, **kwargs):
 
         data = self.params_validate(self.get_serializer_class())
+        # 时间窗口(单位: 小时)由接口参数决定，缺省默认 24h，并随响应返回供前端展示文案使用
+        time_range = data["time_range"]
         cluster_load_data_map, cluster_load_status_map = {}, {}
         for cluster_type in data["cluster_type"].split(","):
-            load_status, load_data = sync_cluster_load_by_cluster_type(data["bk_biz_id"], cluster_type)
+            load_status, load_data = sync_cluster_load_by_cluster_type(data["bk_biz_id"], cluster_type, time_range)
             cluster_load_data_map.update(load_data)
             cluster_load_status_map.update(load_status)
 
-        data = {"cluster_load_data_map": cluster_load_data_map, "cluster_load_status_map": cluster_load_status_map}
+        data = {
+            "cluster_load_data_map": cluster_load_data_map,
+            "cluster_load_status_map": cluster_load_status_map,
+            "time_range": time_range,
+        }
         return Response(data)
 
     @common_swagger_auto_schema(
