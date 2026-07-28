@@ -175,14 +175,18 @@
   )) as any;
 
   // 行自定义 class（用于树形连接线 + 重复策略置灰）
-  const rowClassName = ({ row }: { row: TableRow }) =>
-    row.isDuplicate
-      ? 'is-duplicate-row'
-      : row.isChildRow
-        ? 'is-child-row'
-        : row.children && row.children.length > 0
-          ? 'is-parent-with-children'
-          : '';
+  const rowClassName = ({ row }: { row: TableRow }) => {
+    const classes: string[] = [];
+    if (row.isChildRow) {
+      classes.push(row.isLastChild ? 'is-last-child-row' : 'is-child-row');
+    } else if (row.children && row.children.length > 0) {
+      classes.push('is-parent-with-children');
+    }
+    if (row.isDuplicate) {
+      classes.push('is-duplicate-row');
+    }
+    return classes.join(' ');
+  };
 
   /**
    * 列定义
@@ -205,7 +209,22 @@
                 theme='warning'>
                 {t('子')}
               </BkTag>
-              <span class='ml-16'>{row.ticket_type_display}</span>
+              <AuthTemplate
+                actionId='biz_ticket_config_set'
+                permission={row.permission.biz_ticket_config_set}
+                resource={props.dbType}>
+                {row.editable ? (
+                  <BkButton
+                    class='ml-16'
+                    text
+                    theme='primary'
+                    onClick={() => handleEdit(row)}>
+                    {row.ticket_type_display}
+                  </BkButton>
+                ) : (
+                  <span class='ml-16'>{row.ticket_type_display}</span>
+                )}
+              </AuthTemplate>
               {row.isDuplicate && (
                 <BkPopover
                   content={t('与父策略的审批设置一致，不再独立生效，可手动删除。')}
@@ -228,7 +247,21 @@
             {/* 树形连接线：垂直虚线 */}
             {hasChildren && expandedTreeNodes.value.includes(row.id) && <span class='tree-line-vertical' />}
             {!hasChildren && <span class='tree-icon-placeholder' />}
-            <span>{row.ticket_type_display}</span>
+            <AuthTemplate
+              actionId='biz_ticket_config_set'
+              permission={row.permission.biz_ticket_config_set}
+              resource={props.dbType}>
+              {row.editable ? (
+                <BkButton
+                  text
+                  theme='primary'
+                  onClick={() => handleEdit(row)}>
+                  {row.ticket_type_display}
+                </BkButton>
+              ) : (
+                <span>{row.ticket_type_display}</span>
+              )}
+            </AuthTemplate>
             {row.isCustom && (
               <BkTag
                 class='ml-4'
@@ -315,8 +348,8 @@
         },
         props: {
           list: [
-            { label: t('需审批'), value: true },
-            { label: t('免审批'), value: false },
+            { label: t('需审批'), value: 'true' },
+            { label: t('免审批'), value: 'false' },
           ],
         },
         showConfirmAndReset: true,
@@ -637,7 +670,7 @@
         top: -12px;
         bottom: 0;
         width: 0;
-        height: 22px;
+        height: 44px;
         border-left: 1px dashed #dcdee5;
         z-index: 0;
       }
@@ -652,6 +685,11 @@
         border-top: 1px dashed #dcdee5;
         z-index: 0;
       }
+    }
+
+    // 树形连接线：最后一个子策略垂直虚线 22px
+    .is-last-child-row .tree-line-vertical {
+      height: 22px !important;
     }
 
     // 首列对齐：父行无 children 时的图标占位符（与 TDesign 展开图标同宽）
@@ -741,8 +779,7 @@
       }
     }
   }
-</style>
-<style lang="less">
+
   // 弹窗内集群溢出列表（popover teleport 到 body，需全局样式）
   .infobox-cluster-overflow-list {
     max-height: 200px;
@@ -796,8 +833,15 @@
 
     // 树形连接线：使用 :deep() 穿透 scoped 样式
     :deep(.t-table__body) {
+      // 子行整行相对定位（供连接线定位）
+      .is-child-row .t-table__cell:first-child,
+      .is-last-child .t-table__cell:first-child {
+        position: relative;
+      }
+
       // 父行有子节点时首列底部边框留空，用伪元素绘制虚线下划线（左端留空24px对齐子行padding）
-      .is-parent-with-children td:first-child {
+      .is-parent-with-children td:first-child,
+      .is-child-row td:first-child {
         position: relative;
         border-bottom: none;
 
@@ -810,7 +854,9 @@
           height: 0;
           border-bottom: 1px solid var(--td-component-border);
         }
+      }
 
+      .is-parent-with-children td:first-child {
         .t-table__tree-op-icon,
         .tree-child-tag {
           margin: 0 16px 0 8px;
@@ -821,11 +867,6 @@
           display: inline-flex;
           transition: transform 0.2s ease-in-out;
         }
-      }
-
-      // 子行整行相对定位（供连接线定位）
-      .is-child-row .t-table__cell:first-child {
-        position: relative;
       }
 
       // 重复策略行置灰（scoped 样式需 :deep 穿透）

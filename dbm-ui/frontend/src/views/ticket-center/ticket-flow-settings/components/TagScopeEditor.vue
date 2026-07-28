@@ -135,6 +135,8 @@
     ticketType: string;
   }
 
+  type Emits = (e: 'change') => void;
+
   interface Exposes {
     clearValidate: () => void;
     /** 获取标签条件与匹配类型；校验失败 reject */
@@ -144,8 +146,11 @@
 
   const props = withDefaults(defineProps<Props>(), {
     clusterTags: () => [],
+    configId: undefined,
     disabled: false,
   });
+
+  const emits = defineEmits<Emits>();
 
   const { t } = useI18n();
 
@@ -186,10 +191,14 @@
     selectedValues.value = [];
   };
 
-  const handleKeyChange = (_value: string) => clearInvalidAndValues();
+  const handleKeyChange = (_value: string) => {
+    clearInvalidAndValues();
+    emits('change');
+  };
 
   const handleRemoveValue = (value: string) => {
     selectedValues.value = selectedValues.value.filter((v) => v !== value);
+    emits('change');
   };
 
   // 标签重复校验：选值后实时校验，与 SelectClusters 交互保持一致
@@ -230,6 +239,7 @@
   // 选值变化时延迟校验（确保 v-model 已更新）
   const handleTagValueChange = () => {
     nextTick(() => valueFormItemRef.value?.validate?.());
+    emits('change');
   };
 
   const reset = () => {

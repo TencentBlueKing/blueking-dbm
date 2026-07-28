@@ -46,7 +46,8 @@
         :biz-id="selectClustersData.bizId"
         :config-id="isEdit ? data.id : undefined"
         :db-type="selectClustersData.dbType"
-        :ticket-type="data.ticket_type" />
+        :ticket-type="data.ticket_type"
+        @change="dirty = true" />
       <!-- 按标签 -->
       <DbFormItem
         v-else-if="!showBusinessPolicyReadOnly && formData.scope_type === 'tag'"
@@ -57,7 +58,8 @@
           :biz-id="data.bk_biz_id"
           :cluster-tags="data.cluster_tags"
           :config-id="isEdit ? data.id : undefined"
-          :ticket-type="data.ticket_type" />
+          :ticket-type="data.ticket_type"
+          @change="dirty = true" />
       </DbFormItem>
       <DbFormItem
         :label="t('是否审批')"
@@ -102,11 +104,11 @@
     <template #footer>
       <BkButton
         v-bk-tooltips="{
-          content: t('当前审批设置与父策略相同，该子策略不会产生实际效果'),
-          disabled: !(isChildPolicy && isSameAsParent),
+          content: t('当前无变更，请先修改内容'),
+          disabled: dirty,
         }"
         class="w-88 mr-8"
-        :disabled="isChildPolicy && isSameAsParent"
+        :disabled="!dirty"
         :loading="isSubmitting"
         theme="primary"
         @click="handleConfirm">
@@ -167,6 +169,8 @@
   const handleBeforeClose = useBeforeClose();
 
   const isSubmitting = ref(false);
+  const dirty = ref(false);
+  let initDone = false;
 
   const selectClustersRef = ref<InstanceType<typeof SelectClusters>>();
   const tagScopeRef = ref<InstanceType<typeof TagScopeEditor>>();
@@ -215,21 +219,44 @@
     },
   });
 
+  // 打开时回填数据并复位 dirty；关闭时清除校验状态
+  watch(isShow, (val) => {
+    if (val) {
+      dirty.value = false;
+      initDone = false;
+      formData.need_itsm = props.data.configs?.need_itsm ?? false;
+      formData.remark = props.data.remark || '';
+      formData.scope_type = props.isEdit ? props.data.scopeType : 'cluster';
+      formData.cluster_ids =
+        props.data.scopeType === 'cluster' ? (props.data.cluster_ids || []).map((item) => item.id) : [];
+      formData.cluster_tags = (props.data.cluster_tags || []).map((item) => item.id);
+      // 双 nextTick 确保 SelectClusters/TagScopeEditor 内部异步回显完成后再开始追踪
+      nextTick(() => {
+        nextTick(() => {
+          initDone = true;
+        });
+      });
+    }
+    if (!val) {
+      selectClustersRef.value?.clearValidate?.();
+      tagScopeRef.value?.clearValidate?.();
+    }
+  });
+
+  // dirty 一经置位不再复位
   watch(
-    () => props.data,
-    (data) => {
-      formData.need_itsm = data.configs?.need_itsm ?? false;
-      formData.remark = data.remark || '';
-      // 编辑态按 data.scopeType 回填，新建态默认按集群
-      formData.scope_type = props.isEdit ? data.scopeType : 'cluster';
-      // 按集群仅存 id；非集群范围时清空
-      formData.cluster_ids = data.scopeType === 'cluster' ? (data.cluster_ids || []).map((item) => item.id) : [];
-      formData.cluster_tags = (data.cluster_tags || []).map((item) => item.id);
+    formData,
+    () => {
+      if (initDone) {
+        dirty.value = true;
+      }
     },
-    { immediate: true },
+    { deep: true },
   );
 
   const handleConfirm = async () => {
+    if (!dirty.value) return;
+
     const isClusterScope = isChildPolicy.value && formData.scope_type === 'cluster';
     const isTagScope = isChildPolicy.value && formData.scope_type === 'tag';
     // getValue 内部触发校验并报红，失败 reject 中断提交
@@ -258,15 +285,6 @@
 
   const handleCancel = async () => {
     isShow.value = false;
-    Object.assign(formData, {
-      cluster_ids: [],
-      cluster_tags: [],
-      need_itsm: false,
-      remark: '',
-      scope_type: 'cluster',
-    });
-    selectClustersRef.value?.clearValidate?.();
-    tagScopeRef.value?.clearValidate?.();
   };
 </script>
 
