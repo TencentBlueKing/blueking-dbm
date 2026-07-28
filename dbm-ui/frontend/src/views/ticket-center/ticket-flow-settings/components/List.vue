@@ -13,33 +13,17 @@
 
 <template>
   <div class="ticket-flow-list-content">
-    <div class="top-operation">
-      <div class="filter-tabs">
-        <div
-          class="filter-tab"
-          :class="{ active: activeTab === 'all' }"
-          @click="handleTabChange('all')">
-          {{ t('全部') }}
-          <span class="tab-count">{{ allCount }}</span>
-        </div>
-        <div
-          class="filter-tab"
-          :class="{ active: activeTab === 'noApproval' }"
-          @click="handleTabChange('noApproval')">
-          {{ t('免审批') }}
-          <span class="tab-count">{{ noApprovalCount }}</span>
-        </div>
-      </div>
-      <DbQuickSearch
-        v-model="searchValue"
-        :data="quickSearchData"
-        :placeholder="t('请输入或选择条件搜索')"
-        style="width: 500px; margin-left: auto" />
-    </div>
+    <DbQuickSearch
+      v-model="searchValue"
+      class="mb-16"
+      :data="quickSearchData"
+      :placeholder="t('请输入或选择条件搜索')"
+      style="width: 500px; margin-left: auto" />
     <BkAlert
       class="mb-16"
       closable>
-      {{ t('业务策略基于业务下全部集群生效，该规则支持创建子策略进行例外配置。') }}
+      {{ t('父策略适用于业务下全部集群，不可删除。可按集群或集群标签增加子策略；') }}
+      <strong>{{ t('优先级：子策略 > 父策略，按集群 > 按标签') }}</strong>
     </BkAlert>
     <div
       ref="tableContentRef"
@@ -131,7 +115,6 @@
   const { t } = useI18n();
   const { currentBizId } = useGlobalBizs();
 
-  // 表格容器引用（用于动态计算表格可用高度）
   const tableContentRef = ref<HTMLElement>();
   const tableMaxHeight = ref(600);
   let resizeObserver: ResizeObserver | null = null;
@@ -162,10 +145,7 @@
 
   const { quickSearchData } = useSearchSelect();
 
-  // 数据获取 hook：统一持有 activeTab / pagination / searchValue 并通过 URL 同步
   const {
-    activeTab,
-    allCount,
     allTreeData,
     expandedTreeNodes,
     fetchListData,
@@ -174,11 +154,9 @@
     handlePageLimitChange,
     handlePageValueChange,
     handleSortChange,
-    handleTabChange,
     isLoading,
     isRequestFailed,
     isSearching,
-    noApprovalCount,
     onExpandedTreeNodesChange,
     paginatedData,
     pagination,
@@ -230,7 +208,7 @@
               <span class='ml-16'>{row.ticket_type_display}</span>
               {row.isDuplicate && (
                 <BkPopover
-                  content={t('与「业务下全部集群」的审批设置一致，不再独立生效。可手动删除。')}
+                  content={t('与父策略的审批设置一致，不再独立生效，可手动删除。')}
                   placement='top'
                   trigger='hover'>
                   <BkTag
@@ -347,6 +325,12 @@
       width: 120,
     },
     {
+      cell: (_h: any, { row }: { row: TableRow }) => row.remark || '-',
+      colKey: 'remark',
+      title: t('备注'),
+      width: 180,
+    },
+    {
       cell: (_h: any, { row }: { row: TableRow }) => row.updater,
       colKey: 'updater',
       title: t('更新人'),
@@ -357,12 +341,6 @@
       colKey: 'updateAtDisplay',
       sorter: true,
       title: t('更新时间'),
-      width: 180,
-    },
-    {
-      cell: (_h: any, { row }: { row: TableRow }) => row.remark || '-',
-      colKey: 'remark',
-      title: t('备注'),
       width: 180,
     },
     {
@@ -587,61 +565,6 @@
     box-sizing: border-box;
     flex-direction: column;
     overflow: hidden;
-
-    .top-operation {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 16px;
-
-      .filter-tabs {
-        display: flex;
-        height: 32px;
-        padding: 4px;
-        align-items: center;
-        border-radius: 2px;
-        background: var(--Neutral-7, #eaebf0);
-
-        .filter-tab {
-          display: flex;
-          justify-content: center;
-          align-items: center;
-          gap: 4px;
-          height: 24px;
-          padding: 5px 12px;
-          border-radius: 2px;
-          color: #63656e;
-          cursor: pointer;
-
-          &.active {
-            color: #3a84ff;
-            border-radius: 2px;
-            background: var(--Neutral-11, #fff);
-            box-shadow: 0 2px 4px 0 #0000001a;
-          }
-
-          .tab-count {
-            display: flex;
-            height: 16px;
-            padding: 0 6px;
-            align-items: center;
-            align-content: center;
-            gap: 0 6px;
-            flex-wrap: wrap;
-            border-radius: 8px;
-            font-size: 12px;
-          }
-        }
-
-        .filter-tab.active .tab-count {
-          background: var(--Brand-6, #e1ecff);
-        }
-
-        .filter-tab:not(.active) .tab-count {
-          background: var(--Neutral-11, #fff);
-        }
-      }
-    }
 
     .approval-text {
       color: #f59500;

@@ -73,16 +73,11 @@ export const useFetchData = () => {
   const dbType = computed(() => (route.params.dbType as DBTypes) || DBTypes.MYSQL);
 
   const { handlePageLimitChange, handlePageValueChange, pagination } = usePagination();
-  // 筛选标签（全部 / 免审批），URL 驱动
-  const activeTab = ref<'all' | 'noApproval'>('all');
 
   // 从 URL 读取初始状态（搜索条件由 DbQuickSearch 的 parse-url 负责回显到 searchValue）
   const urlParams = getSearchParams();
   const searchValue = ref<Record<string, any>>({});
 
-  if (urlParams.activeTab) {
-    activeTab.value = urlParams.activeTab as 'all' | 'noApproval';
-  }
   if (urlParams.current) {
     pagination.current = Number(urlParams.current);
   }
@@ -95,7 +90,6 @@ export const useFetchData = () => {
     replaceSearchParams(
       transfromDataToQuery({
         ...searchValue.value,
-        activeTab: activeTab.value,
         current: pagination.current,
         limit: pagination.limit,
       }),
@@ -231,10 +225,7 @@ export const useFetchData = () => {
           node.children && node.children.length > 0 ? filterTreeData(node.children, searchMap) : undefined;
 
         // Tab 过滤：免审批 tab 下，父行本身免审批或任一子行免审批
-        const tabMatch =
-          activeTab.value !== 'noApproval' ||
-          !node.configs.need_itsm ||
-          (node.children?.some((c) => !c.configs.need_itsm) ?? false);
+        const tabMatch = !node.configs.need_itsm || (node.children?.some((c) => !c.configs.need_itsm) ?? false);
 
         // 搜索过滤 + 子节点匹配则保留父节点
         const selfMatch = tabMatch && isMatchSearch(node, searchMap);
@@ -282,13 +273,6 @@ export const useFetchData = () => {
   /** 递归统计所有节点总数（含子节点） */
   const countAllNodes = (nodes: TableRow[]): number =>
     nodes.reduce((sum, node) => sum + 1 + (node.children ? countAllNodes(node.children) : 0), 0);
-
-  /** 递归统计免审批节点总数 */
-  const countNoApproval = (nodes: TableRow[]): number =>
-    nodes.reduce(
-      (sum, node) => sum + (node.configs.need_itsm ? 0 : 1) + (node.children ? countNoApproval(node.children) : 0),
-      0,
-    );
 
   /** 获取所有有子节点的父行 ID（用于默认展开） */
   const getAllParentIds = (nodes: TableRow[]): (string | number)[] =>
@@ -354,15 +338,9 @@ export const useFetchData = () => {
     applyLocalFilter();
   };
 
-  // tab 切换（由 watch(activeTab) 统一处理过滤与 URL 同步）
-  const handleTabChange = (tab: 'all' | 'noApproval') => {
-    activeTab.value = tab;
-  };
-
   const handleClearFilter = () => {
     pagination.current = 1;
     searchValue.value = {};
-    activeTab.value = 'all';
     applyLocalFilter();
   };
 
@@ -382,13 +360,6 @@ export const useFetchData = () => {
     },
   );
 
-  // 筛选标签变化（全部 / 免审批）：重置到首页、同步 URL 并重新过滤
-  watch(activeTab, () => {
-    pagination.current = 1;
-    syncUrlParams();
-    applyLocalFilter();
-  });
-
   // 分页变化，重新应用分页并同步到 URL
   watch(
     () => [pagination.current, pagination.limit],
@@ -404,7 +375,6 @@ export const useFetchData = () => {
       // 仅在 dbType 真正变化（切换 Tab）时清空搜索；初始挂载不清除，以保留 URL 上的搜索参数
       if (prevValue !== undefined) {
         searchValue.value = {};
-        activeTab.value = 'all';
         pagination.current = 1;
       }
       nextTick(() => {
@@ -416,14 +386,7 @@ export const useFetchData = () => {
     },
   );
 
-  // 统计数量（基于原始全量数据，不受 tab 切换影响）
-  const allCount = computed(() => countAllNodes(rawTreeData.value));
-
-  const noApprovalCount = computed(() => countNoApproval(rawTreeData.value));
-
   return {
-    activeTab,
-    allCount,
     allTreeData,
     expandedTreeNodes,
     fetchListData,
@@ -432,11 +395,9 @@ export const useFetchData = () => {
     handlePageLimitChange,
     handlePageValueChange,
     handleSortChange,
-    handleTabChange,
     isLoading,
     isRequestFailed,
     isSearching,
-    noApprovalCount,
     onExpandedTreeNodesChange,
     paginatedData,
     pagination,

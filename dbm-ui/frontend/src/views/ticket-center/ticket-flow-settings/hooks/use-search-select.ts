@@ -20,7 +20,7 @@ import { getUserList } from '@services/source/user';
 import { type Props } from '@components/db-quick-search/bk-quick-search/Index.vue';
 
 /**
- * 单据免审批设置页搜索选择器配置
+ * 单据审批设置页搜索选择器配置
  *
  * 仅负责提供 quickSearchData 配置；搜索值的读写与 URL 同步统一由 useFetchData 通过 useUrlSearch 管理，
  * 避免在此处 watch searchValue 自行 router.replace 导致与路由导航冲突。
