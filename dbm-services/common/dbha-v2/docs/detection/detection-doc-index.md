@@ -176,12 +176,19 @@ type EventData struct {
 - **Provider 注册表（推荐）**：在 `internal/provider/<db>/` 按能力分子包自注册，并在 [`manifest.go`](../../internal/provider/manifest.go) 登记后 `go generate`；详见 [新增 DB 类型扩展指南](./add-db-type-guide.md)。
 - `harvester.Register`（[harvester/registry.go](../../internal/probe/harvester/registry.go)）：采集块名 + DbType + Factory。
 - `switcher.Register` / `Build`（[switcher/registry.go](../../internal/analysis/switcher/registry.go)）：DbType -> Switcher。
+- `parser.Register`（[analysis/parser](../../internal/analysis/parser/)）：DbType -> Processer。
 - `pkg/dbtype` catalog（[pkg/dbtype](../../pkg/dbtype)）：`ClusterType -> DbType`；MySQL 等内建，Redis 等走 provider `dbtypedesc`。
 - `switchcore` 抽象（[switcher/switchcore](../../internal/analysis/switcher/switchcore)）：标准切换流程接口。
 
 ### 非对称性
 
-MySQL 的切换/解析实现主体仍在框架包（`internal/analysis/switcher`、`workflow/parser`），provider 仅负责注册；**新 DB 实现应放在 provider 子包**。后续可择机将 MySQL 实现迁入 `provider/mysql/`。
+| 能力 | MySQL 现状 | 新 DB 要求 |
+|------|------------|------------|
+| parse | 实现 + 注册均在 `provider/mysql/parse` | 同左 |
+| switch | 实现在 `switcher`；`provider/mysql/switch` 只注册 | 实现与注册放在 `provider/<db>/switch` |
+| harvest | 已在 `provider/mysql/harvest` | 同左 |
+
+框架 `internal/analysis/parser` 仅保留接口与注册表；**新 DB 实现应放在 provider 子包**。
 
 ---
 
