@@ -27,6 +27,10 @@ class TransferDirtyMachineSerializer(serializers.Serializer):
     hcm_recycle = serializers.BooleanField(help_text=_("是否从海磊自动回收"), required=False, default=False)
 
 
+class CheckHostIsDissolvedSerializer(serializers.Serializer):
+    bk_host_ids = serializers.ListField(child=serializers.IntegerField(), help_text=_("主机ID列表"))
+
+
 class ListMachineEventSerializer(serializers.ModelSerializer):
     class Meta:
         model = MachineEvent

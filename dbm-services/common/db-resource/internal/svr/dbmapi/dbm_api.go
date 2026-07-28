@@ -22,4 +22,6 @@ const (
 
 	// DBMFaultHostsCheckApi 查询主机关联的故障单据
 	DBMFaultHostsCheckApi = "/apis/dbresource/resource/check_fault_hosts/"
+	// DBMDissolveHostsCheckApi 查询主机是否为待裁撤
+	DBMDissolveHostsCheckApi = "/apis/db_dirty/check_host_is_dissolved/"
 )

@@ -11,6 +11,7 @@
 package task
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/samber/lo"
@@ -20,9 +21,8 @@ import (
 	"dbm-services/common/go-pubpkg/logger"
 )
 
-// FaultHostCheck TODO
-func FaultHostCheck() (err error) {
-	// 获取空闲机器
+// DissolveHostCheck 巡检资源池空闲主机是否待裁撤，命中则标记为 Dissolved
+func DissolveHostCheck() (err error) {
 	var machines []model.TbRpDetail
 	if err = model.DB.Self.Table(model.TbRpDetailName()).
 		Where("status = ? ", model.Unused).
@@ -31,40 +31,40 @@ func FaultHostCheck() (err error) {
 		return err
 	}
 	if len(machines) == 0 {
-		logger.Info("no unused machines found")
+		logger.Info("no unused machines found for dissolve check")
 		return nil
 	}
+
+	var failedBatches int
+	var lastErr error
 	for _, mgp := range lo.Chunk(machines, 50) {
-		var hosts []dbmapi.CheckFaultHostsParamItem
+		bkHostIds := make([]int, 0, len(mgp))
 		for _, m := range mgp {
-			hosts = append(hosts, dbmapi.CheckFaultHostsParamItem{
-				BkHostID: m.BkHostID,
-				IP:       m.IP,
-			})
+			bkHostIds = append(bkHostIds, m.BkHostID)
 		}
-		checkResult, err := dbmapi.CheckFaultHosts(hosts)
+		dissolvedHostIds, checkErr := dbmapi.CheckHostIsDissolved(bkHostIds)
+		if checkErr != nil {
+			logger.Error("check dissolve hosts failed %s", checkErr.Error())
+			failedBatches++
+			lastErr = checkErr
+			continue
+		}
+		if len(dissolvedHostIds) == 0 {
+			logger.Info("no dissolved hosts found in this batch")
+			continue
+		}
+		logger.Info("found dissolved hosts %v", dissolvedHostIds)
+		err = model.DB.Self.Table(model.TbRpDetailName()).
+			Where("bk_host_id in (?) and status = ?", dissolvedHostIds, model.Unused).
+			Updates(map[string]interface{}{"status": model.Dissolved, "update_time": time.Now()}).
+			Error
 		if err != nil {
-			logger.Error("check fault hosts failed %s", err.Error())
-			continue
-		}
-		if len(checkResult) == 0 {
-			logger.Info("no fault hosts found in this batch")
-			continue
-		}
-		for hostId, item := range checkResult {
-			if item.CheckIsOK() {
-				continue
-			}
-			logger.Info("host %s fault info %v", hostId, item)
-			err = model.DB.Self.Table(model.TbRpDetailName()).
-				Where("bk_host_id = ? and status = ?", hostId, model.Unused).
-				Updates(map[string]interface{}{"status": model.FaultHazard, "update_time": time.Now()}).
-				Error
-			if err != nil {
-				logger.Error("update machine status failed %s", err.Error())
-				return err
-			}
+			logger.Error("update machine status to Dissolved failed %s", err.Error())
+			return err
 		}
 	}
-	return
+	if failedBatches > 0 {
+		return fmt.Errorf("dissolve check failed for %d batches, last: %w", failedBatches, lastErr)
+	}
+	return nil
 }
