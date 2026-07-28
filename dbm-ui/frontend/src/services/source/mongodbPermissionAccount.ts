@@ -27,6 +27,7 @@ export function addAccountRule(params: {
   access_db: string;
   account_id: number | null;
   account_type: AccountTypesValues;
+  bizId: number;
   privilege: {
     mongo_manager: string[];
     mongo_user: string[];
