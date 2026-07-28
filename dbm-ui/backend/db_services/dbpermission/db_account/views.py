@@ -154,14 +154,19 @@ class BaseDBAccountViewSet(viewsets.SystemViewSet):
         id_field=lambda d: d["account"]["account_id"],
         data_field=lambda d: d["results"],
         action_filed=lambda k: (
-            [
-                getattr(ActionEnum, "SQLSERVER_PRIV_MANAGE"),
-            ]
+            []
             if k["account_type"] == AccountType.SQLServer
             else [
                 getattr(ActionEnum, f'{k["account_type"].upper()}_DELETE_ACCOUNT'),
                 getattr(ActionEnum, f'{k["account_type"].upper()}_ADD_ACCOUNT_RULE'),
             ]
+        ),
+    )
+    @Permission.decorator_permission_field(
+        id_field=lambda d: d["account"]["bk_biz_id"],
+        data_field=lambda d: d["results"],
+        action_filed=lambda k: (
+            [ActionEnum.SQLSERVER_PRIV_MANAGE] if k["account_type"] == AccountType.SQLServer else []
         ),
     )
     def list_account_rules(self, request, bk_biz_id):
