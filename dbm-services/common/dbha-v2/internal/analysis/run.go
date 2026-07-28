@@ -33,8 +33,8 @@ import (
 	"syscall"
 
 	"dbm-services/common/dbha-v2/internal/analysis/config"
+	"dbm-services/common/dbha-v2/internal/analysis/parser"
 	"dbm-services/common/dbha-v2/internal/analysis/switcher"
-	"dbm-services/common/dbha-v2/internal/analysis/workflow/parser"
 	"dbm-services/common/dbha-v2/pkg/dbtype"
 	"dbm-services/common/dbha-v2/pkg/gerrors"
 	"dbm-services/common/dbha-v2/pkg/logger"
@@ -135,16 +135,20 @@ func Run(cmd *cobra.Command, args []string) error {
 
 func logAnalysisProviderSelfCheck() error {
 	switcherTypes := switcher.RegisteredDbTypes()
+	parserTypes := parser.RegisteredDbTypes()
 	logger.Info(
 		"analysis provider self-check, registered_db_types: %s, provider_owned_db_types: %s, "+
 			"switcher_db_types: %s, parser_db_types: %s",
 		joinDbTypes(dbtype.RegisteredDbTypes()),
 		joinDbTypes(dbtype.ProviderOwnedDbTypes()),
 		joinDbTypes(switcherTypes),
-		joinDbTypes(parser.RegisteredDbTypes()),
+		joinDbTypes(parserTypes),
 	)
 	if len(switcherTypes) == 0 {
 		return gerrors.Newf(gerrors.Failure, "no switchers registered; blank-import provider/allanalysis")
+	}
+	if len(parserTypes) == 0 {
+		return gerrors.Newf(gerrors.Failure, "no parsers registered; blank-import provider/allanalysis")
 	}
 	if err := switcher.Validate(); err != nil {
 		return gerrors.Newf(gerrors.Failure, "switcher validation failed, errmsg: %s", err)
