@@ -21,7 +21,7 @@ global:
   cloudContainer: true
   ## 租户配置
   enableMultiTenantMode: false
-  tenantId: "default"
+  tenantId: ""
 
 # bk public
 bk:
