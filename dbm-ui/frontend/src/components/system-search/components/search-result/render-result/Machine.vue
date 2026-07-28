@@ -16,6 +16,10 @@
         {{ item.poolDispaly }}
       </div>
     </div>
+    <Total
+      :count="count"
+      :is-top="isTop"
+      @to-result="handleToResult" />
   </div>
 </template>
 <script setup lang="ts">
@@ -25,16 +29,23 @@
 
   import TextHighlight from '@components/text-highlight/Index.vue';
 
+  import Total from './components/Total.vue';
+
   interface Props {
+    count: number;
     data: {
       ip: string;
       pool: string;
       poolDispaly: string;
     }[];
+    isTop?: boolean;
     keyWord: string;
   }
 
+  type Emits = (e: 'to-result', resourceType: string) => void;
+
   defineProps<Props>();
+  const emits = defineEmits<Emits>();
 
   const location = useLocation();
 
@@ -47,5 +58,9 @@
         ips: data.ip,
       },
     });
+  };
+
+  const handleToResult = () => {
+    emits('to-result', 'machine');
   };
 </script>

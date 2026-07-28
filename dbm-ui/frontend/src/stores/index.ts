@@ -17,4 +17,5 @@ export * from './useMenu';
 export * from './useSqlImport';
 export * from './useSQLTaskCount';
 export * from './useSystemEnviron';
+export * from './useSystemSearch';
 export * from './useUserProfile';

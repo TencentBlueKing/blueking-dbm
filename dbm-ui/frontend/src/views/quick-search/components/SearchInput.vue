@@ -16,7 +16,7 @@
     class="search-input"
     data-role="quick-search-result">
     <FilterTypeSelect
-      v-model="filterType"
+      v-model="formData.filter_type"
       icon-type="down-big"
       title-color="#4d4f56"
       trigger-class-name="system-search-result-filter-type-select" />
@@ -24,7 +24,7 @@
       ref="rootRef"
       class="input-box">
       <BkInput
-        v-model="modelValue"
+        v-model="keyword"
         autosize
         class="search-input-textarea"
         clearable
@@ -53,21 +53,24 @@
     :style="popContentStyle">
     <SearchResult
       v-if="isPopMenuShow"
-      v-model="modelValue"
-      :filter-type="filterType"
+      v-model="keyword"
+      :filter-type="formData.filter_type"
       :get-search-options="getSearchOptions"
       :show-options="false"
       style="height: 506px">
       <SearchHistory
-        v-if="!modelValue"
-        v-model="modelValue" />
+        v-if="!keyword"
+        v-model="keyword" />
     </SearchResult>
   </div>
 </template>
 
 <script setup lang="ts">
+  import { storeToRefs } from 'pinia';
   import tippy, { type Instance, type SingleTarget } from 'tippy.js';
   import { useI18n } from 'vue-i18n';
+
+  import { useSystemSearchStore } from '@stores';
 
   import { batchSplitRegex } from '@common/regex';
 
@@ -76,27 +79,13 @@
   import SearchHistory from '@components/system-search/components/SearchHistory.vue';
   import useKeyboard from '@components/system-search/hooks/useKeyboard';
 
-  interface Props {
-    formData: {
-      bk_biz_ids: number[];
-      db_types: string[];
-      filter_type: string;
-      resource_types: string[];
-    };
-  }
-
   type Emits = (e: 'search', value: string) => void;
 
-  const props = defineProps<Props>();
   const emits = defineEmits<Emits>();
-  const modelValue = defineModel<string>({
-    default: '',
-  });
-  const filterType = defineModel<string>('filter-type', {
-    default: '',
-  });
 
   const { t } = useI18n();
+  const systemSearchStore = useSystemSearchStore();
+  const { formData, keyword } = storeToRefs(systemSearchStore);
 
   let tippyIns: Instance | undefined;
 
@@ -108,18 +97,18 @@
 
   useKeyboard(rootRef, popRef, 'textarea');
 
-  watch([modelValue, isFocused], () => {
+  watch([keyword, isFocused], () => {
     setTimeout(() => {
       if (tippyIns && isFocused.value) {
         tippyIns.setProps({
-          // offset: modelValue.value.includes('\n') ? getTippyInsOffset() : [0, 8],
+          // offset: keyword.value.includes('\n') ? getTippyInsOffset() : [0, 8],
           offset: getTippyInsOffset(),
         });
       }
     });
   });
 
-  const getSearchOptions = () => props.formData;
+  const getSearchOptions = () => formData.value;
 
   const getTippyInsOffset = (): [number, number] => {
     const textareaList = rootRef.value!.getElementsByTagName('textarea');
@@ -140,12 +129,12 @@
 
   const handlePaste = () => {
     setTimeout(() => {
-      modelValue.value = modelValue.value.replace(/\s*:\s*/g, ':').replace(batchSplitRegex, '\n');
+      keyword.value = keyword.value.replace(/\s*:\s*/g, ':').replace(batchSplitRegex, '\n');
     });
   };
 
   const handleFocus = () => {
-    modelValue.value = modelValue.value.replace(/\|/g, '\n');
+    keyword.value = keyword.value.replace(/\|/g, '\n');
     isFocused.value = true;
 
     const { width } = rootRef.value!.getBoundingClientRect();
@@ -158,12 +147,12 @@
   };
 
   const handleBlur = () => {
-    modelValue.value = modelValue.value.replace(/\n/g, '|');
+    keyword.value = keyword.value.replace(/\n/g, '|');
     isFocused.value = false;
   };
 
   // const handleClear = () => {
-  //   modelValue.value = '';
+  //   keyword.value = '';
   // };
 
   const handleSearch = () => {
@@ -172,7 +161,7 @@
       textareaList[0].blur();
       tippyIns.hide();
     }
-    emits('search', modelValue.value);
+    emits('search', keyword.value);
   };
 
   // 关闭弹层
