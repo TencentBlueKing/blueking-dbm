@@ -30,6 +30,7 @@
         required>
         <CardCheckbox
           v-model="formData.targetSelectMode"
+          class="mr-8 mb-8"
           :desc="t('选择集群，自动展开全部 mongod + mongos')"
           icon="cluster"
           :title="t('按集群')"
@@ -37,7 +38,7 @@
         </CardCheckbox>
         <CardCheckbox
           v-model="formData.targetSelectMode"
-          class="ml-8"
+          class="mr-8 mb-8"
           :desc="t('输入主机 IP，展开该 IP 上全部实例')"
           icon="host"
           :title="t('按主机')"
@@ -45,7 +46,7 @@
         </CardCheckbox>
         <CardCheckbox
           v-model="formData.targetSelectMode"
-          class="ml-8"
+          class="mb-8"
           :desc="t('指定 IP:Port，仅重启选中的实例')"
           icon="single-node"
           :title="t('按实例')"
