@@ -5,7 +5,7 @@
         :loading="quickSearchLoading"
         style="height: 100%">
         <slot>
-          <BkAlert
+          <!-- <BkAlert
             v-if="showAlert"
             closable
             style="margin: 0 12px"
@@ -19,7 +19,7 @@
                 {{ t('不再提示') }}
               </BkButton>
             </template>
-          </BkAlert>
+          </BkAlert> -->
           <BkException
             v-if="isSearchEmpty"
             :description="t('暂无搜索内容，换个关键词试一试')"
@@ -44,12 +44,15 @@
                   v-if="serachResult[resultType].length"
                   class="result-type-text">
                   {{ resultTypeTextMap[resultType] }}
+                  （{{ serachResult.count[resultType] }}）
                 </div>
                 <RenderResult
                   :biz-id-name-map="bizIdNameMap"
+                  :count="serachResult.count[resultType]"
                   :data="serachResult[resultType as keyof typeof serachResult]"
                   :key-word="modelValue"
-                  :name="resultType" />
+                  :name="resultType"
+                  @to-result="handleToResult" />
               </template>
             </div>
           </ScrollFaker>
@@ -67,13 +70,14 @@
 </template>
 <script setup lang="ts">
   import _ from 'lodash';
+  import { storeToRefs } from 'pinia';
   import { computed, type UnwrapRef, watch } from 'vue';
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
   import { quickSearch } from '@services/source/quickSearch';
 
-  import { useGlobalBizs } from '@stores';
+  import { useGlobalBizs, useSystemSearchStore } from '@stores';
 
   import { batchSplitRegex } from '@common/regex';
 
@@ -81,35 +85,32 @@
   import useKeyboard from './hooks/use-keyboard';
   import RenderResult from './render-result/Index.vue';
 
-  type ResultKeys = keyof Omit<ServiceReturnType<typeof quickSearch>, 'keyword' | 'short_code'>;
+  type ResultKeys = keyof Omit<ServiceReturnType<typeof quickSearch>, 'keyword' | 'short_code' | 'count'>;
 
   interface Props {
-    filterType: string;
     // eslint-disable-next-line vue/require-default-prop
     getSearchOptions?: () => UnwrapRef<typeof formData>;
     showOptions?: boolean;
   }
 
-  interface Expose {
-    getFilterOptions: () => {
-      formData: UnwrapRef<typeof formData>;
-      keyword: string;
-    };
-  }
+  type Emits = (e: 'to-result', resourceType: string) => void;
 
   const props = withDefaults(defineProps<Props>(), {
     showOptions: true,
   });
+  const emits = defineEmits<Emits>();
   const modelValue = defineModel<string>({
     default: '',
   });
 
   const { bizs: bizList } = useGlobalBizs();
+  const systemSearchStore = useSystemSearchStore();
+  const { formData } = storeToRefs(systemSearchStore);
 
   const { t } = useI18n();
   useKeyboard();
 
-  const QUICK_SEARCH_NO_LONGER_PROMPT = 'QUICK_SEARCH_NO_LONGER_PROMPT';
+  // const QUICK_SEARCH_NO_LONGER_PROMPT = 'QUICK_SEARCH_NO_LONGER_PROMPT';
 
   const resultTypeTextMap: Record<ResultKeys, string> = {
     cluster: t('集群'),
@@ -120,13 +121,7 @@
   };
 
   const isSearchEmpty = ref(false);
-  const formData = ref({
-    bk_biz_ids: [] as number[],
-    db_types: [] as string[],
-    filter_type: props.filterType,
-    resource_types: [] as string[],
-  });
-  const showUnsubscribeButton = ref(localStorage.getItem(QUICK_SEARCH_NO_LONGER_PROMPT) !== 'true');
+  // const showUnsubscribeButton = ref(localStorage.getItem(QUICK_SEARCH_NO_LONGER_PROMPT) !== 'true');
   const firstSearch = ref(true);
 
   const bizIdNameMap = computed(() =>
@@ -138,16 +133,16 @@
       return [];
     }
     return Object.keys(serachResult.value).filter(
-      (keyItem) => !['keyword', 'short_code'].includes(keyItem),
+      (keyItem) => !['count', 'keyword', 'short_code'].includes(keyItem),
     ) as ResultKeys[];
   });
 
-  const showAlert = computed(() => showUnsubscribeButton.value && !firstSearch.value && !isDataEmpty.value);
+  // const showAlert = computed(() => showUnsubscribeButton.value && !firstSearch.value && !isDataEmpty.value);
 
-  const isDataEmpty = computed(() => {
-    const dataItemList = Object.values(serachResult.value || {}).filter((item) => Array.isArray(item));
-    return _.every(Object.values(dataItemList), (item) => item.length < 1);
-  });
+  // const isDataEmpty = computed(() => {
+  //   const dataItemList = Object.values(serachResult.value || {}).filter((item) => Array.isArray(item));
+  //   return _.every(Object.values(dataItemList), (item) => item.length < 1);
+  // });
 
   const {
     data: serachResult,
@@ -213,33 +208,18 @@
     },
   );
 
-  watch(
-    () => props.filterType,
-    () => {
-      formData.value.filter_type = props.filterType;
-    },
-    {
-      immediate: true,
-    },
-  );
-
   const handleClearSearch = () => {
     modelValue.value = '';
   };
 
-  const handleUnsubscribe = () => {
-    localStorage.setItem(QUICK_SEARCH_NO_LONGER_PROMPT, 'true');
-    showUnsubscribeButton.value = false;
-  };
+  // const handleUnsubscribe = () => {
+  //   localStorage.setItem(QUICK_SEARCH_NO_LONGER_PROMPT, 'true');
+  //   showUnsubscribeButton.value = false;
+  // };
 
-  defineExpose<Expose>({
-    getFilterOptions() {
-      return {
-        formData: formData.value,
-        keyword: modelValue.value,
-      };
-    },
-  });
+  const handleToResult = (resourceType: string) => {
+    emits('to-result', resourceType);
+  };
 </script>
 <style lang="less">
   .system-serach-box {
