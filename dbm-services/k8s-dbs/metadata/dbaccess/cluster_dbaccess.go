@@ -134,7 +134,9 @@ func (k *K8sCrdClusterDbAccessImpl) FindByParams(params *metaentity.ClusterQuery
 
 // Update 更新 cluster 元数据接口实现
 func (k *K8sCrdClusterDbAccessImpl) Update(model *models.K8sCrdClusterModel) (uint64, error) {
-	result := k.db.Omit("CreatedAt", "CreatedBy").Save(model)
+	result := k.db.Model(model).Where("id = ?", model.ID).
+		Omit("CreatedAt", "CreatedBy").
+		Updates(model)
 	if result.Error != nil {
 		return 0, errors.Wrapf(result.Error, "failed to update cluster with model %+v", model)
 	}
