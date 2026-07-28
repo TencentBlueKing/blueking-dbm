@@ -131,7 +131,12 @@ class MongoDBInstanceReloadFlowParamBuilder(builders.FlowParamBuilder):
             bk_host_id__storages.setdefault(storage.machine.bk_host_id, []).append(storage)
 
         for info in self.ticket_data["infos"]:
-            host_storages = bk_host_id__storages[info["bk_host_id"]]
+            host_storages = bk_host_id__storages.get(info["bk_host_id"], [])
+            if not host_storages:
+                info.pop("cluster_id", None)
+                info.pop("port", None)
+                continue
+
             storage = host_storages[0]
             cluster = self._get_storage_cluster(storage)
             info.update(
