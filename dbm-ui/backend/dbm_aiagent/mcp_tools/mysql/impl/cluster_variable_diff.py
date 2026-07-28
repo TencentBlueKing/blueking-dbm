@@ -335,42 +335,80 @@ def _collect_spider_nodes(data: Dict) -> List[Dict]:
 
 
 def _spider_group_key(inst: Dict) -> str:
-    mt = (inst.get("machine_type") or "").lower()
-    role = (inst.get("role") or "").lower()
-    if "spider" in mt or role == "spider":
-        return "proxy"
-    return "embedded"
+    """按 Spider 角色成组（spider_master / spider_slave / spider_mnt 等），同角色节点彼此等价。"""
+    ir = (inst.get("instance_role") or "").lower().strip()
+    if ir:
+        return ir
+    return "spider"
 
 
-def _build_spider_pairs(data: Dict) -> List[Dict]:
+def _diff_spider_group_variables(members: List[Dict]) -> List[Dict]:
+    """组内全员共有键对比：取值不一致则按 value 归并实例列表。"""
+    if len(members) < 2:
+        return []
+    key_sets = [set((m.get("variables") or {}).keys()) for m in members]
+    common_keys = set.intersection(*key_sets) if key_sets else set()
+    high_impact = {k.lower() for k in HIGH_IMPACT_KEYS}
+    mismatches: List[Dict] = []
+    for key in sorted(common_keys):
+        if should_skip_variable(key):
+            continue
+        buckets: OrderedDict = OrderedDict()
+        for m in members:
+            addr = str(m.get("address") or "")
+            if not addr:
+                continue
+            val = str((m.get("variables") or {}).get(key, ""))
+            buckets.setdefault(val, []).append(addr)
+        if len(buckets) <= 1:
+            continue
+        mismatches.append(
+            {
+                "variable_name": key,
+                "severity": "high" if key.lower() in high_impact else "warn",
+                "values": [{"value": v, "instances": sorted(addrs)} for v, addrs in buckets.items()],
+            }
+        )
+    return mismatches
+
+
+def _build_spider_groups(data: Dict) -> List[Dict]:
+    """
+    Spider 按角色成组做一致性检查，不再两两 pair。
+    仅返回存在参数差异的组；组内一致时不输出（无差异为空列表）。
+    """
     nodes = [n for n in _collect_spider_nodes(data) if _is_spider(n)]
     if not nodes:
         return []
-    groups: Dict[str, List[Dict]] = OrderedDict()
+    grouped: Dict[str, List[Dict]] = OrderedDict()
     for n in nodes:
-        key = _spider_group_key(n)
-        groups.setdefault(key, []).append(n)
-    raw: List[Dict] = []
-    for group in groups.values():
-        group.sort(key=lambda x: str(x.get("address") or ""))
-        for i in range(len(group)):
-            for j in range(i + 1, len(group)):
-                a, b = group[i], group[j]
-                addr_a, addr_b = str(a.get("address") or ""), str(b.get("address") or "")
-                if not addr_a or not addr_b or addr_a == addr_b:
-                    continue
-                lo, hi = (a, b) if addr_a <= addr_b else (b, a)
-                mm = diff_variables(lo["variables"], hi["variables"])
-                if mm:
-                    raw.append(
-                        {
-                            "scope": "spider_peer",
-                            "peer_a": lo["address"],
-                            "peer_b": hi["address"],
-                            "mismatches": mm,
-                        }
-                    )
-    return raw
+        grouped.setdefault(_spider_group_key(n), []).append(n)
+
+    out: List[Dict] = []
+    for group_name, members in grouped.items():
+        members = sorted(members, key=lambda x: str(x.get("address") or ""))
+        # 去重地址，保留首次出现
+        uniq: OrderedDict = OrderedDict()
+        for m in members:
+            addr = str(m.get("address") or "")
+            if addr and addr not in uniq:
+                uniq[addr] = m
+        member_list = list(uniq.values())
+        if len(member_list) < 2:
+            continue
+        mismatches = _diff_spider_group_variables(member_list)
+        if not mismatches:
+            continue
+        out.append(
+            {
+                "scope": "spider_group",
+                "group": group_name,
+                "members": [m["address"] for m in member_list],
+                "is_consistent": False,
+                "mismatches": mismatches,
+            }
+        )
+    return out
 
 
 def _build_spider_versions(data: Dict) -> Tuple[List[Dict], Dict[str, Any]]:
@@ -413,7 +451,7 @@ def build_tendbcluster_variable_diff(runtime_data: Dict, cluster_domain: str = "
         "cluster_domain": cluster_domain,
         "spider_versions": spider_versions,
         "spider_version_diff": spider_version_diff,
-        "spider_pairs": _build_spider_pairs(runtime_data),
+        "spider_groups": _build_spider_groups(runtime_data),
         "shard_pairs": _cluster_shard_pairs(_collect_tendbcluster_shards(runtime_data)),
     }
 
