@@ -259,7 +259,14 @@ class MySQLQueryMcpToolsViewSet(McpToolsViewSet):
         )
 
     @mcp_tools_api_decorator(
-        description=str(_("查询集群所有角色实例的运行时核心配置(已过滤目录/路径类), 带版本信息; 各实例另含 datadir、data_dir_mount")),
+        description=str(
+            _(
+                "查询集群所有角色实例的运行时核心配置, 带版本信息; 各实例另含 datadir、data_dir_mount。"
+                "已过滤目录/路径类、ssl_*、report_*、myisam_*、performance_schema_*、InnoDB 低价值项;"
+                "Spider 另裁 innodb_/slave_/relay_log/replicate_/rpl_semi_sync;"
+                "存储层 default_storage_engine 非 InnoDB 时裁全部 innodb_*。"
+            )
+        ),
         request_slz=MySQLClusterRuntimeVariablesInputSerializer,
         response_slz=MySQLClusterRuntimeVariablesOutputSerializer,
         tags=[DBMMCPTags.READ],

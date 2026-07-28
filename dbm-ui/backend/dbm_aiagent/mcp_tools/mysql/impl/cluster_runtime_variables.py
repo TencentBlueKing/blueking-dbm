@@ -27,7 +27,7 @@ SHOW_GLOBAL_VARIABLES = "SHOW GLOBAL VARIABLES"
 # 单次 v2_mysql_rpc 携带的实例地址上限，避免 TenDBCluster 等大集群一次请求过大
 _SHOW_GLOBAL_VARIABLES_RPC_BATCH_SIZE = 50
 
-# 目录/路径/文件类变量名后缀(小写匹配), 这类配置不属于核心关键参数, 过滤掉
+# 目录/路径/文件类变量名后缀(小写匹配), 这类配置不属于核心运行参数, 过滤掉
 _PATH_LIKE_NAME_SUFFIXES = ("dir", "_file", "_path", "_home")
 # 目录/路径/文件类变量名关键字(小写匹配)
 _PATH_LIKE_NAME_KEYWORDS = ("socket", "secure_file_priv", "log_error", "character_sets_dir")
@@ -36,6 +36,38 @@ _PATH_LIKE_NAME_KEYWORDS = ("socket", "secure_file_priv", "log_error", "characte
 _MYISAM_VARIABLE_PREFIX = "myisam_"
 # Performance Schema 消费者类变量名前缀(小写匹配); 过滤 performance_schema_* 子项
 _PERFORMANCE_SCHEMA_VARIABLE_PREFIX = "performance_schema_"
+# SSL 相关变量名前缀(小写匹配); 巡检对比价值低, 默认不输出
+_SSL_VARIABLE_PREFIX = "ssl_"
+# report_* 实例上报相关变量名前缀(小写匹配); 如 report_host/report_port, 巡检对比价值低
+_REPORT_VARIABLE_PREFIX = "report_"
+
+# InnoDB 低价值前缀(小写匹配); 全文/API/monitor/buffer pool 热启停等, 配置巡检极少使用
+_LOW_VALUE_INNODB_PREFIXES = (
+    "innodb_ft_",
+    "innodb_api_",
+    "innodb_monitor_",
+    "innodb_buffer_pool_dump_",
+    "innodb_buffer_pool_load_",
+)
+# InnoDB 低价值精确键(小写匹配)
+_LOW_VALUE_INNODB_KEYS = frozenset(
+    {
+        "innodb_version",
+        "innodb_buffer_pool_filename",
+        "innodb_file_format_check",
+        "innodb_file_format_max",
+        "innodb_support_xa",
+    }
+)
+
+# Spider 接入层无关前缀(小写 startswith); 存储/复制向参数对 Spider 无分析价值
+_SPIDER_IGNORED_VARIABLE_PREFIXES = (
+    "innodb_",
+    "slave_",
+    "relay_log",
+    "replicate_",
+    "rpl_semi_sync",
+)
 
 # 实例级/环境相关变量, 巡检对比价值低, 不输出
 IGNORED_RUNTIME_VARIABLE_KEYS = [
@@ -67,8 +99,15 @@ def _is_path_like_variable(name: str, value: str) -> bool:
     return False
 
 
+def _is_low_value_innodb_variable(lname: str) -> bool:
+    """判断是否为 InnoDB 低价值变量(全文/API/monitor/热启停/过时键等)。"""
+    if lname in _LOW_VALUE_INNODB_KEYS:
+        return True
+    return any(lname.startswith(prefix) for prefix in _LOW_VALUE_INNODB_PREFIXES)
+
+
 def _filter_variables(table_data: List[Dict]) -> Dict[str, str]:
-    """黑名单过滤: 去除目录/路径/文件类、MyISAM、performance_schema_* 与 IGNORED_RUNTIME_VARIABLE_KEYS, 仅保留核心关键参数。"""
+    """黑名单过滤: 去除目录/路径类、ssl_、report_、MyISAM、performance_schema_*、InnoDB 低价值项与 IGNORED_RUNTIME_VARIABLE_KEYS。"""
     variables = {}
     for row in table_data:
         name = row.get("Variable_name", "")
@@ -78,14 +117,44 @@ def _filter_variables(table_data: List[Dict]) -> Dict[str, str]:
         lname = name.lower()
         if lname in IGNORED_RUNTIME_VARIABLE_KEYS:
             continue
+        if lname.startswith(_SSL_VARIABLE_PREFIX):
+            continue
+        if lname.startswith(_REPORT_VARIABLE_PREFIX):
+            continue
         if lname.startswith(_MYISAM_VARIABLE_PREFIX):
             continue
         if lname.startswith(_PERFORMANCE_SCHEMA_VARIABLE_PREFIX):
+            continue
+        if _is_low_value_innodb_variable(lname):
             continue
         if _is_path_like_variable(name, value):
             continue
         variables[name] = value
     return variables
+
+
+def _apply_spider_variable_filter(variables: Dict[str, str]) -> Dict[str, str]:
+    """Spider 角色裁撤存储/复制向参数。"""
+    filtered = {}
+    for name, value in (variables or {}).items():
+        lname = name.lower()
+        if any(lname.startswith(prefix) for prefix in _SPIDER_IGNORED_VARIABLE_PREFIXES):
+            continue
+        filtered[name] = value
+    return filtered
+
+
+def _apply_storage_engine_filter(variables: Dict[str, str]) -> Dict[str, str]:
+    """存储层按 default_storage_engine 裁撤: 非 InnoDB 时去掉全部 innodb_*。
+
+    引擎键缺失或为空时保守不裁整段 innodb_*。
+    """
+    if not variables:
+        return {}
+    engine = (variables.get("default_storage_engine") or "").strip().lower()
+    if not engine or engine == "innodb":
+        return dict(variables)
+    return {name: value for name, value in variables.items() if not name.lower().startswith("innodb_")}
 
 
 def _extract_datadir_from_table(table_data: List[Dict]) -> str:
@@ -169,7 +238,7 @@ def _build_storage_item(
         "version": inst.version or "",
         "is_stand_by": bool(getattr(inst, "is_stand_by", False)),
         **meta,
-        "variables": addr_to_variables.get(address, {}),
+        "variables": _apply_storage_engine_filter(addr_to_variables.get(address, {})),
     }
 
 
@@ -186,7 +255,7 @@ def _build_spider_item(
         "machine_type": proxy.machine_type,
         "version": proxy.version or "",
         **meta,
-        "variables": addr_to_variables.get(address, {}),
+        "variables": _apply_spider_variable_filter(addr_to_variables.get(address, {})),
     }
 
 
@@ -283,7 +352,8 @@ def _tendbcluster_variables(
 def cluster_runtime_variables(cluster_obj: Cluster) -> Dict:
     """查询集群所有角色实例的运行时核心配置, 带版本信息; 另返回 datadir 及推导的 data_dir_mount。
 
-    已过滤目录/路径类、myisam_*、performance_schema_* 与 IGNORED_RUNTIME_VARIABLE_KEYS。
+    已过滤目录/路径类、ssl_*、report_*、myisam_*、performance_schema_*、InnoDB 低价值项与 IGNORED_RUNTIME_VARIABLE_KEYS；
+    Spider 另裁存储/复制向前缀；存储层非 InnoDB 时裁全部 innodb_*。
     """
     addr_to_variables, addr_to_datadir_meta = _query_variables_for_addresses(
         bk_cloud_id=cluster_obj.bk_cloud_id, addresses=_collect_query_addresses(cluster_obj)
