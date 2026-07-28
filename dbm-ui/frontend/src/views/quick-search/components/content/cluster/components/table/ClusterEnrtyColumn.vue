@@ -1,10 +1,9 @@
 <template>
-  <BkTableColumn
-    field="cluster_entry"
-    :label="t('访问入口')"
+  <TableColumn
+    col-key="cluster_entry"
     :min-width="250"
-    show-overflow-tooltip>
-    <template #default="{ data: rowData }: { data: QuickSearchClusterModel }">
+    :title="t('访问入口')">
+    <template #default="{ row: rowData }: { row: QuickSearchClusterModel }">
       <template v-if="rowData.dispalyEntryList.length > 0">
         <div
           v-for="entryItem in getList(rowData.dispalyEntryList)"
@@ -50,7 +49,7 @@
       </template>
       <span v-else>--</span>
     </template>
-  </BkTableColumn>
+  </TableColumn>
 </template>
 
 <script setup lang="ts">

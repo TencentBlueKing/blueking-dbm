@@ -10,11 +10,7 @@
     <template #main>
       <div class="quick-search-head">
         <div class="quick-search-search">
-          <SearchInput
-            v-model="keyword"
-            v-model:filter-type="formData.filter_type"
-            :form-data="formData"
-            @search="handleSearch" />
+          <SearchInput @search="handleSearch" />
         </div>
         <BkTab
           v-model:active="activeTab"
@@ -38,15 +34,12 @@
               <KeepAlive>
                 <Component
                   :is="renderComponent"
+                  ref="renderComponent"
                   :biz-id-name-map="bizIdNameMap"
                   class="tab-table"
-                  :data="dataList"
-                  :filter-type="formData.filter_type"
-                  :is-anomalies="!!error"
-                  :is-searching="isSearching"
+                  :form-data="formData"
                   :keyword="keyword"
-                  @clear-search="handleClearSearch"
-                  @refresh="handleSearch" />
+                  @clear-search="handleClearSearch" />
               </KeepAlive>
             </ScrollFaker>
           </BkLoading>
@@ -65,6 +58,7 @@
 </template>
 
 <script setup lang="ts">
+  import { storeToRefs } from 'pinia';
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
@@ -72,7 +66,7 @@
 
   import { useUrlSearch } from '@hooks';
 
-  import { useGlobalBizs } from '@stores';
+  import { useGlobalBizs, useSystemSearchStore } from '@stores';
 
   import { FilterType } from '@common/const';
   import { batchSplitRegex } from '@common/regex';
@@ -80,7 +74,7 @@
   import FilterOptions from '@components/system-search/components/search-result/FilterOptions.vue';
 
   import Cluster from './components/content/cluster/Index.vue';
-  import Instance from './components/content/Instance.vue';
+  import Instance from './components/content/instance/Index.vue';
   import Machine from './components/content/Machine.vue';
   import Task from './components/content/Task.vue';
   import Ticket from './components/content/Ticket.vue';
@@ -94,7 +88,11 @@
   const router = useRouter();
   const { t } = useI18n();
   const { bizs: bizList } = useGlobalBizs();
-  const { getSearchParams, replaceSearchParams } = useUrlSearch();
+  const { getSearchParams, removeSearchParam, replaceSearchParams } = useUrlSearch();
+  const systemSearchStore = useSystemSearchStore();
+
+  // 使用 store 中的状态
+  const { formData, keyword } = storeToRefs(systemSearchStore);
 
   let isRedirectSearch = true;
   let routeParamsMemo = {};
@@ -112,22 +110,17 @@
     {} as Record<number, string>,
   );
 
-  // const keyword = ref((route.query.keyword as string) || '');
-  const keyword = ref('');
-  const dataMap = ref<Omit<ServiceReturnType<typeof quickSearch>, 'keyword' | 'short_code'>>({
-    cluster: [],
-    instance: [],
-    machine: [],
-    task: [],
-    ticket: [],
-  });
+  const renderComponentRef = useTemplateRef('renderComponent');
 
-  const formData = ref({
-    bk_biz_ids: [] as number[],
-    db_types: [] as string[],
-    filter_type: FilterType.EXACT,
-    resource_types: [] as string[],
-  });
+  // const keyword = ref((route.query.keyword as string) || '');
+  // const dataMap = ref<Omit<ServiceReturnType<typeof quickSearch>, 'keyword' | 'short_code'>>({
+  //   cluster: [],
+  //   instance: [],
+  //   machine: [],
+  //   task: [],
+  //   ticket: [],
+  // });
+
   const activeTab = ref('cluster');
   const panelList = reactive([
     {
@@ -157,8 +150,6 @@
     },
   ]);
 
-  const isSearching = computed(() => loading.value && !!keyword.value);
-
   const renderComponent = computed(() => {
     if (loading.value) {
       return null;
@@ -172,47 +163,41 @@
     return Cluster;
   });
 
-  const dataList = computed(() => {
-    if (loading.value) {
-      return [];
-    }
-    const activeDataList = dataMap.value[activeTab.value as keyof typeof comMap];
-    if (activeDataList) {
-      return activeDataList;
-    }
-    return dataMap.value.cluster;
-  });
+  // const dataList = computed(() => {
+  //   if (loading.value) {
+  //     return [];
+  //   }
+  //   const activeDataList = dataMap.value[activeTab.value as keyof typeof comMap];
+  //   if (activeDataList) {
+  //     return activeDataList;
+  //   }
+  //   return dataMap.value.cluster;
+  // });
 
-  const {
-    error,
-    loading,
-    run: quickSearchRun,
-  } = useRequest(quickSearch, {
+  const { loading, run: quickSearchRun } = useRequest(quickSearch, {
     manual: true,
     onAfter() {
       isRedirectSearch = false;
     },
     onSuccess(data, params) {
       if (isRedirectSearch) {
+        isRedirectSearch = false;
         keyword.value = data.keyword.replace(batchSplitRegex, '|');
         handleSearch();
       }
-      Object.assign(dataMap.value, {
-        cluster: data.cluster,
-        instance: data.instance,
-        machine: data.machine,
-        task: data.task,
-        ticket: data.ticket,
-      });
-      panelList[0].count = data.cluster.length;
-      panelList[1].count = data.instance.length;
-      panelList[2].count = data.machine.length;
-      panelList[3].count = data.task.length;
-      panelList[4].count = data.ticket.length;
 
-      const panelItem = panelList.find((panel) => panel.count > 0);
-      if (panelItem) {
-        activeTab.value = panelItem.name;
+      panelList[0].count = data.count.cluster;
+      panelList[1].count = data.count.instance;
+      panelList[2].count = data.count.machine;
+      panelList[3].count = data.count.task;
+      panelList[4].count = data.count.ticket;
+
+      const currentPanelItem = panelList.find((panel) => panel.name === activeTab.value);
+      if (currentPanelItem && currentPanelItem.count === 0) {
+        const panelItem = panelList.find((panel) => panel.count > 0);
+        if (panelItem) {
+          activeTab.value = panelItem.name;
+        }
       }
 
       const serachParams = Object.entries(params[0]).reduce<Record<string, MapArrayToString<(typeof params)[0]>>>(
@@ -247,32 +232,19 @@
     },
   );
 
-  const clearData = () => {
-    Object.assign(dataMap.value, {
-      cluster: [],
-      instance: [],
-      resource_pool: [],
-      task: [],
-      ticket: [],
-    });
-    panelList[0].count = 0;
-    panelList[1].count = 0;
-    panelList[2].count = 0;
-    panelList[3].count = 0;
-    panelList[4].count = 0;
-  };
-
   const handleSearch = () => {
     if (!keyword.value) {
-      clearData();
       return;
     }
 
+    // 只做数量展示和url联动
     quickSearchRun({
       ...formData.value,
       keyword: keyword.value.replace(batchSplitRegex, ' '),
-      limit: 1000,
+      limit: 10,
     });
+
+    renderComponentRef.value?.fetchData();
   };
 
   // watch(
@@ -290,16 +262,6 @@
   //   },
   // );
 
-  watch(
-    formData,
-    () => {
-      handleSearch();
-    },
-    {
-      deep: true,
-    },
-  );
-
   // const handleExportAllClusters = () => {
 
   // };
@@ -310,6 +272,9 @@
 
   const handleClearSearch = () => {
     keyword.value = '';
+    formData.value.bk_biz_ids = [];
+    formData.value.db_types = [];
+    formData.value.resource_types = [];
   };
 
   // 初始化查询
@@ -331,17 +296,35 @@
     };
     const initParams = getSearchParams();
     routeParamsMemo = initParams;
-    formData.value = formatRouteQuery(initParams);
+    Object.assign(formData.value, formatRouteQuery(initParams));
     const shortCode = initParams?.short_code || initParams?.keyword;
+    if (initParams?.tabName) {
+      activeTab.value = initParams?.tabName || 'cluster';
+      removeSearchParam('tabName');
+    }
     if (shortCode) {
+      // 只做数量查询，不做结果展示
       quickSearchRun({
         ...formData.value,
-        limit: 1000,
+        limit: 10,
         short_code: shortCode,
       });
     }
   };
   initRetrieve();
+
+  // 监听顶部搜索组件的刷新请求（结果页场景）
+  watch(
+    () => systemSearchStore.shouldRefresh,
+    (shouldRefreshVal) => {
+      if (!shouldRefreshVal) {
+        return;
+      }
+      // keyword.value = systemSearchStore.keyword;
+      systemSearchStore.consumeRefresh();
+      handleSearch();
+    },
+  );
 
   defineExpose({
     routerBack() {
@@ -356,7 +339,7 @@
   });
 </script>
 
-<style lang="less" scoped>
+<style lang="less">
   .quick-search {
     height: 100%;
 
@@ -381,21 +364,21 @@
       .quick-search-tab {
         box-shadow: 0 2px 4px 0 #1919290d;
 
-        :deep(.bk-tab-header) {
+        .bk-tab-header {
           justify-content: center;
           border-bottom: none;
         }
 
-        :deep(.bk-tab-content) {
+        .bk-tab-content {
           padding: 0 !important;
         }
       }
 
       .tab-content {
-        height: calc(100% - 162px);
+        height: calc(100% - 150px);
         background-color: #f5f7fa;
 
-        :deep(.tab-content-loading) {
+        .tab-content-loading {
           height: 100%;
           padding: 16px 0;
 
@@ -419,8 +402,12 @@
       background-color: #fff;
     }
 
-    :deep(.bk-resize-collapse) {
+    .bk-resize-collapse {
       z-index: 3;
     }
+  }
+
+  .quick-search-empty {
+    background-color: #fff;
   }
 </style>
