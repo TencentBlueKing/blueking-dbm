@@ -68,7 +68,7 @@ class BaseDBAccountViewSet(viewsets.SystemViewSet):
             account_view_action = (
                 getattr(ActionEnum, f"{account_type}_account_rules_view".upper())
                 if account_type != AccountType.SQLServer
-                else getattr(ActionEnum, "sqlserver_priv_manage".upper())
+                else getattr(ActionEnum, "db_manage".upper())
             )
             return [ResourceActionPermission([account_view_action], ResourceEnum.BUSINESS, self.instance_getter)]
         else:
