@@ -26,7 +26,7 @@ package workflow
 
 import (
 	"dbm-services/common/dbha-v2/internal/analysis/detector"
-	"dbm-services/common/dbha-v2/internal/analysis/workflow/parser"
+	"dbm-services/common/dbha-v2/internal/analysis/parser"
 	"dbm-services/common/dbha-v2/pkg/logger"
 	"dbm-services/common/dbha-v2/pkg/safe"
 	"dbm-services/common/dbha-v2/pkg/storage/hamodel"

@@ -25,7 +25,7 @@
 package workflow
 
 import (
-	"dbm-services/common/dbha-v2/internal/analysis/workflow/parser"
+	"dbm-services/common/dbha-v2/internal/analysis/parser"
 	"dbm-services/common/dbha-v2/pkg/gerrors"
 	"dbm-services/common/dbha-v2/pkg/logger"
 	"dbm-services/common/dbha-v2/pkg/storage/haprobe"
