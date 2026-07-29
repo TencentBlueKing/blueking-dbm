@@ -33,7 +33,7 @@ import (
 
 func init() {
 	switcher.Register(haprobe.DbTypeMySql, func() switcher.Switcher {
-		return &switcher.Mysql{}
+		return &Mysql{}
 	})
 	dbtype.RegisterSwitchAlarmEvents(haprobe.DbTypeMySql, dbtype.SwitchAlarmEvents{
 		Success: haprobe.DbEventNameMysqlSwitchSuccessV1,

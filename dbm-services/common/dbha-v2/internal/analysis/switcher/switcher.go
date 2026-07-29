@@ -32,7 +32,6 @@ import (
 	"time"
 
 	"dbm-services/common/dbha-v2/internal/analysis/dbm"
-	"dbm-services/common/dbha-v2/internal/analysis/switcher/mysql"
 	"dbm-services/common/dbha-v2/internal/analysis/switcher/switchcore"
 	"dbm-services/common/dbha-v2/internal/analysis/switcher/switchlogger"
 	"dbm-services/common/dbha-v2/pkg/gerrors"
@@ -71,10 +70,10 @@ func (req *Request) GetDbInstMetadata() []*dbm.DbInstMetadata {
 
 // Response contains the result of switching operation
 type Response struct {
-	FailureInsts       map[switchcore.MetadataKey]*dbm.DbInstMetadata
-	MySqlNewMasterInfo map[switchcore.MetadataKey]*mysql.MySqlNewMasterInfo
-	Err                error
-	mu                 sync.Mutex
+	FailureInsts  map[switchcore.MetadataKey]*dbm.DbInstMetadata
+	NewMasterInfo map[switchcore.MetadataKey]*switchcore.NewMasterInfo
+	Err           error
+	mu            sync.Mutex
 }
 
 // GetFailureInsts returns a copy of failed instances under rsp.mu.
@@ -126,7 +125,7 @@ func (rsp *Response) AddFailureInst(instKey switchcore.MetadataKey, inst *dbm.Db
 }
 
 // AddNewMasterInfo records the new master info in a concurrency-safe way.
-func (rsp *Response) AddNewMasterInfo(instKey switchcore.MetadataKey, info *mysql.MySqlNewMasterInfo) {
+func (rsp *Response) AddNewMasterInfo(instKey switchcore.MetadataKey, info *switchcore.NewMasterInfo) {
 	if rsp == nil {
 		return
 	}
@@ -137,15 +136,15 @@ func (rsp *Response) AddNewMasterInfo(instKey switchcore.MetadataKey, info *mysq
 	rsp.mu.Lock()
 	defer rsp.mu.Unlock()
 
-	if rsp.MySqlNewMasterInfo == nil {
-		rsp.MySqlNewMasterInfo = map[switchcore.MetadataKey]*mysql.MySqlNewMasterInfo{}
+	if rsp.NewMasterInfo == nil {
+		rsp.NewMasterInfo = map[switchcore.MetadataKey]*switchcore.NewMasterInfo{}
 	}
-	rsp.MySqlNewMasterInfo[instKey] = info
+	rsp.NewMasterInfo[instKey] = info
 }
 
-// recordInstanceNewMaster records the new master info of a successfully switched instance, if any.
-func (rsp *Response) recordInstanceNewMaster(instKey switchcore.MetadataKey, swInst switchcore.SwitchableInstance) {
-	provider, ok := swInst.(mysql.InstanceNewMasterProvider)
+// RecordInstanceNewMaster records the new master info of a successfully switched instance, if any.
+func (rsp *Response) RecordInstanceNewMaster(instKey switchcore.MetadataKey, swInst switchcore.SwitchableInstance) {
+	provider, ok := swInst.(switchcore.InstanceNewMasterProvider)
 	if !ok {
 		return
 	}
@@ -155,9 +154,9 @@ func (rsp *Response) recordInstanceNewMaster(instKey switchcore.MetadataKey, swI
 	}
 }
 
-// recordClusterNewMasters records the new master info of a successfully switched cluster, if any.
-func (rsp *Response) recordClusterNewMasters(swCluster switchcore.SwitchableCluster) {
-	provider, ok := swCluster.(mysql.ClusterNewMasterProvider)
+// RecordClusterNewMasters records the new master info of a successfully switched cluster, if any.
+func (rsp *Response) RecordClusterNewMasters(swCluster switchcore.SwitchableCluster) {
+	provider, ok := swCluster.(switchcore.ClusterNewMasterProvider)
 	if !ok {
 		return
 	}
@@ -167,13 +166,13 @@ func (rsp *Response) recordClusterNewMasters(swCluster switchcore.SwitchableClus
 	}
 }
 
-// GetMySqlNewMasterInfo returns the new master info for the given mysql instance, if any.
-func (rsp *Response) GetMySqlNewMasterInfo(instKey switchcore.MetadataKey) (*mysql.MySqlNewMasterInfo, bool) {
-	if rsp == nil || rsp.MySqlNewMasterInfo == nil {
+// GetNewMasterInfo returns the new master info for the given instance, if any.
+func (rsp *Response) GetNewMasterInfo(instKey switchcore.MetadataKey) (*switchcore.NewMasterInfo, bool) {
+	if rsp == nil || rsp.NewMasterInfo == nil {
 		return nil, false
 	}
 
-	info, ok := rsp.MySqlNewMasterInfo[instKey]
+	info, ok := rsp.NewMasterInfo[instKey]
 	return info, ok
 }
 
