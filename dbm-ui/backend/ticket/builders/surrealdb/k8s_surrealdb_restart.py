@@ -30,7 +30,7 @@ class K8sSurrealDBRestartFlowParamBuilder(builders.FlowParamBuilder):
     controller = SurrealDBController.surrealdb_restart_scene
 
 
-@builders.BuilderFactory.register(TicketType.K8S_SURREALDB_RESTART, iam=ActionEnum.K8S_SURREALDB_RESTART)
+@builders.BuilderFactory.register(TicketType.K8S_SURREALDB_RESTART, iam=ActionEnum.K8S_SURREALDB_MANAGE)
 class K8sSurrealDBRestartFlowBuilder(BaseSurrealDBTicketFlowBuilder):
     serializer = K8sSurrealDBRestartDetailSerializer
     inner_flow_builder = K8sSurrealDBRestartFlowParamBuilder
