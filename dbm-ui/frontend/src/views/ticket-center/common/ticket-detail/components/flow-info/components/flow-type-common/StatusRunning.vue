@@ -43,9 +43,7 @@
         :data="data"
         :flow-type="data.flow_type"
         :ticket-detail="ticketDetail" />
-      <Abstract
-        :data="data"
-        :ticket-type="ticketDetail.ticket_type" />
+      <Abstract :data="data" />
     </template>
   </DbTimeLineItem>
 </template>
