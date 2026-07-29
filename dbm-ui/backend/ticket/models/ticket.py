@@ -485,23 +485,21 @@ class TicketFlowsConfig(AuditedModel):
                 cluster_tag_map[cluster.id][tag.key].add(tag.value)
 
         def match_tag_rules(cluster_id, tag_cfg_rules):
+            # tag_cfg_rules为一条TicketFlowsConfig里面的cluster_tags字段数据
             cluster_tags = cluster_tag_map.get(cluster_id, {})
 
             for tag_key, tag_values in tag_cfg_rules.items():
                 cluster_tag_values = cluster_tags.get(tag_key, set())
-                if not cluster_tag_values & tag_values:
+                tag_value_matched = (CLUSTER_TAG_WILDCARD_VALUE in tag_values and bool(cluster_tag_values)) or bool(
+                    cluster_tag_values & tag_values
+                )
+                if not tag_value_matched:
                     # 不同 tag_key 之间按 AND 关系判断, 有一个 tag_key 的 tag_values 不命中则返回false
                     return False
             return True
 
         def get_matched_tag_cfg(cluster_id):
-            cluster_tags = cluster_tag_map.get(cluster_id, {})
             for tag_cfg, tag_cfg_rules in tag_cfg_rule_list:
-                if any(CLUSTER_TAG_WILDCARD_VALUE in tag_values for tag_values in tag_cfg_rules.values()):
-                    if any(cluster_tags.values()):
-                        # tag_value 为“任意值”时，集群存在任意标签即命中。
-                        return tag_cfg
-                    continue
                 if tag_cfg_rules and match_tag_rules(cluster_id, tag_cfg_rules):
                     return tag_cfg
             return None
