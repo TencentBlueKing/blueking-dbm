@@ -26,18 +26,31 @@ from backend.dbm_aiagent.mcp_tools.common.serializers.ticket_manipulate import (
     TicketManipulateOutputSerializer,
 )
 from backend.dbm_aiagent.mcp_tools.constants import DBMMCPTags, DBMMcpTools
-from backend.dbm_aiagent.mcp_tools.decorators import mcp_tools_api_decorator
+from backend.dbm_aiagent.mcp_tools.decorators import default_mcp_callee_plan_checker, mcp_tools_api_decorator
 from backend.dbm_aiagent.mcp_tools.exceptions import DBMMcpBadTicketStatusException, DBMMcpBaseException
 from backend.dbm_aiagent.mcp_tools.typing import BizIdList
 from backend.dbm_aiagent.mcp_tools.views import McpToolsViewSet
 from backend.iam_app.handlers.drf_perm.base import DBManagePermission
 from backend.iam_app.handlers.drf_perm.mcp import McpDBManagePermission
-from backend.ticket.constants import TicketStatus
+from backend.ticket.constants import TicketStatus, TicketType
 from backend.ticket.handler import TicketHandler
 from backend.ticket.models import Ticket
 from backend.ticket.todos import TodoActionType
 
 logger = logging.getLogger("root")
+
+
+def ticket_execute_plan_checker(
+    plan_slz: TicketManipulateInputSerializer, requested_slz: TicketManipulateInputSerializer
+):
+    ticket_id = requested_slz.validated_data["ticket_id"]
+    tk = Ticket.objects.get(pk=ticket_id)
+    if tk.ticket_type == TicketType.REGISTER_MCP_CALLEE_PLAN:
+        raise Exception(
+            f"Cannot execute ticket of type `{TicketType.REGISTER_MCP_CALLEE_PLAN}` via MCP `ticket_execute`. "
+            f"Please approve this ticket through the DBM web console."
+        )
+    default_mcp_callee_plan_checker(plan_slz, requested_slz)
 
 
 class TicketOperationMcpToolsViewSet(McpToolsViewSet):
@@ -100,10 +113,11 @@ class TicketOperationMcpToolsViewSet(McpToolsViewSet):
         tags=[DBMMCPTags.READ, DBMMCPTags.WRITE],
         mcp=[DBMMcpTools.TICKET_OP],
         mcp_auth_parser=auth_parse_ticket_biz,
+        enable_callee_plan=True,
+        callee_plan_checker=ticket_execute_plan_checker,
         name_prefix="ticket_op",
     )
     def ticket_execute(self, request, *args, **kwargs):
-        # bk_biz_id = self.get_param("bk_biz_id")
         ticket_id = self.get_param("ticket_id")
 
         username = request.user.username
@@ -130,10 +144,11 @@ class TicketOperationMcpToolsViewSet(McpToolsViewSet):
         tags=[DBMMCPTags.READ, DBMMCPTags.WRITE],
         mcp=[DBMMcpTools.TICKET_OP],
         mcp_auth_parser=auth_parse_ticket_biz,
+        enable_callee_plan=True,
+        callee_plan_checker=ticket_execute_plan_checker,  # 确实是这样复用的, 没写错
         name_prefix="ticket_op",
     )
     def ticket_terminate(self, request, *args, **kwargs):
-        # bk_biz_id = self.get_param("bk_biz_id")
         ticket_id = self.get_param("ticket_id")
         username = request.user.username
 
