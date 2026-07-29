@@ -505,6 +505,7 @@ class TicketType(StrStructuredEnum):
     REDIS_KEYS_EXTRACT = TicketEnumField("REDIS_KEYS_EXTRACT", _("Redis 提取 Key"), _("集群管理"))
     REDIS_KEYS_DELETE = TicketEnumField("REDIS_KEYS_DELETE", _("Redis 删除 key"), _("集群管理"))
     REDIS_BACKUP = TicketEnumField("REDIS_BACKUP", _("Redis 集群备份"), _("集群管理"))
+    REDIS_BACKUP_AUTO = TicketEnumField("REDIS_BACKUP_AUTO", _("Redis 自动提交备份单据"), register_iam=False)
     REDIS_PROXY_OPEN = TicketEnumField("REDIS_PROXY_OPEN", _("Redis 集群启用"), register_iam=False)
     REDIS_PROXY_CLOSE = TicketEnumField("REDIS_PROXY_CLOSE", _("Redis 集群禁用"), register_iam=False)
     REDIS_INSTANCE_OPEN = TicketEnumField("REDIS_INSTANCE_OPEN", _("Redis 主从启用"), register_iam=False)

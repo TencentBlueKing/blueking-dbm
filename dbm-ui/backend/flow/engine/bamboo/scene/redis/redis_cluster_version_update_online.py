@@ -41,6 +41,10 @@ from backend.flow.plugins.components.collections.redis.exec_shell_script import 
 from backend.flow.plugins.components.collections.redis.get_redis_payload import GetRedisActPayloadComponent
 from backend.flow.plugins.components.collections.redis.redis_config import RedisConfigComponent
 from backend.flow.plugins.components.collections.redis.redis_db_meta import RedisDBMetaComponent
+from backend.flow.plugins.components.collections.redis.redis_submit_backup_ticket import (
+    DEFAULT_AUTO_TERMINATE_SECONDS,
+    RedisSubmitBackupTicketComponent,
+)
 from backend.flow.plugins.components.collections.redis.redis_update_version import RedisUpdateVersionComponent
 from backend.flow.plugins.components.collections.redis.trans_flies import TransFileComponent
 from backend.flow.utils.redis.redis_act_playload import RedisActPayload
@@ -568,6 +572,24 @@ class RedisClusterVersionUpdateOnline(object):
             storage_pipelines.append(self._create_instance_pair_upgrade_sub_flow(pair_key, bucket))
         if storage_pipelines:
             redis_pipeline.add_parallel_sub_pipeline(storage_pipelines)
+
+        # Redis 集群版本升级完成后，自动提交一张 Redis 备份单据（3 小时内 DBA 未点执行则自动终止）
+        upgraded_cluster_ids = self._collect_upgraded_cluster_ids()
+        if upgraded_cluster_ids:
+            redis_pipeline.add_act(
+                act_name=_("自动提交Redis备份单据"),
+                act_component_code=RedisSubmitBackupTicketComponent.code,
+                kwargs={
+                    "cluster_ids": upgraded_cluster_ids,
+                    "bk_biz_id": self.data["bk_biz_id"],
+                    "created_by": self.data.get("created_by"),
+                    "backup_target": "slave",
+                    "backup_type": "normal_backup",
+                    "auto_terminate_seconds": DEFAULT_AUTO_TERMINATE_SECONDS,
+                    "parent_ticket_id": self.data.get("uid"),
+                    "remark": _("Redis集群版本升级完成后自动提交备份单据"),
+                },
+            )
 
         redis_pipeline.run_pipeline()
 
