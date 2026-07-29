@@ -45,10 +45,6 @@ class KubernetesResourceViewSet(ResourceViewSet):
         data_field=lambda d: d["results"],
         action_filed=lambda d: d["view_class"].list_perm_actions,
     )
-    @Permission.decorator_external_permission_field(
-        param_field=lambda d: d["view_class"]._external_perm_param_field(d),
-        action_filed=lambda d: d["view_class"].list_external_perm_actions,
-    )
     def list(self, request, bk_biz_id: int):
         """查询集群列表"""
         query_params = self.params_validate(self.query_serializer_class)
