@@ -32,7 +32,7 @@ class K8sSurrealDBDisableFlowParamBuilder(builders.FlowParamBuilder):
 
 
 @builders.BuilderFactory.register(
-    TicketType.K8S_SURREALDB_DISABLE, phase=ClusterPhase.OFFLINE, iam=ActionEnum.K8S_SURREALDB_STOP
+    TicketType.K8S_SURREALDB_DISABLE, phase=ClusterPhase.OFFLINE, iam=ActionEnum.K8S_SURREALDB_ENABLE_DISABLE
 )
 class K8sSurrealDBDisableFlowBuilder(BaseSurrealDBTicketFlowBuilder):
     serializer = K8sSurrealDBDisableDetailSerializer
