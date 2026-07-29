@@ -20,6 +20,7 @@
         cluster-detail-router-name="SqlServerSingleClusterDetail"
         :data="data">
         <AuthButton
+          v-if="data.isOnline"
           v-db-console="'sqlserver.singleClusterList.authorize'"
           action-id="sqlserver_priv_manage"
           class="ml-4"
@@ -28,44 +29,9 @@
           @click="handleShowAuthorize">
           {{ t('授权') }}
         </AuthButton>
-        <OperationBtnStatusTips
-          v-if="data.isOffline"
-          v-db-console="'sqlserver.singleClusterList.enable'"
-          :data="data">
-          <AuthButton
-            action-id="sqlserver_enable_disable"
-            class="ml-4"
-            :disabled="data.isStarting"
-            :permission="data.permission.sqlserver_enable_disable"
-            :resource="data.id"
-            size="small"
-            @click="handleEnableCluster([data])">
-            {{ t('启用') }}
-          </AuthButton>
-        </OperationBtnStatusTips>
-        <OperationBtnStatusTips
-          v-db-console="'sqlserver.singleClusterList.reset'"
-          :data="data">
-          <AuthButton
-            v-bk-tooltips="{
-              placement: 'right',
-              disabled: data.isOffline,
-              content: t('请先禁用集群'),
-            }"
-            action-id="sqlserver_manage"
-            class="ml-4"
-            :disabled="data.isOnline"
-            :permission="data.permission.sqlserver_manage"
-            :resource="data.id"
-            size="small"
-            @click="handleResetCluster">
-            {{ t('重置') }}
-          </AuthButton>
-        </OperationBtnStatusTips>
         <MoreActionExtend>
           <template #trigger>
             <BkButton
-              v-bk-tooltips="t('更多操作')"
               class="ml-4"
               size="small"
               style="padding: 0 6px">
@@ -78,7 +44,7 @@
             <OperationBtnStatusTips :data="data">
               <AuthButton
                 action-id="sqlserver_enable_disable"
-                :disabled="data.isOffline || Boolean(data.operationTicketId)"
+                :disabled="Boolean(data.operationTicketId)"
                 :permission="data.permission.sqlserver_enable_disable"
                 :resource="data.id"
                 text
@@ -87,12 +53,44 @@
               </AuthButton>
             </OperationBtnStatusTips>
           </div>
+          <div
+            v-else
+            v-db-console="'sqlserver.singleClusterList.enable'">
+            <OperationBtnStatusTips :data="data">
+              <AuthButton
+                action-id="sqlserver_enable_disable"
+                :disabled="data.isStarting"
+                :permission="data.permission.sqlserver_enable_disable"
+                :resource="data.id"
+                text
+                @click="handleEnableCluster([data])">
+                {{ t('启用') }}
+              </AuthButton>
+            </OperationBtnStatusTips>
+          </div>
+          <div v-db-console="'sqlserver.singleClusterList.reset'">
+            <OperationBtnStatusTips :data="data">
+              <AuthButton
+                v-bk-tooltips="{
+                  disabled: data.isOffline,
+                  content: t('重置前需先禁用集群'),
+                }"
+                action-id="sqlserver_manage"
+                :disabled="data.isOnline"
+                :permission="data.permission.sqlserver_manage"
+                :resource="data.id"
+                text
+                @click="handleResetCluster">
+                {{ t('重置') }}
+              </AuthButton>
+            </OperationBtnStatusTips>
+          </div>
           <div v-db-console="'sqlserver.singleClusterList.delete'">
             <OperationBtnStatusTips :data="data">
               <AuthButton
                 v-bk-tooltips="{
                   disabled: data.isOffline,
-                  content: t('请先禁用集群'),
+                  content: t('删除前需先禁用集群'),
                 }"
                 action-id="sqlserver_destroy"
                 :disabled="data.isOnline || Boolean(data.operationTicketId)"
@@ -104,7 +102,9 @@
               </AuthButton>
             </OperationBtnStatusTips>
           </div>
-          <ClusterDomainDnsRelation :data="data" />
+          <ClusterDomainDnsRelation
+            v-if="data.isOnline"
+            :data="data" />
         </MoreActionExtend>
       </DisplayBox>
       <ActionPanel

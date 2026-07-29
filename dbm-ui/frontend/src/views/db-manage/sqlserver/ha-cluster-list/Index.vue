@@ -51,28 +51,44 @@
           ref="operationColumnRef"
           :cluster-type="ClusterTypes.SQLSERVER_HA">
           <template #default="{ data }: { data: SqlServerHaModel }">
-            <div v-db-console="'sqlserver.haClusterList.authorize'">
-              <AuthButton
-                action-id="sqlserver_priv_manage"
-                :disabled="data.isOffline"
-                :permission="data.permission.sqlserver_priv_manage"
-                text
-                @click="handleShowAuthorize([data])">
-                {{ t('授权') }}
-              </AuthButton>
-            </div>
-            <ClusterAlarmSubscribe
-              :data="data"
-              db-console-prefix="sqlserver.haClusterList"
-              @click="hideOperationColumn"
-              @edit="(e) => handleToDetails(data.id, e, 'alarmSubscription')" />
+            <template v-if="data.isOnline">
+              <div v-db-console="'sqlserver.haClusterList.authorize'">
+                <AuthButton
+                  action-id="sqlserver_priv_manage"
+                  :permission="data.permission.sqlserver_priv_manage"
+                  text
+                  @click="handleShowAuthorize([data])">
+                  {{ t('授权') }}
+                </AuthButton>
+              </div>
+              <ClusterAlarmSubscribe
+                :data="data"
+                db-console-prefix="sqlserver.haClusterList"
+                @click="hideOperationColumn"
+                @edit="(e) => handleToDetails(data.id, e, 'alarmSubscription')" />
+            </template>
             <div
-              v-if="data.isOffline"
+              v-if="data.isOnline"
+              v-db-console="'sqlserver.haClusterList.disable'">
+              <OperationBtnStatusTips :data="data">
+                <AuthButton
+                  action-id="sqlserver_enable_disable"
+                  :disabled="Boolean(data.operationTicketId)"
+                  :permission="data.permission.sqlserver_enable_disable"
+                  :resource="data.id"
+                  text
+                  @click="handleDisableCluster([data])">
+                  {{ t('禁用') }}
+                </AuthButton>
+              </OperationBtnStatusTips>
+            </div>
+            <div
+              v-else
               v-db-console="'sqlserver.haClusterList.enable'">
               <OperationBtnStatusTips :data="data">
                 <AuthButton
                   action-id="sqlserver_enable_disable"
-                  :disabled="data.isStarting || !data.isOffline"
+                  :disabled="data.isStarting"
                   :permission="data.permission.sqlserver_enable_disable"
                   :resource="data.id"
                   text
@@ -87,7 +103,7 @@
                   v-bk-tooltips="{
                     placement: 'right',
                     disabled: data.isOffline,
-                    content: t('请先禁用集群'),
+                    content: t('重置前需先禁用集群'),
                   }"
                   action-id="sqlserver_manage"
                   :disabled="data.isOnline"
@@ -99,28 +115,13 @@
                 </AuthButton>
               </OperationBtnStatusTips>
             </div>
-            <div
-              v-if="data.isOnline"
-              v-db-console="'sqlserver.haClusterList.disable'">
-              <OperationBtnStatusTips :data="data">
-                <AuthButton
-                  action-id="sqlserver_enable_disable"
-                  :disabled="data.isOffline || Boolean(data.operationTicketId)"
-                  :permission="data.permission.sqlserver_enable_disable"
-                  :resource="data.id"
-                  text
-                  @click="handleDisableCluster([data])">
-                  {{ t('禁用') }}
-                </AuthButton>
-              </OperationBtnStatusTips>
-            </div>
             <div v-db-console="'sqlserver.haClusterList.delete'">
               <OperationBtnStatusTips :data="data">
                 <AuthButton
                   v-bk-tooltips="{
                     placement: 'right',
                     disabled: data.isOffline,
-                    content: t('请先禁用集群'),
+                    content: t('删除前需先禁用集群'),
                   }"
                   action-id="sqlserver_destroy"
                   :disabled="data.isOnline || Boolean(data.operationTicketId)"
@@ -132,7 +133,9 @@
                 </AuthButton>
               </OperationBtnStatusTips>
             </div>
-            <ClusterDomainDnsRelation :data="data" />
+            <ClusterDomainDnsRelation
+              v-if="data.isOnline"
+              :data="data" />
           </template>
         </OperationColumn>
       </template>

@@ -148,9 +148,7 @@
       start_time: startTime ? dayjs(startTime).format('YYYY-MM-DD HH:mm:ss') : '',
     };
 
-    tableRef.value.fetchData(params, {
-      cluster_id: props.id,
-    });
+    tableRef.value.fetchData(params);
 
     setTimeout(() => {
       router.replace({

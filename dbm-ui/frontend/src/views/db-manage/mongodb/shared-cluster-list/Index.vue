@@ -70,118 +70,117 @@
           ref="operationColumnRef"
           :cluster-type="ClusterTypes.MONGO_SHARED_CLUSTER">
           <template #default="{ data }: { data: MongodbModel }">
-            <div v-db-console="'mongodb.sharedClusterList.getAccess'">
-              <BkButton
-                :disabled="data.isOffline"
-                text
-                @click="handleShowAccessEntry(data)">
-                {{ t('获取访问方式') }}
-              </BkButton>
-            </div>
-            <div v-db-console="'mongodb.sharedClusterList.queryAccessSource'">
-              <OperationBtnStatusTips
-                :data="data"
-                :disabled="!data.isOffline">
-                <AuthButton
-                  action-id="mongodb_source_access_view"
-                  :disabled="data.isOffline"
-                  :permission="data.permission.mongodb_source_access_view"
-                  :resource="data.id"
-                  style="width: 100%; height: 32px"
-                  text
-                  @click="handleGoQueryAccessSourcePage(data.master_domain)">
-                  {{ t('查询访问来源') }}
-                </AuthButton>
-              </OperationBtnStatusTips>
-            </div>
-            <ClusterAlarmSubscribe
-              :data="data"
-              db-console-prefix="mongodb.sharedClusterList"
-              @click="hideOperationColumn"
-              @edit="(e) => handleToDetails(data.id, e, 'alarmSubscription')" />
-            <div v-db-console="'mongodb.sharedClusterList.webconsole'">
-              <AuthRouterLink
-                action-id="mongodb_webconsole"
-                :disabled="data.isOffline"
-                :permission="data.permission.mongodb_webconsole"
-                :resource="data.id"
-                target="_blank"
-                :to="{
-                  name: 'MongodbWebconsole',
-                  query: {
-                    clusterId: data.id,
-                  },
-                }">
-                Webconsole
-              </AuthRouterLink>
-            </div>
-            <div v-db-console="'mongodb.sharedClusterList.scaleUpDown'">
-              <OperationBtnStatusTips :data="data">
+            <template v-if="data.isOnline">
+              <div v-db-console="'mongodb.sharedClusterList.getAccess'">
                 <BkButton
-                  :disabled="data.isOffline || data.operationDisabled"
                   text
-                  @click="handleToCapacityChange(data)">
-                  {{ t('集群容量变更') }}
+                  @click="handleShowAccessEntry(data)">
+                  {{ t('获取访问方式') }}
                 </BkButton>
-              </OperationBtnStatusTips>
-            </div>
-            <div
-              v-if="!data.isOnlineCLB"
-              v-db-console="'common.clb'">
-              <OperationBtnStatusTips
+              </div>
+              <div v-db-console="'mongodb.sharedClusterList.queryAccessSource'">
+                <OperationBtnStatusTips
+                  :data="data"
+                  :disabled="!data.isOffline">
+                  <AuthButton
+                    action-id="mongodb_source_access_view"
+                    :permission="data.permission.mongodb_source_access_view"
+                    :resource="data.id"
+                    style="width: 100%; height: 32px"
+                    text
+                    @click="handleGoQueryAccessSourcePage(data.master_domain)">
+                    {{ t('查询访问来源') }}
+                  </AuthButton>
+                </OperationBtnStatusTips>
+              </div>
+              <ClusterAlarmSubscribe
                 :data="data"
-                :disabled="!data.isOffline">
-                <AuthButton
-                  action-id="mongodb_plugin_create_clb"
-                  :disabled="data.isOffline"
-                  :permission="data.permission.mongodb_plugin_create_clb"
+                db-console-prefix="mongodb.sharedClusterList"
+                @click="hideOperationColumn"
+                @edit="(e) => handleToDetails(data.id, e, 'alarmSubscription')" />
+              <div v-db-console="'mongodb.sharedClusterList.webconsole'">
+                <AuthRouterLink
+                  action-id="mongodb_webconsole"
+                  :permission="data.permission.mongodb_webconsole"
                   :resource="data.id"
-                  text
-                  @click="() => handleAddClb({ details: { cluster_id: data.id } })">
-                  {{ t('启用CLB') }}
-                </AuthButton>
-              </OperationBtnStatusTips>
-            </div>
-            <div
-              v-if="data.isOffline"
-              v-db-console="'mongodb.sharedClusterList.enable'">
-              <OperationBtnStatusTips :data="data">
-                <BkButton
-                  :disabled="data.isStarting || data.isOnline"
-                  text
-                  @click="handleEnableCluster([data])">
-                  {{ t('启用') }}
-                </BkButton>
-              </OperationBtnStatusTips>
-            </div>
+                  target="_blank"
+                  :to="{
+                    name: 'MongodbWebconsole',
+                    query: {
+                      clusterId: data.id,
+                    },
+                  }">
+                  Webconsole
+                </AuthRouterLink>
+              </div>
+              <div
+                v-if="!data.isOnlineCLB"
+                v-db-console="'common.clb'">
+                <OperationBtnStatusTips
+                  :data="data"
+                  :disabled="!data.isOffline">
+                  <AuthButton
+                    action-id="mongodb_plugin_create_clb"
+                    :permission="data.permission.mongodb_plugin_create_clb"
+                    :resource="data.id"
+                    text
+                    @click="() => handleAddClb({ details: { cluster_id: data.id } })">
+                    {{ t('启用CLB') }}
+                  </AuthButton>
+                </OperationBtnStatusTips>
+              </div>
+            </template>
             <div
               v-if="data.isOnline"
               v-db-console="'mongodb.sharedClusterList.disable'">
               <OperationBtnStatusTips :data="data">
-                <BkButton
-                  :disabled="data.isOffline || Boolean(data.operationTicketId)"
+                <AuthButton
+                  action-id="mongodb_enable_disable"
+                  :disabled="Boolean(data.operationTicketId)"
+                  :permission="data.permission.mongodb_enable_disable"
+                  :resource="data.id"
                   text
                   @click="handleDisableCluster([data])">
                   {{ t('禁用') }}
-                </BkButton>
+                </AuthButton>
+              </OperationBtnStatusTips>
+            </div>
+            <div
+              v-else
+              v-db-console="'mongodb.sharedClusterList.enable'">
+              <OperationBtnStatusTips :data="data">
+                <AuthButton
+                  action-id="mongodb_enable_disable"
+                  :disabled="data.isStarting"
+                  :permission="data.permission.mongodb_enable_disable"
+                  :resource="data.id"
+                  text
+                  @click="handleEnableCluster([data])">
+                  {{ t('启用') }}
+                </AuthButton>
               </OperationBtnStatusTips>
             </div>
             <div v-db-console="'mongodb.sharedClusterList.delete'">
               <OperationBtnStatusTips :data="data">
-                <BkButton
+                <AuthButton
                   v-bk-tooltips="{
                     disabled: data.isOffline,
-                    content: t('请先禁用集群'),
+                    content: t('删除前需先禁用集群'),
                     placement: 'right',
                   }"
+                  action-id="mongodb_destroy"
                   :disabled="data.isOnline || Boolean(data.operationTicketId)"
+                  :permission="data.permission.mongodb_destroy"
+                  :resource="data.id"
                   text
                   @click="handleDeleteCluster([data])">
                   {{ t('删除') }}
-                </BkButton>
+                </AuthButton>
               </OperationBtnStatusTips>
             </div>
-            <ClusterDomainDnsRelation :data="data" />
+            <ClusterDomainDnsRelation
+              v-if="data.isOnline"
+              :data="data" />
           </template>
         </OperationColumn>
       </template>
@@ -361,16 +360,6 @@
   const handleShowAccessEntry = (data: MongodbModel) => {
     accessEntryInfo.value = data;
     accessEntryInfoShow.value = true;
-  };
-
-  const handleToCapacityChange = (row: MongodbModel) => {
-    const routeInfo = router.resolve({
-      name: TicketTypes.MONGODB_SCALE_UPDOWN,
-      query: {
-        masterDomain: row.master_domain,
-      },
-    });
-    window.open(routeInfo.href, '_blank');
   };
 
   const handleGoQueryAccessSourcePage = (masterDomain: string) => {

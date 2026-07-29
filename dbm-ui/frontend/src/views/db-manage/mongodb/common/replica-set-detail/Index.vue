@@ -19,117 +19,113 @@
       <DisplayBox
         cluster-detail-router-name="MongoDBReplicaSetDetail"
         :data="data">
-        <BkButton
-          v-db-console="'mongodb.replicaSetList.importAuthorize'"
-          class="ml-4"
-          :disabled="data.isOffline"
-          size="small"
-          @click="handleShowAuthorize">
-          {{ t('授权') }}
-        </BkButton>
-        <BkButton
-          v-db-console="'mongodb.replicaSetList.getAccess'"
-          class="ml-4"
-          :disabled="data.isOffline"
-          size="small"
-          @click="handleShowAccessEntry">
-          {{ t('获取访问方式') }}
-        </BkButton>
-        <AuthRouterLink
-          v-db-console="'mongodb.replicaSetList.webconsole'"
-          action-id="mongodb_webconsole"
-          class="ml-4"
-          :disabled="data.isOffline"
-          :permission="data.permission.mongodb_webconsole"
-          :resource="data.id"
-          target="_blank"
-          :to="{
-            name: 'MongodbWebconsole',
-            query: {
-              clusterId: props.clusterId,
-            },
-          }">
+        <template v-if="data.isOnline">
           <BkButton
-            :disabled="data.isOffline"
-            size="small">
-            Webconsole
+            v-db-console="'mongodb.replicaSetList.importAuthorize'"
+            class="ml-4"
+            size="small"
+            @click="handleShowAuthorize">
+            {{ t('授权') }}
           </BkButton>
-        </AuthRouterLink>
+          <BkButton
+            v-db-console="'mongodb.replicaSetList.getAccess'"
+            class="ml-4"
+            size="small"
+            @click="handleShowAccessEntry">
+            {{ t('获取访问方式') }}
+          </BkButton>
+          <AuthRouterLink
+            v-db-console="'mongodb.replicaSetList.webconsole'"
+            action-id="mongodb_webconsole"
+            class="ml-4"
+            :permission="data.permission.mongodb_webconsole"
+            :resource="data.id"
+            target="_blank"
+            :to="{
+              name: 'MongodbWebconsole',
+              query: {
+                clusterId: props.clusterId,
+              },
+            }">
+            <BkButton size="small"> Webconsole </BkButton>
+          </AuthRouterLink>
+        </template>
         <MoreActionExtend>
           <template #trigger>
             <BkButton
-              v-bk-tooltips="t('更多操作')"
               class="ml-4"
               size="small"
               style="padding: 0 6px">
               <DbIcon type="more" />
             </BkButton>
           </template>
-          <div v-db-console="'mongodb.replicaSetList.queryAccessSource'">
-            <OperationBtnStatusTips
-              :data="data"
-              :disabled="!data.isOffline">
-              <AuthButton
-                action-id="mongodb_source_access_view"
-                :disabled="data.isOffline"
-                :permission="data.permission.mongodb_source_access_view"
-                :resource="data.id"
-                style="width: 100%; height: 32px"
-                text
-                @click="handleGoQueryAccessSourcePage(data.master_domain)">
-                {{ t('查询访问来源') }}
-              </AuthButton>
-            </OperationBtnStatusTips>
-          </div>
-          <div v-db-console="'mongodb.replicaSetList.scaleUpDown'">
-            <OperationBtnStatusTips :data="data">
-              <BkButton
-                :disabled="Boolean(data.isStructCluster) || data.operationDisabled"
-                text
-                @click="handleToCapacityChange">
-                {{ t('集群容量变更') }}
-              </BkButton>
-            </OperationBtnStatusTips>
-          </div>
-          <div
-            v-if="data.isOffline"
-            v-db-console="'mongodb.replicaSetList.enable'">
-            <OperationBtnStatusTips :data="data">
-              <BkButton
-                :disabled="data.isStarting || data.isOnline"
-                text
-                @click="handleEnableCluster([data])">
-                {{ t('启用') }}
-              </BkButton>
-            </OperationBtnStatusTips>
-          </div>
+          <template v-if="data.isOnline">
+            <div v-db-console="'mongodb.replicaSetList.queryAccessSource'">
+              <OperationBtnStatusTips
+                :data="data"
+                :disabled="!data.isOffline">
+                <AuthButton
+                  action-id="mongodb_source_access_view"
+                  :permission="data.permission.mongodb_source_access_view"
+                  :resource="data.id"
+                  style="width: 100%; height: 32px"
+                  text
+                  @click="handleGoQueryAccessSourcePage(data.master_domain)">
+                  {{ t('查询访问来源') }}
+                </AuthButton>
+              </OperationBtnStatusTips>
+            </div>
+          </template>
           <div
             v-if="data.isOnline"
             v-db-console="'mongodb.replicaSetList.disable'">
             <OperationBtnStatusTips :data="data">
-              <BkButton
+              <AuthButton
+                action-id="mongodb_enable_disable"
                 :disabled="Boolean(data.operationTicketId)"
+                :permission="data.permission.mongodb_enable_disable"
+                :resource="data.id"
                 text
                 @click="handleDisableCluster([data])">
                 {{ t('禁用') }}
-              </BkButton>
+              </AuthButton>
+            </OperationBtnStatusTips>
+          </div>
+          <div
+            v-else
+            v-db-console="'mongodb.replicaSetList.enable'">
+            <OperationBtnStatusTips :data="data">
+              <AuthButton
+                action-id="mongodb_enable_disable"
+                :disabled="data.isStarting"
+                :permission="data.permission.mongodb_enable_disable"
+                :resource="data.id"
+                text
+                @click="handleEnableCluster([data])">
+                {{ t('启用') }}
+              </AuthButton>
             </OperationBtnStatusTips>
           </div>
           <div v-db-console="'mongodb.replicaSetList.delete'">
             <OperationBtnStatusTips :data="data">
-              <BkButton
+              <AuthButton
                 v-bk-tooltips="{
                   disabled: data.isOffline,
-                  content: t('请先禁用集群'),
+                  content: t('删除前需先禁用集群'),
                 }"
+                action-id="mongodb_destroy"
                 :disabled="data.isOnline || Boolean(data.operationTicketId)"
+                :permission="data.permission.mongodb_destroy"
+                :resource="data.id"
                 text
                 @click="handleDeleteCluster([data])">
                 {{ t('删除') }}
-              </BkButton>
+              </AuthButton>
             </OperationBtnStatusTips>
           </div>
-          <ClusterDomainDnsRelation :data="data" />
+          <ClusterDomainDnsRelation
+            v-if="data.isOnline"
+            :data="data" />
         </MoreActionExtend>
       </DisplayBox>
       <ActionPanel
@@ -170,7 +166,7 @@
   import MongodbDetailModel from '@services/model/mongodb/mongodb-detail';
   import { getMongoClusterDetails } from '@services/source/mongodb';
 
-  import { AccountTypes, ClusterTypes, TicketTypes } from '@common/const';
+  import { AccountTypes, ClusterTypes } from '@common/const';
 
   import MoreActionExtend from '@components/more-action-extend/Index.vue';
 
@@ -241,16 +237,6 @@
       immediate: true,
     },
   );
-
-  const handleToCapacityChange = () => {
-    const routeInfo = router.resolve({
-      name: TicketTypes.MONGODB_SCALE_UPDOWN,
-      query: {
-        masterDomain: data.value!.master_domain,
-      },
-    });
-    window.open(routeInfo.href, '_blank');
-  };
 
   const handleGoQueryAccessSourcePage = (masterDomain: string) => {
     const routeInfo = router.resolve({

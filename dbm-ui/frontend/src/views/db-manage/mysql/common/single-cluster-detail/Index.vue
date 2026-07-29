@@ -19,44 +19,44 @@
       <DisplayBox
         cluster-detail-router-name="tendbsingleDetail"
         :data="data">
-        <BkButton
-          v-db-console="'mysql.singleClusterList.authorize'"
-          class="ml-4"
-          :disabled="data.isOffline"
-          size="small"
-          @click="handleShowAuthorize">
-          {{ t('授权') }}
-        </BkButton>
-        <AuthRouterLink
-          v-db-console="'mysql.haClusterList.webconsole'"
-          action-id="mysql_webconsole"
-          class="ml-4"
-          :permission="data.permission.mysql_webconsole"
-          :resource="data.id"
-          target="_blank"
-          :to="{
-            name: 'MySQLWebconsole',
-            query: {
-              clusterId: props.clusterId,
-            },
-          }">
+        <template v-if="data.isOnline">
           <BkButton
-            :disabled="data.operationDisabled"
-            size="small">
-            Webconsole
+            v-db-console="'mysql.singleClusterList.authorize'"
+            class="ml-4"
+            size="small"
+            @click="handleShowAuthorize">
+            {{ t('授权') }}
           </BkButton>
-        </AuthRouterLink>
-        <AuthButton
-          v-db-console="'mysql.singleClusterList.exportData'"
-          action-id="mysql_dump_data"
-          class="ml-4"
-          :disabled="data.isOffline"
-          :permission="data.permission.mysql_dump_data"
-          :resource="data.id"
-          size="small"
-          @click="handleShowDataExportSlider">
-          {{ t('导出数据') }}
-        </AuthButton>
+          <AuthRouterLink
+            v-db-console="'mysql.haClusterList.webconsole'"
+            action-id="mysql_webconsole"
+            class="ml-4"
+            :permission="data.permission.mysql_webconsole"
+            :resource="data.id"
+            target="_blank"
+            :to="{
+              name: 'MySQLWebconsole',
+              query: {
+                clusterId: props.clusterId,
+              },
+            }">
+            <BkButton
+              :disabled="data.operationDisabled"
+              size="small">
+              Webconsole
+            </BkButton>
+          </AuthRouterLink>
+          <AuthButton
+            v-db-console="'mysql.singleClusterList.exportData'"
+            action-id="mysql_dump_data"
+            class="ml-4"
+            :permission="data.permission.mysql_dump_data"
+            :resource="data.id"
+            size="small"
+            @click="handleShowDataExportSlider">
+            {{ t('导出数据') }}
+          </AuthButton>
+        </template>
         <MoreActionExtend v-db-console="'mysql.singleClusterList.moreOperation'">
           <template #trigger>
             <BkButton
@@ -82,7 +82,7 @@
             </OperationBtnStatusTips>
           </div>
           <div
-            v-if="data.isOffline"
+            v-else
             v-db-console="'mysql.singleClusterList.enable'">
             <OperationBtnStatusTips :data="data">
               <AuthButton
@@ -101,7 +101,7 @@
               <AuthButton
                 v-bk-tooltips="{
                   disabled: data.isOffline,
-                  content: t('请先禁用集群'),
+                  content: t('删除前需先禁用集群'),
                 }"
                 action-id="mysql_destroy"
                 :disabled="data.isOnline || Boolean(data.operationTicketId)"
@@ -113,7 +113,9 @@
               </AuthButton>
             </OperationBtnStatusTips>
           </div>
-          <ClusterDomainDnsRelation :data="data" />
+          <ClusterDomainDnsRelation
+            v-if="data.isOnline"
+            :data="data" />
         </MoreActionExtend>
       </DisplayBox>
       <ActionPanel

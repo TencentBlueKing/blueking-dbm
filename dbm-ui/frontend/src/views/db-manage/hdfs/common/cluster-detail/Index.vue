@@ -20,21 +20,18 @@
         cluster-detail-router-name="hdfsDetail"
         :data="data">
         <a
+          v-if="data.isOnline"
           v-db-console="'hdfs.clusterManage.manage'"
           class="ml-4"
           :href="data.access_url"
           target="_blank">
-          <BkButton
-            :disabled="data.isOffline"
-            size="small">
-            WebUI
-          </BkButton>
+          <BkButton size="small"> WebUI </BkButton>
         </a>
         <AuthButton
+          v-if="data.isOnline"
           v-db-console="'hdfs.clusterManage.getAccess'"
           action-id="hdfs_access_entry_view"
           class="ml-4"
-          :disabled="data.isOffline"
           :permission="data.permission.hdfs_access_entry_view"
           :resource="data.id"
           size="small"
@@ -44,52 +41,52 @@
         <MoreActionExtend>
           <template #trigger>
             <BkButton
-              v-bk-tooltips="t('更多操作')"
               class="ml-4"
               size="small"
               style="padding: 0 6px">
               <DbIcon type="more" />
             </BkButton>
           </template>
-          <div v-db-console="'hdfs.clusterManage.scaleUp'">
-            <OperationBtnStatusTips :data="data">
-              <AuthButton
-                action-id="hdfs_scale_up"
-                :disabled="data.operationDisabled"
-                :permission="data.permission.hdfs_scale_up"
-                :resource="data.id"
-                text
-                @click="handleShowExpansion">
-                {{ t('扩容') }}
-              </AuthButton>
-            </OperationBtnStatusTips>
-          </div>
-          <div v-db-console="'hdfs.clusterManage.scaleDown'">
-            <OperationBtnStatusTips :data="data">
-              <AuthButton
-                action-id="hdfs_shrink"
-                :disabled="data.operationDisabled"
-                :permission="data.permission.hdfs_shrink"
-                :resource="data.id"
-                text
-                @click="handleShowShrink">
-                {{ t('缩容') }}
-              </AuthButton>
-            </OperationBtnStatusTips>
-          </div>
-          <div v-db-console="'hdfs.clusterManage.viewAccessConfiguration'">
-            <div style="display: inline-block">
-              <AuthButton
-                action-id="hdfs_view"
-                :disabled="data.isOffline"
-                :permission="data.permission.hdfs_view"
-                :resource="data.id"
-                text
-                @click="handleShowSettings">
-                {{ t('查看访问配置') }}
-              </AuthButton>
+          <template v-if="data.isOnline">
+            <div v-db-console="'hdfs.clusterManage.scaleUp'">
+              <OperationBtnStatusTips :data="data">
+                <AuthButton
+                  action-id="hdfs_scale_up"
+                  :disabled="data.operationDisabled"
+                  :permission="data.permission.hdfs_scale_up"
+                  :resource="data.id"
+                  text
+                  @click="handleShowExpansion">
+                  {{ t('扩容') }}
+                </AuthButton>
+              </OperationBtnStatusTips>
             </div>
-          </div>
+            <div v-db-console="'hdfs.clusterManage.scaleDown'">
+              <OperationBtnStatusTips :data="data">
+                <AuthButton
+                  action-id="hdfs_shrink"
+                  :disabled="data.operationDisabled"
+                  :permission="data.permission.hdfs_shrink"
+                  :resource="data.id"
+                  text
+                  @click="handleShowShrink">
+                  {{ t('缩容') }}
+                </AuthButton>
+              </OperationBtnStatusTips>
+            </div>
+            <div v-db-console="'hdfs.clusterManage.viewAccessConfiguration'">
+              <div style="display: inline-block">
+                <AuthButton
+                  action-id="hdfs_view"
+                  :permission="data.permission.hdfs_view"
+                  :resource="data.id"
+                  text
+                  @click="handleShowSettings">
+                  {{ t('查看访问配置') }}
+                </AuthButton>
+              </div>
+            </div>
+          </template>
           <div
             v-if="data.isOffline"
             v-db-console="'hdfs.clusterManage.enable'">
@@ -126,7 +123,7 @@
               <AuthButton
                 v-bk-tooltips="{
                   disabled: data.isOffline,
-                  content: t('请先禁用集群'),
+                  content: t('删除前需先禁用集群'),
                 }"
                 action-id="hdfs_destroy"
                 :disabled="data.isOnline || Boolean(data.operationTicketId)"
@@ -138,7 +135,9 @@
               </AuthButton>
             </OperationBtnStatusTips>
           </div>
-          <ClusterDomainDnsRelation :data="data" />
+          <ClusterDomainDnsRelation
+            v-if="data.isOnline"
+            :data="data" />
         </MoreActionExtend>
       </DisplayBox>
       <ActionPanel
