@@ -42,6 +42,7 @@ class BaseRedisInstanceTicketFlowBuilder(RedisTicketFlowBuilderPatchMixin, Ticke
     cluster_types = [
         ClusterType.TendisPredixyRedisCluster.value,
         ClusterType.TendisPredixyTendisplusCluster.value,
+        ClusterType.TendisPredixyTendisplusInstance.value,
         ClusterType.TendisTwemproxyRedisInstance.value,
         ClusterType.TwemproxyTendisSSDInstance.value,
         ClusterType.TendisRedisInstance.value,
