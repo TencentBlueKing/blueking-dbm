@@ -50,7 +50,6 @@
                   :biz-id-name-map="bizIdNameMap"
                   :count="serachResult.count[resultType]"
                   :data="serachResult[resultType as keyof typeof serachResult]"
-                  :is-top="isTop"
                   :key-word="modelValue"
                   :name="resultType"
                   @to-result="handleToResult" />
@@ -91,7 +90,6 @@
   interface Props {
     // eslint-disable-next-line vue/require-default-prop
     getSearchOptions?: () => UnwrapRef<typeof formData>;
-    isTop?: boolean;
     showOptions?: boolean;
   }
 

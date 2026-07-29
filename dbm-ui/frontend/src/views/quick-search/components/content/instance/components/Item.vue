@@ -145,6 +145,7 @@
   import { quickSearchResult } from '@services/source/quickSearch';
 
   import { DBTypeInfos, DBTypes, FilterType } from '@common/const';
+  import { batchSplitRegex } from '@common/regex';
 
   import ClusterInstanceStatus from '@components/cluster-instance-status/Index.vue';
   import DbIcon from '@components/db-icon/';
@@ -207,7 +208,7 @@
     return {
       ...props.formData,
       db_types: [props.dbType],
-      keyword: props.keyword,
+      keyword: props.keyword.replace(batchSplitRegex, ' '),
       resource_type: 'instance',
     };
   };

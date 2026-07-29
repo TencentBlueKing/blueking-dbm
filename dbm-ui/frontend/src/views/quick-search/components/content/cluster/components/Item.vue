@@ -219,7 +219,7 @@
     return {
       ...props.formData,
       db_types: [props.dbType],
-      keyword: props.keyword,
+      keyword: props.keyword.replace(batchSplitRegex, ' '),
       resource_type: 'cluster',
     };
   };

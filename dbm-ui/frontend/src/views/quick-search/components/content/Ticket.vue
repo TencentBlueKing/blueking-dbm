@@ -86,6 +86,8 @@
 
   import { useLocation } from '@hooks';
 
+  import { batchSplitRegex } from '@common/regex';
+
   import DbTable from '@components/db-table/IndexNew.vue';
   import TextHighlight from '@components/text-highlight/Index.vue';
   import TicketStatusTag from '@components/ticket-status-tag/Index.vue';
@@ -132,7 +134,7 @@
     return quickSearchResult({
       ...params,
       ...props.formData,
-      keyword: props.keyword,
+      keyword: props.keyword.replace(batchSplitRegex, ' '),
       resource_type: 'ticket',
     });
   };

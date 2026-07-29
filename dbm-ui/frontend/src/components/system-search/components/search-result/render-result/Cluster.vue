@@ -16,7 +16,6 @@
     </div>
     <Total
       :count="count"
-      :is-top="isTop"
       @to-result="handleToResult" />
   </div>
 </template>
@@ -34,7 +33,6 @@
     bizIdNameMap: Record<number, string>;
     count: number;
     data: QuickSearchClusterModel[];
-    isTop?: boolean;
     keyWord: string;
   }
 

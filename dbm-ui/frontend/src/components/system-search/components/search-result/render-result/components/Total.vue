@@ -1,6 +1,6 @@
 <template>
   <div
-    v-if="isCountShow && (!isResultPage || (isResultPage && !isTop))"
+    v-if="isCountShow"
     class="result-count">
     <span> ... {{ t('共 n 条', { n: count }) }} </span>
     <template v-if="!isResultPage">
@@ -20,7 +20,6 @@
 
   interface Props {
     count: number;
-    isTop?: boolean;
   }
 
   type Emits = (e: 'to-result') => void;
