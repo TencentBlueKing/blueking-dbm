@@ -62,6 +62,28 @@ class HDFSListRetrieveResource(BigDataBaseListRetrieveResource, HDFSExportQueryR
     ]
 
     @classmethod
+    def _filter_cluster_hook(
+        cls, bk_biz_id, cluster_queryset, proxy_queryset, storage_queryset, limit: int, offset: int, **kwargs
+    ):
+        count = cluster_queryset.count()
+        limit = count if limit == -1 else limit
+        cluster_ids = list(cluster_queryset.values_list("id", flat=True)[offset : limit + offset])
+        kwargs["active_namenode_map"] = cls.get_clusters_master(bk_biz_id, cluster_ids)
+        return super()._filter_cluster_hook(
+            bk_biz_id, cluster_queryset, proxy_queryset, storage_queryset, limit, offset, **kwargs
+        )
+
+    @classmethod
+    def _to_cluster_representation(cls, cluster: Cluster, *args, **kwargs) -> Dict[str, Any]:
+        cluster_info = super()._to_cluster_representation(cluster, *args, **kwargs)
+        active_namenode = kwargs.get("active_namenode_map", {}).get(cluster.id, "")
+
+        for namenode in cluster_info.get(InstanceRole.HDFS_NAME_NODE.value, []):
+            namenode["is_active"] = namenode["instance"] == active_namenode
+
+        return cluster_info
+
+    @classmethod
     def _to_nodes_list(
         cls, bk_biz_id: int, node_list: List[Dict[str, Any]], limit: int, offset: int, ordering: str
     ) -> query.ResourceList:
