@@ -139,6 +139,7 @@ const toolboxRouters: RouteRecordRaw[] = [
       createRouteItem(TicketTypes.SQLSERVER_MASTER_FAIL_OVER, t('主库故障切换')),
       createRouteItem(TicketTypes.SQLSERVER_CLEAR_DBS, t('清档')),
       createRouteItem(TicketTypes.SQLSERVER_ROLLBACK, t('定点构造')),
+      createRouteItem(TicketTypes.SQLSERVER_ROLLBACK_LOCAL, t('原地回档')),
       createRouteItem(TicketTypes.SQLSERVER_BACKUP_DBS, t('数据库备份')),
       createRouteItem(TicketTypes.SQLSERVER_FULL_MIGRATE, t('数据迁移')),
       createRouteItem(TicketTypes.SQLSERVER_INCR_MIGRATE, t('数据迁移')),

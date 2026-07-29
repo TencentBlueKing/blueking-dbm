@@ -1,13 +1,12 @@
 <template>
-  <SmartAction>
+  <SmartAction class="db-toolbox">
     <BkAlert
+      class="mb-20"
       closable
-      theme="info"
-      :title="
-        t('新建一个单节点实例，通过全备 +binlog 的方式，将数据库恢复到过去的某一时间点或者某个指定备份文件的状态。')
-      " />
+      :title="t('在选择原集群上进行原地数据回滚，支持指定备份记录或指定时间进行回档')" />
     <DbForm
-      class="mt-16 mb-24 toolbox-form"
+      ref="formRef"
+      class="mb-24 toolbox-form"
       form-type="vertical"
       :model="formData">
       <BkFormItem
@@ -20,14 +19,14 @@
         required>
         <CardCheckbox
           v-model="formData.rollbackMethod"
-          :desc="t('使用备份文件回档数据')"
+          :desc="t('使用备份文件构造数据')"
           icon="bk-dbm-icon db-icon-form"
           :title="t('指定备份记录回档')"
           true-value="BACKUPID" />
         <CardCheckbox
           v-model="formData.rollbackMethod"
           class="ml-8"
-          :desc="t('使用指定的时间最近的全备+binlog 回档数据')"
+          :desc="t('使用指定的时间最近的备份构造数据')"
           icon="bk-dbm-icon db-icon-time"
           :title="t('指定时间回档')"
           true-value="TIME" />
@@ -79,21 +78,18 @@
             :label="t('排除库')"
             :required="false"
             @batch-edit="handleBatchEdit" />
-          <TargetClusterColumn
-            v-model="item.targetCluster"
-            :cluster="item.cluster" />
           <FinalDbColumn
             v-model="item.renameInfos"
             v-model:db-ignore-name="item.databasesIgnore"
             v-model:db-name="item.databases"
             :cluster="item.cluster"
-            :is-local="false"
+            is-local
             :restore-backup-file="item.backupRecord"
             :restore-time="item.backupTime"
-            :target-cluster="item.targetCluster" />
+            :target-cluster="item.cluster" />
           <OperationColumn
-            :create-row-method="createTableRow"
-            :table-data="formData.tableData" />
+            v-model:table-data="formData.tableData"
+            :create-row-method="createTableRow" />
         </EditableRow>
       </EditableTable>
       <TicketPayload v-model="formData.payload" />
@@ -122,6 +118,7 @@
 <script setup lang="ts">
   import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
+  import { useRouter } from 'vue-router';
 
   import SqlserverBackupLogModel from '@services/model/sqlserver/backup-log';
   import SqlserverHaModel from '@services/model/sqlserver/sqlserver-ha';
@@ -141,13 +138,11 @@
   } from '@views/db-manage/common/toolbox-field/form-item/ticket-payload/Index.vue';
   import ClusterColumn from '@views/db-manage/sqlserver/common/toolbox-field/cluster-column/Index.vue';
   import DbNameColumn from '@views/db-manage/sqlserver/common/toolbox-field/db-name-column/Index.vue';
+  import BackupRecordColumn from '@views/db-manage/sqlserver/SQLSERVER_ROLLBACK/components/backup-record-column/Index.vue';
+  import FinalDbColumn from '@views/db-manage/sqlserver/SQLSERVER_ROLLBACK/components/final-db-column/Index.vue';
+  import TimeBackupRecordColumn from '@views/db-manage/sqlserver/SQLSERVER_ROLLBACK/components/time-backup-record-column/Index.vue';
 
   import { random } from '@utils';
-
-  import BackupRecordColumn from './components/backup-record-column/Index.vue';
-  import FinalDbColumn from './components/final-db-column/Index.vue';
-  import TargetClusterColumn from './components/target-cluster-column/Index.vue';
-  import TimeBackupRecordColumn from './components/time-backup-record-column/Index.vue';
 
   interface RenameInfo {
     db_name: string;
@@ -166,11 +161,6 @@
     databases: string[];
     databasesIgnore: string[];
     renameInfos: RenameInfo[];
-    targetCluster: {
-      cluster_type: ClusterTypes;
-      id: number;
-      master_domain: string;
-    };
   }
 
   const { t } = useI18n();
@@ -218,14 +208,9 @@
         label: t('恢复库'),
       },
       {
-        case: 'db1,db2',
+        case: 'db3,db4',
         key: 'databasesIgnore',
         label: t('排除库'),
-      },
-      {
-        case: 'sqlserver.test2.dba.db',
-        key: 'targetCluster',
-        label: t('目标集群'),
       },
     ];
     if (formData.rollbackMethod === 'TIME') {
@@ -252,16 +237,9 @@
     databases: (data.databases || []) as string[],
     databasesIgnore: (data.databasesIgnore || []) as string[],
     renameInfos: (data.renameInfos || []) as RenameInfo[],
-    targetCluster: Object.assign(
-      {
-        cluster_type: '',
-        id: 0,
-        master_domain: '',
-      } as unknown as RowData['targetCluster'],
-      data.targetCluster,
-    ),
   });
 
+  const formRef = useTemplateRef('formRef');
   const editableTableRef = useTemplateRef('editableTableRef');
   const timeBackupRecordColumnRef =
     useTemplateRef<InstanceType<typeof TimeBackupRecordColumn>[]>('timeBackupRecordColumnRef');
@@ -277,7 +255,7 @@
   const selected = computed(() => formData.tableData.filter((item) => item.cluster.id).map((item) => item.cluster));
   const selectedMap = computed(() => Object.fromEntries(selected.value.map((cur) => [cur.master_domain, true])));
 
-  useTicketDetail<Sqlserver.Rollback>(TicketTypes.SQLSERVER_ROLLBACK, {
+  useTicketDetail<Sqlserver.Rollback>(TicketTypes.SQLSERVER_ROLLBACK_LOCAL, {
     onSuccess(ticketDetail) {
       const { details } = ticketDetail;
       const { clusters, infos } = details;
@@ -291,16 +269,17 @@
             backupRecord: item.restore_time
               ? undefined
               : (item.restore_backup_file as unknown as SqlserverBackupLogModel),
-            backupTime: item.restore_time || '',
+            backupTime: item.restore_time,
             cluster: {
               master_domain: clusters[item.src_cluster]?.immute_domain || '',
             },
             databases: item.db_list,
             databasesIgnore: item.ignore_db_list,
-            renameInfos: item.rename_infos,
-            targetCluster: {
-              master_domain: clusters[item.dst_cluster]?.immute_domain || '',
-            },
+            renameInfos: item.rename_infos.map((ri) => ({
+              db_name: ri.db_name,
+              rename_db_name: ri.rename_db_name,
+              target_db_name: ri.target_db_name,
+            })),
           }),
         );
       }).then(() => {
@@ -320,7 +299,7 @@
       src_cluster: number;
     }[];
     is_time_fixed: boolean;
-  }>(TicketTypes.SQLSERVER_ROLLBACK);
+  }>(TicketTypes.SQLSERVER_ROLLBACK_LOCAL);
 
   watch(
     () => formData.rollbackMethod,
@@ -366,9 +345,6 @@
         },
         databases: item.databases ? item.databases.split(',') : [],
         databasesIgnore: item.databasesIgnore ? item.databasesIgnore.split(',') : [],
-        targetCluster: {
-          master_domain: item.targetCluster || '',
-        },
       }),
     );
     if (isClear) {
@@ -383,12 +359,12 @@
   };
 
   const handleSubmit = () => {
-    editableTableRef.value!.validate().then(() =>
+    Promise.all([formRef.value!.validate(), editableTableRef.value!.validate()]).then(() =>
       createTicketRun({
         details: {
           infos: formData.tableData.map((item) => ({
             db_list: item.databases,
-            dst_cluster: item.targetCluster.id,
+            dst_cluster: item.cluster.id,
             ignore_db_list: item.databasesIgnore,
             rename_infos: item.renameInfos,
             restore_backup_file: item.backupRecord!,

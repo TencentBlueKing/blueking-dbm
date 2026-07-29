@@ -233,7 +233,8 @@ export enum TicketTypes {
   SQLSERVER_RESET = 'SQLSERVER_RESET', // sqlserver 集群重置
   SQLSERVER_RESTORE_LOCAL_SLAVE = 'SQLSERVER_RESTORE_LOCAL_SLAVE', // sqlserver 重建从库_原地重建
   SQLSERVER_RESTORE_SLAVE = 'SQLSERVER_RESTORE_SLAVE', // sqlserver 重建从库_新机重建
-  SQLSERVER_ROLLBACK = 'SQLSERVER_ROLLBACK', // sqlserver 定点回档
+  SQLSERVER_ROLLBACK = 'SQLSERVER_ROLLBACK', // sqlserver 定点构造
+  SQLSERVER_ROLLBACK_LOCAL = 'SQLSERVER_ROLLBACK_LOCAL', // sqlserver 原地回档
   SQLSERVER_SINGLE_APPLY = 'SQLSERVER_SINGLE_APPLY', // sqlserver单节点部署
 }
 
@@ -324,9 +325,9 @@ export enum TicketTypes {
 }
 export enum TicketTypes {
   RECYCLE_OLD_HOST = 'RECYCLE_OLD_HOST', // 已下架主机再利用
+  REGISTER_MCP_CALLEE_PLAN = 'REGISTER_MCP_CALLEE_PLAN', // 注册 MCP 执行计划
   RESOURCE_HCM_REPLENISH = 'RESOURCE_HCM_REPLENISH', // 海磊 - 主机资源补货
   RESOURCE_IMPORT = 'RESOURCE_IMPORT', // 导入资源池
-  REGISTER_MCP_CALLEE_PLAN = 'REGISTER_MCP_CALLEE_PLAN', // 注册 MCP 执行计划
 }
 
 export type TicketTypesStrings = keyof typeof TicketTypes;

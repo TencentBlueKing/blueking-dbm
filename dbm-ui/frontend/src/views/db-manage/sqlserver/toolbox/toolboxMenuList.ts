@@ -48,6 +48,10 @@ export const toolboxMenuList = [
         id: TicketTypes.SQLSERVER_ROLLBACK,
         name: t('定点构造'),
       },
+      {
+        id: TicketTypes.SQLSERVER_ROLLBACK_LOCAL,
+        name: t('原地回档'),
+      },
     ],
     icon: 'db-icon-rollback',
     id: 'fileback',
