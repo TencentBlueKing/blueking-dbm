@@ -2795,7 +2795,7 @@ class ActionEnum:
         name=_("K8S SURREALDB 集群禁用和启用"),
         name_en="K8S SURREALDB Enable Disable",
         type="execute",
-        related_actions=[MYSQL_VIEW.id],
+        related_actions=[K8S_SURREALDB_VIEW.id],
         related_resource_types=[ResourceEnum.K8S_SURREALDB],
         group=_("SurrealDB"),
         subgroup=_("集群管理"),
@@ -3098,7 +3098,7 @@ class ActionEnum:
         type="view",
         related_actions=[DB_MANAGE.id],
         related_resource_types=[ResourceEnum.K8S_QDRANT],
-        group=_("K8s数据库"),
+        group=_("QdrantDB"),
         subgroup=_("集群管理"),
         common_labels=[CommonActionLabel.BIZ_READ_ONLY, CommonActionLabel.BIZ_MAINTAIN, CommonActionLabel.DEVELOPER],
     )
@@ -3109,7 +3109,7 @@ class ActionEnum:
         type="edit",
         related_actions=[DB_MANAGE.id],
         related_resource_types=[ResourceEnum.K8S_QDRANT],
-        group=_("K8s数据库"),
+        group=_("QdrantDB"),
         subgroup=_("集群管理"),
         common_labels=[CommonActionLabel.BIZ_MAINTAIN, CommonActionLabel.DEVELOPER],
     )
@@ -3120,19 +3120,10 @@ class ActionEnum:
         type="execute",
         related_actions=[DB_MANAGE.id],
         related_resource_types=[ResourceEnum.BUSINESS],
-        group=_("K8s数据库"),
+        group=_("QdrantDB"),
         subgroup=_("Qdrant集群管理"),
     )
-    K8S_QDRANT_MODIFY = ActionMeta(
-        id="k8s_qdrant_modify",
-        name=_("K8s Qdrant 集群变更"),
-        name_en="k8s_qdrant_modify",
-        type="edit",
-        related_actions=[DB_MANAGE.id],
-        related_resource_types=[ResourceEnum.K8S_QDRANT],
-        group=_("K8s数据库"),
-        subgroup=_("Qdrant集群管理"),
-    )
+
     K8S_QDRANT_DESTROY = ActionMeta(
         id="k8s_qdrant_destroy",
         name=_("K8s Qdrant 集群销毁"),
@@ -3140,68 +3131,31 @@ class ActionEnum:
         type="execute",
         related_actions=[DB_MANAGE.id],
         related_resource_types=[ResourceEnum.K8S_QDRANT],
-        group=_("K8s数据库"),
+        group=_("QdrantDB"),
         subgroup=_("Qdrant集群管理"),
     )
-    K8S_QDRANT_START = ActionMeta(
-        id="k8s_qdrant_start",
-        name=_("K8s Qdrant 集群启动"),
-        name_en="k8s_qdrant_start",
+    K8S_QDRANT_ENABLE_DISABLE = ActionMeta(
+        id="k8s_qdrant_enable_disable",
+        name=_("K8s Qdrant 集群启用/禁用"),
+        name_en="k8s_qdrant_enable_disable",
         type="execute",
-        related_actions=[DB_MANAGE.id],
+        related_actions=[K8S_QDRANT_VIEW.id],
         related_resource_types=[ResourceEnum.K8S_QDRANT],
-        group=_("K8s数据库"),
-        subgroup=_("Qdrant集群管理"),
+        group=_("QdrantDB"),
+        subgroup=_("集群管理"),
+        common_labels=[CommonActionLabel.BIZ_MAINTAIN],
     )
-    K8S_QDRANT_STOP = ActionMeta(
-        id="k8s_qdrant_stop",
-        name=_("K8s Qdrant 集群停止"),
-        name_en="k8s_qdrant_stop",
-        type="execute",
-        related_actions=[DB_MANAGE.id],
+
+    K8S_QDRANT_MANAGE = ActionMeta(
+        id="k8s_qdrant_manage",
+        name=_("K8s Qdrant 集群运维管理"),
+        name_en="k8s_qdrant_manage",
+        type="manage",
+        related_actions=[K8S_QDRANT_VIEW.id],
         related_resource_types=[ResourceEnum.K8S_QDRANT],
-        group=_("K8s数据库"),
-        subgroup=_("Qdrant集群管理"),
-    )
-    K8S_QDRANT_RESTART = ActionMeta(
-        id="k8s_qdrant_restart",
-        name=_("K8s Qdrant 集群重启"),
-        name_en="k8s_qdrant_restart",
-        type="execute",
-        related_actions=[DB_MANAGE.id],
-        related_resource_types=[ResourceEnum.K8S_QDRANT],
-        group=_("K8s数据库"),
-        subgroup=_("Qdrant集群管理"),
-    )
-    K8S_QDRANT_POD_DELETE = ActionMeta(
-        id="k8s_qdrant_pod_delete",
-        name=_("K8s Qdrant Pod删除"),
-        name_en="k8s_qdrant_pod_delete",
-        type="execute",
-        related_actions=[DB_MANAGE.id],
-        related_resource_types=[ResourceEnum.K8S_QDRANT],
-        group=_("K8s数据库"),
-        subgroup=_("Qdrant集群管理"),
-    )
-    K8S_QDRANT_SCALE = ActionMeta(
-        id="k8s_qdrant_scale",
-        name=_("K8s Qdrant 集群扩缩容"),
-        name_en="k8s_qdrant_scale",
-        type="execute",
-        related_actions=[DB_MANAGE.id],
-        related_resource_types=[ResourceEnum.K8S_QDRANT],
-        group=_("K8s数据库"),
-        subgroup=_("Qdrant集群管理"),
-    )
-    K8S_QDRANT_UPGRADE = ActionMeta(
-        id="k8s_qdrant_upgrade",
-        name=_("K8s Qdrant 集群版本升级"),
-        name_en="k8s_qdrant_upgrade",
-        type="execute",
-        related_actions=[DB_MANAGE.id],
-        related_resource_types=[ResourceEnum.K8S_QDRANT],
-        group=_("K8s数据库"),
-        subgroup=_("Qdrant集群管理"),
+        group=_("QdrantDB"),
+        subgroup=_("集群管理"),
+        common_labels=[CommonActionLabel.BIZ_MAINTAIN],
     )
 
     # --- K8s GreptimeDB (k8s_greptimedb) ---
