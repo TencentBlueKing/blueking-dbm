@@ -413,11 +413,6 @@ class TicketHandler:
     @classmethod
     def is_ticket_flow_config_tag_scope_overlap(cls, left_rules, right_rules):
         """判断拟保存标签条件(left)是否命中已有标签条件(right)。"""
-        # 已有配置中的“任意值”表示覆盖所有标签取值范围，会拦截任意拟保存条件。
-        right_has_wildcard = any(CLUSTER_TAG_WILDCARD_VALUE in values for values in right_rules.values())
-        if right_has_wildcard:
-            return True
-
         # 没有共同 tag_key 时，普通标签条件不存在冲突可能。
         common_keys = set(left_rules) & set(right_rules)
         if not common_keys:
@@ -427,7 +422,8 @@ class TicketHandler:
         for tag_key in common_keys:
             left_values = left_rules[tag_key]
             right_values = right_rules[tag_key]
-            if not (left_values & right_values):
+            right_has_wildcard = CLUSTER_TAG_WILDCARD_VALUE in right_values
+            if not right_has_wildcard and not (left_values & right_values):
                 return False
         return True
 
@@ -445,25 +441,22 @@ class TicketHandler:
             tag_configs = tag_configs.exclude(id=config_id)
 
         conflict_tag_pairs = set()
-        existed_has_wildcard = False
         for tag_config in tag_configs:
             existed_tag_rules = cls.build_ticket_flow_config_tag_rules(tag_config.cluster_tags)
             if cls.is_ticket_flow_config_tag_scope_overlap(current_tag_rules, existed_tag_rules):
-                existed_has_wildcard = any(
-                    CLUSTER_TAG_WILDCARD_VALUE in values for values in existed_tag_rules.values()
-                )
-                if existed_has_wildcard:
-                    break
-
-                # 普通标签只标记真正有取值交集的 tag_key/tag_value，避免同 key 下无重叠取值被误报。
+                # 只在同一个 tag_key 下处理“任意值”通配，避免不同 key 之间被误报为重复。
                 for tag_key in set(current_tag_rules) & set(existed_tag_rules):
-                    for tag_value in current_tag_rules[tag_key] & existed_tag_rules[tag_key]:
+                    current_values = current_tag_rules[tag_key]
+                    existed_values = existed_tag_rules[tag_key]
+                    existed_has_wildcard = CLUSTER_TAG_WILDCARD_VALUE in existed_values
+                    conflict_values = current_values if existed_has_wildcard else current_values & existed_values
+                    for tag_value in conflict_values:
                         conflict_tag_pairs.add((tag_key, tag_value))
 
         return [
             {
                 **tag,
-                "validate": existed_has_wildcard or (tag.get("tag_key"), tag.get("tag_value")) in conflict_tag_pairs,
+                "validate": (tag.get("tag_key"), tag.get("tag_value")) in conflict_tag_pairs,
             }
             for tag in cluster_tags
         ]
