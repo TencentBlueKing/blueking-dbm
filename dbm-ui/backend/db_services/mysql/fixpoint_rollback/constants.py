@@ -9,8 +9,8 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 
-# 全量查询集群的备份日志时，默认返回30天内
-BACKUP_LOG_RANGE_DAYS = 30
+# 全量查询集群的备份日志时，默认不限制时间范围（0 表示不限制）
+BACKUP_LOG_RANGE_DAYS = 0
 
 # 查询某个特定时间点附近的日志时，默认在3天内
 BACKUP_LOG_ROLLBACK_TIME_RANGE_DAYS = 3
