@@ -68,148 +68,143 @@
           ref="operationColumnRef"
           :cluster-type="ClusterTypes.TENDBCLUSTER">
           <template #default="{ data }: { data: TendbClusterModel }">
-            <div v-db-console="'mysql.haClusterList.authorize'">
-              <BkButton
-                :disabled="data.isOffline"
-                text
-                @click="() => handleShowAuthorize([data])">
-                {{ t('授权') }}
-              </BkButton>
-            </div>
-            <div v-db-console="'tendbCluster.clusterManage.webconsole'">
-              <AuthRouterLink
-                action-id="tendbcluster_webconsole"
-                :disabled="data.isOffline"
-                :permission="data.permission.tendbcluster_webconsole"
-                :resource="data.id"
-                target="_blank"
-                :to="{
-                  name: 'SpiderWebconsole',
-                  query: {
-                    clusterId: data.id,
-                  },
-                }">
-                Webconsole
-              </AuthRouterLink>
-            </div>
-            <div v-db-console="'tendbCluster.clusterManage.exportData'">
-              <AuthButton
-                action-id="tendbcluster_dump_data"
-                :disabled="data.isOffline"
-                :permission="data.permission.tendbcluster_dump_data"
-                :resource="data.id"
-                text
-                @click="() => handleGoToDataExport(data)">
-                {{ t('导出数据') }}
-              </AuthButton>
-            </div>
-            <ClusterAlarmSubscribe
-              :data="data"
-              db-console-prefix="tendbCluster.clusterManage"
-              @click="hideOperationColumn"
-              @edit="(e) => handleToDetails(data.id, e, 'alarmSubscription')" />
-            <div
-              v-if="!data.isOnlineCLBMaster"
-              v-db-console="'common.clb'">
-              <OperationBtnStatusTips
-                :data="data"
-                :disabled="!data.isOffline">
+            <template v-if="data.isOnline">
+              <div v-db-console="'mysql.haClusterList.authorize'">
+                <BkButton
+                  text
+                  @click="() => handleShowAuthorize([data])">
+                  {{ t('授权') }}
+                </BkButton>
+              </div>
+              <div v-db-console="'tendbCluster.clusterManage.webconsole'">
+                <AuthRouterLink
+                  action-id="tendbcluster_webconsole"
+                  :permission="data.permission.tendbcluster_webconsole"
+                  :resource="data.id"
+                  target="_blank"
+                  :to="{
+                    name: 'SpiderWebconsole',
+                    query: {
+                      clusterId: data.id,
+                    },
+                  }">
+                  Webconsole
+                </AuthRouterLink>
+              </div>
+              <div v-db-console="'tendbCluster.clusterManage.exportData'">
                 <AuthButton
-                  action-id="tendbcluster_add_clb"
-                  :disabled="data.isOffline"
-                  :permission="data.permission.tendbcluster_add_clb"
+                  action-id="tendbcluster_dump_data"
+                  :permission="data.permission.tendbcluster_dump_data"
                   :resource="data.id"
                   text
-                  @click="
-                    () =>
-                      handleAddClb({
-                        details: { cluster_id: data.id, bk_cloud_id: data.bk_cloud_id, spider_role: 'spider_master' },
-                      })
-                  ">
-                  {{ t('启用 Spider Master 负载均衡（CLB）') }}
+                  @click="() => handleGoToDataExport(data)">
+                  {{ t('导出数据') }}
                 </AuthButton>
-              </OperationBtnStatusTips>
-            </div>
-            <div
-              v-if="!data.isOnlineCLBSlave"
-              v-db-console="'common.clb'">
-              <OperationBtnStatusTips
+              </div>
+              <ClusterAlarmSubscribe
                 :data="data"
-                :disabled="!data.isOffline">
-                <AuthButton
-                  action-id="tendbcluster_add_clb"
-                  :disabled="data.isOffline"
-                  :permission="data.permission.tendbcluster_add_clb"
-                  :resource="data.id"
-                  text
-                  @click="
-                    () =>
-                      handleAddClb({
-                        details: { cluster_id: data.id, bk_cloud_id: data.bk_cloud_id, spider_role: 'spider_slave' },
-                      })
-                  ">
-                  {{ t('启用 Spider Slave 负载均衡（CLB）') }}
-                </AuthButton>
-              </OperationBtnStatusTips>
-            </div>
-            <div
-              v-if="data.isOnlineCLBMaster"
-              v-db-console="'common.clb'">
-              <OperationBtnStatusTips
-                :data="data"
-                :disabled="!data.isOffline">
-                <AuthButton
-                  action-id="tendbcluster_clb_bind_domain"
-                  :disabled="data.isOffline"
-                  :permission="data.permission.tendbcluster_clb_bind_domain"
-                  :resource="data.id"
-                  text
-                  @click="
-                    () =>
-                      handleBindOrUnbindClb(
-                        {
-                          details: {
-                            cluster_id: data.id,
-                            bk_cloud_id: data.bk_cloud_id,
-                            spider_role: 'spider_master',
+                db-console-prefix="tendbCluster.clusterManage"
+                @click="hideOperationColumn"
+                @edit="(e) => handleToDetails(data.id, e, 'alarmSubscription')" />
+              <div
+                v-if="!data.isOnlineCLBMaster"
+                v-db-console="'common.clb'">
+                <OperationBtnStatusTips
+                  :data="data"
+                  :disabled="!data.isOffline">
+                  <AuthButton
+                    action-id="tendbcluster_add_clb"
+                    :permission="data.permission.tendbcluster_add_clb"
+                    :resource="data.id"
+                    text
+                    @click="
+                      () =>
+                        handleAddClb({
+                          details: { cluster_id: data.id, bk_cloud_id: data.bk_cloud_id, spider_role: 'spider_master' },
+                        })
+                    ">
+                    {{ t('启用 Spider Master 负载均衡（CLB）') }}
+                  </AuthButton>
+                </OperationBtnStatusTips>
+              </div>
+              <div
+                v-if="!data.isOnlineCLBSlave"
+                v-db-console="'common.clb'">
+                <OperationBtnStatusTips
+                  :data="data"
+                  :disabled="!data.isOffline">
+                  <AuthButton
+                    action-id="tendbcluster_add_clb"
+                    :permission="data.permission.tendbcluster_add_clb"
+                    :resource="data.id"
+                    text
+                    @click="
+                      () =>
+                        handleAddClb({
+                          details: { cluster_id: data.id, bk_cloud_id: data.bk_cloud_id, spider_role: 'spider_slave' },
+                        })
+                    ">
+                    {{ t('启用 Spider Slave 负载均衡（CLB）') }}
+                  </AuthButton>
+                </OperationBtnStatusTips>
+              </div>
+              <div
+                v-if="data.isOnlineCLBMaster"
+                v-db-console="'common.clb'">
+                <OperationBtnStatusTips
+                  :data="data"
+                  :disabled="!data.isOffline">
+                  <AuthButton
+                    action-id="tendbcluster_clb_bind_domain"
+                    :permission="data.permission.tendbcluster_clb_bind_domain"
+                    :resource="data.id"
+                    text
+                    @click="
+                      () =>
+                        handleBindOrUnbindClb(
+                          {
+                            details: {
+                              cluster_id: data.id,
+                              bk_cloud_id: data.bk_cloud_id,
+                              spider_role: 'spider_master',
+                            },
                           },
-                        },
-                        data.dns_to_clb,
-                      )
-                  ">
-                  {{ data.dns_to_clb ? t('恢复主域名直连 Spider Master') : t('配置主域名指向负载均衡器（CLB）') }}
-                </AuthButton>
-              </OperationBtnStatusTips>
-            </div>
-            <div
-              v-if="data.isOnlineCLBSlave"
-              v-db-console="'common.clb'">
-              <OperationBtnStatusTips
-                :data="data"
-                :disabled="!data.isOffline">
-                <AuthButton
-                  action-id="tendbcluster_clb_bind_domain"
-                  :disabled="data.isOffline"
-                  :permission="data.permission.tendbcluster_clb_bind_domain"
-                  :resource="data.id"
-                  text
-                  @click="
-                    () =>
-                      handleBindOrUnbindClb(
-                        {
-                          details: {
-                            cluster_id: data.id,
-                            bk_cloud_id: data.bk_cloud_id,
-                            spider_role: 'spider_slave',
+                          data.dns_to_clb,
+                        )
+                    ">
+                    {{ data.dns_to_clb ? t('恢复主域名直连 Spider Master') : t('配置主域名指向负载均衡器（CLB）') }}
+                  </AuthButton>
+                </OperationBtnStatusTips>
+              </div>
+              <div
+                v-if="data.isOnlineCLBSlave"
+                v-db-console="'common.clb'">
+                <OperationBtnStatusTips
+                  :data="data"
+                  :disabled="!data.isOffline">
+                  <AuthButton
+                    action-id="tendbcluster_clb_bind_domain"
+                    :permission="data.permission.tendbcluster_clb_bind_domain"
+                    :resource="data.id"
+                    text
+                    @click="
+                      () =>
+                        handleBindOrUnbindClb(
+                          {
+                            details: {
+                              cluster_id: data.id,
+                              bk_cloud_id: data.bk_cloud_id,
+                              spider_role: 'spider_slave',
+                            },
                           },
-                        },
-                        data.dns_to_clb,
-                      )
-                  ">
-                  {{ data.dns_to_clb ? t('恢复从域名直连 Spider Slave') : t('配置从域名指向负载均衡器（CLB）') }}
-                </AuthButton>
-              </OperationBtnStatusTips>
-            </div>
+                          data.dns_to_clb,
+                        )
+                    ">
+                    {{ data.dns_to_clb ? t('恢复从域名直连 Spider Slave') : t('配置从域名指向负载均衡器（CLB）') }}
+                  </AuthButton>
+                </OperationBtnStatusTips>
+              </div>
+            </template>
             <div
               v-if="data.isOnline"
               v-db-console="'tendbCluster.clusterManage.disable'">
@@ -226,7 +221,7 @@
               </OperationBtnStatusTips>
             </div>
             <div
-              v-if="data.isOffline"
+              v-else
               v-db-console="'tendbCluster.clusterManage.enable'">
               <OperationBtnStatusTips :data="data">
                 <AuthButton
@@ -245,7 +240,7 @@
                 <AuthButton
                   v-bk-tooltips="{
                     disabled: data.isOffline,
-                    content: t('请先禁用集群'),
+                    content: t('删除前需先禁用集群'),
                     placement: 'right',
                   }"
                   action-id="tendbcluster_destroy"
@@ -258,7 +253,9 @@
                 </AuthButton>
               </OperationBtnStatusTips>
             </div>
-            <ClusterDomainDnsRelation :data="data">
+            <ClusterDomainDnsRelation
+              v-if="data.isOnline"
+              :data="data">
               <BkButton text>
                 {{ t('手动配置域名 DNS 记录') }}
               </BkButton>

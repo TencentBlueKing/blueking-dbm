@@ -61,47 +61,47 @@
           ref="operationColumnRef"
           :cluster-type="ClusterTypes.TENDBSINGLE">
           <template #default="{ data }: { data: TendbsingleModel }">
-            <div v-db-console="'mysql.singleClusterList.authorize'">
-              <BkButton
-                :disabled="data.isOffline"
-                text
-                @click="handleShowAuthorize(data)">
-                {{ t('授权') }}
-              </BkButton>
-            </div>
-            <div v-db-console="'mysql.haClusterList.webconsole'">
-              <AuthRouterLink
-                action-id="mysql_webconsole"
-                :disabled="data.operationDisabled"
-                :permission="data.permission.mysql_webconsole"
-                :resource="data.id"
-                target="_blank"
-                :to="{
-                  name: 'MySQLWebconsole',
-                  query: {
-                    clusterId: data.id,
-                  },
-                }">
-                Webconsole
-              </AuthRouterLink>
-            </div>
-            <div v-db-console="'mysql.singleClusterList.exportData'">
-              <AuthButton
-                action-id="mysql_dump_data"
-                class="mr-8"
-                :disabled="data.isOffline"
-                :permission="data.permission.mysql_dump_data"
-                :resource="data.id"
-                text
-                @click="handleShowDataExportSlider(data)">
-                {{ t('导出数据') }}
-              </AuthButton>
-            </div>
-            <ClusterAlarmSubscribe
-              :data="data"
-              db-console-prefix="mysql.singleClusterList"
-              @click="hideOperationColumn"
-              @edit="(e) => handleToDetails(data.id, e, 'alarmSubscription')" />
+            <template v-if="data.isOnline">
+              <div v-db-console="'mysql.singleClusterList.authorize'">
+                <BkButton
+                  text
+                  @click="handleShowAuthorize(data)">
+                  {{ t('授权') }}
+                </BkButton>
+              </div>
+              <div v-db-console="'mysql.haClusterList.webconsole'">
+                <AuthRouterLink
+                  action-id="mysql_webconsole"
+                  :disabled="data.operationDisabled"
+                  :permission="data.permission.mysql_webconsole"
+                  :resource="data.id"
+                  target="_blank"
+                  :to="{
+                    name: 'MySQLWebconsole',
+                    query: {
+                      clusterId: data.id,
+                    },
+                  }">
+                  Webconsole
+                </AuthRouterLink>
+              </div>
+              <div v-db-console="'mysql.singleClusterList.exportData'">
+                <AuthButton
+                  action-id="mysql_dump_data"
+                  class="mr-8"
+                  :permission="data.permission.mysql_dump_data"
+                  :resource="data.id"
+                  text
+                  @click="handleShowDataExportSlider(data)">
+                  {{ t('导出数据') }}
+                </AuthButton>
+              </div>
+              <ClusterAlarmSubscribe
+                :data="data"
+                db-console-prefix="mysql.singleClusterList"
+                @click="hideOperationColumn"
+                @edit="(e) => handleToDetails(data.id, e, 'alarmSubscription')" />
+            </template>
             <div
               v-if="data.isOnline"
               v-db-console="'mysql.singleClusterList.disable'">
@@ -118,7 +118,7 @@
               </OperationBtnStatusTips>
             </div>
             <div
-              v-if="data.isOffline"
+              v-else
               v-db-console="'mysql.singleClusterList.enable'">
               <OperationBtnStatusTips :data="data">
                 <AuthButton
@@ -137,7 +137,7 @@
                 <AuthButton
                   v-bk-tooltips="{
                     disabled: data.isOffline,
-                    content: t('请先禁用集群'),
+                    content: t('删除前需先禁用集群'),
                     placement: 'right',
                   }"
                   action-id="mysql_destroy"
@@ -150,7 +150,9 @@
                 </AuthButton>
               </OperationBtnStatusTips>
             </div>
-            <ClusterDomainDnsRelation :data="data">
+            <ClusterDomainDnsRelation
+              v-if="data.isOnline"
+              :data="data">
               <BkButton text>
                 {{ t('手动配置域名 DNS 记录') }}
               </BkButton>

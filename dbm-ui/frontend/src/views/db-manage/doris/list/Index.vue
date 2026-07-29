@@ -57,55 +57,56 @@
           ref="operationColumnRef"
           :cluster-type="ClusterTypes.DORIS">
           <template #default="{ data }: { data: DorisModel }">
-            <div v-db-console="'doris.clusterManage.manage'">
-              <a
-                :href="data.access_url"
-                target="_blank">
-                WebUI
-              </a>
-            </div>
-            <div v-db-console="'doris.clusterManage.getAccess'">
-              <AuthButton
-                action-id="doris_access_entry_view"
-                :disabled="data.isOffline"
-                :permission="data.permission.doris_access_entry_view"
-                :resource="data.id"
-                text
-                @click="handleShowPassword(data)">
-                {{ t('获取访问方式') }}
-              </AuthButton>
-            </div>
-            <ClusterAlarmSubscribe
-              :data="data"
-              db-console-prefix="doris.clusterManage"
-              @click="hideOperationColumn"
-              @edit="(e) => handleToDetails(data.id, e, 'alarmSubscription')" />
-            <div v-db-console="'doris.clusterManage.scaleUp'">
-              <OperationBtnStatusTips :data="data">
+            <template v-if="data.isOnline">
+              <div v-db-console="'doris.clusterManage.manage'">
+                <a
+                  :href="data.access_url"
+                  target="_blank">
+                  WebUI
+                </a>
+              </div>
+              <div v-db-console="'doris.clusterManage.getAccess'">
                 <AuthButton
-                  action-id="doris_scale_up"
-                  :disabled="data.operationDisabled"
-                  :permission="data.permission.doris_scale_up"
+                  action-id="doris_access_entry_view"
+                  :permission="data.permission.doris_access_entry_view"
                   :resource="data.id"
                   text
-                  @click="handleShowExpandsion(data)">
-                  {{ t('扩容') }}
+                  @click="handleShowPassword(data)">
+                  {{ t('获取访问方式') }}
                 </AuthButton>
-              </OperationBtnStatusTips>
-            </div>
-            <div v-db-console="'doris.clusterManage.scaleDown'">
-              <OperationBtnStatusTips :data="data">
-                <AuthButton
-                  action-id="doris_shrink"
-                  :disabled="data.operationDisabled"
-                  :permission="data.permission.doris_shrink"
-                  :resource="data.id"
-                  text
-                  @click="handleShowShrink(data)">
-                  {{ t('缩容') }}
-                </AuthButton>
-              </OperationBtnStatusTips>
-            </div>
+              </div>
+              <ClusterAlarmSubscribe
+                :data="data"
+                db-console-prefix="doris.clusterManage"
+                @click="hideOperationColumn"
+                @edit="(e) => handleToDetails(data.id, e, 'alarmSubscription')" />
+              <div v-db-console="'doris.clusterManage.scaleUp'">
+                <OperationBtnStatusTips :data="data">
+                  <AuthButton
+                    action-id="doris_scale_up"
+                    :disabled="data.operationDisabled"
+                    :permission="data.permission.doris_scale_up"
+                    :resource="data.id"
+                    text
+                    @click="handleShowExpandsion(data)">
+                    {{ t('扩容') }}
+                  </AuthButton>
+                </OperationBtnStatusTips>
+              </div>
+              <div v-db-console="'doris.clusterManage.scaleDown'">
+                <OperationBtnStatusTips :data="data">
+                  <AuthButton
+                    action-id="doris_shrink"
+                    :disabled="data.operationDisabled"
+                    :permission="data.permission.doris_shrink"
+                    :resource="data.id"
+                    text
+                    @click="handleShowShrink(data)">
+                    {{ t('缩容') }}
+                  </AuthButton>
+                </OperationBtnStatusTips>
+              </div>
+            </template>
             <div
               v-if="data.isOnline"
               v-db-console="'doris.clusterManage.disable'">
@@ -141,7 +142,7 @@
                   v-bk-tooltips="{
                     disabled: data.isOffline,
                     placement: 'right',
-                    content: t('请先禁用集群'),
+                    content: t('删除前需先禁用集群'),
                   }"
                   action-id="doris_destroy"
                   :disabled="data.isOnline || Boolean(data.operationTicketId)"
@@ -153,7 +154,9 @@
                 </AuthButton>
               </OperationBtnStatusTips>
             </div>
-            <ClusterDomainDnsRelation :data="data" />
+            <ClusterDomainDnsRelation
+              v-if="data.isOnline"
+              :data="data" />
           </template>
         </OperationColumn>
       </template>
