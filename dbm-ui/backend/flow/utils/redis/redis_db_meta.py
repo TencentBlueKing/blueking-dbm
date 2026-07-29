@@ -628,6 +628,10 @@ class RedisDBMeta(object):
             RedisClusterHandler(
                 bk_biz_id=self.ticket_data["bk_biz_id"], cluster_id=self.ticket_data["cluster_id"]
             ).decommission()
+        elif self.cluster["cluster_type"] == ClusterType.TendisPredixyTendisplusInstance.value:
+            TendisPredixyTendisplusInstanceHandler(
+                bk_biz_id=self.ticket_data["bk_biz_id"], cluster_id=self.ticket_data["cluster_id"]
+            ).decommission()
         elif self.cluster["cluster_type"] == ClusterType.TendisRedisInstance.value:
             if "cluster_id" in self.cluster:
                 cluster_id = self.cluster["cluster_id"]
