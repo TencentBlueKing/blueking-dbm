@@ -36,7 +36,7 @@ class K8sQdrantDisableFlowParamBuilder(K8sQdrantDeleteFlowParamBuilder):
     TicketType.K8S_QDRANT_DISABLE,
     phase=ClusterPhase.OFFLINE,
     cluster_type=ClusterType.K8sQdrantHa,
-    iam=ActionEnum.K8S_QDRANT_STOP,
+    iam=ActionEnum.K8S_QDRANT_ENABLE_DISABLE,
 )
 class K8sQdrantDisableFlowBuilder(BaseQdrantTicketFlowBuilder):
     serializer = K8sQdrantDisableSerializer
