@@ -18,7 +18,6 @@
     </div>
     <Total
       :count="count"
-      :is-top="isTop"
       @to-result="handleToResult" />
   </div>
 </template>
@@ -38,7 +37,6 @@
       pool: string;
       poolDispaly: string;
     }[];
-    isTop?: boolean;
     keyWord: string;
   }
 

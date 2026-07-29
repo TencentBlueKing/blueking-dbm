@@ -61,7 +61,6 @@
       v-if="isPopMenuShow"
       ref="searchResultRef"
       v-model="serach"
-      is-top
       @to-result="handleTypeRedirect">
       <SearchHistory
         v-if="!serach"

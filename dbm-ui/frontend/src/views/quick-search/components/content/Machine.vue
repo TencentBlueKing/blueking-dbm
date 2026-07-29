@@ -96,6 +96,8 @@
 
   import { useLocation } from '@hooks';
 
+  import { batchSplitRegex } from '@common/regex';
+
   import DbIcon from '@components/db-icon/';
   import DbTable from '@components/db-table/IndexNew.vue';
   import TextHighlight from '@components/text-highlight/Index.vue';
@@ -144,7 +146,7 @@
     return quickSearchResult({
       ...params,
       ...props.formData,
-      keyword: props.keyword,
+      keyword: props.keyword.replace(batchSplitRegex, ' '),
       resource_type: 'machine',
     });
   };

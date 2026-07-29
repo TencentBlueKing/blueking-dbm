@@ -17,7 +17,6 @@
     </div>
     <Total
       :count="count"
-      :is-top="isTop"
       @to-result="handleToResult" />
   </div>
 </template>
@@ -38,7 +37,6 @@
       id: number;
       ticket_type: string;
     }[];
-    isTop?: boolean;
     keyWord: string;
   }
 

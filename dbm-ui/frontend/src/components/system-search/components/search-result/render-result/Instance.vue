@@ -21,7 +21,6 @@
     </div>
     <Total
       :count="count"
-      :is-top="isTop"
       @to-result="handleToResult" />
   </div>
 </template>
@@ -46,7 +45,6 @@
       name: string;
       port: string;
     }[];
-    isTop?: boolean;
     keyWord: string;
   }
 
