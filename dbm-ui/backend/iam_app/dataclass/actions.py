@@ -3071,7 +3071,7 @@ class ActionEnum:
         type="view",
         related_actions=[DB_MANAGE.id],
         related_resource_types=[ResourceEnum.K8S_SURREALDB],
-        group=_("K8s数据库"),
+        group=_("SurrealDB"),
         subgroup=_("集群管理"),
         common_labels=[CommonActionLabel.BIZ_READ_ONLY, CommonActionLabel.BIZ_MAINTAIN, CommonActionLabel.DEVELOPER],
     )
@@ -3082,7 +3082,7 @@ class ActionEnum:
         type="edit",
         related_actions=[DB_MANAGE.id],
         related_resource_types=[ResourceEnum.K8S_SURREALDB],
-        group=_("K8s数据库"),
+        group=_("SurrealDB"),
         subgroup=_("集群管理"),
         common_labels=[CommonActionLabel.BIZ_MAINTAIN, CommonActionLabel.DEVELOPER],
     )
@@ -3093,17 +3093,7 @@ class ActionEnum:
         type="execute",
         related_actions=[DB_MANAGE.id],
         related_resource_types=[ResourceEnum.BUSINESS],
-        group=_("K8s数据库"),
-        subgroup=_("SurrealDB集群管理"),
-    )
-    K8S_SURREALDB_MODIFY = ActionMeta(
-        id="k8s_surrealdb_modify",
-        name=_("K8s SurrealDB 集群变更"),
-        name_en="k8s_surrealdb_modify",
-        type="edit",
-        related_actions=[DB_MANAGE.id],
-        related_resource_types=[ResourceEnum.K8S_SURREALDB],
-        group=_("K8s数据库"),
+        group=_("SurrealDB"),
         subgroup=_("SurrealDB集群管理"),
     )
     K8S_SURREALDB_DESTROY = ActionMeta(
@@ -3113,68 +3103,31 @@ class ActionEnum:
         type="execute",
         related_actions=[DB_MANAGE.id],
         related_resource_types=[ResourceEnum.K8S_SURREALDB],
-        group=_("K8s数据库"),
+        group=_("SurrealDB"),
         subgroup=_("SurrealDB集群管理"),
     )
-    K8S_SURREALDB_START = ActionMeta(
-        id="k8s_surrealdb_start",
-        name=_("K8s SurrealDB 集群启动"),
-        name_en="k8s_surrealdb_start",
+    K8S_SURREALDB_ENABLE_DISABLE = ActionMeta(
+        id="k8s_surrealdb_enable_disable",
+        name=_("K8S SURREALDB 集群禁用和启用"),
+        name_en="K8S SURREALDB Enable Disable",
         type="execute",
-        related_actions=[DB_MANAGE.id],
+        related_actions=[MYSQL_VIEW.id],
         related_resource_types=[ResourceEnum.K8S_SURREALDB],
-        group=_("K8s数据库"),
-        subgroup=_("SurrealDB集群管理"),
+        group=_("SurrealDB"),
+        subgroup=_("集群管理"),
+        common_labels=[CommonActionLabel.BIZ_MAINTAIN],
     )
-    K8S_SURREALDB_STOP = ActionMeta(
-        id="k8s_surrealdb_stop",
-        name=_("K8s SurrealDB 集群停止"),
-        name_en="k8s_surrealdb_stop",
-        type="execute",
-        related_actions=[DB_MANAGE.id],
+    K8S_SURREALDB_MANAGE = ActionMeta(
+        id="k8s_surrealdb_manage",
+        name=_("SurrealDB 集群运维管理"),
+        name_en="k8s_surrealdb_manage",
+        description=_("管理集群的运维操作，包括扩缩容、高可用、迁移升级、故障修复等"),
+        type="manage",
+        related_actions=[K8S_SURREALDB_VIEW.id],
         related_resource_types=[ResourceEnum.K8S_SURREALDB],
-        group=_("K8s数据库"),
-        subgroup=_("SurrealDB集群管理"),
-    )
-    K8S_SURREALDB_RESTART = ActionMeta(
-        id="k8s_surrealdb_restart",
-        name=_("K8s SurrealDB 集群重启"),
-        name_en="k8s_surrealdb_restart",
-        type="execute",
-        related_actions=[DB_MANAGE.id],
-        related_resource_types=[ResourceEnum.K8S_SURREALDB],
-        group=_("K8s数据库"),
-        subgroup=_("SurrealDB集群管理"),
-    )
-    K8S_SURREALDB_POD_DELETE = ActionMeta(
-        id="k8s_surrealdb_pod_delete",
-        name=_("K8s SurrealDB Pod删除"),
-        name_en="k8s_surrealdb_pod_delete",
-        type="execute",
-        related_actions=[DB_MANAGE.id],
-        related_resource_types=[ResourceEnum.K8S_SURREALDB],
-        group=_("K8s数据库"),
-        subgroup=_("SurrealDB集群管理"),
-    )
-    K8S_SURREALDB_SCALE = ActionMeta(
-        id="k8s_surrealdb_scale",
-        name=_("K8s SurrealDB 集群扩缩容"),
-        name_en="k8s_surrealdb_scale",
-        type="execute",
-        related_actions=[DB_MANAGE.id],
-        related_resource_types=[ResourceEnum.K8S_SURREALDB],
-        group=_("K8s数据库"),
-        subgroup=_("SurrealDB集群管理"),
-    )
-    K8S_SURREALDB_UPGRADE = ActionMeta(
-        id="k8s_surrealdb_upgrade",
-        name=_("K8s SurrealDB 集群版本升级"),
-        name_en="k8s_surrealdb_upgrade",
-        type="execute",
-        related_actions=[DB_MANAGE.id],
-        related_resource_types=[ResourceEnum.K8S_SURREALDB],
-        group=_("K8s数据库"),
-        subgroup=_("SurrealDB集群管理"),
+        group=_("SurrealDB"),
+        subgroup=_("集群管理"),
+        common_labels=[CommonActionLabel.BIZ_MAINTAIN],
     )
 
     # --- K8s VictoriaMetrics (k8s_victoriametrics) ---
