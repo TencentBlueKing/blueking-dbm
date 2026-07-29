@@ -56,78 +56,68 @@
           ref="operationColumnRef"
           :cluster-type="ClusterTypes.KAFKA">
           <template #default="{ data }: { data: KafkaModel }">
-            <div
-              v-if="data.isOnline"
-              v-db-console="'kafka.clusterManage.manage'">
-              <a
-                :href="data.access_url"
-                target="_blank">
-                {{ t('控制台') }}
-              </a>
-            </div>
-            <div
-              v-if="data.isOnline"
-              v-db-console="'kafka.clusterManage.getAccess'">
-              <AuthButton
-                action-id="kafka_access_entry_view"
-                :disabled="data.isOffline"
-                :permission="data.permission.kafka_access_entry_view"
-                :resource="data.id"
-                text
-                @click="handleShowPassword(data)">
-                {{ t('获取访问方式') }}
-              </AuthButton>
-            </div>
-            <ClusterAlarmSubscribe
-              v-if="data.isOnline"
-              :data="data"
-              db-console-prefix="kafka.clusterManage"
-              @click="hideOperationColumn"
-              @edit="(e) => handleToDetails(data.id, e, 'alarmSubscription')" />
-            <div
-              v-if="data.isOnline"
-              v-db-console="'kafka.clusterManage.scaleUp'">
-              <OperationBtnStatusTips
+            <template v-if="data.isOnline">
+              <div v-db-console="'kafka.clusterManage.manage'">
+                <a
+                  :href="data.access_url"
+                  target="_blank">
+                  {{ t('控制台') }}
+                </a>
+              </div>
+              <div v-db-console="'kafka.clusterManage.getAccess'">
+                <AuthButton
+                  action-id="kafka_access_entry_view"
+                  :permission="data.permission.kafka_access_entry_view"
+                  :resource="data.id"
+                  text
+                  @click="handleShowPassword(data)">
+                  {{ t('获取访问方式') }}
+                </AuthButton>
+              </div>
+              <ClusterAlarmSubscribe
                 :data="data"
-                :disabled="!data.isOffline">
-                <AuthButton
-                  action-id="kafka_scale_up"
-                  :permission="data.permission.kafka_scale_up"
-                  :resource="data.id"
-                  text
-                  @click="handleShowExpansion(data)">
-                  {{ t('扩容') }}
-                </AuthButton>
-              </OperationBtnStatusTips>
-            </div>
-            <div
-              v-if="data.isOnline"
-              v-db-console="'kafka.clusterManage.scaleDown'">
-              <OperationBtnStatusTips :data="data">
-                <AuthButton
-                  action-id="kafka_shrink"
-                  :permission="data.permission.kafka_shrink"
-                  :resource="data.id"
-                  text
-                  @click="handleShowShrink(data)">
-                  {{ t('缩容') }}
-                </AuthButton>
-              </OperationBtnStatusTips>
-            </div>
-            <div
-              v-if="data.isOnline"
-              v-db-console="'kafka.clusterManage.rebalance'">
-              <OperationBtnStatusTips :data="data">
-                <AuthButton
-                  action-id="kafka_rebalance"
-                  :permission="data.permission.kafka_rebalance"
-                  :resource="data.id"
-                  text
-                  @click="handleShowRebalance(data)">
-                  {{ t('Topic 均衡') }}
-                </AuthButton>
-              </OperationBtnStatusTips>
-            </div>
+                db-console-prefix="kafka.clusterManage"
+                @click="hideOperationColumn"
+                @edit="(e) => handleToDetails(data.id, e, 'alarmSubscription')" />
+              <div v-db-console="'kafka.clusterManage.scaleUp'">
+                <OperationBtnStatusTips
+                  :data="data"
+                  :disabled="!data.isOffline">
+                  <AuthButton
+                    action-id="kafka_scale_up"
+                    :permission="data.permission.kafka_scale_up"
+                    :resource="data.id"
+                    text
+                    @click="handleShowExpansion(data)">
+                    {{ t('扩容') }}
+                  </AuthButton>
+                </OperationBtnStatusTips>
+              </div>
+              <div v-db-console="'kafka.clusterManage.scaleDown'">
+                <OperationBtnStatusTips :data="data">
+                  <AuthButton
+                    action-id="kafka_shrink"
+                    :permission="data.permission.kafka_shrink"
+                    :resource="data.id"
+                    text
+                    @click="handleShowShrink(data)">
+                    {{ t('缩容') }}
+                  </AuthButton>
+                </OperationBtnStatusTips>
+              </div>
+              <div v-db-console="'kafka.clusterManage.rebalance'">
+                <OperationBtnStatusTips :data="data">
+                  <AuthButton
+                    action-id="kafka_rebalance"
+                    :permission="data.permission.kafka_rebalance"
+                    :resource="data.id"
+                    text
+                    @click="handleShowRebalance(data)">
+                    {{ t('Topic 均衡') }}
+                  </AuthButton>
+                </OperationBtnStatusTips>
+              </div>
+            </template>
             <div
               v-if="data.isOffline"
               v-db-console="'kafka.clusterManage.enable'">
@@ -149,7 +139,7 @@
               <OperationBtnStatusTips :data="data">
                 <AuthButton
                   action-id="kafka_enable_disable"
-                  :disabled="data.isOffline || Boolean(data.operationTicketId)"
+                  :disabled="Boolean(data.operationTicketId)"
                   :permission="data.permission.kafka_enable_disable"
                   :resource="data.id"
                   text
@@ -164,7 +154,7 @@
                   v-bk-tooltips="{
                     disabled: data.isOffline,
                     placement: 'right',
-                    content: t('请先禁用集群'),
+                    content: t('删除前需先禁用集群'),
                   }"
                   action-id="kafka_destroy"
                   :disabled="data.isOnline || Boolean(data.operationTicketId)"

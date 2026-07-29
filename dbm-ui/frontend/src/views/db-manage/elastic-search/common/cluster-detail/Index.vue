@@ -20,21 +20,18 @@
         cluster-detail-router-name="esDetail"
         :data="data">
         <a
+          v-if="data.isOnline"
           v-db-console="'es.clusterManage.manage'"
           class="ml-4"
           :href="data.access_url"
           target="_blank">
-          <BkButton
-            :disabled="data.isOffline"
-            size="small">
-            Kibana
-          </BkButton>
+          <BkButton size="small"> Kibana </BkButton>
         </a>
         <AuthButton
+          v-if="data.isOnline"
           v-db-console="'es.clusterManage.getAccess'"
           action-id="es_access_entry_view"
           class="ml-4"
-          :disabled="data.isOffline"
           :permission="data.permission.es_access_entry_view"
           :resource="data.id"
           size="small"
@@ -44,107 +41,107 @@
         <MoreActionExtend>
           <template #trigger>
             <BkButton
-              v-bk-tooltips="t('更多操作')"
               class="ml-4"
               size="small"
               style="padding: 0 6px">
               <DbIcon type="more" />
             </BkButton>
           </template>
-          <div v-db-console="'es.clusterManage.scaleUp'">
-            <OperationBtnStatusTips :data="data">
-              <AuthButton
-                action-id="es_scale_up"
-                :disabled="data.operationDisabled"
-                :permission="data.permission.es_scale_up"
-                :resource="data.id"
-                text
-                @click="handleShowExpandsion">
-                {{ t('扩容') }}
-              </AuthButton>
-            </OperationBtnStatusTips>
-          </div>
-          <div v-db-console="'es.clusterManage.scaleDown'">
-            <OperationBtnStatusTips :data="data">
-              <AuthButton
-                action-id="es_shrink"
-                :disabled="data.operationDisabled"
-                :permission="data.permission.es_shrink"
-                :resource="data.id"
-                text
-                @click="handleShowShrink">
-                {{ t('缩容') }}
-              </AuthButton>
-            </OperationBtnStatusTips>
-          </div>
-          <div
-            v-if="!data.isOnlineCLB"
-            v-db-console="'common.clb'">
-            <OperationBtnStatusTips
-              :data="data"
-              :disabled="!data.isOffline">
-              <AuthButton
-                action-id="es_create_clb"
-                :disabled="data.isOffline"
-                :permission="data.permission.es_create_clb"
-                :resource="data.id"
-                text
-                @click="handleAddClb({ details: { cluster_id: data.id, bk_cloud_id: data.bk_cloud_id } })">
-                {{ t('启用接入层负载均衡（CLB）') }}
-              </AuthButton>
-            </OperationBtnStatusTips>
-          </div>
-          <div
-            v-if="!data.isOnlinePolaris"
-            v-db-console="'common.polaris'">
-            <OperationBtnStatusTips
-              :data="data"
-              :disabled="!data.isOffline">
-              <AuthButton
-                action-id="es_create_polaris"
-                :disabled="data.isOffline"
-                :permission="data.permission.es_create_polaris"
-                :resource="data.id"
-                text
-                @click="handleAddPolaris({ details: { cluster_id: data.id, bk_cloud_id: data.bk_cloud_id } })">
-                {{ t('启用接入层负载均衡（北极星）') }}
-              </AuthButton>
-            </OperationBtnStatusTips>
-          </div>
-          <div
-            v-if="data.isOnlineCLB"
-            v-db-console="'common.clb'">
-            <OperationBtnStatusTips
-              :data="data"
-              :disabled="!data.isOffline">
-              <AuthButton
-                action-id="es_dns_bind_clb"
-                :disabled="data.isOffline"
-                :permission="data.permission.es_dns_bind_clb"
-                :resource="data.id"
-                text
-                @click="
-                  handleBindOrUnbindClb(
-                    { details: { cluster_id: data.id, bk_cloud_id: data.bk_cloud_id } },
-                    data.dns_to_clb,
-                  )
-                ">
-                {{ data.dns_to_clb ? t('恢复主域名直连接入层') : t('配置主域名指向负载均衡器（CLB）') }}
-              </AuthButton>
-            </OperationBtnStatusTips>
-          </div>
+          <template v-if="data.isOnline">
+            <div v-db-console="'es.clusterManage.scaleUp'">
+              <OperationBtnStatusTips :data="data">
+                <AuthButton
+                  action-id="es_scale_up"
+                  :disabled="data.operationDisabled"
+                  :permission="data.permission.es_scale_up"
+                  :resource="data.id"
+                  text
+                  @click="handleShowExpandsion">
+                  {{ t('扩容') }}
+                </AuthButton>
+              </OperationBtnStatusTips>
+            </div>
+            <div v-db-console="'es.clusterManage.scaleDown'">
+              <OperationBtnStatusTips :data="data">
+                <AuthButton
+                  action-id="es_shrink"
+                  :disabled="data.operationDisabled"
+                  :permission="data.permission.es_shrink"
+                  :resource="data.id"
+                  text
+                  @click="handleShowShrink">
+                  {{ t('缩容') }}
+                </AuthButton>
+              </OperationBtnStatusTips>
+            </div>
+            <div
+              v-if="!data.isOnlineCLB"
+              v-db-console="'common.clb'">
+              <OperationBtnStatusTips
+                :data="data"
+                :disabled="!data.isOffline">
+                <AuthButton
+                  action-id="es_create_clb"
+                  :permission="data.permission.es_create_clb"
+                  :resource="data.id"
+                  text
+                  @click="handleAddClb({ details: { cluster_id: data.id, bk_cloud_id: data.bk_cloud_id } })">
+                  {{ t('启用接入层负载均衡（CLB）') }}
+                </AuthButton>
+              </OperationBtnStatusTips>
+            </div>
+            <div
+              v-if="!data.isOnlinePolaris"
+              v-db-console="'common.polaris'">
+              <OperationBtnStatusTips
+                :data="data"
+                :disabled="!data.isOffline">
+                <AuthButton
+                  action-id="es_create_polaris"
+                  :permission="data.permission.es_create_polaris"
+                  :resource="data.id"
+                  text
+                  @click="handleAddPolaris({ details: { cluster_id: data.id, bk_cloud_id: data.bk_cloud_id } })">
+                  {{ t('启用接入层负载均衡（北极星）') }}
+                </AuthButton>
+              </OperationBtnStatusTips>
+            </div>
+            <div
+              v-if="data.isOnlineCLB"
+              v-db-console="'common.clb'">
+              <OperationBtnStatusTips
+                :data="data"
+                :disabled="!data.isOffline">
+                <AuthButton
+                  action-id="es_dns_bind_clb"
+                  :permission="data.permission.es_dns_bind_clb"
+                  :resource="data.id"
+                  text
+                  @click="
+                    handleBindOrUnbindClb(
+                      { details: { cluster_id: data.id, bk_cloud_id: data.bk_cloud_id } },
+                      data.dns_to_clb,
+                    )
+                  ">
+                  {{ data.dns_to_clb ? t('恢复主域名直连接入层') : t('配置主域名指向负载均衡器（CLB）') }}
+                </AuthButton>
+              </OperationBtnStatusTips>
+            </div>
+          </template>
           <div
             v-if="data.isOffline"
             v-db-console="'es.clusterManage.enable'">
-            <AuthButton
-              action-id="es_enable_disable"
-              :disabled="data.isStarting"
-              :permission="data.permission.es_enable_disable"
-              :resource="data.id"
-              text
-              @click="handleEnableCluster([data])">
-              {{ t('启用') }}
-            </AuthButton>
+            <OperationBtnStatusTips :data="data">
+              <AuthButton
+                action-id="es_enable_disable"
+                :disabled="data.isStarting"
+                :permission="data.permission.es_enable_disable"
+                :resource="data.id"
+                text
+                @click="handleEnableCluster([data])">
+                {{ t('启用') }}
+              </AuthButton>
+            </OperationBtnStatusTips>
           </div>
           <div
             v-else
@@ -166,7 +163,7 @@
               <AuthButton
                 v-bk-tooltips="{
                   disabled: data.isOffline,
-                  content: t('请先禁用集群'),
+                  content: t('删除前需先禁用集群'),
                 }"
                 action-id="es_destroy"
                 :disabled="data.isOnline || Boolean(data.operationTicketId)"
@@ -178,7 +175,9 @@
               </AuthButton>
             </OperationBtnStatusTips>
           </div>
-          <ClusterDomainDnsRelation :data="data" />
+          <ClusterDomainDnsRelation
+            v-if="data.isOnline"
+            :data="data" />
         </MoreActionExtend>
       </DisplayBox>
       <ActionPanel
