@@ -107,6 +107,7 @@ func (c *ClusterConfigBuilderFactory) GetBuilder(addonType coreconst.StorageAddo
 func init() {
 	ClusterConfBuilderFactory.builderMap = make(map[coreconst.StorageAddonType]ClusterConfigBuilder)
 	ClusterConfBuilderFactory.builderMap[coreconst.Victoriametrics] = &VMClusterConfigBuilder{}
+	ClusterConfBuilderFactory.builderMap[coreconst.Surreal] = &SurrealDBClusterConfigBuilder{}
 }
 
 // parseInstallVersion 解析 addon version 和 service version
