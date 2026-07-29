@@ -17,20 +17,20 @@
         :get-table-data="getBatchCopyData"
         :selected="selectedList" />
       <AuthButton
-        :action-id="`${dbType}_modify`"
+        :action-id="`${dbType}_manage`"
         class="ml-8"
         :disabled="originalData.length === 0"
-        :permission="clusterData.permission[`${dbType}_modify` as keyof typeof clusterData.permission]"
+        :permission="clusterData.permission[`${dbType}_manage` as keyof typeof clusterData.permission]"
         :resource="clusterData.id"
         style="width: 105px"
         @click="handlePatchComponentConfigShow">
         {{ t('配置变更') }}
       </AuthButton>
       <AuthButton
-        :action-id="`${dbType}_stop`"
+        :action-id="`${dbType}_manage`"
         class="ml-8"
         :disabled="originalData.length === 0"
-        :permission="clusterData.permission[`${dbType}_stop` as keyof typeof clusterData.permission]"
+        :permission="clusterData.permission[`${dbType}_manage` as keyof typeof clusterData.permission]"
         :resource="clusterData.id"
         style="width: 105px"
         @click="handleBatchRestart">
@@ -57,8 +57,8 @@
         <template #content>
           <BkDropdownMenu class="dropdown-menu-with-button">
             <AuthTemplate
-              :action-id="`${dbType}_scale`"
-              :permission="clusterData.permission[`${dbType}_scale` as keyof typeof clusterData.permission]"
+              :action-id="`${dbType}_manage`"
+              :permission="clusterData.permission[`${dbType}_manage` as keyof typeof clusterData.permission]"
               :resource="clusterData.id">
               <BkDropdownItem>
                 <BkButton
@@ -164,8 +164,8 @@
             :width="60">
             <template #default="{ row }: { row: IColumnData }">
               <AuthButton
-                :action-id="`${dbType}_pod_delete`"
-                :permission="clusterData.permission[`${dbType}_pod_delete` as keyof typeof clusterData.permission]"
+                :action-id="`${dbType}_manage`"
+                :permission="clusterData.permission[`${dbType}_manage` as keyof typeof clusterData.permission]"
                 :resource="clusterData.id"
                 text
                 theme="primary"

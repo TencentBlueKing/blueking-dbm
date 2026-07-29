@@ -67,15 +67,10 @@ export default class SurrealdbHa extends ClusterBase {
   namespace: string;
   operations: ClusterListOperation[];
   permission: {
-    k8s_surrealdb_apply: boolean;
     k8s_surrealdb_destroy: boolean;
     k8s_surrealdb_edit: boolean;
-    k8s_surrealdb_modify: boolean;
-    k8s_surrealdb_pod_delete: boolean;
-    k8s_surrealdb_restart: boolean;
-    k8s_surrealdb_scale: boolean;
-    k8s_surrealdb_start: boolean;
-    k8s_surrealdb_stop: boolean;
+    k8s_surrealdb_enable_disable: boolean;
+    k8s_surrealdb_manage: boolean;
     k8s_surrealdb_view: boolean;
   };
   phase: 'online' | 'offline';
