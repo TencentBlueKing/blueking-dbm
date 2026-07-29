@@ -14,7 +14,7 @@
 <template>
   <DbSideslider
     v-model:is-show="isShow"
-    class="node-log-main"
+    class="task-detail-node-log-box"
     quick-close
     render-directive="if"
     :show-footer="false"
@@ -406,7 +406,7 @@
   };
 </script>
 
-<style lang="less" scoped>
+<style lang="less">
   @import '@styles/mixins.less';
 
   .tips-content {
@@ -423,7 +423,7 @@
     }
   }
 
-  .node-log-main {
+  .task-detail-node-log-box {
     .log-header {
       width: 100%;
       padding-right: 16px;
@@ -518,7 +518,7 @@
       }
     }
 
-    :deep(.bk-sideslider-content) {
+    .bk-sideslider-content {
       height: calc(100vh - 55px);
       padding: 16px;
       background: #f5f7fa;
