@@ -22,7 +22,7 @@
  * SOFTWARE.
  */
 
-package switcher
+package mysqlswitch
 
 import (
 	"context"
@@ -32,7 +32,7 @@ import (
 
 	"dbm-services/common/dbha-v2/internal/analysis/apm"
 	"dbm-services/common/dbha-v2/internal/analysis/dbm"
-	"dbm-services/common/dbha-v2/internal/analysis/switcher/mysql"
+	"dbm-services/common/dbha-v2/internal/analysis/switcher"
 	"dbm-services/common/dbha-v2/internal/analysis/switcher/switchcore"
 	"dbm-services/common/dbha-v2/internal/analysis/switcher/switchlogger"
 	"dbm-services/common/dbha-v2/pkg/gerrors"
@@ -42,7 +42,7 @@ import (
 	"dbm-services/common/dbha-v2/pkg/storage/haprobe"
 )
 
-var _ Switcher = (*Mysql)(nil)
+var _ switcher.Switcher = (*Mysql)(nil)
 
 // Mysql implements the Switcher interface for MySQL database instances
 type Mysql struct {
@@ -59,10 +59,10 @@ func (m *Mysql) NewSwitchInstance(metadata *dbm.DbInstMetadata, switchID string,
 
 	switch metadata.ClusterType {
 	case haprobe.DbmMetadataClusterTypeTendbha:
-		switchableInstance, retErr = mysql.NewMySQLSwitchInstance(metadata)
+		switchableInstance, retErr = NewMySQLSwitchInstance(metadata)
 
 	case haprobe.DbmMetadataClusterTypeTendbCluster:
-		switchableInstance, retErr = mysql.NewTendbClusterSwitchInstance(metadata)
+		switchableInstance, retErr = NewTendbClusterSwitchInstance(metadata)
 
 	default:
 		return nil, gerrors.Newf(gerrors.Failure, "unsupported cluster type: %s", metadata.ClusterType)
@@ -124,10 +124,10 @@ func (m *Mysql) NewSwitchCluster(clusterKey switchcore.ClusterKey, instDataMap s
 
 	switch clusterType {
 	case haprobe.DbmMetadataClusterTypeTendbha:
-		swCluster, retErr = mysql.NewMySQLSwitchCluster(clusterKey, metadata)
+		swCluster, retErr = NewMySQLSwitchCluster(clusterKey, metadata)
 
 	case haprobe.DbmMetadataClusterTypeTendbCluster:
-		swCluster, retErr = mysql.NewTenDBClusterSwitchCluster(clusterKey, metadata)
+		swCluster, retErr = NewTenDBClusterSwitchCluster(clusterKey, metadata)
 
 	default:
 		retErr = gerrors.Newf(gerrors.Failure, "unsupported cluster type: %s", clusterType)
@@ -161,10 +161,10 @@ func (m *Mysql) NewSwitchLogger() ([]switchlogger.DbSwitchLogger, error) {
 }
 
 // InstanceLevelSwitch handles MySQL instance switching operations
-func (m *Mysql) InstanceLevelSwitch(ctx context.Context, switchLoggers []switchlogger.DbSwitchLogger, req *Request) *Response {
+func (m *Mysql) InstanceLevelSwitch(ctx context.Context, switchLoggers []switchlogger.DbSwitchLogger, req *switcher.Request) *switcher.Response {
 	start := time.Now()
 
-	rsp := &Response{
+	rsp := &switcher.Response{
 		FailureInsts: map[switchcore.MetadataKey]*dbm.DbInstMetadata{},
 	}
 
@@ -188,7 +188,7 @@ func (m *Mysql) InstanceLevelSwitch(ctx context.Context, switchLoggers []switchl
 		go func(inst *dbm.DbInstMetadata, instKey switchcore.MetadataKey) {
 			defer wg.Done()
 
-			swReporter := NewSwitchReporter(switchLoggers, switchcore.InstMetadataMap{instKey: inst},
+			swReporter := switcher.NewSwitchReporter(switchLoggers, switchcore.InstMetadataMap{instKey: inst},
 				req.SwitchID, req.ActionScope)
 			swReporter.ReportSwitchLogf(switchlogger.SwitchInfo, "start to switch the single mysql instance")
 
@@ -213,7 +213,7 @@ func (m *Mysql) InstanceLevelSwitch(ctx context.Context, switchLoggers []switchl
 				return
 			}
 
-			rsp.recordInstanceNewMaster(instKey, swInst)
+			rsp.RecordInstanceNewMaster(instKey, swInst)
 
 			swReporter.ReportSwitchLogf(switchlogger.SwitchSuccess, "successfully switched the single mysql instance: %s",
 				instKey)
@@ -228,12 +228,12 @@ func (m *Mysql) InstanceLevelSwitch(ctx context.Context, switchLoggers []switchl
 		return rsp
 	}
 
-	rsp.Err = ErrSwitchPartialSuccess
+	rsp.Err = switcher.ErrSwitchPartialSuccess
 	return rsp
 }
 
 // buildIpGroup builds a map of IP to instance metadata
-func (m *Mysql) buildIpGroup(req *Request) map[switchcore.HostKey]switchcore.InstMetadataMap {
+func (m *Mysql) buildIpGroup(req *switcher.Request) map[switchcore.HostKey]switchcore.InstMetadataMap {
 	ipGroup := make(map[switchcore.HostKey]switchcore.InstMetadataMap)
 	for _, instData := range req.InstData {
 		if instData == nil {
@@ -260,7 +260,7 @@ func (m *Mysql) buildIpGroup(req *Request) map[switchcore.HostKey]switchcore.Ins
 }
 
 // buildClusterGroup builds a map of cluster to instance metadata
-func (m *Mysql) buildClusterGroup(req *Request) map[switchcore.ClusterKey]switchcore.InstMetadataMap {
+func (m *Mysql) buildClusterGroup(req *switcher.Request) map[switchcore.ClusterKey]switchcore.InstMetadataMap {
 	clusterGroup := make(map[switchcore.ClusterKey]switchcore.InstMetadataMap)
 	for _, instData := range req.InstData {
 		if instData == nil {
@@ -334,10 +334,10 @@ func (m *Mysql) checkHostInstanceCompleteness(ctx context.Context, host switchco
 }
 
 // HostLevelSwitch handles MySQL host switching operations
-func (m *Mysql) HostLevelSwitch(ctx context.Context, switchLoggers []switchlogger.DbSwitchLogger, req *Request) *Response {
+func (m *Mysql) HostLevelSwitch(ctx context.Context, switchLoggers []switchlogger.DbSwitchLogger, req *switcher.Request) *switcher.Response {
 	start := time.Now()
 
-	rsp := &Response{
+	rsp := &switcher.Response{
 		FailureInsts: map[switchcore.MetadataKey]*dbm.DbInstMetadata{},
 	}
 
@@ -361,7 +361,7 @@ func (m *Mysql) HostLevelSwitch(ctx context.Context, switchLoggers []switchlogge
 			defer wg.Done()
 			defer func() { <-sem }()
 
-			swReporter := NewSwitchReporter(switchLoggers, instDataMap, req.SwitchID, req.ActionScope)
+			swReporter := switcher.NewSwitchReporter(switchLoggers, instDataMap, req.SwitchID, req.ActionScope)
 			swReporter.ReportSwitchLogf(switchlogger.SwitchInfo, "start to switch all instances on the current host, "+
 				"instances: [%s]", strings.Join(switchcore.ExtractMetadataKeys(instDataMap), ", "))
 
@@ -386,7 +386,7 @@ func (m *Mysql) HostLevelSwitch(ctx context.Context, switchLoggers []switchlogge
 			switchSuccess, errMap := switchcore.SwitchSameHostInstances(ctx, swInstMap)
 			if switchSuccess {
 				for instKey, swInst := range swInstMap {
-					rsp.recordInstanceNewMaster(instKey, swInst)
+					rsp.RecordInstanceNewMaster(instKey, swInst)
 				}
 				swReporter.ReportSwitchLogf(switchlogger.SwitchSuccess, "successfully switched all instances on the current host")
 				return
@@ -401,7 +401,7 @@ func (m *Mysql) HostLevelSwitch(ctx context.Context, switchLoggers []switchlogge
 					continue
 				}
 
-				rsp.recordInstanceNewMaster(instKey, swInst)
+				rsp.RecordInstanceNewMaster(instKey, swInst)
 				swInst.ReportLogf(switchlogger.SwitchSuccess, "Only some instances on this host were switched successfully.")
 			}
 		}(host, instDataMap)
@@ -410,7 +410,7 @@ func (m *Mysql) HostLevelSwitch(ctx context.Context, switchLoggers []switchlogge
 	wg.Wait()
 
 	if rsp.FailureInstCount() > 0 {
-		rsp.Err = ErrSwitchPartialSuccess
+		rsp.Err = switcher.ErrSwitchPartialSuccess
 	}
 
 	m.reportMysqlSwitchingMetrics(apm.MysqlHostSwitchingTimeConsumingMs, start, req, rsp)
@@ -418,10 +418,10 @@ func (m *Mysql) HostLevelSwitch(ctx context.Context, switchLoggers []switchlogge
 }
 
 // ClusterLevelSwitch handles MySQL cluster switching operations
-func (m *Mysql) ClusterLevelSwitch(ctx context.Context, switchLoggers []switchlogger.DbSwitchLogger, req *Request) *Response {
+func (m *Mysql) ClusterLevelSwitch(ctx context.Context, switchLoggers []switchlogger.DbSwitchLogger, req *switcher.Request) *switcher.Response {
 	start := time.Now()
 
-	rsp := &Response{
+	rsp := &switcher.Response{
 		FailureInsts: map[switchcore.MetadataKey]*dbm.DbInstMetadata{},
 	}
 
@@ -446,7 +446,7 @@ func (m *Mysql) ClusterLevelSwitch(ctx context.Context, switchLoggers []switchlo
 			defer wg.Done()
 			defer func() { <-sem }()
 
-			swReporter := NewSwitchReporter(switchLoggers, instDataMap, req.SwitchID, req.ActionScope)
+			swReporter := switcher.NewSwitchReporter(switchLoggers, instDataMap, req.SwitchID, req.ActionScope)
 			swReporter.ReportSwitchLogf(switchlogger.SwitchInfo, "start to switch current instance in cluster level")
 
 			swCluster, newErr := m.NewSwitchCluster(clusterKey, instDataMap, req.SwitchID)
@@ -468,7 +468,7 @@ func (m *Mysql) ClusterLevelSwitch(ctx context.Context, switchLoggers []switchlo
 				return
 			}
 
-			rsp.recordClusterNewMasters(swCluster)
+			rsp.RecordClusterNewMasters(swCluster)
 
 			swReporter.ReportSwitchLogf(switchlogger.SwitchSuccess, "successfully switched current instance in cluster level")
 		}(clusterKey, instDataMap)
@@ -479,14 +479,14 @@ func (m *Mysql) ClusterLevelSwitch(ctx context.Context, switchLoggers []switchlo
 	m.reportMysqlSwitchingMetrics(apm.MysqlClusterSwitchingTimeConsumingMs, start, req, rsp)
 
 	if rsp.FailureInstCount() > 0 {
-		rsp.Err = ErrSwitchPartialSuccess
+		rsp.Err = switcher.ErrSwitchPartialSuccess
 	}
 
 	return rsp
 }
 
 // reportMysqlSwitchingMetrics reports the switching time consuming, success total and error total metrics
-func (m *Mysql) reportMysqlSwitchingMetrics(timeConsumingMetric *haapm.HaHistogram, start time.Time, req *Request, rsp *Response) {
+func (m *Mysql) reportMysqlSwitchingMetrics(timeConsumingMetric *haapm.HaHistogram, start time.Time, req *switcher.Request, rsp *switcher.Response) {
 
 	// report the mysql switching time consuming
 	if err := timeConsumingMetric.ObserveWithLabels(map[string]string{
@@ -516,8 +516,8 @@ func (m *Mysql) reportMysqlSwitchingMetrics(timeConsumingMetric *haapm.HaHistogr
 }
 
 // Switch handles MySQL switching operations on different levels
-func (m *Mysql) Switch(ctx context.Context, req *Request) *Response {
-	rsp := &Response{
+func (m *Mysql) Switch(ctx context.Context, req *switcher.Request) *switcher.Response {
+	rsp := &switcher.Response{
 		FailureInsts: map[switchcore.MetadataKey]*dbm.DbInstMetadata{},
 	}
 

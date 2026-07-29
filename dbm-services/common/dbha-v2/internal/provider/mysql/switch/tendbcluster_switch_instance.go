@@ -22,7 +22,7 @@
  * SOFTWARE.
  */
 
-package mysql
+package mysqlswitch
 
 import (
 	"fmt"
@@ -238,12 +238,12 @@ type TenDBClusterRemoteSwitchInstance struct {
 
 // GetNewMasterInfo returns the promoted new master info. ok is true only for a master switch
 // whose standby slave (the new master) is known.
-func (sw *TenDBClusterRemoteSwitchInstance) GetNewMasterInfo() (*MySqlNewMasterInfo, bool) {
+func (sw *TenDBClusterRemoteSwitchInstance) GetNewMasterInfo() (*switchcore.NewMasterInfo, bool) {
 	if sw.InstanceRole != haprobe.TenDBClusterStorageMaster || sw.StandBySlave == nil {
 		return nil, false
 	}
 
-	return &MySqlNewMasterInfo{
+	return &switchcore.NewMasterInfo{
 		Host:       sw.StandBySlave.Ip,
 		Port:       sw.StandBySlave.Port,
 		BinlogFile: sw.NewMasterBinlogFile,
