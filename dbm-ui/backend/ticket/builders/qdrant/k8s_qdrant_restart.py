@@ -37,7 +37,7 @@ class K8sQdrantRestartFlowParamBuilder(K8sQdrantDeleteFlowParamBuilder):
     TicketType.K8S_QDRANT_RESTART,
     phase=ClusterPhase.ONLINE,
     cluster_type=ClusterType.K8sQdrantHa,
-    iam=ActionEnum.K8S_QDRANT_RESTART,
+    iam=ActionEnum.K8S_QDRANT_MANAGE,
 )
 class K8sQdrantRestartFlowBuilder(BaseQdrantTicketFlowBuilder):
     serializer = K8sQdrantRestartSerializer
