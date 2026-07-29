@@ -22,7 +22,7 @@
  * SOFTWARE.
  */
 
-package mysql
+package mysqlswitch
 
 import (
 	"database/sql"

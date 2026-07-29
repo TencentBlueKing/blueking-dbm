@@ -22,14 +22,10 @@
  * SOFTWARE.
  */
 
-package mysql
+package switchcore
 
-import (
-	"dbm-services/common/dbha-v2/internal/analysis/switcher/switchcore"
-)
-
-// MySqlNewMasterInfo holds the new master info after a successful storage-master switch.
-type MySqlNewMasterInfo struct {
+// NewMasterInfo holds the new master info after a successful storage-master switch.
+type NewMasterInfo struct {
 	Host       string
 	Port       int
 	BinlogFile string
@@ -38,10 +34,10 @@ type MySqlNewMasterInfo struct {
 
 // InstanceNewMasterProvider is implemented by switch instances that promote a new master.
 type InstanceNewMasterProvider interface {
-	GetNewMasterInfo() (*MySqlNewMasterInfo, bool)
+	GetNewMasterInfo() (*NewMasterInfo, bool)
 }
 
 // ClusterNewMasterProvider is implemented by switch clusters that promote new masters.
 type ClusterNewMasterProvider interface {
-	GetNewMasterInfos() map[switchcore.MetadataKey]*MySqlNewMasterInfo
+	GetNewMasterInfos() map[MetadataKey]*NewMasterInfo
 }
