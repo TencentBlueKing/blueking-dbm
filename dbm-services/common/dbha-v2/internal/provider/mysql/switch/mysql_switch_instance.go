@@ -22,7 +22,7 @@
  * SOFTWARE.
  */
 
-package mysql
+package mysqlswitch
 
 import (
 	"database/sql"
@@ -804,12 +804,12 @@ func GetBinlogDumperInfo(binlogDumperSet []dbm.DbmMetadataBinlogDumper) string {
 
 // GetNewMasterInfo returns the promoted new master info. ok is true only for a master switch
 // whose standby slave (the new master) is known.
-func (sw *MySQLStorageSwitchInstance) GetNewMasterInfo() (*MySqlNewMasterInfo, bool) {
+func (sw *MySQLStorageSwitchInstance) GetNewMasterInfo() (*switchcore.NewMasterInfo, bool) {
 	if sw.InstanceRole != haprobe.MySQLStorageMaster || sw.StandBySlave == nil {
 		return nil, false
 	}
 
-	return &MySqlNewMasterInfo{
+	return &switchcore.NewMasterInfo{
 		Host:       sw.StandBySlave.Ip,
 		Port:       sw.StandBySlave.Port,
 		BinlogFile: sw.NewMasterBinlogFile,

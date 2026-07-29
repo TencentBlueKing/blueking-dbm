@@ -185,10 +185,10 @@ type EventData struct {
 | 能力 | MySQL 现状 | 新 DB 要求 |
 |------|------------|------------|
 | parse | 实现 + 注册均在 `provider/mysql/parse` | 同左 |
-| switch | 实现在 `switcher`；`provider/mysql/switch` 只注册 | 实现与注册放在 `provider/<db>/switch` |
+| switch | 实现 + 注册均在 `provider/mysql/switch` | 同左 |
 | harvest | 已在 `provider/mysql/harvest` | 同左 |
 
-框架 `internal/analysis/parser` 仅保留接口与注册表；**新 DB 实现应放在 provider 子包**。
+框架 `internal/analysis/parser` 与 `internal/analysis/switcher` 仅保留接口与注册表；**新 DB 实现应放在 provider 子包**。
 
 ---
 
