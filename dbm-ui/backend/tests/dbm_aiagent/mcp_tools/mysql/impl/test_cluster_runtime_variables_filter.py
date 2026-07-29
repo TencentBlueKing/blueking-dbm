@@ -8,15 +8,31 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+from unittest.mock import patch
+
 from backend.dbm_aiagent.mcp_tools.mysql.impl.cluster_runtime_variables import (
     _apply_spider_variable_filter,
     _apply_storage_engine_filter,
     _filter_variables,
+    _query_variables_for_addresses,
 )
 
 
 def _rows(*pairs):
     return [{"Variable_name": name, "Value": value} for name, value in pairs]
+
+
+def _drs_item(address, variables, error_msg=""):
+    return {
+        "address": address,
+        "error_msg": error_msg,
+        "cmd_results": [
+            {
+                "error_msg": "",
+                "table_data": [{"Variable_name": k, "Value": v} for k, v in variables.items()],
+            }
+        ],
+    }
 
 
 class TestFilterVariables:
@@ -73,6 +89,25 @@ class TestFilterVariables:
         assert "innodb_support_xa" not in result
         assert result["innodb_buffer_pool_size"] == "1073741824"
         assert result["innodb_io_capacity"] == "2000"
+
+
+class TestQueryVariablesAddressMapping:
+    @patch("backend.dbm_aiagent.mcp_tools.mysql.impl.cluster_runtime_variables.DRSApi.v2_mysql_rpc")
+    def test_maps_by_response_address_not_request_order(self, mock_rpc):
+        """DRS 返回顺序与请求不一致时，必须按 address 对齐，避免把存储参数挂到 Spider。"""
+        spider = "127.0.0.2:25000"
+        remote = "127.0.0.3:20000"
+        # 请求顺序：spider, remote；返回顺序故意反过来
+        mock_rpc.return_value = [
+            _drs_item(remote, {"back_log": "30000", "max_connections": "3000"}),
+            _drs_item(spider, {"back_log": "100", "max_connections": "2000"}),
+        ]
+
+        addr_to_variables, unused_meta = _query_variables_for_addresses(bk_cloud_id=0, addresses=[spider, remote])
+
+        assert addr_to_variables[spider]["back_log"] == "100"
+        assert addr_to_variables[remote]["back_log"] == "30000"
+        assert addr_to_variables[spider]["max_connections"] == "2000"
 
 
 class TestSpiderVariableFilter:

@@ -127,8 +127,8 @@ def diff_variables(left_vars: Dict[str, Any], right_vars: Dict[str, Any]) -> Lis
             mismatches.append(
                 {
                     "variable_name": key,
-                    "left_value": left_val,
-                    "right_value": right_val,
+                    "master_value": left_val,
+                    "slave_value": right_val,
                     "severity": "high" if lname in {k.lower() for k in HIGH_IMPACT_KEYS} else "warn",
                 }
             )
@@ -187,7 +187,16 @@ def _is_spider(inst: Dict) -> bool:
 
 
 def _mismatch_key(mismatches: List[Dict]) -> Tuple:
-    return tuple(sorted((m["variable_name"], str(m["left_value"]), str(m["right_value"])) for m in mismatches))
+    return tuple(
+        sorted(
+            (
+                m["variable_name"],
+                str(m.get("master_value", m.get("left_value", ""))),
+                str(m.get("slave_value", m.get("right_value", ""))),
+            )
+            for m in mismatches
+        )
+    )
 
 
 def _aggregate(pairs: List[Dict], kind: str) -> List[Dict]:
@@ -205,15 +214,13 @@ def _aggregate(pairs: List[Dict], kind: str) -> List[Dict]:
         if len(ms) == 1:
             out.append(ms[0])
         elif kind == "shard":
+            # 同差异模式多分片合并；master/slave 仅保留一例，避免 pairs_example 嵌套
             out.append(
                 {
                     "scope": "shard_group",
                     "affected_shards": [m["shard_id"] for m in ms],
-                    "pairs_example": {
-                        "shard_id": ms[0]["shard_id"],
-                        "master": ms[0]["master"],
-                        "slave": ms[0]["slave"],
-                    },
+                    "master": ms[0]["master"],
+                    "slave": ms[0]["slave"],
                     "mismatches": groups[k]["mismatches"],
                 }
             )
@@ -335,7 +342,7 @@ def _collect_spider_nodes(data: Dict) -> List[Dict]:
 
 
 def _spider_group_key(inst: Dict) -> str:
-    """按 Spider 角色成组（spider_master / spider_slave / spider_mnt 等），同角色节点彼此等价。"""
+    """按 Spider 角色成组；采集侧仅纳入 spider_master，同角色节点彼此等价。"""
     ir = (inst.get("instance_role") or "").lower().strip()
     if ir:
         return ir
@@ -366,7 +373,8 @@ def _diff_spider_group_variables(members: List[Dict]) -> List[Dict]:
             {
                 "variable_name": key,
                 "severity": "high" if key.lower() in high_impact else "warn",
-                "values": [{"value": v, "instances": sorted(addrs)} for v, addrs in buckets.items()],
+                # 取值 → 实例列表；比 [{value, instances}, ...] 更紧凑
+                "by_value": {v: sorted(addrs) for v, addrs in buckets.items()},
             }
         )
     return mismatches
@@ -399,38 +407,28 @@ def _build_spider_groups(data: Dict) -> List[Dict]:
         mismatches = _diff_spider_group_variables(member_list)
         if not mismatches:
             continue
-        out.append(
-            {
-                "scope": "spider_group",
-                "group": group_name,
-                "members": [m["address"] for m in member_list],
-                "is_consistent": False,
-                "mismatches": mismatches,
-            }
-        )
+        # 仅保留 group + mismatches；成员地址可从 by_value 还原
+        out.append({"group": group_name, "mismatches": mismatches})
     return out
 
 
-def _build_spider_versions(data: Dict) -> Tuple[List[Dict], Dict[str, Any]]:
-    versions_list: List[Dict] = []
-    version_set = set()
+def _build_spider_version(data: Dict) -> Dict[str, Any]:
+    """紧凑版本摘要：consistent + by_version（版本 → 地址列表）。"""
+    by_version: OrderedDict = OrderedDict()
     for node in _as_list(data.get("spiders")):
         if not isinstance(node, dict):
             continue
+        addr = str(node.get("address") or "").strip()
+        if not addr:
+            continue
         inst = _normalize(node, "spider", None)
-        ver = _instance_version(inst)
-        versions_list.append(
-            {
-                "address": node.get("address") or "",
-                "instance_role": node.get("instance_role") or "",
-                "version": ver,
-            }
-        )
-        if ver:
-            version_set.add(ver)
-    versions_list.sort(key=lambda x: str(x.get("address") or ""))
-    unique = sorted(version_set)
-    return versions_list, {"is_consistent": len(unique) <= 1, "versions": unique}
+        ver = _instance_version(inst) or ""
+        by_version.setdefault(ver, []).append(addr)
+    for ver in list(by_version.keys()):
+        by_version[ver] = sorted(by_version[ver])
+    # 按版本字符串排序，保证稳定输出
+    ordered = OrderedDict((k, by_version[k]) for k in sorted(by_version.keys()))
+    return {"consistent": len(ordered) <= 1, "by_version": dict(ordered)}
 
 
 def build_tendbha_variable_diff(runtime_data: Dict, cluster_domain: str = "") -> Dict:
@@ -444,13 +442,11 @@ def build_tendbha_variable_diff(runtime_data: Dict, cluster_domain: str = "") ->
 
 
 def build_tendbcluster_variable_diff(runtime_data: Dict, cluster_domain: str = "") -> Dict:
-    """纯函数：基于 cluster_runtime_variables 形态数据产出 Cluster 差异。"""
-    spider_versions, spider_version_diff = _build_spider_versions(runtime_data)
+    """纯函数：基于 cluster_runtime_variables 形态数据产出 Cluster 差异（紧凑结构）。"""
     return {
         "cluster_type": "tendbcluster",
         "cluster_domain": cluster_domain,
-        "spider_versions": spider_versions,
-        "spider_version_diff": spider_version_diff,
+        "spider_version": _build_spider_version(runtime_data),
         "spider_groups": _build_spider_groups(runtime_data),
         "shard_pairs": _cluster_shard_pairs(_collect_tendbcluster_shards(runtime_data)),
     }

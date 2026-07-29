@@ -322,8 +322,10 @@ class MySQLQueryMcpToolsViewSet(McpToolsViewSet):
     @mcp_tools_api_decorator(
         description=str(
             _(
-                "对比 TenDBCluster 集群：Spider 版本与参数差异，以及每组分片内 master/slave 参数差异。"
-                "已跳过天然不同参数及可配置忽略键/前缀；无差异时对应列表为空。"
+                "对比 TenDBCluster 集群：仅 spider_master 版本摘要与组内参数差异，"
+                "以及分片 remote 主从参数差异；不采集 spider_slave。"
+                "返回紧凑结构：spider_version.by_version、spider_groups[].mismatches[].by_value、"
+                "shard_pairs mismatches 使用 master_value/slave_value；无差异时列表为空。"
                 "cluster_id 与 cluster_domain 二选一。"
             )
         ),
