@@ -4,7 +4,6 @@
     :before-close="handleBeforeClose"
     :cancel-text="t('取消')"
     class="edit-version-slider-main"
-    :confirm-button-disable-info="confirmButtonDisableInfo"
     :confirm-handler="handleSubmit"
     :confirm-text="t('确定')"
     render-directive="if"
@@ -41,8 +40,7 @@
             :distribution-id="releaseVersion?.id"
             :version-series-id="versionSeriesId"
             @add-version="() => emits('addVersion')"
-            @label-change="handleLabelChange"
-            @value-change="handleValueChange" />
+            @label-change="handleLabelChange" />
         </BkFormItem>
         <div class="version-row">
           <BkFormItem
@@ -57,8 +55,7 @@
               :maxlength="50"
               :placeholder="t('请输入xx', [t('版本号')])"
               show-word-limit
-              @blur="handleResetDefaultVersionName"
-              @input="handleValueChange" />
+              @blur="handleResetDefaultVersionName" />
             <div
               v-if="!hideTipMap.full_version && !isEdit"
               class="item-tip">
@@ -84,8 +81,7 @@
               v-model="formModel.name"
               :maxlength="50"
               :placeholder="t('请输入xx', [t('版本名')])"
-              show-word-limit
-              @input="handleValueChange" />
+              show-word-limit />
             <div
               v-if="!hideTipMap.name"
               class="item-tip">
@@ -98,9 +94,7 @@
             :label="t('版本阶段')"
             property="phase"
             required>
-            <VersionStage
-              v-model="formModel.phase"
-              @value-change="handleValueChange" />
+            <VersionStage v-model="formModel.phase" />
           </BkFormItem>
         </div>
         <BkFormItem
@@ -125,8 +119,7 @@
             :db-type="dbType"
             :is-applied="isApplied"
             :pkg-type="pkgType"
-            :version="versionSeriesLabel"
-            @value-change="handleValueChange" />
+            :version="versionSeriesLabel" />
         </BkFormItem>
         <BkFormItem
           :label="t('描述')"
@@ -138,8 +131,7 @@
             :resize="false"
             :rows="5"
             show-word-limit
-            type="textarea"
-            @input="handleValueChange" />
+            type="textarea" />
         </BkFormItem>
         <BkFormItem
           property="enable"
@@ -153,8 +145,7 @@
           </template>
           <BkSwitcher
             v-model="formModel.enable"
-            theme="primary"
-            @change="handleValueChange" />
+            theme="primary" />
         </BkFormItem>
       </DbForm>
     </div>
@@ -235,7 +226,6 @@
   const versionFilesRef = ref<InstanceType<typeof VersionFiles>>();
   const versionSeriesRef = ref<InstanceType<typeof VersionSeries>>();
   const formModel = ref(initFormModel());
-  const confirmDisabled = ref(true);
   const versionSeriesLabel = ref('');
   const hideTipMap = ref({
     full_version: false,
@@ -257,14 +247,6 @@
       ? `${props.pkgType.toLocaleLowerCase()}_${props.releaseVersion?.name.toLocaleLowerCase()}_${formModel.value.full_version}`
       : `${props.pkgType}_${formModel.value.full_version}`,
   );
-
-  const confirmButtonDisableInfo = computed(() => ({
-    disabled: confirmDisabled.value,
-    tooltips: {
-      content: t('当前无变更，请先修改内容'),
-      disabled: !confirmDisabled.value,
-    },
-  }));
 
   const formRules = computed(() => ({
     files: [
@@ -392,26 +374,8 @@
     },
   );
 
-  watch(
-    confirmDisabled,
-    () => {
-      window.changeConfirm = confirmDisabled.value;
-    },
-    {
-      immediate: true,
-    },
-  );
-
-  watch(isShow, () => {
-    confirmDisabled.value = true;
-  });
-
   const handleLabelChange = (label: string) => {
     versionSeriesLabel.value = label;
-  };
-
-  const handleValueChange = () => {
-    confirmDisabled.value = false;
   };
 
   const handleResetDefaultVersionName = () => {
