@@ -327,7 +327,7 @@ func (e *SwitchExecutor) postSuccessAlarms(req *switcher.Request, rsp *switcher.
 		monitorEvent.Dimension.SwitchInfoStatusV1 = string(inst.Status)
 		monitorEvent.Dimension.SwitchInfoCheckIdV1 = generateDoubleCheckID(req.SwitchID, inst.BkCloudID, inst.IP)
 
-		if newMaster, ok := rsp.GetMySqlNewMasterInfo(instKey); ok {
+		if newMaster, ok := rsp.GetNewMasterInfo(instKey); ok {
 			monitorEvent.Dimension.SwitchInfoNewMasterHost = newMaster.Host
 			monitorEvent.Dimension.SwitchInfoNewMasterPort = newMaster.Port
 			monitorEvent.Dimension.SwitchInfoNewMasterBinlogFile = newMaster.BinlogFile

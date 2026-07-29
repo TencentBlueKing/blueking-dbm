@@ -22,7 +22,7 @@
  * SOFTWARE.
  */
 
-package mysql
+package mysqlswitch
 
 import (
 	"dbm-services/common/dbha-v2/internal/analysis/config"
@@ -466,15 +466,15 @@ func (cluster *MySQLSwitchCluster) RefreshProxiesBackends() error {
 }
 
 // GetNewMasterInfos returns the new master info keyed by the switched backend master instance.
-func (cluster *MySQLSwitchCluster) GetNewMasterInfos() map[switchcore.MetadataKey]*MySqlNewMasterInfo {
-	res := map[switchcore.MetadataKey]*MySqlNewMasterInfo{}
+func (cluster *MySQLSwitchCluster) GetNewMasterInfos() map[switchcore.MetadataKey]*switchcore.NewMasterInfo {
+	res := map[switchcore.MetadataKey]*switchcore.NewMasterInfo{}
 	for _, masterKey := range cluster.BackendMasterKeyList {
 		standbySlave, exists := cluster.StandbySlaveMap[masterKey]
 		if !exists || standbySlave == nil {
 			continue
 		}
 
-		res[masterKey] = &MySqlNewMasterInfo{
+		res[masterKey] = &switchcore.NewMasterInfo{
 			Host:       standbySlave.Ip,
 			Port:       standbySlave.Port,
 			BinlogFile: cluster.NewMasterBinlogFile,

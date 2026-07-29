@@ -86,7 +86,7 @@ make check-generate
 - 在 `provider/<db>/switch` 的 `init()` 中调用 `switcher.Register` 与 `dbtype.RegisterSwitchAlarmEvents`（顺序：先 Register switcher 再注册告警亦可；启动期 `switcher.Validate()` 会校验告警事件已注册）。
 - 在 `provider/<db>/parse` 的 `init()` 中调用 `parser.Register(dbType, processer)`。
 - 未注册的 `DbType` 在 `TriggerSwitching` 中告警跳过（行为不变）。
-- 新主信息字段 `MySqlNewMasterInfo` 仍为 MySQL 专属；新 DB 暂不经该字段返回新主信息。
+- 新主信息经 `switchcore.NewMasterInfo` 返回；各 DB 可实现 `switchcore.InstanceNewMasterProvider` / `ClusterNewMasterProvider` 写入 `switcher.Response`。
 
 ## Provider 骨架示例（kafka）
 
@@ -135,10 +135,10 @@ func init() {
 | 能力 | MySQL 现状 | 新 DB 要求 |
 |------|------------|------------|
 | parse | 实现 + 注册均在 `provider/mysql/parse` | 同左 |
-| switch | 实现在 `switcher`；`provider/mysql/switch` 只注册 | 实现与注册放在 `provider/<db>/switch` |
+| switch | 实现 + 注册均在 `provider/mysql/switch` | 同左 |
 | harvest | 已在 `provider/mysql/harvest` | 同左 |
 
-框架包 `internal/analysis/parser` 仅保留 `Processer` 接口与注册表；analysis 启动要求 parser 注册表非空（当前由 MySQL `CapParse` 满足）。
+框架包 `internal/analysis/parser` 与 `internal/analysis/switcher` 仅保留接口与注册表；analysis 启动要求 parser / switcher 注册表非空（当前由 MySQL `CapParse` / `CapSwitch` 满足）。
 
 ## 自检清单
 
