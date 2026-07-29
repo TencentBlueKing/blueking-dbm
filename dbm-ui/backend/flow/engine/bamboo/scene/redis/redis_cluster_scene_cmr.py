@@ -190,7 +190,8 @@ class RedisClusterCMRSceneFlow(object):
             for cluster_replacement in self.data["infos"]
             for cluster_id in cluster_replacement["cluster_ids"]
         }
-        self._prefetch_cluster_cache(list(unique_cluster_ids))
+        cluster_ids = list(unique_cluster_ids)
+        self._prefetch_cluster_cache(cluster_ids)
 
         for cluster_replacement in self.data["infos"]:
             if len(cluster_replacement["cluster_ids"]) > 1:
@@ -199,7 +200,6 @@ class RedisClusterCMRSceneFlow(object):
                 sub_pipelines.append(sub_pipeline)
             else:
                 for cluster_id in cluster_replacement["cluster_ids"]:
-                    cluster_ids.append(int(cluster_id))
                     cluster_kwargs = deepcopy(act_kwargs)
                     cluster_info = self.get_cluster_info(cluster_id)
                     sync_type = SyncType.SYNC_MMS.value  # ssd sync from master
