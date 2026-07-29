@@ -30,3 +30,14 @@ const (
 
 // K8sAPIServerTimeout k8s API server 默认超时时间
 const K8sAPIServerTimeout = 60 * time.Second
+
+const (
+	// MaxPodLogLines pod log 返回最大行数
+	MaxPodLogLines = 2000
+	// MaxPodLogSize pod log 返回最大字节数
+	MaxPodLogSize = 5 * 1024 * 1024
+	// PodLogBufferSize pod log scanner 初始缓冲区字节数
+	PodLogBufferSize = 64 * 1024
+	// MaxPodLogLineBytes pod log 单行最大字节数
+	MaxPodLogLineBytes = 2 * 1024 * 1024
+)

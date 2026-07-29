@@ -21,6 +21,7 @@ package util
 
 import (
 	"fmt"
+	"regexp"
 	"strconv"
 	"strings"
 	"unicode"
@@ -28,6 +29,30 @@ import (
 	"golang.org/x/text/cases"
 	"golang.org/x/text/language"
 )
+
+var ansiEscapePattern = regexp.MustCompile(
+	`\x1b(?:` +
+		`\[[0-9;?]*[a-zA-Z]|` +
+		`\][^\x07\x1b]*(?:\x07|\x1b\\)|` +
+		`[>=<][^\x1b]*\x1b\\?` +
+		`)`,
+)
+
+// StripAnsiCodes 移除 ANSI/VT100 转义序列
+func StripAnsiCodes(s string) string {
+	if s == "" {
+		return s
+	}
+	return ansiEscapePattern.ReplaceAllString(s, "")
+}
+
+// HasAnsiCodes 判断字符串是否包含 ANSI 转义序列
+func HasAnsiCodes(s string) bool {
+	if s == "" {
+		return false
+	}
+	return ansiEscapePattern.MatchString(s)
+}
 
 // ToUpper 将字符串转换为大写
 func ToUpper(s string) string {
