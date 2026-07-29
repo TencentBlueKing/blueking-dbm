@@ -13,9 +13,9 @@
 
 <template>
   <InfoList>
-    <InfoItem :label="t('构造方式')">
+    <InfoItem :label="t('回档方式')">
       <strong>
-        {{ ticketDetails.details.infos[0]?.restore_time ? t('指定时间构造') : t('指定备份记录构造') }}
+        {{ ticketDetails.details.infos[0]?.restore_time ? t('指定时间回档') : t('指定备份记录回档') }}
       </strong>
     </InfoItem>
   </InfoList>
@@ -27,7 +27,7 @@
       col-key="src_cluster"
       fixed="left"
       :get-copy-value="(row: RowData) => ticketDetails.details.clusters[row.src_cluster].immute_domain"
-      :title="t('集群')"
+      :title="t('源集群')"
       :width="220">
       <template #default="{ row: data }: { row: RowData }">
         {{ ticketDetails.details.clusters[data.src_cluster].immute_domain }}
@@ -110,16 +110,6 @@
       </template>
     </TicketInfoTableColumn>
     <TicketInfoTableColumn
-      col-key="dst_cluster"
-      fixed="left"
-      :get-copy-value="(row: RowData) => ticketDetails.details.clusters[row.dst_cluster].immute_domain"
-      :title="t('目标集群')"
-      :width="220">
-      <template #default="{ row: data }: { row: RowData }">
-        {{ ticketDetails.details.clusters[data.dst_cluster].immute_domain }}
-      </template>
-    </TicketInfoTableColumn>
-    <TicketInfoTableColumn
       col-key="target_db_name"
       :title="t('恢复后库名')"
       :width="300">
@@ -186,7 +176,7 @@
   type RowData = Props['ticketDetails']['details']['infos'][number];
 
   defineOptions({
-    name: TicketTypes.SQLSERVER_ROLLBACK,
+    name: TicketTypes.SQLSERVER_ROLLBACK_LOCAL,
     inheritAttrs: false,
   });
 
@@ -209,7 +199,7 @@
     }
 
     .content-value {
-      width: 260px;
+      width: 360px;
     }
   }
 
