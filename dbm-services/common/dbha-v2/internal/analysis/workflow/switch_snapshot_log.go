@@ -171,7 +171,7 @@ func (s *SwitchingSnapshotReport) ReportAfterSwitchingSnapshot(rsp *switcher.Res
 	instances := s.SnapshotData.DbSwitchingSnapshotLog.Instances
 	for _, instance := range instances.Data {
 		instKey := switchcore.GenerateMetadataKey(bkCloudID, instance.IP, instance.Port)
-		if res, has := rsp.GetMySqlNewMasterInfo(instKey); has {
+		if res, has := rsp.GetNewMasterInfo(instKey); has {
 			instance.NewMasterIP = res.Host
 			instance.NewMasterPort = res.Port
 		}
