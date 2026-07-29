@@ -71,14 +71,8 @@ class QdrantHaResourceViewSet(KubernetesResourceViewSet):
     list_perm_actions = [
         ActionEnum.K8S_QDRANT_VIEW,
         ActionEnum.K8S_QDRANT_EDIT,
-        ActionEnum.K8S_QDRANT_APPLY,
-        ActionEnum.K8S_QDRANT_MODIFY,
         ActionEnum.K8S_QDRANT_DESTROY,
-        ActionEnum.K8S_QDRANT_START,
-        ActionEnum.K8S_QDRANT_STOP,
-        ActionEnum.K8S_QDRANT_RESTART,
-        ActionEnum.K8S_QDRANT_POD_DELETE,
-        ActionEnum.K8S_QDRANT_SCALE,
-        ActionEnum.K8S_QDRANT_UPGRADE,
+        ActionEnum.K8S_QDRANT_ENABLE_DISABLE,
+        ActionEnum.K8S_QDRANT_MANAGE,
     ]
     list_instance_perm_actions = [ActionEnum.K8S_QDRANT_VIEW]

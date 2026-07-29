@@ -44,6 +44,26 @@ K8S_ACTION_SUFFIXES = [
     "upgrade",
 ]
 
+# SurrealDB / Qdrant 的操作集（含 view/edit/enable_disable/manage，不含 modify/start/stop/restart/pod_delete/scale/upgrade）
+SURREALDB_QDRANT_SUFFIXES = [
+    "view",
+    "edit",
+    "apply",
+    "destroy",
+    "enable_disable",
+    "manage",
+]
+
+# 各 K8s 类型预期操作集
+K8S_TYPE_ACTIONS = {
+    "k8s_surrealdb": SURREALDB_QDRANT_SUFFIXES,
+    "k8s_victoriametrics": K8S_ACTION_SUFFIXES,
+    "k8s_risingwave": K8S_ACTION_SUFFIXES,
+    "k8s_milvus": K8S_ACTION_SUFFIXES,
+    "k8s_qdrant": SURREALDB_QDRANT_SUFFIXES,
+    "k8s_greptimedb": K8S_ACTION_SUFFIXES,
+}
+
 
 class TestK8sClusterTypeEnum:
     """T0-1: K8s 集群类型枚举测试"""
@@ -175,52 +195,39 @@ class TestClusterTypeToResourceMeta:
 class TestK8sActionIds:
     """T0-4: K8s ActionMeta ID 格式验证"""
 
-    K8S_TYPE_PREFIXES = [
-        "k8s_surrealdb",
-        "k8s_victoriametrics",
-        "k8s_risingwave",
-        "k8s_milvus",
-        "k8s_qdrant",
-        "k8s_greptimedb",
-    ]
+    K8S_TYPE_PREFIXES = list(K8S_TYPE_ACTIONS.keys())
 
     def test_all_per_type_k8s_actions_exist_in_all_actions(self):
-        expected_ids = [f"{prefix}_{suffix}" for prefix in self.K8S_TYPE_PREFIXES for suffix in K8S_ACTION_SUFFIXES]
-        for action_id in expected_ids:
-            assert action_id in _all_actions, f"action_id {action_id!r} not found in _all_actions"
+        for prefix, suffixes in K8S_TYPE_ACTIONS.items():
+            for suffix in suffixes:
+                action_id = f"{prefix}_{suffix}"
+                assert action_id in _all_actions, f"action_id {action_id!r} not found in _all_actions"
         assert "k8s_addon_manage" in _all_actions
 
     def test_action_id_format_matches_pattern(self):
         """所有 K8s action_id 格式符合 k8s_{type}_{action} 规范"""
         pattern = re.compile(r"^k8s_[a-z]+(_[a-z]+)*$")
-        for prefix in self.K8S_TYPE_PREFIXES:
-            for suffix in K8S_ACTION_SUFFIXES:
+        for prefix, suffixes in K8S_TYPE_ACTIONS.items():
+            for suffix in suffixes:
                 action_id = f"{prefix}_{suffix}"
                 assert pattern.match(action_id), f"{action_id!r} does not match expected pattern"
 
     def test_k8s_actions_count(self):
-        """_all_actions 中以 k8s_ 开头的 action 为 59 个（含 surrealdb/qdrant 的 view/edit 与 addon_manage）"""
+        """_all_actions 中以 k8s_ 开头的 action 为 49 个（surrealdb/qdrant 各 6 个，其余类型各 9 个，加 addon_manage）"""
         k8s_actions = [aid for aid in _all_actions if aid.startswith("k8s_")]
-        assert len(k8s_actions) == 59, f"Expected 59 K8s actions, got {len(k8s_actions)}: {k8s_actions}"
+        assert len(k8s_actions) == 49, f"Expected 49 K8s actions, got {len(k8s_actions)}: {k8s_actions}"
 
     @pytest.mark.parametrize(
         "cluster_type_prefix",
-        [
-            "k8s_surrealdb",
-            "k8s_victoriametrics",
-            "k8s_risingwave",
-            "k8s_milvus",
-            "k8s_qdrant",
-            "k8s_greptimedb",
-        ],
+        list(K8S_TYPE_ACTIONS.keys()),
     )
     def test_each_cluster_type_has_9_actions(self, cluster_type_prefix):
-        """每种 K8s 集群类型 action 数符合定义：多数 9 个，SurrealDB/Qdrant 含 view/edit 为 11 个"""
+        """每种 K8s 集群类型 action 数：多数 9 个（FULL_SUFFIXES），SurrealDB/Qdrant 使用不同操作集为 6 个"""
         matching = [aid for aid in _all_actions if aid.startswith(f"{cluster_type_prefix}_")]
-        assert len(matching) in [
-            9,
-            11,
-        ], f"{cluster_type_prefix} should have 9 or 11 actions, got {len(matching)}: {matching}"
+        expected_suffixes = K8S_TYPE_ACTIONS[cluster_type_prefix]
+        assert len(matching) == len(expected_suffixes), (
+            f"{cluster_type_prefix} should have {len(expected_suffixes)} actions, " f"got {len(matching)}: {matching}"
+        )
 
     def test_apply_actions_have_business_resource(self):
         """apply 类 action 的 related_resource_types 包含 BUSINESS"""
@@ -234,9 +241,9 @@ class TestK8sActionIds:
 
     def test_non_apply_actions_have_cluster_resource(self):
         """非 apply 类 action 的 related_resource_types 包含对应 K8s 集群资源"""
-        non_apply_suffixes = [s for s in K8S_ACTION_SUFFIXES if s != "apply"]
         for prefix in self.K8S_TYPE_PREFIXES:
             expected_resource_id = prefix  # e.g. "k8s_surrealdb"
+            non_apply_suffixes = [s for s in K8S_TYPE_ACTIONS[prefix] if s != "apply"]
             for suffix in non_apply_suffixes:
                 action_id = f"{prefix}_{suffix}"
                 action = _all_actions[action_id]
@@ -246,9 +253,12 @@ class TestK8sActionIds:
                 ), f"{action_id} should relate to {expected_resource_id} resource, got {resource_ids}"
 
     def test_actions_have_db_manage_in_related_actions(self):
-        """所有 K8s action 都将 db_manage 列为 related_actions"""
+        """所有 K8s action 都将 db_manage 列为 related_actions（enable_disable/manage 除外，它们遵循已有模式引用对应 _view）"""
         for prefix in self.K8S_TYPE_PREFIXES:
-            for suffix in K8S_ACTION_SUFFIXES:
+            for suffix in K8S_TYPE_ACTIONS[prefix]:
+                # enable_disable/manage 遵循代码库已有模式仅引用对应 _view（如 MYSQL_ENABLE_DISABLE → MYSQL_VIEW）
+                if suffix in ("enable_disable", "manage"):
+                    continue
                 action_id = f"{prefix}_{suffix}"
                 action = _all_actions[action_id]
                 related_ids = [a if isinstance(a, str) else a.id for a in action.related_actions]
