@@ -65,99 +65,95 @@
           ref="operationColumnRef"
           :cluster-type="ClusterTypes.TENDBHA">
           <template #default="{ data }: { data: TendbhaModel }">
-            <div v-db-console="'mysql.haClusterList.authorize'">
-              <BkButton
-                :disabled="data.isOffline"
-                text
-                @click="handleShowAuthorize(data)">
-                {{ t('授权') }}
-              </BkButton>
-            </div>
-            <div v-db-console="'mysql.haClusterList.webconsole'">
-              <AuthRouterLink
-                action-id="mysql_webconsole"
-                :disabled="data.isOffline"
-                :permission="data.permission.mysql_webconsole"
-                :resource="data.id"
-                target="_blank"
-                :to="{
-                  name: 'MySQLWebconsole',
-                  query: {
-                    clusterId: data.id,
-                  },
-                }">
-                Webconsole
-              </AuthRouterLink>
-            </div>
-            <div v-db-console="'mysql.haClusterList.exportData'">
-              <AuthButton
-                action-id="mysql_dump_data"
-                :disabled="data.isOffline"
-                :permission="data.permission.mysql_dump_data"
-                :resource="data.id"
-                text
-                @click="handleGoToDataExport(data)">
-                {{ t('导出数据') }}
-              </AuthButton>
-            </div>
-            <div
-              v-if="isShowDumperEntry"
-              v-db-console="'mysql.dataSubscription'">
-              <AuthButton
-                action-id="tbinlogdumper_install"
-                :disabled="data.isOffline"
-                :permission="data.permission.tbinlogdumper_install"
-                :resource="data.id"
-                text
-                @click="handleShowCreateSubscribeRuleSlider(data)">
-                {{ t('数据订阅') }}
-              </AuthButton>
-            </div>
-            <ClusterAlarmSubscribe
-              :data="data"
-              db-console-prefix="mysql.haClusterList"
-              @click="hideOperationColumn"
-              @edit="(e) => handleToDetails(data.id, e, 'alarmSubscription')" />
-            <div
-              v-if="!data.isOnlineCLB"
-              v-db-console="'common.clb'">
-              <OperationBtnStatusTips
-                :data="data"
-                :disabled="!data.isOffline">
+            <template v-if="data.isOnline">
+              <div v-db-console="'mysql.haClusterList.authorize'">
+                <BkButton
+                  text
+                  @click="handleShowAuthorize(data)">
+                  {{ t('授权') }}
+                </BkButton>
+              </div>
+              <div v-db-console="'mysql.haClusterList.webconsole'">
+                <AuthRouterLink
+                  action-id="mysql_webconsole"
+                  :permission="data.permission.mysql_webconsole"
+                  :resource="data.id"
+                  target="_blank"
+                  :to="{
+                    name: 'MySQLWebconsole',
+                    query: {
+                      clusterId: data.id,
+                    },
+                  }">
+                  Webconsole
+                </AuthRouterLink>
+              </div>
+              <div v-db-console="'mysql.haClusterList.exportData'">
                 <AuthButton
-                  action-id="mysql_add_clb"
-                  :disabled="data.isOffline"
-                  :permission="data.permission.mysql_add_clb"
+                  action-id="mysql_dump_data"
+                  :permission="data.permission.mysql_dump_data"
                   :resource="data.id"
                   text
-                  @click="() => handleAddClb({ details: { cluster_id: data.id, bk_cloud_id: data.bk_cloud_id } })">
-                  {{ t('启用接入层负载均衡（CLB）') }}
+                  @click="handleGoToDataExport(data)">
+                  {{ t('导出数据') }}
                 </AuthButton>
-              </OperationBtnStatusTips>
-            </div>
-            <div
-              v-if="data.isOnlineCLB"
-              v-db-console="'common.clb'">
-              <OperationBtnStatusTips
-                :data="data"
-                :disabled="!data.isOffline">
+              </div>
+              <div
+                v-if="isShowDumperEntry"
+                v-db-console="'mysql.dataSubscription'">
                 <AuthButton
-                  action-id="mysql_clb_bind_domain"
-                  :disabled="data.isOffline"
-                  :permission="data.permission.mysql_clb_bind_domain"
+                  action-id="tbinlogdumper_install"
+                  :permission="data.permission.tbinlogdumper_install"
                   :resource="data.id"
                   text
-                  @click="
-                    () =>
-                      handleBindOrUnbindClb(
-                        { details: { cluster_id: data.id, bk_cloud_id: data.bk_cloud_id } },
-                        data.dns_to_clb,
-                      )
-                  ">
-                  {{ data.dns_to_clb ? t('恢复主域名直连接入层') : t('配置主域名指向负载均衡器（CLB）') }}
+                  @click="handleShowCreateSubscribeRuleSlider(data)">
+                  {{ t('数据订阅') }}
                 </AuthButton>
-              </OperationBtnStatusTips>
-            </div>
+              </div>
+              <ClusterAlarmSubscribe
+                :data="data"
+                db-console-prefix="mysql.haClusterList"
+                @click="hideOperationColumn"
+                @edit="(e) => handleToDetails(data.id, e, 'alarmSubscription')" />
+              <div
+                v-if="!data.isOnlineCLB"
+                v-db-console="'common.clb'">
+                <OperationBtnStatusTips
+                  :data="data"
+                  :disabled="!data.isOffline">
+                  <AuthButton
+                    action-id="mysql_add_clb"
+                    :permission="data.permission.mysql_add_clb"
+                    :resource="data.id"
+                    text
+                    @click="() => handleAddClb({ details: { cluster_id: data.id, bk_cloud_id: data.bk_cloud_id } })">
+                    {{ t('启用接入层负载均衡（CLB）') }}
+                  </AuthButton>
+                </OperationBtnStatusTips>
+              </div>
+              <div
+                v-if="data.isOnlineCLB"
+                v-db-console="'common.clb'">
+                <OperationBtnStatusTips
+                  :data="data"
+                  :disabled="!data.isOffline">
+                  <AuthButton
+                    action-id="mysql_clb_bind_domain"
+                    :permission="data.permission.mysql_clb_bind_domain"
+                    :resource="data.id"
+                    text
+                    @click="
+                      () =>
+                        handleBindOrUnbindClb(
+                          { details: { cluster_id: data.id, bk_cloud_id: data.bk_cloud_id } },
+                          data.dns_to_clb,
+                        )
+                    ">
+                    {{ data.dns_to_clb ? t('恢复主域名直连接入层') : t('配置主域名指向负载均衡器（CLB）') }}
+                  </AuthButton>
+                </OperationBtnStatusTips>
+              </div>
+            </template>
             <div
               v-if="data.isOnline"
               v-db-console="'mysql.haClusterList.disable'">
@@ -176,7 +172,7 @@
               </OperationBtnStatusTips>
             </div>
             <div
-              v-if="data.isOffline"
+              v-else
               v-db-console="'mysql.haClusterList.enable'">
               <OperationBtnStatusTips
                 :data="data"
@@ -199,7 +195,7 @@
                 <AuthButton
                   v-bk-tooltips="{
                     disabled: data.isOffline,
-                    content: t('请先禁用集群'),
+                    content: t('删除前需先禁用集群'),
                     placement: 'right',
                   }"
                   action-id="mysql_destroy"
@@ -212,7 +208,9 @@
                 </AuthButton>
               </OperationBtnStatusTips>
             </div>
-            <ClusterDomainDnsRelation :data="data">
+            <ClusterDomainDnsRelation
+              v-if="data.isOnline"
+              :data="data">
               <BkButton text>
                 {{ t('手动配置域名 DNS 记录') }}
               </BkButton>

@@ -144,7 +144,8 @@
     }
 
     a,
-    .bk-button {
+    .bk-button,
+    .auth-router-link-disabled {
       display: block;
       width: 100%;
       padding: 0 12px;
