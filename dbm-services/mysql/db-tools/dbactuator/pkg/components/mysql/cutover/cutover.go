@@ -365,7 +365,7 @@ func (m *CutOverToSlaveComp) StopAndResetSlave() (err error) {
 		return err
 	}
 	// reset slave
-	if err = m.cluster.AltSlaveIns.dbConn.ResetSlave(); err != nil {
+	if err = m.cluster.AltSlaveIns.dbConn.ResetSlave(true); err != nil {
 		logger.Error("stop slave failed %s", err.Error())
 		return err
 	}

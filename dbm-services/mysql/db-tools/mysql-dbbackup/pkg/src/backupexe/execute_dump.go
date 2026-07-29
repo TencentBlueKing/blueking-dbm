@@ -71,7 +71,7 @@ func (r *BackupRunner) ExecuteBackup(ctx context.Context, cnf *config.BackupConf
 	}
 
 	// 考虑到 role 更新可能没那么及时，不论 master slave 都会去尝试获取 show slave status : master ip/port
-	slaveStatusInfo, err := mysqlconn.ShowMysqlSlaveStatus(db)
+	slaveStatusInfo, err := mysqlconn.ShowMysqlSlaveStatus(db, r.mysqlVersion)
 	if err != nil && !strings.EqualFold(cnf.Public.MysqlRole, cst.RoleMaster) {
 		logger.Log.Warnf("show slave status failed for %d: %v", cnf.Public.MysqlPort, err)
 	}
@@ -88,7 +88,7 @@ func (r *BackupRunner) ExecuteBackup(ctx context.Context, cnf *config.BackupConf
 
 	// 物理备份完成之后，重新获取一下 slave status 的 master ip/port,delay
 	if cnf.Public.BackupType == cst.BackupPhysical {
-		slaveStatusInfo, err = mysqlconn.ShowMysqlSlaveStatus(db)
+		slaveStatusInfo, err = mysqlconn.ShowMysqlSlaveStatus(db, r.mysqlVersion)
 		if err != nil && !strings.EqualFold(cnf.Public.MysqlRole, cst.RoleMaster) {
 			logger.Log.Warnf("show slave status failed for physical %d: %v", cnf.Public.MysqlPort, err)
 		}

@@ -50,11 +50,20 @@ func InitConnx(cfg *config.Public, ctx context.Context) (*sqlx.DB, error) {
 }
 
 // GetSingleGlobalVar get single global variable
+// 兼容 8.4 去除了 slave 关键字
 func GetSingleGlobalVar(variableName string, dbh *sql.DB) (val string, err error) {
 	var varName, varValue string
 	sqlStr := fmt.Sprintf("show global variables like '%s'", variableName)
 	row := dbh.QueryRow(sqlStr)
 	if err = row.Scan(&varName, &varValue); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			if strings.Contains(varName, "slave_") || strings.Contains(varName, "master_") {
+				varName = strings.ReplaceAll(varName, "slave_", "replica_")
+				varName = strings.ReplaceAll(varName, "master_", "source_")
+				return GetSingleGlobalVar(varName, dbh)
+			}
+			return "", err
+		}
 		return "", err
 	}
 	return varValue, nil
@@ -82,16 +91,26 @@ func SetGlobalVarAndReturnOrigin(variableName, varValue string, dbh *sql.DB) (or
 }
 
 // SetSingleGlobalVar set global
-func SetSingleGlobalVar(variableName, varValue string, dbh *sql.DB) error {
+// 已兼容 8.4 的 slave -> replica
+func SetSingleGlobalVar(varName, varValue string, dbh *sql.DB) error {
 	var sqlStr = ""
 	if _, e := cast.ToBoolE(varValue); e == nil {
-		sqlStr = fmt.Sprintf("SET GLOBAL %s=%s", variableName, varValue)
+		sqlStr = fmt.Sprintf("SET GLOBAL %s=%s", varName, varValue)
 	} else if _, e := cast.ToFloat64E(varValue); e == nil { // fix Incorrect argument type to variable
-		sqlStr = fmt.Sprintf("SET GLOBAL %s=%s", variableName, varValue)
+		sqlStr = fmt.Sprintf("SET GLOBAL %s=%s", varName, varValue)
 	} else {
-		sqlStr = fmt.Sprintf("SET GLOBAL %s='%s'", variableName, varValue)
+		sqlStr = fmt.Sprintf("SET GLOBAL %s='%s'", varName, varValue)
 	}
 	if _, err := dbh.Exec(sqlStr); err != nil {
+		if strings.Contains(strings.ToLower(err.Error()), "error 1193 ") {
+			// ERROR 1193 (HY000): Unknown system variable 'xxx'
+			if strings.Contains(varName, "slave_") || strings.Contains(varName, "master_") {
+				varName = strings.ReplaceAll(varName, "slave_", "replica_")
+				varName = strings.ReplaceAll(varName, "master_", "source_")
+				return SetSingleGlobalVar(varName, varValue, dbh)
+			}
+			return err
+		}
 		return err
 	}
 	return nil
@@ -269,15 +288,20 @@ func GetAllMysqlCharset(server, db, table, column bool, dbh *sql.DB) ([]string, 
 
 // ShowMysqlSlaveStatus Show the slave status of mysql server
 // if server is master, return local ip:port
-func ShowMysqlSlaveStatus(db *sql.DB) (result *mysqlcomm.SlaveStatus, err error) {
+func ShowMysqlSlaveStatus(db *sql.DB, serverVersion string) (result *mysqlcomm.SlaveStatus, err error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
 	defer cancel()
 	result = &mysqlcomm.SlaveStatus{}
 	dbx := sqlx.NewDb(db, "mysql")
 
-	if err := dbx.Unsafe().GetContext(ctx, result, "show slave status"); err != nil {
+	sqlStr := "show slave status"
+	if cmutil.MySQLVersionCompare(serverVersion, "8.4.0") >= 0 {
+		sqlStr = strings.ReplaceAll(sqlStr, "slave", "replica")
+	}
+	if err := dbx.Unsafe().GetContext(ctx, result, sqlStr); err != nil {
 		return nil, errors.WithMessage(err, "show slave status")
 	}
+	result.ReplicaToSlave() // 兼容 8.4 的 slave -> replica
 	if result.MasterHost == "" {
 		// 返回 nil
 		return nil, errors.New("this is master")
@@ -285,8 +309,8 @@ func ShowMysqlSlaveStatus(db *sql.DB) (result *mysqlcomm.SlaveStatus, err error)
 	return
 }
 
-func GetSlaveStatusMasterInfo(db *sql.DB) (masterHost string, masterPort int, err error) {
-	slaveStatus, err := ShowMysqlSlaveStatus(db)
+func GetSlaveStatusMasterInfo(db *sql.DB, serverVersion string) (masterHost string, masterPort int, err error) {
+	slaveStatus, err := ShowMysqlSlaveStatus(db, serverVersion)
 	if err != nil {
 		return "", 0, err
 	}
@@ -321,18 +345,21 @@ func ShowMysqlMasterStatus(ftwrl bool, db *sql.DB) (status *ShowMasterStatus, er
 	return &result, nil
 }
 
-func StartSlaveThreads(ioThread, sqlThread bool, db *sql.DB) error {
+func StartSlaveThreads(ioThread, sqlThread bool, db *sql.DB, serverVersion string) error {
 	var err error
+	sqlStr := ""
 	if ioThread && sqlThread {
-		_, err = db.Exec("START SLAVE")
-		return err
+		sqlStr = "START SLAVE"
 	}
 	if ioThread {
-		_, err = db.Exec("START SLAVE io_thread")
-		return err
+		sqlStr = "START SLAVE io_thread"
 	}
 	if sqlThread {
-		_, err = db.Exec("START SLAVE sql_thread")
+		sqlStr = "START SLAVE sql_thread"
+	}
+	if cmutil.MySQLVersionCompare(serverVersion, "8.4.0") > 0 {
+		sqlStr = strings.ReplaceAll(sqlStr, "SLAVE", "REPLICA")
+		_, err = db.Exec(sqlStr)
 		return err
 	}
 	return nil

@@ -44,13 +44,14 @@ type LogicalDumperMysqldump struct {
 	dbConn         *sqlx.DB
 	dbbackupHome   string
 	logBinDisabled bool
+	serverVersion  string
 
 	masterStatus *dbareport.StatusInfo
 	slaveStatus  *dbareport.StatusInfo
 }
 
 // initConfig initializes the configuration for the logical dumper[mysqldump]
-func (l *LogicalDumperMysqldump) initConfig(mysqlVerStr string, logBinDisabled bool) error {
+func (l *LogicalDumperMysqldump) initConfig(serverVersion string, logBinDisabled bool) error {
 	if l.cnf == nil {
 		return errors.New("logical dumper[mysqldump] params is nil")
 	}
@@ -61,6 +62,7 @@ func (l *LogicalDumperMysqldump) initConfig(mysqlVerStr string, logBinDisabled b
 	}
 	BackupTool = cst.ToolMysqldump
 
+	l.serverVersion = serverVersion
 	l.logBinDisabled = logBinDisabled
 	return nil
 }
@@ -213,7 +215,7 @@ func (l *LogicalDumperMysqldump) Execute(ctx context.Context) (err error) {
 		args = append(args, []string{
 			"--dump-slave=2", // will stop slave sql_thread
 		}...)
-		defer StartSlaveSqlThread(l.cnf)
+		defer StartSlaveSqlThread(l.cnf, l.serverVersion)
 	}
 
 	// use LogicalDump option
@@ -293,7 +295,7 @@ func (l *LogicalDumperMysqldump) Execute(ctx context.Context) (err error) {
 			MasterPort: l.cnf.Public.MysqlPort,
 		}
 	}
-	masterHost, masterPort, err := mysqlconn.GetSlaveStatusMasterInfo(db)
+	masterHost, masterPort, err := mysqlconn.GetSlaveStatusMasterInfo(db, l.serverVersion)
 	if err != nil {
 		logger.Log.Warnf("can not get show slave status, host:%s, port:%d, errmsg:%s",
 			l.cnf.Public.MysqlHost, l.cnf.Public.MysqlPort, err)
@@ -336,7 +338,7 @@ func (l *LogicalDumperMysqldump) PrepareBackupMetaInfo(cnf *config.BackupConfig,
 	if !cnf.LogicalBackup.DisableCompress {
 		metaFileName += ".zst"
 	}
-	metadata, err := parseMysqldumpMetadata(metaFileName)
+	metadata, err := parseMysqldumpMetadata(metaFileName, l.serverVersion)
 	if err != nil {
 		return errors.WithMessage(err, "parse mysqldump metadata")
 	}
@@ -368,7 +370,7 @@ func (l *LogicalDumperMysqldump) PrepareBackupMetaInfo(cnf *config.BackupConfig,
 	return nil
 }
 
-func StartSlaveSqlThread(cnf *config.BackupConfig) error {
+func StartSlaveSqlThread(cnf *config.BackupConfig, serverVersion string) error {
 	db, err := mysqlconn.InitConn(&cnf.Public)
 	if err != nil {
 		return err
@@ -377,5 +379,5 @@ func StartSlaveSqlThread(cnf *config.BackupConfig) error {
 		_ = db.Close()
 	}()
 	logger.Log.Infof("start slave sql_thread for %d", cnf.Public.MysqlPort)
-	return mysqlconn.StartSlaveThreads(false, true, db)
+	return mysqlconn.StartSlaveThreads(false, true, db, serverVersion)
 }

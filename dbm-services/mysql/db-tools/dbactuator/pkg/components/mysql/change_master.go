@@ -17,8 +17,10 @@ package mysql
 
 import (
 	"fmt"
+	"strings"
 	"time"
 
+	"dbm-services/common/go-pubpkg/cmutil"
 	"dbm-services/common/go-pubpkg/logger"
 	"dbm-services/common/go-pubpkg/mysqlcomm"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/components"
@@ -157,12 +159,12 @@ func (b *BuildMSRelationComp) CheckCurrentSlaveStatus() (err error) {
 	logger.Info("show slave status Info is %v", slaveStatus)
 	// 强制参数force=true，直接执行stop slave && reset slave
 	// Stop Slave
-	if err = b.stopSlave(); err != nil {
+	if err = b.db.StopSlave(); err != nil {
 		logger.Error("Force Change Master,Stop Slave Failed %s", err.Error())
 		return
 	}
 	// Reset Slave All
-	if err = b.resetSlaveAll(); err != nil {
+	if err = b.db.ResetSlave(true); err != nil {
 		logger.Error("Force Change Master,Reset Slave All Failed %s", err.Error())
 		return
 	}
@@ -181,7 +183,7 @@ func (b *BuildMSRelationComp) BuildMSRelation() (err error) {
 		logger.Error("change master to %s:%d failed,err:%s", b.Params.MasterHost, b.Params.MasterPort, err.Error())
 		return err
 	}
-	if err = b.startSlaveThread(!b.Params.NotStartIOThread, !b.Params.NotStartSQLThread); err != nil {
+	if err = b.db.StartSlaveWithThread(!b.Params.NotStartIOThread, !b.Params.NotStartSQLThread); err != nil {
 		logger.Error("start slave failed:%s", err.Error())
 		return err
 	}
@@ -230,44 +232,6 @@ func (b *BuildMSRelationComp) checkSlaveStatus() (err error) {
 }
 
 /**
- * @description: 执行 stop slave
- * @return {*}
- */
-func (b *BuildMSRelationComp) stopSlave() (err error) {
-	_, err = b.db.Exec("stop slave;")
-	return
-}
-
-/**
- * @description: 执行 start slave
- * @return {*}
- */
-func (b *BuildMSRelationComp) startSlave() (err error) {
-	_, err = b.db.Exec("start slave;")
-	return
-}
-
-func (b *BuildMSRelationComp) startSlaveThread(ioThread, sqlThread bool) (err error) {
-	if ioThread && sqlThread {
-		_, err = b.db.Exec("start slave;")
-	} else if ioThread {
-		_, err = b.db.Exec("start slave io_thread;")
-	} else if sqlThread {
-		_, err = b.db.Exec("start slave sql_thread;")
-	}
-	return
-}
-
-/**
- * @description: 执行reset slave all
- * @return {*}
- */
-func (b *BuildMSRelationComp) resetSlaveAll() (err error) {
-	_, err = b.db.Exec("reset slave all;")
-	return
-}
-
-/**
  * @description: 拼接 change master sql
  * @return {*}
  */
@@ -290,6 +254,10 @@ func (b *BuildMSRelationComp) getChangeMasterSql() (changeMasterSQL string) {
 		MASTER_USER ='%s', MASTER_PASSWORD='%s',MASTER_PORT=%d, MASTER_AUTO_POSITION = 1;`,
 			b.Params.MasterHost, replUser, replPwd, b.Params.MasterPort,
 		)
+	}
+	if cmutil.MySQLVersionCompare(b.db.ServerVersion, "8.4.0") > 0 {
+		changeMasterSQL = strings.ReplaceAll(changeMasterSQL, "MASTER", "SOURCE")
+		changeMasterSQL = strings.Replace(changeMasterSQL, "CHANGE", "CHANGE REPLICATION", 1)
 	}
 	return
 }

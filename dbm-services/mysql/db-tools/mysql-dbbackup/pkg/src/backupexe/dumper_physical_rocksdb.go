@@ -70,7 +70,7 @@ func (p *PhysicalRocksdbDumper) buildArgs() []string {
 }
 
 // initConfig init config
-func (p *PhysicalRocksdbDumper) initConfig(mysqlVersion string, logBinDisabled bool) error {
+func (p *PhysicalRocksdbDumper) initConfig(serverVersion string, logBinDisabled bool) error {
 	if p.cnf == nil {
 		return errors.New("rocksdb physical dumper config missed")
 	}
@@ -95,7 +95,7 @@ func (p *PhysicalRocksdbDumper) initConfig(mysqlVersion string, logBinDisabled b
 		_ = db.Close()
 	}()
 
-	p.mysqlVersion, p.isOfficial = util.VersionParser(mysqlVersion)
+	p.mysqlVersion, p.isOfficial = util.VersionParser(serverVersion)
 	p.storageEngine, err = mysqlconn.GetStorageEngine(db)
 
 	if err != nil {
@@ -110,7 +110,7 @@ func (p *PhysicalRocksdbDumper) initConfig(mysqlVersion string, logBinDisabled b
 
 	// if the current node is slave, obtain the master ip and port
 	if p.mysqlRole == cst.RoleSlave || p.mysqlRole == cst.RoleRepeater {
-		p.masterHost, p.masterPort, err = mysqlconn.GetSlaveStatusMasterInfo(db)
+		p.masterHost, p.masterPort, err = mysqlconn.GetSlaveStatusMasterInfo(db, serverVersion)
 		if err != nil {
 			logger.Log.Errorf("can not get the master host and port from the mysql, host:%s, port:%d, errmsg:%s",
 				p.cnf.Public.MysqlHost, p.cnf.Public.MysqlPort, err)

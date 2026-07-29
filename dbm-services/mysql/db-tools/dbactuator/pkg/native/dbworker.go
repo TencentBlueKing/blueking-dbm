@@ -33,6 +33,8 @@ import (
 type DbWorker struct {
 	Dsn string
 	Db  *sql.DB
+	// ServerVersion 8.4之后很多命令都需要把 slave-replica, master->source
+	ServerVersion string
 }
 
 // NewDbWorker TODO
@@ -48,10 +50,7 @@ func NewDbWorker(dsn string) (*DbWorker, error) {
 	// check connect with timeout
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
-	if err := dbw.Db.PingContext(ctx); err != nil {
-		return nil, fmt.Errorf("ping context failed, err:%w", err)
-	}
-	if err := dbw.Db.Ping(); err != nil {
+	if err = dbw.Db.QueryRowContext(ctx, "SELECT @@version").Scan(&dbw.ServerVersion); err != nil {
 		return nil, err
 	}
 	return dbw, nil
@@ -67,6 +66,9 @@ func NewDbWorkerNoPing(host, user, password string) (*DbWorker, error) {
 	}
 	dbw.Db, err = sql.Open("mysql", dbw.Dsn)
 	if err != nil {
+		return nil, err
+	}
+	if err = dbw.Db.QueryRow("SELECT @@version").Scan(&dbw.ServerVersion); err != nil {
 		return nil, err
 	}
 	return dbw, nil
@@ -292,13 +294,41 @@ func (h *DbWorker) IsNotRowFound(err error) bool {
 
 // ShowSlaveStatus 返回结构化的查询show slave status
 func (h *DbWorker) ShowSlaveStatus() (resp ShowSlaveStatusResp, err error) {
-	err = h.Queryxs(&resp, "show slave status;")
+	sqlStr := "show slave status;"
+	if cmutil.MySQLVersionCompare(h.ServerVersion, "8.4.0") > 0 {
+		sqlStr = strings.ReplaceAll(sqlStr, "slave", "replica")
+	}
+	err = h.Queryxs(&resp, sqlStr)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return ShowSlaveStatusResp{}, nil
 		}
 	}
+	resp.ReplicaToSlave()
 	return
+}
+
+// ChangeMaster change master to or change replication source to
+func (h *DbWorker) ChangeMaster(host, user, pass string, port int, file string, pos int) error {
+	sqlStr := fmt.Sprintf(
+		`CHANGE MASTER TO MASTER_HOST='%s', 
+			MASTER_USER ='%s', 
+			MASTER_PASSWORD='%s',
+			MASTER_PORT=%d,
+			MASTER_LOG_FILE='%s',
+			MASTER_LOG_POS=%d`,
+		host,
+		user,
+		pass,
+		port,
+		file,
+		pos,
+	)
+	if cmutil.MySQLVersionCompare(h.ServerVersion, "8.4.0") > 0 {
+		sqlStr = strings.ReplaceAll(sqlStr, "MASTER", "SOURCE")
+		sqlStr = strings.Replace(sqlStr, "CHANGE", "CHANGE REPLICATION", 1)
+	}
+	return h.ExecuteAdminSql(sqlStr)
 }
 
 // TotalDelayBinlogSize 获取Slave 延迟的总binlog size,total 单位byte
@@ -311,8 +341,7 @@ func (h *DbWorker) TotalDelayBinlogSize() (total int, err error) {
 	if err != nil {
 		return -1, err
 	}
-	var ss ShowSlaveStatusResp
-	err = h.Queryxs(&ss, "show slave status;")
+	ss, err := h.ShowSlaveStatus()
 	if err != nil {
 		logger.Error("show slave status failed %s", err.Error())
 		return -1, err
@@ -341,7 +370,12 @@ func getIndexFromBinlogFile(fileName string) (seq int, err error) {
 
 // ShowMasterStatus 返回结构化的查询show slave status
 func (h *DbWorker) ShowMasterStatus() (resp MasterStatusResp, err error) {
-	err = h.Queryxs(&resp, "show master status;")
+	sqlStr := "show master status;"
+	if cmutil.MySQLVersionCompare(h.ServerVersion, "8.4.0") > 0 {
+		// show master status: is no longer support
+		sqlStr = "SHOW BINARY LOG STATUS;"
+	}
+	err = h.Queryxs(&resp, sqlStr)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return MasterStatusResp{}, nil
@@ -519,9 +553,8 @@ func (h *DbWorker) GetSingleGlobalVar(varName string) (val string, err error) {
 	if err = h.Queryxs(&item, sqlstr); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			if strings.Contains(varName, "slave_") || strings.Contains(varName, "master_") {
-				varName = strings.ReplaceAll(
-					strings.ReplaceAll(varName, "slave_", "replica_"),
-					"master_", "source_")
+				varName = strings.ReplaceAll(varName, "slave_", "replica_")
+				varName = strings.ReplaceAll(varName, "master_", "source_")
 				return h.GetSingleGlobalVar(varName)
 			}
 			return "", err
@@ -555,12 +588,12 @@ func (h *DbWorker) SetSingleGlobalVar(varName, varValue string) error {
 		setSqlStr = fmt.Sprintf("SET GLOBAL %s='%s'", varName, varValue)
 	}
 	logger.Info("setSqlStr: %s, varValue: %s", setSqlStr, varValue)
-	if err := h.ExecuteAdminSql(setSqlStr); err != nil { // ERROR 1193 (HY000): Unknown system variable 'xxx'
+	if err := h.ExecuteAdminSql(setSqlStr); err != nil {
 		if strings.Contains(strings.ToLower(err.Error()), "error 1193 ") {
+			// ERROR 1193 (HY000): Unknown system variable 'xxx'
 			if strings.Contains(varName, "slave_") || strings.Contains(varName, "master_") {
-				varName = strings.ReplaceAll(
-					strings.ReplaceAll(varName, "slave_", "replica_"),
-					"master_", "source_")
+				varName = strings.ReplaceAll(varName, "slave_", "replica_")
+				varName = strings.ReplaceAll(varName, "master_", "source_")
 				return h.SetSingleGlobalVar(varName, varValue)
 			}
 			return err
@@ -904,15 +937,61 @@ func compareDbVariables(referVars, compareVars map[string]string, checkVars []st
 
 // ResetSlave TODO
 // reset slave
-func (h *DbWorker) ResetSlave() (err error) {
-	_, err = h.Exec("reset slave /*!50516 all */;")
+func (h *DbWorker) ResetSlave(all bool) (err error) {
+	sqlStr := "reset slave" // /*!50516 all */;
+	if all {
+		sqlStr += " all"
+	}
+	if cmutil.MySQLVersionCompare(h.ServerVersion, "8.4.0") > 0 {
+		sqlStr = strings.ReplaceAll(sqlStr, "slave", "replica")
+	}
+	_, err = h.Exec(sqlStr)
 	return
 }
 
 // StopSlave TODO
 // reset slave
 func (h *DbWorker) StopSlave() (err error) {
-	_, err = h.ExecWithTimeout(time.Second*30, "stop slave;")
+	sqlStr := "stop slave;"
+	if cmutil.MySQLVersionCompare(h.ServerVersion, "8.4.0") > 0 {
+		sqlStr = strings.ReplaceAll(sqlStr, "slave", "replica")
+	}
+	_, err = h.ExecWithTimeout(time.Second*30, sqlStr)
+	return
+}
+
+func (h *DbWorker) StartSlave() (err error) {
+	sqlStr := "start slave;"
+	if cmutil.MySQLVersionCompare(h.ServerVersion, "8.4.0") > 0 {
+		sqlStr = strings.ReplaceAll(sqlStr, "slave", "replica")
+	}
+	_, err = h.ExecWithTimeout(time.Second*30, sqlStr)
+	return
+}
+
+func (h *DbWorker) StartSlaveWithThread(ioThread, sqlThread bool) (err error) {
+	sqlStr := ""
+	if ioThread && sqlThread {
+		sqlStr = "start slave;"
+	} else if ioThread {
+		sqlStr = "start slave io_thread;"
+	} else if sqlThread {
+		sqlStr = "start slave sql_thread;"
+	}
+
+	if cmutil.MySQLVersionCompare(h.ServerVersion, "8.4.0") > 0 {
+		sqlStr = strings.ReplaceAll(sqlStr, "slave", "replica")
+	}
+	_, err = h.ExecWithTimeout(time.Second*30, sqlStr)
+	return
+}
+
+func (h *DbWorker) ResetMaster() (err error) {
+	sqlStr := "reset master;"
+	if cmutil.MySQLVersionCompare(h.ServerVersion, "8.4.0") > 0 {
+		sqlStr = "RESET BINARY LOGS AND GTIDS"
+	}
+	_, err = h.ExecWithTimeout(time.Second*30, sqlStr)
 	return
 }
 

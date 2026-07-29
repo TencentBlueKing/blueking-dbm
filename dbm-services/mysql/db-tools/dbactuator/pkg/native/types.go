@@ -69,6 +69,49 @@ type ShowSlaveStatusResp struct {
 	SlaveIORunning      string        `json:"Slave_IO_Running" db:"Slave_IO_Running"`
 	SlaveSQLRunning     string        `json:"Slave_SQL_Running" db:"Slave_SQL_Running"`
 	SecondsBehindMaster sql.NullInt64 `json:"Seconds_Behind_Master" db:"Seconds_Behind_Master"`
+
+	ShowReplicaStatusResp
+}
+
+type ShowReplicaStatusResp struct {
+	SourceHost          string        `json:"Source_Host" db:"Source_Host"`
+	SourcePort          int           `json:"Source_Port" db:"Source_Port"`
+	SourceUser          string        `json:"Source_User" db:"Source_User"`
+	SourceLogFile       string        `json:"Source_Log_File" db:"Source_Log_File"`
+	ReadSourceLogPos    int           `json:"Read_Source_Log_Pos" db:"Read_Source_Log_Pos"`
+	RelaySourceLogFile  string        `json:"Relay_Source_Log_File" db:"Relay_Source_Log_File"`
+	ExecSourceLogPos    int           `json:"Exec_Source_Log_Pos" db:"Exec_Source_Log_Pos"`
+	ReplicaIORunning    string        `json:"Replica_IO_Running" db:"Replica_IO_Running"`
+	ReplicaSQLRunning   string        `json:"Replica_SQL_Running" db:"Replica_SQL_Running"`
+	SecondsBehindSource sql.NullInt64 `json:"Seconds_Behind_Source" db:"Seconds_Behind_Source"`
+}
+
+// ReplicaToSlave fill Master with Source
+// or fill Source with Master
+func (s *ShowSlaveStatusResp) ReplicaToSlave() {
+	if s.MasterHost == "" && s.SourceHost != "" {
+		s.MasterHost = s.SourceHost
+		s.MasterPort = s.SourcePort
+		s.MasterUser = s.SourceUser
+		s.MasterLogFile = s.SourceLogFile
+		s.ReadMasterLogPos = s.ReadSourceLogPos
+		s.RelayMasterLogFile = s.RelaySourceLogFile
+		s.ExecMasterLogPos = s.ExecSourceLogPos
+		s.SlaveIORunning = s.ReplicaIORunning
+		s.SlaveSQLRunning = s.ReplicaSQLRunning
+		s.SecondsBehindMaster = s.SecondsBehindSource
+	} else if s.SourceHost == "" && s.MasterHost != "" {
+		s.SourceHost = s.MasterHost
+		s.SourcePort = s.MasterPort
+		s.SourceUser = s.MasterUser
+		s.SourceLogFile = s.MasterLogFile
+		s.ReadSourceLogPos = s.ReadMasterLogPos
+		s.RelaySourceLogFile = s.RelayMasterLogFile
+		s.ExecSourceLogPos = s.ExecMasterLogPos
+		s.ReplicaIORunning = s.SlaveIORunning
+		s.ReplicaSQLRunning = s.SlaveSQLRunning
+		s.SecondsBehindSource = s.SecondsBehindMaster
+	}
 }
 
 // ReplSyncIsOk TODO

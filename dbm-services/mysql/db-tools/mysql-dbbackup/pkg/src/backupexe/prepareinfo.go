@@ -29,7 +29,7 @@ type mydumperMetadata struct {
 
 // parseMysqldumpMetadata 从 mysqldump sql 文件里解析 change master / change slave 命令
 // 命令被注释，在文件开头的前几行
-func parseMysqldumpMetadata(sqlFilePath string) (*mydumperMetadata, error) {
+func parseMysqldumpMetadata(sqlFilePath string, serverVersion string) (*mydumperMetadata, error) {
 	logger.Log.Infof("start parseMysqldumpMetadata from %s", sqlFilePath)
 	sqlFile, err := os.Open(sqlFilePath)
 	if err != nil {
@@ -66,6 +66,9 @@ func parseMysqldumpMetadata(sqlFilePath string) (*mydumperMetadata, error) {
 
 	var l string                                                                   // one line
 	reMaster := `CHANGE MASTER TO MASTER_LOG_FILE='([^']+)', MASTER_LOG_POS=(\d+)` // 本机的位点
+	if cmutil.MySQLVersionCompare(serverVersion, "8.4") >= 0 {
+		reMaster = `CHANGE REPLICATION SOURCE TO SOURCE_LOG_FILE='([^']+)', SOURCE_LOG_POS=(\d+)`
+	}
 	//reSlave := `CHANGE SLAVE TO MASTER_LOG_FILE='([^']+)', MASTER_LOG_POS=(\d+)`   // 本机的 远端master 的位点
 	reShowMaster := regexp.MustCompile(reMaster)
 	//reShowSlave := regexp.MustCompile(reSlave)
@@ -77,14 +80,6 @@ func parseMysqldumpMetadata(sqlFilePath string) (*mydumperMetadata, error) {
 			metadata.MasterStatus["Position"] = matches[2]
 			break
 		}
-		/*
-			matches2 := reShowSlave.FindStringSubmatch(l)
-			if len(matches2) == 3 {
-				metadata.SlaveStatus["File"] = matches2[1]
-				metadata.SlaveStatus["Position"] = matches2[2]
-				break
-			}
-		*/
 	}
 	return metadata, nil
 }

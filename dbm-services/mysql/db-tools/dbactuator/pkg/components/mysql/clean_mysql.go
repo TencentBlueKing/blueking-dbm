@@ -131,7 +131,7 @@ func (c *CleanMysqlComp) Start() error {
 		}
 	}
 	if c.Params.ResetSlave {
-		if err := c.dbworker.ResetSlave(); err != nil {
+		if err := c.dbworker.ResetSlave(true); err != nil {
 			return errors.WithMessage(err, "reset slave")
 		}
 	}
