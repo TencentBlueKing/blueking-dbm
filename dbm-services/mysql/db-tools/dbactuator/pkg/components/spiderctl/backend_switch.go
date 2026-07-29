@@ -1007,30 +1007,18 @@ func (r *SpiderClusterBackendSwitchComp) grantReplSql(host string, version strin
 
 // ChangeMasterToNewMaster change master to new master
 func (r *SpiderClusterBackendSwitchComp) ChangeMasterToNewMaster() (err error) {
-	repl_user := r.GeneralParam.RuntimeAccountParam.ReplUser
-	repl_pwd := r.GeneralParam.RuntimeAccountParam.ReplPwd
+	replUser := r.GeneralParam.RuntimeAccountParam.ReplUser
+	replPwd := r.GeneralParam.RuntimeAccountParam.ReplPwd
 	for _, swpair := range r.Params.SwitchPairs {
 		conn := r.newSlavesConn[swpair.Master.IpPort()]
 		pos := r.newMasterPosInfos[swpair.Slave.IpPort()]
-		changeMastersql := fmt.Sprintf(
-			`CHANGE MASTER TO MASTER_HOST='%s', 
-			MASTER_USER ='%s', 
-			MASTER_PASSWORD='%s',
-			MASTER_PORT=%d,
-			MASTER_LOG_FILE='%s',
-			MASTER_LOG_POS=%d`,
-			swpair.Slave.Host,
-			repl_user,
-			repl_pwd,
-			swpair.Slave.Port,
-			pos.File,
-			pos.Position,
-		)
+		// mysql 8.4: CHANGE REPLICATION SOURCE TO ...
 		logger.Info("[%s] 执行 change master to [%s]", swpair.Master.IpPort(), swpair.Slave.IpPort())
-		if _, err = conn.Exec(changeMastersql); err != nil {
+		if err = conn.ChangeMaster(
+			swpair.Slave.Host, replUser, replPwd, swpair.Slave.Port, pos.File, pos.Position); err != nil {
 			return err
 		}
-		if _, err = conn.Exec("start slave;"); err != nil {
+		if err = conn.StartSlave(); err != nil {
 			return err
 		}
 		logger.Info("[%s] 执行 start slave successfully~", swpair.Master.IpPort())

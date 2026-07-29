@@ -625,7 +625,7 @@
   },
   {
     "conf_name": "mysqld.enforce-gtid-consistency",
-    "value_default": "OFF",
+    "value_default": "ON",
     "value_allowed": "OFF | ON",
     "value_type": "STRING",
     "value_type_sub": "ENUM",
@@ -785,7 +785,7 @@
   },
   {
     "conf_name": "mysqld.gtid_mode",
-    "value_default": "OFF",
+    "value_default": "ON",
     "value_allowed": "OFF | ON",
     "value_type": "STRING",
     "value_type_sub": "ENUM",

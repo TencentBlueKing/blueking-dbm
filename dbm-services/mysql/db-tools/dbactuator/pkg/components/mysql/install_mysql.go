@@ -959,6 +959,7 @@ func (a *AdditionalAccount) GetPartitionYWAccount(realVersion string) (initAccou
 					a.User, host,
 				),
 			)
+			// 8.4: REPLICATION_SLAVE_ADMIN
 		} else {
 			initAccountsql = append(
 				initAccountsql,
@@ -1148,7 +1149,11 @@ func (i *InstallMySQLComp) InitDefaultPrivAndSchemaWithResetMaster() (err error)
 		// 初始化数据库之后，reset master，标记binlog重头开始，避免同步干扰
 		// 新安装db, avoid == false, 表示需要做 reset
 		if !i.AvoidReset {
-			initAccountSqls = append(initAccountSqls, "reset master;")
+			resetMaster := "reset master;"
+			if cmutil.MySQLVersionCompare(version, "8.4.0") > 0 {
+				resetMaster = "RESET BINARY LOGS AND GTIDS"
+			}
+			initAccountSqls = append(initAccountSqls, resetMaster)
 		}
 
 		if _, err := dbWork.ExecMore(initAccountSqls); err != nil {

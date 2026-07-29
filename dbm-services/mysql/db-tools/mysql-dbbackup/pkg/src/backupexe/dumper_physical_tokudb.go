@@ -67,7 +67,8 @@ func (p *PhysicalTokudbDumper) buildArgs() []string {
 }
 
 // initConfig init config
-func (p *PhysicalTokudbDumper) initConfig(mysqlVersion string, logBinDisabled bool) error {
+// serverVersion select version() 原文，未解析
+func (p *PhysicalTokudbDumper) initConfig(serverVersion string, logBinDisabled bool) error {
 	if p.cnf == nil {
 		return errors.New("tokudb physical dumper config missed")
 	}
@@ -92,7 +93,7 @@ func (p *PhysicalTokudbDumper) initConfig(mysqlVersion string, logBinDisabled bo
 		_ = db.Close()
 	}()
 
-	p.mysqlVersion, p.isOfficial = util.VersionParser(mysqlVersion)
+	p.mysqlVersion, p.isOfficial = util.VersionParser(serverVersion)
 	p.storageEngine, err = mysqlconn.GetStorageEngine(db)
 	if err != nil {
 		logger.Log.Errorf("can not get the storage engine from the mysql, host:%s, port:%d, errmsg:%s",
@@ -105,7 +106,7 @@ func (p *PhysicalTokudbDumper) initConfig(mysqlVersion string, logBinDisabled bo
 
 	// if the current node is slave, obtain the master ip and port
 	if p.mysqlRole == cst.RoleSlave || p.mysqlRole == cst.RoleRepeater {
-		p.slaveStatus, err = mysqlconn.ShowMysqlSlaveStatus(db)
+		p.slaveStatus, err = mysqlconn.ShowMysqlSlaveStatus(db, serverVersion)
 		if err != nil {
 			logger.Log.Errorf("can not get the master host and port from the mysql, host:%s, port:%d, errmsg:%s",
 				p.cnf.Public.MysqlHost, p.cnf.Public.MysqlPort, err)
@@ -180,7 +181,8 @@ func (p *PhysicalTokudbDumper) Execute(ctx context.Context) error {
 			defer func() {
 				_ = db2.Close()
 			}()
-			err2 = mysqlconn.StartSlaveThreads(true, true, db2)
+			// 目前只有 5.6支持 tokudb
+			err2 = mysqlconn.StartSlaveThreads(true, true, db2, "5.6")
 			logger.Log.Warnf("after backup failed: start slave with %v", err2)
 		}
 		return err

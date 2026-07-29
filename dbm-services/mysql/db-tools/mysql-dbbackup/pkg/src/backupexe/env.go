@@ -76,11 +76,18 @@ func (i *InnodbCommand) ChooseXtrabackupTool(mysqlVersion string, isOfficial boo
 			i.innobackupexBin = "/bin/xtrabackup/xtrabackup_57"
 			i.xtrabackupBin = "/bin/xtrabackup/xtrabackup_57"
 			i.xbcryptBin = "/bin/xtrabackup/xbcrypt_57"
-		} else if strings.Compare(mysqlVersion, "008000000") >= 0 {
-			// tmysql 8.0
+		} else if strings.Compare(mysqlVersion, "008000000") >= 0 &&
+			strings.Compare(mysqlVersion, "008004000") < 0 {
+			// txsql 8.0
 			i.innobackupexBin = "/bin/xtrabackup/xtrabackup_80"
 			i.xtrabackupBin = "/bin/xtrabackup/xtrabackup_80"
 			i.xbcryptBin = "/bin/xtrabackup/xbcrypt_80"
+		} else if strings.Compare(mysqlVersion, "008004000") >= 0 &&
+			strings.Compare(mysqlVersion, "009007000") < 0 {
+			// txsql 8.0
+			i.innobackupexBin = "/bin/xtrabackup/xtrabackup_84"
+			i.xtrabackupBin = "/bin/xtrabackup/xtrabackup_84"
+			i.xbcryptBin = "/bin/xtrabackup/xbcrypt_84"
 		} else {
 			return fmt.Errorf("unrecognizable mysql version:%s", mysqlVersion)
 		}
@@ -91,11 +98,18 @@ func (i *InnodbCommand) ChooseXtrabackupTool(mysqlVersion string, isOfficial boo
 			i.innobackupexBin = "/bin/xtrabackup_official/xtrabackup_57/xtrabackup"
 			i.xtrabackupBin = "/bin/xtrabackup_official/xtrabackup_57/xtrabackup"
 			i.xbcryptBin = "/bin/xtrabackup_official/xtrabackup_57/xbcrypt"
-		} else if strings.Compare(mysqlVersion, "008000000") >= 0 {
+		} else if strings.Compare(mysqlVersion, "008000000") >= 0 &&
+			strings.Compare(mysqlVersion, "008004000") < 0 {
 			//official_mysql_8.0
 			i.innobackupexBin = "/bin/xtrabackup_official/xtrabackup_80/xtrabackup"
 			i.xtrabackupBin = "/bin/xtrabackup_official/xtrabackup_80/xtrabackup"
 			i.xbcryptBin = "/bin/xtrabackup_official/xtrabackup_80/xbcrypt"
+		} else if strings.Compare(mysqlVersion, "008004000") >= 0 &&
+			strings.Compare(mysqlVersion, "009007000") < 0 {
+			//official_mysql_8.4
+			i.innobackupexBin = "/bin/xtrabackup_official/xtrabackup_84/xtrabackup"
+			i.xtrabackupBin = "/bin/xtrabackup_official/xtrabackup_84/xtrabackup"
+			i.xbcryptBin = "/bin/xtrabackup_official/xtrabackup_84/xbcrypt"
 		} else {
 			return fmt.Errorf("unrecognizable mysql version:%s", mysqlVersion)
 		}
@@ -131,8 +145,17 @@ func SetEnv(backupType string, mysqlVersionStr string) error {
 		if isOfficial {
 			libPath = append(libPath, filepath.Join(ExecuteHome, "lib/libxtra_57_official/private"))
 			libPath = append(libPath, filepath.Join(ExecuteHome, "lib/libxtra_57_official/plugin"))
-			libPath = append(libPath, filepath.Join(ExecuteHome, "lib/libxtra_80_official/private"))
-			libPath = append(libPath, filepath.Join(ExecuteHome, "lib/libxtra_80_official/plugin"))
+			if strings.Compare(parsedVersion, "008000000") >= 0 &&
+				strings.Compare(parsedVersion, "008004000") < 0 {
+				libPath = append(libPath, filepath.Join(ExecuteHome, "lib/libxtra_80_official/private"))
+				libPath = append(libPath, filepath.Join(ExecuteHome, "lib/libxtra_80_official/plugin"))
+			} else if strings.Compare(parsedVersion, "008004000") >= 0 &&
+				strings.Compare(parsedVersion, "009007000") < 0 {
+				libPath = append(libPath, filepath.Join(ExecuteHome, "lib/libxtra_84_official/private"))
+				libPath = append(libPath, filepath.Join(ExecuteHome, "lib/libxtra_84_official/plugin"))
+			} else {
+				return fmt.Errorf("unrecognizable mysql version:%s", mysqlVersionStr)
+			}
 
 			binPath = append(binPath, filepath.Join(ExecuteHome, "bin/xtrabackup_official"))
 		} else {

@@ -71,4 +71,71 @@ type SlaveStatus struct {
 	ExecutedGtidSet            string        `gorm:"column:Executed_Gtid_Set" json:"Executed_Gtid_Set" db:"Executed_Gtid_Set"`
 	AutoPosition               int           `gorm:"column:Auto_Position" json:"Auto_Position" db:"Auto_Position"`
 	ReplicateWildParallelTable string        `gorm:"column:Replicate_Wild_Parallel_Table" json:"Replicate_Wild_Parallel_Table" db:"Replicate_Wild_Parallel_Table"`
+
+	SlaveStatusReplica
+}
+
+type SlaveStatusReplica struct {
+	ReplicaIoState     string `gorm:"column:Replica_IO_State" json:"Replica_IO_State" db:"Replica_IO_State"`
+	SourceHost         string `gorm:"column:Source_Host" json:"Source_Host" db:"Source_Host"`
+	SourceUser         string `gorm:"column:Source_User" json:"Source_User" db:"Source_User"`
+	SourcePort         int    `gorm:"column:Source_Port" json:"Source_Port" db:"Source_Port"`
+	ConnectRetry       int    `gorm:"column:Connect_Retry" json:"Connect_Retry" db:"Source_Port"`
+	SourceLogFile      string `gorm:"column:Source_Log_File" json:"Source_Log_File" db:"Source_Log_File"`
+	ReadSourceLogPos   uint64 `gorm:"column:Read_Source_Log_Pos" json:"Read_Source_Log_Pos" db:"Read_Source_Log_Pos"`
+	RelaySourceLogFile string `gorm:"column:Relay_Source_Log_File" json:"Relay_Source_Log_File" db:"Relay_Source_Log_File"`
+	ReplicaIoRunning   string `gorm:"column:Replica_IO_Running" json:"Replica_IO_Running" db:"Replica_IO_Running"`
+	ReplicaSqlRunning  string `gorm:"column:Replica_SQL_Running" json:"Replica_SQL_Running" db:"Replica_SQL_Running"`
+	ExecSourceLogPos   uint64 `gorm:"column:Exec_Source_Log_Pos" json:"Exec_Source_Log_Pos" db:"Exec_Source_Log_Pos"`
+	// SecondsBehindSource 可能为 NULL
+	SecondsBehindSource    sql.NullInt64 `gorm:"column:Seconds_Behind_Source" json:"Seconds_Behind_Source" db:"Seconds_Behind_Source"`
+	SourceServerId         uint64        `gorm:"column:Source_Server_Id" json:"Source_Server_Id" db:"Source_Server_Id"`
+	SourceUuid             string        `gorm:"column:Source_UUID" json:"Source_UUID" db:"Source_UUID"`
+	SourceInfoFile         string        `gorm:"column:Source_Info_File" json:"Source_Info_File" db:"Source_Info_File"`
+	ReplicaSqlRunningState string        `gorm:"column:Replica_SQL_Running_State" json:"Replica_SQL_Running_State" db:"Replica_SQL_Running_State"`
+	SourceRetryCount       int           `gorm:"column:Source_Retry_Count" json:"Source_Retry_Count" db:"Source_Retry_Count"`
+	SourceBind             string        `gorm:"column:Source_Bind" json:"Source_Bind" db:"Source_Bind"`
+
+	SourceSslAllowed          string `gorm:"column:Source_SSL_Allowed" json:"Source_SSL_Allowed" db:"Source_SSL_Allowed"`
+	SourceSslCaFile           string `gorm:"column:Source_SSL_CA_File" json:"Source_SSL_CA_File" db:"Source_SSL_CA_File"`
+	SourceSslCaPath           string `gorm:"column:Source_SSL_CA_Path" json:"Source_SSL_CA_Path" db:"Source_SSL_CA_Path"`
+	SourceSslCert             string `gorm:"column:Source_SSL_Cert" json:"Source_SSL_Cert" db:"Source_SSL_Cert"`
+	SourceSslCipher           string `gorm:"column:Source_SSL_Cipher" json:"Source_SSL_Cipher" db:"Source_SSL_Cipher"`
+	SourceSslKey              string `gorm:"column:Source_SSL_Key" json:"Source_SSL_Key" db:"Source_SSL_Key"`
+	SourceSslVerifyServerCert string `gorm:"column:Source_SSL_Verify_Server_Cert" json:"Source_SSL_Verify_Server_Cert" db:"Source_SSL_Verify_Server_Cert"`
+	SourceSslCrl              string `gorm:"column:Source_SSL_Crl" json:"Source_SSL_Crl" db:"Source_SSL_Crl"`
+	SourceSslCrlpath          string `gorm:"column:Source_SSL_Crlpath" json:"Source_SSL_Crlpath" db:"Source_SSL_Crlpath"`
+}
+
+func (s *SlaveStatus) ReplicaToSlave() {
+	if s.MasterHost == "" && s.SourceHost != "" {
+		s.SlaveIoState = s.ReplicaIoState
+		s.MasterHost = s.SourceHost
+		s.MasterUser = s.SourceUser
+		s.MasterPort = s.SourcePort
+		s.MasterLogFile = s.SourceLogFile
+		s.ReadMasterLogPos = s.ReadSourceLogPos
+		s.RelayMasterLogFile = s.RelaySourceLogFile
+		s.SlaveIoRunning = s.ReplicaIoRunning
+		s.SlaveSqlRunning = s.ReplicaSqlRunning
+		s.ExecMasterLogPos = s.ExecSourceLogPos
+		s.SecondsBehindMaster = s.SecondsBehindSource
+		s.MasterSslVerifyServerCert = s.SourceSslVerifyServerCert
+		s.MasterServerId = s.SourceServerId
+		s.MasterUuid = s.SourceUuid
+		s.MasterInfoFile = s.SourceInfoFile
+		s.SlaveSqlRunningState = s.ReplicaSqlRunningState
+		s.MasterRetryCount = s.SourceRetryCount
+		s.MasterBind = s.SourceBind
+		/*
+			s.MasterSslAllowed = s.SourceSslAllowed
+			s.MasterSslCaFile = s.SourceSslCaFile
+			s.MasterSslCaPath = s.SourceSslCaPath
+			s.MasterSslCert = s.SourceSslCert
+			s.MasterSslCipher = s.SourceSslCipher
+			s.MasterSslKey = s.SourceSslKey
+			s.MasterSslCrl = s.SourceSslCrl
+			s.MasterSslCrlpath = s.SourceSslCrlpath
+		*/
+	}
 }

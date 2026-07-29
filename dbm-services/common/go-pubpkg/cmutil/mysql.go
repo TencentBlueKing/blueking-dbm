@@ -88,6 +88,7 @@ func MySQLVersionParse(version string) uint64 {
 // MySQLVersionCompare ver1 > ver2 return 1
 // ver1 < ver2 return -1
 // ver1 == ver2 return 0
+// 10.3.7-MariaDB-tspider-3.7.12-log vs 5.6.24-tmysql-2.2.4-log: 这种是不可比较的: @TODO
 func MySQLVersionCompare(ver1, ver2 string) int {
 	v1 := MySQLVersionParse(ver1)
 	v2 := MySQLVersionParse(ver2)
