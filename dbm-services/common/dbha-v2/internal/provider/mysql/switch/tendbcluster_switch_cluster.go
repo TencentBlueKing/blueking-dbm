@@ -22,7 +22,7 @@
  * SOFTWARE.
  */
 
-package mysql
+package mysqlswitch
 
 import (
 	"fmt"
@@ -102,7 +102,7 @@ type TenDBClusterSwitchCluster struct {
 	keyListMu sync.Mutex
 
 	// newMasterInfoMap records the new master info keyed by the switched remote master instance
-	newMasterInfoMap map[switchcore.MetadataKey]*MySqlNewMasterInfo
+	newMasterInfoMap map[switchcore.MetadataKey]*switchcore.NewMasterInfo
 	// newMasterInfoMu guards concurrent writes to newMasterInfoMap
 	newMasterInfoMu sync.Mutex
 }
@@ -545,7 +545,7 @@ func (cluster *TenDBClusterSwitchCluster) switchRemoteMasterWorker(
 		return resetErr
 	}
 
-	cluster.recordNewMasterInfo(instKey, &MySqlNewMasterInfo{
+	cluster.recordNewMasterInfo(instKey, &switchcore.NewMasterInfo{
 		Host:       standbySlave.Ip,
 		Port:       standbySlave.Port,
 		BinlogFile: binlogFile,
@@ -562,23 +562,23 @@ func (cluster *TenDBClusterSwitchCluster) switchRemoteMasterWorker(
 
 // recordNewMasterInfo stores the new master info of a switched remote master in a concurrency-safe way.
 func (cluster *TenDBClusterSwitchCluster) recordNewMasterInfo(
-	instKey switchcore.MetadataKey, info *MySqlNewMasterInfo,
+	instKey switchcore.MetadataKey, info *switchcore.NewMasterInfo,
 ) {
 	cluster.newMasterInfoMu.Lock()
 	defer cluster.newMasterInfoMu.Unlock()
 
 	if cluster.newMasterInfoMap == nil {
-		cluster.newMasterInfoMap = map[switchcore.MetadataKey]*MySqlNewMasterInfo{}
+		cluster.newMasterInfoMap = map[switchcore.MetadataKey]*switchcore.NewMasterInfo{}
 	}
 	cluster.newMasterInfoMap[instKey] = info
 }
 
 // GetNewMasterInfos returns the new master info keyed by the switched remote master instance.
-func (cluster *TenDBClusterSwitchCluster) GetNewMasterInfos() map[switchcore.MetadataKey]*MySqlNewMasterInfo {
+func (cluster *TenDBClusterSwitchCluster) GetNewMasterInfos() map[switchcore.MetadataKey]*switchcore.NewMasterInfo {
 	cluster.newMasterInfoMu.Lock()
 	defer cluster.newMasterInfoMu.Unlock()
 
-	res := make(map[switchcore.MetadataKey]*MySqlNewMasterInfo, len(cluster.newMasterInfoMap))
+	res := make(map[switchcore.MetadataKey]*switchcore.NewMasterInfo, len(cluster.newMasterInfoMap))
 	for k, v := range cluster.newMasterInfoMap {
 		res[k] = v
 	}

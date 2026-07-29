@@ -273,7 +273,7 @@ flowchart TD
 
 ## 7. MySQL 切换触发与流程
 
-§6 端到端流程在策略命中且 `action=switch` 后进入本节。编排入口：[`TriggerSwitching`](../../internal/analysis/workflow/switch_flow.go)；实现入口：[`Mysql.Switch`](../../internal/analysis/switcher/mysql.go)。切换前白名单再过滤见 [故障判定与切换](../flows/failure-detection-and-failover.md)。
+§6 端到端流程在策略命中且 `action=switch` 后进入本节。编排入口：[`TriggerSwitching`](../../internal/analysis/workflow/switch_flow.go)；实现入口：[`mysqlswitch.Mysql.Switch`](../../internal/provider/mysql/switch/mysql_switcher.go)。切换前白名单再过滤见 [故障判定与切换](../flows/failure-detection-and-failover.md)。
 
 ### 7.1 切换工作流程
 
@@ -309,14 +309,17 @@ sequenceDiagram
 
 ### 7.2 Switcher 注册与接口
 
-MySQL switcher 在 workflow 装配时注册（[`workflow.go`](../../internal/analysis/workflow/workflow.go)）：
+MySQL switcher 由 `provider/mysql/switch` 在 `init` 中自注册（经 analysis 入口 blank-import [`provider/allanalysis`](../../internal/provider/allanalysis/)），`workflow.New` 通过 [`switcher.Build()`](../../internal/analysis/workflow/workflow.go) 装配：
 
 ```go
-switchers: map[haprobe.DbType]switcher.Switcher{
-	haprobe.DbTypeMySql: &switcher.Mysql{},
-},
-```
+// provider/mysql/switch/register.go
+switcher.Register(haprobe.DbTypeMySql, func() switcher.Switcher {
+	return &Mysql{} // mysqlswitch.Mysql
+})
 
+// workflow.New
+switchers: switcher.Build(),
+```
 `Switcher` 接口（[`switcher/switcher.go`](../../internal/analysis/switcher/switcher.go)）：
 
 ```go
@@ -328,7 +331,7 @@ type Switcher interface {
 
 ### 7.3 ActionScope 与实现分发
 
-`ActionScopeType`（[`hamodel/db_switching_strategy.go`](../../pkg/storage/hamodel/db_switching_strategy.go)）：`db_instance` / `host` / `cluster`。MySQL switcher 据此分发（[`switcher/mysql.go`](../../internal/analysis/switcher/mysql.go)）：
+`ActionScopeType`（[`hamodel/db_switching_strategy.go`](../../pkg/storage/hamodel/db_switching_strategy.go)）：`db_instance` / `host` / `cluster`。MySQL switcher 据此分发（[`mysql_switcher.go`](../../internal/provider/mysql/switch/mysql_switcher.go)）：
 
 | ActionScope | 方法 | 编排器 | 并发控制 |
 | --- | --- | --- | --- |
@@ -484,7 +487,7 @@ flowchart TD
 
 ### 7.6 从库切换校验参数
 
-从库切换前校验（[`switcher/mysql/mysql_slave_checker.go`](../../internal/analysis/switcher/mysql)）依赖 analysis 配置 `switchFlow`（[`internal/analysis/config/config.go`](../../internal/analysis/config/config.go)）默认值：
+从库切换前校验（[`mysql_slave_checker.go`](../../internal/provider/mysql/switch/mysql_slave_checker.go)）依赖 analysis 配置 `switchFlow`（[`internal/analysis/config/config.go`](../../internal/analysis/config/config.go)）默认值：
 
 | 参数 | 默认值 | 含义 |
 | --- | --- | --- |
@@ -505,7 +508,7 @@ flowchart TD
 - 状态模型：[`pkg/storage/haprobe/mysql_status.go`](../../pkg/storage/haprobe/mysql_status.go) 及同目录子状态
 - 事件常量：[`pkg/storage/haprobe/db_event.go`](../../pkg/storage/haprobe/db_event.go)
 - 判定与二次探测：[`internal/analysis/workflow/checker.go`](../../internal/analysis/workflow/checker.go)、[`detector_handler.go`](../../internal/analysis/workflow/detector_handler.go)
-- 切换编排：[`workflow/switch_flow.go`](../../internal/analysis/workflow/switch_flow.go)、[`switcher/mysql.go`](../../internal/analysis/switcher/mysql.go)、[`switchcore`](../../internal/analysis/switcher/switchcore)
-- tendbha 切换：[`mysql_switch_instance.go`](../../internal/analysis/switcher/mysql/mysql_switch_instance.go)、[`mysql_switch_cluster.go`](../../internal/analysis/switcher/mysql/mysql_switch_cluster.go)
-- tendbcluster 切换：[`tendbcluster_switch_instance.go`](../../internal/analysis/switcher/mysql/tendbcluster_switch_instance.go)、[`tendbcluster_switch_cluster.go`](../../internal/analysis/switcher/mysql/tendbcluster_switch_cluster.go)
+- 切换编排：[`workflow/switch_flow.go`](../../internal/analysis/workflow/switch_flow.go)、[`mysql_switcher.go`](../../internal/provider/mysql/switch/mysql_switcher.go)、[`switchcore`](../../internal/analysis/switcher/switchcore)
+- tendbha 切换：[`mysql_switch_instance.go`](../../internal/provider/mysql/switch/mysql_switch_instance.go)、[`mysql_switch_cluster.go`](../../internal/provider/mysql/switch/mysql_switch_cluster.go)
+- tendbcluster 切换：[`tendbcluster_switch_instance.go`](../../internal/provider/mysql/switch/tendbcluster_switch_instance.go)、[`tendbcluster_switch_cluster.go`](../../internal/provider/mysql/switch/tendbcluster_switch_cluster.go)
 - 配置默认值：[`internal/analysis/config/config.go`](../../internal/analysis/config/config.go)
