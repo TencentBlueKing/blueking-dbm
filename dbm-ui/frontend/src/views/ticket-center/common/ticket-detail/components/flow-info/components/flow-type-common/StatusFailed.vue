@@ -42,9 +42,7 @@
       <RenderErrorMessage
         :data="data"
         :ticket-detail="ticketDetail" />
-      <Abstract
-        :data="data"
-        :ticket-type="ticketDetail.ticket_type" />
+      <Abstract :data="data" />
       <div
         v-if="isCanOperation && isNeedOperation"
         class="mt-12">

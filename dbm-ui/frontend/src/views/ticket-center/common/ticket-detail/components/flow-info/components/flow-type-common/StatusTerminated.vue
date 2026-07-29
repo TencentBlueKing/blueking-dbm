@@ -58,9 +58,7 @@
       <RenderErrorMessage
         :data="data"
         :ticket-detail="ticketDetail" />
-      <Abstract
-        :data="data"
-        :ticket-type="ticketDetail.ticket_type" />
+      <Abstract :data="data" />
     </template>
     <template
       v-if="data.err_code === 3 || renderTodoList.length < 1"
