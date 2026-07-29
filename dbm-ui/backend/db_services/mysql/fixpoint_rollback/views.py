@@ -64,7 +64,12 @@ class FixPointRollbackViewSet(viewsets.SystemViewSet):
     def query_backup_log_from_bklog(self, requests, *args, **kwargs):
         validated_data = self.params_validate(self.get_serializer_class())
         end_time = datetime.now(timezone.utc)
-        start_time = end_time - timedelta(days=validated_data["days"])
+        days = validated_data.get("days", 0)
+        if days > 0:
+            start_time = end_time - timedelta(days=days)
+        else:
+            # 不限制时间范围，从最早记录开始查询
+            start_time = datetime(1970, 1, 1, tzinfo=timezone.utc)
         handler = FixPointRollbackHandler(validated_data["cluster_id"])
         kwargs.update({"backup_method": validated_data.pop("backup_method", "")})
         logs = handler.query_backup_log_from_bklog(start_time, end_time, **kwargs)
@@ -119,6 +124,10 @@ class FixPointRollbackViewSet(viewsets.SystemViewSet):
         cluster = Cluster.objects.get(id=cluster_id)
         db_type = ClusterType.cluster_type_to_db_type(cluster.cluster_type)
         latest_time = validated_data.pop("latest_time", None)
+        # 取消 deadlines_days 硬上限：不传或 <=0 时不限制时间范围
+        deadlines_days = validated_data.pop("deadlines_days", 0)
+        if deadlines_days > 0:
+            validated_data["deadlines_days"] = deadlines_days
         # 初始化备份文件对象
         handler = MySQLBackupHandler(**validated_data)
 
