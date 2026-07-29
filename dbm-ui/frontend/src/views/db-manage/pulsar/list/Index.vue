@@ -56,62 +56,63 @@
           ref="operationColumnRef"
           :cluster-type="ClusterTypes.PULSAR">
           <template #default="{ data }: { data: PulsarModel }">
-            <div v-db-console="'pulsar.clusterManage.manage'">
-              <a
-                :href="data.access_url"
-                target="_blank">
-                {{ t('控制台') }}
-              </a>
-            </div>
-            <div v-db-console="'pulsar.clusterManage.getAccess'">
-              <AuthButton
-                action-id="pulsar_access_entry_view"
-                :disabled="data.isOffline"
-                :permission="data.permission.pulsar_access_entry_view"
-                :resource="data.id"
-                text
-                @click="handleShowPassword(data)">
-                {{ t('获取访问方式') }}
-              </AuthButton>
-            </div>
-            <ClusterAlarmSubscribe
-              :data="data"
-              db-console-prefix="pulsar.clusterManage"
-              @click="hideOperationColumn"
-              @edit="(e) => handleToDetails(data.id, e, 'alarmSubscription')" />
-            <div v-db-console="'pulsar.clusterManage.scaleUp'">
-              <OperationBtnStatusTips :data="data">
+            <template v-if="data.isOnline">
+              <div v-db-console="'pulsar.clusterManage.manage'">
+                <a
+                  :href="data.access_url"
+                  target="_blank">
+                  {{ t('控制台') }}
+                </a>
+              </div>
+              <div v-db-console="'pulsar.clusterManage.getAccess'">
                 <AuthButton
-                  action-id="pulsar_scale_up"
-                  :disabled="data.operationDisabled"
-                  :permission="data.permission.pulsar_scale_up"
+                  action-id="pulsar_access_entry_view"
+                  :permission="data.permission.pulsar_access_entry_view"
                   :resource="data.id"
                   text
-                  @click="handleShowExpansion(data)">
-                  {{ t('扩容') }}
+                  @click="handleShowPassword(data)">
+                  {{ t('获取访问方式') }}
                 </AuthButton>
-              </OperationBtnStatusTips>
-            </div>
-            <div v-db-console="'pulsar.clusterManage.scaleDown'">
-              <OperationBtnStatusTips :data="data">
-                <AuthButton
-                  action-id="pulsar_shrink"
-                  :disabled="data.operationDisabled"
-                  :permission="data.permission.pulsar_shrink"
-                  :resource="data.id"
-                  text
-                  @click="handleShowShrink(data)">
-                  {{ t('缩容') }}
-                </AuthButton>
-              </OperationBtnStatusTips>
-            </div>
+              </div>
+              <ClusterAlarmSubscribe
+                :data="data"
+                db-console-prefix="pulsar.clusterManage"
+                @click="hideOperationColumn"
+                @edit="(e) => handleToDetails(data.id, e, 'alarmSubscription')" />
+              <div v-db-console="'pulsar.clusterManage.scaleUp'">
+                <OperationBtnStatusTips :data="data">
+                  <AuthButton
+                    action-id="pulsar_scale_up"
+                    :disabled="data.operationDisabled"
+                    :permission="data.permission.pulsar_scale_up"
+                    :resource="data.id"
+                    text
+                    @click="handleShowExpansion(data)">
+                    {{ t('扩容') }}
+                  </AuthButton>
+                </OperationBtnStatusTips>
+              </div>
+              <div v-db-console="'pulsar.clusterManage.scaleDown'">
+                <OperationBtnStatusTips :data="data">
+                  <AuthButton
+                    action-id="pulsar_shrink"
+                    :disabled="data.operationDisabled"
+                    :permission="data.permission.pulsar_shrink"
+                    :resource="data.id"
+                    text
+                    @click="handleShowShrink(data)">
+                    {{ t('缩容') }}
+                  </AuthButton>
+                </OperationBtnStatusTips>
+              </div>
+            </template>
             <div
               v-if="data.isOffline"
               v-db-console="'pulsar.clusterManage.enable'">
               <OperationBtnStatusTips :data="data">
                 <AuthButton
                   action-id="pulsar_enable_disable"
-                  :disabled="data.isStarting || !data.isOffline"
+                  :disabled="data.isStarting"
                   :permission="data.permission.pulsar_enable_disable"
                   :resource="data.id"
                   text
@@ -140,7 +141,7 @@
                 <AuthButton
                   v-bk-tooltips="{
                     disabled: data.isOffline,
-                    content: t('请先禁用集群'),
+                    content: t('删除前需先禁用集群'),
                     placement: 'right',
                   }"
                   action-id="pulsar_destroy"
@@ -153,7 +154,9 @@
                 </AuthButton>
               </OperationBtnStatusTips>
             </div>
-            <ClusterDomainDnsRelation :data="data" />
+            <ClusterDomainDnsRelation
+              v-if="data.isOnline"
+              :data="data" />
           </template>
         </OperationColumn>
       </template>

@@ -37,25 +37,6 @@
   withDefaults(defineProps<Props>(), {
     showText: true,
   });
-
-  // const clusterInstStatus = {
-  //   restoring: {
-  //     icon: 'sync-pending',
-  //     text: t('恢复中'),
-  //   },
-  //   running: {
-  //     icon: 'normal',
-  //     text: t('运行中'),
-  //   },
-  //   unavailable: {
-  //     icon: 'abnormal',
-  //     text: t('不可用'),
-  //   },
-  //   upgrading: {
-  //     icon: 'sync-pending',
-  //     text: t('升级中'),
-  //   },
-  // };
 </script>
 <style lang="less">
   .db-cluster-instance-status {

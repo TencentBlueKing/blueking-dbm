@@ -12,7 +12,9 @@
 -->
 
 <template>
-  <span style="display: inline-block">
+  <span
+    role="asdasdas"
+    style="display: inline-block">
     <span
       v-if="data?.operationTicketId && !disabled"
       ref="rootRef"
@@ -52,7 +54,7 @@
   let activeTippyIns: Instance;
 </script>
 <script setup lang="ts">
-  interface Props {
+  export interface Props {
     data?: {
       operationStatusText: string;
       operationTicketId: number;

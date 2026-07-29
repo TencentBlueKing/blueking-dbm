@@ -20,21 +20,18 @@
         cluster-detail-router-name="DorisDetail"
         :data="data">
         <a
+          v-if="data.isOnline"
           v-db-console="'doris.clusterManage.manage'"
           class="ml-4"
           :href="data.access_url"
           target="_blank">
-          <BkButton
-            :disabled="data.isOffline"
-            size="small">
-            WebUI
-          </BkButton>
+          <BkButton size="small"> WebUI </BkButton>
         </a>
         <AuthButton
+          v-if="data.isOnline"
           v-db-console="'doris.clusterManage.getAccess'"
           action-id="doris_access_entry_view"
           class="ml-4"
-          :disabled="data.isOffline"
           :permission="data.permission.doris_access_entry_view"
           :resource="data.id"
           size="small"
@@ -44,39 +41,40 @@
         <MoreActionExtend>
           <template #trigger>
             <BkButton
-              v-bk-tooltips="t('更多操作')"
               class="ml-4"
               size="small"
               style="padding: 0 6px">
               <DbIcon type="more" />
             </BkButton>
           </template>
-          <div v-db-console="'doris.clusterManage.scaleUp'">
-            <OperationBtnStatusTips :data="data">
-              <AuthButton
-                action-id="doris_scale_up"
-                :disabled="data.operationDisabled"
-                :permission="data.permission.doris_scale_up"
-                :resource="data.id"
-                text
-                @click="handleShowExpandsion">
-                {{ t('扩容') }}
-              </AuthButton>
-            </OperationBtnStatusTips>
-          </div>
-          <div v-db-console="'doris.clusterManage.scaleDown'">
-            <OperationBtnStatusTips :data="data">
-              <AuthButton
-                action-id="doris_shrink"
-                :disabled="data.operationDisabled"
-                :permission="data.permission.doris_shrink"
-                :resource="data.id"
-                text
-                @click="handleShowShrink">
-                {{ t('缩容') }}
-              </AuthButton>
-            </OperationBtnStatusTips>
-          </div>
+          <template v-if="data.isOnline">
+            <div v-db-console="'doris.clusterManage.scaleUp'">
+              <OperationBtnStatusTips :data="data">
+                <AuthButton
+                  action-id="doris_scale_up"
+                  :disabled="data.operationDisabled"
+                  :permission="data.permission.doris_scale_up"
+                  :resource="data.id"
+                  text
+                  @click="handleShowExpandsion">
+                  {{ t('扩容') }}
+                </AuthButton>
+              </OperationBtnStatusTips>
+            </div>
+            <div v-db-console="'doris.clusterManage.scaleDown'">
+              <OperationBtnStatusTips :data="data">
+                <AuthButton
+                  action-id="doris_shrink"
+                  :disabled="data.operationDisabled"
+                  :permission="data.permission.doris_shrink"
+                  :resource="data.id"
+                  text
+                  @click="handleShowShrink">
+                  {{ t('缩容') }}
+                </AuthButton>
+              </OperationBtnStatusTips>
+            </div>
+          </template>
           <div
             v-if="data.isOnline"
             v-db-console="'doris.clusterManage.disable'">
@@ -111,7 +109,7 @@
               <AuthButton
                 v-bk-tooltips="{
                   disabled: data.isOffline,
-                  content: t('请先禁用集群'),
+                  content: t('删除前需先禁用集群'),
                 }"
                 action-id="doris_destroy"
                 :disabled="data.isOnline || Boolean(data.operationTicketId)"
@@ -123,7 +121,9 @@
               </AuthButton>
             </OperationBtnStatusTips>
           </div>
-          <ClusterDomainDnsRelation :data="data" />
+          <ClusterDomainDnsRelation
+            v-if="data.isOnline"
+            :data="data" />
         </MoreActionExtend>
       </DisplayBox>
       <ActionPanel
