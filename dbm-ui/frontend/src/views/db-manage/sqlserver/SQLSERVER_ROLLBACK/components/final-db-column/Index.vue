@@ -1,11 +1,23 @@
+<!--
+ * TencentBlueKing is pleased to support the open source community by making 蓝鲸智云-DB管理系统(BlueKing-BK-DBM) available.
+ *
+ * Copyright (C) 2017-2023 THL A29 Limited, a Tencent company. All rights reserved.
+ *
+ * Licensed under the MIT License (the "License"); you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License athttps://opensource.org/licenses/MIT
+ *
+ * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed
+ * on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for
+ * the specific language governing permissions and limitations under the License.
+-->
+
 <template>
   <EditableColumn
     ref="editableColumnRef"
     :disabled-method="disabledMethod"
     field="rename_infos"
-    :label="t('构造后 DB 名')"
+    :label="t('恢复后库名')"
     :min-width="300"
-    required
     :rules="rules">
     <BkLoading :loading="isLoading || isCheckoutDbLoading">
       <EditableBlock>
@@ -30,36 +42,11 @@
       </EditableBlock>
     </BkLoading>
   </EditableColumn>
-  <BkSideslider
+  <EditName
+    v-if="cluster.id && targetCluster.id"
     v-model:is-show="isShowEditName"
-    render-directive="if"
-    :width="900">
-    <template #header>
-      <span>{{ t('手动修改回档的 DB 名') }}</span>
-      <BkTag class="ml-8">{{ cluster.master_domain }}</BkTag>
-    </template>
-    <EditName
-      v-if="cluster.id && targetClusterId"
-      ref="editNameRef"
-      :cluster-id="cluster.id"
-      :db-ignore-name="dbIgnoreName"
-      :db-name="dbName"
-      :rename-info-list="moduleValue"
-      :target-cluster-id="targetClusterId" />
-    <template #footer>
-      <BkButton
-        class="w-88"
-        theme="primary"
-        @click="handleSubmit">
-        {{ t('保存') }}
-      </BkButton>
-      <BkButton
-        class="w-88 ml-8"
-        @click="handleCancel">
-        {{ t('取消') }}
-      </BkButton>
-    </template>
-  </BkSideslider>
+    :data="renameInfoData"
+    @submit="handleSubmit" />
 </template>
 <script setup lang="ts">
   import _ from 'lodash';
@@ -69,7 +56,7 @@
   import { checkClusterDatabase } from '@services/source/dbbase';
   import { queryBackupLogs, queryDbsByBackupLog } from '@services/source/sqlserver';
 
-  import EditName from './components/edit-rename-info/Index.vue';
+  import EditName, { type IValue } from './components/edit-rename-info/Index.vue';
 
   interface Props {
     cluster: {
@@ -79,18 +66,16 @@
     isLocal: boolean;
     restoreBackupFile?: ServiceReturnType<typeof queryBackupLogs>[number];
     restoreTime?: string;
-    targetClusterId: number;
+    targetCluster: {
+      cluster_type?: string;
+      id: number;
+      master_domain: string;
+    };
   }
 
   const props = defineProps<Props>();
 
-  const moduleValue = defineModel<
-    {
-      db_name: string;
-      rename_db_name: string;
-      target_db_name: string;
-    }[]
-  >({
+  const moduleValue = defineModel<IValue[]>({
     required: true,
   });
 
@@ -106,17 +91,19 @@
 
   const editableColumnRef = useTemplateRef('editableColumnRef');
 
-  const editNameRef = ref<InstanceType<typeof EditName>>();
   const isShowEditName = ref(false);
   const hasEditDbName = ref(false);
 
+  const renameInfoData = computed(() => ({
+    backupDbList: props.restoreBackupFile?.backup_db_list,
+    dbIgnoreName: dbIgnoreName.value,
+    dbName: dbName.value,
+    renameInfoList: moduleValue.value,
+    srcCluster: props.cluster,
+    targetCluster: props.targetCluster,
+  }));
+
   const rules = [
-    {
-      message: t('构造后 DB 名不能为空'),
-      required: true,
-      trigger: 'change',
-      validator: () => moduleValue.value.length > 0,
-    },
     {
       message: t('构造后 DB 名待有冲突更新'),
       trigger: 'change',
@@ -142,26 +129,32 @@
       if (data.length > 0) {
         runCheckClusterDatabase({
           bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
-          cluster_id: props.targetClusterId,
+          cluster_id: props.targetCluster.id,
           db_list: data,
         });
       }
     },
   });
 
+  let isInnerChange = false;
+
   watch(
     () => [
       props.cluster.id,
-      props.targetClusterId,
+      props.targetCluster.id,
       props.restoreTime,
       props.restoreBackupFile,
       dbName.value,
       dbIgnoreName.value,
     ],
     () => {
+      if (isInnerChange) {
+        isInnerChange = false;
+        return;
+      }
       if (
         !props.cluster.id ||
-        !props.targetClusterId ||
+        !props.targetCluster.id ||
         dbName.value.length < 1 ||
         (!props.restoreTime && !props.restoreBackupFile)
       ) {
@@ -187,7 +180,7 @@
   const disabledMethod = () => {
     if (
       props.cluster.id &&
-      props.targetClusterId &&
+      props.targetCluster.id &&
       dbName.value.length > 0 &&
       (props.restoreBackupFile || props.restoreTime)
     ) {
@@ -196,20 +189,15 @@
     return props.isLocal ? t('请先设置集群、构造 DB、回档信息') : t('请先设置集群、目标集群、构造 DB、回档信息');
   };
 
-  const handleSubmit = () => {
-    editNameRef.value!.submit().then((result) => {
-      isShowEditName.value = false;
-      hasEditDbName.value = true;
-      dbName.value = result.dbName;
-      dbIgnoreName.value = result.dbIgnoreName;
-      moduleValue.value = result.renameInfoList;
-
-      editableColumnRef.value!.validate();
-    });
-  };
-
-  const handleCancel = () => {
+  const handleSubmit = (result: Pick<typeof renameInfoData.value, 'dbIgnoreName' | 'dbName' | 'renameInfoList'>) => {
+    isInnerChange = true;
     isShowEditName.value = false;
+    hasEditDbName.value = true;
+    dbName.value = result.dbName;
+    dbIgnoreName.value = result.dbIgnoreName;
+    moduleValue.value = result.renameInfoList;
+
+    editableColumnRef.value!.validate();
   };
 </script>
 
