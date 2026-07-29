@@ -67,21 +67,28 @@ class PortraitQueryService:
         :param db_type: 可选按 DB 类型过滤；空 / None 表示不过滤
         :return: dict，形如::
 
-            {"dimensions": [{"db_type": "...", "code": "...", "name": "...", "description": "..."}]}
+            {"dimensions": [{"db_type": "...", "dimension_code": "...", "name": "...", "description": "..."}]}
 
         边界：
             - 无匹配 -> dimensions=[]
             - 只返回 enabled=True 的维度；enabled=False 的维度对 Agent 完全不可见
+
+        注意：
+            出参字典中**不使用** ``code`` 作为键名，改用 ``dimension_code``；
+            原因是外层 ``BKAPIRenderer`` 若在返回体顶层看到 ``code`` 键会走"用户自定义标准返回"
+            短路分支，导致 Go MCP 网关 unmarshal ``code``(int) 失败。为保持读写侧字段命名一致，
+            嵌套元素中也统一使用 ``dimension_code``。
         """
         qs: QuerySet = PortraitDimensionRegistry.objects.filter(enabled=True)
         if db_type:
             qs = qs.filter(db_type=db_type)
+        # 注意：order_by("code") 中的 "code" 是 ORM 字段名（数据库列），不是出参 dict 键
         qs = qs.order_by("db_type", "code")
 
         dimensions: List[Dict] = [
             {
                 "db_type": obj.db_type,
-                "code": obj.code,
+                "dimension_code": obj.code,
                 "name": obj.name,
                 "description": obj.description or "",
             }
@@ -114,7 +121,8 @@ class PortraitQueryService:
 
         :param bk_biz_id: 业务 ID（用于强约束数据归属，避免跨业务读取）
         :param cluster_domain: 集群不可变域名
-        :param codes: 可选维度短码列表；None / 空列表 表示按 db_type 自动取全部启用维度
+        :param codes: 可选维度短码列表（对应 MCP 入参 ``dimension_codes``）；
+                      None / 空列表 表示按 db_type 自动取全部启用维度
         :param since: 可选时间下界（含）
         :param until: 可选时间上界（含）
         :return: dict，形如::
@@ -122,7 +130,7 @@ class PortraitQueryService:
             {
               "bk_biz_id": 100001,
               "cluster_domain": "a.b.c",
-              "summaries": [ {db_type, code, name, ...report_time, summary, detail_url}, ... ],
+              "summaries": [ {db_type, dimension_code, name, ...report_time, summary, detail_url}, ... ],
               "missing_codes": ["xxx", ...],
             }
 
@@ -166,10 +174,11 @@ class PortraitQueryService:
         )
 
         # 4) 逐条装配 + 统计 missing_codes
+        #    注意：row.code 是 ORM 字段读取，保持不变；出参 dict 键名统一为 dimension_code
         summaries: List[Dict] = [
             {
                 "db_type": row.db_type,
-                "code": row.code,
+                "dimension_code": row.code,
                 "name": registry_map[row.code].name if row.code in registry_map else row.code,
                 "bk_biz_id": row.bk_biz_id,
                 "cluster_domain": row.cluster_domain,
@@ -180,7 +189,7 @@ class PortraitQueryService:
             for row in rows
         ]
 
-        hit_codes: set = {item["code"] for item in summaries}
+        hit_codes: set = {item["dimension_code"] for item in summaries}
         missing_codes: List[str] = [c for c in target_codes if c not in hit_codes]
 
         return {

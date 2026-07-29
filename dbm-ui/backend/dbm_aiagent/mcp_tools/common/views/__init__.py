@@ -10,12 +10,12 @@ specific language governing permissions and limitations under the License.
 """
 from .ai_report import AiReportMcpToolsViewSet
 from .alarm_query import MonitorQueryMcpToolsViewSet
+from .cluster_portrait import ClusterPortraitMcpToolsViewSet
 from .dbmeta_query import DBMetaQueryMcpToolsViewSet
 from .dbmeta_update import DBMetaUpdateMcpToolsViewSet
 from .host_decommission_query import HostDecommissionQueryMcpToolsViewSet
 from .host_performance_query import HostPerformanceQueryMcpToolsViewSet
 from .mcp_callee_plan import McpCalleePlanMcpToolsViewSet
-from .portrait_query import PortraitQueryMcpToolsViewSet
 from .promql_query import PromQLQueryMcpToolsViewSet
 from .resource_param_query import ResourceParamQueryMcpToolsViewSet
 from .taskflow_query import TaskflowQueryMcpToolsViewSet
