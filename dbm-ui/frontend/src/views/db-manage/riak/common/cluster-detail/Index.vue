@@ -19,63 +19,65 @@
       <DisplayBox
         cluster-detail-router-name="riakDetail"
         :data="data">
-        <OperationBtnStatusTips
-          v-db-console="'riak.clusterManage.addNodes'"
-          :data="data">
-          <AuthButton
-            action-id="riak_cluster_scale_in"
-            class="ml-4"
-            :disabled="data.isOffline"
-            :permission="data.permission.riak_cluster_scale_in"
-            :resource="data.id"
-            size="small"
-            @click="handleAddNodes">
-            {{ t('添加节点') }}
-          </AuthButton>
-        </OperationBtnStatusTips>
-        <OperationBtnStatusTips
-          v-db-console="'riak.clusterManage.deleteNodes'"
-          :data="data">
-          <AuthButton
-            action-id="riak_cluster_scale_out"
-            class="ml-4"
-            :disabled="data.isOffline"
-            :permission="data.permission.riak_cluster_scale_out"
-            :resource="data.id"
-            size="small"
-            @click="handleDeleteNodes">
-            {{ t('删除节点') }}
-          </AuthButton>
-        </OperationBtnStatusTips>
-        <OperationBtnStatusTips
-          v-db-console="'riak.clusterManage.disable'"
-          :data="data">
-          <AuthButton
-            action-id="riak_enable_disable"
-            class="ml-4"
-            :disabled="data.isOffline || Boolean(data.operationTicketId)"
-            :permission="data.permission.riak_enable_disable"
-            :resource="data.id"
-            size="small"
-            @click="handleDisableCluster([data])">
-            {{ t('禁用') }}
-          </AuthButton>
-        </OperationBtnStatusTips>
+        <template v-if="data.isOnline">
+          <OperationBtnStatusTips
+            v-db-console="'riak.clusterManage.addNodes'"
+            :data="data">
+            <AuthButton
+              action-id="riak_cluster_scale_in"
+              class="ml-4"
+              :permission="data.permission.riak_cluster_scale_in"
+              :resource="data.id"
+              size="small"
+              @click="handleAddNodes">
+              {{ t('添加节点') }}
+            </AuthButton>
+          </OperationBtnStatusTips>
+          <OperationBtnStatusTips
+            v-db-console="'riak.clusterManage.deleteNodes'"
+            :data="data">
+            <AuthButton
+              action-id="riak_cluster_scale_out"
+              class="ml-4"
+              :permission="data.permission.riak_cluster_scale_out"
+              :resource="data.id"
+              size="small"
+              @click="handleDeleteNodes">
+              {{ t('删除节点') }}
+            </AuthButton>
+          </OperationBtnStatusTips>
+        </template>
         <MoreActionExtend>
           <template #trigger>
             <BkButton
-              v-bk-tooltips="t('更多操作')"
               class="ml-4"
               size="small"
               style="padding: 0 6px">
               <DbIcon type="more" />
             </BkButton>
           </template>
-          <div v-db-console="'riak.clusterManage.enable'">
+          <div
+            v-if="data.isOnline"
+            v-db-console="'riak.clusterManage.disable'">
             <OperationBtnStatusTips :data="data">
               <AuthButton
                 action-id="riak_enable_disable"
-                :disabled="data.isOnline || data.isStarting"
+                :disabled="Boolean(data.operationTicketId)"
+                :permission="data.permission.riak_enable_disable"
+                :resource="data.id"
+                text
+                @click="handleDisableCluster([data])">
+                {{ t('禁用') }}
+              </AuthButton>
+            </OperationBtnStatusTips>
+          </div>
+          <div
+            v-else
+            v-db-console="'riak.clusterManage.enable'">
+            <OperationBtnStatusTips :data="data">
+              <AuthButton
+                action-id="riak_enable_disable"
+                :disabled="data.isStarting"
                 :permission="data.permission.riak_enable_disable"
                 :resource="data.id"
                 text
@@ -89,7 +91,7 @@
               <AuthButton
                 v-bk-tooltips="{
                   disabled: data.isOffline,
-                  content: t('请先禁用集群'),
+                  content: t('删除前需先禁用集群'),
                 }"
                 action-id="riak_cluster_destroy"
                 :disabled="data.isOnline || Boolean(data.operationTicketId)"
@@ -101,7 +103,9 @@
               </AuthButton>
             </OperationBtnStatusTips>
           </div>
-          <ClusterDomainDnsRelation :data="data" />
+          <ClusterDomainDnsRelation
+            v-if="data.isOnline"
+            :data="data" />
         </MoreActionExtend>
       </DisplayBox>
       <ActionPanel

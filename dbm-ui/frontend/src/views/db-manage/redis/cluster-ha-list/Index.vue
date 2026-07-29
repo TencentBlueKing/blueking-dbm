@@ -55,136 +55,131 @@
           ref="operationColumnRef"
           :cluster-type="ClusterTypes.REDIS_INSTANCE">
           <template #default="{ data }: { data: RedisModel }">
-            <div v-db-console="'redis.haClusterManage.extractKey'">
-              <OperationBtnStatusTips
-                v-bk-tooltips="{
-                  content: t('暂不支持跨管控区域提取Key'),
-                  placement: 'right',
-                  disabled: data.bk_cloud_id === undefined,
-                }"
-                :data="data"
-                :disabled="!data.isOffline">
-                <AuthButton
-                  action-id="redis_keys_extract"
+            <template v-if="data.isOnline">
+              <div v-db-console="'redis.haClusterManage.extractKey'">
+                <OperationBtnStatusTips
+                  v-bk-tooltips="{
+                    content: t('暂不支持跨管控区域提取Key'),
+                    placement: 'right',
+                    disabled: data.bk_cloud_id === undefined,
+                  }"
+                  :data="data"
+                  :disabled="!data.isOffline">
+                  <AuthButton
+                    action-id="redis_keys_extract"
+                    class="mr-8"
+                    :permission="data.permission.redis_keys_extract"
+                    :resource="data.id"
+                    text
+                    theme="primary"
+                    @click="handleToToolbox(TicketTypes.REDIS_KEYS_EXTRACT, [data])">
+                    {{ t('提取Key') }}
+                  </AuthButton>
+                </OperationBtnStatusTips>
+              </div>
+              <div v-db-console="'redis.haClusterManage.deleteKey'">
+                <OperationBtnStatusTips
+                  v-bk-tooltips="{
+                    placement: 'right',
+                    content: t('暂不支持跨管控区域删除Key'),
+                    disabled: data.bk_cloud_id === undefined,
+                  }"
+                  :data="data"
+                  :disabled="!data.isOffline">
+                  <AuthButton
+                    action-id="redis_keys_delete"
+                    class="mr-8"
+                    :permission="data.permission.redis_keys_delete"
+                    :resource="data.id"
+                    text
+                    theme="primary"
+                    @click="handleToToolbox(TicketTypes.REDIS_KEYS_DELETE, [data])">
+                    {{ t('删除Key') }}
+                  </AuthButton>
+                </OperationBtnStatusTips>
+              </div>
+              <div>
+                <AuthRouterLink
+                  action-id="redis_webconsole"
                   class="mr-8"
-                  :disabled="data.isOffline"
-                  :permission="data.permission.redis_keys_extract"
+                  :permission="data.permission.redis_webconsole"
                   :resource="data.id"
-                  text
-                  theme="primary"
-                  @click="handleToToolbox(TicketTypes.REDIS_KEYS_EXTRACT, [data])">
-                  {{ t('提取Key') }}
-                </AuthButton>
-              </OperationBtnStatusTips>
-            </div>
-            <div v-db-console="'redis.haClusterManage.deleteKey'">
-              <OperationBtnStatusTips
-                v-bk-tooltips="{
-                  placement: 'right',
-                  content: t('暂不支持跨管控区域删除Key'),
-                  disabled: data.bk_cloud_id === undefined,
-                }"
+                  target="_blank"
+                  :to="{
+                    name: 'RedisWebconsole',
+                    query: {
+                      clusterId: data.id,
+                    },
+                  }">
+                  Webconsole
+                </AuthRouterLink>
+              </div>
+              <div v-db-console="'redis.haClusterManage.backup'">
+                <OperationBtnStatusTips
+                  :data="data"
+                  :disabled="!data.isOffline">
+                  <AuthButton
+                    action-id="redis_backup"
+                    :permission="data.permission.redis_backup"
+                    :resource="data.id"
+                    style="width: 100%; height: 32px"
+                    text
+                    @click="handleToToolbox(TicketTypes.REDIS_BACKUP, [data])">
+                    {{ t('备份') }}
+                  </AuthButton>
+                </OperationBtnStatusTips>
+              </div>
+              <div v-db-console="'redis.haClusterManage.dbClear'">
+                <OperationBtnStatusTips
+                  :data="data"
+                  :disabled="!data.isOffline">
+                  <AuthButton
+                    action-id="redis_purge"
+                    :permission="data.permission.redis_purge"
+                    :resource="data.id"
+                    style="width: 100%; height: 32px"
+                    text
+                    @click="handleToToolbox(TicketTypes.REDIS_PURGE, [data])">
+                    {{ t('清档') }}
+                  </AuthButton>
+                </OperationBtnStatusTips>
+              </div>
+              <div v-db-console="'redis.haClusterManage.getAccess'">
+                <OperationBtnStatusTips
+                  :data="data"
+                  :disabled="!data.isOffline">
+                  <AuthButton
+                    action-id="redis_access_entry_view"
+                    :permission="data.permission.redis_access_entry_view"
+                    :resource="data.id"
+                    style="width: 100%; height: 32px"
+                    text
+                    @click="handleShowPassword(data.id)">
+                    {{ t('获取访问方式') }}
+                  </AuthButton>
+                </OperationBtnStatusTips>
+              </div>
+              <ClusterAlarmSubscribe
                 :data="data"
-                :disabled="!data.isOffline">
-                <AuthButton
-                  action-id="redis_keys_delete"
-                  class="mr-8"
-                  :disabled="data.isOffline"
-                  :permission="data.permission.redis_keys_delete"
-                  :resource="data.id"
-                  text
-                  theme="primary"
-                  @click="handleToToolbox(TicketTypes.REDIS_KEYS_DELETE, [data])">
-                  {{ t('删除Key') }}
-                </AuthButton>
-              </OperationBtnStatusTips>
-            </div>
-            <div>
-              <AuthRouterLink
-                action-id="redis_webconsole"
-                class="mr-8"
-                :disabled="data.isOffline"
-                :permission="data.permission.redis_webconsole"
-                :resource="data.id"
-                target="_blank"
-                :to="{
-                  name: 'RedisWebconsole',
-                  query: {
-                    clusterId: data.id,
-                  },
-                }">
-                Webconsole
-              </AuthRouterLink>
-            </div>
-            <div v-db-console="'redis.haClusterManage.backup'">
-              <OperationBtnStatusTips
-                :data="data"
-                :disabled="!data.isOffline">
-                <AuthButton
-                  action-id="redis_backup"
-                  :disabled="data.isOffline"
-                  :permission="data.permission.redis_backup"
-                  :resource="data.id"
-                  style="width: 100%; height: 32px"
-                  text
-                  @click="handleToToolbox(TicketTypes.REDIS_BACKUP, [data])">
-                  {{ t('备份') }}
-                </AuthButton>
-              </OperationBtnStatusTips>
-            </div>
-            <div v-db-console="'redis.haClusterManage.dbClear'">
-              <OperationBtnStatusTips
-                :data="data"
-                :disabled="!data.isOffline">
-                <AuthButton
-                  action-id="redis_purge"
-                  :disabled="data.isOffline"
-                  :permission="data.permission.redis_purge"
-                  :resource="data.id"
-                  style="width: 100%; height: 32px"
-                  text
-                  @click="handleToToolbox(TicketTypes.REDIS_PURGE, [data])">
-                  {{ t('清档') }}
-                </AuthButton>
-              </OperationBtnStatusTips>
-            </div>
-            <div v-db-console="'redis.haClusterManage.getAccess'">
-              <OperationBtnStatusTips
-                :data="data"
-                :disabled="!data.isOffline">
-                <AuthButton
-                  action-id="redis_access_entry_view"
-                  :disabled="data.isOffline"
-                  :permission="data.permission.redis_access_entry_view"
-                  :resource="data.id"
-                  style="width: 100%; height: 32px"
-                  text
-                  @click="handleShowPassword(data.id)">
-                  {{ t('获取访问方式') }}
-                </AuthButton>
-              </OperationBtnStatusTips>
-            </div>
-            <ClusterAlarmSubscribe
-              :data="data"
-              db-console-prefix="redis.haClusterManage"
-              @click="hideOperationColumn"
-              @edit="(e) => handleToDetails(data.id, e, 'alarmSubscription')" />
-            <div v-db-console="'redis.haClusterManage.queryAccessSource'">
-              <OperationBtnStatusTips
-                :data="data"
-                :disabled="!data.isOffline">
-                <AuthButton
-                  action-id="redis_source_access_view"
-                  :disabled="data.isOffline"
-                  :permission="data.permission.redis_source_access_view"
-                  :resource="data.id"
-                  style="width: 100%; height: 32px"
-                  text
-                  @click="handleGoQueryAccessSourcePage(data.master_domain)">
-                  {{ t('查询访问来源') }}
-                </AuthButton>
-              </OperationBtnStatusTips>
-            </div>
+                db-console-prefix="redis.haClusterManage"
+                @click="hideOperationColumn"
+                @edit="(e) => handleToDetails(data.id, e, 'alarmSubscription')" />
+              <div v-db-console="'redis.haClusterManage.queryAccessSource'">
+                <OperationBtnStatusTips
+                  :data="data"
+                  :disabled="!data.isOffline">
+                  <AuthButton
+                    action-id="redis_source_access_view"
+                    :permission="data.permission.redis_source_access_view"
+                    :resource="data.id"
+                    style="width: 100%; height: 32px"
+                    text
+                    @click="handleGoQueryAccessSourcePage(data.master_domain)">
+                    {{ t('查询访问来源') }}
+                  </AuthButton>
+                </OperationBtnStatusTips>
+              </div>
+            </template>
             <div
               v-if="data.isOnline"
               v-db-console="'redis.haClusterManage.disable'">
@@ -202,7 +197,7 @@
               </OperationBtnStatusTips>
             </div>
             <div
-              v-if="data.isOffline"
+              v-else
               v-db-console="'redis.haClusterManage.enable'">
               <OperationBtnStatusTips :data="data">
                 <AuthButton
@@ -222,7 +217,7 @@
                 <AuthButton
                   v-bk-tooltips="{
                     disabled: data.isOffline,
-                    content: t('请先禁用集群'),
+                    content: t('删除前需先禁用集群'),
                     placement: 'right',
                   }"
                   action-id="redis_destroy"

@@ -44,6 +44,8 @@
 
   import { useAlarmSubscribe } from '@hooks';
 
+  import OperationBtnStatusTips from '@views/db-manage/common/OperationBtnStatusTips.vue';
+
   import { messageSuccess } from '@utils';
 
   import type { ClusterModel, ISupportClusterType } from '../cluster-table/types';

@@ -25,9 +25,7 @@
           class="ml-4"
           :href="data.access_url"
           target="_blank">
-          <BkButton
-            :disabled="data.isOffline"
-            size="small">
+          <BkButton size="small">
             {{ t('控制台') }}
           </BkButton>
         </a>
@@ -36,7 +34,6 @@
           v-db-console="'kafka.clusterManage.getAccess'"
           action-id="kafka_access_entry_view"
           class="ml-4"
-          :disabled="data.isOffline"
           :permission="data.permission.kafka_access_entry_view"
           :resource="data.id"
           size="small"
@@ -46,43 +43,40 @@
         <MoreActionExtend>
           <template #trigger>
             <BkButton
-              v-bk-tooltips="t('更多操作')"
               class="ml-4"
               size="small"
               style="padding: 0 6px">
               <DbIcon type="more" />
             </BkButton>
           </template>
-          <div
-            v-if="data.isOnline"
-            v-db-console="'kafka.clusterManage.scaleUp'">
-            <OperationBtnStatusTips
-              :data="data"
-              :disabled="!data.isOffline">
-              <AuthButton
-                action-id="kafka_scale_up"
-                :permission="data.permission.kafka_scale_up"
-                :resource="data.id"
-                text
-                @click="handleShowExpansion">
-                {{ t('扩容') }}
-              </AuthButton>
-            </OperationBtnStatusTips>
-          </div>
-          <div
-            v-if="data.isOnline"
-            v-db-console="'kafka.clusterManage.scaleDown'">
-            <OperationBtnStatusTips :data="data">
-              <AuthButton
-                action-id="kafka_shrink"
-                :permission="data.permission.kafka_shrink"
-                :resource="data.id"
-                text
-                @click="handleShowShrink">
-                {{ t('缩容') }}
-              </AuthButton>
-            </OperationBtnStatusTips>
-          </div>
+          <template v-if="data.isOnline">
+            <div v-db-console="'kafka.clusterManage.scaleUp'">
+              <OperationBtnStatusTips
+                :data="data"
+                :disabled="!data.isOffline">
+                <AuthButton
+                  action-id="kafka_scale_up"
+                  :permission="data.permission.kafka_scale_up"
+                  :resource="data.id"
+                  text
+                  @click="handleShowExpansion">
+                  {{ t('扩容') }}
+                </AuthButton>
+              </OperationBtnStatusTips>
+            </div>
+            <div v-db-console="'kafka.clusterManage.scaleDown'">
+              <OperationBtnStatusTips :data="data">
+                <AuthButton
+                  action-id="kafka_shrink"
+                  :permission="data.permission.kafka_shrink"
+                  :resource="data.id"
+                  text
+                  @click="handleShowShrink">
+                  {{ t('缩容') }}
+                </AuthButton>
+              </OperationBtnStatusTips>
+            </div>
+          </template>
           <div
             v-if="data.isOffline"
             v-db-console="'kafka.clusterManage.enable'">
@@ -104,7 +98,7 @@
             <OperationBtnStatusTips :data="data">
               <AuthButton
                 action-id="kafka_enable_disable"
-                :disabled="data.isOffline || Boolean(data.operationTicketId)"
+                :disabled="Boolean(data.operationTicketId)"
                 :permission="data.permission.kafka_enable_disable"
                 :resource="data.id"
                 text
@@ -118,7 +112,7 @@
               <AuthButton
                 v-bk-tooltips="{
                   disabled: data.isOffline,
-                  content: t('请先禁用集群'),
+                  content: t('删除前需先禁用集群'),
                 }"
                 action-id="kafka_destroy"
                 :disabled="data.isOnline || Boolean(data.operationTicketId)"

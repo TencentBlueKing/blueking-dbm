@@ -24,198 +24,190 @@
             :cluster-type="ClusterTypes.REDIS"
             :domain="data.master_domain" />
         </template>
-        <OperationBtnStatusTips
-          v-db-console="'redis.clusterManage.extractKey'"
-          :data="data"
-          :disabled="!data.isOffline">
-          <span
+        <template v-if="data.isOnline">
+          <OperationBtnStatusTips
+            v-db-console="'redis.clusterManage.extractKey'"
+            :data="data"
+            :disabled="!data.isOffline">
+            <span
+              v-bk-tooltips="{
+                content: t('暂不支持跨管控区域提取Key'),
+                disabled: data.bk_cloud_id === 0,
+              }">
+              <AuthButton
+                action-id="redis_keys_extract"
+                class="ml-4"
+                :disabled="data.bk_cloud_id !== 0"
+                :permission="data.permission.redis_keys_extract"
+                :resource="data.id"
+                size="small"
+                @click="handleToToolbox(TicketTypes.REDIS_KEYS_EXTRACT, [data])">
+                {{ t('提取Key') }}
+              </AuthButton>
+            </span>
+          </OperationBtnStatusTips>
+          <OperationBtnStatusTips
             v-bk-tooltips="{
-              content: t('暂不支持跨管控区域提取Key'),
+              content: t('暂不支持跨管控区域删除Key'),
               disabled: data.bk_cloud_id === 0,
-            }">
+            }"
+            v-db-console="'redis.clusterManage.deleteKey'"
+            :data="data"
+            :disabled="!data.isOffline">
             <AuthButton
-              action-id="redis_keys_extract"
+              action-id="redis_keys_delete"
               class="ml-4"
-              :disabled="data.isOffline || data.bk_cloud_id !== 0"
-              :permission="data.permission.redis_keys_extract"
+              :disabled="data.bk_cloud_id !== 0"
+              :permission="data.permission.redis_keys_delete"
               :resource="data.id"
               size="small"
-              @click="handleToToolbox(TicketTypes.REDIS_KEYS_EXTRACT, [data])">
-              {{ t('提取Key') }}
+              @click="handleToToolbox(TicketTypes.REDIS_KEYS_DELETE, [data])">
+              {{ t('删除Key') }}
             </AuthButton>
-          </span>
-        </OperationBtnStatusTips>
-        <OperationBtnStatusTips
-          v-bk-tooltips="{
-            content: t('暂不支持跨管控区域删除Key'),
-            disabled: data.bk_cloud_id === 0,
-          }"
-          v-db-console="'redis.clusterManage.deleteKey'"
-          :data="data"
-          :disabled="!data.isOffline">
-          <AuthButton
-            action-id="redis_keys_delete"
+          </OperationBtnStatusTips>
+          <AuthRouterLink
+            action-id="redis_webconsole"
             class="ml-4"
-            :disabled="data.isOffline || data.bk_cloud_id !== 0"
-            :permission="data.permission.redis_keys_delete"
+            :permission="data.permission.redis_webconsole"
             :resource="data.id"
-            size="small"
-            @click="handleToToolbox(TicketTypes.REDIS_KEYS_DELETE, [data])">
-            {{ t('删除Key') }}
-          </AuthButton>
-        </OperationBtnStatusTips>
-        <AuthRouterLink
-          action-id="redis_webconsole"
-          class="ml-4"
-          :permission="data.permission.redis_webconsole"
-          :resource="data.id"
-          target="_blank"
-          :to="{
-            name: 'RedisWebconsole',
-            query: {
-              clusterId: props.clusterId,
-            },
-          }">
-          <BkButton
-            :disabled="data.isOffline"
-            size="small">
-            Webconsole
-          </BkButton>
-        </AuthRouterLink>
+            target="_blank"
+            :to="{
+              name: 'RedisWebconsole',
+              query: {
+                clusterId: props.clusterId,
+              },
+            }">
+            <BkButton size="small"> Webconsole </BkButton>
+          </AuthRouterLink>
+        </template>
         <MoreActionExtend>
           <template #trigger>
             <BkButton
-              v-bk-tooltips="t('更多操作')"
               class="ml-4"
               size="small"
               style="padding: 0 6px">
               <DbIcon type="more" />
             </BkButton>
           </template>
-          <div v-db-console="'redis.clusterManage.backup'">
-            <OperationBtnStatusTips
+          <template v-if="data.isOnline">
+            <div v-db-console="'redis.clusterManage.backup'">
+              <OperationBtnStatusTips
+                :data="data"
+                :disabled="!data.isOffline">
+                <AuthButton
+                  action-id="redis_backup"
+                  :permission="data.permission.redis_backup"
+                  :resource="data.id"
+                  style="width: 100%; height: 32px"
+                  text
+                  @click="handleToToolbox(TicketTypes.REDIS_BACKUP, [data])">
+                  {{ t('备份') }}
+                </AuthButton>
+              </OperationBtnStatusTips>
+            </div>
+            <div v-db-console="'redis.clusterManage.dbClear'">
+              <OperationBtnStatusTips
+                :data="data"
+                :disabled="!data.isOffline">
+                <AuthButton
+                  action-id="redis_purge"
+                  :permission="data.permission.redis_purge"
+                  :resource="data.id"
+                  style="width: 100%; height: 32px"
+                  text
+                  @click="handleToToolbox(TicketTypes.REDIS_PURGE, [data])">
+                  {{ t('清档') }}
+                </AuthButton>
+              </OperationBtnStatusTips>
+            </div>
+            <div v-db-console="'redis.clusterManage.getAccess'">
+              <OperationBtnStatusTips
+                :data="data"
+                :disabled="!data.isOffline">
+                <AuthButton
+                  action-id="redis_access_entry_view"
+                  :permission="data.permission.redis_access_entry_view"
+                  :resource="data.id"
+                  style="width: 100%; height: 32px"
+                  text
+                  @click="handleShowPassword(data.id)">
+                  {{ t('获取访问方式') }}
+                </AuthButton>
+              </OperationBtnStatusTips>
+            </div>
+            <div v-db-console="'redis.clusterManage.queryAccessSource'">
+              <OperationBtnStatusTips
+                :data="data"
+                :disabled="!data.isOffline">
+                <AuthButton
+                  action-id="redis_source_access_view"
+                  :permission="data.permission.redis_source_access_view"
+                  :resource="data.id"
+                  style="width: 100%; height: 32px"
+                  text
+                  @click="handleGoQueryAccessSourcePage(data.master_domain)">
+                  {{ t('查询访问来源') }}
+                </AuthButton>
+              </OperationBtnStatusTips>
+            </div>
+            <ClusterAlarmSubscribe
               :data="data"
-              :disabled="!data.isOffline">
-              <AuthButton
-                action-id="redis_backup"
-                :disabled="data.isOffline"
-                :permission="data.permission.redis_backup"
-                :resource="data.id"
-                style="width: 100%; height: 32px"
-                text
-                @click="handleToToolbox(TicketTypes.REDIS_BACKUP, [data])">
-                {{ t('备份') }}
-              </AuthButton>
-            </OperationBtnStatusTips>
-          </div>
-          <div v-db-console="'redis.clusterManage.dbClear'">
-            <OperationBtnStatusTips
-              :data="data"
-              :disabled="!data.isOffline">
-              <AuthButton
-                action-id="redis_purge"
-                :disabled="data.isOffline"
-                :permission="data.permission.redis_purge"
-                :resource="data.id"
-                style="width: 100%; height: 32px"
-                text
-                @click="handleToToolbox(TicketTypes.REDIS_PURGE, [data])">
-                {{ t('清档') }}
-              </AuthButton>
-            </OperationBtnStatusTips>
-          </div>
-          <div v-db-console="'redis.clusterManage.getAccess'">
-            <OperationBtnStatusTips
-              :data="data"
-              :disabled="!data.isOffline">
-              <AuthButton
-                action-id="redis_access_entry_view"
-                :disabled="data.isOffline"
-                :permission="data.permission.redis_access_entry_view"
-                :resource="data.id"
-                style="width: 100%; height: 32px"
-                text
-                @click="handleShowPassword(data.id)">
-                {{ t('获取访问方式') }}
-              </AuthButton>
-            </OperationBtnStatusTips>
-          </div>
-          <div v-db-console="'redis.clusterManage.queryAccessSource'">
-            <OperationBtnStatusTips
-              :data="data"
-              :disabled="!data.isOffline">
-              <AuthButton
-                action-id="redis_source_access_view"
-                :disabled="data.isOffline"
-                :permission="data.permission.redis_source_access_view"
-                :resource="data.id"
-                style="width: 100%; height: 32px"
-                text
-                @click="handleGoQueryAccessSourcePage(data.master_domain)">
-                {{ t('查询访问来源') }}
-              </AuthButton>
-            </OperationBtnStatusTips>
-          </div>
-          <ClusterAlarmSubscribe
-            :data="data"
-            db-console-prefix="redis.clusterManage"
-            is-dropdown
-            @edit="(e) => handleToDetails(data!.id, e, 'alarmSubscription')" />
-          <div
-            v-if="!data.isOnlineCLB"
-            v-db-console="'common.clb'">
-            <OperationBtnStatusTips
-              :data="data"
-              :disabled="!data.isOffline">
-              <AuthButton
-                action-id="redis_plugin_create_clb"
-                :disabled="data.isOffline"
-                :permission="data.permission.redis_plugin_create_clb"
-                :resource="data.id"
-                style="width: 100%; height: 32px"
-                text
-                @click="handleAddClb({ details: { cluster_id: data.id } })">
-                {{ t('启用CLB') }}
-              </AuthButton>
-            </OperationBtnStatusTips>
-          </div>
-          <div
-            v-if="data.isOnlineCLB"
-            v-db-console="'common.clb'">
-            <OperationBtnStatusTips
-              :data="data"
-              :disabled="!data.isOffline">
-              <AuthButton
-                action-id="redis_plugin_dns_bind_clb"
-                :disabled="data.isOffline"
-                :permission="data.permission.redis_plugin_dns_bind_clb"
-                :resource="data.id"
-                style="width: 100%; height: 32px"
-                text
-                @click="handleBindOrUnbindClb({ details: { cluster_id: data.id } }, data.dns_to_clb)">
-                {{ data.dns_to_clb ? t('恢复DNS域名指向') : t('DNS域名指向CLB') }}
-              </AuthButton>
-            </OperationBtnStatusTips>
-          </div>
-          <div
-            v-if="!data.isOnlinePolaris"
-            v-db-console="'common.polaris'">
-            <OperationBtnStatusTips
-              :data="data"
-              :disabled="!data.isOffline">
-              <AuthButton
-                action-id="redis_plugin_create_polaris"
-                :disabled="data.isOffline"
-                :permission="data.permission.redis_plugin_create_polaris"
-                :resource="data.id"
-                style="width: 100%; height: 32px"
-                text
-                @click="handleAddPolaris({ details: { cluster_id: data.id } })">
-                {{ t('启用北极星') }}
-              </AuthButton>
-            </OperationBtnStatusTips>
-          </div>
-          <!-- </FunController> -->
+              db-console-prefix="redis.clusterManage"
+              is-dropdown
+              @edit="(e) => handleToDetails(data!.id, e, 'alarmSubscription')" />
+            <div
+              v-if="!data.isOnlineCLB"
+              v-db-console="'common.clb'">
+              <OperationBtnStatusTips
+                :data="data"
+                :disabled="!data.isOffline">
+                <AuthButton
+                  action-id="redis_plugin_create_clb"
+                  :permission="data.permission.redis_plugin_create_clb"
+                  :resource="data.id"
+                  style="width: 100%; height: 32px"
+                  text
+                  @click="handleAddClb({ details: { cluster_id: data.id } })">
+                  {{ t('启用CLB') }}
+                </AuthButton>
+              </OperationBtnStatusTips>
+            </div>
+            <div
+              v-if="data.isOnlineCLB"
+              v-db-console="'common.clb'">
+              <OperationBtnStatusTips
+                :data="data"
+                :disabled="!data.isOffline">
+                <AuthButton
+                  action-id="redis_plugin_dns_bind_clb"
+                  :permission="data.permission.redis_plugin_dns_bind_clb"
+                  :resource="data.id"
+                  style="width: 100%; height: 32px"
+                  text
+                  @click="handleBindOrUnbindClb({ details: { cluster_id: data.id } }, data.dns_to_clb)">
+                  {{ data.dns_to_clb ? t('恢复DNS域名指向') : t('DNS域名指向CLB') }}
+                </AuthButton>
+              </OperationBtnStatusTips>
+            </div>
+            <div
+              v-if="!data.isOnlinePolaris"
+              v-db-console="'common.polaris'">
+              <OperationBtnStatusTips
+                :data="data"
+                :disabled="!data.isOffline">
+                <AuthButton
+                  action-id="redis_plugin_create_polaris"
+                  :permission="data.permission.redis_plugin_create_polaris"
+                  :resource="data.id"
+                  style="width: 100%; height: 32px"
+                  text
+                  @click="handleAddPolaris({ details: { cluster_id: data.id } })">
+                  {{ t('启用北极星') }}
+                </AuthButton>
+              </OperationBtnStatusTips>
+            </div>
+            <!-- </FunController> -->
+          </template>
           <div
             v-if="data.isOnline"
             v-db-console="'redis.clusterManage.disable'">
@@ -233,7 +225,7 @@
             </OperationBtnStatusTips>
           </div>
           <div
-            v-if="data.isOffline"
+            v-else
             v-db-console="'redis.clusterManage.enable'">
             <OperationBtnStatusTips :data="data">
               <AuthButton
@@ -253,7 +245,7 @@
               <AuthButton
                 v-bk-tooltips="{
                   disabled: data.isOffline,
-                  content: t('请先禁用集群'),
+                  content: t('删除前需先禁用集群'),
                 }"
                 action-id="redis_destroy"
                 :disabled="data.isOnline || Boolean(data.operationTicketId)"
@@ -266,7 +258,9 @@
               </AuthButton>
             </OperationBtnStatusTips>
           </div>
-          <ClusterDomainDnsRelation :data="data" />
+          <ClusterDomainDnsRelation
+            v-if="data.isOnline"
+            :data="data" />
         </MoreActionExtend>
       </DisplayBox>
       <ActionPanel
