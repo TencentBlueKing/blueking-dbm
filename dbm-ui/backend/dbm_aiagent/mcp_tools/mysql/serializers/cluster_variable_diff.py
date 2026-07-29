@@ -18,8 +18,8 @@ from backend.dbm_aiagent.mcp_tools.mysql.serializers.cluster_runtime_variables i
 
 class VariableMismatchSerializer(serializers.Serializer):
     variable_name = serializers.CharField(help_text=_("变量名"))
-    left_value = serializers.CharField(help_text=_("左侧实例取值（HA/分片为 master）"), allow_blank=True)
-    right_value = serializers.CharField(help_text=_("右侧实例取值（HA/分片为 slave）"), allow_blank=True)
+    master_value = serializers.CharField(help_text=_("主实例取值"), allow_blank=True)
+    slave_value = serializers.CharField(help_text=_("从实例取值"), allow_blank=True)
     severity = serializers.CharField(help_text=_("严重度 high|warn"))
 
 
@@ -36,43 +36,26 @@ class ReplicationPairSerializer(serializers.Serializer):
     mismatches = serializers.ListField(child=VariableMismatchSerializer(), help_text=_("差异参数列表"))
 
 
-class SpiderVersionItemSerializer(serializers.Serializer):
-    address = serializers.CharField(help_text=_("Spider 地址"))
-    instance_role = serializers.CharField(help_text=_("Spider 角色"), allow_blank=True)
-    version = serializers.CharField(help_text=_("版本号"), allow_blank=True)
-
-
-class SpiderVersionDiffSerializer(serializers.Serializer):
-    is_consistent = serializers.BooleanField(help_text=_("各 Spider 版本是否一致"))
-    versions = serializers.ListField(child=serializers.CharField(), help_text=_("去重后的版本列表"))
-
-
-class SpiderGroupValueBucketSerializer(serializers.Serializer):
-    value = serializers.CharField(help_text=_("该取值"), allow_blank=True)
-    instances = serializers.ListField(child=serializers.CharField(), help_text=_("持有该取值的实例地址列表"))
+class SpiderVersionSerializer(serializers.Serializer):
+    consistent = serializers.BooleanField(help_text=_("各 Spider 版本是否一致"))
+    by_version = serializers.DictField(
+        child=serializers.ListField(child=serializers.CharField()),
+        help_text=_("版本号 → 持有该版本的实例地址列表"),
+    )
 
 
 class SpiderGroupMismatchSerializer(serializers.Serializer):
     variable_name = serializers.CharField(help_text=_("变量名"))
     severity = serializers.CharField(help_text=_("严重度 high|warn"))
-    values = serializers.ListField(
-        child=SpiderGroupValueBucketSerializer(),
-        help_text=_("按取值归并的实例分组；长度>1 表示组内不一致"),
+    by_value = serializers.DictField(
+        child=serializers.ListField(child=serializers.CharField()),
+        help_text=_("取值 → 实例地址列表；键数>1 表示组内不一致"),
     )
 
 
 class SpiderGroupSerializer(serializers.Serializer):
-    scope = serializers.CharField(help_text=_("spider_group"))
-    group = serializers.CharField(help_text=_("角色组名，如 spider_master / spider_slave"))
-    members = serializers.ListField(child=serializers.CharField(), help_text=_("组内全部实例地址"))
-    is_consistent = serializers.BooleanField(help_text=_("组内参数是否一致；有差异时为 false"))
+    group = serializers.CharField(help_text=_("角色组名，如 spider_master"))
     mismatches = serializers.ListField(child=SpiderGroupMismatchSerializer(), help_text=_("不一致的参数列表"))
-
-
-class ShardPairExampleSerializer(serializers.Serializer):
-    shard_id = serializers.CharField(help_text=_("示例分片 ID"), allow_null=True)
-    master = serializers.CharField(help_text=_("示例主实例"), allow_null=True, allow_blank=True)
-    slave = serializers.CharField(help_text=_("示例从实例"), allow_null=True, allow_blank=True)
 
 
 class ShardPairSerializer(serializers.Serializer):
@@ -84,9 +67,12 @@ class ShardPairSerializer(serializers.Serializer):
         required=False,
         default=list,
     )
-    master = serializers.CharField(help_text=_("主实例地址"), required=False, allow_blank=True, allow_null=True)
-    slave = serializers.CharField(help_text=_("从实例地址"), required=False, allow_blank=True, allow_null=True)
-    pairs_example = ShardPairExampleSerializer(help_text=_("shard_group 示例对"), required=False)
+    master = serializers.CharField(
+        help_text=_("主实例地址（shard_group 时为示例）"), required=False, allow_blank=True, allow_null=True
+    )
+    slave = serializers.CharField(
+        help_text=_("从实例地址（shard_group 时为示例）"), required=False, allow_blank=True, allow_null=True
+    )
     mismatches = serializers.ListField(child=VariableMismatchSerializer(), help_text=_("差异参数列表"))
 
 
@@ -110,14 +96,10 @@ class TenDBClusterVariableDiffInputSerializer(MySQLClusterRuntimeVariablesInputS
 class TenDBClusterVariableDiffOutputSerializer(serializers.Serializer):
     cluster_type = serializers.CharField(help_text=_("集群类型"))
     cluster_domain = serializers.CharField(help_text=_("集群域名"), allow_blank=True)
-    spider_versions = serializers.ListField(
-        child=SpiderVersionItemSerializer(),
-        help_text=_("各 Spider 版本信息"),
-    )
-    spider_version_diff = SpiderVersionDiffSerializer(help_text=_("Spider 版本一致性摘要"))
+    spider_version = SpiderVersionSerializer(help_text=_("Spider 版本摘要（consistent + by_version）"))
     spider_groups = serializers.ListField(
         child=SpiderGroupSerializer(),
-        help_text=_("按角色成组的 Spider 参数一致性；仅含不一致的组，无差异为空"),
+        help_text=_("按角色成组的 Spider 参数差异；仅含不一致的组，无差异为空"),
     )
     shard_pairs = serializers.ListField(
         child=ShardPairSerializer(),

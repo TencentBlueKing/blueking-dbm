@@ -16,7 +16,7 @@ from typing import Dict, List, Tuple
 from django.utils.translation import gettext as _
 
 from backend.components import DRSApi
-from backend.db_meta.enums import ClusterType, InstanceRole
+from backend.db_meta.enums import ClusterType, InstanceRole, TenDBClusterSpiderRole
 from backend.db_meta.models import Cluster, ProxyInstance, StorageInstance, StorageInstanceTuple
 from backend.dbm_aiagent.mcp_tools.exceptions import DBMMcpBaseException
 
@@ -26,6 +26,9 @@ SHOW_GLOBAL_VARIABLES = "SHOW GLOBAL VARIABLES"
 
 # 单次 v2_mysql_rpc 携带的实例地址上限，避免 TenDBCluster 等大集群一次请求过大
 _SHOW_GLOBAL_VARIABLES_RPC_BATCH_SIZE = 50
+
+# TenDBCluster 运行时配置采集/对比仅纳入 spider_master，不采集 spider_slave（及 slave 运维节点）
+_TENDBCLUSTER_SPIDER_ROLES_FOR_RUNTIME = (TenDBClusterSpiderRole.SPIDER_MASTER.value,)
 
 # 目录/路径/文件类变量名后缀(小写匹配), 这类配置不属于核心运行参数, 过滤掉
 _PATH_LIKE_NAME_SUFFIXES = ("dir", "_file", "_path", "_home")
@@ -67,6 +70,9 @@ _SPIDER_IGNORED_VARIABLE_PREFIXES = (
     "relay_log",
     "replicate_",
     "rpl_semi_sync",
+    "optimizer_switch",
+    "version_comment",
+    "local_infile",
 )
 
 # 实例级/环境相关变量, 巡检对比价值低, 不输出
@@ -80,6 +86,7 @@ IGNORED_RUNTIME_VARIABLE_KEYS = [
     "tls_version",
     "bind_address",
     "hostname",
+    "local_infile",
 ]
 
 # 数据盘挂载点前缀 /data、/data1 …（与 flow 中 disk_benchmark 等约定一致）
@@ -203,7 +210,15 @@ def _query_variables_for_addresses(
         if len(raw_drs_res) != len(batch_addrs):
             raise DBMMcpBaseException(msg=_("DRS 返回结果条数({})与请求地址数({})不一致").format(len(raw_drs_res), len(batch_addrs)))
 
-        for address, address_res in zip(batch_addrs, raw_drs_res):
+        # 必须按返回体中的 address 建索引；DRS 结果顺序不保证与请求 addresses 一致，
+        # zip 错位会把存储实例变量挂到 Spider 上（例如误报 back_log 差异）。
+        batch_addr_set = set(batch_addrs)
+        for address_res in raw_drs_res:
+            address = (address_res.get("address") or "").strip()
+            if not address:
+                raise DBMMcpBaseException(msg=_("DRS 返回结果缺少 address 字段"))
+            if address not in batch_addr_set:
+                raise DBMMcpBaseException(msg=_("DRS 返回未请求的地址 {}，本批请求: {}").format(address, batch_addrs))
             if address_res["error_msg"]:
                 raise DBMMcpBaseException(msg=address_res["error_msg"])
             cmd_res = address_res["cmd_results"][0]
@@ -213,14 +228,27 @@ def _query_variables_for_addresses(
             addr_to_datadir_meta[address] = _datadir_derived_fields(_extract_datadir_from_table(table_data))
             addr_to_variables[address] = _filter_variables(table_data)
 
+        missing = [addr for addr in batch_addrs if addr not in addr_to_variables]
+        if missing:
+            raise DBMMcpBaseException(msg=_("DRS 未返回下列地址的结果: {}").format(missing))
+
     return addr_to_variables, addr_to_datadir_meta
 
 
+def _iter_tendbcluster_spider_proxies(cluster_obj: Cluster):
+    """TenDBCluster 参与配置采集的 Spider：仅 spider_master。"""
+    return (
+        cluster_obj.proxyinstance_set.select_related("tendbclusterspiderext", "machine")
+        .filter(tendbclusterspiderext__spider_role__in=_TENDBCLUSTER_SPIDER_ROLES_FOR_RUNTIME)
+        .all()
+    )
+
+
 def _collect_query_addresses(cluster_obj: Cluster) -> List[str]:
-    """收集需要查询的实例地址: 所有存储实例 + (TenDBCluster 的 spider 接入层)。"""
+    """收集需要查询的实例地址: 所有存储实例 + (TenDBCluster 的 spider_master)。"""
     addresses = [inst.ip_port for inst in cluster_obj.storageinstance_set.all()]
     if cluster_obj.cluster_type == ClusterType.TenDBCluster:
-        addresses += [proxy.ip_port for proxy in cluster_obj.proxyinstance_set.all()]
+        addresses += [proxy.ip_port for proxy in _iter_tendbcluster_spider_proxies(cluster_obj)]
     return addresses
 
 
@@ -332,7 +360,7 @@ def _tendbcluster_variables(
 ) -> Dict:
     spiders = [
         _build_spider_item(proxy, addr_to_variables, addr_to_datadir_meta)
-        for proxy in cluster_obj.proxyinstance_set.select_related("tendbclusterspiderext", "machine").all()
+        for proxy in _iter_tendbcluster_spider_proxies(cluster_obj)
     ]
 
     shards: Dict[str, Dict] = {}
