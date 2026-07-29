@@ -25,9 +25,9 @@
           class="ml-4">
           <OperationBtnStatusTips :data="data">
             <AuthButton
-              action-id="k8s_qdrant_start"
+              action-id="k8s_qdrant_enable_disable"
               :disabled="Boolean(data.operationTicketId)"
-              :permission="data.permission.k8s_qdrant_start"
+              :permission="data.permission.k8s_qdrant_enable_disable"
               :resource="data.id"
               size="small"
               @click="handleDisableCluster([data])">
@@ -41,9 +41,9 @@
           class="ml-4">
           <OperationBtnStatusTips :data="data">
             <AuthButton
-              action-id="k8s_qdrant_restart"
+              action-id="k8s_qdrant_manage"
               :disabled="data.isStarting"
-              :permission="data.permission.k8s_qdrant_restart"
+              :permission="data.permission.k8s_qdrant_manage"
               :resource="data.id"
               size="small"
               @click="handleClusterRestart(data)">

@@ -67,15 +67,10 @@ export default class QdrantHa extends ClusterBase {
   namespace: string;
   operations: ClusterListOperation[];
   permission: {
-    k8s_qdrant_apply: boolean;
     k8s_qdrant_destroy: boolean;
     k8s_qdrant_edit: boolean;
-    k8s_qdrant_modify: boolean;
-    k8s_qdrant_pod_delete: boolean;
-    k8s_qdrant_restart: boolean;
-    k8s_qdrant_scale: boolean;
-    k8s_qdrant_start: boolean;
-    k8s_qdrant_stop: boolean;
+    k8s_qdrant_enable_disable: boolean;
+    k8s_qdrant_manage: boolean;
     k8s_qdrant_view: boolean;
   };
   phase: 'online' | 'offline';

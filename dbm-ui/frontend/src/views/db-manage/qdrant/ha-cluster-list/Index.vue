@@ -54,9 +54,9 @@
               v-db-console="'qdrant.haClusterList.disable'">
               <OperationBtnStatusTips :data="data">
                 <AuthButton
-                  action-id="k8s_qdrant_start"
+                  action-id="k8s_qdrant_enable_disable"
                   :disabled="Boolean(data.operationTicketId)"
-                  :permission="data.permission.k8s_qdrant_start"
+                  :permission="data.permission.k8s_qdrant_enable_disable"
                   :resource="data.id"
                   text
                   @click="handleDisableCluster([data])">
@@ -69,9 +69,9 @@
               v-db-console="'qdrant.haClusterList.restart'">
               <OperationBtnStatusTips :data="data">
                 <AuthButton
-                  action-id="k8s_qdrant_restart"
+                  action-id="k8s_qdrant_manage"
                   :disabled="Boolean(data.operationTicketId)"
-                  :permission="data.permission.k8s_qdrant_restart"
+                  :permission="data.permission.k8s_qdrant_manage"
                   :resource="data.id"
                   text
                   @click="handleClusterRestart(data)">
@@ -86,9 +86,9 @@
                 :data="data"
                 style="width: 100%">
                 <AuthButton
-                  action-id="k8s_qdrant_start"
+                  action-id="k8s_qdrant_enable_disable"
                   :disabled="data.isStarting"
-                  :permission="data.permission.k8s_qdrant_start"
+                  :permission="data.permission.k8s_qdrant_enable_disable"
                   :resource="data.id"
                   text
                   @click="handleEnableCluster([data])">
