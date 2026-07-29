@@ -67,3 +67,47 @@ class RedisBackupFlowBuilder(BaseRedisTicketFlowBuilder):
     inner_flow_name = _("集群备份")
     pause_node_builder = RedisBasePauseParamBuilder
     default_need_itsm = False
+
+
+class RedisBackupAutoDetailSerializer(RedisOpsBaseDetailSerializer):
+    """Redis 自动提交备份单据 detail 校验（结构同 REDIS_BACKUP）。"""
+
+    pass
+
+
+class RedisBackupAutoFlowParamBuilder(builders.FlowParamBuilder):
+    """Redis 自动提交备份单据 flow 参数构造器，复用 redis_backup 控制器。"""
+
+    controller = RedisController.redis_backup
+
+    def format_ticket_data(self):
+        super().format_ticket_data()
+
+
+@builders.BuilderFactory.register(TicketType.REDIS_BACKUP_AUTO)
+class RedisBackupAutoFlowBuilder(BaseRedisTicketFlowBuilder):
+    """
+    Redis 自动提交备份单据
+
+    - 由其他 Redis 单据（如整机替换）在流程中"自动提单"，但备份任务的执行动作仍由 DBA 手动触发。
+    - 单据创建时会记录超时时间，周期巡检任务会处理超过约定时间仍未执行的单据：
+        * 若 DBA 还未点击执行（单据仍处于 TODO/PENDING/APPROVE 等待处理态），则自动终止；
+        * 若 DBA 已经点击执行（单据进入 RUNNING 或已结束），则不做任何干预。
+    """
+
+    serializer = RedisBackupAutoDetailSerializer
+    inner_flow_builder = RedisBackupAutoFlowParamBuilder
+    inner_flow_name = _("待执行备份")
+    editable = False
+    # 由内部流程发起，跳过 ITSM 审批
+    default_need_itsm = False
+    # 备份的执行动作需要 DBA 手动确认触发，因此保留人工确认（pause）节点
+    pause_node_builder = RedisBasePauseParamBuilder
+
+    @property
+    def need_itsm(self):
+        return False
+
+    @property
+    def need_manual_confirm(self):
+        return True

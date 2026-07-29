@@ -37,6 +37,11 @@ def auto_clear_expire_flow():
     TicketTask.auto_clear_expire_flow()
 
 
+@register_periodic_task(run_every=crontab(minute="*/10"))
+def auto_clear_unexecuted_redis_backup_auto_ticket():
+    TicketTask.auto_clear_unexecuted_redis_backup_auto_ticket()
+
+
 # 每日12点执行自动补货流程 TODO: 暂时不注册
 # @register_periodic_task(run_every=crontab(hour=9, minute=0))
 def auto_create_replenish_ticket():

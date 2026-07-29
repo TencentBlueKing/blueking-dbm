@@ -39,6 +39,10 @@ from backend.flow.engine.bamboo.scene.redis.atom_jobs import (
 from backend.flow.plugins.components.collections.common.pause import PauseComponent
 from backend.flow.plugins.components.collections.redis.get_redis_payload import GetRedisActPayloadComponent
 from backend.flow.plugins.components.collections.redis.redis_db_meta import RedisDBMetaComponent
+from backend.flow.plugins.components.collections.redis.redis_submit_backup_ticket import (
+    DEFAULT_AUTO_TERMINATE_SECONDS,
+    RedisSubmitBackupTicketComponent,
+)
 from backend.flow.plugins.components.collections.redis.redis_update_version import RedisUpdateVersionComponent
 from backend.flow.utils.base.payload_handler import PayloadHandler
 from backend.flow.utils.redis.redis_context_dataclass import ActKwargs, CommonContext
@@ -218,6 +222,21 @@ class RedisClusterCMRSceneFlow(object):
 
         if len(sub_pipelines) > 0:
             redis_pipeline.add_parallel_sub_pipeline(sub_flow_list=sub_pipelines)
+            # 整机替换完成后，自动提交一张 Redis 备份单据（3 小时后未执行自动终止）
+            redis_pipeline.add_act(
+                act_name=_("自动提交Redis备份单据"),
+                act_component_code=RedisSubmitBackupTicketComponent.code,
+                kwargs={
+                    "cluster_ids": cluster_ids,
+                    "bk_biz_id": self.data["bk_biz_id"],
+                    "created_by": self.data.get("created_by"),
+                    "backup_target": "slave",
+                    "backup_type": "normal_backup",
+                    "auto_terminate_seconds": DEFAULT_AUTO_TERMINATE_SECONDS,
+                    "parent_ticket_id": self.data.get("uid"),
+                    "remark": _("整机替换完成后自动提交备份单据"),
+                },
+            )
         # return redis_pipeline.run_pipeline()
         return redis_pipeline.run_pipeline_with_sidecar(check_ai_monitor_cluster_list=cluster_ids)
 

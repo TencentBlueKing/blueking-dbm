@@ -20,6 +20,7 @@ from celery.result import AsyncResult
 from django.core.cache import cache
 from django.db.models import Q
 from django.utils import timezone
+from django.utils.dateparse import parse_datetime
 from django.utils.translation import gettext as _
 
 from backend.bk_dataview.grafana.constants import DASHBOARD_APP_ID, DASHBOARD_JSON_PATH
@@ -46,6 +47,7 @@ from backend.ticket.constants import (
     FlowTypeConfig,
     TicketExpireType,
     TicketFlowStatus,
+    TicketStatus,
     TicketType,
     TodoType,
 )
@@ -315,6 +317,53 @@ class TicketTask(object):
         # 终止单据
         remark = _("超时自动终止")
         TicketHandler.revoke_ticket(ticket_ids=expire_ticket_ids[:batch], operator=DEFAULT_SYSTEM_USER, remark=remark)
+
+    @classmethod
+    def auto_clear_unexecuted_redis_backup_auto_ticket(cls):
+        """
+        周期巡检自动提交的 Redis 备份单据：若超过约定时间 DBA 仍未触发执行，则自动终止。
+
+        不使用 Celery 长 countdown/eta，避免 broker 未持久化、worker 重启或 visibility_timeout
+        配置不当导致的延迟任务丢失/重复投递问题。
+        """
+        from backend.ticket.handler import TicketHandler
+
+        batch = 100
+        candidate_limit = 500
+        now = timezone.now()
+        waiting_for_operator_status = [
+            TicketStatus.PENDING,
+            TicketStatus.APPROVE,
+            TicketStatus.TODO,
+            TicketStatus.RESOURCE_REPLENISH,
+            TicketStatus.INNER_TODO,
+        ]
+        tickets = Ticket.objects.filter(
+            ticket_type=TicketType.REDIS_BACKUP_AUTO,
+            status__in=waiting_for_operator_status,
+            details__has_key="auto_terminate_at",
+        ).values("id", "details")[:candidate_limit]
+        ticket_ids = []
+        for ticket in tickets:
+            auto_terminate_at = parse_datetime(ticket["details"].get("auto_terminate_at", ""))
+            if not auto_terminate_at:
+                continue
+            if timezone.is_naive(auto_terminate_at):
+                auto_terminate_at = timezone.make_aware(auto_terminate_at, timezone.get_current_timezone())
+            if auto_terminate_at <= now:
+                ticket_ids.append(ticket["id"])
+            if len(ticket_ids) >= batch:
+                break
+
+        if not ticket_ids:
+            return
+
+        logger.info(_("自动终止超时未执行的 Redis 备份单据，ticket_ids={}").format(ticket_ids))
+        TicketHandler.revoke_ticket(
+            ticket_ids=ticket_ids,
+            operator=DEFAULT_SYSTEM_USER,
+            remark=_("自动提交的 Redis 备份单据超过约定时间 DBA 未触发执行，系统自动终止"),
+        )
 
     @classmethod
     def auto_create_replenish_ticket(cls):

@@ -50,6 +50,11 @@ from backend.flow.plugins.components.collections.redis.exec_actuator_script impo
 from backend.flow.plugins.components.collections.redis.get_redis_payload import GetRedisActPayloadComponent
 from backend.flow.plugins.components.collections.redis.redis_config import RedisConfigComponent
 from backend.flow.plugins.components.collections.redis.redis_db_meta import RedisDBMetaComponent
+from backend.flow.plugins.components.collections.redis.redis_submit_backup_ticket import (
+    DEFAULT_AUTO_TERMINATE_SECONDS,
+    RedisSubmitBackupTicketComponent,
+)
+from backend.flow.plugins.components.collections.redis.redis_update_version import RedisUpdateVersionComponent
 from backend.flow.utils.redis.redis_act_playload import RedisActPayload
 from backend.flow.utils.redis.redis_context_dataclass import ActKwargs, CommonContext, DnsKwargs
 from backend.flow.utils.redis.redis_db_meta import RedisDBMeta
@@ -752,10 +757,6 @@ class RedisBackendScaleFlow(object):
                 if predixy_conf_rewrite_bulider:
                     sub_pipeline.add_sub_pipeline(predixy_conf_rewrite_bulider)
 
-            from backend.flow.plugins.components.collections.redis.redis_update_version import (
-                RedisUpdateVersionComponent,
-            )
-
             act_kwargs.cluster["update_all"] = True
             act_kwargs.cluster["cluster_id"] = info["cluster_id"]
             act_kwargs.cluster["bk_biz_id"] = self.data["bk_biz_id"]
@@ -769,6 +770,24 @@ class RedisBackendScaleFlow(object):
                 sub_pipeline.build_sub_process(sub_name=_("{}backend扩缩容").format(act_kwargs.cluster["immute_domain"]))
             )
 
-        redis_pipeline.add_parallel_sub_pipeline(sub_pipelines)
+        if sub_pipelines:
+            redis_pipeline.add_parallel_sub_pipeline(sub_pipelines)
+
+            # 集群容量变更完成后，自动提交一张 Redis 备份单据（3 小时内 DBA 未点执行则自动终止）
+            redis_pipeline.add_act(
+                act_name=_("自动提交Redis备份单据"),
+                act_component_code=RedisSubmitBackupTicketComponent.code,
+                kwargs={
+                    "cluster_ids": list(map(int, cluster_ids)),
+                    "bk_biz_id": self.data["bk_biz_id"],
+                    "created_by": self.data.get("created_by"),
+                    "backup_target": "slave",
+                    "backup_type": "normal_backup",
+                    "auto_terminate_seconds": DEFAULT_AUTO_TERMINATE_SECONDS,
+                    "parent_ticket_id": self.data.get("uid"),
+                    "remark": _("集群容量变更完成后自动提交备份单据"),
+                },
+            )
+
         # redis_pipeline.run_pipeline()
         redis_pipeline.run_pipeline_with_sidecar(check_ai_monitor_cluster_list=cluster_ids)
