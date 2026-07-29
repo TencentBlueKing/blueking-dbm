@@ -62,7 +62,7 @@ class RedisPortraitDimensionCode(StrStructuredEnum):
 
     # 示例占位成员：单下划线前缀表明"仅作模板，非正式业务维度"，
     # Redis 首个真实巡检维度落地后应删除本行，避免被误引用。
-    _EXAMPLE = EnumField("_example", _("Redis 示例维度（模板占位，勿在业务代码中引用）"))
+    REDIS_EXAMPLE = EnumField("redis_example", _("Redis 示例维度（模板占位，勿在业务代码中引用）"))
     # 后续正式维度新增示例（保留注释形式作为模板）：
     # BIG_KEY = EnumField("big_key", _("Redis 大 Key 巡检"))
     # HOT_KEY = EnumField("hot_key", _("Redis 热 Key 巡检"))
@@ -86,7 +86,7 @@ class RedisPortraitDimensionCode(StrStructuredEnum):
 
 _DESCRIPTIONS: Dict[RedisPortraitDimensionCode, StrOrPromise] = {
     # 与枚举成员一一对应，按需登记；示例：
-    RedisPortraitDimensionCode._EXAMPLE: _("Redis 示例维度（模板占位，勿在业务代码中引用）"),
+    RedisPortraitDimensionCode.REDIS_EXAMPLE: _("Redis 示例维度（模板占位，勿在业务代码中引用）"),
     # RedisPortraitDimensionCode.BIG_KEY: _("..."),
     # RedisPortraitDimensionCode.HOT_KEY: _("..."),
 }

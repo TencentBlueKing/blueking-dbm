@@ -27,7 +27,7 @@ class PortraitDimensionSerializer(serializers.Serializer):
     """单个维度注册信息（discover 出参元素）。"""
 
     db_type = serializers.CharField(help_text=_("数据库类型，取值同 DBType 枚举"))
-    code = serializers.CharField(help_text=_("维度短码，同 db_type 下唯一"))
+    dimension_code = serializers.CharField(help_text=_("维度短码，同 db_type 下唯一"))
     name = serializers.CharField(help_text=_("维度中文名称"))
     description = serializers.CharField(help_text=_("维度描述文本；用于告诉 Agent 该维度关注什么"), allow_blank=True)
 
@@ -36,7 +36,7 @@ class PortraitSummarySerializer(serializers.Serializer):
     """单个维度的最新摘要（fetch_summaries 出参元素）。"""
 
     db_type = serializers.CharField(help_text=_("数据库类型"))
-    code = serializers.CharField(help_text=_("维度短码"))
+    dimension_code = serializers.CharField(help_text=_("维度短码"))
     name = serializers.CharField(help_text=_("维度中文名称（来自注册表）"))
     bk_biz_id = serializers.IntegerField(help_text=_("业务 ID"))
     cluster_domain = serializers.CharField(help_text=_("集群不可变域名"))
@@ -80,7 +80,7 @@ class PortraitFetchSummariesInputSerializer(serializers.Serializer):
 
     bk_biz_id = serializers.IntegerField(help_text=_("业务 ID"))
     cluster_domain = serializers.CharField(help_text=_("集群不可变域名"))
-    codes = serializers.ListField(
+    dimension_codes = serializers.ListField(
         child=serializers.CharField(),
         help_text=_("维度短码列表；不传表示读取该集群 db_type 下的全部启用维度"),
         required=False,
@@ -114,4 +114,66 @@ class PortraitFetchSummariesOutputSerializer(serializers.Serializer):
     missing_codes = serializers.ListField(
         child=serializers.CharField(),
         help_text=_("在时间窗内 0 条摘要数据的维度 code 列表；供 Agent 提示"),
+    )
+
+
+# ----------------------------------------------------------------------
+# 工具 3：ingest_summary（写侧）
+# ----------------------------------------------------------------------
+
+
+class PortraitIngestSummaryInputSerializer(serializers.Serializer):
+    """ingest_summary 入参：写入一条集群维度巡检摘要。
+
+    契约：
+        - ``db_type`` 必须是 :class:`DBType` 的 value（如 ``"mysql"`` / ``"redis"``）
+        - ``dimension_code`` 必须是所指定 db_type 下已定义的 ``*PortraitDimensionCode`` 枚举 value
+        - ``report_time`` 为 datetime 格式（ISO8601 字符串亦可），精确到秒
+        - ``summary`` <= 4000 字符；``detail_url`` <= 1024 字符
+    """
+
+    db_type = serializers.CharField(help_text=_("数据库类型；取 DBType 枚举的 value，如 mysql / redis"))
+    dimension_code = serializers.CharField(help_text=_("维度短码；须为对应 db_type 下已定义的维度枚举 value，如 slow_query"))
+    bk_biz_id = serializers.IntegerField(help_text=_("业务 ID；必须为正整数"), min_value=1)
+    cluster_domain = serializers.CharField(help_text=_("集群不可变主域名"))
+    report_time = serializers.DateTimeField(help_text=_("本次巡检的业务时间；精确到秒"))
+    summary = serializers.CharField(
+        help_text=_("巡检摘要文本；允许为空；单条 <= 4000 字符"),
+        required=False,
+        allow_blank=True,
+        default="",
+        max_length=4000,
+    )
+    detail_url = serializers.CharField(
+        help_text=_("本次巡检详情页链接；允许为空；<= 1024 字符"),
+        required=False,
+        allow_blank=True,
+        default="",
+        max_length=1024,
+    )
+
+
+class PortraitIngestSummaryOutputSerializer(serializers.Serializer):
+    """ingest_summary 出参：可预期分支通过 ``status`` 字段表达，不抛异常给前端。"""
+
+    status = serializers.ChoiceField(
+        choices=[
+            ("ok", _("写入成功")),
+            ("invalid_db_type", _("db_type 非法")),
+            ("invalid_code", _("dimension_code 在指定 db_type 下未定义")),
+            ("invalid_payload", _("其它入参不合法（空/类型/超长等）")),
+        ],
+        help_text=_("写入结果状态；ok 表示成功，其余为可预期失败分支"),
+    )
+    id = serializers.IntegerField(
+        help_text=_("新落库记录的自增 id；仅 status=ok 时有效，其它分支为 0"),
+        required=False,
+        default=0,
+    )
+    db_type = serializers.CharField(help_text=_("回显 db_type"), allow_blank=True, default="")
+    dimension_code = serializers.CharField(help_text=_("回显 dimension_code"), allow_blank=True, default="")
+    message = serializers.CharField(
+        help_text=_("附加信息；失败分支会填充可读的错误原因，成功分支为空"),
+        allow_blank=True,
+        default="",
     )

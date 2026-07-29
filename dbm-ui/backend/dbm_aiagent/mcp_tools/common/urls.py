@@ -12,11 +12,11 @@ from rest_framework.routers import DefaultRouter
 
 from backend.dbm_aiagent.mcp_tools.common.views import (
     AiReportMcpToolsViewSet,
+    ClusterPortraitMcpToolsViewSet,
     DBMetaQueryMcpToolsViewSet,
     DBMetaUpdateMcpToolsViewSet,
     HostDecommissionQueryMcpToolsViewSet,
     HostPerformanceQueryMcpToolsViewSet,
-    PortraitQueryMcpToolsViewSet,
     PromQLQueryMcpToolsViewSet,
     ResourceParamQueryMcpToolsViewSet,
     TaskflowQueryMcpToolsViewSet,
@@ -39,6 +39,6 @@ routers.register(r"", TaskflowQueryMcpToolsViewSet, basename="mcp-taskflow-query
 routers.register(r"", PromQLQueryMcpToolsViewSet, basename="mcp-promql-query")
 routers.register(r"", McpCalleePlanMcpToolsViewSet, basename="mcp-callee-plan")
 routers.register(r"", AiReportMcpToolsViewSet, basename="mcp-ai-report")
-routers.register(r"", PortraitQueryMcpToolsViewSet, basename="mcp-portrait-query")
+routers.register(r"", ClusterPortraitMcpToolsViewSet, basename="mcp-cluster-portrait")
 routers.register(r"", BKCCWrapMcpToolsViewSet, basename="mcp-bkcc-wrap")
 urlpatterns = routers.urls
