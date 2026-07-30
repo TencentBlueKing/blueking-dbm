@@ -25,11 +25,11 @@ logger = logging.getLogger("celery")
 
 @app.task
 def sync_cluster_remote_used(bk_biz_id: int):
-    logger.info("doris sync cluster remote used started")
+    logger.info("doris sync cluster remote used started, bk_biz_id=%s", bk_biz_id)
     try:
         cluster_stats = query_cluster_remote_used(bk_biz_id)
-    except Exception as e:
-        logger.error("query_cluster_remote_used error: %d -> %s", bk_biz_id, e)
+    except Exception:
+        logger.exception("query_cluster_remote_used error, bk_biz_id=%s", bk_biz_id)
         return
 
     cache.set(f"{CACHE_DORIS_REMOTE_USED}_{bk_biz_id}", json.dumps(cluster_stats), timeout=2 * TimeUnit.HOUR)

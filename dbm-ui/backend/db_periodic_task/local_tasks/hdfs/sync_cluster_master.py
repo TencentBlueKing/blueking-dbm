@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """
 TencentBlueKing is pleased to support the open source community by making 蓝鲸智云-DB管理系统(BlueKing-BK-DBM) available.
 Copyright (C) 2017-2023 THL A29 Limited, a Tencent company. All rights reserved.
@@ -15,18 +16,22 @@ from blueapps.core.celery.celery import app
 from django.core.cache import cache
 
 from backend.db_meta.enums import ClusterType
-from backend.db_periodic_task.local_tasks.doris.constants import MONITOR_QUERY_DORIS_TEMPLATE, MonitorQueryType
 from backend.db_periodic_task.local_tasks.doris.monitor import query_promql
+from backend.db_periodic_task.local_tasks.hdfs.constants import MONITOR_QUERY_HDFS_TEMPLATE, MonitorQueryType
 from backend.db_periodic_task.utils import TimeUnit
-from backend.flow.utils.doris.consts import CACHE_CLUSTER_MASTER
+from backend.flow.utils.hdfs.consts import CACHE_CLUSTER_MASTER
 
 logger = logging.getLogger("celery")
 
 
 @app.task
 def sync_cluster_master(bk_biz_id: int):
-    cluster_type = ClusterType.Doris.value
-    logger.info("doris sync cluster master started, bk_biz_id=%s", bk_biz_id)
+    """
+    按业务同步 HDFS 集群 Active NameNode 到 Cache
+    对齐 doris.sync_cluster_master 的实现，方便复用消费端逻辑
+    """
+    cluster_type = ClusterType.Hdfs.value
+    logger.info("hdfs sync cluster master started, bk_biz_id=%s", bk_biz_id)
     try:
         cluster_master_stats = query_cluster_master_by_monitor(bk_biz_id)
     except Exception:
@@ -38,18 +43,23 @@ def sync_cluster_master(bk_biz_id: int):
         json.dumps(cluster_master_stats),
         timeout=2 * TimeUnit.HOUR,
     )
+    logger.info("hdfs sync cluster master finished, bk_biz_id=%s, size=%s", bk_biz_id, len(cluster_master_stats))
 
 
 def query_cluster_master_by_monitor(bk_biz_id, clusters=None):
     """
-    调用监控API查询集群主节点， 返回集群域名：主节点的映射
-    :param bk_biz_id: 业务ID
-    :param clusters: 集群信息
-    :return: 集群域名到主节点的映射
+    调用监控 API 查询 HDFS 集群 active namenode
+
+    Args:
+        bk_biz_id: 业务ID
+        clusters: 集群 immute_domain 列表，为空则查全业务
+
+    Returns:
+        dict: {cluster_domain: instance_host}，只包含 State=1(active) 的 NN
     """
 
-    # 调用监控API, 按业务ID查询Doris集群主节点
-    result = query_promql(MONITOR_QUERY_DORIS_TEMPLATE, MonitorQueryType.MASTER.value, bk_biz_id, clusters)
+    # PromQL 查询：5 分钟窗口内最后一次采样值为 1 即 active NN
+    result = query_promql(MONITOR_QUERY_HDFS_TEMPLATE, MonitorQueryType.MASTER.value, bk_biz_id, clusters)
 
     cluster_master_map = {}
     for row in result:

@@ -104,7 +104,7 @@ class DorisListRetrieveResource(BigDataBaseListRetrieveResource, DorisExportQuer
         cache_master_stats = {}
         for cluster_type in cls.cluster_types:
             cache_master_stats.update(
-                json.loads(cache.get(f"{CACHE_CLUSTER_MASTER}_{bk_biz_id}_{cluster_type}", "{}"))
+                json.loads(cache.get(f"{CACHE_CLUSTER_MASTER}_{bk_biz_id}_{cluster_type.value}", "{}"))
             )
         # 获取集群域名和集群ID的映射
         cluster_domain_qs = Cluster.objects.filter(

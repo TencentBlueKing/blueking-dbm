@@ -30,3 +30,14 @@ class NodeListSerializer(serializers.Serializer):
             raise serializers.ValidationError(_("排序参数只能是 'create_at' 或 'node_count'。"))
 
         return value
+
+
+class GetClustersMasterSLZ(serializers.Serializer):
+    """获取集群 Master 节点入参（POST body 传 cluster_ids 列表）"""
+
+    cluster_ids = serializers.ListField(
+        help_text=_("集群ID列表"),
+        child=serializers.IntegerField(),
+        required=False,
+        default=list,
+    )
