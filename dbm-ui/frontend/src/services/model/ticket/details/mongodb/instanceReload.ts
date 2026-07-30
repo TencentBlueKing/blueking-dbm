@@ -14,6 +14,7 @@ interface InstanceInfo {
 interface MachineInfo {
   bk_host_id: number;
   ip: string; // 展示用
+  related_clusters: string[]; // 展示用
 }
 
 export interface InstanceReload extends DetailBase {

@@ -103,7 +103,7 @@ export const toolboxMenuList = [
       {
         dbConsoleValue: 'mongodb.toolbox.instanceReload',
         id: TicketTypes.MONGODB_INSTANCE_RELOAD,
-        name: t('滚动重启'),
+        name: t('重启'),
         parentId: 'mongo_manage',
       },
     ],

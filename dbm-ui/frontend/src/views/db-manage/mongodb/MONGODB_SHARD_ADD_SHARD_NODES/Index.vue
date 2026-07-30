@@ -169,7 +169,7 @@
   export interface IDataRow {
     add_shard_nodes_num: number;
     cluster: {
-      cluster_type: string;
+      cluster_type: ClusterTypes;
       cluster_type_name: string;
       current_spec_id: number;
       id: number;
@@ -178,10 +178,10 @@
       master_domain: string;
       mongodb: MongodbModel['mongos'];
       region: string;
-      related_clusters: {
-        domain: string;
-        id: number;
-      }[];
+      // related_clusters: {
+      //   domain: string;
+      //   id: number;
+      // }[];
       shard_node_count: number;
       shard_num: number;
     };
@@ -201,7 +201,7 @@
         master_domain: '',
         mongodb: [] as MongodbModel['mongos'],
         region: '',
-        related_clusters: [] as IDataRow['cluster']['related_clusters'],
+        // related_clusters: [] as IDataRow['cluster']['related_clusters'],
         shard_node_count: 0,
         shard_num: 0,
       },
@@ -339,18 +339,18 @@
         newList.push(
           createRowData({
             cluster: {
-              cluster_type: item.cluster_type,
-              cluster_type_name: item.cluster_type_name,
-              current_spec_id: getCurrentSpecId(item),
-              id: item.id,
-              machine_instance_num: item.machine_instance_num,
-              major_version: item.major_version,
+              // cluster_type: item.cluster_type,
+              // cluster_type_name: item.cluster_type_name,
+              // current_spec_id: getCurrentSpecId(item),
+              // id: item.id,
+              // machine_instance_num: item.machine_instance_num,
+              // major_version: item.major_version,
               master_domain: item.master_domain,
-              mongodb: item.mongodb,
-              region: item.region,
-              related_clusters: [],
-              shard_node_count: item.shard_node_count,
-              shard_num: item.shard_num,
+              // mongodb: item.mongodb,
+              // region: item.region,
+              // related_clusters: [],
+              // shard_node_count: item.shard_node_count,
+              // shard_num: item.shard_num,
             },
           }),
         );

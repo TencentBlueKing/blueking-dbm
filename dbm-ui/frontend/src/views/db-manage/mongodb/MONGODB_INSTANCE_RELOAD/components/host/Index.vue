@@ -192,6 +192,7 @@
       tableData.value.map((item) => ({
         bk_host_id: item.host.bk_host_id,
         ip: item.host.ip,
+        related_clusters: item.host.related_clusters.map((item) => item.master_domain),
       })),
     validate: () => tableRef.value!.validate(),
   });
