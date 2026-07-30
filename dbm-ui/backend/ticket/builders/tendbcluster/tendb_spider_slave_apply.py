@@ -16,6 +16,7 @@ from backend.db_meta.enums import TenDBClusterSpiderRole
 from backend.db_meta.models import AppCache, Cluster
 from backend.db_services.dbbase.constants import IpSource
 from backend.flow.engine.controller.spider import SpiderController
+from backend.iam_app.dataclass.actions import ActionEnum
 from backend.ticket import builders
 from backend.ticket.builders.tendbcluster.base import (
     BaseTendbTicketFlowBuilder,
@@ -79,7 +80,9 @@ class SpiderSlaveApplyResourceParamBuilder(TendbBaseOperateResourceParamBuilder)
         next_flow.save(update_fields=["details"])
 
 
-@builders.BuilderFactory.register(TicketType.TENDBCLUSTER_SPIDER_SLAVE_APPLY, is_apply=True)
+@builders.BuilderFactory.register(
+    TicketType.TENDBCLUSTER_SPIDER_SLAVE_APPLY, is_apply=True, iam=ActionEnum.TENDBCLUSTER_MANAGE
+)
 class SpiderSlaveApplyFlowBuilder(BaseTendbTicketFlowBuilder):
     serializer = SpiderSlaveApplyDetailSerializer
     inner_flow_builder = SpiderSlaveApplyFlowParamBuilder

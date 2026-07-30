@@ -19,6 +19,7 @@ from backend.db_meta.enums.extra_process_type import ExtraProcessType
 from backend.db_meta.models.extra_process import ExtraProcessInstance
 from backend.flow.engine.controller.mysql import MySQLController
 from backend.flow.engine.controller.tbinlogdumper import TBinlogDumperController
+from backend.iam_app.dataclass.actions import ActionEnum
 from backend.ticket import builders
 from backend.ticket.builders.common.base import HostInfoSerializer
 from backend.ticket.builders.mysql.base import (
@@ -97,7 +98,7 @@ class MysqlDumperMigrateParamBuilder(builders.FlowParamBuilder):
         self.ticket_data["is_safe"] = True
 
 
-@builders.BuilderFactory.register(TicketType.MYSQL_MASTER_SLAVE_SWITCH)
+@builders.BuilderFactory.register(TicketType.MYSQL_MASTER_SLAVE_SWITCH, iam=ActionEnum.MYSQL_MANAGE)
 class MysqlMasterSlaveSwitchFlowBuilder(BaseMySQLHATicketFlowBuilder):
     serializer = MysqlMasterSlaveSwitchDetailSerializer
     inner_flow_builder = MysqlMasterSlaveSwitchParamBuilder

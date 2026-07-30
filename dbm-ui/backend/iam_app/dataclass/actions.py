@@ -340,7 +340,6 @@ class ActionEnum:
         related_actions=[],
         related_resource_types=[ResourceEnum.BUSINESS, ResourceEnum.DBTYPE],
         group=_("已废弃"),
-        common_labels=[CommonActionLabel.BIZ_MAINTAIN, CommonActionLabel.DEVELOPER],
     )
 
     DBCONFIG_EDIT = ActionMeta(
@@ -604,23 +603,25 @@ class ActionEnum:
     MYSQL_IMPORT_SQLFILE = ActionMeta(
         id=TicketType.MYSQL_IMPORT_SQLFILE.lower(),
         related_resource_types=[ResourceEnum.MYSQL],
-        subgroup=_("SQL 任务"),
+        subgroup=_("查询与变更"),
         is_ticket_action=True,
         common_labels=[CommonActionLabel.MYSQL_IMPORT_SQLFILE, CommonActionLabel.DEVELOPER],
     )
 
     MYSQL_INSTANCE_CLONE_RULES = ActionMeta(
         id=TicketType.MYSQL_INSTANCE_CLONE_RULES.lower(),
+        name=_("MySQL DB实例权限克隆"),
+        name_en="MYSQL_INSTANCE_CLONE_RULES",
+        type="execute",
+        related_actions=[],
         related_resource_types=[ResourceEnum.MYSQL],
-        subgroup=_("权限管理"),
-        is_ticket_action=True,
-        common_labels=[CommonActionLabel.MYSQL_AUTHORIZE_RULES],
+        group=_("已废弃"),
     )
 
     MYSQL_DUMP_DATA = ActionMeta(
         id=TicketType.MYSQL_DUMP_DATA.lower(),
         related_resource_types=[ResourceEnum.MYSQL],
-        subgroup=_("数据处理"),
+        subgroup=_("查询与变更"),
         is_ticket_action=True,
         common_labels=[CommonActionLabel.EXTERNAL_DEVELOPER, CommonActionLabel.DEVELOPER],
     )
@@ -633,7 +634,7 @@ class ActionEnum:
         related_actions=[DB_MANAGE.id],
         related_resource_types=[ResourceEnum.MYSQL],
         group=_("MySQL"),
-        subgroup=_("集群管理"),
+        subgroup=_("查询与变更"),
         common_labels=[
             CommonActionLabel.BIZ_READ_ONLY,
             CommonActionLabel.BIZ_MAINTAIN,
@@ -649,7 +650,7 @@ class ActionEnum:
         type="execute",
         related_actions=[DB_MANAGE.id],
         related_resource_types=[ResourceEnum.MYSQL],
-        group=_("MySQL"),
+        group=_("已废弃"),
         subgroup=_("集群管理"),
     )
 
@@ -672,9 +673,7 @@ class ActionEnum:
         type="execute",
         related_actions=[MYSQL_VIEW.id],
         related_resource_types=[ResourceEnum.BUSINESS],
-        group=_("MySQL"),
-        subgroup=_("权限管理"),
-        common_labels=[CommonActionLabel.BIZ_MAINTAIN, CommonActionLabel.MYSQL_AUTHORIZE_RULES, CommonActionLabel.DEVELOPER],
+        group=_("已废弃"),
     )
 
     MYSQL_DESTROY = ActionMeta(
@@ -696,9 +695,7 @@ class ActionEnum:
         type="create",
         related_actions=[DB_MANAGE.id],
         related_resource_types=[ResourceEnum.BUSINESS],
-        group=_("MySQL"),
-        subgroup=_("权限管理"),
-        common_labels=[CommonActionLabel.BIZ_MAINTAIN, CommonActionLabel.MYSQL_AUTHORIZE_RULES, CommonActionLabel.DEVELOPER],
+        group=_("已废弃"),
     )
 
     MYSQL_DELETE_ACCOUNT = ActionMeta(
@@ -708,9 +705,7 @@ class ActionEnum:
         type="delete",
         related_actions=[DB_MANAGE.id],
         related_resource_types=[ResourceEnum.MYSQL_ACCOUNT],
-        group=_("MySQL"),
-        subgroup=_("权限管理"),
-        common_labels=[CommonActionLabel.BIZ_MAINTAIN],
+        group=_("已废弃"),
     )
 
     MYSQL_ADD_ACCOUNT_RULE = ActionMeta(
@@ -720,9 +715,7 @@ class ActionEnum:
         type="create",
         related_actions=[DB_MANAGE.id],
         related_resource_types=[ResourceEnum.MYSQL_ACCOUNT],
-        group=_("MySQL"),
-        subgroup=_("权限管理"),
-        common_labels=[CommonActionLabel.BIZ_MAINTAIN, CommonActionLabel.MYSQL_AUTHORIZE_RULES],
+        group=_("已废弃"),
     )
 
     MYSQL_ACCOUNT_RULES_VIEW = ActionMeta(
@@ -732,9 +725,7 @@ class ActionEnum:
         type="view",
         related_actions=[DB_MANAGE.id],
         related_resource_types=[ResourceEnum.BUSINESS],
-        group=_("MySQL"),
-        subgroup=_("权限管理"),
-        common_labels=[CommonActionLabel.BIZ_MAINTAIN, CommonActionLabel.MYSQL_AUTHORIZE_RULES, CommonActionLabel.DEVELOPER],
+        group=_("已废弃"),
     )
 
     MYSQL_AUTHORIZE_RULES = ActionMeta(
@@ -744,17 +735,17 @@ class ActionEnum:
         type="execute",
         related_actions=[DB_MANAGE.id],
         related_resource_types=[ResourceEnum.MYSQL_ACCOUNT, ResourceEnum.MYSQL],
-        group=_("MySQL"),
-        subgroup=_("权限管理"),
-        common_labels=[CommonActionLabel.BIZ_MAINTAIN, CommonActionLabel.MYSQL_AUTHORIZE_RULES, CommonActionLabel.DEVELOPER],
+        group=_("已废弃"),
     )
 
     MYSQL_EXCEL_AUTHORIZE_RULES = ActionMeta(
         id=TicketType.MYSQL_EXCEL_AUTHORIZE_RULES.lower(),
+        name=_("MySQL EXCEL授权"),
+        name_en="MYSQL_EXCEL_AUTHORIZE_RULES",
+        type="execute",
+        related_actions=[],
         related_resource_types=[ResourceEnum.BUSINESS],
-        subgroup=_("权限管理"),
-        is_ticket_action=True,
-        common_labels=[CommonActionLabel.MYSQL_AUTHORIZE_RULES, CommonActionLabel.DEVELOPER],
+        group=_("已废弃"),
     )
 
     MYSQL_PARTITION_CREATE = ActionMeta(
@@ -764,9 +755,7 @@ class ActionEnum:
         type="create",
         related_actions=[DB_MANAGE.id],
         related_resource_types=[ResourceEnum.BUSINESS],
-        group=_("MySQL"),
-        subgroup=_("分区管理"),
-        common_labels=[CommonActionLabel.BIZ_MAINTAIN, CommonActionLabel.DEVELOPER],
+        group=_("已废弃"),
     )
 
     MYSQL_PARTITION_UPDATE = ActionMeta(
@@ -776,9 +765,7 @@ class ActionEnum:
         type="manage",
         related_actions=[DB_MANAGE.id],
         related_resource_types=[ResourceEnum.MYSQL],
-        group=_("MySQL"),
-        subgroup=_("分区管理"),
-        common_labels=[CommonActionLabel.BIZ_MAINTAIN, CommonActionLabel.DEVELOPER],
+        group=_("已废弃"),
     )
 
     MYSQL_PARTITION_DELETE = ActionMeta(
@@ -788,9 +775,7 @@ class ActionEnum:
         type="delete",
         related_actions=[DB_MANAGE.id],
         related_resource_types=[ResourceEnum.MYSQL],
-        group=_("MySQL"),
-        subgroup=_("分区管理"),
-        common_labels=[CommonActionLabel.BIZ_MAINTAIN],
+        group=_("已废弃"),
     )
 
     MYSQL_PARTITION_ENABLE_DISABLE = ActionMeta(
@@ -800,9 +785,7 @@ class ActionEnum:
         type="manage",
         related_actions=[DB_MANAGE.id],
         related_resource_types=[ResourceEnum.MYSQL],
-        group=_("MySQL"),
-        subgroup=_("分区管理"),
-        common_labels=[CommonActionLabel.BIZ_MAINTAIN, CommonActionLabel.DEVELOPER],
+        group=_("已废弃"),
     )
 
     MYSQL_PARTITION_IMPORT = ActionMeta(
@@ -812,30 +795,48 @@ class ActionEnum:
         type="manage",
         related_actions=[DB_MANAGE.id],
         related_resource_types=[ResourceEnum.MYSQL],
-        group=_("MySQL"),
-        subgroup=_("分区管理"),
-        common_labels=[CommonActionLabel.BIZ_MAINTAIN, CommonActionLabel.DEVELOPER],
+        group=_("已废弃"),
     )
 
     MYSQL_PARTITION = ActionMeta(
         id=TicketType.MYSQL_PARTITION.lower(),
-        subgroup=_("分区管理"),
-        is_ticket_action=True,
-        common_labels=[CommonActionLabel.DEVELOPER],
+        name=_("MySQL 分区"),
+        name_en="MYSQL_PARTITION",
+        type="execute",
+        related_actions=[],
+        related_resource_types=[ResourceEnum.MYSQL],
+        group=_("已废弃"),
     )
 
     MYSQL_FLASHBACK = ActionMeta(
         id=TicketType.MYSQL_FLASHBACK.lower(),
-        subgroup=_("回档"),
+        subgroup=_("数据恢复"),
         is_ticket_action=True,
         common_labels=[CommonActionLabel.DEVELOPER],
     )
 
-    MYSQL_HA_TRUNCATE_DATA = ActionMeta(
-        id=TicketType.MYSQL_HA_TRUNCATE_DATA.lower(),
-        subgroup=_("数据处理"),
-        is_ticket_action=True,
-        common_labels=[CommonActionLabel.DEVELOPER],
+    MYSQL_ROLLBACK = ActionMeta(
+        id=TicketType.MYSQL_ROLLBACK.lower(),
+        name=_("MySQL 原地回档"),
+        name_en="MYSQL_ROLLBACK",
+        type="execute",
+        related_actions=[],
+        related_resource_types=[ResourceEnum.MYSQL],
+        group=_("MySQL"),
+        subgroup=_("数据恢复"),
+        common_labels=[CommonActionLabel.DEVELOPER, CommonActionLabel.BIZ_MAINTAIN],
+    )
+
+    MYSQL_ROLLBACK_CLUSTER = ActionMeta(
+        id=TicketType.MYSQL_ROLLBACK_CLUSTER.lower(),
+        name=_("MySQL 构造"),
+        name_en="MYSQL_ROLLBACK_CLUSTER",
+        type="execute",
+        related_actions=[],
+        related_resource_types=[ResourceEnum.MYSQL],
+        group=_("MySQL"),
+        subgroup=_("数据恢复"),
+        common_labels=[CommonActionLabel.DEVELOPER, CommonActionLabel.BIZ_MAINTAIN],
     )
 
     MYSQL_HA_DB_TABLE_BACKUP = ActionMeta(
@@ -847,27 +848,457 @@ class ActionEnum:
 
     MYSQL_HA_RENAME_DATABASE = ActionMeta(
         id=TicketType.MYSQL_HA_RENAME_DATABASE.lower(),
-        subgroup=_("集群维护"),
-        is_ticket_action=True,
-        common_labels=[CommonActionLabel.DEVELOPER],
-    )
-
-    MYSQL_SINGLE_TRUNCATE_DATA = ActionMeta(
-        id=TicketType.MYSQL_SINGLE_TRUNCATE_DATA.lower(),
-        subgroup=_("数据处理"),
-        is_ticket_action=True,
-        common_labels=[CommonActionLabel.DEVELOPER],
+        name=_("MySQL 高可用DB重命名"),
+        name_en="MYSQL_HA_RENAME_DATABASE",
+        type="execute",
+        related_actions=[],
+        related_resource_types=[ResourceEnum.MYSQL],
+        group=_("已废弃"),
     )
 
     MYSQL_SINGLE_RENAME_DATABASE = ActionMeta(
         id=TicketType.MYSQL_SINGLE_RENAME_DATABASE.lower(),
-        subgroup=_("集群维护"),
-        is_ticket_action=True,
-        common_labels=[CommonActionLabel.DEVELOPER],
+        name=_("MySQL 单节点DB重命名"),
+        name_en="MYSQL_SINGLE_RENAME_DATABASE",
+        type="execute",
+        related_actions=[],
+        related_resource_types=[ResourceEnum.MYSQL],
+        group=_("已废弃"),
+    )
+
+    MYSQL_FIXPOINT_NEW_CLUSTER = ActionMeta(
+        id=TicketType.MYSQL_FIXPOINT_NEW_CLUSTER.lower(),
+        name=_("MySQL 数据构造到新集群"),
+        name_en="MYSQL_FIXPOINT_NEW_CLUSTER",
+        type="execute",
+        related_actions=[],
+        related_resource_types=[ResourceEnum.MYSQL],
+        group=_("已废弃"),
+    )
+
+    MYSQL_FIXPOINT_EXIST_CLUSTER = ActionMeta(
+        id=TicketType.MYSQL_FIXPOINT_EXIST_CLUSTER.lower(),
+        name=_("MySQL 数据构造到已有集群"),
+        name_en="MYSQL_FIXPOINT_EXIST_CLUSTER",
+        type="execute",
+        related_actions=[],
+        related_resource_types=[ResourceEnum.MYSQL],
+        group=_("已废弃"),
+    )
+
+    MYSQL_HA_TRUNCATE_DATA = ActionMeta(
+        id=TicketType.MYSQL_HA_TRUNCATE_DATA.lower(),
+        name=_("MySQL 高可用清档"),
+        name_en="MYSQL_HA_TRUNCATE_DATA",
+        type="execute",
+        related_actions=[],
+        related_resource_types=[ResourceEnum.MYSQL],
+        group=_("已废弃"),
+    )
+
+    MYSQL_SINGLE_TRUNCATE_DATA = ActionMeta(
+        id=TicketType.MYSQL_SINGLE_TRUNCATE_DATA.lower(),
+        name=_("MySQL 单节点清档"),
+        name_en="MYSQL_SINGLE_TRUNCATE_DATA",
+        type="execute",
+        related_actions=[],
+        related_resource_types=[ResourceEnum.MYSQL],
+        group=_("已废弃"),
+    )
+
+    MYSQL_PROXY_ADD = ActionMeta(
+        id=TicketType.MYSQL_PROXY_ADD.lower(),
+        name=_("MySQL 添加Proxy"),
+        name_en="MYSQL_PROXY_ADD",
+        type="execute",
+        related_actions=[],
+        related_resource_types=[ResourceEnum.MYSQL],
+        group=_("已废弃"),
+    )
+
+    MYSQL_PROXY_REDUCE = ActionMeta(
+        id=TicketType.MYSQL_PROXY_REDUCE.lower(),
+        name=_("MySQL 减少Proxy"),
+        name_en="MYSQL_PROXY_REDUCE",
+        type="execute",
+        related_actions=[],
+        related_resource_types=[ResourceEnum.MYSQL],
+        group=_("已废弃"),
+    )
+
+    MYSQL_RO_SLAVE_UNINSTALL = ActionMeta(
+        id=TicketType.MYSQL_RO_SLAVE_UNINSTALL.lower(),
+        name=_("MySQL非standby slave下架"),
+        name_en="MYSQL_RO_SLAVE_UNINSTALL",
+        type="execute",
+        related_actions=[],
+        related_resource_types=[ResourceEnum.MYSQL],
+        group=_("已废弃"),
+    )
+
+    MYSQL_PROXY_CONF_CHANGE = ActionMeta(
+        id=TicketType.MYSQL_PROXY_CONF_CHANGE.lower(),
+        name=_("MySQL Proxy升降配"),
+        name_en="MYSQL_PROXY_CONF_CHANGE",
+        type="execute",
+        related_actions=[],
+        related_resource_types=[ResourceEnum.MYSQL],
+        group=_("已废弃"),
+    )
+
+    MYSQL_PROXY_SWITCH = ActionMeta(
+        id=TicketType.MYSQL_PROXY_SWITCH.lower(),
+        name=_("MySQL 替换Proxy"),
+        name_en="MYSQL_PROXY_SWITCH",
+        type="execute",
+        related_actions=[],
+        related_resource_types=[ResourceEnum.MYSQL],
+        group=_("已废弃"),
+    )
+
+    MYSQL_ADD_SLAVE = ActionMeta(
+        id=TicketType.MYSQL_ADD_SLAVE.lower(),
+        name=_("MySQL 添加从库"),
+        name_en="MYSQL_ADD_SLAVE",
+        type="execute",
+        related_actions=[],
+        related_resource_types=[ResourceEnum.MYSQL],
+        group=_("已废弃"),
+    )
+
+    MYSQL_MASTER_SLAVE_SWITCH = ActionMeta(
+        id=TicketType.MYSQL_MASTER_SLAVE_SWITCH.lower(),
+        name=_("MySQL 主从互换"),
+        name_en="MYSQL_MASTER_SLAVE_SWITCH",
+        type="execute",
+        related_actions=[],
+        related_resource_types=[ResourceEnum.MYSQL],
+        group=_("已废弃"),
+    )
+
+    MYSQL_MIGRATE_CLUSTER = ActionMeta(
+        id=TicketType.MYSQL_MIGRATE_CLUSTER.lower(),
+        name=_("MySQL 主从迁移"),
+        name_en="MYSQL_MIGRATE_CLUSTER",
+        type="execute",
+        related_actions=[],
+        related_resource_types=[ResourceEnum.MYSQL],
+        group=_("已废弃"),
+    )
+
+    MYSQL_MIGRATE_SINGLE = ActionMeta(
+        id=TicketType.MYSQL_MIGRATE_SINGLE.lower(),
+        name=_("MySQL 单节点迁移"),
+        name_en="MYSQL_MIGRATE_SINGLE",
+        type="execute",
+        related_actions=[],
+        related_resource_types=[ResourceEnum.MYSQL],
+        group=_("已废弃"),
+    )
+
+    MYSQL_PROXY_MIGRATE = ActionMeta(
+        id=TicketType.MYSQL_PROXY_MIGRATE.lower(),
+        name=_("MySQL 按集群Proxy迁移"),
+        name_en="MYSQL_PROXY_MIGRATE",
+        type="execute",
+        related_actions=[],
+        related_resource_types=[ResourceEnum.MYSQL],
+        group=_("已废弃"),
+    )
+
+    MYSQL_PROXY_MIGRATE_INS = ActionMeta(
+        id=TicketType.MYSQL_PROXY_MIGRATE_INS.lower(),
+        name=_("MySQL 按实例Proxy迁移"),
+        name_en="MYSQL_PROXY_MIGRATE_INS",
+        type="execute",
+        related_actions=[],
+        related_resource_types=[ResourceEnum.MYSQL],
+        group=_("已废弃"),
+    )
+
+    MYSQL_CLONE_CLUSTER = ActionMeta(
+        id=TicketType.MYSQL_CLONE_CLUSTER.lower(),
+        name=_("MySQL 集群克隆"),
+        name_en="MYSQL_CLONE_CLUSTER",
+        type="execute",
+        related_actions=[],
+        related_resource_types=[ResourceEnum.MYSQL],
+        group=_("已废弃"),
+    )
+
+    MYSQL_LOCAL_UPGRADE = ActionMeta(
+        id=TicketType.MYSQL_LOCAL_UPGRADE.lower(),
+        name=_("MySQL 原地升级"),
+        name_en="MYSQL_LOCAL_UPGRADE",
+        type="execute",
+        related_actions=[],
+        related_resource_types=[ResourceEnum.MYSQL],
+        group=_("已废弃"),
+    )
+
+    MYSQL_MIGRATE_UPGRADE = ActionMeta(
+        id=TicketType.MYSQL_MIGRATE_UPGRADE.lower(),
+        name=_("MySQL 迁移升级"),
+        name_en="MYSQL_MIGRATE_UPGRADE",
+        type="execute",
+        related_actions=[],
+        related_resource_types=[ResourceEnum.MYSQL],
+        group=_("已废弃"),
+    )
+
+    MYSQL_PROXY_UPGRADE = ActionMeta(
+        id=TicketType.MYSQL_PROXY_UPGRADE.lower(),
+        name=_("MySQL Proxy升级"),
+        name_en="MYSQL_PROXY_UPGRADE",
+        type="execute",
+        related_actions=[],
+        related_resource_types=[ResourceEnum.MYSQL],
+        group=_("已废弃"),
+    )
+
+    MYSQL_SLAVE_MIGRATE_UPGRADE = ActionMeta(
+        id=TicketType.MYSQL_SLAVE_MIGRATE_UPGRADE.lower(),
+        name=_("MySQL Slave 迁移升级"),
+        name_en="MYSQL_SLAVE_MIGRATE_UPGRADE",
+        type="execute",
+        related_actions=[],
+        related_resource_types=[ResourceEnum.MYSQL],
+        group=_("已废弃"),
+    )
+
+    MYSQL_MASTER_FAIL_OVER = ActionMeta(
+        id=TicketType.MYSQL_MASTER_FAIL_OVER.lower(),
+        name=_("MySQL 主库主机故障切换"),
+        name_en="MYSQL_MASTER_FAIL_OVER",
+        type="execute",
+        related_actions=[],
+        related_resource_types=[ResourceEnum.MYSQL],
+        group=_("已废弃"),
+    )
+
+    MYSQL_INSTANCE_FAIL_OVER = ActionMeta(
+        id=TicketType.MYSQL_INSTANCE_FAIL_OVER.lower(),
+        name=_("MySQL 主库实例故障切换"),
+        name_en="MYSQL_INSTANCE_FAIL_OVER",
+        type="execute",
+        related_actions=[],
+        related_resource_types=[ResourceEnum.MYSQL],
+        group=_("已废弃"),
+    )
+
+    MYSQL_RESTORE_SLAVE = ActionMeta(
+        id=TicketType.MYSQL_RESTORE_SLAVE.lower(),
+        name=_("MySQL Slave重建"),
+        name_en="MYSQL_RESTORE_SLAVE",
+        type="execute",
+        related_actions=[],
+        related_resource_types=[ResourceEnum.MYSQL],
+        group=_("已废弃"),
+    )
+
+    MYSQL_RESTORE_LOCAL_SLAVE = ActionMeta(
+        id=TicketType.MYSQL_RESTORE_LOCAL_SLAVE.lower(),
+        name=_("MySQL Slave原地重建"),
+        name_en="MYSQL_RESTORE_LOCAL_SLAVE",
+        type="execute",
+        related_actions=[],
+        related_resource_types=[ResourceEnum.MYSQL],
+        group=_("已废弃"),
+    )
+
+    MYSQL_PROXY_REBUILD = ActionMeta(
+        id=TicketType.MYSQL_PROXY_REBUILD.lower(),
+        name=_("MySQL Proxy原地重建"),
+        name_en="MYSQL_PROXY_REBUILD",
+        type="execute",
+        related_actions=[],
+        related_resource_types=[ResourceEnum.MYSQL],
+        group=_("已废弃"),
+    )
+
+    MYSQL_PROXY_RESCUE = ActionMeta(
+        id=TicketType.MYSQL_PROXY_RESCUE.lower(),
+        name=_("MySQL Proxy灾难重建"),
+        name_en="MYSQL_PROXY_RESCUE",
+        type="execute",
+        related_actions=[],
+        related_resource_types=[ResourceEnum.MYSQL],
+        group=_("已废弃"),
+    )
+
+    MYSQL_DBHA_AF_PROXY_REPLACE = ActionMeta(
+        id=TicketType.MYSQL_DBHA_AF_PROXY_REPLACE.lower(),
+        name=_("MySQL PROXY DBHA 自愈替换"),
+        name_en="MYSQL_DBHA_AF_PROXY_REPLACE",
+        type="execute",
+        related_actions=[],
+        related_resource_types=[ResourceEnum.MYSQL],
+        group=_("已废弃"),
+    )
+
+    MYSQL_DBHA_AF_BACKEND_REPLACE = ActionMeta(
+        id=TicketType.MYSQL_DBHA_AF_BACKEND_REPLACE.lower(),
+        name=_("MySQL BACKEND DBHA 自愈替换"),
+        name_en="MYSQL_DBHA_AF_BACKEND_REPLACE",
+        type="execute",
+        related_actions=[],
+        related_resource_types=[ResourceEnum.MYSQL],
+        group=_("已废弃"),
+    )
+
+    MYSQL_DBHA_AF_REMOTE_REPLACE = ActionMeta(
+        id=TicketType.MYSQL_DBHA_AF_REMOTE_REPLACE.lower(),
+        name=_("MySQL REMOTE DBHA 自愈替换"),
+        name_en="MYSQL_DBHA_AF_REMOTE_REPLACE",
+        type="execute",
+        related_actions=[],
+        related_resource_types=[ResourceEnum.MYSQL],
+        group=_("已废弃"),
+    )
+
+    MYSQL_DBHA_AF_REPAIR_REPLICATE = ActionMeta(
+        id=TicketType.MYSQL_DBHA_AF_REPAIR_REPLICATE.lower(),
+        name=_("MySQL SLAVE 同步自愈修复"),
+        name_en="MYSQL_DBHA_AF_REPAIR_REPLICATE",
+        type="execute",
+        related_actions=[],
+        related_resource_types=[ResourceEnum.MYSQL],
+        group=_("已废弃"),
+    )
+
+    MYSQL_DBHA_AF_TODO_REGISTER = ActionMeta(
+        id=TicketType.MYSQL_DBHA_AF_TODO_REGISTER.lower(),
+        name=_("MySQL DBHA 故障自愈任务注册"),
+        name_en="MYSQL_DBHA_AF_TODO_REGISTER",
+        type="execute",
+        related_actions=[],
+        related_resource_types=[ResourceEnum.MYSQL],
+        group=_("已废弃"),
+    )
+
+    MYSQL_DBHA_AF_SPIDER_REPLACE = ActionMeta(
+        id=TicketType.MYSQL_DBHA_AF_SPIDER_REPLACE.lower(),
+        name=_("MySQL SPIDER DBHA 自愈替换"),
+        name_en="MYSQL_DBHA_AF_SPIDER_REPLACE",
+        type="execute",
+        related_actions=[],
+        related_resource_types=[ResourceEnum.MYSQL],
+        group=_("已废弃"),
+    )
+
+    MYSQL_CLUSTER_STANDARDIZE = ActionMeta(
+        id=TicketType.MYSQL_CLUSTER_STANDARDIZE.lower(),
+        name=_("MySQL 集群标准化"),
+        name_en="MYSQL_CLUSTER_STANDARDIZE",
+        type="execute",
+        related_actions=[],
+        related_resource_types=[ResourceEnum.MYSQL],
+        group=_("已废弃"),
+    )
+
+    MYSQL_CHECKSUM = ActionMeta(
+        id=TicketType.MYSQL_CHECKSUM.lower(),
+        name=_("MySQL 数据校验修复"),
+        name_en="MYSQL_CHECKSUM",
+        type="execute",
+        related_actions=[],
+        related_resource_types=[ResourceEnum.MYSQL],
+        group=_("已废弃"),
+    )
+
+    MYSQL_ADD_CLB = ActionMeta(
+        id=TicketType.MYSQL_ADD_CLB.lower(),
+        name=_("MySQL 接入 CLB"),
+        name_en="MYSQL_ADD_CLB",
+        type="execute",
+        related_actions=[],
+        related_resource_types=[ResourceEnum.MYSQL],
+        group=_("已废弃"),
+    )
+
+    MYSQL_CLB_BIND_DOMAIN = ActionMeta(
+        id=TicketType.MYSQL_CLB_BIND_DOMAIN.lower(),
+        name=_("MySQL 主域名指向 CLB"),
+        name_en="MYSQL_CLB_BIND_DOMAIN",
+        type="execute",
+        related_actions=[],
+        related_resource_types=[ResourceEnum.MYSQL],
+        group=_("已废弃"),
+    )
+
+    MYSQL_CLB_UNBIND_DOMAIN = ActionMeta(
+        id=TicketType.MYSQL_CLB_UNBIND_DOMAIN.lower(),
+        name=_("MySQL 主域名解绑 CLB"),
+        name_en="MYSQL_CLB_UNBIND_DOMAIN",
+        type="execute",
+        related_actions=[],
+        related_resource_types=[ResourceEnum.MYSQL],
+        group=_("已废弃"),
+    )
+
+    MYSQL_LOADBALANCE_MANAGE = ActionMeta(
+        id="mysql_loadbalance_manage",
+        name=_("MySQL 负载均衡管理"),
+        name_en="mysql_loadbalance_manage",
+        type="manage",
+        related_actions=[],
+        related_resource_types=[ResourceEnum.BUSINESS],
+        group=_("MySQL"),
+        subgroup=_("集群管理"),
+        common_labels=[CommonActionLabel.DEVELOPER, CommonActionLabel.BIZ_MAINTAIN],
+    )
+
+    MYSQL_OPENAREA_MANAGE = ActionMeta(
+        id="mysql_openarea_manage",
+        name=_("MySQL 开区管理"),
+        name_en="mysql_openarea_manage",
+        type="manage",
+        related_actions=[],
+        related_resource_types=[ResourceEnum.BUSINESS],
+        group=_("MySQL"),
+        subgroup=_("克隆与开区"),
+        common_labels=[CommonActionLabel.DEVELOPER, CommonActionLabel.BIZ_MAINTAIN],
+    )
+
+    MYSQL_PRIV_MANAGE = ActionMeta(
+        id="mysql_priv_manage",
+        name=_("MySQL 权限管理"),
+        name_en="mysql_priv_manage",
+        type="manage",
+        related_actions=[],
+        related_resource_types=[ResourceEnum.BUSINESS],
+        group=_("MySQL"),
+        subgroup=_("权限管理"),
+        common_labels=[CommonActionLabel.DEVELOPER, CommonActionLabel.BIZ_MAINTAIN],
+    )
+
+    MYSQL_PARTITION_MANAGE = ActionMeta(
+        id="mysql_partition_manage",
+        name=_("MySQL 分区管理"),
+        name_en="mysql_partition_manage",
+        type="manage",
+        related_actions=[],
+        related_resource_types=[ResourceEnum.BUSINESS],
+        group=_("MySQL"),
+        subgroup=_("分区管理"),
+        common_labels=[CommonActionLabel.DEVELOPER, CommonActionLabel.BIZ_MAINTAIN],
+    )
+
+    MYSQL_TRUNCATE_DATA = ActionMeta(
+        id="mysql_truncate_data",
+        name=_("MySQL 清档"),
+        name_en="MYSQL_TRUNCATE_DATA",
+        type="execute",
+        related_actions=[],
+        related_resource_types=[ResourceEnum.MYSQL],
+        group=_("MySQL"),
+        subgroup=_("数据清理"),
+        common_labels=[CommonActionLabel.DEVELOPER, CommonActionLabel.BIZ_MAINTAIN],
     )
 
     MYSQL_RENAME_DATABASE = ActionMeta(
         id=TicketType.MYSQL_RENAME_DATABASE.lower(),
+        subgroup=_("查询与变更"),
         is_ticket_action=True,
         common_labels=[CommonActionLabel.DEVELOPER],
     )
@@ -879,9 +1310,7 @@ class ActionEnum:
         type="execute",
         related_actions=[DB_MANAGE.id],
         related_resource_types=[ResourceEnum.OPENAREA_CONFIG, ResourceEnum.MYSQL],
-        group=_("MySQL"),
-        subgroup=_("克隆开区"),
-        common_labels=[CommonActionLabel.BIZ_MAINTAIN],
+        group=_("已废弃"),
     )
 
     MYSQL_OPENAREA_CONFIG_CREATE = ActionMeta(
@@ -891,9 +1320,7 @@ class ActionEnum:
         type="create",
         related_actions=[DB_MANAGE.id],
         related_resource_types=[ResourceEnum.BUSINESS],
-        group=_("MySQL"),
-        subgroup=_("克隆开区"),
-        common_labels=[CommonActionLabel.BIZ_MAINTAIN],
+        group=_("已废弃"),
     )
 
     MYSQL_OPENAREA_CONFIG_UPDATE = ActionMeta(
@@ -903,9 +1330,7 @@ class ActionEnum:
         type="edit",
         related_actions=[],
         related_resource_types=[ResourceEnum.OPENAREA_CONFIG],
-        group=_("MySQL"),
-        subgroup=_("克隆开区"),
-        common_labels=[CommonActionLabel.BIZ_MAINTAIN],
+        group=_("已废弃"),
     )
 
     MYSQL_OPENAREA_CONFIG_DESTROY = ActionMeta(
@@ -915,9 +1340,7 @@ class ActionEnum:
         type="delete",
         related_actions=[],
         related_resource_types=[ResourceEnum.OPENAREA_CONFIG],
-        group=_("MySQL"),
-        subgroup=_("克隆开区"),
-        common_labels=[CommonActionLabel.BIZ_MAINTAIN],
+        group=_("已废弃"),
     )
 
     DUMPER_CONFIG_VIEW = ActionMeta(
@@ -1035,6 +1458,54 @@ class ActionEnum:
         common_labels=[CommonActionLabel.BIZ_MAINTAIN, CommonActionLabel.DEVELOPER],
     )
 
+    TENDBCLUSTER_LOADBALANCE_MANAGE = ActionMeta(
+        id="tendbcluster_loadbalance_manage",
+        name=_("TenDB Cluster 负载均衡管理"),
+        name_en="tendbcluster_loadbalance_manage",
+        type="manage",
+        related_actions=[],
+        related_resource_types=[ResourceEnum.BUSINESS],
+        group=_("TenDBCluster"),
+        subgroup=_("集群管理"),
+        common_labels=[CommonActionLabel.DEVELOPER, CommonActionLabel.BIZ_MAINTAIN],
+    )
+
+    TENDBCLUSTER_OPENAREA_MANAGE = ActionMeta(
+        id="tendbcluster_openarea_manage",
+        name=_("TenDB Cluster 开区管理"),
+        name_en="tendbcluster_openarea_manage",
+        type="manage",
+        related_actions=[],
+        related_resource_types=[ResourceEnum.BUSINESS],
+        group=_("TenDBCluster"),
+        subgroup=_("克隆与开区"),
+        common_labels=[CommonActionLabel.DEVELOPER, CommonActionLabel.BIZ_MAINTAIN],
+    )
+
+    TENDBCLUSTER_PRIV_MANAGE = ActionMeta(
+        id="tendbcluster_priv_manage",
+        name=_("TenDB Cluster 权限管理"),
+        name_en="tendbcluster_priv_manage",
+        type="manage",
+        related_actions=[],
+        related_resource_types=[ResourceEnum.BUSINESS],
+        group=_("TenDBCluster"),
+        subgroup=_("权限管理"),
+        common_labels=[CommonActionLabel.DEVELOPER, CommonActionLabel.BIZ_MAINTAIN],
+    )
+
+    TENDBCLUSTER_PARTITION_MANAGE = ActionMeta(
+        id="tendbcluster_partition_manage",
+        name=_("TenDBCluster 分区管理"),
+        name_en="tendbcluster_partition_manage",
+        type="manage",
+        related_actions=[],
+        related_resource_types=[ResourceEnum.BUSINESS],
+        group=_("TenDBCluster"),
+        subgroup=_("分区管理"),
+        common_labels=[CommonActionLabel.DEVELOPER, CommonActionLabel.BIZ_MAINTAIN],
+    )
+
     TENDBCLUSTER_SUBSCRIBE_MONITOR = ActionMeta(
         id="tendbcluster_subscribe_monitor",
         name=_("TendbCluster 集群告警订阅"),
@@ -1050,7 +1521,7 @@ class ActionEnum:
     TENDBCLUSTER_IMPORT_SQLFILE = ActionMeta(
         id=TicketType.TENDBCLUSTER_IMPORT_SQLFILE.lower(),
         related_resource_types=[ResourceEnum.TENDBCLUSTER],
-        subgroup=_("SQL 任务"),
+        subgroup=_("查询与变更"),
         is_ticket_action=True,
         common_labels=[CommonActionLabel.TENDBCLUSTER_IMPORT_SQLFILE, CommonActionLabel.DEVELOPER],
     )
@@ -1058,7 +1529,7 @@ class ActionEnum:
     TENDBCLUSTER_DUMP_DATA = ActionMeta(
         id=TicketType.TENDBCLUSTER_DUMP_DATA.lower(),
         related_resource_types=[ResourceEnum.TENDBCLUSTER],
-        subgroup=_("数据处理"),
+        subgroup=_("查询与变更"),
         is_ticket_action=True,
         common_labels=[CommonActionLabel.EXTERNAL_DEVELOPER, CommonActionLabel.DEVELOPER],
     )
@@ -1071,7 +1542,7 @@ class ActionEnum:
         related_actions=[DB_MANAGE.id],
         related_resource_types=[ResourceEnum.TENDBCLUSTER],
         group=_("TenDBCluster"),
-        subgroup=_("集群管理"),
+        subgroup=_("查询与变更"),
         common_labels=[
             CommonActionLabel.BIZ_READ_ONLY,
             CommonActionLabel.BIZ_MAINTAIN,
@@ -1087,8 +1558,7 @@ class ActionEnum:
         type="execute",
         related_actions=[DB_MANAGE.id],
         related_resource_types=[ResourceEnum.TENDBCLUSTER],
-        group=_("TenDBCluster"),
-        subgroup=_("集群管理"),
+        group=_("已废弃"),
     )
 
     TENDBCLUSTER_CREATE_ACCOUNT = ActionMeta(
@@ -1098,9 +1568,7 @@ class ActionEnum:
         type="create",
         related_actions=[DB_MANAGE.id],
         related_resource_types=[ResourceEnum.BUSINESS],
-        group=_("TenDBCluster"),
-        subgroup=_("权限管理"),
-        common_labels=[CommonActionLabel.BIZ_MAINTAIN, CommonActionLabel.TENDBCLUSTER_AUTHORIZE_RULES],
+        group=_("已废弃"),
     )
 
     TENDBCLUSTER_DELETE_ACCOUNT = ActionMeta(
@@ -1110,9 +1578,7 @@ class ActionEnum:
         type="delete",
         related_actions=[DB_MANAGE.id],
         related_resource_types=[ResourceEnum.TENDBCLUSTER_ACCOUNT],
-        group=_("TenDBCluster"),
-        subgroup=_("权限管理"),
-        common_labels=[CommonActionLabel.BIZ_MAINTAIN],
+        group=_("已废弃"),
     )
 
     TENDBCLUSTER_ADD_ACCOUNT_RULE = ActionMeta(
@@ -1122,9 +1588,7 @@ class ActionEnum:
         type="create",
         related_actions=[DB_MANAGE.id],
         related_resource_types=[ResourceEnum.TENDBCLUSTER_ACCOUNT],
-        group=_("TenDBCluster"),
-        subgroup=_("权限管理"),
-        common_labels=[CommonActionLabel.BIZ_MAINTAIN, CommonActionLabel.TENDBCLUSTER_AUTHORIZE_RULES],
+        group=_("已废弃"),
     )
 
     TENDBCLUSTER_ACCOUNT_RULES_VIEW = ActionMeta(
@@ -1134,13 +1598,7 @@ class ActionEnum:
         type="view",
         related_actions=[DB_MANAGE.id],
         related_resource_types=[ResourceEnum.BUSINESS],
-        group=_("TenDBCluster"),
-        subgroup=_("权限管理"),
-        common_labels=[
-            CommonActionLabel.BIZ_MAINTAIN,
-            CommonActionLabel.TENDBCLUSTER_AUTHORIZE_RULES,
-            CommonActionLabel.DEVELOPER
-        ],
+        group=_("已废弃"),
     )
 
     TENDBCLUSTER_AUTHORIZE_RULES = ActionMeta(
@@ -1150,13 +1608,7 @@ class ActionEnum:
         type="execute",
         related_actions=[DB_MANAGE.id],
         related_resource_types=[ResourceEnum.TENDBCLUSTER_ACCOUNT, ResourceEnum.TENDBCLUSTER],
-        group=_("TenDBCluster"),
-        subgroup=_("权限管理"),
-        common_labels=[
-            CommonActionLabel.BIZ_MAINTAIN,
-            CommonActionLabel.TENDBCLUSTER_AUTHORIZE_RULES,
-            CommonActionLabel.DEVELOPER
-        ],
+        group=_("已废弃"),
     )
 
     TENDBCLUSTER_EXCEL_AUTHORIZE_RULES = ActionMeta(
@@ -1178,13 +1630,7 @@ class ActionEnum:
         name=_("TenDB Cluster 客户端权限克隆"),
         name_en="tendb_cluster_client_clone_rules",
         related_resource_types=[ResourceEnum.BUSINESS],
-        group=_("TenDBCluster"),
-        subgroup=_("权限管理"),
-        common_labels=[
-            CommonActionLabel.BIZ_MAINTAIN,
-            CommonActionLabel.TENDBCLUSTER_AUTHORIZE_RULES,
-            CommonActionLabel.DEVELOPER
-        ],
+        group=_("已废弃"),
     )
 
     TENDBCLUSTER_INSTANCE_CLONE_RULES = ActionMeta(
@@ -1194,9 +1640,7 @@ class ActionEnum:
         type="execute",
         related_actions=[TENDBCLUSTER_VIEW.id],
         related_resource_types=[ResourceEnum.TENDBCLUSTER],
-        group=_("TenDBCluster"),
-        subgroup=_("权限管理"),
-        common_labels=[CommonActionLabel.BIZ_MAINTAIN, CommonActionLabel.TENDBCLUSTER_AUTHORIZE_RULES],
+        group=_("已废弃"),
     )
 
     TENDBCLUSTER_OPEN_AREA = ActionMeta(
@@ -1206,9 +1650,7 @@ class ActionEnum:
         type="execute",
         related_actions=[DB_MANAGE.id],
         related_resource_types=[ResourceEnum.OPENAREA_CONFIG, ResourceEnum.TENDBCLUSTER],
-        group=_("TenDBCluster"),
-        subgroup=_("克隆开区"),
-        common_labels=[CommonActionLabel.BIZ_MAINTAIN],
+        group=_("已废弃"),
     )
 
     TENDBCLUSTER_OPENAREA_CONFIG_CREATE = ActionMeta(
@@ -1218,9 +1660,7 @@ class ActionEnum:
         type="create",
         related_actions=[DB_MANAGE.id],
         related_resource_types=[ResourceEnum.BUSINESS],
-        group=_("TenDBCluster"),
-        subgroup=_("克隆开区"),
-        common_labels=[CommonActionLabel.BIZ_MAINTAIN],
+        group=_("已废弃"),
     )
 
     TENDBCLUSTER_OPENAREA_CONFIG_UPDATE = ActionMeta(
@@ -1230,9 +1670,7 @@ class ActionEnum:
         type="edit",
         related_actions=[],
         related_resource_types=[ResourceEnum.OPENAREA_CONFIG],
-        group=_("TenDBCluster"),
-        subgroup=_("克隆开区"),
-        common_labels=[CommonActionLabel.BIZ_MAINTAIN],
+        group=_("已废弃"),
     )
 
     TENDBCLUSTER_OPENAREA_CONFIG_DESTROY = ActionMeta(
@@ -1242,9 +1680,7 @@ class ActionEnum:
         type="delete",
         related_actions=[],
         related_resource_types=[ResourceEnum.OPENAREA_CONFIG],
-        group=_("TenDBCluster"),
-        subgroup=_("克隆开区"),
-        common_labels=[CommonActionLabel.BIZ_MAINTAIN],
+        group=_("已废弃"),
     )
 
     TENDBCLUSTER_PARTITION_CREATE = ActionMeta(
@@ -1254,9 +1690,7 @@ class ActionEnum:
         type="create",
         related_actions=[DB_MANAGE.id],
         related_resource_types=[ResourceEnum.BUSINESS],
-        group=_("TenDBCluster"),
-        subgroup=_("分区管理"),
-        common_labels=[CommonActionLabel.BIZ_MAINTAIN, CommonActionLabel.DEVELOPER],
+        group=_("已废弃"),
     )
 
     TENDBCLUSTER_PARTITION_UPDATE = ActionMeta(
@@ -1266,9 +1700,7 @@ class ActionEnum:
         type="manage",
         related_actions=[DB_MANAGE.id],
         related_resource_types=[ResourceEnum.TENDBCLUSTER],
-        group=_("TenDBCluster"),
-        subgroup=_("分区管理"),
-        common_labels=[CommonActionLabel.BIZ_MAINTAIN, CommonActionLabel.DEVELOPER],
+        group=_("已废弃"),
     )
 
     TENDBCLUSTER_PARTITION_DELETE = ActionMeta(
@@ -1278,9 +1710,7 @@ class ActionEnum:
         type="delete",
         related_actions=[DB_MANAGE.id],
         related_resource_types=[ResourceEnum.TENDBCLUSTER],
-        group=_("TenDBCluster"),
-        subgroup=_("分区管理"),
-        common_labels=[CommonActionLabel.BIZ_MAINTAIN],
+        group=_("已废弃"),
     )
 
     TENDBCLUSTER_PARTITION_ENABLE_DISABLE = ActionMeta(
@@ -1290,9 +1720,7 @@ class ActionEnum:
         type="manage",
         related_actions=[DB_MANAGE.id],
         related_resource_types=[ResourceEnum.TENDBCLUSTER],
-        group=_("TenDBCluster"),
-        subgroup=_("分区管理"),
-        common_labels=[CommonActionLabel.BIZ_MAINTAIN, CommonActionLabel.DEVELOPER],
+        group=_("已废弃"),
     )
 
     TENDBCLUSTER_DB_TABLE_BACKUP = ActionMeta(
@@ -1304,30 +1732,74 @@ class ActionEnum:
 
     TENDBCLUSTER_TRUNCATE_DATABASE = ActionMeta(
         id=TicketType.TENDBCLUSTER_TRUNCATE_DATABASE.lower(),
-        subgroup=_("数据处理"),
+        subgroup=_("数据清理"),
         is_ticket_action=True,
         common_labels=[CommonActionLabel.DEVELOPER],
     )
 
     TENDBCLUSTER_RENAME_DATABASE = ActionMeta(
         id=TicketType.TENDBCLUSTER_RENAME_DATABASE.lower(),
-        subgroup=_("SQL 任务"),
+        subgroup=_("查询与变更"),
         is_ticket_action=True,
         common_labels=[CommonActionLabel.DEVELOPER],
     )
 
     TENDBCLUSTER_FLASHBACK = ActionMeta(
         id=TicketType.TENDBCLUSTER_FLASHBACK.lower(),
-        subgroup=_("回档"),
+        subgroup=_("数据恢复"),
+        is_ticket_action=True,
+        common_labels=[CommonActionLabel.DEVELOPER],
+    )
+
+    TENDBCLUSTER_ROLLBACK = ActionMeta(
+        id=TicketType.TENDBCLUSTER_ROLLBACK.lower(),
+        name=_("TenDB Cluster 原地回档"),
+        name_en="TENDBCLUSTER_ROLLBACK",
+        type="execute",
+        related_actions=[],
+        related_resource_types=[ResourceEnum.TENDBCLUSTER],
+        group=_("TenDBCluster"),
+        subgroup=_("数据恢复"),
+        common_labels=[CommonActionLabel.BIZ_MAINTAIN, CommonActionLabel.DEVELOPER],
+    )
+
+    TENDBCLUSTER_ROLLBACK_CLUSTER = ActionMeta(
+        id=TicketType.TENDBCLUSTER_ROLLBACK_CLUSTER.lower(),
+        name=_("TenDB Cluster 构造"),
+        name_en="TENDBCLUSTER_ROLLBACK_CLUSTER",
+        type="execute",
+        related_actions=[],
+        related_resource_types=[ResourceEnum.TENDBCLUSTER],
+        group=_("TenDBCluster"),
+        subgroup=_("数据恢复"),
+        common_labels=[CommonActionLabel.BIZ_MAINTAIN, CommonActionLabel.DEVELOPER],
+    )
+
+    TENDBCLUSTER_DATA_MIGRATE = ActionMeta(
+        id=TicketType.TENDBCLUSTER_DATA_MIGRATE.lower(),
+        subgroup=_("克隆与开区"),
         is_ticket_action=True,
         common_labels=[CommonActionLabel.DEVELOPER],
     )
 
     TENDBCLUSTER_PARTITION = ActionMeta(
         id=TicketType.TENDBCLUSTER_PARTITION.lower(),
-        subgroup=_("分区管理"),
-        is_ticket_action=True,
-        common_labels=[CommonActionLabel.DEVELOPER],
+        name=_("TenDB Cluster 分区管理"),
+        name_en="TENDBCLUSTER_PARTITION",
+        type="execute",
+        related_actions=[],
+        related_resource_types=[ResourceEnum.TENDBCLUSTER],
+        group=_("已废弃"),
+    )
+
+    TENDBCLUSTER_PARTITION_V2 = ActionMeta(
+        id=TicketType.TENDBCLUSTER_PARTITION_V2.lower(),
+        name=_("TenDB Cluster 分区管理v2"),
+        name_en="TENDBCLUSTER_PARTITION_V2",
+        type="execute",
+        related_actions=[],
+        related_resource_types=[ResourceEnum.TENDBCLUSTER],
+        group=_("已废弃"),
     )
 
     TENDBCLUSTER_APPLY = ActionMeta(
@@ -1337,6 +1809,266 @@ class ActionEnum:
         subgroup=_("集群管理"),
         is_ticket_action=True,
         common_labels=[CommonActionLabel.BIZ_MAINTAIN, CommonActionLabel.DEVELOPER],
+    )
+
+    TENDBCLUSTER_SPIDER_ADD_NODES = ActionMeta(
+        id=TicketType.TENDBCLUSTER_SPIDER_ADD_NODES.lower(),
+        name=_("TenDB Cluster 扩容接入层"),
+        name_en="TENDBCLUSTER_SPIDER_ADD_NODES",
+        type="execute",
+        related_actions=[],
+        related_resource_types=[ResourceEnum.TENDBCLUSTER],
+        group=_("已废弃"),
+    )
+
+    TENDBCLUSTER_SPIDER_REDUCE_NODES = ActionMeta(
+        id=TicketType.TENDBCLUSTER_SPIDER_REDUCE_NODES.lower(),
+        name=_("TenDB Cluster 缩容接入层"),
+        name_en="TENDBCLUSTER_SPIDER_REDUCE_NODES",
+        type="execute",
+        related_actions=[],
+        related_resource_types=[ResourceEnum.TENDBCLUSTER],
+        group=_("已废弃"),
+    )
+
+    TENDBCLUSTER_ADD_CLB = ActionMeta(
+        id=TicketType.TENDBCLUSTER_ADD_CLB.lower(),
+        name=_("TenDB Cluster 接入 CLB"),
+        name_en="TENDBCLUSTER_ADD_CLB",
+        type="execute",
+        related_actions=[],
+        related_resource_types=[ResourceEnum.TENDBCLUSTER],
+        group=_("已废弃"),
+    )
+
+    TENDBCLUSTER_CLB_BIND_DOMAIN = ActionMeta(
+        id=TicketType.TENDBCLUSTER_CLB_BIND_DOMAIN.lower(),
+        name=_("TenDB Cluster 主域名指向 CLB"),
+        name_en="TENDBCLUSTER_CLB_BIND_DOMAIN",
+        type="execute",
+        related_actions=[],
+        related_resource_types=[ResourceEnum.TENDBCLUSTER],
+        group=_("已废弃"),
+    )
+
+    TENDBCLUSTER_CLB_UNBIND_DOMAIN = ActionMeta(
+        id=TicketType.TENDBCLUSTER_CLB_UNBIND_DOMAIN.lower(),
+        name=_("TenDB Cluster 主域名解绑 CLB"),
+        name_en="TENDBCLUSTER_CLB_UNBIND_DOMAIN",
+        type="execute",
+        related_actions=[],
+        related_resource_types=[ResourceEnum.TENDBCLUSTER],
+        group=_("已废弃"),
+    )
+
+    TENDBCLUSTER_CHECKSUM = ActionMeta(
+        id=TicketType.TENDBCLUSTER_CHECKSUM.lower(),
+        name=_("TenDB Cluster 数据校验修复"),
+        name_en="TENDBCLUSTER_CHECKSUM",
+        type="execute",
+        related_actions=[],
+        related_resource_types=[ResourceEnum.TENDBCLUSTER],
+        group=_("已废弃"),
+    )
+
+    TENDBCLUSTER_CLUSTER_STANDARDIZE = ActionMeta(
+        id=TicketType.TENDBCLUSTER_CLUSTER_STANDARDIZE.lower(),
+        name=_("TenDB Cluster 集群标准化"),
+        name_en="TENDBCLUSTER_CLUSTER_STANDARDIZE",
+        type="execute",
+        related_actions=[],
+        related_resource_types=[ResourceEnum.TENDBCLUSTER],
+        group=_("已废弃"),
+    )
+
+    TENDBCLUSTER_SPIDER_SWITCH_NODES = ActionMeta(
+        id=TicketType.TENDBCLUSTER_SPIDER_SWITCH_NODES.lower(),
+        name=_("TenDB Cluster 替换接入层"),
+        name_en="TENDBCLUSTER_SPIDER_SWITCH_NODES",
+        type="execute",
+        related_actions=[],
+        related_resource_types=[ResourceEnum.TENDBCLUSTER],
+        group=_("已废弃"),
+    )
+
+    TENDBCLUSTER_SPIDER_CONF_UP_DOWN = ActionMeta(
+        id=TicketType.TENDBCLUSTER_SPIDER_CONF_UP_DOWN.lower(),
+        name=_("TenDB Cluster 接入层升降配"),
+        name_en="TENDBCLUSTER_SPIDER_CONF_UP_DOWN",
+        type="execute",
+        related_actions=[],
+        related_resource_types=[ResourceEnum.TENDBCLUSTER],
+        group=_("已废弃"),
+    )
+
+    TENDBCLUSTER_SPIDER_SLAVE_APPLY = ActionMeta(
+        id=TicketType.TENDBCLUSTER_SPIDER_SLAVE_APPLY.lower(),
+        name=_("TenDB Cluster 部署只读接入层"),
+        name_en="TENDBCLUSTER_SPIDER_SLAVE_APPLY",
+        type="execute",
+        related_actions=[],
+        related_resource_types=[ResourceEnum.TENDBCLUSTER],
+        group=_("已废弃"),
+    )
+
+    TENDBCLUSTER_SPIDER_MNT_APPLY = ActionMeta(
+        id=TicketType.TENDBCLUSTER_SPIDER_MNT_APPLY.lower(),
+        name=_("TenDB Cluster 添加运维节点"),
+        name_en="TENDBCLUSTER_SPIDER_MNT_APPLY",
+        type="execute",
+        related_actions=[],
+        related_resource_types=[ResourceEnum.TENDBCLUSTER],
+        group=_("已废弃"),
+    )
+
+    TENDBCLUSTER_SPIDER_MNT_DESTROY = ActionMeta(
+        id=TicketType.TENDBCLUSTER_SPIDER_MNT_DESTROY.lower(),
+        name=_("TenDB Cluster 下架运维节点"),
+        name_en="TENDBCLUSTER_SPIDER_MNT_DESTROY",
+        type="execute",
+        related_actions=[],
+        related_resource_types=[ResourceEnum.TENDBCLUSTER],
+        group=_("已废弃"),
+    )
+
+    TENDBCLUSTER_MASTER_SLAVE_SWITCH = ActionMeta(
+        id=TicketType.TENDBCLUSTER_MASTER_SLAVE_SWITCH.lower(),
+        name=_("TenDB Cluster 主从互切"),
+        name_en="TENDBCLUSTER_MASTER_SLAVE_SWITCH",
+        type="execute",
+        related_actions=[],
+        related_resource_types=[ResourceEnum.TENDBCLUSTER],
+        group=_("已废弃"),
+    )
+
+    TENDBCLUSTER_SPIDER_LAYER_DR = ActionMeta(
+        id=TicketType.TENDBCLUSTER_SPIDER_LAYER_DR.lower(),
+        name=_("TenDB Cluster 接入层灾难重建"),
+        name_en="TENDBCLUSTER_SPIDER_LAYER_DR",
+        type="execute",
+        related_actions=[],
+        related_resource_types=[ResourceEnum.TENDBCLUSTER],
+        group=_("已废弃"),
+    )
+
+    TENDBCLUSTER_MIGRATE_CLUSTER = ActionMeta(
+        id=TicketType.TENDBCLUSTER_MIGRATE_CLUSTER.lower(),
+        name=_("TenDB Cluster 主从迁移"),
+        name_en="TENDBCLUSTER_MIGRATE_CLUSTER",
+        type="execute",
+        related_actions=[],
+        related_resource_types=[ResourceEnum.TENDBCLUSTER],
+        group=_("已废弃"),
+    )
+
+    TENDBCLUSTER_LOCAL_UPGRADE = ActionMeta(
+        id=TicketType.TENDBCLUSTER_LOCAL_UPGRADE.lower(),
+        name=_("TenDB Cluster Spider本地升级"),
+        name_en="TENDBCLUSTER_LOCAL_UPGRADE",
+        type="execute",
+        related_actions=[],
+        related_resource_types=[ResourceEnum.TENDBCLUSTER],
+        group=_("已废弃"),
+    )
+
+    TENDBCLUSTER_SPIDER_UPGRADE = ActionMeta(
+        id=TicketType.TENDBCLUSTER_SPIDER_UPGRADE.lower(),
+        name=_("TenDB Cluster Spider迁移升级"),
+        name_en="TENDBCLUSTER_SPIDER_UPGRADE",
+        type="execute",
+        related_actions=[],
+        related_resource_types=[ResourceEnum.TENDBCLUSTER],
+        group=_("已废弃"),
+    )
+
+    TENDBCLUSTER_MIGRATE_UPGRADE = ActionMeta(
+        id=TicketType.TENDBCLUSTER_MIGRATE_UPGRADE.lower(),
+        name=_("TenDB Cluster 存储层迁移升级"),
+        name_en="TENDBCLUSTER_MIGRATE_UPGRADE",
+        type="execute",
+        related_actions=[],
+        related_resource_types=[ResourceEnum.TENDBCLUSTER],
+        group=_("已废弃"),
+    )
+
+    TENDBCLUSTER_REMOTE_UPGRADE = ActionMeta(
+        id=TicketType.TENDBCLUSTER_REMOTE_UPGRADE.lower(),
+        name=_("TenDB Cluster 存储层本地升级"),
+        name_en="TENDBCLUSTER_REMOTE_UPGRADE",
+        type="execute",
+        related_actions=[],
+        related_resource_types=[ResourceEnum.TENDBCLUSTER],
+        group=_("已废弃"),
+    )
+
+    TENDBCLUSTER_TDBCTL_UPGRADE = ActionMeta(
+        id=TicketType.TENDBCLUSTER_TDBCTL_UPGRADE.lower(),
+        name=_("TenDB Cluster TDBCTL 升级"),
+        name_en="TENDBCLUSTER_TDBCTL_UPGRADE",
+        type="execute",
+        related_actions=[],
+        related_resource_types=[ResourceEnum.TENDBCLUSTER],
+        group=_("已废弃"),
+    )
+
+    TENDBCLUSTER_NODE_REBALANCE = ActionMeta(
+        id=TicketType.TENDBCLUSTER_NODE_REBALANCE.lower(),
+        name=_("TenDB Cluster 集群容量变更"),
+        name_en="TENDBCLUSTER_NODE_REBALANCE",
+        type="execute",
+        related_actions=[],
+        related_resource_types=[ResourceEnum.TENDBCLUSTER],
+        group=_("已废弃"),
+    )
+
+    TENDBCLUSTER_MASTER_FAIL_OVER = ActionMeta(
+        id=TicketType.TENDBCLUSTER_MASTER_FAIL_OVER.lower(),
+        name=_("TenDB Cluster 主库主机故障切换"),
+        name_en="TENDBCLUSTER_MASTER_FAIL_OVER",
+        type="execute",
+        related_actions=[],
+        related_resource_types=[ResourceEnum.TENDBCLUSTER],
+        group=_("已废弃"),
+    )
+
+    TENDBCLUSTER_INSTANCE_FAIL_OVER = ActionMeta(
+        id=TicketType.TENDBCLUSTER_INSTANCE_FAIL_OVER.lower(),
+        name=_("TenDB Cluster 主库实例故障切换"),
+        name_en="TENDBCLUSTER_INSTANCE_FAIL_OVER",
+        type="execute",
+        related_actions=[],
+        related_resource_types=[ResourceEnum.TENDBCLUSTER],
+        group=_("已废弃"),
+    )
+
+    TENDBCLUSTER_RESTORE_SLAVE = ActionMeta(
+        id=TicketType.TENDBCLUSTER_RESTORE_SLAVE.lower(),
+        name=_("TenDB Cluster Slave重建"),
+        name_en="TENDBCLUSTER_RESTORE_SLAVE",
+        type="execute",
+        related_actions=[],
+        related_resource_types=[ResourceEnum.TENDBCLUSTER],
+        group=_("已废弃"),
+    )
+
+    TENDBCLUSTER_RESTORE_LOCAL_SLAVE = ActionMeta(
+        id=TicketType.TENDBCLUSTER_RESTORE_LOCAL_SLAVE.lower(),
+        name=_("TenDB Cluster Slave原地重建"),
+        name_en="TENDBCLUSTER_RESTORE_LOCAL_SLAVE",
+        type="execute",
+        related_actions=[],
+        related_resource_types=[ResourceEnum.TENDBCLUSTER],
+        group=_("已废弃"),
+    )
+
+    TENDBCLUSTER_SPIDER_REBUILD = ActionMeta(
+        id=TicketType.TENDBCLUSTER_SPIDER_REBUILD.lower(),
+        name=_("TenDBCluster 接入层原地重建"),
+        name_en="TENDBCLUSTER_SPIDER_REBUILD",
+        type="execute",
+        related_actions=[],
+        related_resource_types=[ResourceEnum.TENDBCLUSTER],
+        group=_("已废弃"),
     )
 
     TENDBCLUSTER_ENABLE_DISABLE = ActionMeta(
@@ -1359,9 +2091,7 @@ class ActionEnum:
         type="execute",
         related_actions=[TENDBCLUSTER_VIEW.id],
         related_resource_types=[ResourceEnum.TENDBCLUSTER],
-        group=_("TenDBCluster"),
-        subgroup=_("访问入口"),
-        common_labels=[CommonActionLabel.BIZ_MAINTAIN],
+        group=_("已废弃"),
     )
 
     REDIS_VIEW = ActionMeta(
@@ -2965,7 +3695,7 @@ class ActionEnum:
     # 目前集群管理可以操作集群的工具箱单据，先给到mcp工具使用
     MYSQL_MANAGE = ActionMeta(
         id="mysql_manage",
-        name=_("MySQL 集群管理"),
+        name=_("MySQL  集群运维管理"),
         name_en="mysql_manage",
         type="manage",
         related_actions=[],
@@ -2976,7 +3706,7 @@ class ActionEnum:
 
     TENDBCLUSTER_MANAGE = ActionMeta(
         id="tendbcluster_manage",
-        name=_("TenDBCluster 集群管理"),
+        name=_("TenDBCluster 集群运维管理"),
         name_en="tendbcluster_manage",
         type="manage",
         related_actions=[],

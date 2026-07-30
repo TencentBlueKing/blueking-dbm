@@ -15,6 +15,7 @@ from rest_framework import serializers
 from backend.db_meta.models import Cluster
 from backend.db_services.dbbase.constants import IpSource
 from backend.flow.engine.controller.spider import SpiderController
+from backend.iam_app.dataclass.actions import ActionEnum
 from backend.ticket import builders
 from backend.ticket.builders.common.base import BaseOperateResourceParamBuilder
 from backend.ticket.builders.tendbcluster.base import BaseTendbTicketFlowBuilder, TendbBaseOperateDetailSerializer
@@ -59,7 +60,9 @@ class TendbMNTApplyResourceParamBuilder(BaseOperateResourceParamBuilder):
         next_flow.save(update_fields=["details"])
 
 
-@builders.BuilderFactory.register(TicketType.TENDBCLUSTER_SPIDER_MNT_APPLY, is_apply=True)
+@builders.BuilderFactory.register(
+    TicketType.TENDBCLUSTER_SPIDER_MNT_APPLY, is_apply=True, iam=ActionEnum.TENDBCLUSTER_MANAGE
+)
 class TendbMNTApplyFlowBuilder(BaseTendbTicketFlowBuilder):
     serializer = TendbMNTApplyDetailSerializer
     inner_flow_builder = TendbMNTApplyParamBuilder

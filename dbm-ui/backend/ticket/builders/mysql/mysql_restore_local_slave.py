@@ -14,6 +14,7 @@ from rest_framework import serializers
 
 from backend.db_meta.enums import ClusterType, InstanceInnerRole
 from backend.flow.engine.controller.mysql import MySQLController
+from backend.iam_app.dataclass.actions import ActionEnum
 from backend.ticket import builders
 from backend.ticket.builders.common.base import InstanceInfoSerializer, fetch_cluster_ids
 from backend.ticket.builders.common.constants import MySQLBackupSource
@@ -65,7 +66,7 @@ class MysqlRestoreLocalSlaveParamBuilder(builders.FlowParamBuilder):
             )
 
 
-@builders.BuilderFactory.register(TicketType.MYSQL_RESTORE_LOCAL_SLAVE)
+@builders.BuilderFactory.register(TicketType.MYSQL_RESTORE_LOCAL_SLAVE, iam=ActionEnum.MYSQL_MANAGE)
 class MysqlRestoreLocalSlaveFlowBuilder(BaseMySQLHATicketFlowBuilder):
     serializer = MysqlRestoreLocalSlaveDetailSerializer
     inner_flow_builder = MysqlRestoreLocalSlaveParamBuilder

@@ -18,6 +18,7 @@ from backend.db_meta.models import Cluster
 from backend.db_services.dbbase.constants import IpSource
 from backend.flow.consts import MySQLBackupTypeEnum
 from backend.flow.engine.controller.mysql import MySQLController
+from backend.iam_app.dataclass.actions import ActionEnum
 from backend.ticket import builders
 from backend.ticket.builders.common.base import (
     BaseOperateResourceParamBuilder,
@@ -105,7 +106,9 @@ class MysqlMigrateUpgradeResourceParamBuilder(BaseOperateResourceParamBuilder):
         super().post_callback()
 
 
-@builders.BuilderFactory.register(TicketType.MYSQL_MIGRATE_UPGRADE, is_apply=True, is_recycle=True)
+@builders.BuilderFactory.register(
+    TicketType.MYSQL_MIGRATE_UPGRADE, is_apply=True, is_recycle=True, iam=ActionEnum.MYSQL_MANAGE
+)
 class MysqlMigrateUpgradeFlowBuilder(MysqlMasterSlaveSwitchFlowBuilder):
     serializer = MysqlMigrateUpgradeDetailSerializer
     inner_flow_builder = MysqlMigrateUpgradeParamBuilder

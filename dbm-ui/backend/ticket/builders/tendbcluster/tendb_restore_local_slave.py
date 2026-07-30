@@ -18,6 +18,7 @@ from rest_framework import serializers
 
 from backend.db_meta.models import StorageInstance
 from backend.flow.engine.controller.spider import SpiderController
+from backend.iam_app.dataclass.actions import ActionEnum
 from backend.ticket import builders
 from backend.ticket.builders.common.base import InstanceInfoSerializer
 from backend.ticket.builders.common.constants import MySQLBackupSource
@@ -77,7 +78,7 @@ class TendbClusterRestoreLocalSlaveParamBuilder(builders.FlowParamBuilder):
         self.ticket_data["infos"] = list(ip__restore_infos.values())
 
 
-@builders.BuilderFactory.register(TicketType.TENDBCLUSTER_RESTORE_LOCAL_SLAVE)
+@builders.BuilderFactory.register(TicketType.TENDBCLUSTER_RESTORE_LOCAL_SLAVE, iam=ActionEnum.TENDBCLUSTER_MANAGE)
 class TendbClusterRestoreLocalSlaveFlowBuilder(BaseTendbTicketFlowBuilder):
     serializer = TendbClusterRestoreLocalSlaveDetailSerializer
     inner_flow_builder = TendbClusterRestoreLocalSlaveParamBuilder

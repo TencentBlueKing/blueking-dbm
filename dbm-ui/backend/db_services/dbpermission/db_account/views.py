@@ -67,7 +67,7 @@ class BaseDBAccountViewSet(viewsets.SystemViewSet):
             account_type = get_request_key_id(self.request, key="account_type")
             account_view_action = (
                 getattr(ActionEnum, f"{account_type}_account_rules_view".upper())
-                if account_type != AccountType.SQLServer
+                if account_type not in [AccountType.SQLServer, AccountType.MYSQL, AccountType.TENDBCLUSTER]
                 else getattr(ActionEnum, "db_manage".upper())
             )
             return [ResourceActionPermission([account_view_action], ResourceEnum.BUSINESS, self.instance_getter)]
@@ -155,7 +155,7 @@ class BaseDBAccountViewSet(viewsets.SystemViewSet):
         data_field=lambda d: d["results"],
         action_filed=lambda k: (
             []
-            if k["account_type"] == AccountType.SQLServer
+            if k["account_type"] in [AccountType.SQLServer, AccountType.MYSQL, AccountType.TENDBCLUSTER]
             else [
                 getattr(ActionEnum, f'{k["account_type"].upper()}_DELETE_ACCOUNT'),
                 getattr(ActionEnum, f'{k["account_type"].upper()}_ADD_ACCOUNT_RULE'),
@@ -166,7 +166,9 @@ class BaseDBAccountViewSet(viewsets.SystemViewSet):
         id_field=lambda d: d["account"]["bk_biz_id"],
         data_field=lambda d: d["results"],
         action_filed=lambda k: (
-            [ActionEnum.SQLSERVER_PRIV_MANAGE] if k["account_type"] == AccountType.SQLServer else []
+            [getattr(ActionEnum, f'{k["account_type"]}_priv_manage'.upper())]
+            if k["account_type"] in [AccountType.SQLServer, AccountType.MYSQL, AccountType.TENDBCLUSTER]
+            else []
         ),
     )
     def list_account_rules(self, request, bk_biz_id):

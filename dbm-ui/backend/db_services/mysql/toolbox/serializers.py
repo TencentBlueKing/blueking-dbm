@@ -13,6 +13,7 @@ from rest_framework import serializers
 
 from backend.flow.engine.controller.mysql import MySQLController
 from backend.flow.engine.controller.spider import SpiderController
+from backend.iam_app.dataclass.actions import ActionEnum
 from backend.ticket import builders
 from backend.ticket.builders.tendbcluster.base import BaseTendbTicketFlowBuilder
 from backend.ticket.constants import FlowRetryType, TicketType
@@ -377,7 +378,7 @@ class TdbctlUpgradeFlowParamBuilder(builders.FlowParamBuilder):
             self.ticket_data["bk_cloud_id"] = 0
 
 
-@builders.BuilderFactory.register(TicketType.TENDBCLUSTER_TDBCTL_UPGRADE)
+@builders.BuilderFactory.register(TicketType.TENDBCLUSTER_TDBCTL_UPGRADE, iam=ActionEnum.TENDBCLUSTER_MANAGE)
 class TdbctlUpgradeFlowBuilder(BaseTendbTicketFlowBuilder):
     serializer = TdbctlUpgradeSerializer
     inner_flow_builder = TdbctlUpgradeFlowParamBuilder
