@@ -20,11 +20,11 @@ _EPISODE_GAP = timedelta(minutes=10)
 
 # 查询侧绝对值过滤（不影响 Doris 写入）；组均值或单节点 abs_dev 过低则忽略
 _METRIC_SKEW_QUERY_THRESHOLDS: dict[str, dict[str, float]] = {
-    "cpu_summary": {"min_group_mean": 10, "min_abs_deviation": 5},  # CPU 使用率 %
-    "qps_summary": {"min_group_mean": 50, "min_abs_deviation": 30},  # QPS
-    "connections": {"min_group_mean": 20, "min_abs_deviation": 10},  # 连接数
-    "memory_usage": {"min_group_mean": 15, "min_abs_deviation": 5},  # 内存使用率 %
-    "disk_used": {"min_group_mean": 10240, "min_abs_deviation": 5120},  # 磁盘已用 MB（10GB / 5GB）
+    "cpu_summary": {"min_group_mean": 30, "min_abs_deviation": 20},  # CPU 使用率 %
+    "qps_summary": {"min_group_mean": 1000, "min_abs_deviation": 500},  # QPS
+    "connections": {"min_group_mean": 400, "min_abs_deviation": 100},  # 连接数
+    "memory_usage": {"min_group_mean": 50, "min_abs_deviation": 20},  # 内存使用率 %
+    "disk_used": {"min_group_mean": 500000, "min_abs_deviation": 50000},  # 磁盘已用 MB（500GB / 50GB）
 }
 _DEFAULT_QUERY_THRESHOLD = {"min_group_mean": 0, "min_abs_deviation": 0}
 
