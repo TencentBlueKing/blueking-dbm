@@ -9,8 +9,10 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 
+import json
 from typing import Any, Dict, List, Set
 
+from django.core.cache import cache
 from django.utils.translation import gettext_lazy as _
 
 from backend.db_meta.api.cluster.hdfs.detail import scan_cluster
@@ -23,6 +25,7 @@ from backend.db_services.bigdata.resources.query import (
 )
 from backend.db_services.dbbase.resources import query
 from backend.db_services.dbbase.resources.register import register_resource_decorator
+from backend.flow.utils.hdfs.consts import CACHE_CLUSTER_MASTER
 
 
 class HDFSExportQueryResourceMixin(BigDataBaseExportQueryResourceMixin):
@@ -87,3 +90,29 @@ class HDFSListRetrieveResource(BigDataBaseListRetrieveResource, HDFSExportQueryR
         cluster = Cluster.objects.get(bk_biz_id=bk_biz_id, id=cluster_id)
         graph = scan_cluster(cluster).to_dict()
         return graph
+
+    @classmethod
+    def get_clusters_master(cls, bk_biz_id: int, cluster_ids: list) -> dict:
+        """
+        获取 HDFS 集群 Active NameNode 信息，只从 Cache 中获取
+
+        Cache 由 db_periodic_task.local_tasks.hdfs.sync_cluster_master 定时任务写入，
+        key 格式: {CACHE_CLUSTER_MASTER}_{bk_biz_id}_{cluster_type}
+        value 格式: JSON {cluster_domain: active_host}
+
+        Returns:
+            dict: {cluster_id: active_host}
+        """
+        cluster_ids = cluster_ids or []
+        cache_master_stats: Dict[str, str] = {}
+        for cluster_type in cls.cluster_types:
+            raw = cache.get(f"{CACHE_CLUSTER_MASTER}_{bk_biz_id}_{cluster_type.value}", "{}")
+            cache_master_stats.update(json.loads(raw))
+
+        # 集群 immute_domain -> id 映射
+        cluster_domain_qs = Cluster.objects.filter(
+            bk_biz_id=bk_biz_id, id__in=cluster_ids, cluster_type=ClusterType.Hdfs
+        ).values("immute_domain", "id")
+        domain_ids = {cluster["immute_domain"]: cluster["id"] for cluster in cluster_domain_qs}
+
+        return {domain_ids[domain]: master for domain, master in cache_master_stats.items() if domain in domain_ids}
