@@ -70,7 +70,7 @@
         <div class="content-value">
           <BackupDbTags :list="backupRecord.backup_db_list" />
         </div>
-        <div class="content-label">{{ t('备份排除库 ：') }}</div>
+        <div class="content-label">{{ t('备份缺失库 ：') }}</div>
         <div class="content-value">
           <BackupDbTags
             :list="backupRecord.excluded_db_list"

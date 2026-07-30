@@ -89,7 +89,7 @@
           </template>
         </BkTableColumn>
         <BkTableColumn
-          :label="t('备份排除库')"
+          :label="t('备份缺失库')"
           :width="260">
           <template #default="{ row }: { row: SqlserverBackupLogModel }">
             <BackupDbTags
