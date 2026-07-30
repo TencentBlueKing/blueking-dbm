@@ -36,10 +36,10 @@ class AccountPermission(ResourceActionPermission):
 
     def instance_id_getter(self, request, view):
         try:
-            if self.account_type != "sqlserver":
+            if self.account_type not in ["sqlserver", "mysql", "tendbcluster"]:
                 self.actions = [getattr(ActionEnum, f"{self.account_type}_{self.view_action}".upper())]
             else:
-                self.actions = [ActionEnum.SQLSERVER_PRIV_MANAGE]
+                self.actions = [getattr(ActionEnum, f"{self.account_type}_priv_manage".upper())]
         except AttributeError:
             ActionNotExistError(_("账号动作:{} 不存在/未实现").format(self.view_action))
         # 只有创建账号的动作是业务的，剩下对账号的操作都是以账号为维度的
@@ -47,7 +47,7 @@ class AccountPermission(ResourceActionPermission):
             self.resource_meta = ResourceEnum.BUSINESS
             return [get_request_key_id(request, "bk_biz_id")]
         else:
-            if self.account_type != "sqlserver":
+            if self.account_type not in ["sqlserver", "mysql", "tendbcluster"]:
                 self.resource_meta = getattr(ResourceEnum, f"{self.account_type.upper()}_ACCOUNT")
                 return [get_request_key_id(request, "account_id")]
             else:

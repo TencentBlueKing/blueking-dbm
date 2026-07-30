@@ -21,6 +21,7 @@ from backend.db_meta.enums.comm import SystemTagEnum, TagType
 from backend.db_meta.models import AppCache, Cluster, Tag
 from backend.db_services.dbbase.constants import IpSource
 from backend.flow.engine.controller.spider import SpiderController
+from backend.iam_app.dataclass.actions import ActionEnum
 from backend.ticket import builders
 from backend.ticket.builders.common.base import BaseOperateResourceParamBuilder, HostInfoSerializer
 from backend.ticket.builders.common.constants import FixpointRollbackType, RollbackBuildClusterType
@@ -261,12 +262,16 @@ class TendbFixPointRollbackFlowBuilder(BaseTendbTicketFlowBuilder):
         return flow_desc
 
 
-@builders.BuilderFactory.register(TicketType.TENDBCLUSTER_FIXPOINT_NEW, is_apply=True)
+@builders.BuilderFactory.register(
+    TicketType.TENDBCLUSTER_FIXPOINT_NEW, is_apply=True, iam=ActionEnum.TENDBCLUSTER_ROLLBACK_CLUSTER
+)
 class TendbFixPointFlowNewClusterBuilder(TendbFixPointRollbackFlowBuilder):
     inner_flow_name = _("定点构造执行")
 
 
-@builders.BuilderFactory.register(TicketType.TENDBCLUSTER_FIXPOINT_EXIST, is_apply=True)
+@builders.BuilderFactory.register(
+    TicketType.TENDBCLUSTER_FIXPOINT_EXIST, is_apply=True, iam=ActionEnum.TENDBCLUSTER_ROLLBACK_CLUSTER
+)
 class TendbFixPointFlowExistClusterBuilder(TendbFixPointRollbackFlowBuilder):
     inner_flow_name = _("定点构造执行")
 

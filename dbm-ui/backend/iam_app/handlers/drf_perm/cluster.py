@@ -129,16 +129,18 @@ class PartitionManagePermission(ResourceActionPermission):
     def instance_ids_getter(self, request, view):
         # 从获取到业务ID和集群类型后，决定动作和资源类型
         convert = ClusterType.cluster_type_to_db_type
+        self.resource_meta = ResourceEnum.BUSINESS
         if view.action in ["create", "update"]:
             cluster = Cluster.objects.get(id=request.data["cluster_id"])
             bk_biz_id, db_type = cluster.bk_biz_id, convert(cluster.cluster_type)
-            self.actions = [getattr(ActionEnum, f"{db_type.upper()}_PARTITION_{view.action.upper()}")]
-            if view.action == "create":
-                self.resource_meta = ResourceEnum.BUSINESS
-                return [bk_biz_id]
-            else:
-                self.resource_meta = getattr(ResourceEnum, f"{db_type.upper()}")
-                return [cluster.id]
+            self.actions = [getattr(ActionEnum, f"{db_type.upper()}_PARTITION_MANAGE")]
+            return [bk_biz_id]
+            # if view.action == "create":
+            #     self.resource_meta = ResourceEnum.BUSINESS
+            #     return [bk_biz_id]
+            # else:
+            #     self.resource_meta = getattr(ResourceEnum, f"{db_type.upper()}")
+            #     return [cluster.id]
 
         elif view.action == "clone_conf_v2":
             target_clusters = []
@@ -167,17 +169,21 @@ class PartitionManagePermission(ResourceActionPermission):
 
         elif view.action in ["enable", "disable", "batch_delete"]:
             db_type = convert(request.data["cluster_type"])
-            params = {"limit": len(request.data["ids"]), "offset": 0, **request.data}
-            partition_data = DBPartitionApi.query_conf(params=params)["items"]
-            cluster_ids = [data["cluster_id"] for data in partition_data]
-            if view.action == "batch_delete":
-                self.actions = [getattr(ActionEnum, f"{db_type.upper()}_PARTITION_DELETE")]
-            else:
-                self.actions = [getattr(ActionEnum, f"{db_type.upper()}_PARTITION_ENABLE_DISABLE")]
-            self.resource_meta = getattr(ResourceEnum, f"{db_type.upper()}")
-            return list(set(cluster_ids))
+            bk_biz_id = request.data["bk_biz_id"]
+            self.actions = [getattr(ActionEnum, f"{db_type.upper()}_PARTITION_MANAGE")]
+            return [bk_biz_id]
+            # params = {"limit": len(request.data["ids"]), "offset": 0, **request.data}
+            # partition_data = DBPartitionApi.query_conf(params=params)["items"]
+            # cluster_ids = [data["cluster_id"] for data in partition_data]
+            # if view.action == "batch_delete":
+            #     self.actions = [getattr(ActionEnum, f"{db_type.upper()}_PARTITION_DELETE")]
+            # else:
+            #     self.actions = [getattr(ActionEnum, f"{db_type.upper()}_PARTITION_ENABLE_DISABLE")]
+            # self.resource_meta = getattr(ResourceEnum, f"{db_type.upper()}")
+            # return list(set(cluster_ids))
 
         elif view.action in ["dry_run", "execute_partition", "query_log"]:
+
             if view.action == "query_log":
                 config_id, cluster_type = int(request.query_params["config_id"]), request.query_params["cluster_type"]
                 params = {"limit": 1, "offset": 0, "ids": [config_id], "cluster_type": cluster_type}
@@ -186,9 +192,11 @@ class PartitionManagePermission(ResourceActionPermission):
                 cluster_id = request.data["cluster_id"]
             cluster = Cluster.objects.get(id=cluster_id)
             db_type = convert(cluster.cluster_type)
-            self.actions = [getattr(ActionEnum, f"{db_type.upper()}_PARTITION")]
-            self.resource_meta = getattr(ResourceEnum, f"{db_type.upper()}")
-            return [cluster.id]
+            self.actions = [getattr(ActionEnum, f"{db_type.upper()}_PARTITION_MANAGE")]
+            bk_biz_id = request.data["bk_biz_id"]
+            # self.actions = [getattr(ActionEnum, f"{db_type.upper()}_PARTITION")]
+            # self.resource_meta = getattr(ResourceEnum, f"{db_type.upper()}")
+            return [bk_biz_id]
 
 
 class ModifyClusterPasswordPermission(ResourceActionPermission):
@@ -208,8 +216,8 @@ class ModifyClusterPasswordPermission(ResourceActionPermission):
         db_type = ClusterType.cluster_type_to_db_type(machines.first().cluster_type)
         self.actions = (
             [getattr(ActionEnum, f"{db_type}_admin_pwd_modify".upper())]
-            if db_type != "sqlserver"
-            else [getattr(ActionEnum, "SQLSERVER_MANAGE")]
+            if db_type not in ["sqlserver", "mysql", "tendbcluster"]
+            else [getattr(ActionEnum, f"{db_type}_manage".upper())]
         )
         self.resource_meta = getattr(ResourceEnum, db_type.upper())
         # 通过machine获取关联集群，用于鉴权

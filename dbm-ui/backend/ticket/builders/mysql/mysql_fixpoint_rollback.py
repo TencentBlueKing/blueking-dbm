@@ -17,6 +17,7 @@ from rest_framework import serializers
 from backend.db_services.dbbase.constants import IpSource
 from backend.flow.consts import RollbackType
 from backend.flow.engine.controller.mysql import MySQLController
+from backend.iam_app.dataclass.actions import ActionEnum
 from backend.ticket import builders
 from backend.ticket.builders.common.base import BaseOperateResourceParamBuilder, HostInfoSerializer
 from backend.ticket.builders.common.constants import MySQLBackupSource, RollbackBuildClusterType
@@ -145,7 +146,9 @@ class MysqlFixPointRollbackResourceParamBuilder(BaseOperateResourceParamBuilder)
         next_flow.save(update_fields=["details"])
 
 
-@builders.BuilderFactory.register(TicketType.MYSQL_ROLLBACK_CLUSTER, is_apply=True)
+@builders.BuilderFactory.register(
+    TicketType.MYSQL_ROLLBACK_CLUSTER, is_apply=True, iam=ActionEnum.MYSQL_ROLLBACK_CLUSTER
+)
 class MysqlFixPointRollbackFlowBuilder(BaseMySQLTicketFlowBuilder):
     serializer = MySQLFixPointRollbackDetailSerializer
     inner_flow_builder = MySQLFixPointRollbackFlowParamBuilder
@@ -155,16 +158,20 @@ class MysqlFixPointRollbackFlowBuilder(BaseMySQLTicketFlowBuilder):
     validator = MySQLController.mysql_rollback_to_cluster_scene.validator
 
 
-@builders.BuilderFactory.register(TicketType.MYSQL_FIXPOINT_NEW_CLUSTER, is_apply=True)
+@builders.BuilderFactory.register(
+    TicketType.MYSQL_FIXPOINT_NEW_CLUSTER, is_apply=True, iam=ActionEnum.MYSQL_ROLLBACK_CLUSTER
+)
 class MysqlFixPointFlowNewClusterBuilder(MysqlFixPointRollbackFlowBuilder):
     inner_flow_name = _("定点构造执行")
 
 
-@builders.BuilderFactory.register(TicketType.MYSQL_FIXPOINT_EXIST_CLUSTER, is_apply=True)
+@builders.BuilderFactory.register(
+    TicketType.MYSQL_FIXPOINT_EXIST_CLUSTER, is_apply=True, iam=ActionEnum.MYSQL_ROLLBACK_CLUSTER
+)
 class MysqlFixPointFlowExistClusterBuilder(MysqlFixPointRollbackFlowBuilder):
     inner_flow_name = _("定点构造执行")
 
 
-@builders.BuilderFactory.register(TicketType.MYSQL_ROLLBACK, is_apply=True)
+@builders.BuilderFactory.register(TicketType.MYSQL_ROLLBACK, is_apply=True, iam=ActionEnum.MYSQL_ROLLBACK)
 class MysqlRollbackFlowBuilder(MysqlFixPointRollbackFlowBuilder):
     inner_flow_name = _("定点回档执行")

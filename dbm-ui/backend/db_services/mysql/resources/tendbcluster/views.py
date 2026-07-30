@@ -22,6 +22,7 @@ from backend.db_services.mysql.resources.tendbcluster import yasg_slz
 from backend.db_services.mysql.resources.tendbcluster.query import ListRetrieveResource
 from backend.iam_app.dataclass import ResourceEnum
 from backend.iam_app.dataclass.actions import ActionEnum
+from backend.iam_app.handlers.permission import Permission
 
 
 @method_decorator(
@@ -95,22 +96,29 @@ class SpiderViewSet(viewsets.ResourceViewSet):
     list_perm_actions = [
         ActionEnum.TENDBCLUSTER_VIEW,
         ActionEnum.TENDBCLUSTER_EDIT,
-        ActionEnum.TENDBCLUSTER_SPIDER_SLAVE_DESTROY,
+        ActionEnum.TENDBCLUSTER_MANAGE,
         ActionEnum.TENDBCLUSTER_ENABLE_DISABLE,
-        ActionEnum.TENDBCLUSTER_ADD_CLB,
-        ActionEnum.TENDBCLUSTER_CLB_BIND_DOMAIN,
         ActionEnum.TENDBCLUSTER_WEBCONSOLE,
         ActionEnum.TENDBCLUSTER_DESTROY,
-        ActionEnum.TENDBCLUSTER_SPIDER_ADD_NODES,
-        ActionEnum.TENDBCLUSTER_SPIDER_REDUCE_NODES,
-        ActionEnum.TENDBCLUSTER_SPIDER_MNT_DESTROY,
-        ActionEnum.TENDBCLUSTER_NODE_REBALANCE,
         ActionEnum.TENDBCLUSTER_DUMP_DATA,
         ActionEnum.TENDBCLUSTER_SUBSCRIBE_MONITOR,
         ActionEnum.TENDBCLUSTER_DBCONFIG_EDIT,
     ]
     list_instance_perm_actions = [ActionEnum.TENDBCLUSTER_VIEW]
     list_external_perm_actions = [ActionEnum.ACCESS_ENTRY_EDIT]
+
+    @Permission.decorator_external_permission_field(
+        param_field=lambda d: d["bk_biz_id"],
+        actions=[ActionEnum.TENDBCLUSTER_PRIV_MANAGE, ActionEnum.TENDBCLUSTER_LOADBALANCE_MANAGE],
+        resource_meta=ResourceEnum.BUSINESS,
+    )
+    @Permission.decorator_external_permission_field(
+        param_field=lambda d: d["view_class"]._external_perm_param_field(d),
+        action_filed=lambda d: d["view_class"].list_external_perm_actions,
+    )
+    def list(self, request, bk_biz_id: int):
+        """查询集群列表"""
+        return super().list(request, bk_biz_id)
 
     @staticmethod
     def _external_perm_param_field(kwargs):
