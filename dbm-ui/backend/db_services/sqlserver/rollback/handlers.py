@@ -372,7 +372,13 @@ class SQLServerRollbackHandler(object):
             backup_logs = self.query_latest_backup_log_from_model(restore_time)
 
         db_names = [log["dbname"] for log in backup_logs["logs"]]
-        real_db_names = sqlserver_match_dbs(db_names, db_pattern, ignore_db)
+        db_list = backup_logs["logs"][0]["db_list"].split(",")
+        # 取 db_list 在 db_names 中没有的数据（缺失/排除库）
+        excluded_db_names = set(db_list) - set(db_names)
+        # 匹配实际备份库，并剔除落在排除库集合中的数据（保证 real_db_names 不含 excluded 库）
+        real_db_names = [
+            db for db in sqlserver_match_dbs(db_names, db_pattern, ignore_db) if db not in excluded_db_names
+        ]
         return real_db_names
 
     def query_last_log_time(self, query_time: datetime):

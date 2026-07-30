@@ -3098,6 +3098,19 @@ class ActionEnum:
         common_labels=[CommonActionLabel.BIZ_MAINTAIN],
     )
 
+    # SQLServer 原地回档：重新定义权限，不挂到常用操作 BIZ_MAINTAIN 下
+    SQLSERVER_ROLLBACK_LOCAL = ActionMeta(
+        id="sqlserver_rollback_local",
+        name=_("SQLServer 原地回档"),
+        name_en="sqlserver_rollback_local",
+        description=_("SQLServer 集群原地回档操作"),
+        type="execute",
+        related_actions=[],
+        related_resource_types=[ResourceEnum.SQLSERVER],
+        group=_("SQLServer"),
+        subgroup=_("数据处理"),
+    )
+
     ORACLE_MANAGE = ActionMeta(
         id="oracle_manage",
         name=_("Oracle 集群管理"),
