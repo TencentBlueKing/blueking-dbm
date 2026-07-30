@@ -34,7 +34,7 @@ class FakeSemanticCheck(BaseService):
         # time.sleep(60)
 
         # 打印日志
-        log_num = 1000
+        log_num = 10
         for i in range(log_num):
             self.log_info(f"test log {i}")
             time.sleep(0.1)
