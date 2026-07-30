@@ -13,6 +13,7 @@ from django.utils.translation import gettext_lazy as _
 from backend.db_meta.enums import TenDBClusterSpiderRole
 from backend.db_meta.models import Cluster
 from backend.flow.engine.controller.spider import SpiderController
+from backend.iam_app.dataclass.actions import ActionEnum
 from backend.ticket import builders
 from backend.ticket.builders.common.base import fetch_cluster_ids
 from backend.ticket.builders.tendbcluster.base import BaseTendbTicketFlowBuilder, TendbBaseOperateResourceParamBuilder
@@ -53,7 +54,9 @@ class TendbSpiderConfUpDownResourceParamBuilder(TendbBaseOperateResourceParamBui
         next_flow.save(update_fields=["details"])
 
 
-@builders.BuilderFactory.register(TicketType.TENDBCLUSTER_SPIDER_CONF_UP_DOWN, is_recycle=True)
+@builders.BuilderFactory.register(
+    TicketType.TENDBCLUSTER_SPIDER_CONF_UP_DOWN, is_recycle=True, iam=ActionEnum.TENDBCLUSTER_MANAGE
+)
 class SpiderConfUpDownFlowBuilder(BaseTendbTicketFlowBuilder):
     serializer = SpiderConfUpDownDetailSerializer
     inner_flow_builder = SpiderConfUpDownFlowParamBuilder

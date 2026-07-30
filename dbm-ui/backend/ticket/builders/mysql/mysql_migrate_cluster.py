@@ -17,6 +17,7 @@ from backend.db_meta.enums import ClusterType, InstanceInnerRole
 from backend.db_meta.models import Cluster
 from backend.db_services.dbbase.constants import IpSource, SourceType
 from backend.flow.engine.controller.mysql import MySQLController
+from backend.iam_app.dataclass.actions import ActionEnum
 from backend.ticket import builders
 from backend.ticket.builders.common.base import BaseOperateResourceParamBuilder, HostInfoSerializer, fetch_cluster_ids
 from backend.ticket.builders.common.constants import MySQLBackupSource, OperaObjType
@@ -108,7 +109,9 @@ class MysqlMigrateClusterResourceParamBuilder(BaseOperateResourceParamBuilder):
         next_flow.save(update_fields=["details"])
 
 
-@builders.BuilderFactory.register(TicketType.MYSQL_MIGRATE_CLUSTER, is_apply=True, is_recycle=True)
+@builders.BuilderFactory.register(
+    TicketType.MYSQL_MIGRATE_CLUSTER, is_apply=True, is_recycle=True, iam=ActionEnum.MYSQL_MANAGE
+)
 class MysqlMigrateClusterFlowBuilder(MysqlMasterSlaveSwitchFlowBuilder):
     serializer = MysqlMigrateClusterDetailSerializer
     inner_flow_builder = MysqlMigrateClusterParamBuilder

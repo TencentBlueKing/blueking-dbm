@@ -18,6 +18,7 @@ from backend.db_meta.enums import TenDBClusterSpiderRole
 from backend.db_meta.models import Cluster, ProxyInstance
 from backend.db_services.dbbase.constants import IpSource
 from backend.flow.engine.controller.spider import SpiderController
+from backend.iam_app.dataclass.actions import ActionEnum
 from backend.ticket import builders
 from backend.ticket.builders.common.base import HostInfoSerializer, fetch_cluster_ids
 from backend.ticket.builders.tendbcluster.base import (
@@ -89,7 +90,9 @@ class TendbSpiderSwitchNodesResourceParamBuilder(TendbBaseOperateResourceParamBu
         next_flow.save(update_fields=["details"])
 
 
-@builders.BuilderFactory.register(TicketType.TENDBCLUSTER_SPIDER_SWITCH_NODES, is_recycle=True, is_apply=True)
+@builders.BuilderFactory.register(
+    TicketType.TENDBCLUSTER_SPIDER_SWITCH_NODES, is_recycle=True, is_apply=True, iam=ActionEnum.TENDBCLUSTER_MANAGE
+)
 class SpiderSwitchNodesFlowBuilder(BaseTendbTicketFlowBuilder):
     serializer = SpiderSwitchNodesDetailSerializer
     inner_flow_builder = SpiderSwitchNodesFlowParamBuilder

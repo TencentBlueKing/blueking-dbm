@@ -13,6 +13,7 @@ from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
 from backend.flow.engine.controller.spider import SpiderController
+from backend.iam_app.dataclass.actions import ActionEnum
 from backend.ticket import builders
 from backend.ticket.builders.common.base import HostInfoSerializer
 from backend.ticket.builders.tendbcluster.base import BaseTendbTicketFlowBuilder, TendbBaseOperateDetailSerializer
@@ -59,7 +60,7 @@ class TendbMasterSlaveSwitchParamBuilder(builders.FlowParamBuilder):
                     switch_tuple[role]["ip"] = ip_address
 
 
-@builders.BuilderFactory.register(TicketType.TENDBCLUSTER_MASTER_SLAVE_SWITCH)
+@builders.BuilderFactory.register(TicketType.TENDBCLUSTER_MASTER_SLAVE_SWITCH, iam=ActionEnum.TENDBCLUSTER_MANAGE)
 class TendbMasterSlaveSwitchFlowBuilder(BaseTendbTicketFlowBuilder):
     serializer = TendbMasterSlaveSwitchDetailSerializer
     inner_flow_builder = TendbMasterSlaveSwitchParamBuilder

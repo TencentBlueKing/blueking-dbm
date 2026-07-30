@@ -14,6 +14,7 @@ from rest_framework import serializers
 
 from backend.db_meta.models import AppCache
 from backend.flow.engine.controller.mysql import MySQLController
+from backend.iam_app.dataclass.actions import ActionEnum
 from backend.ticket import builders
 from backend.ticket.builders.mysql.base import (
     BaseMySQLTicketFlowBuilder,
@@ -61,7 +62,7 @@ class MySQLPartitionV2ParamBuilder(builders.FlowParamBuilder):
         self.ticket_data.update(bk_biz_name=app.bk_biz_name, db_app_abbr=app.db_app_abbr)
 
 
-@builders.BuilderFactory.register(TicketType.MYSQL_PARTITION_V2)
+@builders.BuilderFactory.register(TicketType.MYSQL_PARTITION_V2, iam=ActionEnum.MYSQL_PARTITION_MANAGE)
 class MysqlPartitionV2FlowBuilder(BaseMySQLTicketFlowBuilder):
     serializer = MySQLPartitionV2DetailSerializer
     inner_flow_builder = MySQLPartitionV2ParamBuilder

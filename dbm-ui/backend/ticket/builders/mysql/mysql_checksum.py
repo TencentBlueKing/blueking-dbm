@@ -20,6 +20,7 @@ from backend.db_meta.enums import InstanceInnerRole
 from backend.db_meta.models import StorageInstance
 from backend.db_services.dbbase.dataclass import DBInstance
 from backend.flow.engine.controller.mysql import MySQLController
+from backend.iam_app.dataclass.actions import ActionEnum
 from backend.ticket import builders
 from backend.ticket.builders.common.base import InstanceInfoSerializer
 from backend.ticket.builders.common.constants import MySQLChecksumTicketMode, MySQLDataRepairTriggerMode
@@ -152,7 +153,7 @@ class MySQLDataRepairFlowParamBuilder(builders.FlowParamBuilder):
         self.ticket_data["ticket_type"] = TicketType.MYSQL_DATA_REPAIR
 
 
-@builders.BuilderFactory.register(TicketType.MYSQL_CHECKSUM)
+@builders.BuilderFactory.register(TicketType.MYSQL_CHECKSUM, iam=ActionEnum.MYSQL_MANAGE)
 class MySQLChecksumFlowBuilder(BaseMySQLHATicketFlowBuilder):
     serializer = MySQLChecksumDetailSerializer
     # 流程构造类

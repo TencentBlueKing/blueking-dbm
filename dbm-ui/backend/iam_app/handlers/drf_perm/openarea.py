@@ -33,17 +33,16 @@ class OpenareaConfigPermission(ResourceActionPermission):
     def instance_ids_getter(self, request, view):
         # 从业务或告警组后，决定动作和资源类型
         bk_biz_id = view.kwargs["bk_biz_id"]
+        self.resource_meta = ResourceEnum.BUSINESS
         if self.view_action == "create":
             cluster_type = get_request_key_id(request, key="cluster_type")
             db_type = ClusterType.cluster_type_to_db_type(cluster_type)
-            self.actions = [getattr(ActionEnum, f"{db_type.upper()}_OPENAREA_CONFIG_CREATE")]
-            self.resource_meta = ResourceEnum.BUSINESS
+            self.actions = [getattr(ActionEnum, f"{db_type.upper()}_OPENAREA_MANAGE")]
             return [bk_biz_id]
         elif self.view_action in ["update", "destroy"]:
             config = TendbOpenAreaConfig.objects.get(id=view.kwargs["pk"])
             db_type = ClusterType.cluster_type_to_db_type(config.cluster_type)
-            self.actions = [getattr(ActionEnum, f"{db_type.upper()}_OPENAREA_CONFIG_{self.view_action.upper()}")]
-            self.resource_meta = ResourceEnum.OPENAREA_CONFIG
-            return [config.id]
+            self.actions = [getattr(ActionEnum, f"{db_type.upper()}_OPENAREA_MANAGE")]
+            return [bk_biz_id]
         else:
             raise ActionNotExistError(_("{}没有找到相关动作鉴权").format(self.view_action))

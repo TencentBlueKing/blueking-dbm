@@ -13,6 +13,7 @@ from django.utils.translation import gettext_lazy as _
 
 from backend.db_meta.enums import ClusterType
 from backend.flow.engine.controller.mysql import MySQLController
+from backend.iam_app.dataclass.actions import ActionEnum
 from backend.ticket import builders
 from backend.ticket.builders.mysql.base import BaseMySQLSingleTicketFlowBuilder, MySQLBaseOperateDetailSerializer
 from backend.ticket.builders.mysql.mysql_ha_clear import MySQLHaClearDetailSerializer, MySQLHaClearFlowParamBuilder
@@ -40,7 +41,7 @@ class MySQLSingleClearFlowParamBuilder(MySQLHaClearFlowParamBuilder):
         pass
 
 
-@builders.BuilderFactory.register(TicketType.MYSQL_SINGLE_TRUNCATE_DATA)
+@builders.BuilderFactory.register(TicketType.MYSQL_SINGLE_TRUNCATE_DATA, iam=ActionEnum.MYSQL_TRUNCATE_DATA)
 class MySQLSingleClearFlowBuilder(BaseMySQLSingleTicketFlowBuilder):
     serializer = MySQLSingleClearDetailSerializer
     inner_flow_builder = MySQLSingleClearFlowParamBuilder

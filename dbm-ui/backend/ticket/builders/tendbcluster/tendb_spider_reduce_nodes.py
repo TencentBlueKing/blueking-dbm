@@ -19,6 +19,7 @@ from backend.db_meta.models import Cluster
 from backend.flow.engine.controller.spider import SpiderController
 from backend.flow.engine.validate.exceptions import DisasterToleranceLevelFailedException
 from backend.flow.utils.base.roundrobin_algorithm import get_value_for_roundrobin
+from backend.iam_app.dataclass.actions import ActionEnum
 from backend.ticket import builders
 from backend.ticket.builders.common.base import HostInfoSerializer, fetch_cluster_ids
 from backend.ticket.builders.common.constants import ShrinkType
@@ -55,7 +56,9 @@ class TendbSpiderReduceNodesFlowParamBuilder(builders.FlowParamBuilder):
             info["spider_reduced_hosts"] = info.pop("old_nodes")["spider_reduced_hosts"]
 
 
-@builders.BuilderFactory.register(TicketType.TENDBCLUSTER_SPIDER_REDUCE_NODES, is_recycle=True)
+@builders.BuilderFactory.register(
+    TicketType.TENDBCLUSTER_SPIDER_REDUCE_NODES, is_recycle=True, iam=ActionEnum.TENDBCLUSTER_MANAGE
+)
 class TendbSpiderReduceNodesFlowBuilder(BaseTendbTicketFlowBuilder):
     serializer = TendbSpiderReduceNodesDetailSerializer
     inner_flow_builder = TendbSpiderReduceNodesFlowParamBuilder

@@ -15,6 +15,7 @@ from rest_framework import serializers
 from backend.db_meta.enums import TenDBClusterSpiderRole
 from backend.db_meta.models import ProxyInstance
 from backend.flow.engine.controller.spider import SpiderController
+from backend.iam_app.dataclass.actions import ActionEnum
 from backend.ticket import builders
 from backend.ticket.builders.tendbcluster.base import BaseTendbTicketFlowBuilder, TendbBaseOperateDetailSerializer
 from backend.ticket.constants import TicketType
@@ -29,7 +30,9 @@ class SpiderSlaveDestroyFlowParamBuilder(builders.FlowParamBuilder):
     controller = SpiderController.destroy_tendb_slave_cluster
 
 
-@builders.BuilderFactory.register(TicketType.TENDBCLUSTER_SPIDER_SLAVE_DESTROY, is_recycle=True)
+@builders.BuilderFactory.register(
+    TicketType.TENDBCLUSTER_SPIDER_SLAVE_DESTROY, is_recycle=True, iam=ActionEnum.TENDBCLUSTER_MANAGE
+)
 class SpiderSlaveApplyFlowBuilder(BaseTendbTicketFlowBuilder):
     serializer = SpiderSlaveDestroyDetailSerializer
     inner_flow_builder = SpiderSlaveDestroyFlowParamBuilder

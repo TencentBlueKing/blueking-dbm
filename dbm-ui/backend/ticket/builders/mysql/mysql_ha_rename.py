@@ -15,6 +15,7 @@ from rest_framework import serializers
 from backend.db_meta.enums import ClusterType
 from backend.db_services.mysql.remote_service.handlers import RemoteServiceHandler
 from backend.flow.engine.controller.mysql import MySQLController
+from backend.iam_app.dataclass.actions import ActionEnum
 from backend.ticket import builders
 from backend.ticket.builders.common.base import CommonValidate
 from backend.ticket.builders.mysql.base import (
@@ -56,7 +57,7 @@ class MySQLHaRenameFlowParamBuilder(builders.FlowParamBuilder):
     controller = MySQLController.mysql_ha_rename_database_scene
 
 
-@builders.BuilderFactory.register(TicketType.MYSQL_HA_RENAME_DATABASE)
+@builders.BuilderFactory.register(TicketType.MYSQL_HA_RENAME_DATABASE, iam=ActionEnum.MYSQL_RENAME_DATABASE)
 class MySQLHaRenameFlowBuilder(BaseMySQLHATicketFlowBuilder):
     serializer = MySQLHaRenameSerializer
     inner_flow_builder = MySQLHaRenameFlowParamBuilder

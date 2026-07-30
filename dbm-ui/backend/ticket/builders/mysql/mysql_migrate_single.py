@@ -14,6 +14,7 @@ from rest_framework import serializers
 
 from backend.db_services.dbbase.constants import IpSource
 from backend.flow.engine.controller.mysql import MySQLController
+from backend.iam_app.dataclass.actions import ActionEnum
 from backend.ticket import builders
 from backend.ticket.builders.common.base import BaseOperateResourceParamBuilder, HostInfoSerializer
 from backend.ticket.builders.common.constants import MySQLBackupSource
@@ -51,7 +52,9 @@ class MysqlMigrateSingleResourceParamBuilder(BaseOperateResourceParamBuilder):
         self.patch_info_common_affinity(role="bk_new_orphan")
 
 
-@builders.BuilderFactory.register(TicketType.MYSQL_MIGRATE_SINGLE, is_apply=True, is_recycle=True)
+@builders.BuilderFactory.register(
+    TicketType.MYSQL_MIGRATE_SINGLE, is_apply=True, is_recycle=True, iam=ActionEnum.MYSQL_MANAGE
+)
 class MysqlMigrateSingleFlowBuilder(BaseMySQLSingleTicketFlowBuilder):
     serializer = MysqlMigrateSingleDetailSerializer
     inner_flow_builder = MysqlMigrateSingleParamBuilder
