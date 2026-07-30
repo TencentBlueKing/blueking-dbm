@@ -66,16 +66,18 @@ func NewFullBackupTask(bkBizID string, bkCloudID int64, domain, ip string, port 
 	}
 	timeZone, _ := time.Now().Local().Zone()
 	ret.RedisFullbackupHistorySchema = models.RedisFullbackupHistorySchema{
-		ReportType:     consts.RedisFullBackupReportType,
-		BkBizID:        bkBizID,
-		BkCloudID:      bkCloudID,
-		Domain:         domain,
-		ServerIP:       ip,
-		ServerPort:     port,
-		BackupDir:      backupDir,
-		BackupTaskID:   "",
-		BackupMD5:      "",
-		BackupIdentify: fmt.Sprintf("SCHEDULED-%s", time.Now().Format("2006010203")),
+		ReportType:   consts.RedisFullBackupReportType,
+		BkBizID:      bkBizID,
+		BkCloudID:    bkCloudID,
+		Domain:       domain,
+		ServerIP:     ip,
+		ServerPort:   port,
+		BackupDir:    backupDir,
+		BackupTaskID: "",
+		BackupMD5:    "",
+		// Go time 布局: 15 表示 24 小时制小时 (03 是 12 小时制, 凌晨 3 点与下午 3 点会冲突).
+		// 该 identify 表示"这一小时内的这批例行备份", 同集群同一小时内多次触发会归并为一条 result.
+		BackupIdentify: fmt.Sprintf("SCHEDULED-%s", time.Now().Format("2006010215")),
 		BackupTag:      backupFileTag,
 		TimeZone:       timeZone,
 		ShardValue:     shardValue,
@@ -94,6 +96,12 @@ func NewFullBackupTask(bkBizID string, bkCloudID int64, domain, ip string, port 
 func (task *BackupTask) ToString() string {
 	tmpBytes, _ := json.Marshal(task)
 	return string(tmpBytes)
+}
+
+func (task *BackupTask) reportBackupProgress() {
+	if err := report.RedisBackupProgressReport(&task.RedisFullbackupHistorySchema, task.reporter); err != nil {
+		mylog.Logger.Error(err.Error())
+	}
 }
 
 // BakcupToLocal 执行备份task,备份到本地
@@ -147,13 +155,14 @@ func (task *BackupTask) BakcupToLocal() {
 	defer flock.Unlock()
 
 	defer func() {
-		if task.Err != nil && task.Status == "" {
+		if task.Err != nil && (task.Status == "" || task.Status == consts.BackupStatusRunning) {
 			task.Message = task.Err.Error()
 			task.Status = consts.BackupStatusFailed
 		}
 		if err := report.RedisFullBackupReport(&task.RedisFullbackupHistorySchema, task.reporter); err != nil {
 			mylog.Logger.Error(err.Error())
 		}
+		task.reportBackupProgress()
 		// task.BackupRecordReport(task.reporter)
 	}()
 
@@ -165,6 +174,7 @@ func (task *BackupTask) BakcupToLocal() {
 	if err := report.RedisFullBackupReport(&task.RedisFullbackupHistorySchema, task.reporter); err != nil {
 		mylog.Logger.Error(err.Error())
 	}
+	task.reportBackupProgress()
 
 	mylog.Logger.Info(fmt.Sprintf("redis(%s) dbType:%s start backup...", task.Addr(), task.DbType))
 
@@ -515,13 +525,13 @@ func (task *BackupTask) TransferToBackupSystem() {
 	var msg string
 	cliFileInfo, err := os.Stat(consts.COSBackupClient)
 	if err != nil {
-		err = fmt.Errorf("os.stat(%s) failed,err:%v", consts.COSBackupClient, err)
-		mylog.Logger.Error(err.Error())
+		task.Err = fmt.Errorf("os.stat(%s) failed,err:%v", consts.COSBackupClient, err)
+		mylog.Logger.Error(task.Err.Error())
 		return
 	}
 	if !util.IsExecOther(cliFileInfo.Mode().Perm()) {
-		err = fmt.Errorf("%s is unable to execute by other", consts.COSBackupClient)
-		mylog.Logger.Error(err.Error())
+		task.Err = fmt.Errorf("%s is unable to execute by other", consts.COSBackupClient)
+		mylog.Logger.Error(task.Err.Error())
 		return
 	}
 	mylog.Logger.Info(fmt.Sprintf("redis(%s) backupFiles:%+v start upload backupSystem", task.Addr(), task.BackupFile))

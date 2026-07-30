@@ -601,13 +601,13 @@ def get_online_redis_version(ip: str, port: int, bk_cloud_id: int, redis_passwor
     if not resp or len(resp) == 0:
         return ""
     result = resp[0].get("result")
-    version_str = re.search(r"redis_version:(.*)\r?\n", result).group(1)
+    version_str = re.search(r"redis_version:(.*?)\r?\n", result).group(1).strip()
 
     # valkey 兼容 redis 协议，INFO SERVER 中 redis_version 只是兼容版本号(如 7.2.4)，
     # 真实的 valkey 版本需要看 valkey_version 字段，server_name 字段用于区分是否为 valkey
-    server_name_match = re.search(r"server_name:(.*)\r?\n", result)
+    server_name_match = re.search(r"server_name:(.*?)\r?\n", result)
     if server_name_match and server_name_match.group(1).strip().lower() == "valkey":
-        valkey_version_match = re.search(r"valkey_version:(.*)\r?\n", result)
+        valkey_version_match = re.search(r"valkey_version:(.*?)\r?\n", result)
         if valkey_version_match and valkey_version_match.group(1).strip():
             version_str = valkey_version_match.group(1).strip()
         return "valkey-" + version_str

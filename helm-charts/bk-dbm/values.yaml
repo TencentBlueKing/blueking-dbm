@@ -614,6 +614,30 @@ db-event-consumer:
       from_beginning: false
       client_id_suffix: ""
       group_id_suffix: ""
+    - topic: "redis_backup_result"
+      model_table: "tb_redis_backup_result"
+      strict_schema: true
+      skip_migrate_schema: false
+      datasource: "prod_bk_dbm_report"
+      from_beginning: false
+      client_id_suffix: ""
+      group_id_suffix: ""
+    - topic: "redis_binlog_result"
+      model_table: "tb_redis_binlog_result"
+      strict_schema: true
+      skip_migrate_schema: false
+      datasource: "prod_bk_dbm_report"
+      from_beginning: false
+      client_id_suffix: ""
+      group_id_suffix: ""
+    - topic: "redis_backup_progress"
+      model_table: "tb_redis_backup_progress"
+      strict_schema: true
+      skip_migrate_schema: false
+      datasource: "prod_bk_dbm_report"
+      from_beginning: false
+      client_id_suffix: ""
+      group_id_suffix: ""
 
 # reloader
 stakater:

@@ -128,6 +128,191 @@ class DataStructureHandler:
         )
         return backup_logs
 
+    def get_bklog_by_identify(
+        self, backup_identify: str, start_time: datetime = None, end_time: datetime = None
+    ) -> List[Dict]:
+        """
+        通过日志平台按 (cluster_domain, backup_identify) 精确查询"一次备份"产生的全部分片记录.
+        数据量上限	6000 条硬顶
+        重要: backup_identify **不是全局唯一** 的:
+        - Flow 场景 (BILL/FLUSH/FOREVER/DTS-{uid}-{ts}): 一个单据涉及多个集群时,
+          所有集群共用同一个 identify;
+        - 例行备份 (SCHEDULED-{YYYYMMDDHH}): 全业务所有 Redis 集群在同一小时的
+          identify 完全相同;
+        - Reupload (REUPLOAD-{ts}): 同一秒重上报多集群时 identify 相同.
+
+        因此本方法**始终**使用当前实例的 self.cluster.immute_domain 作为过滤条件, identify
+        只在集群维度内定位"一次备份". 调用方无法通过 identify 跨集群查询.
+
+        :param backup_identify: 备份批次标识 (集群内唯一)
+        :param start_time:      查询起始时间; 不传时默认往前推
+                                BACKUP_LOG_ROLLBACK_TIME_RANGE_DAYS 天
+        :param end_time:        查询结束时间; 不传时默认取当前时间
+        :return: 该集群该批次的原始 bklog 记录 (未做格式转换)
+        """
+        if not backup_identify:
+            raise AppBaseException(_("backup_identify 不能为空"))
+
+        if end_time is None:
+            end_time = datetime.now()
+        if start_time is None:
+            start_time = end_time - timedelta(days=BACKUP_LOG_ROLLBACK_TIME_RANGE_DAYS)
+
+        cluster_domain = self.cluster.immute_domain
+        status = "to_backup_system_success"
+        # 语义: 集群维度 (domain) + 批次维度 (backup_identify) + 状态维度 (status) 三元锁定
+        # backup_identify 单独不能定位到"一次备份", 必须与 domain 组合
+        backup_logs = self._get_log_from_bklog(
+            collector="redis_fullbackup_result",
+            start_time1=start_time,
+            end_time1=end_time,
+            query_string=(
+                f"domain: {cluster_domain} AND status: {status} " f'AND backup_identify: "{backup_identify}"'
+            ),
+        )
+        return backup_logs
+
+    def query_backup_logs_by_identify(
+        self, backup_identify: str, start_time: datetime = None, end_time: datetime = None
+    ) -> List[Dict[str, Union[int, Any]]]:
+        """
+        按 (当前集群, backup_identify) 精确聚齐一次备份的所有分片, 并转换为备份系统标准格式.
+
+        与 query_donmain_backup_log 的差异:
+        - query_donmain_backup_log 用 "最近 N 天 + 3 小时时间窗口" 聚批, 精度较低;
+        - 本方法在当前集群下用 backup_identify 精确聚批, 直接对应"一次备份行为",
+          不需要时间窗口.
+
+        注意: backup_identify 不是全局唯一, 必须绑定当前 self.cluster; 若调用方需要跨
+        集群查询同一单据触发的所有备份, 请对每个 cluster 分别 new 一个 handler 后调用本方法.
+
+        :param backup_identify: 备份批次标识
+        :param start_time:      查询起始时间(可选)
+        :param end_time:        查询结束时间(可选)
+        :return: 与 query_donmain_backup_log 相同格式的备份文件列表
+        """
+        backup_logs = self.get_bklog_by_identify(
+            backup_identify=backup_identify, start_time=start_time, end_time=end_time
+        )
+        if not backup_logs:
+            raise AppBaseException(
+                _("无法查找到集群{}下 backup_identify={} 的全备份日志").format(self.cluster.immute_domain, backup_identify)
+            )
+
+        logger.info(
+            _("集群{} 按 backup_identify={} 命中 {} 条备份记录").format(
+                self.cluster.immute_domain, backup_identify, len(backup_logs)
+            )
+        )
+        backup_logs.sort(key=lambda x: x["start_time"])
+
+        # 转换为备份系统标准格式
+        return [self.convert_to_backup_system_format(log) for log in backup_logs]
+
+    def list_backup_identifies(
+        self, start_time: datetime, end_time: datetime, status: str = "to_backup_system_success"
+    ) -> List[Dict[str, Any]]:
+        """
+        枚举当前集群在指定时间范围内出现过的所有 backup_identify, 附带每个批次的聚合元信息.
+        后期可以改成： 查：tb_redis_backup_result 位于 bk_dbm_report 数据库
+        使用场景:
+        - 前端"备份批次列表"下拉框, 让用户按批次选择恢复
+        - 单据结束页面回显"本次单据触发的备份批次"
+        - 运维排查"某天该集群做过哪些备份"
+
+        实现说明:
+        - 复用 _get_log_from_bklog 拉当前集群时间窗内的原始记录, 应用层按 backup_identify
+          分组去重, 与项目现有 set() 去重风格保持一致;
+        - 数据量控制: _get_log_from_bklog size=6000, 单集群 backup_identify 一般是"1天 1~24 批 *
+          N 分片" 量级, 不会触发上限. 若未来上限成为问题, 可再考虑走 ES aggregations.
+
+        :param start_time: 查询起始时间
+        :param end_time:   查询结束时间
+        :param status:     备份状态过滤; 默认只列出"上传备份系统成功"的批次
+        :return: 批次列表, 每个元素形如:
+                 {
+                     "backup_identify": "SCHEDULED-2026073003",
+                     "backup_type":      "SCHEDULED",         # 从 identify 前缀提取
+                     "shard_count":      12,                  # 该批次记录数
+                     "earliest_start":   "2026-07-30T03:00:11+08:00",
+                     "latest_end":       "2026-07-30T03:04:22+08:00",
+                     "total_file_size":  123456789,           # 该批次总大小
+                     "roles":            ["slave"],           # 涉及的实例角色
+                 }
+                 按 earliest_start 倒序 (最新的批次在前).
+        """
+        cluster_domain = self.cluster.immute_domain
+        query_string = f"domain: {cluster_domain}"
+        if status:
+            query_string = f"{query_string} AND status: {status}"
+
+        raw_logs = self._get_log_from_bklog(
+            collector="redis_fullbackup_result",
+            start_time1=start_time,
+            end_time1=end_time,
+            query_string=query_string,
+        )
+        if not raw_logs:
+            logger.info(_("集群{} 在时间范围 {} ~ {} 未发现任何备份批次").format(cluster_domain, start_time, end_time))
+            return []
+
+        # 按 backup_identify 分组聚合
+        buckets: Dict[str, Dict[str, Any]] = {}
+        for log in raw_logs:
+            identify = log.get("backup_identify") or ""
+            if not identify:
+                # 兜底: 未上报 identify 的老记录跳过 (它们无法用于批次维度定位)
+                continue
+
+            bucket = buckets.setdefault(
+                identify,
+                {
+                    "backup_identify": identify,
+                    "backup_type": self._extract_identify_prefix(identify),
+                    "shard_count": 0,
+                    "earliest_start": log["start_time"],
+                    "latest_end": log["end_time"],
+                    "total_file_size": 0,
+                    "roles": set(),
+                },
+            )
+            bucket["shard_count"] += 1
+            bucket["total_file_size"] += int(log.get("backup_file_size") or 0)
+            if log.get("role"):
+                bucket["roles"].add(log["role"])
+            if log["start_time"] < bucket["earliest_start"]:
+                bucket["earliest_start"] = log["start_time"]
+            if log["end_time"] > bucket["latest_end"]:
+                bucket["latest_end"] = log["end_time"]
+
+        # set 转 list 便于 json 序列化, 并按最新时间倒序返回
+        result = []
+        for bucket in buckets.values():
+            bucket["roles"] = sorted(bucket["roles"])
+            result.append(bucket)
+        result.sort(key=lambda x: x["earliest_start"], reverse=True)
+
+        logger.info(_("集群{} 在时间范围 {} ~ {} 发现 {} 个备份批次").format(cluster_domain, start_time, end_time, len(result)))
+        return result
+
+    @staticmethod
+    def _extract_identify_prefix(backup_identify: str) -> str:
+        """
+        从 backup_identify 提取批次类型前缀:
+        - BILL{uid}-{ts}     -> BILL 普通单据备份：
+        - FLUSH{uid}-{ts}    -> FLUSH 清档前备份：
+        - FOREVER{uid}-{ts}  -> FOREVER 集群下架永久备份：实例下架永久备份：
+        - DTS{uid}-{ts}      -> DTS DTS 目标集群清档前备份：
+        - SCHEDULED-{ts}     -> SCHEDULED 周期备份生成格式：
+        - REUPLOAD-{ts}      -> REUPLOAD 迁移DBM备份
+        - 其它未识别格式返回 UNKNOWN
+        """
+        known_prefixes = ("SCHEDULED", "REUPLOAD", "FOREVER", "FLUSH", "BILL", "DTS")
+        for prefix in known_prefixes:
+            if backup_identify.startswith(prefix):
+                return prefix
+        return "UNKNOWN"
+
     def query_donmain_backup_log(self, rollback_time: datetime) -> List[Dict[str, Union[int, Any]]]:
         # 1、通过集群名从日志平台查询集群信息,首先是扩大范围查询到离回档时间点最近的一个备份文件
         end_time = rollback_time

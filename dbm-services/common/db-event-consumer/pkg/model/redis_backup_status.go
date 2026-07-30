@@ -21,16 +21,17 @@ type RedisBackupStatus struct {
 	// StatusDetail 如果失败，记录失败详情
 	StatusDetail string `json:"status_detail" gorm:"type:text"`
 
-	BackupId   string `json:"backup_task_id" gorm:"type:varchar(60);NOT NULL"`
-	BackupType string `json:"backup_type"  gorm:"type:varchar(32);NOT NULL"`
+	BackupId       string `json:"backup_task_id" gorm:"type:varchar(60);NOT NULL"`
+	BackupType     string `json:"backup_type"  gorm:"type:varchar(32);NOT NULL"`
+	BackupIdentify string `json:"backup_identify" gorm:"type:varchar(255);NOT NULL"`
 
 	ImmuteDomain string `json:"immute_domain" gorm:"type:varchar(255);NOT NULL"`
 	BackupHost   string `json:"backup_host"  gorm:"type:varchar(32);NOT NULL"`
 	BackupPort   int    `json:"backup_port"  gorm:"type:int;NOT NULL"`
 	RedisRole    string `json:"redis_role"  gorm:"type:varchar(32);NOT NULL"`
 
-	ShardValue int    `json:"shard_value"  gorm:"type:int;NOT NULL"`
-	BkBizId    string `json:"bk_biz_id"  gorm:"type:int;NOT NULL"`
+	ShardValue string        `json:"shard_value"  gorm:"type:varchar(255);NOT NULL"`
+	BkBizId    stringOrInt64 `json:"bk_biz_id"  gorm:"type:int;NOT NULL"`
 	// IsFullBackup 是否包含数据的全备
 	IsFullBackup bool `json:"is_full_backup"  gorm:"type:tinyint"`
 }
@@ -71,6 +72,10 @@ func (m RedisBackupStatusModel) MigrateSchema(w base.DSWriter) error {
 		}
 		if err := base.CreateOrUpdateIndex(db, m.TableName(), "idx_host",
 			[]string{"backup_host"}, false, true); err != nil {
+			return err
+		}
+		if err := base.CreateOrUpdateIndex(db, m.TableName(), "idx_backup_identify",
+			[]string{"backup_identify"}, false, true); err != nil {
 			return err
 		}
 		if err := base.CreateOrUpdateIndex(db, m.TableName(), "idx_create_ts",

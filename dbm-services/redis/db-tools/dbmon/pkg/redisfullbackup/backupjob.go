@@ -213,9 +213,17 @@ func (job *Job) CheckOldFullbackupStatus(port int) {
 			row.BackupTaskID, job.Err = job.backupClient.Upload(row.BackupFile)
 			if job.Err != nil {
 				row.Message = job.Err.Error()
+				// Upload 报错时也要上报一次 progress, 让 tb_redis_backup_progress 能看到失败流水
+				row.Status = consts.BackupStatusToBakSystemFailed
+				if err := report.RedisBackupProgressReport(&row, job.Reporter); err != nil {
+					mylog.Logger.Error(err.Error())
+				}
 			} else {
 				row.Status = consts.BackupStatusToBakSystemStart
 				row.Message = "上传备份系统中"
+				if err := report.RedisBackupProgressReport(&row, job.Reporter); err != nil {
+					mylog.Logger.Error(err.Error())
+				}
 			}
 			// 更新记录 status 和 message
 			job.Err = job.sqdb.Save(&row).Error
@@ -244,6 +252,9 @@ func (job *Job) CheckOldFullbackupStatus(port int) {
 					if err := report.RedisFullBackupReport(&row, job.Reporter); err != nil {
 						mylog.Logger.Error(err.Error())
 					}
+					if err := report.RedisBackupProgressReport(&row, job.Reporter); err != nil {
+						mylog.Logger.Error(err.Error())
+					}
 					// row.BackupRecordReport(job.Reporter)
 					mylog.Logger.Error(fmt.Sprintf("%s %s", row.BackupFile, row.Message))
 				}
@@ -256,6 +267,9 @@ func (job *Job) CheckOldFullbackupStatus(port int) {
 					row.Status = consts.BackupStatusToBakSysSuccess
 					row.Message = "上传备份系统成功"
 					if err := report.RedisFullBackupReport(&row, job.Reporter); err != nil {
+						mylog.Logger.Error(err.Error())
+					}
+					if err := report.RedisBackupProgressReport(&row, job.Reporter); err != nil {
 						mylog.Logger.Error(err.Error())
 					}
 					// row.BackupRecordReport(job.Reporter)
