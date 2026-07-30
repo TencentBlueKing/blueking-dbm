@@ -12,6 +12,7 @@ specific language governing permissions and limitations under the License.
 from django.utils.translation import gettext_lazy as _
 
 from backend.flow.engine.controller.mysql import MySQLController
+from backend.iam_app.dataclass.actions import ActionEnum
 from backend.ticket import builders
 from backend.ticket.builders.mysql.mysql_partition_v2 import (
     MySQLPartitionV2DetailSerializer,
@@ -32,7 +33,7 @@ class SpiderPartitionV2ParamBuilder(MySQLPartitionV2ParamBuilder):
         super().format_ticket_data()
 
 
-@builders.BuilderFactory.register(TicketType.TENDBCLUSTER_PARTITION_V2)
+@builders.BuilderFactory.register(TicketType.TENDBCLUSTER_PARTITION_V2, iam=ActionEnum.TENDBCLUSTER_PARTITION_MANAGE)
 class SpiderPartitionV2FlowBuilder(BaseTendbTicketFlowBuilder):
     serializer = SpiderPartitionV2DetailSerializer
     inner_flow_builder = SpiderPartitionV2ParamBuilder

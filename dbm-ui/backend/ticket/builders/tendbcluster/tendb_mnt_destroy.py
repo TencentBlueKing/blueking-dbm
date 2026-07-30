@@ -13,6 +13,7 @@ from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
 from backend.flow.engine.controller.spider import SpiderController
+from backend.iam_app.dataclass.actions import ActionEnum
 from backend.ticket import builders
 from backend.ticket.builders.common.base import HostInfoSerializer
 from backend.ticket.builders.tendbcluster.base import BaseTendbTicketFlowBuilder, TendbBaseOperateDetailSerializer
@@ -43,7 +44,9 @@ class TendbMNTDestroyParamBuilder(builders.FlowParamBuilder):
             info["spider_ip_list"] = info.pop("old_nodes")["spider_ip_list"]
 
 
-@builders.BuilderFactory.register(TicketType.TENDBCLUSTER_SPIDER_MNT_DESTROY, is_recycle=True)
+@builders.BuilderFactory.register(
+    TicketType.TENDBCLUSTER_SPIDER_MNT_DESTROY, is_recycle=True, iam=ActionEnum.TENDBCLUSTER_MANAGE
+)
 class TendbMNTDestroyFlowBuilder(BaseTendbTicketFlowBuilder):
     serializer = TendbMNTDestroyDetailSerializer
     inner_flow_builder = TendbMNTDestroyParamBuilder

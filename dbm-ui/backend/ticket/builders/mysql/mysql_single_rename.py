@@ -13,6 +13,7 @@ from django.utils.translation import gettext_lazy as _
 
 from backend.db_meta.enums import ClusterType
 from backend.flow.engine.controller.mysql import MySQLController
+from backend.iam_app.dataclass.actions import ActionEnum
 from backend.ticket import builders
 from backend.ticket.builders.mysql.base import BaseMySQLSingleTicketFlowBuilder, MySQLBaseOperateDetailSerializer
 from backend.ticket.builders.mysql.mysql_ha_rename import MySQLHaRenameFlowParamBuilder, MySQLHaRenameSerializer
@@ -34,7 +35,7 @@ class MySQLSingleRenameFlowParamBuilder(MySQLHaRenameFlowParamBuilder):
     controller = MySQLController.mysql_single_rename_database_scene
 
 
-@builders.BuilderFactory.register(TicketType.MYSQL_SINGLE_RENAME_DATABASE)
+@builders.BuilderFactory.register(TicketType.MYSQL_SINGLE_RENAME_DATABASE, iam=ActionEnum.MYSQL_RENAME_DATABASE)
 class MySQLSingleClearFlowBuilder(BaseMySQLSingleTicketFlowBuilder):
     serializer = MySQLSingleRenameDetailSerializer
     inner_flow_builder = MySQLSingleRenameFlowParamBuilder

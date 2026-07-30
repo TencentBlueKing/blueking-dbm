@@ -15,6 +15,7 @@ from rest_framework import serializers
 from backend.db_meta.models import Cluster
 from backend.db_services.dbbase.constants import IpSource
 from backend.flow.engine.controller.spider import SpiderController
+from backend.iam_app.dataclass.actions import ActionEnum
 from backend.ticket import builders
 from backend.ticket.builders.common.constants import MySQLBackupSource
 from backend.ticket.builders.tendbcluster.base import (
@@ -83,7 +84,9 @@ class TendbNodeRebalanceResourceParamBuilder(TendbBaseOperateResourceParamBuilde
         next_flow.save(update_fields=["details"])
 
 
-@builders.BuilderFactory.register(TicketType.TENDBCLUSTER_NODE_REBALANCE, is_apply=True, is_recycle=True)
+@builders.BuilderFactory.register(
+    TicketType.TENDBCLUSTER_NODE_REBALANCE, is_apply=True, is_recycle=True, iam=ActionEnum.TENDBCLUSTER_MANAGE
+)
 class TendbMNTApplyFlowBuilder(BaseTendbTicketFlowBuilder):
     serializer = TendbNodeRebalanceDetailSerializer
     inner_flow_builder = TendbNodeRebalanceFlowParamBuilderBuilder

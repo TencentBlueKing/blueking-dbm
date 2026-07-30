@@ -13,6 +13,7 @@ from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
 from backend.flow.engine.controller.spider import SpiderController
+from backend.iam_app.dataclass.actions import ActionEnum
 from backend.ticket import builders
 from backend.ticket.builders.tendbcluster.base import BaseTendbTicketFlowBuilder, TendbBaseOperateDetailSerializer
 from backend.ticket.builders.tendbcluster.tendb_master_slave_switch import TendbMasterSlaveSwitchDetailSerializer
@@ -37,13 +38,13 @@ class TendbMasterFailOverParamBuilder(builders.FlowParamBuilder):
     controller = SpiderController.tendbcluster_remote_fail_over_scene
 
 
-@builders.BuilderFactory.register(TicketType.TENDBCLUSTER_MASTER_FAIL_OVER)
+@builders.BuilderFactory.register(TicketType.TENDBCLUSTER_MASTER_FAIL_OVER, iam=ActionEnum.TENDBCLUSTER_MANAGE)
 class TendbMasterFailOverFlowBuilder(BaseTendbTicketFlowBuilder):
     serializer = TendbMasterFailOverDetailSerializer
     inner_flow_builder = TendbMasterFailOverParamBuilder
     inner_flow_name = _("TendbCluster 主故障切换")
 
 
-@builders.BuilderFactory.register(TicketType.TENDBCLUSTER_INSTANCE_FAIL_OVER)
+@builders.BuilderFactory.register(TicketType.TENDBCLUSTER_INSTANCE_FAIL_OVER, iam=ActionEnum.TENDBCLUSTER_MANAGE)
 class TendbInstanceFailOverFlowBuilder(TendbMasterFailOverFlowBuilder):
     inner_flow_name = _("TendbCluster 主库实例故障切换")
