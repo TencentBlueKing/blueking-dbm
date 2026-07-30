@@ -25,6 +25,7 @@ logger = logging.getLogger("root")
 
 class DorisUpgradeDetailSerializer(ParamValidateSerializerMixin, BigDataSingleClusterOpsDetailsSerializer):
     new_version = serializers.CharField(help_text=_("目标升级版本号，格式 x.y.z"))
+    remark = serializers.CharField(help_text=_("备注"), required=False, allow_blank=True, default="")
 
     def validate(self, attrs):
         # 先走父类（BigDataDetailsSerializer -> TicketBaseValidateSerializerMixin）的通用校验
