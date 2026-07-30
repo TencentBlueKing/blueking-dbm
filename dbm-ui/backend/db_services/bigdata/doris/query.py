@@ -65,6 +65,67 @@ class DorisListRetrieveResource(BigDataBaseListRetrieveResource, DorisExportQuer
     ]
 
     @classmethod
+    def _get_cached_master_map(cls, bk_biz_id: int) -> dict:
+        master_map = {}
+        for cluster_type in cls.cluster_types:
+            master_map.update(json.loads(cache.get(f"{CACHE_CLUSTER_MASTER}_{bk_biz_id}_{cluster_type}", "{}")))
+        return master_map
+
+    @classmethod
+    def _to_cluster_representation(
+        cls,
+        cluster,
+        cluster_entry,
+        db_module_names_map,
+        cluster_entry_map,
+        cluster_operate_records_map,
+        cloud_info,
+        biz_info,
+        cluster_stats_map,
+        cluster_zone_map,
+        dns_to_clb=False,
+        **kwargs,
+    ) -> dict:
+        cluster_info = super()._to_cluster_representation(
+            cluster=cluster,
+            cluster_entry=cluster_entry,
+            db_module_names_map=db_module_names_map,
+            cluster_entry_map=cluster_entry_map,
+            cluster_operate_records_map=cluster_operate_records_map,
+            cloud_info=cloud_info,
+            biz_info=biz_info,
+            cluster_stats_map=cluster_stats_map,
+            cluster_zone_map=cluster_zone_map,
+            dns_to_clb=dns_to_clb,
+            **kwargs,
+        )
+
+        master_address = cls._get_cached_master_map(cluster.bk_biz_id).get(cluster.immute_domain)
+        for follower in cluster_info.get(InstanceRole.DORIS_FOLLOWER.value, []):
+            follower["is_master"] = follower["instance"] == master_address
+
+        return cluster_info
+
+    @classmethod
+    def _filter_instance_hook(cls, bk_biz_id, query_params, instances, **kwargs):
+        instances = list(instances)
+        cluster_ids = list({instance["cluster__id"] for instance in instances})
+        kwargs["master_map"] = cls.get_clusters_master(bk_biz_id, cluster_ids)
+        return super()._filter_instance_hook(bk_biz_id, query_params, instances, **kwargs)
+
+    @classmethod
+    def _to_instance_representation(
+        cls, instance: dict, cluster_entry_map: dict, db_module_names_map: dict, **kwargs
+    ) -> dict:
+        instance_info = super()._to_instance_representation(instance, cluster_entry_map, db_module_names_map, **kwargs)
+        master_address = kwargs.get("master_map", {}).get(instance["cluster__id"], "")
+        instance_info["is_master"] = (
+            instance["role"] == InstanceRole.DORIS_FOLLOWER.value
+            and instance_info["instance_address"] == master_address
+        )
+        return instance_info
+
+    @classmethod
     def get_nodes(cls, bk_biz_id: int, cluster_id: int, role: str, keyword: str = None) -> list:
         cluster = Cluster.objects.get(id=cluster_id, bk_biz_id=bk_biz_id)
 
@@ -104,7 +165,7 @@ class DorisListRetrieveResource(BigDataBaseListRetrieveResource, DorisExportQuer
         cache_master_stats = {}
         for cluster_type in cls.cluster_types:
             cache_master_stats.update(
-                json.loads(cache.get(f"{CACHE_CLUSTER_MASTER}_{bk_biz_id}_{cluster_type}", "{}"))
+                json.loads(cache.get(f"{CACHE_CLUSTER_MASTER}_{bk_biz_id}_{cluster_type.value}", "{}"))
             )
         # 获取集群域名和集群ID的映射
         cluster_domain_qs = Cluster.objects.filter(
