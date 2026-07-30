@@ -28,7 +28,9 @@ def doris_sync_master_task():
     """
 
     logger.info("start doris sync master node task")
-    biz_ids = Cluster.objects.filter(cluster_type=ClusterType.Doris.value).values_list("bk_biz_id").distinct()
+    biz_ids = (
+        Cluster.objects.filter(cluster_type=ClusterType.Doris.value).values_list("bk_biz_id", flat=True).distinct()
+    )
     # 不同业务的同步master节点任务
     for biz_id in biz_ids:
         sync_cluster_master.apply_async(args=(biz_id,))
@@ -43,7 +45,9 @@ def doris_sync_remote_used_task():
     """
 
     logger.info("start doris sync remote used task")
-    biz_ids = Cluster.objects.filter(cluster_type=ClusterType.Doris.value).values_list("bk_biz_id").distinct()
+    biz_ids = (
+        Cluster.objects.filter(cluster_type=ClusterType.Doris.value).values_list("bk_biz_id", flat=True).distinct()
+    )
     # 不同业务的同步远程存储用量任务
     for biz_id in biz_ids:
         sync_cluster_remote_used.apply_async(args=(biz_id,))

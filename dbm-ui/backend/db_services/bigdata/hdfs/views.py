@@ -25,6 +25,7 @@ from backend.db_meta.models import Cluster
 from backend.db_services.bigdata.hdfs import constants
 from backend.db_services.bigdata.hdfs.constants import XML_HEADER, XML_LINE_SEPARATOR, XML_TAB_SEPARATOR
 from backend.db_services.bigdata.hdfs.query import HDFSListRetrieveResource
+from backend.db_services.bigdata.resources import serializers as bigdata_serializers
 from backend.db_services.bigdata.resources import yasg_slz
 from backend.db_services.bigdata.resources.views import BigdataResourceViewSet
 from backend.db_services.dbbase.resources import serializers
@@ -81,10 +82,29 @@ from backend.flow.consts import ConfigTypeEnum, LevelInfoEnum
         tags=[constants.RESOURCE_TAG],
     ),
 )
+@method_decorator(
+    name="get_clusters_master",
+    decorator=common_swagger_auto_schema(
+        operation_summary=_("获取集群 Active NameNode"),
+        request_body=bigdata_serializers.GetClustersMasterSLZ(),
+        tags=[constants.RESOURCE_TAG],
+    ),
+)
 class HDFSClusterViewSetBigdata(BigdataResourceViewSet):
     query_class = HDFSListRetrieveResource
     query_serializer_class = serializers.ListResourceSLZ
     db_type = DBType.Hdfs
+
+    @action(
+        methods=["POST"],
+        detail=False,
+        url_path="get_clusters_master",
+        serializer_class=bigdata_serializers.GetClustersMasterSLZ,
+    )
+    def get_clusters_master(self, request, bk_biz_id: int):
+        """获取 HDFS 集群 Active NameNode"""
+        validated_data = self.params_validate(self.get_serializer_class())
+        return Response(self.query_class.get_clusters_master(bk_biz_id, validated_data["cluster_ids"]))
 
     @common_swagger_auto_schema(
         operation_summary=_("获取集群访问xml配置"),
