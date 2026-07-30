@@ -6114,8 +6114,6 @@
   "批量下架集群的只读接入层（Spider Slave 实例）。只读接入层为业务提供只读域名访问入口，常用于读写分离与读流量分担；下架后业务将无法通过只读域名访问数据，主集群读写访问不受影响。": "Batch remove read-only access layers (Spider Slave instances). Read-only access layers provide read-only domain access entry for business, commonly used for read/write separation and read traffic sharing; after removal, the business will not be able to access data through the read-only domain, and the main cluster read/write access is not affected.",
   "Spider Slave 实例": "Spider Slave Instance",
   "下架只读接入层": "Remove Read-Only Access Layer",
-<<<<<<< HEAD
-=======
   "与父策略的审批设置一致，不再独立生效，可手动删除。": "The approval settings are the same as the parent policy, so this sub-policy will have no independent effect and can be deleted manually.",
   "业务下全部集群": "All clusters under the business",
   "业务策略适用于业务下全部集群，不可删除。如需对指定集群单独设置，可添加子策略覆盖。": "The business policy applies to all clusters under the business and cannot be deleted. To configure specific clusters individually, add a sub-policy to override it.",
@@ -6143,7 +6141,6 @@
   "跳过 DBA 审批": "Skip DBA Approval",
   "需经 DBA 审批": "Requires DBA Approval",
   "优先级：子策略 > 父策略，按集群 > 按标签": "Priority: sub-policy > parent policy, by cluster > by tag",
->>>>>>> be3aa87ceb (feat(frontend): sqlserver定点构造与回档v2 #18790)
   "备份包含库": "Backup DB List",
   "备份排除库": "Excluded DB List",
   "数据库大小": "DB Size",
