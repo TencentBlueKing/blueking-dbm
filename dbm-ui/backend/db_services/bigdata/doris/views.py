@@ -18,6 +18,7 @@ from backend.bk_web.swagger import common_swagger_auto_schema
 from backend.configuration.constants import DBType
 from backend.db_services.bigdata.doris.query import DorisListRetrieveResource
 from backend.db_services.bigdata.es import constants
+from backend.db_services.bigdata.resources import serializers as bigdata_serializers
 from backend.db_services.bigdata.resources import yasg_slz
 from backend.db_services.bigdata.resources.views import BigdataResourceViewSet
 from backend.db_services.dbbase.resources import serializers
@@ -88,6 +89,14 @@ from backend.db_services.dbbase.resources import serializers
         tags=[constants.RESOURCE_TAG],
     ),
 )
+@method_decorator(
+    name="get_clusters_master",
+    decorator=common_swagger_auto_schema(
+        operation_summary=_("获取Doris集群Master节点"),
+        request_body=bigdata_serializers.GetClustersMasterSLZ(),
+        tags=[constants.RESOURCE_TAG],
+    ),
+)
 class DorisClusterViewSetBigdata(BigdataResourceViewSet):
     query_class = DorisListRetrieveResource
     query_serializer_class = serializers.ListResourceSLZ
@@ -99,11 +108,16 @@ class DorisClusterViewSetBigdata(BigdataResourceViewSet):
         params = self.params_validate(self.get_serializer_class())
         return Response(self.query_class.get_nodes(bk_biz_id, cluster_id, params["role"], params.get("keyword")))
 
-    @action(methods=["POST"], detail=False, url_path="get_clusters_master")
+    @action(
+        methods=["POST"],
+        detail=False,
+        url_path="get_clusters_master",
+        serializer_class=bigdata_serializers.GetClustersMasterSLZ,
+    )
     def get_clusters_master(self, request, bk_biz_id: int):
         """获取 Doris 集群 Master 节点"""
-        cluster_ids = request.data.get("cluster_ids")
-        return Response(self.query_class.get_clusters_master(bk_biz_id, cluster_ids))
+        validated_data = self.params_validate(self.get_serializer_class())
+        return Response(self.query_class.get_clusters_master(bk_biz_id, validated_data["cluster_ids"]))
 
     @action(methods=["GET"], detail=True, url_path="get_cold_resource")
     def get_cold_resource(self, request, bk_biz_id: int, cluster_id: int):
