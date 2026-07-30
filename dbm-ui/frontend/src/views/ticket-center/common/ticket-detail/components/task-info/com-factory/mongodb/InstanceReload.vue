@@ -58,6 +58,17 @@
             {{ row.ip || '--' }}
           </template>
         </TicketInfoTableColumn>
+        <TicketInfoTableColumn
+          col-key="cluster_type"
+          :title="t('所属集群')">
+          <template #default="{ row }: { row: { related_clusters: string[] }}">
+            <div
+              v-for="item in row.related_clusters"
+              :key="item">
+              <p>{{ item }}</p>
+            </div>
+          </template>
+        </TicketInfoTableColumn>
       </TicketInfoTable>
     </template>
 

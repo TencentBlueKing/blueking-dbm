@@ -1,6 +1,6 @@
 <template>
   <EditableColumn
-    ref="editableTableColumn"
+    ref="editableColumnRef"
     :append-rules="rules"
     :field="field"
     fixed="left"
@@ -18,7 +18,8 @@
     </template>
     <EditableInput
       v-model="modelValue.master_domain"
-      :placeholder="t('请输入或选择集群')" />
+      :placeholder="t('请输入或选择集群')"
+      @change="handleChange" />
     <ClusterSelector
       :key="clusterTypes.join(',')"
       v-model:is-show="isShowClusterSelector"
@@ -79,22 +80,23 @@
 
   const rules = [
     {
-      message: t('目标集群输入格式有误'),
+      message: t('集群域名格式不正确'),
       trigger: 'change',
-      validator: (value: string) => domainRegex.test(value),
+      validator: (value: string) => !value || domainRegex.test(value),
     },
     {
-      message: t('目标集群不存在'),
-      trigger: 'blur',
-      validator: () => Boolean(modelValue.value.id),
+      message: t('cluster重复', [props.label]),
+      trigger: 'change',
+      validator: (value: string) => !value || props.selected.filter((item) => item.master_domain === value).length < 2,
     },
     {
-      message: t('目标集群重复'),
+      message: t('cluster不存在', [props.label]),
       trigger: 'blur',
-      validator: (value: string) => props.selected.filter((item) => item.master_domain === value).length < 2,
+      validator: (value: string) => !value || Boolean(modelValue.value.id),
     },
   ];
 
+  const editableColumnRef = useTemplateRef('editableColumnRef');
   const isShowClusterSelector = ref(false);
 
   const selectedClusters = computed(() => ({
@@ -106,40 +108,54 @@
     ) as MongodbModel[],
   }));
 
-  const { loading: isLoading, run: runFilterClusters } = useRequest(filterClusters<MongodbModel>, {
+  const { loading: isLoading, run: queryCluster } = useRequest(filterClusters<MongodbModel>, {
     manual: true,
     onSuccess(data) {
       if (data.length > 0) {
         modelValue.value = Object.assign(data[0]!, {
           current_spec_id: props.setCurrentSpecIdMethod ? props.setCurrentSpecIdMethod(data[0]!) : 0,
         });
+      } else {
+        // 集群不存在，触发校验
+        editableColumnRef.value?.validate();
       }
     },
   });
 
   watch(
-    () => modelValue.value.master_domain,
+    modelValue,
     () => {
-      if (!modelValue.value.id && modelValue.value.master_domain) {
-        modelValue.value.id = 0;
-
-        const params = {
+      if (modelValue.value.master_domain && !modelValue.value.id) {
+        queryCluster({
           bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
+          cluster_type: props.clusterTypes.join(','),
           exact_domain: modelValue.value.master_domain,
-        };
-        if (props.clusterTypes.length === 1) {
-          Object.assign(params, { cluster_type: props.clusterTypes[0] });
-        }
-        runFilterClusters(params);
-      }
-      if (!modelValue.value.master_domain) {
-        modelValue.value.id = 0;
+        });
       }
     },
     {
       immediate: true,
     },
   );
+
+  const handleChange = (value: string) => {
+    modelValue.value = {
+      bk_biz_id: 0,
+      bk_cloud_id: 0,
+      bk_cloud_name: '',
+      cluster_name: '',
+      cluster_spec: { id: 0 },
+      cluster_type: '',
+      current_spec_id: 0,
+      db_module_id: 0,
+      db_module_name: '',
+      db_type: '',
+      id: 0,
+      major_version: '',
+      master_domain: value,
+      mongos: [],
+    } as unknown as MongodbModel;
+  };
 
   const handleShowClusterSelector = () => {
     isShowClusterSelector.value = true;
