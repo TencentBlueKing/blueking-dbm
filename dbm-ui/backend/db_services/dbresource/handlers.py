@@ -597,7 +597,7 @@ class ResourceHandler(object):
         os_map = {os_name: os_key for os_key, os_names in os_map.items() for os_name in os_names}
         subzone_map = SystemSettings.get_setting_value(SystemSettingsEnum.REPLENISH_SUBZONE_MAP, {})
         subzone_map = {name: zone_key for zone_key, zone_names in subzone_map.items() for name in zone_names}
-        excluded_city = SystemSettings.get_setting_value(SystemSettingsEnum.REPLENISH_EXCLUDED_CITY, ["default"])
+        # excluded_city = SystemSettings.get_setting_value(SystemSettingsEnum.REPLENISH_EXCLUDED_CITY, ["default"])
 
         # 不符合水位数据的统计函数定义
         exclusive_spec = []
@@ -666,8 +666,7 @@ class ResourceHandler(object):
             for city_name, city_info in bk_os_info.items()
             for subzone, subzone_info in city_info.items()
             # 过滤掉：操作系统为空，机型为空，城市为空(default)
-            if spec_id in spec_map and spec_map[spec_id].device_class
-            if bk_os_name and subzone and city_name and city_name not in excluded_city
+            if spec_id in spec_map
         ]
         # 仅展示需要补货资源信息（重新计算 machine_refer_count）
         if need_replenish:
