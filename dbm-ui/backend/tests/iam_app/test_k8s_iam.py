@@ -31,21 +31,9 @@ K8S_CLUSTER_TYPES = [
     ClusterType.K8sGreptimedbHa,
 ]
 
-# 每种 K8s 存储类型下的基础操作后缀（不含 view/edit 与跨类型的 k8s_addon_manage）
+# 所有 K8s 存储类型的统一操作集（SurrealDB / Qdrant 与其余类型均使用相同集合）
+# 含 view/edit/apply/destroy/enable_disable/manage，不含 modify/start/stop/restart/pod_delete/scale/upgrade
 K8S_ACTION_SUFFIXES = [
-    "apply",
-    "modify",
-    "destroy",
-    "start",
-    "stop",
-    "restart",
-    "pod_delete",
-    "scale",
-    "upgrade",
-]
-
-# SurrealDB / Qdrant 的操作集（含 view/edit/enable_disable/manage，不含 modify/start/stop/restart/pod_delete/scale/upgrade）
-SURREALDB_QDRANT_SUFFIXES = [
     "view",
     "edit",
     "apply",
@@ -54,14 +42,25 @@ SURREALDB_QDRANT_SUFFIXES = [
     "manage",
 ]
 
-# 各 K8s 类型预期操作集
+# 各 K8s 类型预期操作集（全部统一为 6 个操作）
 K8S_TYPE_ACTIONS = {
-    "k8s_surrealdb": SURREALDB_QDRANT_SUFFIXES,
+    "k8s_surrealdb": K8S_ACTION_SUFFIXES,
     "k8s_victoriametrics": K8S_ACTION_SUFFIXES,
     "k8s_risingwave": K8S_ACTION_SUFFIXES,
     "k8s_milvus": K8S_ACTION_SUFFIXES,
-    "k8s_qdrant": SURREALDB_QDRANT_SUFFIXES,
+    "k8s_qdrant": K8S_ACTION_SUFFIXES,
     "k8s_greptimedb": K8S_ACTION_SUFFIXES,
+}
+
+# IAM 限制 action id 最长 32 字符，victoriametrics 的 db_type 名过长，
+# 其 action id 前缀使用缩写 k8s_vm（其余类型 action 前缀与 db_type 一致）
+K8S_ACTION_ID_PREFIX = {
+    "k8s_surrealdb": "k8s_surrealdb",
+    "k8s_victoriametrics": "k8s_vm",
+    "k8s_risingwave": "k8s_risingwave",
+    "k8s_milvus": "k8s_milvus",
+    "k8s_qdrant": "k8s_qdrant",
+    "k8s_greptimedb": "k8s_greptimedb",
 }
 
 
@@ -199,8 +198,9 @@ class TestK8sActionIds:
 
     def test_all_per_type_k8s_actions_exist_in_all_actions(self):
         for prefix, suffixes in K8S_TYPE_ACTIONS.items():
+            action_prefix = K8S_ACTION_ID_PREFIX[prefix]
             for suffix in suffixes:
-                action_id = f"{prefix}_{suffix}"
+                action_id = f"{action_prefix}_{suffix}"
                 assert action_id in _all_actions, f"action_id {action_id!r} not found in _all_actions"
         assert "k8s_addon_manage" in _all_actions
 
@@ -208,22 +208,24 @@ class TestK8sActionIds:
         """所有 K8s action_id 格式符合 k8s_{type}_{action} 规范"""
         pattern = re.compile(r"^k8s_[a-z]+(_[a-z]+)*$")
         for prefix, suffixes in K8S_TYPE_ACTIONS.items():
+            action_prefix = K8S_ACTION_ID_PREFIX[prefix]
             for suffix in suffixes:
-                action_id = f"{prefix}_{suffix}"
+                action_id = f"{action_prefix}_{suffix}"
                 assert pattern.match(action_id), f"{action_id!r} does not match expected pattern"
 
     def test_k8s_actions_count(self):
-        """_all_actions 中以 k8s_ 开头的 action 为 49 个（surrealdb/qdrant 各 6 个，其余类型各 9 个，加 addon_manage）"""
+        """_all_actions 中以 k8s_ 开头的 action 为 37 个（6 个类型各 6 个，加 addon_manage）"""
         k8s_actions = [aid for aid in _all_actions if aid.startswith("k8s_")]
-        assert len(k8s_actions) == 49, f"Expected 49 K8s actions, got {len(k8s_actions)}: {k8s_actions}"
+        assert len(k8s_actions) == 37, f"Expected 37 K8s actions, got {len(k8s_actions)}: {k8s_actions}"
 
     @pytest.mark.parametrize(
         "cluster_type_prefix",
         list(K8S_TYPE_ACTIONS.keys()),
     )
-    def test_each_cluster_type_has_9_actions(self, cluster_type_prefix):
-        """每种 K8s 集群类型 action 数：多数 9 个（FULL_SUFFIXES），SurrealDB/Qdrant 使用不同操作集为 6 个"""
-        matching = [aid for aid in _all_actions if aid.startswith(f"{cluster_type_prefix}_")]
+    def test_each_cluster_type_has_6_actions(self, cluster_type_prefix):
+        """每种 K8s 集群类型 action 数均为 6 个（统一操作集 view/edit/apply/destroy/enable_disable/manage）"""
+        action_prefix = K8S_ACTION_ID_PREFIX[cluster_type_prefix]
+        matching = [aid for aid in _all_actions if aid.startswith(f"{action_prefix}_")]
         expected_suffixes = K8S_TYPE_ACTIONS[cluster_type_prefix]
         assert len(matching) == len(expected_suffixes), (
             f"{cluster_type_prefix} should have {len(expected_suffixes)} actions, " f"got {len(matching)}: {matching}"
@@ -232,7 +234,7 @@ class TestK8sActionIds:
     def test_apply_actions_have_business_resource(self):
         """apply 类 action 的 related_resource_types 包含 BUSINESS"""
         for prefix in self.K8S_TYPE_PREFIXES:
-            action_id = f"{prefix}_apply"
+            action_id = f"{K8S_ACTION_ID_PREFIX[prefix]}_apply"
             action = _all_actions[action_id]
             resource_ids = [rt.id for rt in action.related_resource_types]
             assert (
@@ -242,10 +244,11 @@ class TestK8sActionIds:
     def test_non_apply_actions_have_cluster_resource(self):
         """非 apply 类 action 的 related_resource_types 包含对应 K8s 集群资源"""
         for prefix in self.K8S_TYPE_PREFIXES:
-            expected_resource_id = prefix  # e.g. "k8s_surrealdb"
+            expected_resource_id = prefix  # e.g. "k8s_surrealdb"（resource id 与 db_type 一致）
+            action_prefix = K8S_ACTION_ID_PREFIX[prefix]
             non_apply_suffixes = [s for s in K8S_TYPE_ACTIONS[prefix] if s != "apply"]
             for suffix in non_apply_suffixes:
-                action_id = f"{prefix}_{suffix}"
+                action_id = f"{action_prefix}_{suffix}"
                 action = _all_actions[action_id]
                 resource_ids = [rt.id for rt in action.related_resource_types]
                 assert (
@@ -255,11 +258,12 @@ class TestK8sActionIds:
     def test_actions_have_db_manage_in_related_actions(self):
         """所有 K8s action 都将 db_manage 列为 related_actions（enable_disable/manage 除外，它们遵循已有模式引用对应 _view）"""
         for prefix in self.K8S_TYPE_PREFIXES:
+            action_prefix = K8S_ACTION_ID_PREFIX[prefix]
             for suffix in K8S_TYPE_ACTIONS[prefix]:
                 # enable_disable/manage 遵循代码库已有模式仅引用对应 _view（如 MYSQL_ENABLE_DISABLE → MYSQL_VIEW）
                 if suffix in ("enable_disable", "manage"):
                     continue
-                action_id = f"{prefix}_{suffix}"
+                action_id = f"{action_prefix}_{suffix}"
                 action = _all_actions[action_id]
                 related_ids = [a if isinstance(a, str) else a.id for a in action.related_actions]
                 assert (
