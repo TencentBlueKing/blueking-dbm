@@ -14,6 +14,7 @@ from rest_framework import serializers
 
 from backend.db_services.dbbase.constants import IpSource
 from backend.flow.engine.controller.spider import SpiderController
+from backend.iam_app.dataclass.actions import ActionEnum
 from backend.ticket import builders
 from backend.ticket.builders.tendbcluster.base import (
     BaseTendbTicketFlowBuilder,
@@ -66,7 +67,9 @@ class TenDBSpiderUpgradeResourceParamBuilder(TendbBaseOperateResourceParamBuilde
         next_flow.save(update_fields=["details"])
 
 
-@builders.BuilderFactory.register(TicketType.TENDBCLUSTER_SPIDER_UPGRADE, is_apply=True, is_recycle=True)
+@builders.BuilderFactory.register(
+    TicketType.TENDBCLUSTER_SPIDER_UPGRADE, is_apply=True, is_recycle=True, iam=ActionEnum.TENDBCLUSTER_MANAGE
+)
 class TenDBSpiderUpgradeFlowBuilder(BaseTendbTicketFlowBuilder):
     serializer = TenDBSpiderUpgradeSerializer
     inner_flow_builder = TenDBSpiderUpgradeParamBuilder

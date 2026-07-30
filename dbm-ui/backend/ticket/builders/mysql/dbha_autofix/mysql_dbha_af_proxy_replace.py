@@ -8,12 +8,15 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+from backend.iam_app.dataclass.actions import ActionEnum
 from backend.ticket import builders
 from backend.ticket.builders.mysql.mysql_proxy_switch import MysqlProxySwitchFlowBuilder
 from backend.ticket.constants import TicketType
 
 
-@builders.BuilderFactory.register(TicketType.MYSQL_DBHA_AF_PROXY_REPLACE, is_apply=True, is_recycle=True)
+@builders.BuilderFactory.register(
+    TicketType.MYSQL_DBHA_AF_PROXY_REPLACE, is_apply=True, is_recycle=True, iam=ActionEnum.MYSQL_MANAGE
+)
 class MySQLDBHAAFProxyReplaceFlowBuilder(MysqlProxySwitchFlowBuilder):
     """
     自愈专用
