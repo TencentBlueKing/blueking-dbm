@@ -250,6 +250,9 @@
   };
 
   const fetchData = (params?: Record<string, any>, loading = true) => {
+    if (props.formData.resource_types.length > 0 && !props.formData.resource_types.includes('instance')) {
+      return;
+    }
     pagination.current = 1;
     fetchListData(loading);
   };

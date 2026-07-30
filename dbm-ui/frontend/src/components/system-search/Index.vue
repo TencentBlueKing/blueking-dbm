@@ -229,7 +229,7 @@
   const handleTypeRedirect = (resourceType: string) => {
     const params = {
       ...formData.value,
-      resource_types: [resourceType],
+      tabName: resourceType,
     };
     quickSearch({
       ...params,

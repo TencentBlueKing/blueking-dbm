@@ -88,7 +88,7 @@
   const router = useRouter();
   const { t } = useI18n();
   const { bizs: bizList } = useGlobalBizs();
-  const { getSearchParams, replaceSearchParams } = useUrlSearch();
+  const { getSearchParams, removeSearchParam, replaceSearchParams } = useUrlSearch();
   const systemSearchStore = useSystemSearchStore();
 
   // 使用 store 中的状态
@@ -298,7 +298,10 @@
     routeParamsMemo = initParams;
     Object.assign(formData.value, formatRouteQuery(initParams));
     const shortCode = initParams?.short_code || initParams?.keyword;
-    activeTab.value = formData.value.resource_types[0] || 'cluster';
+    if (initParams?.tabName) {
+      activeTab.value = initParams?.tabName || 'cluster';
+      removeSearchParam('tabName');
+    }
     if (shortCode) {
       // 只做数量查询，不做结果展示
       quickSearchRun({
@@ -372,7 +375,7 @@
       }
 
       .tab-content {
-        height: calc(100% - 162px);
+        height: calc(100% - 150px);
         background-color: #f5f7fa;
 
         .tab-content-loading {
