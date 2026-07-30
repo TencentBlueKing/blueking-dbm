@@ -120,6 +120,9 @@
   const count = ref(0);
 
   const fetchData = () => {
+    if (props.formData.resource_types.length > 0 && !props.formData.resource_types.includes('ticket')) {
+      return;
+    }
     tableRef.value?.fetchData();
   };
 
