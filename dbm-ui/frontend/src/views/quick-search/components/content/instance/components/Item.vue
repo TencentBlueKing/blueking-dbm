@@ -312,6 +312,10 @@
     fetchData();
   });
 
+  onActivated(() => {
+    fetchData();
+  });
+
   defineExpose<Exposed>({
     fetchData,
     getCount: () => tableData.value.count,

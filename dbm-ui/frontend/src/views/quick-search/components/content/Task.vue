@@ -192,7 +192,11 @@
     emits('clear-search');
   };
 
-  onMounted(() => {
+  // onMounted(() => {
+  //   fetchData();
+  // });
+
+  onActivated(() => {
     fetchData();
   });
 

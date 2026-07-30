@@ -1,9 +1,9 @@
 <template>
-  <BkTableColumn
-    field="tags"
-    :label="t('标签')"
-    :min-width="250">
-    <template #default="{ data: rowData }: { data: QuickSearchClusterModel }">
+  <TableColumn
+    col-key="tags"
+    :min-width="250"
+    :title="t('标签')">
+    <template #default="{ row: rowData }: { row: QuickSearchClusterModel }">
       <template v-if="rowData.tags.length > 0">
         <div
           v-for="tagItem in getList(rowData.tags)"
@@ -24,7 +24,7 @@
       </template>
       <span v-else>--</span>
     </template>
-  </BkTableColumn>
+  </TableColumn>
 </template>
 
 <script setup lang="ts">
