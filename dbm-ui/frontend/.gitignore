@@ -48,3 +48,4 @@ multi-reporter-config.json
 
 openspec/
 tapd-config.json
+agent-flow.config.json
