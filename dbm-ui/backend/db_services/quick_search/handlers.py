@@ -420,8 +420,17 @@ class QSearchHandler(object):
         return self.supplementary_fields(combined), total
 
     def filter_task(self, keyword_list: list):
-        """过滤任务"""
-        objs = FlowTree.objects.filter(root_id__in=keyword_list)
+        """过滤任务，支持按流程ID(root_id)、单据ID(uid)、创建人(created_by)模糊检索"""
+        qs = Q()
+        for keyword in keyword_list:
+            if self.filter_type == FilterType.EXACT.value:
+                qs |= Q(root_id__in=[keyword])
+                qs |= Q(uid__in=[keyword])
+            else:
+                qs |= Q(root_id__icontains=keyword)
+                qs |= Q(uid__icontains=keyword)
+                qs |= Q(created_by__icontains=keyword)
+        objs = FlowTree.objects.filter(qs)
 
         if self.bk_biz_ids:
             objs = objs.filter(bk_biz_id__in=self.bk_biz_ids)
