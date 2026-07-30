@@ -31,6 +31,12 @@ class MongoDBInstanceReloadDetailSerializer(BaseMongoDBOperateDetailSerializer):
         instance_id = serializers.IntegerField(help_text=_("实例ID"), required=False)
         port = serializers.IntegerField(help_text=_("实例Port"), required=False)
         role = serializers.CharField(help_text=_("角色"), required=False)
+        related_clusters = serializers.ListField(
+            help_text=_("关联集群域名列表"),
+            child=serializers.CharField(),
+            required=False,
+            default=list,
+        )
 
     infos = serializers.ListSerializer(help_text=_("重启信息"), child=InstanceReloadDetailSerializer())
     force = serializers.BooleanField(help_text=_("重启策略开关"), required=False, default=False)
