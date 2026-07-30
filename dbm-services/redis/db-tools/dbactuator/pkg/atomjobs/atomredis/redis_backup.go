@@ -155,8 +155,11 @@ func (job *RedisBackup) Run() (err error) {
 	}
 	bakTasks := make([]*BackupTask, 0, len(job.params.Ports))
 	if job.params.BackupIdentify == "" {
+		// Go time 布局: 15 表示 24 小时制小时 (03 是 12 小时制, 凌晨 3 点与下午 3 点会冲突).
+		// 与 SCHEDULED (redisfullbackup/task.go) 及 Python 侧 (redis_cluster_backup.py 用 %Y%m%d%H) 保持一致,
+		// 避免 identify 里落的小时数具有误导性.
 		job.params.BackupIdentify = fmt.Sprintf("BILL%s-%s",
-			job.runtime.UID, time.Now().Format("2006010203"))
+			job.runtime.UID, time.Now().Format("2006010215"))
 	}
 	for _, port := range job.params.Ports {
 		password, err = myredis.GetRedisPasswdFromConfFile(port)
@@ -209,6 +212,17 @@ func (task *BackupTask) CheckBackupStatus() {
 		return
 	}
 
+	// 记录上一次已上报的 progress 状态, 只在状态发生变化时才重新上报
+	// 避免 120 次探测循环里对同一个 running 状态重复上报, 造成 tb_redis_backup_progress 膨胀
+	lastReported := ""
+	reportIfChanged := func() {
+		if task.Status == lastReported {
+			return
+		}
+		task.reportBackupProgress()
+		lastReported = task.Status
+	}
+
 	// 半个小时还没上传成功则认为失败了
 	for i := 0; i < 120; i++ {
 		// taskStatus>4,上传失败;
@@ -219,6 +233,7 @@ func (task *BackupTask) CheckBackupStatus() {
 		if err != nil {
 			task.Status = consts.BackupStatusFailed
 			task.Message = fmt.Sprintf("备份系统调用失败:%d", i)
+			reportIfChanged()
 			mylog.Logger.Warn(fmt.Sprintf("taskid(%+v) upload error, err:%+v", taskID, err))
 			time.Sleep(time.Second * 10)
 			continue
@@ -226,11 +241,13 @@ func (task *BackupTask) CheckBackupStatus() {
 		if taskStatus > 4 {
 			task.Status = consts.BackupStatusToBakSystemFailed
 			task.Message = "上传备份系统失败"
+			reportIfChanged()
 			mylog.Logger.Error(fmt.Sprintf("上传失败,statusCode:%d,err:%s", taskStatus, statusMsg))
 			break
 		} else if taskStatus < 4 {
 			task.Status = consts.BackupStatusRunning
 			task.Message = fmt.Sprintf("上传备份系统中:%d", i)
+			reportIfChanged()
 			mylog.Logger.Info(fmt.Sprintf("taskid(%+v)上传中.... statusCode:%d", taskID, taskStatus))
 			// 每30s去探测一次
 			time.Sleep(30 * time.Second)
@@ -238,6 +255,7 @@ func (task *BackupTask) CheckBackupStatus() {
 		} else if taskStatus == 4 {
 			task.Status = consts.BackupStatusToBakSysSuccess
 			task.Message = "上传备份系统成功"
+			reportIfChanged()
 			mylog.Logger.Info(fmt.Sprintf("taskid(%+v)上传成功", taskID))
 			break
 		}
@@ -376,6 +394,12 @@ func (task *BackupTask) ToString() string {
 	return string(tmpBytes)
 }
 
+func (task *BackupTask) reportBackupProgress() {
+	if err := dbmonreport.RedisBackupProgressReport(&task.RedisFullbackupHistorySchema, task.reporter); err != nil {
+		mylog.Logger.Error(err.Error())
+	}
+}
+
 // GoFullBakcup 执行备份task,本地备份+上传备份系统
 func (task *BackupTask) GoFullBakcup() {
 	mylog.Logger.Info("redis(%s) begin to backup", task.Addr())
@@ -418,13 +442,14 @@ func (task *BackupTask) GoFullBakcup() {
 	defer flock.Unlock()
 
 	defer func() {
-		if task.Err != nil && task.Status == "" {
+		if task.Err != nil && (task.Status == "" || task.Status == consts.BackupStatusRunning) {
 			task.Message = task.Err.Error()
 			task.Status = consts.BackupStatusFailed
 		}
 		if err := dbmonreport.RedisFullBackupReport(&task.RedisFullbackupHistorySchema, task.reporter); err != nil {
 			mylog.Logger.Error(err.Error())
 		}
+		task.reportBackupProgress()
 		// task.BackupRecordReport(task.reporter)
 	}()
 
@@ -435,6 +460,7 @@ func (task *BackupTask) GoFullBakcup() {
 	if err := dbmonreport.RedisFullBackupReport(&task.RedisFullbackupHistorySchema, task.reporter); err != nil {
 		mylog.Logger.Error(err.Error())
 	}
+	task.reportBackupProgress()
 	// task.BackupRecordReport(task.reporter)
 
 	mylog.Logger.Info(fmt.Sprintf("redis(%s) dbType:%s start backup...", task.Addr(), task.DbType))

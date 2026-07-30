@@ -284,6 +284,9 @@ func (job *RedisReuploadOldBackupRecords) reupload() (err error) {
 func (job *RedisReuploadOldBackupRecords) setParams(port int, backupDir, backupFile string, backupFileSize int64,
 	upTime time.Time, taskID, shardVal, fileTag string) {
 	if fileTag == consts.RedisFullBackupTAG {
+		// 基于备份文件 upTime 生成稳定的 BackupIdentify, 避免同实例多条全备记录在
+		// tb_redis_backup_result 里被 REPLACE INTO 相互覆盖.
+		backupIdentify := fmt.Sprintf("REUPLOAD-%s", upTime.Format("20060102150405"))
 		job.fullbackupRow.ServerPort = port
 		job.fullbackupRow.BackupDir = backupDir
 		job.fullbackupRow.BackupFile = backupFile
@@ -292,6 +295,7 @@ func (job *RedisReuploadOldBackupRecords) setParams(port int, backupDir, backupF
 		job.fullbackupRow.EndTime = upTime
 		job.fullbackupRow.BackupTaskID = taskID
 		job.fullbackupRow.ShardValue = shardVal
+		job.fullbackupRow.BackupIdentify = backupIdentify
 	} else if fileTag == consts.RedisBinlogTAG {
 		job.binlogRow.ServerPort = port
 		job.binlogRow.BackupDir = backupDir

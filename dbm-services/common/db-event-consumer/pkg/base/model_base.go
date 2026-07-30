@@ -55,7 +55,10 @@ func (b BaseModel) StrictSchema() bool {
 // if exists and has different definition, drop and create
 // if exists and has same definition, do nothing
 func CreateOrUpdateIndex(db *gorm.DB, tableName string, indexName string, columnNames []string, unique bool, overwrite bool) error {
-	indexes, _ := db.Migrator().GetIndexes(tableName)
+	indexes, err := db.Migrator().GetIndexes(tableName)
+	if err != nil {
+		return errors.WithMessagef(err, "get indexes of %s", tableName)
+	}
 	for _, i := range indexes {
 		// same definition: 索引名字相同，unique相同，列相同 --> 不重复添加索引
 		if i.Name() == indexName {

@@ -9,8 +9,10 @@
 package model
 
 import (
+	"database/sql/driver"
 	"encoding/json"
 	"log/slog"
+	"strconv"
 	"time"
 
 	"github.com/go-playground/validator/v10"
@@ -22,6 +24,40 @@ import (
 	"dbm-services/common/db-event-consumer/pkg/base"
 	"dbm-services/common/db-event-consumer/pkg/sinker"
 )
+
+type stringOrInt64 int64
+
+func (n *stringOrInt64) UnmarshalJSON(data []byte) error {
+	if string(data) == "null" || len(data) == 0 {
+		return nil
+	}
+	if data[0] == '"' {
+		var s string
+		if err := json.Unmarshal(data, &s); err != nil {
+			return err
+		}
+		if s == "" {
+			*n = 0
+			return nil
+		}
+		v, err := strconv.ParseInt(s, 10, 64)
+		if err != nil {
+			return err
+		}
+		*n = stringOrInt64(v)
+		return nil
+	}
+	v, err := strconv.ParseInt(string(data), 10, 64)
+	if err != nil {
+		return err
+	}
+	*n = stringOrInt64(v)
+	return nil
+}
+
+func (n stringOrInt64) Value() (driver.Value, error) {
+	return int64(n), nil
+}
 
 /*
 {"report_type":"redis_fullbackup","bk_biz_id":"00001","bk_cloud_id":0,
@@ -52,10 +88,10 @@ type RedisBackupResultModel struct {
 	InstRole     string `json:"role" db:"redis_role" gorm:"column:redis_role;type:varchar(32);NOT NULL"`
 	DbType       string `json:"db_type" db:"redis_type" gorm:"column:redis_type;type:varchar(32);NOT NULL"`
 	// BillId          string `json:"bill_id" db:"bill_id" gorm:"column:bill_id;type:varchar(32);NOT NULL"`
-	BkBizId string `json:"bk_biz_id" db:"bk_biz_id" gorm:"column:bk_biz_id;type:varchar(32);NOT NULL"`
+	BkBizId stringOrInt64 `json:"bk_biz_id" db:"bk_biz_id" gorm:"column:bk_biz_id;type:int;NOT NULL"`
 	// MysqlVersion    string `json:"mysql_version" db:"mysql_version" gorm:"column:mysql_version;type:varchar(120);NOT NULL"`
 
-	BackupTaskID   uint64 `json:"backup_taskid" db:"backup_taskid" gorm:"column:backup_taskid;type:bigint;NOT NULL"`
+	BackupTaskID   string `json:"backup_taskid" db:"backup_taskid" gorm:"column:backup_taskid;type:varchar(128);NOT NULL"`
 	BackupFilesize uint64 `json:"backup_file_size" db:"backup_file_size" gorm:"column:backup_file_size;type:bigint;NOT NULL"`
 	BackupFileName string `json:"backup_file" db:"backup_file" gorm:"column:backup_file;type:varchar(255);NOT NULL"`
 
@@ -139,6 +175,7 @@ func (m *RedisBackupResultModel) mysqlCreate(i interface{}, db *gorm.DB) error {
 		"backup_host",
 		"backup_port",
 		"redis_role",
+		"redis_type",
 		"shard_value",
 		"backup_type",
 		"is_standby",
@@ -169,6 +206,7 @@ func (m *RedisBackupResultModel) mysqlCreate(i interface{}, db *gorm.DB) error {
 			modelObj.BackupHost,
 			modelObj.BackupPort,
 			modelObj.InstRole,
+			modelObj.DbType,
 			modelObj.ShardValue,
 			modelObj.BackupType,
 			modelObj.IsStandby,
@@ -180,7 +218,7 @@ func (m *RedisBackupResultModel) mysqlCreate(i interface{}, db *gorm.DB) error {
 			modelObj.BackupBeginTime.UTC(),
 			modelObj.BackupEndTime.UTC(),
 			modelObj.BackupStatus,
-			modelObj.BkBizId,
+			int64(modelObj.BkBizId),
 			modelObj.ExtraFields,
 			modelObj.EventCreateTimestamp,
 			modelObj.EventReportTimestamp,
@@ -208,19 +246,22 @@ func (m *RedisBackupResultModel) Validate() error {
 	//validationErrors := err.(validator.ValidationErrors)
 }
 
-// func (m *RedisBackupResultModel) UnmarshalJSON(data []byte) error {
-// 	msg := RedisBackupResultMsg{}
-// 	if err := json.Unmarshal(data, &msg); err != nil {
-// 		return err
-// 	}
-// 	if err := copier.Copy(&m, msg); err != nil {
-// 		return err
-// 	}
-
-// 	m.ExtraFields, _ = json.Marshal(msg.ExtraFields)
-// 	// m.BkBizId = strconv.atoi(msg.BkBizId)
-// 	return nil
-// }
+func (m *RedisBackupResultModel) UnmarshalJSON(data []byte) error {
+	type redisBackupResultModel RedisBackupResultModel
+	msg := struct {
+		*redisBackupResultModel
+		BackupFileTag string `json:"backup_file_tag"`
+	}{
+		redisBackupResultModel: (*redisBackupResultModel)(m),
+	}
+	if err := json.Unmarshal(data, &msg); err != nil {
+		return err
+	}
+	if m.BackupIdentify == "" {
+		m.BackupIdentify = msg.BackupFileTag
+	}
+	return nil
+}
 
 // type RedisBackupResultMsg struct {
 // 	base.BaseModel `json:",inline"`

@@ -74,3 +74,28 @@ func RedisFullBackupReport(r *models.RedisFullbackupHistorySchema, reporter Repo
 	}
 	return nil
 }
+
+// RedisBackupProgressReport 上报全备进度到 reverse api 2.0 通道.
+// reporter 非空时同时写一份本地 report 文件, 作为 Kafka 不可达时的兜底.
+func RedisBackupProgressReport(r *models.RedisFullbackupHistorySchema, reporter Reporter) error {
+	if reporter != nil {
+		reportRow := RedisFullBackupReportSch{
+			RedisFullbackupHistorySchema: *r,
+			StartTime:                    r.StartTime.Local().Format(time.RFC3339),
+			EndTime:                      r.EndTime.Local().Format(time.RFC3339),
+		}
+		tmpBytes, _ := json.Marshal(reportRow)
+		reporter.AddRecord(string(tmpBytes)+"\n", true)
+	}
+
+	reverseConfig := common.GetResrveAPIConfig()
+	reportCore, err := recore.NewCoreWithAddrsFile(r.BkCloudID, reverseConfig)
+	if err != nil {
+		return fmt.Errorf("report NewCore failed: %s", err.Error())
+	}
+	ev := RedisBackupProgressEvent(*r)
+	if resp, err := reapi.SyncReport(reportCore, &ev); err != nil {
+		return fmt.Errorf("report fullbackup progress failed:%s, resp=%s", err.Error(), string(resp))
+	}
+	return nil
+}
