@@ -16,6 +16,7 @@ from backend.db_meta.enums import ClusterType, ClusterTypeMachineTypeDefine
 from backend.db_meta.models import Cluster
 from backend.db_monitor.serializers import AlarmCallBackDataSerializer
 from backend.flow.engine.controller.mysql import MySQLController
+from backend.iam_app.dataclass.actions import ActionEnum
 from backend.ticket import builders
 from backend.ticket.builders.common.base import SkipToRepresentationMixin
 from backend.ticket.builders.mysql.base import BaseMySQLTicketFlowBuilder
@@ -128,7 +129,7 @@ class MySQLDBHAAFRegisterInnerFlowBuilder(builders.FlowParamBuilder):
         super().format_ticket_data()
 
 
-@builders.BuilderFactory.register(TicketType.MYSQL_DBHA_AF_TODO_REGISTER, is_apply=True)
+@builders.BuilderFactory.register(TicketType.MYSQL_DBHA_AF_TODO_REGISTER, is_apply=True, iam=ActionEnum.MYSQL_MANAGE)
 class MySQLDBHAAFRegisterFlowBuilder(BaseMySQLTicketFlowBuilder):
     serializer = MySQLDBHAAFRegisterDetailSerializer
     alarm_transform_serializer = MySQLDBHAAlarmTransformSerializer

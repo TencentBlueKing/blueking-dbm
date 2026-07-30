@@ -13,6 +13,7 @@ from rest_framework import serializers
 
 from backend.configuration.constants import DBType
 from backend.flow.engine.controller.spider import SpiderController
+from backend.iam_app.dataclass.actions import ActionEnum
 from backend.ticket import builders
 from backend.ticket.builders.mysql.base import BaseMySQLHATicketFlowBuilder
 from backend.ticket.builders.tendbcluster.base import TendbBaseOperateDetailSerializer
@@ -35,7 +36,7 @@ class TendbClusterSpiderRebuildParamBuilder(builders.FlowParamBuilder):
     controller = SpiderController.rebuild_spider_nodes_scene
 
 
-@builders.BuilderFactory.register(TicketType.TENDBCLUSTER_SPIDER_REBUILD)
+@builders.BuilderFactory.register(TicketType.TENDBCLUSTER_SPIDER_REBUILD, iam=ActionEnum.TENDBCLUSTER_MANAGE)
 class TendbClusterSpiderRebuildFlowBuilder(BaseMySQLHATicketFlowBuilder):
     group = DBType.TenDBCluster.value
     serializer = TendbClusterSpiderRebuildDetailSerializer

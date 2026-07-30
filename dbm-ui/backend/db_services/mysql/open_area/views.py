@@ -76,13 +76,11 @@ class OpenAreaViewSet(viewsets.AuditedModelViewSet):
         tags=[SWAGGER_TAG],
     )
     @Permission.decorator_permission_field(
-        id_field=lambda d: d["id"],
+        id_field=lambda d: d["bk_biz_id"],
         data_field=lambda d: d["results"],
         actions=[
-            ActionEnum.TENDBCLUSTER_OPENAREA_CONFIG_UPDATE,
-            ActionEnum.TENDBCLUSTER_OPENAREA_CONFIG_DESTROY,
-            ActionEnum.MYSQL_OPENAREA_CONFIG_DESTROY,
-            ActionEnum.MYSQL_OPENAREA_CONFIG_UPDATE,
+            ActionEnum.TENDBCLUSTER_OPENAREA_MANAGE,
+            ActionEnum.MYSQL_OPENAREA_MANAGE,
         ],
         resource_meta=ResourceEnum.OPENAREA_CONFIG,
     )

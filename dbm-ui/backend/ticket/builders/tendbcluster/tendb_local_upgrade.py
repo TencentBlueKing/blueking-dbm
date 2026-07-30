@@ -13,6 +13,7 @@ from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
 from backend.flow.engine.controller.spider import SpiderController
+from backend.iam_app.dataclass.actions import ActionEnum
 from backend.ticket import builders
 from backend.ticket.builders.tendbcluster.base import BaseTendbTicketFlowBuilder, TendbBaseOperateDetailSerializer
 from backend.ticket.constants import TicketType
@@ -41,7 +42,7 @@ class TenDBLocalUpgradeParamBuilder(builders.FlowParamBuilder):
     controller = SpiderController.tendbcluster_spider_upgrade
 
 
-@builders.BuilderFactory.register(TicketType.TENDBCLUSTER_LOCAL_UPGRADE)
+@builders.BuilderFactory.register(TicketType.TENDBCLUSTER_LOCAL_UPGRADE, iam=ActionEnum.TENDBCLUSTER_MANAGE)
 class TenDBLocalUpgradeFlowBuilder(BaseTendbTicketFlowBuilder):
     serializer = TenDBLocalUpgradeSerializer
     inner_flow_builder = TenDBLocalUpgradeParamBuilder

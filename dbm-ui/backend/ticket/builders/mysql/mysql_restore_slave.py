@@ -15,6 +15,7 @@ from rest_framework import serializers
 from backend.db_meta.enums import ClusterType, InstanceInnerRole
 from backend.db_services.dbbase.constants import IpSource, SourceType
 from backend.flow.engine.controller.mysql import MySQLController
+from backend.iam_app.dataclass.actions import ActionEnum
 from backend.ticket import builders
 from backend.ticket.builders.common.base import BaseOperateResourceParamBuilder, HostInfoSerializer, fetch_cluster_ids
 from backend.ticket.builders.common.constants import MySQLBackupSource
@@ -100,7 +101,9 @@ class MysqlRestoreSlaveResourceParamBuilder(BaseOperateResourceParamBuilder):
         next_flow.save(update_fields=["details"])
 
 
-@builders.BuilderFactory.register(TicketType.MYSQL_RESTORE_SLAVE, is_apply=True, is_recycle=True)
+@builders.BuilderFactory.register(
+    TicketType.MYSQL_RESTORE_SLAVE, is_apply=True, is_recycle=True, iam=ActionEnum.MYSQL_MANAGE
+)
 class MysqlRestoreSlaveFlowBuilder(BaseMySQLHATicketFlowBuilder):
     serializer = MysqlRestoreSlaveDetailSerializer
     inner_flow_builder = MysqlRestoreSlaveParamBuilder

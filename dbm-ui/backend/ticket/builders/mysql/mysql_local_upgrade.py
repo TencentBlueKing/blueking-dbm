@@ -13,6 +13,7 @@ from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
 from backend.flow.engine.controller.mysql import MySQLController
+from backend.iam_app.dataclass.actions import ActionEnum
 from backend.ticket import builders
 from backend.ticket.builders.common.base import DisplayInfoSerializer
 from backend.ticket.builders.mysql.base import BaseMySQLTicketFlowBuilder, MySQLBaseOperateDetailSerializer
@@ -34,7 +35,7 @@ class MysqlLocalUpgradeParamBuilder(builders.FlowParamBuilder):
     controller = MySQLController.mysql_local_upgrade_scene
 
 
-@builders.BuilderFactory.register(TicketType.MYSQL_LOCAL_UPGRADE)
+@builders.BuilderFactory.register(TicketType.MYSQL_LOCAL_UPGRADE, iam=ActionEnum.MYSQL_MANAGE)
 class MysqlLocalUpgradeFlowBuilder(BaseMySQLTicketFlowBuilder):
     serializer = MysqlLocalUpgradeDetailSerializer
     inner_flow_builder = MysqlLocalUpgradeParamBuilder

@@ -16,6 +16,7 @@ from backend.db_meta.enums import ClusterType, InstanceInnerRole
 from backend.db_meta.models import StorageInstance
 from backend.db_services.dbbase.constants import IpSource, SourceType
 from backend.flow.engine.controller.mysql import MySQLController
+from backend.iam_app.dataclass.actions import ActionEnum
 from backend.ticket import builders
 from backend.ticket.builders.common.base import BaseOperateResourceParamBuilder, HostInfoSerializer, fetch_cluster_ids
 from backend.ticket.builders.common.constants import MySQLBackupSource
@@ -136,7 +137,7 @@ class MysqlAddSlaveResourceParamBuilder(BaseOperateResourceParamBuilder):
         next_flow.save(update_fields=["details"])
 
 
-@builders.BuilderFactory.register(TicketType.MYSQL_ADD_SLAVE, is_apply=True)
+@builders.BuilderFactory.register(TicketType.MYSQL_ADD_SLAVE, is_apply=True, iam=ActionEnum.MYSQL_MANAGE)
 class MysqlAddSlaveFlowBuilder(BaseMySQLHATicketFlowBuilder):
     serializer = MysqlAddSlaveDetailSerializer
     inner_flow_builder = MysqlAddSlaveParamBuilder

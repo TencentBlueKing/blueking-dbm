@@ -21,6 +21,7 @@ from backend.db_meta.enums import InstanceInnerRole
 from backend.db_meta.models import Cluster, StorageInstance, StorageInstanceTuple, TenDBClusterStorageSet
 from backend.flow.engine.controller.mysql import MySQLController
 from backend.flow.engine.controller.spider import SpiderController
+from backend.iam_app.dataclass.actions import ActionEnum
 from backend.ticket import builders
 from backend.ticket.builders.common.constants import (
     MySQLChecksumTicketMode,
@@ -226,7 +227,7 @@ class TendbDataRepairFlowParamBuilder(MySQLDataRepairFlowParamBuilder):
     pass
 
 
-@builders.BuilderFactory.register(TicketType.TENDBCLUSTER_CHECKSUM)
+@builders.BuilderFactory.register(TicketType.TENDBCLUSTER_CHECKSUM, iam=ActionEnum.TENDBCLUSTER_MANAGE)
 class TendbChecksumFlowBuilder(MySQLChecksumFlowBuilder):
     group = DBType.TenDBCluster.value
     serializer = TendbChecksumDetailSerializer

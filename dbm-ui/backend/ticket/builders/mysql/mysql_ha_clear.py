@@ -16,6 +16,7 @@ from backend.db_meta.enums import ClusterType
 from backend.db_services.mysql.sql_import.constants import SQLExecuteTicketMode
 from backend.flow.consts import TruncateDataTypeEnum
 from backend.flow.engine.controller.mysql import MySQLController
+from backend.iam_app.dataclass.actions import ActionEnum
 from backend.ticket import builders
 from backend.ticket.builders.mysql.base import (
     BaseMySQLHATicketFlowBuilder,
@@ -62,7 +63,7 @@ class MySQLHaClearFlowParamBuilder(builders.FlowParamBuilder):
         pass
 
 
-@builders.BuilderFactory.register(TicketType.MYSQL_HA_TRUNCATE_DATA)
+@builders.BuilderFactory.register(TicketType.MYSQL_HA_TRUNCATE_DATA, iam=ActionEnum.MYSQL_TRUNCATE_DATA)
 class MySQLHaClearFlowBuilder(BaseMySQLHATicketFlowBuilder):
     serializer = MySQLHaClearDetailSerializer
     inner_flow_builder = MySQLHaClearFlowParamBuilder

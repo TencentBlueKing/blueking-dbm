@@ -17,6 +17,7 @@ from backend import env
 from backend.db_services.mysql.permission.constants import CloneClusterType, CloneType
 from backend.db_services.mysql.permission.exceptions import CloneDataHasExpiredException, DBPermissionBaseException
 from backend.flow.engine.controller.mysql import MySQLController
+from backend.iam_app.dataclass.actions import ActionEnum
 from backend.ticket import builders
 from backend.ticket.builders.mysql.base import BaseMySQLTicketFlowBuilder, MySQLBaseOperateDetailSerializer
 from backend.ticket.constants import TicketType
@@ -64,7 +65,7 @@ class MySQLCloneRulesFlowParamBuilder(builders.FlowParamBuilder):
         flow.save(update_fields=["details"])
 
 
-@builders.BuilderFactory.register(TicketType.MYSQL_CLIENT_CLONE_RULES)
+@builders.BuilderFactory.register(TicketType.MYSQL_CLIENT_CLONE_RULES, iam=ActionEnum.MYSQL_PRIV_MANAGE)
 class MySQLClientCloneRulesFlowBuilder(BaseMySQLTicketFlowBuilder):
     serializer = MySQLCloneRulesSerializer
     inner_flow_builder = MySQLCloneRulesFlowParamBuilder
@@ -87,6 +88,6 @@ class MySQLClientCloneRulesFlowBuilder(BaseMySQLTicketFlowBuilder):
             raise DBPermissionBaseException(_("权限克隆数据不合法！请检查"))
 
 
-@builders.BuilderFactory.register(TicketType.MYSQL_INSTANCE_CLONE_RULES)
+@builders.BuilderFactory.register(TicketType.MYSQL_INSTANCE_CLONE_RULES, iam=ActionEnum.MYSQL_PRIV_MANAGE)
 class MySQLInstanceCloneRulesFlowBuilder(MySQLClientCloneRulesFlowBuilder):
     inner_flow_name = _("DB实例权限克隆执行")

@@ -10,6 +10,7 @@ specific language governing permissions and limitations under the License.
 """
 
 from backend.flow.engine.controller.mysql import MySQLController
+from backend.iam_app.dataclass.actions import ActionEnum
 from backend.ticket import builders
 from backend.ticket.builders.mysql.base import MySQLBasePauseParamBuilder
 from backend.ticket.builders.mysql.mysql_master_slave_switch import (
@@ -29,7 +30,7 @@ class MysqlMasterFailOverParamBuilder(MysqlMasterSlaveSwitchParamBuilder):
     controller = MySQLController.mysql_ha_master_fail_over_scene
 
 
-@builders.BuilderFactory.register(TicketType.MYSQL_MASTER_FAIL_OVER)
+@builders.BuilderFactory.register(TicketType.MYSQL_MASTER_FAIL_OVER, iam=ActionEnum.MYSQL_MANAGE)
 class MysqlMasterFailOverFlowBuilder(MysqlMasterSlaveSwitchFlowBuilder):
     serializer = MysqlMasterFailOverDetailSerializer
     inner_flow_builder = MysqlMasterFailOverParamBuilder
@@ -39,6 +40,6 @@ class MysqlMasterFailOverFlowBuilder(MysqlMasterSlaveSwitchFlowBuilder):
     pause_node_builder = MySQLBasePauseParamBuilder
 
 
-@builders.BuilderFactory.register(TicketType.MYSQL_INSTANCE_FAIL_OVER)
+@builders.BuilderFactory.register(TicketType.MYSQL_INSTANCE_FAIL_OVER, iam=ActionEnum.MYSQL_MANAGE)
 class MysqlInstanceFailOverFlowBuilder(MysqlMasterFailOverFlowBuilder):
     inner_flow_name = TicketType.get_choice_label(TicketType.MYSQL_INSTANCE_FAIL_OVER)

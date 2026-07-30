@@ -15,6 +15,7 @@ from rest_framework import serializers
 from backend.db_meta.enums import AccessLayer, MachineType
 from backend.db_services.dbbase.constants import IpSource, SourceType
 from backend.flow.engine.controller.mysql import MySQLController
+from backend.iam_app.dataclass.actions import ActionEnum
 from backend.ticket import builders
 from backend.ticket.builders.common.base import BaseOperateResourceParamBuilder
 from backend.ticket.builders.mysql.base import (
@@ -60,7 +61,7 @@ class MysqlProxyAddResourceParamBuilder(BaseOperateResourceParamBuilder):
         self.patch_info_common_affinity(role="new_proxies", remain_machine_type=MachineType.PROXY, tolerance=0.5)
 
 
-@builders.BuilderFactory.register(TicketType.MYSQL_PROXY_ADD, is_apply=True)
+@builders.BuilderFactory.register(TicketType.MYSQL_PROXY_ADD, is_apply=True, iam=ActionEnum.MYSQL_MANAGE)
 class MysqlProxyAddFlowBuilder(BaseMySQLHATicketFlowBuilder):
     serializer = MysqlProxyAddDetailSerializer
     inner_flow_builder = MysqlProxyAddParamBuilder

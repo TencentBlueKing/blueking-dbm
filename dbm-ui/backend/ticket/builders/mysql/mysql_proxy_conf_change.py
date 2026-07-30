@@ -10,6 +10,7 @@ specific language governing permissions and limitations under the License.
 """
 
 from backend.flow.engine.controller.mysql import MySQLController
+from backend.iam_app.dataclass.actions import ActionEnum
 from backend.ticket import builders
 from backend.ticket.builders.mysql.base import BaseMySQLHATicketFlowBuilder
 from backend.ticket.builders.mysql.mysql_proxy_switch import (
@@ -31,7 +32,9 @@ class MysqlProxyConfChangeResourceParamBuilder(MysqlProxySwitchResourceParamBuil
     pass
 
 
-@builders.BuilderFactory.register(TicketType.MYSQL_PROXY_CONF_CHANGE, is_apply=True, is_recycle=True)
+@builders.BuilderFactory.register(
+    TicketType.MYSQL_PROXY_CONF_CHANGE, is_apply=True, is_recycle=True, iam=ActionEnum.MYSQL_MANAGE
+)
 class MysqlProxyConfChangeFlowBuilder(BaseMySQLHATicketFlowBuilder):
     need_patch_recycle_host_details = True
     need_patch_machine_details = True

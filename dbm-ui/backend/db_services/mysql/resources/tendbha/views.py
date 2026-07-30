@@ -20,6 +20,7 @@ from backend.db_services.mysql.resources.tendbha import yasg_slz
 from backend.db_services.mysql.resources.tendbha.query import ListRetrieveResource
 from backend.iam_app.dataclass import ResourceEnum
 from backend.iam_app.dataclass.actions import ActionEnum
+from backend.iam_app.handlers.permission import Permission
 
 
 @method_decorator(
@@ -91,8 +92,7 @@ class DBHAViewSet(viewsets.ResourceViewSet):
 
     list_perm_actions = [
         ActionEnum.MYSQL_ENABLE_DISABLE,
-        ActionEnum.MYSQL_ADD_CLB,
-        ActionEnum.MYSQL_CLB_BIND_DOMAIN,
+        ActionEnum.MYSQL_MANAGE,
         ActionEnum.MYSQL_DESTROY,
         ActionEnum.MYSQL_VIEW,
         ActionEnum.MYSQL_EDIT,
@@ -111,3 +111,16 @@ class DBHAViewSet(viewsets.ResourceViewSet):
             ResourceEnum.BUSINESS.id: kwargs["bk_biz_id"],
             ResourceEnum.DBTYPE.id: kwargs["view_class"].db_type.value,
         }
+
+    @Permission.decorator_external_permission_field(
+        param_field=lambda d: d["bk_biz_id"],
+        actions=[ActionEnum.MYSQL_PRIV_MANAGE, ActionEnum.MYSQL_LOADBALANCE_MANAGE],
+        resource_meta=ResourceEnum.BUSINESS,
+    )
+    @Permission.decorator_external_permission_field(
+        param_field=lambda d: d["view_class"]._external_perm_param_field(d),
+        action_filed=lambda d: d["view_class"].list_external_perm_actions,
+    )
+    def list(self, request, bk_biz_id: int):
+        """查询集群列表"""
+        return super().list(request, bk_biz_id)

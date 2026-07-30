@@ -13,6 +13,7 @@ from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
 from backend.flow.engine.controller.mysql import MySQLController
+from backend.iam_app.dataclass.actions import ActionEnum
 from backend.ticket import builders
 from backend.ticket.builders.common.base import DisplayInfoSerializer, HostInfoSerializer
 from backend.ticket.builders.mysql.base import BaseMySQLTicketFlowBuilder, MySQLBaseOperateDetailSerializer
@@ -40,7 +41,7 @@ class MysqlProxyReduceFlowParamBuilder(builders.FlowParamBuilder):
     controller = MySQLController.mysql_proxy_reduce_scene
 
 
-@builders.BuilderFactory.register(TicketType.MYSQL_PROXY_REDUCE, is_recycle=True)
+@builders.BuilderFactory.register(TicketType.MYSQL_PROXY_REDUCE, is_recycle=True, iam=ActionEnum.MYSQL_MANAGE)
 class MysqlProxyReduceFlowBuilder(BaseMySQLTicketFlowBuilder):
     serializer = MysqlProxyReduceDetailSerializer
     inner_flow_builder = MysqlProxyReduceFlowParamBuilder

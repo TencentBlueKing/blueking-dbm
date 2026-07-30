@@ -13,6 +13,7 @@ from rest_framework import serializers
 
 from backend.configuration.constants import DBType
 from backend.flow.engine.controller.mysql import MySQLController
+from backend.iam_app.dataclass.actions import ActionEnum
 from backend.ticket import builders
 from backend.ticket.builders.mysql.base import BaseMySQLTicketFlowBuilder, MySQLBaseOperateDetailSerializer
 from backend.ticket.constants import FlowRetryType, TicketType
@@ -37,7 +38,7 @@ class MySQLClusterStandardizeFlowParamBuilder(builders.FlowParamBuilder):
     controller = MySQLController.cluster_standardize
 
 
-@builders.BuilderFactory.register(TicketType.MYSQL_CLUSTER_STANDARDIZE)
+@builders.BuilderFactory.register(TicketType.MYSQL_CLUSTER_STANDARDIZE, iam=ActionEnum.MYSQL_MANAGE)
 class MySQLClusterStandardizeFlowBuilder(BaseMySQLTicketFlowBuilder):
     default_need_itsm = False
     default_need_manual_confirm = True
