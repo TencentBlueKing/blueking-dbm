@@ -524,7 +524,7 @@ func MergeObjectToVal(values map[string]interface{}, object interface{}, objectN
 // ConvertToMap recursively convert structures to maps
 func ConvertToMap(s interface{}) (interface{}, error) {
 	v := reflect.ValueOf(s)
-	if v.Kind() == reflect.Ptr {
+	if v.Kind() == reflect.Pointer {
 		if v.IsNil() {
 			return nil, nil
 		}

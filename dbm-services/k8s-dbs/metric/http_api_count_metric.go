@@ -29,13 +29,13 @@ const HTTPAPITotalMetric = "k8s_dbs_http_api_total"
 
 // HTTPAPITotalMetricTags http api 请求指标标签字段集合
 var HTTPAPITotalMetricTags = []string{
-	"api_name",
-	"method",
-	"status",
-	"bk_username",
-	"bk_app_code",
-	"code",
-	"result",
+	MetricTagAPIName,
+	MetricTagMethod,
+	MetricTagStatus,
+	MetricTagBkUserName,
+	MetricTagBkAppCode,
+	MetricTagCode,
+	MetricTagResult,
 }
 
 // HTTPAPITotalCounter HTTP 请求总数

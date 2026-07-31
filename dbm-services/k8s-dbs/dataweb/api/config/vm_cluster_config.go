@@ -10,6 +10,16 @@ import (
 	"github.com/jinzhu/copier"
 )
 
+// VM 集群 env 配置相关常量
+const (
+	envFlagEnableKey = "envflag.enable"
+	envFlagPrefixKey = "envflag.prefix"
+	envFlagPrefixVM  = "VM_"
+	loggerFormatKey  = "loggerFormat"
+	loggerFormatJSON = "json"
+	envConfigTrue    = "true"
+)
+
 // VMClusterConfigBuilder vm 集群配置构建器
 type VMClusterConfigBuilder struct {
 }
@@ -161,9 +171,9 @@ func (v *VMClusterConfigBuilder) buildComponentEnv(component webreq.Component) m
 	switch component.ComponentName {
 	case coreconst.VMSelect:
 		envMap["EXTRA_ARGS"] = map[string]interface{}{
-			"envflag.enable":                     "true",
-			"envflag.prefix":                     "VM_",
-			"loggerFormat":                       "json",
+			envFlagEnableKey:                     envConfigTrue,
+			envFlagPrefixKey:                     envFlagPrefixVM,
+			loggerFormatKey:                      loggerFormatJSON,
 			"cacheExpireDuration":                "5m",
 			"search.maxUniqueTimeseries":         "500000",
 			"search.maxSamplesPerQuery":          "1000000000",
@@ -181,17 +191,17 @@ func (v *VMClusterConfigBuilder) buildComponentEnv(component webreq.Component) m
 		}
 	case coreconst.VMInsert:
 		envMap["EXTRA_ARGS"] = map[string]interface{}{
-			"envflag.enable":         "true",
-			"envflag.prefix":         "VM_",
-			"loggerFormat":           "json",
+			envFlagEnableKey:         envConfigTrue,
+			envFlagPrefixKey:         envFlagPrefixVM,
+			loggerFormatKey:          loggerFormatJSON,
 			"influxDBLabel":          "__bk_db__",
 			"maxLabelsPerTimeseries": "100",
 		}
 	case coreconst.VMStorage:
 		envMap["EXTRA_ARGS"] = map[string]interface{}{
-			"envflag.enable":               "true",
-			"envflag.prefix":               "VM_",
-			"loggerFormat":                 "json",
+			envFlagEnableKey:               envConfigTrue,
+			envFlagPrefixKey:               envFlagPrefixVM,
+			loggerFormatKey:                loggerFormatJSON,
 			"cacheExpireDuration":          "15m",
 			"dedup.minScrapeInterval":      "1ms",
 			"internStringMaxLen":           "128",

@@ -181,7 +181,7 @@ func (k *K8sClusterConfigController) UpdateK8sClusterConfig(ctx *gin.Context) {
 		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.UpdateMetaDataError, err))
 		return
 	}
-	api.SuccessResponse(ctx, map[string]uint64{"rows": rows}, commconst.Success)
+	api.SuccessResponse(ctx, map[string]uint64{commconst.Rows: rows}, commconst.Success)
 }
 
 // DeleteK8sClusterConfig delete a clusterConfig by its ID.
@@ -198,5 +198,5 @@ func (k *K8sClusterConfigController) DeleteK8sClusterConfig(ctx *gin.Context) {
 		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.DeleteMetaDataError, err))
 		return
 	}
-	api.SuccessResponse(ctx, map[string]uint64{"rows": rows}, commconst.Success)
+	api.SuccessResponse(ctx, map[string]uint64{commconst.Rows: rows}, commconst.Success)
 }

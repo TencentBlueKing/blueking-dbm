@@ -19,6 +19,17 @@ limitations under the License.
 
 package metric
 
+// 指标标签名称常量
+const (
+	MetricTagAPIName    = "api_name"
+	MetricTagMethod     = "method"
+	MetricTagStatus     = "status"
+	MetricTagBkUserName = "bk_username"
+	MetricTagBkAppCode  = "bk_app_code"
+	MetricTagCode       = "code"
+	MetricTagResult     = "result"
+)
+
 // BaseMetricTags 基础标签
 type BaseMetricTags struct {
 	APIName    string

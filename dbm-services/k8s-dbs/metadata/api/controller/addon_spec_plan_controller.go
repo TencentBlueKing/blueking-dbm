@@ -155,7 +155,7 @@ func (a *AddonSpecPlanController) UpdateAddonSpecPlan(ctx *gin.Context) {
 		coreentity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.UpdateMetaDataError, err))
 		return
 	}
-	coreentity.SuccessResponse(ctx, map[string]uint64{"rows": rows}, commconst.Success)
+	coreentity.SuccessResponse(ctx, map[string]uint64{commconst.Rows: rows}, commconst.Success)
 }
 
 // DeleteAddonSpecPlan 删除 addon spec plan
@@ -172,5 +172,5 @@ func (a *AddonSpecPlanController) DeleteAddonSpecPlan(ctx *gin.Context) {
 		coreentity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.DeleteMetaDataError, err))
 		return
 	}
-	coreentity.SuccessResponse(ctx, map[string]uint64{"rows": rows}, commconst.Success)
+	coreentity.SuccessResponse(ctx, map[string]uint64{commconst.Rows: rows}, commconst.Success)
 }

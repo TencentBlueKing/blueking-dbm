@@ -23,4 +23,7 @@ package constant
 const (
 	Success = "success"
 	Failed  = "failed"
+
+	// Rows 指标 rows 键名，用于 API 响应中的 map key
+	Rows = "rows"
 )

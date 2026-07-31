@@ -92,7 +92,7 @@ func (k K8sCrdClusterResponse) MarshalJSON() ([]byte, error) {
 			"active":        k.AddonInfo.Active,
 			"addonCategory": k.AddonInfo.AddonCategory,
 			"addonType":     k.AddonInfo.AddonType,
-			"addonVersion":  k.AddonInfo.AddonVersion,
+			addonVersion:    k.AddonInfo.AddonVersion,
 			"addonName":     k.AddonInfo.AddonName,
 			"topology":      k.AddonInfo.Topology,
 		},
@@ -113,11 +113,11 @@ func (k K8sCrdClusterResponse) MarshalJSON() ([]byte, error) {
 		"bkBizTitle":          k.BkBizTitle,
 		"tags":                k.Tags,
 		"status":              k.Status,
-		"createdBy":           k.CreatedBy,
-		"createdAt":           k.CreatedAt,
-		"updatedBy":           k.UpdatedBy,
-		"updatedAt":           k.UpdatedAt,
-		"description":         k.Description,
+		createdBy:             k.CreatedBy,
+		createdAt:             k.CreatedAt,
+		updatedBy:             k.UpdatedBy,
+		updatedAt:             k.UpdatedAt,
+		description:           k.Description,
 	}
 	return json.Marshal(output)
 }

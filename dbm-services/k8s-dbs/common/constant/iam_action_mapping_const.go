@@ -19,6 +19,13 @@ limitations under the License.
 
 package constant
 
+// IAM action 模板常量
+const (
+	iamActionModify      = "{type}_modify"
+	iamActionScale       = "{type}_scale"
+	iamActionK8sAddonMgr = "k8s_addon_manage"
+)
+
 // APIToIAMAction 将 API 名称常量映射到 IAM action_id 模板。
 // {type} 占位符在运行时替换为 ClusterTypeToIAMPrefix 中的值，
 // 替换后得到完整 action_id，如 k8s_surrealdb_apply。
@@ -27,18 +34,18 @@ package constant
 var APIToIAMAction = map[string]string{
 	APIClusterCreate:        "{type}_apply",
 	APIClusterDelete:        "{type}_destroy",
-	APIClusterUpdate:        "{type}_modify",
-	APIClusterPartialUpdate: "{type}_modify",
-	APIClusterExpose:        "{type}_modify",
+	APIClusterUpdate:        iamActionModify,
+	APIClusterPartialUpdate: iamActionModify,
+	APIClusterExpose:        iamActionModify,
 	APIClusterStart:         "{type}_start",
 	APIClusterStop:          "{type}_stop",
 	APIClusterRestart:       "{type}_restart",
-	APIClusterVScaling:      "{type}_scale",
-	APIClusterHScaling:      "{type}_scale",
-	APIClusterVExpansion:    "{type}_scale",
+	APIClusterVScaling:      iamActionScale,
+	APIClusterHScaling:      iamActionScale,
+	APIClusterVExpansion:    iamActionScale,
 	APIClusterUpgrade:       "{type}_upgrade",
 	APIK8sPodDelete:         "{type}_pod_delete",
-	APIAddonInstall:         "k8s_addon_manage",
-	APIAddonUninstall:       "k8s_addon_manage",
-	APIAddonUpgrade:         "k8s_addon_manage",
+	APIAddonInstall:         iamActionK8sAddonMgr,
+	APIAddonUninstall:       iamActionK8sAddonMgr,
+	APIAddonUpgrade:         iamActionK8sAddonMgr,
 }

@@ -78,11 +78,11 @@ func (k ClusterOperationLogResponse) MarshalJSON() ([]byte, error) {
 		"requestParams":    k.RequestParams,
 		"status":           k.Status,
 		"ticketId":         k.TicketID,
-		"description":      k.Description,
-		"createdBy":        k.CreatedBy,
-		"createdAt":        k.CreatedAt,
-		"updatedBy":        k.UpdatedBy,
-		"updatedAt":        k.UpdatedAt,
+		description:        k.Description,
+		createdBy:          k.CreatedBy,
+		createdAt:          k.CreatedAt,
+		updatedBy:          k.UpdatedBy,
+		updatedAt:          k.UpdatedAt,
 	}
 	return json.Marshal(output)
 }

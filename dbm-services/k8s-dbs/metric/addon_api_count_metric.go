@@ -35,16 +35,16 @@ const AddonAPITotalMetric = "k8s_dbs_addon_api_total"
 
 // AddonAPITotalMetricTags addon api 指标标签字段集合
 var AddonAPITotalMetricTags = []string{
-	"api_name",
-	"method",
+	MetricTagAPIName,
+	MetricTagMethod,
 	"k8s_cluster_name",
 	"addon_type",
 	"addon_version",
-	"bk_username",
-	"bk_app_code",
-	"status",
-	"code",
-	"result",
+	MetricTagBkUserName,
+	MetricTagBkAppCode,
+	MetricTagStatus,
+	MetricTagCode,
+	MetricTagResult,
 }
 
 // AddonAPITotalCounter Addon API 请求总数

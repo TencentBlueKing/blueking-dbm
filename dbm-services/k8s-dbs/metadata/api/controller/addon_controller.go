@@ -173,7 +173,7 @@ func (a *AddonController) UpdateAddon(ctx *gin.Context) {
 		coreentity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.UpdateMetaDataError, err))
 		return
 	}
-	coreentity.SuccessResponse(ctx, map[string]uint64{"rows": rows}, commconst.Success)
+	coreentity.SuccessResponse(ctx, map[string]uint64{commconst.Rows: rows}, commconst.Success)
 }
 
 // DeleteAddon deletes an addon by its ID.
@@ -190,5 +190,5 @@ func (a *AddonController) DeleteAddon(ctx *gin.Context) {
 		coreentity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.DeleteMetaDataError, err))
 		return
 	}
-	coreentity.SuccessResponse(ctx, map[string]uint64{"rows": rows}, commconst.Success)
+	coreentity.SuccessResponse(ctx, map[string]uint64{commconst.Rows: rows}, commconst.Success)
 }

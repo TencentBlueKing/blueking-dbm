@@ -45,21 +45,24 @@ const (
 	PreConditionDeadlineSeconds int32 = 10
 	TimeoutSeconds              int32 = 600
 	OpsNameSuffixLength         int   = 10
+
+	// defaultPortHTTP 默认 HTTP 端口标识
+	defaultPortHTTP = "http"
 )
 
 // componentTargetPortsMap 组件目标端口映射表
 // key: 组件名称
 // value: 组件暴露的端口列表
 var componentTargetPortsMap = map[string][]string{
-	"surreal":   {"http"},
+	"surreal":   {defaultPortHTTP},
 	"tikv":      {"peer", "status"},
 	"pd":        {"client", "peer"},
 	"attu":      {"attu"},
 	"proxy":     {"milvus"},
 	"minio":     {"console"},
 	"vmstorage": {"vmselect"},
-	"vminsert":  {"http"},
-	"vmselect":  {"http"},
+	"vminsert":  {defaultPortHTTP},
+	"vmselect":  {defaultPortHTTP},
 	"qdrant":    {"tcp-qdrant", "grpc-qdrant"},
 }
 
