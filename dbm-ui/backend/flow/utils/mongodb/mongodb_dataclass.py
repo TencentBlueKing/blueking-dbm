@@ -2593,13 +2593,13 @@ class ActKwargs:
     def get_instance_migrate_calc(self, info: dict, cluster_id: int, shard_name: str) -> list:
         """计算对应关系"""
 
-        flow_db_version = resolve_mongodb_flow_db_version(Cluster.objects.get(pk=cluster_id))
         instance_relationships = []
         # 获取副本集新机器的顺序
         mongodb_host_order_by_tolerance = machine_order_by_tolerance(
             disaster_tolerance_level=info["disaster_tolerance_level"], machine_set=info["mongodb"]
         )
         if self.payload["cluster_type"] == ClusterType.MongoReplicaSet.value:
+            flow_db_version = resolve_mongodb_flow_db_version(Cluster.objects.get(pk=cluster_id))
             instances = self.payload["nodes"]
             for index, host in enumerate(mongodb_host_order_by_tolerance):
                 instance_relationships.append(
@@ -2630,6 +2630,8 @@ class ActKwargs:
                     }
                 )
         elif self.payload["cluster_type"] == ClusterType.MongoShardedCluster.value:
+            # 从 info 中的主集群获取 db_version，避免通过 cluster_id=0 查库
+            flow_db_version = resolve_mongodb_flow_db_version(Cluster.objects.get(pk=info["cluster_id"]))
             # 获取老实例信息
             shard_info = {}
             for shard in self.payload["shards_nodes"]:

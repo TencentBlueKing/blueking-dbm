@@ -68,11 +68,41 @@ class MongoShardedClusterApplyDetailSerializer(TicketBaseValidateSerializerMixin
 
     def validate(self, attrs):
         attrs = super().validate(attrs)
-        # shardsvr 每片成员数 = mongodb 总机器数 / 机器组数（一组机器构成一个分片副本集）
-        # configsvr 成员数 = mongo_config.count
+        shard_num = attrs["shard_num"]
         shard_machine_group = attrs["shard_machine_group"]
-        shardsvr_members = attrs["resource_spec"]["mongodb"]["count"] // shard_machine_group
-        configsvr_members = attrs["resource_spec"]["mongo_config"]["count"]
+        if shard_num <= 0:
+            raise serializers.ValidationError(_("集群分片数(shard_num)必须大于 0"))
+        if shard_machine_group <= 0:
+            raise serializers.ValidationError(_("机器组数(shard_machine_group)必须大于 0"))
+        if shard_num % shard_machine_group != 0:
+            raise serializers.ValidationError(
+                _(
+                    "集群分片数(shard_num={shard_num})必须能被机器组数"
+                    "(shard_machine_group={shard_machine_group})整除，"
+                    "否则单机分片数计算错误，部署会失败"
+                ).format(shard_num=shard_num, shard_machine_group=shard_machine_group)
+            )
+
+        resource_spec = attrs.get("resource_spec") or {}
+        for role in ("mongodb", "mongo_config", "mongos"):
+            if role not in resource_spec:
+                raise serializers.ValidationError(_("resource_spec 缺少角色: {}").format(role))
+            count = resource_spec[role].get("count")
+            if not count or count <= 0:
+                raise serializers.ValidationError(_("resource_spec.{} 的 count 必须大于 0").format(role))
+
+        # shardsvr 每片成员数 = mongodb 总机器数 / 机器组数（一组机器构成一个分片副本集）
+        mongodb_count = resource_spec["mongodb"]["count"]
+        if mongodb_count % shard_machine_group != 0:
+            raise serializers.ValidationError(
+                _(
+                    "mongodb 机器数(count={mongodb_count})必须能被机器组数"
+                    "(shard_machine_group={shard_machine_group})整除，"
+                    "否则每组 shardsvr 成员数计算错误，部署会失败"
+                ).format(mongodb_count=mongodb_count, shard_machine_group=shard_machine_group)
+            )
+        shardsvr_members = mongodb_count // shard_machine_group
+        configsvr_members = resource_spec["mongo_config"]["count"]
         # 允许双方均为 1（单节点联调）；shardsvr 多成员时 configsvr 必须为 3
         if shardsvr_members != 1 and configsvr_members != 3:
             raise serializers.ValidationError(_("当 shardsvr 副本集成员数大于 1 时，configsvr 必须是 3 个成员"))
