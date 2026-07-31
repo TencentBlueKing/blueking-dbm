@@ -78,7 +78,7 @@ export default class Hdfs extends ClusterBase {
   domain: string;
   hdfs_datanode: Array<ClusterListNode>;
   hdfs_journalnode: Array<ClusterListNode>;
-  hdfs_namenode: Array<ClusterListNode>;
+  hdfs_namenode: Array<{ is_active: boolean } & ClusterListNode>;
   hdfs_zookeeper: Array<ClusterListNode>;
   id: number;
   major_version: string;
