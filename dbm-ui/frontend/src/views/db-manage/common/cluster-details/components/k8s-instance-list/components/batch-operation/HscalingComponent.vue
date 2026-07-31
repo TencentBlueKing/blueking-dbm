@@ -39,7 +39,7 @@
             <BkInput
               v-model="formData.count"
               :max="limit.max"
-              :min="count"
+              :min="min"
               style="width: 200px"
               type="number" />
           </div>
@@ -98,11 +98,13 @@
     count: '' as number | '',
   });
 
+  const min = computed(() => props.count + 1);
+
   const isSubmittingDisabled = computed(() => {
     const beforeCount = props.count;
     const { count: afterCount } = formData.value;
 
-    return !afterCount || beforeCount === afterCount;
+    return !afterCount || beforeCount >= afterCount;
   });
 
   const limit = computed(() => {

@@ -38,7 +38,7 @@
             </div>
             <BkInput
               v-model="formData.storage"
-              :min="beforeData.storage"
+              :min="min"
               style="width: 200px"
               suffix="Gi"
               type="number" />
@@ -112,11 +112,13 @@
     };
   });
 
+  const min = computed(() => beforeData.value.storage + 1);
+
   const isSubmittingDisabled = computed(() => {
     const { storage: beforeStorage } = beforeData.value;
     const { storage: afterStorage } = formData.value;
 
-    return !beforeStorage || beforeStorage === afterStorage;
+    return !afterStorage || beforeStorage >= afterStorage;
   });
 
   const { loading: isSubmittingLoading, run: runVexpansionComponent } = useRequest(vexpansionComponent, {
@@ -148,7 +150,7 @@
       componentList: [
         {
           componentName: props.role,
-          storage: `${storage}Gi`,
+          storage: `${Number(storage) - beforeData.value.storage}Gi`,
         },
       ],
       k8sClusterName: props.clusterData.k8s_cluster_name,
