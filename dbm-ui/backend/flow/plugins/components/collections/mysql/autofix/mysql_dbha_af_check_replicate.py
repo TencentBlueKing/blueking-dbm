@@ -49,7 +49,7 @@ class MySQLDBHAAFCheckReplicateService(BaseService):
             counter -= 1
             data.outputs.counter = counter
 
-            res = DRSApi.rpc(
+            res = DRSApi.rpc_mysql_replica_compat(
                 {"addresses": [address], "cmds": ["show slave status"], "bk_cloud_id": bk_cloud_id, "false": False}
             )
             if res[0]["error_msg"]:

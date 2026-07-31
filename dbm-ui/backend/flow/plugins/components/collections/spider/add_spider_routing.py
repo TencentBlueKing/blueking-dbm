@@ -95,7 +95,7 @@ class AddSpiderRoutingService(BaseService):
         """
         定义reset master 方法，tdbctl添加时专属
         """
-        res = DRSApi.rpc(
+        res = DRSApi.rpc_mysql_replica_compat(
             {
                 "addresses": [f"{spider_ip}{IP_PORT_DIVIDER}{spider_port}"],
                 "cmds": ["reset master"],

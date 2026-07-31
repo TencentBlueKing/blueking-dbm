@@ -36,7 +36,7 @@ class MySQLCheckSlaveDelayProbeService(BkJobService):
 
     def _schedule(self, data, parent_data, callback_data=None):
         kwargs = data.get_one_of_inputs("kwargs")
-        res = DRSApi.rpc(
+        res = DRSApi.rpc_mysql_replica_compat(
             {
                 "addresses": ["{}{}{}".format(kwargs["instance_ip"], IP_PORT_DIVIDER, kwargs["instance_port"])],
                 "cmds": ["show slave status"],
@@ -74,7 +74,7 @@ class MySQLCheckSlaveDelayProbeService(BkJobService):
                     )
                     self.finish_schedule()
                     return False
-                res = DRSApi.rpc(
+                res = DRSApi.rpc_mysql_replica_compat(
                     {
                         "addresses": [
                             "{}{}{}".format(slave_info["Master_Host"], IP_PORT_DIVIDER, slave_info["Master_Port"])

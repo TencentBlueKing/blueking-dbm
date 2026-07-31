@@ -674,6 +674,8 @@ type TableColumnDef struct {
 	ColName string
 	ColPos  int // int?
 	ColType string
+	// IntUnsigned show it signed or unsigned if ColType is int/tinyint,
+	IntUnsigned bool
 }
 
 // TableColumnInfo TODO
@@ -1090,6 +1092,10 @@ func GetOneTableColumns(dbworker *DbWorker, dbName, tblName string) (map[string]
 				ColName: row["COLUMN_NAME"].(string),
 				ColPos:  cast.ToInt(row["ORDINAL_POSITION"].(string)),
 				ColType: row["DATA_TYPE"].(string),
+			}
+			if strings.Contains(colDef.ColType, "int") &&
+				strings.Contains(row["COLUMN_TYPE"].(string), "unsigned") {
+				colDef.IntUnsigned = true
 			}
 			tblColumns[row["COLUMN_NAME"].(string)] = colDef
 		}

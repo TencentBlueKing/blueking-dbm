@@ -24,7 +24,7 @@ class TBinlogDumperStartSlaveService(BaseService):
         kwargs = data.get_one_of_inputs("kwargs")
         address = f"{kwargs['tbinlogdumper_ip']}{IP_PORT_DIVIDER}{kwargs['tbinlogdumper_port']}"
 
-        res = DRSApi.rpc(
+        res = DRSApi.rpc_mysql_replica_compat(
             {
                 "addresses": [address],
                 "cmds": ["start slave"],
