@@ -272,7 +272,7 @@
             )}
             {!row.editable && (
               <BkPopover
-                content={t('平台锁定：固定需审批，不可自定义与新建子策略')}
+                content={t('平台已锁定，不可更改设置')}
                 placement='top'
                 trigger='hover'>
                 <BkTag
@@ -441,7 +441,7 @@
       },
       colKey: 'action',
       title: t('操作'),
-      width: 200,
+      width: 100,
     },
   ]);
 

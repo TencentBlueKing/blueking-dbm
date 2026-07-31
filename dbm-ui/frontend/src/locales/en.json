@@ -6166,7 +6166,7 @@
   "请选择标签键与匹配条件": "Please select a tag key and match condition",
   "集群 clusters 已在其他按集群子策略中，不可重复": "Clusters {clusters} already exist in other by-cluster sub-policies and cannot be duplicated",
   "标签 tags 已在其他按标签子策略中，不可重复": "Tags {tags} already exist in other by-tag sub-policies and cannot be duplicated",
-  "平台锁定：固定需审批，不可自定义与新建子策略": "Platform Lock: This ticket type requires approval in all cases. Customization and sub-policy creation are not allowed",
+  "平台已锁定，不可更改设置": "The platform has locked this setting and it cannot be changed",
   "编辑父策略": "Edit Parent Policy",
   "同一集群仅可归属一条按集群子策略": "A cluster can only belong to one by-cluster sub-policy",
   "跳过 DBA 审批": "Skip DBA Approval",
