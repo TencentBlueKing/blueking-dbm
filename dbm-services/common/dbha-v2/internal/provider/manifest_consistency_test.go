@@ -96,6 +96,8 @@ func capSubdir(cap provider.Capability) string {
 		return "switch"
 	case provider.CapParse:
 		return "parse"
+	case provider.CapMetrics:
+		return "metrics"
 	default:
 		return ""
 	}
