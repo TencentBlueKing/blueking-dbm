@@ -8,6 +8,7 @@ import (
 	"strings"
 	"time"
 
+	"dbm-services/common/go-pubpkg/mycmd"
 	"dbm-services/mongodb/db-tools/dbactuator/pkg/common"
 	"dbm-services/mongodb/db-tools/dbactuator/pkg/consts"
 	"dbm-services/mongodb/db-tools/dbactuator/pkg/jobruntime"
@@ -98,15 +99,14 @@ func (o *OsMongoInit) Run() error {
 
 	// 执行脚本
 	o.runtime.Logger.Info("start to execute init script")
-	_, err := util.RunBashCmd(tmpScriptName, "", nil, 30*time.Second)
-	if err != nil {
+	if _, err := mycmd.New(tmpScriptName).Run(30 * time.Second); err != nil {
 		o.runtime.Logger.Error("execute init script fail, error:%s", err)
 		return fmt.Errorf("execute init script fail, error:%s", err)
 	}
 	o.runtime.Logger.Info("execute init script successfully")
 	// 设置用户名密码
 	o.runtime.Logger.Info("start to set user:%s password", o.OsUser)
-	err = util.SetOSUserPassword(o.ConfParams.User, o.ConfParams.Password)
+	err := util.SetOSUserPassword(o.ConfParams.User, o.ConfParams.Password)
 	o.runtime.Logger.Info("set user:%s password successfully", o.OsUser)
 	if err != nil {
 		return err

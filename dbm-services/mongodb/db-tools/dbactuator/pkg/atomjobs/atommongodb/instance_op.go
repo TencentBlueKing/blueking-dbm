@@ -610,7 +610,7 @@ func (s *instOpJob) doPrecheckUpgrade() error {
 		)
 	} else {
 		fcvIP, fcvPort := ip, port
-		primaryInfo, perr := common.AuthGetPrimaryInfo(mongoBin, user, pass, ip, port)
+		primaryInfo, perr := common.GetPrimaryInfo(mongoBin, user, pass, ip, port)
 		if perr != nil {
 			return errors.Wrap(perr, "get primary for featureCompatibilityVersion check")
 		}

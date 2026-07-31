@@ -5,13 +5,14 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"time"
 
+	"dbm-services/common/go-pubpkg/mycmd"
 	"dbm-services/mongodb/db-tools/dbactuator/pkg/common"
 	"dbm-services/mongodb/db-tools/dbactuator/pkg/consts"
 	"dbm-services/mongodb/db-tools/dbactuator/pkg/jobruntime"
-	"dbm-services/mongodb/db-tools/dbactuator/pkg/util"
 
 	"github.com/go-playground/validator/v10"
 )
@@ -191,13 +192,16 @@ func (a *AddShardToCluster) execScript() error {
 
 	// 执行脚本
 	a.runtime.Logger.Info("start to execute addShardToCluster script")
-	cmd := fmt.Sprintf("%s -u %s -p '%s' --host %s --port %d --authenticationDatabase=admin --quiet  %s",
-		a.Mongo, a.ConfParams.AdminUsername, a.ConfParams.AdminPassword, a.ConfParams.IP, a.ConfParams.Port,
-		a.ConfFilePath)
-	if _, err = util.RunBashCmd(
-		cmd,
-		"", nil,
-		60*time.Second); err != nil {
+	if _, err = mycmd.New(
+		a.Mongo,
+		"-u", a.ConfParams.AdminUsername,
+		"-p", mycmd.Password(a.ConfParams.AdminPassword),
+		"--host", a.ConfParams.IP,
+		"--port", strconv.Itoa(a.ConfParams.Port),
+		"--authenticationDatabase=admin",
+		"--quiet",
+		a.ConfFilePath,
+	).Run(60 * time.Second); err != nil {
 		a.runtime.Logger.Error("execute addShardToCluster script fail, error:%s", err)
 		return fmt.Errorf("execute addShardToCluster script fail, error:%s", err)
 	}

@@ -4,14 +4,17 @@ import (
 	"encoding/json"
 	"fmt"
 	"path/filepath"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
 
+	"dbm-services/common/go-pubpkg/mycmd"
 	"dbm-services/mongodb/db-tools/dbactuator/pkg/common"
 	"dbm-services/mongodb/db-tools/dbactuator/pkg/consts"
 	"dbm-services/mongodb/db-tools/dbactuator/pkg/jobruntime"
 	"dbm-services/mongodb/db-tools/dbactuator/pkg/util"
+	"dbm-services/mongodb/db-tools/dbmon/pkg/linuxproc"
 
 	"github.com/go-playground/validator/v10"
 )
@@ -153,27 +156,80 @@ func (d *DeInstall) checkMongoService() error {
 	return nil
 }
 
-// checkConnection 检查连接
+// checkConnection 检查是否仍有外部客户端连到本机 Mongo 端口。
+// 读取 /proc/net/tcp（IPv4），排除回环与 NodeInfo 中的节点 IP；若仍有外部 ESTABLISHED 连接则失败，
+// 并打印 来源IP:PORT、目标IP:PORT、连接数量。
 func (d *DeInstall) checkConnection() error {
-	d.runtime.Logger.Info("start to check connection")
-	cmd := fmt.Sprintf(
-		"source /etc/profile;netstat -nat | grep %d |awk '{print $5}'|awk -F: '{print $1}'|sort|uniq -c|sort -nr |grep  -Ewv  '0.0.0.0|127.0.0.1|%s' || true",
-		d.ConfParams.Port, d.IPInfo)
+	d.runtime.Logger.Info("start to check connection via /proc/net/tcp")
 
-	result, err := util.RunBashCmd(
-		cmd,
-		"", nil,
-		60*time.Second)
+	rows, err := linuxproc.ProcNetTcp(nil)
 	if err != nil {
-		d.runtime.Logger.Error("check connection fail, error:%s", err)
-		return fmt.Errorf("check connection fail, error:%s", err)
+		d.runtime.Logger.Error("check connection fail, read /proc/net/tcp error:%s", err)
+		return fmt.Errorf("check connection fail, read /proc/net/tcp error:%s", err)
 	}
-	result = strings.Replace(result, "\n", "", -1)
-	if result != "" {
-		d.runtime.Logger.Error("check connection fail, there are some connections:%s", result)
-		return fmt.Errorf("check connection fail, there are some connections:%s", result)
+
+	excludeIPs := map[string]struct{}{
+		"0.0.0.0":   {},
+		"127.0.0.1": {},
 	}
-	return nil
+	for _, ip := range d.ConfParams.NodeInfo {
+		if ip = strings.TrimSpace(ip); ip != "" {
+			excludeIPs[ip] = struct{}{}
+		}
+	}
+	if ip := strings.TrimSpace(d.ConfParams.IP); ip != "" {
+		excludeIPs[ip] = struct{}{}
+	}
+
+	// key: "sourceIP:sourcePort -> targetIP:targetPort" -> count
+	counts := make(map[string]int)
+	for _, row := range rows {
+		if row.LocalPort != d.ConfParams.Port || row.St != linuxproc.ESTABLISHED {
+			continue
+		}
+		if row.RemoteHost == "" || row.RemotePort == 0 {
+			continue
+		}
+		if _, skip := excludeIPs[row.RemoteHost]; skip {
+			continue
+		}
+		src := fmt.Sprintf("%s:%d", row.RemoteHost, row.RemotePort)
+		dst := fmt.Sprintf("%s:%d", row.LocalHost, row.LocalPort)
+		counts[fmt.Sprintf("%s -> %s", src, dst)]++
+	}
+
+	if len(counts) == 0 {
+		return nil
+	}
+
+	keys := make([]string, 0, len(counts))
+	for k := range counts {
+		keys = append(keys, k)
+	}
+	sort.Slice(keys, func(i, j int) bool {
+		if counts[keys[i]] != counts[keys[j]] {
+			return counts[keys[i]] > counts[keys[j]]
+		}
+		return keys[i] < keys[j]
+	})
+
+	var b strings.Builder
+	total := 0
+	for _, k := range keys {
+		n := counts[k]
+		total += n
+		parts := strings.SplitN(k, " -> ", 2)
+		src, dst := parts[0], parts[1]
+		line := fmt.Sprintf("count=%d source=%s target=%s", n, src, dst)
+		d.runtime.Logger.Error("external connection: %s", line)
+		if b.Len() > 0 {
+			b.WriteByte('\n')
+		}
+		b.WriteString(line)
+	}
+	msg := fmt.Sprintf("check connection fail, external connections=%d:\n%s", total, b.String())
+	d.runtime.Logger.Error("%s", msg)
+	return fmt.Errorf("%s", msg)
 }
 
 // shutdownProcess 关闭进程
@@ -213,13 +269,7 @@ func (d *DeInstall) DirRename() error {
 	flag := util.FileExists(d.PortDir)
 	if flag == true {
 		d.runtime.Logger.Info("start to rename db directory %s to %s", d.PortDir, d.DbPathRenameDir)
-		cmd := fmt.Sprintf(
-			"mv %s %s",
-			d.PortDir, d.DbPathRenameDir)
-		if _, err := util.RunBashCmd(
-			cmd,
-			"", nil,
-			60*time.Second); err != nil {
+		if _, err := mycmd.New("mv", d.PortDir, d.DbPathRenameDir).Run(60 * time.Second); err != nil {
 			d.runtime.Logger.Error("rename db directory fail, error:%s", err)
 			return fmt.Errorf("rename db directory fail, error:%s", err)
 		}
@@ -231,13 +281,7 @@ func (d *DeInstall) DirRename() error {
 	flag = util.FileExists(d.LogPortDir)
 	if flag == true {
 		d.runtime.Logger.Info("start to rename log directory %s to %s", d.LogPortDir, d.LogPathRenameDir)
-		cmd := fmt.Sprintf(
-			"mv %s %s",
-			d.LogPortDir, d.LogPathRenameDir)
-		if _, err := util.RunBashCmd(
-			cmd,
-			"", nil,
-			60*time.Second); err != nil {
+		if _, err := mycmd.New("mv", d.LogPortDir, d.LogPathRenameDir).Run(60 * time.Second); err != nil {
 			d.runtime.Logger.Error("rename log directory fail, error:%s", err)
 			return fmt.Errorf("rename log directory fail, error:%s", err)
 		}

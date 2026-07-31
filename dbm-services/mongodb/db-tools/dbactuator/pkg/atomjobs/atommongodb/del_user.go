@@ -8,10 +8,10 @@ import (
 	"strings"
 	"time"
 
+	"dbm-services/common/go-pubpkg/mycmd"
 	"dbm-services/mongodb/db-tools/dbactuator/pkg/common"
 	"dbm-services/mongodb/db-tools/dbactuator/pkg/consts"
 	"dbm-services/mongodb/db-tools/dbactuator/pkg/jobruntime"
-	"dbm-services/mongodb/db-tools/dbactuator/pkg/util"
 
 	"github.com/go-playground/validator/v10"
 )
@@ -95,7 +95,7 @@ func (d *DelUser) Init(runtime *jobruntime.JobGenericRuntime) error {
 		d.PrimaryIP = d.ConfParams.IP
 		d.PrimaryPort = d.ConfParams.Port
 	} else {
-		info, err := common.AuthGetPrimaryInfo(d.Mongo, d.ConfParams.AdminUsername, d.ConfParams.AdminPassword,
+		info, err := common.GetPrimaryInfo(d.Mongo, d.ConfParams.AdminUsername, d.ConfParams.AdminPassword,
 			d.ConfParams.IP, d.ConfParams.Port)
 		if err != nil {
 			d.runtime.Logger.Error("get primary db info of addUser fail, error:%s", err)
@@ -174,14 +174,16 @@ func (d *DelUser) execScript() error {
 
 	// 执行脚本
 	d.runtime.Logger.Info("start to execute deleteUser script")
-	cmd := fmt.Sprintf(
-		"%s -u %s -p '%s' --host %s --port %d --authenticationDatabase=admin --quiet --eval \"%s\"",
-		d.Mongo, d.ConfParams.AdminUsername, d.ConfParams.AdminPassword, d.PrimaryIP,
-		d.PrimaryPort, d.ScriptContent)
-	if _, err := util.RunBashCmd(
-		cmd,
-		"", nil,
-		60*time.Second); err != nil {
+	if _, err := mycmd.New(
+		d.Mongo,
+		"-u", d.ConfParams.AdminUsername,
+		"-p", mycmd.Password(d.ConfParams.AdminPassword),
+		"--host", d.PrimaryIP,
+		"--port", strconv.Itoa(d.PrimaryPort),
+		"--authenticationDatabase=admin",
+		"--quiet",
+		"--eval", d.ScriptContent,
+	).Run(60 * time.Second); err != nil {
 		d.runtime.Logger.Error("execute addUser script fail, error:%s", err)
 		return fmt.Errorf("execute addUser script fail, error:%s", err)
 	}

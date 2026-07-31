@@ -8,13 +8,12 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
-	"sync"
 	"time"
 
+	"dbm-services/common/go-pubpkg/mycmd"
 	"dbm-services/mongodb/db-tools/dbactuator/pkg/common"
 	"dbm-services/mongodb/db-tools/dbactuator/pkg/consts"
 	"dbm-services/mongodb/db-tools/dbactuator/pkg/jobruntime"
-	"dbm-services/mongodb/db-tools/dbactuator/pkg/util"
 
 	"github.com/go-playground/validator/v10"
 )
@@ -41,9 +40,6 @@ type InitiateReplicaset struct {
 	ConfFileContent string
 	ConfParams      *InitConfParams
 	ClusterId       string
-	StatusChan      chan int
-	signalMu        sync.Mutex
-	primarySignaled bool
 }
 
 // NewInitiateReplicaset 实例化结构体
@@ -83,20 +79,7 @@ func (i *InitiateReplicaset) Run() error {
 		return err
 	}
 
-	// checkStatus 轮询前先尝试一次获取 primary，降低初始化瞬时超时报错概率。
-	primaryFound := i.tryFindPrimaryBeforeCheckStatus()
-
-	// 检查状态
-	if !primaryFound {
-		go i.checkStatus()
-	}
-
-	// 获取状态
-	if err := i.getStatus(); err != nil {
-		return err
-	}
-
-	return nil
+	return i.waitPrimaryReady(10 * time.Minute)
 }
 
 // checkIfAnyNodeInitialized 遍历 members，任一节点的 repl 已选举出属于本列表的 primary 即视为复制集已初始化。
@@ -131,38 +114,6 @@ func (i *InitiateReplicaset) checkIfAnyNodeInitialized() bool {
 	return false
 }
 
-func (i *InitiateReplicaset) tryFindPrimaryBeforeCheckStatus() bool {
-	i.runtime.Logger.Info("try to find primary before checkStatus")
-	result, err := common.NoAuthGetPrimaryInfo(i.Mongo, i.ConfParams.IP, i.ConfParams.Port)
-	if err != nil {
-		i.runtime.Logger.Warn("pre-check primary lookup failed before checkStatus, error:%s", err)
-		return false
-	}
-	if result == "" {
-		i.runtime.Logger.Warn("pre-check primary lookup returned empty before checkStatus")
-		return false
-	}
-	i.runtime.Logger.Info("pre-check found primary:%s before checkStatus", result)
-	i.signalPrimaryReadyOnce()
-	return true
-}
-
-// signalPrimaryReadyOnce 向 StatusChan 发送就绪信号，可重入：仅发送一次，且避免阻塞（channel 已满时跳过）。
-func (i *InitiateReplicaset) signalPrimaryReadyOnce() {
-	i.signalMu.Lock()
-	defer i.signalMu.Unlock()
-	if i.primarySignaled {
-		return
-	}
-	select {
-	case i.StatusChan <- 1:
-		i.primarySignaled = true
-		i.runtime.Logger.Info("replica set primary ready signal sent")
-	default:
-		i.runtime.Logger.Warn("replica set primary ready signal skipped (channel busy or already signaled)")
-	}
-}
-
 // Retry 重试
 func (i *InitiateReplicaset) Retry() uint {
 	return 2
@@ -181,8 +132,6 @@ func (i *InitiateReplicaset) Init(runtime *jobruntime.JobGenericRuntime) error {
 	i.BinDir = consts.GetMongoBinDir()
 	i.Mongo = filepath.Join(i.BinDir, "mongodb", "bin", "mongo")
 	i.OsUser = consts.GetProcessUser()
-	i.StatusChan = make(chan int, 1)
-	i.primarySignaled = false
 
 	// 获取MongoDB配置文件参数
 	if err := json.Unmarshal([]byte(i.runtime.PayloadDecoded), &i.ConfParams); err != nil {
@@ -302,18 +251,19 @@ func (i *InitiateReplicaset) getPrimaryInfo() (bool, error) {
 	return false, nil
 }
 
-// checkStatus 检查复制集状态
-func (i *InitiateReplicaset) checkStatus() {
+// waitPrimaryReady 同步轮询直到选出 primary 或超时。
+func (i *InitiateReplicaset) waitPrimaryReady(timeout time.Duration) error {
+	deadline := time.Now().Add(timeout)
 	for {
-		result, err := common.NoAuthGetPrimaryInfo(i.Mongo, i.ConfParams.IP, i.ConfParams.Port)
+		result, err := common.InitiateReplicasetGetPrimaryInfo(i.Mongo, i.ConfParams.IP, i.ConfParams.Port)
 		if err != nil {
-			i.runtime.Logger.Warn("check replicaset status fail, retrying, error:%s", err)
-			time.Sleep(2 * time.Second)
-			continue
+			i.runtime.Logger.Warn("wait primary: lookup failed, retrying, error:%s", err)
+		} else if result != "" {
+			i.runtime.Logger.Info("initiate replicaset successfully, primary:%s", result)
+			return i.removeScript()
 		}
-		if result != "" {
-			i.signalPrimaryReadyOnce()
-			return
+		if time.Now().After(deadline) {
+			return fmt.Errorf("initiate replicaset timeout: no primary elected within %s", timeout)
 		}
 		time.Sleep(2 * time.Second)
 	}
@@ -326,51 +276,25 @@ func (i *InitiateReplicaset) execScript() error {
 	if err != nil {
 		return err
 	}
-	if flag == true {
+	if flag {
 		i.runtime.Logger.Info("replicaset has been initiated")
-		if err = i.removeScript(); err != nil {
-			return err
-		}
-
-		i.signalPrimaryReadyOnce()
-		return nil
+		return i.removeScript()
 	}
 
 	// 执行脚本
 	i.runtime.Logger.Info("start to execute initiateReplicaset script")
-	cmd := fmt.Sprintf("%s --host %s --port %d --quiet %s",
-		i.Mongo, "127.0.0.1", i.ConfParams.Port, i.ConfFilePath)
-	if _, err = util.RunBashCmd(
-		cmd,
-		"", nil,
-		60*time.Second); err != nil {
+	if _, err = mycmd.New(
+		i.Mongo,
+		"--host", "127.0.0.1",
+		"--port", strconv.Itoa(i.ConfParams.Port),
+		"--quiet",
+		i.ConfFilePath,
+	).Run(60 * time.Second); err != nil {
 		i.runtime.Logger.Error("execute initiateReplicaset script fail, error:%s", err)
 		return fmt.Errorf("execute initiateReplicaset script fail, error:%s", err)
 	}
 	i.runtime.Logger.Info("execute initiateReplicaset script successfully")
 	return nil
-}
-
-// getStatus 检查复制集状态，是否创建成功
-func (i *InitiateReplicaset) getStatus() error {
-	timeout := time.After(10 * time.Minute)
-	for {
-		select {
-		case status := <-i.StatusChan:
-			if status == 1 {
-				i.runtime.Logger.Info("initiate replicaset successfully")
-				// 删除脚本
-				if err := i.removeScript(); err != nil {
-					return err
-				}
-				return nil
-			}
-		case <-timeout:
-			return fmt.Errorf("initiate replicaset timeout: no primary elected within 10 minutes")
-		default:
-			time.Sleep(200 * time.Millisecond)
-		}
-	}
 }
 
 // removeScript 删除脚本

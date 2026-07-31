@@ -234,7 +234,7 @@ func (r *MongoDReplace) Init(runtime *jobruntime.JobGenericRuntime) error {
 	r.DbpathDir = filepath.Join(r.DataDir, "mongodata", strconv.Itoa(r.ConfParams.Port), "db")
 
 	// 获取primary信息
-	info, err := common.AuthGetPrimaryInfo(r.Mongo, r.ConfParams.AdminUsername, r.ConfParams.AdminPassword,
+	info, err := common.GetPrimaryInfo(r.Mongo, r.ConfParams.AdminUsername, r.ConfParams.AdminPassword,
 		r.ConfParams.IP, r.ConfParams.Port)
 	if err != nil {
 		r.runtime.Logger.Error("get primary db info of mongodReplace fail, error:%s", err)
@@ -406,7 +406,7 @@ func (r *MongoDReplace) primaryStepDown() error {
 		return fmt.Errorf("convert primary secondary db fail, error:%s", err)
 	}
 
-	primaryAddr, err := common.AuthGetPrimaryInfo(r.Mongo, r.ConfParams.AdminUsername, r.ConfParams.AdminPassword,
+	primaryAddr, err := common.GetPrimaryInfo(r.Mongo, r.ConfParams.AdminUsername, r.ConfParams.AdminPassword,
 		r.ConfParams.IP, r.ConfParams.Port)
 	if err != nil {
 		r.runtime.Logger.Error("get new primary info fail, error:%s", err)

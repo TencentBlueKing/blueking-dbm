@@ -161,7 +161,7 @@ func (e *ExecScript) Init(runtime *jobruntime.JobGenericRuntime) error {
 		e.execIP = e.ConfParams.IP
 		e.execPort = e.ConfParams.Port
 	case "replicaset":
-		primaryInfo, err := common.AuthGetPrimaryInfo(
+		primaryInfo, err := common.GetPrimaryInfo(
 			e.Mongo, e.ConfParams.AdminUsername, e.ConfParams.AdminPassword,
 			e.ConfParams.IP, e.ConfParams.Port)
 		if err != nil {

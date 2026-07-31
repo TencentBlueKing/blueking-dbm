@@ -160,7 +160,7 @@ func (v *MongoUpgradeRsProtocol) Init(runtime *jobruntime.JobGenericRuntime) err
 	v.ExecIP = v.ConfParams.IP
 	v.ExecPort = v.ConfParams.Port
 	if v.ConfParams.InstanceType == "mongod" {
-		info, err := common.AuthGetPrimaryInfo(
+		info, err := common.GetPrimaryInfo(
 			v.Mongo, v.ConfParams.AdminUsername, v.ConfParams.AdminPassword, v.ConfParams.IP, v.ConfParams.Port,
 		)
 		if err != nil {

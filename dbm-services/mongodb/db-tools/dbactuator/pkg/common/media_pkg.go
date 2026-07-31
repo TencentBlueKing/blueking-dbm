@@ -7,6 +7,7 @@ import (
 	"regexp"
 	"time"
 
+	"dbm-services/common/go-pubpkg/mycmd"
 	"dbm-services/mongodb/db-tools/dbactuator/mylog"
 	"dbm-services/mongodb/db-tools/dbactuator/pkg/consts"
 	"dbm-services/mongodb/db-tools/dbactuator/pkg/util"
@@ -85,9 +86,8 @@ func (pkg *DbToolsMediaPkg) Install() (err error) {
 	}
 	if overrideLocal {
 		// 最新介质覆盖本地
-		untarCmd := fmt.Sprintf("tar -zxf %s -C %s", installToolTar, backupDir)
-		mylog.Logger.Info("%s", untarCmd)
-		_, err = util.RunBashCmd(untarCmd, "", nil, 10*time.Minute)
+		mylog.Logger.Info("tar -zxf %s -C %s", installToolTar, backupDir)
+		_, err = mycmd.New("tar", "-zxf", installToolTar, "-C", backupDir).Run(10 * time.Minute)
 		if err != nil {
 			return
 		}
@@ -120,7 +120,7 @@ func (pkg *DbToolsMediaPkg) Install() (err error) {
 	}
 	cpCmd := fmt.Sprintf("cp %s %s", installToolTar, bakdirToolsTar)
 	mylog.Logger.Info("%s", cpCmd)
-	_, err = util.RunBashCmd(cpCmd, "", nil, 10*time.Minute)
+	_, err = mycmd.New("cp", installToolTar, bakdirToolsTar).Run(10 * time.Minute)
 	if err != nil {
 		return
 	}

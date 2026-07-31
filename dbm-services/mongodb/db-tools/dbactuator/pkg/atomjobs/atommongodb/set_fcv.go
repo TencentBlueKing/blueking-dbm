@@ -106,7 +106,7 @@ func (v *MongoSetFCV) Init(runtime *jobruntime.JobGenericRuntime) error {
 	v.ExecPort = v.ConfParams.Port
 	if v.ConfParams.InstanceType == "mongod" {
 		// 获取primary信息
-		info, err := common.AuthGetPrimaryInfo(v.Mongo, v.ConfParams.AdminUsername, v.ConfParams.AdminPassword,
+		info, err := common.GetPrimaryInfo(v.Mongo, v.ConfParams.AdminUsername, v.ConfParams.AdminPassword,
 			v.ConfParams.IP, v.ConfParams.Port)
 		if err != nil {
 			v.runtime.Logger.Error("get primary db info of setting fcv fail, error:%s", err)

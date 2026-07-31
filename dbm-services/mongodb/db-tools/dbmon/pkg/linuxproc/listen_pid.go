@@ -11,9 +11,9 @@ import (
 )
 
 // TCPListenPID returns one PID that has a TCP LISTEN socket on port, or 0 if none is visible.
-// It first maps socket inodes from /proc/net/tcp{,6} to PIDs via /proc/*/fd (cheap when it works).
+// It first maps socket inodes from /proc/net/tcp (IPv4 only) to PIDs via /proc/*/fd (cheap when it works).
 // If that yields no PID (e.g. cannot read another user's fds), it falls back to parsing `ss -ltnp`
-// or `netstat -ntpl`, which report listeners on any local address (127.0.0.1, eth*, ::1, etc.).
+// or `netstat -ntpl`, which report listeners on any local address (127.0.0.1, eth*, etc.).
 // Cost of fallback is similar to one shell pipeline; avoid calling in hot loops when possible.
 func TCPListenPID(port int) (int, error) {
 	inodes, err := ListenSocketInodes(port)

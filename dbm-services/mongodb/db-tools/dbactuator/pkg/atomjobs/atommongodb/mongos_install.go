@@ -9,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+	"dbm-services/common/go-pubpkg/mycmd"
 	"dbm-services/mongodb/db-tools/dbactuator/pkg/common"
 	"dbm-services/mongodb/db-tools/dbactuator/pkg/consts"
 	"dbm-services/mongodb/db-tools/dbactuator/pkg/jobruntime"
@@ -152,69 +153,38 @@ func (s *MongoSInstall) Init(runtime *jobruntime.JobGenericRuntime) error {
 
 // makeConfContent 生成配置文件内容
 func (s *MongoSInstall) makeConfContent() error {
-	// 只支持mongos 3.0及以上得到配置文件内容
-	// 判断mongos版本
+	// 只支持 mongos 3.0 及以上
 	s.runtime.Logger.Info("start to make config file content")
 	mainVersion, err := strconv.Atoi(strings.Split(s.DbVersion, ".")[0])
 	if err != nil {
-		s.runtime.Logger.Error(
-			"get %s version fail, error:%s", s.ConfParams.InstanceType, err)
+		s.runtime.Logger.Error("get %s version fail, error:%s", s.ConfParams.InstanceType, err)
 		return fmt.Errorf("get %s version fail, error:%s", s.ConfParams.InstanceType, err)
 	}
-	clusterId := s.ConfParams.SetId
-	IpConfigDB := strings.Join(s.ConfParams.ConfigDB, ",")
-	configDB := strings.Join([]string{clusterId, IpConfigDB}, "/")
 
-	// 生成mongos配置文件
 	conf := common.NewYamlMongoSConf()
-	conf.Sharding.ConfigDB = configDB
+	conf.Sharding.ConfigDB = s.ConfParams.SetId + "/" + strings.Join(s.ConfParams.ConfigDB, ",")
 	conf.SystemLog.LogAppend = true
 	conf.SystemLog.Path = s.LogPath
 	conf.SystemLog.Destination = "file"
 	conf.ProcessManagement.Fork = true
 	conf.ProcessManagement.PidFilePath = s.PidFilePath
 	conf.Net.Port = s.ConfParams.Port
-	conf.Net.BindIp = strings.Join([]string{"127.0.0.1", s.ConfParams.IP}, ",")
+	conf.Net.BindIp = "127.0.0.1," + s.ConfParams.IP
 	conf.Net.WireObjectCheck = false
-	// mongos版本小于4获取配置文件内容
-	if mainVersion < 4 {
-		s.NoAuthConfFileContent, err = conf.GetConfContent()
-		if err != nil {
-			s.runtime.Logger.Error(
-				"version:%s make mongos no auth config file content fail, error:%s", s.DbVersion, err)
-			return fmt.Errorf("version:%s make mongos no auth config file content fail, error:%s",
-				s.DbVersion, err)
-		}
-		conf.Security.KeyFile = s.KeyFilePath
-		// 获取验证配置文件内容
-		s.AuthConfFileContent, err = conf.GetConfContent()
-		if err != nil {
-			s.runtime.Logger.Error("version:%s make mongos auth config file content fail, error:%s", s.DbVersion, err)
-			return fmt.Errorf("version:%s make mongos auth config file content fail, error:%s",
-				s.DbVersion, err)
-		}
-		s.runtime.Logger.Info("make config file content successfully")
-		return nil
+	if mainVersion >= 4 {
+		conf.OperationProfiling.SlowOpThresholdMs = s.ConfParams.DbConfig.SlowOpThresholdMs
 	}
 
-	// mongos版本4及以上获取配置文件内容
-	conf.OperationProfiling.SlowOpThresholdMs = s.ConfParams.DbConfig.SlowOpThresholdMs
-	conf.OperationProfiling.SlowOpThresholdMs = s.ConfParams.DbConfig.SlowOpThresholdMs
-	// 获取非验证配置文件内容
 	s.NoAuthConfFileContent, err = conf.GetConfContent()
 	if err != nil {
-		s.runtime.Logger.Error(
-			"version:%s make mongos no auth config file content fail, error:%s", s.DbVersion, err)
-		return fmt.Errorf("version:%s make mongos no auth config file content fail, error:%s",
-			s.DbVersion, err)
+		s.runtime.Logger.Error("version:%s make mongos no auth config file content fail, error:%s", s.DbVersion, err)
+		return fmt.Errorf("version:%s make mongos no auth config file content fail, error:%s", s.DbVersion, err)
 	}
 	conf.Security.KeyFile = s.KeyFilePath
-	// 获取验证配置文件内容
 	s.AuthConfFileContent, err = conf.GetConfContent()
 	if err != nil {
 		s.runtime.Logger.Error("version:%s make mongos auth config file content fail, error:%s", s.DbVersion, err)
-		return fmt.Errorf("version:%s make mongos auth config file content fail, error:%s",
-			s.DbVersion, err)
+		return fmt.Errorf("version:%s make mongos auth config file content fail, error:%s", s.DbVersion, err)
 	}
 	s.runtime.Logger.Info("make config file content successfully")
 	return nil
@@ -235,7 +205,8 @@ func (s *MongoSInstall) checkParams() (bool, error) {
 	// 校验port是否合规
 	s.runtime.Logger.Info("start to validate port if it is correct")
 	if s.ConfParams.Port < MongoDBPortMin || s.ConfParams.Port > MongoDBPortMax {
-		s.runtime.Logger.Error("validate port if it is correct, port is not within defalut range [%d,%d]", MongoDBPortMin, MongoDBPortMax)
+		s.runtime.Logger.Error("validate port if it is correct, port is not within defalut range [%d,%d]",
+			MongoDBPortMin, MongoDBPortMax)
 		return false, fmt.Errorf("validate port if it is correct, port is not within defalut range [%d,%d]",
 			MongoDBPortMin, MongoDBPortMax)
 	}
@@ -259,10 +230,12 @@ func (s *MongoSInstall) checkParams() (bool, error) {
 	s.runtime.Logger.Info("start to validate port if it has been used")
 	flag, _ := util.CheckPortIsInUse(s.ConfParams.IP, strconv.Itoa(s.ConfParams.Port))
 	if flag {
-		// 校验端口是否是mongod进程
-		cmd := fmt.Sprintf("netstat -ntpl |grep %d | awk '{print $7}' |head -1", s.ConfParams.Port)
-		result, _ := util.RunBashCmd(cmd, "", nil, 60*time.Second)
-		if strings.Contains(result, "mongos") {
+		// 校验端口是否是mongos进程，复用统一的 pid+端口判活
+		_, procName, err := common.GetMongoPidAndNameByPort(s.ConfParams.Port)
+		if err != nil {
+			s.runtime.Logger.Warn("get process by port:%d fail, error:%s", s.ConfParams.Port, err)
+		}
+		if strings.Contains(procName, "mongos") {
 			// 检查配置文件是否一致，读取已有配置文件与新生成的配置文件内容对比
 			content, _ := ioutil.ReadFile(s.AuthConfFilePath)
 			if strings.Compare(string(content), string(s.AuthConfFileContent)) == 0 {
@@ -380,17 +353,11 @@ func (s *MongoSInstall) mkdir() error {
 
 	// 修改目录属主
 	s.runtime.Logger.Info("start to execute chown command for dbPath, logPath and backupPath")
-	if _, err := util.RunBashCmd(
-		fmt.Sprintf("chown -R %s:%s %s", s.OsUser, s.OsGroup, filepath.Join(logPathDir, "../")),
-		"", nil,
-		60*time.Second); err != nil {
+	if _, err := mycmd.New("chown", "-R", s.OsUser+":"+s.OsGroup, filepath.Join(logPathDir, "../")).Run(60 * time.Second); err != nil {
 		s.runtime.Logger.Error("chown log directory fail, error:%s", err)
 		return fmt.Errorf("chown log directory fail, error:%s", err)
 	}
-	if _, err := util.RunBashCmd(
-		fmt.Sprintf("chown -R %s:%s %s", s.OsUser, s.OsGroup, filepath.Join(confFilePathDir, "../")),
-		"", nil,
-		60*time.Second); err != nil {
+	if _, err := mycmd.New("chown", "-R", s.OsUser+":"+s.OsGroup, filepath.Join(confFilePathDir, "../")).Run(60 * time.Second); err != nil {
 		s.runtime.Logger.Error("chown data directory fail, error:%s", err)
 		return fmt.Errorf("chown data directory fail, error:%s", err)
 	}
