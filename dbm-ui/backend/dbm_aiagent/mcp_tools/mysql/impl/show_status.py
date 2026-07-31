@@ -85,7 +85,7 @@ def __mysql_show_status(bk_cloud_id: int, address: str, names: list[str]) -> Lis
 
 
 def mysql_show_slave_status(bk_cloud_id: int, address: str) -> List:
-    raw_drs_res = DRSApi.v2_mysql_rpc(
+    raw_drs_res = DRSApi.v2_mysql_rpc_mysql_replica_compat(
         {"addresses": [address], "cmds": ["SHOW SLAVE STATUS"], "bk_cloud_id": bk_cloud_id}
     )
 

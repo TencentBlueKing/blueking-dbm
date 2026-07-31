@@ -54,7 +54,7 @@ class MySQLDBHAAFChangeMasterService(BaseService):
 
         # ToDo 这里先不使用幂等同步
         # 如果后续失败率太高, 可以考虑在条件分支添加幂等同步, 然后发个告警
-        res = DRSApi.rpc(
+        res = DRSApi.rpc_mysql_replica_compat(
             {
                 "addresses": [ro_slave_address],
                 "cmds": ["stop slave", change_master_sql, "start slave"],

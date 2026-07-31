@@ -66,7 +66,7 @@ and User!=SUBSTRING_INDEX(current_user(),'@',1)"""
                     #  flush tables 前先 stop slave
                     rpc_info["cmds"] = ["show slave status"]
                     self.log_info(rpc_info["cmds"][0])
-                    res = DRSApi.rpc(rpc_info)
+                    res = DRSApi.rpc_mysql_replica_compat(rpc_info)
                     if res[0]["error_msg"]:
                         self.log_info("execute sql error {}".format(res[0]["error_msg"]))
                         return False
@@ -78,7 +78,7 @@ and User!=SUBSTRING_INDEX(current_user(),'@',1)"""
                         self.log_info(rpc_info["cmds"][0])
                         check_slave_flag = True
                         rpc_info["cmds"] = ["stop slave"]
-                        res = DRSApi.rpc(rpc_info)
+                        res = DRSApi.rpc_mysql_replica_compat(rpc_info)
                         if res[0]["error_msg"]:
                             self.log_info("execute sql error {}".format(res[0]["error_msg"]))
                             return False
@@ -129,7 +129,7 @@ and User!=SUBSTRING_INDEX(current_user(),'@',1)"""
             if check_slave_flag:
                 rpc_info["cmds"] = ["start slave"]
                 self.log_info(rpc_info["cmds"][0])
-                res = DRSApi.rpc(rpc_info)
+                res = DRSApi.rpc_mysql_replica_compat(rpc_info)
                 if res[0]["error_msg"]:
                     self.log_info("execute sql error {}".format(res[0]["error_msg"]))
                     self.log_info(_("检查不通过,且重新 start slave 失败,请手动介入处理"))

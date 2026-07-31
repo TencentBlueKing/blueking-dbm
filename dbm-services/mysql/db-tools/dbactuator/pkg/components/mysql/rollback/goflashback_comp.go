@@ -202,6 +202,9 @@ func (f *GoFlashback) PreCheck() error {
 			for i, originalColumnName := range csvHeader {
 				colPosName := fmt.Sprintf("col[%d]", columnInfo[originalColumnName].ColPos-1)
 				newColumnName := fmt.Sprintf("%s:%s", colPosName, columnInfo[originalColumnName].ColType)
+				if columnInfo[originalColumnName].IntUnsigned {
+					newColumnName += "_unsigned"
+				}
 				records[0][i] = newColumnName
 			}
 			lines[0] = strings.Join(records[0], ",")
@@ -214,6 +217,7 @@ func (f *GoFlashback) PreCheck() error {
 			if err != nil {
 				return err
 			}
+			// @TODO add int_unsinged
 			f.FlashbackOpt.RowsFilter = replaceColumnNamesWithPosition(rowsFilterExpr, columnNames, columnPositions)
 		}
 		f.flashback.BinlogOpt.RowsFilter = f.FlashbackOpt.RowsFilter
