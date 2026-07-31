@@ -185,7 +185,7 @@ def ProxyFaultShutdownAtomJob(root_id, ticket_data, sub_kwargs: ActKwargs, param
         act_kwargs.cluster["machine_type"] = MachineType.TWEMPROXY.value
 
     # 在这里等着
-    if param["need_manual_confirm"]:
+    if param.get("need_manual_confirm"):
         sub_pipeline.add_act(act_name=_("Redis-人工确认"), act_component_code=PauseComponent.code, kwargs={})
 
     # 先删除元数据
