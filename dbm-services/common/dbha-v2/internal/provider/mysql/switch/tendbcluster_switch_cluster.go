@@ -690,7 +690,7 @@ func (cluster *TenDBClusterSwitchCluster) UpdateMetaInfo() error {
 				return
 			}
 
-			if err := cluster.DbmClient.SwapMySQLRole(cluster.BkCloudID,
+			if err := SwapMySQLRole(cluster.DbmClient, cluster.BkCloudID,
 				instData.IP, instData.Port, standbySlave.Ip, standbySlave.Port); err != nil {
 				cluster.ReportLogf(instKey, switchlogger.SwitchWarn,
 					"failed to swap roles of remote nodes(master:%s:%d, slave:%s:%d), errmsg:%s",

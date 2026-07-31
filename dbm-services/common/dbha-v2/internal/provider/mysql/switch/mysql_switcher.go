@@ -35,6 +35,7 @@ import (
 	"dbm-services/common/dbha-v2/internal/analysis/switcher"
 	"dbm-services/common/dbha-v2/internal/analysis/switcher/switchcore"
 	"dbm-services/common/dbha-v2/internal/analysis/switcher/switchlogger"
+	mysqlmetrics "dbm-services/common/dbha-v2/internal/provider/mysql/metrics"
 	"dbm-services/common/dbha-v2/pkg/gerrors"
 	"dbm-services/common/dbha-v2/pkg/haapm"
 	"dbm-services/common/dbha-v2/pkg/logger"
@@ -222,7 +223,7 @@ func (m *Mysql) InstanceLevelSwitch(ctx context.Context, switchLoggers []switchl
 
 	wg.Wait()
 
-	m.reportMysqlSwitchingMetrics(apm.MysqlInstanceSwitchingTimeConsumingMs, start, req, rsp)
+	m.reportMysqlSwitchingMetrics(mysqlmetrics.InstanceSwitchingTimeConsumingMs, start, req, rsp)
 
 	if rsp.FailureInstCount() == 0 {
 		return rsp
@@ -413,7 +414,7 @@ func (m *Mysql) HostLevelSwitch(ctx context.Context, switchLoggers []switchlogge
 		rsp.Err = switcher.ErrSwitchPartialSuccess
 	}
 
-	m.reportMysqlSwitchingMetrics(apm.MysqlHostSwitchingTimeConsumingMs, start, req, rsp)
+	m.reportMysqlSwitchingMetrics(mysqlmetrics.HostSwitchingTimeConsumingMs, start, req, rsp)
 	return rsp
 }
 
@@ -476,7 +477,7 @@ func (m *Mysql) ClusterLevelSwitch(ctx context.Context, switchLoggers []switchlo
 
 	wg.Wait()
 
-	m.reportMysqlSwitchingMetrics(apm.MysqlClusterSwitchingTimeConsumingMs, start, req, rsp)
+	m.reportMysqlSwitchingMetrics(mysqlmetrics.ClusterSwitchingTimeConsumingMs, start, req, rsp)
 
 	if rsp.FailureInstCount() > 0 {
 		rsp.Err = switcher.ErrSwitchPartialSuccess
@@ -499,7 +500,7 @@ func (m *Mysql) reportMysqlSwitchingMetrics(timeConsumingMetric *haapm.HaHistogr
 
 	failCount := rsp.FailureInstCount()
 	// report the mysql switching success total
-	if err := apm.MysqlSwitchingSuccessTotal.AddWithLabels(map[string]string{
+	if err := mysqlmetrics.SwitchingSuccessTotal.AddWithLabels(map[string]string{
 		apm.MetricLabelActionScope: string(req.ActionScope),
 		apm.MetricLabelDbType:      string(m.DbTypeName()),
 	}, float64(len(req.InstData)-failCount)); err != nil {
@@ -507,7 +508,7 @@ func (m *Mysql) reportMysqlSwitchingMetrics(timeConsumingMetric *haapm.HaHistogr
 	}
 
 	// report the mysql switching error total
-	if err := apm.MysqlSwitchingErrorTotal.AddWithLabels(map[string]string{
+	if err := mysqlmetrics.SwitchingErrorTotal.AddWithLabels(map[string]string{
 		apm.MetricLabelActionScope: string(req.ActionScope),
 		apm.MetricLabelDbType:      string(m.DbTypeName()),
 	}, float64(failCount)); err != nil {
