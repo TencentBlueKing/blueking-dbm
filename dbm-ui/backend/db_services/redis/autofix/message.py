@@ -11,6 +11,7 @@ specific language governing permissions and limitations under the License.
 import datetime
 import json
 import logging
+import re
 
 from django.utils.translation import gettext as _
 
@@ -24,27 +25,88 @@ from backend.dbm_aiagent.agent.constants import DBMAgentCode
 from backend.utils.redis import RedisConn
 from backend.utils.time import date2str
 
-from .enums import AutofixItem
+from .enums import AutofixItem, MsgPriority
 from .models import RedisAutofixCtl
 
 logger = logging.getLogger("root")
 
 
+def _load_chat_ids_by_priority(priority: str) -> list:
+    """
+    读取 CHAT_IDS 配置，按优先级返回群 ID 列表。
+
+    新格式：{"L0": [...], "L1": [...]}
+    兼容旧格式：[...]（旧的纯数组，所有优先级都用同一份列表）
+    """
+    default_value = json.dumps({MsgPriority.L0.value: [], MsgPriority.L1.value: []})
+    try:
+        msg_item = RedisAutofixCtl.objects.filter(ctl_name=AutofixItem.CHAT_IDS.value).get()
+    except RedisAutofixCtl.DoesNotExist:
+        RedisAutofixCtl.objects.create(
+            bk_cloud_id=0, bk_biz_id=0, ctl_value=default_value, ctl_name=AutofixItem.CHAT_IDS.value
+        ).save()
+        return []
+
+    if not msg_item or not msg_item.ctl_value:
+        return []
+
+    try:
+        raw = json.loads(msg_item.ctl_value)
+    except (TypeError, ValueError):
+        logger.exception("parse CHAT_IDS ctl_value failed: %s", msg_item.ctl_value)
+        return []
+
+    # 兼容旧格式：list 或 已被 json.dumps 成字符串的 list
+    if isinstance(raw, list):
+        return raw
+    if isinstance(raw, str):
+        # 旧代码里存在 json.dumps("[]") 的情况，再解析一次
+        try:
+            raw = json.loads(raw)
+        except (TypeError, ValueError):
+            return []
+        if isinstance(raw, list):
+            return raw
+    if isinstance(raw, dict):
+        ids = raw.get(priority, [])
+        return ids if isinstance(ids, list) else []
+    return []
+
+
+def _decide_priority_by_title(sub_title: str) -> str:
+    """
+    根据消息标题自动判定优先级。
+    - L0: 忽略自愈 / 自愈失败 等紧急事件
+    - L1: 发起自愈 / 自愈成功 等普通信息事件
+
+    说明: 使用正则精确匹配"事件短语",避免子串 in 判断带来的误伤
+    (例如域名或备注里恰好含相同汉字)。所有 title 的模板均为
+    "{immute_domain}[- ]{可选表情}{事件短语}{可选表情}", 因此
+    这里只需匹配事件短语本身即可。
+    """
+    # L0 紧急事件正则(顺序不敏感,命中任一即视为 L0)
+    # 关键词通过 _() 包裹以通过 language_finder 校验;同时切换语言时可跟随 title 一起变化
+    l0_patterns = (
+        re.compile(re.escape(_("忽略自愈"))),
+        re.compile(re.escape(_("自愈失败"))),
+    )
+    for pattern in l0_patterns:
+        if pattern.search(sub_title):
+            return MsgPriority.L0.value
+    return MsgPriority.L1.value
+
+
 def send_msg_2_qywx(sub_title: str, msgs):
     from backend.dbm_aiagent.agent.handlers import AgentHandler
 
-    msg_ids, immute_doamin = [], "-".join(sub_title.split("-")[:-1])
+    immute_doamin = "-".join(sub_title.split("-")[:-1])
     session_code_key = "ai|session|{}".format(immute_doamin)
-    try:
-        msg_item = RedisAutofixCtl.objects.filter(ctl_name=AutofixItem.CHAT_IDS.value).get()
-        if msg_item:
-            msg_ids = json.loads(msg_item.ctl_value)
-    except RedisAutofixCtl.DoesNotExist:
-        RedisAutofixCtl.objects.create(
-            bk_cloud_id=0, bk_biz_id=0, ctl_value=json.dumps("[]"), ctl_name=AutofixItem.CHAT_IDS.value
-        ).save()
 
+    # 由本函数内部按标题判定消息优先级，调用方无需感知
+    priority = _decide_priority_by_title(sub_title)
+    msg_ids = _load_chat_ids_by_priority(priority)
     if len(msg_ids) == 0:
+        logger.info("no chat ids configured for priority=%s, skip send: %s", priority, sub_title)
         return
 
     bk_biz_id = msgs["BKID"]

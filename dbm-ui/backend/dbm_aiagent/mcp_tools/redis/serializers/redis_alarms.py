@@ -71,3 +71,39 @@ class RedisAppAlarmOutputSerializer(serializers.Serializer):
 
     immute_domain = serializers.CharField(help_text=_("集群域名"))
     alarm_detail = RedisAlarmItemNamesSerializer(many=True, help_text=_("告警列表"))
+
+
+class RedisAlertNameAlarmInputSerializer(serializers.Serializer):
+    """按告警名称跨业务查询输入"""
+
+    start_time = serializers.DateTimeField(help_text=_("开始时间"))
+    end_time = serializers.DateTimeField(help_text=_("结束时间"))
+    alert_name = serializers.CharField(
+        help_text=_(
+            "告警名称。支持三种匹配方式："
+            "1) 关键词(默认模糊)：输入 '主机内存使用率' 会匹配所有包含该关键词的告警，"
+            "例如 'Redis(TendisPlus)主机内存使用率'、'xxx主机内存使用率-子告警' 等；"
+            "2) 通配符：直接输入 '*主机内存使用率*' 或 'Redis*内存*' 按用户模式匹配；"
+            "3) 精确匹配：需将 fuzzy 参数设为 false，按完整告警名精确匹配"
+        )
+    )
+    fuzzy = serializers.BooleanField(
+        help_text=_("是否模糊匹配(包含匹配)，默认 True；若 alert_name 已包含 * / ? 则忽略此参数"),
+        required=False,
+        default=True,
+    )
+
+    def validate(self, attrs):
+        """验证时间参数"""
+        if attrs["start_time"] >= attrs["end_time"]:
+            raise serializers.ValidationError(_("开始时间必须小于结束时间"))
+        return attrs
+
+
+class RedisAlertNameAlarmOutputSerializer(serializers.Serializer):
+    """按告警名称查询的输出结果"""
+
+    query_name = serializers.CharField(help_text=_("用户传入的查询关键词/模式"))
+    match_mode = serializers.CharField(help_text=_("实际匹配模式：fuzzy / wildcard / exact"))
+    total_alarms = serializers.IntegerField(help_text=_("总告警数"))
+    alarm_list = RedisAlarmItemSerializer(many=True, help_text=_("告警明细列表"))
