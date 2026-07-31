@@ -7,7 +7,7 @@
 新增一个 DB 类型时只需：
 
 1. **框架共享类型定义**（无法下沉到 provider）：在 [`pkg/storage/haprobe`](../../pkg/storage/haprobe) 补 `DbType`、`DbmMetadataClusterType`、切换告警用的 `DbEventName` 常量，并新建 `<db>_status.go` 实现 `DBTyper`（仅 `GetDbType() DbType`）
-2. 新建 `internal/provider/<db>/`（按能力分子包：`dbtypedesc` / `harvest` / `switch` / `parse`）
+2. 新建 `internal/provider/<db>/`（按能力分子包：`dbtypedesc` / `harvest` / `switch` / `parse` / `metrics`）
 3. 在**单一清单** [`internal/provider/manifest.go`](../../internal/provider/manifest.go) 加一条并执行 `go generate ./internal/provider/...`
 4. （可选）在 `admin.yaml` 的 `probeHarvesters` 加凭证块
 5. （可选）在 analysis config 增加对应 `DbmApi*` 字段
@@ -22,6 +22,7 @@
 | `harvest` | 注册采集 Factory | 仅 probe |
 | `switch` | 注册切换器 + 切换告警事件名 | 仅 analysis |
 | `parse` | 注册 status parser（`parser.Register`） | 仅 analysis |
+| `metrics` | 注册 DB 专属 APM 指标（`apm.RegisterDbMetrics`） | 仅 analysis |
 
 ### Builtin 弱注册
 
