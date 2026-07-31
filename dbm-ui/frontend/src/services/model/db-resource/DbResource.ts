@@ -28,6 +28,7 @@ export default class DbResource {
   bk_host_id: number;
   bk_host_innerip: string;
   bk_mem: number;
+  bk_svr_owner_asset_id: string;
   city: string;
   city_id: string;
   consume_time: string;
@@ -55,6 +56,7 @@ export default class DbResource {
   rack_id: string;
   raid: string;
   resource_type: string;
+  same_svr_owner_count: number;
   status: string;
   storage_device: {
     [key: string]: {
@@ -82,6 +84,7 @@ export default class DbResource {
     this.bk_host_id = payload.bk_host_id || 0;
     this.bk_host_innerip = payload.bk_host_innerip || '';
     this.bk_mem = payload.bk_mem || 0;
+    this.bk_svr_owner_asset_id = payload.bk_svr_owner_asset_id || '';
     this.city = payload.city || '';
     this.city_id = payload.city_id || '';
     this.consume_time = payload.consume_time || '';
@@ -102,6 +105,7 @@ export default class DbResource {
     this.raid = payload.raid || '';
     this.total_data_storage_cap = payload.total_data_storage_cap;
     this.resource_type = payload.resource_type || '';
+    this.same_svr_owner_count = payload.same_svr_owner_count || 0;
     this.status = payload.status || '';
     this.storage_device = payload.storage_device || {};
     this.sub_zone = payload.sub_zone || '';
@@ -139,6 +143,14 @@ export default class DbResource {
       return 'Vm';
     }
     return DBTypeInfos[this.resource_type as DBTypes]?.name;
+  }
+
+  /** 同母机台数列显示值 */
+  get sameHostCountDisplay() {
+    if (this.bk_svr_owner_asset_id === '') {
+      return t('未知');
+    }
+    return this.same_svr_owner_count;
   }
 
   get updateAtDisplay() {
