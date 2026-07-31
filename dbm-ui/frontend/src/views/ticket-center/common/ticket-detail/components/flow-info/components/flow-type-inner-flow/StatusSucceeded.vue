@@ -1,5 +1,7 @@
 <template>
-  <StatusSucceeded :data="data">
+  <StatusSucceeded
+    :data="data"
+    :ticket-detail="ticketDetail">
     <template #content>
       <I18nT
         keypath="m_耗时_t"

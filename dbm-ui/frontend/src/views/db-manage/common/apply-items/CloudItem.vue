@@ -13,7 +13,7 @@
 
 <template>
   <BkFormItem
-    :label="$t('管控区域')"
+    :label="t('管控区域')"
     property="details.bk_cloud_id"
     required>
     <BkSelect
@@ -35,6 +35,8 @@
 </template>
 
 <script setup lang="ts">
+  import { useI18n } from 'vue-i18n';
+
   import { getCloudList } from '@services/source/ipchooser';
 
   interface Props {
@@ -47,6 +49,8 @@
 
   const props = defineProps<Props>();
   const emits = defineEmits<Emits>();
+
+  const { t } = useI18n();
 
   const cloudList = shallowRef<ServiceReturnType<typeof getCloudList>>([]);
   const isLoading = ref(true);

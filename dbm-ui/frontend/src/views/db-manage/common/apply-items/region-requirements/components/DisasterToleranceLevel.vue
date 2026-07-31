@@ -14,7 +14,7 @@
 <template>
   <BkFormItem
     class="apply-item-disaster-tolerance-level"
-    :label="t('容灾要求')"
+    :label="t('容灾级别')"
     property="details.disaster_tolerance_level"
     required>
     <BkRadioGroup v-model="modelValue">
