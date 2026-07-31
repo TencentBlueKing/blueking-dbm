@@ -255,6 +255,24 @@
         :width="80">
         <template #default="{ row }: { row: DbResourceModel }">{{ row.rack_id || '--' }}</template>
       </TableColumn>
+      <TableColumn
+        col-key="same_svr_owner_count"
+        sorter
+        :title="t('同母机台数')"
+        :width="100">
+        <template #default="{ row }: { row: DbResourceModel }">
+          <span>{{ row.sameHostCountDisplay }} </span>
+          <BkButton
+            v-if="row.bk_svr_owner_asset_id && row.same_svr_owner_count > 0"
+            v-bk-tooltips="t('复制同母机 IP')"
+            class="same-host-copy-icon ml-4"
+            text
+            theme="primary"
+            @click="handleCopySameHost(row)">
+            <DbIcon type="copy" />
+          </BkButton>
+        </template>
+      </TableColumn>
       <!-- <TableColumn
         col-key="os_type"
         :title="t('操作系统类型')"
@@ -346,7 +364,7 @@
   import { useI18n } from 'vue-i18n';
 
   import DbResourceModel from '@services/model/db-resource/DbResource';
-  import { fetchList, resourceExport } from '@services/source/dbresourceResource';
+  import { fetchList, fetchSameSvrOwnerIps, resourceExport } from '@services/source/dbresourceResource';
 
   import { useGlobalBizs } from '@stores';
 
@@ -575,6 +593,18 @@
     fetchData();
   };
 
+  // 复制同母机 IP
+  const handleCopySameHost = (row: DbResourceModel) => {
+    fetchSameSvrOwnerIps({ bk_host_id: row.bk_host_id }).then((res) => {
+      const ipList = res.ips;
+      if (ipList.length === 0) {
+        messageWarn(t('暂无可复制 IP'));
+        return;
+      }
+      execCopy(ipList.join('\n'), t('复制成功，共n条', { n: ipList.length }));
+    });
+  };
+
   onMounted(() => {
     fetchData();
   });
@@ -593,6 +623,13 @@
     }
 
     .my-row-cls {
+      .same-host-copy-icon {
+        font-size: 14px;
+        color: #3a84ff;
+        cursor: pointer;
+        visibility: hidden;
+      }
+
       .resource-owner-wrapper {
         display: flex;
         align-items: center;
@@ -615,6 +652,10 @@
       &:hover {
         .operation-icon {
           display: block;
+          visibility: visible;
+        }
+
+        .same-host-copy-icon {
           visibility: visible;
         }
       }
