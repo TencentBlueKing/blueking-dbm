@@ -1,5 +1,7 @@
 <template>
-  <StatusSucceeded :data="data">
+  <StatusSucceeded
+    :data="data"
+    :ticket-detail="ticketDetail">
     <template #title>
       {{ data.flow_type_display }}
     </template>

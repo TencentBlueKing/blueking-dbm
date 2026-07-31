@@ -20,7 +20,7 @@
       auto-label-width
       :model="formData"
       :rules="rules">
-      <DbCard :title="t('业务信息')">
+      <DbCard :title="t('基本信息')">
         <BusinessItems
           v-model:app-abbr="formData.details.db_app_abbr"
           v-model:biz-id="formData.bk_biz_id"
@@ -35,13 +35,11 @@
           v-model="formData.details.cluster_alias"
           :biz-id="formData.bk_biz_id"
           cluster-type="pulsar" />
-        <CloudItem
-          v-model="formData.details.bk_cloud_id"
-          @change="handleChangeCloud" />
       </DbCard>
       <RegionRequirements
         ref="regionRequirements"
-        v-model="formData.details" />
+        v-model="formData.details"
+        @cloud-change="handleCloudChange" />
       <DbCard :title="t('部署需求')">
         <BkFormItem
           :label="t('Pulsar版本')"
@@ -408,6 +406,7 @@
 <script setup lang="ts">
   import InfoBox from 'bkui-vue/lib/info-box';
   import _ from 'lodash';
+  import { inject } from 'vue';
   import { useI18n } from 'vue-i18n';
   import { useRoute, useRouter } from 'vue-router';
 
@@ -421,7 +420,6 @@
   import IpSelector from '@components/ip-selector/IpSelector.vue';
 
   import BusinessItems from '@views/db-manage/common/apply-items/BusinessItems.vue';
-  import CloudItem from '@views/db-manage/common/apply-items/CloudItem.vue';
   import ClusterAlias from '@views/db-manage/common/apply-items/ClusterAlias.vue';
   import ClusterName from '@views/db-manage/common/apply-items/ClusterName.vue';
   import DeployVersion from '@views/db-manage/common/apply-items/DeployVersion.vue';
@@ -429,6 +427,7 @@
   import RegionRequirements from '@views/db-manage/common/apply-items/region-requirements/BigData.vue';
   import ResourcePreview from '@views/db-manage/common/apply-items/ResourcePreview.vue';
   import SpecSelector from '@views/db-manage/common/apply-items/SpecSelector.vue';
+  import { serviceApplyKey } from '@views/service-apply/const.ts';
 
   const getSmartActionOffsetTarget = () => document.querySelector('.bk-form-content');
 
@@ -497,6 +496,7 @@
   const router = useRouter();
   const { t } = useI18n();
   const { baseState, bizState, handleCancel, handleCreateAppAbbr, handleCreateTicket } = useApplyBase();
+  const serviceApply = inject(serviceApplyKey);
 
   useTicketDetail<Pulsar.Apply>(TicketTypes.PULSAR_APPLY, {
     onSuccess(ticketDetail) {
@@ -631,11 +631,12 @@
     formData.details.nodes.bookkeeper = [];
     formData.details.nodes.broker = [];
     formData.details.nodes.zookeeper = [];
+    serviceApply?.changeBizId(info.bk_biz_id);
   };
   /**
    * 变更所属管控区域
    */
-  const handleChangeCloud = (info: { id: number | string; name: string }) => {
+  const handleCloudChange = (info: { id: number | string; name: string }) => {
     cloudInfo.id = info.id;
     cloudInfo.name = info.name;
 

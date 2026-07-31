@@ -20,15 +20,12 @@
         class="apply-form mb-16"
         :model="formData"
         :rules="rules">
-        <DbCard :title="t('业务信息')">
+        <DbCard :title="t('基本信息')">
           <BusinessItems
             v-model:app-abbr="formData.details.db_app_abbr"
             v-model:biz-id="formData.bk_biz_id"
             perrmision-action-id="redis_cluster_apply"
             @change-biz="handleChangeBiz" />
-          <CloudItem
-            v-model="formData.details.bk_cloud_id"
-            @change="handleChangeCloud" />
         </DbCard>
         <RegionRequirementsRedisHaAppend
           v-if="isAppend"
@@ -36,8 +33,9 @@
         <RegionRequirements
           v-else
           ref="regionRequirements"
-          v-model="formData.details" />
-        <DbCard :title="t('数据库部署信息')">
+          v-model="formData.details"
+          @cloud-change="handleCloudChange" />
+        <DbCard :title="t('部署配置')">
           <BkFormItem
             :label="t('部署方式')"
             property="details.apply_mode"
@@ -55,8 +53,6 @@
               </BkRadio>
             </BkRadioGroup>
           </BkFormItem>
-        </DbCard>
-        <DbCard :title="t('部署需求')">
           <BkFormItem
             v-if="!isAppend"
             :label="t('Redis 版本')"
@@ -140,6 +136,22 @@
             </BkRadioGroup>
           </BkFormItem> -->
           <BkFormItem
+            class="service"
+            :label="t('域名设置')"
+            required>
+            <DomainTable
+              v-model:domains="formData.details.infos"
+              :app-abbr="formData.details.db_app_abbr"
+              :biz-id="formData.bk_biz_id"
+              :city-info="formData.details"
+              :cloud-id="cloudInfo.id"
+              :is-append="isAppend"
+              :max-memory="maxMemory"
+              :port="formData.details.port"
+              :port-type="portType"
+              @host-change="handleHostChange" />
+          </BkFormItem>
+          <BkFormItem
             v-if="!isAppend"
             :label="t('后端存储规格')"
             property="details.resource_spec.backend_group.spec_id"
@@ -169,27 +181,18 @@
               labels: formData.details.resource_spec.backend_group.labels.map((item) => item.id).join(','),
             }"
             property="details.resource_spec.backend_group.labels" />
-          <BkFormItem
-            class="service"
-            :label="t('域名设置')"
-            required>
-            <DomainTable
-              v-model:domains="formData.details.infos"
-              :app-abbr="formData.details.db_app_abbr"
-              :biz-id="formData.bk_biz_id"
-              :city-info="formData.details"
-              :cloud-id="cloudInfo.id"
-              :is-append="isAppend"
-              :max-memory="maxMemory"
-              :port="formData.details.port"
-              :port-type="portType"
-              @host-change="handleHostChange" />
-          </BkFormItem>
+        </DbCard>
+        <DbCard :title="t('补充信息')">
           <EstimatedCost
             :params="{
               db_type: DBTypes.REDIS,
               resource_spec: resourceSepc,
             }" />
+          <NotifyRelatedPersons
+            ref="notifyRelatedPersonsRef"
+            v-model="formData.send_msg_config"
+            :biz-id="formData.bk_biz_id"
+            :db-type="DBTypes.REDIS" />
           <BkFormItem :label="t('备注')">
             <BkInput
               v-model="formData.remark"
@@ -245,19 +248,20 @@
 
   import { useApplyBase, useTicketDetail } from '@hooks';
 
-  import { Affinity, ClusterTypes, DBTypes, MachineTypes, TicketTypes } from '@common/const';
+  import { Affinity, ClusterTypes, DBTypes, MachineTypes, MessageTypes, TicketTypes } from '@common/const';
 
   import DbForm from '@components/db-form/index.vue';
 
   import BusinessItems from '@views/db-manage/common/apply-items/BusinessItems.vue';
-  import CloudItem from '@views/db-manage/common/apply-items/CloudItem.vue';
   import DeployVersion from '@views/db-manage/common/apply-items/DeployVersion.vue';
   import EstimatedCost from '@views/db-manage/common/apply-items/EstimatedCost.vue';
+  import NotifyRelatedPersons from '@views/db-manage/common/apply-items/NotifyRelatedPersons.vue';
   import RegionRequirements from '@views/db-manage/common/apply-items/region-requirements/Index.vue';
   import RegionRequirementsRedisHaAppend from '@views/db-manage/common/apply-items/region-requirements/RedisHaAppend.vue';
   import ResourcePreview from '@views/db-manage/common/apply-items/ResourcePreview.vue';
   import SpecSelector from '@views/db-manage/common/apply-items/SpecSelector.vue';
   import PasswordInput from '@views/db-manage/common/password-input/Index.vue';
+  import { serviceApplyKey } from '@views/service-apply/const.ts';
 
   import DomainTable, { type Domain } from './components/domain-table/Index.vue';
 
@@ -292,6 +296,11 @@
       sub_zone_names: [] as string[],
     },
     remark: '',
+    send_msg_config: {
+      is_send: true,
+      msg_type: [MessageTypes.MAIL],
+      receiver__username: [] as string[],
+    },
     ticket_type: TicketTypes.REDIS_INS_APPLY,
   });
 
@@ -299,6 +308,8 @@
   const route = useRoute();
   const router = useRouter();
   const { baseState, bizState, handleCancel, handleCreateAppAbbr, handleCreateTicket } = useApplyBase();
+
+  const serviceApply = inject(serviceApplyKey);
 
   useTicketDetail<Redis.InsApply>(TicketTypes.REDIS_INS_APPLY, {
     onSuccess(ticketDetail) {
@@ -308,6 +319,13 @@
       Object.assign(formData, {
         bk_biz_id: ticketDetail.bk_biz_id,
         remark: ticketDetail.remark,
+        send_msg_config: {
+          ...formData.send_msg_config,
+          is_send: ticketDetail.send_msg_config.is_send,
+          receiver__username: ticketDetail.send_msg_config.is_send
+            ? ticketDetail.send_msg_config.receiver__username
+            : [],
+        },
       });
       Object.assign(formData.details, {
         bk_cloud_id: details.bk_cloud_id,
@@ -372,6 +390,7 @@
   });
 
   const regionRequirementsRef = useTemplateRef('regionRequirements');
+  const notifyRelatedPersonsRef = useTemplateRef('notifyRelatedPersonsRef');
 
   const formRef = ref<InstanceType<typeof DbForm>>();
   const specRef = ref<InstanceType<typeof SpecSelector>>();
@@ -507,9 +526,10 @@
   const handleChangeBiz = (info: BizItem) => {
     bizState.info = info;
     bizState.hasEnglishName = !!info.english_name;
+    serviceApply?.changeBizId(info.bk_biz_id);
   };
 
-  const handleChangeCloud = (info: { id: number | string; name: string }) => {
+  const handleCloudChange = (info: { id: number | string; name: string }) => {
     cloudInfo.value = info;
   };
 
@@ -623,6 +643,7 @@
     const params = {
       ...formData,
       details: getDetails(),
+      send_msg_config: notifyRelatedPersonsRef.value!.getValue(),
     };
 
     // 若业务没有英文名称则先创建业务英文名称再创建单据，反正直接创建单据

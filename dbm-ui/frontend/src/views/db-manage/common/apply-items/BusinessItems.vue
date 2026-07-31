@@ -29,7 +29,7 @@
   </BkFormItem>
   <BkFormItem
     ref="appAbbrRef"
-    :label="t('业务Code')"
+    :label="t('业务代号')"
     property="details.db_app_abbr"
     required
     :rules="bkAppAbbrRuels">

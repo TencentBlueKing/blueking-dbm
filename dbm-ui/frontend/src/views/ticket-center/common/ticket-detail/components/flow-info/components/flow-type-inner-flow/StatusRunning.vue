@@ -1,5 +1,7 @@
 <template>
-  <StatusRunning :data="data">
+  <StatusRunning
+    :data="data"
+    :ticket-detail="ticketDetail">
     <template #content>
       <span>
         <I18nT
