@@ -37,17 +37,25 @@ class AgentHandler:
 
     @staticmethod
     def __generate_session_code():
-        """生成session_code"""
+        """生成session_code
+
+        :return: uuid4 字符串，作为 aidev 平台会话的唯一标识
+        """
         return str(uuid.uuid4())
 
     @staticmethod
-    def __build_resource_manager(agent_code, username) -> DBMAgentResourceManager:
-        """创建子智能体 resource manager"""
-        return build_resource_manager(agent_code, username)
+    def __build_resource_manager(agent_code, username, model: str = "") -> DBMAgentResourceManager:
+        """创建子智能体 resource manager
+        resource manager 决定了本次调用使用哪套 app 凭证、以谁的身份换取 access_token，
+        以及最终装配 agent 时使用的模型配置。
+        """
+        return build_resource_manager(agent_code, username, model)
 
     @staticmethod
     def __build_session_manager(agent_code, username) -> SessionManager:
-        """创建session manager"""
+        """创建session manager
+        session manager 只负责会话及会话内容的增删查，不参与 agent 装配，因此无需模型信息。
+        """
         return build_session_manager(agent_code, username)
 
     @classmethod
@@ -57,7 +65,15 @@ class AgentHandler:
 
     @classmethod
     def create_temporary_session(cls, username, agent_code):
-        """创建临时会话"""
+        """创建临时会话
+
+        临时会话（is_temporary=True）不会出现在用户的会话列表中，适用于后台任务、
+        单次问答等不需要留存上下文的场景。
+
+        :param username: 会话归属的用户名
+        :param agent_code: 会话使用的智能体 code
+        :return: 新建会话的 session_code
+        """
         session_code = cls.__generate_session_code()
 
         # 创建临时会话
@@ -81,10 +97,27 @@ class AgentHandler:
         stream: bool = False,
         timeout=DEFAULT_AGENT_CHAT_TIMEOUT,
         username=DEFAULT_USERNAME,
+        *,
+        model: str = "",
     ):
-        """获得本次对话内容，支持流式/非流式"""
+        """获得本次对话内容，支持流式/非流式
+
+        以 session_code 为上下文装配 agent 并执行，会话历史由 SDK 从平台侧拉取，
+        因此调用前需保证用户提问已写入该会话。
+
+        :param agent_code: 应答使用的智能体 code
+        :param session_code: 会话 code，agent 由此还原完整对话上下文
+        :param session_content_id: 本轮用户提问的内容 ID。当前实现未使用（SDK 直接按
+            session_code 拉取会话上下文），保留该参数用于调用链路追溯
+        :param stream: 是否流式返回
+        :param timeout: 单次对话的超时时间（秒）
+        :param username: 调用者用户名，决定 access_token 与工时归属
+        :param model: 指定本次对话使用的 LLM，为空时使用智能体发布时配置的模型
+        :return: 非流式返回 dict（含 choices/model/id/reference_doc）；流式返回事件生成器
+        """
         execute_kwargs = ExecuteKwargs(stream=stream, invoke_timeout=timeout)
-        rm = cls.__build_resource_manager(agent_code, username)
+        # 模型覆盖挂在 resource manager 上，agent 装配时经 get_agent_config 生效
+        rm = cls.__build_resource_manager(agent_code, username, model)
         sm = cls.__build_session_manager(agent_code, username)
         agent_instance = AgentBuilder(
             resource_manager=rm,
@@ -104,8 +137,23 @@ class AgentHandler:
         session_code=None,
         stream: bool = False,
         timeout=DEFAULT_AGENT_CHAT_TIMEOUT,
+        *,
+        model: str = "",
     ):
-        """根据agent直接内容询问agent"""
+        """根据agent直接内容询问agent
+
+        完整链路：准备会话 -> 写入用户提问 -> 触发 AI 应答。
+        未传 session_code 时会新建临时会话，即一次性问答；传入则在既有会话内追加提问。
+
+        :param agent_code: 目标智能体 code。非主智能体时按快捷指令语义记录，用于工时统计
+        :param content: 用户提问内容
+        :param username: 调用者用户名
+        :param session_code: 复用的会话 code，为空时新建临时会话
+        :param stream: 是否流式返回
+        :param timeout: 单次对话的超时时间（秒）
+        :param model: 指定本次对话使用的 LLM，为空时使用智能体发布时配置的模型
+        :return: 非流式返回 AI 回复正文字符串；流式返回 StreamingHttpResponse
+        """
         # 创建临时会话
         session_code = session_code or cls.create_temporary_session(username, agent_code)
 
@@ -129,6 +177,7 @@ class AgentHandler:
             stream=stream,
             timeout=timeout,
             username=username,
+            model=model,
         )
 
         if stream and not isinstance(ai_response, dict):
@@ -144,10 +193,26 @@ class AgentHandler:
         username=DEFAULT_USERNAME,
         session_code=None,
         timeout=DEFAULT_AGENT_CHAT_TIMEOUT,
+        *,
+        model: str = "",
     ):
-        """根据agent直接内容询问agent, 连续对话"""
+        """根据agent直接内容询问agent, 连续对话
+
+        与 ask_agent_with_content 的差别在于额外返回 session_code，调用方把它带入下一轮
+        即可延续上下文，实现多轮对话。仅支持非流式。
+
+        :param agent_code: 目标智能体 code
+        :param content: 用户提问内容
+        :param username: 调用者用户名
+        :param session_code: 复用的会话 code，为空时新建临时会话
+        :param timeout: 单次对话的超时时间（秒）
+        :param model: 指定本次对话使用的 LLM，为空时使用智能体发布时配置的模型
+        :return: (AI 回复正文, 本轮使用的 session_code)
+        """
         session_code = session_code or cls.create_temporary_session(username, agent_code)
-        ai_response = cls.ask_agent_with_content(agent_code, content, username, session_code, timeout=timeout)
+        ai_response = cls.ask_agent_with_content(
+            agent_code, content, username, session_code, timeout=timeout, model=model
+        )
         return ai_response, session_code
 
     @classmethod
@@ -158,8 +223,24 @@ class AgentHandler:
         username=DEFAULT_USERNAME,
         stream: bool = False,
         timeout=DEFAULT_AGENT_CHAT_TIMEOUT,
+        *,
+        model: str = "",
     ):
-        """根据快捷指令询问agent"""
+        """根据快捷指令询问agent
+
+        与 ask_agent_with_content 的差别在于提问内容不由调用方直接给出，而是把 command_params
+        填入指令注册时声明的模板渲染得到；目标智能体也由指令自身声明，无需调用方指定。
+        每次调用都会新建临时会话，不支持多轮。
+
+        :param command: 快捷指令 code，须已注册到 CommandProcessor
+        :param command_params: 指令模板的填充参数，key 为模板变量名
+        :param username: 调用者用户名
+        :param stream: 是否流式返回
+        :param timeout: 单次对话的超时时间（秒）
+        :param model: 指定本次对话使用的 LLM，为空时使用智能体发布时配置的模型
+        :return: 非流式返回 AI 回复正文字符串；流式返回 StreamingHttpResponse
+        :raises ValueError: 指令未注册到 CommandProcessor
+        """
         if command not in CommandProcessor._handlers:
             raise ValueError(f"Command {command} not found")
         command_handler = CommandProcessor._handlers[command]
@@ -193,6 +274,7 @@ class AgentHandler:
             stream=stream,
             timeout=timeout,
             username=username,
+            model=model,
         )
 
         if stream and not isinstance(ai_response, dict):
@@ -202,6 +284,13 @@ class AgentHandler:
 
     @staticmethod
     def streaming_response(generator):
+        """将 agent 的流式输出包装为 SSE 响应
+
+        关闭客户端缓存与 nginx 缓冲，避免 AI 回复被攒到最后一次性吐出。
+
+        :param generator: agent 执行产生的事件生成器
+        :return: content-type 为 text/event-stream 的流式响应
+        """
         sr = StreamingHttpResponse(generator)
         sr.headers["Cache-Control"] = "no-cache"
         sr.headers["X-Accel-Buffering"] = "no"
@@ -215,6 +304,8 @@ class AgentHandler:
         current_report: str,
         username=DEFAULT_USERNAME,
         agent_code: DBMAgentCode = DBMAgentCode.TASK_GUARDIAN,
+        *,
+        model: str = "",
     ) -> dict:
         """
         调用智能体比对两份风险报告是否描述同一风险问题
@@ -228,6 +319,7 @@ class AgentHandler:
             current_report: 本次的风险报告内容
             username: 调用智能体的用户名
             agent_code: 智能体代码，默认使用通用单据值守智能体，可传入对应DB组件的单据值守智能体
+            model: 指定本次对话使用的 LLM，为空时使用智能体发布时配置的模型
 
         Returns:
             dict: {"is_same_risk": bool, "reason": str}
@@ -244,6 +336,7 @@ class AgentHandler:
                 agent_code=agent_code,
                 content=compare_prompt,
                 username=username,
+                model=model,
             )
             # 从返回中提取 JSON
             json_match = re.search(r'\{.*?"is_same_risk".*?}', ai_response, re.DOTALL)

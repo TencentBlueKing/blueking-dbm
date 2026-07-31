@@ -26,8 +26,6 @@ from backend.configuration.models import DBAdministrator, SystemSettings
 from backend.db_meta.enums import MachineType, TenDBClusterSpiderRole
 from backend.db_meta.models import AppCache, Cluster, Machine, ProxyInstance, StorageInstance
 from backend.db_services.dbbase.constants import IpSource
-from backend.dbm_aiagent.agent.constants import DBMAgentCode
-from backend.dbm_aiagent.agent.handlers import AgentHandler
 from backend.iam_app.dataclass.actions import ActionEnum
 from backend.ticket.constants import TICKET_EXPIRE_DEFAULT_CONFIG, FlowRetryType, FlowType, TicketType
 from backend.ticket.exceptions import TicketResourceApplyException
@@ -533,6 +531,9 @@ class TicketFlowBuilder:
         if not env.ENABLE_DBM_AI:
             return ticket.details
         try:
+            from backend.dbm_aiagent.agent.constants import DBMAgentCode
+            from backend.dbm_aiagent.agent.handlers import AgentHandler
+
             return AgentHandler.ask_agent_with_content(
                 agent_code=DBMAgentCode.LOG_ANALYSIS,
                 content=str(_("{} 总结需求摘要").format(ticket.details)),

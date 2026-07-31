@@ -28,7 +28,6 @@ from backend.db_report.models.mysql_config_ai_inspect import MysqlConfigAiInspec
 from backend.db_report.portrait import MysqlPortraitDimensionCode, ingest_summary
 from backend.db_report.portrait.exceptions import PortraitSDKBaseException
 from backend.dbm_aiagent.agent.constants import DEFAULT_AGENT_CHAT_TIMEOUT, DBMAgentCode
-from backend.dbm_aiagent.agent.handlers import AgentHandler
 
 logger = logging.getLogger("celery")
 
@@ -215,6 +214,8 @@ def run_mysql_config_ai_inspect(row_id: int, lock_key: str):
         logger.info(_("配置巡检开始调用 agent: id={} domain={}").format(row.id, row.cluster_domain))
         t_start = time.monotonic()
         try:
+            from backend.dbm_aiagent.agent.handlers import AgentHandler
+
             res = AgentHandler.ask_agent_with_content(
                 agent_code=DBMAgentCode.MYSQL_CONFIG_PERF_TUNER,
                 content=str(content),

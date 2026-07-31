@@ -37,9 +37,6 @@ from backend.db_report.models.cluster_skew_detection import ClusterSkewDetection
 from backend.db_report.models.mysql_cluster_skew_report import MysqlClusterSkewReport
 from backend.db_report.portrait import MysqlPortraitDimensionCode, ingest_summary
 from backend.db_report.portrait.exceptions import PortraitSDKBaseException
-from backend.dbm_aiagent.agent.constants import DBMAgentCode
-from backend.dbm_aiagent.agent.handlers import AgentHandler
-from backend.dbm_aiagent.mcp_tools.mysql.impl.query_cluster_skew_data import has_cluster_skew
 
 logger = logging.getLogger("celery.generate_mysql_skew_report")
 
@@ -167,6 +164,10 @@ def generate_report():
 
 @app.task
 def _generate_cluster_skew_report(cluster_type: str, domain: str, lock_key: str, bk_biz_id: int):
+    from backend.dbm_aiagent.agent.constants import DBMAgentCode
+    from backend.dbm_aiagent.agent.handlers import AgentHandler
+    from backend.dbm_aiagent.mcp_tools.mysql.impl.query_cluster_skew_data import has_cluster_skew
+
     logger.info("generate %s skew report start: lock_key=%s", domain, lock_key)
     try:
         # 本地墙钟时间，不带时区，与 Doris detect_time、倾斜检测写入方式一致
