@@ -534,7 +534,7 @@ func (cluster *MySQLSwitchCluster) UpdateMetaInfo() error {
 			continue
 		}
 
-		if err := cluster.DbmClient.SwapMySQLRole(cluster.BkCloudID, instData.IP, instData.Port,
+		if err := SwapMySQLRole(cluster.DbmClient, cluster.BkCloudID, instData.IP, instData.Port,
 			standbySlave.Ip, standbySlave.Port); err != nil {
 			errMsg := fmt.Sprintf("failed to swap roles of backend nodes(master:%s:%d, slave:%s:%d), errmsg:%s",
 				instData.IP, instData.Port, standbySlave.Ip, standbySlave.Port, err.Error())
@@ -581,9 +581,9 @@ func (cluster *MySQLSwitchCluster) DoFinal() error {
 			continue
 		}
 
-		switchInstances := []dbm.DumperSwitchInstance{}
+		switchInstances := []DumperSwitchInstance{}
 		for _, dumper := range instData.BinlogDumpers {
-			switchInstances = append(switchInstances, dbm.DumperSwitchInstance{
+			switchInstances = append(switchInstances, DumperSwitchInstance{
 				Ip:             dumper.Ip,
 				Port:           dumper.Port,
 				BinlogFile:     cluster.NewMasterBinlogFile,
@@ -591,14 +591,14 @@ func (cluster *MySQLSwitchCluster) DoFinal() error {
 			})
 		}
 
-		SwitchInfos := []dbm.DumperSwitchInfo{
+		SwitchInfos := []DumperSwitchInfo{
 			{
 				ClusterDomain:   cluster.Cluster,
 				SwitchInstances: switchInstances,
 			},
 		}
 
-		if err := cluster.DbmClient.SwitchBinlogDumper(cluster.BkCloudID, cluster.GetApp(), SwitchInfos); err != nil {
+		if err := SwitchBinlogDumper(cluster.DbmClient, cluster.BkCloudID, cluster.GetApp(), SwitchInfos); err != nil {
 			errMsg := fmt.Sprintf("failed to switch all tbinlogdumpers for current mysql, errmsg: %s",
 				err.Error())
 			cluster.ReportLogf(instKey, switchlogger.SwitchWarn, "%s", errMsg)

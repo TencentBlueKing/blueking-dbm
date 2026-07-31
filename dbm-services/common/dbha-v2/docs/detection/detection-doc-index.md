@@ -5,7 +5,7 @@
 聚焦 **MySQL 家族**（`tendbha` / `tendbcluster`）故障探测/切换设计文档。通用架构与组件职责以 [架构总览](../architecture/overview.md) 为准；本文侧重探测域总览与索引。
 
 - Probe harvester 实际加载 3 个插件实例：`mysql`、`mysqlProxyAdmin`（MySQL 插件变体，专用于 TenDBHA proxy admin 端口）、`redis`（由 `provider/*/harvest` 经 `harvester.Register` 自注册，probe 入口 blank-import `provider/allprobe`）。
-- Analysis 侧 **switcher 仅注册 MySQL**（由 `provider/mysql/switch` 经 `switcher.Register` 自注册，`workflow.New` 调用 `switcher.Build()`；analysis 入口 blank-import `provider/allanalysis`）；其余 `DbType` 可采集、可因 SSH dial/session 失败入窗（入窗 EventName 仍为 `DoubleCheckSshFailureV1`），但暂不执行自动切换。
+- Analysis 侧 **switcher 仅注册 MySQL**（由 `provider/mysql/switch` 经 `switcher.Register` 自注册，`workflow.New` 调用 `switcher.Build()`；analysis 入口 blank-import `provider/allanalysis`）；其余 `DbType` 可采集、可因 SSH dial/session 失败入窗（入窗 EventName 仍为 `DoubleCheckSshFailureV1`），但暂不执行自动切换。MySQL / Redis 的 DB 专属切换指标由各自 `provider/<db>/metrics` 经 `apm.RegisterDbMetrics` 自注册。
 - Analysis 侧基于 metrics 的一次解析（status parser）**当前为 stub**（见下文），故障主链路依赖「probe 直报事件 + missed probe + SSH 二次探测」。
 
 入窗细则以 [mysql-detection-design.md §5](./mysql-detection-design.md) 为准；窗口 / 锁 / 策略运行时路径见 [故障判定与切换](../flows/failure-detection-and-failover.md)。总入口见 [文档索引](../README.md)。新增 DB 类型请阅读 [新增 DB 类型扩展指南](./add-db-type-guide.md)（含块名归一、Match 谓词、builtin 弱注册与 provider 骨架）。admin / receiver 通过 blank-import `provider/alldesc` 链接 CapDesc 映射。
