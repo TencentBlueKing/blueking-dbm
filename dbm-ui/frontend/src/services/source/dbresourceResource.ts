@@ -376,3 +376,15 @@ export function calcResourceWaterLevel(params: { cache: boolean }) {
     }[];
   }>(`${path}/calc_resource_water_level/`, params);
 }
+
+/**
+ * 获取同母机 IP 列表
+ */
+export function fetchSameSvrOwnerIps(params: { bk_host_id: number }) {
+  return http.post<{
+    bk_host_id: number;
+    bk_svr_owner_asset_id: string;
+    count: number;
+    ips: string[];
+  }>(`${path}/same_svr_owner_ips/`, params);
+}
