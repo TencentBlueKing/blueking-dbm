@@ -107,6 +107,25 @@ class DorisListRetrieveResource(BigDataBaseListRetrieveResource, DorisExportQuer
         return cluster_info
 
     @classmethod
+    def _filter_instance_hook(cls, bk_biz_id, query_params, instances, **kwargs):
+        instances = list(instances)
+        cluster_ids = list({instance["cluster__id"] for instance in instances})
+        kwargs["master_map"] = cls.get_clusters_master(bk_biz_id, cluster_ids)
+        return super()._filter_instance_hook(bk_biz_id, query_params, instances, **kwargs)
+
+    @classmethod
+    def _to_instance_representation(
+        cls, instance: dict, cluster_entry_map: dict, db_module_names_map: dict, **kwargs
+    ) -> dict:
+        instance_info = super()._to_instance_representation(instance, cluster_entry_map, db_module_names_map, **kwargs)
+        master_address = kwargs.get("master_map", {}).get(instance["cluster__id"], "")
+        instance_info["is_master"] = (
+            instance["role"] == InstanceRole.DORIS_FOLLOWER.value
+            and instance_info["instance_address"] == master_address
+        )
+        return instance_info
+
+    @classmethod
     def get_nodes(cls, bk_biz_id: int, cluster_id: int, role: str, keyword: str = None) -> list:
         cluster = Cluster.objects.get(id=cluster_id, bk_biz_id=bk_biz_id)
 
