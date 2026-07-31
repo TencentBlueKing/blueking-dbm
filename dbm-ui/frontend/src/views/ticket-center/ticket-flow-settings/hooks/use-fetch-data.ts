@@ -150,16 +150,21 @@ export const useFetchData = () => {
     // 父策略按 ticket_type_display 自然序排序
     parentRows.sort((a, b) => a.ticket_type_display.localeCompare(b.ticket_type_display));
 
-    // 构建 children 字段并排序：先「按集群」后「按标签」，组内按 id 升序（新建在后）
+    // 构建 children 字段并排序：先「按集群」后「按标签」分组，组内按更新时间倒序（最新在前）
     // 同时标记每个父策略的最后一个子策略（用于树形连接线截断）
     parentRows.forEach((parentRow, index) => {
       const children = childMap.get(parentRow.ticket_type);
       if (children && children.length > 0) {
         children.sort((a, b) => {
+          // 先按生效范围类型分组：按集群在前、按标签在后
           if (a.scopeType !== b.scopeType) {
             return a.scopeType === 'cluster' ? -1 : 1;
           }
-          return a.rawData.id - b.rawData.id;
+          // 组内按更新时间倒序（最新在前），空更新时间视为最早
+          const timeDiff =
+            new Date(b.rawData.update_at || 0).getTime() - new Date(a.rawData.update_at || 0).getTime();
+          // 时间相同时按 id 升序保证稳定
+          return timeDiff !== 0 ? timeDiff : a.rawData.id - b.rawData.id;
         });
         children.forEach((child, i) => {
           children[i] = { ...child, isLastChild: false };
