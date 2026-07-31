@@ -48,3 +48,10 @@ class AutofixStatus(StrStructuredEnum):
     AF_RUNNING = EnumField("running", _("拼命干活中"))
     AF_FAIL = EnumField("fail", _("自愈失败"))
     AF_UNKOWN = EnumField("unkown", _("未至之境"))
+
+
+class MsgPriority(StrStructuredEnum):
+    """自愈消息优先级"""
+
+    L0 = EnumField("L0", _("紧急消息-发起自愈/自愈失败/忽略自愈等"))
+    L1 = EnumField("L1", _("普通消息-自愈成功/一般状态通知等"))
