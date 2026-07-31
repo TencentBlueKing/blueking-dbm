@@ -144,7 +144,7 @@ func (inst *InstanceOp) DoStopWithOptions(opts StopOptions) error {
 		return errors.Wrap(err, "getPidByPort "+strconv.Itoa(inst.Port))
 	}
 	if listenPID == 0 {
-		inst.logger.Info("port %d has no TCP listener", inst.Port)
+		inst.logger.Info("port %d has no listener pid", inst.Port)
 		return nil
 	}
 	processNameStr, err := getProcessNameByPID(listenPID)
@@ -229,7 +229,7 @@ func (inst *InstanceOp) DoStopWithOptions(opts StopOptions) error {
 		time.Sleep(sleepDuration)
 	}
 
-	// Extra wait: process may need longer than maxRetry*5s to release the port from /proc/net/tcp.
+	// Extra wait: process may need longer than maxRetry*5s to release the listener pid.
 	extraRetry := 24
 	extraInterval := 5 * time.Second
 	if hasDeadline {
@@ -259,7 +259,7 @@ func (inst *InstanceOp) DoStepDownIfPrimary() error {
 		return errors.Wrap(err, "getPidByPort for stepDown "+strconv.Itoa(inst.Port))
 	}
 	if listenPID == 0 {
-		inst.logger.Info("port %d has no TCP listener, skip stepDown on %s", inst.Port, inst.Addr())
+		inst.logger.Info("port %d has no listener pid, skip stepDown on %s", inst.Port, inst.Addr())
 		return nil
 	}
 	processNameStr, err := getProcessNameByPID(listenPID)
@@ -375,7 +375,7 @@ func getProcessNameByPID(pid int) (string, error) {
 	return strings.TrimSpace(string(processName)), nil
 }
 
-// waitPortRelease waits until no TCP LISTEN on the port (/proc/net/tcp + tcp6), not merely any /proc/net/tcp row.
+// waitPortRelease waits until no listener pid is resolved for the port (pid+port standard).
 func (inst *InstanceOp) waitPortRelease(maxRetry int, waitTime time.Duration) error {
 	return inst.waitPortReleaseWithDeadline(maxRetry, waitTime, time.Time{}, false)
 }
@@ -385,28 +385,28 @@ func (inst *InstanceOp) waitPortReleaseWithDeadline(
 ) error {
 	for i := 0; i < maxRetry; i++ {
 		if hasDeadline && time.Now().After(deadline) {
-			return fmt.Errorf("port %d still has TCP LISTEN after stop timeout", inst.Port)
+			return fmt.Errorf("port %d still has listener pid after stop timeout", inst.Port)
 		}
 		listenPID, err := getPidByPort(inst.Port)
 		if err != nil {
 			return errors.Wrap(err, "getPidByPort after stop")
 		}
 		if listenPID == 0 {
-			inst.logger.Info("port %d has no TCP listener", inst.Port)
+			inst.logger.Info("port %d has no listener pid", inst.Port)
 			return nil
 		}
-		inst.logger.Info("port %d still has TCP LISTEN (pid %d), attempt %d/%d, waiting...", inst.Port, listenPID, i+1, maxRetry)
+		inst.logger.Info("port %d still has listener pid %d, attempt %d/%d, waiting...", inst.Port, listenPID, i+1, maxRetry)
 		sleepDuration := waitTime
 		if hasDeadline {
 			if rem := time.Until(deadline); rem <= 0 {
-				return fmt.Errorf("port %d still has TCP LISTEN after stop timeout", inst.Port)
+				return fmt.Errorf("port %d still has listener pid after stop timeout", inst.Port)
 			} else if rem < sleepDuration {
 				sleepDuration = rem
 			}
 		}
 		time.Sleep(sleepDuration)
 	}
-	return fmt.Errorf("port %d still has TCP LISTEN after process stopped, waited %d retries", inst.Port, maxRetry)
+	return fmt.Errorf("port %d still has listener pid after process stopped, waited %d retries", inst.Port, maxRetry)
 }
 
 func getMongoBinRootDir() string {
@@ -567,24 +567,17 @@ func (inst *Instance) IsMaster() (*mymongo.IsMasterResult, error) {
 	return mymongo.IsMaster(client, 60)
 }
 
-// IsRunning 检查服务是否在运行
+// IsRunning 检查服务是否在运行（标准：端口可解析出 pid > 0）。
 // return pid:int isRunning:bool, err: error
 func (inst *InstanceOp) IsRunning() (pid int, portIsUsing bool, err error) {
-	portIsUsing, err = portHasTCPListenIPv4(inst.Port)
-	if err != nil {
-		return 0, false, errors.Wrap(err, "portHasTCPListenIPv4")
-	}
-
-	if !portIsUsing {
-		return 0, false, nil
-	}
-
 	pid, err = getPidByPort(inst.Port)
 	if err != nil {
-		err = errors.Wrap(err, "getPidByPort")
-		return 0, portIsUsing, err
+		return 0, false, errors.Wrap(err, "getPidByPort")
 	}
-	return
+	if pid == 0 {
+		return 0, false, nil
+	}
+	return pid, true, nil
 }
 
 // ExecJs TODO
@@ -702,16 +695,10 @@ func replicaSetServiceCheckRoleOK(isMasterResult *mymongo.IsMasterResult) error 
 	return errors.New("is not primary or secondary")
 }
 
-// getPidByPort 通过端口获取监听进程的 pid（/proc/net/tcp、tcp6 与 /proc/*/fd，不依赖 lsof）。
+// getPidByPort 通过端口获取监听进程的 pid（/proc/net/tcp IPv4 与 /proc/*/fd，不依赖 lsof；失败时 ss/netstat fallback）。
 // 普通用户只能扫到自己有权限的 /proc 条目，可能返回 0 即使端口被其他用户占用。
 func getPidByPort(port int) (int, error) {
 	return linuxproc.TCPListenPID(port)
-}
-
-// portHasTCPListenIPv4 通过 /proc/net/tcp 与 tcp6 判断端口是否仍有 TCP LISTEN（任意本机地址，含 127.0.0.1）。
-// 使用 TCPPortHasLISTEN，不依赖 inode 列是否解析成功（ListenSocketInodes 曾因 inode<=0 漏掉 LISTEN）。
-func portHasTCPListenIPv4(port int) (bool, error) {
-	return linuxproc.TCPPortHasLISTEN(port)
 }
 
 func startMongoWithConfigFile(port int, confFile string) error {

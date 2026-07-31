@@ -126,7 +126,7 @@ func (u *AddUser) Init(runtime *jobruntime.JobGenericRuntime) error {
 		u.PrimaryPort = u.ConfParams.Port
 		u.runtime.Logger.Info("init resolved mongos=%s:%d", u.PrimaryIP, u.PrimaryPort)
 	} else {
-		primaryAddr, err := common.NoAuthGetPrimaryInfo(u.Mongo, u.ConfParams.IP, u.ConfParams.Port)
+		primaryAddr, err := common.GetPrimaryInfo(u.Mongo, "", "", u.ConfParams.IP, u.ConfParams.Port)
 
 		if err != nil {
 			u.runtime.Logger.Error("resolve primary db info of addUser fail, error:%s", err)
@@ -378,7 +378,7 @@ func (u *AddUser) verifyExistingUserCompatibleWithPrimaryFallback() (bool, error
 		!strings.Contains(errStr, "unauthorized") {
 		return false, err
 	}
-	primaryInfo, pErr := common.AuthGetPrimaryInfo(
+	primaryInfo, pErr := common.GetPrimaryInfo(
 		u.Mongo, u.ConfParams.Username, u.ConfParams.Password, u.ConfParams.IP, u.ConfParams.Port,
 	)
 	if pErr != nil || primaryInfo == "" {

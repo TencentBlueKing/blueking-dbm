@@ -81,7 +81,7 @@ func (s *StepDown) Init(runtime *jobruntime.JobGenericRuntime) error {
 	}
 
 	// 获取primary信息
-	info, err := common.AuthGetPrimaryInfo(s.Mongo, s.ConfParams.AdminUsername, s.ConfParams.AdminPassword,
+	info, err := common.GetPrimaryInfo(s.Mongo, s.ConfParams.AdminUsername, s.ConfParams.AdminPassword,
 		s.ConfParams.IP, s.ConfParams.Port)
 	if err != nil {
 		s.runtime.Logger.Error("get primary db info of stepDown fail, error:%s", err)

@@ -114,7 +114,7 @@ func parseSlField(slField string) int {
 const (
 	// ProcNetTcpPath IPv4 TCP socket table
 	ProcNetTcpPath = "/proc/net/tcp"
-	// ProcNetTcp6Path IPv6 TCP socket table
+	// ProcNetTcp6Path IPv6 TCP socket table (kept for reference; listen detection uses IPv4 only).
 	ProcNetTcp6Path = "/proc/net/tcp6"
 )
 
@@ -202,43 +202,53 @@ func procNetTcpRead(path string, input []byte) (rows []NetTcp, err error) {
 	return rows, nil
 }
 
-// TCPPortHasLISTEN reports whether /proc/net/tcp or tcp6 has any row in TCP LISTEN on local port.
+// Precondition for TCPPortHasLISTEN and ListenSocketInodes: every instance they inspect is expected
+// to bind at least one IPv4 address, so an IPv4 LISTEN row always exists. DBM satisfies this because
+// mongod/mongos are always deployed with `bindIp: 127.0.0.1,<ip>`. A process bound to IPv6 only would
+// have no row in /proc/net/tcp and be reported as not listening; allowing IPv6-only binds therefore
+// requires these two functions to also read ProcNetTcp6Path.
+
+// TCPPortHasLISTEN reports whether /proc/net/tcp has any row in TCP LISTEN on local port (IPv4 only).
 // Unlike ListenSocketInodes, it does not require a non-zero socket inode (fixes false "port free"
 // when the inode column is missing or not parsed).
 func TCPPortHasLISTEN(port int) (bool, error) {
-	for _, path := range []string{ProcNetTcpPath, ProcNetTcp6Path} {
-		tcpRows, err := procNetTcpRead(path, nil)
-		if err != nil {
-			return false, err
-		}
-		for _, row := range tcpRows {
-			if row.LocalPort == port && row.IsListen() {
-				return true, nil
-			}
-		}
+	tcpRows, err := procNetTcpRead(ProcNetTcpPath, nil)
+	if err != nil {
+		return false, err
 	}
-	return false, nil
+	return rowsHaveTCPListen(tcpRows, port), nil
 }
 
-// ListenSocketInodes returns socket inodes in TCP LISTEN on local port.
+// ListenSocketInodes returns socket inodes in TCP LISTEN on local port from /proc/net/tcp (IPv4 only).
 func ListenSocketInodes(port int) ([]int64, error) {
-	var inodes []int64
-	seen := map[int64]struct{}{}
-	for _, path := range []string{ProcNetTcpPath, ProcNetTcp6Path} {
-		tcpRows, err := procNetTcpRead(path, nil)
-		if err != nil {
-			return nil, err
-		}
-		for _, row := range tcpRows {
-			if row.LocalPort != port || !row.IsListen() || row.Inode <= 0 {
-				continue
-			}
-			if _, ok := seen[row.Inode]; ok {
-				continue
-			}
-			seen[row.Inode] = struct{}{}
-			inodes = append(inodes, row.Inode)
+	tcpRows, err := procNetTcpRead(ProcNetTcpPath, nil)
+	if err != nil {
+		return nil, err
+	}
+	return collectListenInodes(tcpRows, port), nil
+}
+
+func rowsHaveTCPListen(rows []NetTcp, port int) bool {
+	for _, row := range rows {
+		if row.LocalPort == port && row.IsListen() {
+			return true
 		}
 	}
-	return inodes, nil
+	return false
+}
+
+func collectListenInodes(rows []NetTcp, port int) []int64 {
+	var inodes []int64
+	seen := map[int64]struct{}{}
+	for _, row := range rows {
+		if row.LocalPort != port || !row.IsListen() || row.Inode <= 0 {
+			continue
+		}
+		if _, ok := seen[row.Inode]; ok {
+			continue
+		}
+		seen[row.Inode] = struct{}{}
+		inodes = append(inodes, row.Inode)
+	}
+	return inodes
 }

@@ -9,10 +9,10 @@ import (
 	"strings"
 	"time"
 
+	"dbm-services/common/go-pubpkg/mycmd"
 	"dbm-services/mongodb/db-tools/dbactuator/pkg/common"
 	"dbm-services/mongodb/db-tools/dbactuator/pkg/consts"
 	"dbm-services/mongodb/db-tools/dbactuator/pkg/jobruntime"
-	"dbm-services/mongodb/db-tools/dbactuator/pkg/util"
 
 	"github.com/go-playground/validator/v10"
 )
@@ -134,22 +134,21 @@ func (b *Balancer) execScript() error {
 	}
 
 	// 执行脚本
-	var cmd string
-	if b.ConfParams.Open == true {
-		cmd = fmt.Sprintf(
-			"%s -u %s -p '%s' --host %s --port %d --authenticationDatabase=admin --quiet --eval \"sh.startBalancer()\"",
-			b.Mongo, b.ConfParams.AdminUsername, b.ConfParams.AdminPassword, b.ConfParams.IP, b.ConfParams.Port)
-	} else {
-		cmd = fmt.Sprintf(
-			"%s -u %s -p '%s' --host %s --port %d --authenticationDatabase=admin --quiet --eval \"sh.stopBalancer()\"",
-			b.Mongo, b.ConfParams.AdminUsername, b.ConfParams.AdminPassword, b.ConfParams.IP, b.ConfParams.Port)
+	eval := "sh.stopBalancer()"
+	if b.ConfParams.Open {
+		eval = "sh.startBalancer()"
 	}
 	b.runtime.Logger.Info("start to execute script")
-	_, err = util.RunBashCmd(
-		cmd,
-		"", nil,
-		60*time.Second)
-	if err != nil {
+	if _, err = mycmd.New(
+		b.Mongo,
+		"-u", b.ConfParams.AdminUsername,
+		"-p", mycmd.Password(b.ConfParams.AdminPassword),
+		"--host", b.ConfParams.IP,
+		"--port", strconv.Itoa(b.ConfParams.Port),
+		"--authenticationDatabase=admin",
+		"--quiet",
+		"--eval", eval,
+	).Run(60 * time.Second); err != nil {
 		b.runtime.Logger.Error("set cluster balancer status:%t fail, error:%s", b.ConfParams.Open, err)
 		return fmt.Errorf("set cluster balancer status:%t fail, error:%s", b.ConfParams.Open, err)
 	}

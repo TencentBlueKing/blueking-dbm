@@ -9,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+	"dbm-services/common/go-pubpkg/mycmd"
 	"dbm-services/mongodb/db-tools/dbactuator/pkg/common"
 	"dbm-services/mongodb/db-tools/dbactuator/pkg/consts"
 	"dbm-services/mongodb/db-tools/dbactuator/pkg/jobruntime"
@@ -280,10 +281,12 @@ func (m *MongoDBInstall) checkPortUsed() (bool, error) {
 	m.runtime.Logger.Info("start to validate port if it has been used")
 	flag, _ := util.CheckPortIsInUse(m.ConfParams.IP, strconv.Itoa(m.ConfParams.Port))
 	if flag {
-		// 校验端口是否是mongod进程
-		cmd := fmt.Sprintf("netstat -ntpl |grep %d | awk '{print $7}' |head -1", m.ConfParams.Port)
-		result, _ := util.RunBashCmd(cmd, "", nil, 60*time.Second)
-		if strings.Contains(result, "mongod") {
+		// 校验端口是否是mongod进程，复用统一的 pid+端口判活
+		_, procName, err := common.GetMongoPidAndNameByPort(m.ConfParams.Port)
+		if err != nil {
+			m.runtime.Logger.Warn("get process by port:%d fail, error:%s", m.ConfParams.Port, err)
+		}
+		if strings.Contains(procName, "mongod") {
 			// 检查配置文件是否一致，读取已有配置文件与新生成的配置文件内容对比
 			content, _ := os.ReadFile(m.AuthConfFilePath)
 			if strings.Compare(string(content), string(m.AuthConfFileContent)) == 0 {
@@ -464,24 +467,15 @@ func (m *MongoDBInstall) mkdir() error {
 
 	// 修改目录属主
 	m.runtime.Logger.Info("start to execute chown command for dbPath, logPath and backupPath")
-	if _, err := util.RunBashCmd(
-		fmt.Sprintf("chown -R %s:%s %s", m.OsUser, m.OsGroup, filepath.Join(logPathDir, "../")),
-		"", nil,
-		60*time.Second); err != nil {
+	if _, err := mycmd.New("chown", "-R", m.OsUser+":"+m.OsGroup, filepath.Join(logPathDir, "../")).Run(60 * time.Second); err != nil {
 		m.runtime.Logger.Error("chown log directory fail, error:%s", err)
 		return fmt.Errorf("chown log directory fail, error:%s", err)
 	}
-	if _, err := util.RunBashCmd(
-		fmt.Sprintf("chown -R %s:%s %s", m.OsUser, m.OsGroup, filepath.Join(m.DbpathDir, "../../")),
-		"", nil,
-		60*time.Second); err != nil {
+	if _, err := mycmd.New("chown", "-R", m.OsUser+":"+m.OsGroup, filepath.Join(m.DbpathDir, "../../")).Run(60 * time.Second); err != nil {
 		m.runtime.Logger.Error("chown data directory fail, error:%s", err)
 		return fmt.Errorf("chown data directory fail, error:%s", err)
 	}
-	if _, err := util.RunBashCmd(
-		fmt.Sprintf("chown -R %s:%s %s", m.OsUser, m.OsGroup, m.BackupDir),
-		"", nil,
-		60*time.Second); err != nil {
+	if _, err := mycmd.New("chown", "-R", m.OsUser+":"+m.OsGroup, m.BackupDir).Run(60 * time.Second); err != nil {
 		m.runtime.Logger.Error("chown backup directory fail, error:%s", err)
 		return fmt.Errorf("chown backup directory fail, error:%s", err)
 	}

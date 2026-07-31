@@ -8,10 +8,10 @@ import (
 	"strings"
 	"time"
 
+	"dbm-services/common/go-pubpkg/mycmd"
 	"dbm-services/mongodb/db-tools/dbactuator/pkg/common"
 	"dbm-services/mongodb/db-tools/dbactuator/pkg/consts"
 	"dbm-services/mongodb/db-tools/dbactuator/pkg/jobruntime"
-	"dbm-services/mongodb/db-tools/dbactuator/pkg/util"
 
 	"github.com/go-playground/validator/v10"
 )
@@ -87,7 +87,7 @@ func (n *NodeHidden) Init(runtime *jobruntime.JobGenericRuntime) error {
 	}
 
 	// 获取 primary 信息
-	primaryInfo, err := common.AuthGetPrimaryInfo(n.Mongo, n.ConfParams.AdminUsername,
+	primaryInfo, err := common.GetPrimaryInfo(n.Mongo, n.ConfParams.AdminUsername,
 		n.ConfParams.AdminPassword,
 		n.ConfParams.IP, n.ConfParams.Port)
 	if err != nil {
@@ -168,14 +168,16 @@ func (n *NodeHidden) execScript() error {
 
 	// 执行脚本
 	n.runtime.Logger.Info("start to execute script")
-	cmd := fmt.Sprintf(
-		"%s -u %s -p '%s' --host %s --port %d --authenticationDatabase=admin --quiet --eval \"%s\"",
-		n.Mongo, n.ConfParams.AdminUsername, n.ConfParams.AdminPassword, n.PrimaryIP, n.PrimaryPort, script)
-	_, err := util.RunBashCmd(
-		cmd,
-		"", nil,
-		60*time.Second)
-	if err != nil {
+	if _, err := mycmd.New(
+		n.Mongo,
+		"-u", n.ConfParams.AdminUsername,
+		"-p", mycmd.Password(n.ConfParams.AdminPassword),
+		"--host", n.PrimaryIP,
+		"--port", strconv.Itoa(n.PrimaryPort),
+		"--authenticationDatabase=admin",
+		"--quiet",
+		"--eval", script,
+	).Run(60 * time.Second); err != nil {
 		n.runtime.Logger.Error("set %s hidden status:%t fail, error:%s", n.HiddenHost, n.ConfParams.Hidden, err)
 		return fmt.Errorf("set %s hidden status:%t fail, error:%s", n.HiddenHost, n.ConfParams.Hidden, err)
 	}
@@ -185,7 +187,7 @@ func (n *NodeHidden) execScript() error {
 	// 间隔 5 秒
 	time.Sleep(time.Second * 5)
 	// 检查设置是否成功
-	if err = n.checkHidden(); err != nil {
+	if err := n.checkHidden(); err != nil {
 		return err
 	}
 	if n.HiddenStatus != n.ConfParams.Hidden {

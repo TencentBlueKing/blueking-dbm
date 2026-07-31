@@ -172,8 +172,7 @@ func (s *mongoDataExport) setupMongoTools() error {
 	// Untar the package to binDir if not already extracted
 	if !util.FileExists(unTarPath) {
 		s.runtime.Logger.Info("Extracting MongoDB package to %s", binDir)
-		tarCmd := fmt.Sprintf("tar -zxf %s -C %s", s.ConfParams.PackagePath, binDir)
-		if _, err := util.RunBashCmd(tarCmd, "", nil, 2*time.Minute); err != nil {
+		if _, err := mycmd.New("tar", "-zxf", s.ConfParams.PackagePath, "-C", binDir).Run(2 * time.Minute); err != nil {
 			s.runtime.Logger.Error("Failed to extract package: %s", err)
 			return errors.Wrap(err, "untar MongoDB package")
 		}

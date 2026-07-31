@@ -3,7 +3,6 @@ package atommongodb
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -15,6 +14,7 @@ import (
 	"dbm-services/mongodb/db-tools/dbactuator/pkg/jobruntime"
 
 	"github.com/go-playground/validator/v10"
+	"github.com/pkg/errors"
 	"gopkg.in/yaml.v2"
 )
 
@@ -35,12 +35,10 @@ type RestartConfParams struct {
 // MongoRestart 重启mongo进程
 type MongoRestart struct {
 	BaseJob
-	runtime            *jobruntime.JobGenericRuntime
 	BinDir             string
 	DataDir            string
 	DbpathDir          string
 	Mongo              string
-	OsUser             string // MongoDB安装在哪个用户下
 	OsGroup            string
 	ConfParams         *RestartConfParams
 	AuthConfFilePath   string
@@ -59,48 +57,18 @@ func (r *MongoRestart) Name() string {
 
 // Run 运行原子任务
 func (r *MongoRestart) Run() error {
-	r.runtime.Logger.Info("mongo_restart Run: begin (onlyChangeParam=%v, instance=%s, port=%d)",
+	r.runtime.Logger.Info("mongo_restart begin (onlyChangeParam=%v, instance=%s, port=%d)",
 		r.ConfParams.OnlyChangeParam, r.ConfParams.InstanceType, r.ConfParams.Port)
 
-	// 修改配置文件参数
 	if r.ConfParams.OnlyChangeParam {
-		r.runtime.Logger.Info("mongo_restart Run: step changeParam only (no restart)")
-		if err := r.changeParam(); err != nil {
-			return err
-		}
-		r.runtime.Logger.Info("mongo_restart Run: step changeParam only finished successfully")
-		return nil
+		return r.runSteps([]stepFunc{{"changeParam", r.changeParam}})
 	}
-
-	r.runtime.Logger.Info("mongo_restart Run: step changeParam before restart")
-	if err := r.changeParam(); err != nil {
-		return err
-	}
-	r.runtime.Logger.Info("mongo_restart Run: step changeParam finished successfully")
-
-	// mongod的primary进行主备切换
-	r.runtime.Logger.Info("mongo_restart Run: step RsStepDown")
-	if err := r.RsStepDown(); err != nil {
-		return err
-	}
-	r.runtime.Logger.Info("mongo_restart Run: step RsStepDown finished successfully")
-
-	// 关闭服务
-	r.runtime.Logger.Info("mongo_restart Run: step shutdown")
-	if err := r.shutdown(); err != nil {
-		return err
-	}
-	r.runtime.Logger.Info("mongo_restart Run: step shutdown finished successfully")
-
-	// 启动服务
-	r.runtime.Logger.Info("mongo_restart Run: step startup")
-	if err := r.startup(); err != nil {
-		return err
-	}
-	r.runtime.Logger.Info("mongo_restart Run: step startup finished successfully")
-
-	r.runtime.Logger.Info("mongo_restart Run: all steps completed successfully")
-	return nil
+	return r.runSteps([]stepFunc{
+		{"changeParam", r.changeParam},
+		{"RsStepDown", r.RsStepDown},
+		{"shutdown", r.shutdown},
+		{"startup", r.startup},
+	})
 }
 
 // Retry 重试
@@ -115,7 +83,6 @@ func (r *MongoRestart) Rollback() error {
 
 // Init 初始化
 func (r *MongoRestart) Init(runtime *jobruntime.JobGenericRuntime) error {
-	// 获取安装参数
 	r.runtime = runtime
 	r.runtime.Logger.Info("start to init")
 	r.BinDir = consts.GetMongoBinDir()
@@ -124,51 +91,41 @@ func (r *MongoRestart) Init(runtime *jobruntime.JobGenericRuntime) error {
 	r.OsGroup = consts.GetProcessUserGroup()
 	r.Mongo = filepath.Join(r.BinDir, "mongodb", "bin", "mongo")
 
-	// 获取MongoDB配置文件参数
 	if err := json.Unmarshal([]byte(r.runtime.PayloadDecoded), &r.ConfParams); err != nil {
-		r.runtime.Logger.Error("get parameters of mongo restart fail by json.Unmarshal, error:%s", err)
-		return fmt.Errorf("get parameters of mongo restart fail by json.Unmarshal, error:%s", err)
+		return errors.Wrap(err, "unmarshal mongo restart parameters")
 	}
 
-	// 设置各种路径
 	strPort := strconv.Itoa(r.ConfParams.Port)
 	r.DbpathDir = filepath.Join(r.DataDir, "mongodata", strPort, "db")
 	r.AuthConfFilePath = filepath.Join(r.DataDir, "mongodata", strPort, "mongo.conf")
 	r.NoAuthConfFilePath = filepath.Join(r.DataDir, "mongodata", strPort, "noauth.conf")
 	r.runtime.Logger.Info("init successfully")
-
-	// 安装前进行校验
-	if err := r.checkParams(); err != nil {
-		return err
-	}
-
-	return nil
+	return r.checkParams()
 }
 
-// checkParams 校验参数
 func (r *MongoRestart) checkParams() error {
-	// 校验重启配置参数
-	validate := validator.New()
 	r.runtime.Logger.Info("start to validate parameters of restart")
-	if err := validate.Struct(r.ConfParams); err != nil {
-		r.runtime.Logger.Error("validate parameters of restart fail, error:%s", err)
-		return fmt.Errorf("validate parameters of restart fail, error:%s", err)
+	if err := validator.New().Struct(r.ConfParams); err != nil {
+		return errors.Wrap(err, "validate restart parameters")
 	}
 	r.runtime.Logger.Info("validate parameters of restart successfully")
 	return nil
 }
 
-// changeParam 修改参数
 func (r *MongoRestart) changeParam() error {
 	if r.ConfParams.InstanceType == "mongos" &&
 		r.ConfParams.MongoSConfDbOld != "" && r.ConfParams.MongoSConfDbNew != "" {
-		if err := r.changeConfigDb(); err != nil {
-			return err
-		}
-		return nil
+		return r.changeConfigDb()
 	}
-	if err := r.changeCacheSizeGB(); err != nil {
-		return err
+	return r.changeCacheSizeGB()
+}
+
+func (r *MongoRestart) writeConfPair(authContent, noAuthContent []byte) error {
+	if err := os.WriteFile(r.AuthConfFilePath, authContent, DefaultPerm); err != nil {
+		return errors.Wrap(err, "write auth config")
+	}
+	if err := os.WriteFile(r.NoAuthConfFilePath, noAuthContent, DefaultPerm); err != nil {
+		return errors.Wrap(err, "write noauth config")
 	}
 	return nil
 }
@@ -176,49 +133,40 @@ func (r *MongoRestart) changeParam() error {
 // changeConfigDb 修改mongoS的ConfigDb参数
 func (r *MongoRestart) changeConfigDb() error {
 	r.runtime.Logger.Info("start to change configDB value of config file")
-	// 获取配置文件内容
-	readAuthConfFileContent, _ := ioutil.ReadFile(r.AuthConfFilePath)
-	readNoAuthConfFileContent, _ := ioutil.ReadFile(r.NoAuthConfFilePath)
-
-	// 修改configDB配置
-	yamlAuthMongoSConf := common.NewYamlMongoSConf()
-	yamlNoAuthMongoSConf := common.NewYamlMongoSConf()
-	_ = yaml.Unmarshal(readAuthConfFileContent, yamlAuthMongoSConf)
-	_ = yaml.Unmarshal(readNoAuthConfFileContent, yamlNoAuthMongoSConf)
-	yamlAuthMongoSConf.Sharding.ConfigDB = strings.Replace(yamlAuthMongoSConf.Sharding.ConfigDB,
-		r.ConfParams.MongoSConfDbOld, r.ConfParams.MongoSConfDbNew, -1)
-	yamlNoAuthMongoSConf.Sharding.ConfigDB = strings.Replace(yamlNoAuthMongoSConf.Sharding.ConfigDB,
-		r.ConfParams.MongoSConfDbOld, r.ConfParams.MongoSConfDbNew, -1)
-	authConfFileContent, _ := yamlAuthMongoSConf.GetConfContent()
-	noAuthConfFileContent, _ := yamlNoAuthMongoSConf.GetConfContent()
-
-	// 修改authConfFile
-	authConfFile, err := os.OpenFile(r.AuthConfFilePath, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, DefaultPerm)
-	defer authConfFile.Close()
+	authRaw, err := os.ReadFile(r.AuthConfFilePath)
 	if err != nil {
-		r.runtime.Logger.Error("create auth config file fail, error:%s", err)
-		return fmt.Errorf("create auth config file fail, error:%s", err)
+		return errors.Wrap(err, "read auth config")
 	}
-	if _, err = authConfFile.WriteString(string(authConfFileContent)); err != nil {
-		r.runtime.Logger.Error("change configDB value of auth config file write content fail, error:%s", err)
-		return fmt.Errorf("change configDB value of auth config file write content fail, error:%s",
-			err)
+	noAuthRaw, err := os.ReadFile(r.NoAuthConfFilePath)
+	if err != nil {
+		return errors.Wrap(err, "read noauth config")
 	}
 
-	// 修改noAuthConfFile
-	noAuthConfFile, err := os.OpenFile(r.NoAuthConfFilePath, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, DefaultPerm)
-	defer noAuthConfFile.Close()
-	if err != nil {
-		r.runtime.Logger.Error("create no auth config file fail, error:%s", err)
-		return fmt.Errorf("create no auth config file fail, error:%s", err)
+	authConf := common.NewYamlMongoSConf()
+	noAuthConf := common.NewYamlMongoSConf()
+	if err = yaml.Unmarshal(authRaw, authConf); err != nil {
+		return errors.Wrap(err, "unmarshal auth mongos config")
 	}
-	if _, err = noAuthConfFile.WriteString(string(noAuthConfFileContent)); err != nil {
-		r.runtime.Logger.Error("change configDB value of no auth config file write content fail, error:%s", err)
-		return fmt.Errorf("change configDB value of no auth config file write content fail, error:%s",
-			err)
+	if err = yaml.Unmarshal(noAuthRaw, noAuthConf); err != nil {
+		return errors.Wrap(err, "unmarshal noauth mongos config")
+	}
+	authConf.Sharding.ConfigDB = strings.Replace(authConf.Sharding.ConfigDB,
+		r.ConfParams.MongoSConfDbOld, r.ConfParams.MongoSConfDbNew, -1)
+	noAuthConf.Sharding.ConfigDB = strings.Replace(noAuthConf.Sharding.ConfigDB,
+		r.ConfParams.MongoSConfDbOld, r.ConfParams.MongoSConfDbNew, -1)
+
+	authOut, err := authConf.GetConfContent()
+	if err != nil {
+		return errors.Wrap(err, "render auth mongos config")
+	}
+	noAuthOut, err := noAuthConf.GetConfContent()
+	if err != nil {
+		return errors.Wrap(err, "render noauth mongos config")
+	}
+	if err = r.writeConfPair(authOut, noAuthOut); err != nil {
+		return err
 	}
 	r.runtime.Logger.Info("change configDB value of config file successfully")
-
 	return nil
 }
 
@@ -228,166 +176,137 @@ func (r *MongoRestart) changeCacheSizeGB() error {
 		return nil
 	}
 
-	// 检查mongo版本
 	r.runtime.Logger.Info("start to check mongo version")
 	version, err := common.CheckMongoVersion(r.BinDir, "mongod")
 	if err != nil {
-		r.runtime.Logger.Error("check mongo version fail, error:%s", err)
-		return fmt.Errorf("check mongo version fail, error:%s", err)
+		return errors.Wrap(err, "check mongo version")
 	}
 	mainVersion, _ := strconv.Atoi(strings.Split(version, ".")[0])
-	r.runtime.Logger.Info("check mongo version successfully")
-
-	if mainVersion >= 3 {
-		r.runtime.Logger.Info("start to change CacheSizeGB value of config file")
-		// 获取配置文件内容
-		readAuthConfFileContent, _ := ioutil.ReadFile(r.AuthConfFilePath)
-		readNoAuthConfFileContent, _ := ioutil.ReadFile(r.NoAuthConfFilePath)
-
-		// 修改CacheSizeGB大小并写入文件
-		yamlAuthConfFile := common.NewYamlMongoDBConf()
-		yamlNoAuthConfFile := common.NewYamlMongoDBConf()
-		_ = yaml.Unmarshal(readAuthConfFileContent, &yamlAuthConfFile)
-		_ = yaml.Unmarshal(readNoAuthConfFileContent, &yamlNoAuthConfFile)
-		if r.ConfParams.CacheSizeGB == 0 {
-			return nil
-		}
-		if r.ConfParams.CacheSizeGB != yamlAuthConfFile.Storage.WiredTiger.EngineConfig.CacheSizeGB {
-			yamlAuthConfFile.Storage.WiredTiger.EngineConfig.CacheSizeGB = r.ConfParams.CacheSizeGB
-			yamlNoAuthConfFile.Storage.WiredTiger.EngineConfig.CacheSizeGB = r.ConfParams.CacheSizeGB
-			authConfFileContent, _ := yamlAuthConfFile.GetConfContent()
-			noAuthConfFileContent, _ := yamlNoAuthConfFile.GetConfContent()
-
-			// 修改authConfFile
-			authConfFile, err := os.OpenFile(r.AuthConfFilePath, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, DefaultPerm)
-			defer authConfFile.Close()
-			if err != nil {
-				r.runtime.Logger.Error("create auth config file fail, error:%s", err)
-				return fmt.Errorf("create auth config file fail, error:%s", err)
-			}
-			if _, err = authConfFile.WriteString(string(authConfFileContent)); err != nil {
-				r.runtime.Logger.Error("change CacheSizeGB value of auth config file write content fail, error:%s", err)
-				return fmt.Errorf("change CacheSizeGB value of auth config file write content fail, error:%s",
-					err)
-			}
-
-			// 修改noAuthConfFile
-			noAuthConfFile, err := os.OpenFile(r.NoAuthConfFilePath, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, DefaultPerm)
-			defer noAuthConfFile.Close()
-			if err != nil {
-				r.runtime.Logger.Error("create no auth config file fail, error:%s", err)
-				return fmt.Errorf("create no auth config file fail, error:%s", err)
-			}
-			if _, err = noAuthConfFile.WriteString(string(noAuthConfFileContent)); err != nil {
-				r.runtime.Logger.Error("change CacheSizeGB value of no auth config file write content fail, error:%s", err)
-				return fmt.Errorf("change CacheSizeGB value of no auth config file write content fail, error:%s",
-					err)
-			}
-		}
-		r.runtime.Logger.Info("change CacheSizeGB value of config file successfully")
+	if mainVersion < 3 {
+		return nil
 	}
+
+	r.runtime.Logger.Info("start to change CacheSizeGB value of config file")
+	authRaw, err := os.ReadFile(r.AuthConfFilePath)
+	if err != nil {
+		return errors.Wrap(err, "read auth config")
+	}
+	noAuthRaw, err := os.ReadFile(r.NoAuthConfFilePath)
+	if err != nil {
+		return errors.Wrap(err, "read noauth config")
+	}
+
+	authConf := common.NewYamlMongoDBConf()
+	noAuthConf := common.NewYamlMongoDBConf()
+	if err = yaml.Unmarshal(authRaw, &authConf); err != nil {
+		return errors.Wrap(err, "unmarshal auth mongod config")
+	}
+	if err = yaml.Unmarshal(noAuthRaw, &noAuthConf); err != nil {
+		return errors.Wrap(err, "unmarshal noauth mongod config")
+	}
+	if r.ConfParams.CacheSizeGB == authConf.Storage.WiredTiger.EngineConfig.CacheSizeGB {
+		r.runtime.Logger.Info("CacheSizeGB unchanged, skip write")
+		return nil
+	}
+
+	authConf.Storage.WiredTiger.EngineConfig.CacheSizeGB = r.ConfParams.CacheSizeGB
+	noAuthConf.Storage.WiredTiger.EngineConfig.CacheSizeGB = r.ConfParams.CacheSizeGB
+	authOut, err := authConf.GetConfContent()
+	if err != nil {
+		return errors.Wrap(err, "render auth mongod config")
+	}
+	noAuthOut, err := noAuthConf.GetConfContent()
+	if err != nil {
+		return errors.Wrap(err, "render noauth mongod config")
+	}
+	if err = r.writeConfPair(authOut, noAuthOut); err != nil {
+		return err
+	}
+	r.runtime.Logger.Info("change CacheSizeGB value of config file successfully")
 	return nil
+}
+
+// mongoListenPid 按 pid+端口判定 mongod/mongos 是否在听。
+func (r *MongoRestart) mongoListenPid() (pid int, procName string, err error) {
+	pid, procName, err = common.GetMongoPidAndNameByPort(r.ConfParams.Port)
+	if err != nil {
+		return 0, "", errors.Wrapf(err, "check %s listener on port %d", r.ConfParams.InstanceType, r.ConfParams.Port)
+	}
+	return pid, procName, nil
+}
+
+func (r *MongoRestart) hasAdminAuth() bool {
+	return r.ConfParams.AdminUsername != "" && r.ConfParams.AdminPassword != ""
 }
 
 // checkPrimary 检查该节点是否是primary
 func (r *MongoRestart) checkPrimary() (bool, error) {
 	r.runtime.Logger.Info("start to check if it is primary")
-	var info string
-	var err error
-	// 安装时无需密码验证。安装成功后需要密码验证
-	if r.ConfParams.AdminUsername != "" && r.ConfParams.AdminPassword != "" {
-		info, err = common.AuthGetPrimaryInfo(r.Mongo, r.ConfParams.AdminUsername,
-			r.ConfParams.AdminPassword, r.ConfParams.IP, r.ConfParams.Port)
-	} else {
-		info, err = common.NoAuthGetPrimaryInfo(r.Mongo,
-			r.ConfParams.IP, r.ConfParams.Port)
-	}
+	info, err := common.GetPrimaryInfo(r.Mongo, r.ConfParams.AdminUsername, r.ConfParams.AdminPassword,
+		r.ConfParams.IP, r.ConfParams.Port)
 	if err != nil {
-		// During rolling restart, a member may temporarily fail to resolve primary (election/network jitter).
-		// In this case, treat it as "not primary" so restart can continue on this node.
+		// Rolling restart: election/network jitter may timeout; treat as non-primary and continue.
 		if strings.Contains(err.Error(), "get primary info timeout") {
 			r.runtime.Logger.Warn("get primary info timeout, treat current node as non-primary and skip stepDown")
 			return false, nil
 		}
-		r.runtime.Logger.Error("get primary info fail, error:%s", err)
-		return false, fmt.Errorf("get primary info fail, error:%s", err)
+		return false, errors.Wrap(err, "get primary info")
 	}
-	if info == fmt.Sprintf("%s:%d", r.ConfParams.IP, r.ConfParams.Port) {
-		return true, nil
-	}
-	r.runtime.Logger.Info("check if it is primary successfully")
-	return false, nil
+	isPrimary := info == fmt.Sprintf("%s:%d", r.ConfParams.IP, r.ConfParams.Port)
+	r.runtime.Logger.Info("checkPrimary %s:%d primary=%v", r.ConfParams.IP, r.ConfParams.Port, isPrimary)
+	return isPrimary, nil
 }
 
-// RsStepDown  主备切换
+// RsStepDown 主备切换
 func (r *MongoRestart) RsStepDown() error {
-	if r.ConfParams.InstanceType != "mongos" {
-		r.runtime.Logger.Info("start to check mongod service before rsStepDown")
-		flag, _, err := common.CheckMongoService(r.ConfParams.Port)
-		if err != nil {
-			r.runtime.Logger.Error("check mongod service fail, error:%s", err)
-			return fmt.Errorf("check mongod service fail, error:%s", err)
-		}
-		r.runtime.Logger.Info("check mongod service before rsStepDown successfully")
-		if flag == false {
-			return nil
-		}
-
-		// 检查是否是primary
-		flag1, err := r.checkPrimary()
-		r.runtime.Logger.Info("checkPrimary %s:%d primary=%v, error:%v", r.ConfParams.IP, r.ConfParams.Port, flag1, err)
-		if err != nil {
-			return err
-		}
-		if flag1 == true {
-			r.runtime.Logger.Info("start to convert primary secondary db")
-			// 安装时无需密码验证。安装成功后需要密码验证
-			var flag2 bool
-			if r.ConfParams.AdminUsername != "" && r.ConfParams.AdminPassword != "" {
-				flag2, err = common.AuthRsStepDown(r.Mongo, r.ConfParams.IP, r.ConfParams.Port,
-					r.ConfParams.AdminUsername, r.ConfParams.AdminPassword)
-			} else {
-				flag2, err = common.NoAuthRsStepDown(r.Mongo, r.ConfParams.IP, r.ConfParams.Port)
-			}
-			if err != nil {
-				r.runtime.Logger.Error("convert primary secondary db fail, error:%s", err)
-				return fmt.Errorf("convert primary secondary db fail, error:%s", err)
-			}
-			if flag2 == true {
-				r.runtime.Logger.Info("convert primary secondary db successfully")
-				return nil
-			}
-		}
+	if r.ConfParams.InstanceType == "mongos" {
+		return nil
 	}
 
+	pid, _, err := r.mongoListenPid()
+	if err != nil {
+		return err
+	}
+	if pid == 0 {
+		r.runtime.Logger.Info("mongod not running before rsStepDown, skip")
+		return nil
+	}
+
+	isPrimary, err := r.checkPrimary()
+	if err != nil || !isPrimary {
+		return err
+	}
+
+	r.runtime.Logger.Info("start to stepDown primary")
+	var switched bool
+	if r.hasAdminAuth() {
+		switched, err = common.AuthRsStepDown(r.Mongo, r.ConfParams.IP, r.ConfParams.Port,
+			r.ConfParams.AdminUsername, r.ConfParams.AdminPassword)
+	} else {
+		switched, err = common.NoAuthRsStepDown(r.Mongo, r.ConfParams.IP, r.ConfParams.Port)
+	}
+	if err != nil {
+		return errors.Wrap(err, "rs.stepDown")
+	}
+	if switched {
+		r.runtime.Logger.Info("stepDown primary successfully")
+	}
 	return nil
 }
 
 // shutdown 关闭服务
 func (r *MongoRestart) shutdown() error {
-	// 检查服务是否存在
-	r.runtime.Logger.Info("start to check %s service", r.ConfParams.InstanceType)
-	result, _, err := common.CheckMongoService(r.ConfParams.Port)
+	pid, procName, err := r.mongoListenPid()
 	if err != nil {
-		r.runtime.Logger.Error("check %s service fail, error:%s", r.ConfParams.InstanceType, err)
-		return fmt.Errorf("check %s service fail, error:%s", r.ConfParams.InstanceType, err)
+		return err
 	}
-	if result != true {
-		r.runtime.Logger.Info("%s service has been close", r.ConfParams.InstanceType)
+	if pid == 0 {
+		r.runtime.Logger.Info("%s already stopped", r.ConfParams.InstanceType)
 		return nil
 	}
-	r.runtime.Logger.Info("check %s service successfully", r.ConfParams.InstanceType)
-
-	// 关闭服务
-	r.runtime.Logger.Info("start to shutdown %s", r.ConfParams.InstanceType)
-	if err = common.ShutdownMongoProcess(
-		r.runtime.Logger,
-		r.ConfParams.Port,
-		30*time.Second,
-		false,
-	); err != nil {
-		r.runtime.Logger.Error("shutdown %s fail, error:%s", r.ConfParams.InstanceType, err)
-		return fmt.Errorf("shutdown %s fail, error:%s", r.ConfParams.InstanceType, err)
+	r.runtime.Logger.Info("shutdown %s (pid=%d comm=%s)", r.ConfParams.InstanceType, pid, procName)
+	if err = common.ShutdownMongoProcess(r.runtime.Logger, r.ConfParams.Port, 30*time.Second, false); err != nil {
+		return errors.Wrapf(err, "shutdown %s", r.ConfParams.InstanceType)
 	}
 	r.runtime.Logger.Info("shutdown %s successfully", r.ConfParams.InstanceType)
 	return nil
@@ -395,24 +314,18 @@ func (r *MongoRestart) shutdown() error {
 
 // startup 开启服务
 func (r *MongoRestart) startup() error {
-	// 检查是否已有 mongod/mongos 监听（/proc/net/tcp{,6} + pid，任意本机地址含 127.0.0.1）
-	r.runtime.Logger.Info("start to check %s listener on port %d", r.ConfParams.InstanceType, r.ConfParams.Port)
-	pid, procName, err := common.GetMongoPidAndNameByPort(r.ConfParams.Port)
+	pid, procName, err := r.mongoListenPid()
 	if err != nil {
-		r.runtime.Logger.Error("check %s listener fail, error:%s", r.ConfParams.InstanceType, err)
-		return fmt.Errorf("check %s listener fail, error:%s", r.ConfParams.InstanceType, err)
+		return err
 	}
 	if pid > 0 {
-		r.runtime.Logger.Info("%s service already listening (pid=%d comm=%s)", r.ConfParams.InstanceType, pid, procName)
+		r.runtime.Logger.Info("%s already listening (pid=%d comm=%s)", r.ConfParams.InstanceType, pid, procName)
 		return nil
 	}
-	r.runtime.Logger.Info("no %s TCP listener on port %d, will start process", r.ConfParams.InstanceType, r.ConfParams.Port)
 
-	// 开启服务
-	r.runtime.Logger.Info("start to startup %s", r.ConfParams.InstanceType)
+	r.runtime.Logger.Info("startup %s on port %d", r.ConfParams.InstanceType, r.ConfParams.Port)
 	if err = common.StartMongoProcess(r.BinDir, r.ConfParams.Port, r.OsUser, r.ConfParams.Auth); err != nil {
-		r.runtime.Logger.Error("startup %s fail, error:%s", r.ConfParams.InstanceType, err)
-		return fmt.Errorf("startup %s fail, error:%s", r.ConfParams.InstanceType, err)
+		return errors.Wrapf(err, "startup %s", r.ConfParams.InstanceType)
 	}
 	r.runtime.Logger.Info("startup %s successfully", r.ConfParams.InstanceType)
 	return nil

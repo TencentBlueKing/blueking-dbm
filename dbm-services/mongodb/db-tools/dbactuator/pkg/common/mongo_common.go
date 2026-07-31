@@ -54,20 +54,14 @@ func UnTarAndCreateSoftLinkAndChown(runtime *jobruntime.JobGenericRuntime, binDi
 	installPath string, user string, group string) error {
 	// 解压安装包
 	if !util.FileExists(unTarPath) {
-		// 解压到/usr/local目录下
 		runtime.Logger.Info("start to unTar install package")
-		tarCmd := fmt.Sprintf("tar -zxf %s -C %s", installPackagePath, binDir)
-		if _, err := util.RunBashCmd(tarCmd, "", nil, 60*time.Second); err != nil {
+		if _, err := mycmd.New("tar", "-zxf", installPackagePath, "-C", binDir).Run(60 * time.Second); err != nil {
 			runtime.Logger.Error("untar install file  fail, error:%s", err)
 			return fmt.Errorf("untar install file  fail, error:%s", err)
 		}
 		runtime.Logger.Info("unTar install package successfully")
-		// 修改属主
 		runtime.Logger.Info("start to execute chown command for unTar directory")
-		if _, err := util.RunBashCmd(
-			fmt.Sprintf("chown -R %s:%s %s", user, group, unTarPath),
-			"", nil,
-			60*time.Second); err != nil {
+		if _, err := mycmd.New("chown", "-R", user+":"+group, unTarPath).Run(60 * time.Second); err != nil {
 			runtime.Logger.Error("chown untar directory fail, error:%s", err)
 			return fmt.Errorf("chown untar directory fail, error:%s", err)
 		}
@@ -76,26 +70,19 @@ func UnTarAndCreateSoftLinkAndChown(runtime *jobruntime.JobGenericRuntime, binDi
 
 	// 创建软链接
 	if !util.FileExists(installPath) {
-		// 创建软链接
 		runtime.Logger.Info("start to create soft link")
-		softLink := fmt.Sprintf("ln -s %s %s", unTarPath, installPath)
-		if _, err := util.RunBashCmd(softLink, "", nil, 60*time.Second); err != nil {
+		if _, err := mycmd.New("ln", "-s", unTarPath, installPath).Run(60 * time.Second); err != nil {
 			runtime.Logger.Error("install directory create softLink fail, error:%s", err)
 			return fmt.Errorf("install directory create softLink fail, error:%s", err)
 		}
 		runtime.Logger.Info("create soft link successfully")
 
-		// 修改属主
 		runtime.Logger.Info("start to execute chown command for softLink directory")
-		if _, err := util.RunBashCmd(
-			fmt.Sprintf("chown -R %s:%s %s", user, group, installPath),
-			"", nil,
-			60*time.Second); err != nil {
+		if _, err := mycmd.New("chown", "-R", user+":"+group, installPath).Run(60 * time.Second); err != nil {
 			runtime.Logger.Error("chown softlink directory fail, error:%s", err)
 			return fmt.Errorf("chown softlink directory fail, error:%s", err)
 		}
 		runtime.Logger.Info("execute chown command for softLink directory successfully")
-
 	}
 
 	return nil
@@ -110,36 +97,33 @@ func GetMd5(str string) string {
 
 // CheckMongoVersion 检查mongo版本
 func CheckMongoVersion(binDir string, mongoName string) (string, error) {
-	cmd := fmt.Sprintf("%s -version |grep -E 'db version|mongos version'| awk -F \" \" '{print $3}' |sed 's/v//g'",
+	// Pipeline (grep/awk/sed) requires shell.
+	script := fmt.Sprintf("%s -version |grep -E 'db version|mongos version'| awk -F \" \" '{print $3}' |sed 's/v//g'",
 		filepath.Join(binDir, "mongodb", "bin", mongoName))
-	getVersion, err := util.RunBashCmd(cmd, "", nil, 60*time.Second)
-	getVersion = strings.Replace(getVersion, "\n", "", -1)
-	if strings.Contains(getVersion, "-") {
-		getVersion = strings.Split(getVersion, "-")[0]
-	}
+	ret, err := mycmd.New("bash", "-c", script).Run(60 * time.Second)
 	if err != nil {
 		return "", err
+	}
+	getVersion := strings.TrimSpace(ret.GetStdout())
+	if strings.Contains(getVersion, "-") {
+		getVersion = strings.Split(getVersion, "-")[0]
 	}
 	return getVersion, nil
 }
 
-// CheckMongoService 检查mongo服务是否存在
+// CheckMongoService 检查 mongo 服务是否存在（标准：端口可解析出 pid，且为 mongod/mongos）。
 func CheckMongoService(port int) (bool, string, error) {
-	// netstat prints "Not all processes could be identified..." to stderr when not root; ignore it.
-	// Match LISTEN rows and local :port (any bind: 127.0.0.1, eth, ::1); avoid matching remote port in ESTABLISHED or 128017.
-	cmd := fmt.Sprintf(
-		"netstat -ntpl 2>/dev/null | grep LISTEN | grep -E ':%d[[:space:]]' | awk '{print $7}' | head -1", port)
-	result, err := util.RunBashCmd(cmd, "", nil, 60*time.Second)
+	pid, procName, err := GetMongoPidAndNameByPort(port)
 	if err != nil {
 		return false, "", err
 	}
-	if strings.Contains(result, "mongos") {
+	if pid == 0 {
+		return false, "", nil
+	}
+	if strings.Contains(procName, "mongos") {
 		return true, "mongos", nil
 	}
-	if strings.Contains(result, "mongod") {
-		return true, "mongod", nil
-	}
-	return false, "", nil
+	return true, "mongod", nil
 }
 
 // CreateFileAndChown 创建Auth配置文件并修改属主
@@ -160,10 +144,7 @@ func CreateFileAndChown(runtime *jobruntime.JobGenericRuntime, filePath string,
 
 	// 修改配置文件属主
 	runtime.Logger.Info("start to execute chown command for %s file", filePath)
-	if _, err = util.RunBashCmd(
-		fmt.Sprintf("chown -R %s:%s %s", user, group, filePath),
-		"", nil,
-		60*time.Second); err != nil {
+	if _, err = mycmd.New("chown", "-R", user+":"+group, filePath).Run(60 * time.Second); err != nil {
 		runtime.Logger.Error("chown %s file fail, error:%s", filePath, err)
 		return fmt.Errorf("chown %s file fail, error:%s", filePath, err)
 	}
@@ -263,7 +244,7 @@ func ShutdownMongoProcess(log *logger.Logger, port int, timeout time.Duration, f
 		return errors.Wrapf(err, "check TCP LISTEN on port %d before shutdown", port)
 	}
 	if listenPID0 == 0 {
-		info("ShutdownMongoProcess: port=%d no TCP LISTEN, nothing to stop", port)
+		info("ShutdownMongoProcess: port=%d no listener pid, nothing to stop", port)
 		return nil
 	}
 
@@ -312,7 +293,7 @@ func ShutdownMongoProcess(log *logger.Logger, port int, timeout time.Duration, f
 				port, errCur)
 		} else {
 			errLog(
-				"ShutdownMongoProcess: port=%d non-force exit after %s, still TCP LISTEN pid=%d",
+				"ShutdownMongoProcess: port=%d non-force exit after %s, still listener pid=%d",
 				port, timeout, curListen)
 		}
 		return fmt.Errorf("graceful shutdown timeout for port %d after %s", port, timeout)
@@ -399,29 +380,22 @@ func ShutdownMongoProcess(log *logger.Logger, port int, timeout time.Duration, f
 				"ShutdownMongoProcess: port=%d still busy after SIGKILL (wait err=%v), listenPid=%d",
 				port, waitKillErr, lastPid)
 		}
-		return fmt.Errorf("port %d still has TCP LISTEN after graceful timeout (%s) and kill -9: %w", port, timeout, waitKillErr)
+		return fmt.Errorf("port %d still has listener pid after graceful timeout (%s) and kill -9: %w", port, timeout, waitKillErr)
 	}
 	info("ShutdownMongoProcess: port=%d released after SIGKILL", port)
 	return nil
 }
 
-// GetMongoPidAndNameByPort returns pid and /proc comm name for mongod/mongos TCP LISTEN on port
-// (any local bind: 127.0.0.1, eth*, ::1, from /proc/net/tcp + tcp6 via portHasTCPListenIPv4 / getPidByPort).
-// Returns (0, "", nil) when no listener on port; error if listener exists but pid cannot be resolved or process is not mongod/mongos.
+// GetMongoPidAndNameByPort returns pid and /proc comm name for mongod/mongos listening on port
+// (IPv4 via /proc/net/tcp + /proc/*/fd, with ss/netstat fallback in getPidByPort).
+// Returns (0, "", nil) when no listener pid on port; error if pid exists but process is not mongod/mongos.
 func GetMongoPidAndNameByPort(port int) (int, string, error) {
-	busy, err := portHasTCPListenIPv4(port)
-	if err != nil {
-		return 0, "", errors.Wrapf(err, "check TCP LISTEN on port %d", port)
-	}
-	if !busy {
-		return 0, "", nil
-	}
 	pid, err := getPidByPort(port)
 	if err != nil {
 		return 0, "", errors.Wrapf(err, "get pid by port %d", port)
 	}
 	if pid == 0 {
-		return 0, "", fmt.Errorf("port %d has TCP LISTEN but listening pid could not be resolved", port)
+		return 0, "", nil
 	}
 
 	processName, err := os.ReadFile(fmt.Sprintf("/proc/%d/comm", pid))
@@ -435,22 +409,19 @@ func GetMongoPidAndNameByPort(port int) (int, string, error) {
 	return pid, processNameStr, nil
 }
 
-// waitPortRelease waits until no TCP LISTEN on port (both tcp/tcp6).
-// Uses ListenSocketInodes (portHasTCPListenIPv4) so we still see listeners when inode→pid resolution
-// returns 0 (e.g. cannot read other users' /proc/*/fd); do not treat that as "port free".
+// waitPortRelease waits until no listener pid is resolved for port (pid+port standard).
 func waitPortRelease(port int, timeout time.Duration) error {
 	deadline := time.Now().Add(timeout)
 	for {
-		busy, err := portHasTCPListenIPv4(port)
+		pid, err := getPidByPort(port)
 		if err != nil {
-			return errors.Wrapf(err, "check TCP LISTEN on port %d after shutdown", port)
+			return errors.Wrapf(err, "check listener pid on port %d after shutdown", port)
 		}
-		if !busy {
+		if pid == 0 {
 			return nil
 		}
 		if time.Now().After(deadline) {
-			listenPID, _ := getPidByPort(port)
-			return fmt.Errorf("port %d still has TCP LISTEN (pid %d) after %s", port, listenPID, timeout)
+			return fmt.Errorf("port %d still has listener pid %d after %s", port, pid, timeout)
 		}
 		time.Sleep(mongoShutdownPollInterval)
 	}
@@ -460,13 +431,15 @@ func waitPortRelease(port int, timeout time.Duration) error {
 func AddPathToProfile(runtime *jobruntime.JobGenericRuntime, binDir string) error {
 	runtime.Logger.Info("start to add binary path in /etc/profile")
 	etcProfilePath := "/etc/profile"
+	binPath := filepath.Join(binDir, "mongodb", "bin")
+	// Conditional append to /etc/profile needs shell if/redirect.
 	addEtcProfile := fmt.Sprintf(`
 if ! grep -i %s: %s; 
 then 
 echo "export PATH=%s:\$PATH" >> %s 
-fi`, filepath.Join(binDir, "mongodb", "bin"), etcProfilePath, filepath.Join(binDir, "mongodb", "bin"), etcProfilePath)
+fi`, binPath, etcProfilePath, binPath, etcProfilePath)
 	runtime.Logger.Info("%s", addEtcProfile)
-	if _, err := util.RunBashCmd(addEtcProfile, "", nil, 60*time.Second); err != nil {
+	if _, err := mycmd.New("bash", "-c", addEtcProfile).Run(60 * time.Second); err != nil {
 		runtime.Logger.Error("binary path add in /etc/profile, error:%s", err)
 		return fmt.Errorf("binary path add in /etc/profile, error:%s", err)
 	}
@@ -474,92 +447,64 @@ fi`, filepath.Join(binDir, "mongodb", "bin"), etcProfilePath, filepath.Join(binD
 	return nil
 }
 
-// AuthGetPrimaryInfo 获取primary节点信息
-func AuthGetPrimaryInfo(mongoBin string, username string, password string, ip string, port int) (string,
-	error) {
-	// 超时时间
-	timeout := time.After(20 * time.Second)
+// GetPrimaryInfo 获取 primary 节点信息。
+// username/password 非空时走认证（超时 20s），否则无认证（超时 60s）。
+func GetPrimaryInfo(mongoBin, username, password, ip string, port int) (string, error) {
+	timeout := 60 * time.Second
+	args := []any{mongoBin, "--host", ip, "--port", strconv.Itoa(port), "--quiet", "--eval", "rs.isMaster().primary"}
+	if username != "" && password != "" {
+		timeout = 20 * time.Second
+		args = []any{
+			mongoBin,
+			"-u", username,
+			"-p", mycmd.Password(password),
+			"--host", ip,
+			"--port", strconv.Itoa(port),
+			"--authenticationDatabase=admin",
+			"--quiet",
+			"--eval", "rs.isMaster().primary",
+		}
+	}
+
+	deadline := time.After(timeout)
 	for {
 		select {
-		case <-timeout:
+		case <-deadline:
 			return "", fmt.Errorf("get primary info timeout")
 		default:
-			cmd := fmt.Sprintf(
-				"%s -u %s -p '%s' --host %s --port %d --authenticationDatabase=admin --quiet --eval \"rs.isMaster().primary\"",
-				mongoBin, username, password, ip, port)
-			result, err := util.RunBashCmd(
-				cmd,
-				"", nil,
-				60*time.Second)
+			ret, err := mycmd.New(args...).Run(60 * time.Second)
 			if err != nil {
 				return "", err
 			}
-			if strings.Replace(result, "\n", "", -1) == "" {
+			primaryInfo := strings.TrimSpace(ret.GetStdout())
+			if primaryInfo == "" {
 				time.Sleep(1 * time.Second)
 				continue
 			}
-			primaryInfo := strings.Replace(result, "\n", "", -1)
 			return primaryInfo, nil
 		}
 	}
 }
 
-// NoAuthGetPrimaryInfo 获取primary节点信息
-func NoAuthGetPrimaryInfo(mongoBin string, ip string, port int) (string, error) {
-	// 超时时间
-	timeout := time.After(60 * time.Second)
-	for {
-		select {
-		case <-timeout:
-			return "", fmt.Errorf("get primary info timeout")
-		default:
-			cmd := fmt.Sprintf(
-				"%s --host %s --port %d --quiet --eval \"rs.isMaster().primary\"",
-				mongoBin, ip, port)
-			result, err := util.RunBashCmd(
-				cmd,
-				"", nil,
-				60*time.Second)
-			if err != nil {
-				return "", err
-			}
-			if strings.Replace(result, "\n", "", -1) == "" {
-				time.Sleep(1 * time.Second)
-				continue
-			}
-			primaryInfo := strings.Replace(result, "\n", "", -1)
-			return primaryInfo, nil
-		}
-
-	}
-}
-
-// InitiateReplicasetGetPrimaryInfo 复制集初始化时判断
+// InitiateReplicasetGetPrimaryInfo 复制集初始化时单次查询 primary（调用方自行重试）。
 func InitiateReplicasetGetPrimaryInfo(mongoBin string, ip string, port int) (string, error) {
-	cmd := fmt.Sprintf(
-		"%s --host %s --port %d --quiet --eval \"rs.isMaster().primary\"",
-		mongoBin, ip, port)
-	result, err := util.RunBashCmd(
-		cmd,
-		"", nil,
-		60*time.Second)
+	ret, err := mycmd.New(
+		mongoBin,
+		"--host", ip,
+		"--port", strconv.Itoa(port),
+		"--quiet",
+		"--eval", "rs.isMaster().primary",
+	).Run(60 * time.Second)
 	if err != nil {
 		return "", err
 	}
-	primaryInfo := strings.Replace(result, "\n", "", -1)
-	return primaryInfo, nil
+	return strings.TrimSpace(ret.GetStdout()), nil
 }
 
 // RemoveFile 删除文件
 func RemoveFile(filePath string) error {
-	cmd := fmt.Sprintf("rm -rf %s", filePath)
-	if _, err := util.RunBashCmd(
-		cmd,
-		"", nil,
-		60*time.Second); err != nil {
-		return err
-	}
-	return nil
+	_, err := mycmd.New("rm", "-rf", filePath).Run(60 * time.Second)
+	return err
 }
 
 // CreateFile 创建文件
@@ -572,24 +517,37 @@ func CreateFile(path string) error {
 	return nil
 }
 
+// runMongoAuthEval runs mongo/mongosh with auth and --eval; optional trailing args (e.g. db name).
+func runMongoAuthEval(mongoBin, username, password, ip string, port int, eval string, extra ...string) (string, error) {
+	args := []any{
+		mongoBin,
+		"-u", username,
+		"-p", mycmd.Password(password),
+		"--host", ip,
+		"--port", strconv.Itoa(port),
+		"--authenticationDatabase=admin",
+		"--quiet",
+		"--eval", eval,
+	}
+	for _, a := range extra {
+		args = append(args, a)
+	}
+	ret, err := mycmd.New(args...).Run(60 * time.Second)
+	if err != nil {
+		return "", err
+	}
+	return ret.GetStdout(), nil
+}
+
 // AuthCheckUser 检查user是否存在
 func AuthCheckUser(mongoBin string, username string, password string, ip string, port int, authDb string,
 	checkUsername string) (bool, error) {
-	cmd := fmt.Sprintf(
-		"%s -u %s -p '%s' --host %s --port %d --authenticationDatabase=admin --quiet --eval \"db.getMongo().getDB('%s').getUser('%s')\"",
-		mongoBin, username, password, ip, port, authDb, checkUsername)
-	result, err := util.RunBashCmd(
-		cmd,
-		"", nil,
-		60*time.Second)
+	eval := fmt.Sprintf("db.getMongo().getDB('%s').getUser('%s')", authDb, checkUsername)
+	result, err := runMongoAuthEval(mongoBin, username, password, ip, port, eval)
 	if err != nil {
 		return false, fmt.Errorf("get user info fail, error:%s", err)
 	}
-	if strings.Contains(result, checkUsername) == true {
-		return true, nil
-	}
-
-	return false, nil
+	return strings.Contains(result, checkUsername), nil
 }
 
 // GetNodeInfo24 2.4获取mongod节点信息
@@ -597,20 +555,8 @@ func GetNodeInfo24(mongoBin string, ip string, port int, username string, passwo
 	bson.A, bson.A, error) {
 	var statusSlice bson.A
 	var confSlice bson.A
-	evalScript := "printjson(rs.status().members)"
-	cmdStatus := fmt.Sprintf(
-		"%s -u %s -p '%s' --host %s --port %d --authenticationDatabase=admin --quiet --eval \"%s\"",
-		mongoBin, username, password, ip, port, evalScript)
-	evalScript = "printjson(rs.conf().members)"
-	cmdConf := fmt.Sprintf(
-		"%s -u %s -p '%s' --host %s --port %d --authenticationDatabase=admin --quiet --eval \"%s\"",
-		mongoBin, username, password, ip, port, evalScript)
 
-	// 获取状态
-	result1, err := util.RunBashCmd(
-		cmdStatus,
-		"", nil,
-		60*time.Second)
+	result1, err := runMongoAuthEval(mongoBin, username, password, ip, port, "printjson(rs.status().members)")
 	if err != nil {
 		return statusSlice, confSlice, fmt.Errorf("get members status info fail, error:%s", err)
 	}
@@ -618,11 +564,8 @@ func GetNodeInfo24(mongoBin string, ip string, port int, username string, passwo
 		",0)", ")"} {
 		result1 = strings.Replace(result1, replaceStr, "", -1)
 	}
-	// 获取配置
-	result2, err := util.RunBashCmd(
-		cmdConf,
-		"", nil,
-		60*time.Second)
+
+	result2, err := runMongoAuthEval(mongoBin, username, password, ip, port, "printjson(rs.conf().members)")
 	if err != nil {
 		return statusSlice, confSlice, fmt.Errorf("get members conf info fail, error:%s", err)
 	}
@@ -792,15 +735,18 @@ func GetNodeInfo(mongoBin string, ip string, port int, username string, password
 
 // AuthRsStepDown 主备切换
 func AuthRsStepDown(mongoBin string, ip string, port int, username string, password string) (bool, error) {
-	cmd := fmt.Sprintf(
-		"%s -u %s -p '%s' --host %s --port %d --authenticationDatabase=admin --quiet --eval \"rs.stepDown()\" >> /dev/null",
-		mongoBin, username, password, ip, port)
-	_, _ = util.RunBashCmd(
-		cmd,
-		"", nil,
-		60*time.Second)
+	_, _ = mycmd.New(
+		mongoBin,
+		"-u", username,
+		"-p", mycmd.Password(password),
+		"--host", ip,
+		"--port", strconv.Itoa(port),
+		"--authenticationDatabase=admin",
+		"--quiet",
+		"--eval", "rs.stepDown()",
+	).Run(60 * time.Second)
 	time.Sleep(time.Second * 3)
-	primaryInfo, err := AuthGetPrimaryInfo(mongoBin, username, password, ip, port)
+	primaryInfo, err := GetPrimaryInfo(mongoBin, username, password, ip, port)
 	if err != nil {
 		return false, err
 	}
@@ -813,15 +759,16 @@ func AuthRsStepDown(mongoBin string, ip string, port int, username string, passw
 
 // NoAuthRsStepDown 主备切换
 func NoAuthRsStepDown(mongoBin string, ip string, port int) (bool, error) {
-	cmd := fmt.Sprintf(
-		"%s  --host %s --port %d --authenticationDatabase=admin --quiet --eval \"rs.stepDown()\"",
-		mongoBin, ip, port)
-	_, _ = util.RunBashCmd(
-		cmd,
-		"", nil,
-		60*time.Second)
+	_, _ = mycmd.New(
+		mongoBin,
+		"--host", ip,
+		"--port", strconv.Itoa(port),
+		"--authenticationDatabase=admin",
+		"--quiet",
+		"--eval", "rs.stepDown()",
+	).Run(60 * time.Second)
 	time.Sleep(time.Second * 3)
-	primaryInfo, err := NoAuthGetPrimaryInfo(mongoBin, ip, port)
+	primaryInfo, err := GetPrimaryInfo(mongoBin, "", "", ip, port)
 	if err != nil {
 		return false, err
 	}
@@ -834,99 +781,36 @@ func NoAuthRsStepDown(mongoBin string, ip string, port int) (bool, error) {
 // CheckBalancer 检查balancer的值
 func CheckBalancer(mongoBin string, ip string, port int, username string, password string) (string,
 	error) {
-	cmd := fmt.Sprintf(
-		"%s  -u %s -p '%s' --host %s --port %d --authenticationDatabase=admin --quiet --eval \"sh.getBalancerState()\"",
-		mongoBin, username, password, ip, port)
-	result, err := util.RunBashCmd(
-		cmd,
-		"", nil,
-		60*time.Second)
+	result, err := runMongoAuthEval(mongoBin, username, password, ip, port, "sh.getBalancerState()")
 	if err != nil {
 		return "", err
 	}
-	result = strings.Replace(result, "\n", "", -1)
-	return result, nil
+	return strings.TrimSpace(result), nil
 }
 
 // CheckBalancerRunning 检查balancer是否正在运行
 func CheckBalancerRunning(mongoBin string, ip string, port int, username string, password string) (string,
 	error) {
-	cmd := fmt.Sprintf(
-		"%s  -u %s -p '%s' --host %s --port %d --authenticationDatabase=admin --quiet --eval \"sh.isBalancerRunning()\"",
-		mongoBin, username, password, ip, port)
-	result, err := util.RunBashCmd(
-		cmd,
-		"", nil,
-		60*time.Second)
+	result, err := runMongoAuthEval(mongoBin, username, password, ip, port, "sh.isBalancerRunning()")
 	if err != nil {
 		return "", err
 	}
-	result = strings.Replace(result, "\n", "", -1)
-	return result, nil
+	return strings.TrimSpace(result), nil
 }
 
 // GetShardChunkNum 获取每个分片的chunk数量
 func GetShardChunkNum(mongoBin string, ip string, port int, username string, password string) (string,
 	error) {
-	cmd := fmt.Sprintf(
-		"%s  -u %s -p '%s' --host %s --port %d --authenticationDatabase=admin --quiet --eval '%s'",
-		mongoBin, username, password, ip, port,
-		"db.getSiblingDB(\"config\").chunks.aggregate([{ $group: { _id: \"$shard\", count: { $sum: 1 } } }]).forEach(printjson)")
-	result, err := util.RunBashCmd(
-		cmd,
-		"", nil,
-		60*time.Second)
-	if err != nil {
-		return "", err
-	}
-	return result, nil
-}
-
-// GetProfilingLevel 获取profile级别
-func GetProfilingLevel(mongoBin string, ip string, port int, username string, password string,
-	dbName string) (int, error) {
-	cmd := fmt.Sprintf(
-		"%s  -u %s -p '%s' --host %s --port %d --authenticationDatabase=admin --quiet --eval \"db.getMongo().getDB('%s').getProfilingLevel()\"",
-		mongoBin, username, password, ip, port, dbName)
-	result, err := util.RunBashCmd(
-		cmd,
-		"", nil,
-		60*time.Second)
-	if err != nil {
-		return -1, err
-	}
-	intResult, _ := strconv.Atoi(result)
-	return intResult, nil
-}
-
-// SetProfilingLevel 设置profile级别
-func SetProfilingLevel(mongoBin string, ip string, port int, username string, password string,
-	dbName string, level int) error {
-	cmd := fmt.Sprintf(
-		"%s  -u %s -p '%s' --host %s --port %d --authenticationDatabase=admin --quiet --eval \"db.getMongo().getDB('%s').setProfilingLevel(%d)\"",
-		mongoBin, username, password, ip, port, dbName, level)
-	_, err := util.RunBashCmd(
-		cmd,
-		"", nil,
-		60*time.Second)
-	if err != nil {
-		return err
-	}
-	return nil
+	eval := `db.getSiblingDB("config").chunks.aggregate([{ $group: { _id: "$shard", count: { $sum: 1 } } }]).forEach(printjson)`
+	return runMongoAuthEval(mongoBin, username, password, ip, port, eval)
 }
 
 // GetShardInfo 获取shard信息
 func GetShardInfo(mongoBin string, ip string, port int, username string, password string) (string, error) {
-	cmd := fmt.Sprintf(
-		"%s -u %s -p '%s' --host %s --port %d --quiet --authenticationDatabase=admin --eval \"db.getMongo().getDB('config').shards.find().forEach(printjson)\" admin",
-		mongoBin, username, password, ip, port)
-	result, err := util.RunBashCmd(
-		cmd,
-		"", nil,
-		60*time.Second)
+	eval := "db.getMongo().getDB('config').shards.find().forEach(printjson)"
+	result, err := runMongoAuthEval(mongoBin, username, password, ip, port, eval, "admin")
 	if err != nil {
 		return "", err
 	}
-	result = strings.Replace(result, "\n", "", -1)
-	return result, nil
+	return strings.TrimSpace(result), nil
 }
