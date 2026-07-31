@@ -10,13 +10,17 @@ specific language governing permissions and limitations under the License.
 """
 import logging
 import re
+from datetime import datetime
 
 from celery.schedules import crontab
 
+from backend.configuration.constants import DBType
 from backend.db_meta.enums import ClusterPhase, ClusterType
 from backend.db_meta.models import Cluster
 from backend.db_periodic_task.local_tasks.register import register_periodic_task
 from backend.db_report.models import MetaCheckReport
+from backend.db_report.portrait import MysqlPortraitDimensionCode, ingest_summary
+from backend.db_report.portrait.exceptions import PortraitSDKBaseException
 
 from .mysql_cluster_check import check_mysql_affinity
 from .mysql_cluster_topo import tendbcluster, tendbha
@@ -38,8 +42,22 @@ def redis_meta_check_task():
 def tendbha_topo_daily_check():
     for c in Cluster.objects.filter(cluster_type=ClusterType.TenDBHA):
         r: MetaCheckReport
-        for r in tendbha.health_check(c.id):
+        res = tendbha.health_check(c.id)
+        for r in res:
             r.save()
+
+        try:
+            summary = ";".join(f"{r.msg}: {r.instance}" if r.instance is not None else f"{r.msg}" for r in res)
+            ingest_summary(
+                db_type=DBType.MySQL,
+                dimension=MysqlPortraitDimensionCode.TENDBHA_META_CHECK,
+                bk_biz_id=c.bk_biz_id,
+                cluster_domain=c.immute_domain,
+                report_time=datetime.now(),
+                summary=summary,
+            )
+        except PortraitSDKBaseException:
+            logger.exception(f"report {c.immute_domain} dbmeta check to portrait failed")
 
 
 @register_periodic_task(run_every=crontab(hour=2, minute=30))
@@ -49,8 +67,23 @@ def tendbcluster_topo_daily_check():
         r: MetaCheckReport
         if re.match(pattern=pattern, string=c.immute_domain.lower()):
             continue
-        for r in tendbcluster.health_check(c.id):
+
+        res = tendbcluster.health_check(c.id)
+        for r in res:
             r.save()
+
+        try:
+            summary = ";".join(f"{r.msg}: {r.instance}" if r.instance is not None else f"{r.msg}" for r in res)
+            ingest_summary(
+                db_type=DBType.TenDBCluster,
+                dimension=MysqlPortraitDimensionCode.TENDBHA_META_CHECK,
+                bk_biz_id=c.bk_biz_id,
+                cluster_domain=c.immute_domain,
+                report_time=datetime.now(),
+                summary=summary,
+            )
+        except PortraitSDKBaseException:
+            logger.exception(f"report {c.immute_domain} dbmeta check to portrait failed")
 
 
 @register_periodic_task(run_every=crontab(hour=5, minute=30))

@@ -7,12 +7,15 @@ from blueapps.core.celery.celery import app
 from celery import shared_task
 from django.utils.translation import gettext as _
 
+from backend.configuration.constants import DBType
 from backend.configuration.models import DBAdministrator
 from backend.db_meta.enums import ClusterType
 from backend.db_meta.models import Cluster, StorageInstance
 from backend.db_periodic_task.local_tasks.context_manager import start_new_span
 from backend.db_periodic_task.local_tasks.mysql_checksum.cluster_checksum import ChecksumService
 from backend.db_periodic_task.utils import TimeUnit, calculate_countdown
+from backend.db_report.portrait import MysqlPortraitDimensionCode, ingest_summary
+from backend.db_report.portrait.exceptions import PortraitSDKBaseException
 from backend.ticket.builders.common.constants import MYSQL_CHECKSUM_TABLE, MySQLDataRepairTriggerMode
 from backend.ticket.constants import TicketType
 from backend.ticket.models import Ticket
@@ -107,6 +110,23 @@ def check_cluster_checksum(index: int, cluster_id: int, now: Optional[datetime] 
                 master_to_slaves[master_key].add(f"{fail.ip}:{fail.port}")
             else:
                 logger.info("instance %s:%s has no details", fail.ip, fail.port)
+
+        try:
+            ingest_summary(
+                db_type=DBType.TenDBCluster if cluster_obj.cluster_type == ClusterType.TenDBCluster else DBType.MySQL,
+                dimension=MysqlPortraitDimensionCode.MYSQL_CHECKSUM_CHECK,
+                bk_biz_id=cluster_obj.bk_biz_id,
+                cluster_domain=cluster_obj.immute_domain,
+                report_time=datetime.now(),
+                summary=":".join(
+                    [
+                        f"master {ele.master_ip}:{ele.master_port} <-> {ele.ip}:{ele.port} data inconsistent: f{ele.details}"
+                        for ele in fail_list
+                    ]
+                ),
+            )
+        except PortraitSDKBaseException:
+            logger.exception(f"report {cluster_obj.immute_domain} checksum report to portrait failed")
 
         if master_to_slaves:
             # 创建数据修复单据

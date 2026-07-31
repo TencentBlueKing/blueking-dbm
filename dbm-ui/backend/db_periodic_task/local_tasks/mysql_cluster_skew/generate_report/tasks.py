@@ -27,6 +27,7 @@ from jsonschema.exceptions import ValidationError
 from jsonschema.validators import validate
 
 from backend import env
+from backend.configuration.constants import DBType
 from backend.constants import DEFAULT_TIME_ZONE_AREA
 from backend.db_meta.enums import ClusterType
 from backend.db_meta.models import Cluster
@@ -34,6 +35,8 @@ from backend.db_periodic_task.local_tasks import register_periodic_task, start_n
 from backend.db_periodic_task.utils import TimeUnit, calculate_countdown
 from backend.db_report.models.cluster_skew_detection import ClusterSkewDetection
 from backend.db_report.models.mysql_cluster_skew_report import MysqlClusterSkewReport
+from backend.db_report.portrait import MysqlPortraitDimensionCode, ingest_summary
+from backend.db_report.portrait.exceptions import PortraitSDKBaseException
 from backend.dbm_aiagent.agent.constants import DBMAgentCode
 from backend.dbm_aiagent.agent.handlers import AgentHandler
 from backend.dbm_aiagent.mcp_tools.mysql.impl.query_cluster_skew_data import has_cluster_skew
@@ -78,12 +81,12 @@ def _parse_skew_report_res(res: str):
     return {"summary": summary, "share_url": share_url}
 
 
-@register_periodic_task(run_every=crontab(minute=3, hour="*"))
+@register_periodic_task(run_every=crontab(minute=3, hour="1,2,3"))
 def generate_report():
     """分发 MySQL 集群倾斜报告生成任务。
 
     调度策略：
-    1. 分片：每小时触发，cluster_id % 24 == 当前小时，每个集群每天只调度一次。
+    1. 分片：凌晨 1, 2, 3 每小时触发，cluster_id % 3 == 当前小时，每个集群每天只调度一次。
     2. 错峰：countdown 平摊到 30 分钟内，避免瞬时打满 AI；窗口须短于 Redis broker
        visibility_timeout（默认 1h），否则 countdown 任务会被重复投递。
     3. 防重调度：投递前 cache.add 占位，避免同集群同一天重复 apply_async（如 Beat 重复触发）。
@@ -110,12 +113,12 @@ def generate_report():
 
     cluster_objs = (
         Cluster.objects.filter(cluster_type__in=[ClusterType.TenDBHA, ClusterType.TenDBCluster])
-        .annotate(id_mod_hour=Mod("id", 24))
+        .annotate(id_mod_hour=Mod("id", 3))
         .filter(id_mod_hour=current_hour)
     )
     cluster_count = cluster_objs.count()
     logger.info(
-        "dispatch batch: cluster_count=%d cluster_id_mod_24=%d",
+        "dispatch batch: cluster_count=%d cluster_id_mod_3=%d",
         cluster_count,
         current_hour,
     )
@@ -255,6 +258,19 @@ def _generate_cluster_skew_report(cluster_type: str, domain: str, lock_key: str,
                     lock_key,
                     report_obj.id,
                 )
+
+                ingest_summary(
+                    db_type=DBType.TenDBCluster
+                    if cluster_obj.cluster_type == ClusterType.TenDBCluster
+                    else DBType.MySQL,
+                    dimension=MysqlPortraitDimensionCode.CLUSTER_SKEW,
+                    bk_biz_id=cluster_obj.bk_biz_id,
+                    cluster_domain=cluster_obj.immute_domain,
+                    report_time=datetime.now(),
+                    summary=report_obj.summary,
+                )
+            except PortraitSDKBaseException:
+                logger.exception(f"report {cluster_obj.immute_domain} skew to portrait failed")
             except Exception:  # noqa
                 logger.exception(
                     "generate %s skew report update failed: lock_key=%s id=%s",

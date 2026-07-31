@@ -64,6 +64,9 @@ class MysqlPortraitDimensionCode(StrStructuredEnum):
     CLUSTER_SKEW = EnumField("cluster_skew", _("MySQL 集群倾斜巡检"))
     # 后续新增示例（保留注释形式作为模板）：
     # CONFIG_CHECK = EnumField("config_check", _("MySQL 配置项巡检"))
+    TENDBHA_META_CHECK = EnumField("TENDBHA_META_CHECK", _("TenDBHA 集群拓扑检查"))
+    TENDBCLUSTER_META_CHECK = EnumField("TENDCLUSTER_META_CHECK", _("TenDBCluster 集群拓扑检查"))
+    MYSQL_CHECKSUM_CHECK = EnumField("MYSQL_CHECKSUM_CHECK", _("TenDBHA/TenDBCluster 数据校验"))
 
     @property
     def description(self) -> str:
@@ -85,4 +88,7 @@ _DESCRIPTIONS: Dict[MysqlPortraitDimensionCode, StrOrPromise] = {
     MysqlPortraitDimensionCode.SLOW_QUERY: _("慢查询总量、TOP SQL 特征、无索引扫描等；点击详情可查看完整 AI 分析结果"),
     MysqlPortraitDimensionCode.CLUSTER_SKEW: _("集群分片间的数据与流量倾斜巡检；点击详情可查看完整 AI 分析结果"),
     # MysqlPortraitDimensionCode.CONFIG_CHECK: _("..."),
+    MysqlPortraitDimensionCode.TENDBHA_META_CHECK: _("TenDBHA 集群拓扑完整性检查"),
+    MysqlPortraitDimensionCode.TENDBCLUSTER_META_CHECK: _("TenCluster 集群拓扑完整性检查"),
+    MysqlPortraitDimensionCode.MYSQL_CHECKSUM_CHECK: _("数据一致性校验"),
 }
