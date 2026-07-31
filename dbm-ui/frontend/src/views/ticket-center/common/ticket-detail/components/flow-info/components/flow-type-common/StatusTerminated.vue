@@ -86,7 +86,7 @@
 
   interface Props {
     data: FlowMode<unknown, any>;
-    ticketDetail: TicketModel;
+    ticketDetail: TicketModel<unknown>;
   }
 
   defineOptions({

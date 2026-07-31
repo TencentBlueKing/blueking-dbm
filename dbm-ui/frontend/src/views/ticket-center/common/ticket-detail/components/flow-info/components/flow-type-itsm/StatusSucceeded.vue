@@ -1,5 +1,7 @@
 <template>
-  <StatusSucceeded :data="data">
+  <StatusSucceeded
+    :data="data"
+    :ticket-detail="ticketDetail">
     <template #content>
       <I18nT
         keypath="n 已处理_c_耗时 t"
@@ -30,6 +32,7 @@
   import { useI18n } from 'vue-i18n';
 
   import FlowMode from '@services/model/ticket/flow';
+  import TicketModel from '@services/model/ticket/ticket';
 
   import CostTimer from '@components/cost-timer/CostTimer.vue';
 
@@ -48,6 +51,7 @@
         status: string;
       }
     >;
+    ticketDetail: TicketModel<any>;
   }
 
   defineOptions({

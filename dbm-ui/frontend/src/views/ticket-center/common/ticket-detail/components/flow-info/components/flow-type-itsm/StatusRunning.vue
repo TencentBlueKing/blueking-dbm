@@ -1,5 +1,7 @@
 <template>
-  <StatusRunning :data="data">
+  <StatusRunning
+    :data="data"
+    :ticket-detail="ticketDetail">
     <template #content>
       <slot name="content">
         <TodoList
@@ -12,6 +14,7 @@
 </template>
 <script setup lang="ts">
   import FlowMode from '@services/model/ticket/flow';
+  import TicketModel from '@services/model/ticket/ticket';
 
   import StatusRunning from '../flow-type-common/StatusRunning.vue';
   import TodoList from '../todo-list/Index.vue';
@@ -26,6 +29,7 @@
         status: string;
       }
     >;
+    ticketDetail: TicketModel<any>;
   }
 
   defineOptions({

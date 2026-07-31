@@ -38,12 +38,19 @@
 
   import useUserDBAList from '@views/db-manage/hooks/useDBAList';
 
+  interface Props {
+    // eslint-disable-next-line vue/no-unused-properties
+    bizId: number;
+  }
+
+  const props = defineProps<Props>();
+
   const route = useRoute();
   const { t } = useI18n();
 
   const dbType = ref<DBTypes>();
 
-  const userDBAList = useUserDBAList(dbType);
+  const userDBAList = useUserDBAList(dbType, props);
 
   watch(
     route,
