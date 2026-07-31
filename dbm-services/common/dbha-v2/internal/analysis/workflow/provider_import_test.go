@@ -27,9 +27,12 @@ package workflow_test
 import (
 	"testing"
 
+	"dbm-services/common/dbha-v2/internal/analysis/apm"
+	"dbm-services/common/dbha-v2/internal/analysis/failure"
 	"dbm-services/common/dbha-v2/internal/analysis/parser"
 	"dbm-services/common/dbha-v2/internal/analysis/switcher"
 	"dbm-services/common/dbha-v2/pkg/dbtype"
+	"dbm-services/common/dbha-v2/pkg/haapm"
 	"dbm-services/common/dbha-v2/pkg/storage/haprobe"
 
 	_ "dbm-services/common/dbha-v2/internal/provider/allanalysis"
@@ -57,5 +60,63 @@ func TestAnalysisProvidersRegisterMySQLParser(t *testing.T) {
 	p, ok := parser.Lookup(haprobe.DbTypeMySql)
 	if !ok || p == nil {
 		t.Fatal("expected MySQL processer registered via allanalysis")
+	}
+}
+
+func TestAnalysisProvidersRegisterSpecialMatchAndDnsGuard(t *testing.T) {
+	events := failure.RegisteredSpecialMatchEvents()
+	wantEvents := map[haprobe.DbEventName]bool{
+		haprobe.DbEventNameTendbhaProxyBackendFailure:      false,
+		haprobe.DbEventNameTendbclusterSpiderRemoteFailure: false,
+	}
+	for _, e := range events {
+		if _, ok := wantEvents[e]; ok {
+			wantEvents[e] = true
+		}
+	}
+	for e, ok := range wantEvents {
+		if !ok {
+			t.Errorf("expected special match event %s registered", e)
+		}
+	}
+
+	if !dbtype.HasDnsSingleAddressGuard(haprobe.DbmMetadataMachineTypeProxy) {
+		t.Error("expected proxy machine type in DNS single-address guard")
+	}
+	if !dbtype.HasDnsSingleAddressGuard(haprobe.DbmMetadataMachineTypeSpider) {
+		t.Error("expected spider machine type in DNS single-address guard")
+	}
+}
+
+func TestAnalysisProvidersRegisterDbMetrics(t *testing.T) {
+	types := apm.MetricRegisteredDbTypes()
+	wantTypes := map[haprobe.DbType]bool{
+		haprobe.DbTypeMySql: false,
+		haprobe.DbTypeRedis: false,
+	}
+	for _, dt := range types {
+		if _, ok := wantTypes[dt]; ok {
+			wantTypes[dt] = true
+		}
+	}
+	for dt, ok := range wantTypes {
+		if !ok {
+			t.Errorf("expected metric DbType %s registered", dt)
+		}
+	}
+
+	fw := map[string]struct{}{}
+	for _, name := range apm.FrameworkMetricNames() {
+		fw[name] = struct{}{}
+	}
+	for _, m := range apm.DbMetrics() {
+		getter, ok := m.(haapm.MetricGetter)
+		if !ok {
+			t.Fatalf("expected MetricGetter, got %T", m)
+		}
+		name := getter.ToMetric().Name
+		if _, collides := fw[name]; collides {
+			t.Errorf("provider metric %q collides with framework metric", name)
+		}
 	}
 }

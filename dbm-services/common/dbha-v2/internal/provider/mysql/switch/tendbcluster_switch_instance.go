@@ -236,6 +236,14 @@ type TenDBClusterRemoteSwitchInstance struct {
 	NewMasterBinlogPos  uint64
 }
 
+var _ switchcore.HostSwitchGroupScopeProvider = (*TenDBClusterRemoteSwitchInstance)(nil)
+
+// HostSwitchGroupScope reports that TendbCluster remote instances on the same host
+// share one switch group under a single cluster lock.
+func (sw *TenDBClusterRemoteSwitchInstance) HostSwitchGroupScope() (string, bool) {
+	return "remote", true
+}
+
 // GetNewMasterInfo returns the promoted new master info. ok is true only for a master switch
 // whose standby slave (the new master) is known.
 func (sw *TenDBClusterRemoteSwitchInstance) GetNewMasterInfo() (*switchcore.NewMasterInfo, bool) {
@@ -404,7 +412,7 @@ func (sw *TenDBClusterRemoteSwitchInstance) UpdateMetaInfo() error {
 	sw.ReportLogf(switchlogger.SwitchInfo, "try to swap roles of remote nodes(master:%s:%d, slave:%s:%d)",
 		sw.IP, sw.Port, sw.StandBySlave.Ip, sw.StandBySlave.Port)
 
-	err := sw.DbmClient.SwapMySQLRole(sw.BkCloudID, sw.IP, sw.Port, sw.StandBySlave.Ip, sw.StandBySlave.Port)
+	err := SwapMySQLRole(sw.DbmClient, sw.BkCloudID, sw.IP, sw.Port, sw.StandBySlave.Ip, sw.StandBySlave.Port)
 	if err != nil {
 		errMsg := fmt.Sprintf("failed to swap roles of remote nodes(master:%s:%d, slave:%s:%d), errmsg:%s",
 			sw.IP, sw.Port, sw.StandBySlave.Ip, sw.StandBySlave.Port, err.Error())

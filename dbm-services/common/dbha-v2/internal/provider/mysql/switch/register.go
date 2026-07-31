@@ -22,10 +22,12 @@
  * SOFTWARE.
  */
 
-// Package mysqlswitch registers the MySQL switcher and its alarm event names.
+// Package mysqlswitch registers the MySQL switcher, alarm event names, special strategy
+// matchers, and DNS single-address guards.
 package mysqlswitch
 
 import (
+	"dbm-services/common/dbha-v2/internal/analysis/failure"
 	"dbm-services/common/dbha-v2/internal/analysis/switcher"
 	"dbm-services/common/dbha-v2/pkg/dbtype"
 	"dbm-services/common/dbha-v2/pkg/storage/haprobe"
@@ -39,4 +41,16 @@ func init() {
 		Success: haprobe.DbEventNameMysqlSwitchSuccessV1,
 		Failure: haprobe.DbEventNameMysqlSwitchFailureV1,
 	})
+	failure.RegisterSpecialMatch(
+		haprobe.DbEventNameTendbhaProxyBackendFailure,
+		MatchProxyBackendSimultaneous,
+	)
+	failure.RegisterSpecialMatch(
+		haprobe.DbEventNameTendbclusterSpiderRemoteFailure,
+		MatchSpiderRemoteMasterSimultaneous,
+	)
+	dbtype.RegisterDnsSingleAddressGuard(
+		haprobe.DbmMetadataMachineTypeProxy,
+		haprobe.DbmMetadataMachineTypeSpider,
+	)
 }

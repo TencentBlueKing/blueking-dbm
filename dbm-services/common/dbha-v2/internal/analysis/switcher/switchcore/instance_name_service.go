@@ -29,6 +29,7 @@ import (
 
 	"dbm-services/common/dbha-v2/internal/analysis/dbm"
 	"dbm-services/common/dbha-v2/internal/analysis/switcher/switchlogger"
+	"dbm-services/common/dbha-v2/pkg/dbtype"
 	"dbm-services/common/dbha-v2/pkg/gerrors"
 	"dbm-services/common/dbha-v2/pkg/logger"
 	"dbm-services/common/dbha-v2/pkg/storage/haprobe"
@@ -81,8 +82,7 @@ func (manager *NameServiceManager) releaseDNSEntry(dnsEntries []dbm.BindEntryDns
 	}
 
 	for _, dns := range dnsEntries {
-		if (manager.MachineType == haprobe.DbmMetadataMachineTypeProxy) ||
-			(manager.MachineType == haprobe.DbmMetadataMachineTypeSpider) {
+		if dbtype.HasDnsSingleAddressGuard(manager.MachineType) {
 			addressNum, err := manager.DbmClient.GetAddressNumberOfDomain(manager.BkCloudID, dns.DomainName)
 			if err != nil {
 				manager.logf(switchlogger.SwitchWarn, "failed to get address number of domain (%s): %s",

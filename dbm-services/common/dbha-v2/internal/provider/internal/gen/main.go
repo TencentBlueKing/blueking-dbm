@@ -74,7 +74,7 @@ func run() error {
 			target:  targetAnalysis,
 			dir:     "allanalysis",
 			pkg:     "allanalysis",
-			comment: "Blank-import all analysis-side provider capabilities (dbtypedesc + switch + parse).",
+			comment: "Blank-import all analysis-side provider capabilities (dbtypedesc + switch + parse + metrics).",
 		},
 		{
 			target:  targetDesc,
@@ -122,6 +122,10 @@ func collectImports(entries []provider.Entry, target aggregateTarget) []string {
 			case provider.CapParse:
 				if target == targetAnalysis {
 					add(e.BasePath + "/parse")
+				}
+			case provider.CapMetrics:
+				if target == targetAnalysis {
+					add(e.BasePath + "/metrics")
 				}
 			}
 		}
