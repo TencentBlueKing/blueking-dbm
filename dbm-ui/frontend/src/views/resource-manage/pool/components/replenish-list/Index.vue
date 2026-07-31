@@ -172,7 +172,7 @@
             </template>
           </TableColumn>
           <TableColumn
-            col-key="resource_count"
+            col-key="replenish_count"
             :min-width="150"
             :title="t('待补充数量（台）')"
             :width="150">
@@ -187,7 +187,7 @@
             col-key="operate"
             fixed="right"
             :title="t('操作')"
-            width="100">
+            :width="100">
             <template #default="{ row }: { row: IRowData }">
               <BkButton
                 text
