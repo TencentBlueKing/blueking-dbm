@@ -277,7 +277,12 @@
                 trigger='hover'>
                 <BkTag
                   class='ml-4'
-                  size='small'>
+                  size='small'
+                  theme='info'>
+                  <DbIcon
+                    class='mr-4'
+                    type='bk-dbm-icon db-icon-lock-fill'
+                  />
                   {t('平台锁定')}
                 </BkTag>
               </BkPopover>
@@ -610,8 +615,9 @@
     // 生效范围：按标签 / 按集群 单元格
     .scope-tag-cell,
     .scope-cluster-cell {
-      display: inline-flex;
+      display: flex;
       align-items: center;
+      min-width: 0;
     }
 
     // 标签展示文案（失效态添加删除线）

@@ -55,18 +55,24 @@
   .cluster-popover {
     display: flex;
     align-items: center;
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
 
     .cluster-name {
-      max-width: 150px;
+      flex: 1;
+      min-width: 0;
       overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap;
     }
 
     .cluster-more {
+      flex-shrink: 0;
       margin-left: 4px;
       color: #3a84ff;
       cursor: pointer;
+      white-space: nowrap;
     }
   }
 

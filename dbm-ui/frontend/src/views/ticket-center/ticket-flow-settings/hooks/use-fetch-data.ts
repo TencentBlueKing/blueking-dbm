@@ -147,8 +147,8 @@ export const useFetchData = () => {
       }
     });
 
-    // 父策略按 ticket_type 自然序排序
-    parentRows.sort((a, b) => a.ticket_type.localeCompare(b.ticket_type));
+    // 父策略按 ticket_type_display 自然序排序
+    parentRows.sort((a, b) => a.ticket_type_display.localeCompare(b.ticket_type_display));
 
     // 构建 children 字段并排序：先「按集群」后「按标签」，组内按 id 升序（新建在后）
     // 同时标记每个父策略的最后一个子策略（用于树形连接线截断）
@@ -271,8 +271,7 @@ export const useFetchData = () => {
     });
 
     return sorted.map((node) => {
-      const sortedChildren =
-        node.children && node.children.length > 0 ? applySort(node.children, sort) : node.children;
+      const sortedChildren = node.children && node.children.length > 0 ? applySort(node.children, sort) : node.children;
       // 排序后重新标记最后一个子节点
       if (sortedChildren && sortedChildren.length > 0) {
         sortedChildren.forEach((child, i) => {

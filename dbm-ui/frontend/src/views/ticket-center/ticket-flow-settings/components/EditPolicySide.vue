@@ -166,7 +166,8 @@
   });
 
   const { t } = useI18n();
-  const handleBeforeClose = useBeforeClose();
+  const beforeClose = useBeforeClose();
+  const handleBeforeClose = () => beforeClose(dirty.value);
 
   const isSubmitting = ref(false);
   const dirty = ref(false);
