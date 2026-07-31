@@ -22,33 +22,48 @@
  * SOFTWARE.
  */
 
-package workflow
+package dbtype
 
 import (
-	"dbm-services/common/dbha-v2/internal/analysis/failure"
+	"testing"
+
 	"dbm-services/common/dbha-v2/pkg/storage/haprobe"
 )
 
-// FailureInstanceInfo represents one instance that detector marked as failure (needs switching).
-type FailureInstanceInfo = failure.Instance
-
-// FailureGroup groups failure instances by (BkCloudID, DbType) for batch switching.
-type FailureGroup struct {
-	BkCloudID int
-	DbType    haprobe.DbType
-	Instances []FailureInstanceInfo
+func TestRegisterDnsSingleAddressGuard_Idempotent(t *testing.T) {
+	mt := haprobe.DbmMetadataMachineType("test_dns_guard_idempotent")
+	RegisterDnsSingleAddressGuard(mt)
+	RegisterDnsSingleAddressGuard(mt)
+	if !HasDnsSingleAddressGuard(mt) {
+		t.Fatalf("expected machine type %s to be guarded", mt)
+	}
 }
 
-// IPs returns the list of IPs for building switcher request (deduplicated).
-func (g *FailureGroup) IPs() []string {
-	seen := make(map[string]struct{}, len(g.Instances))
-	ips := make([]string, 0, len(g.Instances))
-	for _, inst := range g.Instances {
-		if _, ok := seen[inst.IP]; ok {
-			continue
-		}
-		seen[inst.IP] = struct{}{}
-		ips = append(ips, inst.IP)
+func TestHasDnsSingleAddressGuard_Unregistered(t *testing.T) {
+	mt := haprobe.DbmMetadataMachineType("test_dns_guard_missing")
+	if HasDnsSingleAddressGuard(mt) {
+		t.Fatalf("expected machine type %s not to be guarded", mt)
 	}
-	return ips
+}
+
+func TestDnsSingleAddressGuardMachineTypes_Sorted(t *testing.T) {
+	a := haprobe.DbmMetadataMachineType("test_dns_guard_sort_a")
+	b := haprobe.DbmMetadataMachineType("test_dns_guard_sort_b")
+	RegisterDnsSingleAddressGuard(b, a)
+	types := DnsSingleAddressGuardMachineTypes()
+	var idxA, idxB = -1, -1
+	for i, mt := range types {
+		if mt == a {
+			idxA = i
+		}
+		if mt == b {
+			idxB = i
+		}
+	}
+	if idxA < 0 || idxB < 0 {
+		t.Fatalf("expected both machine types in list, got %v", types)
+	}
+	if idxA > idxB {
+		t.Fatalf("expected sorted order, got %v", types)
+	}
 }
