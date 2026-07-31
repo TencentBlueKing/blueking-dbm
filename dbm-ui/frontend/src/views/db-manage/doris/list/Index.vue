@@ -179,7 +179,16 @@
           :is-filter="isSearching"
           :label="t('Follower节点')"
           :selected-list="selectedList"
-          @go-detail="handleToDetails" />
+          @go-detail="handleToDetails">
+          <template #nodeTag="{ data }">
+            <BkTag
+              v-if="data.is_master"
+              class="is-primary"
+              size="small">
+              Master
+            </BkTag>
+          </template>
+        </RoleColumn>
         <RoleColumn
           :cluster-type="ClusterTypes.DORIS"
           field="doris_observer"
