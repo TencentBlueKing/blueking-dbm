@@ -51,7 +51,7 @@ class MongoReplicaSetApplyDetailSerializer(TicketBaseValidateSerializerMixin, se
     start_port = serializers.IntegerField(help_text=_("起始端口"))
     replica_count = serializers.IntegerField(help_text=_("副本集数量"))
     node_count = serializers.IntegerField(help_text=_("副本集节点数量"))
-    node_replica_count = serializers.IntegerField(help_text=_("单机副本集数量"))
+    node_replica_count = serializers.IntegerField(help_text=_("每组主机部署副本集数量"))
     replica_sets = serializers.ListSerializer(help_text=_("副本集列表"), child=ReplicaSet(), allow_empty=False)
     spec_id = serializers.IntegerField(help_text=_("规格ID"))
     oplog_percent = serializers.IntegerField(help_text=_("oplog容量占比"))
@@ -77,8 +77,26 @@ class MongoReplicaSetApplyDetailSerializer(TicketBaseValidateSerializerMixin, se
         return obj["infos"][0]["resource_spec"]
 
     def validate(self, attrs):
-        """TODO: validate"""
         attrs = super().validate(attrs)
+        replica_count = attrs["replica_count"]
+        node_replica_count = attrs["node_replica_count"]
+        node_count = attrs["node_count"]
+        if node_replica_count <= 0:
+            raise serializers.ValidationError(_("每组主机部署副本集数量(node_replica_count)必须大于 0"))
+        if replica_count <= 0:
+            raise serializers.ValidationError(_("副本集数量(replica_count)必须大于 0"))
+        if node_count <= 0:
+            raise serializers.ValidationError(_("副本集节点数量(node_count)必须大于 0"))
+        if replica_count % node_replica_count != 0:
+            raise serializers.ValidationError(
+                _(
+                    "副本集数量(replica_count={replica_count})必须能被每组主机部署副本集数量" "(node_replica_count={node_replica_count})整除"
+                ).format(replica_count=replica_count, node_replica_count=node_replica_count)
+            )
+        if len(attrs["replica_sets"]) != replica_count:
+            raise serializers.ValidationError(
+                _("replica_sets 数量({})与 replica_count({})不一致").format(len(attrs["replica_sets"]), replica_count)
+            )
         return attrs
 
 
@@ -123,7 +141,16 @@ class MongoReplicaSetApplyFlowBuilder(BaseMongoReplicaSetTicketFlowBuilder):
         spec = Spec.objects.get(spec_id=ticket_data["spec_id"])
         machine_set_spec = (ticket_data.get("resource_spec") or {}).get("mongo_machine_set") or {}
         # infos的组数 = 副本集数量 / 单机部署副本集数
-        groups = int(ticket_data["replica_count"] / ticket_data["node_replica_count"])
+        replica_count = ticket_data["replica_count"]
+        node_replica_count = ticket_data["node_replica_count"]
+        if replica_count <= 0 or node_replica_count <= 0 or replica_count % node_replica_count != 0:
+            raise ValueError(
+                _(
+                    "非法副本集部署参数: replica_count={} node_replica_count={}，"
+                    "要求二者均大于 0 且 replica_count 能被 node_replica_count 整除"
+                ).format(replica_count, node_replica_count)
+            )
+        groups = int(replica_count / node_replica_count)
         if (
             cls.ticket_type == TicketType.MONGODB_REPLICASET_APPLY
             and ticket_data["ip_source"] == IpSource.RESOURCE_POOL
