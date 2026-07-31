@@ -34,7 +34,7 @@ class MySQLCheckSlaveDelayService(BaseService):
         for i in range(rounds):
             self.log_info(_("第{}次检查从库是否延迟".format(i + 1)))
             time.sleep(10)
-            res = DRSApi.rpc(
+            res = DRSApi.rpc_mysql_replica_compat(
                 {
                     "addresses": ["{}{}{}".format(kwargs["instance_ip"], IP_PORT_DIVIDER, kwargs["instance_port"])],
                     "cmds": ["show slave status"],
@@ -69,7 +69,7 @@ class MySQLCheckSlaveDelayService(BaseService):
                         )
                         return False
                     # 查看主节点位点
-                    res = DRSApi.rpc(
+                    res = DRSApi.rpc_mysql_replica_compat(
                         {
                             "addresses": [
                                 "{}{}{}".format(slave_info["Master_Host"], IP_PORT_DIVIDER, slave_info["Master_Port"])

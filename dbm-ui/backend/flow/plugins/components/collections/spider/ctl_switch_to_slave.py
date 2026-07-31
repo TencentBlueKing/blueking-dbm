@@ -72,7 +72,7 @@ class CtlSwitchToSlaveService(BaseService):
         """
         err_list = []
         self.log_info("start pre-sync-health-check")
-        res = DRSApi.rpc(
+        res = DRSApi.rpc_mysql_replica_compat(
             {
                 "addresses": check_nodes,
                 "cmds": ["show slave status"],
@@ -261,7 +261,7 @@ class CtlSwitchToSlaveService(BaseService):
         for ctl in ctl_set:
             self.log_info(f"exec stop slave in instance[{ctl.machine.ip}{IP_PORT_DIVIDER}{ctl.admin_port}]")
             rpc_params["addresses"] = [f"{ctl.machine.ip}{IP_PORT_DIVIDER}{ctl.admin_port}"]
-            res = DRSApi.rpc(rpc_params)
+            res = DRSApi.rpc_mysql_replica_compat(rpc_params)
 
             if res[0]["error_msg"]:
                 raise CtlSwitchToSlaveFailedException(
@@ -309,7 +309,7 @@ class CtlSwitchToSlaveService(BaseService):
 
         # 新primary需要执行reset slave, 避免提升主报错
         rpc_params["cmds"] = ["set tc_admin=0", "reset slave all;"]
-        res = DRSApi.rpc(rpc_params)
+        res = DRSApi.rpc_mysql_replica_compat(rpc_params)
         if res[0]["error_msg"]:
             raise CtlSwitchToSlaveFailedException(
                 message=_("exec reset-slave-all failed: {}".format(res[0]["error_msg"]))
@@ -350,7 +350,7 @@ class CtlSwitchToSlaveService(BaseService):
                 "MASTER_AUTO_POSITION = 0;"
             )
 
-            res = DRSApi.rpc(
+            res = DRSApi.rpc_mysql_replica_compat(
                 {
                     "addresses": [f"{secondary.machine.ip}{IP_PORT_DIVIDER}{secondary.admin_port}"],
                     "cmds": ["set tc_admin = 0", repl_sql, "start slave;"],
