@@ -51,7 +51,9 @@
 | `cluster_id` | `ClusterId` | 集群 ID |
 | `pass`（Redis 扩展） | `Pass` | 实例访问口令，供 GM 二次探测复用 |
 
-说明：Redis 上报包体存在“双键”分工——包头 `detectType` 与包体 `cluster_type` 用 `ClusterType` 做路由，而包体 `db_type` 携带的是 machine_type。GM 反序列化时先按 `cluster_type` 选回调，再按 `db_type`（machine_type）区分存储节点与代理节点。
+说明：
+1. Redis 上报包体存在“双键”分工——包头 `detectType` 与包体 `cluster_type` 用 `ClusterType` 做路由，而包体 `db_type` 携带的是 machine_type。GM 反序列化时先按 `cluster_type` 选回调，再按 `db_type`（machine_type）区分存储节点与代理节点。
+2. pass 密码采用 cache + DBM API（CMDB） 的方式获取。 
 
 ### 2.3 Redis 探测结构
 
@@ -249,18 +251,6 @@ flowchart TD
     CacheSetOK -->|是| CacheMasterOK["结果: DB_check_success"]
     CacheSetOK -->|否| CacheSetErr["异常事件: DB_check_failed"]
 
-    TypeBranch -->|tendisplus| PlusInfo["指令: INFO"]
-    PlusInfo --> PlusInfoOK{成功?}
-    PlusInfoOK -->|否| PlusInfoErr["异常事件: DB_check_failed 鉴权错误转Redis_auth_failed"]
-    PlusInfoOK -->|是| PlusCheckVersion{"INFO 是否含 redis_version"}
-    PlusCheckVersion -->|否| PlusVersionErr["异常事件: DB_check_failed"]
-    PlusCheckVersion -->|是| PlusRole{"role == master?"}
-    PlusRole -->|否| PlusReplicaOK["结果: DB_check_success"]
-    PlusRole -->|是| PlusSet["指令: SET dbha:agent:ip time"]
-    PlusSet --> PlusSetOK{"返回OK或MOVED?"}
-    PlusSetOK -->|是| PlusMasterOK["结果: DB_check_success"]
-    PlusSetOK -->|否| PlusSetErr["异常事件: DB_check_failed"]
-
     TypeBranch -->|predixy| PredixyType["指令: TYPE twemproxy_mon"]
     TypeBranch -->|twemproxy| TwemType["指令: TYPE twemproxy_mon"]
     PredixyType --> PredixyOK{成功?}
@@ -273,22 +263,47 @@ flowchart TD
     CacheInfoErr --> SSHFallback
     CacheSelectErr --> SSHFallback
     CacheSetErr --> SSHFallback
-    PlusInfoErr --> SSHFallback
-    PlusVersionErr --> SSHFallback
-    PlusSetErr --> SSHFallback
     PredixyErr --> SSHFallback
     TwemErr --> SSHFallback
 
-    SSHFallback["兜底指令: SSH touch 判断机器可达"] --> SSHOK{SSH成功?}
+    SSHFallback["兜底指令: DoExtendSSH (touch 判可达 且 cat /proc/uptime 采集 uptime)"] --> SSHOK{"DoExtendSSH 成功? (touch 可达 且 uptime>=MaxUptime)"}
     SSHOK -->|是| SSHSucc["异常事件: SSH_check_success"]
     SSHOK -->|否| SSHErr{SSH鉴权失败?}
     SSHErr -->|是| SSHAuthErr["异常事件: SSH_auth_failed"]
-    SSHErr -->|否| SSHCheckErr["异常事件: SSH_check_failed"]
+    SSHErr -->|否| SSHCheckErr["异常事件: SSH_check_failed (含 uptime 小于 MaxUptime: 机器刚重启, db 随之重启, 触发切换)"]
 
     CacheInfoErr --> RedisAuthEnd["异常事件: Redis_auth_failed 可能直接结束"]
-    PlusInfoErr --> RedisAuthEnd
     PredixyErr --> RedisAuthEnd
     TwemErr --> RedisAuthEnd
+
+    TypeBranch -->|PredixyTendisplusCluster下tendisplus| PlusInfo["指令: INFO (逻辑未启用)"]
+    PlusInfo --> PlusInfoOK{成功?}
+    PlusInfoOK -->|否| PlusInfoErr["异常事件: DB_check_failed 鉴权错误转Redis_auth_failed"]
+    PlusInfoOK -->|是| PlusCheckVersion{"INFO 是否含 redis_version"}
+    PlusCheckVersion -->|否| PlusVersionErr["异常事件: DB_check_failed"]
+    PlusCheckVersion -->|是| PlusRole{"role == master?"}
+    PlusRole -->|否| PlusReplicaOK["结果: DB_check_success"]
+    PlusRole -->|是| PlusSet["指令: SET dbha:agent:ip time"]
+    PlusSet --> PlusSetOK{"返回OK或MOVED?"}
+    PlusSetOK -->|是| PlusMasterOK["结果: DB_check_success"]
+    PlusSetOK -->|否| PlusSetErr["异常事件: DB_check_failed"]
+    PlusInfoErr --> SSHFallback
+    PlusVersionErr --> SSHFallback
+    PlusSetErr --> SSHFallback
+    PlusInfoErr --> RedisAuthEnd
+
+    TypeBranch -->|PredixyRedisCluster下tendiscache| ClusterInfo["指令: INFO Replication (逻辑未启用)"]
+    ClusterInfo --> ClusterInfoOK{成功?}
+    ClusterInfoOK -->|否| ClusterInfoErr["异常事件: DB_check_failed 鉴权错误转Redis_auth_failed"]
+    ClusterInfoOK -->|是| ClusterRole{"role == master?"}
+    ClusterRole -->|否| ClusterReplicaOK["结果: DB_check_success"]
+    ClusterRole -->|是| ClusterSet["指令: SET dbha:agent:ip time"]
+    ClusterSet --> ClusterSetOK{"返回OK或MOVED?"}
+    ClusterSetOK -->|是| ClusterMasterOK["结果: DB_check_success"]
+    ClusterSetOK -->|否| ClusterSetErr["异常事件: DB_check_failed"]
+    ClusterInfoErr --> SSHFallback
+    ClusterSetErr --> SSHFallback
+    ClusterInfoErr --> RedisAuthEnd
 ```
 
 代码：
@@ -303,11 +318,12 @@ flowchart TD
 图例与说明：
 
 - 该图只聚焦 Agent 探测面，不展开 GQA/GCM 切换编排细节。
-- 节点类型到指令映射：存储节点 `tendiscache`/`tendisssd` 用 `INFO Replication`，`tendisplus` 与集群下 redis 用 `INFO`，二者均经 `role` 判断后对 master 执行 `SET` 写探测；代理节点 `predixy`/`twemproxy` 用 `TYPE twemproxy_mon` 探活。
+- 节点类型到指令映射：存储节点 `tendiscache`/`tendisssd` 用 `INFO Replication`，`tendisplus（PredixyTendisplusCluster）` 存储用 `INFO`，二者均经 `role` 判断后对 master 执行 `SET` 写探测；代理节点 `predixy`/`twemproxy` 用 `TYPE twemproxy_mon` 探活。
 - `SELECT 0/1`：用于切换逻辑库，确保后续 `SET` 落在预期 DB，是写探测前置步骤，并非健康判定本身。
-- SSH 回退：Redis 命令失败（非 Redis 鉴权失败）后执行 `touch` 判断机器可达，据结果置 `SSH_check_success` / `SSH_check_failed` / `SSH_auth_failed`；`Redis_auth_failed` 会提前返回，不走 SSH 兜底。
+- SSH 回退：Redis 命令失败（非 Redis 鉴权失败）后执行 `touch` 判断机器可达，据结果置 `SSH_check_success` / `SSH_check_failed` / `SSH_auth_failed`；`Redis_auth_failed` 会提前返回，不走 SSH 兜底（但仍然会进入二次探测，如果二次探测还是 Redis_auth_failed 会触发通知）。
 - 上报决策（与第 6 节一致）：`DB_check_success` / `SSH_check_success` 不进入 GM，其余异常进入 GM 二次探测。
-- `PredixyRedisCluster` 范围说明：Agent 主动拉取阶段（`RedisClusterNewIns`）仅为 `predixy` 代理生成探测实例；**故图中不再绘制 “PredixyRedisCluster下redis” 分支**。该分支（`INFO Replication` + `SET`，由 `RedisClusterDetectInstance` 实现）在**正常数据流中不可达**：Agent 不为 PredixyRedisCluster 上报 tendiscache 报文，GM 反序列化（`RedisClusterDeserialize`）不会命中 `RedisMetaType` 分支，故无论 Agent 主动探测还是 GM 二次探测都不会实际探测其 redis 存储；代码仅作为预留入口存在。
+- `PredixyTendisplusCluster 下 tendisplus` 该集群类型无需采集存储，无论 Agent 主动探测还是 GM 二次探测都不会实际探测其 redis 存储；代码仅作为预留入口存在。
+- `PredixyRedisCluster 下 tendiscache` 该集群类型无需采集存储，无论 Agent 主动探测还是 GM 二次探测都不会实际探测其 redis 存储（反序列化虽然存在 tendiscache 的逻辑校验，但实际 agent 探测时并没有序列化 tendiscache，所以也是不可达的）；代码仅作为预留入口存在。
 
 ---
 
