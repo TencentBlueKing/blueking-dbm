@@ -482,7 +482,7 @@ class ClusterServiceHandler:
                 "charset": kwargs.get("options", {}).get("charset", SQLCharset.DEFAULT.value),
                 "timezone": kwargs.get("options", {}).get("timezone", get_local_charset()),
             }
-            rpc_results = DRSApi.rpc(params)
+            rpc_results = DRSApi.rpc_mysql_replica_compat(params)
             cmd_results = [
                 {
                     "instance": res["address"],

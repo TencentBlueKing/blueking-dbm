@@ -32,7 +32,7 @@ class CheckSlavesDelayService(BaseService):
         allow_delay_sec = kwargs["allow_delay_sec"]
         for slave_addr in slave_instance_tuples:
             self.log_info(_("检查从库延迟"))
-            res = DRSApi.rpc(
+            res = DRSApi.rpc_mysql_replica_compat(
                 {
                     "addresses": [slave_addr],
                     "cmds": ["show slave status"],
@@ -64,7 +64,7 @@ class CheckSlavesDelayService(BaseService):
                 self.log_error("show slave status is empty")
                 return False
             if len(res2[0]["cmd_results"][0]["table_data"]) == 0:
-                self.log_error("quwey master_slave_heartbeat result is empty")
+                self.log_error("query master_slave_heartbeat result is empty")
                 return False
             slave_info = res[0]["cmd_results"][0]["table_data"][0]
             slave_delay = 0

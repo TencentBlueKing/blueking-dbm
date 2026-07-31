@@ -158,7 +158,7 @@ class DbConsoleDumpSqlFlow(object):
             "bk_cloud_id": bk_cloud_id,
         }
 
-        resp = DRSApi.rpc(body)
+        resp = DRSApi.rpc_mysql_replica_compat(body)
         logger.info(f"query slave status: {resp}")
 
         if not resp[0]["cmd_results"]:

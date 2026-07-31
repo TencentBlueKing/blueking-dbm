@@ -20,7 +20,7 @@ class ResetSlaveViaDRSService(BaseService):
         kwargs = data.get_one_of_inputs("kwargs")
 
         self.log_info(_("传入参数:{}").format(kwargs))
-        res = DRSApi.rpc(
+        res = DRSApi.rpc_mysql_replica_compat(
             {
                 "addresses": [kwargs["address"]],
                 "cmds": ["reset slave"],

@@ -68,7 +68,7 @@ class SyncMasterService(BaseService):
         """
         获取位点信息
         """
-        res = DRSApi.rpc(
+        res = DRSApi.rpc_mysql_replica_compat(
             {
                 "addresses": [address],
                 "cmds": ["show master status;"],
@@ -136,7 +136,7 @@ class SyncMasterService(BaseService):
 
         #  建立同步
         for secondary in kwargs["slaves"]:
-            res = DRSApi.rpc(
+            res = DRSApi.rpc_mysql_replica_compat(
                 {
                     "addresses": [f"{secondary['host']}{IP_PORT_DIVIDER}{secondary['port']}"],
                     "cmds": [repl_sql, "start slave;"],

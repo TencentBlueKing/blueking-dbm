@@ -10,8 +10,14 @@ specific language governing permissions and limitations under the License.
 """
 
 from django.utils.translation import gettext_lazy as _
+from typing_extensions import deprecated
 
 from backend import env
+from backend.components.db_remote_service.mysql_replication_compat import (
+    get_instance_major_version,
+    map_result_fields,
+    translate_cmds,
+)
 
 from ..domains import DRS_APIGW_DOMAIN
 from ..proxy_api import ProxyAPI
@@ -54,7 +60,7 @@ class _DRSApi(object):
             url="mysql/rpc",
             module=self.MODULE,
             ssl=ssl_flag,
-            description=_("DB 远程执行"),
+            description=_("DB 远程执行, " "8.4+ 版本移除了 slave/master 关键字, 临时替代方案 rpc_mysql_replica_compat"),
             default_timeout=self.DRS_TIMEOUT,
         )
 
@@ -64,7 +70,7 @@ class _DRSApi(object):
             url="v2/mysql/rpc",
             module=self.MODULE,
             ssl=ssl_flag,
-            description=_("MySQL V2 远程执行"),
+            description=_("MySQL V2 远程执行, " "8.4+ 版本移除了 slave/master 关键字, 临时替代方案 v2_mysql_rpc_mysql_replica_compat"),
             default_timeout=self.DRS_TIMEOUT,
         )
 
@@ -231,6 +237,65 @@ class _DRSApi(object):
             description=_("mongodb 远程执行"),
             default_timeout=self.DRS_TIMEOUT,
         )
+
+    @deprecated("this is temporary fix for mysql 8.4 slave/master keyword compatibility")
+    def rpc_mysql_replica_compat(self, params, **kwargs):
+        """
+        MySQL 复制命令专用 RPC 包装方法。
+
+        自动根据目标实例版本翻译复制相关 SQL 命令（如 show slave status → SHOW REPLICA STATUS），
+        并将返回结果中的新版字段名映射回旧版字段名（如 Replica_IO_Running → Slave_IO_Running）。
+
+        入参和返回值结构与 DRSApi.rpc 完全一致，调用方只需替换方法名即可。
+
+        内部流程：获取版本 → 翻译 cmds → 调用 self.rpc → 映射返回字段名
+        """
+        # 获取目标实例版本
+        addresses = params.get("addresses", [])
+        version = get_instance_major_version(addresses[0]) if addresses else (5, 7)
+
+        # 翻译命令
+        original_cmds = params.get("cmds", [])
+        translated_cmds, field_map_indices = translate_cmds(original_cmds, version)
+
+        # 构造新的 params（不修改原始 dict）
+        new_params = {**params, "cmds": translated_cmds}
+
+        # 调用底层 rpc（ProxyAPI.__call__）
+        result = self.rpc(new_params, **kwargs)
+
+        # 映射返回字段名
+        if field_map_indices:
+            result = map_result_fields(result, field_map_indices)
+
+        return result
+
+    @deprecated("this is temporary fix for mysql 8.4 slave/master keyword compatibility")
+    def v2_mysql_rpc_mysql_replica_compat(self, params, **kwargs):
+        """
+        MySQL V2 复制命令专用 RPC 包装方法。
+
+        逻辑同 rpc_mysql_replica_compat，但使用 self.v2_mysql_rpc。
+        """
+        # 获取目标实例版本
+        addresses = params.get("addresses", [])
+        version = get_instance_major_version(addresses[0]) if addresses else (5, 7)
+
+        # 翻译命令
+        original_cmds = params.get("cmds", [])
+        translated_cmds, field_map_indices = translate_cmds(original_cmds, version)
+
+        # 构造新的 params（不修改原始 dict）
+        new_params = {**params, "cmds": translated_cmds}
+
+        # 调用底层 v2_mysql_rpc
+        result = self.v2_mysql_rpc(new_params, **kwargs)
+
+        # 映射返回字段名
+        if field_map_indices:
+            result = map_result_fields(result, field_map_indices)
+
+        return result
 
 
 DRSApi = _DRSApi()
