@@ -49,6 +49,7 @@ export default class DorisInstance extends InstanceBase {
   instance_address: string;
   instance_name: string;
   ip: string;
+  is_master: boolean;
   machine_type: string;
   master_domain: string;
   operations: InstanceListOperation[];
@@ -84,6 +85,7 @@ export default class DorisInstance extends InstanceBase {
     this.instance_address = payload.instance_address;
     this.instance_name = payload.instance_name;
     this.ip = payload.ip;
+    this.is_master = payload.is_master;
     this.machine_type = payload.machine_type;
     this.master_domain = payload.master_domain;
     this.operations = payload.operations || [];

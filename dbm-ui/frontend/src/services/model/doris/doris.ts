@@ -77,7 +77,7 @@ export default class Doris extends ClusterBase {
   domain: string;
   doris_backend_hot: Array<ClusterListNode>;
   doris_backend_warm: Array<ClusterListNode>;
-  doris_follower: Array<ClusterListNode>;
+  doris_follower: Array<{ is_master: boolean } & ClusterListNode>;
   doris_observer: Array<ClusterListNode>;
   id: number;
   major_version: string;
