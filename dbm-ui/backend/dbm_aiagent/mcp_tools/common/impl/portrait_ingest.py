@@ -11,22 +11,36 @@ specific language governing permissions and limitations under the License.
 集群画像 MCP - 写侧业务实现（供 View 调用）。
 
 模块职责：
-    - 面向 MCP 视图层，把 (db_type: str, code: str) 字符串契约映射回 SDK 需要的强类型枚举成员，
-      再调用 :func:`backend.db_report.portrait.ingest_summary` 完成落库
-    - 把 SDK 抛出的可预期业务异常（:class:`PortraitInvalidPayloadException`）翻译为
-      MCP 出参约定的 ``status`` 字段（``ok`` / ``invalid_db_type`` / ``invalid_code`` / ``invalid_payload``），
+    - 面向 MCP 视图层，负责：
+        1) 通过 (bk_biz_id, cluster_domain) **反查集群对象**（复用
+           :meth:`PortraitQueryService.resolve_cluster`），从 ``cluster.cluster_type``
+           归一化得到 ``db_type``；从而免去调用方显式传 ``db_type`` 的负担，
+           也避免调用方与集群元数据口径不一致；本层还负责在 SDK 之前提供"友好的
+           cluster_not_found 短路"，避免 Agent 拿到通用 invalid_payload 才反应过来；
+        2) 把字符串 ``code`` 契约映射回 SDK 需要的强类型枚举成员；
+        3) 调用 :func:`backend.db_report.portrait.ingest_summary` 完成落库；**集群语义
+           校验（含 report_time 是否 >= cluster.create_at）已下沉为 SDK 唯一事实源**，
+           适配层只做异常到 status 的翻译。
+    - 把 SDK 抛出的可预期业务异常翻译为 MCP 出参约定的 ``status`` 字段
+      （``ok`` / ``cluster_not_found`` / ``report_time_before_cluster_created`` /
+      ``unsupported_db_type`` / ``invalid_code`` / ``invalid_payload``），
       不把内部异常直接暴露给前端 / Agent
 
 设计要点：
     - 用类 :class:`PortraitIngestService` 组织；方法为 classmethod，无实例状态
     - **不做资源鉴权**：鉴权由视图层的 ``McpClusterDetailPermission`` + ``auth_parse_clusters`` 完成
-    - **不改动写入语义**：真正的写入仍走 SDK 唯一入口，本层只是 MCP 通道的适配层
+    - **不改动写入语义**：真正的写入仍走 SDK 唯一入口；本层只是 MCP 通道的适配层
+    - **异常翻译顺序敏感**：``except`` 子句必须按"子类在前 / 父类在后"排列，
+      否则 :class:`PortraitReportTimeStaleException` 会先被父类
+      :class:`PortraitInvalidPayloadException` 兜住，丢失细分 status 语义
 
 边界：
-    - db_type 不在 :class:`DBType` 枚举         -> status="invalid_db_type"
-    - code 在指定 db_type 下无对应枚举成员      -> status="invalid_code"
-    - 其它入参不合法（超长 / 类型错等）         -> status="invalid_payload"
-    - ORM 底层写失败（连接异常等不可预期）      -> 不吞异常，向上抛出，由框架统一 500 处理
+    - (bk_biz_id, cluster_domain) 找不到集群              -> status="cluster_not_found"
+    - SDK 抛 report_time 早于 create_at 异常              -> status="report_time_before_cluster_created"
+    - 集群 db_type 未在维度枚举映射中登记（如新引擎未接入）-> status="unsupported_db_type"
+    - code 在指定 db_type 下无对应枚举成员                 -> status="invalid_code"
+    - 其它入参不合法（超长 / 类型错等）                    -> status="invalid_payload"
+    - ORM 底层写失败（连接异常等不可预期）                 -> 不吞异常，向上抛出，由框架统一 500 处理
 """
 import logging
 from datetime import datetime, timezone
@@ -35,8 +49,10 @@ from typing import Any, Dict, Optional, Tuple, Type
 from django.utils.translation import gettext_lazy as _
 
 from backend.configuration.constants import DBType
+from backend.db_meta.enums import ClusterType
 from backend.db_report.portrait import MysqlPortraitDimensionCode, RedisPortraitDimensionCode, ingest_summary
-from backend.db_report.portrait.exceptions import PortraitInvalidPayloadException
+from backend.db_report.portrait.exceptions import PortraitInvalidPayloadException, PortraitReportTimeStaleException
+from backend.dbm_aiagent.mcp_tools.common.impl.portrait_query import PortraitQueryService
 from blue_krill.data_types.enum import StrStructuredEnum
 
 logger = logging.getLogger("root")
@@ -44,11 +60,12 @@ logger = logging.getLogger("root")
 #: db_type value（DBType.value，小写字符串） -> 该 DB 对应的维度枚举类
 #: 说明：
 #:   - 每新增一种 DB 的画像契约，只需在此映射中追加一行；
-#:   - key 使用 DBType 的 value（如 "mysql" / "redis"）以对齐 MCP 入参与 DB 表存储；
+#:   - key 使用 DBType 的 value（如 "mysql" / "redis"）以对齐集群元数据 db_type 与 DB 表存储；
 #:   - value 是 *PortraitDimensionCode 枚举类本身（Type[StrStructuredEnum]），
 #:     视图侧只需要传字符串 code，本层通过 ``EnumCls(code_value)`` 反查具体成员。
 _DB_TYPE_TO_DIMENSION_ENUM: Dict[str, Type[StrStructuredEnum]] = {
     DBType.MySQL.value: MysqlPortraitDimensionCode,
+    DBType.TenDBCluster.value: MysqlPortraitDimensionCode,
     DBType.Redis.value: RedisPortraitDimensionCode,
 }
 
@@ -57,13 +74,16 @@ class PortraitIngestService:
     """集群画像写侧适配服务。
 
     职责：
-        - 面向 MCP View 层的单一方法 :meth:`ingest_summary`：字符串契约 -> 枚举 -> SDK
+        - 面向 MCP View 层的单一方法 :meth:`ingest_summary`：
+          反查集群 db_type -> 字符串 code -> 枚举 -> SDK
         - 归一化可预期失败为 status 字段（对齐 MCP 出参约定）
+        - **集群语义校验（含 report_time 与 create_at 的对比）不在本层完成**，
+          而是由 SDK :meth:`PortraitIngestSDK._validate_payload` 作为唯一事实源承担；
+          本层仅通过 ``except`` 把 SDK 异常翻译为 status
 
     典型使用（View 层直接调 classmethod）::
 
         result = PortraitIngestService.ingest_summary(
-            db_type="mysql",
             code="slow_query",
             bk_biz_id=100001,
             cluster_domain="a.b.c",
@@ -79,7 +99,6 @@ class PortraitIngestService:
     @classmethod
     def ingest_summary(
         cls,
-        db_type: str,
         code: str,
         bk_biz_id: Any,
         cluster_domain: str,
@@ -90,33 +109,45 @@ class PortraitIngestService:
         """写入一条集群维度巡检摘要（MCP 写侧唯一入口）。
 
         执行流程：
-            1) 将字符串 ``db_type`` 映射为 :class:`DBType` 枚举成员；失败 -> status="invalid_db_type"
-            2) 通过 ``_DB_TYPE_TO_DIMENSION_ENUM`` 找到该 db_type 对应的维度枚举类，
-               再由 ``EnumCls(code)`` 得到具体维度成员；失败 -> status="invalid_code"
-            3) **入参规范化**：MCP/Agent 通道只能传 JSON 原生类型，本层负责把字符串 /
-               数值形式的 ``report_time`` / ``bk_biz_id`` 等转换为 SDK 期望的强类型
-               （SDK 层使用严格的 ``isinstance`` 校验，不做隐式转换）
-            4) 调 SDK :func:`ingest_summary` 完成校验 + 懒注册 + 写入
-            5) SDK 抛 :class:`PortraitInvalidPayloadException` -> status="invalid_payload"
+            1) **入参规范化**：MCP/Agent 通道只能传 JSON 原生类型，本层负责把字符串 /
+               数值形式的 ``report_time`` / ``bk_biz_id`` 等转换为 SDK 期望的强类型；
+               规范化在最前是因为后续反查 db_type 依赖 ``bk_biz_id`` 为 int、
+               ``cluster_domain`` 为非空 str
+            2) **反查集群**：通过 :meth:`PortraitQueryService.resolve_cluster` 拿到集群对象；
+               找不到 -> status="cluster_not_found"。这是**友好性短路**：SDK 侧同样会兜底
+               校验集群存在性，但在这里前置返回，可以让 Agent 立即拿到明确的 status，
+               而不必依赖异常翻译
+            3) 从 ``cluster.cluster_type`` 归一化得到 db_type
+            4) 通过 ``_DB_TYPE_TO_DIMENSION_ENUM`` 找到该 db_type 对应的维度枚举类；
+               未登记 -> status="unsupported_db_type"
+            5) 由 ``EnumCls(code)`` 得到具体维度成员；失败 -> status="invalid_code"
+            6) 调 SDK :func:`ingest_summary` 完成"最后一道防线"校验 + 懒注册 + 写入；
+               SDK 会在此处校验 ``report_time >= cluster.create_at``
+            7) 异常翻译（顺序敏感，子类在前）：
+               - :class:`PortraitReportTimeStaleException`
+                 -> status="report_time_before_cluster_created"
+               - :class:`PortraitInvalidPayloadException`（父类兜底）
+                 -> status="invalid_payload"
 
-        :param db_type: DBType.value（如 ``"mysql"`` / ``"redis"``）
-        :param code: 该 db_type 下 ``*PortraitDimensionCode`` 枚举的 value（如 ``"slow_query"``）；
+        :param code: 该集群 db_type 下 ``*PortraitDimensionCode`` 枚举的 value（如 ``"slow_query"``）；
                      对应 MCP 入参 ``dimension_code``，由 View 层从 ``dimension_code`` 取值后传入
         :param bk_biz_id: 业务 ID；接受 ``int`` 或纯数字字符串（如 ``"100001"``），最终必须 > 0
-        :param cluster_domain: 集群不可变主域名
+        :param cluster_domain: 集群不可变主域名；将用于反查 db_type
         :param report_time: 本次巡检业务时间；接受以下三种形式：
                             - :class:`datetime.datetime` 对象（原样使用）
                             - ISO 8601 字符串（如 ``"2026-07-28T17:00:00+08:00"``、``"2026-07-28 17:00:00"``、
                               以 ``Z`` 结尾的 UTC 表示等；由 :meth:`_parse_report_time` 解析）
                             - int / float：视为 UNIX 时间戳（秒），自动转 :class:`datetime`
+                            **必须 >= 目标集群 ``create_at``**，否则会被 SDK 拒绝
         :param summary: 摘要文本，允许为空；<= 4000 字符
         :param detail_url: 详情页链接，允许为空；<= 1024 字符
         :return: dict，字段结构对齐 ``PortraitIngestSummaryOutputSerializer``::
 
             {
-              "status": "ok" | "invalid_db_type" | "invalid_code" | "invalid_payload",
+              "status": "ok" | "cluster_not_found" | "report_time_before_cluster_created"
+                        | "unsupported_db_type" | "invalid_code" | "invalid_payload",
               "id": int,                # 仅 status=ok 时 >0
-              "db_type": str,           # 回显
+              "db_type": str,           # 服务端反查得到；失败分支可能为空
               "dimension_code": str,    # 回显（对应入参 dimension_code）
               "message": str,           # 失败分支的可读原因
             }
@@ -131,42 +162,8 @@ class PortraitIngestService:
             键会走"用户已自定义标准返回"短路分支，直接把业务 dict 作为响应体输出，
             造成 Go MCP 网关 unmarshal ``code``(int) 失败。
         """
-        # 1) 字符串 db_type -> DBType 枚举成员
-        db_type_enum: Optional[DBType] = cls._parse_db_type(db_type)
-        if db_type_enum is None:
-            return cls._fail(
-                status="invalid_db_type",
-                db_type=db_type,
-                code=code,
-                message=str(_("db_type 非法，允许的取值：{allowed}")).format(allowed=sorted(_DB_TYPE_TO_DIMENSION_ENUM.keys())),
-            )
-
-        # 2) 字符串 code -> 具体维度枚举成员（各 DB 命名空间隔离）
-        dimension_enum_cls: Optional[Type[StrStructuredEnum]] = _DB_TYPE_TO_DIMENSION_ENUM.get(db_type_enum.value)
-        if dimension_enum_cls is None:
-            # 理论不会走到（上一步已白名单过滤），保守兜底
-            return cls._fail(
-                status="invalid_db_type",
-                db_type=db_type,
-                code=code,
-                message=str(_("db_type 没有配置对应的维度枚举，请联系管理员登记")),
-            )
-
-        try:
-            dimension_member: StrStructuredEnum = dimension_enum_cls(code)
-        except ValueError:
-            allowed_codes = [str(member.value) for member in dimension_enum_cls]
-            return cls._fail(
-                status="invalid_code",
-                db_type=db_type,
-                code=code,
-                message=str(_("dimension_code 在 db_type={db_type} 下未定义；允许的取值：{allowed}")).format(
-                    db_type=db_type, allowed=allowed_codes
-                ),
-            )
-
-        # 3) 入参规范化：把 MCP/Agent 通道的字符串/数值类型正规化为 SDK 要求的强类型
-        #    统一在这里处理，避免每个调用点都需要预处理，也让 SDK 侧保持严格类型校验
+        # 1) 入参规范化：把 MCP/Agent 通道的字符串/数值类型正规化为 SDK 要求的强类型
+        #    放在最前是因为后续反查 db_type 需要 bk_biz_id 为 int、cluster_domain 为非空 str
         normalized, err_msg = cls._normalize_payload(
             bk_biz_id=bk_biz_id,
             cluster_domain=cluster_domain,
@@ -177,36 +174,115 @@ class PortraitIngestService:
         if err_msg is not None:
             return cls._fail(
                 status="invalid_payload",
-                db_type=db_type,
+                db_type="",
                 code=code,
                 message=err_msg,
             )
 
-        # 4) 委托 SDK 完成落库；SDK 已完成参数格式校验 + 懒注册 + 追加写
+        norm_biz_id: int = normalized["bk_biz_id"]
+        norm_cluster_domain: str = normalized["cluster_domain"]
+        norm_report_time: datetime = normalized["report_time"]
+
+        # 2) 反查集群对象：由 (bk_biz_id, cluster_domain) -> Cluster
+        #    这是"友好性短路"：SDK 侧也会兜底校验集群存在性，但前置返回可以让 Agent
+        #    立即拿到明确的 cluster_not_found，而不是通过 invalid_payload 反查原因
+        cluster = PortraitQueryService.resolve_cluster(bk_biz_id=norm_biz_id, cluster_domain=norm_cluster_domain)
+        if cluster is None:
+            return cls._fail(
+                status="cluster_not_found",
+                db_type="",
+                code=code,
+                message=str(_("集群未找到或不属于该业务：bk_biz_id={biz}, cluster_domain={cluster}")).format(
+                    biz=norm_biz_id, cluster=norm_cluster_domain
+                ),
+            )
+
+        # 3) 从 cluster.cluster_type 归一化得到 db_type
+        db_type_str: str = ClusterType.cluster_type_to_db_type(cluster.cluster_type)
+
+        # 4) 反查得到的字符串再映射为 DBType 枚举成员；理论一定命中，此处仅为兜底
+        db_type_enum: Optional[DBType] = cls._parse_db_type(db_type_str)
+        if db_type_enum is None:
+            return cls._fail(
+                status="unsupported_db_type",
+                db_type=db_type_str,
+                code=code,
+                message=str(_("集群反查得到的 db_type={db_type} 非 DBType 枚举成员")).format(db_type=db_type_str),
+            )
+
+        # 5) db_type -> 维度枚举类；未登记则视为"暂未接入画像"
+        dimension_enum_cls: Optional[Type[StrStructuredEnum]] = _DB_TYPE_TO_DIMENSION_ENUM.get(db_type_enum.value)
+        if dimension_enum_cls is None:
+            return cls._fail(
+                status="unsupported_db_type",
+                db_type=db_type_enum.value,
+                code=code,
+                message=str(_("db_type={db_type} 尚未接入画像维度枚举；已接入的 db_type：{allowed}")).format(
+                    db_type=db_type_enum.value, allowed=sorted(_DB_TYPE_TO_DIMENSION_ENUM.keys())
+                ),
+            )
+
+        # 6) 字符串 code -> 具体维度枚举成员（各 DB 命名空间隔离）
+        try:
+            dimension_member: StrStructuredEnum = dimension_enum_cls(code)
+        except ValueError:
+            allowed_codes = [str(member.value) for member in dimension_enum_cls]
+            return cls._fail(
+                status="invalid_code",
+                db_type=db_type_enum.value,
+                code=code,
+                message=str(_("dimension_code 在 db_type={db_type} 下未定义；允许的取值：{allowed}")).format(
+                    db_type=db_type_enum.value, allowed=allowed_codes
+                ),
+            )
+
+        # 7) 委托 SDK 完成"最后一道防线"校验 + 懒注册 + 落库
+        #    集群语义校验（含 report_time >= cluster.create_at）在这里被 SDK 强制执行
         try:
             record = ingest_summary(
                 db_type=db_type_enum,
                 dimension=dimension_member,
-                bk_biz_id=normalized["bk_biz_id"],
-                cluster_domain=normalized["cluster_domain"],
-                report_time=normalized["report_time"],
+                bk_biz_id=norm_biz_id,
+                cluster_domain=norm_cluster_domain,
+                report_time=norm_report_time,
                 summary=normalized["summary"],
                 detail_url=normalized["detail_url"],
             )
-        except PortraitInvalidPayloadException as exc:
-            # 5) SDK 侧可预期业务异常 -> 归一化为 invalid_payload
+        except PortraitReportTimeStaleException as exc:
+            # 8a) SDK 侧"report_time 早于集群创建时间"专用异常 -> 独立 status 分支
+            #     注意：此 except 必须在 PortraitInvalidPayloadException 之前，
+            #     否则会被父类兜住，丢失细分语义
             reason: str = cls._extract_exc_message(exc)
             logger.warning(
-                "[portrait_ingest] invalid payload: db_type=%s code=%s biz=%s cluster=%s reason=%s",
-                db_type,
+                "[portrait_ingest] report_time before cluster created: "
+                "db_type=%s code=%s biz=%s cluster=%s reason=%s",
+                db_type_enum.value,
                 code,
-                bk_biz_id,
-                cluster_domain,
+                norm_biz_id,
+                norm_cluster_domain,
+                reason,
+            )
+            return cls._fail(
+                status="report_time_before_cluster_created",
+                db_type=db_type_enum.value,
+                code=code,
+                message=reason or str(_("report_time 早于集群创建时间")),
+            )
+        except PortraitInvalidPayloadException as exc:
+            # 8b) SDK 侧其它可预期业务异常（含 PortraitClusterNotFoundException 兜底分支等）
+            #     -> 归一化为 invalid_payload
+            reason = cls._extract_exc_message(exc)
+            logger.warning(
+                "[portrait_ingest] invalid payload: db_type=%s code=%s biz=%s cluster=%s reason=%s",
+                db_type_enum.value,
+                code,
+                norm_biz_id,
+                norm_cluster_domain,
                 reason,
             )
             return cls._fail(
                 status="invalid_payload",
-                db_type=db_type,
+                db_type=db_type_enum.value,
                 code=code,
                 message=reason or str(_("入参不合法")),
             )
@@ -387,6 +463,7 @@ class PortraitIngestService:
     def _fail(cls, status: str, db_type: str, code: str, message: str) -> Dict:
         """构造统一失败出参，避免各分支重复。
 
+        :param db_type: 反查得到的 db_type 字符串（可能为空串，如反查失败分支）
         :param code: 维度短码原始入参值（回显用），对外 dict 键名为 ``dimension_code``
         """
         return {

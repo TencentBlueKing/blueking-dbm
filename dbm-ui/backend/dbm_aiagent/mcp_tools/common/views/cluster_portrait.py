@@ -12,7 +12,8 @@ specific language governing permissions and limitations under the License.
 
 模块职责：
     - 挂载 3 个 MCP 工具：
-        * ``portrait_discover_dimensions``：查询可用维度清单（无 cluster/biz 上下文，不做资源鉴权）
+        * ``portrait_discover_dimensions``：按 (bk_biz_id, cluster_domain) 反查集群 db_type，
+          返回该集群 db_type 下所有启用中的巡检维度（走集群资源鉴权）
         * ``portrait_fetch_summaries``    ：按集群 + 维度批量拉取"时间窗内全部匹配"摘要
           （**不做「每 code 取最新」聚合**，走集群资源鉴权）
         * ``portrait_ingest_summary``     ：写入一条集群维度巡检摘要（走集群资源鉴权）
@@ -58,13 +59,17 @@ class ClusterPortraitMcpToolsViewSet(McpToolsViewSet):
 
     @mcp_tools_api_decorator(
         description=str(
-            _("集群画像 - 发现可用维度：返回当前所有启用中的巡检维度（含 code / name / description），" "供 Agent 决定本轮画像分析要采集哪些维度。可选按 db_type 过滤。")
+            _(
+                "集群画像 - 发现集群启用维度：按 (bk_biz_id, cluster_domain) 反查集群 db_type，"
+                "返回该集群 db_type 下所有启用中的巡检维度（含 dimension_code / name / description），"
+                "供 Agent 决定本轮画像分析要采集哪些维度。集群不存在时通过 status=cluster_not_found 返回。"
+            )
         ),
         request_slz=PortraitDiscoverDimensionsInputSerializer,
         response_slz=PortraitDiscoverDimensionsOutputSerializer,
         tags=[DBMMCPTags.READ],
-        # discover 无 cluster/biz 入参，走"空权限"分支（等价于装饰器侧不做资源鉴权）
-        permission_classes=[],
+        permission_classes=[McpClusterDetailPermission],
+        mcp_auth_parser=auth_parse_clusters,
         mcp=[DBMMcpTools.CLUSTER_PORTRAIT],
         name_prefix="cluster_portrait",
     )
@@ -72,9 +77,16 @@ class ClusterPortraitMcpToolsViewSet(McpToolsViewSet):
         """MCP 工具：portrait_discover_dimensions。
 
         参见类 docstring；实际业务实现在 ``PortraitQueryService.discover_dimensions``。
+        视图层只做"参数取值 + 转发"，db_type 由 Service 通过 (bk_biz_id, cluster_domain) 反查得到。
         """
-        db_type: str = self.get_param("db_type", "")
-        return Response(PortraitQueryService.discover_dimensions(db_type=db_type or None))
+        bk_biz_id: int = int(self.get_param("bk_biz_id"))
+        cluster_domain: str = self.get_param("cluster_domain")
+        return Response(
+            PortraitQueryService.discover_dimensions(
+                bk_biz_id=bk_biz_id,
+                cluster_domain=cluster_domain,
+            )
+        )
 
     @mcp_tools_api_decorator(
         description=str(
@@ -117,8 +129,10 @@ class ClusterPortraitMcpToolsViewSet(McpToolsViewSet):
         description=str(
             _(
                 "集群画像 - 上报维度巡检摘要：写入一条 (集群, 维度) 的单次巡检摘要，"
-                "作为 Agent 生成画像报告的数据源。db_type / code 分别对应 DBType 与该 DB 的维度枚举 value；"
-                "首次上报会自动懒注册到维度注册表。可预期失败通过 status 字段返回，不抛异常。"
+                "作为 Agent 生成画像报告的数据源。db_type 由服务端通过 (bk_biz_id, cluster_domain) "
+                "反查集群元数据自动得到，无需调用方传入；dimension_code 须为该集群 db_type 下"
+                "已定义的维度枚举 value。首次上报会自动懒注册到维度注册表。可预期失败通过 "
+                "status 字段返回，不抛异常。"
             )
         ),
         request_slz=PortraitIngestSummaryInputSerializer,
@@ -134,8 +148,8 @@ class ClusterPortraitMcpToolsViewSet(McpToolsViewSet):
 
         参见类 docstring；实际业务实现在 ``PortraitIngestService.ingest_summary``。
         视图层只做"参数取值 + 转发"，可预期失败由 Service 归一化为 status 字段。
+        db_type 不再由入参承载，由 Service 内部通过集群元数据反查得到。
         """
-        db_type: str = self.get_param("db_type")
         # MCP 入参键名为 dimension_code（避开框架保留字段 code），Service 内部形参仍是 code
         code: str = self.get_param("dimension_code")
         bk_biz_id: int = int(self.get_param("bk_biz_id"))
@@ -145,7 +159,6 @@ class ClusterPortraitMcpToolsViewSet(McpToolsViewSet):
         detail_url: str = self.get_param("detail_url", "") or ""
         return Response(
             PortraitIngestService.ingest_summary(
-                db_type=db_type,
                 code=code,
                 bk_biz_id=bk_biz_id,
                 cluster_domain=cluster_domain,

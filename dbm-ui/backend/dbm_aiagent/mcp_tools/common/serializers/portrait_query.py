@@ -51,22 +51,40 @@ class PortraitSummarySerializer(serializers.Serializer):
 
 
 class PortraitDiscoverDimensionsInputSerializer(serializers.Serializer):
-    """discover 入参：可选 db_type 过滤。"""
+    """discover 入参：通过 (bk_biz_id, cluster_domain) 反查集群 db_type，进而返回该集群启用的巡检维度清单。
 
-    db_type = serializers.CharField(
-        help_text=_("按 DB 类型过滤；不传表示返回全部启用维度"),
-        required=False,
-        allow_blank=True,
-        default="",
-    )
+    契约：
+        - **不再由调用方传 db_type**：db_type 由服务端通过 (bk_biz_id, cluster_domain)
+          反查集群元数据得到（见 ``PortraitQueryService.resolve_cluster``），
+          与 ``ingest_summary`` / ``fetch_summaries`` 保持"集群 -> db_type"唯一事实源
+        - 两个字段均为必填；成对使用，避免跨业务泄漏
+    """
+
+    bk_biz_id = serializers.IntegerField(help_text=_("业务 ID；必须为正整数"), min_value=1)
+    cluster_domain = serializers.CharField(help_text=_("集群不可变主域名"))
 
 
 class PortraitDiscoverDimensionsOutputSerializer(serializers.Serializer):
-    """discover 出参：维度列表。"""
+    """discover 出参：目标集群 db_type 下启用中的维度列表。
 
+    可预期分支通过 ``status`` 字段表达，不抛异常给前端。
+    """
+
+    status = serializers.ChoiceField(
+        choices=[
+            ("ok", _("查询成功")),
+            ("cluster_not_found", _("集群不存在或不属于该业务")),
+        ],
+        help_text=_("查询结果状态；ok 表示成功，其余为可预期失败分支"),
+    )
+    db_type = serializers.CharField(
+        help_text=_("回显服务端反查得到的 db_type；失败分支为空串"),
+        allow_blank=True,
+        default="",
+    )
     dimensions = serializers.ListField(
         child=PortraitDimensionSerializer(),
-        help_text=_("当前所有启用中的维度信息（enabled=True）"),
+        help_text=_("该集群 db_type 下所有启用中的维度信息（enabled=True）；失败分支为空列表"),
     )
 
 
@@ -103,17 +121,60 @@ class PortraitFetchSummariesInputSerializer(serializers.Serializer):
 
 
 class PortraitFetchSummariesOutputSerializer(serializers.Serializer):
-    """fetch_summaries 出参：返回时间窗内所有匹配的摘要（不做去重）。"""
+    """fetch_summaries 出参：返回 effective 时间窗内所有匹配的摘要（不做去重）。
 
+    可预期分支通过 ``status`` 字段表达，不抛异常给前端。Agent 判断口径：
+        - ``status="cluster_not_found"``：集群不存在 / 不属于该业务；db_type 为空、cluster_created_at 为 null
+        - ``status="time_range_before_cluster_created"``：用户区间完全早于集群创建时间；summaries 必为空
+        - ``status="invalid_time_range"``：since > until，语义不成立
+        - ``status="ok"`` + ``summaries=[]``：集群存在但 effective 时间窗内 0 条数据
+        - ``status="ok"`` + ``missing_codes`` 非空：部分 code 在 effective 时间窗内 0 条数据
+        - ``effective_since`` 与用户传的 ``since`` 不同 -> 说明被服务端上调至 ``cluster_created_at``
+          以规避"上一代同域名集群"的脏数据；Agent 应向用户显式说明
+    """
+
+    status = serializers.ChoiceField(
+        choices=[
+            ("ok", _("查询成功（可能 summaries 为空，代表集群存在但时间窗无数据）")),
+            ("cluster_not_found", _("集群不存在或不属于该业务")),
+            ("time_range_before_cluster_created", _("查询区间完全早于集群创建时间；无有效数据")),
+            ("invalid_time_range", _("since > until，时间区间语义不成立")),
+        ],
+        help_text=_("查询结果状态；用于 Agent 区分「集群不存在」「区间不合法」「集群存在但无数据」等分支"),
+    )
+    db_type = serializers.CharField(
+        help_text=_("回显服务端反查得到的 db_type；集群不存在分支为空串"),
+        allow_blank=True,
+        default="",
+    )
     bk_biz_id = serializers.IntegerField(help_text=_("业务 ID"))
     cluster_domain = serializers.CharField(help_text=_("集群不可变域名"))
+    cluster_created_at = serializers.DateTimeField(
+        help_text=_("集群创建时间（``Cluster.create_at``）；作为脏数据物理下界；cluster_not_found 分支为 null"),
+        allow_null=True,
+        required=False,
+    )
+    effective_since = serializers.DateTimeField(
+        help_text=_(
+            "服务端实际使用的时间下界；等于 ``max(用户 since, cluster_created_at)``，" "用于规避上一代同域名集群的脏数据；cluster_not_found 分支为 null"
+        ),
+        allow_null=True,
+        required=False,
+    )
+    effective_until = serializers.DateTimeField(
+        help_text=_("服务端实际使用的时间上界；不限时为 null"),
+        allow_null=True,
+        required=False,
+    )
     summaries = serializers.ListField(
         child=PortraitSummarySerializer(),
-        help_text=_("时间窗内所有匹配的巡检摘要列表，不做「每 code 取最新」的聚合；" "同一 code 在时间窗内有 N 次上报即返回 N 条；按 (code 升序, report_time 升序) 排列"),
+        help_text=_(
+            "effective 时间窗内所有匹配的巡检摘要列表，不做「每 code 取最新」的聚合；" "同一 code 在时间窗内有 N 次上报即返回 N 条；按 (code 升序, report_time 升序) 排列"
+        ),
     )
     missing_codes = serializers.ListField(
         child=serializers.CharField(),
-        help_text=_("在时间窗内 0 条摘要数据的维度 code 列表；供 Agent 提示"),
+        help_text=_("在 effective 时间窗内 0 条摘要数据的维度 code 列表；供 Agent 提示"),
     )
 
 
@@ -126,14 +187,15 @@ class PortraitIngestSummaryInputSerializer(serializers.Serializer):
     """ingest_summary 入参：写入一条集群维度巡检摘要。
 
     契约：
-        - ``db_type`` 必须是 :class:`DBType` 的 value（如 ``"mysql"`` / ``"redis"``）
-        - ``dimension_code`` 必须是所指定 db_type 下已定义的 ``*PortraitDimensionCode`` 枚举 value
+        - **不再由调用方传 db_type**：db_type 由服务端通过 (bk_biz_id, cluster_domain)
+          反查集群元数据得到（见 ``PortraitQueryService.resolve_cluster``），
+          既避免调用方与集群元数据出现口径不一致，又能省一个易错入参
+        - ``dimension_code`` 必须是所反查 db_type 下已定义的 ``*PortraitDimensionCode`` 枚举 value
         - ``report_time`` 为 datetime 格式（ISO8601 字符串亦可），精确到秒
         - ``summary`` <= 4000 字符；``detail_url`` <= 1024 字符
     """
 
-    db_type = serializers.CharField(help_text=_("数据库类型；取 DBType 枚举的 value，如 mysql / redis"))
-    dimension_code = serializers.CharField(help_text=_("维度短码；须为对应 db_type 下已定义的维度枚举 value，如 slow_query"))
+    dimension_code = serializers.CharField(help_text=_("维度短码；须为该集群 db_type 下已定义的维度枚举 value，如 slow_query"))
     bk_biz_id = serializers.IntegerField(help_text=_("业务 ID；必须为正整数"), min_value=1)
     cluster_domain = serializers.CharField(help_text=_("集群不可变主域名"))
     report_time = serializers.DateTimeField(help_text=_("本次巡检的业务时间；精确到秒"))
@@ -159,8 +221,9 @@ class PortraitIngestSummaryOutputSerializer(serializers.Serializer):
     status = serializers.ChoiceField(
         choices=[
             ("ok", _("写入成功")),
-            ("invalid_db_type", _("db_type 非法")),
-            ("invalid_code", _("dimension_code 在指定 db_type 下未定义")),
+            ("cluster_not_found", _("集群不存在或不属于该业务")),
+            ("unsupported_db_type", _("集群 db_type 暂未接入画像维度枚举")),
+            ("invalid_code", _("dimension_code 在该集群 db_type 下未定义")),
             ("invalid_payload", _("其它入参不合法（空/类型/超长等）")),
         ],
         help_text=_("写入结果状态；ok 表示成功，其余为可预期失败分支"),
@@ -170,7 +233,11 @@ class PortraitIngestSummaryOutputSerializer(serializers.Serializer):
         required=False,
         default=0,
     )
-    db_type = serializers.CharField(help_text=_("回显 db_type"), allow_blank=True, default="")
+    db_type = serializers.CharField(
+        help_text=_("回显服务端反查得到的 db_type；失败分支可能为空"),
+        allow_blank=True,
+        default="",
+    )
     dimension_code = serializers.CharField(help_text=_("回显 dimension_code"), allow_blank=True, default="")
     message = serializers.CharField(
         help_text=_("附加信息；失败分支会填充可读的错误原因，成功分支为空"),
