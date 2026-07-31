@@ -12,7 +12,10 @@
 -->
 
 <template>
-  <DbCard :title="t('地域要求')">
+  <DbCard :title="t('容灾要求')">
+    <CloudItem
+      v-model="modelValue.bk_cloud_id"
+      @change="handleCloudChange" />
     <CityCodeItem v-model="modelValue" />
   </DbCard>
 </template>
@@ -20,7 +23,11 @@
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
 
+  import CloudItem from '@views/db-manage/common/apply-items/CloudItem.vue';
+
   import CityCodeItem from './components/CityCode.vue';
+
+  type Emits = (e: 'cloud-change', value: { id: number | string; name: string }) => void;
 
   interface Expose {
     getValue: () => {
@@ -33,7 +40,10 @@
     };
   }
 
+  const emits = defineEmits<Emits>();
+
   const modelValue = defineModel<{
+    bk_cloud_id: number;
     city_code: string;
     city_name?: string;
     disaster_tolerance_level: string;
@@ -42,6 +52,10 @@
   });
 
   const { t } = useI18n();
+
+  const handleCloudChange = (value: { id: number | string; name: string }) => {
+    emits('cloud-change', value);
+  };
 
   defineExpose<Expose>({
     getValue() {

@@ -94,8 +94,6 @@
 
   import { ClusterTypes, DBTypes } from '@common/const';
 
-  import TextOverflowLayout from '@components/text-overflow-layout/Index.vue';
-
   import ResourcePreview from '@views/db-manage/common/apply-items/ResourcePreview.vue';
   import ApplySchema, { APPLY_SCHEME } from '@views/db-manage/common/apply-schema/Index.vue';
 
@@ -153,28 +151,13 @@
       field: 'spec_name',
       label: t('资源规格'),
       render: ({ data, index }: { data: ClusterSpecModel; index: number }) => (
-        <TextOverflowLayout>
-          {{
-            append: () =>
-              (countMap.value[data.spec_id] || 0) < data.machine_pair && (
-                <bk-tag
-                  class='ml-6'
-                  size='small'
-                  theme='danger'>
-                  {t('资源不足')}
-                </bk-tag>
-              ),
-            default: () => (
-              <bk-radio
-                key={index}
-                v-model={modelValue.value.spec_id}
-                class='spec-radio'
-                label={data.spec_id}>
-                {data.spec_name}
-              </bk-radio>
-            ),
-          }}
-        </TextOverflowLayout>
+        <bk-radio
+          key={index}
+          v-model={modelValue.value.spec_id}
+          class='spec-radio'
+          label={data.spec_id}>
+          {data.spec_name}
+        </bk-radio>
       ),
       showOverflowTooltip: false,
       width: 300,
