@@ -14,6 +14,7 @@ from aidev_agent.packages.resource_manager import ResourceManagerProtocol
 from aidev_bkplugin.views.agent import AgentInfoViewSet
 from aidev_bkplugin.views.chat import ChatCompletionViewSet
 from aidev_bkplugin.views.chat_group import ChatGroupViewSet
+from aidev_bkplugin.views.llm import LLMViewSet
 from aidev_bkplugin.views.session import (
     ChatSessionContentFeedbackViewSet,
     ChatSessionContentViewSet,
@@ -107,4 +108,8 @@ class AIChatGroupViewSet(AgentCodeResourceManagerMixin, ChatGroupViewSet):
 
 
 class AIChatSessionShareView(AgentCodeResourceManagerMixin, ChatSessionShareView):
+    pass
+
+
+class AILLMViewSet(AgentCodeResourceManagerMixin, LLMViewSet):
     pass

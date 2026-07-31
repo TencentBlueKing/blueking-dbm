@@ -22,9 +22,7 @@ from backend.db_meta.models import Cluster
 from backend.db_monitor.views.callbacks.base import AlarmCallback
 from backend.db_report.portrait import MysqlPortraitDimensionCode, ingest_summary
 from backend.db_report.portrait.exceptions import PortraitSDKBaseException
-from backend.dbm_aiagent.agent.commands.commands import MySQLAlarmAnalyzerCommand
 from backend.dbm_aiagent.agent.constants import DBMAgentCode
-from backend.dbm_aiagent.agent.handlers import AgentHandler
 
 logger = logging.getLogger("root")
 
@@ -265,6 +263,10 @@ def call_mysql_alarm_analyzer(callback_data: dict, alarm_base_info: dict):
         return
 
     try:
+        # 延迟导入，避免监控策略视图在单测收集期强依赖 aidev Agent 包
+        from backend.dbm_aiagent.agent.commands.commands import MySQLAlarmAnalyzerCommand
+        from backend.dbm_aiagent.agent.handlers import AgentHandler
+
         # 调用 AI Agent 进行慢查询分析
         user_prompt = extract_callback_key_info(callback_data)
         logger.info(
@@ -325,6 +327,8 @@ def _call_agent_and_notify(
         timeout: Agent 调用超时时间（秒）
     """
     try:
+        from backend.dbm_aiagent.agent.handlers import AgentHandler
+
         logger.info(_("[{}] 告警触发 AI 分析，集群: {}").format(log_tag, cluster_domain))
         agent_output = AgentHandler.ask_agent_with_content(
             agent_code=agent_code,

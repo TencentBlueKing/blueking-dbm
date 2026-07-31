@@ -227,6 +227,8 @@ def call_redis_alarm_correlation_analysis(callback_data: dict, alarm_base_info: 
         return
 
     try:
+        from backend.dbm_aiagent.agent.handlers import AgentHandler
+
         # 设置去重锁，防止后续同策略告警重复触发
         cache.set(lock_key, 1, DEDUP_LOCK_TTL)
 
@@ -234,8 +236,6 @@ def call_redis_alarm_correlation_analysis(callback_data: dict, alarm_base_info: 
             "strategy_name": strategy_name,
             "cluster_domains": list(cluster_domains),
         }
-
-        from backend.dbm_aiagent.agent.handlers import AgentHandler
 
         result_summary = AgentHandler.ask_agent_with_command(
             command=RedisLatencyAlarmRootCauseCommand.command,
