@@ -44,7 +44,7 @@
       <slot name="contentPreppend" />
       <Abstract
         :data="data"
-        :ticket-type="ticketDetail?.ticket_type" />
+        :ticket-type="ticketDetail.ticket_type" />
     </template>
     <template
       v-if="renderTodoList.length < 1"
@@ -59,6 +59,7 @@
   import { useI18n } from 'vue-i18n';
 
   import FlowMode from '@services/model/ticket/flow';
+  import TicketModel from '@services/model/ticket/ticket';
 
   import CostTimer from '@components/cost-timer/CostTimer.vue';
 
@@ -71,6 +72,7 @@
 
   interface Props {
     data: FlowMode<unknown, any>;
+    ticketDetail: TicketModel<unknown>;
   }
 
   defineOptions({
