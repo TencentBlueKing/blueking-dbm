@@ -49,6 +49,7 @@ export default class HdfsInstance extends InstanceBase {
   instance_address: string;
   instance_name: string;
   ip: string;
+  is_active: boolean;
   machine_type: string;
   master_domain: string;
   operations: InstanceListOperation[];
@@ -85,6 +86,7 @@ export default class HdfsInstance extends InstanceBase {
     this.instance_address = payload.instance_address;
     this.instance_name = payload.instance_name;
     this.ip = payload.ip;
+    this.is_active = payload.is_active;
     this.machine_type = payload.machine_type;
     this.master_domain = payload.master_domain;
     this.operations = payload.operations || [];
