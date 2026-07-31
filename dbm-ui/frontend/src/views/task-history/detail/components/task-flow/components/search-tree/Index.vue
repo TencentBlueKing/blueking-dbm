@@ -423,7 +423,14 @@
   const handleNodeChecked = (list: TreeNode[]) => {
     isCheckedClick = true;
     checkedTreeNodesSet.clear();
-    list.forEach((item) => checkedTreeNodesSet.add(item.id));
+    // 只需要选中最终的叶子节点即可
+    list.forEach((item) => {
+      if (item.children && item.children.length) {
+        return;
+      }
+
+      checkedTreeNodesSet.add(item.id);
+    });
     selectFlows.value = list;
     const nodeList = list.filter((item) => item.type === FlowTypes.ServiceActivity);
     selectedNodes.value = nodeList;
