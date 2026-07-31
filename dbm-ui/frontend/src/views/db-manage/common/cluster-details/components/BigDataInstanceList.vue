@@ -39,7 +39,17 @@
         col-key="instance_address"
         fixed="left"
         :min-width="200"
-        :title="t('实例')" />
+        :title="t('实例')">
+        <template #default="{ row }: { row: IColumnData }">
+          {{ row.instance_address || '--' }}
+          <BkTag
+            v-if="isMasterInstance(row)"
+            class="cluster-specific-flag ml-4"
+            size="small">
+            {{ masterTagLabel }}
+          </BkTag>
+        </template>
+      </TableColumn>
       <InstanceListFieldColumn
         :cluster-id="clusterData.id"
         :cluster-type="clusterType" />
@@ -102,6 +112,14 @@
     [ClusterTypes.PULSAR]: TicketTypes.PULSAR_REBOOT,
   };
 
+  // 当前主节点标识字段与文案，未配置的集群类型不展示 Tag
+  const clusterTypeWithMasterTagMap: Partial<
+    Record<keyof ClusterTypeRelateClusterModel, { field: string; label: string }>
+  > = {
+    [ClusterTypes.DORIS]: { field: 'is_master', label: 'Master' },
+    [ClusterTypes.HDFS]: { field: 'is_active', label: 'Active' },
+  };
+
   type IColumnData = ServiceReturnType<ReturnType<typeof useClusterInstanceList>>['results'][number];
 </script>
 <script setup lang="tsx" generic="T extends keyof ClusterTypeRelateClusterModel">
@@ -130,6 +148,11 @@
       ...params,
       cluster_id: props.clusterData.id,
     });
+
+  const masterTag = clusterTypeWithMasterTagMap[props.clusterType];
+  const masterTagLabel = masterTag?.label ?? '';
+
+  const isMasterInstance = (row: IColumnData) => Boolean(masterTag && _.get(row, masterTag.field));
 
   const instanceTableRef = useTemplateRef('instanceTable');
   const isRestartLoading = ref(false);

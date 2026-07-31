@@ -194,7 +194,16 @@
           :is-filter="isSearching"
           label="NameNode"
           :selected-list="selectedList"
-          @go-detail="handleToDetails" />
+          @go-detail="handleToDetails">
+          <template #nodeTag="{ data }">
+            <BkTag
+              v-if="data.is_active"
+              class="is-primary"
+              size="small">
+              Active
+            </BkTag>
+          </template>
+        </RoleColumn>
         <RoleColumn
           :cluster-type="ClusterTypes.HDFS"
           field="hdfs_zookeeper"
