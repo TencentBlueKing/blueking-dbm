@@ -107,12 +107,12 @@ class _KubernetesApi(BaseApi):
         )
         self.apply_clb = self.generate_data_api(
             method="POST",
-            url="/v4/dbs/clb/create",
+            url="/v4/dbs/clb",
             description=_("创建集群clb"),
         )
         self.get_clb = self.generate_data_api(
             method="POST",
-            url="/v4/dbs/clb/get",
+            url="/v4/dbs/clb/search",
             description=_("获取集群clb"),
         )
         self.expose_ports = self.generate_data_api(
