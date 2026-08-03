@@ -1073,6 +1073,7 @@ MysqlVersionToDBBackupForMap = {
     "MySQL-5.7-RocksDB": MediumEnum.DbBackupTXSQL,
     # "MySQL-5.7-Community": MediumEnum.DbBackup,
     "MySQL-8.0-Community": MediumEnum.DbBackup,
+    "MySQL-8.4-Community": MediumEnum.DbBackup,
     "Spider-1": MediumEnum.DbBackup,
     "Spider-3": MediumEnum.DbBackup,
     "Spider-4": MediumEnum.DbBackup,

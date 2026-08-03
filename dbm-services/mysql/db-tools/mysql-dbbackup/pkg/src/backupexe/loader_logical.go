@@ -163,6 +163,10 @@ func (l *LogicalLoader) Execute() (err error) {
 	if ok, _ := MydumperHasOption(binPath, "--skip-table-sorting"); ok {
 		args = append(args, "--skip-table-sorting", "--metadata-refresh-interval 1000")
 	}
+	if ok, _ := MydumperHasOption(binPath, "--skip-json-null-default"); ok {
+		// 会在遇到ERROR 1101错误时，尝试使用正则去除掉JSON列的default 'null'
+		args = append(args, "--skip-json-null-default")
+	}
 	if !strings.Contains(l.cnf.InitCommand, "max_allowed_packet") {
 		l.cnf.InitCommand += ";set global max_allowed_packet=1073741824"
 	}
