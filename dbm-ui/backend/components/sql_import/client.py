@@ -36,6 +36,17 @@ class _SQLSimulationApi(BaseApi):
             url="/syntax/check/sql",
             description=_("sql string 语法检查"),
         )
+        # 使用示例：
+        # {
+        #     "cluster_type": "mysql",
+        #     "sql": "UPDATE `db1`.`t1` SET a=1"
+        # }
+        # 返回 data: [{"query_id":1,"command":"update","db_name":"db1","table_name":"t1","error_line":0}, ...]
+        self.parse_sql_tables = self.generate_data_api(
+            method="POST",
+            url="/syntax/parse/sql/statement",
+            description=_("解析单条 SQL string 为 ParseIncludeTableBase 列表"),
+        )
         self.mysql_simulation = self.generate_data_api(
             method="POST",
             url="/mysql/simulation",

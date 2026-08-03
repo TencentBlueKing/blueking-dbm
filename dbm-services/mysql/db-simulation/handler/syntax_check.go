@@ -66,6 +66,7 @@ func (s *SyntaxHandler) RegisterRouter(engine *gin.Engine) {
 		r.POST("/upload/ddl/tbls", s.CreateAndUploadDDLTblListFile)
 		r.POST("/parse/file/relation/db", s.ParseSQLFileRelationDb)
 		r.POST("/parse/sql/relation/db", s.ParseSQLRelationDb)
+		r.POST("/parse/sql/statement", s.ParseSQLTables)
 		r.POST("/parse/set/dumpall", s.SetDumpAll)
 	}
 }
@@ -104,6 +105,12 @@ func (p *CheckFileParam) fillBkBizIDFromPath() {
 type CheckSQLStringParam struct {
 	SyntaxCheckParam
 	Sqls []string `json:"sqls" binding:"gt=0,dive,required"`
+}
+
+// ParseSQLTablesParam 单条 SQL string 解析表/语句类型参数
+type ParseSQLTablesParam struct {
+	SyntaxCheckParam
+	Sql string `json:"sql" binding:"required"`
 }
 
 // SetDumpAll set dump all
@@ -340,6 +347,57 @@ func isAllOperateTable(allCommands []string) bool {
 		syntax.SQLTypeInsert, syntax.SQLTypeDelete, syntax.SQLTypeUpdate,
 		syntax.SQLTypeCreateTable, syntax.SQLTypeReplace,
 	}, allCommands)
+}
+
+// ParseSQLTables 解析单条 SQL string，返回 []ParseIncludeTableBase
+func (s *SyntaxHandler) ParseSQLTables(r *gin.Context) {
+	var param ParseSQLTablesParam
+	if err := s.Prepare(r, &param); err != nil {
+		logger.Error("Prepare Error %s", err.Error())
+		return
+	}
+	var versions []string
+	if len(param.Versions) == 0 {
+		versions = []string{""}
+	} else {
+		versions = rebuildVersion(param.Versions)
+		if len(versions) == 0 {
+			versions = []string{""}
+		}
+	}
+	version := versions[0]
+
+	fileName := "ce_" + cmutil.RandStr(10) + ".sql"
+	tmpWorkdir := path.Join(workdir, time.Now().Format("20060102150405"))
+	if err := os.MkdirAll(tmpWorkdir, 0755); err != nil {
+		s.SendResponse(r, err, err.Error())
+		return
+	}
+	f := path.Join(tmpWorkdir, fileName)
+	if err := os.WriteFile(f, []byte(param.Sql), 0600); err != nil {
+		s.SendResponse(r, err, err.Error())
+		return
+	}
+
+	p := &syntax.TmysqlParseFile{
+		TmysqlParse: syntax.TmysqlParse{
+			TmysqlParseBinPath: tmysqlParserBin,
+			BaseWorkdir:        tmpWorkdir,
+		},
+		IsLocalFile: true,
+		Param: syntax.CheckSQLFileParam{
+			ClusterType:    param.ClusterType,
+			BkRepoBasePath: "",
+			FileNames:      []string{fileName},
+		},
+	}
+	defer p.DelTempDir()
+	queries, err := p.DoParseSQLTables(version)
+	if err != nil {
+		s.SendResponse(r, err, nil)
+		return
+	}
+	s.SendResponse(r, nil, queries)
 }
 
 // ParseSQLRelationDb  语法检查入参SQL string

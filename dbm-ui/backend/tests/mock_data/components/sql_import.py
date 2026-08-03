@@ -29,3 +29,15 @@ class SQLSimulationApiMock:
             sql_check_info[sql_file] = base_check_info
 
         return sql_check_info
+
+    @classmethod
+    def parse_sql_tables(cls, *args, **kwargs):
+        return [
+            {
+                "query_id": 1,
+                "command": "update",
+                "db_name": "test_db",
+                "table_name": "test_table",
+                "error_line": 0,
+            }
+        ]
