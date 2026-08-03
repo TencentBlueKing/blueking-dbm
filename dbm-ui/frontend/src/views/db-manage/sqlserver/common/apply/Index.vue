@@ -674,9 +674,12 @@
    * 变更业务选择
    */
   const handleChangeBiz = (info: BizItem) => {
+    // 仅当业务真的变化时才清空模块选择，避免单据回显阶段 BusinessItems 自动 emit changeBiz 误清空
+    if (info.bk_biz_id !== formData.bk_biz_id) {
+      formData.details.db_module_id = null;
+    }
     bizState.info = info;
     bizState.hasEnglishName = !!info.english_name;
-    formData.details.db_module_id = null;
     formData.details.nodes.backend = [];
     serviceApply?.changeBizId(info.bk_biz_id);
   };

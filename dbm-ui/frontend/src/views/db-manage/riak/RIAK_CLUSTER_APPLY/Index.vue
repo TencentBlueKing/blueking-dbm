@@ -288,7 +288,7 @@
         city_code: details.city_code,
         cluster_alias: details.cluster_alias,
         cluster_name: details.cluster_name,
-        db_module_id: details.db_module_name,
+        db_module_id: details.db_module_id,
         db_version: details.db_version,
         disaster_tolerance_level: details.disaster_tolerance_level,
         ip_source: details.ip_source,
