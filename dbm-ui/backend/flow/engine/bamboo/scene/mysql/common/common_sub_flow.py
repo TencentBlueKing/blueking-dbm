@@ -32,6 +32,7 @@ from backend.flow.plugins.components.collections.common.sa_idle_check import Che
 from backend.flow.plugins.components.collections.mysql.authorize_rules import AuthorizeRulesComponent
 from backend.flow.plugins.components.collections.mysql.authorize_rules_v2 import AuthorizeRulesV2Component
 from backend.flow.plugins.components.collections.mysql.check_client_connections import CheckClientConnComponent
+from backend.flow.plugins.components.collections.mysql.check_long_innodb_trx import CheckLongInnoDbTrxComponent
 from backend.flow.plugins.components.collections.mysql.check_slaves_delay import CheckSlavesDelayComponent
 from backend.flow.plugins.components.collections.mysql.clone_rules import CloneRulesComponent
 from backend.flow.plugins.components.collections.mysql.exec_actuator_script import ExecuteDBActuatorScriptComponent
@@ -51,6 +52,7 @@ from backend.flow.utils.common_act_dataclass import InitCheckKwargs
 from backend.flow.utils.mysql.mysql_act_dataclass import (
     AuthorizeKwargs,
     CheckClientConnKwargs,
+    CheckLongInnoDbTrxKwargs,
     CheckSlavesDelayKwargs,
     CloneRuleKwargs,
     DBMetaOPKwargs,
@@ -406,6 +408,7 @@ def check_long_active_process_sub_flow(
     node_insts: list = None,
     long_process_time: int = 10,
     filter_hosts: list = None,
+    long_trx_min_age_seconds: int = 300,
 ):
     """
     设计长连接检测的公共子流程，主要服务于切换类的流程，做前置检查，方便管控
@@ -414,6 +417,7 @@ def check_long_active_process_sub_flow(
     @param cluster: 关联的cluster对象
     @param node_insts: 待检测的实例列表，["ip:port"...]
     @param long_process_time: 多少秒以上的连接认为是长连接
+    @param long_trx_min_age_seconds: InnoDB 事务开始时间早于当前多少秒则视为长事务并阻断流程
     """
     act_list = []
     for inst in node_insts:
@@ -434,6 +438,19 @@ def check_long_active_process_sub_flow(
                         is_filter_sleep=True,
                         long_process_time=long_process_time,
                         filter_hosts=filter_hosts,
+                    )
+                ),
+            }
+        )
+        act_list.append(
+            {
+                "act_name": _("检测{}MySQL上未提交事务超过{}秒").format(inst, long_trx_min_age_seconds),
+                "act_component_code": CheckLongInnoDbTrxComponent.code,
+                "kwargs": asdict(
+                    CheckLongInnoDbTrxKwargs(
+                        bk_cloud_id=cluster.bk_cloud_id,
+                        check_instances=[inst],
+                        min_trx_age_seconds=long_trx_min_age_seconds,
                     )
                 ),
             }
