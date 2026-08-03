@@ -24,7 +24,7 @@
 
 // Package redis implements the Redis harvester plugin that collects status from
 // Redis-family backends (RedisCluster, TendisCache, TendisSSD, TendisPlus, Predixy, Twemproxy).
-package redis
+package harvest
 
 import (
 	"context"

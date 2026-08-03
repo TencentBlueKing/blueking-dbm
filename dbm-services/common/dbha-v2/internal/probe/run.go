@@ -133,10 +133,12 @@ func logProbeProviderSelfCheck() error {
 		blockNames = append(blockNames, e.BlockName)
 	}
 	logger.Info(
-		"probe provider self-check, registered_db_types: %s, provider_owned_db_types: %s, harvester_blocks: %s",
+		"probe provider self-check, registered_db_types: %s, provider_owned_db_types: %s, "+
+			"harvester_blocks: %s, endpoint_router_db_types: %s",
 		joinDbTypes(dbtype.RegisteredDbTypes()),
 		joinDbTypes(dbtype.ProviderOwnedDbTypes()),
 		strings.Join(blockNames, ","),
+		joinDbTypes(dbtype.EndpointRouterDbTypes()),
 	)
 	if len(entries) == 0 {
 		return gerrors.Newf(gerrors.Failure, "no harvester plugins registered; blank-import provider/allprobe")
