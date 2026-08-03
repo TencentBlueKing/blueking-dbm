@@ -44,21 +44,25 @@ const defaultProbeConfigVersion = "v2.0.0"
 // GenProbeYAML builds the full probe config YAML from the payload returned by admin
 // (gse reporter defaults, harvester credentials/timing, and per-cluster metadata).
 //
-// Probe routes harvester usage per endpoint based on (access_layer, machine_type):
-//   - access_layer=proxy AND machine_type=proxy (TendbHA mysql-proxy): admin ports use
-//     payload.ProxyAdmin credentials under harvester.mysqlProxyAdmin; data ports are additionally
-//     routed under harvester.mysql with payload.MySQL credentials for a lightweight reachability
-//     probe (see buildEndpointsFromMetadata).
-//   - other mysql-family endpoints (incl. spider admin/ctl): use payload.MySQL credentials
-//     under harvester.mysql.
-//   - redis-family endpoints (incl. twemproxy/predixy admin ports): use payload.Redis
-//     credentials under harvester.redis.
+// Endpoint-to-block routing is provided by provider registrations:
+//   - MySQL family: RegisterEndpointRouter (TendbHA mysql-proxy dual-produce, etc.)
+//   - Redis family / new DB types: RegisterHarvestBlock Match / nil-Match fallback
+//
+// Named credentials (payload.MySQL / ProxyAdmin / Redis) and the ProxyAdmin-nil
+// legacy fallback remain here because the admin wire contract is unchanged.
 //
 // When admin omits payload.ProxyAdmin (e.g. older admin), mysql-proxy admin-port endpoints fall
 // back to harvester.mysql with payload.MySQL credentials so the probe degrades to legacy behavior.
 func GenProbeYAML(payload probeconfig.ProbeConfigPayload) (string, error) {
-	mysqlEndpoints, mysqlProxyAdminEndpoints, redisEndpoints, extraEndpoints :=
-		buildEndpointsFromMetadata(payload.Metadata)
+	byBlock := buildEndpointsFromMetadata(payload.Metadata)
+
+	mysqlEndpoints := byBlock[HarvesterBlockMySQL]
+	mysqlProxyAdminEndpoints := byBlock[HarvesterBlockMySQLProxyAdmin]
+	redisEndpoints := byBlock[HarvesterBlockRedis]
+	delete(byBlock, HarvesterBlockMySQL)
+	delete(byBlock, HarvesterBlockMySQLProxyAdmin)
+	delete(byBlock, HarvesterBlockRedis)
+	extraEndpoints := byBlock
 
 	if payload.ProxyAdmin == nil && len(mysqlProxyAdminEndpoints) > 0 {
 		logger.Info(
@@ -146,6 +150,16 @@ func GenProbeYAML(payload probeconfig.ProbeConfigPayload) (string, error) {
 		}
 	}
 
+	if len(payload.Metadata) > 0 &&
+		cfg.Harvester.MySQL == nil &&
+		cfg.Harvester.MySQLProxyAdmin == nil &&
+		cfg.Harvester.Redis == nil &&
+		len(cfg.Harvester.Extra) == 0 {
+		logger.Warn(
+			"probe yaml has metadata but no harvester blocks; check provider harvest registration",
+		)
+	}
+
 	return marshalProbeYAML(cfg)
 }
 
@@ -166,18 +180,6 @@ func lookupExtraHarvesterCred(
 	}
 	cred, ok := payload.Harvesters[dbtype.NormalizeBlockName(blockName)]
 	return cred, ok
-}
-
-// isMysqlProxyEndpoint reports whether a metadata entry is a TendbHA mysql-proxy node
-// (the only role that requires distinct proxy-admin credentials in this design):
-// mysql-family clusterType AND access_layer=proxy AND machine_type=proxy.
-// Spider / Twemproxy / Predixy proxies are intentionally excluded; they are probed with
-// regular probeMysql / probeRedis credentials via their AdminPorts. Non-mysql clusterType
-// with (proxy, proxy) is treated as malformed metadata and skipped from the proxy-admin route.
-func isMysqlProxyEndpoint(clusterType, machineType, accessLayer string) bool {
-	return probeconfig.IsMySQLClusterType(clusterType) &&
-		accessLayer == string(haprobe.DbmMetadataAccessLayerTypeProxy) &&
-		machineType == string(haprobe.DbmMetadataMachineTypeProxy)
 }
 
 func buildMySQLHarvester(
@@ -291,26 +293,15 @@ func groupMetadataByEndpointKey(
 	return ordered, portsByKey, adminPortsByKey
 }
 
-// buildEndpointsFromMetadata groups metadata into named mysql/mysqlProxyAdmin/redis slices
-// (zero-regression path) plus an extra map keyed by HarvestBlock.BlockName for new DB types.
+// buildEndpointsFromMetadata groups metadata into harvester blocks via provider
+// RouteEndpoint / HarvestBlock registrations. Named mysql / mysqlProxyAdmin / redis
+// keys use config.HarvesterBlock* original casing so GenProbeYAML can split them
+// back onto named YAML fields; other BlockNames land in Extra.
 //
-// Routing rules:
-//   - port 0 entries are dropped silently (no "0" noise in yaml output)
-//   - mysql-proxy endpoints (access_layer=proxy AND machine_type=proxy) dual-produce: the admin
-//     port goes to mysqlProxyAdmin (AdminPorts only), and when a data port exists it additionally
-//     goes to mysql (Ports only) for the lightweight data-port probe; endpoints without AdminPorts
-//     are skipped. Note: the mysql plugin treats any AdminPorts as an admin collector, so
-//     mysql-proxy data-port endpoints must not carry AdminPorts when dual-produced into mysql.
-//   - other mysql-family endpoints go to mysql with both Ports and AdminPorts
-//   - redis-family endpoints go to redis with both Ports and AdminPorts
-//   - other registered DbTypes with HarvestBlock descriptors go to extra[BlockName]
-//   - unknown cluster types are skipped
-//
-// Output slices are sorted by (ip, cluster_type, machine_type, instance_role, access_layer) for deterministic yaml.
-func buildEndpointsFromMetadata(
-	list []probeconfig.ProbeMetadataItem,
-) (mysql, mysqlProxyAdmin, redis []DbEndpointConfig, extra map[string][]DbEndpointConfig) {
-	extra = map[string][]DbEndpointConfig{}
+// PortKindData / PortKindAdmin endpoints clear the unused port side so mysql collectors
+// do not dual-start from a single endpoint. Empty port sets for a given PortKind are skipped.
+func buildEndpointsFromMetadata(list []probeconfig.ProbeMetadataItem) map[string][]DbEndpointConfig {
+	out := map[string][]DbEndpointConfig{}
 	ordered, portsByKey, adminPortsByKey := groupMetadataByEndpointKey(list)
 
 	for _, k := range ordered {
@@ -320,98 +311,75 @@ func buildEndpointsFromMetadata(
 			continue
 		}
 
-		ep := DbEndpointConfig{
-			Proto:        "tcp",
+		dt := dbtype.DbTypeOf(haprobe.DbmMetadataClusterType(k.clusterType))
+		if dt == haprobe.DbTypeNone {
+			continue
+		}
+
+		attrs := dbtype.EndpointAttrs{
 			ClusterType:  haprobe.DbmMetadataClusterType(k.clusterType),
 			MachineType:  haprobe.DbmMetadataMachineType(k.machineType),
 			InstanceRole: haprobe.DbmMetadataInstanceRole(k.instanceRole),
 			AccessLayer:  haprobe.DbmMetadataAccessLayerType(k.accessLayer),
 			Ip:           k.ip,
+			Ports:        ports,
+			AdminPorts:   adminPorts,
 		}
 
-		if isMysqlProxyEndpoint(k.clusterType, k.machineType, k.accessLayer) {
-			if len(adminPorts) == 0 {
-				logger.Info(
-					"skip mysql-proxy endpoint without admin ports, ip: %s, data_ports: %v",
-					k.ip, ports,
-				)
+		base := DbEndpointConfig{
+			Proto:        "tcp",
+			ClusterType:  attrs.ClusterType,
+			MachineType:  attrs.MachineType,
+			InstanceRole: attrs.InstanceRole,
+			AccessLayer:  attrs.AccessLayer,
+			Ip:           attrs.Ip,
+		}
+
+		for _, route := range dbtype.RouteEndpoint(dt, attrs) {
+			ep, ok := endpointForPortKind(base, ports, adminPorts, route.Ports)
+			if !ok {
 				continue
 			}
-
-			adminEp := ep
-			adminEp.AdminPorts = adminPorts
-			mysqlProxyAdmin = append(mysqlProxyAdmin, adminEp)
-
-			if len(ports) > 0 {
-				dataEp := ep
-				dataEp.Ports = ports
-				mysql = append(mysql, dataEp)
-			}
-			continue
-		}
-
-		ep.Ports = ports
-		ep.AdminPorts = adminPorts
-
-		switch {
-		case probeconfig.IsMySQLClusterType(k.clusterType):
-			mysql = append(mysql, ep)
-		case probeconfig.IsRedisClusterType(k.clusterType):
-			redis = append(redis, ep)
-		default:
-			routeExtraEndpoint(k.clusterType, ep, extra)
+			out[route.BlockName] = append(out[route.BlockName], ep)
 		}
 	}
 
-	for _, name := range sortedExtraBlockNames(extra) {
-		sortEndpoints(extra[name])
+	for _, name := range sortedExtraBlockNames(out) {
+		sortEndpoints(out[name])
 	}
-
-	return mysql, mysqlProxyAdmin, redis, extra
+	return out
 }
 
-// routeExtraEndpoint appends ep to extra[BlockName] when the cluster type maps to a
-// DbType that registered HarvestBlock descriptors. Prefers a Match hit; falls back
-// to the nil-Match block; skips with a log when nothing matches.
-func routeExtraEndpoint(
-	clusterType string, ep DbEndpointConfig, extra map[string][]DbEndpointConfig,
-) {
-	dt := dbtype.DbTypeOf(haprobe.DbmMetadataClusterType(clusterType))
-	if dt == haprobe.DbTypeNone {
-		return
-	}
-	blocks := dbtype.HarvestBlocksOf(dt)
-	if len(blocks) == 0 {
-		return
-	}
-
-	attrs := dbtype.EndpointAttrs{
-		ClusterType:  ep.ClusterType,
-		MachineType:  ep.MachineType,
-		InstanceRole: ep.InstanceRole,
-		AccessLayer:  ep.AccessLayer,
-	}
-
-	var fallback *dbtype.HarvestBlock
-	for i := range blocks {
-		b := &blocks[i]
-		if b.Match == nil {
-			fallback = b
-			continue
+// endpointForPortKind builds an endpoint carrying only the ports selected by kind.
+// Returns ok=false when the selected port set is empty (caller must skip).
+func endpointForPortKind(
+	base DbEndpointConfig,
+	ports, adminPorts []string,
+	kind dbtype.PortKind,
+) (DbEndpointConfig, bool) {
+	ep := base
+	switch kind {
+	case dbtype.PortKindAll:
+		ep.Ports = ports
+		ep.AdminPorts = adminPorts
+		return ep, true
+	case dbtype.PortKindData:
+		if len(ports) == 0 {
+			return DbEndpointConfig{}, false
 		}
-		if b.Match(attrs) {
-			extra[b.BlockName] = append(extra[b.BlockName], ep)
-			return
+		ep.Ports = ports
+		// AdminPorts intentionally left nil.
+		return ep, true
+	case dbtype.PortKindAdmin:
+		if len(adminPorts) == 0 {
+			return DbEndpointConfig{}, false
 		}
+		ep.AdminPorts = adminPorts
+		// Ports intentionally left nil.
+		return ep, true
+	default:
+		return DbEndpointConfig{}, false
 	}
-	if fallback != nil {
-		extra[fallback.BlockName] = append(extra[fallback.BlockName], ep)
-		return
-	}
-	logger.Info(
-		"skip endpoint with no matching harvest block, db_type: %s, cluster_type: %s, access_layer: %s",
-		dt, clusterType, ep.AccessLayer,
-	)
 }
 
 // sortEndpoints sorts in-place by (ip, cluster_type, machine_type, instance_role, access_layer) to
