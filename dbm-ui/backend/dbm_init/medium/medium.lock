@@ -409,7 +409,7 @@ mysql:
     installation: true
     distribution_name: TMySQL
     version_series: MySQL-5.7
-    full_version: 5.7.20.3.4.3
+    full_version: 5.7.20.3.3.0
     os_type: "Linux"
     os_version:
 - mysql:
