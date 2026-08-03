@@ -26,11 +26,12 @@ package dbtype
 
 import "dbm-services/common/dbha-v2/pkg/storage/haprobe"
 
-// snapshotForTest captures current catalog + harvest-block registry state and
-// returns a restore func. Use with t.Cleanup(snapshotForTest()).
+// snapshotForTest captures current catalog + harvest-block + endpoint-router
+// registry state and returns a restore func. Use with t.Cleanup(snapshotForTest()).
 func snapshotForTest() func() {
 	catalogMu.Lock()
 	harvestBlockMu.Lock()
+	endpointRouterMu.Lock()
 
 	byCT := copyClusterTypeMap(byClusterType)
 	byDT := copyDbTypeSliceMap(byDbType)
@@ -39,13 +40,16 @@ func snapshotForTest() func() {
 	provider := copyDbTypeSet(providerTypes)
 	blocksByDT := copyHarvestBlocksByDbType(harvestBlocksByDbType)
 	blocksByName := copyHarvestBlockByName(harvestBlockByName)
+	routers := copyEndpointRouters(endpointRouters)
 
+	endpointRouterMu.Unlock()
 	harvestBlockMu.Unlock()
 	catalogMu.Unlock()
 
 	return func() {
 		catalogMu.Lock()
 		harvestBlockMu.Lock()
+		endpointRouterMu.Lock()
 		byClusterType = byCT
 		byDbType = byDT
 		registeredTypes = reg
@@ -53,6 +57,8 @@ func snapshotForTest() func() {
 		providerTypes = provider
 		harvestBlocksByDbType = blocksByDT
 		harvestBlockByName = blocksByName
+		endpointRouters = routers
+		endpointRouterMu.Unlock()
 		harvestBlockMu.Unlock()
 		catalogMu.Unlock()
 	}
@@ -102,6 +108,14 @@ func copyHarvestBlocksByDbType(
 
 func copyHarvestBlockByName(src map[string]HarvestBlock) map[string]HarvestBlock {
 	out := make(map[string]HarvestBlock, len(src))
+	for k, v := range src {
+		out[k] = v
+	}
+	return out
+}
+
+func copyEndpointRouters(src map[haprobe.DbType]EndpointRouter) map[haprobe.DbType]EndpointRouter {
+	out := make(map[haprobe.DbType]EndpointRouter, len(src))
 	for k, v := range src {
 		out[k] = v
 	}

@@ -22,17 +22,41 @@
  * SOFTWARE.
  */
 
-package redis
+package harvest
 
 import (
-	"fmt"
-	"testing"
+	"dbm-services/common/dbha-v2/internal/probe/config"
+	"dbm-services/common/dbha-v2/pkg/dbtype"
+	"dbm-services/common/dbha-v2/pkg/logger"
+	"dbm-services/common/dbha-v2/pkg/storage/haprobe"
 )
 
-func TestRedisInfo(t *testing.T) {
-	info := []redisInfo{}
+func init() {
+	dbtype.RegisterEndpointRouter(haprobe.DbTypeMySql, routeMySQLEndpoint)
+}
 
-	status := convertToRedisStatus(info)
+// routeMySQLEndpoint implements TendbHA mysql-proxy dual-produce and the default
+// mysql block route for other MySQL-family endpoints.
+func routeMySQLEndpoint(attrs dbtype.EndpointAttrs) []dbtype.EndpointRoute {
+	isProxy := attrs.AccessLayer == haprobe.DbmMetadataAccessLayerTypeProxy &&
+		attrs.MachineType == haprobe.DbmMetadataMachineTypeProxy
+	if !isProxy {
+		return []dbtype.EndpointRoute{{
+			BlockName: config.HarvesterBlockMySQL,
+			Ports:     dbtype.PortKindAll,
+		}}
+	}
 
-	fmt.Println("redis-status: ", status)
+	if len(attrs.AdminPorts) == 0 {
+		logger.Info(
+			"skip mysql-proxy endpoint without admin ports, ip: %s, data_ports: %v",
+			attrs.Ip, attrs.Ports,
+		)
+		return nil
+	}
+
+	return []dbtype.EndpointRoute{
+		{BlockName: config.HarvesterBlockMySQLProxyAdmin, Ports: dbtype.PortKindAdmin},
+		{BlockName: config.HarvesterBlockMySQL, Ports: dbtype.PortKindData},
+	}
 }
