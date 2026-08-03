@@ -41,7 +41,7 @@ func init() {
 			if cfg == nil {
 				return nil, nil
 			}
-			return harvester.NewPluginMySql(cfg)
+			return NewMySql(cfg)
 		},
 	})
 	harvester.Register(harvester.Entry{
@@ -52,7 +52,7 @@ func init() {
 			if cfg == nil {
 				return nil, nil
 			}
-			return harvester.NewPluginMySqlProxyAdmin(cfg)
+			return NewMySqlProxyAdmin(cfg)
 		},
 	})
 }

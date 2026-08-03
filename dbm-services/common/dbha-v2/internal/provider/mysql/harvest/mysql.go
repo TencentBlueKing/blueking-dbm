@@ -27,7 +27,7 @@
 // TendbCluster spider / spider-ctl). The plugin is driven by config.RawHarvesterConfig:
 // admin owns the credentials and Interval / Timeout, probe routes endpoints into either
 // the regular mysql instance or the dedicated mysqlProxyAdmin instance.
-package mysql
+package harvest
 
 import (
 	"context"
