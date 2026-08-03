@@ -466,11 +466,11 @@ class TicketFlowsConfig(AuditedModel):
 
         def with_global_manual_confirm(config):
             # '人工确认'配置统一用平台默认配置
-            if FlowTypeConfig.NEED_MANUAL_CONFIRM not in config.configs and config.bk_biz_id != PLAT_BIZ_ID:
-                config.configs = {
-                    **config.configs,
-                    FlowTypeConfig.NEED_MANUAL_CONFIRM: global_cfg.configs.get(FlowTypeConfig.NEED_MANUAL_CONFIRM),
-                }
+            need_manual_confirm_key = FlowTypeConfig.NEED_MANUAL_CONFIRM.value
+            config.configs = {
+                **config.configs,
+                need_manual_confirm_key: global_cfg.configs.get(need_manual_confirm_key),
+            }
             return config
 
         # 当前业务下该单据类型的所有配置；cluster_ids/cluster_tags 均为空的记录是业务默认配置。
