@@ -8,22 +8,18 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 
-按 IP / 单据 反查作业日志，把 dbactuator 执行 SQL 文件时单条 SQL 耗时 ≥ 60s 的记录入库到
+按 IP / 单据 反查作业日志，把 dbactuator 执行 SQL 文件时单条 SQL 耗时 ≥ 阈值的记录入库到
 backend.db_report.models.MysqlSqlExecDuration 表。
 
 提供两个公共入口：
     record_sql_exec_durations(ip=..., root_id=...)           —— 单 IP 细粒度
     record_sql_exec_durations_by_ticket(ticket_id=...)        —— 单据级一键消费
 
-待 enrich 的字段（sql_type / table_name / table_size）本轮入库时一律留空。
-等 SQL 解析 API 接入后由 enrich 路径回填：
-
-    SQL 解析 API 同时返回 sql_type 与 table_names →
-        sql_type、table_name 直接 update；
-        再用本表已存的 cluster_domain 调
-        backend.dbm_aiagent.mcp_tools.mysql.impl.mysql_db_table_size.query_table_size()
-        拿 table_size 一并 update。
-    无需再回查 db_meta.Cluster。
+入库时通过 SQLSimulationApi.parse_sql_tables 解析 sql_type / table_name，
+再按语句类型查 MysqlDbTableSize：
+    - 普通表级 DDL/DML：按表 Sum(table_size)，多表求和
+    - drop_db：填逻辑库 database_size（TenDBCluster 跨分片求和）
+    - call / 过程函数触发器事件：不查 size，table_size 置 NULL
 """
 from __future__ import annotations
 
@@ -32,11 +28,12 @@ import logging
 from datetime import timedelta
 from typing import Any, Dict, Iterable, List, Optional, Tuple
 
-from django.db.models import Sum
+from django.db.models import Max, Sum
 from django.utils import timezone
 from django.utils.translation import gettext as _
 
-from backend.db_meta.enums import InstanceRole
+from backend.components.sql_import.client import SQLSimulationApi
+from backend.db_meta.enums import ClusterType, InstanceInnerRole
 from backend.db_meta.models import Cluster
 from backend.db_report.models import MysqlDbTableSize, MysqlSqlExecDuration
 from backend.flow.models import FlowBkJobInstance
@@ -54,11 +51,33 @@ LONG_SQL_THRESHOLD_SEC = 30.0
 # 而是 backend.flow.signal.sql_exec_duration_handler 的 @create_ticket_handler 注册声明。
 SQL_EXEC_DURATION_CONSUME_KEY = "sql_exec_duration_consume"
 
-# table_size 占位查询配置：复刻
-# backend.dbm_aiagent.mcp_tools.mysql.impl.mysql_db_table_size 的 ORM 写法，
-# 但只 import db_report.models，不跨 mcp_tools layer。
+# 容量查询：复刻 mysql_db_table_size ORM，只 import db_report.models。
 _SIZE_LOOKBACK_HOURS = 48
-_SIZE_DEFAULT_INSTANCE_ROLE = InstanceRole.BACKEND_MASTER.value
+_SIZE_ROLE_SLAVE = InstanceInnerRole.SLAVE.value
+_SIZE_ROLE_ORPHAN = InstanceInnerRole.ORPHAN.value
+_SIZE_ROLE_FALLBACKS = (_SIZE_ROLE_SLAVE, _SIZE_ROLE_ORPHAN, InstanceInnerRole.MASTER.value)
+
+# 解析结果中忽略的旁路命令（取 sql_type 时跳过）
+_SKIP_SQL_TYPE_CMDS = frozenset({"change_db", "set_option"})
+# 不查表/库大小的语句类型（call / 过程 / 函数 / 触发器 / 事件）
+_SKIP_SIZE_SQL_TYPES = frozenset(
+    {
+        "call",
+        "create_procedure",
+        "drop_procedure",
+        "alter_procedure",
+        "create_function",
+        "drop_function",
+        "alter_function",
+        "create_spfunction",
+        "create_trigger",
+        "drop_trigger",
+        "create_event",
+        "drop_event",
+        "alter_event",
+    }
+)
+_DROP_DB_SQL_TYPE = "drop_db"
 
 
 def record_sql_exec_durations(
@@ -80,7 +99,7 @@ def record_sql_exec_durations(
     @param job_instance_id: 蓝鲸作业实例 ID，可选；用于反查 cluster_id 和精确定位 job
     @param cluster_id: 集群 ID，未传时会按 (root_id [+ ticket_id [+ job_instance_id]]) 反查 FlowBkJobInstance
     @param bk_cloud_id: 拉日志 / 入库用的云区域 ID
-    @param threshold_sec: 入库阈值，默认 60s
+    @param threshold_sec: 入库阈值，默认 30s
     @return: 实际新增入库的条数（已存在的会先 dedupe，不重复入库）
     """
     if not ip:
@@ -121,7 +140,7 @@ def record_sql_exec_durations_by_ticket(
     扫该单据下所有 FlowBkJobInstance，逐 (job_instance_id, ip) 解析作业日志并入库。
 
     @param ticket_id: 单据 ID（必填）
-    @param threshold_sec: 入库阈值，默认 60s
+    @param threshold_sec: 入库阈值，默认 30s
     @return:
         {
             "total_inserted": int,                           # 累计新增条数
@@ -231,6 +250,16 @@ def _resolve_cluster_domain(cluster_id: int) -> str:
     return Cluster.objects.filter(id=cluster_id).values_list("immute_domain", flat=True).first() or ""
 
 
+def _resolve_sim_cluster_type(cluster_id: Optional[int]) -> str:
+    """解析 API 的 cluster_type：TenDBCluster 用 spider，其余用 mysql。"""
+    if not cluster_id:
+        return "mysql"
+    ctype = Cluster.objects.filter(id=cluster_id).values_list("cluster_type", flat=True).first()
+    if ctype == ClusterType.TenDBCluster.value:
+        return "spider"
+    return "mysql"
+
+
 def _build_cluster_domain_cache(cluster_ids: Iterable[int]) -> Dict[int, str]:
     """一次性查 db_meta.Cluster，构造 {cluster_id: immute_domain} 缓存，避免每条 SQL 都查表。"""
     unique_ids = {cid for cid in cluster_ids if cid}
@@ -264,61 +293,235 @@ def _normalize_ips(exec_ips: Any) -> List[Tuple[str, int]]:
     return result
 
 
-def _query_db_size_bytes(
+def _lookback_window():
+    base_time = timezone.now()
+    return base_time - timedelta(hours=_SIZE_LOOKBACK_HOURS), base_time
+
+
+def _query_table_size_bytes(
     *,
     cluster_domain: str,
     db_name: str,
-    instance_role: str = _SIZE_DEFAULT_INSTANCE_ROLE,
+    table_names: List[str],
 ) -> Optional[int]:
     """
-    按 (cluster_domain, instance_role, db_name) 在最近 _SIZE_LOOKBACK_HOURS 小时窗口内，
-    取 dteventtimehour 最新一小时的 SUM(table_size) 作为该库整体大小（字节）。
+    按 (cluster_domain, database_name, table_name) 取最近上报小时内 Sum(table_size)。
+    TenDBCluster 同小时多行（分片）自动加总；多表再求和。默认 instance_role=slave，失败回退 orphan/master。
+    """
+    if not cluster_domain or not db_name or not table_names:
+        return None
+    start_time, base_time = _lookback_window()
+    for role in _SIZE_ROLE_FALLBACKS:
+        try:
+            total = _sum_table_sizes_for_role(
+                cluster_domain=cluster_domain,
+                db_name=db_name,
+                table_names=table_names,
+                instance_role=role,
+                start_time=start_time,
+                base_time=base_time,
+            )
+        except Exception as e:  # pylint: disable=broad-except
+            logger.warning(
+                _("查询表容量失败 cluster_domain={} db={} tables={} role={}: {}").format(
+                    cluster_domain, db_name, table_names, role, e
+                )
+            )
+            return None
+        if total is not None:
+            return total
+    return None
 
-    实现参考 backend.dbm_aiagent.mcp_tools.mysql.impl.mysql_db_table_size.query_table_size
-    的 ORM 写法（按小时分组 + Sum + 取最新一小时），但本函数仅 import db_report.models 同包模型，
-    不跨 mcp_tools layer。
 
-    table_size 字段当前作为"该 SQL 涉及 db 总大小"的占位值；待 SQL 解析 API 给出 table_name 后，
-    enrich 路径可用 (cluster_domain, db_name, table_name) 拉精确单表 size 覆盖该字段。
+def _sum_table_sizes_for_role(
+    *,
+    cluster_domain: str,
+    db_name: str,
+    table_names: List[str],
+    instance_role: str,
+    start_time,
+    base_time,
+) -> Optional[int]:
+    qs = (
+        MysqlDbTableSize.objects.filter(
+            cluster_domain=cluster_domain,
+            instance_role=instance_role,
+            dteventtimehour__gte=start_time,
+            dteventtimehour__lte=base_time,
+            database_name=db_name,
+            table_name__in=table_names,
+        )
+        .values("database_name", "table_name", "dteventtimehour")
+        .annotate(table_size=Sum("table_size"))
+        .order_by("database_name", "table_name", "-dteventtimehour")
+    )
+    seen = set()
+    total = 0
+    found = False
+    for item in qs:
+        key = (item["database_name"], item["table_name"])
+        if key in seen:
+            continue
+        seen.add(key)
+        if item.get("table_size") is None:
+            continue
+        total += int(item["table_size"])
+        found = True
+    return total if found else None
 
-    容错：MysqlDbTableSize 走 stats_db 路由（容量统计库，外部生成）。该数据源在
-    部分环境（如个人/测试环境）可能未配置 STATS_DB_HOST 等环境变量，连接会
-    Connection refused。考虑到 table_size 只是占位字段，查询失败必须吞异常返回 None，
-    保护核心 SQL 执行耗时入库不被辅助查询拖垮。
 
-    @return: 字节数；查不到 / 入参不全 / 数据源连接失败时一律返回 None
+def _query_database_size_bytes(*, cluster_domain: str, db_name: str) -> Optional[int]:
+    """
+    drop_db 专用：取最近上报小时内该逻辑库的 database_size。
+    TenDBCluster：按 original_database_name 取 Max(database_size) 再对各分片求和。
     """
     if not cluster_domain or not db_name:
         return None
-
-    base_time = timezone.now()
-    start_time = base_time - timedelta(hours=_SIZE_LOOKBACK_HOURS)
-
-    try:
-        qs = (
-            MysqlDbTableSize.objects.filter(
+    start_time, base_time = _lookback_window()
+    for role in _SIZE_ROLE_FALLBACKS:
+        try:
+            total = _sum_db_sizes_for_role(
                 cluster_domain=cluster_domain,
-                instance_role=instance_role,
-                dteventtimehour__gte=start_time,
-                dteventtimehour__lte=base_time,
-                database_name=db_name,
+                db_name=db_name,
+                instance_role=role,
+                start_time=start_time,
+                base_time=base_time,
             )
-            .values("dteventtimehour")
-            .annotate(db_size=Sum("table_size"))
-            .order_by("-dteventtimehour")
-        )
-        row = qs.first()
-    except Exception as e:  # pylint: disable=broad-except
-        # stats_db 不可用 / 表结构异常 / 任意其它 DB 错误，table_size 退化为 None。
-        # 不打 exception 栈以避免日志噪声，warning 一条足够定位环境问题。
-        logger.warning(
-            _("查询 db 容量失败 cluster_domain={} db_name={}: {} —— table_size 退化为 NULL").format(cluster_domain, db_name, e)
-        )
-        return None
+        except Exception as e:  # pylint: disable=broad-except
+            logger.warning(
+                _("查询库容量失败 cluster_domain={} db_name={} role={}: {}").format(cluster_domain, db_name, role, e)
+            )
+            return None
+        if total is not None:
+            return total
+    return None
 
-    if not row or row.get("db_size") is None:
+
+def _sum_db_sizes_for_role(
+    *,
+    cluster_domain: str,
+    db_name: str,
+    instance_role: str,
+    start_time,
+    base_time,
+) -> Optional[int]:
+    qs = (
+        MysqlDbTableSize.objects.filter(
+            cluster_domain=cluster_domain,
+            instance_role=instance_role,
+            dteventtimehour__gte=start_time,
+            dteventtimehour__lte=base_time,
+            database_name=db_name,
+        )
+        .values("original_database_name", "dteventtimehour")
+        .annotate(db_size=Max("database_size"))
+        .order_by("-dteventtimehour")
+    )
+    latest_hour = None
+    total = 0
+    found = False
+    for item in qs:
+        hour = item["dteventtimehour"]
+        if latest_hour is None:
+            latest_hour = hour
+        if hour != latest_hour:
+            break
+        if item.get("db_size") is None:
+            continue
+        total += int(item["db_size"])
+        found = True
+    return total if found else None
+
+
+def _parse_sql_queries(sql: str, sim_cluster_type: str) -> List[Dict[str, Any]]:
+    """调用 parse_sql_tables；失败返回空列表，不阻断入库。"""
+    if not sql:
+        return []
+    try:
+        result = SQLSimulationApi.parse_sql_tables(
+            params={"cluster_type": sim_cluster_type, "sql": sql},
+        )
+    except Exception as e:  # pylint: disable=broad-except
+        logger.warning(_("解析 SQL 表名失败: {} —— sql_type/table_name 留空").format(e))
+        return []
+    if isinstance(result, list):
+        return result
+    if isinstance(result, dict):
+        # 兼容偶发整包响应
+        data = result.get("data")
+        return data if isinstance(data, list) else []
+    return []
+
+
+def _first_sql_type(queries: List[Dict[str, Any]]) -> str:
+    """首条非 change_db/set_option 的 command；都没有则取任意非空 command。"""
+    fallback = ""
+    for q in queries:
+        if not isinstance(q, dict):
+            continue
+        cmd = str(q.get("command") or "")
+        if not cmd:
+            continue
+        if not fallback:
+            fallback = cmd
+        if cmd not in _SKIP_SQL_TYPE_CMDS:
+            return cmd
+    return fallback
+
+
+def _collect_tables_and_db(queries: List[Dict[str, Any]]) -> Tuple[List[str], str, str]:
+    """收集去重表名、带表行的 db_name、最近 change_db 的 db_name。"""
+    table_names: List[str] = []
+    size_db = ""
+    last_use_db = ""
+    for q in queries:
+        if not isinstance(q, dict):
+            continue
+        cmd = str(q.get("command") or "")
+        db_name = str(q.get("db_name") or "")
+        table_name = str(q.get("table_name") or "")
+        if cmd == "change_db" and db_name:
+            last_use_db = db_name
+        if not table_name or table_name in table_names:
+            continue
+        table_names.append(table_name)
+        if db_name and not size_db:
+            size_db = db_name
+    return table_names, size_db, last_use_db
+
+
+def _extract_sql_meta(queries: List[Dict[str, Any]], fallback_db: str) -> Dict[str, Any]:
+    """从 ParseIncludeTableBase 列表提取 sql_type / table_name / size 用 db_name。"""
+    table_names, size_db, last_use_db = _collect_tables_and_db(queries)
+    if not size_db:
+        size_db = last_use_db or fallback_db or ""
+    return {
+        "sql_type": _first_sql_type(queries),
+        "table_name": ",".join(table_names),
+        "table_names": table_names,
+        "size_db": size_db,
+    }
+
+
+def _resolve_table_size(
+    *,
+    sql_type: str,
+    cluster_domain: str,
+    size_db: str,
+    table_names: List[str],
+) -> Optional[int]:
+    """按 sql_type 决定查表 size / 库 size / 跳过。"""
+    if not sql_type or sql_type in _SKIP_SIZE_SQL_TYPES:
         return None
-    return int(row["db_size"])
+    if sql_type == _DROP_DB_SQL_TYPE:
+        return _query_database_size_bytes(cluster_domain=cluster_domain, db_name=size_db)
+    if not table_names:
+        return None
+    return _query_table_size_bytes(
+        cluster_domain=cluster_domain,
+        db_name=size_db,
+        table_names=table_names,
+    )
 
 
 def _persist(
@@ -334,19 +537,16 @@ def _persist(
 
     实现：
         1. 算 sql_checksum（md5(sql_text) 32 位 hex）
-        2. 同批次内去重：按 (job_instance_id, ip, sql_checksum) 去掉一批 SQL 内重复的条目
-        3. 入库前查 DB 里已存在的 sql_checksum 集合，过滤掉，避免触发 unique 冲突
-        4. table_size 字段：用 (cluster_domain, db_name) 调 _query_db_size_bytes 查到的 db 总大小
-           作为占位值；同一批次内同 db 走缓存只查一次。table_name 暂留空。
-        5. bulk_create(ignore_conflicts=True) 兜底竞态（其他进程同时入库）
+        2. 同批次内去重：按 (job_instance_id, ip, sql_checksum)
+        3. 入库前过滤 DB 已存在 checksum
+        4. 调 parse_sql_tables 填 sql_type/table_name，再按类型查 table_size
+        5. bulk_create(ignore_conflicts=True)
     """
     if not sql_records:
         return 0
 
-    # 1) (record, checksum) 元组列表
     items: List[Tuple[SqlExecRecord, str]] = [(r, hashlib.md5(r.sql.encode("utf-8")).hexdigest()) for r in sql_records]
 
-    # 2) 同批次内 (job_instance_id, ip, sql_checksum) 去重
     seen: set = set()
     unique_items: List[Tuple[SqlExecRecord, str]] = []
     for r, cs in items:
@@ -356,8 +556,6 @@ def _persist(
         seen.add(key)
         unique_items.append((r, cs))
 
-    # 3) 查 DB 里 (root_id, job_instance_id, ip) 范围内已存在的 sql_checksum 集合（按 IP 维度查一次）
-    #    本批次 sql_records 都来自单一 IP 的日志解析，取首条即可定位
     first = sql_records[0]
     existing_checksums = set(
         MysqlSqlExecDuration.objects.filter(
@@ -370,36 +568,47 @@ def _persist(
     if not fresh_items:
         return 0
 
-    # 4) table_size 占位值缓存：同一批 record 同一 db 只查一次
-    db_size_cache: Dict[str, Optional[int]] = {}
+    sim_cluster_type = _resolve_sim_cluster_type(cluster_id)
+    parse_cache: Dict[str, Dict[str, Any]] = {}
+    size_cache: Dict[Tuple[str, str, str], Optional[int]] = {}
 
-    def _size_for(db: str) -> Optional[int]:
-        if not db or not cluster_domain:
-            return None
-        if db not in db_size_cache:
-            db_size_cache[db] = _query_db_size_bytes(cluster_domain=cluster_domain, db_name=db)
-        return db_size_cache[db]
+    objs = []
+    for r, cs in fresh_items:
+        if cs not in parse_cache:
+            queries = _parse_sql_queries(r.sql, sim_cluster_type)
+            parse_cache[cs] = _extract_sql_meta(queries, fallback_db=r.db or "")
+        meta = parse_cache[cs]
+        sql_type = meta["sql_type"]
+        table_name = meta["table_name"]
+        size_db = meta["size_db"]
+        table_names = meta["table_names"]
 
-    # 5) 入库
-    objs = [
-        MysqlSqlExecDuration(
-            cluster_id=cluster_id,
-            cluster_domain=cluster_domain,
-            ticket_id=ticket_id,
-            root_id=root_id,
-            job_instance_id=r.job_instance_id,
-            step_instance_id=r.step_instance_id,
-            ip=r.ip,
-            bk_cloud_id=r.bk_cloud_id,
-            db_name=r.db,
-            table_name="",
-            sql_text=r.sql,
-            sql_type="",
-            sql_checksum=cs,
-            table_size=_size_for(r.db),
-            duration_sec=r.duration_sec,
+        size_key = (sql_type, size_db, table_name)
+        if size_key not in size_cache:
+            size_cache[size_key] = _resolve_table_size(
+                sql_type=sql_type,
+                cluster_domain=cluster_domain,
+                size_db=size_db,
+                table_names=table_names,
+            )
+        objs.append(
+            MysqlSqlExecDuration(
+                cluster_id=cluster_id,
+                cluster_domain=cluster_domain,
+                ticket_id=ticket_id,
+                root_id=root_id,
+                job_instance_id=r.job_instance_id,
+                step_instance_id=r.step_instance_id,
+                ip=r.ip,
+                bk_cloud_id=r.bk_cloud_id,
+                db_name=r.db,
+                table_name=table_name,
+                sql_text=r.sql,
+                sql_type=sql_type,
+                sql_checksum=cs,
+                table_size=size_cache[size_key],
+                duration_sec=r.duration_sec,
+            )
         )
-        for r, cs in fresh_items
-    ]
     MysqlSqlExecDuration.objects.bulk_create(objs, ignore_conflicts=True)
     return len(objs)

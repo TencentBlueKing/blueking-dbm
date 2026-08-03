@@ -32,10 +32,14 @@ class MysqlSqlExecDuration(models.Model):
         backend.db_report.models.MysqlDbTableSize 拿表/库容量；同时报告 / API 展示对人友好。
 
     字段填充时机：
-        - sql_type / table_name：本轮入库一律留空，等 SQL 解析 API 接入后由 enrich 路径回填。
-        - table_size：本轮入库以 (cluster_domain, db_name) 调查 MysqlDbTableSize 拿到的
-          db 总大小（SUM(table_size)）作为占位值；待 SQL 解析 API 给出 table_name 后，
-          enrich 路径用 (cluster_domain, db_name, table_name) 查精确单表 size 覆盖。
+        - sql_type / table_name：入库时调 SQLSimulationApi.parse_sql_tables，从
+          ParseIncludeTableBase.command / table_name 提取。
+        - table_size：
+            * 普通表级 DDL/DML：按 (cluster_domain, database_name, table_name) 查
+              MysqlDbTableSize，同小时 Sum（TenDBCluster 跨分片加总），多表再求和；
+            * drop_db：填逻辑库 database_size（分片按 original_database_name 求和）；
+            * call / 过程函数触发器事件：不查 size，置 NULL。
+        - instance_role 默认 slave，无数据回退 orphan/master。
     """
 
     cluster_id = models.PositiveIntegerField(null=True, blank=True, db_index=True, help_text=_("集群ID"))
@@ -63,7 +67,7 @@ class MysqlSqlExecDuration(models.Model):
         max_length=255,
         blank=True,
         default="",
-        help_text=_("表名（暂留空，待 SQL 解析 API 回填）"),
+        help_text=_("表名（来自 SQL 解析 API，多表逗号拼接；drop_db 等场景可为空）"),
     )
     sql_text = models.TextField(help_text=_("SQL 完整内容"))
     sql_type = models.CharField(
@@ -71,7 +75,7 @@ class MysqlSqlExecDuration(models.Model):
         blank=True,
         default="",
         db_index=True,
-        help_text=_("SQL 语句类型（如 SELECT/INSERT/...，暂留空，待 SQL 解析 API 回填）"),
+        help_text=_("SQL 语句类型（来自解析 API 的 command，如 update/delete/alter_table/drop_db）"),
     )
     sql_checksum = models.CharField(
         max_length=32,
@@ -81,10 +85,7 @@ class MysqlSqlExecDuration(models.Model):
     table_size = models.BigIntegerField(
         null=True,
         blank=True,
-        help_text=_(
-            "表大小，单位字节。当前阶段以该 SQL 涉及的 db 总大小（SUM(table_size) by db_name）作为占位值；"
-            "待 SQL 解析 API 给出 table_name 后由 enrich 路径覆盖为精确单表大小"
-        ),
+        help_text=_("大小，单位字节。表级 SQL 为涉及表 size 之和；drop_db 为逻辑库 database_size；" "call/过程函数等不查 size 时为 NULL"),
     )
     duration_sec = models.FloatField(db_index=True, help_text=_("单条 SQL 执行耗时（秒）"))
     created_at = models.DateTimeField(auto_now_add=True, help_text=_("创建时间"))
