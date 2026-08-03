@@ -22,18 +22,20 @@
  * SOFTWARE.
  */
 
-package config
+package config_test
 
 import (
 	"reflect"
 	"sort"
 	"testing"
 
+	"dbm-services/common/dbha-v2/internal/probe/config"
 	"dbm-services/common/dbha-v2/pkg/dbtype"
 	"dbm-services/common/dbha-v2/pkg/probeconfig"
 	"dbm-services/common/dbha-v2/pkg/storage/haprobe"
 
-	_ "dbm-services/common/dbha-v2/internal/provider/redis/dbtypedesc"
+	_ "dbm-services/common/dbha-v2/internal/provider/mysql/harvest"
+	_ "dbm-services/common/dbha-v2/internal/provider/redis/harvest"
 
 	"gopkg.in/yaml.v3"
 )
@@ -90,7 +92,7 @@ type parsedDbEndpoint struct {
 
 func renderAndParse(t *testing.T, payload probeconfig.ProbeConfigPayload) parsedYAML {
 	t.Helper()
-	out, err := GenProbeYAML(payload)
+	out, err := config.GenProbeYAML(payload)
 	if err != nil {
 		t.Fatalf("GenProbeYAML failed, errmsg: %s", err)
 	}
@@ -329,12 +331,12 @@ func TestGenProbeYAML_MysqlProxyDualPortFallback(t *testing.T) {
 	}
 
 	// Determinism: identical 5-tuple keys must render in a stable order across runs.
-	first, err := GenProbeYAML(payload)
+	first, err := config.GenProbeYAML(payload)
 	if err != nil {
 		t.Fatalf("GenProbeYAML failed, errmsg: %s", err)
 	}
 	for i := 0; i < 10; i++ {
-		out, err := GenProbeYAML(payload)
+		out, err := config.GenProbeYAML(payload)
 		if err != nil {
 			t.Fatalf("GenProbeYAML failed on iter %d, errmsg: %s", i, err)
 		}
@@ -504,7 +506,7 @@ func TestGenProbeYAML_DropsZeroPort(t *testing.T) {
 // TestGenProbeYAML_ProxyAccessButNonMysqlClusterIsNotProxyAdmin asserts that a malformed
 // metadata entry with (machine_type=proxy, access_layer=proxy) but a non-mysql cluster_type
 // is NOT routed to harvester.mysqlProxyAdmin. The redis-cluster-typed entry falls through
-// to the redis block via IsRedisClusterType (its only known route).
+// to the redis block via the Redis HarvestBlock fallback (its only known route).
 func TestGenProbeYAML_ProxyAccessButNonMysqlClusterIsNotProxyAdmin(t *testing.T) {
 	payload := newPayload([]probeconfig.ProbeMetadataItem{
 		{
@@ -562,12 +564,12 @@ func TestGenProbeYAML_DeterministicOrder(t *testing.T) {
 	}
 	payload := newPayload(metadata)
 
-	first, err := GenProbeYAML(payload)
+	first, err := config.GenProbeYAML(payload)
 	if err != nil {
 		t.Fatalf("GenProbeYAML failed, errmsg: %s", err)
 	}
 	for i := 0; i < 10; i++ {
-		out, err := GenProbeYAML(payload)
+		out, err := config.GenProbeYAML(payload)
 		if err != nil {
 			t.Fatalf("GenProbeYAML failed on iter %d, errmsg: %s", i, err)
 		}
@@ -629,7 +631,7 @@ func TestGenProbeYAML_ExtraHarvesterBlock(t *testing.T) {
 		},
 	}
 
-	out, err := GenProbeYAML(payload)
+	out, err := config.GenProbeYAML(payload)
 	if err != nil {
 		t.Fatalf("GenProbeYAML failed, errmsg: %s", err)
 	}
@@ -685,7 +687,7 @@ func TestGenProbeYAML_ExtraHarvesterCamelCasePayloadKey(t *testing.T) {
 		},
 	}
 
-	out, err := GenProbeYAML(payload)
+	out, err := config.GenProbeYAML(payload)
 	if err != nil {
 		t.Fatalf("GenProbeYAML failed, errmsg: %s", err)
 	}
@@ -752,7 +754,7 @@ func TestGenProbeYAML_MatchRoutesByAccessLayer(t *testing.T) {
 		},
 	}
 
-	out, err := GenProbeYAML(payload)
+	out, err := config.GenProbeYAML(payload)
 	if err != nil {
 		t.Fatalf("GenProbeYAML failed, errmsg: %s", err)
 	}

@@ -123,7 +123,7 @@ TenDBClusterProxySlave    = "spider_slave"
 
 Probe 的 MySQL 采集入口为 `MySql.Harvest → collecting`，按端点的 `accessLayer / machineType / clusterType / isAdmin` 分支：
 
-代码：[`harvester/mysql/mysql.go`](../../internal/probe/harvester/mysql/mysql.go)、[`harvester/mysql/collector.go`](../../internal/probe/harvester/mysql/collector.go)
+代码：[`provider/mysql/harvest/mysql.go`](../../internal/provider/mysql/harvest/mysql.go)、[`provider/mysql/harvest/collector.go`](../../internal/provider/mysql/harvest/collector.go)
 
 | 场景 | 判定 | 采集内容 | 关键 SQL/操作 |
 | --- | --- | --- | --- |
@@ -164,7 +164,7 @@ flowchart TD
 
 ### 4.2 关键探测语句
 
-代码：[`harvester/mysql/collector.go`](../../internal/probe/harvester/mysql/collector.go)
+代码：[`provider/mysql/harvest/collector.go`](../../internal/provider/mysql/harvest/collector.go)
 
 - 存活/状态：`SHOW GLOBAL STATUS`；`SELECT VERSION()`
 - 心跳写入：
@@ -504,7 +504,7 @@ flowchart TD
 
 ## 8. 关键代码索引
 
-- MySQL 采集：[`internal/probe/harvester/mysql/mysql.go`](../../internal/probe/harvester/mysql/mysql.go)、[`collector.go`](../../internal/probe/harvester/mysql/collector.go)
+- MySQL 采集：[`internal/provider/mysql/harvest/mysql.go`](../../internal/provider/mysql/harvest/mysql.go)、[`collector.go`](../../internal/provider/mysql/harvest/collector.go)
 - 状态模型：[`pkg/storage/haprobe/mysql_status.go`](../../pkg/storage/haprobe/mysql_status.go) 及同目录子状态
 - 事件常量：[`pkg/storage/haprobe/db_event.go`](../../pkg/storage/haprobe/db_event.go)
 - 判定与二次探测：[`internal/analysis/workflow/checker.go`](../../internal/analysis/workflow/checker.go)、[`detector_handler.go`](../../internal/analysis/workflow/detector_handler.go)
