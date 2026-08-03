@@ -266,6 +266,16 @@ def _pick_tendbha_storage(cluster: Cluster) -> Optional[StorageInstance]:
     )
 
 
+def _pick_single_storage(cluster: Cluster) -> Optional[StorageInstance]:
+    """TenDBSingle：取首台 orphan 实例。"""
+    return (
+        StorageInstance.objects.filter(cluster=cluster, instance_role=InstanceRole.ORPHAN)
+        .select_related("machine")
+        .order_by("machine_id")
+        .first()
+    )
+
+
 def _pick_tc_spider(cluster: Cluster) -> Optional[Machine]:
     """TenDBCluster：取首台 spider_master 所在机器。"""
     proxy = (
@@ -289,11 +299,26 @@ def _pick_tc_storage(cluster: Cluster) -> Tuple[Optional[StorageInstance], Optio
     return shard.storage_instance_tuple.ejector, shard.shard_id
 
 
+def _ref_storage_only_result(
+    base: Dict[str, Any],
+    inst: Optional[StorageInstance],
+    ref_role: str,
+) -> Dict[str, Any]:
+    """TenDBHA / TenDBSingle：仅 storage_host，无 spider。"""
+    return {
+        **base,
+        "ref_shard_id": None,
+        "spider_host": None,
+        "storage_host": (_storage_host_row(inst, ref_role) if inst else None),
+    }
+
+
 def query_cluster_ref_host_perf(cluster: Cluster) -> Dict[str, Any]:
     """
     查询集群参考主机硬件与基线性能（每类一台代表机）。
 
     TenDBHA：仅 storage_host=backend_master；spider_host=null。
+    TenDBSingle：仅 storage_host=orphan；spider_host=null。
     TenDBCluster：spider_host=一台 spider_master；storage_host=首分片 remote_master。
     spider_host / storage_host 均为平铺字段；storage_host 另含 instance_count、
     datadir/data_dir_mount 及按 datadir 匹配的数据盘基线。
@@ -305,13 +330,10 @@ def query_cluster_ref_host_perf(cluster: Cluster) -> Dict[str, Any]:
     }
 
     if cluster.cluster_type == ClusterType.TenDBHA:
-        inst = _pick_tendbha_storage(cluster)
-        return {
-            **base,
-            "ref_shard_id": None,
-            "spider_host": None,
-            "storage_host": (_storage_host_row(inst, InstanceRole.BACKEND_MASTER.value) if inst else None),
-        }
+        return _ref_storage_only_result(base, _pick_tendbha_storage(cluster), InstanceRole.BACKEND_MASTER.value)
+
+    if cluster.cluster_type == ClusterType.TenDBSingle:
+        return _ref_storage_only_result(base, _pick_single_storage(cluster), InstanceRole.ORPHAN.value)
 
     if cluster.cluster_type == ClusterType.TenDBCluster:
         spider_machine = _pick_tc_spider(cluster)
