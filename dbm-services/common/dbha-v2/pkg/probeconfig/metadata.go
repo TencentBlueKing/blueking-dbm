@@ -25,11 +25,6 @@
 // Package probeconfig defines shared types for probe config generation (e.g. metadata from admin to probe).
 package probeconfig
 
-import (
-	"dbm-services/common/dbha-v2/pkg/dbtype"
-	"dbm-services/common/dbha-v2/pkg/storage/haprobe"
-)
-
 // ProbeMetadataItem is a single instance metadata entry for probe config generation (ip, port, cluster type, etc.).
 type ProbeMetadataItem struct {
 	IP           string `json:"ip"`
@@ -109,17 +104,4 @@ type ProbeConfigPayload struct {
 	ProxyAdmin *ProbeProxyAdminConfig          `json:"proxy_admin,omitempty"`
 	Harvesters map[string]ProbeHarvesterConfig `json:"harvesters,omitempty"`
 	Metadata   []ProbeMetadataItem             `json:"metadata"`
-}
-
-// IsMySQLClusterType reports whether the cluster type belongs to the MySQL family
-// (tendbha / tendbcluster).
-func IsMySQLClusterType(ct string) bool {
-	return dbtype.DbTypeOf(haprobe.DbmMetadataClusterType(ct)) == haprobe.DbTypeMySql
-}
-
-// IsRedisClusterType reports whether the cluster type belongs to the Redis family
-// (redis / twemproxy / predixy variants).
-// Requires the Redis provider descriptor to be registered (blank-import allprobe/allanalysis).
-func IsRedisClusterType(ct string) bool {
-	return dbtype.DbTypeOf(haprobe.DbmMetadataClusterType(ct)) == haprobe.DbTypeRedis
 }

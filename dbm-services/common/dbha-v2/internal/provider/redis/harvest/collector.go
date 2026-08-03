@@ -22,7 +22,7 @@
  * SOFTWARE.
  */
 
-package redis
+package harvest
 
 import (
 	"bufio"

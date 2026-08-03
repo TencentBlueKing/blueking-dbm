@@ -1,0 +1,44 @@
+name: probe
+version: v2.0.0
+pidFile: ./pids/probe.pid
+reporter:
+    name: gse
+    endpoint: 127.0.0.1:1234
+    dataID: 1
+    connTimeout: 5s
+harvester:
+    mysql:
+        user: mysql_user
+        password: mysql_pwd
+        interval: 20s
+        timeout: 5s
+        endpoints:
+            - proto: tcp
+              clusterType: tendbha
+              machineType: proxy
+              instanceRole: ""
+              accessLayer: proxy
+              ip: 127.0.0.2
+              ports:
+                - "10000"
+              adminPorts: []
+    mysqlProxyAdmin:
+        user: proxy_admin_user
+        password: proxy_admin_pwd
+        interval: 20s
+        timeout: 5s
+        endpoints:
+            - proto: tcp
+              clusterType: tendbha
+              machineType: proxy
+              instanceRole: ""
+              accessLayer: proxy
+              ip: 127.0.0.2
+              ports: []
+              adminPorts:
+                - "4001"
+log:
+    path: ./logs/probe.log
+    level: info
+    fileCount: 10
+    fileSize: 500

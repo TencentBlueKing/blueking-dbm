@@ -18,8 +18,8 @@
 
 | 子包 | 职责 | 链接进 |
 | --- | --- | --- |
-| `dbtypedesc` | 注册 `ClusterType -> DbType`，以及（新 DB）`HarvestBlock` | probe + analysis + admin/receiver（via `alldesc`） |
-| `harvest` | 注册采集 Factory | 仅 probe |
+| `dbtypedesc` | 注册 `ClusterType -> DbType`；单块新 DB 也可在此注册 `HarvestBlock` | probe + analysis + admin/receiver（via `alldesc`） |
+| `harvest` | 注册采集 Factory；端点路由（`RegisterEndpointRouter` 或 `RegisterHarvestBlock`） | 仅 probe |
 | `switch` | 注册切换器 + 切换告警事件名 | 仅 analysis |
 | `parse` | 注册 status parser（`parser.Register`） | 仅 analysis |
 | `metrics` | 注册 DB 专属 APM 指标（`apm.RegisterDbMetrics`） | 仅 analysis |
@@ -67,6 +67,21 @@ make check-generate
 - Admin `probeHarvesters` 的键同理：viper 装载后已是小写；provider 声明的 `PayloadKey` / `BlockName` 即使保留 camelCase，probe 侧查找也会归一后命中。
 - 建议新块优先使用全小写键，减少跨进程键大小写心智负担。
 
+## 端点路由：Router vs HarvestBlock
+
+Probe `genconfig` 经 `dbtype.RouteEndpoint` 分派端点：
+
+1. **有 `RegisterEndpointRouter`**：完全由 Router 决定目标块与端口侧（`PortKindAll` / `Data` / `Admin`）。**需要双产（同一端点写入多个 harvester 块）时必须用 Router**——现有 `HarvestBlock.Match` 首个命中即返回，无法双产。
+2. **无 Router**：回落 `HarvestBlock` Match / nil-Match 兜底，产出单条 `PortKindAll`。
+
+现状：
+
+- MySQL：仅在 `provider/mysql/harvest` 注册 Router（proxy 双产 `mysqlProxyAdmin`+`mysql`）；**不**注册 MySQL HarvestBlock。
+- Redis：仅注册 nil-Match `HarvestBlock`（`BlockName=redis`，`PayloadKey` 留空）；无 Router。
+- 命名凭证（`payload.MySQL` / `ProxyAdmin` / `Redis`）与 `ProxyAdmin==nil` 降级仍在 probe `genconfig`（admin wire 契约未改）。
+
+块名写出 YAML 时必须使用原串（如 `mysqlProxyAdmin`），内部查找才做 `NormalizeBlockName`。
+
 ## HarvestBlock Match 谓词
 
 同一 `DbType` 可注册多块。`Match func(EndpointAttrs) bool`：
@@ -74,13 +89,13 @@ make check-generate
 - 非 nil：按端点属性（clusterType / machineType / instanceRole / accessLayer）优先匹配
 - nil：该 DbType 的兜底块；同一 DbType **至多一个**兜底块
 
-路由顺序：先扫 Match 命中，再落兜底；都无匹配则跳过并打日志。
+无 Router 时的路由顺序：先扫 Match 命中，再落兜底；都无匹配则跳过并打日志。
 
 ## 采集与配置
 
 - Probe 运行时配置：命名块 `mysql` / `mysqlProxyAdmin` / `redis` 保持零回归；新 DB 走 `HarvesterConfig.Extra`（YAML 同级键）。
 - Admin 下发：命名 `probeMysql` / `probeRedis` / `probeProxyAdmin` 不变；新 DB 凭证写入 `probeHarvesters`，admin **纯 pass-through** 到 payload `harvesters`（不 import provider 业务包，只 blank-import `alldesc`）。
-- Probe `genconfig`：mysql/redis 仍走命名路由；其它已注册 `HarvestBlock` 的类型走 `extra[BlockName]`。
+- Probe `genconfig`：经 `RouteEndpoint` 得到 `map[blockName]endpoints`，再按命名三块常量拆回 `mysql` / `mysqlProxyAdmin` / `redis` 与 Extra；凭证仍走命名字段 + `lookupExtraHarvesterCred`。
 
 ## 切换与解析
 
@@ -137,7 +152,7 @@ func init() {
 |------|------------|------------|
 | parse | 实现 + 注册均在 `provider/mysql/parse` | 同左 |
 | switch | 实现 + 注册均在 `provider/mysql/switch` | 同左 |
-| harvest | 已在 `provider/mysql/harvest` | 同左 |
+| harvest | 实现 + Factory + Router 均在 `provider/mysql/harvest` | 同左；单块用 HarvestBlock，双产必须 Router |
 
 框架包 `internal/analysis/parser` 与 `internal/analysis/switcher` 仅保留接口与注册表；analysis 启动要求 parser / switcher 注册表非空（当前由 MySQL `CapParse` / `CapSwitch` 满足）。
 
@@ -148,7 +163,8 @@ func init() {
 - [ ] 每个 Cap 对应子包真实存在（`make check-generate` + manifest 一致性测试）
 - [ ] probe / analysis / admin / receiver 二进制可编译
 - [ ] catalog / provider import 单测通过
-- [ ] 若有采集：admin `probeHarvesters` + HarvestBlock 已配置；块名大小写符合规范
-- [ ] 若有多块：Match 谓词与至多一个兜底块已验证
+- [ ] 若有采集：admin `probeHarvesters` + HarvestBlock/Router 已配置；块名大小写符合规范
+- [ ] 若需双产：已用 `RegisterEndpointRouter`，未依赖 Match 首命中
+- [ ] 若有多块（无 Router）：Match 谓词与至多一个兜底块已验证
 - [ ] 若有切换：switcher + 告警事件名已注册；启动自检通过
 - [ ] 若有解析：`parser.Register` 已调用；analysis 启动日志 `parser_db_types` 非空

@@ -22,22 +22,17 @@
  * SOFTWARE.
  */
 
-// Package harvester wires concrete plugin constructors (mysql / mysqlProxyAdmin / redis)
-// under one importable surface so probe.loadPlugins doesn't depend on individual
-// harvester subpackages directly.
-package harvester
+package harvest
 
 import (
-	"dbm-services/common/dbha-v2/internal/probe/harvester/mysql"
-	"dbm-services/common/dbha-v2/internal/probe/harvester/redis"
+	"fmt"
+	"testing"
 )
 
-var (
-	// NewPluginMySql To avoid potential ambiguity caused by directly using 'mysql',
-	// the method for creating the mysql plugin has been renamed here.
-	NewPluginMySql = mysql.NewMySql
-	// NewPluginMySqlProxyAdmin creates a MySQL plugin instance dedicated to TendbHA mysql-proxy
-	// admin ports; the instance name is "mysqlProxyAdmin" so logs distinguish it from NewPluginMySql.
-	NewPluginMySqlProxyAdmin = mysql.NewMySqlProxyAdmin
-	NewPluginRedis           = redis.NewRedis
-)
+func TestGlobalStatus(t *testing.T) {
+	gstats := []globalStatus{}
+
+	dbMetrics := convertToMySqlStatus(gstats)
+
+	fmt.Println("db-metrics: ", dbMetrics)
+}

@@ -44,7 +44,7 @@ func init() {
 			if cfg == nil {
 				return nil, nil
 			}
-			return harvester.NewPluginRedis(cfg)
+			return NewRedis(cfg)
 		},
 	})
 }

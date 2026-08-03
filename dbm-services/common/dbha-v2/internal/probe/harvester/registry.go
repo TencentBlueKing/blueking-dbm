@@ -22,6 +22,9 @@
  * SOFTWARE.
  */
 
+// Package harvester provides the probe-side plugin registry. Concrete DB
+// harvester implementations live under provider/<db>/harvest and register
+// themselves via Register.
 package harvester
 
 import (

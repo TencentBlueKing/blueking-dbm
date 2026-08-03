@@ -22,12 +22,19 @@
  * SOFTWARE.
  */
 
-package harvester_test
+package harvest
 
 import (
-	"testing"
+	"dbm-services/common/dbha-v2/internal/probe/config"
+	"dbm-services/common/dbha-v2/pkg/dbtype"
+	"dbm-services/common/dbha-v2/pkg/storage/haprobe"
 )
 
-func TestNewPlugin(t *testing.T) {
-
+func init() {
+	// PayloadKey must stay empty: redis credentials use the named payload.Redis path
+	// and must not be re-resolved via lookupExtraHarvesterCred.
+	dbtype.RegisterHarvestBlock(dbtype.HarvestBlock{
+		BlockName: config.HarvesterBlockRedis,
+		DbType:    haprobe.DbTypeRedis,
+	})
 }
