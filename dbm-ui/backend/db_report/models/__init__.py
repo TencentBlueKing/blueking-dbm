@@ -28,6 +28,7 @@ from .meta_check_report import MetaCheckReport
 from .monogdb_check_report import MongodbBackupCheckReport
 from .mysql_backup_progress import MysqlBackupProgress
 from .mysql_cluster_skew_report import MysqlClusterSkewReport
+from .mysql_config_ai_inspect import MysqlConfigAiInspect, MysqlConfigAiInspectStatus
 from .mysql_config_check_result import MysqlConfigCheckResult
 from .mysql_db_table_size import MysqlDbTableSize
 from .mysql_inspect_ignore import MysqlInspectIgnore
