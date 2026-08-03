@@ -37,6 +37,7 @@ class MySQLVersion(StrStructuredEnum):
     MySQL57RocksDB = EnumField("MySQL-5.7-RocksDB", _("MySQL-5.7-RocksDB"))
     # MySQL57Community = EnumField("MySQL-5.7-Community", _("MySQL-5.7-Community"))
     MySQL80Community = EnumField("MySQL-8.0-Community", _("MySQL-8.0-Community"))
+    MySQL84Community = EnumField("MySQL-8.4-Community", _("MySQL-8.4-Community"))
 
 
 class MySQLEngine(StrStructuredEnum):
