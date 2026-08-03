@@ -1,0 +1,73 @@
+# -*- coding: utf-8 -*-
+"""
+TencentBlueKing is pleased to support the open source community by making 蓝鲸智云-DB管理系统(BlueKing-BK-DBM) available.
+Copyright (C) 2017-2023 THL A29 Limited, a Tencent company. All rights reserved.
+Licensed under the MIT License (the "License"); you may not use this file except in compliance with the License.
+You may obtain a copy of the License at https://opensource.org/licenses/MIT
+Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on
+an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
+specific language governing permissions and limitations under the License.
+"""
+import pytest
+from django.db import IntegrityError, connections
+
+from backend.db_meta.enums import ClusterType
+from backend.db_report.models.mysql_config_ai_inspect import MysqlConfigAiInspect, MysqlConfigAiInspectStatus
+from backend.dbm_aiagent.agent.constants import DBMAgentCode
+
+pytestmark = pytest.mark.django_db
+
+
+def test_agent_code_mysql_config_perf_tuner():
+    assert DBMAgentCode.MYSQL_CONFIG_PERF_TUNER.value == "ai-db-perf-tuner"
+
+
+@pytest.fixture
+def ai_inspect_table(django_db_setup, django_db_blocker):
+    with django_db_blocker.unblock():
+        conn = connections["report_db"]
+        table_name = MysqlConfigAiInspect._meta.db_table
+        existing = conn.introspection.table_names()
+        created = False
+        if table_name not in existing:
+            with conn.schema_editor() as schema_editor:
+                schema_editor.create_model(MysqlConfigAiInspect)
+            created = True
+        yield
+        MysqlConfigAiInspect.objects.all().delete()
+        if created:
+            with conn.schema_editor() as schema_editor:
+                schema_editor.delete_model(MysqlConfigAiInspect)
+
+
+def test_model_default_pending_row(ai_inspect_table):
+    row = MysqlConfigAiInspect.objects.create(
+        batch_id="batch-1",
+        bk_biz_id=1001,
+        cluster_id=1,
+        cluster_domain="a.db",
+        cluster_type=ClusterType.TenDBHA.value,
+        creator="system",
+        updater="system",
+    )
+    assert row.status == MysqlConfigAiInspectStatus.PENDING.value
+    assert row.retry_count == 0
+    assert row.report_id == ""
+    assert row.share_url == ""
+    assert row.summary == ""
+    assert row.agent_cost_ms == 0
+
+
+def test_unique_batch_cluster(ai_inspect_table):
+    kwargs = dict(
+        batch_id="batch-u",
+        bk_biz_id=1001,
+        cluster_id=9,
+        cluster_domain="u.db",
+        cluster_type=ClusterType.TenDBSingle.value,
+        creator="system",
+        updater="system",
+    )
+    MysqlConfigAiInspect.objects.create(**kwargs)
+    with pytest.raises(IntegrityError):
+        MysqlConfigAiInspect.objects.create(**kwargs)
