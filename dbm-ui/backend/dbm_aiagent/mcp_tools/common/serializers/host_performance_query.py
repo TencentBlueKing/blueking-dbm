@@ -188,3 +188,104 @@ class HostInstancePortsOutputSerializer(serializers.Serializer):
         child=serializers.IntegerField(),
         help_text=_("上述实例的监听端口，合并后升序去重；无实例时为 []"),
     )
+
+
+class ClusterRefHostInputSerializer(serializers.Serializer):
+    cluster_id = serializers.IntegerField(
+        required=False,
+        allow_null=True,
+        help_text=_("集群主键 ID；与 cluster_domain 二选一，不可同时传"),
+    )
+    cluster_domain = serializers.CharField(
+        required=False,
+        allow_blank=True,
+        help_text=_("集群 immute 域名；与 cluster_id 二选一，不可同时传"),
+    )
+
+    def validate(self, attrs):
+        cluster_id = attrs.get("cluster_id")
+        cluster_domain = (attrs.get("cluster_domain") or "").strip()
+        has_id = cluster_id is not None
+        has_domain = bool(cluster_domain)
+        if not has_id and not has_domain:
+            raise serializers.ValidationError(_("必须提供 cluster_id 或 cluster_domain 之一"))
+        if has_id and has_domain:
+            raise serializers.ValidationError(_("cluster_id 与 cluster_domain 不能同时提供"))
+        if has_domain:
+            attrs["cluster_domain"] = cluster_domain
+        return attrs
+
+
+class RefSpiderHostOutputSerializer(serializers.Serializer):
+    """Spider 参考主机平铺结构：machine / host_baseline 展开为单层字段。"""
+
+    ref_role = serializers.CharField(help_text=_("参考角色：spider_master"))
+    ip = serializers.CharField(allow_null=True, help_text=_("主机 IP"))
+    bk_cloud_id = serializers.IntegerField(allow_null=True, help_text=_("云区域 ID"))
+    bk_svr_device_cls_name = serializers.CharField(
+        allow_blank=True,
+        help_text=_("CMDB/资源池标准设备类型名"),
+    )
+    device_class = serializers.CharField(allow_null=True, allow_blank=True, help_text=_("基线机型编码"))
+    cpu_model = serializers.CharField(allow_null=True, allow_blank=True, help_text=_("CPU 型号"))
+    cpu_frequency_ghz = serializers.FloatField(allow_null=True, help_text=_("CPU 主频，单位 GHz"))
+    network_card_speed = serializers.CharField(allow_null=True, allow_blank=True, help_text=_("网卡速度描述"))
+    vcpu = serializers.IntegerField(allow_null=True, help_text=_("vCPU 核数"))
+    memory_gb = serializers.IntegerField(allow_null=True, help_text=_("内存容量，单位 GB"))
+    network_pps_w = serializers.IntegerField(allow_null=True, help_text=_("网络 pps，单位万"))
+    intranet_bandwidth_gbps = serializers.FloatField(allow_null=True, help_text=_("内网带宽，单位 Gbps"))
+    queue_count = serializers.IntegerField(allow_null=True, help_text=_("主机硬件队列数"))
+
+
+class RefStorageHostOutputSerializer(RefSpiderHostOutputSerializer):
+    """
+    存储参考主机平铺结构：在主机基线平铺基础上，附加 instance_count 与 datadir 匹配磁盘基线。
+    """
+
+    ref_role = serializers.CharField(help_text=_("参考角色：backend_master / remote_master"))
+    instance_count = serializers.IntegerField(
+        help_text=_("该存储代表机上的 StorageInstance 数量（同机部署密度，不含 Proxy）"),
+    )
+    datadir = serializers.CharField(allow_blank=True, help_text=_("实例 datadir 原始路径；查询失败时为空"))
+    data_dir_mount = serializers.CharField(
+        allow_blank=True,
+        help_text=_("由 datadir 推导的数据盘挂载点，如 /data1；无法匹配时为空"),
+    )
+    mount_point = serializers.CharField(
+        allow_null=True,
+        allow_blank=True,
+        help_text=_("匹配到的主机磁盘挂载点；未匹配时为 null"),
+    )
+    disk_type = serializers.CharField(allow_null=True, allow_blank=True, help_text=_("匹配磁盘类型"))
+    size = serializers.IntegerField(allow_null=True, help_text=_("匹配磁盘容量 GB"))
+    disk_name = serializers.CharField(allow_null=True, allow_blank=True, help_text=_("磁盘基线名称"))
+    capacity_gb = serializers.IntegerField(allow_null=True, help_text=_("磁盘基线容量 GB"))
+    performance_iops = serializers.IntegerField(allow_null=True, help_text=_("磁盘基线 IOPS"))
+    performance_throughput_mbps = serializers.IntegerField(
+        allow_null=True,
+        help_text=_("磁盘基线吞吐，单位 MB/s"),
+    )
+    random_read_iops = serializers.IntegerField(allow_null=True, help_text=_("随机读 IOPS"))
+    sequential_write_throughput_mbps = serializers.IntegerField(
+        allow_null=True,
+        help_text=_("顺序写吞吐，单位 MB/s"),
+    )
+    write_latency_ms = serializers.FloatField(allow_null=True, help_text=_("写延迟，单位 ms"))
+
+
+class ClusterRefHostPerfOutputSerializer(serializers.Serializer):
+    cluster_id = serializers.IntegerField(help_text=_("集群 ID"))
+    immute_domain = serializers.CharField(help_text=_("集群 immute 域名"))
+    cluster_type = serializers.CharField(help_text=_("集群类型：tendbha / tendbcluster"))
+    ref_shard_id = serializers.IntegerField(
+        allow_null=True,
+        help_text=_("TenDBCluster 采样分片号（最小 shard_id）；TenDBHA 为 null"),
+    )
+    spider_host = RefSpiderHostOutputSerializer(
+        allow_null=True,
+        help_text=_("TenDBCluster 一台 spider_master 平铺主机性能；TenDBHA 为 null"),
+    )
+    storage_host = RefStorageHostOutputSerializer(
+        allow_null=True,
+        help_text=_("存储代表机平铺性能：TenDBHA 为 backend_master；TenDBCluster 为首分片 remote_master；" "含 datadir 匹配后的数据盘基线字段"),
+    )
