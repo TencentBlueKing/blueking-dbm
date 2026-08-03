@@ -29,6 +29,7 @@ import (
 	"strings"
 	"sync"
 
+	"dbm-services/common/dbha-v2/pkg/logger"
 	"dbm-services/common/dbha-v2/pkg/storage/haprobe"
 )
 
@@ -42,7 +43,32 @@ type EndpointAttrs struct {
 	MachineType  haprobe.DbmMetadataMachineType
 	InstanceRole haprobe.DbmMetadataInstanceRole
 	AccessLayer  haprobe.DbmMetadataAccessLayerType
+	Ip           string
+	Ports        []string
+	AdminPorts   []string
 }
+
+// PortKind selects which port fields a routed endpoint should carry.
+type PortKind uint8
+
+const (
+	// PortKindAll keeps both Ports and AdminPorts.
+	PortKindAll PortKind = iota
+	// PortKindData keeps Ports only; AdminPorts must stay nil.
+	PortKindData
+	// PortKindAdmin keeps AdminPorts only; Ports must stay nil.
+	PortKindAdmin
+)
+
+// EndpointRoute is one harvester block destination for an endpoint.
+type EndpointRoute struct {
+	BlockName string
+	Ports     PortKind
+}
+
+// EndpointRouter maps endpoint attributes to zero or more harvester blocks.
+// Returning multiple routes enables dual-produce (e.g. mysql-proxy admin + data).
+type EndpointRouter func(EndpointAttrs) []EndpointRoute
 
 // HarvestBlock describes a probe harvester config block for genconfig routing.
 // A single DbType may own multiple blocks (e.g. mysql + mysqlProxyAdmin).
@@ -58,6 +84,9 @@ var (
 	harvestBlockMu        sync.RWMutex
 	harvestBlocksByDbType = map[haprobe.DbType][]HarvestBlock{}
 	harvestBlockByName    = map[string]HarvestBlock{}
+
+	endpointRouterMu sync.RWMutex
+	endpointRouters  = map[haprobe.DbType]EndpointRouter{}
 )
 
 // RegisterHarvestBlock registers a harvest block descriptor.
@@ -114,4 +143,83 @@ func HarvestBlockByName(name string) (HarvestBlock, bool) {
 	defer harvestBlockMu.RUnlock()
 	b, ok := harvestBlockByName[NormalizeBlockName(name)]
 	return b, ok
+}
+
+// RegisterEndpointRouter registers a DbType-specific endpoint router.
+// Panics on nil router, invalid DbType, or duplicate registration.
+func RegisterEndpointRouter(dt haprobe.DbType, r EndpointRouter) {
+	if r == nil {
+		panic(fmt.Sprintf("dbtype: refuse to register nil EndpointRouter for DbType: %q", dt))
+	}
+	if dt == haprobe.DbTypeNone || dt == haprobe.DbTypeUnknown {
+		panic(fmt.Sprintf("dbtype: refuse to register EndpointRouter with invalid DbType: %q", dt))
+	}
+
+	endpointRouterMu.Lock()
+	defer endpointRouterMu.Unlock()
+
+	if _, exists := endpointRouters[dt]; exists {
+		panic(fmt.Sprintf("dbtype: duplicate EndpointRouter for DbType: %s", dt))
+	}
+	endpointRouters[dt] = r
+}
+
+// RouteEndpoint resolves harvester destinations for one endpoint.
+// Prefer a registered EndpointRouter; otherwise fall back to HarvestBlock Match /
+// nil-Match, returning a single PortKindAll route. Unknown DbType (or no blocks)
+// returns an empty slice without logging.
+func RouteEndpoint(dt haprobe.DbType, attrs EndpointAttrs) []EndpointRoute {
+	if dt == haprobe.DbTypeNone || dt == haprobe.DbTypeUnknown {
+		return nil
+	}
+
+	endpointRouterMu.RLock()
+	router, hasRouter := endpointRouters[dt]
+	endpointRouterMu.RUnlock()
+	if hasRouter {
+		return router(attrs)
+	}
+
+	blocks := HarvestBlocksOf(dt)
+	if len(blocks) == 0 {
+		return nil
+	}
+
+	matchAttrs := EndpointAttrs{
+		ClusterType:  attrs.ClusterType,
+		MachineType:  attrs.MachineType,
+		InstanceRole: attrs.InstanceRole,
+		AccessLayer:  attrs.AccessLayer,
+	}
+
+	var fallback *HarvestBlock
+	for i := range blocks {
+		b := &blocks[i]
+		if b.Match == nil {
+			fallback = b
+			continue
+		}
+		if b.Match(matchAttrs) {
+			return []EndpointRoute{{BlockName: b.BlockName, Ports: PortKindAll}}
+		}
+	}
+	if fallback != nil {
+		return []EndpointRoute{{BlockName: fallback.BlockName, Ports: PortKindAll}}
+	}
+	logger.Info(
+		"skip endpoint with no matching harvest block, db_type: %s, cluster_type: %s, access_layer: %s",
+		dt, attrs.ClusterType, attrs.AccessLayer,
+	)
+	return nil
+}
+
+// EndpointRouterDbTypes returns DbTypes that registered an EndpointRouter.
+func EndpointRouterDbTypes() []haprobe.DbType {
+	endpointRouterMu.RLock()
+	defer endpointRouterMu.RUnlock()
+	out := make([]haprobe.DbType, 0, len(endpointRouters))
+	for dt := range endpointRouters {
+		out = append(out, dt)
+	}
+	return out
 }
