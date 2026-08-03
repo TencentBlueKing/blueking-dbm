@@ -52,11 +52,15 @@ def _format_process_infos(rows: list[dict], info_max_len: int = 120) -> str:
     # Support both lowercase and uppercase field names from different data sources
     candidates = [
         (["check_address"], "check_address"),
+        (["trx_state", "TRX_STATE"], "TRX_STATE"),
+        (["trx_started", "TRX_STARTED"], "TRX_STARTED"),
+        (["trx_mysql_thread_id", "TRX_MYSQL_THREAD_ID"], "TRX_THREAD_ID"),
         (["Command", "COMMAND"], "COMMAND"),
         (["Db", "DB"], "DB"),
         (["Rows_examined", "ROWS_EXAMINED"], "EXAMINED_ROWS"),
         (["Host", "HOST"], "HOST"),
         (["Id", "ID"], "ID"),
+        (["User", "USER"], "USER"),
         (["Info", "INFO"], "INFO"),
         (["Time", "TIME"], "TIME"),
         (["State", "STATE"], "STATE"),

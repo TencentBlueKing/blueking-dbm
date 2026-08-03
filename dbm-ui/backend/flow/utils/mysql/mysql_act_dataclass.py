@@ -502,6 +502,20 @@ class CheckClientConnKwargs:
 
 
 @dataclass
+class CheckLongInnoDbTrxKwargs:
+    """
+    定义检测 InnoDB 长未提交事务的私有变量结构体
+    @attributes bk_cloud_id：云区域 id
+    @attributes check_instances: 检测实例列表，元素为 ip:port
+    @attributes min_trx_age_seconds: 事务开始时间早于当前多少秒则视为长事务（正整数）
+    """
+
+    bk_cloud_id: int
+    check_instances: list
+    min_trx_age_seconds: int = 300
+
+
+@dataclass
 class VerifyChecksumKwargs:
     """
     定义检测checksum结果的私有变量结构体
