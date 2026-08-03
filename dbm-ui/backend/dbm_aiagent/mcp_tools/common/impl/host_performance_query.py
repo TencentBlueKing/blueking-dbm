@@ -8,12 +8,26 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+import logging
+import os
+import re
 from collections import defaultdict
-from typing import Any, Dict, List, Optional, Set
+from typing import Any, Dict, List, Optional, Set, Tuple
 
+from django.utils.translation import gettext as _
+
+from backend.components import DRSApi
+from backend.db_meta.enums import ClusterType, InstanceRole, TenDBClusterSpiderRole
 from backend.db_meta.models import Cluster, Machine, ProxyInstance, StorageInstance
+from backend.dbm_aiagent.mcp_tools.exceptions import DBMMcpNotSupportClusterTypeException
 from backend.dbm_aiagent.utils import query_host_performance_for_machine
 from backend.ticket.constants import InstanceType
+
+logger = logging.getLogger("root")
+
+# 与 mysql cluster_runtime_variables 一致：/data、/data1 等数据盘挂载点前缀
+_DATA_MOUNT_PREFIX_RE = re.compile(r"^(/data[0-9]*)(/|$)")
+_SHOW_DATADIR_SQL = "SHOW GLOBAL VARIABLES WHERE Variable_name = 'datadir'"
 
 
 def collect_machine_ids_for_cluster(cluster: Cluster, instance_roles: Optional[List[str]]) -> List[int]:
@@ -117,3 +131,204 @@ def query_host_db_instance_ports(*, ip: str, bk_cloud_id: int) -> Dict[str, Any]
         "instance_count": instance_count,
         "ports": ports_sorted,
     }
+
+
+def _datadir_mount_fields(datadir_value: str) -> Dict[str, str]:
+    """由 datadir 推导 data_dir_mount（/data、/data1 等）。"""
+    raw = (datadir_value or "").strip()
+    if not raw:
+        return {"datadir": "", "data_dir_mount": ""}
+    mount_match = _DATA_MOUNT_PREFIX_RE.match(os.path.normpath(raw))
+    return {"datadir": raw, "data_dir_mount": mount_match.group(1) if mount_match else ""}
+
+
+def _query_inst_datadir(bk_cloud_id: int, address: str) -> Dict[str, str]:
+    """DRS 查询实例 datadir，失败时返回空字段并打 warning。"""
+    empty = {"datadir": "", "data_dir_mount": ""}
+    try:
+        raw_drs_res = DRSApi.v2_mysql_rpc(
+            {"addresses": [address], "cmds": [_SHOW_DATADIR_SQL], "bk_cloud_id": bk_cloud_id}
+        )
+    except Exception as exc:  # pylint: disable=broad-except
+        logger.warning(_("查询实例 {} datadir 失败: {}").format(address, str(exc)))
+        return empty
+
+    if not raw_drs_res:
+        logger.warning(_("查询实例 {} datadir 无 DRS 返回").format(address))
+        return empty
+
+    address_res = raw_drs_res[0]
+    if address_res.get("error_msg"):
+        logger.warning(_("查询实例 {} datadir DRS 错误: {}").format(address, address_res["error_msg"]))
+        return empty
+    cmd_res = (address_res.get("cmd_results") or [{}])[0]
+    if cmd_res.get("error_msg"):
+        logger.warning(_("查询实例 {} datadir SQL 错误: {}").format(address, cmd_res["error_msg"]))
+        return empty
+
+    datadir = ""
+    for row in cmd_res.get("table_data") or []:
+        if (row.get("Variable_name") or "").lower() == "datadir":
+            datadir = (row.get("Value") or "").strip()
+            break
+    return _datadir_mount_fields(datadir)
+
+
+def _match_disk_by_mount(disks: List[Dict[str, Any]], data_dir_mount: str) -> Optional[Dict[str, Any]]:
+    """按 data_dir_mount 精确匹配 disks[].mount_point。"""
+    if not data_dir_mount:
+        return None
+    for disk in disks:
+        if disk.get("mount_point") == data_dir_mount:
+            return disk
+    return None
+
+
+def _flatten_host_base(ref_role: str, perf: Dict[str, Any]) -> Dict[str, Any]:
+    """将 machine / host_baseline 平铺为单层 dict（不含磁盘与 instance_count）。"""
+    machine_sum = perf.get("machine") or {}
+    host_bl = perf.get("host_baseline") or {}
+    return {
+        "ref_role": ref_role,
+        "ip": machine_sum.get("ip"),
+        "bk_cloud_id": machine_sum.get("bk_cloud_id"),
+        "bk_svr_device_cls_name": machine_sum.get("bk_svr_device_cls_name") or "",
+        "device_class": host_bl.get("device_class"),
+        "cpu_model": host_bl.get("cpu_model"),
+        "cpu_frequency_ghz": host_bl.get("cpu_frequency_ghz"),
+        "network_card_speed": host_bl.get("network_card_speed"),
+        "vcpu": host_bl.get("vcpu"),
+        "memory_gb": host_bl.get("memory_gb"),
+        "network_pps_w": host_bl.get("network_pps_w"),
+        "intranet_bandwidth_gbps": host_bl.get("intranet_bandwidth_gbps"),
+        "queue_count": host_bl.get("queue_count"),
+    }
+
+
+def _flatten_storage_row(
+    machine: Machine,
+    ref_role: str,
+    perf: Dict[str, Any],
+    datadir_meta: Dict[str, str],
+    matched_disk: Optional[Dict[str, Any]],
+) -> Dict[str, Any]:
+    """存储代表机：主机基线平铺 + instance_count + datadir 匹配磁盘基线。"""
+    disk_meta = matched_disk or {}
+    disk_bl = disk_meta.get("baseline") or {}
+    row = _flatten_host_base(ref_role, perf)
+    row.update(
+        {
+            "instance_count": StorageInstance.objects.filter(machine=machine).count(),
+            "datadir": datadir_meta.get("datadir") or "",
+            "data_dir_mount": datadir_meta.get("data_dir_mount") or "",
+            "mount_point": disk_meta.get("mount_point"),
+            "disk_type": disk_meta.get("disk_type"),
+            "size": disk_meta.get("size"),
+            "disk_name": disk_bl.get("disk_name"),
+            "capacity_gb": disk_bl.get("capacity_gb"),
+            "performance_iops": disk_bl.get("performance_iops"),
+            "performance_throughput_mbps": disk_bl.get("performance_throughput_mbps"),
+            "random_read_iops": disk_bl.get("random_read_iops"),
+            "sequential_write_throughput_mbps": disk_bl.get("sequential_write_throughput_mbps"),
+            "write_latency_ms": disk_bl.get("write_latency_ms"),
+        }
+    )
+    return row
+
+
+def _spider_host_row(machine: Machine, ref_role: str) -> Dict[str, Any]:
+    """Spider 代表机平铺结果：仅 machine + host_baseline。"""
+    return _flatten_host_base(ref_role, query_host_performance_for_machine(machine))
+
+
+def _storage_host_row(inst: StorageInstance, ref_role: str) -> Dict[str, Any]:
+    """
+    存储代表机平铺结果：按实例 datadir 匹配数据盘，展开主机/基线/磁盘字段。
+    """
+    machine = inst.machine
+    datadir_meta = _query_inst_datadir(machine.bk_cloud_id, inst.ip_port)
+    perf = query_host_performance_for_machine(machine)
+    matched_disk = _match_disk_by_mount(perf.get("disks") or [], datadir_meta.get("data_dir_mount") or "")
+    if datadir_meta.get("data_dir_mount") and matched_disk is None:
+        logger.warning(
+            _("实例 {} data_dir_mount={} 未匹配到主机磁盘挂载点").format(inst.ip_port, datadir_meta.get("data_dir_mount"))
+        )
+    return _flatten_storage_row(machine, ref_role, perf, datadir_meta, matched_disk)
+
+
+def _pick_tendbha_storage(cluster: Cluster) -> Optional[StorageInstance]:
+    """TenDBHA：取首台 backend_master 实例。"""
+    return (
+        StorageInstance.objects.filter(cluster=cluster, instance_role=InstanceRole.BACKEND_MASTER)
+        .select_related("machine")
+        .order_by("machine_id")
+        .first()
+    )
+
+
+def _pick_tc_spider(cluster: Cluster) -> Optional[Machine]:
+    """TenDBCluster：取首台 spider_master 所在机器。"""
+    proxy = (
+        cluster.proxyinstance_set.select_related("machine", "tendbclusterspiderext")
+        .filter(tendbclusterspiderext__spider_role=TenDBClusterSpiderRole.SPIDER_MASTER)
+        .order_by("machine_id")
+        .first()
+    )
+    return proxy.machine if proxy else None
+
+
+def _pick_tc_storage(cluster: Cluster) -> Tuple[Optional[StorageInstance], Optional[int]]:
+    """TenDBCluster：最小 shard_id 分片的 remote_master（ejector）实例。"""
+    shard = (
+        cluster.tendbclusterstorageset_set.select_related("storage_instance_tuple__ejector__machine")
+        .order_by("shard_id")
+        .first()
+    )
+    if not shard:
+        return None, None
+    return shard.storage_instance_tuple.ejector, shard.shard_id
+
+
+def query_cluster_ref_host_perf(cluster: Cluster) -> Dict[str, Any]:
+    """
+    查询集群参考主机硬件与基线性能（每类一台代表机）。
+
+    TenDBHA：仅 storage_host=backend_master；spider_host=null。
+    TenDBCluster：spider_host=一台 spider_master；storage_host=首分片 remote_master。
+    spider_host / storage_host 均为平铺字段；storage_host 另含 instance_count、
+    datadir/data_dir_mount 及按 datadir 匹配的数据盘基线。
+    """
+    base = {
+        "cluster_id": cluster.id,
+        "immute_domain": cluster.immute_domain,
+        "cluster_type": cluster.cluster_type,
+    }
+
+    if cluster.cluster_type == ClusterType.TenDBHA:
+        inst = _pick_tendbha_storage(cluster)
+        return {
+            **base,
+            "ref_shard_id": None,
+            "spider_host": None,
+            "storage_host": (_storage_host_row(inst, InstanceRole.BACKEND_MASTER.value) if inst else None),
+        }
+
+    if cluster.cluster_type == ClusterType.TenDBCluster:
+        spider_machine = _pick_tc_spider(cluster)
+        storage_inst, shard_id = _pick_tc_storage(cluster)
+        if storage_inst is None:
+            logger.warning(_("TenDBCluster 集群 {} 无分片存储集，storage_host 为空").format(cluster.id))
+        return {
+            **base,
+            "ref_shard_id": shard_id,
+            "spider_host": (
+                _spider_host_row(spider_machine, TenDBClusterSpiderRole.SPIDER_MASTER.value)
+                if spider_machine
+                else None
+            ),
+            "storage_host": (
+                _storage_host_row(storage_inst, InstanceRole.REMOTE_MASTER.value) if storage_inst else None
+            ),
+        }
+
+    raise DBMMcpNotSupportClusterTypeException(cluster_type=cluster.cluster_type)

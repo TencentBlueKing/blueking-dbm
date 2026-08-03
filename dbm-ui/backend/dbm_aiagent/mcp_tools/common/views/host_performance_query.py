@@ -15,10 +15,13 @@ from backend.db_meta.models import Cluster
 from backend.dbm_aiagent.mcp_tools.common.auth_parser.base import auth_parse_clusters
 from backend.dbm_aiagent.mcp_tools.common.impl.host_performance_query import (
     query_cluster_hosts_performance,
+    query_cluster_ref_host_perf,
     query_host_db_instance_ports,
 )
 from backend.dbm_aiagent.mcp_tools.common.serializers.host_performance_query import (
     ClusterHostPerformanceOutputSerializer,
+    ClusterRefHostInputSerializer,
+    ClusterRefHostPerfOutputSerializer,
     HostInstancePortsOutputSerializer,
     HostPerformanceByClusterInputSerializer,
     HostPerformanceByIpInputSerializer,
@@ -104,3 +107,34 @@ class HostPerformanceQueryMcpToolsViewSet(McpToolsViewSet):
             cluster = Cluster.objects.get(immute_domain=cluster_domain)
 
         return Response(query_cluster_hosts_performance(cluster=cluster, instance_roles=instance_roles or None))
+
+    @mcp_tools_api_decorator(
+        description=str(
+            _(
+                "查询集群参考主机硬件与基线性能（精简采样）。"
+                "TenDBHA：仅返回一台 backend_master 作为 storage_host，spider_host 为 null；"
+                "TenDBCluster：各返回一台 spider_master（spider_host）与最小 shard_id 分片的 "
+                "remote_master（storage_host）；默认同角色/同分片主机配置一致，不拉全量。"
+                "spider_host / storage_host 均为平铺字段；storage_host 另含 instance_count，"
+                "并通过 DRS 查实例 datadir 匹配数据盘后展开磁盘基线。"
+                "仅支持 tendbha/tendbcluster。需集群查看权限。"
+            )
+        ),
+        request_slz=ClusterRefHostInputSerializer,
+        response_slz=ClusterRefHostPerfOutputSerializer,
+        permission_classes=[McpIsDbaPermission, McpClusterDetailPermission],
+        mcp_auth_parser=auth_parse_clusters,
+        tags=[DBMMCPTags.READ],
+        mcp=[DBMMcpTools.HOST_PERFORMANCE_QUERY],
+        name_prefix="host_performance_query",
+    )
+    def query_cluster_ref_host_performance(self, request, *args, **kwargs):
+        cluster_id = self.get_param("cluster_id")
+        cluster_domain = self.get_param("cluster_domain")
+
+        if cluster_id is not None:
+            cluster = Cluster.objects.get(id=int(cluster_id))
+        else:
+            cluster = Cluster.objects.get(immute_domain=cluster_domain)
+
+        return Response(query_cluster_ref_host_perf(cluster=cluster))
