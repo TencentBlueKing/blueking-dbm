@@ -242,7 +242,7 @@ class RefStorageHostOutputSerializer(RefSpiderHostOutputSerializer):
     存储参考主机平铺结构：在主机基线平铺基础上，附加 instance_count 与 datadir 匹配磁盘基线。
     """
 
-    ref_role = serializers.CharField(help_text=_("参考角色：backend_master / remote_master"))
+    ref_role = serializers.CharField(help_text=_("参考角色：backend_master / orphan / remote_master"))
     instance_count = serializers.IntegerField(
         help_text=_("该存储代表机上的 StorageInstance 数量（同机部署密度，不含 Proxy）"),
     )
@@ -276,16 +276,19 @@ class RefStorageHostOutputSerializer(RefSpiderHostOutputSerializer):
 class ClusterRefHostPerfOutputSerializer(serializers.Serializer):
     cluster_id = serializers.IntegerField(help_text=_("集群 ID"))
     immute_domain = serializers.CharField(help_text=_("集群 immute 域名"))
-    cluster_type = serializers.CharField(help_text=_("集群类型：tendbha / tendbcluster"))
+    cluster_type = serializers.CharField(help_text=_("集群类型：tendbsingle / tendbha / tendbcluster"))
     ref_shard_id = serializers.IntegerField(
         allow_null=True,
-        help_text=_("TenDBCluster 采样分片号（最小 shard_id）；TenDBHA 为 null"),
+        help_text=_("TenDBCluster 采样分片号（最小 shard_id）；TenDBHA/TenDBSingle 为 null"),
     )
     spider_host = RefSpiderHostOutputSerializer(
         allow_null=True,
-        help_text=_("TenDBCluster 一台 spider_master 平铺主机性能；TenDBHA 为 null"),
+        help_text=_("TenDBCluster 一台 spider_master 平铺主机性能；TenDBHA/TenDBSingle 为 null"),
     )
     storage_host = RefStorageHostOutputSerializer(
         allow_null=True,
-        help_text=_("存储代表机平铺性能：TenDBHA 为 backend_master；TenDBCluster 为首分片 remote_master；" "含 datadir 匹配后的数据盘基线字段"),
+        help_text=_(
+            "存储代表机平铺性能：TenDBSingle 为 orphan；TenDBHA 为 backend_master；"
+            "TenDBCluster 为首分片 remote_master；含 datadir 匹配后的数据盘基线字段"
+        ),
     )

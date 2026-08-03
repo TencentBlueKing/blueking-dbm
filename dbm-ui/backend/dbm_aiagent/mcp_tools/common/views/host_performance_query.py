@@ -113,11 +113,12 @@ class HostPerformanceQueryMcpToolsViewSet(McpToolsViewSet):
             _(
                 "查询集群参考主机硬件与基线性能（精简采样）。"
                 "TenDBHA：仅返回一台 backend_master 作为 storage_host，spider_host 为 null；"
+                "TenDBSingle：仅返回一台 orphan 作为 storage_host，spider_host 为 null；"
                 "TenDBCluster：各返回一台 spider_master（spider_host）与最小 shard_id 分片的 "
                 "remote_master（storage_host）；默认同角色/同分片主机配置一致，不拉全量。"
                 "spider_host / storage_host 均为平铺字段；storage_host 另含 instance_count，"
                 "并通过 DRS 查实例 datadir 匹配数据盘后展开磁盘基线。"
-                "仅支持 tendbha/tendbcluster。需集群查看权限。"
+                "仅支持 tendbsingle/tendbha/tendbcluster。需集群查看权限。"
             )
         ),
         request_slz=ClusterRefHostInputSerializer,

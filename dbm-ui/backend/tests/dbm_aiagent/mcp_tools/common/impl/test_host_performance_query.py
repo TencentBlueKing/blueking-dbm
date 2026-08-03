@@ -55,6 +55,31 @@ class TestQueryClusterRefHostPerf:
         storage_row.assert_called_once_with(inst, InstanceRole.BACKEND_MASTER.value)
 
     @patch.object(mod, "_storage_host_row")
+    @patch.object(mod, "_pick_single_storage")
+    def test_tendbsingle_storage_only(self, pick_storage, storage_row):
+        cluster = _fake_cluster(ClusterType.TenDBSingle, cid=10002, domain="tendbsingle.example.db")
+        inst = MagicMock()
+        pick_storage.return_value = inst
+        storage_row.return_value = {
+            "ref_role": InstanceRole.ORPHAN.value,
+            "instance_count": 1,
+            "ip": "127.0.0.3",
+            "datadir": "/data/mysqldata",
+            "data_dir_mount": "/data",
+            "mount_point": "/data",
+            "performance_iops": 9000,
+        }
+
+        result = mod.query_cluster_ref_host_perf(cluster)
+
+        assert result["cluster_type"] == ClusterType.TenDBSingle
+        assert result["ref_shard_id"] is None
+        assert result["spider_host"] is None
+        assert result["storage_host"]["ref_role"] == "orphan"
+        assert result["storage_host"]["instance_count"] == 1
+        storage_row.assert_called_once_with(inst, InstanceRole.ORPHAN.value)
+
+    @patch.object(mod, "_storage_host_row")
     @patch.object(mod, "_spider_host_row")
     @patch.object(mod, "_pick_tc_storage")
     @patch.object(mod, "_pick_tc_spider")
