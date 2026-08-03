@@ -42,6 +42,46 @@ from backend.utils.cache import func_cache_decorator
 
 logger = logging.getLogger("root")
 
+# 企微机器人消息单条最大字符数限制 2048
+MSG_MAX_LENGTH = 2000
+
+
+def _split_content(content: str, max_length: int = MSG_MAX_LENGTH) -> list:
+    """
+    将消息内容按最大长度分片，尽量按行分割避免截断。
+    如果单行超过 max_length，则强制按字符截断。
+    @param content: 原始消息内容
+    @param max_length: 单条消息最大字符数
+    @return: 分片后的消息列表
+    """
+    if len(content) <= max_length:
+        return [content]
+
+    chunks = []
+    current_chunk = ""
+    for line in content.split("\n"):
+        # 如果当前块加上新行不超过限制，则追加
+        candidate = f"{current_chunk}\n{line}" if current_chunk else line
+        if len(candidate) <= max_length:
+            current_chunk = candidate
+        else:
+            # 先保存当前块（如果非空）
+            if current_chunk:
+                chunks.append(current_chunk)
+                current_chunk = ""
+            # 如果单行本身就超过限制，强制按字符截断
+            if len(line) > max_length:
+                while line:
+                    chunks.append(line[:max_length])
+                    line = line[max_length:]
+            else:
+                current_chunk = line
+
+    if current_chunk:
+        chunks.append(current_chunk)
+
+    return chunks
+
 
 class BaseNotifyHandler:
     """
@@ -573,9 +613,11 @@ class NotifyAdapter:
                     msg_receivers = send_msg_config.get(MsgType.WECOM_ROBOT.value, [])
 
                 if msg_type in BkChatHandler.get_msg_type() and env.BKCHAT_APIGW_DOMAIN:
-                    BkChatHandler(title, content, msg_receivers).send_custom_msg()
+                    for chunk in _split_content(content):
+                        BkChatHandler(title, chunk, msg_receivers).send_custom_msg()
                 else:
-                    CmsiHandler(title, content, msg_receivers).send_msg(msg_type, context=None)
+                    for chunk in _split_content(content):
+                        CmsiHandler(title, chunk, msg_receivers).send_msg(msg_type, context=None)
             except (ApiResultError, Exception) as e:
                 logger.error(_("[{}] AI报告消息发送失败，错误信息: {}").format(msg_type, e))
 
