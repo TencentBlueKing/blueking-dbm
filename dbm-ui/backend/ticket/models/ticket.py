@@ -37,6 +37,7 @@ from backend.ticket.constants import (
     FlowErrCode,
     FlowRetryType,
     FlowType,
+    FlowTypeConfig,
     TicketFlowStatus,
     TicketStatus,
     TicketType,
@@ -455,12 +456,23 @@ class TicketFlowsConfig(AuditedModel):
         4. 同一维度允许多条配置，按 update_at 倒序匹配，优先使用最新命中的配置。
         5. 同一条标签配置内，同一个 tag_key 下多个 tag_value 是 OR 关系，不同 tag_key 之间是 AND 关系。
         6. 标签值为 CLUSTER_TAG_WILDCARD_VALUE 时，表示集群在该 tag_key 下存在任意标签值即可命中该 key。
+        7. '人工确认'配置统一用平台默认配置
         """
         # 流程优先级：集群维度 > 标签维度 > 业务维度 > 平台维度
         # 全局配置
         from backend.db_meta.models import Cluster
 
         global_cfg = cls.objects.get(bk_biz_id=PLAT_BIZ_ID, ticket_type=ticket_type)
+
+        def with_global_manual_confirm(config):
+            # '人工确认'配置统一用平台默认配置
+            if FlowTypeConfig.NEED_MANUAL_CONFIRM not in config.configs and config.bk_biz_id != PLAT_BIZ_ID:
+                config.configs = {
+                    **config.configs,
+                    FlowTypeConfig.NEED_MANUAL_CONFIRM: global_cfg.configs.get(FlowTypeConfig.NEED_MANUAL_CONFIRM),
+                }
+            return config
+
         # 当前业务下该单据类型的所有配置；cluster_ids/cluster_tags 均为空的记录是业务默认配置。
         biz_configs = cls.objects.filter(bk_biz_id=bk_biz_id, ticket_type=ticket_type)
         biz_cfg = biz_configs.filter(cluster_ids=[], cluster_tags=[]).first() or global_cfg
@@ -470,7 +482,7 @@ class TicketFlowsConfig(AuditedModel):
 
         # 单据不涉及集群，无法匹配集群/标签维度，直接返回业务默认配置或平台默认配置。
         if not cluster_ids:
-            return [biz_cfg]
+            return [with_global_manual_confirm(biz_cfg)]
 
         # 集群维度为精确匹配：当前 cluster_id 出现在配置的 cluster_ids 中即命中。
         # cluster_cfg.cluster_ids 存储的是 [{"id": 1, "immute_domain": "..."}]
@@ -528,7 +540,8 @@ class TicketFlowsConfig(AuditedModel):
         cluster_configs = []
         for cluster_id in cluster_ids:
             # 单个集群只有在集群配置和标签配置都未命中时，才使用业务默认配置或平台默认配置。
-            cluster_configs.append(get_matched_cluster_cfg(cluster_id) or get_matched_tag_cfg(cluster_id) or biz_cfg)
+            matched_cfg = get_matched_cluster_cfg(cluster_id) or get_matched_tag_cfg(cluster_id) or biz_cfg
+            cluster_configs.append(with_global_manual_confirm(matched_cfg))
         return cluster_configs
 
     @classmethod
