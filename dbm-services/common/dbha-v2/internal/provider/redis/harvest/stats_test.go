@@ -22,17 +22,17 @@
  * SOFTWARE.
  */
 
-package mysql
+package harvest
 
 import (
 	"fmt"
 	"testing"
 )
 
-func TestGlobalStatus(t *testing.T) {
-	gstats := []globalStatus{}
+func TestRedisInfo(t *testing.T) {
+	info := []redisInfo{}
 
-	dbMetrics := convertToMySqlStatus(gstats)
+	status := convertToRedisStatus(info)
 
-	fmt.Println("db-metrics: ", dbMetrics)
+	fmt.Println("redis-status: ", status)
 }
