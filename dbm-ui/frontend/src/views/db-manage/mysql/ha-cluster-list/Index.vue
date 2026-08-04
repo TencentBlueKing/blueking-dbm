@@ -122,8 +122,8 @@
                   :data="data"
                   :disabled="!data.isOffline">
                   <AuthButton
-                    action-id="mysql_add_clb"
-                    :permission="data.permission.mysql_add_clb"
+                    action-id="mysql_loadbalance_manage"
+                    :permission="data.permission.mysql_loadbalance_manage"
                     :resource="data.id"
                     text
                     @click="() => handleAddClb({ details: { cluster_id: data.id, bk_cloud_id: data.bk_cloud_id } })">
@@ -138,8 +138,8 @@
                   :data="data"
                   :disabled="!data.isOffline">
                   <AuthButton
-                    action-id="mysql_clb_bind_domain"
-                    :permission="data.permission.mysql_clb_bind_domain"
+                    action-id="mysql_loadbalance_manage"
+                    :permission="data.permission.mysql_loadbalance_manage"
                     :resource="data.id"
                     text
                     @click="

@@ -20,8 +20,11 @@ export default class MysqlPermissionAccount implements PermissionRule {
   permission: {
     mysql_account_delete: boolean;
     mysql_add_account_rule: boolean;
+    // 聚合权限（灰度期可选，缺省 false）
+    mysql_priv_manage?: boolean;
     tendbcluster_account_delete: boolean;
     tendbcluster_add_account_rule: boolean;
+    tendbcluster_priv_manage?: boolean;
   };
   rules: PermissionRuleInfo[];
 

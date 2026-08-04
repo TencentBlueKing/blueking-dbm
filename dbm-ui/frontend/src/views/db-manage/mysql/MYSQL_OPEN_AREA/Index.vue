@@ -17,7 +17,7 @@
     :title="t('开区模板：通过开区模板，可以快速创建集群开区')" />
   <div class="header-action mt-16 mb-16">
     <AuthButton
-      action-id="mysql_openarea_config_create"
+      action-id="mysql_openarea_manage"
       class="w-88"
       theme="primary"
       @click="handleGoCreate">
@@ -75,9 +75,9 @@
           {{ t('开区') }}
         </RouterLink>
         <AuthRouterLink
-          action-id="mysql_openarea_config_update"
+          action-id="mysql_openarea_manage"
           class="ml-16"
-          :permission="data.permission.mysql_openarea_config_update"
+          :permission="data.permission.mysql_openarea_manage"
           :resource="data.id"
           :to="{
             name: 'MySQLOpenareaTemplateEdit',
@@ -91,8 +91,8 @@
           {{ t('编辑') }}
         </AuthRouterLink>
         <AuthTemplate
-          action-id="mysql_openarea_config_destroy"
-          :permission="data.permission.mysql_openarea_config_destroy"
+          action-id="mysql_openarea_manage"
+          :permission="data.permission.mysql_openarea_manage"
           :resource="data.id">
           <DbPopconfirm
             :confirm-handler="() => handleRemove(data)"

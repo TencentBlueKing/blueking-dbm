@@ -79,6 +79,15 @@ export default class Tendbha extends ClusterBase {
     mysql_dump_data: boolean;
     mysql_edit: boolean;
     mysql_enable_disable: boolean;
+    // 聚合权限（灰度期可选，缺省 false）
+    mysql_loadbalance_manage?: boolean;
+    mysql_manage?: boolean;
+    mysql_openarea_manage?: boolean;
+    mysql_partition_manage?: boolean;
+    mysql_priv_manage?: boolean;
+    mysql_rename_database?: boolean;
+    mysql_rollback_cluster?: boolean;
+    mysql_truncate_data?: boolean;
     mysql_view: boolean;
     mysql_webconsole: boolean;
     tbinlogdumper_install: boolean;
