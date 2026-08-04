@@ -25,6 +25,7 @@ from backend.dbm_aiagent.mcp_tools.common.views import (
 )
 from backend.dbm_aiagent.mcp_tools.common.views.alarm_query import MonitorQueryMcpToolsViewSet
 from backend.dbm_aiagent.mcp_tools.common.views.bkcc_wrap import BKCCWrapMcpToolsViewSet
+from backend.dbm_aiagent.mcp_tools.common.views.bkjob_wrap.viewset import BKJobWrapMcpToolsViewSet
 from backend.dbm_aiagent.mcp_tools.common.views.mcp_callee_plan import McpCalleePlanMcpToolsViewSet
 
 routers = DefaultRouter(trailing_slash=True)
@@ -42,5 +43,6 @@ routers.register(r"", McpCalleePlanMcpToolsViewSet, basename="mcp-callee-plan")
 routers.register(r"", AiReportMcpToolsViewSet, basename="mcp-ai-report")
 routers.register(r"", ClusterPortraitMcpToolsViewSet, basename="mcp-cluster-portrait")
 routers.register(r"", BKCCWrapMcpToolsViewSet, basename="mcp-bkcc-wrap")
+routers.register(r"", BKJobWrapMcpToolsViewSet, basename="mcp-bkjob-wrap")
 routers.register(r"", HcmResourceReplenishMcpToolsViewSet, basename="mcp-resource-replenish")
 urlpatterns = routers.urls
