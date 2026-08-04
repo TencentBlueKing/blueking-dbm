@@ -80,6 +80,7 @@ def cluster_reduce_shard(
                 storage_objs.append(obj)
 
             machines = []
+            seen_host_ids = set()
             for storage_obj in storage_objs:
                 logger.info(
                     "cluster {} remove storage {} for shard {}".format(cluster.immute_domain, storage_obj, shard_name)
@@ -90,7 +91,9 @@ def cluster_reduce_shard(
                 StorageInstanceTuple.objects.filter(ejector=storage_obj).delete()
                 StorageInstanceTuple.objects.filter(receiver=storage_obj).delete()
                 cluster.storageinstance_set.remove(storage_obj)
-                machines.append(storage_obj.machine)
+                if storage_obj.machine.bk_host_id not in seen_host_ids:
+                    machines.append(storage_obj.machine)
+                    seen_host_ids.add(storage_obj.machine.bk_host_id)
                 if storage_obj.bk_instance_id:
                     cc_manage.delete_service_instance(bk_instance_ids=[storage_obj.bk_instance_id])
                 storage_obj.delete()

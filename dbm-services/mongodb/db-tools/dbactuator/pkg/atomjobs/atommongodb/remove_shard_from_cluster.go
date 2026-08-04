@@ -18,17 +18,20 @@ import (
 const (
 	removeShardDefaultMaxWaitSeconds = 72 * 3600
 	removeShardDefaultPollSeconds    = 30
+	movePrimaryMinMajorMinor         = "4.4"
 )
 
 // RemoveShardConfParams 参数
 type RemoveShardConfParams struct {
-	IP            string   `json:"ip" validate:"required"`
-	Port          int      `json:"port" validate:"required"`
-	AdminUsername string   `json:"adminUsername" validate:"required"`
-	AdminPassword string   `json:"adminPassword" validate:"required"`
-	Shards        []string `json:"shards" validate:"required,min=1"`
-	MaxWaitSec    int      `json:"maxWaitSec"` // optional, default 72h
-	PollSec       int      `json:"pollSec"`    // optional, default 30s
+	IP                    string   `json:"ip" validate:"required"`
+	Port                  int      `json:"port" validate:"required"`
+	AdminUsername         string   `json:"adminUsername" validate:"required"`
+	AdminPassword         string   `json:"adminPassword" validate:"required"`
+	Shards                []string `json:"shards" validate:"required,min=1"`
+	DbVersion             string   `json:"dbVersion" validate:"required"` // major.minor or full version for primaryShard gating
+	MaxWaitSec            int      `json:"maxWaitSec"`                    // optional, default 72h
+	PollSec               int      `json:"pollSec"`                       // optional, default 30s
+	MovePrimaryTimeoutSec int      `json:"movePrimaryTimeoutSec"`         // optional, default 72h
 }
 
 // removeShardResult MongoDB removeShard 返回结构（精简）
@@ -42,6 +45,11 @@ type removeShardResult struct {
 		DBs    int `json:"dbs"`
 	} `json:"remaining"`
 	ErrMsg string `json:"errmsg"`
+}
+
+type databasePrimary struct {
+	ID      string `json:"_id"`
+	Primary string `json:"primary"`
 }
 
 // RemoveShardFromCluster 从分片集群移除分片
@@ -64,8 +72,14 @@ func (r *RemoveShardFromCluster) Name() string {
 	return "remove_shard_from_cluster"
 }
 
-// Run 运行原子任务
+// Run 运行原子任务。
+// 幂等边界：先 handlePrimaryShards（多次 movePrimary）再逐个 removeOneShard。
+// 重试整次 Run 是安全的：movePrimary 迁到同一目标无害；removeShard 对已 draining
+// 的 shard 再次下发会继续推进直至 completed。
 func (r *RemoveShardFromCluster) Run() error {
+	if err := r.handlePrimaryShards(); err != nil {
+		return err
+	}
 	for _, shardName := range r.ConfParams.Shards {
 		if err := r.removeOneShard(shardName); err != nil {
 			return err
@@ -74,12 +88,12 @@ func (r *RemoveShardFromCluster) Run() error {
 	return nil
 }
 
-// Retry 重试
+// Retry 允许整次 Run 重试。已完成的 movePrimary / 已 draining 的 removeShard 可安全重入。
 func (r *RemoveShardFromCluster) Retry() uint {
 	return 2
 }
 
-// Rollback 回滚
+// Rollback 有意为空：已完成的 movePrimary / removeShard 不可安全撤销。
 func (r *RemoveShardFromCluster) Rollback() error {
 	return nil
 }
@@ -102,6 +116,9 @@ func (r *RemoveShardFromCluster) Init(runtime *jobruntime.JobGenericRuntime) err
 	if r.ConfParams.PollSec <= 0 {
 		r.ConfParams.PollSec = removeShardDefaultPollSeconds
 	}
+	if r.ConfParams.MovePrimaryTimeoutSec <= 0 {
+		r.ConfParams.MovePrimaryTimeoutSec = removeShardDefaultMaxWaitSeconds
+	}
 
 	if err := r.checkParams(); err != nil {
 		return err
@@ -117,8 +134,309 @@ func (r *RemoveShardFromCluster) checkParams() error {
 		r.runtime.Logger.Error("validate parameters of removeShardFromCluster fail, error:%s", err)
 		return fmt.Errorf("validate parameters of removeShardFromCluster fail, error:%s", err)
 	}
+	if _, err := isMongoVersionBelow44(r.ConfParams.DbVersion); err != nil {
+		r.runtime.Logger.Error("validate dbVersion of removeShardFromCluster fail, error:%s", err)
+		return fmt.Errorf("validate dbVersion of removeShardFromCluster fail, error:%s", err)
+	}
 	r.runtime.Logger.Info("validate parameters of removeShardFromCluster successfully")
 	return nil
+}
+
+func (r *RemoveShardFromCluster) handlePrimaryShards() error {
+	primaryDBs, err := r.listPrimaryDatabasesOnShards(r.ConfParams.Shards)
+	if err != nil {
+		return err
+	}
+	if len(primaryDBs) == 0 {
+		r.runtime.Logger.Info("no database primaryShard on shards to remove, skip movePrimary")
+		return nil
+	}
+
+	below44, err := isMongoVersionBelow44(r.ConfParams.DbVersion)
+	if err != nil {
+		return fmt.Errorf("invalid dbVersion %q for primaryShard check: %w", r.ConfParams.DbVersion, err)
+	}
+	if below44 {
+		return fmt.Errorf(
+			"mongodb version %s (< 4.4) cannot remove shards that are primaryShard of databases: %s",
+			r.ConfParams.DbVersion, formatPrimaryDBList(primaryDBs),
+		)
+	}
+
+	targets, err := r.listRemainingShards()
+	if err != nil {
+		return err
+	}
+	r.runtime.Logger.Info(
+		"movePrimary %d databases round-robin onto remaining shards %v (dbVersion=%s)",
+		len(primaryDBs), targets, r.ConfParams.DbVersion,
+	)
+	for i, db := range primaryDBs {
+		targetShard := targets[i%len(targets)]
+		if err := r.movePrimary(db.ID, targetShard); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func isMongoVersionBelow44(version string) (bool, error) {
+	if strings.TrimSpace(version) == "" {
+		return false, fmt.Errorf("dbVersion is required when databases use removing shards as primaryShard")
+	}
+	left, err := parseMongoVersionTuple(version)
+	if err != nil {
+		return false, err
+	}
+	right, err := parseMongoVersionTuple(movePrimaryMinMajorMinor)
+	if err != nil {
+		return false, err
+	}
+	return compareMongoVersionTuples(left, right) < 0, nil
+}
+
+func formatPrimaryDBList(dbs []databasePrimary) string {
+	parts := make([]string, 0, len(dbs))
+	for _, db := range dbs {
+		parts = append(parts, fmt.Sprintf("%s(primary=%s)", db.ID, db.Primary))
+	}
+	return strings.Join(parts, ", ")
+}
+
+func filterPrimaryDBsOnShards(dbs []databasePrimary, removeShards []string) []databasePrimary {
+	removeSet := make(map[string]struct{}, len(removeShards))
+	for _, shard := range removeShards {
+		removeSet[shard] = struct{}{}
+	}
+	var matched []databasePrimary
+	for _, db := range dbs {
+		if _, ok := removeSet[db.Primary]; ok {
+			matched = append(matched, db)
+		}
+	}
+	return matched
+}
+
+// remainingShards returns shards in allShards that are not in removeShards, preserving order.
+func remainingShards(allShards []string, removeShards []string) ([]string, error) {
+	removeSet := make(map[string]struct{}, len(removeShards))
+	for _, shard := range removeShards {
+		removeSet[shard] = struct{}{}
+	}
+	var remaining []string
+	for _, shard := range allShards {
+		if _, removing := removeSet[shard]; !removing {
+			remaining = append(remaining, shard)
+		}
+	}
+	if len(remaining) == 0 {
+		return nil, fmt.Errorf("no remaining shard available as movePrimary target")
+	}
+	return remaining, nil
+}
+
+// pickTargetShard returns the i-th remaining shard round-robin (i >= 0).
+func pickTargetShard(allShards []string, removeShards []string, i int) (string, error) {
+	remaining, err := remainingShards(allShards, removeShards)
+	if err != nil {
+		return "", err
+	}
+	if i < 0 {
+		i = 0
+	}
+	return remaining[i%len(remaining)], nil
+}
+
+func (r *RemoveShardFromCluster) listPrimaryDatabasesOnShards(removeShards []string) ([]databasePrimary, error) {
+	evalScript := `JSON.stringify(db.getSiblingDB("config").databases.find({partitioned:true},{_id:1,primary:1}).toArray())`
+	stdout, err := r.runMongoEval(evalScript, 60*time.Second)
+	if err != nil {
+		return nil, fmt.Errorf("list config.databases fail: %w", err)
+	}
+	dbs, err := parseDatabasePrimaries(stdout)
+	if err != nil {
+		return nil, fmt.Errorf("parse config.databases fail, stdout:%q: %w", stdout, err)
+	}
+	return filterPrimaryDBsOnShards(dbs, removeShards), nil
+}
+
+func parseDatabasePrimaries(stdout string) ([]databasePrimary, error) {
+	output := strings.TrimSpace(stdout)
+	if output == "" || output == "null" {
+		return nil, nil
+	}
+	var dbs []databasePrimary
+	if err := json.Unmarshal([]byte(output), &dbs); err == nil {
+		return dbs, nil
+	}
+	start := strings.Index(output, "[")
+	end := strings.LastIndex(output, "]")
+	if start < 0 || end <= start {
+		return nil, fmt.Errorf("no json array found")
+	}
+	if err := json.Unmarshal([]byte(output[start:end+1]), &dbs); err != nil {
+		return nil, err
+	}
+	return dbs, nil
+}
+
+func (r *RemoveShardFromCluster) listAllShardNames() ([]string, error) {
+	evalScript := `JSON.stringify(db.getSiblingDB("config").shards.distinct("_id"))`
+	stdout, err := r.runMongoEval(evalScript, 60*time.Second)
+	if err != nil {
+		return nil, fmt.Errorf("list config.shards fail: %w", err)
+	}
+	return parseShardNameList(stdout)
+}
+
+func parseShardNameList(stdout string) ([]string, error) {
+	output := strings.TrimSpace(stdout)
+	if output == "" || output == "null" {
+		return nil, nil
+	}
+	var shards []string
+	if err := json.Unmarshal([]byte(output), &shards); err == nil {
+		return shards, nil
+	}
+	start := strings.Index(output, "[")
+	end := strings.LastIndex(output, "]")
+	if start < 0 || end <= start {
+		return nil, fmt.Errorf("no json array found")
+	}
+	if err := json.Unmarshal([]byte(output[start:end+1]), &shards); err != nil {
+		return nil, err
+	}
+	return shards, nil
+}
+
+func (r *RemoveShardFromCluster) listRemainingShards() ([]string, error) {
+	allShards, err := r.listAllShardNames()
+	if err != nil {
+		return nil, err
+	}
+	return remainingShards(allShards, r.ConfParams.Shards)
+}
+
+func (r *RemoveShardFromCluster) movePrimary(dbName, toShard string) error {
+	dbJSON, err := json.Marshal(dbName)
+	if err != nil {
+		return fmt.Errorf("marshal db name fail: %w", err)
+	}
+	toJSON, err := json.Marshal(toShard)
+	if err != nil {
+		return fmt.Errorf("marshal target shard fail: %w", err)
+	}
+	evalScript := fmt.Sprintf(
+		`db.adminCommand({movePrimary: %s, to: %s})`,
+		string(dbJSON), string(toJSON),
+	)
+	timeout := time.Duration(r.ConfParams.MovePrimaryTimeoutSec) * time.Second
+	r.runtime.Logger.Info("start movePrimary db=%s to=%s timeout=%ds", dbName, toShard, r.ConfParams.MovePrimaryTimeoutSec)
+	stdout, err := r.runMongoEval(evalScript, timeout)
+	if err != nil {
+		return fmt.Errorf("movePrimary db=%s to=%s fail: %w, stdout:%s", dbName, toShard, err, stdout)
+	}
+	if err := checkMovePrimaryOK(stdout); err != nil {
+		return fmt.Errorf("movePrimary db=%s to=%s rejected: %w, stdout:%s", dbName, toShard, err, stdout)
+	}
+
+	// getDatabasePrimary is required: checkMovePrimaryOK treats empty legacy-shell stdout as OK.
+	primary, err := r.getDatabasePrimary(dbName)
+	if err != nil {
+		return fmt.Errorf("verify movePrimary db=%s fail: %w", dbName, err)
+	}
+	if primary != toShard {
+		return fmt.Errorf("movePrimary db=%s expected primary=%s, got %s", dbName, toShard, primary)
+	}
+	r.runtime.Logger.Info("movePrimary db=%s to=%s successfully", dbName, toShard)
+	return nil
+}
+
+func checkMovePrimaryOK(stdout string) error {
+	output := strings.TrimSpace(stdout)
+	var result struct {
+		Ok     int    `json:"ok"`
+		ErrMsg string `json:"errmsg"`
+	}
+	if err := json.Unmarshal([]byte(output), &result); err != nil {
+		start := strings.Index(output, "{")
+		end := strings.LastIndex(output, "}")
+		if start < 0 || end <= start {
+			// legacy shell may print empty on success; callers MUST verify via getDatabasePrimary.
+			if output == "" {
+				return nil
+			}
+			lower := strings.ToLower(output)
+			if strings.Contains(lower, `"ok" : 1`) || strings.Contains(lower, `"ok":1`) {
+				return nil
+			}
+			return fmt.Errorf("unparseable movePrimary result")
+		}
+		snippet := output[start : end+1]
+		if err2 := json.Unmarshal([]byte(snippet), &result); err2 != nil {
+			lower := strings.ToLower(snippet)
+			if strings.Contains(lower, `"ok" : 1`) || strings.Contains(lower, `"ok":1`) {
+				return nil
+			}
+			return err2
+		}
+	}
+	if result.Ok == 0 {
+		if result.ErrMsg != "" {
+			return fmt.Errorf("%s", result.ErrMsg)
+		}
+		return fmt.Errorf("ok=0")
+	}
+	return nil
+}
+
+func (r *RemoveShardFromCluster) getDatabasePrimary(dbName string) (string, error) {
+	dbJSON, err := json.Marshal(dbName)
+	if err != nil {
+		return "", err
+	}
+	evalScript := fmt.Sprintf(
+		`var d=db.getSiblingDB("config").databases.findOne({_id:%s},{primary:1}); print(d && d.primary ? d.primary : "")`,
+		string(dbJSON),
+	)
+	stdout, err := r.runMongoEval(evalScript, 60*time.Second)
+	if err != nil {
+		return "", err
+	}
+	primary := strings.TrimSpace(stdout)
+	lines := strings.Split(primary, "\n")
+	for i := len(lines) - 1; i >= 0; i-- {
+		line := strings.TrimSpace(lines[i])
+		if line != "" {
+			return line, nil
+		}
+	}
+	return "", fmt.Errorf("empty primary for db %s", dbName)
+}
+
+func (r *RemoveShardFromCluster) runMongoEval(evalScript string, timeout time.Duration) (string, error) {
+	cmdBuilder := mycmd.New(
+		r.Mongo,
+		"-u", r.ConfParams.AdminUsername,
+		"-p", mycmd.Password(r.ConfParams.AdminPassword),
+		"--host", r.ConfParams.IP,
+		"--port", strconv.Itoa(r.ConfParams.Port),
+		"--authenticationDatabase=admin",
+		"--quiet",
+		"--eval", evalScript,
+		"admin",
+	)
+	masked := cmdBuilder.GetCmdLine("", true)
+	ret, err := cmdBuilder.Run(timeout)
+	stdout := ""
+	if ret != nil {
+		stdout = strings.TrimSpace(ret.GetStdout())
+	}
+	if err != nil {
+		r.runtime.Logger.Error("mongo eval fail, cmd:%q, err:%v, stdout:%q", masked, err, stdout)
+		return stdout, err
+	}
+	return stdout, nil
 }
 
 func (r *RemoveShardFromCluster) removeOneShard(shardName string) error {
@@ -174,26 +492,13 @@ func (r *RemoveShardFromCluster) shardExists(shardName string) (bool, error) {
 		`db.getSiblingDB("config").shards.count({_id: %s})`,
 		string(shardJSON),
 	)
-	cmdBuilder := mycmd.New(
-		r.Mongo,
-		"-u", r.ConfParams.AdminUsername,
-		"-p", mycmd.Password(r.ConfParams.AdminPassword),
-		"--host", r.ConfParams.IP,
-		"--port", strconv.Itoa(r.ConfParams.Port),
-		"--authenticationDatabase=admin",
-		"--quiet",
-		"--eval", evalScript,
-		"admin",
-	)
-	masked := cmdBuilder.GetCmdLine("", true)
-	ret, err := cmdBuilder.Run(60 * time.Second)
+	stdout, err := r.runMongoEval(evalScript, 60*time.Second)
 	if err != nil {
-		r.runtime.Logger.Error("check shard existence fail, cmd:%q, err:%v", masked, err)
 		return false, fmt.Errorf("check shard existence fail: %w", err)
 	}
-	count, err := parseShardCount(ret.GetStdout())
+	count, err := parseShardCount(stdout)
 	if err != nil {
-		return false, fmt.Errorf("parse shard count fail, stdout:%q: %w", ret.GetStdout(), err)
+		return false, fmt.Errorf("parse shard count fail, stdout:%q: %w", stdout, err)
 	}
 	return count > 0, nil
 }
@@ -218,24 +523,10 @@ func parseShardCount(stdout string) (int, error) {
 func (r *RemoveShardFromCluster) execRemoveShard(shardName string) (*removeShardResult, error) {
 	// removeShard must be issued repeatedly until completed; use adminCommand JSON form.
 	evalScript := fmt.Sprintf(`db.adminCommand({removeShard: "%s"})`, shardName)
-	cmdBuilder := mycmd.New(
-		r.Mongo,
-		"-u", r.ConfParams.AdminUsername,
-		"-p", mycmd.Password(r.ConfParams.AdminPassword),
-		"--host", r.ConfParams.IP,
-		"--port", strconv.Itoa(r.ConfParams.Port),
-		"--authenticationDatabase=admin",
-		"--quiet",
-		"--eval", evalScript,
-		"admin",
-	)
-	masked := cmdBuilder.GetCmdLine("", true)
-	ret, err := cmdBuilder.Run(120 * time.Second)
+	stdout, err := r.runMongoEval(evalScript, 120*time.Second)
 	if err != nil {
-		r.runtime.Logger.Error("execute removeShard fail, cmd:%q, err:%v, stdout:%q", masked, err, ret.GetStdout())
 		return nil, fmt.Errorf("execute removeShard fail: %w", err)
 	}
-	stdout := strings.TrimSpace(ret.GetStdout())
 	parsed, err := parseRemoveShardResult(stdout)
 	if err != nil {
 		r.runtime.Logger.Error("parse removeShard result fail, stdout:%q, err:%v", stdout, err)

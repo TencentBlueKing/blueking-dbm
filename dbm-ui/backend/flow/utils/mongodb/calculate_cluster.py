@@ -12,7 +12,7 @@ from copy import deepcopy
 
 from backend.configuration.constants import AffinityEnum
 from backend.db_meta.enums.cluster_type import ClusterType
-from backend.db_meta.models import Machine
+from backend.db_meta.models import Cluster, Machine
 from backend.flow.consts import (
     MongoDBClusterDefaultPort,
     MongoDBDomainPrefix,
@@ -20,6 +20,7 @@ from backend.flow.consts import (
     MongoOplogSizePercent,
 )
 from backend.flow.utils.mongodb.mongodb_repo import MongoRepository
+from backend.flow.utils.mongodb.version_utils import resolve_mongodb_flow_db_version
 
 
 def get_cache_size(memory_size: int, cache_percent: float, num: int) -> int:
@@ -556,11 +557,14 @@ def calculate_cluster_reduce_shard(payload: dict) -> dict:
         if mongos.ip not in shard_host_map:
             hosts.append({"ip": mongos.ip, "bk_cloud_id": mongos.bk_cloud_id})
 
+        db_version = resolve_mongodb_flow_db_version(Cluster.objects.get(pk=cluster_id))
+
         cluster_reduce_shard_info.append(
             {
                 "cluster_id": cluster_id,
                 "cluster_name": cluster_info_from_db.name,
                 "bk_cloud_id": bk_cloud_id,
+                "db_version": db_version,
                 "mongos": {"port": mongos.port, "nodes": mongos_nodes},
                 "reduce_shards": reduce_shards,
                 "storages": storages,
