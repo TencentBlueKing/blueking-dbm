@@ -41,7 +41,7 @@ from backend.db_services.redis.redis_dts.enums import (
 from backend.db_services.redis.redis_dts.models import TbTendisDTSJob, TbTendisDtsTask
 from backend.db_services.redis.redis_dts.util import get_safe_regex_pattern
 from backend.db_services.redis.util import is_predixy_proxy_type, is_redis_cluster_protocal, is_twemproxy_proxy_type
-from backend.flow.consts import GB, MB, StateType
+from backend.flow.consts import GB, MB, RedisBackupEnum, StateType
 from backend.flow.engine.bamboo.scene.redis.redis_cluster_data_check_repair import RedisClusterDataCheckRepairFlow
 from backend.flow.engine.bamboo.scene.redis.redis_cluster_shutdown import RedisClusterShutdownFlow
 from backend.flow.engine.bamboo.scene.redis.redis_flush_data import RedisFlushDataFlow
@@ -1431,6 +1431,8 @@ class NewDstClusterShutdownJobAndWatchStatus(BaseService):
             "created_by": global_data["created_by"],
             "ticket_type": TicketType.REDIS_DESTROY.value,
             "cluster_id": job_row.dst_cluster_id,
+            # 分片变更/集群类型变更触发的集群下架，使用常规备份即可，不影响正常提删除单据(REDIS_DESTROY)默认的永久备份
+            "backup_type": RedisBackupEnum.NORMAL_BACKUP.value,
         }
         self.log_info(f"redis_cluster_shutdown ticket_data:{ticket_data}")
         root_id = generate_root_id()

@@ -45,53 +45,65 @@ class RedisApplySummaryService(BaseService):
     """
     redis集群部署成功后，将集群关键信息(地区/域名/端口/CLB/北极星)写入FlowSummary，
     供前端"执行摘要"展示。该节点需要在集群元数据以及CLB/北极星创建节点之后执行，才能查询到完整信息。
+
+    统一入参格式：kwargs = {"items": [{bk_biz_id, domain_name, region, proxy_port, apply_clb, apply_polaris}, ...]}，
+    单集群写入时items传一个元素即可(见add_summary_output_act)，批量写入时items传多个元素(见add_batch_summary_output_act)。
+    无论items包含几条记录，最终都只会往同一个流程(root_id)的FlowSummary里追加/合并同一张表(table_name)的记录，
+    不会产生多条FlowSummary记录。
     """
 
     def _execute(self, data, parent_data) -> bool:
         kwargs = data.get_one_of_inputs("kwargs")
         root_id = self.runtime_attrs.get("root_pipeline_id")
 
-        bk_biz_id = kwargs["bk_biz_id"]
-        domain_name = kwargs["domain_name"]
+        items = kwargs["items"]
 
-        summary_data = {
-            "region": kwargs.get("region") or "",
-            "domain_name": domain_name,
-            "proxy_port": kwargs["proxy_port"],
-            "clb_ip": "",
-            "clb_domain": "",
-            "polaris_name": "",
-            "polaris_l5": "",
-        }
+        summary_data_list = []
+        for item in items:
+            bk_biz_id = item["bk_biz_id"]
+            domain_name = item["domain_name"]
 
-        try:
-            cluster = Cluster.objects.get(bk_biz_id=bk_biz_id, immute_domain=domain_name)
-        except Cluster.DoesNotExist:
-            self.log_error(_("写入集群信息摘要失败，集群[{}]不存在").format(domain_name))
-            cluster = None
+            summary_data = {
+                "region": item.get("region") or "",
+                "domain_name": domain_name,
+                "proxy_port": item["proxy_port"],
+                "clb_ip": "",
+                "clb_domain": "",
+                "polaris_name": "",
+                "polaris_l5": "",
+            }
 
-        if cluster:
-            if kwargs.get("apply_clb"):
-                clb_entry = ClusterEntry.objects.filter(
-                    cluster=cluster, cluster_entry_type=ClusterEntryType.CLB.value
-                ).first()
-                if clb_entry:
-                    detail = clb_entry.detail
-                    summary_data["clb_ip"] = detail.get("clb_ip", "") or ""
-                    summary_data["clb_domain"] = detail.get("clb_domain", "") or ""
-                else:
-                    self.log_error(_("集群[{}]未查询到CLB信息").format(domain_name))
+            try:
+                cluster = Cluster.objects.get(bk_biz_id=bk_biz_id, immute_domain=domain_name)
+            except Cluster.DoesNotExist:
+                self.log_error(_("写入集群信息摘要失败，集群[{}]不存在").format(domain_name))
+                cluster = None
 
-            if kwargs.get("apply_polaris"):
-                polaris_entry = ClusterEntry.objects.filter(
-                    cluster=cluster, cluster_entry_type=ClusterEntryType.POLARIS.value
-                ).first()
-                if polaris_entry:
-                    detail = polaris_entry.detail
-                    summary_data["polaris_name"] = detail.get("polaris_name", "") or ""
-                    summary_data["polaris_l5"] = detail.get("polaris_l5", "") or ""
-                else:
-                    self.log_error(_("集群[{}]未查询到北极星信息").format(domain_name))
+            if cluster:
+                if item.get("apply_clb"):
+                    clb_entry = ClusterEntry.objects.filter(
+                        cluster=cluster, cluster_entry_type=ClusterEntryType.CLB.value
+                    ).first()
+                    if clb_entry:
+                        detail = clb_entry.detail
+                        summary_data["clb_ip"] = detail.get("clb_ip", "") or ""
+                        summary_data["clb_domain"] = detail.get("clb_domain", "") or ""
+                    else:
+                        self.log_error(_("集群[{}]未查询到CLB信息").format(domain_name))
+
+                if item.get("apply_polaris"):
+                    polaris_entry = ClusterEntry.objects.filter(
+                        cluster=cluster, cluster_entry_type=ClusterEntryType.POLARIS.value
+                    ).first()
+                    if polaris_entry:
+                        detail = polaris_entry.detail
+                        summary_data["polaris_name"] = detail.get("polaris_name", "") or ""
+                        summary_data["polaris_l5"] = detail.get("polaris_l5", "") or ""
+                    else:
+                        self.log_error(_("集群[{}]未查询到北极星信息").format(domain_name))
+
+            summary_data_list.append(summary_data)
+            self.log_info(_("集群[{}]信息已写入执行摘要").format(domain_name))
 
         # 该flow可能并非由正常单据(ticket)触发，例如DTS内部临时创建目标集群时会用临时root_id直接跑pipeline，
         # 此时不存在对应的Flow记录(ticket.models.Flow)，无法写入FlowSummary，属于预期情况，跳过即可，不应阻塞流程。
@@ -99,8 +111,8 @@ class RedisApplySummaryService(BaseService):
             self.log_info(_("当前流程[{}]未关联单据Flow记录，跳过写入执行摘要").format(root_id))
             return True
 
-        FlowOutputHandler(RedisApplySummarySerializer).insert_data(root_id, summary_data)
-        self.log_info(_("集群[{}]信息已写入执行摘要").format(domain_name))
+        # 一次性写入(FlowOutputHandler内部按table_name合并到同一张表的values数组里，不会产生多条FlowSummary记录)
+        FlowOutputHandler(RedisApplySummarySerializer).insert_data(root_id, summary_data_list)
         return True
 
     def inputs_format(self) -> List:
