@@ -63,6 +63,16 @@ func toolHandlerFactory(td *toolsDefinition) func(
 			return mcp.NewToolResultError(err.Error()), err
 		}
 		logger.Info("return res: " + string(res))
+
+		// 声明了 outputSchema 的工具，客户端要求返回结果必须含 structuredContent
+		if len(td.OutputJsonSchema) > 0 {
+			var structured any
+			if err := json.Unmarshal(res, &structured); err == nil {
+				if _, isObject := structured.(map[string]any); isObject {
+					return mcp.NewToolResultStructured(structured, string(res)), nil
+				}
+			}
+		}
 		return mcp.NewToolResultText(string(res)), nil
 	}
 }
