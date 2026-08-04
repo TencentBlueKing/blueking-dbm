@@ -14,6 +14,7 @@ from backend.dbm_aiagent.mcp_tools.common.auth_parser.base import auth_parse_clu
 from backend.dbm_aiagent.mcp_tools.constants import DBMMCPTags, DBMMcpTools
 from backend.dbm_aiagent.mcp_tools.decorators import mcp_tools_api_decorator
 from backend.dbm_aiagent.mcp_tools.redis.impl.redis_bill_impl import (
+    redis_cluster_apply,
     redis_cluster_cutoff,
     redis_delete_key_by_regex,
     redis_extract_key,
@@ -34,6 +35,7 @@ from backend.dbm_aiagent.mcp_tools.redis.serializers.redis_bill import (
     SubmitBillOutputSerializer,
     SubmitBillRedisAnalysisHotkeyInputSerializer,
     SubmitBillRedisBaseInputSerializer,
+    SubmitBillRedisClusterApplyInputSerializer,
     SubmitBillRedisClusterScaleInputSerializer,
     SubmitBillRedisCutoffInputSerializer,
     SubmitBillRedisDeleteKeyInputSerializer,
@@ -67,9 +69,26 @@ class RedisBillMcpToolsViewSet(McpToolsViewSet):
     default_permission_class = [DBManagePermission()]
 
     # =========================== 涉及机器资源类单据 begin ===========================
-    # done: proxy扩容、proxy缩容、整机替换
-    # todo: 集群部署、容量变更、分片变更、类型变更、重做slave、迁移、回档
+    # done: proxy扩容、proxy缩容、整机替换、集群部署（克隆申请）
+    # todo: 容量变更、分片变更、类型变更、重做slave、迁移、回档
     # 高危todo：禁用、删除
+
+    @mcp_tools_api_decorator(
+        description=str(_("""参照已有集群的部署参数（架构、版本、规格、分片数、容灾级别等），克隆申请一个新的redis集群，机器来源固定为资源池""")),
+        request_slz=SubmitBillRedisClusterApplyInputSerializer,
+        response_slz=SubmitBillOutputSerializer,
+        permission_classes=[McpTicketToolPermission],
+        mcp_auth_parser=auth_parse_clusters,
+        tags=[DBMMCPTags.READ, DBMMCPTags.WRITE],
+        mcp=[DBMMcpTools.REDIS_BILL],
+        name_prefix="redis_bill",
+    )
+    def submit_bill_redis_cluster_apply(self, request, *args, **kwargs):
+        bk_biz_id = self.get_param("bk_biz_id")
+        cluster_domain = self.get_param("cluster_domain")
+        new_cluster_name = self.get_param("new_cluster_name")
+
+        return Response(redis_cluster_apply(request, bk_biz_id, cluster_domain, new_cluster_name))
 
     @mcp_tools_api_decorator(
         description=str(_("""redis集群后端存储容量变更""")),

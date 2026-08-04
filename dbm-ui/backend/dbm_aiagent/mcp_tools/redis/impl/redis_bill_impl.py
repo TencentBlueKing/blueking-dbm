@@ -16,13 +16,24 @@ from itertools import chain
 
 from django.utils.translation import gettext_lazy as _
 
+from backend.configuration.constants import DBPrivSecurityType
+from backend.configuration.handlers.password import DBPasswordHandler
 from backend.db_meta.enums import InstanceRole
 from backend.db_meta.enums.cluster_type import ClusterType
-from backend.db_meta.models import Cluster, Spec, StorageInstanceTuple
+from backend.db_meta.models import AppCache, Cluster, Spec, StorageInstanceTuple
 from backend.flow.consts import ClusterRoleEnum, RedisCapacityUpdateType
 from backend.ticket.builders.common.base import IpSource
 from backend.ticket.constants import SwitchConfirmType, TicketType
 from backend.ticket.models import Ticket
+
+# redis_cluster_apply 支持克隆申请的集群类型（均为带proxy层的架构）
+REDIS_CLUSTER_APPLY_SUPPORTED_TYPES = [
+    ClusterType.TendisTwemproxyRedisInstance,
+    ClusterType.TwemproxyTendisSSDInstance,
+    ClusterType.TendisPredixyRedisCluster,
+    ClusterType.TendisPredixyTendisplusCluster,
+    ClusterType.TendisPredixyTendisplusInstance,
+]
 
 
 def generate_custom_id():
@@ -31,6 +42,124 @@ def generate_custom_id():
     part2 = "".join(random.choices(string.digits, k=13))
     part3 = "".join(random.choices(string.digits, k=6))
     return f"{part1}_{part2}_{part3}"
+
+
+# 集群部署（克隆申请）
+def redis_cluster_apply(request, bk_biz_id, cluster_domain, new_cluster_name):
+    """
+    参照已有集群的部署参数，克隆申请一个新的redis集群
+    new_cluster_name为新集群名，由调用方传入，不能与已有集群重名；机器来源固定为资源池，规格/分片数/组数/容灾级别/城市等均与原集群保持一致
+    仅支持带proxy层的架构：TwemproxyRedisInstance、TwemproxyTendisSSDInstance、
+    PredixyRedisCluster、PredixyTendisplusCluster、PredixyTendisplusInstance
+    """
+    cluster_obj = Cluster.objects.get(bk_biz_id=bk_biz_id, immute_domain=cluster_domain)
+    if cluster_obj.cluster_type not in REDIS_CLUSTER_APPLY_SUPPORTED_TYPES:
+        return {
+            "error": "集群类型{}暂不支持通过该工具克隆申请，仅支持: {}".format(
+                cluster_obj.cluster_type, [t.value for t in REDIS_CLUSTER_APPLY_SUPPORTED_TYPES]
+            )
+        }
+
+    if Cluster.objects.filter(
+        bk_biz_id=bk_biz_id, cluster_type=cluster_obj.cluster_type, name=new_cluster_name
+    ).exists():
+        return {"error": "新集群名{}已存在，请更换".format(new_cluster_name)}
+
+    proxy_ins_list = list(cluster_obj.proxyinstance_set.select_related("machine").all())
+    if not proxy_ins_list:
+        return {"error": "集群{}未找到proxy实例，无法获取部署参数".format(cluster_domain)}
+
+    master_ins_list = list(
+        cluster_obj.storageinstance_set.select_related("machine").filter(instance_role=InstanceRole.REDIS_MASTER.value)
+    )
+    if not master_ins_list:
+        return {"error": "集群{}未找到master实例，无法获取部署参数".format(cluster_domain)}
+
+    proxy_spec_id = proxy_ins_list[0].machine.spec_id
+    proxy_count = len(proxy_ins_list)
+
+    backend_spec_id = master_ins_list[0].machine.spec_id
+    # 机器组数：master去重后的机器数
+    master_ips = list(dict.fromkeys([ins.machine.ip for ins in master_ins_list]))
+    group_num = len(master_ips)
+    # 分片数：master实例总数
+    shard_num = len(master_ins_list)
+    if (
+        cluster_obj.cluster_type
+        in (
+            ClusterType.TendisPredixyRedisCluster,
+            ClusterType.TendisPredixyTendisplusCluster,
+        )
+        and shard_num < 3
+    ):
+        return {"error": "源集群分片数 {} < 3，无法克隆该类型集群".format(shard_num)}
+
+    db_app_abbr = AppCache.get_app_attr(bk_biz_id, "db_app_abbr") or str(bk_biz_id)
+    city_code = cluster_obj.region
+    disaster_tolerance_level = cluster_obj.disaster_tolerance_level
+    # proxy访问密码，随机生成，满足平台密码强度策略
+    proxy_pwd = DBPasswordHandler.get_random_password(security_type=DBPrivSecurityType.REDIS_PASSWORD)
+
+    # 规格详情，用于补充resource_spec的展示字段
+    proxy_spec = Spec.objects.get(spec_id=proxy_spec_id)
+    backend_spec = Spec.objects.get(spec_id=backend_spec_id)
+
+    location_spec = {"city": city_code, "sub_zone_ids": []}
+    ticket_param = {
+        "bk_biz_id": bk_biz_id,
+        "creator": request.user.username,
+        "helpers": [],
+        "remark": "mcp redis cluster apply(clone from {}) ticket".format(cluster_domain),
+        "ticket_type": TicketType.REDIS_CLUSTER_APPLY,
+        "details": {
+            "bk_cloud_id": cluster_obj.bk_cloud_id,
+            "cap_key": "",
+            "proxy_port": 50000,
+            "proxy_pwd": proxy_pwd,
+            "db_app_abbr": db_app_abbr,
+            "city_code": city_code,
+            "disaster_tolerance_level": disaster_tolerance_level,
+            "cluster_type": cluster_obj.cluster_type,
+            "db_version": cluster_obj.major_version,
+            "cluster_name": new_cluster_name,
+            "cluster_alias": new_cluster_name,
+            "ip_source": IpSource.RESOURCE_POOL.value,
+            "cluster_shard_num": shard_num,
+            "apply_clb": False,
+            "apply_polaris": False,
+            "resource_spec": {
+                "proxy": {
+                    "count": proxy_count,
+                    "spec_id": proxy_spec_id,
+                    "capacity": proxy_spec.capacity,
+                    "cpu": proxy_spec.cpu,
+                    "mem": proxy_spec.mem,
+                    "qps": proxy_spec.qps,
+                    "spec_name": proxy_spec.spec_name,
+                    "storage_spec": proxy_spec.storage_spec,
+                    "affinity": disaster_tolerance_level,
+                    "location_spec": location_spec,
+                    "spec_cluster_type": proxy_spec.spec_cluster_type,
+                    "spec_machine_type": proxy_spec.spec_machine_type,
+                },
+                "backend_group": {
+                    "affinity": disaster_tolerance_level,
+                    "count": group_num,
+                    "location_spec": location_spec,
+                    "spec_id": backend_spec_id,
+                    "spec_info": {
+                        "cluster_capacity": backend_spec.capacity * group_num,
+                        "cluster_shard_num": shard_num,
+                        "machine_pair": group_num,
+                        "qps": backend_spec.qps,
+                        "spec_name": backend_spec.spec_name,
+                    },
+                },
+            },
+        },
+    }
+    tk = Ticket.create_ticket(**ticket_param)
+    return {"bill_id": tk.pk, "bill_url": tk.url}
 
 
 # 集群扩容

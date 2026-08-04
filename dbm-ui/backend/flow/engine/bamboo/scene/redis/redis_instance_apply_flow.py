@@ -41,6 +41,7 @@ from backend.flow.utils.redis.redis_act_playload import RedisActPayload
 from backend.flow.utils.redis.redis_context_dataclass import ActKwargs, CommonContext, DnsKwargs
 from backend.flow.utils.redis.redis_db_meta import RedisDBMeta
 from backend.flow.utils.redis.redis_proxy_util import get_cache_backup_mode
+from backend.flow.utils.redis.redis_util import add_batch_summary_output_act
 
 logger = logging.getLogger("flow")
 
@@ -515,6 +516,20 @@ class RedisInstanceApplyFlow(object):
                     }
                 )
             sub_pipeline.add_parallel_acts(acts_list=acts_list)
+
+            # 批量写入集群信息摘要(地区/域名/端口)，供前端"执行摘要"展示。
+            # 一个master_ip下可能有多个主从实例(rule)，一次性合并为一个节点写入，
+            # 最终会合并到同一张摘要表的values数组里，不会产生多条摘要记录。主从实例部署无CLB/北极星，无需创建
+            summary_items = [
+                {
+                    "bk_biz_id": self.data["bk_biz_id"],
+                    "domain_name": rule["domain_name"],
+                    "region": rule.get("city_code", ""),
+                    "proxy_port": rule["port"],
+                }
+                for rule in info["ip_install_dict"][master_ip]
+            ]
+            add_batch_summary_output_act(redis_pipeline=sub_pipeline, items=summary_items)
 
             sub_pipelines.append(sub_pipeline.build_sub_process(sub_name=_("Redis主从安装-{}").format(master_ip)))
         redis_pipeline.add_parallel_sub_pipeline(sub_flow_list=sub_pipelines)

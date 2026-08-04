@@ -111,11 +111,15 @@ class RedisClusterShutdownFlow(object):
         act_kwargs.is_update_trans_data = True
         import time
 
+        # 正常的“删除集群”单据默认走永久备份；分片变更等场景触发的下架子流程可通过 backup_type 指定为常规备份
+        backup_type = self.data.get("backup_type") or RedisBackupEnum.FOREVER_BACKUP.value
+        backup_identify_prefix = "FOREVER" if backup_type == RedisBackupEnum.FOREVER_BACKUP.value else "NORMAL"
+
         act_kwargs.cluster = {
             **cluster_info,
-            "backup_type": RedisBackupEnum.FOREVER_BACKUP.value,
-            "backup_identify": "FOREVER{}-{}".format(
-                self.data.get("uid"), time.strftime("%Y%m%d%H", time.localtime(time.time()))
+            "backup_type": backup_type,
+            "backup_identify": "{}{}-{}".format(
+                backup_identify_prefix, self.data.get("uid"), time.strftime("%Y%m%d%H", time.localtime(time.time()))
             ),  # 集群删除的备份标识
             **cluster_info["redis_map"],
             **cluster_info["proxy_map"],
