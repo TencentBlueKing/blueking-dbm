@@ -17,6 +17,8 @@ from backend.bk_web import viewsets
 from backend.bk_web.pagination import AuditedLimitOffsetPagination
 from backend.bk_web.swagger import common_swagger_auto_schema
 from backend.components.hcm.client import HCMApi
+from backend.configuration.constants import SystemSettingsEnum
+from backend.configuration.models.system import SystemSettings
 from backend.db_dirty.constants import SWAGGER_TAG, MachineEventType
 from backend.db_dirty.filters import DirtyMachinePoolFilter, MachineEventFilter
 from backend.db_dirty.handlers import DBDirtyMachineHandler
@@ -45,6 +47,8 @@ class DBDirtyMachineViewSet(viewsets.SystemViewSet):
             "get_host_current_events",
             "query_machine_pool",
             "check_host_is_dissolved",
+            "check_host_has_uwork",
+            "get_dissolved_uwork_info",
         ): [ResourceActionPermission([ActionEnum.RESOURCE_MANAGE])],
         ("transfer_hosts_to_pool",): [ResourceActionPermission([ActionEnum.RESOURCE_POLL_MANAGE])],
     }
@@ -69,6 +73,37 @@ class DBDirtyMachineViewSet(viewsets.SystemViewSet):
     def check_host_is_dissolved(self, request):
         data = self.params_validate(self.get_serializer_class())
         return Response(HCMApi.check_host_is_dissolved(data["bk_host_ids"]))
+
+    @common_swagger_auto_schema(
+        operation_summary=_("查询主机是否有故障"),
+        request_body=CheckHostIsDissolvedSerializer(),
+        tags=[SWAGGER_TAG],
+    )
+    @action(detail=False, methods=["POST"], serializer_class=CheckHostIsDissolvedSerializer)
+    def check_host_has_uwork(self, request):
+        data = self.params_validate(self.get_serializer_class())
+        has_uwork_hosts_map = HCMApi.check_host_has_uwork(data["bk_host_ids"])
+        return Response(list(has_uwork_hosts_map.values()))
+
+    @common_swagger_auto_schema(
+        operation_summary=_("获取待裁撤和故障主机开关信息"),
+        responses={status.HTTP_200_OK: ListMachineEventResponseSerializer()},
+        tags=[SWAGGER_TAG],
+    )
+    @action(detail=False, methods=["GET"])
+    def get_dissolved_uwork_info(self, request):
+        dissolved_switch = SystemSettings.get_setting_value(
+            key=SystemSettingsEnum.HOST_DISSOLVED_SWITCH, default=False
+        )
+        host_to_fault_switch = SystemSettings.get_setting_value(
+            key=SystemSettingsEnum.HOST_TO_FAULT_SWITCH, default=False
+        )
+        return Response(
+            {
+                SystemSettingsEnum.HOST_DISSOLVED_SWITCH: dissolved_switch,
+                SystemSettingsEnum.HOST_TO_FAULT_SWITCH: host_to_fault_switch,
+            }
+        )
 
     @common_swagger_auto_schema(
         operation_summary=_("机器事件列表"),
