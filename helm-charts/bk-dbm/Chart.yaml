@@ -107,5 +107,5 @@ dependencies:
 description: A Helm chart for bk-dbm
 name: bk-dbm
 type: application
-version: 1.5.0-alpha.96
-appVersion: 1.5.0-alpha.96
+version: 1.5.0-multi-tenant-alpha.10
+appVersion: 1.5.0-multi-tenant-alpha.10
