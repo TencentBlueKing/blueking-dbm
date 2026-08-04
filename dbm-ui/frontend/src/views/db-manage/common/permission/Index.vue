@@ -31,7 +31,7 @@
       </BkAlert>
       <div class="operation-box">
         <AuthButton
-          :action-id="accountCreateActionIdMap[accountType]"
+          :action-id="configMap[accountType].createAccountAction"
           theme="primary"
           @click="handleShowAccountDialog">
           {{ t('新建账号') }}
@@ -149,36 +149,6 @@
 
   const bizId = window.PROJECT_CONFIG.BIZ_ID;
 
-  // 账号类型对应的新建账号权限 actionId
-  const accountCreateActionIdMap: Record<AccountTypes, string> = {
-    [AccountTypes.MONGODB]: 'mongodb_priv_manage',
-    [AccountTypes.MYSQL]: 'mysql_account_create',
-    [AccountTypes.SQLSERVER]: 'sqlserver_priv_manage',
-    [AccountTypes.TENDBCLUSTER]: 'tendbcluster_account_create',
-  };
-
-  // 账号类型对应的添加授权规则权限 actionId
-  const addAccountRuleActionIdMap: Record<AccountTypes, string> = {
-    [AccountTypes.MONGODB]: 'mongodb_priv_manage',
-    [AccountTypes.MYSQL]: 'mysql_add_account_rule',
-    [AccountTypes.SQLSERVER]: 'sqlserver_priv_manage',
-    [AccountTypes.TENDBCLUSTER]: 'tendbcluster_add_account_rule',
-  };
-
-  // 账号类型对应的删除账号权限 actionId
-  const accountDeleteActionIdMap: Record<AccountTypes, string> = {
-    [AccountTypes.MONGODB]: 'mongodb_priv_manage',
-    [AccountTypes.MYSQL]: 'mysql_account_delete',
-    [AccountTypes.SQLSERVER]: 'sqlserver_priv_manage',
-    [AccountTypes.TENDBCLUSTER]: 'tendbcluster_account_delete',
-  };
-
-  // 使用 auth-button 聚合鉴权（对齐 SQLServer 形态）的账号类型与 actionId
-  const ruleAuthActionIdMap: Partial<Record<AccountTypes, string>> = {
-    [AccountTypes.MONGODB]: 'mongodb_priv_manage',
-    [AccountTypes.SQLSERVER]: 'sqlserver_priv_manage',
-  };
-
   /**
    * 配置
    * ticketType 单据类型
@@ -190,51 +160,63 @@
    */
   const configMap = {
     [AccountTypes.MONGODB]: {
+      addRuleAction: 'mongodb_priv_manage',
       buttonController: {
         [ButtonTypes.DELETE_RULE]: true,
         [ButtonTypes.EDIT_RULE]: false,
       },
       clusterTypes: [ClusterTypes.MONGO_REPLICA_SET, ClusterTypes.MONGO_SHARED_CLUSTER],
+      createAccountAction: 'mongodb_priv_manage',
       createRuleComponent: MongoCreateRule,
       dataSource: getMongodbPermissionRules,
       dbOperations: mongoDbOperations,
       ddlSensitiveWords: [],
+      deleteAccountAction: 'mongodb_priv_manage',
       ticketType: TicketTypes.MONGODB_AUTHORIZE_RULES,
     },
     [AccountTypes.MYSQL]: {
+      addRuleAction: 'mysql_priv_manage',
       buttonController: {
         [ButtonTypes.DELETE_RULE]: true,
         [ButtonTypes.EDIT_RULE]: true,
       },
       clusterTypes: [ClusterTypes.TENDBHA, 'tendbhaSlave', ClusterTypes.TENDBSINGLE],
+      createAccountAction: 'mysql_priv_manage',
       createRuleComponent: MysqlCreateRule,
       dataSource: getMysqlPermissionRules,
       dbOperations: mysqlDbOperations[AccountTypes.MYSQL].dbOperations,
       ddlSensitiveWords: mysqlDbOperations[AccountTypes.MYSQL].ddlSensitiveWords,
+      deleteAccountAction: 'mysql_priv_manage',
       ticketType: TicketTypes.MYSQL_AUTHORIZE_RULES,
     },
     [AccountTypes.SQLSERVER]: {
+      addRuleAction: 'sqlserver_priv_manage',
       buttonController: {
         [ButtonTypes.DELETE_RULE]: false,
         [ButtonTypes.EDIT_RULE]: false,
       },
       clusterTypes: [ClusterTypes.SQLSERVER_HA, ClusterTypes.SQLSERVER_SINGLE],
+      createAccountAction: 'sqlserver_priv_manage',
       createRuleComponent: SqlserverCreateRule,
       dataSource: getSqlserverPermissionRules,
       dbOperations: sqlserverDbOperations,
       ddlSensitiveWords: [],
+      deleteAccountAction: 'sqlserver_priv_manage',
       ticketType: TicketTypes.SQLSERVER_AUTHORIZE_RULES,
     },
     [AccountTypes.TENDBCLUSTER]: {
+      addRuleAction: 'tendbcluster_priv_manage',
       buttonController: {
         [ButtonTypes.DELETE_RULE]: true,
         [ButtonTypes.EDIT_RULE]: true,
       },
       clusterTypes: [ClusterTypes.TENDBCLUSTER, 'tendbclusterSlave'],
+      createAccountAction: 'tendbcluster_priv_manage',
       createRuleComponent: MysqlCreateRule,
       dataSource: getMysqlPermissionRules,
       dbOperations: mysqlDbOperations[AccountTypes.TENDBCLUSTER].dbOperations,
       ddlSensitiveWords: mysqlDbOperations[AccountTypes.TENDBCLUSTER].ddlSensitiveWords,
+      deleteAccountAction: 'tendbcluster_priv_manage',
       ticketType: TicketTypes.TENDBCLUSTER_AUTHORIZE_RULES,
     },
   };
@@ -389,14 +371,9 @@
                   </bk-tag>
                 )}
                 <auth-button
-                  action-id={addAccountRuleActionIdMap[props.accountType]}
+                  action-id={configMap[props.accountType].addRuleAction}
                   class='add-rule-btn'
-                  permission={data.permission[addAccountRuleActionIdMap[props.accountType]]}
-                  resource={
-                    [AccountTypes.MONGODB, AccountTypes.SQLSERVER].includes(props.accountType)
-                      ? undefined
-                      : data.account.account_id
-                  }
+                  permission={data.permission[configMap[props.accountType].addRuleAction]}
                   size='small'
                   onClick={(event: PointerEvent) => handleShowCreateRule(data, event)}>
                   {t('添加授权规则')}
@@ -441,13 +418,8 @@
             <div class='cell-row'>
               <span>{t('暂无规则')}，</span>
               <auth-button
-                action-id={addAccountRuleActionIdMap[props.accountType]}
-                permission={data.permission[addAccountRuleActionIdMap[props.accountType]]}
-                resource={
-                  [AccountTypes.MONGODB, AccountTypes.SQLSERVER].includes(props.accountType)
-                    ? undefined
-                    : data.account.account_id
-                }
+                action-id={configMap[props.accountType].addRuleAction}
+                permission={data.permission[configMap[props.accountType].addRuleAction]}
                 size='small'
                 text
                 theme='primary'
@@ -509,13 +481,8 @@
           return (
             <div class='cell-row'>
               <auth-button
-                action-id={accountDeleteActionIdMap[props.accountType]}
-                permission={data.permission[accountDeleteActionIdMap[props.accountType]]}
-                resource={
-                  [AccountTypes.MONGODB, AccountTypes.SQLSERVER].includes(props.accountType)
-                    ? undefined
-                    : data.account.account_id
-                }
+                action-id={configMap[props.accountType].deleteAccountAction}
+                permission={data.permission[configMap[props.accountType].deleteAccountAction]}
                 text
                 theme='primary'
                 onClick={() => handleDeleteAccount(data)}>
@@ -533,8 +500,8 @@
         return getRenderList(data).map((item, index) => (
           <div class='cell-row'>
             <auth-button
-              action-id={ruleAuthActionIdMap[props.accountType]!}
-              permission={data.permission[ruleAuthActionIdMap[props.accountType]!]}
+              action-id={configMap[props.accountType].addRuleAction}
+              permission={data.permission[configMap[props.accountType].addRuleAction]}
               text
               theme='primary'
               onClick={(event: PointerEvent) => handleShowAuthorize(data, item, event)}>
@@ -551,10 +518,10 @@
                 disabled={!data.rules[index].priv_ticket}>
                 {configMap[props.accountType].buttonController[ButtonTypes.EDIT_RULE] && (
                   <auth-button
-                    action-id='sqlserver_priv_manage'
+                    action-id={configMap[props.accountType].addRuleAction}
                     class='ml-8'
                     disabled={Boolean(data.rules[index].priv_ticket?.ticket_id)}
-                    permission={data.permission.sqlserver_priv_manage}
+                    permission={data.permission[configMap[props.accountType].addRuleAction]}
                     text
                     theme='primary'
                     onClick={(event: PointerEvent) => handleShowEditRule(event, data, index)}>
@@ -573,8 +540,8 @@
                 }}
                 disabled={!data.rules[index].priv_ticket}>
                 <AuthTemplate
-                  actionId={ruleAuthActionIdMap[props.accountType]!}
-                  permission={data.permission[ruleAuthActionIdMap[props.accountType]!]}>
+                  action-id={configMap[props.accountType].addRuleAction}
+                  permission={data.permission[configMap[props.accountType].addRuleAction]}>
                   <bk-pop-confirm
                     content={
                       skipApproval.value

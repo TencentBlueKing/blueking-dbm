@@ -56,16 +56,18 @@
         </BkTableColumn>
       </BkTable>
       <template #footer>
-        <BkButton
-          class="mr-2"
+        <AuthButton
+          action-id="mysql_openarea"
           :loading="isSubmitting"
+          :resource="props.sourceClusterId"
           theme="primary"
           @click="handleSubmit">
           {{ t('提交') }}
-        </BkButton>
+        </AuthButton>
         <BkButton
-          :disabled="isSubmitting"
-          @click="handleClose">
+          class="ml-8"
+          :loading="isSubmitting"
+          @click="isShow = false">
           {{ t('关闭') }}
         </BkButton>
       </template>
@@ -145,10 +147,6 @@
       immediate: true,
     },
   );
-
-  const handleClose = () => {
-    isShow.value = false;
-  };
 
   const handleSubmit = () => {
     const errorRow = tableData.value.find((item) => item.error_msg);

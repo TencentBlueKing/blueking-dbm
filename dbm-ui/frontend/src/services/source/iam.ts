@@ -24,7 +24,7 @@ export function checkAuthAllowed(params: {
   action_ids: Array<string>;
   resources?: Array<{ id?: string | number; type: string }>;
 }) {
-  return http.get<
+  return http.post<
     {
       action_id: string;
       is_allowed: boolean;
