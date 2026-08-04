@@ -447,6 +447,7 @@ class SqlserverClusterMigrateFlow(BaseFlow):
             sub_flow=clone_configs_sub_flow(
                 uid=self.data["uid"],
                 root_id=self.root_id,
+                bk_biz_id=cluster.bk_biz_id,
                 source_host=master_host,
                 source_port=port,
                 target_host=new_stand_by_host,

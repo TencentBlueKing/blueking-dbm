@@ -11,6 +11,7 @@ import json
 import logging
 import re
 from dataclasses import asdict, is_dataclass
+from typing import Any, Dict
 
 from django.conf import settings
 from django.utils.translation import gettext as _
@@ -23,6 +24,7 @@ from backend.flow.consts import WINDOW_SYSTEM_JOB_USER
 from backend.flow.models import FlowNode
 from backend.flow.plugins.components.collections.common.base_service import BkJobService
 from backend.flow.utils.script_template import sqlserver_actuator_template
+from backend.flow.utils.sqlserver.encrypt import encrypt_login_password
 from backend.flow.utils.sqlserver.sqlserver_act_payload import SqlserverActPayload
 from backend.utils.string import base64_encode
 
@@ -87,7 +89,50 @@ class SqlserverActuatorScriptService(BkJobService):
 
         # 转换兼容新版本参数传
         db_act_template.extend_payload = base64_encode(json.dumps({"extend": db_act_template.payload.extend}))
-        general_payload_base_string = base64_encode(json.dumps({"general": db_act_template.payload.general}))
+
+        # ------------------------------------------------------------------
+        # general 段加密下发（AES-256-GCM，key_seed=node_id）
+        # ------------------------------------------------------------------
+        # 背景：general.runtime_account 内含 sa_pwd / drs_pwd / dbha_pwd / exporter_pwd 等
+        # 敏感字段；虽然 Job 平台 script_param 已通过 is_param_sensitive=1 走加密传输，
+        # 但落到目标机上会以明文进程参数展开，与"应用层加密"是正交的两层防护。
+        # 加密策略：整段 runtime_account (dict) 序列化后一次性加密，密文**原地覆盖回写**
+        #          general.runtime_account 字段本身——即该字段的运行时类型从 dict 变为
+        #          base64 密文 string。不引入新字段，不做"置空 dict"之类的双通道兜底，
+        #          Go 端按"runtime_account 为 string 则解密"的约定处理（见 dbactuator 的
+        #          decryptRuntimeAccountIfNeeded），双端严格对齐、无歧义。
+        # key_seed：db_act_template.node_id —— pipeline 每节点唯一，等价一次一密；
+        #          Go 端 dbactuator 已经天然持有 node_id，可直接用于派生解密 key。
+        # 开关：env.ENABLE_SQLSERVER_RUNTIME_ACCOUNT_ENCRYPT，当前默认 True（Go 端 26 个 action
+        #      的 decryptRuntimeAccountIfNeeded 已全量落地并验证）。保留开关是为了极端应急场景下
+        #      可通过环境变量快速回退到明文下发；未开启时 general.runtime_account 保持原明文 dict
+        #      结构不变。注意：由于是原地覆盖，若下游存在未接入解密的 action，则该 action 会把密文
+        #      string 当成 dict 反序列化直接失败——因此该开关不可在 Go 端未全量覆盖前打开。
+        general_payload: Dict[str, Any] = {"general": db_act_template.payload.general}
+        if env.ENABLE_SQLSERVER_RUNTIME_ACCOUNT_ENCRYPT:
+            # 双端一致性 fail-fast：Go 端 decryptRuntimeAccountIfNeeded 对 nodeID == "" 已做 fail-fast，
+            # Python 侧必须对称校验；否则 Python 侧会用空 seed 派生 key 加密，而 Go 端因 NodeId 非空
+            # 用不同 key 解密 → GCM authentication failed，故障现象极难定位（会误导排查 SALT/编码问题）。
+            if not node_id:
+                raise Exception(
+                    _(
+                        "runtime_account 加密下发要求 node_id 非空，但当前 kwargs['node_id'] 为空/None。"
+                        "请检查上游 pipeline 引擎注入是否遗漏，或临时通过 ENABLE_SQLSERVER_RUNTIME_ACCOUNT_ENCRYPT=false 回退。"
+                    )
+                )
+            runtime_account: Dict[str, Any] = general_payload["general"].get("runtime_account") or {}
+            # 加密载荷是 runtime_account dict 的 JSON 序列化字符串。JSON 契约要求（与 Go 端严格对齐）：
+            #   1) 字段大小写必须与 Go 端 RuntimeAccountParam 的 json tag 完全一致（sa_pwd/drs_pwd/... 由
+            #      SqlserverActPayload 统一约束，不要在此处随意 rename）；
+            #   2) json.dumps 默认 ensure_ascii=True 会把非 ASCII 字符转义为 \uXXXX，Go 的 encoding/json
+            #      原生兼容该转义序列，无需额外处理。
+            runtime_account_encrypted: str = encrypt_login_password(
+                key_seed=node_id, plain_pwd=json.dumps(runtime_account)
+            )
+            # 原地覆盖：runtime_account 字段类型由 dict 变为密文 string；Go 端按类型分流处理
+            general_payload["general"]["runtime_account"] = runtime_account_encrypted
+
+        general_payload_base_string = base64_encode(json.dumps(general_payload))
 
         # 更新节点信息
         FlowNode.objects.filter(root_id=root_id, node_id=node_id).update(hosts=exec_ips)

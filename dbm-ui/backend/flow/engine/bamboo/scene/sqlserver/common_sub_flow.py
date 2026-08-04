@@ -43,6 +43,7 @@ from backend.flow.plugins.components.collections.sqlserver.backup_path_file_tran
     SqlserverTransBackupFileFor2P2Component,
 )
 from backend.flow.plugins.components.collections.sqlserver.check_no_sync_db import CheckNoSyncDBComponent
+from backend.flow.plugins.components.collections.sqlserver.clone_linkserver import CloneLinkServerComponent
 from backend.flow.plugins.components.collections.sqlserver.exec_actuator_script import SqlserverActuatorScriptComponent
 from backend.flow.plugins.components.collections.sqlserver.exec_sqlserver_backup_job import (
     ExecSqlserverBackupJobComponent,
@@ -495,6 +496,7 @@ def pre_check_sub_flow(
 def clone_configs_sub_flow(
     uid: str,
     root_id: str,
+    bk_biz_id: int,
     source_host: Host,
     source_port: int,
     target_host: Host,
@@ -510,6 +512,7 @@ def clone_configs_sub_flow(
     实例之间克隆子流程
     @param uid: 单据id
     @param root_id: 主流程的id
+    @param bk_biz_id: 业务id，用于 CloneLinkServer 组件从 DBM 授权中心按业务隔离查询密码
     @param source_host: 源实例
     @param source_port: 源实例端口
     @param target_host: 目标实例
@@ -553,11 +556,18 @@ def clone_configs_sub_flow(
         acts_list.append(
             {
                 "act_name": _("克隆LinkServer"),
-                "act_component_code": SqlserverActuatorScriptComponent.code,
+                "act_component_code": CloneLinkServerComponent.code,
                 "kwargs": asdict(
                     ExecActuatorKwargs(
                         exec_ips=[target_host],
                         get_payload_func=SqlserverActPayload.get_clone_linkserver_payload.__name__,
+                        component_kwargs={
+                            "bk_biz_id": bk_biz_id,
+                            "target_port": target_port,
+                            "source_host": source_host.ip,
+                            "source_port": source_port,
+                            "bk_cloud_id": target_host.bk_cloud_id,
+                        },
                     )
                 ),
             }
@@ -1118,6 +1128,7 @@ def switch_cluster_sub_flow(
             sub_flow=clone_configs_sub_flow(
                 uid=uid,
                 root_id=root_id,
+                bk_biz_id=cluster.bk_biz_id,
                 source_host=old_master_host,
                 source_port=port,
                 target_host=new_master_host,
@@ -1156,6 +1167,7 @@ def switch_cluster_sub_flow(
             sub_flow=clone_configs_sub_flow(
                 uid=uid,
                 root_id=root_id,
+                bk_biz_id=cluster.bk_biz_id,
                 source_host=old_master_host,
                 source_port=port,
                 target_host=new_master_host,

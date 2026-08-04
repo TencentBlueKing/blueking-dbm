@@ -10,6 +10,8 @@
 
 package components
 
+import "fmt"
+
 // BaseInputParam TODO
 type BaseInputParam struct {
 	GeneralParam *GeneralParam `json:"general"`
@@ -60,4 +62,36 @@ type RuntimeAccountParam struct {
 	DBHAUser string `json:"DBHA_user,omitempty"`
 	// DBHA 密码
 	DBHAPwd string `json:"DBHA_pwd,omitempty"`
+}
+
+// String 实现 fmt.Stringer，对所有 `*Pwd` 字段做脱敏（非空 → "***"），账号字段保持明文。
+//
+// 目的：`Deserialize` 及其他地方以 `%v` / `%+v` 打印 GeneralParam 时，避免把解密后的明文密码
+// 落到日志文件。凡是新增以 `Pwd` 结尾的字段，请务必在此处一并追加脱敏。
+func (r RuntimeAccountParam) String() string {
+	mask := func(s string) string {
+		if s == "" {
+			return ""
+		}
+		return "***"
+	}
+	return fmt.Sprintf(
+		"{OSMssqlUser:%s OSMssqlPwd:%s SAUser:%s SAPwd:%s "+
+			"SQLServerUser:%s SQLServerPwd:%s "+
+			"MssqlExporterUser:%s MssqlExporterPwd:%s "+
+			"MssqlAdminUser:%s MssqlAdminPwd:%s "+
+			"DRSUser:%s DRSPwd:%s "+
+			"DRSDataReadUser:%s DRSDataReadPwd:%s "+
+			"DRSSysReadUser:%s DRSSysReadPwd:%s "+
+			"DBHAUser:%s DBHAPwd:%s}",
+		r.OSMssqlUser, mask(r.OSMssqlPwd),
+		r.SAUser, mask(r.SAPwd),
+		r.SQLServerUser, mask(r.SQLServerPwd),
+		r.MssqlExporterUser, mask(r.MssqlExporterPwd),
+		r.MssqlAdminUser, mask(r.MssqlAdminPwd),
+		r.DRSUser, mask(r.DRSPwd),
+		r.DRSDataReadUser, mask(r.DRSDataReadPwd),
+		r.DRSSysReadUser, mask(r.DRSSysReadPwd),
+		r.DBHAUser, mask(r.DBHAPwd),
+	)
 }

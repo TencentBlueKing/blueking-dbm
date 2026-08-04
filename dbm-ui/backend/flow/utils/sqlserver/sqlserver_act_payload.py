@@ -225,7 +225,7 @@ class SqlserverActPayload(PayloadHandler):
             "db_type": DBActuatorTypeEnum.Sqlserver.value,
             "action": SqlserverActuatorActionEnum.ExecSQLFiles.value,
             "payload": {
-                "general": {"runtime_account": self.get_sqlserver_account()},
+                "general": {"runtime_account": self.get_sa_account()},
                 "extend": {
                     "host": kwargs["ips"][0]["ip"],
                     "ports": self.global_data["ports"],
@@ -444,9 +444,33 @@ class SqlserverActPayload(PayloadHandler):
         }
 
     @wrap_sqlserver_act_return
-    def get_clone_linkserver_payload(self, **kwargs) -> dict:
-        """
-        实例之间克隆linkserver配置
+    def get_clone_linkserver_payload(
+        self,
+        target_port: int,
+        source_host: str,
+        source_port: int,
+        linkserver_secrets: List[dict],
+        **kwargs,
+    ) -> dict:
+        """实例之间克隆 linkserver 配置的 payload。
+
+        设计要点 / 怎么做：
+          - 所有业务参数走显式命名入参（与 get_data_export_payload 风格一致），
+            不再依赖 self.global_data，便于调用方（CloneLinkServerService）直接控制
+          - linkserver_secrets：对源端 use_self=false 的 linkserver 传递已加密的远程凭据；
+            由上游 CloneLinkServerService 组件在 component_kwargs 中注入，
+            缺省语义为空列表（等价于源端全部为 use_self=true）
+          - 与 Go 端 CloneLinkserversParam 结构严格对齐，字段命名一一对应
+
+        :param target_port: 目标实例端口
+        :param source_host: 源实例 IP
+        :param source_port: 源实例端口
+        :param linkserver_secrets: 已加密的远程凭据列表，元素结构
+                                   {name, remote_user, encrypted_pwd}；允许空列表
+        :return: SqlserverActPayloadReturn 兼容的 dict
+        边界 / 异常：
+          - 由 @wrap_sqlserver_act_return 装饰器统一转 dataclass；本方法不再对入参做校验
+            （已在 CloneLinkServerService 完成合法性检查）
         """
         return {
             "db_type": DBActuatorTypeEnum.Sqlserver.value,
@@ -455,9 +479,10 @@ class SqlserverActPayload(PayloadHandler):
                 "general": {"runtime_account": self.get_sqlserver_account()},
                 "extend": {
                     "host": kwargs["ips"][0]["ip"],
-                    "port": self.global_data["port"],
-                    "source_host": self.global_data["source_host"],
-                    "source_port": self.global_data["source_port"],
+                    "port": target_port,
+                    "source_host": source_host,
+                    "source_port": source_port,
+                    "linkserver_secrets": linkserver_secrets,
                 },
             },
         }
@@ -622,7 +647,6 @@ class SqlserverActPayload(PayloadHandler):
             runtime_account = self.get_sa_account()
         else:
             runtime_account = self.get_sqlserver_account()
-        print(kwargs["custom_params"].get("is_first", True))
         return {
             "db_type": DBActuatorTypeEnum.Sqlserver.value,
             "action": SqlserverActuatorActionEnum.InitForAlwaysOn.value,

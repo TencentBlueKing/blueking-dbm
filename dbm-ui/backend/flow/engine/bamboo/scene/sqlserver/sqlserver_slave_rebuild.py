@@ -227,6 +227,7 @@ class SqlserverSlaveRebuildFlow(BaseFlow):
                 sub_flow=clone_configs_sub_flow(
                     uid=self.data["uid"],
                     root_id=self.root_id,
+                    bk_biz_id=cluster.bk_biz_id,
                     source_host=Host(ip=master.machine.ip, bk_cloud_id=cluster.bk_cloud_id),
                     source_port=master.port,
                     target_host=Host(**info["slave_host"]),
@@ -484,6 +485,7 @@ class SqlserverSlaveRebuildFlow(BaseFlow):
                     sub_flow=clone_configs_sub_flow(
                         uid=self.data["uid"],
                         root_id=self.root_id,
+                        bk_biz_id=cluster.bk_biz_id,
                         source_host=Host(ip=master.machine.ip, bk_cloud_id=cluster.bk_cloud_id),
                         source_port=master.port,
                         target_host=Host(**info["new_slave_host"]),

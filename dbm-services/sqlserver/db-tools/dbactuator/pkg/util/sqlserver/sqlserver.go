@@ -832,6 +832,54 @@ func ExecLocalSQLFile(sqlVersion string, dbName string, charsetNO int, filenames
 	return nil
 }
 
+// ExecLocalSQLFileForSa 基于 sa 账号执行本地 sql 脚本
+// 逻辑与 ExecLocalSQLFile 一致，区别在于：
+//  1. 使用 -U/-P 通过 sa 等账号进行认证，而非 Windows 集成认证
+//  2. 无论是正常日志还是错误日志，均对密码进行屏蔽（xxx）
+func ExecLocalSQLFileForSa(
+	sqlVersion string,
+	dbName string,
+	charsetNO int,
+	filenames []string,
+	port int,
+	userName string,
+	pwd string,
+) error {
+	var cmdSql string
+	if charsetNO == 0 {
+		charsetNO = 936
+	}
+	cmdSql, err := GetCmdSql(sqlVersion)
+	if err != nil {
+		return err
+	}
+	// mask 用于对任意字符串屏蔽密码明文
+	mask := func(s string) string {
+		if pwd == "" {
+			return s
+		}
+		return strings.Replace(s, pwd, "xxx", -1)
+	}
+	for _, filename := range filenames {
+		var ret string
+		var err error
+		cmd := fmt.Sprintf(
+			"& '%s' -S \"127.0.0.1,%d\" -C -I -d %s -f %d -b -i %s -U '%s' -P '%s'",
+			cmdSql, port, dbName, charsetNO, filename, userName, pwd,
+		)
+		logger.Info("exec cmd: %s", mask(cmd))
+		if ret, err = osutil.StandardPowerShellCommand(cmd); err != nil {
+			logger.Error("the db [%s] exec sql script failed %s, result: %s ",
+				dbName, mask(err.Error()), mask(ret))
+			return fmt.Errorf("%s", mask(err.Error()))
+		}
+		logger.InfoNotForAi("exec result: %s", mask(ret))
+		logger.Info("ths db [%s] exec sql script success  [%d:%s]", dbName, port, filename)
+	}
+
+	return nil
+}
+
 // ExecLocalSQLFileForDataExport 执行本地sql脚本，导出数据
 func ExecLocalSQLFileForDataExport(
 	cluster_domain string,

@@ -29,8 +29,11 @@ type CloneLinkserversAct struct {
 
 // CloneLinkserversCommand godoc
 //
-// @Summary      sqlserver 实例之前克隆login users
-// @Description  -
+// @Summary      sqlserver 实例之间克隆linkservers
+// @Description  克隆源端所有linkserver到目标端。对于源端使用固定远程账号(useself=false)的linkserver,
+// @Description  必须通过 params.linkserver_secrets 提供对应的加密密码。密码由DBM侧使用
+// @Description  AES-256-GCM加密, key=SHA256(target_host + "|" + salt), 传输格式=base64(nonce||ciphertext)。
+// @Description  若源端某linkserver useself=false 但未提供密文, 则整个任务失败(不做静默降级)。
 // @Tags         sqlserver
 // @Accept       json
 // @Param        body body      CloneLinkserversCommand  true  "short description"
