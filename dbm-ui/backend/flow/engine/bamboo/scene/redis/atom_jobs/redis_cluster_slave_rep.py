@@ -92,6 +92,27 @@ def _iter_master_relation_clusters(act_kwargs):
         yield cluster_one
 
 
+def _group_install_params_by_cluster(act_kwargs, old_slave, base_params, replace_link_info):
+    """按实例所属集群分组安装参数，仅用于单机多实例不同密码场景。"""
+    grouped_params = {}
+    for slave_port in act_kwargs.cluster["slave_ports"][old_slave]:
+        old_slave_ins = "{}{}{}".format(old_slave, IP_PORT_DIVIDER, slave_port)
+        old_master_ins = act_kwargs.cluster["slave_ins_map"][old_slave_ins]
+        cluster_one = _master_relation_cluster(act_kwargs, old_master_ins)
+        rep_link = replace_link_info[old_slave_ins]
+        cluster_id = cluster_one["id"]
+        if cluster_id not in grouped_params:
+            grouped_params[cluster_id] = {
+                **deepcopy(base_params),
+                "cluster_id": cluster_id,
+                "immute_domain": cluster_one["immute_domain"],
+                "ports": [],
+                "instance_numb": 0,
+            }
+        grouped_params[cluster_id]["ports"].append(rep_link.new_slave_port)
+    return list(grouped_params.values())
+
+
 def _setup_alarm_shield(redis_pipeline, act_kwargs, replace_ips):
     """设置告警屏蔽
 
@@ -238,16 +259,40 @@ def _setup_sync_relations(
             "server_shards": twemproxy_server_shards.get(new_slave, {}),
             "cache_backup_mode": cache_backup_mode,
         }
+        # 按集群拆分子参数，用于单机多实例、多集群密码不同场景
+        grouped_params = {}
         for slave_port in act_kwargs.cluster["slave_ports"][old_slave]:
             old_ins = "{}{}{}".format(old_slave, IP_PORT_DIVIDER, slave_port)
             rep_link = replace_link_info.get(old_ins, StorageRepLink())
-            install_params["ins_link"].append(
-                {
-                    "origin_1": rep_link.old_master_port,
-                    "origin_2": rep_link.old_slave_port,
-                    "sync_dst1": rep_link.new_slave_port,
+            ins_link = {
+                "origin_1": rep_link.old_master_port,
+                "origin_2": rep_link.old_slave_port,
+                "sync_dst1": rep_link.new_slave_port,
+            }
+            install_params["ins_link"].append(ins_link)
+
+            # 通过老 slave 对应的老 master 实例定位所属集群
+            old_master_ip = act_kwargs.cluster["slave_master_map"][old_slave]
+            old_master_ins = "{}{}{}".format(old_master_ip, IP_PORT_DIVIDER, rep_link.old_master_port)
+            cluster_one = _master_relation_cluster(act_kwargs, old_master_ins)
+            cluster_id = cluster_one["id"]
+            if cluster_id not in grouped_params:
+                grouped_params[cluster_id] = {
+                    "cluster_id": cluster_id,
+                    "immute_domain": cluster_one["immute_domain"],
+                    "sync_type": SyncType.SYNC_MS,
+                    "origin_1": act_kwargs.cluster["slave_master_map"][old_slave],
+                    "origin_2": old_slave,
+                    "sync_dst1": new_slave,
+                    "ins_link": [],
+                    "server_shards": twemproxy_server_shards.get(new_slave, {}),
+                    "cache_backup_mode": cache_backup_mode,
                 }
-            )
+            grouped_params[cluster_id]["ins_link"].append(deepcopy(ins_link))
+
+        # 存在跨集群时才启用拆分逻辑；否则维持原路径行为
+        if len(grouped_params) > 1:
+            install_params["sync_params_split"] = list(grouped_params.values())
         sub_builder = RedisMakeSyncAtomJob(root_id, ticket_data, act_kwargs, install_params)
         sub_pipelines.append(sub_builder)
     return sub_pipelines
@@ -496,6 +541,7 @@ def RedisInstanceSlaveReplaceJob(root_id, ticket_data, sub_kwargs: ActKwargs, sl
         "server_shards": {},  # 主从版本 没有这个信息
         "cache_backup_mode": cache_backup_mode,
     }
+    params["install_redis_params"] = _group_install_params_by_cluster(act_kwargs, old_slave, params, replace_link_info)
     install_pipe = RedisBatchInstallAtomJob(root_id, ticket_data, act_kwargs, params)
     redis_pipeline.add_sub_pipeline(sub_flow=install_pipe)
 
