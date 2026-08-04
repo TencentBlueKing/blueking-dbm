@@ -61,7 +61,7 @@
         :loading="isSubmitting"
         theme="primary"
         @click="handleSubmit">
-        {{ t('提交') }}
+        {{ t('预览') }}
       </BkButton>
       <BkButton
         class="ml-8 w-88"
@@ -105,7 +105,7 @@
   const isShowTemplateDetail = ref(false);
   const isShowPreivew = ref(false);
   const variableList = ref<string[]>([]);
-  const clusterType = ref<ClusterTypes>(ClusterTypes.TENDBHA);
+  const clusterType = ref<ClusterTypes.TENDBHA | ClusterTypes.TENDBSINGLE>(ClusterTypes.TENDBHA);
 
   const { data: templateData, loading } = useRequest(getDetail, {
     defaultParams: [
@@ -120,7 +120,7 @@
       }, []);
 
       variableList.value = _.uniq(matchVariableList);
-      clusterType.value = data.cluster_type as ClusterTypes;
+      clusterType.value = data.cluster_type as ClusterTypes.TENDBHA | ClusterTypes.TENDBSINGLE;
     },
   });
 

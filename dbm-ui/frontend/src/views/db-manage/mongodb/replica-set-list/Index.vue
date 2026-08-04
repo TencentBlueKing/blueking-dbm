@@ -27,20 +27,6 @@
         :cluster-type="ClusterTypes.MONGO_REPLICA_SET"
         :selected="selectedList"
         @success="fetchData" />
-      <span
-        v-bk-tooltips="{
-          disabled: hasData,
-          content: t('请先申请集群'),
-        }"
-        v-db-console="'mongodb.replicaSetList.importAuthorize'"
-        class="inline-block">
-        <AuthButton
-          action-id="mongodb_priv_manage"
-          :disabled="!hasData"
-          @click="handleShowExcelAuthorize">
-          {{ t('导入授权') }}
-        </AuthButton>
-      </span>
       <DropdownExportExcel
         v-db-console="'mongodb.replicaSetList.export'"
         :cluster-types="[ClusterTypes.MONGO_REPLICA_SET]"
@@ -202,10 +188,6 @@
       :cluster-types="[ClusterTypes.MONGO_REPLICA_SET]"
       :selected="selectedList"
       @success="handleClearSelected" />
-    <ExcelAuthorize
-      v-model:is-show="excelAuthorizeShow"
-      :cluster-type="ClusterTypes.MONGO_REPLICA_SET"
-      :ticket-type="TicketTypes.MONGODB_EXCEL_AUTHORIZE" />
     <AccessEntry
       v-if="accessEntryInfo"
       v-model:is-show="accessEntryInfoShow"
@@ -243,7 +225,6 @@
     RoleColumn,
   } from '@views/db-manage/common/cluster-table/Index.vue';
   import DropdownExportExcel from '@views/db-manage/common/dropdown-export-excel/index.vue';
-  import ExcelAuthorize from '@views/db-manage/common/ExcelAuthorize.vue';
   import { useOperateClusterBasic } from '@views/db-manage/common/hooks';
   import OperationBtnStatusTips from '@views/db-manage/common/OperationBtnStatusTips.vue';
   import useClusterTableSelect from '@views/db-manage/hooks/useClusterTableSelect';
@@ -279,7 +260,6 @@
   const operationColumnRef = ref<ComponentExposed<typeof OperationColumn>>();
   const tableRef = useTemplateRef<ComponentExposed<typeof ClusterTable>>('clusterTable');
   const clusterAuthorizeShow = ref(false);
-  const excelAuthorizeShow = ref(false);
   const accessEntryInfoShow = ref(false);
   const accessEntryInfo = ref<MongodbModel | undefined>();
 
@@ -323,10 +303,6 @@
       },
     });
     window.open(routeInfo.href, '_blank');
-  };
-
-  const handleShowExcelAuthorize = () => {
-    excelAuthorizeShow.value = true;
   };
 
   const handleClearSelected = () => {

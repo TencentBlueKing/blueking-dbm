@@ -2,14 +2,14 @@
   <div class="spider-manage-paritition-page">
     <div class="header-action mb-16">
       <AuthButton
-        action-id="tendbcluster_partition_create"
+        action-id="tendbcluster_partition_manage"
         class="w-88"
         theme="primary"
         @click="handleCreate">
         {{ t('新建策略') }}
       </AuthButton>
       <AuthButton
-        action-id="tendbcluster_partition_create"
+        action-id="tendbcluster_partition_manage"
         class="w-88 ml-8"
         @click="handleShowExcelImport">
         {{ t('导入策略') }}
@@ -139,8 +139,8 @@
         :width="100">
         <template #default="{ row }: { row: PartitionModel }">
           <AuthButton
-            action-id="tendbcluster_partition_update"
-            :permission="row.permission.tendbcluster_partition_update"
+            action-id="tendbcluster_partition_manage"
+            :permission="row.permission.tendbcluster_partition_manage"
             :resource="row.cluster_id"
             text
             theme="primary"
@@ -255,10 +255,10 @@
         <template #default="{ row }: { row: PartitionModel }">
           <!-- 执行按钮 -->
           <AuthButton
-            action-id="tendbcluster_partition"
+            action-id="tendbcluster_partition_manage"
             :disabled="row.isOffline"
             :loading="executeLoadingMap[row.id]"
-            :permission="row.permission.tendbcluster_partition"
+            :permission="row.permission.tendbcluster_partition_manage"
             :resource="row.cluster_id"
             text
             theme="primary"
@@ -267,9 +267,9 @@
           </AuthButton>
           <!-- 编辑按钮 -->
           <AuthButton
-            action-id="tendbcluster_partition_update"
+            action-id="tendbcluster_partition_manage"
             class="ml-8"
-            :permission="row.permission.tendbcluster_partition_update"
+            :permission="row.permission.tendbcluster_partition_manage"
             :resource="row.cluster_id"
             text
             theme="primary"
@@ -279,9 +279,9 @@
           <!-- 禁用/启用按钮 -->
           <AuthButton
             v-if="row.isOnline"
-            action-id="tendb_partition_enable_disable"
+            action-id="tendbcluster_partition_manage"
             class="ml-8"
-            :permission="row.permission.tendb_partition_enable_disable"
+            :permission="row.permission.tendbcluster_partition_manage"
             :resource="row.cluster_id"
             text
             theme="primary"
@@ -290,9 +290,9 @@
           </AuthButton>
           <AuthButton
             v-else
-            action-id="tendb_partition_enable_disable"
+            action-id="tendbcluster_partition_manage"
             class="ml-8"
-            :permission="row.permission.tendb_partition_enable_disable"
+            :permission="row.permission.tendbcluster_partition_manage"
             :resource="row.cluster_id"
             text
             theme="primary"
@@ -304,8 +304,8 @@
             <template #default>
               <div>
                 <AuthButton
-                  action-id="tendbcluster_partition_create"
-                  :permission="row.permission.tendbcluster_partition_create"
+                  action-id="tendbcluster_partition_manage"
+                  :permission="row.permission.tendbcluster_partition_manage"
                   text
                   @click="handleClone(row)">
                   {{ t('克隆') }}
@@ -318,8 +318,8 @@
                   :title="t('确认删除该分区策略？')">
                   <div style="height: 100%">
                     <AuthButton
-                      action-id="tendbcluster_partition_delete"
-                      :permission="row.permission.tendbcluster_partition_delete"
+                      action-id="tendbcluster_partition_manage"
+                      :permission="row.permission.tendbcluster_partition_manage"
                       :resource="row.cluster_id"
                       text>
                       {{ t('删除') }}
