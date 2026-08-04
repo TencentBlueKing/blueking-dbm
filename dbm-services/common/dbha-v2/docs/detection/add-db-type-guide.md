@@ -60,6 +60,8 @@ make check-generate
 
 `cmd/probe` / `cmd/analysis` / `cmd/admin` / `cmd/receiver` 各 blank-import 一次对应聚合包，之后不再改。
 
+**receiver 边界**：receiver 只透传落库探针报文，可导入 `alldesc` 这类公共 desc 聚合，但不得依赖具体 DB 的能力包（`harvest` / `switch` / `parse` / `metrics`）；新增 DB 类型无需改动 receiver。
+
 ## 块名规范
 
 - 所有 harvester 块名经 `dbtype.NormalizeBlockName`（小写）归一。
