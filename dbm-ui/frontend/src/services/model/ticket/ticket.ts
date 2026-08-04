@@ -78,6 +78,13 @@ export default class Ticket<T extends unknown | DetailBase = unknown> {
 
   bk_biz_id: number;
   bk_biz_name: string;
+  config: {
+    send_msg_config: {
+      is_send: boolean;
+      msg_type: MessageTypes[]; // 目前只有邮件的方式
+      receiver__username: string;
+    };
+  };
   cost_time: number;
   create_at: string;
   creator: string;
@@ -95,11 +102,7 @@ export default class Ticket<T extends unknown | DetailBase = unknown> {
     title: string;
   };
   remark: string;
-  send_msg_config: {
-    is_send: boolean;
-    msg_type: MessageTypes[]; // 目前只有邮件的方式
-    receiver__username: string[];
-  };
+
   status: keyof typeof Ticket.statusTextMap;
   status_display: string;
   ticket_type: TicketTypes;
@@ -112,6 +115,7 @@ export default class Ticket<T extends unknown | DetailBase = unknown> {
   constructor(payload = {} as Ticket<T>) {
     this.bk_biz_id = payload.bk_biz_id;
     this.bk_biz_name = payload.bk_biz_name;
+    this.config = payload.config;
     this.cost_time = payload.cost_time;
     this.create_at = payload.create_at;
     this.creator = payload.creator;
@@ -123,7 +127,6 @@ export default class Ticket<T extends unknown | DetailBase = unknown> {
     this.is_reviewed = payload.is_reviewed;
     this.permission = payload.permission || {};
     this.remark = payload.remark;
-    this.send_msg_config = payload.send_msg_config || {};
     this.status = payload.status;
     this.status_display = payload.status_display;
     this.ticket_type = payload.ticket_type;

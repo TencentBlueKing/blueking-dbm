@@ -190,7 +190,7 @@
             }" />
           <NotifyRelatedPersons
             ref="notifyRelatedPersonsRef"
-            v-model="formData.send_msg_config"
+            v-model="formData.config.send_msg_config"
             :biz-id="formData.bk_biz_id"
             :db-type="DBTypes.REDIS" />
           <BkFormItem :label="t('备注')">
@@ -267,6 +267,13 @@
 
   const initData = () => ({
     bk_biz_id: '' as number | '',
+    config: {
+      send_msg_config: {
+        is_send: true,
+        msg_type: [MessageTypes.MAIL, MessageTypes.RTX],
+        receiver__username: [] as string[],
+      },
+    },
     details: {
       apply_mode: 'new', // 是否是追加部署
       bk_cloud_id: 0,
@@ -296,11 +303,6 @@
       sub_zone_names: [] as string[],
     },
     remark: '',
-    send_msg_config: {
-      is_send: true,
-      msg_type: [MessageTypes.MAIL],
-      receiver__username: [] as string[],
-    },
     ticket_type: TicketTypes.REDIS_INS_APPLY,
   });
 
@@ -313,19 +315,20 @@
 
   useTicketDetail<Redis.InsApply>(TicketTypes.REDIS_INS_APPLY, {
     onSuccess(ticketDetail) {
-      const { details } = ticketDetail;
+      const { config, details } = ticketDetail;
+      const { send_msg_config: sendMsgConfig } = config;
       const applyMode = details.ip_source === 'resource_pool' ? 'new' : 'append';
 
       Object.assign(formData, {
         bk_biz_id: ticketDetail.bk_biz_id,
-        remark: ticketDetail.remark,
-        send_msg_config: {
-          ...formData.send_msg_config,
-          is_send: ticketDetail.send_msg_config.is_send,
-          receiver__username: ticketDetail.send_msg_config.is_send
-            ? ticketDetail.send_msg_config.receiver__username
-            : [],
+        config: {
+          send_msg_config: {
+            ...sendMsgConfig,
+            is_send: sendMsgConfig.is_send,
+            receiver__username: sendMsgConfig.is_send ? sendMsgConfig.receiver__username.split(',') : [],
+          },
         },
+        remark: ticketDetail.remark,
       });
       Object.assign(formData.details, {
         bk_cloud_id: details.bk_cloud_id,
@@ -642,8 +645,10 @@
 
     const params = {
       ...formData,
+      config: {
+        send_msg_config: notifyRelatedPersonsRef.value!.getValue(),
+      },
       details: getDetails(),
-      send_msg_config: notifyRelatedPersonsRef.value!.getValue(),
     };
 
     // 若业务没有英文名称则先创建业务英文名称再创建单据，反正直接创建单据
