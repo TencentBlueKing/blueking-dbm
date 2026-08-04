@@ -28,7 +28,8 @@ type PartitionBoundaryRow struct {
 }
 
 // intervalCheckOffsetDays 用于分区间隔检查的时区偏移（天）。
-// 与 PartitionTimeInterval 叠加后作为未来分区的查询下界，跳过当前在用分区。
+// 仅用于定位“今天所在/之后”的分区下界，不叠加 PartitionTimeInterval：
+// 新间隔变小时（如 7→1）若叠加新间隔，边界仍可能落在当前大跨度分区内，会把当前分区误判为未来分区。
 const intervalCheckOffsetDays = 1
 
 // addStmtContext 汇总“添加分区语句”构建过程中的中间态数据。
@@ -136,24 +137,25 @@ func (pc *PartitionConfig) CheckInterval(pd *PartitionDetail, conn *native.DbWor
 	return nil
 }
 
-// GetPartitionsFromTodayOnward 查询“不早于边界表达式”的未来分区。
-// offsetDays 表示在“今天边界”基础上，额外偏移多少天（用于规避时区导致的边界误判）。
-// 边界表达式已叠加 DiffOneDay/offsetDays/PartitionTimeInterval，故用 >= 纳入恰好等于边界的首个未来分区。
-// 结果按 PARTITION_DESCRIPTION 升序。
+// GetPartitionsFromTodayOnward 查询当前在用分区之后的未来预留分区。
+// 步骤：
+//  1. 用“今天 + 时区偏移”（不叠加新间隔）定位当前在用分区；
+//  2. 再取 PARTITION_DESCRIPTION 严格大于当前分区的所有分区。
+//
+// 这样无论新间隔变大还是变小，都不会把当前大跨度分区误判为未来分区。
 func (pc *PartitionConfig) GetPartitionsFromTodayOnward(
 	pd *PartitionDetail,
 	conn *native.DbWorker,
 	offsetDays int,
 ) ([]PartitionBoundaryRow, error) {
 
-	// 获取边界表达式
 	boundaryExpr, err := pc.GetIntervalCheckBoundaryExpr(offsetDays)
 	if err != nil {
 		return nil, err
 	}
 
-	// 查询未来预留分区
-	querySQL := fmt.Sprintf(
+	// 当前在用分区：边界之后（含等于）的第一个分区
+	currentSQL := fmt.Sprintf(
 		"SELECT "+
 			"PARTITION_NAME AS PARTITION_NAME, "+
 			"PARTITION_DESCRIPTION AS PARTITION_DESCRIPTION "+
@@ -161,9 +163,32 @@ func (pc *PartitionConfig) GetPartitionsFromTodayOnward(
 			"INFORMATION_SCHEMA.PARTITIONS "+
 			"WHERE "+
 			"TABLE_SCHEMA = ? AND TABLE_NAME = ? AND PARTITION_DESCRIPTION >= %s "+
-			"ORDER BY PARTITION_DESCRIPTION ASC;", boundaryExpr)
+			"ORDER BY PARTITION_DESCRIPTION ASC LIMIT 1;", boundaryExpr)
 
-	rows, err := conn.QueryWithArgs(querySQL, pd.DbName, pd.TbName)
+	currentRows, err := conn.QueryWithArgs(currentSQL, pd.DbName, pd.TbName)
+	if err != nil {
+		if strings.Contains(err.Error(), "not row found") {
+			return nil, nil
+		}
+		return nil, err
+	}
+	if len(currentRows) == 0 {
+		return nil, nil
+	}
+	currentDesc := currentRows[0]["PARTITION_DESCRIPTION"].(string)
+
+	// 未来预留分区：严格晚于当前在用分区
+	futureSQL :=
+		"SELECT " +
+			"PARTITION_NAME AS PARTITION_NAME, " +
+			"PARTITION_DESCRIPTION AS PARTITION_DESCRIPTION " +
+			"FROM " +
+			"INFORMATION_SCHEMA.PARTITIONS " +
+			"WHERE " +
+			"TABLE_SCHEMA = ? AND TABLE_NAME = ? AND PARTITION_DESCRIPTION > ? " +
+			"ORDER BY PARTITION_DESCRIPTION ASC;"
+
+	rows, err := conn.QueryWithArgs(futureSQL, pd.DbName, pd.TbName, currentDesc)
 	if err != nil {
 		if strings.Contains(err.Error(), "not row found") {
 			return nil, nil
@@ -181,31 +206,29 @@ func (pc *PartitionConfig) GetPartitionsFromTodayOnward(
 	return out, nil
 }
 
-// GetIntervalCheckBoundaryExpr 生成“检查分区间隔”专用边界表达式。
-// offsetDays 为时区偏移天数；再叠加 PartitionTimeInterval，使查询下界落到下一个预留分区。
+// GetIntervalCheckBoundaryExpr 生成“定位当前在用分区”的边界表达式。
+// 仅含时区偏移（及各类型自身的 DiffOneDay），不叠加 PartitionTimeInterval。
 func (pc *PartitionConfig) GetIntervalCheckBoundaryExpr(offsetDays int) (string, error) {
 	if offsetDays < 0 {
 		return "", fmt.Errorf("offsetDays must be >= 0")
 	}
 
-	totalDays := offsetDays + pc.PartitionTimeInterval
-
 	switch pc.PartitionType {
 	case 0:
-		return fmt.Sprintf("(TO_DAYS(now())+%d)", DiffOneDay+totalDays), nil
+		return fmt.Sprintf("(TO_DAYS(now())+%d)", DiffOneDay+offsetDays), nil
 	case 1:
 		// type 1 3  name和description是同一天，但是list类型 不需要额外再加一天
-		return fmt.Sprintf("(TO_DAYS(now())+%d)", totalDays), nil
+		return fmt.Sprintf("(TO_DAYS(now())+%d)", offsetDays), nil
 	case 3:
-		return fmt.Sprintf("DATE_FORMAT(date_add(now(),interval %d day),'%%Y%%m%%d')", totalDays), nil
+		return fmt.Sprintf("DATE_FORMAT(date_add(now(),interval %d day),'%%Y%%m%%d')", offsetDays), nil
 	case 101:
 		// name和description是同一天，例如20060102的数据实际在p20060103中，所以需要额外加1天
-		return fmt.Sprintf("DATE_FORMAT(date_add(now(),interval %d day),'%%Y%%m%%d')", DiffOneDay+totalDays), nil
+		return fmt.Sprintf("DATE_FORMAT(date_add(now(),interval %d day),'%%Y%%m%%d')", DiffOneDay+offsetDays), nil
 	case 4:
 		//  description 为 'YYYY-MM-DD'
-		return fmt.Sprintf(`DATE_FORMAT(date_add(now(),interval %d day),'\'%%Y-%%m-%%d\'')`, DiffOneDay+totalDays), nil
+		return fmt.Sprintf(`DATE_FORMAT(date_add(now(),interval %d day),'\'%%Y-%%m-%%d\'')`, DiffOneDay+offsetDays), nil
 	case 5:
-		return fmt.Sprintf("UNIX_TIMESTAMP(date_add(curdate(),INTERVAL %d DAY))", DiffOneDay+totalDays), nil
+		return fmt.Sprintf("UNIX_TIMESTAMP(date_add(curdate(),INTERVAL %d DAY))", DiffOneDay+offsetDays), nil
 	default:
 		return "", errno.NotSupportedPartitionType
 	}
