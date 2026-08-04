@@ -136,7 +136,7 @@
     getValue() {
       return {
         ...modelValue.value,
-        receiver__username: modelValue.value.is_send ? receiverUsername() : [],
+        receiver__username: (modelValue.value.is_send ? receiverUsername() : []).join(','),
       };
     },
   });

@@ -18,7 +18,7 @@
   <InfoItem
     v-if="data.is_send"
     :label="t('收件人')">
-    {{ data.receiver__username.slice(2).length > 0 ? data.receiver__username.slice(2).join('，') : '--' }}
+    {{ receiverUsername.length > 0 ? receiverUsername.slice(2).join('，') : '--' }}
   </InfoItem>
 </template>
 
@@ -33,11 +33,13 @@
     data: {
       is_send: boolean;
       msg_type: MessageTypes[];
-      receiver__username: string[];
+      receiver__username: string;
     };
   }
 
-  defineProps<Props>();
+  const props = defineProps<Props>();
 
   const { t } = useI18n();
+
+  const receiverUsername = props.data.receiver__username.split(',');
 </script>
