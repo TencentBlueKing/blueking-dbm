@@ -44,7 +44,7 @@ def get_taskflow_error_logs(root_id: str) -> Dict:
     if not last_failed:
         logs: List = []
         _append_mysql_rollback_exercise_task_info_to_logs(root_id, logs)
-        return {"node_id": "", "node_name": "", "logs": logs}
+        return {"node_id": root_id, "node_name": "", "logs": logs}
 
     node_id = last_failed.node_id
     version_id = last_failed.version_id
@@ -68,14 +68,13 @@ def get_taskflow_error_logs(root_id: str) -> Dict:
 def _append_mysql_rollback_exercise_task_info_to_logs(root_id: str, logs: List) -> None:
     """若为 MYSQL_ROLLBACK_EXERCISE，将 MySQLBackupRecoverTask.task_info 追加为一条错误日志。"""
     flow = FlowTree.objects.filter(root_id=root_id).only("ticket_type").first()
-    if not flow or flow.ticket_type != TicketType.MYSQL_ROLLBACK_EXERCISE.value:
-        return
-    recover = MySQLBackupRecoverTask.objects.filter(task_id=root_id).only("task_info").first()
-    if not recover or not recover.task_info:
-        return
-    logs.append(
-        TaskFlowHandler.generate_log_record(
-            message=_("备份恢复演练任务信息(task_info):\n{}").format(recover.task_info),
-            levelname=LogLevelName.ERROR.value,
+    if not flow or flow.ticket_type == TicketType.MYSQL_ROLLBACK_EXERCISE.value:
+        recover = MySQLBackupRecoverTask.objects.filter(task_id=root_id).only("task_info").first()
+        if not recover or not recover.task_info:
+            return
+        logs.append(
+            TaskFlowHandler.generate_log_record(
+                message=_("备份恢复演练任务信息(task_info):\n{}").format(recover.task_info),
+                levelname=LogLevelName.ERROR.value,
+            )
         )
-    )
