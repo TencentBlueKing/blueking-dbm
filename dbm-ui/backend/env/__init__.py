@@ -46,6 +46,15 @@ BK_TENANT_ID = get_type_env(key="BK_TENANT_ID", _type=str, default="")
 
 # CC业务模型中的英文业务简称
 BK_APP_ABBR = get_type_env(key="BK_APP_ABBR", _type=str, default="")
+
+# SQLServer actuator runtime_account（含 sa_pwd / drs_pwd 等敏感字段）下发前是否做 AES-GCM 整段加密。
+# 开启后 Python 侧会将 general.runtime_account 字段**原地覆盖**为密文 string（key_seed=node_id），
+# Go 端 dbactuator 的 decryptRuntimeAccountIfNeeded 按"该字段为 string 则解密"的约定处理，双端严格对齐。
+# 默认 True：Go 端 26 个 action 已全量接入解密；关闭该开关会回退到明文 dict 下发（应急用）。
+ENABLE_SQLSERVER_RUNTIME_ACCOUNT_ENCRYPT = get_type_env(
+    key="ENABLE_SQLSERVER_RUNTIME_ACCOUNT_ENCRYPT", _type=bool, default=True
+)
+
 # CMDB 监控相关字段
 CMDB_HOST_STATE_ATTR = get_type_env(key="CMDB_HOST_STATE_ATTR", _type=str, default="bk_state")
 CMDB_NO_MONITOR_STATUS = get_type_env(key="CMDB_NO_MONITOR_STATUS", _type=str, default="运营中[无告警]")

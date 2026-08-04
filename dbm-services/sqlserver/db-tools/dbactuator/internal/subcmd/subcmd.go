@@ -25,6 +25,7 @@ import (
 	"dbm-services/common/go-pubpkg/logger"
 	"dbm-services/sqlserver/db-tools/dbactuator/pkg/components"
 	"dbm-services/sqlserver/db-tools/dbactuator/pkg/util"
+	"dbm-services/sqlserver/db-tools/dbactuator/pkg/util/crypto"
 	"dbm-services/sqlserver/db-tools/dbactuator/pkg/util/templates"
 	"dbm-services/sqlserver/db-tools/dbactuator/pkg/util/validate"
 
@@ -128,7 +129,7 @@ func (b *BaseOptions) GetExtendPayloadFormFile() error {
 	}
 	content, err := os.ReadFile(b.ExtendPayloadFile)
 	if err != nil {
-		return fmt.Errorf("读取extend_Payload文件失败: %v\n", err)
+		return fmt.Errorf("读取extend_Payload文件失败: %v", err)
 
 	}
 	b.ExtendPayload = string(content)
@@ -209,6 +210,14 @@ func (b *BaseOptions) Deserialize(s interface{}) (err error) {
 		fmt.Println("GeneralPayload err")
 		return err
 	}
+	// 向后兼容：新版 DBM 会把 runtime_account 加密成 base64 字符串下发（避免密码明文传输），
+	// 此处先做一次探测——若为密文字符串则用 node_id 派生密钥就地解密并回填明文对象，
+	// 若仍为明文对象则原样透传。契约详见 pkg/util/crypto.DecryptLinkserverSecret。
+	if generalBp, err = decryptRuntimeAccountIfNeeded(generalBp, b.NodeId); err != nil {
+		logger.Error("[GeneralPayload] runtime_account decrypt failed: %v", err)
+		err = errors.WithMessage(err, "runtime_account 解密失败")
+		return
+	}
 	if err = json.Unmarshal(generalBp, &bip); err != nil {
 		logger.Error("[GeneralPayload] json.Unmarshal failed, %v", s, err)
 		err = errors.WithMessage(err, "参数解析错误")
@@ -225,6 +234,85 @@ func (b *BaseOptions) Deserialize(s interface{}) (err error) {
 	GeneralRuntimeParam = bip.GeneralParam
 
 	return nil
+}
+
+// decryptRuntimeAccountIfNeeded 按 general.runtime_account 字段的实际 JSON 类型分派处理：
+//
+//   - object / null / 字段缺失：视为明文，payload 原样返回（兼容老版本 DBM）。
+//   - string：视为新版 DBM 通过 encrypt_login_password(node_id, json(runtime_account))
+//     产出的密文（base64(nonce||AES-256-GCM ciphertext)），以 node_id 作为 key 派生源
+//     解密还原为明文 JSON 对象后回填 payload。
+//   - 其他类型（number/array/bool）：类型非法，直接报错。
+//
+// 密钥派生与 clone_linkservers 的 linkserver secret 共用契约：
+//
+//	key = SHA256(nodeID + "|" + salt)，salt 见 pkg/util/crypto。
+func decryptRuntimeAccountIfNeeded(payload []byte, nodeID string) ([]byte, error) {
+	var probe struct {
+		General struct {
+			RuntimeAccount json.RawMessage `json:"runtime_account"`
+		} `json:"general"`
+	}
+	if err := json.Unmarshal(payload, &probe); err != nil {
+		// payload 结构异常不在此处吞掉，交由上层统一 Unmarshal 报错
+		return payload, nil
+	}
+	if len(probe.General.RuntimeAccount) == 0 {
+		// 字段缺失，走老路径
+		logger.Info("runtime_account 字段缺失，跳过解密")
+		return payload, nil
+	}
+
+	// 按实际 JSON 类型分派：
+	//   - map/nil : 明文对象或 null，走老路径
+	//   - string  : 密文，进入解密流程
+	//   - 其他    : 类型非法，fail-fast
+	var raw interface{}
+	if err := json.Unmarshal(probe.General.RuntimeAccount, &raw); err != nil {
+		return nil, errors.WithMessage(err, "runtime_account 字段 JSON 非法")
+	}
+	var b64 string
+	switch v := raw.(type) {
+	case nil, map[string]interface{}:
+		logger.Info("runtime_account 为明文对象，跳过解密（兼容老版本 DBM 或未加密下发）")
+		return payload, nil
+	case string:
+		logger.Info("runtime_account 为加密对象，正在 AES-GCM 解密...")
+		b64 = v
+	default:
+		return nil, fmt.Errorf("runtime_account 字段类型非法，期望 object 或 string，实际为 %T", v)
+	}
+
+	if nodeID == "" {
+		return nil, errors.New("runtime_account 为密文，但 node_id 为空，无法派生解密密钥")
+	}
+
+	plaintext, err := crypto.DecryptLinkserverSecret(nodeID, b64)
+	if err != nil {
+		return nil, errors.WithMessage(err, "runtime_account AES-GCM 解密失败")
+	}
+
+	// 明文必须是合法 JSON 对象，否则下游 Unmarshal 会报难以定位的错，此处提前拦截
+	if !json.Valid([]byte(plaintext)) {
+		return nil, errors.New("runtime_account 解密结果不是合法 JSON")
+	}
+
+	// 将解密后的明文对象回填至原 payload 的 general.runtime_account 字段
+	var whole map[string]json.RawMessage
+	if err := json.Unmarshal(payload, &whole); err != nil {
+		return nil, err
+	}
+	var gen map[string]json.RawMessage
+	if err := json.Unmarshal(whole["general"], &gen); err != nil {
+		return nil, err
+	}
+	gen["runtime_account"] = json.RawMessage(plaintext)
+	genBytes, err := json.Marshal(gen)
+	if err != nil {
+		return nil, err
+	}
+	whole["general"] = genBytes
+	return json.Marshal(whole)
 }
 
 // Validate TODO
@@ -296,7 +384,7 @@ func ValidateSubCommand() func(cmd *cobra.Command, args []string) error {
 	return func(cmd *cobra.Command, args []string) error {
 		if len(args) <= 0 {
 			return fmt.Errorf(
-				"You must specify the type of Operation Describe. %s\n",
+				"you must specify the type of Operation Describe. %s",
 				SuggestAPIResources(cmd.Parent().Name()),
 			)
 		}
@@ -309,7 +397,7 @@ func ValidateSubCommand() func(cmd *cobra.Command, args []string) error {
 			return nil
 		}
 		if !util.StringsHas(subCommands, curName) {
-			return fmt.Errorf("Unknown subcommand %s\n", curName)
+			return fmt.Errorf("unknown subcommand %s", curName)
 		}
 		return nil
 	}

@@ -169,8 +169,15 @@ func (s *SQLFileExecuteComp) executeForport(port int) (err error) {
 
 			// 调用本地执行SQL
 			for _, dbNames := range realexcutedbs {
-				if err := sqlserver.ExecLocalSQLFile(
-					s.SQLVersions[port], dbNames, s.Params.CharSetNO, files, port); err != nil {
+				if err := sqlserver.ExecLocalSQLFileForSa(
+					s.SQLVersions[port],
+					dbNames,
+					s.Params.CharSetNO,
+					files,
+					port,
+					s.GeneralParam.RuntimeAccountParam.SAUser,
+					s.GeneralParam.RuntimeAccountParam.SAPwd,
+				); err != nil {
 					return err
 				}
 			}

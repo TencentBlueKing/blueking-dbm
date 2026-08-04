@@ -1223,3 +1223,64 @@ def init_dbm_nginx_proxy_config(nginx_list: List[NginxInfo], bk_cloud_id: int, t
             raise Exception(f"[{instance}] init_dbm_nginx_proxy_config failed: {ret[0]['error_msg']}")
 
         logger.info(f"[{instance}] init_dbm_nginx_proxy_config successfully")
+
+
+# ---------------------------------------------------------------------------
+# LinkServer 相关查询
+# ---------------------------------------------------------------------------
+
+# 查询源实例 linkserver 元数据的 SQL：
+#   - 过滤 server_id != 0：排除本机 loopback 记录
+#   - is_linked = 1：仅关注 linked-server（不含 remote server 等历史类型）
+#   - LEFT OUTER JOIN linked_logins：允许无匹配 login 行（此时 use_self 默认 1）
+#   - local_principal_id = 0：仅取"任意本地 principal 的默认映射"，与 SQL Server 语义一致
+_SQL_QUERY_LINK_SERVERS: str = (
+    "SELECT srv.name AS name, "
+    "ISNULL(CAST(ll.uses_self_credential AS BIT), 1) AS use_self, "
+    "ISNULL(ll.remote_name, N'') AS remote_user "
+    "FROM sys.servers AS srv "
+    "LEFT OUTER JOIN sys.linked_logins AS ll "
+    "  ON ll.server_id = srv.server_id AND ll.local_principal_id = 0 "
+    "WHERE srv.server_id != 0 AND srv.is_linked = 1 "
+    "ORDER BY srv.name;"
+)
+
+
+def get_source_linkservers(bk_cloud_id: int, source_address: str) -> List[Dict]:
+    """从源 SQLServer 实例读取全部 linked-server 元数据。
+
+    设计要点 / 怎么做：
+      - 通道：DRSApi.sqlserver_rpc（与仓内其他 get_xxx 查询一致）
+      - SQL 见模块级常量 _SQL_QUERY_LINK_SERVERS
+      - DRS 反序列化 BIT 字段可能是 0/1 或 True/False，本函数统一归一化为 bool
+
+    :param bk_cloud_id: 云区域 ID，DRS RPC 必需
+    :param source_address: 源实例 "ip:port"
+    :return: 元数据行列表，元素结构 {name: str, use_self: bool, remote_user: str}；
+             源实例无任何 linkserver 时返回空列表
+    边界 / 异常：
+      - RPC 返回 error_msg：抛 Exception（原样带上后端返回文案）
+      - 底层网络异常：不吞异常，向上抛出，由调用方决定重试策略
+    """
+    ret = DRSApi.sqlserver_rpc(
+        {
+            "bk_cloud_id": bk_cloud_id,
+            "addresses": [source_address],
+            "cmds": [_SQL_QUERY_LINK_SERVERS],
+            "force": False,
+        }
+    )
+    if ret[0].get("error_msg"):
+        raise Exception(f"[{source_address}] query linkservers failed: {ret[0]['error_msg']}")
+
+    table_data: List[Dict] = ret[0]["cmd_results"][0]["table_data"] or []
+    normalized: List[Dict] = []
+    for row in table_data:
+        normalized.append(
+            {
+                "name": row["name"],
+                "use_self": bool(row["use_self"]),
+                "remote_user": row.get("remote_user") or "",
+            }
+        )
+    return normalized

@@ -211,6 +211,7 @@ class SqlserverAddSlaveFlow(BaseFlow):
                     sub_flow=clone_configs_sub_flow(
                         uid=self.data["uid"],
                         root_id=self.root_id,
+                        bk_biz_id=cluster.bk_biz_id,
                         source_host=Host(ip=master_instance.machine.ip, bk_cloud_id=cluster.bk_cloud_id),
                         source_port=master_instance.port,
                         target_host=Host(**info["new_slave_host"]),
