@@ -19,11 +19,12 @@ import (
 
 // BalancerConfParams 参数
 type BalancerConfParams struct {
-	IP            string `json:"ip" validate:"required"`
-	Port          int    `json:"port" validate:"required"`
-	Open          bool   `json:"open"` // true：打开 false：关闭
-	AdminUsername string `json:"adminUsername" validate:"required"`
-	AdminPassword string `json:"adminPassword" validate:"required"`
+	IP             string `json:"ip" validate:"required"`
+	Port           int    `json:"port" validate:"required"`
+	Open           bool   `json:"open"`                     // true：打开 false：关闭
+	WaitForBalance *bool  `json:"waitForBalance,omitempty"` // nil/true：开启后等待均衡；false：开启后立即返回
+	AdminUsername  string `json:"adminUsername" validate:"required"`
+	AdminPassword  string `json:"adminPassword" validate:"required"`
 }
 
 // Balancer 添加分片到集群
@@ -58,14 +59,21 @@ func (b *Balancer) Run() error {
 	if err := b.execScript(); err != nil {
 		return err
 	}
-	// 监控数据均衡状态
-	if b.ConfParams.Open == true {
+	// 监控数据均衡状态（默认开启后等待；显式 waitForBalance=false 则跳过）
+	if b.ConfParams.Open && b.shouldWaitForBalance() {
 		if err := b.checkBalanceStatus(); err != nil {
 			return err
 		}
 	}
 
 	return nil
+}
+
+func (b *Balancer) shouldWaitForBalance() bool {
+	if b.ConfParams.WaitForBalance == nil {
+		return true
+	}
+	return *b.ConfParams.WaitForBalance
 }
 
 // Retry 重试

@@ -44,6 +44,7 @@ def cluster_reduce_shard(
     sub_get_kwargs.payload["hosts"] = reduce_shard_info["hosts"]
     sub_get_kwargs.payload["mongos"] = reduce_shard_info["mongos"]
     sub_get_kwargs.payload["reduce_shards"] = reduce_shard_info["reduce_shards"]
+    sub_get_kwargs.payload["db_version"] = reduce_shard_info.get("db_version") or ""
     sub_get_kwargs.payload["nodes"] = reduce_shard_info["mongos"]["nodes"]
 
     # 介质下发（mongos + 待删 shard 主机）
@@ -62,8 +63,8 @@ def cluster_reduce_shard(
     get_password = {"usernames": sub_get_kwargs.manager_users}
     sub_get_kwargs.payload["passwords"] = sub_get_kwargs.get_password_from_db(info=get_password)["passwords"]
 
-    # 打开 balancer，便于排水
-    kwargs = sub_get_kwargs.get_balancer_kwargs(open=True)
+    # 打开 balancer，便于排水（不等待均衡完成）
+    kwargs = sub_get_kwargs.get_balancer_kwargs(open=True, wait_for_balance=False)
     sub_pipeline.add_act(
         act_name=_("MongoDB--打开balancer"),
         act_component_code=ExecuteDBActuatorJobComponent.code,

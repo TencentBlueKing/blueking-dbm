@@ -892,6 +892,7 @@ class ActKwargs:
                     "adminUsername": MongoDBManagerUser.DbaUser.value,
                     "adminPassword": self.payload["passwords"][MongoDBManagerUser.DbaUser.value],
                     "shards": self.payload["reduce_shards"],
+                    "dbVersion": self.payload.get("db_version") or "",
                 },
             },
         }
@@ -2501,13 +2502,26 @@ class ActKwargs:
             "usernames": [MongoDBDefaultUser.DefaultUser.value],
         }
 
-    def get_balancer_kwargs(self, open: bool) -> dict:
-        """分片集群操作数据均衡 open：true 打开   open：false 关闭"""
+    def get_balancer_kwargs(self, open: bool, wait_for_balance: bool = True) -> dict:
+        """分片集群操作数据均衡 open：true 打开   open：false 关闭
+
+        wait_for_balance: 开启后是否等待 chunk 均衡完成；缩减分片传 False。
+        """
 
         ip = self.payload["nodes"][0]["ip"]
         port = self.payload["nodes"][0]["port"]
         bk_cloud_id = self.payload["nodes"][0]["bk_cloud_id"]
         admin_user = MongoDBManagerUser.DbaUser.value
+
+        payload = {
+            "ip": ip,
+            "port": port,
+            "open": open,
+            "adminUsername": admin_user,
+            "adminPassword": self.payload["passwords"][admin_user],
+        }
+        if open:
+            payload["waitForBalance"] = wait_for_balance
 
         return {
             "set_trans_data_dataclass": CommonContext.__name__,
@@ -2517,13 +2531,7 @@ class ActKwargs:
             "db_act_template": {
                 "action": MongoDBActuatorActionEnum.ClusterBalancer,
                 "file_path": self.file_path,
-                "payload": {
-                    "ip": ip,
-                    "port": port,
-                    "open": open,
-                    "adminUsername": admin_user,
-                    "adminPassword": self.payload["passwords"][admin_user],
-                },
+                "payload": payload,
             },
         }
 

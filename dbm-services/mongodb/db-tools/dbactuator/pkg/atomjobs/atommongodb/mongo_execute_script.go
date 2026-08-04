@@ -78,10 +78,10 @@ func (e *ExecScript) Name() string {
 
 // Run 运行原子任务
 func (e *ExecScript) Run() error {
-	// 上传失败重试：若上次脚本已成功（完成标记 + 结果文件齐全），跳过再执行，只补上传
+	// 上传失败重试：若上次全部脚本已成功（每脚本完成标记 + 结果文件齐全），跳过再执行，只补上传
 	if e.canSkipRunScripts() {
 		e.runtime.Logger.Info(
-			"skip runScripts: done marker and result files exist under %s, upload only",
+			"skip runScripts: done markers and result files exist under %s, upload only",
 			e.ExecuteDir)
 	} else {
 		if err := e.resolveMongoShellByVersion(); err != nil {
@@ -95,9 +95,6 @@ func (e *ExecScript) Run() error {
 			return err
 		}
 		if err := e.runScripts(); err != nil {
-			return err
-		}
-		if err := e.writeExecDoneMarker(); err != nil {
 			return err
 		}
 	}
@@ -322,35 +319,61 @@ func (e *ExecScript) normalizeScriptCompatibility() error {
 	return nil
 }
 
-func (e *ExecScript) execDoneMarkerPath() string {
-	return filepath.Join(e.ExecuteDir, scriptExecDoneMarker)
+// execDoneMarkerPath 单脚本完成标记：.script_exec_done_{port}_{idx}_{脚本名}
+// ExecuteDir 只按 taskid（单据 uid）命名，同一单据在同一台机器上的多个实例、多个脚本会共用该目录；
+// 因此按「端口 + 脚本编号(1-based) + 脚本名」隔离，避免误判跳过。
+func (e *ExecScript) execDoneMarkerPath(scriptNo int, scriptPath string) string {
+	base := filepath.Base(scriptPath)
+	base = strings.TrimSuffix(base, filepath.Ext(base))
+	// 文件名整体不能超过文件系统上限，脚本名由用户上传，做一次截断
+	if len(base) > 180 {
+		base = base[:180]
+	}
+	return filepath.Join(e.ExecuteDir,
+		fmt.Sprintf("%s_%d_%d_%s", scriptExecDoneMarker, e.ConfParams.Port, scriptNo, base))
 }
 
-// canSkipRunScripts 判断上次脚本是否已成功执行（完成标记 + 非空结果文件），用于上传失败后的重试。
+// isOneScriptDone 判断第 index（0-based）个脚本是否已成功执行。
+func (e *ExecScript) isOneScriptDone(index int) bool {
+	if index < 0 || index >= len(e.ScriptFilePathList) || index >= len(e.ResultFilePathList) {
+		return false
+	}
+	scriptNo := index + 1
+	if !util.FileExists(e.execDoneMarkerPath(scriptNo, e.ScriptFilePathList[index])) {
+		return false
+	}
+	fi, err := os.Stat(e.ResultFilePathList[index])
+	return err == nil && fi.Size() > 0
+}
+
+// canSkipRunScripts 判断上次全部脚本是否已成功执行，用于上传失败后的重试。
 func (e *ExecScript) canSkipRunScripts() bool {
+	// 跳过重跑只为「脚本已成功、仅上传失败」的重试服务；没有制品库时上传是空操作，
+	// 重试必然是脚本本身失败，必须重跑。
+	if e.ConfParams.RepoUrl == "" {
+		return false
+	}
 	if e.ExecuteDir == "" || len(e.ResultFilePathList) == 0 {
 		return false
 	}
-	if !util.FileExists(e.execDoneMarkerPath()) {
-		return false
-	}
-	for _, resultFile := range e.ResultFilePathList {
-		fi, err := os.Stat(resultFile)
-		if err != nil || fi.Size() == 0 {
+	for i := range e.ScriptFilePathList {
+		if !e.isOneScriptDone(i) {
 			return false
 		}
 	}
 	return true
 }
 
-// writeExecDoneMarker 脚本全部成功后写入完成标记，供重试时跳过再执行。
-func (e *ExecScript) writeExecDoneMarker() error {
-	content := fmt.Sprintf("taskid=%s\nport=%d\n", e.ConfParams.TaskId, e.ConfParams.Port)
-	if err := os.WriteFile(e.execDoneMarkerPath(), []byte(content), DefaultPerm); err != nil {
+// writeOneExecDoneMarker 单个脚本成功后写入完成标记，供重试时跳过该脚本。
+func (e *ExecScript) writeOneExecDoneMarker(scriptNo int, scriptPath string) error {
+	marker := e.execDoneMarkerPath(scriptNo, scriptPath)
+	content := fmt.Sprintf("taskid=%s\nport=%d\nscriptNo=%d\nscript=%s\n",
+		e.ConfParams.TaskId, e.ConfParams.Port, scriptNo, filepath.Base(scriptPath))
+	if err := os.WriteFile(marker, []byte(content), DefaultPerm); err != nil {
 		e.runtime.Logger.Error("write script exec done marker fail, error:%s", err)
 		return fmt.Errorf("write script exec done marker fail, error:%s", err)
 	}
-	e.runtime.Logger.Info("write script exec done marker successfully: %s", e.execDoneMarkerPath())
+	e.runtime.Logger.Info("write script exec done marker successfully: %s", marker)
 	return nil
 }
 
@@ -360,12 +383,40 @@ func (e *ExecScript) runScripts() error {
 	timeout := 86400 * 3 * time.Second // 3天
 
 	for index, script := range e.ScriptFilePathList {
+		scriptNo := index + 1
+		// 上传失败重试：已成功的脚本（完成标记 + 结果文件）可单独跳过
+		if e.ConfParams.RepoUrl != "" && e.isOneScriptDone(index) {
+			e.runtime.Logger.Info(
+				"skip script #%d %s: done marker and result file exist",
+				scriptNo, script)
+			continue
+		}
 		if err := e.runOneScript(script, e.ResultFilePathList[index], timeout); err != nil {
+			return err
+		}
+		if err := e.writeOneExecDoneMarker(scriptNo, script); err != nil {
+			return err
+		}
+		if err := e.cleanupGeneratedScript(script); err != nil {
 			return err
 		}
 	}
 
 	e.runtime.Logger.Info("execute %d scripts on primary node %s:%d successfully", len(e.ScriptFilePathList), e.execIP, e.execPort)
+	return nil
+}
+
+// cleanupGeneratedScript 删除安装流程现场生成的额外管理用户脚本，避免密码长期残留在磁盘。
+// 制品库下发的脚本由其它流程管理，不在这里删除。
+func (e *ExecScript) cleanupGeneratedScript(script string) error {
+	if e.ConfParams.ScriptFile || !strings.HasPrefix(filepath.Base(script), "create_extra_user_") {
+		return nil
+	}
+	if err := os.Remove(script); err != nil && !os.IsNotExist(err) {
+		e.runtime.Logger.Error("remove generated script %s fail, error:%s", script, err)
+		return fmt.Errorf("remove generated script %s fail: %w", script, err)
+	}
+	e.runtime.Logger.Info("remove generated script successfully: %s", script)
 	return nil
 }
 
