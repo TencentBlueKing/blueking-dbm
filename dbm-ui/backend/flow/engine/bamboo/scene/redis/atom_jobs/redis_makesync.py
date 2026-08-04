@@ -43,6 +43,19 @@ def RedisMakeSyncAtomJob(root_id, ticket_data, sub_kwargs: ActKwargs, params: Di
         "ins_link":[{"origin_1":"port","origin_2":"port","sync_dst1":"port","sync_dst2":"port"}],
         "server_shards":{},
         "cache_backup_mode":"",
+        # 可选：单机多实例、多集群场景下，按集群拆分的 params 列表
+        # 每一项结构同 params，额外包含 cluster_id / immute_domain
+        "sync_params_split": [
+            {
+                "cluster_id": 1,
+                "immute_domain": "xxx.example.com",
+                "sync_type": ...,
+                "origin_1": ..., "origin_2": ..., "sync_dst1": ..., "sync_dst2": ...,
+                "ins_link": [...],
+                ...
+            },
+            ...
+        ],
     }
     """
     act_kwargs = deepcopy(sub_kwargs)
@@ -50,6 +63,9 @@ def RedisMakeSyncAtomJob(root_id, ticket_data, sub_kwargs: ActKwargs, params: Di
     ins_sync_type = params["sync_type"]
     app = AppCache.get_app_attr(act_kwargs.cluster["bk_biz_id"], "db_app_abbr")
     app_name = AppCache.get_app_attr(act_kwargs.cluster["bk_biz_id"], "bk_biz_name")
+
+    # 单机多实例、多集群场景下按集群拆分执行；未传时走原路径，向后兼容
+    sync_params_split = params.get("sync_params_split") or [params]
 
     # 下发介质包
     exec_ip = [params["origin_1"], params["sync_dst1"]]
@@ -86,26 +102,63 @@ def RedisMakeSyncAtomJob(root_id, ticket_data, sub_kwargs: ActKwargs, params: Di
         kwargs=asdict(act_kwargs),
     )
 
-    # 建立Sync关系
-    if act_kwargs.cluster["cluster_type"] in [
-        ClusterType.TendisTwemproxyRedisInstance,
-        ClusterType.TendisRedisInstance,
-        # tendisplus 主从版(predixy)同样基于slaveof建立同步关系，与cache一致
-        ClusterType.TendisPredixyTendisplusInstance,
-    ]:
-        RedisCacheMakeSyncAtomJob(sub_pipeline=sub_pipeline, act_kwargs=act_kwargs, params=params)
-        #  sub_pipeline = RedisCacheMakeSyncAtomJob(sub_pipeline=sub_pipeline, act_kwargs=act_kwargs, params=params)
-    elif act_kwargs.cluster["cluster_type"] == ClusterType.TwemproxyTendisSSDInstance:
-        # 备份这里act需要的是string, cluster里的参数会覆盖掉playload里的。所以这里需要转一下
-        act_kwargs.cluster["bk_biz_id"] = str(act_kwargs.cluster["bk_biz_id"])
-        RedisSSDMakeSyncAtomJob(root_id, ticket_data, sub_pipeline=sub_pipeline, act_kwargs=act_kwargs, params=params)
-        act_kwargs.cluster["bk_biz_id"] = int(act_kwargs.cluster["bk_biz_id"])
-    elif is_redis_cluster_protocal(act_kwargs.cluster["cluster_type"]):
-        RedisClusterMakeSyncAtomJob(sub_pipeline=sub_pipeline, sub_kwargs=act_kwargs, params=params)
-    else:
-        raise Exception("unsupport cluster type 4 make sync {}".format(params["cluster_type"]))
+    # 建立Sync关系 按集群维度分别执行，避免单机多实例、多集群场景下密码错误
+    # 下游 RedisCacheMakeSyncAtomJob / RedisSSDMakeSyncAtomJob / RedisClusterMakeSyncAtomJob
+    # 内部对 sync_type、ins_link、origin_1/2、sync_dst1/2 等字段均为硬取，缺失会直接 KeyError。
+    # 在循环入口对每个 split_params 做一次统一 fallback：未显式指定时继承顶层 params 的值，
+    # 让未来新增调用方只需关心"差异字段"（如 cluster_id、immute_domain、ins_link），
+    # 避免忘记塞公共字段时炸在下游、难定位。
+    _fallback_keys = (
+        "sync_type",
+        "ins_link",
+        "origin_1",
+        "origin_2",
+        "sync_dst1",
+        "sync_dst2",
+        "server_shards",
+        "cache_backup_mode",
+    )
+    for split_params in sync_params_split:
+        for _k in _fallback_keys:
+            if _k not in split_params and _k in params:
+                split_params[_k] = params[_k]
+        # sync_type 是下游必需字段，仍做一次显式校验，及早暴露问题
+        if "sync_type" not in split_params:
+            raise Exception(
+                "sync_params_split element missing 'sync_type', cluster_id={}, immute_domain={}".format(
+                    split_params.get("cluster_id"), split_params.get("immute_domain")
+                )
+            )
 
-    # 拉起dbmon
+        # 每个集群使用独立的 act_kwargs 副本，确保 immute_domain/cluster_id 独立生效
+        group_kwargs = deepcopy(act_kwargs)
+        if split_params.get("immute_domain"):
+            group_kwargs.cluster["immute_domain"] = split_params["immute_domain"]
+            group_kwargs.cluster["domain_name"] = split_params["immute_domain"]
+        if split_params.get("cluster_id"):
+            group_kwargs.cluster["cluster_id"] = split_params["cluster_id"]
+
+        # 建立Sync关系
+        if group_kwargs.cluster["cluster_type"] in [
+            ClusterType.TendisTwemproxyRedisInstance,
+            ClusterType.TendisRedisInstance,
+            # tendisplus 主从版(predixy)同样基于slaveof建立同步关系，与cache一致
+            ClusterType.TendisPredixyTendisplusInstance,
+        ]:
+            RedisCacheMakeSyncAtomJob(sub_pipeline=sub_pipeline, act_kwargs=group_kwargs, params=split_params)
+        elif group_kwargs.cluster["cluster_type"] == ClusterType.TwemproxyTendisSSDInstance:
+            # 备份这里act需要的是string, cluster里的参数会覆盖掉playload里的。所以这里需要转一下
+            group_kwargs.cluster["bk_biz_id"] = str(group_kwargs.cluster["bk_biz_id"])
+            RedisSSDMakeSyncAtomJob(
+                root_id, ticket_data, sub_pipeline=sub_pipeline, act_kwargs=group_kwargs, params=split_params
+            )
+            group_kwargs.cluster["bk_biz_id"] = int(group_kwargs.cluster["bk_biz_id"])
+        elif is_redis_cluster_protocal(group_kwargs.cluster["cluster_type"]):
+            RedisClusterMakeSyncAtomJob(sub_pipeline=sub_pipeline, sub_kwargs=group_kwargs, params=split_params)
+        else:
+            raise Exception("unsupport cluster type 4 make sync {}".format(split_params.get("cluster_type")))
+
+    # 拉起dbmon（dbmon 自身不依赖实例密码，作为公共步骤一次性执行即可）
     exec_ip, server_ports = [params["sync_dst1"]], []
     for sync_link in params["ins_link"]:
         server_ports.append(int(sync_link["sync_dst1"]))

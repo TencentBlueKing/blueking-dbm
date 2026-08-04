@@ -68,6 +68,26 @@ def _master_relation_cluster(act_kwargs, old_master_ins):
     return {"id": act_kwargs.cluster["cluster_id"], "immute_domain": act_kwargs.cluster["immute_domain"]}
 
 
+def _group_install_params_by_cluster(act_kwargs, old_master, base_params, replace_link_info, port_attr):
+    """按旧 master 实例所属集群分组安装参数，仅拆分安装实例节点。"""
+    grouped_params = {}
+    for old_master_port in act_kwargs.cluster["master_ports"][old_master]:
+        old_master_ins = "{}{}{}".format(old_master, IP_PORT_DIVIDER, old_master_port)
+        cluster_one = _master_relation_cluster(act_kwargs, old_master_ins)
+        rep_link = replace_link_info[old_master_ins]
+        cluster_id = cluster_one["id"]
+        if cluster_id not in grouped_params:
+            grouped_params[cluster_id] = {
+                **deepcopy(base_params),
+                "cluster_id": cluster_id,
+                "immute_domain": cluster_one["immute_domain"],
+                "ports": [],
+                "instance_numb": 0,
+            }
+        grouped_params[cluster_id]["ports"].append(getattr(rep_link, port_attr))
+    return list(grouped_params.values())
+
+
 def _extract_master_replace_params(master_replace_info, act_kwargs):
     master_replace_detail = master_replace_info["redis_master"]
     new_instances_to_master, replace_link_info = {}, {}
@@ -554,7 +574,7 @@ def TendisSingleMasterReplaceJob(root_id, ticket_data, sub_kwargs: ActKwargs, ma
             root_id,
             ticket_data,
             act_kwargs,
-            params={
+            param={
                 "ip": new_master,
                 "meta_role": InstanceRole.REDIS_MASTER.value,
                 "start_port": DEFAULT_REDIS_START_PORT,
@@ -564,6 +584,23 @@ def TendisSingleMasterReplaceJob(root_id, ticket_data, sub_kwargs: ActKwargs, ma
                 "spec_config": master_repl_info["master_spec"],
                 "server_shards": {},  # 主从版本 没有这个信息
                 "cache_backup_mode": cache_backup_mode,
+                "install_redis_params": _group_install_params_by_cluster(
+                    act_kwargs,
+                    old_master,
+                    {
+                        "ip": new_master,
+                        "meta_role": InstanceRole.REDIS_MASTER.value,
+                        "start_port": DEFAULT_REDIS_START_PORT,
+                        "ports": act_kwargs.cluster["master_ports"][old_master],
+                        "instance_numb": 0,
+                        "spec_id": master_repl_info["master_spec"].get("id", 0),
+                        "spec_config": master_repl_info["master_spec"],
+                        "server_shards": {},
+                        "cache_backup_mode": cache_backup_mode,
+                    },
+                    repl_link_info,
+                    "new_master_port",
+                ),
             },
         )
     )
@@ -573,7 +610,7 @@ def TendisSingleMasterReplaceJob(root_id, ticket_data, sub_kwargs: ActKwargs, ma
             root_id,
             ticket_data,
             act_kwargs,
-            params={
+            param={
                 "ip": new_slave,
                 "meta_role": InstanceRole.REDIS_SLAVE.value,
                 "start_port": DEFAULT_REDIS_START_PORT,
@@ -583,6 +620,23 @@ def TendisSingleMasterReplaceJob(root_id, ticket_data, sub_kwargs: ActKwargs, ma
                 "spec_config": master_repl_info["slave_spec"],
                 "server_shards": {},  # 主从版本 没有这个信息
                 "cache_backup_mode": cache_backup_mode,
+                "install_redis_params": _group_install_params_by_cluster(
+                    act_kwargs,
+                    old_master,
+                    {
+                        "ip": new_slave,
+                        "meta_role": InstanceRole.REDIS_SLAVE.value,
+                        "start_port": DEFAULT_REDIS_START_PORT,
+                        "ports": act_kwargs.cluster["master_ports"][old_master],
+                        "instance_numb": 0,
+                        "spec_id": master_repl_info["slave_spec"].get("id", 0),
+                        "spec_config": master_repl_info["slave_spec"],
+                        "server_shards": {},
+                        "cache_backup_mode": cache_backup_mode,
+                    },
+                    repl_link_info,
+                    "new_slave_port",
+                ),
             },
         )
     )
@@ -620,17 +674,31 @@ def TendisSingleMasterReplaceJob(root_id, ticket_data, sub_kwargs: ActKwargs, ma
         sync_params["ins_link"].append(ins_link)
 
         cluster_info = _master_relation_cluster(act_kwargs, old_master_ins)
-        sync_relations.append(
-            {
-                "cluster_id": cluster_info["id"],
-                "immute_domain": cluster_info["immute_domain"],
-                "origin_1": old_master,
-                "origin_2": act_kwargs.cluster["master_slave_map"][old_master],
-                "sync_dst1": new_master,
-                "sync_dst2": new_slave,
-                "ins_link": [deepcopy(ins_link)],
-            }
-        )
+        cluster_id = cluster_info["id"]
+        # 同一个集群的多个端口，合并到同一条 sync 记录（便于切换按集群维度执行一次）
+        matched = None
+        for exist in sync_relations:
+            if exist["cluster_id"] == cluster_id:
+                matched = exist
+                break
+        if matched is None:
+            sync_relations.append(
+                {
+                    "cluster_id": cluster_id,
+                    "immute_domain": cluster_info["immute_domain"],
+                    "sync_type": act_kwargs.cluster["sync_type"],
+                    "origin_1": old_master,
+                    "origin_2": act_kwargs.cluster["master_slave_map"][old_master],
+                    "sync_dst1": new_master,
+                    "sync_dst2": new_slave,
+                    "ins_link": [deepcopy(ins_link)],
+                }
+            )
+        else:
+            matched["ins_link"].append(deepcopy(ins_link))
+    # 单机多实例、多集群场景：按集群拆分传递给 RedisMakeSyncAtomJob，保证建立主从关系时使用对应集群的密码
+    if len(sync_relations) > 1:
+        sync_params["sync_params_split"] = deepcopy(sync_relations)
     sub_builder = RedisMakeSyncAtomJob(root_id, ticket_data, sync_kwargs, sync_params)
     redis_pipeline.add_sub_pipeline(sub_flow=sub_builder)
     # ### 建同步关系 ####################################################################### 完毕 ###

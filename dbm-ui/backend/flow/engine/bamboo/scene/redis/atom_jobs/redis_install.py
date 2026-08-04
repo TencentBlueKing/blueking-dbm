@@ -44,6 +44,51 @@ cluster_apply_ticket = [
 logger = logging.getLogger("flow")
 
 
+def _ensure_install_ports(param: Dict):
+    """补齐实例安装端口列表。"""
+    if param["instance_numb"] != 0 and len(param["ports"]) == 0:
+        for i in range(0, param["instance_numb"]):
+            param["ports"].append(param["start_port"] + i)
+
+
+def _add_install_redis_act(
+    sub_pipeline: SubBuilder,
+    exec_ip: str,
+    ticket_data,
+    act_kwargs: ActKwargs,
+    param: Dict,
+    load_modules: list,
+):
+    """添加 Redis 实例安装节点。"""
+    install_kwargs = deepcopy(act_kwargs)
+    install_exec_ip = param.get("ip", exec_ip)
+    _ensure_install_ports(param)
+
+    install_kwargs.cluster["exec_ip"] = install_exec_ip
+    install_kwargs.cluster["start_port"] = param["start_port"]
+    install_kwargs.cluster["inst_num"] = param["instance_numb"]
+    install_kwargs.cluster["ports"] = param.get("ports", [])
+    if param.get("cluster_id"):
+        install_kwargs.cluster["cluster_id"] = param["cluster_id"]
+    if param.get("immute_domain"):
+        install_kwargs.cluster["immute_domain"] = param["immute_domain"]
+    install_kwargs.cluster["domain_name"] = install_kwargs.cluster["immute_domain"]
+    if ticket_data["ticket_type"] in cluster_apply_ticket:
+        # 集群申请单据时，下面参数需要从param中获取，不能从已有配置中获取
+        install_kwargs.cluster["requirepass"] = param["requirepass"]
+        install_kwargs.cluster["databases"] = param["databases"]
+        install_kwargs.cluster["maxmemory"] = param["maxmemory"]
+        install_kwargs.cluster["load_modules"] = load_modules
+        install_kwargs.get_redis_payload_func = RedisActPayload.get_install_redis_apply_payload.__name__
+    else:
+        install_kwargs.get_redis_payload_func = RedisActPayload.get_redis_install_4_scene.__name__
+    sub_pipeline.add_act(
+        act_name=_("{}-{}-安装实例").format(install_exec_ip, str(param.get("ports", []))[:17]),
+        act_component_code=ExecuteDBActuatorScriptComponent.code,
+        kwargs=asdict(install_kwargs),
+    )
+
+
 def RedisBatchInstallAtomJob(
     root_id,
     ticket_data,
@@ -84,9 +129,7 @@ def RedisBatchInstallAtomJob(
 
     sub_pipeline = SubBuilder(root_id=root_id, data=ticket_data)
     exec_ip = param["ip"]
-    if param["instance_numb"] != 0 and len(param["ports"]) == 0:
-        for i in range(0, param["instance_numb"]):
-            param["ports"].append(param["start_port"] + i)
+    _ensure_install_ports(param)
 
     if to_trans_files:
         # 下发介质包
@@ -143,25 +186,9 @@ def RedisBatchInstallAtomJob(
     if to_install_redis:
         # 安装Redis实例
         atom_name += _("安装实例")
-        act_kwargs.cluster["exec_ip"] = exec_ip
-        act_kwargs.cluster["start_port"] = param["start_port"]
-        act_kwargs.cluster["inst_num"] = param["instance_numb"]
-        act_kwargs.cluster["domain_name"] = act_kwargs.cluster["immute_domain"]
-        act_kwargs.cluster["ports"] = param.get("ports", [])
-        if ticket_data["ticket_type"] in cluster_apply_ticket:
-            #  集群申请单据时，下面参数需要从param中获取，不能从已有配置中获取
-            act_kwargs.cluster["requirepass"] = param["requirepass"]
-            act_kwargs.cluster["databases"] = param["databases"]
-            act_kwargs.cluster["maxmemory"] = param["maxmemory"]
-            act_kwargs.cluster["load_modules"] = load_modules
-            act_kwargs.get_redis_payload_func = RedisActPayload.get_install_redis_apply_payload.__name__
-        else:
-            act_kwargs.get_redis_payload_func = RedisActPayload.get_redis_install_4_scene.__name__
-        sub_pipeline.add_act(
-            act_name=_("{}-{}-安装实例").format(exec_ip, str(param.get("ports", []))[:17]),
-            act_component_code=ExecuteDBActuatorScriptComponent.code,
-            kwargs=asdict(act_kwargs),
-        )
+        install_redis_params = param.get("install_redis_params") or [param]
+        for install_param in install_redis_params:
+            _add_install_redis_act(sub_pipeline, exec_ip, ticket_data, act_kwargs, install_param, load_modules)
 
         # 写入元数据
         act_kwargs.cluster["spec_id"] = param.get("spec_id", 0)
@@ -175,6 +202,9 @@ def RedisBatchInstallAtomJob(
             act_kwargs.cluster["new_slave_ips"] = []
         else:
             raise Exception("unkown instance role {}:{}", param["meta_role"], exec_ip)
+        act_kwargs.cluster["start_port"] = param["start_port"]
+        act_kwargs.cluster["inst_num"] = param["instance_numb"]
+        act_kwargs.cluster["ports"] = param.get("ports", [])
         sub_pipeline.add_act(
             act_name=_("{}-{}-写入元数据").format(exec_ip, str(param.get("ports", []))[:17]),
             act_component_code=RedisDBMetaComponent.code,
