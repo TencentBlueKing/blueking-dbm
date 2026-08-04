@@ -102,7 +102,7 @@
   </InfoList>
   <div class="ticket-details-info-title">{{ t('补充信息') }}</div>
   <InfoList>
-    <NotifyRelatedPersons :data="ticketDetails.send_msg_config" />
+    <NotifyRelatedPersons :data="ticketDetails.config.send_msg_config" />
   </InfoList>
 </template>
 
