@@ -46,6 +46,8 @@ from backend.dbm_aiagent.mcp_tools.mysql.impl.bill_machine_replace.bill_tendbclu
 from backend.dbm_aiagent.mcp_tools.mysql.impl.bill_machine_replace.bill_tendbha_master_slave_swtich import (
     bill_tendbha_master_slave_switch,
 )
+from backend.dbm_aiagent.mcp_tools.mysql.impl.bill_mysql_destroy import bill_mysql_destroy
+from backend.dbm_aiagent.mcp_tools.mysql.impl.bill_mysql_disable import bill_mysql_disable
 from backend.dbm_aiagent.mcp_tools.mysql.impl.bill_mysql_standardize import bill_mysql_standardize
 from backend.dbm_aiagent.mcp_tools.mysql.impl.bill_rename_db import bill_rename_db
 from backend.dbm_aiagent.mcp_tools.mysql.impl.bill_tdbctl_upgrade import bill_tdbctl_upgrade
@@ -63,6 +65,8 @@ from backend.dbm_aiagent.mcp_tools.mysql.serializers.mysql_db_rename_bill import
 from backend.dbm_aiagent.mcp_tools.mysql.serializers.mysql_db_table_backup import (
     SubmitBillMySQLDBTableBackupInputSerializer,
 )
+from backend.dbm_aiagent.mcp_tools.mysql.serializers.mysql_destroy_bill import SubmitBillMySQLDestroyInputSerializer
+from backend.dbm_aiagent.mcp_tools.mysql.serializers.mysql_disable_bill import SubmitBillMySQLDisableInputSerializer
 from backend.dbm_aiagent.mcp_tools.mysql.serializers.mysql_full_backup_bill import (
     SubmitBillMySQLFullBackupInputSerializer,
 )
@@ -566,4 +570,89 @@ class MySQLBillMcpToolsViewSet(McpToolsViewSet):
 
         return Response(
             [{"bill_id": root_id, "bill_url": f"{env.BK_SAAS_HOST}/{m.bk_biz_id}/task-history/detail/{root_id}"}]
+        )
+
+    @mcp_tools_api_decorator(
+        description=str(
+            _(
+                """创建 MySQL 集群禁用单据（TenDBHA / TenDBSingle / TenDBCluster）
+参数说明：
+- bk_biz_id: 业务ID（必填）
+- cluster_domains: 集群域名列表（必填，支持多个，可按集群类型自动拆分提单）
+
+使用场景：对指定业务下的一个或多个 MySQL 系列集群发起禁用操作。
+按集群类型分别生成对应禁用单据：TenDBHA → MYSQL_HA_DISABLE，TenDBSingle → MYSQL_SINGLE_DISABLE，TenDBCluster → TENDBCLUSTER_DISABLE。
+"""
+            )
+        ),
+        request_slz=SubmitBillMySQLDisableInputSerializer,
+        response_slz=SubmitBillOutputSerializer,
+        permission_classes=[McpTicketToolPermission],
+        mcp_auth_parser=auth_parse_clusters,
+        tags=[DBMMCPTags.READ, DBMMCPTags.WRITE],
+        mcp=[DBMMcpTools.MYSQL_BILL],
+        name_prefix="mysql_bill",
+    )
+    def submit_bill_mysql_disable(self, request, *args, **kwargs):
+        bk_biz_id = self.get_param("bk_biz_id")
+        cluster_domains = list({d.strip() for d in self.get_param("cluster_domains") if d.strip()})
+
+        assert_cluster_type(
+            Cluster.objects.filter(immute_domain__in=cluster_domains),
+            [ClusterType.TenDBSingle, ClusterType.TenDBHA, ClusterType.TenDBCluster],
+        )
+
+        username = request.user.username
+        if not username:
+            raise DBMMcpUsernameNotFoundException()
+
+        return Response(
+            bill_mysql_disable(
+                username=username,
+                bk_biz_id=bk_biz_id,
+                cluster_domains=cluster_domains,
+            )
+        )
+
+    @mcp_tools_api_decorator(
+        description=str(
+            _(
+                """创建 MySQL 集群删除单据（TenDBHA / TenDBSingle / TenDBCluster）
+参数说明：
+- bk_biz_id: 业务ID（必填）
+- cluster_domains: 集群域名列表（必填，支持多个，可按集群类型自动拆分提单）
+
+前置条件：集群必须处于禁用状态（phase=offline）才可以提交删除单据，否则直接报错。
+使用场景：对指定业务下已禁用的一个或多个 MySQL 系列集群发起删除操作。
+按集群类型分别生成对应删除单据：TenDBHA → MYSQL_HA_DESTROY，TenDBSingle → MYSQL_SINGLE_DESTROY，TenDBCluster → TENDBCLUSTER_DESTROY。
+"""
+            )
+        ),
+        request_slz=SubmitBillMySQLDestroyInputSerializer,
+        response_slz=SubmitBillOutputSerializer,
+        permission_classes=[McpTicketToolPermission],
+        mcp_auth_parser=auth_parse_clusters,
+        tags=[DBMMCPTags.READ, DBMMCPTags.WRITE],
+        mcp=[DBMMcpTools.MYSQL_BILL],
+        name_prefix="mysql_bill",
+    )
+    def submit_bill_mysql_destroy(self, request, *args, **kwargs):
+        bk_biz_id = self.get_param("bk_biz_id")
+        cluster_domains = list({d.strip() for d in self.get_param("cluster_domains") if d.strip()})
+
+        assert_cluster_type(
+            Cluster.objects.filter(immute_domain__in=cluster_domains),
+            [ClusterType.TenDBSingle, ClusterType.TenDBHA, ClusterType.TenDBCluster],
+        )
+
+        username = request.user.username
+        if not username:
+            raise DBMMcpUsernameNotFoundException()
+
+        return Response(
+            bill_mysql_destroy(
+                username=username,
+                bk_biz_id=bk_biz_id,
+                cluster_domains=cluster_domains,
+            )
         )

@@ -33,7 +33,7 @@ func discover() ([]*toolsDefinition, error) {
 	}
 
 	httpClient := &http.Client{
-		Timeout: 1 * time.Second,
+		Timeout: 10 * time.Second,
 	}
 
 	resp, err := httpClient.Get(discoveryUrl)
