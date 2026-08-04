@@ -80,7 +80,7 @@
         class="mt-20 mb-20"
         theme="danger">
         <template #title>
-          {{ submitErrorMessage }}
+          <div style="line-height: 20px; white-space: pre-line">{{ submitErrorMessage }}</div>
         </template>
       </BkAlert>
     </Teleport>
