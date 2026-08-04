@@ -27,10 +27,9 @@ export default class Opeanarea {
   creator: string;
   id: number;
   permission: {
-    mysql_openarea_config_destroy: boolean;
-    mysql_openarea_config_update: boolean;
-    tendb_openarea_config_destroy: boolean;
-    tendb_openarea_config_update: boolean;
+    // 聚合权限（灰度期可选，缺省 false）
+    mysql_openarea_manage?: boolean;
+    tendbcluster_openarea_manage: boolean;
   };
   related_authorize: number[];
   source_cluster: {

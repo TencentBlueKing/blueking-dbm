@@ -1,18 +1,17 @@
 <template>
   <BkDropdownItem v-db-console="'sqlserver.haClusterList.batchAuthorize'">
-    <AuthButton
+    <BkButton
       v-bk-tooltips="{
         disabled: !batchAuthorizeDisabled,
         content: t('仅可授权状态为“已启用”的集群'),
         placement: 'right',
       }"
-      action-id="sqlserver_priv_manage"
       class="opration-button"
       :disabled="batchAuthorizeDisabled"
       text
       @click="clusterAuthorizeShow = true">
       {{ t('批量授权') }}
-    </AuthButton>
+    </BkButton>
   </BkDropdownItem>
   <BkDropdownItem v-db-console="'sqlserver.haClusterList.batchAddTag'">
     <BkButton

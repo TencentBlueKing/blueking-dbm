@@ -42,12 +42,11 @@ export default class Partition {
     mysql_partition_create: boolean;
     mysql_partition_delete: boolean;
     mysql_partition_enable_disable: boolean;
+    // 聚合权限（灰度期可选，缺省 false）
+    mysql_partition_manage?: boolean;
     mysql_partition_update: boolean;
     tendb_partition_enable_disable: boolean;
-    tendbcluster_partition: boolean;
-    tendbcluster_partition_create: boolean;
-    tendbcluster_partition_delete: boolean;
-    tendbcluster_partition_update: boolean;
+    tendbcluster_partition_manage: boolean;
   };
   phase: string;
   port: number;

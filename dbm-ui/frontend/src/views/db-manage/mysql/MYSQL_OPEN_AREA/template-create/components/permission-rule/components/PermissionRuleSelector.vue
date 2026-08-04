@@ -63,9 +63,8 @@
             <div v-if="row.rules.length === 0">
               <span>{{ t('暂无规则') }}，</span>
               <AuthButton
-                action-id="mysql_add_account_rule"
-                :permission="row.permission.mysql_add_account_rule"
-                :resource="row.account.account_id"
+                action-id="mysql_priv_manage"
+                :permission="row.permission.mysql_priv_manage"
                 size="small"
                 text
                 theme="primary"

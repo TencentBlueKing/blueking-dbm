@@ -32,13 +32,16 @@
           </div>
         </template>
         <template v-if="data.isOnline">
-          <BkButton
+          <AuthButton
             v-db-console="'mysql.haClusterList.authorize'"
+            action-id="tendbcluster_authorize"
             class="ml-4"
+            :permission="data.permission.tendbcluster_authorize"
+            :resource="data.id"
             size="small"
             @click="handleShowAuthorize">
             {{ t('授权') }}
-          </BkButton>
+          </AuthButton>
           <AuthRouterLink
             v-db-console="'tendbCluster.clusterManage.webconsole'"
             action-id="tendbcluster_webconsole"
@@ -101,9 +104,9 @@
               v-db-console="'tendbCluster.clusterManage.removeReadonlyNode'">
               <div style="display: inline-block">
                 <AuthButton
-                  action-id="tendb_spider_slave_destroy"
+                  action-id="tendbcluster_manage"
                   :disabled="data.spider_slave.length === 0"
-                  :permission="data.permission.tendb_spider_slave_destroy"
+                  :permission="data.permission.tendbcluster_manage"
                   :resource="data.id"
                   text
                   @click="handleDestroySlave(data)">
@@ -118,8 +121,8 @@
                 :data="data"
                 :disabled="!data.isOffline">
                 <AuthButton
-                  action-id="tendbcluster_add_clb"
-                  :permission="data.permission.tendbcluster_add_clb"
+                  action-id="tendbcluster_loadbalance_manage"
+                  :permission="data.permission.tendbcluster_loadbalance_manage"
                   :resource="data.id"
                   text
                   @click="
@@ -138,8 +141,8 @@
                 :data="data"
                 :disabled="!data.isOffline">
                 <AuthButton
-                  action-id="tendbcluster_add_clb"
-                  :permission="data.permission.tendbcluster_add_clb"
+                  action-id="tendbcluster_loadbalance_manage"
+                  :permission="data.permission.tendbcluster_loadbalance_manage"
                   :resource="data.id"
                   text
                   @click="
@@ -158,8 +161,8 @@
                 :data="data"
                 :disabled="!data.isOffline">
                 <AuthButton
-                  action-id="tendbcluster_clb_bind_domain"
-                  :permission="data.permission.tendbcluster_clb_bind_domain"
+                  action-id="tendbcluster_loadbalance_manage"
+                  :permission="data.permission.tendbcluster_loadbalance_manage"
                   :resource="data.id"
                   text
                   @click="
@@ -185,8 +188,8 @@
                 :data="data"
                 :disabled="!data.isOffline">
                 <AuthButton
-                  action-id="tendbcluster_clb_bind_domain"
-                  :permission="data.permission.tendbcluster_clb_bind_domain"
+                  action-id="tendbcluster_loadbalance_manage"
+                  :permission="data.permission.tendbcluster_loadbalance_manage"
                   :resource="data.id"
                   text
                   @click="

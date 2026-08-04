@@ -22,9 +22,10 @@
         <AuthButton
           v-if="data.isOnline"
           v-db-console="'sqlserver.haClusterList.authorize'"
-          action-id="sqlserver_priv_manage"
+          action-id="sqlserver_authorize"
           class="ml-4"
-          :permission="data.permission.sqlserver_priv_manage"
+          :permission="data.permission.sqlserver_authorize"
+          :resource="data.id"
           size="small"
           @click="handleShowAuthorize">
           {{ t('授权') }}

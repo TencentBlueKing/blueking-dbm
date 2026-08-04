@@ -2213,7 +2213,7 @@
   "请输入/选择人员": "Please enter/select personnel",
   "安全": "Security",
   "DB类型": "DB Type",
-  "临时密码生效的实例": "Instances with Active Temporary Password",
+  "查看临时密码": "View Temporary Password",
   "需要修改的实例": "Instances to Modify",
   "统一临时密码": "Unified Temporary Password",
   "有效时长": "Valid Duration",
@@ -4010,6 +4010,7 @@
   "id, name": "id, name",
   "100 ,zhangsan": "100, zhangsan",
   "复制成功，共n条": "Copied successfully, {n} entries in total",
+  "已显示n条_另有m条无查看权限_请在对应行申请": "{n} shown; another {m} without view permission, please apply on the corresponding rows",
   "扩容规格：": "Scale Up Spec:",
   "已选IP：": "Selected IP:",
   "缩容主机：": "Scale Down Host:",
@@ -6187,5 +6188,7 @@
   "排除库": "Excluded DBs",
   "恢复后库名": "Restored DB Name",
   "已有库新名": "Existing DB New Name",
+  "部署": "Deploy",
+  "新 DB": "New DB",
   "这行勿动！新增翻译请在上一行添加！": ""
 }
