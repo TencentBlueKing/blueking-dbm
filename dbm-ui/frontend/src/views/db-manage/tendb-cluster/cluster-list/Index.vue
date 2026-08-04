@@ -113,8 +113,8 @@
                   :data="data"
                   :disabled="!data.isOffline">
                   <AuthButton
-                    action-id="tendbcluster_add_clb"
-                    :permission="data.permission.tendbcluster_add_clb"
+                    action-id="tendbcluster_loadbalance_manage"
+                    :permission="data.permission.tendbcluster_loadbalance_manage"
                     :resource="data.id"
                     text
                     @click="
@@ -134,8 +134,8 @@
                   :data="data"
                   :disabled="!data.isOffline">
                   <AuthButton
-                    action-id="tendbcluster_add_clb"
-                    :permission="data.permission.tendbcluster_add_clb"
+                    action-id="tendbcluster_loadbalance_manage"
+                    :permission="data.permission.tendbcluster_loadbalance_manage"
                     :resource="data.id"
                     text
                     @click="
@@ -155,8 +155,8 @@
                   :data="data"
                   :disabled="!data.isOffline">
                   <AuthButton
-                    action-id="tendbcluster_clb_bind_domain"
-                    :permission="data.permission.tendbcluster_clb_bind_domain"
+                    action-id="tendbcluster_loadbalance_manage"
+                    :permission="data.permission.tendbcluster_loadbalance_manage"
                     :resource="data.id"
                     text
                     @click="
@@ -183,8 +183,8 @@
                   :data="data"
                   :disabled="!data.isOffline">
                   <AuthButton
-                    action-id="tendbcluster_clb_bind_domain"
-                    :permission="data.permission.tendbcluster_clb_bind_domain"
+                    action-id="tendbcluster_loadbalance_manage"
+                    :permission="data.permission.tendbcluster_loadbalance_manage"
                     :resource="data.id"
                     text
                     @click="

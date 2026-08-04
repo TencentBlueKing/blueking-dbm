@@ -63,8 +63,8 @@
             <div v-if="row.rules.length === 0">
               <span>{{ t('暂无规则') }}，</span>
               <AuthButton
-                action-id="tendbcluster_add_account_rule"
-                :permission="row.permission.tendbcluster_add_account_rule"
+                action-id="tendbcluster_priv_manage"
+                :permission="row.permission.tendbcluster_priv_manage"
                 :resource="row.account.account_id"
                 size="small"
                 text

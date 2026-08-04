@@ -83,10 +83,19 @@ export default class TendbCluster extends ClusterBase {
     tendbcluster_dump_data: boolean;
     tendbcluster_edit: boolean;
     tendbcluster_enable_disable: boolean;
+    tendbcluster_loadbalance_manage?: boolean;
+    // 聚合权限（灰度期可选，缺省 false）
+    tendbcluster_manage?: boolean;
     tendbcluster_node_rebalance: boolean;
+    tendbcluster_openarea_manage?: boolean;
+    tendbcluster_partition_manage?: boolean;
+    tendbcluster_priv_manage?: boolean;
+    tendbcluster_rename_database?: boolean;
+    tendbcluster_rollback_cluster?: boolean;
     tendbcluster_spider_add_nodes: boolean;
     tendbcluster_spider_mnt_destroy: boolean;
     tendbcluster_spider_reduce_nodes: boolean;
+    tendbcluster_truncate_data?: boolean;
     tendbcluster_view: boolean;
     tendbcluster_webconsole: boolean;
   };
