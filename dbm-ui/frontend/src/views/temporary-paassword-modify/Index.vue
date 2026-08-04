@@ -49,14 +49,30 @@
       v-if="!submitting && !submitted"
       #action>
       <BkButton
+        v-if="hasPermission"
         v-bk-tooltips="{
           content: t('密码不符合要求'),
           disabled: !Boolean(formData.password) || passwordIsPass,
         }"
         class="w-88"
-        :disabled="!passwordIsPass"
+        :disabled="!passwordIsPass || !instanceDbType"
+        :loading="permissionChecking"
         theme="primary"
-        @click="submitValidator">
+        @click="handleSubmit">
+        {{ t('提交') }}
+      </BkButton>
+      <BkButton
+        v-else
+        v-bk-tooltips="{
+          content: t('密码不符合要求'),
+          disabled: !Boolean(formData.password) || passwordIsPass,
+        }"
+        v-cursor
+        class="w-88 auth-button-disable"
+        :disabled="!passwordIsPass || !instanceDbType"
+        :loading="permissionChecking"
+        theme="primary"
+        @click="handleRequestPermission">
         {{ t('提交') }}
       </BkButton>
       <DbPopconfirm
@@ -76,11 +92,14 @@
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
+  import { checkAuthAllowed, getApplyDataLink } from '@services/source/iam';
   import { modifyAdminPassword } from '@services/source/permission';
 
   import { ClusterTypes, DBTypes } from '@common/const';
 
   import PasswordInput from '@views/db-manage/common/password-input/Index.vue';
+
+  import { permissionDialog } from '@utils';
 
   import InstanceList, { type IRowData } from './components/form-item/InstanceList.vue';
   import ValidDuration from './components/form-item/ValidDuration.vue';
@@ -98,17 +117,46 @@
 
   const formRef = ref();
   const rootId = ref('');
-  const instanceDbType = ref<DBTypes>();
+  const instanceDbType = ref<DBTypes>(DBTypes.MYSQL);
   const passwordIsPass = ref(false);
   const submitted = ref(false);
+  const permissionChecking = ref(false);
+  // 集群级修改权限检查结果：无权限时提交按钮置灰，hover 显示锁头，点击弹权限申请
+  const hasPermission = ref(true);
   const formData = reactive(createDefaultData());
 
+  /**
+   * 修改临时密码权限 action（按 DB 类型区分）
+   * - mysql_manage
+   * - tendbcluster_manage
+   * - sqlserver_manage
+   */
+  const adminPwdModifyActionMap: Record<string, string> = {
+    [DBTypes.MYSQL]: 'mysql_manage',
+    [DBTypes.SQLSERVER]: 'sqlserver_manage',
+    [DBTypes.TENDBCLUSTER]: 'tendbcluster_manage',
+  };
+
+  // 当前待检查的 action 与资源列表
+  const permissionParams = computed(() => {
+    const actionId = adminPwdModifyActionMap[instanceDbType.value];
+    const clusterIds = [...new Set(formData.instanceList.map((instance) => instance.cluster_id))];
+    return {
+      actionId,
+      resources: clusterIds.map((id) => ({
+        id,
+        type: instanceDbType.value,
+      })),
+    };
+  });
+
+  // 实例列表变化时：更新 DB 类型 + 提前检查修改权限，决定提交按钮是否可点击
   watch(
-    formData,
-    () => {
+    () => formData.instanceList,
+    async () => {
       const { instanceList } = formData;
       if (instanceList.length > 0) {
-        const instance = instanceList[0];
+        // 从首个实例的集群类型推导 DB 类型（不依赖 instanceDbType 的更新时序）
         const dbTypeMap = {
           [ClusterTypes.SQLSERVER_HA]: DBTypes.SQLSERVER,
           [ClusterTypes.SQLSERVER_SINGLE]: DBTypes.SQLSERVER,
@@ -116,13 +164,48 @@
           [ClusterTypes.TENDBHA]: DBTypes.MYSQL,
           [ClusterTypes.TENDBSINGLE]: DBTypes.MYSQL,
         } as Record<ClusterTypes, DBTypes>;
-        instanceDbType.value = dbTypeMap[instance.cluster_type];
+        const dbType = dbTypeMap[instanceList[0].cluster_type];
+        if (dbType) {
+          instanceDbType.value = dbType;
+        }
+      }
+
+      const { actionId, resources } = permissionParams.value;
+      if (!actionId || resources.length < 1) {
+        hasPermission.value = true;
+        return;
+      }
+      try {
+        const allowedList = await checkAuthAllowed({
+          action_ids: [actionId],
+          resources,
+        });
+        hasPermission.value = allowedList.some((item) => item.action_id === actionId && item.is_allowed);
+      } catch {
+        // 检查失败时放行，由提交时的兜底校验处理
+        hasPermission.value = true;
       }
     },
     {
       deep: true,
+      immediate: true,
     },
   );
+
+  // 无权限提交：获取申请链接渲染权限申请弹窗
+  const handleRequestPermission = async () => {
+    permissionChecking.value = true;
+    try {
+      const { actionId, resources } = permissionParams.value;
+      const applyData = await getApplyDataLink({
+        action_ids: [actionId],
+        resources,
+      });
+      permissionDialog(applyData);
+    } finally {
+      permissionChecking.value = false;
+    }
+  };
 
   const { loading: submitting, run: modifyAdminPasswordRun } = useRequest(modifyAdminPassword, {
     manual: true,
@@ -135,16 +218,12 @@
 
   const getSmartActionOffsetTarget = () => document.querySelector('.bk-form-content');
 
-  const submitValidator = async () => {
-    await formRef.value.validate();
-    handleSubmit(formData.instanceList);
-  };
-
   const verifyResult = (isPass: boolean) => {
     passwordIsPass.value = isPass;
   };
 
-  const handleSubmit = (
+  // 有权限提交
+  const handleSubmit = async (
     instanceList: {
       bk_cloud_id: number;
       cluster_type: ClusterTypes;
@@ -153,6 +232,15 @@
       role: string;
     }[] = [],
   ) => {
+    // 表单可见时先校验（失败重试场景表单不可见，跳过校验）
+    if (formRef.value) {
+      try {
+        await formRef.value.validate();
+      } catch {
+        // 校验不通过，停留在当前表单
+        return;
+      }
+    }
     const roleMap: Record<string, string> = {};
     const instanceListParam = (instanceList.length ? instanceList : formData.instanceList).map((instance) => {
       const { bk_cloud_id, cluster_type, ip, port, role } = instance;

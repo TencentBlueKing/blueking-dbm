@@ -22,9 +22,10 @@
         <template v-if="data.isOnline">
           <AuthButton
             v-db-console="'mongodb.sharedClusterList.importAuthorize'"
-            action-id="mongodb_priv_manage"
+            action-id="mongodb_authorize"
             class="ml-4"
-            :permission="data.permission.mongodb_priv_manage"
+            :permission="data.permission.mongodb_authorize"
+            :resource="data.id"
             size="small"
             @click="handleShowAuthorize">
             {{ t('授权') }}
