@@ -12,7 +12,6 @@
  */
 
 import axios, { type AxiosRequestConfig, type CancelTokenSource } from 'axios';
-import Cookie from 'js-cookie';
 import _ from 'lodash';
 import qs from 'qs';
 
@@ -47,16 +46,8 @@ if (axios.interceptors.response.handlers.length < 1) {
 }
 
 const { CancelToken } = axios;
-const CSRF_TOKEN_KEY = 'dbm_csrftoken';
-
-const CSRFToken = Cookie.get(CSRF_TOKEN_KEY);
 
 axios.defaults.headers.common['X-Requested-With'] = 'XMLHttpRequest';
-if (CSRFToken !== undefined) {
-  axios.defaults.headers.common['X-CSRFToken'] = CSRFToken;
-} else {
-  console.warn('Can not find csrftoken in document.cookie');
-}
 const defaultConfig = {
   headers: {},
   paramsSerializer,
@@ -150,6 +141,8 @@ export default class Request {
   }
 
   setCache(data: CacheValue) {
-    this.isCachedable && this.cache.set(this.taskKey, data, this.config.payload?.cache as CacheExpire);
+    if (this.isCachedable) {
+      this.cache.set(this.taskKey, data, this.config.payload?.cache as CacheExpire);
+    }
   }
 }
