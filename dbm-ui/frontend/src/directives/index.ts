@@ -16,6 +16,7 @@ import type { App } from 'vue';
 
 import { BkXssFilterDirective } from '@blueking/xss-filter';
 
+import BkTooltips from './bk-tooltips';
 import Cursor from './cursor';
 import DbConsole from './dbConsole';
 import OverflowTips from './overflowTips';
@@ -28,12 +29,16 @@ type BkuiDirectives = keyof typeof directives;
  * @param app vue app
  */
 export const setGlobalDirectives = (app: App<Element>) => {
-  // 注册 bkui-vue 指令
+  // 注册 bkui-vue 指令，bkTooltips 使用项目自实现版本
   Object.keys(directives).forEach((key: string) => {
+    if (key === 'bkTooltips') {
+      return;
+    }
     app.directive(key, directives[key as BkuiDirectives]);
   });
 
   // 自定义指令
+  app.directive('bkTooltips', BkTooltips);
   app.directive('overflow-tips', OverflowTips);
   app.directive('cursor', Cursor);
   app.directive('db-console', DbConsole);
