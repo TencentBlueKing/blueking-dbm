@@ -12,7 +12,17 @@
  */
 
 import type { AxiosInterceptorManager, AxiosRequestConfig } from 'axios';
+import Cookie from 'js-cookie';
+
+const CSRF_TOKEN_KEY = 'dbm_csrftoken';
 
 export default (interceptors: AxiosInterceptorManager<AxiosRequestConfig>) => {
-  interceptors.use((request) => request, undefined);
+  interceptors.use((request) => {
+    const CSRFToken = Cookie.get(CSRF_TOKEN_KEY);
+    if (CSRFToken !== undefined) {
+      // eslint-disable-next-line no-param-reassign
+      (request.headers as Record<string, string>)['X-CSRFToken'] = CSRFToken;
+    }
+    return request;
+  }, undefined);
 };
