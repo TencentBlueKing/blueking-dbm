@@ -68,7 +68,7 @@
                   {{ t('升降配置') }}
                 </BkButton>
               </BkDropdownItem>
-              <BkDropdownItem v-if="role !== 'surreal'">
+              <BkDropdownItem v-if="!(clusterType === ClusterTypes.K8S_SURREALDB_HA && role === 'surreal')">
                 <BkButton
                   style="width: 105px"
                   text
