@@ -11,6 +11,7 @@ specific language governing permissions and limitations under the License.
 from typing import Dict, List
 
 from django.db import transaction
+from django.utils.translation import gettext as _
 
 from backend.configuration.constants import DBType
 from backend.core.encrypt.constants import AsymmetricCipherConfigType
@@ -26,6 +27,7 @@ from backend.db_meta.enums import (
     MachineType,
 )
 from backend.db_meta.enums.extra_process_type import ExtraProcessType
+from backend.db_meta.exceptions import InstanceNotExistException
 from backend.db_meta.models import StorageInstance
 from backend.db_meta.models.extra_process import ExtraProcessInstance
 from backend.db_package.models import Package
@@ -193,6 +195,9 @@ class TenDBHAClusterHandler(ClusterHandler):
             status=InstanceStatus.RUNNING.value,
             phase=InstancePhase.ONLINE.value,
         )
+        if not query_set.exists():
+            raise InstanceNotExistException(_("集群{}不具有该角色「{}」的正常实例").format(self.cluster.name, role))
+
         if role == InstanceRole.BACKEND_SLAVE.value and query_set.filter(is_stand_by=True).exists():
             return query_set.filter(is_stand_by=True).first().ip_port
 
