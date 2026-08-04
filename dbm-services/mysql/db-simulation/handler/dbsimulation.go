@@ -382,7 +382,8 @@ func (s *SimulationHandler) TendbSimulation(r *gin.Context) {
 		logger.Error("ShouldBind failed %s", err)
 		return
 	}
-	if s.RequestId == "" {
+	reqID := requestID(r)
+	if reqID == "" {
 		s.SendResponse(r, fmt.Errorf("create request id failed"), nil)
 		return
 	}
@@ -393,13 +394,13 @@ func (s *SimulationHandler) TendbSimulation(r *gin.Context) {
 		s.SendResponse(r, err, nil)
 		return
 	}
-	if err := model.CreateTask(param.TaskId, s.RequestId, version, param.Uid); err != nil {
+	if err := model.CreateTask(param.TaskId, reqID, version, param.Uid); err != nil {
 		logger.Error("create task db record error %s", err.Error())
 		s.SendResponse(r, err, nil)
 		return
 	}
 	tsk := service.SimulationTask{
-		RequestId: s.RequestId,
+		RequestId: reqID,
 		DbPodSets: service.NewDbPodSets(),
 		BaseParam: &param,
 		Version:   version,
@@ -409,7 +410,7 @@ func (s *SimulationHandler) TendbSimulation(r *gin.Context) {
 		PodName: fmt.Sprintf("tendb-%s-%s", strings.ToLower(version),
 			replaceUnderSource(param.TaskId)),
 		Labels: map[string]string{"task_id": replaceUnderSource(param.TaskId),
-			"request_id": s.RequestId},
+			"request_id": reqID},
 		RootPwd: param.TaskId,
 		Args:    param.BuildStartArgs(),
 		Charset: param.MySQLCharSet,
@@ -428,6 +429,7 @@ func (s *SimulationHandler) TendbClusterSimulation(r *gin.Context) {
 		logger.Error("ShouldBind failed %s", err)
 		return
 	}
+	reqID := requestID(r)
 	version := param.MySQLVersion
 	img, err := service.GetImgFromMySQLVersion(version)
 	if err != nil {
@@ -436,13 +438,13 @@ func (s *SimulationHandler) TendbClusterSimulation(r *gin.Context) {
 		return
 	}
 
-	if err := model.CreateTask(param.TaskId, s.RequestId, version, param.Uid); err != nil {
+	if err := model.CreateTask(param.TaskId, reqID, version, param.Uid); err != nil {
 		logger.Error("create task db record error %s", err.Error())
 		s.SendResponse(r, err, nil)
 		return
 	}
 	tsk := service.SimulationTask{
-		RequestId: s.RequestId,
+		RequestId: reqID,
 		DbPodSets: service.NewDbPodSets(),
 		BaseParam: &param.BaseParam,
 		Version:   version,
@@ -469,7 +471,7 @@ func (s *SimulationHandler) TendbClusterSimulation(r *gin.Context) {
 		PodName: fmt.Sprintf("spider-%s-%s", strings.ToLower(version),
 			replaceUnderSource(param.TaskId)),
 		Labels: map[string]string{"task_id": replaceUnderSource(param.TaskId),
-			"request_id": s.RequestId},
+			"request_id": reqID},
 		RootPwd: rootPwd,
 		Charset: param.MySQLCharSet,
 		Engine:  param.BaseParam.GetMySQLEngine(),

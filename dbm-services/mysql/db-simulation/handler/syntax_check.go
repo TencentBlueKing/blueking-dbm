@@ -24,6 +24,7 @@ import (
 	"dbm-services/common/go-pubpkg/cmutil"
 	"dbm-services/common/go-pubpkg/logger"
 	"dbm-services/mysql/db-simulation/app/syntax"
+	"dbm-services/mysql/db-simulation/app/tmysqlver"
 )
 
 var tmysqlParserBin string
@@ -126,19 +127,20 @@ func (s *SyntaxHandler) SyntaxCheckSQL(r *gin.Context) {
 	if len(param.Versions) == 0 {
 		versions = []string{""}
 	} else {
-		versions = rebuildVersion(param.Versions)
+		versions = tmysqlver.Rebuild(param.Versions)
 	}
 
 	sqlContext := strings.Join(param.Sqls, "\n")
 	fileName := "ce_" + cmutil.RandStr(10) + ".sql"
-	tpWorkdir := path.Join(workdir, time.Now().Format("20060102150405"))
-	if err := os.MkdirAll(tpWorkdir, 0755); err != nil {
+	// 使用 MkdirTemp，避免同秒并发请求共享目录后被 DelTempDir 互相删除
+	tpWorkdir, err := os.MkdirTemp(workdir, "syntax-sql-")
+	if err != nil {
 		s.SendResponse(r, err, err.Error())
 		return
 	}
 	f := path.Join(tpWorkdir, fileName)
-	err := os.WriteFile(f, []byte(sqlContext), 0600)
-	if err != nil {
+	if err = os.WriteFile(f, []byte(sqlContext), 0600); err != nil {
+		_ = os.RemoveAll(tpWorkdir)
 		s.SendResponse(r, err, err.Error())
 		return
 	}
@@ -159,7 +161,8 @@ func (s *SyntaxHandler) SyntaxCheckSQL(r *gin.Context) {
 					LineId:        0,
 					SQLFiles:      []string{fileName},
 					IgnoreDbNames: nil,
-					DbNames:       []string{"mak01"},
+					// 不硬编码业务库名；由 SQL 自身 USE / 库表限定名表达上下文
+					DbNames: nil,
 				},
 			},
 		},
@@ -189,7 +192,7 @@ func (s *SyntaxHandler) SyntaxCheckFile(r *gin.Context) {
 	if len(param.Versions) == 0 {
 		versions = []string{""}
 	} else {
-		versions = rebuildVersion(param.Versions)
+		versions = tmysqlver.Rebuild(param.Versions)
 	}
 
 	check := &syntax.TmysqlParseFile{
@@ -352,14 +355,14 @@ func (s *SyntaxHandler) ParseSQLRelationDb(r *gin.Context) {
 	}
 	sqlContext := strings.Join(param.Sqls, "\n")
 	fileName := "ce_" + cmutil.RandStr(10) + ".sql"
-	tmpWorkdir := path.Join(workdir, time.Now().Format("20060102150405"))
-	if err := os.MkdirAll(tmpWorkdir, 0755); err != nil {
+	tmpWorkdir, err := os.MkdirTemp(workdir, "syntax-sql-")
+	if err != nil {
 		s.SendResponse(r, err, err.Error())
 		return
 	}
 	f := path.Join(tmpWorkdir, fileName)
-	err := os.WriteFile(f, []byte(sqlContext), 0600)
-	if err != nil {
+	if err = os.WriteFile(f, []byte(sqlContext), 0600); err != nil {
+		_ = os.RemoveAll(tmpWorkdir)
 		s.SendResponse(r, err, err.Error())
 		return
 	}
@@ -405,25 +408,4 @@ func (s *SyntaxHandler) ParseSQLRelationDb(r *gin.Context) {
 		"dump_all":   dumpAll,
 		"timestamp":  time.Now().Unix(),
 	})
-}
-
-// rebuildVersion  tmysql 需要指定特殊的version
-func rebuildVersion(versions []string) (rebuildVers []string) {
-	if len(versions) == 0 {
-		return
-	}
-	rebuildVers = make([]string, 0)
-	for _, bVer := range versions {
-		switch {
-		case strings.Contains(bVer, "5.5"):
-			rebuildVers = append(rebuildVers, "5.5.24")
-		case strings.Contains(bVer, "5.6"):
-			rebuildVers = append(rebuildVers, "5.6.24")
-		case strings.Contains(bVer, "5.7"):
-			rebuildVers = append(rebuildVers, "5.7.20")
-		case strings.Contains(bVer, "8.0"):
-			rebuildVers = append(rebuildVers, "8.0.18")
-		}
-	}
-	return rebuildVers
 }

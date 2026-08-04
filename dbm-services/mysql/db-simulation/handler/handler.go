@@ -31,8 +31,15 @@ type Response struct {
 }
 
 // BaseHandler base handler
-type BaseHandler struct {
-	RequestId string
+// 注意：handler 实例会被路由复用，禁止在其上缓存任何请求态字段。
+type BaseHandler struct{}
+
+// requestID 从 gin.Context 读取当前请求的 request_id，避免共享 handler 上的字段竞态。
+func requestID(r *gin.Context) string {
+	if r == nil {
+		return ""
+	}
+	return r.GetString("request_id")
 }
 
 // SendResponse returns a response
@@ -42,19 +49,17 @@ func (c *BaseHandler) SendResponse(r *gin.Context, err error, data interface{}) 
 		Code:      code,
 		Message:   message,
 		Data:      data,
-		RequestID: c.RequestId,
+		RequestID: requestID(r),
 	})
 }
 
 // Prepare before request prepared
 func (c *BaseHandler) Prepare(r *gin.Context, schema interface{}) error {
-	requestId := r.GetString("request_id")
-	if cmutil.IsEmpty(requestId) {
+	if cmutil.IsEmpty(requestID(r)) {
 		err := fmt.Errorf("get request id error ~")
 		c.SendResponse(r, err, nil)
 		return err
 	}
-	c.RequestId = requestId
 	if err := r.ShouldBind(&schema); err != nil {
 		logger.Error("ShouldBind Failed %s", err.Error())
 		c.SendResponse(r, err, nil)

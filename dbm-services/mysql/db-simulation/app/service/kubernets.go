@@ -580,6 +580,19 @@ func (k *DbPodSets) getConfigMapName() string {
 	return fmt.Sprintf("%s-mycnf", k.BaseInfo.PodName)
 }
 
+// appendNativePasswordAuthConfig appends auth plugin settings for MySQL 8.0+.
+// MySQL 8.4 removed default-authentication-plugin; use mysql_native_password=ON instead.
+func appendNativePasswordAuthConfig(lines []string, mysqlVersion string) []string {
+	ver := cmutil.MySQLVersionParse(mysqlVersion)
+	if ver < cmutil.MySQLVersionParse("8.0.0") {
+		return lines
+	}
+	if ver >= cmutil.MySQLVersionParse("8.4.0") {
+		return append(lines, "mysql_native_password=ON")
+	}
+	return append(lines, "default-authentication-plugin=mysql_native_password")
+}
+
 // generateMyCnfContent generates my.cnf content from MySQL start arguments
 func (k *DbPodSets) generateMyCnfContent(mysqlVersion string) string {
 	var lines []string
@@ -608,10 +621,7 @@ func (k *DbPodSets) generateMyCnfContent(mysqlVersion string) string {
 	lines = append(lines, "max_allowed_packet=1073741824")
 	lines = append(lines, fmt.Sprintf("character-set-server=%s", k.BaseInfo.Charset))
 
-	// MySQL 8.0+ 专用配置
-	if cmutil.MySQLVersionParse(mysqlVersion) >= cmutil.MySQLVersionParse("8.0.0") {
-		lines = append(lines, "default-authentication-plugin=mysql_native_password")
-	}
+	lines = appendNativePasswordAuthConfig(lines, mysqlVersion)
 
 	for key, val := range k.BackendStartArgs {
 		if lo.IsEmpty(key) {
@@ -703,9 +713,7 @@ func (k *DbPodSets) generateBackendMyCnfContent(mysqlVersion string) string {
 	lines = append(lines, "max_allowed_packet=1073741824")
 	lines = append(lines, fmt.Sprintf("character-set-server=%s", k.BaseInfo.Charset))
 
-	if cmutil.MySQLVersionParse(mysqlVersion) >= cmutil.MySQLVersionParse("8.0.0") {
-		lines = append(lines, "default-authentication-plugin=mysql_native_password")
-	}
+	lines = appendNativePasswordAuthConfig(lines, mysqlVersion)
 
 	for key, val := range k.BackendStartArgs {
 		if lo.IsEmpty(key) {
