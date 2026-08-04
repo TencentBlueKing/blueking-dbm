@@ -352,7 +352,6 @@ class ActionEnum:
         related_resource_types=[ResourceEnum.BUSINESS, ResourceEnum.DBTYPE],
         group=_("业务配置"),
         subgroup=_("数据库配置"),
-        common_labels=[CommonActionLabel.BIZ_MAINTAIN],
     )
 
     MYSQL_DBCONFIG_EDIT = ActionMeta(
@@ -364,7 +363,6 @@ class ActionEnum:
         related_resource_types=[ResourceEnum.MYSQL],
         group=_("MySQL"),
         subgroup=_("集群管理"),
-        common_labels=[CommonActionLabel.BIZ_MAINTAIN],
     )
 
     TENDBCLUSTER_DBCONFIG_EDIT = ActionMeta(
@@ -376,7 +374,6 @@ class ActionEnum:
         related_resource_types=[ResourceEnum.TENDBCLUSTER],
         group=_("TenDBCluster"),
         subgroup=_("集群管理"),
-        common_labels=[CommonActionLabel.BIZ_MAINTAIN],
     )
 
     REDIS_DBCONFIG_EDIT = ActionMeta(
@@ -388,7 +385,6 @@ class ActionEnum:
         related_resource_types=[ResourceEnum.REDIS],
         group=_("Redis"),
         subgroup=_("集群管理"),
-        common_labels=[CommonActionLabel.BIZ_MAINTAIN],
     )
 
     MONGODB_DBCONFIG_EDIT = ActionMeta(
@@ -400,7 +396,6 @@ class ActionEnum:
         related_resource_types=[ResourceEnum.MONGODB],
         group=_("MongoDB"),
         subgroup=_("集群管理"),
-        common_labels=[CommonActionLabel.BIZ_MAINTAIN],
     )
 
     SQLSERVER_DBCONFIG_EDIT = ActionMeta(
@@ -413,7 +408,6 @@ class ActionEnum:
         related_resource_types=[ResourceEnum.SQLSERVER],
         group=_("SQLServer"),
         subgroup=_("集群管理"),
-        common_labels=[CommonActionLabel.BIZ_MAINTAIN],
     )
 
     ES_DBCONFIG_EDIT = ActionMeta(
@@ -425,7 +419,6 @@ class ActionEnum:
         related_resource_types=[ResourceEnum.ES],
         group=_("ElasticSearch"),
         subgroup=_("集群管理"),
-        common_labels=[CommonActionLabel.BIZ_MAINTAIN],
     )
 
     KAFKA_DBCONFIG_EDIT = ActionMeta(
@@ -437,7 +430,6 @@ class ActionEnum:
         related_resource_types=[ResourceEnum.KAFKA],
         group=_("Kafka"),
         subgroup=_("集群管理"),
-        common_labels=[CommonActionLabel.BIZ_MAINTAIN],
     )
 
     HDFS_DBCONFIG_EDIT = ActionMeta(
@@ -449,7 +441,6 @@ class ActionEnum:
         related_resource_types=[ResourceEnum.HDFS],
         group=_("HDFS"),
         subgroup=_("集群管理"),
-        common_labels=[CommonActionLabel.BIZ_MAINTAIN],
     )
 
     PULSAR_DBCONFIG_EDIT = ActionMeta(
@@ -461,7 +452,6 @@ class ActionEnum:
         related_resource_types=[ResourceEnum.PULSAR],
         group=_("Pulsar"),
         subgroup=_("集群管理"),
-        common_labels=[CommonActionLabel.BIZ_MAINTAIN],
     )
 
     DORIS_DBCONFIG_EDIT = ActionMeta(
@@ -473,7 +463,6 @@ class ActionEnum:
         related_resource_types=[ResourceEnum.DORIS],
         group=_("Doris"),
         subgroup=_("集群管理"),
-        common_labels=[CommonActionLabel.BIZ_MAINTAIN],
     )
 
     RIAK_DBCONFIG_EDIT = ActionMeta(
@@ -485,7 +474,6 @@ class ActionEnum:
         related_resource_types=[ResourceEnum.RIAK],
         group=_("Riak"),
         subgroup=_("集群管理"),
-        common_labels=[CommonActionLabel.BIZ_MAINTAIN],
     )
 
     VM_DBCONFIG_EDIT = ActionMeta(
@@ -497,7 +485,6 @@ class ActionEnum:
         related_resource_types=[ResourceEnum.VM],
         group=_("VM"),
         subgroup=_("集群管理"),
-        common_labels=[CommonActionLabel.BIZ_MAINTAIN],
     )
 
     ORACLE_DBCONFIG_EDIT = ActionMeta(
@@ -509,7 +496,6 @@ class ActionEnum:
         related_resource_types=[ResourceEnum.ORACLE],
         group=_("Oracle"),
         subgroup=_("集群管理"),
-        common_labels=[CommonActionLabel.BIZ_MAINTAIN],
     )
 
     GLOBAL_DBCONFIG_VIEW = ActionMeta(
