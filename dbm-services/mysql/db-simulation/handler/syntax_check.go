@@ -64,6 +64,7 @@ func (s *SyntaxHandler) RegisterRouter(engine *gin.Engine) {
 		// syntax
 		r.POST("/check/file", s.SyntaxCheckFile)
 		r.POST("/check/sql", s.SyntaxCheckSQL)
+		r.POST("/check/inject", s.CheckSQLInject)
 		r.POST("/upload/ddl/tbls", s.CreateAndUploadDDLTblListFile)
 		r.POST("/parse/file/relation/db", s.ParseSQLFileRelationDb)
 		r.POST("/parse/sql/relation/db", s.ParseSQLRelationDb)
@@ -100,6 +101,13 @@ func (p *CheckFileParam) fillBkBizIDFromPath() {
 	}
 	p.BkBizID = bizID
 	logger.Info("bk_biz_id is 0, parsed from path %s as %d", p.Path, bizID)
+}
+
+// InjectCheckParam SQL 注入检测请求参数
+type InjectCheckParam struct {
+	SyntaxCheckParam
+	Sql                    string `json:"sql" binding:"required"`
+	JudgeSubqueryDiffTable bool   `json:"judge_subquery_diff_table"`
 }
 
 // CheckSQLStringParam sql string 语法检查参数
@@ -182,6 +190,63 @@ func (s *SyntaxHandler) SyntaxCheckSQL(r *gin.Context) {
 		return
 	}
 	s.SendResponse(r, nil, data)
+}
+
+// CheckSQLInject 静态 SQL 注入启发式检测
+func (s *SyntaxHandler) CheckSQLInject(r *gin.Context) {
+	var param InjectCheckParam
+	if err := s.Prepare(r, &param); err != nil {
+		logger.Error("Prepare Error %s", err.Error())
+		return
+	}
+
+	var versions []string
+	if len(param.Versions) == 0 {
+		versions = []string{""}
+	} else {
+		versions = tmysqlver.Rebuild(param.Versions)
+		if len(versions) == 0 {
+			versions = []string{""}
+		}
+	}
+	version := versions[0]
+
+	fileName := "ce_" + cmutil.RandStr(10) + ".sql"
+	tmpWorkdir, err := os.MkdirTemp(workdir, "syntax-inject-")
+	if err != nil {
+		s.SendResponse(r, err, err.Error())
+		return
+	}
+	f := path.Join(tmpWorkdir, fileName)
+	if err = os.WriteFile(f, []byte(param.Sql), 0600); err != nil {
+		_ = os.RemoveAll(tmpWorkdir)
+		s.SendResponse(r, err, err.Error())
+		return
+	}
+
+	p := &syntax.TmysqlParseFile{
+		TmysqlParse: syntax.TmysqlParse{
+			TmysqlParseBinPath: tmysqlParserBin,
+			BaseWorkdir:        tmpWorkdir,
+		},
+		IsLocalFile: true,
+		Param: syntax.CheckSQLFileParam{
+			BkBizID:        param.BkBizID,
+			ClusterType:    param.ClusterType,
+			BkRepoBasePath: "",
+			FileNames:      []string{fileName},
+		},
+	}
+	defer p.DelTempDir()
+
+	logger.Info("inject check cluster_type:%s version:%s judge_subquery_diff_table:%v",
+		param.ClusterType, version, param.JudgeSubqueryDiffTable)
+	result, err := p.DoInjectCheck(version, param.JudgeSubqueryDiffTable)
+	if err != nil {
+		s.SendResponse(r, err, nil)
+		return
+	}
+	s.SendResponse(r, nil, result)
 }
 
 // SyntaxCheckFile 运行语法检查
