@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"regexp"
+	"strconv"
 	"strings"
 	"time"
 
@@ -320,37 +321,32 @@ func trimQuotes(s string) string {
 	return s
 }
 
-// ifMapEmpty 如果 var1 为空字符串，则返回 var2，否则返回 var1
-func ifMapEmpty(mapName map[string]string, var1, var2 string) string {
-	if val, ok := mapName[var1]; ok && val != "" {
-		return val
-	}
-	if val, ok := mapName[var2]; ok {
-		return val
-	}
-	return ""
-}
-
 // openXtrabackupFile parse xtrabackup_info
 // 因为文件不大，直接 readall
 func openXtrabackupFile(binpath string, fileName string, tmpFileName string) (*bytes.Buffer, error) {
+	readCmd := []string{}
 	if exist, _ := util.FileExist(fileName); exist {
-		util.CopyFile(tmpFileName, fileName)
-	} else if exist, _ := util.FileExist(fileName + ".qp"); exist {
-		qpressStr := fmt.Sprintf(`%s -do %s > %s`, binpath, fileName+".qp", tmpFileName)
-		if err := util.ExeCommand(qpressStr); err != nil {
-			return nil, err
-		}
+		readCmd = append(readCmd, "cat")
+	} else if exist, _ = util.FileExist(fileName + cst.QpSuffix); exist {
+		readCmd = append(readCmd, binpath, "-do", fileName+cst.QpSuffix)
+	} else if exist, _ = util.FileExist(fileName + cst.ZstdSuffix); exist {
+		readCmd = append(readCmd, CmdZstd, "-dc", fileName+cst.ZstdSuffix)
 	} else {
 		err := fmt.Errorf("%s dosen't exist", fileName)
 		return nil, err
 	}
-	content, err := os.ReadFile(tmpFileName)
-	//tmpFile, err := os.Open(tmpFileName)
+	content, errBytes, err := cmutil.ExecCommandReturnBytes(false, "", readCmd[0], readCmd[1:]...)
 	if err != nil {
-		return nil, err
+		return nil, errors.WithMessagef(err, "openXtrabackupFile %s got err:%s", fileName, string(errBytes))
 	}
+	return bytes.NewBuffer(content), nil
+}
 
+func zstdcat(fileName string) (*bytes.Buffer, error) {
+	content, errBytes, err := cmutil.ExecCommandReturnBytes(false, "", CmdZstd, "-dc", fileName)
+	if err != nil {
+		return nil, errors.WithMessagef(err, "zstdcat %s got err:%s", fileName, string(errBytes))
+	}
 	return bytes.NewBuffer(content), nil
 }
 
@@ -368,6 +364,7 @@ start_time = 2024-07-16 15:44:13
 end_time = 2024-07-16 15:44:20
 lock_time = 0
 binlog_pos = filename 'binlog20000.000353', position '181942'
+binlog_pos = filename 'binlog20000.000014', position '238', GTID of the last change '1234-122-11f1-a8f9-525400cfbfb9:3-237,1234-122-11f1-bb8d-525400ccfd94:1-22'
 innodb_from_lsn = 0
 innodb_to_lsn = 980247078
 partial = N
@@ -376,6 +373,9 @@ format = file
 compact = N
 compressed = compressed
 encrypted = N
+lock_ddl_type = OFF
+backup_size = 1785885
+uncompressed_backup_size = 1137583816
 */
 func parseXtraInfo(qpress string, fileName string, tmpFileName string, metaInfo *dbareport.IndexContent) error {
 	fileBytes, err := openXtrabackupFile(qpress, fileName, tmpFileName)
@@ -400,13 +400,23 @@ func parseXtraInfo(qpress string, fileName string, tmpFileName string, metaInfo 
 				return errors.Wrapf(err, "parse BackupEndTime %s", endTimeStr)
 			}
 		}
-		if strings.HasPrefix(line, "binlog_pos =") { // binlog_pos = filename 'binlog20000.000353', position '181942'
+		// binlog_pos = filename 'binlog20000.000353', position '181942'
+		// binlog_pos = filename 'binlog20000.000014', position '238', GTID of the last change 'xx'
+		if strings.HasPrefix(line, "binlog_pos =") {
 			regBinlogPos := regexp.MustCompile(`.* filename '(.+\.\d+)', position '(\d+)'`)
 			if matches := regBinlogPos.FindStringSubmatch(line); len(matches) == 3 {
 				metaInfo.BinlogInfo.ShowMasterStatus = &dbareport.StatusInfo{
 					BinlogFile: matches[1],
 					BinlogPos:  matches[2],
 				}
+			}
+		}
+
+		// parse uncompressed_backup_size
+		if strings.HasPrefix(line, "uncompressed_backup_size") {
+			regUncompressSize := regexp.MustCompile(`uncompressed_backup_size\s*=\s*(\d+)`)
+			if matches := regUncompressSize.FindStringSubmatch(line); len(matches) == 2 {
+				metaInfo.ExtraFields.TotalSizeKBUncompress, _ = strconv.ParseInt(matches[1], 10, 64)
 			}
 		}
 	}
@@ -465,6 +475,7 @@ func parseXtraBinlogInfo(qpress string, fileName string, tmpFileName string) (*d
 // parseXtraSlaveInfo parse xtrabackup_slave_info to get slave info
 /*
 CHANGE MASTER TO MASTER_LOG_FILE='binlog20000.009159', MASTER_LOG_POS=6488;
+CHANGE REPLICATION SOURCE TO SOURCE_LOG_FILE='binlog20000.000010', SOURCE_LOG_POS=1216;
 */
 func parseXtraSlaveInfo(qpress string, fileName string, tmpFileName string) (*dbareport.StatusInfo, error) {
 	fileBytes, err := openXtrabackupFile(qpress, fileName, tmpFileName)
@@ -476,10 +487,13 @@ func parseXtraSlaveInfo(qpress string, fileName string, tmpFileName string) (*db
 		//MasterHost: backupResult.MasterHost,
 		//MasterPort: backupResult.MysqlPort,
 	}
+	re := regexp.MustCompile(`MASTER_LOG_FILE='(\S+)',\s+MASTER_LOG_POS=(\d+)`)
+	if strings.Contains(fileBytes.String(), "SOURCE_LOG_FILE") {
+		re = regexp.MustCompile(`SOURCE_LOG_FILE='(\S+)',\s+SOURCE_LOG_POS=(\d+)`)
+	}
 	scanner := bufio.NewScanner(fileBytes)
 	for scanner.Scan() {
 		line := scanner.Text()
-		re := regexp.MustCompile(`MASTER_LOG_FILE='(\S+)',\s+MASTER_LOG_POS=(\d+)`)
 		matches := re.FindStringSubmatch(line)
 		if len(matches) == 3 {
 			showSlaveStatus.BinlogFile = matches[1]

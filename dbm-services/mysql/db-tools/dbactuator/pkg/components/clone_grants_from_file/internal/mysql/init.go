@@ -10,8 +10,11 @@ import (
 func expandSuperPrivilege(stmt string, dstVer int64, w *pkg.Writers) error {
 	if dstVer < 8000000 {
 		return nil
+	} else if dstVer < 8002000 {
+		return pkg.ExpandSuperPrivileges(stmt, pkg.MySQLSuperDynamicPrivileges80, "MySQL 8.0+", w)
+	} else {
+		return pkg.ExpandSuperPrivileges(stmt, pkg.MySQLSuperDynamicPrivileges84, "MySQL 8.4+", w)
 	}
-	return pkg.ExpandSuperPrivileges(stmt, pkg.MySQLSuperDynamicPrivileges, "MySQL 8.0+", w)
 }
 
 // rewritePrivsNoop MySQL 不需要权限改名，原样返回。

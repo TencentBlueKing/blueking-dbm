@@ -7,7 +7,8 @@ type SpiderAdminDbWork struct {
 
 // ConnSpiderAdmin TODO
 func (o InsObject) ConnSpiderAdmin() (*SpiderAdminDbWork, error) {
-	dbwork, err := NewDbWorkerNoPing(o.spiderAdminTcpDsn(), o.User, o.Pwd)
+	spiderDsn := DsnByTcp(o.tcpdsn(), o.User, o.Pwd)
+	dbwork, err := NewDbWorker(spiderDsn)
 	return &SpiderAdminDbWork{DbWorker: *dbwork}, err
 }
 

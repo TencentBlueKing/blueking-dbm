@@ -23,6 +23,7 @@ const (
 	ToolXLoad ExternalTool = "xload"
 	// ToolQPress qpress
 	ToolQPress ExternalTool = "qpress"
+	ToolZstd   ExternalTool = "gozstd"
 	// ToolPv pv
 	ToolPv ExternalTool = "pv"
 	// ToolMysqlbinlogRollback mysqlbinlog_rollback
@@ -51,6 +52,7 @@ var defaultPath = map[ExternalTool]string{
 	ToolMload:                 "/home/mysql/dbbackup/MLOAD/MLOAD.pl",
 	ToolXLoad:                 "/home/mysql/dbbackup/xtrabackup/xload.pl",
 	ToolQPress:                "/home/mysql/dbbackup-go/bin/qpress",
+	ToolZstd:                  "/home/mysql/dbbackup-go/bin/gozstd",
 	ToolPv:                    "/home/mysql/dbbackup-go/bin/pv",
 	ToolMysqlclient:           "/usr/local/mysql/bin/mysql",
 	ToolMysqlbinlog:           "/usr/local/mysql/bin/mysqlbinlog",

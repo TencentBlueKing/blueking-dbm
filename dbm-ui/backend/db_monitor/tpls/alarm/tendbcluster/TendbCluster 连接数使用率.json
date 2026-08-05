@@ -46,8 +46,7 @@
               {
                 "key": "cluster_type",
                 "value": [
-                  "tendbsingle",
-                  "tendbha"
+                  "tendbcluster"
                 ],
                 "method": "eq",
                 "condition": "and",

@@ -37,7 +37,8 @@ type DbWorker struct {
 	ServerVersion string
 }
 
-// NewDbWorker TODO
+// NewDbWorker open connection add run select @@version(not ping)
+// version will be used to construct custom command like slave->replica,master->source, or grant privileges...
 func NewDbWorker(dsn string) (*DbWorker, error) {
 	var err error
 	dbw := &DbWorker{
@@ -68,9 +69,11 @@ func NewDbWorkerNoPing(host, user, password string) (*DbWorker, error) {
 	if err != nil {
 		return nil, err
 	}
-	if err = dbw.Db.QueryRow("SELECT @@version").Scan(&dbw.ServerVersion); err != nil {
-		return nil, err
-	}
+	/*
+		if err = dbw.Db.QueryRow("SELECT version").Scan(&dbw.ServerVersion); err != nil {
+			return nil, err
+		}
+	*/
 	return dbw, nil
 }
 

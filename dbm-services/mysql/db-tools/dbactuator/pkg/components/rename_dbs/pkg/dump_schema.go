@@ -36,13 +36,14 @@ func DumpDBSchema(ip string, port int, user, password, dbName string, uid string
 	dumper = &mysqlutil.MySQLDumperTogether{
 		MySQLDumper: mysqlutil.MySQLDumper{
 			MySQLDumpOption: mysqlutil.MySQLDumpOption{
-				DumpSchema:   true,
-				NoCreateDb:   true,
-				NoCreateTb:   false,
-				DumpTrigger:  true,
-				DumpRoutine:  true,
-				DumpEvent:    true,
-				AddDropTable: false,
+				DumpSchema:    true,
+				NoCreateDb:    true,
+				NoCreateTb:    false,
+				DumpTrigger:   true,
+				DumpRoutine:   true,
+				DumpEvent:     true,
+				GtidPurgedOff: true,
+				AddDropTable:  false,
 			},
 			DumpDir:      backupDir,
 			DbBackupUser: user,

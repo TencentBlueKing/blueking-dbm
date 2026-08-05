@@ -132,7 +132,8 @@ def get_instance_major_version(address: str) -> Tuple[int, int]:
     cache_key = f"{_VERSION_CACHE_PREFIX}{address}"
     version = cache.get(cache_key)
     if version is not None:
-        return version
+        # cache 序列化/反序列化可能将 tuple 转为 list，强制转回 tuple 以支持比较运算
+        return tuple(version)
 
     try:
         from backend.db_meta.models import StorageInstance
