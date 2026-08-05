@@ -363,7 +363,7 @@ func (s *SyntaxHandler) ParseSQLTables(r *gin.Context) {
 	if len(param.Versions) == 0 {
 		versions = []string{""}
 	} else {
-		versions = rebuildVersion(param.Versions)
+		versions = tmysqlver.Rebuild(param.Versions)
 		if len(versions) == 0 {
 			versions = []string{""}
 		}
