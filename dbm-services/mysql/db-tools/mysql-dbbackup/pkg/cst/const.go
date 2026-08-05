@@ -97,6 +97,7 @@ const SkipMyisamTableMaxValue = 99999
 
 // ZstdSuffix zstd compress file suffix
 const ZstdSuffix = ".zst"
+const QpSuffix = ".qp"
 
 const (
 	MydumperTimeLayout   = "2006-01-02 15:04:05"

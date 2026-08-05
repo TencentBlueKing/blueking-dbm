@@ -396,7 +396,9 @@ func (m *MySQLDumper) getDumpCmd(outputFile, errFile, dumpOption string, appendO
 		dumpOption += " --events"
 	}
 	if m.GtidPurgedOff {
-		dumpOption += " --set-gtid-purged=OFF"
+		if ok, _ := mysqlcomm.MysqldumpHasOption(m.DumpCmdFile, "--set-gtid-purged"); ok {
+			dumpOption += " --set-gtid-purged=OFF"
+		}
 	}
 	if m.Quick {
 		dumpOption += " --quick "

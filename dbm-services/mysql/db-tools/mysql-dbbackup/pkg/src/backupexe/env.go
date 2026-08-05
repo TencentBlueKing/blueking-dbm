@@ -140,20 +140,21 @@ func SetEnv(backupType string, mysqlVersionStr string) error {
 	if strings.ToLower(backupType) == cst.BackupLogical {
 		libPath = append(libPath, filepath.Join(ExecuteHome, "lib/libmydumper"))
 	} else if strings.ToLower(backupType) == cst.BackupPhysical {
-		parsedVersion, isOfficial := util.VersionParser(mysqlVersionStr)
-
+		libPath = append(libPath, filepath.Join(ExecuteHome, "lib/libmydumper"))
+		_, isOfficial := util.VersionParser(mysqlVersionStr)
+		majorVer := getMajorVersion(mysqlVersionStr)
 		if isOfficial {
-			libPath = append(libPath, filepath.Join(ExecuteHome, "lib/libxtra_57_official/private"))
-			libPath = append(libPath, filepath.Join(ExecuteHome, "lib/libxtra_57_official/plugin"))
-			if strings.Compare(parsedVersion, "008000000") >= 0 &&
-				strings.Compare(parsedVersion, "008004000") < 0 {
+			switch majorVer {
+			case "5.7":
+				libPath = append(libPath, filepath.Join(ExecuteHome, "lib/libxtra_57_official/private"))
+				libPath = append(libPath, filepath.Join(ExecuteHome, "lib/libxtra_57_official/plugin"))
+			case "8.0":
 				libPath = append(libPath, filepath.Join(ExecuteHome, "lib/libxtra_80_official/private"))
 				libPath = append(libPath, filepath.Join(ExecuteHome, "lib/libxtra_80_official/plugin"))
-			} else if strings.Compare(parsedVersion, "008004000") >= 0 &&
-				strings.Compare(parsedVersion, "009007000") < 0 {
+			case "8.4":
 				libPath = append(libPath, filepath.Join(ExecuteHome, "lib/libxtra_84_official/private"))
 				libPath = append(libPath, filepath.Join(ExecuteHome, "lib/libxtra_84_official/plugin"))
-			} else {
+			default:
 				return fmt.Errorf("unrecognizable mysql version:%s", mysqlVersionStr)
 			}
 
@@ -213,4 +214,25 @@ func ParseJsonFile(indexPath string) (*dbareport.IndexContent, error) {
 		return nil, err
 	}
 	return &indexFileContent, nil
+}
+
+// getMajorVersion mysqlVersion is select version();
+// format like: 5.6.24-tmysql-2.2.4-log
+func getMajorVersion(mysqlVersion string) string {
+	baseVersion := strings.Split(mysqlVersion, "-")[0]
+	parts := strings.Split(baseVersion, ".")
+	if len(parts) < 2 {
+		return parts[0]
+	}
+	majorVer := parts[0] + "." + parts[1]
+	if strings.Compare(majorVer, "5.7") >= 0 &&
+		strings.Compare(majorVer, "8.0") < 0 {
+		majorVer = "5.7"
+	} else if strings.Compare(majorVer, "8.0") >= 0 &&
+		strings.Compare(majorVer, "8.4") < 0 {
+		majorVer = "8.0"
+	} else if strings.Compare(majorVer, "8.4") >= 0 {
+		majorVer = "8.4"
+	}
+	return majorVer
 }
