@@ -85,6 +85,7 @@
   import { ClusterTypes, DBTypes } from '@common/const';
   import { ipv4 } from '@common/regex';
 
+  import type { IRule } from '@components/editable-table/types';
   import InstanceSelector, {
     type InstanceSelectorValues,
     type IValue,
@@ -94,6 +95,7 @@
   export type SelectorHost = IValue;
 
   interface Props {
+    appendRules?: IRule[];
     clusterTypes: (ClusterTypes.MONGO_SHARED_CLUSTER | ClusterTypes.MONGO_REPLICA_SET)[];
     columns?: ('instance' | 'cluster')[];
     label?: string;
@@ -133,28 +135,26 @@
     ),
   }));
 
-  const rules = [
-    {
-      message: t('IP格式有误，请输入合法IP'),
-      trigger: 'change',
-      validator: (value: string) => !value || ipv4.test(value),
-    },
-    {
-      message: t('目标主机重复'),
-      trigger: 'change',
-      validator: (value: string) => !value || props.selected.filter((item) => item.ip === value).length < 2,
-    },
-    {
-      message: t('目标主机不存在'),
-      trigger: 'blur',
-      validator: (value: string) => !value || Boolean(modelValue.value.bk_host_id),
-    },
-    {
-      message: t('主机不包含任何 Mongos 实例'),
-      trigger: 'blur',
-      validator: (value: string) => !value || modelValue.value.role === 'proxy',
-    },
-  ];
+  const rules = computed(() => {
+    const baseRules = [
+      {
+        message: t('IP格式有误，请输入合法IP'),
+        trigger: 'change',
+        validator: (value: string) => !value || ipv4.test(value),
+      },
+      {
+        message: t('目标主机重复'),
+        trigger: 'change',
+        validator: (value: string) => !value || props.selected.filter((item) => item.ip === value).length < 2,
+      },
+      {
+        message: t('目标主机不存在'),
+        trigger: 'blur',
+        validator: (value: string) => !value || Boolean(modelValue.value.bk_host_id),
+      },
+    ];
+    return props.appendRules ? [...baseRules, ...props.appendRules] : baseRules;
+  });
 
   const { loading, run: queryHost } = useRequest(checkInstance, {
     manual: true,

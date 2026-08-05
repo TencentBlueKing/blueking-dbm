@@ -34,6 +34,7 @@
           :key="index">
           <HostColumn
             v-model="item.host"
+            :append-rules="rules"
             :cluster-types="[ClusterTypes.MONGO_SHARED_CLUSTER]"
             :columns="['instance']"
             :selected="selected"
@@ -129,6 +130,14 @@
     payload: createTicketPayload(),
     tableData: [createTableRow()],
   });
+
+  const rules = [
+    {
+      message: t('主机不包含任何 Mongos 实例'),
+      trigger: 'blur',
+      validator: (value: string, { rowData }: { rowData: RowData }) => rowData.host.role === 'proxy',
+    },
+  ];
 
   const tabListConfig = {
     mongoCluster: [
