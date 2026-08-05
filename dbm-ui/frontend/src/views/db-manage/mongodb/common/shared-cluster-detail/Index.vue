@@ -20,20 +20,25 @@
         cluster-detail-router-name="MongoDBSharedClusterDetail"
         :data="data">
         <template v-if="data.isOnline">
-          <BkButton
+          <AuthButton
             v-db-console="'mongodb.sharedClusterList.importAuthorize'"
+            action-id="mongodb_priv_manage"
             class="ml-4"
+            :permission="data.permission.mongodb_priv_manage"
             size="small"
             @click="handleShowAuthorize">
             {{ t('授权') }}
-          </BkButton>
-          <BkButton
+          </AuthButton>
+          <AuthButton
             v-db-console="'mongodb.sharedClusterList.getAccess'"
+            action-id="mongodb_access_entry_view"
             class="ml-4"
+            :permission="data.permission.mongodb_access_entry_view"
+            :resource="data.id"
             size="small"
             @click="handleShowAccessEntry">
             {{ t('获取访问方式') }}
-          </BkButton>
+          </AuthButton>
           <AuthRouterLink
             v-db-console="'mongodb.sharedClusterList.webconsole'"
             action-id="mongodb_webconsole"
@@ -82,8 +87,8 @@
                 :data="data"
                 :disabled="!data.isOffline">
                 <AuthButton
-                  action-id="mongodb_plugin_create_clb"
-                  :permission="data.permission.mongodb_plugin_create_clb"
+                  action-id="mongodb_loadbalance_manage"
+                  :permission="data.permission.mongodb_loadbalance_manage"
                   :resource="data.id"
                   text
                   @click="handleAddClb({ details: { cluster_id: data.id } })">

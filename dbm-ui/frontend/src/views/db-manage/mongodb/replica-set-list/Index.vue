@@ -14,13 +14,14 @@
 <template>
   <div class="mongodb-replica-set-list-page">
     <div class="header-action">
-      <BkButton
+      <AuthButton
         v-db-console="'mongodb.replicaSetList.instanceApply'"
+        action-id="mongodb_apply"
         class="mb-8"
         theme="primary"
         @click="handleApply">
         {{ t('申请实例') }}
-      </BkButton>
+      </AuthButton>
       <ClusterBatchOperation
         v-db-console="'mongodb.replicaSetList.batchOperation'"
         :cluster-type="ClusterTypes.MONGO_REPLICA_SET"
@@ -33,11 +34,12 @@
         }"
         v-db-console="'mongodb.replicaSetList.importAuthorize'"
         class="inline-block">
-        <BkButton
+        <AuthButton
+          action-id="mongodb_priv_manage"
           :disabled="!hasData"
           @click="handleShowExcelAuthorize">
           {{ t('导入授权') }}
-        </BkButton>
+        </AuthButton>
       </span>
       <DropdownExportExcel
         v-db-console="'mongodb.replicaSetList.export'"
@@ -73,11 +75,14 @@
           <template #default="{ data }: { data: MongodbModel }">
             <template v-if="data.isOnline">
               <div v-db-console="'mongodb.replicaSetList.getAccess'">
-                <BkButton
+                <AuthButton
+                  action-id="mongodb_access_entry_view"
+                  :permission="data.permission.mongodb_access_entry_view"
+                  :resource="data.id"
                   text
                   @click="handleShowAccessEntry(data)">
                   {{ t('获取访问方式') }}
-                </BkButton>
+                </AuthButton>
               </div>
               <div v-db-console="'mongodb.replicaSetList.queryAccessSource'">
                 <OperationBtnStatusTips
