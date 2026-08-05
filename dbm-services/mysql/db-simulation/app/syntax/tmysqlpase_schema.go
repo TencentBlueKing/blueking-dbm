@@ -81,6 +81,8 @@ const (
 	SQLTypeAlterDb = "alter_db"
 	// SQLTypeFlush is flush sql
 	SQLTypeFlush = "flush"
+	// SQLTypeSelect is select sql
+	SQLTypeSelect = "select"
 )
 
 // NotAllowedDefaultValColMap 不允许默认值的字段
@@ -404,3 +406,31 @@ type RenameTablePair struct {
 
 // RenameTablePairs is a slice of RenameTablePair for bulk renames
 type RenameTablePairs []RenameTablePair
+
+// TableReference tmysqlparse 输出的表引用
+type TableReference struct {
+	DbName    string `json:"db_name"`
+	TableName string `json:"table_name"`
+}
+
+// InjectParseLine 注入检测使用的解析行（覆盖 select 的 table_references / has_subquery）
+type InjectParseLine struct {
+	QueryId         int              `json:"query_id"`
+	Command         string           `json:"command"`
+	DbName          string           `json:"db_name,omitempty"`
+	TableName       string           `json:"table_name,omitempty"`
+	QueryString     string           `json:"query_string,omitempty"`
+	ErrorCode       int              `json:"error_code,omitempty"`
+	ErrorMsg        string           `json:"error_msg,omitempty"`
+	HasSubQuery     bool             `json:"has_subquery,omitempty"`
+	TableReferences []TableReference `json:"table_references,omitempty"`
+	Tables          []TableReference `json:"tables,omitempty"`
+	MinMySQLVersion int              `json:"min_mysql_version"`
+	MaxMySQLVersion int              `json:"max_my_sql_version"`
+}
+
+// InjectCheckResult 注入检测结果
+type InjectCheckResult struct {
+	IsInject bool   `json:"is_inject"`
+	Reason   string `json:"reason"`
+}
