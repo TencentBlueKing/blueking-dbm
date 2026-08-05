@@ -31,9 +31,7 @@
       </BkAlert>
       <div class="operation-box">
         <AuthButton
-          :action-id="
-            accountType === AccountTypes.SQLSERVER ? `${accountType}_priv_manage` : `${accountType}_account_create`
-          "
+          :action-id="accountCreateActionIdMap[accountType]"
           theme="primary"
           @click="handleShowAccountDialog">
           {{ t('新建账号') }}
@@ -149,6 +147,30 @@
   }
 
   const bizId = window.PROJECT_CONFIG.BIZ_ID;
+
+  // 账号类型对应的新建账号权限 actionId
+  const accountCreateActionIdMap: Record<AccountTypes, string> = {
+    [AccountTypes.MONGODB]: 'mongodb_account_create',
+    [AccountTypes.MYSQL]: 'mysql_account_create',
+    [AccountTypes.SQLSERVER]: 'sqlserver_priv_manage',
+    [AccountTypes.TENDBCLUSTER]: 'tendbcluster_account_create',
+  };
+
+  // 账号类型对应的添加授权规则权限 actionId
+  const addAccountRuleActionIdMap: Record<AccountTypes, string> = {
+    [AccountTypes.MONGODB]: 'mongodb_add_account_rule',
+    [AccountTypes.MYSQL]: 'mysql_add_account_rule',
+    [AccountTypes.SQLSERVER]: 'sqlserver_priv_manage',
+    [AccountTypes.TENDBCLUSTER]: 'tendbcluster_add_account_rule',
+  };
+
+  // 账号类型对应的删除账号权限 actionId
+  const accountDeleteActionIdMap: Record<AccountTypes, string> = {
+    [AccountTypes.MONGODB]: 'mongodb_account_delete',
+    [AccountTypes.MYSQL]: 'mysql_account_delete',
+    [AccountTypes.SQLSERVER]: 'sqlserver_priv_manage',
+    [AccountTypes.TENDBCLUSTER]: 'tendbcluster_account_delete',
+  };
 
   /**
    * 配置
@@ -360,19 +382,9 @@
                   </bk-tag>
                 )}
                 <auth-button
-                  action-id={
-                    props.accountType === AccountTypes.SQLSERVER
-                      ? `${props.accountType}_priv_manage`
-                      : `${props.accountType}_add_account_rule`
-                  }
+                  action-id={addAccountRuleActionIdMap[props.accountType]}
                   class='add-rule-btn'
-                  permission={
-                    data.permission[
-                      props.accountType === AccountTypes.SQLSERVER
-                        ? `${props.accountType}_priv_manage`
-                        : `${props.accountType}_add_account_rule`
-                    ]
-                  }
+                  permission={data.permission[addAccountRuleActionIdMap[props.accountType]]}
                   resource={props.accountType === AccountTypes.SQLSERVER ? undefined : data.account.account_id}
                   size='small'
                   onClick={(event: PointerEvent) => handleShowCreateRule(data, event)}>
@@ -418,18 +430,8 @@
             <div class='cell-row'>
               <span>{t('暂无规则')}，</span>
               <auth-button
-                action-id={
-                  props.accountType === AccountTypes.SQLSERVER
-                    ? `${props.accountType}_priv_manage`
-                    : `${props.accountType}_add_account_rule`
-                }
-                permission={
-                  data.permission[
-                    props.accountType === AccountTypes.SQLSERVER
-                      ? `${props.accountType}_priv_manage`
-                      : `${props.accountType}_add_account_rule`
-                  ]
-                }
+                action-id={addAccountRuleActionIdMap[props.accountType]}
+                permission={data.permission[addAccountRuleActionIdMap[props.accountType]]}
                 resource={props.accountType === AccountTypes.SQLSERVER ? undefined : data.account.account_id}
                 size='small'
                 text
@@ -492,18 +494,8 @@
           return (
             <div class='cell-row'>
               <auth-button
-                action-id={
-                  props.accountType === AccountTypes.SQLSERVER
-                    ? `${props.accountType}_priv_manage`
-                    : `${props.accountType}_account_delete`
-                }
-                permission={
-                  data.permission[
-                    props.accountType === AccountTypes.SQLSERVER
-                      ? `${props.accountType}_priv_manage`
-                      : `${props.accountType}_account_delete`
-                  ]
-                }
+                action-id={accountDeleteActionIdMap[props.accountType]}
+                permission={data.permission[accountDeleteActionIdMap[props.accountType]]}
                 resource={props.accountType === AccountTypes.SQLSERVER ? undefined : data.account.account_id}
                 text
                 theme='primary'
@@ -523,8 +515,8 @@
           <div class='cell-row'>
             {props.accountType === AccountTypes.SQLSERVER ? (
               <auth-button
-                action-id={`${props.accountType}_priv_manage`}
-                permission={data.permission[`${props.accountType}_priv_manage`]}
+                action-id='sqlserver_priv_manage'
+                permission={data.permission.sqlserver_priv_manage}
                 text
                 theme='primary'
                 onClick={(event: PointerEvent) => handleShowAuthorize(data, item, event)}>
@@ -550,10 +542,10 @@
                 {configMap[props.accountType].buttonController[ButtonTypes.EDIT_RULE] &&
                   (props.accountType === AccountTypes.SQLSERVER ? (
                     <auth-button
-                      action-id={`${props.accountType}_priv_manage`}
+                      action-id='sqlserver_priv_manage'
                       class='ml-8'
                       disabled={Boolean(data.rules[index].priv_ticket?.ticket_id)}
-                      permission={data.permission[`${props.accountType}_priv_manage`]}
+                      permission={data.permission.sqlserver_priv_manage}
                       text
                       theme='primary'
                       onClick={(event: PointerEvent) => handleShowEditRule(event, data, index)}>
@@ -592,10 +584,10 @@
                   onConfirm={() => handleDeleteRule(data, index)}>
                   {props.accountType === AccountTypes.SQLSERVER ? (
                     <auth-button
-                      action-id={`${props.accountType}_priv_manage`}
+                      action-id='sqlserver_priv_manage'
                       class='ml-8'
                       disabled={Boolean(data.rules[index].priv_ticket?.ticket_id)}
-                      permission={data.permission[`${props.accountType}_priv_manage`]}
+                      permission={data.permission.sqlserver_priv_manage}
                       text
                       theme='primary'>
                       {t('删除')}

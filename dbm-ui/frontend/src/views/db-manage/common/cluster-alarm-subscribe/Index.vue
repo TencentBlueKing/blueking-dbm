@@ -44,6 +44,8 @@
 
   import { useAlarmSubscribe } from '@hooks';
 
+  import { DBTypes } from '@common/const';
+
   import OperationBtnStatusTips from '@views/db-manage/common/OperationBtnStatusTips.vue';
 
   import { messageSuccess } from '@utils';
@@ -70,9 +72,28 @@
   const { t } = useI18n();
   const { initSubscribedDomainInfo, metricsMap, subscribedDomainInfo } = useAlarmSubscribe();
 
+  // 数据库类型对应的告警订阅权限 actionId
+  const subscribeMonitorActionIdMap: Record<DBTypes, string> = {
+    [DBTypes.DORIS]: 'doris_subscribe_monitor',
+    [DBTypes.ES]: 'es_subscribe_monitor',
+    [DBTypes.HDFS]: 'hdfs_subscribe_monitor',
+    [DBTypes.INFLUXDB]: 'influxdb_subscribe_monitor',
+    [DBTypes.KAFKA]: 'kafka_subscribe_monitor',
+    [DBTypes.MONGODB]: 'mongodb_subscribe_monitor',
+    [DBTypes.MYSQL]: 'mysql_subscribe_monitor',
+    [DBTypes.ORACLE]: 'oracle_subscribe_monitor',
+    [DBTypes.PULSAR]: 'pulsar_subscribe_monitor',
+    [DBTypes.REDIS]: 'redis_subscribe_monitor',
+    [DBTypes.RIAK]: 'riak_subscribe_monitor',
+    [DBTypes.SQLSERVER]: 'sqlserver_subscribe_monitor',
+    [DBTypes.TENDBCLUSTER]: 'tendbcluster_subscribe_monitor',
+  };
+
   const isAbleSubscribe = computed(() => metricsMap.value[props.data.cluster_type]?.list.length > 0);
   const isNotSubscribed = computed(() => !subscribedDomainInfo.value.dataSet.has(props.data.master_domain));
-  const permissionId = computed(() => `${props.data.db_type}_subscribe_monitor` as keyof typeof props.data.permission);
+  const permissionId = computed(
+    () => subscribeMonitorActionIdMap[props.data.db_type as DBTypes] as keyof typeof props.data.permission,
+  );
 
   const { run: deleteSubscribeRun } = useRequest(deleteSubscribe, {
     manual: true,
