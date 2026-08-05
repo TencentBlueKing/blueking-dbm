@@ -159,18 +159,18 @@
    */
   const configMap = {
     [AccountTypes.MONGODB]: {
-      addRuleAction: 'mongodb_add_account_rule',
+      addRuleAction: 'mongodb_priv_manage',
       buttonController: {
         [ButtonTypes.DELETE_RULE]: true,
         [ButtonTypes.EDIT_RULE]: false,
       },
       clusterTypes: [ClusterTypes.MONGO_REPLICA_SET, ClusterTypes.MONGO_SHARED_CLUSTER],
-      createAccountAction: 'mongodb_account_create',
+      createAccountAction: 'mongodb_priv_manage',
       createRuleComponent: MongoCreateRule,
       dataSource: getMongodbPermissionRules,
       dbOperations: mongoDbOperations,
       ddlSensitiveWords: [],
-      deleteAccountAction: 'mongodb_account_delete',
+      deleteAccountAction: 'mongodb_priv_manage',
       ticketType: TicketTypes.MONGODB_AUTHORIZE_RULES,
     },
     [AccountTypes.MYSQL]: {
@@ -373,7 +373,6 @@
                   action-id={configMap[props.accountType].addRuleAction}
                   class='add-rule-btn'
                   permission={data.permission[configMap[props.accountType].addRuleAction]}
-                  resource={data.account.account_id}
                   size='small'
                   onClick={(event: PointerEvent) => handleShowCreateRule(data, event)}>
                   {t('添加授权规则')}
@@ -420,7 +419,6 @@
               <auth-button
                 action-id={configMap[props.accountType].addRuleAction}
                 permission={data.permission[configMap[props.accountType].addRuleAction]}
-                resource={data.account.account_id}
                 size='small'
                 text
                 theme='primary'
@@ -484,7 +482,6 @@
               <auth-button
                 action-id={configMap[props.accountType].deleteAccountAction}
                 permission={data.permission[configMap[props.accountType].deleteAccountAction]}
-                resource={data.account.account_id}
                 text
                 theme='primary'
                 onClick={() => handleDeleteAccount(data)}>
@@ -501,7 +498,7 @@
 
         return getRenderList(data).map((item, index) => (
           <div class='cell-row'>
-            {props.accountType === AccountTypes.SQLSERVER ? (
+            {[AccountTypes.MONGODB, AccountTypes.SQLSERVER].includes(props.accountType) ? (
               <auth-button
                 action-id={configMap[props.accountType].addRuleAction}
                 permission={data.permission[configMap[props.accountType].addRuleAction]}
@@ -570,7 +567,7 @@
                   trigger='click'
                   width='288'
                   onConfirm={() => handleDeleteRule(data, index)}>
-                  {props.accountType === AccountTypes.SQLSERVER ? (
+                  {[AccountTypes.MONGODB, AccountTypes.SQLSERVER].includes(props.accountType) ? (
                     <auth-button
                       action-id={configMap[props.accountType].addRuleAction}
                       class='ml-8'
@@ -700,7 +697,7 @@
           await apiMap[props.accountType]({
             account_id: row.account.account_id,
             account_type: props.accountType,
-            bizId,
+            bk_biz_id: bizId,
           });
           Message({
             message: t('成功删除账号'),
