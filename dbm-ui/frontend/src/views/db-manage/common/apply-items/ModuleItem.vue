@@ -70,7 +70,11 @@
             v-for="(item, index) in configItemList"
             :key="index"
             class="config-detail-item">
-            <span class="config-detail-label">{{ item.label }}:</span>
+            <span
+              class="config-detail-label"
+              :class="{ 'has-description': item.hasDescription }">
+              {{ item.label }}:
+            </span>
             <span class="config-detail-value">{{ item.value }}</span>
           </div>
         </div>
@@ -215,6 +219,7 @@
 
         return ['db_version', 'charset', 'system_version', 'buffer_percent', 'max_remain_mem_gb', 'sync_type'].map(
           (key) => ({
+            hasDescription: !!configMap[key],
             label: labelMap[key],
             value: configMap[key],
           }),
@@ -222,6 +227,7 @@
       }
     }
     return confItems.map((confItem) => ({
+      hasDescription: !!confItem.description,
       label: confItem.description || confItem.conf_name,
       value: confItem.conf_value,
     }));
@@ -415,6 +421,10 @@
         min-width: 172px;
         padding-right: 8px;
         text-align: right;
+      }
+
+      .has-description {
+        text-align: left;
       }
 
       .config-detail-value {
