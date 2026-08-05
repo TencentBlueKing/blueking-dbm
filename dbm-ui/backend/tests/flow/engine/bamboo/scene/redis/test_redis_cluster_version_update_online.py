@@ -288,6 +288,53 @@ def test_validate_backend_buckets_rejects_multiple_target_versions():
         flow._validate_backend_buckets()
 
 
+def test_validate_backend_has_no_modules_rejects_cluster_with_modules(monkeypatch):
+    flow = _new_flow()
+    flow._cluster_objs[1] = _FakeCluster(cluster_type=ClusterType.TendisPredixyRedisCluster)
+    flow.cluster_versions_ips["Backend"][1][TARGET_VERSION] = {"1.1.1.2"}
+    monkeypatch.setattr(
+        mod.ClusterRedisModuleAssociate.objects,
+        "filter",
+        lambda **kwargs: SimpleNamespace(
+            values=lambda *args: [{"cluster_id": 1, "module_names": ["redisbloom", "redisjson"]}]
+        ),
+    )
+
+    with pytest.raises(Exception, match="已安装 redis module"):
+        flow._validate_backend_has_no_modules()
+
+
+def test_validate_backend_has_no_modules_allows_cluster_without_modules(monkeypatch):
+    flow = _new_flow()
+    flow._cluster_objs[1] = _FakeCluster(cluster_type=ClusterType.TendisPredixyRedisCluster)
+    flow.cluster_versions_ips["Backend"][1][TARGET_VERSION] = {"1.1.1.2"}
+    monkeypatch.setattr(
+        mod.ClusterRedisModuleAssociate.objects,
+        "filter",
+        lambda **kwargs: SimpleNamespace(values=lambda *args: [{"cluster_id": 1, "module_names": []}]),
+    )
+
+    flow._validate_backend_has_no_modules()
+
+
+def test_validate_backend_has_no_modules_rejects_redis_instance_pair_with_modules(monkeypatch):
+    flow = _new_flow()
+    flow._cluster_objs[2] = _FakeCluster(cluster_id=2, cluster_type=ClusterType.TendisRedisInstance)
+    flow.instance_pair_buckets[("1.1.1.1", "1.1.1.2")] = {
+        "cluster_ids": [2],
+        "target_version": TARGET_VERSION,
+        "upgrade_master": True,
+    }
+    monkeypatch.setattr(
+        mod.ClusterRedisModuleAssociate.objects,
+        "filter",
+        lambda **kwargs: SimpleNamespace(values=lambda *args: [{"cluster_id": 2, "module_names": ["rediscell"]}]),
+    )
+
+    with pytest.raises(Exception, match="已安装 redis module"):
+        flow._validate_backend_has_no_modules()
+
+
 def test_validate_backend_target_pair_rejects_unsupported_target_version():
     flow = _new_flow()
     cluster = _FakeCluster(cluster_type=ClusterType.TendisPredixyRedisCluster)

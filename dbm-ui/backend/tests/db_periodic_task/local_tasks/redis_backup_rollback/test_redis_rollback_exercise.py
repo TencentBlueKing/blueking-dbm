@@ -242,6 +242,7 @@ class TestPureHelpers:
         assert cfg.binlog_replay_minutes == 1430
         assert cfg.no_binlog_offset_minutes == 30
         assert cfg.bk_cloud_ids is None
+        assert cfg.ai_analysis_enabled is False
 
     def test_config_from_settings_ignores_unknown_keys(self):
         """shell_plus-friendly loader should tolerate stale keys in SystemSettings."""
