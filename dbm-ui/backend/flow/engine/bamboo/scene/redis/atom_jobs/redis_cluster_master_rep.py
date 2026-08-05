@@ -558,7 +558,10 @@ def TendisSingleMasterReplaceJob(root_id, ticket_data, sub_kwargs: ActKwargs, ma
     """
     act_kwargs = deepcopy(sub_kwargs)
     redis_pipeline = SubBuilder(root_id=root_id, data=ticket_data)
-    master_repl_detail, _, repl_link_info = _extract_master_replace_params(master_repl_info, act_kwargs)
+    # 注意：不要用 _ 接收返回值，否则会覆盖 gettext 的 _ 函数
+    master_repl_detail, _unused_new_ins_map, repl_link_info = _extract_master_replace_params(
+        master_repl_info, act_kwargs
+    )
     cache_backup_mode = get_cache_backup_mode(act_kwargs.cluster["bk_biz_id"], _first_cluster_id(act_kwargs))
 
     # ## 部署实例 #############################################################################
