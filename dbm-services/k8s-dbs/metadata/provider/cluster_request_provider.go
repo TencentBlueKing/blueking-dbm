@@ -35,6 +35,7 @@ import (
 type ClusterRequestRecordProvider interface {
 	CreateRequestRecord(entity *metaentity.ClusterRequestRecordEntity) (*metaentity.ClusterRequestRecordEntity, error)
 	DeleteRequestRecordByID(id uint64) (uint64, error)
+	DeleteRequestRecords(params *metaentity.ClusterRequestQueryParams) (uint64, error)
 	FindRequestRecordByID(id uint64) (*metaentity.ClusterRequestRecordEntity, error)
 	UpdateRequestRecord(entity *metaentity.ClusterRequestRecordEntity) (uint64, error)
 	ListRecords(
@@ -80,6 +81,17 @@ func (k *ClusterRequestRecordProviderImpl) ListRecords(
 	}
 	return recordEntities, count, nil
 
+}
+
+// DeleteRequestRecords 按条件删除 request record
+func (k *ClusterRequestRecordProviderImpl) DeleteRequestRecords(
+	params *metaentity.ClusterRequestQueryParams,
+) (uint64, error) {
+	rows, err := k.dbAccess.DeleteByParams(params)
+	if err != nil {
+		return 0, errors.Wrapf(err, "failed to delete request record with params: %+v", params)
+	}
+	return rows, nil
 }
 
 // CreateRequestRecord 创建 request record
