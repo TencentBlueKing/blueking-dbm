@@ -15,7 +15,7 @@
             <AuthTemplate
               :action-id="actionId"
               class="edit-main"
-              :permission="checkEditPermission(data)"
+              :permission="permission"
               :resource="data.id"
               role="table-cell-operation"
               @click="handleOpenAddTag">
@@ -44,7 +44,7 @@
       v-if="!isVertical || (isVertical && !totalList.length)"
       :action-id="actionId"
       class="edit-main"
-      :permission="checkEditPermission(data)"
+      :permission="permission"
       :resource="data.id"
       role="table-cell-operation"
       @click="handleOpenAddTag">
@@ -64,6 +64,8 @@
   import { useI18n } from 'vue-i18n';
 
   import type { ClusterCommonInfo } from '@services/types';
+
+  import { DBTypes } from '@common/const';
 
   import RenderTagOverflow from '@components/render-tag-overflow/Index.vue';
   import TextOverflowLayout from '@components/text-overflow-layout/Index.vue';
@@ -86,6 +88,23 @@
 
   const renderInstanceCount = 6;
 
+  // 数据库类型对应的编辑权限 actionId
+  const editActionIdMap: Record<DBTypes, string> = {
+    [DBTypes.DORIS]: 'doris_edit',
+    [DBTypes.ES]: 'es_edit',
+    [DBTypes.HDFS]: 'hdfs_edit',
+    [DBTypes.INFLUXDB]: 'influxdb_edit',
+    [DBTypes.KAFKA]: 'kafka_edit',
+    [DBTypes.MONGODB]: 'mongodb_edit',
+    [DBTypes.MYSQL]: 'mysql_edit',
+    [DBTypes.ORACLE]: 'oracle_edit',
+    [DBTypes.PULSAR]: 'pulsar_edit',
+    [DBTypes.REDIS]: 'redis_edit',
+    [DBTypes.RIAK]: 'riak_edit',
+    [DBTypes.SQLSERVER]: 'sqlserver_edit',
+    [DBTypes.TENDBCLUSTER]: 'tendbcluster_edit',
+  };
+
   const isShowAddTag = ref(false);
 
   const isVertical = computed(() => props.mode === 'vertical');
@@ -99,13 +118,9 @@
   const renderList = computed(() => totalList.value.slice(0, renderInstanceCount));
   const isShowMore = computed(() => totalList.value.length > renderInstanceCount);
   const tooltip = computed(() => totalList.value.map((item) => `${item.key}: ${item.value.join(',')}`).join('\n'));
-  const actionId = computed(() => `${props.data.db_type}_edit`);
+  const actionId = computed(() => editActionIdMap[props.data.db_type as DBTypes]);
+  const permission = computed(() => props.data.permission[actionId.value]);
   const horizontalTagList = computed(() => renderList.value.map((item) => `${item.key} : ${item.value.join(' , ')}`));
-
-  const checkEditPermission = (data: Props['data']) => {
-    const permissionKey = `${props.data.db_type}_edit`;
-    return data.permission[permissionKey];
-  };
 
   const handleOperateSuccess = () => {
     emits('success');

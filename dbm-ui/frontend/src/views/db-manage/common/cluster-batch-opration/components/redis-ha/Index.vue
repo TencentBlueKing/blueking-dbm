@@ -226,9 +226,7 @@
   const batchDeleteDisabled = computed(() =>
     props.selected.some((data) => data.isOnline || Boolean(data.operationTicketId)),
   );
-  const isClusterTagEditable = computed(() =>
-    props.selected.every((data) => data.permission[`${data.db_type}_edit` as keyof typeof data.permission]),
-  );
+  const isClusterTagEditable = computed(() => props.selected.every((data) => data.permission.redis_edit));
 
   const handleSuccess = () => {
     emits('success');
