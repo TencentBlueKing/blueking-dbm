@@ -15,7 +15,7 @@ from backend.flow.plugins.components.collections.mongodb.cluster_reduce_shard_me
 )
 from backend.flow.plugins.components.collections.mongodb.exec_actuator_job import ExecuteDBActuatorJobComponent
 from backend.flow.utils.mongodb.calculate_cluster import (
-    _validate_co_located_shard_group,
+    _validate_remaining_shard_deployment_balanced,
     calculate_cluster_reduce_shard,
 )
 from backend.flow.utils.mongodb.mongodb_dataclass import ActKwargs
@@ -93,6 +93,80 @@ class TestMongoDBClusterReduceShardSerializer:
         s = MongoDBClusterReduceShardFlow.Serializer(data=data)
         assert s.is_valid() is False
 
+    def test_default_mode_with_shard_names_ok(self):
+        s = MongoDBClusterReduceShardFlow.Serializer(data=_base_payload())
+        assert s.is_valid(), s.errors
+        assert s.validated_data["infos"][0]["reduce_mode"] == "by_shard_names"
+        assert s.validated_data["infos"][0]["shard_names"] == ["demo-s3"]
+        assert "reduce_shards_num" not in s.validated_data["infos"][0]
+
+    def test_by_count_mode_ok(self):
+        s = MongoDBClusterReduceShardFlow.Serializer(
+            data=_base_payload(infos=[{"cluster_id": 1001, "reduce_mode": "by_count", "reduce_shards_num": 2}])
+        )
+        assert s.is_valid(), s.errors
+        info = s.validated_data["infos"][0]
+        assert info["reduce_mode"] == "by_count"
+        assert info["reduce_shards_num"] == 2
+        assert "shard_names" not in info
+
+    def test_by_count_missing_num_rejected(self):
+        s = MongoDBClusterReduceShardFlow.Serializer(
+            data=_base_payload(infos=[{"cluster_id": 1001, "reduce_mode": "by_count"}])
+        )
+        assert s.is_valid() is False
+
+    def test_by_shard_names_missing_names_rejected(self):
+        s = MongoDBClusterReduceShardFlow.Serializer(
+            data=_base_payload(infos=[{"cluster_id": 1001, "reduce_mode": "by_shard_names"}])
+        )
+        assert s.is_valid() is False
+
+    def test_by_shard_names_strips_reduce_shards_num(self):
+        s = MongoDBClusterReduceShardFlow.Serializer(
+            data=_base_payload(
+                infos=[
+                    {
+                        "cluster_id": 1001,
+                        "reduce_mode": "by_shard_names",
+                        "shard_names": ["demo-s3"],
+                        "reduce_shards_num": 1,
+                    }
+                ]
+            )
+        )
+        assert s.is_valid(), s.errors
+        assert "reduce_shards_num" not in s.validated_data["infos"][0]
+
+
+def _pair_group(s_a, s_b, ip_a, ip_b):
+    """一组机器上部署 2 个分片（单机多片）"""
+    return [
+        _shard(
+            s_a,
+            [
+                _member(ip_a, 27001, InstanceRole.MONGO_M1.value),
+                _member(ip_b, 27001, InstanceRole.MONGO_M2.value),
+            ],
+        ),
+        _shard(
+            s_b,
+            [
+                _member(ip_a, 27002, InstanceRole.MONGO_M1.value),
+                _member(ip_b, 27002, InstanceRole.MONGO_M2.value),
+            ],
+        ),
+    ]
+
+
+def _three_groups_six_shards():
+    """3 组机器 × 每组 2 片 = 6 片"""
+    shards = []
+    shards.extend(_pair_group("demo-s1", "demo-s2", "127.0.0.1", "127.0.0.2"))
+    shards.extend(_pair_group("demo-s3", "demo-s4", "127.0.0.3", "127.0.0.4"))
+    shards.extend(_pair_group("demo-s5", "demo-s6", "127.0.0.5", "127.0.0.6"))
+    return shards
+
 
 class TestCalculateClusterReduceShard:
     def test_would_remove_all_shards(self, monkeypatch):
@@ -104,90 +178,120 @@ class TestCalculateClusterReduceShard:
             "backend.flow.utils.mongodb.calculate_cluster.MongoRepository.fetch_one_cluster",
             classmethod(lambda cls, with_domain=False, with_tags=False, **kwargs: cluster),
         )
-        with pytest.raises(ValueError, match="would remove all shards"):
+        with pytest.raises(ValueError, match="至少保留1个分片"):
             calculate_cluster_reduce_shard(_base_payload(infos=[{"cluster_id": 1001, "shard_names": ["demo-s1"]}]))
 
-    def test_co_located_incomplete_fails(self, monkeypatch):
-        # 同机多分片：127.0.0.1 上有 s1 和 s2
-        shards = [
-            _shard(
-                "demo-s1",
-                [
-                    _member("127.0.0.1", 27001, InstanceRole.MONGO_M1.value),
-                    _member("127.0.0.2", 27001, InstanceRole.MONGO_M2.value),
-                ],
-            ),
-            _shard(
-                "demo-s2",
-                [
-                    _member("127.0.0.1", 27002, InstanceRole.MONGO_M1.value),
-                    _member("127.0.0.2", 27002, InstanceRole.MONGO_M2.value),
-                ],
-            ),
-            _shard(
-                "demo-s3",
-                [
-                    _member("127.0.0.3", 27001, InstanceRole.MONGO_M1.value),
-                    _member("127.0.0.4", 27001, InstanceRole.MONGO_M2.value),
-                ],
-            ),
-        ]
-        cluster = _fake_cluster(shards)
+    def test_remaining_deployment_unbalanced_by_shard_names(self, monkeypatch):
+        # 3 组×2 片；只删 1 片后剩余主机片数混杂（2 与 1）
+        cluster = _fake_cluster(_three_groups_six_shards())
         monkeypatch.setattr(
             "backend.flow.utils.mongodb.calculate_cluster.MongoRepository.fetch_one_cluster",
             classmethod(lambda cls, with_domain=False, with_tags=False, **kwargs: cluster),
         )
-        with pytest.raises(ValueError, match="co-located"):
-            calculate_cluster_reduce_shard(_base_payload(infos=[{"cluster_id": 1001, "shard_names": ["demo-s1"]}]))
+        with pytest.raises(ValueError, match="不均衡"):
+            calculate_cluster_reduce_shard(_base_payload(infos=[{"cluster_id": 1001, "shard_names": ["demo-s6"]}]))
 
-    def test_co_located_complete_ok(self, monkeypatch):
-        shards = [
-            _shard(
-                "demo-s1",
-                [
-                    _member("127.0.0.1", 27001, InstanceRole.MONGO_M1.value),
-                    _member("127.0.0.2", 27001, InstanceRole.MONGO_M2.value),
-                ],
-            ),
-            _shard(
-                "demo-s2",
-                [
-                    _member("127.0.0.1", 27002, InstanceRole.MONGO_M1.value),
-                    _member("127.0.0.2", 27002, InstanceRole.MONGO_M2.value),
-                ],
-            ),
-            _shard(
-                "demo-s3",
-                [
-                    _member("127.0.0.3", 27001, InstanceRole.MONGO_M1.value),
-                    _member("127.0.0.4", 27001, InstanceRole.MONGO_M2.value),
-                ],
-            ),
-        ]
-        cluster = _fake_cluster(shards)
+    def test_remaining_deployment_balanced_ok_after_full_group_remove(self, monkeypatch):
+        # 删一整组 2 片后剩余两组仍均为单机 2 片
+        cluster = _fake_cluster(_three_groups_six_shards())
         monkeypatch.setattr(
             "backend.flow.utils.mongodb.calculate_cluster.MongoRepository.fetch_one_cluster",
             classmethod(lambda cls, with_domain=False, with_tags=False, **kwargs: cluster),
         )
         _patch_db_version(monkeypatch, "4.4.18")
         result = calculate_cluster_reduce_shard(
-            _base_payload(infos=[{"cluster_id": 1001, "shard_names": ["demo-s1", "demo-s2"]}])
+            _base_payload(infos=[{"cluster_id": 1001, "shard_names": ["demo-s5", "demo-s6"]}])
         )
         info = result["cluster_reduce_shard_info"][0]
-        assert set(info["reduce_shards"]) == {"demo-s1", "demo-s2"}
-        assert len(info["old_instances"]) == 4
-        assert info["cluster_name"] == "demo"
+        assert set(info["reduce_shards"]) == {"demo-s5", "demo-s6"}
         assert info["db_version"] == "4.4.18"
 
-    def test_validate_co_located_helper_direct(self):
+    def test_validate_remaining_balanced_helper_direct(self):
         shards = [
-            _shard("s1", [_member("127.0.0.1", 1)]),
-            _shard("s2", [_member("127.0.0.1", 2)]),
-            _shard("s3", [_member("127.0.0.3", 1)]),
+            _shard("s1", [_member("127.0.0.1", 1), _member("127.0.0.2", 1)]),
+            _shard("s2", [_member("127.0.0.1", 2), _member("127.0.0.2", 2)]),
+            _shard("s3", [_member("127.0.0.3", 1), _member("127.0.0.4", 1)]),
         ]
-        with pytest.raises(ValueError, match="co-located"):
-            _validate_co_located_shard_group(shards, {"s1"})
-        _validate_co_located_shard_group(shards, {"s1", "s2"})
+        with pytest.raises(ValueError, match="不均衡"):
+            _validate_remaining_shard_deployment_balanced(shards, set())
+        _validate_remaining_shard_deployment_balanced(shards, {"s1", "s2"})
+        _validate_remaining_shard_deployment_balanced(shards, {"s3"})
+
+    def test_get_shards_sort_does_not_mutate(self):
+        shards = [
+            _shard("demo-s3", [_member("127.0.0.5", 27001)]),
+            _shard("demo-s1", [_member("127.0.0.1", 27001)]),
+            _shard("demo-s2", [_member("127.0.0.3", 27001)]),
+        ]
+        cluster = _fake_cluster(list(shards))
+        before = [s.set_name for s in cluster.shards]
+        ordered = [s.set_name for s in cluster.get_shards(sort_by_set_name=True)]
+        after = [s.set_name for s in cluster.shards]
+        assert before == after == ["demo-s3", "demo-s1", "demo-s2"]
+        assert ordered == ["demo-s1", "demo-s2", "demo-s3"]
+
+    def test_by_count_picks_highest_numbered_shards(self, monkeypatch):
+        # 每机 1 片时缩 2 片：取编号最大的 2 个，剩余仍均衡
+        shards = [
+            _shard("demo-s1", [_member("127.0.0.1", 27001), _member("127.0.0.2", 27001)]),
+            _shard("demo-s2", [_member("127.0.0.3", 27001), _member("127.0.0.4", 27001)]),
+            _shard("demo-s3", [_member("127.0.0.5", 27001), _member("127.0.0.6", 27001)]),
+        ]
+        cluster = _fake_cluster(shards)
+        monkeypatch.setattr(
+            "backend.flow.utils.mongodb.calculate_cluster.MongoRepository.fetch_one_cluster",
+            classmethod(lambda cls, with_domain=False, with_tags=False, **kwargs: cluster),
+        )
+        _patch_db_version(monkeypatch)
+        result = calculate_cluster_reduce_shard(
+            _base_payload(
+                infos=[{"cluster_id": 1001, "reduce_mode": "by_count", "reduce_shards_num": 2, "bk_cloud_id": 0}]
+            )
+        )
+        info = result["cluster_reduce_shard_info"][0]
+        assert info["reduce_shards"] == ["demo-s2", "demo-s3"]
+
+    def test_by_count_would_remove_all_fails(self, monkeypatch):
+        shards = [
+            _shard("demo-s1", [_member("127.0.0.1", 27001), _member("127.0.0.2", 27001)]),
+            _shard("demo-s2", [_member("127.0.0.3", 27001), _member("127.0.0.4", 27001)]),
+        ]
+        cluster = _fake_cluster(shards)
+        monkeypatch.setattr(
+            "backend.flow.utils.mongodb.calculate_cluster.MongoRepository.fetch_one_cluster",
+            classmethod(lambda cls, with_domain=False, with_tags=False, **kwargs: cluster),
+        )
+        with pytest.raises(ValueError, match="至少保留1个分片"):
+            calculate_cluster_reduce_shard(
+                _base_payload(infos=[{"cluster_id": 1001, "reduce_mode": "by_count", "reduce_shards_num": 2}])
+            )
+
+    @pytest.mark.parametrize("n", [2, 4, 5])
+    def test_by_count_six_shards_allowed_counts(self, monkeypatch, n):
+        # 3 组×2 片：按编号从大缩 N=2/4/5 时剩余均衡
+        cluster = _fake_cluster(_three_groups_six_shards())
+        monkeypatch.setattr(
+            "backend.flow.utils.mongodb.calculate_cluster.MongoRepository.fetch_one_cluster",
+            classmethod(lambda cls, with_domain=False, with_tags=False, **kwargs: cluster),
+        )
+        _patch_db_version(monkeypatch)
+        result = calculate_cluster_reduce_shard(
+            _base_payload(infos=[{"cluster_id": 1001, "reduce_mode": "by_count", "reduce_shards_num": n}])
+        )
+        assert len(result["cluster_reduce_shard_info"][0]["reduce_shards"]) == n
+
+    @pytest.mark.parametrize("n", [1, 3])
+    def test_by_count_six_shards_forbidden_counts(self, monkeypatch, n):
+        # 3 组×2 片：缩 1/3 会导致剩余主机片数混杂
+        cluster = _fake_cluster(_three_groups_six_shards())
+        monkeypatch.setattr(
+            "backend.flow.utils.mongodb.calculate_cluster.MongoRepository.fetch_one_cluster",
+            classmethod(lambda cls, with_domain=False, with_tags=False, **kwargs: cluster),
+        )
+        with pytest.raises(ValueError, match="不均衡"):
+            calculate_cluster_reduce_shard(
+                _base_payload(infos=[{"cluster_id": 1001, "reduce_mode": "by_count", "reduce_shards_num": n}])
+            )
 
 
 class TestReduceShardActKwargs:

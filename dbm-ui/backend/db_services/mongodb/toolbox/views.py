@@ -21,6 +21,7 @@ from backend.db_services.mongodb.toolbox.serializers import (
     GetMongoShardSerializer,
     GetMongoTcpResultSerializer,
     ListAvailableVersionSerializer,
+    ListClusterShardsSerializer,
     MongoExecuteTcpCmdSerializer,
     MongoScriptSyntaxCheckSerializer,
 )
@@ -101,3 +102,15 @@ class ToolboxViewSet(BaseClusterViewSet):
     def list_available_versions(self, request, bk_biz_id, **kwargs):
         data = self.params_validate(self.get_serializer_class())
         return Response(ToolboxHandler(bk_biz_id).list_available_versions(cluster_ids=data["cluster_ids"]))
+
+    @common_swagger_auto_schema(
+        operation_summary=_("查询集群分片列表"),
+        query_serializer=ListClusterShardsSerializer(),
+        tags=[SWAGGER_TAG],
+    )
+    @action(methods=["GET"], detail=False, serializer_class=ListClusterShardsSerializer, pagination_class=None)
+    def list_cluster_shards(self, request, bk_biz_id, **kwargs):
+        data = self.params_validate(self.get_serializer_class())
+        return Response(
+            ToolboxHandler(bk_biz_id).list_cluster_shards(bk_biz_id=bk_biz_id, cluster_ids=data["cluster_ids"])
+        )
