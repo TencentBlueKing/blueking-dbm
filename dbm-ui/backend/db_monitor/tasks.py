@@ -213,6 +213,15 @@ def query_cap(bk_biz_id, cluster_type, cap_key="used", immute_domains=None):
     return cluster_bytes, extra_info
 
 
+def is_valid_capacity(used, total) -> bool:
+    """校验容量指标是否可用于计算使用率
+    total 为 0(如 redis 未设置 maxmemory)或负数(指标异常上报)时无法作为分母
+    """
+    if used is None or total is None:
+        return False
+    return used >= 0 and total > 0
+
+
 def query_cluster_capacity(bk_biz_id, cluster_type):
     """查询集群容量"""
 
@@ -250,7 +259,12 @@ def query_capacity_for_clusters(bk_biz_id, cluster_type, immute_domains) -> (dic
     used_data, extra_info = query_cap(bk_biz_id, cluster_type, "used", immute_domains)
     total_data, _ = query_cap(bk_biz_id, cluster_type, "total", immute_domains)
     for cluster in immute_domains:
-        if cluster in used_data and cluster in total_data and cluster in extra_info:
+        if (
+            cluster in used_data
+            and cluster in total_data
+            and cluster in extra_info
+            and is_valid_capacity(used_data[cluster], total_data[cluster])
+        ):
             cluster_cap_bytes[cluster]["used"] = used_data[cluster]
             cluster_cap_bytes[cluster]["total"] = total_data[cluster]
             cluster_cap_bytes[cluster]["mount_point"] = extra_info[cluster]["mount_point"]
@@ -372,6 +386,10 @@ def sync_cluster_stat_by_cluster_type(bk_biz_id, cluster_type):
     for cluster, cap in cluster_stats.items():
         # 兼容查不到数据的情况
         if not ("used" in cap and "total" in cap):
+            continue
+        # 跳过容量指标非法的集群，避免单个集群阻断整个业务的容量查询
+        if not is_valid_capacity(cap["used"], cap["total"]):
+            logger.warning("skip invalid capacity for cluster: %s -> %s", cluster, cap)
             continue
         cap["in_use"] = round(cap["used"] * 100.0 / cap["total"], 2)
 
