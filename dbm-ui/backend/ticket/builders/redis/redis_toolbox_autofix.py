@@ -17,6 +17,7 @@ from backend.db_meta.models import Cluster, Machine
 from backend.db_monitor.serializers import AlarmCallBackDataSerializer
 from backend.db_services.dbbase.constants import IpSource
 from backend.flow.engine.controller.redis import RedisController
+from backend.iam_app.dataclass.actions import ActionEnum
 from backend.ticket import builders
 from backend.ticket.builders.redis.base import RedisBaseOperateDetailSerializer
 from backend.ticket.builders.redis.redis_toolbox_cut_off import (
@@ -88,7 +89,7 @@ class RedisClusterAutofixResourceParamBuilder(RedisClusterCutOffResourceParamBui
         super().post_callback()
 
 
-@builders.BuilderFactory.register(TicketType.REDIS_CLUSTER_AUTOFIX, is_apply=True)
+@builders.BuilderFactory.register(TicketType.REDIS_CLUSTER_AUTOFIX, is_apply=True, iam=ActionEnum.REDIS_MANAGE)
 class RedisClusterAutofixFlowBuilder(RedisClusterCutOffFlowBuilder):
     serializer = RedisClusterAutofixDetailSerializer
     alarm_transform_serializer = RedisClusterAutofixAlarmTransformSerializer

@@ -15,6 +15,7 @@ from backend.db_meta.enums import InstanceRole, InstanceStatus
 from backend.db_meta.models import Cluster, StorageInstance, StorageInstanceTuple
 from backend.db_services.dbbase.constants import IpSource
 from backend.flow.engine.controller.redis import RedisController
+from backend.iam_app.dataclass.actions import ActionEnum
 from backend.ticket import builders
 from backend.ticket.builders.common.base import BaseOperateResourceParamBuilder
 from backend.ticket.builders.redis.base import (
@@ -94,7 +95,9 @@ class RedisAddSlaveResourceParamBuilder(BaseOperateResourceParamBuilder):
         super().post_callback()
 
 
-@builders.BuilderFactory.register(TicketType.REDIS_CLUSTER_ADD_SLAVE, is_apply=True, is_recycle=True)
+@builders.BuilderFactory.register(
+    TicketType.REDIS_CLUSTER_ADD_SLAVE, is_apply=True, is_recycle=True, iam=ActionEnum.REDIS_MANAGE
+)
 class RedisAddSlaveFlowBuilder(BaseRedisTicketFlowBuilder):
     serializer = RedisAddSlaveDetailSerializer
     inner_flow_builder = RedisAddSlaveParamBuilder
