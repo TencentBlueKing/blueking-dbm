@@ -14,12 +14,13 @@
 <template>
   <div class="mongodb-shared-cluster-list-page">
     <div class="header-action">
-      <BkButton
+      <AuthButton
         v-db-console="'mongodb.sharedClusterList.instanceApply'"
+        action-id="mongodb_apply"
         theme="primary"
         @click="handleApply">
         {{ t('申请实例') }}
-      </BkButton>
+      </AuthButton>
       <ClusterBatchOperation
         v-db-console="'mongodb.sharedClusterList.batchOperation'"
         :cluster-type="ClusterTypes.MONGO_SHARED_CLUSTER"
@@ -32,11 +33,12 @@
         }"
         v-db-console="'mongodb.sharedClusterList.importAuthorize'"
         class="inline-block">
-        <BkButton
+        <AuthButton
+          action-id="mongodb_priv_manage"
           :disabled="!hasData"
           @click="handleShowExcelAuthorize">
           {{ t('导入授权') }}
-        </BkButton>
+        </AuthButton>
       </span>
       <DropdownExportExcel
         v-db-console="'mongodb.sharedClusterList.export'"
@@ -72,11 +74,14 @@
           <template #default="{ data }: { data: MongodbModel }">
             <template v-if="data.isOnline">
               <div v-db-console="'mongodb.sharedClusterList.getAccess'">
-                <BkButton
+                <AuthButton
+                  action-id="mongodb_access_entry_view"
+                  :permission="data.permission.mongodb_access_entry_view"
+                  :resource="data.id"
                   text
                   @click="handleShowAccessEntry(data)">
                   {{ t('获取访问方式') }}
-                </BkButton>
+                </AuthButton>
               </div>
               <div v-db-console="'mongodb.sharedClusterList.queryAccessSource'">
                 <OperationBtnStatusTips
@@ -120,8 +125,8 @@
                   :data="data"
                   :disabled="!data.isOffline">
                   <AuthButton
-                    action-id="mongodb_plugin_create_clb"
-                    :permission="data.permission.mongodb_plugin_create_clb"
+                    action-id="mongodb_loadbalance_manage"
+                    :permission="data.permission.mongodb_loadbalance_manage"
                     :resource="data.id"
                     text
                     @click="() => handleAddClb({ details: { cluster_id: data.id } })">
