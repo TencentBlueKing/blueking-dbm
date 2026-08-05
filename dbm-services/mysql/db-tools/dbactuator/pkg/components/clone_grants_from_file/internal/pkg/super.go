@@ -1,14 +1,15 @@
 package pkg
 
 import (
-	"dbm-services/common/go-pubpkg/logger"
 	"fmt"
 	"strings"
+
+	"dbm-services/common/go-pubpkg/logger"
 )
 
-// MySQLSuperDynamicPrivileges 是 MySQL 8.0.0 中随动态权限框架（WL#8131）一起引入的基础动态权限，
+// MySQLSuperDynamicPrivileges80 是 MySQL 8.0.0 中随动态权限框架（WL#8131）一起引入的基础动态权限，
 // 用于替代 SUPER 权限。仅包含 8.0.0 即存在的 8 个权限，确保所有 8.0.x GA 版本都支持。
-var MySQLSuperDynamicPrivileges = []string{
+var MySQLSuperDynamicPrivileges80 = []string{
 	"BINLOG_ADMIN",
 	"CONNECTION_ADMIN",
 	"ENCRYPTION_KEY_ADMIN",
@@ -16,6 +17,17 @@ var MySQLSuperDynamicPrivileges = []string{
 	"REPLICATION_SLAVE_ADMIN",
 	"ROLE_ADMIN",
 	"SET_USER_ID",
+	"SYSTEM_VARIABLES_ADMIN",
+}
+
+var MySQLSuperDynamicPrivileges84 = []string{
+	"BINLOG_ADMIN",
+	"CONNECTION_ADMIN",
+	"ENCRYPTION_KEY_ADMIN",
+	"GROUP_REPLICATION_ADMIN",
+	"REPLICATION_SLAVE_ADMIN", // slave 关键字还在...
+	"ROLE_ADMIN",
+	"SET_ANY_DEFINER", // https://dev.mysql.com/doc/relnotes/mysql/8.4/en/news-8-4-0.html
 	"SYSTEM_VARIABLES_ADMIN",
 }
 

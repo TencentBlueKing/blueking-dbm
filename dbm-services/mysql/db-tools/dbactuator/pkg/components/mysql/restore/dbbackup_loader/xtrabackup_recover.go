@@ -2,7 +2,6 @@ package dbbackup_loader
 
 import (
 	"fmt"
-	"os"
 	"path/filepath"
 
 	"github.com/mohae/deepcopy"
@@ -23,6 +22,7 @@ type Xtrabackup struct {
 	TgtInstance   native.InsObject `json:"tgt_instance"`
 	SrcBackupHost string           `json:"src_backup_host" validate:"required"`
 	QpressTool    string           `json:"qpress_tool" validate:"required,file"`
+	ZstdTool      string           `json:"zstd_tool" validate:"file"`
 
 	LoaderDir string // 备份解压后的目录，${taskDir}/backupBaseName/
 	// 在 PostRun 中会择机初始化
@@ -221,10 +221,16 @@ func (x *Xtrabackup) DecompressMetaFile() error {
 
 	for _, file := range files {
 		compressedFile := filepath.Join(x.LoaderDir, file+".qp")
-		if _, err := os.Stat(compressedFile); os.IsNotExist(err) {
+		decompressCmd := ""
+		if cmutil.FileExists(compressedFile) {
+			decompressCmd = x.QpressTool + " -do "
+		} else if compressedFile = filepath.Join(x.LoaderDir, file+".zst"); cmutil.FileExists(compressedFile) {
+			decompressCmd = x.ZstdTool + " -dc "
+		} else {
 			continue
 		}
-		script := fmt.Sprintf(`%s -do %s > %s`, x.QpressTool, compressedFile, filepath.Join(x.LoaderDir, file))
+
+		script := fmt.Sprintf(`%s %s > %s`, decompressCmd, compressedFile, filepath.Join(x.LoaderDir, file))
 		stdErr, err := cmutil.ExecShellCommand(false, script)
 		if err != nil {
 			return errors.Wrapf(err, "decompress file %s failed, error:%s, stderr:%s",

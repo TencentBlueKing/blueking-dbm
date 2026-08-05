@@ -18,11 +18,11 @@ import (
 	"os"
 	"path"
 	"reflect"
-	"regexp"
 	"strconv"
 	"strings"
 
 	"dbm-services/common/go-pubpkg/bkrepo"
+	"dbm-services/common/go-pubpkg/cmutil"
 	"dbm-services/common/go-pubpkg/logger"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/components"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/core/cst"
@@ -115,23 +115,13 @@ func (c *OpenAreaDumpSchemaComp) Init() (err error) {
 		return err
 	}
 	// 获取版本，下面通过版本判断是否是中控节点
-	version, err := conn.SelectVersion()
-	if err != nil {
-		logger.Error("获取version failed %s", err.Error())
-		return err
-	}
+	version := conn.ServerVersion
 	c.isTdbctl = strings.Contains(version, "tdbctl")
 
 	// 如果是中控或者mysql版本大于等于5.6.9的，设置--set-gtid-purged=OFF
 	// 中控在precheck中判断
 	if strings.Contains(version, "mysql") {
-		reg, err := regexp.Compile(`(\d+\.\d+\.\d+)`)
-		if err != nil {
-			logger.Error("regexp.Compile failed:%s", err.Error())
-			return err
-		}
-		v := reg.FindString(version)
-		if c.VersionCompare(v) {
+		if cmutil.MySQLVersionCompare(version, "5.6.9") > 0 {
 			c.GtidPurgedOff = true
 		}
 	}

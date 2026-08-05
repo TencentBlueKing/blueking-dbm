@@ -3840,6 +3840,22 @@
     "since_version": ""
   },
   {
+    "conf_name": "mysqld.plugin_load_add",
+    "value_default": "query_response_time",
+    "value_allowed": "",
+    "value_type": "STRING",
+    "value_type_sub": "STRING",
+    "conf_name_lc": "",
+    "description": "query_response_time stats plugin",
+    "need_restart": 0,
+    "flag_readonly": 0,
+    "flag_visible": 1,
+    "flag_status": 1,
+    "flag_locked": 0,
+    "flag_encrypt": 0,
+    "since_version": ""
+  },
+  {
     "conf_name": "mysqldump.default-character-set",
     "value_default": "{{.Mysqld.CharacterSetServer}}",
     "value_allowed": "latin1 | utf8 | utf8mb4 | gbk | {{.Mysqld.CharacterSetServer}}",

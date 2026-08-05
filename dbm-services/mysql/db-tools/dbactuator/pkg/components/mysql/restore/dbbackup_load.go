@@ -89,7 +89,7 @@ func (m *DBLoader) Init() error {
 
 // PreCheck TODO
 func (m *DBLoader) PreCheck() error {
-	toolset, err := tools.NewToolSetWithPick(tools.ToolDbbackupGo, tools.ToolQPress)
+	toolset, err := tools.NewToolSetWithPick(tools.ToolDbbackupGo, tools.ToolQPress, tools.ToolZstd)
 	if err != nil {
 		return err
 	}
@@ -162,6 +162,7 @@ func (m *DBLoader) chooseDBBackupLoader() error {
 				TgtInstance:   dbLoaderUtil.TgtInstance,
 				SrcBackupHost: dbLoaderUtil.IndexObj.BackupHost,
 				QpressTool:    m.Tools.MustGet(tools.ToolQPress),
+				ZstdTool:      m.Tools.MustGet(tools.ToolZstd),
 				LoaderDir:     m.targetDir,
 				StorageType:   strings.ToLower(m.indexObj.StorageEngine),
 				MySQLVersion:  m.BackupInfo.indexObj.MysqlVersion,

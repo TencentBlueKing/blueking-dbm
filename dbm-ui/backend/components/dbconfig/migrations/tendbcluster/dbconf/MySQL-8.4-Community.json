@@ -416,38 +416,6 @@
     "since_version": ""
   },
   {
-    "conf_name": "mysqld.default_authentication_plugin",
-    "value_default": "MYSQL_NATIVE_PASSWORD",
-    "value_allowed": "MYSQL_NATIVE_PASSWORD| SHA256_PASSWORD| CACHING_SHA2_PASSWORD ",
-    "value_type": "STRING",
-    "value_type_sub": "ENUM",
-    "conf_name_lc": "",
-    "description": "It determines which authentication plugin the server assigns to new accounts created by CREATE USER and GRANT statements that do not explicitly specify an authentication plugin. ",
-    "need_restart": 1,
-    "flag_readonly": 0,
-    "flag_visible": 1,
-    "flag_status": 1,
-    "flag_locked": 0,
-    "flag_encrypt": 0,
-    "since_version": ""
-  },
-  {
-    "conf_name": "mysqld.default_authentication_plugin",
-    "value_default": "MYSQL_NATIVE_PASSWORD",
-    "value_allowed": "MYSQL_NATIVE_PASSWORD| SHA256_PASSWORD| CACHING_SHA2_PASSWORD ",
-    "value_type": "STRING",
-    "value_type_sub": "ENUM",
-    "conf_name_lc": "",
-    "description": "It determines which authentication plugin the server assigns to new accounts created by CREATE USER and GRANT statements that do not explicitly specify an authentication plugin. ",
-    "need_restart": 1,
-    "flag_readonly": 0,
-    "flag_visible": 1,
-    "flag_status": 1,
-    "flag_locked": 0,
-    "flag_encrypt": 0,
-    "since_version": ""
-  },
-  {
     "conf_name": "mysqld.default_password_lifetime",
     "value_default": "0",
     "value_allowed": "[0,65535]",
