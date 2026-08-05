@@ -17,15 +17,16 @@ from celery.schedules import crontab
 from backend.configuration.constants import DBType
 from backend.db_meta.enums import ClusterPhase, ClusterType
 from backend.db_meta.models import Cluster
+from backend.db_periodic_task.local_tasks.db_meta.db_meta_check.mysql_cluster_check import check_mysql_affinity
+from backend.db_periodic_task.local_tasks.db_meta.db_meta_check.mysql_cluster_topo import tendbcluster, tendbha
+from backend.db_periodic_task.local_tasks.db_meta.db_meta_check.redis_cluster_check import check_redis_clusters
+from backend.db_periodic_task.local_tasks.db_meta.db_meta_check.sqlserver_cluster_topo.check import (
+    sqlserver_dbmeta_check,
+)
 from backend.db_periodic_task.local_tasks.register import register_periodic_task
 from backend.db_report.models import MetaCheckReport
 from backend.db_report.portrait import MysqlPortraitDimensionCode, ingest_summary
 from backend.db_report.portrait.exceptions import PortraitSDKBaseException
-
-from .mysql_cluster_check import check_mysql_affinity
-from .mysql_cluster_topo import tendbcluster, tendbha
-from .redis_cluster_check import check_redis_clusters
-from .sqlserver_cluster_topo.check import sqlserver_dbmeta_check
 
 logger = logging.getLogger("celery")
 
@@ -47,7 +48,12 @@ def tendbha_topo_daily_check():
             r.save()
 
         try:
-            summary = ";".join(f"{r.msg}: {r.instance}" if r.instance is not None else f"{r.msg}" for r in res)
+            summary = ";".join(
+                f"{str(r.msg)}: {r.ip}:{r.port}"
+                if r.ip and r.port
+                else (f"{str(r.msg)}: {r.ip}" if r.ip else str(r.msg))
+                for r in res
+            )
             ingest_summary(
                 db_type=DBType.MySQL,
                 dimension=MysqlPortraitDimensionCode.TENDBHA_META_CHECK,
@@ -73,7 +79,12 @@ def tendbcluster_topo_daily_check():
             r.save()
 
         try:
-            summary = ";".join(f"{r.msg}: {r.instance}" if r.instance is not None else f"{r.msg}" for r in res)
+            summary = ";".join(
+                f"{str(r.msg)}: {r.ip}:{r.port}"
+                if r.ip and r.port
+                else (f"{str(r.msg)}: {r.ip}" if r.ip else str(r.msg))
+                for r in res
+            )
             ingest_summary(
                 db_type=DBType.TenDBCluster,
                 dimension=MysqlPortraitDimensionCode.TENDBHA_META_CHECK,

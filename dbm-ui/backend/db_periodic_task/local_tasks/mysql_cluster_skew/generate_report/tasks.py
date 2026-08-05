@@ -268,6 +268,7 @@ def _generate_cluster_skew_report(cluster_type: str, domain: str, lock_key: str,
                     cluster_domain=cluster_obj.immute_domain,
                     report_time=datetime.now(),
                     summary=report_obj.summary,
+                    detail_url=report_obj.share_url,
                 )
             except PortraitSDKBaseException:
                 logger.exception(f"report {cluster_obj.immute_domain} skew to portrait failed")
