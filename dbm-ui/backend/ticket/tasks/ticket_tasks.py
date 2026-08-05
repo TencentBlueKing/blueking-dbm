@@ -633,6 +633,33 @@ def get_mail_context(ticket_id, flow_summary, ticket_dir):
     return context
 
 
+def get_rtx_context(ticket_id, flow_summary, ticket_dir):
+    context = _("单据 {ticket_id} 已完成。\n").format(ticket_id=ticket_id)
+    count = 0
+    cluster_info = []
+    table_title = []
+    for summary in flow_summary:
+        data_list = summary.summary
+        if not data_list:
+            continue
+
+        fields = [title["id"] for title in data_list[0]["titles"][:3]]
+        table_title = [title["display_name"] for title in data_list[0]["titles"][:3]]
+        for data in data_list:
+            for value in data["values"]:
+                cluster_info.append([str(value.get(field, "")) for field in fields])
+        count += len(summary.summary)
+
+    context += _("集群共 {count} 个：\n").format(count=count)
+    context += " ".join(table_title) + "\n"
+    for info in cluster_info:
+        context += " ".join(info) + "\n"
+
+    context += _("详情请打开单据：{ticket_dir} \n").format(ticket_dir=ticket_dir)
+    context += _("密码等访问凭据请登录 DBM，在对应集群的「获取连接信息」中获取。")
+    return context
+
+
 @shared_task
 def send_ticket_delivery_info(ticket_id):
     ticket = Ticket.objects.get(id=ticket_id)
@@ -651,3 +678,15 @@ def send_ticket_delivery_info(ticket_id):
             notify.handlers.CmsiHandler(title, context, receivers).send_msg(
                 notify.constants.MsgType.MAIL.value, context=None
             )
+        elif msg_type == notify.constants.MsgType.RTX.value:
+            context = get_rtx_context(ticket_id, flow_summary, ticket_dir)
+            msg_info = {
+                "title": title,
+                "approvers": [],
+                "receiver": receivers,
+                "receive_group": [],
+                "summary": context,
+                "actions": [],
+                "click": {},
+            }
+            notify.handlers.BkChatApi.send_ticket_msg(msg_info, use_admin=True)
