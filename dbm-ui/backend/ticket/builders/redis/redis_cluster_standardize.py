@@ -12,6 +12,7 @@ from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
 from backend.flow.engine.controller.redis import RedisController
+from backend.iam_app.dataclass.actions import ActionEnum
 from backend.ticket import builders
 from backend.ticket.builders.redis.base import BaseRedisInstanceTicketFlowBuilder, RedisBaseOperateDetailSerializer
 from backend.ticket.constants import FlowRetryType, TicketType
@@ -29,7 +30,7 @@ class RedisClusterStandardizeFlowParamBuilder(builders.FlowParamBuilder):
     controller = RedisController.redis_clusters_reinstall_dbmon_scene
 
 
-@builders.BuilderFactory.register(TicketType.REDIS_CLUSTER_REINSTALL_DBMON)
+@builders.BuilderFactory.register(TicketType.REDIS_CLUSTER_REINSTALL_DBMON, iam=ActionEnum.REDIS_MANAGE)
 class RedisClusterStandardizeFlowBuilder(BaseRedisInstanceTicketFlowBuilder):
     serializer = RedisClusterStandardizeDetailSerializer
     inner_flow_builder = RedisClusterStandardizeFlowParamBuilder
