@@ -655,47 +655,47 @@ class TicketType(StrStructuredEnum):
                                                register_iam=False)  # noqa
     MONGODB_SHARD_APPLY = TicketEnumField("MONGODB_SHARD_APPLY", _("MongoDB 分片集群部署"), _("集群管理"),
                                           register_iam=False)  # noqa
-    MONGODB_PLUGIN_CREATE_CLB = TicketEnumField("MONGODB_PLUGIN_CREATE_CLB", _("MongoDB 创建CLB"), _("集群管理"))
-    MONGODB_PLUGIN_DELETE_CLB = TicketEnumField("MONGODB_PLUGIN_DELETE_CLB", _("MongoDB 删除CLB"), _("集群管理"))
-    MONGODB_EXEC_SCRIPT_APPLY = TicketEnumField("MONGODB_EXEC_SCRIPT_APPLY", _("MongoDB 变更脚本执行"), _("脚本任务"))
-    MONGODB_REMOVE_NS = TicketEnumField("MONGODB_REMOVE_NS", _("MongoDB 清档"), _("数据处理"))
+    MONGODB_PLUGIN_CREATE_CLB = TicketEnumField("MONGODB_PLUGIN_CREATE_CLB", _("MongoDB 创建CLB"), _("集群管理"), register_iam=False)
+    MONGODB_PLUGIN_DELETE_CLB = TicketEnumField("MONGODB_PLUGIN_DELETE_CLB", _("MongoDB 删除CLB"), _("集群管理"), register_iam=False)
+    MONGODB_EXEC_SCRIPT_APPLY = TicketEnumField("MONGODB_EXEC_SCRIPT_APPLY", _("MongoDB 变更脚本执行"), _("脚本任务"), register_iam=False)
+    MONGODB_REMOVE_NS = TicketEnumField("MONGODB_REMOVE_NS", _("MongoDB 清档"), _("数据处理"), register_iam=False)
     MONGODB_FULL_BACKUP = TicketEnumField("MONGODB_FULL_BACKUP", _("MongoDB 全库备份"), _("备份"))
     MONGODB_BACKUP = TicketEnumField("MONGODB_BACKUP", _("MongoDB 库表备份"), _("备份"))
-    MONGODB_DATA_EXPORT = TicketEnumField("MONGODB_DATA_EXPORT", _("MongoDB 数据导出"), _("数据处理"))
-    MONGODB_ADD_MONGOS = TicketEnumField("MONGODB_ADD_MONGOS", _("MongoDB 扩容接入层"), _("集群维护"))
-    MONGODB_REDUCE_MONGOS = TicketEnumField("MONGODB_REDUCE_MONGOS", _("MongoDB 缩容接入层"), _("集群维护"))
-    MONGODB_ADD_SHARD = TicketEnumField("MONGODB_ADD_SHARD", _("MongoDB 增加分片数"), _("集群维护"))
+    MONGODB_DATA_EXPORT = TicketEnumField("MONGODB_DATA_EXPORT", _("MongoDB 数据导出"), _("数据处理"), register_iam=False)
+    MONGODB_ADD_MONGOS = TicketEnumField("MONGODB_ADD_MONGOS", _("MongoDB 扩容接入层"), _("集群维护"), register_iam=False)
+    MONGODB_REDUCE_MONGOS = TicketEnumField("MONGODB_REDUCE_MONGOS", _("MongoDB 缩容接入层"), _("集群维护"), register_iam=False)
+    MONGODB_ADD_SHARD = TicketEnumField("MONGODB_ADD_SHARD", _("MongoDB 增加分片数"), _("集群维护"), register_iam=False)
     MONGODB_SHARD_ADD_SHARD_NODES = TicketEnumField("MONGODB_SHARD_ADD_SHARD_NODES",
-                                                    _("MongoDB 扩容分片集群shard节点数"), _("集群维护"))  # noqa
+                                                    _("MongoDB 扩容分片集群shard节点数"), _("集群维护"), register_iam=False)  # noqa
     MONGODB_REPLICA_ADD_SHARD_NODES = TicketEnumField("MONGODB_REPLICA_ADD_SHARD_NODES",
-                                                      _("MongoDB 扩容副本集集群shard节点数"), _("集群维护"))  # noqa
-    MONGODB_SHARD_CUTOFF = TicketEnumField("MONGODB_SHARD_CUTOFF", _("MongoDB 分片集群整机替换"), _("集群维护"))
-    MONGODB_REPLICASET_CUTOFF = TicketEnumField("MONGODB_REPLICASET_CUTOFF", _("MongoDB 副本集整机替换"), _("集群维护"))
-    MONGODB_ADD_SHARD_NODES = TicketEnumField("MONGODB_ADD_SHARD_NODES", _("MongoDB 扩容shard节点数"), _("集群维护"))
-    MONGODB_REPLICASET_MIGRATE = TicketEnumField("MONGODB_REPLICASET_MIGRATE", _("MongoDB 副本集集群迁移"), _("回档"))
-    MONGODB_SHARD_MIGRATE = TicketEnumField("MONGODB_SHARD_MIGRATE", _("MongoDB 分片集群迁移"), _("回档"))
+                                                      _("MongoDB 扩容副本集集群shard节点数"), _("集群维护"), register_iam=False)  # noqa
+    MONGODB_SHARD_CUTOFF = TicketEnumField("MONGODB_SHARD_CUTOFF", _("MongoDB 分片集群整机替换"), _("集群维护"), register_iam=False)
+    MONGODB_REPLICASET_CUTOFF = TicketEnumField("MONGODB_REPLICASET_CUTOFF", _("MongoDB 副本集整机替换"), _("集群维护"), register_iam=False)
+    MONGODB_ADD_SHARD_NODES = TicketEnumField("MONGODB_ADD_SHARD_NODES", _("MongoDB 扩容shard节点数"), _("集群维护"), register_iam=False)
+    MONGODB_REPLICASET_MIGRATE = TicketEnumField("MONGODB_REPLICASET_MIGRATE", _("MongoDB 副本集集群迁移"), _("回档"), register_iam=False)
+    MONGODB_SHARD_MIGRATE = TicketEnumField("MONGODB_SHARD_MIGRATE", _("MongoDB 分片集群迁移"), _("回档"), register_iam=False)
     MONGODB_REDUCE_SHARD_NODES = TicketEnumField("MONGODB_REDUCE_SHARD_NODES", _("MongoDB 缩容shard节点数"),
-                                                 _("集群维护"))  # noqa
-    MONGODB_SCALE_UPDOWN = TicketEnumField("MONGODB_SCALE_UPDOWN", _("MongoDB 集群容量变更"), _("集群维护"))
+                                                 _("集群维护"), register_iam=False)  # noqa
+    MONGODB_SCALE_UPDOWN = TicketEnumField("MONGODB_SCALE_UPDOWN", _("MongoDB 集群容量变更"), _("集群维护"), register_iam=False)
     MONGODB_ENABLE = TicketEnumField("MONGODB_ENABLE", _("MongoDB 集群启用"), register_iam=False)
-    MONGODB_INSTANCE_RELOAD = TicketEnumField("MONGODB_INSTANCE_RELOAD", _("MongoDB重启"), _("集群维护"))
+    MONGODB_INSTANCE_RELOAD = TicketEnumField("MONGODB_INSTANCE_RELOAD", _("MongoDB 实例重启"), _("集群维护"), register_iam=False)
     MONGODB_DISABLE = TicketEnumField("MONGODB_DISABLE", _("MongoDB 集群禁用"), register_iam=False)
     MONGODB_DESTROY = TicketEnumField("MONGODB_DESTROY", _("MongoDB 集群删除"), _("集群管理"))
-    MONGODB_CUTOFF = TicketEnumField("MONGODB_CUTOFF", _("MongoDB 整机替换"), _("集群维护"))
-    MONGODB_AUTHORIZE_RULES = TicketEnumField("MONGODB_AUTHORIZE_RULES", _("MongoDB 授权"), _("权限管理"))
+    MONGODB_CUTOFF = TicketEnumField("MONGODB_CUTOFF", _("MongoDB 整机替换"), _("集群维护"), register_iam=False)
+    MONGODB_AUTHORIZE_RULES = TicketEnumField("MONGODB_AUTHORIZE_RULES", _("MongoDB 授权"), _("权限管理"), register_iam=False)
     MONGODB_EXCEL_AUTHORIZE_RULES = TicketEnumField("MONGODB_EXCEL_AUTHORIZE_RULES", _("MongoDB Excel授权"),
-                                                    _("权限管理"))  # noqa
-    MONGODB_IMPORT = TicketEnumField("MONGODB_IMPORT", _("MongoDB 数据导入"), _("集群维护"))
-    MONGODB_RESTORE = TicketEnumField("MONGODB_RESTORE", _("MongoDB 定点回档"), _("集群维护"))
-    MONGODB_PITR_RESTORE = TicketEnumField("MONGODB_PITR_RESTORE", _("MongoDB Pitr回档"), _("集群维护"))
+                                                    _("权限管理"), register_iam=False)  # noqa
+    MONGODB_IMPORT = TicketEnumField("MONGODB_IMPORT", _("MongoDB 数据导入"), _("集群维护"), register_iam=False)
+    MONGODB_RESTORE = TicketEnumField("MONGODB_RESTORE", _("MongoDB 定点回档"), _("集群维护"), register_iam=False)
+    MONGODB_PITR_RESTORE = TicketEnumField("MONGODB_PITR_RESTORE", _("MongoDB Pitr回档"), _("集群维护"), register_iam=False)
     MONGODB_TEMPORARY_DESTROY = TicketEnumField("MONGODB_TEMPORARY_DESTROY", _("MongoDB 临时集群销毁"), _("集群维护"))
-    MONGODB_INSTALL_DBMON = TicketEnumField("MONGODB_INSTALL_DBMON", _("MongoDB 安装DBMon"), _("集群维护"))
-    MONGODB_AUTOFIX = TicketEnumField("MONGODB_AUTOFIX", _("MongoDB 故障自愈"), _("集群维护"))
-    MONGODB_INSTANCE_DEINSTALL = TicketEnumField("MONGODB_INSTANCE_DEINSTALL", _("MongoDB 实例下架"), _("集群维护"))
+    MONGODB_INSTALL_DBMON = TicketEnumField("MONGODB_INSTALL_DBMON", _("MongoDB 安装DBMon"), _("集群维护"), register_iam=False)
+    MONGODB_AUTOFIX = TicketEnumField("MONGODB_AUTOFIX", _("MongoDB 故障自愈"), _("集群维护"), register_iam=False)
+    MONGODB_INSTANCE_DEINSTALL = TicketEnumField("MONGODB_INSTANCE_DEINSTALL", _("MongoDB 实例下架"), _("集群维护"), register_iam=False)
     MONGODB_INSTANCE_FIX_STATUS = TicketEnumField("MONGODB_INSTANCE_FIX_STATUS", _("MongoDB 节点状态修复"),
-                                                  _("集群维护"))
-    MONGODB_CLUSTER_STANDARDIZE = TicketEnumField("MONGODB_CLUSTER_STANDARDIZE", _("MongoDB 集群标准化"))
-    MONGODB_UPGRADE_VERSION = TicketEnumField("MONGODB_UPGRADE_VERSION", _("MongoDB 版本升级"))
+                                                  _("集群维护"), register_iam=False)
+    MONGODB_CLUSTER_STANDARDIZE = TicketEnumField("MONGODB_CLUSTER_STANDARDIZE", _("MongoDB 集群标准化"), register_iam=False)
+    MONGODB_UPGRADE_VERSION = TicketEnumField("MONGODB_UPGRADE_VERSION", _("MongoDB 版本升级"), register_iam=False)
 
     # 云区域组件
     CLOUD_SERVICE_APPLY = EnumField("CLOUD_SERVICE_APPLY", _("云区域服务部署"))

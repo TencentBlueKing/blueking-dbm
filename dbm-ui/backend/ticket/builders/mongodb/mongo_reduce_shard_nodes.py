@@ -19,6 +19,7 @@ from backend.db_meta.enums import ClusterType
 from backend.db_meta.models import AppCache, Cluster
 from backend.flow.engine.controller.mongodb import MongoDBController
 from backend.flow.utils.mongodb.shard_reduce_node_get_host import get_hosts_reduce_node
+from backend.iam_app.dataclass.actions import ActionEnum
 from backend.ticket import builders
 from backend.ticket.builders.mongodb.base import BaseMongoDBOperateDetailSerializer, BaseMongoDBTicketFlowBuilder
 from backend.ticket.constants import TicketType
@@ -53,7 +54,9 @@ class MongoDBReduceShardNodesFlowParamBuilder(builders.FlowParamBuilder):
         self.ticket_data["bk_app_abbr"] = AppCache.objects.get(bk_biz_id=bk_biz_id).db_app_abbr
 
 
-@builders.BuilderFactory.register(TicketType.MONGODB_REDUCE_SHARD_NODES, is_recycle=True)
+@builders.BuilderFactory.register(
+    TicketType.MONGODB_REDUCE_SHARD_NODES, is_recycle=True, iam=ActionEnum.MONGODB_MANAGE
+)
 class MongoDBAddMongosApplyFlowBuilder(BaseMongoDBTicketFlowBuilder):
     serializer = MongoDBReduceShardNodesDetailSerializer
     inner_flow_builder = MongoDBReduceShardNodesFlowParamBuilder

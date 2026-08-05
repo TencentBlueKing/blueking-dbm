@@ -14,6 +14,7 @@ from rest_framework import serializers
 from backend.db_meta.enums import ClusterType, MachineType
 from backend.db_meta.models import AppCache, Cluster
 from backend.flow.engine.controller.mongodb import MongoDBController
+from backend.iam_app.dataclass.actions import ActionEnum
 from backend.ticket import builders
 from backend.ticket.builders.common.base import CommonValidate, HostInfoSerializer
 from backend.ticket.builders.mongodb.base import (
@@ -76,7 +77,7 @@ class MongoDBReduceMongosFlowParamBuilder(BaseMongoOperateFlowParamBuilder):
             info["reduce_nodes"] = info.pop("old_nodes")["mongos"]
 
 
-@builders.BuilderFactory.register(TicketType.MONGODB_REDUCE_MONGOS, is_recycle=True)
+@builders.BuilderFactory.register(TicketType.MONGODB_REDUCE_MONGOS, is_recycle=True, iam=ActionEnum.MONGODB_MANAGE)
 class MongoDBAddMongosApplyFlowBuilder(BaseMongoShardedTicketFlowBuilder):
     serializer = MongoDBReduceMongosDetailSerializer
     inner_flow_builder = MongoDBReduceMongosFlowParamBuilder
