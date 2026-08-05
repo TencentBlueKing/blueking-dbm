@@ -12,7 +12,6 @@ from typing import List
 
 from backend.db_meta.enums import ClusterType
 from backend.db_meta.models import Cluster
-from backend.db_periodic_task.local_tasks.db_meta.db_meta_check.mysql_cluster_topo.check_response import CheckResponse
 from backend.db_periodic_task.local_tasks.db_meta.db_meta_check.mysql_cluster_topo.tendbcluster.access_relate import (
     _cluster_spider_access_remote,
 )
@@ -48,9 +47,10 @@ from backend.db_periodic_task.local_tasks.db_meta.db_meta_check.mysql_cluster_to
 from backend.db_periodic_task.local_tasks.db_meta.db_meta_check.mysql_cluster_topo.tendbha.unique_cluster import (
     cluster_instance_unique_cluster,
 )
+from backend.db_report.models import MetaCheckReport
 
 
-def health_check(cluster_id: int) -> List[CheckResponse]:
+def health_check(cluster_id: int) -> List[MetaCheckReport]:
     """
     集群状态正常
     主入口数 >= 1

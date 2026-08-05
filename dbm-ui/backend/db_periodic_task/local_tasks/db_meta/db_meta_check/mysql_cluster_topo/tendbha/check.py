@@ -12,7 +12,6 @@ from typing import List
 
 from backend.db_meta.enums import ClusterType
 from backend.db_meta.models import Cluster
-from backend.db_periodic_task.local_tasks.db_meta.db_meta_check.mysql_cluster_topo.check_response import CheckResponse
 from backend.db_periodic_task.local_tasks.db_meta.db_meta_check.mysql_cluster_topo.tendbha.access_relate import (
     _cluster_proxy_access_master,
 )
@@ -43,9 +42,10 @@ from backend.db_periodic_task.local_tasks.db_meta.db_meta_check.mysql_cluster_to
 from backend.db_periodic_task.local_tasks.db_meta.db_meta_check.mysql_cluster_topo.tendbha.unique_cluster import (
     cluster_instance_unique_cluster,
 )
+from backend.db_report.models import MetaCheckReport
 
 
-def health_check(cluster_id: int) -> List[CheckResponse]:
+def health_check(cluster_id: int) -> List[MetaCheckReport]:
     """
     所有检查项应相互独立
     集群状态正常
