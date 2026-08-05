@@ -198,8 +198,8 @@
                 content: () => <span>{props.disabledRowConfig?.tip}</span>,
                 default: () => (
                   <bk-checkbox
-                    style='vertical-align: middle;'
                     disabled
+                    style='vertical-align: middle;'
                   />
                 ),
               }}
@@ -234,7 +234,7 @@
       label: t('角色'),
       minWidth: 160,
       render: ({ row }: { row: DataRow }) => {
-        if (row.cluster_type === ClusterTypes.MONGO_SHARED_CLUSTER && row.machine_type === 'mongodb') {
+        if (row.cluster_type === ClusterTypes.MONGO_SHARED_CLUSTER && row.machine_type === 'mongodb' && row.shard) {
           return row.shard;
         }
         return row.machine_type;
