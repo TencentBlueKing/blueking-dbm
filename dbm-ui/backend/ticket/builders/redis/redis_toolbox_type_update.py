@@ -17,6 +17,7 @@ from backend.db_meta.enums import ClusterType
 from backend.db_meta.models import Cluster
 from backend.db_services.dbbase.constants import IpSource
 from backend.flow.engine.controller.redis import RedisController
+from backend.iam_app.dataclass.actions import ActionEnum
 from backend.ticket import builders
 from backend.ticket.builders.redis.base import (
     BaseRedisTicketFlowBuilder,
@@ -97,7 +98,9 @@ class RedisTypeUpdateResourceParamBuilder(RedisUpdateApplyResourceParamBuilder):
         self.patch_info_common_affinity("proxy", tolerance=0.5)
 
 
-@builders.BuilderFactory.register(TicketType.REDIS_CLUSTER_TYPE_UPDATE, is_apply=True, is_recycle=True)
+@builders.BuilderFactory.register(
+    TicketType.REDIS_CLUSTER_TYPE_UPDATE, is_apply=True, is_recycle=True, iam=ActionEnum.REDIS_MANAGE
+)
 class RedisTypeUpdateFlowBuilder(BaseRedisTicketFlowBuilder):
     serializer = RedisTypeUpdateDetailSerializer
     inner_flow_builder = RedisTypeUpdateParamBuilder
