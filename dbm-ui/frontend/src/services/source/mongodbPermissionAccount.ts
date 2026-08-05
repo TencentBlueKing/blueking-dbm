@@ -27,7 +27,7 @@ export function addAccountRule(params: {
   access_db: string;
   account_id: number | null;
   account_type: AccountTypesValues;
-  bizId: number;
+  bk_biz_id: number;
   privilege: {
     mongo_manager: string[];
     mongo_user: string[];
@@ -46,7 +46,7 @@ export function createAccount(params: { account_type?: AccountTypesValues; passw
 /**
  * 删除账号
  */
-export function deleteAccount(params: { account_id: number; account_type?: AccountTypesValues; bizId: number }) {
+export function deleteAccount(params: { account_id: number; account_type?: AccountTypesValues; bk_biz_id: number }) {
   return http.delete(`${getRootPath()}/delete_account/`, params);
 }
 

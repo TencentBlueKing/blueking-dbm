@@ -76,11 +76,16 @@ export default class Mongodb extends ClusterBase {
   }[];
   permission: {
     access_entry_edit: boolean;
+    mongodb_access_entry_view: boolean;
+    mongodb_dbconfig_edit: boolean;
     mongodb_destroy: boolean;
     mongodb_edit: boolean;
     mongodb_enable_disable: boolean;
-    mongodb_plugin_create_clb: boolean;
+    mongodb_loadbalance_manage: boolean;
+    mongodb_manage: boolean;
+    mongodb_priv_manage: boolean;
     mongodb_source_access_view: boolean;
+    mongodb_subscribe_monitor: boolean;
     mongodb_view: boolean;
     mongodb_webconsole: boolean;
   };

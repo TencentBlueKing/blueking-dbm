@@ -20,20 +20,25 @@
         cluster-detail-router-name="MongoDBReplicaSetDetail"
         :data="data">
         <template v-if="data.isOnline">
-          <BkButton
+          <AuthButton
             v-db-console="'mongodb.replicaSetList.importAuthorize'"
+            action-id="mongodb_priv_manage"
             class="ml-4"
+            :permission="data.permission.mongodb_priv_manage"
             size="small"
             @click="handleShowAuthorize">
             {{ t('授权') }}
-          </BkButton>
-          <BkButton
+          </AuthButton>
+          <AuthButton
             v-db-console="'mongodb.replicaSetList.getAccess'"
+            action-id="mongodb_access_entry_view"
             class="ml-4"
+            :permission="data.permission.mongodb_access_entry_view"
+            :resource="data.id"
             size="small"
             @click="handleShowAccessEntry">
             {{ t('获取访问方式') }}
-          </BkButton>
+          </AuthButton>
           <AuthRouterLink
             v-db-console="'mongodb.replicaSetList.webconsole'"
             action-id="mongodb_webconsole"
