@@ -41,10 +41,10 @@
                 Standby
               </BkTag>
               <BkTag
-                v-if="nodeItem.isPrimary"
+                v-if="isMasterNode(nodeItem)"
                 class="cluster-specific-flag ml-4"
                 size="small">
-                Primary
+                {{ masterTagLabel }}
               </BkTag>
               <BkTag
                 v-if="nodeItem.status === 'unavailable'"
@@ -68,6 +68,8 @@
 
   import { useUrlSearch } from '@hooks';
 
+  import { ClusterTypes } from '@common/const';
+
   import ClusterInstanceStatus from '@components/cluster-instance-status/Index.vue';
   import PopoverCopy from '@components/popover-copy/Index.vue';
   import ScrollFaker from '@components/scroll-faker/Index.vue';
@@ -75,19 +77,30 @@
 
   import { execCopy, messageWarn } from '@utils';
 
-  interface Props {
-    clusterRoleNodeGroup: Record<
-      string,
-      ({ displayInstance?: string; isPrimary?: boolean; isStandBy?: boolean } & ClusterListNode)[]
-    >;
-  }
+  const props = defineProps<Props>();
 
-  defineProps<Props>();
+  // 当前主节点标识字段与 Tag 文案，未配置的集群类型沿用 isPrimary 与 Primary 文案
+  const clusterTypeWithMasterTagMap: Partial<Record<ClusterTypes, { field: string; label: string }>> = {
+    [ClusterTypes.DORIS]: { field: 'is_master', label: 'Master' },
+    [ClusterTypes.HDFS]: { field: 'is_active', label: 'Active' },
+  };
+
+  type NodeItem = { displayInstance?: string; isPrimary?: boolean; isStandBy?: boolean } & ClusterListNode;
+
+  interface Props {
+    clusterRoleNodeGroup: Record<string, NodeItem[]>;
+    clusterType: ClusterTypes;
+  }
 
   const { t } = useI18n();
   const { getSearchParams } = useUrlSearch();
 
   const serachInstacnce = getSearchParams().instance || '';
+
+  const masterTag = clusterTypeWithMasterTagMap[props.clusterType];
+  const masterTagLabel = masterTag?.label ?? 'Primary';
+
+  const isMasterNode = (node: NodeItem) => Boolean(masterTag ? _.get(node, masterTag.field) : node.isPrimary);
 
   const scrollContentRef = useTemplateRef<InstanceType<typeof ScrollFaker>[]>('scrollContent');
 
