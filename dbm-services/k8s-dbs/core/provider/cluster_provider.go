@@ -658,11 +658,27 @@ func (c *ClusterProvider) DeleteCluster(ctx *commentity.DbsContext, request *cor
 			fmt.Errorf("删除集群 release 失败: %w", err))
 	}
 
+	// 删除对应集群日志
+	c.deleteClusterRequestRecords(request.K8sClusterName, request.ClusterName, request.Namespace)
+
 	if ctx.BkAdditional.ShouldAsyncToDBM() {
 		infrautil.AsyncClusterTeardown(clusterEntity, c.dbmAPIService)
 	}
 
 	return nil
+}
+
+// deleteClusterRequestRecords 删除指定集群的所有请求记录日志
+func (c *ClusterProvider) deleteClusterRequestRecords(k8sClusterName, clusterName, namespace string) {
+	params := &metaentity.ClusterRequestQueryParams{
+		K8sClusterName: k8sClusterName,
+		ClusterNames:   []string{clusterName},
+		NameSpace:      namespace,
+	}
+	if _, err := c.reqRecordProvider.DeleteRequestRecords(params); err != nil {
+		slog.Warn("failed to delete cluster request records",
+			"cluster", clusterName, "error", err)
+	}
 }
 
 // clearClusterRelateMeta 清理 cluster 关联的元数据信息
