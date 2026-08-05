@@ -92,9 +92,7 @@
   const showClusterBatchEditSubscription = ref(false);
   const showClusterBatchDeleteSubscription = ref(false);
 
-  const isClusterTagEditable = computed(() =>
-    props.selected.every((data) => data.permission[`${data.db_type}_edit` as keyof typeof data.permission]),
-  );
+  const isClusterTagEditable = computed(() => props.selected.every((data) => data.permission.es_edit));
 
   const handleSuccess = () => {
     emits('success');
