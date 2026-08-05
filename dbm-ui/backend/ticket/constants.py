@@ -707,6 +707,23 @@ class TicketType(StrStructuredEnum):
     K8S_QDRANT_DELETE = TicketEnumField("K8S_QDRANT_DELETE", _("Qdrant 集群卸载"), register_iam=False)
     K8S_QDRANT_RESTART = TicketEnumField("K8S_QDRANT_RESTART", _("Qdrant 集群重启"), register_iam=False)
 
+    # VICTORIAMETRICS K8s
+    K8S_VICTORIAMETRICS_APPLY = TicketEnumField(
+        "K8S_VICTORIAMETRICS_APPLY", _("VictoriaMetrics 集群部署"), register_iam=False
+    )
+    K8S_VICTORIAMETRICS_ENABLE = TicketEnumField(
+        "K8S_VICTORIAMETRICS_ENABLE", _("VictoriaMetrics 集群启动"), register_iam=False
+    )
+    K8S_VICTORIAMETRICS_DISABLE = TicketEnumField(
+        "K8S_VICTORIAMETRICS_DISABLE", _("VictoriaMetrics 集群停止"), register_iam=False
+    )
+    K8S_VICTORIAMETRICS_DELETE = TicketEnumField(
+        "K8S_VICTORIAMETRICS_DELETE", _("VictoriaMetrics 集群卸载"), register_iam=False
+    )
+    K8S_VICTORIAMETRICS_RESTART = TicketEnumField(
+        "K8S_VICTORIAMETRICS_RESTART", _("VictoriaMetrics 集群重启"), register_iam=False
+    )
+
     # 资源池
     RESOURCE_IMPORT = EnumField("RESOURCE_IMPORT", _("主机导入资源池"))
     ADMIN_PASSWORD_MODIFY = EnumField("ADMIN_PASSWORD_MODIFY", _("临时密码修改"))

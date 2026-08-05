@@ -67,6 +67,11 @@ from backend.flow.views.influxdb_disable import DisableInfluxdbSceneApiView
 from backend.flow.views.influxdb_enable import EnableInfluxdbSceneApiView
 from backend.flow.views.influxdb_reboot import RebootInfluxdbSceneApiView
 from backend.flow.views.influxdb_replace import ReplaceInfluxdbSceneApiView
+from backend.flow.views.k8s_vm_apply import InstallK8sVmSceneApiView
+from backend.flow.views.k8s_vm_delete import DeleteK8sVmSceneApiView
+from backend.flow.views.k8s_vm_disable import DisableK8sVmSceneApiView
+from backend.flow.views.k8s_vm_enable import EnableK8sVmSceneApiView
+from backend.flow.views.k8s_vm_restart import RestartK8sVmSceneApiView
 from backend.flow.views.kafka_apply import InstallKafkaSceneApiView
 from backend.flow.views.kafka_destroy import DestroyKafkaSceneApiView
 from backend.flow.views.kafka_disable import DisableKafkaSceneApiView
@@ -201,7 +206,6 @@ from backend.flow.views.qdrant_delete import DeleteK8sQdrantSceneApiView
 from backend.flow.views.qdrant_disable import DisableK8sQdrantSceneApiView
 from backend.flow.views.qdrant_enable import EnableK8sQdrantSceneApiView
 from backend.flow.views.qdrant_restart import RestartK8sQdrantSceneApiView
-from backend.flow.views.surrealdb_apply import InstallK8sSurrealdbHASceneApiView
 from backend.flow.views.redis_cluster import (
     InstallPredixyClusterSceneApiView,
     InstallPredixyTendisPlusInsSceneApiView,
@@ -296,6 +300,7 @@ from backend.flow.views.sqlserver import (
     SqlserverSQLFileExecuteSceneApiView,
     SqlserverStandardizationSceneApiView,
 )
+from backend.flow.views.surrealdb_apply import InstallK8sSurrealdbHASceneApiView
 from backend.flow.views.surrealdb_destroy import DestroySurrealDBSceneApiView
 from backend.flow.views.surrealdb_disable import DisableSurrealDBSceneApiView
 from backend.flow.views.surrealdb_enable import EnableSurrealDBSceneApiView
@@ -661,6 +666,12 @@ urlpatterns = [
     url(r"^scene/disable_k8s_qdrant$", DisableK8sQdrantSceneApiView.as_view()),
     url(r"^scene/delete_k8s_qdrant$", DeleteK8sQdrantSceneApiView.as_view()),
     url(r"^scene/restart_k8s_qdrant$", RestartK8sQdrantSceneApiView.as_view()),
+    # k8s vm
+    url(r"^scene/install_k8s_vm$", InstallK8sVmSceneApiView.as_view()),
+    url(r"^scene/enable_k8s_vm$", EnableK8sVmSceneApiView.as_view()),
+    url(r"^scene/disable_k8s_vm$", DisableK8sVmSceneApiView.as_view()),
+    url(r"^scene/delete_k8s_vm$", DeleteK8sVmSceneApiView.as_view()),
+    url(r"^scene/restart_k8s_vm$", RestartK8sVmSceneApiView.as_view()),
     # surrealdb
     url(r"^scene/install_k8s_surrealdb_single$", InstallSurrealDBSingleSceneApiView.as_view()),
     url(r"^scene/restart_k8s_surrealdb$", RestartSurrealDBSceneApiView.as_view()),
