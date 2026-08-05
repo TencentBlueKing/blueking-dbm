@@ -64,8 +64,7 @@ const withBizActionList = [
   'riak_cluster_apply',
   // 'monitor_policy_clone', // 旧权限
   'mongodb_apply',
-  'mongodb_account_create',
-  'mongodb_account_rules_view',
+  'mongodb_priv_manage',
   'sqlserver_apply',
   // 'sqlserver_account_create', // 旧权限
   // 'sqlserver_account_rules_view', // 旧权限
