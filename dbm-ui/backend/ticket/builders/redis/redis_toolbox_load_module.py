@@ -12,6 +12,7 @@ from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
 from backend.flow.engine.controller.redis import RedisController
+from backend.iam_app.dataclass.actions import ActionEnum
 from backend.ticket import builders
 from backend.ticket.builders.common.base import DisplayInfoSerializer
 from backend.ticket.builders.redis.base import (
@@ -48,7 +49,7 @@ class RedisLoadModuleParamBuilder(builders.FlowParamBuilder):
         super().format_ticket_data()
 
 
-@builders.BuilderFactory.register(TicketType.REDIS_CLUSTER_LOAD_MODULES, is_apply=True)
+@builders.BuilderFactory.register(TicketType.REDIS_CLUSTER_LOAD_MODULES, is_apply=True, iam=ActionEnum.REDIS_MANAGE)
 class RedisLoadModuleFlowBuilder(BaseRedisTicketFlowBuilder):
     serializer = RedisLoadModuleSerializer
     inner_flow_builder = RedisLoadModuleParamBuilder

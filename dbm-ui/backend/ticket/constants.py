@@ -500,58 +500,58 @@ class TicketType(StrStructuredEnum):
     SQLSERVER_DATA_EXPORT = TicketEnumField("SQLSERVER_DATA_EXPORT", _("SQLServer 数据导出"), _("数据处理"))
 
     # REDIS
-    REDIS_PLUGIN_CREATE_CLB = TicketEnumField("REDIS_PLUGIN_CREATE_CLB", _("Redis 创建CLB"), _("集群管理"))
-    REDIS_PLUGIN_DELETE_CLB = TicketEnumField("REDIS_PLUGIN_DELETE_CLB", _("Redis 删除CLB"), _("集群管理"))
-    REDIS_PLUGIN_DNS_BIND_CLB = TicketEnumField("REDIS_PLUGIN_DNS_BIND_CLB", _("Redis 域名绑定CLB"), _("集群管理"))
-    REDIS_PLUGIN_DNS_UNBIND_CLB = TicketEnumField("REDIS_PLUGIN_DNS_UNBIND_CLB", _("Redis 域名解绑CLB"), _("集群管理"))
-    REDIS_PLUGIN_CREATE_POLARIS = TicketEnumField("REDIS_PLUGIN_CREATE_POLARIS", _("Redis 创建Polaris"), _("集群管理"))
-    REDIS_PLUGIN_DELETE_POLARIS = TicketEnumField("REDIS_PLUGIN_DELETE_POLARIS", _("Redis 删除Polaris"), _("集群管理"))
+    REDIS_PLUGIN_CREATE_CLB = TicketEnumField("REDIS_PLUGIN_CREATE_CLB", _("Redis 创建CLB"), _("集群管理"), register_iam=False)
+    REDIS_PLUGIN_DELETE_CLB = TicketEnumField("REDIS_PLUGIN_DELETE_CLB", _("Redis 删除CLB"), _("集群管理"), register_iam=False)
+    REDIS_PLUGIN_DNS_BIND_CLB = TicketEnumField("REDIS_PLUGIN_DNS_BIND_CLB", _("Redis 域名绑定CLB"), _("集群管理"), register_iam=False)
+    REDIS_PLUGIN_DNS_UNBIND_CLB = TicketEnumField("REDIS_PLUGIN_DNS_UNBIND_CLB", _("Redis 域名解绑CLB"), _("集群管理"), register_iam=False) # noqa
+    REDIS_PLUGIN_CREATE_POLARIS = TicketEnumField("REDIS_PLUGIN_CREATE_POLARIS", _("Redis 创建Polaris"), _("集群管理"), register_iam=False) # noqa
+    REDIS_PLUGIN_DELETE_POLARIS = TicketEnumField("REDIS_PLUGIN_DELETE_POLARIS", _("Redis 删除Polaris"), _("集群管理"), register_iam=False) # noqa
     REDIS_SINGLE_APPLY = TicketEnumField("REDIS_SINGLE_APPLY", _("Redis 单节点部署"), register_iam=False)
     REDIS_INS_APPLY = TicketEnumField("REDIS_INS_APPLY", _("Redis 主从节点部署"), register_iam=False)
     REDIS_CLUSTER_APPLY = TicketEnumField("REDIS_CLUSTER_APPLY", _("Redis 集群部署"), _("集群管理"))
     REDIS_KEYS_EXTRACT = TicketEnumField("REDIS_KEYS_EXTRACT", _("Redis 提取 Key"), _("集群管理"))
     REDIS_KEYS_DELETE = TicketEnumField("REDIS_KEYS_DELETE", _("Redis 删除 key"), _("集群管理"))
-    REDIS_BACKUP = TicketEnumField("REDIS_BACKUP", _("Redis 集群备份"), _("集群管理"))
     REDIS_BACKUP_AUTO = TicketEnumField("REDIS_BACKUP_AUTO", _("Redis 自动提交备份单据"), register_iam=False)
+    REDIS_BACKUP = TicketEnumField("REDIS_BACKUP", _("Redis 集群备份"), _("集群管理"), register_iam=False)
     REDIS_PROXY_OPEN = TicketEnumField("REDIS_PROXY_OPEN", _("Redis 集群启用"), register_iam=False)
     REDIS_PROXY_CLOSE = TicketEnumField("REDIS_PROXY_CLOSE", _("Redis 集群禁用"), register_iam=False)
     REDIS_INSTANCE_OPEN = TicketEnumField("REDIS_INSTANCE_OPEN", _("Redis 主从启用"), register_iam=False)
     REDIS_INSTANCE_CLOSE = TicketEnumField("REDIS_INSTANCE_CLOSE", _("Redis 主从禁用"), register_iam=False)
     REDIS_DESTROY = TicketEnumField("REDIS_DESTROY", _("Redis 集群删除"), _("集群管理"))
     REDIS_INSTANCE_DESTROY = TicketEnumField("REDIS_INSTANCE_DESTROY", _("Redis 主从集群删除"), _("集群管理"))
-    REDIS_PURGE = TicketEnumField("REDIS_PURGE", _("Redis 集群清档"), _("集群管理"))
-    REDIS_PROXY_KICKOFF = TicketEnumField("REDIS_PROXY_KICKOFF", _("Redis 集群Proxy剔除"), _("集群管理"))
-    REDIS_PROXY_FIX = TicketEnumField("REDIS_PROXY_FIX", _("Redis 集群Proxy恢复"), _("集群管理"))
+    REDIS_PURGE = TicketEnumField("REDIS_PURGE", _("Redis 集群清档"), _("集群管理"), register_iam=False)
+    REDIS_PROXY_KICKOFF = TicketEnumField("REDIS_PROXY_KICKOFF", _("Redis 集群Proxy剔除"), _("集群管理"), register_iam=False)
+    REDIS_PROXY_FIX = TicketEnumField("REDIS_PROXY_FIX", _("Redis 集群Proxy恢复"), _("集群管理"), register_iam=False)
 
-    REDIS_CHANGE_BIZ = TicketEnumField("REDIS_CHANGE_BIZ", _("Redis 集群业务变更"), _("集群维护"))
-    REDIS_SCALE_UPDOWN = TicketEnumField("REDIS_SCALE_UPDOWN", _("Redis 集群容量变更"), _("集群维护"))
-    REDIS_CLUSTER_CUTOFF = TicketEnumField("REDIS_CLUSTER_CUTOFF", _("Redis 整机替换"), _("集群维护"))
-    REDIS_CLUSTER_AUTOFIX = TicketEnumField("REDIS_CLUSTER_AUTOFIX", _("Redis 故障自愈"), _("集群维护"))
+    REDIS_CHANGE_BIZ = TicketEnumField("REDIS_CHANGE_BIZ", _("Redis 集群业务变更"), _("集群维护"), register_iam=False)
+    REDIS_SCALE_UPDOWN = TicketEnumField("REDIS_SCALE_UPDOWN", _("Redis 集群容量变更"), _("集群维护"), register_iam=False)
+    REDIS_CLUSTER_CUTOFF = TicketEnumField("REDIS_CLUSTER_CUTOFF", _("Redis 整机替换"), _("集群维护"), register_iam=False)
+    REDIS_CLUSTER_AUTOFIX = TicketEnumField("REDIS_CLUSTER_AUTOFIX", _("Redis 故障自愈"), _("集群维护"), register_iam=False)
     REDIS_CLUSTER_INSTANCE_SHUTDOWN = TicketEnumField("REDIS_CLUSTER_INSTANCE_SHUTDOWN", _("Redis 故障自愈-实例下架"),
-                                                      _("集群维护"))  # noqa
-    REDIS_MASTER_SLAVE_SWITCH = TicketEnumField("REDIS_MASTER_SLAVE_SWITCH", _("Redis 主从切换"), _("集群维护"))
-    REDIS_PROXY_SCALE_UP = TicketEnumField("REDIS_PROXY_SCALE_UP", _("Redis Proxy扩容"), _("集群维护"))
-    REDIS_PROXY_SCALE_DOWN = TicketEnumField("REDIS_PROXY_SCALE_DOWN", _("Redis Proxy缩容"), _("集群维护"))
+                                                      _("集群维护"), register_iam=False)  # noqa
+    REDIS_MASTER_SLAVE_SWITCH = TicketEnumField("REDIS_MASTER_SLAVE_SWITCH", _("Redis 主从切换"), _("集群维护"), register_iam=False)
+    REDIS_PROXY_SCALE_UP = TicketEnumField("REDIS_PROXY_SCALE_UP", _("Redis Proxy扩容"), _("集群维护"), register_iam=False)
+    REDIS_PROXY_SCALE_DOWN = TicketEnumField("REDIS_PROXY_SCALE_DOWN", _("Redis Proxy缩容"), _("集群维护"), register_iam=False)
     REDIS_ADD_DTS_SERVER = TicketEnumField("REDIS_ADD_DTS_SERVER", _("Redis 新增DTS SERVER"), register_iam=False)
     REDIS_REMOVE_DTS_SERVER = TicketEnumField("REDIS_REMOVE_DTS_SERVER", _("Redis 删除DTS SERVER"), register_iam=False)
-    REDIS_DATA_STRUCTURE = TicketEnumField("REDIS_DATA_STRUCTURE", _("Redis 集群数据构造"), _("数据构造"))
+    REDIS_DATA_STRUCTURE = TicketEnumField("REDIS_DATA_STRUCTURE", _("Redis 集群数据构造"), _("数据构造"), register_iam=False)
     REDIS_DATA_STRUCTURE_TASK_DELETE = TicketEnumField("REDIS_DATA_STRUCTURE_TASK_DELETE", _("Redis 数据构造记录删除"),
                                                        _("数据构造"))  # noqa
     REDIS_CLUSTER_SHARD_NUM_UPDATE = TicketEnumField("REDIS_CLUSTER_SHARD_NUM_UPDATE", _("Redis 集群分片数变更"),
-                                                     _("集群维护"))
-    REDIS_CLUSTER_TYPE_UPDATE = TicketEnumField("REDIS_CLUSTER_TYPE_UPDATE", _("Redis 集群类型变更"), _("集群维护"))
-    REDIS_CLUSTER_DATA_COPY = TicketEnumField("REDIS_CLUSTER_DATA_COPY", _("Redis 集群数据复制"), _("数据传输"))
+                                                     _("集群维护"), register_iam=False)
+    REDIS_CLUSTER_TYPE_UPDATE = TicketEnumField("REDIS_CLUSTER_TYPE_UPDATE", _("Redis 集群类型变更"), _("集群维护"), register_iam=False)
+    REDIS_CLUSTER_DATA_COPY = TicketEnumField("REDIS_CLUSTER_DATA_COPY", _("Redis 集群数据复制"), _("数据传输"), register_iam=False)
     REDIS_CLUSTER_ROLLBACK_DATA_COPY = TicketEnumField("REDIS_CLUSTER_ROLLBACK_DATA_COPY", _("Redis 构造实例数据回写"),
-                                                       _("数据构造"))  # noqa
-    REDIS_DATACOPY_CHECK_REPAIR = TicketEnumField("REDIS_DATACOPY_CHECK_REPAIR", _("Redis 数据校验与修复"))
-    REDIS_SHARD_ADD = TicketEnumField("REDIS_SHARD_ADD", _("Redis 增加分片数"), _("集群维护"))
-    REDIS_SHARD_REDUCE = TicketEnumField("REDIS_SHARD_REDUCE", _("Redis 减少分片数"), _("集群维护"))
-    REDIS_CLUSTER_ADD_SLAVE = TicketEnumField("REDIS_CLUSTER_ADD_SLAVE", _("Redis 重建从库"), _("集群维护"))
+                                                       _("数据构造"), register_iam=False)  # noqa
+    REDIS_DATACOPY_CHECK_REPAIR = TicketEnumField("REDIS_DATACOPY_CHECK_REPAIR", _("Redis 数据校验与修复"), register_iam=False)
+    REDIS_SHARD_ADD = TicketEnumField("REDIS_SHARD_ADD", _("Redis 增加分片数"), _("集群维护"), register_iam=False)
+    REDIS_SHARD_REDUCE = TicketEnumField("REDIS_SHARD_REDUCE", _("Redis 减少分片数"), _("集群维护"), register_iam=False)
+    REDIS_CLUSTER_ADD_SLAVE = TicketEnumField("REDIS_CLUSTER_ADD_SLAVE", _("Redis 重建从库"), _("集群维护"), register_iam=False)
     REDIS_DTS_ONLINE_SWITCH = TicketEnumField("REDIS_DTS_ONLINE_SWITCH", _("Redis DTS在线切换"), register_iam=False)
     REDIS_TENDIS_META_MITRATE = TicketEnumField("REDIS_TENDIS_META_MITRATE", _("Redis 数据迁移"), register_iam=False)
     REDIS_SLOTS_MIGRATE = TicketEnumField("REDIS_SLOTS_MIGRATE", _("Redis slots 迁移"), register_iam=False)
-    REDIS_VERSION_UPDATE_ONLINE = TicketEnumField("REDIS_VERSION_UPDATE_ONLINE", _("Redis 集群版本升级"))  # noqa
-    REDIS_CLUSTER_REINSTALL_DBMON = TicketEnumField("REDIS_CLUSTER_REINSTALL_DBMON", _("REDIS 集群标准化"))  # noqa
+    REDIS_VERSION_UPDATE_ONLINE = TicketEnumField("REDIS_VERSION_UPDATE_ONLINE", _("Redis 集群版本升级"), register_iam=False)  # noqa
+    REDIS_CLUSTER_REINSTALL_DBMON = TicketEnumField("REDIS_CLUSTER_REINSTALL_DBMON", _("REDIS 集群标准化"), register_iam=False)  # noqa
     REDIS_PREDIXY_CONFIG_SERVERS_REWRITE = TicketEnumField("REDIS_PREDIXY_CONFIG_SERVERS_REWRITE", _("predixy配置重写"),
                                                            register_iam=False)  # noqa
     REDIS_CLUSTER_PROXYS_UPGRADE = TicketEnumField("REDIS_CLUSTER_PROXYS_UPGRADE", _("Redis 集群proxys版本升级"),
@@ -561,22 +561,22 @@ class TicketType(StrStructuredEnum):
                                                             _("Redis 集群存储层cli连接kill"),
                                                             register_iam=False)  # noqa
     REDIS_CLUSTER_RENAME_DOMAIN = TicketEnumField("REDIS_CLUSTER_RENAME_DOMAIN", _("Redis集群域名重命名"),
-                                                  _("集群维护"))
-    REDIS_CLUSTER_MAXMEMORY_SET = TicketEnumField("REDIS_CLUSTER_MAXMEMORY_SET", _("Redis 集群设置maxmemory"))  # noqa
-    REDIS_CLUSTER_LOAD_MODULES = TicketEnumField("REDIS_CLUSTER_LOAD_MODULES", _("Redis 集群安装modules"))  # noqa
+                                                  _("集群维护"), register_iam=False)
+    REDIS_CLUSTER_MAXMEMORY_SET = TicketEnumField("REDIS_CLUSTER_MAXMEMORY_SET", _("Redis 集群设置maxmemory"), register_iam=False)  # noqa
+    REDIS_CLUSTER_LOAD_MODULES = TicketEnumField("REDIS_CLUSTER_LOAD_MODULES", _("Redis 集群安装modules"), register_iam=False)  # noqa
     REDIS_TENDISPLUS_LIGHTNING_DATA = TicketEnumField("REDIS_TENDISPLUS_LIGHTNING_DATA", _("Tendisplus闪电导入数据"),
-                                                      _("集群维护"))  # noqa
-    REDIS_CLUSTER_INS_MIGRATE = TicketEnumField("REDIS_CLUSTER_INS_MIGRATE", _("Redis 集群指定实例迁移"), _("集群管理"))
-    REDIS_SINGLE_INS_MIGRATE = TicketEnumField("REDIS_SINGLE_INS_MIGRATE", _("Redis 主从指定实例迁移"), _("集群管理"))
+                                                      _("集群维护"), register_iam=False)  # noqa
+    REDIS_CLUSTER_INS_MIGRATE = TicketEnumField("REDIS_CLUSTER_INS_MIGRATE", _("Redis 集群指定实例迁移"), _("集群管理"), register_iam=False)
+    REDIS_SINGLE_INS_MIGRATE = TicketEnumField("REDIS_SINGLE_INS_MIGRATE", _("Redis 主从指定实例迁移"), _("集群管理"), register_iam=False)
     REDIS_HOT_KEY_ANALYSIS = TicketEnumField("REDIS_HOT_KEY_ANALYSIS", _("Redis 热key分析"), _("集群管理"))
     REDIS_KEYSTAT = TicketEnumField("REDIS_KEYSTAT", _("Redis 内存分析"), _("集群管理"))
     # deprecated: 角色检查已并入 REDIS_CONF_CHECK, 保留枚举以兼容历史流程记录
-    REDIS_ROLE_CHECK = TicketEnumField("REDIS_ROLE_CHECK", _("Redis 角色检查"))
+    REDIS_ROLE_CHECK = TicketEnumField("REDIS_ROLE_CHECK", _("Redis 角色检查"), register_iam=False)
     REDIS_CONF_CHECK = TicketEnumField("REDIS_CONF_CHECK", _("Redis 配置检查"), register_iam=False)
-    REDIS_ENTRY_CHECK = TicketEnumField("REDIS_ENTRY_CHECK", _("Redis 入口一致性检查"))
+    REDIS_ENTRY_CHECK = TicketEnumField("REDIS_ENTRY_CHECK", _("Redis 入口一致性检查"), register_iam=False)
     REDIS_FAILOVER_DRILL = TicketEnumField("REDIS_FAILOVER_DRILL", _("Redis 容灾演练"), register_iam=False)
-    REDIS_ROLLBACK_EXERCISE = TicketEnumField("REDIS_ROLLBACK_EXERCISE", _("Redis 回档演练"))
-    REDIS_PROXY_FAST_RECOVER = TicketEnumField("REDIS_PROXY_FAST_RECOVER", _("Redis Proxy剔除和修复"), _("集群维护"))
+    REDIS_ROLLBACK_EXERCISE = TicketEnumField("REDIS_ROLLBACK_EXERCISE", _("Redis 回档演练"), register_iam=False)
+    REDIS_PROXY_FAST_RECOVER = TicketEnumField("REDIS_PROXY_FAST_RECOVER", _("Redis Proxy剔除和修复"), _("集群维护"), register_iam=False)
 
     # 大数据
     KAFKA_APPLY = TicketEnumField("KAFKA_APPLY", _("Kafka 集群部署"), register_iam=False)
