@@ -176,9 +176,7 @@
   const batchDeleteDisabled = computed(() =>
     props.selected.some((data) => data.isOnline || Boolean(data.operationTicketId)),
   );
-  const isClusterTagEditable = computed(() =>
-    props.selected.every((data) => data.permission[`${data.db_type}_edit` as keyof typeof data.permission]),
-  );
+  const isClusterTagEditable = computed(() => props.selected.every((data) => data.permission.sqlserver_edit));
 
   watch(clusterAuthorizeShow, () => {
     sideSliderShow.value = clusterAuthorizeShow.value;
