@@ -72,9 +72,10 @@ func (s StartProxyParam) checkStart() (err error) {
 		return fmt.Errorf("proxyStartCmd:%s not contain proxyCnf:[%s]", out, s.ProxyCnf)
 	}
 	// Test Conn ...
-	logger.Info("try connect :%s:%d with %s:%s", s.Host, s.Port, s.ProxyAdminUser, s.ProxyAdminPwd)
-	pc, err := native.NewDbWorkerNoPing(fmt.Sprintf("%s:%d", s.Host, native.GetProxyAdminPort(s.Port)), s.ProxyAdminUser,
-		s.ProxyAdminPwd)
+	logger.Info("try connect: %s:%d with %s:%s", s.Host, native.GetProxyAdminPort(s.Port),
+		s.ProxyAdminUser, s.ProxyAdminPwd)
+	pc, err := native.NewDbWorkerNoPing(fmt.Sprintf("%s:%d", s.Host, native.GetProxyAdminPort(s.Port)),
+		s.ProxyAdminUser, s.ProxyAdminPwd)
 	if err != nil {
 		return err
 	}

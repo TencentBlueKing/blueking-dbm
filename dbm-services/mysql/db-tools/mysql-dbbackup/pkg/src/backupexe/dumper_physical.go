@@ -284,8 +284,9 @@ func (p *PhysicalDumper) PrepareBackupMetaInfo(cnf *config.BackupConfig, metaInf
 		}
 	}
 
+	masterStatus := &dbareport.StatusInfo{}
 	// parse xtrabackup_binlog_info 本机的 binlog file,pos
-	if masterStatus, err := parseXtraBinlogInfo(qpressPath, xtrabackupBinlogInfoFileName, tmpFileName); err != nil {
+	if masterStatus, err = parseXtraBinlogInfo(qpressPath, xtrabackupBinlogInfoFileName, tmpFileName); err != nil {
 		logger.Log.Warnf("xtrabackup_binlog_info file not found, "+
 			"cannot read binlog position, err: %s", err.Error())
 		//return err
@@ -309,7 +310,10 @@ func (p *PhysicalDumper) PrepareBackupMetaInfo(cnf *config.BackupConfig, metaInf
 			}
 			metaInfo.BinlogInfo.ShowSlaveStatus.BinlogFile = slaveStatus.BinlogFile
 			metaInfo.BinlogInfo.ShowSlaveStatus.BinlogPos = slaveStatus.BinlogPos
-			// 需要在外层补充 master ip:port
+			if masterStatus != nil {
+				metaInfo.BinlogInfo.ShowSlaveStatus.Gtid = masterStatus.Gtid // gtid 是共享的
+			}
+			// 在外层补充 master ip:port
 		}
 	}
 	if err = os.Remove(tmpFileName); err != nil {
