@@ -315,7 +315,7 @@
 
   import { useGlobalBizs } from '@stores';
 
-  import { ClusterTypes, ConfLevels } from '@common/const';
+  import { ClusterTypes, ConfLevels, DBTypes } from '@common/const';
   import { clusterTypeInfos } from '@common/const/clusterTypesInfos';
   import { dbTippy } from '@common/tippy';
 
@@ -384,11 +384,28 @@
     dbconfig_edit: false,
   });
 
+  // 数据库类型对应的参数配置编辑权限 actionId
+  const dbconfigEditActionIdMap: Record<DBTypes, string> = {
+    [DBTypes.DORIS]: 'doris_dbconfig_edit',
+    [DBTypes.ES]: 'es_dbconfig_edit',
+    [DBTypes.HDFS]: 'hdfs_dbconfig_edit',
+    [DBTypes.INFLUXDB]: 'influxdb_dbconfig_edit',
+    [DBTypes.KAFKA]: 'kafka_dbconfig_edit',
+    [DBTypes.MONGODB]: 'mongodb_dbconfig_edit',
+    [DBTypes.MYSQL]: 'mysql_dbconfig_edit',
+    [DBTypes.ORACLE]: 'oracle_dbconfig_edit',
+    [DBTypes.PULSAR]: 'pulsar_dbconfig_edit',
+    [DBTypes.REDIS]: 'redis_dbconfig_edit',
+    [DBTypes.RIAK]: 'riak_dbconfig_edit',
+    [DBTypes.SQLSERVER]: 'sqlserver_dbconfig_edit',
+    [DBTypes.TENDBCLUSTER]: 'tendbcluster_dbconfig_edit',
+  };
+
   /** 根据层级和集群类型计算权限 actionId */
   const actionId = computed(() => {
     if (props.levelName === 'cluster') {
       const dbType = clusterTypeInfos[props.clusterType || (route.params.clusterType as ClusterTypes)]?.dbType;
-      return `${dbType}_dbconfig_edit`;
+      return dbconfigEditActionIdMap[dbType];
     }
     return 'dbconfig_edit';
   });
@@ -1111,22 +1128,22 @@
 
   .inline-edit-cell-confirm {
     display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    min-width: 26px;
     height: 26px;
+    min-width: 26px;
     padding: 0;
     font-size: 16px;
+    align-items: center;
+    justify-content: center;
   }
 
   .inline-edit-cell-cancel {
     display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    min-width: 26px;
     height: 26px;
+    min-width: 26px;
     padding: 0;
     font-size: 16px;
+    align-items: center;
+    justify-content: center;
   }
 
   .value-cell {
@@ -1155,8 +1172,8 @@
   .value-cell-edit {
     display: none;
     font-size: 14px;
-    cursor: pointer;
     color: #63656e;
+    cursor: pointer;
   }
 
   .value-cell-edit:hover {
@@ -1204,8 +1221,8 @@
 
   .param-desc-icon {
     font-size: 14px;
-    cursor: pointer;
     color: #c4c6cc;
+    cursor: pointer;
 
     &:hover {
       color: #3a84ff;
@@ -1242,20 +1259,20 @@
   .param-restore-infobox {
     .param-restore-content {
       padding: 16px 24px;
-      background: #fafbfd;
-      border-radius: 2px;
       font-size: 13px;
       line-height: 22px;
       color: #63656e;
+      background: #fafbfd;
+      border-radius: 2px;
     }
 
     p {
       margin-bottom: 6px;
 
       &:last-child {
-        margin-bottom: 0;
-        margin-top: 10px;
         padding-top: 10px;
+        margin-top: 10px;
+        margin-bottom: 0;
       }
     }
   }
@@ -1298,12 +1315,12 @@
 
     &.is-confirm-disabled {
       .bk-infobox-footer .bk-button-primary {
-        cursor: not-allowed;
+        color: #fff !important;
         pointer-events: none;
+        cursor: not-allowed;
         background-color: #dcdee5 !important;
         border-color: #dcdee5 !important;
-        color: #ffffff !important;
-        opacity: 1 !important;
+        opacity: 100% !important;
       }
     }
 
@@ -1318,15 +1335,15 @@
 
       .custom-infobar {
         display: flex;
-        align-items: center;
         padding: 8px 12px;
         margin-bottom: 16px;
         font-size: 12px;
         line-height: 20px;
+        color: #63656e;
         background: #fff4e2;
         border: 1px solid #ffdfac;
         border-radius: 2px;
-        color: #63656e;
+        align-items: center;
 
         .infobar-icon {
           margin-right: 8px;
@@ -1415,8 +1432,8 @@
       .affect-empty {
         padding: 24px 16px;
         font-size: 12px;
-        text-align: center;
         color: #c4c6cc;
+        text-align: center;
       }
     }
   }
