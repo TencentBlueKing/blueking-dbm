@@ -96,6 +96,8 @@
 
   import { useAlarmSubscribe } from '@hooks';
 
+  import { DBTypes } from '@common/const';
+
   import AlertSeverityGroup from '@views/db-manage/common/cluster-batch-edit-subscription/components/content/components/AlertSeverityGroup.vue';
   import NoticeWaysGroup from '@views/db-manage/common/cluster-batch-edit-subscription/components/content/components/NoticeWaysGroup.vue';
 
@@ -118,8 +120,27 @@
   const alertSeverity = ref<number[]>([1]);
   const noticeWays = ref<string[]>(['weixin']);
 
+  // 数据库类型对应的告警订阅权限 actionId
+  const subscribeMonitorActionIdMap: Record<DBTypes, string> = {
+    [DBTypes.DORIS]: 'doris_subscribe_monitor',
+    [DBTypes.ES]: 'es_subscribe_monitor',
+    [DBTypes.HDFS]: 'hdfs_subscribe_monitor',
+    [DBTypes.INFLUXDB]: 'influxdb_subscribe_monitor',
+    [DBTypes.KAFKA]: 'kafka_subscribe_monitor',
+    [DBTypes.MONGODB]: 'mongodb_subscribe_monitor',
+    [DBTypes.MYSQL]: 'mysql_subscribe_monitor',
+    [DBTypes.ORACLE]: 'oracle_subscribe_monitor',
+    [DBTypes.PULSAR]: 'pulsar_subscribe_monitor',
+    [DBTypes.REDIS]: 'redis_subscribe_monitor',
+    [DBTypes.RIAK]: 'riak_subscribe_monitor',
+    [DBTypes.SQLSERVER]: 'sqlserver_subscribe_monitor',
+    [DBTypes.TENDBCLUSTER]: 'tendbcluster_subscribe_monitor',
+  };
+
   const indicatorList = computed(() => metricsMap.value[props.clusterType].list || []);
-  const permissionId = computed(() => `${props.data.db_type}_subscribe_monitor` as keyof typeof props.data.permission);
+  const permissionId = computed(
+    () => subscribeMonitorActionIdMap[props.data.db_type as DBTypes] as keyof typeof props.data.permission,
+  );
 
   let currentInfo: (typeof subscribedDomainInfo.value.dataList)[number] | undefined;
 
@@ -196,8 +217,8 @@
 </script>
 <style lang="less">
   .alarm-subscription-main {
-    font-family: MicrosoftYaHei, Arial, sans-serif;
     padding: 16px 0;
+    font-family: MicrosoftYaHei, Arial, sans-serif;
 
     .empty-main {
       margin-top: 80px;

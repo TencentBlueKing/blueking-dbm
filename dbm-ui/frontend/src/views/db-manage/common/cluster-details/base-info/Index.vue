@@ -57,7 +57,7 @@
   import type { VNode } from 'vue';
   import { useI18n } from 'vue-i18n';
 
-  import ClusterTag from '@components/cluster-tag/index.vue';
+  import ClusterTag from '@components/cluster-tag/Index.vue';
 
   import ClusterStats from '@views/db-manage/common/cluster-stats/Index.vue';
   import UpdateClusterAliasName from '@views/db-manage/common/UpdateClusterAliasName.vue';
