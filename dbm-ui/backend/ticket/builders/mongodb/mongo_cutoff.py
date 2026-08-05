@@ -20,6 +20,7 @@ from backend.db_meta.models import AppCache, Cluster, Machine, Spec
 from backend.db_services.dbbase.constants import IpSource
 from backend.db_services.mongodb.resources.query import MongoDBListRetrieveResource
 from backend.flow.engine.controller.mongodb import MongoDBController
+from backend.iam_app.dataclass.actions import ActionEnum
 from backend.ticket import builders
 from backend.ticket.builders.mongodb.base import (
     BaseMongoDBOperateDetailSerializer,
@@ -150,7 +151,9 @@ class MongoDBCutoffResourceParamBuilder(BaseMongoDBOperateResourceParamBuilder):
             }
 
 
-@builders.BuilderFactory.register(TicketType.MONGODB_CUTOFF, is_apply=True, is_recycle=True)
+@builders.BuilderFactory.register(
+    TicketType.MONGODB_CUTOFF, is_apply=True, is_recycle=True, iam=ActionEnum.MONGODB_MANAGE
+)
 class MongoDBCutoffApplyFlowBuilder(BaseMongoDBTicketFlowBuilder):
     serializer = MongoDBCutoffDetailSerializer
     inner_flow_builder = MongoDBCutoffFlowParamBuilder

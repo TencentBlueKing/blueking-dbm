@@ -16,6 +16,7 @@ from backend.configuration.constants import AffinityEnum
 from backend.db_meta.models import AppCache, Cluster
 from backend.db_services.dbbase.constants import IpSource
 from backend.flow.engine.controller.mongodb import MongoDBController
+from backend.iam_app.dataclass.actions import ActionEnum
 from backend.ticket import builders
 from backend.ticket.builders.common.base import get_mongodb_cluster_tolerance
 from backend.ticket.builders.mongodb.base import (
@@ -98,7 +99,9 @@ class MongoDBScaleUpDownResourceParamBuilder(BaseMongoDBOperateResourceParamBuil
                     info["mongodb"].append(info.pop(f"mongodb_nodes_{group}"))
 
 
-@builders.BuilderFactory.register(TicketType.MONGODB_SCALE_UPDOWN, is_apply=True, is_recycle=True)
+@builders.BuilderFactory.register(
+    TicketType.MONGODB_SCALE_UPDOWN, is_apply=True, is_recycle=True, iam=ActionEnum.MONGODB_MANAGE
+)
 class MongoDBScaleUpDownFlowBuilder(BaseMongoShardedTicketFlowBuilder):
     serializer = MongoDBScaleUpDownDetailSerializer
     inner_flow_builder = MongoDBScaleUpDownFlowParamBuilder
