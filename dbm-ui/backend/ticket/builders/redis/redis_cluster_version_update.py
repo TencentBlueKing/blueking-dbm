@@ -13,6 +13,7 @@ from rest_framework import serializers
 
 from backend.db_meta.enums.comm import RedisVerUpdateNodeType
 from backend.flow.engine.controller.redis import RedisController
+from backend.iam_app.dataclass.actions import ActionEnum
 from backend.ticket import builders
 from backend.ticket.builders.common.base import ParamValidateSerializerMixin, TicketBaseValidateSerializerMixin
 from backend.ticket.builders.redis.base import BaseRedisTicketFlowBuilder
@@ -58,7 +59,7 @@ class RedisVersionUpdateFlowParamBuilder(builders.FlowParamBuilder):
         pass
 
 
-@builders.BuilderFactory.register(TicketType.REDIS_VERSION_UPDATE_ONLINE)
+@builders.BuilderFactory.register(TicketType.REDIS_VERSION_UPDATE_ONLINE, iam=ActionEnum.REDIS_MANAGE)
 class RedisVersionUpdateFlowBuilder(BaseRedisTicketFlowBuilder):
     serializer = RedisVersionUpdateDetailSerializer
     inner_flow_builder = RedisVersionUpdateFlowParamBuilder

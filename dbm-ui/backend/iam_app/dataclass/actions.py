@@ -2133,7 +2133,7 @@ class ActionEnum:
         related_actions=[DB_MANAGE.id],
         related_resource_types=[ResourceEnum.REDIS],
         group=_("Redis"),
-        subgroup=_("集群管理"),
+        subgroup=_("查询与变更"),
         common_labels=[
             CommonActionLabel.BIZ_READ_ONLY,
             CommonActionLabel.BIZ_MAINTAIN,
@@ -2142,9 +2142,21 @@ class ActionEnum:
         ],
     )
 
+    REDIS_LOADBALANCE_MANAGE = ActionMeta(
+        id="redis_loadbalance_manage",
+        name=_("Redis 负载均衡管理"),
+        name_en="redis_loadbalance_manage",
+        type="manage",
+        related_actions=[DB_MANAGE.id],
+        related_resource_types=[ResourceEnum.BUSINESS],
+        group=_("Redis"),
+        subgroup=_("权限管理"),
+        common_labels=[CommonActionLabel.BIZ_MAINTAIN],
+    )
+
     REDIS_ACCESS_ENTRY_VIEW = ActionMeta(
         id="redis_access_entry_view",
-        name=_("Redis 集群访问"),
+        name=_("Redis 连接信息查看"),
         name_en="redis_access_entry_view",
         type="view",
         related_actions=[DB_MANAGE.id],
@@ -2168,7 +2180,7 @@ class ActionEnum:
 
     REDIS_SOURCE_ACCESS_VIEW = ActionMeta(
         id="redis_source_access_view",
-        name=_("Redis 访问来源查询"),
+        name=_("Redis 访问来源查看"),
         name_en="redis_source_access_view",
         type="view",
         related_actions=[DB_MANAGE.id],
@@ -2189,35 +2201,376 @@ class ActionEnum:
 
     REDIS_BACKUP = ActionMeta(
         id=TicketType.REDIS_BACKUP.lower(),
-        subgroup=_("集群管理"),
+        subgroup=_("备份"),
         is_ticket_action=True,
         common_labels=[CommonActionLabel.DEVELOPER],
     )
 
+    REDIS_CLUSTER_DATA_COPY = ActionMeta(
+        id=TicketType.REDIS_CLUSTER_DATA_COPY.lower(),
+        subgroup=_("数据复制与构造"),
+        is_ticket_action=True,
+        common_labels=[CommonActionLabel.DEVELOPER],
+    )
+
+    REDIS_CLUSTER_ROLLBACK_DATA_COPY = ActionMeta(
+        id=TicketType.REDIS_CLUSTER_ROLLBACK_DATA_COPY.lower(),
+        subgroup=_("数据复制与构造"),
+        is_ticket_action=True,
+        common_labels=[CommonActionLabel.DEVELOPER],
+    )
+
+    REDIS_DATA_STRUCTURE = ActionMeta(
+        id=TicketType.REDIS_DATA_STRUCTURE.lower(),
+        subgroup=_("数据复制与构造"),
+        is_ticket_action=True,
+        common_labels=[CommonActionLabel.DEVELOPER],
+    )
+
+    REDIS_DATA_STRUCTURE_TASK_DELETE = ActionMeta(
+        id=TicketType.REDIS_DATA_STRUCTURE_TASK_DELETE.lower(),
+        subgroup=_("数据复制与构造"),
+        is_ticket_action=True,
+        common_labels=[CommonActionLabel.DEVELOPER],
+    )
+
+    REDIS_PURGE = ActionMeta(
+        id=TicketType.REDIS_PURGE.lower(),
+        subgroup=_("数据清理"),
+        is_ticket_action=True,
+        common_labels=[CommonActionLabel.DEVELOPER],
+    )
+
+    REDIS_DATACOPY_CHECK_REPAIR = ActionMeta(
+        id=TicketType.REDIS_DATACOPY_CHECK_REPAIR.lower(),
+        name=_("Redis 数据校验与修复"),
+        name_en="REDIS_DATACOPY_CHECK_REPAIR",
+        type="execute",
+        related_resource_types=[ResourceEnum.REDIS],
+        group=_("已废弃"),
+    )
+
+    REDIS_ROLLBACK_EXERCISE = ActionMeta(
+        id=TicketType.REDIS_ROLLBACK_EXERCISE.lower(),
+        name=_("Redis 回档演练"),
+        name_en="REDIS_ROLLBACK_EXERCISE",
+        type="execute",
+        related_resource_types=[ResourceEnum.REDIS],
+        group=_("已废弃"),
+    )
+
+    REDIS_TENDISPLUS_LIGHTNING_DATA = ActionMeta(
+        id=TicketType.REDIS_TENDISPLUS_LIGHTNING_DATA.lower(),
+        name=_("Tendisplus闪电导入数据"),
+        name_en="REDIS_TENDISPLUS_LIGHTNING_DATA",
+        type="execute",
+        related_resource_types=[ResourceEnum.REDIS],
+        group=_("已废弃"),
+    )
+
+    REDIS_CLUSTER_ADD_SLAVE = ActionMeta(
+        id=TicketType.REDIS_CLUSTER_ADD_SLAVE.lower(),
+        name=_("Redis 重建从库"),
+        name_en="REDIS_CLUSTER_ADD_SLAVE",
+        type="execute",
+        related_resource_types=[ResourceEnum.REDIS],
+        group=_("已废弃"),
+    )
+
+    REDIS_SHARD_ADD = ActionMeta(
+        id=TicketType.REDIS_SHARD_ADD.lower(),
+        name=_("Redis 增加分片数"),
+        name_en="REDIS_SHARD_ADD",
+        type="execute",
+        related_resource_types=[ResourceEnum.REDIS],
+        group=_("已废弃"),
+    )
+
+    REDIS_SHARD_REDUCE = ActionMeta(
+        id=TicketType.REDIS_SHARD_REDUCE.lower(),
+        name=_("Redis 减少分片数"),
+        name_en="REDIS_SHARD_REDUCE",
+        type="execute",
+        related_resource_types=[ResourceEnum.REDIS],
+        group=_("已废弃"),
+    )
+
+    REDIS_PROXY_SCALE_UP = ActionMeta(
+        id=TicketType.REDIS_PROXY_SCALE_UP.lower(),
+        name=_("Redis Proxy扩容"),
+        name_en="REDIS_PROXY_SCALE_UP",
+        type="execute",
+        related_resource_types=[ResourceEnum.REDIS],
+        group=_("已废弃"),
+    )
+
+    REDIS_PROXY_SCALE_DOWN = ActionMeta(
+        id=TicketType.REDIS_PROXY_SCALE_DOWN.lower(),
+        name=_("Redis Proxy缩容"),
+        name_en="REDIS_PROXY_SCALE_DOWN",
+        type="execute",
+        related_resource_types=[ResourceEnum.REDIS],
+        group=_("已废弃"),
+    )
+
+    REDIS_SCALE_UPDOWN = ActionMeta(
+        id=TicketType.REDIS_SCALE_UPDOWN.lower(),
+        name=_("Redis 集群容量变更"),
+        name_en="REDIS_SCALE_UPDOWN",
+        type="execute",
+        related_resource_types=[ResourceEnum.REDIS],
+        group=_("已废弃"),
+    )
+
+    REDIS_CLUSTER_SHARD_NUM_UPDATE = ActionMeta(
+        id=TicketType.REDIS_CLUSTER_SHARD_NUM_UPDATE.lower(),
+        name=_("Redis 集群分片数变更"),
+        name_en="REDIS_CLUSTER_SHARD_NUM_UPDATE",
+        type="execute",
+        related_resource_types=[ResourceEnum.REDIS],
+        group=_("已废弃"),
+    )
+
+    REDIS_MASTER_SLAVE_SWITCH = ActionMeta(
+        id=TicketType.REDIS_MASTER_SLAVE_SWITCH.lower(),
+        name=_("Redis 主从切换"),
+        name_en="REDIS_MASTER_SLAVE_SWITCH",
+        type="execute",
+        related_resource_types=[ResourceEnum.REDIS],
+        group=_("已废弃"),
+    )
+
+    REDIS_CLUSTER_INS_MIGRATE = ActionMeta(
+        id=TicketType.REDIS_CLUSTER_INS_MIGRATE.lower(),
+        name=_("Redis 集群指定实例迁移"),
+        name_en="REDIS_CLUSTER_INS_MIGRATE",
+        type="execute",
+        related_resource_types=[ResourceEnum.REDIS],
+        group=_("已废弃"),
+    )
+
+    REDIS_SINGLE_INS_MIGRATE = ActionMeta(
+        id=TicketType.REDIS_SINGLE_INS_MIGRATE.lower(),
+        name=_("Redis 主从指定实例迁移"),
+        name_en="REDIS_SINGLE_INS_MIGRATE",
+        type="execute",
+        related_resource_types=[ResourceEnum.REDIS],
+        group=_("已废弃"),
+    )
+
+    REDIS_VERSION_UPDATE_ONLINE = ActionMeta(
+        id=TicketType.REDIS_VERSION_UPDATE_ONLINE.lower(),
+        name=_("Redis 集群版本升级"),
+        name_en="REDIS_VERSION_UPDATE_ONLINE",
+        type="execute",
+        related_resource_types=[ResourceEnum.REDIS],
+        group=_("已废弃"),
+    )
+
+    REDIS_CLUSTER_TYPE_UPDATE = ActionMeta(
+        id=TicketType.REDIS_CLUSTER_TYPE_UPDATE.lower(),
+        name=_("Redis 集群类型变更"),
+        name_en="REDIS_CLUSTER_TYPE_UPDATE",
+        type="execute",
+        related_resource_types=[ResourceEnum.REDIS],
+        group=_("已废弃"),
+    )
+
+    REDIS_CLUSTER_AUTOFIX = ActionMeta(
+        id=TicketType.REDIS_CLUSTER_AUTOFIX.lower(),
+        name=_("Redis 故障自愈"),
+        name_en="REDIS_CLUSTER_AUTOFIX",
+        type="execute",
+        related_resource_types=[ResourceEnum.REDIS],
+        group=_("已废弃"),
+    )
+
+    REDIS_CLUSTER_CUTOFF = ActionMeta(
+        id=TicketType.REDIS_CLUSTER_CUTOFF.lower(),
+        name=_("Redis 整机替换"),
+        name_en="REDIS_CLUSTER_CUTOFF",
+        type="execute",
+        related_resource_types=[ResourceEnum.REDIS],
+        group=_("已废弃"),
+    )
+
+    REDIS_CLUSTER_INSTANCE_SHUTDOWN = ActionMeta(
+        id=TicketType.REDIS_CLUSTER_INSTANCE_SHUTDOWN.lower(),
+        name=_("Redis 故障自愈-实例下架"),
+        name_en="REDIS_CLUSTER_INSTANCE_SHUTDOWN",
+        type="execute",
+        related_resource_types=[ResourceEnum.REDIS],
+        group=_("已废弃"),
+    )
+
+    REDIS_PROXY_KICKOFF = ActionMeta(
+        id=TicketType.REDIS_PROXY_KICKOFF.lower(),
+        name=_("Redis 集群Proxy剔除"),
+        name_en="REDIS_PROXY_KICKOFF",
+        type="execute",
+        related_resource_types=[ResourceEnum.REDIS],
+        group=_("已废弃"),
+    )
+
+    REDIS_PROXY_FIX = ActionMeta(
+        id=TicketType.REDIS_PROXY_FIX.lower(),
+        name=_("Redis 集群Proxy恢复"),
+        name_en="REDIS_PROXY_FIX",
+        type="execute",
+        related_resource_types=[ResourceEnum.REDIS],
+        group=_("已废弃"),
+    )
+
+    REDIS_PROXY_FAST_RECOVER = ActionMeta(
+        id=TicketType.REDIS_PROXY_FAST_RECOVER.lower(),
+        name=_("Redis Proxy剔除和修复"),
+        name_en="REDIS_PROXY_FAST_RECOVER",
+        type="execute",
+        related_resource_types=[ResourceEnum.REDIS],
+        group=_("已废弃"),
+    )
+
+    REDIS_CLUSTER_REINSTALL_DBMON = ActionMeta(
+        id=TicketType.REDIS_CLUSTER_REINSTALL_DBMON.lower(),
+        name=_("REDIS 集群标准化"),
+        name_en="REDIS_CLUSTER_REINSTALL_DBMON",
+        type="execute",
+        related_resource_types=[ResourceEnum.REDIS],
+        group=_("已废弃"),
+    )
+
+    REDIS_CLUSTER_LOAD_MODULES = ActionMeta(
+        id=TicketType.REDIS_CLUSTER_LOAD_MODULES.lower(),
+        name=_("Redis 集群安装modules"),
+        name_en="REDIS_CLUSTER_LOAD_MODULES",
+        type="execute",
+        related_resource_types=[ResourceEnum.REDIS],
+        group=_("已废弃"),
+    )
+
+    REDIS_CLUSTER_MAXMEMORY_SET = ActionMeta(
+        id=TicketType.REDIS_CLUSTER_MAXMEMORY_SET.lower(),
+        name=_("Redis 集群设置maxmemory"),
+        name_en="REDIS_CLUSTER_MAXMEMORY_SET",
+        type="execute",
+        related_resource_types=[ResourceEnum.REDIS],
+        group=_("已废弃"),
+    )
+
+    REDIS_CLUSTER_RENAME_DOMAIN = ActionMeta(
+        id=TicketType.REDIS_CLUSTER_RENAME_DOMAIN.lower(),
+        name=_("Redis集群域名重命名"),
+        name_en="REDIS_CLUSTER_RENAME_DOMAIN",
+        type="execute",
+        related_resource_types=[ResourceEnum.REDIS],
+        group=_("已废弃"),
+    )
+
+    REDIS_CHANGE_BIZ = ActionMeta(
+        id=TicketType.REDIS_CHANGE_BIZ.lower(),
+        name=_("Redis 集群业务变更"),
+        name_en="REDIS_CHANGE_BIZ",
+        type="execute",
+        related_resource_types=[ResourceEnum.REDIS],
+        group=_("已废弃"),
+    )
+
+    REDIS_ROLE_CHECK = ActionMeta(
+        id=TicketType.REDIS_ROLE_CHECK.lower(),
+        name=_("Redis 角色检查"),
+        name_en="REDIS_ROLE_CHECK",
+        type="execute",
+        related_resource_types=[ResourceEnum.REDIS],
+        group=_("已废弃"),
+    )
+
+    REDIS_ENTRY_CHECK = ActionMeta(
+        id=TicketType.REDIS_ENTRY_CHECK.lower(),
+        name=_("Redis 入口一致性检查"),
+        name_en="REDIS_ENTRY_CHECK",
+        type="execute",
+        related_resource_types=[ResourceEnum.REDIS],
+        group=_("已废弃"),
+    )
+
+    REDIS_PLUGIN_CREATE_CLB = ActionMeta(
+        id=TicketType.REDIS_PLUGIN_CREATE_CLB.lower(),
+        name=_("Redis 创建CLB"),
+        name_en="REDIS_PLUGIN_CREATE_CLB",
+        type="execute",
+        related_resource_types=[ResourceEnum.REDIS],
+        group=_("已废弃"),
+    )
+
+    REDIS_PLUGIN_DELETE_CLB = ActionMeta(
+        id=TicketType.REDIS_PLUGIN_DELETE_CLB.lower(),
+        name=_("Redis 删除CLB"),
+        name_en="REDIS_PLUGIN_DELETE_CLB",
+        type="execute",
+        related_resource_types=[ResourceEnum.REDIS],
+        group=_("已废弃"),
+    )
+
+    REDIS_PLUGIN_DNS_BIND_CLB = ActionMeta(
+        id=TicketType.REDIS_PLUGIN_DNS_BIND_CLB.lower(),
+        name=_("Redis 域名绑定CLB"),
+        name_en="REDIS_PLUGIN_DNS_BIND_CLB",
+        type="execute",
+        related_resource_types=[ResourceEnum.REDIS],
+        group=_("已废弃"),
+    )
+
+    REDIS_PLUGIN_DNS_UNBIND_CLB = ActionMeta(
+        id=TicketType.REDIS_PLUGIN_DNS_UNBIND_CLB.lower(),
+        name=_("Redis 域名解绑CLB"),
+        name_en="REDIS_PLUGIN_DNS_UNBIND_CLB",
+        type="execute",
+        related_resource_types=[ResourceEnum.REDIS],
+        group=_("已废弃"),
+    )
+
+    REDIS_PLUGIN_CREATE_POLARIS = ActionMeta(
+        id=TicketType.REDIS_PLUGIN_CREATE_POLARIS.lower(),
+        name=_("Redis 创建Polaris"),
+        name_en="REDIS_PLUGIN_CREATE_POLARIS",
+        type="execute",
+        related_resource_types=[ResourceEnum.REDIS],
+        group=_("已废弃"),
+    )
+
+    REDIS_PLUGIN_DELETE_POLARIS = ActionMeta(
+        id=TicketType.REDIS_PLUGIN_DELETE_POLARIS.lower(),
+        name=_("Redis 删除Polaris"),
+        name_en="REDIS_PLUGIN_DELETE_POLARIS",
+        type="execute",
+        related_resource_types=[ResourceEnum.REDIS],
+        group=_("已废弃"),
+    )
+
     REDIS_KEYS_EXTRACT = ActionMeta(
         id=TicketType.REDIS_KEYS_EXTRACT.lower(),
-        subgroup=_("集群管理"),
+        subgroup=_("查询与变更"),
         is_ticket_action=True,
         common_labels=[CommonActionLabel.DEVELOPER],
     )
 
     REDIS_KEYS_DELETE = ActionMeta(
         id=TicketType.REDIS_KEYS_DELETE.lower(),
-        subgroup=_("集群管理"),
+        subgroup=_("查询与变更"),
         is_ticket_action=True,
         common_labels=[CommonActionLabel.DEVELOPER],
     )
 
     REDIS_HOT_KEY_ANALYSIS = ActionMeta(
         id=TicketType.REDIS_HOT_KEY_ANALYSIS.lower(),
-        subgroup=_("集群管理"),
+        subgroup=_("查询与变更"),
         is_ticket_action=True,
         common_labels=[CommonActionLabel.DEVELOPER],
     )
 
     REDIS_KEYSTAT = ActionMeta(
         id=TicketType.REDIS_KEYSTAT.lower(),
-        subgroup=_("集群管理"),
+        subgroup=_("查询与变更"),
         is_ticket_action=True,
         common_labels=[CommonActionLabel.DEVELOPER],
     )
@@ -3988,7 +4341,7 @@ class ActionEnum:
 
     REDIS_MANAGE = ActionMeta(
         id="redis_manage",
-        name=_("Redis 集群管理"),
+        name=_("Redis 集群运维管理"),
         name_en="redis_manage",
         type="manage",
         related_actions=[],

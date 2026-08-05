@@ -16,6 +16,7 @@ from backend.db_meta.models import Cluster, Machine
 from backend.flow.engine.controller.redis import RedisController
 from backend.flow.utils.redis.redis_proxy_util import get_major_version_by_version_name
 from backend.flow.utils.redis.redis_util import get_tendisplus_shutdown_hosts
+from backend.iam_app.dataclass.actions import ActionEnum
 from backend.ticket import builders
 from backend.ticket.builders.redis.base import (
     BaseRedisTicketFlowBuilder,
@@ -58,7 +59,7 @@ class RedisShardReduceParamBuilder(builders.FlowParamBuilder):
         super().format_ticket_data()
 
 
-@builders.BuilderFactory.register(TicketType.REDIS_SHARD_REDUCE, is_recycle=True)
+@builders.BuilderFactory.register(TicketType.REDIS_SHARD_REDUCE, is_recycle=True, iam=ActionEnum.REDIS_MANAGE)
 class RedisShardReduceFlowBuilder(BaseRedisTicketFlowBuilder):
     serializer = RedisShardReduceDetailSerializer
     inner_flow_builder = RedisShardReduceParamBuilder

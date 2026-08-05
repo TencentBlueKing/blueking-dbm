@@ -14,6 +14,7 @@ from rest_framework import serializers
 from backend.db_services.dbbase.constants import IpSource
 from backend.flow.engine.controller.redis import RedisController
 from backend.flow.utils.redis.redis_proxy_util import get_major_version_by_version_name
+from backend.iam_app.dataclass.actions import ActionEnum
 from backend.ticket import builders
 from backend.ticket.builders.common.base import BaseOperateResourceParamBuilder
 from backend.ticket.builders.redis.base import (
@@ -68,7 +69,7 @@ class RedisShardAddResourceParamBuilder(BaseOperateResourceParamBuilder):
         super().post_callback()
 
 
-@builders.BuilderFactory.register(TicketType.REDIS_SHARD_ADD, is_apply=True)
+@builders.BuilderFactory.register(TicketType.REDIS_SHARD_ADD, is_apply=True, iam=ActionEnum.REDIS_MANAGE)
 class RedisShardAddFlowBuilder(BaseRedisTicketFlowBuilder):
     serializer = RedisShardAddDetailSerializer
     inner_flow_builder = RedisShardAddParamBuilder

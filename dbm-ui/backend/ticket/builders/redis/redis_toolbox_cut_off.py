@@ -16,6 +16,7 @@ from backend.db_meta.enums import InstanceRole
 from backend.db_meta.models import Cluster, ProxyInstance, StorageInstance
 from backend.db_services.dbbase.constants import IpSource
 from backend.flow.engine.controller.redis import RedisController
+from backend.iam_app.dataclass.actions import ActionEnum
 from backend.ticket import builders
 from backend.ticket.builders.common.base import (
     BaseOperateResourceParamBuilder,
@@ -116,7 +117,9 @@ class RedisClusterCutOffResourceParamBuilder(BaseOperateResourceParamBuilder):
         super().post_callback()
 
 
-@builders.BuilderFactory.register(TicketType.REDIS_CLUSTER_CUTOFF, is_apply=True, is_recycle=True, async_build=True)
+@builders.BuilderFactory.register(
+    TicketType.REDIS_CLUSTER_CUTOFF, is_apply=True, is_recycle=True, async_build=True, iam=ActionEnum.REDIS_MANAGE
+)
 class RedisClusterCutOffFlowBuilder(BaseRedisTicketFlowBuilder):
     serializer = RedisClusterCutOffDetailSerializer
     inner_flow_builder = RedisClusterCutOffParamBuilder

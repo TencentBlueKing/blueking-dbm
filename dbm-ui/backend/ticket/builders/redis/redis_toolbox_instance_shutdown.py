@@ -14,6 +14,7 @@ from rest_framework import serializers
 
 from backend.db_meta.models import Cluster, Machine
 from backend.flow.engine.controller.redis import RedisController
+from backend.iam_app.dataclass.actions import ActionEnum
 from backend.ticket import builders
 from backend.ticket.builders.redis.base import BaseRedisTicketFlowBuilder, RedisBaseOperateDetailSerializer
 from backend.ticket.constants import TicketType
@@ -46,7 +47,9 @@ class RedisClusterInstShutdownParamBuilder(builders.FlowParamBuilder):
         super().format_ticket_data()
 
 
-@builders.BuilderFactory.register(TicketType.REDIS_CLUSTER_INSTANCE_SHUTDOWN, is_recycle=True)
+@builders.BuilderFactory.register(
+    TicketType.REDIS_CLUSTER_INSTANCE_SHUTDOWN, is_recycle=True, iam=ActionEnum.REDIS_MANAGE
+)
 class RedisClusterInstShutdownFlowBuilder(BaseRedisTicketFlowBuilder):
     serializer = RedisClusterInstShutdownDetailSerializer
     inner_flow_builder = RedisClusterInstShutdownParamBuilder
