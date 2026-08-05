@@ -16,6 +16,7 @@ from backend.db_meta.models import AppCache
 from backend.db_services.dbbase.constants import IpSource
 from backend.flow.engine.controller.mongodb import MongoDBController
 from backend.flow.utils.mongodb.mongodb_get_remove_hosts import instance_migrate_remove_hosts
+from backend.iam_app.dataclass.actions import ActionEnum
 from backend.ticket import builders
 from backend.ticket.builders.common.base import get_mongodb_cluster_tolerance
 from backend.ticket.builders.mongodb.base import (
@@ -65,7 +66,7 @@ class MongoDBShardMigrateResourceParamBuilder(BaseMongoDBOperateResourceParamBui
         )
 
 
-@builders.BuilderFactory.register(TicketType.MONGODB_SHARD_MIGRATE, is_recycle=True)
+@builders.BuilderFactory.register(TicketType.MONGODB_SHARD_MIGRATE, is_recycle=True, iam=ActionEnum.MONGODB_MANAGE)
 class MongoDBShardMigrateFlowBuilder(BaseMongoDBTicketFlowBuilder):
     serializer = MongoDBShardMigrateDetailSerializer
     validator = MongoDBController.instance_migrate.validator

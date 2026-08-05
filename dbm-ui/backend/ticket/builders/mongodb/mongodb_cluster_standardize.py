@@ -2,6 +2,7 @@ from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
 from backend.flow.engine.controller.mongodb import MongoDBController
+from backend.iam_app.dataclass.actions import ActionEnum
 from backend.ticket import builders
 from backend.ticket.builders.mongodb.base import BaseMongoDBOperateDetailSerializer, BaseMongoDBTicketFlowBuilder
 from backend.ticket.constants import FlowRetryType, TicketType
@@ -18,7 +19,7 @@ class MongodbClusterStandardizeFlowParamBuilder(builders.FlowParamBuilder):
     controller = MongoDBController.cluster_standardization
 
 
-@builders.BuilderFactory.register(TicketType.MONGODB_CLUSTER_STANDARDIZE)
+@builders.BuilderFactory.register(TicketType.MONGODB_CLUSTER_STANDARDIZE, iam=ActionEnum.MONGODB_MANAGE)
 class MongodbClusterStandardizeFlowBuilder(BaseMongoDBTicketFlowBuilder):
     serializer = MongodbClusterStandardizeDetailSerializer
     inner_flow_builder = MongodbClusterStandardizeFlowParamBuilder

@@ -14,6 +14,7 @@ from rest_framework import serializers
 from backend.db_meta.models import AppCache
 from backend.db_services.dbbase.constants import IpSource
 from backend.flow.engine.controller.mongodb import MongoDBController
+from backend.iam_app.dataclass.actions import ActionEnum
 from backend.ticket import builders
 from backend.ticket.builders.mongodb.base import (
     BaseMongoDBOperateDetailSerializer,
@@ -60,7 +61,7 @@ class MongoDBAutofixResourceParamBuilder(BaseMongoDBOperateResourceParamBuilder)
         pass
 
 
-@builders.BuilderFactory.register(TicketType.MONGODB_AUTOFIX, is_apply=True)
+@builders.BuilderFactory.register(TicketType.MONGODB_AUTOFIX, is_apply=True, iam=ActionEnum.MONGODB_MANAGE)
 class MongoDBAutofixFlowBuilder(BaseMongoShardedTicketFlowBuilder):
     serializer = MongoDBAutofixDetailSerializer
     inner_flow_builder = MongoDBAutofixFlowParamBuilder

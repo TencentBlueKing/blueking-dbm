@@ -20,6 +20,7 @@ from backend.db_meta.models import AppCache, Cluster
 from backend.db_services.dbbase.constants import IpSource
 from backend.db_services.mongodb.resources.query import MongoDBListRetrieveResource
 from backend.flow.engine.controller.mongodb import MongoDBController
+from backend.iam_app.dataclass.actions import ActionEnum
 from backend.ticket import builders
 from backend.ticket.builders.common.base import get_mongodb_cluster_tolerance
 from backend.ticket.builders.mongodb.base import (
@@ -127,7 +128,9 @@ class MongoDBShardAddShardNodesResourceParamBuilder(BaseMongoDBOperateResourcePa
                     info["add_shard_nodes"].append({"shards": shards, "mongodb": info.pop(f"mongodb_{num}")})
 
 
-@builders.BuilderFactory.register(TicketType.MONGODB_SHARD_ADD_SHARD_NODES, is_apply=True)
+@builders.BuilderFactory.register(
+    TicketType.MONGODB_SHARD_ADD_SHARD_NODES, is_apply=True, iam=ActionEnum.MONGODB_MANAGE
+)
 class MongoDBShardAddMongosApplyFlowBuilder(BaseMongoDBTicketFlowBuilder):
     serializer = MongoDBShardAddShardNodesDetailSerializer
     inner_flow_builder = MongoDBShardAddShardNodesFlowParamBuilder

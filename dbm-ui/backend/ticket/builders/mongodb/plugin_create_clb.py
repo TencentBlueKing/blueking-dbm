@@ -11,6 +11,7 @@ specific language governing permissions and limitations under the License.
 from django.utils.translation import gettext_lazy as _
 
 from backend.flow.engine.controller.name_service import NameServiceController
+from backend.iam_app.dataclass.actions import ActionEnum
 from backend.ticket import builders
 from backend.ticket.builders.mongodb.base import BaseMongoDBPluginDetailSerializer, BaseMongoDBTicketFlowBuilder
 from backend.ticket.constants import TicketType
@@ -35,7 +36,7 @@ class MongoDBPluginCreateCLBFlowParamBuilder(builders.FlowParamBuilder):
         super().format_ticket_data()
 
 
-@builders.BuilderFactory.register(TicketType.MONGODB_PLUGIN_CREATE_CLB)
+@builders.BuilderFactory.register(TicketType.MONGODB_PLUGIN_CREATE_CLB, iam=ActionEnum.MONGODB_LOADBALANCE_MANAGE)
 class MongoDBPluginCreateCLBFlowBuilder(BaseMongoDBTicketFlowBuilder):
     serializer = MongoDBPluginCreateCLBDetailSerializer
     inner_flow_builder = MongoDBPluginCreateCLBFlowParamBuilder
