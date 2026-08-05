@@ -379,13 +379,14 @@ class ShardedCluster(MongoDBCluster):
             matches = re.findall("[0-9]+$", set_name)
             return int(matches[-1]) if matches else 0
 
-        if sort_by_set_name:
-            self.shards.sort(key=lambda x: __get_shard_idx(x.set_name))
+        ordered_shards = (
+            sorted(self.shards, key=lambda x: __get_shard_idx(x.set_name)) if sort_by_set_name else list(self.shards)
+        )
 
         shards = []
         if with_config:
             shards.append(self.config)
-        shards.extend(self.shards)
+        shards.extend(ordered_shards)
 
         return shards
 

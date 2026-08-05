@@ -37,12 +37,18 @@ class ListAvailableVersionSerializer(serializers.Serializer):
     cluster_ids = serializers.ListField(help_text=_("集群ID列表"), child=serializers.IntegerField(), allow_empty=False)
 
 
+class ListClusterShardsSerializer(serializers.Serializer):
+    cluster_ids = serializers.ListField(help_text=_("集群ID列表"), child=serializers.IntegerField(), allow_empty=False)
+
+
 class MongoScriptSyntaxCheckSerializer(serializers.Serializer):
     """MongoDB脚本语法检查序列化器"""
 
     script_content = serializers.CharField(help_text=_("脚本内容列表"), required=False)
     script_files = serializers.ListField(
-        help_text=_("脚本文件列表"), child=serializers.FileField(help_text=_("脚本文件"), required=False), required=False
+        help_text=_("脚本文件列表"),
+        child=serializers.FileField(help_text=_("脚本文件"), required=False),
+        required=False,
     )
 
     def validate(self, attrs):

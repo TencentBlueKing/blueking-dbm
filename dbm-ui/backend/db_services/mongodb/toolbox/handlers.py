@@ -9,10 +9,11 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 
+import re
 from typing import Any, Dict, List, Set
 
 from django.core.files.uploadedfile import InMemoryUploadedFile
-from django.db.models import Q
+from django.db.models import Prefetch, Q
 from django.utils.translation import gettext as _
 from rest_framework import serializers
 
@@ -193,6 +194,47 @@ class ToolboxHandler(ClusterServiceHandler):
             full_list = sorted(merged[key], key=cls._extract_full_version_tuple)
             ordered.append({"major": key, "full_list": full_list})
         return ordered
+
+    @staticmethod
+    def _shard_name_sort_key(set_name: str) -> int:
+        matches = re.findall("[0-9]+$", set_name)
+        return int(matches[-1]) if matches else 0
+
+    @classmethod
+    def list_cluster_shards(cls, bk_biz_id: int, cluster_ids: List[int]) -> List[dict]:
+        """按 cluster_ids 顺序返回当前业务下分片集群的分片名列表（按编号升序，不含 configsvr）"""
+
+        clusters = Cluster.objects.filter(bk_biz_id=bk_biz_id, id__in=cluster_ids).prefetch_related(
+            Prefetch(
+                "nosqlstoragesetdtl_set",
+                queryset=NosqlStorageSetDtl.objects.filter(instance__machine__machine_type=MachineType.MONGODB).only(
+                    "id", "seg_range", "cluster_id"
+                ),
+                to_attr="mongodb_shard_dtls",
+            )
+        )
+        cluster_map = {cluster.id: cluster for cluster in clusters}
+        missing_cluster_ids = sorted(set(cluster_ids) - set(cluster_map.keys()))
+        if missing_cluster_ids:
+            raise serializers.ValidationError(_("集群不存在：{}").format(",".join(map(str, missing_cluster_ids))))
+
+        result: List[dict] = []
+        for cluster_id in cluster_ids:
+            cluster = cluster_map[cluster_id]
+            if cluster.cluster_type != ClusterType.MongoShardedCluster.value:
+                raise serializers.ValidationError(_("集群{}不是分片集群").format(cluster_id))
+            shard_list = sorted(
+                {dtl.seg_range for dtl in cluster.mongodb_shard_dtls},
+                key=cls._shard_name_sort_key,
+            )
+            result.append(
+                {
+                    "cluster_id": cluster_id,
+                    "immute_domain": cluster.immute_domain,
+                    "shard_list": shard_list,
+                }
+            )
+        return result
 
     @classmethod
     def get_execute_net_tcp_cluster_hosts(cls, cluster):

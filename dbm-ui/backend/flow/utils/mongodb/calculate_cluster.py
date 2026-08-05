@@ -10,6 +10,8 @@ specific language governing permissions and limitations under the License.
 """
 from copy import deepcopy
 
+from django.utils.translation import gettext as _
+
 from backend.configuration.constants import AffinityEnum
 from backend.db_meta.enums.cluster_type import ClusterType
 from backend.db_meta.models import Cluster, Machine
@@ -447,29 +449,24 @@ def calculate_cluster_add_shard(payload: dict) -> dict:
     return add_shard_payload
 
 
-def _validate_co_located_shard_group(all_shards: list, selected_names: set) -> None:
+def _validate_remaining_shard_deployment_balanced(all_shards: list, selected_names: set) -> None:
     """
-    整机组约束：选中任一 shard 时，同机共存的其它 shard 必须一并选中。
-    all_shards: ReplicaSet list（不含 configsvr）
+    缩容后剩余部署均衡校验（指定分片 / 指定数量均适用）：
+    - 主机上剩余实例数为 0：允许（回收机器）
+    - 仍有实例的主机：各主机剩余分片实例数必须一致
+      （例：3 组机器共 6 片、单机 2 片时，可缩 2/4/5，不可缩 1/3）
     """
 
-    ip_to_shards = {}
-    shard_to_ips = {}
+    ip_remaining_count = {}
     for shard in all_shards:
-        ips = {member.ip for member in shard.members}
-        shard_to_ips[shard.set_name] = ips
-        for ip in ips:
-            ip_to_shards.setdefault(ip, set()).add(shard.set_name)
+        if shard.set_name in selected_names:
+            continue
+        for member in shard.members:
+            ip_remaining_count[member.ip] = ip_remaining_count.get(member.ip, 0) + 1
 
-    for selected in selected_names:
-        required = set()
-        for ip in shard_to_ips.get(selected, set()):
-            required |= ip_to_shards.get(ip, set())
-        missing = required - selected_names
-        if missing:
-            raise ValueError(
-                "co-located shard group incomplete: selected={} requires also {}".format(selected, sorted(missing))
-            )
+    counts = set(ip_remaining_count.values())
+    if len(counts) > 1:
+        raise ValueError(_("剩余分片部署不均衡：仍有实例的主机剩余分片实例数必须一致，当前各主机计数={}").format(dict(sorted(ip_remaining_count.items()))))
 
 
 def calculate_cluster_reduce_shard(payload: dict) -> dict:
@@ -491,35 +488,46 @@ def calculate_cluster_reduce_shard(payload: dict) -> dict:
     cluster_reduce_shard_info = []
     for cluster in payload["infos"]:
         cluster_id = cluster["cluster_id"]
-        shard_names = list(cluster.get("shard_names") or [])
-        if not shard_names:
-            raise ValueError("cluster_id={} shard_names can not be empty".format(cluster_id))
-
-        selected = set(shard_names)
-        if len(selected) != len(shard_names):
-            raise ValueError("cluster_id={} shard_names has duplicates".format(cluster_id))
+        reduce_mode = cluster.get("reduce_mode") or "by_shard_names"
 
         cluster_info_from_db = MongoRepository().fetch_one_cluster(id=cluster_id)
         if cluster_info_from_db is None:
-            raise ValueError("cluster_id={} not found".format(cluster_id))
+            raise ValueError(_("集群不存在：{}").format(cluster_id))
         if cluster_info_from_db.cluster_type != ClusterType.MongoShardedCluster.value:
-            raise ValueError("cluster_id={} is not MongoShardedCluster".format(cluster_id))
+            raise ValueError(_("集群{}不是分片集群").format(cluster_id))
 
-        all_shards = cluster_info_from_db.get_shards()
+        all_shards = cluster_info_from_db.get_shards(sort_by_set_name=True)
         all_shard_names = {shard.set_name for shard in all_shards}
+
+        if reduce_mode == "by_count":
+            reduce_shards_num = int(cluster.get("reduce_shards_num") or 0)
+            if reduce_shards_num < 1:
+                raise ValueError(_("集群{}缩容分片数必须>=1").format(cluster_id))
+            if reduce_shards_num >= len(all_shards):
+                raise ValueError(_("集群{}缩容后至少保留1个分片").format(cluster_id))
+            shard_names = [shard.set_name for shard in all_shards[-reduce_shards_num:]]
+        else:
+            shard_names = list(cluster.get("shard_names") or [])
+            if not shard_names:
+                raise ValueError(_("集群{}的shard_names不能为空").format(cluster_id))
+
+        selected = set(shard_names)
+        if len(selected) != len(shard_names):
+            raise ValueError(_("集群{}的shard_names存在重复").format(cluster_id))
+
         unknown = selected - all_shard_names
         if unknown:
-            raise ValueError("cluster_id={} unknown shard_names={}".format(cluster_id, sorted(unknown)))
+            raise ValueError(_("集群{}存在未知分片：{}").format(cluster_id, sorted(unknown)))
 
         config = cluster_info_from_db.get_config()
         if config and config.set_name in selected:
-            raise ValueError("cluster_id={} can not remove configsvr shard {}".format(cluster_id, config.set_name))
+            raise ValueError(_("集群{}不能缩容 configsvr 分片 {}").format(cluster_id, config.set_name))
 
         remaining = len(all_shard_names) - len(selected)
         if remaining < 1:
-            raise ValueError("cluster_id={} would remove all shards, remaining must be >= 1".format(cluster_id))
+            raise ValueError(_("集群{}缩容后至少保留1个分片").format(cluster_id))
 
-        _validate_co_located_shard_group(all_shards, selected)
+        _validate_remaining_shard_deployment_balanced(all_shards, selected)
 
         bk_cloud_id = cluster.get("bk_cloud_id", cluster_info_from_db.bk_cloud_id)
         mongos = cluster_info_from_db.get_mongos()[0]

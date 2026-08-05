@@ -11,6 +11,7 @@ specific language governing permissions and limitations under the License.
 import logging.config
 from typing import Dict, Optional
 
+from django.utils.translation import gettext as _
 from rest_framework import serializers
 
 from backend.flow.engine.bamboo.scene.common.builder import Builder
@@ -20,15 +21,47 @@ from backend.flow.utils.mongodb.mongodb_dataclass import ActKwargs
 
 logger = logging.getLogger("flow")
 
+REDUCE_SHARD_MODE_BY_SHARD_NAMES = "by_shard_names"
+REDUCE_SHARD_MODE_BY_COUNT = "by_count"
+
 
 class MongoDBClusterReduceShardFlow(object):
     """MongoDB 分片集群减少 shard flow"""
 
+    REDUCE_MODE_BY_SHARD_NAMES = REDUCE_SHARD_MODE_BY_SHARD_NAMES
+    REDUCE_MODE_BY_COUNT = REDUCE_SHARD_MODE_BY_COUNT
+
     class Serializer(serializers.Serializer):
         class InfoRow(serializers.Serializer):
             cluster_id = serializers.IntegerField(min_value=1)
-            shard_names = serializers.ListField(child=serializers.CharField(allow_blank=False), allow_empty=False)
+            reduce_mode = serializers.ChoiceField(
+                choices=[
+                    (REDUCE_SHARD_MODE_BY_SHARD_NAMES, REDUCE_SHARD_MODE_BY_SHARD_NAMES),
+                    (REDUCE_SHARD_MODE_BY_COUNT, REDUCE_SHARD_MODE_BY_COUNT),
+                ],
+                required=False,
+                default=REDUCE_SHARD_MODE_BY_SHARD_NAMES,
+            )
+            shard_names = serializers.ListField(
+                child=serializers.CharField(allow_blank=False), required=False, allow_empty=True
+            )
+            reduce_shards_num = serializers.IntegerField(min_value=1, required=False)
             bk_cloud_id = serializers.IntegerField(required=False)
+
+            def validate(self, attrs):
+                mode = attrs.get("reduce_mode") or REDUCE_SHARD_MODE_BY_SHARD_NAMES
+                attrs["reduce_mode"] = mode
+                if mode == REDUCE_SHARD_MODE_BY_SHARD_NAMES:
+                    shard_names = attrs.get("shard_names") or []
+                    if not shard_names:
+                        raise serializers.ValidationError(_("指定分片模式下 shard_names 不能为空"))
+                    attrs["shard_names"] = shard_names
+                    attrs.pop("reduce_shards_num", None)
+                elif mode == REDUCE_SHARD_MODE_BY_COUNT:
+                    if not attrs.get("reduce_shards_num"):
+                        raise serializers.ValidationError(_("指定数量模式下 reduce_shards_num 不能为空"))
+                    attrs.pop("shard_names", None)
+                return attrs
 
         uid = serializers.CharField(allow_blank=False)
         ticket_id = serializers.CharField(required=False, allow_blank=True)
@@ -41,7 +74,7 @@ class MongoDBClusterReduceShardFlow(object):
 
         def validate_uid(self, value):
             if not str(value).strip():
-                raise serializers.ValidationError("uid can not be empty")
+                raise serializers.ValidationError(_("uid不能为空"))
             return value
 
     def __init__(self, root_id: str, data: Optional[Dict]):
