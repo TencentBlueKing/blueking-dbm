@@ -14,6 +14,7 @@ from rest_framework import serializers
 
 from backend.flow.consts import MongoDBStrategyEnum
 from backend.flow.engine.controller.mongodb import MongoDBController
+from backend.iam_app.dataclass.actions import ActionEnum
 from backend.ticket import builders
 from backend.ticket.builders.mongodb.base import BaseMongoDBOperateDetailSerializer, BaseMongoDBTicketFlowBuilder
 from backend.ticket.constants import TicketType
@@ -38,7 +39,7 @@ class MongoDBUpgradeParamBuilder(builders.FlowParamBuilder):
         self.ticket_data["ticket_id"] = self.ticket.id
 
 
-@builders.BuilderFactory.register(TicketType.MONGODB_UPGRADE_VERSION)
+@builders.BuilderFactory.register(TicketType.MONGODB_UPGRADE_VERSION, iam=ActionEnum.MONGODB_MANAGE)
 class MongoDBUpgradeFlowBuilder(BaseMongoDBTicketFlowBuilder):
     serializer = MongodbUpgradeDetailSerializer
     inner_flow_builder = MongoDBUpgradeParamBuilder
