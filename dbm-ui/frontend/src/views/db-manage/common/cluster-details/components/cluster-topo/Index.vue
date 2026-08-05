@@ -27,7 +27,9 @@
     <div
       v-show="viewType === 'table'"
       style="height: 100%">
-      <ViewTable :cluster-role-node-group="clusterRoleNodeGroup" />
+      <ViewTable
+        :cluster-role-node-group="clusterRoleNodeGroup"
+        :cluster-type="clusterType" />
     </div>
     <ViewTopo
       v-if="viewType === 'topo'"
