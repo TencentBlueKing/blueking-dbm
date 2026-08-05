@@ -31,7 +31,7 @@ from .models import RedisAutofixCtl
 logger = logging.getLogger("root")
 
 
-def _load_chat_ids_by_priority(priority: str) -> list:
+def load_chat_ids_by_priority(priority: str) -> list:
     """
     读取 CHAT_IDS 配置，按优先级返回群 ID 列表。
 
@@ -104,7 +104,7 @@ def send_msg_2_qywx(sub_title: str, msgs):
 
     # 由本函数内部按标题判定消息优先级，调用方无需感知
     priority = _decide_priority_by_title(sub_title)
-    msg_ids = _load_chat_ids_by_priority(priority)
+    msg_ids = load_chat_ids_by_priority(priority)
     if len(msg_ids) == 0:
         logger.info("no chat ids configured for priority=%s, skip send: %s", priority, sub_title)
         return

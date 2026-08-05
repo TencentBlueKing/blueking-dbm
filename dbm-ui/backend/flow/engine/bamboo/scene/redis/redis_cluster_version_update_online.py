@@ -22,6 +22,7 @@ from backend.db_meta.enums import ClusterType, InstanceRole, InstanceStatus
 from backend.db_meta.enums.comm import RedisVerUpdateNodeType
 from backend.db_meta.models import Cluster, StorageInstance
 from backend.db_services.redis.redis_dts.constants import REDIS_CONF_DEL_SLAVEOF
+from backend.db_services.redis.redis_modules.models.redis_module_support import ClusterRedisModuleAssociate
 from backend.db_services.redis.util import is_redis_cluster_protocal, is_twemproxy_proxy_type
 from backend.flow.consts import (
     DEFAULT_LAST_IO_SECOND_AGO,
@@ -164,6 +165,7 @@ class RedisClusterVersionUpdateOnline(object):
         校验覆盖:
         - 集群是否存在, 非 running 状态 proxy/redis, proxy/redis 连通性 (async_multi_clusters_precheck)
         - 版本信息合法性 / 是否降级 / master-slave 配对
+        - Backend 升级时集群不得已安装 module
         - TendisRedisInstance 专属的 IP/pair 维度校验 (见 _validate_instance_pair_buckets)
         """
         to_precheck_cluster_ids: List[int] = []
@@ -178,6 +180,7 @@ class RedisClusterVersionUpdateOnline(object):
 
         self._prefetch_cluster_cache()
         self._validate_proxy_buckets()
+        self._validate_backend_has_no_modules()
         self._validate_backend_buckets()
         self._validate_instance_pair_buckets()
 
@@ -196,13 +199,21 @@ class RedisClusterVersionUpdateOnline(object):
             self._cluster_objs[cluster_id] = cluster
         return cluster
 
-    def _collect_upgraded_cluster_ids(self) -> List[int]:
+    def _collect_upgraded_cluster_ids(self, node_types: Optional[Tuple[str, ...]] = None) -> List[int]:
+        """
+        收集本次单据升级涉及的 cluster_id.
+        @param node_types: 限定结点类型; 默认 Proxy + Backend.
+          instance_pair_buckets 仅在包含 Backend 时并入 (TendisRedisInstance).
+        """
+        if node_types is None:
+            node_types = (RedisVerUpdateNodeType.Proxy.value, RedisVerUpdateNodeType.Backend.value)
         cluster_ids: Set[int] = set()
-        for node_type in (RedisVerUpdateNodeType.Proxy.value, RedisVerUpdateNodeType.Backend.value):
+        for node_type in node_types:
             for cluster_id in self.cluster_versions_ips.get(node_type, {}):
                 cluster_ids.add(int(cluster_id))
-        for bucket in self.instance_pair_buckets.values():
-            cluster_ids.update(int(cid) for cid in bucket["cluster_ids"])
+        if RedisVerUpdateNodeType.Backend.value in node_types:
+            for bucket in self.instance_pair_buckets.values():
+                cluster_ids.update(int(cid) for cid in bucket["cluster_ids"])
         return list(cluster_ids)
 
     def _prefetch_cluster_cache(self):
@@ -268,6 +279,33 @@ class RedisClusterVersionUpdateOnline(object):
                     raise Exception(
                         _("集群 {} 所有proxy当前版本等于目标版本: {}, 无需执行").format(cluster.immute_domain, target_version)
                     )
+
+    def _validate_backend_has_no_modules(self):
+        """
+        Backend 在线升级不支持已安装 redis module 的集群:
+        升级会重启进程并可能切换主从, module so 与目标版本不一定兼容, 且当前流程不会重装 module.
+        Proxy 升级不受此限制.
+        """
+        cluster_ids = self._collect_upgraded_cluster_ids(node_types=(RedisVerUpdateNodeType.Backend.value,))
+        if not cluster_ids:
+            return
+
+        module_map = {
+            row["cluster_id"]: row["module_names"] or []
+            for row in ClusterRedisModuleAssociate.objects.filter(cluster_id__in=cluster_ids).values(
+                "cluster_id", "module_names"
+            )
+        }
+        for cluster_id in cluster_ids:
+            module_names = [name for name in module_map.get(cluster_id, []) if name]
+            if not module_names:
+                continue
+            cluster = self._get_cluster(cluster_id)
+            raise Exception(
+                _("集群 {} 已安装 redis module {}, 不允许进行 Backend 在线版本升级").format(
+                    cluster.immute_domain, sorted(module_names)
+                )
+            )
 
     def _validate_backend_buckets(self):
         """非 TendisRedisInstance 的 Backend 升级合法性检查."""

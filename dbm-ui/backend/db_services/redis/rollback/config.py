@@ -81,6 +81,9 @@ class RedisRollbackExerciseConfig:
     polling_interval: int = 10  # sec
     polling_timeout: int = 3600  # sec
 
+    # AI failure analysis / weekly digest (also requires env.ENABLE_DBM_AI)
+    ai_analysis_enabled: bool = False
+
     # Recovery time-point offset (after the chosen full backup uptime).
     # SSD / Tendisplus default ~23h50m so we exercise almost a full day of binlog
     # (daily full backup at ~05:00 -> rollback target lands ~04:50 of next day,

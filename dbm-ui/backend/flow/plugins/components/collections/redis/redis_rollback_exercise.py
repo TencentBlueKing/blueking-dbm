@@ -252,6 +252,12 @@ class RedisExerciseReportUpdateService(RedisLogCapturingService):
             task_message = self.render_report_message(report.task_message)
 
         try:
+            # Embed per-report child-flow failed-node logs before mark() so each
+            # report in a batch carries its own failure evidence (and AI analysis
+            # can read it from task_message without re-fetching BKLog).
+            from backend.db_services.redis.rollback.failure_analysis import embed_failed_node_logs
+
+            task_message = embed_failed_node_logs(task_message, report, stage)
             report.mark(stage, task_message=task_message)
             self.log_info(_("Report {} marked as {}").format(report_id, stage))
         except Exception as e:
@@ -1384,6 +1390,10 @@ done
             if merged_msg != (report.task_message or ""):
                 report.mark(task_message=merged_msg)
             return
+
+        from backend.db_services.redis.rollback.failure_analysis import embed_failed_node_logs
+
+        merged_msg = embed_failed_node_logs(merged_msg, report, TaskStage.CLEANUP_FAILED)
         report.mark(TaskStage.CLEANUP_FAILED, task_message=merged_msg)
         self.log_info(_("Report {} marked CLEANUP_FAILED by best-effort cleanup").format(report_id))
 

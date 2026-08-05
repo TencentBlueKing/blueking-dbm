@@ -8,6 +8,7 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+import logging
 from datetime import timedelta
 
 from django.db import models
@@ -20,6 +21,8 @@ from backend.db_report.enums import REDIS_ROLLBACK_EXER_FAILED_STAGES as FAILED_
 from backend.db_report.enums import RedisRollbackExerciseTaskStage as TaskStage
 from backend.db_report.enums import ReportStateType
 from backend.db_report.report_basemodel import BaseReportABS
+
+logger = logging.getLogger("root")
 
 
 class RedisRollbackExerciseReport(BaseReportABS):
@@ -193,3 +196,14 @@ class RedisRollbackExerciseReport(BaseReportABS):
             update_fields.append(field_name)
 
         self.save(update_fields=update_fields)
+
+        # Trigger AI failure analysis only when transitioning into a failed stage.
+        # stage=None updates (e.g. appending the AI block itself) must not re-enqueue.
+        if stage is not None and stage in FAILED_STAGES:
+            try:
+                from backend.db_services.redis.rollback.failure_analysis import enqueue_exercise_failure_analysis
+
+                enqueue_exercise_failure_analysis(self.id)
+            except Exception:
+                # Analysis must never break the drill flow or candidate generator.
+                logger.exception("failed to enqueue redis rollback exercise AI analysis for report %s", self.id)

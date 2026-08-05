@@ -11,13 +11,15 @@ specific language governing permissions and limitations under the License.
 from .task import (
     init_redis_rollback_candidates,
     redis_rollback_exercise,
-    repair_missing_redis_rollback_exercise_recycle,
+    redis_rollback_exercise_ticket_anomaly_detect,
     repair_stuck_redis_rollback_exercise,
 )
+from .weekly_ai_summary import redis_rollback_exercise_weekly_ai_summary
 
 __all__ = [
     "init_redis_rollback_candidates",
     "redis_rollback_exercise",
-    "repair_missing_redis_rollback_exercise_recycle",
+    "redis_rollback_exercise_ticket_anomaly_detect",
     "repair_stuck_redis_rollback_exercise",
+    "redis_rollback_exercise_weekly_ai_summary",
 ]
