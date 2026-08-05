@@ -25,12 +25,12 @@ import (
 )
 
 var requestTypeMapping = map[string]string{
-	"CreateCluster":        "创建集群",
+	"CreateCluster":        "集群部署",
 	"DeleteCluster":        "删除集群",
 	"UpdateCluster":        "全量更新集群",
-	"PartialUpdateCluster": "局部更新集群",
+	"PartialUpdateCluster": "配置变更",
 	"StartCluster":         "启动集群",
-	"StopCluster":          "停止集群",
+	"StopCluster":          "禁用集群",
 	"RestartCluster":       "重启集群",
 	"StartComponent":       "启动组件",
 	"StopComponent":        "停止组件",
