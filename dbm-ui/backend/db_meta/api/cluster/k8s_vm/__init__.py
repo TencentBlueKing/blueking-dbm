@@ -9,28 +9,7 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 
-from . import (
-    doris,
-    es,
-    hdfs,
-    influxdb,
-    k8s_vm,
-    kafka,
-    mongocluster,
-    mongorepset,
-    nosqlcomm,
-    pulsar,
-    qdrantha,
-    riak,
-    sqlserverha,
-    sqlserversingle,
-    surrealdb,
-    tendbha,
-    tendbsingle,
-    tendiscache,
-    tendispluscluster,
-    tendissingle,
-    tendisssd,
-    vm,
-)
-from .apis import domain_exists, query_instances
+from .create import create
+from .delete import delete
+from .disable import disable
+from .enable import enable
