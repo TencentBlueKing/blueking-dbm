@@ -47,6 +47,17 @@ class _SQLSimulationApi(BaseApi):
             url="/syntax/parse/sql/statement",
             description=_("解析单条 SQL string 为 ParseIncludeTableBase 列表"),
         )
+        # 使用示例：
+        # {
+        #     "sql": "SELECT * FROM `db`.`t1` WHERE (id > 1)",
+        #     "judge_subquery_diff_table": true
+        # }
+        # 返回 data: {"is_inject": false, "reason": ""}
+        self.syntax_check_inject = self.generate_data_api(
+            method="POST",
+            url="/syntax/check/inject",
+            description=_("sql 注入检查"),
+        )
         self.mysql_simulation = self.generate_data_api(
             method="POST",
             url="/mysql/simulation",

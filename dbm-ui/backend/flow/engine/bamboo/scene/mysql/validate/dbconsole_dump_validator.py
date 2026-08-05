@@ -8,6 +8,7 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+import logging
 import re
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import Dict, List, Optional, Tuple
@@ -15,10 +16,13 @@ from typing import Dict, List, Optional, Tuple
 from django.utils.translation import gettext as _
 
 from backend.components import DRSApi
+from backend.components.sql_import.client import SQLSimulationApi
 from backend.db_meta.models import Cluster
 from backend.flow.consts import SYSTEM_DBS
 from backend.flow.engine.bamboo.scene.mysql.common.dbconsole_util import get_dbconsole_read_instance
 from backend.flow.engine.validate.mysql_base_validate import MysqlBaseValidator
+
+logger = logging.getLogger("root")
 
 # mysqldump --where 只需条件表达式；若用户再带 WHERE 关键字，下层会拼成 WHERE WHERE 报错
 _WHERE_PREFIX_RE = re.compile(r"^\s*where\s+", re.IGNORECASE)
@@ -27,11 +31,15 @@ _WHERE_PREFIX_RE = re.compile(r"^\s*where\s+", re.IGNORECASE)
 class DbConsoleDumpFlowValidator(MysqlBaseValidator):
     """
     DbConsoleDumpSqlFlow 对应的 validate：
-    仅在 where 非空时，对导出目标表全量并发 EXPLAIN，拦截不合法 where。
+    仅在 where 非空时，先做一次 inject 检查，再对导出目标表全量并发 EXPLAIN。
     """
 
     EXPLAIN_BATCH_SIZE = 20
     MAX_WORKERS = 5
+    # 注入预检只是一次轻量语法判断，服务不可用时应快速失败放行，
+    # 避免命中 DataAPI 默认的 30s 超时 + 3 次递归重试（最长约 180s）拖慢整个 where 校验。
+    INJECT_CHECK_TIMEOUT = 5
+    INJECT_CHECK_RETRY_TIMES = 1
 
     def __call__(self):
         where = self.data.get("where")
@@ -58,6 +66,10 @@ class DbConsoleDumpFlowValidator(MysqlBaseValidator):
         if not targets:
             return [self._build_where_error(_("未解析到可校验的导出表"))]
 
+        inject_err = self._check_where_inject(where, targets[0])
+        if inject_err:
+            return [inject_err]
+
         error_msgs = self._explain_all(address, bk_cloud_id, where, targets)
         return error_msgs or None
 
@@ -67,6 +79,25 @@ class DbConsoleDumpFlowValidator(MysqlBaseValidator):
             return self._build_where_error(_("where 条件不能包含 WHERE 关键字，请直接填写条件表达式，例如: id > 1"))
         if ";" in where or "\x00" in where or "\n" in where or "\r" in where:
             return self._build_where_error(_("where 条件不允许包含分号或非法字符"))
+        return None
+
+    def _check_where_inject(self, where: str, target: Tuple[str, str]) -> Optional[dict]:
+        """用第一张导出表拼一条 SQL，调用一次 inject 检查；服务不可用则失败放行。"""
+        db, table = target
+        sql = "SELECT * FROM {}.{} WHERE ({})".format(self._quote_ident(db), self._quote_ident(table), where)
+        try:
+            result = SQLSimulationApi.syntax_check_inject(
+                params={"sql": sql, "judge_subquery_diff_table": True},
+                timeout=self.INJECT_CHECK_TIMEOUT,
+                retry_times=self.INJECT_CHECK_RETRY_TIMES,
+            )
+        except Exception as exc:  # noqa: BLE001
+            logger.warning(_("where 注入检查服务不可用，失败放行: {}").format(str(exc)))
+            return None
+
+        if isinstance(result, dict) and result.get("is_inject"):
+            reason = result.get("reason") or _("未知注入风险")
+            return self._build_where_error(_("where 条件存在注入风险: {}").format(reason))
         return None
 
     def _get_read_address(self, cluster: Cluster) -> Tuple[str, int]:
