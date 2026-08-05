@@ -19,6 +19,7 @@ from backend.db_services.dbbase.constants import IpSource
 from backend.db_services.mongodb.resources.query import MongoDBListRetrieveResource
 from backend.db_services.mongodb.toolbox.handlers import ToolboxHandler
 from backend.flow.engine.controller.mongodb import MongoDBController
+from backend.iam_app.dataclass.actions import ActionEnum
 from backend.ticket import builders
 from backend.ticket.builders.common.base import get_mongodb_cluster_tolerance
 from backend.ticket.builders.mongodb.base import (
@@ -153,7 +154,9 @@ class MongoDBShardCutoffResourceParamBuilder(BaseMongoDBOperateResourceParamBuil
                     host["instances"] = self._fill_instance_infos(info["switch_role"], machine, storage_id__shard)
 
 
-@builders.BuilderFactory.register(TicketType.MONGODB_SHARD_CUTOFF, is_apply=True, is_recycle=True)
+@builders.BuilderFactory.register(
+    TicketType.MONGODB_SHARD_CUTOFF, is_apply=True, is_recycle=True, iam=ActionEnum.MONGODB_MANAGE
+)
 class MongoDBShardCutoffApplyFlowBuilder(BaseMongoDBTicketFlowBuilder):
     serializer = MongoDBShardCutoffDetailSerializer
     inner_flow_builder = MongoDBShardCutoffFlowParamBuilder

@@ -13,6 +13,7 @@ from rest_framework import serializers
 
 from backend.db_meta.models import AppCache, Machine
 from backend.flow.engine.controller.mongodb import MongoDBController
+from backend.iam_app.dataclass.actions import ActionEnum
 from backend.ticket import builders
 from backend.ticket.builders.mongodb.base import (
     BaseMongoDBOperateDetailSerializer,
@@ -48,7 +49,9 @@ class MongoDBInstanceDeInstallResourceParamBuilder(BaseMongoDBOperateResourcePar
         pass
 
 
-@builders.BuilderFactory.register(TicketType.MONGODB_INSTANCE_DEINSTALL, is_apply=True, is_recycle=True)
+@builders.BuilderFactory.register(
+    TicketType.MONGODB_INSTANCE_DEINSTALL, is_apply=True, is_recycle=True, iam=ActionEnum.MONGODB_MANAGE
+)
 class MongoDBInstanceDeInstallFlowBuilder(BaseMongoShardedTicketFlowBuilder):
     serializer = MongoDBInstanceDeInstallDetailSerializer
     inner_flow_builder = MongoDBInstanceDeInstallFlowParamBuilder

@@ -19,6 +19,7 @@ from backend.db_meta.enums import ClusterType
 from backend.db_meta.models import AppCache, Cluster
 from backend.db_services.dbbase.constants import IpSource
 from backend.flow.engine.controller.mongodb import MongoDBController
+from backend.iam_app.dataclass.actions import ActionEnum
 from backend.ticket import builders
 from backend.ticket.builders.mongodb.base import (
     BaseMongoDBOperateDetailSerializer,
@@ -91,7 +92,7 @@ class MongoDBAddShardNodesResourceParamBuilder(BaseMongoDBOperateResourceParamBu
             next_flow.details["ticket_data"]["infos"] = mongo_type__apply_infos
 
 
-@builders.BuilderFactory.register(TicketType.MONGODB_ADD_SHARD_NODES, is_apply=True)
+@builders.BuilderFactory.register(TicketType.MONGODB_ADD_SHARD_NODES, is_apply=True, iam=ActionEnum.MONGODB_MANAGE)
 class MongoDBAddMongosApplyFlowBuilder(BaseMongoDBTicketFlowBuilder):
     serializer = MongoDBAddShardNodesDetailSerializer
     inner_flow_builder = MongoDBAddShardNodesFlowParamBuilder

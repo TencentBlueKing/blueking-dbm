@@ -2772,6 +2772,30 @@ class ActionEnum:
         common_labels=[CommonActionLabel.BIZ_MAINTAIN, CommonActionLabel.DEVELOPER],
     )
 
+    MONGODB_PRIV_MANAGE = ActionMeta(
+        id="mongodb_priv_manage",
+        name=_("MongoDB 权限管理"),
+        name_en="mongodb_priv_manage",
+        type="manage",
+        related_actions=[DB_MANAGE.id],
+        related_resource_types=[ResourceEnum.BUSINESS],
+        group=_("Mongodb"),
+        subgroup=_("权限管理"),
+        common_labels=[CommonActionLabel.BIZ_MAINTAIN],
+    )
+
+    MONGODB_LOADBALANCE_MANAGE = ActionMeta(
+        id="mongodb_loadbalance_manage",
+        name=_("MongoDB 负载均衡管理"),
+        name_en="mongodb_loadbalance_manage",
+        type="manage",
+        related_actions=[DB_MANAGE.id],
+        related_resource_types=[ResourceEnum.BUSINESS],
+        group=_("Mongodb"),
+        subgroup=_("权限管理"),
+        common_labels=[CommonActionLabel.BIZ_MAINTAIN],
+    )
+
     MONGODB_SUBSCRIBE_MONITOR = ActionMeta(
         id="mongodb_subscribe_monitor",
         name=_("Mongodb 集群告警订阅"),
@@ -2786,7 +2810,7 @@ class ActionEnum:
 
     MONGODB_SOURCE_ACCESS_VIEW = ActionMeta(
         id="mongodb_source_access_view",
-        name=_("Mongodb 访问来源查询"),
+        name=_("Mongodb 访问来源查看"),
         name_en="mongodb_source_access_view",
         type="view",
         related_actions=[DB_MANAGE.id],
@@ -2798,19 +2822,7 @@ class ActionEnum:
 
     MONGODB_ACCESS_ENTRY_VIEW = ActionMeta(
         id="mongodb_access_entry_view",
-        name=_("Mongodb 获取访问方式"),
-        name_en="mongodb_access_entry_view",
-        type="view",
-        related_actions=[DB_MANAGE.id],
-        related_resource_types=[ResourceEnum.MONGODB],
-        group=_("MongoDB"),
-        subgroup=_("集群管理"),
-        common_labels=[CommonActionLabel.BIZ_MAINTAIN],
-    )
-
-    MONGODB_ACCESS_ENTRY_VIEW = ActionMeta(
-        id="mongodb_access_entry_view",
-        name=_("Mongodb 获取访问方式"),
+        name=_("Mongodb 连接信息查看"),
         name_en="mongodb_access_entry_view",
         type="view",
         related_actions=[DB_MANAGE.id],
@@ -2850,9 +2862,7 @@ class ActionEnum:
         name_en="mongodb_account_create",
         type="create",
         related_resource_types=[ResourceEnum.BUSINESS],
-        group=_("MongoDB"),
-        subgroup=_("权限管理"),
-        common_labels=[CommonActionLabel.BIZ_MAINTAIN, CommonActionLabel.DEVELOPER],
+        group=_("已废弃"),
     )
 
     MONGODB_DELETE_ACCOUNT = ActionMeta(
@@ -2861,9 +2871,7 @@ class ActionEnum:
         name_en="mongodb_account_delete",
         type="delete",
         related_resource_types=[ResourceEnum.MONGODB_ACCOUNT],
-        group=_("MongoDB"),
-        subgroup=_("权限管理"),
-        common_labels=[CommonActionLabel.BIZ_MAINTAIN],
+        group=_("已废弃"),
     )
 
     MONGODB_ADD_ACCOUNT_RULE = ActionMeta(
@@ -2873,9 +2881,7 @@ class ActionEnum:
         type="create",
         related_actions=[DB_MANAGE.id],
         related_resource_types=[ResourceEnum.MONGODB_ACCOUNT],
-        group=_("MongoDB"),
-        subgroup=_("权限管理"),
-        common_labels=[CommonActionLabel.BIZ_MAINTAIN, CommonActionLabel.DEVELOPER],
+        group=_("已废弃"),
     )
 
     MONGODB_ACCOUNT_RULES_VIEW = ActionMeta(
@@ -2897,9 +2903,7 @@ class ActionEnum:
         type="execute",
         related_actions=[DB_MANAGE.id],
         related_resource_types=[ResourceEnum.MONGODB_ACCOUNT, ResourceEnum.MONGODB],
-        group=_("MongoDB"),
-        subgroup=_("权限管理"),
-        common_labels=[CommonActionLabel.BIZ_MAINTAIN, CommonActionLabel.DEVELOPER],
+        group=_("已废弃"),
     )
 
     MONGODB_EXCEL_AUTHORIZE_RULES = ActionMeta(
@@ -2909,9 +2913,7 @@ class ActionEnum:
         type="execute",
         related_actions=[DB_MANAGE.id],
         related_resource_types=[ResourceEnum.BUSINESS],
-        group=_("MongoDB"),
-        subgroup=_("权限管理"),
-        common_labels=[CommonActionLabel.BIZ_MAINTAIN],
+        group=_("已废弃"),
     )
 
     MONGODB_WEBCONSOLE = ActionMeta(
@@ -2922,7 +2924,7 @@ class ActionEnum:
         related_actions=[DB_MANAGE.id],
         related_resource_types=[ResourceEnum.MONGODB],
         group=_("MongoDB"),
-        subgroup=_("集群管理"),
+        subgroup=_("查询与变更"),
         common_labels=[
             CommonActionLabel.BIZ_READ_ONLY,
             CommonActionLabel.BIZ_MAINTAIN,
@@ -2933,16 +2935,280 @@ class ActionEnum:
 
     MONGODB_DATA_EXPORT = ActionMeta(
         id=TicketType.MONGODB_DATA_EXPORT.lower(),
-        subgroup=_("数据处理"),
-        is_ticket_action=True,
+        name=_("MongoDB 数据导出"),
+        name_en="MONGODB_DATA_EXPORT",
+        type="execute",
+        related_actions=[DB_MANAGE.id],
+        related_resource_types=[ResourceEnum.MONGODB],
+        group=_("MongoDB"),
+        subgroup=_("查询与变更"),
+        common_labels=[CommonActionLabel.DEVELOPER],
+    )
+
+    MONGODB_RESTORE = ActionMeta(
+        id=TicketType.MONGODB_RESTORE.lower(),
+        name=_("MongoDB 定点回档"),
+        name_en="MONGODB_RESTORE",
+        type="execute",
+        related_actions=[DB_MANAGE.id],
+        related_resource_types=[ResourceEnum.MONGODB],
+        group=_("MongoDB"),
+        subgroup=_("数据恢复"),
+        common_labels=[CommonActionLabel.DEVELOPER],
+    )
+
+    MONGODB_PITR_RESTORE = ActionMeta(
+        id=TicketType.MONGODB_PITR_RESTORE.lower(),
+        name=_("MongoDB Pitr回档"),
+        name_en="MONGODB_PITR_RESTORE",
+        type="execute",
+        related_actions=[DB_MANAGE.id],
+        related_resource_types=[ResourceEnum.MONGODB],
+        group=_("MongoDB"),
+        subgroup=_("数据恢复"),
+        common_labels=[CommonActionLabel.DEVELOPER],
+    )
+
+    MONGODB_REMOVE_NS = ActionMeta(
+        id=TicketType.MONGODB_REMOVE_NS.lower(),
+        name=_("MongoDB 清档"),
+        name_en="MONGODB_REMOVE_NS",
+        type="execute",
+        related_actions=[DB_MANAGE.id],
+        related_resource_types=[ResourceEnum.MONGODB],
+        group=_("MongoDB"),
+        subgroup=_("数据清理"),
         common_labels=[CommonActionLabel.DEVELOPER],
     )
 
     MONGODB_IMPORT = ActionMeta(
         id=TicketType.MONGODB_IMPORT.lower(),
-        subgroup=_("集群维护"),
-        is_ticket_action=True,
-        common_labels=[CommonActionLabel.DEVELOPER],
+        name=_("MongoDB 数据导入"),
+        name_en="MONGODB_IMPORT",
+        type="execute",
+        related_actions=[DB_MANAGE.id],
+        related_resource_types=[ResourceEnum.MONGODB],
+        group=_("已废弃"),
+    )
+
+    MONGODB_ADD_SHARD = ActionMeta(
+        id=TicketType.MONGODB_ADD_SHARD.lower(),
+        name=_("MongoDB 增加分片数"),
+        name_en="MONGODB_ADD_SHARD",
+        type="execute",
+        related_actions=[DB_MANAGE.id],
+        related_resource_types=[ResourceEnum.MONGODB],
+        group=_("已废弃"),
+    )
+
+    MONGODB_ADD_SHARD_NODES = ActionMeta(
+        id=TicketType.MONGODB_ADD_SHARD_NODES.lower(),
+        name=_("MongoDB 扩容shard节点数"),
+        name_en="MONGODB_ADD_SHARD_NODES",
+        type="execute",
+        related_actions=[DB_MANAGE.id],
+        related_resource_types=[ResourceEnum.MONGODB],
+        group=_("已废弃"),
+    )
+
+    MONGODB_REDUCE_SHARD_NODES = ActionMeta(
+        id=TicketType.MONGODB_REDUCE_SHARD_NODES.lower(),
+        name=_("MongoDB 缩容shard节点数"),
+        name_en="MONGODB_REDUCE_SHARD_NODES",
+        type="execute",
+        related_actions=[DB_MANAGE.id],
+        related_resource_types=[ResourceEnum.MONGODB],
+        group=_("已废弃"),
+    )
+
+    MONGODB_ADD_MONGOS = ActionMeta(
+        id=TicketType.MONGODB_ADD_MONGOS.lower(),
+        name=_("MongoDB 扩容接入层"),
+        name_en="MONGODB_ADD_MONGOS",
+        type="execute",
+        related_actions=[DB_MANAGE.id],
+        related_resource_types=[ResourceEnum.MONGODB],
+        group=_("已废弃"),
+    )
+
+    MONGODB_REDUCE_MONGOS = ActionMeta(
+        id=TicketType.MONGODB_REDUCE_MONGOS.lower(),
+        name=_("MongoDB 缩容接入层"),
+        name_en="MONGODB_REDUCE_MONGOS",
+        type="execute",
+        related_actions=[DB_MANAGE.id],
+        related_resource_types=[ResourceEnum.MONGODB],
+        group=_("已废弃"),
+    )
+
+    MONGODB_REPLICA_ADD_SHARD_NODES = ActionMeta(
+        id=TicketType.MONGODB_REPLICA_ADD_SHARD_NODES.lower(),
+        name=_("MongoDB 扩容副本集集群shard节点数"),
+        name_en="MONGODB_REPLICA_ADD_SHARD_NODES",
+        type="execute",
+        related_actions=[DB_MANAGE.id],
+        related_resource_types=[ResourceEnum.MONGODB],
+        group=_("已废弃"),
+    )
+
+    MONGODB_SHARD_ADD_SHARD_NODES = ActionMeta(
+        id=TicketType.MONGODB_SHARD_ADD_SHARD_NODES.lower(),
+        name=_("MongoDB 扩容分片集群shard节点数"),
+        name_en="MONGODB_SHARD_ADD_SHARD_NODES",
+        type="execute",
+        related_actions=[DB_MANAGE.id],
+        related_resource_types=[ResourceEnum.MONGODB],
+        group=_("已废弃"),
+    )
+
+    MONGODB_SCALE_UPDOWN = ActionMeta(
+        id=TicketType.MONGODB_SCALE_UPDOWN.lower(),
+        name=_("MongoDB 集群容量变更"),
+        name_en="MONGODB_SCALE_UPDOWN",
+        type="execute",
+        related_actions=[DB_MANAGE.id],
+        related_resource_types=[ResourceEnum.MONGODB],
+        group=_("已废弃"),
+    )
+
+    MONGODB_REPLICASET_MIGRATE = ActionMeta(
+        id=TicketType.MONGODB_REPLICASET_MIGRATE.lower(),
+        name=_("MongoDB 副本集集群迁移"),
+        name_en="MONGODB_REPLICASET_MIGRATE",
+        type="execute",
+        related_actions=[DB_MANAGE.id],
+        related_resource_types=[ResourceEnum.MONGODB],
+        group=_("已废弃"),
+    )
+
+    MONGODB_SHARD_MIGRATE = ActionMeta(
+        id=TicketType.MONGODB_SHARD_MIGRATE.lower(),
+        name=_("MongoDB 分片集群迁移"),
+        name_en="MONGODB_SHARD_MIGRATE",
+        type="execute",
+        related_actions=[DB_MANAGE.id],
+        related_resource_types=[ResourceEnum.MONGODB],
+        group=_("已废弃"),
+    )
+
+    MONGODB_UPGRADE_VERSION = ActionMeta(
+        id=TicketType.MONGODB_UPGRADE_VERSION.lower(),
+        name=_("MongoDB 版本升级"),
+        name_en="MONGODB_UPGRADE_VERSION",
+        type="execute",
+        related_actions=[DB_MANAGE.id],
+        related_resource_types=[ResourceEnum.MONGODB],
+        group=_("已废弃"),
+    )
+
+    MONGODB_AUTOFIX = ActionMeta(
+        id=TicketType.MONGODB_AUTOFIX.lower(),
+        name=_("MongoDB 故障自愈"),
+        name_en="MONGODB_AUTOFIX",
+        type="execute",
+        related_actions=[DB_MANAGE.id],
+        related_resource_types=[ResourceEnum.MONGODB],
+        group=_("已废弃"),
+    )
+
+    MONGODB_INSTANCE_FIX_STATUS = ActionMeta(
+        id=TicketType.MONGODB_INSTANCE_FIX_STATUS.lower(),
+        name=_("MongoDB 节点状态修复"),
+        name_en="MONGODB_INSTANCE_FIX_STATUS",
+        type="execute",
+        related_actions=[DB_MANAGE.id],
+        related_resource_types=[ResourceEnum.MONGODB],
+        group=_("已废弃"),
+    )
+
+    MONGODB_INSTANCE_RELOAD = ActionMeta(
+        id=TicketType.MONGODB_INSTANCE_RELOAD.lower(),
+        name=_("MongoDB 实例重启"),
+        name_en="MONGODB_INSTANCE_RELOAD",
+        type="execute",
+        related_actions=[DB_MANAGE.id],
+        related_resource_types=[ResourceEnum.MONGODB],
+        group=_("已废弃"),
+    )
+
+    MONGODB_CUTOFF = ActionMeta(
+        id=TicketType.MONGODB_CUTOFF.lower(),
+        name=_("MongoDB 整机替换"),
+        name_en="MONGODB_CUTOFF",
+        type="execute",
+        related_actions=[DB_MANAGE.id],
+        related_resource_types=[ResourceEnum.MONGODB],
+        group=_("已废弃"),
+    )
+
+    MONGODB_REPLICASET_CUTOFF = ActionMeta(
+        id=TicketType.MONGODB_REPLICASET_CUTOFF.lower(),
+        name=_("MongoDB 副本集整机替换"),
+        name_en="MONGODB_REPLICASET_CUTOFF",
+        type="execute",
+        related_actions=[DB_MANAGE.id],
+        related_resource_types=[ResourceEnum.MONGODB],
+        group=_("已废弃"),
+    )
+
+    MONGODB_SHARD_CUTOFF = ActionMeta(
+        id=TicketType.MONGODB_SHARD_CUTOFF.lower(),
+        name=_("MongoDB 分片集群整机替换"),
+        name_en="MONGODB_SHARD_CUTOFF",
+        type="execute",
+        related_actions=[DB_MANAGE.id],
+        related_resource_types=[ResourceEnum.MONGODB],
+        group=_("已废弃"),
+    )
+
+    MONGODB_CLUSTER_STANDARDIZE = ActionMeta(
+        id=TicketType.MONGODB_CLUSTER_STANDARDIZE.lower(),
+        name=_("MongoDB 集群标准化"),
+        name_en="MONGODB_CLUSTER_STANDARDIZE",
+        type="execute",
+        related_actions=[DB_MANAGE.id],
+        related_resource_types=[ResourceEnum.MONGODB],
+        group=_("已废弃"),
+    )
+
+    MONGODB_INSTALL_DBMON = ActionMeta(
+        id=TicketType.MONGODB_INSTALL_DBMON.lower(),
+        name=_("MongoDB 安装DBMon"),
+        name_en="MONGODB_INSTALL_DBMON",
+        type="execute",
+        related_actions=[DB_MANAGE.id],
+        related_resource_types=[ResourceEnum.MONGODB],
+        group=_("已废弃"),
+    )
+
+    MONGODB_INSTANCE_DEINSTALL = ActionMeta(
+        id=TicketType.MONGODB_INSTANCE_DEINSTALL.lower(),
+        name=_("MongoDB 实例下架"),
+        name_en="MONGODB_INSTANCE_DEINSTALL",
+        type="execute",
+        related_actions=[DB_MANAGE.id],
+        related_resource_types=[ResourceEnum.MONGODB],
+        group=_("已废弃"),
+    )
+
+    MONGODB_PLUGIN_CREATE_CLB = ActionMeta(
+        id=TicketType.MONGODB_PLUGIN_CREATE_CLB.lower(),
+        name=_("MongoDB 创建CLB"),
+        name_en="MONGODB_PLUGIN_CREATE_CLB",
+        type="execute",
+        related_actions=[DB_MANAGE.id],
+        related_resource_types=[ResourceEnum.MONGODB],
+        group=_("已废弃"),
+    )
+
+    MONGODB_PLUGIN_DELETE_CLB = ActionMeta(
+        id=TicketType.MONGODB_PLUGIN_DELETE_CLB.lower(),
+        name=_("MongoDB 删除CLB"),
+        name_en="MONGODB_PLUGIN_DELETE_CLB",
+        type="execute",
+        related_actions=[DB_MANAGE.id],
+        related_resource_types=[ResourceEnum.MONGODB],
+        group=_("已废弃"),
     )
 
     MONGODB_BACKUP = ActionMeta(
@@ -2954,8 +3220,13 @@ class ActionEnum:
 
     MONGODB_EXEC_SCRIPT_APPLY = ActionMeta(
         id=TicketType.MONGODB_EXEC_SCRIPT_APPLY.lower(),
-        subgroup=_("脚本任务"),
-        is_ticket_action=True,
+        name=_("MongoDB 变更脚本执行"),
+        name_en="MONGODB_EXEC_SCRIPT_APPLY",
+        type="execute",
+        related_actions=[DB_MANAGE.id],
+        related_resource_types=[ResourceEnum.MONGODB],
+        group=_("MongoDB"),
+        subgroup=_("查询与变更"),
         common_labels=[CommonActionLabel.DEVELOPER],
     )
 
@@ -3783,7 +4054,7 @@ class ActionEnum:
 
     MONGODB_MANAGE = ActionMeta(
         id="mongodb_manage",
-        name=_("MongoDB 集群管理"),
+        name=_("MongoDB 集群运维管理"),
         name_en="mongodb_manage",
         type="manage",
         related_actions=[],

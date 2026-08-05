@@ -12,6 +12,7 @@ from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
 from backend.flow.engine.controller.mongodb import MongoDBController
+from backend.iam_app.dataclass.actions import ActionEnum
 from backend.ticket import builders
 from backend.ticket.builders.mongodb.base import BaseMongoDBOperateDetailSerializer, BaseMongoDBTicketFlowBuilder
 from backend.ticket.constants import TicketType
@@ -40,7 +41,9 @@ class MongoDBInstanceFixStatusFlowParamBuilder(builders.FlowParamBuilder):
     controller = MongoDBController.instance_fix_status
 
 
-@builders.BuilderFactory.register(TicketType.MONGODB_INSTANCE_FIX_STATUS, is_apply=False)
+@builders.BuilderFactory.register(
+    TicketType.MONGODB_INSTANCE_FIX_STATUS, is_apply=False, iam=ActionEnum.MONGODB_MANAGE
+)
 class MongoDBInstanceFixStatusFlowBuilder(BaseMongoDBTicketFlowBuilder):
     """MongoDB Mongos/instance 状态修复单据 Flow 构建器"""
 
