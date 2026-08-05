@@ -15,6 +15,7 @@ from rest_framework import serializers
 
 from backend.flow.engine.bamboo.scene.redis.redis_cluster_rename_domain import RedisClusterRenameDomainFlow
 from backend.flow.engine.controller.redis import RedisController
+from backend.iam_app.dataclass.actions import ActionEnum
 from backend.ticket import builders
 from backend.ticket.builders.common.base import SkipToRepresentationMixin
 from backend.ticket.builders.redis.base import BaseRedisTicketFlowBuilder, ClusterValidateMixin
@@ -45,7 +46,7 @@ class RedisClusterRenameDomainParamBuilder(builders.FlowParamBuilder):
         super().format_ticket_data()
 
 
-@builders.BuilderFactory.register(TicketType.REDIS_CLUSTER_RENAME_DOMAIN, is_apply=False)
+@builders.BuilderFactory.register(TicketType.REDIS_CLUSTER_RENAME_DOMAIN, is_apply=False, iam=ActionEnum.REDIS_MANAGE)
 class RedisClusterRenameDomainFlowBuilder(BaseRedisTicketFlowBuilder):
     serializer = RedisClusterRenameDomainSerializer
     inner_flow_builder = RedisClusterRenameDomainParamBuilder

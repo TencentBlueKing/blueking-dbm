@@ -16,6 +16,7 @@ from backend.db_meta.models import Cluster
 from backend.db_services.dbbase.constants import IpSource
 from backend.flow.engine.controller.redis import RedisController
 from backend.flow.utils.redis.redis_util import get_migrate_shutdown_hosts
+from backend.iam_app.dataclass.actions import ActionEnum
 from backend.ticket import builders
 from backend.ticket.builders.common.base import (
     BaseOperateResourceParamBuilder,
@@ -93,7 +94,7 @@ class RedisSingleInstanceApplyResourceParamBuilder(BaseOperateResourceParamBuild
         next_flow.save(update_fields=["details"])
 
 
-@builders.BuilderFactory.register(TicketType.REDIS_SINGLE_INS_MIGRATE, is_recycle=True)
+@builders.BuilderFactory.register(TicketType.REDIS_SINGLE_INS_MIGRATE, is_recycle=True, iam=ActionEnum.REDIS_MANAGE)
 class RedisSingleInsMigrateBuilder(BaseRedisInstanceTicketFlowBuilder):
     serializer = RedisSingleInsMigrateDetailSerializer
     # validator = RedisController.redis_single_ins_migrate.validator

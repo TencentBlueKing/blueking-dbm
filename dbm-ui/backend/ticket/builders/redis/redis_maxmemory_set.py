@@ -17,6 +17,7 @@ from backend.db_meta.models import Cluster
 from backend.db_monitor.serializers import AlarmCallBackDataSerializer
 from backend.db_services.redis.maxmemory_set.maxmemory_set import RedisClusterMaxmemorySet
 from backend.flow.engine.controller.redis import RedisController
+from backend.iam_app.dataclass.actions import ActionEnum
 from backend.ticket import builders
 from backend.ticket.builders.redis.base import BaseRedisTicketFlowBuilder, RedisBaseOperateDetailSerializer
 from backend.ticket.constants import TicketType
@@ -71,7 +72,7 @@ class RedisClusterMaxMemorySetParamBuilder(builders.FlowParamBuilder):
         super().format_ticket_data()
 
 
-@builders.BuilderFactory.register(TicketType.REDIS_CLUSTER_MAXMEMORY_SET, is_apply=False)
+@builders.BuilderFactory.register(TicketType.REDIS_CLUSTER_MAXMEMORY_SET, is_apply=False, iam=ActionEnum.REDIS_MANAGE)
 class RedisClusterMaxMemorySetFlowBuilder(BaseRedisTicketFlowBuilder):
     serializer = RedisClusterMaxMemorySetDetailSerializer
     alarm_transform_serializer = RedisClusterMaxmemorySetAlarmTransformSerializer

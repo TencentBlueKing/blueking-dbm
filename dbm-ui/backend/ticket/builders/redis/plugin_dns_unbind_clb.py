@@ -11,6 +11,7 @@ specific language governing permissions and limitations under the License.
 from django.utils.translation import gettext_lazy as _
 
 from backend.flow.engine.controller.name_service import NameServiceController
+from backend.iam_app.dataclass.actions import ActionEnum
 from backend.ticket import builders
 from backend.ticket.builders.redis.base import BaseRedisTicketFlowBuilder, RedisSingleOpsBaseDetailSerializer
 from backend.ticket.constants import TicketType
@@ -35,7 +36,7 @@ class RedisPluginDnsUnBindCLBFlowParamBuilder(builders.FlowParamBuilder):
         super().format_ticket_data()
 
 
-@builders.BuilderFactory.register(TicketType.REDIS_PLUGIN_DNS_UNBIND_CLB)
+@builders.BuilderFactory.register(TicketType.REDIS_PLUGIN_DNS_UNBIND_CLB, iam=ActionEnum.REDIS_LOADBALANCE_MANAGE)
 class RedisPluginDnsUnBindCLBFlowBuilder(BaseRedisTicketFlowBuilder):
     serializer = RedisPluginDnsUnBindCLBDetailSerializer
     inner_flow_builder = RedisPluginDnsUnBindCLBFlowParamBuilder

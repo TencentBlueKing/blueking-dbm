@@ -24,6 +24,7 @@ from backend.db_services.redis.resources import constants
 from backend.flow.utils.base.payload_handler import PayloadHandler
 from backend.iam_app.dataclass import ResourceEnum
 from backend.iam_app.dataclass.actions import ActionEnum
+from backend.iam_app.handlers.permission import Permission
 
 from . import yasg_slz
 from .query import RedisListRetrieveResource
@@ -109,14 +110,12 @@ class RedisClusterViewSet(viewsets.ResourceViewSet):
     list_perm_actions = [
         ActionEnum.REDIS_KEYS_DELETE,
         ActionEnum.REDIS_KEYS_EXTRACT,
-        ActionEnum.REDIS_PLUGIN_CREATE_CLB,
-        ActionEnum.REDIS_PLUGIN_DNS_BIND_CLB,
-        ActionEnum.REDIS_PLUGIN_CREATE_POLARIS,
         ActionEnum.REDIS_DESTROY,
         ActionEnum.REDIS_OPEN_CLOSE,
         ActionEnum.REDIS_PURGE,
         ActionEnum.REDIS_VIEW,
         ActionEnum.REDIS_EDIT,
+        ActionEnum.REDIS_MANAGE,
         ActionEnum.REDIS_BACKUP,
         ActionEnum.REDIS_ACCESS_ENTRY_VIEW,
         ActionEnum.REDIS_SUBSCRIBE_MONITOR,
@@ -133,6 +132,19 @@ class RedisClusterViewSet(viewsets.ResourceViewSet):
             ResourceEnum.BUSINESS.id: kwargs["bk_biz_id"],
             ResourceEnum.DBTYPE.id: kwargs["view_class"].db_type.value,
         }
+
+    @Permission.decorator_external_permission_field(
+        param_field=lambda d: d["bk_biz_id"],
+        actions=[ActionEnum.REDIS_LOADBALANCE_MANAGE],
+        resource_meta=ResourceEnum.BUSINESS,
+    )
+    @Permission.decorator_external_permission_field(
+        param_field=lambda d: d["view_class"]._external_perm_param_field(d),
+        action_filed=lambda d: d["view_class"].list_external_perm_actions,
+    )
+    def list(self, request, bk_biz_id: int):
+        """查询集群列表"""
+        return super().list(request, bk_biz_id)
 
     @action(methods=["GET"], detail=True, url_path="get_nodes", serializer_class=serializers.ListNodesSLZ)
     def get_nodes(self, request, bk_biz_id: int, cluster_id: int):

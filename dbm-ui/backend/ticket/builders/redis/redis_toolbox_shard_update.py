@@ -16,6 +16,7 @@ from backend.configuration.constants import AffinityEnum
 from backend.db_meta.models import Cluster
 from backend.db_services.dbbase.constants import IpSource
 from backend.flow.engine.controller.redis import RedisController
+from backend.iam_app.dataclass.actions import ActionEnum
 from backend.ticket import builders
 from backend.ticket.builders.redis.base import (
     BaseRedisTicketFlowBuilder,
@@ -108,7 +109,9 @@ class RedisShardUpdateResourceParamBuilder(RedisUpdateApplyResourceParamBuilder)
                 )
 
 
-@builders.BuilderFactory.register(TicketType.REDIS_CLUSTER_SHARD_NUM_UPDATE, is_apply=True, is_recycle=True)
+@builders.BuilderFactory.register(
+    TicketType.REDIS_CLUSTER_SHARD_NUM_UPDATE, is_apply=True, is_recycle=True, iam=ActionEnum.REDIS_MANAGE
+)
 class RedisShardUpdateFlowBuilder(BaseRedisTicketFlowBuilder):
     serializer = RedisShardUpdateDetailSerializer
     inner_flow_builder = RedisShardUpdateParamBuilder

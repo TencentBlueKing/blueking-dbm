@@ -15,6 +15,7 @@ from rest_framework import serializers
 from backend.db_meta.models import Cluster
 from backend.db_services.redis.toolbox.handlers import ToolboxHandler
 from backend.flow.engine.controller.redis import RedisController
+from backend.iam_app.dataclass.actions import ActionEnum
 from backend.ticket import builders
 from backend.ticket.builders.redis.base import (
     BaseRedisInstanceTicketFlowBuilder,
@@ -69,7 +70,7 @@ class RedisMasterSlaveSwitchParamBuilder(builders.FlowParamBuilder):
     controller = RedisController.redis_cluster_failover_scene
 
 
-@builders.BuilderFactory.register(TicketType.REDIS_MASTER_SLAVE_SWITCH)
+@builders.BuilderFactory.register(TicketType.REDIS_MASTER_SLAVE_SWITCH, iam=ActionEnum.REDIS_MANAGE)
 class RedisMasterSlaveSwitchFlowBuilder(BaseRedisInstanceTicketFlowBuilder):
     serializer = RedisMasterSlaveSwitchDetailSerializer
     inner_flow_builder = RedisMasterSlaveSwitchParamBuilder

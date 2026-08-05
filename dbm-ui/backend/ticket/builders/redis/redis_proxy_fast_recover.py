@@ -4,6 +4,7 @@ from rest_framework import serializers
 from backend.configuration.constants import RedisFastRecoverEnum
 from backend.db_meta.models import Machine, ProxyInstance
 from backend.flow.engine.controller.redis import RedisController
+from backend.iam_app.dataclass.actions import ActionEnum
 from backend.ticket import builders
 from backend.ticket.builders.common.base import HostInfoSerializer
 from backend.ticket.builders.redis.base import BaseRedisTicketFlowBuilder, RedisBaseOperateDetailSerializer
@@ -69,14 +70,14 @@ class RedisProxyFastRecoverFlowParamBuilder(builders.FlowParamBuilder):
                     proxy["immute_domains"] = immute_domains
 
 
-@builders.BuilderFactory.register(TicketType.REDIS_PROXY_KICKOFF)
+@builders.BuilderFactory.register(TicketType.REDIS_PROXY_KICKOFF, iam=ActionEnum.REDIS_MANAGE)
 class RedisProxyKickoffFlowBuilder(BaseRedisTicketFlowBuilder):
     serializer = RedisProxyFastRecoverDetailSerializer
     inner_flow_builder = RedisProxyFastRecoverFlowParamBuilder
     inner_flow_name = _("Redis Proxy剔除")
 
 
-@builders.BuilderFactory.register(TicketType.REDIS_PROXY_FIX)
+@builders.BuilderFactory.register(TicketType.REDIS_PROXY_FIX, iam=ActionEnum.REDIS_MANAGE)
 class RedisProxyFixFlowBuilder(BaseRedisTicketFlowBuilder):
     serializer = RedisProxyFastRecoverDetailSerializer
     inner_flow_builder = RedisProxyFastRecoverFlowParamBuilder
