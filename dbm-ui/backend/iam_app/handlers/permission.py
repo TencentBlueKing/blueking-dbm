@@ -11,7 +11,6 @@ specific language governing permissions and limitations under the License.
 
 import itertools
 import logging
-import time
 from functools import wraps
 from typing import Any, Callable, Dict, List, Tuple, Union
 
@@ -31,13 +30,13 @@ from iam.exceptions import AuthAPIError
 from iam.iam import logger as iam_logger
 from iam.meta import setup_action, setup_resource, setup_system
 from iam.utils import gen_perms_apply_data
-from requests.exceptions import ConnectionError as RequestsConnectionError
 
 from backend import env
 from backend.env import BK_IAM_SYSTEM_ID
 from backend.iam_app.dataclass.actions import ActionEnum, ActionMeta, _all_actions
 from backend.iam_app.dataclass.resources import ResourceEnum, ResourceMeta, _all_resources
 from backend.iam_app.exceptions import ActionNotExistError, GetSystemInfoError, PermissionDeniedError
+from backend.iam_app.handlers.backends import get_iam_backend
 from backend.utils.local import local
 
 logger = logging.getLogger("root")
@@ -49,9 +48,6 @@ class Permission(object):
     """
     权限中心鉴权和无权限申请的通用封装
     """
-
-    IAM_IS_ALLOWED_MAX_RETRIES = 3
-    IAM_IS_ALLOWED_RETRY_INTERVAL_SECONDS = 0.2
 
     def __init__(self, username: str = "", request=None):
         if username:
@@ -68,6 +64,14 @@ class Permission(object):
 
         self.is_superuser = User.objects.filter(username=self.username, is_superuser=True).exists()
         self._iam = self.get_iam_client()
+        self.backend = get_iam_backend(self._iam)
+
+    def _call(self, method: str, *args, **kwargs) -> Any:
+        """
+        鉴权后端的统一入口。
+        TODO: 接入shadow影子对比时在此按采样率额外调用另一版本的后端并比对结果(见02文档J4)
+        """
+        return getattr(self.backend, method)(*args, **kwargs)
 
     @classmethod
     def get_iam_client(cls):
@@ -195,29 +199,7 @@ class Permission(object):
         if not action.related_resource_types:
             resources = []
 
-        request = self.make_request(action, resources)
-        permission = False
-        for retry in range(self.IAM_IS_ALLOWED_MAX_RETRIES):
-            try:
-                permission = self._iam.is_allowed(request)
-                break
-            except RequestsConnectionError as e:
-                # 兼容 IAM 网关偶发的 RemoteDisconnected，进行快速重试。
-                if "RemoteDisconnected" in str(e) and retry < self.IAM_IS_ALLOWED_MAX_RETRIES - 1:
-                    logger.warning(
-                        "IAM ConnectionError(RemoteDisconnected), retry %s/%s: %s",
-                        retry + 1,
-                        self.IAM_IS_ALLOWED_MAX_RETRIES,
-                        e,
-                    )
-                    time.sleep(self.IAM_IS_ALLOWED_RETRY_INTERVAL_SECONDS)
-                    continue
-
-                logger.exception(f"IAM ConnectionError: {e}")
-                break
-            except AuthAPIError as e:
-                logger.exception(f"IAM AuthAPIError: {e}")
-                break
+        permission = self._call("is_allowed", self.username, action, resources)
 
         if not permission and is_raise_exception:
             data, url = self.get_apply_data([action], [resources])
