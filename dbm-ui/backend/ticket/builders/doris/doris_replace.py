@@ -13,6 +13,7 @@ import logging
 from django.utils.translation import gettext_lazy as _
 
 from backend.flow.engine.controller.doris import DorisController
+from backend.iam_app.dataclass.actions import ActionEnum
 from backend.ticket import builders
 from backend.ticket.builders.common.bigdata import (
     BaseDorisTicketFlowBuilder,
@@ -46,7 +47,9 @@ class DorisReplaceResourceParamBuilder(BigDataReplaceResourceParamBuilder):
         next_flow.save(update_fields=["details"])
 
 
-@builders.BuilderFactory.register(TicketType.DORIS_REPLACE, is_apply=True, is_recycle=True)
+@builders.BuilderFactory.register(
+    TicketType.DORIS_REPLACE, is_apply=True, is_recycle=True, iam=ActionEnum.DORIS_MANAGE
+)
 class DorisReplaceFlowBuilder(BaseDorisTicketFlowBuilder):
     serializer = DorisReplaceDetailSerializer
     inner_flow_builder = DorisReplaceFlowParamBuilder

@@ -19,6 +19,7 @@ from backend.db_services.bigdata.kafka.query import KafkaListRetrieveResource
 from backend.db_services.bigdata.resources import yasg_slz
 from backend.db_services.bigdata.resources.views import BigdataResourceViewSet
 from backend.db_services.dbbase.resources import serializers
+from backend.iam_app.dataclass.actions import ActionEnum
 
 
 @method_decorator(
@@ -75,3 +76,14 @@ class KafkaClusterViewSetBigdata(BigdataResourceViewSet):
     query_class = KafkaListRetrieveResource
     query_serializer_class = serializers.ListResourceSLZ
     db_type = DBType.Kafka
+
+    list_perm_actions = [
+        ActionEnum.KAFKA_MANAGE,
+        ActionEnum.KAFKA_VIEW,
+        ActionEnum.KAFKA_EDIT,
+        ActionEnum.KAFKA_ACCESS_ENTRY_VIEW,
+        ActionEnum.KAFKA_DESTROY,
+        ActionEnum.KAFKA_ENABLE_DISABLE,
+        ActionEnum.KAFKA_SUBSCRIBE_MONITOR,
+        ActionEnum.KAFKA_DBCONFIG_EDIT,
+    ]
