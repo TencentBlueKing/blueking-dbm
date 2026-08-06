@@ -148,9 +148,7 @@
       db_type: string;
       id: number;
       isOffline: boolean;
-      permission: {
-        access_entry_edit: boolean;
-      };
+      permission: Record<string, boolean>;
     };
   }
 

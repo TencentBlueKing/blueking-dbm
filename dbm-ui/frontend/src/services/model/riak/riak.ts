@@ -72,7 +72,6 @@ export default class Riak extends ClusterBase {
   master_domain: string;
   operations: ClusterListOperation[];
   permission: {
-    access_entry_edit: boolean;
     riak_access_entry_view: boolean;
     riak_cluster_destroy: boolean;
     riak_cluster_migrate: boolean;
@@ -81,6 +80,7 @@ export default class Riak extends ClusterBase {
     riak_cluster_scale_out: boolean;
     riak_edit: boolean;
     riak_enable_disable: boolean;
+    riak_manage: boolean;
     riak_view: boolean;
   };
   phase: 'online' | 'offline';
