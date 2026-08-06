@@ -16,7 +16,7 @@
 
   import { useUserProfile } from '@stores';
 
-  import { DBTypes } from '@common/const';
+  import { DBTypes, toolboxProfileKeyMap } from '@common/const';
 
   import { encodeRegexp } from '@utils';
 
@@ -37,7 +37,12 @@
   const { profile, updateProfile } = useUserProfile();
 
   const dbType = route.meta.dbType as DBTypes;
-  const profileSortKey = `${dbType}_${props.groupKey ? props.groupKey + '_' : ''}toolbox_group_sort`.toUpperCase();
+  const toolboxGroupSortKey = toolboxProfileKeyMap[dbType]!.groupSort;
+  const profileSortKey = `${
+    props.groupKey
+      ? toolboxGroupSortKey.replace('_toolbox_group_sort', `_${props.groupKey}_toolbox_group_sort`)
+      : toolboxGroupSortKey
+  }`.toUpperCase();
 
   const renderMenuList = ref<ToolNavigationProps['data']>([]);
 
