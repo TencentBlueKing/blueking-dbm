@@ -16,7 +16,7 @@ import (
 type JSONDatetime time.Time
 
 // DefaultTimeZone 默认时区
-const DefaultTimeZone = "Asia/shanghai"
+const DefaultTimeZone = "Asia/Shanghai"
 
 var (
 	timeZone string
