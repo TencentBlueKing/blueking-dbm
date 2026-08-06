@@ -3731,7 +3731,7 @@
     "conf_name": "mysqld.spider_quick_mode_only_select",
     "value_default": "ON",
     "value_allowed": "ON | OFF",
-    "value_type": "INT",
+    "value_type": "STRING",
     "value_type_sub": "ENUM",
     "conf_name_lc": "",
     "description": "If on, for complex statement(such as: delete/insert into select.. through limit x, y to batch fetch records) will use spider_quick_mode with value 0.",

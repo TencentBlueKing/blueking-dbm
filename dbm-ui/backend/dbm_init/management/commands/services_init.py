@@ -63,6 +63,12 @@ class Command(BaseCommand):
             default=1,
             help="Max concurrent workers for sync_dbconfig (default: 1)",
         )
+        parser.add_argument(
+            "--force",
+            action="store_true",
+            default=False,
+            help="Force mode: when sync encounters an error, retry one by one and skip only the failed items",
+        )
 
     def handle(self, *args, **options):
         srv_type = options["srv_type"]
@@ -105,7 +111,8 @@ class Command(BaseCommand):
             conf_type = options["conf_type"]
             conf_file = options["conf_file"]
             max_workers = options["max_workers"]
-            Services.auto_sync_dbconfig(namespace, conf_type, conf_file, max_workers)
+            force = options["force"]
+            Services.auto_sync_dbconfig(namespace, conf_type, conf_file, max_workers, force)
 
         if srv_type == "all" or srv_type == "create_job_user":
             account_list_str = options["account_list"]
