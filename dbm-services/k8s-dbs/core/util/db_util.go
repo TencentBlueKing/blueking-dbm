@@ -61,7 +61,7 @@ func dbConfig() (*config.DbsDatabaseConfig, *config.AuthDatabaseConfig, error) {
 
 // initDatabase 通用的数据库初始化函数
 func initDatabase(cfg *config.DatabaseConfig, dbName string) (*gorm.DB, error) {
-	dsn := fmt.Sprintf("%s:%s@tcp(%s:%d)/%s?charset=utf8mb4&parseTime=True&loc=Local&tls=%s",
+	dsn := fmt.Sprintf("%s:%s@tcp(%s:%d)/%s?charset=utf8mb4&parseTime=True&loc=UTC&tls=%s",
 		cfg.User, cfg.Password, cfg.Host, cfg.Port, cfg.DBName, cfg.TLSMode)
 
 	// 根据日志级别配置 GORM 日志输出
