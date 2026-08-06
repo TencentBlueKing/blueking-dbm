@@ -20,6 +20,7 @@ from django.conf import settings
 from django.utils.translation import gettext as _
 
 from backend import env
+from backend.components.iamv4.client import IAMV4Api
 from backend.db_meta.models import AppCache
 
 from ..constans import CommonActionLabel
@@ -28,6 +29,7 @@ from ..handlers.client import IAM
 from ..handlers.permission import Permission
 from .actions import ActionEnum, _all_actions
 from .resources import ResourceEnum, ResourceMeta, _all_resources, _extra_instance_selections
+from .roles import _all_roles
 
 logger = logging.getLogger("root")
 
@@ -42,6 +44,16 @@ IAM_SYSTEM_DEFINITION = {
         "clients": "bk_dbm,bk-dbm",
         "provider_config": {"host": "", "auth": "basic"},
     },
+}
+
+# V4的系统定义。V4没有name_en/description_en，回调也收敛为系统级的单一地址
+IAM_V4_SYSTEM_DEFINITION = {
+    "id": env.BK_IAM_SYSTEM_ID,
+    "name": env.BK_IAM_SYSTEM_NAME,
+    "description": env.BK_IAM_SYSTEM_NAME,
+    "clients": env.BK_IAM_V4_CLIENTS,
+    "managers": env.BK_IAM_V4_MANAGERS,
+    "callback_url": f"{env.BK_IAM_RESOURCE_API_HOST.rstrip('/')}/{env.BK_IAM_V4_CALLBACK_PATH.lstrip('/')}",
 }
 
 
@@ -165,6 +177,22 @@ def generate_iam_migration_json(json_name: str = ""):
     iam_migrate_json_path = os.path.join(settings.BASE_DIR, f"backend/iam_app/migration_json_files/{json_name}")
     with open(iam_migrate_json_path, "w+") as f:
         f.write(json.dumps(dbm_iam_json, ensure_ascii=False, indent=4))
+
+
+def migrate_iamv4_model(dry_run: bool = False) -> Dict[str, Any]:
+    """
+    根据dataclass的定义迁移V4权限模型，包含系统、资源类型、操作和角色的创建与更新。
+    与V3的差异：没有实例视图、操作组、常用操作和资源创建联动，常用操作的语义由角色承载
+    """
+    model = {
+        "system": IAM_V4_SYSTEM_DEFINITION,
+        "resource_types": [
+            resource.to_json_v4() for resource in _all_resources.values() if not resource.iamv4_disable
+        ],
+        "actions": [action.to_json_v4() for action in _all_actions.values() if not action.is_disabled_v4()],
+        "roles": [role.to_json_v4() for role in _all_roles.values()],
+    }
+    return IAMV4Api.migrate_model(model, dry_run=dry_run)
 
 
 def generate_resource_topo_auth(res_actions: list, bk_biz_id: int = None, bk_biz_name=None):
