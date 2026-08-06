@@ -25,6 +25,12 @@ const (
 	AlterTypeDropColumn = "drop_column"
 	// AlterTypeDropKey drop_key
 	AlterTypeDropKey = "drop_key"
+	// AlterTypeTableOptions table_options
+	AlterTypeTableOptions = "table_options"
+	// AlterActionConvert CONVERT TO CHARACTER SET
+	AlterActionConvert = "convert"
+	// HighRiskConvertCharset CONVERT TO 派生的高危类型 / 额外文案 key
+	HighRiskConvertCharset = "convert_charset"
 	// SQLTypeCreateTable is create table sql
 	SQLTypeCreateTable = "create_table"
 	// SQLTypeCreateDb ise create database sql
@@ -246,6 +252,7 @@ type AlterTableResult struct {
 // AlterCommand tmysqlparse alter table result
 type AlterCommand struct {
 	Type         string        `json:"type"`
+	Action       string        `json:"action,omitempty"` // table_options: convert / default
 	ColDef       ColDef        `json:"col_def,omitempty"`
 	After        string        `json:"after,omitempty"`
 	KeyDef       KeyDef        `json:"key_def,omitempty"`

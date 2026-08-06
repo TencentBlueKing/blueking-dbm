@@ -175,15 +175,57 @@ func (c *CheckerResult) addBan(msg string, category BanCategory) {
 
 // Parse do parse
 func (c *CheckerResult) Parse(rule *RuleItem, val interface{}, additionalMsg string) {
+	c.ParseWithExtraKey(rule, val, "", additionalMsg)
+}
+
+// ParseWithExtraKey 规则匹配仍用 val；额外告警文案按 extraMsgKey 查 ExtraMessageMap
+// extraMsgKey 为空时回退为 val（string）
+func (c *CheckerResult) ParseWithExtraKey(rule *RuleItem, val interface{}, extraMsgKey string, additionalMsg string) {
 	matched, err := rule.CheckItem(val)
 	if matched {
-		msg := strings.TrimSpace(fmt.Sprintf("%s %s\n%s\n%s", c.buildObjName(), err.Error(), additionalMsg, rule.Suggestion))
+		lookupKey := extraMsgKey
+		if lookupKey == "" {
+			if s, ok := val.(string); ok {
+				lookupKey = s
+			}
+		}
+		parts := []string{
+			strings.TrimSpace(fmt.Sprintf("%s %s", c.buildObjName(), err.Error())),
+			additionalMsg,
+			rule.lookupExtraMessage(lookupKey),
+			rule.Suggestion,
+		}
+		msg := joinNonEmpty(parts, "\n")
 		if rule.Ban {
 			c.addBan(msg, rule.Category)
 		} else {
 			c.RiskWarns = append(c.RiskWarns, msg)
 		}
 	}
+}
+
+// joinNonEmpty 用 sep 拼接非空字符串片段
+func joinNonEmpty(parts []string, sep string) string {
+	filtered := make([]string, 0, len(parts))
+	for _, p := range parts {
+		p = strings.TrimSpace(p)
+		if p != "" {
+			filtered = append(filtered, p)
+		}
+	}
+	return strings.Join(filtered, sep)
+}
+
+// lookupExtraMessage 按命中 Val 从 ExtraMessageMap 取额外告警文案
+func (i *RuleItem) lookupExtraMessage(val interface{}) string {
+	if i == nil || len(i.ExtraMessageMap) == 0 {
+		return ""
+	}
+	key, ok := val.(string)
+	if !ok {
+		return ""
+	}
+	return i.ExtraMessageMap[key]
 }
 
 // Trigger trigger
@@ -241,14 +283,15 @@ func (c *CheckerResult) ParseBuiltinRisk(f func() (bool, string)) {
 
 // RuleItem syntax rule item
 type RuleItem struct {
-	Item        interface{} `yaml:"item"`
-	Val         interface{}
-	ruleProgram *vm.Program
-	Expr        string      `yaml:"expr"`
-	Desc        string      `yaml:"desc"`
-	Ban         bool        `yaml:"ban"`
-	Suggestion  string      `yaml:"suggestion"`
-	Category    BanCategory `yaml:"category"`
+	Item            interface{} `yaml:"item"`
+	Val             interface{}
+	ruleProgram     *vm.Program
+	Expr            string            `yaml:"expr"`
+	Desc            string            `yaml:"desc"`
+	Ban             bool              `yaml:"ban"`
+	Suggestion      string            `yaml:"suggestion"`
+	Category        BanCategory       `yaml:"category"`
+	ExtraMessageMap map[string]string `yaml:"extra_message_map"`
 }
 
 // BoolRuleItem 开关型规则，只需配置开启或者关闭即可
