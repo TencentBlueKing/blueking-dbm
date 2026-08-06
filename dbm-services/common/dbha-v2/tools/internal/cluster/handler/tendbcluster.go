@@ -1203,3 +1203,52 @@ func (hdl *TenDBClusterHandler) ShowAllTenDBClustersRouting() error {
 
 	return printJSON(clusterRoutingList)
 }
+
+// newSessionNode builds a sessionNodeTarget from a TenDBCluster node
+func newSessionNode(node config.TenDBClusterNodeInfo, tdbctl bool, user, password string) sessionNodeTarget {
+	return sessionNodeTarget{
+		host:     node.Host,
+		port:     node.Port,
+		user:     user,
+		password: password,
+		tdbctl:   tdbctl,
+	}
+}
+
+// ShowAllTenDBClustersSession shows sessions of spider, remote and tdbctl nodes for all TenDB clusters
+func (hdl *TenDBClusterHandler) ShowAllTenDBClustersSession(where string) error {
+	if config.ClusterConfig == nil {
+		return printErrorResponse("config is not loaded")
+	}
+
+	clusterSessionList := make([]ClusterSessionInfo, 0)
+	user := config.ClusterConfig.AuthInfo.User
+	password := config.ClusterConfig.AuthInfo.Password
+
+	for _, cluster := range config.ClusterConfig.TenDBClusters {
+		nodes := make([]sessionNodeTarget, 0)
+		for _, spider := range cluster.Spider {
+			nodes = append(nodes, newSessionNode(spider, false, user, password))
+		}
+		for _, spider := range cluster.SpiderSlave {
+			nodes = append(nodes, newSessionNode(spider, false, user, password))
+		}
+		for _, remote := range cluster.RemoteMaster {
+			nodes = append(nodes, newSessionNode(remote, false, user, password))
+		}
+		for _, remote := range cluster.RemoteSlave {
+			nodes = append(nodes, newSessionNode(remote.TenDBClusterNodeInfo, false, user, password))
+		}
+		nodes = append(nodes, newSessionNode(cluster.CtlMaster, true, user, password))
+		for _, ctl := range cluster.CtlSlave {
+			nodes = append(nodes, newSessionNode(ctl, true, user, password))
+		}
+
+		clusterSessionList = append(clusterSessionList, ClusterSessionInfo{
+			Cluster:   cluster.Domain,
+			Instances: hdl.queryNodesProcesslist(nodes, where),
+		})
+	}
+
+	return printSessionJSON(clusterSessionList)
+}
