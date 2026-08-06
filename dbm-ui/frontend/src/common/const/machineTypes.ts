@@ -11,9 +11,9 @@ export enum MachineTypes {
 // spider
 export enum MachineTypes {
   TENDBCLUSTER_BACKEND = 'backend', // 后端存储
-  // SPIDER = 'spider',
-  // REMOTE = 'remote',
   TENDBCLUSTER_PROXY = 'proxy', // 接入层Master
+  // SPIDER = 'spider',
+  TENDBCLUSTER_REMOTE = 'remote', // 后端存储 remote 端
 }
 // redis
 export enum MachineTypes {

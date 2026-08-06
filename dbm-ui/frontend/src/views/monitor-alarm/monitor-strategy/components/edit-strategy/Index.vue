@@ -241,7 +241,7 @@
 
   import { useGlobalBizs } from '@stores';
 
-  import { DBTypeInfos, DBTypes, MonitorTargetLevel } from '@common/const';
+  import { DBTypes, MonitorTargetLevel } from '@common/const';
 
   import JudgingCondition from '@views/monitor-alarm/common/judging-condition/Index.vue';
   import AggInfo from '@views/monitor-alarm/common/monitor-data/AggInfo.vue';
@@ -251,6 +251,7 @@
 
   import { messageSuccess } from '@utils';
 
+  import { getDbaLabel } from '../../../common/utils';
   import VoiceNotice from '../common/VoiceNotice.vue';
 
   import MonitorTarget from './monitor-target/Index.vue';
@@ -400,7 +401,7 @@
   });
 
   const bizDefaultGroupId = computed(() => {
-    const groupItem = props.alarmGroupList.find((item) => item.label === `${DBTypeInfos[props.dbType].name}_DBA`)!;
+    const groupItem = props.alarmGroupList.find((item) => item.label === getDbaLabel(props.dbType))!;
     return groupItem?.value;
   });
 
@@ -630,7 +631,7 @@
   };
 
   const getBizDefaultGroupIds = () => {
-    const groupItem = props.alarmGroupList.find((item) => item.label === `${DBTypeInfos[props.dbType].name}_DBA`);
+    const groupItem = props.alarmGroupList.find((item) => item.label === getDbaLabel(props.dbType));
     return groupItem ? [Number(groupItem.value)] : [];
   };
 

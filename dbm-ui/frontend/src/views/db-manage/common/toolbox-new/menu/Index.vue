@@ -101,6 +101,8 @@
 
   import { useUserProfile } from '@stores';
 
+  import { DBTypes, toolboxProfileKeyMap } from '@common/const';
+
   import { t } from '@wangeditor/editor';
 
   import type { ToolboxLeafNode, ToolboxTreeNode } from '../common/types';
@@ -122,8 +124,9 @@
   const activeIndex = ref(['favor', 'used', ...props.menuList.map((item) => item.id)]);
   const displayDataList = ref<Props['menuList']>([]);
 
-  const profileFavorKey = `${route.meta.dbType}_toolbox_favor`.toUpperCase();
-  const profileUsedKey = `${route.meta.dbType}_toolbox_used`.toUpperCase();
+  const dbType = route.meta.dbType as DBTypes;
+  const profileFavorKey = toolboxProfileKeyMap[dbType]!.favor;
+  const profileUsedKey = toolboxProfileKeyMap[dbType]!.used;
 
   const menuMap = props.menuList.reduce(
     (acc, menuItem) => {
