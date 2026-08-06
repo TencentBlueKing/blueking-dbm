@@ -38,11 +38,19 @@ class DBTypeResourceProvider(ResourceProvider):
     def list_attr_value(self, filter, page, **options):
         return ListResult(results=[], count=0)
 
+    @staticmethod
+    def filter_and_paginate(instances, filter, page) -> ListResult:
+        """枚举资源的通用处理：按关键字过滤展示名，再分页。IAM要求默认支持 display_name 包含搜索"""
+        keyword = filter.get("search") or filter.get("keyword")
+        if keyword:
+            instances = [instance for instance in instances if keyword in instance["display_name"]]
+        return ListResult(results=instances[page.slice_from : page.slice_to], count=len(instances))
+
     def list_instance(self, filter, page, **options):
         db_types = [{"id": db.value, "display_name": DBType.get_choice_label(db.value)} for db in DBType]
         # 追加通用配置的特殊实例，用于通用配置的 dbconfig_edit 鉴权
         db_types.append({"id": COMMON_DB_TYPE, "display_name": self.get_display_name(COMMON_DB_TYPE)})
-        return ListResult(results=db_types, count=len(db_types))
+        return self.filter_and_paginate(db_types, filter, page)
 
     def search_instance(self, filter, page, **options):
         return self.list_instance(filter, page, **options)
