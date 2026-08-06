@@ -4128,6 +4128,38 @@
     "since_version": ""
   },
   {
+    "conf_name": "mysqld.spider_direct_insert_ignore",
+    "value_default": "0",
+    "value_allowed": "0 | 1",
+    "value_type": "INT",
+    "value_type_sub": "ENUM",
+    "conf_name_lc": "",
+    "description": "如果为0，对于insert ignore into ...语句，tspider不会下发ignore给后端，此时如果出现唯一键/主键重复，会返回warning。参数值如果为1，此时tspider会让后端处理ignore，如果出现唯一键/主键重复，tspider不会返回warning",
+    "need_restart": 0,
+    "flag_readonly": 0,
+    "flag_visible": 0,
+    "flag_status": 1,
+    "flag_locked": 0,
+    "flag_encrypt": 0,
+    "since_version": ""
+  },
+  {
+    "conf_name": "mysqld.spider_direct_dup_insert",
+    "value_default": "1",
+    "value_allowed": "0 | 1",
+    "value_type": "INT",
+    "value_type_sub": "ENUM",
+    "conf_name_lc": "",
+    "description": "Manages duplicate key check for REPLACE, INSERT IGNORE and LOAD DATA LOCAL INFILE to TenDB node. This can save on network roundtrips if the key always maps to a single partition. For bulk operations, records are checked for duplicate key errors one by one on the TenDB node, unless you set it to avoid duplicate checks on local servers (1).\n\n-1 Uses the table parameter.\n0 Performs duplicate checks on the local server.\n1 Avoids duplicate checks on the local server.",
+    "need_restart": 0,
+    "flag_readonly": 0,
+    "flag_visible": 0,
+    "flag_status": 1,
+    "flag_locked": 0,
+    "flag_encrypt": 0,
+    "since_version": ""
+  },
+  {
     "conf_name": "mysqldump.default-character-set",
     "value_default": "{{.Mysqld.CharacterSetServer}}",
     "value_allowed": "latin1 | utf8 | utf8mb4 | gbk | {{.Mysqld.CharacterSetServer}}",
