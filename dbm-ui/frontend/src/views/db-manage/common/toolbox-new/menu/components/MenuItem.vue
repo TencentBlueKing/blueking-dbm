@@ -34,6 +34,8 @@
 
   import { useUserProfile } from '@stores';
 
+  import { DBTypes, toolboxProfileKeyMap } from '@common/const';
+
   import { makeMap, messageSuccess, messageWarn } from '@utils';
 
   import type { ToolboxLeafNode } from '../../common/types';
@@ -50,7 +52,7 @@
   const profileStore = useUserProfile();
   const { profile } = storeToRefs(profileStore);
 
-  const profileFavorKey = `${route.meta.dbType}_toolbox_favor`.toUpperCase();
+  const profileFavorKey = toolboxProfileKeyMap[route.meta.dbType as DBTypes]!.favor;
 
   const favorMap = computed(() => {
     return makeMap(profile.value[profileFavorKey] || []);

@@ -373,7 +373,7 @@
 
   import { useFunController, useGlobalBizs } from '@stores';
 
-  import { DBTypes, UserPersonalSettings } from '@common/const';
+  import { DBTypes, MachineTypes, UserPersonalSettings } from '@common/const';
 
   import DbTable from '@components/db-table/IndexNew.vue';
   import TextOverflowLayout from '@components/text-overflow-layout/Index.vue';
@@ -395,7 +395,7 @@
   interface Props {
     dbType: DBTypes;
     dbTypeLabel: string;
-    machineType: string;
+    machineType: MachineTypes;
     machineTypeLabel: string;
   }
 
@@ -429,7 +429,9 @@
 
   const disabled = computed(() => selectedList.value.length === 0);
 
-  const hasInstance = computed(() => [`${DBTypes.ES}_es_datanode`].includes(`${props.dbType}_${props.machineType}`));
+  const hasInstance = computed(() =>
+    [`${DBTypes.ES}_${MachineTypes.ES_DATANODE}`].includes(`${props.dbType}_${props.machineType}`),
+  );
 
   const batchDeleteTooltips = computed(() => {
     if (selectedList.value.length === 0) {

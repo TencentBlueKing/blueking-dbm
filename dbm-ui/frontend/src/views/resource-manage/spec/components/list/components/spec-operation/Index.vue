@@ -166,7 +166,7 @@
 
   import { useFunController } from '@stores';
 
-  import { ClusterTypes, DBTypes } from '@common/const';
+  import { ClusterTypes, DBTypes, MachineTypes } from '@common/const';
 
   import { messageSuccess } from '@utils';
 
@@ -184,9 +184,9 @@
 
   interface Props {
     data?: ResourceSpecModel;
-    dbType: string;
+    dbType: DBTypes;
     hasInstance: boolean;
-    machineType: string;
+    machineType: MachineTypes;
     machineTypeLabel: string;
     mode: 'create' | 'edit' | 'clone';
     ratioMap?: Record<string, number>;

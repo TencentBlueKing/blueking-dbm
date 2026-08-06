@@ -13,17 +13,17 @@
 
 import { computed } from 'vue';
 
-import { ClusterTypes } from '@common/const';
+import { DBTypes, MachineTypes } from '@common/const';
 
 const hasQPSClusterTypes = [
   // `${ClusterTypes.TWEMPROXY_REDIS_INSTANCE}_tendiscache`,
   // `${ClusterTypes.TWEMPROXY_TENDIS_SSD_INSTANCE}_tendisssd`,
   // `${ClusterTypes.PREDIXY_TENDISPLUS_CLUSTER}_tendisplus`,
-  `${ClusterTypes.TENDBCLUSTER}_remote`,
+  `${DBTypes.TENDBCLUSTER}_${MachineTypes.TENDBCLUSTER_REMOTE}`,
   // `${ClusterTypes.MONGODB}_shardSvr`,
 ];
 
-export const useHasQPS = (props: { dbType: string; machineType: string }) => {
+export const useHasQPS = (props: { dbType: DBTypes; machineType: MachineTypes }) => {
   const hasQPS = computed(() => hasQPSClusterTypes.includes(`${props.dbType}_${props.machineType}`));
 
   return { hasQPS };
