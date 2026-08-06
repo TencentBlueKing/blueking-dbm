@@ -70,8 +70,8 @@ export default class OracleSingleCluster extends ClusterBase {
   master_domain: string;
   operations: ClusterListOperation[];
   permission: {
-    access_entry_edit: boolean;
     oracle_edit: boolean;
+    oracle_manage: boolean;
     oracle_view: boolean;
   };
   phase: string;

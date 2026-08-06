@@ -82,11 +82,11 @@ export default class Kafka extends ClusterBase {
   master_domain: string;
   operations: ClusterListOperation[];
   permission: {
-    access_entry_edit: boolean;
     kafka_access_entry_view: boolean;
     kafka_destroy: boolean;
     kafka_edit: boolean;
     kafka_enable_disable: boolean;
+    kafka_manage: boolean;
     kafka_rebalance: boolean;
     kafka_reboot: boolean;
     kafka_replace: boolean;
