@@ -9,9 +9,9 @@
       {{ row }}
       <AuthButton
         v-if="index === 0"
-        action-id="access_entry_edit"
-        :permission="clusterData.permission.access_entry_edit"
-        :resource="clusterData.db_type"
+        :action-id="manageActionId"
+        :permission="clusterData.permission[manageActionId]"
+        :resource="clusterData.id"
         text
         theme="primary"
         @click="handleActiveInput">
@@ -55,9 +55,7 @@
     clusterData: {
       db_type: string;
       id: number;
-      permission: {
-        access_entry_edit: boolean;
-      };
+      permission: Record<string, boolean>;
     };
     data: ClusterEntryInfo;
   }
@@ -75,6 +73,7 @@
 
   import { updateClusterEntryConfig } from '@services/source/clusterEntry';
 
+  import { DBTypes } from '@common/const';
   import { ipv4 } from '@common/regex';
 
   import { messageSuccess } from '@utils';
@@ -84,6 +83,26 @@
   const emits = defineEmits<Emits>();
 
   const { t } = useI18n();
+
+  /** 数据库类型对应的运维管理权限 actionId（废弃 access_entry_edit，整合进 dbType_manage） */
+  const dnsManageActionIdMap: Record<DBTypes, string> = {
+    [DBTypes.DORIS]: 'doris_manage',
+    [DBTypes.ES]: 'es_manage',
+    [DBTypes.HDFS]: 'hdfs_manage',
+    [DBTypes.INFLUXDB]: 'influxdb_manage',
+    [DBTypes.KAFKA]: 'kafka_manage',
+    [DBTypes.MONGODB]: 'mongodb_manage',
+    [DBTypes.MYSQL]: 'mysql_manage',
+    [DBTypes.ORACLE]: 'oracle_manage',
+    [DBTypes.PULSAR]: 'pulsar_manage',
+    [DBTypes.REDIS]: 'redis_manage',
+    [DBTypes.RIAK]: 'riak_manage',
+    [DBTypes.SQLSERVER]: 'sqlserver_manage',
+    [DBTypes.TENDBCLUSTER]: 'tendbcluster_manage',
+  };
+
+  /** DNS 手动配置编辑的运维管理权限 actionId */
+  const manageActionId = computed(() => dnsManageActionIdMap[props.clusterData.db_type as DBTypes]);
 
   const inputRef = ref();
   const activeInput = ref(false);

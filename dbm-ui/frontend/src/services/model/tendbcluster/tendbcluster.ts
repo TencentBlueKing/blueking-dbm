@@ -75,7 +75,6 @@ export default class TendbCluster extends ClusterBase {
   master_domain: string;
   operations: ClusterListOperation[];
   permission: {
-    access_entry_edit: boolean;
     tendb_spider_slave_destroy: boolean;
     tendbcluster_add_clb: boolean;
     tendbcluster_clb_bind_domain: boolean;
@@ -83,6 +82,7 @@ export default class TendbCluster extends ClusterBase {
     tendbcluster_dump_data: boolean;
     tendbcluster_edit: boolean;
     tendbcluster_enable_disable: boolean;
+    tendbcluster_manage: boolean;
     tendbcluster_node_rebalance: boolean;
     tendbcluster_spider_add_nodes: boolean;
     tendbcluster_spider_mnt_destroy: boolean;
