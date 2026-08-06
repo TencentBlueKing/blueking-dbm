@@ -30,8 +30,20 @@ from backend.ticket.builders.mongodb.base import (
 )
 from backend.ticket.constants import TicketType
 
+# NOTE: 本单据的 detail 字段 / validate 规则被 MCP mongodb-bill 镜像使用。
+# 若变更 DetailSerializer、校验逻辑或 Ticket.create_ticket 所需 details 结构，
+# 请同步修改：
+#   - backend/dbm_aiagent/mcp_tools/mongodb/serializers/mongodb_bill.py
+#     (SubmitBillMongoReplicaSetApplyInputSerializer)
+#   - backend/dbm_aiagent/mcp_tools/mongodb/impl/mongodb_bill.py
+#     (submit_mongodb_replicaset_apply_bill)
+#   - backend/dbm_aiagent/mcp_tools/mongodb/views/mongodb_bill_mcp.py
+#     (submit_bill_replicaset_apply)
+
 
 class MongoReplicaSetApplyDetailSerializer(TicketBaseValidateSerializerMixin, serializers.Serializer):
+    """副本集部署单据 details。改动时须同步 mongodb-bill MCP（见文件头 NOTE）。"""
+
     class ReplicaSet(serializers.Serializer):
         set_id = serializers.CharField(help_text=_("复制集群ID（英文数字及下划线）"))
         name = serializers.CharField(help_text=_("集群别名"), allow_blank=True, allow_null=True)

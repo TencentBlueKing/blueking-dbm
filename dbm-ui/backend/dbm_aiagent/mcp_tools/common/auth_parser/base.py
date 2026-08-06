@@ -17,6 +17,15 @@ from backend.dbm_aiagent.mcp_tools.common.impl.biz_helpers import get_biz_by_abb
 from backend.dbm_aiagent.mcp_tools.typing import BizIdList, ClusterIdList
 
 
+class FakeRequest:
+    """构造给公共 auth parser 复用的最小 request 外壳。"""
+
+    def __init__(self, method: str, data: dict):
+        self.method = method
+        self.data = data
+        self.query_params = data
+
+
 def auth_default(request: HttpRequest, *args, **kwargs) -> list:
     """默认鉴权"""
     return []

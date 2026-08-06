@@ -198,6 +198,111 @@ def _make_md_table(headers: List[str], rows: List[List[str]]) -> str:
     return "\n".join(lines)
 
 
+def _series_to_summary(series: List[Dict[str, Any]], top_n: int = 10) -> Dict[str, Any]:
+    """将 unify_query series 转为接近 redis_dashboard query_metric 的 summary 结构。"""
+    per_series: List[Dict[str, Any]] = []
+    global_peak_val = global_peak_ts = None
+    global_peak_labels: Dict[str, Any] = {}
+    global_min_val = global_min_ts = None
+    global_min_labels: Dict[str, Any] = {}
+    totals: List[float] = []
+    total_bucket: Optional[Dict[str, Any]] = None
+
+    for s in series or []:
+        dims = s.get("dimensions") or {}
+        # 合成 total 系列单独挂到 summary.total
+        if str(dims.get("type", "")).lower() == "total" or dims.get("__total__"):
+            total_bucket = {
+                "peak": s.get("max"),
+                "peak_at": s.get("max_time"),
+                "min": s.get("min"),
+                "avg": s.get("avg"),
+                "labels": dims,
+            }
+            continue
+
+        peak = s.get("max")
+        peak_at = s.get("max_time")
+        min_v = s.get("min")
+        avg_v = s.get("avg")
+        item = {
+            "peak": peak,
+            "peak_at": peak_at,
+            "min": min_v,
+            "avg": avg_v,
+            "labels": dims,
+        }
+        per_series.append(item)
+        if peak is not None:
+            totals.append(float(peak))
+            if global_peak_val is None or float(peak) > float(global_peak_val):
+                global_peak_val, global_peak_ts, global_peak_labels = peak, peak_at, dims
+        if min_v is not None:
+            if global_min_val is None or float(min_v) < float(global_min_val):
+                global_min_val, global_min_ts, global_min_labels = min_v, s.get("max_time"), dims
+
+    total_series_count = len(per_series)
+    truncated = False
+    if top_n > 0 and len(per_series) > top_n:
+        per_series.sort(key=lambda x: (x.get("peak") is not None, x.get("peak") or 0), reverse=True)
+        per_series = per_series[:top_n]
+        truncated = True
+
+    return {
+        "global": {
+            "peak": global_peak_val,
+            "peak_at": global_peak_ts,
+            "peak_labels": global_peak_labels,
+            "min": global_min_val,
+            "min_at": global_min_ts,
+            "min_labels": global_min_labels,
+            "avg": round(sum(totals) / len(totals), 4) if totals else None,
+            "series_count": total_series_count,
+        },
+        "total": total_bucket,
+        "per_series": per_series,
+        "truncated": truncated,
+        "total_series_count": total_series_count,
+    }
+
+
+def _wrap_metric_result(
+    cluster_domain: str,
+    metric_type: str,
+    result: Dict[str, Any],
+    format: str = "json",
+    summary_only: bool = True,
+) -> Dict[str, Any]:
+    """统一指标响应：默认 summary JSON；format=markdown 时附加 table。"""
+    if "error" in result:
+        return {"cluster_domain": cluster_domain, "metric": metric_type, "error": result["error"]}
+
+    series = result.get("series") or []
+    out: Dict[str, Any] = {
+        "cluster_domain": cluster_domain,
+        "metric": metric_type,
+        "summary": _series_to_summary(series, top_n=10 if summary_only else 0),
+    }
+    if not summary_only:
+        # 精简 series：去掉过大 datapoints 时已在查询层处理；此处透出统计字段
+        out["series"] = [
+            {
+                "dimensions": s.get("dimensions") or {},
+                "min": s.get("min"),
+                "max": s.get("max"),
+                "avg": s.get("avg"),
+                "max_time": s.get("max_time"),
+                **({"datapoints": s["datapoints"]} if s.get("datapoints") is not None else {}),
+            }
+            for s in series
+        ]
+    if format == "markdown":
+        out["table"] = _series_to_markdown(series)
+    if result.get("reminder"):
+        out["reminder"] = result["reminder"]
+    return out
+
+
 def _series_to_markdown(series: List[Dict[str, Any]]) -> str:
     """将 series 列表转换为 Markdown 表格字符串，以减少 token 占用。
 
@@ -322,6 +427,8 @@ def get_mongodb_qps(
     end_time: Any,
     instance_host: Optional[str] = None,
     instance: Optional[str] = None,
+    format: str = "json",
+    summary_only: bool = True,
 ) -> Dict[str, Any]:
     """查询 MongoDB QPS（op_counters 速率）。"""
     # mongos/proxy: mongodb_op_counters_total / mongodb_mongos_op_counters_total; shard: mongodb_mongod_op_counters_total
@@ -336,12 +443,7 @@ def get_mongodb_qps(
         f'{{instance_role!="backup",cluster_domain="{cluster_domain}"{inst}}}[2m]))'
     )
     result = _query_mongodb_metrics(cluster_domain, start_time, end_time, promql)
-    if "error" in result:
-        return {"cluster_domain": cluster_domain, "metric_type": "qps", "table": "无数据", "error": result["error"]}
-    out = {"cluster_domain": cluster_domain, "metric_type": "qps", "table": _series_to_markdown(result["series"])}
-    if result.get("reminder"):
-        out["reminder"] = result["reminder"]
-    return out
+    return _wrap_metric_result(cluster_domain, "qps", result, format=format, summary_only=summary_only)
 
 
 def get_mongodb_connections(
@@ -350,6 +452,8 @@ def get_mongodb_connections(
     end_time: Any,
     instance_host: Optional[str] = None,
     instance: Optional[str] = None,
+    format: str = "json",
+    summary_only: bool = True,
 ) -> Dict[str, Any]:
     """查询 MongoDB 连接数（current）。"""
     inst = _instance_filter(instance_host)
@@ -364,21 +468,7 @@ def get_mongodb_connections(
         f'{{instance_role!="backup",cluster_domain="{cluster_domain}"{inst}}}[10m]))'
     )
     result = _query_mongodb_metrics(cluster_domain, start_time, end_time, promql)
-    if "error" in result:
-        return {
-            "cluster_domain": cluster_domain,
-            "metric_type": "connections",
-            "table": "无数据",
-            "error": result["error"],
-        }
-    out = {
-        "cluster_domain": cluster_domain,
-        "metric_type": "connections",
-        "table": _series_to_markdown(result["series"]),
-    }
-    if result.get("reminder"):
-        out["reminder"] = result["reminder"]
-    return out
+    return _wrap_metric_result(cluster_domain, "connections", result, format=format, summary_only=summary_only)
 
 
 def get_mongodb_locks(
@@ -387,6 +477,8 @@ def get_mongodb_locks(
     end_time: Any,
     instance_host: Optional[str] = None,
     instance: Optional[str] = None,
+    format: str = "json",
+    summary_only: bool = True,
 ) -> Dict[str, Any]:
     """查询 MongoDB 锁队列（global_lock current_queue）。数据 1 分钟 1 条，用 max_over_time[5m]。"""
     inst = _instance_filter(instance_host)
@@ -399,12 +491,7 @@ def get_mongodb_locks(
         f'{{instance_role!="backup",type!="total",cluster_domain="{cluster_domain}"{inst}}}[5m]))'
     )
     result = _query_mongodb_metrics(cluster_domain, start_time, end_time, promql)
-    if "error" in result:
-        return {"cluster_domain": cluster_domain, "metric_type": "locks", "table": "无数据", "error": result["error"]}
-    out = {"cluster_domain": cluster_domain, "metric_type": "locks", "table": _series_to_markdown(result["series"])}
-    if result.get("reminder"):
-        out["reminder"] = result["reminder"]
-    return out
+    return _wrap_metric_result(cluster_domain, "locks", result, format=format, summary_only=summary_only)
 
 
 def get_mongodb_cpu_usage(
@@ -413,6 +500,8 @@ def get_mongodb_cpu_usage(
     end_time: Any,
     instance_host: Optional[str] = None,
     instance: Optional[str] = None,
+    format: str = "json",
+    summary_only: bool = True,
 ) -> Dict[str, Any]:
     """查询 MongoDB 主机 CPU 使用率。数据 1 分钟 1 条，用 max_over_time[5m]。"""
     inst = _instance_filter(instance_host)
@@ -423,18 +512,4 @@ def get_mongodb_cpu_usage(
         f'{{instance_role!="backup",cluster_domain="{cluster_domain}"{inst}}}[5m]))'
     )
     result = _query_mongodb_metrics(cluster_domain, start_time, end_time, promql)
-    if "error" in result:
-        return {
-            "cluster_domain": cluster_domain,
-            "metric_type": "cpu_usage",
-            "table": "无数据",
-            "error": result["error"],
-        }
-    out = {
-        "cluster_domain": cluster_domain,
-        "metric_type": "cpu_usage",
-        "table": _series_to_markdown(result["series"]),
-    }
-    if result.get("reminder"):
-        out["reminder"] = result["reminder"]
-    return out
+    return _wrap_metric_result(cluster_domain, "cpu_usage", result, format=format, summary_only=summary_only)

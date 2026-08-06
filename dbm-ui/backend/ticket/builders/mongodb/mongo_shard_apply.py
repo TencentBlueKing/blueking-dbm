@@ -29,8 +29,20 @@ from backend.ticket.builders.mongodb.base import (
 )
 from backend.ticket.constants import TicketType
 
+# NOTE: 本单据的 detail 字段 / validate 规则被 MCP mongodb-bill 镜像使用。
+# 若变更 DetailSerializer、校验逻辑或 Ticket.create_ticket 所需 details 结构，
+# 请同步修改：
+#   - backend/dbm_aiagent/mcp_tools/mongodb/serializers/mongodb_bill.py
+#     (SubmitBillMongoShardApplyInputSerializer)
+#   - backend/dbm_aiagent/mcp_tools/mongodb/impl/mongodb_bill.py
+#     (submit_mongodb_shard_apply_bill)
+#   - backend/dbm_aiagent/mcp_tools/mongodb/views/mongodb_bill_mcp.py
+#     (submit_bill_shard_apply)
+
 
 class MongoShardedClusterApplyDetailSerializer(TicketBaseValidateSerializerMixin, serializers.Serializer):
+    """分片集群部署单据 details。改动时须同步 mongodb-bill MCP（见文件头 NOTE）。"""
+
     bk_cloud_id = serializers.IntegerField(help_text=_("云区域ID"))
     db_app_abbr = serializers.CharField(help_text=_("业务英文缩写"))
     city_code = serializers.CharField(
