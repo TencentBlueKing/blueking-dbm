@@ -189,13 +189,14 @@
 
   import { useBeforeClose } from '@hooks';
 
-  import { DBTypeInfos, DBTypes } from '@common/const';
+  import { DBTypes } from '@common/const';
 
   import JudgingCondition from '@views/monitor-alarm/common/judging-condition/Index.vue';
   import AggInfo from '@views/monitor-alarm/common/monitor-data/AggInfo.vue';
   import PromQL from '@views/monitor-alarm/common/monitor-data/PromQL.vue';
   import NoticeInterval from '@views/monitor-alarm/common/notice-interval/Index.vue';
   import TestRules from '@views/monitor-alarm/common/test-rules/Index.vue';
+  import { getDbaLabel } from '@views/monitor-alarm/common/utils';
 
   import { messageSuccess } from '@utils';
 
@@ -220,7 +221,7 @@
 
   // const monitorTarget = ref(t('全部业务'));
   const formRef = ref();
-  const nofityTarget = ref(`{${DBTypeInfos[props.dbType].name}_DBA}`);
+  const nofityTarget = ref(`{${getDbaLabel(props.dbType)}}`);
   // const showSwitchEnableTip = ref(false);
 
   const formModel = reactive({

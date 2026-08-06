@@ -133,7 +133,9 @@
   import MonitorPolicyModel from '@services/model/monitor/monitor-policy';
   import { batchUpdateNotifyGroup } from '@services/source/monitor';
 
-  import { DBTypeInfos, DBTypes } from '@common/const';
+  import { DBTypes } from '@common/const';
+
+  import { getDbaLabel } from '@views/monitor-alarm/common/utils';
 
   import { messageSuccess } from '@utils';
 
@@ -178,7 +180,7 @@
   const formData = reactive(initFormData());
 
   const bizDefaultGroupId = computed(() => {
-    const groupItem = props.alarmGroupList.find((item) => item.label === `${DBTypeInfos[props.dbType].name}_DBA`)!;
+    const groupItem = props.alarmGroupList.find((item) => item.label === getDbaLabel(props.dbType))!;
     return groupItem?.value;
   });
 
