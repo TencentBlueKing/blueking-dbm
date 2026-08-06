@@ -96,7 +96,9 @@ def _process_namespace_config_file(namespace: str, namespace_dir: Path) -> None:
         raise
 
 
-def _sync_config_items(namespace: str, conf_type: str, conf_file: str, conf_names: List[dict]) -> None:
+def _sync_config_items(
+    namespace: str, conf_type: str, conf_file: str, conf_names: List[dict], force: bool = False
+) -> None:
     """同步配置项
 
     Args:
@@ -104,9 +106,10 @@ def _sync_config_items(namespace: str, conf_type: str, conf_file: str, conf_name
         conf_type: 配置类型
         conf_file: 配置文件名
         conf_names: 配置项列表
+        force: 强制模式，遇到错误时拆成逐行请求，只跳过出错的行
 
     Raises:
-        Exception: 同步失败时抛出异常
+        Exception: 非 force 模式下同步失败时抛出异常
     """
     # 构造请求参数
     params = {
@@ -122,12 +125,51 @@ def _sync_config_items(namespace: str, conf_type: str, conf_file: str, conf_name
 
     # 检查返回结果
     if result.get("code") != 0:
-        error_msg = (
-            f"Sync failed: {namespace}/{conf_type}/{conf_file}: "
-            f"code={result.get('code')}, message={result.get('message')}"
+        if not force:
+            error_msg = (
+                f"Sync failed: {namespace}/{conf_type}/{conf_file}: "
+                f"code={result.get('code')}, message={result.get('message')}"
+            )
+            print(error_msg)
+            raise Exception(error_msg)
+
+        # force 模式：批量失败时拆成逐行请求，只跳过出错的行
+        print(
+            f"Sync batch failed in force mode, retrying one by one: {namespace}/{conf_type}/{conf_file} "
+            f"(total {len(conf_names)} items)"
         )
-        print(error_msg)
-        raise Exception(error_msg)
+        success_count = 0
+        skip_count = 0
+        for item in conf_names:
+            single_params = {
+                "namespace": namespace,
+                "conf_type": conf_type,
+                "conf_file": conf_file,
+                "op_user": "system",
+                "table": "def",
+                "conf_names": [item],
+            }
+            try:
+                single_result = DBConfigApi.init_plat_config(params=single_params, raw=True)
+                if single_result.get("code") != 0:
+                    skip_count += 1
+                    print(
+                        f"  [SKIP] {namespace}/{conf_type}/{conf_file} -> {item.get('conf_name')}: "
+                        f"code={single_result.get('code')}, message={single_result.get('message')}"
+                    )
+                else:
+                    success_count += 1
+            except Exception as e:
+                skip_count += 1
+                print(
+                    f"  [SKIP] {namespace}/{conf_type}/{conf_file} -> {item.get('conf_name')}: " f"exception={str(e)}"
+                )
+
+        print(
+            f"Force sync completed: {namespace}/{conf_type}/{conf_file} "
+            f"(success={success_count}, skipped={skip_count}, total={len(conf_names)})"
+        )
+        return
 
     print(f"Sync success: {namespace}/{conf_type}/{conf_file} " f"(total {len(conf_names)} items)")
 
@@ -226,23 +268,24 @@ def _collect_sync_tasks(
     return tasks
 
 
-def _execute_sync_task(task: Tuple[str, str, str, List[dict]], cancel_event: Event) -> None:
+def _execute_sync_task(task: Tuple[str, str, str, List[dict]], cancel_event: Event, force: bool = False) -> None:
     """执行单个同步任务，执行前检查是否已被取消
 
     Args:
         task: (namespace, conf_type, conf_file, conf_items)
         cancel_event: 取消事件，当其他任务失败时会被 set
+        force: 强制模式，遇到错误时拆成逐行请求，只跳过出错的行
 
     Raises:
         Exception: 任务被取消或同步失败时抛出异常
     """
     namespace, conf_type, conf_file, conf_items = task
 
-    # 执行前检查是否已被取消
-    if cancel_event.is_set():
+    # 执行前检查是否已被取消（force 模式下不检查取消事件）
+    if not force and cancel_event.is_set():
         raise Exception(f"Task cancelled: {namespace}/{conf_type}/{conf_file}")
 
-    _sync_config_items(namespace, conf_type, conf_file, conf_items)
+    _sync_config_items(namespace, conf_type, conf_file, conf_items, force=force)
 
 
 def sync_dbconfig(
@@ -250,6 +293,7 @@ def sync_dbconfig(
     conf_type: Optional[str] = None,
     conf_file: Optional[str] = None,
     max_workers: int = 1,
+    force: bool = False,
 ) -> None:
     """同步 DBConfig 配置
 
@@ -265,6 +309,7 @@ def sync_dbconfig(
         conf_type: 指定要同步的 conf_type，为空则同步所有 conf_type
         conf_file: 指定要同步的 conf_file，为空则同步所有 conf_file
         max_workers: 并发线程数，默认为 1（即串行执行）
+        force: 强制模式，遇到错误时将该批次拆成逐行请求，只跳过出错的行
 
     API 请求格式示例:
     {
@@ -302,14 +347,14 @@ def sync_dbconfig(
         print("No sync tasks found")
         return
 
-    print(f"Collected {len(tasks)} sync tasks, executing with max_workers={max_workers}")
+    print(f"Collected {len(tasks)} sync tasks, executing with max_workers={max_workers}, force={force}")
 
     # 第二阶段：使用线程池并发执行同步任务
     cancel_event = Event()
     first_error = None
 
     with ThreadPoolExecutor(max_workers=max_workers) as executor:
-        future_to_task = {executor.submit(_execute_sync_task, task, cancel_event): task for task in tasks}
+        future_to_task = {executor.submit(_execute_sync_task, task, cancel_event, force): task for task in tasks}
 
         for future in as_completed(future_to_task):
             task = future_to_task[future]
@@ -317,8 +362,13 @@ def sync_dbconfig(
             try:
                 future.result()
             except Exception as e:
-                if not cancel_event.is_set():
-                    # 第一个失败的任务，设置取消事件，通知其他任务停止
+                if force:
+                    # force 模式下记录错误但不终止其他任务
+                    if first_error is None:
+                        first_error = e
+                    print(f"Task failed (force mode, continuing): {task_name}: {str(e)}")
+                elif not cancel_event.is_set():
+                    # 非 force 模式：第一个失败的任务，设置取消事件，通知其他任务停止
                     cancel_event.set()
                     first_error = e
                     print(f"Task failed, cancelling remaining tasks: {task_name}: {str(e)}")
@@ -326,7 +376,7 @@ def sync_dbconfig(
                     for f in future_to_task:
                         f.cancel()
 
-    if first_error:
+    if first_error and not force:
         raise first_error
 
     print(f"All {len(tasks)} sync tasks completed successfully")

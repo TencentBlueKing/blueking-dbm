@@ -43,7 +43,7 @@ from backend.utils.cache import func_cache_decorator
 logger = logging.getLogger("root")
 
 # 企微机器人消息单条最大字符数限制 2048
-MSG_MAX_LENGTH = 2000
+MSG_MAX_LENGTH = 1600
 
 
 def _split_content(content: str, max_length: int = MSG_MAX_LENGTH) -> list:
