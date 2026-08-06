@@ -93,6 +93,18 @@ IAM_APP_URL = get_type_env(key="IAM_APP_URL", _type=str, default="https://iam.ex
 BK_IAM_RESOURCE_API_HOST = get_type_env(key="BK_IAM_RESOURCE_API_HOST", _type=str, default="https://bkdbm.example.com")
 BK_IAM_GRADE_MANAGER_ID = get_type_env(key="BK_IAM_GRADE_MANAGER_ID", _type=int, default=0)
 
+# IAM V4 相关配置
+# IAM版本开关，控制权限模型、鉴权、资源回调路由等所有IAM能力走V3还是V4
+BK_IAM_VERSION = get_type_env(key="BK_IAM_VERSION", _type=str, default="v3")
+ENABLE_IAM_V4 = BK_IAM_VERSION == "v4"
+BK_IAM_V4_APIGATEWAY = get_type_env(key="BK_IAM_V4_APIGATEWAY", _type=str, default="https://bkiam-apigw.example.com")
+# V4 系统的客户端列表，即允许调用本系统鉴权接口的app_code
+BK_IAM_V4_CLIENTS = get_type_env(key="BK_IAM_V4_CLIENTS", _type=list, default=["bk_dbm", "bk-dbm"])
+# V4 系统的管理员列表，用于IAM产品上管理本系统的模型与审批配置
+BK_IAM_V4_MANAGERS = get_type_env(key="BK_IAM_V4_MANAGERS", _type=list, default=["admin"])
+# V4 资源实例回调路径，与 BK_IAM_RESOURCE_API_HOST 拼接成 System.callback_url
+BK_IAM_V4_CALLBACK_PATH = get_type_env(key="BK_IAM_V4_CALLBACK_PATH", _type=str, default="/apis/iam/v4/resource/")
+
 # APIGW 相关配置
 BK_APIGW_NAME = get_type_env(key="BK_APIGW_NAME", _type=str, default="bkdbm")
 BK_APIGW_MCP_NAME = get_type_env(key="BK_APIGW_MCP_NAME", _type=str, default="bkdbm-mcp")
