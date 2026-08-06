@@ -31,6 +31,7 @@ import (
 	"time"
 
 	"dbm-services/common/dbha-v2/pkg/gerrors"
+	"dbm-services/common/dbha-v2/pkg/safe"
 	"dbm-services/common/dbha-v2/pkg/storage/hamysql"
 	"dbm-services/common/dbha-v2/pkg/storage/haprobe"
 	"dbm-services/common/dbha-v2/tools/internal/cluster/config"
@@ -1130,22 +1131,18 @@ func (hdl *MysqlBaseHandler) queryNodesProcesslist(nodes []sessionNodeTarget, wh
 
 	for i, node := range nodes {
 		sem <- struct{}{}
-		go func(idx int, n sessionNodeTarget) {
+
+		info := InstanceSessionInfo{
+			IP:       node.host,
+			Port:     node.port,
+			Sessions: make([]ProcesslistEntry, 0),
+		}
+		send := func() { resultCh <- sessionResult{index: i, info: info} }
+
+		safe.Go(func() {
 			defer func() { <-sem }()
-			info := InstanceSessionInfo{
-				IP:       n.host,
-				Port:     n.port,
-				Sessions: make([]ProcesslistEntry, 0),
-			}
 
-			defer func() {
-				if r := recover(); r != nil {
-					info.Errmsg = fmt.Sprintf("panic while querying node(%s:%d): %v", n.host, n.port, r)
-				}
-				resultCh <- sessionResult{index: idx, info: info}
-			}()
-
-			entries, err := hdl.queryProcesslist(n, where)
+			entries, err := hdl.queryProcesslist(node, where)
 			if err != nil {
 				info.Errmsg = err.Error()
 			} else {
@@ -1153,7 +1150,15 @@ func (hdl *MysqlBaseHandler) queryNodesProcesslist(nodes []sessionNodeTarget, wh
 				info.Sessions = entries
 				info.Total = len(entries)
 			}
-		}(i, node)
+			send()
+		},
+			safe.WithLabel(fmt.Sprintf("query-processlist(%s:%d)", node.host, node.port)),
+
+			safe.WithOnPanic(func(pi safe.PanicInfo) {
+				info.Errmsg = fmt.Sprintf("panic while querying node(%s:%d): %v", node.host, node.port, pi.Reason)
+				send()
+			}),
+		)
 	}
 
 	infos := make([]InstanceSessionInfo, len(nodes))
