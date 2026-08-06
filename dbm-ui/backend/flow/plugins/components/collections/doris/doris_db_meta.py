@@ -27,13 +27,9 @@ class DorisMetaService(BaseService):
 
     def _execute(self, data, parent_data) -> bool:
         global_data = data.get_one_of_inputs("global_data")
-
         doris_meta = DorisDBMeta(ticket_data=global_data)
         result = doris_meta.write()
-        if result:
-            self.log_info("DBMeta write successfully")
-        else:
-            self.log_error("DBMeta write failed, ticket_type=%s", global_data.get("ticket_type", "unknown"))
+        self.log_info("DBMeta write successfully")
         return result
 
     def inputs_format(self) -> List:
