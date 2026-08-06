@@ -211,6 +211,7 @@ class TendbFixPointRollbackFlowBuilder(BaseTendbTicketFlowBuilder):
             "cluster_name": cluster_name,
             "city": cluster.region,
             "module": cluster.db_module_id,
+            "db_module_id": cluster.db_module_id,
             "disaster_tolerance_level": cluster.disaster_tolerance_level,
             "immutable_domain": f"spider.{cluster_name}.{db_app_abbr}.db",
             "ip_source": IpSource.RESOURCE_POOL,

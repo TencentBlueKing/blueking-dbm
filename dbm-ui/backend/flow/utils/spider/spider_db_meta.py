@@ -52,7 +52,7 @@ class SpiderDBMeta(object):
 
         kwargs = {
             "bk_biz_id": int(self.global_data["bk_biz_id"]),
-            "db_module_id": int(self.global_data["module"]),
+            "db_module_id": int(self.global_data["db_module_id"]),
             "cluster_name": self.global_data["cluster_name"],
             "immutable_domain": self.global_data["immutable_domain"],
             "mysql_version": self.global_data["db_version"],
