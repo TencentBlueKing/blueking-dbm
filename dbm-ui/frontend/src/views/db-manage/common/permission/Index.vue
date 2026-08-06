@@ -117,6 +117,7 @@
   import { AccountTypes, ClusterTypes, TicketTypes } from '@common/const';
 
   import PermissionCatch from '@components/apply-permission/Catch.vue';
+  import AuthTemplate from '@components/auth-component/component.vue';
   import DbTable from '@components/db-table/index.vue';
   import TextOverflowLayout from '@components/text-overflow-layout/Index.vue';
 
@@ -498,23 +499,14 @@
 
         return getRenderList(data).map((item, index) => (
           <div class='cell-row'>
-            {[AccountTypes.MONGODB, AccountTypes.SQLSERVER].includes(props.accountType) ? (
-              <auth-button
-                action-id={configMap[props.accountType].addRuleAction}
-                permission={data.permission[configMap[props.accountType].addRuleAction]}
-                text
-                theme='primary'
-                onClick={(event: PointerEvent) => handleShowAuthorize(data, item, event)}>
-                {t('授权')}
-              </auth-button>
-            ) : (
-              <bk-button
-                text
-                theme='primary'
-                onClick={(event: PointerEvent) => handleShowAuthorize(data, item, event)}>
-                {t('授权')}
-              </bk-button>
-            )}
+            <auth-button
+              action-id={configMap[props.accountType].addRuleAction}
+              permission={data.permission[configMap[props.accountType].addRuleAction]}
+              text
+              theme='primary'
+              onClick={(event: PointerEvent) => handleShowAuthorize(data, item, event)}>
+              {t('授权')}
+            </auth-button>
             {configMap[props.accountType].buttonController[ButtonTypes.DELETE_RULE] && (
               <OperationBtnStatusTips
                 data={{
@@ -524,28 +516,18 @@
                   operationTicketId: data.rules[index].priv_ticket?.ticket_id,
                 }}
                 disabled={!data.rules[index].priv_ticket}>
-                {configMap[props.accountType].buttonController[ButtonTypes.EDIT_RULE] &&
-                  (props.accountType === AccountTypes.SQLSERVER ? (
-                    <auth-button
-                      action-id={configMap[props.accountType].addRuleAction}
-                      class='ml-8'
-                      disabled={Boolean(data.rules[index].priv_ticket?.ticket_id)}
-                      permission={data.permission[configMap[props.accountType].addRuleAction]}
-                      text
-                      theme='primary'
-                      onClick={(event: PointerEvent) => handleShowEditRule(event, data, index)}>
-                      {t('编辑')}
-                    </auth-button>
-                  ) : (
-                    <bk-button
-                      class='ml-8'
-                      disabled={Boolean(data.rules[index].priv_ticket?.ticket_id)}
-                      text
-                      theme='primary'
-                      onClick={(event: PointerEvent) => handleShowEditRule(event, data, index)}>
-                      {t('编辑')}
-                    </bk-button>
-                  ))}
+                {configMap[props.accountType].buttonController[ButtonTypes.EDIT_RULE] && (
+                  <auth-button
+                    action-id={configMap[props.accountType].addRuleAction}
+                    class='ml-8'
+                    disabled={Boolean(data.rules[index].priv_ticket?.ticket_id)}
+                    permission={data.permission[configMap[props.accountType].addRuleAction]}
+                    text
+                    theme='primary'
+                    onClick={(event: PointerEvent) => handleShowEditRule(event, data, index)}>
+                    {t('编辑')}
+                  </auth-button>
+                )}
               </OperationBtnStatusTips>
             )}
             {configMap[props.accountType].buttonController[ButtonTypes.DELETE_RULE] && (
@@ -557,27 +539,19 @@
                   operationTicketId: data.rules[index].priv_ticket?.ticket_id,
                 }}
                 disabled={!data.rules[index].priv_ticket}>
-                <bk-pop-confirm
-                  content={
-                    skipApproval.value
-                      ? t('删除规则后将不能恢复，请谨慎操作')
-                      : t('删除规则会创建单据，需此规则所有过往调用方审批后才执行删除。')
-                  }
-                  title={t('确认删除该规则？')}
-                  trigger='click'
-                  width='288'
-                  onConfirm={() => handleDeleteRule(data, index)}>
-                  {[AccountTypes.MONGODB, AccountTypes.SQLSERVER].includes(props.accountType) ? (
-                    <auth-button
-                      action-id={configMap[props.accountType].addRuleAction}
-                      class='ml-8'
-                      disabled={Boolean(data.rules[index].priv_ticket?.ticket_id)}
-                      permission={data.permission[configMap[props.accountType].addRuleAction]}
-                      text
-                      theme='primary'>
-                      {t('删除')}
-                    </auth-button>
-                  ) : (
+                <AuthTemplate
+                  action-id={configMap[props.accountType].addRuleAction}
+                  permission={data.permission[configMap[props.accountType].addRuleAction]}>
+                  <bk-pop-confirm
+                    content={
+                      skipApproval.value
+                        ? t('删除规则后将不能恢复，请谨慎操作')
+                        : t('删除规则会创建单据，需此规则所有过往调用方审批后才执行删除。')
+                    }
+                    title={t('确认删除该规则？')}
+                    trigger='click'
+                    width='288'
+                    onConfirm={() => handleDeleteRule(data, index)}>
                     <bk-button
                       class='ml-8'
                       disabled={Boolean(data.rules[index].priv_ticket?.ticket_id)}
@@ -585,8 +559,8 @@
                       theme='primary'>
                       {t('删除')}
                     </bk-button>
-                  )}
-                </bk-pop-confirm>
+                  </bk-pop-confirm>
+                </AuthTemplate>
               </OperationBtnStatusTips>
             )}
           </div>
