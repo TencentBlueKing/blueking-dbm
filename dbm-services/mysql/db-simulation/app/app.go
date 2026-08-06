@@ -11,6 +11,9 @@ const (
 
 	// TendbCluster TODO
 	TendbCluster = "tendbcluster"
+
+	// SqlServer SQLServer 数据库类型标识
+	SqlServer = "sqlserver"
 )
 
 const (
