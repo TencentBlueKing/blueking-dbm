@@ -140,6 +140,43 @@ type ClusterProxyRoutingInfo struct {
 	Proxies []ProxyRoutingEntry `json:"proxies"`
 }
 
+// ProcesslistEntry represents a row of information_schema.processlist
+type ProcesslistEntry struct {
+	ID      int64   `json:"id"      gorm:"column:ID"`
+	User    string  `json:"user"    gorm:"column:USER"`
+	Host    string  `json:"host"    gorm:"column:HOST"`
+	DB      *string `json:"db"      gorm:"column:DB"`
+	Command string  `json:"command" gorm:"column:COMMAND"`
+	Time    int64   `json:"time"    gorm:"column:TIME"`
+	State   *string `json:"state"   gorm:"column:STATE"`
+	Info    *string `json:"info"    gorm:"column:INFO"`
+}
+
+// InstanceSessionInfo represents the processlist of a single instance; Result and Errmsg are always present
+type InstanceSessionInfo struct {
+	IP       string             `json:"ip"`
+	Port     int                `json:"port"`
+	Result   bool               `json:"result"`
+	Errmsg   string             `json:"errmsg"`
+	Total    int                `json:"total"`
+	Sessions []ProcesslistEntry `json:"sessions"`
+}
+
+// ClusterSessionInfo represents the processlist of all instances in a cluster
+type ClusterSessionInfo struct {
+	Cluster   string                `json:"cluster"`
+	Instances []InstanceSessionInfo `json:"instances"`
+}
+
+// sessionNodeTarget describes one node to query; tdbctl marks nodes needing a tdbctl-compatible DSN
+type sessionNodeTarget struct {
+	host     string
+	port     int
+	user     string
+	password string
+	tdbctl   bool
+}
+
 // ShowResponse represents the standard response format for show commands
 type ShowResponse struct {
 	Result bool        `json:"result"`

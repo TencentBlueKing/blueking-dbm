@@ -39,6 +39,9 @@ import (
 
 const (
 	MySQLProtocol string = "tcp"
+
+	sessionConnectTimeout = 5 * time.Second
+	sessionQueryTimeout   = 10 * time.Second
 )
 
 // ProxyBackendInfo contains proxy backend connection information
@@ -1068,4 +1071,150 @@ func (hdl *MysqlClusterHandler) getProxyRoutingEntry(host string, adminPort int)
 	}
 
 	return &proxyEntry, nil
+}
+
+// buildProcesslistSQL builds the processlist query; where is appended as-is for this internal tool
+func buildProcesslistSQL(where string) string {
+	querySQL := "SELECT * FROM information_schema.processlist"
+	if where != "" {
+		querySQL += " WHERE " + where
+	}
+	return querySQL
+}
+
+// queryProcesslist queries information_schema.processlist on a single node
+func (hdl *MysqlBaseHandler) queryProcesslist(node sessionNodeTarget, where string) ([]ProcesslistEntry, error) {
+	opts := []hamysql.Option{
+		hamysql.OptionProto(MySQLProtocol),
+		hamysql.OptionIP(node.host),
+		hamysql.OptionPort(node.port),
+		hamysql.OptionUser(node.user),
+		hamysql.OptionPassword(node.password),
+		hamysql.OptionTimeout(sessionConnectTimeout),
+		hamysql.OptionReadTimeout(sessionQueryTimeout),
+		hamysql.OptionWriteTimeout(sessionQueryTimeout),
+	}
+
+	if node.tdbctl {
+		opts = append(opts,
+			hamysql.OptionSkipInitializeWithVersion(false),
+			hamysql.OptionDisableDatetimePrecision(true),
+			hamysql.OptionCharset(""),
+		)
+	}
+
+	db, err := newToolGormDB(opts...)
+	if err != nil {
+		return nil, gerrors.Newf(gerrors.Failure, "failed to connect to node(%s:%d), errmsg: %s",
+			node.host, node.port, err.Error())
+	}
+	defer db.Close()
+
+	entries := make([]ProcesslistEntry, 0)
+	if err := db.DB().Raw(buildProcesslistSQL(where)).Scan(&entries).Error; err != nil {
+		return nil, gerrors.Newf(gerrors.Failure, "failed to query processlist on node(%s:%d), errmsg: %s",
+			node.host, node.port, err.Error())
+	}
+
+	return entries, nil
+}
+
+// queryNodesProcesslist queries nodes concurrently, keeping result order and per-node failures in Result/Errmsg
+func (hdl *MysqlBaseHandler) queryNodesProcesslist(nodes []sessionNodeTarget, where string) []InstanceSessionInfo {
+	type sessionResult struct {
+		index int
+		info  InstanceSessionInfo
+	}
+	resultCh := make(chan sessionResult, len(nodes))
+	sem := make(chan struct{}, getClusterMaxConcurrency())
+
+	for i, node := range nodes {
+		sem <- struct{}{}
+		go func(idx int, n sessionNodeTarget) {
+			defer func() { <-sem }()
+			info := InstanceSessionInfo{
+				IP:       n.host,
+				Port:     n.port,
+				Sessions: make([]ProcesslistEntry, 0),
+			}
+
+			defer func() {
+				if r := recover(); r != nil {
+					info.Errmsg = fmt.Sprintf("panic while querying node(%s:%d): %v", n.host, n.port, r)
+				}
+				resultCh <- sessionResult{index: idx, info: info}
+			}()
+
+			entries, err := hdl.queryProcesslist(n, where)
+			if err != nil {
+				info.Errmsg = err.Error()
+			} else {
+				info.Result = true
+				info.Sessions = entries
+				info.Total = len(entries)
+			}
+		}(i, node)
+	}
+
+	infos := make([]InstanceSessionInfo, len(nodes))
+	for range nodes {
+		result := <-resultCh
+		infos[result.index] = result.info
+	}
+
+	return infos
+}
+
+// printSessionJSON prints session results; failed instances flip the outermost result to false with nodes in errmsg
+func printSessionJSON(clusterSessionList []ClusterSessionInfo) error {
+	failedNodes := make([]string, 0)
+	for _, cluster := range clusterSessionList {
+		for _, inst := range cluster.Instances {
+			if !inst.Result {
+				failedNodes = append(failedNodes, fmt.Sprintf("%s:%d", inst.IP, inst.Port))
+			}
+		}
+	}
+
+	if len(failedNodes) > 0 {
+		return printShowResponse(false, fmt.Sprintf("%d node(s) failed to query session: %s",
+			len(failedNodes), strings.Join(failedNodes, ", ")), clusterSessionList)
+	}
+
+	return printJSON(clusterSessionList)
+}
+
+// ShowAllMysqlClustersSession shows sessions of master and slave nodes for all MySQL clusters
+func (hdl *MysqlClusterHandler) ShowAllMysqlClustersSession(where string) error {
+	if config.ClusterConfig == nil {
+		return printErrorResponse("config is not loaded")
+	}
+
+	clusterSessionList := make([]ClusterSessionInfo, 0)
+	user := config.ClusterConfig.AuthInfo.User
+	password := config.ClusterConfig.AuthInfo.Password
+
+	for _, cluster := range config.ClusterConfig.MysqlClusters {
+		nodes := []sessionNodeTarget{{
+			host:     cluster.Master.Host,
+			port:     cluster.Master.Port,
+			user:     user,
+			password: password,
+		}}
+		for _, slave := range cluster.Slave {
+			nodes = append(nodes, sessionNodeTarget{
+				host:     slave.Host,
+				port:     slave.Port,
+				user:     user,
+				password: password,
+			})
+		}
+
+		clusterSessionList = append(clusterSessionList, ClusterSessionInfo{
+			Cluster:   cluster.Domain,
+			Instances: hdl.queryNodesProcesslist(nodes, where),
+		})
+	}
+
+	return printSessionJSON(clusterSessionList)
 }
