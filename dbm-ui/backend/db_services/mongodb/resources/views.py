@@ -36,7 +36,6 @@ from backend.db_services.mongodb.resources.query import MongoDBListRetrieveResou
 from backend.flow.utils.mongodb.mongodb_password import MongoDBPassword
 from backend.iam_app.dataclass.actions import ActionEnum, ResourceEnum
 from backend.iam_app.handlers.drf_perm.base import DBManagePermission
-from backend.iam_app.handlers.permission import Permission
 
 
 @method_decorator(
@@ -121,6 +120,7 @@ class MongoDBViewSet(ResourceViewSet):
     ]
     list_instance_perm_actions = [ActionEnum.MONGODB_VIEW]
     list_external_perm_actions = [ActionEnum.ACCESS_ENTRY_EDIT]
+    list_external_manage_actions = [ActionEnum.MONGODB_PRIV_MANAGE, ActionEnum.MONGODB_LOADBALANCE_MANAGE]
 
     @staticmethod
     def _external_perm_param_field(kwargs):
@@ -128,19 +128,6 @@ class MongoDBViewSet(ResourceViewSet):
             ResourceEnum.BUSINESS.id: kwargs["bk_biz_id"],
             ResourceEnum.DBTYPE.id: kwargs["view_class"].db_type.value,
         }
-
-    @Permission.decorator_external_permission_field(
-        param_field=lambda d: d["bk_biz_id"],
-        actions=[ActionEnum.MONGODB_PRIV_MANAGE, ActionEnum.MONGODB_LOADBALANCE_MANAGE],
-        resource_meta=ResourceEnum.BUSINESS,
-    )
-    @Permission.decorator_external_permission_field(
-        param_field=lambda d: d["view_class"]._external_perm_param_field(d),
-        action_filed=lambda d: d["view_class"].list_external_perm_actions,
-    )
-    def list(self, request, bk_biz_id: int):
-        """查询集群列表"""
-        return super().list(request, bk_biz_id)
 
     @common_swagger_auto_schema(
         operation_summary=_("获取实例的角色类型"),

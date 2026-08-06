@@ -17,6 +17,7 @@ from rest_framework import serializers
 from backend.db_meta.enums import MachineType
 from backend.db_meta.models import Machine
 from backend.flow.engine.controller.riak import RiakController
+from backend.iam_app.dataclass.actions import ActionEnum
 from backend.ticket import builders
 from backend.ticket.builders.riak.base import BaseRiakTicketFlowBuilder
 from backend.ticket.constants import TicketType
@@ -45,7 +46,7 @@ class RiakRebootFlowParamBuilder(builders.FlowParamBuilder):
     controller = RiakController.riak_reboot_scene
 
 
-@builders.BuilderFactory.register(TicketType.RIAK_CLUSTER_REBOOT)
+@builders.BuilderFactory.register(TicketType.RIAK_CLUSTER_REBOOT, iam=ActionEnum.RIAK_MANAGE)
 class RiakRebootFlowBuilder(BaseRiakTicketFlowBuilder):
     serializer = RiakRebootDetailSerializer
     inner_flow_builder = RiakRebootFlowParamBuilder

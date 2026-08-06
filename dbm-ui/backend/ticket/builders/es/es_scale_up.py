@@ -15,6 +15,7 @@ from rest_framework import serializers
 
 from backend.db_services.dbbase.constants import IpSource
 from backend.flow.engine.controller.es import EsController
+from backend.iam_app.dataclass.actions import ActionEnum
 from backend.ticket import builders
 from backend.ticket.builders.common.bigdata import (
     BaseEsTicketFlowBuilder,
@@ -97,7 +98,7 @@ class EsScaleUpFlowParamBuilder(builders.FlowParamBuilder):
         super().format_ticket_data()
 
 
-@builders.BuilderFactory.register(TicketType.ES_SCALE_UP, is_apply=True)
+@builders.BuilderFactory.register(TicketType.ES_SCALE_UP, is_apply=True, iam=ActionEnum.ES_MANAGE)
 class EsScaleUpFlowBuilder(BaseEsTicketFlowBuilder):
     serializer = EsScaleUpDetailSerializer
     inner_flow_builder = EsScaleUpFlowParamBuilder

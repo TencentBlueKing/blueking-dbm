@@ -16,6 +16,7 @@ from backend.db_meta.models import DBModule
 from backend.db_services.dbbase.constants import IpSource
 from backend.db_services.ipchooser.query.resource import ResourceQueryHelper
 from backend.flow.engine.controller.riak import RiakController
+from backend.iam_app.dataclass.actions import ActionEnum
 from backend.ticket import builders
 from backend.ticket.builders.common.base import CommonValidate
 from backend.ticket.builders.common.bigdata import BigDataApplyDetailsSerializer
@@ -63,7 +64,9 @@ class RiakMigrateFlowParamBuilder(builders.FlowParamBuilder):
             self.ticket_data["nodes"] = riak_nodes
 
 
-@builders.BuilderFactory.register(TicketType.RIAK_CLUSTER_MIGRATE, is_apply=True, cluster_type=ClusterType.Riak)
+@builders.BuilderFactory.register(
+    TicketType.RIAK_CLUSTER_MIGRATE, is_apply=True, cluster_type=ClusterType.Riak, iam=ActionEnum.RIAK_MANAGE
+)
 class RiakMigrateFlowBuilder(BaseRiakTicketFlowBuilder):
     serializer = RiakMigrateDetailSerializer
     inner_flow_builder = RiakMigrateFlowParamBuilder
