@@ -151,7 +151,7 @@
                   <DbIcon
                     style="font-size: 16px; color: #979ba5"
                     type="yonghuzu" />
-                  <span class="dba">{{ `{${DBTypeInfos[props.dbType].name}_DBA}` }}</span>
+                  <span class="dba">{{ '{' + getDbaLabel(props.dbType) + '}' }}</span>
                 </span>
               </template>
             </TableColumn>
@@ -219,7 +219,7 @@
 
   import { useTableSettings, useUrlSearch } from '@hooks';
 
-  import { DBTypeInfos, DBTypes, UserPersonalSettings } from '@common/const';
+  import { DBTypes, UserPersonalSettings } from '@common/const';
 
   import ApplyPermissionCatch from '@components/apply-permission/Catch.vue';
   import TagBlock from '@components/tag-block/Index.vue';
@@ -227,6 +227,7 @@
 
   import TestRules from '@views/monitor-alarm/common/table/TestRules.vue';
   import { useStrategyQuickSearch } from '@views/monitor-alarm/common/useStrategyQuickSearch';
+  import { getDbaLabel } from '@views/monitor-alarm/common/utils';
 
   import { getOffset, messageSuccess } from '@utils';
 
