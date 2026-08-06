@@ -43,8 +43,10 @@ type Config struct {
 	Yunti            yunti.YuntiConfig `yaml:"yunti"`
 	LLM              LLMConfig         `yaml:"llm" mapstructure:"llm"`
 	// 中转业务ID
-	TransBizId int    `yaml:"transBizId"`
-	Tenant     Tenant `yaml:"tenant"`
+	TransBizId int `yaml:"transBizId"`
+	// CheckExt3DataDisk 导入机器时是否检查数据盘为 ext3，未配置时默认 true
+	CheckExt3DataDisk bool   `yaml:"checkExt3DataDisk" mapstructure:"checkExt3DataDisk"`
+	Tenant            Tenant `yaml:"tenant"`
 }
 
 // LLMConfig LLM 大模型配置
@@ -155,6 +157,8 @@ func InitConfig() {
 	viper.AddConfigPath("./conf")
 	viper.AddConfigPath("$HOME/conf")
 	viper.AddConfigPath("./")
+	// 未配置时默认开启 ext3 数据盘检查，兼容存量配置文件
+	viper.SetDefault("checkExt3DataDisk", true)
 	if err := viper.ReadInConfig(); err != nil {
 		logger.Fatal("failed to read configuration file:%v", err)
 	}

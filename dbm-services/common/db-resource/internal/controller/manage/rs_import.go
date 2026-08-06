@@ -13,6 +13,7 @@ package manage
 import (
 	"encoding/json"
 	"fmt"
+	"strings"
 	"time"
 
 	"dbm-services/common/db-resource/internal/config"
@@ -174,6 +175,10 @@ func DoImport(param ImportMachParam, requestId string) (resp *ImportHostResp, er
 	}
 	resp.SearchDiskErrInfo = diskResp.IpFailedLogMap
 	resp.NotFoundInCCHosts = notFoundHosts
+	if err = maybeCheckExt3DataDisk(diskResp.IpLogContentMap); err != nil {
+		logger.Error("ext3 data disk check failed: %s", err.Error())
+		return resp, err
+	}
 	labelJson, err := param.transParamToBytes()
 	if err != nil {
 		return resp, err
@@ -410,6 +415,11 @@ func (c *MachineResourceHandler) ImportMachineWithDiffInfo(r *rf.Context) {
 			c.SendResponse(r, err, err)
 			return
 		}
+		if err = maybeCheckExt3DataDisk(diskResp.IpLogContentMap); err != nil {
+			logger.Error("ext3 data disk check failed: %s", err.Error())
+			c.SendResponse(r, err, err.Error())
+			return
+		}
 		hostsMap := lo.SliceToMap(targetHosts, func(item string) (string, struct{}) { return item, struct{}{} })
 		for _, emptyHost := range notFoundHosts {
 			delete(hostsMap, emptyHost)
@@ -452,6 +462,45 @@ func (c *MachineResourceHandler) ImportMachineWithDiffInfo(r *rf.Context) {
 	}
 	task.SyncRsGseAgentStatusChan <- bkHostIds
 	c.SendResponse(r, nil, "success")
+}
+
+// maybeCheckExt3DataDisk 按配置决定是否执行 ext3 数据盘检查
+func maybeCheckExt3DataDisk(diskMap map[string]*bk.ShellResCollection) error {
+	if !config.AppConfig.CheckExt3DataDisk {
+		logger.Info("skip ext3 data disk check because checkExt3DataDisk is disabled")
+		return nil
+	}
+	return checkExt3DataDisk(diskMap)
+}
+
+// checkExt3DataDisk 检查数据盘是否为 ext3：忽略根盘 "/"，其余挂载点（/data、/data1、/data2 等）
+// 若 file_type 大小写不敏感等于 ext3 则整批失败。主机未采到磁盘信息不拦截。
+func checkExt3DataDisk(diskMap map[string]*bk.ShellResCollection) error {
+	if len(diskMap) == 0 {
+		return nil
+	}
+	var violations []string
+	for ip, shellRes := range diskMap {
+		if shellRes == nil {
+			continue
+		}
+		for _, disk := range shellRes.Disk {
+			if disk.MountPoint == "/" {
+				continue
+			}
+			if strings.EqualFold(disk.FileType, "ext3") {
+				violations = append(violations,
+					fmt.Sprintf("IP[%s] 挂载点[%s] 文件系统[%s]", ip, disk.MountPoint, disk.FileType))
+			}
+		}
+	}
+	if len(violations) == 0 {
+		return nil
+	}
+	return fmt.Errorf(
+		"导入失败：禁止数据盘使用 ext3 文件系统，本批机器均未入库，请将数据盘格式化为 ext4/xfs 后重试。违规详情：%s",
+		strings.Join(violations, "；"),
+	)
 }
 
 func getIpList(ss []HostInfo) (ips []string) {
