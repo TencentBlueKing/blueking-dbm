@@ -27,7 +27,7 @@ class TicketGroupResourceProvider(DBTypeResourceProvider):
     def list_instance(self, filter, page, **options):
         db_types = [{"id": db.value, "display_name": db.name} for db in DBType]
         db_types.append({"id": "other", "display_name": _("其他")})
-        return ListResult(results=db_types, count=len(db_types))
+        return self.filter_and_paginate(db_types, filter, page)
 
     def fetch_instance_info(self, filter, **options):
         items = [
