@@ -409,7 +409,7 @@
 
   import { useGlobalBizs } from '@stores';
 
-  import { DBTypeInfos, DBTypes, MonitorTargetLevel, UserPersonalSettings } from '@common/const';
+  import { DBTypes, MonitorTargetLevel, UserPersonalSettings } from '@common/const';
 
   import ApplyPermissionCatch from '@components/apply-permission/Catch.vue';
   import AuthButton from '@components/auth-component/button.vue';
@@ -418,6 +418,7 @@
 
   import TestRules from '@views/monitor-alarm/common/table/TestRules.vue';
   import { useStrategyQuickSearch } from '@views/monitor-alarm/common/useStrategyQuickSearch';
+  import { getDbaLabel } from '@views/monitor-alarm/common/utils';
 
   import { getOffset, messageSuccess } from '@utils';
 
@@ -863,7 +864,7 @@
     if (row.notify_groups.length === 0) {
       return [
         {
-          displayName: `${DBTypeInfos[props.dbType].name}_DBA`,
+          displayName: getDbaLabel(props.dbType),
           id: props.dbType,
         },
       ];
@@ -997,7 +998,7 @@
   // 根据 getEnablePopConfirmInfo 中的 case 来判断
   const handleClickConfirm = (row: MonitorPolicyModel) => {
     const getBizDefaultGroupIds = () => {
-      const groupItem = alarmGroupList.value.find((item) => item.label === `${DBTypeInfos[props.dbType].name}_DBA`);
+      const groupItem = alarmGroupList.value.find((item) => item.label === getDbaLabel(props.dbType));
       return groupItem ? [Number(groupItem.value)] : [];
     };
 
