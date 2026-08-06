@@ -17,7 +17,7 @@ from iam import Action
 
 from backend.configuration.constants import DBType
 from backend.db_meta.enums import ClusterType, InstanceRole
-from backend.iam_app.constans import MAX_ACTION_NAME_LEN, CommonActionLabel
+from backend.iam_app.constans import DEPRECATED_ACTION_GROUP, MAX_ACTION_NAME_LEN, CommonActionLabel, RoleActionLabel
 from backend.iam_app.dataclass.resources import ResourceEnum, ResourceMeta
 from backend.iam_app.exceptions import ActionNotExistError, BaseIAMError
 from backend.ticket.constants import TicketEnumField, TicketType
@@ -43,6 +43,12 @@ class ActionMeta(Action):
 
     is_ticket_action: bool = False  # 表示该动作是单据工具箱
 
+    # ---------------- IAM V4 字段 ----------------
+    # V4 的动作只有 id/name/resource_type_id 三个字段，且只能关联单个资源类型，
+    related_resource_type_v4: ResourceMeta = None
+    # 动作所属的V4角色。与V3的常用操作分类相互独立，避免影响V3
+    role_labels_v4: List[RoleActionLabel] = None
+
     def __post_init__(self):
         super(ActionMeta, self).__init__(id=self.id)
         # 如果单据长度大于32，则报错
@@ -51,6 +57,7 @@ class ActionMeta(Action):
         self.related_actions = self.related_actions or []
         self.related_resource_types = self.related_resource_types or []
         self.common_labels = self.common_labels or []
+        self.role_labels_v4 = self.role_labels_v4 or []
         # 单据工具箱初始化
         if self.is_ticket_action:
             self.__ticket_tool_action_init__()
@@ -75,6 +82,8 @@ class ActionMeta(Action):
         content = asdict(self)
         content.pop("is_ticket_action")
         content.pop("common_labels")
+        content.pop("related_resource_type_v4")
+        content.pop("role_labels_v4")
         content.update(
             {
                 "description": self.description or self.name,
@@ -101,6 +110,34 @@ class ActionMeta(Action):
             related_resource_types.append(related_resource_type)
 
         content["related_resource_types"] = related_resource_types
+        return content
+
+    def get_related_resource_type_v4(self) -> Union[ResourceMeta, None]:
+        """
+        获取V4关联的资源类型。V4的动作只能关联一个资源类型，未显式指定时取关联列表的第一个
+        """
+        if self.related_resource_type_v4:
+            return self.related_resource_type_v4
+        if not self.related_resource_types:
+            return None
+
+        return self.related_resource_types[0]
+
+    def is_disabled_v4(self) -> bool:
+        """动作是否不同步到V4：已废弃分组的动作不再注册，关联资源未同步的动作也无法注册"""
+        if self.group == DEPRECATED_ACTION_GROUP:
+            return True
+        related_resource_type = self.get_related_resource_type_v4()
+        return bool(related_resource_type and related_resource_type.iamv4_disable)
+
+    def to_json_v4(self):
+        """V4的动作定义"""
+        related_resource_type = self.get_related_resource_type_v4()
+        content = {
+            "id": self.id,
+            "name": self.name,
+            "resource_type_id": related_resource_type.id if related_resource_type else "",
+        }
         return content
 
     def __hash__(self):
@@ -134,6 +171,7 @@ class ActionEnum:
             CommonActionLabel.TENDBCLUSTER_IMPORT_SQLFILE,
             CommonActionLabel.EXTERNAL_DEVELOPER,
         ],
+        role_labels_v4=[RoleActionLabel.BIZ_READ_ONLY],
     )
 
     GLOBAL_MANAGE = ActionMeta(
@@ -213,6 +251,7 @@ class ActionEnum:
         group=_("资源管理"),
         subgroup="",
         hidden=True,
+        role_labels_v4=[RoleActionLabel.RESOURCE_MANAGE],
     )
 
     FLOW_DETAIL = ActionMeta(
@@ -573,6 +612,7 @@ class ActionEnum:
             CommonActionLabel.DEVELOPER,
             CommonActionLabel.EXTERNAL_DEVELOPER
         ],
+        role_labels_v4=[RoleActionLabel.BIZ_READ_ONLY],
     )
 
     MYSQL_EDIT = ActionMeta(
@@ -640,6 +680,7 @@ class ActionEnum:
             CommonActionLabel.DEVELOPER,
             CommonActionLabel.EXTERNAL_DEVELOPER
         ],
+        role_labels_v4=[RoleActionLabel.BIZ_READ_ONLY],
     )
 
     MYSQL_ADMIN_PWD_MODIFY = ActionMeta(
@@ -744,6 +785,8 @@ class ActionEnum:
         type="execute",
         related_actions=[DB_MANAGE.id],
         related_resource_types=[ResourceEnum.MYSQL_ACCOUNT, ResourceEnum.MYSQL],
+        # V4只能关联一个资源，保留集群维度的管控
+        related_resource_type_v4=ResourceEnum.MYSQL,
         group=_("MySQL"),
         subgroup=_("权限管理"),
         common_labels=[CommonActionLabel.BIZ_MAINTAIN, CommonActionLabel.MYSQL_AUTHORIZE_RULES, CommonActionLabel.DEVELOPER],
@@ -879,6 +922,8 @@ class ActionEnum:
         type="execute",
         related_actions=[DB_MANAGE.id],
         related_resource_types=[ResourceEnum.OPENAREA_CONFIG, ResourceEnum.MYSQL],
+        # V4只能关联一个资源，保留集群维度的管控
+        related_resource_type_v4=ResourceEnum.MYSQL,
         group=_("MySQL"),
         subgroup=_("克隆开区"),
         common_labels=[CommonActionLabel.BIZ_MAINTAIN],
@@ -1019,6 +1064,7 @@ class ActionEnum:
             CommonActionLabel.DEVELOPER,
             CommonActionLabel.EXTERNAL_DEVELOPER
         ],
+        role_labels_v4=[RoleActionLabel.BIZ_READ_ONLY],
     )
 
     TENDBCLUSTER_EDIT = ActionMeta(
@@ -1078,6 +1124,7 @@ class ActionEnum:
             CommonActionLabel.DEVELOPER,
             CommonActionLabel.EXTERNAL_DEVELOPER
         ],
+        role_labels_v4=[RoleActionLabel.BIZ_READ_ONLY],
     )
 
     TENDBCLUSTER_ADMIN_PWD_MODIFY = ActionMeta(
@@ -1150,6 +1197,8 @@ class ActionEnum:
         type="execute",
         related_actions=[DB_MANAGE.id],
         related_resource_types=[ResourceEnum.TENDBCLUSTER_ACCOUNT, ResourceEnum.TENDBCLUSTER],
+        # V4只能关联一个资源，保留集群维度的管控
+        related_resource_type_v4=ResourceEnum.TENDBCLUSTER,
         group=_("TenDBCluster"),
         subgroup=_("权限管理"),
         common_labels=[
@@ -1206,6 +1255,8 @@ class ActionEnum:
         type="execute",
         related_actions=[DB_MANAGE.id],
         related_resource_types=[ResourceEnum.OPENAREA_CONFIG, ResourceEnum.TENDBCLUSTER],
+        # V4只能关联一个资源，保留集群维度的管控
+        related_resource_type_v4=ResourceEnum.TENDBCLUSTER,
         group=_("TenDBCluster"),
         subgroup=_("克隆开区"),
         common_labels=[CommonActionLabel.BIZ_MAINTAIN],
@@ -1379,6 +1430,7 @@ class ActionEnum:
             CommonActionLabel.DEVELOPER,
             CommonActionLabel.EXTERNAL_DEVELOPER
         ],
+        role_labels_v4=[RoleActionLabel.BIZ_READ_ONLY],
     )
 
     REDIS_EDIT = ActionMeta(
@@ -1410,6 +1462,7 @@ class ActionEnum:
             CommonActionLabel.DEVELOPER,
             CommonActionLabel.EXTERNAL_DEVELOPER
         ],
+        role_labels_v4=[RoleActionLabel.BIZ_READ_ONLY],
     )
 
     REDIS_ACCESS_ENTRY_VIEW = ActionMeta(
@@ -1576,6 +1629,7 @@ class ActionEnum:
         group=_("ElasticSearch"),
         subgroup=_("集群管理"),
         common_labels=[CommonActionLabel.BIZ_READ_ONLY, CommonActionLabel.BIZ_MAINTAIN, CommonActionLabel.DEVELOPER],
+        role_labels_v4=[RoleActionLabel.BIZ_READ_ONLY],
     )
 
     ES_EDIT = ActionMeta(
@@ -1626,6 +1680,7 @@ class ActionEnum:
         group=_("VM"),
         subgroup=_("集群管理"),
         common_labels=[CommonActionLabel.BIZ_MAINTAIN, CommonActionLabel.BIZ_READ_ONLY, CommonActionLabel.DEVELOPER],
+        role_labels_v4=[RoleActionLabel.BIZ_READ_ONLY],
     )
 
     VM_EDIT = ActionMeta(
@@ -1695,6 +1750,7 @@ class ActionEnum:
         group=_("Doris"),
         subgroup=_("集群管理"),
         common_labels=[CommonActionLabel.BIZ_READ_ONLY, CommonActionLabel.BIZ_MAINTAIN, CommonActionLabel.DEVELOPER],
+        role_labels_v4=[RoleActionLabel.BIZ_READ_ONLY],
     )
 
     DORIS_EDIT = ActionMeta(
@@ -1757,6 +1813,7 @@ class ActionEnum:
         group=_("Kafka"),
         subgroup=_("集群管理"),
         common_labels=[CommonActionLabel.BIZ_READ_ONLY, CommonActionLabel.BIZ_MAINTAIN, CommonActionLabel.DEVELOPER],
+        role_labels_v4=[RoleActionLabel.BIZ_READ_ONLY],
     )
 
     KAFKA_EDIT = ActionMeta(
@@ -1835,6 +1892,7 @@ class ActionEnum:
         group=_("HDFS"),
         subgroup=_("集群管理"),
         common_labels=[CommonActionLabel.BIZ_READ_ONLY, CommonActionLabel.BIZ_MAINTAIN, CommonActionLabel.DEVELOPER],
+        role_labels_v4=[RoleActionLabel.BIZ_READ_ONLY],
     )
 
     HDFS_EDIT = ActionMeta(
@@ -1905,6 +1963,7 @@ class ActionEnum:
         group=_("Pulsar"),
         subgroup=_("集群管理"),
         common_labels=[CommonActionLabel.BIZ_READ_ONLY, CommonActionLabel.BIZ_MAINTAIN, CommonActionLabel.DEVELOPER],
+        role_labels_v4=[RoleActionLabel.BIZ_READ_ONLY],
     )
 
     PULSAR_EDIT = ActionMeta(
@@ -1976,6 +2035,7 @@ class ActionEnum:
         group=_("Riak"),
         subgroup=_("集群管理"),
         common_labels=[CommonActionLabel.BIZ_READ_ONLY, CommonActionLabel.BIZ_MAINTAIN, CommonActionLabel.DEVELOPER],
+        role_labels_v4=[RoleActionLabel.BIZ_READ_ONLY],
     )
 
     RIAK_EDIT = ActionMeta(
@@ -2026,6 +2086,7 @@ class ActionEnum:
         group=_("MongoDB"),
         subgroup=_("集群管理"),
         common_labels=[CommonActionLabel.BIZ_READ_ONLY, CommonActionLabel.BIZ_MAINTAIN, CommonActionLabel.DEVELOPER],
+        role_labels_v4=[RoleActionLabel.BIZ_READ_ONLY],
     )
 
     MONGODB_EDIT = ActionMeta(
@@ -2155,6 +2216,8 @@ class ActionEnum:
         type="execute",
         related_actions=[DB_MANAGE.id],
         related_resource_types=[ResourceEnum.MONGODB_ACCOUNT, ResourceEnum.MONGODB],
+        # V4只能关联一个资源，保留集群维度的管控
+        related_resource_type_v4=ResourceEnum.MONGODB,
         group=_("MongoDB"),
         subgroup=_("权限管理"),
         common_labels=[CommonActionLabel.BIZ_MAINTAIN, CommonActionLabel.DEVELOPER],
@@ -2187,6 +2250,7 @@ class ActionEnum:
             CommonActionLabel.DEVELOPER,
             CommonActionLabel.EXTERNAL_DEVELOPER
         ],
+        role_labels_v4=[RoleActionLabel.BIZ_READ_ONLY],
     )
 
     MONGODB_DATA_EXPORT = ActionMeta(
@@ -2239,6 +2303,7 @@ class ActionEnum:
             CommonActionLabel.DEVELOPER,
             CommonActionLabel.EXTERNAL_DEVELOPER,
         ],
+        role_labels_v4=[RoleActionLabel.BIZ_READ_ONLY],
     )
 
     SQLSERVER_EDIT = ActionMeta(
@@ -2400,6 +2465,7 @@ class ActionEnum:
         group=_("Oracle"),
         subgroup=_("集群管理"),
         common_labels=[CommonActionLabel.BIZ_READ_ONLY, CommonActionLabel.BIZ_MAINTAIN, CommonActionLabel.DEVELOPER],
+        role_labels_v4=[RoleActionLabel.BIZ_READ_ONLY],
     )
 
     ORACLE_EDIT = ActionMeta(
@@ -2461,6 +2527,7 @@ class ActionEnum:
         group=_("资源管理"),
         subgroup=_("资源池"),
         hidden=True,
+        role_labels_v4=[RoleActionLabel.RESOURCE_MANAGE],
     )
 
     GLOBAL_RESOURCE_TAG_MANAGE = ActionMeta(
@@ -2473,6 +2540,7 @@ class ActionEnum:
         group=_("资源管理"),
         subgroup=_("标签"),
         hidden=True,
+        role_labels_v4=[RoleActionLabel.RESOURCE_MANAGE],
     )
 
     RESOURCE_TAG_MANAGE = ActionMeta(
@@ -2485,6 +2553,7 @@ class ActionEnum:
         group=_("资源管理"),
         subgroup=_("标签"),
         common_labels=[CommonActionLabel.BIZ_MAINTAIN],
+        role_labels_v4=[RoleActionLabel.RESOURCE_MANAGE],
     )
 
     HEALTHY_REPORT_VIEW = ActionMeta(
@@ -2805,6 +2874,7 @@ class ActionEnum:
         group=_("资源管理"),
         subgroup=_("资源规格"),
         hidden=True,
+        role_labels_v4=[RoleActionLabel.RESOURCE_MANAGE],
     )
 
     SPEC_UPDATE = ActionMeta(
@@ -2817,6 +2887,7 @@ class ActionEnum:
         group=_("资源管理"),
         subgroup=_("资源规格"),
         hidden=True,
+        role_labels_v4=[RoleActionLabel.RESOURCE_MANAGE],
     )
 
     SPEC_DESTROY = ActionMeta(
@@ -2829,6 +2900,7 @@ class ActionEnum:
         group=_("资源管理"),
         subgroup=_("资源规格"),
         hidden=True,
+        role_labels_v4=[RoleActionLabel.RESOURCE_MANAGE],
     )
 
     DUTY_RULE_LIST = ActionMeta(

@@ -15,6 +15,12 @@ from blue_krill.data_types.enum import EnumField, StrStructuredEnum
 
 MAX_ACTION_NAME_LEN = 32
 
+# IAM V4 的资源拓扑只能声明一条静态祖先链，平台级(无业务)资源统一挂在该虚拟业务下占位
+GLOBAL_BIZ_ID_V4 = 0
+
+# 已废弃的动作分组，该分组下的动作不注册到V4
+DEPRECATED_ACTION_GROUP = _("已废弃")
+
 
 class CommonActionLabel(StrStructuredEnum):
     BIZ_READ_ONLY = EnumField("biz_read_only", _("业务只读"))
@@ -28,4 +34,12 @@ class CommonActionLabel(StrStructuredEnum):
     TENDBCLUSTER_IMPORT_SQLFILE = EnumField("tendbcluster_import_sqlfile", _("TendbCluster SQL变更"))
     TENDBCLUSTER_AUTHORIZE_RULES = EnumField("tendbcluster_authorize_rules", _("TendbCluster DB授权"))
 
-    HDFS_ACCESS = EnumField("hdfs_access", _("HDFS获取访问方式"))
+
+class RoleActionLabel(StrStructuredEnum):
+    """
+    IAM V4 的角色标签，打在动作上圈定角色包含哪些动作。
+    与常用操作同值的标签直接复用动作已有的 common_labels 声明，其余的打在 role_labels_v4 上
+    """
+
+    BIZ_READ_ONLY = EnumField("biz_read_only", _("业务只读"))
+    RESOURCE_MANAGE = EnumField("resource_manage", _("资源管理员"))

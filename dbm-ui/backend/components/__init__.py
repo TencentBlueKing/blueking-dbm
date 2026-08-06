@@ -20,6 +20,7 @@ from .db_name_service.client import NameServiceApi
 from .db_remote_service.client import DRSApi
 from .dbconfig.client import DBConfigApi
 from .dns.client import DnsApi
+from .iamv4.client import IAMV4Api
 from .itsm.client import ItsmApi
 from .job.client import JobApi
 from .mysql_priv_manager.client import DBPrivManagerApi
@@ -48,6 +49,7 @@ __all__ = [
     "NameServiceApi",
     "BKBaseApi",
     "MySQLDTSApi",
+    "IAMV4Api",
 ]
 
 
