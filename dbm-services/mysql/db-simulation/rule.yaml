@@ -99,9 +99,22 @@ AlterTableRule:
   HighRiskType:
     expr: " Val in Item "
     item:
-      ["drop_column", "drop_key", "change_column", "rename_table", "rename_key"]
+      [
+        "drop_column",
+        "drop_key",
+        "change_column",
+        "rename_table",
+        "rename_key",
+        "convert_charset",
+      ]
     desc: "高危变更类型"
-    suggestion: "请在变更表时避免使用高危变更类型"
+    suggestion: ""
+    extra_message_map:
+      {
+        "change_column": "变更字段类型会阻塞当前表的读写！！！",
+        "drop_primary": "单独删除主键会重建表且不允许并发 DML，会阻塞当前表的读写！！！",
+        "convert_charset": "CONVERT TO CHARACTER SET 会重建表且不允许并发 DML，会阻塞当前表的读写！！！",
+      }
   HighRiskPkAlterType:
     expr: " Val in Item "
     item: ["add_column", "add_key", "change_column"]
