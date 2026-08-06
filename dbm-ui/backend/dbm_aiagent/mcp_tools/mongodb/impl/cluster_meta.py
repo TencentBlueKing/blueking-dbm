@@ -15,6 +15,8 @@ from collections import defaultdict
 from typing import Dict, List
 
 from django.db.models import F
+from django.utils.translation import gettext_lazy as _
+from rest_framework.exceptions import ValidationError
 
 from backend import env
 from backend.components import BKMonitorV3Api
@@ -140,6 +142,8 @@ def get_mongodb_meta_from_ts_metric(conds: Dict) -> Dict:
         label_filters.append(f'cluster_domain="{conds["cluster_domain"]}"')
     if conds.get("ip"):
         label_filters.append(f'bk_target_ip="{conds["ip"]}"')
+    if conds.get("instance_port"):
+        label_filters.append(f'instance_port="{conds["instance_port"]}"')
     label_str = ",".join(label_filters) if label_filters else ""
     promql = (
         f'max by ({",".join(group_by_keys)}) '
@@ -187,36 +191,47 @@ def get_mongodb_meta_from_ts_metric(conds: Dict) -> Dict:
     return {"meta_list": meta_list, "error": ""}
 
 
-def meta_info(value: str) -> Dict:
+def meta_info(target: str) -> Dict:
     """
-    根据输入的值，返回对应的元信息（从 TS 指标 bkmonitor:dbm_system:cpu_summary:usage 的 label 解析，再以 DBM 元数据补全）。
+    从监控时序（TSDB）label 发现实例元信息（非 DBM ORM）。
+    指标：bkmonitor:dbm_system:cpu_summary:usage。
 
-    value 支持：
+    target 支持：
         - IP：如 "x.x.x.x"
         - IP:PORT：如 "x.x.x.x:50005"
         - 集群域名：如 "mongo.xxx.app.db"（含点号）
     """
     try:
         conds = {}
-        if value is None:
-            return {"meta_list": [], "error": "value is None"}
-        value = (value or "").strip()
-        if re.match(r"^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$", value):
-            conds["ip"] = value
-        elif re.match(r"^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}:\d{1,5}$", value):
-            ip, port = value.split(":", 1)
-            conds["instance"] = f"{ip}:{port}"
-        elif "." in value:
-            conds["cluster_domain"] = value
+        if target is None:
+            return {"meta_list": [], "error": "target is required"}
+        target = (target or "").strip()
+        if re.match(r"^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$", target):
+            conds["ip"] = target
+        elif re.match(r"^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}:\d{1,5}$", target):
+            ip, port = target.split(":", 1)
+            conds["ip"] = ip
+            conds["instance_port"] = port
+        elif "." in target:
+            conds["cluster_domain"] = target
         else:
-            return {"meta_list": [], "error": "Invalid value"}
+            return {"meta_list": [], "error": "target must be IP, IP:PORT, or cluster domain"}
         return get_mongodb_meta_from_ts_metric(conds)
     except Exception as e:
         return {"meta_list": [], "error": f"查询 MongoDB 实例的元数据信息时出错: {str(e)}"}
 
 
+def _get_cluster_by_domain(immute_domain: str, prefetch_tags: bool = False) -> Cluster:
+    """按域名取集群，不存在时抛 400 而不是 500。"""
+    qs = Cluster.objects.prefetch_related("tags") if prefetch_tags else Cluster.objects
+    try:
+        return qs.get(immute_domain=immute_domain)
+    except Cluster.DoesNotExist:
+        raise ValidationError(_("集群域名不存在: {}").format(immute_domain))
+
+
 def cluster_overview(immute_domain: str) -> Dict:
-    cluster_obj = Cluster.objects.prefetch_related("tags").get(immute_domain=immute_domain)
+    cluster_obj = _get_cluster_by_domain(immute_domain, prefetch_tags=True)
     stats = {
         "bk_cloud_id": cluster_obj.bk_cloud_id,
         "bk_biz_id": cluster_obj.bk_biz_id,
@@ -295,7 +310,7 @@ def cluster_overview(immute_domain: str) -> Dict:
 
 def cluster_mongos(immute_domain: str) -> List:
     """集群 Mongos 列表"""
-    c_obj = Cluster.objects.get(immute_domain=immute_domain)
+    c_obj = _get_cluster_by_domain(immute_domain)
     mongos_instances = c_obj.proxyinstance_set.filter(machine_type=MachineType.MONGOS)
     return [
         {
@@ -311,7 +326,7 @@ def cluster_mongos(immute_domain: str) -> List:
 
 def cluster_shards(immute_domain: str) -> List:
     """集群分片(Shard)节点列表，按 IP 聚合端口"""
-    c_obj = Cluster.objects.get(immute_domain=immute_domain)
+    c_obj = _get_cluster_by_domain(immute_domain)
     storage_objs = c_obj.storageinstance_set.filter(machine_type=MachineType.MONGODB)
     host_ports = defaultdict(list)
     for ins in storage_objs:

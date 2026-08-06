@@ -392,6 +392,16 @@ BK_APIGW_STAGE_MCP_SERVERS = [
         "tools": [],
     },
     {
+        "name": "mongodb-bill",
+        "description": """Create MongoDB cluster apply tickets: replica set and sharded cluster deployment.
+        MongoDB 副本集/分片集群部署单据。""",
+        "target_app_codes": [env.APP_CODE, "ai-dbm"],
+        "labels": ["mongodb-bill"],
+        "status": 1,
+        "is_public": False,
+        "tools": [],
+    },
+    {
         "name": "host-decommission-query",
         "description": """Cluster decommission information query services for DBA only.
         根据单个 IP 查询主机所属集群的裁撤相关信息，仅 DBA 可调用。
