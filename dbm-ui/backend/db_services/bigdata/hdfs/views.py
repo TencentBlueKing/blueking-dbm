@@ -30,6 +30,7 @@ from backend.db_services.bigdata.resources import yasg_slz
 from backend.db_services.bigdata.resources.views import BigdataResourceViewSet
 from backend.db_services.dbbase.resources import serializers
 from backend.flow.consts import ConfigTypeEnum, LevelInfoEnum
+from backend.iam_app.dataclass.actions import ActionEnum
 
 
 @method_decorator(
@@ -94,6 +95,17 @@ class HDFSClusterViewSetBigdata(BigdataResourceViewSet):
     query_class = HDFSListRetrieveResource
     query_serializer_class = serializers.ListResourceSLZ
     db_type = DBType.Hdfs
+
+    list_perm_actions = [
+        ActionEnum.HDFS_MANAGE,
+        ActionEnum.HDFS_VIEW,
+        ActionEnum.HDFS_EDIT,
+        ActionEnum.HDFS_DBCONFIG_EDIT,
+        ActionEnum.HDFS_DESTROY,
+        ActionEnum.HDFS_ENABLE_DISABLE,
+        ActionEnum.HDFS_SUBSCRIBE_MONITOR,
+        ActionEnum.HDFS_ACCESS_ENTRY_VIEW,
+    ]
 
     @action(
         methods=["POST"],

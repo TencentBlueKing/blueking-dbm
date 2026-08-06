@@ -81,6 +81,15 @@ class ListResourceViewSet(BaseListResourceViewSet):
 
 
 class BigdataResourceViewSet(ResourceViewSet):
+    list_external_perm_actions = [ActionEnum.ACCESS_ENTRY_EDIT]
+
+    @staticmethod
+    def _external_perm_param_field(kwargs):
+        return {
+            ResourceEnum.BUSINESS.id: kwargs["bk_biz_id"],
+            ResourceEnum.DBTYPE.id: kwargs["view_class"].db_type.value,
+        }
+
     @classmethod
     def _get_password(cls, cluster, username, port=0):
         """查询密码"""
@@ -167,15 +176,6 @@ class BigdataResourceViewSet(ResourceViewSet):
         """获取集群节点列表信息"""
         data = self.paginator.paginate_list(request, data["bk_biz_id"], self.query_class.list_nodes, data)
         return self.get_paginated_response(data)
-
-    @decorator_cluster_permission_field()
-    @Permission.decorator_external_permission_field(
-        param_field=lambda d: d["view_class"].db_type,
-        actions=[ActionEnum.ACCESS_ENTRY_EDIT],
-        resource_meta=ResourceEnum.DBTYPE,
-    )
-    def list(self, request, bk_biz_id: int, *args, **kwargs):
-        return super().list(request, bk_biz_id)
 
 
 class ResourceTreeViewSet(SystemViewSet):

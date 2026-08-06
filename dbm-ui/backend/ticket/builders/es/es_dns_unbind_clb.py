@@ -12,6 +12,7 @@ specific language governing permissions and limitations under the License.
 from django.utils.translation import gettext_lazy as _
 
 from backend.flow.engine.controller.es_name_service import EsNameServiceController
+from backend.iam_app.dataclass.actions import ActionEnum
 from backend.ticket import builders
 from backend.ticket.builders.common.bigdata import BaseEsTicketFlowBuilder, BigDataSingleClusterOpsDetailsSerializer
 from backend.ticket.constants import TicketType
@@ -28,7 +29,7 @@ class EsDnsUnBindCLBFlowParamBuilder(builders.FlowParamBuilder):
         super().format_ticket_data()
 
 
-@builders.BuilderFactory.register(TicketType.ES_DNS_UNBIND_CLB)
+@builders.BuilderFactory.register(TicketType.ES_DNS_UNBIND_CLB, iam=ActionEnum.ES_LOADBALANCE_MANAGE)
 class EsDnsUnBindCLBFlowBuilder(BaseEsTicketFlowBuilder):
     serializer = EsDnsUnBindCLBDetailSerializer
     inner_flow_builder = EsDnsUnBindCLBFlowParamBuilder

@@ -22,6 +22,7 @@ from backend.db_services.bigdata.resources import serializers as bigdata_seriali
 from backend.db_services.bigdata.resources import yasg_slz
 from backend.db_services.bigdata.resources.views import BigdataResourceViewSet
 from backend.db_services.dbbase.resources import serializers
+from backend.iam_app.dataclass.actions import ActionEnum
 
 
 @method_decorator(
@@ -101,6 +102,17 @@ class DorisClusterViewSetBigdata(BigdataResourceViewSet):
     query_class = DorisListRetrieveResource
     query_serializer_class = serializers.ListResourceSLZ
     db_type = DBType.Doris
+
+    list_perm_actions = [
+        ActionEnum.DORIS_MANAGE,
+        ActionEnum.DORIS_VIEW,
+        ActionEnum.DORIS_EDIT,
+        ActionEnum.DORIS_DBCONFIG_EDIT,
+        ActionEnum.DORIS_DESTROY,
+        ActionEnum.DORIS_ENABLE_DISABLE,
+        ActionEnum.DORIS_SUBSCRIBE_MONITOR,
+        ActionEnum.DORIS_ACCESS_ENTRY_VIEW,
+    ]
 
     @action(methods=["GET"], detail=True, url_path="get_nodes", serializer_class=serializers.ListNodesSLZ)
     def get_nodes(self, request, bk_biz_id: int, cluster_id: int):
