@@ -16,6 +16,7 @@ from iam.contrib.django.dispatcher import DjangoBasicResourceApiDispatcher
 from rest_framework.routers import DefaultRouter
 
 from backend import env
+from backend.iam_app.dataclass.resources import ResourceEnum
 from backend.iam_app.handlers.permission import Permission
 from backend.iam_app.views.account_provider import (
     MongoDBAccountResourceProvider,
@@ -23,6 +24,7 @@ from backend.iam_app.views.account_provider import (
     SQLServerAccountResourceProvider,
     TendbClusterAccountResourceProvider,
 )
+from backend.iam_app.views.biz_provider import BusinessResourceProvider
 from backend.iam_app.views.cluster_provider import (
     DorisClusterResourceProvider,
     EsClusterResourceProvider,
@@ -49,47 +51,59 @@ from backend.iam_app.views.notify_group_provider import NotifyGroupResourceProvi
 from backend.iam_app.views.openarea_config_provider import OpenareaConfigResourceProvider
 from backend.iam_app.views.ticket_group_provider import TicketGroupResourceProvider
 from backend.iam_app.views.ticket_provider import TicketResourceProvider
+from backend.iam_app.views.v4.dispatcher import IAMV4ResourceApiDispatcher
 from backend.iam_app.views.views import IAMViewSet
 
 router = DefaultRouter(trailing_slash=True)
 router.register(r"", IAMViewSet, basename="iam")
 
+resource_providers = {
+    r"flow": FlowResourceProvider(),
+    r"ticket": TicketResourceProvider(),
+    r"dbtype": DBTypeResourceProvider(),
+    r"ticket_group": TicketGroupResourceProvider(),
+    r"openarea_config": OpenareaConfigResourceProvider(),
+    r"dumper_subscribe_config": DumperSubscribeConfigResourceProvider(),
+    r"mysql": MySQLResourceProvider(),
+    r"tendbcluster": TendbClusterResourceProvider(),
+    r"redis": RedisClusterResourceProvider(),
+    # TODO: 暂时屏蔽对influxdb的鉴权
+    # r"influxdb": InfluxDBInstanceResourceProvider(),
+    r"es": EsClusterResourceProvider(),
+    r"hdfs": HdfsClusterResourceProvider(),
+    r"kafka": KafkaClusterResourceProvider(),
+    r"pulsar": PulsarClusterResourceProvider(),
+    r"doris": DorisClusterResourceProvider(),
+    r"mongodb": MongoDBClusterResourceProvider(),
+    r"sqlserver": SQLServerClusterResourceProvider(),
+    r"mysql_account": MySQLAccountResourceProvider(),
+    r"tendbcluster_account": TendbClusterAccountResourceProvider(),
+    r"sqlserver_account": SQLServerAccountResourceProvider(),
+    r"mongodb_account": MongoDBAccountResourceProvider(),
+    r"monitor_policy": MonitorPolicyResourceProvider(),
+    r"notify_group": NotifyGroupResourceProvider(),
+    r"k8s_surrealdb": K8sSurrealClusterResourceProvider(),
+    r"k8s_victoriametrics": K8sVictoriametricsClusterResourceProvider(),
+    r"k8s_risingwave": K8sRisingwaveClusterResourceProvider(),
+    r"k8s_milvus": K8sMilvusClusterResourceProvider(),
+    r"k8s_qdrant": K8sQdrantClusterResourceProvider(),
+    r"k8s_greptimedb": K8sGreptimedbClusterResourceProvider(),
+}
+
 dispatcher = DjangoBasicResourceApiDispatcher(Permission.get_iam_client(), env.BK_IAM_SYSTEM_ID)
+v4_dispatcher = IAMV4ResourceApiDispatcher(env.BK_IAM_SYSTEM_ID)
+for resource_type, resource_provider in resource_providers.items():
+    dispatcher.register(resource_type, resource_provider)
+    # 未同步到V4的资源不会被IAM回调
+    if not ResourceEnum.get_resource_by_id(resource_type).iamv4_disable:
+        v4_dispatcher.register(resource_type, resource_provider)
 
-dispatcher.register(r"flow", FlowResourceProvider())
-dispatcher.register(r"ticket", TicketResourceProvider())
-dispatcher.register(r"dbtype", DBTypeResourceProvider())
-dispatcher.register(r"ticket_group", TicketGroupResourceProvider())
-
-dispatcher.register(r"openarea_config", OpenareaConfigResourceProvider())
-dispatcher.register(r"dumper_subscribe_config", DumperSubscribeConfigResourceProvider())
-dispatcher.register(r"mysql", MySQLResourceProvider())
-dispatcher.register(r"tendbcluster", TendbClusterResourceProvider())
-dispatcher.register(r"redis", RedisClusterResourceProvider())
-# TODO: 暂时屏蔽对influxdb的鉴权
-# dispatcher.register(r"influxdb", InfluxDBInstanceResourceProvider())
-dispatcher.register(r"es", EsClusterResourceProvider())
-dispatcher.register(r"hdfs", HdfsClusterResourceProvider())
-dispatcher.register(r"kafka", KafkaClusterResourceProvider())
-dispatcher.register(r"pulsar", PulsarClusterResourceProvider())
-dispatcher.register(r"doris", DorisClusterResourceProvider())
-dispatcher.register(r"mongodb", MongoDBClusterResourceProvider())
-dispatcher.register(r"sqlserver", SQLServerClusterResourceProvider())
-
-dispatcher.register(r"mysql_account", MySQLAccountResourceProvider())
-dispatcher.register(r"tendbcluster_account", TendbClusterAccountResourceProvider())
-dispatcher.register(r"sqlserver_account", SQLServerAccountResourceProvider())
-dispatcher.register(r"mongodb_account", MongoDBAccountResourceProvider())
-
-dispatcher.register(r"monitor_policy", MonitorPolicyResourceProvider())
-dispatcher.register(r"notify_group", NotifyGroupResourceProvider())
-
-dispatcher.register(r"k8s_surrealdb", K8sSurrealClusterResourceProvider())
-dispatcher.register(r"k8s_victoriametrics", K8sVictoriametricsClusterResourceProvider())
-dispatcher.register(r"k8s_risingwave", K8sRisingwaveClusterResourceProvider())
-dispatcher.register(r"k8s_milvus", K8sMilvusClusterResourceProvider())
-dispatcher.register(r"k8s_qdrant", K8sQdrantClusterResourceProvider())
-dispatcher.register(r"k8s_greptimedb", K8sGreptimedbClusterResourceProvider())
+# 业务在V3是cmdb的跨系统资源，只有V4才需要dbm自己提供回调
+v4_dispatcher.register(r"biz", BusinessResourceProvider())
 
 
-urlpatterns = [url(r"^", include(router.urls)), url(r"^resource/$", dispatcher.as_view([login_exempt]))]
+urlpatterns = [
+    url(r"^", include(router.urls)),
+    url(r"^resource/$", dispatcher.as_view([login_exempt])),
+    url(r"^v4/resource/$", v4_dispatcher.as_view([login_exempt])),
+]
