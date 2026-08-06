@@ -20,7 +20,8 @@ from backend.components import DBPrivManagerApi
 from backend.configuration.constants import DBType
 from backend.db_meta.enums import ClusterType, InstanceRole
 from backend.db_meta.models import AppCache
-from backend.env import BK_IAM_SYSTEM_ID
+from backend.env import BK_IAM_SYSTEM_ID, ENABLE_IAM_V4
+from backend.iam_app.constans import GLOBAL_BIZ_ID_V4
 from backend.iam_app.exceptions import ResourceNotExistError
 
 
@@ -41,6 +42,12 @@ class ResourceMeta(metaclass=abc.ABCMeta):
 
     for_select: bool = False  # 标识仅作为实例视图
     select_id: str = ""  # 资源实例视图ID
+
+    # ---------------- IAM V4 字段 ----------------
+    # V4 的资源类型只有 id/name/ancestors 三个字段，其余字段仅在 DBM 本地使用
+    ancestors_v4: List["ResourceMeta"] = None  # V4 资源拓扑，从根到直接上级，顶层资源为空
+    # 该资源及其关联动作不同步到V4。V4要求祖先链是严格的层级链，多平行父级的资源暂时无法注册
+    iamv4_disable: bool = False
 
     def __post_init__(self):
         self.select_id = self.select_id or self.id
@@ -152,6 +159,22 @@ class ResourceMeta(metaclass=abc.ABCMeta):
         }
         return resource_json
 
+    def get_ancestors_v4(self) -> List["ResourceMeta"]:
+        """
+        获取V4的资源拓扑，顺序为从根到直接上级。
+        V4的拓扑与V3的parent/resource_type_chain不通用，只认 ancestors_v4 的显式声明
+        """
+        return self.ancestors_v4 or []
+
+    def to_json_v4(self) -> Dict:
+        """V4的资源类型定义"""
+        resource_json = {
+            "id": self.id,
+            "name": self.name,
+            "ancestors": [resource.id for resource in self.get_ancestors_v4()],
+        }
+        return resource_json
+
 
 @dataclass
 class BusinessResourceMeta(ResourceMeta):
@@ -171,6 +194,42 @@ class BusinessResourceMeta(ResourceMeta):
         except AppCache.DoesNotExist:
             bk_biz_name = ""
         resource.attribute = {"id": str(instance_id), "name": str(bk_biz_name)}
+
+        return resource
+
+
+@dataclass
+class DBMBizResourceMeta(ResourceMeta):
+    """DBM本地业务resource 属性定义
+
+    V4当前不支持跨系统资源，故预留一份挂在dbm系统下的业务资源，数据源为本地的AppCache。
+    资源ID与V3保持一致，使得 _bk_iam_path_ 的拓扑串在两个版本间通用。
+
+    注：V4的资源类型定义与鉴权协议均不带system维度，业务资源直接复用 BUSINESS 即可，
+    因此本资源目前不进 _all_resources，仅作为V4支持跨系统资源前的占位。
+    """
+
+    system_id: str = BK_IAM_SYSTEM_ID
+    id: str = "biz"
+    name: str = _("业务")
+    selection_mode: str = "instance"
+
+    lookup_field: str = "bk_biz_id"
+    display_fields: list = ResourceMeta.Field(["bk_biz_name"])
+
+    @staticmethod
+    def get_biz_name(instance_id: str) -> str:
+        # 全局资源没有真实业务，统一挂在虚拟业务下
+        if str(instance_id) == str(GLOBAL_BIZ_ID_V4):
+            return str(_("全局"))
+        try:
+            return AppCache.objects.get(bk_biz_id=instance_id).bk_biz_name
+        except AppCache.DoesNotExist:
+            return ""
+
+    def create_instance(self, instance_id: str, attr=None) -> Resource:
+        resource = self._create_simple_instance(instance_id, attr)
+        resource.attribute = {"id": str(instance_id), "name": str(self.get_biz_name(instance_id))}
 
         return resource
 
@@ -221,6 +280,10 @@ class TaskFlowResourceMeta(ResourceMeta):
     attribute_display: str = _("创建者")
     parent: ResourceMeta = field(default_factory=BusinessResourceMeta)
 
+    # ticket_group 是顶层资源，无法作为 biz 的下一级，该拓扑暂时无法在V4注册
+    ancestors_v4: List[ResourceMeta] = ResourceMeta.Field([DBMBizResourceMeta(), TicketGroupResourceMeta()])
+    iamv4_disable: bool = True
+
     def create_instance(self, instance_id: str, attr=None) -> Resource:
         from backend.flow.models import FlowTree
 
@@ -263,6 +326,10 @@ class TicketResourceMeta(ResourceMeta):
     attribute_display: str = _("创建者")
     parent: ResourceMeta = field(default_factory=BusinessResourceMeta)
 
+    # ticket_group 是顶层资源，无法作为 biz 的下一级，该拓扑暂时无法在V4注册
+    ancestors_v4: List[ResourceMeta] = ResourceMeta.Field([DBMBizResourceMeta(), TicketGroupResourceMeta()])
+    iamv4_disable: bool = True
+
     def create_instance(self, instance_id: str, attr=None) -> Resource:
         from backend.ticket.models import Ticket
 
@@ -304,6 +371,8 @@ class ClusterResourceMeta(ResourceMeta):
     attribute: str = "creator"
     attribute_display: str = _("创建者")
     parent: ResourceMeta = field(default_factory=BusinessResourceMeta)
+
+    ancestors_v4: List[ResourceMeta] = ResourceMeta.Field([DBMBizResourceMeta()])
 
     def create_instance(self, instance_id: str, attr=None) -> Resource:
         from backend.db_meta.models.cluster import Cluster
@@ -459,6 +528,8 @@ class AccountResourceMeta(ResourceMeta):
     attribute_display: str = _("创建者")
     parent: ResourceMeta = field(default_factory=BusinessResourceMeta)
 
+    ancestors_v4: List[ResourceMeta] = ResourceMeta.Field([DBMBizResourceMeta()])
+
     def create_instance(self, instance_id: str, account: dict = None, attr=None) -> Resource:
         resource = self._create_simple_instance(instance_id, attr)
         # 根据账号ID查询单个账号
@@ -588,6 +659,9 @@ class MonitorPolicyResourceMeta(ResourceMeta):
     lookup_field: str = "id"
     display_fields: list = ResourceMeta.Field(["name"])
     parent: ResourceMeta = field(default_factory=BusinessResourceMeta)
+    # dbtype 是顶层资源，无法作为 biz 的下一级，该拓扑暂时无法在V4注册
+    ancestors_v4: List[ResourceMeta] = ResourceMeta.Field([DBMBizResourceMeta(), DBTypeResourceMeta()])
+    iamv4_disable: bool = True
 
     def get_bk_iam_path(self, instance):
         # TODO: 拓扑结构目前是/{resource_type},{resource_id}/
@@ -654,6 +728,10 @@ class NotifyGroupResourceMeta(ResourceMeta):
     lookup_field: str = "id"
     display_fields: list = ResourceMeta.Field(["name"])
     parent: ResourceMeta = field(default_factory=BusinessResourceMeta)
+    # V3下告警组按是否有业务在biz/dbtype两条拓扑间切换，V4只能声明一条静态链路，故统一取两者
+    # dbtype 是顶层资源，无法作为 biz 的下一级，该拓扑暂时无法在V4注册
+    ancestors_v4: List[ResourceMeta] = ResourceMeta.Field([DBMBizResourceMeta(), DBTypeResourceMeta()])
+    iamv4_disable: bool = True
 
     def get_bk_iam_path(self, instance):
         biz_topo = "/{},{}/".format(BusinessResourceMeta.id, instance.bk_biz_id)
@@ -705,6 +783,7 @@ class OpenareaConfigResourceMeta(ResourceMeta):
     lookup_field: str = "id"
     display_fields: list = ResourceMeta.Field(["cluster_type", "config_name"])
     parent: ResourceMeta = field(default_factory=BusinessResourceMeta)
+    ancestors_v4: List[ResourceMeta] = ResourceMeta.Field([DBMBizResourceMeta()])
 
     def create_instance(self, instance_id: str, attr=None) -> Resource:
         from backend.db_services.mysql.open_area.models import TendbOpenAreaConfig
@@ -727,6 +806,7 @@ class DumperSubscribeConfigResourceMeta(ResourceMeta):
     lookup_field: str = "id"
     display_fields: list = ResourceMeta.Field(["name"])
     parent: ResourceMeta = field(default_factory=BusinessResourceMeta)
+    ancestors_v4: List[ResourceMeta] = ResourceMeta.Field([DBMBizResourceMeta()])
 
     def create_instance(self, instance_id: str, attr=None) -> Resource:
         from backend.db_services.mysql.dumper.models import DumperSubscribeConfig
@@ -741,6 +821,7 @@ class ResourceEnum:
     """
 
     BUSINESS = BusinessResourceMeta()
+    DBMBIZ = DBMBizResourceMeta()
     TASKFLOW = TaskFlowResourceMeta()
     TICKET = TicketResourceMeta()
     MYSQL = MySQLResourceMeta()
@@ -801,10 +882,14 @@ class ResourceEnum:
             return cls.INFLUXDB
 
 
+# DBMBIZ 与 BUSINESS 共用 biz 这个ID，只能二选一进字典：
+# V4 不支持跨系统资源，业务资源用挂在dbm下的 DBMBIZ；V3 仍用 cmdb 的 BUSINESS
+_excluded_biz_resource = ResourceEnum.BUSINESS if ENABLE_IAM_V4 else ResourceEnum.DBMBIZ
+
 _all_resources = {
     resource.id: resource
     for resource in ResourceEnum.__dict__.values()
-    if isinstance(resource, ResourceMeta) and not resource.for_select
+    if isinstance(resource, ResourceMeta) and not resource.for_select and resource is not _excluded_biz_resource
 }
 
 _extra_instance_selections = [
