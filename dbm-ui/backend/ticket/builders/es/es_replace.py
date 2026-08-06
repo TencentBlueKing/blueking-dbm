@@ -13,6 +13,7 @@ import logging
 from django.utils.translation import gettext_lazy as _
 
 from backend.flow.engine.controller.es import EsController
+from backend.iam_app.dataclass.actions import ActionEnum
 from backend.ticket import builders
 from backend.ticket.builders.common.bigdata import (
     BaseEsTicketFlowBuilder,
@@ -46,7 +47,7 @@ class EsReplaceResourceParamBuilder(BigDataReplaceResourceParamBuilder):
         next_flow.save(update_fields=["details"])
 
 
-@builders.BuilderFactory.register(TicketType.ES_REPLACE, is_apply=True, is_recycle=True)
+@builders.BuilderFactory.register(TicketType.ES_REPLACE, is_apply=True, is_recycle=True, iam=ActionEnum.ES_MANAGE)
 class EsReplaceFlowBuilder(BaseEsTicketFlowBuilder):
     serializer = EsReplaceDetailSerializer
     inner_flow_builder = EsReplaceFlowParamBuilder

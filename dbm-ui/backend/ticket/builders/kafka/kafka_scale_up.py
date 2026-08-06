@@ -13,6 +13,7 @@ import logging
 from django.utils.translation import gettext as _
 
 from backend.flow.engine.controller.kafka import KafkaController
+from backend.iam_app.dataclass.actions import ActionEnum
 from backend.ticket import builders
 from backend.ticket.builders.common.bigdata import (
     BaseKafkaTicketFlowBuilder,
@@ -57,7 +58,7 @@ class KafkaScaleUpResourceParamBuilder(BigDataScaleUpResourceParamBuilder):
     pass
 
 
-@builders.BuilderFactory.register(TicketType.KAFKA_SCALE_UP, is_apply=True)
+@builders.BuilderFactory.register(TicketType.KAFKA_SCALE_UP, is_apply=True, iam=ActionEnum.KAFKA_MANAGE)
 class KafkaScaleUpFlowBuilder(BaseKafkaTicketFlowBuilder):
     serializer = KafkaScaleUpDetailSerializer
     inner_flow_builder = KafkaScaleUpFlowParamBuilder

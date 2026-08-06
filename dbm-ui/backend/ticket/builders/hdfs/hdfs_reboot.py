@@ -14,6 +14,7 @@ import logging
 from django.utils.translation import gettext as _
 
 from backend.flow.engine.controller.hdfs import HdfsController
+from backend.iam_app.dataclass.actions import ActionEnum
 from backend.ticket import builders
 from backend.ticket.builders.common.bigdata import BaseHdfsTicketFlowBuilder, BigDataRebootDetailSerializer
 from backend.ticket.constants import TicketType
@@ -32,7 +33,7 @@ class HdfsRebootFlowParamBuilder(builders.FlowParamBuilder):
         super().format_ticket_data()
 
 
-@builders.BuilderFactory.register(TicketType.HDFS_REBOOT)
+@builders.BuilderFactory.register(TicketType.HDFS_REBOOT, iam=ActionEnum.HDFS_MANAGE)
 class HdfsRebootFlowBuilder(BaseHdfsTicketFlowBuilder):
     serializer = HdfsRebootDetailSerializer
     inner_flow_builder = HdfsRebootFlowParamBuilder

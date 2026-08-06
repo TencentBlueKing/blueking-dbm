@@ -69,7 +69,6 @@ class ActionMeta(Action):
         # 添加单据动作所属组和常用操作
         self.group = DBType.get_choice_label(group)
         self.subgroup = str(self.subgroup or _("工具箱"))
-        self.common_labels.append(CommonActionLabel.BIZ_MAINTAIN)
 
     def to_json(self):
         content = asdict(self)
@@ -2654,11 +2653,113 @@ class ActionEnum:
         description=_("编辑集群的标签、别名、备注、容灾要求、地域信息等元数据"),
         type="edit",
         hidden=True,
-        related_actions=[DB_MANAGE.id],
+        related_actions=[ES_VIEW.id],
         related_resource_types=[ResourceEnum.ES],
         group=_("ElasticSearch"),
         subgroup=_("集群管理"),
         common_labels=[CommonActionLabel.BIZ_MAINTAIN, CommonActionLabel.DEVELOPER],
+    )
+
+    ES_LOADBALANCE_MANAGE = ActionMeta(
+        id="es_loadbalance_manage",
+        name=_("ES 负载均衡管理"),
+        name_en="es_loadbalance_manage",
+        type="manage",
+        related_actions=[DB_MANAGE.id],
+        related_resource_types=[ResourceEnum.BUSINESS],
+        group=_("ElasticSearch"),
+        subgroup=_("权限管理"),
+        common_labels=[CommonActionLabel.BIZ_MAINTAIN],
+    )
+
+    ES_REBOOT = ActionMeta(
+        id=TicketType.ES_REBOOT.lower(),
+        name=_("ES 实例重启"),
+        name_en="ES_REBOOT",
+        type="execute",
+        related_resource_types=[ResourceEnum.ES],
+        group=_("已废弃"),
+    )
+
+    ES_REPLACE = ActionMeta(
+        id=TicketType.ES_REPLACE.lower(),
+        name=_("ES 集群替换"),
+        name_en="ES_REPLACE",
+        type="execute",
+        related_resource_types=[ResourceEnum.ES],
+        group=_("已废弃"),
+    )
+
+    ES_SCALE_UP = ActionMeta(
+        id=TicketType.ES_SCALE_UP.lower(),
+        name=_("ES 集群扩容"),
+        name_en="ES_SCALE_UP",
+        type="execute",
+        related_resource_types=[ResourceEnum.ES],
+        group=_("已废弃"),
+    )
+
+    ES_SHRINK = ActionMeta(
+        id=TicketType.ES_SHRINK.lower(),
+        name=_("ES 集群缩容"),
+        name_en="ES_SHRINK",
+        type="execute",
+        related_resource_types=[ResourceEnum.ES],
+        group=_("已废弃"),
+    )
+
+    ES_CREATE_CLB = ActionMeta(
+        id=TicketType.ES_CREATE_CLB.lower(),
+        name=_("ES 创建CLB"),
+        name_en="ES_CREATE_CLB",
+        type="execute",
+        related_resource_types=[ResourceEnum.ES],
+        group=_("已废弃"),
+    )
+
+    ES_DELETE_CLB = ActionMeta(
+        id=TicketType.ES_DELETE_CLB.lower(),
+        name=_("ES 删除CLB"),
+        name_en="ES_DELETE_CLB",
+        type="execute",
+        related_resource_types=[ResourceEnum.ES],
+        group=_("已废弃"),
+    )
+
+    ES_DNS_BIND_CLB = ActionMeta(
+        id=TicketType.ES_DNS_BIND_CLB.lower(),
+        name=_("ES 域名绑定CLB"),
+        name_en="ES_DNS_BIND_CLB",
+        type="execute",
+        related_resource_types=[ResourceEnum.ES],
+        group=_("已废弃"),
+    )
+
+    ES_DNS_UNBIND_CLB = ActionMeta(
+        id=TicketType.ES_DNS_UNBIND_CLB.lower(),
+        name=_("ES 域名解绑CLB"),
+        name_en="ES_DNS_UNBIND_CLB",
+        type="execute",
+        related_resource_types=[ResourceEnum.ES],
+        group=_("已废弃"),
+    )
+
+    ES_CREATE_POLARIS = ActionMeta(
+        id=TicketType.ES_CREATE_POLARIS.lower(),
+        name=_("ES 创建Polaris"),
+        name_en="ES_CREATE_POLARIS",
+        type="execute",
+        related_resource_types=[ResourceEnum.ES],
+        group=_("已废弃"),
+    )
+
+    ES_DELETE_POLARIS = ActionMeta(
+        id=TicketType.ES_DELETE_POLARIS.lower(),
+        name=_("ES 删除Polaris"),
+        name_en="ES_DELETE_POLARIS",
+        type="execute",
+        related_resource_types=[ResourceEnum.ES],
+        group=_("已废弃"),
     )
 
     ES_SUBSCRIBE_MONITOR = ActionMeta(
@@ -2713,7 +2814,7 @@ class ActionEnum:
 
     ES_ACCESS_ENTRY_VIEW = ActionMeta(
         id="es_access_entry_view",
-        name=_("ES 集群访问"),
+        name=_("ES 连接信息查看"),
         name_en="es_access_entry_view",
         type="view",
         related_actions=[DB_MANAGE.id],
@@ -2780,6 +2881,51 @@ class ActionEnum:
         common_labels=[CommonActionLabel.BIZ_MAINTAIN, CommonActionLabel.DEVELOPER],
     )
 
+    DORIS_SCALE_UP = ActionMeta(
+        id=TicketType.DORIS_SCALE_UP.lower(),
+        name=_("Doris 集群扩容"),
+        name_en="DORIS_SCALE_UP",
+        type="execute",
+        related_resource_types=[ResourceEnum.DORIS],
+        group=_("已废弃"),
+    )
+
+    DORIS_SHRINK = ActionMeta(
+        id=TicketType.DORIS_SHRINK.lower(),
+        name=_("Doris 集群缩容"),
+        name_en="DORIS_SHRINK",
+        type="execute",
+        related_resource_types=[ResourceEnum.DORIS],
+        group=_("已废弃"),
+    )
+
+    DORIS_REBOOT = ActionMeta(
+        id=TicketType.DORIS_REBOOT.lower(),
+        name=_("Doris 实例重启"),
+        name_en="DORIS_REBOOT",
+        type="execute",
+        related_resource_types=[ResourceEnum.DORIS],
+        group=_("已废弃"),
+    )
+
+    DORIS_REPLACE = ActionMeta(
+        id=TicketType.DORIS_REPLACE.lower(),
+        name=_("Doris 集群替换"),
+        name_en="DORIS_REPLACE",
+        type="execute",
+        related_resource_types=[ResourceEnum.DORIS],
+        group=_("已废弃"),
+    )
+
+    DORIS_UPGRADE = ActionMeta(
+        id=TicketType.DORIS_UPGRADE.lower(),
+        name=_("Doris 集群升级"),
+        name_en="DORIS_UPGRADE",
+        type="execute",
+        related_resource_types=[ResourceEnum.DORIS],
+        group=_("已废弃"),
+    )
+
     DORIS_SUBSCRIBE_MONITOR = ActionMeta(
         id="doris_subscribe_monitor",
         name=_("Doris 集群告警订阅"),
@@ -2794,7 +2940,7 @@ class ActionEnum:
 
     DORIS_ACCESS_ENTRY_VIEW = ActionMeta(
         id="doris_access_entry_view",
-        name=_("Doris 集群访问"),
+        name=_("Doris 连接信息查看"),
         name_en="doris_access_entry_view",
         type="view",
         related_actions=[DB_MANAGE.id],
@@ -2856,7 +3002,7 @@ class ActionEnum:
 
     KAFKA_ACCESS_ENTRY_VIEW = ActionMeta(
         id="kafka_access_entry_view",
-        name=_("Kafka 集群访问"),
+        name=_("Kafka 连接信息查看"),
         name_en="kafka_access_entry_view",
         type="view",
         related_actions=[DB_MANAGE.id],
@@ -2886,12 +3032,93 @@ class ActionEnum:
         common_labels=[CommonActionLabel.BIZ_MAINTAIN],
     )
 
+    KAFKA_REBOOT = ActionMeta(
+        id=TicketType.KAFKA_REBOOT.lower(),
+        name=_("Kafka 实例重启"),
+        name_en="KAFKA_REBOOT",
+        type="execute",
+        related_resource_types=[ResourceEnum.KAFKA],
+        group=_("已废弃"),
+    )
+
+    KAFKA_REPLACE = ActionMeta(
+        id=TicketType.KAFKA_REPLACE.lower(),
+        name=_("Kafka 集群替换"),
+        name_en="KAFKA_REPLACE",
+        type="execute",
+        related_resource_types=[ResourceEnum.KAFKA],
+        group=_("已废弃"),
+    )
+
+    KAFKA_SCALE_UP = ActionMeta(
+        id=TicketType.KAFKA_SCALE_UP.lower(),
+        name=_("Kafka 集群扩容"),
+        name_en="KAFKA_SCALE_UP",
+        type="execute",
+        related_resource_types=[ResourceEnum.KAFKA],
+        group=_("已废弃"),
+    )
+
+    KAFKA_SHRINK = ActionMeta(
+        id=TicketType.KAFKA_SHRINK.lower(),
+        name=_("Kafka 集群缩容"),
+        name_en="KAFKA_SHRINK",
+        type="execute",
+        related_resource_types=[ResourceEnum.KAFKA],
+        group=_("已废弃"),
+    )
+
+    KAFKA_REBALANCE = ActionMeta(
+        id=TicketType.KAFKA_REBALANCE.lower(),
+        name=_("Kafka Topic 均衡"),
+        name_en="KAFKA_REBALANCE",
+        type="execute",
+        related_resource_types=[ResourceEnum.KAFKA],
+        group=_("已废弃"),
+    )
+
     HDFS_APPLY = ActionMeta(
         id=TicketType.HDFS_APPLY.lower(),
         related_resource_types=[ResourceEnum.BUSINESS],
         subgroup=_("集群管理"),
         is_ticket_action=True,
         common_labels=[CommonActionLabel.BIZ_MAINTAIN, CommonActionLabel.DEVELOPER],
+    )
+
+    HDFS_SCALE_UP = ActionMeta(
+        id=TicketType.HDFS_SCALE_UP.lower(),
+        name=_("HDFS 集群扩容"),
+        name_en="HDFS_SCALE_UP",
+        type="execute",
+        related_resource_types=[ResourceEnum.HDFS],
+        group=_("已废弃"),
+    )
+
+    HDFS_SHRINK = ActionMeta(
+        id=TicketType.HDFS_SHRINK.lower(),
+        name=_("HDFS 集群缩容"),
+        name_en="HDFS_SHRINK",
+        type="execute",
+        related_resource_types=[ResourceEnum.HDFS],
+        group=_("已废弃"),
+    )
+
+    HDFS_REBOOT = ActionMeta(
+        id=TicketType.HDFS_REBOOT.lower(),
+        name=_("HDFS 实例重启"),
+        name_en="HDFS_REBOOT",
+        type="execute",
+        related_resource_types=[ResourceEnum.HDFS],
+        group=_("已废弃"),
+    )
+
+    HDFS_REPLACE = ActionMeta(
+        id=TicketType.HDFS_REPLACE.lower(),
+        name=_("HDFS 集群替换"),
+        name_en="HDFS_REPLACE",
+        type="execute",
+        related_resource_types=[ResourceEnum.HDFS],
+        group=_("已废弃"),
     )
 
     HDFS_VIEW = ActionMeta(
@@ -2934,7 +3161,7 @@ class ActionEnum:
 
     HDFS_ACCESS_ENTRY_VIEW = ActionMeta(
         id="hdfs_access_entry_view",
-        name=_("HDFS 集群访问"),
+        name=_("HDFS 连接信息查看"),
         name_en="hdfs_access_entry_view",
         type="view",
         related_actions=[DB_MANAGE.id],
@@ -3035,6 +3262,42 @@ class ActionEnum:
         common_labels=[CommonActionLabel.BIZ_MAINTAIN],
     )
 
+    RIAK_CLUSTER_SCALE_OUT = ActionMeta(
+        id=TicketType.RIAK_CLUSTER_SCALE_OUT.lower(),
+        name=_("Riak 集群扩容"),
+        name_en="RIAK_CLUSTER_SCALE_OUT",
+        type="execute",
+        related_resource_types=[ResourceEnum.RIAK],
+        group=_("已废弃"),
+    )
+
+    RIAK_CLUSTER_SCALE_IN = ActionMeta(
+        id=TicketType.RIAK_CLUSTER_SCALE_IN.lower(),
+        name=_("Riak 集群缩容"),
+        name_en="RIAK_CLUSTER_SCALE_IN",
+        type="execute",
+        related_resource_types=[ResourceEnum.RIAK],
+        group=_("已废弃"),
+    )
+
+    RIAK_CLUSTER_REBOOT = ActionMeta(
+        id=TicketType.RIAK_CLUSTER_REBOOT.lower(),
+        name=_("Riak 集群节点重启"),
+        name_en="RIAK_CLUSTER_REBOOT",
+        type="execute",
+        related_resource_types=[ResourceEnum.RIAK],
+        group=_("已废弃"),
+    )
+
+    RIAK_CLUSTER_MIGRATE = ActionMeta(
+        id=TicketType.RIAK_CLUSTER_MIGRATE.lower(),
+        name=_("Riak 集群迁移"),
+        name_en="RIAK_CLUSTER_MIGRATE",
+        type="execute",
+        related_resource_types=[ResourceEnum.RIAK],
+        group=_("已废弃"),
+    )
+
     RIAK_VIEW = ActionMeta(
         id="riak_view",
         name=_("Riak 集群详情查看"),
@@ -3063,7 +3326,7 @@ class ActionEnum:
 
     RIAK_ACCESS_ENTRY_VIEW = ActionMeta(
         id="riak_access_entry_view",
-        name=_("Riak 集群访问"),
+        name=_("Riak 连接信息查看"),
         name_en="riak_access_entry_view",
         type="view",
         related_actions=[DB_MANAGE.id],
@@ -3661,7 +3924,6 @@ class ActionEnum:
         related_actions=[],
         related_resource_types=[ResourceEnum.BUSINESS],
         group=_("已废弃"),
-        common_labels=[CommonActionLabel.BIZ_MAINTAIN],
     )
 
     SQLSERVER_DELETE_ACCOUNT = ActionMeta(
@@ -3672,7 +3934,6 @@ class ActionEnum:
         related_actions=[],
         related_resource_types=[ResourceEnum.SQLSERVER_ACCOUNT],
         group=_("已废弃"),
-        common_labels=[CommonActionLabel.BIZ_MAINTAIN],
     )
 
     SQLSERVER_ADD_ACCOUNT_RULE = ActionMeta(
@@ -3683,7 +3944,6 @@ class ActionEnum:
         related_actions=[DB_MANAGE.id],
         related_resource_types=[ResourceEnum.SQLSERVER_ACCOUNT],
         group=_("已废弃"),
-        common_labels=[CommonActionLabel.BIZ_MAINTAIN],
     )
 
     SQLSERVER_ACCOUNT_RULES_VIEW = ActionMeta(
@@ -3694,7 +3954,6 @@ class ActionEnum:
         related_actions=[DB_MANAGE.id],
         related_resource_types=[ResourceEnum.BUSINESS],
         group=_("已废弃"),
-        common_labels=[CommonActionLabel.BIZ_MAINTAIN, CommonActionLabel.DEVELOPER],
     )
 
     SQLSERVER_AUTHORIZE_RULES = ActionMeta(
@@ -3705,7 +3964,6 @@ class ActionEnum:
         related_actions=[DB_MANAGE.id],
         related_resource_types=[ResourceEnum.SQLSERVER_ACCOUNT, ResourceEnum.SQLSERVER],
         group=_("已废弃"),
-        common_labels=[CommonActionLabel.BIZ_MAINTAIN],
     )
 
     SQLSERVER_EXCEL_AUTHORIZE_RULES = ActionMeta(
@@ -3716,7 +3974,78 @@ class ActionEnum:
         related_actions=[DB_MANAGE.id],
         related_resource_types=[ResourceEnum.BUSINESS],
         group=_("已废弃"),
-        common_labels=[CommonActionLabel.BIZ_MAINTAIN],
+    )
+
+    SQLSERVER_ADD_SLAVE = ActionMeta(
+        id=TicketType.SQLSERVER_ADD_SLAVE.lower(),
+        name=_("SQLServer 添加从库"),
+        name_en="SQLSERVER_ADD_SLAVE",
+        type="execute",
+        related_resource_types=[ResourceEnum.SQLSERVER],
+        group=_("已废弃"),
+    )
+
+    SQLSERVER_MASTER_SLAVE_SWITCH = ActionMeta(
+        id=TicketType.SQLSERVER_MASTER_SLAVE_SWITCH.lower(),
+        name=_("SQLServer 主从互切"),
+        name_en="SQLSERVER_MASTER_SLAVE_SWITCH",
+        type="execute",
+        related_resource_types=[ResourceEnum.SQLSERVER],
+        group=_("已废弃"),
+    )
+
+    SQLSERVER_MASTER_FAIL_OVER = ActionMeta(
+        id=TicketType.SQLSERVER_MASTER_FAIL_OVER.lower(),
+        name=_("SQLServer 主库故障切换"),
+        name_en="SQLSERVER_MASTER_FAIL_OVER",
+        type="execute",
+        related_resource_types=[ResourceEnum.SQLSERVER],
+        group=_("已废弃"),
+    )
+
+    SQLSERVER_CLUSTER_MIGRATE = ActionMeta(
+        id=TicketType.SQLSERVER_CLUSTER_MIGRATE.lower(),
+        name=_("SQLServer 集群迁移"),
+        name_en="SQLSERVER_CLUSTER_MIGRATE",
+        type="execute",
+        related_resource_types=[ResourceEnum.SQLSERVER],
+        group=_("已废弃"),
+    )
+
+    SQLSERVER_HOST_MIGRATE = ActionMeta(
+        id=TicketType.SQLSERVER_HOST_MIGRATE.lower(),
+        name=_("SQLServer 整机迁移"),
+        name_en="SQLSERVER_HOST_MIGRATE",
+        type="execute",
+        related_resource_types=[ResourceEnum.SQLSERVER],
+        group=_("已废弃"),
+    )
+
+    SQLSERVER_RESTORE_SLAVE = ActionMeta(
+        id=TicketType.SQLSERVER_RESTORE_SLAVE.lower(),
+        name=_("SQLServer 新机重建"),
+        name_en="SQLSERVER_RESTORE_SLAVE",
+        type="execute",
+        related_resource_types=[ResourceEnum.SQLSERVER],
+        group=_("已废弃"),
+    )
+
+    SQLSERVER_RESTORE_LOCAL_SLAVE = ActionMeta(
+        id=TicketType.SQLSERVER_RESTORE_LOCAL_SLAVE.lower(),
+        name=_("SQLServer 原地重建"),
+        name_en="SQLSERVER_RESTORE_LOCAL_SLAVE",
+        type="execute",
+        related_resource_types=[ResourceEnum.SQLSERVER],
+        group=_("已废弃"),
+    )
+
+    SQLSERVER_RESET = ActionMeta(
+        id=TicketType.SQLSERVER_RESET.lower(),
+        name=_("SQLServer 集群重置"),
+        name_en="SQLSERVER_RESET",
+        type="execute",
+        related_resource_types=[ResourceEnum.SQLSERVER],
+        group=_("已废弃"),
     )
 
     SQLSERVER_ENABLE_DISABLE = ActionMeta(
@@ -3881,7 +4210,6 @@ class ActionEnum:
         related_actions=[DB_MANAGE.id],
         related_resource_types=[ResourceEnum.BUSINESS],
         group=_("已废弃"),
-        common_labels=[CommonActionLabel.BIZ_MAINTAIN, CommonActionLabel.DEVELOPER],
     )
 
     NOTIFY_GROUP_CREATE = ActionMeta(
@@ -3892,7 +4220,6 @@ class ActionEnum:
         related_actions=[DB_MANAGE.id],
         related_resource_types=[ResourceEnum.BUSINESS],
         group=_("已废弃"),
-        common_labels=[CommonActionLabel.BIZ_MAINTAIN],
     )
 
     NOTIFY_GROUP_UPDATE = ActionMeta(
@@ -3903,7 +4230,6 @@ class ActionEnum:
         related_actions=[DB_MANAGE.id],
         related_resource_types=[ResourceEnum.NOTIFY_GROUP],
         group=_("已废弃"),
-        common_labels=[CommonActionLabel.BIZ_MAINTAIN],
     )
 
     NOTIFY_GROUP_DESTROY = ActionMeta(
@@ -3914,7 +4240,6 @@ class ActionEnum:
         related_actions=[DB_MANAGE.id],
         related_resource_types=[ResourceEnum.NOTIFY_GROUP],
         group=_("已废弃"),
-        common_labels=[CommonActionLabel.BIZ_MAINTAIN],
     )
 
     GLOBAL_NOTIFY_GROUP_UPDATE = ActionMeta(
@@ -3949,7 +4274,6 @@ class ActionEnum:
         related_actions=[DB_MANAGE.id],
         related_resource_types=[ResourceEnum.BUSINESS, ResourceEnum.DBTYPE],
         group=_("已废弃"),
-        common_labels=[CommonActionLabel.BIZ_MAINTAIN, CommonActionLabel.DEVELOPER],
     )
 
     GLOBAL_MONITOR_POLICY_LIST = ActionMeta(
@@ -3972,7 +4296,6 @@ class ActionEnum:
         related_actions=[DB_MANAGE.id],
         related_resource_types=[ResourceEnum.MONITOR_POLICY],
         group=_("已废弃"),
-        common_labels=[CommonActionLabel.BIZ_MAINTAIN],
     )
 
     GLOBAL_MONITOR_POLICY_UPDATE_STRATEGY = ActionMeta(
@@ -3995,7 +4318,6 @@ class ActionEnum:
         related_actions=[DB_MANAGE.id],
         related_resource_types=[ResourceEnum.MONITOR_POLICY],
         group=_("已废弃"),
-        common_labels=[CommonActionLabel.BIZ_MAINTAIN],
     )
 
     MONITOR_POLICY_ENABLE_DISABLE = ActionMeta(
@@ -4006,7 +4328,6 @@ class ActionEnum:
         related_actions=[DB_MANAGE.id],
         related_resource_types=[ResourceEnum.MONITOR_POLICY],
         group=_("已废弃"),
-        common_labels=[CommonActionLabel.BIZ_MAINTAIN],
     )
 
     GLOBAL_MONITOR_POLICY_ENABLE_DISABLE = ActionMeta(
@@ -4029,7 +4350,6 @@ class ActionEnum:
         related_actions=[DB_MANAGE.id],
         related_resource_types=[ResourceEnum.BUSINESS, ResourceEnum.DBTYPE],
         group=_("已废弃"),
-        common_labels=[CommonActionLabel.BIZ_MAINTAIN],
     )
 
     ALERT_SHIELD_CREATE = ActionMeta(
@@ -4040,7 +4360,6 @@ class ActionEnum:
         related_actions=[DB_MANAGE.id],
         related_resource_types=[ResourceEnum.BUSINESS],
         group=_("已废弃"),
-        common_labels=[CommonActionLabel.BIZ_MAINTAIN],
     )
 
     ALERT_SHIELD_MANAGE = ActionMeta(
@@ -4338,7 +4657,7 @@ class ActionEnum:
 
     ES_MANAGE = ActionMeta(
         id="es_manage",
-        name=_("ES 集群管理"),
+        name=_("ES 集群运维管理"),
         name_en="es_manage",
         type="manage",
         related_actions=[],
@@ -4349,7 +4668,7 @@ class ActionEnum:
 
     DORIS_MANAGE = ActionMeta(
         id="doris_manage",
-        name=_("Doris 集群管理"),
+        name=_("Doris 集群运维管理"),
         name_en="doris_manage",
         type="manage",
         related_actions=[],
@@ -4360,7 +4679,7 @@ class ActionEnum:
 
     KAFKA_MANAGE = ActionMeta(
         id="kafka_manage",
-        name=_("Kafka 集群管理"),
+        name=_("Kafka 集群运维管理"),
         name_en="kafka_manage",
         type="manage",
         related_actions=[],
@@ -4371,13 +4690,25 @@ class ActionEnum:
 
     HDFS_MANAGE = ActionMeta(
         id="hdfs_manage",
-        name=_("HDFS 集群管理"),
+        name=_("HDFS 集群运维管理"),
         name_en="hdfs_manage",
         type="manage",
         related_actions=[],
         related_resource_types=[ResourceEnum.HDFS],
         group=_("HDFS"),
         subgroup=_("集群管理"),
+    )
+
+    RIAK_MANAGE = ActionMeta(
+        id="riak_manage",
+        name=_("Riak 集群运维管理"),
+        name_en="riak_manage",
+        type="manage",
+        related_actions=[],
+        related_resource_types=[ResourceEnum.RIAK],
+        group=_("Riak"),
+        subgroup=_("集群管理"),
+        common_labels=[CommonActionLabel.BIZ_MAINTAIN],
     )
 
     PULSAR_MANAGE = ActionMeta(

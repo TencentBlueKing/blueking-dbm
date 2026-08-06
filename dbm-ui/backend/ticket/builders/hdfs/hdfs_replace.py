@@ -15,6 +15,7 @@ from rest_framework import serializers
 
 from backend.db_meta.enums.instance_role import InstanceRole
 from backend.flow.engine.controller.hdfs import HdfsController
+from backend.iam_app.dataclass.actions import ActionEnum
 from backend.ticket import builders
 from backend.ticket.builders.common.bigdata import (
     BaseHdfsTicketFlowBuilder,
@@ -49,7 +50,7 @@ class HdfsResourceParamBuilder(BigDataReplaceResourceParamBuilder):
     pass
 
 
-@builders.BuilderFactory.register(TicketType.HDFS_REPLACE, is_apply=True, is_recycle=True)
+@builders.BuilderFactory.register(TicketType.HDFS_REPLACE, is_apply=True, is_recycle=True, iam=ActionEnum.HDFS_MANAGE)
 class HdfsReplaceFlowBuilder(BaseHdfsTicketFlowBuilder):
     serializer = HdfsReplaceDetailSerializer
     inner_flow_builder = HdfsReplaceFlowParamBuilder
