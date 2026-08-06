@@ -1,6 +1,6 @@
 import type { HostInfo } from '@services/types';
 
-import type { ApplySpecInfo, DetailBase } from '../common';
+import type { ApplySpecInfo, DetailBase, DetailSpecs } from '../common';
 
 export interface Apply extends DetailBase {
   bk_cloud_id: number;
@@ -29,4 +29,5 @@ export interface Apply extends DetailBase {
   };
   retention_bytes: number;
   retention_hours: number;
+  specs: DetailSpecs;
 }
