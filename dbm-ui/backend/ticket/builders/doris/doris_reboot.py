@@ -13,6 +13,7 @@ import logging
 from django.utils.translation import gettext_lazy as _
 
 from backend.flow.engine.controller.doris import DorisController
+from backend.iam_app.dataclass.actions import ActionEnum
 from backend.ticket import builders
 from backend.ticket.builders.common.bigdata import BaseDorisTicketFlowBuilder, BigDataRebootDetailSerializer
 from backend.ticket.constants import TicketType
@@ -31,7 +32,7 @@ class DorisRebootFlowParamBuilder(builders.FlowParamBuilder):
         super().format_ticket_data()
 
 
-@builders.BuilderFactory.register(TicketType.DORIS_REBOOT)
+@builders.BuilderFactory.register(TicketType.DORIS_REBOOT, iam=ActionEnum.DORIS_MANAGE)
 class DorisRebootFlowBuilder(BaseDorisTicketFlowBuilder):
     serializer = DorisRebootDetailSerializer
     inner_flow_builder = DorisRebootFlowParamBuilder

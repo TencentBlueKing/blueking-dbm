@@ -19,6 +19,7 @@ from backend.db_services.bigdata.resources import yasg_slz
 from backend.db_services.bigdata.resources.views import BigdataResourceViewSet
 from backend.db_services.bigdata.riak.query import RiakListRetrieveResource
 from backend.db_services.dbbase.resources import serializers
+from backend.iam_app.dataclass.actions import ActionEnum
 
 
 @method_decorator(
@@ -75,3 +76,13 @@ class RiakClusterViewSetBigdata(BigdataResourceViewSet):
     query_class = RiakListRetrieveResource
     query_serializer_class = serializers.ListResourceSLZ
     db_type = DBType.Riak
+
+    list_perm_actions = [
+        ActionEnum.RIAK_MANAGE,
+        ActionEnum.RIAK_VIEW,
+        ActionEnum.RIAK_EDIT,
+        ActionEnum.RIAK_ACCESS_ENTRY_VIEW,
+        ActionEnum.RIAK_CLUSTER_DESTROY,
+        ActionEnum.RIAK_ENABLE_DISABLE,
+        ActionEnum.RIAK_DBCONFIG_EDIT,
+    ]

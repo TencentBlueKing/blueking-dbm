@@ -14,6 +14,7 @@ from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
 from backend.flow.engine.controller.doris import DorisController
+from backend.iam_app.dataclass.actions import ActionEnum
 from backend.ticket import builders
 from backend.ticket.builders.common.base import ParamValidateSerializerMixin
 from backend.ticket.builders.common.bigdata import BaseDorisTicketFlowBuilder, BigDataSingleClusterOpsDetailsSerializer
@@ -39,7 +40,7 @@ class DorisUpgradeFlowParamBuilder(builders.FlowParamBuilder):
     controller = DorisController.doris_upgrade_scene
 
 
-@builders.BuilderFactory.register(TicketType.DORIS_UPGRADE)
+@builders.BuilderFactory.register(TicketType.DORIS_UPGRADE, iam=ActionEnum.DORIS_MANAGE)
 class DorisUpgradeFlowBuilder(BaseDorisTicketFlowBuilder):
     serializer = DorisUpgradeDetailSerializer
     inner_flow_builder = DorisUpgradeFlowParamBuilder

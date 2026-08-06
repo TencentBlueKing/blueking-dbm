@@ -16,6 +16,7 @@ from django.utils.translation import gettext as _
 from backend.db_meta.models import Cluster
 from backend.db_services.dbbase.constants import IpSource
 from backend.flow.engine.controller.riak import RiakController
+from backend.iam_app.dataclass.actions import ActionEnum
 from backend.ticket import builders
 from backend.ticket.builders.common.base import BaseOperateResourceParamBuilder
 from backend.ticket.builders.common.bigdata import BigDataScaleDetailSerializer
@@ -54,7 +55,7 @@ class RiakScaleUpResourceParamBuilder(BaseOperateResourceParamBuilder):
         next_flow.save(update_fields=["details"])
 
 
-@builders.BuilderFactory.register(TicketType.RIAK_CLUSTER_SCALE_OUT, is_apply=True)
+@builders.BuilderFactory.register(TicketType.RIAK_CLUSTER_SCALE_OUT, is_apply=True, iam=ActionEnum.RIAK_MANAGE)
 class RiakScaleUpFlowBuilder(BaseRiakTicketFlowBuilder):
     serializer = RiakScaleUpDetailSerializer
     resource_apply_builder = RiakScaleUpResourceParamBuilder

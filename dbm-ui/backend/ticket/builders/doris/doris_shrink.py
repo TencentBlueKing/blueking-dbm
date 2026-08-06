@@ -15,6 +15,7 @@ from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
 from backend.flow.engine.controller.doris import DorisController
+from backend.iam_app.dataclass.actions import ActionEnum
 from backend.ticket import builders
 from backend.ticket.builders.common.bigdata import BaseDorisTicketFlowBuilder, BigDataSingleClusterOpsDetailsSerializer
 from backend.ticket.constants import TicketType
@@ -40,7 +41,7 @@ class DorisShrinkFlowParamBuilder(builders.FlowParamBuilder):
         super().format_ticket_data()
 
 
-@builders.BuilderFactory.register(TicketType.DORIS_SHRINK, is_recycle=True)
+@builders.BuilderFactory.register(TicketType.DORIS_SHRINK, is_recycle=True, iam=ActionEnum.DORIS_MANAGE)
 class DorisShrinkFlowBuilder(BaseDorisTicketFlowBuilder):
     serializer = DorisShrinkDetailSerializer
     inner_flow_builder = DorisShrinkFlowParamBuilder

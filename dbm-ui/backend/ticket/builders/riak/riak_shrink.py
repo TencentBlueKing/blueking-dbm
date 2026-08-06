@@ -16,6 +16,7 @@ from rest_framework import serializers
 
 from backend.db_meta.models import Cluster
 from backend.flow.engine.controller.riak import RiakController
+from backend.iam_app.dataclass.actions import ActionEnum
 from backend.ticket import builders
 from backend.ticket.builders.common.base import HostInfoSerializer
 from backend.ticket.builders.common.bigdata import BigDataSingleClusterOpsDetailsSerializer
@@ -46,7 +47,7 @@ class RiakShrinkFlowParamBuilder(builders.FlowParamBuilder):
         self.ticket_data["nodes"] = self.ticket_data.pop("old_nodes").get("riak", [])
 
 
-@builders.BuilderFactory.register(TicketType.RIAK_CLUSTER_SCALE_IN, is_recycle=True)
+@builders.BuilderFactory.register(TicketType.RIAK_CLUSTER_SCALE_IN, is_recycle=True, iam=ActionEnum.RIAK_MANAGE)
 class RiakShrinkFlowBuilder(BaseRiakTicketFlowBuilder):
     serializer = RiakShrinkDetailSerializer
     inner_flow_builder = RiakShrinkFlowParamBuilder
