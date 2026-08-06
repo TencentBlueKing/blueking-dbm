@@ -83,7 +83,6 @@ export default class Es extends ClusterBase {
   master_domain: string;
   operations: ClusterListOperation[];
   permission: {
-    access_entry_edit: boolean;
     es_access_entry_view: boolean;
     es_create_clb: boolean;
     es_create_polaris: boolean;
@@ -91,6 +90,7 @@ export default class Es extends ClusterBase {
     es_dns_bind_clb: boolean;
     es_edit: boolean;
     es_enable_disable: boolean;
+    es_manage: boolean;
     es_reboot: boolean;
     es_replace: boolean;
     es_scale_up: boolean;

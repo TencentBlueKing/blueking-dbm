@@ -66,7 +66,6 @@ export default class SqlServerSingleCluster extends ClusterBase {
   master_domain: string;
   operations: ClusterListOperation[];
   permission: {
-    access_entry_edit: boolean;
     sqlserver_destroy: boolean;
     sqlserver_edit: boolean;
     sqlserver_enable_disable: boolean;

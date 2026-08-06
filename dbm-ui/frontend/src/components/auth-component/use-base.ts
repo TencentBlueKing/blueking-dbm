@@ -59,7 +59,6 @@ const withBizActionList = [
   'dbha_switch_event_view',
   'ip_whitelist_manage',
   'group_manage',
-  'access_entry_edit',
   'admin_pwd_view',
   'riak_cluster_apply',
   // 'monitor_policy_clone', // 旧权限
