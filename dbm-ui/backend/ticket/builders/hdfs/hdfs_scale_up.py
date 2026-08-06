@@ -13,6 +13,7 @@ import logging
 from django.utils.translation import gettext as _
 
 from backend.flow.engine.controller.hdfs import HdfsController
+from backend.iam_app.dataclass.actions import ActionEnum
 from backend.ticket import builders
 from backend.ticket.builders.common.bigdata import (
     BaseHdfsTicketFlowBuilder,
@@ -57,7 +58,7 @@ class HdfsScaleUpResourceParamBuilder(BigDataScaleUpResourceParamBuilder):
     pass
 
 
-@builders.BuilderFactory.register(TicketType.HDFS_SCALE_UP, is_apply=True)
+@builders.BuilderFactory.register(TicketType.HDFS_SCALE_UP, is_apply=True, iam=ActionEnum.HDFS_MANAGE)
 class HdfsScaleUpFlowBuilder(BaseHdfsTicketFlowBuilder):
     serializer = HdfsScaleUpDetailSerializer
     inner_flow_builder = HdfsScaleUpFlowParamBuilder

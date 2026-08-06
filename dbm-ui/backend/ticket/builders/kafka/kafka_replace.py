@@ -14,6 +14,7 @@ import logging
 from django.utils.translation import gettext as _
 
 from backend.flow.engine.controller.kafka import KafkaController
+from backend.iam_app.dataclass.actions import ActionEnum
 from backend.ticket import builders
 from backend.ticket.builders.common.bigdata import (
     BaseKafkaTicketFlowBuilder,
@@ -40,7 +41,9 @@ class KafkaReplaceResourceParamBuilder(BigDataReplaceResourceParamBuilder):
     pass
 
 
-@builders.BuilderFactory.register(TicketType.KAFKA_REPLACE, is_apply=True, is_recycle=True)
+@builders.BuilderFactory.register(
+    TicketType.KAFKA_REPLACE, is_apply=True, is_recycle=True, iam=ActionEnum.KAFKA_MANAGE
+)
 class KafkaReplaceFlowBuilder(BaseKafkaTicketFlowBuilder):
     serializer = KafkaReplaceDetailSerializer
     inner_flow_builder = KafkaReplaceFlowParamBuilder

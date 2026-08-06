@@ -13,6 +13,7 @@ import logging
 from django.utils.translation import gettext_lazy as _
 
 from backend.flow.engine.controller.es import EsController
+from backend.iam_app.dataclass.actions import ActionEnum
 from backend.ticket import builders
 from backend.ticket.builders.common.bigdata import BaseEsTicketFlowBuilder, BigDataRebootDetailSerializer
 from backend.ticket.constants import TicketType
@@ -31,7 +32,7 @@ class EsRebootFlowParamBuilder(builders.FlowParamBuilder):
         super().format_ticket_data()
 
 
-@builders.BuilderFactory.register(TicketType.ES_REBOOT)
+@builders.BuilderFactory.register(TicketType.ES_REBOOT, iam=ActionEnum.ES_MANAGE)
 class EsRebootFlowBuilder(BaseEsTicketFlowBuilder):
     serializer = EsRebootDetailSerializer
     inner_flow_builder = EsRebootFlowParamBuilder

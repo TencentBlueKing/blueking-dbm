@@ -15,6 +15,7 @@ from django.utils.translation import gettext as _
 from rest_framework import serializers
 
 from backend.flow.engine.controller.kafka import KafkaController
+from backend.iam_app.dataclass.actions import ActionEnum
 from backend.ticket import builders
 from backend.ticket.builders.common.bigdata import BaseKafkaTicketFlowBuilder, BigDataDetailsSerializer
 from backend.ticket.constants import TicketType
@@ -40,7 +41,7 @@ class KafkaRebalanceFlowParamBuilder(builders.FlowParamBuilder):
     controller = KafkaController.kafka_rebalance_scene
 
 
-@builders.BuilderFactory.register(TicketType.KAFKA_REBALANCE)
+@builders.BuilderFactory.register(TicketType.KAFKA_REBALANCE, iam=ActionEnum.KAFKA_MANAGE)
 class KafkaRebalanceFlowBuilder(BaseKafkaTicketFlowBuilder):
     serializer = KafkaRebalanceDetailSerializer
     inner_flow_builder = KafkaRebalanceFlowParamBuilder

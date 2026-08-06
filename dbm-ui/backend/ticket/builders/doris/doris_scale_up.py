@@ -15,6 +15,7 @@ from rest_framework import serializers
 
 from backend.db_services.dbbase.constants import IpSource
 from backend.flow.engine.controller.doris import DorisController
+from backend.iam_app.dataclass.actions import ActionEnum
 from backend.ticket import builders
 from backend.ticket.builders.common.bigdata import (
     BaseDorisTicketFlowBuilder,
@@ -99,7 +100,7 @@ class DorisScaleUpFlowParamBuilder(builders.FlowParamBuilder):
         super().format_ticket_data()
 
 
-@builders.BuilderFactory.register(TicketType.DORIS_SCALE_UP, is_apply=True)
+@builders.BuilderFactory.register(TicketType.DORIS_SCALE_UP, is_apply=True, iam=ActionEnum.DORIS_MANAGE)
 class DorisScaleUpFlowBuilder(BaseDorisTicketFlowBuilder):
     serializer = DorisScaleUpDetailSerializer
     inner_flow_builder = DorisScaleUpFlowParamBuilder

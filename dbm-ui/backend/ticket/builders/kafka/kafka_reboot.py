@@ -14,6 +14,7 @@ import logging
 from django.utils.translation import gettext as _
 
 from backend.flow.engine.controller.kafka import KafkaController
+from backend.iam_app.dataclass.actions import ActionEnum
 from backend.ticket import builders
 from backend.ticket.builders.common.bigdata import BaseKafkaTicketFlowBuilder, BigDataRebootDetailSerializer
 from backend.ticket.constants import TicketType
@@ -32,7 +33,7 @@ class KafkaRebootFlowParamBuilder(builders.FlowParamBuilder):
         super().format_ticket_data()
 
 
-@builders.BuilderFactory.register(TicketType.KAFKA_REBOOT)
+@builders.BuilderFactory.register(TicketType.KAFKA_REBOOT, iam=ActionEnum.KAFKA_MANAGE)
 class KafkaRebootFlowBuilder(BaseKafkaTicketFlowBuilder):
     serializer = KafkaRebootDetailSerializer
     inner_flow_builder = KafkaRebootFlowParamBuilder

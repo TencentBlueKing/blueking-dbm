@@ -17,6 +17,7 @@ from rest_framework import serializers
 from backend.db_meta.enums import InstanceRole
 from backend.db_meta.models import Cluster
 from backend.flow.engine.controller.es import EsController
+from backend.iam_app.dataclass.actions import ActionEnum
 from backend.ticket import builders
 from backend.ticket.builders.common.bigdata import BaseEsTicketFlowBuilder, BigDataSingleClusterOpsDetailsSerializer
 from backend.ticket.constants import TicketType
@@ -72,7 +73,7 @@ class EsShrinkFlowParamBuilder(builders.FlowParamBuilder):
         super().format_ticket_data()
 
 
-@builders.BuilderFactory.register(TicketType.ES_SHRINK, is_recycle=True)
+@builders.BuilderFactory.register(TicketType.ES_SHRINK, is_recycle=True, iam=ActionEnum.ES_MANAGE)
 class EsShrinkFlowBuilder(BaseEsTicketFlowBuilder):
     serializer = EsShrinkDetailSerializer
     inner_flow_builder = EsShrinkFlowParamBuilder

@@ -17,6 +17,7 @@ from rest_framework import serializers
 from backend.db_meta.enums import InstanceRole
 from backend.db_meta.models import Cluster
 from backend.flow.engine.controller.kafka import KafkaController
+from backend.iam_app.dataclass.actions import ActionEnum
 from backend.ticket import builders
 from backend.ticket.builders.common.bigdata import BaseKafkaTicketFlowBuilder, BigDataSingleClusterOpsDetailsSerializer
 from backend.ticket.constants import TicketType
@@ -71,7 +72,7 @@ class KafkaShrinkFlowParamBuilder(builders.FlowParamBuilder):
         super().format_ticket_data()
 
 
-@builders.BuilderFactory.register(TicketType.KAFKA_SHRINK, is_recycle=True)
+@builders.BuilderFactory.register(TicketType.KAFKA_SHRINK, is_recycle=True, iam=ActionEnum.KAFKA_MANAGE)
 class KafkaShrinkFlowBuilder(BaseKafkaTicketFlowBuilder):
     serializer = KafkaShrinkDetailSerializer
     inner_flow_builder = KafkaShrinkFlowParamBuilder
