@@ -20,6 +20,7 @@ from .db_name_service.client import NameServiceApi
 from .db_remote_service.client import DRSApi
 from .dbconfig.client import DBConfigApi
 from .dns.client import DnsApi
+from .iamv4.client import IAMV4Api
 from .itsm.client import ItsmApi
 from .job.client import JobApi
 from .kubernetes.client import KubernetesApi
@@ -50,6 +51,7 @@ __all__ = [
     "BKBaseApi",
     "MySQLDTSApi",
     "KubernetesApi",
+    "IAMV4Api",
 ]
 
 
