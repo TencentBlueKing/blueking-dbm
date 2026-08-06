@@ -225,16 +225,17 @@
 
   const { t } = useI18n();
 
-  const isFromResourcePool = props.ticketDetails.details.ip_source === 'resource_pool';
+  const { details } = props.ticketDetails;
+  const { ip_source: ipSource, nodes, resource_spec: resourceSpec } = details;
 
-  const { resource_spec: resourceSpec } = props.ticketDetails.details;
+  const isFromResourcePool = ipSource === 'resource_pool';
+
   const { client: clientSpec, cold: coldSpec, hot: hotSpec, master: masterSpec } = resourceSpec || {};
 
   /**
    * 获取服务器数量
    */
   function getServiceNums(key: 'hot' | 'cold' | 'master' | 'client') {
-    const nodes = props.ticketDetails?.details?.nodes;
     return nodes?.[key]?.length ?? 0;
   }
 

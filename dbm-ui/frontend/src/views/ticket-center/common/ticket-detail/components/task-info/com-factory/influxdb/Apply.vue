@@ -32,20 +32,16 @@
     </InfoItem>
     <template v-if="isFromResourcePool">
       <InfoItem :label="t('规格')">
-        <BkPopover
+        <SpecDetailPopover
           v-if="influxdbSpec"
-          placement="top"
-          :popover-delay="[200, 100]"
-          theme="light">
+          :data="influxdbSpec"
+          placement="top">
           <span
             class="pb-2"
             style="cursor: pointer; border-bottom: 1px dashed #979ba5">
             {{ influxdbSpec.spec_name }}（{{ `${influxdbSpec.count} ${t('台')}` }}）
           </span>
-          <template #content>
-            <SpecInfos :data="influxdbSpec" />
-          </template>
-        </BkPopover>
+        </SpecDetailPopover>
         <span v-else>--</span>
       </InfoItem>
     </template>
@@ -81,10 +77,10 @@
   import { TicketTypes } from '@common/const';
 
   import HostPreview from '@components/host-preview/HostPreview.vue';
+  import SpecDetailPopover from '@components/spec-detail-popover/Index.vue';
 
   import InfoList, { Item as InfoItem } from '../components/info-list/Index.vue';
   import RegionRequirements from '../components/RegionRequirements.vue';
-  // import SpecInfos from '../components/SpecInfos.vue';
 
   interface Props {
     ticketDetails: TicketModel<Influxdb.Apply>;
@@ -97,15 +93,17 @@
   const props = defineProps<Props>();
   const { t } = useI18n();
 
-  const isFromResourcePool = props.ticketDetails.details.ip_source === 'resource_pool';
+  const { details } = props.ticketDetails;
+  const { ip_source: ipSource, nodes, resource_spec: resourceSpec } = details;
 
-  const influxdbSpec = computed(() => props.ticketDetails?.details?.resource_spec?.influxdb || {});
+  const isFromResourcePool = ipSource === 'resource_pool';
+
+  const influxdbSpec = resourceSpec?.influxdb;
 
   /**
    * 获取服务器数量
    */
   function getServiceNums() {
-    const nodes = props.ticketDetails?.details?.nodes;
     return nodes?.influxdb?.length ?? 0;
   }
 
