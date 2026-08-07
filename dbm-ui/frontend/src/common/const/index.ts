@@ -25,5 +25,4 @@ export * from './pipelineStatus';
 export * from './queryClusterTypes';
 export * from './specialOptions';
 export * from './ticketTypes';
-export * from './ticketTypesInfos/index';
 export * from './userPersonalSettings';
