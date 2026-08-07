@@ -46,10 +46,19 @@ logger = logging.getLogger("root")
 MSG_MAX_LENGTH = 1600
 
 
+def _is_table_line(line: str) -> bool:
+    """判断一行是否属于 Markdown 表格（以 | 开头且以 | 结尾，且至少包含两个 |）"""
+    stripped = line.strip()
+    return len(stripped) > 1 and stripped.startswith("|") and stripped.endswith("|")
+
+
 def _split_content(content: str, max_length: int = MSG_MAX_LENGTH) -> list:
     """
     将消息内容按最大长度分片，尽量按行分割避免截断。
-    如果单行超过 max_length，则强制按字符截断。
+    感知 Markdown 代码块（```）和表格块，确保：
+    - 代码块在截断时正确闭合并在下一个 chunk 重新打开
+    - 表格块尽可能保留在同一个 chunk 中
+    暂不考虑单个代码块或表格块超过 max_length 的情况。
     @param content: 原始消息内容
     @param max_length: 单条消息最大字符数
     @return: 分片后的消息列表
@@ -57,25 +66,74 @@ def _split_content(content: str, max_length: int = MSG_MAX_LENGTH) -> list:
     if len(content) <= max_length:
         return [content]
 
+    lines = content.split("\n")
+
+    # 第一步：将行分组为普通行和块（代码块、表格块）
+    # 每个元素为 (block_type, lines_list)
+    # block_type: "normal" | "code" | "table"
+    blocks = []
+    i = 0
+    while i < len(lines):
+        line = lines[i]
+        stripped = line.strip()
+
+        # 检测代码块开始
+        if stripped.startswith("```"):
+            code_block_lines = [line]
+            code_fence_lang = stripped  # 记录 fence 行，如 ```sql
+            i += 1
+            # 收集直到代码块结束
+            while i < len(lines):
+                code_block_lines.append(lines[i])
+                if lines[i].strip().startswith("```") and len(code_block_lines) > 1:
+                    i += 1
+                    break
+                i += 1
+            blocks.append(("code", code_block_lines, code_fence_lang))
+
+        # 检测表格块开始
+        elif _is_table_line(line):
+            table_lines = [line]
+            i += 1
+            while i < len(lines) and _is_table_line(lines[i]):
+                table_lines.append(lines[i])
+                i += 1
+            blocks.append(("table", table_lines, ""))
+
+        # 普通行
+        else:
+            blocks.append(("normal", [line], ""))
+            i += 1
+
+    # 第二步：将块逐个填入 chunk，遵循块完整性
     chunks = []
     current_chunk = ""
-    for line in content.split("\n"):
-        # 如果当前块加上新行不超过限制，则追加
-        candidate = f"{current_chunk}\n{line}" if current_chunk else line
+
+    for block_type, block_lines, code_fence_lang in blocks:
+        block_text = "\n".join(block_lines)
+
+        # 尝试将整个块追加到当前 chunk
+        candidate = f"{current_chunk}\n{block_text}" if current_chunk else block_text
         if len(candidate) <= max_length:
             current_chunk = candidate
         else:
-            # 先保存当前块（如果非空）
+            # 当前 chunk 放不下这个块，先保存当前 chunk
             if current_chunk:
                 chunks.append(current_chunk)
                 current_chunk = ""
-            # 如果单行本身就超过限制，强制按字符截断
-            if len(line) > max_length:
-                while line:
-                    chunks.append(line[:max_length])
-                    line = line[max_length:]
+
+            # 对于代码块和表格块，整体放入新 chunk（暂不考虑单块超限）
+            if block_type in ("code", "table"):
+                current_chunk = block_text
             else:
-                current_chunk = line
+                # 普通行：如果单行超过限制，强制按字符截断
+                line = block_lines[0]
+                if len(line) > max_length:
+                    while line:
+                        chunks.append(line[:max_length])
+                        line = line[max_length:]
+                else:
+                    current_chunk = line
 
     if current_chunk:
         chunks.append(current_chunk)

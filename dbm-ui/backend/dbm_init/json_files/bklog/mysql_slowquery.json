@@ -20,7 +20,31 @@
     "multiline_max_lines": 500,
     "multiline_timeout": 2,
     "encoding": "UTF-8",
-    "tail_files": true
+    "tail_files": true,
+    "extra_template_labels": [
+            {
+                "key": "$for",
+                "value": "cmdb_instance.scope"
+            },
+            {
+                "key": "$body",
+                "value": {
+                    "app": "{{ cmdb_instance.service.labels[\"app\"] }}",
+                    "app_id": "{{ cmdb_instance.service.labels[\"appid\"] }}",
+                    "bk_cloud_id": "{{ cmdb_instance.service.labels[\"bk_cloud_id\"] }}",
+                    "cluster_name": "{{ cmdb_instance.service.labels[\"cluster_name\"] }}",
+                    "cluster_type": "{{ cmdb_instance.service.labels[\"cluster_type\"] }}",
+                    "instance_host": "{{ cmdb_instance.service.labels[\"instance_host\"] }}",
+                    "instance_port": "{{ cmdb_instance.service.labels[\"instance_port\"] }}",
+                    "instance_role": "{{ cmdb_instance.service.labels[\"instance_role\"] }}",
+                    "cluster_domain": "{{ cmdb_instance.service.labels[\"cluster_domain\"] }}"
+                }
+            },
+            {
+                "key": "$item",
+                "value": "scope"
+            }
+        ]
   },
   "collector_config_name_en": "mysql_slowquery",
   "enable_v4": true,
@@ -40,7 +64,7 @@
     "separator_node_action": "regexp",
     "separator_node_name": "bk_separator_object",
     "retain_original_text": true,
-    "separator_regexp": "(?s)#\\s+User@Host: (?P<user>\\S+)\\[\\S+\\]\\s+@.*?\\s\\[(?P<client_host>.*?)\\].*?\\s(Schema: (?P<schema>.*?)\\s).*? Query_time: (?P<query_time>\\d+\\.\\d+)\\s+Lock_time: (?P<lock_time>\\d+\\.\\d+)\\s+Rows_sent: (?P<rows_sent>\\d+)\\s+Rows_examined: (?P<rows_examined>\\d+).*?# Db_name: (?P<db_name>\\S+|\\s)\\s+Query_start_ts: (?P<start_timestamp>\\d+)\\s+(Session_id: (?P<session_id>\\d+)\\s+)?.*?SET timestamp=(?P<sql_timestamp>\\d+);\\s(?P<sql_text>.*?;)(\\s# Time: .+)?",
+    "separator_regexp": "(?s)#\\s+User@Host: (?P<user>\\S+)\\[\\S+\\]\\s+@.*?\\s\\[(?P<client_host>.*?)\\].*?\\s(Schema: (?P<schema>.*?)\\s)?.*? Query_time: (?P<query_time>.*?)\\s+Lock_time: (?P<lock_time>.*?)\\s+Rows_sent: (?P<rows_sent>\\d+)\\s+Rows_examined: (?P<rows_examined>\\d+).*?# Db_name: (?P<db_name>\\S+|\\s)\\s+Query_start_ts: (?P<start_timestamp>\\d+)\\s+(Session_id: (?P<session_id>\\d+)\\s+)?.*?SET timestamp=(?P<sql_timestamp>\\d+);\\s(?P<sql_text>.*?;)(\\s# Time: .+)?",
     "etl_flat": false,
     "enable_retain_content": true,
     "enable_log_v4_data_link": true,
@@ -237,7 +261,7 @@
           "output_id": "bk_separator_object",
           "operator": {
             "type": "regex",
-            "regex": "(?s)#\\s+User@Host: (?P<user>\\S+)\\[\\S+\\]\\s+@\\s+\\[(?P<client_host>[^\\]]+)\\].*?(Schema: (?P<schema>.*?)\\s).*? Query_time: (?P<query_time>\\d+\\.\\d+)\\s+Lock_time: (?P<lock_time>\\d+\\.\\d+)\\s+Rows_sent: (?P<rows_sent>\\d+)\\s+Rows_examined: (?P<rows_examined>\\d+).*?# Db_name: (?P<db_name>\\S+|\\s)\\s+Query_start_ts: (?P<start_timestamp>\\d+)\\s+(Session_id: (?P<session_id>\\d+)\\s+)?SET timestamp=(?P<sql_timestamp>\\d+);.*?(?P<sql_text>.*?;)(\\s# Time: .+)?"
+            "regex": "(?s)#\\s+User@Host: (?P<user>\\S+)\\[\\S+\\]\\s+@.*?\\s\\[(?P<client_host>.*?)\\].*?\\s(Schema: (?P<schema>.*?)\\s)?.*? Query_time: (?P<query_time>.*?)\\s+Lock_time: (?P<lock_time>.*?)\\s+Rows_sent: (?P<rows_sent>\\d+)\\s+Rows_examined: (?P<rows_examined>\\d+).*?# Db_name: (?P<db_name>\\S+|\\s)\\s+Query_start_ts: (?P<start_timestamp>\\d+)\\s+(Session_id: (?P<session_id>\\d+)\\s+)?.*?SET timestamp=(?P<sql_timestamp>\\d+);\\s(?P<sql_text>.*?;)(\\s# Time: .+)?"
           }
         },
         {
