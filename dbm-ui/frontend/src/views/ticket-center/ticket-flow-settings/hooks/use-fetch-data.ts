@@ -303,10 +303,6 @@ export const useFetchData = () => {
     paginatedData.value = allTreeData.value.slice(start, end);
   };
 
-  /** 递归统计所有节点总数（含子节点） */
-  const countAllNodes = (nodes: TableRow[]): number =>
-    nodes.reduce((sum, node) => sum + 1 + (node.children ? countAllNodes(node.children) : 0), 0);
-
   /** 获取所有有子节点的父行 ID（用于默认展开） */
   const getAllParentIds = (nodes: TableRow[]): (string | number)[] =>
     nodes.flatMap((node) => (node.children && node.children.length > 0 ? [node.id] : []));
@@ -319,7 +315,7 @@ export const useFetchData = () => {
     // 应用排序（如"更新时间"列）
     const sorted = tableSort.value?.sortBy ? applySort(filtered, tableSort.value) : filtered;
 
-    pagination.count = countAllNodes(sorted);
+    pagination.count = sorted.length;
     allTreeData.value = sorted;
 
     // 默认展开所有有子节点的行
