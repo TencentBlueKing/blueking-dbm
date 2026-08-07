@@ -33,6 +33,7 @@ from backend.flow.consts import LINUX_ADMIN_USER_FOR_CHECK, WINDOW_ADMIN_USER_FO
 from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
 from backend.flow.engine.bamboo.scene.common.clean_local_mysql_client import build_clean_local_mysql_client_sub_process
 from backend.flow.engine.bamboo.scene.common.clean_residual_exporter import build_clean_residual_exporter_sub_process
+from backend.flow.engine.bamboo.scene.common.deploy_probe_sub_flow import probe_clean_sub_flow
 from backend.flow.plugins.components.collections.common.external_service import ExternalServiceComponent
 from backend.flow.plugins.components.collections.common.resource_replenish import HCMResourceReplenishComponent
 from backend.flow.plugins.components.collections.common.sa_idle_check import CheckMachineIdleComponent
@@ -445,6 +446,18 @@ class ImportResourceInitStepFlow(object):
                 )
                 if mysql_client_sub is not None:
                     cleanup_sub_processes.append(mysql_client_sub)
+
+                # 清理探针
+                # 当 env.ENABLE_DBHA_V2 = False 时禁用清理流程
+                if env.ENABLE_DBHA_V2:
+                    probe_clean_sub = probe_clean_sub_flow(
+                        root_id=self.root_id,
+                        data=self.data,
+                        bk_cloud_id=self.data.get("bk_cloud_id", 0),
+                        ips=self.data.get("sa_check_ips", []),
+                    )
+                    if probe_clean_sub is not None:
+                        cleanup_sub_processes.append(probe_clean_sub)
                 if cleanup_sub_processes:
                     p.add_parallel_sub_pipeline(sub_flow_list=cleanup_sub_processes)
 
