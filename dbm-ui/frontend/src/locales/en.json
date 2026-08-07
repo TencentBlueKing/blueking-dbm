@@ -3042,6 +3042,8 @@
   "选择主机": "Select Host",
   "申请 Redis 主从部署": "Apply for Redis Primary-Secondary Deployment",
   "版本升级": "Version Upgrade",
+  "请选择目标版本": "Please select target version",
+  "升级将对集群执行原地滚动升级_期间服务可能短暂受影响": "The upgrade will perform an in-place rolling upgrade on the cluster, during which services may be briefly affected.",
   "架构类型": "Architecture Type",
   "当前使用的版本": "Currently Used Version",
   "版本升级：将集群的接入层或存储层，更新到指定版本": "Version Upgrade: Update the access layer or storage layer of the cluster to the specified version",
