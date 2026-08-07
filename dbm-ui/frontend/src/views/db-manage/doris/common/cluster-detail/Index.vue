@@ -74,6 +74,19 @@
                 </AuthButton>
               </OperationBtnStatusTips>
             </div>
+            <div v-db-console="'doris.clusterManage.upgradeVersion'">
+              <OperationBtnStatusTips :data="data">
+                <AuthButton
+                  action-id="doris_manage"
+                  :disabled="data.operationDisabled"
+                  :permission="data.permission.doris_manage"
+                  :resource="data.id"
+                  text
+                  @click="handleShowUpgradeVersion">
+                  {{ t('版本升级') }}
+                </AuthButton>
+              </OperationBtnStatusTips>
+            </div>
           </template>
           <div
             v-if="data.isOnline"
@@ -160,6 +173,9 @@
       <ClusterShrink
         v-model:is-show="isShowShrink"
         :cluster-data="data" />
+      <ClusterUpgradeVersion
+        v-model:is-show="isShowUpgradeVersion"
+        :cluster-data="data" />
       <DbDialog
         v-model:is-show="isShowPassword"
         render-directive="if"
@@ -202,6 +218,7 @@
   import RenderPassword from '@views/db-manage/common/RenderPassword.vue';
   import ClusterExpansion from '@views/db-manage/doris/common/expansion/Index.vue';
   import ClusterShrink from '@views/db-manage/doris/common/shrink/Index.vue';
+  import ClusterUpgradeVersion from '@views/db-manage/doris/common/upgrade-version/Index.vue';
 
   import HostList from './components/HostList.vue';
 
@@ -220,6 +237,7 @@
 
   const isShowExpandsion = ref(false);
   const isShowShrink = ref(false);
+  const isShowUpgradeVersion = ref(false);
   const isShowPassword = ref(false);
 
   const clusterRoleNodeGroup = computed(() => {
@@ -277,6 +295,11 @@
   // 缩容
   const handleShowShrink = () => {
     isShowShrink.value = true;
+  };
+
+  // 版本升级
+  const handleShowUpgradeVersion = () => {
+    isShowUpgradeVersion.value = true;
   };
 
   const handleShowPassword = () => {

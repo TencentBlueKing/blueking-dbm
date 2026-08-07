@@ -322,6 +322,7 @@ export enum TicketTypes {
   DORIS_REPLACE = 'DORIS_REPLACE', // doris 替换
   DORIS_SCALE_UP = 'DORIS_SCALE_UP', // doris 扩容
   DORIS_SHRINK = 'DORIS_SHRINK', // doris 缩容
+  DORIS_UPGRADE = 'DORIS_UPGRADE', // doris 版本升级
 }
 export enum TicketTypes {
   RECYCLE_OLD_HOST = 'RECYCLE_OLD_HOST', // 已下架主机再利用
