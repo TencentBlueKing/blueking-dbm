@@ -76,7 +76,7 @@ def get_mail_context(ticket_id, flow_summary, ticket_dir):
     return context
 
 
-def get_rtx_context(ticket_id, flow_summary, ticket_dir):
+def get_rtx_context(ticket_id, flow_summary):
     context = _("单据 {ticket_id} 已完成。\n").format(ticket_id=ticket_id)
     count = 0
     cluster_info = []
@@ -98,6 +98,5 @@ def get_rtx_context(ticket_id, flow_summary, ticket_dir):
     for info in cluster_info:
         context += " ".join(info) + "\n"
 
-    context += _("详情请打开单据：{ticket_dir} \n").format(ticket_dir=ticket_dir)
     context += _("密码等访问凭据请登录 DBM，在对应集群的「获取连接信息」中获取。")
     return context
