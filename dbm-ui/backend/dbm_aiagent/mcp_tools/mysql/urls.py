@@ -20,6 +20,7 @@ from backend.dbm_aiagent.mcp_tools.mysql.views import (
     MySQLTableCapacityMcpToolsViewSet,
     SqlSyntaxCheckMcpViewSet,
 )
+from backend.dbm_aiagent.mcp_tools.mysql.views.bkjob_wrap.viewset import BKJobWrapMcpToolsViewSet
 from backend.dbm_aiagent.mcp_tools.mysql.views.mysql_backup_mcp import MySQLBackupMcpToolsViewSet
 
 routers = DefaultRouter(trailing_slash=True)
@@ -33,4 +34,5 @@ routers.register(r"", MySQLConfigUpdateMcpToolsViewSet, basename="mcp-mysql-conf
 routers.register(r"", MySQLTableCapacityMcpToolsViewSet, basename="mcp-mysql-table-capacity")
 routers.register(r"", MySQLSensitiveMcpViewSet, basename="mcp-mysql-sensitive")
 routers.register(r"", MySQLBackupMcpToolsViewSet, basename="mcp-mysql-backup")
+routers.register(r"", BKJobWrapMcpToolsViewSet, basename="mcp-bkjob-wrap")
 urlpatterns = routers.urls
