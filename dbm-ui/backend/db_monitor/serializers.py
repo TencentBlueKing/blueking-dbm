@@ -543,3 +543,24 @@ class DeleteMonitorSubscribeSerializer(serializers.Serializer):
 
 class ListMonitorSubscribeSerializer(serializers.Serializer):
     pass
+
+
+class SyncCollectStrategySerializer(serializers.Serializer):
+    """加载/同步采集策略参数"""
+
+    db_type = serializers.ChoiceField(help_text=_("数据库类型，不传则同步全部类型"), choices=DBType.get_choices(), required=False)
+    force = serializers.BooleanField(help_text=_("是否强制执行(采集对象有变更时使用)"), default=False, required=False)
+    bk_biz_id = serializers.IntegerField(help_text=_("业务ID，不传则使用默认DBA业务"), required=False)
+
+
+class ListCollectPluginSerializer(serializers.Serializer):
+    """查询采集插件列表参数"""
+
+    bk_biz_id = serializers.IntegerField(help_text=_("业务ID，不传则使用默认DBA业务"), required=False)
+
+
+class ImportCollectPluginSerializer(serializers.Serializer):
+    """导入采集插件参数"""
+
+    bk_biz_id = serializers.IntegerField(help_text=_("业务ID，不传则使用默认DBA业务"), required=False)
+    file = serializers.FileField(help_text=_("插件包文件(.tgz), 以 multipart 方式上传到监控平台"), required=True)
