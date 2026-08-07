@@ -33,6 +33,7 @@ export default class Doris extends ClusterBase {
   static DORIS_REPLACE = TicketTypes.DORIS_REPLACE;
   static DORIS_SCALE_UP = TicketTypes.DORIS_SCALE_UP;
   static DORIS_SHRINK = TicketTypes.DORIS_SHRINK;
+  static DORIS_UPGRADE = TicketTypes.DORIS_UPGRADE;
   static operationIconMap = {
     [Doris.DORIS_DESTROY]: t('删除中'),
     [Doris.DORIS_DISABLE]: t('禁用中'),
@@ -41,6 +42,7 @@ export default class Doris extends ClusterBase {
     [Doris.DORIS_REPLACE]: t('替换中'),
     [Doris.DORIS_SCALE_UP]: t('扩容中'),
     [Doris.DORIS_SHRINK]: t('缩容中'),
+    [Doris.DORIS_UPGRADE]: t('版本升级中'),
   };
   static operationTextMap = {
     [Doris.DORIS_DESTROY]: t('删除任务进行中'),
@@ -50,6 +52,7 @@ export default class Doris extends ClusterBase {
     [Doris.DORIS_REPLACE]: t('替换任务进行中'),
     [Doris.DORIS_SCALE_UP]: t('扩容任务进行中'),
     [Doris.DORIS_SHRINK]: t('缩容任务进行中'),
+    [Doris.DORIS_UPGRADE]: t('版本升级任务进行中'),
   };
 
   static STATUS_ABNORMAL = STATUS_ABNORMAL;
