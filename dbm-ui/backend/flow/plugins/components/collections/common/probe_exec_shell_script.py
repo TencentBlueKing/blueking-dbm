@@ -8,7 +8,6 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-import logging
 from typing import List
 
 from django.utils.translation import gettext as _
@@ -22,10 +21,8 @@ from backend.flow.plugins.components.collections.common.base_service import BkJo
 from backend.flow.utils.redis.redis_script_template import redis_fast_execute_script_common_kwargs
 from backend.utils.string import base64_encode
 
-logger = logging.getLogger("json")
 
-
-class ExecuteShellScriptService(BkJobService):
+class ProbeExecuteShellScriptService(BkJobService):
     """
     Execute shell command on target hosts.
     """
@@ -48,6 +45,17 @@ class ExecuteShellScriptService(BkJobService):
         FlowNode.objects.filter(root_id=root_id, node_id=node_id).update(hosts=exec_ips)
 
         shell_command = kwargs["cluster"]["shell_command"]
+
+        try:
+            # 从数据库中查询最新的 admin_endpoints
+            from backend.db_proxy.models import DBExtension
+
+            admin_endpoints = DBExtension.get_dbha_v2_admin_endpoints()
+            # 替换占位符
+            shell_command = shell_command.replace("${ADMIN_ENDPOINTS}", admin_endpoints)
+            self.log_info(f"[{node_name}] get admin_endpoints: {admin_endpoints}")
+        except Exception as e:
+            self.log_error(f"[{node_name}] get admin_endpoints failed: {str(e)}")
 
         body = {
             "bk_scope_type": "biz_set",
@@ -78,7 +86,7 @@ class ExecuteShellScriptService(BkJobService):
         return [Service.OutputItem(name="exec_ips", key="exec_ips", type="list")]
 
 
-class ExecuteShellScriptComponent(Component):
+class ProbeExecuteShellScriptComponent(Component):
     name = __name__
-    code = "common_exec_shell_script"
-    bound_service = ExecuteShellScriptService
+    code = "common_probe_exec_shell_script"
+    bound_service = ProbeExecuteShellScriptService
