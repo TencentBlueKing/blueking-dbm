@@ -10,6 +10,7 @@ specific language governing permissions and limitations under the License.
 """
 from rest_framework.routers import DefaultRouter
 
+from backend.db_monitor.views.collect import CollectViewSet
 from backend.db_monitor.views.duty_rule import MonitorDutyRuleViewSet
 from backend.db_monitor.views.event import AlertView
 from backend.db_monitor.views.grafana import MonitorGrafanaViewSet
@@ -27,6 +28,7 @@ routers.register(r"duty_rule", MonitorDutyRuleViewSet, basename="duty_rule")
 routers.register(r"alarm_shield", AlarmShieldView, basename="alarm_shield")
 routers.register(r"event", AlertView, basename="event")
 routers.register(r"subscribe", MonitorSubscribeViewSet, basename="subscribe")
+routers.register(r"collect", CollectViewSet, basename="collect")
 
 
 urlpatterns = routers.urls
