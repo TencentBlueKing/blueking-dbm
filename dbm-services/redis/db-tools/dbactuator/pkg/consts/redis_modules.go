@@ -24,13 +24,16 @@ type RedisModuleCmdItem struct {
 
 // ToString TODO
 func (item *RedisModuleCmdItem) ToString() string {
+	modeLine := ""
+	if item.Mode != "" {
+		modeLine = fmt.Sprintf("\n\t\tMode %s", item.Mode)
+	}
 	return fmt.Sprintf(`
-    %s {
-		Mode %s
+    %s {%s
 		MinArgs %d
 		MaxArgs %d
 	}
-	`, strings.ToLower(item.Command), item.Mode, item.MinArgs, item.MaxArgs)
+	`, strings.ToLower(item.Command), modeLine, item.MinArgs, item.MaxArgs)
 }
 
 // RedisBloomCmdItems TODO
@@ -75,6 +78,22 @@ var RedisJsonCmdItems = []RedisModuleCmdItem{
 	{Command: "JSON.TYPE", Mode: ModeRead, MinArgs: 2, MaxArgs: 3},
 }
 
+// Fo4LockCmdItems TODO
+var Fo4LockCmdItems = []RedisModuleCmdItem{
+	{Command: "REDIS_LOCK.ACQUIRE", Mode: ModeWrite, MinArgs: 4, MaxArgs: 4},
+	{Command: "REDIS_LOCK.RELEASE", Mode: ModeWrite, MinArgs: 3, MaxArgs: 3},
+}
+
+// Fo4UtilCmdItems TODO
+var Fo4UtilCmdItems = []RedisModuleCmdItem{
+	{Command: "REDIS_UTIL.SAFEHINCRBY", MinArgs: 4, MaxArgs: 4},
+	{Command: "REDIS_UTIL.HINCRCLAMP", MinArgs: 6, MaxArgs: 6},
+	{Command: "REDIS_UTIL.HMSETNX", MinArgs: 4, MaxArgs: 9999},
+	{Command: "REDIS_UTIL.CLAMP", Mode: ModeWrite, MinArgs: 4, MaxArgs: 4},
+	{Command: "REDIS_UTIL.INCRCLAMP", Mode: ModeWrite, MinArgs: 5, MaxArgs: 5},
+	{Command: "REDIS_UTIL.DECRCLAMP", Mode: ModeWrite, MinArgs: 5, MaxArgs: 5},
+}
+
 // RedisCellCmdItems TODO
 var RedisCellCmdItems = []RedisModuleCmdItem{
 	{Command: "CL.THROTTLE", Mode: ModeWrite, MinArgs: 5, MaxArgs: 6},
@@ -97,6 +116,10 @@ CustomCommand {
 			cmdItems = append(cmdItems, RedisBloomCmdItems...)
 		case ModuleRedisJson:
 			cmdItems = append(cmdItems, RedisJsonCmdItems...)
+		case ModuleFo4Lock:
+			cmdItems = append(cmdItems, Fo4LockCmdItems...)
+		case ModuleFo4Util:
+			cmdItems = append(cmdItems, Fo4UtilCmdItems...)
 		case ModuleRedisCell:
 			cmdItems = append(cmdItems, RedisCellCmdItems...)
 		}
@@ -120,6 +143,12 @@ func GetFirstCommandByModule(module string) string {
 	}
 	if module == ModuleRedisJson {
 		return RedisJsonCmdItems[0].Command
+	}
+	if module == ModuleFo4Lock {
+		return Fo4LockCmdItems[0].Command
+	}
+	if module == ModuleFo4Util {
+		return Fo4UtilCmdItems[0].Command
 	}
 	if module == ModuleRedisCell {
 		return RedisCellCmdItems[0].Command
