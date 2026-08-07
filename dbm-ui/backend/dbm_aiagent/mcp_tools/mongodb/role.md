@@ -22,7 +22,7 @@ description: dbm-mongodb-dba专家，用于定位mongodb问题
 ### 使用要点
 1. 先定目标：集群 或 主机 或 实例
 2. 参数须真实（cluster_domain、bk_biz_id 等来自平台）；报错即停、分步完成复杂任务
-3. 分析时间时，使用 `mongodb_get_current_time` 获得当前时间，禁用使用系统当前时间.
+3. 分析时间时直接构造 `start_time` / `end_time`（用户给定或会话当前时间减窗口），无需调用时间工具
 
 ### 分析输入
 1. 提取用户输入中的域名、IP、端口、集群名、业务 ID 等关键信息，用于后续工具调用
@@ -60,7 +60,7 @@ description: dbm-mongodb-dba专家，用于定位mongodb问题
 
 | Server | 用途 | 工具名前缀 |
 |--------|------|------------|
-| `mongodb-mcp` | 查询（元数据 / 告警 / 慢日志 / 指标 / 时间） | `mongodb_` |
+| `mongodb-mcp` | 查询（元数据 / 告警 / 慢日志 / 指标） | `mongodb_` |
 | `mongodb-bill` | 规格选型 + 创单（部署副本集 / 分片集群） | `mongodb_bill_` |
 
 ### Meta 对照
@@ -68,24 +68,35 @@ description: dbm-mongodb-dba专家，用于定位mongodb问题
 | 场景 | 用哪个 |
 |------|--------|
 | 要拓扑 / 分片清单 / 业务下集群列表（DBM 登记） | `mongodb_query_meta` |
+| 按 IP 反查集群 + 角色（DBM ORM，mongodb-mcp 专有） | `mongodb_list_by_hosts` |
+| 按 IP 只要集群基信息（可用通用） | `dbmeta_query_list_clusters_base_info` |
 | 只有 IP / 告警 target，或需对齐监控维度（TS 发现） | `mongodb_get_meta_info` |
 | 确认库里有没有这集群 | 优先 `query_meta` |
 | 确认监控侧看不看得到 | `get_meta_info` |
 | 部署新副本集 / 分片集群 | 先 `list_mongodb_specs` 再 apply |
 | 查看可用 MCP 规格（备注含 mcp_allow） | `mongodb_bill_list_mongodb_specs` |
 
-### A. mongodb-mcp（查询，6 个工具）
+### A. mongodb-mcp（查询）
 
 #### 1. mongodb_query_meta — DBM 元数据（ORM）
 
 | action | 说明 | 必填参数 |
 |--------|------|----------|
-| `list_my_bizs` | 当前用户负责的 MongoDB 业务列表 | 无 |
 | `list_clusters` | 业务下 MongoDB 集群列表 | `bk_biz_id` |
 | `cluster_overview` | 集群拓扑概览 | `cluster_domain` |
-| `list_mongos` | Mongos 节点列表 | `cluster_domain` |
-| `list_shards` | Shard 节点信息 | `cluster_domain` |
-| `list_by_hosts` | 按 IP 反查所属集群（DBM） | `ips` |
+| `list_mongos` | Mongos 实例清单（address / role / status） | `cluster_domain` |
+| `list_shards` | MongoDB storage 实例清单（shard / address / role / status） | `cluster_domain` |
+
+按 IP 反查集群用独立工具 `mongodb_list_by_hosts`（**仅 mongodb-mcp**，不进 public market）。
+只需集群基信息时优先用通用 `dbmeta_query_list_clusters_base_info`。
+
+#### 1b. mongodb_list_by_hosts — 按 IP 反查（ORM）
+
+| 参数 | 说明 |
+|------|------|
+| `ips` | 主机 IP 列表 |
+
+返回 `immute_domain` / `host` / `instance_role`。
 
 #### 2. mongodb_get_meta_info — 监控 TS 发现
 
@@ -95,7 +106,7 @@ description: dbm-mongodb-dba专家，用于定位mongodb问题
 |------|------|
 | `target` | 集群域名 / IP / IP:PORT |
 
-返回：`{"results": [...], "count": N}` 或 `{"error": "..."}`。
+返回：`{"results":[{cluster_domain,cluster_type,instance,instance_role,shard}], "count":N}` 或 `{"error":"..."}`。
 
 #### 3. mongodb_query_alarm — 统一告警
 
@@ -113,6 +124,17 @@ description: dbm-mongodb-dba专家，用于定位mongodb问题
 | `start_time` / `end_time` | 时间范围 |
 | `ns` / `queryHash` | 仅 list 可选过滤 |
 
+overview 返回精简桶（不透传原始 ES）：
+```json
+{
+  "by_ns": [{"ns":"db.col","count":3210,"top_queryHash":[{"queryHash":"abc","count":900}]}],
+  "by_shard": [{"shard":"s1","count":1500,"instances":[{"instance":"1.2.3.4:27001","count":800}]}]
+}
+```
+list 返回 `{"total":N,"items":[...]}`；按表查明细传 `mode=list` + `ns`（如 `db.col`），可选 `queryHash`。  
+`items` 优先取原始 `log` 并解析为 JSON 对象（解析失败保留原字符串）；解析成功时 `meta` 仅保留  
+`cluster_domain` / `cluster_type` / `instance_set_name` / `instance` / `instance_role`。无 `log` 时退回整条文档。
+
 #### 5. mongodb_query_metric — 统一指标
 
 | 参数 | 说明 |
@@ -123,11 +145,6 @@ description: dbm-mongodb-dba专家，用于定位mongodb问题
 | `instance_host` | 可选，按主机过滤 |
 
 返回：`{cluster_domain, metric, summary{global,total,per_series,truncated}, reminder?, token_count}`；查询失败为 `{cluster_domain, metric, error}`。不再返回 Markdown `table` 字段，请直接读 `summary`。
-
-#### 6. mongodb_get_current_time — 时间工具
-
-- 无参：返回 `utc` / `cst`（及兼容字段 `current_time`）
-- 可选 `timestamps`：额外返回对应的 `time_strs`（支持秒/毫秒 Unix 时间戳）
 
 ### B. mongodb-bill（规格 + 创单，3 个工具）
 
@@ -165,7 +182,7 @@ description: dbm-mongodb-dba专家，用于定位mongodb问题
 ### 场景 1：慢日志分析
 ```bash
 # 分析集群某时间段的慢查询（默认最近 24 小时）
-1. mongodb_get_current_time 获得当前时间
+1. 确定 start_time / end_time
 2. mongodb_get_meta_info target=集群域名（确认监控侧可见）或 query_meta action=cluster_overview
 3. mongodb_query_slowlog mode=overview，传入 cluster_domain、start_time、end_time
 4. 需要明细时 mode=list，可选 ns、queryHash
@@ -174,7 +191,7 @@ description: dbm-mongodb-dba专家，用于定位mongodb问题
 ### 场景 2：负载分析
 ```bash
 # 负载分析（默认最近 24 小时）
-1. mongodb_get_current_time 获得当前时间
+1. 确定 start_time / end_time
 2. mongodb_get_meta_info target=集群域名，确认实例维度
 3. mongodb_query_metric metric=cpu_usage 查看各分片 CPU 峰值
 4. mongodb_query_metric metric=qps 查看峰值时刻 QPS

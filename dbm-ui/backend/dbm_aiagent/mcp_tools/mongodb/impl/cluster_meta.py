@@ -20,10 +20,8 @@ from rest_framework.exceptions import ValidationError
 
 from backend import env
 from backend.components import BKMonitorV3Api
-from backend.configuration.constants import DBType
-from backend.configuration.models import DBAdministrator
 from backend.db_meta.enums import ClusterType, MachineType
-from backend.db_meta.models import AppCache, Cluster, ClusterEntry, Machine, ProxyInstance, StorageInstance
+from backend.db_meta.models import Cluster, ClusterEntry, Machine, ProxyInstance, StorageInstance
 
 logger = logging.getLogger("root")
 
@@ -46,17 +44,6 @@ _UNIFY_QUERY_META_PARAMS = {
     "slimit": 500,
     "type": "instant",
 }
-
-
-def list_my_mongodb_bizs(username: str) -> List:
-    res = []
-    for app in AppCache.objects.all():  # pyright: ignore[reportAttributeAccessIssue]
-        bk_biz_id = app.bk_biz_id
-        if DBAdministrator.objects.filter(  # pyright: ignore[reportAttributeAccessIssue]
-            bk_biz_id=bk_biz_id, users__0=username, db_type=DBType.MongoDB.value
-        ).exists():
-            res.append({"bk_biz_id": bk_biz_id, "app_name": app.bk_biz_name, "abbr": app.db_app_abbr})
-    return res
 
 
 def mongodb_list_clusters(bk_biz_id: int) -> List:
@@ -118,15 +105,14 @@ def get_machine_stats(all_machine_ids) -> Dict:
 
 def get_mongodb_meta_from_ts_metric(conds: Dict) -> Dict:
     """
-    从监控指标 bkmonitor:dbm_system:cpu_summary:usage 的 label 中解析出 (cluster_domain, bk_target_ip, instance_role)，
-    再用 DBM 元数据补全 cluster_name、cluster_id、port、bk_biz_id、app_name、shard 等。
+    从监控指标 bkmonitor:dbm_system:cpu_summary:usage 的 label 发现实例。
+    返回字段：cluster_domain / cluster_type / instance / instance_role / shard。
 
     conds 支持：
-        - cluster_domain: 集群域名，仅查询该集群
-        - ip: 主机 IP，仅查询该 IP 上的实例
-        - instance_port: 可选，与 ip 一起时过滤指定端口（通过 DBM 元数据过滤）
+        - cluster_domain: 集群域名
+        - ip: 主机 IP
+        - instance_port: 可选，与 ip 一起过滤端口
     """
-    # mongodb_types = [ClusterType.MongoReplicaSet.value, ClusterType.MongoShardedCluster.value]
     group_by_keys = [
         "cluster_domain",
         "bk_target_ip",
@@ -167,24 +153,18 @@ def get_mongodb_meta_from_ts_metric(conds: Dict) -> Dict:
 
     for s in series:
         dims = s.get("dimensions") or s.get("group_keys") or s.get("metric") or {}
-        cluster_domain = dims.get("cluster_domain")
-        bk_target_ip = dims.get("bk_target_ip")
-        instance_role = dims.get("instance_role", "")
-        instance_port = dims.get("instance_port", "")
-        instance = dims.get("instance", "") or f"{bk_target_ip}:{instance_port}"
-        instance_host = dims.get("instance_host", "") or f"{bk_target_ip}"
-        cluster_type = dims.get("cluster_type", "")
-        shard = dims.get("shard", "")
+        bk_target_ip = dims.get("bk_target_ip") or ""
+        instance_port = dims.get("instance_port") or ""
+        instance = dims.get("instance") or (
+            f"{bk_target_ip}:{instance_port}" if bk_target_ip and instance_port else bk_target_ip
+        )
         meta_list.append(
             {
-                "cluster_domain": cluster_domain,
-                "cluster_type": cluster_type,
-                "bk_target_ip": bk_target_ip,
-                "instance_port": instance_port,
-                "instance_role": instance_role,
-                "instance_host": instance_host,
+                "cluster_domain": dims.get("cluster_domain") or "",
+                "cluster_type": dims.get("cluster_type") or "",
                 "instance": instance,
-                "shard": shard,
+                "instance_role": dims.get("instance_role") or "",
+                "shard": dims.get("shard") or "",
             }
         )
 
@@ -309,12 +289,13 @@ def cluster_overview(immute_domain: str) -> Dict:
 
 
 def cluster_mongos(immute_domain: str) -> List:
-    """集群 Mongos 列表"""
+    """集群 Mongos 列表（按实例一行，字段与 list_shards 对齐）。"""
     c_obj = _get_cluster_by_domain(immute_domain)
-    mongos_instances = c_obj.proxyinstance_set.filter(machine_type=MachineType.MONGOS)
-    return [
+    mongos_instances = c_obj.proxyinstance_set.filter(machine_type=MachineType.MONGOS).select_related("machine")
+    result = [
         {
             "address": "{}:{}".format(s.machine.ip, s.port),
+            "instance_role": s.machine_type or MachineType.MONGOS.value,
             "status": s.status,
             "version": s.version or "",
             "sub_zone": s.machine.bk_sub_zone or "",
@@ -322,27 +303,32 @@ def cluster_mongos(immute_domain: str) -> List:
         }
         for s in mongos_instances
     ]
+    result.sort(key=lambda item: item["address"])
+    return result
 
 
 def cluster_shards(immute_domain: str) -> List:
-    """集群分片(Shard)节点列表，按 IP 聚合端口"""
+    """
+    集群 MongoDB storage 实例清单（按实例一行）。
+    shard 取自 NosqlStorageSetDtl.seg_range；副本集无明细时回退为集群域名。
+    """
     c_obj = _get_cluster_by_domain(immute_domain)
-    storage_objs = c_obj.storageinstance_set.filter(machine_type=MachineType.MONGODB)
-    host_ports = defaultdict(list)
-    for ins in storage_objs:
-        host_ports[ins.machine.ip].append(ins.port)
+    storages = c_obj.storageinstance_set.filter(machine_type=MachineType.MONGODB).select_related("machine")
+    instance_to_seg = {dtl.instance_id: dtl.seg_range for dtl in c_obj.nosqlstoragesetdtl_set.all()}
     result = []
-    for ip, ports in host_ports.items():
-        m_obj = Machine.objects.filter(ip=ip, bk_cloud_id=c_obj.bk_cloud_id, bk_biz_id=c_obj.bk_biz_id).first()
-        if m_obj:
-            result.append(
-                {
-                    "ip": ip,
-                    "ports": ports,
-                    "sub_zone": m_obj.bk_sub_zone or "",
-                    "cls_name": m_obj.bk_svr_device_cls_name or "",
-                }
-            )
+    for s in storages:
+        result.append(
+            {
+                "shard": instance_to_seg.get(s.id) or c_obj.immute_domain,
+                "address": "{}:{}".format(s.machine.ip, s.port),
+                "instance_role": s.instance_role or "",
+                "status": s.status,
+                "version": s.version or "",
+                "sub_zone": s.machine.bk_sub_zone or "",
+                "cls_name": s.machine.bk_svr_device_cls_name or "",
+            }
+        )
+    result.sort(key=lambda item: (item["shard"], item["instance_role"], item["address"]))
     return result
 
 

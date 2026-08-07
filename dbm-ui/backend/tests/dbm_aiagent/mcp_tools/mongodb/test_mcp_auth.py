@@ -16,7 +16,6 @@ from backend.dbm_aiagent.mcp_tools.mongodb.auth_parser import permissions as mon
 from backend.dbm_aiagent.mcp_tools.mongodb.serializers.mcp import (
     META_ACTION_CLUSTER_OVERVIEW,
     META_ACTION_LIST_CLUSTERS,
-    META_ACTION_LIST_MY_BIZS,
 )
 from backend.iam_app.dataclass import ResourceEnum
 from backend.iam_app.dataclass.actions import ActionEnum
@@ -32,13 +31,9 @@ def _request(**data):
 class TestMcpMongoMetaPermission:
     """query_meta 按 action 分派鉴权，未知 action 默认拒绝"""
 
-    def test_list_my_bizs_pass(self):
-        perm = mongo_permissions.McpMongoMetaPermission()
-        assert perm.has_permission(_request(action=META_ACTION_LIST_MY_BIZS), MagicMock()) is True
-
-    @pytest.mark.parametrize("action", ["", None, "drop_everything"])
+    @pytest.mark.parametrize("action", ["", None, "drop_everything", "list_my_bizs", "list_by_hosts"])
     def test_unknown_action_denied(self, action):
-        """未知 action 返回 False（403），而不是抛异常导致 500"""
+        """未知 action（含已下线的 list_my_bizs / 已拆出的 list_by_hosts）返回 False，避免 500"""
         perm = mongo_permissions.McpMongoMetaPermission()
         assert perm.has_permission(_request(action=action), MagicMock()) is False
 
