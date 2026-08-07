@@ -8,12 +8,11 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 from rest_framework.exceptions import ValidationError
 from rest_framework.response import Response
 
-from backend.dbm_aiagent.mcp_tools.common.auth_parser.base import auth_default, auth_parse_clusters
+from backend.dbm_aiagent.mcp_tools.common.auth_parser.base import auth_default, auth_parse_clusters, auth_parse_hosts
 from backend.dbm_aiagent.mcp_tools.constants import DBMMCPTags, DBMMcpTools
 from backend.dbm_aiagent.mcp_tools.decorators import mcp_tools_api_decorator
 from backend.dbm_aiagent.mcp_tools.mongodb.auth_parser import auth_parse_meta_value, auth_parse_slowlog_target
@@ -26,7 +25,6 @@ from backend.dbm_aiagent.mcp_tools.mongodb.impl.cluster_meta import (
     cluster_overview,
     cluster_shards,
     list_clusters_by_hosts,
-    list_my_mongodb_bizs,
     meta_info,
     mongodb_list_clusters,
 )
@@ -44,17 +42,14 @@ from backend.dbm_aiagent.mcp_tools.mongodb.impl.mongodb_slowlog import (
 from backend.dbm_aiagent.mcp_tools.mongodb.impl.response_format import (
     format_biz_alarms,
     format_cluster_alarms,
-    format_current_time,
     format_results,
     format_slowlog_list,
     format_slowlog_overview,
 )
 from backend.dbm_aiagent.mcp_tools.mongodb.serializers.mcp import (
     META_ACTION_CLUSTER_OVERVIEW,
-    META_ACTION_LIST_BY_HOSTS,
     META_ACTION_LIST_CLUSTERS,
     META_ACTION_LIST_MONGOS,
-    META_ACTION_LIST_MY_BIZS,
     META_ACTION_LIST_SHARDS,
     METRIC_CONNECTIONS,
     METRIC_CPU_USAGE,
@@ -62,9 +57,8 @@ from backend.dbm_aiagent.mcp_tools.mongodb.serializers.mcp import (
     METRIC_QPS,
     SLOWLOG_MODE_LIST,
     MongoFlexibleOutputSerializer,
-    MongoGetCurrentTimeInputSerializer,
-    MongoGetCurrentTimeOutputSerializer,
     MongoGetMetaInfoInputSerializer,
+    MongoListByHostsInputSerializer,
     MongoQueryAlarmInputSerializer,
     MongoQueryMetaInputSerializer,
     MongoQueryMetricInputSerializer,
@@ -74,10 +68,7 @@ from backend.dbm_aiagent.mcp_tools.mongodb.serializers.mcp import (
 from backend.dbm_aiagent.mcp_tools.mongodb.tools.comm_tools import estimate_token_count
 from backend.dbm_aiagent.mcp_tools.views import McpToolsViewSet
 from backend.iam_app.handlers.drf_perm.base import DBManagePermission
-from backend.iam_app.handlers.drf_perm.mcp import McpClusterDetailPermission, McpSkipPermission
-from backend.utils.time import datetime2str, timestamp2str
-
-_MS_TIMESTAMP_THRESHOLD = 10**12
+from backend.iam_app.handlers.drf_perm.mcp import McpClusterDetailPermission
 
 _METRIC_DISPATCH = {
     METRIC_QPS: get_mongodb_qps,
@@ -88,20 +79,13 @@ _METRIC_DISPATCH = {
 
 _DECORATOR_COMMON = {
     "tags": [DBMMCPTags.READ],
-    "mcp": [DBMMcpTools.MONGODB_MCP],
+    "mcp": [DBMMcpTools.MONGODB_MCP, DBMMcpTools.DBM_PUBLIC_MARKET],
     "name_prefix": "mongodb",
 }
 
 
-def _timestamp_to_str(ts: int) -> str:
-    ts = int(ts)
-    if ts >= _MS_TIMESTAMP_THRESHOLD:
-        ts = ts // 1000
-    return timestamp2str(ts)
-
-
 class MongoMcpToolsViewSet(McpToolsViewSet):
-    """MongoDB MCP 精简入口：DBM 元数据 + TS 发现 + 告警/慢日志/指标/时间。"""
+    """MongoDB MCP 精简入口：DBM 元数据 + TS 发现 + 告警/慢日志/指标。"""
 
     default_permission_class = [DBManagePermission()]
 
@@ -109,9 +93,9 @@ class MongoMcpToolsViewSet(McpToolsViewSet):
         description=str(
             _(
                 "查询 DBM 平台登记的业务/集群/拓扑元数据（ORM）。"
-                "action=list_my_bizs|list_clusters|cluster_overview|list_mongos|list_shards|list_by_hosts；"
-                "list_clusters 需 bk_biz_id；拓扑类需 cluster_domain；list_by_hosts 需 ips。"
-                "监控侧按域名/IP 反查实例请用 get_meta_info"
+                "action=list_clusters|cluster_overview|list_mongos|list_shards；"
+                "list_clusters 需 bk_biz_id；拓扑类需 cluster_domain。"
+                "按 IP 反查集群请用 list_by_hosts；监控侧按域名/IP 反查实例请用 get_meta_info"
             )
         ),
         request_slz=MongoQueryMetaInputSerializer,
@@ -124,8 +108,6 @@ class MongoMcpToolsViewSet(McpToolsViewSet):
     )
     def query_meta(self, request, *args, **kwargs):
         action = self.get_param("action")
-        if action == META_ACTION_LIST_MY_BIZS:
-            return Response(format_results(list_my_mongodb_bizs(username=request.user.username)))
         if action == META_ACTION_LIST_CLUSTERS:
             return Response(format_results(mongodb_list_clusters(bk_biz_id=self.get_param("bk_biz_id"))))
         if action == META_ACTION_CLUSTER_OVERVIEW:
@@ -134,9 +116,26 @@ class MongoMcpToolsViewSet(McpToolsViewSet):
             return Response(format_results({"mongos": cluster_mongos(immute_domain=self.get_param("cluster_domain"))}))
         if action == META_ACTION_LIST_SHARDS:
             return Response(format_results({"shards": cluster_shards(immute_domain=self.get_param("cluster_domain"))}))
-        if action == META_ACTION_LIST_BY_HOSTS:
-            return Response(format_results(list_clusters_by_hosts(hosts=self.get_param("ips"))))
         raise ValidationError(_("unknown action: {}").format(action))
+
+    @mcp_tools_api_decorator(
+        description=str(
+            _(
+                "按主机 IP 反查 DBM 登记的所属集群及实例角色（ORM），返回 immute_domain/host/instance_role。"
+                "仅查集群基信息请优先用通用 dbmeta_query_list_clusters_base_info；"
+                "监控侧发现请用 get_meta_info"
+            )
+        ),
+        request_slz=MongoListByHostsInputSerializer,
+        response_slz=MongoFlexibleOutputSerializer,
+        permission_classes=[McpClusterDetailPermission],
+        mcp_auth_parser=auth_parse_hosts,
+        tags=[DBMMCPTags.READ],
+        mcp=[DBMMcpTools.MONGODB_MCP],
+        name_prefix="mongodb",
+    )
+    def list_by_hosts(self, request, *args, **kwargs):
+        return Response(format_results(list_clusters_by_hosts(hosts=self.get_param("ips"))))
 
     @mcp_tools_api_decorator(
         description=str(
@@ -181,7 +180,8 @@ class MongoMcpToolsViewSet(McpToolsViewSet):
         description=str(
             _(
                 "统一慢查询日志。"
-                "mode=overview（默认）按 ns/queryHash 聚合；mode=list 返回明细，支持 ns/queryHash 过滤。"
+                "mode=overview（默认）按 ns/queryHash 与 shard/instance 返回精简聚合桶；"
+                "mode=list 返回明细，支持 ns/queryHash 过滤。"
                 "cluster_domain / instance / instance_host 至少填其一（list 模式需 cluster_domain 或 instance）"
             )
         ),
@@ -245,19 +245,3 @@ class MongoMcpToolsViewSet(McpToolsViewSet):
         if isinstance(out, dict):
             out["token_count"] = estimate_token_count(out)
         return Response(out)
-
-    @mcp_tools_api_decorator(
-        description=str(_("获取当前 UTC / CST 时间。可选传入 timestamps（Unix 秒/毫秒列表），额外返回一一对应的 time_strs")),
-        request_slz=MongoGetCurrentTimeInputSerializer,
-        response_slz=MongoGetCurrentTimeOutputSerializer,
-        permission_classes=[McpSkipPermission],
-        mcp_auth_parser=auth_default,
-        **_DECORATOR_COMMON,
-    )
-    def get_current_time(self, request, *args, **kwargs):
-        timestamps = self.get_param("timestamps")
-        time_strs = [_timestamp_to_str(ts) for ts in timestamps] if timestamps else None
-        # keep legacy ISO clock for callers that still read current_time
-        payload = format_current_time(timestamps=timestamps, time_strs=time_strs)
-        payload["current_time"] = datetime2str(timezone.now())
-        return Response(payload)

@@ -48,35 +48,3 @@ class MongoMetricsOutputSerializer(serializers.Serializer):
         required=False,
         help_text=_("响应体估算的 token 数量（便于控制上下文长度）"),
     )
-
-
-class MongoTimeEmptyInputSerializer(serializers.Serializer):
-    """无入参，用于 get_current_time。保留可选字段以生成 requestBody，满足 generate_resources_yaml 的 MCP 校验。"""
-
-    # 可选占位，请求时可省略，仅用于生成 OpenAPI requestBody
-    _placeholder = serializers.CharField(required=False, allow_blank=True)
-
-
-class CurrentTimeOutputSerializer(serializers.Serializer):
-    """当前时间输出序列化器"""
-
-    current_time = serializers.CharField(help_text=_("当前时间，东八区/本地时区 ISO8601 格式"))
-
-
-class ConvertTimestampInputSerializer(serializers.Serializer):
-    """时间戳转字符串入参序列化器，支持一次传入多个时间戳"""
-
-    timestamps = serializers.ListField(
-        child=serializers.IntegerField(),
-        help_text=_("Unix 时间戳列表，支持秒（10 位）或毫秒（13 位），会自动判断单位"),
-        allow_empty=False,
-    )
-
-
-class ConvertTimestampOutputSerializer(serializers.Serializer):
-    """时间戳转字符串输出序列化器，与入参 timestamps 顺序一致"""
-
-    time_strs = serializers.ListField(
-        child=serializers.CharField(),
-        help_text=_("转换后的时间字符串列表，ISO8601 格式，与 timestamps 一一对应"),
-    )

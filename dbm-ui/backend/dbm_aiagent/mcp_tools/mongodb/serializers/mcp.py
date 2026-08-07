@@ -11,20 +11,16 @@ specific language governing permissions and limitations under the License.
 from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
-META_ACTION_LIST_MY_BIZS = "list_my_bizs"
 META_ACTION_LIST_CLUSTERS = "list_clusters"
 META_ACTION_CLUSTER_OVERVIEW = "cluster_overview"
 META_ACTION_LIST_MONGOS = "list_mongos"
 META_ACTION_LIST_SHARDS = "list_shards"
-META_ACTION_LIST_BY_HOSTS = "list_by_hosts"
 
 META_ACTIONS = (
-    META_ACTION_LIST_MY_BIZS,
     META_ACTION_LIST_CLUSTERS,
     META_ACTION_CLUSTER_OVERVIEW,
     META_ACTION_LIST_MONGOS,
     META_ACTION_LIST_SHARDS,
-    META_ACTION_LIST_BY_HOSTS,
 )
 
 METRIC_QPS = "qps"
@@ -51,11 +47,6 @@ class MongoQueryMetaInputSerializer(serializers.Serializer):
     cluster_domain = serializers.CharField(
         required=False, allow_blank=True, default="", help_text=_("集群域名，拓扑类 action 必填")
     )
-    ips = serializers.ListField(
-        child=serializers.IPAddressField(protocol="both"),
-        required=False,
-        help_text=_("主机IP列表，action=list_by_hosts 时必填"),
-    )
 
     def validate(self, attrs):
         action = attrs["action"]
@@ -71,9 +62,18 @@ class MongoQueryMetaInputSerializer(serializers.Serializer):
             and not (attrs.get("cluster_domain") or "").strip()
         ):
             raise serializers.ValidationError(_("该 action 需要 cluster_domain"))
-        if action == META_ACTION_LIST_BY_HOSTS and not attrs.get("ips"):
-            raise serializers.ValidationError(_("action=list_by_hosts 时 ips 必填"))
         return attrs
+
+
+class MongoListByHostsInputSerializer(serializers.Serializer):
+    """按 IP 反查所属集群（仅挂 mongodb-mcp，不进入 public market）。"""
+
+    ips = serializers.ListField(
+        child=serializers.IPAddressField(protocol="both"),
+        help_text=_("主机IP地址列表"),
+        required=True,
+        allow_empty=False,
+    )
 
 
 class MongoGetMetaInfoInputSerializer(serializers.Serializer):
@@ -151,22 +151,3 @@ class MongoQueryMetricOutputSerializer(serializers.Serializer):
     reminder = serializers.CharField(required=False, allow_blank=True, help_text=_("提示信息"))
     error = serializers.CharField(required=False, allow_blank=True, help_text=_("错误信息"))
     token_count = serializers.IntegerField(required=False, help_text=_("估算 token 数"))
-
-
-class MongoGetCurrentTimeInputSerializer(serializers.Serializer):
-    timestamps = serializers.ListField(
-        child=serializers.IntegerField(),
-        required=False,
-        help_text=_("可选。Unix 时间戳列表（秒或毫秒），传入时额外返回 time_strs"),
-    )
-
-
-class MongoGetCurrentTimeOutputSerializer(serializers.Serializer):
-    utc = serializers.CharField(required=False, help_text=_("当前 UTC 时间"))
-    cst = serializers.CharField(required=False, help_text=_("当前 CST(UTC+8) 时间"))
-    current_time = serializers.CharField(required=False, help_text=_("当前时间，ISO8601 格式（兼容字段）"))
-    time_strs = serializers.ListField(
-        child=serializers.CharField(),
-        required=False,
-        help_text=_("与 timestamps 一一对应的 ISO8601 字符串"),
-    )

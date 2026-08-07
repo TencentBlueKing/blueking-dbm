@@ -14,17 +14,11 @@ from pydantic import TypeAdapter
 from rest_framework import permissions
 
 from backend.dbm_aiagent.mcp_tools import typing
-from backend.dbm_aiagent.mcp_tools.common.auth_parser.base import (
-    auth_parse_bizs,
-    auth_parse_clusters,
-    auth_parse_hosts,
-)
+from backend.dbm_aiagent.mcp_tools.common.auth_parser.base import auth_parse_bizs, auth_parse_clusters
 from backend.dbm_aiagent.mcp_tools.mongodb.serializers.mcp import (
     META_ACTION_CLUSTER_OVERVIEW,
-    META_ACTION_LIST_BY_HOSTS,
     META_ACTION_LIST_CLUSTERS,
     META_ACTION_LIST_MONGOS,
-    META_ACTION_LIST_MY_BIZS,
     META_ACTION_LIST_SHARDS,
 )
 from backend.iam_app.dataclass import ResourceEnum, ResourceMeta
@@ -57,8 +51,6 @@ class McpMongoMetaPermission(permissions.BasePermission):
 
     def has_permission(self, request, view):
         action = _request_data(request).get("action")
-        if action == META_ACTION_LIST_MY_BIZS:
-            return True
 
         if action == META_ACTION_LIST_CLUSTERS:
             perm = McpDBManagePermission()
@@ -68,11 +60,6 @@ class McpMongoMetaPermission(permissions.BasePermission):
         if action in (META_ACTION_CLUSTER_OVERVIEW, META_ACTION_LIST_MONGOS, META_ACTION_LIST_SHARDS):
             perm = McpClusterDetailPermission()
             perm.mcp_auth_parser = auth_parse_clusters
-            return perm.has_permission(request, view)
-
-        if action == META_ACTION_LIST_BY_HOSTS:
-            perm = McpClusterDetailPermission()
-            perm.mcp_auth_parser = auth_parse_hosts
             return perm.has_permission(request, view)
 
         # 未知 action 默认拒绝（fail-closed）。serializer ChoiceField 已限制合法值；
