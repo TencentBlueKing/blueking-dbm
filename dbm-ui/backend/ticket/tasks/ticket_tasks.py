@@ -576,7 +576,7 @@ def send_ticket_delivery_info(ticket_id):
     if not flow_summary:
         return
 
-    ticket_dir = f"{env.BK_SAAS_HOST}/ticket-platform-manage/{ticket_id}?current=1&limit=50&ordering="
+    ticket_dir = f"{env.BK_SAAS_HOST}/ticket/{ticket_id}"
     title = _("【DBM交付】 {}").format(TicketType.get_choice_label(ticket.ticket_type))
 
     receivers = ticket.config["send_msg_config"]["receiver__username"].split(",")
@@ -587,7 +587,7 @@ def send_ticket_delivery_info(ticket_id):
                 notify.constants.MsgType.MAIL.value, context=None
             )
         elif msg_type == notify.constants.MsgType.RTX.value:
-            context = get_rtx_context(ticket_id, flow_summary, ticket_dir)
+            context = get_rtx_context(ticket_id, flow_summary)
             msg_info = {
                 "title": title,
                 "approvers": [],
@@ -595,6 +595,6 @@ def send_ticket_delivery_info(ticket_id):
                 "receive_group": [],
                 "summary": context,
                 "actions": [],
-                "click": {},
+                "click": {"click_url": ticket_dir, "name": _("查看详情")},
             }
             notify.handlers.BkChatApi.send_ticket_msg(msg_info, use_admin=True)
