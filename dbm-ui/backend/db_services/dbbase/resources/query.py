@@ -1290,6 +1290,7 @@ class ListRetrieveResource(BaseListRetrieveResource, CommonExportQueryResourceMi
             "spec_id": machine.spec_id,
             "spec_config": machine.spec_config,
             "spec_name": machine_spec.spec_name if machine_spec else "",
+            "enable": machine_spec.enable if machine_spec else None,
             "bk_sub_zone": machine.bk_sub_zone,
             "bk_os_name": machine.bk_os_name,
             "bk_rack_id": machine.bk_rack_id,
