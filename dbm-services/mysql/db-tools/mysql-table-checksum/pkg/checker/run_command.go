@@ -117,10 +117,19 @@ func (r *Checker) preRunGeneral() error {
 }
 
 func (r *Checker) runGeneral() error {
+	hasTables, err := r.hasCheckableTables()
+	if err != nil {
+		return err
+	}
+	if !hasTables {
+		slog.Info("no checkable tables, skip pt-table-checksum")
+		return nil
+	}
+
 	var cleanUpErr error
 	var retryTime uint = 2
 
-	err := retry.New(
+	err = retry.New(
 		retry.Attempts(retryTime),
 		retry.Delay(2*time.Second),
 		retry.RetryIf(
@@ -195,6 +204,14 @@ func (r *Checker) runGeneral() error {
 			}
 
 			if len(output.Summaries) == 0 {
+				hasTables, err := r.hasCheckableTables()
+				if err != nil {
+					return err
+				}
+				if !hasTables {
+					slog.Info("no checkable tables, treat empty summary as success")
+					return nil
+				}
 				return &EmptySummaryError{}
 			}
 			return nil
