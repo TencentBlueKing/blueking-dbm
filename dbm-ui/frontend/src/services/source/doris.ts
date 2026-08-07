@@ -97,6 +97,13 @@ export function getDorisDetail(params: { id: number }) {
 }
 
 /**
+ * 获取可升级版本列表
+ */
+export function getDorisUpgradableVersions(params: { cluster_id: number }) {
+  return http.get<string[]>(`${getRootPath()}/${params.cluster_id}/list_upgradable_versions/`);
+}
+
+/**
  * 获取集群节点
  */
 export function getDorisNodes(params: { cluster_id: number }) {
