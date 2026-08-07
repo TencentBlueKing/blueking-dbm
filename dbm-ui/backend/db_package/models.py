@@ -14,6 +14,7 @@ import django.utils.timezone as timezone
 from django.db import models
 from django.db.models import Q
 from django.utils.translation import gettext_lazy as _
+from packaging.version import InvalidVersion, Version
 
 from backend.bk_web.constants import LEN_LONG, LEN_NORMAL, LEN_SHORT
 from backend.bk_web.models import AuditedModel
@@ -95,6 +96,56 @@ class Package(AuditedModel):
 
         # 取最新的版本
         return packages.latest("update_at")
+
+    @staticmethod
+    def _parse_semver(version: str):
+        """
+        将版本号解析为可比较的 packaging.version.Version 对象。
+        解析失败（非法版本字符串）时兜底为 0.0.0，避免整体排序失败。
+        """
+        try:
+            return Version(version)
+        except InvalidVersion:
+            return Version("0.0.0")
+
+    @classmethod
+    def get_latest_package_by_semver(
+        cls,
+        pkg_type: str,
+        db_type: Optional[str] = DBType.MySQL,
+        bk_biz_id: Optional[int] = None,
+        name_prefix: Optional[str] = None,
+        only_enable_pkg: Optional[bool] = True,
+    ) -> "Package":
+        """
+        按 version 字段的语义化版本号取最大版本的介质包，而非按 update_at 时间。
+
+        适用场景：介质包按版本号目录结构（如 /cloud/dbha-v2-probe/v2.0.0/v2.0.0-probe.tar.gz），
+
+        排序策略：
+        - 主排序：version 字段语义化比较（取最大目录版本，如 v2.0.1 > v2.0.0）。
+        - 次级排序：同版本（version 相同）时按 update_at 取最新上传的包（虽然上传时要求一个目录只保留一个包，但理论上是可能存在多个的）。
+        """
+        filters = {"pkg_type": pkg_type, "db_type": db_type}
+
+        if only_enable_pkg:
+            filters["enable"] = True
+
+        if name_prefix:
+            filters["name__startswith"] = name_prefix
+
+        packages = cls.objects.filter(**filters)
+
+        if bk_biz_id:
+            allow_biz_filter = Q(allow_biz_ids__contains=bk_biz_id) | Q(allow_biz_ids__isnull=True)
+            packages = packages.filter(allow_biz_filter)
+
+        if not packages:
+            raise PackageNotExistException(version=MediumEnum.Latest, pkg_type=pkg_type, db_type=db_type)
+
+        # 主排序按 version 语义版本号，并列时按 update_at 取最新
+        # TODO：接入版本管理V2后，用 pkg.db_version.full_version 作比较
+        return max(packages, key=lambda pkg: (cls._parse_semver(pkg.version), pkg.update_at))
 
     @classmethod
     def get_package_for_version_no(cls, db_type: DBType, pkg_type: PackageType, version_no: str):
