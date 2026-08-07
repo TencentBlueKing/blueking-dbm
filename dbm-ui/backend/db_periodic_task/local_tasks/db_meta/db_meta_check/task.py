@@ -47,23 +47,24 @@ def tendbha_topo_daily_check():
         for r in res:
             r.save()
 
-        try:
-            summary = ";".join(
-                f"{str(r.msg)}: {r.ip}:{r.port}"
-                if r.ip and r.port
-                else (f"{str(r.msg)}: {r.ip}" if r.ip else str(r.msg))
-                for r in res
-            )
-            ingest_summary(
-                db_type=DBType.MySQL,
-                dimension=MysqlPortraitDimensionCode.TENDBHA_META_CHECK,
-                bk_biz_id=c.bk_biz_id,
-                cluster_domain=c.immute_domain,
-                report_time=datetime.now(),
-                summary=summary,
-            )
-        except PortraitSDKBaseException:
-            logger.exception(f"report {c.immute_domain} dbmeta check to portrait failed")
+        if res:
+            try:
+                summary = ";".join(
+                    f"{str(r.msg)}: {r.ip}:{r.port}"
+                    if r.ip and r.port
+                    else (f"{str(r.msg)}: {r.ip}" if r.ip else str(r.msg))
+                    for r in res
+                )
+                ingest_summary(
+                    db_type=DBType.MySQL,
+                    dimension=MysqlPortraitDimensionCode.TENDBHA_META_CHECK,
+                    bk_biz_id=c.bk_biz_id,
+                    cluster_domain=c.immute_domain,
+                    report_time=datetime.now(),
+                    summary=summary,
+                )
+            except PortraitSDKBaseException:
+                logger.exception(f"report {c.immute_domain} dbmeta check to portrait failed")
 
 
 @register_periodic_task(run_every=crontab(hour=2, minute=30))
@@ -78,23 +79,24 @@ def tendbcluster_topo_daily_check():
         for r in res:
             r.save()
 
-        try:
-            summary = ";".join(
-                f"{str(r.msg)}: {r.ip}:{r.port}"
-                if r.ip and r.port
-                else (f"{str(r.msg)}: {r.ip}" if r.ip else str(r.msg))
-                for r in res
-            )
-            ingest_summary(
-                db_type=DBType.TenDBCluster,
-                dimension=MysqlPortraitDimensionCode.TENDBHA_META_CHECK,
-                bk_biz_id=c.bk_biz_id,
-                cluster_domain=c.immute_domain,
-                report_time=datetime.now(),
-                summary=summary,
-            )
-        except PortraitSDKBaseException:
-            logger.exception(f"report {c.immute_domain} dbmeta check to portrait failed")
+        if res:
+            try:
+                summary = ";".join(
+                    f"{str(r.msg)}: {r.ip}:{r.port}"
+                    if r.ip and r.port
+                    else (f"{str(r.msg)}: {r.ip}" if r.ip else str(r.msg))
+                    for r in res
+                )
+                ingest_summary(
+                    db_type=DBType.TenDBCluster,
+                    dimension=MysqlPortraitDimensionCode.TENDBHA_META_CHECK,
+                    bk_biz_id=c.bk_biz_id,
+                    cluster_domain=c.immute_domain,
+                    report_time=datetime.now(),
+                    summary=summary,
+                )
+            except PortraitSDKBaseException:
+                logger.exception(f"report {c.immute_domain} dbmeta check to portrait failed")
 
 
 @register_periodic_task(run_every=crontab(hour=5, minute=30))
