@@ -283,12 +283,46 @@ func parseMydumperMetadataV2(metadataFile string) (*mydumperMetadataV2, error) {
 			metadata.MasterStatus[key] = val
 		case sectionReplication:
 			metadata.SlaveStatus[key] = val
+			// map to old style
+			switch key {
+			case "source_log_file":
+				metadata.SlaveStatus["relay_master_log_file"] = val
+			case "source_log_pos":
+				metadata.SlaveStatus["exec_master_log_pos"] = val
+			case "source_auto_position":
+				metadata.SlaveStatus["auto_position"] = val
+			case "source_host":
+				metadata.SlaveStatus["master_host"] = val
+			case "source_port":
+				metadata.SlaveStatus["master_port"] = val
+			}
+			// map to new style
+			switch key {
+			case "relay_master_log_file":
+				metadata.SlaveStatus["source_log_file"] = val
+			case "exec_master_log_pos":
+				metadata.SlaveStatus["source_log_pos"] = val
+			case "auto_position":
+				metadata.SlaveStatus["source_auto_position"] = val
+			case "master_host":
+				metadata.SlaveStatus["source_host"] = val
+			case "master_port":
+				metadata.SlaveStatus["source_port"] = val
+			}
 		case sectionMaster:
-			// 就用旧版 metadata [master]
 			metadata.MasterStatus[key] = val
-			if key == "file" {
+			// map to old style
+			switch key {
+			case "source_log_file":
+				metadata.MasterStatus["file"] = val
+			case "source_log_pos":
+				metadata.MasterStatus["position"] = val
+			}
+			// map to new style
+			switch key {
+			case "file":
 				metadata.MasterStatus["source_log_file"] = val
-			} else if key == "position" {
+			case "position":
 				metadata.MasterStatus["source_log_pos"] = val
 			}
 		case sectionConfig:
