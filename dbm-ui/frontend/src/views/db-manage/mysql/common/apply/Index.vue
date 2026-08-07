@@ -31,7 +31,7 @@
             v-model:module-alias-name="moduleAliasName"
             v-model:module-level-config="moduleLevelConfig"
             :biz-id="formData.bk_biz_id"
-            :cluster-type="typeInfo.type" />
+            :cluster-type="clusterType" />
         </DbCard>
         <RegionRequirements
           ref="regionRequirements"
@@ -372,8 +372,7 @@
 
   import { useApplyBase, useTicketDetail } from '@hooks';
 
-  import { Affinity, ClusterTypes, DBTypes, mysqlType, type MysqlTypeString, TicketTypes } from '@common/const';
-  import { OSTypes } from '@common/const';
+  import { Affinity, clusterTypeInfos, ClusterTypes, DBTypes, OSTypes, TicketTypes } from '@common/const';
   import { clusterNameSymbolRegx } from '@common/regex';
 
   import IpSelector from '@components/ip-selector/IpSelector.vue';
@@ -397,6 +396,7 @@
 
   const ticketType = route.name as string;
   const isSingleType = ticketType === TicketTypes.MYSQL_SINGLE_APPLY;
+  const clusterType = isSingleType ? ClusterTypes.TENDBSINGLE : ClusterTypes.TENDBHA;
 
   const getFormData = () => ({
     bk_biz_id: '' as '' | number,
@@ -635,7 +635,6 @@
     return labels;
   });
   const hostSpecInfo = computed(() => hostSpecs.value.find((info) => info.spec === formData.details.spec));
-  const typeInfo = computed(() => mysqlType[ticketType as MysqlTypeString]);
   const tableData = computed(() => {
     if (moduleAliasName.value && formData.details.db_app_abbr) {
       return formData.details.domains;
@@ -870,7 +869,7 @@
       );
       return {
         charset,
-        deployStructure: typeInfo.value.name,
+        deployStructure: clusterTypeInfos[clusterType].name,
         disasterDefence: t('同城跨园区'),
         domain: `${domainInfo.masterDomain.prefix}${key || '{' + t('集群标识') + '}'}${domainInfo.masterDomain.suffix}`,
         slaveDomain: `${domainInfo.slaveDomain?.prefix}${key || '{' + t('集群标识') + '}'}${domainInfo.slaveDomain?.suffix}`,

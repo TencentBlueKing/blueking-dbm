@@ -77,7 +77,7 @@
           col-key="deployStructure"
           :min-width="120"
           :title="t('部署架构')">
-          {{ mysqlType[ticketDetails.ticket_type as MysqlTypeString].name }}
+          {{ clusterTypeInfos[ClusterTypes.TENDBSINGLE].name }}
         </TicketInfoTableColumn>
         <TicketInfoTableColumn
           col-key="version"
@@ -111,7 +111,7 @@
 
   import TicketModel, { type Mysql } from '@services/model/ticket/ticket';
 
-  import { mysqlType, type MysqlTypeString, TicketTypes } from '@common/const';
+  import { clusterTypeInfos, ClusterTypes, TicketTypes } from '@common/const';
 
   import SpecDetailPopover from '@components/spec-detail-popover/Index.vue';
 
