@@ -211,8 +211,221 @@ class TestSendMsgTaskFunctionality:
 
     @patch("backend.core.notify.handlers.NotifyAdapter")
     def test_send_msg_task_failure(self, mock_adapter_class):
-        """测试send_msg任务执行失败"""
-        mock_adapter_class.side_effect = Exception("测试异常")
+        """test send_msg task execution failure"""
+        mock_adapter_class.side_effect = Exception("test exception")
 
         with pytest.raises(Exception):
             handlers.send_msg(ticket_id=123)
+
+
+class TestSplitContent:
+    """Test _split_content with code block and table block awareness"""
+
+    # ==================== basic splitting logic ====================
+
+    def test_short_content_no_split(self):
+        """short content should not be split"""
+        content = "hello world"
+        result = handlers._split_content(content, max_length=100)
+        assert result == ["hello world"]
+
+    def test_exact_max_length_no_split(self):
+        """content exactly at max_length should not be split"""
+        content = "a" * 100
+        result = handlers._split_content(content, max_length=100)
+        assert result == [content]
+
+    def test_normal_lines_split_by_line(self):
+        """normal multi-line text should be split by line"""
+        lines = [f"line{i}" for i in range(20)]
+        content = "\n".join(lines)
+        result = handlers._split_content(content, max_length=50)
+        # all chunks should not exceed the limit
+        for chunk in result:
+            assert len(chunk) <= 50
+        # reassembled content should be complete
+        assert "\n".join(result) == content
+
+    def test_single_long_line_force_split(self):
+        """a single long line should be force-split by characters"""
+        content = "x" * 250
+        result = handlers._split_content(content, max_length=100)
+        assert len(result) == 3
+        assert result[0] == "x" * 100
+        assert result[1] == "x" * 100
+        assert result[2] == "x" * 50
+
+    # ==================== code block awareness ====================
+
+    def test_code_block_kept_intact(self):
+        """code block should be kept as a whole"""
+        content = "prefix text\n```sql\nSELECT * FROM users;\nWHERE id = 1;\n```\nsuffix text"
+        result = handlers._split_content(content, max_length=60)
+        # code block should be intact in some chunk
+        code_block = "```sql\nSELECT * FROM users;\nWHERE id = 1;\n```"
+        found = any(code_block in chunk for chunk in result)
+        assert found, f"code block not intact, result: {result}"
+
+    def test_code_block_with_language_tag(self):
+        """code block with language tag should be kept intact"""
+        content = "intro text\n```python\ndef hello():\n    print('world')\n```\nend"
+        result = handlers._split_content(content, max_length=70)
+        code_block = "```python\ndef hello():\n    print('world')\n```"
+        found = any(code_block in chunk for chunk in result)
+        assert found, f"code block not intact, result: {result}"
+
+    def test_multiple_code_blocks_kept_intact(self):
+        """multiple code blocks should each be kept intact"""
+        content = "first part\n" "```sql\nSELECT 1;\n```\n" "middle text\n" "```bash\necho hello\n```\n" "end"
+        result = handlers._split_content(content, max_length=50)
+        # each chunk with ``` must have matching closing fence
+        for chunk in result:
+            fence_count = chunk.count("```")
+            assert fence_count % 2 == 0, f"unclosed code block in chunk: {chunk}"
+
+    def test_code_block_separated_from_surrounding_text(self):
+        """code block should go to a new chunk when capacity is insufficient"""
+        # prefix fills most of the space, code block should start a new chunk
+        prefix = "a" * 80
+        code = "```\ncode line\n```"
+        content = f"{prefix}\n{code}\nend"
+        result = handlers._split_content(content, max_length=100)
+        # code block should not be truncated
+        assert any("```\ncode line\n```" in chunk for chunk in result)
+
+    def test_unclosed_code_block_treated_as_block(self):
+        """unclosed code block (until end of content) should be treated as a whole"""
+        content = "prefix\n```python\nsome code\nmore code"
+        result = handlers._split_content(content, max_length=40)
+        # unclosed code block should be kept as a whole
+        code_part = "```python\nsome code\nmore code"
+        found = any(code_part in chunk for chunk in result)
+        assert found, f"unclosed code block not intact, result: {result}"
+
+    # ==================== table block awareness ====================
+
+    def test_table_block_kept_intact(self):
+        """table block should be kept as a whole"""
+        content = (
+            "intro text\n"
+            "| col1 | col2 | col3 |\n"
+            "| --- | --- | --- |\n"
+            "| val1 | val2 | val3 |\n"
+            "| val4 | val5 | val6 |\n"
+            "suffix text"
+        )
+        result = handlers._split_content(content, max_length=120)
+        # header, separator, and data rows should be in the same chunk
+        table_block = (
+            "| col1 | col2 | col3 |\n" "| --- | --- | --- |\n" "| val1 | val2 | val3 |\n" "| val4 | val5 | val6 |"
+        )
+        found = any(table_block in chunk for chunk in result)
+        assert found, f"table not intact, result: {result}"
+
+    def test_table_header_and_separator_not_split(self):
+        """table header and separator should not be separated"""
+        content = "a" * 90 + "\n" "| name | age |\n" "| --- | --- |\n" "| tom | 18 |\n" "end"
+        result = handlers._split_content(content, max_length=100)
+        # header and separator must be in the same chunk
+        for chunk in result:
+            if "| name | age |" in chunk:
+                assert "| --- | --- |" in chunk, f"header and separator split: {result}"
+                break
+
+    def test_table_separated_from_preceding_text(self):
+        """table should go to a new chunk when capacity is insufficient"""
+        prefix = "x" * 80
+        table = "| a | b |\n| - | - |\n| 1 | 2 |"
+        content = f"{prefix}\n{table}\nend"
+        result = handlers._split_content(content, max_length=100)
+        # table should be intact
+        assert any("| a | b |\n| - | - |\n| 1 | 2 |" in chunk for chunk in result)
+
+    def test_multiple_tables_each_kept_intact(self):
+        """multiple tables should each be kept intact"""
+        content = (
+            "table1:\n"
+            "| h1 | h2 |\n| -- | -- |\n| v1 | v2 |\n"
+            "table2:\n"
+            "| h3 | h4 |\n| -- | -- |\n| v3 | v4 |\n"
+            "end"
+        )
+        result = handlers._split_content(content, max_length=80)
+        table1 = "| h1 | h2 |\n| -- | -- |\n| v1 | v2 |"
+        table2 = "| h3 | h4 |\n| -- | -- |\n| v3 | v4 |"
+        assert any(table1 in chunk for chunk in result), f"table1 split: {result}"
+        assert any(table2 in chunk for chunk in result), f"table2 split: {result}"
+
+    # ==================== mixed scenarios ====================
+
+    def test_code_block_and_table_mixed(self):
+        """code block and table mixed scenario"""
+        content = "title\n" "```sql\nSELECT 1;\n```\n" "table:\n" "| id | name |\n| -- | ---- |\n| 1  | test |\n" "end"
+        result = handlers._split_content(content, max_length=80)
+        # code block intact
+        assert any("```sql\nSELECT 1;\n```" in chunk for chunk in result)
+        # table intact
+        assert any("| id | name |\n| -- | ---- |\n| 1  | test |" in chunk for chunk in result)
+
+    def test_content_integrity_after_split(self):
+        """reassembled content should match the original"""
+        content = "line1\nline2\nline3\nline4\nline5\nline6\nline7\nline8"
+        result = handlers._split_content(content, max_length=30)
+        reassembled = "\n".join(result)
+        assert reassembled == content
+
+    def test_empty_content(self):
+        """empty content should return a single-element list"""
+        result = handlers._split_content("", max_length=100)
+        assert result == [""]
+
+    def test_content_with_only_code_block(self):
+        """content with only a code block"""
+        content = "```\nhello\nworld\n```"
+        result = handlers._split_content(content, max_length=100)
+        assert result == [content]
+
+    def test_content_with_only_table(self):
+        """content with only a table"""
+        content = "| a | b |\n| - | - |\n| 1 | 2 |"
+        result = handlers._split_content(content, max_length=100)
+        assert result == [content]
+
+
+class TestIsTableLine:
+    """Test _is_table_line helper function"""
+
+    def test_standard_table_line(self):
+        """standard table line"""
+        assert handlers._is_table_line("| col1 | col2 |") is True
+
+    def test_separator_line(self):
+        """table separator line"""
+        assert handlers._is_table_line("| --- | --- |") is True
+        assert handlers._is_table_line("| :--- | ---: |") is True
+
+    def test_table_line_with_leading_spaces(self):
+        """table line with leading spaces"""
+        assert handlers._is_table_line("  | col1 | col2 |") is True
+
+    def test_non_table_line(self):
+        """non-table line"""
+        assert handlers._is_table_line("normal text") is False
+        assert handlers._is_table_line("```") is False
+        assert handlers._is_table_line("> quote") is False
+
+    def test_pipe_only_at_start(self):
+        """pipe only at the start but not at the end"""
+        assert handlers._is_table_line("| not a table") is False
+
+    def test_pipe_only_at_end(self):
+        """pipe only at the end but not at the start"""
+        assert handlers._is_table_line("not a table |") is False
+
+    def test_empty_line(self):
+        """empty line"""
+        assert handlers._is_table_line("") is False
+
+    def test_single_pipe(self):
+        """single pipe character"""
+        assert handlers._is_table_line("|") is False

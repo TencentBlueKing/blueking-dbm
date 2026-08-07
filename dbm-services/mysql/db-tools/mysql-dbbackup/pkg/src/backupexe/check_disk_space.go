@@ -41,7 +41,9 @@ import (
 
 // DeleteOldBackup Delete expired backup file
 // expireDays =0  时表示删除所有备份，但依然会保留其它端口的 12h 内的备份
-func DeleteOldBackup(cnf *config.Public, expireDays int) error {
+// 返回删除的总字节数和错误
+func DeleteOldBackup(cnf *config.Public, expireDays int) (int64, error) {
+	var freedBytes int64
 	defer func() {
 		// 只要调用 DeleteOldBackup ，则清理一下本地备份报告
 		if db, err := mysqlconn.InitConnx(cnf, context.Background()); err == nil {
@@ -55,7 +57,7 @@ func DeleteOldBackup(cnf *config.Public, expireDays int) error {
 	dir, err := ioutil.ReadDir(cnf.BackupDir)
 	if err != nil {
 		logger.Log.Error("failed to read backupdir, err :", err)
-		return err
+		return 0, err
 	}
 	hostEscaped := regexp.QuoteMeta(cnf.MysqlHost)
 	matchHost := fmt.Sprintf("_%s_", hostEscaped)
@@ -92,7 +94,9 @@ func DeleteOldBackup(cnf *config.Public, expireDays int) error {
 			for bakFileName, bakFileSize := range bakFiles {
 				indexFilePrefix := strings.TrimSuffix(indexFile, cst.SuffixIndex)
 				if strings.HasPrefix(bakFileName, indexFilePrefix) {
-					err = errors.Join(err, removeFile(cnf, bakFileName, bakFileSize))
+					removed, rmErr := removeFile(cnf, bakFileName, bakFileSize)
+					err = errors.Join(err, rmErr)
+					freedBytes += removed
 					bakFiles[bakFileName] = -1 // mark element deleted
 				}
 			}
@@ -115,18 +119,22 @@ func DeleteOldBackup(cnf *config.Public, expireDays int) error {
 			}
 		}
 		if !belongsToKeep {
-			err = errors.Join(err, removeFile(cnf, bakFileName, bakFileSize))
+			removed, rmErr := removeFile(cnf, bakFileName, bakFileSize)
+			err = errors.Join(err, rmErr)
+			freedBytes += removed
 		}
 	}
-	return err
+	return freedBytes, err
 }
 
-func removeFile(cnf *config.Public, fileName string, fileSize int64) error {
+// removeFile 删除文件并返回删除的字节数
+func removeFile(cnf *config.Public, fileName string, fileSize int64) (int64, error) {
 	if fileName == "" || fileSize == -1 {
-		return nil
+		return 0, nil
 	} else if fileName[0] != '/' {
 		fileName = filepath.Join(cnf.BackupDir, fileName)
 	}
+	removedSize := fileSize
 	if fileSize > 4*1024*1024*1024 {
 		// remove 速度适度放大一点
 		removeLimit := cnf.IOLimitMBPerSec + 300
@@ -134,16 +142,16 @@ func removeFile(cnf *config.Public, fileName string, fileSize int64) error {
 		if err := cmutil.TruncateFile(fileName, removeLimit); err != nil {
 			logger.Log.Warnf("remove %s got error:%s", fileName, err.Error())
 			// 尽可能清理，记录最后一个错误
-			return err
+			return 0, err
 		}
 	} else {
 		logger.Log.Info("remove old backup file ", fileName)
 		if err := os.RemoveAll(fileName); err != nil {
 			logger.Log.Warnf("remove %s got error:%s", fileName, err.Error())
-			return err
+			return 0, err
 		}
 	}
-	return nil
+	return removedSize, nil
 }
 
 // cleanLocalBackupReport 维持 local_backup_report 表里面的记录状态
@@ -212,7 +220,7 @@ func CheckAndCleanDiskSpace(cnf *config.Public, dataDirSizeBytes uint64, dbh *sq
 		return nil
 	}
 	// 删除旧备份后，第二次检查
-	if err = DeleteOldBackup(cnf, 0); err != nil {
+	if _, err = DeleteOldBackup(cnf, 0); err != nil {
 		// 文件清理错误，只当做 warning
 		logger.Log.Warn("failed to delete old backup again, err:", err)
 	}
