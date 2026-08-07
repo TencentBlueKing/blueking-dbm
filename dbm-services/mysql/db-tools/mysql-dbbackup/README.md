@@ -5,13 +5,15 @@
 ```
 // 产出 dbbackup-go-community.tar.gz # 只含 community 依赖
 make package VERSION=1.0.0 DIST=community
+make package VERSION=1.0.0 DIST=community STAGE=alpha
+
 
 // 产出 dbbackup-go-txsql.tar.gz # 只含 txsql 依赖
 make package VERSION=1.0.0 DIST=txsql
 
 // 产出 dbbackup-go-universal.tar.gz , 同时包含 community 和 txsql 的备份依赖
 make package VERSION=1.0.0 DIST=universal
-
+make package VERSION=1.0.0 DIST=universal STAGE=alpha
 
 // 产出 dbbackup-go.tar.gz # 只含 community 依赖
 make universal VERSION=1.0.0 DIST=community

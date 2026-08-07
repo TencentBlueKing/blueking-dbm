@@ -73,7 +73,7 @@ func (l *LogicalDumper) Execute(ctx context.Context) error {
 		fmt.Sprintf("--threads=%d", l.cnf.LogicalBackup.Threads),
 		// "--disk-limits=1GB:5GB",
 	}
-	if ok, _ := MydumperHasOption(binPath, "--default-character-set"); ok {
+	if ok, _ := MydumperHasOption(binPath, "--default-character-set", "latin1"); ok {
 		args = append(args,
 			fmt.Sprintf("--set-names=utf8,%s", l.cnf.Public.MysqlCharset),
 			fmt.Sprintf("--default-character-set=utf8,%s", l.cnf.Public.MysqlCharset))
@@ -255,7 +255,7 @@ func (l *LogicalDumper) PrepareBackupMetaInfo(cnf *config.BackupConfig, metaInfo
 		metaInfo.BinlogInfo.ShowSlaveStatus = &dbareport.StatusInfo{
 			BinlogFile: metadata.SlaveStatus["relay_master_log_file"],
 			BinlogPos:  metadata.SlaveStatus["exec_master_log_pos"],
-			Gtid:       metadata.SlaveStatus["executed_gtid_Set"],
+			Gtid:       metadata.SlaveStatus["executed_gtid_set"],
 			MasterHost: metadata.SlaveStatus["master_host"],
 			MasterPort: cast.ToInt(metadata.SlaveStatus["master_port"]),
 		}
@@ -266,7 +266,7 @@ func (l *LogicalDumper) PrepareBackupMetaInfo(cnf *config.BackupConfig, metaInfo
 }
 
 // MydumperHasOption check mydumper has --xxx or not
-// example: ./mydumper --lock-wait-timeout 1 --help
+// example: ./mydumper --help --lock-wait-timeout 1
 func MydumperHasOption(bin string, option ...string) (bool, error) {
 	// --help 在前/后 无所谓
 	cmdArgs := []string{bin, "--help"}

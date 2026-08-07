@@ -3632,6 +3632,38 @@
     "since_version": ""
   },
   {
+    "conf_name": "mysqld.rocksdb_strict_collation_check",
+    "value_default": "ON",
+    "value_allowed": "ON | OFF",
+    "value_type": "STRING",
+    "value_type_sub": "ENUM",
+    "conf_name_lc": "",
+    "description": "",
+    "need_restart": 1,
+    "flag_readonly": 0,
+    "flag_visible": 1,
+    "flag_status": 1,
+    "flag_locked": 0,
+    "flag_encrypt": 0,
+    "since_version": ""
+  },
+  {
+    "conf_name": "mysqld.rocksdb_strict_collation_exceptions",
+    "value_default": "^_.*_gh[co]$",
+    "value_allowed": "",
+    "value_type": "STRING",
+    "value_type_sub": "STRING",
+    "conf_name_lc": "",
+    "description": "",
+    "need_restart": 1,
+    "flag_readonly": 0,
+    "flag_visible": 1,
+    "flag_status": 1,
+    "flag_locked": 0,
+    "flag_encrypt": 0,
+    "since_version": ""
+  },
+  {
     "conf_name": "mysqld.secure_file_priv",
     "value_default": "''",
     "value_allowed": "''",
