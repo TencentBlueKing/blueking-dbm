@@ -250,6 +250,8 @@ const (
 	ModuleRedisBloom = "redisbloom"
 	ModuleRedisCell  = "rediscell"
 	ModuleRedisJson  = "redisjson"
+	ModuleFo4Lock    = "fo4_lock"
+	ModuleFo4Util    = "fo4_util"
 )
 
 // redis status
@@ -261,7 +263,9 @@ const (
 func IsKnownModule(module string) bool {
 	return module == ModuleRedisCell ||
 		module == ModuleRedisJson ||
-		module == ModuleRedisBloom
+		module == ModuleRedisBloom ||
+		module == ModuleFo4Lock ||
+		module == ModuleFo4Util
 }
 
 // ConfItemWithMultiLines  redis存在多行的配置项
