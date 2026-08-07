@@ -5,8 +5,8 @@ TencentBlueKing is pleased to support the open source community by making
 Copyright (C) 2017-2022 THL A29 Limited, a Tencent company. All rights reserved.
 Licensed under the MIT License (the "License"); you may not use this file except in compliance with the License.
 You may obtain a copy of the License at http://opensource.org/licenses/MIT
-Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on
-an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
+Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an
+"AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
 import hashlib
@@ -87,6 +87,209 @@ class MediumHandler:
                 password=os.getenv("BKREPO_PASSWORD"),
                 endpoint_url=os.getenv("BKREPO_ENDPOINT_URL"),
             )
+
+    def _fetch_existing_plugins(self):
+        """获取已存在的监控插件列表"""
+        from network import HttpHandler
+
+        http = HttpHandler()
+
+        list_url = "/apis/monitor/collect/plugin_list/"
+        logger.info(f"正在获取监控插件列表: {list_url}")
+
+        resp = http.get(list_url, data={}, timeout=30)
+        if not resp.result:
+            raise RuntimeError(f"获取监控插件列表接口返回失败: {resp.message}")
+
+        # 解析响应，获取已有插件列表
+        data = resp.data
+        existing_plugins = set()
+
+        # 兼容不同响应格式
+        plugin_list = []
+        if isinstance(data, dict):
+            plugin_list = data.get("list", [])
+        elif isinstance(data, list):
+            plugin_list = data
+
+        for plugin in plugin_list:
+            if isinstance(plugin, dict):
+                plugin_id = plugin.get("plugin_id") or plugin.get("id") or plugin.get("name")
+                if plugin_id:
+                    existing_plugins.add(str(plugin_id))
+            elif isinstance(plugin, str):
+                existing_plugins.add(plugin)
+
+        logger.info(f"已存在的监控插件列表: {existing_plugins}")
+        return existing_plugins
+
+    def _collect_monitor_plugins(self):
+        """收集所有需要扫描的监控插件"""
+        medium_lock_path = os.path.join(os.path.abspath(os.path.dirname(__file__)), "medium.lock")
+
+        if not os.path.exists(medium_lock_path):
+            logger.error("medium.lock 文件不存在")
+            return {}
+
+        with open(medium_lock_path, "r") as lock_file:
+            lock_info = yaml.safe_load(lock_file)
+
+        if not lock_info:
+            logger.error("medium.lock 文件内容为空")
+            return {}
+
+        logger.debug("=" * 80)
+        logger.debug("[DEBUG] 读取到的 medium.lock 内容:")
+        logger.debug(yaml.dump(lock_info, default_flow_style=False, allow_unicode=True))
+        logger.debug("=" * 80)
+
+        # 收集所有需要扫描的监控插件（exporter类型的安装包）
+        monitor_plugins = {}
+        for db_type, mediums in lock_info.items():
+            if not mediums:
+                continue
+            for medium in mediums:
+                if not isinstance(medium, dict):
+                    continue
+                for medium_type, medium_info in medium.items():
+                    # 只处理exporter类型的监控插件
+                    if medium_type != "exporter":
+                        continue
+
+                    # 验证必要字段
+                    if "name" not in medium_info:
+                        logger.warn(f"警告: {db_type}/{medium_type} 缺少 name 字段，跳过")
+                        continue
+                    if "version" not in medium_info:
+                        logger.warn(f"警告: {db_type}/{medium_type}/{medium_info['name']} 缺少 version 字段，跳过")
+                        continue
+
+                    # plugin_name 代表插件解压后 project.yaml 中的 name（插件唯一标识）
+                    # 约定：medium.lock 的 name 字段即制品文件名（如 dbm_mysqld_exporter.tgz），
+                    # 去掉 .tgz 后缀即为 project.yaml 的 name，这也是监控平台导入后的唯一标识。
+                    # 注意：不能误用 version 字段作为唯一标识，version 仅表示版本号，
+                    # 否则会出现「用版本号去比对监控平台的 plugin_id」导致去重/匹配失效。
+                    plugin_name = medium_info["name"].replace(".tgz", "")
+                    if not plugin_name:
+                        logger.warn(f"警告: {db_type}/{medium_type} 解析出的 plugin_name 为空，跳过")
+                        continue
+
+                    # 去重，同名插件只需处理一次
+                    if plugin_name not in monitor_plugins:
+                        monitor_plugins[plugin_name] = {
+                            "db_type": db_type,
+                            "plugin_name": plugin_name,
+                            "file_name": medium_info["name"],
+                            "version": medium_info["version"],
+                            "bkrepo_path": f"/{db_type}/exporter/{medium_info['version']}/{medium_info['name']}",
+                        }
+
+        return monitor_plugins
+
+    def _upload_monitor_plugin(self, plugin_name, plugin_info, clean_tmp=True):
+        """上传单个监控插件
+
+        :param clean_tmp: 是否清理临时目录。镜像构建阶段可置为 False，保留下载文件便于排查。
+        """
+        from network import HttpHandler
+
+        http = HttpHandler()
+        bkrepo_path = plugin_info["bkrepo_path"]
+
+        logger.info(f"监控插件 {plugin_name} 不存在，准备从制品库下载并上传，路径: {bkrepo_path}")
+
+        import tempfile
+
+        # 镜像运行场景下临时目录由容器生命周期托管，默认仍清理；
+        # 若 clean_tmp=False（如镜像构建期），保留文件以便排查。
+        tmp_dir = tempfile.mkdtemp()
+        tmp_file_path = os.path.join(tmp_dir, plugin_info["file_name"])
+
+        try:
+            # 阶段一：从制品库下载插件文件到临时目录
+            plugin_file = self.storage.open(bkrepo_path)
+            with open(tmp_file_path, "wb") as f:
+                for chunk in plugin_file.chunks():
+                    f.write(chunk)
+
+            # 阶段二：调用监控平台导入插件接口（无前端交互版本）
+            import_url = "/apis/monitor/collect/plugin_import/"
+            logger.info(f"正在上传监控插件 {plugin_name} 到: {import_url}")
+            with open(tmp_file_path, "rb") as f:
+                # 构造 multipart/form-data 请求（不含 Content-Type，让 requests 自动设置 boundary）
+                upload_files = {"file": (plugin_info["file_name"], f, "application/gzip")}  # ← 关键: 字段名 file
+                # 显式声明 send_file=True，不依赖 files 参数名判定文件上传分支
+                upload_result = http.post(import_url, data={}, files=upload_files, send_file=True, timeout=300)
+
+            if upload_result.result:
+                logger.info(f"监控插件 {plugin_name} 上传成功: {upload_result.data}")
+                return True
+
+            logger.error(f"监控插件 {plugin_name} 上传失败: {upload_result.data}")
+            return False
+        except Exception:  # 下载/上传过程中的任何异常已在 HttpHandler 或此处统一记录
+            logger.exception(f"监控插件 {plugin_name} 下载或上传异常")
+            return False
+
+    def sync_monitor_plugin(self):
+        """扫描监控插件，有就忽略，没有就上传"""
+        logger.debug("=" * 80)
+        logger.debug("[DEBUG] 开始执行 scan_monitor_plugin")
+        logger.debug("=" * 80)
+
+        # 收集所有需要扫描的监控插件
+        try:
+            monitor_plugins = self._collect_monitor_plugins()
+        except Exception as e:
+            logger.exception(f"收集监控插件信息异常: {str(e)}")
+            return
+
+        if not monitor_plugins:
+            logger.info("未找到需要扫描的监控插件")
+            return
+
+        # 获取已存在的插件列表
+        try:
+            existing_plugins = self._fetch_existing_plugins()
+        except Exception as e:
+            logger.exception(f"获取监控插件列表异常: {str(e)}")
+            return
+
+        logger.debug(f"[DEBUG] 已存在的插件列表: {existing_plugins}")
+        logger.debug(f"[DEBUG] 需要检查的插件列表: {list(monitor_plugins.keys())}")
+
+        # 遍历所有监控插件，不存在则上传
+        upload_count = 0
+        skip_count = 0
+        fail_count = 0
+
+        for plugin_name, plugin_info in monitor_plugins.items():
+            if plugin_name in existing_plugins:
+                logger.info(f"监控插件 {plugin_name} 已存在，跳过")
+                skip_count += 1
+                continue
+
+            if self._upload_monitor_plugin(plugin_name, plugin_info):
+                upload_count += 1
+            else:
+                fail_count += 1
+
+        logger.info(f"监控插件扫描完成: 总计 {len(monitor_plugins)}, 跳过 {skip_count}, 上传成功 {upload_count}, 上传失败 {fail_count}")
+        if upload_count > 0:
+            # 加载采集策略
+            self.sync_collect_strategy()
+            logger.info("加载采集策略成功")
+
+    def sync_collect_strategy(self):
+        """加载采集策略（调用后端接口同步监控采集项到蓝鲸监控）"""
+        from network import HttpHandler
+
+        http = HttpHandler()
+        try:
+            res = http.post(url="/apis/monitor/collect/sync/strategy/", data={}, timeout=600)
+            logger.info(f"[sync_collect_strategy] 加载采集策略成功: {res.result}")
+        except Exception as e:  # pylint: disable=broad-except
+            logger.exception(f"[sync_collect_strategy] 加载采集策略失败: {e}")
 
     @staticmethod
     def __load_medium_lock():

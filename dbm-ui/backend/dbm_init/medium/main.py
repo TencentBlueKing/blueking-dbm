@@ -40,5 +40,7 @@ if __name__ == "__main__":
         MediumHandler().upload_medium(path=args.db, bkrepo_tmp_dir=path)
     elif args.type == "sync":
         MediumHandler().sync_from_bkrepo(db_type=args.db)
+    elif args.type == "sync_monitor":
+        MediumHandler().sync_monitor_plugin()
     else:
         raise Exception("Unsupported operation type")
