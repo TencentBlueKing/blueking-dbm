@@ -268,6 +268,13 @@ class _BKMonitorV3Api(BaseApi):
         self.as_code_import_config = self.generate_data_api(
             method="POST", url="app/as_code/import_config/", description=_("导入AsCode配置")
         )
+        self.collector_plugin_list = self.generate_data_api(
+            method="GET", url="app/collect_plugin/list/", description=_("获取采集插件列表")
+        )
+
+        self.plugin_import_without_frontend = self.generate_data_api(
+            method="POST", url="app/collect_plugin/plugin_import_without_frontend/", description=_("导入采集插件")
+        )
 
     def bulk_save_subscribe_in_batch(self, bk_biz_id, subscriptions):
         """按批次，批量新增/保存策略订阅"""
