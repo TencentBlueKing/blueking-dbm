@@ -106,6 +106,19 @@
                   </AuthButton>
                 </OperationBtnStatusTips>
               </div>
+              <div v-db-console="'doris.clusterManage.upgradeVersion'">
+                <OperationBtnStatusTips :data="data">
+                  <AuthButton
+                    action-id="doris_manage"
+                    :disabled="data.operationDisabled"
+                    :permission="data.permission.doris_manage"
+                    :resource="data.id"
+                    text
+                    @click="handleShowUpgradeVersion(data)">
+                    {{ t('版本升级') }}
+                  </AuthButton>
+                </OperationBtnStatusTips>
+              </div>
             </template>
             <div
               v-if="data.isOnline"
@@ -225,6 +238,11 @@
       v-model:is-show="isShowShrink"
       :cluster-data="operationData"
       @change="fetchData" />
+    <ClusterUpgradeVersion
+      v-if="operationData"
+      v-model:is-show="isShowUpgradeVersion"
+      :cluster-data="operationData"
+      @change="fetchData" />
     <BkDialog
       v-model:is-show="isShowPassword"
       render-directive="if"
@@ -277,6 +295,7 @@
   import ClusterDetail from '@views/db-manage/doris/common/cluster-detail/Index.vue';
   import ClusterExpansion from '@views/db-manage/doris/common/expansion/Index.vue';
   import ClusterShrink from '@views/db-manage/doris/common/shrink/Index.vue';
+  import ClusterUpgradeVersion from '@views/db-manage/doris/common/upgrade-version/Index.vue';
   import useClusterTableSelect from '@views/db-manage/hooks/useClusterTableSelect';
   import useGoClusterDetail from '@views/db-manage/hooks/useGoClusterDetail';
 
@@ -303,6 +322,7 @@
   const tableRef = useTemplateRef<ComponentExposed<typeof ClusterTable>>('clusterTable');
   const isShowExpandsion = ref(false);
   const isShowShrink = ref(false);
+  const isShowUpgradeVersion = ref(false);
   const isShowPassword = ref(false);
 
   const operationData = shallowRef<DorisModel>();
@@ -341,6 +361,12 @@
   // 缩容
   const handleShowShrink = (data: DorisModel) => {
     isShowShrink.value = true;
+    operationData.value = data;
+  };
+
+  // 版本升级
+  const handleShowUpgradeVersion = (data: DorisModel) => {
+    isShowUpgradeVersion.value = true;
     operationData.value = data;
   };
 
