@@ -2575,20 +2575,6 @@ class ActionEnum:
         common_labels=[CommonActionLabel.DEVELOPER],
     )
 
-    REDIS_PLUGIN_CREATE_CLB = ActionMeta(
-        id=TicketType.REDIS_PLUGIN_CREATE_CLB.lower(),
-        subgroup=_("集群管理"),
-        is_ticket_action=True,
-        common_labels=[CommonActionLabel.DEVELOPER],
-    )
-
-    REDIS_PLUGIN_CREATE_POLARIS = ActionMeta(
-        id=TicketType.REDIS_PLUGIN_CREATE_POLARIS.lower(),
-        subgroup=_("集群管理"),
-        is_ticket_action=True,
-        common_labels=[CommonActionLabel.DEVELOPER],
-    )
-
     REDIS_OPEN_CLOSE = ActionMeta(
         id="redis_open_close",
         name=_("Redis 集群禁用启用"),
