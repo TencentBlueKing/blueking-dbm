@@ -11,7 +11,7 @@ specific language governing permissions and limitations under the License.
 import copy
 import logging.config
 from dataclasses import asdict
-from typing import Dict, List, Optional
+from typing import Any, Dict, List, Optional
 
 from django.utils.crypto import get_random_string
 from django.utils.translation import gettext as _
@@ -33,6 +33,9 @@ from backend.flow.engine.bamboo.scene.mysql.deploy_peripheraltools.departs impor
 from backend.flow.engine.bamboo.scene.mysql.deploy_peripheraltools.subflow import standardize_mysql_cluster_subflow
 from backend.flow.plugins.components.collections.mysql.dns_manage import MySQLDnsManageComponent
 from backend.flow.plugins.components.collections.mysql.exec_actuator_script import ExecuteDBActuatorScriptComponent
+from backend.flow.plugins.components.collections.mysql.mysql_cluster_apply_summary import (
+    MysqlClusterApplySummaryComponent,
+)
 from backend.flow.plugins.components.collections.mysql.sync_master import SyncMasterComponent
 from backend.flow.plugins.components.collections.mysql.trans_flies import TransFileComponent
 from backend.flow.plugins.components.collections.spider.add_system_user_in_cluster import (
@@ -200,6 +203,34 @@ class TenDBClusterApplyFlow(object):
             db_module_id=int(self.data["db_module_id"]),
             cluster_type=ClusterType.TenDBCluster.value,
         )
+
+    def _build_apply_summary_clusters(self) -> List[Dict[str, Any]]:
+        """基于 ticket_data(``self.data``) 拼装 TenDBCluster 集群交付摘要的集群定位信息。
+
+        设计要点 / 怎么做：
+          - TenDBCluster 单据不支持多集群部署，本方法固定产出**一条**集群定位信息：
+            `{bk_biz_id, cluster_domain=self.data["immutable_domain"]}`。
+          - 摘要行的所有字段（access_port / CLB / 只读入口等）由
+            :class:`MysqlClusterApplySummaryComponent` 在运行时从 db_meta 反查装配。
+          - ``deploy_cluster`` 与 ``deploy_cluster_no_slave`` 两个入口场景下入参来源一致，
+            共用本方法即可。
+
+        :return: 长度恒为 1 的集群定位信息列表。
+
+        边界 / 异常：
+          - 若 ticket_data 缺少 ``immutable_domain`` -> KeyError。
+            注意：本方法在 flow **构建期**同步执行（作为 ``pipeline.add_act`` 的 kwargs 实参），
+            并非 pipeline 节点运行期，故异常不会被 ``BaseService.execute`` 捕获，
+            会直接冒泡导致整张单据 flow 构建失败。
+          - 此处刻意不做防御跳过：``immutable_domain`` 是 TenDBCluster 部署单据的强契约字段，
+            主部署流程本身即依赖该字段；此处快速失败可尽早暴露上游数据契约问题。
+        """
+        return [
+            {
+                "bk_biz_id": int(self.data["bk_biz_id"]),
+                "cluster_domain": str(self.data["immutable_domain"]),
+            }
+        ]
 
     def deploy_cluster(self):
         """
@@ -453,6 +484,17 @@ class TenDBClusterApplyFlow(object):
         pipeline.add_sub_pipeline(
             sub_flow=deploy_pipeline.build_sub_process(sub_name=_("{}集群部署").format(self.data["cluster_name"]))
         )
+
+        # 写入集群交付摘要：db_meta 已由"更新DBMeta元信息"节点写入，此处只需传集群定位信息，
+        # 主入口端口(spider_port) / CLB 等运行时字段由 Component 从 db_meta 反查装配；
+        # 幂等由 ClusterApplySummarySerializer.table_primary_key = "cluster_domain_and_port" 保证。
+        pipeline.add_act(
+            act_name=_("写入集群交付摘要"),
+            act_component_code=MysqlClusterApplySummaryComponent.code,
+            kwargs={"clusters": self._build_apply_summary_clusters()},
+            is_remote_rewritable=True,
+        )
+
         pipeline.run_pipeline(init_trans_data_class=SpiderApplyManualContext())
 
     def deploy_cluster_no_slave(self):
