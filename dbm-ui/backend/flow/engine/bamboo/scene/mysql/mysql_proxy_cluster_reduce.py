@@ -11,13 +11,13 @@ specific language governing permissions and limitations under the License.
 import copy
 import logging.config
 from dataclasses import asdict
-from typing import Dict, Optional
+from typing import Any, Dict, List, Optional
 
 from django.utils.translation import gettext as _
 
 from backend.configuration.constants import DBType
 from backend.constants import IP_PORT_DIVIDER
-from backend.db_meta.models import Cluster
+from backend.db_meta.models import Cluster, ProxyInstance
 from backend.flow.consts import MIN_TENDB_PROXY_COUNT, DnsOpType
 from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
 from backend.flow.engine.bamboo.scene.common.entrys_manager import BuildEntrysManageSubflow
@@ -31,8 +31,10 @@ from backend.flow.plugins.components.collections.mysql.drop_proxy_client_in_back
     DropProxyUsersInBackendComponent,
 )
 from backend.flow.plugins.components.collections.mysql.exec_actuator_script import ExecuteDBActuatorScriptComponent
+from backend.flow.plugins.components.collections.mysql.flow_output_summary import MysqlFlowOutputSummaryComponent
 from backend.flow.plugins.components.collections.mysql.mysql_db_meta import MySQLDBMetaComponent
 from backend.flow.plugins.components.collections.mysql.trans_flies import TransFileComponent
+from backend.flow.utils.mysql.flow_output_presets import InstanceChangeAction
 from backend.flow.utils.mysql.mysql_act_dataclass import (
     CheckClientConnKwargs,
     DBMetaOPKwargs,
@@ -79,6 +81,53 @@ class MySQLProxyClusterReduceFlow(object):
         """
         self.root_id = root_id
         self.data = data
+
+    @staticmethod
+    def _build_reduce_items_for_info(info: Dict[str, Any]) -> List[Dict[str, Any]]:
+        """按单个 info 行装配"proxy 缩容摘要" items（对齐 :class:`InstanceChangeSummarySerializer`）。
+
+        功能说明 / 怎么做：
+          - 一个 info 行 = 一台待下架 proxy × 一组 cluster_ids；产出 `len(cluster_ids)` 行摘要，
+            每行 action=REDUCE。
+          - 反查每个集群下"该 IP 上的 ProxyInstance"以拿到端口；**必须在 flow 构建时**（pipeline
+            尚未执行）调用，因为 pipeline 运行到"删元数据"节点后 ProxyInstance 会被清空。当前
+            调用点位于 :meth:`reduce_mysql_proxy_flow` 内 add_act 的 kwargs 求值处，属于构建时，
+            db_meta 完整可用。
+          - REDUCE 动作无对端概念，``related_instance`` 一律留空字符串。
+
+        :param info: 单个 ``self.data["infos"]`` 元素；含 ``origin_proxy_ip.ip`` / ``cluster_ids``
+        :return: 摘要行列表；结构严格对齐 InstanceChangeSummarySerializer 字段契约
+
+        边界 / 异常：
+          - ``cluster_ids`` 或 ``origin_proxy_ip`` 为空 -> 返回空列表；
+          - 某个 cluster_id 找不到对应 ProxyInstance（例如 IP 未挂在该集群下） -> 忽略该集群，
+            不产出对应行；该场景在主流程更早的合规校验里应已被拦截。
+        """
+        items: List[Dict[str, Any]] = []
+        cluster_ids: List[int] = list(info.get("cluster_ids") or [])
+        origin_ip: str = (info.get("origin_proxy_ip") or {}).get("ip") or ""
+        if not cluster_ids or not origin_ip:
+            return items
+
+        cluster_map: Dict[int, Cluster] = {c.id: c for c in Cluster.objects.filter(id__in=cluster_ids)}
+        for cluster_id in cluster_ids:
+            cluster: Optional[Cluster] = cluster_map.get(cluster_id)
+            if cluster is None:
+                continue
+            proxy: Optional[ProxyInstance] = cluster.proxyinstance_set.filter(machine__ip=origin_ip).first()
+            if proxy is None:
+                continue
+            items.append(
+                {
+                    "cluster_domain": cluster.immute_domain,
+                    "instance": f"{origin_ip}{IP_PORT_DIVIDER}{int(proxy.port)}",
+                    "action": InstanceChangeAction.REDUCE.value,
+                    "status": "success",
+                    "related_instance": "",
+                    "message": "",
+                }
+            )
+        return items
 
     def reduce_mysql_proxy_flow(self):
         """
@@ -253,6 +302,21 @@ class MySQLProxyClusterReduceFlow(object):
                         get_mysql_payload_func=MysqlActPayload.get_clear_machine_crontab.__name__,
                     )
                 ),
+            )
+
+            # 7：写入proxy变更摘要
+            # 外层子流程（按机器分片）所有变更 act 完成后，一次性写入本 info 涉及的所有集群维度的缩容摘要
+            # 行（每集群一行，action=reduce）。items 装配依赖 db_meta 的 ProxyInstance 记录，因此
+            # 在此处的 kwargs 求值（构建时执行）；此时 ProxyInstance 未被删除，端口可靠。
+            # 幂等由 InstanceChangeSummarySerializer.table_primary_key = "instance" 保证。
+            machine_sub_pipeline.add_act(
+                act_name=_("写入proxy变更摘要"),
+                act_component_code=MysqlFlowOutputSummaryComponent.code,
+                kwargs={
+                    "preset": "instance_change",
+                    "items": self._build_reduce_items_for_info(info),
+                },
+                is_remote_rewritable=True,
             )
 
             main_sub_pipelines.append(

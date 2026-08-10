@@ -11,7 +11,7 @@ specific language governing permissions and limitations under the License.
 import copy
 import logging.config
 from dataclasses import asdict
-from typing import Dict, Optional
+from typing import Any, Dict, List, Optional
 
 from django.utils.translation import gettext as _
 
@@ -49,10 +49,12 @@ from backend.flow.plugins.components.collections.mysql.drop_proxy_client_in_back
     DropProxyUsersInBackendComponent,
 )
 from backend.flow.plugins.components.collections.mysql.exec_actuator_script import ExecuteDBActuatorScriptComponent
+from backend.flow.plugins.components.collections.mysql.flow_output_summary import MysqlFlowOutputSummaryComponent
 from backend.flow.plugins.components.collections.mysql.mysql_db_meta import MySQLDBMetaComponent
 from backend.flow.plugins.components.collections.mysql.trans_flies import TransFileComponent
 from backend.flow.utils.base.base_dataclass import AddUnLockTicketTypeKwargs, ReleaseUnLockTicketTypeKwargs
 from backend.flow.utils.mysql.common.mysql_cluster_info import get_mysql_init_os_timezone_kwargs
+from backend.flow.utils.mysql.flow_output_presets import InstanceChangeAction
 from backend.flow.utils.mysql.mysql_act_dataclass import (
     CheckClientConnKwargs,
     CloneProxyClientInBackendKwargs,
@@ -183,6 +185,56 @@ class MySQLProxyClusterSwitchFlow(object):
             install_ports.append(cluster_proxy_port)
 
         return install_ports
+
+    @staticmethod
+    def _build_switch_items_for_info(info: Dict[str, Any]) -> List[Dict[str, Any]]:
+        """按单个 info 行装配"proxy 替换摘要" items（对齐 :class:`InstanceChangeSummarySerializer`）。
+
+        功能说明 / 怎么做：
+          - 一个 info 行 = 一对一替换（origin_proxy → target_proxy） × 一组 cluster_ids；
+            产出 `len(cluster_ids)` 行摘要，每行 action=SWITCH。
+          - "一次替换一行"的表达方式：``instance`` 记新上线的 target_proxy:port（前端点进去能看到活着的实例），
+            ``related_instance`` 记被替换下架的 origin_proxy:port；由 :class:`InstanceChangeAction`
+            的 SWITCH 值隐含表达"这是替换动作"，无需拆两行。
+          - 每个集群的 proxy 端口沿用替换前后一致的原则从 db_meta 反查（取该集群任意一个 ProxyInstance
+            的 port）。
+
+        :param info: 单个 ``self.data["infos"]`` 元素（已由 ``tran_ticket_data`` 拆成一对一形态），
+                     含 ``cluster_ids`` / ``origin_proxy`` / ``target_proxy``
+        :return: 摘要行列表；结构严格对齐 InstanceChangeSummarySerializer 字段契约
+
+        边界 / 异常：
+          - ``cluster_ids`` 为空 -> 返回空列表；
+          - 某个 cluster_id 在 db_meta 不存在或无 ProxyInstance -> 忽略该集群，不产出对应行；
+            该场景在主流程更早的端口计算阶段就会先失败，此处属兜底防御。
+        """
+        items: List[Dict[str, Any]] = []
+        cluster_ids: List[int] = list(info.get("cluster_ids") or [])
+        origin_proxy: Dict[str, Any] = info.get("origin_proxy") or {}
+        target_proxy: Dict[str, Any] = info.get("target_proxy") or {}
+        if not cluster_ids or not origin_proxy or not target_proxy:
+            return items
+
+        cluster_map: Dict[int, Cluster] = {c.id: c for c in Cluster.objects.filter(id__in=cluster_ids)}
+        for cluster_id in cluster_ids:
+            cluster: Optional[Cluster] = cluster_map.get(cluster_id)
+            if cluster is None:
+                continue
+            proxy_ref: Optional[ProxyInstance] = ProxyInstance.objects.filter(cluster=cluster).first()
+            if proxy_ref is None:
+                continue
+            port: int = int(proxy_ref.port)
+            items.append(
+                {
+                    "cluster_domain": cluster.immute_domain,
+                    "instance": f"{target_proxy['ip']}{IP_PORT_DIVIDER}{port}",
+                    "action": InstanceChangeAction.SWITCH.value,
+                    "status": "success",
+                    "related_instance": f"{origin_proxy['ip']}{IP_PORT_DIVIDER}{port}",
+                    "message": "",
+                }
+            )
+        return items
 
     def switch_mysql_cluster_proxy_flow(self):
         """
@@ -470,6 +522,20 @@ class MySQLProxyClusterSwitchFlow(object):
                 act_component_code=MySQLClearMachineComponent.code,
                 kwargs=asdict(exec_act_kwargs),
                 error_ignorable=has_unavailable_instance,
+            )
+
+            # ==================== 阶段8：写入proxy变更摘要 ====================
+            # 外层子流程（按 origin/target 一对一分片）所有变更 act 完成后，一次性写入本 info 涉及的
+            # 所有集群维度的替换摘要行（每集群一行，action=switch，related_instance 指向被替换掉的旧机）。
+            # 幂等由 InstanceChangeSummarySerializer.table_primary_key = "instance" 保证。
+            sub_pipeline.add_act(
+                act_name=_("写入proxy变更摘要"),
+                act_component_code=MysqlFlowOutputSummaryComponent.code,
+                kwargs={
+                    "preset": "instance_change",
+                    "items": self._build_switch_items_for_info(info),
+                },
+                is_remote_rewritable=True,
             )
 
             sub_pipelines.append(

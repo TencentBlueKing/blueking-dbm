@@ -11,10 +11,11 @@ specific language governing permissions and limitations under the License.
 import copy
 import logging.config
 from dataclasses import asdict
-from typing import Dict, Optional
+from typing import Any, Dict, List, Optional
 
 from django.utils.translation import gettext as _
 
+from backend.constants import IP_PORT_DIVIDER
 from backend.db_meta.enums import ClusterEntryRole, TenDBClusterSpiderRole
 from backend.db_meta.exceptions import ClusterNotExistException
 from backend.db_meta.models import Cluster, ProxyInstance
@@ -27,7 +28,9 @@ from backend.flow.engine.validate.base_validate import BaseValidator
 from backend.flow.engine.validate.exceptions import CheckDisasterToleranceException
 from backend.flow.plugins.components.collections.common.pause import PauseComponent
 from backend.flow.plugins.components.collections.mysql.check_client_connections import CheckClientConnComponent
+from backend.flow.plugins.components.collections.mysql.flow_output_summary import MysqlFlowOutputSummaryComponent
 from backend.flow.plugins.components.collections.spider.drop_spider_ronting import DropSpiderRoutingComponent
+from backend.flow.utils.mysql.flow_output_presets.instance_change import InstanceChangeAction
 from backend.flow.utils.mysql.mysql_act_dataclass import CheckClientConnKwargs
 from backend.flow.utils.spider.spider_act_dataclass import DropSpiderRoutingKwargs
 
@@ -134,6 +137,75 @@ class TenDBClusterReduceNodesFlow(object):
 
         return [{"ip": host["ip"]} for host in spider_reduced_hosts]
 
+    @staticmethod
+    def _build_reduce_items(
+        cluster: Cluster,
+        reduce_spider_role: TenDBClusterSpiderRole,
+        reduce_spider_hosts: List[Dict[str, Any]],
+    ) -> List[Dict[str, Any]]:
+        """按调用方持有的 cluster 对象直接装配"spider 缩容摘要" items（对齐 :class:`InstanceChangeSummarySerializer`）。
+
+        设计要点 / 怎么做：
+          - 调用方（:meth:`reduce_spider_nodes_with_cluster`）已持有 :class:`Cluster` model 实例，
+            本方法直接复用，**不再重复反查 db_meta**。
+          - **必须在 flow 构建阶段调用**：缩容流程会在运行时清理 db_meta 中被下架实例，
+            届时反查端口将失败；因此在构建期把端口冻结进 items，交由 pipeline 运行时直落。
+          - 端口按"被下架实例自身"反查（同角色 + IP 精确定位到 ProxyInstance），
+            避免"取剩余任一实例端口"在异构端口场景下失真。
+          - `.value` 显式取字符串，用于 QuerySet 过滤与出参 extra 展示；避免依赖
+            :class:`StrStructuredEnum` 的隐式 ``__str__`` 序列化行为。
+          - db_meta 约束下同业务同 IP:Port 唯一归属一个集群，`instance` 单键即可承载幂等；
+            集群归属通过一等字段 `cluster_domain` 表达。
+
+        :param cluster: 集群 model 实例；调用方已持有，直接复用避免二次反查
+        :param reduce_spider_role: 待下架的 spider 角色枚举，必须是
+                                   :class:`TenDBClusterSpiderRole.SPIDER_MASTER` 或
+                                   :class:`TenDBClusterSpiderRole.SPIDER_SLAVE`
+        :param reduce_spider_hosts: 待下架的 spider 机器列表；每项至少含 ``ip`` 字段
+        :return: 摘要行列表；结构严格对齐 InstanceChangeSummarySerializer 字段契约；
+                 ``reduce_spider_hosts`` 为空时返回空列表，由外层调用方走 "items 空 → no-op"
+                 分支，不阻塞流程。
+
+        边界 / 异常：
+          - ``reduce_spider_hosts`` 为空 -> 返回空列表（属兜底防御，主流程更早的
+            ``__pre_check_and_calc_reduce_spiders`` 空列表校验会先失败）；
+          - 某 IP 在该集群该角色下未找到对应 :class:`ProxyInstance` -> 忽略该 IP，
+            不产出对应行（属兜底防御，主流程 pre_check 会更早失败）。
+        """
+        if not reduce_spider_hosts:
+            return []
+
+        # 批量反查目标 IP 的 ProxyInstance（同角色 + 同集群 + IP 属于待下架列表），避免 N+1 查询
+        ip_list: List[str] = [str(h["ip"]) for h in reduce_spider_hosts]
+        proxy_map: Dict[str, ProxyInstance] = {
+            pi.machine.ip: pi
+            for pi in cluster.proxyinstance_set.filter(
+                tendbclusterspiderext__spider_role=reduce_spider_role.value,
+                machine__ip__in=ip_list,
+            )
+        }
+
+        items: List[Dict[str, Any]] = []
+        for host in reduce_spider_hosts:
+            ip: str = str(host["ip"])
+            proxy: Optional[ProxyInstance] = proxy_map.get(ip)
+            if proxy is None:
+                # 待下架实例在 db_meta 中该角色下不存在；属兜底防御，主流程 pre_check 会更早失败
+                continue
+            items.append(
+                {
+                    "cluster_domain": cluster.immute_domain,
+                    "instance": f"{ip}{IP_PORT_DIVIDER}{int(proxy.port)}",
+                    "action": InstanceChangeAction.REDUCE.value,
+                    "status": "success",
+                    "related_instance": "",
+                    "message": "",
+                    # 扩展信息承载 spider 角色语义，供前端区分 spider_master / spider_slave
+                    "extra": _("操作角色{}").format(reduce_spider_role.value),
+                }
+            )
+        return items
+
     def reduce_spider_nodes_with_cluster(
         self,
         cluster_id: int,
@@ -145,6 +217,7 @@ class TenDBClusterReduceNodesFlow(object):
         is_check_process: bool = True,
         disable_manual_confirm: bool = False,
         is_rebuild: bool = False,
+        is_print_summary: bool = False,
     ):
         """
         根据cluster维度处理缩容子流程
@@ -157,6 +230,13 @@ class TenDBClusterReduceNodesFlow(object):
         @param is_check_process: 是否需要检测spider端连接情况，默认是检测的。如果用户不做检测，可以设置为False
         @param disable_manual_confirm: 是否禁用人工确认，默认是不禁用的。但特殊情况可以禁用，比如自愈所产生的替换单据
         @param is_rebuild: 是否是重建场景，默认是False, 非重建场景
+        @param is_print_summary: 是否在子流程尾部追加"写入spider变更摘要"act，默认False；
+            - True：仅供 "spider 缩容顶层入口"（:meth:`reduce_spider_nodes`）调用；本方法在
+              build_sub_process 之前调用 :meth:`_build_reduce_items` **在 flow 构建阶段就地装配**
+              REDUCE 语义的 InstanceChangeSummary 行（此时 db_meta 完好，端口可反查），
+              装配好的 items 随 pipeline 打包，运行时直接落库。
+            - False：不挂载摘要节点，供衍生 flow（Switch / Rebuild / DisasterRecover）复用时
+              避免误落"缩容"语义摘要。
         """
         # 获取对应集群相关对象
         try:
@@ -275,6 +355,27 @@ class TenDBClusterReduceNodesFlow(object):
                 is_rebuild=is_rebuild,
             )
         )
+
+        # 尾部（可选）写入spider变更摘要：必须放在 build_sub_process 之前才能追加进 pipeline。
+        # items 必须在 flow 构建阶段就地装配完成——运行时 db_meta 里的被下架实例会被清理，
+        # 届时反查端口将失败。幂等由 InstanceChangeSummarySerializer.table_primary_key = "instance"
+        # 保证：同 IP:Port 重复写入 → 后写覆盖前写。
+        if is_print_summary:
+            # reduce_spider_role 可能是枚举成员或枚举 value 字符串（历史调用点异构），统一归一为枚举成员
+            role_enum: TenDBClusterSpiderRole = (
+                reduce_spider_role
+                if isinstance(reduce_spider_role, TenDBClusterSpiderRole)
+                else TenDBClusterSpiderRole(reduce_spider_role)
+            )
+            sub_pipeline.add_act(
+                act_name=_("写入spider变更摘要"),
+                act_component_code=MysqlFlowOutputSummaryComponent.code,
+                kwargs={
+                    "preset": "instance_change",
+                    "items": self._build_reduce_items(cluster, role_enum, spider_reduced_hosts),
+                },
+            )
+
         return sub_pipeline.build_sub_process(
             sub_name=_("[{}]减少{}节点流程".format(cluster.immute_domain, reduce_spider_role))
         )
@@ -294,6 +395,9 @@ class TenDBClusterReduceNodesFlow(object):
                     reduce_spider_role=info["reduce_spider_role"],
                     spider_reduced_to_count_snapshot=info["spider_reduced_to_count"],
                     is_check_process=self.data.get("is_safe", True),
+                    # 仅"缩容"单据顶层入口开启摘要写入；衍生 flow（Switch / Rebuild /
+                    # DisasterRecover）不传该参数，走默认 False，天然不会误落 REDUCE 摘要行。
+                    is_print_summary=True,
                 )
             )
 

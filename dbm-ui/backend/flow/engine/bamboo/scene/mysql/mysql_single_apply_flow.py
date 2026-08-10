@@ -11,7 +11,7 @@ specific language governing permissions and limitations under the License.
 import copy
 import logging.config
 from dataclasses import asdict
-from typing import Dict, Optional
+from typing import Any, Dict, List, Optional
 
 from django.utils.translation import gettext as _
 
@@ -23,6 +23,9 @@ from backend.flow.engine.bamboo.scene.mysql.common.common_sub_flow import init_m
 from backend.flow.engine.bamboo.scene.mysql.deploy_peripheraltools.subflow import standardize_mysql_cluster_subflow
 from backend.flow.plugins.components.collections.mysql.dns_manage import MySQLDnsManageComponent
 from backend.flow.plugins.components.collections.mysql.exec_actuator_script import ExecuteDBActuatorScriptComponent
+from backend.flow.plugins.components.collections.mysql.mysql_cluster_apply_summary import (
+    MysqlClusterApplySummaryComponent,
+)
 from backend.flow.plugins.components.collections.mysql.mysql_db_meta import MySQLDBMetaComponent
 from backend.flow.plugins.components.collections.mysql.trans_flies import TransFileComponent
 from backend.flow.utils.mysql.common.mysql_cluster_info import get_mysql_init_os_timezone_kwargs_for_apply
@@ -94,12 +97,51 @@ class MySQLSingleApplyFlow(object):
             cluster_type=ClusterType.TenDBSingle,
         )
 
+    def _build_apply_summary_clusters(self) -> List[Dict[str, Any]]:
+        """基于 ticket_data(``self.data``) 拼装 TenDBSingle 集群交付摘要的集群定位信息列表。
+
+        设计要点 / 怎么做：
+          - 数据源：``self.data["apply_infos"]``；每条 apply_info 下的 ``clusters`` 是本次
+            要交付的集群集合。上游 ``deploy_mysql_single_flow`` 已经为每个 cluster 装配好
+            ``master``（主域名）。
+          - 本方法**只产出"集群定位信息"**：`{bk_biz_id, cluster_domain}`；其他所有摘要字段
+            （access_port / CLB / 只读入口等）由 :class:`MysqlClusterApplySummaryComponent`
+            在运行时从 db_meta 反查装配，flow 侧无需拼装任何"半成品"字段。
+
+        :return: 集群定位信息列表；每项为 `{bk_biz_id: int, cluster_domain: str}`。
+                 apply_infos 为空或所有 apply 内 clusters 为空时，返回空列表；
+                 摘要 Component 收到空列表会走 no-op 分支，不阻塞流程。
+
+        边界 / 异常：
+          - 若 apply_info 中 cluster 缺少 ``master`` -> KeyError。
+            注意：本方法在 flow **构建期**同步执行（作为 ``pipeline.add_act`` 的 kwargs 实参），
+            并非 pipeline 节点运行期，故异常不会被 ``BaseService.execute`` 捕获，
+            会直接冒泡导致整张单据 flow 构建失败。
+          - 此处刻意不做防御跳过：``cluster["master"]`` 同时也是主部署流程
+            （``deploy_mysql_single_flow``）依赖的强契约字段，缺失时主流程本身即无法执行；
+            此处快速失败可尽早暴露上游数据契约问题，避免"主流程崩、摘要静默"的诡异状态。
+        """
+        bk_biz_id: int = int(self.data["bk_biz_id"])
+        clusters: List[Dict[str, Any]] = []
+        for info in self.data["apply_infos"]:
+            for cluster in info.get("clusters", []):
+                clusters.append({"bk_biz_id": bk_biz_id, "cluster_domain": cluster["master"]})
+        return clusters
+
     def deploy_flow(self):
         """
         父流程
         """
         pipeline = Builder(root_id=self.root_id, data=self.data)
         pipeline.add_sub_pipeline(sub_flow=self.deploy_mysql_single_flow())
+        # 写入集群交付摘要：db_meta 已由 deploy_mysql_single_flow 内 "录入db_meta元信息" 节点写入，
+        # 此处只需传集群定位信息，其余字段(端口 / CLB / 只读入口)由 Component 从 db_meta 反查装配
+        pipeline.add_act(
+            act_name=_("写入集群交付摘要"),
+            act_component_code=MysqlClusterApplySummaryComponent.code,
+            kwargs={"clusters": self._build_apply_summary_clusters()},
+            is_remote_rewritable=True,
+        )
         pipeline.run_pipeline(init_trans_data_class=SingleApplyManualContext())
 
     def deploy_mysql_single_flow(

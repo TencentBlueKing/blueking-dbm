@@ -11,7 +11,7 @@ specific language governing permissions and limitations under the License.
 import copy
 import logging.config
 from dataclasses import asdict
-from typing import Dict, Optional
+from typing import Any, Dict, List, Optional
 
 from django.utils.translation import gettext as _
 
@@ -37,9 +37,11 @@ from backend.flow.plugins.components.collections.mysql.clone_proxy_user_in_clust
     CloneProxyUsersInClusterComponent,
 )
 from backend.flow.plugins.components.collections.mysql.exec_actuator_script import ExecuteDBActuatorScriptComponent
+from backend.flow.plugins.components.collections.mysql.flow_output_summary import MysqlFlowOutputSummaryComponent
 from backend.flow.plugins.components.collections.mysql.mysql_db_meta import MySQLDBMetaComponent
 from backend.flow.plugins.components.collections.mysql.trans_flies import TransFileComponent
 from backend.flow.utils.mysql.common.mysql_cluster_info import get_mysql_init_os_timezone_kwargs
+from backend.flow.utils.mysql.flow_output_presets import InstanceChangeAction
 from backend.flow.utils.mysql.mysql_act_dataclass import (
     CloneProxyClientInBackendKwargs,
     CloneProxyUsersKwargs,
@@ -136,6 +138,59 @@ class MySQLProxyClusterAddFlow(object):
             install_ports.append(cluster_proxy_port)
 
         return install_ports
+
+    @staticmethod
+    def _build_add_items_for_info(info: Dict[str, Any]) -> List[Dict[str, Any]]:
+        """按单个 info 行装配"proxy 扩容摘要" items（对齐 :class:`InstanceChangeSummarySerializer`）。
+
+        功能说明 / 怎么做：
+          - 一个 info 行 = 一组共享 new_proxies × 一组 cluster_ids；产出笛卡尔积展开的摘要行：
+            `len(new_proxies) × len(cluster_ids)` 行。
+          - 每个集群的 proxy 端口从 db_meta 反查（取该集群任意一个已存在 proxy 的 port，与
+            :meth:`__get_proxy_install_ports` 语义一致：同集群 proxy 端口约定一致）。
+          - db_meta 约束下同业务同 IP:Port 唯一归属一个集群，因此 `instance` 单键足以承载幂等；
+            集群归属通过一等字段 `cluster_domain` 表达。
+
+        :param info: 单个 ``self.data["infos"]`` 元素；至少含 ``new_proxies`` / ``cluster_ids``
+        :return: 摘要行列表；结构严格对齐 InstanceChangeSummarySerializer 字段契约。
+                 集群或已有 proxy 缺失时该集群不贡献任何行（属于上游数据契约问题，由主流程更早的
+                 校验/安装阶段暴露）。
+
+        边界 / 异常：
+          - ``new_proxies`` / ``cluster_ids`` 为空 -> 返回空列表；外层调用方对空 items 走 no-op 分支
+            不阻塞流程。
+          - 某个 cluster_id 在 db_meta 不存在或无任何 ProxyInstance -> 忽略该集群，不产出对应行；
+            该场景在主流程"计算安装端口"阶段就会先失败，此处属兜底防御。
+        """
+        items: List[Dict[str, Any]] = []
+        cluster_ids: List[int] = list(info.get("cluster_ids") or [])
+        new_proxies: List[Dict[str, Any]] = list(info.get("new_proxies") or [])
+        if not cluster_ids or not new_proxies:
+            return items
+
+        # 一次性反查涉及的集群，避免 N+1 查询
+        cluster_map: Dict[int, Cluster] = {c.id: c for c in Cluster.objects.filter(id__in=cluster_ids)}
+        for cluster_id in cluster_ids:
+            cluster: Optional[Cluster] = cluster_map.get(cluster_id)
+            if cluster is None:
+                continue
+            proxy_ref: Optional[ProxyInstance] = ProxyInstance.objects.filter(cluster=cluster).first()
+            if proxy_ref is None:
+                # 该集群尚无 proxy（理论上主流程会更早失败），此处不追加行
+                continue
+            port: int = int(proxy_ref.port)
+            for new_proxy in new_proxies:
+                items.append(
+                    {
+                        "cluster_domain": cluster.immute_domain,
+                        "instance": f"{new_proxy['ip']}{IP_PORT_DIVIDER}{port}",
+                        "action": InstanceChangeAction.ADD.value,
+                        "status": "success",
+                        "related_instance": "",
+                        "message": "",
+                    }
+                )
+        return items
 
     def add_mysql_cluster_proxy_flow(self):
         """
@@ -422,6 +477,21 @@ class MySQLProxyClusterAddFlow(object):
                     with_bk_plugin=False,
                     with_collect_sysinfo=False,
                 )
+            )
+
+            # ==================== 阶段5：写入proxy变更摘要 ====================
+            # 外层子流程（按 info 分片）所有变更 act 完成后，一次性写入本 info 涉及的所有
+            # (cluster × new_proxy) 摘要行；db_meta / 周边工具已就绪，摘要数据可靠。
+            # 幂等由 InstanceChangeSummarySerializer.table_primary_key = "instance" 保证：
+            # 同 IP:Port 重复写入 → 后写覆盖前写。
+            sub_pipeline.add_act(
+                act_name=_("写入proxy变更摘要"),
+                act_component_code=MysqlFlowOutputSummaryComponent.code,
+                kwargs={
+                    "preset": "instance_change",
+                    "items": self._build_add_items_for_info(info),
+                },
+                is_remote_rewritable=True,
             )
 
             sub_pipelines.append(
