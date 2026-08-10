@@ -4,88 +4,59 @@
 
 ## 三种详情容器
 
-| 容器                 | 宽度                       | 适用                             | 关闭方式                  |
-| -------------------- | -------------------------- | -------------------------------- | ------------------------- |
-| `TableDetailDialog`  | 60%，可拖至 90%，min 300px | 列表点行看详情，保留列表上下文   | 点空白自动关闭 / 右上 X   |
-| `DbSideslider`       | 960px 为主                 | 编辑型详情，需要 footer 提交     | footer 取消 / X（走离开确认） |
-| 整页详情             | 内容区全宽                 | 单据详情等可分享链接的场景       | 面包屑返回箭头            |
+| 容器         | 宽度                       | 适用                           | 关闭方式                         |
+| ------------ | -------------------------- | ------------------------------ | -------------------------------- |
+| 行内详情弹窗 | 60%，可拖至 90%，min 300px | 列表点行看详情，保留列表上下文 | 点空白自动关闭 / 右上关闭        |
+| 侧滑面板     | 960px 为主                 | 编辑型详情，需要 footer 提交   | footer 取消 / 关闭（走离开确认） |
+| 整页详情     | 内容区全宽                 | 可分享链接的场景（如单据详情） | 面包屑返回箭头                   |
 
 ## 顶部摘要栏
 
-`DisplayBox`（集群）与 `ticket-detail`（单据）共用同一套规范：
-
-| 元素                     | 规范                                        |
-| ------------------------ | ------------------------------------------- |
-| 背景                     | #f0f1f5                                     |
-| padding                  | `16px 60px 16px 20px`（右侧留关闭按钮位）   |
-| 主标题（域名 / 单据类型） | 16px / 700 / #313238 / `line-height: 24px`  |
-| meta 行                  | 12px / `line-height: 20px`                  |
-| meta label               | #979ba5                                     |
-| meta value               | #313238                                     |
-| meta 项间距              | 40px                                        |
+| 元素       | 规范                                    |
+| ---------- | --------------------------------------- |
+| 背景       | #f0f1f5                                 |
+| padding    | 16px 60px 16px 20px（右侧留关闭按钮位） |
+| 主标题     | 16px / 700 / #313238 / 行高 24px        |
+| meta 行    | 12px / 行高 20px                        |
+| meta label | #979ba5                                 |
+| meta value | #313238                                 |
+| meta 间距  | 40px                                    |
 
 ## KV 信息项
 
-用 `InfoList` + `InfoItem`，不要手写 flex。
+| 元素       | 规范                                     |
+| ---------- | ---------------------------------------- |
+| 布局       | 每项占 50%，每行两列                     |
+| 行高       | 32px（或 20px + padding-top 6px）        |
+| label 对齐 | 右对齐，右侧留白 8px                     |
+| label 宽度 | **运行时计算同组最宽值对齐**，不写死像素 |
+| label 色   | #4d4f56                                  |
+| value 色   | #313238                                  |
+| 空值       | `--`                                     |
 
-| 元素         | 规范                                       |
-| ------------ | ------------------------------------------ |
-| 布局         | `flex: 1 0 50%`，每行两列                  |
-| 行高         | 32px（或 20px + `padding-top: 6px`）       |
-| label 对齐   | 右对齐，`padding-right: 8px`               |
-| label 宽度   | **运行时计算同组最宽值对齐**，不写死像素   |
-| label 色     | #4d4f56（集群）/ 继承（单据）              |
-| value 色     | #313238                                    |
-| 空值         | `'--'`                                     |
-
-```vue
-<InfoList>
-  <InfoItem :label="t('字段名')">
-    {{ value || '--' }}
-  </InfoItem>
-</InfoList>
-```
-
-多字段紧凑排布时用 `<table>`（如单据基本信息）：行高 32px，label 右对齐，首列 100px，其余奇数列 150px。
+多字段紧凑排布时可用表格布局：行高 32px，label 右对齐，首列 100px，其余奇数列 150px。
 
 ## 单据详情的三段式
 
 ```
-DbCard「基本信息」   BaseInfo   → <table> 三列 KV，行高 32px
-   ↕ margin-top 16px
-DbCard「需求信息」   TaskInfo   → com-factory 按 ticket_type 动态匹配组件
-                                  内部用 InfoList + InfoItem 50% 双列
-   ↕ margin-top 16px
-DbCard「实施进度」   FlowInfos  → 流程时间线
+卡片「基本信息」 → 表格布局的三列 KV，行高 32px
+  ↕ 间距 16px
+卡片「需求信息」 → 按单据类型动态匹配内容组件，内部 50% 双列 KV
+  ↕ 间距 16px
+卡片「实施进度」 → 流程时间线
 
-SmartAction #action → 克隆单据 / 撤销单据 / 终止单据
-
-卡片内容区 padding-left: 116px（为左侧标题带留位）
-详情页全局基准字号 12px
+固定底栏 → 克隆单据 / 撤销单据 / 终止单据
 ```
 
-新增单据类型时，在 `src/views/ticket-center/common/ticket-detail/components/task-info/com-factory/{db}/` 下建组件，并且：
-
-```ts
-defineOptions({
-  name: TicketTypes.MYSQL_ADD_SLAVE, // 必须等于 ticket_type 字符串，工厂靠它动态匹配
-  inheritAttrs: false,
-});
-```
+- 卡片内容区 padding-left 116px（为左侧标题带留位）
+- 详情页全局基准字号 12px
 
 ## 集群详情面板
 
-`ActionPanel` 用 `BkTab type="card-tab"`，Tab 内容区 `padding: 0 24px`，高度 `calc(100vh - top - 42px)`。
+卡片式 Tab，内容区 `padding: 0 24px`，高度 `calc(100vh - 顶部偏移 - 42px)`。
 
 ## 分组标题
 
-区块标题**不用左侧竖线**，只用 `font-weight: bold` + `#313238`（class 为 `.info-title`），区块间距 `mt-20`。
+区块标题**不用左侧竖线**，只用加粗 + #313238，区块间距 20px。
 
-带竖线感的 `.title-spot` 是工具箱表单页的标题样式，两者不要混用。
-
-## 参考实现
-
-- `src/views/ticket-center/common/ticket-detail/Index.vue`
-- `src/views/db-manage/common/cluster-details/DisplayBox.vue`
-- `src/views/db-manage/common/cluster-details/base-info/components/InfoItem.vue`
-- `src/components/table-detail-dialog/Index.vue`
+左侧竖线感的标题样式属于工具箱表单页，两者不要混用。

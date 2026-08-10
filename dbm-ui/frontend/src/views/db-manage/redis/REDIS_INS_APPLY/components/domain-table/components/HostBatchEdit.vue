@@ -18,7 +18,7 @@
         <div
           class="batch-edit-domain"
           :style="{ '--offset': `${stateOffsetWidth}px` }">
-          <BkInput
+          <DbInput
             v-model="stateValue"
             class="batch-edit-domain-input"
             :class="[validateErrorText ? '' : 'batch-edit-domain-input-bottom']"

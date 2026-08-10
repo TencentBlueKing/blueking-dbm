@@ -4,3 +4,5 @@ lib
 patch
 public
 src/types/auto-imports.d.ts
+.cursor/
+.codebuddy/

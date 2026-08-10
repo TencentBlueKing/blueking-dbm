@@ -28,7 +28,8 @@
         :label="t('集群容量需求')"
         property="details.resource_spec.backend_group.capacity"
         required>
-        <BkInput
+        <DbInput
+          allow-empty-value
           :min="1"
           :model-value="modelValue.capacity"
           type="number"
@@ -41,7 +42,8 @@
         :label="t('未来集群容量需求')"
         property="details.resource_spec.backend_group.future_capacity"
         required>
-        <BkInput
+        <DbInput
+          allow-empty-value
           :min="Number(modelValue.capacity)"
           :model-value="modelValue.future_capacity"
           type="number"
@@ -140,7 +142,7 @@
         :label="t('数量')"
         property="details.resource_spec.backend_group.count"
         required>
-        <BkInput
+        <DbInput
           v-model="modelValue.count"
           clearable
           :min="1"
@@ -151,7 +153,7 @@
       <BkFormItem
         :label="t('单机分片数')"
         required>
-        <BkInput
+        <DbInput
           v-model="shardNum"
           :min="1"
           type="number" />
@@ -159,7 +161,7 @@
       <BkFormItem
         :label="t('集群分片数')"
         :required="false">
-        <BkInput
+        <DbInput
           v-model="clusterShardNum"
           disabled
           :placeholder="t('自动生成')"
@@ -168,7 +170,7 @@
       <BkFormItem
         :label="t('总容量')"
         :required="false">
-        <BkInput
+        <DbInput
           v-model="specInfo.totalCapcity"
           disabled
           :placeholder="t('自动生成')"
@@ -178,7 +180,7 @@
       <BkFormItem
         label="QPS"
         :required="false">
-        <BkInput
+        <DbInput
           v-model="specInfo.qps"
           disabled
           :placeholder="t('自动生成')"
@@ -538,7 +540,7 @@
     .bk-form-item {
       .bk-form-content {
         .bk-select,
-        .bk-input {
+        .dbm-input {
           width: 314px !important;
         }
       }
