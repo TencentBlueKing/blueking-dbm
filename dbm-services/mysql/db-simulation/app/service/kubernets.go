@@ -884,13 +884,6 @@ func (k *DbPodSets) getBackendEnv() []v1.EnvVar {
 			Value: "1",
 		})
 	}
-	if engine == app.RocksdbEngine {
-		logger.Info("engine is rocksdb")
-		envs = append(envs, v1.EnvVar{
-			Name:  "INIT_ROCKSDB",
-			Value: "1",
-		})
-	}
 	return envs
 }
 

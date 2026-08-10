@@ -46,7 +46,9 @@ from backend.flow.utils.mysql.mysql_act_dataclass import DownloadMediaKwargs, Ex
 from backend.flow.utils.mysql.mysql_act_playload import MysqlActPayload
 from backend.flow.utils.mysql.mysql_bk_config import get_cluster_config, get_engine_from_bk_mysql_config
 from backend.flow.utils.mysql.mysql_commom_query import (
-    get_mysql_start_configs,
+    extract_spider_semantic_configs,
+    extract_storage_semantic_configs,
+    extract_tdbctl_semantic_configs,
     merge_resp_to_cluster,
     parse_db_from_sqlfile,
     query_mysql_variables,
@@ -230,11 +232,11 @@ class ImportSQLFlow(object):
         spider_versions = self.__get_distinct_spider_versions_with_config(cluster_id, cluster["bk_cloud_id"])
 
         # 获取 remotedb 的 MySQL 变量配置，用于模拟执行
-        start_mysqld_configs = self.__get_instance_start_config(
+        start_mysqld_configs = self.__get_storage_start_config(
             ip=remotedb_ip, port=remotedb_port, bk_cloud_id=cluster["bk_cloud_id"]
         )
-        # 获取 tdbctl 的启动配置
-        tdbctl_start_configs = self.__get_instance_start_config(
+        # 获取 tdbctl 启动配置：存储层策略 + tc_* 语义白名单（不含 tc_admin）
+        tdbctl_start_configs = self.__get_tdbctl_start_config(
             ip=cluster["master_ctl_ip"], port=cluster["port"], bk_cloud_id=cluster["bk_cloud_id"]
         )
         # 添加单据信息回显节点
@@ -366,9 +368,9 @@ class ImportSQLFlow(object):
             file_list.extend(obj["sql_files"])
         return file_list
 
-    def __get_instance_start_config(self, ip: str, port: int, bk_cloud_id: int) -> dict:
+    def __get_storage_start_config(self, ip: str, port: int, bk_cloud_id: int) -> dict:
         """
-        获取实例的启动配置参数
+        获取存储层（Remote）模拟执行启动配置
 
         @param ip: 实例IP
         @param port: 实例端口
@@ -376,29 +378,31 @@ class ImportSQLFlow(object):
         @return: 启动配置字典
         """
         origin_var_map = query_mysql_variables(host=ip, port=port, bk_cloud_id=bk_cloud_id)
-        start_configs = get_mysql_start_configs(origin_var_map)
+        return extract_storage_semantic_configs(origin_var_map)
 
-        # 忽略不需要同步的配置项
-        ignore_sync_config_vars = [
-            "socket",
-            "datadir",
-            "innodb_data_home_dir",
-            "innodb_log_group_home_dir",
-            "log_bin",
-            "relay_log",
-            "log_error",
-            "tmpdir",
-            "server_id",
-            "port",
-            "init_connect",
-            "innodb_buffer_pool_size",
-            "sort_buffer_size",
-            "bind-address",
-            "bind_address",
-            "core-file",
-            "core_file",
-        ]
-        return {k: v for k, v in start_configs.items() if k not in ignore_sync_config_vars}
+    def __get_tdbctl_start_config(self, ip: str, port: int, bk_cloud_id: int) -> dict:
+        """
+        获取 Tdbctl 模拟执行启动配置（存储策略 + tc_* 语义白名单，不含 tc_admin）
+
+        @param ip: 实例IP
+        @param port: 实例端口
+        @param bk_cloud_id: 云区域ID
+        @return: 启动配置字典
+        """
+        origin_var_map = query_mysql_variables(host=ip, port=port, bk_cloud_id=bk_cloud_id)
+        return extract_tdbctl_semantic_configs(origin_var_map)
+
+    def __get_spider_start_config(self, ip: str, port: int, bk_cloud_id: int) -> dict:
+        """
+        获取 Spider 模拟执行启动配置（公共参数 + Spider 专用白名单）
+
+        @param ip: 实例IP
+        @param port: 实例端口
+        @param bk_cloud_id: 云区域ID
+        @return: 启动配置字典
+        """
+        origin_var_map = query_mysql_variables(host=ip, port=port, bk_cloud_id=bk_cloud_id)
+        return extract_spider_semantic_configs(origin_var_map)
 
     def __get_distinct_spider_versions_with_config(self, cluster_id: int, bk_cloud_id: int) -> list:
         """
@@ -431,7 +435,7 @@ class ImportSQLFlow(object):
         # 对每个版本获取配置
         spider_versions = []
         for version, spider_instance in version_instance_map.items():
-            start_config = self.__get_instance_start_config(
+            start_config = self.__get_spider_start_config(
                 ip=spider_instance.machine.ip,
                 port=spider_instance.port,
                 bk_cloud_id=bk_cloud_id,
