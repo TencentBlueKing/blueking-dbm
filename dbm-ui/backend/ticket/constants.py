@@ -703,7 +703,7 @@ class TicketType(StrStructuredEnum):
     # QDRANT
     K8S_QDRANT_HA_APPLY = TicketEnumField("K8S_QDRANT_HA_APPLY", _("Qdrant 集群部署"), register_iam=False)
     K8S_QDRANT_ENABLE = TicketEnumField("K8S_QDRANT_ENABLE", _("Qdrant 集群启动"), register_iam=False)
-    K8S_QDRANT_DISABLE = TicketEnumField("K8S_QDRANT_DISABLE", _("Qdrant 集群停止"), register_iam=False)
+    K8S_QDRANT_DISABLE = TicketEnumField("K8S_QDRANT_DISABLE", _("Qdrant 集群禁用"), register_iam=False)
     K8S_QDRANT_DELETE = TicketEnumField("K8S_QDRANT_DELETE", _("Qdrant 集群卸载"), register_iam=False)
     K8S_QDRANT_RESTART = TicketEnumField("K8S_QDRANT_RESTART", _("Qdrant 集群重启"), register_iam=False)
 
