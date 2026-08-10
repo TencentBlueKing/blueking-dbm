@@ -140,8 +140,16 @@ SpiderCreateTableRule:
 AlterTableRule:
   HighRiskType:
     expr: " Val in Item "
-    item: [ "drop_column", "drop_key", "change_column", "rename_table", "rename_key", "convert_charset" ]
-    desc: "高危变更类型"
+    item:
+      [
+        "drop_column",
+        "drop_key",
+        "change_column",
+        "rename_table",
+        "rename_key",
+        "convert_charset",
+      ]
+    desc: ""
     suggestion: "请在变更表时避免使用高危变更类型"
     extra_message_map:
       {
@@ -151,7 +159,7 @@ AlterTableRule:
       }
   HighRiskPkAlterType:
     expr: " Val in Item "
-    item: [ "add_column", "add_key", "change_column" ]
+    item: ["add_column", "add_key", "change_column"]
     desc: "高危主键变更类型"
   AlterUseAfter:
     expr: " Val != Item "
