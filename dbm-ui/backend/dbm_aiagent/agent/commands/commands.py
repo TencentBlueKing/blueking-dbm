@@ -75,7 +75,8 @@ class MySQLSlowLogCommand(CommandHandler):
         分析的时间窗口：'{{time_window_start}}' - '{{time_window_end}}'
         最大查询条数：{{limit}}
         instance_role: {{ instance_role}}
-        返回输出控制在 2000 字符以内
+        只返回总结 Summary 部分的内容，具体 sql优化详情根据 skill 的指示存入 dbm 报告中心(markdown格式)返回链接即可。
+        所有返回输出控制在 1800 字符以内。
         """
 
 
