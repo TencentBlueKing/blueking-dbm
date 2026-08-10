@@ -1241,7 +1241,7 @@ class ActionEnum:
         name_en="mysql_loadbalance_manage",
         type="manage",
         related_actions=[],
-        related_resource_types=[ResourceEnum.BUSINESS],
+        related_resource_types=[ResourceEnum.MYSQL],
         group=_("MySQL"),
         subgroup=_("集群管理"),
         common_labels=[CommonActionLabel.DEVELOPER, CommonActionLabel.BIZ_MAINTAIN],
@@ -1463,7 +1463,7 @@ class ActionEnum:
         name_en="tendbcluster_loadbalance_manage",
         type="manage",
         related_actions=[],
-        related_resource_types=[ResourceEnum.BUSINESS],
+        related_resource_types=[ResourceEnum.TENDBCLUSTER],
         group=_("TenDBCluster"),
         subgroup=_("集群管理"),
         common_labels=[CommonActionLabel.DEVELOPER, CommonActionLabel.BIZ_MAINTAIN],
@@ -1615,13 +1615,7 @@ class ActionEnum:
         name=_("TenDB Cluster Excel授权"),
         name_en="tendb_excel_authorize_rules",
         related_resource_types=[ResourceEnum.BUSINESS],
-        group=_("TenDBCluster"),
-        subgroup=_("权限管理"),
-        common_labels=[
-            CommonActionLabel.BIZ_MAINTAIN,
-            CommonActionLabel.TENDBCLUSTER_AUTHORIZE_RULES,
-            CommonActionLabel.DEVELOPER
-        ],
+        group=_("已废弃"),
     )
 
     TENDBCLUSTER_CLIENT_CLONE_RULES = ActionMeta(
@@ -2147,7 +2141,7 @@ class ActionEnum:
         name_en="redis_loadbalance_manage",
         type="manage",
         related_actions=[DB_MANAGE.id],
-        related_resource_types=[ResourceEnum.BUSINESS],
+        related_resource_types=[ResourceEnum.REDIS],
         group=_("Redis"),
         subgroup=_("权限管理"),
         common_labels=[CommonActionLabel.BIZ_MAINTAIN],
@@ -2666,7 +2660,7 @@ class ActionEnum:
         name_en="es_loadbalance_manage",
         type="manage",
         related_actions=[DB_MANAGE.id],
-        related_resource_types=[ResourceEnum.BUSINESS],
+        related_resource_types=[ResourceEnum.ES],
         group=_("ElasticSearch"),
         subgroup=_("权限管理"),
         common_labels=[CommonActionLabel.BIZ_MAINTAIN],
@@ -3392,7 +3386,7 @@ class ActionEnum:
         name_en="mongodb_loadbalance_manage",
         type="manage",
         related_actions=[DB_MANAGE.id],
-        related_resource_types=[ResourceEnum.BUSINESS],
+        related_resource_types=[ResourceEnum.MONGODB],
         group=_("Mongodb"),
         subgroup=_("权限管理"),
         common_labels=[CommonActionLabel.BIZ_MAINTAIN],
@@ -4617,7 +4611,37 @@ class ActionEnum:
         type="view",
         related_actions=[DB_MANAGE.id],
         related_resource_types=[ResourceEnum.BUSINESS, ResourceEnum.DBTYPE],
-        group=_("业务"),
+        group=_("已废弃"),
+    )
+
+    MYSQL_ADMIN_PWD_VIEW = ActionMeta(
+        id="mysql_admin_pwd_view",
+        name=_("MySQL 临时密码生效实例查看"),
+        name_en="mysql_admin_pwd_view",
+        type="view",
+        related_actions=[DB_MANAGE.id],
+        related_resource_types=[ResourceEnum.MYSQL],
+        group=_("MySQL"),
+    )
+
+    TENDBCLUSTER_ADMIN_PWD_VIEW = ActionMeta(
+        id="tendbcluster_admin_pwd_view",
+        name=_("TenDB Cluster 临时密码生效实例查看"),
+        name_en="tendbcluster_admin_pwd_view",
+        type="view",
+        related_actions=[DB_MANAGE.id],
+        related_resource_types=[ResourceEnum.TENDBCLUSTER],
+        group=_("TenDBCluster"),
+    )
+
+    SQLSERVER_ADMIN_PWD_VIEW = ActionMeta(
+        id="sqlserver_admin_pwd_view",
+        name=_("SQLServer 临时密码生效实例查看"),
+        name_en="sqlserver_admin_pwd_view",
+        type="view",
+        related_actions=[DB_MANAGE.id],
+        related_resource_types=[ResourceEnum.SQLSERVER],
+        group=_("SQLServer"),
     )
 
     # ---- MCP 工具权限 ---
