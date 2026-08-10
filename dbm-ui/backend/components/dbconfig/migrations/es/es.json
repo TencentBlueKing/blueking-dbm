@@ -97,6 +97,18 @@
   },
   {
     "conf_type": "dbconf",
+    "conf_file": "7.17.29",
+    "conf_name_validate": 1,
+    "conf_value_validate": 1,
+    "value_type_strict": 0,
+    "description": "es配置文件",
+    "conf_type_lc": "elasticsearch.yml配置",
+    "conf_file_lc": "ES-7.17.29",
+    "level_names": "plat,app,cluster",
+    "level_versioned": "cluster"
+  },
+  {
+    "conf_type": "dbconf",
     "conf_file": "7.2.0",
     "conf_name_validate": 1,
     "conf_value_validate": 1,
@@ -128,6 +140,18 @@
     "description": "es配置文件",
     "conf_type_lc": "elasticsearch.yml配置",
     "conf_file_lc": "ES-8.15.1",
+    "level_names": "plat,app,cluster",
+    "level_versioned": "cluster"
+  },
+  {
+    "conf_type": "dbconf",
+    "conf_file": "8.19.19",
+    "conf_name_validate": 1,
+    "conf_value_validate": 1,
+    "value_type_strict": 0,
+    "description": "es配置文件",
+    "conf_type_lc": "elasticsearch.yml配置",
+    "conf_file_lc": "ES-8.19.19",
     "level_names": "plat,app,cluster",
     "level_versioned": "cluster"
   },
@@ -241,6 +265,18 @@
   },
   {
     "conf_type": "deploy",
+    "conf_file": "7.17.29",
+    "conf_name_validate": 1,
+    "conf_value_validate": 1,
+    "value_type_strict": 0,
+    "description": "es7.17.29插件列表",
+    "conf_type_lc": "安装插件列表",
+    "conf_file_lc": "es-plugin-7.17.29",
+    "level_names": "plat,app,cluster",
+    "level_versioned": "cluster"
+  },
+  {
+    "conf_type": "deploy",
     "conf_file": "7.2.0",
     "conf_name_validate": 1,
     "conf_value_validate": 1,
@@ -272,6 +308,18 @@
     "description": "es8.15.1插件列表",
     "conf_type_lc": "安装插件列表",
     "conf_file_lc": "es-plugin-8.15.1",
+    "level_names": "plat,app,cluster",
+    "level_versioned": "cluster"
+  },
+  {
+    "conf_type": "deploy",
+    "conf_file": "8.19.19",
+    "conf_name_validate": 1,
+    "conf_value_validate": 1,
+    "value_type_strict": 0,
+    "description": "es8.19.19插件列表",
+    "conf_type_lc": "安装插件列表",
+    "conf_file_lc": "es-plugin-8.19.19",
     "level_names": "plat,app,cluster",
     "level_versioned": "cluster"
   },
