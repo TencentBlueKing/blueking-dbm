@@ -96,12 +96,8 @@ class EsClusterViewSetBigdata(BigdataResourceViewSet):
         ActionEnum.ES_ENABLE_DISABLE,
         ActionEnum.ES_SUBSCRIBE_MONITOR,
         ActionEnum.ES_DBCONFIG_EDIT,
-<<<<<<< HEAD
         ActionEnum.ES_LOADBALANCE_MANAGE,
-=======
->>>>>>> 699c72925 (feat(backend): 大数据权限收敛优化 #19527)
     ]
-    list_external_manage_actions = [ActionEnum.ES_LOADBALANCE_MANAGE]
 
     @action(methods=["GET"], detail=True, url_path="get_nodes", serializer_class=serializers.ListNodesSLZ)
     def get_nodes(self, request, bk_biz_id: int, cluster_id: int):
