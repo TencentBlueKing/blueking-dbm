@@ -106,6 +106,11 @@ def _check_binlog_backup(cluster_type, date_str):
                 shard_binlog_stat[inst] = [prefix + "." + str(s).zfill(suffix_len) for s in shard_binlog_stat[inst]]
 
         if not backup.success:
+            # 只展示有问题的实例，过滤掉 binlog 连续（正常）的实例
+            if isinstance(shard_binlog_stat, dict):
+                failed_stat = {inst: gaps for inst, gaps in shard_binlog_stat.items() if gaps}
+            else:
+                failed_stat = shard_binlog_stat
             failed_days = get_backup_failed_duration(
                 c.immute_domain, MysqlBackupCheckSubType.BinlogSeq.value, start_time
             )
@@ -115,7 +120,7 @@ def _check_binlog_backup(cluster_type, date_str):
                 cluster=c.immute_domain,
                 cluster_type=cluster_type,
                 status=False,
-                msg="binlog is not consecutive:{}".format(shard_binlog_stat),
+                msg="binlog is not consecutive:{}".format(failed_stat),
                 subtype=MysqlBackupCheckSubType.BinlogSeq.value,
                 state=ReportStateType.ABNORMAL.value,
                 failed_days=failed_days,
