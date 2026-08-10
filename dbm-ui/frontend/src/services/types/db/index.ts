@@ -9,3 +9,4 @@ export * from './instanceRelatedCluster';
 export * from './machineRelatedCluster';
 export * from './machineRelatedInstance';
 export * from './machineSpecConfig';
+export * from './machineSpecs';
