@@ -22,7 +22,6 @@ from backend.db_services.dbbase.resources import serializers, viewsets
 from backend.db_services.dbbase.resources.yasg_slz import PaginatedEntryResourceSLZ, PaginatedMachineResourceSLZ
 from backend.db_services.redis.resources import constants
 from backend.flow.utils.base.payload_handler import PayloadHandler
-from backend.iam_app.dataclass import ResourceEnum
 from backend.iam_app.dataclass.actions import ActionEnum
 
 from . import yasg_slz
@@ -121,17 +120,9 @@ class RedisClusterViewSet(viewsets.ResourceViewSet):
         ActionEnum.REDIS_WEBCONSOLE,
         ActionEnum.REDIS_SOURCE_ACCESS_VIEW,
         ActionEnum.REDIS_DBCONFIG_EDIT,
+        ActionEnum.REDIS_LOADBALANCE_MANAGE,
     ]
     list_instance_perm_actions = [ActionEnum.REDIS_VIEW]
-    list_external_perm_actions = [ActionEnum.ACCESS_ENTRY_EDIT]
-    list_external_manage_actions = [ActionEnum.REDIS_LOADBALANCE_MANAGE]
-
-    @staticmethod
-    def _external_perm_param_field(kwargs):
-        return {
-            ResourceEnum.BUSINESS.id: kwargs["bk_biz_id"],
-            ResourceEnum.DBTYPE.id: kwargs["view_class"].db_type.value,
-        }
 
     @action(methods=["GET"], detail=True, url_path="get_nodes", serializer_class=serializers.ListNodesSLZ)
     def get_nodes(self, request, bk_biz_id: int, cluster_id: int):
