@@ -57,6 +57,7 @@ class TenDBClusterSqlImportFlowParamBuilder(MysqlSqlImportFlowParamBuilder):
 class TenDBClusterSqlImportFlowBuilder(BaseTendbTicketFlowBuilder, MysqlSqlImportFlowBuilder):
     group = DBType.TenDBCluster.value
     serializer = TenDBClusterSqlImportDetailSerializer
+    validator = SpiderController.spider_sql_import_scene.validator
     # 定义流程所用到的cls，方便继承复用
     itsm_flow_builder = TenDBClusterSqlImportItsmParamBuilder
     backup_flow_builder = TenDBClusterSqlImportBackUpFlowParamBuilder
