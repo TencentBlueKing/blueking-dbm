@@ -8,9 +8,13 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+import functools
 import json
+import operator
+from functools import wraps
 
 from celery.schedules import crontab
+from django.db.models import Q
 from django.utils.translation import gettext_lazy as _
 from rest_framework import status
 from rest_framework.decorators import action
@@ -32,12 +36,73 @@ from backend.configuration.serializers import (
     VerifyPasswordResponseSerializer,
     VerifyPasswordSerializer,
 )
+from backend.constants import IP_PORT_DIVIDER
+from backend.db_meta.models import ProxyInstance, StorageInstance
 from backend.db_periodic_task.models import DBPeriodicTask
 from backend.iam_app.dataclass.actions import ActionEnum
-from backend.iam_app.handlers.drf_perm.base import ResourceActionPermission
-from backend.iam_app.handlers.drf_perm.cluster import ModifyClusterPasswordPermission, QueryClusterPasswordPermission
+from backend.iam_app.handlers.drf_perm.base import ResourceActionPermission, get_request_key_id
+from backend.iam_app.handlers.drf_perm.cluster import ModifyClusterPasswordPermission
+from backend.iam_app.handlers.permission import Permission
 
 SWAGGER_TAG = _("密码安全策略")
+
+
+def decorator_permission_field():
+    def wrapper(view_func):
+        @wraps(view_func)
+        def wrapped_view(*args, **kwargs):
+            response = view_func(*args, **kwargs)
+            db_type = get_request_key_id(args[1], key="db_type")
+            perm_actions = [getattr(ActionEnum, f"{db_type}_admin_pwd_view".lower())]
+            action_resource_meta = perm_actions[0].related_resource_types[0]
+            result_list = response.data["results"]
+
+            # 构建 ip:port -> cluster_id 的映射
+            ip_port_cluster_map = {}
+            instance_ip_filters = functools.reduce(
+                operator.or_,
+                [
+                    Q(machine__bk_cloud_id=inst["bk_cloud_id"], machine__ip=inst["ip"], port=inst["port"])
+                    for inst in result_list
+                ],
+            )
+            storage_instances = StorageInstance.objects.filter(instance_ip_filters).values(
+                "machine__ip", "port", "cluster"
+            )
+            for inst in storage_instances:
+                ip_port = f"{inst['machine__ip']}{IP_PORT_DIVIDER}{inst['port']}"
+                cluster_id = inst["cluster"]
+                if cluster_id:
+                    ip_port_cluster_map[ip_port] = cluster_id
+
+            proxy_instances = ProxyInstance.objects.filter(instance_ip_filters).values(
+                "machine__ip", "port", "cluster"
+            )
+            for inst in proxy_instances:
+                ip_port = f"{inst['machine__ip']}{IP_PORT_DIVIDER}{inst['port']}"
+                cluster_id = inst["cluster"]
+                if cluster_id:
+                    ip_port_cluster_map[ip_port] = cluster_id
+
+            cluster_ids = set(ip_port_cluster_map.values())
+            resources_list = [[instance] for instance in action_resource_meta.batch_create_instances(cluster_ids)]
+
+            permission_result = Permission().batch_is_allowed(perm_actions, resources_list)
+            false_actions_map = {action.id: False for action in perm_actions}
+
+            for item in result_list:
+                item.setdefault("permission", {})
+                ip_port = f"{item['machine__ip']}{IP_PORT_DIVIDER}{item['port']}"
+                instance_id = str(ip_port_cluster_map.get(ip_port))
+                if not instance_id:
+                    continue
+                item["permission"].update(permission_result.get(instance_id, false_actions_map))
+
+            return response
+
+        return wrapped_view
+
+    return wrapper
 
 
 class PasswordPolicyViewSet(viewsets.SystemViewSet):
@@ -47,7 +112,7 @@ class PasswordPolicyViewSet(viewsets.SystemViewSet):
         ("get_password_policy", "verify_password_strength", "get_random_password", "query_random_cycle"): [],
         ("query_async_modify_result",): [],
         ("modify_admin_password",): [ModifyClusterPasswordPermission()],
-        ("query_admin_password",): [QueryClusterPasswordPermission()],
+        ("query_admin_password",): [],
         ("update_password_policy", "modify_random_cycle"): [
             ResourceActionPermission([ActionEnum.PASSWORD_POLICY_SET])
         ],
@@ -143,6 +208,7 @@ class PasswordPolicyViewSet(viewsets.SystemViewSet):
         tags=[SWAGGER_TAG],
     )
     @action(methods=["POST"], detail=False, serializer_class=GetAdminPasswordSerializer, pagination_class=None)
+    @decorator_permission_field()
     def query_admin_password(self, request, *args, **kwargs):
         validated_data = self.params_validate(self.get_serializer_class())
         if validated_data.get("instances"):

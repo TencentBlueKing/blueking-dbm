@@ -106,14 +106,6 @@ class BaseSQLServerViewSet(viewsets.ResourceViewSet):
         ActionEnum.SQLSERVER_DBCONFIG_EDIT,
     ]
     list_instance_perm_actions = [ActionEnum.SQLSERVER_VIEW]
-    list_external_perm_actions = [ActionEnum.ACCESS_ENTRY_EDIT]
-
-    @staticmethod
-    def _external_perm_param_field(kwargs):
-        return {
-            ResourceEnum.BUSINESS.id: kwargs["bk_biz_id"],
-            ResourceEnum.DBTYPE.id: kwargs["view_class"].db_type.value,
-        }
 
     @Permission.decorator_permission_field(
         id_field=lambda d: d["id"],
@@ -124,10 +116,6 @@ class BaseSQLServerViewSet(viewsets.ResourceViewSet):
         param_field=lambda d: d["bk_biz_id"],
         actions=[ActionEnum.SQLSERVER_PRIV_MANAGE],
         resource_meta=ResourceEnum.BUSINESS,
-    )
-    @Permission.decorator_external_permission_field(
-        param_field=lambda d: d["view_class"]._external_perm_param_field(d),
-        action_filed=lambda d: d["view_class"].list_external_perm_actions,
     )
     def list(self, request, bk_biz_id: int):
         """查询集群列表"""

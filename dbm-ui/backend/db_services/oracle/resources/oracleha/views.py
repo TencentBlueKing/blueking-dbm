@@ -18,7 +18,6 @@ from backend.db_services.dbbase.resources.yasg_slz import PaginatedEntryResource
 from backend.db_services.oracle.resources import constants
 from backend.db_services.oracle.resources.oracleha import yasg_slz
 from backend.db_services.oracle.resources.oracleha.query import ListRetrieveResource
-from backend.iam_app.dataclass import ResourceEnum
 from backend.iam_app.dataclass.actions import ActionEnum
 
 
@@ -98,11 +97,3 @@ class OracleHaViewSet(viewsets.ResourceViewSet):
         ActionEnum.ORACLE_DBCONFIG_EDIT,
     ]
     list_instance_perm_actions = [ActionEnum.ORACLE_VIEW]
-    list_external_perm_actions = [ActionEnum.ACCESS_ENTRY_EDIT]
-
-    @staticmethod
-    def _external_perm_param_field(kwargs):
-        return {
-            ResourceEnum.BUSINESS.id: kwargs["bk_biz_id"],
-            ResourceEnum.DBTYPE.id: kwargs["view_class"].db_type.value,
-        }
