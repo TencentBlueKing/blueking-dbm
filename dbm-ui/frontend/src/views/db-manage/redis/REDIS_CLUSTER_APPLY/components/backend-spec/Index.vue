@@ -6,7 +6,8 @@
         :label="targetCapacityTitle"
         property="details.resource_spec.backend_group.capacity"
         required>
-        <BkInput
+        <DbInput
+          allow-empty-value
           :min="1"
           :model-value="modelValue.capacity"
           style="width: 314px"
@@ -18,7 +19,8 @@
         :label="futureCapacityTitle"
         property="details.resource_spec.backend_group.future_capacity"
         required>
-        <BkInput
+        <DbInput
+          allow-empty-value
           :min="Number(modelValue.capacity)"
           :model-value="modelValue.future_capacity"
           style="width: 314px"
@@ -347,7 +349,7 @@
     .bk-form-item {
       .bk-form-content {
         .bk-select,
-        .bk-input {
+        .dbm-input {
           width: 314px !important;
         }
       }

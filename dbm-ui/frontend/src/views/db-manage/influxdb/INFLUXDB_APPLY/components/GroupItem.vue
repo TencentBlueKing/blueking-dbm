@@ -57,7 +57,7 @@
               property="name"
               required
               :rules="rules">
-              <BkInput
+              <DbInput
                 ref="inputRef"
                 v-model="createState.name"
                 class="create-input"

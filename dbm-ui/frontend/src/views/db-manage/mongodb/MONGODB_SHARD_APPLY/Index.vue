@@ -62,7 +62,7 @@
             :label="t('访问端口')"
             property="details.start_port"
             required>
-            <BkInput
+            <DbInput
               v-model="formData.details.start_port"
               clearable
               :min="1"
@@ -107,7 +107,7 @@
                 :label="t('数量')"
                 property="details.resource_spec.mongo_config.count"
                 required>
-                <BkInput
+                <DbInput
                   v-model="formData.details.resource_spec.mongo_config.count"
                   disabled
                   type="number" />
@@ -150,7 +150,7 @@
                 :label="t('数量')"
                 property="details.resource_spec.mongos.count"
                 required>
-                <BkInput
+                <DbInput
                   v-model="formData.details.resource_spec.mongos.count"
                   :min="2"
                   type="number" />
@@ -178,15 +178,16 @@
             :label="t('每台主机 oplog 容量占比')"
             property="details.oplog_percent"
             required>
-            <BkInput
+            <DbInput
               v-model="formData.details.oplog_percent"
               clearable
               :max="100"
               :min="0"
               show-clear-only-hover
               style="width: 185px"
-              suffix="%"
-              type="number" />
+              type="number">
+              <template #suffix>%</template>
+            </DbInput>
             <span class="input-desc">{{ t('预计容量nG', [estimatedCapacity]) }}</span>
           </BkFormItem>
           <EstimatedCost
@@ -195,7 +196,7 @@
               resource_spec: resourceSepc,
             }" />
           <BkFormItem :label="t('备注')">
-            <BkInput
+            <DbInput
               v-model="formData.remark"
               :maxlength="100"
               :placeholder="t('请提供更多有用信息申请信息_以获得更快审批')"
@@ -617,7 +618,7 @@
           margin-left: 120px !important;
 
           .bk-select,
-          .bk-input {
+          .dbm-input {
             width: 314px !important;
           }
         }

@@ -13,6 +13,7 @@ declare module 'vue' {
     DbForm: typeof import('@components/db-form/index.vue').default;
     DbFormItem: typeof import('@components/db-form/item.vue').default;
     DbIcon: typeof import('@components/db-icon/index.ts').default;
+    DbInput: typeof import('@components/bkui-vue/input/Index.vue').default;
     DbPopconfirm: typeof import('@components/db-popconfirm/index.vue').default;
     DbQuickSearch: typeof import('@components/db-quick-search/Index.vue').default;
     DbSearchSelect: typeof import('@components/db-search-select/index.vue').default;

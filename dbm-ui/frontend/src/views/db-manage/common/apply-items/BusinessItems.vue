@@ -33,7 +33,7 @@
     property="details.db_app_abbr"
     required
     :rules="bkAppAbbrRuels">
-    <BkInput
+    <DbInput
       v-model="appAbbr"
       v-bk-tooltips="{
         trigger: 'click',

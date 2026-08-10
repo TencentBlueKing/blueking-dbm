@@ -70,7 +70,7 @@
           :label="t('访问端口')"
           property="details.http_port"
           required>
-          <BkInput
+          <DbInput
             v-model="formData.details.http_port"
             disabled
             style="width: 185px;"
@@ -129,7 +129,7 @@
               :label="t('节点数量')"
               property="details.resource_spec.riak.count"
               required>
-              <BkInput
+              <DbInput
                 v-model="formData.details.resource_spec.riak.count"
                 clearable
                 :min="3"
@@ -175,7 +175,7 @@
             resource_spec: resourceSepc,
           }" />
         <BkFormItem :label="t('备注')">
-          <BkInput
+          <DbInput
             v-model="formData.remark"
             :maxlength="100"
             :placeholder="t('请提供更多有用信息申请信息_以获得更快审批')"
