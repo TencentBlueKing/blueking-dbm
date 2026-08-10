@@ -12,7 +12,6 @@
 package ghost
 
 import (
-	"errors"
 	"fmt"
 	"os"
 	"os/signal"
@@ -258,7 +257,7 @@ func getConcurrency() int {
 func RunMigratorClustershardNodes(masterRemoteSvrs []native.Server, billId uint, dbName, tbName, statement string,
 	flag UserGhostFlag) (err error) {
 	// 使用无缓冲的 channel，配合专门的错误收集 goroutine
-	errChan := make(chan error)
+	errChan := make(chan backendMigrationFailure)
 	wg := sync.WaitGroup{}
 	ctrlChan := make(chan struct{}, getConcurrency())
 
@@ -266,30 +265,40 @@ func RunMigratorClustershardNodes(masterRemoteSvrs []native.Server, billId uint,
 	var validMigrations []struct {
 		context *base.MigrationContext
 		server  native.Server
+		dbName  string
 	}
 
 	// 先验证所有的 MigrationContext，如果有错误立即返回
 	for idx, svr := range masterRemoteSvrs {
 		shardNum := native.GetShardNumberFromMasterServerName(svr.ServerName)
+		shardDBName := BuildShardDbName(dbName, shardNum)
 		// noop == false is execute
-		mgc, err := NewMigrationContext(buildDs(svr), flag, billId, idx, BuildShardDbName(dbName, shardNum), tbName, []string{
+		mgc, err := NewMigrationContext(buildDs(svr), flag, billId, idx, shardDBName, tbName, []string{
 			statement}, false)
 		if err != nil {
 			logger.Error("Failed to create migration context for %s: %v", svr.ServerName, err)
-			return err // 立即返回错误，避免部分失败的复杂情况
+			return fmt.Errorf(
+				"failed to create migration context for %s(%s:%d) db=%s: %w",
+				svr.ServerName,
+				svr.Host,
+				svr.Port,
+				shardDBName,
+				err,
+			) // 立即返回错误，避免部分失败的复杂情况
 		}
 		validMigrations = append(validMigrations, struct {
 			context *base.MigrationContext
 			server  native.Server
-		}{mgc, svr})
+			dbName  string
+		}{mgc, svr, shardDBName})
 	}
 
 	// 错误收集 goroutine
-	var errs []error
+	var failures []backendMigrationFailure
 	errDone := make(chan struct{})
 	go func() {
-		for errx := range errChan {
-			errs = append(errs, errx)
+		for failure := range errChan {
+			failures = append(failures, failure)
 		}
 		close(errDone)
 	}()
@@ -297,7 +306,7 @@ func RunMigratorClustershardNodes(masterRemoteSvrs []native.Server, billId uint,
 	// 启动所有迁移任务
 	for _, migration := range validMigrations {
 		wg.Add(1)
-		go func(migrationContext *base.MigrationContext, svr native.Server) {
+		go func(migrationContext *base.MigrationContext, svr native.Server, shardDBName string) {
 			defer wg.Done()
 
 			// 获取并发许可
@@ -307,9 +316,15 @@ func RunMigratorClustershardNodes(masterRemoteSvrs []native.Server, billId uint,
 			logger.Info("will execute sql:%s on %s", statement, svr.ServerName)
 			migrator := logic.NewMigrator(migrationContext, "dbm")
 			if err := migrator.Migrate(); err != nil {
-				errChan <- err
+				errChan <- backendMigrationFailure{
+					serverName: svr.ServerName,
+					host:       svr.Host,
+					port:       svr.Port,
+					dbName:     shardDBName,
+					err:        err,
+				}
 			}
-		}(migration.context, migration.server)
+		}(migration.context, migration.server, migration.dbName)
 	}
 
 	// 等待所有任务完成，然后关闭错误 channel
@@ -321,7 +336,11 @@ func RunMigratorClustershardNodes(masterRemoteSvrs []native.Server, billId uint,
 	// 等待错误收集完成
 	<-errDone
 
-	return errors.Join(errs...)
+	if err := newOnlineDDLSummaryError(len(validMigrations), dbName, tbName, failures); err != nil {
+		logger.Error("%s", err.Error())
+		return err
+	}
+	return nil
 }
 
 func buildDs(svr native.Server) DataSource {

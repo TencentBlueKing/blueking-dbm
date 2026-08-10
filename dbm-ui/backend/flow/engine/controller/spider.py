@@ -61,6 +61,7 @@ from backend.flow.engine.bamboo.scene.spider.validate.spider_layer_disaster_reco
 from backend.flow.engine.bamboo.scene.spider.validate.spider_nodes_change_spec_validate import (
     TenDBClusterNodesChangeSpecValidator,
 )
+from backend.flow.engine.bamboo.scene.spider.validate.spider_online_ddl_validate import TenDBClusterOnlineDDLValidator
 from backend.flow.engine.bamboo.scene.spider.validate.spider_rebuild_nodes_validate import (
     TenDBClusterRebuildNodesFlowValidator,
 )
@@ -179,6 +180,7 @@ class SpiderController(BaseController):
         flow = ImportSQLFlow(root_id=self.root_id, data=self.ticket_data)
         flow.sql_semantic_check_flow()
 
+    @validates_with(TenDBClusterOnlineDDLValidator)
     def spider_sql_import_scene(self):
         flow = ImportSQLFlow(root_id=self.root_id, data=self.ticket_data)
         flow.import_sqlfile_flow()
