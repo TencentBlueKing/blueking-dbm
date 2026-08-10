@@ -83,7 +83,7 @@ func (d *GenCerComp) GenCer7() (err error) {
 		return err
 	}
 
-	esTool := fmt.Sprintf("ES_JAVA_HOME=%s/jdk/ bin/elasticsearch-certutil", tmpEsDir)
+	esTool := fmt.Sprintf("unset JAVA_HOME; ES_JAVA_HOME=%s/jdk/ bin/elasticsearch-certutil", tmpEsDir)
 	// ./bin/elasticsearch-certutil ca
 	extraCmd = fmt.Sprintf("%s ca  --days 365000 --out elastic-stack-ca.p12 --pass ''", esTool)
 	logger.Info("Exec [%s]", extraCmd)
@@ -116,8 +116,10 @@ func (d *GenCerComp) GenCer7() (err error) {
 	}
 
 	// generate keystore file, elasticsearch-7.14.2/config/elasticsearch.keystore
+	// 使用 < 重定向而非管道(|)，因为 | 只作用于分号前的命令，
+	// 分号后的 elasticsearch-keystore 收不到 stdin 数据会报 "unable to read from standard input"
 	extraCmd = fmt.Sprintf(
-		`cat es_passfile |ES_JAVA_HOME=%s/jdk/  ./bin/elasticsearch-keystore add -x "bootstrap.password" -f`, tmpEsDir)
+		`unset JAVA_HOME; ES_JAVA_HOME=%s/jdk/  ./bin/elasticsearch-keystore add -x "bootstrap.password" -f < es_passfile`, tmpEsDir)
 	logger.Info("Exec [%s]", extraCmd)
 	if output, err := osutil.ExecShellCommand(false, extraCmd); err != nil {
 		logger.Error("cmd [%s] failed, error message: [%s], error code: [%s]", extraCmd, output, err)
