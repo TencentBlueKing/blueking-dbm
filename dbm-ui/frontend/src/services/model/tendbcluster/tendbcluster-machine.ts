@@ -23,6 +23,7 @@ export default class SpiderMachine {
   bk_svr_device_cls_name: string;
   cluster_type: string;
   create_at: string;
+  enable: boolean;
   host_info: HostInfo;
   instance_role: string;
   ip: string;
@@ -52,5 +53,6 @@ export default class SpiderMachine {
     this.spec_config = payload.spec_config;
     this.spec_id = payload.spec_id;
     this.spec_name = payload.spec_name;
+    this.enable = payload.enable;
   }
 }
