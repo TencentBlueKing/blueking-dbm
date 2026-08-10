@@ -37,6 +37,29 @@ def consume_sql_exec_duration_by_ticket(ticket_id: int):
     """
     try:
         result = record_sql_exec_durations_by_ticket(ticket_id=ticket_id)
-        logger.info(_("消费 SQL 执行耗时记录 ticket={} result={}").format(ticket_id, result))
+        total_inserted = result.get("total_inserted", 0)
+        scanned = result.get("scanned", 0)
+        instance_count = result.get("instance_count", 0)
+        failures = result.get("failures") or []
+        if failures:
+            logger.warning(
+                _("消费 SQL 执行耗时记录部分失败 ticket={} inserted={} scanned={} " "instance_count={} failures={}").format(
+                    ticket_id, total_inserted, scanned, instance_count, failures
+                )
+            )
+        elif total_inserted == 0:
+            # instance_count=0：无作业实例；scanned=0：实例存在但无可拉日志 IP；
+            # scanned>0：已解析但均低于入库阈值
+            logger.info(
+                _("消费 SQL 执行耗时记录完成 ticket={} 无可入库记录 " "instance_count={} scanned={} result={}").format(
+                    ticket_id, instance_count, scanned, result
+                )
+            )
+        else:
+            logger.info(
+                _("消费 SQL 执行耗时记录完成 ticket={} inserted={} scanned={} instance_count={}").format(
+                    ticket_id, total_inserted, scanned, instance_count
+                )
+            )
     except Exception as e:
         logger.exception(_("消费 SQL 执行耗时记录失败 ticket={}: {}").format(ticket_id, e))
