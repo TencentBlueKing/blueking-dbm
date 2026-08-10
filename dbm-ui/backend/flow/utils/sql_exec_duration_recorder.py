@@ -145,6 +145,7 @@ def record_sql_exec_durations_by_ticket(
         {
             "total_inserted": int,                           # 累计新增条数
             "scanned": int,                                  # 扫描的 (instance, ip) 组合数
+            "instance_count": int,                           # 该单据下 FlowBkJobInstance 条数
             "failures": [                                    # 失败明细，单 IP 失败不中断整体
                 {"job_instance_id": int, "ip": str, "error": str},
                 ...
@@ -155,6 +156,11 @@ def record_sql_exec_durations_by_ticket(
         raise ValueError(_("ticket_id 不能为空"))
 
     instances = list(FlowBkJobInstance.objects.filter(ticket_id=ticket_id))
+    instance_count = len(instances)
+    if instance_count == 0:
+        logger.info(_("消费 SQL 执行耗时：ticket={} 无 FlowBkJobInstance，跳过解析").format(ticket_id))
+        return {"total_inserted": 0, "scanned": 0, "instance_count": 0, "failures": []}
+
     cluster_domain_cache = _build_cluster_domain_cache(
         cluster_ids=[inst.cluster_id for inst in instances if inst.cluster_id]
     )
@@ -198,7 +204,12 @@ def record_sql_exec_durations_by_ticket(
                     }
                 )
 
-    return {"total_inserted": total_inserted, "scanned": scanned, "failures": failures}
+    return {
+        "total_inserted": total_inserted,
+        "scanned": scanned,
+        "instance_count": instance_count,
+        "failures": failures,
+    }
 
 
 def _record_single_ip_with_known_cluster(
