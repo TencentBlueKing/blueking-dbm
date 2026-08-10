@@ -124,7 +124,7 @@ export default (props: any) => {
         id: 'device_class',
         list: deviceClassList.value?.map((item) => ({
           label: item.device_type,
-          value: `${item.id}`,
+          value: `${item.device_type}`,
         })),
         name: t('机型'),
         type: 'multiple',
