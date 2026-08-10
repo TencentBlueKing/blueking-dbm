@@ -81,15 +81,6 @@ class ListResourceViewSet(BaseListResourceViewSet):
 
 
 class BigdataResourceViewSet(ResourceViewSet):
-    list_external_perm_actions = [ActionEnum.ACCESS_ENTRY_EDIT]
-
-    @staticmethod
-    def _external_perm_param_field(kwargs):
-        return {
-            ResourceEnum.BUSINESS.id: kwargs["bk_biz_id"],
-            ResourceEnum.DBTYPE.id: kwargs["view_class"].db_type.value,
-        }
-
     @classmethod
     def _get_password(cls, cluster, username, port=0):
         """查询密码"""

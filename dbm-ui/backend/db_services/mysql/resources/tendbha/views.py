@@ -18,7 +18,6 @@ from backend.db_services.dbbase.resources.yasg_slz import PaginatedEntryResource
 from backend.db_services.mysql.resources import constants
 from backend.db_services.mysql.resources.tendbha import yasg_slz
 from backend.db_services.mysql.resources.tendbha.query import ListRetrieveResource
-from backend.iam_app.dataclass import ResourceEnum
 from backend.iam_app.dataclass.actions import ActionEnum
 
 
@@ -100,14 +99,7 @@ class DBHAViewSet(viewsets.ResourceViewSet):
         ActionEnum.MYSQL_WEBCONSOLE,
         ActionEnum.MYSQL_SUBSCRIBE_MONITOR,
         ActionEnum.MYSQL_DBCONFIG_EDIT,
+        ActionEnum.MYSQL_LOADBALANCE_MANAGE,
     ]
     list_instance_perm_actions = [ActionEnum.MYSQL_VIEW]
-    list_external_perm_actions = [ActionEnum.ACCESS_ENTRY_EDIT]
-    list_external_manage_actions = [ActionEnum.MYSQL_PRIV_MANAGE, ActionEnum.MYSQL_LOADBALANCE_MANAGE]
-
-    @staticmethod
-    def _external_perm_param_field(kwargs):
-        return {
-            ResourceEnum.BUSINESS.id: kwargs["bk_biz_id"],
-            ResourceEnum.DBTYPE.id: kwargs["view_class"].db_type.value,
-        }
+    list_external_manage_actions = [ActionEnum.MYSQL_PRIV_MANAGE]

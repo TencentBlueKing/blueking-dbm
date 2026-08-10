@@ -34,7 +34,7 @@ from backend.db_services.dbbase.resources.yasg_slz import (
 from backend.db_services.mongodb.resources import constants, yasg_slz
 from backend.db_services.mongodb.resources.query import MongoDBListRetrieveResource
 from backend.flow.utils.mongodb.mongodb_password import MongoDBPassword
-from backend.iam_app.dataclass.actions import ActionEnum, ResourceEnum
+from backend.iam_app.dataclass.actions import ActionEnum
 from backend.iam_app.handlers.drf_perm.base import DBManagePermission
 
 
@@ -117,17 +117,10 @@ class MongoDBViewSet(ResourceViewSet):
         ActionEnum.MONGODB_SUBSCRIBE_MONITOR,
         ActionEnum.MONGODB_ACCESS_ENTRY_VIEW,
         ActionEnum.MONGODB_DBCONFIG_EDIT,
+        ActionEnum.MONGODB_LOADBALANCE_MANAGE,
     ]
     list_instance_perm_actions = [ActionEnum.MONGODB_VIEW]
-    list_external_perm_actions = [ActionEnum.ACCESS_ENTRY_EDIT]
-    list_external_manage_actions = [ActionEnum.MONGODB_PRIV_MANAGE, ActionEnum.MONGODB_LOADBALANCE_MANAGE]
-
-    @staticmethod
-    def _external_perm_param_field(kwargs):
-        return {
-            ResourceEnum.BUSINESS.id: kwargs["bk_biz_id"],
-            ResourceEnum.DBTYPE.id: kwargs["view_class"].db_type.value,
-        }
+    list_external_manage_actions = [ActionEnum.MONGODB_PRIV_MANAGE]
 
     @common_swagger_auto_schema(
         operation_summary=_("获取实例的角色类型"),
