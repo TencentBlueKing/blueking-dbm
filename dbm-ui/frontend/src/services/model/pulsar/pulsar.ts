@@ -86,11 +86,11 @@ export default class Pulsar extends ClusterBase {
     title: string;
   }>;
   permission: {
-    access_entry_edit: boolean;
     pulsar_access_entry_view: boolean;
     pulsar_destroy: boolean;
     pulsar_edit: boolean;
     pulsar_enable_disable: boolean;
+    pulsar_manage: boolean;
     pulsar_reboot: boolean;
     pulsar_replace: boolean;
     pulsar_scale_up: boolean;

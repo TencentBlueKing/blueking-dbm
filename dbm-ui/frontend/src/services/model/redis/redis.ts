@@ -81,7 +81,6 @@ export default class Redis extends ClusterBase {
   module_names: string[];
   operations: ClusterListOperation[];
   permission: {
-    access_entry_edit: boolean;
     redis_access_entry_view: boolean;
     redis_backup: boolean;
     redis_dbconfig_edit: boolean;
