@@ -160,7 +160,7 @@
           label-width={0}
           property={`details.replica_sets.${index}.set_id`}
           rules={rules.set_id}>
-          <bk-input
+          <db-input
             v-bk-tooltips={{
               content: t('仅支持小写字母、数字、连字符，同时会参与集群域名生成，创建后不可改'),
               placement: 'top',
@@ -175,7 +175,7 @@
             {{
               suffix: () => domains.value[index]?.set_id && <span class='domain-address-placeholder ml-4'></span>,
             }}
-          </bk-input>
+          </db-input>
         </bk-form-item>
       ),
     },
@@ -200,7 +200,7 @@
           errorDisplayType='tooltips'
           label-width={0}
           property={`details.replica_sets.${index}.name`}>
-          <bk-input
+          <db-input
             model-value={domains.value[index]?.name}
             placeholder={t('请输入')}
             onInput={(value: string) => handleChangeCellValue(value, index, 'name')}

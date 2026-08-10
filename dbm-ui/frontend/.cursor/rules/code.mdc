@@ -344,6 +344,28 @@ export const useStoreName = defineStore('storeName', {
 
 优先使用路径别名，如 `@components/xxx/index.vue`。
 
+### 6. css 处理器语法规则
+
+- 禁止
+
+```less
+.module {
+  &_name {
+  }
+}
+```
+
+- 建议
+
+```less
+.module {
+  .module-name {
+  }
+}
+```
+
+不要使用_, --, &-xxx 这种命名方式
+
 ## 注意事项
 
 1. **不要使用 `any` 类型**：尽量使用具体类型或 `unknown`
@@ -352,3 +374,7 @@ export const useStoreName = defineStore('storeName', {
 4. **使用路径别名**：避免使用过长的相对路径
 5. **保持代码整洁**：及时清理未使用的导入和变量
 6. **类型安全**：充分利用 TypeScript 的类型检查
+
+```
+
+```

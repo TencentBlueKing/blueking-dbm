@@ -120,7 +120,7 @@
                 :label="t('数量')"
                 property="details.resource_spec.influxdb.count"
                 required>
-                <BkInput
+                <DbInput
                   v-model="formData.details.resource_spec.influxdb.count"
                   :min="1"
                   type="number" />
@@ -132,7 +132,7 @@
           :label="t('访问端口')"
           property="details.port"
           required>
-          <BkInput
+          <DbInput
             v-model="formData.details.port"
             clearable
             :min="1"
@@ -145,7 +145,7 @@
             resource_spec: formData.details.resource_spec,
           }" />
         <BkFormItem :label="t('备注')">
-          <BkInput
+          <DbInput
             v-model="formData.remark"
             :maxlength="100"
             :placeholder="t('请提供更多有用信息申请信息_以获得更快审批')"
@@ -485,7 +485,7 @@
           margin-left: 120px !important;
 
           .bk-select,
-          .bk-input {
+          .dbm-input {
             width: 314px !important;
           }
         }

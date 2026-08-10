@@ -153,7 +153,7 @@
                     <td>{{ t('http端口') }}</td>
                     <td>
                       <BkFormItem property="details.http_port">
-                        <BkInput
+                        <DbInput
                           v-model="formData.details.http_port"
                           clearable
                           :min="1"
@@ -168,7 +168,7 @@
                     <td>{{ t('rpc端口') }}</td>
                     <td>
                       <BkFormItem property="details.rpc_port">
-                        <BkInput
+                        <DbInput
                           v-model="formData.details.rpc_port"
                           clearable
                           :min="1"
@@ -221,7 +221,7 @@
                   :label="t('数量')"
                   property="details.resource_spec.namenode.count"
                   required>
-                  <BkInput
+                  <DbInput
                     v-model="formData.details.resource_spec.namenode.count"
                     disabled
                     type="number" />
@@ -266,7 +266,7 @@
                   required>
                   <div style="display: flex; align-items: center">
                     <span style="flex-shrink: 0">
-                      <BkInput
+                      <DbInput
                         v-model="formData.details.resource_spec.zookeeper.count"
                         :max="3"
                         :min="1"
@@ -316,7 +316,7 @@
                   :label="t('数量')"
                   property="details.resource_spec.datanode.count"
                   required>
-                  <BkInput
+                  <DbInput
                     v-model="formData.details.resource_spec.datanode.count"
                     :min="2"
                     type="number" />
@@ -329,7 +329,7 @@
             <BkFormItem
               :label="t('总容量')"
               required>
-              <BkInput
+              <DbInput
                 disabled
                 :model-value="totalCapacity"
                 style="width: 184px" />
@@ -345,7 +345,7 @@
         <BkFormItem
           :label="t('备注')"
           property="remark">
-          <BkInput
+          <DbInput
             v-model="formData.remark"
             :maxlength="100"
             :placeholder="t('请提供更多有用信息申请信息_以获得更快审批')"
@@ -798,7 +798,7 @@
           margin-left: 120px !important;
 
           .bk-select,
-          .bk-input {
+          .dbm-input {
             width: 314px !important;
           }
         }
@@ -811,7 +811,7 @@
       background: #f5f7fa;
       border-radius: 2px;
 
-      .bk-input {
+      .dbm-input {
         width: 123px;
       }
 
