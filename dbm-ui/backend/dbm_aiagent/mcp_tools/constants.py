@@ -63,6 +63,10 @@ class DBMMcpTools(StrStructuredEnum):
     BKCC_WRAP = EnumField("bkcc-wrap", _("bkcc-wrap"))
     BKJOB_WRAP = EnumField("bkjob-wrap", _("bkjob-wrap"))
     RESOURCE_REPLENISH = EnumField("resource-replenish", "resource-replenish")
+    PULSAR_QUERY_META = EnumField("pulsar-query-meta", "pulsar-query-meta")
+    PULSAR_BILL = EnumField("pulsar-bill", "pulsar-bill")
+    PULSAR_METRICS = EnumField("pulsar-metrics", "pulsar-metrics")
+    PULSAR_TOOLBOX = EnumField("pulsar-toolbox", "pulsar-toolbox")
 
 
 class DBMMCPTags(StrStructuredEnum):
