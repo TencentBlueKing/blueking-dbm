@@ -13,7 +13,13 @@
 
 import { uniq } from 'lodash';
 
-import type { ClusterListEntry, ClusterListNode, ClusterListOperation, ClusterListSpec } from '@services/types';
+import type {
+  ClusterListEntry,
+  ClusterListNode,
+  ClusterListOperation,
+  ClusterListSpec,
+  MachineSpec,
+} from '@services/types';
 
 import { Affinity, affinityMap, ClusterTypes } from '@common/const';
 
@@ -71,6 +77,7 @@ export default class TendbCluster extends ClusterBase {
   dns_to_clb: boolean;
   id: number;
   machine_pair_cnt: number;
+  machine_specs: MachineSpec[];
   major_version: string;
   master_domain: string;
   operations: ClusterListOperation[];
@@ -129,6 +136,7 @@ export default class TendbCluster extends ClusterBase {
     this.cluster_name = payload.cluster_name;
     this.cluster_shard_num = payload.cluster_shard_num;
     this.cluster_spec = payload.cluster_spec || {};
+    this.machine_specs = payload.machine_specs || [];
     this.cluster_stats = payload.cluster_stats || {};
     this.cluster_type = payload.cluster_type;
     this.dns_to_clb = payload.dns_to_clb;

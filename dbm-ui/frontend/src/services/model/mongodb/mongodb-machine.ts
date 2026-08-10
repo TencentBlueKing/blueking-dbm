@@ -23,6 +23,7 @@ export default class MongodbMachine {
   bk_svr_device_cls_name: string;
   cluster_type: string;
   create_at: string;
+  enable: boolean;
   host_info: HostInfo;
   instance_role: string;
   ip: string;
@@ -45,6 +46,7 @@ export default class MongodbMachine {
     this.create_at = payload.create_at;
     this.host_info = payload.host_info;
     this.spec_name = payload.spec_name;
+    this.enable = payload.enable;
     this.instance_role = payload.instance_role;
     this.ip = payload.ip;
     this.machine_type = payload.machine_type;

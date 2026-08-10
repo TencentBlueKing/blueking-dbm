@@ -12,7 +12,13 @@
  */
 import { uniq } from 'lodash';
 
-import type { ClusterListEntry, ClusterListNode, ClusterListOperation, ClusterListSpec } from '@services/types';
+import type {
+  ClusterListEntry,
+  ClusterListNode,
+  ClusterListOperation,
+  ClusterListSpec,
+  MachineSpec,
+} from '@services/types';
 
 import { Affinity, affinityMap, ClusterTypes, DBTypes } from '@common/const';
 
@@ -79,6 +85,7 @@ export default class Es extends ClusterBase {
   es_datanode_hot: Array<ClusterListNode>;
   es_master: Array<ClusterListNode>;
   id: number;
+  machine_specs: MachineSpec[];
   major_version: string;
   master_domain: string;
   operations: ClusterListOperation[];
@@ -111,6 +118,7 @@ export default class Es extends ClusterBase {
     this.cluster_entry = payload.cluster_entry;
     this.cluster_name = payload.cluster_name;
     this.cluster_spec = payload.cluster_spec || {};
+    this.machine_specs = payload.machine_specs || [];
     this.cluster_stats = payload.cluster_stats || {};
     this.cluster_type = payload.cluster_type;
     this.dns_to_clb = payload.dns_to_clb;
