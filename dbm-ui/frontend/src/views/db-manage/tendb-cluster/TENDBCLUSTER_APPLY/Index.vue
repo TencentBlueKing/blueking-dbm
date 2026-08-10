@@ -79,7 +79,7 @@
                 property="details.resource_spec.spider.count"
                 required>
                 <div>
-                  <BkInput
+                  <DbInput
                     v-model="formData.details.resource_spec.spider.count"
                     :min="2"
                     type="number" />
@@ -107,7 +107,7 @@
             :label="t('访问端口')"
             property="details.spider_port"
             required>
-            <BkInput
+            <DbInput
               v-model="formData.details.spider_port"
               clearable
               :max="65535"
@@ -124,7 +124,7 @@
               resource_spec: resourceSepc,
             }" />
           <BkFormItem :label="t('备注')">
-            <BkInput
+            <DbInput
               v-model="formData.remark"
               :maxlength="100"
               :placeholder="t('请提供更多有用信息申请信息_以获得更快审批')"
@@ -460,7 +460,7 @@
           margin-left: 120px !important;
 
           .bk-select,
-          .bk-input {
+          .dbm-input {
             width: 314px !important;
           }
         }

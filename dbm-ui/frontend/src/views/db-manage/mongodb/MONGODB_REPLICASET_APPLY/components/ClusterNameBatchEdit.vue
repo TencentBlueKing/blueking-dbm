@@ -35,7 +35,7 @@
           <span>({{ t('通过换行分隔_快速批量编辑多个名称') }})</span>
         </p>
         <div class="batch-edit-box">
-          <BkInput
+          <DbInput
             v-model="value"
             class="batch-edit-input"
             :placeholder="t('请输入多个集群名称，多个换行分隔')"

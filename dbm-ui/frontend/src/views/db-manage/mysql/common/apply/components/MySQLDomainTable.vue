@@ -240,7 +240,7 @@
             label-width={0}
             property={`details.domains.${rowIndex}.key`}
             rules={domainRule}>
-            <bk-input
+            <db-input
               v-bk-tooltips={{
                 content: t('仅支持小写字母、数字、连字符，同时会参与集群域名生成，创建后不可改'),
                 placement: 'top',
@@ -259,7 +259,7 @@
                     <span class='domain-address-placeholder ml-4'></span>
                   ),
               }}
-            </bk-input>
+            </db-input>
           </bk-form-item>
         ) : (
           <span class='domain-address-placeholder'>

@@ -31,7 +31,7 @@
             :label="t('SQLServer 起始端口')"
             property="details.start_mssql_port"
             required>
-            <BkInput
+            <DbInput
               v-model="formData.details.start_mssql_port"
               class="item-input"
               :max="65535"
@@ -45,7 +45,7 @@
             :label="t('集群数量')"
             property="details.cluster_count"
             required>
-            <BkInput
+            <DbInput
               v-model="formData.details.cluster_count"
               class="item-input"
               :min="1"
@@ -56,7 +56,7 @@
             :label="t('每组主机部署集群')"
             property="details.inst_num"
             required>
-            <BkInput
+            <DbInput
               v-model="formData.details.inst_num"
               class="item-input"
               :max="Math.max(formData.details.cluster_count, 1)"
@@ -172,7 +172,7 @@
               resource_spec: resourceSepc,
             }" />
           <BkFormItem :label="t('备注')">
-            <BkInput
+            <DbInput
               v-model="formData.remark"
               :maxlength="100"
               :placeholder="t('请提供更多有用信息申请信息_以获得更快审批')"
@@ -779,7 +779,7 @@
           margin-left: 120px !important;
 
           .bk-select,
-          .bk-input {
+          .dbm-input {
             width: 314px !important;
           }
         }

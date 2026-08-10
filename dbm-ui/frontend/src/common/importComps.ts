@@ -21,6 +21,7 @@ import AuthTemplate from '@components/auth-component/component.vue';
 import AuthOption from '@components/auth-component/option.vue';
 import AuthRouterLink from '@components/auth-component/router-link.vue';
 import AuthSwitcher from '@components/auth-component/switcher.vue';
+import DbInput from '@components/bkui-vue/input/Index.vue';
 import DbCard from '@components/db-card/index.vue';
 import DbDateTimePicker from '@components/db-date-time-picker/Index.vue';
 import DbDialog from '@components/db-dialog/Index.vue';
@@ -83,6 +84,7 @@ export const setGlobalComps = (app: App<Element>) => {
   app.component('DbDialog', DbDialog);
   app.component('DbFormItem', DbFormItem);
   app.component('DbIcon', DbIcon);
+  app.component('DbInput', DbInput);
   app.component('DbPopconfirm', DbPopconfirm);
   app.component('DbDateTimePicker', DbDateTimePicker);
   app.component('DbSearchSelect', DbSearchSelect);

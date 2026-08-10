@@ -44,7 +44,7 @@
             :label="t('Proxy起始端口')"
             property="details.start_proxy_port"
             required>
-            <BkInput
+            <DbInput
               v-model="formData.details.start_proxy_port"
               class="inline-box"
               :max="65535"
@@ -56,7 +56,7 @@
             :label="t('MySQL起始端口')"
             property="details.start_mysql_port"
             required>
-            <BkInput
+            <DbInput
               v-model="formData.details.start_mysql_port"
               class="inline-box"
               :max="65535"
@@ -79,7 +79,7 @@
             :label="formItemLabels.clusterCount"
             property="details.cluster_count"
             required>
-            <BkInput
+            <DbInput
               v-model="formData.details.cluster_count"
               class="inline-box"
               :min="1"
@@ -92,7 +92,7 @@
             :label="formItemLabels.instNums"
             property="details.inst_num"
             required>
-            <BkInput
+            <DbInput
               v-model="formData.details.inst_num"
               class="inline-box"
               :max="formData.details.cluster_count"
@@ -298,7 +298,7 @@
               resource_spec: resourceSepc,
             }" />
           <BkFormItem :label="t('备注')">
-            <BkInput
+            <DbInput
               v-model="formData.remark"
               :maxlength="100"
               :placeholder="t('请提供更多有用信息申请信息_以获得更快审批')"
@@ -1091,7 +1091,7 @@
         margin-left: 120px !important;
 
         .bk-select,
-        .bk-input {
+        .dbm-input {
           width: 314px !important;
         }
       }

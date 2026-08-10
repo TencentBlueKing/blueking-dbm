@@ -92,7 +92,7 @@
             :label="t('访问端口')"
             property="details.proxy_port"
             required>
-            <BkInput
+            <DbInput
               v-model="formData.details.proxy_port"
               clearable
               :max="60000"
@@ -175,7 +175,7 @@
                     label-width="110"
                     property="details.proxy_port"
                     required>
-                    <BkInput
+                    <DbInput
                       v-model="formData.details.proxy_port"
                       :max="65535"
                       :min="1025"
@@ -310,7 +310,7 @@
                     :label="t('数量')"
                     property="details.resource_spec.proxy.count"
                     required>
-                    <BkInput
+                    <DbInput
                       v-model="formData.details.resource_spec.proxy.count"
                       :min="2"
                       type="number" />
@@ -362,7 +362,7 @@
             :biz-id="formData.bk_biz_id"
             :db-type="DBTypes.REDIS" />
           <BkFormItem :label="t('备注')">
-            <BkInput
+            <DbInput
               v-model="formData.remark"
               :maxlength="100"
               :placeholder="t('请提供更多有用信息申请信息_以获得更快审批')"
@@ -1076,7 +1076,7 @@
           margin-left: 120px !important;
 
           .bk-select,
-          .bk-input {
+          .dbm-input {
             width: 314px !important;
           }
         }
