@@ -17,7 +17,9 @@
       <div>{{ data.clusterSubzonesDisplay }}</div>
     </InfoItem>
     <InfoItem :label="t('规格')">
-      {{ data.cluster_spec.spec_name || '--' }}
+      <MachineSpecCell
+        mode="detail"
+        :specs="data.machine_specs" />
     </InfoItem>
     <InfoItem :label="t('管控区域')">
       {{ data.bk_cloud_name ? `${data.bk_cloud_name}[${data.bk_cloud_id}]` : '--' }}
@@ -38,6 +40,8 @@
 
   import TendbhaModel from '@services/model/mysql/tendbha';
 
+  import MachineSpecCell from '@views/db-manage/common/cluster-details/components/machine-spec-cell/Index.vue';
+
   import InfoList, { InfoItem } from '../base-info/components/Index.vue';
 
   interface Props {
@@ -49,6 +53,7 @@
       | 'major_version'
       | 'disasterToleranceLevelName'
       | 'cluster_spec'
+      | 'machine_specs'
       | 'bk_cloud_name'
       | 'bk_cloud_id'
       | 'bk_biz_name'
