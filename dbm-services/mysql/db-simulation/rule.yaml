@@ -107,7 +107,7 @@ AlterTableRule:
         "rename_key",
         "convert_charset",
       ]
-    desc: "高危变更类型"
+    desc: ""
     suggestion: ""
     extra_message_map:
       {

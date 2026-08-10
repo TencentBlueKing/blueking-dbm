@@ -48,10 +48,10 @@ func TestParseExtraMessageMap_ChangeColumn(t *testing.T) {
 
 	require.Len(t, r.RiskWarns, 1)
 	msg := r.RiskWarns[0]
+	assert.True(t, strings.HasPrefix(msg, extraMsgChangeColumn), "extra_message 应置于告警最前: %s", msg)
 	assert.Contains(t, msg, "高危变更类型")
 	assert.Contains(t, msg, "change_column")
 	assert.Contains(t, msg, "字段: foo")
-	assert.Contains(t, msg, extraMsgChangeColumn)
 	assert.Contains(t, msg, "请在变更表时避免使用高危变更类型")
 }
 
@@ -67,9 +67,9 @@ func TestParseExtraMessageMap_DropPrimary(t *testing.T) {
 
 	require.Len(t, r.RiskWarns, 1)
 	msg := r.RiskWarns[0]
+	assert.True(t, strings.HasPrefix(msg, extraMsgDropPrimary), "extra_message 应置于告警最前: %s", msg)
 	assert.Contains(t, msg, "当前值:drop_key")
 	assert.Contains(t, msg, "主键")
-	assert.Contains(t, msg, extraMsgDropPrimary)
 	assert.NotContains(t, msg, "当前值:drop_primary")
 }
 
