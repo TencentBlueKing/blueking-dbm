@@ -21,7 +21,7 @@
         :label="t('集群容量需求')"
         property="details.resource_spec.mongodb.capacity"
         required>
-        <BkInput
+        <DbInput
           v-model="modelValue.capacity"
           :min="0"
           type="number"
@@ -190,7 +190,7 @@
         :label="t('每个 Shard 节点数')"
         property="details.resource_spec.mongodb.shard_node_count"
         required>
-        <BkInput
+        <DbInput
           v-model="modelValue.shard_node_count"
           :min="0"
           type="number" />
@@ -199,7 +199,7 @@
         :label="t('集群 Shard 数')"
         property="details.resource_spec.mongodb.shards_num"
         required>
-        <BkInput
+        <DbInput
           v-model="modelValue.shards_num"
           :min="0"
           type="number" />
@@ -208,7 +208,7 @@
         :label="t('机器组数')"
         property="details.resource_spec.mongodb.shard_machine_group"
         required>
-        <BkInput
+        <DbInput
           v-model="modelValue.shard_machine_group"
           :min="0"
           type="number" />
@@ -217,12 +217,12 @@
       <BkFormItem
         :label="t('每组机器 Shard 数')"
         property="details.resource_spec.mongodb.machine_group_shard_num">
-        <BkInput
+        <DbInput
           v-if="modelValue.machine_group_shard_num === 0"
           disabled
           :placeholder="t('自动生成')"
           type="number" />
-        <BkInput
+        <DbInput
           v-else
           v-model="modelValue.machine_group_shard_num"
           disabled
@@ -230,12 +230,12 @@
           type="number" />
       </BkFormItem>
       <BkFormItem :label="t('总机器数')">
-        <BkInput
+        <DbInput
           v-if="modelValue.count === 0"
           disabled
           :placeholder="t('自动生成')"
           type="number" />
-        <BkInput
+        <DbInput
           v-else
           v-model="modelValue.count"
           disabled
@@ -484,7 +484,7 @@
     :deep(.bk-form-item) {
       .bk-form-content {
         .bk-select,
-        .bk-input {
+        .dbm-input {
           width: 314px !important;
         }
       }

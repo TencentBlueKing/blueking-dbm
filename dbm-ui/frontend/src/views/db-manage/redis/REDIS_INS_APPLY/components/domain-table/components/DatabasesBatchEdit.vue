@@ -34,7 +34,7 @@
           {{ t('批量编辑 Databases') }}
         </p>
         <div class="batch-edit-box">
-          <BkInput
+          <DbInput
             v-model="databases"
             class="batch-edit-input"
             :max="16"

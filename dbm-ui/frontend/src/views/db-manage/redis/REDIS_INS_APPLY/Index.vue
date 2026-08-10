@@ -68,7 +68,7 @@
             :label="t('集群数量')"
             property="details.cluster_count"
             required>
-            <BkInput
+            <DbInput
               v-model="formData.details.cluster_count"
               clearable
               :min="1"
@@ -82,7 +82,7 @@
             :label="t('每组主机部署集群')"
             property="details.group_count"
             required>
-            <BkInput
+            <DbInput
               v-model="formData.details.group_count"
               clearable
               :max="formData.details.cluster_count"
@@ -96,7 +96,7 @@
             :label="t('Redis 起始端口')"
             property="details.port"
             required>
-            <BkInput
+            <DbInput
               v-model="formData.details.port"
               :max="65535"
               :min="1025"
@@ -194,7 +194,7 @@
             :biz-id="formData.bk_biz_id"
             :db-type="DBTypes.REDIS" />
           <BkFormItem :label="t('备注')">
-            <BkInput
+            <DbInput
               v-model="formData.remark"
               :maxlength="100"
               :placeholder="t('请提供更多有用信息申请信息_以获得更快审批')"
@@ -705,7 +705,7 @@
           margin-left: 120px !important;
 
           .bk-select,
-          .bk-input {
+          .dbm-input {
             width: 314px;
           }
         }

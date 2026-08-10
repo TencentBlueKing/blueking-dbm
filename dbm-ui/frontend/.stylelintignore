@@ -2,3 +2,5 @@ node_modules/
 dist/
 public/
 lib/
+.cursor/
+.codebuddy/
