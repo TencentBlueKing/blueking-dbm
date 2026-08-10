@@ -25,6 +25,7 @@ export default class EsMachine {
   bk_svr_device_cls_name: string;
   cluster_type: string;
   create_at: string;
+  enable: boolean;
   host_info: HostInfo;
   instance_role: string;
   ip: string;
@@ -49,6 +50,7 @@ export default class EsMachine {
     this.instance_role = payload.instance_role;
     this.ip = payload.ip;
     this.spec_name = payload.spec_name;
+    this.enable = payload.enable;
     this.machine_type = payload.machine_type;
     this.related_clusters = payload.related_clusters;
     this.related_instances = payload.related_instances;

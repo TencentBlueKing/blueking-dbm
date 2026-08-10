@@ -12,7 +12,13 @@
  */
 import { uniq } from 'lodash';
 
-import type { ClusterListEntry, ClusterListNode, ClusterListOperation, ClusterListSpec } from '@services/types';
+import type {
+  ClusterListEntry,
+  ClusterListNode,
+  ClusterListOperation,
+  ClusterListSpec,
+  MachineSpec,
+} from '@services/types';
 
 import { Affinity, affinityMap, ClusterTypes } from '@common/const';
 
@@ -67,6 +73,7 @@ export default class Tendbha extends ClusterBase {
   dns_to_clb: boolean;
   id: number;
   immute_domain: string;
+  machine_specs: MachineSpec[];
   major_version: string;
   master_domain: string;
   masters: ({ is_stand_by: boolean } & ClusterListNode)[];
@@ -113,6 +120,7 @@ export default class Tendbha extends ClusterBase {
     this.cluster_entry = payload.cluster_entry || [];
     this.cluster_name = payload.cluster_name || '';
     this.cluster_spec = payload.cluster_spec || {};
+    this.machine_specs = payload.machine_specs || [];
     this.cluster_stats = payload.cluster_stats || {};
     this.cluster_type = payload.cluster_type || '';
     this.cluster_type_name = payload.cluster_type_name || '';

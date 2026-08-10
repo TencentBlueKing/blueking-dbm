@@ -29,17 +29,12 @@
   </TableColumn>
   <TableColumn
     col-key="cluster_spec"
-    :min-width="180"
+    :min-width="220"
     :title="t('规格')">
     <template #default="{ row }: { row: IRowData }">
-      <template v-if="row.cluster_spec.spec_name">
-        <TextOverflowLayout
-          v-for="spaceName in row.cluster_spec.spec_name.split(',')"
-          :key="spaceName">
-          {{ spaceName }}
-        </TextOverflowLayout>
-      </template>
-      <span v-else> -- </span>
+      <MachineSpecCell
+        mode="list"
+        :specs="row.machine_specs" />
     </template>
   </TableColumn>
   <TableColumn
@@ -86,6 +81,8 @@
   import { useClusterColumnFilter } from '@hooks';
 
   import TextOverflowLayout from '@components/text-overflow-layout/Index.vue';
+
+  import MachineSpecCell from '@views/db-manage/common/cluster-details/components/machine-spec-cell/Index.vue';
 
   import type { ClusterModel, ISupportClusterType } from './types';
 
