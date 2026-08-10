@@ -309,6 +309,46 @@ DATABASES = {
     }
 }
 
+if env.ENABLE_DBM_AI:
+    DATABASES.update({
+        "mysql-mcp": {
+            "ENGINE": "dj_db_conn_pool.backends.mysql",
+            "NAME": os.environ.get("DB_NAME", APP_CODE),
+            "USER": os.environ.get("MYSQL_MCP_USER", os.environ.get("DB_USER", "root")),
+            "PASSWORD": os.environ.get("MYSQL_MCP_PASSWORD", os.environ.get("DB_PASSWORD", "")),
+            "HOST": os.environ.get("DB_HOST", "127.0.0.1"),
+            "PORT": os.environ.get("DB_PORT", "3306"),
+            "OPTIONS": {"init_command": "SET default_storage_engine=INNODB", "charset": "utf8mb4"},
+            "TEST": {
+                "CHARSET": "utf8",
+                "COLLATION": "utf8_general_ci",
+            },
+            "POOL_OPTIONS": {
+                "POOL_SIZE": int(os.environ.get("DB_POOL_SIZE", 5)),
+                "MAX_OVERFLOW": int(os.environ.get("DB_POOL_MAX_OVERFLOW", 10)),
+                "RECYCLE": 60 * 60,
+            },
+        },
+        "mysql-mcp-readonly": {
+            "ENGINE": "dj_db_conn_pool.backends.mysql",
+            "NAME": os.environ.get("DB_NAME", APP_CODE),
+            "USER": os.environ.get("MYSQL_MCP_READONLY_USER", os.environ.get("DB_USER", "root")),
+            "PASSWORD": os.environ.get("MYSQL_MCP_READONLY_PASSWORD", os.environ.get("DB_PASSWORD", "")),
+            "HOST": os.environ.get("DR_HOST", os.environ.get("DB_HOST", "127.0.0.1")),
+            "PORT": os.environ.get("DR_PORT", os.environ.get("DB_PORT", "3306")),
+            "OPTIONS": {"init_command": "SET default_storage_engine=INNODB", "charset": "utf8mb4"},
+            "TEST": {
+                "CHARSET": "utf8",
+                "COLLATION": "utf8_general_ci",
+            },
+            "POOL_OPTIONS": {
+                "POOL_SIZE": int(os.environ.get("DB_POOL_SIZE", 5)),
+                "MAX_OVERFLOW": int(os.environ.get("DB_POOL_MAX_OVERFLOW", 10)),
+                "RECYCLE": 60 * 60,
+            },
+        },
+    })
+
 DATABASE_ROUTERS = [
     "backend.db_report.database_router.ReportRouter",
     "backend.db_report.database_router.StatsRouter",

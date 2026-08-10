@@ -16,6 +16,7 @@ from backend.db_meta.enums import ClusterType
 from backend.db_meta.models import ProxyInstance
 from backend.db_services.dbbase.constants import IpSource
 from backend.dbm_aiagent.mcp_tools.decorators import bill_response_wrapper
+from backend.dbm_aiagent.mcp_tools.mysql.constants import MYSQL_MCP_DB_READ
 from backend.dbm_aiagent.mcp_tools.mysql.impl.bill_machine_replace.helper import (
     check_clusters_consistency,
     validate_clusters,
@@ -29,7 +30,9 @@ from backend.ticket.models import Ticket
 def bill_proxy_replace(cluster_domains: List[str], ips: List[str]):
     cluster_objs, bk_biz_id, bk_cloud_id = validate_clusters(cluster_domains, ClusterType.TenDBHA)
 
-    proxy_objs = ProxyInstance.objects.filter(machine__ip__in=ips, machine__bk_cloud_id=bk_cloud_id)
+    proxy_objs = ProxyInstance.objects.using(MYSQL_MCP_DB_READ).filter(
+        machine__ip__in=ips, machine__bk_cloud_id=bk_cloud_id
+    )
     check_clusters_consistency(cluster_objs, ips, proxy_objs)
 
     dbas = DBAdministrator.get_biz_db_type_admins(bk_biz_id=bk_biz_id, db_type=DBType.MySQL)

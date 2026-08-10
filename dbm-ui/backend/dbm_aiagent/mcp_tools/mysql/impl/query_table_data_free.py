@@ -14,6 +14,7 @@ from backend.components import DRSApi
 from backend.db_meta.enums import ClusterType
 from backend.db_meta.models import Cluster
 from backend.dbm_aiagent.mcp_tools.exceptions import DBMMcpBaseException
+from backend.dbm_aiagent.mcp_tools.mysql.constants import MYSQL_MCP_DB_READ
 from backend.dbm_aiagent.mcp_tools.mysql.helpers.get_slave_address_and_dbname import get_cloud_slave_address_and_dbname
 from backend.dbm_aiagent.mcp_tools.mysql.helpers.sql_safety import quote_string_literal
 
@@ -235,7 +236,7 @@ def _query_single_cluster_table_data_free(
 
 def query_table_data_free(cluster_id: int, dbname: str = "", table_names: Optional[List[str]] = None) -> Dict:
     """查询 MySQL 表空洞碎片（information_schema.tables.data_free）。"""
-    cluster_obj = Cluster.objects.get(id=cluster_id)
+    cluster_obj = Cluster.objects.using(MYSQL_MCP_DB_READ).get(id=cluster_id)
     cluster_domain = cluster_obj.immute_domain
 
     dbname = (dbname or "").strip("`").strip()

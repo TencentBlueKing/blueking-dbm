@@ -18,6 +18,7 @@ from backend.db_package.models import Package
 from backend.db_services.mysql.toolbox.serializers import TdbctlUpgradeSerializer
 from backend.db_services.mysql.toolbox.tdbctl_upgrade_handler import TdbctlUpgradeHandler
 from backend.dbm_aiagent.mcp_tools.decorators import bill_response_wrapper
+from backend.dbm_aiagent.mcp_tools.mysql.constants import MYSQL_MCP_DB_READ
 from backend.ticket.constants import TicketType
 from backend.ticket.models import Ticket
 
@@ -45,7 +46,8 @@ def bill_tdbctl_upgrade(
         # 用户指定版本，使用 name like '%tdbctl-{version}%' 查询
         # 例如：传入 version='2.4.10'，查询 name 包含 'tdbctl-2.4.10' 的包
         package = (
-            Package.objects.filter(pkg_type="tdbctl", name__icontains=f"tdbctl-{version}")
+            Package.objects.using(MYSQL_MCP_DB_READ)
+            .filter(pkg_type="tdbctl", name__icontains=f"tdbctl-{version}")
             .only("id", "name")
             .order_by("-create_at")
             .first()
@@ -56,7 +58,13 @@ def bill_tdbctl_upgrade(
     else:
         # 不传版本号，查询最新创建的 tdbctl 包
         # SQL: SELECT id, name FROM db_package_package WHERE pkg_type='tdbctl' ORDER BY create_at DESC LIMIT 1
-        package = Package.objects.filter(pkg_type="tdbctl").only("id", "name").order_by("-create_at").first()
+        package = (
+            Package.objects.using(MYSQL_MCP_DB_READ)
+            .filter(pkg_type="tdbctl")
+            .only("id", "name")
+            .order_by("-create_at")
+            .first()
+        )
 
         if not package:
             raise Exception(_("未找到 tdbctl 升级包"))
@@ -76,7 +84,7 @@ def bill_tdbctl_upgrade(
         if has_domains:
             for domain in cluster_domains:
                 try:
-                    cluster = Cluster.objects.get(
+                    cluster = Cluster.objects.using(MYSQL_MCP_DB_READ).get(
                         bk_biz_id=bk_biz_id, immute_domain=domain, cluster_type=ClusterType.TenDBCluster
                     )
                     clusters.append(cluster)
@@ -85,14 +93,18 @@ def bill_tdbctl_upgrade(
         else:
             for cid in cluster_ids:
                 try:
-                    cluster = Cluster.objects.get(id=cid, bk_biz_id=bk_biz_id, cluster_type=ClusterType.TenDBCluster)
+                    cluster = Cluster.objects.using(MYSQL_MCP_DB_READ).get(
+                        id=cid, bk_biz_id=bk_biz_id, cluster_type=ClusterType.TenDBCluster
+                    )
                     clusters.append(cluster)
                 except Cluster.DoesNotExist:
                     raise Exception(_("集群ID {} 不存在或不属于业务 {}，请检查集群ID和业务ID").format(cid, bk_biz_id))
         cluster_ids = [c.id for c in clusters]
     else:
         # 升级业务下所有集群：查询所有 TenDBCluster 集群
-        clusters = list(Cluster.objects.filter(bk_biz_id=bk_biz_id, cluster_type=ClusterType.TenDBCluster))
+        clusters = list(
+            Cluster.objects.using(MYSQL_MCP_DB_READ).filter(bk_biz_id=bk_biz_id, cluster_type=ClusterType.TenDBCluster)
+        )
 
         if not clusters:
             raise Exception(_("业务 {} 下未找到任何 TenDBCluster 集群").format(bk_biz_id))

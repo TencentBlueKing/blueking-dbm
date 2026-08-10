@@ -29,6 +29,7 @@ from backend.dbm_aiagent.mcp_tools.exceptions import (
     DBMMcpNotSupportClusterTypeException,
     DBMMcpNotSupportMachineTypeException,
 )
+from backend.dbm_aiagent.mcp_tools.mysql.constants import MYSQL_MCP_DB_READ
 from backend.dbm_aiagent.mcp_tools.mysql.helpers.assert_clustertype import assert_cluster_type
 from backend.dbm_aiagent.mcp_tools.mysql.impl.cluster_runtime_variables import cluster_runtime_variables
 from backend.dbm_aiagent.mcp_tools.mysql.impl.cluster_topo import mysql_cluster_topo
@@ -157,7 +158,7 @@ class MySQLQueryMcpToolsViewSet(McpToolsViewSet):
         db_name = self.get_param("db_name")
         table_name = self.get_param("table_name")
 
-        cluster_obj = Cluster.objects.get(immute_domain=cluster_domain)
+        cluster_obj = Cluster.objects.using(MYSQL_MCP_DB_READ).get(immute_domain=cluster_domain)
         assert_cluster_type(cluster_obj, [ClusterType.TenDBSingle, ClusterType.TenDBCluster, ClusterType.TenDBHA])
 
         return Response(
@@ -185,7 +186,7 @@ class MySQLQueryMcpToolsViewSet(McpToolsViewSet):
         cluster_domain = self.get_param("cluster_domain")
         table_names = self.get_param("table_names")
 
-        cluster_obj = Cluster.objects.get(immute_domain=cluster_domain)
+        cluster_obj = Cluster.objects.using(MYSQL_MCP_DB_READ).get(immute_domain=cluster_domain)
         assert_cluster_type(cluster_obj, [ClusterType.TenDBSingle, ClusterType.TenDBCluster, ClusterType.TenDBHA])
 
         create_sql_list = []
@@ -219,7 +220,7 @@ class MySQLQueryMcpToolsViewSet(McpToolsViewSet):
         db_name = self.get_param("db_name")
         query_sql = self.get_param("query_sql")
 
-        cluster_obj = Cluster.objects.get(immute_domain=cluster_domain)
+        cluster_obj = Cluster.objects.using(MYSQL_MCP_DB_READ).get(immute_domain=cluster_domain)
         assert_cluster_type(cluster_obj, [ClusterType.TenDBSingle, ClusterType.TenDBCluster, ClusterType.TenDBHA])
 
         return Response(
@@ -244,7 +245,7 @@ class MySQLQueryMcpToolsViewSet(McpToolsViewSet):
     def mysql_cluster_topo(self, request, *args, **kwargs):
         cluster_domain = self.get_param("cluster_domain")
 
-        cluster_obj = Cluster.objects.get(immute_domain=cluster_domain)
+        cluster_obj = Cluster.objects.using(MYSQL_MCP_DB_READ).get(immute_domain=cluster_domain)
         assert_cluster_type(cluster_obj, [ClusterType.TenDBSingle, ClusterType.TenDBCluster, ClusterType.TenDBHA])
 
         return Response(
@@ -281,9 +282,9 @@ class MySQLQueryMcpToolsViewSet(McpToolsViewSet):
 
         try:
             if cluster_id is not None:
-                cluster_obj = Cluster.objects.get(id=cluster_id)
+                cluster_obj = Cluster.objects.using(MYSQL_MCP_DB_READ).get(id=cluster_id)
             else:
-                cluster_obj = Cluster.objects.get(immute_domain=cluster_domain)
+                cluster_obj = Cluster.objects.using(MYSQL_MCP_DB_READ).get(immute_domain=cluster_domain)
         except Cluster.DoesNotExist:
             if cluster_id is not None:
                 raise DBMMcpClusterNotFoundException(msg=_("集群 id={} 不存在").format(cluster_id))
@@ -514,12 +515,14 @@ class MySQLQueryMcpToolsViewSet(McpToolsViewSet):
         # 根据 instance(ip:port) 反查集群，instance 可能是存储层实例，也可能是接入层实例
         ip, port = instance.split(":")
 
-        machine: Machine = Machine.objects.filter(ip=ip).first()
+        machine: Machine = Machine.objects.using(MYSQL_MCP_DB_READ).filter(ip=ip).first()
         assert_cluster_type(machine, [ClusterType.TenDBSingle, ClusterType.TenDBCluster, ClusterType.TenDBHA])
 
-        instance_obj = ProxyInstance.objects.filter(machine__ip=ip, port=int(port)).first()
+        instance_obj = ProxyInstance.objects.using(MYSQL_MCP_DB_READ).filter(machine__ip=ip, port=int(port)).first()
         if not instance_obj:
-            instance_obj = StorageInstance.objects.filter(machine__ip=ip, port=int(port)).first()
+            instance_obj = (
+                StorageInstance.objects.using(MYSQL_MCP_DB_READ).filter(machine__ip=ip, port=int(port)).first()
+            )
 
         if not instance_obj:
             raise ValueError(f"No cluster found for instance {instance}")
@@ -764,9 +767,9 @@ class MySQLQueryMcpToolsViewSet(McpToolsViewSet):
         table_names = self.get_param("table_names")
 
         if cluster_id is not None:
-            cluster_obj = Cluster.objects.get(id=cluster_id)
+            cluster_obj = Cluster.objects.using(MYSQL_MCP_DB_READ).get(id=cluster_id)
         else:
-            cluster_obj = Cluster.objects.get(immute_domain=cluster_domain)
+            cluster_obj = Cluster.objects.using(MYSQL_MCP_DB_READ).get(immute_domain=cluster_domain)
 
         assert_cluster_type(cluster_obj, [ClusterType.TenDBSingle, ClusterType.TenDBCluster, ClusterType.TenDBHA])
 
@@ -823,7 +826,7 @@ class MySQLQueryMcpToolsViewSet(McpToolsViewSet):
         from_date = self.get_param("from_date").astimezone(timezone.utc)
         to_date = self.get_param("to_date").astimezone(timezone.utc)
 
-        cluster_obj = Cluster.objects.get(
+        cluster_obj = Cluster.objects.using(MYSQL_MCP_DB_READ).get(
             immute_domain=cluster_domain, cluster_type__in=[ClusterType.TenDBHA, ClusterType.TenDBCluster]
         )
 
@@ -850,7 +853,7 @@ class MySQLQueryMcpToolsViewSet(McpToolsViewSet):
         db_name = self.get_param("db_name")
         table_name = self.get_param("table_name")
 
-        cluster_obj = Cluster.objects.get(immute_domain=cluster_domain)
+        cluster_obj = Cluster.objects.using(MYSQL_MCP_DB_READ).get(immute_domain=cluster_domain)
         assert_cluster_type(cluster_obj, [ClusterType.TenDBSingle, ClusterType.TenDBHA])
 
         return Response(
@@ -866,8 +869,8 @@ def _resolve_cluster_from_params(cluster_id, cluster_domain) -> Cluster:
     """解析 cluster_id / cluster_domain（二选一），不存在时抛 DBMMcpClusterNotFoundException。"""
     try:
         if cluster_id is not None:
-            return Cluster.objects.get(id=cluster_id)
-        return Cluster.objects.get(immute_domain=cluster_domain)
+            return Cluster.objects.using(MYSQL_MCP_DB_READ).get(id=cluster_id)
+        return Cluster.objects.using(MYSQL_MCP_DB_READ).get(immute_domain=cluster_domain)
     except Cluster.DoesNotExist:
         if cluster_id is not None:
             raise DBMMcpClusterNotFoundException(msg=_("集群 id={} 不存在").format(cluster_id))
@@ -877,7 +880,7 @@ def _resolve_cluster_from_params(cluster_id, cluster_domain) -> Cluster:
 def _validate_and_get_machine(bk_cloud_id: int | None, address: str) -> Machine:
     """验证并获取机器对象"""
     ip, port = address.split(":")
-    machine_q = Machine.objects.filter(ip=ip)
+    machine_q = Machine.objects.using(MYSQL_MCP_DB_READ).filter(ip=ip)
 
     if not machine_q.exists():
         raise ObjectDoesNotExist(f"机器{ip}不存在")

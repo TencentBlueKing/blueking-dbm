@@ -15,12 +15,13 @@ from backend.db_meta.enums import ClusterType, InstanceInnerRole
 from backend.db_meta.models import Cluster
 from backend.db_meta.models.storage_set_dtl import TenDBClusterStorageSet
 from backend.dbm_aiagent.mcp_tools.exceptions import DBMMcpBaseException
+from backend.dbm_aiagent.mcp_tools.mysql.constants import MYSQL_MCP_DB_READ
 
 
 def get_cloud_slave_address_and_dbname(
     cluster_type: ClusterType, cluster_domain: str, dbname: str
 ) -> Tuple[int, str, str]:
-    cluster_obj = Cluster.objects.get(immute_domain=cluster_domain, cluster_type=cluster_type)
+    cluster_obj = Cluster.objects.using(MYSQL_MCP_DB_READ).get(immute_domain=cluster_domain, cluster_type=cluster_type)
 
     if cluster_type == ClusterType.TenDBSingle:
         address = cluster_obj.storageinstance_set.first().ip_port
@@ -28,7 +29,7 @@ def get_cloud_slave_address_and_dbname(
         address = cluster_obj.storageinstance_set.filter(instance_inner_role=InstanceInnerRole.SLAVE).first().ip_port
     else:
         # 取第 0 分片的 slave instance，跟 sanitize_select_sql 里面改写的分片一致
-        storage_set = TenDBClusterStorageSet.objects.get(cluster=cluster_obj, shard_id=0)
+        storage_set = TenDBClusterStorageSet.objects.using(MYSQL_MCP_DB_READ).get(cluster=cluster_obj, shard_id=0)
         one_remote_slave = storage_set.storage_instance_tuple.receiver
         address = one_remote_slave.ip_port
 

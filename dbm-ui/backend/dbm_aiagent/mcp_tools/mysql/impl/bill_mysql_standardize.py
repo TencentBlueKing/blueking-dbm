@@ -15,6 +15,7 @@ from backend.db_meta.enums import ClusterType
 from backend.db_meta.models import Cluster
 from backend.dbm_aiagent.mcp_tools.decorators import bill_response_wrapper
 from backend.dbm_aiagent.mcp_tools.exceptions import DBMMcpClusterNotFoundException
+from backend.dbm_aiagent.mcp_tools.mysql.constants import MYSQL_MCP_DB_READ
 from backend.ticket.constants import TicketType
 from backend.ticket.models import Ticket
 
@@ -29,12 +30,12 @@ def bill_mysql_standardize(
     with_deploy_binary: bool,
     with_push_config: bool,
 ) -> List[Ticket]:
-    mysql_clusters = Cluster.objects.filter(
+    mysql_clusters = Cluster.objects.using(MYSQL_MCP_DB_READ).filter(
         bk_biz_id=bk_biz_id,
         cluster_type__in=[ClusterType.TenDBSingle, ClusterType.TenDBHA],
         immute_domain__in=cluster_domains,
     )
-    tendbcluster_clusters = Cluster.objects.filter(
+    tendbcluster_clusters = Cluster.objects.using(MYSQL_MCP_DB_READ).filter(
         bk_biz_id=bk_biz_id, cluster_type=ClusterType.TenDBCluster, immute_domain__in=cluster_domains
     )
 

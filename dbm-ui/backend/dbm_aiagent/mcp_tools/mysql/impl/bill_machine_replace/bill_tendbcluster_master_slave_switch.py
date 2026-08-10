@@ -15,6 +15,7 @@ from backend.configuration.models import DBAdministrator
 from backend.db_meta.enums import ClusterType, InstanceInnerRole
 from backend.db_meta.models import Machine, StorageInstance, StorageInstanceTuple
 from backend.dbm_aiagent.mcp_tools.decorators import bill_response_wrapper
+from backend.dbm_aiagent.mcp_tools.mysql.constants import MYSQL_MCP_DB_READ
 from backend.dbm_aiagent.mcp_tools.mysql.impl.bill_machine_replace.helper import (
     check_clusters_consistency,
     validate_clusters,
@@ -28,14 +29,14 @@ from backend.ticket.models import Ticket
 def bill_tendbcluster_master_slave_switch(cluster_domain: str, ips: List[str]):
     cluster_objs, bk_biz_id, bk_cloud_id = validate_clusters([cluster_domain], ClusterType.TenDBCluster)
 
-    remote_master_objs = StorageInstance.objects.filter(
+    remote_master_objs = StorageInstance.objects.using(MYSQL_MCP_DB_READ).filter(
         machine__ip__in=ips, machine__bk_cloud_id=bk_cloud_id, instance_inner_role=InstanceInnerRole.MASTER
     )
 
     check_clusters_consistency(cluster_objs, ips, remote_master_objs)
 
     slave_ips = set()
-    tps = StorageInstanceTuple.objects.filter(ejector__in=remote_master_objs)
+    tps = StorageInstanceTuple.objects.using(MYSQL_MCP_DB_READ).filter(ejector__in=remote_master_objs)
     for ele in tps:
         slave_ips.add(ele.receiver.machine.ip)
 
@@ -48,8 +49,8 @@ def bill_tendbcluster_master_slave_switch(cluster_domain: str, ips: List[str]):
 
     infos = []
     for ele in tps.values_list("ejector__machine__ip", "receiver__machine__ip").distinct():
-        master = Machine.objects.get(bk_cloud_id=bk_cloud_id, ip=ele[0])
-        slave = Machine.objects.get(bk_cloud_id=bk_cloud_id, ip=ele[1])
+        master = Machine.objects.using(MYSQL_MCP_DB_READ).get(bk_cloud_id=bk_cloud_id, ip=ele[0])
+        slave = Machine.objects.using(MYSQL_MCP_DB_READ).get(bk_cloud_id=bk_cloud_id, ip=ele[1])
         infos.append(
             {
                 "cluster_id": cluster_objs[0].pk,

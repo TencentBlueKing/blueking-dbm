@@ -20,6 +20,7 @@ from backend.dbm_aiagent.mcp_tools.common.auth_parser.base import auth_parse_clu
 from backend.dbm_aiagent.mcp_tools.constants import DBMMCPTags, DBMMcpTools
 from backend.dbm_aiagent.mcp_tools.decorators import logger, mcp_tools_api_decorator
 from backend.dbm_aiagent.mcp_tools.exceptions import DBMMcpBaseException
+from backend.dbm_aiagent.mcp_tools.mysql.constants import MYSQL_MCP_DB_READ, MYSQL_MCP_DB_WRITE
 from backend.dbm_aiagent.mcp_tools.mysql.serializers.kill_connection import KillConnectionInputSerializer
 from backend.dbm_aiagent.mcp_tools.mysql.serializers.modify_cluster_spec import (
     ModifyMySQLClusterSpecOutputSerializer,
@@ -111,15 +112,17 @@ class MySQLSensitiveMcpViewSet(McpToolsViewSet):
         role = self.get_param("role")
         spec_id = self.get_param("spec_id")
 
-        new_spec = Spec.objects.get(spec_id=spec_id)
+        new_spec = Spec.objects.using(MYSQL_MCP_DB_READ).get(spec_id=spec_id)
 
-        cluster_obj = Cluster.objects.get(cluster_type=ClusterType.TenDBHA, immute_domain=cluster_domain)
+        cluster_obj = Cluster.objects.using(MYSQL_MCP_DB_READ).get(
+            cluster_type=ClusterType.TenDBHA, immute_domain=cluster_domain
+        )
 
         if role == MachineType.PROXY:
             for ins in cluster_obj.proxyinstance_set.all():
                 ins.machine.spec_id = new_spec.spec_id
                 ins.machine.spec_config = new_spec.get_spec_info()
-                ins.machine.save()
+                ins.machine.save(using=MYSQL_MCP_DB_WRITE)
         elif role == MachineType.BACKEND:
             if cluster_obj.storageinstance_set.filter(instance_role=InstanceRole.BACKEND_REPEATER).exists():
                 raise DBMMcpBaseException(msg="can't modify backend spec during migration")
@@ -129,7 +132,7 @@ class MySQLSensitiveMcpViewSet(McpToolsViewSet):
             ):
                 ins.machine.spec_id = new_spec.spec_id
                 ins.machine.spec_config = new_spec.get_spec_info()
-                ins.machine.save()
+                ins.machine.save(using=MYSQL_MCP_DB_WRITE)
         else:
             raise DBMMcpBaseException(msg=f"{role} is not valid machine type for tendbha cluster")
 
@@ -152,15 +155,17 @@ class MySQLSensitiveMcpViewSet(McpToolsViewSet):
         role = self.get_param("role")
         spec_id = self.get_param("spec_id")
 
-        new_spec = Spec.objects.get(spec_id=spec_id)
+        new_spec = Spec.objects.using(MYSQL_MCP_DB_READ).get(spec_id=spec_id)
 
-        cluster_obj = Cluster.objects.get(cluster_type=ClusterType.TenDBCluster, immute_domain=cluster_domain)
+        cluster_obj = Cluster.objects.using(MYSQL_MCP_DB_READ).get(
+            cluster_type=ClusterType.TenDBCluster, immute_domain=cluster_domain
+        )
 
         if role in [TenDBClusterSpiderRole.SPIDER_MASTER, TenDBClusterSpiderRole.SPIDER_SLAVE]:
             for ins in cluster_obj.proxyinstance_set.filter(tendbclusterspiderext__spider_role=role):
                 ins.machine.spec_id = new_spec.spec_id
                 ins.machine.spec_config = new_spec.get_spec_info()
-                ins.machine.save()
+                ins.machine.save(using=MYSQL_MCP_DB_WRITE)
         elif role == MachineType.REMOTE:
             if cluster_obj.storageinstance_set.filter(instance_role=InstanceRole.REMOTE_REPEATER).exists():
                 raise DBMMcpBaseException(msg="can't modify remote spec during migration")
@@ -170,7 +175,7 @@ class MySQLSensitiveMcpViewSet(McpToolsViewSet):
             ):
                 ins.machine.spec_id = new_spec.spec_id
                 ins.machine.spec_config = new_spec.get_spec_info()
-                ins.machine.save()
+                ins.machine.save(using=MYSQL_MCP_DB_WRITE)
         else:
             raise DBMMcpBaseException(msg=f"not support modify tendbcluster {role} spec")
 
@@ -191,13 +196,15 @@ class MySQLSensitiveMcpViewSet(McpToolsViewSet):
         cluster_domain = self.get_param("cluster_domain")
         spec_id = self.get_param("spec_id")
 
-        new_spec = Spec.objects.get(spec_id=spec_id)
+        new_spec = Spec.objects.using(MYSQL_MCP_DB_READ).get(spec_id=spec_id)
 
-        cluster_obj = Cluster.objects.get(cluster_type=ClusterType.TenDBSingle, immute_domain=cluster_domain)
+        cluster_obj = Cluster.objects.using(MYSQL_MCP_DB_READ).get(
+            cluster_type=ClusterType.TenDBSingle, immute_domain=cluster_domain
+        )
 
         for ins in cluster_obj.storageinstance_set.all():
             ins.machine.spec_id = new_spec.spec_id
             ins.machine.spec_config = new_spec.get_spec_info()
-            ins.machine.save()
+            ins.machine.save(using=MYSQL_MCP_DB_WRITE)
 
         return Response({"spec_id": new_spec.spec_id, "spec_config": new_spec.get_spec_info()})

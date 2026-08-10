@@ -11,6 +11,9 @@ specific language governing permissions and limitations under the License.
 from backend.db_meta.enums import ClusterType
 from backend.dbm_aiagent.mcp_tools.common.impl.promql_query import PromQLMultiQueryBuilder, PromQLQueryBuilder
 
+MYSQL_MCP_DB_READ = "mysql-mcp-readonly"
+MYSQL_MCP_DB_WRITE = "mysql-mcp"
+
 DISK_USED = {
     "default": PromQLQueryBuilder(
         metric_name="mysql_datadir_du_used_mb",

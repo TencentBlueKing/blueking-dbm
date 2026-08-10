@@ -19,6 +19,7 @@ from backend.dbm_aiagent.mcp_tools.exceptions import (
     DBMMcpBackupNotFoundException,
     DBMMcpNotSupportClusterTypeException,
 )
+from backend.dbm_aiagent.mcp_tools.mysql.constants import MYSQL_MCP_DB_READ
 
 BYTES_PER_GB = 1024 * 1024 * 1024
 
@@ -42,7 +43,7 @@ def query_backup_logs(
     @param start_time: 查询开始时间
     @param end_time: 查询结束时间
     """
-    cluster_obj = Cluster.objects.get(bk_biz_id=bk_biz_id, immute_domain=cluster_domain)
+    cluster_obj = Cluster.objects.using(MYSQL_MCP_DB_READ).get(bk_biz_id=bk_biz_id, immute_domain=cluster_domain)
     if cluster_obj.cluster_type in [ClusterType.TenDBSingle, ClusterType.TenDBHA, ClusterType.TenDBCluster]:
         backup_infos = query_backup_log(
             cluster_id=cluster_obj.id,

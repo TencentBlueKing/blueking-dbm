@@ -20,6 +20,7 @@ from backend.dbm_aiagent.mcp_tools.exceptions import (
     DBMMcpNoneBillSubmittedException,
     DBMMcpNotSupportClusterTypeException,
 )
+from backend.dbm_aiagent.mcp_tools.mysql.constants import MYSQL_MCP_DB_READ
 from backend.ticket.builders.mysql.mysql_ha_disable import MysqlHADisableDetailSerializer
 from backend.ticket.builders.mysql.mysql_single_disable import MysqlSingleDisableDetailSerializer
 from backend.ticket.builders.tendbcluster.tendb_disable import TendbDisableDetailSerializer
@@ -67,7 +68,7 @@ def bill_mysql_disable(
             )
         )
 
-    clusters = Cluster.objects.filter(bk_biz_id=bk_biz_id, immute_domain__in=cluster_domains)
+    clusters = Cluster.objects.using(MYSQL_MCP_DB_READ).filter(bk_biz_id=bk_biz_id, immute_domain__in=cluster_domains)
     # 校验提交的域名是否全部命中集群，防止部分域名被静默丢弃（拼写错误/跨业务/已删除）
     found_domains = set(clusters.values_list("immute_domain", flat=True))
     not_found_domains = set(cluster_domains) - found_domains

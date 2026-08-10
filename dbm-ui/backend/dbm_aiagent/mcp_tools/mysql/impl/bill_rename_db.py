@@ -12,6 +12,7 @@ from backend.db_meta.enums import ClusterType
 from backend.db_meta.models import Cluster
 from backend.dbm_aiagent.mcp_tools.decorators import bill_response_wrapper
 from backend.dbm_aiagent.mcp_tools.exceptions import DBMMcpNotSupportClusterTypeException
+from backend.dbm_aiagent.mcp_tools.mysql.constants import MYSQL_MCP_DB_READ
 from backend.ticket.builders.mysql.mysql_rename_database import MySQLRenameDatabaseSerializer
 from backend.ticket.builders.tendbcluster.tendb_rename import TendbRenameSerializer
 from backend.ticket.constants import TicketType
@@ -22,7 +23,7 @@ from backend.ticket.models import Ticket
 def bill_rename_db(
     bk_biz_id: int, username: str, cluster_domain: str, source_dbname: str, target_dbname: str
 ) -> Ticket:
-    cluster_obj = Cluster.objects.get(bk_biz_id=bk_biz_id, immute_domain=cluster_domain)
+    cluster_obj = Cluster.objects.using(MYSQL_MCP_DB_READ).get(bk_biz_id=bk_biz_id, immute_domain=cluster_domain)
     if cluster_obj.cluster_type in [ClusterType.TenDBSingle, ClusterType.TenDBHA]:
         ticket_type = TicketType.MYSQL_RENAME_DATABASE
     elif cluster_obj.cluster_type == ClusterType.TenDBCluster:
