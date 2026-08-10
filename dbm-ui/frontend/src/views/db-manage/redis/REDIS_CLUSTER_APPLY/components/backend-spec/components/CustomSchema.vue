@@ -32,7 +32,7 @@
       :label="t('数量')"
       property="details.resource_spec.backend_group.count"
       required>
-      <BkInput
+      <DbInput
         v-model="modelValue.count"
         clearable
         :disabled="isTendisInstance"
@@ -47,7 +47,7 @@
       property="shardNum"
       required
       :rules="shardNumRules">
-      <BkInput
+      <DbInput
         v-model="shardNum"
         clearable
         :disabled="shardNumDisabled || isTendisInstance"
@@ -59,7 +59,7 @@
     <DbFormItem
       :label="t('集群分片数')"
       :required="false">
-      <BkInput
+      <DbInput
         v-model="clusterShardNum"
         disabled
         :placeholder="t('自动生成')"
@@ -69,7 +69,7 @@
     <DbFormItem
       :label="t('总容量')"
       :required="false">
-      <BkInput
+      <DbInput
         v-model="totalCapcity"
         disabled
         :placeholder="t('自动生成')"
@@ -212,7 +212,7 @@
     .bk-form-item {
       .bk-form-content {
         .bk-select,
-        .bk-input {
+        .dbm-input {
           width: 314px !important;
         }
       }

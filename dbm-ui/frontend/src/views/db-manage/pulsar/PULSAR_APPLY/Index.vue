@@ -193,7 +193,7 @@
                   :label="t('数量')"
                   property="details.resource_spec.bookkeeper.count"
                   required>
-                  <BkInput
+                  <DbInput
                     v-model="formData.details.resource_spec.bookkeeper.count"
                     :min="2"
                     style="width: 314px"
@@ -237,7 +237,7 @@
                   :label="t('数量')"
                   property="details.resource_spec.zookeeper.count"
                   required>
-                  <BkInput
+                  <DbInput
                     v-model="formData.details.resource_spec.zookeeper.count"
                     disabled
                     :min="3"
@@ -283,7 +283,7 @@
                   :label="t('数量')"
                   property="details.resource_spec.broker.count"
                   required>
-                  <BkInput
+                  <DbInput
                     v-model="formData.details.resource_spec.broker.count"
                     :min="1"
                     style="width: 314px"
@@ -294,7 +294,7 @@
             <BkFormItem
               :label="t('总容量')"
               required>
-              <BkInput
+              <DbInput
                 disabled
                 :model-value="totalCapacity"
                 style="width: 184px" />
@@ -306,7 +306,7 @@
           :label="t('Partition数量')"
           property="details.partition_num"
           required>
-          <BkInput
+          <DbInput
             v-model="formData.details.partition_num"
             clearable
             :min="1"
@@ -317,7 +317,7 @@
           :label="t('消息保留')"
           property="details.retention_hours"
           required>
-          <BkInput
+          <DbInput
             v-model="formData.details.retention_hours"
             clearable
             :min="1"
@@ -329,7 +329,7 @@
           :label="t('副本数量')"
           property="details.replication_num"
           required>
-          <BkInput
+          <DbInput
             v-model="formData.details.replication_num"
             clearable
             :max="ackQuorumMax"
@@ -342,7 +342,7 @@
           :label="t('至少写入成功副本数量')"
           property="details.ack_quorum"
           required>
-          <BkInput
+          <DbInput
             v-model="formData.details.ack_quorum"
             clearable
             :max="formData.details.replication_num || 2"
@@ -355,7 +355,7 @@
           :label="t('访问端口')"
           property="details.port"
           required>
-          <BkInput
+          <DbInput
             v-model="formData.details.port"
             clearable
             :min="1"
@@ -368,7 +368,7 @@
             resource_spec: formData.details.resource_spec,
           }" />
         <BkFormItem :label="t('备注')">
-          <BkInput
+          <DbInput
             v-model="formData.remark"
             :maxlength="100"
             :placeholder="t('请提供更多有用信息申请信息_以获得更快审批')"
@@ -864,7 +864,7 @@
           margin-left: 120px !important;
 
           .bk-select,
-          .bk-input {
+          .dbm-input {
             width: 314px !important;
           }
         }

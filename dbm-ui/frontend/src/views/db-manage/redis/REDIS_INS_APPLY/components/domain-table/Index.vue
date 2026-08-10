@@ -218,7 +218,7 @@
               label-width={0}
               property={`details.infos.${index}.cluster_name`}
               rules={rules.cluster_name}>
-              <bk-input
+              <db-input
                 v-bk-tooltips={{
                   content: t('仅支持小写字母、数字、连字符，同时会参与集群域名生成，创建后不可改'),
                   placement: 'top',
@@ -234,7 +234,7 @@
                   suffix: () =>
                     domains.value[index]?.cluster_name && <span class='domain-address-placeholder ml-4'></span>,
                 }}
-              </bk-input>
+              </db-input>
             </bk-form-item>
             {typeof props.portType === 'string' ? (
               <div class='ml-4'>
@@ -280,7 +280,7 @@
             errorDisplayType='tooltips'
             label-width={0}
             property={`details.infos.${index}.databases`}>
-            <bk-input
+            <db-input
               max={16}
               min={2}
               model-value={domains.value[index]?.databases}
@@ -327,7 +327,7 @@
             label-width={0}
             property={`details.infos.${index}.masterHost.ip`}
             rules={rules['masterHost.ip']}>
-            <bk-input
+            <db-input
               model-value={domains.value[index]?.masterHost.ip}
               placeholder={t('请输入或选择')}
               onChange={(value: string) => handleHostIpChange(value, index)}>
@@ -344,7 +344,7 @@
                   </bk-button>
                 ),
               }}
-            </bk-input>
+            </db-input>
           </bk-form-item>
         ),
         width: 220,
@@ -360,7 +360,7 @@
             label-width={0}
             property={`details.infos.${index}.slaveHost.ip`}
             rules={rules['slaveHost.ip']}>
-            <bk-input
+            <db-input
               model-value={domains.value[index]?.slaveHost.ip}
               placeholder={t('选择主库主机后自动生成')}
               readonly
@@ -533,7 +533,8 @@
       }
 
       tr:hover {
-        .bk-input {
+        .dbm-input,
+        .dbm-input .dbm-input-text {
           background-color: #f5f7fa !important;
         }
       }

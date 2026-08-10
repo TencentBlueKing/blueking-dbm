@@ -16,7 +16,7 @@
     :label="t('集群别名')"
     property="details.cluster_alias"
     :rules="rules">
-    <BkInput
+    <DbInput
       v-model="modelValue"
       class="item-input"
       clearable

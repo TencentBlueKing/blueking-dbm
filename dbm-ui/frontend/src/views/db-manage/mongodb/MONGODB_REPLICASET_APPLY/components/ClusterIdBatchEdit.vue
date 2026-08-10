@@ -35,7 +35,7 @@
           <span>({{ t('通过换行分隔_快速批量编辑多个集群ID') }})</span>
         </p>
         <div class="batch-edit-box">
-          <BkInput
+          <DbInput
             v-model="clusterId"
             class="batch-edit-input"
             :placeholder="t('以小写英文字母开头_且只能包含小写英文字母_数字_连字符_多个换行分隔')"
