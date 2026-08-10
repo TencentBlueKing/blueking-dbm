@@ -41,7 +41,7 @@ class K8sQdrantDisableFlowParamBuilder(K8sQdrantDeleteFlowParamBuilder):
 class K8sQdrantDisableFlowBuilder(BaseQdrantTicketFlowBuilder):
     serializer = K8sQdrantDisableSerializer
     inner_flow_builder = K8sQdrantDisableFlowParamBuilder
-    inner_flow_name = _("Qdrant集群停止执行")
+    inner_flow_name = _("Qdrant禁用")
     default_need_itsm = True
     default_need_manual_confirm = True
     operation_type = QdrantOperationType.StopCluster
