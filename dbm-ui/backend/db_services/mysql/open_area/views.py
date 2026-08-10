@@ -82,7 +82,7 @@ class OpenAreaViewSet(viewsets.AuditedModelViewSet):
             ActionEnum.TENDBCLUSTER_OPENAREA_MANAGE,
             ActionEnum.MYSQL_OPENAREA_MANAGE,
         ],
-        resource_meta=ResourceEnum.OPENAREA_CONFIG,
+        resource_meta=ResourceEnum.BUSINESS,
     )
     def list(self, request, *args, **kwargs):
         resp = super().list(request, *args, **kwargs)
