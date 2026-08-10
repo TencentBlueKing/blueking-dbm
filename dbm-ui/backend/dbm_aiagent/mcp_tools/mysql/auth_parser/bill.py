@@ -11,6 +11,7 @@ specific language governing permissions and limitations under the License.
 
 from backend.db_meta.enums import ClusterType
 from backend.db_meta.models import Cluster
+from backend.dbm_aiagent.mcp_tools.mysql.constants import MYSQL_MCP_DB_READ
 
 
 def auth_parse_mysql_tdbctl_upgrade_ticket(request, *args, **kwargs):
@@ -21,11 +22,17 @@ def auth_parse_mysql_tdbctl_upgrade_ticket(request, *args, **kwargs):
 
     clusters = None
     if cluster_domains:
-        clusters = Cluster.objects.filter(immute_domain__in=cluster_domains, cluster_type=ClusterType.TenDBCluster)
+        clusters = Cluster.objects.using(MYSQL_MCP_DB_READ).filter(
+            immute_domain__in=cluster_domains, cluster_type=ClusterType.TenDBCluster
+        )
     elif cluster_ids:
-        clusters = Cluster.objects.filter(id__in=cluster_ids, cluster_type=ClusterType.TenDBCluster)
+        clusters = Cluster.objects.using(MYSQL_MCP_DB_READ).filter(
+            id__in=cluster_ids, cluster_type=ClusterType.TenDBCluster
+        )
     elif bk_biz_id:
-        clusters = Cluster.objects.filter(bk_biz_id=bk_biz_id, cluster_type=ClusterType.TenDBCluster)
+        clusters = Cluster.objects.using(MYSQL_MCP_DB_READ).filter(
+            bk_biz_id=bk_biz_id, cluster_type=ClusterType.TenDBCluster
+        )
 
     if not clusters or not clusters.exists():
         raise ValueError("No clusters found for the given params")

@@ -15,10 +15,13 @@ from django.utils.translation import gettext_lazy as _
 
 from backend.db_meta.enums import ClusterType
 from backend.db_meta.models import Cluster
+from backend.dbm_aiagent.mcp_tools.mysql.constants import MYSQL_MCP_DB_READ
 
 
 def validate_clusters(cluster_domains: List[str], cluster_type: ClusterType) -> Tuple[QuerySet, int, int]:
-    cluster_objs = Cluster.objects.filter(immute_domain__in=cluster_domains, cluster_type=cluster_type)
+    cluster_objs = Cluster.objects.using(MYSQL_MCP_DB_READ).filter(
+        immute_domain__in=cluster_domains, cluster_type=cluster_type
+    )
     if not cluster_objs.exists():
         raise Exception(_("未找到集群: {}").format(cluster_domains))
 
@@ -47,7 +50,8 @@ def check_clusters_consistency(input_clusters: QuerySet, ips: List[str], instanc
     for ip in ips:
         ip_instances = instance_objs.filter(machine__ip=ip)
         per_ip_clusters = set(
-            Cluster.objects.filter(pk__in=ip_instances.values_list("cluster", flat=True))
+            Cluster.objects.using(MYSQL_MCP_DB_READ)
+            .filter(pk__in=ip_instances.values_list("cluster", flat=True))
             .distinct()
             .values_list("id", "immute_domain", "cluster_type")
         )

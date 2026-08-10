@@ -12,6 +12,7 @@ from backend.db_meta.enums import ClusterType, InstanceInnerRole
 from backend.db_meta.models import Cluster
 from backend.dbm_aiagent.mcp_tools.decorators import bill_response_wrapper
 from backend.dbm_aiagent.mcp_tools.exceptions import DBMMcpNotSupportClusterTypeException
+from backend.dbm_aiagent.mcp_tools.mysql.constants import MYSQL_MCP_DB_READ
 from backend.flow.consts import MySQLBackupFileTagEnum
 from backend.ticket.builders.mysql.mysql_full_backup import MySQLFullBackupDetailSerializer
 from backend.ticket.builders.tendbcluster.full_backup import TenDBClusterFullBackUpDetailSerializer
@@ -21,7 +22,7 @@ from backend.ticket.models import Ticket
 
 @bill_response_wrapper
 def mysql_full_backup(bk_biz_id: int, username: str, backup_type: str, cluster_domain: str) -> Ticket:
-    cluster_obj = Cluster.objects.get(bk_biz_id=bk_biz_id, immute_domain=cluster_domain)
+    cluster_obj = Cluster.objects.using(MYSQL_MCP_DB_READ).get(bk_biz_id=bk_biz_id, immute_domain=cluster_domain)
     cluster_type = cluster_obj.cluster_type
 
     if cluster_type == ClusterType.TenDBCluster:

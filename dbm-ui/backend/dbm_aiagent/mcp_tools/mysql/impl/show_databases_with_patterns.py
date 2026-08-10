@@ -12,10 +12,11 @@ from typing import Dict, List
 
 from backend.db_meta.models import Cluster
 from backend.db_services.mysql.remote_service.handlers import RemoteServiceHandler
+from backend.dbm_aiagent.mcp_tools.mysql.constants import MYSQL_MCP_DB_READ
 
 
 def show_databases_with_patterns(cluster_domain: str, dbs: List[str], ignore_dbs: List[str]) -> Dict:
-    cluster_obj = Cluster.objects.get(immute_domain=cluster_domain)
+    cluster_obj = Cluster.objects.using(MYSQL_MCP_DB_READ).get(immute_domain=cluster_domain)
 
     info = {
         "cluster_id": cluster_obj.pk,

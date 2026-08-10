@@ -17,6 +17,7 @@ from django.utils.translation import gettext as _
 from backend.components import DBConfigApi
 from backend.components.dbconfig.constants import LevelName, OpType
 from backend.db_meta.models import Cluster
+from backend.dbm_aiagent.mcp_tools.mysql.constants import MYSQL_MCP_DB_READ
 
 logger = logging.getLogger("root")
 
@@ -42,7 +43,7 @@ def update_mysql_config(
     修改 MySQL 集群级别的配置（backup / mysql_monitor / checksum）
     """
     # 获取集群对象
-    cluster_obj = Cluster.objects.get(bk_biz_id=bk_biz_id, immute_domain=cluster_domain)
+    cluster_obj = Cluster.objects.using(MYSQL_MCP_DB_READ).get(bk_biz_id=bk_biz_id, immute_domain=cluster_domain)
     namespace = cluster_obj.cluster_type
     if not cluster_obj:
         raise ValueError(_("Cluster does not exist: {}").format(cluster_domain))

@@ -22,6 +22,7 @@ from backend.dbm_aiagent.mcp_tools.exceptions import (
     DBMMcpForbiddenException,
     DBMMcpNotSupportClusterTypeException,
 )
+from backend.dbm_aiagent.mcp_tools.mysql.constants import MYSQL_MCP_DB_READ
 from backend.dbm_aiagent.mcp_tools.mysql.impl.mysql_backup_log import query_backup_log
 from backend.dbm_aiagent.mcp_tools.mysql.impl.show_databases_with_patterns import show_databases_with_patterns
 from backend.flow.consts import RollbackType
@@ -99,8 +100,10 @@ def bill_construct_rollback(
         rollback_time: 构造的时间点
         backup_id: 备份ID
     """
-    cluster_obj = Cluster.objects.get(bk_biz_id=bk_biz_id, immute_domain=cluster_domain)
-    target_cluster_obj = Cluster.objects.get(bk_biz_id=bk_biz_id, immute_domain=target_cluster_domain)
+    cluster_obj = Cluster.objects.using(MYSQL_MCP_DB_READ).get(bk_biz_id=bk_biz_id, immute_domain=cluster_domain)
+    target_cluster_obj = Cluster.objects.using(MYSQL_MCP_DB_READ).get(
+        bk_biz_id=bk_biz_id, immute_domain=target_cluster_domain
+    )
 
     # 确定单据类型(构造还是回档）、回档类型（指定时间还是指定备份ID）
     ticket_type, rollback_cluster_type = _get_ticket_type(

@@ -29,6 +29,7 @@ from backend.dbm_aiagent.mcp_tools.exceptions import (
     DBMMcpUsernameNotFoundException,
 )
 from backend.dbm_aiagent.mcp_tools.mysql.auth_parser.bill import auth_parse_mysql_tdbctl_upgrade_ticket
+from backend.dbm_aiagent.mcp_tools.mysql.constants import MYSQL_MCP_DB_READ
 from backend.dbm_aiagent.mcp_tools.mysql.helpers.assert_clustertype import assert_cluster_type
 from backend.dbm_aiagent.mcp_tools.mysql.impl.bill_apply_priv import bill_apply_priv
 from backend.dbm_aiagent.mcp_tools.mysql.impl.bill_construct_rollback import bill_construct_rollback
@@ -105,7 +106,8 @@ class MySQLBillMcpToolsViewSet(McpToolsViewSet):
         cluster_domain = self.get_param("cluster_domain")
 
         assert_cluster_type(
-            Cluster.objects.get(immute_domain=cluster_domain), [ClusterType.TenDBHA, ClusterType.TenDBCluster]
+            Cluster.objects.using(MYSQL_MCP_DB_READ).get(immute_domain=cluster_domain),
+            [ClusterType.TenDBHA, ClusterType.TenDBCluster],
         )
 
         username = request.user.username
@@ -135,7 +137,8 @@ class MySQLBillMcpToolsViewSet(McpToolsViewSet):
         ignore_dbs = self.get_param("ignore_dbs")
 
         assert_cluster_type(
-            Cluster.objects.get(immute_domain=cluster_domain), [ClusterType.TenDBHA, ClusterType.TenDBCluster]
+            Cluster.objects.using(MYSQL_MCP_DB_READ).get(immute_domain=cluster_domain),
+            [ClusterType.TenDBHA, ClusterType.TenDBCluster],
         )
 
         username = request.user.username
@@ -181,7 +184,7 @@ class MySQLBillMcpToolsViewSet(McpToolsViewSet):
         apply_source_ips = self.get_param("apply_source_ips")
 
         assert_cluster_type(
-            Cluster.objects.get(immute_domain=cluster_domain),
+            Cluster.objects.using(MYSQL_MCP_DB_READ).get(immute_domain=cluster_domain),
             [ClusterType.TenDBSingle, ClusterType.TenDBHA, ClusterType.TenDBCluster],
         )
 
@@ -216,7 +219,7 @@ class MySQLBillMcpToolsViewSet(McpToolsViewSet):
         cluster_domains = self.get_param("cluster_domains")
 
         assert_cluster_type(
-            Cluster.objects.filter(immute_domain__in=cluster_domains),
+            Cluster.objects.using(MYSQL_MCP_DB_READ).filter(immute_domain__in=cluster_domains),
             [ClusterType.TenDBSingle, ClusterType.TenDBHA, ClusterType.TenDBCluster],
         )
 
@@ -261,7 +264,7 @@ class MySQLBillMcpToolsViewSet(McpToolsViewSet):
         target_dbname = self.get_param("target_dbname")
 
         assert_cluster_type(
-            Cluster.objects.get(immute_domain=cluster_domain),
+            Cluster.objects.using(MYSQL_MCP_DB_READ).get(immute_domain=cluster_domain),
             [ClusterType.TenDBSingle, ClusterType.TenDBHA, ClusterType.TenDBCluster],
         )
 
@@ -310,7 +313,9 @@ class MySQLBillMcpToolsViewSet(McpToolsViewSet):
         cluster_ids = self.get_param("cluster_ids", None)
         version = self.get_param("version", None)
 
-        assert_cluster_type(Cluster.objects.filter(id__in=cluster_ids), [ClusterType.TenDBCluster])
+        assert_cluster_type(
+            Cluster.objects.using(MYSQL_MCP_DB_READ).filter(id__in=cluster_ids), [ClusterType.TenDBCluster]
+        )
 
         username = request.user.username
         if not username:
@@ -340,7 +345,9 @@ class MySQLBillMcpToolsViewSet(McpToolsViewSet):
         cluster_domains = list({d.strip() for d in self.get_param("cluster_domains")})
         ips = list({addr.strip() for addr in self.get_param("ips")})
 
-        assert_cluster_type(Cluster.objects.filter(immute_domain__in=cluster_domains), [ClusterType.TenDBHA])
+        assert_cluster_type(
+            Cluster.objects.using(MYSQL_MCP_DB_READ).filter(immute_domain__in=cluster_domains), [ClusterType.TenDBHA]
+        )
 
         return Response(bill_proxy_replace(cluster_domains=cluster_domains, ips=ips))
 
@@ -358,7 +365,9 @@ class MySQLBillMcpToolsViewSet(McpToolsViewSet):
         cluster_domains = list({d.strip() for d in self.get_param("cluster_domains")})
         ips = list({addr.strip() for addr in self.get_param("ips")})
 
-        assert_cluster_type(Cluster.objects.filter(immute_domain__in=cluster_domains), [ClusterType.TenDBHA])
+        assert_cluster_type(
+            Cluster.objects.using(MYSQL_MCP_DB_READ).filter(immute_domain__in=cluster_domains), [ClusterType.TenDBHA]
+        )
 
         return Response(bill_backend_slave_replace(cluster_domains=cluster_domains, ips=ips))
 
@@ -376,7 +385,9 @@ class MySQLBillMcpToolsViewSet(McpToolsViewSet):
         cluster_domain = self.get_param("cluster_domain")
         ips = list({addr.strip() for addr in self.get_param("ips")})
 
-        assert_cluster_type(Cluster.objects.get(immute_domain=cluster_domain), [ClusterType.TenDBCluster])
+        assert_cluster_type(
+            Cluster.objects.using(MYSQL_MCP_DB_READ).get(immute_domain=cluster_domain), [ClusterType.TenDBCluster]
+        )
 
         return Response(bill_spider_replace(cluster_domain=cluster_domain, ips=ips))
 
@@ -394,7 +405,9 @@ class MySQLBillMcpToolsViewSet(McpToolsViewSet):
         cluster_domain = self.get_param("cluster_domain")
         ips = list({addr.strip() for addr in self.get_param("ips")})
 
-        assert_cluster_type(Cluster.objects.get(immute_domain=cluster_domain), [ClusterType.TenDBCluster])
+        assert_cluster_type(
+            Cluster.objects.using(MYSQL_MCP_DB_READ).get(immute_domain=cluster_domain), [ClusterType.TenDBCluster]
+        )
 
         return Response(bill_remote_replace(cluster_domain=cluster_domain, ips=ips))
 
@@ -416,7 +429,9 @@ class MySQLBillMcpToolsViewSet(McpToolsViewSet):
         cluster_domains = list({d.strip() for d in self.get_param("cluster_domains")})
         ips = list({addr.strip() for addr in self.get_param("ips")})
 
-        assert_cluster_type(Cluster.objects.filter(immute_domain__in=cluster_domains), [ClusterType.TenDBHA])
+        assert_cluster_type(
+            Cluster.objects.using(MYSQL_MCP_DB_READ).filter(immute_domain__in=cluster_domains), [ClusterType.TenDBHA]
+        )
 
         return Response(bill_tendbha_master_slave_switch(cluster_domains=cluster_domains, ips=ips))
 
@@ -434,7 +449,9 @@ class MySQLBillMcpToolsViewSet(McpToolsViewSet):
         cluster_domain = self.get_param("cluster_domain")
         ips = list({addr.strip() for addr in self.get_param("ips")})
 
-        assert_cluster_type(Cluster.objects.get(immute_domain=cluster_domain), [ClusterType.TenDBCluster])
+        assert_cluster_type(
+            Cluster.objects.using(MYSQL_MCP_DB_READ).get(immute_domain=cluster_domain), [ClusterType.TenDBCluster]
+        )
 
         return Response(bill_tendbcluster_master_slave_switch(cluster_domain, ips))
 
@@ -514,7 +531,7 @@ class MySQLBillMcpToolsViewSet(McpToolsViewSet):
 
         source_ip, source_port = source_address.split(":")
         try:
-            m = Machine.objects.get(ip=source_ip, bk_cloud_id=bk_cloud_id)
+            m = Machine.objects.using(MYSQL_MCP_DB_READ).get(ip=source_ip, bk_cloud_id=bk_cloud_id)
         except MultipleObjectsReturned as e:
             raise DBMMcpBaseException(e)
         except Machine.DoesNotExist as e:
@@ -605,7 +622,7 @@ class MySQLBillMcpToolsViewSet(McpToolsViewSet):
         cluster_domains = list({d.strip() for d in self.get_param("cluster_domains") if d.strip()})
 
         assert_cluster_type(
-            Cluster.objects.filter(immute_domain__in=cluster_domains),
+            Cluster.objects.using(MYSQL_MCP_DB_READ).filter(immute_domain__in=cluster_domains),
             [ClusterType.TenDBSingle, ClusterType.TenDBHA, ClusterType.TenDBCluster],
         )
 
@@ -648,7 +665,7 @@ class MySQLBillMcpToolsViewSet(McpToolsViewSet):
         cluster_domains = list({d.strip() for d in self.get_param("cluster_domains") if d.strip()})
 
         assert_cluster_type(
-            Cluster.objects.filter(immute_domain__in=cluster_domains),
+            Cluster.objects.using(MYSQL_MCP_DB_READ).filter(immute_domain__in=cluster_domains),
             [ClusterType.TenDBSingle, ClusterType.TenDBHA, ClusterType.TenDBCluster],
         )
 

@@ -16,6 +16,7 @@ from backend.db_meta.models import Cluster
 from backend.db_services.partition.constants import Query_Tables_info_SQL
 from backend.db_services.partition.handlers import PartitionHandler
 from backend.dbm_aiagent.mcp_tools.exceptions import DBMMcpBaseException
+from backend.dbm_aiagent.mcp_tools.mysql.constants import MYSQL_MCP_DB_READ
 from backend.dbm_aiagent.mcp_tools.mysql.helpers.get_slave_address_and_dbname import get_cloud_slave_address_and_dbname
 from backend.dbm_aiagent.mcp_tools.mysql.helpers.sql_safety import quote_ident, quote_string_literal
 
@@ -24,7 +25,7 @@ _EMPTY_EXECUTE_TIME = "0001-01-01T00:00:00Z"
 
 
 def get_table_partition_conf(cluster_domain: str, db_name: str, table_name: str) -> Dict[str, Any]:
-    cluster = Cluster.objects.get(immute_domain=cluster_domain)
+    cluster = Cluster.objects.using(MYSQL_MCP_DB_READ).get(immute_domain=cluster_domain)
     db_name = db_name.strip("`")
     table_name = table_name.strip("`")
 

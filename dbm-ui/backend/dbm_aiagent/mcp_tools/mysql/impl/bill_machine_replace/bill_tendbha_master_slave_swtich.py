@@ -15,6 +15,7 @@ from backend.configuration.models import DBAdministrator
 from backend.db_meta.enums import ClusterType, InstanceInnerRole
 from backend.db_meta.models import Machine, StorageInstance, StorageInstanceTuple
 from backend.dbm_aiagent.mcp_tools.decorators import bill_response_wrapper
+from backend.dbm_aiagent.mcp_tools.mysql.constants import MYSQL_MCP_DB_READ
 from backend.dbm_aiagent.mcp_tools.mysql.impl.bill_machine_replace.helper import (
     check_clusters_consistency,
     validate_clusters,
@@ -33,13 +34,13 @@ def bill_tendbha_master_slave_switch(cluster_domains: List[str], ips: List[str])
 
     cluster_objs, bk_biz_id, bk_cloud_id = validate_clusters(cluster_domains, ClusterType.TenDBHA)
 
-    master_objs = StorageInstance.objects.filter(
+    master_objs = StorageInstance.objects.using(MYSQL_MCP_DB_READ).filter(
         machine__ip=ip, machine__bk_cloud_id=bk_cloud_id, instance_inner_role=InstanceInnerRole.MASTER
     )
     check_clusters_consistency(cluster_objs, ips, master_objs)
 
     slave_ips = set()
-    for ele in StorageInstanceTuple.objects.filter(ejector__in=master_objs):
+    for ele in StorageInstanceTuple.objects.using(MYSQL_MCP_DB_READ).filter(ejector__in=master_objs):
         slave_ips.add(ele.receiver.machine.ip)
 
     if not len(slave_ips) == 1:
@@ -47,8 +48,8 @@ def bill_tendbha_master_slave_switch(cluster_domains: List[str], ips: List[str])
             "masters on {} should have all slaves on a single ip, but found: {}".format(ip, sorted(slave_ips))
         )
 
-    master_machine_obj = Machine.objects.get(bk_cloud_id=bk_cloud_id, ip=ip)
-    slave_machine_obj = Machine.objects.get(bk_cloud_id=bk_cloud_id, ip=list(slave_ips)[0])
+    master_machine_obj = Machine.objects.using(MYSQL_MCP_DB_READ).get(bk_cloud_id=bk_cloud_id, ip=ip)
+    slave_machine_obj = Machine.objects.using(MYSQL_MCP_DB_READ).get(bk_cloud_id=bk_cloud_id, ip=list(slave_ips)[0])
 
     dbas = DBAdministrator.get_biz_db_type_admins(bk_biz_id=bk_biz_id, db_type=DBType.MySQL)
 

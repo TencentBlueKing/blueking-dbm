@@ -13,6 +13,7 @@ from typing import Dict
 from backend.db_meta.enums import ClusterType, InstanceRole
 from backend.db_meta.models import Cluster, StorageInstanceTuple
 from backend.db_meta.models.storage_set_dtl import TenDBClusterStorageSet
+from backend.dbm_aiagent.mcp_tools.mysql.constants import MYSQL_MCP_DB_READ
 
 
 def mysql_cluster_topo(cluster_obj: Cluster) -> Dict:
@@ -28,7 +29,9 @@ def __tendbsingle_topo(cluster_obj: Cluster) -> Dict:
     storage_instance_replicate_sets = []
     all_orphans = cluster_obj.storageinstance_set.filter(instance_role=InstanceRole.ORPHAN)
     receiver_ids = set(
-        StorageInstanceTuple.objects.filter(ejector__in=all_orphans).values_list("receiver_id", flat=True)
+        StorageInstanceTuple.objects.using(MYSQL_MCP_DB_READ)
+        .filter(ejector__in=all_orphans)
+        .values_list("receiver_id", flat=True)
     )
 
     for master in all_orphans.exclude(id__in=receiver_ids):
@@ -50,7 +53,7 @@ def __tendbsingle_topo(cluster_obj: Cluster) -> Dict:
             },
         }
 
-        tuples = StorageInstanceTuple.objects.filter(ejector=master)
+        tuples = StorageInstanceTuple.objects.using(MYSQL_MCP_DB_READ).filter(ejector=master)
         if tuples.exists():
             replicate_set["slave_instances"] = [
                 {
@@ -81,7 +84,7 @@ def __tendbsingle_topo(cluster_obj: Cluster) -> Dict:
 
 def __tendbha_topo(cluster_obj: Cluster) -> Dict:
     storage_instance_replicate_sets = []
-    for tp in StorageInstanceTuple.objects.filter(ejector__cluster=cluster_obj):
+    for tp in StorageInstanceTuple.objects.using(MYSQL_MCP_DB_READ).filter(ejector__cluster=cluster_obj):
         storage_instance_replicate_sets.append(
             {
                 "master_instance": {
@@ -162,16 +165,26 @@ def _get_shard_id(tp: StorageInstanceTuple) -> int:
         tp.ejector.instance_role == InstanceRole.REMOTE_MASTER
         and tp.receiver.instance_role == InstanceRole.REMOTE_REPEATER
     ):
-        bound = TenDBClusterStorageSet.objects.filter(storage_instance_tuple__ejector=tp.ejector).first()
+        bound = (
+            TenDBClusterStorageSet.objects.using(MYSQL_MCP_DB_READ)
+            .filter(storage_instance_tuple__ejector=tp.ejector)
+            .first()
+        )
         if bound:
             return bound.shard_id
 
     elif tp.ejector.instance_role == InstanceRole.REMOTE_REPEATER:
-        upstream = StorageInstanceTuple.objects.filter(
-            receiver=tp.ejector, ejector__instance_role=InstanceRole.REMOTE_MASTER
-        ).first()
+        upstream = (
+            StorageInstanceTuple.objects.using(MYSQL_MCP_DB_READ)
+            .filter(receiver=tp.ejector, ejector__instance_role=InstanceRole.REMOTE_MASTER)
+            .first()
+        )
         if upstream:
-            bound = TenDBClusterStorageSet.objects.filter(storage_instance_tuple__ejector=upstream.ejector).first()
+            bound = (
+                TenDBClusterStorageSet.objects.using(MYSQL_MCP_DB_READ)
+                .filter(storage_instance_tuple__ejector=upstream.ejector)
+                .first()
+            )
             if bound:
                 return bound.shard_id
 
@@ -180,7 +193,7 @@ def _get_shard_id(tp: StorageInstanceTuple) -> int:
 
 def __tendbcluster_topo(cluster_obj: Cluster) -> Dict:
     storage_instance_replicate_sets = []
-    for tp in StorageInstanceTuple.objects.filter(ejector__cluster=cluster_obj):
+    for tp in StorageInstanceTuple.objects.using(MYSQL_MCP_DB_READ).filter(ejector__cluster=cluster_obj):
         storage_instance_replicate_sets.append(
             {
                 "shard_id": _get_shard_id(tp),

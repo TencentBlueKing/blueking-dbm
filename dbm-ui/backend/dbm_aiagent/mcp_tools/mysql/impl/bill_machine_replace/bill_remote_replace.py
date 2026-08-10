@@ -16,6 +16,7 @@ from backend.db_meta.enums import ClusterType, InstanceInnerRole
 from backend.db_meta.models import Machine, StorageInstance
 from backend.db_services.dbbase.constants import IpSource, SourceType
 from backend.dbm_aiagent.mcp_tools.decorators import bill_response_wrapper
+from backend.dbm_aiagent.mcp_tools.mysql.constants import MYSQL_MCP_DB_READ
 from backend.dbm_aiagent.mcp_tools.mysql.impl.bill_machine_replace.helper import (
     check_clusters_consistency,
     validate_clusters,
@@ -30,7 +31,7 @@ from backend.ticket.models import Ticket
 def bill_remote_replace(cluster_domain: str, ips: List[str]):
     cluster_objs, bk_biz_id, bk_cloud_id = validate_clusters([cluster_domain], ClusterType.TenDBCluster)
 
-    remote_slave_objs = StorageInstance.objects.filter(
+    remote_slave_objs = StorageInstance.objects.using(MYSQL_MCP_DB_READ).filter(
         machine__ip__in=ips, machine__bk_cloud_id=bk_cloud_id, instance_inner_role=InstanceInnerRole.SLAVE
     )
 
@@ -41,7 +42,7 @@ def bill_remote_replace(cluster_domain: str, ips: List[str]):
     infos = []
 
     for ip in ips:
-        machine_obj = Machine.objects.get(bk_cloud_id=bk_cloud_id, ip=ip)
+        machine_obj = Machine.objects.using(MYSQL_MCP_DB_READ).get(bk_cloud_id=bk_cloud_id, ip=ip)
         slave_info = {
             "bk_biz_id": bk_biz_id,
             "bk_cloud_id": bk_cloud_id,

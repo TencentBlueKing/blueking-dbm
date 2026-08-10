@@ -22,6 +22,7 @@ from backend.dbm_aiagent.mcp_tools.exceptions import (
     DBMMcpMySQLApplyPrivDBRuleNotFoundException,
     DBMMcpNotSupportClusterTypeException,
 )
+from backend.dbm_aiagent.mcp_tools.mysql.constants import MYSQL_MCP_DB_READ
 from backend.ticket.builders.mysql.mysql_authorize_rules import MySQLAuthorizeRulesSerializer
 from backend.ticket.constants import TicketType
 from backend.ticket.models import Ticket
@@ -37,7 +38,7 @@ def bill_apply_priv(
     cluster_domain: str,
     bk_biz_id: int,
 ) -> Ticket:
-    cluster_obj = Cluster.objects.get(bk_biz_id=bk_biz_id, immute_domain=cluster_domain)
+    cluster_obj = Cluster.objects.using(MYSQL_MCP_DB_READ).get(bk_biz_id=bk_biz_id, immute_domain=cluster_domain)
     cluster_type = cluster_obj.cluster_type
 
     if cluster_type == ClusterType.TenDBCluster:

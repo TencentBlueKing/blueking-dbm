@@ -19,6 +19,7 @@ from backend.components import DRSApi
 from backend.db_meta.enums import ClusterType, InstanceRole, TenDBClusterSpiderRole
 from backend.db_meta.models import Cluster, ProxyInstance, StorageInstance, StorageInstanceTuple
 from backend.dbm_aiagent.mcp_tools.exceptions import DBMMcpBaseException
+from backend.dbm_aiagent.mcp_tools.mysql.constants import MYSQL_MCP_DB_READ
 
 logger = logging.getLogger("root")
 
@@ -311,7 +312,8 @@ def _tendbha_variables(
     addr_to_datadir_meta: Dict[str, Dict[str, str]],
 ) -> Dict:
     tuples = list(
-        StorageInstanceTuple.objects.filter(ejector__cluster=cluster_obj)
+        StorageInstanceTuple.objects.using(MYSQL_MCP_DB_READ)
+        .filter(ejector__cluster=cluster_obj)
         .select_related("ejector", "receiver")
         .order_by("ejector_id", "receiver_id")
     )

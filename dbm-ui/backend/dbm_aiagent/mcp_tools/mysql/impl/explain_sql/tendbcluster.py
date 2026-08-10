@@ -34,6 +34,7 @@ from backend.db_meta.enums import ClusterType, InstanceStatus, TenDBClusterSpide
 from backend.db_meta.models import Cluster
 from backend.db_meta.models.storage_set_dtl import TenDBClusterStorageSet
 from backend.dbm_aiagent.mcp_tools.exceptions import DBMMcpBaseException
+from backend.dbm_aiagent.mcp_tools.mysql.constants import MYSQL_MCP_DB_READ
 from backend.dbm_aiagent.mcp_tools.mysql.helpers.sql_safety import quote_ident
 from backend.dbm_aiagent.mcp_tools.mysql.impl.explain_sql.drs import run_explain
 
@@ -195,7 +196,9 @@ def explain_tendbcluster(
 
 def _get_tendbcluster(cluster_domain: str) -> Cluster:
     try:
-        return Cluster.objects.get(immute_domain=cluster_domain, cluster_type=ClusterType.TenDBCluster)
+        return Cluster.objects.using(MYSQL_MCP_DB_READ).get(
+            immute_domain=cluster_domain, cluster_type=ClusterType.TenDBCluster
+        )
     except Cluster.DoesNotExist as e:
         raise DBMMcpBaseException(msg=f"TenDBCluster not found: {cluster_domain}") from e
 
@@ -461,7 +464,9 @@ def _rewrite_dbnames_for_shard(explained_sql: str, shard_id: int) -> str:
 
 def _get_remote_slave_address(cluster_obj: Cluster, shard_id: int) -> str:
     try:
-        storage_set = TenDBClusterStorageSet.objects.get(cluster=cluster_obj, shard_id=shard_id)
+        storage_set = TenDBClusterStorageSet.objects.using(MYSQL_MCP_DB_READ).get(
+            cluster=cluster_obj, shard_id=shard_id
+        )
     except TenDBClusterStorageSet.DoesNotExist as e:
         raise DBMMcpBaseException(msg=f"shard_id {shard_id} not found in cluster {cluster_obj.immute_domain}") from e
     return storage_set.storage_instance_tuple.receiver.ip_port
