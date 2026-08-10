@@ -23,6 +23,7 @@ export default class TendbSingleMachine {
   bk_svr_device_cls_name: string;
   cluster_type: string;
   create_at: string;
+  enable: boolean;
   host_info: HostInfo;
   instance_role: string;
   ip: string;
@@ -43,6 +44,7 @@ export default class TendbSingleMachine {
     this.bk_svr_device_cls_name = payload.bk_svr_device_cls_name;
     this.cluster_type = payload.cluster_type;
     this.spec_name = payload.spec_name;
+    this.enable = payload.enable;
     this.create_at = payload.create_at;
     this.host_info = payload.host_info;
     this.instance_role = payload.instance_role;
