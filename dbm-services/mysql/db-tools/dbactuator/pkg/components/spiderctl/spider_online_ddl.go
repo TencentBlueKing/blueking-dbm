@@ -13,6 +13,7 @@ package spiderctl
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
 	"math/rand/v2"
 	"os"
@@ -280,37 +281,90 @@ func (c *SpiderOnlineDDLComp) buildUserGhostFlag() ghost.UserGhostFlag {
 
 // ExecuteByPassTdbctl run online ddl by bypass tdbctl
 func (c *SpiderOnlineDDLComp) ExecuteByPassTdbctl(port int, db, tb, statement string, doSpiderFirst bool) (err error) {
-	var runSteps []func() error
 	ghostFlag := c.buildUserGhostFlag()
 	c.writeghotcmd(port, db, tb, statement, ghostFlag)
+
+	layers := map[onlineDDLLayer]layerExecution{
+		backendLayer: {status: layerNotRun},
+		spiderLayer:  {status: layerNotRun},
+		tdbctlLayer:  {status: layerNotRun},
+	}
+	runLayer := func(layer onlineDDLLayer, total int, run func() error) error {
+		runErr := run()
+		if runErr != nil {
+			layers[layer] = layerExecution{status: layerFailed, total: total, err: runErr}
+			return runErr
+		}
+		layers[layer] = layerExecution{status: layerSuccess, total: total}
+		return nil
+	}
+	backendStep := func() error {
+		return runLayer(backendLayer, len(c.masterSptSvrs[port]), func() error {
+			return ghost.RunMigratorClustershardNodes(
+				c.masterSptSvrs[port],
+				c.billId,
+				db,
+				tb,
+				statement,
+				ghostFlag,
+			)
+		})
+	}
+	spiderStep := func() error {
+		return runLayer(spiderLayer, len(c.spiderConnMap[port]), func() error {
+			return c.applySchemaChangeOnSpiders(port, db, statement)
+		})
+	}
+
+	var orderedSteps []func() error
 	if doSpiderFirst {
 		logger.Info("[step1] 执行sql:%s on spider", statement)
-		runSteps = append(runSteps, func() error {
-			return c.applySchemaChangeOnSpiders(port, db, statement)
-		})
+		orderedSteps = append(orderedSteps, spiderStep)
 		logger.Info("[step2] 执行sql:%s on backend", statement)
-		runSteps = append(runSteps, func() error {
-			return ghost.RunMigratorClustershardNodes(c.masterSptSvrs[port], c.billId, db, tb, statement, ghostFlag)
-		})
+		orderedSteps = append(orderedSteps, backendStep)
 	} else {
 		logger.Info("[step1] 执行sql:%s on backend", statement)
-		runSteps = append(runSteps, func() error {
-			return ghost.RunMigratorClustershardNodes(c.masterSptSvrs[port], c.billId, db, tb, statement, ghostFlag)
-		})
+		orderedSteps = append(orderedSteps, backendStep)
 		logger.Info("[step2] 执行sql:%s on spider", statement)
-		runSteps = append(runSteps, func() error {
-			return c.applySchemaChangeOnSpiders(port, db, statement)
-		})
+		orderedSteps = append(orderedSteps, spiderStep)
 	}
-	for _, step := range runSteps {
+	for _, step := range orderedSteps {
 		if err = step(); err != nil {
-			return err
+			summary := formatTendbClusterOnlineDDLSummary(db, tb, statement, layers)
+			logger.Error("%s", summary)
+			return errors.New(summary)
 		}
 	}
+
 	logger.Info("[step3] 执行sql:%s on tdbctl", statement)
 	// 最后在中控上执行对应的sql
-	_, err = c.dbConns[port].ExecMore([]string{"set tc_admin=0", fmt.Sprintf("use `%s`;", db), statement})
-	return err
+	err = runLayer(tdbctlLayer, 1, func() error {
+		_, execErr := c.dbConns[port].ExecMore(
+			[]string{"set tc_admin=0", fmt.Sprintf("use `%s`;", db), statement},
+		)
+		if execErr == nil {
+			return nil
+		}
+		tdbctlSummary := formatSchemaApplySummary(
+			"tdbctl",
+			1,
+			db,
+			[]schemaApplyFailure{{
+				name: "TDBCTL",
+				host: c.Params.Host,
+				port: port,
+				err:  execErr,
+			}},
+		)
+		logger.Error("%s", tdbctlSummary)
+		return errors.New(tdbctlSummary)
+	})
+	if err != nil {
+		summary := formatTendbClusterOnlineDDLSummary(db, tb, statement, layers)
+		logger.Error("%s", summary)
+		return errors.New(summary)
+	}
+	return nil
 }
 
 func (c *SpiderOnlineDDLComp) writeghotcmd(port int, db, tb, statement string, ghostFlag ghost.UserGhostFlag) {
@@ -343,6 +397,7 @@ func (c *SpiderOnlineDDLComp) writeSplitSQLToFile(originFile string, statements 
 // applySchemaChaneOnSpiders apply schema change on spiders
 func (c *SpiderOnlineDDLComp) applySchemaChangeOnSpiders(port int, db, statement string) (err error) {
 	logger.Info("execute on  %s all spiders 执行sql:%s", db, statement)
+	failures := make([]schemaApplyFailure, 0)
 	for _, spc := range c.spiderConnMap[port] {
 		// 使用每次迭代内的匿名函数，确保连接在本次迭代结束时关闭
 		if err = func() error {
@@ -373,8 +428,18 @@ func (c *SpiderOnlineDDLComp) applySchemaChangeOnSpiders(port int, db, statement
 			return nil
 		}(); err != nil {
 			logger.Error("execute on [%s:%d] 执行sql:%s 失败:%s", spc.Host, spc.Port, statement, err.Error())
-			return err
+			failures = append(failures, schemaApplyFailure{
+				name: spc.Name,
+				host: spc.Host,
+				port: spc.Port,
+				err:  err,
+			})
 		}
+	}
+	if len(failures) > 0 {
+		summary := formatSchemaApplySummary("spider", len(c.spiderConnMap[port]), db, failures)
+		logger.Error("%s", summary)
+		return errors.New(summary)
 	}
 	return nil
 }

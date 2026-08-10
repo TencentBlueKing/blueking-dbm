@@ -46,3 +46,9 @@ class SpiderMinCountFailedException(FlowValidateBaseException):
     ERROR_CODE = "36006"
     MESSAGE = _("预估集群spider数量低于系统管理的下限")
     MESSAGE_TPL = _("{message}")
+
+
+class GhostCollationFailedException(FlowValidateBaseException):
+    ERROR_CODE = "36007"
+    MESSAGE = _("RocksDB gh-ost 字符集检查不通过")
+    MESSAGE_TPL = _("{message}")
