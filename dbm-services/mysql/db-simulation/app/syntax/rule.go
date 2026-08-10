@@ -189,13 +189,14 @@ func (c *CheckerResult) ParseWithExtraKey(rule *RuleItem, val interface{}, extra
 				lookupKey = s
 			}
 		}
+		// extra_message 置前；用空格拼接为单行，避免前端 ellipsis 截断时只露出首行
 		parts := []string{
+			rule.lookupExtraMessage(lookupKey),
 			strings.TrimSpace(fmt.Sprintf("%s %s", c.buildObjName(), err.Error())),
 			additionalMsg,
-			rule.lookupExtraMessage(lookupKey),
 			rule.Suggestion,
 		}
-		msg := joinNonEmpty(parts, "\n")
+		msg := joinNonEmpty(parts, " ")
 		if rule.Ban {
 			c.addBan(msg, rule.Category)
 		} else {
@@ -254,7 +255,7 @@ func (c *CheckerResult) buildObjName() string {
 	if c.ObjName == "" {
 		return ""
 	}
-	return fmt.Sprintf("table_name:[%s]", c.ObjName)
+	return fmt.Sprintf("表名:%s", c.ObjName)
 }
 
 // ParseBuiltinBan 平台限制场景，命中时写入带【平台限制】前缀的 BanWarns
