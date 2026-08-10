@@ -59,14 +59,25 @@
     col-key="spec_id"
     :filter="tableFilter['spec_id']"
     :title="t('绑定规格')"
-    :width="150">
+    :width="160">
     <template #default="{ row }: { row: IRowData }">
       <SpecDetailPopover
         v-if="row.spec_name"
         :data="row.spec_config">
-        <span style="padding-bottom: 2px; border-bottom: 1px dashed #979ba5">{{ row.spec_name }}</span>
+        <span class="host-list-spec-name">
+          {{ row.spec_name }}
+          <span
+            v-if="row.enable === false"
+            class="host-list-spec-disabled">
+            {{ t('已停用') }}
+          </span>
+        </span>
       </SpecDetailPopover>
-      <span v-else>--</span>
+      <span
+        v-else
+        class="host-list-spec-unbound">
+        {{ t('未绑定') }}
+      </span>
     </template>
   </TableColumn>
   <TableColumn
@@ -132,3 +143,26 @@
     return value ? (value / 1024).toFixed(2) : '--';
   };
 </script>
+<style lang="less">
+  .host-list-spec-name {
+    padding-bottom: 2px;
+    border-bottom: 1px dashed #979ba5;
+  }
+
+  .host-list-spec-disabled {
+    display: inline-block;
+    height: 18px;
+    padding: 0 4px;
+    margin-left: 4px;
+    font-size: 12px;
+    line-height: 18px;
+    color: #979ba5;
+    vertical-align: middle;
+    background: #f0f1f5;
+    border-radius: 2px;
+  }
+
+  .host-list-spec-unbound {
+    color: #ea3636;
+  }
+</style>

@@ -13,7 +13,13 @@
 
 import { uniq } from 'lodash';
 
-import type { ClusterListEntry, ClusterListNode, ClusterListOperation, ClusterListSpec } from '@services/types';
+import type {
+  ClusterListEntry,
+  ClusterListNode,
+  ClusterListOperation,
+  ClusterListSpec,
+  MachineSpec,
+} from '@services/types';
 
 import { Affinity, affinityMap, ClusterTypes } from '@common/const';
 
@@ -65,6 +71,7 @@ export default class SqlServerHaCluster extends ClusterBase {
   db_module_name: string;
   disaster_tolerance_level: Affinity;
   id: number;
+  machine_specs: MachineSpec[];
   major_version: string;
   master_domain: string;
   masters: ClusterListNode[];
@@ -97,6 +104,7 @@ export default class SqlServerHaCluster extends ClusterBase {
     this.cluster_entry = payload.cluster_entry || [];
     this.cluster_name = payload.cluster_name;
     this.cluster_spec = payload.cluster_spec || {};
+    this.machine_specs = payload.machine_specs || [];
     this.cluster_time_zone = payload.cluster_time_zone;
     this.cluster_stats = payload.cluster_stats || {};
     this.cluster_type = payload.cluster_type;
