@@ -20,7 +20,8 @@ class MetricType(StrStructuredEnum):
     Used as the suffix of metric key in METRIC_REGISTRY.
     """
 
-    CPU_USAGE = EnumField("cpu_usage", "CPU usage")
+    CPU_USAGE = EnumField("cpu_usage", "CPU usage (host / machine level)")
+    CPU_USAGE_INSTANCE = EnumField("cpu_usage_instance", "CPU usage (process / instance level, in cores)")
     MEMORY_USAGE = EnumField("memory_usage", "Memory usage")
     CONNECTIONS = EnumField("connections", "Connections")
     QPS = EnumField("qps", "QPS")
@@ -33,9 +34,12 @@ class MetricType(StrStructuredEnum):
 
     @classmethod
     def get_proxy_cluster_api_choices(cls) -> List[Tuple]:
-        """Choices for cluster-level proxy MCP APIs (capacity is backend-only)."""
+        """Choices for cluster-level proxy MCP APIs (capacity is backend-only;
+        cpu_usage_instance is currently backend-only since predixy/twemproxy exporters
+        do not expose process-level CPU counters)."""
 
-        return [c for c in cls.get_choices() if c[0] != cls.CAPACITY.value]
+        excluded = {cls.CAPACITY.value, cls.CPU_USAGE_INSTANCE.value}
+        return [c for c in cls.get_choices() if c[0] not in excluded]
 
     @classmethod
     def get_backend_cluster_api_choices(cls) -> List[Tuple]:
@@ -45,7 +49,8 @@ class MetricType(StrStructuredEnum):
 
     @classmethod
     def get_instance_api_choices(cls) -> List[Tuple]:
-        """Choices for instance-scoped MCP APIs (host resource metrics unavailable at ip:port scope)."""
+        """Choices for instance-scoped MCP APIs (host-level cpu/memory/io/disk unavailable at ip:port scope;
+        cpu_usage_instance is exposed instead for process-level CPU)."""
 
         host_level = {cls.CPU_USAGE.value, cls.MEMORY_USAGE.value, cls.IO_USAGE.value, cls.DISK_USAGE.value}
         return [c for c in cls.get_choices() if c[0] not in host_level]
