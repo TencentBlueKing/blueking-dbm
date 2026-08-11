@@ -169,6 +169,46 @@ export const useLinkQueryColumnSerach = (config: {
     fetchDataFn();
   };
 
+  // 表头筛选（tdesign PrimaryTable 的 filter-change 事件，payload 为 { [colKey]: value }）
+  const tableColumnFilterChange = (
+    filterValue: Record<string, string | string[]>,
+    columnMetaMap: Record<
+      string,
+      {
+        list: {
+          label: string;
+          value: string;
+        }[];
+        name: string;
+      }
+    >,
+  ) => {
+    Object.keys(filterValue).forEach((field) => {
+      const meta = columnMetaMap[field];
+      if (!meta) {
+        return;
+      }
+      const checked = Array.isArray(filterValue[field])
+        ? (filterValue[field] as string[])
+        : [filterValue[field] as string];
+      columnFilterChange({
+        checked,
+        column: {
+          field,
+          filter: {
+            checked,
+            list: meta.list.map((item) => ({
+              text: item.label,
+              value: item.value,
+            })),
+          },
+          label: meta.name,
+        },
+        index: 0,
+      });
+    });
+  };
+
   // 表头排序
   const columnSortChange = (data: {
     column: {
@@ -238,6 +278,7 @@ export const useLinkQueryColumnSerach = (config: {
           }
           defaultList.push(value);
         });
+        // eslint-disable-next-line no-param-reassign
         valueList.length = 0;
         if (isDiscardNondefault) {
           // 丢弃非默认
@@ -349,6 +390,7 @@ export const useLinkQueryColumnSerach = (config: {
     searchAttrs,
     searchValue,
     sortValue,
+    tableColumnFilterChange,
     validateSearchValues,
   };
 };

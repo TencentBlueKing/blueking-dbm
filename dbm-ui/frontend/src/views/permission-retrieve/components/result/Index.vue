@@ -164,8 +164,9 @@
 
 <style lang="less" scoped>
   .permission-retrieve-result {
-    :deep(.bk-table-head) {
-      .is-head-group {
+    // 多级表头的分组行（tdesign 结构，原 .is-head-group 为 bkui 类名）
+    :deep(.t-table__header) {
+      tr:first-child th {
         padding: 0 16px;
         font-weight: bolder;
         color: #313238;
@@ -173,18 +174,6 @@
 
         &:hover {
           background: #dcdee5;
-        }
-      }
-
-      th {
-        border: none;
-
-        .vxe-cell {
-          background: #f0f1f5;
-
-          &:hover {
-            background: #eaebf0;
-          }
         }
       }
     }

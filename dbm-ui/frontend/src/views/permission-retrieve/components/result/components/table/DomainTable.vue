@@ -1,16 +1,29 @@
 <template>
-  <DbOriginalTable
-    class="mt-16 mb-24"
-    :columns="columns"
-    :data="tableData"
-    :max-height="tableMaxHeight"
-    :pagination="pagination"
-    remote-pagination
-    @page-limit-change="handleTableLimitChange"
-    @page-value-change="handleTableValueChange" />
+  <div class="mt-16 mb-24">
+    <PrimaryTable
+      :columns="columns"
+      :data="tableData"
+      :max-height="tableMaxHeight"
+      row-key="rowKey"
+      :rowspan-and-colspan="rowspanAndColspan">
+      <template #empty>
+        <EmptyStatus
+          :is-anomalies="false"
+          :is-searching="false" />
+      </template>
+    </PrimaryTable>
+    <div class="table-footer">
+      <BkPagination
+        v-bind="pagination"
+        :model-value="pagination.current"
+        @change="handleTableValueChange"
+        @limit-change="handleTableLimitChange" />
+    </div>
+  </div>
 </template>
 
 <script setup lang="tsx">
+  import type { PrimaryTableCol, PrimaryTableProps } from 'tdesign-vue-next';
   import { useI18n } from 'vue-i18n';
 
   import { getAccountPrivs } from '@services/source/mysqlPermissionAccount';
@@ -18,6 +31,8 @@
   import { useTableMaxHeight } from '@hooks';
 
   import { AccountTypes } from '@common/const';
+
+  import EmptyStatus from '@components/empty-status/EmptyStatus.vue';
 
   import { isSensitivePriv } from './common/utils';
 
@@ -28,6 +43,7 @@
     match_db: string;
     match_ip: string;
     priv: string;
+    rowKey: string;
     user: string;
   }
 
@@ -57,63 +73,44 @@
   const { t } = useI18n();
   const tableMaxHeight = useTableMaxHeight(530);
 
-  const columns = computed(() => {
-    const domainColumns = [
+  const columns = computed<PrimaryTableCol[]>(() => {
+    const domainColumns: PrimaryTableCol[] = [
       {
         children: [
           {
-            field: 'immute_domain',
-            label: t('集群域名'),
-            render: ({ row }: { row: TableItem }) => (
+            cell: (_, { row }) => (
               <>
                 {props.options?.is_master ? (
                   <bk-tag theme='info'>{t('主')}</bk-tag>
                 ) : (
                   <bk-tag theme='success'>{t('从')}</bk-tag>
                 )}
-                <span class='ml-4'>{row.immute_domain}</span>
+                <span class='ml-4'>{(row as TableItem).immute_domain}</span>
               </>
             ),
-            rowspan: ({ row }: { row: TableItem }) => {
-              const rowSpan = tableData.value.filter((item) => item.immute_domain === row.immute_domain).length;
-              return rowSpan > 1 ? rowSpan : 1;
-            },
+            colKey: 'immute_domain',
+            title: t('集群域名'),
             width: 240,
           },
           {
-            field: 'user',
-            label: t('账号'),
-            rowspan: ({ row }: { row: TableItem }) => {
-              const rowSpan = tableData.value.filter(
-                (item) => item.immute_domain === row.immute_domain && item.user === row.user,
-              ).length;
-              return rowSpan > 1 ? rowSpan : 1;
-            },
+            colKey: 'user',
+            title: t('账号'),
             width: 240,
           },
           {
-            field: 'match_ip',
-            label: t('匹配中的访问源'),
-            rowspan: ({ row }: { row: TableItem }) => {
-              const rowSpan = tableData.value.filter(
-                (item) =>
-                  item.immute_domain === row.immute_domain && item.user === row.user && item.match_ip === row.match_ip,
-              ).length;
-              return rowSpan > 1 ? rowSpan : 1;
-            },
+            colKey: 'match_ip',
+            title: t('匹配中的访问源'),
             width: 240,
           },
           {
-            field: 'match_db',
-            label: t('匹配中的 DB'),
-            render: ({ row }: { row: TableItem }) => <bk-tag>{row.match_db}</bk-tag>,
+            cell: (_, { row }) => <bk-tag>{(row as TableItem).match_db}</bk-tag>,
+            colKey: 'match_db',
+            title: t('匹配中的 DB'),
             width: 240,
           },
           {
-            field: 'priv',
-            label: t('权限'),
-            render: ({ row }: { row: TableItem }) => {
-              const { priv } = row;
+            cell: (_, { row }) => {
+              const { priv } = row as TableItem;
               const privList = priv.split(',');
 
               return privList.map((privItem, index) => (
@@ -131,33 +128,31 @@
                 </>
               ));
             },
+            colKey: 'priv',
+            title: t('权限'),
             width: 240,
           },
         ],
-        label: t('匹配的规则'),
+        title: t('匹配的规则'),
       },
       {
         children: [
           {
-            field: 'ip',
-            label: t('源客户端 IP'),
-            render: ({ row }: { row: TableItem }) => <span style='font-weight: bolder'>{row.ip.join('，')}</span>,
-            rowspan: ({ row }: { row: TableItem }) => {
-              const rowSpan = tableData.value.filter((item) => item.ip === row.ip).length;
-              return rowSpan > 1 ? rowSpan : 1;
-            },
+            cell: (_, { row }) => <span style='font-weight: bolder'>{(row as TableItem).ip.join('，')}</span>,
+            colKey: 'ip',
+            title: t('源客户端 IP'),
             width: 240,
           },
         ],
-        label: t('查询的对象 IP'),
+        title: t('查询的对象 IP'),
       },
     ];
 
     if (props.options?.dbs) {
-      domainColumns[1].children.push({
-        field: 'db',
-        label: t('访问的 DB'),
-        render: ({ row }: { row: TableItem }) => row.db.map((dbItem) => <bk-tag>{dbItem}</bk-tag>),
+      domainColumns[1]!.children!.push({
+        cell: (_, { row }) => (row as TableItem).db.map((dbItem) => <bk-tag>{dbItem}</bk-tag>),
+        colKey: 'db',
+        title: t('访问的 DB'),
         width: 240,
       });
     }
@@ -185,6 +180,7 @@
                 ip,
                 match_ip: matchIpItem.match_ip,
                 priv: priv.toLocaleLowerCase(),
+                rowKey: `${acc.length}`,
                 user: userItem.user,
                 ...rest,
               });
@@ -198,6 +194,28 @@
     return [];
   });
 
+  const rowspanPredicateMap: Record<string, (item: TableItem, row: TableItem) => boolean> = {
+    immute_domain: (item, row) => item.immute_domain === row.immute_domain,
+    ip: (item, row) => item.ip === row.ip,
+    match_ip: (item, row) =>
+      item.immute_domain === row.immute_domain && item.user === row.user && item.match_ip === row.match_ip,
+    user: (item, row) => item.immute_domain === row.immute_domain && item.user === row.user,
+  };
+
+  const rowspanAndColspan: PrimaryTableProps['rowspanAndColspan'] = ({ col, row, rowIndex }) => {
+    const predicate = rowspanPredicateMap[col.colKey as string];
+    if (!predicate) {
+      return {};
+    }
+    const rowData = row as TableItem;
+    // 合并行只在分组首行声明 rowspan，其余行由 tdesign 自动跳过
+    if (tableData.value.findIndex((item) => predicate(item, rowData)) !== rowIndex) {
+      return {};
+    }
+    const rowSpan = tableData.value.filter((item) => predicate(item, rowData)).length;
+    return rowSpan > 1 ? { rowspan: rowSpan } : {};
+  };
+
   const handleTableLimitChange = (value: number) => {
     emits('page-limit-change', value);
   };
@@ -206,3 +224,11 @@
     emits('page-value-change', value);
   };
 </script>
+
+<style lang="less" scoped>
+  .table-footer {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 12px;
+  }
+</style>

@@ -27,17 +27,27 @@
         unique-select
         @change="handleChangeValues" />
       <BkLoading :loading="loading">
-        <DbOriginalTable
+        <PrimaryTable
           :columns="columns"
           :data="mongoList?.results || []"
-          :height="474"
-          :is-anomalies="isAnomalies"
-          :is-searching="searchSelectValue.length > 0"
-          :pagination="pagination"
-          @clear-search="handleClearSearch"
-          @page-limit-change="handeChangeLimit"
-          @page-value-change="handleChangePage"
-          @refresh="fetchCluster" />
+          :height="474">
+          <template #empty>
+            <EmptyStatus
+              :is-anomalies="isAnomalies"
+              :is-searching="searchSelectValue.length > 0"
+              @clear-search="handleClearSearch"
+              @refresh="fetchCluster" />
+          </template>
+        </PrimaryTable>
+        <div
+          v-if="pagination.count >= 10"
+          class="table-footer">
+          <BkPagination
+            v-bind="pagination"
+            :model-value="pagination.current"
+            @change="handleChangePage"
+            @limit-change="handeChangeLimit" />
+        </div>
       </BkLoading>
     </div>
     <template #footer>
@@ -50,6 +60,7 @@
 
 <script setup lang="tsx">
   import type { ISearchValue } from 'bkui-vue/lib/search-select/utils';
+  import type { PrimaryTableCol } from 'tdesign-vue-next';
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
@@ -58,6 +69,7 @@
   import { useDefaultPagination } from '@hooks';
 
   import RenderClusterStatus from '@components/cluster-status/Index.vue';
+  import EmptyStatus from '@components/empty-status/EmptyStatus.vue';
 
   import { getSearchSelectorParams } from '@utils';
 
@@ -75,21 +87,21 @@
 
   const { t } = useI18n();
 
-  const columns = [
+  const columns: PrimaryTableCol[] = [
     {
-      field: 'master_domain',
-      label: t('域名'),
-      showOverflowTooltip: true,
+      colKey: 'master_domain',
+      ellipsis: true,
+      title: t('域名'),
     },
     {
-      field: 'cluster_name',
-      label: t('集群'),
-      showOverflowTooltip: true,
+      colKey: 'cluster_name',
+      ellipsis: true,
+      title: t('集群'),
     },
     {
-      field: 'status',
-      label: t('状态'),
-      render: ({ cell }: { cell: 'normal' | 'abnormal' }) => <RenderClusterStatus data={cell} />,
+      cell: (_, { row }) => <RenderClusterStatus data={row.status} />,
+      colKey: 'status',
+      title: t('状态'),
     },
   ];
 
@@ -175,5 +187,11 @@
 
   .cluster-preview-content {
     padding-bottom: 24px;
+
+    .table-footer {
+      display: flex;
+      justify-content: flex-end;
+      margin-top: 12px;
+    }
   }
 </style>

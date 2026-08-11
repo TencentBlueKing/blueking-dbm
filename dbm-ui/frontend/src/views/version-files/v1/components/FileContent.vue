@@ -42,23 +42,16 @@
             @enter="handleChangePage(1)" />
         </div>
         <BkLoading :loading="state.isLoading">
-          <DbOriginalTable
+          <PrimaryTable
             class="version-files-table"
             :data="state.data"
-            :is-anomalies="state.isAnomalies"
-            :is-searching="!!state.search"
             :max-height="tableMaxHeight"
-            :pagination="state.pagination"
-            remote-pagination
-            @clear-search="handleClearSearch"
-            @page-limit-change="handeChangeLimit"
-            @page-value-change="handleChangePage"
-            @refresh="fetchPackages">
-            <BkTableColumn
-              field="version"
-              :label="t('版本名称')"
-              :min-width="300">
-              <template #default="{ data }: { data: VersionFileModel }">
+            row-key="id">
+            <TableColumn
+              col-key="version"
+              :min-width="300"
+              :title="t('版本名称')">
+              <template #default="{ row: data }: { row: VersionFileModel }">
                 <TextOverflowLayout>
                   {{ data.version }}
                   <template #append>
@@ -86,21 +79,22 @@
                   </template>
                 </TextOverflowLayout>
               </template>
-            </BkTableColumn>
-            <BkTableColumn
-              field="name"
-              :label="t('文件名称')"
-              :min-width="350">
-              <template #default="{ data }: { data: VersionFileModel }">
+            </TableColumn>
+            <TableColumn
+              col-key="name"
+              ellipsis
+              :min-width="350"
+              :title="t('文件名称')">
+              <template #default="{ row: data }: { row: VersionFileModel }">
                 {{ data.name || '--' }}
               </template>
-            </BkTableColumn>
-            <BkTableColumn
+            </TableColumn>
+            <TableColumn
               v-if="isShowSwitch"
-              :field="t('是否启用')"
-              label="enable"
+              col-key="enable"
+              :title="t('是否启用')"
               :width="120">
-              <template #default="{ data }: { data: VersionFileModel }">
+              <template #default="{ row: data }: { row: VersionFileModel }">
                 <BkPopConfirm
                   :confirm-text="data.enable ? t('停用') : t('启用')"
                   :content="
@@ -122,13 +116,13 @@
                     theme="primary" />
                 </BkPopConfirm>
               </template>
-            </BkTableColumn>
-            <BkTableColumn
+            </TableColumn>
+            <TableColumn
               v-else
-              field="md5"
-              label="MD5"
+              col-key="md5"
+              title="MD5"
               :width="350">
-              <template #default="{ data }: { data: VersionFileModel }">
+              <template #default="{ row: data }: { row: VersionFileModel }">
                 <TextOverflowLayout>
                   {{ data.md5 }}
                   <template #append>
@@ -138,27 +132,30 @@
                   </template>
                 </TextOverflowLayout>
               </template>
-            </BkTableColumn>
-            <BkTableColumn
-              field="updater"
-              :label="t('更新人')"
+            </TableColumn>
+            <TableColumn
+              col-key="updater"
+              ellipsis
+              :title="t('更新人')"
               :width="120">
-              <template #default="{ data }: { data: VersionFileModel }">
+              <template #default="{ row: data }: { row: VersionFileModel }">
                 {{ data.updater || '--' }}
               </template>
-            </BkTableColumn>
-            <BkTableColumn
-              field="updateAtDisplay"
-              :label="t('更新时间')"
+            </TableColumn>
+            <TableColumn
+              col-key="updateAtDisplay"
+              ellipsis
+              :title="t('更新时间')"
               :width="250">
-              <template #default="{ data }: { data: VersionFileModel }">
+              <template #default="{ row: data }: { row: VersionFileModel }">
                 {{ data.updateAtDisplay || '--' }}
               </template>
-            </BkTableColumn>
-            <BkTableColumn
-              :label="t('操作')"
+            </TableColumn>
+            <TableColumn
+              col-key="operation"
+              :title="t('操作')"
               :width="120">
-              <template #default="{ data }: { data: VersionFileModel }">
+              <template #default="{ row: data }: { row: VersionFileModel }">
                 <AuthButton
                   action-id="package_manage"
                   :permission="data.permission.package_manage"
@@ -169,8 +166,23 @@
                   {{ t('删除') }}
                 </AuthButton>
               </template>
-            </BkTableColumn>
-          </DbOriginalTable>
+            </TableColumn>
+            <template #empty>
+              <EmptyStatus
+                :is-anomalies="state.isAnomalies"
+                :is-searching="!!state.search"
+                @clear-search="handleClearSearch"
+                @refresh="fetchPackages" />
+            </template>
+          </PrimaryTable>
+          <div class="table-footer">
+            <BkPagination
+              v-bind="state.pagination"
+              :layout="['total', 'limit', 'list']"
+              :model-value="state.pagination.current"
+              @change="handleChangePage"
+              @limit-change="handeChangeLimit" />
+          </div>
         </BkLoading>
       </div>
     </div>
@@ -282,6 +294,7 @@
   import { DBTypes } from '@common/const';
 
   import ApplyPermissionCatch from '@components/apply-permission/Catch.vue';
+  import EmptyStatus from '@components/empty-status/EmptyStatus.vue';
   import TextOverflowLayout from '@components/text-overflow-layout/Index.vue';
 
   import { execCopy, messageSuccess } from '@utils';
@@ -676,7 +689,7 @@
         color: #c4c6cc;
       }
 
-      &.bk-vxe-table {
+      &.t-table {
         tr:hover .db-icon-copy {
           display: inline-block;
         }
@@ -685,6 +698,26 @@
           .set-btn {
             display: inline-flex;
           }
+        }
+      }
+    }
+
+    .table-footer {
+      position: relative;
+      z-index: 1;
+      display: flex;
+      height: 60px;
+      padding: 0 16px;
+      margin-top: -1px;
+      background: #fff;
+      border-top: 1px solid var(--td-component-border);
+      align-items: center;
+
+      .bk-pagination {
+        width: 100%;
+
+        & > .is-last {
+          margin-left: auto;
         }
       }
     }

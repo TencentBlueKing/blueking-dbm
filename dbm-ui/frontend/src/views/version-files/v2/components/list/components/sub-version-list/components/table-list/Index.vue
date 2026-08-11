@@ -9,7 +9,6 @@
     :row-class-name="rowClassNameFn"
     row-key="uuid"
     :rowspan-and-colspan="rowspanAndColspan"
-    table-layout="auto"
     @change="handleFilterChange"
     @sort-change="handleSortChange">
     <TableColumn

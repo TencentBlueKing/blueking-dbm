@@ -37,23 +37,17 @@
     </div>
     <div class="tickets-flow-table">
       <BkLoading :loading="loading">
-        <BkTable
+        <PrimaryTable
           :data="tableData"
           :max-height="tableMaxHeight"
-          :pagination="pagination"
-          remote-pagination
-          :row-config="{
-            useKey: true,
-            keyField: 'id',
-          }"
-          @page-limit-change="handeChangeLimit"
-          @page-value-change="handleChangePage">
-          <BkTableColumn
+          row-key="rowKey"
+          :rowspan-and-colspan="rowspanAndColspan">
+          <TableColumn
+            col-key="ticket_type"
             fixed="left"
-            :label="t('单据类型')"
             :min-width="240"
-            :rowspan="rowSpan">
-            <template #default="{ data }: { data: RowData }">
+            :title="t('单据类型')">
+            <template #default="{ row: data }: { row: RowData }">
               <TextOverflowLayout>
                 {{ data.ticket_type_display }}
                 <template #append>
@@ -74,11 +68,12 @@
                 </template>
               </TextOverflowLayout>
             </template>
-          </BkTableColumn>
-          <BkTableColumn
-            :label="t('目标')"
-            :min-width="200">
-            <template #default="{ data }: { data: RowData }">
+          </TableColumn>
+          <TableColumn
+            col-key="target"
+            :min-width="200"
+            :title="t('目标')">
+            <template #default="{ row: data }: { row: RowData }">
               <RenderRow
                 v-if="data.isClusterTarget"
                 :data="data.clusterDomainList"
@@ -147,12 +142,19 @@
                 </template>
               </TextOverflowLayout>
             </template>
-          </BkTableColumn>
-          <BkTableColumn
-            field="need_itsm"
-            :label="() => renderHead('need_itsm')"
+          </TableColumn>
+          <TableColumn
+            col-key="need_itsm"
+            :title="t('是否审批')"
             :width="120">
-            <template #default="{ data }: { data: RowData }">
+            <template #title>
+              <span
+                v-bk-tooltips="t('是否经由DBA审批后才可执行')"
+                class="configs-head">
+                {{ t('是否审批') }}
+              </span>
+            </template>
+            <template #default="{ row: data }: { row: RowData }">
               <span v-if="data.configs.need_itsm">
                 {{ t('需审批') }}
               </span>
@@ -162,12 +164,19 @@
                 {{ t('免审批') }}
               </span>
             </template>
-          </BkTableColumn>
-          <BkTableColumn
-            field="need_manual_confirm"
-            :label="() => renderHead('need_manual_confirm')"
+          </TableColumn>
+          <TableColumn
+            col-key="need_manual_confirm"
+            :title="t('是否人工确认')"
             :width="120">
-            <template #default="{ data }: { data: RowData }">
+            <template #title>
+              <span
+                v-bk-tooltips="t('是否经由提单人确认后才可执行')"
+                class="configs-head">
+                {{ t('是否人工确认') }}
+              </span>
+            </template>
+            <template #default="{ row: data }: { row: RowData }">
               <span v-if="data.configs.need_manual_confirm">
                 {{ t('需确认') }}
               </span>
@@ -177,38 +186,39 @@
                 {{ t('免确认') }}
               </span>
             </template>
-          </BkTableColumn>
-          <BkTableColumn
-            field="flow_desc"
-            :label="t('流程预览')"
+          </TableColumn>
+          <TableColumn
+            col-key="flow_desc"
+            ellipsis
             :min-width="400"
-            show-overflow-tooltip>
-            <template #default="{ data }: { data: RowData }">
+            :title="t('流程预览')">
+            <template #default="{ row: data }: { row: RowData }">
               <span>{{ data.flow_desc.join(' -> ') }}</span>
             </template>
-          </BkTableColumn>
-          <BkTableColumn
-            field="updater"
-            :label="t('更新人')"
-            show-overflow-tooltip
+          </TableColumn>
+          <TableColumn
+            col-key="updater"
+            ellipsis
+            :title="t('更新人')"
             :width="100" />
-          <BkTableColumn
-            field="updateAtDisplay"
-            :label="t('更新时间')"
+          <TableColumn
+            col-key="updateAtDisplay"
+            ellipsis
             :min-width="200"
-            show-overflow-tooltip
-            sort
+            sorter
+            :title="t('更新时间')"
             :width="200" />
-          <BkTableColumn
-            field="remark"
-            :label="t('备注')"
-            show-overflow-tooltip
+          <TableColumn
+            col-key="remark"
+            ellipsis
+            :title="t('备注')"
             :width="200" />
-          <BkTableColumn
+          <TableColumn
+            col-key="operation"
             fixed="right"
-            :label="t('操作')"
+            :title="t('操作')"
             :width="100">
-            <template #default="{ data }: { data: RowData }">
+            <template #default="{ row: data }: { row: RowData }">
               <AuthButton
                 v-bk-tooltips="{
                   content: t('内置策略不支持编辑'),
@@ -239,7 +249,7 @@
                 </AuthButton>
               </DeleteConfig>
             </template>
-          </BkTableColumn>
+          </TableColumn>
           <template #empty>
             <EmptyStatus
               :is-anomalies="isAnomalies"
@@ -247,7 +257,15 @@
               @clear-search="handleClearSearch"
               @refresh="fetchData" />
           </template>
-        </BkTable>
+        </PrimaryTable>
+        <div class="table-footer">
+          <BkPagination
+            v-bind="pagination"
+            :layout="['total', 'limit', 'list']"
+            :model-value="pagination.current"
+            @change="handleChangePage"
+            @limit-change="handeChangeLimit" />
+        </div>
       </BkLoading>
     </div>
   </div>
@@ -257,9 +275,10 @@
     :is-edit="appendConfig.isEdit"
     @success="fetchData" />
 </template>
-<script setup lang="tsx">
+<script setup lang="ts">
   import type { ISearchItem } from 'bkui-vue/lib/search-select/utils';
   import _ from 'lodash';
+  import type { PrimaryTableProps } from 'tdesign-vue-next';
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
@@ -301,7 +320,7 @@
   const showEditConfig = ref<Record<string, boolean>>({});
   const isAnomalies = ref(false);
   const pagination = ref(useDefaultPagination());
-  const allTableData = shallowRef<RowData[]>([]);
+  const allTableData = shallowRef<Omit<RowData, 'rowSpan'>[]>([]);
   const appendConfig = reactive({
     data: {} as TicketFlowDescribeModel,
     isEdit: false,
@@ -343,7 +362,13 @@
     const startIndex = (current - 1) * limit;
     // 计算结束索引
     const endIndex = startIndex + limit;
-    return allTableData.value.slice(startIndex, endIndex);
+    const rows = allTableData.value.slice(startIndex, endIndex);
+    // 相同单据类型的行合并，仅每组首行携带 rowSpan，其余为 0，避免重复合并波及下一组首行
+    const groupCountMap = _.countBy(rows, 'ticket_type');
+    return rows.map<RowData>((item, index) => ({
+      ...item,
+      rowSpan: rows[index - 1]?.ticket_type === item.ticket_type ? 0 : groupCountMap[item.ticket_type],
+    }));
   });
 
   useRequest(getTicketTypes, {
@@ -398,7 +423,6 @@
           isCustomTarget: item.isCustomTarget,
           isDefaultTarget: item.isDefaultTarget,
           rowKey: random(),
-          rowSpan: rows.length,
           updateAtDisplay: item.updateAtDisplay,
         }));
         return result;
@@ -424,26 +448,12 @@
     searchValue.value = [];
   };
 
-  const renderHead = (key: 'need_itsm' | 'need_manual_confirm') => {
-    if (key === 'need_itsm') {
-      return (
-        <p
-          v-bk-tooltips={t('是否经由DBA审批后才可执行')}
-          class='configs-head'>
-          {t('是否审批')}
-        </p>
-      );
+  const rowspanAndColspan: PrimaryTableProps['rowspanAndColspan'] = ({ col, row }) => {
+    if (col.colKey === 'ticket_type') {
+      return { rowspan: (row as RowData).rowSpan };
     }
-    return (
-      <p
-        v-bk-tooltips={t('是否经由提单人确认后才可执行')}
-        class='configs-head'>
-        {t('是否人工确认')}
-      </p>
-    );
+    return {};
   };
-
-  const rowSpan = ({ row }: { colIndex: number; column: any; row: RowData; rowIndex: number }) => row.rowSpan;
 
   const fetchData = () => {
     queryTicketFlowDescribeRun({
@@ -522,6 +532,7 @@
       }
 
       .append-config-btn {
+        position: absolute;
         display: none;
       }
 
@@ -540,6 +551,26 @@
 
         & ~ .flow-node-action {
           margin-left: 24px;
+        }
+      }
+
+      .table-footer {
+        position: relative;
+        z-index: 1;
+        display: flex;
+        height: 60px;
+        padding: 0 16px;
+        margin-top: -1px;
+        background: #fff;
+        border-top: 1px solid var(--td-component-border);
+        align-items: center;
+
+        .bk-pagination {
+          width: 100%;
+
+          & > .is-last {
+            margin-left: auto;
+          }
         }
       }
     }
