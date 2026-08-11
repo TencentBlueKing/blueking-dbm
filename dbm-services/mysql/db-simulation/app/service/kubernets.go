@@ -282,7 +282,8 @@ func (k *DbPodSets) CreateClusterPod(mySQLVersion string, xlogger *logger.Logger
 			Containers: k.getClusterPodContainerSpec(),
 		},
 	}
-	if err = k.createPod(c, 26000, xlogger); err != nil {
+	podIp, err := k.createPod(c, 26000, xlogger)
+	if err != nil {
 		logger.Error("create spider cluster failed %s", err.Error())
 		if deleteErr := k.deleteClusterConfigMap(); deleteErr != nil {
 			logger.Error("delete cluster configMap failed %s", deleteErr.Error())
@@ -290,9 +291,13 @@ func (k *DbPodSets) CreateClusterPod(mySQLVersion string, xlogger *logger.Logger
 		return err
 	}
 	logger.Info("connect tdbctl success ~")
+	// Ready 探针仅 unix socket；CREATE NODE 经 TCP 做 autoinc 校验，先等 Spider/backend TCP 就绪
+	if err = k.waitClusterNodesReady(podIp); err != nil {
+		return err
+	}
 	// create cluster relation
 	for _, sql := range k.getCreateClusterSqls() {
-		if _, err = k.DbWork.Db.Exec(sql); err != nil {
+		if err = k.execCreateClusterSQL(sql); err != nil {
 			return err
 		}
 	}
@@ -300,14 +305,14 @@ func (k *DbPodSets) CreateClusterPod(mySQLVersion string, xlogger *logger.Logger
 }
 
 // CreatePod create pod
-func (k *DbPodSets) createPod(pod *v1.Pod, probePort int, xlogger *logger.Logger) (err error) {
+func (k *DbPodSets) createPod(pod *v1.Pod, probePort int, xlogger *logger.Logger) (podIp string, err error) {
 	if xlogger == nil {
 		xlogger = logger.New(os.Stdout, true, logger.InfoLevel, map[string]string{"pod_name": k.BaseInfo.PodName})
 	}
 	podc, err := k.K8S.Cli.CoreV1().Pods(k.K8S.Namespace).Create(context.TODO(), pod, metav1.CreateOptions{})
 	if err != nil {
 		logger.Error("create pod failed %s", err.Error())
-		return err
+		return "", err
 	}
 	uid := string(podc.GetUID())
 	model.DB.Create(&model.TbContainerRecord{
@@ -315,7 +320,7 @@ func (k *DbPodSets) createPod(pod *v1.Pod, probePort int, xlogger *logger.Logger
 		Uid:           uid,
 		CreatePodTime: time.Now(),
 		CreateTime:    time.Now()})
-	podIp := podc.Status.PodIP
+	podIp = podc.Status.PodIP
 	// 用于跟踪每个容器的 CrashLoopBackOff 连续出现次数（按容器名称分别跟踪）
 	crashLoopCounts := make(map[string]int)
 	const maxCrashLoopChecks = 3 // 连续 3 次检测到 CrashLoopBackOff 就退出
@@ -426,7 +431,7 @@ func (k *DbPodSets) createPod(pod *v1.Pod, probePort int, xlogger *logger.Logger
 		var fatalErr *FatalError
 		if errors.As(lastErr, &fatalErr) {
 			xlogger.Error("detected fatal error, stopping retry immediately: %s", fatalErr.Error())
-			return fatalErr
+			return "", fatalErr
 		}
 
 		// 普通错误，继续重试
@@ -438,7 +443,7 @@ func (k *DbPodSets) createPod(pod *v1.Pod, probePort int, xlogger *logger.Logger
 
 	// 如果最终还是失败，返回错误
 	if lastErr != nil {
-		return errors.Wrap(lastErr, "retries exceeded")
+		return "", errors.Wrap(lastErr, "retries exceeded")
 	}
 	logger.Info("the podIp is %s", podIp)
 	fnc := func() error {
@@ -456,7 +461,7 @@ func (k *DbPodSets) createPod(pod *v1.Pod, probePort int, xlogger *logger.Logger
 		model.UpdateTbContainerRecord(k.BaseInfo.PodName)
 	}
 	k.doAfterPodCreate()
-	return err
+	return podIp, err
 }
 
 func (k *DbPodSets) doAfterPodCreate() {
@@ -954,7 +959,8 @@ func (k *DbPodSets) CreateMySQLPod(mysqlVersion string, xlogger *logger.Logger) 
 		},
 	}
 
-	return k.createPod(c, 3306, xlogger)
+	_, err = k.createPod(c, 3306, xlogger)
+	return err
 }
 
 // DeletePod delete pod and associated ConfigMap
