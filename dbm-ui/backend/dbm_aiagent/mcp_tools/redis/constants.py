@@ -72,7 +72,7 @@ LATENCY_DISTRIBUTION_BUCKETS = [
 TREND_UNIT_BY_METRIC_KEY = {
     # Redis backend metrics
     "redis_cpu_usage": "%/min",
-    "redis_cpu_usage_instance": "core/min",
+    "redis_instance_cpu_usage": "%/min",
     "redis_memory_usage": "%/min",
     "redis_connections": "connections/min",
     "redis_qps": "qps/min",
@@ -92,6 +92,7 @@ TREND_UNIT_BY_METRIC_KEY = {
     "predixy_latency_distribution": "requests/min",
     # Twemproxy proxy metrics
     "twemproxy_cpu_usage": "%/min",
+    "twemproxy_instance_cpu_usage": "%/min",
     "twemproxy_memory_usage": "%/min",
     "twemproxy_connections": "connections/min",
     "twemproxy_qps": "qps/min",
@@ -156,28 +157,24 @@ METRIC_REGISTRY = {
         "supported_group_by": [MetricsGroupBy.CLUSTER_DOMAIN, MetricsGroupBy.IP],
         "required_dimensions": ["ip"],  # Inner query needs ip dimension for proper aggregation
     },
-    # Instance-level CPU: process-level (Redis exporter) so it can drill down to ip:port.
-    # Value semantics: "CPU cores consumed" = irate(user_seconds) + irate(sys_seconds).
-    # 1.0 == one full core busy. Sum across the group_by so cluster/ip aggregates reflect
-    # total cores burned by all master/slave processes in that scope.
-    "redis_cpu_usage_instance": {
+    # Per Redis process CPU (% of one core): irate(user)+irate(sys). Distinct from host
+    # redis_cpu_usage (dbm_system multi-core). Outer agg is max across instances.
+    "redis_instance_cpu_usage": {
         "promql_template": (
-            "sum by ({group_by}) ("
+            "max by ({group_by}) (("
             "irate("
             "bkmonitor:exporter_dbm_redis_exporter:redis_cpu_user_seconds_total{{"
             "{filters}"
             "}}[{time_window}s]"
-            ")"
-            "+"
+            ") + "
             "irate("
             "bkmonitor:exporter_dbm_redis_exporter:redis_cpu_sys_seconds_total{{"
             "{filters}"
             "}}[{time_window}s]"
-            ")"
-            ")"
+            ")) * 100)"
         ),
         "aggregation": {
-            "overall": AggFunction.SUM,
+            "overall": AggFunction.MAX,
             "stats": [AggFunction.MIN, AggFunction.MAX, AggFunction.AVG, AggFunction.STDDEV],
         },
         "supported_group_by": [MetricsGroupBy.CLUSTER_DOMAIN, MetricsGroupBy.IP, MetricsGroupBy.INSTANCE],
@@ -370,6 +367,8 @@ METRIC_REGISTRY = {
         "supported_group_by": [MetricsGroupBy.CLUSTER_DOMAIN, MetricsGroupBy.IP],
         "required_dimensions": ["ip"],
     },
+    # Predixy has no process-level CPU exporter metric; instance_cpu_usage is unsupported
+    # (callers should use predixy_cpu_usage / MetricType.CPU_USAGE for host multi-core CPU).
     "predixy_memory_usage": {
         "promql_template": (
             "max by ({group_by}) ("
@@ -555,6 +554,24 @@ METRIC_REGISTRY = {
         },
         "supported_group_by": [MetricsGroupBy.CLUSTER_DOMAIN, MetricsGroupBy.IP],
         "required_dimensions": ["ip"],  # Twemproxy uses cpu_detail which has device dimension
+    },
+    # Per Twemproxy process CPU (%): irate(process_cpu)/100. Distinct from host
+    # twemproxy_cpu_usage (cpu_detail). Outer agg is max across instances.
+    "twemproxy_instance_cpu_usage": {
+        "promql_template": (
+            "max by ({group_by}) ("
+            "irate("
+            "bkmonitor:exporter_dbm_twemproxy_exporter:twemproxy_process_cpu{{"
+            "{filters}"
+            "}}[{time_window}s]"
+            ") / 100)"
+        ),
+        "aggregation": {
+            "overall": AggFunction.MAX,
+            "stats": [AggFunction.MIN, AggFunction.MAX, AggFunction.AVG, AggFunction.STDDEV],
+        },
+        "supported_group_by": [MetricsGroupBy.CLUSTER_DOMAIN, MetricsGroupBy.IP, MetricsGroupBy.INSTANCE],
+        "required_dimensions": ["ip", "instance_port"],
     },
     "twemproxy_memory_usage": {
         "promql_template": (

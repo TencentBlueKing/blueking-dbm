@@ -20,8 +20,10 @@ class MetricType(StrStructuredEnum):
     Used as the suffix of metric key in METRIC_REGISTRY.
     """
 
-    CPU_USAGE = EnumField("cpu_usage", "CPU usage (host / machine level)")
-    CPU_USAGE_INSTANCE = EnumField("cpu_usage_instance", "CPU usage (process / instance level, in cores)")
+    CPU_USAGE = EnumField("cpu_usage", "CPU usage")
+    # Process CPU (% of one core), not host multi-core summary.
+    # Redis: exporter user+sys; Twemproxy: process_cpu. Predixy has no process metric — unsupported.
+    INSTANCE_CPU_USAGE = EnumField("instance_cpu_usage", "Instance CPU usage")
     MEMORY_USAGE = EnumField("memory_usage", "Memory usage")
     CONNECTIONS = EnumField("connections", "Connections")
     QPS = EnumField("qps", "QPS")
@@ -34,12 +36,13 @@ class MetricType(StrStructuredEnum):
 
     @classmethod
     def get_proxy_cluster_api_choices(cls) -> List[Tuple]:
-        """Choices for cluster-level proxy MCP APIs (capacity is backend-only;
-        cpu_usage_instance is currently backend-only since predixy/twemproxy exporters
-        do not expose process-level CPU counters)."""
+        """Choices for cluster-level proxy MCP APIs (capacity is backend-only).
 
-        excluded = {cls.CAPACITY.value, cls.CPU_USAGE_INSTANCE.value}
-        return [c for c in cls.get_choices() if c[0] not in excluded]
+        instance_cpu_usage remains listed for Twemproxy process CPU; Predixy rejects it
+        at query time (no process-level exporter metric) — use cpu_usage instead.
+        """
+
+        return [c for c in cls.get_choices() if c[0] != cls.CAPACITY.value]
 
     @classmethod
     def get_backend_cluster_api_choices(cls) -> List[Tuple]:
@@ -49,8 +52,7 @@ class MetricType(StrStructuredEnum):
 
     @classmethod
     def get_instance_api_choices(cls) -> List[Tuple]:
-        """Choices for instance-scoped MCP APIs (host-level cpu/memory/io/disk unavailable at ip:port scope;
-        cpu_usage_instance is exposed instead for process-level CPU)."""
+        """Choices for instance-scoped MCP APIs (host resource metrics unavailable at ip:port scope)."""
 
         host_level = {cls.CPU_USAGE.value, cls.MEMORY_USAGE.value, cls.IO_USAGE.value, cls.DISK_USAGE.value}
         return [c for c in cls.get_choices() if c[0] not in host_level]

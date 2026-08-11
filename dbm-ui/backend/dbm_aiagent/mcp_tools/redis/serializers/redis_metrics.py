@@ -94,8 +94,10 @@ class RedisMetricsClusterProxyInputSerializer(ClusterDomainsFieldMixin, RedisMet
     metric_type = serializers.ChoiceField(
         choices=MetricType.get_proxy_cluster_api_choices(),
         help_text=_(
-            "Metric to query (proxy nodes; capacity and cpu_usage_instance are not available at proxy). "
-            "[Resource] cpu_usage (machine-level, host CPU %), memory_usage, io_usage, disk_usage. "
+            "Metric to query (proxy nodes; capacity is not available at proxy). "
+            "[Resource] cpu_usage (host), instance_cpu_usage (Twemproxy process CPU only; "
+            "Predixy has no process CPU — use cpu_usage), "
+            "memory_usage, io_usage, disk_usage. "
             "[Throughput] connections, qps. "
             "[Latency] host_latency, command_latency (broken down per command automatically), "
             "latency_distribution (broken down per latency bucket automatically). "
@@ -117,8 +119,7 @@ class RedisMetricsClusterBackendInputSerializer(ClusterDomainsFieldMixin, RedisM
         choices=MetricType.get_backend_cluster_api_choices(),
         help_text=_(
             "Metric to query (backend nodes; latency_distribution is proxy-only). "
-            "[Resource] cpu_usage (machine-level, host CPU %), "
-            "cpu_usage_instance (process-level, in cores, drill-down to ip:port), "
+            "[Resource] cpu_usage (host multi-core), instance_cpu_usage (per Redis process), "
             "memory_usage, io_usage, disk_usage. "
             "[Throughput] connections, qps. "
             "[Latency] host_latency, command_latency (broken down per command automatically). "
@@ -154,9 +155,9 @@ class RedisMetricsMachineInputSerializer(RedisMetricsTimeWindowSerializer):
         choices=MetricType.get_choices(),
         help_text=_(
             "Metric to query. Role (proxy vs backend) is resolved from ip; "
-            "latency_distribution is proxy-only; capacity and cpu_usage_instance are backend-only. "
-            "[Resource] cpu_usage (machine-level, host CPU %), "
-            "cpu_usage_instance (process-level, in cores, backend-only), "
+            "latency_distribution is proxy-only, capacity is backend-only. "
+            "[Resource] cpu_usage (host), instance_cpu_usage (Redis/Twemproxy process CPU; "
+            "Predixy proxy unsupported — use cpu_usage), "
             "memory_usage, io_usage, disk_usage. "
             "[Throughput] connections, qps. "
             "[Latency] host_latency, command_latency (broken down per command automatically), latency_distribution. "
@@ -195,10 +196,11 @@ class RedisMetricsInstanceInputSerializer(RedisMetricsTimeWindowSerializer):
         choices=MetricType.get_instance_api_choices(),
         help_text=_(
             "Metric to query for a single ip:port. "
-            "Machine-level resource metrics (cpu_usage, memory_usage, io_usage, disk_usage) "
-            "are not available at instance scope -- use cpu_usage_instance for per-process CPU (backend-only, in cores). "
+            "Host-level resource metrics (cpu_usage, memory_usage, io_usage, disk_usage) "
+            "are not available at instance scope; use instance_cpu_usage for Redis/Twemproxy "
+            "process CPU (Predixy proxy unsupported — use machine/cluster cpu_usage instead). "
             "latency_distribution is proxy-only; capacity is backend-only. "
-            "[Resource] cpu_usage_instance (process-level, in cores, backend-only). "
+            "[Resource] instance_cpu_usage. "
             "[Throughput] connections, qps. "
             "[Latency] host_latency, command_latency (broken down per command automatically), latency_distribution. "
             "[Capacity] capacity. "
