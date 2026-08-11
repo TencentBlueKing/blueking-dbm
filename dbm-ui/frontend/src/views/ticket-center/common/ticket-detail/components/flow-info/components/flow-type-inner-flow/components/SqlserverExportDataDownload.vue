@@ -35,59 +35,62 @@
       @click="handleBatchDownload">
       {{ t('批量下载') }}
     </BkButton>
-    <BkTable
+    <PrimaryTable
       :data="state.data"
       :height="460"
-      @checkbox-all="handleTableAllSelected"
-      @checkbox-change="handleTableSelected">
-      <BkTableColumn
+      row-key="path"
+      :selected-row-keys="selectedRowKeys"
+      @select-change="handleSelectChange">
+      <TableColumn
+        col-key="row-select"
         fixed="left"
-        type="checkbox"
+        type="multiple"
         :width="60" />
-      <BkTableColumn
-        field="name"
+      <TableColumn
+        col-key="name"
         fixed="left"
-        :label="t('文件名')"
-        :min-width="300" />
-      <BkTableColumn
-        field="size"
-        :label="t('大小')"
+        :min-width="300"
+        :title="t('文件名')" />
+      <TableColumn
+        col-key="size"
+        :title="t('大小')"
         :width="120">
-        <template #default="{data}: {data: RowData}">
-          {{ data.size ? bytePretty(data.size) : '--' }}
+        <template #default="{ row }: { row: RowData }">
+          {{ row.size ? bytePretty(row.size) : '--' }}
         </template>
-      </BkTableColumn>
-      <BkTableColumn
-        field="cluster_id"
-        :label="t('集群')"
+      </TableColumn>
+      <TableColumn
+        col-key="cluster_id"
+        :title="t('集群')"
         :width="260">
-        <template #default="{data}: {data: RowData}">
-          {{ details.ticket_data.clusters[data.cluster_id].immute_domain }}
+        <template #default="{ row }: { row: RowData }">
+          {{ details.ticket_data.clusters[row.cluster_id].immute_domain }}
         </template>
-      </BkTableColumn>
-      <BkTableColumn
+      </TableColumn>
+      <TableColumn
+        col-key="operation"
         fixed="right"
-        :label="t('操作')"
+        :title="t('操作')"
         :width="150">
-        <template #default="{data, rowIndex}: {data: RowData, rowIndex: number}">
+        <template #default="{ row, rowIndex }: { row: RowData; rowIndex: number }">
           <BkButton
             class="mr-8"
             :loading="state.downloadLoadings[rowIndex]"
             text
             theme="primary"
-            @click="handleDownloadFile(data, rowIndex)">
+            @click="handleDownloadFile(row, rowIndex)">
             {{ t('下载') }}
           </BkButton>
           <BkButton
             :loading="state.fileLoadings[rowIndex]"
             text
             theme="primary"
-            @click="handleCopy(data, rowIndex)">
+            @click="handleCopy(row, rowIndex)">
             {{ t('复制链接') }}
           </BkButton>
         </template>
-      </BkTableColumn>
-    </BkTable>
+      </TableColumn>
+    </PrimaryTable>
   </BkDialog>
 </template>
 
@@ -133,6 +136,7 @@
   const { t } = useI18n();
 
   const isShow = ref(false);
+  const selectedRowKeys = ref<string[]>([]);
 
   const state = reactive({
     data: [] as RowData[],
@@ -159,29 +163,10 @@
   /**
    * 表格选中
    */
-  function handleTableSelected({ checked, row }: { checked: boolean; data: RowData[]; row: RowData }) {
-    // 单选 checkbox 选中
-    if (checked) {
-      const toggleIndex = state.selected.findIndex((item) => item.cluster_id === row.cluster_id);
-      if (toggleIndex === -1) {
-        state.selected.push(row);
-      }
-      return;
-    }
-
-    // 单选 checkbox 取消选中
-    const toggleIndex = state.selected.findIndex((item) => item.cluster_id === row.cluster_id);
-    if (toggleIndex > -1) {
-      state.selected.splice(toggleIndex, 1);
-    }
-  }
-
-  /**
-   * 全选
-   */
-  function handleTableAllSelected({ checked }: { checked: boolean }) {
-    state.selected = checked ? [...state.data] : [];
-  }
+  const handleSelectChange = (value: (number | string)[], { selectedRowData }: { selectedRowData: unknown[] }) => {
+    selectedRowKeys.value = value as string[];
+    state.selected = selectedRowData as RowData[];
+  };
 
   /**
    * 批量下载文件
@@ -242,6 +227,7 @@
 
   function handleClose() {
     isShow.value = false;
+    selectedRowKeys.value = [];
     Object.assign(state, {
       data: [],
       downloadLoadings: [],

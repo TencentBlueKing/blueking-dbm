@@ -17,27 +17,40 @@
       v-model="searchValue"
       clearable
       :placeholder="t('请输入实例')" />
-    <DbOriginalTable
+    <PrimaryTable
       class="mt-12"
       :columns="columns"
-      :data="renderManualData"
-      :max-height="530"
-      :pagination="pagination.count < 10 ? false : pagination" />
+      :data="pageData"
+      :max-height="530">
+      <template #empty>
+        <EmptyStatus
+          :is-anomalies="false"
+          :is-searching="searchValue.length > 0"
+          @clear-search="handleClearSearch" />
+      </template>
+    </PrimaryTable>
+    <div
+      v-if="pagination.count >= 10"
+      class="table-footer">
+      <BkPagination
+        v-bind="pagination"
+        :model-value="pagination.current"
+        @change="handleChangePage"
+        @limit-change="handeChangeLimit" />
+    </div>
   </div>
 </template>
 <script setup lang="tsx">
+  import type { PrimaryTableCol } from 'tdesign-vue-next';
   import { useI18n } from 'vue-i18n';
 
   import DbStatus from '@components/db-status/index.vue';
+  import EmptyStatus from '@components/empty-status/EmptyStatus.vue';
 
   import { type InstanceSelectorValues, type IValue, type PanelListType } from '../../../../Index.vue';
 
   type TableConfigType = Required<PanelListType[number]>['tableConfig'];
   type ManualConfigType = Required<PanelListType[number]>['manualConfig'];
-
-  interface DataRow {
-    data: IValue;
-  }
 
   interface Props {
     activePanelId?: string;
@@ -68,14 +81,13 @@
   const { t } = useI18n();
 
   const searchValue = ref('');
-  const pagination = ref({
+  const pagination = reactive({
     align: 'right',
     count: 0,
     current: 1,
     layout: ['total', 'limit', 'list'],
     limit: 10,
     limitList: [10, 20, 50, 100],
-    remote: false,
   });
 
   const checkedMap = shallowRef({} as Record<string, IValue>);
@@ -88,6 +100,11 @@
     return props.manualTableData.filter((item) =>
       (item[firstColumnFieldId.value] as string).includes(searchValue.value),
     );
+  });
+  // 全量数据在本地分页展示，选中逻辑仍基于全量过滤结果
+  const pageData = computed(() => {
+    const startIndex = (pagination.current - 1) * pagination.limit;
+    return renderManualData.value.slice(startIndex, startIndex + pagination.limit);
   });
   const mainSelectDisable = computed(() =>
     props.disabledRowConfig
@@ -105,20 +122,10 @@
 
   let isSelectedAllReal = false;
 
-  const columns = [
+  const columns = computed<PrimaryTableCol[]>(() => [
     {
-      fixed: 'left',
-      label: () => (
-        <bk-checkbox
-          disabled={mainSelectDisable.value}
-          label={true}
-          model-value={isSelectedAll.value}
-          onChange={handleSelectPageAll}
-          onClick={(e: Event) => e.stopPropagation()}
-        />
-      ),
-      render: ({ data }: DataRow) => {
-        if (props.disabledRowConfig && props.disabledRowConfig.handler(data)) {
+      cell: (_, { row }) => {
+        if (props.disabledRowConfig && props.disabledRowConfig.handler(row)) {
           return (
             <bk-popover
               placement='top'
@@ -128,8 +135,8 @@
                 content: () => <span>{props.disabledRowConfig?.tip}</span>,
                 default: () => (
                   <bk-checkbox
-                    style='vertical-align: middle;'
                     disabled
+                    style='vertical-align: middle;'
                   />
                 ),
               }}
@@ -139,114 +146,143 @@
         return (
           <bk-checkbox
             label={true}
-            model-value={Boolean(checkedMap.value[data[firstColumnFieldId.value]])}
+            model-value={Boolean(checkedMap.value[row[firstColumnFieldId.value]])}
             style='vertical-align: middle;'
-            onChange={(value: boolean) => handleTableSelectOne(value, data)}
+            onChange={(value: boolean) => handleTableSelectOne(value, row as IValue)}
             onClick={(e: Event) => e.stopPropagation()}
           />
         );
       },
+      colKey: 'row-select',
+      fixed: 'left',
+      title: () => (
+        <bk-checkbox
+          disabled={mainSelectDisable.value}
+          label={true}
+          model-value={isSelectedAll.value}
+          onChange={handleSelectPageAll}
+          onClick={(e: Event) => e.stopPropagation()}
+        />
+      ),
       width: 60,
     },
     {
-      field: props.firsrColumn?.field ? props.firsrColumn.field : 'instance_address',
+      colKey: props.firsrColumn?.field ? props.firsrColumn.field : 'instance_address',
       fixed: 'left',
-      label: props.firsrColumn?.label ? props.firsrColumn.label : t('实例'),
       minWidth: 160,
+      title: props.firsrColumn?.label ? props.firsrColumn.label : t('实例'),
     },
     {
-      field: 'role',
-      filter: props.roleFilterList,
-      label: t('角色'),
-      render: ({ data }: DataRow) => (
-        <span>{props.fieldFormat?.role ? props.fieldFormat.role[data.role] : data.role}</span>
-      ),
-      showOverflow: true,
+      cell: (_, { row }) => <span>{props.fieldFormat?.role ? props.fieldFormat.role[row.role] : row.role}</span>,
+      colKey: 'role',
+      ellipsis: true,
+      filter: props.roleFilterList
+        ? {
+            list: props.roleFilterList.list.map((item) => ({
+              label: item.text,
+              value: item.value,
+            })),
+            showConfirmAndReset: true,
+            type: 'multiple',
+          }
+        : undefined,
+      title: t('角色'),
     },
     {
-      field: 'status',
-      label: t('实例状态'),
-      render: ({ data }: DataRow) => {
-        const isNormal = props.statusFilter ? props.statusFilter(data) : data.status === 'running';
+      cell: (_, { row }) => {
+        const isNormal = props.statusFilter ? props.statusFilter(row) : row.status === 'running';
         const info = isNormal ? { text: t('正常'), theme: 'success' } : { text: t('异常'), theme: 'danger' };
         return <DbStatus theme={info.theme}>{info.text}</DbStatus>;
       },
+      colKey: 'status',
+      title: t('实例状态'),
     },
     {
-      field: 'bk_sub_zone',
-      label: t('园区'),
+      cell: (_, { row }) => row.bk_sub_zone || '--',
+      colKey: 'bk_sub_zone',
+      ellipsis: true,
       minWidth: 120,
-      render: ({ data }: DataRow) => data.bk_sub_zone || '--',
-      showOverflow: true,
+      title: t('园区'),
     },
     {
-      field: 'bk_rack_id',
-      label: t('机架ID'),
+      cell: (_, { row }) => row.bk_rack_id || '--',
+      colKey: 'bk_rack_id',
+      ellipsis: true,
       minWidth: 80,
-      render: ({ data }: DataRow) => data.bk_rack_id || '--',
-      showOverflow: true,
+      title: t('机架ID'),
     },
     {
-      field: 'bk_svr_device_cls_name',
-      label: t('机型'),
+      cell: (_, { row }) => row.bk_svr_device_cls_name || '--',
+      colKey: 'bk_svr_device_cls_name',
+      ellipsis: true,
       minWidth: 120,
-      render: ({ data }: DataRow) => data.bk_svr_device_cls_name || '--',
-      showOverflow: true,
+      title: t('机型'),
     },
     {
-      field: 'cloud_area',
-      label: t('管控区域'),
+      cell: (_, { row }) => row.host_info?.cloud_area?.name || '--',
+      colKey: 'cloud_area',
+      ellipsis: true,
       minWidth: 100,
-      render: ({ data }: DataRow) => data.host_info?.cloud_area?.name || '--',
-      showOverflow: true,
+      title: t('管控区域'),
     },
     {
-      field: 'alive',
-      label: t('Agent状态'),
-      minWidth: 100,
-      render: ({ data }: DataRow) => {
+      cell: (_, { row }) => {
         const info =
-          data.host_info?.alive === 1 ? { text: t('正常'), theme: 'success' } : { text: t('异常'), theme: 'danger' };
+          row.host_info?.alive === 1 ? { text: t('正常'), theme: 'success' } : { text: t('异常'), theme: 'danger' };
         return <DbStatus theme={info.theme}>{info.text}</DbStatus>;
       },
+      colKey: 'alive',
+      minWidth: 100,
+      title: t('Agent状态'),
     },
     {
-      field: 'host_name',
-      label: t('主机名称'),
-      render: ({ data }: DataRow) => data.host_info?.host_name || '--',
-      showOverflow: true,
+      cell: (_, { row }) => row.host_info?.host_name || '--',
+      colKey: 'host_name',
+      ellipsis: true,
+      title: t('主机名称'),
     },
     {
-      field: 'os_name',
-      label: t('OS名称'),
-      render: ({ data }: DataRow) => data.host_info?.os_name || '--',
-      showOverflow: true,
+      cell: (_, { row }) => row.host_info?.os_name || '--',
+      colKey: 'os_name',
+      ellipsis: true,
+      title: t('OS名称'),
     },
     {
-      field: 'cloud_vendor',
-      label: t('所属云厂商'),
-      render: ({ data }: DataRow) => data.host_info?.cloud_vendor || '--',
-      showOverflow: true,
+      cell: (_, { row }) => row.host_info?.cloud_vendor || '--',
+      colKey: 'cloud_vendor',
+      ellipsis: true,
+      title: t('所属云厂商'),
     },
     {
-      field: 'os_type',
-      label: t('OS类型'),
-      render: ({ data }: DataRow) => data.host_info.os_type || '--',
-      showOverflow: true,
+      cell: (_, { row }) => row.host_info.os_type || '--',
+      colKey: 'os_type',
+      ellipsis: true,
+      title: t('OS类型'),
     },
     {
-      field: 'host_id',
-      label: t('主机ID'),
-      render: ({ data }: DataRow) => data.host_info?.host_id || '--',
-      showOverflow: true,
+      cell: (_, { row }) => row.host_info?.host_id || '--',
+      colKey: 'host_id',
+      ellipsis: true,
+      title: t('主机ID'),
     },
     {
-      field: 'agent_id',
-      label: 'Agent ID',
-      render: ({ data }: DataRow) => data.host_info?.agent_id || '--',
-      showOverflow: true,
+      cell: (_, { row }) => row.host_info?.agent_id || '--',
+      colKey: 'agent_id',
+      ellipsis: true,
+      title: 'Agent ID',
     },
-  ];
+  ]);
+
+  watch(
+    renderManualData,
+    () => {
+      pagination.count = renderManualData.value.length;
+      pagination.current = 1;
+    },
+    {
+      immediate: true,
+    },
+  );
 
   watch(
     () => props.lastValues,
@@ -260,16 +296,6 @@
     },
     {
       deep: true,
-      immediate: true,
-    },
-  );
-
-  watch(
-    () => props.manualTableData,
-    () => {
-      pagination.value.count = props.manualTableData.length;
-    },
-    {
       immediate: true,
     },
   );
@@ -291,6 +317,19 @@
     checkedMap.value = {};
     triggerChange();
   });
+
+  const handleClearSearch = () => {
+    searchValue.value = '';
+  };
+
+  const handleChangePage = (value: number) => {
+    pagination.current = value;
+  };
+
+  const handeChangeLimit = (value: number) => {
+    pagination.limit = value;
+    pagination.current = 1;
+  };
 
   const handleSelectPageAll = (checked: boolean) => {
     if (checked) {
@@ -331,5 +370,11 @@
 <style lang="less">
   .instance-selector-render-topo-host {
     padding: 0 24px;
+
+    .table-footer {
+      display: flex;
+      justify-content: flex-end;
+      margin-top: 12px;
+    }
   }
 </style>

@@ -22,26 +22,35 @@
   <BkLoading
     :loading="isLoading"
     :z-index="2">
-    <DbOriginalTable
+    <PrimaryTable
       class="table-box"
       :columns="generatedColumns"
       :data="tableData"
-      :is-anomalies="isAnomalies"
-      :is-searching="searchValue.length > 0"
+      :filter-value="columnCheckedMap"
       :max-height="528"
-      :pagination="pagination"
-      remote-pagination
-      :row-class="getRowClass"
-      row-style="cursor: pointer"
-      @clear-search="clearSearchValue"
-      @column-filter="columnFilterChange"
-      @page-limit-change="handleTableLimitChange"
-      @page-value-change="handleTablePageChange"
-      @refresh="fetchResources"
-      @row-click.stop.prevent="handleRowClick" />
+      :row-class-name="getRowClass"
+      row-key="id"
+      @filter-change="handleFilterChange"
+      @row-click="handleRowClick">
+      <template #empty>
+        <EmptyStatus
+          :is-anomalies="isAnomalies"
+          :is-searching="searchValue.length > 0"
+          @clear-search="clearSearchValue"
+          @refresh="fetchResources" />
+      </template>
+    </PrimaryTable>
+    <div class="table-footer">
+      <BkPagination
+        v-bind="pagination"
+        :model-value="pagination.current"
+        @change="handleTablePageChange"
+        @limit-change="handleTableLimitChange" />
+    </div>
   </BkLoading>
 </template>
 <script setup lang="tsx">
+  import type { PrimaryTableCol } from 'tdesign-vue-next';
   import { useI18n } from 'vue-i18n';
 
   import { useLinkQueryColumnSerach } from '@hooks';
@@ -49,12 +58,13 @@
   import { ClusterTypes } from '@common/const';
 
   import DbStatus from '@components/db-status/index.vue';
+  import EmptyStatus from '@components/empty-status/EmptyStatus.vue';
   import TextOverflowLayout from '@components/text-overflow-layout/Index.vue';
 
   import { getSearchSelectorParams } from '@utils';
 
   import type { TabItem } from '../../Index.vue';
-  import { tagsColumn } from '../common/columns';
+  import { tagsColumn, transBkuiColumns } from '../common/columns';
   import SerachBar from '../common/SearchBar.vue';
   import ClusterRelatedTasks from '../common/task-panel/Index.vue';
 
@@ -109,10 +119,10 @@
     clearSearchValue,
     columnAttrs,
     columnCheckedMap,
-    columnFilterChange,
     handleSearchValueChange,
     searchAttrs,
     searchValue,
+    tableColumnFilterChange,
   } = useLinkQueryColumnSerach({
     attrs: ['bk_cloud_id', 'db_module_id', 'major_version', 'region', 'time_zone'],
     defaultSearchItem: {
@@ -145,40 +155,21 @@
     }, {}),
   );
 
-  const columns = computed(() => [
+  const statusFilterList = computed(() => [
     {
-      label: () =>
-        props.multiple && (
-          <div style='display:flex;align-items:center'>
-            <bk-checkbox
-              key={`${pagination.current}_${activeTab.value}`}
-              onChange={handleWholeSelect}
-              disabled={mainSelectDisable.value}
-              indeterminate={isIndeterminate.value}
-              label={true}
-              model-value={isSelectedAll.value}
-            />
-            {/* <bk-popover
-            placement="bottom-start"
-            theme="light db-table-select-menu"
-            arrow={ false }
-            trigger='hover'
-            v-slots={{
-              default: () => <db-icon class="select-menu-flag" type="down-big" />,
-              content: () => (
-                <div class="db-table-select-plan">
-                  <div
-                    class="item"
-                    onClick={handleWholeSelect}>{t('跨页全选')}</div>
-                </div>
-              ),
-            }}>
-          </bk-popover> */}
-          </div>
-        ),
-      minWidth: 70,
-      render: ({ data }: { data: ResourceItem }) => {
-        const disabledRowConfig = props.disabledRowConfig.find((item) => item.handler(data));
+      label: t('正常'),
+      value: 'normal',
+    },
+    {
+      label: t('异常'),
+      value: 'abnormal',
+    },
+  ]);
+
+  const columns = computed<PrimaryTableCol[]>(() => [
+    {
+      cell: (_, { row }) => {
+        const disabledRowConfig = props.disabledRowConfig.find((item) => item.handler(row));
         if (disabledRowConfig) {
           return (
             <bk-popover
@@ -205,47 +196,74 @@
         }
         return props.multiple ? (
           <bk-checkbox
-            onChange={(value: boolean) => handleSelecteRow(data, value)}
             label={true}
-            model-value={Boolean(selectedMap.value[`${data.id}:${data.master_domain}`])}
+            model-value={Boolean(selectedMap.value[`${row.id}:${row.master_domain}`])}
             style='vertical-align: middle;'
+            onChange={(value: boolean) => handleSelecteRow(row, value)}
           />
         ) : (
           <bk-radio-group
-            onChange={(value: boolean) => handleSelecteRow(data, value)}
-            model-value={Boolean(selectedMap.value[`${data.id}:${data.master_domain}`])}>
+            model-value={Boolean(selectedMap.value[`${row.id}:${row.master_domain}`])}
+            onChange={(value: boolean) => handleSelecteRow(row, value)}>
             <bk-radio label={true} />
           </bk-radio-group>
         );
       },
-      showOverflowTooltip: false,
+      colKey: 'row-select',
+      minWidth: 70,
+      title: () =>
+        props.multiple && (
+          <div style='display:flex;align-items:center'>
+            <bk-checkbox
+              key={`${pagination.current}_${activeTab.value}`}
+              disabled={mainSelectDisable.value}
+              indeterminate={isIndeterminate.value}
+              label={true}
+              model-value={isSelectedAll.value}
+              onChange={handleWholeSelect}
+            />
+            {/* <bk-popover
+            placement="bottom-start"
+            theme="light db-table-select-menu"
+            arrow={ false }
+            trigger='hover'
+            v-slots={{
+              default: () => <db-icon class="select-menu-flag" type="down-big" />,
+              content: () => (
+                <div class="db-table-select-plan">
+                  <div
+                    class="item"
+                    onClick={handleWholeSelect}>{t('跨页全选')}</div>
+                </div>
+              ),
+            }}>
+          </bk-popover> */}
+          </div>
+        ),
     },
     {
-      field: 'master_domain',
-      label: t('访问入口'),
-      minWidth: 280,
-      render: ({ data }: { data: ResourceItem }) => (
+      cell: (_, { row }) => (
         <TextOverflowLayout class='cluster-name-box'>
           {{
             append: () => (
               <>
-                {data.operations && data.operations.length > 0 && (
+                {row.operations && row.operations.length > 0 && (
                   <bk-popover
                     theme='light'
                     width='360'>
                     {{
-                      content: () => <ClusterRelatedTasks data={data.operations} />,
+                      content: () => <ClusterRelatedTasks data={row.operations} />,
                       default: () => (
                         <bk-tag
                           class='tag-box'
                           theme='info'>
-                          {data.operations.length}
+                          {row.operations.length}
                         </bk-tag>
                       ),
                     }}
                   </bk-popover>
                 )}
-                {data.isOffline && (
+                {row.isOffline && (
                   <bk-tag
                     class='ml-4'
                     size='small'>
@@ -254,63 +272,66 @@
                 )}
               </>
             ),
-            default: () => <span class='cluster-name'>{data.master_domain}</span>,
+            default: () => <span class='cluster-name'>{row.master_domain}</span>,
           }}
         </TextOverflowLayout>
       ),
-      showOverflowTooltip: true,
+      colKey: 'master_domain',
+      ellipsis: true,
+      minWidth: 280,
+      title: t('访问入口'),
     },
     tagsColumn,
     {
-      field: 'status',
-      filter: {
-        checked: columnCheckedMap.value.status,
-        list: [
-          {
-            text: t('正常'),
-            value: 'normal',
-          },
-          {
-            text: t('异常'),
-            value: 'abnormal',
-          },
-        ],
-      },
-      label: t('状态'),
-      minWidth: 80,
-      render: ({ data }: { data: ResourceItem }) => {
-        const isNormal = props.columnStatusFilter ? props.columnStatusFilter(data) : data.status === 'normal';
+      cell: (_, { row }) => {
+        const isNormal = props.columnStatusFilter ? props.columnStatusFilter(row) : row.status === 'normal';
         const info = isNormal ? { text: t('正常'), theme: 'success' } : { text: t('异常'), theme: 'danger' };
         return <DbStatus theme={info.theme}>{info.text}</DbStatus>;
       },
+      colKey: 'status',
+      filter: {
+        list: statusFilterList.value,
+        showConfirmAndReset: true,
+        type: 'multiple',
+      },
+      minWidth: 80,
+      title: t('状态'),
     },
     {
-      field: 'cluster_name',
-      label: t('集群名称'),
+      colKey: 'cluster_name',
+      ellipsis: true,
       minWidth: 120,
-      showOverflowTooltip: true,
+      title: t('集群名称'),
     },
     {
-      field: 'db_module_id',
+      cell: (_, { row }) => <span>{row.db_module_name || '--'}</span>,
+      colKey: 'db_module_id',
+      ellipsis: true,
       filter: {
-        checked: columnCheckedMap.value.db_module_id,
-        list: columnAttrs.value.db_module_id,
+        list: (columnAttrs.value.db_module_id || []).map((item) => ({
+          label: item.text,
+          value: item.value,
+        })),
+        showConfirmAndReset: true,
+        type: 'multiple',
       },
-      label: t('所属模块'),
       minWidth: 100,
-      render: ({ data }: { data: ResourceItem }) => <span>{data.db_module_name || '--'}</span>,
-      showOverflowTooltip: true,
+      title: t('所属模块'),
     },
     {
-      field: 'bk_cloud_id',
+      cell: (_, { row }) => <span>{row.bk_cloud_name}</span>,
+      colKey: 'bk_cloud_id',
+      ellipsis: true,
       filter: {
-        checked: columnCheckedMap.value.bk_cloud_id,
-        list: columnAttrs.value.bk_cloud_id,
+        list: (columnAttrs.value.bk_cloud_id || []).map((item) => ({
+          label: item.text,
+          value: item.value,
+        })),
+        showConfirmAndReset: true,
+        type: 'multiple',
       },
-      label: t('管控区域'),
       minWidth: 100,
-      render: ({ data }: { data: ResourceItem }) => <span>{data.bk_cloud_name}</span>,
-      showOverflowTooltip: true,
+      title: t('管控区域'),
     },
   ]);
 
@@ -322,12 +343,35 @@
       tableData.value.length,
   );
 
-  const generatedColumns = computed(() => {
+  const generatedColumns = computed<PrimaryTableCol[]>(() => {
     if (props.customColums) {
-      return [columns.value[0], ...props.customColums];
+      return [columns.value[0], ...transBkuiColumns(props.customColums)];
     }
     return columns.value;
   });
+
+  const handleFilterChange = (filterValue: Record<string, string[]>) => {
+    tableColumnFilterChange(filterValue, {
+      bk_cloud_id: {
+        list: (columnAttrs.value.bk_cloud_id || []).map((item) => ({
+          label: item.text,
+          value: item.value,
+        })),
+        name: t('管控区域'),
+      },
+      db_module_id: {
+        list: (columnAttrs.value.db_module_id || []).map((item) => ({
+          label: item.text,
+          value: item.value,
+        })),
+        name: t('所属模块'),
+      },
+      status: {
+        list: statusFilterList.value,
+        name: t('状态'),
+      },
+    });
+  };
 
   watch(
     () => [props.activeTab, props.selected],
@@ -359,7 +403,7 @@
     emits('change', []);
   });
 
-  const getRowClass = (data: ResourceItem) => data.isOffline && 'is-offline';
+  const getRowClass = ({ row }: { row: ResourceItem }) => row.isOffline && 'is-offline';
 
   // 跨页全选
   const handleWholeSelect = (value: boolean) => {
@@ -413,13 +457,13 @@
     checkSelectedAll();
   };
 
-  const handleRowClick = (_: any, data: ResourceItem) => {
-    if (props.disabledRowConfig.find((item) => item.handler(data))) {
+  const handleRowClick = ({ row }: { row: ResourceItem }) => {
+    if (props.disabledRowConfig.find((item) => item.handler(row))) {
       return;
     }
 
-    const isChecked = !!selectedMap.value[`${data.id}:${data.master_domain}`];
-    handleSelecteRow(data, !isChecked);
+    const isChecked = !!selectedMap.value[`${row.id}:${row.master_domain}`];
+    handleSelecteRow(row, !isChecked);
   };
 
   const handleTablePageChange = (value: number) => {
@@ -438,6 +482,12 @@
 
 <style lang="less" scoped>
   .table-box {
+    :deep(.t-table__body) {
+      tr {
+        cursor: pointer;
+      }
+    }
+
     :deep(.cluster-name-box) {
       display: flex;
       width: 100%;
@@ -458,5 +508,11 @@
         border-radius: 8px !important;
       }
     }
+  }
+
+  .table-footer {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 12px;
   }
 </style>

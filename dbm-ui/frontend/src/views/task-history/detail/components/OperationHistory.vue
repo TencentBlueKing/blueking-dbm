@@ -1,96 +1,107 @@
 <template>
   <div class="operate-history-main">
-    <DbTable
-      ref="tableRef"
+    <BkLoading
       class="operation-history-table"
-      :data-source="getNodeOperateRecord"
-      max-height="100%"
-      :pagination="false">
-      <BkTableColumn
-        field="node_name"
-        fixed="left"
-        :label="t('节点名称')"
-        :min-width="300">
-        <template #default="{ data }: { data: RowData }">
-          <span>{{ data.node_name || '--' }}</span>
+      :loading="loading"
+      :z-index="2">
+      <PrimaryTable
+        :data="tableData"
+        height="100%"
+        row-key="id">
+        <TableColumn
+          col-key="node_name"
+          fixed="left"
+          :min-width="300"
+          :title="t('节点名称')">
+          <template #default="{ row: data }: { row: RowData }">
+            <span>{{ data.node_name || '--' }}</span>
+          </template>
+        </TableColumn>
+        <TableColumn
+          col-key="operate_type"
+          :min-width="150"
+          :title="t('操作类型')">
+          <template #default="{ row: data }: { row: RowData }">
+            <BkTag
+              v-if="data.operate_type === 'skip'"
+              style="background: #fafbfd"
+              type="stroke">
+              {{ t('跳过') }}
+            </BkTag>
+            <BkTag
+              v-else-if="data.operate_type === 'retry'"
+              theme="info"
+              type="stroke">
+              {{ t('重试') }}
+            </BkTag>
+            <BkTag
+              v-else-if="data.operate_type === 'force_fail'"
+              theme="danger"
+              type="stroke">
+              {{ t('强制失败') }}
+            </BkTag>
+            <BkTag
+              v-else-if="data.operate_type === 'pipeline_terminate'"
+              theme="danger"
+              type="stroke">
+              {{ t('终止任务') }}
+            </BkTag>
+            <BkTag
+              v-else-if="data.operate_type === 'force_retry'"
+              theme="warning"
+              type="stroke">
+              {{ t('强制重试') }}
+            </BkTag>
+            <BkTag
+              v-else-if="data.operate_type === 'force_skip'"
+              theme="warning"
+              type="stroke">
+              {{ t('强制跳过') }}
+            </BkTag>
+            <BkTag
+              v-else
+              theme="warning"
+              type="stroke">
+              {{ t('确认执行') }}
+            </BkTag>
+          </template>
+        </TableColumn>
+        <TableColumn
+          col-key="operator"
+          :min-width="120"
+          :title="t('操作人')" />
+        <TableColumn
+          col-key="operate_date"
+          :min-width="120"
+          :title="t('操作时间')">
+          <template #default="{ row: data }: { row: RowData }">
+            <span>{{ utcDisplayTime(data.operate_date) }}</span>
+          </template>
+        </TableColumn>
+        <TableColumn
+          col-key="remark"
+          :min-width="120"
+          :title="t('操作原因')">
+          <template #default="{ row: data }: { row: RowData }">
+            <span>{{ data.remark || '--' }}</span>
+          </template>
+        </TableColumn>
+        <template #empty>
+          <EmptyStatus
+            :is-anomalies="isAnomalies"
+            :is-searching="false"
+            @refresh="updateTableData" />
         </template>
-      </BkTableColumn>
-      <BkTableColumn
-        field="operate_type"
-        :label="t('操作类型')"
-        :min-width="150">
-        <template #default="{ data }: { data: RowData }">
-          <BkTag
-            v-if="data.operate_type === 'skip'"
-            style="background: #fafbfd"
-            type="stroke">
-            {{ t('跳过') }}
-          </BkTag>
-          <BkTag
-            v-else-if="data.operate_type === 'retry'"
-            theme="info"
-            type="stroke">
-            {{ t('重试') }}
-          </BkTag>
-          <BkTag
-            v-else-if="data.operate_type === 'force_fail'"
-            theme="danger"
-            type="stroke">
-            {{ t('强制失败') }}
-          </BkTag>
-          <BkTag
-            v-else-if="data.operate_type === 'pipeline_terminate'"
-            theme="danger"
-            type="stroke">
-            {{ t('终止任务') }}
-          </BkTag>
-          <BkTag
-            v-else-if="data.operate_type === 'force_retry'"
-            theme="warning"
-            type="stroke">
-            {{ t('强制重试') }}
-          </BkTag>
-          <BkTag
-            v-else-if="data.operate_type === 'force_skip'"
-            theme="warning"
-            type="stroke">
-            {{ t('强制跳过') }}
-          </BkTag>
-          <BkTag
-            v-else
-            theme="warning"
-            type="stroke">
-            {{ t('确认执行') }}
-          </BkTag>
-        </template>
-      </BkTableColumn>
-      <BkTableColumn
-        field="operator"
-        :label="t('操作人')"
-        :min-width="120" />
-      <BkTableColumn
-        field="operate_date"
-        :label="t('操作时间')"
-        :min-width="120">
-        <template #default="{ data }: { data: RowData }">
-          <span>{{ utcDisplayTime(data.operate_date) }}</span>
-        </template>
-      </BkTableColumn>
-      <BkTableColumn
-        field="remark"
-        :label="t('操作原因')"
-        :min-width="120">
-        <template #default="{ data }: { data: RowData }">
-          <span>{{ data.remark || '--' }}</span>
-        </template>
-      </BkTableColumn>
-    </DbTable>
+      </PrimaryTable>
+    </BkLoading>
   </div>
 </template>
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
 
   import { getNodeOperateRecord } from '@services/source/taskflow';
+
+  import EmptyStatus from '@components/empty-status/EmptyStatus.vue';
 
   import { utcDisplayTime } from '@utils';
 
@@ -108,15 +119,26 @@
 
   const { t } = useI18n();
 
-  const tableRef = ref();
+  const loading = ref(false);
+  const isAnomalies = ref(false);
+  const tableData = shallowRef<RowData[]>([]);
 
   const updateTableData = () => {
-    tableRef.value?.fetchData(
-      {},
-      {
-        root_id: props.rootId,
-      },
-    );
+    loading.value = true;
+    isAnomalies.value = false;
+    getNodeOperateRecord({
+      root_id: props.rootId,
+    })
+      .then((data) => {
+        tableData.value = data.results;
+      })
+      .catch(() => {
+        tableData.value = [];
+        isAnomalies.value = true;
+      })
+      .finally(() => {
+        loading.value = false;
+      });
   };
 
   onMounted(() => {
@@ -137,7 +159,7 @@
       height: 100%;
       overflow: hidden;
 
-      .bk-nested-loading {
+      & > div {
         height: 100%;
       }
     }

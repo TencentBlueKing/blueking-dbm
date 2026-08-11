@@ -52,16 +52,21 @@
         ref="contentRef"
         class="retry-selector-content">
         <strong>{{ t('执行记录') }}</strong>
-        <DbOriginalTable
+        <PrimaryTable
           :columns="columns"
           :data="state.histories"
-          :head-height="34"
           :height="240"
-          :is-anomalies="isAnomalies"
-          :row-class="getRowClass"
-          :row-height="34"
-          @refresh="fetchData"
-          @row-click="handleSelected" />
+          :row-class-name="getRowClass"
+          row-key="version"
+          size="small"
+          @row-click="handleSelected">
+          <template #empty>
+            <EmptyStatus
+              :is-anomalies="isAnomalies"
+              :is-searching="false"
+              @refresh="fetchData" />
+          </template>
+        </PrimaryTable>
       </div>
     </template>
   </BkPopover>
@@ -69,9 +74,12 @@
 
 <script setup lang="tsx">
   import _ from 'lodash';
+  import type { PrimaryTableCol } from 'tdesign-vue-next';
   import { useI18n } from 'vue-i18n';
 
   import { getRetryNodeHistories } from '@services/source/taskflow';
+
+  import EmptyStatus from '@components/empty-status/EmptyStatus.vue';
 
   import { getCostTimeDisplay } from '@utils';
 
@@ -104,32 +112,35 @@
   const activeCls = computed(() => (state.isShow ? 'retry-selector-trigger--active' : ''));
 
   const { body } = document;
-  const columns = [
+  const columns: PrimaryTableCol[] = [
     {
-      field: 'started_time',
-      label: t('执行时间'),
+      cell: (_, { row }) => {
+        const data = row as RetryNodeItem;
+        return (
+          <div class='started-time-column'>
+            <span>{data.started_time}</span>
+            {state.latestVersion === data.version ? (
+              <bk-tag
+                class='ml-8'
+                theme='info'>
+                {t('最新')}
+              </bk-tag>
+            ) : null}
+          </div>
+        );
+      },
+      colKey: 'started_time',
       minWidth: 220,
-      render: ({ data }: { data: RetryNodeItem }) => (
-        <div class='started-time-column'>
-          <span>{data.started_time}</span>
-          {state.latestVersion === data.version ? (
-            <bk-tag
-              class='ml-8'
-              theme='info'>
-              {t('最新')}
-            </bk-tag>
-          ) : null}
-        </div>
-      ),
+      title: t('执行时间'),
     },
     {
-      field: 'cost_time',
-      label: t('耗时'),
-      render: ({ data }: { data: RetryNodeItem }) => (
+      cell: (_, { row }) => (
         <div class='started-time-column'>
-          <span>{getCostTimeDisplay(data.cost_time)}</span>
+          <span>{getCostTimeDisplay((row as RetryNodeItem).cost_time)}</span>
         </div>
       ),
+      colKey: 'cost_time',
+      title: t('耗时'),
       width: 120,
     },
   ];
@@ -171,15 +182,16 @@
   /**
    * 设置行选中样式
    */
-  const getRowClass = (row: any) => (row.version === state.latestVersion ? 'active-row' : '');
+  const getRowClass = ({ row }: { row: RetryNodeItem }) => (row.version === state.latestVersion ? 'active-row' : '');
 
   /**
    * 选中当前行
    */
-  const handleSelected = (e: MouseEvent, row: any) => {
-    if (state.active.version === row.version) return;
+  const handleSelected = ({ row }: { row: Record<string, any> }) => {
+    const data = row as RetryNodeItem;
+    if (state.active.version === data.version) return;
 
-    state.active = row;
+    state.active = data;
     state.isShow = false;
   };
 

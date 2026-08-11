@@ -128,6 +128,9 @@
     // 是否单选
     // eslint-disable-next-line vue/no-unused-properties
     selectSingle?: boolean;
+    // 是否显示跨页全选（透传给 useSelect）
+    // eslint-disable-next-line vue/no-unused-properties
+    showSelectAllPage?: boolean;
   }
 
   export interface Emits {
@@ -173,6 +176,7 @@
     selectable: false,
     selected: () => [],
     selectSingle: false,
+    showSelectAllPage: true,
   });
 
   const emits = defineEmits<Emits>();
@@ -194,6 +198,8 @@
     delete baseProps['selectable'];
     // @ts-expect-error 删除不存在的 props
     delete baseProps['selectSingle'];
+    // @ts-expect-error 删除不存在的 props
+    delete baseProps['showSelectAllPage'];
     delete baseProps['onChange'];
     delete baseProps['onFilterChange'];
     // @ts-expect-error 删除不存在的 props
