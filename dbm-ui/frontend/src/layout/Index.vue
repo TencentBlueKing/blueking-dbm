@@ -62,7 +62,7 @@
 </template>
 <script setup lang="ts">
   import _ from 'lodash';
-  import { computed, ref, watch } from 'vue';
+  import { computed, provide, ref, watch } from 'vue';
   import { useI18n } from 'vue-i18n';
   import { useRoute } from 'vue-router';
 
@@ -73,6 +73,7 @@
   import ConfigManage from './components/ConfigManage.vue';
   import DatabaseManage from './components/database-manage/Index.vue';
   import GlobalConfigManage from './components/GlobalConfigManage.vue';
+  import { sideMenuCollapseKey } from './components/menu/common/context';
   import ObservableManage from './components/ObservableManage.vue';
   import PersonalWorkbench from './components/PersonalWorkbench.vue';
   import PlatformManage from './components/PlatformManage.vue';
@@ -82,6 +83,12 @@
   const route = useRoute();
   const userProfile = useUserProfile();
   const isSideMenuFlod = useStorage('is_side_menu_flod', true);
+
+  // is_side_menu_flod 为 true 表示侧栏展开，语义与命名相反，保持存量存储不变
+  provide(
+    sideMenuCollapseKey,
+    computed(() => !isSideMenuFlod.value),
+  );
 
   enum menuEnum {
     configManage = 'configManage',
@@ -305,13 +312,13 @@
         border-bottom: solid #29344c 1px;
       }
 
+      .db-menu.is-collapse .split-line {
+        margin: 0 12px;
+      }
+
       .nav-slider {
         width: inherit !important;
         border: none !important;
-      }
-
-      .group-name {
-        color: #fff;
       }
     }
 

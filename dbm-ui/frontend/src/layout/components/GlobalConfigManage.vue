@@ -3,218 +3,145 @@
     ref="menuBoxRef"
     :style="styles">
     <ScrollFaker theme="dark">
-      <BkMenu
+      <DbMenu
         ref="menuRef"
         :active-key="currentActiveKey"
         :opened-keys="[parentKey]"
         @click="handleMenuChange">
-        <BkMenuGroup
+        <DbMenuGroup
           v-db-console="'globalConfigManage.versionFile'"
           :name="t('版本')">
-          <BkMenuItem key="PlatformVersionFiles">
-            <template #icon>
-              <DbIcon type="version" />
-            </template>
-            <span
-              v-overflow-tips.right
-              class="text-overflow">
-              {{ t('版本管理') }}
-            </span>
-          </BkMenuItem>
-          <BkMenuItem
+          <DbMenuItem
+            icon="version"
+            route-name="PlatformVersionFiles">
+            {{ t('版本管理') }}
+          </DbMenuItem>
+          <DbMenuItem
             v-show="false"
-            key="PlatformVersionFilesV1">
-            <template #icon>
-              <DbIcon type="version" />
-            </template>
-            <span
-              v-overflow-tips.right
-              class="text-overflow">
-              {{ t('版本管理') }}
-            </span>
-          </BkMenuItem>
-        </BkMenuGroup>
-        <BkMenuGroup
+            icon="version"
+            route-name="PlatformVersionFilesV1">
+            {{ t('版本管理') }}
+          </DbMenuItem>
+        </DbMenuGroup>
+        <DbMenuGroup
           v-db-console="'globalConfigManage.dbConfig'"
+          :fold-name="t('参数')"
           :name="t('参数配置')">
-          <BkMenuItem key="PlatformDbConfigure">
-            <template #icon>
-              <DbIcon type="db-config" />
-            </template>
-            <span
-              v-overflow-tips.right
-              class="text-overflow">
-              {{ t('数据库配置定义') }}
-            </span>
-          </BkMenuItem>
-        </BkMenuGroup>
+          <DbMenuItem
+            icon="db-config"
+            route-name="PlatformDbConfigure">
+            {{ t('数据库配置定义') }}
+          </DbMenuItem>
+        </DbMenuGroup>
         <FunController module-id="monitor">
-          <BkMenuGroup
+          <DbMenuGroup
             v-db-console="'globalConfigManage.monitorStrategy'"
+            :fold-name="t('告警')"
             :name="t('监控告警')">
             <FunController
               controller-id="monitor_policy"
               module-id="monitor">
-              <BkMenuItem key="PlatGlobalStrategy">
-                <template #icon>
-                  <DbIcon type="gaojingcelve" />
-                </template>
-                <span
-                  v-overflow-tips.right
-                  class="text-overflow">
-                  {{ t('全局告警策略') }}
-                </span>
-              </BkMenuItem>
+              <DbMenuItem
+                icon="gaojingcelve"
+                route-name="PlatGlobalStrategy">
+                {{ t('全局告警策略') }}
+              </DbMenuItem>
             </FunController>
-            <!-- <FunController
-              controller-id="notice_group"
-              module-id="monitor">
-              <BkMenuItem key="PlatMonitorAlarmGroup">
-                <template #icon>
-                  <DbIcon type="yonghuzu" />
-                </template>
-                <span
-                  v-overflow-tips.right
-                  class="text-overflow">
-                  {{ t('告警组') }}
-                </span>
-              </BkMenuItem>
-            </FunController> -->
-          </BkMenuGroup>
+          </DbMenuGroup>
         </FunController>
         <FunController module-id="monitor">
-          <BkMenuGroup
+          <DbMenuGroup
             v-db-console="'globalConfigManage.rotationManage'"
             :name="t('轮值')">
             <FunController
               controller-id="duty_rule"
               module-id="monitor">
-              <BkMenuItem key="dutyRuleManange">
-                <template #icon>
-                  <DbIcon type="db-config" />
-                </template>
-                <span
-                  v-overflow-tips.right
-                  class="text-overflow">
-                  {{ t('轮值策略') }}
-                </span>
-              </BkMenuItem>
+              <DbMenuItem
+                icon="db-config"
+                route-name="dutyRuleManange">
+                {{ t('轮值策略') }}
+              </DbMenuItem>
             </FunController>
             <FunController
               controller-id="monitor_policy"
               module-id="monitor">
-              <BkMenuItem key="PlatformNotificationSetting">
-                <template #icon>
-                  <DbIcon type="note" />
-                </template>
-                <span
-                  v-overflow-tips.right
-                  class="text-overflow">
-                  {{ t('轮值通知') }}
-                </span>
-              </BkMenuItem>
+              <DbMenuItem
+                icon="note"
+                route-name="PlatformNotificationSetting">
+                {{ t('轮值通知') }}
+              </DbMenuItem>
             </FunController>
-          </BkMenuGroup>
+          </DbMenuGroup>
         </FunController>
-        <BkMenuGroup
+        <DbMenuGroup
           v-db-console="'globalConfigManage.passwordSafe'"
+          :fold-name="t('密码')"
           :name="t('密码安全')">
-          <BkMenuItem key="PlatformPasswordRandomization">
-            <template #icon>
-              <DbIcon type="pingbi" />
-            </template>
-            <span
-              v-overflow-tips.right
-              class="text-overflow">
-              {{ t('密码随机化管理') }}
-            </span>
-          </BkMenuItem>
-          <BkMenuItem key="PlatformPasswordPolicy">
-            <template #icon>
-              <DbIcon type="password" />
-            </template>
-            <span
-              v-overflow-tips.right
-              class="text-overflow">
-              {{ t('密码安全规则') }}
-            </span>
-          </BkMenuItem>
-        </BkMenuGroup>
-        <BkMenuGroup :name="t('设置')">
-          <BkMenuItem
-            key="PlatformStaffManage"
-            v-db-console="'globalConfigManage.staffManage'">
-            <template #icon>
-              <DbIcon type="dba-config" />
-            </template>
-            <span
-              v-overflow-tips.right
-              class="text-overflow">
-              {{ t('业务与 DBA 管理') }}
-            </span>
-          </BkMenuItem>
-          <BkMenuItem
-            key="PlatformTicketFlowSetting"
-            v-db-console="'globalConfigManage.ticketFlowSetting'">
-            <template #icon>
-              <DbIcon type="dba-config" />
-            </template>
-            <span
-              v-overflow-tips.right
-              class="text-overflow">
-              {{ t('单据流程设置') }}
-            </span>
-          </BkMenuItem>
-          <BkMenuItem
-            key="TodoRemind"
-            v-db-console="'globalConfigManage.todoRemind'">
-            <template #icon>
-              <DbIcon type="note" />
-            </template>
-            <span
-              v-overflow-tips.right
-              class="text-overflow">
-              {{ t('每日待办提醒') }}
-            </span>
-          </BkMenuItem>
-          <BkSubmenu
-            key="platform-mysql"
+          <DbMenuItem
+            icon="pingbi"
+            route-name="PlatformPasswordRandomization">
+            {{ t('密码随机化管理') }}
+          </DbMenuItem>
+          <DbMenuItem
+            icon="password"
+            route-name="PlatformPasswordPolicy">
+            {{ t('密码安全规则') }}
+          </DbMenuItem>
+        </DbMenuGroup>
+        <DbMenuGroup :name="t('设置')">
+          <DbMenuItem
+            v-db-console="'globalConfigManage.staffManage'"
+            icon="dba-config"
+            route-name="PlatformStaffManage">
+            {{ t('业务与 DBA 管理') }}
+          </DbMenuItem>
+          <DbMenuItem
+            v-db-console="'globalConfigManage.ticketFlowSetting'"
+            icon="dba-config"
+            route-name="PlatformTicketFlowSetting">
+            {{ t('单据流程设置') }}
+          </DbMenuItem>
+          <DbMenuItem
+            v-db-console="'globalConfigManage.todoRemind'"
+            icon="note"
+            route-name="TodoRemind">
+            {{ t('每日待办提醒') }}
+          </DbMenuItem>
+          <DbSubmenu
+            id="platform-mysql"
             v-db-console="'globalConfigManage.whitelistManage'"
+            icon="mysql"
             title="MySQL">
-            <template #icon>
-              <DbIcon type="mysql" />
-            </template>
-            <BkMenuItem key="PlatformWhitelist">
-              <span
-                v-overflow-tips.right
-                class="text-overflow">
-                {{ t('授权白名单') }}
-              </span>
-            </BkMenuItem>
-          </BkSubmenu>
-        </BkMenuGroup>
-      </BkMenu>
+            <DbMenuItem route-name="PlatformWhitelist">
+              {{ t('授权白名单') }}
+            </DbMenuItem>
+          </DbSubmenu>
+        </DbMenuGroup>
+      </DbMenu>
     </ScrollFaker>
   </div>
 </template>
 <script setup lang="ts">
-  import { Menu } from 'bkui-vue';
   import { ref } from 'vue';
   import { useI18n } from 'vue-i18n';
 
   import { useActiveKey } from './hooks/useActiveKey';
   import { useMenuStyles } from './hooks/useMenuStyles';
+  import DbMenuGroup from './menu/Group.vue';
+  import DbMenu from './menu/Index.vue';
+  import DbMenuItem from './menu/Item.vue';
+  import DbSubmenu from './menu/Submenu.vue';
 
   const { t } = useI18n();
 
   const menuBoxRef = ref<HTMLElement>();
-  const menuRef = ref<InstanceType<typeof Menu>>();
+  const menuRef = ref<InstanceType<typeof DbMenu>>();
 
   const {
     key: currentActiveKey,
     parentKey,
     routeLocation: handleMenuChange,
-  } = useActiveKey(menuRef as Ref<InstanceType<typeof Menu>>, 'PlatformVersionFiles');
+  } = useActiveKey(menuRef, 'PlatformVersionFiles');
 
   const styles = useMenuStyles(menuBoxRef);
 </script>

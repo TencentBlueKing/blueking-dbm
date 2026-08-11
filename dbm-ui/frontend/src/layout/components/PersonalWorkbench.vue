@@ -1,147 +1,118 @@
 <template>
-  <BkMenu
+  <DbMenu
     ref="menuRef"
     :active-key="currentActiveKey"
     :opened-keys="[parentKey]"
     @click="handleMenuChange">
-    <BkMenuGroup
+    <DbMenuGroup
       v-db-console="'personalWorkbench'"
+      :fold-name="t('待办')"
       :name="t('我的待办')">
-      <BkMenuItem
-        key="MyTodos"
-        v-db-console="'personalWorkbench.myTodos'">
-        <template #icon>
-          <DbIcon type="todos" />
+      <DbMenuItem
+        v-db-console="'personalWorkbench.myTodos'"
+        icon="todos"
+        route-name="MyTodos">
+        {{ t('单据待办') }}
+        <template #append>
+          <span class="ticket-count">{{ ticketTodoCount }}</span>
         </template>
-        <span>
-          {{ t('单据待办') }}
-        </span>
-        <span class="ticket-count">{{ ticketTodoCount }}</span>
-      </BkMenuItem>
-      <BkMenuItem
+      </DbMenuItem>
+      <DbMenuItem
         v-if="userProfileStore.isDba"
-        key="platformAlarmEventsTodo"
-        v-db-console="'personalWorkbench.platformAlarmEventsTodo'">
-        <template #icon>
-          <DbIcon type="warning" />
+        v-db-console="'personalWorkbench.platformAlarmEventsTodo'"
+        icon="warning"
+        route-name="platformAlarmEventsTodo">
+        {{ t('告警事件待办') }}
+        <template #append>
+          <span class="ticket-count">{{ alarmEventsTodoCount }}</span>
         </template>
-        <span>
-          {{ t('告警事件待办') }}
-        </span>
-        <span class="ticket-count">{{ alarmEventsTodoCount }}</span>
-      </BkMenuItem>
-      <BkMenuItem
+      </DbMenuItem>
+      <DbMenuItem
         v-if="userProfileStore.isDba"
-        key="inspectionTodosGlobal"
-        v-db-console="'personalWorkbench.InspectionTodos'">
-        <template #icon>
-          <DbIcon type="cluster-standardize" />
+        v-db-console="'personalWorkbench.InspectionTodos'"
+        icon="cluster-standardize"
+        route-name="inspectionTodosGlobal">
+        {{ t('巡检待办') }}
+        <template #append>
+          <span class="ticket-count">{{ reportManageCount }}</span>
         </template>
-        <span>
-          {{ t('巡检待办') }}
-        </span>
-        <span class="ticket-count">{{ reportManageCount }}</span>
-      </BkMenuItem>
-      <BkMenuItem
+      </DbMenuItem>
+      <DbMenuItem
         v-if="userProfileStore.isDba"
-        key="resourceManageHostTodo"
-        v-db-console="'personalWorkbench.hostTodo'">
-        <template #icon>
-          <DbIcon type="host" />
+        v-db-console="'personalWorkbench.hostTodo'"
+        icon="host"
+        route-name="resourceManageHostTodo">
+        {{ t('主机处理待办') }}
+        <template #append>
+          <span class="ticket-count">{{ hostTodoCount }}</span>
         </template>
-        <span>
-          {{ t('主机处理待办') }}
-        </span>
-        <span class="ticket-count">{{ hostTodoCount }}</span>
-      </BkMenuItem>
-      <BkMenuItem
-        key="ClusterDisableTodo"
-        v-db-console="'personalWorkbench.clusterDisableTodo'">
-        <template #icon>
-          <DbIcon type="todos" />
+      </DbMenuItem>
+      <DbMenuItem
+        v-db-console="'personalWorkbench.clusterDisableTodo'"
+        icon="todos"
+        route-name="ClusterDisableTodo">
+        {{ t('集群下架待办') }}
+        <template #append>
+          <span class="ticket-count">{{ clusterDisableTodoCount + clusterDisableToAssistCount }}</span>
         </template>
-        <span>
-          {{ t('集群下架待办') }}
-        </span>
-        <span class="ticket-count">{{ clusterDisableTodoCount + clusterDisableToAssistCount }}</span>
-      </BkMenuItem>
-      <BkMenuItem
+      </DbMenuItem>
+      <DbMenuItem
         v-if="userProfileStore.isDba"
-        key="RiskMemoTodos"
-        v-db-console="'personalWorkbench.RiskMemoTodos'">
-        <template #icon>
-          <DbIcon type="file" />
+        v-db-console="'personalWorkbench.RiskMemoTodos'"
+        icon="file"
+        route-name="RiskMemoTodos">
+        {{ t('风险备忘录') }}
+        <template #append>
+          <span class="ticket-count">{{ riskMemoTodoCount }}</span>
         </template>
-        <span>
-          {{ t('风险备忘录') }}
-        </span>
-        <span class="ticket-count">{{ riskMemoTodoCount }}</span>
-      </BkMenuItem>
-    </BkMenuGroup>
-    <BkMenuGroup
+      </DbMenuItem>
+    </DbMenuGroup>
+    <DbMenuGroup
       v-db-console="'personalWorkbench'"
+      :fold-name="t('申请')"
       :name="t('我的申请')">
-      <BkMenuItem
-        key="SelfServiceMyTickets"
-        v-db-console="'personalWorkbench.myTickets'">
-        <template #icon>
-          <DbIcon type="ticket" />
-        </template>
-        <span>
-          {{ t('我的申请') }}
-        </span>
-      </BkMenuItem>
-    </BkMenuGroup>
-    <BkMenuGroup
+      <DbMenuItem
+        v-db-console="'personalWorkbench.myTickets'"
+        icon="ticket"
+        route-name="SelfServiceMyTickets">
+        {{ t('我的申请') }}
+      </DbMenuItem>
+    </DbMenuGroup>
+    <DbMenuGroup
       v-db-console="'personalWorkbench'"
+      :fold-name="t('已办')"
       :name="t('我的已办')">
-      <BkMenuItem
-        key="ticketSelfDone"
-        v-db-console="'personalWorkbench.myTickets'">
-        <template #icon>
-          <DbIcon type="todos" />
-        </template>
-        <span>
-          {{ t('已办单据') }}
-        </span>
-      </BkMenuItem>
-    </BkMenuGroup>
-    <BkMenuGroup
+      <DbMenuItem
+        v-db-console="'personalWorkbench.myTickets'"
+        icon="todos"
+        route-name="ticketSelfDone">
+        {{ t('已办单据') }}
+      </DbMenuItem>
+    </DbMenuGroup>
+    <DbMenuGroup
       v-db-console="'personalWorkbench'"
       :name="t('订阅')">
-      <BkMenuItem
-        key="myAlarmSubscription"
-        v-db-console="'personalWorkbench.myAlarmSubscription'">
-        <template #icon>
-          <DbIcon type="note" />
-        </template>
-        <span
-          v-overflow-tips.right
-          class="text-overflow">
-          {{ t('我的告警订阅') }}
-        </span>
-      </BkMenuItem>
-    </BkMenuGroup>
-    <BkMenuGroup
+      <DbMenuItem
+        v-db-console="'personalWorkbench.myAlarmSubscription'"
+        icon="note"
+        route-name="myAlarmSubscription">
+        {{ t('我的告警订阅') }}
+      </DbMenuItem>
+    </DbMenuGroup>
+    <DbMenuGroup
       v-db-console="'personalWorkbench'"
+      :fold-name="t('部署')"
       :name="t('数据库部署')">
-      <BkMenuItem
-        key="serviceApply"
-        v-db-console="'personalWorkbench.serviceApply'">
-        <template #icon>
-          <DbIcon type="ticket" />
-        </template>
-        <span
-          v-overflow-tips.right
-          class="text-overflow">
-          {{ t('部署申请') }}
-        </span>
-      </BkMenuItem>
-    </BkMenuGroup>
-  </BkMenu>
+      <DbMenuItem
+        v-db-console="'personalWorkbench.serviceApply'"
+        icon="ticket"
+        route-name="serviceApply">
+        {{ t('部署申请') }}
+      </DbMenuItem>
+    </DbMenuGroup>
+  </DbMenu>
 </template>
 <script setup lang="ts">
-  import { Menu } from 'bkui-vue';
   import { useI18n } from 'vue-i18n';
 
   import {
@@ -156,16 +127,15 @@
   import { useUserProfile } from '@stores';
 
   import { useActiveKey } from './hooks/useActiveKey';
+  import DbMenuGroup from './menu/Group.vue';
+  import DbMenu from './menu/Index.vue';
+  import DbMenuItem from './menu/Item.vue';
 
   const { t } = useI18n();
 
-  const menuRef = ref<InstanceType<typeof Menu>>();
+  const menuRef = ref<InstanceType<typeof DbMenu>>();
 
-  const {
-    key: currentActiveKey,
-    parentKey,
-    routeLocation: handleMenuChange,
-  } = useActiveKey(menuRef as Ref<InstanceType<typeof Menu>>, 'MyTodos');
+  const { key: currentActiveKey, parentKey, routeLocation: handleMenuChange } = useActiveKey(menuRef, 'MyTodos');
 
   const userProfileStore = useUserProfile();
   const { data: ticketCount } = useTicketCount();
@@ -191,25 +161,23 @@
   });
 </script>
 <style lang="less">
-  .bk-menu-item {
-    .ticket-count {
-      display: inline-block;
-      height: 16px;
-      padding: 0 8px;
-      margin-left: 4px;
-      font-size: 12px;
-      line-height: 16px;
-      color: #fff;
-      background: #333a47;
-      border-radius: 8px;
-    }
+  .ticket-count {
+    display: inline-block;
+    height: 16px;
+    padding: 0 8px;
+    margin-left: 4px;
+    font-size: 12px;
+    line-height: 16px;
+    color: #fff;
+    background: #333a47;
+    border-radius: 8px;
+  }
 
-    &.is-active {
-      .ticket-count {
-        color: #3a84ff;
-        background: #e1ecff;
-        transition: all 0.1s;
-      }
+  .db-menu-item.is-active {
+    .ticket-count {
+      color: #3a84ff;
+      background: #e1ecff;
+      transition: all 0.1s;
     }
   }
 </style>

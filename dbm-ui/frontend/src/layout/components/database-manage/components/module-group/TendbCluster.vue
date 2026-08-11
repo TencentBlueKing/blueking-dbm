@@ -5,92 +5,61 @@
     <MenuGroup
       :db-type="DBTypes.TENDBCLUSTER"
       :is-error="isError">
-      <BkSubmenu key="tendb-cluster-manage">
-        <template #icon>
-          <DbIcon type="cluster" />
-        </template>
-        <template #title>
-          <span>{{ t('TendbCluster集群') }}</span>
+      <DbSubmenu
+        id="tendb-cluster-manage"
+        icon="cluster"
+        :title="t('TendbCluster集群')">
+        <template #append>
           <CountTag
             :cluster-type="ClusterTypes.TENDBCLUSTER"
             role="cluster" />
         </template>
-        <BkMenuItem key="SpiderManage">
-          <span
-            v-overflow-tips.right
-            class="text-overflow">
-            {{ t('集群视图') }}
-          </span>
-          <CountTag
-            :cluster-type="ClusterTypes.TENDBCLUSTER"
-            role="cluster" />
-        </BkMenuItem>
-        <BkMenuItem
-          key="tendbClusterInstance"
-          v-db-console="'tendbCluster.instanceManage'">
-          <span
-            v-overflow-tips.right
-            class="text-overflow">
-            {{ t('实例视图') }}
-          </span>
-          <CountTag
-            :cluster-type="ClusterTypes.TENDBCLUSTER"
-            role="instance" />
-        </BkMenuItem>
-      </BkSubmenu>
-      <BkMenuItem
-        key="spiderPartitionManage"
-        v-db-console="'tendbCluster.partitionManage'">
-        <template #icon>
-          <DbIcon type="mobanshili" />
-        </template>
-        <span
-          v-overflow-tips.right
-          class="text-overflow">
-          {{ t('分区管理') }}
-        </span>
-      </BkMenuItem>
-      <BkSubmenu
-        key="spider-permission"
+        <DbMenuItem route-name="SpiderManage">
+          {{ t('集群视图') }}
+          <template #append>
+            <CountTag
+              :cluster-type="ClusterTypes.TENDBCLUSTER"
+              role="cluster" />
+          </template>
+        </DbMenuItem>
+        <DbMenuItem
+          v-db-console="'tendbCluster.instanceManage'"
+          route-name="tendbClusterInstance">
+          {{ t('实例视图') }}
+          <template #append>
+            <CountTag
+              :cluster-type="ClusterTypes.TENDBCLUSTER"
+              role="instance" />
+          </template>
+        </DbMenuItem>
+      </DbSubmenu>
+      <DbMenuItem
+        v-db-console="'tendbCluster.partitionManage'"
+        icon="mobanshili"
+        route-name="spiderPartitionManage">
+        {{ t('分区管理') }}
+      </DbMenuItem>
+      <DbSubmenu
+        id="spider-permission"
         v-db-console="'tendbCluster.permissionManage'"
+        icon="history"
         :title="t('权限管理')">
-        <template #icon>
-          <DbIcon type="history" />
-        </template>
-        <BkMenuItem key="spiderPermission">
-          <span
-            v-overflow-tips.right
-            class="text-overflow">
-            {{ t('授权规则') }}
-          </span>
-        </BkMenuItem>
-        <BkMenuItem key="SpiderPermissionRetrieve">
-          <span
-            v-overflow-tips.right
-            class="text-overflow">
-            {{ t('权限查询') }}
-          </span>
-        </BkMenuItem>
-        <BkMenuItem key="spiderWhitelist">
-          <span
-            v-overflow-tips.right
-            class="text-overflow">
-            {{ t('授权白名单') }}
-          </span>
-        </BkMenuItem>
-      </BkSubmenu>
-      <BkMenuItem
-        key="TendbclusterToolbox"
-        v-db-console="'tendbCluster.toolbox'">
-        <template #icon>
-          <DbIcon type="tools" />
-        </template>
-        <span
-          v-overflow-tips.right
-          class="text-overflow">
-          {{ t('工具箱') }}
-        </span>
-      </BkMenuItem>
+        <DbMenuItem route-name="spiderPermission">
+          {{ t('授权规则') }}
+        </DbMenuItem>
+        <DbMenuItem route-name="SpiderPermissionRetrieve">
+          {{ t('权限查询') }}
+        </DbMenuItem>
+        <DbMenuItem route-name="spiderWhitelist">
+          {{ t('授权白名单') }}
+        </DbMenuItem>
+      </DbSubmenu>
+      <DbMenuItem
+        v-db-console="'tendbCluster.toolbox'"
+        icon="tools"
+        route-name="TendbclusterToolbox">
+        {{ t('工具箱') }}
+      </DbMenuItem>
     </MenuGroup>
   </FunController>
 </template>
@@ -98,6 +67,9 @@
   import { useI18n } from 'vue-i18n';
 
   import { ClusterTypes, DBTypes } from '@common/const';
+
+  import DbMenuItem from '../../../menu/Item.vue';
+  import DbSubmenu from '../../../menu/Submenu.vue';
 
   import CountTag from './components/CountTag.vue';
   import MenuGroup from './components/MenuGroup.vue';

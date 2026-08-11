@@ -1,136 +1,106 @@
 <template>
-  <BkMenu
+  <DbMenu
     ref="menuRef"
     :active-key="currentActiveKey"
     :opened-keys="[parentKey]"
     @click="handleMenuChange">
-    <BkMenuGroup :name="t('单据中心')">
-      <BkMenuItem key="ticketPlatformManage">
-        <template #icon>
-          <DbIcon type="ticket" />
-        </template>
+    <DbMenuGroup
+      :fold-name="t('单据')"
+      :name="t('单据中心')">
+      <DbMenuItem
+        icon="ticket"
+        route-name="ticketPlatformManage">
         {{ t('单据') }}
-      </BkMenuItem>
-      <BkMenuItem key="platformTaskManage">
-        <template #icon>
-          <DbIcon type="history" />
-        </template>
+      </DbMenuItem>
+      <DbMenuItem
+        icon="history"
+        route-name="platformTaskManage">
         {{ t('任务') }}
-      </BkMenuItem>
-    </BkMenuGroup>
+      </DbMenuItem>
+    </DbMenuGroup>
 
-    <BkMenuGroup
+    <DbMenuGroup
       v-db-console="'platformManage.dbaManage'"
+      :fold-name="t('工具')"
       :name="t('DBA 工具箱')">
-      <BkMenuItem
+      <DbMenuItem
         v-if="ENABLE_DBM_AI"
-        key="AgentChat">
-        <template #icon>
-          <DbIcon type="mysql" />
-        </template>
+        icon="mysql"
+        route-name="AgentChat">
         {{ t('DBA 智能助手') }}
-      </BkMenuItem>
-      <BkMenuItem
-        key="DbaManageMysql"
-        v-db-console="'platformManage.dbaManage.mysql'">
-        <template #icon>
-          <DbIcon type="mysql" />
-        </template>
+      </DbMenuItem>
+      <DbMenuItem
+        v-db-console="'platformManage.dbaManage.mysql'"
+        icon="mysql"
+        route-name="DbaManageMysql">
         MySQL
-      </BkMenuItem>
-      <BkMenuItem
-        key="DbaManageTendbCluster"
-        v-db-console="'platformManage.dbaManage.tendbCluster'">
-        <template #icon>
-          <DbIcon type="mysql" />
-        </template>
+      </DbMenuItem>
+      <DbMenuItem
+        v-db-console="'platformManage.dbaManage.tendbCluster'"
+        icon="mysql"
+        route-name="DbaManageTendbCluster">
         Tendb Cluster
-      </BkMenuItem>
-      <BkMenuItem
-        key="DbaManageRedis"
-        v-db-console="'platformManage.dbaManage.redis'">
-        <template #icon>
-          <DbIcon type="redis" />
-        </template>
+      </DbMenuItem>
+      <DbMenuItem
+        v-db-console="'platformManage.dbaManage.redis'"
+        icon="redis"
+        route-name="DbaManageRedis">
         Redis
-      </BkMenuItem>
-      <BkMenuItem key="DbaManageSQLServerWebQuery">
-        <template #icon>
-          <DbIcon type="sqlserver" />
-        </template>
+      </DbMenuItem>
+      <DbMenuItem
+        icon="sqlserver"
+        route-name="DbaManageSQLServerWebQuery">
         SQLServer
-      </BkMenuItem>
-    </BkMenuGroup>
-    <BkMenuGroup :name="t('异常中心')">
-      <BkMenuItem key="platformAlarmEvents">
-        <template #icon>
-          <DbIcon type="db-config" />
-        </template>
-        <span
-          v-overflow-tips.right
-          class="text-overflow">
-          {{ t('告警事件') }}
-        </span>
-      </BkMenuItem>
-      <BkMenuItem key="inspectionReportGlobal">
-        <template #icon>
-          <DbIcon type="db-config" />
-        </template>
-        <span
-          v-overflow-tips.right
-          class="text-overflow">
-          {{ t('巡检报告') }}
-        </span>
-      </BkMenuItem>
-      <BkMenuItem key="ExerciseReportGlobal">
-        <template #icon>
-          <DbIcon type="yanlianbaogao" />
-        </template>
-        <span
-          v-overflow-tips.right
-          class="text-overflow">
-          {{ t('演练报告') }}
-        </span>
-      </BkMenuItem>
-      <BkMenuItem key="RiskMemoGlobal">
-        <template #icon>
-          <DbIcon type="file" />
-        </template>
+      </DbMenuItem>
+    </DbMenuGroup>
+    <DbMenuGroup
+      :fold-name="t('异常')"
+      :name="t('异常中心')">
+      <DbMenuItem
+        icon="db-config"
+        route-name="platformAlarmEvents">
+        {{ t('告警事件') }}
+      </DbMenuItem>
+      <DbMenuItem
+        icon="db-config"
+        route-name="inspectionReportGlobal">
+        {{ t('巡检报告') }}
+      </DbMenuItem>
+      <DbMenuItem
+        icon="yanlianbaogao"
+        route-name="ExerciseReportGlobal">
+        {{ t('演练报告') }}
+      </DbMenuItem>
+      <DbMenuItem
+        icon="file"
+        route-name="RiskMemoGlobal">
         {{ t('风险备忘录') }}
-      </BkMenuItem>
-    </BkMenuGroup>
-    <!-- <BkMenuGroup
-      v-db-console="'platformManage.healthReport'"
-      :name="t('巡检')">
-    </BkMenuGroup> -->
-    <!-- <BkMenuGroup
-      v-db-console="'platformManage.AlarmEvents'"
-      :name="t('告警')">
-    </BkMenuGroup> -->
-    <BkMenuGroup
+      </DbMenuItem>
+    </DbMenuGroup>
+    <DbMenuGroup
       v-if="dashboardList && dashboardList.length > 0"
+      :fold-name="t('运营')"
       :name="t('运营数据')">
-      <BkMenuItem
+      <DbMenuItem
         v-for="dashboardItem in dashboardList"
-        :key="`DashboradView#${dashboardItem.uid}`">
-        <template #icon>
-          <DbIcon type="ticket" />
-        </template>
+        :key="dashboardItem.uid"
+        icon="ticket"
+        :route-name="`DashboradView#${dashboardItem.uid}`">
         {{ dashboardItem.name }}
-      </BkMenuItem>
-    </BkMenuGroup>
-    <BkMenuGroup :name="t('平台观测')">
-      <BkMenuItem key="ServiceStatus">
-        <template #icon>
-          <DbIcon type="ticket" />
-        </template>
+      </DbMenuItem>
+    </DbMenuGroup>
+    <DbMenuGroup
+      :fold-name="t('观测')"
+      :name="t('平台观测')">
+      <DbMenuItem
+        icon="ticket"
+        route-name="ServiceStatus">
         {{ t('服务状态') }}
-      </BkMenuItem>
-    </BkMenuGroup>
-  </BkMenu>
+      </DbMenuItem>
+    </DbMenuGroup>
+  </DbMenu>
 </template>
 <script setup lang="ts" async>
-  import { Menu } from 'bkui-vue';
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
   import { useRoute, useRouter } from 'vue-router';
@@ -140,6 +110,9 @@
   import { useFunController, useSystemEnviron } from '@stores';
 
   import { useActiveKey } from './hooks/useActiveKey';
+  import DbMenuGroup from './menu/Group.vue';
+  import DbMenu from './menu/Index.vue';
+  import DbMenuItem from './menu/Item.vue';
 
   const { t } = useI18n();
   const route = useRoute();
@@ -149,7 +122,7 @@
   const systemEnvironStore = useSystemEnviron();
   const { ENABLE_DBM_AI } = systemEnvironStore.urls;
 
-  const menuRef = ref<InstanceType<typeof Menu>>();
+  const menuRef = ref<InstanceType<typeof DbMenu>>();
 
   const { data: dashboardList, runAsync: fetchAppShareList } = useRequest(getAppShareList, {
     manual: true,
@@ -159,22 +132,18 @@
     await fetchAppShareList();
   }
 
-  const { key: currentActiveKey, parentKey } = useActiveKey(
-    menuRef as Ref<InstanceType<typeof Menu>>,
-    'ticketPlatformManage',
-    {
-      checkMethod: (routerName: string) => {
-        if (routerName === 'DashboradView') {
-          return `DashboradView#${route.params.versionId}`;
-        }
-        return routerName;
-      },
+  const { key: currentActiveKey, parentKey } = useActiveKey(menuRef, 'ticketPlatformManage', {
+    checkMethod: (routerName: string) => {
+      if (routerName === 'DashboradView') {
+        return `DashboradView#${route.params.versionId}`;
+      }
+      return routerName;
     },
-  );
+  });
 
-  const handleMenuChange = (params: { key: string }) => {
-    if (params.key.startsWith('DashboradView')) {
-      const [, versionId] = params.key.split('#');
+  const handleMenuChange = (routeName: string) => {
+    if (routeName.startsWith('DashboradView')) {
+      const [, versionId] = routeName.split('#');
       router.push({
         name: 'DashboradView',
         params: {
@@ -184,7 +153,7 @@
       return;
     }
     router.push({
-      name: params.key,
+      name: routeName,
     });
   };
 </script>

@@ -5,19 +5,16 @@
     <MenuGroup
       :db-type="DBTypes.INFLUXDB"
       :is-error="isError">
-      <BkMenuItem key="InfluxDBManage">
-        <template #icon>
-          <DbIcon type="influxdb" />
+      <DbMenuItem
+        icon="influxdb"
+        route-name="InfluxDBManage">
+        {{ t('实例管理') }}
+        <template #append>
+          <CountTag
+            :cluster-type="ClusterTypes.INFLUXDB"
+            role="instance" />
         </template>
-        <span
-          v-overflow-tips.right
-          class="text-overflow">
-          {{ t('实例管理') }}
-        </span>
-        <CountTag
-          :cluster-type="ClusterTypes.INFLUXDB"
-          role="instance" />
-      </BkMenuItem>
+      </DbMenuItem>
     </MenuGroup>
   </FunController>
 </template>
@@ -25,6 +22,8 @@
   import { useI18n } from 'vue-i18n';
 
   import { ClusterTypes, DBTypes } from '@common/const';
+
+  import DbMenuItem from '../../../menu/Item.vue';
 
   import CountTag from './components/CountTag.vue';
   import MenuGroup from './components/MenuGroup.vue';
