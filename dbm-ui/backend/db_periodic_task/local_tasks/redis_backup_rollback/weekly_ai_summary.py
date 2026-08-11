@@ -30,7 +30,11 @@ from backend.db_report.models import RedisRollbackExerciseReport as Report
 from backend.db_report.models.ai_analysis_report import AiAnalysisReport, ResultFormat
 from backend.db_services.redis.autofix.enums import MsgPriority
 from backend.db_services.redis.autofix.message import load_chat_ids_by_priority
-from backend.db_services.redis.rollback.failure_analysis import AI_ANALYSIS_SENTINEL, is_exercise_ai_analysis_enabled
+from backend.db_services.redis.rollback.failure_analysis import (
+    AI_ANALYSIS_END_SENTINEL,
+    AI_ANALYSIS_SENTINEL,
+    is_exercise_ai_analysis_enabled,
+)
 from backend.dbm_aiagent.agent.constants import DBMAgentCode
 
 logger = logging.getLogger("root")
@@ -42,6 +46,9 @@ MAX_WECOM_CONTENT_CHARS = 1024
 CATEGORY_PATTERN = re.compile(r"原因分类\s*[:：]\s*([^\n\r]+)")
 DIAGNOSIS_PATTERN = re.compile(r"诊断\s*[:：]\s*([^\n\r]+)")
 _MAX_CASE_DIAGNOSIS_CHARS = 120
+# Legacy AI blocks (no end sentinel) are short by contract (≤5 content lines);
+# an 8-line window keeps cleanup logs that follow from polluting the parse.
+_LEGACY_AI_BLOCK_MAX_LINES = 8
 
 
 def get_week_window(now: Optional[datetime] = None) -> Tuple[datetime, datetime]:
@@ -69,11 +76,42 @@ def get_previous_week_window(start: datetime, end: datetime) -> Tuple[datetime, 
     return start - delta, start
 
 
-def _parse_failure_category(task_message: str) -> str:
+def _extract_last_ai_block(task_message: str) -> str:
+    """Return the body of the last ``[AI失败分析]`` block, excluding sentinels.
+
+    Prefer an explicit ``[/AI失败分析]`` end marker. For legacy reports without
+    one, take at most ``_LEGACY_AI_BLOCK_MAX_LINES`` lines after the opening
+    sentinel so later cleanup logs cannot pollute category/diagnosis parsing.
+    """
     if not task_message or AI_ANALYSIS_SENTINEL not in task_message:
+        return ""
+
+    start = task_message.rfind(AI_ANALYSIS_SENTINEL)
+    if start < 0:
+        return ""
+
+    after_open = task_message[start + len(AI_ANALYSIS_SENTINEL) :]
+    # Drop the optional timestamp on the sentinel line (" 2026-08-10 14:43:43\n...")
+    if after_open.startswith(" ") or after_open.startswith("\t"):
+        nl = after_open.find("\n")
+        after_open = after_open[nl + 1 :] if nl >= 0 else ""
+    elif after_open.startswith("\n"):
+        after_open = after_open[1:]
+
+    end = after_open.find(AI_ANALYSIS_END_SENTINEL)
+    if end >= 0:
+        return after_open[:end].strip()
+
+    # Legacy: no end sentinel — take a short fixed window.
+    lines = after_open.splitlines()
+    return "\n".join(lines[:_LEGACY_AI_BLOCK_MAX_LINES]).strip()
+
+
+def _parse_failure_category(task_message: str) -> str:
+    block = _extract_last_ai_block(task_message)
+    if not block:
         return _("未分析")
-    # Prefer the last analysis block in case of accidental duplicates.
-    matches = CATEGORY_PATTERN.findall(task_message)
+    matches = CATEGORY_PATTERN.findall(block)
     if not matches:
         return _("未分类")
     return matches[-1].strip() or _("未分类")
@@ -81,9 +119,10 @@ def _parse_failure_category(task_message: str) -> str:
 
 def _parse_failure_diagnosis(task_message: str) -> str:
     """Extract the last AI ``诊断`` line; empty when analysis is missing."""
-    if not task_message or AI_ANALYSIS_SENTINEL not in task_message:
+    block = _extract_last_ai_block(task_message)
+    if not block:
         return ""
-    matches = DIAGNOSIS_PATTERN.findall(task_message)
+    matches = DIAGNOSIS_PATTERN.findall(block)
     if not matches:
         return ""
     return matches[-1].strip()

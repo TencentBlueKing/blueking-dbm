@@ -114,6 +114,41 @@ class TestParseAndCut:
         weekly = _weekly()
         assert weekly._parse_failure_diagnosis("plain failure log") == ""
 
+    def test_parse_ignores_cleanup_logs_after_closed_ai_block(self):
+        weekly = _weekly()
+        msg = (
+            "timeline\n"
+            "[AI失败分析] 2026-08-10 14:43:43\n"
+            "原因分类: 执行器错误\n"
+            "诊断: 模板变量未被渲染\n"
+            "建议: 修复 databases 渲染\n"
+            "AI耗时: 25.5s\n"
+            "[/AI失败分析]\n"
+            "[2026-08-10 14:48:38] [INFO]: Step 1/4: Collecting cleanup targets\n"
+            "诊断: should-not-win\n"
+            "原因分类: 其他\n"
+        )
+        assert weekly._parse_failure_category(msg) == "执行器错误"
+        assert weekly._parse_failure_diagnosis(msg) == "模板变量未被渲染"
+
+    def test_parse_legacy_block_without_end_sentinel_caps_window(self):
+        weekly = _weekly()
+        # Legacy: no [/AI失败分析]. Cleanup lines after the 8-line window must not win.
+        noise = "\n".join([f"cleanup line {i}" for i in range(20)])
+        msg = (
+            "timeline\n"
+            "[AI失败分析] 2026-08-10 14:43:43\n"
+            "原因分类: 执行器错误\n"
+            "诊断: real diagnosis\n"
+            "建议: fix it\n"
+            "AI耗时: 1.0s\n"
+            f"{noise}\n"
+            "原因分类: 其他\n"
+            "诊断: fake from cleanup\n"
+        )
+        assert weekly._parse_failure_category(msg) == "执行器错误"
+        assert weekly._parse_failure_diagnosis(msg) == "real diagnosis"
+
     def test_cut_content_splits_long_message(self):
         weekly = _weekly()
         lines = [f"line-{i}-" + ("x" * 80) for i in range(30)]
@@ -435,10 +470,21 @@ class TestFailureAnalysisEnqueueAndIdempotency(TestCase):
 
         report.refresh_from_db()
         assert failure.AI_ANALYSIS_SENTINEL in report.task_message
+        assert failure.AI_ANALYSIS_END_SENTINEL in report.task_message
         assert "构造流程失败" in report.task_message
+        # Block is visually delimited with blank lines around the sentinels.
+        assert f"\n{failure.AI_ANALYSIS_SENTINEL}" in report.task_message or report.task_message.startswith(
+            failure.AI_ANALYSIS_SENTINEL
+        )
+        assert f"{failure.AI_ANALYSIS_END_SENTINEL}\n" in report.task_message or report.task_message.endswith(
+            failure.AI_ANALYSIS_END_SENTINEL
+        )
         cost_match = re.search(r"AI耗时: (\d+\.\d)s", report.task_message)
         assert cost_match, report.task_message
         assert float(cost_match.group(1)) >= 0.0
+        # AI耗时 stays inside the closed block.
+        end_pos = report.task_message.index(failure.AI_ANALYSIS_END_SENTINEL)
+        assert cost_match.start() < end_pos
         first_msg = report.task_message
         assert mock_ask.call_count == 1
         params = mock_ask.call_args.kwargs["command_params"]
@@ -451,6 +497,24 @@ class TestFailureAnalysisEnqueueAndIdempotency(TestCase):
         assert report.task_message == first_msg
         assert report.task_message.count(failure.AI_ANALYSIS_SENTINEL) == 1
         assert mock_ask.call_count == 1
+
+    @patch("backend.dbm_aiagent.agent.handlers.AgentHandler.ask_agent_with_command")
+    def test_analyze_head_tail_truncates_task_message(self, mock_ask):
+        failure = _failure()
+        head = "HEAD-" + ("A" * 100)
+        middle = "MID-" + ("B" * 15000)
+        tail = "TAIL-" + ("C" * 100) + f"\n{failure.FAILED_NODE_LOGS_SENTINEL} root_id=x\n    [ERROR] boom"
+        report = self._create_failed(task_message=head + middle + tail)
+        mock_ask.return_value = "原因分类: 其他\n诊断: x\n建议: y"
+
+        failure.analyze_redis_rollback_exercise_failure.run(report.id)
+
+        params = mock_ask.call_args.kwargs["command_params"]
+        tm = params["task_message"]
+        assert tm.startswith("HEAD-")
+        assert "中间截断" in tm
+        assert "[ERROR] boom" in tm
+        assert len(tm) <= failure._MAX_TASK_MESSAGE_CHARS + 80  # marker slack
 
     @patch("backend.dbm_aiagent.agent.handlers.AgentHandler.ask_agent_with_command")
     def test_analyze_agent_error_appends_failed_sentinel(self, mock_ask):
@@ -504,7 +568,7 @@ class TestGetLastFailedNodeLogs:
         with patch(f"{FAILURE_MODULE}._pick_last_abnormal_flow_node", return_value=(None, "")):
             assert failure.get_last_failed_node_logs("root-x") == ""
 
-    def test_formats_and_truncates_all_logs(self):
+    def test_formats_and_truncates_preferring_error_tail(self):
         failure = _failure()
         last_failed = SimpleNamespace(
             node_id="n1",
@@ -534,11 +598,145 @@ class TestGetLastFailedNodeLogs:
 
         assert "failed_node: 回档节点 (n1)" in text
         assert "status=REVOKED" in text
-        assert "[INFO] start" in text
-        assert "...(truncated)" in text
-        assert len(text) <= 120 + len("\n...(truncated)")
+        # Tight budget keeps the ERROR (tail-truncated) and may drop the INFO head.
+        assert "[ERROR]" in text
+        assert "..." in text
+        assert len(text) <= 120 + 5  # small slack for join
 
-    def test_es_query_uses_capped_size(self):
+    def test_error_window_keeps_context_and_omits_head(self):
+        failure = _failure()
+        lines = [{"levelname": "INFO", "message": f"noise-{i}"} for i in range(20)]
+        lines.append({"levelname": "INFO", "message": "before-err"})
+        lines.append({"levelname": "ERROR", "message": "real-boom"})
+        lines.append({"levelname": "INFO", "message": "after-err"})
+        last_failed = SimpleNamespace(
+            node_id="n1",
+            version_id="v1",
+            status="FAILED",
+            started_at=timezone.now(),
+            updated_at=timezone.now(),
+        )
+        with patch(
+            f"{FAILURE_MODULE}._pick_last_abnormal_flow_node",
+            return_value=(last_failed, "failed_or_revoked"),
+        ), patch("backend.flow.engine.bamboo.engine.BambooEngine") as mock_engine_cls, patch(
+            f"{FAILURE_MODULE}._fetch_node_logs_capped",
+            return_value=lines,
+        ):
+            mock_engine_cls.return_value.get_pipeline_tree.return_value = {
+                "activities": {"n1": {"name": "回档"}},
+            }
+            text = failure.get_last_failed_node_logs("root-x", max_chars=800)
+
+        assert "[ERROR] real-boom" in text
+        assert "before-err" in text
+        assert "after-err" in text
+        assert "省略" in text
+        assert "noise-0" not in text
+
+    def test_no_error_falls_back_to_tail(self):
+        failure = _failure()
+        lines = [{"levelname": "INFO", "message": f"step-{i}"} for i in range(30)]
+        last_failed = SimpleNamespace(
+            node_id="n1",
+            version_id="v1",
+            status="REVOKED",
+            started_at=timezone.now(),
+            updated_at=timezone.now(),
+        )
+        with patch(
+            f"{FAILURE_MODULE}._pick_last_abnormal_flow_node",
+            return_value=(last_failed, "failed_or_revoked"),
+        ), patch("backend.flow.engine.bamboo.engine.BambooEngine") as mock_engine_cls, patch(
+            f"{FAILURE_MODULE}._fetch_node_logs_capped",
+            return_value=lines,
+        ):
+            mock_engine_cls.return_value.get_pipeline_tree.return_value = {
+                "activities": {"n1": {"name": "回档"}},
+            }
+            text = failure.get_last_failed_node_logs("root-x", max_chars=400)
+
+        assert "step-28" in text or "step-29" in text
+        assert "省略" in text
+        assert "step-0" not in text
+
+    def test_folds_consecutive_heartbeat_and_retry_errors(self):
+        failure = _failure()
+        heartbeats = [{"levelname": "INFO", "message": f"[2026-08-10 14:{i:02d}:00]heartbeat"} for i in range(60)]
+        retries = [
+            {
+                "levelname": "ERROR",
+                "message": (
+                    f"##[error][2026-08-10 14:25:{i:02d} error][dbactuator-1.1.1.1]: "
+                    "NewRedisClient failed :redis new conn fail"
+                ),
+            }
+            for i in range(15)
+        ]
+        last_failed = SimpleNamespace(
+            node_id="n1",
+            version_id="v1",
+            status="FAILED",
+            started_at=timezone.now(),
+            updated_at=timezone.now(),
+        )
+        with patch(
+            f"{FAILURE_MODULE}._pick_last_abnormal_flow_node",
+            return_value=(last_failed, "failed_or_revoked"),
+        ), patch("backend.flow.engine.bamboo.engine.BambooEngine") as mock_engine_cls, patch(
+            f"{FAILURE_MODULE}._fetch_node_logs_capped",
+            return_value=heartbeats + retries,
+        ):
+            mock_engine_cls.return_value.get_pipeline_tree.return_value = {
+                "activities": {"n1": {"name": "回档"}},
+            }
+            text = failure.get_last_failed_node_logs("root-x", max_chars=2000)
+
+        assert text.count("heartbeat") == 1
+        assert "连续重复 59 次" in text
+        assert text.count("NewRedisClient failed") == 1
+        assert "连续重复 14 次" in text
+        assert "末次" in text
+
+    def test_non_consecutive_duplicates_not_folded(self):
+        failure = _failure()
+        lines = [
+            {"levelname": "ERROR", "message": "same-err"},
+            {"levelname": "INFO", "message": "middle"},
+            {"levelname": "ERROR", "message": "same-err"},
+        ]
+        assert failure._fold_consecutive_duplicate_lines([failure._format_log_line(x) for x in lines]) == [
+            "[ERROR] same-err",
+            "[INFO] middle",
+            "[ERROR] same-err",
+        ]
+
+    def test_oversized_line_keeps_tail(self):
+        failure = _failure()
+        assert failure._tail_truncate_line("abcdef", 4) == "...f"
+        assert failure._tail_truncate_line("abcdef", 0) == ""
+        truncated = failure._tail_truncate_line("prefix-" + ("x" * 100) + "-EXCEPTION", 30)
+        assert truncated.startswith("...")
+        assert truncated.endswith("EXCEPTION")
+        leveled = failure._tail_truncate_line("[ERROR] " + ("x" * 100) + "-boom", 25)
+        assert leveled.startswith("[ERROR]")
+        assert "boom" in leveled
+
+    def test_tight_budget_keeps_error_over_trailing_context(self):
+        """Trailing INFO context of the error window must not starve the error line."""
+        failure = _failure()
+        lines = [
+            "[ERROR] " + ("x" * 100) + "-boom",
+            "[INFO] ctx-after-1",
+            "[INFO] ctx-after-2",
+        ]
+        selected = failure._select_log_lines_for_budget(lines, 40)
+        text = "\n".join(selected)
+        assert "[ERROR]" in text
+        assert "boom" in text
+        assert len(text) <= 40
+
+    def test_es_query_uses_capped_size_and_desc_sort(self):
         failure = _failure()
         with patch(f"{FAILURE_MODULE}.BKLogApi", create=True), patch(
             "backend.components.BKLogApi.esquery_search"
@@ -551,7 +749,17 @@ class TestGetLastFailedNodeLogs:
                 end_time="2026-01-02 00:00:00",
                 size=123,
             )
-        assert mock_search.call_args.args[0]["size"] == 123
+        payload = mock_search.call_args.args[0]
+        assert payload["size"] == 123
+        assert payload["sort_list"] == failure._BKLOG_SORT_DESC
+
+    def test_head_tail_truncate_helper(self):
+        failure = _failure()
+        text = "H" * 100 + "M" * 500 + "T" * 100
+        out = failure._head_tail_truncate(text, max_chars=250, head_chars=80)
+        assert out.startswith("H" * 80)
+        assert "中间截断" in out
+        assert out.endswith("T" * 100) or "T" * 50 in out
 
 
 # ---------------------------------------------------------------------------
