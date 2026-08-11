@@ -33,7 +33,8 @@
               bordered
               class="notice-table"
               :columns="changeColumns"
-              :data="changeDataList">
+              :data="changeDataList"
+              row-key="status">
             </PrimaryTable>
           </DbFormItem>
           <DbFormItem>
@@ -45,7 +46,8 @@
               bordered
               class="notice-table"
               :columns="excuteColumns"
-              :data="excuteDataList">
+              :data="excuteDataList"
+              row-key="status">
             </PrimaryTable>
           </DbFormItem>
         </DbForm>
