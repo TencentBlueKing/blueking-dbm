@@ -72,6 +72,7 @@ LATENCY_DISTRIBUTION_BUCKETS = [
 TREND_UNIT_BY_METRIC_KEY = {
     # Redis backend metrics
     "redis_cpu_usage": "%/min",
+    "redis_cpu_usage_instance": "core/min",
     "redis_memory_usage": "%/min",
     "redis_connections": "connections/min",
     "redis_qps": "qps/min",
@@ -154,6 +155,33 @@ METRIC_REGISTRY = {
         },
         "supported_group_by": [MetricsGroupBy.CLUSTER_DOMAIN, MetricsGroupBy.IP],
         "required_dimensions": ["ip"],  # Inner query needs ip dimension for proper aggregation
+    },
+    # Instance-level CPU: process-level (Redis exporter) so it can drill down to ip:port.
+    # Value semantics: "CPU cores consumed" = irate(user_seconds) + irate(sys_seconds).
+    # 1.0 == one full core busy. Sum across the group_by so cluster/ip aggregates reflect
+    # total cores burned by all master/slave processes in that scope.
+    "redis_cpu_usage_instance": {
+        "promql_template": (
+            "sum by ({group_by}) ("
+            "irate("
+            "bkmonitor:exporter_dbm_redis_exporter:redis_cpu_user_seconds_total{{"
+            "{filters}"
+            "}}[{time_window}s]"
+            ")"
+            "+"
+            "irate("
+            "bkmonitor:exporter_dbm_redis_exporter:redis_cpu_sys_seconds_total{{"
+            "{filters}"
+            "}}[{time_window}s]"
+            ")"
+            ")"
+        ),
+        "aggregation": {
+            "overall": AggFunction.SUM,
+            "stats": [AggFunction.MIN, AggFunction.MAX, AggFunction.AVG, AggFunction.STDDEV],
+        },
+        "supported_group_by": [MetricsGroupBy.CLUSTER_DOMAIN, MetricsGroupBy.IP, MetricsGroupBy.INSTANCE],
+        "required_dimensions": ["ip", "instance_port"],
     },
     "redis_memory_usage": {
         "promql_template": (

@@ -280,3 +280,58 @@ class RedisServerlogClusterStaticSerializer(serializers.Serializer):
     by_instance = serializers.DictField(
         child=RedisServerlogInstanceStatsSerializer(), help_text=_("按实例维度统计（实例地址: 统计信息）")
     )
+
+
+# ---- 热key日志序列化器 ----
+
+
+class RedisHotkeyQueryInputSerializer(serializers.Serializer):
+    """Redis 热key日志查询输入序列化器"""
+
+    start_time = serializers.DateTimeField(help_text=_("开始时间"))
+    end_time = serializers.DateTimeField(help_text=_("结束时间"))
+    cluster_domain = serializers.CharField(help_text=_("集群域名"))
+    ip = serializers.CharField(help_text=_("主机IP，不传则查询整个集群的统计数据"), required=False, allow_null=True)
+    port = serializers.IntegerField(help_text=_("实例端口，配合IP使用，不传则查询整台机器"), required=False, allow_null=True)
+
+
+class RedisHotkeyEntrySerializer(serializers.Serializer):
+    """单条热key日志条目"""
+
+    addr = serializers.CharField(help_text=_("实例地址（ip:port）"))
+    key_sample = serializers.CharField(help_text=_("热key示例"))
+    key_cnt = serializers.IntegerField(help_text=_("采样命中的key数量"))
+    key_ops = serializers.IntegerField(help_text=_("key访问频次（次数越大越热）"))
+    key_ratio = serializers.FloatField(help_text=_("该key在总请求中的占比"))
+    timestamp = serializers.CharField(help_text=_("记录时间"))
+    domain = serializers.CharField(help_text=_("集群域名"))
+
+
+class RedisHotkeyResponseSerializer(serializers.Serializer):
+    """热key日志列表响应序列化器"""
+
+    total_count = serializers.IntegerField(help_text=_("热key日志总数"))
+    hotkey_entries = RedisHotkeyEntrySerializer(many=True, help_text=_("热key日志列表（按key_ops降序）"))
+
+
+class RedisHotkeyInstanceStatsSerializer(serializers.Serializer):
+    """单实例热key统计信息"""
+
+    total_count = serializers.IntegerField(help_text=_("热key总条数"))
+    total_ops = serializers.IntegerField(help_text=_("热key累计访问次数"))
+    top_keys = RedisHotkeyEntrySerializer(many=True, help_text=_("Top10热key列表（按key_ops降序）"))
+
+
+class RedisHotkeySummarySerializer(serializers.Serializer):
+    """热key全局统计摘要"""
+
+    total_count = serializers.IntegerField(help_text=_("热key总条数"))
+    instance_count = serializers.IntegerField(help_text=_("涉及实例数量"))
+    total_ops = serializers.IntegerField(help_text=_("热key累计访问次数"))
+
+
+class RedisHotkeyClusterStaticSerializer(serializers.Serializer):
+    """Redis 热key分析结果（集群维度完整输出）"""
+
+    summary = RedisHotkeySummarySerializer(help_text=_("全局统计摘要"))
+    by_instance = serializers.DictField(child=RedisHotkeyInstanceStatsSerializer(), help_text=_("按实例维度统计（实例地址: 统计信息）"))
