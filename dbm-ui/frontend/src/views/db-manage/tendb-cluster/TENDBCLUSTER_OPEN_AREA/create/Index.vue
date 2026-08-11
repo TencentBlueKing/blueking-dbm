@@ -60,7 +60,7 @@
         :loading="isSubmitting"
         theme="primary"
         @click="handleSubmit">
-        {{ t('提交') }}
+        {{ t('预览') }}
       </BkButton>
       <BkButton
         class="ml-8 w-88"

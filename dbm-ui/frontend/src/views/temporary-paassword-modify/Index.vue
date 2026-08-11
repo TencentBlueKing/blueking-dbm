@@ -54,7 +54,8 @@
           disabled: !Boolean(formData.password) || passwordIsPass,
         }"
         class="w-88"
-        :disabled="!passwordIsPass"
+        :disabled="!passwordIsPass || !instanceDbType"
+        :loading="permissionChecking"
         theme="primary"
         @click="submitValidator">
         {{ t('提交') }}
@@ -76,11 +77,14 @@
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
+  import { getApplyDataLink } from '@services/source/iam';
   import { modifyAdminPassword } from '@services/source/permission';
 
   import { ClusterTypes, DBTypes } from '@common/const';
 
   import PasswordInput from '@views/db-manage/common/password-input/Index.vue';
+
+  import { permissionDialog } from '@utils';
 
   import InstanceList, { type IRowData } from './components/form-item/InstanceList.vue';
   import ValidDuration from './components/form-item/ValidDuration.vue';
@@ -98,10 +102,23 @@
 
   const formRef = ref();
   const rootId = ref('');
-  const instanceDbType = ref<DBTypes>();
+  const instanceDbType = ref<DBTypes>(DBTypes.MYSQL);
   const passwordIsPass = ref(false);
   const submitted = ref(false);
+  const permissionChecking = ref(false);
   const formData = reactive(createDefaultData());
+
+  /**
+   * 修改临时密码权限 action（按 DB 类型区分）
+   * - mysql_manage
+   * - tendbcluster_manage
+   * - sqlserver_manage
+   */
+  const adminPwdModifyActionMap: Record<string, string> = {
+    [DBTypes.MYSQL]: 'mysql_manage',
+    [DBTypes.SQLSERVER]: 'sqlserver_manage',
+    [DBTypes.TENDBCLUSTER]: 'tendbcluster_manage',
+  };
 
   watch(
     formData,
@@ -137,6 +154,24 @@
 
   const submitValidator = async () => {
     await formRef.value.validate();
+    // 集群级权限校验：按所选实例所属集群获取申请链接，无权限时弹框申请
+    permissionChecking.value = true;
+    try {
+      const clusterIds = [...new Set(formData.instanceList.map((instance) => instance.cluster_id))];
+      const applyData = await getApplyDataLink({
+        action_ids: [adminPwdModifyActionMap[instanceDbType.value]],
+        resources: clusterIds.map((id) => ({
+          id,
+          type: instanceDbType.value,
+        })),
+      });
+      if (!applyData.hasPermission) {
+        permissionDialog(applyData);
+        return;
+      }
+    } finally {
+      permissionChecking.value = false;
+    }
     handleSubmit(formData.instanceList);
   };
 

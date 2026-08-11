@@ -65,7 +65,6 @@
               <AuthButton
                 action-id="mysql_priv_manage"
                 :permission="row.permission.mysql_priv_manage"
-                :resource="row.account.account_id"
                 size="small"
                 text
                 theme="primary"

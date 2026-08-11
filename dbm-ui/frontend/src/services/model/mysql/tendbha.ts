@@ -81,6 +81,7 @@ export default class Tendbha extends ClusterBase {
   permission: {
     access_entry_edit: boolean;
     mysql_add_clb: boolean;
+    mysql_authorize?: boolean;
     mysql_clb_bind_domain: boolean;
     mysql_destroy: boolean;
     mysql_dump_data: boolean;

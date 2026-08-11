@@ -15,10 +15,7 @@
   <SmartAction>
     <DbDialog
       v-model:is-show="isShow"
-      :cancel-text="t('关闭')"
       :confirm-button-disable-info="{ disabled: isExistedErrorMsg, tooltips: { content: '', disabled: true } }"
-      :confirm-handler="handleSubmit"
-      :confirm-text="t('提交')"
       :height="760"
       :title="t('请确认以下开区内容：')"
       :width="1536">
@@ -58,6 +55,20 @@
           </template>
         </BkTableColumn>
       </BkTable>
+      <template #footer>
+        <AuthButton
+          action-id="mysql_open_area"
+          :resource="props.sourceClusterId"
+          theme="primary"
+          @click="handleSubmit">
+          {{ t('提交') }}
+        </AuthButton>
+        <BkButton
+          class="ml-8"
+          @click="isShow = false">
+          {{ t('关闭') }}
+        </BkButton>
+      </template>
     </DbDialog>
   </SmartAction>
 </template>
