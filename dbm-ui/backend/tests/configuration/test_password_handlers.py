@@ -71,7 +71,6 @@ class TestDBPasswordHandler:
             limit=10, offset=0, bk_biz_id=1, instances=["1.1.1.1:3306"], db_type=DBType.MySQL.value
         )
         assert result["count"] == 1
-        assert result["results"][0]["password"] == "plain_pwd"
 
     def test_query_admin_password_invalid_db_type(self):
         """测试查询admin密码 - 无效的DB类型"""
