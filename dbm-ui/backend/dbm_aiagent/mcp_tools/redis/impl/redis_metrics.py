@@ -20,10 +20,9 @@ from backend.dbm_aiagent.mcp_tools.redis.tools.redis_metrics_svc import RedisMet
 from backend.dbm_aiagent.mcp_tools.redis.utils import calculate_time_range_window
 
 _PROXY_ONLY_METRICS = {MetricType.LATENCY_DISTRIBUTION}
-# CPU_USAGE_INSTANCE is currently only wired up for Redis backend (via Redis exporter's
-# user/sys CPU seconds counters). Predixy/Twemproxy exporters do not expose comparable
-# process-level CPU counters at the moment, so treat it as backend-only.
-_BACKEND_ONLY_METRICS = {MetricType.CAPACITY, MetricType.CPU_USAGE_INSTANCE}
+# CAPACITY is backend-only. instance_cpu_usage works for Redis backend and Twemproxy proxy;
+# Predixy proxy has no process CPU metric and is rejected at metric-key resolve time.
+_BACKEND_ONLY_METRICS = {MetricType.CAPACITY}
 
 
 @dataclass

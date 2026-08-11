@@ -84,6 +84,24 @@ def resolve_metric_key(
     return metric_key
 
 
+def explain_missing_metric_key(
+    cluster_type: str,
+    metric_type: MetricType,
+    instance_role: InstanceRole,
+) -> str:
+    """Human-readable reason when resolve_metric_key returns None."""
+    if (
+        metric_type == MetricType.INSTANCE_CPU_USAGE
+        and instance_role == InstanceRole.PROXY
+        and is_predixy_proxy_type(cluster_type)
+    ):
+        return (
+            "instance_cpu_usage is not available for Predixy proxy "
+            "(no process-level CPU metric); use cpu_usage for host multi-core CPU instead"
+        )
+    return "No metric mapping found"
+
+
 def calculate_time_range_window(
     max_len_datapoints: int,
     start_time: Optional[datetime] = None,

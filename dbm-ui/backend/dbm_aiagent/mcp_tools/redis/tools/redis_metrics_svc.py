@@ -34,7 +34,7 @@ from backend.dbm_aiagent.mcp_tools.redis.enums import MetricsGroupBy
 from backend.dbm_aiagent.mcp_tools.redis.enums import MetricsInstanceRole as InstanceRole
 from backend.dbm_aiagent.mcp_tools.redis.enums import MetricType
 from backend.dbm_aiagent.mcp_tools.redis.models import InstanceFilter, MetricSeries, MetricsQueryParams
-from backend.dbm_aiagent.mcp_tools.redis.utils import resolve_metric_key
+from backend.dbm_aiagent.mcp_tools.redis.utils import explain_missing_metric_key, resolve_metric_key
 
 logger = logging.getLogger("root")
 
@@ -975,11 +975,12 @@ class RedisMetricsQueryService:
         # Resolve metric key from registry
         metric_key = resolve_metric_key(cluster.cluster_type, metric_type, instance_role)
         if not metric_key:
+            error_msg = explain_missing_metric_key(cluster.cluster_type, metric_type, instance_role)
             logger.error(
-                f"No metric mapping found for cluster_type={cluster.cluster_type}, "
-                f"metric_type={metric_type.value}, instance_role={instance_role.value}"
+                f"{error_msg} (cluster_type={cluster.cluster_type}, "
+                f"metric_type={metric_type.value}, instance_role={instance_role.value})"
             )
-            return None, {"error": "No metric mapping found", "metric_type": metric_type.value}
+            return None, {"error": error_msg, "metric_type": metric_type.value}
 
         metric_config = METRIC_REGISTRY.get(metric_key)
         if not metric_config:
