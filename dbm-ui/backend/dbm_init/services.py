@@ -353,6 +353,7 @@ class Services:
         """初始化自定义上报通道"""
 
         Services.init_custom_metric_and_event()
+        Services.auto_init_bkm_dbm_token()
 
         return True
 
@@ -557,3 +558,20 @@ class Services:
                     logger.info("dbm创建job用户成功 : {}".format(job_user.get("account")))
             except Exception as e:
                 logger.info("dbm创建job用户: {} 异常: {}".format(account, str(e)))
+
+    @classmethod
+    def auto_init_bkm_dbm_token(cls):
+        """将环境变量 bkmDbmToken 初始化/更新到 SystemSettings(BKM_DBM_TOKEN)"""
+        token = os.environ.get("BKM_DBM_TOKEN")
+        if not token:
+            logger.warning("环境变量 BKM_DBM_TOKEN 未设置或为空，跳过初始化 BKM_DBM_TOKEN")
+            return
+
+        try:
+            key = SystemSettingsEnum.BKM_DBM_TOKEN.value
+            existed = SystemSettings.objects.filter(key=key).exists()
+            SystemSettings.insert_setting_value(key=key, value=token, value_type="str", user="admin")
+            action = "更新" if existed else "新增"
+            logger.info("dbm{} BKM_DBM_TOKEN 成功".format(action))
+        except Exception as e:
+            logger.error("dbm 初始化 BKM_DBM_TOKEN 异常: %s" % str(e))
