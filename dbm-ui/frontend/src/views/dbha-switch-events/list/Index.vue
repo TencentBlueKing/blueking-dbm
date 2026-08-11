@@ -24,14 +24,19 @@
         @change="fetchTableData" />
     </div>
     <BkLoading :loading="isLoading">
-      <DbOriginalTable
+      <PrimaryTable
+        :bk-ui-settings="settings"
         :columns="columns"
         :data="tableData"
-        :is-anomalies="isAnomalies"
         :max-height="tableMaxHeight"
-        :settings="settings"
-        @refresh="fetchTableData"
-        @setting-change="updateTableSettings" />
+        @bk-ui-settings-change="updateTableSettings">
+        <template #empty>
+          <EmptyStatus
+            :is-anomalies="isAnomalies"
+            :is-searching="false"
+            @refresh="fetchTableData" />
+        </template>
+      </PrimaryTable>
     </BkLoading>
   </div>
   <BkSideslider
@@ -73,6 +78,7 @@
 
 <script setup lang="tsx">
   import dayjs from 'dayjs';
+  import type { PrimaryTableCol } from 'tdesign-vue-next';
   import { useI18n } from 'vue-i18n';
 
   import { getEventSwitchList } from '@services/source/dbha';
@@ -82,6 +88,7 @@
   import { UserPersonalSettings } from '@common/const';
 
   import DbStatus from '@components/db-status/index.vue';
+  import EmptyStatus from '@components/empty-status/EmptyStatus.vue';
 
   import { getCostTimeDisplay, utcDisplayTime } from '@utils';
 
@@ -115,123 +122,120 @@
   });
   const tableData = shallowRef<TableItem[]>([]);
 
-  const columns = [
+  const columns: PrimaryTableCol[] = [
     {
-      field: 'bk_biz_name',
+      colKey: 'bk_biz_name',
       fixed: 'left',
-      label: t('业务'),
       minWidth: 100,
+      title: t('业务'),
     },
     {
-      field: 'cluster',
-      fixed: 'left',
-      label: t('集群域名'),
-      minWidth: 300,
-      render: ({ data }: { data: TableItem }) => (
+      cell: (_, { row }) => (
         <bk-button
-          theme='primary'
           text
-          onClick={() => handleToCluster(data)}>
-          {data.cluster}
+          theme='primary'
+          onClick={() => handleToCluster(row as TableItem)}>
+          {(row as TableItem).cluster}
         </bk-button>
       ),
+      colKey: 'cluster',
+      fixed: 'left',
+      minWidth: 300,
+      title: t('集群域名'),
     },
     {
-      field: 'db_type',
-      label: t('实例类型'),
+      colKey: 'db_type',
       minWidth: 100,
+      title: t('实例类型'),
     },
     {
-      field: 'db_role',
-      label: t('实例角色'),
+      cell: (_, { row }) => row.db_role || '--',
+      colKey: 'db_role',
       minWidth: 100,
-      render: ({ cell }: { cell: string }) => cell || '--',
+      title: t('实例角色'),
     },
     {
-      field: 'ip',
-      label: t('故障IP'),
+      colKey: 'ip',
       minWidth: 100,
+      title: t('故障IP'),
     },
     {
-      field: 'port',
-      label: t('故障Port'),
+      colKey: 'port',
       minWidth: 100,
+      title: t('故障Port'),
     },
     {
-      field: 'slave_ip',
-      label: t('新IP'),
+      cell: (_, { row }) => row.slave_ip || '--',
+      colKey: 'slave_ip',
       minWidth: 150,
-      render: ({ cell }: { cell: string }) => cell || '--',
+      title: t('新IP'),
     },
     {
-      field: 'slave_port',
-      label: t('新Port'),
+      colKey: 'slave_port',
       minWidth: 150,
+      title: t('新Port'),
     },
     {
-      field: 'switch_start_time',
-      label: t('开始时间'),
-      render: ({ cell }: { cell: string }) => utcDisplayTime(cell) || '--',
+      cell: (_, { row }) => utcDisplayTime(row.switch_start_time) || '--',
+      colKey: 'switch_start_time',
+      title: t('开始时间'),
       width: 250,
     },
     {
-      field: 'switch_finished_time',
-      label: t('结束时间'),
-      render: ({ cell }: { cell: string }) => utcDisplayTime(cell) || '--',
+      cell: (_, { row }) => utcDisplayTime(row.switch_finished_time) || '--',
+      colKey: 'switch_finished_time',
+      title: t('结束时间'),
       width: 250,
     },
     {
-      field: 'cost_time',
-      label: t('耗时'),
+      colKey: 'cost_time',
       minWidth: 150,
+      title: t('耗时'),
     },
     {
-      field: 'switch_result',
-      label: t('切换结果'),
-      minWidth: 150,
-      render: ({ cell, data }: { cell: string; data: TableItem }) => {
-        if (['failed', 'success'].includes(cell)) {
+      cell: (_, { row }) => {
+        const data = row as TableItem;
+        if (['failed', 'success'].includes(data.switch_result)) {
           return <DbStatus theme={data.result_info.theme}>{data.result_info.text}</DbStatus>;
         }
 
-        return cell || '--';
+        return data.switch_result || '--';
       },
+      colKey: 'switch_result',
+      minWidth: 150,
+      title: t('切换结果'),
     },
     {
-      field: 'confirm_result',
-      label: t('切换原因'),
+      colKey: 'confirm_result',
+      ellipsis: true,
       minWidth: 200,
-      showOverflowTooltip: {
-        popoverOption: {
-          maxWidth: 300,
-        },
-      },
+      title: t('切换原因'),
     },
     {
-      field: '',
-      fixed: 'right',
-      label: t('操作'),
-      render: ({ data }: { data: TableItem }) => (
+      cell: (_, { row }) => (
         <bk-button
-          theme='primary'
           text
-          onClick={() => handleShowDetails(data)}>
+          theme='primary'
+          onClick={() => handleShowDetails(row as TableItem)}>
           {t('详情')}
         </bk-button>
       ),
+      colKey: 'row-operation',
+      fixed: 'right',
+      title: t('操作'),
       width: 100,
     },
   ];
 
   // 设置用户个人表头信息
   const defaultSettings = {
-    checked: columns.map((item) => item.field).filter((key) => !!key) as string[],
+    checked: columns.map((item) => item.colKey).filter((key) => !!key && key !== 'row-operation') as string[],
     fields: columns
-      .filter((item) => item.field)
+      .filter((item) => item.colKey && item.colKey !== 'row-operation')
       .map((item) => ({
-        disabled: ['bk_biz_name', 'cluster', 'ip', 'port', 'slave_ip', 'slave_port'].includes(item.field as string),
-        field: item.field as string,
-        label: item.label as string,
+        disabled: ['bk_biz_name', 'cluster', 'ip', 'port', 'slave_ip', 'slave_port'].includes(item.colKey as string),
+        field: item.colKey as string,
+        label: item.title as string,
       })),
   };
   const { settings, updateTableSettings } = useTableSettings(UserPersonalSettings.DBHA_SWITCH_EVENTS, defaultSettings);

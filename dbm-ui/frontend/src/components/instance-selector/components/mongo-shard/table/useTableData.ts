@@ -88,6 +88,7 @@ export function useTableData<T>(clusterId?: Ref<number | undefined>) {
     generateParams,
     handeChangeLimit,
     handleChangePage,
+    isAnomalies,
     isLoading,
     pagination,
   };

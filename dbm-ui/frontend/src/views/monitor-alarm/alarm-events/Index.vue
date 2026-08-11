@@ -36,86 +36,79 @@
     </div>
     <DbTable
       ref="tableRef"
+      :bk-ui-settings="tableSetting"
       :data-source="getAlarmEventsList"
       releate-url-query
-      :row-config="{
-        useKey: true,
-        keyField: 'id',
-        height: 40,
-      }"
-      :scroll-y="{ enabled: true, gt: 0 }"
+      row-key="id"
       selectable
-      :settings="tableSetting"
       :show-select-all-page="false"
-      show-settings
       @clear-search="handleClearSearchValue"
-      @column-filter="handleColumnFilterChange"
+      @filter-change="handleFilterChange"
       @request-success="handleRequestSuccess"
       @selection="handleSelection">
-      <BkTableColumn
-        field="alert_name"
+      <TableColumn
+        col-key="alert_name"
         fixed="left"
-        :label="t('告警名称')"
         :min-width="220"
-        visiable>
-        <template #default="{ data }: { data: RowData }">
+        :title="t('告警名称')">
+        <template #default="{ row }: { row: RowData }">
           <div class="alert-name-main">
             <div
               class="sign-bar"
-              :style="{ background: data.severityColor }"></div>
+              :style="{ background: row.severityColor }"></div>
             <div
               v-overflow-tips
               class="alert-name">
-              {{ data.alert_name }}
+              {{ row.alert_name }}
             </div>
           </div>
         </template>
-      </BkTableColumn>
-      <BkTableColumn
-        field="bk_biz_id"
-        :label="t('所属业务')"
+      </TableColumn>
+      <TableColumn
+        col-key="bk_biz_id"
         :min-width="160"
-        show-overflow="tooltip">
-        <template #default="{ data }: { data: RowData }">
-          <span>{{ data.alarmBizId !== undefined ? bizsMap[data.alarmBizId] || '--' : '--' }}</span>
+        :title="t('所属业务')">
+        <template #default="{ row }: { row: RowData }">
+          <span>{{ row.alarmBizId !== undefined ? bizsMap[row.alarmBizId] || '--' : '--' }}</span>
         </template>
-      </BkTableColumn>
-      <BkTableColumn
-        field="cluster"
-        :label="t('所属集群')"
-        show-overflow="tooltip"
+      </TableColumn>
+      <TableColumn
+        col-key="cluster"
+        :title="t('所属集群')"
         :width="220">
-      </BkTableColumn>
-      <BkTableColumn
-        field="instance"
-        :label="t('告警主机/实例')"
+      </TableColumn>
+      <TableColumn
+        col-key="instance"
         :min-width="130"
-        show-overflow="tooltip">
-      </BkTableColumn>
-      <BkTableColumn
-        field="description"
-        :label="t('告警内容')"
-        show-overflow="tooltip"
+        :title="t('告警主机/实例')">
+      </TableColumn>
+      <TableColumn
+        col-key="description"
+        :title="t('告警内容')"
         :width="380">
-      </BkTableColumn>
-      <BkTableColumn
-        field="stage"
-        :filters="phaseFilterList"
-        :label="t('处理阶段')"
+      </TableColumn>
+      <TableColumn
+        col-key="stage"
+        :filter="{
+          list: phaseFilterList,
+          showConfirmAndReset: true,
+          type: 'multiple',
+        }"
+        :title="t('处理阶段')"
         :width="100">
-        <template #default="{ data }: { data: RowData }">
+        <template #default="{ row }: { row: RowData }">
           <BkTag
-            v-if="data.is_shielded"
+            v-if="row.is_shielded"
             theme="danger">
             {{ t('已屏蔽') }}
           </BkTag>
           <BkTag
-            v-else-if="data.is_blocked"
+            v-else-if="row.is_blocked"
             theme="warning">
             {{ t('已流控') }}
           </BkTag>
           <BkTag
-            v-else-if="data.is_ack"
+            v-else-if="row.is_ack"
             theme="success">
             {{ t('已确认') }}
           </BkTag>
@@ -125,47 +118,50 @@
             {{ t('已通知') }}
           </BkTag>
         </template>
-      </BkTableColumn>
-      <BkTableColumn
-        field="dbm_policy"
-        :label="t('关联策略')"
-        show-overflow="tooltip"
+      </TableColumn>
+      <TableColumn
+        col-key="dbm_policy"
+        :title="t('关联策略')"
         :width="240">
-        <template #default="{ data }: { data: RowData }">
+        <template #default="{ row }: { row: RowData }">
           <BkButton
-            v-if="data.dbm_policy.id"
+            v-if="row.dbm_policy.id"
             text
             theme="primary"
-            @click="() => handleToMonitorStrategy(data.dbm_policy, data.dimensions)">
-            {{ data.policyNameDisplay }}
+            @click="() => handleToMonitorStrategy(row.dbm_policy, row.dimensions)">
+            {{ row.policyNameDisplay }}
           </BkButton>
           <span v-else>--</span>
         </template>
-      </BkTableColumn>
-      <BkTableColumn
-        field="createTimeDisplay"
-        :label="t('告警产生时间')"
-        :min-width="200">
-      </BkTableColumn>
-      <BkTableColumn
-        field="firstAnomalyTimeDisplay"
-        :label="t('首次异常时间')"
-        :min-width="200">
-      </BkTableColumn>
-      <BkTableColumn
-        field="status"
-        :filters="statusFilterList"
-        :label="t('状态')"
+      </TableColumn>
+      <TableColumn
+        col-key="createTimeDisplay"
+        :min-width="200"
+        :title="t('告警产生时间')">
+      </TableColumn>
+      <TableColumn
+        col-key="firstAnomalyTimeDisplay"
+        :min-width="200"
+        :title="t('首次异常时间')">
+      </TableColumn>
+      <TableColumn
+        col-key="status"
+        :filter="{
+          list: statusFilterList,
+          showConfirmAndReset: true,
+          type: 'multiple',
+        }"
+        :title="t('状态')"
         :width="100">
-        <template #default="{ data }: { data: RowData }">
+        <template #default="{ row }: { row: RowData }">
           <BkTag
-            v-if="data.status === 'RECOVERED'"
+            v-if="row.status === 'RECOVERED'"
             theme="success"
             type="filled">
             {{ t('已恢复') }}
           </BkTag>
           <BkTag
-            v-else-if="data.status === 'ABNORMAL'"
+            v-else-if="row.status === 'ABNORMAL'"
             theme="danger"
             type="filled">
             {{ t('未恢复') }}
@@ -176,49 +172,50 @@
             {{ t('已失效') }}
           </BkTag>
         </template>
-      </BkTableColumn>
-      <BkTableColumn
+      </TableColumn>
+      <TableColumn
+        col-key="operation"
         fixed="right"
-        :label="t('操作')"
+        :title="t('操作')"
         :width="160">
-        <template #default="{ data }: { data: RowData }">
+        <template #default="{ row }: { row: RowData }">
           <BkButton
-            v-if="data.is_shielded"
+            v-if="row.is_shielded"
             text
             theme="primary"
-            @click="() => handleOpenShieldAlarms(false, data)">
+            @click="() => handleOpenShieldAlarms(false, row)">
             {{ t('查看屏蔽') }}
           </BkButton>
           <AuthButton
             v-else
             v-bk-tooltips="{
-              disabled: data.dbm_event,
+              disabled: row.dbm_event,
               content: t('暂不支持，请去监控平台操作'),
             }"
             action-id="alert_shield_create"
-            :biz-id="data.alarmBizId"
-            :disabled="!data.dbm_event"
-            :permission="data.dbm_event ? data.permission.alert_shield_create : true"
+            :biz-id="row.alarmBizId"
+            :disabled="!row.dbm_event"
+            :permission="row.dbm_event ? row.permission.alert_shield_create : true"
             text
             theme="primary"
-            @click="() => handleOpenShieldAlarms(true, data)">
+            @click="() => handleOpenShieldAlarms(true, row)">
             {{ t('屏蔽告警') }}
           </AuthButton>
           <ToAlarmPolicy
-            v-if="data.dbm_policy.id"
-            :data="data.dbm_policy"
-            :name="data.policyNameDisplay"
-            @confirm="(editType: string) => handleToMonitorStrategy(data.dbm_policy, data.dimensions, editType)" />
+            v-if="row.dbm_policy.id"
+            :data="row.dbm_policy"
+            :name="row.policyNameDisplay"
+            @confirm="(editType: string) => handleToMonitorStrategy(row.dbm_policy, row.dimensions, editType)" />
           <BkButton
             class="ml-16"
             :disabled="!urls.BKMONITOR_URL"
             text
             theme="primary"
-            @click="() => handleOpenDetailPage(data)">
+            @click="() => handleOpenDetailPage(row)">
             {{ t('跳转监控') }}
           </BkButton>
         </template>
-      </BkTableColumn>
+      </TableColumn>
     </DbTable>
   </div>
   <DbSideslider
@@ -251,7 +248,7 @@
 
   import { useGlobalBizs, useSystemEnviron } from '@stores';
 
-  import DbTable from '@components/db-table/index.vue';
+  import DbTable from '@components/db-table/IndexNew.vue';
 
   import { exportExcelFile, getBusinessHref } from '@utils';
 
@@ -385,7 +382,6 @@
   ];
 
   let searchValue: Record<string, string> = {};
-  const columnFilterParams: Record<string, string> = {};
 
   const triggerSearch = () => {
     tableRef.value?.fetchData({
@@ -479,20 +475,13 @@
     selectionList.value = list;
   };
 
-  const handleColumnFilterChange = (data: { checked: string[]; field: string }) => {
-    if (data.checked.length) {
-      columnFilterParams[data.field] = data.checked.join(',');
-    } else {
-      delete columnFilterParams[data.field];
-    }
-    const filterKeys = ['stage', 'status'];
-    filterKeys.forEach((key) => {
-      if (!columnFilterParams[key]) {
+  const handleFilterChange = (filterValue: Record<string, string[]>) => {
+    ['stage', 'status'].forEach((key) => {
+      if (filterValue[key]?.length) {
+        searchValue[key] = filterValue[key].join(',');
+      } else {
         delete searchValue[key];
-        return;
       }
-
-      searchValue[key] = columnFilterParams[key];
     });
 
     triggerSearch();

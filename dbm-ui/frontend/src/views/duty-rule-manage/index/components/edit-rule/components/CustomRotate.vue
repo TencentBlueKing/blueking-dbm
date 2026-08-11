@@ -34,16 +34,17 @@
       :label="t('轮值排班')"
       property="tableData"
       required>
-      <BkTable
+      <PrimaryTable
         :columns="columns"
         :data="formModel.tableData"
-        :show-overflow="false" />
+        row-key="dateTime" />
     </BkFormItem>
   </BkForm>
 </template>
 
 <script setup lang="tsx">
   import dayjs from 'dayjs';
+  import type { PrimaryTableCol } from 'tdesign-vue-next';
   import { useI18n } from 'vue-i18n';
 
   import type { DutyCustomItem } from '@services/model/monitor/duty-rule';
@@ -89,59 +90,58 @@
     tableData: [] as RowData[],
   });
 
-  const columns = [
+  const columns: PrimaryTableCol[] = [
     {
-      field: 'dateTime',
-      label: t('轮值日期'),
+      colKey: 'dateTime',
+      title: t('轮值日期'),
       width: 120,
     },
     {
-      field: 'timeRange',
-      label: t('轮值时间'),
-      render: ({ data, index }: { data: RowData; index: number }) => (
-        <div class={{ 'time-group-box': true, 'time-group-mutiple': data.timeRange.length > 1 }}>
-          {data.timeRange.map((item, innerIndex) => (
+      cell: (_, { row, rowIndex }) => (
+        <div class={{ 'time-group-box': true, 'time-group-mutiple': row.timeRange.length > 1 }}>
+          {row.timeRange.map((item: RowData['timeRange'][number], innerIndex: number) => (
             <div
               key={item.id}
               class='time-item'>
               <bk-time-picker
                 v-model={item.value}
+                append-to-body
                 clearable={false}
                 format='HH:mm'
                 style='width: 200px'
                 type='timerange'
-                append-to-body
               />
               {innerIndex === 0 && (
                 <db-icon
                   class='ml-10 icon'
                   type='plus-circle'
-                  onClick={() => handleAddTime(index)}
+                  onClick={() => handleAddTime(rowIndex)}
                 />
               )}
               {innerIndex !== 0 && (
                 <db-icon
                   class='ml-10 icon'
                   type='minus-circle'
-                  onClick={() => handleDeleteTime(index, innerIndex)}
+                  onClick={() => handleDeleteTime(rowIndex, innerIndex)}
                 />
               )}
             </div>
           ))}
         </div>
       ),
-      showOverflowTooltip: true,
+      colKey: 'timeRange',
+      title: t('轮值时间'),
       width: 250,
     },
     {
-      field: 'members',
-      label: t('轮值人员'),
-      render: ({ data, index }: { data: RowData; index: number }) => (
+      cell: (_, { row, rowIndex }) => (
         <MemberSelector
-          modelValue={data.members}
-          onChange={(value: string[]) => handelPeopleChange(value, index)}
+          modelValue={row.members}
+          onChange={(value: string[]) => handelPeopleChange(value, rowIndex)}
         />
       ),
+      colKey: 'members',
+      title: t('轮值人员'),
       width: 510,
     },
   ];

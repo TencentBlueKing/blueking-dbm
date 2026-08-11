@@ -1,49 +1,53 @@
 <template>
-  <BkTable :data="list">
-    <BkTableColumn
+  <PrimaryTable
+    :data="tableData"
+    row-key="rowKey">
+    <TableColumn
+      col-key="ip"
       fixed="left"
-      :label="t('实例')"
+      :title="t('实例')"
       :width="200">
-      <template #default="{ data }: { data: DbhaServiceStatusModel }">
-        <span>{{ data.ip }}</span>
-        <span v-if="data.port">:{{ data.port }}</span>
+      <template #default="{ row }: { row: DbhaServiceStatusModel }">
+        <span>{{ row.ip }}</span>
+        <span v-if="row.port">:{{ row.port }}</span>
       </template>
-    </BkTableColumn>
-    <BkTableColumn
-      :label="t('状态')"
+    </TableColumn>
+    <TableColumn
+      col-key="status"
+      :title="t('状态')"
       :width="100">
-      <template #default="{ data }: { data: DbhaServiceStatusModel }">
-        <ClusterInstanceStatus :data="data.status" />
+      <template #default="{ row }: { row: DbhaServiceStatusModel }">
+        <ClusterInstanceStatus :data="row.status" />
       </template>
-    </BkTableColumn>
-    <BkTableColumn
-      field="module"
-      :label="t('类型')">
-    </BkTableColumn>
-    <BkTableColumn
-      field="db_type"
-      :label="t('探测组件类型')">
-    </BkTableColumn>
-    <BkTableColumn
-      field="bk_city_name"
-      :label="t('城市名')">
-    </BkTableColumn>
-    <BkTableColumn
-      field="startTimeDisplay"
-      :label="t('启动时间')">
-    </BkTableColumn>
-    <BkTableColumn
-      field="lastTimeDisplay"
-      :label="t('上次更新时间')">
-    </BkTableColumn>
-    <BkTableColumn
-      field="report_interval"
-      :label="t('上报间隔')">
-      <template #default="{ data }: { data: DbhaServiceStatusModel }">
-        {{ data.report_interval || '--' }}
+    </TableColumn>
+    <TableColumn
+      col-key="module"
+      :title="t('类型')">
+    </TableColumn>
+    <TableColumn
+      col-key="db_type"
+      :title="t('探测组件类型')">
+    </TableColumn>
+    <TableColumn
+      col-key="bk_city_name"
+      :title="t('城市名')">
+    </TableColumn>
+    <TableColumn
+      col-key="startTimeDisplay"
+      :title="t('启动时间')">
+    </TableColumn>
+    <TableColumn
+      col-key="lastTimeDisplay"
+      :title="t('上次更新时间')">
+    </TableColumn>
+    <TableColumn
+      col-key="report_interval"
+      :title="t('上报间隔')">
+      <template #default="{ row }: { row: DbhaServiceStatusModel }">
+        {{ row.report_interval || '--' }}
       </template>
-    </BkTableColumn>
-  </BkTable>
+    </TableColumn>
+  </PrimaryTable>
 </template>
 
 <script setup lang="tsx">
@@ -57,7 +61,11 @@
     list: DbhaServiceStatusModel[];
   }
 
-  defineProps<Props>();
+  const props = defineProps<Props>();
 
   const { t } = useI18n();
+
+  const tableData = computed(() =>
+    props.list.map((item, index) => Object.assign(item, { rowKey: `${index}#${Date.now()}` })),
+  );
 </script>

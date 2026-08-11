@@ -15,16 +15,16 @@
   <div class="render-rotate-table-title">
     {{ t('轮值表') }}
   </div>
-  <BkTable
+  <PrimaryTable
     :data="tableData"
-    :max-height="300"
-    :show-overflow="false"
-    @scroll-bottom="handleScrollToBottom">
-    <BkTableColumn
-      field="dateTime"
-      :label="t('日期')"
-      :min-width="120">
-      <template #default="{ data: rowData }: { data: RowData }">
+    max-height="300"
+    row-key="dateTime"
+    @scroll="handleScroll">
+    <TableColumn
+      col-key="dateTime"
+      :min-width="120"
+      :title="t('日期')">
+      <template #default="{ row: rowData }: { row: RowData }">
         <div class="date">
           {{ rowData.dateTime }}
           <MiniTag
@@ -33,15 +33,19 @@
             theme="info" />
         </div>
       </template>
-    </BkTableColumn>
-    <BkTableColumn
-      field="timeRange"
-      :label="t('时段')"
-      :min-width="200" />
-    <BkTableColumn
-      field="peoples"
-      :label="t('轮值人员')">
-      <template #default="{ data: rowData }: { data: RowData }">
+    </TableColumn>
+    <TableColumn
+      col-key="timeRange"
+      :min-width="200"
+      :title="t('时段')">
+      <template #default="{ row: rowData }: { row: RowData }">
+        {{ rowData.timeRange.join(',') }}
+      </template>
+    </TableColumn>
+    <TableColumn
+      col-key="peoples"
+      :title="t('轮值人员')">
+      <template #default="{ row: rowData }: { row: RowData }">
         <div class="peoples">
           <BkTag
             v-for="item in rowData.peoples"
@@ -50,8 +54,8 @@
           </BkTag>
         </div>
       </template>
-    </BkTableColumn>
-  </BkTable>
+    </TableColumn>
+  </PrimaryTable>
 </template>
 
 <script setup lang="tsx">
@@ -116,6 +120,13 @@
       timeRange: item.work_times.map((data) => data.replace('--', '~')),
     }));
   });
+
+  const handleScroll = ({ e }: { e: Event }) => {
+    const target = e.target as HTMLElement;
+    if (target.scrollTop + target.clientHeight >= target.scrollHeight) {
+      handleScrollToBottom();
+    }
+  };
 
   const handleScrollToBottom = () => {
     if (props.data.duty_arranges.length > 8) {

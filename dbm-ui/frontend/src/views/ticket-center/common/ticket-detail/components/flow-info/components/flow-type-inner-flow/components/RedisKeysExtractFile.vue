@@ -26,35 +26,37 @@
     :width="1140"
     @closed="handleClose">
     <BkLoading :loading="state.isLoading">
-      <DbOriginalTable
+      <PrimaryTable
         class="result-files-table"
         :data="state.data"
-        :height="460"
-        :is-anomalies="isAnomalies"
-        @refresh="fetchKeyFiles"
-        @selection-change="handleTableSelected">
-        <BkTableColumn
-          field="name"
+        :height="460">
+        <TableColumn
+          col-key="name"
+          ellipsis
           fixed="left"
-          :label="t('目录')"
-          :min-width="240" />
-        <BkTableColumn
-          field="size_display"
-          :label="t('大小')"
+          :min-width="240"
+          :title="t('目录')" />
+        <TableColumn
+          col-key="size_display"
+          ellipsis
+          :title="t('大小')"
           :width="100" />
-        <BkTableColumn
-          field="domain"
-          :label="t('集群')"
+        <TableColumn
+          col-key="domain"
+          ellipsis
+          :title="t('集群')"
           :width="240" />
-        <BkTableColumn
-          field="created_time"
-          :label="t('提取时间')"
+        <TableColumn
+          col-key="created_time"
+          ellipsis
+          :title="t('提取时间')"
           :width="250" />
-        <BkTableColumn
+        <TableColumn
+          col-key="operation"
           fixed="right"
-          :label="t('操作')"
+          :title="t('操作')"
           :width="150">
-          <template #default="{data, index}: {data: KeyFileItem, index: number}">
+          <template #default="{ row: data, rowIndex: index }: { row: KeyFileItem; rowIndex: number }">
             <BkButton
               class="mr-8"
               :loading="state.downloadLoadings[index]"
@@ -71,8 +73,14 @@
               {{ t('复制文件地址') }}
             </BkButton>
           </template>
-        </BkTableColumn>
-      </DbOriginalTable>
+        </TableColumn>
+        <template #empty>
+          <EmptyStatus
+            :is-anomalies="isAnomalies"
+            :is-searching="false"
+            @refresh="fetchKeyFiles" />
+        </template>
+      </PrimaryTable>
     </BkLoading>
   </BkDialog>
 </template>
@@ -82,6 +90,8 @@
 
   import { createBkrepoAccessToken } from '@services/source/storage';
   import { getKeyFiles } from '@services/source/taskflow';
+
+  import EmptyStatus from '@components/empty-status/EmptyStatus.vue';
 
   import { downloadUrl, execCopy, generateBkRepoDownloadUrl } from '@utils';
 
@@ -102,9 +112,7 @@
     data: [] as KeyFileItem[],
     downloadLoadings: [] as boolean[],
     fileLoadings: [] as boolean[],
-    isBatchDownloading: false,
     isLoading: false,
-    selected: [] as KeyFileItem[],
   });
 
   watch(isShow, () => {
@@ -154,43 +162,6 @@
   }
 
   /**
-   * 表格选中
-   */
-  function handleTableSelected({
-    checked,
-    data,
-    isAll,
-    row,
-  }: {
-    checked: boolean;
-    data: KeyFileItem[];
-    index: number;
-    isAll: boolean;
-    row: KeyFileItem;
-  }) {
-    // 全选 checkbox 切换
-    if (isAll) {
-      state.selected = checked ? [...data] : [];
-      return;
-    }
-
-    // 单选 checkbox 选中
-    if (checked) {
-      const toggleIndex = state.selected.findIndex((item) => item.domain === row.domain);
-      if (toggleIndex === -1) {
-        state.selected.push(row);
-      }
-      return;
-    }
-
-    // 单选 checkbox 取消选中
-    const toggleIndex = state.selected.findIndex((item) => item.domain === row.domain);
-    if (toggleIndex > -1) {
-      state.selected.splice(toggleIndex, 1);
-    }
-  }
-
-  /**
    * 下载单个文件
    */
   function handleDownloadFile(data: KeyFileItem, index: number) {
@@ -208,7 +179,6 @@
 
   function handleClose() {
     isShow.value = false;
-    state.selected = [];
     state.data = [];
     state.downloadLoadings = [];
     state.fileLoadings = [];

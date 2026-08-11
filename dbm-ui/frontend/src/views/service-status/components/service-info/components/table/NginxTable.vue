@@ -1,31 +1,34 @@
 <template>
-  <BkTable :data="list">
-    <BkTableColumn
-      field="ip"
+  <PrimaryTable
+    :data="tableData"
+    row-key="rowKey">
+    <TableColumn
+      col-key="ip"
       fixed="left"
-      label="IP"
+      title="IP"
       :width="200">
-    </BkTableColumn>
-    <BkTableColumn
-      :label="t('状态')"
+    </TableColumn>
+    <TableColumn
+      col-key="status"
+      :title="t('状态')"
       :width="100">
-      <template #default="{ data }: { data: NgnixServiceStatusModel }">
-        <ClusterInstanceStatus :data="data.status" />
+      <template #default="{ row }: { row: NgnixServiceStatusModel }">
+        <ClusterInstanceStatus :data="row.status" />
       </template>
-    </BkTableColumn>
-    <BkTableColumn
-      field="bk_outer_ip"
-      :label="t('外网 IP')">
-    </BkTableColumn>
-    <BkTableColumn
-      field="updater"
-      :label="t('更新人')">
-    </BkTableColumn>
-    <BkTableColumn
-      field="updateAtDisplay"
-      :label="t('更新时间')">
-    </BkTableColumn>
-  </BkTable>
+    </TableColumn>
+    <TableColumn
+      col-key="bk_outer_ip"
+      :title="t('外网 IP')">
+    </TableColumn>
+    <TableColumn
+      col-key="updater"
+      :title="t('更新人')">
+    </TableColumn>
+    <TableColumn
+      col-key="updateAtDisplay"
+      :title="t('更新时间')">
+    </TableColumn>
+  </PrimaryTable>
 </template>
 
 <script setup lang="tsx">
@@ -39,7 +42,11 @@
     list: NgnixServiceStatusModel[];
   }
 
-  defineProps<Props>();
+  const props = defineProps<Props>();
 
   const { t } = useI18n();
+
+  const tableData = computed(() =>
+    props.list.map((item, index) => Object.assign(item, { rowKey: `${index}#${Date.now()}` })),
+  );
 </script>

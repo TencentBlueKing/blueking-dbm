@@ -28,19 +28,15 @@
             <span class="export-button-text">{{ t('导出') }}</span>
           </BkButton>
         </template>
-        <BkTable
-          class="search-result-table mt-14 mb-8"
-          :data="item.dataList"
-          :pagination="pagination[index]"
-          :row-config="{
-            useKey: true,
-            keyField: 'id',
-          }">
-          <BkTableColumn
-            field="entry"
-            :label="t('访问入口')"
-            :min-width="250">
-            <template #default="{data: rowData}: {data: QuickSearchEntryModel}">
+        <PrimaryTable
+          class="search-result-table mt-14"
+          :data="getTableData(item.dataList, index)"
+          row-key="id">
+          <TableColumn
+            col-key="entry"
+            :min-width="250"
+            :title="t('访问入口')">
+            <template #default="{ row: rowData }: { row: QuickSearchEntryModel }">
               <TextOverflowLayout>
                 <BkButton
                   text
@@ -86,71 +82,79 @@
                 </template>
               </TextOverflowLayout>
             </template>
-          </BkTableColumn>
-          <BkTableColumn
-            field="cluster_status"
-            :label="t('状态')"
+          </TableColumn>
+          <TableColumn
+            col-key="cluster_status"
+            :title="t('状态')"
             :width="100">
-            <template #default="{data: rowData}: {data: QuickSearchEntryModel}">
+            <template #default="{ row: rowData }: { row: QuickSearchEntryModel }">
               <RenderClusterStatus :data="rowData.cluster_status" />
             </template>
-          </BkTableColumn>
-          <BkTableColumn
-            field="immute_domain"
-            :label="t('所属集群')"
-            :min-width="250">
-            <template #default="{data: rowData}: {data: QuickSearchEntryModel}">
+          </TableColumn>
+          <TableColumn
+            col-key="immute_domain"
+            :min-width="250"
+            :title="t('所属集群')">
+            <template #default="{ row: rowData }: { row: QuickSearchEntryModel }">
               {{ rowData.immute_domain || '--' }}
             </template>
-          </BkTableColumn>
-          <BkTableColumn
-            field="cluster_type"
-            :label="t('架构类型')"
+          </TableColumn>
+          <TableColumn
+            col-key="cluster_type"
+            :title="t('架构类型')"
             :width="150">
-            <template #default="{data: rowData}: {data: QuickSearchEntryModel}">
+            <template #default="{ row: rowData }: { row: QuickSearchEntryModel }">
               {{ rowData.cluster_type || '--' }}
             </template>
-          </BkTableColumn>
-          <BkTableColumn
-            field="major_version"
-            :label="t('版本')"
+          </TableColumn>
+          <TableColumn
+            col-key="major_version"
+            :title="t('版本')"
             :width="150">
-            <template #default="{data: rowData}: {data: QuickSearchEntryModel}">
+            <template #default="{ row: rowData }: { row: QuickSearchEntryModel }">
               {{ rowData.major_version || '--' }}
             </template>
-          </BkTableColumn>
-          <BkTableColumn
-            field="region"
-            :label="t('地域')"
+          </TableColumn>
+          <TableColumn
+            col-key="region"
+            :title="t('地域')"
             :width="150">
-            <template #default="{data: rowData}: {data: QuickSearchEntryModel}">
+            <template #default="{ row: rowData }: { row: QuickSearchEntryModel }">
               {{ rowData.region || '--' }}
             </template>
-          </BkTableColumn>
-          <BkTableColumn
-            field="bk_biz_id"
-            :label="t('所属业务')"
+          </TableColumn>
+          <TableColumn
+            col-key="bk_biz_id"
+            :title="t('所属业务')"
             :width="150">
-            <template #default="{data: rowData}: {data: QuickSearchEntryModel}">
+            <template #default="{ row: rowData }: { row: QuickSearchEntryModel }">
               {{ rowData.bk_biz_id ? bizIdNameMap[rowData.bk_biz_id] : '--' }}
             </template>
-          </BkTableColumn>
-          <BkTableColumn
-            field="disaster_tolerance_level"
-            :label="t('容灾要求')">
-            <template #default="{data: rowData}: {data: QuickSearchEntryModel}">
+          </TableColumn>
+          <TableColumn
+            col-key="disaster_tolerance_level"
+            :title="t('容灾要求')">
+            <template #default="{ row: rowData }: { row: QuickSearchEntryModel }">
               {{ rowData.disasterToleranceLevelName || '--' }}
             </template>
-          </BkTableColumn>
-          <BkTableColumn
-            field="creator"
-            :label="t('主 DBA')"
-            sortable>
-            <template #default="{data: rowData}: {data: QuickSearchEntryModel}">
+          </TableColumn>
+          <TableColumn
+            col-key="creator"
+            sorter
+            :title="t('主 DBA')">
+            <template #default="{ row: rowData }: { row: QuickSearchEntryModel }">
               {{ rowData.dba || '--' }}
             </template>
-          </BkTableColumn>
-        </BkTable>
+          </TableColumn>
+        </PrimaryTable>
+        <div class="table-footer mb-8">
+          <BkPagination
+            v-bind="pagination[index]"
+            :layout="['total', 'limit', 'list']"
+            :model-value="pagination[index].current"
+            @change="(value: number) => handlePageValueChange(value, index)"
+            @limit-change="(value: number) => handlePageLimitChange(value, index)" />
+        </div>
       </DbCard>
     </template>
     <EmptyStatus
@@ -203,8 +207,8 @@
   const pagination = ref<
     {
       count: number;
+      current: number;
       limit: number;
-      remote: false;
     }[]
   >([]);
 
@@ -229,13 +233,26 @@
         count: dataItem.dataList.length,
         current: 1,
         limit: 10,
-        remote: false,
       }));
     },
     {
       immediate: true,
     },
   );
+
+  const getTableData = (dataList: QuickSearchEntryModel[], index: number) => {
+    const { current, limit } = pagination.value[index];
+    return dataList.slice((current - 1) * limit, current * limit);
+  };
+
+  const handlePageValueChange = (value: number, index: number) => {
+    pagination.value[index].current = value;
+  };
+
+  const handlePageLimitChange = (value: number, index: number) => {
+    pagination.value[index].limit = value;
+    pagination.value[index].current = 1;
+  };
 
   const handleExport = (clusterType: string, dataList: QuickSearchEntryModel[]) => {
     const formatData = dataList.map((dataItem) =>
@@ -337,6 +354,19 @@
       &:hover {
         .copy-btn {
           display: inline-block;
+        }
+      }
+    }
+
+    .table-footer {
+      display: flex;
+      align-items: center;
+
+      .bk-pagination {
+        width: 100%;
+
+        & > .is-last {
+          margin-left: auto;
         }
       }
     }
