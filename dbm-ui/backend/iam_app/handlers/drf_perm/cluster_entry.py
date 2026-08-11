@@ -29,5 +29,5 @@ class ClusterEntryPermission(ResourceActionPermission):
     def instance_ids_getter(self, request, view):
         cluster_id = get_request_key_id(self.request, key="cluster_id")
         dbtype = ClusterType.cluster_type_to_db_type(Cluster.objects.get(id=cluster_id).cluster_type)
-        self.resource_meta = getattr(ResourceEnum, dbtype.lower())
+        self.resource_meta = getattr(ResourceEnum, dbtype.upper())
         return [cluster_id]
