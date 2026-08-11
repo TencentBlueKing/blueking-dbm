@@ -10,10 +10,9 @@
         v-for="(item, index) in abstractList"
         :key="index"
         :title="item.table_name">
-        <BkTable
+        <PrimaryTable
           :columns="item.titles"
-          :data="item.values"
-          header-row-class-name="abstract-table-header-row" />
+          :data="item.values" />
       </TableCollapse>
     </div>
   </div>
@@ -28,8 +27,8 @@
 
   export type AbstractItem = {
     titles: {
-      field: string;
-      label: string;
+      colKey: string;
+      title: string;
     }[];
   } & Omit<ServiceReturnType<typeof getTicketFlows>[number]['output_data'][number], 'titles'>;
 
@@ -61,8 +60,8 @@
           .map((item) => ({
             ...item,
             titles: item.titles.map((item) => ({
-              field: item.id,
-              label: item.display_name,
+              colKey: item.id,
+              title: item.display_name,
             })),
           }));
       }
@@ -91,9 +90,5 @@
     .tip-display {
       margin-bottom: 16px;
     }
-  }
-
-  .abstract-table-header-row {
-    background-color: #fafbfd;
   }
 </style>

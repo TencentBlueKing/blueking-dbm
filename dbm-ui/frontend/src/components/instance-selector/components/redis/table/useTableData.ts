@@ -108,6 +108,7 @@ export function useTableData<T>(
     generateParams,
     handeChangeLimit,
     handleChangePage,
+    isAnomalies,
     isLoading,
     pagination,
   };

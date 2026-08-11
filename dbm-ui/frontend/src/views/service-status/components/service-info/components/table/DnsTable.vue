@@ -1,35 +1,38 @@
 <template>
-  <BkTable :data="list">
-    <BkTableColumn
-      field="ip"
+  <PrimaryTable
+    :data="tableData"
+    row-key="rowKey">
+    <TableColumn
+      col-key="ip"
       fixed="left"
-      label="IP"
+      title="IP"
       :width="200">
-    </BkTableColumn>
-    <BkTableColumn
-      :label="t('状态')"
+    </TableColumn>
+    <TableColumn
+      col-key="status"
+      :title="t('状态')"
       :width="100">
-      <template #default="{ data }: { data: DnsServiceStatusModel }">
-        <ClusterInstanceStatus :data="data.status" />
+      <template #default="{ row }: { row: DnsServiceStatusModel }">
+        <ClusterInstanceStatus :data="row.status" />
       </template>
-    </BkTableColumn>
-    <BkTableColumn
-      field="bk_city"
-      :label="t('城市名')">
-    </BkTableColumn>
-    <BkTableColumn
-      field="isAccessDisplay"
-      :label="t('可访问')">
-    </BkTableColumn>
-    <BkTableColumn
-      field="updater"
-      :label="t('更新人')">
-    </BkTableColumn>
-    <BkTableColumn
-      field="updateAtDisplay"
-      :label="t('更新时间')">
-    </BkTableColumn>
-  </BkTable>
+    </TableColumn>
+    <TableColumn
+      col-key="bk_city"
+      :title="t('城市名')">
+    </TableColumn>
+    <TableColumn
+      col-key="isAccessDisplay"
+      :title="t('可访问')">
+    </TableColumn>
+    <TableColumn
+      col-key="updater"
+      :title="t('更新人')">
+    </TableColumn>
+    <TableColumn
+      col-key="updateAtDisplay"
+      :title="t('更新时间')">
+    </TableColumn>
+  </PrimaryTable>
 </template>
 
 <script setup lang="tsx">
@@ -43,7 +46,11 @@
     list: DnsServiceStatusModel[];
   }
 
-  defineProps<Props>();
+  const props = defineProps<Props>();
 
   const { t } = useI18n();
+
+  const tableData = computed(() =>
+    props.list.map((item, index) => Object.assign(item, { rowKey: `${index}#${Date.now()}` })),
+  );
 </script>

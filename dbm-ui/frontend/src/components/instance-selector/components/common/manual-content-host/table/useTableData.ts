@@ -92,6 +92,7 @@ export function useTableData<T>(role?: Ref<string | undefined>) {
     fetchResources,
     handeChangeLimit,
     handleChangePage,
+    isAnomalies,
     isLoading,
     pagination,
     searchValue,

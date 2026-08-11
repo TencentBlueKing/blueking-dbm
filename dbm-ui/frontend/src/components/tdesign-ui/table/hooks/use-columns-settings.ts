@@ -1,5 +1,5 @@
 import type { TableProps } from 'tdesign-vue-next';
-import { computed, type ComputedRef, type ExtractPropTypes, type h, type Ref, shallowRef, useSlots, watch } from 'vue';
+import { computed, type ExtractPropTypes, type h, type Ref, shallowRef, useSlots, watch } from 'vue';
 
 import ColumnSettings from '../components/column-settings.vue';
 import FilterMultiple from '../components/filter-multiple.vue';
@@ -63,7 +63,7 @@ export const useColumnsSettings = (
   tableColumnRef: Ref<HTMLDivElement | null>,
 ) => {
   const slots = useSlots();
-  const tableColumnsMap = shallowRef<Record<string, ComputedRef<IRegisteredColumnProps>>>({});
+  const tableColumnsMap = shallowRef<Record<string, Ref<IRegisteredColumnProps>>>({});
   const tableColumns = computed<BkUiTableCol[]>(() => {
     if (props.columns?.length) {
       return props.columns;
@@ -83,7 +83,7 @@ export const useColumnsSettings = (
     return camelCaseArray(list);
   });
   useTableProvide({
-    addColumnProps: (id: string, columnProps: ComputedRef<IRegisteredColumnProps>) => {
+    addColumnProps: (id: string, columnProps: Ref<IRegisteredColumnProps>) => {
       const newMap = {
         ...tableColumnsMap.value,
         [id]: columnProps,

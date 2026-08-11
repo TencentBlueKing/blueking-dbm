@@ -29,30 +29,24 @@
               <span class="main-label">{{ t('单据变更通知') }}</span>
               <span class="sub-label ml-4">（{{ t('单据状态发生变更时发送的通知') }}）</span>
             </template>
-            <BkTable
-              align="center"
-              border="full"
+            <PrimaryTable
+              bordered
               class="notice-table"
               :columns="changeColumns"
-              :data="changeDataList"
-              header-align="center"
-              :header-cell-class-name="setHeadCellClassName">
-            </BkTable>
+              :data="changeDataList">
+            </PrimaryTable>
           </DbFormItem>
           <DbFormItem>
             <template #label>
               <span class="main-label">{{ t('单据执行通知') }}</span>
               <span class="sub-label ml-4">（{{ t('单据执行期间检测到异常而触发的通知') }}）</span>
             </template>
-            <BkTable
-              align="center"
-              border="full"
+            <PrimaryTable
+              bordered
               class="notice-table"
               :columns="excuteColumns"
-              :data="excuteDataList"
-              header-align="center"
-              :header-cell-class-name="setHeadCellClassName">
-            </BkTable>
+              :data="excuteDataList">
+            </PrimaryTable>
           </DbFormItem>
         </DbForm>
       </BkCard>
@@ -89,6 +83,7 @@
 </template>
 <script setup lang="tsx">
   import _ from 'lodash';
+  import type { PrimaryTableCol } from 'tdesign-vue-next';
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
@@ -130,16 +125,18 @@
   const TicketExcuteList = Object.entries(TicketExcuteMap);
 
   const getColumns = (statusTextLabel: string) => {
-    const baseColumns = [
+    const baseColumns: PrimaryTableCol[] = [
       {
-        field: 'statusText',
-        label: statusTextLabel,
+        align: 'center',
+        colKey: 'statusText',
+        title: statusTextLabel,
         width: 100,
       },
       {
-        field: 'noticeMember',
-        label: t('通知对象'),
-        render: ({ data }: { data: DataRow }) => data.noticeMember.join('，'),
+        align: 'center',
+        cell: (_, { row }) => row.noticeMember.join('，'),
+        colKey: 'noticeMember',
+        title: t('通知对象'),
         width: 200,
       },
     ];
@@ -165,24 +162,25 @@
       },
     );
 
-    const nofityColumns = [...activeTypeMap.checkbox, ...activeTypeMap.input].map((item) => {
+    const nofityColumns = [...activeTypeMap.checkbox, ...activeTypeMap.input].map((item): PrimaryTableCol => {
       const isInputType = InputMessageTypes.includes(item.type);
       const messageTip = MessageTipMap[item.type];
       return {
-        field: item.type,
-        minWidth: isInputType ? 320 : 120,
-        render: ({ data }: { data: DataRow }) => {
+        align: 'center',
+        cell: (_, { row }) => {
           if (isInputType) {
             return (
               <bk-input
-                v-model={data.input[item.type]}
+                v-model={row.input[item.type]}
                 placeholder={t('请输入群ID')}
               />
             );
           }
-          return <bk-checkbox v-model={data.checkbox[item.type]} />;
+          return <bk-checkbox v-model={row.checkbox[item.type]} />;
         },
-        renderHead: () => (
+        colKey: item.type,
+        minWidth: isInputType ? 320 : 120,
+        title: () => (
           <div class='message-type-head'>
             <img
               height='20'
@@ -201,7 +199,6 @@
             )}
           </div>
         ),
-        showOverflowTooltip: false,
       };
     });
 
@@ -304,8 +301,6 @@
     return list;
   };
 
-  const setHeadCellClassName = ({ columnIndex }: { columnIndex: number }) => (columnIndex < 2 ? 'common-head' : '');
-
   const getSmartActionOffsetTarget = () => document.querySelector('.bk-form-content');
 
   const getData = () => {
@@ -402,7 +397,7 @@
 
     :deep(.notice-table) {
       th {
-        &.common-head {
+        &:nth-child(-n + 2) {
           font-weight: bolder;
         }
 
