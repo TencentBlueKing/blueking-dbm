@@ -16,6 +16,7 @@ from pipeline.component_framework.component import Component
 from pipeline.core.flow.activity import Service
 
 import backend.flow.utils.name_service.name_service_dataclass as flow_context
+from backend.db_meta.models import Cluster
 from backend.db_services.plugin.nameservice import mysql_clb
 from backend.flow.plugins.components.collections.common.base_service import BaseService
 from blue_krill.data_types.enum import EnumField, StrStructuredEnum
@@ -54,7 +55,11 @@ class MySQLClbServiceOperation(BaseService):
         trans_data = data.get_one_of_inputs("trans_data")
         creator = kwargs["creator"]
         role = kwargs["role"]
-        cluster_id = kwargs["cluster_id"]
+        cluster_id = kwargs.get("cluster_id")
+
+        # 集群刚创建时，单据构建阶段可能还没有cluster_id，此处通过bk_biz_id+domain_name实时解析
+        if not cluster_id and kwargs.get("domain_name"):
+            cluster_id = Cluster.objects.get(bk_biz_id=kwargs["bk_biz_id"], immute_domain=kwargs["domain_name"]).id
 
         if trans_data is None or trans_data == "${trans_data}":
             # 表示没有加载上下文内容，则在此添加

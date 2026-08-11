@@ -17,7 +17,7 @@ from django.utils.crypto import get_random_string
 from django.utils.translation import gettext as _
 
 from backend.configuration.constants import DBType
-from backend.db_meta.enums import ClusterType
+from backend.db_meta.enums import ClusterType, TenDBClusterSpiderRole
 from backend.flow.consts import TDBCTL_USER, PrivRole
 from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
@@ -53,6 +53,7 @@ from backend.flow.utils.mysql.mysql_act_dataclass import (
     MysqlSyncMasterKwargs,
 )
 from backend.flow.utils.mysql.mysql_act_playload import MysqlActPayload
+from backend.flow.utils.mysql.mysql_clb_util import build_mysql_clb_apply_subs
 from backend.flow.utils.mysql.mysql_context_dataclass import SpiderApplyManualContext
 from backend.flow.utils.spider.spider_act_dataclass import InstanceTuple, ShardInfo
 from backend.flow.utils.spider.spider_db_meta import SpiderDBMeta
@@ -123,6 +124,20 @@ class TenDBClusterApplyFlow(object):
             )
 
         return install_mysql_ports
+
+    def _append_apply_clb_subflow(self, deploy_pipeline: SubBuilder):
+        """元数据落库后按单据传参创建 spider_master CLB"""
+        clb_subs = build_mysql_clb_apply_subs(
+            root_id=self.root_id,
+            data=copy.deepcopy(self.data),
+            bk_biz_id=self.data["bk_biz_id"],
+            domain_name=self.data["immutable_domain"],
+            creator=self.data["created_by"],
+            apply_clb=self.data.get("apply_clb", False),
+            spider_role=TenDBClusterSpiderRole.SPIDER_MASTER.value,
+        )
+        if clb_subs:
+            deploy_pipeline.add_parallel_sub_pipeline(sub_flow_list=clb_subs)
 
     def __assign_shard_master_slave(
         self, install_port_list: list, is_no_slave: bool = False
@@ -457,6 +472,8 @@ class TenDBClusterApplyFlow(object):
                 )
             ),
         )
+        # 阶段9.1 按单据传参创建CLB（依赖元数据已落库）
+        self._append_apply_clb_subflow(deploy_pipeline)
         # 阶段10 remote安装周边组件
         deploy_pipeline.add_sub_pipeline(
             sub_flow=standardize_mysql_cluster_subflow(
@@ -692,6 +709,8 @@ class TenDBClusterApplyFlow(object):
                 )
             ),
         )
+        # 阶段9.1 按单据传参创建CLB（依赖元数据已落库）
+        self._append_apply_clb_subflow(deploy_pipeline)
         # 阶段10 remote安装周边组件
         deploy_pipeline.add_sub_pipeline(
             sub_flow=standardize_mysql_cluster_subflow(
