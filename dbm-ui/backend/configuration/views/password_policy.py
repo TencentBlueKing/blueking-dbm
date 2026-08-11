@@ -53,7 +53,7 @@ def decorator_permission_field():
         def wrapped_view(*args, **kwargs):
             response = view_func(*args, **kwargs)
             db_type = get_request_key_id(args[1], key="db_type")
-            perm_actions = [getattr(ActionEnum, f"{db_type}_admin_pwd_view".lower())]
+            perm_actions = [getattr(ActionEnum, f"{db_type}_admin_pwd_view".upper())]
             action_resource_meta = perm_actions[0].related_resource_types[0]
             result_list = response.data["results"]
 
