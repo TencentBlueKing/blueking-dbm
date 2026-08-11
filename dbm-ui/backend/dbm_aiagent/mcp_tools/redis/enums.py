@@ -20,7 +20,7 @@ class MetricType(StrStructuredEnum):
     Used as the suffix of metric key in METRIC_REGISTRY.
     """
 
-    CPU_USAGE = EnumField("cpu_usage", "CPU usage")
+    CPU_USAGE = EnumField("cpu_usage", "CPU usage (host multi-core)")
     # Process CPU (% of one core), not host multi-core summary.
     # Redis: exporter user+sys; Twemproxy: process_cpu. Predixy has no process metric — unsupported.
     INSTANCE_CPU_USAGE = EnumField("instance_cpu_usage", "Instance CPU usage")

@@ -539,11 +539,12 @@ METRIC_REGISTRY = {
         "required_dimensions": ["ip"],  # Inner query needs ip dimension for per-IP bucket counts
     },
     # Twemproxy proxy metrics
+    # Host multi-core CPU — same source as redis/predixy cpu_usage (cpu_summary).
     "twemproxy_cpu_usage": {
         "promql_template": (
             "max by ({group_by}) ("
             "max_over_time("
-            "bkmonitor:dbm_system:cpu_detail:usage{{"
+            "bkmonitor:dbm_system:cpu_summary:usage{{"
             "{filters}"
             "}}[{time_window}s]"
             "))"
@@ -553,10 +554,10 @@ METRIC_REGISTRY = {
             "stats": [AggFunction.MIN, AggFunction.MAX, AggFunction.AVG, AggFunction.STDDEV],
         },
         "supported_group_by": [MetricsGroupBy.CLUSTER_DOMAIN, MetricsGroupBy.IP],
-        "required_dimensions": ["ip"],  # Twemproxy uses cpu_detail which has device dimension
+        "required_dimensions": ["ip"],
     },
     # Per Twemproxy process CPU (%): irate(process_cpu)/100. Distinct from host
-    # twemproxy_cpu_usage (cpu_detail). Outer agg is max across instances.
+    # twemproxy_cpu_usage (cpu_summary). Outer agg is max across instances.
     "twemproxy_instance_cpu_usage": {
         "promql_template": (
             "max by ({group_by}) ("
