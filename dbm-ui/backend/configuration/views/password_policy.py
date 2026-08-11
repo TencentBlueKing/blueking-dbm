@@ -56,6 +56,8 @@ def decorator_permission_field():
             perm_actions = [getattr(ActionEnum, f"{db_type}_admin_pwd_view".upper())]
             action_resource_meta = perm_actions[0].related_resource_types[0]
             result_list = response.data["results"]
+            if not result_list:
+                return response
 
             # 构建 ip:port -> cluster_id 的映射
             ip_port_cluster_map = {}
@@ -92,7 +94,7 @@ def decorator_permission_field():
 
             for item in result_list:
                 item.setdefault("permission", {})
-                ip_port = f"{item['machine__ip']}{IP_PORT_DIVIDER}{item['port']}"
+                ip_port = f"{item['ip']}{IP_PORT_DIVIDER}{item['port']}"
                 instance_id = str(ip_port_cluster_map.get(ip_port))
                 if not instance_id:
                     continue
