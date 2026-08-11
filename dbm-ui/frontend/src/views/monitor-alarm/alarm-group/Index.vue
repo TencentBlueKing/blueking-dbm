@@ -63,12 +63,17 @@
               </BkTag>
             </template>
             <template #default>
+              <BkButton
+                v-if="row.is_built_in"
+                text
+                theme="primary"
+                @click="handleOpenDetail('edit', row)">
+                {{ row.name }}
+              </BkButton>
               <AuthButton
-                :action-id="row.is_built_in ? 'global_notify_group_update' : 'notify_group_manage'"
-                :permission="
-                  row.is_built_in ? row.permission.global_notify_group_update : row.permission.notify_group_manage
-                "
-                :resource="row.is_built_in ? row.id : undefined"
+                v-else
+                action-id="'notify_group_manage'"
+                :permission="row.permission.notify_group_manage"
                 text
                 theme="primary"
                 @click="handleOpenDetail('edit', row)">
