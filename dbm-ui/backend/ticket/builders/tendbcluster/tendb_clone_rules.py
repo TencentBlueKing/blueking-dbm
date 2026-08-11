@@ -37,7 +37,7 @@ class TendbClusterCloneRulesFlowParamBuilder(MySQLCloneRulesFlowParamBuilder):
     pass
 
 
-@builders.BuilderFactory.register(TicketType.TENDBCLUSTER_CLIENT_CLONE_RULES, iam=ActionEnum.TENDBCLUSTER_PRIV_MANAGE)
+@builders.BuilderFactory.register(TicketType.TENDBCLUSTER_CLIENT_CLONE_RULES, iam=ActionEnum.TENDBCLUSTER_AUTHORIZE)
 class TendbClusterClientCloneRulesFlowBuilder(MySQLClientCloneRulesFlowBuilder):
     group = DBType.TenDBCluster.value
     serializer = TendbClusterCloneRulesSerializer
@@ -47,8 +47,6 @@ class TendbClusterClientCloneRulesFlowBuilder(MySQLClientCloneRulesFlowBuilder):
     default_need_manual_confirm = False
 
 
-@builders.BuilderFactory.register(
-    TicketType.TENDBCLUSTER_INSTANCE_CLONE_RULES, iam=ActionEnum.TENDBCLUSTER_PRIV_MANAGE
-)
+@builders.BuilderFactory.register(TicketType.TENDBCLUSTER_INSTANCE_CLONE_RULES, iam=ActionEnum.TENDBCLUSTER_AUTHORIZE)
 class TendbClusterInstanceCloneRulesFlowBuilder(TendbClusterClientCloneRulesFlowBuilder):
     inner_flow_name = _("TenDB Cluster 实例权限克隆执行")

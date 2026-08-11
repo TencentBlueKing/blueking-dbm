@@ -411,9 +411,9 @@ class TicketType(StrStructuredEnum):
     TENDBCLUSTER_INSTANCE_CLONE_RULES = TicketEnumField("TENDBCLUSTER_INSTANCE_CLONE_RULES",
                                                         _("TenDB Cluster DB实例权限克隆"), _("权限管理"))  # noqa
     TENDBCLUSTER_AUTHORIZE_RULES = TicketEnumField("TENDBCLUSTER_AUTHORIZE_RULES", _("TenDB Cluster 授权"),
-                                                   _("权限管理"), register_iam=True)
+                                                   _("权限管理"))
     TENDBCLUSTER_EXCEL_AUTHORIZE_RULES = TicketEnumField("TENDBCLUSTER_EXCEL_AUTHORIZE_RULES",
-                                                         _("TenDB Cluster EXCEL授权"), _("权限管理"), register_iam=True)  # noqa
+                                                         _("TenDB Cluster EXCEL授权"), _("权限管理"))  # noqa
     TENDBCLUSTER_CLUSTER_STANDARDIZE = TicketEnumField("TENDBCLUSTER_CLUSTER_STANDARDIZE",
                                                        _("TenDB Cluster 集群标准化"))  # noqa
     TENDBCLUSTER_APPEND_DEPLOY_CTL = TicketEnumField("TENDBCLUSTER_APPEND_DEPLOY_CTL", _("TenDB Cluster 追加部署中控"))  # noqa
