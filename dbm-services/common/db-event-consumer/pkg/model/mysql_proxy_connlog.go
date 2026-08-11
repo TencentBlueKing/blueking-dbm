@@ -39,10 +39,10 @@ type MysqlProxyConnlog struct {
 	ClusterDomain   string `gorm:"column:cluster_domain;type:varchar(127);not null" json:"__module__" db:"cluster_domain"`
 	//ClusterDomain   string `gorm:"column:cluster_domain;type:varchar(127);not null" json:"cluster_domain" db:"cluster_domain"`
 	//BkCloudId       int    `gorm:"column:bk_cloud_id;type:int;not null" json:"cloudId" db:"bk_cloud_id"`
-	// InstanceHost proxy serverIp
-	InstanceHost string `gorm:"column:instance_host;type:varchar(127);not null" json:"instance_host" db:"instance_host"`
-	// InstancePort mysql-proxy port
-	InstancePort int `gorm:"column:instance_port;type:int;not null" json:"instance_port" db:"instance_port"`
+	// ProxyIp proxy serverIp
+	ProxyIp string `gorm:"column:proxy_ip;type:varchar(127);not null" json:"proxy_ip" db:"proxy_ip"`
+	// ProxyPort mysql-proxy port
+	ProxyPort int `gorm:"column:proxy_port;type:int;not null" json:"proxy_port" db:"proxy_port"`
 
 	ClientIp  string    `gorm:"column:client_ip;type:varchar(127);not null" json:"client_ip" db:"client_ip"`
 	ConnUser  string    `gorm:"column:conn_user;type:varchar(127);not null" json:"conn_user" db:"conn_user"`
@@ -77,7 +77,7 @@ func (m *MysqlProxyConnlog) UnmarshalItem(data []byte, msg base.MessageWrapper) 
 	//m.ClusterDomain = msg.BkModule
 	m.BkCloudId = msg.BkCloudId
 	m.DtEventTimeStamp = connTime
-	m.InstanceHost = msg.Ip
+	m.ProxyIp = msg.Ip
 
 	m.ConnTime = connTime
 	m.ConnUser = matches[2]
@@ -175,7 +175,7 @@ func (m *MysqlProxyConnlog) dorisCreate(i interface{}, db *gorm.DB) error {
 	builder.Cols(
 		"thedate", "dteventtimestamp", "dteventtimehour",
 		"cluster_domain",
-		"instance_host",
+		"proxy_ip",
 		"conn_time",
 		"client_ip",
 		"conn_user",
@@ -190,7 +190,7 @@ func (m *MysqlProxyConnlog) dorisCreate(i interface{}, db *gorm.DB) error {
 		builder.Values(
 			kafkaObj.TheDate, kafkaObj.DtEventTimeStamp, kafkaObj.DtEventTimeHour,
 			kafkaObj.ClusterDomain,
-			kafkaObj.InstanceHost,
+			kafkaObj.ProxyIp,
 			kafkaObj.ConnTime,
 			kafkaObj.ClientIp,
 			kafkaObj.ConnUser,
@@ -223,7 +223,7 @@ CREATE TABLE IF NOT EXISTS %s (
   dteventtimehour datetime NOT NULL COMMENT "datetime precision to hour, used as where,group-by,expire",
   thedate int NOT NULL,
   dteventtimestamp datetime NOT NULL,
-  instance_host varchar(60) NOT NULL,
+  proxy_ip varchar(60) NOT NULL,
   conn_time datetime NOT NULL,
   client_ip varchar(60) NULL,
   conn_user varchar(100) NULL,

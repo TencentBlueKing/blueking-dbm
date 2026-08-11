@@ -18,9 +18,10 @@ const createTableSQL = `CREATE TABLE IF NOT EXISTS infodba_schema.proxy_conn_log
 	username VARCHAR(64) NOT NULL,
 	client_host VARCHAR(64) NOT NULL,
 	thread_id BIGINT NOT NULL,
-	KEY idx_conn_time (conn_time),
+	KEY idx_proxy_ip (proxy_ip,username),
 	KEY idx_user_host (username, client_host),
-	KEY idx_proxy_ip (thread_id)
+	KEY idx_conn_time (conn_time),
+	KEY idx_thread (thread_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='dml show disable sql_log_bin'`
 
 // initConn 初始化连接：关闭 binlog

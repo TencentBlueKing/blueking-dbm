@@ -242,7 +242,8 @@ def query_slowlog_aggregated(
         ANY_VALUE(query_command) AS query_command,
         ANY_VALUE(query_db_name) AS query_db_name,
         ANY_VALUE(table_names) AS table_names,
-        ANY_VALUE(username) AS username
+        ANY_VALUE(username) AS username,
+        ANY_VALUE(client_host) client_host
     FROM {MysqlSlowlogDetail._meta.db_table}
     WHERE cluster_domain = %s
         AND instance_role = %s
@@ -307,6 +308,7 @@ def query_slowlog_aggregated(
                 query_db_name=AnyValue("query_db_name", output_field=CharField()),
                 table_names=AnyValue("table_names", output_field=CharField()),
                 username=AnyValue("username", output_field=CharField()),
+                client_host=AnyValue("client_host", output_field=CharField()),
                 instance_host=AnyValue("instance_host", output_field=CharField()),
                 instance_port=AnyValue("instance_port", output_field=IntegerField()),
             )

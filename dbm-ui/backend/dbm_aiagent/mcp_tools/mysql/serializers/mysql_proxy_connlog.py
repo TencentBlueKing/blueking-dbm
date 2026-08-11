@@ -16,7 +16,7 @@ class ProxyConnlogInputSerializer(serializers.Serializer):
     cluster_domain = serializers.CharField(
         help_text=_("集群域名（必填）"),
     )
-    instance_hosts = serializers.ListField(
+    proxy_ips = serializers.ListField(
         child=serializers.CharField(),
         help_text=_("proxy 实例 IP 列表（必填），格式如 ['1.1.1.1', '2.2.2.2']"),
         min_length=1,
@@ -71,3 +71,22 @@ class ProxyConnlogInstanceSerializer(serializers.Serializer):
 class ProxyConnlogOutputSerializer(serializers.Serializer):
     cluster_domain = serializers.CharField(help_text=_("集群域名"))
     instances = ProxyConnlogInstanceSerializer(many=True, help_text=_("按实例分组的连接记录"))
+
+
+class ProxyConnLogRowSerializer(serializers.Serializer):
+    proxy_ip = serializers.CharField(help_text=_("proxy IP"))
+    conn_time = serializers.CharField(help_text=_("连接时间"))
+    username = serializers.CharField(help_text=_("连接用户"))
+    client_host = serializers.CharField(help_text=_("客户端地址"))
+    thread_id = serializers.IntegerField(help_text=_("线程ID"))
+
+
+class ProxyConnLogInstanceSerializer(serializers.Serializer):
+    proxy_ip = serializers.CharField(help_text=_("proxy IP"))
+    records = ProxyConnLogRowSerializer(many=True, help_text=_("连接记录列表"))
+    total = serializers.IntegerField(help_text=_("该 proxy 符合条件的总记录数"))
+
+
+class QueryProxyConnLogOutputSerializer(serializers.Serializer):
+    cluster_domain = serializers.CharField(help_text=_("集群域名"))
+    instances = ProxyConnLogInstanceSerializer(many=True, help_text=_("按 proxy_ip 分组的连接记录"))

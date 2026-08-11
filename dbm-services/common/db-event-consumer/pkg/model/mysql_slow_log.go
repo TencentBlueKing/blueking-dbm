@@ -39,7 +39,7 @@ type MysqlSlowLogModel struct {
 	// TheDate 20250101
 	TheDate int `gorm:"column:thedate;type:int;not null" json:"thedate" db:"thedate"`
 
-	ClusterDomain string `gorm:"column:cluster_domain;type:varchar(200);not null" json:"cluster_domain" db:"cluster_domain"`
+	ClusterDomain string `gorm:"column:cluster_domain;type:varchar(255);not null" json:"cluster_domain" db:"cluster_domain"`
 	InstanceHost  string `gorm:"column:instance_host;type:varchar(60);not null" json:"instance_host" db:"instance_host"`
 	InstancePort  int    `gorm:"column:instance_port;type:int;not null" json:"instance_port" db:"instance_port"`
 	InstanceRole  string `gorm:"column:instance_role;type:varchar(60);not null" json:"instance_role" db:"instance_role"`
@@ -55,9 +55,13 @@ type MysqlSlowLogModel struct {
 	QueryString     string `gorm:"column:query_string;type:longtext;not null" json:"query_string" db:"query_string"`
 	QueryLength     int    `gorm:"column:query_length;type:int;not null" json:"query_length" db:"query_length"`
 	QueryCommand    string `gorm:"column:query_command;type:varchar(60);not null" json:"command" db:"query_command"`
-	QueryDbName     string `gorm:"column:query_db_name;type:varchar(127);not null" json:"query_db_name" db:"query_db_name"`
-	DbName          string `gorm:"column:db_name;type:varchar(127);not null" json:"db_name" db:"db_name"`
 	TableNames      string `gorm:"column:table_names;type:varchar(1024);not null" json:"table_names" db:"table_names"`
+	QueryDbName     string `gorm:"column:query_db_name;type:varchar(255);not null" json:"query_db_name" db:"query_db_name"`
+	// DbName: Schema 最权威，其次是 DbName,最后是 QueryDbName
+	DbName    string `gorm:"column:db_name;type:varchar(255);not null" json:"db_name" db:"db_name"`
+	SessionId int64  `gorm:"column:session_id;type:bigint;not null" json:"session_id" db:"session_id"`
+	// QueryStartTs SqlTimestamp
+	QueryStartTs uint `gorm:"column:query_start_ts;type:bigint;not null" json:"query_start_ts" db:"query_start_ts"`
 
 	Username     string `gorm:"column:username;type:varchar(127);not null" json:"user" db:"username"`
 	ClientHost   string `gorm:"column:client_host;type:varchar(60);not null" json:"client_host" db:"client_host"`
@@ -100,6 +104,7 @@ type SlowLog struct {
 	Username   string `json:"username"`
 	ClientHost string `json:"client_host"`
 	// DbName	Schema: or Use xxx
+	Schema       string  `json:"schema"`
 	DbName       string  `json:"db_name"`
 	QueryTime    float32 `json:"query_time"`
 	LockTime     float32 `json:"lock_time"`
@@ -114,9 +119,10 @@ type SlowLog struct {
 	QueryCommand    string `json:"query_command"`
 	QueryLength     int    `json:"query_length"`
 	// QueryDbName parsed from query_string
-	QueryDbName string `json:"query_db_name"`
-	TableNames  string `json:"table_names"`
-	// ThreadId        int    `json:"thread_id"`
+	QueryDbName  string `json:"query_db_name"`
+	TableNames   string `json:"table_names"`
+	SessionId    int64  `json:"session_id"`
+	QueryStartTs uint   `json:"query_start_ts"`
 }
 
 func (m *MysqlSlowLogModel) TableName() string {
@@ -215,6 +221,7 @@ func (m *MysqlSlowLogModel) dorisCreate(i interface{}, db *gorm.DB) error {
 		"rows_examined",
 		"rows_sent",
 
+		"session_id",
 		"username",
 		"client_host",
 		"cluster_type",
@@ -247,6 +254,7 @@ func (m *MysqlSlowLogModel) dorisCreate(i interface{}, db *gorm.DB) error {
 			kafkaObj.RowsExamined,
 			kafkaObj.RowsSent,
 
+			kafkaObj.SessionId,
 			kafkaObj.Username,
 			kafkaObj.ClientHost,
 			kafkaObj.ClusterType,
@@ -301,6 +309,7 @@ CREATE TABLE IF NOT EXISTS %s (
     
   bk_biz_id int DEFAULT NULL,
   bk_cloud_id int DEFAULT NULL,
+  session_id bigint DEFAULT NULL,
   client_host varchar(60) DEFAULT NULL,
   username varchar(127) DEFAULT NULL,
   app_name varchar(60) DEFAULT NULL,
@@ -340,6 +349,7 @@ CREATE TABLE IF NOT EXISTS %s (
   db_name varchar(100) NULL,
   table_names varchar(1024) NULL,
 
+  session_id int NULL,
   client_host varchar(60) NULL,
   username varchar(60) NULL,
   cluster_type varchar(60) NULL,
@@ -407,7 +417,11 @@ func (m *MysqlSlowLogModel) UnmarshalItem(data []byte, msg base.MessageWrapper) 
 	m.InstancePort = cast.ToInt(dimExt.InstancePort)
 
 	// 公共的字段
-	m.SqlTimestamp = msg.Ts
+	if m.QueryStartTs > 0 {
+		m.SqlTimestamp = m.QueryStartTs
+	} else if m.SqlTimestamp == 0 {
+		m.SqlTimestamp = msg.Ts
+	}
 	m.DtEventTimeStamp = msg.LogTime.Time
 	m.LogTime = msg.UtcTime.Time
 

@@ -1,7 +1,7 @@
 {
     "bk_biz_id": null,
-    "collector_config_name": "mysql_proxy_connlog",
-    "collector_config_name_en": "mysql_proxy_connlog",
+    "collector_config_name": "mysql_proxy_connlog_v2",
+    "collector_config_name_en": "mysql_proxy_connlog_v2",
     "collector_scenario_id": "row",
     "category_id": "host_process",
     "etl_config": "bk_log_regexp",
@@ -31,7 +31,29 @@
             "match_content": "conn_log"
         },
         "encoding": "UTF-8",
-        "tail_files": true
+        "tail_files": true,
+        "extra_template_labels": [
+            {
+                "key": "$for",
+                "value": "cmdb_instance.scope"
+            },
+            {
+                "key": "$body",
+                "value": {
+                    "app": "{{ cmdb_instance.service.labels[\"app\"] }}",
+                    "app_id": "{{ cmdb_instance.service.labels[\"appid\"] }}",
+                    "bk_cloud_id": "{{ cmdb_instance.service.labels[\"bk_cloud_id\"] }}",
+                    "cluster_type": "{{ cmdb_instance.service.labels[\"cluster_type\"] }}",
+                    "instance_host": "{{ cmdb_instance.service.labels[\"instance_host\"] }}",
+                    "instance_port": "{{ cmdb_instance.service.labels[\"instance_port\"] }}",
+                    "cluster_domain": "{{ cmdb_instance.service.labels[\"cluster_domain\"] }}"
+                }
+            },
+            {
+                "key": "$item",
+                "value": "scope"
+            }
+        ]
     },
     "etl_params": {
         "es_unique_field_list": [

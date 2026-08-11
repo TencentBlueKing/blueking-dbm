@@ -128,7 +128,7 @@ func parseOneSlowLog(data string, digest bool) (*SlowLog, error) {
 				db := strings.TrimPrefix(line, isUse)
 				db = strings.TrimRight(db, ";")
 				db = strings.Trim(db, "`")
-				result.DbName = strings.TrimSpace(db)
+				result.Schema = strings.TrimSpace(db)
 				// 若还没有真正的 SQL，先把 use 语句作为 query（对齐 percona 行为）
 				if len(queryLines) == 0 {
 					queryLines = append(queryLines, line)
@@ -149,7 +149,7 @@ func parseOneSlowLog(data string, digest bool) (*SlowLog, error) {
 	result.QueryLength = len(result.QueryString)
 
 	if digest {
-		digestResp, err := mysql.AnalyzeSql(result.DbName, result.QueryString)
+		digestResp, err := mysql.AnalyzeSql(result.Schema, result.QueryString)
 		if err != nil {
 			return nil, err
 		}
@@ -199,7 +199,7 @@ func parseSlowLogHeader(line string, result *SlowLog) {
 		// Schema 行
 		if submatch := slowLogSchemaRe.FindStringSubmatch(line); len(submatch) == 2 {
 			if schemaName := strings.TrimSpace(submatch[1]); schemaName != "" {
-				result.DbName = schemaName
+				result.Schema = schemaName
 			}
 		}
 
@@ -215,10 +215,14 @@ func parseSlowLogHeader(line string, result *SlowLog) {
 					result.QueryTime = float32(v)
 				case "Lock_time":
 					result.LockTime = float32(v)
+				case "Query_start_ts":
+					result.QueryStartTs = uint(v)
 				}
 			case val == "Yes" || val == "No":
 				// 布尔指标，暂不存储
 			case key == "Schema" && val != "":
+				result.Schema = val
+			case key == "Db_name" && val != "":
 				result.DbName = val
 			default:
 				// 整数指标
@@ -228,8 +232,13 @@ func parseSlowLogHeader(line string, result *SlowLog) {
 					result.RowsExamined = int(v)
 				case "Rows_sent":
 					result.RowsSent = int(v)
+				case "Session_id":
+					result.SessionId = int64(v)
 				}
 			}
+		}
+		if result.Schema == "" {
+			result.Schema = result.DbName
 		}
 	}
 }

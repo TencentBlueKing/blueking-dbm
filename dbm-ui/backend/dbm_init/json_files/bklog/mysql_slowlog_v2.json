@@ -1,6 +1,6 @@
 {
   "bk_biz_id": null,
-  "collector_config_name": "mysql_slowquery",
+  "collector_config_name": "mysql_slowlog_v2",
   "collector_scenario_id": "section",
   "category_id": "application_check",
   "target_object_type": "SERVICE",
@@ -46,7 +46,7 @@
             }
         ]
   },
-  "collector_config_name_en": "mysql_slowquery",
+  "collector_config_name_en": "mysql_slowlog_v2",
   "enable_v4": true,
   "es_shards": 3,
   "retention": 30,
