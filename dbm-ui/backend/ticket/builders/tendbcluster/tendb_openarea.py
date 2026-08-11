@@ -10,7 +10,6 @@ specific language governing permissions and limitations under the License.
 """
 from django.utils.translation import gettext_lazy as _
 
-from backend.iam_app.dataclass.actions import ActionEnum
 from backend.ticket import builders
 from backend.ticket.builders.mysql.mysql_openarea import MysqlOpenAreaDetailSerializer, MysqlOpenAreaParamBuilder
 from backend.ticket.builders.tendbcluster.base import BaseTendbTicketFlowBuilder
@@ -25,7 +24,7 @@ class TendbOpenAreaParamBuilder(MysqlOpenAreaParamBuilder):
     pass
 
 
-@builders.BuilderFactory.register(TicketType.TENDBCLUSTER_OPEN_AREA, iam=ActionEnum.TENDBCLUSTER_OPENAREA_MANAGE)
+@builders.BuilderFactory.register(TicketType.TENDBCLUSTER_OPEN_AREA)
 class TendbOpenAreaFlowBuilder(BaseTendbTicketFlowBuilder):
     serializer = TendbOpenAreaDetailSerializer
     inner_flow_builder = TendbOpenAreaParamBuilder

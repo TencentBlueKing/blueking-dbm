@@ -1249,7 +1249,7 @@ class ActionEnum:
 
     MYSQL_OPENAREA_MANAGE = ActionMeta(
         id="mysql_openarea_manage",
-        name=_("MySQL 开区管理"),
+        name=_("MySQL 开区模板管理"),
         name_en="mysql_openarea_manage",
         type="manage",
         related_actions=[],
@@ -1266,6 +1266,18 @@ class ActionEnum:
         type="manage",
         related_actions=[],
         related_resource_types=[ResourceEnum.BUSINESS],
+        group=_("MySQL"),
+        subgroup=_("权限管理"),
+        common_labels=[CommonActionLabel.DEVELOPER, CommonActionLabel.BIZ_MAINTAIN],
+    )
+
+    MYSQL_AUTHORIZE = ActionMeta(
+        id="mysql_authorize",
+        name=_("MySQL 授权"),
+        name_en="mysql_authorize",
+        type="manage",
+        related_actions=[],
+        related_resource_types=[ResourceEnum.MYSQL],
         group=_("MySQL"),
         subgroup=_("权限管理"),
         common_labels=[CommonActionLabel.DEVELOPER, CommonActionLabel.BIZ_MAINTAIN],
@@ -1308,8 +1320,9 @@ class ActionEnum:
         name_en="mysql_open_area",
         type="execute",
         related_actions=[DB_MANAGE.id],
-        related_resource_types=[ResourceEnum.OPENAREA_CONFIG, ResourceEnum.MYSQL],
-        group=_("已废弃"),
+        related_resource_types=[ResourceEnum.MYSQL],
+        group=_("MySQL"),
+        subgroup=_("分区管理"),
     )
 
     MYSQL_OPENAREA_CONFIG_CREATE = ActionMeta(
@@ -1471,7 +1484,7 @@ class ActionEnum:
 
     TENDBCLUSTER_OPENAREA_MANAGE = ActionMeta(
         id="tendbcluster_openarea_manage",
-        name=_("TenDB Cluster 开区管理"),
+        name=_("TenDB Cluster 开区模板管理"),
         name_en="tendbcluster_openarea_manage",
         type="manage",
         related_actions=[],
@@ -1488,6 +1501,18 @@ class ActionEnum:
         type="manage",
         related_actions=[],
         related_resource_types=[ResourceEnum.BUSINESS],
+        group=_("TenDBCluster"),
+        subgroup=_("权限管理"),
+        common_labels=[CommonActionLabel.DEVELOPER, CommonActionLabel.BIZ_MAINTAIN],
+    )
+
+    TENDBCLUSTER_AUTHORIZE = ActionMeta(
+        id="tendbcluster_authorize",
+        name=_("TenDBCluster 授权"),
+        name_en="tendbcluster_authorize",
+        type="manage",
+        related_actions=[],
+        related_resource_types=[ResourceEnum.TENDBCLUSTER],
         group=_("TenDBCluster"),
         subgroup=_("权限管理"),
         common_labels=[CommonActionLabel.DEVELOPER, CommonActionLabel.BIZ_MAINTAIN],
@@ -1642,8 +1667,9 @@ class ActionEnum:
         name_en="tendbcluster_open_area",
         type="execute",
         related_actions=[DB_MANAGE.id],
-        related_resource_types=[ResourceEnum.OPENAREA_CONFIG, ResourceEnum.TENDBCLUSTER],
-        group=_("已废弃"),
+        related_resource_types=[ResourceEnum.TENDBCLUSTER],
+        group=_("TenDBCluster"),
+        subgroup=_("克隆与开区"),
     )
 
     TENDBCLUSTER_OPENAREA_CONFIG_CREATE = ActionMeta(
@@ -2143,7 +2169,7 @@ class ActionEnum:
         related_actions=[DB_MANAGE.id],
         related_resource_types=[ResourceEnum.REDIS],
         group=_("Redis"),
-        subgroup=_("权限管理"),
+        subgroup=_("集群管理"),
         common_labels=[CommonActionLabel.BIZ_MAINTAIN],
     )
 
@@ -2662,7 +2688,7 @@ class ActionEnum:
         related_actions=[DB_MANAGE.id],
         related_resource_types=[ResourceEnum.ES],
         group=_("ElasticSearch"),
-        subgroup=_("权限管理"),
+        subgroup=_("集群管理"),
         common_labels=[CommonActionLabel.BIZ_MAINTAIN],
     )
 
@@ -3375,7 +3401,7 @@ class ActionEnum:
         type="manage",
         related_actions=[DB_MANAGE.id],
         related_resource_types=[ResourceEnum.BUSINESS],
-        group=_("Mongodb"),
+        group=_("MongoDB"),
         subgroup=_("权限管理"),
         common_labels=[CommonActionLabel.BIZ_MAINTAIN],
     )
@@ -3387,8 +3413,8 @@ class ActionEnum:
         type="manage",
         related_actions=[DB_MANAGE.id],
         related_resource_types=[ResourceEnum.MONGODB],
-        group=_("Mongodb"),
-        subgroup=_("权限管理"),
+        group=_("MongoDB"),
+        subgroup=_("集群管理"),
         common_labels=[CommonActionLabel.BIZ_MAINTAIN],
     )
 
@@ -4622,6 +4648,7 @@ class ActionEnum:
         related_actions=[DB_MANAGE.id],
         related_resource_types=[ResourceEnum.MYSQL],
         group=_("MySQL"),
+        subgroup=_("集群管理"),
     )
 
     TENDBCLUSTER_ADMIN_PWD_VIEW = ActionMeta(
@@ -4632,6 +4659,7 @@ class ActionEnum:
         related_actions=[DB_MANAGE.id],
         related_resource_types=[ResourceEnum.TENDBCLUSTER],
         group=_("TenDBCluster"),
+        subgroup=_("集群管理"),
     )
 
     SQLSERVER_ADMIN_PWD_VIEW = ActionMeta(
@@ -4642,6 +4670,7 @@ class ActionEnum:
         related_actions=[DB_MANAGE.id],
         related_resource_types=[ResourceEnum.SQLSERVER],
         group=_("SQLServer"),
+        subgroup=_("集群管理"),
     )
 
     # ---- MCP 工具权限 ---

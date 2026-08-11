@@ -21,11 +21,7 @@ from backend.db_meta.models import Cluster, Machine, StorageInstance
 from backend.iam_app.dataclass.actions import ActionEnum, ActionMeta
 from backend.iam_app.dataclass.resources import ResourceEnum, ResourceMeta
 from backend.iam_app.exceptions import ResourceInvalidError
-from backend.iam_app.handlers.drf_perm.base import (
-    MoreResourceActionPermission,
-    ResourceActionPermission,
-    get_request_key_id,
-)
+from backend.iam_app.handlers.drf_perm.base import ResourceActionPermission, get_request_key_id
 from backend.ticket.builders.common.base import fetch_cluster_ids
 
 
@@ -209,34 +205,28 @@ class ModifyClusterPasswordPermission(ResourceActionPermission):
         super().__init__(actions=None, resource_meta=None, instance_ids_getter=self.inst_ids_getter)
 
 
-class QueryClusterPasswordPermission(MoreResourceActionPermission):
+class QueryClusterPasswordPermission(ResourceActionPermission):
     """
     集群admin密码查询相关动作鉴权
     """
 
-    @staticmethod
-    def instance_ids_getters(request, view):
+    def inst_ids_getter(self, request, view):
         data = request.data or request.query_params
         # admin密码查询鉴权
         if view.action == "query_admin_password":
-            if "bk_biz_id" in data:
-                return [(data["bk_biz_id"], data.get("db_type", "mysql"))]
-            elif "instances" in data:
-                instance = data["instances"].split(",")[0]
-                bk_cloud_id, ip, __ = instance.split(":")
-                machine = Machine.objects.get(bk_cloud_id=bk_cloud_id, ip=ip)
-                return [(machine.bk_biz_id, ClusterType.cluster_type_to_db_type(machine.cluster_type))]
+            db_type = data["db_type"]
+            if hasattr(ActionEnum, f"{db_type.upper()}_ADMIN_PWD_VIEW"):
+                self.actions = [getattr(ActionEnum, f"{db_type.upper()}_ADMIN_PWD_VIEW")]
+                self.resource_meta = getattr(ResourceEnum, db_type.upper())
+                instances = data["instances"]
+                return set([instance.get("cluster_id") for instance in instances])
             else:
                 raise NotImplementedError
         else:
             return []
 
     def __init__(self):
-        super().__init__(
-            actions=[ActionEnum.ADMIN_PWD_VIEW],
-            resource_metes=[ResourceEnum.BUSINESS, ResourceEnum.DBTYPE],
-            instance_ids_getters=self.instance_ids_getters,
-        )
+        super().__init__(actions=None, resource_meta=None, instance_ids_getter=self.inst_ids_getter)
 
 
 class ClusterWebconsolePermission(ResourceActionPermission):
