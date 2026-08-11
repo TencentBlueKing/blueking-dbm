@@ -25,6 +25,7 @@ logger = logging.getLogger("root")
 
 AI_ANALYSIS_SENTINEL = _("[AI失败分析]")
 AI_ANALYSIS_FAILED_SENTINEL = _("[AI分析失败]")
+AI_ANALYSIS_END_SENTINEL = _("[/AI失败分析]")
 FAILED_NODE_LOGS_SENTINEL = _("[子流程失败节点日志]")
 AI_ANALYSIS_COUNTDOWN_SECONDS = 60
 AI_ANALYSIS_TIMEOUT_SECONDS = 300
@@ -33,15 +34,52 @@ AI_ANALYSIS_TIMEOUT_SECONDS = 300
 FENCE_RE = re.compile(r"^```[^\n]*\n?|\n?```\s*$")
 # task_message embeds the failed-node log block; leave room for timeline + AI block.
 _MAX_TASK_MESSAGE_CHARS = 12000
+_TASK_MESSAGE_HEAD_CHARS = 4000
 _MAX_FLOW_LOG_CHARS = 8000
 # Cap embedded logs so MySQL TEXT stays lean and UI remains readable.
 _MAX_EMBEDDED_LOG_CHARS = 4000
 # Hard caps so we never mirror TaskFlowHandler.get_version_logs (ES size=10000 x2).
 _MAX_BKLOG_HITS = 300
 _BKLOG_TIME_PAD_HOURS = 24
+_ERROR_CONTEXT_LINES = 2
+# ERROR levelnames plus message patterns (actuator often embeds errors in INFO lines).
+_ERROR_LEVELS = frozenset({"ERROR", "CRITICAL", "FATAL"})
+_ERROR_LINE_RE = re.compile(
+    "|".join(
+        [
+            r"Traceback",
+            r"Exception",
+            r"\[error\]",
+            re.escape(_("错误")),
+            re.escape(_("失败")),
+            r"failed",
+            r"Error",
+        ]
+    ),
+    re.I,
+)
+_OMIT_LINES_PREFIX = _("...(省略")
+# Strip wall-clock / epoch timestamps so consecutive heartbeat / retry lines fold.
+_NORMALIZE_TS_RE = re.compile(
+    r"\d{4}[-/]\d{2}[-/]\d{2}[ T]\d{2}:\d{2}:\d{2}"  # 2026-08-10 14:02:52 / 2026/08/10 14:02:52
+    r"|\b\d{13}\b"  # epoch millis in job-status JSON
+)
+_EMBEDDED_TS_RE = re.compile(r"(\d{2}:\d{2}:\d{2})")
+_BKLOG_SORT_DESC = [
+    ["dtEventTimeStamp", "desc"],
+    ["gseIndex", "desc"],
+    ["iterationIndex", "desc"],
+]
 
 # Stages whose failure evidence lives on a child flow (need BKLog fetch at mark time).
 _FLOW_FAILURE_STAGES = (TaskStage.ROLLBACK_FAILED, TaskStage.CLEANUP_FAILED)
+
+
+def _end_sentinel_for(sentinel: str) -> str:
+    """Derive ``[/AI失败分析]`` / ``[/AI分析失败]`` from the opening sentinel."""
+    if sentinel.startswith("[") and not sentinel.startswith("[/"):
+        return "[" + "/" + sentinel[1:]
+    return AI_ANALYSIS_END_SENTINEL
 
 
 def is_exercise_ai_analysis_enabled() -> bool:
@@ -135,11 +173,18 @@ def embed_failed_node_logs(task_message: str, report: Report, stage) -> str:
         return existing
 
 
-def _truncate_text(text: str, max_chars: int) -> str:
-    text = (text or "").strip()
+def _head_tail_truncate(text: str, max_chars: int, head_chars: int = _TASK_MESSAGE_HEAD_CHARS) -> str:
+    """Keep the head (timeline) and tail (embedded child logs); drop the middle."""
+    text = text or ""
     if len(text) <= max_chars:
         return text
-    return text[:max_chars] + "\n...(truncated)"
+    head_chars = max(0, min(head_chars, max_chars))
+    # Leave room for the middle marker itself.
+    marker_budget = 40
+    tail_chars = max(0, max_chars - head_chars - marker_budget)
+    omitted = len(text) - head_chars - tail_chars
+    marker = _("\n...(中间截断 {} 字符)\n").format(omitted)
+    return f"{text[:head_chars]}{marker}{text[-tail_chars:]}" if tail_chars else f"{text[:head_chars]}{marker}"
 
 
 def _find_activity_name(activities: dict, target_node_id: str) -> str:
@@ -155,7 +200,7 @@ def _find_activity_name(activities: dict, target_node_id: str) -> str:
 
 
 def _esquery_search_capped(indices: str, query_string: str, start_time: str, end_time: str, size: int) -> list:
-    """BKLog search with an explicit size cap (TaskFlowHandler hardcodes 10000)."""
+    """BKLog search with an explicit size cap; newest-first so tail errors survive heartbeat floods."""
     from backend.components import BKLogApi
 
     resp = BKLogApi.esquery_search(
@@ -166,13 +211,19 @@ def _esquery_search_capped(indices: str, query_string: str, start_time: str, end
             "query_string": query_string,
             "start": 0,
             "size": size,
+            "sort_list": _BKLOG_SORT_DESC,
         }
     )
     return (resp or {}).get("hits", {}).get("hits", []) or []
 
 
 def _fetch_node_logs_capped(root_id: str, node_id: str, version_id: str, started_at, updated_at) -> list:
-    """Fetch node logs from BKLog with hard hit caps; never dump full ES payloads to logs."""
+    """Fetch node logs from BKLog with hard hit caps; never dump full ES payloads to logs.
+
+    Queries newest-first (desc) so long-running nodes with heartbeat spam still
+    return the trailing error lines within the hit budget; results are reversed
+    back to chronological order before formatting.
+    """
     from datetime import timedelta
 
     from backend.db_services.taskflow.handlers import TaskFlowHandler
@@ -232,7 +283,8 @@ def _fetch_node_logs_capped(root_id: str, node_id: str, version_id: str, started
             )
         )
     except Exception:
-        pass
+        # Desc query already returns newest-first; reverse as a best-effort chrono order.
+        hits = list(reversed(hits))
 
     logs = []
     for hit in hits:
@@ -274,14 +326,246 @@ def _pick_last_abnormal_flow_node(root_id: str):
     return None, ""
 
 
+def _format_log_line(log) -> str:
+    if isinstance(log, dict):
+        level = log.get("levelname") or log.get("level") or ""
+        message = log.get("message") or ""
+        return f"[{level}] {message}".strip() if level else message
+    return str(log)
+
+
+def _normalize_line_for_fold(line: str) -> str:
+    """Strip wall-clock / epoch timestamps so consecutive heartbeat/retry lines match."""
+    return _NORMALIZE_TS_RE.sub("<TS>", line or "")
+
+
+def _extract_last_hhmmss(line: str) -> str:
+    matches = _EMBEDDED_TS_RE.findall(line or "")
+    return matches[-1] if matches else ""
+
+
+def _fold_consecutive_duplicate_lines(lines: list) -> list:
+    """Run-length fold adjacent lines that differ only by timestamps.
+
+    Keeps the first occurrence and appends
+    ``（连续重复 N 次，末次 HH:MM:SS）`` so the AI can see flood duration.
+    """
+    if not lines:
+        return []
+
+    folded = []
+    i = 0
+    n = len(lines)
+    while i < n:
+        key = _normalize_line_for_fold(lines[i])
+        j = i + 1
+        last_line = lines[i]
+        while j < n and _normalize_line_for_fold(lines[j]) == key:
+            last_line = lines[j]
+            j += 1
+        count = j - i
+        if count >= 2:
+            last_ts = _extract_last_hhmmss(last_line)
+            if last_ts:
+                suffix = _("（连续重复 {} 次，末次 {}）").format(count - 1, last_ts)
+            else:
+                suffix = _("（连续重复 {} 次）").format(count - 1)
+            folded.append(f"{lines[i]}{suffix}")
+        else:
+            folded.append(lines[i])
+        i = j
+    return folded
+
+
+def _is_error_line(line: str) -> bool:
+    if not line:
+        return False
+    # Formatted lines start with [LEVEL]; also match message-body patterns.
+    if line.startswith("["):
+        closing = line.find("]")
+        if closing > 1 and line[1:closing].upper() in _ERROR_LEVELS:
+            return True
+    return bool(_ERROR_LINE_RE.search(line))
+
+
+def _merge_index_windows(indices: list, total: int, radius: int = _ERROR_CONTEXT_LINES) -> list:
+    """Merge overlapping [idx-radius, idx+radius] windows into inclusive ranges."""
+    if not indices or total <= 0:
+        return []
+    ranges = []
+    for idx in sorted(indices):
+        start = max(0, idx - radius)
+        end = min(total - 1, idx + radius)
+        if ranges and start <= ranges[-1][1] + 1:
+            ranges[-1] = (ranges[-1][0], max(ranges[-1][1], end))
+        else:
+            ranges.append((start, end))
+    return ranges
+
+
+def _tail_truncate_line(line: str, max_chars: int) -> str:
+    """Keep the useful tail of an oversized line (exception names live at the end).
+
+    Preserves a leading ``[LEVEL]`` tag when present so severity survives truncation.
+    """
+    if max_chars <= 0:
+        # ``line[-0:]`` would return the whole line, not an empty one.
+        return ""
+    if len(line) <= max_chars:
+        return line
+    if max_chars <= 3:
+        return line[-max_chars:]
+
+    prefix = ""
+    body = line
+    if line.startswith("["):
+        closing = line.find("]")
+        if 0 < closing < 20:
+            tag = line[: closing + 1]
+            # Need room for tag + " ..." + at least one body char.
+            if len(tag) + 5 <= max_chars:
+                prefix = tag + " "
+                body = line[closing + 1 :].lstrip()
+                max_chars = max_chars - len(prefix)
+
+    if len(body) <= max_chars:
+        return prefix + body
+    if max_chars <= 3:
+        return prefix + body[-max_chars:]
+    return prefix + "..." + body[-(max_chars - 3) :]
+
+
+def _select_log_lines_for_budget(lines: list, budget: int) -> list:
+    """Pick error windows (tail-first) within ``budget`` chars; fall back to pure tail.
+
+    Returns selected lines in chronological order, with ``...(省略 N 行)`` markers
+    for gaps. Guarantees the last error line (tail-truncated if needed) fits when
+    any error exists.
+    """
+    if not lines or budget <= 0:
+        return []
+
+    # Work on a mutable copy so oversized lines can be tail-truncated in place.
+    lines = list(lines)
+    error_indices = [i for i, line in enumerate(lines) if _is_error_line(line)]
+    if error_indices:
+        kept = _kept_indices_error_windows(lines, error_indices, budget)
+    else:
+        kept = _kept_indices_tail_first(lines, budget)
+
+    ordered = sorted(kept)
+    if not ordered:
+        return []
+    return _render_selected_lines(lines, ordered, set(error_indices), budget)
+
+
+def _kept_indices_tail_first(lines: list, budget: int) -> list:
+    """No-error fallback: keep as many tail lines as fit in ``budget``."""
+    kept = []
+    length = 0
+    for idx in range(len(lines) - 1, -1, -1):
+        remaining = budget - length - (1 if kept else 0)
+        if remaining <= 0:
+            break
+        if len(lines[idx]) > remaining:
+            if not kept:
+                lines[idx] = _tail_truncate_line(lines[idx], remaining)
+                kept.append(idx)
+            break
+        kept.append(idx)
+        length += len(lines[idx]) + (1 if length else 0)
+    return kept
+
+
+def _kept_indices_error_windows(lines: list, error_indices: list, budget: int) -> set:
+    """Keep merged error windows tail-first; the newest error line is always secured."""
+    error_set = set(error_indices)
+    kept: set = set()
+    length = 0
+    for start, end in reversed(_merge_index_windows(error_indices, len(lines))):
+        chunk = range(start, end + 1)
+        extra = 1 if kept else 0
+        chunk_len = sum(len(lines[i]) for i in chunk) + len(chunk) - 1
+        if length + chunk_len + extra <= budget:
+            kept.update(chunk)
+            length += chunk_len + extra
+            continue
+        _keep_partial_window(lines, kept, length, start, end, error_set, budget)
+        break
+    return kept
+
+
+def _keep_partial_window(
+    lines: list, kept: set, length: int, start: int, end: int, error_set: set, budget: int
+) -> None:
+    """Fill a too-big window tail-first, securing its newest error line first.
+
+    Without the upfront reservation, short trailing context lines (err+1, err+2)
+    could consume a tight budget and starve the actual error line out.
+    """
+    last_err = max(i for i in range(start, end + 1) if i in error_set)
+    remaining = budget - length - (1 if kept else 0)
+    if len(lines[last_err]) > remaining:
+        lines[last_err] = _tail_truncate_line(lines[last_err], max(1, remaining))
+    kept.add(last_err)
+    length += len(lines[last_err]) + (1 if length else 0)
+
+    for idx in range(end, start - 1, -1):
+        if idx == last_err:
+            continue
+        remaining = budget - length - 1
+        if remaining <= 0 or len(lines[idx]) > remaining:
+            break
+        kept.add(idx)
+        length += len(lines[idx]) + 1
+
+
+def _render_selected_lines(lines: list, ordered: list, error_set: set, budget: int) -> list:
+    """Render kept indices chronologically, inserting omission markers for gaps."""
+    result = []
+    length = 0
+    prev = None
+
+    if ordered[0] > 0:
+        marker = _("...(省略 {} 行)").format(ordered[0])
+        if len(marker) <= budget:
+            result.append(marker)
+            length = len(marker)
+
+    for idx in ordered:
+        line = lines[idx]
+        if prev is not None and idx > prev + 1:
+            marker = _("...(省略 {} 行)").format(idx - prev - 1)
+            marker_cost = len(marker) + (1 if result else 0)
+            line_cost = len(line) + 1
+            if length + marker_cost + line_cost <= budget:
+                result.append(marker)
+                length += marker_cost
+        cost = len(line) + (1 if result else 0)
+        if length + cost > budget:
+            remaining = budget - length - (1 if result else 0)
+            has_content = any(not x.startswith(_OMIT_LINES_PREFIX) for x in result)
+            # Force-fit error lines; for pure-tail, only force-fit when nothing
+            # useful is kept yet. Otherwise drop the leftover non-error line.
+            if remaining > 0 and (idx in error_set or not has_content):
+                result.append(_tail_truncate_line(line, remaining))
+            break
+        result.append(line)
+        length += cost
+        prev = idx
+
+    return result
+
+
 def get_last_failed_node_logs(root_id: str, max_chars: int = _MAX_FLOW_LOG_CHARS) -> str:
     """Locate the last abnormal node under ``root_id`` and return its logs (capped).
 
     DB: indexed ``FlowNode`` lookup by ``root_id`` (+ optional pipeline tree for
     node name). Never scans unscoped tables.
 
-    Logs: capped BKLog queries (not ``get_version_logs``, which uses size=10000×2
-    and dumps full ES payloads into app logs). Text is truncated to ``max_chars``.
+    Logs: capped BKLog queries (newest-first so heartbeat spam cannot hide the
+    trailing error). Lines are fold-deduped, then error-window selected
+    (tail-first) within ``max_chars``.
     """
     if not root_id:
         return ""
@@ -310,27 +594,15 @@ def get_last_failed_node_logs(root_id: str, max_chars: int = _MAX_FLOW_LOG_CHARS
         updated_at=last_failed.updated_at,
     )
 
-    # Build text incrementally and stop once we exceed max_chars (avoid joining
-    # a huge in-memory list then slicing).
     header = (
         f"failed_node: {node_name} ({node_id}) version={version_id} "
         f"status={getattr(last_failed, 'status', '')} pick={pick_reason}"
     )
-    parts = [header]
-    length = len(header)
-    for log in logs:
-        if isinstance(log, dict):
-            level = log.get("levelname") or log.get("level") or ""
-            message = log.get("message") or ""
-            line = f"[{level}] {message}".strip() if level else message
-        else:
-            line = str(log)
-        if length + 1 + len(line) > max_chars:
-            parts.append("...(truncated)")
-            break
-        parts.append(line)
-        length += 1 + len(line)
-
+    body_budget = max(0, max_chars - len(header) - (1 if max_chars > len(header) else 0))
+    formatted = [_format_log_line(log) for log in logs]
+    folded = _fold_consecutive_duplicate_lines(formatted)
+    selected = _select_log_lines_for_budget(folded, body_budget)
+    parts = [header, *selected]
     return "\n".join(parts).strip()
 
 
@@ -348,8 +620,12 @@ def _append_block_to_report(report: Report, sentinel: str, block: str, elapsed_s
     if sentinel in existing:
         return
 
+    end_sentinel = _end_sentinel_for(sentinel)
     ts = timezone.localtime().strftime("%Y-%m-%d %H:%M:%S")
-    combined = f"{existing.rstrip()}\n{sentinel} {ts}\n{cleaned}".strip()
+    # Blank lines around the block keep it visually distinct even when cleanup
+    # logs are later merged after it.
+    block_text = f"\n{sentinel} {ts}\n{cleaned}\n{end_sentinel}\n"
+    combined = f"{existing.rstrip()}{block_text}".strip()
     report.mark(task_message=combined)
 
 
@@ -412,9 +688,7 @@ def analyze_redis_rollback_exercise_failure(report_id: int) -> None:
 
     # Failed-node logs are already embedded into task_message at mark time
     # (see embed_failed_node_logs); do not re-fetch from BKLog here.
-    task_message = report.task_message or ""
-    if len(task_message) > _MAX_TASK_MESSAGE_CHARS:
-        task_message = task_message[:_MAX_TASK_MESSAGE_CHARS] + "\n...(truncated)"
+    task_message = _head_tail_truncate(report.task_message or "", _MAX_TASK_MESSAGE_CHARS)
 
     instance = ""
     if report.instance_ip:
