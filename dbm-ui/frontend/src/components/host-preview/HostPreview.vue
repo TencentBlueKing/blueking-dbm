@@ -39,17 +39,20 @@
           @enter="handleChangePage(1)" />
       </div>
       <BkLoading :loading="state.isLoading">
-        <DbOriginalTable
+        <PrimaryTable
+          :bk-ui-settings="state.settings"
           :columns="columns"
           :data="state.data"
           :height="474"
-          :is-anomalies="state.isAnomalies"
-          :is-searching="!!state.keyword"
-          :settings="state.settings"
-          @clear-search="handleClearSearch"
-          @page-limit-change="handeChangeLimit"
-          @page-value-change="handleChangePage"
-          @refresh="fetchHostNodes" />
+          row-key="bk_host_id">
+          <template #empty>
+            <EmptyStatus
+              :is-anomalies="state.isAnomalies"
+              :is-searching="!!state.keyword"
+              @clear-search="handleClearSearch"
+              @refresh="fetchHostNodes" />
+          </template>
+        </PrimaryTable>
       </BkLoading>
     </div>
     <template #footer>
@@ -61,6 +64,7 @@
 </template>
 
 <script setup lang="tsx">
+  import type { PrimaryTableCol } from 'tdesign-vue-next';
   import { useI18n } from 'vue-i18n';
 
   import type { HostNode } from '@services/types';
@@ -68,6 +72,7 @@
   import { useDefaultPagination } from '@hooks';
 
   import DbStatus from '@components/db-status/index.vue';
+  import EmptyStatus from '@components/empty-status/EmptyStatus.vue';
 
   import { execCopy } from '@utils';
 
@@ -89,65 +94,65 @@
   /**
    * 预览表格配置
    */
-  const columns = [
+  const columns: PrimaryTableCol[] = [
     {
-      field: 'bk_host_innerip',
-      label: 'IP',
+      colKey: 'bk_host_innerip',
+      title: 'IP',
     },
     {
-      field: 'instance_num',
-      label: t('每台主机节点数'),
-      render: ({ data }: { data: HostNode }) => data.instance_num || '--',
+      cell: (_, { row }) => row.instance_num || '--',
+      colKey: 'instance_num',
+      title: t('每台主机节点数'),
     },
     {
-      field: 'bk_host_innerip_v6',
-      label: 'IPv6',
-      render: ({ data }: { data: HostNode }) => data.bk_host_innerip_v6 || '--',
+      cell: (_, { row }) => row.bk_host_innerip_v6 || '--',
+      colKey: 'bk_host_innerip_v6',
+      title: 'IPv6',
     },
     {
-      field: 'bk_cloud_name',
-      label: t('管控区域'),
-      render: ({ data }: { data: HostNode }) => data.bk_cloud_name || '--',
+      cell: (_, { row }) => row.bk_cloud_name || '--',
+      colKey: 'bk_cloud_name',
+      title: t('管控区域'),
     },
     {
-      field: 'status',
-      label: t('Agent状态'),
-      render: ({ data }: { data: HostNode }) => {
-        if (typeof data.status !== 'number') return '--';
+      cell: (_, { row }) => {
+        if (typeof row.status !== 'number') return '--';
 
         const text = [t('异常'), t('正常')];
-        return <DbStatus theme={data.status === 1 ? 'success' : 'danger'}>{text[data.status]}</DbStatus>;
+        return <DbStatus theme={row.status === 1 ? 'success' : 'danger'}>{text[row.status as number]}</DbStatus>;
       },
+      colKey: 'status',
+      title: t('Agent状态'),
     },
     {
-      field: 'bk_host_name',
-      label: t('主机名称'),
-      render: ({ data }: { data: HostNode }) => data.bk_host_name || '--',
+      cell: (_, { row }) => row.bk_host_name || '--',
+      colKey: 'bk_host_name',
+      title: t('主机名称'),
     },
     {
-      field: 'bk_os_name',
-      label: t('OS名称'),
-      render: ({ data }: { data: HostNode }) => data.bk_os_name || '--',
+      cell: (_, { row }) => row.bk_os_name || '--',
+      colKey: 'bk_os_name',
+      title: t('OS名称'),
     },
     {
-      field: 'bk_cloud_vendor',
-      label: t('所属云厂商'),
-      render: ({ data }: { data: HostNode }) => data.bk_cloud_vendor || '--',
+      cell: (_, { row }) => row.bk_cloud_vendor || '--',
+      colKey: 'bk_cloud_vendor',
+      title: t('所属云厂商'),
     },
     {
-      field: 'bk_os_type',
-      label: t('OS类型'),
-      render: ({ data }: { data: HostNode }) => data.bk_os_type || '--',
+      cell: (_, { row }) => row.bk_os_type || '--',
+      colKey: 'bk_os_type',
+      title: t('OS类型'),
     },
     {
-      field: 'bk_host_id',
-      label: t('主机ID'),
-      render: ({ data }: { data: HostNode }) => data.bk_host_id || '--',
+      cell: (_, { row }) => row.bk_host_id || '--',
+      colKey: 'bk_host_id',
+      title: t('主机ID'),
     },
     {
-      field: 'bk_agent_id',
-      label: 'Agent ID',
-      render: ({ data }: { data: HostNode }) => data.bk_agent_id || '--',
+      cell: (_, { row }) => row.bk_agent_id || '--',
+      colKey: 'bk_agent_id',
+      title: 'Agent ID',
     },
   ];
   const state = reactive({
@@ -159,9 +164,9 @@
     settings: {
       checked: ['bk_host_innerip', 'bk_host_innerip_v6', 'bk_host_name', 'status', 'instance_num'],
       fields: columns.map((item) => ({
-        disabled: ['bk_host_innerip', 'bk_host_innerip_v6'].includes(item.field),
-        field: item.field,
-        label: item.label,
+        disabled: ['bk_host_innerip', 'bk_host_innerip_v6'].includes(item.colKey as string),
+        field: item.colKey as string,
+        label: item.title as string,
       })),
     },
   });
@@ -216,14 +221,6 @@
   const handleChangePage = (value: number) => {
     state.pagination.current = value;
     fetchHostNodes();
-  };
-
-  /**
-   * change limit
-   */
-  const handeChangeLimit = (value: number) => {
-    state.pagination.limit = value;
-    handleChangePage(1);
   };
 
   const handleClearSearch = () => {

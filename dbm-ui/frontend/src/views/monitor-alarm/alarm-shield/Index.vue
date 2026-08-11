@@ -32,45 +32,44 @@
     <DbTable
       ref="tableRef"
       :data-source="getAlarmShieldList"
-      :line-height="56"
       releate-url-query
-      :row-config="{
-        useKey: true,
-        keyField: 'id',
-      }"
-      :show-overflow="false"
-      :show-prepend="false"
+      row-key="id"
+      size="large"
       @clear-search="handleClearSearchValue"
-      @column-filter="handleColumnFilterChange"
+      @filter-change="handleTableFilterChange"
       @request-success="handleRequestFinished"
       @selection="handleSelection">
-      <BkTableColumn
-        field="id"
+      <TableColumn
+        col-key="id"
         fixed="left"
-        label="ID"
-        :min-width="160">
-        <template #default="{ data }: { data: RowData }">
+        :min-width="160"
+        title="ID">
+        <template #default="{ row }: { row: RowData }">
           <BkButton
             text
             theme="primary"
-            @click="() => handleOpenShieldAlarms('edit', data)">
-            {{ data.id }}
+            @click="() => handleOpenShieldAlarms('edit', row)">
+            {{ row.id }}
           </BkButton>
         </template>
-      </BkTableColumn>
-      <BkTableColumn
-        field="category"
-        :filters="phaseFilterList"
-        :label="t('屏蔽类型')"
-        :min-width="160">
-        <template #default="{ data }: { data: RowData }">
+      </TableColumn>
+      <TableColumn
+        col-key="category"
+        :filter="{
+          list: phaseFilterList,
+          showConfirmAndReset: true,
+          type: 'multiple',
+        }"
+        :min-width="160"
+        :title="t('屏蔽类型')">
+        <template #default="{ row }: { row: RowData }">
           <BkTag
-            v-if="data.category === 'alert'"
+            v-if="row.category === 'alert'"
             theme="info">
             {{ t('基于事件屏蔽') }}
           </BkTag>
           <BkTag
-            v-else-if="data.category === 'dimension'"
+            v-else-if="row.category === 'dimension'"
             theme="danger">
             {{ t('基于维度屏蔽') }}
           </BkTag>
@@ -80,112 +79,112 @@
             {{ t('基于策略屏蔽') }}
           </BkTag>
         </template>
-      </BkTableColumn>
-      <BkTableColumn
-        field="content"
-        :label="t('屏蔽内容')"
-        :min-width="400">
-        <template #default="{ data }: { data: RowData }">
+      </TableColumn>
+      <TableColumn
+        col-key="content"
+        :min-width="400"
+        :title="t('屏蔽内容')">
+        <template #default="{ row }: { row: RowData }">
           <ShieldContent
-            :data="data.dimension_config"
+            :data="row.dimension_config"
             :strategy-map="policyMap" />
         </template>
-      </BkTableColumn>
-      <BkTableColumn
-        field="description"
-        :label="t('屏蔽原因')"
+      </TableColumn>
+      <TableColumn
+        col-key="description"
         :min-width="160"
-        show-overflow="tooltip">
-      </BkTableColumn>
-      <BkTableColumn
+        :title="t('屏蔽原因')">
+      </TableColumn>
+      <TableColumn
         v-if="isExpired"
-        field="status"
-        :label="t('状态')"
+        col-key="status"
+        :title="t('状态')"
         :width="100">
-        <template #default="{ data }: { data: RowData }">
-          <span :style="{ color: data.status === 2 ? '#c4c6cc' : '#ff9c01' }">{{ data.statusDisplay }}</span>
+        <template #default="{ row }: { row: RowData }">
+          <span :style="{ color: row.status === 2 ? '#c4c6cc' : '#ff9c01' }">{{ row.statusDisplay }}</span>
         </template>
-      </BkTableColumn>
-      <BkTableColumn
-        field="update_user"
-        :label="t('更新人')"
-        :min-width="160">
-        <template #default="{ data }: { data: RowData }">
-          <span>{{ data.update_user }}</span>
+      </TableColumn>
+      <TableColumn
+        col-key="update_user"
+        :min-width="160"
+        :title="t('更新人')">
+        <template #default="{ row }: { row: RowData }">
+          <span>{{ row.update_user }}</span>
         </template>
-      </BkTableColumn>
-      <BkTableColumn
-        field="shieldTimeDisplay"
-        :label="t('屏蔽时间')"
-        :min-width="420">
-      </BkTableColumn>
-      <BkTableColumn
+      </TableColumn>
+      <TableColumn
+        col-key="shieldTimeDisplay"
+        :min-width="420"
+        :title="t('屏蔽时间')">
+      </TableColumn>
+      <TableColumn
+        col-key="operation"
         fixed="right"
-        :label="t('操作')"
+        :title="t('操作')"
         :width="130">
-        <template #default="{ data }: { data: RowData }">
+        <template #default="{ row }: { row: RowData }">
           <AuthButton
             v-bk-tooltips="{
-              disabled: !isExpired && data.isEdiatable,
+              disabled: !isExpired && row.isEdiatable,
               content: t('暂不支持'),
             }"
             action-id="alert_shield_manage"
-            :biz-id="data.bk_biz_id"
-            :disabled="isExpired || !data.isEdiatable"
-            :permission="isExpired || !data.isEdiatable ? true : data.permission.alert_shield_manage"
+            :biz-id="row.bk_biz_id"
+            :disabled="isExpired || !row.isEdiatable"
+            :permission="isExpired || !row.isEdiatable ? true : row.permission.alert_shield_manage"
             text
             theme="primary"
-            @click="() => handleOpenShieldAlarms('edit', data)">
+            @click="() => handleOpenShieldAlarms('edit', row)">
             {{ t('编辑') }}
           </AuthButton>
           <AuthButton
             v-bk-tooltips="{
-              disabled: data.isEdiatable,
+              disabled: row.isEdiatable,
               content: t('暂不支持'),
             }"
             action-id="alert_shield_manage"
-            :biz-id="data.bk_biz_id"
+            :biz-id="row.bk_biz_id"
             class="ml-8 mr-8"
-            :disabled="!data.isEdiatable"
-            :permission="!data.isEdiatable ? true : data.permission.alert_shield_manage"
+            :disabled="!row.isEdiatable"
+            :permission="!row.isEdiatable ? true : row.permission.alert_shield_manage"
             text
             theme="primary"
-            @click="() => handleOpenShieldAlarms('clone', data)">
+            @click="() => handleOpenShieldAlarms('clone', row)">
             {{ t('克隆') }}
           </AuthButton>
           <!-- 临时方案，PopConfirm需要支持手动控制弹窗 -->
           <BkPopConfirm
-            v-if="!isExpired && data.permission.alert_shield_manage"
+            v-if="!isExpired && row.permission.alert_shield_manage"
             :confirm-text="t('解除')"
             :title="t('确认解除该告警屏蔽？')"
             trigger="click"
             :width="280"
-            @confirm="() => unlockAlarmShield({ id: data.id })">
+            @confirm="() => unlockAlarmShield({ id: row.id })">
             <AuthButton
               action-id="alert_shield_manage"
-              :biz-id="data.bk_biz_id"
-              :permission="data.permission.alert_shield_manage"
+              :biz-id="row.bk_biz_id"
+              :permission="row.permission.alert_shield_manage"
               text
               theme="primary">
               {{ t('解除') }}
             </AuthButton>
             <template #content>
-              <div>{{ t('屏蔽 ID') }}：{{ data.id }}</div>
+              <div>{{ t('屏蔽 ID') }}：{{ row.id }}</div>
               <div class="mb-16 mt-5">{{ t('解除后，所有的屏蔽内容将同步失效') }}</div>
             </template>
           </BkPopConfirm>
           <AuthButton
             v-else
             action-id="alert_shield_manage"
-            :biz-id="data.bk_biz_id"
+            :biz-id="row.bk_biz_id"
             :disabled="isExpired"
-            :permission="isExpired ? true : data.permission.alert_shield_manage"
+            :permission="isExpired ? true : row.permission.alert_shield_manage"
             text
             theme="primary">
             {{ t('解除') }}
           </AuthButton>
         </template>
-      </BkTableColumn>
+      </TableColumn>
     </DbTable>
   </div>
   <DbSideslider
@@ -220,7 +219,7 @@
 
   import { useBeforeClose } from '@hooks';
 
-  import DbTable from '@components/db-table/index.vue';
+  import DbTable from '@components/db-table/IndexNew.vue';
 
   import { messageSuccess } from '@utils';
 
@@ -285,7 +284,6 @@
     },
   ];
   const searchDataKeys = ['category', 'content', 'updator', 'time_range'];
-  const columnFilterParams: Record<string, string> = {};
 
   const { run: unlockAlarmShield } = useRequest(disabledAlarmShield, {
     manual: true,
@@ -376,12 +374,15 @@
     selectionList.value = list;
   };
 
-  const handleColumnFilterChange = (data: { checked: string[]; field: string }) => {
-    if (data.checked.length) {
-      columnFilterParams[data.field] = data.checked.join(',');
-    } else {
-      delete columnFilterParams[data.field];
-    }
+  const handleTableFilterChange = (filterValue: Record<string, string[]>) => {
+    const columnFilterParams = Object.keys(filterValue).reduce<Record<string, string>>((result, key) => {
+      if (filterValue[key]?.length) {
+        Object.assign(result, {
+          [key]: filterValue[key].join(','),
+        });
+      }
+      return result;
+    }, {});
     tableRef.value?.fetchData({
       ...route.query,
       ...columnFilterParams,

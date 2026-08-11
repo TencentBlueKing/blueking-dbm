@@ -30,32 +30,33 @@
             <InfoItem :label="t('内存')"> ({{ data.mem.min }} ~ {{ data.mem.max }}) G </InfoItem>
           </template>
           <InfoItem :label="t('数据盘')">
-            <BkTable :data="data.storage_spec">
-              <BkTableColumn
-                field="mount_point"
-                :label="t('挂载点')" />
-              <BkTableColumn
-                field="min"
-                :label="t('最小容量（G）')">
-                <template #default="{ data: rowData }: { data: ResourceSpecModel['storage_spec'][number] }">
+            <PrimaryTable :data="data.storage_spec">
+              <TableColumn
+                col-key="mount_point"
+                :title="t('挂载点')" />
+              <TableColumn
+                col-key="min"
+                :title="t('最小容量（G）')">
+                <template #default="{ row: rowData }: { row: ResourceSpecModel['storage_spec'][number] }">
                   {{ rowData.min || rowData.size || '--' }}
                 </template>
-              </BkTableColumn>
-              <BkTableColumn
-                field="max"
-                :label="t('最大容量（G）')">
-                <template #default="{ data: rowData }: { data: ResourceSpecModel['storage_spec'][number] }">
+              </TableColumn>
+              <TableColumn
+                col-key="max"
+                :title="t('最大容量（G）')">
+                <template #default="{ row: rowData }: { row: ResourceSpecModel['storage_spec'][number] }">
                   {{ rowData.max || '--' }}
                 </template>
-              </BkTableColumn>
-              <BkTableColumn
-                :label="t('数据盘类型')"
+              </TableColumn>
+              <TableColumn
+                col-key="type"
+                :title="t('数据盘类型')"
                 :width="150">
-                <template #default="{ data: rowData }: { data: ResourceSpecModel['storage_spec'][number] }">
+                <template #default="{ row: rowData }: { row: ResourceSpecModel['storage_spec'][number] }">
                   {{ deviceClassDisplayMap[rowData.type as DeviceClass] }}
                 </template>
-              </BkTableColumn>
-            </BkTable>
+              </TableColumn>
+            </PrimaryTable>
           </InfoItem>
           <InfoItem
             v-if="data.qps?.max"

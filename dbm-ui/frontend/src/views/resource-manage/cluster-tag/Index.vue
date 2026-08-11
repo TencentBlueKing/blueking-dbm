@@ -42,17 +42,17 @@
     <DbTable
       ref="tableRef"
       :data-source="listClusterTag"
-      :merge-cells="mergeCells"
-      :progressive-load="false"
-      @request-finished="handleRequestFinished">
-      <BkTableColumn
-        field="key"
-        :label="t('标签键')"
-        :min-width="350">
-        <template #default="{ data, rowIndex }: { data: RowData, rowIndex: number }">
+      row-key="id"
+      :rowspan-and-colspan="rowspanAndColspan"
+      @request-success="handleRequestSuccess">
+      <TableColumn
+        col-key="key"
+        :min-width="350"
+        :title="t('标签键')">
+        <template #default="{ row: data }: { row: RowData }">
           <div
             class="tag-key-column-main"
-            @click="() => handleToggleRowExpand(rowIndex, data.key)">
+            @click="() => handleToggleRowExpand(data.key)">
             <TextOverflowLayout>
               <template #prepend>
                 <BkCheckbox
@@ -101,13 +101,12 @@
             </TextOverflowLayout>
           </div>
         </template>
-      </BkTableColumn>
-      <BkTableColumn
-        field="value"
-        :label="t('标签值')"
+      </TableColumn>
+      <TableColumn
+        col-key="value"
         :min-width="450"
-        show-overflow="tooltip">
-        <template #default="{ data, rowIndex }: { data: RowData, rowIndex: number }">
+        :title="t('标签值')">
+        <template #default="{ row: data, rowIndex }: { row: RowData, rowIndex: number }">
           <RenderTagOverflow
             v-if="isCollapsed(data.key)"
             :data="generateRowsTags(data.key)" />
@@ -117,13 +116,12 @@
             :show-edit="!data.clusters.length"
             @success="(value: string) => handleEditSingleValueSuccess(rowIndex, value)" />
         </template>
-      </BkTableColumn>
-      <BkTableColumn
-        field="clusters"
-        :label="t('绑定的集群')"
+      </TableColumn>
+      <TableColumn
+        col-key="clusters"
         :min-width="300"
-        show-overflow="tooltip">
-        <template #default="{ data }: { data: RowData }">
+        :title="t('绑定的集群')">
+        <template #default="{ row: data }: { row: RowData }">
           <div class="bind-cluster-column-main">
             <BkButton
               v-if="calcTagClusters(data)"
@@ -141,23 +139,24 @@
               @click="() => execCopy(tagClustersToolTip(data))" />
           </div>
         </template>
-      </BkTableColumn>
-      <BkTableColumn
-        field="creator"
-        :label="t('创建人')"
-        show-overflow="tooltip"
+      </TableColumn>
+      <TableColumn
+        col-key="creator"
+        ellipsis
+        :title="t('创建人')"
         :width="160">
-      </BkTableColumn>
-      <BkTableColumn
-        field="createAtDisplay"
-        :label="t('创建时间')"
-        :min-width="200">
-      </BkTableColumn>
-      <BkTableColumn
+      </TableColumn>
+      <TableColumn
+        col-key="createAtDisplay"
+        :min-width="200"
+        :title="t('创建时间')">
+      </TableColumn>
+      <TableColumn
+        col-key="operation"
         fixed="right"
-        :label="t('操作')"
-        :min-width="120">
-        <template #default="{ data, rowIndex }: { data: RowData, rowIndex: number }">
+        :title="t('操作')"
+        :width="120">
+        <template #default="{ row: data, rowIndex }: { row: RowData, rowIndex: number }">
           <AuthButton
             v-if="calcTagClusters(data)"
             v-bk-tooltips="{
@@ -218,7 +217,7 @@
             </AuthButton>
           </BkPopConfirm>
         </template>
-      </BkTableColumn>
+      </TableColumn>
     </DbTable>
   </div>
   <DbDialog
@@ -238,6 +237,7 @@
 
 <script setup lang="tsx">
   import { InfoBox } from 'bkui-vue';
+  import type { PrimaryTableProps } from 'tdesign-vue-next';
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
@@ -245,6 +245,7 @@
 
   import { tagValueRegex } from '@common/regex';
 
+  import DbTable from '@components/db-table/IndexNew.vue';
   import RenderTagOverflow from '@components/render-tag-overflow/Index.vue';
   import TextOverflowLayout from '@components/text-overflow-layout/Index.vue';
 
@@ -268,14 +269,6 @@
   const existedKeyList = ref<Set<string>>(new Set());
   const appendTagVisableMap = ref<Record<number, boolean>>({});
 
-  const mergeCells = ref<
-    {
-      col: number;
-      colspan: number;
-      row: number;
-      rowspan: number;
-    }[]
-  >([]);
   const rowMergeCountMap = ref<
     Record<
       string,
@@ -303,6 +296,24 @@
   let currentRowIndex = 0;
 
   const hasSelected = computed(() => Object.keys(selectedMap.value).length > 0);
+
+  // 依赖展开状态生成新的函数引用，触发表格重新计算单元格合并
+  const rowspanAndColspan = computed<NonNullable<PrimaryTableProps['rowspanAndColspan']>>(() => {
+    const toggleSnapshot = { ...toggleInfoMap.value };
+    const mergeMap = rowMergeCountMap.value;
+    return ({ colIndex, row, rowIndex }) => {
+      const key = (row as RowData).key;
+      const mergeInfo = mergeMap[key];
+      if (!mergeInfo || mergeInfo.count < 2 || mergeInfo.index !== rowIndex) {
+        return {};
+      }
+      // 展开状态下只合并「标签键」列，其余列逐行展示
+      if (toggleSnapshot[key] && colIndex > 0) {
+        return {};
+      }
+      return { rowspan: mergeInfo.count };
+    };
+  });
 
   const { run: runDelete } = useRequest(deleteTag, {
     manual: true,
@@ -441,7 +452,8 @@
     });
   };
 
-  const handleRequestFinished = (dataList: RowData[]) => {
+  const handleRequestSuccess = (data: ServiceReturnType<typeof listClusterTag>) => {
+    const dataList = data.results;
     tableData = dataList;
     existedKeyList.value = dataList.reduce<Set<string>>((results, item) => {
       results.add(item.key);
@@ -461,42 +473,9 @@
       }
     });
     rowMergeCountMap.value = keysMergeMap;
-    const countList = Object.values(keysMergeMap).sort((a, b) => b.count - a.count);
-    mergeCells.value = countList.reduce<{ col: number; colspan: number; row: number; rowspan: number }[]>(
-      (results, item) => {
-        results.push(
-          ...Array(6)
-            .fill('')
-            .map((_, index) => ({
-              col: index,
-              colspan: 1,
-              row: item.index,
-              rowspan: item.count,
-            })),
-        );
-        return results;
-      },
-      [],
-    );
   };
 
-  const handleToggleRowExpand = (rowIndex: number, key: string) => {
-    const merges = mergeCells.value.filter((item) => item.row === rowIndex);
-    const rowSpan = merges[0].rowspan;
-    tableRef.value.bkTableRef.getVxeTableInstance().removeMergeCells(merges);
-    if (toggleInfoMap.value[key]) {
-      merges.forEach((item) => {
-        Object.assign(item, { rowspan: rowSpan });
-      });
-    } else {
-      // TODO: 收起很慢，怀疑是底层实现有问题
-      merges.forEach((item) => {
-        if (item.col !== 0) {
-          Object.assign(item, { rowspan: 1 });
-        }
-      });
-    }
-    tableRef.value.bkTableRef.getVxeTableInstance().setMergeCells(merges);
+  const handleToggleRowExpand = (key: string) => {
     toggleInfoMap.value[key] = !toggleInfoMap.value[key];
   };
 
@@ -698,6 +677,7 @@
     }
 
     .append-btn {
+      position: absolute;
       display: none;
       margin-left: 16px;
 

@@ -23,21 +23,35 @@
     <BkLoading
       :loading="isLoading"
       :z-index="2">
-      <DbOriginalTable
+      <PrimaryTable
         :columns="columns"
         :data="tableData"
+        :filter-value="columnCheckedMap"
         :max-height="530"
-        :pagination="pagination.count < 10 ? false : pagination"
-        :show-overflow="false"
         style="margin-top: 12px"
-        @clear-search="clearSearchValue"
-        @column-filter="columnFilterChange"
-        @page-limit-change="handeChangeLimit"
-        @page-value-change="handleChangePage" />
+        @filter-change="handleFilterChange">
+        <template #empty>
+          <EmptyStatus
+            :is-anomalies="isAnomalies"
+            :is-searching="searchValue.length > 0"
+            @clear-search="clearSearchValue"
+            @refresh="fetchResources" />
+        </template>
+      </PrimaryTable>
+      <div
+        v-if="pagination.count >= 10"
+        class="table-footer">
+        <BkPagination
+          v-bind="pagination"
+          :model-value="pagination.current"
+          @change="handleChangePage"
+          @limit-change="handeChangeLimit" />
+      </div>
     </BkLoading>
   </div>
 </template>
 <script setup lang="tsx">
+  import type { PrimaryTableCol } from 'tdesign-vue-next';
   import type { Ref } from 'vue';
   import { useI18n } from 'vue-i18n';
 
@@ -46,6 +60,7 @@
   import { ClusterTypes } from '@common/const';
 
   import DbStatus from '@components/db-status/index.vue';
+  import EmptyStatus from '@components/empty-status/EmptyStatus.vue';
 
   import {
     activePanelInjectionKey,
@@ -94,10 +109,10 @@
     clearSearchValue,
     columnAttrs,
     columnCheckedMap,
-    columnFilterChange,
     handleSearchValueChange,
     searchAttrs,
     searchValue,
+    tableColumnFilterChange,
     validateSearchValues,
   } = useLinkQueryColumnSerach({
     attrs: ['bk_cloud_id'],
@@ -129,6 +144,7 @@
     generateParams,
     handeChangeLimit,
     handleChangePage,
+    isAnomalies,
     isLoading,
     pagination,
   } = useTableData<IValue>(searchValue, initRole, selectClusterId);
@@ -142,10 +158,40 @@
 
   // const isSelectedAllReal = false;
 
-  const columns = [
+  const columns = computed<PrimaryTableCol[]>(() => [
     {
+      cell: (_, { row }) => {
+        if (props.disabledRowConfig && props.disabledRowConfig.handler(row)) {
+          return (
+            <bk-popover
+              placement='top'
+              popoverDelay={0}
+              theme='dark'>
+              {{
+                content: () => <span>{props.disabledRowConfig?.tip}</span>,
+                default: () => (
+                  <bk-checkbox
+                    disabled
+                    style='vertical-align: middle;'
+                  />
+                ),
+              }}
+            </bk-popover>
+          );
+        }
+        return (
+          <bk-checkbox
+            label={true}
+            model-value={Boolean(checkedMap.value[row[firstColumnFieldId.value]])}
+            style='vertical-align: middle;'
+            onChange={(value: boolean) => handleTableSelectOne(value, row as IValue)}
+          />
+        );
+      },
+      colKey: 'row-select',
+      ellipsis: true,
       fixed: 'left',
-      label: () => (
+      title: () => (
         <div style='display:flex;align-items:center'>
           <bk-checkbox
             disabled={mainSelectDisable.value}
@@ -171,134 +217,121 @@
           </bk-popover> */}
         </div>
       ),
-      render: ({ data }: DataRow) => {
-        if (props.disabledRowConfig && props.disabledRowConfig.handler(data)) {
-          return (
-            <bk-popover
-              placement='top'
-              popoverDelay={0}
-              theme='dark'>
-              {{
-                content: () => <span>{props.disabledRowConfig?.tip}</span>,
-                default: () => (
-                  <bk-checkbox
-                    style='vertical-align: middle;'
-                    disabled
-                  />
-                ),
-              }}
-            </bk-popover>
-          );
-        }
-        return (
-          <bk-checkbox
-            label={true}
-            model-value={Boolean(checkedMap.value[data[firstColumnFieldId.value]])}
-            style='vertical-align: middle;'
-            onChange={(value: boolean) => handleTableSelectOne(value, data)}
-          />
-        );
-      },
-      showOverflow: true,
       width: 60,
     },
     {
-      field: props.firsrColumn?.field ? props.firsrColumn.field : 'instance_address',
+      colKey: props.firsrColumn?.field ? props.firsrColumn.field : 'instance_address',
+      ellipsis: true,
       fixed: 'left',
-      label: props.firsrColumn?.label ? props.firsrColumn.label : t('实例'),
       minWidth: 160,
-      showOverflow: true,
+      title: props.firsrColumn?.label ? props.firsrColumn.label : t('实例'),
     },
     {
-      field: 'related_instances',
-      label: t('关联实例'),
-      render: ({ data }: DataRow) => <RenderInstance data={data.related_instances || []}></RenderInstance>,
+      cell: (_, { row }) => <RenderInstance data={row.related_instances || []}></RenderInstance>,
+      colKey: 'related_instances',
+      title: t('关联实例'),
       width: 200,
     },
     {
-      field: 'alive',
-      label: t('Agent状态'),
-      minWidth: 100,
-      render: ({ data }: DataRow) => {
+      cell: (_, { row }) => {
         const info =
-          data.host_info?.alive === 1 ? { text: t('正常'), theme: 'success' } : { text: t('异常'), theme: 'danger' };
+          row.host_info?.alive === 1 ? { text: t('正常'), theme: 'success' } : { text: t('异常'), theme: 'danger' };
         return <DbStatus theme={info.theme}>{info.text}</DbStatus>;
       },
-      showOverflow: true,
-    },
-    {
-      field: 'bk_sub_zone',
-      label: t('园区'),
-      minWidth: 120,
-      render: ({ data }: DataRow) => data.bk_sub_zone || '--',
-      showOverflow: true,
-    },
-    {
-      field: 'bk_rack_id',
-      label: t('机架ID'),
-      minWidth: 80,
-      render: ({ data }: DataRow) => data.bk_rack_id || '--',
-      showOverflow: true,
-    },
-    {
-      field: 'bk_svr_device_cls_name',
-      label: t('机型'),
-      minWidth: 120,
-      render: ({ data }: DataRow) => data.bk_svr_device_cls_name || '--',
-      showOverflow: true,
-    },
-    {
-      field: 'bk_cloud_id',
-      filter: {
-        checked: columnCheckedMap.value.bk_cloud_id,
-        list: columnAttrs.value.bk_cloud_id,
-      },
-      label: t('管控区域'),
+      colKey: 'alive',
+      ellipsis: true,
       minWidth: 100,
-      render: ({ data }: DataRow) => <span>{data.bk_cloud_name ?? '--'}</span>,
-      showOverflow: true,
+      title: t('Agent状态'),
     },
     {
-      field: 'os_name',
-      label: t('OS名称'),
+      cell: (_, { row }) => row.bk_sub_zone || '--',
+      colKey: 'bk_sub_zone',
+      ellipsis: true,
       minWidth: 120,
-      render: ({ data }: DataRow) => data.host_info?.os_name || '--',
-      showOverflow: true,
+      title: t('园区'),
+    },
+    {
+      cell: (_, { row }) => row.bk_rack_id || '--',
+      colKey: 'bk_rack_id',
+      ellipsis: true,
+      minWidth: 80,
+      title: t('机架ID'),
+    },
+    {
+      cell: (_, { row }) => row.bk_svr_device_cls_name || '--',
+      colKey: 'bk_svr_device_cls_name',
+      ellipsis: true,
+      minWidth: 120,
+      title: t('机型'),
+    },
+    {
+      cell: (_, { row }) => <span>{row.bk_cloud_name ?? '--'}</span>,
+      colKey: 'bk_cloud_id',
+      ellipsis: true,
+      filter: {
+        list: (columnAttrs.value.bk_cloud_id || []).map((item) => ({
+          label: item.text,
+          value: item.value,
+        })),
+        showConfirmAndReset: true,
+        type: 'multiple',
+      },
+      minWidth: 100,
+      title: t('管控区域'),
+    },
+    {
+      cell: (_, { row }) => row.host_info?.os_name || '--',
+      colKey: 'os_name',
+      ellipsis: true,
+      minWidth: 120,
+      title: t('OS名称'),
     },
 
     {
-      field: 'host_name',
-      label: t('主机名称'),
+      cell: (_, { row }) => row.host_info?.host_name || '--',
+      colKey: 'host_name',
+      ellipsis: true,
       minWidth: 120,
-      render: ({ data }: DataRow) => data.host_info?.host_name || '--',
-      showOverflow: true,
+      title: t('主机名称'),
     },
 
     {
-      field: 'cloud_vendor',
-      label: t('所属云厂商'),
-      render: ({ data }: DataRow) => data.host_info?.cloud_vendor || '--',
-      showOverflow: true,
+      cell: (_, { row }) => row.host_info?.cloud_vendor || '--',
+      colKey: 'cloud_vendor',
+      ellipsis: true,
+      title: t('所属云厂商'),
     },
     {
-      field: 'os_type',
-      label: t('OS类型'),
-      render: ({ data }: DataRow) => data.host_info.os_type || '--',
-      showOverflow: true,
+      cell: (_, { row }) => row.host_info.os_type || '--',
+      colKey: 'os_type',
+      ellipsis: true,
+      title: t('OS类型'),
     },
     {
-      field: 'host_id',
-      label: t('主机ID'),
-      render: ({ data }: DataRow) => data.host_info?.host_id || '--',
-      showOverflow: true,
+      cell: (_, { row }) => row.host_info?.host_id || '--',
+      colKey: 'host_id',
+      ellipsis: true,
+      title: t('主机ID'),
     },
     {
-      field: 'agent_id',
-      label: 'Agent ID',
-      render: ({ data }: DataRow) => data.host_info?.agent_id || '--',
-      showOverflow: true,
+      cell: (_, { row }) => row.host_info?.agent_id || '--',
+      colKey: 'agent_id',
+      ellipsis: true,
+      title: 'Agent ID',
     },
-  ];
+  ]);
+
+  const handleFilterChange = (filterValue: Record<string, string[]>) => {
+    tableColumnFilterChange(filterValue, {
+      bk_cloud_id: {
+        list: (columnAttrs.value.bk_cloud_id || []).map((item) => ({
+          label: item.text,
+          value: item.value,
+        })),
+        name: t('管控区域'),
+      },
+    });
+  };
 
   watch(
     () => props.lastValues,
@@ -405,5 +438,11 @@
 <style lang="less">
   .instance-selector-render-topo-host {
     padding: 0 24px;
+
+    .table-footer {
+      display: flex;
+      justify-content: flex-end;
+      margin-top: 12px;
+    }
   }
 </style>
