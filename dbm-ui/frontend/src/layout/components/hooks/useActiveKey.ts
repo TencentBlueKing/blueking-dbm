@@ -1,10 +1,11 @@
-import { Menu } from 'bkui-vue';
 import _ from 'lodash';
 import { type Ref, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 
+import type DbMenu from '../menu/Index.vue';
+
 export const useActiveKey = (
-  menuRef: Ref<InstanceType<typeof Menu>>,
+  menuRef: Ref<InstanceType<typeof DbMenu> | undefined>,
   defaultKey: string,
   options = {} as {
     checkMethod?: (routerName: string) => string;
@@ -16,61 +17,49 @@ export const useActiveKey = (
   const parentKey = ref();
   const currentRouteName = ref('');
 
-  const handleMenuKeyChange = (params: { key: string }) => {
+  // 菜单项动态增删（如工具箱收藏变更、侧栏折叠重建）不应把用户踢回默认页，只有路由本身匹配不到菜单才兜底跳转
+  let checkedFullPath = '';
+
+  const handleMenuKeyChange = (routeName: string) => {
     router.push({
-      name: params.key,
+      name: routeName,
     });
   };
 
   watch(
-    [menuRef, route],
+    [() => menuRef.value?.menuMap, route],
     () => {
-      setTimeout(() => {
-        if (!menuRef.value) {
+      const menuMap = menuRef.value?.menuMap;
+      if (!menuMap) {
+        return;
+      }
+
+      currentRouteName.value = '';
+      _.forEachRight(route.matched, (routeItem) => {
+        if (currentRouteName.value) {
           return;
         }
-        const allMenuItems = (
-          menuRef.value as any as {
-            menuStore: Record<
-              string,
-              {
-                key: string;
-                parentKey: string;
-              }
-            >;
-          }
-        ).menuStore;
 
-        const allMunuRouteNameMap = Object.values(allMenuItems).reduce(
-          (result, item) =>
-            Object.assign(result, {
-              [item.key]: item.parentKey,
-            }),
-          {} as Record<string, string | undefined>,
-        );
+        const routeName = routeItem.name as string;
 
-        currentRouteName.value = '';
-        _.forEachRight(route.matched, (routeItem) => {
-          if (currentRouteName.value) {
-            return;
-          }
-
-          const routeName = routeItem.name as string;
-
-          const currentActiveKey = _.isFunction(options.checkMethod) ? options.checkMethod(routeName) : routeName;
-          if (currentActiveKey && _.has(allMunuRouteNameMap, currentActiveKey)) {
-            currentRouteName.value = currentActiveKey;
-            parentKey.value = allMunuRouteNameMap[currentActiveKey];
-          }
-        });
-        if (!currentRouteName.value) {
-          router.push({
-            name: defaultKey,
-          });
+        const currentActiveKey = _.isFunction(options.checkMethod) ? options.checkMethod(routeName) : routeName;
+        if (currentActiveKey && menuMap[currentActiveKey]) {
+          currentRouteName.value = currentActiveKey;
+          parentKey.value = menuMap[currentActiveKey].parentKey;
         }
       });
+      const isRouteChecked = checkedFullPath === route.fullPath;
+      checkedFullPath = route.fullPath;
+
+      if (!currentRouteName.value && !isRouteChecked) {
+        router.push({
+          name: defaultKey,
+        });
+      }
     },
     {
+      deep: true,
+      flush: 'post',
       immediate: true,
     },
   );
