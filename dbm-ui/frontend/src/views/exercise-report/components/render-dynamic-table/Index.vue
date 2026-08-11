@@ -32,11 +32,9 @@
         class="dynamic-table-main"
         :data="tableData"
         :max-height="485"
-        :pagination="pagination"
         resizable
         row-key="__uuid"
         @filter-change="handleFilterChange"
-        @page-change="handlePageChange"
         @sort-change="handleSortChange">
         <template #empty>
           <slot name="empty">
@@ -84,6 +82,12 @@
           </template>
         </TableColumn>
       </PrimaryTable>
+      <div class="table-footer">
+        <BkPagination
+          v-bind="pagination"
+          @change="handlePageValueChange"
+          @limit-change="handlePageLimitChange" />
+      </div>
     </CollapseCard>
   </BkLoading>
   <Log
@@ -140,7 +144,8 @@
     columnWidthMap,
     filterValue,
     handleFilterChange,
-    handlePageChange,
+    handlePageLimitChange,
+    handlePageValueChange,
     handleSortChange,
     loading,
     pagination,
@@ -296,6 +301,26 @@
           .t-table__filter--bottom-buttons {
             padding: 8px 16px;
           }
+        }
+      }
+    }
+
+    .table-footer {
+      position: relative;
+      z-index: 1;
+      display: flex;
+      height: 60px;
+      padding: 0 16px;
+      margin-top: -1px;
+      background: #fff;
+      border-top: 1px solid var(--td-component-border);
+      align-items: center;
+
+      .bk-pagination {
+        width: 100%;
+
+        & > .is-last {
+          margin-left: auto;
         }
       }
     }

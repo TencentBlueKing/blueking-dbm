@@ -44,10 +44,8 @@
         class="dynamic-table-main"
         :data="tableData"
         :max-height="485"
-        :pagination="pagination"
         resizable
-        row-key="__uuid"
-        @page-change="handlePageChange">
+        row-key="__uuid">
         <template #empty>
           <slot name="empty">
             <BkException
@@ -93,6 +91,14 @@
           </template>
         </TableColumn>
       </PrimaryTable>
+      <div
+        v-if="!emptyDescription"
+        class="table-footer">
+        <BkPagination
+          v-bind="pagination"
+          @change="handlePageValueChange"
+          @limit-change="handlePageLimitChange" />
+      </div>
     </CollapseCard>
     <FailSlaveInstance
       :id="failSlaveInstanceReportId"
@@ -145,9 +151,12 @@
   const globalBizsStore = useGlobalBizs();
 
   const pagination = reactive({
+    align: 'right',
+    count: 0,
     current: 1,
-    pageSize: 10,
-    total: 0,
+    layout: ['total', 'limit', 'list'],
+    limit: 10,
+    limitList: [10, 20, 50, 100, 200, 500],
   });
 
   const tableName = ref('');
@@ -197,7 +206,7 @@
     manual: true,
     onSuccess(result) {
       stateCountsMap.value = result.state_count;
-      pagination.total = result.count;
+      pagination.count = result.count;
       total.value = result.total_count;
       totalAbnormalCount.value = result.total_abnormal_count;
       tableName.value = result.name;
@@ -270,8 +279,8 @@
     fetchInspectionData(
       props.serviceUrl,
       {
-        limit: pagination.pageSize,
-        offset: (pagination.current - 1) * pagination.pageSize,
+        limit: pagination.limit,
+        offset: (pagination.current - 1) * pagination.limit,
         // 默认排序，优先按失败天数排序，其次按创建时间排序
         ordering: '-failed_days,-create_at',
         ...searchParams,
@@ -297,18 +306,21 @@
     failSlaveInstanceReportId.value = data.id;
   };
 
-  const handlePageChange = (pageInfo: { current: number; pageSize: number; previous: number }) => {
-    if (pagination.pageSize !== pageInfo.pageSize) {
-      pagination.pageSize = pageInfo.pageSize;
-      pagination.current = 1;
-      fetchData();
+  const handlePageValueChange = (pageValue: number) => {
+    if (pagination.current === pageValue) {
       return;
     }
+    pagination.current = pageValue;
+    fetchData();
+  };
 
-    if (pageInfo.current !== pagination.current) {
-      pagination.current = pageInfo.current;
-      fetchData();
+  const handlePageLimitChange = (pageLimit: number) => {
+    if (pagination.limit === pageLimit) {
+      return;
     }
+    pagination.limit = pageLimit;
+    pagination.current = 1;
+    fetchData();
   };
 
   // 时间范围档位，从小到大排序
@@ -411,6 +423,26 @@
           &:hover {
             background-color: #eaebf0;
           }
+        }
+      }
+    }
+
+    .table-footer {
+      position: relative;
+      z-index: 1;
+      display: flex;
+      height: 60px;
+      padding: 0 16px;
+      margin-top: -1px;
+      background: #fff;
+      border-top: 1px solid var(--td-component-border);
+      align-items: center;
+
+      .bk-pagination {
+        width: 100%;
+
+        & > .is-last {
+          margin-left: auto;
         }
       }
     }
