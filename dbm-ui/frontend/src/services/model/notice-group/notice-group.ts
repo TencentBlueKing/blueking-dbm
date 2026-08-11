@@ -52,7 +52,7 @@ export default class NoticGroup {
   monitor_group_id: number;
   name: string;
   permission: {
-    global_notify_group_update: boolean;
+    // global_notify_group_update: boolean;
     // notify_group_create: boolean;
     // notify_group_delete: boolean;
     notify_group_manage: boolean;
