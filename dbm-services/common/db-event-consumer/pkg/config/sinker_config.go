@@ -65,9 +65,9 @@ type BkmApiInfo struct {
 	BkUsername  string `yaml:"bk_username" json:"bk_username"`
 	// BkTicket    string `yaml:"bk_ticket" json:"bk_ticket"`
 	// BkToken     string `yaml:"bk_token" json:"bk_token"`
-	// BkApiUrl https://bk-monitor.xxx.com/prod/
-	BkApiUrl    string `yaml:"api_url" json:"api_url"`
-	BklogApiUrl string `yaml:"bklog_api_url" json:"bklog_api_url"`
+	// BkmonitorApiUrl https://bk-monitor.xxx.com/prod/
+	BkmonitorApiUrl string `yaml:"bkmonitor_api_url" json:"bkmonitor_api_url"`
+	BklogApiUrl     string `yaml:"bklog_api_url" json:"bklog_api_url"`
 }
 
 type BkDataKafkaMeta struct {

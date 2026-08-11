@@ -16,6 +16,7 @@ use (
 	common/go-pubpkg
 	common/offsetlinescanner
 	common/reverseapi
+	common/dbm-backup-server/backup-consumer
 	k8s-dbs
 	mongodb/db-tools/dbactuator
 	mongodb/db-tools/dbmon

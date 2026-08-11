@@ -81,38 +81,51 @@ func (s *AnySinker) ConsumeClaim(session sarama.ConsumerGroupSession, claim sara
 			slog.Any("model", s.Sinker.RuntimeConfig.ModelTable),
 			slog.Any("offset", claim.InitialOffset()))
 	}
-	BatchSize := 10
+
+	const BatchSize = 100
+	const FlushInterval = 500 * time.Millisecond
+
 	msgs := make([]*sarama.ConsumerMessage, 0, BatchSize)
-	// 写入失败分类 TODO
+	ticker := time.NewTicker(FlushInterval)
+	defer ticker.Stop()
+
+	// flushBatch 将当前攒的消息批量写入，成功则 MarkMessage 并清空
+	flushBatch := func() {
+		if len(msgs) == 0 {
+			return
+		}
+		if err := s.HandleMessageTryBatch(msgs, s.Sinker); err != nil {
+			slog.Error("handle message batch",
+				slog.Any("error", err), slog.String("table", s.Sinker.RuntimeConfig.ModelTable),
+				slog.Int("msg_count", len(msgs)))
+			// 写入失败 sleep 防止日志刷屏，然后跳过这批消息继续消费
+			time.Sleep(200 * time.Millisecond)
+		} else {
+			session.MarkMessage(msgs[len(msgs)-1], "")
+		}
+		msgs = msgs[:0]
+	}
+
 	for {
 		select {
-		case <-time.After(time.Second * 1):
-			if len(msgs) > 0 {
-				if err := s.HandleMessageTryBatch(msgs, s.Sinker); err != nil {
-					slog.Error("handle message batch",
-						slog.Any("error", err), slog.String("table", s.Sinker.RuntimeConfig.ModelTable))
-				} else {
-					session.MarkMessage(msgs[len(msgs)-1], "")
-				}
-				msgs = msgs[:0]
+		case message, ok := <-claim.Messages():
+			if !ok {
+				// channel 已关闭（partition 被撤回或 rebalance），退出消费循环
+				flushBatch()
+				return nil
 			}
-		case message := <-claim.Messages():
 			if message == nil {
-				// channel 已关闭，应该退出或跳过
 				continue
 			}
 			msgs = append(msgs, message)
 			if len(msgs) >= BatchSize {
-				if err := s.HandleMessageTryBatch(msgs, s.Sinker); err != nil {
-					slog.Error("handle message batch",
-						slog.Any("error", err), slog.String("table", s.Sinker.RuntimeConfig.ModelTable))
-					time.Sleep(200 * time.Millisecond)
-				} else {
-					session.MarkMessage(message, "")
-				}
-				msgs = msgs[:0]
+				flushBatch()
 			}
+		case <-ticker.C:
+			flushBatch()
 		case <-session.Context().Done():
+			// 退出前尝试刷新剩余消息
+			flushBatch()
 			return nil
 		}
 	}
@@ -304,7 +317,7 @@ func (s *AnySinker) HandleMessagesBklogGorm(msgs []*sarama.ConsumerMessage, sk *
 			if bklogItem, ok := obj.(base.BklogUnmarshalItem); ok {
 				err = bklogItem.UnmarshalItem(item.Data, msg)
 				if err != nil {
-					// slog.Error("unmarshal bklog item", err)
+					slog.Error("unmarshal bklog item", err)
 					continue
 				}
 				result = reflect.Append(result, objValue.Elem())
