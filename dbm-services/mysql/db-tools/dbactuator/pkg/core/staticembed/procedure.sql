@@ -135,9 +135,9 @@ BEGIN
             -- 用户存在, 检查密码
             -- 5.6 用 password，5.7+ 用 authentication_string
             IF @@version LIKE '%tspider%' THEN
-                IF @@VERSION LIKE "%tspider-1%" OR @@VERSION LIKE "%tspider-2%" THEN
+                IF @@VERSION LIKE "%tspider-1%" OR @@VERSION LIKE "%tspider-2%" OR @@VERSION LIKE "%tspider-3%" THEN
                     SELECT CONVERT(password USING utf8) COLLATE utf8_bin = CONVERT(long_psw USING utf8) COLLATE utf8_bin OR CONVERT(password USING utf8) COLLATE utf8_bin = CONVERT(short_psw USING utf8) COLLATE utf8_bin INTO @psw_match FROM mysql.user WHERE user = CONVERT(username USING utf8) COLLATE utf8_bin AND host = CONVERT(@ip USING utf8) COLLATE utf8_bin;
-                ELSEIF @@VERSION LIKE "%tspider-3%" OR @@VERSION LIKE "%tspider-4%" THEN
+                ELSEIF @@VERSION LIKE "%tspider-4%" THEN
                     SELECT CONVERT(authentication_string USING utf8) COLLATE utf8_bin = CONVERT(long_psw USING utf8) COLLATE utf8_bin INTO @psw_match FROM mysql.user WHERE user = CONVERT(username USING utf8) COLLATE utf8_bin AND host = CONVERT(@ip USING utf8) COLLATE utf8_bin;
                 ELSE
                     SET @msg = CONCAT('not support spider version: ', @@version);
