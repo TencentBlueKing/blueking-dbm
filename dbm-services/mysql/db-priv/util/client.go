@@ -22,7 +22,8 @@ const (
 	statusSuccess int = 0
 )
 
-var DbmetaClient, DrsClient *Client
+var DbmetaClient *Client
+var DrsClient *Client
 
 // APIServerResponse TODO
 type APIServerResponse struct {

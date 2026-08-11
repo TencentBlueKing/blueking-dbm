@@ -19,7 +19,7 @@ func RPCProxyAdmin(
 	bkCloudId int64, addresses, cmds []string, force bool, timeout int64,
 ) ([]*OneAddressResult, error) {
 	return dc.rpc(
-		"/proxy-admin/rpc/",
+		"/v2/proxy-admin/rpc/",
 		&drsRequest{
 			Addresses:    addresses,
 			Cmds:         cmds,

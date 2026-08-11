@@ -37,7 +37,7 @@ func (c *PrivTaskPara) fetchTargetDBMetaInfo() ([]*service.Instance, error) {
 		)
 		return nil, err
 	}
-	slog.Info("fetch target db meta info", slog.Any("result", result))
+	slog.Info("fetch target db meta info", slog.String("result", string(result.Data)))
 
 	res := make([]*service.Instance, 0)
 	err = json.Unmarshal(result.Data, &res)
@@ -48,9 +48,9 @@ func (c *PrivTaskPara) fetchTargetDBMetaInfo() ([]*service.Instance, error) {
 		)
 		return nil, err
 	}
-	slog.Info(
-		"fetch target detail",
-		slog.String("res", fmt.Sprintf("%+v", res)),
-	)
+	//slog.Info(
+	//	"fetch target detail",
+	//	slog.String("res", fmt.Sprintf("%+v", res)),
+	//)
 	return res, nil
 }

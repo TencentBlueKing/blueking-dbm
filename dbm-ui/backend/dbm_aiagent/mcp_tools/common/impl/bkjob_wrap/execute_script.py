@@ -77,7 +77,7 @@ def execute_script(
         "account_alias": run_as,
     }
     logger.info(f"body: {body}")
-    resp = JobApi.fast_execute_script(body, raw=True, use_admin=False)
+    resp = JobApi.fast_execute_script(body, raw=True, use_admin=False, use_param_user=username)
     logger.info(f"resp: {resp}")
     if resp.get("code") != 0 or not resp.get("result"):
         raise DBMMcpBaseException(msg=resp.get("message") or "fast_execute_script failed")
