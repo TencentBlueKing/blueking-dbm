@@ -20,13 +20,15 @@
         cluster-detail-router-name="tendbHaDetail"
         :data="data">
         <template v-if="data.isOnline">
-          <BkButton
+          <AuthButton
             v-db-console="'mysql.haClusterList.authorize'"
+            action-id="mysql_authorize"
             class="ml-4"
+            :permission="data.permission.mysql_authorize"
             size="small"
             @click="handleShowAuthorize">
             {{ t('授权') }}
-          </BkButton>
+          </AuthButton>
           <AuthRouterLink
             v-db-console="'mysql.haClusterList.webconsole'"
             action-id="mysql_webconsole"

@@ -17,11 +17,17 @@ export default class AdminPassword {
   bk_biz_id: number;
   bk_cloud_id: number;
   bk_cloud_name: string;
+  cluster_id: number;
   component: string;
   ip: string;
   lock_until: string;
   operator: string;
   password: string;
+  permission: {
+    mysql_admin_pwd_view: boolean;
+    sqlserver_admin_pwd_view: boolean;
+    tendbcluster_admin_pwd_view: boolean;
+  };
   port: number;
   update_time: string;
   username: string;
@@ -38,6 +44,12 @@ export default class AdminPassword {
     this.port = payload.port;
     this.update_time = payload.update_time;
     this.username = payload.username;
+    this.permission = {
+      mysql_admin_pwd_view: payload.permission?.mysql_admin_pwd_view ?? false,
+      sqlserver_admin_pwd_view: payload.permission?.sqlserver_admin_pwd_view ?? false,
+      tendbcluster_admin_pwd_view: payload.permission?.tendbcluster_admin_pwd_view ?? false,
+    };
+    this.cluster_id = payload.cluster_id;
   }
 
   get lockUntilDisplay() {

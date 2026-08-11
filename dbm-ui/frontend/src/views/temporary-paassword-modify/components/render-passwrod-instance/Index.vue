@@ -4,17 +4,15 @@
       ref="subTitleRef"
       class="password-temporary-modify-head">
       <span class="head-subtitle"> ( {{ t('修改的是管理账号的密码') }} ) </span>
-      <AuthButton
-        action-id="admin_pwd_view"
-        resource="mysql"
+      <BkButton
         text
         theme="primary"
         @click="passwordSidesliderShow = true">
         <div class="head-button">
           <DbIcon type="history-2 mr-4" />
-          <span class="head-button-text">{{ t('临时密码生效的实例') }}</span>
+          <span class="head-button-text">{{ t('查看临时密码') }}</span>
         </div>
-      </AuthButton>
+      </BkButton>
     </div>
   </Teleport>
   <RenderInstance v-model="passwordSidesliderShow" />

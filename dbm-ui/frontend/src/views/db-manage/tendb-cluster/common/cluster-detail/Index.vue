@@ -32,13 +32,15 @@
           </div>
         </template>
         <template v-if="data.isOnline">
-          <BkButton
+          <AuthButton
             v-db-console="'mysql.haClusterList.authorize'"
+            action-id="tendbcluster_authorize"
             class="ml-4"
+            :permission="data.permission.tendbcluster_authorize"
             size="small"
             @click="handleShowAuthorize">
             {{ t('授权') }}
-          </BkButton>
+          </AuthButton>
           <AuthRouterLink
             v-db-console="'tendbCluster.clusterManage.webconsole'"
             action-id="tendbcluster_webconsole"

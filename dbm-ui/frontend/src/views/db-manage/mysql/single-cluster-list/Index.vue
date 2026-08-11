@@ -63,11 +63,13 @@
           <template #default="{ data }: { data: TendbsingleModel }">
             <template v-if="data.isOnline">
               <div v-db-console="'mysql.singleClusterList.authorize'">
-                <BkButton
+                <AuthButton
+                  action-id="mysql_authorize"
+                  :permission="data.permission.mysql_authorize"
                   text
                   @click="handleShowAuthorize(data)">
                   {{ t('授权') }}
-                </BkButton>
+                </AuthButton>
               </div>
               <div v-db-console="'mysql.haClusterList.webconsole'">
                 <AuthRouterLink
