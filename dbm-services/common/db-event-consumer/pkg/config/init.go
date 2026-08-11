@@ -52,6 +52,7 @@ type mainConfig struct {
 	KafkaInfo  *KafkaMeta           `yaml:"kafka_info"`
 	BkmApiInfo *BkmApiInfo          `yaml:"bkm_api_info"`
 	BkmReport  *base.BKReportConfig `yaml:"bkm_report"`
+	OtelPort   int                  `yaml:"otel_port"`
 }
 
 func InitConfig() {

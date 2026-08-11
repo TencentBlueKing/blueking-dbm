@@ -55,8 +55,6 @@ def query_proxy_connlog(
         )
 
         # 可选条件拼接
-        if cluster_domain:
-            qs = qs.filter(cluster_domain=cluster_domain)
         if conn_user:
             qs = qs.filter(conn_user=conn_user)
         if session_ids:

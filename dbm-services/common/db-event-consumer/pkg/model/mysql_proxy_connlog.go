@@ -94,7 +94,6 @@ func (m *MysqlProxyConnlog) UnmarshalItem(data []byte, msg base.MessageWrapper) 
 		m.BkCloudId = cast.ToInt(msg.Ext["bk_cloud_id"])
 		m.ClusterDomain = cast.ToString(msg.Ext["cluster_domain"])
 	}
-
 	return nil
 }
 
@@ -184,7 +183,6 @@ func (m *MysqlProxyConnlog) dorisCreate(i interface{}, db *gorm.DB) error {
 		"bk_biz_id",
 		"bk_cloud_id",
 	)
-
 	for _, kafkaObj := range kafkaObjs {
 		kafkaObj.TheDate, _ = strconv.Atoi(kafkaObj.DtEventTimeStamp.Format("20060102"))
 		kafkaObj.DtEventTimeHour = kafkaObj.DtEventTimeStamp.Format("2006-01-02 15")

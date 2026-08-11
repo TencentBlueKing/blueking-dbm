@@ -1,0 +1,23 @@
+bk_data_id: 123
+bk_collector_name: ""
+bk_app_code: aa
+bk_app_secret: xxxx-xxx
+alt_broker: x.x.x.x:kafka_port
+bkmonitor_api_url: https://bk-monitor.xxxx.com/prod/
+bklog_api_url: https://log-search.xxxx.com/prod/
+client_id: "backup-stm"
+group_id: "backup-stm"
+dsn:
+  user: aaa
+  password: bbb
+  address: your_mysql_host:your_mysql_port
+  database: dbStm_dbname
+  table: tb_backup_tasklist
+  charset: utf8mb4
+  connection_per_partition: 2
+log:
+  console: true
+  debug: true
+  source: true
+  json: false
+  log_file_dir: logs

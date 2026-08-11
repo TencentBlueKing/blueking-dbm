@@ -10,7 +10,9 @@ package cmd
 
 import (
 	"context"
+	"fmt"
 	"net/http"
+	"net/http/pprof"
 	"os"
 	"sync"
 	"time"
@@ -55,9 +57,27 @@ var rootCmd = &cobra.Command{
 		r.Handle("GET", "/ping", func(context *gin.Context) {
 			context.String(http.StatusOK, "pong")
 		})
-		go func() {
-			_ = r.Run("127.0.0.1:8002")
-		}()
+
+		// 注册 pprof 路由
+		pprofGroup := r.Group("/debug/pprof")
+		{
+			pprofGroup.GET("/", gin.WrapF(pprof.Index))
+			pprofGroup.GET("/cmdline", gin.WrapF(pprof.Cmdline))
+			pprofGroup.GET("/profile", gin.WrapF(pprof.Profile))
+			pprofGroup.GET("/symbol", gin.WrapF(pprof.Symbol))
+			pprofGroup.GET("/trace", gin.WrapF(pprof.Trace))
+			pprofGroup.GET("/allocs", gin.WrapH(pprof.Handler("allocs")))
+			pprofGroup.GET("/block", gin.WrapH(pprof.Handler("block")))
+			pprofGroup.GET("/goroutine", gin.WrapH(pprof.Handler("goroutine")))
+			pprofGroup.GET("/heap", gin.WrapH(pprof.Handler("heap")))
+			pprofGroup.GET("/mutex", gin.WrapH(pprof.Handler("mutex")))
+			pprofGroup.GET("/threadcreate", gin.WrapH(pprof.Handler("threadcreate")))
+		}
+		if config.MainConfig.OtelPort > 0 {
+			go func() {
+				_ = r.Run(fmt.Sprintf("127.0.0.1:%d", config.MainConfig.OtelPort))
+			}()
+		}
 
 		// 全局获取一次 collectors 列表，供 BkCollectorName 匹配使用
 		var collectorsMap map[string]*config.BkDataConfig

@@ -12,13 +12,15 @@ data:
 # todo bk_data_id 应该调整为从日志平台接口获取
   runtime_config.yaml: |-
     bk_data_id: {{ index .Values "backup-consumer" "bk_data_id" }}
+    bk_collector_name: "{{ index .Values "backup-consumer" "bk_collector_name" }}"
     bk_app_code: "{{ .Values.dbm.envs.bkAppCode }}"
     bk_app_secret: "{{ .Values.dbm.envs.bkAppToken }}"
     {{- if .Values.bk.bkMonitorApiUrl }}
-    api_url: "{{ .Values.bk.bkMonitorApiUrl }}"
+    bkmonitor_api_url: "{{ .Values.bk.bkMonitorApiUrl }}"
     {{- else }}
-    api_url: "{{ .Values.bk.bkComponentApiUrl }}/api/c/compapi/v2/monitor_v3"
+    bkmonitor_api_url: "{{ .Values.bk.bkComponentApiUrl }}/api/c/compapi/v2/monitor_v3"
     {{- end }}
+    bklog_api_url: "{{ .Values.dbm.envs.BKLOG_APIGW_DOMAIN }}"
     client_id: "backup-stm"
     group_id: "backup-stm"
     dsn:

@@ -35,7 +35,10 @@ data:
       bk_app_code: {{ .Values.dbm.envs.bkAppCode }}
       bk_app_secret: {{ .Values.dbm.envs.bkAppToken }}
       bk_biz_id: {{ .Values.dbm.envs.dbaAppBkBizId }}
-      api_url: {{ .Values.bk.bkMonitorApiUrl }}
+      bkmonitor_api_url: "{{ .Values.bk.bkMonitorApiUrl }}"
+      bklog_api_url: "{{ .Values.dbm.envs.BKLOG_APIGW_DOMAIN }}"
+    otel_port: 8000
+
   datasource.yaml: |-
     - name: prod_bk_dbm_report
       type: mysql
