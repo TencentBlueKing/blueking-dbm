@@ -127,3 +127,9 @@ class TestProxyInstanceCpuUsagePromQL:
         assert "/ 100" in promql
         assert "max by (cluster_domain,ip,instance_port)" in promql
         assert promql.startswith("label_replace(max by (cluster_domain)")
+
+    def test_host_cpu_usage_uses_cpu_summary_for_all_components(self):
+        for key in ("redis_cpu_usage", "predixy_cpu_usage", "twemproxy_cpu_usage"):
+            promql = METRIC_REGISTRY[key]["promql_template"]
+            assert "cpu_summary:usage" in promql
+            assert "cpu_detail:usage" not in promql

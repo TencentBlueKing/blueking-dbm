@@ -95,7 +95,7 @@ class RedisMetricsClusterProxyInputSerializer(ClusterDomainsFieldMixin, RedisMet
         choices=MetricType.get_proxy_cluster_api_choices(),
         help_text=_(
             "Metric to query (proxy nodes; capacity is not available at proxy). "
-            "[Resource] cpu_usage (host), instance_cpu_usage (Twemproxy process CPU only; "
+            "[Resource] cpu_usage (host multi-core), instance_cpu_usage (Twemproxy process CPU only; "
             "Predixy has no process CPU — use cpu_usage), "
             "memory_usage, io_usage, disk_usage. "
             "[Throughput] connections, qps. "
@@ -156,7 +156,7 @@ class RedisMetricsMachineInputSerializer(RedisMetricsTimeWindowSerializer):
         help_text=_(
             "Metric to query. Role (proxy vs backend) is resolved from ip; "
             "latency_distribution is proxy-only, capacity is backend-only. "
-            "[Resource] cpu_usage (host), instance_cpu_usage (Redis/Twemproxy process CPU; "
+            "[Resource] cpu_usage (host multi-core), instance_cpu_usage (Redis/Twemproxy process CPU; "
             "Predixy proxy unsupported — use cpu_usage), "
             "memory_usage, io_usage, disk_usage. "
             "[Throughput] connections, qps. "
