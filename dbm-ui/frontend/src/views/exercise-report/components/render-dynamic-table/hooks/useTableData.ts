@@ -36,9 +36,12 @@ export const useTableData = (props: Props) => {
   const tableData = shallowRef<any[]>([]);
 
   const pagination = reactive({
+    align: 'right',
+    count: 0,
     current: 1,
-    pageSize: 10,
-    total: 0,
+    layout: ['total', 'limit', 'list'],
+    limit: 10,
+    limitList: [10, 20, 50, 100, 200, 500],
   });
 
   const searchSelectData = computed(() => {
@@ -110,7 +113,7 @@ export const useTableData = (props: Props) => {
     manual: true,
     onSuccess(result) {
       stateCountsMap.value = result.state_count;
-      pagination.total = result.count;
+      pagination.count = result.count;
       tableName.value = result.name;
       const rawTitleList: typeof titleList.value = result.title;
       if (result.count > 0 && !Object.keys(columnWidthMap.value).length) {
@@ -179,8 +182,8 @@ export const useTableData = (props: Props) => {
     fetchInspectionData(
       props.serviceUrl,
       {
-        limit: pagination.pageSize,
-        offset: (pagination.current - 1) * pagination.pageSize,
+        limit: pagination.limit,
+        offset: (pagination.current - 1) * pagination.limit,
         ...searchValue.value,
         ...props.searchParams,
         ...sortParams,
@@ -218,25 +221,29 @@ export const useTableData = (props: Props) => {
     fetchData(sortParams);
   };
 
-  const handlePageChange = (pageInfo: { current: number; pageSize: number; previous: number }) => {
-    if (pagination.pageSize !== pageInfo.pageSize) {
-      pagination.pageSize = pageInfo.pageSize;
-      pagination.current = 1;
-      fetchData(sortParams);
+  const handlePageValueChange = (pageValue: number) => {
+    if (pagination.current === pageValue) {
       return;
     }
+    pagination.current = pageValue;
+    fetchData(sortParams);
+  };
 
-    if (pageInfo.current !== pagination.current) {
-      pagination.current = pageInfo.current;
-      fetchData(sortParams);
+  const handlePageLimitChange = (pageLimit: number) => {
+    if (pagination.limit === pageLimit) {
+      return;
     }
+    pagination.limit = pageLimit;
+    pagination.current = 1;
+    fetchData(sortParams);
   };
 
   return {
     columnWidthMap,
     filterValue,
     handleFilterChange,
-    handlePageChange,
+    handlePageLimitChange,
+    handlePageValueChange,
     handleSortChange,
     loading,
     pagination,
