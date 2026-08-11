@@ -32,6 +32,7 @@ from .mysql_config_ai_inspect import MysqlConfigAiInspect, MysqlConfigAiInspectS
 from .mysql_config_check_result import MysqlConfigCheckResult
 from .mysql_db_table_size import MysqlDbTableSize
 from .mysql_inspect_ignore import MysqlInspectIgnore
+from .mysql_proxy_connlog import MysqlProxyConnlog
 from .mysql_slowlog_ai_analysis import MysqlSlowlogAiAnalysis
 from .mysql_slowlog_detail import MysqlSlowlogDetail
 from .mysql_sql_exec_duration import MysqlSqlExecDuration

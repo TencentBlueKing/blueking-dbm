@@ -275,31 +275,43 @@ var CREATE_TABLE_SLOWLOG_MYSQL = `
 CREATE TABLE IF NOT EXISTS %s (
   id bigint NOT NULL AUTO_INCREMENT,
   cluster_domain varchar(200) NOT NULL,
+  instance_role varchar(60) DEFAULT NULL,
   dteventtimehour datetime NOT NULL COMMENT 'datetime precision to hour, used as where,group-by,expire',
-  report_time varchar(32) DEFAULT NULL,
   thedate int NOT NULL,
-  dteventtimestamp bigint NOT NULL,
+  log_time datetime NOT NULL,
+  dteventtimestamp datetime NOT NULL,
+  query_digest_md5 varchar(60) DEFAULT NULL,
   instance_host varchar(60) DEFAULT NULL,
   instance_port int DEFAULT NULL,
   shard_value int DEFAULT NULL,
-  database_name varchar(100) DEFAULT NULL,
-  table_name varchar(100) DEFAULT NULL,
-  table_size bigint DEFAULT NULL,
-  original_database_name varchar(100) DEFAULT NULL,
-  db_name varchar(100) DEFAULT NULL,
   cluster_type varchar(60) DEFAULT NULL,
-  instance_role varchar(60) DEFAULT NULL,
+
+  query_time float DEFAULT NULL,
+  lock_time float DEFAULT NULL,
+  rows_examined int DEFAULT NULL,
+  rows_sent int DEFAULT NULL,
+  query_digest_text text DEFAULT NULL,
+  query_string text DEFAULT NULL,
+  query_length int DEFAULT NULL,
+  query_command varchar(60) DEFAULT NULL,
+  query_db_name varchar(127) DEFAULT NULL,
+  table_names varchar(1024) DEFAULT NULL,
+  db_name varchar(100) DEFAULT NULL,
+  table_name varchar(100) DEFAULT NULL,
+    
   bk_biz_id int DEFAULT NULL,
   bk_cloud_id int DEFAULT NULL,
+  client_host varchar(60) DEFAULT NULL,
+  username varchar(127) DEFAULT NULL,
+  app_name varchar(60) DEFAULT NULL,
+  parse_failure int DEFAULT NULL,
   PRIMARY KEY (cluster_domain,dteventtimehour,id),
   KEY idx_0 (id),
-  KEY idx_1 (cluster_domain,database_name,original_database_name,table_name,dteventtimehour),
-  KEY idx_2 (cluster_domain,dteventtimehour),
-  KEY idx_3 (dteventtimehour,cluster_domain,database_name),
-  KEY idx_4 (dteventtimehour),
-  KEY idx_5 (instance_host,instance_port)
+  KEY idx_1 (cluster_domain,dteventtimestamp),
+  KEY idx_2 (dteventtimehour,cluster_domain),
+  KEY idx_3 (query_digest_md5),
+  KEY idx_4 (instance_host,instance_port)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 
-
 `
 
 var CREATE_TABLE_SLOWLOG_DORIS = `
@@ -379,7 +391,6 @@ func (m *MysqlSlowLogModel) UnmarshalItem(data []byte, msg base.MessageWrapper) 
 	}
 	// sql解析结果字段
 	_ = copier.Copy(m, logParsed)
-
 	// 维度字段
 	dimExt := &DimExt{}
 	config := &mapstructure.DecoderConfig{
@@ -387,6 +398,7 @@ func (m *MysqlSlowLogModel) UnmarshalItem(data []byte, msg base.MessageWrapper) 
 		Result:   dimExt,
 		TagName:  "json", // Specify the custom tag name here
 	}
+
 	decoder, _ := mapstructure.NewDecoder(config)
 	_ = decoder.Decode(msg.Ext)
 	_ = copier.Copy(m, dimExt)
@@ -398,6 +410,7 @@ func (m *MysqlSlowLogModel) UnmarshalItem(data []byte, msg base.MessageWrapper) 
 	m.SqlTimestamp = msg.Ts
 	m.DtEventTimeStamp = msg.LogTime.Time
 	m.LogTime = msg.UtcTime.Time
+
 	m.TheDate, _ = strconv.Atoi(m.LogTime.Format("20060102"))
 	m.DtEventTimeHour = m.LogTime.Format("2006-01-02 15")
 
