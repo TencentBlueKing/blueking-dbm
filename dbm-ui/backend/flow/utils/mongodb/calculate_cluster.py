@@ -25,9 +25,21 @@ from backend.flow.utils.mongodb.mongodb_repo import MongoRepository
 from backend.flow.utils.mongodb.version_utils import resolve_mongodb_flow_db_version
 
 
-def get_cache_size(memory_size: int, cache_percent: float, num: int) -> int:
-    """计算内存大小 gb"""
+def get_cache_percent(memory_size: int) -> float:
+    """按机器总内存(MB)分档计算 mongod cache 占比"""
 
+    memory_gb = memory_size / 1024
+    if memory_gb <= 4:
+        return MongoDBTotalCache.Cache_Percent_Small.value
+    if memory_gb <= 16:
+        return MongoDBTotalCache.Cache_Percent_Medium.value
+    return MongoDBTotalCache.Cache_Percent_Large.value
+
+
+def get_cache_size(memory_size: int, num: int) -> int:
+    """计算 cacheSizeGB。memory_size 单位为 MB。"""
+
+    cache_percent = get_cache_percent(memory_size)
     cache_size = int(memory_size * cache_percent / num / 1024)
     return cache_size if cache_size > 0 else 1
 
@@ -117,7 +129,6 @@ def replicase_calc(payload: dict, payload_clusters: dict, app: str, domain_prefi
     data_disk = "/data1"
     avg_mem_size_gb = get_cache_size(
         memory_size=payload["infos"][0]["mongo_machine_set"][0]["bk_mem"],
-        cache_percent=MongoDBTotalCache.Cache_Percent,
         num=node_replica_count,
     )
     if payload["infos"][0]["mongo_machine_set"][0]["storage_device"].get("/data1"):
@@ -194,12 +205,10 @@ def cluster_calc(payload: dict, payload_clusters: dict, app: str) -> dict:
     # 计算configCacheSizeGB，shardCacheSizeGB，oplogSizeMB
     shard_avg_mem_size_gb = get_cache_size(
         memory_size=payload["nodes"]["mongodb"][0][0]["bk_mem"],
-        cache_percent=MongoDBTotalCache.Cache_Percent,
         num=node_replica_count,
     )
     config_mem_size_gb = get_cache_size(
         memory_size=payload["nodes"]["mongo_config"][0]["bk_mem"],
-        cache_percent=MongoDBTotalCache.Cache_Percent,
         num=1,
     )
     # shard oplogSizeMB
@@ -377,7 +386,6 @@ def calculate_cluster_add_shard(payload: dict) -> dict:
         # shard CacheSizeGB
         shard_avg_mem_size_gb = get_cache_size(
             memory_size=cluster["mongo_add_shards"][0][0]["bk_mem"],
-            cache_percent=MongoDBTotalCache.Cache_Percent,
             num=node_replicaset_count,
         )
 
