@@ -92,7 +92,7 @@ class MySQLAuthorizeRulesFlowParamBuilder(builders.FlowParamBuilder):
         flow.save(update_fields=["details"])
 
 
-@builders.BuilderFactory.register(TicketType.MYSQL_AUTHORIZE_RULES, iam=ActionEnum.MYSQL_PRIV_MANAGE)
+@builders.BuilderFactory.register(TicketType.MYSQL_AUTHORIZE_RULES, iam=ActionEnum.MYSQL_AUTHORIZE)
 class MySQLAuthorizeRulesFlowBuilder(BaseMySQLTicketFlowBuilder):
     serializer = MySQLAuthorizeRulesSerializer
     inner_flow_builder = MySQLAuthorizeRulesFlowParamBuilder
@@ -117,7 +117,7 @@ class MySQLAuthorizeRulesFlowBuilder(BaseMySQLTicketFlowBuilder):
         self.ticket.update_details(rules_set=data)
 
 
-@builders.BuilderFactory.register(TicketType.MYSQL_EXCEL_AUTHORIZE_RULES, iam=ActionEnum.MYSQL_PRIV_MANAGE)
+@builders.BuilderFactory.register(TicketType.MYSQL_EXCEL_AUTHORIZE_RULES, iam=ActionEnum.MYSQL_AUTHORIZE)
 class MySQLExcelAuthorizeRulesFlowBuilder(MySQLAuthorizeRulesFlowBuilder):
     serializer = MySQLExcelAuthorizeRulesSerializer
     inner_flow_name = _("MySQL Excel授权执行")

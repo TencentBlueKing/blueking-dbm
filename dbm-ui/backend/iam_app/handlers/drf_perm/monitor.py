@@ -52,9 +52,9 @@ class NotifyGroupPermission(ResourceActionPermission):
                 self.resource_meta = ResourceEnum.BUSINESS
                 return [bk_biz_id]
             else:
-                self.actions = [ActionEnum.GLOBAL_NOTIFY_GROUP_UPDATE]
-                self.resource_meta = ResourceEnum.NOTIFY_GROUP
-                return [notify_group.id]
+                self.actions = []
+                self.resource_meta = None
+                return []
         else:
             raise ActionNotExistError(_("不合法的告警组任务ID：{}").format(view.action))
 
