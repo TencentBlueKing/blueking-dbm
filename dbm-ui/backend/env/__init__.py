@@ -100,6 +100,9 @@ BK_APIGW_STAGE_ENABLE_SERVERS = get_type_env(key="BK_APIGW_STAGE_ENABLE_SERVERS"
 DBM_APP_USER = get_type_env(key="DBM_APP_USER", _type=str, default="")
 DBM_APP_ACCESS_TOKEN = get_type_env(key="DBM_APP_ACCESS_TOKEN", _type=str, default="")
 
+# 监控数据源 token
+BKM_DBM_TOKEN = get_type_env(key="BKM_DBM_TOKEN", _type=str, default="")
+
 # bkoauth 相关配置
 OAUTH_API_URL = get_type_env(key="OAUTH_API_URL", _type=str, default="")
 
