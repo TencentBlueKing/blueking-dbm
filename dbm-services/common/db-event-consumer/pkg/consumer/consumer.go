@@ -292,7 +292,6 @@ func (s *AnySinker) HandleMessagesBklogGorm(msgs []*sarama.ConsumerMessage, sk *
 	for _, message := range msgs {
 		// slog.Debug("process message", slog.String("Value", string(message.Value)))
 		var msg base.MessageWrapper
-
 		err := json.Unmarshal(message.Value, &msg)
 		if err != nil {
 			slog.Error("unmarshal message", err)
@@ -302,7 +301,6 @@ func (s *AnySinker) HandleMessagesBklogGorm(msgs []*sarama.ConsumerMessage, sk *
 		for _, item := range msg.Items {
 			objValue := reflect.New(s.modelType)
 			obj := objValue.Interface()
-
 			if bklogItem, ok := obj.(base.BklogUnmarshalItem); ok {
 				err = bklogItem.UnmarshalItem(item.Data, msg)
 				if err != nil {

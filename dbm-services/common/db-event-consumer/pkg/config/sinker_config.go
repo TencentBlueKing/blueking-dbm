@@ -11,6 +11,8 @@ package config
 type SinkerConfig struct {
 	Topic    string `yaml:"topic"`
 	BkDataId int    `yaml:"bk_data_id"`
+	// BkCollectorName collector_config_name_en
+	BkCollectorName string `yaml:"bk_collector_name"`
 
 	ModelTable string `yaml:"model_table" validate:"required"`
 	// StrictSchema default strict_schema=true, use defined model struct to unmarshal kafka msg
@@ -60,11 +62,12 @@ type BkmApiInfo struct {
 	BkAppCode   string `yaml:"bk_app_code" json:"bk_app_code"`
 	BkAppSecret string `yaml:"bk_app_secret" json:"bk_app_secret"`
 	BkBizId     int    `yaml:"bk_biz_id" json:"bk_biz_id"`
-	// BkUsername  string `yaml:"bk_username" json:"bk_username"`
+	BkUsername  string `yaml:"bk_username" json:"bk_username"`
 	// BkTicket    string `yaml:"bk_ticket" json:"bk_ticket"`
 	// BkToken     string `yaml:"bk_token" json:"bk_token"`
 	// BkApiUrl https://bk-monitor.xxx.com/prod/
-	BkApiUrl string `yaml:"api_url" json:"api_url"`
+	BkApiUrl    string `yaml:"api_url" json:"api_url"`
+	BklogApiUrl string `yaml:"bklog_api_url" json:"bklog_api_url"`
 }
 
 type BkDataKafkaMeta struct {

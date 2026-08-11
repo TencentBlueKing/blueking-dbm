@@ -59,6 +59,16 @@ var rootCmd = &cobra.Command{
 			_ = r.Run("127.0.0.1:8002")
 		}()
 
+		// 全局获取一次 collectors 列表，供 BkCollectorName 匹配使用
+		var collectorsMap map[string]*config.BkDataConfig
+		if config.MainConfig.BkmApiInfo != nil && config.MainConfig.BkmApiInfo.BklogApiUrl != "" {
+			var err error
+			collectorsMap, err = consumer.ListBkDataId(config.MainConfig.BkmApiInfo)
+			if err != nil {
+				slog.Warn("list bk_data_id from collectors failed", slog.Any("err", err))
+			}
+		}
+
 		wg := &sync.WaitGroup{}
 
 		for _, sink := range config.SinkerConfigs {
@@ -87,6 +97,33 @@ var rootCmd = &cobra.Command{
 					continue
 				}
 				//sinker.MetaInfo is set// = sinker.RuntimeConfig.KafkaMeta
+			} else if sink.BkCollectorName != "" {
+				// 从 collectors 列表中按 collector_config_name_en 匹配提取 bk_data_id
+				if collectorsMap == nil {
+					slog.Error("collectors map is nil, cannot resolve bk_collector_name",
+						slog.String("bk_collector_name", sink.BkCollectorName))
+					continue
+				}
+				collectorCfg, ok := collectorsMap[sink.BkCollectorName]
+				if !ok {
+					slog.Error("collector not found in list",
+						slog.String("bk_collector_name", sink.BkCollectorName))
+					continue
+				}
+				sink.BkDataId = collectorCfg.BkDataId
+				slog.Info("resolved bk_data_id from collector",
+					slog.String("bk_collector_name", sink.BkCollectorName),
+					slog.Int("bk_data_id", sink.BkDataId))
+				sinker.RuntimeConfig.Topic = ""
+				// 复用 BkDataId > 0 的逻辑获取 kafka meta
+				if err = consumer.QueryKafkaMetaWithBkDataId(&sinker, config.MainConfig.BkmApiInfo); err != nil {
+					slog.Error("get kafka meta", err, slog.Int("bk_data_id", sink.BkDataId))
+					continue
+				}
+				if sinker.RuntimeConfig.Topic == "" {
+					slog.Error("topic is empty", slog.String("table", sink.ModelTable))
+					continue
+				}
 			} else {
 				sinker.MetaInfo = config.MainConfig.KafkaInfo
 			}
