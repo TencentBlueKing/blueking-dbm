@@ -4,95 +4,73 @@
     ref="menuBoxRef"
     :style="styles">
     <ScrollFaker theme="dark">
-      <BkMenu
+      <DbMenu
         ref="menuRef"
         :active-key="currentActiveKey"
         :opened-keys="[parentKey]"
         @click="handleMenuChange">
-        <BkMenuGroup
+        <DbMenuGroup
           v-db-console="'observableManage.AlarmEvents'"
+          :fold-name="t('告警')"
           :name="t('监控告警')">
-          <BkMenuItem key="bussinessDashboard">
-            <template #icon>
-              <DbIcon type="db-config" />
-            </template>
-            <span
-              v-overflow-tips.right
-              class="text-overflow">
-              {{ t('业务监控大盘') }}
-            </span>
-          </BkMenuItem>
-          <BkMenuItem key="AlarmEvents">
-            <template #icon>
-              <DbIcon type="db-config" />
-            </template>
-            <span
-              v-overflow-tips.right
-              class="text-overflow">
-              {{ t('告警事件') }}
-            </span>
-          </BkMenuItem>
-          <BkMenuItem key="RiskMemo">
-            <template #icon>
-              <DbIcon type="file" />
-            </template>
-            <span
-              v-overflow-tips.right
-              class="text-overflow">
-              {{ t('风险备忘录') }}
-            </span>
-          </BkMenuItem>
-        </BkMenuGroup>
-        <BkMenuGroup
+          <DbMenuItem
+            icon="db-config"
+            route-name="bussinessDashboard">
+            {{ t('业务监控大盘') }}
+          </DbMenuItem>
+          <DbMenuItem
+            icon="db-config"
+            route-name="AlarmEvents">
+            {{ t('告警事件') }}
+          </DbMenuItem>
+          <DbMenuItem
+            icon="file"
+            route-name="RiskMemo">
+            {{ t('风险备忘录') }}
+          </DbMenuItem>
+        </DbMenuGroup>
+        <DbMenuGroup
           v-db-console="'observableManage.DBHASwitchEvents'"
           name="DBHA">
-          <BkMenuItem key="DBHASwitchEvents">
-            <template #icon>
-              <DbIcon type="db-config" />
-            </template>
-            <span
-              v-overflow-tips.right
-              class="text-overflow">
-              {{ t('DBHA切换事件') }}
-            </span>
-          </BkMenuItem>
-        </BkMenuGroup>
-        <BkMenuGroup
+          <DbMenuItem
+            icon="db-config"
+            route-name="DBHASwitchEvents">
+            {{ t('DBHA切换事件') }}
+          </DbMenuItem>
+        </DbMenuGroup>
+        <DbMenuGroup
           v-db-console="'observableManage.healthReport'"
           :name="t('巡检')">
-          <BkMenuItem key="inspectionManage">
-            <template #icon>
-              <DbIcon type="db-config" />
-            </template>
-            <span
-              v-overflow-tips.right
-              class="text-overflow">
-              {{ t('巡检报告') }}
-            </span>
-          </BkMenuItem>
-        </BkMenuGroup>
-      </BkMenu>
+          <DbMenuItem
+            icon="db-config"
+            route-name="inspectionManage">
+            {{ t('巡检报告') }}
+          </DbMenuItem>
+        </DbMenuGroup>
+      </DbMenu>
     </ScrollFaker>
   </div>
 </template>
 <script setup lang="ts">
-  import { Menu } from 'bkui-vue';
   import { ref } from 'vue';
   import { useI18n } from 'vue-i18n';
 
   import AppSelect from './AppSelect.vue';
   import { useActiveKey } from './hooks/useActiveKey';
   import { useMenuStyles } from './hooks/useMenuStyles';
+  import DbMenuGroup from './menu/Group.vue';
+  import DbMenu from './menu/Index.vue';
+  import DbMenuItem from './menu/Item.vue';
 
   const { t } = useI18n();
 
   const menuBoxRef = ref<HTMLElement>();
-  const menuRef = ref<InstanceType<typeof Menu>>();
+  const menuRef = ref<InstanceType<typeof DbMenu>>();
 
   const {
     key: currentActiveKey,
     parentKey,
     routeLocation: handleMenuChange,
-  } = useActiveKey(menuRef as Ref<InstanceType<typeof Menu>>, 'bussinessDashboard');
+  } = useActiveKey(menuRef, 'bussinessDashboard');
   const styles = useMenuStyles(menuBoxRef);
 </script>

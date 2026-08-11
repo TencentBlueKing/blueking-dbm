@@ -30,8 +30,8 @@
   const countField = computed(() => (props.role === 'cluster' ? 'cluster_count' : 'instance_count'));
 </script>
 <style lang="less">
-  .bk-menu {
-    .bk-menu-item.is-active {
+  .db-menu {
+    .db-menu-item.is-active {
       .dbm-cluster-instance-count-tag {
         color: #3a84ff;
         background: #e1ecff;
@@ -39,9 +39,9 @@
       }
     }
 
-    .bk-menu-submenu {
+    .db-menu-submenu {
       &.is-opened {
-        .submenu-header-content {
+        .db-menu-submenu-title {
           .dbm-cluster-instance-count-tag {
             display: none;
           }

@@ -6,7 +6,7 @@
     ref="menuBoxRef"
     :style="styles">
     <ScrollFaker theme="dark">
-      <BkMenu
+      <DbMenu
         ref="menuRef"
         :active-key="currentActiveKey"
         :opened-keys="[parentKey]"
@@ -24,70 +24,48 @@
             </TransitionGroup>
           </template>
         </BkLoading>
-        <BkMenuGroup
+        <DbMenuGroup
           v-db-console="'personalWorkbench'"
+          :fold-name="t('部署')"
           :name="t('数据库部署')">
-          <BkMenuItem
-            key="BussinessServiceApply"
-            v-db-console="'personalWorkbench.serviceApply'">
-            <template #icon>
-              <DbIcon type="ticket" />
-            </template>
-            <span
-              v-overflow-tips.right
-              class="text-overflow">
-              {{ t('部署申请') }}
-            </span>
-          </BkMenuItem>
-        </BkMenuGroup>
-        <BkMenuGroup
+          <DbMenuItem
+            v-db-console="'personalWorkbench.serviceApply'"
+            icon="ticket"
+            route-name="BussinessServiceApply">
+            {{ t('部署申请') }}
+          </DbMenuItem>
+        </DbMenuGroup>
+        <DbMenuGroup
           v-db-console="'databaseManage.temporaryPaasswordModify'"
           :name="t('安全')">
-          <BkMenuItem key="DBPasswordTemporaryModify">
-            <template #icon>
-              <DbIcon type="password" />
-            </template>
-            <span
-              v-overflow-tips.right
-              class="text-overflow">
-              {{ t('临时密码修改') }}
-            </span>
-          </BkMenuItem>
-        </BkMenuGroup>
-        <BkMenuGroup
+          <DbMenuItem
+            icon="password"
+            route-name="DBPasswordTemporaryModify">
+            {{ t('临时密码修改') }}
+          </DbMenuItem>
+        </DbMenuGroup>
+        <DbMenuGroup
           v-db-console="'databaseManage.missionManage'"
+          :fold-name="t('单据')"
           :name="t('单据中心')">
-          <BkMenuItem
-            key="bizTicketManage"
-            v-db-console="'databaseManage.missionManage.ticketManage'">
-            <template #icon>
-              <DbIcon type="ticket" />
-            </template>
-            <span
-              v-overflow-tips.right
-              class="text-overflow">
-              {{ t('单据') }}
-            </span>
-          </BkMenuItem>
-          <BkMenuItem
-            key="taskHistory"
-            v-db-console="'databaseManage.missionManage.historyMission'">
-            <template #icon>
-              <DbIcon type="history" />
-            </template>
-            <span
-              v-overflow-tips.right
-              class="text-overflow">
-              {{ t('历史任务') }}
-            </span>
-          </BkMenuItem>
-        </BkMenuGroup>
-      </BkMenu>
+          <DbMenuItem
+            v-db-console="'databaseManage.missionManage.ticketManage'"
+            icon="ticket"
+            route-name="bizTicketManage">
+            {{ t('单据') }}
+          </DbMenuItem>
+          <DbMenuItem
+            v-db-console="'databaseManage.missionManage.historyMission'"
+            icon="history"
+            route-name="taskHistory">
+            {{ t('历史任务') }}
+          </DbMenuItem>
+        </DbMenuGroup>
+      </DbMenu>
     </ScrollFaker>
   </div>
 </template>
 <script setup lang="ts" async>
-  import { Menu } from 'bkui-vue';
   import { useI18n } from 'vue-i18n';
 
   import { useBizDbDisplay } from '@hooks';
@@ -95,6 +73,9 @@
   import AppSelect from '../AppSelect.vue';
   import { useActiveKey } from '../hooks/useActiveKey';
   import { useMenuStyles } from '../hooks/useMenuStyles';
+  import DbMenuGroup from '../menu/Group.vue';
+  import DbMenu from '../menu/Index.vue';
+  import DbMenuItem from '../menu/Item.vue';
 
   import ModuleGroup from './components/module-group/Index.vue';
 
@@ -109,7 +90,7 @@
   });
 
   const menuBoxRef = ref<HTMLElement>();
-  const menuRef = ref<InstanceType<typeof Menu>>();
+  const menuRef = ref<InstanceType<typeof DbMenu>>();
 
   const renderModuleList = computed(() => tabList.value.map((tabItem) => tabItem.id));
 
@@ -122,7 +103,7 @@
     key: currentActiveKey,
     parentKey,
     routeLocation: handleMenuChange,
-  } = useActiveKey(menuRef as Ref<InstanceType<typeof Menu>>, defaultRouterName);
+  } = useActiveKey(menuRef, defaultRouterName);
 
   const styles = useMenuStyles(menuBoxRef);
 </script>
