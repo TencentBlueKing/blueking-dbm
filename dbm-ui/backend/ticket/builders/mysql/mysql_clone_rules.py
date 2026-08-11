@@ -65,7 +65,7 @@ class MySQLCloneRulesFlowParamBuilder(builders.FlowParamBuilder):
         flow.save(update_fields=["details"])
 
 
-@builders.BuilderFactory.register(TicketType.MYSQL_CLIENT_CLONE_RULES, iam=ActionEnum.MYSQL_PRIV_MANAGE)
+@builders.BuilderFactory.register(TicketType.MYSQL_CLIENT_CLONE_RULES, iam=ActionEnum.MYSQL_AUTHORIZE)
 class MySQLClientCloneRulesFlowBuilder(BaseMySQLTicketFlowBuilder):
     serializer = MySQLCloneRulesSerializer
     inner_flow_builder = MySQLCloneRulesFlowParamBuilder
@@ -88,6 +88,6 @@ class MySQLClientCloneRulesFlowBuilder(BaseMySQLTicketFlowBuilder):
             raise DBPermissionBaseException(_("权限克隆数据不合法！请检查"))
 
 
-@builders.BuilderFactory.register(TicketType.MYSQL_INSTANCE_CLONE_RULES, iam=ActionEnum.MYSQL_PRIV_MANAGE)
+@builders.BuilderFactory.register(TicketType.MYSQL_INSTANCE_CLONE_RULES, iam=ActionEnum.MYSQL_AUTHORIZE)
 class MySQLInstanceCloneRulesFlowBuilder(MySQLClientCloneRulesFlowBuilder):
     inner_flow_name = _("DB实例权限克隆执行")

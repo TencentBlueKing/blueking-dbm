@@ -179,6 +179,19 @@ class GetAdminPasswordSerializer(serializers.Serializer):
     )
 
 
+class GetInstancesPasswordSerializer(serializers.Serializer):
+    class InstancesInfoSerializer(serializers.Serializer):
+        port = serializers.IntegerField()
+        ip = serializers.CharField()
+        cluster_id = serializers.IntegerField()
+
+    limit = serializers.IntegerField(help_text=_("分页限制"), required=False, default=100)
+    offset = serializers.IntegerField(help_text=_("分页起始"), required=False, default=0)
+    db_type = serializers.ChoiceField(help_text=_("db类型"), choices=DBType.get_choices())
+    bk_biz_id = serializers.IntegerField(help_text=_("业务ID"), required=False)
+    instances = serializers.ListField(help_text=_("实例信息"), child=InstancesInfoSerializer())
+
+
 class GetMySQLAdminPasswordResponseSerializer(serializers.Serializer):
     class Meta:
         swagger_schema_fields = {"example": mock_data.MYSQL_ADMIN_PASSWORD_DATA}
