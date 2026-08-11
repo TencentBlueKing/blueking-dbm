@@ -75,9 +75,10 @@ def execute_script(
         "script_language": 1,
         "target_server": {"ip_list": [{"bk_cloud_id": bk_cloud_id, "ip": ip} for ip in ips]},
         "account_alias": run_as,
+        "bk_username": username,
     }
     logger.info(f"body: {body}")
-    resp = JobApi.fast_execute_script(body, raw=True, use_admin=False, use_param_user=username)
+    resp = JobApi.fast_execute_script(body, raw=True, use_admin=False, use_param_user=True)
     logger.info(f"resp: {resp}")
     if resp.get("code") != 0 or not resp.get("result"):
         raise DBMMcpBaseException(msg=resp.get("message") or "fast_execute_script failed")
