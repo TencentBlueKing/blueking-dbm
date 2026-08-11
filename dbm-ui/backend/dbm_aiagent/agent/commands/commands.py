@@ -88,7 +88,7 @@ class MySQLAlarmAnalyzerCommand(CommandHandler):
 
     def get_template(self) -> str:
         return """
-        /mysql_alarm_analyzer 使用告警分析 skills 来分析告警，返回输出控制在 2000 字符以内。
+        /mysql_alarm_analyzer 使用告警分析 skills 来分析告警，返回输出控制在 1800 字符以内。
         告警内容:
         {{alarm_content}}
         """

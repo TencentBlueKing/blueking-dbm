@@ -26,6 +26,12 @@ from backend.dbm_aiagent.agent.handlers import AgentHandler
 logger = logging.getLogger("root")
 
 
+def utc_to_cst_tz(utc_time_str: str, fmt: str = "%Y-%m-%d %H:%M:%S") -> str:
+    """将 UTC 时间字符串转换为东八区（CST）时间字符串，带时区后缀"""
+    utc_time = datetime.strptime(utc_time_str, fmt).replace(tzinfo=dt_timezone.utc)
+    return utc_time.astimezone(dt_timezone(timedelta(hours=8))).strftime(f"{fmt}%z")
+
+
 def extract_callback_key_info(callback_data: dict) -> dict:
     """
     从告警回调数据中提取有效信息，去除冗余字段。
@@ -41,13 +47,16 @@ def extract_callback_key_info(callback_data: dict) -> dict:
     for _key, anomaly_detail in origin_alarm.get("anomaly", {}).items():
         anomaly_info = {
             "anomaly_message": anomaly_detail.get("anomaly_message", ""),
-            "anomaly_time": anomaly_detail.get("anomaly_time", ""),
+            "anomaly_time": utc_to_cst_tz(anomaly_detail.get("anomaly_time", "")),
+            "create_time": utc_to_cst_tz(latest_anomaly_record.get("create_time", "")),
         }
         break  # 只取第一条异常记录
 
     # 去除 event 中的 agg_dimensions
     event = callback_message.get("event", {})
     event.pop("agg_dimensions", None)
+    event["begin_time"] = utc_to_cst_tz(event.get("begin_time", ""))
+    event["create_time"] = utc_to_cst_tz(event.get("create_time", ""))
 
     # 构建精简后的回调信息
     result = {
@@ -115,8 +124,7 @@ class MySQLAlarm(AlarmCallback):
         alarm_time = callback_message.get("latest_anomaly_record", {}).get("create_time")
         # 将 alarm_time 从 UTC 转换为东八区时间
         if alarm_time:
-            utc_time = datetime.strptime(alarm_time, "%Y-%m-%d %H:%M:%S").replace(tzinfo=dt_timezone.utc)
-            alarm_time = utc_time.astimezone(dt_timezone(timedelta(hours=8))).strftime("%Y-%m-%d %H:%M:%S%z")
+            alarm_time = utc_to_cst_tz(alarm_time)
 
         # 优先从 dimensions 中获取 cluster_type，没有则通过 cluster_domain 查询
         dimensions = callback_message.get("event", {}).get("dimensions", {})

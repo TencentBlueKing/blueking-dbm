@@ -19,8 +19,8 @@ class MysqlProxyConnlog(models.Model):
     dteventtimehour = models.DateTimeField(help_text=_("精确到小时的事件时间"))
     thedate = models.IntegerField(help_text=_("日期"))
     dteventtimestamp = models.DateTimeField(help_text=_("事件时间戳"))
-    instance_host = models.CharField(max_length=60, help_text=_("mysql-proxy ip"))
-    instance_port = models.IntegerField(help_text=_("mysql-proxy port"))
+    proxy_ip = models.CharField(max_length=60, help_text=_("mysql-proxy ip"))
+    proxy_port = models.IntegerField(help_text=_("mysql-proxy port"))
     conn_time = models.DateTimeField(help_text=_("连接时间"))
     client_ip = models.CharField(max_length=60, null=True, help_text=_("客户端IP"))
     conn_user = models.CharField(max_length=100, null=True, help_text=_("连接用户"))
@@ -36,4 +36,4 @@ class MysqlProxyConnlog(models.Model):
         verbose_name_plural = _("MySQL Proxy连接日志")
 
     def __str__(self):
-        return f"{self.cluster_domain}-{self.instance_host}-{self.conn_user}-{self.conn_time}"
+        return f"{self.cluster_domain}-{self.proxy_ip}-{self.proxy_port}-{self.conn_user}-{self.conn_time}"

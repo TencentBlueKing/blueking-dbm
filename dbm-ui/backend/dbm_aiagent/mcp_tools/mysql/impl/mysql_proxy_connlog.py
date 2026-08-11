@@ -25,7 +25,7 @@ DEFAULT_TIME_RANGE_DAYS = 7
 
 
 def query_proxy_connlog(
-    instance_hosts: List[str],
+    proxy_ips: List[str],
     cluster_domain: Optional[str] = None,
     conn_user: Optional[str] = None,
     session_ids: Optional[List[int]] = None,
@@ -49,7 +49,7 @@ def query_proxy_connlog(
     try:
         # 构建基础过滤条件
         qs = MysqlProxyConnlog.objects.filter(
-            instance_host__in=instance_hosts,
+            proxy_ip__in=proxy_ips,
             conn_time__gte=start_time,
             conn_time__lte=end_time,
         )
@@ -85,7 +85,7 @@ def query_proxy_connlog(
 
     # 构建返回结果，保持 instance_hosts 的输入顺序
     instances = []
-    for host in instance_hosts:
+    for host in proxy_ips:
         instances.append(
             {
                 "instance_host": host,
