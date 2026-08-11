@@ -20,29 +20,33 @@
     <DbTable
       ref="table"
       :data-source="dataSource"
+      fixed-pagination
       :height="540"
-      ignore-biz
-      primary-key="instance_address"
+      row-key="instance_address"
       selectable
       :selected="selected"
-      @column-filter="handleFilter"
+      @filter-change="handleFilter"
       @selection="handleSelect">
-      <BkTableColumn
-        field="instance_address"
-        :label="t('目标实例')"
-        :min-width="150" />
-      <BkTableColumn
-        field="role"
-        :label="t('角色类型')"
-        :min-width="120" />
-      <BkTableColumn
-        field="status"
-        :filter="filterOption.status"
-        :label="t('状态')"
-        :min-width="120">
-        <template #default="{ data }: { data: IValue }">
+      <TableColumn
+        col-key="instance_address"
+        :min-width="150"
+        :title="t('目标实例')" />
+      <TableColumn
+        col-key="role"
+        :min-width="120"
+        :title="t('角色类型')" />
+      <TableColumn
+        col-key="status"
+        :filter="{
+          list: statusFilterList,
+          showConfirmAndReset: true,
+          type: 'multiple',
+        }"
+        :min-width="120"
+        :title="t('状态')">
+        <template #default="{ row }: { row: IValue }">
           <DbStatus
-            v-if="data.status === 'running'"
+            v-if="row.status === 'running'"
             theme="success">
             {{ t('正常') }}
           </DbStatus>
@@ -52,18 +56,19 @@
             {{ t('异常') }}
           </DbStatus>
         </template>
-      </BkTableColumn>
-      <BkTableColumn
-        :label="t('所属业务')"
-        :min-width="120">
-        <template #default="{ data }: { data: IValue }">
-          {{ getBizInfoById(data.bk_biz_id)?.name || '--' }}
+      </TableColumn>
+      <TableColumn
+        col-key="bk_biz_id"
+        :min-width="120"
+        :title="t('所属业务')">
+        <template #default="{ row }: { row: IValue }">
+          {{ getBizInfoById(row.bk_biz_id)?.name || '--' }}
         </template>
-      </BkTableColumn>
-      <BkTableColumn
-        field="master_domain"
-        :label="t('所属集群')"
-        :min-width="220" />
+      </TableColumn>
+      <TableColumn
+        col-key="master_domain"
+        :min-width="220"
+        :title="t('所属集群')" />
     </DbTable>
   </div>
 </template>
@@ -76,6 +81,8 @@
   import { useGlobalBizs } from '@stores';
 
   import { ipv4 } from '@common/regex';
+
+  import DbTable from '@components/db-table/IndexNew.vue';
 
   import { getSearchSelectorParams } from '@utils';
 
@@ -103,29 +110,16 @@
     },
   ];
 
-  const filterOption: Record<
-    string,
+  const statusFilterList = [
     {
-      checked: string[];
-      key: string;
-      list: { text: string; value: string }[];
-    }
-  > = {
-    status: {
-      checked: [],
-      key: 'status',
-      list: [
-        {
-          text: t('正常'),
-          value: 'running',
-        },
-        {
-          text: t('异常'),
-          value: 'unavailable',
-        },
-      ],
+      label: t('正常'),
+      value: 'running',
     },
-  };
+    {
+      label: t('异常'),
+      value: 'unavailable',
+    },
+  ];
 
   const searchSelectValue = ref<NonNullable<SearchSelectProps['modelValue']>>([]);
   const dbTableRef = useTemplateRef('table');
@@ -136,7 +130,7 @@
       params.ip = params.instance_address;
       delete params.instance_address;
     }
-    dbTableRef.value?.fetchData(params, props.params);
+    dbTableRef.value?.fetchData(params);
   });
 
   const dataSource = (params: Parameters) =>
@@ -145,9 +139,9 @@
       ...params,
     });
 
-  const handleFilter = ({ checked, field }: { checked: string[]; field: string }) => {
+  const handleFilter = (filterValue: Record<string, string[]>) => {
     dbTableRef.value?.fetchData({
-      [filterOption[field].key]: checked.join(','),
+      status: filterValue.status?.join(','),
     });
   };
 
@@ -160,7 +154,7 @@
   .instance-resource-selector-render-table {
     padding: 12px 24px;
 
-    .bk-table-body {
+    .t-table__body {
       tr {
         cursor: pointer;
       }

@@ -164,7 +164,7 @@ export const useSelect = (
                       )}
                     </>
                   )}
-                  {!isOnlyOnePage.value && (
+                  {!isOnlyOnePage.value && props.showSelectAllPage && (
                     <Popover
                       v-slots={{
                         content: () => (

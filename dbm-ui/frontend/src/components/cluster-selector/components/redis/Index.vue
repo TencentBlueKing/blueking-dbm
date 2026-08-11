@@ -22,26 +22,37 @@
   <BkLoading
     :loading="isLoading"
     :z-index="2">
-    <DbOriginalTable
+    <PrimaryTable
       class="table-box"
       :columns="generatedColumns"
       :data="tableData"
-      :is-anomalies="isAnomalies"
-      :is-searching="searchValue.length > 0"
+      :filter-value="columnCheckedMap"
       :max-height="528"
-      :pagination="pagination.count < 10 ? false : pagination"
-      remote-pagination
-      :row-class="getRowClass"
-      row-style="cursor: pointer"
-      @clear-search="clearSearchValue"
-      @column-filter="columnFilterChange"
-      @page-limit-change="handleTableLimitChange"
-      @page-value-change="handleTablePageChange"
-      @refresh="fetchResources"
-      @row-click.stop.prevent="handleRowClick" />
+      :row-class-name="getRowClass"
+      row-key="id"
+      @filter-change="handleFilterChange"
+      @row-click="handleRowClick">
+      <template #empty>
+        <EmptyStatus
+          :is-anomalies="isAnomalies"
+          :is-searching="searchValue.length > 0"
+          @clear-search="clearSearchValue"
+          @refresh="fetchResources" />
+      </template>
+    </PrimaryTable>
+    <div
+      v-if="pagination.count >= 10"
+      class="table-footer">
+      <BkPagination
+        v-bind="pagination"
+        :model-value="pagination.current"
+        @change="handleTablePageChange"
+        @limit-change="handleTableLimitChange" />
+    </div>
   </BkLoading>
 </template>
 <script setup lang="tsx">
+  import type { PrimaryTableCol } from 'tdesign-vue-next';
   import { useI18n } from 'vue-i18n';
 
   import { useLinkQueryColumnSerach } from '@hooks';
@@ -49,12 +60,13 @@
   import { ClusterTypes } from '@common/const';
 
   import DbStatus from '@components/db-status/index.vue';
+  import EmptyStatus from '@components/empty-status/EmptyStatus.vue';
   import TextOverflowLayout from '@components/text-overflow-layout/Index.vue';
 
   import { getSearchSelectorParams } from '@utils';
 
   import type { TabItem } from '../../Index.vue';
-  import { tagsColumn } from '../common/columns';
+  import { tagsColumn, transBkuiColumns } from '../common/columns';
   import SearchBar from '../common/SearchBar.vue';
   import ClusterRelatedTasks from '../common/task-panel/Index.vue';
 
@@ -112,10 +124,10 @@
     clearSearchValue,
     columnAttrs,
     columnCheckedMap,
-    columnFilterChange,
     handleSearchValueChange,
     searchAttrs,
     searchValue,
+    tableColumnFilterChange,
   } = useLinkQueryColumnSerach({
     attrs: ['bk_cloud_id', 'major_version', 'region', 'time_zone', 'cluster_type'],
     defaultSearchItem: {
@@ -148,10 +160,64 @@
     }, {}),
   );
 
-  const columns = computed(() => [
+  const statusFilterList = computed(() => [
     {
+      label: t('正常'),
+      value: 'normal',
+    },
+    {
+      label: t('异常'),
+      value: 'abnormal',
+    },
+  ]);
+
+  const columns = computed<PrimaryTableCol[]>(() => [
+    {
+      cell: (_, { row }) => {
+        const disabledRowConfig = props.disabledRowConfig!.find((item) => item.handler(row));
+        if (disabledRowConfig) {
+          return (
+            <bk-popover
+              placement='top'
+              popoverDelay={0}
+              theme='dark'>
+              {{
+                content: () => <span>{disabledRowConfig.tip}</span>,
+                default: () =>
+                  props.multiple ? (
+                    <bk-checkbox
+                      disabled
+                      style='vertical-align: middle;'
+                    />
+                  ) : (
+                    <bk-radio
+                      disabled
+                      label={false}
+                    />
+                  ),
+              }}
+            </bk-popover>
+          );
+        }
+        return props.multiple ? (
+          <bk-checkbox
+            label={true}
+            model-value={Boolean(selectedMap.value[row.id])}
+            style='vertical-align: middle;'
+            onChange={(value: boolean) => handleSelecteRow(row, value)}
+          />
+        ) : (
+          <bk-radio
+            label={true}
+            model-value={Boolean(selectedMap.value[row.id])}
+            onChange={(value: boolean) => handleSelecteRow(row, value)}
+          />
+        );
+      },
+      colKey: 'row-select',
       fixed: 'left',
-      label: () =>
+      minWidth: 80,
+      title: () =>
         props.multiple ? (
           <div style='display:flex;align-items:center'>
             <bk-checkbox
@@ -183,77 +249,31 @@
         ) : (
           ''
         ),
-      minWidth: 80,
-      render: ({ data }: { data: ResourceItem }) => {
-        const disabledRowConfig = props.disabledRowConfig!.find((item) => item.handler(data));
-        if (disabledRowConfig) {
-          return (
-            <bk-popover
-              placement='top'
-              popoverDelay={0}
-              theme='dark'>
-              {{
-                content: () => <span>{disabledRowConfig.tip}</span>,
-                default: () =>
-                  props.multiple ? (
-                    <bk-checkbox
-                      style='vertical-align: middle;'
-                      disabled
-                    />
-                  ) : (
-                    <bk-radio
-                      label={false}
-                      disabled
-                    />
-                  ),
-              }}
-            </bk-popover>
-          );
-        }
-        return props.multiple ? (
-          <bk-checkbox
-            label={true}
-            model-value={Boolean(selectedMap.value[data.id])}
-            style='vertical-align: middle;'
-            onChange={(value: boolean) => handleSelecteRow(data, value)}
-          />
-        ) : (
-          <bk-radio
-            label={true}
-            model-value={Boolean(selectedMap.value[data.id])}
-            onChange={(value: boolean) => handleSelecteRow(data, value)}
-          />
-        );
-      },
       width: 80,
     },
     {
-      field: 'master_domain',
-      fixed: 'left',
-      label: t('访问入口'),
-      minWidth: 250,
-      render: ({ data }: { data: ResourceItem }) => (
+      cell: (_, { row }) => (
         <TextOverflowLayout class='cluster-name-box'>
           {{
             append: () => (
               <>
-                {data.operations && data.operations.length > 0 && (
+                {row.operations && row.operations.length > 0 && (
                   <bk-popover
                     theme='light'
                     width='360'>
                     {{
-                      content: () => <ClusterRelatedTasks data={data.operations} />,
+                      content: () => <ClusterRelatedTasks data={row.operations} />,
                       default: () => (
                         <bk-tag
                           class='tag-box'
                           theme='info'>
-                          {data.operations.length}
+                          {row.operations.length}
                         </bk-tag>
                       ),
                     }}
                   </bk-popover>
                 )}
-                {data.isOffline && (
+                {row.isOffline && (
                   <bk-tag
                     class='ml-4'
                     size='small'>
@@ -262,64 +282,67 @@
                 )}
               </>
             ),
-            default: () => <span class='cluster-name'>{data.master_domain}</span>,
+            default: () => <span class='cluster-name'>{row.master_domain}</span>,
           }}
         </TextOverflowLayout>
       ),
-      showOverflowTooltip: true,
+      colKey: 'master_domain',
+      ellipsis: true,
+      fixed: 'left',
+      minWidth: 250,
+      title: t('访问入口'),
     },
     tagsColumn,
     {
-      field: 'status',
-      filter: {
-        checked: columnCheckedMap.value.status,
-        list: [
-          {
-            text: t('正常'),
-            value: 'normal',
-          },
-          {
-            text: t('异常'),
-            value: 'abnormal',
-          },
-        ],
-      },
-      label: t('状态'),
-      minWidth: 100,
-      render: ({ data }: { data: ResourceItem }) => {
-        const isNormal = props.columnStatusFilter ? props.columnStatusFilter(data) : data.status === 'normal';
+      cell: (_, { row }) => {
+        const isNormal = props.columnStatusFilter ? props.columnStatusFilter(row) : row.status === 'normal';
         const info = isNormal ? { text: t('正常'), theme: 'success' } : { text: t('异常'), theme: 'danger' };
         return <DbStatus theme={info.theme}>{info.text}</DbStatus>;
       },
-    },
-    {
-      field: 'cluster_name',
-      label: t('集群名称'),
-      minWidth: 140,
-      showOverflowTooltip: true,
-    },
-    {
-      field: 'cluster_type',
+      colKey: 'status',
       filter: {
-        checked: columnCheckedMap.value.cluster_type,
-        height: 200,
-        list: columnAttrs.value.cluster_type,
+        list: statusFilterList.value,
+        showConfirmAndReset: true,
+        type: 'multiple',
       },
-      label: t('架构版本'),
-      minWidth: 140,
-      render: ({ data }: { data: ResourceItem }) => <span>{data.cluster_type_name}</span>,
-      showOverflowTooltip: true,
+      minWidth: 100,
+      title: t('状态'),
     },
     {
-      field: 'bk_cloud_id',
+      colKey: 'cluster_name',
+      ellipsis: true,
+      minWidth: 140,
+      title: t('集群名称'),
+    },
+    {
+      cell: (_, { row }) => <span>{row.cluster_type_name}</span>,
+      colKey: 'cluster_type',
+      ellipsis: true,
       filter: {
-        checked: columnCheckedMap.value.bk_cloud_id,
-        list: columnAttrs.value.bk_cloud_id,
+        list: (columnAttrs.value.cluster_type || []).map((item) => ({
+          label: item.text,
+          value: item.value,
+        })),
+        showConfirmAndReset: true,
+        type: 'multiple',
       },
-      label: t('管控区域'),
+      minWidth: 140,
+      title: t('架构版本'),
+    },
+    {
+      cell: (_, { row }) => <span>{row.bk_cloud_name}</span>,
+      colKey: 'bk_cloud_id',
+      ellipsis: true,
+      filter: {
+        list: (columnAttrs.value.bk_cloud_id || []).map((item) => ({
+          label: item.text,
+          value: item.value,
+        })),
+        showConfirmAndReset: true,
+        type: 'multiple',
+      },
       minWidth: 120,
-      render: ({ data }: { data: ResourceItem }) => <span>{data.bk_cloud_name}</span>,
-      showOverflowTooltip: true,
+      title: t('管控区域'),
       width: 150,
     },
   ]);
@@ -332,12 +355,35 @@
       tableData.value.length,
   );
 
-  const generatedColumns = computed(() => {
+  const generatedColumns = computed<PrimaryTableCol[]>(() => {
     if (props.customColums) {
-      return [columns.value[0], ...props.customColums];
+      return [columns.value[0], ...transBkuiColumns(props.customColums)];
     }
     return columns.value;
   });
+
+  const handleFilterChange = (filterValue: Record<string, string[]>) => {
+    tableColumnFilterChange(filterValue, {
+      bk_cloud_id: {
+        list: (columnAttrs.value.bk_cloud_id || []).map((item) => ({
+          label: item.text,
+          value: item.value,
+        })),
+        name: t('管控区域'),
+      },
+      cluster_type: {
+        list: (columnAttrs.value.cluster_type || []).map((item) => ({
+          label: item.text,
+          value: item.value,
+        })),
+        name: t('架构版本'),
+      },
+      status: {
+        list: statusFilterList.value,
+        name: t('状态'),
+      },
+    });
+  };
 
   watch(
     () => [props.activeTab, props.selected],
@@ -369,7 +415,7 @@
     emits('change', []);
   });
 
-  const getRowClass = (data: ResourceItem) => data.isOffline && 'is-offline';
+  const getRowClass = ({ row }: { row: ResourceItem }) => row.isOffline && 'is-offline';
 
   // 跨页全选
   const handleWholeSelect = (value: boolean) => {
@@ -423,13 +469,13 @@
     checkSelectedAll();
   };
 
-  const handleRowClick = (_: any, data: ResourceItem) => {
-    if (props.disabledRowConfig.find((item) => item.handler(data))) {
+  const handleRowClick = ({ row }: { row: ResourceItem }) => {
+    if (props.disabledRowConfig.find((item) => item.handler(row))) {
       return;
     }
 
-    const isChecked = !!selectedMap.value[data.id];
-    handleSelecteRow(data, !isChecked);
+    const isChecked = !!selectedMap.value[row.id];
+    handleSelecteRow(row, !isChecked);
   };
 
   const handleTablePageChange = (value: number) => {
@@ -447,6 +493,12 @@
 
 <style lang="less" scoped>
   .table-box {
+    :deep(.t-table__body) {
+      tr {
+        cursor: pointer;
+      }
+    }
+
     :deep(.cluster-name-box) {
       display: flex;
       width: 100%;
@@ -467,5 +519,11 @@
         border-radius: 8px !important;
       }
     }
+  }
+
+  .table-footer {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 12px;
   }
 </style>
