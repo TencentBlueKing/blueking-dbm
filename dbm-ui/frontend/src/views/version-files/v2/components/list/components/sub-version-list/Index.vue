@@ -55,7 +55,6 @@
           :permission="commonPermission"
           :version-series-list="versionSeriesList"
           @add-new-version="handleAddNewDbVersion"
-          @delete-version-series="handleDeleteVersionSeries"
           @edit-db-version="(data) => handleEditDbVersion(data)"
           @filter-value-change="handleFilterValueChange"
           @list-change="handleTableListChange"
@@ -172,11 +171,6 @@
   );
 
   const handleAddVersionSuccess = () => {
-    fetchVersionSeriesList();
-    emits('refreshReleaseList');
-  };
-
-  const handleDeleteVersionSeries = () => {
     fetchVersionSeriesList();
     emits('refreshReleaseList');
   };

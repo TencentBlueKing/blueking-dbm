@@ -29,6 +29,7 @@
         :columns="columns"
         :data="tableData"
         :max-height="tableMaxHeight"
+        row-key="uid"
         @bk-ui-settings-change="updateTableSettings">
         <template #empty>
           <EmptyStatus
