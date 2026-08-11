@@ -2,17 +2,18 @@
   <span class="machine-spec-item">
     <span
       class="machine-spec-item-name"
-      :class="{ 'machine-spec-item-unbound': isUnbound }">
+      :class="{ 'machine-spec-item-unbound': isUnbound, 'machine-spec-item-disabled': isDisabled }">
       {{ spec.spec_name }}
     </span>
     <span
       class="machine-spec-item-count"
-      :class="{ 'machine-spec-item-unbound': isUnbound }">
+      :class="{ 'machine-spec-item-unbound': isUnbound, 'machine-spec-item-disabled': isDisabled }">
       × {{ spec.count }}
     </span>
     <BkTag
-      v-if="!spec.enable && !isUnbound"
-      class="machine-spec-item-disabled">
+      v-if="isDisabled"
+      class="ml-4"
+      size="small">
       {{ t('已停用') }}
     </BkTag>
   </span>
@@ -32,6 +33,7 @@
   const { t } = useI18n();
 
   const isUnbound = computed(() => props.spec.enable === null || props.spec.spec_ids.length === 0);
+  const isDisabled = computed(() => !props.spec.enable && !isUnbound.value);
 </script>
 <style lang="less">
   .machine-spec-item-name {
@@ -48,15 +50,7 @@
   }
 
   .machine-spec-item-disabled {
-    display: inline-block;
-    height: 18px;
-    padding: 0 4px;
-    margin-left: 4px;
-    font-size: 12px;
-    line-height: 18px;
-    color: #979ba5;
-    vertical-align: middle;
-    background: #f0f1f5;
-    border-radius: 2px;
+    color: #c4c6cc;
+    text-decoration: line-through #c4c6cc;
   }
 </style>

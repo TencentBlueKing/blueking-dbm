@@ -65,12 +65,13 @@
         v-if="row.spec_name"
         :data="row.spec_config">
         <span class="host-list-spec-name">
-          {{ row.spec_name }}
-          <span
-            v-if="row.enable === false"
-            class="host-list-spec-disabled">
+          <span :class="{ ' host-list-spec-disabled': !row.enable }">{{ row.spec_name }}</span>
+          <BkTag
+            v-if="!row.enable"
+            class="ml-4"
+            size="small">
             {{ t('已停用') }}
-          </span>
+          </BkTag>
         </span>
       </SpecDetailPopover>
       <span
@@ -150,16 +151,8 @@
   }
 
   .host-list-spec-disabled {
-    display: inline-block;
-    height: 18px;
-    padding: 0 4px;
-    margin-left: 4px;
-    font-size: 12px;
-    line-height: 18px;
-    color: #979ba5;
-    vertical-align: middle;
-    background: #f0f1f5;
-    border-radius: 2px;
+    color: #c4c6cc;
+    text-decoration: line-through #c4c6cc;
   }
 
   .host-list-spec-unbound {
