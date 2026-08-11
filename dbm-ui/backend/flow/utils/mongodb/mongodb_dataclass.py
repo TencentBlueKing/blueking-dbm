@@ -40,7 +40,6 @@ from backend.flow.consts import (
     MongoDBInstanceType,
     MongoDBManagerUser,
     MongoDBTask,
-    MongoDBTotalCache,
     MongoDBUserPrivileges,
     MongoInstanceDbmonType,
     MongoOplogSizePercent,
@@ -1531,7 +1530,6 @@ class ActKwargs:
         # 计算cacheSizeGB和oplogSizeMB
         self.replicaset_info["cacheSizeGB"] = get_cache_size(
             memory_size=info["target"]["bk_mem"],
-            cache_percent=MongoDBTotalCache.Cache_Percent.value,
             num=instance_count,
         )
         data_disk = "/data1"
@@ -2580,7 +2578,6 @@ class ActKwargs:
         # 计算cacheSizeGB和oplogSizeMB
         self.replicaset_info["cacheSizeGB"] = get_cache_size(
             memory_size=info["bk_mem"],
-            cache_percent=MongoDBTotalCache.Cache_Percent.value,
             num=instance_num,
         )
         data_disk = "/data1"

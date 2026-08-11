@@ -1367,10 +1367,13 @@ class MongoDBClusterRole(StrStructuredEnum):
 
 class MongoDBTotalCache(FloatStructuredEnum):
     """
-    cache占机器内存的百分比
+    cache 占机器内存的百分比（按机器总内存分档）
+    <=4G: 25%, <=16G: 40%, 其它: 50%
     """
 
-    Cache_Percent = EnumField(0.65, _("cache_percent"))
+    Cache_Percent_Small = EnumField(0.25, _("cache_percent_small"))
+    Cache_Percent_Medium = EnumField(0.40, _("cache_percent_medium"))
+    Cache_Percent_Large = EnumField(0.50, _("cache_percent_large"))
 
 
 class MongoDBDomainPrefix(StrStructuredEnum):

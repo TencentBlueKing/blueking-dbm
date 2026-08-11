@@ -248,7 +248,7 @@ func pickTargetShard(allShards []string, removeShards []string, i int) (string, 
 }
 
 func (r *RemoveShardFromCluster) listPrimaryDatabasesOnShards(removeShards []string) ([]databasePrimary, error) {
-	evalScript := `JSON.stringify(db.getSiblingDB("config").databases.find({partitioned:true},{_id:1,primary:1}).toArray())`
+	evalScript := `JSON.stringify(db.getSiblingDB("config").databases.find({},{_id:1,primary:1}).toArray())`
 	stdout, err := r.runMongoEval(evalScript, 60*time.Second)
 	if err != nil {
 		return nil, fmt.Errorf("list config.databases fail: %w", err)
