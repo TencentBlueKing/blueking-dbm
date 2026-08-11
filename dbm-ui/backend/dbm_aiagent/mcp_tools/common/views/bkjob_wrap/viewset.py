@@ -34,7 +34,7 @@ class BKJobWrapMcpToolsViewSet(McpToolsViewSet):
         description=_("获取目标机器的当前日期和IP"),
         request_slz=CurrentDateAndIpInputSerializer,
         response_slz=ExecuteScriptOutputSerializer,
-        tags=[DBMMCPTags.WRITE],
+        tags=[DBMMCPTags.READ],
         mcp=[DBMMcpTools.BKJOB_WRAP],
         name_prefix="bkjob_wrap",
         enable=True,
