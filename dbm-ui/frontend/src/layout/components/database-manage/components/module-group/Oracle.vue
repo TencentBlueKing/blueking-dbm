@@ -6,56 +6,48 @@
       <FunController
         controller-id="oracle_primary_standby"
         module-id="oracle">
-        <BkSubmenu key="OracleManage">
-          <template #icon>
-            <DbIcon type="cluster" />
-          </template>
-          <template #title>
-            <span>{{ t('主从') }}</span>
+        <DbSubmenu
+          id="OracleManage"
+          icon="cluster"
+          :title="t('主从')">
+          <template #append>
             <CountTag
               :cluster-type="ClusterTypes.ORACLE_PRIMARY_STANDBY"
               role="cluster" />
           </template>
-          <BkMenuItem key="OracleHaClusterList">
-            <span
-              v-overflow-tips.right
-              class="text-overflow">
-              {{ t('集群视图') }}
-            </span>
-            <CountTag
-              :cluster-type="ClusterTypes.ORACLE_PRIMARY_STANDBY"
-              role="cluster" />
-          </BkMenuItem>
-          <BkMenuItem
-            key="OracleHaInstanceList"
-            v-db-console="'oracle.haInstanceList'">
-            <span
-              v-overflow-tips.right
-              class="text-overflow">
-              {{ t('实例视图') }}
-            </span>
-            <CountTag
-              :cluster-type="ClusterTypes.ORACLE_PRIMARY_STANDBY"
-              role="instance" />
-          </BkMenuItem>
-        </BkSubmenu>
+          <DbMenuItem route-name="OracleHaClusterList">
+            {{ t('集群视图') }}
+            <template #append>
+              <CountTag
+                :cluster-type="ClusterTypes.ORACLE_PRIMARY_STANDBY"
+                role="cluster" />
+            </template>
+          </DbMenuItem>
+          <DbMenuItem
+            v-db-console="'oracle.haInstanceList'"
+            route-name="OracleHaInstanceList">
+            {{ t('实例视图') }}
+            <template #append>
+              <CountTag
+                :cluster-type="ClusterTypes.ORACLE_PRIMARY_STANDBY"
+                role="instance" />
+            </template>
+          </DbMenuItem>
+        </DbSubmenu>
       </FunController>
       <FunController
         controller-id="oracle_single_none"
         module-id="oracle">
-        <BkMenuItem key="OracleSingleClusterList">
-          <template #icon>
-            <DbIcon type="node" />
+        <DbMenuItem
+          icon="node"
+          route-name="OracleSingleClusterList">
+          {{ t('单节点') }}
+          <template #append>
+            <CountTag
+              :cluster-type="ClusterTypes.ORACLE_SINGLE_NONE"
+              role="cluster" />
           </template>
-          <span
-            v-overflow-tips.right
-            class="text-overflow">
-            {{ t('单节点') }}
-          </span>
-          <CountTag
-            :cluster-type="ClusterTypes.ORACLE_SINGLE_NONE"
-            role="cluster" />
-        </BkMenuItem>
+        </DbMenuItem>
       </FunController>
       <div
         v-if="Object.keys(toolboxFavorMap).length > 0"
@@ -70,18 +62,12 @@
       <FunController
         controller-id="toolbox"
         module-id="oracle">
-        <BkMenuItem
-          key="OracleToolbox"
-          v-db-console="'oracle.toolbox'">
-          <template #icon>
-            <DbIcon type="tools" />
-          </template>
-          <span
-            v-overflow-tips.right
-            class="text-overflow">
-            {{ t('工具箱') }}
-          </span>
-        </BkMenuItem>
+        <DbMenuItem
+          v-db-console="'oracle.toolbox'"
+          icon="tools"
+          route-name="OracleToolbox">
+          {{ t('工具箱') }}
+        </DbMenuItem>
       </FunController>
     </MenuGroup>
   </FunController>
@@ -92,6 +78,9 @@
   import { ClusterTypes, DBTypes } from '@common/const';
 
   import { toolboxMenuList } from '@views/db-manage/oracle/toolbox/toolboxMenuList';
+
+  import DbMenuItem from '../../../menu/Item.vue';
+  import DbSubmenu from '../../../menu/Submenu.vue';
 
   import CountTag from './components/CountTag.vue';
   import MenuGroup from './components/MenuGroup.vue';
