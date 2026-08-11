@@ -15,7 +15,6 @@ from rest_framework import serializers
 from backend.db_meta.enums import ClusterType
 from backend.db_services.mysql.sql_import.constants import SQLCharset
 from backend.flow.engine.controller.mysql import MySQLController
-from backend.iam_app.dataclass.actions import ActionEnum
 from backend.ticket import builders
 from backend.ticket.builders.mysql.base import BaseMySQLTicketFlowBuilder, MySQLBaseOperateDetailSerializer
 from backend.ticket.constants import TicketType
@@ -68,7 +67,7 @@ class MysqlOpenAreaParamBuilder(builders.FlowParamBuilder):
             info["target_cluster"] = info.pop("cluster_id")
 
 
-@builders.BuilderFactory.register(TicketType.MYSQL_OPEN_AREA, iam=ActionEnum.MYSQL_OPENAREA_MANAGE)
+@builders.BuilderFactory.register(TicketType.MYSQL_OPEN_AREA)
 class MysqlOpenAreaFlowBuilder(BaseMySQLTicketFlowBuilder):
     serializer = MysqlOpenAreaDetailSerializer
     inner_flow_builder = MysqlOpenAreaParamBuilder
