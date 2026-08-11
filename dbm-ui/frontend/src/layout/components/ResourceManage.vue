@@ -1,112 +1,70 @@
 <template>
-  <BkMenu
+  <DbMenu
     ref="menuRef"
     :active-key="currentActiveKey"
     :opened-keys="[parentKey]"
     @click="handleMenuChange">
-    <BkMenuGroup :name="t('资源管理')">
-      <BkMenuItem
-        key="resourcePool"
-        v-db-console="'resourceManage.resourcePool'">
-        <template #icon>
-          <DbIcon type="list" />
-        </template>
-        <span
-          v-overflow-tips.right
-          class="text-overflow">
-          {{ t('资源池') }}
-        </span>
-      </BkMenuItem>
-      <BkMenuItem
-        key="faultPool"
-        v-db-console="'resourceManage.faultPool'">
-        <template #icon>
-          <DbIcon type="guzhangji" />
-        </template>
-        <span
-          v-overflow-tips.right
-          class="text-overflow">
-          {{ t('故障池') }}
-        </span>
-      </BkMenuItem>
-      <BkMenuItem
-        key="toRecyclePool"
-        v-db-console="'resourceManage.toRecyclePool'">
-        <template #icon>
-          <DbIcon type="daihuishou" />
-        </template>
-        <span
-          v-overflow-tips.right
-          class="text-overflow">
-          {{ t('待回收池') }}
-        </span>
-      </BkMenuItem>
-      <BkMenuItem
-        key="allHost"
-        v-db-console="'resourceManage.allHost'">
-        <template #icon>
-          <DbIcon type="list" />
-        </template>
-        <span
-          v-overflow-tips.right
-          class="text-overflow">
-          {{ t('所有主机') }}
-        </span>
-      </BkMenuItem>
-      <BkMenuItem
-        key="resourceSpec"
-        v-db-console="'resourceManage.resourceSpec'">
-        <template #icon>
-          <DbIcon type="spec" />
-        </template>
-        <span
-          v-overflow-tips.right
-          class="text-overflow">
-          {{ t('资源规格管理') }}
-        </span>
-      </BkMenuItem>
-      <BkMenuItem
-        key="resourceTagsManagement"
-        v-db-console="'resourceManage.resourceTagsManagement'">
-        <template #icon>
-          <DbIcon type="tag-3" />
-        </template>
-        <span
-          v-overflow-tips.right
-          class="text-overflow">
-          {{ t('资源标签管理') }}
-        </span>
-      </BkMenuItem>
-    </BkMenuGroup>
-    <BkMenuGroup :name="t('其他')">
-      <BkMenuItem
-        key="resourcePoolOperationRecord"
-        v-db-console="'resourceManage.resourceOperationRecord'">
-        <template #icon>
-          <DbIcon type="list" />
-        </template>
-        <span
-          v-overflow-tips.right
-          class="text-overflow">
-          {{ t('资源操作记录') }}
-        </span>
-      </BkMenuItem>
-    </BkMenuGroup>
-  </BkMenu>
+    <DbMenuGroup
+      :fold-name="t('资源')"
+      :name="t('资源管理')">
+      <DbMenuItem
+        v-db-console="'resourceManage.resourcePool'"
+        icon="list"
+        route-name="resourcePool">
+        {{ t('资源池') }}
+      </DbMenuItem>
+      <DbMenuItem
+        v-db-console="'resourceManage.faultPool'"
+        icon="guzhangji"
+        route-name="faultPool">
+        {{ t('故障池') }}
+      </DbMenuItem>
+      <DbMenuItem
+        v-db-console="'resourceManage.toRecyclePool'"
+        icon="daihuishou"
+        route-name="toRecyclePool">
+        {{ t('待回收池') }}
+      </DbMenuItem>
+      <DbMenuItem
+        v-db-console="'resourceManage.allHost'"
+        icon="list"
+        route-name="allHost">
+        {{ t('所有主机') }}
+      </DbMenuItem>
+      <DbMenuItem
+        v-db-console="'resourceManage.resourceSpec'"
+        icon="spec"
+        route-name="resourceSpec">
+        {{ t('资源规格管理') }}
+      </DbMenuItem>
+      <DbMenuItem
+        v-db-console="'resourceManage.resourceTagsManagement'"
+        icon="tag-3"
+        route-name="resourceTagsManagement">
+        {{ t('资源标签管理') }}
+      </DbMenuItem>
+    </DbMenuGroup>
+    <DbMenuGroup :name="t('其他')">
+      <DbMenuItem
+        v-db-console="'resourceManage.resourceOperationRecord'"
+        icon="list"
+        route-name="resourcePoolOperationRecord">
+        {{ t('资源操作记录') }}
+      </DbMenuItem>
+    </DbMenuGroup>
+  </DbMenu>
 </template>
 <script setup lang="ts">
-  import { Menu } from 'bkui-vue';
   import { useI18n } from 'vue-i18n';
 
   import { useActiveKey } from './hooks/useActiveKey';
+  import DbMenuGroup from './menu/Group.vue';
+  import DbMenu from './menu/Index.vue';
+  import DbMenuItem from './menu/Item.vue';
 
   const { t } = useI18n();
 
-  const menuRef = ref<InstanceType<typeof Menu>>();
+  const menuRef = ref<InstanceType<typeof DbMenu>>();
 
-  const {
-    key: currentActiveKey,
-    parentKey,
-    routeLocation: handleMenuChange,
-  } = useActiveKey(menuRef as Ref<InstanceType<typeof Menu>>, 'resourcePool');
+  const { key: currentActiveKey, parentKey, routeLocation: handleMenuChange } = useActiveKey(menuRef, 'resourcePool');
 </script>
