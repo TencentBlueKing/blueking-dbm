@@ -5,19 +5,16 @@
     <MenuGroup
       :db-type="DBTypes.DORIS"
       :is-error="isError">
-      <BkMenuItem key="DorisManage">
-        <template #icon>
-          <DbIcon type="doris" />
+      <DbMenuItem
+        icon="doris"
+        route-name="DorisManage">
+        {{ t('集群管理') }}
+        <template #append>
+          <CountTag
+            :cluster-type="ClusterTypes.DORIS"
+            role="cluster" />
         </template>
-        <span
-          v-overflow-tips.right
-          class="text-overflow">
-          {{ t('集群管理') }}
-        </span>
-        <CountTag
-          :cluster-type="ClusterTypes.DORIS"
-          role="cluster" />
-      </BkMenuItem>
+      </DbMenuItem>
     </MenuGroup>
   </FunController>
 </template>
@@ -26,6 +23,8 @@
   import { useI18n } from 'vue-i18n';
 
   import { ClusterTypes, DBTypes } from '@common/const';
+
+  import DbMenuItem from '../../../menu/Item.vue';
 
   import CountTag from './components/CountTag.vue';
   import MenuGroup from './components/MenuGroup.vue';
