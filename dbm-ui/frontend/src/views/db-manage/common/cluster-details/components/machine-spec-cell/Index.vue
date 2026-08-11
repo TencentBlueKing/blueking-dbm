@@ -10,7 +10,7 @@
           :key="specIndex"
           class="machine-spec-cell-line">
           <span class="machine-spec-cell-role">{{ group.roleName }}</span>
-          <span class="machine-spec-cell-colon">:</span>
+          <span>：</span>
           <MachineSpecItem :spec="spec" />
         </div>
       </div>
@@ -21,26 +21,28 @@
         :key="`${item.machineType}-${item.spec.spec_name}`"
         class="machine-spec-cell-line">
         <span class="machine-spec-cell-role">{{ item.roleName }}</span>
-        <span class="machine-spec-cell-colon">:</span>
+        <span>：</span>
         <MachineSpecItem :spec="item.spec" />
         <BkPopover
           v-if="index === displayList.length - 1 && flatList.length > MAX_DISPLAY"
-          theme="dark"
-          trigger="hover">
-          <span class="machine-spec-cell-more">{{ t('等 n 个', { n: flatList.length }) }}</span>
+          ext-cls="machine-spec-cell-popover-wrapper"
+          theme="light"
+          trigger="click">
+          <span class="machine-spec-cell-more">({{ t('共 n 个', [flatList.length]) }})</span>
           <template #content>
-            <div
-              v-for="g in groups"
-              :key="g.machineType">
+            <div class="machine-spec-cell-popover">
+              <div class="popover-header">{{ t('共 n 个', [flatList.length]) }}</div>
               <div
-                v-for="(spec, specIndex) in g.specs"
-                :key="specIndex">
-                {{ g.roleName }}
-                :
-                {{ spec.spec_name }}
-                ×
-                {{ spec.count }}
-                {{ !spec.enable && spec.spec_ids.length > 0 ? ` ${t('已停用')}` : '' }}
+                v-for="g in groups"
+                :key="g.machineType">
+                <div
+                  v-for="(spec, specIndex) in g.specs"
+                  :key="specIndex"
+                  class="popover-line">
+                  <span class="popover-role">{{ g.roleName }}</span>
+                  <span class="popover-colon">：</span>
+                  <MachineSpecItem :spec="spec" />
+                </div>
               </div>
             </div>
           </template>
@@ -50,6 +52,7 @@
   </template>
   <span v-else>--</span>
 </template>
+
 <script setup lang="ts">
   import BkPopover from 'bkui-vue/lib/popover';
   import { useI18n } from 'vue-i18n';
@@ -92,13 +95,33 @@
     color: #313238;
   }
 
-  .machine-spec-cell-colon {
-    margin: 0 2px;
-  }
-
   .machine-spec-cell-more {
     margin-left: 4px;
     color: #3a84ff;
-    cursor: default;
+    cursor: pointer;
+  }
+
+  .machine-spec-cell-popover-wrapper {
+    .popover-line {
+      line-height: 22px;
+    }
+
+    .popover-role {
+      color: #313238;
+    }
+  }
+
+  .machine-spec-cell-popover {
+    .popover-header {
+      padding-bottom: 4px;
+      font-size: 14px;
+      font-weight: bolder;
+      color: #313238;
+      // border-bottom: 1px solid #dcdee5;
+    }
+
+    // .popover-line {
+    //   padding-top: 6px;
+    // }
   }
 </style>
