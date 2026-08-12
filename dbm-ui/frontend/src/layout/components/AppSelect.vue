@@ -4,6 +4,7 @@
     :model-value="currentBiz"
     style="margin: 0 12px"
     theme="dark"
+    :type="isCollapse ? 'simple' : undefined"
     @change="handleAppChange">
   </DbAppSelectWithPermission>
 </template>
@@ -18,12 +19,15 @@
 
   import DbAppSelectWithPermission from '@components/db-app-select/WithPermission.vue';
 
+  import { useSideMenuCollapse } from './menu/common/context';
+
   type IAppItem = ServiceReturnType<typeof getBizs>[number];
 
   const route = useRoute();
   const router = useRouter();
 
   const bizStore = useGlobalBizs();
+  const isCollapse = useSideMenuCollapse();
 
   const bizList = computed(() => bizStore.bizs.filter((item) => item.status === 'managed'));
   const currentBiz = computed(() => _.find(bizStore.bizs, (item) => item.bk_biz_id === window.PROJECT_CONFIG.BIZ_ID));
