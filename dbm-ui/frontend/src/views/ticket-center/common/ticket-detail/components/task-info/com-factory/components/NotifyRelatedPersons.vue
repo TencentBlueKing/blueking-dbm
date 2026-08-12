@@ -41,5 +41,5 @@
 
   const { t } = useI18n();
 
-  const receiverUsername = props.data.receiver__username.split(',');
+  const receiverUsername = props.data.receiver__username?.split(',') ?? [];
 </script>
