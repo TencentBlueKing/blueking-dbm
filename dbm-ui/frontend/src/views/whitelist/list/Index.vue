@@ -51,12 +51,90 @@
     </div>
     <DbTable
       ref="tableRef"
-      :columns="columns"
       :data-source="getWhitelist"
       :disable-select-method="disableSelectMethod"
+      row-key="id"
       selectable
       @clear-search="handleClearSearch"
-      @selection="handleTableSelection" />
+      @selection="handleTableSelection">
+      <TableColumn
+        col-key="ips"
+        :min-width="200"
+        :show-overflow="false"
+        :title="t('IP或IP%')">
+        <template #default="{ row: data }: { row: IpWhiteModel }">
+          <RenderRow
+            :data="data.ips"
+            :style="{ maxWidth: `calc(100% - ${data.is_global && !isPlatformManage ? '80px' : '20px'})` }" />
+          <BkTag
+            v-if="data.is_global && !isPlatformManage"
+            class="ml-4">
+            {{ t('全局') }}
+          </BkTag>
+          <DbIcon
+            v-bk-tooltips="t('复制')"
+            class="copy-btn"
+            type="copy"
+            @click="execCopy(data.ips.join('\n'), t('复制成功，共n条', { n: data.ips.length }))" />
+        </template>
+      </TableColumn>
+      <TableColumn
+        col-key="remark"
+        :min-width="150"
+        :title="t('备注')">
+      </TableColumn>
+      <TableColumn
+        col-key="updater"
+        :title="t('更新人')"
+        :width="120">
+      </TableColumn>
+      <TableColumn
+        col-key="update_at"
+        :title="t('更新时间')"
+        :width="180">
+        <template #default="{ row: data }: { row: IpWhiteModel }">
+          {{ data.updateAtDisplay || '--' }}
+        </template>
+      </TableColumn>
+      <TableColumn
+        col-key="operations"
+        :title="t('操作')"
+        :width="140">
+        <template #default="{ row: data }: { row: IpWhiteModel }">
+          <span
+            v-bk-tooltips="{
+              content: t('全局白名单如需编辑请联系平台管理员'),
+              disabled: !(data.is_global && !isPlatformManage),
+            }">
+            <AuthButton
+              :action-id="managePermissionActionId"
+              class="mr-8"
+              :disabled="data.is_global && !isPlatformManage"
+              :permission="data.permission[managePermissionActionId]"
+              text
+              theme="primary"
+              @click="handleEdit(data)">
+              {{ t('编辑') }}
+            </AuthButton>
+          </span>
+          <span
+            v-bk-tooltips="{
+              content: t('全局白名单如需编辑请联系平台管理员'),
+              disabled: !(data.is_global && !isPlatformManage),
+            }">
+            <AuthButton
+              :action-id="managePermissionActionId"
+              :disabled="data.is_global && !isPlatformManage"
+              :permission="data.permission[managePermissionActionId]"
+              text
+              theme="primary"
+              @click="handleDelete([data.id])">
+              {{ t('删除') }}
+            </AuthButton>
+          </span>
+        </template>
+      </TableColumn>
+    </DbTable>
   </div>
   <WhitelistOperation
     v-model:is-show="operationState.isShow"
@@ -74,15 +152,12 @@
   import IpWhiteModel from '@services/model/ip-white/ip-white';
   import { batchDeleteWhitelist, getWhitelist } from '@services/source/whitelist';
 
+  import DbTable from '@components/db-table/IndexNew.vue';
   import RenderRow from '@components/render-row/index.vue';
 
   import { execCopy, messageSuccess } from '@utils';
 
   import WhitelistOperation from './components/WhitelistOperation.vue';
-
-  interface TableRenderData {
-    data: IpWhiteModel;
-  }
 
   const route = useRoute();
   const { t } = useI18n();
@@ -105,101 +180,16 @@
   const disableSelectMethod = (row: IpWhiteModel) =>
     row.is_global && !isPlatformManage ? t('全局白名单如需编辑请联系平台管理员') : false;
 
-  const columns = [
-    {
-      field: 'ips',
-      label: t('IP或IP%'),
-      render: ({ data }: TableRenderData) => {
-        const isRenderTag = data.is_global && !isPlatformManage;
-        return (
-          <>
-            <RenderRow
-              data={data.ips}
-              style={`max-width: calc(100% - ${isRenderTag ? '80px' : '20px'});`}
-            />
-            {isRenderTag && <bk-tag class='ml-4'>{t('全局')}</bk-tag>}
-            <db-icon
-              v-bk-tooltips={t('复制')}
-              class='copy-btn'
-              type='copy'
-              onClick={() => execCopy(data.ips.join('\n'), t('复制成功，共n条', { n: data.ips.length }))}
-            />
-          </>
-        );
-      },
-      showOverflowTooltip: false,
-    },
-    {
-      field: 'remark',
-      label: t('备注'),
-    },
-    {
-      field: 'updater',
-      label: t('更新人'),
-      width: 120,
-    },
-    {
-      field: 'update_at',
-      label: t('更新时间'),
-      render: ({ data }: TableRenderData) => data.updateAtDisplay || '--',
-      width: 250,
-    },
-    {
-      field: 'operations',
-      label: t('操作'),
-      render: ({ data }: TableRenderData) => {
-        const isDisabled = data.is_global && !isPlatformManage;
-        const tips = {
-          content: t('全局白名单如需编辑请联系平台管理员'),
-          disabled: !isDisabled,
-        };
-
-        return (
-          <>
-            <span v-bk-tooltips={tips}>
-              <auth-button
-                action-id={managePermissionActionId}
-                class='mr-8'
-                disabled={isDisabled}
-                permission={data.permission[managePermissionActionId]}
-                text
-                theme='primary'
-                onClick={() => handleEdit(data)}>
-                {t('编辑')}
-              </auth-button>
-            </span>
-            <span v-bk-tooltips={tips}>
-              <auth-button
-                action-id={managePermissionActionId}
-                disabled={isDisabled}
-                permission={data.permission[managePermissionActionId]}
-                text
-                theme='primary'
-                onClick={() => handleDelete([data.id])}>
-                {t('删除')}
-              </auth-button>
-            </span>
-          </>
-        );
-      },
-      width: 140,
-    },
-  ];
-
   const handleKeyWordChange = () => {
     // tableRef.value!.clearSelected();
     fetchTableData();
   };
 
   const fetchTableData = () => {
-    tableRef.value.fetchData(
-      {
-        ip: keyword.value,
-      },
-      {
-        bk_biz_id: bizId,
-      },
-    );
+    tableRef.value.fetchData({
+      bk_biz_id: bizId,
+      ip: keyword.value,
+    });
   };
 
   const handleCreate = () => {
@@ -212,8 +202,8 @@
     handleDelete(selectedIdList.value);
   };
 
-  const handleTableSelection = (idList: number[]) => {
-    selectedIdList.value = idList;
+  const handleTableSelection = (idList: string[], list: IpWhiteModel[]) => {
+    selectedIdList.value = list.map((item) => item.id);
   };
 
   const handleEdit = (data: IpWhiteModel) => {
