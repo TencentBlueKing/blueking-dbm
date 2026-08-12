@@ -44,6 +44,8 @@ const withBizActionList = [
   'redis_cluster_apply',
   'redis_data_structure_manage',
   'es_apply',
+  'es_manage',
+  'es_loadbalance_manage',
   'kafka_apply',
   'hdfs_apply',
   'pulsar_apply',

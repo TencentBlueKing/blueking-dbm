@@ -32,10 +32,8 @@ export default class EsNode {
   permission: {
     es_destroy: boolean;
     es_enable_disable: boolean;
-    es_reboot: boolean;
-    es_replace: boolean;
-    es_scale_up: boolean;
-    es_shrink: boolean;
+    es_loadbalance_manage: boolean;
+    es_manage: boolean;
     es_view: boolean;
   };
   role: string;

@@ -91,17 +91,12 @@ export default class Es extends ClusterBase {
   operations: ClusterListOperation[];
   permission: {
     es_access_entry_view: boolean;
-    es_create_clb: boolean;
-    es_create_polaris: boolean;
+    es_dbconfig_edit: boolean;
     es_destroy: boolean;
-    es_dns_bind_clb: boolean;
     es_edit: boolean;
     es_enable_disable: boolean;
+    es_loadbalance_manage: boolean;
     es_manage: boolean;
-    es_reboot: boolean;
-    es_replace: boolean;
-    es_scale_up: boolean;
-    es_shrink: boolean;
     es_view: boolean;
   };
   phase: 'online' | 'offline';
