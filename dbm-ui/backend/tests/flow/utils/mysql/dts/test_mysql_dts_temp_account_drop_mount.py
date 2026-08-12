@@ -61,6 +61,7 @@ class MysqlDtsTaskCleanSubflowTest(SimpleTestCase):
             ignore_errors=True,
             creator="tester",
             master_addr="127.0.0.4:8261",
+            bk_cloud_id=0,
             task_names=["t1"],
             source_names=["s1"],
         )

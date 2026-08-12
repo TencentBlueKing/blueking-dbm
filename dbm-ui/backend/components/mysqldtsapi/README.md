@@ -1,6 +1,6 @@
 # MySQLDTSApi
 
-MySQL DTS OpenAPI 客户端，通过 DRS 代理转发请求到 DTS Master。
+MySQL DTS OpenAPI 客户端，经 **ProxyAPI**（按云区域 nginx）转发到 DRS，再由 DRS 代理到 DTS Master。
 
 ## 使用
 
@@ -8,12 +8,16 @@ MySQL DTS OpenAPI 客户端，通过 DRS 代理转发请求到 DTS Master。
 from backend.components import MySQLDTSApi
 
 dts_addr = "dts-master.example.com:18301"  # DTS Master 地址 host:port
+bk_cloud_id = 0  # DTS Master 所在云区域（ProxyAPI 必填）
 
-sources = MySQLDTSApi.list_sources(dts_addr)
-task = MySQLDTSApi.get_task(dts_addr, "task-1")
+sources = MySQLDTSApi.list_sources(dts_addr, bk_cloud_id=bk_cloud_id)
+task = MySQLDTSApi.get_task(dts_addr, "task-1", bk_cloud_id=bk_cloud_id)
 ```
 
-调用链：`DBM` → `DRS`（`POST /v2/mysql-dts/rpc`）→ `DTS Master`（`/api/v1/...`）
+调用链：`DBM` → `ProxyAPI`（按 `bk_cloud_id` 选云区域代理）→ `DRS`（`POST /v2/mysql-dts/rpc`）→ `DTS Master`（`/api/v1/...`）
+
+- SSL 与 `DRSApi` 同源，受 `env.DRS_SKIP_SSL` 控制。
+- 全部 public 方法均要求 keyword-only 参数 `bk_cloud_id`。
 
 请求/响应类型定义见 `types.py`。
 
@@ -28,7 +32,7 @@ from backend.components import MySQLDTSApi
 from backend.exceptions import ApiRequestError, ApiResultError
 
 try:
-    source = MySQLDTSApi.get_source(dts_addr, "mysql-1")
+    source = MySQLDTSApi.get_source(dts_addr, "mysql-1", bk_cloud_id=0)
 except ApiResultError as e:
     # DRS 网关返回 result=false（HTTP 200），网关层业务校验失败
     logger.error("DTS 网关业务失败: %s", e)
@@ -67,9 +71,9 @@ except ApiRequestError as e:
 from backend.components import MySQLDTSApi
 from backend.exceptions import ApiRequestError, ApiResultError
 
-def get_source_safe(dts_addr: str, source_name: str):
+def get_source_safe(dts_addr: str, source_name: str, *, bk_cloud_id: int = 0):
     try:
-        return MySQLDTSApi.get_source(dts_addr, source_name)
+        return MySQLDTSApi.get_source(dts_addr, source_name, bk_cloud_id=bk_cloud_id)
     except ApiResultError as e:
         # 网关层失败，可记录后向上抛或转业务异常
         raise MyBusinessError(f"DTS 网关错误: {e}") from e

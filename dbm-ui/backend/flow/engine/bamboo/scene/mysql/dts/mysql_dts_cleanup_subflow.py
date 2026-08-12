@@ -78,6 +78,7 @@ def mysql_dts_cleanup_subflow(inp: MysqlDtsCleanupSubflowInput) -> SubBuilder:
         act_component_code=MysqlDtsStopTasksComponent.code,
         kwargs={
             "master_addr": inp.master_addr,
+            "bk_cloud_id": inp.bk_cloud_id,
             "force_destroy": inp.force_destroy,
         },
     )
@@ -95,6 +96,7 @@ def mysql_dts_cleanup_subflow(inp: MysqlDtsCleanupSubflowInput) -> SubBuilder:
         act_component_code=MysqlDtsOfflineNodesComponent.code,
         kwargs={
             "master_addr": inp.master_addr,
+            "bk_cloud_id": inp.bk_cloud_id,
             "worker_nodes": inp.worker_nodes,
             "master_nodes": inp.master_nodes,
             "force_destroy": inp.force_destroy,

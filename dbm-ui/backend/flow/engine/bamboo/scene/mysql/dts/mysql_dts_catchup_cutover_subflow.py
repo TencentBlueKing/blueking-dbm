@@ -70,6 +70,7 @@ def mysql_dts_catchup_cutover_subflow(
                 bk_biz_id=bk_biz_id,
                 master_addr=master_addr,
                 task_name=task_spec.task_name,
+                bk_cloud_id=int(migrate_plan.bk_cloud_id or 0),
                 source_name_list=[s.source_name for s in task_spec.sources if s.source_name] or None,
                 creator=creator,
             )

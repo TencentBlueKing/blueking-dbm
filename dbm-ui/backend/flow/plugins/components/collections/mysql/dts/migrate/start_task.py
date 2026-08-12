@@ -27,8 +27,14 @@ class MysqlDtsStartTaskService(BaseService):
         kwargs = data.get_one_of_inputs("kwargs")
         trans_data = data.get_one_of_inputs("trans_data")
         master_addr = kwargs.get("master_addr") or trans_data.migrate_context.master_addr
+        bk_cloud_id = kwargs.get("bk_cloud_id")
+        if bk_cloud_id is None:
+            bk_cloud_id = trans_data.migrate_context.bk_cloud_id
         if not master_addr:
             self.log_error(_("DTS master_addr 为空"))
+            return False
+        if bk_cloud_id is None:
+            self.log_error(_("DTS bk_cloud_id 为空"))
             return False
         task_name = kwargs["task_name"]
         # create_task 已写入 target_host/port，启动时直接透传输出，不再二次解析
@@ -54,7 +60,7 @@ class MysqlDtsStartTaskService(BaseService):
             )
         source_name_list = kwargs.get("source_name_list")
         request = StartTaskRequest(source_name_list=source_name_list) if source_name_list else None
-        MySQLDTSApi.start_task(master_addr, task_name, request)
+        MySQLDTSApi.start_task(master_addr, task_name, request, bk_cloud_id=int(bk_cloud_id))
         self.log_info(_("启动 DTS 任务成功: {}").format(task_name))
         return True
 

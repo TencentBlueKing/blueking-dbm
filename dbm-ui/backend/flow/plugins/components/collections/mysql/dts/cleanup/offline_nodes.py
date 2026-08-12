@@ -46,13 +46,20 @@ class MysqlDtsOfflineNodesService(BaseService):
     """从 DTS Master 下线 Worker / Master 节点注册信息。"""
 
     def _offline_one(
-        self, *, role: str, name: str, master_addr: str, force_destroy: bool, ignore_unreachable: bool
+        self,
+        *,
+        role: str,
+        name: str,
+        master_addr: str,
+        bk_cloud_id: int,
+        force_destroy: bool,
+        ignore_unreachable: bool,
     ) -> bool:
         try:
             if role == "worker":
-                MySQLDTSApi.offline_worker(master_addr, name)
+                MySQLDTSApi.offline_worker(master_addr, name, bk_cloud_id=bk_cloud_id)
             else:
-                MySQLDTSApi.offline_master(master_addr, name)
+                MySQLDTSApi.offline_master(master_addr, name, bk_cloud_id=bk_cloud_id)
             self.log_info(_("下线 {} 成功: {}").format(role, name))
             return True
         except Exception as exc:  # pylint: disable=broad-except
@@ -65,6 +72,7 @@ class MysqlDtsOfflineNodesService(BaseService):
     def _execute(self, data, parent_data) -> bool:
         kwargs = data.get_one_of_inputs("kwargs")
         master_addr = kwargs.get("master_addr")
+        bk_cloud_id = kwargs.get("bk_cloud_id")
         force_destroy = kwargs.get("force_destroy", False)
         ignore_unreachable = kwargs.get("ignore_unreachable", False)
         worker_nodes = kwargs.get("worker_nodes") or []
@@ -72,6 +80,10 @@ class MysqlDtsOfflineNodesService(BaseService):
         if not master_addr:
             self.log_warning(_("master_addr 为空，跳过 offline_worker/offline_master"))
             return True
+        if bk_cloud_id is None:
+            self.log_error(_("bk_cloud_id 为空，无法 offline_worker/offline_master"))
+            return False
+        bk_cloud_id = int(bk_cloud_id)
 
         for node in worker_nodes:
             worker_name = node.get("name") or node.get("worker_name")
@@ -81,6 +93,7 @@ class MysqlDtsOfflineNodesService(BaseService):
                 role="worker",
                 name=worker_name,
                 master_addr=master_addr,
+                bk_cloud_id=bk_cloud_id,
                 force_destroy=force_destroy,
                 ignore_unreachable=ignore_unreachable,
             ):
@@ -94,6 +107,7 @@ class MysqlDtsOfflineNodesService(BaseService):
                 role="master",
                 name=master_name,
                 master_addr=master_addr,
+                bk_cloud_id=bk_cloud_id,
                 force_destroy=force_destroy,
                 ignore_unreachable=ignore_unreachable,
             ):

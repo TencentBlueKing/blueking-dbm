@@ -42,8 +42,14 @@ class MysqlDtsCreateTaskService(BaseService):
         kwargs = data.get_one_of_inputs("kwargs")
         trans_data = data.get_one_of_inputs("trans_data")
         master_addr = kwargs.get("master_addr") or trans_data.migrate_context.master_addr
+        bk_cloud_id = kwargs.get("bk_cloud_id")
+        if bk_cloud_id is None:
+            bk_cloud_id = trans_data.migrate_context.bk_cloud_id
         if not master_addr:
             self.log_error(_("DTS master_addr 为空"))
+            return False
+        if bk_cloud_id is None:
+            self.log_error(_("DTS bk_cloud_id 为空"))
             return False
         plan = dts_migrate_plan_from_dict(kwargs["migrate_plan"])
         task_spec = dts_task_spec_from_dict(kwargs["task_spec"])
@@ -71,7 +77,7 @@ class MysqlDtsCreateTaskService(BaseService):
                     target_cfg.cluster_type or "",
                 )
             )
-        resp = MySQLDTSApi.create_task(master_addr, request)
+        resp = MySQLDTSApi.create_task(master_addr, request, bk_cloud_id=int(bk_cloud_id))
         task_name = task_spec.task_name
         # 契约：请求名即最终名；Master 改写会导致 start/poll/meta/ToDo 预占键全部错位
         returned_name = (resp.task or {}).get("name") if resp.task else None

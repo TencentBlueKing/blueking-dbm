@@ -38,6 +38,7 @@ def mysql_dts_delete_task_source_subflow(inp: MysqlDtsDeleteTaskSourceSubflowInp
         act_component_code=MysqlDtsDeleteTaskSourceComponent.code,
         kwargs={
             "master_addr": inp.master_addr,
+            "bk_cloud_id": inp.bk_cloud_id,
             "task_names": list(inp.task_names),
             "source_names": list(inp.source_names),
             "ignore_errors": inp.ignore_errors,

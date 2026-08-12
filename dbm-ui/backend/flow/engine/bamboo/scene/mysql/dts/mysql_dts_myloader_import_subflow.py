@@ -169,6 +169,7 @@ def mysql_dts_myloader_import_subflow(
             act_component_code=MysqlDtsCreateTaskComponent.code,
             kwargs={
                 "master_addr": master_addr,
+                "bk_cloud_id": int(migrate_plan.bk_cloud_id or 0),
                 "task_spec": task_spec_payload,
                 "migrate_plan": migrate_plan_payload,
             },
@@ -178,6 +179,7 @@ def mysql_dts_myloader_import_subflow(
             act_component_code=MysqlDtsStartTaskComponent.code,
             kwargs={
                 "master_addr": master_addr,
+                "bk_cloud_id": int(migrate_plan.bk_cloud_id or 0),
                 "task_name": task_spec.task_name,
             },
         )

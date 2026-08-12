@@ -112,6 +112,7 @@ def mysql_dts_deploy_subflow(inp: MysqlDtsDeploySubflowInput) -> SubBuilder:
         act_component_code=MysqlDtsDeployVerifyComponent.code,
         kwargs={
             "master_addr": master_addr,
+            "bk_cloud_id": inp.bk_cloud_id,
             "verify_role": "all",
             "expected_master_nodes": all_master_nodes,
             "expected_worker_nodes": all_worker_nodes,

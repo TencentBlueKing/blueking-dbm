@@ -56,6 +56,7 @@ class MysqlDtsRegisterClusterMetaService(BaseService):
         trans_data.deploy_context.deployed_master_nodes = kwargs["master_nodes"]
         trans_data.deploy_context.deployed_worker_nodes = kwargs["worker_nodes"]
         trans_data.migrate_context.master_addr = kwargs["master_addr"]
+        trans_data.migrate_context.bk_cloud_id = kwargs["bk_cloud_id"]
         trans_data.migrate_context.dts_cluster_id = dts_cluster.id
         data.outputs.dts_cluster_id = dts_cluster.id
         self.log_info(_("MySQL DTS 集群元数据注册成功: id={}").format(dts_cluster.id))

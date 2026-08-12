@@ -58,6 +58,7 @@ def mysql_dts_task_clean_subflow(inp: MysqlDtsTaskCleanSubflowInput) -> SubBuild
         master_addr=inp.master_addr or "",
         task_names=list(inp.task_names or []),
         source_names=list(inp.source_names or []),
+        bk_cloud_id=int(inp.bk_cloud_id or 0),
         # 与 drop_user 解耦：task/source 残留会挡住后续迁移，成功路径必须失败可见
         ignore_errors=False,
         creator=inp.creator,

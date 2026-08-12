@@ -152,6 +152,7 @@ def mysql_dts_reinstall_subflow(inp: MysqlDtsReinstallSubflowInput) -> SubBuilde
         kwargs={
             "node_name": _("重装验收"),
             "master_addr": inp.master_addr,
+            "bk_cloud_id": inp.bk_cloud_id,
             "verify_role": "all",
             "expected_master_nodes": inp.master_nodes,
             "expected_worker_nodes": inp.worker_nodes,

@@ -31,8 +31,12 @@ class MysqlDtsDeleteTaskSourceService(BaseService):
         kwargs = data.get_one_of_inputs("kwargs") or {}
         trans_data = data.get_one_of_inputs("trans_data")
         master_addr = kwargs.get("master_addr") or ""
-        if not master_addr and trans_data is not None and hasattr(trans_data, "migrate_context"):
-            master_addr = getattr(trans_data.migrate_context, "master_addr", "") or ""
+        bk_cloud_id = kwargs.get("bk_cloud_id")
+        if trans_data is not None and hasattr(trans_data, "migrate_context"):
+            if not master_addr:
+                master_addr = getattr(trans_data.migrate_context, "master_addr", "") or ""
+            if bk_cloud_id is None:
+                bk_cloud_id = getattr(trans_data.migrate_context, "bk_cloud_id", None)
         task_names = [n for n in (kwargs.get("task_names") or []) if n]
         source_names = [n for n in (kwargs.get("source_names") or []) if n]
         # 默认不吞错：成功路径 dts-task-clean 必须感知 delete 失败；仅显式 True 时尽力清理
@@ -45,18 +49,21 @@ class MysqlDtsDeleteTaskSourceService(BaseService):
             # 有待删名称却无 Master：配置/编排错误，不可当成功跳过
             self.log_error(_("master_addr 为空，无法删除本单 task/source：tasks={} sources={}").format(task_names, source_names))
             return False
+        if bk_cloud_id is None:
+            self.log_error(_("bk_cloud_id 为空，无法删除本单 task/source"))
+            return False
 
-        tasks_ok = self._delete_tasks(master_addr, task_names, ignore_errors)
-        sources_ok = self._delete_sources(master_addr, source_names, ignore_errors)
+        tasks_ok = self._delete_tasks(master_addr, int(bk_cloud_id), task_names, ignore_errors)
+        sources_ok = self._delete_sources(master_addr, int(bk_cloud_id), source_names, ignore_errors)
         if ignore_errors:
             return True
         return tasks_ok and sources_ok
 
-    def _delete_tasks(self, master_addr: str, task_names: list[str], ignore_errors: bool) -> bool:
+    def _delete_tasks(self, master_addr: str, bk_cloud_id: int, task_names: list[str], ignore_errors: bool) -> bool:
         ok = True
         for task_name in task_names:
             try:
-                MySQLDTSApi.delete_task(master_addr, task_name, force=True)
+                MySQLDTSApi.delete_task(master_addr, task_name, force=True, bk_cloud_id=bk_cloud_id)
                 self.log_info(_("删除本单 DTS 任务成功: {}").format(task_name))
             except Exception as exc:  # pylint: disable=broad-except
                 if ignore_errors:
@@ -66,11 +73,13 @@ class MysqlDtsDeleteTaskSourceService(BaseService):
                 ok = False
         return ok
 
-    def _delete_sources(self, master_addr: str, source_names: list[str], ignore_errors: bool) -> bool:
+    def _delete_sources(
+        self, master_addr: str, bk_cloud_id: int, source_names: list[str], ignore_errors: bool
+    ) -> bool:
         ok = True
         for source_name in source_names:
             try:
-                MySQLDTSApi.delete_source(master_addr, source_name, force=True)
+                MySQLDTSApi.delete_source(master_addr, source_name, force=True, bk_cloud_id=bk_cloud_id)
                 self.log_info(_("删除本单 DTS Source 成功: {}").format(source_name))
             except Exception as exc:  # pylint: disable=broad-except
                 if ignore_errors:

@@ -251,11 +251,19 @@ class MysqlDtsPollFullLoadService(BaseService):
         kwargs = data.get_one_of_inputs("kwargs") or {}
         trans_data = data.get_one_of_inputs("trans_data")
         master_addr = kwargs.get("master_addr")
-        if not master_addr and trans_data is not None and hasattr(trans_data, "migrate_context"):
-            master_addr = trans_data.migrate_context.master_addr
+        bk_cloud_id = kwargs.get("bk_cloud_id")
+        if trans_data is not None and hasattr(trans_data, "migrate_context"):
+            if not master_addr:
+                master_addr = trans_data.migrate_context.master_addr
+            if bk_cloud_id is None:
+                bk_cloud_id = trans_data.migrate_context.bk_cloud_id
         task_name = kwargs.get("task_name")
         if not master_addr or not task_name:
             self.log_error(_("poll_full_load 缺少 master_addr 或 task_name"))
+            self.finish_schedule()
+            return False
+        if bk_cloud_id is None:
+            self.log_error(_("poll_full_load 缺少 bk_cloud_id"))
             self.finish_schedule()
             return False
 
@@ -268,7 +276,9 @@ class MysqlDtsPollFullLoadService(BaseService):
         task_query_result: dict[str, Any] | list | None = None
         api_error: str | None = None
         try:
-            resp = MySQLDTSApi.get_task_status(master_addr, task_name, source_name_list=source_name_list)
+            resp = MySQLDTSApi.get_task_status(
+                master_addr, task_name, source_name_list=source_name_list, bk_cloud_id=int(bk_cloud_id)
+            )
             items = list(resp.data or [])
             task_query_result = resp.model_dump(mode="json")
         except Exception as exc:  # pylint: disable=broad-except

@@ -29,8 +29,14 @@ class MysqlDtsRegisterSourceService(BaseService):
         kwargs = data.get_one_of_inputs("kwargs")
         trans_data = data.get_one_of_inputs("trans_data")
         master_addr = kwargs.get("master_addr") or trans_data.migrate_context.master_addr
+        bk_cloud_id = kwargs.get("bk_cloud_id")
+        if bk_cloud_id is None:
+            bk_cloud_id = trans_data.migrate_context.bk_cloud_id
         if not master_addr:
             self.log_error(_("DTS master_addr 为空"))
+            return False
+        if bk_cloud_id is None:
+            self.log_error(_("DTS bk_cloud_id 为空"))
             return False
         task_spec = dts_task_spec_from_dict(kwargs["task_spec"])
         dts_user = trans_data.migrate_context.dts_user
@@ -66,7 +72,7 @@ class MysqlDtsRegisterSourceService(BaseService):
                     target_cluster.id,
                 )
             )
-            resp = MySQLDTSApi.create_source(master_addr, request)
+            resp = MySQLDTSApi.create_source(master_addr, request, bk_cloud_id=int(bk_cloud_id))
             source_name = resp.source_name or source_spec.source_name
             registered.append(source_name)
             self.log_info(_("注册 DTS Source 成功: {}").format(source_name))

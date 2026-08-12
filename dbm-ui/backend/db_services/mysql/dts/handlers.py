@@ -45,9 +45,10 @@ class MySQLDtsMigrateHandler:
         master_addr = (dts_cluster.master_addr or "").strip()
         if not master_addr:
             raise ValueError(_("DTS 集群 master_addr 为空: {}").format(dts_cluster_id))
+        bk_cloud_id = int(dts_cluster.bk_cloud_id)
 
         try:
-            status_resp = MySQLDTSApi.get_task_status(master_addr, task_name)
+            status_resp = MySQLDTSApi.get_task_status(master_addr, task_name, bk_cloud_id=bk_cloud_id)
         except Exception as exc:  # pylint: disable=broad-except
             raise ValueError(_("查询 DTS 任务状态失败: {}").format(exc)) from exc
 
@@ -56,24 +57,24 @@ class MySQLDtsMigrateHandler:
             raise ValueError(_("任务运行正常，不允许 reset: {}").format(task_name))
 
         try:
-            task = MySQLDTSApi.get_task(master_addr, task_name)
+            task = MySQLDTSApi.get_task(master_addr, task_name, bk_cloud_id=bk_cloud_id)
         except Exception as exc:  # pylint: disable=broad-except
             raise ValueError(_("获取 DTS 任务配置失败: {}").format(exc)) from exc
 
         cls._clear_source_binlog_meta(task)
 
         try:
-            MySQLDTSApi.delete_task(master_addr, task_name, force=True)
+            MySQLDTSApi.delete_task(master_addr, task_name, force=True, bk_cloud_id=bk_cloud_id)
         except Exception as exc:  # pylint: disable=broad-except
             raise ValueError(_("删除 DTS 任务失败: {}").format(exc)) from exc
 
         try:
-            MySQLDTSApi.create_task(master_addr, CreateTaskRequest(task=task))
+            MySQLDTSApi.create_task(master_addr, CreateTaskRequest(task=task), bk_cloud_id=bk_cloud_id)
         except Exception as exc:  # pylint: disable=broad-except
             raise ValueError(_("重建 DTS 任务失败: {}").format(exc)) from exc
 
         try:
-            MySQLDTSApi.start_task(master_addr, task_name)
+            MySQLDTSApi.start_task(master_addr, task_name, bk_cloud_id=bk_cloud_id)
         except Exception as exc:  # pylint: disable=broad-except
             raise ValueError(_("启动 DTS 任务失败: {}").format(exc)) from exc
 
@@ -81,5 +82,6 @@ class MySQLDtsMigrateHandler:
             "task_name": task_name,
             "dts_cluster_id": dts_cluster_id,
             "master_addr": master_addr,
+            "bk_cloud_id": bk_cloud_id,
             "action": "reset",
         }

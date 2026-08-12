@@ -129,6 +129,7 @@ class MysqlDtsTaskCleanParallelMountTest(SimpleTestCase):
             ignore_errors=True,
             creator="tester",
             master_addr="127.0.0.4:8261",
+            bk_cloud_id=0,
             task_names=["t1"],
             source_names=["s1"],
         )
@@ -138,6 +139,7 @@ class MysqlDtsTaskCleanParallelMountTest(SimpleTestCase):
         self.assertTrue(drop_inp.ignore_errors)
         delete_inp = mock_delete.call_args[0][0]
         self.assertEqual(delete_inp.master_addr, "127.0.0.4:8261")
+        self.assertEqual(delete_inp.bk_cloud_id, 0)
         self.assertEqual(delete_inp.task_names, ["t1"])
         self.assertEqual(delete_inp.source_names, ["s1"])
         # drop_user 可 ignore；delete_task_source 成功路径强制不吞错
