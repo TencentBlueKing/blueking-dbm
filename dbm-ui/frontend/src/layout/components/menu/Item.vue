@@ -32,14 +32,15 @@
       </span>
       <slot name="append" />
     </span>
-    <!-- tooltip 内容在 tippy 实例创建时被移出，组件需保持单根节点以兼容 v-db-console -->
-    <div
+    <!-- tooltip 内容渲染到 tippy 容器里，组件需保持单根节点以兼容 v-db-console -->
+    <Teleport
       v-else
-      ref="tooltipRef"
-      class="db-menu-tooltip-content">
-      <slot />
-      <slot name="append" />
-    </div>
+      :to="popoverContainer">
+      <div class="db-menu-tooltip-content">
+        <slot />
+        <slot name="append" />
+      </div>
+    </Teleport>
   </div>
 </template>
 <script setup lang="ts">
@@ -65,13 +66,12 @@
   const parentKey = useSubmenuId();
 
   const itemRef = ref<HTMLElement>();
-  const tooltipRef = ref<HTMLElement>();
 
   const isActive = computed(() => activeKey.value === props.routeName);
   // 收起态轨道只剩图标，菜单名与角标用 tooltip 承载
   const isTooltip = computed(() => !isFlyout.value && collapse.value && Boolean(props.icon));
 
-  useMenuPopover(itemRef, tooltipRef, isTooltip, {
+  const { container: popoverContainer } = useMenuPopover(itemRef, isTooltip, {
     placement: 'right',
     theme: 'dbm-tooltips db-menu-tooltip',
   });

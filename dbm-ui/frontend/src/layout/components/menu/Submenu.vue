@@ -26,13 +26,16 @@
           type="down-big" />
       </template>
     </div>
-    <div
+    <!-- 浮层内容渲染到 tippy 容器里，避免 tippy 搬动 Vue 管理的节点 -->
+    <Teleport
       v-if="collapse"
-      ref="flyoutRef"
-      class="db-menu-flyout-list"
-      @click="handleFlyoutClick">
-      <slot />
-    </div>
+      :to="popoverContainer">
+      <div
+        class="db-menu-flyout-list"
+        @click="handleFlyoutClick">
+        <slot />
+      </div>
+    </Teleport>
     <div
       v-else
       class="db-menu-submenu-list">
@@ -63,7 +66,6 @@
   const { activeKey, collapse, menuMap, openedKeys, register, toggleSubmenu, unregister } = useMenuContext();
 
   const headerRef = ref<HTMLElement>();
-  const flyoutRef = ref<HTMLElement>();
 
   const fallbackId = useId();
   const submenuId = props.id || fallbackId;
@@ -71,7 +73,7 @@
   const isOpened = computed(() => openedKeys.value.includes(submenuId));
   const isChildActive = computed(() => menuMap.value[activeKey.value]?.parentKey === submenuId);
 
-  const { hide: hideFlyout } = useMenuPopover(headerRef, flyoutRef, collapse, {
+  const { container: popoverContainer, hide: hideFlyout } = useMenuPopover(headerRef, collapse, {
     arrow: false,
     interactive: true,
     // 图标与浮层之间留有间距，放宽可交互边界，避免鼠标移入过程中浮层被收起
