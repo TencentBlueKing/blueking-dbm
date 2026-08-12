@@ -70,6 +70,8 @@ const withBizActionList = [
   'mysql_admin_pwd_view',
   'sqlserver_admin_pwd_view',
   'riak_cluster_apply',
+  'riak_manage',
+  'riak_dbconfig_edit',
   // 'monitor_policy_clone', // 旧权限
   'mongodb_apply',
   'mongodb_priv_manage',
