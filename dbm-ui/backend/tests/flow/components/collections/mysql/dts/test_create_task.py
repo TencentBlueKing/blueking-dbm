@@ -19,6 +19,7 @@ class MysqlDtsCreateTaskNameContractTest(SimpleTestCase):
         task_spec = SimpleNamespace(task_name="mysql-dts-1-10-20", sources=[])
         migrate_context = SimpleNamespace(
             master_addr="127.0.0.1:8261",
+            bk_cloud_id=0,
             dts_user="dts_u",
             dts_password="pwd",
             myloader_dirs={},
@@ -32,6 +33,7 @@ class MysqlDtsCreateTaskNameContractTest(SimpleTestCase):
         data.get_one_of_inputs.side_effect = lambda key: {
             "kwargs": {
                 "master_addr": "127.0.0.1:8261",
+                "bk_cloud_id": 0,
                 "task_spec": {"task_name": task_spec.task_name},
                 "migrate_plan": {},
             },

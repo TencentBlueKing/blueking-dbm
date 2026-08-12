@@ -32,6 +32,8 @@ class ResetDtsTaskHandlerTest(SimpleTestCase):
         self.master_addr = "127.0.0.1:1083"
         self.cluster = MagicMock()
         self.cluster.master_addr = self.master_addr
+        self.cluster.bk_cloud_id = 0
+        self.bk_cloud_id = 0
         self.task = Task(
             name=self.task_name,
             task_mode="all",
@@ -60,18 +62,22 @@ class ResetDtsTaskHandlerTest(SimpleTestCase):
         return TaskStatusItem(name=self.task_name, stage=stage, error_msg=error_msg)
 
     def _assert_reset_sequence(self, mock_api):
-        mock_api.get_task.assert_called_once_with(self.master_addr, self.task_name)
-        mock_api.delete_task.assert_called_once_with(self.master_addr, self.task_name, force=True)
+        mock_api.get_task.assert_called_once_with(self.master_addr, self.task_name, bk_cloud_id=self.bk_cloud_id)
+        mock_api.delete_task.assert_called_once_with(
+            self.master_addr, self.task_name, force=True, bk_cloud_id=self.bk_cloud_id
+        )
         mock_api.create_task.assert_called_once()
         create_args = mock_api.create_task.call_args[0]
+        create_kwargs = mock_api.create_task.call_args.kwargs
         self.assertEqual(create_args[0], self.master_addr)
         self.assertIsInstance(create_args[1], CreateTaskRequest)
         self.assertEqual(create_args[1].task.name, self.task_name)
+        self.assertEqual(create_kwargs.get("bk_cloud_id"), self.bk_cloud_id)
         src = create_args[1].task.source_config.source_conf[0]
         self.assertEqual(src.binlog_name, "")
         self.assertEqual(src.binlog_pos, 0)
         self.assertEqual(src.binlog_gtid, "")
-        mock_api.start_task.assert_called_once_with(self.master_addr, self.task_name)
+        mock_api.start_task.assert_called_once_with(self.master_addr, self.task_name, bk_cloud_id=self.bk_cloud_id)
         mock_api.stop_task.assert_not_called()
 
     @patch("backend.db_services.mysql.dts.handlers.MySQLDTSApi")
@@ -105,6 +111,7 @@ class ResetDtsTaskHandlerTest(SimpleTestCase):
                 "task_name": self.task_name,
                 "dts_cluster_id": self.dts_cluster_id,
                 "master_addr": self.master_addr,
+                "bk_cloud_id": self.bk_cloud_id,
                 "action": "reset",
             },
         )
@@ -184,7 +191,7 @@ class ResetDtsTaskHandlerTest(SimpleTestCase):
         self.assertEqual(
             mock_api.method_calls[:2],
             [
-                call.get_task_status(self.master_addr, self.task_name),
-                call.get_task(self.master_addr, self.task_name),
+                call.get_task_status(self.master_addr, self.task_name, bk_cloud_id=self.bk_cloud_id),
+                call.get_task(self.master_addr, self.task_name, bk_cloud_id=self.bk_cloud_id),
             ],
         )

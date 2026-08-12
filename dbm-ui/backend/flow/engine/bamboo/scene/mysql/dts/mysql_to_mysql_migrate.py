@@ -76,6 +76,7 @@ class MysqlToMysqlMigrateFlow:
             ignore_errors=True,
             creator=creator,
             master_addr=resolve_master_addr_from_plan(migrate_plan),
+            bk_cloud_id=int(migrate_plan.bk_cloud_id or 0),
             task_names=task_names,
             source_names=source_names,
         )

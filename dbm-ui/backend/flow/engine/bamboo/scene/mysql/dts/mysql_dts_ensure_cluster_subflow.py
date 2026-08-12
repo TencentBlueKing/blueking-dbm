@@ -29,6 +29,7 @@ class MysqlDtsResolveClusterService(BaseService):
         dts_cluster = MysqlDtsCluster.objects.get(id=kwargs["dts_cluster_id"])
         trans_data.migrate_context.dts_cluster_id = dts_cluster.id
         trans_data.migrate_context.master_addr = dts_cluster.master_addr
+        trans_data.migrate_context.bk_cloud_id = dts_cluster.bk_cloud_id
         trans_data.deploy_context.master_addr = dts_cluster.master_addr
         trans_data.deploy_context.deployed_master_nodes = list(dts_cluster.master_nodes)
         trans_data.deploy_context.deployed_worker_nodes = list(dts_cluster.worker_nodes)

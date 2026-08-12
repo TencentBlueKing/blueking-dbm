@@ -36,6 +36,7 @@ class MysqlDtsDeployContext:
 @dataclass
 class MysqlDtsMigrateContext:
     master_addr: str = ""
+    bk_cloud_id: int | None = None
     dts_cluster_id: int | None = None
     created_dts_info_ids: list[int] = field(default_factory=list)
     dts_user: str = ""
@@ -172,6 +173,7 @@ class MysqlDtsTaskCleanSubflowInput:
     ignore_errors: bool = True  # 仅作用于 drop_user；delete_task_source 在 task_clean 内强制 False
     creator: str = ""
     master_addr: str = ""
+    bk_cloud_id: int = 0
     task_names: list[str] | None = None
     source_names: list[str] | None = None
 
@@ -185,6 +187,7 @@ class MysqlDtsDeleteTaskSourceSubflowInput:
     master_addr: str
     task_names: list[str]
     source_names: list[str]
+    bk_cloud_id: int = 0
     ignore_errors: bool = False  # 成功路径默认不吞错；与 drop_user 尽力清理分离
     creator: str = ""
 
@@ -213,6 +216,7 @@ class MysqlDtsWaitCatchupSubflowInput:
     bk_biz_id: int
     master_addr: str
     task_name: str
+    bk_cloud_id: int = 0
     source_name_list: list[str] | None = None
     poll_interval: int | None = None
     required_consecutive: int | None = None

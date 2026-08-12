@@ -30,6 +30,7 @@ class MysqlDtsDeleteTaskSourceServiceTest(SimpleTestCase):
         ok = self._run(
             {
                 "master_addr": "127.0.0.4:8261",
+                "bk_cloud_id": 0,
                 "task_names": ["t1", "t2"],
                 "source_names": ["s1", "s2"],
                 "ignore_errors": True,
@@ -39,10 +40,10 @@ class MysqlDtsDeleteTaskSourceServiceTest(SimpleTestCase):
         self.assertEqual(
             mock_api.mock_calls,
             [
-                call.delete_task("127.0.0.4:8261", "t1", force=True),
-                call.delete_task("127.0.0.4:8261", "t2", force=True),
-                call.delete_source("127.0.0.4:8261", "s1", force=True),
-                call.delete_source("127.0.0.4:8261", "s2", force=True),
+                call.delete_task("127.0.0.4:8261", "t1", force=True, bk_cloud_id=0),
+                call.delete_task("127.0.0.4:8261", "t2", force=True, bk_cloud_id=0),
+                call.delete_source("127.0.0.4:8261", "s1", force=True, bk_cloud_id=0),
+                call.delete_source("127.0.0.4:8261", "s2", force=True, bk_cloud_id=0),
             ],
         )
         mock_api.list_tasks.assert_not_called()
@@ -55,6 +56,7 @@ class MysqlDtsDeleteTaskSourceServiceTest(SimpleTestCase):
         ok = self._run(
             {
                 "master_addr": "127.0.0.4:8261",
+                "bk_cloud_id": 0,
                 "task_names": ["t1", "t2"],
                 "source_names": ["s1"],
                 "ignore_errors": True,
@@ -66,19 +68,24 @@ class MysqlDtsDeleteTaskSourceServiceTest(SimpleTestCase):
 
     @patch("backend.flow.plugins.components.collections.mysql.dts.migrate.delete_task_source.MySQLDTSApi")
     def test_empty_names_skips(self, mock_api):
-        self.assertTrue(self._run({"master_addr": "127.0.0.4:8261", "task_names": [], "source_names": []}))
+        self.assertTrue(
+            self._run({"master_addr": "127.0.0.4:8261", "bk_cloud_id": 0, "task_names": [], "source_names": []})
+        )
         self.assertTrue(self._run({"master_addr": "", "task_names": [], "source_names": []}))
         mock_api.delete_task.assert_not_called()
         mock_api.delete_source.assert_not_called()
 
     @patch("backend.flow.plugins.components.collections.mysql.dts.migrate.delete_task_source.MySQLDTSApi")
     def test_empty_master_with_names_fails(self, mock_api):
-        self.assertFalse(self._run({"master_addr": "", "task_names": ["t1"], "source_names": ["s1"]}))
+        self.assertFalse(
+            self._run({"master_addr": "", "bk_cloud_id": 0, "task_names": ["t1"], "source_names": ["s1"]})
+        )
         # ignore_errors 也不能把「无 Master」当成成功
         self.assertFalse(
             self._run(
                 {
                     "master_addr": "",
+                    "bk_cloud_id": 0,
                     "task_names": ["t1"],
                     "source_names": [],
                     "ignore_errors": True,
@@ -95,6 +102,7 @@ class MysqlDtsDeleteTaskSourceServiceTest(SimpleTestCase):
         ok = self._run(
             {
                 "master_addr": "127.0.0.4:8261",
+                "bk_cloud_id": 0,
                 "task_names": ["t1", "t2"],
                 "source_names": ["s1"],
                 # 默认 ignore_errors=False

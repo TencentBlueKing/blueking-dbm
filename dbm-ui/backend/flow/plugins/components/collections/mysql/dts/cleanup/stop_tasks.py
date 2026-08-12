@@ -25,13 +25,18 @@ class MysqlDtsStopTasksService(BaseService):
     def _execute(self, data, parent_data) -> bool:
         kwargs = data.get_one_of_inputs("kwargs")
         master_addr = kwargs.get("master_addr")
+        bk_cloud_id = kwargs.get("bk_cloud_id")
         force_destroy = kwargs.get("force_destroy", False)
         if not master_addr:
             self.log_warning(_("master_addr 为空，跳过 stop_task/delete_source"))
             return True
+        if bk_cloud_id is None:
+            self.log_error(_("bk_cloud_id 为空，无法 stop_task/delete_source"))
+            return False
+        bk_cloud_id = int(bk_cloud_id)
 
         try:
-            tasks_resp = MySQLDTSApi.list_tasks(master_addr, with_status=False)
+            tasks_resp = MySQLDTSApi.list_tasks(master_addr, with_status=False, bk_cloud_id=bk_cloud_id)
             task_names = [item.name for item in (tasks_resp.data or []) if getattr(item, "name", None)]
         except Exception as exc:  # pylint: disable=broad-except
             if force_destroy:
@@ -43,7 +48,7 @@ class MysqlDtsStopTasksService(BaseService):
 
         for task_name in task_names:
             try:
-                MySQLDTSApi.stop_task(master_addr, task_name)
+                MySQLDTSApi.stop_task(master_addr, task_name, bk_cloud_id=bk_cloud_id)
                 self.log_info(_("停止 DTS 任务成功: {}").format(task_name))
             except Exception as exc:  # pylint: disable=broad-except
                 if force_destroy:
@@ -52,7 +57,7 @@ class MysqlDtsStopTasksService(BaseService):
                     self.log_error(_("停止 DTS 任务 {} 失败: {}").format(task_name, exc))
                     return False
             try:
-                MySQLDTSApi.delete_task(master_addr, task_name, force=True)
+                MySQLDTSApi.delete_task(master_addr, task_name, force=True, bk_cloud_id=bk_cloud_id)
                 self.log_info(_("删除 DTS 任务成功: {}").format(task_name))
             except Exception as exc:  # pylint: disable=broad-except
                 if force_destroy:
@@ -62,7 +67,7 @@ class MysqlDtsStopTasksService(BaseService):
                     return False
 
         try:
-            sources_resp = MySQLDTSApi.list_sources(master_addr)
+            sources_resp = MySQLDTSApi.list_sources(master_addr, bk_cloud_id=bk_cloud_id)
             source_names = [item.source_name for item in (sources_resp.data or []) if item.source_name]
         except Exception as exc:  # pylint: disable=broad-except
             if force_destroy:
@@ -74,7 +79,7 @@ class MysqlDtsStopTasksService(BaseService):
 
         for source_name in source_names:
             try:
-                MySQLDTSApi.delete_source(master_addr, source_name, force=True)
+                MySQLDTSApi.delete_source(master_addr, source_name, force=True, bk_cloud_id=bk_cloud_id)
                 self.log_info(_("删除 DTS Source 成功: {}").format(source_name))
             except Exception as exc:  # pylint: disable=broad-except
                 if force_destroy:

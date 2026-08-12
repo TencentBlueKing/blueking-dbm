@@ -66,6 +66,7 @@ def mysql_dts_migrate_task_subflow(
     """
     task_spec_payload = dts_task_spec_to_dict(task_spec)
     migrate_plan_payload = dts_migrate_plan_to_dict(migrate_plan)
+    bk_cloud_id = int(migrate_plan.bk_cloud_id or 0)
     sub = SubBuilder(
         root_id=root_id,
         data={
@@ -83,6 +84,7 @@ def mysql_dts_migrate_task_subflow(
         act_component_code=MysqlDtsRegisterSourceComponent.code,
         kwargs={
             "master_addr": master_addr,
+            "bk_cloud_id": bk_cloud_id,
             "task_spec": task_spec_payload,
             "migrate_type": migrate_plan.migrate_type,
         },
@@ -108,6 +110,7 @@ def mysql_dts_migrate_task_subflow(
             act_component_code=MysqlDtsCreateTaskComponent.code,
             kwargs={
                 "master_addr": master_addr,
+                "bk_cloud_id": bk_cloud_id,
                 "task_spec": task_spec_payload,
                 "migrate_plan": migrate_plan_payload,
             },
@@ -117,6 +120,7 @@ def mysql_dts_migrate_task_subflow(
             act_component_code=MysqlDtsStartTaskComponent.code,
             kwargs={
                 "master_addr": master_addr,
+                "bk_cloud_id": bk_cloud_id,
                 "task_name": task_spec.task_name,
             },
         )
@@ -143,6 +147,7 @@ def mysql_dts_migrate_task_subflow(
             act_component_code=MysqlDtsPollFullLoadComponent.code,
             kwargs={
                 "master_addr": master_addr,
+                "bk_cloud_id": bk_cloud_id,
                 "task_name": task_spec.task_name,
                 "source_name_list": [s.source_name for s in task_spec.sources if s.source_name] or None,
                 "task_mode": _resolve_task_mode(task_spec, migrate_plan),

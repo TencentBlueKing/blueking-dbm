@@ -37,6 +37,7 @@ def mysql_dts_wait_catchup_subflow(inp: MysqlDtsWaitCatchupSubflowInput) -> SubB
         act_component_code=MysqlDtsPollCatchupComponent.code,
         kwargs={
             "master_addr": inp.master_addr,
+            "bk_cloud_id": inp.bk_cloud_id,
             "task_name": inp.task_name,
             "source_name_list": inp.source_name_list,
             "poll_interval": inp.poll_interval or MYSQL_DTS_CATCHUP_POLL_INTERVAL,

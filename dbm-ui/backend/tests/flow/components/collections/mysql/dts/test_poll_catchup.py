@@ -187,6 +187,7 @@ class MysqlDtsPollCatchupServiceTest(SimpleTestCase):
         data.get_one_of_inputs.side_effect = lambda key: {
             "kwargs": {
                 "master_addr": "127.0.0.1:8261",
+                "bk_cloud_id": 0,
                 "task_name": task_name,
                 "required_consecutive": 3,
                 "max_fail_streak": 20,

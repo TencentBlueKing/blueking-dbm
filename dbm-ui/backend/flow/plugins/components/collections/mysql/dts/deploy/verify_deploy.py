@@ -34,8 +34,9 @@ class MysqlDtsDeployVerifyService(BaseService):
 
     def _schedule(self, data, parent_data, callback_data=None) -> bool:
         kwargs = data.get_one_of_inputs("kwargs")
-        node_name = kwargs["node_name"]
+        node_name = kwargs.get("node_name") or _("DTS 部署验收")
         master_addr = kwargs["master_addr"]
+        bk_cloud_id = int(kwargs["bk_cloud_id"])
         verify_role = kwargs.get("verify_role", "all")
         expected_master_nodes = kwargs.get("expected_master_nodes", [])
         expected_worker_nodes = kwargs.get("expected_worker_nodes", [])
@@ -43,12 +44,12 @@ class MysqlDtsDeployVerifyService(BaseService):
         data.outputs.retry_count = retry_count
 
         try:
-            MySQLDTSApi.get_cluster_info(master_addr)
+            MySQLDTSApi.get_cluster_info(master_addr, bk_cloud_id=bk_cloud_id)
             if verify_role in ("master", "all") and expected_master_nodes:
-                masters_resp = MySQLDTSApi.list_masters(master_addr)
+                masters_resp = MySQLDTSApi.list_masters(master_addr, bk_cloud_id=bk_cloud_id)
                 match_nodes(masters_resp.data, expected_master_nodes, "Master")
             if verify_role in ("worker", "all") and expected_worker_nodes:
-                workers_resp = MySQLDTSApi.list_workers(master_addr)
+                workers_resp = MySQLDTSApi.list_workers(master_addr, bk_cloud_id=bk_cloud_id)
                 match_nodes(workers_resp.data, expected_worker_nodes, "Worker")
 
             self.log_info(_("[{}] DTS 部署验收通过").format(node_name))
