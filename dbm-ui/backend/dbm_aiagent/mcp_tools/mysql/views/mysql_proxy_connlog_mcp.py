@@ -17,12 +17,10 @@ from backend.dbm_aiagent.mcp_tools.common.auth_parser.base import auth_parse_clu
 from backend.dbm_aiagent.mcp_tools.constants import DBMMCPTags, DBMMcpTools
 from backend.dbm_aiagent.mcp_tools.decorators import mcp_tools_api_decorator
 from backend.dbm_aiagent.mcp_tools.mysql.impl.mysql_proxy_connlog import query_proxy_connlog
-from backend.dbm_aiagent.mcp_tools.mysql.impl.query_proxy_conn_log import query_proxy_conn_log
 from backend.dbm_aiagent.mcp_tools.mysql.serializers.mysql_proxy_connlog import (
     ProxyConnlogInputSerializer,
     ProxyConnlogOutputSerializer,
 )
-from backend.dbm_aiagent.mcp_tools.mysql.serializers.query_proxy_conn_log import QueryProxyConnLogOutputSerializer
 from backend.dbm_aiagent.mcp_tools.views import McpToolsViewSet
 from backend.iam_app.handlers.drf_perm.base import DBManagePermission
 from backend.iam_app.handlers.drf_perm.mcp import McpClusterDetailPermission
@@ -30,7 +28,7 @@ from backend.iam_app.handlers.drf_perm.mcp import McpClusterDetailPermission
 logger = logging.getLogger("root")
 
 
-class MySQLProxyConnlogMcpToolsViewSet(McpToolsViewSet):
+class MySQLLogMcpToolsViewSet(McpToolsViewSet):
     default_permission_class = [DBManagePermission()]
 
     @mcp_tools_api_decorator(
@@ -66,46 +64,6 @@ class MySQLProxyConnlogMcpToolsViewSet(McpToolsViewSet):
                 cluster_domain=cluster_domain,
                 conn_user=conn_user,
                 session_ids=session_ids,
-                start_time=start_time,
-                end_time=end_time,
-                limit=limit,
-            )
-        )
-
-    @mcp_tools_api_decorator(
-        description=str(
-            _(
-                "查询 MySQL Proxy 连接记录（从后端 MySQL 实例的 infodba_schema.proxy_conn_log 表查询）。"
-                "仅支持 TenDBHA 类型集群。"
-                "cluster_domain 和 proxy_ips 为必填参数，proxy_ips 传入 proxy IP 列表。"
-                "可选条件：username 连接用户、thread_ids 线程ID列表。"
-                "时间范围默认最近 7 天，可通过 start_time/end_time 自定义。"
-                "返回结果按 proxy_ip 分组，每组返回符合条件的连接记录。"
-            )
-        ),
-        request_slz=ProxyConnlogInputSerializer,
-        response_slz=QueryProxyConnLogOutputSerializer,
-        permission_classes=[McpClusterDetailPermission],
-        mcp_auth_parser=auth_parse_clusters,
-        tags=[DBMMCPTags.READ],
-        mcp=[DBMMcpTools.MYSQL_LOG],
-        name_prefix="mysql",
-    )
-    def query_proxy_connlog_from_backend(self, request, *args, **kwargs):
-        cluster_domain = self.get_param("cluster_domain")
-        proxy_ips = self.get_param("proxy_ips")
-        conn_user = self.get_param("conn_user")
-        session_ids = self.get_param("session_ids")
-        start_time = self.get_param("start_time")
-        end_time = self.get_param("end_time")
-        limit = self.get_param("limit")
-
-        return Response(
-            query_proxy_conn_log(
-                cluster_domain=cluster_domain,
-                proxy_ips=proxy_ips,
-                username=conn_user,
-                thread_ids=session_ids,
                 start_time=start_time,
                 end_time=end_time,
                 limit=limit,

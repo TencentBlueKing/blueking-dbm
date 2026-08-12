@@ -35,6 +35,7 @@ class MysqlSlowlogDetail(models.Model):
     query_db_name = models.CharField(max_length=100, null=True, help_text=_("查询数据库名"))
     db_name = models.CharField(max_length=100, null=True, help_text=_("数据库名"))
     table_names = models.CharField(max_length=255, null=True, help_text=_("表名"))
+    session_id = models.IntegerField(null=True, help_text=_("会话ID 连接ID"))
     client_host = models.CharField(max_length=60, null=True, help_text=_("客户端主机"))
     username = models.CharField(max_length=60, null=True, help_text=_("用户名"))
     cluster_type = models.CharField(max_length=60, null=True, help_text=_("集群类型"))

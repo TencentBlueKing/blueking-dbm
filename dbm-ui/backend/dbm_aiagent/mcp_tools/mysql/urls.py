@@ -13,8 +13,8 @@ from rest_framework.routers import DefaultRouter
 from backend.dbm_aiagent.mcp_tools.mysql.views import (
     MySQLBillMcpToolsViewSet,
     MySQLConfigUpdateMcpToolsViewSet,
+    MySQLLogMcpToolsViewSet,
     MySQLMetricsMcpToolsViewSet,
-    MySQLProxyConnlogMcpToolsViewSet,
     MySQLQueryMcpToolsViewSet,
     MySQLSensitiveMcpViewSet,
     MySQLSlowlogMcpToolsViewSet,
@@ -35,6 +35,6 @@ routers.register(r"", MySQLConfigUpdateMcpToolsViewSet, basename="mcp-mysql-conf
 routers.register(r"", MySQLTableCapacityMcpToolsViewSet, basename="mcp-mysql-table-capacity")
 routers.register(r"", MySQLSensitiveMcpViewSet, basename="mcp-mysql-sensitive")
 routers.register(r"", MySQLBackupMcpToolsViewSet, basename="mcp-mysql-backup")
-routers.register(r"", MySQLProxyConnlogMcpToolsViewSet, basename="mcp-mysql-proxy-connlog")
+routers.register(r"", MySQLLogMcpToolsViewSet, basename="mcp-mysql-proxy-connlog")
 routers.register(r"", BKJobWrapMcpToolsViewSet, basename="mcp-bkjob-wrap")
 urlpatterns = routers.urls
