@@ -1165,15 +1165,15 @@ class ActionEnum:
         group=_("已废弃"),
     )
 
-    MYSQL_DBHA_AF_TODO_REGISTER = ActionMeta(
-        id=TicketType.MYSQL_DBHA_AF_TODO_REGISTER.lower(),
-        name=_("MySQL DBHA 故障自愈任务注册"),
-        name_en="MYSQL_DBHA_AF_TODO_REGISTER",
-        type="execute",
-        related_actions=[],
-        related_resource_types=[ResourceEnum.MYSQL],
-        group=_("已废弃"),
-    )
+    # MYSQL_DBHA_AF_TODO_REGISTER = ActionMeta(
+    #     id=TicketType.MYSQL_DBHA_AF_TODO_REGISTER.lower(),
+    #     name=_("MySQL DBHA 故障自愈任务注册"),
+    #     name_en="MYSQL_DBHA_AF_TODO_REGISTER",
+    #     type="execute",
+    #     related_actions=[],
+    #     related_resource_types=[ResourceEnum.MYSQL],
+    #     group=_("已废弃"),
+    # )
 
     MYSQL_DBHA_AF_SPIDER_REPLACE = ActionMeta(
         id=TicketType.MYSQL_DBHA_AF_SPIDER_REPLACE.lower(),
@@ -1314,15 +1314,25 @@ class ActionEnum:
         common_labels=[CommonActionLabel.DEVELOPER],
     )
 
+    MYSQL_OPENAREA = ActionMeta(
+        id="mysql_openarea",
+        name=_("MySQL开区执行"),
+        name_en="mysql_openarea",
+        type="execute",
+        related_actions=[DB_MANAGE.id],
+        related_resource_types=[ResourceEnum.MYSQL],
+        group=_("MySQL"),
+        subgroup=_("克隆与开区"),
+    )
+
     MYSQL_OPEN_AREA = ActionMeta(
         id="mysql_open_area",
         name=_("MySQL 开区执行"),
         name_en="mysql_open_area",
         type="execute",
         related_actions=[DB_MANAGE.id],
-        related_resource_types=[ResourceEnum.MYSQL],
-        group=_("MySQL"),
-        subgroup=_("分区管理"),
+        related_resource_types=[ResourceEnum.OPENAREA_CONFIG, ResourceEnum.MYSQL],
+        group=_("已废弃"),
     )
 
     MYSQL_OPENAREA_CONFIG_CREATE = ActionMeta(
@@ -1661,15 +1671,25 @@ class ActionEnum:
         group=_("已废弃"),
     )
 
+    TENDBCLUSTER_OPENAREA = ActionMeta(
+        id="tendbcluster_openarea",
+        name=_("TenDBCluster 开区执行"),
+        name_en="tendbcluster_openarea",
+        type="execute",
+        related_actions=[DB_MANAGE.id],
+        related_resource_types=[ResourceEnum.TENDBCLUSTER],
+        group=_("TenDBCluster"),
+        subgroup=_("克隆与开区"),
+    )
+
     TENDBCLUSTER_OPEN_AREA = ActionMeta(
         id="tendbcluster_open_area",
         name=_("TenDB Cluster 开区执行"),
         name_en="tendbcluster_open_area",
         type="execute",
         related_actions=[DB_MANAGE.id],
-        related_resource_types=[ResourceEnum.TENDBCLUSTER],
-        group=_("TenDBCluster"),
-        subgroup=_("克隆与开区"),
+        related_resource_types=[ResourceEnum.OPENAREA_CONFIG, ResourceEnum.TENDBCLUSTER],
+        group=_("已废弃"),
     )
 
     TENDBCLUSTER_OPENAREA_CONFIG_CREATE = ActionMeta(
