@@ -18,7 +18,7 @@
         v-db-console="'hdfs.nodeList.scaleUp'"
         :data="clusterData">
         <AuthButton
-          action-id="hdfs_scale_up"
+          action-id="hdfs_manage"
           :disabled="clusterData?.operationDisabled"
           :resource="clusterData.id"
           theme="primary"
@@ -31,7 +31,7 @@
         :data="clusterData">
         <span v-bk-tooltips="batchShrinkDisabledInfo.tooltips">
           <AuthButton
-            action-id="hdfs_shrink"
+            action-id="hdfs_manage"
             class="ml-8"
             :disabled="batchShrinkDisabledInfo.disabled || clusterData?.operationDisabled"
             :resource="clusterData.id"
@@ -45,7 +45,7 @@
         :data="clusterData">
         <span v-bk-tooltips="batchReplaceDisableInfo.tooltips">
           <AuthButton
-            action-id="hdfs_replace"
+            action-id="hdfs_manage"
             class="ml-8"
             :disabled="batchReplaceDisableInfo.disabled || clusterData?.operationDisabled"
             :resource="clusterData.id"
@@ -136,9 +136,9 @@
             :data="clusterData">
             <span v-bk-tooltips="checkNodeShrinkDisable(row).tooltips">
               <AuthButton
-                action-id="hdfs_shrink"
+                action-id="hdfs_manage"
                 :disabled="checkNodeShrinkDisable(row).disabled || clusterData?.operationDisabled"
-                :permission="clusterData.permission.hdfs_shrink"
+                :permission="clusterData.permission.hdfs_manage"
                 :resource="clusterData.id"
                 text
                 theme="primary"
@@ -158,10 +158,10 @@
                 disabled: row.isDataNode,
               }">
               <AuthButton
-                action-id="hdfs_replace"
+                action-id="hdfs_manage"
                 class="ml-8"
                 :disabled="checkNodeReplaceDisable(row).disabled || clusterData?.operationDisabled"
-                :permission="clusterData.permission.hdfs_replace"
+                :permission="clusterData.permission.hdfs_manage"
                 :resource="clusterData.id"
                 text
                 theme="primary"
