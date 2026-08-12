@@ -18,7 +18,7 @@
         v-db-console="'kafka.nodeList.scaleUp'"
         :data="clusterData">
         <AuthButton
-          action-id="kafka_scale_up"
+          action-id="kafka_manage"
           :disabled="clusterData?.operationDisabled"
           :resource="clusterData.id"
           theme="primary"
@@ -31,7 +31,7 @@
         :data="clusterData">
         <span v-bk-tooltips="batchShrinkDisabledInfo.tooltips">
           <AuthButton
-            action-id="kafka_shrink"
+            action-id="kafka_manage"
             class="ml-8"
             :disabled="batchShrinkDisabledInfo.disabled || clusterData?.operationDisabled"
             :resource="clusterData.id"
@@ -49,7 +49,7 @@
             disabled: !isBatchReplaceDisabeld,
           }">
           <AuthButton
-            action-id="kafka_replace"
+            action-id="kafka_manage"
             class="ml-8"
             :disabled="isBatchReplaceDisabeld || clusterData?.operationDisabled"
             :resource="clusterData.id"
@@ -142,9 +142,9 @@
               v-bk-tooltips="checkNodeShrinkDisable(row).tooltips"
               class="ml-8">
               <AuthButton
-                action-id="kafka_shrink"
+                action-id="kafka_manage"
                 :disabled="checkNodeShrinkDisable(row).disabled || clusterData?.operationDisabled"
-                :permission="clusterData.permission.kafka_shrink"
+                :permission="clusterData.permission.kafka_manage"
                 :resource="clusterData.id"
                 text
                 theme="primary"
@@ -159,10 +159,10 @@
             v-db-console="'kafka.nodeList.replace'"
             :data="clusterData">
             <AuthButton
-              action-id="kafka_replace"
+              action-id="kafka_manage"
               class="ml-8"
               :disabled="clusterData?.operationDisabled"
-              :permission="clusterData.permission.kafka_replace"
+              :permission="clusterData.permission.kafka_manage"
               :resource="clusterData.id"
               text
               theme="primary"
