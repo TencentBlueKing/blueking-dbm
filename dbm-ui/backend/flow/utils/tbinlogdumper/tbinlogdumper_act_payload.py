@@ -10,6 +10,7 @@ specific language governing permissions and limitations under the License.
 import copy
 import json
 import logging
+import os
 
 from django.utils.translation import gettext as _
 
@@ -216,7 +217,7 @@ class TBinlogDumperActPayload(object):
         """
         cluster = Cluster.objects.get(id=self.ticket_data["cluster_id"])
         master = cluster.storageinstance_set.get(instance_role=InstanceRole.BACKEND_MASTER)
-        index_file = kwargs["trans_data"]["backup_info"]["backup_index"]
+        index_file = os.path.basename(kwargs["trans_data"]["backup_info"]["backup_index"])
         dumper_account = PayloadHandler.get_tbinlogdumper_account()
 
         return {
