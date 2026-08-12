@@ -2217,7 +2217,7 @@
   "请输入/选择人员": "Please enter/select personnel",
   "安全": "Security",
   "DB类型": "DB Type",
-  "临时密码生效的实例": "Instances with Active Temporary Password",
+  "查看临时密码": "View Temporary Password",
   "需要修改的实例": "Instances to Modify",
   "统一临时密码": "Unified Temporary Password",
   "有效时长": "Valid Duration",
@@ -6208,5 +6208,7 @@
   "上传失败，请重试": "Upload failed, please retry",
   "文件格式不支持": "File format not supported",
   "文件大小超出限制": "File size cannot exceed {0} MB",
+  "部署": "Deploy",
+  "新 DB": "New DB",
   "这行勿动！新增翻译请在上一行添加！": ""
 }

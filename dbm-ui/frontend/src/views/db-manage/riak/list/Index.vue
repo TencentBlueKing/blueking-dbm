@@ -59,7 +59,7 @@
             <template v-if="data.isOnline">
               <div v-db-console="'riak.clusterManage.addNodes'">
                 <OperationBtnStatusTips :data="data">
-              <AuthButton
+                  <AuthButton
                     action-id="riak_manage"
                     class="mr-8"
                     :permission="data.permission.riak_manage"
@@ -72,7 +72,7 @@
               </div>
               <div v-db-console="'riak.clusterManage.deleteNodes'">
                 <OperationBtnStatusTips :data="data">
-              <AuthButton
+                  <AuthButton
                     action-id="riak_manage"
                     class="mr-8"
                     :permission="data.permission.riak_manage"

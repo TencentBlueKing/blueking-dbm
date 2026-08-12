@@ -57,7 +57,7 @@
       </BkTable>
       <template #footer>
         <AuthButton
-          action-id="mysql_open_area"
+          action-id="mysql_openarea"
           :resource="props.sourceClusterId"
           theme="primary"
           @click="handleSubmit">
