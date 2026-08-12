@@ -55,8 +55,8 @@
                 :data="data"
                 :disabled="!data.isOffline">
                 <AuthButton
-                  action-id="kafka_scale_up"
-                  :permission="data.permission.kafka_scale_up"
+                  action-id="kafka_manage"
+                  :permission="data.permission.kafka_manage"
                   :resource="data.id"
                   text
                   @click="handleShowExpansion">
@@ -67,8 +67,8 @@
             <div v-db-console="'kafka.clusterManage.scaleDown'">
               <OperationBtnStatusTips :data="data">
                 <AuthButton
-                  action-id="kafka_shrink"
-                  :permission="data.permission.kafka_shrink"
+                  action-id="kafka_manage"
+                  :permission="data.permission.kafka_manage"
                   :resource="data.id"
                   text
                   @click="handleShowShrink">

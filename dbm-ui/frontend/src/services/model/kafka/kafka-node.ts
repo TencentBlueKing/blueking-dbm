@@ -30,10 +30,7 @@ export default class KafkaNode {
   permission: {
     kafka_destroy: boolean;
     kafka_enable_disable: boolean;
-    kafka_reboot: boolean;
-    kafka_replace: boolean;
-    kafka_scale_up: boolean;
-    kafka_shrink: boolean;
+    kafka_manage: boolean;
     kafka_view: boolean;
   };
   role: string;
