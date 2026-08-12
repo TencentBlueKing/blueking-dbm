@@ -54,7 +54,7 @@
   </div>
 </template>
 <script setup lang="tsx">
-  import type { PrimaryTableCol, PrimaryTableProps } from 'tdesign-vue-next';
+  import { Checkbox, type PrimaryTableCol, type PrimaryTableProps } from 'tdesign-vue-next';
   import type { Ref } from 'vue';
   import { useI18n } from 'vue-i18n';
 
@@ -194,7 +194,7 @@
               {{
                 content: () => <span>{props.disabledRowConfig?.tip}</span>,
                 default: () => (
-                  <bk-checkbox
+                  <Checkbox
                     disabled
                     style='vertical-align: middle;'
                   />
@@ -204,12 +204,13 @@
           );
         }
         return props.multiple ? (
-          <bk-checkbox
-            label={true}
-            model-value={Boolean(checkedMap.value[row[firstColumnFieldId.value]])}
-            style='vertical-align: middle;'
-            onChange={(value: boolean) => handleTableSelectOne(value, row)}
-          />
+          <span onClick={(e: Event) => e.stopPropagation()}>
+            <Checkbox
+              checked={Boolean(checkedMap.value[row[firstColumnFieldId.value]])}
+              style='vertical-align: middle;'
+              onChange={(value: boolean) => handleTableSelectOne(value, row)}
+            />
+          </span>
         ) : (
           <bk-radio
             label={true}
@@ -225,10 +226,9 @@
       title: () =>
         props.multiple && (
           <div style='display:flex;align-items:center'>
-            <bk-checkbox
+            <Checkbox
+              checked={isSelectedAll.value}
               disabled={mainSelectDisable.value}
-              label={true}
-              model-value={isSelectedAll.value}
               onChange={handleSelectPageAll}
             />
             <bk-popover

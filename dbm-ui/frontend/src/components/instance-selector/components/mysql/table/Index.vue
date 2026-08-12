@@ -51,7 +51,7 @@
   </div>
 </template>
 <script setup lang="tsx">
-  import type { PrimaryTableCol } from 'tdesign-vue-next';
+  import { Checkbox, type PrimaryTableCol } from 'tdesign-vue-next';
   import { useI18n } from 'vue-i18n';
 
   import { useLinkQueryColumnSerach } from '@hooks';
@@ -183,7 +183,7 @@
               {{
                 content: () => <span>{props.disabledRowConfig?.tip}</span>,
                 default: () => (
-                  <bk-checkbox
+                  <Checkbox
                     disabled
                     style='vertical-align: middle;'
                   />
@@ -193,12 +193,13 @@
           );
         }
         return (
-          <bk-checkbox
-            label={true}
-            model-value={Boolean(checkedMap.value[row[firstColumnFieldId.value]])}
-            style='vertical-align: middle;'
-            onChange={(value: boolean) => handleTableSelectOne(value, row as IValue)}
-          />
+          <span onClick={(e: Event) => e.stopPropagation()}>
+            <Checkbox
+              checked={Boolean(checkedMap.value[row[firstColumnFieldId.value]])}
+              style='vertical-align: middle;'
+              onChange={(value: boolean) => handleTableSelectOne(value, row as IValue)}
+            />
+          </span>
         );
       },
       colKey: 'row-select',
@@ -206,10 +207,9 @@
       minWidth: 70,
       title: () => (
         <div style='display:flex;align-items:center'>
-          <bk-checkbox
+          <Checkbox
+            checked={isSelectedAll.value}
             disabled={mainSelectDisable.value}
-            label={true}
-            model-value={isSelectedAll.value}
             onChange={handleWholeSelect}
           />
           {/* <bk-popover
