@@ -110,5 +110,6 @@ data:
   STATS_DB_PORT: "{{ $dbmStatsDB.port }}"
   STATS_DB_USER: "{{ $dbmStatsDB.user }}"
   STATS_DB_PASSWORD: "{{ $dbmStatsDB.password }}"
-  # 反向上报
-  REVERSE_REPORT_KAFKA_OPTIONS: "{{ .Values.dbm.envs.reverseReportKafkaOptions }}"
+  # 反向上报（kafka 配置由 externalKafka 统一提供，此处自行拼接）
+  {{- $kafkaPort := .Values.externalKafka.port }}
+  REVERSE_REPORT_KAFKA_OPTIONS: "bootstrap_servers={{- range $i, $b := splitList "," .Values.externalKafka.brokers }}{{ if $i }},{{ end }}{{ $b }}:{{ $kafkaPort }}{{ end }},sasl_mechanism={{ .Values.externalKafka.sasl_mechanisms }},security_protocol={{ .Values.externalKafka.security_protocol }},sasl_plain_username={{ .Values.externalKafka.username }},sasl_plain_password={{ .Values.externalKafka.password }}"
