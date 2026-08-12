@@ -551,41 +551,59 @@ func UpdateDtsTaskRows(ids []int64, colToValue map[string]interface{}, logger *z
 }
 
 // GetTaskByID 根据id获得task详细信息
+//
+// 对 scrdbclient.Do 的调用包了一层 retryOnTransient,用来扛住上游
+// (典型为 bkDbm)SQLAlchemy 连接池打满 / 网络瞬时抖动返回的 8700500
+// 等瞬时错误。重试受双重上限约束:次数(getTaskRetryMaxAttempts)
+// 与累计退避时间(getTaskRetryMaxBackoff),任一达到即停止并返回错误,
+// 避免调度循环被长时间阻塞。非瞬时错误(如 4xx 参数错误、未列入白名单
+// 的其他业务错误码)不会被重试,直接返回。
 func GetTaskByID(id int64, logger *zap.Logger) (task *TbTendisDTSTask, err error) {
 	if logger == nil {
 		err = fmt.Errorf("GetTaskById logger cannot be nil")
 		return
 	}
 	var cli01 *scrdbclient.Client
-	var subURL string
-	var data *scrdbclient.APIServerResponse
 	cli01, err = scrdbclient.NewClient(viper.GetString("serviceName"), logger)
 	if err != nil {
 		return
 	}
-	type dtsTaskRowByIDReq struct {
-		TaskID int64 `json:"task_id"`
-	}
-
-	task = &TbTendisDTSTask{}
+	var subURL string
 	if cli01.GetServiceName() == constvar.DtsRemoteTendisxk8s {
 		subURL = constvar.K8sDtsTaskRowByIDURL
 	} else if cli01.GetServiceName() == constvar.BkDbm {
 		subURL = constvar.DbmDtsTaskRowByIDURL
 	}
+	type dtsTaskRowByIDReq struct {
+		TaskID int64 `json:"task_id"`
+	}
 	param := dtsTaskRowByIDReq{
 		TaskID: id,
 	}
-	data, err = cli01.Do(http.MethodPost, subURL, param)
+	var data *scrdbclient.APIServerResponse
+	err = retryOnTransient(
+		getTaskRetryMaxAttempts,
+		getTaskRetryMaxBackoff,
+		getTaskRetryInitialBackoff,
+		getTaskRetryMaxSingleBackoff,
+		"GetTaskByID",
+		func() error {
+			var callErr error
+			data, callErr = cli01.Do(http.MethodPost, subURL, param)
+			return callErr
+		},
+		logger,
+	)
 	if err != nil {
 		return
 	}
+	task = &TbTendisDTSTask{}
 	if len(data.Data) == 4 && string(data.Data) == "null" {
 		return nil, nil
 	}
 	err = json.Unmarshal(data.Data, task)
 	if err != nil {
-		err = fmt.Errorf("GetTaskByIDV2 unmarshal data fail,err:%v,resp.Data:%s,subURL:%s,param:%+v",
+		err = fmt.Errorf("GetTaskByID unmarshal data fail,err:%v,resp.Data:%s,subURL:%s,param:%+v",
 			err.Error(), string(data.Data), subURL, param)
 		logger.Error(err.Error())
 		return

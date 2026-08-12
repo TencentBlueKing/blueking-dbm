@@ -28,6 +28,38 @@ const (
 	jobExecuterUser = "scr-system"
 )
 
+// 服务端错误重试的退避参数
+// 单次最大退避 60s,累计退避 5min (在 DoNew 中)
+const (
+	serverErrInitialBackoff   = 3 * time.Second
+	serverErrMaxSingleBackoff = 60 * time.Second
+)
+
+// nextBackoff 计算下一次退避时长: 3s -> 6s -> 12s -> 24s -> 48s -> 60s -> 60s ...
+// alreadyBackoff: 之前已经累计的退避时长
+func nextBackoff(alreadyBackoff time.Duration) time.Duration {
+	// 指数倍增,基准 3s
+	d := serverErrInitialBackoff
+	cur := alreadyBackoff
+	// 退避轮次 = 已有累计 / 初始值 + 1
+	rounds := int(cur/serverErrInitialBackoff) + 1
+	if rounds < 0 {
+		rounds = 1
+	}
+	// 计算 d * 2^(rounds-1),封顶到 MaxSingleBackoff
+	for i := 0; i < rounds-1; i++ {
+		d *= 2
+		if d >= serverErrMaxSingleBackoff {
+			d = serverErrMaxSingleBackoff
+			break
+		}
+	}
+	if d > serverErrMaxSingleBackoff {
+		d = serverErrMaxSingleBackoff
+	}
+	return d
+}
+
 // APIServerResponse ..
 type APIServerResponse struct {
 	Code    int             `json:"code"`
@@ -157,18 +189,22 @@ func (c *Client) getReqBody(method, url string, params interface{}) (body []byte
 }
 
 // DoNew 发起请求
+// 重试策略:
+//   - 客户端错误(4xx,除 408/429): 不重试,直接返回(参数错误重试无意义)
+//   - 服务端错误(5xx:500/502/503/504)、网络错误、408/429: 指数退避重试,累计耗时最多 5 分钟
 func (c *Client) DoNew(method, url string, params interface{}, others map[string]string) (*APIServerResponse, error) {
 	var resp *http.Response
-	var maxRetryTimes int = 5
 	var req *http.Request
+	// 服务端错误/网络错误的最大累计退避时长(5 分钟)
+	const maxServerErrorBackoff = 5 * time.Minute
 	body, err := c.getReqBody(method, url, params)
 	if err != nil {
 		return nil, err
 	}
-	for maxRetryTimes >= 0 {
-		maxRetryTimes--
+	// 指数退避累计睡眠时间,用于服务端错误场景
+	var serverErrBackoff time.Duration = 0
+	for {
 		err = nil
-
 		req, err = http.NewRequest(method, c.apiserver+url, bytes.NewReader(body))
 		if err != nil {
 			err = fmt.Errorf("scrDbClient http.NewRequest(%s,%s,%s) get an error:%s",
@@ -180,11 +216,19 @@ func (c *Client) DoNew(method, url string, params interface{}, others map[string
 
 		resp, err = c.client.Do(req)
 		if err != nil {
+			// 网络错误: 走服务端错误重试路径(指数退避,最多 5 分钟)
 			err = fmt.Errorf(
 				"an error occur while invoking client.Do, error:%v,url:%s,params:%s,resp:%s,retry...",
 				err, req.URL.String(), util.ToString(params), util.ToString(resp))
 			c.logger.Error(err.Error())
-			time.Sleep(3 * time.Second)
+			if serverErrBackoff >= maxServerErrorBackoff {
+				return nil, err
+			}
+			sleepDur := nextBackoff(serverErrBackoff)
+			serverErrBackoff += sleepDur
+			c.logger.Info(fmt.Sprintf("scrDbClient network err, sleep %s and retry, totalBackoff=%s",
+				sleepDur, serverErrBackoff))
+			time.Sleep(sleepDur)
 			continue
 		}
 		if resp.StatusCode != http.StatusOK {
@@ -192,14 +236,26 @@ func (c *Client) DoNew(method, url string, params interface{}, others map[string
 			err = fmt.Errorf("http response: %s, status code: %d,methods:%s,url: %s,params:%s,retry...",
 				string(bodyBytes), resp.StatusCode, method, req.URL.String(), string(body))
 			c.logger.Error(err.Error())
+			// 客户端错误(4xx,除 408/429): 不重试
+			if resp.StatusCode >= 400 && resp.StatusCode < 500 &&
+				resp.StatusCode != http.StatusRequestTimeout &&
+				resp.StatusCode != http.StatusTooManyRequests {
+				resp.Body.Close()
+				return nil, err
+			}
 			resp.Body.Close()
-			time.Sleep(3 * time.Second)
+			// 服务端错误(5xx)/408/429: 指数退避,累计最多 5 分钟
+			if serverErrBackoff >= maxServerErrorBackoff {
+				return nil, err
+			}
+			sleepDur := nextBackoff(serverErrBackoff)
+			serverErrBackoff += sleepDur
+			c.logger.Info(fmt.Sprintf("scrDbClient status=%d, sleep %s and retry, totalBackoff=%s",
+				resp.StatusCode, sleepDur, serverErrBackoff))
+			time.Sleep(sleepDur)
 			continue
 		}
 		break
-	}
-	if err != nil {
-		return nil, err
 	}
 	defer resp.Body.Close()
 
