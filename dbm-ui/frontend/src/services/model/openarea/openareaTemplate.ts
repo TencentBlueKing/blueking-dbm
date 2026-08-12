@@ -29,7 +29,7 @@ export default class Opeanarea {
   permission: {
     // 聚合权限（灰度期可选，缺省 false）
     mysql_openarea_manage?: boolean;
-    tendbcluster_openarea_manage?: boolean;
+    tendbcluster_openarea_manage: boolean;
   };
   related_authorize: number[];
   source_cluster: {

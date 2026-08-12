@@ -103,9 +103,9 @@
               v-db-console="'tendbCluster.clusterManage.removeReadonlyNode'">
               <div style="display: inline-block">
                 <AuthButton
-                  action-id="tendb_spider_slave_destroy"
+                  action-id="tendbcluster_manage"
                   :disabled="data.spider_slave.length === 0"
-                  :permission="data.permission.tendb_spider_slave_destroy"
+                  :permission="data.permission.tendbcluster_manage"
                   :resource="data.id"
                   text
                   @click="handleDestroySlave(data)">
