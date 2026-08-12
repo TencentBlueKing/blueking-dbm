@@ -18,7 +18,7 @@
         v-db-console="'es.nodeList.scaleUp'"
         :data="clusterData">
         <AuthButton
-          action-id="es_scale_up"
+          action-id="es_manage"
           :disabled="clusterData?.operationDisabled"
           :resource="clusterData.id"
           theme="primary"
@@ -31,10 +31,10 @@
         :data="clusterData">
         <span v-bk-tooltips="batchShrinkDisabledInfo.tooltips">
           <AuthButton
-            action-id="es_shrink"
+            action-id="es_manage"
             class="ml-8"
             :disabled="batchShrinkDisabledInfo.disabled || clusterData?.operationDisabled"
-            :permission="clusterData?.permission.es_shrink"
+            :permission="clusterData?.permission.es_manage"
             :resource="clusterData.id"
             @click="handleShowShrink">
             {{ t('缩容') }}
@@ -50,7 +50,7 @@
             disabled: !isBatchReplaceDisabeld,
           }">
           <AuthButton
-            action-id="es_replace"
+            action-id="es_manage"
             class="ml-8"
             :disabled="isBatchReplaceDisabeld || clusterData?.operationDisabled"
             :resource="clusterData.id"
@@ -141,9 +141,9 @@
             :data="clusterData">
             <span v-bk-tooltips="checkNodeShrinkDisable(row).tooltips">
               <AuthButton
-                action-id="es_shrink"
+                action-id="es_manage"
                 :disabled="checkNodeShrinkDisable(row).disabled || clusterData?.operationDisabled"
-                :permission="clusterData.permission.es_shrink"
+                :permission="clusterData.permission.es_manage"
                 :resource="clusterData.id"
                 text
                 theme="primary"
@@ -158,10 +158,10 @@
             v-db-console="'es.nodeList.replace'"
             :data="clusterData">
             <AuthButton
-              action-id="es_replace"
+              action-id="es_manage"
               class="ml-8"
               :disabled="clusterData?.operationDisabled"
-              :permission="clusterData.permission.es_replace"
+              :permission="clusterData.permission.es_manage"
               :resource="clusterData.id"
               text
               theme="primary"
