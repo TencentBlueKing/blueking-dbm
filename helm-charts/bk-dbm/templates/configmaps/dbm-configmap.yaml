@@ -110,8 +110,22 @@ data:
   STATS_DB_PORT: "{{ $dbmStatsDB.port }}"
   STATS_DB_USER: "{{ $dbmStatsDB.user }}"
   STATS_DB_PASSWORD: "{{ $dbmStatsDB.password }}"
-  # 反向上报
-  REVERSE_REPORT_KAFKA_OPTIONS: "{{ .Values.dbm.envs.reverseReportKafkaOptions }}"
   # AIDEV 配置
   ENABLE_DBM_AI: "{{ .Values.dbm.envs.dbmEnableAI | default false }}"
   BKAI_AGENT_METRICS_PUSH_MODE: "{{ .Values.dbm.envs.bkaiAgentMetricsPushMode | default "direct" }}"
+  # 反向上报 kafka（配置由 externalKafka 统一提供）
+  {{- $kafka := .Values.externalKafka }}
+  {{- $auth := $kafka.auth | default dict }}
+  {{- if and $kafka.enabled $kafka.brokers }}
+  REVERSE_REPORT_KAFKA_BOOTSTRAP_SERVERS: {{ include "bk-dbm.kafka.bootstrapServers" . | quote }}
+  {{- if $auth.username }}
+  REVERSE_REPORT_KAFKA_USERNAME: {{ $auth.username | quote }}
+  REVERSE_REPORT_KAFKA_PASSWORD: {{ $auth.password | quote }}
+  REVERSE_REPORT_KAFKA_SASL_MECHANISM: {{ $auth.sasl_mechanisms | default "SCRAM-SHA-512" | quote }}
+  REVERSE_REPORT_KAFKA_SECURITY_PROTOCOL: {{ $auth.security_protocol | default "SASL_PLAINTEXT" | quote }}
+  {{- end }}
+  {{- end }}
+  {{- with .Values.dbm.envs.reverseReportKafkaOptions }}
+  # DEPRECATED: 存量连接串配置，externalKafka 未启用时生效；代码侧优先使用上面的结构化变量
+  REVERSE_REPORT_KAFKA_OPTIONS: {{ . | quote }}
+  {{- end }}
