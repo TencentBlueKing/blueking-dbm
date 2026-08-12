@@ -10,6 +10,7 @@ import (
 	"path"
 	"path/filepath"
 	"slices"
+	"sort"
 	"strconv"
 	"strings"
 	"sync"
@@ -172,8 +173,11 @@ func getLoginTimeout(svrItem *config.ConfServerItem, logger *zap.Logger) int {
 
 const secondsDay = 86400
 
+const defaultLogMaxCount = 30
+
 // removeOldMongoLogFiles 删除旧文件
 // 删除/data/mongolog/port/mongo.log* 和 /data1/mongolog/port/mongo.log*文件，保留配置天数前的文件（默认15天，最小2天）.
+// 并按 log.maxcount（默认30）限制本地 mongo.log* 个数，超出从最旧开始删，不删除正在写的 mongo.log。
 func removeOldMongoLogFiles(svrItem *config.ConfServerItem, logger *zap.Logger) {
 	logMaxTime, err := config.ClusterConfig.GetInt64(svrItem, config.SegmentLog, config.KeyMaxTime, secondsDay*15)
 	if err != nil {
@@ -183,11 +187,22 @@ func removeOldMongoLogFiles(svrItem *config.ConfServerItem, logger *zap.Logger) 
 	if logMaxTime < secondsDay*2 {
 		logMaxTime = secondsDay * 2
 	}
+	logMaxCount, err := config.ClusterConfig.GetInt64(svrItem, config.SegmentLog, config.KeyMaxCount, defaultLogMaxCount)
+	if err != nil {
+		logger.Warn("get log maxcount from config failed, use default 30", zap.Error(err))
+		logMaxCount = defaultLogMaxCount
+	}
+	if logMaxCount < 1 {
+		logMaxCount = 1
+	}
 	portStr := strconv.Itoa(svrItem.Port)
 	for _, baseDir := range []string{"/data/mongolog", "/data1/mongolog"} {
 		logPattern := path.Join(baseDir, portStr, "mongo.log*")
 		if err := removeOldFile(logPattern, logMaxTime, logger); err != nil {
 			logger.Error("remove old file failed", zap.String("pattern", logPattern), zap.Error(err))
+		}
+		if err := removeExcessMongoLogFiles(logPattern, int(logMaxCount), logger); err != nil {
+			logger.Error("remove excess mongo log files failed", zap.String("pattern", logPattern), zap.Error(err))
 		}
 	}
 }
@@ -216,6 +231,62 @@ func removeOldFile(pattern string, maxTimeSeconds int64, logger *zap.Logger) err
 			}
 			logger.Info("remove old file", zap.String("file", file))
 		}
+	}
+	return nil
+}
+
+type mongoLogFileInfo struct {
+	path    string
+	modTime int64
+}
+
+// removeExcessMongoLogFiles keeps at most maxCount files matching pattern.
+// Never deletes the live log basename "mongo.log"; deletes oldest rotated files first.
+func removeExcessMongoLogFiles(pattern string, maxCount int, logger *zap.Logger) error {
+	if maxCount < 1 {
+		maxCount = 1
+	}
+	files, err := filepath.Glob(pattern)
+	if err != nil {
+		return err
+	}
+	if len(files) <= maxCount {
+		return nil
+	}
+
+	var candidates []mongoLogFileInfo
+	total := 0
+	for _, file := range files {
+		fileInfo, err := os.Stat(file)
+		if err != nil {
+			logger.Warn("stat file failed, skip", zap.String("file", file), zap.Error(err))
+			continue
+		}
+		total++
+		if filepath.Base(file) == "mongo.log" {
+			continue
+		}
+		candidates = append(candidates, mongoLogFileInfo{path: file, modTime: fileInfo.ModTime().Unix()})
+	}
+	if total <= maxCount || len(candidates) == 0 {
+		return nil
+	}
+
+	sort.Slice(candidates, func(i, j int) bool {
+		return candidates[i].modTime < candidates[j].modTime
+	})
+
+	toRemove := total - maxCount
+	if toRemove > len(candidates) {
+		toRemove = len(candidates)
+	}
+	for i := 0; i < toRemove; i++ {
+		file := candidates[i].path
+		if err := os.Remove(file); err != nil {
+			logger.Warn("remove excess mongo log file failed", zap.String("file", file), zap.Error(err))
+			continue
+		}
+		logger.Info("remove excess mongo log file", zap.String("file", file), zap.Int("maxCount", maxCount))
 	}
 	return nil
 }
