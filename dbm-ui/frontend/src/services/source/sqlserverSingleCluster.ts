@@ -37,7 +37,7 @@ export function getSingleClusterList(params: {
   return http.get<ListBase<SqlServerSingleModel[]>>(`${getPath()}/`, params).then((data) => ({
     ...data,
     results: data.results.map(
-      (item) => new SqlServerSingleModel(Object.assign({}, item, Object.assign(item.permission, data.permission))),
+      (item) => new SqlServerSingleModel(Object.assign({}, item, Object.assign({}, item.permission, data.permission))),
     ),
   }));
 }
