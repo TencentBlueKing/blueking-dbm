@@ -309,7 +309,7 @@
       margin-bottom: 0;
     }
 
-    :deep(.copy-info) {
+    .copy-info {
       position: absolute;
       top: -18px;
       left: 160px;
