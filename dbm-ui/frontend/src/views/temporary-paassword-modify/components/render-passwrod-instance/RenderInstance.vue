@@ -16,7 +16,7 @@
     :is-show="isShow"
     render-directive="if"
     :show-footer="false"
-    :title="t('临时密码生效的实例')"
+    :title="t('查看临时密码')"
     :width="1200"
     @closed="isShow = false">
     <div class="temporary-password-modify-instance-box">
@@ -131,18 +131,16 @@
           </template>
         </TableColumn>
         <TableColumn
-          col-key="component"
-          :title="t('DB类型')"
+          col-key="immute_domain"
+          :title="t('所属集群')"
           :width="100">
-          <template #default="{ row: data }: { row: AdminPasswordModel }">
-            <DbIcon type="mysql row-type" />
-            <span class="ml-4">{{ data.component }}</span>
+          <template #default="{ row }">
+            {{ row.immute_domain }}
           </template>
         </TableColumn>
         <TableColumn
           col-key="lock_until"
-          ellipsis
-          :min-width="240"
+          :min-width="280"
           sorter
           :title="t('过期时间')">
           <template #default="{ row: data }: { row: AdminPasswordModel }">
@@ -215,8 +213,7 @@
   const tableMaxHeight = useTableMaxHeight(OccupiedInnerHeight.NOT_PAGINATION);
 
   const tableRef = ref();
-  const passwordShow = ref(false);
-  // 行级密码显隐：记录已展开密码的行 uniqueKey
+  // 行级密码显隐：记录已展开密码的行 uniqueKey（表头批量与行级单行共用）
   const passwordShowRows = shallowRef(new Set<string>());
   // 通过 get_instance_password 接口实时拉取到的实例密码（uniqueKey -> password）
   const instancePasswordMap = shallowRef<Record<string, string>>({});
@@ -279,16 +276,9 @@
   const isExpiringSoon = (row: AdminPasswordModel) => expireDays(row) <= 7;
 
   // 密码展示/复制优先使用接口实时拉取的值，未拉取到则回退到列表字段
-  const getRowPassword = (row: AdminPasswordModel) => instancePasswordMap.value[row.uniqueKey] || row.password;
+  const getRowPassword = (row: AdminPasswordModel) => instancePasswordMap.value[row.uniqueKey];
 
-  const isRowPasswordShow = (row: AdminPasswordModel) => {
-    // 表头批量显隐只对有查看权限的行生效，无权限行由行级眼睛（AuthTemplate 内）单独控制
-    const hasPermission = row.permission[adminPwdViewActionMap[dbType.value]];
-    if (!hasPermission) {
-      return passwordShowRows.value.has(row.uniqueKey);
-    }
-    return passwordShow.value || passwordShowRows.value.has(row.uniqueKey);
-  };
+  const isRowPasswordShow = (row: AdminPasswordModel) => passwordShowRows.value.has(row.uniqueKey);
 
   const handleToggleRowPassword = async (row: AdminPasswordModel) => {
     const set = new Set(passwordShowRows.value);
@@ -323,20 +313,59 @@
   };
 
   const handlePasswordShow = async () => {
-    passwordShow.value = !passwordShow.value;
-    // 表头眼睛只对有查看权限的行生效，无权限行保持隐藏；用全量数据统计无权限行数
     const actionId = adminPwdViewActionMap[dbType.value];
     const fullList = (await tableRef.value?.fetchAllData()) ?? [];
     const noPermissionRows = fullList.filter((row: AdminPasswordModel) => !row.permission[actionId]);
     const hasPermissionRows = fullList.filter((row: AdminPasswordModel) => row.permission[actionId]);
+
+    // 判断当前是否已全部展开（即表头处于"显示"状态），是则批量隐藏
+    const allShown = hasPermissionRows.every((row: AdminPasswordModel) => passwordShowRows.value.has(row.uniqueKey));
+    if (allShown) {
+      const set = new Set<string>();
+      // 保留无权限行中已被行级眼睛单独展开的行
+      noPermissionRows.forEach((row: AdminPasswordModel) => {
+        if (passwordShowRows.value.has(row.uniqueKey)) set.add(row.uniqueKey);
+      });
+      passwordShowRows.value = set;
+      return;
+    }
+
+    // 批量显示有权限行
     if (noPermissionRows.length > 0) {
       messageWarn(
         t('已显示n条_另有m条无查看权限_请在对应行申请', { m: noPermissionRows.length, n: hasPermissionRows.length }),
       );
     }
+    const set = new Set(passwordShowRows.value);
+    hasPermissionRows.forEach((row: AdminPasswordModel) => set.add(row.uniqueKey));
+    passwordShowRows.value = set;
+
+    // 仅首次开启时批量拉取有权限行尚未获取的密码
+    const rowsToFetch = hasPermissionRows.filter(
+      (row: AdminPasswordModel) => !instancePasswordMap.value[row.uniqueKey],
+    );
+    if (rowsToFetch.length > 0) {
+      const { results } = await getInstancePassword({
+        bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
+        db_type: dbType.value,
+        instances: rowsToFetch.map((row: AdminPasswordModel) => ({
+          cluster_id: row.cluster_id,
+          ip: row.ip,
+          port: row.port,
+        })),
+      });
+      const newMap = { ...instancePasswordMap.value };
+      results.forEach((item) => {
+        const key = `${item.bk_cloud_id}:${item.ip}:${item.port}`;
+        if (item.password) {
+          newMap[key] = item.password;
+        }
+      });
+      instancePasswordMap.value = newMap;
+    }
   };
 
-  const handleSelection = (idList: string[], list: AdminPasswordModel[]) => {
+  const handleSelection = (_key: string[], list: AdminPasswordModel[]) => {
     selected.value = list;
   };
 
@@ -384,8 +413,14 @@
       }
     }
 
-    :deep(.row-type) {
-      font-size: 16px;
+    :deep(.row-copy-icon),
+    :deep(.row-view-icon) {
+      cursor: pointer;
+      color: #979ba5;
+
+      &:hover {
+        color: #3a84ff;
+      }
     }
 
     :deep(.expired-time) {

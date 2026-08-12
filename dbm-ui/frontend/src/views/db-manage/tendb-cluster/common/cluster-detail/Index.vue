@@ -37,6 +37,7 @@
             action-id="tendbcluster_authorize"
             class="ml-4"
             :permission="data.permission.tendbcluster_authorize"
+            :resource="data.id"
             size="small"
             @click="handleShowAuthorize">
             {{ t('授权') }}

@@ -73,6 +73,7 @@
                 <AuthButton
                   action-id="tendbcluster_authorize"
                   :permission="data.permission.tendbcluster_authorize"
+                  :resource="data.id"
                   text
                   @click="() => handleShowAuthorize([data])">
                   {{ t('授权') }}

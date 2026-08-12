@@ -66,6 +66,7 @@
                 <AuthButton
                   action-id="mysql_authorize"
                   :permission="data.permission.mysql_authorize"
+                  :resource="data.id"
                   text
                   @click="handleShowAuthorize(data)">
                   {{ t('授权') }}

@@ -25,6 +25,7 @@
             action-id="mysql_authorize"
             class="ml-4"
             :permission="data.permission.mysql_authorize"
+            :resource="data.id"
             size="small"
             @click="handleShowAuthorize">
             {{ t('授权') }}

@@ -60,7 +60,7 @@
       </BkTable>
       <template #footer>
         <AuthButton
-          action-id="tendbcluster_open_area"
+          action-id="tendbcluster_openarea"
           :resource="props.sourceClusterId"
           theme="primary"
           @click="handleSubmit">
