@@ -83,9 +83,9 @@
               <div v-db-console="'es.clusterManage.scaleUp'">
                 <OperationBtnStatusTips :data="data">
                   <AuthButton
-                    action-id="es_scale_up"
+                    action-id="es_manage"
                     :disabled="data.operationDisabled"
-                    :permission="data.permission.es_scale_up"
+                    :permission="data.permission.es_manage"
                     :resource="data.id"
                     text
                     @click="handleShowExpandsion(data)">
@@ -96,9 +96,9 @@
               <div v-db-console="'es.clusterManage.scaleDown'">
                 <OperationBtnStatusTips :data="data">
                   <AuthButton
-                    action-id="es_shrink"
+                    action-id="es_manage"
                     :disabled="data.operationDisabled"
-                    :permission="data.permission.es_shrink"
+                    :permission="data.permission.es_manage"
                     :resource="data.id"
                     text
                     @click="handleShowShrink(data)">
@@ -113,8 +113,8 @@
                   :data="data"
                   :disabled="!data.isOffline">
                   <AuthButton
-                    action-id="es_create_clb"
-                    :permission="data.permission.es_create_clb"
+                    action-id="es_loadbalance_manage"
+                    :permission="data.permission.es_loadbalance_manage"
                     :resource="data.id"
                     text
                     @click="() => handleAddClb({ details: { cluster_id: data.id, bk_cloud_id: data.bk_cloud_id } })">
@@ -129,8 +129,8 @@
                   :data="data"
                   :disabled="!data.isOffline">
                   <AuthButton
-                    action-id="es_create_polaris"
-                    :permission="data.permission.es_create_polaris"
+                    action-id="es_loadbalance_manage"
+                    :permission="data.permission.es_loadbalance_manage"
                     :resource="data.id"
                     text
                     @click="
@@ -147,8 +147,8 @@
                   :data="data"
                   :disabled="!data.isOffline">
                   <AuthButton
-                    action-id="es_dns_bind_clb"
-                    :permission="data.permission.es_dns_bind_clb"
+                    action-id="es_loadbalance_manage"
+                    :permission="data.permission.es_loadbalance_manage"
                     :resource="data.id"
                     text
                     @click="
