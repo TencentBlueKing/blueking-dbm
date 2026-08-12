@@ -1,12 +1,15 @@
 ---
-description: DBM 数据库管理模块约定。覆盖集群列表、实例列表、集群详情、工具箱提单、路由注册、单据详情与服务层。仓库分层与编码约定见 AGENTS.md，工具箱逐步实现见 toolbox-code.mdc。
+description:
+  DBM 数据库管理模块约定。覆盖集群列表、实例列表、集群详情、工具箱提单、路由注册、单据详情与服务层。仓库分层与编码约定见
+  AGENTS.md，工具箱逐步实现见 toolbox-code.mdc。
 globs: ['**/db-manage/**', '**/services/**', '**/ticket-center/**', '**/common/const/ticketTypes.ts']
 alwaysApply: false
 ---
 
 # 数据库管理 `src/views/db-manage/`
 
-仓库分层、命令与编码约定见 `AGENTS.md`。工具箱提单逐步实现见 `toolbox-code.mdc`。排版交互见 `dbm-frontend-design` skill。
+仓库分层、命令与编码约定见 `AGENTS.md`。工具箱提单逐步实现见 `toolbox-code.mdc`。排版交互见 `dbm-frontend-design`
+skill。
 
 每个 DB 一个目录。公共能力放 `common/`、`hooks/`、`const/`、`utils/`。
 
@@ -61,7 +64,8 @@ slot：`operation`、`instanceAddress`、`domain`、`shard`、`relatedCluster`�
 
 ## 集群详情
 
-复用 `src/views/db-manage/common/cluster-details/`（基础信息、拓扑、实例/主机列表、监控、告警订阅、单据记录）。各 DB 详情页组合这些块，不要另起一套详情骨架。
+复用
+`src/views/db-manage/common/cluster-details/`（基础信息、拓扑、实例/主机列表、监控、告警订阅、单据记录）。各 DB 详情页组合这些块，不要另起一套详情骨架。
 
 `src/views/db-manage/const/clusterTypeListPageMap.ts` 维护 `ClusterTypes` → 详情路由 name。
 
@@ -92,20 +96,23 @@ slot：`operation`、`instanceAddress`、`domain`、`shard`、`relatedCluster`�
 - 业务侧：`registerBusinessModule` → `/db-manage`
 - DBA 工具箱：`registerModule` 收集 `./*/dba-manage/routes.ts` → `/dba-manage`
 
-各 DB 的 `routes.ts` 导出 `getRoutes(funControllerData)`，按功能开关返回路由。工具箱路由用 `createToolboxRoute(DBTypes.XXX)`：
+各 DB 的 `routes.ts` 导出 `getRoutes(funControllerData)`，按功能开关返回路由。工具箱路由用
+`createToolboxRoute(DBTypes.XXX)`：
 
 ```ts
 const { createRouteItem } = createToolboxRoute(DBTypes.MYSQL);
 createRouteItem(TicketTypes.MYSQL_DATA_MIGRATE, t('数据迁移'));
 ```
 
-`createToolboxRoute` 会按 `TicketTypes` 懒加载 `{db}/{TICKET_TYPE}/Index.vue`，并把 `meta.ticketType`、`name` 设为该枚举值。`TENDBCLUSTER` 目录固定为 `tendb-cluster`。
+`createToolboxRoute` 会按 `TicketTypes` 懒加载 `{db}/{TICKET_TYPE}/Index.vue`，并把 `meta.ticketType`、`name`
+设为该枚举值。`TENDBCLUSTER` 目录固定为 `tendb-cluster`。
 
 ## 单据详情
 
 工厂：`src/views/ticket-center/common/ticket-detail/components/task-info/com-factory/`
 
-按 `ticket_type` 匹配组件 `name`。glob 范围为 `{db}/*.vue`、`{db}/*/*.vue`，资源池策略优先匹配 `resource-pool-strategy/`。匹配不到则走 `Default.vue`。
+按 `ticket_type` 匹配组件 `name`。glob 范围为 `{db}/*.vue`、`{db}/*/*.vue`，资源池策略优先匹配
+`resource-pool-strategy/`。匹配不到则走 `Default.vue`。
 
 ```ts
 defineOptions({
@@ -129,7 +136,8 @@ defineOptions({
 | `http/`   | 请求封装                           |
 | `types/`  | 列表分页等通用类型                 |
 
-新增接口：在 `source/` 按资源写函数；列表行用 `model/` 类包装。单据 details 接口与提单字段对齐，并在 `model/ticket/details/{db}/index.ts` 导出。
+新增接口：在 `source/` 按资源写函数；列表行用 `model/` 类包装。单据 details 接口与提单字段对齐，并在
+`model/ticket/details/{db}/index.ts` 导出。
 
 ## 新增工具箱一次做完
 
@@ -140,3 +148,66 @@ defineOptions({
 5. 工具箱菜单增加入口
 6. `com-factory/{db}/Xxx.vue` 注册同名详情组件
 7. 文案走 `t()`，`yarn type-check` 通过
+
+# 直达链接（打开约定参数）规范
+
+直达链接指通过 URL 携带约定参数，使外部渠道（单据交付通知、企微/邮件、扫码等）进入页面后自动执行某操作（打开弹窗、定位数据、聚焦表单等），减少用户手动操作。适用于需要从外部「一步到位」进入特定页面状态的场景。
+
+## 1. 参数设计
+
+- **统一入口参数**：约定使用 query 参数 `?open=<action>`，作为页面「待执行动作」的信号；值使用 `snake_case`
+  语义化命名（如 `access_entry`、`rebuild_apply`）。
+- **定位参数**：业务对象 id 优先放路由 `params`（如 `clusterId`），与 `open` 天然分离，便于路由解析与复用既有跳转机制。
+- **单动作原则**：一个直达链接只表达一个动作，避免多个 `open`
+  值叠加导致状态耦合；确需多参数的，用独立 query 键（`open` + `from`/`source` 等）。
+- **无副作用**：参数非法、缺失或不可识别时一律忽略，按普通页面进入，不得产生弹窗/跳转/报错副作用。
+
+## 2. 统一封装
+
+直达链接动作判断逻辑必须收敛为统一组合式函数，禁止在各页面内联重复判断。hook 应封装完整闭环，且只依赖通用输入，不绑定任何具体业务实体或动作：
+
+- **解析**：读取 `?open=` 动作值及定位参数，校验合法性。
+- **状态分支**：目标对象不可用（被禁用/下线等）时不执行动作，改用项目通用 `messageWarn`
+  提示；不存在的实体若无独立错误码，不做专用空态，由接口错误提示承接。
+- **鉴权（可选）**：若目标动作需要权限校验，复用页面已有的权限信息（如 `permission`
+  字段）与项目通用鉴权能力；无权限时走项目通用无权限申请弹窗。若动作本身无需鉴权，则跳过此步直接执行。
+- **执行**：通过上述分支后调用入参提供的动作回调，动作与手动入口完全一致。
+
+通用 hook 签名范式（不绑定业务）：
+
+```typescript
+interface DirectLinkParams<T> {
+  actionId?: string; // 目标操作的 action_id；可选，仅在动作需要鉴权时传，与按钮鉴权保持一致
+  data: T; // 页面主体数据：从中按需取 id、可用状态、permission 等
+  onOpen: () => void; // 鉴权通过后执行的动作回调
+}
+```
+
+## 3. 触发时机与手动入口一致性
+
+- 动作触发放在页面数据就绪后，确保动作有完整数据支撑。
+- **手动入口（按钮）与直达链接必须共享同一鉴权与动作链路**：按钮使用项目通用鉴权组件（`AuthButton`
+  类），`action-id`/`permission`/`resource` 与直达链接 hook 的 `actionId`
+  完全一致；直达链接实际执行时也走同一动作函数，保证「点到即所见、链接即所见」。
+
+## 4. 通用行为分支
+
+鉴权为可选步骤：需要权限校验的动作走以下有权限/无权限分支；无需鉴权的动作（未传
+`actionId`）直接执行目标动作，不受权限影响。
+
+| 场景                 | 行为                                  |
+| -------------------- | ------------------------------------- |
+| 有权限（或无需鉴权） | 自动执行目标动作（复用对应弹窗/组件） |
+| 无权限               | 弹无权限申请弹窗                      |
+| 目标已禁用/不可用    | `messageWarn` 提示，不执行动作        |
+| 未登录               | 现有登录拦截回流同一 URL 后再鉴权     |
+| 参数非法/缺失        | 忽略，按普通页面进入                  |
+
+## 5. 落地清单（新增直达链接时逐项核对）
+
+- [ ] 定义 `?open=` 动作值并写入接口文档/通知模板（后端据此生成下发）
+- [ ] 新增 hook（或扩展既有 hook）收敛解析 + 鉴权 + 分支逻辑，禁止内联
+- [ ] 按钮入口使用鉴权组件（`AuthButton` 类），`actionId` 与 hook 一致
+- [ ] 动作触发在数据就绪后，与手动入口共享同一执行链路
+- [ ] 参数异常兜底：忽略进入，无副作用
+- [ ] 走读链路：外部链接 → 列表/详情 → 鉴权 → 自动动作，与手动点击一致
