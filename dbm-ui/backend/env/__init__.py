@@ -297,14 +297,11 @@ DEBUG_REVERSE_API = get_type_env(key="DEBUG_REVERSE_API", _type=bool, default=Fa
 # 反向上报接口工作模式
 # 默认为kafka, 某些环境可以配置成 DIRECT
 REVERSE_REPORT_MODE = get_type_env(key="REVERSE_REPORT_MODE", _type=str, default="KAFKA")
-# 反向上报接口 kafka 参数
-# DBM 带鉴权的连接串
-# export REVERSE_REPORT_KAFKA_OPTIONS=bootstrap_servers=:9092, \
+# 反向上报接口 kafka 参数，统一为 k=v,k=v 连接串（bootstrap_servers 支持逗号分隔多地址）
+# export REVERSE_REPORT_KAFKA_OPTIONS=bootstrap_servers=kafka1:9092,kafka2:9092, \
 # sasl_mechanism=SCRAM-SHA-512,security_protocol=SASL_PLAINTEXT, \
 # sasl_plain_username=kafka_user,sasl_plain_password=kafka_pass
-REVERSE_REPORT_KAFKA_OPTIONS = get_type_env(
-    key="REVERSE_REPORT_KAFKA_OPTIONS", _type=dict, default={"bootstrap_servers": ":9092"}
-)
+REVERSE_REPORT_KAFKA_OPTIONS = get_reverse_report_kafka_options()
 # mysql备份恢复演习业务
 MYSQL_BACKUPRECOVER_BIZ_ID = get_type_env(key="MYSQL_BACKUPRECOVER_BIZ_ID", _type=int, default=20)
 # 演习业务获取资源的标签ID
