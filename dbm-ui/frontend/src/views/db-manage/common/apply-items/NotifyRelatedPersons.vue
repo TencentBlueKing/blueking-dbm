@@ -134,9 +134,12 @@
 
   defineExpose({
     getValue() {
+      if (!modelValue.value.is_send) {
+        return {};
+      }
       return {
         ...modelValue.value,
-        receiver__username: (modelValue.value.is_send ? receiverUsername() : []).join(','),
+        receiver__username: receiverUsername().join(','),
       };
     },
   });
