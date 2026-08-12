@@ -119,7 +119,7 @@ class MigratePlanTest(SimpleTestCase):
 
     def test_layered_details_consumes_written_task_name(self):
         details = {
-            "dts_resource": {"mode": "use_existing", "cluster_id": 9},
+            "dts_resource": {"mode": "use_existing", "dts_cluster_id": 9},
             "migrate": {
                 "topology": MigrateTopology.ONE_TO_ONE.value,
                 "one_to_one": {
@@ -171,7 +171,7 @@ class MigratePlanTest(SimpleTestCase):
     def test_layered_target_spider_in_plan(self):
         """U2：分层 details 透传 target_spider 至 DtsTaskSpec。"""
         details = {
-            "dts_resource": {"mode": "use_existing", "cluster_id": 9},
+            "dts_resource": {"mode": "use_existing", "dts_cluster_id": 9},
             "migrate": {
                 "topology": MigrateTopology.ONE_TO_ONE.value,
                 "one_to_one": {

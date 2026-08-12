@@ -25,6 +25,7 @@ from backend.flow.utils.mysql.dts.constants import (
     MigrateTopology,
     get_default_deploy_path,
 )
+from backend.flow.utils.mysql.dts.migrate_credentials import parse_dts_migrate_major_version
 from backend.flow.utils.mysql.dts.migrate_plan import build_migrate_plan
 from backend.flow.utils.mysql.dts.task_name import patch_migrate_task_names_into_details
 from backend.ticket import builders
@@ -196,7 +197,9 @@ class DtsResourceSerializer(serializers.Serializer):
         choices=DtsLifecycleMode.get_choices(),
         help_text=_("DTS 资源模式: use_existing | deploy_ephemeral | deploy_persistent"),
     )
-    cluster_id = serializers.IntegerField(required=False, help_text=_("已有 DTS 集群 ID（mode=use_existing 时必填）"))
+    dts_cluster_id = serializers.IntegerField(
+        required=False, help_text=_("已有 DTS 集群 ID（mode=use_existing 时必填，MysqlDtsCluster.id）")
+    )
     deploy = DtsDeploySerializer(required=False, help_text=_("部署参数（mode=deploy_* 时必填）"))
     cleanup_after_migrate = serializers.BooleanField(required=False, help_text=_("迁移结束后是否清理临时 DTS（默认：ephemeral=true）"))
     recycle_hosts = serializers.BooleanField(required=False, default=True, help_text=_("清理时是否回收主机"))
@@ -205,8 +208,8 @@ class DtsResourceSerializer(serializers.Serializer):
     def validate(self, attrs):
         mode = attrs["mode"]
         if mode == DtsLifecycleMode.USE_EXISTING.value:
-            if not attrs.get("cluster_id"):
-                raise serializers.ValidationError(gettext_runtime("mode=use_existing 时必须填写 cluster_id"))
+            if not attrs.get("dts_cluster_id"):
+                raise serializers.ValidationError(gettext_runtime("mode=use_existing 时必须填写 dts_cluster_id"))
         elif mode in (DtsLifecycleMode.DEPLOY_EPHEMERAL.value, DtsLifecycleMode.DEPLOY_PERSISTENT.value):
             if not attrs.get("deploy"):
                 raise serializers.ValidationError(gettext_runtime("mode={} 时必须填写 deploy").format(mode))
@@ -253,26 +256,47 @@ class MysqlMigrateBaseDetailSerializer(serializers.Serializer):
     def validate(self, attrs):
         # 仅做结构校验：此时尚无 ticket.id，不要求最终 task_name（创单后由 patch 回写）
         # 勿写入 attrs：DtsMigratePlan 不可 JSON 序列化，会污染 Ticket.details
-        self.context["migrate_plan"] = build_migrate_plan(
+        migrate_plan = build_migrate_plan(
             {**attrs, "bk_biz_id": self.context.get("bk_biz_id", 0)},
             require_task_name=False,
         )
+        self.context["migrate_plan"] = migrate_plan
+        _validate_migrate_grant_cluster_versions(migrate_plan)
         return attrs
 
 
 _MYSQL_TO_MYSQL_ALLOWED_TYPES = {ClusterType.TenDBHA.value, ClusterType.TenDBSingle.value}
 
 
-def _validate_mysql_to_mysql_cluster_types(migrate_plan) -> None:
-    """校验 MYSQL_TO_MYSQL_MIGRATE：源/目标仅允许 TenDBHA / TenDBSingle。"""
-    from backend.db_meta.models import Cluster
-
+def _collect_migrate_plan_cluster_ids(migrate_plan) -> set[int]:
     cluster_ids: set[int] = set()
     for task_spec in migrate_plan.task_specs:
         for source in task_spec.sources:
             cluster_ids.add(source.cluster_id)
         cluster_ids.add(task_spec.target_cluster_id)
+    return cluster_ids
 
+
+def _validate_migrate_grant_cluster_versions(migrate_plan) -> None:
+    """校验迁移授权相关业务集群 major_version 可解析（空/无数字 → 拒单）。"""
+    cluster_ids = _collect_migrate_plan_cluster_ids(migrate_plan)
+    if not cluster_ids:
+        return
+    clusters = {c.id: c for c in Cluster.objects.filter(id__in=cluster_ids)}
+    for cluster_id in sorted(cluster_ids):
+        cluster = clusters.get(cluster_id)
+        if cluster is None:
+            raise serializers.ValidationError(gettext_runtime("集群 {} 不存在").format(cluster_id))
+        major_version = cluster.major_version or ""
+        if parse_dts_migrate_major_version(major_version) <= 0:
+            raise serializers.ValidationError(
+                gettext_runtime("集群 {} 的 major_version 无效或为空（当前={!r}），无法创建 DTS 迁移单据").format(cluster_id, major_version)
+            )
+
+
+def _validate_mysql_to_mysql_cluster_types(migrate_plan) -> None:
+    """校验 MYSQL_TO_MYSQL_MIGRATE：源/目标仅允许 TenDBHA / TenDBSingle。"""
+    cluster_ids = _collect_migrate_plan_cluster_ids(migrate_plan)
     clusters = {c.id: c for c in Cluster.objects.filter(id__in=cluster_ids)}
     for cluster_id in cluster_ids:
         cluster = clusters.get(cluster_id)
@@ -474,11 +498,11 @@ def _maybe_create_destroy_after_migrate(ticket) -> None:
             return
         if not dts_resource.get("destroy_after_migrate"):
             return
-        cluster_id = dts_resource.get("cluster_id")
-        if not cluster_id:
+        dts_cluster_id = dts_resource.get("dts_cluster_id")
+        if not dts_cluster_id:
             return
-        if _has_related_destroy_for_cluster(ticket, cluster_id):
-            logger.info(gettext_runtime("迁移单据 {} 已关联 DTS 集群 {} 的销毁单，跳过重复创建").format(ticket.id, cluster_id))
+        if _has_related_destroy_for_cluster(ticket, dts_cluster_id):
+            logger.info(gettext_runtime("迁移单据 {} 已关联 DTS 集群 {} 的销毁单，跳过重复创建").format(ticket.id, dts_cluster_id))
             return
 
         destroy_ticket = Ticket.create_ticket(
@@ -487,7 +511,7 @@ def _maybe_create_destroy_after_migrate(ticket) -> None:
             bk_biz_id=ticket.bk_biz_id,
             remark=gettext_runtime("迁移单据{}成功后自动销毁 DTS").format(ticket.id),
             details={
-                "dts_cluster_id": cluster_id,
+                "dts_cluster_id": dts_cluster_id,
                 "recycle_hosts": dts_resource.get("recycle_hosts", True),
             },
             auto_execute=True,

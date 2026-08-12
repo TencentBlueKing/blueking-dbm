@@ -403,10 +403,10 @@ def normalize_migrate_ticket_details(details: dict[str, Any]) -> dict[str, Any]:
 
     mode = dts_resource.get("mode") or DtsLifecycleMode.USE_EXISTING.value
     if mode == DtsLifecycleMode.USE_EXISTING.value:
-        if not dts_resource.get("cluster_id"):
-            raise ValueError(_("dts_resource.mode=use_existing 时必须提供 cluster_id"))
+        if not dts_resource.get("dts_cluster_id"):
+            raise ValueError(_("dts_resource.mode=use_existing 时必须提供 dts_cluster_id"))
         auto_deploy = False
-        dts_cluster_id = dts_resource.get("cluster_id")
+        dts_cluster_id = dts_resource.get("dts_cluster_id")
         deploy_subflow = None
         default_cleanup = False
     elif mode in (DtsLifecycleMode.DEPLOY_EPHEMERAL.value, DtsLifecycleMode.DEPLOY_PERSISTENT.value):
@@ -414,7 +414,8 @@ def normalize_migrate_ticket_details(details: dict[str, Any]) -> dict[str, Any]:
         if not deploy:
             raise ValueError(_("dts_resource.mode={} 时必须提供 deploy").format(mode))
         auto_deploy = True
-        dts_cluster_id = dts_resource.get("cluster_id")
+        # deploy_* 模式下 DTS 集群尚未创建，dts_cluster_id 可选（建流后回写）
+        dts_cluster_id = dts_resource.get("dts_cluster_id")
         deploy_subflow = deploy
         default_cleanup = mode == DtsLifecycleMode.DEPLOY_EPHEMERAL.value
     else:
