@@ -258,6 +258,17 @@ def query_slowlog_aggregated(
         function = "ANY_VALUE"
         name = "AnyValue"
 
+    # 自定义 GROUP_CONCAT 聚合函数，兼容 MySQL 和 Doris
+    class GroupConcat(Aggregate):
+        function = "GROUP_CONCAT"
+        name = "GroupConcat"
+        template = "%(function)s(%(distinct)s%(expressions)s%(separator)s)"
+
+        def __init__(self, expression, distinct=False, separator=",", **extra):
+            super().__init__(
+                expression, distinct="DISTINCT " if distinct else "", separator=f" SEPARATOR '{separator}'", **extra
+            )
+
     # 允许排序的字段白名单
     allowed_order_by = {
         "count_star",
@@ -308,7 +319,8 @@ def query_slowlog_aggregated(
                 query_db_name=AnyValue("query_db_name", output_field=CharField()),
                 table_names=AnyValue("table_names", output_field=CharField()),
                 username=AnyValue("username", output_field=CharField()),
-                client_host=AnyValue("client_host", output_field=CharField()),
+                client_host=GroupConcat("client_host", distinct=True, output_field=CharField()),
+                session_ids=GroupConcat("session_id", output_field=CharField()),
                 instance_host=AnyValue("instance_host", output_field=CharField()),
                 instance_port=AnyValue("instance_port", output_field=IntegerField()),
             )
