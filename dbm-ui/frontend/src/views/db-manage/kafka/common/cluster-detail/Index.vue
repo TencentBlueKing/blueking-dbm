@@ -191,6 +191,7 @@
   import { useOperateClusterBasic } from '@views/db-manage/common/hooks';
   import OperationBtnStatusTips from '@views/db-manage/common/OperationBtnStatusTips.vue';
   import RenderPassword from '@views/db-manage/common/RenderPassword.vue';
+  import useOpenAccessEntry from '@views/db-manage/hooks/useOpenAccessEntry';
   import ClusterExpansion from '@views/db-manage/kafka/common/expansion/Index.vue';
   import ClusterShrink from '@views/db-manage/kafka/common/shrink/Index.vue';
 
@@ -212,6 +213,7 @@
   const isShowExpandsion = ref(false);
   const isShowShrink = ref(false);
   const isShowPassword = ref(false);
+  const { handleOpenAccessEntry } = useOpenAccessEntry();
 
   const clusterRoleNodeGroup = computed(() => {
     /* eslint-disable perfectionist/sort-objects */
@@ -226,6 +228,12 @@
     manual: true,
     onSuccess(result: KafkaDetailModel) {
       data.value = result;
+      // 直达链接打开「获取访问方式」：鉴权通过打开弹窗，无权限弹无权限申请；已禁用 messageWarn 提示
+      handleOpenAccessEntry({
+        actionId: 'kafka_access_entry_view',
+        data: result,
+        onOpen: () => handleShowPassword(),
+      });
     },
   });
 

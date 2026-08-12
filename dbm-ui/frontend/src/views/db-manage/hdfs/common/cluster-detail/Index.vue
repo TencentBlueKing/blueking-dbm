@@ -205,6 +205,7 @@
   import RenderPassword from '@views/db-manage/common/RenderPassword.vue';
   import ClusterExpansion from '@views/db-manage/hdfs/common/expansion/Index.vue';
   import ClusterShrink from '@views/db-manage/hdfs/common/shrink/Index.vue';
+  import useOpenAccessEntry from '@views/db-manage/hooks/useOpenAccessEntry';
 
   import HostList from './components/HostList.vue';
 
@@ -225,6 +226,7 @@
   const isShowShrink = ref(false);
   const isShowPassword = ref(false);
   const isShowSettings = ref(false);
+  const { handleOpenAccessEntry } = useOpenAccessEntry();
 
   const clusterRoleNodeGroup = computed(() => {
     /* eslint-disable perfectionist/sort-objects */
@@ -241,6 +243,12 @@
     manual: true,
     onSuccess(result: HdfsDetailModel) {
       data.value = result;
+      // 直达链接打开「获取访问方式」：鉴权通过打开弹窗，无权限弹无权限申请；已禁用 messageWarn 提示
+      handleOpenAccessEntry({
+        actionId: 'hdfs_access_entry_view',
+        data: result,
+        onOpen: () => handleShowPassword(),
+      });
     },
   });
 

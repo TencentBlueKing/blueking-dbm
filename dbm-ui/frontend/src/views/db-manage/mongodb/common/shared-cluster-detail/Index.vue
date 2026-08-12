@@ -211,6 +211,7 @@
   import ClusterDomainDnsRelation from '@views/db-manage/common/cluster-domain-dns-relation/Index.vue';
   import { useAddClb, useOperateClusterBasic } from '@views/db-manage/common/hooks';
   import OperationBtnStatusTips from '@views/db-manage/common/OperationBtnStatusTips.vue';
+  import useOpenAccessEntry from '@views/db-manage/hooks/useOpenAccessEntry';
   import AccessEntry from '@views/db-manage/mongodb/common/cluster-operations/AccessEntry.vue';
   import InstanceList from '@views/db-manage/mongodb/common/ClusterDetailInstanceList.vue';
 
@@ -232,6 +233,7 @@
 
   const isAuthorizeShow = ref(false);
   const isShowAccessEntryInfo = ref(false);
+  const { handleOpenAccessEntry } = useOpenAccessEntry();
 
   const clusterRoleNodeGroup = computed(() => {
     return {
@@ -245,6 +247,12 @@
     manual: true,
     onSuccess(result: MongodbDetailModel) {
       data.value = result;
+      // 直达链接打开「获取访问方式」：鉴权通过打开弹窗，无权限弹无权限申请；已禁用 messageWarn 提示
+      handleOpenAccessEntry({
+        actionId: 'mongodb_access_entry_view',
+        data: result,
+        onOpen: () => handleShowAccessEntry(),
+      });
     },
   });
 
