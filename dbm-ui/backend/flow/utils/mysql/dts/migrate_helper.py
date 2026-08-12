@@ -200,6 +200,7 @@ def _append_grant_target(targets: dict[str, DtsGrantTarget], cluster: Cluster, i
         bk_cloud_id=cluster.bk_cloud_id,
         address=address,
         cluster_id=cluster.id,
+        major_version=cluster.major_version or "",
     )
 
 

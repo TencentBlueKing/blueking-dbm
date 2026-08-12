@@ -98,7 +98,7 @@ class BuildDtsTaskRequestMyloaderTest(SimpleTestCase):
 
     def test_parse_full_load_engine_and_myloader_from_plan(self):
         details = {
-            "dts_resource": {"mode": "use_existing", "cluster_id": 9},
+            "dts_resource": {"mode": "use_existing", "dts_cluster_id": 9},
             "migrate": {
                 "topology": MigrateTopology.ONE_TO_ONE.value,
                 "one_to_one": {

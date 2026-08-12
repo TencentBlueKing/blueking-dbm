@@ -33,11 +33,55 @@ if TYPE_CHECKING:
 
 # Wiki: 源端读 + binlog；目标端写。一期共用临时账号，权限取并集。
 # RELOAD 属于 GLOBAL 权限（见 dbpermission.constants.MySQLPrivType.GLOBAL）
+# 版本附加：<5.6 → SUPER；≥8.0 → BACKUP_ADMIN（按每个授权目标自身 major_version）
 DTS_MIGRATE_DML_DDL_PRIV = (
     "SELECT, INSERT, UPDATE, DELETE, CREATE, DROP, ALTER, INDEX, "
     "LOCK TABLES, CREATE VIEW, SHOW VIEW, TRIGGER, EVENT"
 )
 DTS_MIGRATE_GLOBAL_PRIV = "REPLICATION SLAVE, REPLICATION CLIENT, PROCESS, RELOAD"
+
+_MYSQL_VERSION_56 = None
+_MYSQL_VERSION_80 = None
+
+
+def _mysql_version_thresholds() -> tuple[int, int]:
+    """延迟加载阈值，避免循环依赖。"""
+    global _MYSQL_VERSION_56, _MYSQL_VERSION_80
+    if _MYSQL_VERSION_56 is None or _MYSQL_VERSION_80 is None:
+        from backend.flow.utils.mysql.mysql_version_parse import mysql_version_parse
+
+        _MYSQL_VERSION_56 = mysql_version_parse("5.6")
+        _MYSQL_VERSION_80 = mysql_version_parse("8.0")
+    return _MYSQL_VERSION_56, _MYSQL_VERSION_80
+
+
+def parse_dts_migrate_major_version(major_version: str) -> int:
+    """解析集群 major_version；空或无数字返回 0（视为不可解析）。"""
+    from backend.flow.utils.mysql.mysql_version_parse import mysql_version_parse
+
+    if not (major_version or "").strip():
+        return 0
+    return mysql_version_parse(major_version)
+
+
+def resolve_dts_migrate_global_priv(major_version: str) -> str:
+    """按实例主版本拼 DTS 临时账号 GLOBAL 权限串。
+
+    - 基础：DTS_MIGRATE_GLOBAL_PRIV
+    - ver < 5.6：追加 SUPER
+    - ver >= 8.0：追加 BACKUP_ADMIN
+    - ver == 0：抛 ValueError（主闸在单据 Serializer；此处为防御）
+    """
+    ver = parse_dts_migrate_major_version(major_version)
+    if ver <= 0:
+        raise ValueError(_("集群 major_version 无效或为空: {!r}").format(major_version))
+    ver_56, ver_80 = _mysql_version_thresholds()
+    privs = [DTS_MIGRATE_GLOBAL_PRIV]
+    if ver < ver_56:
+        privs.append("SUPER")
+    if ver >= ver_80:
+        privs.append("BACKUP_ADMIN")
+    return ", ".join(privs)
 
 
 @dataclass(frozen=True)
@@ -45,6 +89,7 @@ class DtsGrantTarget:
     bk_cloud_id: int
     address: str
     cluster_id: int
+    major_version: str = ""
 
 
 def generate_dts_migrate_username() -> str:
@@ -134,7 +179,7 @@ def build_dts_add_user_parallel_acts(
                         address=target.address,
                         dbname="%",
                         dml_ddl_priv=DTS_MIGRATE_DML_DDL_PRIV,
-                        global_priv=DTS_MIGRATE_GLOBAL_PRIV,
+                        global_priv=resolve_dts_migrate_global_priv(target.major_version),
                     )
                 ),
             }

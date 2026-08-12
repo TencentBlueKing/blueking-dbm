@@ -121,7 +121,7 @@ class MysqlDtsInfoClusiveTest(TestCase):
 
     def test_check_exclusive_and_reserve_creates_todo(self):
         details = {
-            "dts_resource": {"mode": "use_existing", "cluster_id": 1},
+            "dts_resource": {"mode": "use_existing", "dts_cluster_id": 1},
             "migrate": {
                 "topology": "one_to_one",
                 "one_to_one": {
@@ -147,7 +147,7 @@ class MysqlDtsInfoClusiveTest(TestCase):
 
     def test_check_exclusive_and_reserve_blocks_second_ticket(self):
         details_a = {
-            "dts_resource": {"mode": "use_existing", "cluster_id": 1},
+            "dts_resource": {"mode": "use_existing", "dts_cluster_id": 1},
             "migrate": {
                 "topology": "one_to_one",
                 "one_to_one": {
@@ -159,7 +159,7 @@ class MysqlDtsInfoClusiveTest(TestCase):
             "task": {"task_mode": "all"},
         }
         details_b = {
-            "dts_resource": {"mode": "use_existing", "cluster_id": 1},
+            "dts_resource": {"mode": "use_existing", "dts_cluster_id": 1},
             "migrate": {
                 "topology": "one_to_one",
                 "one_to_one": {

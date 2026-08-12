@@ -36,7 +36,7 @@ def _minimal_layered_details(**overrides):
     data = {
         "dts_resource": {
             "mode": DtsLifecycleMode.USE_EXISTING.value,
-            "cluster_id": 1,
+            "dts_cluster_id": 1,
         },
         "migrate": {
             "topology": MigrateTopology.ONE_TO_ONE.value,
@@ -54,7 +54,29 @@ def _minimal_layered_details(**overrides):
     return data
 
 
+def _grant_cluster_filter_side_effect(*args, **kwargs):
+    """Serializer 版本校验用：按 id__in 返回带可解析 major_version 的假集群。"""
+    ids = list(kwargs.get("id__in") or [])
+    return [
+        SimpleNamespace(
+            id=i,
+            major_version="MySQL-5.7",
+            cluster_type=ClusterType.TenDBHA.value,
+        )
+        for i in ids
+    ]
+
+
 class MysqlDtsTicketSerializerTest(SimpleTestCase):
+    def setUp(self):
+        super().setUp()
+        patcher = patch(
+            "backend.ticket.builders.mysql.dts.mysql_dts_tickets.Cluster.objects.filter",
+            side_effect=_grant_cluster_filter_side_effect,
+        )
+        self.addCleanup(patcher.stop)
+        patcher.start()
+
     def test_migrate_serializer_builds_plan(self):
         slz = MysqlMigrateBaseDetailSerializer(data=_minimal_layered_details())
         self.assertTrue(slz.is_valid(), slz.errors)
@@ -84,7 +106,7 @@ class MysqlDtsTicketSerializerTest(SimpleTestCase):
     def test_migrate_serializer_requires_topology_block(self):
         slz = MysqlMigrateBaseDetailSerializer(
             data={
-                "dts_resource": {"mode": DtsLifecycleMode.USE_EXISTING.value, "cluster_id": 1},
+                "dts_resource": {"mode": DtsLifecycleMode.USE_EXISTING.value, "dts_cluster_id": 1},
                 "migrate": {"topology": MigrateTopology.ONE_TO_ONE.value},
             }
         )
@@ -100,12 +122,37 @@ class MysqlDtsTicketSerializerTest(SimpleTestCase):
         self.assertFalse(slz.is_valid())
         self.assertIn("deploy", str(slz.errors))
 
-    def test_use_existing_requires_cluster_id(self):
+    def test_use_existing_requires_dts_cluster_id(self):
         slz = MysqlMigrateBaseDetailSerializer(
             data=_minimal_layered_details(dts_resource={"mode": DtsLifecycleMode.USE_EXISTING.value})
         )
         self.assertFalse(slz.is_valid())
-        self.assertIn("cluster_id", str(slz.errors))
+        self.assertIn("dts_cluster_id", str(slz.errors))
+
+    def test_use_existing_old_cluster_id_key_ignored(self):
+        """AE2：仅传旧键 cluster_id、不传 dts_cluster_id → 缺新键失败；旧键不顶替。"""
+        slz = MysqlMigrateBaseDetailSerializer(
+            data=_minimal_layered_details(dts_resource={"mode": DtsLifecycleMode.USE_EXISTING.value, "cluster_id": 1})
+        )
+        self.assertFalse(slz.is_valid())
+        self.assertIn("dts_cluster_id", str(slz.errors))
+
+    def test_grant_cluster_empty_major_version_rejected(self):
+        """AE8：授权目标集群 major_version 为空 → 拒单。"""
+        with patch(
+            "backend.ticket.builders.mysql.dts.mysql_dts_tickets.Cluster.objects.filter",
+            side_effect=lambda *a, **kw: [
+                SimpleNamespace(
+                    id=i,
+                    major_version="",
+                    cluster_type=ClusterType.TenDBHA.value,
+                )
+                for i in (kw.get("id__in") or [])
+            ],
+        ):
+            slz = MysqlMigrateBaseDetailSerializer(data=_minimal_layered_details())
+            self.assertFalse(slz.is_valid())
+            self.assertIn("major_version", str(slz.errors))
 
     def test_myloader_full_load_maps_to_plan(self):
         slz = MysqlMigrateBaseDetailSerializer(
@@ -137,7 +184,7 @@ class MysqlDtsTicketSerializerTest(SimpleTestCase):
             data=_minimal_layered_details(
                 dts_resource={
                     "mode": DtsLifecycleMode.USE_EXISTING.value,
-                    "cluster_id": 1,
+                    "dts_cluster_id": 1,
                     "destroy_after_migrate": True,
                 }
             )
@@ -234,6 +281,7 @@ def _mock_cluster(cluster_id: int, cluster_type: str, proxies=None):
     return SimpleNamespace(
         id=cluster_id,
         cluster_type=cluster_type,
+        major_version="MySQL-5.7",
         proxyinstance_set=_MockProxyQS(proxies or []),
     )
 
@@ -312,7 +360,17 @@ class MigrateTargetSpiderSerializerTest(SimpleTestCase):
             ClusterType.TenDBCluster.value,
             proxies=[_mock_spider("127.0.0.1", 25000)],
         )
-        mock_filter.return_value.first.return_value = cluster
+
+        def _filter(**kwargs):
+            if "id__in" in kwargs:
+                # 版本校验：返回源 100 + 目标 200
+                return [
+                    SimpleNamespace(id=100, major_version="MySQL-5.7", cluster_type=ClusterType.TenDBHA.value),
+                    cluster,
+                ]
+            return SimpleNamespace(first=lambda: cluster)
+
+        mock_filter.side_effect = _filter
 
         details = _minimal_layered_details()
         details["migrate"]["one_to_one"]["target"]["target_spider"] = "127.0.0.1:25000"
@@ -332,11 +390,11 @@ class MysqlToMysqlClusterTypeValidateTest(SimpleTestCase):
             ]
         )
         clusters = [
-            SimpleNamespace(id=1, cluster_type=ClusterType.TenDBSingle.value),
-            SimpleNamespace(id=2, cluster_type=ClusterType.TenDBHA.value),
+            SimpleNamespace(id=1, cluster_type=ClusterType.TenDBSingle.value, major_version="MySQL-5.7"),
+            SimpleNamespace(id=2, cluster_type=ClusterType.TenDBHA.value, major_version="MySQL-5.7"),
         ]
         with patch(
-            "backend.db_meta.models.Cluster.objects.filter",
+            "backend.ticket.builders.mysql.dts.mysql_dts_tickets.Cluster.objects.filter",
             return_value=clusters,
         ):
             _validate_mysql_to_mysql_cluster_types(plan)
@@ -351,11 +409,11 @@ class MysqlToMysqlClusterTypeValidateTest(SimpleTestCase):
             ]
         )
         clusters = [
-            SimpleNamespace(id=1, cluster_type=ClusterType.TenDBHA.value),
-            SimpleNamespace(id=2, cluster_type=ClusterType.TenDBCluster.value),
+            SimpleNamespace(id=1, cluster_type=ClusterType.TenDBHA.value, major_version="MySQL-5.7"),
+            SimpleNamespace(id=2, cluster_type=ClusterType.TenDBCluster.value, major_version="MySQL-5.7"),
         ]
         with patch(
-            "backend.db_meta.models.Cluster.objects.filter",
+            "backend.ticket.builders.mysql.dts.mysql_dts_tickets.Cluster.objects.filter",
             return_value=clusters,
         ):
             with self.assertRaises(Exception) as ctx:
@@ -371,6 +429,11 @@ class MysqlToMysqlClusterTypeValidateTest(SimpleTestCase):
         ha_cluster = _mock_cluster(200, ClusterType.TenDBHA.value)
 
         def _filter(**kwargs):
+            if "id__in" in kwargs:
+                return [
+                    SimpleNamespace(id=i, major_version="MySQL-5.7", cluster_type=ClusterType.TenDBHA.value)
+                    for i in kwargs["id__in"]
+                ]
             if kwargs.get("id") == 200:
                 return SimpleNamespace(first=lambda: ha_cluster)
             return SimpleNamespace(first=lambda: None)
@@ -434,7 +497,7 @@ class MysqlMigrateTaskNamePatchTest(SimpleTestCase):
 
     def test_patch_many_to_one(self):
         details = {
-            "dts_resource": {"mode": DtsLifecycleMode.USE_EXISTING.value, "cluster_id": 1},
+            "dts_resource": {"mode": DtsLifecycleMode.USE_EXISTING.value, "dts_cluster_id": 1},
             "migrate": {
                 "topology": MigrateTopology.MANY_TO_ONE.value,
                 "many_to_one": {
@@ -451,7 +514,7 @@ class MysqlMigrateTaskNamePatchTest(SimpleTestCase):
 
     def test_patch_one_to_many(self):
         details = {
-            "dts_resource": {"mode": DtsLifecycleMode.USE_EXISTING.value, "cluster_id": 1},
+            "dts_resource": {"mode": DtsLifecycleMode.USE_EXISTING.value, "dts_cluster_id": 1},
             "migrate": {
                 "topology": MigrateTopology.ONE_TO_MANY.value,
                 "one_to_many": {
@@ -471,7 +534,7 @@ class MysqlMigrateTaskNamePatchTest(SimpleTestCase):
     def test_patch_overlong_many_to_one_fits(self):
         srcs = [{"cluster_id": cid} for cid in range(1000, 1100)]
         details = {
-            "dts_resource": {"mode": DtsLifecycleMode.USE_EXISTING.value, "cluster_id": 1},
+            "dts_resource": {"mode": DtsLifecycleMode.USE_EXISTING.value, "dts_cluster_id": 1},
             "migrate": {
                 "topology": MigrateTopology.MANY_TO_ONE.value,
                 "many_to_one": {"sources": srcs, "target": {"cluster_id": 200}},
@@ -543,7 +606,7 @@ class NormalizeMigrateTicketDetailsTest(SimpleTestCase):
 
     def test_normalize_many_to_one_sources(self):
         details = {
-            "dts_resource": {"mode": DtsLifecycleMode.USE_EXISTING.value, "cluster_id": 9},
+            "dts_resource": {"mode": DtsLifecycleMode.USE_EXISTING.value, "dts_cluster_id": 9},
             "migrate": {
                 "topology": MigrateTopology.MANY_TO_ONE.value,
                 "many_to_one": {
@@ -725,7 +788,7 @@ class MysqlDtsDestroyAfterMigrateHookTest(SimpleTestCase):
         ticket = self._ticket(
             {
                 "mode": DtsLifecycleMode.USE_EXISTING.value,
-                "cluster_id": 9,
+                "dts_cluster_id": 9,
                 "destroy_after_migrate": True,
                 "recycle_hosts": True,
             }
@@ -748,7 +811,7 @@ class MysqlDtsDestroyAfterMigrateHookTest(SimpleTestCase):
         ticket = self._ticket(
             {
                 "mode": DtsLifecycleMode.USE_EXISTING.value,
-                "cluster_id": 9,
+                "dts_cluster_id": 9,
                 "destroy_after_migrate": True,
                 "recycle_hosts": False,
             }
@@ -762,7 +825,7 @@ class MysqlDtsDestroyAfterMigrateHookTest(SimpleTestCase):
         ticket = self._ticket(
             {
                 "mode": DtsLifecycleMode.USE_EXISTING.value,
-                "cluster_id": 9,
+                "dts_cluster_id": 9,
                 "destroy_after_migrate": True,
             },
             flow_status=TicketFlowStatus.FAILED,
@@ -777,7 +840,7 @@ class MysqlDtsDestroyAfterMigrateHookTest(SimpleTestCase):
         ticket = self._ticket(
             {
                 "mode": DtsLifecycleMode.USE_EXISTING.value,
-                "cluster_id": 9,
+                "dts_cluster_id": 9,
                 "destroy_after_migrate": False,
             }
         )
@@ -805,7 +868,7 @@ class MysqlDtsDestroyAfterMigrateHookTest(SimpleTestCase):
         ticket = self._ticket(
             {
                 "mode": DtsLifecycleMode.USE_EXISTING.value,
-                "cluster_id": 11,
+                "dts_cluster_id": 11,
                 "destroy_after_migrate": True,
                 "recycle_hosts": True,
             }
@@ -823,7 +886,7 @@ class MysqlDtsDestroyAfterMigrateHookTest(SimpleTestCase):
         ticket = self._ticket(
             {
                 "mode": DtsLifecycleMode.USE_EXISTING.value,
-                "cluster_id": 9,
+                "dts_cluster_id": 9,
                 "destroy_after_migrate": True,
             }
         )
