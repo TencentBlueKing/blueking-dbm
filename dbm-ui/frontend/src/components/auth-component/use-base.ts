@@ -47,6 +47,7 @@ const withBizActionList = [
   'es_manage',
   'es_loadbalance_manage',
   'kafka_apply',
+  'kafka_manage',
   'hdfs_apply',
   'pulsar_apply',
   'influxdb_apply',
