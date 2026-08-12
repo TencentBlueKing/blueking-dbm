@@ -90,15 +90,11 @@ export default class Kafka extends ClusterBase {
   operations: ClusterListOperation[];
   permission: {
     kafka_access_entry_view: boolean;
+    kafka_dbconfig_edit: boolean;
     kafka_destroy: boolean;
     kafka_edit: boolean;
     kafka_enable_disable: boolean;
     kafka_manage: boolean;
-    kafka_rebalance: boolean;
-    kafka_reboot: boolean;
-    kafka_replace: boolean;
-    kafka_scale_up: boolean;
-    kafka_shrink: boolean;
     kafka_view: boolean;
   };
   phase: 'online' | 'offline';
