@@ -36,7 +36,7 @@ export function getDirtyMachines(params: { limit: number; offset: number }) {
         (item) =>
           new DirtyMachinesModel(
             Object.assign(item, {
-              permission: Object.assign(item.permission, res.permission),
+              permission: Object.assign({}, item.permission, res.permission),
             }),
           ),
       ),

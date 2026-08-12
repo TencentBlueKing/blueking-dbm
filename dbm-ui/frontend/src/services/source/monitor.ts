@@ -111,7 +111,7 @@ export const queryMonitorPolicyList = (
       (item) =>
         new MonitorPolicyModel(
           Object.assign(item, {
-            permission: Object.assign(item.permission, data.permission),
+            permission: Object.assign({}, item.permission, data.permission),
           }),
         ),
     ),
