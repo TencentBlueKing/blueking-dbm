@@ -63,6 +63,10 @@
       <DbTable
         ref="tableRef"
         :data-source="dataSource"
+        :max-height="tableMaxHeight"
+        :pagination-extra="{
+          small: true,
+        }"
         :releate-url-query="false"
         row-class-name="temporary-password-modify-instance-box-table-row"
         row-key="uniqueKey"
@@ -72,21 +76,20 @@
         <TableColumn
           col-key="bk_cloud_name"
           :title="t('云区域')"
-          :width="100" />
+          :width="100">
+        </TableColumn>
         <TableColumn
           col-key="instance"
           :title="t('实例')"
           :width="150">
-          <template #default="{ row }">
+          <template #default="{ row: data }: { row: AdminPasswordModel }">
             <TextOverflowLayout>
-              <template #default>
-                {{ `${row.ip}:${row.port}` }}
-              </template>
+              {{ `${data.ip}:${data.port}` }}
               <template #append>
                 <BkButton
                   text
                   theme="primary"
-                  @click="handleCopy(`${row.ip}:${row.port}`)">
+                  @click="handleCopy(`${data.ip}:${data.port}`)">
                   <DbIcon
                     class="row-copy-icon ml-4"
                     type="copy" />
@@ -97,34 +100,31 @@
         </TableColumn>
         <TableColumn
           col-key="password"
-          :title="t('密码')"
-          :width="150">
+          :width="200">
           <template #title>
-            <span class="mr-4">{{ t('密码') }}</span>
+            <span>{{ t('密码') }}</span>
             <BkButton
               text
               @click="handlePasswordShow">
-              <DbIcon type="visible1" />
+              <DbIcon type="visible1 ml-4" />
             </BkButton>
           </template>
-          <template #default="{ row }">
-            <TextOverflowLayout :key="Number(isRowPasswordShow(row))">
-              <template #default>
-                <span>{{ isRowPasswordShow(row) ? getRowPassword(row) : '******' }}</span>
-              </template>
+          <template #default="{ row: data }: { row: AdminPasswordModel }">
+            <TextOverflowLayout :key="Number(isRowPasswordShow(data))">
+              <span>{{ isRowPasswordShow(data) ? getRowPassword(data) : '******' }}</span>
               <template #append>
                 <AuthTemplate
                   :action-id="adminPwdViewActionMap[dbType]"
-                  :permission="row.permission[adminPwdViewActionMap[dbType]]"
-                  :resource="row.cluster_id">
+                  :permission="data.permission[adminPwdViewActionMap[dbType]]"
+                  :resource="data.cluster_id">
                   <DbIcon
                     class="row-copy-icon ml-4"
                     type="copy"
-                    @click="handleCopy(getRowPassword(row))" />
+                    @click="handleCopy(getRowPassword(data))" />
                   <DbIcon
                     class="row-view-icon ml-4"
                     type="visible1"
-                    @click="handleToggleRowPassword(row)" />
+                    @click="handleToggleRowPassword(data)" />
                 </AuthTemplate>
               </template>
             </TextOverflowLayout>
@@ -134,36 +134,40 @@
           col-key="component"
           :title="t('DB类型')"
           :width="100">
-          <template #default="{ row }">
-            <DbIcon
-              class="row-type"
-              type="mysql" />
-            <span class="ml-4">{{ row.component }}</span>
+          <template #default="{ row: data }: { row: AdminPasswordModel }">
+            <DbIcon type="mysql row-type" />
+            <span class="ml-4">{{ data.component }}</span>
           </template>
         </TableColumn>
         <TableColumn
           col-key="lock_until"
+          ellipsis
           :min-width="240"
           sorter
           :title="t('过期时间')">
-          <template #default="{ row }">
+          <template #default="{ row: data }: { row: AdminPasswordModel }">
             <span
-              v-if="isExpiringSoon(row)"
+              v-if="isExpiringSoon(data)"
               class="expired-time">
-              {{ row.lockUntilDisplay }}（{{ t('n天后过期', { n: expireDays(row) }) }}）
+              {{ data.lockUntilDisplay }}（{{ t('n天后过期', [expireDays(data)]) }}）
             </span>
-            <span v-else>{{ row.lockUntilDisplay }}</span>
+            <span v-else>{{ data.lockUntilDisplay }}</span>
           </template>
         </TableColumn>
         <TableColumn
           col-key="operator"
           :title="t('修改人')"
-          :width="150" />
+          :width="150">
+        </TableColumn>
         <TableColumn
-          col-key="updateTimeDisplay"
+          col-key="update_time"
           sorter
           :title="t('修改时间')"
-          :width="260" />
+          :width="160">
+          <template #default="{ row: data }: { row: AdminPasswordModel }">
+            {{ data.updateTimeDisplay }}
+          </template>
+        </TableColumn>
       </DbTable>
     </div>
   </DbSideslider>
@@ -177,7 +181,9 @@
   import AdminPasswordModel from '@services/model/admin-password/admin-password';
   import { getInstancePassword, queryAdminPassword } from '@services/source/permission';
 
-  import { DBTypes } from '@common/const';
+  import { useTableMaxHeight } from '@hooks';
+
+  import { DBTypes, OccupiedInnerHeight } from '@common/const';
 
   import DbTable from '@components/db-table/IndexNew.vue';
   import TextOverflowLayout from '@components/text-overflow-layout/Index.vue';
@@ -206,6 +212,7 @@
     );
 
   const { t } = useI18n();
+  const tableMaxHeight = useTableMaxHeight(OccupiedInnerHeight.NOT_PAGINATION);
 
   const tableRef = ref();
   const passwordShow = ref(false);
@@ -272,8 +279,7 @@
   const isExpiringSoon = (row: AdminPasswordModel) => expireDays(row) <= 7;
 
   // 密码展示/复制优先使用接口实时拉取的值，未拉取到则回退到列表字段
-  const getRowPassword = (row: AdminPasswordModel) =>
-    instancePasswordMap.value[row.uniqueKey] || row.password;
+  const getRowPassword = (row: AdminPasswordModel) => instancePasswordMap.value[row.uniqueKey] || row.password;
 
   const isRowPasswordShow = (row: AdminPasswordModel) => {
     // 表头批量显隐只对有查看权限的行生效，无权限行由行级眼睛（AuthTemplate 内）单独控制
@@ -330,7 +336,7 @@
     }
   };
 
-  const handleSelection = (data: AdminPasswordModel, list: AdminPasswordModel[]) => {
+  const handleSelection = (idList: string[], list: AdminPasswordModel[]) => {
     selected.value = list;
   };
 
@@ -361,6 +367,12 @@
     :deep(.row-copy-icon),
     :deep(.row-view-icon) {
       display: none;
+      color: #979ba5;
+      cursor: pointer;
+
+      &:hover {
+        color: #3a84ff;
+      }
     }
 
     :deep(.temporary-password-modify-instance-box-table-row) {
@@ -369,16 +381,6 @@
         .row-view-icon {
           display: inline;
         }
-      }
-    }
-
-    :deep(.row-copy-icon),
-    :deep(.row-view-icon) {
-      cursor: pointer;
-      color: #979ba5;
-
-      &:hover {
-        color: #3a84ff;
       }
     }
 
