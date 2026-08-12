@@ -83,9 +83,9 @@
               <div v-db-console="'doris.clusterManage.scaleUp'">
                 <OperationBtnStatusTips :data="data">
                   <AuthButton
-                    action-id="doris_scale_up"
+                    action-id="doris_manage"
                     :disabled="data.operationDisabled"
-                    :permission="data.permission.doris_scale_up"
+                    :permission="data.permission.doris_manage"
                     :resource="data.id"
                     text
                     @click="handleShowExpandsion(data)">
@@ -96,9 +96,9 @@
               <div v-db-console="'doris.clusterManage.scaleDown'">
                 <OperationBtnStatusTips :data="data">
                   <AuthButton
-                    action-id="doris_shrink"
+                    action-id="doris_manage"
                     :disabled="data.operationDisabled"
-                    :permission="data.permission.doris_shrink"
+                    :permission="data.permission.doris_manage"
                     :resource="data.id"
                     text
                     @click="handleShowShrink(data)">

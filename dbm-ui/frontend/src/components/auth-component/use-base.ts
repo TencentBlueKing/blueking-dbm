@@ -79,6 +79,7 @@ const withBizActionList = [
   'sqlserver_priv_manage',
   'biz_ticket_config_set',
   'doris_apply',
+  'doris_manage',
   'biz_assistance_vars_config',
   'biz_notify_config',
   'mysql_dbconfig_edit',
