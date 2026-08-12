@@ -156,6 +156,9 @@ dbm:
     dbResourceApigwDomain: "http://bk-dbm-db-resource"
     dbRemoteServiceApigwDomain: "http://bk-dbm-db-remote-service"
     slowQueryParseApigwDomain: ""
+    ## DEPRECATED: 已迁移到 externalKafka，仅为兼容存量环境保留（滚动升级时不会改动此处）
+    ## 仅在 externalKafka 未配置（enabled=false 或 brokers 为空）时生效
+    ## 多 broker 场景请改用 externalKafka.brokers，避免与连接串的逗号分隔冲突
     reverseReportKafkaOptions: ""
     dbmEnableAI: false
     bkaiAgentMetricsPushMode: "direct"
@@ -594,12 +597,15 @@ db-event-consumer:
     requests:
       cpu: 200m
       memory: 256Mi
+  ## DEPRECATED: 已迁移到 externalKafka，仅为兼容存量环境保留（滚动升级时不会改动此处）
+  ## externalKafka 取不到值时按顺序回落到这里的旧字段
   kafka_info:
-    # same with REVERSE_REPORT_KAFKA_OPTIONS. domain_name value can be ip list separated by commas
-    brokers: "xx.xx.db,ip2"
+    brokers: ""
     broker_port: 9092
-    auth_info_username: "xxx"
-    auth_info_password: "xxx"
+    auth_info_username: ""
+    auth_info_password: ""
+    auth_info_sasl_mechanisms: ""
+    auth_info_security_protocol: ""
   sinkers:
     - topic: "mysql_dbbackup_result"
       model_table: "tb_mysql_backup_result"
@@ -759,6 +765,25 @@ externalRedis:
   host: localhost
   port: 6379
   password: ""
+
+## 第三方 kafka 配置
+## 未配置（enabled=false 或 brokers 为空）时，自动回落到存量兼容配置：
+##   dbm -> dbm.envs.reverseReportKafkaOptions
+##   db-event-consumer -> db-event-consumer.kafka_info.*
+externalKafka:
+  ## 是否启用；未启用时仍会回落存量配置，两者都为空时 dbm 反向上报走 DIRECT 模式
+  enabled: false
+  ## 地址（支持逗号分隔的多个 broker 地址，不含端口）
+  brokers: ""
+  ## 端口
+  port: 9092
+  ## SASL 认证；username 为空表示不开鉴权
+  auth:
+    username: ""
+    password: ""
+    ## key 为 snake_case，与 db-event-consumer 的 yaml tag 一致
+    sasl_mechanisms: "SCRAM-SHA-512"
+    security_protocol: "SASL_PLAINTEXT"
 
 ## 第三方 MySQL 配置
 externalDatabase:
