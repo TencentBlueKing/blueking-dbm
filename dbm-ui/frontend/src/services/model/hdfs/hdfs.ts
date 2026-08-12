@@ -86,14 +86,11 @@ export default class Hdfs extends ClusterBase {
   operations: ClusterListOperation[];
   permission: {
     hdfs_access_entry_view: boolean;
+    hdfs_dbconfig_edit: boolean;
     hdfs_destroy: boolean;
     hdfs_edit: boolean;
     hdfs_enable_disable: boolean;
     hdfs_manage: boolean;
-    hdfs_reboot: boolean;
-    hdfs_replace: boolean;
-    hdfs_scale_up: boolean;
-    hdfs_shrink: boolean;
     hdfs_view: boolean;
   };
   phase: string;

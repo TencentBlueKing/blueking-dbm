@@ -32,10 +32,7 @@ export default class HdfsNode {
   permission: {
     hdfs_destroy: boolean;
     hdfs_enable_disable: boolean;
-    hdfs_reboot: boolean;
-    hdfs_replace: boolean;
-    hdfs_scale_up: boolean;
-    hdfs_shrink: boolean;
+    hdfs_manage: boolean;
     hdfs_view: boolean;
   };
   role_set: Array<string>;
