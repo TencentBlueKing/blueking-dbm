@@ -397,6 +397,19 @@ def full_sync_sub_flow(
     # 声明子流程
     sub_pipeline = SubBuilder(root_id=root_id, data=parent_global_data)
 
+    # 主从下发dbactor
+    sub_pipeline.add_act(
+        act_name=_("下发db-actuator介质"),
+        act_component_code=TransFileComponent.code,
+        kwargs=asdict(
+            DownloadMediaKwargs(
+                bk_cloud_id=cluster.bk_cloud_id,
+                exec_ip=[master.machine.ip, backup.machine.ip],
+                file_list=GetFileList(db_type=DBType.MySQL).get_db_actuator_package(),
+            )
+        ),
+    )
+
     # 阶段1 对新TBinlogDumper做全表结构导入
     sub_pipeline.add_act(
         act_name=_("导入相关表结构"),
