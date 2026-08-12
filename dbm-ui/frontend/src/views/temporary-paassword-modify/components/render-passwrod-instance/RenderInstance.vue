@@ -61,19 +61,108 @@
       </div>
       <DbTable
         ref="tableRef"
-        :columns="columns"
         :data-source="queryAdminPassword"
         :max-height="tableMaxHeight"
         :pagination-extra="{
           small: true,
         }"
-        primary-key="uniqueKey"
         :releate-url-query="false"
-        row-class="temporary-password-modify-instance-box-table-row"
+        row-class-name="temporary-password-modify-instance-box-table-row"
+        row-key="uniqueKey"
         selectable
-        show-overflow-tooltip
         @clear-search="getDataSource"
-        @selection="handleSelection" />
+        @selection="handleSelection">
+        <TableColumn
+          col-key="bk_cloud_name"
+          :title="t('云区域')"
+          :width="100">
+        </TableColumn>
+        <TableColumn
+          col-key="instance"
+          :title="t('实例')"
+          :width="150">
+          <template #default="{ row: data }: { row: AdminPasswordModel }">
+            <TextOverflowLayout>
+              {{ `${data.ip}:${data.port}` }}
+              <template #append>
+                <BkButton
+                  text
+                  theme="primary"
+                  @click="handleCopy(`${data.ip}:${data.port}`)">
+                  <DbIcon
+                    class="row-copy-icon ml-4"
+                    type="copy" />
+                </BkButton>
+              </template>
+            </TextOverflowLayout>
+          </template>
+        </TableColumn>
+        <TableColumn
+          col-key="password"
+          :width="200">
+          <template #title>
+            <span>{{ t('密码') }}</span>
+            <BkButton
+              text
+              @click="handlePasswordShow">
+              <DbIcon type="visible1 ml-4" />
+            </BkButton>
+          </template>
+          <template #default="{ row: data }: { row: AdminPasswordModel }">
+            <TextOverflowLayout :key="Number(passwordShow)">
+              <span>{{ passwordShow ? data.password : '******' }}</span>
+              <template #append>
+                <BkButton
+                  text
+                  theme="primary"
+                  @click="handleCopy(data.password)">
+                  <DbIcon
+                    class="row-copy-icon ml-4"
+                    type="copy" />
+                </BkButton>
+              </template>
+            </TextOverflowLayout>
+          </template>
+        </TableColumn>
+        <TableColumn
+          col-key="component"
+          :title="t('DB类型')"
+          :width="100">
+          <template #default="{ row: data }: { row: AdminPasswordModel }">
+            <DbIcon type="mysql row-type" />
+            <span class="ml-4">{{ data.component }}</span>
+          </template>
+        </TableColumn>
+        <TableColumn
+          col-key="lock_until"
+          ellipsis
+          :min-width="240"
+          sorter
+          :title="t('过期时间')">
+          <template #default="{ row: data }: { row: AdminPasswordModel }">
+            <span
+              v-if="isExpireSoon(data.lock_until)"
+              class="expired-time">
+              {{ data.lockUntilDisplay }}（{{ t('n天后过期', [getExpireDays(data.lock_until)]) }}）
+            </span>
+            <span v-else>{{ data.lockUntilDisplay }}</span>
+          </template>
+        </TableColumn>
+        <TableColumn
+          col-key="operator"
+          :title="t('修改人')"
+          :width="150">
+        </TableColumn>
+        <TableColumn
+          col-key="update_time"
+          sorter
+          :title="t('修改时间')"
+          :width="160">
+          <template #default="{ row: data }: { row: AdminPasswordModel }">
+            {{ data.updateTimeDisplay }}
+          </template>
+        </TableColumn>
+      </DbTable>
     </div>
   </BkSideslider>
 </template>
@@ -89,6 +178,7 @@
 
   import { DBTypes, OccupiedInnerHeight } from '@common/const';
 
+  import DbTable from '@components/db-table/IndexNew.vue';
   import TextOverflowLayout from '@components/text-overflow-layout/Index.vue';
 
   import { execCopy, getSearchSelectorParams } from '@utils';
@@ -105,116 +195,6 @@
     {
       id: 'instances',
       name: t('IP 或 IP:Port'),
-    },
-  ];
-
-  const columns = [
-    {
-      field: 'bk_cloud_name',
-      label: t('云区域'),
-      width: 100,
-    },
-    {
-      field: 'instance',
-      label: t('实例'),
-      render: ({ row }: { row: AdminPasswordModel }) => {
-        const instance = `${row.ip}:${row.port}`;
-        return (
-          <TextOverflowLayout>
-            {{
-              append: () => (
-                <bk-button
-                  text
-                  theme='primary'
-                  onClick={() => handleCopy(instance)}>
-                  <db-icon
-                    class='row-copy-icon ml-4'
-                    type='copy'
-                  />
-                </bk-button>
-              ),
-              default: () => instance,
-            }}
-          </TextOverflowLayout>
-        );
-      },
-      width: 150,
-    },
-    {
-      field: 'password',
-      label: () => (
-        <>
-          <span>{t('密码')}</span>
-          <bk-button
-            text
-            onClick={() => handlePasswordShow()}>
-            <db-icon type='visible1 ml-4' />
-          </bk-button>
-        </>
-      ),
-      render: ({ row }: { row: AdminPasswordModel }) => (
-        <TextOverflowLayout key={Number(passwordShow.value)}>
-          {{
-            append: () => (
-              <bk-button
-                text
-                theme='primary'
-                onClick={() => handleCopy(row.password)}>
-                <db-icon
-                  class='row-copy-icon ml-4'
-                  type='copy'
-                />
-              </bk-button>
-            ),
-            default: () => <span>{passwordShow.value ? row.password : '******'}</span>,
-          }}
-        </TextOverflowLayout>
-      ),
-      showOverflowTooltip: true,
-      width: 200,
-    },
-    {
-      field: 'component',
-      label: t('DB类型'),
-      render: ({ row }: { row: AdminPasswordModel }) => (
-        <>
-          <db-icon type='mysql row-type' />
-          <span class='ml-4'>{row.component}</span>
-        </>
-      ),
-      width: 100,
-    },
-    {
-      field: 'lock_until',
-      label: t('过期时间'),
-      minWidth: 240,
-      render: ({ row }: { row: AdminPasswordModel }) => {
-        const { lock_until: lockUntil, lockUntilDisplay } = row;
-        const lockUntilDate = dayjs(lockUntil).format('YYYY-MM-DD');
-        const currentDate = dayjs().format('YYYY-MM-DD');
-        const diffDay = dayjs(lockUntilDate).diff(currentDate, 'day');
-
-        return diffDay <= 7 ? (
-          <span class='expired-time'>
-            {lockUntilDisplay}（{t('n天后过期', [Math.ceil(diffDay)])}）
-          </span>
-        ) : (
-          <span>{lockUntilDisplay}</span>
-        );
-      },
-      showOverflowTooltip: true,
-      sort: true,
-    },
-    {
-      field: 'operator',
-      label: t('修改人'),
-      width: 150,
-    },
-    {
-      field: 'updateTimeDisplay',
-      label: t('修改时间'),
-      sort: true,
-      width: 160,
     },
   ];
 
@@ -253,14 +233,26 @@
       }
     }
 
-    tableRef.value?.fetchData({}, params);
+    tableRef.value?.fetchData(params);
+  };
+
+  const isExpireSoon = (lockUntil: string) => {
+    const lockUntilDate = dayjs(lockUntil).format('YYYY-MM-DD');
+    const currentDate = dayjs().format('YYYY-MM-DD');
+    return dayjs(lockUntilDate).diff(currentDate, 'day') <= 7;
+  };
+
+  const getExpireDays = (lockUntil: string) => {
+    const lockUntilDate = dayjs(lockUntil).format('YYYY-MM-DD');
+    const currentDate = dayjs().format('YYYY-MM-DD');
+    return Math.ceil(dayjs(lockUntilDate).diff(currentDate, 'day'));
   };
 
   const handlePasswordShow = () => {
     passwordShow.value = !passwordShow.value;
   };
 
-  const handleSelection = (data: AdminPasswordModel, list: AdminPasswordModel[]) => {
+  const handleSelection = (idList: string[], list: AdminPasswordModel[]) => {
     selected.value = list;
   };
 
