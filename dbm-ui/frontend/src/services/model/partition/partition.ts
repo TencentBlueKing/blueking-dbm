@@ -46,11 +46,7 @@ export default class Partition {
     mysql_partition_manage?: boolean;
     mysql_partition_update: boolean;
     tendb_partition_enable_disable: boolean;
-    tendbcluster_partition: boolean;
-    tendbcluster_partition_create: boolean;
-    tendbcluster_partition_delete: boolean;
-    tendbcluster_partition_manage?: boolean;
-    tendbcluster_partition_update: boolean;
+    tendbcluster_partition_manage: boolean;
   };
   phase: string;
   port: number;
