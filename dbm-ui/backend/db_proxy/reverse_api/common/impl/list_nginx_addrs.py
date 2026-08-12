@@ -15,5 +15,7 @@ from backend.db_proxy.models import DBExtension
 
 
 def list_nginx_addrs(bk_cloud_id: int) -> List[str]:
-    nginx = DBExtension.get_extension_in_cloud(bk_cloud_id=bk_cloud_id, extension_type=ExtensionType.NGINX.value)
+    nginx = DBExtension.get_extension_in_cloud_cached(
+        bk_cloud_id=bk_cloud_id, extension_type=ExtensionType.NGINX.value
+    )
     return ["{}:{}:{}".format(bk_cloud_id, n.details["ip"], n.details["dbm_port"]) for n in nginx]

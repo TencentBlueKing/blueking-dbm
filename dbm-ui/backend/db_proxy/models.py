@@ -10,7 +10,7 @@ specific language governing permissions and limitations under the License.
 """
 
 from collections import defaultdict
-from typing import Dict, Union
+from typing import Dict, List, Union
 
 from django.core.cache import cache
 from django.db import models
@@ -24,12 +24,17 @@ from backend.configuration.models.system import SystemSettings
 from backend.db_proxy.constants import (
     CLUSTER__SERVICE_MAP,
     DB_CLOUD_PROXY_EXPIRE_TIME,
+    DB_EXTENSION_LOCAL_CACHE_MAXSIZE,
+    DB_EXTENSION_LOCAL_CACHE_TTL,
     ClusterServiceType,
     ExtensionServiceStatus,
     ExtensionType,
 )
 from backend.db_proxy.exceptions import ProxyPassBaseException
 from backend.flow.utils.cloud.cloud_context_dataclass import CloudDBHAV2AdminDetail
+from backend.utils.cache import LocalTTLCache
+
+extension_local_cache = LocalTTLCache(ttl=DB_EXTENSION_LOCAL_CACHE_TTL, maxsize=DB_EXTENSION_LOCAL_CACHE_MAXSIZE)
 
 
 class DBCloudProxy(AuditedModel):
@@ -94,6 +99,24 @@ class DBExtension(AuditedModel):
             bk_cloud_id=bk_cloud_id, extension=extension_type, status=ExtensionServiceStatus.RUNNING.value
         )
         return extensions
+
+    @classmethod
+    def get_extension_in_cloud_cached(cls, bk_cloud_id: int, extension_type: ExtensionType) -> List["DBExtension"]:
+        """
+        get_extension_in_cloud 的只读缓存版本，适合热点高频调用场景
+        返回按 id 升序的组件列表。
+        """
+        cache_key = (int(bk_cloud_id), str(extension_type))
+        rows = extension_local_cache.get_or_load(
+            cache_key,
+            lambda: list(cls.get_extension_in_cloud(bk_cloud_id, extension_type).order_by("id").values()),
+        )
+        return rows
+
+    @classmethod
+    def clear_local_cache(cls):
+        """清理本进程的组件缓存，供 bulk_create 这类不触发信号的写入调用"""
+        extension_local_cache.clear()
 
     @classmethod
     def get_latest_extension(cls, bk_cloud_id: int, extension_type: ExtensionType) -> "DBExtension":

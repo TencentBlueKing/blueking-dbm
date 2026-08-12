@@ -9,7 +9,9 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 import binascii
+import logging
 
+import redis
 from django.conf import settings
 from django.utils.translation import gettext as _
 from rest_framework import permissions
@@ -21,6 +23,8 @@ from backend.core.encrypt.handlers import AsymmetricHandler
 from backend.db_proxy.constants import DB_CLOUD_TOKEN_EXPIRE_TIME
 from backend.utils.local import local
 from backend.utils.redis import RedisConn
+
+logger = logging.getLogger("root")
 
 
 class ProxyPassPermission(permissions.BasePermission):
@@ -55,14 +59,23 @@ class ProxyPassPermission(permissions.BasePermission):
         # 判断是否在缓存集合中，不在cache中则走解密流程并cache。
         # 由于Redis的list不能直接判断元素是否存在，所以选择set存取
         # check_set_member_in_redis(cache_key, db_cloud_token, self.verify_token, DB_CLOUD_TOKEN_EXPIRE_TIME)
-        if not RedisConn.sismember(cache_key, db_cloud_token):
+        try:
+            token_cached = RedisConn.sismember(cache_key, db_cloud_token)
+        except (redis.exceptions.ConnectionError, redis.exceptions.TimeoutError) as e:
+            logger.error("[ProxyPassPermission]read token cache failed: %s", e)
+            token_cached = False
+
+        if not token_cached:
             self.verify_token(db_cloud_token, bk_cloud_id)
-            # 如果这个cache_key刚创建，则需要设置过期时间
-            if not RedisConn.exists(cache_key):
-                RedisConn.sadd(cache_key, db_cloud_token)
-                RedisConn.expire(cache_key, DB_CLOUD_TOKEN_EXPIRE_TIME)
-            else:
-                RedisConn.sadd(cache_key, db_cloud_token)
+            try:
+                # 如果这个cache_key刚创建，则需要设置过期时间
+                if not RedisConn.exists(cache_key):
+                    RedisConn.sadd(cache_key, db_cloud_token)
+                    RedisConn.expire(cache_key, DB_CLOUD_TOKEN_EXPIRE_TIME)
+                else:
+                    RedisConn.sadd(cache_key, db_cloud_token)
+            except (redis.exceptions.ConnectionError, redis.exceptions.TimeoutError) as e:
+                logger.error("[ProxyPassPermission]write token cache failed: %s", e)
 
         request.data.pop("db_cloud_token")
 

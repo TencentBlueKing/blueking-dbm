@@ -10,11 +10,15 @@ specific language governing permissions and limitations under the License.
 """
 import ipaddress
 import json
+import logging
 
+import redis
 from django.core.serializers.json import DjangoJSONEncoder
 from django_redis import get_redis_connection
 from django_redis.pool import ConnectionFactory as Factory
 from django_redis.serializers.base import BaseSerializer
+
+logger = logging.getLogger("root")
 
 
 class JSONSerializer(BaseSerializer):
@@ -58,13 +62,22 @@ def is_valid_ip(ip_address):
 
 def check_set_member_in_redis(key, member, verify_func, expire_time):
     """检查是否已经存在"""
-    if RedisConn.sismember(key, member):
-        return True
+    # redis故障时退化为每次都走verify_func校验，不影响校验结论。TimeoutError不是ConnectionError的子类，需一并捕获
+    try:
+        if RedisConn.sismember(key, member):
+            return True
+    except (redis.exceptions.ConnectionError, redis.exceptions.TimeoutError) as e:
+        logger.error("[check_set_member_in_redis]read cache failed: %s", e)
+
     # 未命中进行校验
     verify_func(key, member)
+
     # 校验成功则设置缓存
-    if not RedisConn.exists(key):
-        RedisConn.sadd(key, member)
-        RedisConn.expire(key, expire_time)
-    else:
-        RedisConn.sadd(key, member)
+    try:
+        if not RedisConn.exists(key):
+            RedisConn.sadd(key, member)
+            RedisConn.expire(key, expire_time)
+        else:
+            RedisConn.sadd(key, member)
+    except (redis.exceptions.ConnectionError, redis.exceptions.TimeoutError) as e:
+        logger.error("[check_set_member_in_redis]write cache failed: %s", e)

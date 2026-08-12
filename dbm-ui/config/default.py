@@ -365,6 +365,13 @@ CACHES = {
             "CLIENT_CLASS": "django_redis.client.DefaultClient",
             "REDIS_CLIENT_CLASS": "redis.client.StrictRedis",
             "REDIS_CLIENT_KWARGS": {"decode_responses": True},
+            # redis连接超时/命令超时时间
+            "SOCKET_CONNECT_TIMEOUT": 1,
+            "SOCKET_TIMEOUT": 10,
+            # 复用连接前若空闲超过该秒数则先ping探活，避免拿到被网关RST掉的死连接
+            "CONNECTION_POOL_KWARGS": {"health_check_interval": 30},
+            # redis不可用时降级为缓存未命中，避免异常直接冒泡成请求失败
+            "IGNORE_EXCEPTIONS": True,
             "SERIALIZER": "backend.utils.redis.JSONSerializer",
             "MAX_ENTRIES": 100000,
             "CULL_FREQUENCY": 10,
@@ -387,6 +394,8 @@ DBM_APP_ACCESS_TOKEN = env.DBM_APP_ACCESS_TOKEN
 INIT_SUPERUSER = ["admin"]
 
 DJANGO_REDIS_CONNECTION_FACTORY = "backend.utils.redis.ConnectionFactory"
+# IGNORE_EXCEPTIONS 会吞掉缓存异常，打日志避免redis故障被静默
+DJANGO_REDIS_LOG_IGNORED_EXCEPTIONS = True
 
 RUN_VER = env.RUN_VER
 BK_PAAS_HOST = os.getenv("BK_PAAS_HOST", "")
