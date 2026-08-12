@@ -74,10 +74,7 @@ export default class Riak extends ClusterBase {
   permission: {
     riak_access_entry_view: boolean;
     riak_cluster_destroy: boolean;
-    riak_cluster_migrate: boolean;
-    riak_cluster_reboot: boolean;
-    riak_cluster_scale_in: boolean;
-    riak_cluster_scale_out: boolean;
+    riak_dbconfig_edit: boolean;
     riak_edit: boolean;
     riak_enable_disable: boolean;
     riak_manage: boolean;
