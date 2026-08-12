@@ -14,6 +14,9 @@ import _ from 'lodash';
 
 import { createBkrepoAccessToken } from '@services/source/storage';
 
+// 判断是否为 http(s) 协议链接
+export const isHttpUrl = (value: unknown) => typeof value === 'string' && /^https?:\/\//.test(value);
+
 export const parseURL = (url: string) => {
   const a = document.createElement('a');
   a.href = url;
