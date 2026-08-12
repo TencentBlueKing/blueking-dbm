@@ -160,9 +160,9 @@ INSTALLED_APPS += (
 
 if env.ENABLE_DBM_AI:
     INSTALLED_APPS += (
-        # aidev
-        "aidev_bkplugin",
-        "backend.dbm_aiagent",
+        # aidev：使用 Safe AppConfig，避免 AIDEV 不可用时拖垮 DBM 启动
+        "backend.dbm_aiagent.apps.SafeAidevBkpluginConfig",
+        "backend.dbm_aiagent.apps.DbmAiagentConfig",
     )
     # 这两张表由 SDK 侧负责创建，dbm 不接管其 schema，故置空跳过该 app 的迁移。
     # 注：checkpoint 表的联合唯一索引在 utf8mb4 下，超过 InnoDB 单索引 3072 字节上限会导致迁移失败
