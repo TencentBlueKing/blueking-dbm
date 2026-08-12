@@ -49,6 +49,7 @@ const withBizActionList = [
   'kafka_apply',
   'kafka_manage',
   'hdfs_apply',
+  'hdfs_manage',
   'pulsar_apply',
   'influxdb_apply',
   'notify_group_manage',
