@@ -14,13 +14,13 @@ data:
   config.yaml: |-
     kafka_info:
       cluster_config:
-        brokers: {{ index .Values "db-event-consumer" "kafka_info" "brokers" }}
-        port: {{ index .Values "db-event-consumer" "kafka_info" "broker_port" }}
+        brokers: {{ .Values.externalKafka.brokers }}
+        port: {{ .Values.externalKafka.port }}
       auth_info:
-        username: {{ index .Values "db-event-consumer" "kafka_info" "auth_info_username" }}
-        password: {{ index .Values "db-event-consumer" "kafka_info" "auth_info_password" }}
-        sasl_mechanisms: {{ index .Values "db-event-consumer" "kafka_info" "auth_info_sasl_mechanisms" }}
-        security_protocol: {{ index .Values "db-event-consumer" "kafka_info" "auth_info_security_protocol" }}
+        username: {{ .Values.externalKafka.username }}
+        password: {{ .Values.externalKafka.password }}
+        sasl_mechanisms: {{ .Values.externalKafka.sasl_mechanisms }}
+        security_protocol: {{ .Values.externalKafka.security_protocol }}
     log:
       console: true
       debug: true
