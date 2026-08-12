@@ -51,9 +51,9 @@
             <div v-db-console="'hdfs.clusterManage.scaleUp'">
               <OperationBtnStatusTips :data="data">
                 <AuthButton
-                  action-id="hdfs_scale_up"
+                  action-id="hdfs_manage"
                   :disabled="data.operationDisabled"
-                  :permission="data.permission.hdfs_scale_up"
+                  :permission="data.permission.hdfs_manage"
                   :resource="data.id"
                   text
                   @click="handleShowExpansion">
@@ -64,9 +64,9 @@
             <div v-db-console="'hdfs.clusterManage.scaleDown'">
               <OperationBtnStatusTips :data="data">
                 <AuthButton
-                  action-id="hdfs_shrink"
+                  action-id="hdfs_manage"
                   :disabled="data.operationDisabled"
-                  :permission="data.permission.hdfs_shrink"
+                  :permission="data.permission.hdfs_manage"
                   :resource="data.id"
                   text
                   @click="handleShowShrink">
