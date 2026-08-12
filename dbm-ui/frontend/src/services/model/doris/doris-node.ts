@@ -43,10 +43,7 @@ export default class DorisNode {
     doris_access_entry_view: boolean;
     doris_destroy: boolean;
     doris_enable_disable: boolean;
-    doris_reboot: boolean;
-    doris_replace: boolean;
-    doris_scale_up: boolean;
-    doris_shrink: boolean;
+    doris_manage: boolean;
     doris_view: boolean;
   };
   role: string;
