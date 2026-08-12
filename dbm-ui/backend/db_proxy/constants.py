@@ -28,6 +28,10 @@ DB_CLOUD_TOKEN_EXPIRE_TIME = 1 * 24 * 60 * 60
 DB_CLOUD_PROXY_EXPIRE_TIME = 1 * 24 * 60 * 60
 # 定义machine缓存过期时间为1天
 DB_CLOUD_MACHINE_EXPIRE_TIME = 1 * 24 * 60 * 60
+# 云区域组件元数据的进程内缓存时间。不走redis，保证redis故障时也不会穿透到mysql
+DB_EXTENSION_LOCAL_CACHE_TTL = 60
+# 云区域组件元数据的进程内缓存容量，按(云区域, 组件类型)维度计数
+DB_EXTENSION_LOCAL_CACHE_MAXSIZE = 512
 
 
 class ExtensionType(StrStructuredEnum):

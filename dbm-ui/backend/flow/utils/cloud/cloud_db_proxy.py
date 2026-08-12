@@ -83,6 +83,9 @@ class CloudDBProxy:
                 bk_module_name=transfer_module,
             )
 
+        # bulk_create 不触发 post_save，需要显式失效
+        DBExtension.clear_local_cache()
+
         return True
 
     def cloud_base_reduce(self, host_infos, move_module):
