@@ -8,6 +8,19 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+from typing import Any, Dict
+
+from backend.utils.env import get_type_env
+
+# 没有任何 kafka 配置时的兜底参数，保证 KafkaProducer 仍可构造（进程不因配置缺失而启动失败）
+DEFAULT_REVERSE_REPORT_KAFKA_OPTIONS = {"bootstrap_servers": ":9092"}
+
+# 兼容存量环境：JSON 格式的连接参数，解析失败自动回落默认值
+REVERSE_REPORT_KAFKA_OPTIONS: Dict[str, Any] = get_type_env(
+    key="REVERSE_REPORT_KAFKA_OPTIONS",
+    _type=dict,
+    default=DEFAULT_REVERSE_REPORT_KAFKA_OPTIONS,
+)
 
 
 def get_csrf_trusted_origins():
@@ -24,3 +37,34 @@ def get_csrf_trusted_origins():
 
     print("Warning: If need, Please provide CSRF_TRUSTED_ORIGINS")
     return []
+
+
+def get_reverse_report_kafka_options() -> dict:
+    """组装反向上报 KafkaProducer 连接参数。
+
+    优先使用 externalKafka 渲染的结构化环境变量；存量环境（滚动升级只替换镜像，
+    只有 REVERSE_REPORT_KAFKA_OPTIONS 连接串）回落到连接串解析。
+    解析失败时降级到默认值并打日志，避免 settings 加载阶段抛异常导致进程无法启动。
+
+    :return: 可直接展开给 kafka.KafkaProducer 的 kwargs
+    """
+    servers = get_type_env(key="REVERSE_REPORT_KAFKA_BOOTSTRAP_SERVERS", _type=str, default="")
+    if servers:
+        options = {"bootstrap_servers": [server.strip() for server in servers.split(",") if server.strip()]}
+        username = get_type_env(key="REVERSE_REPORT_KAFKA_USERNAME", _type=str, default="")
+        if username:
+            options.update(
+                {
+                    "sasl_plain_username": username,
+                    "sasl_plain_password": get_type_env(key="REVERSE_REPORT_KAFKA_PASSWORD", _type=str, default=""),
+                    "sasl_mechanism": get_type_env(
+                        key="REVERSE_REPORT_KAFKA_SASL_MECHANISM", _type=str, default="SCRAM-SHA-512"
+                    ),
+                    "security_protocol": get_type_env(
+                        key="REVERSE_REPORT_KAFKA_SECURITY_PROTOCOL", _type=str, default="SASL_PLAINTEXT"
+                    ),
+                }
+            )
+        return options
+
+    return REVERSE_REPORT_KAFKA_OPTIONS
