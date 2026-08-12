@@ -136,3 +136,13 @@ k8s waitfor让一个pod等待另一个pod启动，用于编排顺序
   resources:
     {{- toYaml $root.Values.global.k8sWaitFor.resources | nindent 4 }}
 {{- end }}
+
+{{- define "bk-dbm.kafka.bootstrapServers" -}}
+{{- $port := .Values.externalKafka.port | default 9092 -}}
+{{- $out := list -}}
+{{- range splitList "," .Values.externalKafka.brokers -}}
+{{- $b := trim . -}}
+{{- if $b -}}{{- $out = append $out (printf "%s:%v" $b $port) -}}{{- end -}}
+{{- end -}}
+{{- join "," $out -}}
+{{- end -}}
