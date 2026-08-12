@@ -32,6 +32,7 @@ from backend.flow.plugins.components.collections.common.install_nodeman_plugin i
 from backend.flow.plugins.components.collections.redis.dns_manage import RedisDnsManageComponent
 from backend.flow.plugins.components.collections.redis.exec_actuator_script import ExecuteDBActuatorScriptComponent
 from backend.flow.plugins.components.collections.redis.get_redis_payload import GetRedisActPayloadComponent
+from backend.flow.plugins.components.collections.redis.redis_apply_summary import RedisInsApplySummaryComponent
 from backend.flow.plugins.components.collections.redis.redis_config import RedisConfigComponent
 from backend.flow.plugins.components.collections.redis.redis_db_meta import RedisDBMetaComponent
 from backend.flow.plugins.components.collections.redis.redis_update_version import RedisUpdateVersionComponent
@@ -517,9 +518,9 @@ class RedisInstanceApplyFlow(object):
                 )
             sub_pipeline.add_parallel_acts(acts_list=acts_list)
 
-            # 批量写入集群信息摘要(地区/域名/端口)，供前端"执行摘要"展示。
-            # 一个master_ip下可能有多个主从实例(rule)，一次性合并为一个节点写入，
-            # 最终会合并到同一张摘要表的values数组里，不会产生多条摘要记录。主从实例部署无CLB/北极星，无需创建
+            # 批量写入主从实例信息摘要(地区/域名/端口)，供前端"执行摘要"展示。
+            # 一个master_ip下可能有多个主从实例(rule)，一次性合并为一个节点写入。
+            # 主从实例部署无CLB/北极星，使用专用的 RedisInsApplySummaryComponent。
             summary_items = [
                 {
                     "bk_biz_id": self.data["bk_biz_id"],
@@ -529,7 +530,11 @@ class RedisInstanceApplyFlow(object):
                 }
                 for rule in info["ip_install_dict"][master_ip]
             ]
-            add_batch_summary_output_act(redis_pipeline=sub_pipeline, items=summary_items)
+            add_batch_summary_output_act(
+                redis_pipeline=sub_pipeline,
+                items=summary_items,
+                component_code=RedisInsApplySummaryComponent.code,
+            )
 
             sub_pipelines.append(sub_pipeline.build_sub_process(sub_name=_("Redis主从安装-{}").format(master_ip)))
         redis_pipeline.add_parallel_sub_pipeline(sub_flow_list=sub_pipelines)

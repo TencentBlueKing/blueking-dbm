@@ -27,6 +27,11 @@ class SubmitBillRedisClusterApplyInputSerializer(serializers.Serializer):
     bk_biz_id = serializers.IntegerField(help_text=_("业务 id, bk_biz_id"))
     cluster_domain = serializers.CharField(help_text=_("参照部署参数的已有集群域名，格式为xx.xx.xx.db"))
     new_cluster_name = serializers.CharField(help_text=_("新集群名（英文数字及连字符，不能与已有集群重名）"))
+    keep_source_password = serializers.BooleanField(
+        help_text=_("新集群密码是否与源集群保持一致，默认 False（生成新随机密码）"),
+        default=False,
+        required=False,
+    )
 
 
 class SubmitBillRedisFullBackupInputSerializer(SubmitBillRedisBaseInputSerializer):

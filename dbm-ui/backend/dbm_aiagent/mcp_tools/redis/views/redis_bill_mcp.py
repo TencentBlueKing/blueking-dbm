@@ -87,8 +87,11 @@ class RedisBillMcpToolsViewSet(McpToolsViewSet):
         bk_biz_id = self.get_param("bk_biz_id")
         cluster_domain = self.get_param("cluster_domain")
         new_cluster_name = self.get_param("new_cluster_name")
+        keep_source_password = self.get_param("keep_source_password", False)
 
-        return Response(redis_cluster_apply(request, bk_biz_id, cluster_domain, new_cluster_name))
+        return Response(
+            redis_cluster_apply(request, bk_biz_id, cluster_domain, new_cluster_name, keep_source_password)
+        )
 
     @mcp_tools_api_decorator(
         description=str(_("""redis集群后端存储容量变更""")),

@@ -145,7 +145,7 @@ def add_summary_output_act(
     )
 
 
-def add_batch_summary_output_act(redis_pipeline, items: List[Dict]):
+def add_batch_summary_output_act(redis_pipeline, items: List[Dict], component_code=None):
     """
     批量将多个集群关键信息(地区/域名/端口/CLB/北极星)一次性写入FlowSummary，供前端"执行摘要"展示。
     适用于一个流程需要一次性部署多个集群/实例的场景(如redis主从实例批量部署)，
@@ -154,12 +154,16 @@ def add_batch_summary_output_act(redis_pipeline, items: List[Dict]):
     @param redis_pipeline: 当前redis部署流程的Builder/SubBuilder实例，节点会直接追加到该流程中
     @param items: 摘要信息列表，每项需包含 bk_biz_id/domain_name/region/proxy_port，
                   可选 apply_clb/apply_polaris(默认False)
+    @param component_code: 摘要组件code，默认使用集群部署的 RedisApplySummaryComponent（含CLB/北极星），
+                           主从实例部署应传入 RedisInsApplySummaryComponent.code（不含CLB/北极星）
     """
     if not items:
         return
+    if component_code is None:
+        component_code = RedisApplySummaryComponent.code
     redis_pipeline.add_act(
         act_name=_("批量写入集群信息摘要"),
-        act_component_code=RedisApplySummaryComponent.code,
+        act_component_code=component_code,
         kwargs={"items": items},
     )
 

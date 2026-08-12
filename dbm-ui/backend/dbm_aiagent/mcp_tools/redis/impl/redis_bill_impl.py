@@ -22,6 +22,7 @@ from backend.db_meta.enums import InstanceRole
 from backend.db_meta.enums.cluster_type import ClusterType
 from backend.db_meta.models import AppCache, Cluster, Spec, StorageInstanceTuple
 from backend.flow.consts import ClusterRoleEnum, RedisCapacityUpdateType
+from backend.flow.utils.base.payload_handler import PayloadHandler
 from backend.ticket.builders.common.base import IpSource
 from backend.ticket.constants import SwitchConfirmType, TicketType
 from backend.ticket.models import Ticket
@@ -45,12 +46,14 @@ def generate_custom_id():
 
 
 # 集群部署（克隆申请）
-def redis_cluster_apply(request, bk_biz_id, cluster_domain, new_cluster_name):
+def redis_cluster_apply(request, bk_biz_id, cluster_domain, new_cluster_name, keep_source_password=False):
     """
     参照已有集群的部署参数，克隆申请一个新的redis集群
     new_cluster_name为新集群名，由调用方传入，不能与已有集群重名；机器来源固定为资源池，规格/分片数/组数/容灾级别/城市等均与原集群保持一致
     仅支持带proxy层的架构：TwemproxyRedisInstance、TwemproxyTendisSSDInstance、
     PredixyRedisCluster、PredixyTendisplusCluster、PredixyTendisplusInstance
+    @param keep_source_password: 新集群的proxy密码是否与源集群保持一致，默认 False（生成新随机密码）；
+                                 设置为 True 时将复用源集群的proxy密码；若源集群无proxy密码则回退到生成新随机密码
     """
     cluster_obj = Cluster.objects.get(bk_biz_id=bk_biz_id, immute_domain=cluster_domain)
     if cluster_obj.cluster_type not in REDIS_CLUSTER_APPLY_SUPPORTED_TYPES:
@@ -97,8 +100,16 @@ def redis_cluster_apply(request, bk_biz_id, cluster_domain, new_cluster_name):
     db_app_abbr = AppCache.get_app_attr(bk_biz_id, "db_app_abbr") or str(bk_biz_id)
     city_code = cluster_obj.region
     disaster_tolerance_level = cluster_obj.disaster_tolerance_level
-    # proxy访问密码，随机生成，满足平台密码强度策略
-    proxy_pwd = DBPasswordHandler.get_random_password(security_type=DBPrivSecurityType.REDIS_PASSWORD)
+    # proxy访问密码：若指定与源集群保持一致则复用源集群proxy密码，否则随机生成
+    if keep_source_password:
+        source_pwd_map = PayloadHandler.redis_get_cluster_password(cluster=cluster_obj)
+        proxy_pwd = source_pwd_map.get("redis_proxy_password", "")
+        if not proxy_pwd:
+            # 源集群未取到proxy密码，回退到随机生成，避免单据因密码缺失无法继续
+            proxy_pwd = DBPasswordHandler.get_random_password(security_type=DBPrivSecurityType.REDIS_PASSWORD)
+    else:
+        # 默认行为：随机生成，满足平台密码强度策略
+        proxy_pwd = DBPasswordHandler.get_random_password(security_type=DBPrivSecurityType.REDIS_PASSWORD)
 
     # 规格详情，用于补充resource_spec的展示字段
     proxy_spec = Spec.objects.get(spec_id=proxy_spec_id)
