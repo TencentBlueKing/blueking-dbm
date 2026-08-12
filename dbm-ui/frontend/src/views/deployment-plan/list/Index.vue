@@ -45,10 +45,78 @@
       </div>
       <DbTable
         ref="tableRef"
-        :columns="tableColumn"
         :data-source="fetchDeployPlan"
+        row-key="id"
         selectable
-        @selection="handleTableSelection" />
+        @selection="handleTableSelection">
+        <TableColumn
+          col-key="name"
+          fixed="left"
+          :min-width="200"
+          :title="t('方案名称')">
+        </TableColumn>
+        <TableColumn
+          col-key="shard_cnt"
+          :title="t('集群分片数')"
+          :width="100">
+        </TableColumn>
+        <TableColumn
+          col-key="machine_pair_cnt"
+          :title="t('后端存储资源规格（机器数量）')"
+          :width="250">
+        </TableColumn>
+        <TableColumn
+          col-key="capacity"
+          :title="t('集群预估容量（G）')"
+          :width="150">
+        </TableColumn>
+        <TableColumn
+          col-key="update_at"
+          :title="t('更新时间')"
+          :width="200">
+        </TableColumn>
+        <TableColumn
+          col-key="updater"
+          :title="t('更新人')"
+          :width="150">
+        </TableColumn>
+        <TableColumn
+          col-key="operation"
+          :title="t('操作')"
+          :width="150">
+          <template #default="{ row: data }: { row: DeployPlanModel }">
+            <BkButton
+              text
+              theme="primary"
+              @click="handleEdit(data)">
+              {{ t('编辑') }}
+            </BkButton>
+            <BkButton
+              class="ml-8"
+              :loading="Boolean(cloneLoadingMap[data.id])"
+              text
+              theme="primary"
+              @click="handleClone(data)">
+              {{ t('克隆') }}
+            </BkButton>
+            <span
+              v-bk-tooltips="{
+                content: t('该方案已被使用，无法删除'),
+                disabled: !data.is_refer,
+              }">
+              <BkButton
+                class="ml-8"
+                :disabled="data.is_refer"
+                :loading="Boolean(removeLoadingMap[data.id])"
+                text
+                theme="primary"
+                @click="handleRemove(data)">
+                {{ t('删除') }}
+              </BkButton>
+            </span>
+          </template>
+        </TableColumn>
+      </DbTable>
     </div>
   </div>
   <DbSideslider
@@ -83,6 +151,8 @@
 
   import { ClusterTypes } from '@common/const';
 
+  import DbTable from '@components/db-table/IndexNew.vue';
+
   import { messageSuccess } from '@utils';
 
   import PlanOperation from './components/Operation.vue';
@@ -107,87 +177,14 @@
     return typeMap[activeMachineType.value];
   });
 
-  const tableColumn = [
-    {
-      field: 'name',
-      fixed: 'left',
-      label: t('方案名称'),
-    },
-    {
-      field: 'shard_cnt',
-      label: t('集群分片数'),
-      width: 100,
-    },
-    {
-      field: 'machine_pair_cnt',
-      label: t('后端存储资源规格（机器数量）'),
-      width: 250,
-    },
-    {
-      field: 'capacity',
-      label: t('集群预估容量（G）'),
-      width: 150,
-    },
-    {
-      field: 'update_at',
-      label: t('更新时间'),
-      width: 200,
-    },
-    {
-      field: 'updater',
-      label: t('更新人'),
-      width: 150,
-    },
-    {
-      label: t('操作'),
-      render: ({ data }: { data: DeployPlanModel }) => (
-        <>
-          <bk-button
-            theme='primary'
-            text
-            onClick={() => handleEdit(data)}>
-            {t('编辑')}
-          </bk-button>
-          <bk-button
-            class='ml-8'
-            loading={Boolean(cloneLoadingMap.value[data.id])}
-            theme='primary'
-            text
-            onClick={() => handleClone(data)}>
-            {t('克隆')}
-          </bk-button>
-          <span
-            v-bk-tooltips={{
-              content: t('该方案已被使用，无法删除'),
-              disabled: !data.is_refer,
-            }}>
-            <bk-button
-              class='ml-8'
-              disabled={data.is_refer}
-              loading={Boolean(removeLoadingMap.value[data.id])}
-              theme='primary'
-              text
-              onClick={() => handleRemove(data)}>
-              {t('删除')}
-            </bk-button>
-          </span>
-        </>
-      ),
-      width: 150,
-    },
-  ];
-
   const fetchData = () => {
-    tableRef.value.fetchData(
-      {},
-      {
-        cluster_type: clusterType.value,
-      },
-    );
+    tableRef.value.fetchData({
+      cluster_type: clusterType.value,
+    });
   };
 
-  const handleTableSelection = (idList: number[]) => {
-    tableSelectIdList.value = idList;
+  const handleTableSelection = (idList: string[], list: DeployPlanModel[]) => {
+    tableSelectIdList.value = list.map((item) => item.id);
   };
   const handleClusterChange = (value: string) => {
     activeMachineType.value = value;
