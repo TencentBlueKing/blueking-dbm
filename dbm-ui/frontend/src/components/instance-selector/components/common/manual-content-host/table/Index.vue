@@ -46,7 +46,7 @@
   </div>
 </template>
 <script setup lang="tsx">
-  import type { PrimaryTableCol } from 'tdesign-vue-next';
+  import { Checkbox, type PrimaryTableCol } from 'tdesign-vue-next';
   import type { Ref } from 'vue';
   import { useI18n } from 'vue-i18n';
 
@@ -157,7 +157,7 @@
                 {{
                   content: () => <span>{props.disabledRowConfig?.tip}</span>,
                   default: () => (
-                    <bk-checkbox
+                    <Checkbox
                       disabled
                       style='vertical-align: middle;'
                     />
@@ -167,24 +167,20 @@
             );
           }
           return (
-            <bk-checkbox
-              label={true}
-              model-value={Boolean(checkedMap.value[row[firstColumnFieldId.value]])}
+            <Checkbox
+              checked={Boolean(checkedMap.value[row[firstColumnFieldId.value]])}
               style='vertical-align: middle;'
               onChange={(value: boolean) => handleTableSelectOne(value, row as IValue)}
-              onClick={(e: Event) => e.stopPropagation()}
             />
           );
         },
         colKey: 'row-select',
         fixed: 'left',
         title: () => (
-          <bk-checkbox
+          <Checkbox
+            checked={isSelectedAll.value}
             disabled={mainSelectDisable.value}
-            label={true}
-            model-value={isSelectedAll.value}
             onChange={handleSelectPageAll}
-            onClick={(e: Event) => e.stopPropagation()}
           />
         ),
         width: 60,
