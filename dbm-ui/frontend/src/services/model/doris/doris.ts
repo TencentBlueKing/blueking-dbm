@@ -88,14 +88,11 @@ export default class Doris extends ClusterBase {
   operations: ClusterListOperation[];
   permission: {
     doris_access_entry_view: boolean;
+    doris_dbconfig_edit: boolean;
     doris_destroy: boolean;
     doris_edit: boolean;
     doris_enable_disable: boolean;
     doris_manage: boolean;
-    doris_reboot: boolean;
-    doris_replace: boolean;
-    doris_scale_up: boolean;
-    doris_shrink: boolean;
     doris_view: boolean;
   };
   phase: 'online' | 'offline';

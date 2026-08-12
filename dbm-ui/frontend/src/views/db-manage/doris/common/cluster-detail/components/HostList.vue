@@ -16,7 +16,7 @@
     <div class="action-box">
       <OperationBtnStatusTips :data="clusterData">
         <AuthButton
-          action-id="doris_scale_up"
+          action-id="doris_manage"
           :disabled="clusterData?.operationDisabled"
           :resource="clusterData.id"
           theme="primary"
@@ -27,7 +27,7 @@
       <OperationBtnStatusTips :data="clusterData">
         <span v-bk-tooltips="batchShrinkDisabledInfo.tooltips">
           <AuthButton
-            action-id="doris_shrink"
+            action-id="doris_manage"
             class="ml-8"
             :disabled="batchShrinkDisabledInfo.disabled || clusterData?.operationDisabled"
             :resource="clusterData.id"
@@ -43,7 +43,7 @@
             disabled: !isBatchReplaceDisabeld,
           }">
           <AuthButton
-            action-id="doris_replace"
+            action-id="doris_manage"
             class="ml-8"
             :disabled="isBatchReplaceDisabeld || clusterData?.operationDisabled"
             :resource="clusterData.id"
@@ -131,9 +131,9 @@
           <OperationBtnStatusTips :data="clusterData">
             <span v-bk-tooltips="checkNodeShrinkDisable(row).tooltips">
               <AuthButton
-                action-id="doris_shrink"
+                action-id="doris_manage"
                 :disabled="checkNodeShrinkDisable(row).disabled || clusterData?.operationDisabled"
-                :permission="clusterData.permission.doris_shrink"
+                :permission="clusterData.permission.doris_manage"
                 :resource="clusterData.id"
                 text
                 theme="primary"
@@ -146,10 +146,10 @@
           <!-- 替换按钮 -->
           <OperationBtnStatusTips :data="clusterData">
             <AuthButton
-              action-id="doris_replace"
+              action-id="doris_manage"
               class="ml-8"
               :disabled="clusterData?.operationDisabled"
-              :permission="clusterData.permission.doris_replace"
+              :permission="clusterData.permission.doris_manage"
               :resource="clusterData.id"
               text
               theme="primary"
