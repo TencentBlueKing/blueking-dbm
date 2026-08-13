@@ -132,7 +132,7 @@ class DBPasswordHandler(object):
                 instance_list.append({"ip": ip, "port": int(port), "bk_cloud_id": bk_cloud_id})
             else:
                 raise PasswordPolicyBaseException(_("请保证查询的实例输入格式合法，格式为[CLOUD_ID:]IP:PORT"))
-        filters = {"limit": limit, "offset": offset, "username": DB_ADMIN_USER_MAP[db_type]}
+        filters = {"limit": limit, "offset": offset, "username": DB_ADMIN_USER_MAP[db_type], "db_type": db_type}
         if instance_list:
             filters.update(instances=instance_list)
         if begin_time:
@@ -146,6 +146,7 @@ class DBPasswordHandler(object):
         admin_password_data = DBPrivManagerApi.get_mysql_admin_password(params=filters)
         results = admin_password_data.pop("items")
         ip_port_cluster_map = {}
+        cluster_id_domain_map = {}
         ip_list = [res["ip"] for res in results]
         machines = Machine.objects.filter(ip__in=ip_list)
 
@@ -156,6 +157,7 @@ class DBPasswordHandler(object):
         for pi in proxy_instances:
             ip = pi.machine.ip
             for cluster in pi.cluster.all():
+                cluster_id_domain_map[cluster.id] = cluster.immute_domain
                 ip_port_cluster_map[f"{ip}:{pi.port}"] = cluster.id
                 if pi.admin_port:
                     ip_port_cluster_map[f"{ip}:{pi.admin_port}"] = cluster.id
@@ -167,6 +169,7 @@ class DBPasswordHandler(object):
         for si in storage_instances:
             ip = si.machine.ip
             for cluster in si.cluster.all():
+                cluster_id_domain_map[cluster.id] = cluster.immute_domain
                 ip_port_cluster_map[f"{ip}:{si.port}"] = cluster.id
 
         admin_password_data["results"] = results
@@ -174,7 +177,9 @@ class DBPasswordHandler(object):
         for data in admin_password_data["results"]:
             data.pop("password")
             ip_port = f"{data['ip']}:{data['port']}"
-            data["cluster_id"] = ip_port_cluster_map.get(ip_port, "")
+            cluster_id = ip_port_cluster_map.get(ip_port, "")
+            data["cluster_id"] = cluster_id
+            data["immute_domain"] = cluster_id_domain_map.get(cluster_id, "")
             data["bk_cloud_name"] = cloud_info[str(data["bk_cloud_id"])]["bk_cloud_name"]
 
         return admin_password_data
