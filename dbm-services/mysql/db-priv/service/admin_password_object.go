@@ -55,6 +55,7 @@ type GetAdminUserPasswordPara struct {
 	Offset    *int           `json:"offset"`
 	BeginTime string         `json:"begin_time"`
 	EndTime   string         `json:"end_time"`
+	DbType    string         `json:"db_type"`
 }
 
 type TbPasswords struct {
