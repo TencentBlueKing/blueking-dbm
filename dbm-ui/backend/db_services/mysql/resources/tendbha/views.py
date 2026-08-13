@@ -100,6 +100,7 @@ class DBHAViewSet(viewsets.ResourceViewSet):
         ActionEnum.MYSQL_SUBSCRIBE_MONITOR,
         ActionEnum.MYSQL_DBCONFIG_EDIT,
         ActionEnum.MYSQL_LOADBALANCE_MANAGE,
+        ActionEnum.MYSQL_AUTHORIZE,
     ]
     list_instance_perm_actions = [ActionEnum.MYSQL_VIEW]
     list_external_manage_actions = [ActionEnum.MYSQL_PRIV_MANAGE]
