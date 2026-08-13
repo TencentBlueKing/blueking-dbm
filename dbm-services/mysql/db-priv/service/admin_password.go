@@ -220,11 +220,11 @@ func (m *GetAdminUserPasswordPara) GetMysqlAdminPassword() ([]*TbPasswords, int,
 	//  mysql实例中ADMIN用户的密码，仅能查看人为修改密码且在有效期的密码，不可以查看随机化生成的密码
 	whereClauses := []string{
 		"username = ?",
-		"component IN (?, ?, ?)",
+		"component = ?",
 		"lock_until IS NOT NULL",
 		"lock_until > NOW()",
 	}
-	args := []interface{}{m.UserName, mysql, tendbcluster, sqlserver}
+	args := []interface{}{m.UserName, m.DbType}
 
 	if len(m.Instances) > 0 {
 		var instFilters []string
