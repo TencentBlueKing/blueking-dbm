@@ -22,7 +22,7 @@ from django.forms import model_to_dict
 from django.utils.translation import gettext as _
 
 from backend import env
-from backend.components import ItsmApi
+from backend.components import ItsmApiAdapter as ItsmApi
 from backend.configuration.constants import PLAT_BIZ_ID, SystemSettingsEnum
 from backend.configuration.models import SystemSettings
 from backend.db_meta.enums import ClusterEntryType, ClusterType
@@ -257,7 +257,8 @@ class TicketHandler:
         # 当前没有正在进行的步骤，退出
         if not itsm_info["current_steps"]:
             return
-        state_id = itsm_info["current_steps"][0]["state_id"]
+        current_step = itsm_info["current_steps"][0]
+        state_id = current_step["state_id"]
 
         act_msg_tpl = _("{}对单据{}操作: {}").format(operator, ticket_id, OperateNodeActionType.get_choice_label(action))
         act_msg = kwargs.get("action_message") or act_msg_tpl
@@ -265,11 +266,16 @@ class TicketHandler:
         # 审批单据
         params = {
             "sn": sn,
+            "remark": act_msg,
             "action_message": act_msg,
             "action_type": action,
             "operator": operator,
             "bk_username": operator,
         }
+        if current_step.get("task_id"):
+            params["task_id"] = current_step["task_id"]
+        if current_step.get("activity_key"):
+            params["activity_key"] = current_step["activity_key"]
         if action == OperateNodeActionType.TRANSITION:
             is_approved = kwargs["is_approved"]
             itsm_fields = cls.get_itsm_fields(flow.ticket.ticket_type)
