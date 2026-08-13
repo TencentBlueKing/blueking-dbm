@@ -6,7 +6,7 @@
         content: t('仅可授权状态为“已启用”的集群'),
         placement: 'right',
       }"
-      action-id="sqlserver_priv_manage"
+      action-id="sqlserver_authorize"
       class="opration-button"
       :disabled="batchAuthorizeDisabled"
       text
