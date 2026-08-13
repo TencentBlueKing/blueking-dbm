@@ -25,20 +25,15 @@ interface OpenAccessEntryParams<T> {
 export default function useOpenAccessEntry() {
   const route = useRoute();
 
-  const isOpenAccessEntry = computed(() => {
-    if (route.query.open !== OPEN_ACCESS_ENTRY_KEY) {
-      return false;
-    }
-    // clusterId 需存在且为有效数字，避免参数异常时误触发
-    return Number(route.params.clusterId) > 0;
-  });
+  // 直达链接的打开判定仅依赖路由参数，初始化时即确定，无需响应式计算
+  const isOpenAccessEntry = route.query.open === OPEN_ACCESS_ENTRY_KEY && Number(route.params.clusterId) > 0;
 
   const handleOpenAccessEntry = <
     T extends { id: string | number; isOffline: boolean; permission?: Record<string, boolean | string> },
   >(
     params: OpenAccessEntryParams<T>,
   ) => {
-    if (!isOpenAccessEntry.value) {
+    if (!isOpenAccessEntry) {
       return;
     }
     const { actionId, data, onOpen } = params;
