@@ -34,7 +34,7 @@
         v-db-console="'mongodb.sharedClusterList.importAuthorize'"
         class="inline-block">
         <AuthButton
-          action-id="mongodb_priv_manage"
+          action-id="mongodb_authorize"
           :disabled="!hasData"
           @click="handleShowExcelAuthorize">
           {{ t('导入授权') }}

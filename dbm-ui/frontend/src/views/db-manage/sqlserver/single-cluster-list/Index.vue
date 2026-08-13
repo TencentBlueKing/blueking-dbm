@@ -15,7 +15,7 @@
         @success="fetchData" />
       <AuthButton
         v-db-console="'sqlserver.singleClusterList.importAuthorize'"
-        action-id="sqlserver_priv_manage"
+        action-id="sqlserver_authorize"
         @click="handleShowExcelAuthorize">
         {{ t('导入授权') }}
       </AuthButton>
@@ -54,8 +54,8 @@
             <template v-if="data.isOnline">
               <div v-db-console="'sqlserver.singleClusterList.authorize'">
                 <AuthButton
-                  action-id="sqlserver_priv_manage"
-                  :permission="data.permission.sqlserver_priv_manage"
+                  action-id="sqlserver_authorize"
+                  :permission="data.permission.sqlserver_authorize"
                   text
                   @click="handleShowAuthorize([data])">
                   {{ t('授权') }}

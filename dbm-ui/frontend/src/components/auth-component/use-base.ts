@@ -74,8 +74,10 @@ const withBizActionList = [
   'riak_dbconfig_edit',
   // 'monitor_policy_clone', // 旧权限
   'mongodb_apply',
+  'mongodb_authorize',
   'mongodb_priv_manage',
   'sqlserver_apply',
+  'sqlserver_authorize',
   'sqlserver_manage',
   // 'sqlserver_account_create', // 旧权限
   // 'sqlserver_account_rules_view', // 旧权限
