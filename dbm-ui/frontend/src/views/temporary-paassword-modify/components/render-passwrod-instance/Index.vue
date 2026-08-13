@@ -15,16 +15,36 @@
       </BkButton>
     </div>
   </Teleport>
-  <RenderInstance v-model="passwordSidesliderShow" />
+  <RenderInstance
+    v-model="passwordSidesliderShow"
+    v-model:db-type="dbType" />
 </template>
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
+  import { useRoute, useRouter } from 'vue-router';
+
+  import { DBTypes } from '@common/const';
 
   import RenderInstance from './RenderInstance.vue';
 
   const { t } = useI18n();
+  const route = useRoute();
+  const router = useRouter();
 
   const passwordSidesliderShow = ref(false);
+  const dbType = ref<DBTypes>(DBTypes.MYSQL);
+
+  // URL 携带 db_type 时自动打开侧滑并定位 Tab，方便分享链接
+  const urlDbType = route.query.db_type as DBTypes;
+  if (urlDbType && Object.values(DBTypes).includes(urlDbType)) {
+    dbType.value = urlDbType;
+    passwordSidesliderShow.value = true;
+  }
+
+  // 切换 Tab 时同步 URL
+  watch(dbType, (val) => {
+    router.replace({ query: { ...route.query, db_type: val } });
+  });
 </script>
 <style lang="less" scoped>
   .password-temporary-modify-head {
