@@ -292,6 +292,12 @@ class MysqlDtsMigrateHandlerRecycleTest(TestCase):
         self.assertFalse(hasattr(handler_mod, "MysqlDtsDeleteTaskSourceComponent"))
         self.assertFalse(hasattr(handler_mod, "MysqlDtsStopTasksComponent"))
         self.assertFalse(hasattr(handler_mod, "MySQLDTSApi"))
+        self.assertFalse(hasattr(handler_mod, "JobApi"))
+        with open(handler_mod.__file__, encoding="utf-8") as handler_src:
+            handler_text = handler_src.read()
+        self.assertNotIn("purge_relay", handler_text)
+        self.assertNotIn("exported_data", handler_text)
+        self.assertNotIn("get_full_migrate_data_dir", handler_text)
 
         mock_engine_cls.return_value = self._mock_engine(
             {"global_data": {"ticket_id": self.ticket_id, "created_by": "tester"}}

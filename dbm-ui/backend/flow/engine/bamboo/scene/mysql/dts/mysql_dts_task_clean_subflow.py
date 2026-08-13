@@ -31,7 +31,8 @@ def mysql_dts_task_clean_subflow(inp: MysqlDtsTaskCleanSubflowInput) -> SubBuild
 
     本期范围（并行）：
       1. 删除迁移临时账号（mysql_dts_drop_user_subflow，沿用 inp.ignore_errors 尽力清理）
-      2. 清理本单 dts-task：delete_task → delete_source（仅显式名称列表；默认不吞错）
+      2. 清理本单 dts-task：delete_task → 增量 purge_relay → builtin dump rm → delete_source
+         （仅显式名称列表；默认不吞错）
     """
     sub = SubBuilder(
         root_id=inp.root_id,
@@ -62,6 +63,9 @@ def mysql_dts_task_clean_subflow(inp: MysqlDtsTaskCleanSubflowInput) -> SubBuild
         # 与 drop_user 解耦：task/source 残留会挡住后续迁移，成功路径必须失败可见
         ignore_errors=False,
         creator=inp.creator,
+        dts_cluster_id=inp.dts_cluster_id,
+        task_mode=inp.task_mode,
+        full_load_engine=inp.full_load_engine,
     )
     drop_built = mysql_dts_drop_user_subflow(drop_inp).build_sub_process(
         sub_name=_("删除 DTS 临时账号 {}").format(inp.dts_user)

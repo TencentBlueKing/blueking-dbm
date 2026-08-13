@@ -15,8 +15,13 @@ from pipeline.component_framework.component import Component
 
 from backend.components import MySQLDTSApi
 from backend.flow.plugins.components.collections.common.base_service import BaseService
-from backend.flow.utils.mysql.dts.constants import DEFAULT_MYLOADER_PATH
-from backend.flow.utils.mysql.dts.migrate_helper import apply_myloader_dirs_to_sources, build_dts_task_request
+from backend.flow.utils.mysql.dts.constants import DEFAULT_MYLOADER_PATH, FullLoadEngine
+from backend.flow.utils.mysql.dts.migrate_helper import (
+    apply_myloader_dirs_to_sources,
+    build_dts_task_request,
+    load_dts_cluster_name,
+    resolve_dts_cluster_id,
+)
 from backend.flow.utils.mysql.dts.migrate_plan import DtsTaskSpec, dts_migrate_plan_from_dict, dts_task_spec_from_dict
 
 logger = logging.getLogger("flow")
@@ -59,11 +64,23 @@ class MysqlDtsCreateTaskService(BaseService):
             self.log_error(_("DTS 迁移临时账号未创建，请先执行 prepare_user / AddUser 步骤"))
             return False
         _apply_myloader_context_to_task_spec(task_spec, trans_data.migrate_context)
+        use_myloader = task_spec.dts_task_config.full_load_engine == FullLoadEngine.MYLOADER.value
+        cluster_name = None
+        if not use_myloader:
+            dts_cluster_id = resolve_dts_cluster_id(plan, trans_data.migrate_context)
+            if not dts_cluster_id:
+                self.log_error(_("DTS 集群 ID 为空，无法生成 dump data_dir"))
+                return False
+            cluster_name = load_dts_cluster_name(dts_cluster_id)
+            if not cluster_name:
+                self.log_error(_("DTS 集群 {} 不存在或名称为空").format(dts_cluster_id))
+                return False
         request = build_dts_task_request(
             plan,
             task_spec,
             user=dts_user,
             password=dts_password,
+            cluster_name=cluster_name,
         )
         target_cfg = request.task.target_config
         if target_cfg and target_cfg.host:

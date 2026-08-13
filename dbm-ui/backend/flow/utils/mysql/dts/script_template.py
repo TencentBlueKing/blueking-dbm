@@ -8,6 +8,8 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+import shlex
+
 from jinja2.sandbox import SandboxedEnvironment as Environment
 
 from backend.flow.utils.mysql.dts.constants import MYSQL_DTS_MASTER_PORT, MYSQL_DTS_WORKER_PORT
@@ -252,6 +254,56 @@ def render_stop_process_script(deploy_path: str) -> str:
 
 def render_clean_data_dir_script(deploy_path: str) -> str:
     return _render(clean_mysql_dts_data_dir_template, deploy_path=deploy_path)
+
+
+def _append_rm_rf_if_exists(lines: list[str], path: str) -> None:
+    """路径不存在则跳过（幂等）；存在则 ``rm -rf``，权限错误仍失败。"""
+    quoted = shlex.quote(path)
+    lines.append(f"if [[ -e {quoted} || -L {quoted} ]]; then")
+    lines.append(f"  rm -rf -- {quoted}")
+    lines.append("fi")
+
+
+def render_clean_ticket_dump_script(dump_dirs: list[str]) -> str:
+    """删除本单 builtin dump 目录（缺目录视为成功）。不删 myloader 备份目录。"""
+    lines = ["set -euo pipefail"]
+    for path in dump_dirs:
+        if not path:
+            continue
+        _append_rm_rf_if_exists(lines, path)
+    lines.append("echo cleaned ticket dump dirs")
+    return "\n".join(lines) + "\n"
+
+
+def render_clean_cluster_relay_and_dump_script(
+    deploy_path: str,
+    worker_node_names: list[str],
+    extra_exported_data_dirs: list[str] | None = None,
+) -> str:
+    """下架时显式删除各 worker ``{node}-data`` 与整棵 ``exported_data``。缺目录不失败。"""
+    lines = ["set -euo pipefail"]
+    deploy_path = (deploy_path or "").rstrip("/")
+    seen = set()
+    for node_name in worker_node_names:
+        if not node_name:
+            continue
+        relay_dir = f"{deploy_path}/{node_name}-data"
+        if relay_dir in seen:
+            continue
+        seen.add(relay_dir)
+        _append_rm_rf_if_exists(lines, relay_dir)
+    exported = f"{deploy_path}/exported_data"
+    if exported not in seen:
+        seen.add(exported)
+        _append_rm_rf_if_exists(lines, exported)
+    for extra in extra_exported_data_dirs or []:
+        extra_path = (extra or "").rstrip("/")
+        if not extra_path or extra_path in seen:
+            continue
+        seen.add(extra_path)
+        _append_rm_rf_if_exists(lines, extra_path)
+    lines.append("echo cleaned dts relay and exported_data")
+    return "\n".join(lines) + "\n"
 
 
 # 重装共用：解压到 packages 隔离目录后，将 deploy_path/bin 整目录软链到新包 bin（不动 conf）

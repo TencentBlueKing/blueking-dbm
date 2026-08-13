@@ -6,6 +6,8 @@ from unittest.mock import MagicMock, patch
 from django.test import SimpleTestCase
 
 from backend.flow.plugins.components.collections.mysql.dts.migrate.create_task import MysqlDtsCreateTaskService
+from backend.flow.utils.mysql.dts.constants import FullLoadEngine
+from backend.flow.utils.mysql.dts.migrate_plan import DtsTaskConfig
 
 
 class MysqlDtsCreateTaskNameContractTest(SimpleTestCase):
@@ -16,12 +18,17 @@ class MysqlDtsCreateTaskNameContractTest(SimpleTestCase):
         return service
 
     def _run(self, *, returned_name: str | None):
-        task_spec = SimpleNamespace(task_name="mysql-dts-1-10-20", sources=[])
+        task_spec = SimpleNamespace(
+            task_name="mysql-dts-1-10-20",
+            sources=[],
+            dts_task_config=DtsTaskConfig(full_load_engine=FullLoadEngine.BUILTIN.value),
+        )
         migrate_context = SimpleNamespace(
             master_addr="127.0.0.1:8261",
             bk_cloud_id=0,
             dts_user="dts_u",
             dts_password="pwd",
+            dts_cluster_id=1,
             myloader_dirs={},
             myloader_path="",
             target_host="",
@@ -51,15 +58,20 @@ class MysqlDtsCreateTaskNameContractTest(SimpleTestCase):
             "backend.flow.plugins.components.collections.mysql.dts.migrate.create_task.build_dts_task_request"
         ) as mock_build, patch(
             "backend.flow.plugins.components.collections.mysql.dts.migrate.create_task.dts_migrate_plan_from_dict",
-            return_value=SimpleNamespace(),
+            return_value=SimpleNamespace(dts_cluster_id=1),
         ), patch(
             "backend.flow.plugins.components.collections.mysql.dts.migrate.create_task.dts_task_spec_from_dict",
             return_value=task_spec,
         ), patch(
             "backend.flow.plugins.components.collections.mysql.dts.migrate.create_task._apply_myloader_context_to_task_spec",
+        ), patch(
+            "backend.flow.plugins.components.collections.mysql.dts.migrate.create_task.load_dts_cluster_name",
+            return_value="dts-ut",
         ):
             mock_build.return_value = SimpleNamespace(
-                task=SimpleNamespace(target_config=SimpleNamespace(host="1.1.1.1", port=3306, cluster_type="tendbha"))
+                task=SimpleNamespace(
+                    target_config=SimpleNamespace(host="127.0.0.2", port=3306, cluster_type="tendbha")
+                )
             )
             mock_api.create_task.return_value = resp
             ok = self._make_service()._execute(data, parent_data=None)

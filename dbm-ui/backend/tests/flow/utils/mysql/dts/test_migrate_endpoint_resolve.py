@@ -326,7 +326,7 @@ class ClusterTargetSpiderResolveTest(SimpleTestCase):
             "backend.flow.utils.mysql.dts.migrate_helper.Cluster.objects.get",
             return_value=cluster,
         ):
-            request = build_dts_task_request(plan, task_spec, user="u", password="p")
+            request = build_dts_task_request(plan, task_spec, user="u", password="p", cluster_name="dts-ut")
 
         self.assertEqual(request.task.target_config.host, secondary.machine.ip)
         self.assertEqual(request.task.target_config.port, secondary.port)

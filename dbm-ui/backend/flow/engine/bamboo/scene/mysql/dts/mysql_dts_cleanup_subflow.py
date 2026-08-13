@@ -22,8 +22,13 @@ from backend.flow.plugins.components.collections.mysql.dts.cleanup.stop_tasks im
 from backend.flow.plugins.components.collections.mysql.dts.cleanup.unregister_meta import (
     MysqlDtsUnregisterClusterMetaComponent,
 )
+from backend.flow.utils.mysql.dts.constants import get_default_deploy_path
 from backend.flow.utils.mysql.dts.context import DtsHostSpec, MysqlDtsCleanupSubflowInput
-from backend.flow.utils.mysql.dts.script_template import render_clean_data_dir_script, render_stop_process_script
+from backend.flow.utils.mysql.dts.script_template import (
+    render_clean_cluster_relay_and_dump_script,
+    render_clean_data_dir_script,
+    render_stop_process_script,
+)
 
 
 def _collect_cleanup_targets(inp: MysqlDtsCleanupSubflowInput) -> list[DtsHostSpec]:
@@ -47,7 +52,8 @@ def mysql_dts_cleanup_subflow(inp: MysqlDtsCleanupSubflowInput) -> SubBuilder:
     1) 停任务/Source（需 Master 在线）
     2) 停本机 dm-worker / dm-master 进程（Worker 必须先离线，否则 offline_worker 报 46005）
     3) 调用 OpenAPI 注销节点注册（Master 可能已停，失败按可忽略处理）
-    4) 清理目录与元数据
+    4) 显式清理 worker relay 目录与整棵 exported_data（不跟 clean_data_dir 勾选）
+    5) 按选项删除整棵部署目录，并清理元数据
 
     迁移临时账号（dts_m_*）不在本子流程回收：账号挂在业务源/目标 MySQL 上，
     与 DESTROY 生命周期解耦；成功路径见 mysql_dts_task_clean_subflow，终止见 signal handler。
@@ -104,6 +110,25 @@ def mysql_dts_cleanup_subflow(inp: MysqlDtsCleanupSubflowInput) -> SubBuilder:
             "ignore_unreachable": True,
         },
     )
+
+    if exec_targets:
+        extra_exported = []
+        if inp.cluster_name:
+            default_exported = f"{get_default_deploy_path(inp.cluster_name).rstrip('/')}/exported_data"
+            extra_exported.append(default_exported)
+        worker_names = [n.get("name") or "" for n in (inp.worker_nodes or [])]
+        sub.add_act(
+            act_name=_("清理 DTS relay 与 exported_data"),
+            act_component_code=MysqlDtsExecShellComponent.code,
+            kwargs=build_dts_exec_shell_kwargs(
+                exec_targets,
+                render_clean_cluster_relay_and_dump_script(
+                    inp.deploy_path,
+                    worker_names,
+                    extra_exported_data_dirs=extra_exported,
+                ),
+            ),
+        )
 
     if exec_targets and inp.clean_data_dir:
         sub.add_act(

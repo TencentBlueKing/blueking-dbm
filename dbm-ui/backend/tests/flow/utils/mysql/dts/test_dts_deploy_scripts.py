@@ -179,5 +179,47 @@ tar -zxf "{PKG_PATH}" -C "{bin_dir}" --strip-components=1
         self.assertEqual(worker_pgrep.returncode, 0, "dm-worker process not found")
 
 
+class DtsCleanupCacheScriptTest(unittest.TestCase):
+    """不依赖本地介质包：锁定 relay / dump 清理脚本内容。"""
+
+    def test_ticket_dump_script_only_named_task_dirs(self):
+        from backend.flow.utils.mysql.dts.constants import get_full_migrate_data_dir
+        from backend.flow.utils.mysql.dts.script_template import render_clean_ticket_dump_script
+
+        dump_dir = get_full_migrate_data_dir("dts-prod", "t1")
+        script = render_clean_ticket_dump_script([dump_dir])
+        self.assertIn(dump_dir, script)
+        self.assertNotIn("other-task", script)
+        self.assertNotIn("/data/dbbak", script)
+
+    def test_cluster_script_contains_worker_data_and_exported_data(self):
+        from backend.flow.utils.mysql.dts.script_template import render_clean_cluster_relay_and_dump_script
+
+        script = render_clean_cluster_relay_and_dump_script(
+            "/custom/dts",
+            ["dm-worker-1", "dm-worker-2"],
+            extra_exported_data_dirs=["/data/dts/dts-prod/exported_data"],
+        )
+        self.assertIn("/custom/dts/dm-worker-1-data", script)
+        self.assertIn("/custom/dts/dm-worker-2-data", script)
+        self.assertIn("/custom/dts/exported_data", script)
+        self.assertIn("/data/dts/dts-prod/exported_data", script)
+        self.assertNotIn("/data/dbbak/", script)
+
+    def test_cluster_script_missing_dirs_is_success(self):
+        from backend.flow.utils.mysql.dts.script_template import render_clean_cluster_relay_and_dump_script
+
+        missing = tempfile.mkdtemp(prefix="dts-already-gone-")
+        os.rmdir(missing)
+        script = render_clean_cluster_relay_and_dump_script(
+            missing,
+            ["dm-worker-1"],
+            extra_exported_data_dirs=[f"{missing}-exported"],
+        )
+        completed = subprocess.run(["bash", "-s"], input=script, text=True, capture_output=True)
+        self.assertEqual(completed.returncode, 0, completed.stderr)
+        self.assertIn("if [[ -e", script)
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -144,10 +144,72 @@ class MysqlDtsCleanupNoDropTest(SimpleTestCase):
         )
         mysql_dts_cleanup_subflow(inp)
 
-        act_names = [c.kwargs.get("act_name", "") for c in sub.add_act.call_args_list]
+        act_names = [str(c.kwargs.get("act_name", "")) for c in sub.add_act.call_args_list]
         for name in act_names:
-            self.assertNotIn("临时账号", str(name))
+            self.assertNotIn("临时账号", name)
         sub.add_sub_pipeline.assert_not_called()
+
+    @patch("backend.flow.engine.bamboo.scene.mysql.dts.mysql_dts_cleanup_subflow.SubBuilder")
+    def test_cleanup_relay_act_before_optional_data_dir(self, mock_sub_builder):
+        from django.utils.translation import gettext as _
+
+        from backend.flow.engine.bamboo.scene.mysql.dts.mysql_dts_cleanup_subflow import mysql_dts_cleanup_subflow
+
+        sub = MagicMock()
+        mock_sub_builder.return_value = sub
+        mysql_dts_cleanup_subflow(
+            MysqlDtsCleanupSubflowInput(
+                root_id="root-destroy",
+                dts_cluster_id=9,
+                bk_biz_id=1,
+                bk_cloud_id=0,
+                master_addr="127.0.0.2:8261",
+                master_nodes=[{"ip": "127.0.0.2", "bk_cloud_id": 0}],
+                worker_nodes=[{"ip": "127.0.0.3", "bk_cloud_id": 0, "name": "dm-worker-1"}],
+                deploy_path="/custom/dts",
+                cluster_name="dts-prod",
+                creator="tester",
+                clean_data_dir=True,
+            )
+        )
+        act_names = [str(c.kwargs.get("act_name", "")) for c in sub.add_act.call_args_list]
+        relay_name = str(_("清理 DTS relay 与 exported_data"))
+        data_dir_name = str(_("清理 DTS 部署目录"))
+        self.assertIn(relay_name, act_names)
+        self.assertIn(data_dir_name, act_names)
+        self.assertLess(act_names.index(relay_name), act_names.index(data_dir_name))
+        relay_act = next(c for c in sub.add_act.call_args_list if str(c.kwargs.get("act_name")) == relay_name)
+        script = relay_act.kwargs["kwargs"]["shell_script"]
+        self.assertIn("/custom/dts/dm-worker-1-data", script)
+        self.assertIn("/custom/dts/exported_data", script)
+        self.assertIn("/data/dts/dts-prod/exported_data", script)
+        self.assertNotIn("/data/dbbak/", script)
+
+    @patch("backend.flow.engine.bamboo.scene.mysql.dts.mysql_dts_cleanup_subflow.SubBuilder")
+    def test_cleanup_relay_act_when_clean_data_dir_false(self, mock_sub_builder):
+        from django.utils.translation import gettext as _
+
+        sub = MagicMock()
+        mock_sub_builder.return_value = sub
+        inp = MysqlDtsCleanupSubflowInput(
+            root_id="root-destroy",
+            dts_cluster_id=9,
+            bk_biz_id=1,
+            bk_cloud_id=0,
+            master_addr="127.0.0.2:8261",
+            master_nodes=[{"ip": "127.0.0.2", "bk_cloud_id": 0}],
+            worker_nodes=[{"ip": "127.0.0.3", "bk_cloud_id": 0, "name": "dm-worker-1"}],
+            deploy_path="/custom/dts",
+            cluster_name="dts-prod",
+            creator="tester",
+            clean_data_dir=False,
+        )
+        from backend.flow.engine.bamboo.scene.mysql.dts.mysql_dts_cleanup_subflow import mysql_dts_cleanup_subflow
+
+        mysql_dts_cleanup_subflow(inp)
+        act_names = [str(c.kwargs.get("act_name", "")) for c in sub.add_act.call_args_list]
+        self.assertIn(str(_("清理 DTS relay 与 exported_data")), act_names)
+        self.assertNotIn(str(_("清理 DTS 部署目录")), act_names)
 
 
 class OuterRunFlowDtsTaskCleanMountTest(SimpleTestCase):

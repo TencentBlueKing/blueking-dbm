@@ -48,8 +48,14 @@ class MysqlDtsRegisterSourceService(BaseService):
         registered = []
         target_cluster = Cluster.objects.get(id=task_spec.target_cluster_id)
         migrate_type = kwargs.get("migrate_type") or ""
-        if not migrate_type and kwargs.get("migrate_plan") is not None:
-            migrate_type = dts_migrate_plan_from_dict(kwargs["migrate_plan"]).migrate_type or ""
+        task_mode = (task_spec.dts_task_config.task_mode if task_spec.dts_task_config else "") or ""
+        if kwargs.get("migrate_plan") is not None:
+            migrate_plan = dts_migrate_plan_from_dict(kwargs["migrate_plan"])
+            if not migrate_type:
+                migrate_type = migrate_plan.migrate_type or ""
+            if not task_mode:
+                task_mode = (migrate_plan.dts_task_config.task_mode if migrate_plan.dts_task_config else "") or ""
+        task_mode = task_mode or "all"
 
         for source_spec in task_spec.sources:
             cluster = Cluster.objects.get(id=source_spec.cluster_id)
@@ -62,6 +68,7 @@ class MysqlDtsRegisterSourceService(BaseService):
                 worker_name=source_spec.worker_name or kwargs.get("worker_name"),
                 target_cluster=target_cluster,
                 migrate_type=migrate_type,
+                task_mode=task_mode,
             )
             self.log_info(
                 _("注册 Source {} enable_gtid={} worker={} (源集群={}, 目标集群={})").format(
