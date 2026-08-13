@@ -102,6 +102,7 @@ class SpiderViewSet(viewsets.ResourceViewSet):
         ActionEnum.TENDBCLUSTER_SUBSCRIBE_MONITOR,
         ActionEnum.TENDBCLUSTER_DBCONFIG_EDIT,
         ActionEnum.TENDBCLUSTER_LOADBALANCE_MANAGE,
+        ActionEnum.TENDBCLUSTER_AUTHORIZE,
     ]
     list_instance_perm_actions = [ActionEnum.TENDBCLUSTER_VIEW]
     list_external_manage_actions = [ActionEnum.TENDBCLUSTER_PRIV_MANAGE]

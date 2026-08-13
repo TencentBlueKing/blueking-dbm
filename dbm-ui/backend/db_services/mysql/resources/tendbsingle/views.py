@@ -99,5 +99,6 @@ class DBSingleViewSet(viewsets.ResourceViewSet):
         ActionEnum.MYSQL_WEBCONSOLE,
         ActionEnum.MYSQL_SUBSCRIBE_MONITOR,
         ActionEnum.MYSQL_DBCONFIG_EDIT,
+        ActionEnum.MYSQL_AUTHORIZE,
     ]
     list_instance_perm_actions = [ActionEnum.MYSQL_VIEW]
