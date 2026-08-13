@@ -110,5 +110,21 @@
     "flag_locked": 0,
     "flag_encrypt": 0,
     "since_version": ""
+  },
+  {
+    "conf_name": "log.maxcount",
+    "value_default": "30",
+    "value_allowed": "",
+    "value_type": "INT",
+    "value_type_sub": "",
+    "conf_name_lc": "日志保留个数",
+    "description": "mongo.log* 本地最多保留个数，超过则从最旧的开始删除，默认30",
+    "need_restart": 0,
+    "flag_readonly": 0,
+    "flag_visible": 0,
+    "flag_status": 1,
+    "flag_locked": 0,
+    "flag_encrypt": 0,
+    "since_version": ""
   }
 ]
