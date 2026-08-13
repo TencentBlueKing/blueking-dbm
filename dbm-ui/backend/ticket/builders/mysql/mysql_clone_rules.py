@@ -65,7 +65,7 @@ class MySQLCloneRulesFlowParamBuilder(builders.FlowParamBuilder):
         flow.save(update_fields=["details"])
 
 
-@builders.BuilderFactory.register(TicketType.MYSQL_CLIENT_CLONE_RULES, iam=ActionEnum.MYSQL_AUTHORIZE)
+@builders.BuilderFactory.register(TicketType.MYSQL_CLIENT_CLONE_RULES, iam=ActionEnum.MYSQL_PRIV_MANAGE)
 class MySQLClientCloneRulesFlowBuilder(BaseMySQLTicketFlowBuilder):
     serializer = MySQLCloneRulesSerializer
     inner_flow_builder = MySQLCloneRulesFlowParamBuilder
