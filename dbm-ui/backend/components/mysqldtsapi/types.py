@@ -84,16 +84,18 @@ def compare_dts_binlog_coord(left: DtsBinlogCoord, right: DtsBinlogCoord) -> int
 
 
 class PurgeConfig(BaseModel):
-    interval: int = Field(default=3600, description=_("检查间隔(秒)"))
-    expires: int = Field(default=0, description=_("N小时后过期, 0=禁用"))
-    remain_space: int = Field(default=15, description=_("剩余空间<NB时清理, 0=禁用"))
+    # DTS OpenAPI 声明 nullable；响应里这三个数字常为 JSON null
+    interval: int | None = Field(default=3600, description=_("检查间隔(秒)"))
+    expires: int | None = Field(default=0, description=_("N小时后过期, 0=禁用"))
+    remain_space: int | None = Field(default=15, description=_("剩余空间<NB时清理, 0=禁用"))
 
 
 class RelayConfig(BaseModel):
     enable_relay: bool = Field(default=False, description=_("是否启用 relay"))
-    relay_binlog_name: str = Field(default="", description=_("起始 binlog 文件"))
-    relay_binlog_gtid: str = Field(default="", description=_("起始 GTID"))
-    relay_dir: str = Field(default="./relay_log", description=_("relay 日志目录"))
+    # DTS OpenAPI 声明 nullable；刚创建的 Source 这三个字段常为 JSON null
+    relay_binlog_name: str | None = Field(default="", description=_("起始 binlog 文件"))
+    relay_binlog_gtid: str | None = Field(default="", description=_("起始 GTID"))
+    relay_dir: str | None = Field(default="./relay_log", description=_("relay 日志目录"))
 
 
 class SpiderInfo(BaseModel):
@@ -186,7 +188,7 @@ class GetSourceResponse(BaseModel):
     host: str
     port: int
     user: str
-    password: str = Field(default="", description=_("密码(始终返回混淆值)"))
+    password: str | None = Field(default="", description=_("密码(始终返回混淆值)"))
     enable_gtid: bool
     enable: bool
     flavor: str | None = None
@@ -270,7 +272,7 @@ class FullMigrateConfig(BaseModel):
     on_duplicate_logical: str = Field(default="replace", description=_("logical 冲突策略: replace | error | ignore"))
     on_duplicate_physical: str = Field(default="none", description=_("physical 冲突策略: none | manual"))
     sorting_dir: str = Field(default="./sort_dir", description=_("physical 排序目录"))
-    disk_quota: str = Field(default="", description=_("physical 磁盘配额"))
+    disk_quota: str = Field(default="0", description=_("physical 磁盘配额"))
     checksum: str = Field(default="optional", description=_("physical checksum: required | optional | off"))
     analyze: str = Field(default="optional", description=_("physical analyze: required | optional | off"))
     range_concurrency: int = Field(default=0, description=_("physical range 并发"))

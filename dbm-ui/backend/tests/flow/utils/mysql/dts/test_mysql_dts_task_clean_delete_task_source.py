@@ -144,6 +144,8 @@ class MysqlDtsTaskCleanParallelMountTest(SimpleTestCase):
         self.assertEqual(delete_inp.source_names, ["s1"])
         # drop_user 可 ignore；delete_task_source 成功路径强制不吞错
         self.assertFalse(delete_inp.ignore_errors)
+        self.assertEqual(delete_inp.task_mode, "all")
+        self.assertEqual(delete_inp.full_load_engine, "builtin")
 
         delete_sub.build_sub_process.assert_called_once()
         self.assertEqual(str(delete_sub.build_sub_process.call_args.kwargs.get("sub_name")), str(_("清理 dts-task")))
@@ -158,6 +160,19 @@ class MysqlDtsTaskCleanParallelMountTest(SimpleTestCase):
         self.assertFalse(hasattr(clean_mod, "MysqlDtsStopTasksComponent"))
         self.assertFalse(hasattr(delete_mod, "MysqlDtsStopTasksComponent"))
         self.assertNotIn("stop_tasks", clean_mod.__file__)
+
+
+class RevokedPathDoesNotCleanRelayOrDumpTest(SimpleTestCase):
+    def test_migrate_handler_source_has_no_purge_or_dump_rm(self):
+        import backend.flow.signal.mysql_dts_migrate_handler as handler_mod
+
+        self.assertFalse(hasattr(handler_mod, "MySQLDTSApi"))
+        self.assertFalse(hasattr(handler_mod, "JobApi"))
+        with open(handler_mod.__file__, encoding="utf-8") as handler_src:
+            handler_text = handler_src.read()
+        self.assertNotIn("purge_relay", handler_text)
+        self.assertNotIn("exported_data", handler_text)
+        self.assertNotIn("get_full_migrate_data_dir", handler_text)
 
 
 class OuterRunFlowCleanInputNamesTest(SimpleTestCase):

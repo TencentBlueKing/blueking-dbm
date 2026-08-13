@@ -137,6 +137,7 @@ class MysqlDtsCleanupSubflowInput:
     clean_data_dir: bool = True
     target_hosts: list[DtsHostSpec] | None = None
     creator: str = ""
+    cluster_name: str = ""
 
 
 @dataclass
@@ -176,6 +177,9 @@ class MysqlDtsTaskCleanSubflowInput:
     bk_cloud_id: int = 0
     task_names: list[str] | None = None
     source_names: list[str] | None = None
+    dts_cluster_id: int | None = None
+    task_mode: str = "all"
+    full_load_engine: str = "builtin"
 
 
 @dataclass
@@ -190,6 +194,9 @@ class MysqlDtsDeleteTaskSourceSubflowInput:
     bk_cloud_id: int = 0
     ignore_errors: bool = False  # 成功路径默认不吞错；与 drop_user 尽力清理分离
     creator: str = ""
+    dts_cluster_id: int | None = None
+    task_mode: str = "all"
+    full_load_engine: str = "builtin"
 
 
 @dataclass

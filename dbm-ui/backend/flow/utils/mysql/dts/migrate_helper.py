@@ -20,6 +20,7 @@ from backend.components.mysqldtsapi.types import (
     FullMigrateConfig,
     IncrMigrateConfig,
     MyLoaderConfig,
+    RelayConfig,
     Source,
     SourceConfig,
     SourceConfItem,
@@ -32,11 +33,12 @@ from backend.components.mysqldtsapi.types import (
     TargetSpiderConfig,
     TargetSpiderShard,
     Task,
+    parse_dts_binlog_coord,
 )
 from backend.db_meta.enums import ClusterType, InstanceRole, TenDBClusterSpiderRole
-from backend.db_meta.models import Cluster, ProxyInstance, StorageInstance
+from backend.db_meta.models import Cluster, MysqlDtsCluster, ProxyInstance, StorageInstance
 from backend.db_services.dbbase.constants import IP_PORT_DIVIDER
-from backend.flow.utils.mysql.dts.constants import FullLoadEngine, MigrateType
+from backend.flow.utils.mysql.dts.constants import FullLoadEngine, MigrateType, get_full_migrate_data_dir
 from backend.flow.utils.mysql.dts.migrate_credentials import DtsGrantTarget
 from backend.flow.utils.mysql.dts.migrate_plan import (
     DtsMigratePlan,
@@ -444,6 +446,35 @@ def decide_enable_gtid(
     return True
 
 
+def task_mode_runs_incremental(task_mode: str | None) -> bool:
+    """单据/plan 的 task_mode：仅纯 full 不会进 Sync。空默认按 all。"""
+    return (task_mode or "").strip().lower() != "full"
+
+
+def resolve_purge_relay_binlog_name(status_resp) -> str | None:
+    """从 get_source_status 结果解析 purge_relay 所需文件名。
+
+    ``relay_status.master_binlog`` 是位点串如 ``(mysql-bin.000005, 4)``，不能原样当文件名。
+    解析失败返回 None，调用方跳过该 Source 的 purge。
+    """
+    data = getattr(status_resp, "data", None)
+    if data is None and isinstance(status_resp, dict):
+        data = status_resp.get("data")
+    for item in data or []:
+        relay_status = getattr(item, "relay_status", None)
+        if relay_status is None and isinstance(item, dict):
+            relay_status = item.get("relay_status")
+        if relay_status is None:
+            continue
+        raw = getattr(relay_status, "master_binlog", None)
+        if raw is None and isinstance(relay_status, dict):
+            raw = relay_status.get("master_binlog")
+        coord = parse_dts_binlog_coord(raw)
+        if coord and coord.file:
+            return coord.file
+    return None
+
+
 def build_create_source_request(
     source_spec: SourceSpec,
     cluster: Cluster,
@@ -453,6 +484,7 @@ def build_create_source_request(
     worker_name: str | None = None,
     target_cluster: Cluster | None = None,
     migrate_type: str = "",
+    task_mode: str = "all",
 ) -> CreateSourceRequest:
     host, port = resolve_source_endpoint(source_spec, cluster)
     cluster_type = "mysql"
@@ -477,6 +509,9 @@ def build_create_source_request(
         migrate_type=migrate_type,
     )
     bind_worker = worker_name or source_spec.worker_name or None
+    relay_config = None
+    if task_mode_runs_incremental(task_mode):
+        relay_config = RelayConfig(enable_relay=True)
     source = Source(
         source_name=source_spec.source_name,
         host=host,
@@ -487,6 +522,7 @@ def build_create_source_request(
         enable=True,
         cluster_type=cluster_type,
         spider=spider,
+        relay_config=relay_config,
     )
     return CreateSourceRequest(source=source, worker_name=bind_worker)
 
@@ -646,12 +682,38 @@ def _build_myloader_config_for_source(src, cfg) -> MyLoaderConfig:
     )
 
 
+def resolve_dts_cluster_id(plan, migrate_context) -> int | None:
+    for obj in (plan, migrate_context):
+        if obj is None:
+            continue
+        cid = getattr(obj, "dts_cluster_id", None)
+        if cid:
+            return int(cid)
+    return None
+
+
+def load_dts_cluster_name(dts_cluster_id: int) -> str | None:
+    cluster = MysqlDtsCluster.objects.filter(id=dts_cluster_id).first()
+    if not cluster or not cluster.name:
+        return None
+    return cluster.name
+
+
+def build_full_migrate_config(cluster_name: str, task_name: str, user_full_migrate: dict | None) -> FullMigrateConfig:
+    payload = dict(user_full_migrate or {})
+    payload.pop("data_dir", None)
+    payload["data_dir"] = get_full_migrate_data_dir(cluster_name, task_name)
+    payload["disk_quota"] = "0"
+    return FullMigrateConfig(**payload)
+
+
 def build_dts_task_request(
     plan: DtsMigratePlan,
     task_spec: DtsTaskSpec,
     *,
     user: str,
     password: str,
+    cluster_name: str | None = None,
 ) -> CreateTaskRequest:
     table_rules: list[TableMigrateRule] = []
     binlog_filters: dict[str, BinlogFilterRuleEntry] = {}
@@ -691,11 +753,13 @@ def build_dts_task_request(
             myloaders=myloaders,
         )
     else:
+        if not cluster_name:
+            raise ValueError(_("builtin 全量缺少 DTS 集群名，无法生成 dump data_dir"))
         source_conf = [SourceConfItem(source_name=src.source_name) for src in task_spec.sources]
         task_mode = cfg.task_mode
         source_config = SourceConfig(
             source_conf=source_conf,
-            full_migrate_conf=FullMigrateConfig(**cfg.full_migrate) if cfg.full_migrate else None,
+            full_migrate_conf=build_full_migrate_config(cluster_name, task_spec.task_name, cfg.full_migrate),
             incr_migrate_conf=IncrMigrateConfig(**cfg.incr_migrate) if cfg.incr_migrate else None,
         )
 

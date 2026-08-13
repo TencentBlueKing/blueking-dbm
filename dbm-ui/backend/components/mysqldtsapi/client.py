@@ -11,6 +11,8 @@ specific language governing permissions and limitations under the License.
 MySQL DTS OpenAPI 客户端，经 DRS 代理转发到 DTS Master。
 使用方式与异常处理见同目录 README.md。
 """
+import json
+import logging
 from typing import Any
 
 from django.utils.translation import gettext_lazy as _
@@ -19,6 +21,8 @@ from backend import env
 
 from ..domains import DRS_APIGW_DOMAIN
 from ..proxy_api import ProxyAPI
+from .log_context import get_flow_log_extra
+from .redact import redact_passwords
 from .types import (
     ClusterInfoResponse,
     ClusterTopology,
@@ -91,7 +95,23 @@ class _MySQLDTSApi(object):
             "dts_master_addr": dts_master_addr,
             "bk_cloud_id": bk_cloud_id,
         }
+        self._log_write_request(method, url, params)
         return self._proxy_rpc(body)
+
+    @staticmethod
+    def _log_write_request(method: str, url: str, params: dict | None) -> None:
+        """写操作在转发前打方法、OpenAPI 路径、脱敏参数；失败不得挡住请求。"""
+        if method.upper() == "GET":
+            return
+        try:
+            extra = get_flow_log_extra()
+            payload = json.dumps(redact_passwords(params or {}), ensure_ascii=False)
+            logger = logging.getLogger("flow" if extra else "root")
+            log_kwargs = {"extra": extra} if extra else {}
+            # 节点日志采集不展开 %-args，必须先拼好整句，否则界面会显示 '%s %s %s'
+            logger.info(" ".join((method, url, payload)), **log_kwargs)
+        except Exception:  # pylint: disable=broad-except
+            return
 
     @staticmethod
     def _dump_task(task: Task) -> dict:
@@ -99,6 +119,31 @@ class _MySQLDTSApi(object):
         params = task.model_dump(exclude_none=True, by_alias=True)
         if not params.get("shard_mode"):
             params.pop("shard_mode", None)
+        source_config = params.get("source_config") or {}
+        full_migrate_conf = source_config.get("full_migrate_conf")
+        if isinstance(full_migrate_conf, dict):
+            source_config["full_migrate_conf"] = {k: v for k, v in full_migrate_conf.items() if v != ""}
+            params["source_config"] = source_config
+        return params
+
+    @staticmethod
+    def _dump_create_source(request: CreateSourceRequest) -> dict:
+        """序列化 CreateSource；省略 relay_config 默认目录，避免相对路径落到 /root。"""
+        params = request.model_dump(exclude_none=True, by_alias=True)
+        source = params.get("source")
+        if not isinstance(source, dict):
+            return params
+        relay_cfg = request.source.relay_config
+        if relay_cfg is None:
+            source.pop("relay_config", None)
+        else:
+            relay_dump = relay_cfg.model_dump(exclude_defaults=True, exclude_none=True)
+            relay_dump = {k: v for k, v in relay_dump.items() if v != ""}
+            if relay_dump:
+                source["relay_config"] = relay_dump
+            else:
+                source.pop("relay_config", None)
+        params["source"] = source
         return params
 
     # ============================================================
@@ -114,7 +159,7 @@ class _MySQLDTSApi(object):
         :param bk_cloud_id: 云区域 ID（ProxyAPI 路由）
         :param request: 数据源配置
         """
-        params = request.model_dump(exclude_none=True, by_alias=True)
+        params = self._dump_create_source(request)
         data = self._call(dts_master_addr, "POST", "/api/v1/sources", params, bk_cloud_id=bk_cloud_id)
         return GetSourceResponse(**data)
 

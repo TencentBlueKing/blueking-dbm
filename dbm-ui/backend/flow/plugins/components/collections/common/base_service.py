@@ -25,6 +25,7 @@ from backend.bk_dataview.prometheus import metrics
 from backend.bk_dataview.prometheus.handlers import node_label_func, setup_counter, setup_gauge, setup_histogram
 from backend.bk_web.constants import LogLabel
 from backend.components import JobApi
+from backend.components.mysqldtsapi.log_context import flow_log_context
 from backend.components.sops.client import BkSopsApi
 from backend.core.translation.constants import Language
 from backend.flow.consts import DEFAULT_FLOW_CACHE_EXPIRE_TIME, SUCCESS_LIST, JobOperationCode, WriteContextOpType
@@ -177,15 +178,16 @@ class BaseService(Service, ServiceLogMixin, metaclass=ABCMeta):
         self.active_language(data)
 
         kwargs = data.get_one_of_inputs("kwargs") or {}
-        try:
-            result = self._execute(data, parent_data)
-            if result:
-                self.log_info(_("[{}] 运行成功").format(kwargs.get("node_name", self.__class__.__name__)))
+        with flow_log_context(self.extra_log):
+            try:
+                result = self._execute(data, parent_data)
+                if result:
+                    self.log_info(_("[{}] 运行成功").format(kwargs.get("node_name", self.__class__.__name__)))
 
-            return result
-        except Exception as e:  # pylint: disable=broad-except
-            self.log_exception(_("[{}] 失败: {}").format(kwargs.get("node_name", self.__class__.__name__), e))
-            return False
+                return result
+            except Exception as e:  # pylint: disable=broad-except
+                self.log_exception(_("[{}] 失败: {}").format(kwargs.get("node_name", self.__class__.__name__), e))
+                return False
 
     def _execute(self, data, parent_data):
         raise NotImplementedError()
@@ -197,13 +199,14 @@ class BaseService(Service, ServiceLogMixin, metaclass=ABCMeta):
         self.active_language(data)
 
         kwargs = data.get_one_of_inputs("kwargs") or {}
-        try:
-            result = self._schedule(data, parent_data, callback_data)
-            return result
-        except Exception as e:  # pylint: disable=broad-except
-            self.log_exception(f"[{kwargs.get('node_name', self.__class__.__name__)}] failed: {e}")
-            self.finish_schedule()
-            return False
+        with flow_log_context(self.extra_log):
+            try:
+                result = self._schedule(data, parent_data, callback_data)
+                return result
+            except Exception as e:  # pylint: disable=broad-except
+                self.log_exception(f"[{kwargs.get('node_name', self.__class__.__name__)}] failed: {e}")
+                self.finish_schedule()
+                return False
 
     def _schedule(self, data, parent_data, callback_data=None):
         self.finish_schedule()

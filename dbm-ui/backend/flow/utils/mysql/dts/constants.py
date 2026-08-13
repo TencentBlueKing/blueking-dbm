@@ -42,6 +42,10 @@ def get_default_deploy_path(cluster_name: str) -> str:
     return f"{MYSQL_DTS_DEPLOY_BASE_PATH}/{cluster_name}"
 
 
+def get_full_migrate_data_dir(cluster_name: str, task_name: str) -> str:
+    return f"{get_default_deploy_path(cluster_name)}/exported_data/{task_name}"
+
+
 def get_myloader_backup_dir(root_id: str, source_name: str) -> str:
     return MYSQL_DTS_MYLOADER_BACKUP_DIR_TMPL.format(root_id=root_id, source_name=source_name)
 

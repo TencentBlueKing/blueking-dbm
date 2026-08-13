@@ -16,7 +16,7 @@ from django.utils.translation import gettext as _
 from backend.flow.engine.bamboo.scene.common.builder import Builder
 from backend.flow.engine.bamboo.scene.mysql.dts.mysql_dts_migrate_subflow import mysql_dts_migrate_subflow
 from backend.flow.engine.bamboo.scene.mysql.dts.mysql_dts_task_clean_subflow import mysql_dts_task_clean_subflow
-from backend.flow.utils.mysql.dts.constants import MigrateType
+from backend.flow.utils.mysql.dts.constants import FullLoadEngine, MigrateType
 from backend.flow.utils.mysql.dts.context import (
     MysqlDtsMigrateSubflowInput,
     MysqlDtsTaskCleanSubflowInput,
@@ -69,6 +69,13 @@ class MysqlHaToClusterMigrateFlow:
         )
 
         task_names, source_names = build_ticket_dts_clean_names(migrate_plan)
+        task_cfg = getattr(migrate_plan, "dts_task_config", None)
+        task_mode = (getattr(task_cfg, "task_mode", None) or "all") if task_cfg is not None else "all"
+        full_load_engine = (
+            (getattr(task_cfg, "full_load_engine", None) or FullLoadEngine.BUILTIN.value)
+            if task_cfg is not None
+            else FullLoadEngine.BUILTIN.value
+        )
         clean_inp = MysqlDtsTaskCleanSubflowInput(
             root_id=self.root_id,
             bk_biz_id=bk_biz_id,
@@ -81,6 +88,9 @@ class MysqlHaToClusterMigrateFlow:
             bk_cloud_id=int(migrate_plan.bk_cloud_id or 0),
             task_names=task_names,
             source_names=source_names,
+            dts_cluster_id=getattr(migrate_plan, "dts_cluster_id", None) or None,
+            task_mode=task_mode,
+            full_load_engine=full_load_engine,
         )
         pipeline.add_sub_pipeline(
             mysql_dts_task_clean_subflow(clean_inp).build_sub_process(sub_name=_("dts-task-clean"))

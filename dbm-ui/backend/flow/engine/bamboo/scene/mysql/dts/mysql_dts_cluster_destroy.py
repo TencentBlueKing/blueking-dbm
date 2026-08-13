@@ -45,6 +45,7 @@ class MysqlDtsClusterDestroyFlow:
             recycle_hosts=self.data.get("recycle_hosts", True),
             clean_data_dir=self.data.get("clean_data_dir", True),
             creator=self.data.get("created_by", ""),
+            cluster_name=dts_cluster.name,
         )
         pipeline.add_sub_pipeline(mysql_dts_cleanup_subflow(cleanup_inp).build_sub_process(sub_name=_("清理 DTS 集群")))
         pipeline.run_pipeline(init_trans_data_class=MysqlDtsTransData())
