@@ -97,6 +97,8 @@ func GenProbeYAML(payload probeconfig.ProbeConfigPayload) (string, error) {
 			payload.MySQL.Interval,
 			payload.MySQL.Timeout,
 			mysqlEndpoints,
+			payload.MySQL.HeartbeatInterval,
+			payload.MySQL.ReplDelayInterval,
 		)
 	}
 
@@ -107,6 +109,8 @@ func GenProbeYAML(payload probeconfig.ProbeConfigPayload) (string, error) {
 			payload.ProxyAdmin.Interval,
 			payload.ProxyAdmin.Timeout,
 			mysqlProxyAdminEndpoints,
+			payload.ProxyAdmin.HeartbeatInterval,
+			payload.ProxyAdmin.ReplDelayInterval,
 		)
 	}
 	if payload.Redis != nil && len(redisEndpoints) > 0 {
@@ -140,13 +144,17 @@ func buildMySQLHarvester(
 	interval string,
 	timeout string,
 	endpoints []DbEndpointConfig,
+	heartbeatInterval string,
+	replDelayInterval string,
 ) *probeMySQLHarvesterYAML {
 	return &probeMySQLHarvesterYAML{
-		User:      user,
-		Password:  password,
-		Interval:  interval,
-		Timeout:   timeout,
-		Endpoints: endpoints,
+		User:              user,
+		Password:          password,
+		Interval:          interval,
+		HeartbeatInterval: heartbeatInterval,
+		ReplDelayInterval: replDelayInterval,
+		Timeout:           timeout,
+		Endpoints:         endpoints,
 	}
 }
 

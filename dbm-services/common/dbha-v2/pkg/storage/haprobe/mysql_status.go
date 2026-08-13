@@ -43,6 +43,9 @@ type MySqlStatus struct {
 	// Heartbeat Status
 	HeartbeatStatus *MySqlHeartbeatStatus `json:"heartbeat_status,omitempty"`
 
+	// Master Status
+	MasterStatus *MySqlHeartbeatStatus `json:"master_status,omitempty"`
+
 	// Slave Status
 	SlaveStatus *MySqlSlaveStatus `json:"slave_status,omitempty"`
 

@@ -92,11 +92,13 @@ type DbEndpointConfig struct {
 // context timeout (gorm WithContext) for every collector built from this block. Admin clamps the
 // upstream value at minProbeHarvesterTimeout before sending.
 type MySqlHarvesterConfig struct {
-	User      string             `yaml:"user"      mapstructure:"user"`
-	Password  string             `yaml:"password"  mapstructure:"password"`
-	Interval  time.Duration      `yaml:"interval"  mapstructure:"interval"`
-	Timeout   time.Duration      `yaml:"timeout"   mapstructure:"timeout"`
-	Endpoints []DbEndpointConfig `yaml:"endpoints" mapstructure:"endpoints"`
+	User              string             `yaml:"user"              mapstructure:"user"`
+	Password          string             `yaml:"password"          mapstructure:"password"`
+	Interval          time.Duration      `yaml:"interval"          mapstructure:"interval"`
+	HeartbeatInterval time.Duration      `yaml:"heartbeatInterval" mapstructure:"heartbeatInterval"`
+	ReplDelayInterval time.Duration      `yaml:"replDelayInterval" mapstructure:"replDelayInterval"`
+	Timeout           time.Duration      `yaml:"timeout"           mapstructure:"timeout"`
+	Endpoints         []DbEndpointConfig `yaml:"endpoints"         mapstructure:"endpoints"`
 }
 
 // RedisHarvesterConfig Redis harvester config

@@ -133,8 +133,26 @@ const (
 	TenDBClusterSpiderSlave  DbmMetadataSpiderRole = "spider_slave"
 )
 
+// HarvestType identifies which collection group a HarvestData belongs to.
+type HarvestType string
+
+const (
+	// HarvestTypeDefault is the original full-snapshot collection group.
+	HarvestTypeDefault HarvestType = "default"
+	// HarvestTypeHeartbeat is the high-frequency heartbeat-only collection group.
+	HarvestTypeHeartbeat HarvestType = "heartbeat"
+	// HarvestTypeReplDelay is the low-frequency replication-delay (slave status) collection group.
+	HarvestTypeReplDelay HarvestType = "repldelay"
+)
+
+// String returns the string representation of HarvestType.
+func (t HarvestType) String() string {
+	return string(t)
+}
+
 // HarvestBaseData represents the base data collected by harvester
 type HarvestBaseData struct {
+	HarvestType     HarvestType                `json:"harvest_type"`
 	SequenceID      uint64                     `json:"sequence_id,omitempty"`
 	MachineID       string                     `json:"machine_id,omitempty"`
 	AgentID         string                     `json:"agent_id,omitempty"`
@@ -145,6 +163,7 @@ type HarvestBaseData struct {
 	AccessLayer     DbmMetadataAccessLayerType `json:"access_layer,omitempty"`
 	ClusterType     DbmMetadataClusterType     `json:"cluster_type,omitempty"`
 	MachineType     DbmMetadataMachineType     `json:"machine_type,omitempty"`
+	InstanceRole    DbmMetadataInstanceRole    `json:"instance_role,omitempty"`
 	DbIp            string                     `json:"db_ip,omitempty"`
 	DbPort          int                        `json:"db_port,omitempty"`
 	ReportTimestamp uint64                     `json:"report_timestamp,omitempty"`

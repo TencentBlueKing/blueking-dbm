@@ -172,6 +172,14 @@ func (m *Migrator) createAndMigrateSchema(db *hamysql.GormDB) error {
 		return gerrors.Newf(gerrors.MysqlFailure, "auto migrate failed, errmsg: %s", err)
 	}
 
+	// Per-harvest-type tables reuse the DbhaDataStatus schema under different table names.
+	for _, tableName := range hamodel.DbhaStatusExtraTables {
+		if err := gdb.Table(tableName).AutoMigrate(&hamodel.DbhaDataStatus{}); err != nil {
+			return gerrors.Newf(gerrors.MysqlFailure,
+				"auto migrate table failed, table: %s, errmsg: %s", tableName, err)
+		}
+	}
+
 	return nil
 }
 

@@ -81,10 +81,13 @@ probeGse:
 # interval/timeout: zero or below the minimum is auto-clamped at admin load
 # (interval minimum: 5s, timeout minimum: 1s). The value MUST be a valid Go duration
 # (e.g. "20s", "1m"); empty strings make admin config Load fail before clamping.
+# heartbeatInterval minimum: 1s; replDelayInterval minimum: 5s.
 probeMysql:
   user: "{{ADMIN_PROBE_MYSQL_USER}}"
   password: "{{ADMIN_PROBE_MYSQL_PASSWORD}}"
   interval: {{ADMIN_PROBE_MYSQL_INTERVAL}}
+  heartbeatInterval: {{ADMIN_PROBE_MYSQL_HEARTBEAT_INTERVAL}}
+  replDelayInterval: {{ADMIN_PROBE_MYSQL_REPL_DELAY_INTERVAL}}
   timeout: {{ADMIN_PROBE_MYSQL_TIMEOUT}}
 
 probeRedis:
@@ -97,6 +100,8 @@ probeProxyAdmin:
   user: "{{ADMIN_PROBE_PROXY_ADMIN_USER}}"
   password: "{{ADMIN_PROBE_PROXY_ADMIN_PASSWORD}}"
   interval: {{ADMIN_PROBE_PROXY_ADMIN_INTERVAL}}
+  heartbeatInterval: {{ADMIN_PROBE_PROXY_ADMIN_HEARTBEAT_INTERVAL}}
+  replDelayInterval: {{ADMIN_PROBE_PROXY_ADMIN_REPL_DELAY_INTERVAL}}
   timeout: {{ADMIN_PROBE_PROXY_ADMIN_TIMEOUT}}
 
 log:
