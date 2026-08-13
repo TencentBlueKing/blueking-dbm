@@ -67,6 +67,7 @@ ENABLE_OPEN_EXTERNAL_PROXY = get_type_env(key="ENABLE_OPEN_EXTERNAL_PROXY", _typ
 
 # ITSM 服务ID
 BK_ITSM_PROJECT_KEY = get_type_env(key="BK_ITSM_PROJECT_KEY", _type=str, default="0")
+ITSM_API_VERSION = get_type_env(key="ITSM_API_VERSION", _type=str, default="v3")
 
 # IAM 相关配置
 BK_IAM_SYSTEM_ID = "bk_dbm"  # BK_IAM_SYSTEM_ID固定为bk_dbm，不可更改

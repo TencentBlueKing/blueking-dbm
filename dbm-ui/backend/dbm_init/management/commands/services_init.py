@@ -11,6 +11,7 @@ specific language governing permissions and limitations under the License.
 
 from django.core.management.base import BaseCommand
 
+from backend import env
 from backend.dbm_init.services import Services
 
 
@@ -68,7 +69,10 @@ class Command(BaseCommand):
         srv_type = options["srv_type"]
 
         if srv_type == "all" or srv_type == "itsm":
-            Services.auto_create_itsm_service()
+            if str(env.ITSM_API_VERSION).lower() == "v4":
+                Services.auto_create_itsm_v4_service()
+            else:
+                Services.auto_create_itsm_service()
 
         if srv_type == "all" or srv_type == "bklog":
             Services.auto_create_bklog_service()
