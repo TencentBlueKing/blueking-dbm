@@ -172,12 +172,13 @@ class ActionEnum:
 
     BIZ_TICKET_CONFIG_SET = ActionMeta(
         id="biz_ticket_config_set",
-        name=_("单据免审批设置"),
+        name=_("单据审批设置"),
         name_en="biz_ticket_config_set",
         type="edit",
         related_actions=[DB_MANAGE.id],
         related_resource_types=[ResourceEnum.BUSINESS, ResourceEnum.DBTYPE],
-        group=_("业务配置"),
+        group=_("业务"),
+        subgroup=_("业务配置"),
     )
 
     BIZ_ASSISTANCE_VARS_CONFIG = ActionMeta(
@@ -187,7 +188,8 @@ class ActionEnum:
         type="edit",
         related_actions=[DB_MANAGE.id],
         related_resource_types=[ResourceEnum.BUSINESS],
-        group=_("业务配置"),
+        group=_("业务"),
+        subgroup=_("业务配置"),
         common_labels=[CommonActionLabel.BIZ_MAINTAIN],
     )
 
@@ -198,7 +200,8 @@ class ActionEnum:
         type="edit",
         related_actions=[DB_MANAGE.id],
         related_resource_types=[ResourceEnum.BUSINESS],
-        group=_("业务配置"),
+        group=_("业务"),
+        subgroup=_("业务配置"),
         common_labels=[CommonActionLabel.BIZ_MAINTAIN],
     )
 
@@ -348,7 +351,7 @@ class ActionEnum:
         type="manage",
         related_actions=[],
         related_resource_types=[ResourceEnum.BUSINESS, ResourceEnum.DBTYPE],
-        group=_("业务配置"),
+        group=_("业务"),
         subgroup=_("数据库配置"),
     )
 
@@ -650,7 +653,6 @@ class ActionEnum:
         related_actions=[DB_MANAGE.id],
         related_resource_types=[ResourceEnum.MYSQL],
         group=_("已废弃"),
-        subgroup=_("集群管理"),
     )
 
     MYSQL_ENABLE_DISABLE = ActionMeta(
@@ -3533,9 +3535,7 @@ class ActionEnum:
         type="view",
         related_actions=[DB_MANAGE.id],
         related_resource_types=[ResourceEnum.BUSINESS],
-        group=_("MongoDB"),
-        subgroup=_("权限管理"),
-        common_labels=[CommonActionLabel.BIZ_MAINTAIN, CommonActionLabel.DEVELOPER],
+        group=_("已废弃"),
     )
 
     MONGODB_AUTHORIZE_RULES = ActionMeta(
@@ -4237,7 +4237,7 @@ class ActionEnum:
         type="manage",
         related_actions=[DB_MANAGE.id],
         related_resource_types=[ResourceEnum.BUSINESS],
-        group=_("业务配置"),
+        group=_("业务"),
         subgroup=_("告警管理"),
         common_labels=[CommonActionLabel.BIZ_MAINTAIN, CommonActionLabel.DEVELOPER],
     )
@@ -4301,7 +4301,7 @@ class ActionEnum:
         type="manage",
         related_actions=[DB_MANAGE.id],
         related_resource_types=[ResourceEnum.BUSINESS, ResourceEnum.DBTYPE],
-        group=_("业务配置"),
+        group=_("业务"),
         subgroup=_("告警管理"),
         common_labels=[CommonActionLabel.BIZ_MAINTAIN, CommonActionLabel.DEVELOPER],
     )
@@ -4409,7 +4409,7 @@ class ActionEnum:
         type="manage",
         related_actions=[DB_MANAGE.id],
         related_resource_types=[ResourceEnum.BUSINESS],
-        group=_("业务配置"),
+        group=_("业务"),
         subgroup=_("告警管理"),
         common_labels=[CommonActionLabel.BIZ_MAINTAIN],
     )
@@ -4421,7 +4421,7 @@ class ActionEnum:
         type="create",
         related_actions=[DB_MANAGE.id],
         related_resource_types=[ResourceEnum.BUSINESS],
-        group=_("业务配置"),
+        group=_("业务"),
         subgroup=_("风险备忘录"),
         common_labels=[CommonActionLabel.BIZ_MAINTAIN],
     )
@@ -4433,7 +4433,7 @@ class ActionEnum:
         type="manage",
         related_actions=[DB_MANAGE.id],
         related_resource_types=[ResourceEnum.BUSINESS],
-        group=_("业务配置"),
+        group=_("业务"),
         subgroup=_("风险备忘录"),
         common_labels=[CommonActionLabel.BIZ_MAINTAIN],
     )
@@ -4468,8 +4468,8 @@ class ActionEnum:
         type="manage",
         related_actions=[DB_MANAGE.id],
         related_resource_types=[ResourceEnum.BUSINESS],
-        group=_("业务配置"),
-        subgroup="",
+        group=_("业务"),
+        subgroup=_("业务配置"),
     )
 
     GLOBAL_DBA_ADMIN_EDIT = ActionMeta(
@@ -4611,8 +4611,8 @@ class ActionEnum:
         type="manage",
         related_actions=[DB_MANAGE.id],
         related_resource_types=[ResourceEnum.BUSINESS],
-        group=_("业务配置"),
-        subgroup="",
+        group=_("业务"),
+        subgroup=_("业务配置"),
         common_labels=[CommonActionLabel.BIZ_MAINTAIN],
     )
 
@@ -4647,7 +4647,7 @@ class ActionEnum:
         type="edit",
         related_actions=[],
         related_resource_types=[ResourceEnum.BUSINESS, ResourceEnum.DBTYPE],
-        group=_("业务"),
+        group=_("已废弃"),
     )
 
     ADMIN_PWD_VIEW = ActionMeta(
@@ -4662,7 +4662,7 @@ class ActionEnum:
 
     MYSQL_ADMIN_PWD_VIEW = ActionMeta(
         id="mysql_admin_pwd_view",
-        name=_("MySQL 临时密码生效实例查看"),
+        name=_("MySQL 临时密码查看"),
         name_en="mysql_admin_pwd_view",
         type="view",
         related_actions=[DB_MANAGE.id],
@@ -4673,7 +4673,7 @@ class ActionEnum:
 
     TENDBCLUSTER_ADMIN_PWD_VIEW = ActionMeta(
         id="tendbcluster_admin_pwd_view",
-        name=_("TenDB Cluster 临时密码生效实例查看"),
+        name=_("TenDB Cluster 临时密码查看"),
         name_en="tendbcluster_admin_pwd_view",
         type="view",
         related_actions=[DB_MANAGE.id],
@@ -4684,7 +4684,7 @@ class ActionEnum:
 
     SQLSERVER_ADMIN_PWD_VIEW = ActionMeta(
         id="sqlserver_admin_pwd_view",
-        name=_("SQLServer 临时密码生效实例查看"),
+        name=_("SQLServer 临时密码查看"),
         name_en="sqlserver_admin_pwd_view",
         type="view",
         related_actions=[DB_MANAGE.id],
