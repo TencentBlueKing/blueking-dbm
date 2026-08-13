@@ -72,7 +72,7 @@
               </BkButton>
               <AuthButton
                 v-else
-                action-id="'notify_group_manage'"
+                action-id="notify_group_manage"
                 :permission="row.permission.notify_group_manage"
                 text
                 theme="primary"
