@@ -12,6 +12,7 @@ import urllib.parse
 from collections import defaultdict
 
 from django.utils.translation import gettext_lazy as _
+from pkg_resources import require
 from rest_framework import serializers
 
 from backend import env
@@ -222,7 +223,7 @@ class MonitorPolicyUpdateSerializer(AuditedSerializer, serializers.ModelSerializ
     class NotifyConfigSerializer(serializers.Serializer):
         interval_notify_mode = serializers.CharField(help_text=_("通知间隔类型"))
         notify_interval = serializers.IntegerField(help_text=_("通知间隔时间（秒）"))
-        voice_notice = serializers.CharField(help_text=_("拨打语音方式"))
+        voice_notice = serializers.CharField(help_text=_("拨打语音方式"), required=False)
 
     class AggInfoSerializer(serializers.Serializer):
         metric_id = serializers.CharField(help_text=_("metric id"))
