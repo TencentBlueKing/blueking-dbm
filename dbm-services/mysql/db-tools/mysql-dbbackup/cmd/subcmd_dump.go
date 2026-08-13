@@ -241,7 +241,7 @@ func dumpExecute(cmd *cobra.Command, args []string) (err error) {
 		select {
 		case doneErr := <-done:
 			if doneErr != nil {
-				if resp, err := reapi.SyncReport(reportCore,
+				if resp, err := reapi.SyncReportWithDelegateRetry(reportCore,
 					task.statusReport.SetStatus("Failed", doneErr.Error())); err != nil {
 					logger.Log.Warnf("report backup status, resp: err=%s, resp=%s", err, string(resp))
 				}
@@ -255,7 +255,7 @@ func dumpExecute(cmd *cobra.Command, args []string) (err error) {
 		case <-time.After(time.Duration(maxTimeoutSeconds) * time.Second):
 			doneErr := fmt.Errorf("backup timeout exceed %s for port %d",
 				cnf.Public.BackupTimeOut, cnf.Public.MysqlPort)
-			if resp, err := reapi.SyncReport(reportCore,
+			if resp, err := reapi.SyncReportWithDelegateRetry(reportCore,
 				task.statusReport.SetStatus("Failed", doneErr.Error())); err != nil {
 				logger.Log.Warnf("report backup status, resp: err=%s, resp=%s", err, string(resp))
 			}

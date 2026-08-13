@@ -127,7 +127,7 @@ var dumpLogicalCmd = &cobra.Command{
 		}
 		err = task.run(context.Background(), &cnf)
 		if err != nil {
-			if resp, err := reapi.SyncReport(reportCore,
+			if resp, err := reapi.SyncReportWithDelegateRetry(reportCore,
 				task.statusReport.SetStatus("Failed", err.Error())); err != nil {
 				logger.Log.Warnf("report backup status, resp: err=%s, resp=%s", err, string(resp))
 			}
