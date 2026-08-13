@@ -284,9 +284,6 @@ class TicketType(StrStructuredEnum):
     MYSQL_FIXPOINT_EXIST_CLUSTER = TicketEnumField("MYSQL_FIXPOINT_EXIST_CLUSTER", _("MySQL 数据构造到已有集群"), _("构造"))
     MYSQL_HA_FULL_BACKUP = TicketEnumField("MYSQL_HA_FULL_BACKUP", _("MySQL 全库备份"), _("备份"), register_iam=True)
     MYSQL_SINGLE_TRUNCATE_DATA = TicketEnumField("MYSQL_SINGLE_TRUNCATE_DATA", _("MySQL 单节点清档"), _("数据处理"))
-    # deprecated
-    MYSQL_SINGLE_RENAME_DATABASE = TicketEnumField("MYSQL_SINGLE_RENAME_DATABASE", _("MySQL 单节点DB重命名"),
-                                                   _("集群维护"), register_iam=False)  # noqa
     MYSQL_DTS_CLUSTER_APPLY = TicketEnumField("MYSQL_DTS_CLUSTER_APPLY", _("MySQL DTS 集群部署"), register_iam=False)
     MYSQL_DTS_CLUSTER_DESTROY = TicketEnumField("MYSQL_DTS_CLUSTER_DESTROY", _("MySQL DTS 集群销毁"), register_iam=False)
     MYSQL_DTS_CLUSTER_REINSTALL = TicketEnumField(
