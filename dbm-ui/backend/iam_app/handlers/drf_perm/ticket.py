@@ -18,7 +18,8 @@ from django.utils.translation import gettext as _
 from rest_framework.permissions import BasePermission
 
 from backend.configuration.models import DBAdministrator
-from backend.db_meta.models import ExtraProcessInstance
+from backend.db_meta.models import ExtraProcessInstance, Machine, ProxyInstance, StorageInstance
+from backend.exceptions import AppBaseException
 from backend.iam_app.dataclass.actions import ActionEnum
 from backend.iam_app.dataclass.resources import ClusterResourceMeta, ResourceEnum
 from backend.iam_app.handlers.drf_perm.base import (
@@ -66,6 +67,9 @@ class CreateTicketOneResourcePermission(ResourceActionPermission):
         elif action in ActionEnum.get_match_actions("tbinlogdumper"):
             # 对应dumper相关操作，需要根据dumper的实例ID反查出相关的集群
             instance_ids_getter = self.instance_dumper_cluster_ids_getter
+        # DB实例权限克隆执行, 查询源客户端IP已在哪些集群
+        elif ticket_type in [TicketType.MYSQL_INSTANCE_CLONE_RULES, TicketType.TENDBCLUSTER_INSTANCE_CLONE_RULES]:
+            instance_ids_getter = self.instance_instance_ids_getter
         # 客户端权限克隆, 查询源客户端IP已在哪些集群
         elif ticket_type in [TicketType.MYSQL_CLIENT_CLONE_RULES, TicketType.TENDBCLUSTER_CLIENT_CLONE_RULES]:
             pass
@@ -73,6 +77,35 @@ class CreateTicketOneResourcePermission(ResourceActionPermission):
             instance_ids_getter = self.instance_cluster_ids_getter
 
         super().__init__(actions, resource_meta, instance_ids_getter=instance_ids_getter)
+
+    def instance_instance_ids_getter(self, request, view):
+        details = request.data.get("details") or request.data
+        target_ips = [clone_data["target"] for clone_data in details.get("clone_data_list", [])]
+        ips = [ip_port.split(":")[0] for ip_port in target_ips if ":" in ip_port]
+        machines = Machine.objects.filter(ip__in=ips)
+        ip_port_cluster_map = {}
+        proxy_instances = (
+            ProxyInstance.objects.filter(machine__in=machines).select_related("machine").prefetch_related("cluster")
+        )
+        storage_instances = (
+            StorageInstance.objects.filter(machine__in=machines).select_related("machine").prefetch_related("cluster")
+        )
+        for pi in proxy_instances:
+            ip = pi.machine.ip
+            for cluster in pi.cluster.all():
+                ip_port_cluster_map[f"{ip}:{pi.port}"] = cluster.id
+                if pi.admin_port:
+                    ip_port_cluster_map[f"{ip}:{pi.admin_port}"] = cluster.id
+        for si in storage_instances:
+            ip = si.machine.ip
+            for cluster in si.cluster.all():
+                ip_port_cluster_map[f"{ip}:{si.port}"] = cluster.id
+        cluster_ids = []
+        for target_ip in target_ips:
+            if not ip_port_cluster_map.get(target_ip):
+                raise AppBaseException(_("目标ip{}没找到对应的集群id").format(target_ip))
+            cluster_ids.append(ip_port_cluster_map[target_ip])
+        return cluster_ids
 
     def instance_biz_ids_getter(self, request, view):
         if self.batch:

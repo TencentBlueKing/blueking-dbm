@@ -3440,6 +3440,18 @@ class ActionEnum:
         common_labels=[CommonActionLabel.BIZ_MAINTAIN],
     )
 
+    MONGODB_AUTHORIZE = ActionMeta(
+        id="mongodb_authorize",
+        name=_("MongoDB 授权"),
+        name_en="mongodb_authorize",
+        type="manage",
+        related_actions=[],
+        related_resource_types=[ResourceEnum.MONGODB],
+        group=_("MongoDB"),
+        subgroup=_("权限管理"),
+        common_labels=[CommonActionLabel.DEVELOPER, CommonActionLabel.BIZ_MAINTAIN],
+    )
+
     MONGODB_SUBSCRIBE_MONITOR = ActionMeta(
         id="mongodb_subscribe_monitor",
         name=_("Mongodb 集群告警订阅"),
@@ -3954,6 +3966,18 @@ class ActionEnum:
         group=_("SQLServer"),
         subgroup=_("权限管理"),
         common_labels=[CommonActionLabel.BIZ_MAINTAIN],
+    )
+
+    SQLSERVER_AUTHORIZE = ActionMeta(
+        id="sqlserver_authorize",
+        name=_("SQLServer 授权"),
+        name_en="sqlserver_authorize",
+        type="manage",
+        related_actions=[],
+        related_resource_types=[ResourceEnum.SQLSERVER],
+        group=_("SQLServer"),
+        subgroup=_("权限管理"),
+        common_labels=[CommonActionLabel.DEVELOPER, CommonActionLabel.BIZ_MAINTAIN],
     )
 
     SQLSERVER_CREATE_ACCOUNT = ActionMeta(
