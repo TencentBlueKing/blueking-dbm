@@ -23,7 +23,9 @@ from django.utils import timezone
 
 from backend import env
 from backend.bk_dataview.grafana.views import SwitchOrgView
-from backend.components import BKMonitorV3Api, CCApi, ItsmApi, JobApi
+from backend.components import BKMonitorV3Api, CCApi
+from backend.components import ItsmApiAdapter as ItsmApi
+from backend.components import JobApi
 from backend.components.constants import SSL_KEY
 from backend.components.dbconfig.sync_dbconfig import sync_dbconfig
 from backend.components.mysql_backup.client import MysqlBackupApi
@@ -113,6 +115,48 @@ class Services:
         else:
             logger.info("本次更新跳过...")
         return dbm_service_id
+
+    @staticmethod
+    def auto_create_itsm_v4_service():
+        """
+        创建/迁移 bk dbm 的 ITSM V4 系统流程
+        """
+
+        file_name = "system_bk-dbm-itsm-v4.json"
+        file_path = os.path.join(settings.BASE_DIR, "backend", "dbm_init", "json_files", "itsm", file_name)
+
+        try:
+            with open(file_path, "r", encoding="utf-8") as f:
+                system_json = json.load(f)
+        except FileNotFoundError as e:
+            raise Exception("ITSM V4系统流程json文件不存在，请确认json文件存在后再进行创建/迁移, err: %s", e)
+
+        system_id = system_json["system"]["code"]
+        workflow_key = next(iter(system_json["key_mapping"]["workflows"].keys()))
+        system_id_setting_key = SystemSettingsEnum.ITSM_V4_SYSTEM_ID.value
+        workflow_key_setting_key = SystemSettingsEnum.ITSM_V4_WORKFLOW_KEY.value
+
+        if (
+            SystemSettings.objects.filter(key=system_id_setting_key).exists()
+            and SystemSettings.objects.filter(key=workflow_key_setting_key).exists()
+        ):
+            logger.info("ITSM V4系统流程配置已存在，本次迁移跳过...")
+            return {
+                "system_id": SystemSettings.get_setting_value(system_id_setting_key),
+                "workflow_key": SystemSettings.get_setting_value(workflow_key_setting_key),
+            }
+
+        try:
+            with open(file_path, "rb") as f:
+                result = ItsmApi.migrate_system(params={"file": f})
+        except ApiError as e:
+            raise Exception("ITSM V4系统流程创建/迁移失败，请联系管理员。错误信息: %s", e)
+
+        SystemSettings.insert_setting_value(key=system_id_setting_key, value=system_id)
+        SystemSettings.insert_setting_value(key=workflow_key_setting_key, value=workflow_key)
+
+        logger.info("ITSM V4系统流程创建/迁移成功，system_id: %s, workflow_key: %s", system_id, workflow_key)
+        return result
 
     @staticmethod
     def auto_create_bklog_service(startswith: str = "") -> bool:
