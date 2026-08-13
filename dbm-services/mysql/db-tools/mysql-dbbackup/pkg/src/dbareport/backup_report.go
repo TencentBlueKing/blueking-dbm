@@ -414,7 +414,7 @@ func (r *BackupLogReport) ReportBackupResult(indexFilePath string, index, upload
 		}
 		var ev = MysqlBackupResultEvent(*metaInfo)
 		logger.Log.Infof("backup result event: %s", ev.String())
-		if resp, reportErr := reapi.SyncReport(reportCore, &ev); reportErr != nil {
+		if resp, reportErr := reapi.SyncReportWithDelegateRetry(reportCore, &ev); reportErr != nil {
 			// TODO if failed, need save to local and report it later
 			return reportErr
 		} else {

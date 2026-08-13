@@ -1,7 +1,10 @@
 package common
 
 import (
+	"dbm-services/common/go-pubpkg/reportlog"
 	"encoding/json"
+	"os"
+	"path/filepath"
 	"time"
 
 	"dbm-services/common/reverseapi/pkg/core"
@@ -54,15 +57,17 @@ func SyncReport[T common.ISyncReportEvent](core *core.Core, events ...T) ([]byte
 	}
 	var innerEvents []innerEvent
 	for _, e := range events {
-		innerEvents = append(innerEvents, innerEvent{
-			PayLoad:              e,
-			BkBizId:              e.EventBkBizId(),
-			ClusterType:          e.ClusterType(),
-			EventType:            e.EventType(),
-			EventCreateTimestamp: e.EventCreateTime().UTC().UnixMicro(),
-			EventReportTimestamp: time.Now().UTC().UnixMicro(),
-			EventUUID:            uuid.New().String(),
-		})
+		innerEvents = append(
+			innerEvents, innerEvent{
+				PayLoad:              e,
+				BkBizId:              e.EventBkBizId(),
+				ClusterType:          e.ClusterType(),
+				EventType:            e.EventType(),
+				EventCreateTimestamp: e.EventCreateTime().UTC().UnixMicro(),
+				EventReportTimestamp: time.Now().UTC().UnixMicro(),
+				EventUUID:            uuid.New().String(),
+			},
+		)
 	}
 
 	b, err := json.Marshal(innerEvents)
@@ -84,4 +89,46 @@ func SyncReport[T common.ISyncReportEvent](core *core.Core, events ...T) ([]byte
 	}
 
 	return data, nil
+}
+
+func SyncReportWithDelegateRetry[T common.ISyncReportEvent](core *core.Core, events ...T) ([]byte, error) {
+	data, err := SyncReport[T](core, events...)
+	if err == nil {
+		return data, nil
+	}
+
+	err = os.MkdirAll("/home/mysql/dbareport/event_retry", os.ModePerm)
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to make dir /home/mysql/dbareport/event_retry")
+	}
+
+	reporter, err := reportlog.NewReporter(
+		filepath.Join("/home/mysql/dbareport/event_retry"),
+		"event_retry.log",
+		&reportlog.LoggerOption{
+			MaxSize:    50,
+			MaxBackups: 1,
+			MaxAge:     3,
+			Compress:   false,
+		},
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, e := range events {
+		ie := innerEvent{
+			PayLoad:              e,
+			BkBizId:              e.EventBkBizId(),
+			ClusterType:          e.ClusterType(),
+			EventType:            e.EventType(),
+			EventCreateTimestamp: e.EventCreateTime().UTC().UnixMicro(),
+			EventReportTimestamp: time.Now().UTC().UnixMicro(),
+			EventUUID:            uuid.New().String(),
+		}
+
+		reporter.Println(ie)
+	}
+
+	return nil, nil
 }
