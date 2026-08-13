@@ -139,6 +139,8 @@ class SystemSettingsEnum(StrStructuredEnum):
     BK_ITSM_SERVICE_ID = EnumField("BK_ITSM_SERVICE_ID", _("DBM的流程服务ID"))
     ITSM_APPROVAL_KEY = EnumField("ITSM_APPROVAL_KEY", _("ITSM审批意见key"))
     ITSM_REMARK_KEY = EnumField("ITSM_REMARK_KEY", _("ITSM备注key"))
+    ITSM_V4_SYSTEM_ID = EnumField("ITSM_V4_SYSTEM_ID", _("ITSM V4系统ID"))
+    ITSM_V4_WORKFLOW_KEY = EnumField("ITSM_V4_WORKFLOW_KEY", _("ITSM V4工作流key"))
     # SYNC_META 同步元数据
     SYNC_TENDBHA_CLUSTERS = EnumField("SYNC_TENDBHA_CLUSTERS", _("同步TenDBHA集群列表"))
     # 成本预估配置
