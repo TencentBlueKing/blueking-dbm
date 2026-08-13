@@ -48,7 +48,7 @@
           <DbFormItem
             :label="t('是否启用')"
             required>
-            <AuthSwitcher
+            <BkSwitcher
               v-model="formModel.isEnabled"
               v-bk-tooltips="{
                 disabled: !enableButtonDisabled,
@@ -56,10 +56,7 @@
                   ? t('父策略为告警兜底，需保持启用以确保告警覆盖')
                   : t('继承自全局策略，启停与全局保持一致'),
               }"
-              action-id="global_monitor_policy_start_stop"
               :disabled="enableButtonDisabled"
-              :permission="data.permission.global_monitor_policy_start_stop"
-              :resource="data.id"
               size="small"
               theme="primary" />
           </DbFormItem>
