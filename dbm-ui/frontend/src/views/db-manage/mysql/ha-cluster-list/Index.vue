@@ -68,7 +68,7 @@
           <template #default="{ data }: { data: TendbhaModel }">
             <template v-if="data.isOnline">
               <div v-db-console="'mysql.haClusterList.authorize'">
-              <AuthButton
+                <AuthButton
                   action-id="mysql_authorize"
                   :permission="data.permission.mysql_authorize"
                   :resource="data.id"
