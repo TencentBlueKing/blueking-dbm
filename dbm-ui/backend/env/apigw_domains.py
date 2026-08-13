@@ -22,6 +22,7 @@ USER_MANAGE_APIGW_DOMAIN = get_type_env(key="USER_MANAGE_APIGW_DOMAIN", _type=st
 CMSI_APIGW_DOMAIN = get_type_env(key="CMSI_APIGW_DOMAIN", _type=str)
 BKCHAT_APIGW_DOMAIN = get_type_env(key="BKCHAT_APIGW_DOMAIN", _type=str, default="")
 ITSM_APIGW_DOMAIN = get_type_env(key="ITSM_APIGW_DOMAIN", _type=str)
+ITSM_V4_APIGW_DOMAIN = get_type_env(key="ITSM_V4_APIGW_DOMAIN", _type=str)
 BKLOG_APIGW_DOMAIN = get_type_env(key="BKLOG_APIGW_DOMAIN", _type=str)
 BKNODEMAN_APIGW_DOMAIN = get_type_env(key="BKNODEMAN_APIGW_DOMAIN", _type=str)
 BKBASE_APIGW_DOMAIN = get_type_env(key="BKBASE_APIGW_DOMAIN", _type=str)
