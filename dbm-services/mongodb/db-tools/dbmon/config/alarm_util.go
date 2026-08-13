@@ -8,6 +8,7 @@ import (
 
 	"github.com/pkg/errors"
 
+	"dbm-services/mongodb/db-tools/dbmon/pkg/consts"
 	"dbm-services/mongodb/db-tools/dbmon/pkg/sendwarning"
 )
 
@@ -30,6 +31,10 @@ func GetBkMonitorBeatSender(beatConf *BkMonitorBeatConfig, serverConf *ConfServe
 		SetClusterType(serverConf.ClusterType).
 		SetInstanceRole(serverConf.MetaRole).
 		SetInstance(serverConf.Addr())
+	if serverConf.ClusterType == consts.MongoTypeShardedCluster &&
+		serverConf.RoleType != "mongos" && serverConf.MetaRole != "mongos" {
+		msgH.SetLabel("shard", serverConf.SetName)
+	}
 	return
 }
 

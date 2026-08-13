@@ -62,8 +62,9 @@ func (w *Worker) rotateMongoLog(mongoLogFilePath string, maxSize int64, minTime 
 		timeCond = timeCond && time.Now().Hour() == 3
 	}
 
-	// 如果文件大小超过maxSize，rotate
-	sizeCond := timeDiff < minTime && fileInfo.Size() > maxSize
+	// 如果文件大小超过maxSize，rotate（与上次 rotate 间隔无关，避免慢速增长过 1G 后无法触发）
+	_ = minTime // 保留参数以兼容调用方
+	sizeCond := fileInfo.Size() > maxSize
 
 	w.Logger.Info(fmt.Sprintf("debug rotateMongoLog: %s, size: %d, "+
 		"lastRotateTime: %d firstInitCond:%v timeCond:%v sizeCond %v",
