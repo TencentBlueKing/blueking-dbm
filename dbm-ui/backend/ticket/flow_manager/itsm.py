@@ -13,7 +13,7 @@ from typing import Any, Union
 
 from django.utils.translation import gettext as _
 
-from backend.components import ItsmApi
+from backend.components import ItsmApiAdapter as ItsmApi
 from backend.components.itsm.constants import ItsmTicketStatus
 from backend.core import notify
 from backend.exceptions import ApiResultError
