@@ -37,6 +37,12 @@ const (
 	DatabaseName            = "dbha_data"
 	DbhaDataStatusTableName = "t_dbha_status"
 
+	// Per-harvest-type tables reuse the DbhaDataStatus schema but isolate collection groups
+	// with different cadences (high or low frequency) from the core t_dbha_status snapshot
+	// table. Naming follows t_dbha_status_{HarvestType}.
+	DbhaDataStatusHeartbeatTableName = "t_dbha_status_heartbeat"
+	DbhaDataStatusReplDelayTableName = "t_dbha_status_repldelay"
+
 	DbhaStatusFieldSequenceID      = "sequence_id"
 	DbhaStatusFieldMachineID       = "machine_id"
 	DbhaStatusFieldAgentID         = "agent_id"
@@ -47,6 +53,7 @@ const (
 	DbhaStatusFieldAccessLayer     = "access_layer"
 	DbhaStatusFieldClusterType     = "cluster_type"
 	DbhaStatusFieldMachineType     = "machine_type"
+	DbhaStatusFieldInstanceRole    = "instance_role"
 	DbhaStatusFieldDbTypeName      = "db_type_name"
 	DbhaStatusFieldDbIp            = "db_ip"
 	DbhaStatusFieldDbPort          = "db_port"
@@ -57,6 +64,29 @@ const (
 	DbhaStatusFieldUpdatedAt       = "updated_at"
 	DbhaStatusFieldDeletedAt       = "deleted_at"
 )
+
+// DbhaStatusExtraTables lists the per-harvest-type tables (besides the core
+// DbhaDataStatusTableName) that share the DbhaDataStatus schema and must be migrated.
+var DbhaStatusExtraTables = []string{
+	DbhaDataStatusHeartbeatTableName,
+	DbhaDataStatusReplDelayTableName,
+}
+
+// GetDbhaStatusTableName maps a HarvestType to its storage table name. It is fail-safe: an
+// empty or unknown HarvestType falls back to the core table so no reported data is ever
+// dropped. The bool return reports whether the type was a recognized enum value.
+func GetDbhaStatusTableName(ht haprobe.HarvestType) (string, bool) {
+	switch ht {
+	case haprobe.HarvestTypeHeartbeat:
+		return DbhaDataStatusHeartbeatTableName, true
+	case haprobe.HarvestTypeReplDelay:
+		return DbhaDataStatusReplDelayTableName, true
+	case haprobe.HarvestTypeDefault, "":
+		return DbhaDataStatusTableName, true
+	default:
+		return DbhaDataStatusTableName, false
+	}
+}
 
 // DbhaDataStatus contains system and databases metrics
 type DbhaDataStatus struct {
@@ -73,6 +103,7 @@ type DbhaDataStatus struct {
 	AccessLayer     haprobe.DbmMetadataAccessLayerType `gorm:"column:access_layer"`
 	ClusterType     haprobe.DbmMetadataClusterType     `gorm:"column:cluster_type"`
 	MachineType     haprobe.DbmMetadataMachineType     `gorm:"column:machine_type"`
+	InstanceRole    haprobe.DbmMetadataInstanceRole    `gorm:"column:instance_role"`
 	ReportTimestamp uint64                             `gorm:"column:report_timestamp"`
 	Host            JSON[*haprobe.HostMetric]          `gorm:"column:host;type:json"`
 	Events          JSON[[]*haprobe.DbEvent]           `gorm:"column:event;type:json"`
@@ -98,6 +129,7 @@ func NewDbhaData(msg *haprobe.HarvestData) *DbhaDataStatus {
 	data.AccessLayer = msg.AccessLayer
 	data.ClusterType = msg.ClusterType
 	data.MachineType = msg.MachineType
+	data.InstanceRole = msg.InstanceRole
 	data.DbIp = msg.DbIp
 	data.DbPort = msg.DbPort
 	data.ReportTimestamp = msg.ReportTimestamp

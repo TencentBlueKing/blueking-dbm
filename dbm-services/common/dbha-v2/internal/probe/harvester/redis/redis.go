@@ -135,6 +135,7 @@ func (r *Redis) makeCollector(epoint config.DbEndpointConfig, eport int) *collec
 	c.accessLayer = epoint.AccessLayer
 	c.machineType = epoint.MachineType
 	c.clusterType = epoint.ClusterType
+	c.instanceRole = epoint.InstanceRole
 
 	c.user = r.cfg.User
 	c.password = r.cfg.Password
@@ -197,16 +198,17 @@ func (r *Redis) collecting(ctx context.Context, c *collector, dataC chan<- *plug
 
 	data := &plugin.HarvestData{
 		HarvestBaseData: haprobe.HarvestBaseData{
-			SequenceID:  machine.NewSequenceID(),
-			MessageID:   machine.NewMessageID(),
-			MachineID:   r.machineID,
-			ServiceID:   r.serviceID,
-			BkCloudID:   r.bkCloudID,
-			DbIp:        c.endpoint.Host,
-			DbPort:      c.endpoint.Port,
-			AccessLayer: c.accessLayer,
-			ClusterType: c.clusterType,
-			MachineType: c.machineType,
+			SequenceID:   machine.NewSequenceID(),
+			MessageID:    machine.NewMessageID(),
+			MachineID:    r.machineID,
+			ServiceID:    r.serviceID,
+			BkCloudID:    r.bkCloudID,
+			DbIp:         c.endpoint.Host,
+			DbPort:       c.endpoint.Port,
+			AccessLayer:  c.accessLayer,
+			ClusterType:  c.clusterType,
+			MachineType:  c.machineType,
+			InstanceRole: c.instanceRole,
 		},
 	}
 
