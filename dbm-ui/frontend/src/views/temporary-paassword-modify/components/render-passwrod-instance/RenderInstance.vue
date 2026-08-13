@@ -105,13 +105,21 @@
           :width="180">
           <template #title>
             <span>{{ t('密码') }}</span>
-            <BkButton
-              text
-              @click="handlePasswordShow">
-              <DbIcon
-                class="header-view-icon ml-4"
-                type="visible1" />
-            </BkButton>
+            <span
+              v-bk-tooltips="{
+                disabled: hasAnyPermission,
+                content: t('当前实例均无查看密码权限'),
+              }"
+              class="inline-block">
+              <BkButton
+                :disabled="!hasAnyPermission"
+                text
+                @click="handlePasswordShow">
+                <DbIcon
+                  class="header-view-icon ml-4"
+                  type="visible1" />
+              </BkButton>
+            </span>
           </template>
           <template #default="{ row: data }: { row: AdminPasswordModel }">
             <TextOverflowLayout :key="Number(isRowPasswordShow(data))">
@@ -217,6 +225,12 @@
   });
 
   const hasSelected = computed(() => selected.value.length > 0);
+
+  // 是否至少有一行有查看密码权限，全无权限时表头眼睛禁用
+  const hasAnyPermission = computed(() => {
+    const actionId = adminPwdViewActionMap[dbType.value];
+    return allData.value.some((r) => r.permission[actionId]);
+  });
 
   // 查看临时密码权限 action（按 DB 类型拆分，原 admin_pwd_view 已废弃）
   const adminPwdViewActionMap: Record<string, keyof AdminPasswordModel['permission']> = {
@@ -389,6 +403,16 @@
 
       &:hover {
         color: #3a84ff;
+      }
+    }
+
+    // 表头眼睛禁用态
+    :deep(.bk-button.is-disabled .header-view-icon) {
+      color: #c4c6cc;
+      cursor: not-allowed;
+
+      &:hover {
+        color: #c4c6cc;
       }
     }
 

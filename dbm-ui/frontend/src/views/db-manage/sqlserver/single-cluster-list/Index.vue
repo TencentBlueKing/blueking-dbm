@@ -13,12 +13,6 @@
         :cluster-type="ClusterTypes.SQLSERVER_SINGLE"
         :selected="selectedList"
         @success="fetchData" />
-      <AuthButton
-        v-db-console="'sqlserver.singleClusterList.importAuthorize'"
-        action-id="sqlserver_authorize"
-        @click="handleShowExcelAuthorize">
-        {{ t('导入授权') }}
-      </AuthButton>
       <DropdownExportExcel
         v-db-console="'sqlserver.singleClusterList.export'"
         export-type="cluster"
@@ -56,6 +50,7 @@
                 <AuthButton
                   action-id="sqlserver_authorize"
                   :permission="data.permission.sqlserver_authorize"
+                  :resource="data.id"
                   text
                   @click="handleShowAuthorize([data])">
                   {{ t('授权') }}
@@ -176,11 +171,6 @@
     :cluster-types="[ClusterTypes.SQLSERVER_SINGLE]"
     :selected="authorizeSelected"
     @success="handleClearSelected" />
-  <!-- excel 导入授权 -->
-  <ExcelAuthorize
-    v-model:is-show="isShowExcelAuthorize"
-    :cluster-type="ClusterTypes.SQLSERVER_SINGLE"
-    :ticket-type="TicketTypes.SQLSERVER_EXCEL_AUTHORIZE_RULES" />
   <ClusterReset
     v-if="currentData"
     v-model:is-show="isShowClusterReset"
@@ -219,7 +209,6 @@
     RoleColumn,
   } from '@views/db-manage/common/cluster-table/Index.vue';
   import DropdownExportExcel from '@views/db-manage/common/dropdown-export-excel/index.vue';
-  import ExcelAuthorize from '@views/db-manage/common/ExcelAuthorize.vue';
   import { useOperateClusterBasic } from '@views/db-manage/common/hooks';
   import OperationBtnStatusTips from '@views/db-manage/common/OperationBtnStatusTips.vue';
   import useClusterTableSelect from '@views/db-manage/hooks/useClusterTableSelect';
@@ -250,7 +239,6 @@
 
   const operationColumnRef = ref<ComponentExposed<typeof OperationColumn>>();
   const tableRef = useTemplateRef<ComponentExposed<typeof ClusterTable>>('clusterTable');
-  const isShowExcelAuthorize = ref(false);
   const isShowClusterReset = ref(false);
   const currentData = ref<SqlServerSingleModel>();
 
@@ -283,11 +271,6 @@
   const handleResetCluster = (data: SqlServerSingleModel) => {
     currentData.value = data;
     isShowClusterReset.value = true;
-  };
-
-  // excel 授权
-  const handleShowExcelAuthorize = () => {
-    isShowExcelAuthorize.value = true;
   };
 
   const handleClearSelected = () => {

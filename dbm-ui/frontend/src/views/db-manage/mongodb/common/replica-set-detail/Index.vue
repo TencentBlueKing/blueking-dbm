@@ -25,6 +25,7 @@
             action-id="mongodb_authorize"
             class="ml-4"
             :permission="data.permission.mongodb_authorize"
+            :resource="data.id"
             size="small"
             @click="handleShowAuthorize">
             {{ t('授权') }}

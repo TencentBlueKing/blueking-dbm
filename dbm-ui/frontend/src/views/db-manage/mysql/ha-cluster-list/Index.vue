@@ -27,13 +27,12 @@
         :cluster-type="ClusterTypes.TENDBHA"
         :selected="selectedList"
         @success="handleBatchOperationSuccess" />
-      <AuthButton
+      <BkButton
         v-db-console="'mysql.haClusterList.importAuthorize'"
-        action-id="mysql_authorize"
         class="ml-8"
         @click="handleShowExcelAuthorize">
         {{ t('导入授权') }}
-      </AuthButton>
+      </BkButton>
       <DropdownExportExcel
         v-db-console="'mysql.haClusterList.export'"
         class="ml-8"
