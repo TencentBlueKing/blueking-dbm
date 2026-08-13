@@ -20,7 +20,8 @@ from .db_name_service.client import NameServiceApi
 from .db_remote_service.client import DRSApi
 from .dbconfig.client import DBConfigApi
 from .dns.client import DnsApi
-from .itsm.client import ItsmApi
+from .itsm.adapter import ItsmApiAdapter
+from .itsm.client import ItsmApi, ItsmV4Api
 from .job.client import JobApi
 from .mysql_priv_manager.client import DBPrivManagerApi
 from .mysqldtsapi.client import MySQLDTSApi
@@ -37,6 +38,8 @@ __all__ = [
     "CCApi",
     "JobApi",
     "ItsmApi",
+    "ItsmV4Api",
+    "ItsmApiAdapter",
     "UserManagerApi",
     "CmsiApi",
     "BKLogApi",
