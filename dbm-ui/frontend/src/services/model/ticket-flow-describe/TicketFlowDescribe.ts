@@ -86,19 +86,14 @@ export default class TicketFlowDescribe {
     return this.clusters.map((cluster) => cluster.immute_domain);
   }
 
-  // 是否业务策略（当前业务的策略）
-  get isBusinessPolicy() {
-    return this.bk_biz_id !== 0;
-  }
-
   // 是否子策略
   get isChildPolicy() {
     return this.is_child_config;
   }
 
-  // 是否自定义（业务策略已自定义，与全局策略脱钩）
+  // 是否自定义（业务策略即自定义，与全局策略脱钩）
   get isCustom() {
-    return this.isBusinessPolicy && this.has_child_config;
+    return this.bk_biz_id !== 0;
   }
 
   // 是否内置（全局策略）
