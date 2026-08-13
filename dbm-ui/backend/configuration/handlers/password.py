@@ -76,7 +76,7 @@ class DBPasswordHandler(object):
 
     @classmethod
     def get_instances_password(cls, filter_data):
-        db_type = filter_data.pop("db_type", None)
+        db_type = filter_data.get("db_type", None)
         if db_type not in DB_ADMIN_USER_MAP:
             raise PasswordPolicyBaseException(_("目前暂未支持{}类型的查询").format(db_type))
         filter_data["username"] = DB_ADMIN_USER_MAP[db_type]
