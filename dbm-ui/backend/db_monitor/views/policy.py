@@ -42,7 +42,7 @@ from backend.iam_app.handlers.drf_perm.base import (
     DBManagePermission,
     get_request_key_id,
 )
-from backend.iam_app.handlers.drf_perm.monitor import MonitorPolicyPermission
+from backend.iam_app.handlers.drf_perm.monitor import GlobalMonitorPolicyPermission
 from backend.iam_app.handlers.permission import Permission
 from backend.ticket.models import Ticket
 
@@ -169,14 +169,9 @@ class MonitorPolicyViewSet(AuditedModelViewSet):
         elif self.action in ["update_strategy", "destroy", "disable", "enable"]:
             policy_id = self.kwargs.get("pk")
             bk_biz_id = str(MonitorPolicy.objects.get(id=policy_id).bk_biz_id)
+            # 全局策略的编辑和启停
             if not int(bk_biz_id):
-                view_action_map = {
-                    "update_strategy": "update_strategy",
-                    "destroy": "destroy",
-                    "disable": "enable_disable",
-                    "enable": "enable_disable",
-                }
-                return [MonitorPolicyPermission(view_action=view_action_map[self.action])]
+                return [GlobalMonitorPolicyPermission(actions=[ActionEnum.GLOBAL_MONITOR_POLICY_MANAGE])]
             else:
                 permission = BizDBTypeResourceActionPermission(
                     [ActionEnum.MONITOR_POLICY_MANAGE],
