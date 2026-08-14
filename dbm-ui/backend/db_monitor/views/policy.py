@@ -171,7 +171,7 @@ class MonitorPolicyViewSet(AuditedModelViewSet):
             bk_biz_id = str(MonitorPolicy.objects.get(id=policy_id).bk_biz_id)
             # 全局策略的编辑和启停
             if not int(bk_biz_id):
-                return [GlobalMonitorPolicyPermission(actions=[ActionEnum.GLOBAL_MONITOR_POLICY_MANAGE])]
+                return [GlobalMonitorPolicyPermission(actions=[ActionEnum.GLOBAL_ALARM_POLICY_MANAGE])]
             else:
                 permission = BizDBTypeResourceActionPermission(
                     [ActionEnum.MONITOR_POLICY_MANAGE],
