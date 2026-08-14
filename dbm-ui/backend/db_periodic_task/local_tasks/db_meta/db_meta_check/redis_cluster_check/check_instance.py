@@ -22,6 +22,8 @@ from backend.db_meta.enums import ClusterPhase, ClusterType, InstanceRole, Insta
 from backend.db_meta.models import Cluster, ProxyInstance, StorageInstance
 from backend.db_meta.models.storage_instance_tuple import StorageInstanceTuple
 from backend.db_report.enums import MetaCheckSubType, ReportStateType
+from backend.db_report.portrait.redis_dimensions import RedisPortraitDimensionCode
+from backend.db_report.portrait.redis_ingest import ingest_abnormal_cluster_rows
 from backend.flow.utils.redis.redis_report_utils import (
     META_CHECK_CLUSTER_PAGE_SIZE,
     RedisReportWriter,
@@ -133,6 +135,14 @@ def check_redis_instance():
 
         if page_rows:
             safe_write_meta_reports(writer, page_rows, context="instance_check page")
+            ingest_abnormal_cluster_rows(
+                page_rows,
+                dimension=RedisPortraitDimensionCode.TOPOLOGY_SCALE,
+                prefix_by_subtype={
+                    MetaCheckSubType.AloneInstance.value: "[孤立实例]",
+                    MetaCheckSubType.StatusAbnormal.value: "[实例状态]",
+                },
+            )
 
 
 def _check_single_cluster_instance(cluster: Cluster, creator: str) -> List[dict]:

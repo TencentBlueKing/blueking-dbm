@@ -20,6 +20,8 @@ from backend.constants import IP_PORT_DIVIDER
 from backend.db_meta.enums import ClusterType, InstanceRole
 from backend.db_meta.models import Cluster, StorageInstance, StorageInstanceTuple
 from backend.db_report.enums import RedisBackupCheckSubType, ReportStateType
+from backend.db_report.portrait.redis_dimensions import RedisPortraitDimensionCode
+from backend.db_report.portrait.redis_ingest import ingest_abnormal_cluster_rows
 
 from .bklog_query import DOMAIN_BATCH_SIZE, batch_fetch_backup_logs, find_and_verify_failed_tasks
 from .config import RedisBackupCheckConfig
@@ -137,6 +139,11 @@ class CheckFullBackupTask:
                 rows = self._check_cluster_with_retry(cluster, bklogs, config)
                 if rows:
                     cluster_state_total[rows[0].state] += 1
+                    ingest_abnormal_cluster_rows(
+                        rows,
+                        dimension=RedisPortraitDimensionCode.RELIABILITY,
+                        prefix="[全备]",
+                    )
                 for row in rows:
                     batch_ops.append(row)
 

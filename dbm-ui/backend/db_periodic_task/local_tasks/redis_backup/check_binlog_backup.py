@@ -23,6 +23,8 @@ from backend.constants import IP_PORT_DIVIDER
 from backend.db_meta.enums import ClusterType, InstanceRole
 from backend.db_meta.models import Cluster, StorageInstance, StorageInstanceTuple
 from backend.db_report.enums import RedisBackupCheckSubType, ReportStateType
+from backend.db_report.portrait.redis_dimensions import RedisPortraitDimensionCode
+from backend.db_report.portrait.redis_ingest import ingest_abnormal_cluster_rows
 from backend.db_services.redis.util import is_tendisplus_instance_type, is_tendisssd_instance_type
 from backend.flow.consts import DEFAULT_DB_MODULE_ID, ConfigTypeEnum
 
@@ -261,6 +263,11 @@ class CheckBinlogBackupTask:
                 )
                 if rows:
                     cluster_state_total[rows[0].state] += 1
+                    ingest_abnormal_cluster_rows(
+                        rows,
+                        dimension=RedisPortraitDimensionCode.RELIABILITY,
+                        prefix="[binlog]",
+                    )
                 for row in rows:
                     batch_ops.append(row)
 
