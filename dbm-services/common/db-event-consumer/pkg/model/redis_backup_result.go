@@ -82,9 +82,9 @@ type RedisBackupResultModel struct {
 	base.BaseModel `json:",inline" gorm:"embedded" xorm:"extends"`
 
 	BackupType   string `json:"report_type" db:"backup_type" gorm:"column:backup_type;type:varchar(32);NOT NULL"`
-	ImmuteDomain string `json:"domain" db:"immute_domain" gorm:"column:immute_domain;type:varchar(255);NOT NULL;index:uk_cluster,unique,priority:1"`
-	BackupHost   string `json:"server_ip" db:"backup_host" gorm:"column:backup_host;type:varchar(32);NOT NULL;index:uk_cluster,unique,priority:2"`
-	BackupPort   int    `json:"server_port" db:"backup_port" gorm:"column:backup_port;type:int;NOT NULL;index:uk_cluster,unique,priority:3"`
+	ImmuteDomain string `json:"domain" db:"immute_domain" gorm:"column:immute_domain;type:varchar(255);NOT NULL"`
+	BackupHost   string `json:"server_ip" db:"backup_host" gorm:"column:backup_host;type:varchar(32);NOT NULL;index:uk_cluster,unique,priority:1"`
+	BackupPort   int    `json:"server_port" db:"backup_port" gorm:"column:backup_port;type:int;NOT NULL;index:uk_cluster,unique,priority:2"`
 	InstRole     string `json:"role" db:"redis_role" gorm:"column:redis_role;type:varchar(32);NOT NULL"`
 	DbType       string `json:"db_type" db:"redis_type" gorm:"column:redis_type;type:varchar(32);NOT NULL"`
 	// BillId          string `json:"bill_id" db:"bill_id" gorm:"column:bill_id;type:varchar(32);NOT NULL"`
@@ -93,7 +93,7 @@ type RedisBackupResultModel struct {
 
 	BackupTaskID   string `json:"backup_taskid" db:"backup_taskid" gorm:"column:backup_taskid;type:varchar(128);NOT NULL"`
 	BackupFilesize uint64 `json:"backup_file_size" db:"backup_file_size" gorm:"column:backup_file_size;type:bigint;NOT NULL"`
-	BackupFileName string `json:"backup_file" db:"backup_file" gorm:"column:backup_file;type:varchar(255);NOT NULL"`
+	BackupFileName string `json:"backup_file" db:"backup_file" gorm:"column:backup_file;type:varchar(255);NOT NULL;index:uk_cluster,unique,priority:3"`
 
 	ShardValue     string `json:"shard_value" db:"shard_value" gorm:"column:shard_value;type:varchar(255)"`
 	BackupTag      string `json:"backup_tag" db:"backup_tag" gorm:"column:backup_tag;type:varchar(255);NOT NULL"`
@@ -114,7 +114,7 @@ func (m *RedisBackupResultModel) TableName() string {
 
 // UniqueKey is used to handle duplicate record
 func (m *RedisBackupResultModel) UniqueKey() []string {
-	return []string{"backup_host", "backup_port", "backup_identify"}
+	return []string{"backup_host", "backup_port", "backup_file"}
 }
 
 func (m *RedisBackupResultModel) MigrateSchema(w base.DSWriter) error {
@@ -130,12 +130,21 @@ func (m *RedisBackupResultModel) MigrateSchema(w base.DSWriter) error {
 			return err
 		}
 		// 处理索引与其他约束
-		if err := base.CreateOrUpdateIndex(db, m.TableName(), "uk_hostport",
-			[]string{"backup_identify", "backup_host", "backup_port"}, true, true); err != nil {
+		// uk_cluster: 同一实例的同一个备份文件仅入一条记录, 避免 REPLACE 覆盖不同文件.
+		if err := base.CreateOrUpdateIndex(db, m.TableName(), "uk_cluster",
+			[]string{"backup_host", "backup_port", "backup_file"}, true, true); err != nil {
 			return err
 		}
-		if err := base.CreateOrUpdateIndex(db, m.TableName(), "idx_clustertime",
+		// 老版本可能残留 uk_hostport, 迁移到 uk_cluster 后清理掉
+		if err := dropIndexIfExists(db, m.TableName(), "uk_hostport"); err != nil {
+			return err
+		}
+		if err := base.CreateOrUpdateIndex(db, m.TableName(), "idx_domain_identify",
 			[]string{"immute_domain", "backup_identify"}, false, true); err != nil {
+			return err
+		}
+		// 老版本同字段索引名为 idx_clustertime, 已由 idx_domain_identify 取代, 清理掉
+		if err := dropIndexIfExists(db, m.TableName(), "idx_clustertime"); err != nil {
 			return err
 		}
 		if err := base.CreateOrUpdateIndex(db, m.TableName(), "idx_backupid",
