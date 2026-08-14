@@ -532,7 +532,7 @@ class RedisEntryCheckService(BaseService):
                     dimension=RedisPortraitDimensionCode.TOPOLOGY_SCALE,
                     prefix=_("[入口]"),
                 )
-            if not write_ok:
+            else:
                 try:
                     self._requeue_batch_to_redis(candidates_key, batch_cluster_ids)
                     self.log_warning(

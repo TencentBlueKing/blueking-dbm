@@ -60,8 +60,19 @@ def test_truncates_summary_and_detail_url(redis_ingest):
             )
         )
     kwargs = ingest.call_args.kwargs
-    assert len(kwargs["summary"]) == PortraitIngestSDK.MAX_SUMMARY_CHARS
+    assert kwargs["summary"] == "[全备] " + "x" * redis_ingest._MAX_MSG_CHARS
     assert len(kwargs["detail_url"]) == PortraitIngestSDK.MAX_DETAIL_URL_CHARS
+
+
+def test_build_summary_keeps_count_tail_when_msgs_are_long(redis_ingest):
+    msgs = ["x" * 1000] * 10
+    with patch.object(redis_ingest, "ingest_summary") as ingest:
+        redis_ingest.ingest_redis_cluster_summary(**_kwargs(redis_ingest, messages=msgs))
+    summary = ingest.call_args.kwargs["summary"]
+    assert summary.startswith("[全备] ")
+    assert summary.endswith("等共 10 项")
+    assert "x" * 1000 not in summary
+    assert len(summary) <= PortraitIngestSDK.MAX_SUMMARY_CHARS
 
 
 def test_sdk_exception_not_raised(redis_ingest):
@@ -86,6 +97,24 @@ def test_always_writes_abnormal(redis_ingest):
         redis_ingest.ingest_redis_cluster_summary(**_kwargs(redis_ingest))
         redis_ingest.ingest_redis_cluster_summary(**_kwargs(redis_ingest))
     assert ingest.call_count == 2
+
+
+def test_dirty_cluster_identity_skips_row_not_batch(redis_ingest):
+    good = SimpleNamespace(immute_domain="a.redis.db", bk_biz_id=1001)
+    dirty = SimpleNamespace(immute_domain="b.redis.db", bk_biz_id=None)
+    rows = [
+        {"cluster": dirty, "state": ReportStateType.ABNORMAL, "msg": "bad biz", "subtype": "alone_instance"},
+        {"cluster": good, "state": ReportStateType.ABNORMAL, "msg": "lonely master", "subtype": "alone_instance"},
+    ]
+    with patch.object(redis_ingest, "ingest_redis_cluster_summary") as ingest:
+        redis_ingest.ingest_abnormal_cluster_rows(
+            rows,
+            dimension=RedisPortraitDimensionCode.TOPOLOGY_SCALE,
+            prefix="[孤立实例]",
+        )
+    ingest.assert_called_once()
+    assert ingest.call_args.kwargs["cluster_domain"] == "a.redis.db"
+    assert ingest.call_args.kwargs["messages"] == ["lonely master"]
 
 
 def test_ingest_abnormal_rows_groups_and_skips_normal(redis_ingest):

@@ -36,6 +36,8 @@ from backend.db_report.portrait.sdk import PortraitIngestSDK, ingest_summary
 logger = logging.getLogger("root")
 
 MAX_MSGS_PER_SUMMARY = 8
+# 单条消息上限：8 条 + 前缀 + 「等共 N 项」仍远低于 SDK 4000 字符硬顶，避免硬切把尾巴截掉。
+_MAX_MSG_CHARS = 400
 # 与 weekly_ai_summary._extract_last_ai_block 对齐：无结束标记时最多取 8 行。
 _LEGACY_AI_BLOCK_MAX_LINES = 8
 _ROLLBACK_FALLBACK_CHARS = 800
@@ -53,6 +55,15 @@ def _truncate(text: str, limit: int) -> str:
     return text[:limit]
 
 
+def _safe_int(value: Any, default: int = 0) -> int:
+    try:
+        if value is None or value == "":
+            return default
+        return int(value)
+    except (TypeError, ValueError):
+        return default
+
+
 def _row_get(row: Any, key: str, default: Any = None) -> Any:
     if isinstance(row, dict):
         return row.get(key, default)
@@ -62,10 +73,9 @@ def _row_get(row: Any, key: str, default: Any = None) -> Any:
 def _cluster_identity(row: Any) -> Tuple[str, int]:
     cluster = _row_get(row, "cluster")
     if cluster is not None and hasattr(cluster, "immute_domain"):
-        return cluster.immute_domain, int(cluster.bk_biz_id)
+        return str(cluster.immute_domain or ""), _safe_int(getattr(cluster, "bk_biz_id", None))
     domain = cluster or _row_get(row, "cluster_domain") or ""
-    bk_biz_id = int(_row_get(row, "bk_biz_id") or 0)
-    return str(domain), bk_biz_id
+    return str(domain), _safe_int(_row_get(row, "bk_biz_id"))
 
 
 def _is_normal_state(state: Any) -> bool:
@@ -73,7 +83,7 @@ def _is_normal_state(state: Any) -> bool:
 
 
 def _build_summary(prefix: str, messages: List[str]) -> str:
-    clipped = list(messages)
+    clipped = [_truncate(m, _MAX_MSG_CHARS) for m in messages]
     if len(clipped) > MAX_MSGS_PER_SUMMARY:
         clipped = clipped[:MAX_MSGS_PER_SUMMARY] + [_("等共 {n} 项").format(n=len(messages))]
     return f"{prefix} " + "；".join(clipped)
