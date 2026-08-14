@@ -37,16 +37,11 @@ const (
 	DatabaseName            = "dbha_data"
 	DbhaDataStatusTableName = "t_dbha_status"
 
-	// Per-harvest-type tables reuse the DbhaDataStatus schema but isolate collection groups
-	// with different cadences (high or low frequency) from the core t_dbha_status snapshot
-	// table. Naming follows t_dbha_status_{HarvestType}.
-	DbhaDataStatusHeartbeatTableName = "t_dbha_status_heartbeat"
-	DbhaDataStatusReplDelayTableName = "t_dbha_status_repldelay"
-
 	DbhaStatusFieldSequenceID      = "sequence_id"
 	DbhaStatusFieldMachineID       = "machine_id"
 	DbhaStatusFieldAgentID         = "agent_id"
 	DbhaStatusFieldBkCloudID       = "bk_cloud_id"
+	DbhaStatusFieldHarvestType     = "harvest_type"
 	DbhaStatusFieldIPs             = "ips"
 	DbhaStatusFieldMessageID       = "message_id"
 	DbhaStatusFieldServiceID       = "service_id"
@@ -65,35 +60,15 @@ const (
 	DbhaStatusFieldDeletedAt       = "deleted_at"
 )
 
-// DbhaStatusExtraTables lists the per-harvest-type tables (besides the core
-// DbhaDataStatusTableName) that share the DbhaDataStatus schema and must be migrated.
-var DbhaStatusExtraTables = []string{
-	DbhaDataStatusHeartbeatTableName,
-	DbhaDataStatusReplDelayTableName,
-}
-
-// GetDbhaStatusTableName maps a HarvestType to its storage table name. It is fail-safe: an
-// empty or unknown HarvestType falls back to the core table so no reported data is ever
-// dropped. The bool return reports whether the type was a recognized enum value.
-func GetDbhaStatusTableName(ht haprobe.HarvestType) (string, bool) {
-	switch ht {
-	case haprobe.HarvestTypeHeartbeat:
-		return DbhaDataStatusHeartbeatTableName, true
-	case haprobe.HarvestTypeReplDelay:
-		return DbhaDataStatusReplDelayTableName, true
-	case haprobe.HarvestTypeDefault, "":
-		return DbhaDataStatusTableName, true
-	default:
-		return DbhaDataStatusTableName, false
-	}
-}
-
-// DbhaDataStatus contains system and databases metrics
+// DbhaDataStatus contains system and databases metrics.
+// Primary key includes harvest_type so one instance can keep one row per collection group
+// (default / heartbeat / repldelay) in the same table.
 type DbhaDataStatus struct {
 	MachineID       string                             `gorm:"column:machine_id;primaryKey"`
 	BkCloudID       int                                `gorm:"column:bk_cloud_id;primaryKey"`
 	DbIp            string                             `gorm:"column:db_ip;primaryKey"`
 	DbPort          int                                `gorm:"column:db_port;primaryKey"`
+	HarvestType     haprobe.HarvestType                `gorm:"column:harvest_type;primaryKey;type:varchar(32);not null"`
 	SequenceID      uint64                             `gorm:"column:sequence_id"`
 	AgentID         string                             `gorm:"column:agent_id"`
 	IPs             JSON[[]string]                     `gorm:"column:ips;type:json"`
@@ -132,6 +107,7 @@ func NewDbhaData(msg *haprobe.HarvestData) *DbhaDataStatus {
 	data.InstanceRole = msg.InstanceRole
 	data.DbIp = msg.DbIp
 	data.DbPort = msg.DbPort
+	data.HarvestType = msg.HarvestType
 	data.ReportTimestamp = msg.ReportTimestamp
 
 	if msg.Host != nil {

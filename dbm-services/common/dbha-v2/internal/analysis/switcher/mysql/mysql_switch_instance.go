@@ -111,7 +111,6 @@ type SlaveStatusInfo struct {
 // SlaveTimeDelayInfo contains slave replication delay information
 type SlaveTimeDelayInfo struct {
 	SlaveHeartbeatDelay float64 `gorm:"column:heartbeat_delay"`
-	SlaveIODelay        float64 `gorm:"column:io_delay"`
 }
 
 // MasterStatusInfo represents MySQL master status information

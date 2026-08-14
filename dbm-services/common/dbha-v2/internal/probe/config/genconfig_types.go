@@ -48,8 +48,8 @@ type probeMySQLHarvesterYAML struct {
 	User              string             `yaml:"user"`
 	Password          string             `yaml:"password"`
 	Interval          string             `yaml:"interval"`
-	HeartbeatInterval string             `yaml:"heartbeatInterval"`
-	ReplDelayInterval string             `yaml:"replDelayInterval"`
+	HeartbeatInterval string             `yaml:"heartbeatInterval,omitempty"`
+	ReplDelayInterval string             `yaml:"replDelayInterval,omitempty"`
 	Timeout           string             `yaml:"timeout"`
 	Endpoints         []DbEndpointConfig `yaml:"endpoints"`
 }

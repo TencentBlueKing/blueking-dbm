@@ -31,13 +31,12 @@ import (
 
 	"dbm-services/common/dbha-v2/internal/probe/harvester/base"
 	"dbm-services/common/dbha-v2/pkg/converter"
+	"dbm-services/common/dbha-v2/pkg/gerrors"
 	"dbm-services/common/dbha-v2/pkg/hanet"
 	"dbm-services/common/dbha-v2/pkg/logger"
 	"dbm-services/common/dbha-v2/pkg/storage/hamodel"
 	"dbm-services/common/dbha-v2/pkg/storage/hamysql"
 	"dbm-services/common/dbha-v2/pkg/storage/haprobe"
-
-	"github.com/gogf/gf/v2/errors/gerror"
 )
 
 const (
@@ -413,7 +412,8 @@ func (c *collector) obtainHeartbeatStatus(writeBinlog bool, writeMaxAttempts int
 				attempt, writeMaxAttempts, host, port, heartbeatStatus.WriteFailureReason)
 			select {
 			case <-parentCtx.Done():
-				return heartbeatStatus, gerror.New("context done before heartbeat write success")
+				return heartbeatStatus, gerrors.New(gerrors.Failure,
+					"context done before heartbeat write success")
 			case <-time.After(heartbeatWriteRetryInterval):
 			}
 		}
