@@ -26,6 +26,19 @@ import (
 // DoParseSQLTables 对本地 SQL 文件执行 tmysqlparse，原样返回每行 ParseIncludeTableBase。
 // 不做库表聚合，不收集外键引用表。
 func (tf *TmysqlParseFile) DoParseSQLTables(version string) (queries []ParseIncludeTableBase, err error) {
+	byFile, err := tf.DoParseSQLTablesByFile(version)
+	if err != nil {
+		return nil, err
+	}
+	for _, fileName := range tf.uniqueFileNames() {
+		queries = append(queries, byFile[fileName]...)
+	}
+	return queries, nil
+}
+
+// DoParseSQLTablesByFile 对 SQL 文件执行 tmysqlparse，按文件名保留解析行，不打平。
+func (tf *TmysqlParseFile) DoParseSQLTablesByFile(version string) (
+	byFile map[string][]ParseIncludeTableBase, err error) {
 	tf.result = make(map[string]*CheckInfo)
 	tf.tmpWorkdir = tf.BaseWorkdir
 	tf.mu = sync.Mutex{}
@@ -51,17 +64,18 @@ func (tf *TmysqlParseFile) DoParseSQLTables(version string) (queries []ParseIncl
 		close(executedSqlFileChan)
 	}()
 
+	byFile = make(map[string][]ParseIncludeTableBase)
 	for fileName := range executedSqlFileChan {
 		items, perr := tf.parseIncludeTableLines(fileName, version)
 		if perr != nil {
 			return nil, perr
 		}
-		queries = append(queries, items...)
+		byFile[fileName] = items
 	}
 	if execErr != nil {
 		return nil, execErr
 	}
-	return queries, nil
+	return byFile, nil
 }
 
 // parseIncludeTableLines 逐行读取 tmysqlparse NDJSON 输出，反序列化为 ParseIncludeTableBase。

@@ -77,6 +77,8 @@ const (
 	SQLTypeReplaceSelect = "replace_select"
 	// SQLTypeDropTable drop table sql
 	SQLTypeDropTable = "drop_table"
+	// SQLTypeTruncate truncate table sql
+	SQLTypeTruncate = "truncate"
 	// SQLTypeCreateIndex is create table sql
 	SQLTypeCreateIndex = "create_index"
 	// SQLTypeSetOption is set option sql
@@ -391,11 +393,15 @@ type UpdateResult struct {
 
 // ParseIncludeTableBase parse include table
 type ParseIncludeTableBase struct {
-	QueryID   int    `json:"query_id"`
-	Command   string `json:"command"`
-	DbName    string `json:"db_name"`
-	TableName string `json:"table_name"`
-	ErrorLine int64  `json:"error_line"`
+	QueryID         int    `json:"query_id"`
+	Command         string `json:"command"`
+	DbName          string `json:"db_name"`
+	TableName       string `json:"table_name"`
+	QueryString     string `json:"query_string,omitempty"`
+	QueryDigestText string `json:"query_digest_text,omitempty"`
+	ErrorCode       int    `json:"error_code,omitempty"`
+	ErrorMsg        string `json:"error_msg,omitempty"`
+	ErrorLine       int64  `json:"error_line"`
 }
 
 type RenameTableResult struct {
