@@ -120,6 +120,7 @@ class DBBaseViewSet(viewsets.SystemViewSet):
             "update_cluster_tag",
             "remove_cluster_tag_keys",
             "add_cluster_tag_keys",
+            "update_cluster_meta",
         ): [ClusterEditPermission()],
         (
             "filter_clusters",
