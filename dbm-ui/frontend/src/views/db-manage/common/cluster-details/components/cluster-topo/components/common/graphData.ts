@@ -19,6 +19,17 @@ import { ClusterTypes, DBTypes } from '@common/const';
 
 export type NodeConfig = Partial<typeof defaultNodeConfig>;
 
+/** 拓扑图节点文案：ip:port + 可展示的 Mongo instance_state（隐藏 NOT_INITIALIZED/SECONDARY） */
+const HIDDEN_INSTANCE_STATES = new Set(['NOT_INITIALIZED', 'SECONDARY']);
+
+const formatTopoNodeName = (node: ResourceTopo['nodes'][number]) => {
+  const state = node.instance_state;
+  if (!state || HIDDEN_INSTANCE_STATES.has(state)) {
+    return node.node_id;
+  }
+  return `${node.node_id} ${state}`;
+};
+
 // 节点连线结构
 export interface GraphLine {
   id: string;
@@ -564,7 +575,7 @@ export class GraphData {
         children: [],
         data: item,
         id: item.node_id,
-        name: item.node_id,
+        name: formatTopoNodeName(item),
         style: {
           height: 44,
           width: 192,
@@ -631,7 +642,7 @@ export class GraphData {
               children: [],
               data: node,
               id: node.node_id,
-              name: node.node_id,
+              name: formatTopoNodeName(node),
               style: {
                 height: this.nodeConfig.itemHeight,
                 width: this.nodeConfig.width,
@@ -712,7 +723,7 @@ export class GraphData {
               children: [],
               data: node,
               id: node.node_id,
-              name: node.node_id,
+              name: formatTopoNodeName(node),
               style: {
                 height: this.nodeConfig.itemHeight,
                 width: this.nodeConfig.width,

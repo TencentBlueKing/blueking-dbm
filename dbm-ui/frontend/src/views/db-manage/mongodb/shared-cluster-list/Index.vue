@@ -210,7 +210,11 @@
           :is-filter="isSearching"
           label="ConfigSvr"
           :selected-list="selectedList"
-          @go-detail="handleToDetails" />
+          @go-detail="handleToDetails">
+          <template #nodeTag="{ data }">
+            <MongoNodeTags :data="data" />
+          </template>
+        </RoleColumn>
         <RoleColumn
           :cluster-type="ClusterTypes.MONGO_SHARED_CLUSTER"
           field="mongos"
@@ -226,7 +230,11 @@
           :is-filter="isSearching"
           label="ShardSvr"
           :selected-list="selectedList"
-          @go-detail="handleToDetails" />
+          @go-detail="handleToDetails">
+          <template #nodeTag="{ data }">
+            <MongoNodeTags :data="data" />
+          </template>
+        </RoleColumn>
       </template>
     </ClusterTable>
   </div>
@@ -283,6 +291,7 @@
   import useClusterTableSelect from '@views/db-manage/hooks/useClusterTableSelect';
   import useGoClusterDetail from '@views/db-manage/hooks/useGoClusterDetail';
   import AccessEntry from '@views/db-manage/mongodb/common/cluster-operations/AccessEntry.vue';
+  import MongoNodeTags from '@views/db-manage/mongodb/common/MongoNodeTags.vue';
   import ShardClusterDetail from '@views/db-manage/mongodb/common/shared-cluster-detail/Index.vue';
 
   const { t } = useI18n();

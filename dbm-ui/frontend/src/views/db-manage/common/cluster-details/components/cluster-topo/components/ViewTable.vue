@@ -16,43 +16,53 @@
           ref="scrollContent"
           @scroll="handleContentScroller">
           <div style="padding: 0 12px">
-            <div
-              v-for="nodeItem in clusterRoleNodeGroup[groupName]"
-              :key="`${nodeItem.bk_instance_id}#${nodeItem.instance}`"
-              style="display: flex; align-items: center">
-              <ClusterInstanceStatus
-                :data="nodeItem.status"
-                :show-text="false" />
+            <template
+              v-for="rowItem in getGroupRows(clusterRoleNodeGroup[groupName])"
+              :key="rowItem.type === 'shard' ? `shard#${rowItem.segRange}` : `${rowItem.node.bk_instance_id}#${rowItem.node.instance}`">
               <div
-                class="ml-4 mr-4"
-                :style="{
-                  color: nodeItem.status === 'unavailable' ? '#c4c6cc' : '',
-                }">
-                <TextHighlight
-                  high-light-color="#ff8204"
-                  :keyword="serachInstacnce">
-                  {{ nodeItem.displayInstance || nodeItem.instance }}
-                </TextHighlight>
+                v-if="rowItem.type === 'shard'"
+                class="shard-group-title">
+                {{ rowItem.segRange }} ({{ rowItem.count }})
               </div>
-              <BkTag
-                v-if="nodeItem.isStandBy"
-                class="cluster-specific-flag ml-4"
-                size="small">
-                Standby
-              </BkTag>
-              <BkTag
-                v-if="nodeItem.isPrimary"
-                class="cluster-specific-flag ml-4"
-                size="small">
-                Primary
-              </BkTag>
-              <BkTag
-                v-if="nodeItem.status === 'unavailable'"
-                class="ml-4"
-                size="small">
-                {{ t('不可用') }}
-              </BkTag>
-            </div>
+              <div
+                v-else
+                class="node-row"
+                :class="{ 'is-shard-child': hasSegRangeGroup(clusterRoleNodeGroup[groupName]) }">
+                <ClusterInstanceStatus
+                  :data="rowItem.node.status"
+                  :show-text="false" />
+                <div
+                  class="ml-4 mr-4"
+                  :style="{
+                    color: rowItem.node.status === 'unavailable' ? '#c4c6cc' : '',
+                  }">
+                  <TextHighlight
+                    high-light-color="#ff8204"
+                    :keyword="serachInstacnce">
+                    {{ rowItem.node.displayInstance || rowItem.node.instance }}
+                  </TextHighlight>
+                </div>
+                <MongoNodeTags :data="rowItem.node" />
+                <BkTag
+                  v-if="!rowItem.node.instance_role && !rowItem.node.mongodb_state && rowItem.node.isStandBy"
+                  class="cluster-specific-flag ml-4"
+                  size="small">
+                  Standby
+                </BkTag>
+                <BkTag
+                  v-if="!rowItem.node.instance_role && !rowItem.node.mongodb_state && rowItem.node.isPrimary"
+                  class="cluster-specific-flag ml-4"
+                  size="small">
+                  Primary
+                </BkTag>
+                <BkTag
+                  v-if="rowItem.node.status === 'unavailable'"
+                  class="ml-4"
+                  size="small">
+                  {{ t('不可用') }}
+                </BkTag>
+              </div>
+            </template>
             <span v-if="clusterRoleNodeGroup[groupName].length < 1">--</span>
           </div>
         </ScrollFaker>
@@ -73,13 +83,29 @@
   import ScrollFaker from '@components/scroll-faker/Index.vue';
   import TextHighlight from '@components/text-highlight/Index.vue';
 
+  import MongoNodeTags from '@views/db-manage/mongodb/common/MongoNodeTags.vue';
+
   import { execCopy, messageWarn } from '@utils';
 
+  type NodeItem = {
+    displayInstance?: string;
+    isPrimary?: boolean;
+    isStandBy?: boolean;
+  } & ClusterListNode;
+
+  type GroupRow =
+    | {
+        count: number;
+        segRange: string;
+        type: 'shard';
+      }
+    | {
+        node: NodeItem;
+        type: 'node';
+      };
+
   interface Props {
-    clusterRoleNodeGroup: Record<
-      string,
-      ({ displayInstance?: string; isPrimary?: boolean; isStandBy?: boolean } & ClusterListNode)[]
-    >;
+    clusterRoleNodeGroup: Record<string, NodeItem[]>;
   }
 
   defineProps<Props>();
@@ -90,6 +116,33 @@
   const serachInstacnce = getSearchParams().instance || '';
 
   const scrollContentRef = useTemplateRef<InstanceType<typeof ScrollFaker>[]>('scrollContent');
+
+  const hasSegRangeGroup = (nodeList: NodeItem[]) => nodeList.some((item) => Boolean(item.seg_range));
+
+  /** 相邻同名分片合并：先插分组标题，再列节点（无 seg_range 时保持扁平列表） */
+  const getGroupRows = (nodeList: NodeItem[]): GroupRow[] => {
+    if (!hasSegRangeGroup(nodeList)) {
+      return nodeList.map((node) => ({ type: 'node' as const, node }));
+    }
+
+    const rows: GroupRow[] = [];
+    let index = 0;
+    while (index < nodeList.length) {
+      const segRange = nodeList[index].seg_range || '';
+      let end = index + 1;
+      while (end < nodeList.length && (nodeList[end].seg_range || '') === segRange) {
+        end += 1;
+      }
+      if (segRange) {
+        rows.push({ type: 'shard', segRange, count: end - index });
+      }
+      for (let i = index; i < end; i += 1) {
+        rows.push({ type: 'node', node: nodeList[i] });
+      }
+      index = end;
+    }
+    return rows;
+  };
 
   const handleCopyHost = (nodeList: ClusterListNode[]) => {
     const ipList = _.uniq(nodeList.map((item) => item.ip));
@@ -169,6 +222,22 @@
 
         .cell-copy-btn {
           visibility: hidden;
+        }
+
+        .shard-group-title {
+          margin-top: 6px;
+          margin-bottom: 2px;
+          font-weight: 500;
+          color: #63656e;
+        }
+
+        .node-row {
+          display: flex;
+          align-items: center;
+
+          &.is-shard-child {
+            padding-left: 8px;
+          }
         }
       }
     }

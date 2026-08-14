@@ -5,10 +5,16 @@ export interface ClusterListNode {
   bk_instance_id: number;
   bk_sub_zone: string;
   instance: string;
+  /** MongoDB：元数据角色 m1/m2/…/backup */
+  instance_role?: string;
   ip: string;
+  /** MongoDB：巡检运行时状态 PRIMARY/SECONDARY/… */
+  mongodb_state?: string | null;
   name: string;
   phase: string;
   port: number;
+  /** MongoDB 分片：ShardSvr 分片名 */
+  seg_range?: string;
   spec_config: {
     count: number;
     cpu: {

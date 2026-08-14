@@ -23,12 +23,12 @@ def scan_cluster(cluster: Cluster) -> Graphic:
     """
     graph = Graphic(node_id=Graphic.generate_graphic_id(cluster))
 
-    # 获得primary节点访问组
-    m1_inst, m1_primary_group = graph.add_instance_nodes_with_machine_type(
-        cluster=cluster, roles=InstanceRole.MONGO_M1, machine_type=MachineType.MONGODB, group_name=_("M1 Primary 节点")
+    # M1 节点组（元数据角色；运行时 PRIMARY 等状态由 instance_state 展示）
+    m1_inst, m1_group = graph.add_instance_nodes_with_machine_type(
+        cluster=cluster, roles=InstanceRole.MONGO_M1, machine_type=MachineType.MONGODB, group_name=_("M1 节点")
     )
 
-    # 获得secondary节点访问组
+    # secondary 角色节点组（m2…m10）
     secondary_roles = [
         InstanceRole.MONGO_M2,
         InstanceRole.MONGO_M3,
@@ -42,13 +42,16 @@ def scan_cluster(cluster: Cluster) -> Graphic:
     ]
     for role in secondary_roles:
         _dummy, secondary_group = graph.add_instance_nodes_with_machine_type(
-            cluster=cluster, roles=role, machine_type=MachineType.MONGODB, group_name=_("{} 节点".format(role))
+            cluster=cluster,
+            roles=role,
+            machine_type=MachineType.MONGODB,
+            group_name=_("{} 节点").format(role.value),
         )
-        # m1 primary ----> secondary
+        # m1 ----> secondary
         if secondary_group:
-            graph.add_line(source=m1_primary_group, target=secondary_group, label=LineLabel.Rep)
+            graph.add_line(source=m1_group, target=secondary_group, label=LineLabel.Rep)
 
-    # 获得backup节点访问组
+    # Backup 节点组
     __, backup_group = graph.add_instance_nodes_with_machine_type(
         cluster=cluster, roles=InstanceRole.MONGO_BACKUP, machine_type=MachineType.MONGODB, group_name=_("Backup 节点")
     )
@@ -57,9 +60,9 @@ def scan_cluster(cluster: Cluster) -> Graphic:
     entry = m1_inst.first().bind_entry.first()
     __, entry_group = graph.add_node(entry)
 
-    # 访问入口 ----> m1 primary
-    graph.add_line(source=entry_group, target=m1_primary_group, label=LineLabel.Bind)
-    # m1 primary ----> backup
-    graph.add_line(source=m1_primary_group, target=backup_group, label=LineLabel.Rep)
+    # 访问入口 ----> m1
+    graph.add_line(source=entry_group, target=m1_group, label=LineLabel.Bind)
+    # m1 ----> backup
+    graph.add_line(source=m1_group, target=backup_group, label=LineLabel.Rep)
 
     return graph
