@@ -14,7 +14,7 @@ from django.db.models import Q
 from django.utils.translation import gettext_lazy as _
 
 from backend.components.kubernetes.client import KubernetesApi
-from backend.db_meta.models import AppCache, Cluster
+from backend.db_meta.models import AppCache, Cluster, Tag
 from backend.db_services.dbbase.resources import query
 from backend.db_services.dbbase.resources.query import CommonExportQueryResourceMixin, ResourceList
 from backend.db_services.kubernetes.utils import offset_to_page
@@ -347,3 +347,58 @@ class KubernetesBaseListRetrieveResource(query.ListRetrieveResource, KubernetesB
     def get_component_spec(cls, query_params):
         res = KubernetesApi.cluster_describe(query_params, use_admin=True)
         return res
+
+    @classmethod
+    def update_cluster_meta(
+        cls,
+        bk_biz_id: int,
+        cluster_id: int,
+        bk_username: str,
+        updated_by: str = None,
+        cluster_alias: str = None,
+        tags: List[Dict] = None,
+    ) -> None:
+        """
+        更新 K8s 集群的别名/标签，并同步到 DBS 端
+        """
+        from backend.db_meta.enums.comm import TagType
+
+        cluster = Cluster.objects.get(bk_biz_id=bk_biz_id, id=cluster_id)
+
+        if cluster_alias is not None:
+            cluster.alias = cluster_alias
+            cluster.save(update_fields=["alias"])
+
+        if tags is not None:
+            tag_objs = []
+            for tag_item in tags:
+                (tag_key,) = tag_item.keys()
+                (tag_value,) = tag_item.values()
+                if not tag_key:
+                    continue
+                tag, _ = Tag.objects.update_or_create(
+                    bk_biz_id=bk_biz_id, key=tag_key, value=tag_value, type=TagType.CLUSTER
+                )
+                tag_objs.append(tag)
+            cluster.tags.clear()
+            cluster.tags.add(*tag_objs)
+
+        cluster_detail = KubernetesApi.cluster_detail({"cluster_id": cluster.id}, use_admin=True)
+        k8s_cluster_name = cluster_detail.get("k8sClusterConfig", {}).get("clusterName", "")
+        namespace = cluster_detail.get("namespace", "")
+        params = {
+            "bk_username": bk_username,
+            "dbmClusterId": cluster.id,
+            "updatedBy": updated_by or bk_username,
+            "k8sClusterName": k8s_cluster_name,
+            "namespace": namespace,
+            "clusterName": cluster.name,
+        }
+        if cluster_alias is not None:
+            params["clusterAlias"] = cluster_alias
+        if tags is not None:
+            dbs_existing_tags = [t.get("clusterTag") for t in cluster_detail.get("tags", []) if t.get("clusterTag")]
+            new_tags = [f"{list(t.keys())[0]}:{list(t.values())[0]}" for t in tags]
+            merged_tags = list(dict.fromkeys(dbs_existing_tags + new_tags))
+            params["tags"] = merged_tags
+        KubernetesApi.update_cluster_meta(params, use_admin=True)
