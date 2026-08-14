@@ -153,6 +153,11 @@ class _KubernetesApi(BaseApi):
         self.add_operation_log = self.generate_data_api(
             method="POST", url="/v4/dbs/metadata/cluster_operation_log", description=_("添加操作日志")
         )
+        self.update_cluster_meta = self.generate_data_api(
+            method="POST",
+            url="/v4/dbs/metadata/cluster/update_meta",
+            description=_("更新集群元数据（别名/描述/标签）"),
+        )
 
 
 KubernetesApi = _KubernetesApi()
