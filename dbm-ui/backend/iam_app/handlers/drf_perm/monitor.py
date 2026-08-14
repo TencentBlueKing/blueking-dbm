@@ -16,7 +16,7 @@ from django.utils.translation import gettext as _
 from backend import env
 from backend.components import BKMonitorV3Api
 from backend.db_meta.models import Cluster
-from backend.db_monitor.models import NoticeGroup
+from backend.db_monitor.models import MonitorPolicy, NoticeGroup
 from backend.db_monitor.utils import parse_shield_description_biz
 from backend.iam_app.dataclass.actions import ActionEnum, ActionMeta
 from backend.iam_app.dataclass.resources import ResourceEnum, ResourceMeta
@@ -74,9 +74,10 @@ class GlobalMonitorPolicyPermission(ResourceActionPermission):
     def instance_ids_getter(self, request, view):
         # 获取策略ID后，决定动作和资源类型
         policy_id = view.kwargs.get("pk") or request.data["parent_id"]
-        self.resource_meta = ResourceEnum.MONITOR_POLICY
+        policy = MonitorPolicy.objects.filter(id=int(policy_id)).first()
+        self.resource_meta = ResourceEnum.DBTYPE
 
-        return [policy_id]
+        return [policy.db_type]
 
     def has_object_permission(self, request, view, obj):
         """策略鉴权已经在has permission完成了，无需obj鉴权"""
