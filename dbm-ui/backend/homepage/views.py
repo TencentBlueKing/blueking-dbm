@@ -39,7 +39,13 @@ class HomeView(APIView):
     @xframe_options_exempt
     @method_decorator(login_required(redirect_field_name="c_url"))
     def get(self, request):
-        context = {"SITE_URL": settings.SITE_URL[:-1]}
+        subpath = settings.BK_SUBPATH_PREFIX.rstrip("/") + "/" if settings.BK_SUBPATH_PREFIX else "/"
+        context = {
+            "SITE_URL": settings.SITE_URL[:-1],
+            "BK_SITE_PATH": subpath,
+            "BK_STATIC_URL": subpath,
+            "BK_AJAX_URL": subpath,
+        }
         return Response(context)
 
     @action(methods=["GET"], detail=False)

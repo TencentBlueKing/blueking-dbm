@@ -337,3 +337,16 @@ ENABLE_DBHA_V2_SWITCH_LOG = get_type_env(key="ENABLE_DBHA_V2_SWITCH_LOG", _type=
 #          否则会在下游 OsTimeZoneInitBase._resolve_offset 阶段抛异常（快速失败，不做静默兼容）。
 # 示例：ENABLE_DB_MACHINE_TIMEZONE_RESET="+08:00" -> 归还机器前统一还原为东八区
 ENABLE_DB_MACHINE_TIMEZONE_RESET = get_type_env(key="ENABLE_DB_MACHINE_TIMEZONE_RESET", _type=str, default="")
+
+# ==========================================
+# 子路径配置
+# ==========================================
+BK_SUBPATH_ENABLED = get_type_env(key="BK_SUBPATH_ENABLED", _type=bool, default=False)
+BK_SUBPATH_PREFIX = get_type_env(key="BK_SUBPATH_PREFIX", _type=str, default="")
+
+# 蓝鲸主域名（子路径模式下为 bk.example.com）
+BK_PAAS_DOMAIN = get_type_env(key="BK_PAAS_DOMAIN", _type=str, default="")
+
+# 外部系统 baseUrl（子路径适配）
+BK_IAM_URL = get_type_env(key="BK_IAM_URL", _type=str, default="")
+BK_MONITOR_URL = get_type_env(key="BK_MONITOR_URL", _type=str, default="")

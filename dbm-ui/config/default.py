@@ -11,6 +11,7 @@ specific language governing permissions and limitations under the License.
 from pathlib import Path
 from typing import Dict
 
+import os
 import pymysql
 import urllib3  # noqa: E402
 from bkcrypto import constants
@@ -191,7 +192,7 @@ MIDDLEWARE = (
     # 'django.middleware.clickjacking.XFrameOptionsMiddleware',
     "django.middleware.security.SecurityMiddleware",
     # 蓝鲸静态资源服务
-    "whitenoise.middleware.WhiteNoiseMiddleware",
+    "backend.bk_web.whitenoise.WhiteNoiseMiddleware",
     # Auth middleware
     "blueapps.account.middlewares.RioLoginRequiredMiddleware",
     "blueapps.account.middlewares.WeixinLoginRequiredMiddleware",
@@ -489,13 +490,20 @@ TIME_ZONE = "Etc/GMT-8"
 
 USE_TZ = True
 
-SITE_URL = "/"
-
+# 改为支持子路径前缀
+BK_SUBPATH_PREFIX = os.getenv("BK_SUBPATH_PREFIX", "")
+SITE_URL = BK_SUBPATH_PREFIX if BK_SUBPATH_PREFIX else "/"
+FORCE_SCRIPT_NAME = os.getenv("FORCE_SCRIPT_NAME", "") or None
 # Static storages (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/3.2/howto/static-files/
 SECURE_CONTENT_TYPE_NOSNIFF = False
 
-STATIC_URL = "static/"
+# STATIC_URL 包含子路径前缀，确保 {% static %} 标签生成 /bkdbm/static/... 的完整 URL
+STATIC_URL = f"{BK_SUBPATH_PREFIX}/static/" if BK_SUBPATH_PREFIX else "/static/"
+
+# Static storages (CSS, JavaScript, Images)
+# https://docs.djangoproject.com/en/3.2/howto/static-files/
+SECURE_CONTENT_TYPE_NOSNIFF = False
 
 STATIC_ROOT = BASE_DIR / "static"
 
