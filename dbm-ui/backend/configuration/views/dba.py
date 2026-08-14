@@ -39,9 +39,17 @@ class DBAdminViewSet(viewsets.SystemViewSet):
     filter_class = None
 
     def _get_custom_permissions(self):
-        if self.action in ["list_admins", "get_dba_component", "app_operate_log"]:
+        if self.action in [
+            "list_admins",
+            "get_dba_component",
+            "app_operate_log",
+            "manage_biz",
+            "cancel_manage_biz",
+            "update_app_tag",
+            "batch_upsert_admins",
+        ]:
             return []
-        if self.action in ["upsert_global_admins", "batch_upsert_admins"]:
+        if self.action in ["upsert_global_admins"]:
             return [GlobalDBAPermission([ActionEnum.GLOBAL_DBA_ADMIN_EDIT])]
         else:
             return [BizDBAPermission([ActionEnum.DBA_ADMIN_EDIT])]
