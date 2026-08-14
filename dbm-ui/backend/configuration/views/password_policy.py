@@ -36,8 +36,12 @@ from backend.configuration.serializers import (
 )
 from backend.db_periodic_task.models import DBPeriodicTask
 from backend.iam_app.dataclass.actions import ActionEnum
-from backend.iam_app.handlers.drf_perm.base import ResourceActionPermission, get_request_key_id
-from backend.iam_app.handlers.drf_perm.cluster import ModifyClusterPasswordPermission, QueryClusterPasswordPermission
+from backend.iam_app.handlers.drf_perm.base import get_request_key_id
+from backend.iam_app.handlers.drf_perm.cluster import (
+    ModifyClusterPasswordPermission,
+    PasswordPolicyPermission,
+    QueryClusterPasswordPermission,
+)
 from backend.iam_app.handlers.permission import Permission
 
 SWAGGER_TAG = _("密码安全策略")
@@ -81,9 +85,7 @@ class PasswordPolicyViewSet(viewsets.SystemViewSet):
         ("modify_admin_password",): [ModifyClusterPasswordPermission()],
         ("query_admin_password",): [],
         ("get_instance_password",): [QueryClusterPasswordPermission()],
-        ("update_password_policy", "modify_random_cycle"): [
-            ResourceActionPermission([ActionEnum.PASSWORD_POLICY_SET])
-        ],
+        ("update_password_policy", "modify_random_cycle"): [PasswordPolicyPermission()],
     }
 
     @common_swagger_auto_schema(
