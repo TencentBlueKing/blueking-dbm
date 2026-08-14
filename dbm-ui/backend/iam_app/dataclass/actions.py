@@ -527,9 +527,7 @@ class ActionEnum:
         type="create",
         related_actions=[GLOBAL_MANAGE.id],
         related_resource_types=[ResourceEnum.DBTYPE],
-        group=_("全局设置"),
-        subgroup=_("数据库配置"),
-        hidden=True,
+        group=_("已废弃"),
     )
 
     GLOBAL_DBCONFIG_DESTROY = ActionMeta(
@@ -539,9 +537,7 @@ class ActionEnum:
         type="delete",
         related_actions=[GLOBAL_MANAGE.id],
         related_resource_types=[ResourceEnum.DBTYPE],
-        group=_("全局设置"),
-        subgroup=_("数据库配置"),
-        hidden=True,
+        group=_("已废弃"),
     )
 
     MYSQL_APPLY = ActionMeta(
@@ -4309,7 +4305,7 @@ class ActionEnum:
         name=_("全局监控策略管理"),
         name_en="global_monitor_policy_manage",
         type="manage",
-        related_resource_types=[ResourceEnum.GLOBAL_MONITOR_POLICY],
+        related_resource_types=[ResourceEnum.DBTYPE],
         group=_("全局设置"),
         subgroup=_("告警策略"),
     )
@@ -4641,6 +4637,18 @@ class ActionEnum:
         hidden=True,
     )
 
+    DUTY_NOTICE_CONFIG_UPDATE = ActionMeta(
+        id="duty_notice_config_update",
+        name=_("轮值通知设置 "),
+        name_en="duty_notice_config_update",
+        type="manage",
+        related_actions=[GLOBAL_MANAGE.id],
+        related_resource_types=[ResourceEnum.DBTYPE],
+        group=_("全局设置"),
+        subgroup=_("轮值策略"),
+        hidden=True,
+    )
+
     UPDATE_DUTY_NOTICE_CONFIG = ActionMeta(
         id="update_duty_notices_config",
         name=_("轮值通知设置"),
@@ -4648,9 +4656,7 @@ class ActionEnum:
         type="manage",
         related_actions=[GLOBAL_MANAGE.id],
         related_resource_types=[],
-        group=_("全局设置"),
-        subgroup=_("轮值策略"),
-        hidden=True,
+        group=_("已废弃"),
     )
 
     ACCESS_ENTRY_EDIT = ActionMeta(
