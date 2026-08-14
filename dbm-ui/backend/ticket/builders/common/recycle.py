@@ -169,6 +169,10 @@ class RecycleOldHostFlowBuilder(RecycleHostFlowBuilder):
     machine_idle_check_flow_builder = MachineIdleCheckParamBuilder
 
     def check_independent_recycle(self):
+        # sqlserver 业务均为独立管控业务，且下架派生的回收单 cluster_type 仅能取到 db_type 级别的
+        if self.ticket.details["cluster_type"] == DBType.Sqlserver.value:
+            return self.ticket.ticket_type == TicketType.RECYCLE_OLD_HOST
+
         cluster_type = self.ticket.details.get("cluster_type") or self.ticket.details["group"]
         hosting_biz = BizSettings.get_exact_hosting_biz(self.ticket.bk_biz_id, cluster_type)
         return self.ticket.ticket_type == TicketType.RECYCLE_OLD_HOST and hosting_biz != env.DBA_APP_BK_BIZ_ID
