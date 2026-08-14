@@ -155,7 +155,7 @@ func SwitchLogInfoListOutput(switchSnapshotLogs []*hamodel.DbSwitchingSnapshotLo
 				Remark:             "",
 				App:                strconv.Itoa(switchLog.BkBizID),
 				CloudID:            switchLog.BkCloudID,
-				Cluster:            switchLog.ClusterName,
+				Cluster:            instance.ClusterName,
 				SwitchResult:       switchLog.Result,
 				SwitchStartTime:    switchStartTime,
 				SwitchFinishedTime: switchFinishTime,
