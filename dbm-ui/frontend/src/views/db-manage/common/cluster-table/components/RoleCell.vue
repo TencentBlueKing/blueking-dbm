@@ -1,49 +1,58 @@
 <template>
   <div class="cluster-table-role-instances-list-box">
-    <div
-      v-for="(instanceItem, index) in data.slice(0, renderInstanceCount)"
-      :key="`${instanceItem.ip}:${instanceItem.port}`"
-      :class="{
-        'is-unavailable': instanceItem.status === 'unavailable',
-      }">
-      <TextOverflowLayout>
-        <div class="pr-4">
-          <TextHighlight
-            ref="hightlightRefs"
-            high-light-color="#F59500"
-            :keyword="searchKeyword"
-            :text="`${instanceItem.ip}:${instanceItem.port}`">
+    <template
+      v-for="rowItem in displayRows"
+      :key="rowItem.type === 'shard' ? `shard#${rowItem.segRange}` : `${rowItem.node.ip}:${rowItem.node.port}`">
+      <div
+        v-if="rowItem.type === 'shard'"
+        class="shard-group-title">
+        {{ rowItem.segRange }} ({{ rowItem.count }})
+      </div>
+      <div
+        v-else
+        :class="{
+          'is-unavailable': rowItem.node.status === 'unavailable',
+          'is-shard-child': hasSegRangeGroup,
+        }">
+        <TextOverflowLayout>
+          <div class="pr-4">
+            <TextHighlight
+              ref="hightlightRefs"
+              high-light-color="#F59500"
+              :keyword="searchKeyword"
+              :text="`${rowItem.node.ip}:${rowItem.node.port}`">
+              <slot
+                name="default"
+                v-bind="{
+                  data: rowItem.node as any,
+                }" />
+            </TextHighlight>
+          </div>
+          <template #append>
+            <BkTag
+              v-if="rowItem.node.status === 'unavailable'"
+              size="small">
+              {{ t('不可用') }}
+            </BkTag>
             <slot
-              name="default"
               v-bind="{
-                data: instanceItem as any,
-              }" />
-          </TextHighlight>
-        </div>
-        <template #append>
-          <BkTag
-            v-if="instanceItem.status === 'unavailable'"
-            size="small">
-            {{ t('不可用') }}
-          </BkTag>
-          <slot
-            v-bind="{
-              data: instanceItem as any,
-            }"
-            name="nodeTag" />
-          <span v-if="index === 0">
-            <PopoverCopy>
-              <div @click="handleCopyIp">
-                {{ t('复制IP') }}
-              </div>
-              <div @click="handleCopyInstance">
-                {{ t('复制实例') }}
-              </div>
-            </PopoverCopy>
-          </span>
-        </template>
-      </TextOverflowLayout>
-    </div>
+                data: rowItem.node as any,
+              }"
+              name="nodeTag" />
+            <span v-if="rowItem.showCopy">
+              <PopoverCopy>
+                <div @click="handleCopyIp">
+                  {{ t('复制IP') }}
+                </div>
+                <div @click="handleCopyInstance">
+                  {{ t('复制实例') }}
+                </div>
+              </PopoverCopy>
+            </span>
+          </template>
+        </TextOverflowLayout>
+      </div>
+    </template>
     <template v-if="data.length < 1"> -- </template>
     <template v-if="data.length > renderInstanceCount">
       <span
@@ -94,6 +103,18 @@
     nodeTag: (params: { data: ClusterListNode }) => VNode;
   }
 
+  type DisplayRow =
+    | {
+        count: number;
+        segRange: string;
+        type: 'shard';
+      }
+    | {
+        node: ClusterListNode;
+        showCopy: boolean;
+        type: 'node';
+      };
+
   export type Emits = (e: 'go-detail', event: MouseEvent) => void;
 
   const props = defineProps<Props>();
@@ -110,6 +131,51 @@
   const searchKeyword = ref('');
 
   const hightlightRefs = ref<InstanceType<typeof TextHighlight>[]>();
+
+  const visibleNodes = computed(() => props.data.slice(0, renderInstanceCount));
+
+  const hasSegRangeGroup = computed(() => visibleNodes.value.some((item) => Boolean(item.seg_range)));
+
+  const displayRows = computed((): DisplayRow[] => {
+    const nodes = visibleNodes.value;
+    if (!hasSegRangeGroup.value) {
+      return nodes.map((node, index) => ({ type: 'node' as const, node, showCopy: index === 0 }));
+    }
+
+    // 分片标题括号显示该分片全量成员数（不受列表截断影响）
+    const shardTotalCount = new Map<string, number>();
+    for (const node of props.data) {
+      const seg = node.seg_range || '';
+      if (!seg) {
+        continue;
+      }
+      shardTotalCount.set(seg, (shardTotalCount.get(seg) || 0) + 1);
+    }
+
+    const rows: DisplayRow[] = [];
+    let index = 0;
+    let firstNode = true;
+    while (index < nodes.length) {
+      const segRange = nodes[index].seg_range || '';
+      let end = index + 1;
+      while (end < nodes.length && (nodes[end].seg_range || '') === segRange) {
+        end += 1;
+      }
+      if (segRange) {
+        rows.push({
+          type: 'shard',
+          segRange,
+          count: shardTotalCount.get(segRange) || end - index,
+        });
+      }
+      for (let i = index; i < end; i += 1) {
+        rows.push({ type: 'node', node: nodes[i], showCopy: firstNode });
+        firstNode = false;
+      }
+      index = end;
+    }
+    return rows;
+  });
 
   const hightlightCount = computed(() => {
     if (!searchKeyword.value) {
@@ -179,6 +245,17 @@
         padding: 0 4px;
         line-height: 20px;
       }
+    }
+
+    .shard-group-title {
+      margin-top: 4px;
+      margin-bottom: 2px;
+      font-weight: 500;
+      color: #63656e;
+    }
+
+    .is-shard-child {
+      padding-left: 8px;
     }
   }
 </style>
