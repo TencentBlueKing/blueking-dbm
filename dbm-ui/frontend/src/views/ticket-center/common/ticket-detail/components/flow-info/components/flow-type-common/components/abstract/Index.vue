@@ -16,7 +16,19 @@
             :key="titleItem.field"
             :col-key="titleItem.field"
             :get-copy-value="titleItem.field === 'ip' ? (row) => row.ip : undefined"
-            :title="titleItem.label" />
+            :title="titleItem.label">
+            <template #default="{ row }">
+              <a
+                v-if="titleItem.type === 'url'"
+                :href="row[titleItem.field]"
+                target="_blank">
+                {{ titleItem.label }}
+              </a>
+              <span v-else>
+                {{ row[titleItem.field] }}
+              </span>
+            </template>
+          </TicketInfoTableColumn>
         </TicketInfoTable>
       </TableCollapse>
     </div>
@@ -52,6 +64,7 @@
           titles: item.titles.map((item) => ({
             field: item.id,
             label: item.display_name,
+            type: item.type,
           })),
         };
       });

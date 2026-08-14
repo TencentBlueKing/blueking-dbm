@@ -113,6 +113,7 @@ export default class Flow<
     titles: {
       display_name: string;
       id: string;
+      type: 'url';
     }[];
 
     values: Record<string, any>[];
