@@ -229,6 +229,20 @@ class QueryClusterPasswordPermission(ResourceActionPermission):
         super().__init__(actions=None, resource_meta=None, instance_ids_getter=self.inst_ids_getter)
 
 
+class PasswordPolicyPermission(ResourceActionPermission):
+    """密码安全规则设置相关动作鉴权"""
+
+    def inst_ids_getter(self, request, view):
+        data = request.data or request.query_params
+        db_type = data["db_type"]
+        self.resource_meta = ResourceEnum.DBTYPE
+        self.actions = [ActionEnum.SET_PASSWORD_POLICY]
+        return [db_type]
+
+    def __init__(self):
+        super().__init__(actions=None, resource_meta=None, instance_ids_getter=self.inst_ids_getter)
+
+
 class ClusterWebconsolePermission(ResourceActionPermission):
     """
     集群webconsole相关鉴权
