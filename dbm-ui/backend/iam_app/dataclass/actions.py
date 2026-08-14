@@ -4227,8 +4227,8 @@ class ActionEnum:
         type="manage",
         related_actions=[DB_MANAGE.id],
         related_resource_types=[ResourceEnum.BUSINESS],
-        group=_("资源管理"),
-        subgroup=_("标签"),
+        group=_("业务"),
+        subgroup=_("业务配置"),
         common_labels=[CommonActionLabel.BIZ_MAINTAIN],
     )
 
@@ -4313,9 +4313,7 @@ class ActionEnum:
         type="manage",
         related_actions=[GLOBAL_MANAGE.id],
         related_resource_types=[ResourceEnum.GLOBAL_NOTIFY_GROUP],
-        group=_("全局设置"),
-        subgroup=_("告警组"),
-        hidden=True,
+        group=_("已废弃"),
     )
 
     MONITOR_POLICY_MANAGE = ActionMeta(
@@ -4328,6 +4326,16 @@ class ActionEnum:
         group=_("业务"),
         subgroup=_("告警管理"),
         common_labels=[CommonActionLabel.BIZ_MAINTAIN, CommonActionLabel.DEVELOPER],
+    )
+
+    GLOBAL_MONITOR_POLICY_MANAGE = ActionMeta(
+        id="global_monitor_policy_manage",
+        name=_("全局监控策略管理"),
+        name_en="global_monitor_policy_manage",
+        type="manage",
+        related_resource_types=[ResourceEnum.GLOBAL_MONITOR_POLICY],
+        group=_("全局设置"),
+        subgroup=_("告警策略"),
     )
 
     MONITOR_POLICY_LIST = ActionMeta(
@@ -4347,9 +4355,7 @@ class ActionEnum:
         type="view",
         related_actions=[GLOBAL_MANAGE.id],
         related_resource_types=[ResourceEnum.DBTYPE],
-        group=_("全局设置"),
-        subgroup=_("监控策略"),
-        hidden=True,
+        group=_("已废弃"),
     )
 
     MONITOR_POLICY_UPDATE_STRATEGY = ActionMeta(
@@ -4369,9 +4375,7 @@ class ActionEnum:
         type="manage",
         related_actions=[GLOBAL_MANAGE.id],
         related_resource_types=[ResourceEnum.GLOBAL_MONITOR_POLICY],
-        group=_("全局设置"),
-        subgroup=_("监控策略"),
-        hidden=True,
+        group=_("已废弃"),
     )
 
     MONITOR_POLICY_DESTROY = ActionMeta(
@@ -4401,9 +4405,7 @@ class ActionEnum:
         type="manage",
         related_actions=[GLOBAL_MANAGE.id],
         related_resource_types=[ResourceEnum.GLOBAL_MONITOR_POLICY],
-        group=_("全局设置"),
-        subgroup=_("监控策略"),
-        hidden=True,
+        group=_("已废弃"),
     )
 
     MONITOR_POLICY_CLONE_STRATEGY = ActionMeta(
@@ -4556,6 +4558,17 @@ class ActionEnum:
         hidden=True,
     )
 
+    SPEC_MANAGE = ActionMeta(
+        id="spec_manage",
+        name=_("资源规格管理"),
+        name_en="spec_manage",
+        type="manage",
+        related_actions=[RESOURCE_MANAGE.id],
+        related_resource_types=[ResourceEnum.DBTYPE],
+        group=_("资源管理"),
+        subgroup=_("资源规格"),
+    )
+
     SPEC_UPDATE = ActionMeta(
         id="spec_update",
         name=_("资源规格编辑"),
@@ -4563,9 +4576,7 @@ class ActionEnum:
         type="manage",
         related_actions=[RESOURCE_MANAGE.id],
         related_resource_types=[ResourceEnum.DBTYPE],
-        group=_("资源管理"),
-        subgroup=_("资源规格"),
-        hidden=True,
+        group=_("已废弃"),
     )
 
     SPEC_DESTROY = ActionMeta(
@@ -4575,9 +4586,7 @@ class ActionEnum:
         type="delete",
         related_actions=[RESOURCE_MANAGE.id],
         related_resource_types=[ResourceEnum.DBTYPE],
-        group=_("资源管理"),
-        subgroup=_("资源规格"),
-        hidden=True,
+        group=_("已废弃"),
     )
 
     DUTY_RULE_LIST = ActionMeta(
@@ -4592,6 +4601,16 @@ class ActionEnum:
         hidden=True,
     )
 
+    DUTY_RULE_MANAGE = ActionMeta(
+        id="duty_rule_manage",
+        name=_("轮值策略管理"),
+        name_en="duty_rule_manage",
+        type="manage",
+        related_resource_types=[ResourceEnum.DBTYPE],
+        group=_("全局设置"),
+        subgroup=_("轮值策略"),
+    )
+
     DUTY_RULE_CREATE = ActionMeta(
         id="duty_rule_create",
         name=_("轮值策略新增"),
@@ -4599,9 +4618,7 @@ class ActionEnum:
         type="create",
         related_actions=[GLOBAL_MANAGE.id, DUTY_RULE_LIST.id],
         related_resource_types=[ResourceEnum.DBTYPE],
-        group=_("全局设置"),
-        subgroup=_("轮值策略"),
-        hidden=True,
+        group=_("已废弃"),
     )
 
     DUTY_RULE_UPDATE = ActionMeta(
@@ -4611,9 +4628,7 @@ class ActionEnum:
         type="manage",
         related_actions=[GLOBAL_MANAGE.id, DUTY_RULE_LIST.id],
         related_resource_types=[ResourceEnum.DBTYPE],
-        group=_("全局设置"),
-        subgroup=_("轮值策略"),
-        hidden=True,
+        group=_("已废弃"),
     )
 
     DUTY_RULE_DESTROY = ActionMeta(
@@ -4623,9 +4638,7 @@ class ActionEnum:
         type="delete",
         related_actions=[GLOBAL_MANAGE.id, DUTY_RULE_LIST.id],
         related_resource_types=[ResourceEnum.DBTYPE],
-        group=_("全局设置"),
-        subgroup=_("轮值策略"),
-        hidden=True,
+        group=_("已废弃"),
     )
 
     IP_WHITELIST_MANAGE = ActionMeta(

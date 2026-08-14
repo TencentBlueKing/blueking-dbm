@@ -70,9 +70,6 @@ class CreateTicketOneResourcePermission(ResourceActionPermission):
         # DB实例权限克隆执行, 查询源客户端IP已在哪些集群
         elif ticket_type in [TicketType.MYSQL_INSTANCE_CLONE_RULES, TicketType.TENDBCLUSTER_INSTANCE_CLONE_RULES]:
             instance_ids_getter = self.instance_instance_ids_getter
-        # 客户端权限克隆, 查询源客户端IP已在哪些集群
-        elif ticket_type in [TicketType.MYSQL_CLIENT_CLONE_RULES, TicketType.TENDBCLUSTER_CLIENT_CLONE_RULES]:
-            pass
         else:
             instance_ids_getter = self.instance_cluster_ids_getter
 
