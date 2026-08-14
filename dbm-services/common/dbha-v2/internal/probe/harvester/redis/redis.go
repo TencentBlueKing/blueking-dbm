@@ -198,6 +198,7 @@ func (r *Redis) collecting(ctx context.Context, c *collector, dataC chan<- *plug
 
 	data := &plugin.HarvestData{
 		HarvestBaseData: haprobe.HarvestBaseData{
+			HarvestType:  haprobe.HarvestTypeDefault,
 			SequenceID:   machine.NewSequenceID(),
 			MessageID:    machine.NewMessageID(),
 			MachineID:    r.machineID,

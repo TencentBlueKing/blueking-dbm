@@ -58,6 +58,10 @@ const (
 	mysqlCollectStateOk     = "ok"
 	mysqlCollectStateFailed = "failed"
 
+	minCollectInterval       = 5 * time.Second
+	minHeartbeatInterval     = 1 * time.Second
+	minReplDelayInterval     = 5 * time.Second
+	defaultCollectInterval   = 20 * time.Second
 	defaultHeartbeatInterval = 3 * time.Second
 	defaultReplDelayInterval = 20 * time.Second
 )
@@ -429,18 +433,31 @@ func (m *MySql) beginCollecting(wg *sync.WaitGroup, dataC chan<- *plugin.Harvest
 	}
 }
 
-func (m *MySql) heartbeatInterval() time.Duration {
-	if m.cfg.HeartbeatInterval > 0 {
-		return m.cfg.HeartbeatInterval
+func (m *MySql) collectInterval() time.Duration {
+	if m.cfg.Interval < minCollectInterval {
+		logger.Warn("collect interval is less than the minimum value, reset to the default value, "+
+			"config: %s, minimum: %s, default: %s", m.cfg.Interval, minCollectInterval, defaultCollectInterval)
+		return defaultCollectInterval
 	}
-	return defaultHeartbeatInterval
+	return m.cfg.Interval
+}
+
+func (m *MySql) heartbeatInterval() time.Duration {
+	if m.cfg.HeartbeatInterval < minHeartbeatInterval {
+		logger.Warn("heartbeat interval is less than the minimum value, reset to the default value, "+
+			"config: %s, minimum: %s, default: %s", m.cfg.HeartbeatInterval, minHeartbeatInterval, defaultHeartbeatInterval)
+		return defaultHeartbeatInterval
+	}
+	return m.cfg.HeartbeatInterval
 }
 
 func (m *MySql) replDelayInterval() time.Duration {
-	if m.cfg.ReplDelayInterval > 0 {
-		return m.cfg.ReplDelayInterval
+	if m.cfg.ReplDelayInterval < minReplDelayInterval {
+		logger.Warn("repl delay interval is less than the minimum value, reset to the default value, "+
+			"config: %s, minimum: %s, default: %s", m.cfg.ReplDelayInterval, minReplDelayInterval, defaultReplDelayInterval)
+		return defaultReplDelayInterval
 	}
-	return defaultReplDelayInterval
+	return m.cfg.ReplDelayInterval
 }
 
 // buildHarvestGroups declares every mysql collection group (cadence, endpoint filter, emit).
@@ -448,7 +465,7 @@ func (m *MySql) buildHarvestGroups() []*harvestGroup {
 	return []*harvestGroup{
 		{
 			htype:    haprobe.HarvestTypeDefault,
-			interval: m.cfg.Interval,
+			interval: m.collectInterval(),
 			accept:   func(c *collector) bool { return true },
 			emit:     m.collecting,
 		},
@@ -462,7 +479,7 @@ func (m *MySql) buildHarvestGroups() []*harvestGroup {
 			htype:    haprobe.HarvestTypeReplDelay,
 			interval: m.replDelayInterval(),
 			accept: func(c *collector) bool {
-				return c.isPlainMysqlStorage() || c.isTdbctl()
+				return c.isPlainMysqlStorage()
 			},
 			emit: m.collectReplDelay,
 		},

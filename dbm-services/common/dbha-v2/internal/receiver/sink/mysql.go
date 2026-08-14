@@ -125,18 +125,13 @@ func (s *mysql) Save(msg *Message) error {
 	logger.Debug("outputter(mysql) save msg: %s, raw: %s", string(msg.Data), string(dbStatus.RawValue))
 
 	data := hamodel.NewDbhaData(dbStatus)
-
-	// Route to a per-harvest-type table (same schema) based on HarvestType. Empty/unknown
-	// falls back to the core table so no reported data is ever dropped.
-	tableName, known := hamodel.GetDbhaStatusTableName(dbStatus.HarvestType)
-	if !known {
-		logger.Warn("unknown harvest_type, route to default table, harvest_type: %s, topic: %s, table: %s",
-			dbStatus.HarvestType, msg.Topic, tableName)
+	if data.HarvestType == "" {
+		return gerrors.Newf(gerrors.InvalidParameter,
+			"harvest_type is required, topic: %s, db: %s:%d", msg.Topic, data.DbIp, data.DbPort)
 	}
 
 	for _, db := range s.dbs {
 		err := db.DB().Session(&gorm.Session{FullSaveAssociations: true}).
-			Table(tableName).
 			Clauses(clause.OnConflict{UpdateAll: true}).
 			Create(data).Error
 
