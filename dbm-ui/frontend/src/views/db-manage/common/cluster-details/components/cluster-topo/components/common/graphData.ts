@@ -93,6 +93,8 @@ export const nodeTypes = {
   MONGODB_M1: 'mongodb::m1',
   MONGODB_M2: 'mongodb::m2',
   MONGODB_MONGOS: 'mongos',
+  /** 分片集群拓扑：合并后的「共 N 分片」组（与后端 MONGODB_SHARDS_GROUP_ID 对齐） */
+  MONGODB_SHARDS: 'mongodb_shards',
   PROXY: 'proxy',
   ORACLE_PRIMARY: 'oracle::primary',
   ORACLE_STANDBY: 'oracle::standby',
@@ -127,6 +129,8 @@ const defaultNodeConfig = {
   startX: 100,
   startY: 100,
   width: 296,
+  /** Mongo「共 N 分片」行文案较长：shard / ip:port,... */
+  mongoShardsWidth: 560,
 };
 
 // 特殊逻辑：控制节点水平对齐
@@ -267,7 +271,11 @@ export class GraphData {
       nodeTypes.HDFS_MASTER_HOURNALNODE,
       nodeTypes.HDFS_MASTER_ZOOKEEPER,
     ];
-    const targetNodes = nodes.filter((node) => targetNodeIds.includes(node.id) || node.id.includes('分片'));
+    // 历史多「分片xxx」横排；合并后的 mongodb_shards 单组无需横排
+    const targetNodes = nodes.filter(
+      (node) =>
+        targetNodeIds.includes(node.id) || (node.id.includes('分片') && node.id !== nodeTypes.MONGODB_SHARDS),
+    );
 
     const [referenceNode] = targetNodes;
     const moveNodes = targetNodes.slice(1);
@@ -629,6 +637,8 @@ export class GraphData {
     for (const group of groups) {
       const { children_id: childrenId, group_name: groupName, node_id: nodeId } = group;
       if (!rootIds.includes(nodeId)) {
+        const groupWidth =
+          nodeId === nodeTypes.MONGODB_SHARDS ? this.nodeConfig.mongoShardsWidth : this.nodeConfig.width;
         // 子节点列表
         const children = childrenId
           .map((id) => {
@@ -645,7 +655,7 @@ export class GraphData {
               name: formatTopoNodeName(node),
               style: {
                 height: this.nodeConfig.itemHeight,
-                width: this.nodeConfig.width,
+                width: groupWidth,
                 x: 0,
                 y: 0,
               },
@@ -662,7 +672,7 @@ export class GraphData {
           name: groupName || nodeId,
           style: {
             height: this.getNodeHeight(children),
-            width: this.nodeConfig.width,
+            width: groupWidth,
             x: 0,
             y: 0,
           },

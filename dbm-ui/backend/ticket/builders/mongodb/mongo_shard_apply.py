@@ -146,7 +146,10 @@ class MongoShardedClusterResourceParamBuilder(BaseMongoDBOperateResourceParamBui
         )
 
         resource_spec = self.ticket_data["resource_spec"]
-        self.format_mongo_resource_spec(resource_spec, self.ticket_data["shard_machine_group"])
+        # 每组 shardsvr 成员数 = mongodb.count / shard_machine_group（勿用默认 3 覆盖用户填写）
+        shard_machine_group = self.ticket_data["shard_machine_group"]
+        shardsvr_members = resource_spec["mongodb"]["count"] // shard_machine_group
+        self.format_mongo_resource_spec(resource_spec, shard_machine_group, shard_count=shardsvr_members)
 
     def post_callback(self):
         with self.next_flow_manager() as next_flow:

@@ -10,30 +10,51 @@ specific language governing permissions and limitations under the License.
 """
 
 import operator
+import re
+from collections import defaultdict
 from functools import reduce
-from typing import List
+from typing import Dict, List
 
 from django.db.models import Q
 from django.utils.translation import gettext as _
 
-from backend.db_meta.api.cluster.base.graph import Graphic, Group, LineLabel
+from backend.db_meta.api.cluster.base.graph import Graphic, Group, LineLabel, Node
 from backend.db_meta.enums import AccessLayer, MachineType, MachineTypeInstanceRoleMap
-from backend.db_meta.models import Cluster
+from backend.db_meta.models import Cluster, StorageInstance
 from backend.db_services.mongodb.resources.query import MongoDBListRetrieveResource
+
+# 拓扑图分片组 id（前端可按此加宽）
+MONGODB_SHARDS_GROUP_ID = "mongodb_shards"
+
+
+def _shard_sort_key(shard_name: str):
+    """分片名按尾号自然序（s1 < s2 < s10）"""
+    match = re.search(r"(\d+)$", shard_name or "")
+    if match:
+        return (0, int(match.group(1)), shard_name or "")
+    return (1, 0, shard_name or "")
+
+
+def _add_shard_summary_nodes(graph: Graphic, shard_group: Group, shard_to_insts: Dict[str, List[StorageInstance]]):
+    """每个分片一行：分片名 / ip:port,ip:port,...（不展示单实例状态噪音）"""
+    for shard_name in sorted(shard_to_insts.keys(), key=_shard_sort_key):
+        members = sorted(shard_to_insts[shard_name], key=lambda i: (i.machine.ip, i.port))
+        if not members:
+            continue
+        addrs = ["{}:{}".format(m.machine.ip, m.port) for m in members]
+        node_id = "{} / {}".format(shard_name, ",".join(addrs))
+        node = Node(members[0], node_id=node_id, instance_state="")
+        if node in graph.nodes:
+            continue
+        shard_group.add_child(node)
+        graph.nodes.append(node)
 
 
 def scan_cluster(cluster: Cluster) -> Graphic:
     """
-    绘制Mongo Sharded Cluster 的拓扑结构图
-    mongos                             Shard-1:Primary Shard-1:Secondary  Shard-1:Backup
-    mongos                             Shard-2:Primary Shard-2:Secondary  Shard-2:Backup
-    mongos                             Shard-3:Primary Shard-3:Secondary  Shard-3:Backup
-    mongos           configServer      Shard-4:Primary Shard-4:Secondary  Shard-4:Backup
-    mongos           configServer      Shard-5:Primary Shard-5:Secondary  Shard-5:Backup
-    mongos           configServer      Shard-6:Primary Shard-6:Secondary  Shard-6:Backup
-    mongos                             Shard-7:Primary Shard-7:Secondary  Shard-7:Backup
-    mongos                             Shard-8:Primary Shard-8:Secondary  Shard-8:Backup
-    mongos                             Shard-9:Primary Shard-9:Secondary  Shard-9:Backup
+    绘制 Mongo Sharded Cluster 拓扑：
+    访问入口 → Mongos → ConfigServer
+                      → 共 N 分片（每行：shard / addrlist）
     """
     graph = Graphic(node_id=Graphic.generate_graphic_id(cluster))
 
@@ -54,23 +75,28 @@ def scan_cluster(cluster: Cluster) -> Graphic:
         group_name=_("ConfigServer 节点"),
     )
 
-    # 获取各个分片的节点组
+    # 分片合并为一组：共 N 分片，每行 shard / addrlist
     inst_filter = Q(
-        reduce(operator.or_, [Q(instance_role=role) for role in MachineTypeInstanceRoleMap[MachineType.MONOG_CONFIG]]),
+        reduce(operator.or_, [Q(instance_role=role) for role in MachineTypeInstanceRoleMap[MachineType.MONGODB]]),
         cluster=cluster,
         machine_type=MachineType.MONGODB,
     )
     insts, inst_id__shard = MongoDBListRetrieveResource.query_storage_shard(inst_filter)
 
-    shard_groups: List[str] = []
+    shard_to_insts: Dict[str, List[StorageInstance]] = defaultdict(list)
     for inst in insts:
-        shard_group_name = _("分片{} 节点").format(inst_id__shard[inst.id])
-        shard_group = graph.get_or_create_group(group_id=shard_group_name, group_name=shard_group_name)
-        graph.add_node(ins=inst, to_group=shard_group)
-        # mongos -----> 各个shard，关系为：访问
-        if shard_group_name not in shard_groups:
-            graph.add_line(source=mongos_group, target=shard_group, label=LineLabel.Access)
-            shard_groups.append(shard_group_name)
+        shard_name = inst_id__shard.get(inst.id) or ""
+        if not shard_name:
+            continue
+        shard_to_insts[shard_name].append(inst)
+
+    if shard_to_insts and mongos_group:
+        shard_group = graph.get_or_create_group(
+            group_id=MONGODB_SHARDS_GROUP_ID,
+            group_name=_("共{}分片").format(len(shard_to_insts)),
+        )
+        _add_shard_summary_nodes(graph, shard_group, shard_to_insts)
+        graph.add_line(source=mongos_group, target=shard_group, label=LineLabel.Access)
 
     # 获得访问入口节点组
     for proxy_instance in cluster.proxyinstance_set.prefetch_related("bind_entry").all():
