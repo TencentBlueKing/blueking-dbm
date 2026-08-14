@@ -20,7 +20,7 @@ from backend.flow.utils.mysql.dts.context import MysqlDtsDeleteTaskSourceSubflow
 def mysql_dts_delete_task_source_subflow(inp: MysqlDtsDeleteTaskSourceSubflowInput) -> SubBuilder:
     """本单维度清理 DTS task/source 子流程（节点名建议「清理 dts-task」）。
 
-    内部由组件串行执行：delete_task → 增量则 purge_relay → builtin dump rm → delete_source。
+    内部由组件串行执行：增量先 purge_relay → delete_task → builtin dump rm → delete_source。
     仅删除显式名称列表。挂载于成功路径 mysql_dts_task_clean_subflow 内，与 drop_user 并行；终止路径不调用。
     """
     sub = SubBuilder(

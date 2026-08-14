@@ -68,12 +68,9 @@ def resolve_source_endpoint(source_spec: SourceSpec, cluster: Cluster) -> tuple[
 
     # TenDBCluster：Source 必须落在 Remote 存储节点，不能用 Spider 代理探测/拉 binlog
     if cluster.cluster_type == ClusterType.TenDBCluster.value:
-        slave_qs = cluster.storageinstance_set.filter(instance_role=InstanceRole.REMOTE_SLAVE)
-        ins = slave_qs.filter(is_stand_by=True).first() or slave_qs.first()
+        ins = cluster.storageinstance_set.filter(instance_role=InstanceRole.REMOTE_MASTER).first()
         if not ins:
-            ins = cluster.storageinstance_set.filter(instance_role=InstanceRole.REMOTE_MASTER).first()
-        if not ins:
-            raise ValueError(_("集群 {} 未找到可用的 Remote 源实例").format(cluster.id))
+            raise ValueError(_("集群 {} 未找到可用的 Remote Master 源实例").format(cluster.id))
         return ins.machine.ip, ins.port
 
     # TenDBSingle：仅 orphan 存储实例
@@ -85,26 +82,23 @@ def resolve_source_endpoint(source_spec: SourceSpec, cluster: Cluster) -> tuple[
             raise ValueError(_("集群 {} 未找到可用的源实例").format(cluster.id))
         return ins.machine.ip, ins.port
 
-    slave_qs = cluster.storageinstance_set.filter(instance_role=InstanceRole.BACKEND_SLAVE)
-    if slave_qs.filter(is_stand_by=True).exists():
-        ins = slave_qs.filter(is_stand_by=True).first()
-    else:
-        ins = slave_qs.first()
+    ins = cluster.storageinstance_set.filter(instance_role=InstanceRole.BACKEND_MASTER).first()
     if not ins:
-        raise ValueError(_("集群 {} 未找到可用的源实例").format(cluster.id))
+        raise ValueError(_("集群 {} 未找到可用的 Master 源实例").format(cluster.id))
     return ins.machine.ip, ins.port
 
 
-def _pick_shard_remote_instance(shard) -> StorageInstance:
-    """分片连接端点：优先 Remote Slave（standby），否则 Remote Master（ejector）。"""
+def _pick_shard_remote_instance(shard, instance_role=None) -> StorageInstance:
+    """分片连接端点：默认 Remote Master（ejector）；指定 remote_slave 时用 receiver。"""
     receiver = shard.storage_instance_tuple.receiver
     ejector = shard.storage_instance_tuple.ejector
-    if receiver is not None:
-        if getattr(receiver, "is_stand_by", False):
-            return receiver
+    role = getattr(instance_role, "value", instance_role) or ""
+    if role == InstanceRole.REMOTE_SLAVE.value:
+        if receiver is None:
+            raise ValueError(_("分片 {} 未找到 Remote Slave").format(shard.shard_id))
         return receiver
     if ejector is None:
-        raise ValueError(_("分片 {} 未找到 Remote 实例").format(shard.shard_id))
+        raise ValueError(_("分片 {} 未找到 Remote Master").format(shard.shard_id))
     return ejector
 
 
@@ -139,7 +133,7 @@ def expand_tendbcluster_source_specs(
 
     expanded: list[SourceSpec] = []
     for shard in shards:
-        ins = _pick_shard_remote_instance(shard)
+        ins = _pick_shard_remote_instance(shard, source.source_instance_role)
         myloader = copy_myloader_spec(source.myloader)
         if myloader is None and task_cfg:
             myloader = copy_myloader_spec(task_cfg.myloader)

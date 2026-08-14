@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""本单维度 delete_task → purge_relay → dump rm → delete_source 组件单测。"""
+"""本单维度 purge_relay → delete_task → dump rm → delete_source 组件单测。"""
 from types import SimpleNamespace
 from unittest.mock import MagicMock, call, patch
 
@@ -162,7 +162,6 @@ class MysqlDtsDeleteTaskSourceServiceTest(SimpleTestCase):
         self.assertEqual(
             mock_api.mock_calls,
             [
-                call.delete_task("127.0.0.4:8261", "t1", force=True, bk_cloud_id=0),
                 call.get_source_status("127.0.0.4:8261", "s1", bk_cloud_id=0),
                 call.purge_relay(
                     "127.0.0.4:8261",
@@ -170,6 +169,7 @@ class MysqlDtsDeleteTaskSourceServiceTest(SimpleTestCase):
                     PurgeRelayRequest(relay_binlog_name="mysql-bin.000005"),
                     bk_cloud_id=0,
                 ),
+                call.delete_task("127.0.0.4:8261", "t1", force=True, bk_cloud_id=0),
                 call.delete_source("127.0.0.4:8261", "s1", force=True, bk_cloud_id=0),
             ],
         )
@@ -195,6 +195,17 @@ class MysqlDtsDeleteTaskSourceServiceTest(SimpleTestCase):
         self.assertEqual(req.relay_binlog_name, "mysql-bin.000005")
         self.assertNotEqual(req.relay_binlog_name, "(mysql-bin.000005, 4)")
         self.assertIsNone(req.relay_dir)
+
+    @patch("backend.flow.plugins.components.collections.mysql.dts.migrate.delete_task_source.JobApi")
+    @patch("backend.flow.plugins.components.collections.mysql.dts.migrate.delete_task_source.MysqlDtsCluster")
+    @patch("backend.flow.plugins.components.collections.mysql.dts.migrate.delete_task_source.MySQLDTSApi")
+    def test_purge_relay_failure_strict_mode_fails(self, mock_api, mock_cluster_cls, mock_job):
+        mock_api.get_source_status.return_value = _status_with_binlog("s1", "(mysql-bin.000005, 4)")
+        mock_api.purge_relay.side_effect = RuntimeError("disk full")
+        self._mock_cluster(mock_cluster_cls)
+        ok = self._run(self._incremental_builtin_kwargs())
+        self.assertFalse(ok)
+        mock_api.delete_source.assert_called_once()
 
     @patch("backend.flow.plugins.components.collections.mysql.dts.migrate.delete_task_source.JobApi")
     @patch("backend.flow.plugins.components.collections.mysql.dts.migrate.delete_task_source.MysqlDtsCluster")

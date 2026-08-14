@@ -99,21 +99,11 @@ class CutoverMetaExecuteTest(TestCase):
 
 
 class CutoverSubflowWiringTest(SimpleTestCase):
-    @patch("backend.flow.engine.bamboo.scene.mysql.dts.mysql_dts_cutover_subflow.resolve_dts_master_exec_target")
-    @patch("backend.flow.engine.bamboo.scene.mysql.dts.mysql_dts_cutover_subflow.build_dts_cutover_payload")
-    def test_actuator_act_writes_cutover_position_var(self, mock_payload, mock_exec):
+    def _build_acts(self, *, task_mode: str | None = "all", plan_task_mode: str | None = None):
         from backend.flow.engine.bamboo.scene.mysql.dts.mysql_dts_cutover_subflow import mysql_dts_cutover_subflow
-        from backend.flow.plugins.components.collections.mysql.dts.migrate.cutover_meta import (
-            MysqlDtsCutoverMetaComponent,
-        )
-        from backend.flow.plugins.components.collections.mysql.exec_actuator_script import (
-            ExecuteDBActuatorScriptComponent,
-        )
         from backend.flow.utils.mysql.dts.context import MysqlDtsCutoverSubflowInput
         from backend.flow.utils.mysql.dts.migrate_plan import DtsTaskConfig, DtsTaskSpec, SourceSpec, SyncScope
 
-        mock_exec.return_value = {"bk_cloud_id": 0, "ip": "127.0.0.1"}
-        mock_payload.return_value = {}
         acts = []
 
         class FakeSub:
@@ -123,16 +113,34 @@ class CutoverSubflowWiringTest(SimpleTestCase):
             def build_sub_process(self, *a, **k):
                 return self
 
-        with patch(
-            "backend.flow.engine.bamboo.scene.mysql.dts.mysql_dts_cutover_subflow.SubBuilder",
-            return_value=FakeSub(),
+        spec_cfg = DtsTaskConfig()
+        if task_mode is not None:
+            spec_cfg.task_mode = task_mode
+        plan_cfg = DtsTaskConfig()
+        if plan_task_mode is not None:
+            plan_cfg.task_mode = plan_task_mode
+
+        with (
+            patch(
+                "backend.flow.engine.bamboo.scene.mysql.dts.mysql_dts_cutover_subflow.resolve_dts_master_exec_target",
+                return_value={"bk_cloud_id": 0, "ip": "127.0.0.2"},
+            ),
+            patch(
+                "backend.flow.engine.bamboo.scene.mysql.dts.mysql_dts_cutover_subflow.build_dts_cutover_payload",
+                return_value={},
+            ),
+            patch("backend.flow.engine.bamboo.scene.mysql.dts.mysql_dts_cutover_subflow.GetFileList"),
+            patch(
+                "backend.flow.engine.bamboo.scene.mysql.dts.mysql_dts_cutover_subflow.SubBuilder",
+                return_value=FakeSub(),
+            ),
         ):
             mysql_dts_cutover_subflow(
                 inp=MysqlDtsCutoverSubflowInput(
                     root_id="r1",
                     bk_biz_id=3,
                     ticket_id=1,
-                    master_addr="127.0.0.1:8261",
+                    master_addr="127.0.0.2:8261",
                     task_name="t1",
                     deploy_path="/data/dts/x",
                     dts_cluster_id=1,
@@ -141,14 +149,65 @@ class CutoverSubflowWiringTest(SimpleTestCase):
                     task_name="t1",
                     target_cluster_id=2,
                     sources=[SourceSpec(cluster_id=1, source_name="s1", sync_scope=SyncScope(do_dbs=["db"]))],
-                    dts_task_config=DtsTaskConfig(),
+                    dts_task_config=spec_cfg,
                 ),
-                migrate_plan=SimpleNamespace(),
+                migrate_plan=SimpleNamespace(bk_cloud_id=0, dts_task_config=plan_cfg),
                 dts_user="u",
                 dts_password="p",
             )
+        return acts
 
+    def _confirm_act(self, acts):
+        from django.utils.translation import gettext as _
+
+        return next(a for a in acts if a["act_name"] == _("增量同步中/确认切换（不切换域名）"))
+
+    def test_actuator_act_writes_cutover_position_var(self):
+        from backend.flow.plugins.components.collections.mysql.dts.migrate.cutover_meta import (
+            MysqlDtsCutoverMetaComponent,
+        )
+        from backend.flow.plugins.components.collections.mysql.exec_actuator_script import (
+            ExecuteDBActuatorScriptComponent,
+        )
+
+        acts = self._build_acts()
         actuator = next(a for a in acts if a["act_component_code"] == ExecuteDBActuatorScriptComponent.code)
         self.assertEqual(actuator["write_payload_var"], MysqlDtsTransData.get_cutover_position_var_name())
         meta_act = next(a for a in acts if a["act_component_code"] == MysqlDtsCutoverMetaComponent.code)
         self.assertNotIn("position_snapshot", meta_act.get("kwargs") or {})
+
+    def test_full_mode_keeps_pause_confirm(self):
+        from backend.flow.plugins.components.collections.common.pause import PauseComponent
+
+        confirm = self._confirm_act(self._build_acts(task_mode="full"))
+        self.assertEqual(confirm["act_component_code"], PauseComponent.code)
+        self.assertEqual(confirm.get("kwargs") or {}, {})
+
+    def test_all_mode_uses_confirm_alive_poll(self):
+        from backend.flow.plugins.components.collections.mysql.dts.migrate.poll_confirm_alive import (
+            MysqlDtsPollConfirmAliveComponent,
+        )
+
+        confirm = self._confirm_act(self._build_acts(task_mode="all"))
+        self.assertEqual(confirm["act_component_code"], MysqlDtsPollConfirmAliveComponent.code)
+        kwargs = confirm.get("kwargs") or {}
+        self.assertEqual(kwargs.get("task_name"), "t1")
+        self.assertEqual(kwargs.get("master_addr"), "127.0.0.2:8261")
+        self.assertEqual(kwargs.get("bk_cloud_id"), 0)
+        self.assertEqual(kwargs.get("source_name_list"), ["s1"])
+
+    def test_incremental_mode_uses_confirm_alive_poll(self):
+        from backend.flow.plugins.components.collections.mysql.dts.migrate.poll_confirm_alive import (
+            MysqlDtsPollConfirmAliveComponent,
+        )
+
+        confirm = self._confirm_act(self._build_acts(task_mode="incremental"))
+        self.assertEqual(confirm["act_component_code"], MysqlDtsPollConfirmAliveComponent.code)
+
+    def test_empty_task_mode_uses_confirm_alive_poll(self):
+        from backend.flow.plugins.components.collections.mysql.dts.migrate.poll_confirm_alive import (
+            MysqlDtsPollConfirmAliveComponent,
+        )
+
+        confirm = self._confirm_act(self._build_acts(task_mode="", plan_task_mode=""))
+        self.assertEqual(confirm["act_component_code"], MysqlDtsPollConfirmAliveComponent.code)

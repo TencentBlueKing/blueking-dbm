@@ -31,7 +31,7 @@ def mysql_dts_task_clean_subflow(inp: MysqlDtsTaskCleanSubflowInput) -> SubBuild
 
     本期范围（并行）：
       1. 删除迁移临时账号（mysql_dts_drop_user_subflow，沿用 inp.ignore_errors 尽力清理）
-      2. 清理本单 dts-task：delete_task → 增量 purge_relay → builtin dump rm → delete_source
+      2. 清理本单 dts-task：增量先 purge_relay → delete_task → builtin dump rm → delete_source
          （仅显式名称列表；默认不吞错）
     """
     sub = SubBuilder(

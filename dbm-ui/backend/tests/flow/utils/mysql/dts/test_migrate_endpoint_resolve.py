@@ -111,17 +111,73 @@ class ResolveSourceEndpointTest(SimpleTestCase):
         ip, port = resolve_source_endpoint(spec, cluster)
         self.assertEqual((ip, port), ("127.0.0.10", 20000))
 
-    def test_tendbha_prefers_standby_slave(self):
+    def test_tendbha_defaults_to_backend_master(self):
         cluster = _cluster(
             ClusterType.TenDBHA.value,
             [
                 _ins("127.0.0.11", 20000, InstanceRole.BACKEND_SLAVE.value, is_stand_by=False),
                 _ins("127.0.0.12", 20000, InstanceRole.BACKEND_SLAVE.value, is_stand_by=True),
+                _ins("127.0.0.10", 20000, InstanceRole.BACKEND_MASTER.value),
             ],
         )
         spec = SourceSpec(cluster_id=1, source_name="s1", sync_scope=SyncScope())
         ip, port = resolve_source_endpoint(spec, cluster)
-        self.assertEqual((ip, port), ("127.0.0.12", 20000))
+        self.assertEqual((ip, port), ("127.0.0.10", 20000))
+
+    def test_tendbha_role_backend_slave(self):
+        cluster = _cluster(
+            ClusterType.TenDBHA.value,
+            [
+                _ins("127.0.0.11", 20000, InstanceRole.BACKEND_SLAVE.value, is_stand_by=True),
+                _ins("127.0.0.10", 20000, InstanceRole.BACKEND_MASTER.value),
+            ],
+        )
+        spec = SourceSpec(
+            cluster_id=1,
+            source_name="s1",
+            sync_scope=SyncScope(),
+            source_instance_role=InstanceRole.BACKEND_SLAVE.value,
+        )
+        ip, port = resolve_source_endpoint(spec, cluster)
+        self.assertEqual((ip, port), ("127.0.0.11", 20000))
+
+    def test_tendbha_no_master_fails(self):
+        cluster = _cluster(
+            ClusterType.TenDBHA.value,
+            [_ins("127.0.0.12", 20000, InstanceRole.BACKEND_SLAVE.value, is_stand_by=True)],
+        )
+        spec = SourceSpec(cluster_id=1, source_name="s1", sync_scope=SyncScope())
+        with self.assertRaises(ValueError):
+            resolve_source_endpoint(spec, cluster)
+
+    def test_tendbcluster_defaults_to_remote_master(self):
+        cluster = _cluster(
+            ClusterType.TenDBCluster.value,
+            [
+                _ins("127.0.0.13", 20000, InstanceRole.REMOTE_SLAVE.value, is_stand_by=True),
+                _ins("127.0.0.14", 20000, InstanceRole.REMOTE_MASTER.value),
+            ],
+        )
+        spec = SourceSpec(cluster_id=1, source_name="s1", sync_scope=SyncScope())
+        ip, port = resolve_source_endpoint(spec, cluster)
+        self.assertEqual((ip, port), ("127.0.0.14", 20000))
+
+    def test_tendbcluster_role_remote_slave(self):
+        cluster = _cluster(
+            ClusterType.TenDBCluster.value,
+            [
+                _ins("127.0.0.13", 20000, InstanceRole.REMOTE_SLAVE.value, is_stand_by=True),
+                _ins("127.0.0.14", 20000, InstanceRole.REMOTE_MASTER.value),
+            ],
+        )
+        spec = SourceSpec(
+            cluster_id=1,
+            source_name="s1",
+            sync_scope=SyncScope(),
+            source_instance_role=InstanceRole.REMOTE_SLAVE.value,
+        )
+        ip, port = resolve_source_endpoint(spec, cluster)
+        self.assertEqual((ip, port), ("127.0.0.13", 20000))
 
 
 class TargetEndpointTest(SimpleTestCase):

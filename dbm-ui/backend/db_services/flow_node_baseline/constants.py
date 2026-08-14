@@ -233,8 +233,14 @@ STOCK_DEFAULT_LOOKBACK_DAYS: int = 365
 #: - pause                        : 通用人工暂停节点
 #: - pause_with_ticket_lock_check : 带单据锁校验的人工暂停节点
 #: - sidecar_check_cluster_alarm_for_ai : 单据值守不做处理
+#: - mysql_dts_poll_confirm_alive : DTS 确认节点（待办 + 存活轮询，等人确认）
 EXCLUDED_COMPONENT_CODES: frozenset = frozenset(
-    {"pause", "pause_with_ticket_lock_check", "sidecar_check_cluster_alarm_for_ai"}
+    {
+        "pause",
+        "pause_with_ticket_lock_check",
+        "sidecar_check_cluster_alarm_for_ai",
+        "mysql_dts_poll_confirm_alive",
+    }
 )
 
 #: reject 样本批量落库的批大小；每积累这么多条 reject 记录就 flush 一次。
