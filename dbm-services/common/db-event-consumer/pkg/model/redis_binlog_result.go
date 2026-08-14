@@ -41,10 +41,10 @@ type RedisBinlogFileModel struct {
 	base.BaseModel `json:",inline" gorm:"embedded" xorm:"extends"`
 
 	BackupType   string `json:"report_type" db:"backup_type" gorm:"column:backup_type;type:varchar(32);NOT NULL"`
-	ImmuteDomain string `json:"domain" db:"immute_domain" gorm:"column:immute_domain;type:varchar(255);NOT NULL;index:uk_cluster,unique,priority:1"`
-	BackupHost   string `json:"server_ip" db:"backup_host" gorm:"column:backup_host;type:varchar(32);NOT NULL;index:uk_cluster,unique,priority:2"`
-	BackupPort   int    `json:"server_port" db:"backup_port" gorm:"column:backup_port;type:int;NOT NULL;index:uk_cluster,unique,priority:3"`
-	KvStoreIdx   int    `json:"kvstoreidx" db:"kvstoreidx" gorm:"column:kvstoreidx;type:int;NOT NULL;index:uk_cluster,unique,priority:4"`
+	ImmuteDomain string `json:"domain" db:"immute_domain" gorm:"column:immute_domain;type:varchar(255);NOT NULL"`
+	BackupHost   string `json:"server_ip" db:"backup_host" gorm:"column:backup_host;type:varchar(32);NOT NULL;index:uk_cluster,unique,priority:1"`
+	BackupPort   int    `json:"server_port" db:"backup_port" gorm:"column:backup_port;type:int;NOT NULL;index:uk_cluster,unique,priority:2"`
+	KvStoreIdx   int    `json:"kvstoreidx" db:"kvstoreidx" gorm:"column:kvstoreidx;type:int;NOT NULL;index:uk_cluster,unique,priority:3"`
 	InstRole     string `json:"role" db:"redis_role" gorm:"column:redis_role;type:varchar(32);NOT NULL"`
 	DbType       string `json:"db_type" db:"redis_type" gorm:"column:redis_type;type:varchar(32);NOT NULL"`
 	// BillId          string `json:"bill_id" db:"bill_id" gorm:"column:bill_id;type:varchar(32);NOT NULL"`
@@ -53,7 +53,7 @@ type RedisBinlogFileModel struct {
 
 	BackupTaskID   string `json:"backup_taskid" db:"backup_taskid" gorm:"column:backup_taskid;type:varchar(128);NOT NULL"`
 	BackupFilesize uint64 `json:"backup_file_size" db:"backup_file_size" gorm:"column:backup_file_size;type:bigint;NOT NULL"`
-	BackupFileName string `json:"backup_file" db:"backup_file" gorm:"column:backup_file;type:varchar(255);NOT NULL"`
+	BackupFileName string `json:"backup_file" db:"backup_file" gorm:"column:backup_file;type:varchar(255);NOT NULL;index:uk_cluster,unique,priority:4"`
 
 	ShardValue string `json:"shard_value" db:"shard_value" gorm:"column:shard_value;type:varchar(255)"`
 	BackupTag  string `json:"backup_tag" db:"backup_tag" gorm:"column:backup_tag;type:varchar(255);NOT NULL"`
@@ -121,7 +121,7 @@ func (m RedisBinlogFileModel) MigrateSchema(w base.DSWriter) error {
 	}
 
 	if err := base.CreateOrUpdateIndex(db, m.TableName(), "uk_cluster",
-		[]string{"immute_domain", "backup_host", "backup_port", "kvstoreidx"}, true, true); err != nil {
+		[]string{"backup_host", "backup_port", "kvstoreidx", "backup_file"}, true, true); err != nil {
 		return err
 	}
 	return nil
