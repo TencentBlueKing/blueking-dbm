@@ -504,7 +504,7 @@ class ActionEnum:
         related_actions=[GLOBAL_MANAGE.id],
         related_resource_types=[ResourceEnum.DBTYPE],
         group=_("全局设置"),
-        subgroup=_("数据库配置"),
+        subgroup=_("数据库配置定义"),
         hidden=True,
     )
 
@@ -516,7 +516,7 @@ class ActionEnum:
         related_actions=[GLOBAL_MANAGE.id, GLOBAL_DBCONFIG_VIEW.id],
         related_resource_types=[ResourceEnum.DBTYPE],
         group=_("全局设置"),
-        subgroup=_("数据库配置"),
+        subgroup=_("数据库配置定义"),
         hidden=True,
     )
 
@@ -4300,14 +4300,23 @@ class ActionEnum:
         common_labels=[CommonActionLabel.BIZ_MAINTAIN, CommonActionLabel.DEVELOPER],
     )
 
+    GLOBAL_ALARM_POLICY_MANAGE = ActionMeta(
+        id="global_alarm_policy_manage",
+        name=_("全局告警策略管理"),
+        name_en="global_alarm_policy_manage",
+        type="manage",
+        related_resource_types=[ResourceEnum.DBTYPE],
+        group=_("全局设置"),
+        subgroup=_("告警策略"),
+    )
+
     GLOBAL_MONITOR_POLICY_MANAGE = ActionMeta(
         id="global_monitor_policy_manage",
         name=_("全局监控策略管理"),
         name_en="global_monitor_policy_manage",
         type="manage",
-        related_resource_types=[ResourceEnum.DBTYPE],
-        group=_("全局设置"),
-        subgroup=_("告警策略"),
+        related_resource_types=[ResourceEnum.GLOBAL_MONITOR_POLICY],
+        group=_("已废弃"),
     )
 
     MONITOR_POLICY_LIST = ActionMeta(
@@ -4506,6 +4515,18 @@ class ActionEnum:
         hidden=True,
     )
 
+    SET_PASSWORD_POLICY = ActionMeta(
+        id="set_password_policy",
+        name=_("密码安全规则设置 "),
+        name_en="set_password_policy",
+        type="manage",
+        related_actions=[GLOBAL_MANAGE.id],
+        related_resource_types=[ResourceEnum.DBTYPE],
+        group=_("全局设置"),
+        subgroup="",
+        hidden=True,
+    )
+
     PASSWORD_POLICY_SET = ActionMeta(
         id="password_policy_set",
         name=_("密码安全规则设置"),
@@ -4513,9 +4534,7 @@ class ActionEnum:
         type="manage",
         related_actions=[GLOBAL_MANAGE.id],
         related_resource_types=[],
-        group=_("全局设置"),
-        subgroup="",
-        hidden=True,
+        group=_("已废弃"),
     )
 
     SPEC_CREATE = ActionMeta(
