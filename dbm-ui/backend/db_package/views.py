@@ -24,6 +24,7 @@ from backend.bk_web import viewsets
 from backend.bk_web.swagger import common_swagger_auto_schema
 from backend.configuration.constants import DEFAULT_PACKAGE_SUPPORT_SYSTEMS, SystemSettingsEnum
 from backend.configuration.models import SystemSettings
+from backend.core.storages.handlers import StorageHandler
 from backend.core.storages.storage import get_storage
 from backend.db_meta.models import DBVersion, Distribution, ProxyInstance, StorageInstance, VersionSeries
 from backend.db_package.constants import DB_PACKAGE_TAG, INSTALL_PACKAGE_LIST, PARSE_FILE_EXT, PackageType
@@ -38,7 +39,6 @@ from backend.db_package.serializers import (
     SyncMediumSerializer,
     UploadPackageSerializer,
 )
-from backend.exceptions import ApiRequestError
 from backend.flow.consts import MediumEnum
 from backend.iam_app.dataclass import ResourceEnum
 from backend.iam_app.dataclass.actions import ActionEnum
@@ -83,6 +83,8 @@ class DBPackageViewSet(viewsets.AuditedModelViewSet):
         data = self.params_validate(self.get_serializer_class())
         data["updater"] = request.user.username
         data.update(update_at=timezone.now())
+        # 先将暂存区文件转移到正式目录，再以正式路径入库，保证 DB 记录与制品库实际文件路径一致
+        data["path"] = StorageHandler().move_staging_file_to_formal(data["path"])
         package, created = Package.objects.update_or_create(
             defaults=data,
             name=data["name"],
@@ -106,11 +108,14 @@ class DBPackageViewSet(viewsets.AuditedModelViewSet):
         username = request.user.username
         now = timezone.now()
 
+        storage_handler = StorageHandler()
         created_packages = []
         with atomic():
             for pkg_data in packages_data:
                 pkg_data["updater"] = username
                 pkg_data["update_at"] = now
+                # 先将暂存区文件转移到正式目录，再以正式路径入库，保证 DB 记录与制品库实际文件路径一致
+                pkg_data["path"] = storage_handler.move_staging_file_to_formal(pkg_data["path"])
                 package, created = Package.objects.update_or_create(
                     defaults=pkg_data,
                     name=pkg_data["name"],
@@ -278,15 +283,11 @@ class DBPackageViewSet(viewsets.AuditedModelViewSet):
         package = self.get_object()
         if package.storageinstance_set.exists() or package.proxyinstance_set.exists():
             raise DBPackageBaseException(_("请保证该版本文件没有关联实例"))
-        # 如果还存在md5记录，则不删除制品库文件
-        # 删除制品库文件。 TODO: 暂时屏蔽该逻辑
-        try:
-            # StorageHandler().delete_file(self.get_object().path)
-            pass
-        except ApiRequestError as e:
-            logger.error(_("文件删除异常，错误信息: {}").format(e))
+        path = package.path
         # 删除本地记录
         super().destroy(request, *args, **kwargs)
+        # 记录删除后再清理制品库文件，路径仍被其他介质包引用时会自动跳过
+        Package.clean_unreferenced_files([path])
         return Response()
 
     @common_swagger_auto_schema(
@@ -300,16 +301,12 @@ class DBPackageViewSet(viewsets.AuditedModelViewSet):
             raise DBPackageBaseException(_("请保证该版本文件没有关联实例"))
         if ProxyInstance.objects.filter(db_package__in=package_ids).exists():
             raise DBPackageBaseException(_("请保证该版本文件没有关联实例"))
-        # 删除制品库文件  TODO: 暂时屏蔽该逻辑
         packages = Package.objects.filter(id__in=package_ids)
-        for package in packages:
-            try:
-                pass
-                # StorageHandler().delete_file(package.path)
-            except ApiRequestError as e:
-                logger.error(_("文件删除异常，错误信息: {}").format(e))
+        paths = list(packages.values_list("path", flat=True))
         # 删除本地记录
         packages.delete()
+        # 记录删除后再清理制品库文件，路径仍被其他介质包引用时会自动跳过
+        Package.clean_unreferenced_files(paths)
         return Response()
 
     @common_swagger_auto_schema(

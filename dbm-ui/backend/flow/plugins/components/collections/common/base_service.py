@@ -25,8 +25,10 @@ from backend.bk_dataview.prometheus import metrics
 from backend.bk_dataview.prometheus.handlers import node_label_func, setup_counter, setup_gauge, setup_histogram
 from backend.bk_web.constants import LogLabel
 from backend.components import JobApi
+from backend.components.exception import DataAPIException
 from backend.components.sops.client import BkSopsApi
 from backend.core.translation.constants import Language
+from backend.exceptions import ApiError
 from backend.flow.consts import DEFAULT_FLOW_CACHE_EXPIRE_TIME, SUCCESS_LIST, JobOperationCode, WriteContextOpType
 from backend.flow.engine.bamboo.engine import BambooEngine
 from backend.ticket.models import Flow
@@ -244,9 +246,12 @@ class BaseService(Service, ServiceLogMixin, metaclass=ABCMeta):
 
 class BkJobService(BaseService, metaclass=ABCMeta):
     __need_schedule__ = True
+    # 轮询间隔
     interval = StaticIntervalGenerator(5)
-    # 仅针对失败IP重试
+    # 是否仅针对失败IP重试
     only_failed_retry = False
+    # 轮询查询 Job 状态遇到网络类异常（DNS/连接/超时/网关等）时，允许连续失败的最大次数。
+    status_query_max_failed_times = 6
 
     @staticmethod
     def __status__(instance_id: str) -> Optional[Dict]:
@@ -399,7 +404,10 @@ class BkJobService(BaseService, metaclass=ABCMeta):
             return False
 
         job_instance_id = ext_result["data"]["job_instance_id"]
-        resp = self.__status__(job_instance_id)
+        resp, schedule_result = self.__query_job_status_with_retry(data, job_instance_id, node_name)
+        if resp is None:
+            # resp 为空表示本轮未取得任务状态，直接以 schedule_result 决定继续轮询(True)或判定失败(False)
+            return schedule_result
 
         # 获取任务状态：
         # """
@@ -417,14 +425,7 @@ class BkJobService(BaseService, metaclass=ABCMeta):
         step_instance_id = resp["data"]["step_instance_list"][0]["step_instance_id"]
 
         # 获取本次执行的所有ip信息
-        ip_dicts = []
-        if exec_ips:
-            for i in exec_ips:
-                if isinstance(i, dict) and i.get("ip") is not None and i.get("bk_cloud_id") is not None:
-                    ip_dicts.append(i)
-                else:
-                    # 兼容之前代码
-                    ip_dicts.append({"bk_cloud_id": kwargs["bk_cloud_id"], "ip": i})
+        ip_dicts = self.__build_ip_dicts(exec_ips, kwargs)
 
         # 判断本次job任务是否异常
         if job_status not in SUCCESS_LIST:
@@ -432,11 +433,10 @@ class BkJobService(BaseService, metaclass=ABCMeta):
             self.log_info(_("[{}]  任务调度失败😱").format(node_name))
 
             # 转载job脚本节点报错日志，兼容多IP执行场景的日志输出
-            if ip_dicts:
-                for ip_dict in ip_dicts:
-                    resp = self.__log__(job_instance_id, step_instance_id, ip_dict)
-                    if resp.get("result"):
-                        self.log_error(f"{ip_dict}:{resp['data']['log_content']}")
+            for ip_dict in ip_dicts:
+                resp = self.__log__(job_instance_id, step_instance_id, ip_dict)
+                if resp.get("result"):
+                    self.log_error(f"{ip_dict}:{resp['data']['log_content']}")
 
             # job失败后，记录失败的信息，可用于失败IP重试。
             data.outputs.job_execute = False
@@ -482,6 +482,45 @@ class BkJobService(BaseService, metaclass=ABCMeta):
 
         self.finish_schedule()
         return True
+
+    def __query_job_status_with_retry(self, data, job_instance_id, node_name):
+        """查询 Job 状态，封装网络异常重试逻辑。
+        查询 Job 状态时若遇到网络类异常（DNS 解析失败/连接失败/超时/网关异常等），多为瞬时故障，保持轮询、等待下一个 interval 重试，
+        连续失败累计超过阈值才真正判定节点失败，避免一次网络抖动直接拖垮整个 Job 节点。
+        """
+        try:
+            resp = self.__status__(job_instance_id)
+        except (ApiError, DataAPIException) as e:
+            failed_count = data.get_one_of_outputs("job_status_query_failed_count", 0) + 1
+            data.outputs.job_status_query_failed_count = failed_count
+            if failed_count < self.status_query_max_failed_times:
+                self.log_warning(_("[{}] 查询任务状态异常，将在下一轮重试: {}").format(node_name, e))
+                return None, True
+
+            self.log_error(_("[{}] 查询任务状态连续失败多次，超过阈值，判定节点失败: {}").format(node_name, e))
+            self.finish_schedule()
+            return None, False
+
+        # 查询成功，重置连续失败计数
+        if data.get_one_of_outputs("job_status_query_failed_count"):
+            data.outputs.job_status_query_failed_count = 0
+
+        return resp, None
+
+    @staticmethod
+    def __build_ip_dicts(exec_ips, kwargs):
+        """根据本次执行的 ip 信息构建标准的 ip_dict 列表，兼容历史数据格式"""
+        ip_dicts = []
+        if not exec_ips:
+            return ip_dicts
+
+        for i in exec_ips:
+            if isinstance(i, dict) and i.get("ip") is not None and i.get("bk_cloud_id") is not None:
+                ip_dicts.append(i)
+            else:
+                # 兼容之前代码
+                ip_dicts.append({"bk_cloud_id": kwargs["bk_cloud_id"], "ip": i})
+        return ip_dicts
 
 
 class BkShortJobService(BkJobService):

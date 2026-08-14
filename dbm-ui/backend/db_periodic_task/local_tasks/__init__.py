@@ -18,6 +18,7 @@ from backend.db_periodic_task.local_tasks.ai_mysql_tasks.mysql_slowlog_analysis 
 from backend.db_periodic_task.local_tasks.ai_tasks.log_analysis import *
 from backend.db_periodic_task.local_tasks.backup_files_expire import *
 from backend.db_periodic_task.local_tasks.check_expired_job_users import *
+from backend.db_periodic_task.local_tasks.clean_staging_files import *
 from backend.db_periodic_task.local_tasks.db_dirty import *
 from backend.db_periodic_task.local_tasks.db_meta import *
 from backend.db_periodic_task.local_tasks.db_monitor import *
