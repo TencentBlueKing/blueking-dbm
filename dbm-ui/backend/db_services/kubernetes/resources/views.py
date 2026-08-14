@@ -24,6 +24,7 @@ from backend.db_services.kubernetes.resources.serializers import (
     KubernetesComponentSpecSerializer,
     KubernetesRetrieveInstancesSerializer,
     KubernetesTopoGraphSerializer,
+    UpdateK8sClusterMetaSerializer,
 )
 from backend.iam_app.handlers.permission import Permission
 
@@ -115,3 +116,26 @@ class KubernetesResourceViewSet(ResourceViewSet):
         data = self.params_validate(self.get_serializer_class())
         data["bk_username"] = request.user.username
         return Response(self.query_class.get_component_spec(data))
+
+    @common_swagger_auto_schema(
+        operation_summary=_("更新集群别名和标签"),
+        tags=[constants.RESOURCE_TAG],
+    )
+    @action(
+        methods=["POST"],
+        detail=False,
+        url_path="update_cluster_meta",
+        serializer_class=UpdateK8sClusterMetaSerializer,
+    )
+    def update_cluster_meta(self, request, *args, **kwargs):
+        """更新集群别名和标签，并同步到 DBS 端"""
+        data = self.params_validate(self.get_serializer_class())
+        self.query_class.update_cluster_meta(
+            bk_biz_id=data["bk_biz_id"],
+            cluster_id=data["cluster_id"],
+            bk_username=request.user.username,
+            updated_by=request.user.username,
+            cluster_alias=data.get("cluster_alias"),
+            tags=data.get("tags"),
+        )
+        return Response()

@@ -67,3 +67,27 @@ class KubernetesRetrieveInstancesSerializer(serializers.Serializer):
     clusterName = serializers.CharField(help_text=_("集群名称"))
     componentName = serializers.CharField(help_text=_("组件名称"))
     podName = serializers.CharField(help_text=_("组件实例名称"))
+
+
+class UpdateK8sClusterMetaSerializer(serializers.Serializer):
+    bk_biz_id = serializers.IntegerField(help_text=_("业务ID"))
+    cluster_id = serializers.IntegerField(help_text=_("集群ID"))
+    cluster_alias = serializers.CharField(help_text=_("集群别名"), required=False)
+    tags = serializers.ListField(
+        child=serializers.DictField(),
+        help_text=_("标签键值对列表(格式:[{'key':'value'}]，标签不存在则新增，存在则绑定)"),
+        required=False,
+    )
+
+    def validate(self, attrs):
+        if attrs.get("cluster_alias") is None and not attrs.get("tags"):
+            raise serializers.ValidationError(_("cluster_alias 和 tags 至少传其一"))
+        return attrs
+
+    def validate_tags(self, value):
+        if not value:
+            return value
+        for tag_item in value:
+            if not isinstance(tag_item, dict) or len(tag_item) != 1:
+                raise serializers.ValidationError(_("每个标签必须是单键值对字典格式 {'key':'value'}"))
+        return value
