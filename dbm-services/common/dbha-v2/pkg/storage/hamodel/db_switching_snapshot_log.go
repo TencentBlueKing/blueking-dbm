@@ -39,8 +39,6 @@ const (
 	DbSwitchingSnapshotLogFieldBkBizID      = "bk_biz_id"
 	DbSwitchingSnapshotLogFieldBkCloudID    = "bk_cloud_id"
 	DbSwitchingSnapshotLogFieldInstances    = "instances"
-	DbSwitchingSnapshotLogFieldClusterID    = "cluster_id"
-	DbSwitchingSnapshotLogFieldClusterName  = "cluster_name"
 	DbSwitchingSnapshotLogFieldReason       = "reason"
 	DbSwitchingSnapshotLogFieldResult       = "result"
 	DbSwitchingSnapshotLogFieldStatus       = "status"
@@ -50,6 +48,8 @@ const (
 
 // SwitchingSnapshotInstance is the data structure for switching snapshot instance.
 type SwitchingSnapshotInstance struct {
+	ClusterID         int        `json:"cluster_id"`
+	ClusterName       string     `json:"cluster_name"`
 	IP                string     `json:"ip"`
 	Port              int        `json:"port"`
 	MachineType       string     `json:"machine_type"`
@@ -82,8 +82,6 @@ type DbSwitchingSnapshotLog struct {
 	BkBizID      int                                `gorm:"column:bk_biz_id;index:idx_biz"                    json:"bk_biz_id"`
 	BkCloudID    int                                `gorm:"column:bk_cloud_id"                                json:"bk_cloud_id"`
 	Instances    JSON[[]*SwitchingSnapshotInstance] `gorm:"column:instances;type:json"                        json:"instances,omitempty"`
-	ClusterID    int                                `gorm:"column:cluster_id;index:idx_cluster_id"            json:"cluster_id"`
-	ClusterName  string                             `gorm:"column:cluster_name;index:idx_cluster"             json:"cluster_name"`
 	Reason       string                             `gorm:"column:reason"                                     json:"reason,omitempty"`
 	Result       string                             `gorm:"column:result"                                     json:"result,omitempty"`
 	Status       DbSwitchingSnapshotLogStatus       `gorm:"column:status;index:idx_status"                    json:"status,omitempty"`
