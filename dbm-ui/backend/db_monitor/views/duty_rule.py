@@ -86,13 +86,13 @@ class MonitorDutyRuleViewSet(viewsets.AuditedModelViewSet):
         return {
             ("list",): [ResourceActionPermission([ActionEnum.DUTY_RULE_LIST], ResourceEnum.DBTYPE, self.inst_getter)],
             ("create",): [
-                ResourceActionPermission([ActionEnum.DUTY_RULE_CREATE], ResourceEnum.DBTYPE, self.inst_getter)
+                ResourceActionPermission([ActionEnum.DUTY_RULE_MANAGE], ResourceEnum.DBTYPE, self.inst_getter)
             ],
             ("update", "partial_update"): [
-                ResourceActionPermission([ActionEnum.DUTY_RULE_UPDATE], ResourceEnum.DBTYPE, self.inst_getter)
+                ResourceActionPermission([ActionEnum.DUTY_RULE_MANAGE], ResourceEnum.DBTYPE, self.inst_getter)
             ],
             ("destroy",): [
-                ResourceActionPermission([ActionEnum.DUTY_RULE_DESTROY], ResourceEnum.DBTYPE, self.inst_getter)
+                ResourceActionPermission([ActionEnum.DUTY_RULE_MANAGE], ResourceEnum.DBTYPE, self.inst_getter)
             ],
             ("priority_distinct",): [],
         }
@@ -107,7 +107,7 @@ class MonitorDutyRuleViewSet(viewsets.AuditedModelViewSet):
     @Permission.decorator_permission_field(
         id_field=lambda d: d["db_type"],
         data_field=lambda d: d["results"],
-        actions=[ActionEnum.DUTY_RULE_CREATE, ActionEnum.DUTY_RULE_UPDATE, ActionEnum.DUTY_RULE_DESTROY],
+        actions=[ActionEnum.DUTY_RULE_MANAGE],
         resource_meta=ResourceEnum.DBTYPE,
     )
     def list(self, request, *args, **kwargs):
