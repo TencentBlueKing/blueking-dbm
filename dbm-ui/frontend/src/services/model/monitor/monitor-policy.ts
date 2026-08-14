@@ -132,8 +132,7 @@ export default class MonitorPolicy {
   notify_rules: string[];
   parent_id: number;
   permission: {
-    global_monitor_policy_edit: boolean;
-    global_monitor_policy_start_stop: boolean;
+    global_monitor_policy_manage: boolean;
     monitor_policy_alarm_view: boolean;
     // monitor_policy_clone: boolean;
     // monitor_policy_delete: boolean;

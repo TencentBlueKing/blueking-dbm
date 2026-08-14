@@ -52,9 +52,9 @@
               <template #default="{ row }: { row: MonitorPolicyModel }">
                 <TextOverflowLayout>
                   <AuthButton
-                    action-id="global_monitor_policy_edit"
+                    action-id="global_monitor_policy_manage"
                     class="mr-4"
-                    :permission="row.permission.global_monitor_policy_edit"
+                    :permission="row.permission.global_monitor_policy_manage"
                     :resource="row.id"
                     text
                     theme="primary"
@@ -99,8 +99,8 @@
                   @confirm="() => handleSwitchEnableClickConfirm(row)">
                   <AuthSwitcher
                     v-model="row.is_enabled"
-                    action-id="global_monitor_policy_start_stop"
-                    :permission="row.permission.global_monitor_policy_start_stop"
+                    action-id="global_monitor_policy_manage"
+                    :permission="row.permission.global_monitor_policy_manage"
                     :resource="row.id"
                     size="small"
                     theme="primary"
@@ -178,8 +178,8 @@
               :width="120">
               <template #default="{ row }: { row: MonitorPolicyModel }">
                 <AuthButton
-                  action-id="global_monitor_policy_edit"
-                  :permission="row.permission.global_monitor_policy_edit"
+                  action-id="global_monitor_policy_manage"
+                  :permission="row.permission.global_monitor_policy_manage"
                   :resource="row.id"
                   text
                   theme="primary"
@@ -187,9 +187,9 @@
                   {{ t('编辑') }}
                 </AuthButton>
                 <AuthButton
-                  action-id="global_monitor_policy_edit"
+                  action-id="global_monitor_policy_manage"
                   class="ml-8"
-                  :permission="row.permission.global_monitor_policy_edit"
+                  :permission="row.permission.global_monitor_policy_manage"
                   :resource="row.id"
                   text
                   theme="primary"

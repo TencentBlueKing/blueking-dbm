@@ -1,6 +1,6 @@
 <template>
   <AuthTemplate
-    action-id="spec_update"
+    action-id="spec_manage"
     class="mr-8"
     :resource="dbType">
     <DbPopconfirm
