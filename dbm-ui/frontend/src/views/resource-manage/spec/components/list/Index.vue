@@ -144,8 +144,8 @@
         <template #default="{ row }: { row: ResourceSpecModel }">
           <TextOverflowLayout>
             <AuthButton
-              action-id="spec_update"
-              :permission="row.permission.spec_update"
+              action-id="spec_manage"
+              :permission="row.permission.spec_manage"
               :resource="dbType"
               text
               theme="primary"
@@ -196,9 +196,9 @@
             width="308"
             @confirm="() => handleConfirmSwitch(row)">
             <AuthSwitcher
-              action-id="spec_update"
+              action-id="spec_manage"
               :model-value="row.enable"
-              :permission="row.permission.spec_update"
+              :permission="row.permission.spec_manage"
               :resource="dbType"
               size="small"
               theme="primary" />
@@ -272,9 +272,9 @@
         :width="120">
         <template #default="{ row }: { row: ResourceSpecModel }">
           <AuthButton
-            action-id="spec_update"
+            action-id="spec_manage"
             class="mr-12"
-            :permission="row.permission.spec_update"
+            :permission="row.permission.spec_manage"
             :resource="dbType"
             text
             theme="primary"
@@ -296,9 +296,9 @@
             v-bk-tooltips="t('仅可删除“未使用”的规格')"
             class="inline-block;">
             <AuthButton
-              action-id="spec_delete"
+              action-id="spec_manage"
               disabled
-              :permission="row.permission.spec_delete"
+              :permission="row.permission.spec_manage"
               :resource="dbType"
               text
               theme="primary">
@@ -307,8 +307,8 @@
           </span>
           <AuthButton
             v-else
-            action-id="spec_delete"
-            :permission="row.permission.spec_delete"
+            action-id="spec_manage"
+            :permission="row.permission.spec_manage"
             :resource="dbType"
             text
             theme="primary"

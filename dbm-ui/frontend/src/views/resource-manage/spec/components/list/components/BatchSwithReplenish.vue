@@ -1,6 +1,6 @@
 <template>
   <AuthTemplate
-    action-id="spec_update"
+    action-id="spec_manage"
     :resource="dbType">
     <DbPopconfirm
       :confirm-handler="() => handleBatchUpdate()"
