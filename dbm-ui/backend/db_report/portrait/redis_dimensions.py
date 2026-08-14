@@ -5,8 +5,8 @@ Copyright (C) 2017-2023 THL A29 Limited, a Tencent company. All rights reserved.
 Licensed under the MIT License (the "License"); you may not use this file except in compliance with the License.
 You may obtain a copy of the License at https://opensource.org/licenses/MIT
 Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on
-an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
-specific language governing permissions and limitations under the License.
+an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for
+the specific language governing permissions and limitations under the License.
 
 集群画像 - Redis 类维度契约。
 
@@ -18,7 +18,7 @@ specific language governing permissions and limitations under the License.
 扩展方式：
     1) 在 :class:`RedisPortraitDimensionCode` 里新增一个 ``EnumField`` 成员
     2) 在下方 ``_DESCRIPTIONS`` 里补一条 description（与成员一一对应）
-    3) 巡检 task 里调 ``ingest_summary(db_type=DBType.Redis, dimension=..., ...)``
+    3) 巡检 task 里调 ``ingest_redis_cluster_summary`` 或 ``ingest_summary(db_type=DBType.Redis, ...)``
        —— 首次运行即自动懒注册到 tb_portrait_dimension_registry
 
 边界：
@@ -48,25 +48,22 @@ class RedisPortraitDimensionCode(StrStructuredEnum):
 
         ingest_summary(
             db_type=DBType.Redis,
-            dimension=RedisPortraitDimensionCode.BIG_KEY,
+            dimension=RedisPortraitDimensionCode.RELIABILITY,
             bk_biz_id=100001,
             cluster_domain="a.b.c",
             report_time=datetime.now(),
-            summary="发现 3 个 >10MB 大 Key，TOP1: user_profile:xxx",
-            detail_url="https:/xxx/redis/big-key/detail?xxx",
+            summary="[全备] 缺备：3 个分片昨日无全备记录",
+            detail_url="",
         )
 
     线程安全：是（枚举本身不可变）
     边界：新增成员建议同步补 :data:`_DESCRIPTIONS`；未登记时 description 返回空串
     """
 
-    # 示例占位成员：单下划线前缀表明"仅作模板，非正式业务维度"，
-    # Redis 首个真实巡检维度落地后应删除本行，避免被误引用。
-    REDIS_EXAMPLE = EnumField("redis_example", _("Redis 示例维度（模板占位，勿在业务代码中引用）"))
-    # 后续正式维度新增示例（保留注释形式作为模板）：
-    # BIG_KEY = EnumField("big_key", _("Redis 大 Key 巡检"))
-    # HOT_KEY = EnumField("hot_key", _("Redis 热 Key 巡检"))
-    # CONFIG_CHECK = EnumField("config_check", _("Redis 配置项巡检"))
+    TOPOLOGY_SCALE = EnumField("topology_scale", _("拓扑与规模"))
+    LOAD_CAPACITY = EnumField("load_capacity", _("负载与容量"))
+    RELIABILITY = EnumField("reliability", _("可靠性与数据安全"))
+    CONFIG_HEALTH = EnumField("config_health", _("配置与组件健康"))
 
     @property
     def description(self) -> str:
@@ -79,14 +76,35 @@ class RedisPortraitDimensionCode(StrStructuredEnum):
 
 
 #: Redis 维度描述表：``<枚举成员> -> description 文本``（模块私有，外部通过成员的 .description 属性访问）
-#: 与枚举成员分离维护的原因：
-#:   1) 保持枚举成员定义单行紧凑
-#:   2) description 通常较长；写在 EnumField 里会破坏 StrStructuredEnum (value/label) 二元约定
-#:   3) 便于集中翻译
-
 _DESCRIPTIONS: Dict[RedisPortraitDimensionCode, StrOrPromise] = {
-    # 与枚举成员一一对应，按需登记；示例：
-    RedisPortraitDimensionCode.REDIS_EXAMPLE: _("Redis 示例维度（模板占位，勿在业务代码中引用）"),
-    # RedisPortraitDimensionCode.BIG_KEY: _("..."),
-    # RedisPortraitDimensionCode.HOT_KEY: _("..."),
+    RedisPortraitDimensionCode.TOPOLOGY_SCALE: _(
+        "集群拓扑结构与规模画像。当前态规模（分片 / proxy / 实例数量、规格、版本、region、亲和性）"
+        "由 skill 生成时通过 Redis 元数据 MCP 拉取，落入报告头，不经本维度摘要表。"
+        "本维度摘要只收拓扑完整性巡检：孤立实例、实例状态非 RUNNING、访问入口绑定与元数据不一致、"
+        "主从或 proxy 可用区亲和性违反、同集群规格不一致。"
+        "summary 以 [孤立实例] / [实例状态] / [亲和性] / [入口] 等前缀区分子检查来源；"
+        "时间窗内无摘要代表拓扑完整、无异常。"
+    ),
+    RedisPortraitDimensionCode.LOAD_CAPACITY: _(
+        "集群负载与容量水位。覆盖 CPU / 内存 / 连接数 / QPS / 磁盘 IO 等负载指标的水位与变化趋势，"
+        "内存容量使用率与增长趋势（重点关注 noeviction 策略集群的内存增长风险），"
+        "以及分片间的负载倾斜与数据倾斜。"
+        "一期暂不写入本维度摘要（容量增长 / 负载倾斜 / 数据倾斜巡检源尚未挂载）；"
+        "时间窗内无摘要代表尚无负载与容量巡检数据，不代表已确认健康。"
+        "本维度不由画像 agent 实时拉 metrics。"
+    ),
+    RedisPortraitDimensionCode.RELIABILITY: _(
+        "集群可靠性与数据安全。覆盖全量备份是否按 schedule 覆盖（缺备 / 偏班 / 失败）、"
+        "TendisPlus 与 SSD 集群从库 binlog 连续性、定期回档演练的成败结果与失败阶段。"
+        "summary 以 [全备] / [binlog] / [回档演练] 等前缀区分来源；"
+        "备份类异常才上报，演练类每次结束必报（含成功样本）。"
+        "时间窗内无摘要代表备份正常且无演练记录。"
+    ),
+    RedisPortraitDimensionCode.CONFIG_HEALTH: _(
+        "集群配置与管控组件健康。覆盖存储节点角色与 INFO REPLICATION 实际状态一致性、"
+        "Predixy INFO Servers 异常与磁盘配置文件漂移等配置巡检，"
+        "以及 redis / proxy exporter 的 down / duplicate / redundant / 跨集群指标串扰等监控组件异常。"
+        "summary 以 [配置] / [exporter] 等前缀区分来源；"
+        "异常才上报，时间窗内无摘要代表配置一致、组件健康。"
+    ),
 }

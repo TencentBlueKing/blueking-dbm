@@ -260,6 +260,10 @@ class RedisExerciseReportUpdateService(RedisLogCapturingService):
             task_message = embed_failed_node_logs(task_message, report, stage)
             report.mark(stage, task_message=task_message)
             self.log_info(_("Report {} marked as {}").format(report_id, stage))
+            if stage in self.TERMINAL_STAGES:
+                from backend.db_report.portrait.redis_ingest import ingest_rollback_exercise_portrait
+
+                ingest_rollback_exercise_portrait(report)
         except Exception as e:
             self.log_error(_("Failed to update report {}: {}").format(report_id, str(e)))
 
@@ -1396,6 +1400,9 @@ done
         merged_msg = embed_failed_node_logs(merged_msg, report, TaskStage.CLEANUP_FAILED)
         report.mark(TaskStage.CLEANUP_FAILED, task_message=merged_msg)
         self.log_info(_("Report {} marked CLEANUP_FAILED by best-effort cleanup").format(report_id))
+        from backend.db_report.portrait.redis_ingest import ingest_rollback_exercise_portrait
+
+        ingest_rollback_exercise_portrait(report)
 
 
 class RedisExerciseBestEffortCleanupComponent(Component):
