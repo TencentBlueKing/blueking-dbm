@@ -34,9 +34,10 @@ logger = logging.getLogger("flow")
 
 
 class MysqlDtsDeleteTaskSourceService(BaseService):
-    """按本单显式名称列表删除 DTS task 与 source（串行：先 task 后 source）。
+    """按本单显式名称列表删除 DTS task 与 source。
 
-    成功路径可在两次 API 之间插入：增量则 purge_relay，builtin 则 rm 本单 dump 目录。
+    成功路径串行顺序：增量先 purge_relay → delete_task → builtin dump rm → delete_source。
+    purge 必须在 delete_task 之前，否则删任务后 relay worker 可能已下线导致 purge 49001。
 
     与 DESTROY ``MysqlDtsStopTasksService`` 的差异：
       - 本组件只删除入参 ``task_names`` / ``source_names``，**禁止** ``list_tasks`` / ``list_sources`` 全量扫删
@@ -69,10 +70,11 @@ class MysqlDtsDeleteTaskSourceService(BaseService):
             self.log_error(_("bk_cloud_id 为空，无法删除本单 task/source"))
             return False
 
-        tasks_ok = self._delete_tasks(master_addr, int(bk_cloud_id), task_names, ignore_errors)
+        tasks_ok = True
         purge_ok = True
         if "task_mode" in kwargs and task_mode_runs_incremental(kwargs.get("task_mode")):
             purge_ok = self._purge_relays(master_addr, int(bk_cloud_id), source_names, ignore_errors)
+        tasks_ok = self._delete_tasks(master_addr, int(bk_cloud_id), task_names, ignore_errors)
         dump_ok = True
         if self._should_clean_dump(kwargs):
             dump_ok = self._rm_ticket_dump_dirs(kwargs, trans_data, task_names, ignore_errors)
