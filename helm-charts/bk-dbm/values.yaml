@@ -137,6 +137,10 @@ dbm:
     bkAppToken: "bk_dbm_token"
     bkSaasUrl: "https://bkdbm.example.com/"
     brokerUrl: "redis://localhost:6379/0"
+    # ===== 子路径模式：告知 dbm 自身运行在 /bkdbm 前缀下 =====
+    BK_SUBPATH_ENABLED: true
+    BK_SUBPATH_PREFIX: "/bkdbm"
+    FORCE_SCRIPT_NAME: "/bkdbm"
     # 蓝鲸数据库管理平台
     dbaAppBkBizId: "dba_biz"
     dbmApigwDomain: "http://bk-dbm"
@@ -168,7 +172,7 @@ dbm:
         proxy_set_header X-Real-IP $remote_addr;
     hostname: "bkdbm.example.com"
     paths:
-      - path: /
+      - path: /bkdbm(/|$)(.*)
         pathType: ImplementationSpecific
     tls: []
 
@@ -183,9 +187,12 @@ dbm:
         real_ip_recursive on;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Real-IP $remote_addr;
+      # ===== 新增：子路径模式去掉 /bkdbm 前缀 =====
+      nginx.ingress.kubernetes.io/rewrite-target: /$2
+      nginx.ingress.kubernetes.io/use-regex: "true"
     hostname: "bkdbm-backend-api.example.com"
     paths:
-      - path: /
+      - path: /bkdbm(/|$)(.*)
         pathType: ImplementationSpecific
     tls: []
 
@@ -195,7 +202,7 @@ dbm:
     className: ""
     hostname: "bkdbm-public.example.com"
     paths:
-      - path: /
+      - path: /bkdbm/public(/|$)(.*)
         pathType: ImplementationSpecific
     tls: []
 
@@ -403,15 +410,12 @@ db-nginx:
     className: ""
     annotations:
       nginx.ingress.kubernetes.io/proxy-body-size: 1024m
-      nginx.ingress.kubernetes.io/configuration-snippet: |
-        set_real_ip_from 0.0.0.0/0;
-        real_ip_header X-Forwarded-For;
-        real_ip_recursive on;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Real-IP $remote_addr;
+      # ===== 子路径模式：把 /bkdbm 前缀剥掉交给 portable-nginx（其内部按根路径 / 配置）=====
+      nginx.ingress.kubernetes.io/rewrite-target: /$2
+      nginx.ingress.kubernetes.io/use-regex: "true"
     hostname: bk-dbm-nginx
     paths:
-      - path: /
+      - path: /bkdbm(/|$)(.*)
         pathType: ImplementationSpecific
 
 db-dbha:
