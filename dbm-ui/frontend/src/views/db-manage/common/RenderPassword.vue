@@ -196,7 +196,7 @@
       list: [
         {
           shareLink: '',
-          title: 'IP',
+          title: 'CLB IP',
           value: '',
         },
         {
@@ -341,11 +341,11 @@
     if (isClbShow.value) {
       if (dataObj.value.clb.list[0].value) {
         // 存在CLB
-        content = `${content}IP: ${dataObj.value.clb.list[0].value}\n${t('CLB域名')}: ${dataObj.value.clb.list[1].value}\n`;
+        content = `${content}\n${t('腾讯云负载均衡（CLB）')}\nCLB IP: ${dataObj.value.clb.list[0].value}\n${t('CLB域名')}: ${dataObj.value.clb.list[1].value}`;
       }
       if (dataObj.value.polary.list[0].value) {
         // 存在北极星
-        content = `${content}CL5: ${dataObj.value.polary.list[0].value}\n${t('北极星服务名称')}: ${dataObj.value.polary.list[1].value}\n`;
+        content = `${content}\n${t('CL5与北极星')}\nCL5: ${dataObj.value.polary.list[0].value}\n${t('北极星服务名称')}: ${dataObj.value.polary.list[1].value}`;
       }
     }
 
