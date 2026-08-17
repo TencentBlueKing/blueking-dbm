@@ -142,23 +142,23 @@
         :width="320"
         @confirm="() => handleConfirm()">
         <AuthButton
-          action-id="global_monitor_policy_manage"
+          action-id="global_alarm_policy_manage"
           :disabled="resetLoading"
           :loading="updateLoading"
-          :permission="data.permission.global_monitor_policy_manage"
-          :resource="data.id"
+          :permission="data.permission.global_alarm_policy_manage"
+          :resource="dbType"
           theme="primary">
           {{ t('确定') }}
         </AuthButton>
       </BkPopConfirm>
       <AuthButton
-        action-id="global_monitor_policy_manage"
+        action-id="global_alarm_policy_manage"
         class="ml-8"
         :disabled="updateLoading"
         :loading="resetLoading"
         outline
-        :permission="data.permission.global_monitor_policy_manage"
-        :resource="data.id"
+        :permission="data.permission.global_alarm_policy_manage"
+        :resource="dbType"
         theme="primary"
         @click="() => handleResetClickConfirm()">
         {{ t('恢复初始值') }}

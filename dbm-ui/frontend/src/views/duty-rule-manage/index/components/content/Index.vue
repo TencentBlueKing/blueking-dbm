@@ -176,24 +176,29 @@
             :title="t('启停')"
             :width="80">
             <template #default="{ row }: { row: DutyRuleModel }">
-              <BkPopConfirm
-                :content="t('停用后，所有的业务将会停用该策略，请谨慎操作！')"
-                :is-show="showTipMap[row.id]"
-                placement="bottom"
-                :title="t('确认停用该策略？')"
-                trigger="manual"
-                width="320"
-                @cancel="() => handleCancelConfirm(row)"
-                @confirm="() => handleClickConfirm(row)">
-                <AuthSwitcher
-                  v-model="row.is_enabled"
-                  action-id="duty_rule_manage"
-                  :before-change="(isEnable: boolean) => enableRequestHandler(isEnable, row)"
-                  :permission="row.permission.duty_rule_manage"
-                  :resource="activeDbType"
-                  size="small"
-                  theme="primary" />
-              </BkPopConfirm>
+              <AuthTemplate
+                action-id="duty_rule_manage"
+                :permission="row.permission.duty_rule_manage"
+                :resource="activeDbType">
+                <BkPopConfirm
+                  :content="t('停用后，所有的业务将会停用该策略，请谨慎操作！')"
+                  :is-show="showTipMap[row.id]"
+                  placement="bottom"
+                  :title="t('确认停用该策略？')"
+                  trigger="manual"
+                  width="320"
+                  @cancel="() => handleCancelConfirm(row)"
+                  @confirm="() => handleClickConfirm(row)">
+                  <AuthSwitcher
+                    v-model="row.is_enabled"
+                    action-id="duty_rule_manage"
+                    :before-change="(isEnable: boolean) => enableRequestHandler(isEnable, row)"
+                    :permission="row.permission.duty_rule_manage"
+                    :resource="activeDbType"
+                    size="small"
+                    theme="primary" />
+                </BkPopConfirm>
+              </AuthTemplate>
             </template>
           </TableColumn>
           <TableColumn
