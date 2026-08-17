@@ -150,6 +150,8 @@ class SystemSettingsViewSet(viewsets.SystemViewSet):
                     "BK_AIDEV_LOG_ANALYSIS_URL": env.BK_AIDEV_LOG_ANALYSIS_URL,
                     "BKMONITOR_URL": env.BKMONITOR_URL,
                     "BK_HCM_URL": env.BK_HCM_URL,
+                    "BK_IAM_URL": env.BK_IAM_URL,
+                    "BK_USER_MANAGE_URL": env.BK_USER_MANAGE_URL,
                 }
             )
         return Response(envs)
