@@ -17,7 +17,7 @@ from backend.flow.engine.bamboo.scene.spider.full_backup import TenDBClusterFull
 from backend.flow.engine.bamboo.scene.spider.import_sqlfile_flow import ImportSQLFlow
 from backend.flow.engine.bamboo.scene.spider.remote_master_fail_over import RemoteMasterFailOverFlow
 from backend.flow.engine.bamboo.scene.spider.remote_master_slave_swtich import RemoteMasterSlaveSwitchFlow
-from backend.flow.engine.bamboo.scene.spider.revoke.tendb_cluster_apply_revoke_flow import TenDBClusterApplyRevokeFlow
+from backend.flow.engine.bamboo.scene.spider.revoke.spider_revoke_flows import TenDBClusterApplyRevokeFlow
 from backend.flow.engine.bamboo.scene.spider.spider_add_mnt import TenDBClusterAddSpiderMNTFlow
 from backend.flow.engine.bamboo.scene.spider.spider_add_nodes import TenDBClusterAddNodesFlow
 from backend.flow.engine.bamboo.scene.spider.spider_checksum import SpiderChecksumFlow
