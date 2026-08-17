@@ -117,22 +117,23 @@
         </DbForm>
       </BkCard>
       <template #action>
-        <BkButton
+        <AuthButton
+          action-id="platform_todo_remind_manage"
           class="w-88"
           :disabled="resetTodoRemindLoading"
           :loading="updateTodoRemindLoading"
           theme="primary"
           @click="handleSave">
           {{ t('保存') }}
-        </BkButton>
-        <BkButton
-          action-id="biz_notify_config"
+        </AuthButton>
+        <AuthButton
+          action-id="platform_todo_remind_manage"
           class="ml-8 w-88"
           :disabled="updateTodoRemindLoading"
           :loading="resetTodoRemindLoading"
           @click="handleReset">
           {{ t('恢复默认') }}
-        </BkButton>
+        </AuthButton>
       </template>
     </SmartAction>
   </BkLoading>

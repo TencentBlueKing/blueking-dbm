@@ -76,10 +76,11 @@
             {{ t('立即发送') }}
           </AuthButton>
           <AuthButton
-            action-id="update_duty_notices_config"
+            action-id="duty_notice_config_update"
             class="w-88"
             :disabled="updateLoading || sendLoading"
             :loading="resetLoading"
+            :resource="dbType"
             @click="handleReset">
             {{ t('恢复默认') }}
           </AuthButton>
