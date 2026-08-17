@@ -95,3 +95,54 @@ func TestNewDbhaDataPassthrough(t *testing.T) {
 		})
 	}
 }
+
+func TestNewDbhaDataProbeMapping(t *testing.T) {
+	host := &haprobe.HostMetric{
+		NetIPs:     []string{"127.0.0.1"},
+		MemTotalMB: 1024,
+		CpuLoad1:   0.5,
+	}
+	probe := &haprobe.ProbeMetric{
+		Version:         "1.2.3",
+		Pid:             99,
+		CpuUsagePercent: 0,
+		UptimeSeconds:   12,
+	}
+
+	withProbe := &haprobe.HarvestData{
+		HarvestBaseData: haprobe.HarvestBaseData{
+			DbIp:   "127.0.0.1",
+			DbPort: 3306,
+			Host:   host,
+			Probe:  probe,
+		},
+	}
+	got := NewDbhaData(withProbe)
+	if !got.Probe.Valid {
+		t.Fatal("Probe.Valid = false, want true")
+	}
+	if got.Probe.Data == nil || got.Probe.Data.Version != "1.2.3" || got.Probe.Data.Pid != 99 {
+		t.Errorf("unexpected probe mapping: %#v", got.Probe.Data)
+	}
+	if !got.Host.Valid || got.Host.Data == nil || got.Host.Data.MemTotalMB != 1024 {
+		t.Errorf("Host mapping regresssed: %#v", got.Host)
+	}
+	if !got.IPs.Valid || len(got.IPs.Data) != 1 || got.IPs.Data[0] != "127.0.0.1" {
+		t.Errorf("IPs mapping regresssed: %#v", got.IPs)
+	}
+
+	withoutProbe := &haprobe.HarvestData{
+		HarvestBaseData: haprobe.HarvestBaseData{
+			DbIp:   "127.0.0.1",
+			DbPort: 3306,
+			Host:   host,
+		},
+	}
+	gotNil := NewDbhaData(withoutProbe)
+	if gotNil.Probe.Valid {
+		t.Fatal("Probe.Valid = true when probe is nil, want false")
+	}
+	if !gotNil.Host.Valid {
+		t.Fatal("Host.Valid = false, want true")
+	}
+}
