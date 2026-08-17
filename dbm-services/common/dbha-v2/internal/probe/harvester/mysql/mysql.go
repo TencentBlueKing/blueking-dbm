@@ -473,7 +473,7 @@ func (m *MySql) buildHarvestGroups() []*harvestGroup {
 			htype:    haprobe.HarvestTypeHeartbeat,
 			interval: m.heartbeatInterval(),
 			accept:   func(c *collector) bool { return !c.isTendbhaProxyAdminPort() },
-			emit:     m.collectHeartbeat, // TO DISCUSS: probe high-volume data reporting
+			emit:     m.collectHeartbeat,
 		},
 		{
 			htype:    haprobe.HarvestTypeReplDelay,
