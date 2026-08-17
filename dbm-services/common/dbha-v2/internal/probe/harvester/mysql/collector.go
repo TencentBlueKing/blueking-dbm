@@ -425,8 +425,9 @@ func (c *collector) obtainHeartbeatStatus(writeBinlog bool, writeMaxAttempts int
 }
 
 // writeDbhaHeartbeat ensures the probe-owned heartbeat schema/table exist (DDL with
-// sql_log_bin=OFF), then REPLACE a row for host:port. On any failure it records
-// WriteSuccess=false but never aborts the caller — delay is still queried afterward.
+// sql_log_bin=OFF, only when the table is missing), then REPLACE a row for host:port.
+// On any failure it records WriteSuccess=false but never aborts the caller — delay
+// is still queried afterward.
 func (c *collector) writeDbhaHeartbeat(
 	parent context.Context, writeBinlog bool, host string, port int, status *haprobe.MySqlHeartbeatStatus,
 ) {
@@ -448,14 +449,8 @@ func (c *collector) writeDbhaHeartbeat(
 		return
 	}
 
-	if err := c.heartbeatExec(parent, hamodel.CreateProbeMysqlDbSQL); err != nil {
-		logger.Warn("failed to create heartbeat database, db: %s, errmsg: %s", hamodel.ProbeMysqlDbName, err)
-		markFail(err)
-		return
-	}
-
-	if err := c.heartbeatExec(parent, hamodel.CreateDbhaHeartbeatTableSQL); err != nil {
-		logger.Warn("failed to create heartbeat table, db: %s, table: %s, errmsg: %s",
+	if err := c.confirmHeartbeatTable(parent); err != nil {
+		logger.Warn("failed to confirm heartbeat table, db: %s, table: %s, errmsg: %s",
 			hamodel.ProbeMysqlDbName, hamodel.DbhaHeartbeatTableName, err)
 		markFail(err)
 		return
@@ -541,6 +536,31 @@ func (c *collector) confirmReplHeartbeatTable(parent context.Context) error {
 	}
 
 	return nil
+}
+
+// confirmHeartbeatTable checks information_schema and only CREATE DATABASE/TABLE
+// IF NOT EXISTS when dbha_heartbeat is missing.
+func (c *collector) confirmHeartbeatTable(parent context.Context) error {
+	var n int
+	rows, err := c.heartbeatScan(parent, &n,
+		"SELECT 1 FROM information_schema.TABLES WHERE TABLE_SCHEMA = ? AND TABLE_NAME = ? LIMIT 1",
+		hamodel.ProbeMysqlDbName, hamodel.DbhaHeartbeatTableName)
+
+	if (err == nil) && (rows > 0) {
+		return nil
+	}
+
+	// Some MySQL versions cannot query information_schema.TABLES;
+	// treat failure as missing and fall through to CREATE.
+	if err != nil {
+		logger.Warn("failed to check heartbeat table existence, treat as missing, db: %s, table: %s, errmsg: %s",
+			hamodel.ProbeMysqlDbName, hamodel.DbhaHeartbeatTableName, err)
+	}
+
+	if err := c.heartbeatExec(parent, hamodel.CreateProbeMysqlDbSQL); err != nil {
+		return err
+	}
+	return c.heartbeatExec(parent, hamodel.CreateDbhaHeartbeatTableSQL)
 }
 
 // obtainMasterStatus writes a replication-delay heartbeat row (binlog ON, single attempt)
