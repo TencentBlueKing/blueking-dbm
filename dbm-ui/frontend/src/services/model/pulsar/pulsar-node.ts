@@ -28,16 +28,11 @@ export default class PulsarNode {
   machine_type: string;
   mem: number;
   node_count: number;
-  permission: Record<
-    | 'pulsar_view'
-    | 'pulsar_enable_disable'
-    | 'pulsar_destroy'
-    | 'pulsar_scale_up'
-    | 'pulsar_shrink'
-    | 'pulsar_replace'
-    | 'pulsar_reboot',
-    boolean
-  >;
+  permission: {
+    pulsar_destroy: boolean;
+    pulsar_enable_disable: boolean;
+    pulsar_view: boolean;
+  };
   role: string;
   status: number;
 
