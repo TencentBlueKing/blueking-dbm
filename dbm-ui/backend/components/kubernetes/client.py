@@ -126,8 +126,8 @@ class _KubernetesApi(BaseApi):
             description=_("获取区域列表"),
         )
         self.write_back_cluster_id = self.generate_data_api(
-            method="POST",
-            url="/v4/dbs/cluster/update_dbm_cluster_id",
+            method="PATCH",
+            url="/v4/dbs/metadata/cluster",
             description=_("回写集群ID"),
         )
         self.partial_update_cluster = self.generate_data_api(
