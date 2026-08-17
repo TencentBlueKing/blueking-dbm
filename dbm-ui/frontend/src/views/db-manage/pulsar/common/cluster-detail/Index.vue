@@ -53,9 +53,9 @@
             <div v-db-console="'pulsar.clusterManage.scaleUp'">
               <OperationBtnStatusTips :data="data">
                 <AuthButton
-                  action-id="pulsar_scale_up"
+                  action-id="pulsar_manage"
                   :disabled="data.operationDisabled"
-                  :permission="data.permission.pulsar_scale_up"
+                  :permission="data.permission.pulsar_manage"
                   :resource="data.id"
                   text
                   theme="primary"
@@ -67,9 +67,9 @@
             <div v-db-console="'pulsar.clusterManage.scaleDown'">
               <OperationBtnStatusTips :data="data">
                 <AuthButton
-                  action-id="pulsar_shrink"
+                  action-id="pulsar_manage"
                   :disabled="data.operationDisabled"
-                  :permission="data.permission.pulsar_shrink"
+                  :permission="data.permission.pulsar_manage"
                   :resource="data.id"
                   text
                   theme="primary"
