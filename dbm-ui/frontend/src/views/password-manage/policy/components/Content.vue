@@ -126,9 +126,12 @@
           @click="handleSubmit">
           {{ t('保存') }}
         </AuthButton>
-        <BkButton @click="handleReset">
+        <AuthButton
+          action-id="set_password_policy"
+          :resource="dbType"
+          @click="handleReset">
           {{ t('恢复默认') }}
-        </BkButton>
+        </AuthButton>
       </BkFormItem>
     </DbForm>
   </BkLoading>
