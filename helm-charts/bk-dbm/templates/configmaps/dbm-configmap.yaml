@@ -72,6 +72,8 @@ data:
   IAM_APP_URL: "{{ .Values.bk.bkIamUrl }}"
   BK_IAM_APIGATEWAY: "{{ .Values.bk.bkIamApiUrl }}"
   BK_IAM_RESOURCE_API_HOST: "{{ .Values.bk.bkIamResourceApiHost }}"
+  # 蓝鲸用户管理
+  BK_USER_MANAGE_URL: "{{ .Values.bk.bkUserManageUrl }}"
   # 蓝鲸监控平台
   GRAFANA_URL: "{{ .Values.bk.grafanaUrl }}"
   BKMONITOR_URL: "{{ .Values.bk.bkMonitorUrl }}"

@@ -150,6 +150,8 @@ BK_SOPS_URL = get_type_env(key="BK_SOPS_HOST", _type=str, default=None)
 BK_HELPER_URL = get_type_env(key="BK_HELPER_URL", _type=str, default=None)
 BK_AIDEV_URL = get_type_env(key="BK_AIDEV_URL", _type=str, default=None)
 BK_AIDEV_LOG_ANALYSIS_URL = get_type_env(key="BK_AIDEV_LOG_ANALYSIS_URL", _type=str, default=None)
+BK_IAM_URL = get_type_env(key="BK_IAM_URL", _type=str, default="") or IAM_APP_URL
+BK_USER_MANAGE_URL = get_type_env(key="BK_USER_MANAGE_URL", _type=str, default="")
 
 # 北极星服务
 POLARIS_URL = get_type_env(key="POLARIS_URL", _type=str, default="http://polaris.example.com")
