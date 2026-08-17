@@ -92,6 +92,22 @@ func TestPackageVariables(t *testing.T) {
 	}
 }
 
+func TestGet(t *testing.T) {
+	info := Get()
+	if info.BuildTime != buildTime {
+		t.Errorf("Get().BuildTime = %q, want %q", info.BuildTime, buildTime)
+	}
+	if info.GitTag != gitTag {
+		t.Errorf("Get().GitTag = %q, want %q", info.GitTag, gitTag)
+	}
+	if info.GitHash != gitHash {
+		t.Errorf("Get().GitHash = %q, want %q", info.GitHash, gitHash)
+	}
+	if info.Version != version {
+		t.Errorf("Get().Version = %q, want %q", info.Version, version)
+	}
+}
+
 func TestPrintOutputFormat(t *testing.T) {
 	old := os.Stdout
 	r, w, _ := os.Pipe()

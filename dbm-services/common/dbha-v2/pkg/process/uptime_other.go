@@ -1,3 +1,5 @@
+//go:build !linux && !windows
+
 /**
  * MIT License
  *
@@ -22,42 +24,50 @@
  * SOFTWARE.
  */
 
-package version
+package process
 
-import "fmt"
+import (
+	"os"
+	"time"
 
-var (
-	buildTime = ""
-	gitTag    = ""
-	gitHash   = ""
-	version   = ""
+	"dbm-services/common/dbha-v2/pkg/gerrors"
+
+	"github.com/shirou/gopsutil/v3/host"
+	gopsutil "github.com/shirou/gopsutil/v3/process"
 )
 
-// Info describes the build information injected via -ldflags at link time.
-// All fields are empty strings when the binary is built without those ldflags.
-type Info struct {
-	BuildTime string
-	GitTag    string
-	GitHash   string
-	Version   string
-}
+// Non-linux/non-windows platforms have no tick-based uptime API in this package.
+// These fallbacks use gopsutil wall-clock based values so macOS development builds
+// still compile and tests can run. Production probe targets are linux and windows.
 
-// Get returns the build information injected at link time.
-func Get() Info {
-	return Info{
-		BuildTime: buildTime,
-		GitTag:    gitTag,
-		GitHash:   gitHash,
-		Version:   version,
+func systemUptime() (time.Duration, error) {
+	seconds, err := host.Uptime()
+	if err != nil {
+		return 0, gerrors.NewE(gerrors.Failure, err)
 	}
+	return time.Duration(seconds) * time.Second, nil
 }
 
-// Print writes the service name and build information to stdout.
-func Print(service string) {
-	info := Get()
-	fmt.Printf("%s\n", service)
-	fmt.Printf("\tBuildTime:\t%s\n", info.BuildTime)
-	fmt.Printf("\tGitTag:\t\t%s\n", info.GitTag)
-	fmt.Printf("\tGitHash:\t%s\n", info.GitHash)
-	fmt.Printf("\tVersion:\t%s\n", info.Version)
+func selfStartedAt() (time.Time, error) {
+	p, err := gopsutil.NewProcess(int32(os.Getpid()))
+	if err != nil {
+		return time.Time{}, gerrors.NewE(gerrors.Failure, err)
+	}
+	ms, err := p.CreateTime()
+	if err != nil {
+		return time.Time{}, gerrors.NewE(gerrors.Failure, err)
+	}
+	return time.UnixMilli(ms), nil
+}
+
+func selfUptime() (time.Duration, error) {
+	startedAt, err := selfStartedAt()
+	if err != nil {
+		return 0, err
+	}
+	uptime := time.Since(startedAt)
+	if uptime < 0 {
+		return 0, nil
+	}
+	return uptime, nil
 }

@@ -22,42 +22,28 @@
  * SOFTWARE.
  */
 
-package version
+// Package process provides process lifecycle helpers and OS tick based uptime APIs.
+package process
 
-import "fmt"
+import "time"
 
-var (
-	buildTime = ""
-	gitTag    = ""
-	gitHash   = ""
-	version   = ""
-)
-
-// Info describes the build information injected via -ldflags at link time.
-// All fields are empty strings when the binary is built without those ldflags.
-type Info struct {
-	BuildTime string
-	GitTag    string
-	GitHash   string
-	Version   string
+// SystemUptime returns how long the operating system has been running.
+// The value is derived from OS clock ticks (Linux /proc/uptime, Windows
+// GetTickCount64), so it is unaffected by system time adjustments.
+func SystemUptime() (time.Duration, error) {
+	return systemUptime()
 }
 
-// Get returns the build information injected at link time.
-func Get() Info {
-	return Info{
-		BuildTime: buildTime,
-		GitTag:    gitTag,
-		GitHash:   gitHash,
-		Version:   version,
-	}
+// SelfStartedAt returns the start time of the current process.
+// The returned absolute time may shift when the system wall clock is adjusted
+// (for example Linux btime changes); only SelfUptime is tick-immune.
+func SelfStartedAt() (time.Time, error) {
+	return selfStartedAt()
 }
 
-// Print writes the service name and build information to stdout.
-func Print(service string) {
-	info := Get()
-	fmt.Printf("%s\n", service)
-	fmt.Printf("\tBuildTime:\t%s\n", info.BuildTime)
-	fmt.Printf("\tGitTag:\t\t%s\n", info.GitTag)
-	fmt.Printf("\tGitHash:\t%s\n", info.GitHash)
-	fmt.Printf("\tVersion:\t%s\n", info.Version)
+// SelfUptime returns how long the current process has been running. Like
+// SystemUptime it is derived from OS clock ticks instead of subtracting the
+// process start time from the current wall clock.
+func SelfUptime() (time.Duration, error) {
+	return selfUptime()
 }

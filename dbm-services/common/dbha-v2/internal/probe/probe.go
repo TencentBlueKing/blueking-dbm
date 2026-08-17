@@ -34,6 +34,7 @@ import (
 	"dbm-services/common/dbha-v2/internal/probe/client"
 	"dbm-services/common/dbha-v2/internal/probe/config"
 	"dbm-services/common/dbha-v2/internal/probe/harvester/plugin"
+	"dbm-services/common/dbha-v2/internal/probe/selfmetric"
 	"dbm-services/common/dbha-v2/pkg/logger"
 )
 
@@ -81,6 +82,7 @@ func (p *Probe) runPlugin(ctx context.Context, plug plugin.Plugin) {
 			data.AgentID = baseInfo.AgentID
 			data.BkCloudID = baseInfo.BkCloudID
 			data.DbTypeName = data.Value.GetDbType()
+			data.Probe = selfmetric.Snapshot()
 
 			dataEncoded, err := json.Marshal(data)
 			if err != nil {
@@ -162,9 +164,19 @@ func (p *Probe) createReporter() {
 	}()
 }
 
+func (p *Probe) startSelfMetric(ctx context.Context) {
+	p.wg.Add(1)
+	go func() {
+		defer p.wg.Done()
+		selfmetric.Run(ctx, p.quit)
+	}()
+}
+
 // Run starts the probe: loads plugins, creates the reporter, and runs the event loop until quit.
 func (p *Probe) Run(ctx context.Context) error {
 	p.quit = make(chan struct{})
+
+	p.startSelfMetric(ctx)
 
 	if err := p.loadPlugins(ctx); err != nil {
 		return err
