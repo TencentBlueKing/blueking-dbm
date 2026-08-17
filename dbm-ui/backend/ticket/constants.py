@@ -283,9 +283,6 @@ class TicketType(StrStructuredEnum):
     MYSQL_FIXPOINT_EXIST_CLUSTER = TicketEnumField("MYSQL_FIXPOINT_EXIST_CLUSTER", _("MySQL 数据构造到已有集群"), _("构造"))
     MYSQL_HA_FULL_BACKUP = TicketEnumField("MYSQL_HA_FULL_BACKUP", _("MySQL 全库备份"), _("备份"), register_iam=True)
     MYSQL_SINGLE_TRUNCATE_DATA = TicketEnumField("MYSQL_SINGLE_TRUNCATE_DATA", _("MySQL 单节点清档"), _("数据处理"))
-    # deprecated
-    MYSQL_SINGLE_RENAME_DATABASE = TicketEnumField("MYSQL_SINGLE_RENAME_DATABASE", _("MySQL 单节点DB重命名"),
-                                                   _("集群维护"), register_iam=False)  # noqa
     MYSQL_DTS_CLUSTER_APPLY = TicketEnumField("MYSQL_DTS_CLUSTER_APPLY", _("MySQL DTS 集群部署"), register_iam=False)
     MYSQL_DTS_CLUSTER_DESTROY = TicketEnumField("MYSQL_DTS_CLUSTER_DESTROY", _("MySQL DTS 集群销毁"), register_iam=False)
     MYSQL_DTS_CLUSTER_REINSTALL = TicketEnumField(
@@ -402,12 +399,12 @@ class TicketType(StrStructuredEnum):
     TENDBCLUSTER_APPLY = TicketEnumField("TENDBCLUSTER_APPLY", _("TenDB Cluster 集群部署"), register_iam=True)
     TENDBCLUSTER_ENABLE = TicketEnumField("TENDBCLUSTER_ENABLE", _("TenDB Cluster 集群启用"))
     TENDBCLUSTER_DISABLE = TicketEnumField("TENDBCLUSTER_DISABLE", _("TenDB Cluster 集群禁用"))
-    TENDBCLUSTER_DESTROY = TicketEnumField("TENDBCLUSTER_DESTROY", _("TenDB Cluster 集群销毁"), _("集群管理"), register_iam=True)
+    TENDBCLUSTER_DESTROY = TicketEnumField("TENDBCLUSTER_DESTROY", _("TenDB Cluster 集群销毁"), _("集群管理"))
     TENDBCLUSTER_TEMPORARY_DESTROY = TicketEnumField("TENDBCLUSTER_TEMPORARY_DESTROY", _("TenDB Cluster 临时集群销毁"),
-                                                     _("集群管理"), register_iam=True)  # noqa
+                                                     _("集群管理"))  # noqa
     TENDBCLUSTER_NODE_REBALANCE = TicketEnumField("TENDBCLUSTER_NODE_REBALANCE", _("TenDB Cluster 集群容量变更"),
                                                   _("集群维护"))  # noqa
-    TENDBCLUSTER_FULL_BACKUP = TicketEnumField("TENDBCLUSTER_FULL_BACKUP", _("TenDB Cluster 全库备份"), _("备份"), register_iam=True)
+    TENDBCLUSTER_FULL_BACKUP = TicketEnumField("TENDBCLUSTER_FULL_BACKUP", _("TenDB Cluster 全库备份"), _("备份"))
     TENDBCLUSTER_ROLLBACK_CLUSTER = TicketEnumField("TENDBCLUSTER_ROLLBACK_CLUSTER", _("TenDB Cluster 定点构造"),
                                                     _("回档"))  # noqa
     TENDBCLUSTER_ROLLBACK = TicketEnumField("TENDBCLUSTER_ROLLBACK", _("TENDBCLUSTER 构造回档"), _("回档"))
@@ -448,7 +445,7 @@ class TicketType(StrStructuredEnum):
     # SQLServer
     SQLSERVER_SINGLE_APPLY = TicketEnumField("SQLSERVER_SINGLE_APPLY", _("SQLServer 单节点部署"))
     SQLSERVER_HA_APPLY = TicketEnumField("SQLSERVER_HA_APPLY", _("SQLServer 高可用部署"))
-    SQLSERVER_IMPORT_SQLFILE = TicketEnumField("SQLSERVER_IMPORT_SQLFILE", _("SQLServer SQL导入执行"), _("变更SQL执行"), register_iam=True) # noqa
+    SQLSERVER_IMPORT_SQLFILE = TicketEnumField("SQLSERVER_IMPORT_SQLFILE", _("SQLServer SQL导入执行"), _("变更SQL执行")) # noqa
     SQLSERVER_BACKUP_DBS = TicketEnumField("SQLSERVER_BACKUP_DBS", _("SQLServer 库表备份"), _("备份"), register_iam=True)
     SQLSERVER_CLEAR_DBS = TicketEnumField("SQLSERVER_CLEAR_DBS", _("SQLServer 清档"), _("数据处理"), register_iam=True)
     SQLSERVER_DESTROY = TicketEnumField("SQLSERVER_DESTROY", _("SQLServer 集群卸载"), _("集群管理"), register_iam=True)
@@ -466,8 +463,8 @@ class TicketType(StrStructuredEnum):
     SQLSERVER_RESTORE_SLAVE = TicketEnumField("SQLSERVER_RESTORE_SLAVE", _("SQLServer 新机重建"), _("集群维护"))
     SQLSERVER_ADD_SLAVE = TicketEnumField("SQLSERVER_ADD_SLAVE", _("SQLServer 添加从库"), _("集群维护"))
     SQLSERVER_RESET = TicketEnumField("SQLSERVER_RESET", _("SQLServer 集群重置"), _("集群维护"))
-    SQLSERVER_FULL_MIGRATE = TicketEnumField("SQLSERVER_FULL_MIGRATE", _("SQLServer 全备迁移"), _("数据处理"), register_iam=True)
-    SQLSERVER_INCR_MIGRATE = TicketEnumField("SQLSERVER_INCR_MIGRATE", _("SQLServer 增量迁移"), _("数据处理"), register_iam=True)
+    SQLSERVER_FULL_MIGRATE = TicketEnumField("SQLSERVER_FULL_MIGRATE", _("SQLServer 全备迁移"), _("数据处理"))
+    SQLSERVER_INCR_MIGRATE = TicketEnumField("SQLSERVER_INCR_MIGRATE", _("SQLServer 增量迁移"), _("数据处理"))
     SQLSERVER_ROLLBACK = TicketEnumField("SQLSERVER_ROLLBACK", _("SQLServer 定点构造"), _("数据处理"), register_iam=True)
     SQLSERVER_ROLLBACK_LOCAL = TicketEnumField("SQLSERVER_ROLLBACK_LOCAL", _("SQLServer 原地回档"), _("数据处理"))
     SQLSERVER_AUTHORIZE_RULES = TicketEnumField("SQLSERVER_AUTHORIZE_RULES", _("SQLServer 集群授权"), _("权限管理"))
@@ -561,7 +558,7 @@ class TicketType(StrStructuredEnum):
     KAFKA_REPLACE = TicketEnumField("KAFKA_REPLACE", _("Kafka 集群替换"), _("集群管理"))
     KAFKA_ENABLE = TicketEnumField("KAFKA_ENABLE", _("Kafka 集群启用"))
     KAFKA_DISABLE = TicketEnumField("KAFKA_DISABLE", _("Kafka 集群禁用"))
-    KAFKA_DESTROY = TicketEnumField("KAFKA_DESTROY", _("Kafka 集群删除"), _("集群管理"), register_iam=True)
+    KAFKA_DESTROY = TicketEnumField("KAFKA_DESTROY", _("Kafka 集群删除"), _("集群管理"))
     KAFKA_REBALANCE = TicketEnumField("KAFKA_REBALANCE", _("Kafka Topic 均衡"), _("集群管理"))
 
     HDFS_APPLY = TicketEnumField("HDFS_APPLY", _("HDFS 集群部署"))
@@ -571,7 +568,7 @@ class TicketType(StrStructuredEnum):
     HDFS_REPLACE = TicketEnumField("HDFS_REPLACE", _("HDFS 集群替换"), _("集群管理"))
     HDFS_ENABLE = TicketEnumField("HDFS_ENABLE", _("HDFS 集群启用"))
     HDFS_DISABLE = TicketEnumField("HDFS_DISABLE", _("HDFS 集群禁用"))
-    HDFS_DESTROY = TicketEnumField("HDFS_DESTROY", _("HDFS 集群删除"), _("集群管理"), register_iam=True)
+    HDFS_DESTROY = TicketEnumField("HDFS_DESTROY", _("HDFS 集群删除"), _("集群管理"))
 
     ES_APPLY = TicketEnumField("ES_APPLY", _("ES 集群部署"))
     ES_SCALE_UP = TicketEnumField("ES_SCALE_UP", _("ES 集群扩容"), _("集群管理"))
@@ -580,7 +577,7 @@ class TicketType(StrStructuredEnum):
     ES_REPLACE = TicketEnumField("ES_REPLACE", _("ES 集群替换"), _("集群管理"))
     ES_ENABLE = TicketEnumField("ES_ENABLE", _("ES 集群启用"))
     ES_DISABLE = TicketEnumField("ES_DISABLE", _("ES 集群禁用"))
-    ES_DESTROY = TicketEnumField("ES_DESTROY", _("ES 集群删除"), _("集群管理"), register_iam=True)
+    ES_DESTROY = TicketEnumField("ES_DESTROY", _("ES 集群删除"), _("集群管理"))
     ES_CREATE_CLB = TicketEnumField("ES_CREATE_CLB", _("ES 创建CLB"), _("集群管理"))
     ES_DELETE_CLB = TicketEnumField("ES_DELETE_CLB", _("ES 删除CLB"), _("集群管理"))
     ES_DNS_BIND_CLB = TicketEnumField("ES_DNS_BIND_CLB", _("ES 域名绑定CLB"), _("集群管理"))
@@ -612,7 +609,7 @@ class TicketType(StrStructuredEnum):
     DORIS_REPLACE = TicketEnumField("DORIS_REPLACE", _("Doris 集群替换"), _("集群管理"))
     DORIS_ENABLE = TicketEnumField("DORIS_ENABLE", _("Doris 集群启用"))
     DORIS_DISABLE = TicketEnumField("DORIS_DISABLE", _("Doris 集群禁用"))
-    DORIS_DESTROY = TicketEnumField("DORIS_DESTROY", _("Doris 集群删除"), _("集群管理"), register_iam=True)
+    DORIS_DESTROY = TicketEnumField("DORIS_DESTROY", _("Doris 集群删除"), _("集群管理"))
     DORIS_UPGRADE = TicketEnumField("DORIS_UPGRADE", _("Doris 集群升级"), _("集群管理"))
 
     # Riak
