@@ -33,6 +33,14 @@
         style="position: relative; z-index: 999"
         :userinfo="userinfo">
         <template #action>
+          <!-- <ActionItem
+            href="/"
+            target="_blank">
+            <template #icon>
+              <DbIcon type="quanxianzhongxin" />
+            </template>
+            {{ t('权限中心') }}
+          </ActionItem> -->
           <ActionItem
             theme="danger"
             @click="handleSignOut">
@@ -98,6 +106,7 @@
   const userinfo = computed(() => {
     return {
       name: userProfileStore.username,
+      organization: userProfileStore.tenantId,
     };
   });
 
