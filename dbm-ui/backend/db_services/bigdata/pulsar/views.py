@@ -19,6 +19,7 @@ from backend.db_services.bigdata.pulsar.query import PulsarListRetrieveResource
 from backend.db_services.bigdata.resources import yasg_slz
 from backend.db_services.bigdata.resources.views import BigdataResourceViewSet
 from backend.db_services.dbbase.resources import serializers
+from backend.iam_app.dataclass.actions import ActionEnum
 
 
 @method_decorator(
@@ -75,3 +76,14 @@ class PulsarClusterViewSetBigdata(BigdataResourceViewSet):
     query_class = PulsarListRetrieveResource
     query_serializer_class = serializers.ListResourceSLZ
     db_type = DBType.Pulsar
+
+    list_perm_actions = [
+        ActionEnum.PULSAR_MANAGE,
+        ActionEnum.PULSAR_VIEW,
+        ActionEnum.PULSAR_EDIT,
+        ActionEnum.PULSAR_ACCESS_ENTRY_VIEW,
+        ActionEnum.PULSAR_DESTROY,
+        ActionEnum.PULSAR_ENABLE_DISABLE,
+        ActionEnum.PULSAR_DBCONFIG_EDIT,
+        ActionEnum.PULSAR_SUBSCRIBE_MONITOR,
+    ]
