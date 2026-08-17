@@ -64,7 +64,10 @@ class RedisRollbackExerciseFlow(object):
                     "drill_config": {
                         "polling_interval": 10,
                         "polling_timeout": 3600,
-                        "error_ignorable": True,  # Whether to continue when one cluster fails
+                        # False (default): stop and preserve scene on child failure/timeout;
+                        # DBA skip then marks failed and cleans up. True: continue and clean up immediately.
+                        "error_ignorable": False,
+                        "preserve_scene_shield_minutes": 4320,  # Alarm-shield minutes while the scene is preserved
                     },
                     "bk_biz_id": 123,  # Target business ID
                     "created_by": "system",
@@ -182,13 +185,19 @@ class RedisRollbackExerciseFlow(object):
     def _build_exercise_sub_flow(self, info: dict, info_index: int, flow_data: dict):
         """Build a single-cluster exercise sub-flow.
 
-        The data-structure step is wrapped in a polling runner act with
-        ``error_ignorable=True``.  A conditional gateway then branches on
-        the outcome:
+        The data-structure step is wrapped in a polling runner act whose
+        ``error_ignorable`` follows ``drill_config.error_ignorable``.  A
+        conditional gateway then branches on the outcome:
           - success  -> report_succeeded -> task_delete -> report_done
           - failure  -> report_rollback_failed
-        This ensures the sub-flow never hard-fails, so the best-effort cleanup
-        at the main pipeline level always runs.
+
+        With ``error_ignorable=False`` (preserve mode, default) a failed/timed-out
+        child pipeline makes the runner node FAILED and stops the flow with the
+        scene preserved (report marked SCENE_PRESERVED); after the DBA clicks
+        'skip' on the failed node, the gateway branches on ``rollback_code=1`` to
+        mark the rollback failed, then the main pipeline's best-effort cleanup
+        runs. With ``error_ignorable=True`` the sub-flow never hard-fails and
+        cleanup runs immediately.
         """
         cluster_id = info["cluster_id"]
         instance_ip = info["instance_ip"]
@@ -197,7 +206,8 @@ class RedisRollbackExerciseFlow(object):
         config = flow_data.get("drill_config", {})
         polling_timeout = config.get("polling_timeout", 3600)
         polling_interval = config.get("polling_interval", 10)
-        error_ignorable = config.get("error_ignorable", True)
+        error_ignorable = config.get("error_ignorable", False)
+        preserve_scene_shield_minutes = config.get("preserve_scene_shield_minutes", 4320)
 
         report = Report.objects.get(id=report_id)
         try:
@@ -211,14 +221,24 @@ class RedisRollbackExerciseFlow(object):
         sub_flow = SubBuilder(root_id=self.root_id, data=flow_data)
 
         # ---- Alarm shield ----
-        shield_duration_seconds = polling_timeout + settings.DISABLE_ALARM_SHIELD_DELAY
+        # Preserve mode: stretch the shield to cover the whole scene-preserve window;
+        # otherwise temp instances re-alert after the default ~1h shield.
+        # Preserve branch: act name matches duration_seconds actually passed.
+        # Legacy branch: act name shows polling_timeout + DISABLE_ALARM_SHIELD_DELAY,
+        # but kwargs still pass polling_timeout.
+        if error_ignorable:
+            shield_duration_seconds = polling_timeout + settings.DISABLE_ALARM_SHIELD_DELAY
+            shield_kwargs_duration = polling_timeout
+        else:
+            shield_duration_seconds = max(polling_timeout, preserve_scene_shield_minutes * 60)
+            shield_kwargs_duration = shield_duration_seconds
         sub_flow.add_act(
             act_name=_("屏蔽演练主机告警(超时 {:.1f} mins)").format(shield_duration_seconds / 60),
             act_component_code=RedisRollbackExerciseAlarmShieldComponent.code,
             kwargs={
                 "set_trans_data_dataclass": RedisRollbackExerciseContext.__name__,
                 "info_index": info_index,
-                "duration_seconds": polling_timeout,
+                "duration_seconds": shield_kwargs_duration,
                 "description": _("Redis回档演练操作"),
                 "dimensions": [
                     {"name": "appid", "values": [str(cluster.bk_biz_id)]},
@@ -275,9 +295,19 @@ class RedisRollbackExerciseFlow(object):
           - delete success    -> report_done
           - delete failure    -> no-op (best-effort cleanup reconciles)
 
-        ``error_ignorable`` on the runner act only matters if the runner component
-        itself raises an unexpected exception; in that case ``False`` will let the
-        sub-flow hard-fail while ``True`` will let it continue to cleanup.
+        ``error_ignorable=False`` (preserve mode, default) makes the runner node
+        FAILED when its child pipeline fails or times out: the flow stops with the
+        scene preserved (report marked SCENE_PRESERVED, child pipeline not revoked).
+        After the DBA clicks 'skip' on the failed node, the gateway branches on
+        ``rollback_code=1`` / ``delete_code=1`` to mark the failure, and the main
+        pipeline's best-effort cleanup (which first revokes leftover child flows) runs.
+        ``error_ignorable=True`` keeps the legacy behavior: the runner always returns
+        True, failures are expressed only through the gateway branch, and cleanup
+        runs immediately.
+
+        In preserve mode both runner nodes are also ``retryable=False`` (skip only);
+        the runner service additionally revokes any previous non-terminal child
+        pipeline as a force-retry safety net before submitting a new one.
         """
         rollback_runner_act = sub_flow.add_act(
             act_name=_("回档流程"),
@@ -293,8 +323,10 @@ class RedisRollbackExerciseFlow(object):
                 "polling_timeout": polling_timeout,
                 "polling_interval": polling_interval,
                 "output_var": "rollback_code",
+                "preserve_scene_on_failure": not error_ignorable,
             },
             error_ignorable=error_ignorable,
+            retryable=False,
             extend=False,
         )
 
@@ -326,8 +358,10 @@ class RedisRollbackExerciseFlow(object):
                 "polling_timeout": polling_timeout,
                 "polling_interval": polling_interval,
                 "output_var": "delete_code",
+                "preserve_scene_on_failure": not error_ignorable,
             },
             error_ignorable=error_ignorable,
+            retryable=False,
             extend=False,
         )
 

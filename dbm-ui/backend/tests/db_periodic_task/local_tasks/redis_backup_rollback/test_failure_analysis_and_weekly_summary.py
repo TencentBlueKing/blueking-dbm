@@ -427,6 +427,14 @@ class TestFailureAnalysisEnqueueAndIdempotency(TestCase):
 
     @patch(f"{FAILURE_MODULE}.analyze_redis_rollback_exercise_failure.apply_async")
     @patch(f"{FAILURE_MODULE}.is_exercise_ai_analysis_enabled", return_value=True)
+    def test_enqueue_noop_when_analysis_already_appended(self, _mock_enabled, mock_apply):
+        failure = _failure()
+        report = self._create_failed(task_message=f"{failure.AI_ANALYSIS_SENTINEL}\n原因分类: 配置")
+        assert failure.enqueue_exercise_failure_analysis(report.id) is False
+        mock_apply.assert_not_called()
+
+    @patch(f"{FAILURE_MODULE}.analyze_redis_rollback_exercise_failure.apply_async")
+    @patch(f"{FAILURE_MODULE}.is_exercise_ai_analysis_enabled", return_value=True)
     def test_enqueue_noop_when_report_not_failed(self, _mock_enabled, mock_apply):
         failure = _failure()
         report = self._create_failed(task_stage=TaskStage.DONE)

@@ -51,6 +51,36 @@
 - 若子流程已终态，复用同一个 `wakeup_redis_rollback_runner_by_child(...)` 进行修复
 - 若超过 `3 * polling_timeout` 仍异常，输出告警日志用于可观测性
 
+## 现场保留与页面跳过
+
+当 `drill_config.error_ignorable=False`（默认）时，回档演练进入**现场保留模式**：
+
+- 回档/清理子流程 FAILED 或超时后，runner 节点进入 `FAILED` 并停住整个流程；
+- **不撤销子流程、不清理现场**：临时机器/实例/子流程全部保留，供人工排查；
+- 报告标为「现场保留待排查」（`SCENE_PRESERVED`，属失败阶段集合），并嵌入子流程失败节点日志；
+- 演练单据转 `FAILED` 并发送失败通知。
+
+### DBA 操作步骤
+
+1. 查看失败 runner 节点的日志（页面或报告 `task_message` 中已嵌入子流程失败节点日志）；
+2. 登录临时机排查现场（保留期间告警屏蔽已放大到 `preserve_scene_shield_minutes`，默认 72h）；
+3. 排查完成后在页面点「跳过」该失败节点；
+4. 流程自动沿条件网关（`rollback_code=1`/`delete_code=1`）标记「回档失败/清理失败」，报告由 `SCENE_PRESERVED` 更新为失败终态（演练最终以失败落库）；
+5. 汇聚后主流程执行「最佳尝试清理」：先 revoke 残留子流程（含树状态 FAILED 但仍有兄弟节点运行的情况），再清理临时实例，单据转 SUCCEEDED 后回收主机。
+
+### 护栏（自动机制不触碰保留中单据）
+
+- `wakeup_redis_rollback_runner_by_child` 只唤醒仍在运行（RUNNING/CREATED/READY）的 runner 节点，FAILED 节点直接返回并清陈旧缓存；
+- `repair_stuck_redis_rollback_exercise` 的过滤集合不含 `SCENE_PRESERVED`，保留中报告永不自动唤醒；
+- 异常巡检对保留中单据报 `scene_preserved` reason（“现场保留待排查，需人工在页面跳过后清理”），不误报 `missing_cleanup_child`；
+- `REDIS_ROLLBACK_EXERCISE` 单据超时配置全为 `-1`（无超时自动终止/提醒），`auto_clear_expire_flow` 不会触碰现场保留中的演练单据。
+
+### 已知取舍
+
+- 保留模式下停住的 runner 节点 `retryable=False`，页面只提供「跳过」；有强制重试权限仍可绕过，但 runner 会在提交新子流程前 revoke report 上遗留的非终态旧子流程，避免孤儿现场；
+- 停住期间单据为 FAILED 且属于运行态集合，持续占用集群互斥，跳过并清理后才释放；
+- 不做超时自动跳过，现场一直保留到人工处理；注意 `clean_bamboo_engine_expired_data`（默认关闭、360 天）按创建时间清理流程数据且不判断终态，现场保留不应跨越数月。
+
 ## 触发链路（简版）
 
 1. 子流程状态进入终态  

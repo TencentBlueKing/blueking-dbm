@@ -113,6 +113,24 @@ def wakeup_redis_rollback_runner_by_child(child_root_id: str, child_state: str, 
         f"runner_node_id={runner_node_id}, cached={'yes' if cached else 'no'}"
     )
 
+    # Preserve guard: only wake runners that are still active. Cache hits would otherwise
+    # blindly callback FAILED (scene preserved) / FINISHED / REVOKED nodes. Skip is DBA-driven.
+    runner_alive = FlowNode.objects.filter(
+        root_id=parent_root_id,
+        node_id=runner_node_id,
+        status__in=[StateType.RUNNING, StateType.CREATED, StateType.READY],
+    ).exists()
+    if not runner_alive:
+        if cached:
+            cache.delete(cached_key)  # drop stale cache so we do not retry a dead wakeup
+        logger.warning(
+            _(
+                "Redis rollback runner node is not active, skip wakeup. parent_root_id={}, "
+                "runner_node_id={}, child_root_id={}"
+            ).format(parent_root_id, runner_node_id, child_root_id)
+        )
+        return 0
+
     try:
         Schedule.objects.filter(node_id=runner_node_id, scheduling=True, finished=False).update(scheduling=False)
 
