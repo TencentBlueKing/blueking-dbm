@@ -18,7 +18,7 @@
         v-db-console="'pulsar.nodeList.scaleUp'"
         :data="clusterData">
         <AuthButton
-          action-id="pulsar_scale_up"
+          action-id="pulsar_manage"
           :disabled="clusterData?.operationDisabled"
           :resource="clusterData.id"
           theme="primary"
@@ -31,7 +31,7 @@
         :data="clusterData">
         <span v-bk-tooltips="batchShrinkDisabledInfo.tooltips">
           <AuthButton
-            action-id="pulsar_shrink"
+            action-id="pulsar_manage"
             class="ml-8"
             :disabled="batchShrinkDisabledInfo.disabled || clusterData?.operationDisabled"
             :resource="clusterData.id"
@@ -49,7 +49,7 @@
             disabled: !isBatchReplaceDisabeld,
           }">
           <AuthButton
-            action-id="pulsar_replace"
+            action-id="pulsar_manage"
             class="ml-8"
             :disabled="isBatchReplaceDisabeld || clusterData?.operationDisabled"
             :resource="clusterData.id"
@@ -140,9 +140,9 @@
             :data="clusterData">
             <span v-bk-tooltips="checkNodeShrinkDisable(row).tooltips">
               <AuthButton
-                action-id="pulsar_shrink"
+                action-id="pulsar_manage"
                 :disabled="checkNodeShrinkDisable(row).disabled || clusterData?.operationDisabled"
-                :permission="clusterData.permission.pulsar_shrink"
+                :permission="clusterData.permission.pulsar_manage"
                 :resource="clusterData.id"
                 text
                 theme="primary"
@@ -157,10 +157,10 @@
             v-db-console="'pulsar.nodeList.replace'"
             :data="clusterData">
             <AuthButton
-              action-id="pulsar_replace"
+              action-id="pulsar_manage"
               class="ml-8"
               :disabled="clusterData.operationDisabled"
-              :permission="clusterData.permission.pulsar_replace"
+              :permission="clusterData.permission.pulsar_manage"
               :resource="clusterData.id"
               text
               theme="primary"
