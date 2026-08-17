@@ -331,6 +331,7 @@ class ActionEnum:
         related_actions=[PLATFORM_MANAGE.id],
         related_resource_types=[],
         group=_("平台管理"),
+        common_labels=[CommonActionLabel.BIZ_MAINTAIN],
         hidden=True,
     )
 
@@ -601,7 +602,7 @@ class ActionEnum:
         related_resource_types=[ResourceEnum.MYSQL],
         subgroup=_("查询与变更"),
         is_ticket_action=True,
-        common_labels=[CommonActionLabel.MYSQL_IMPORT_SQLFILE, CommonActionLabel.DEVELOPER],
+        common_labels=[CommonActionLabel.MYSQL_IMPORT_SQLFILE, CommonActionLabel.DEVELOPER, CommonActionLabel.BIZ_MAINTAIN],
     )
 
     MYSQL_INSTANCE_CLONE_RULES = ActionMeta(
@@ -619,7 +620,7 @@ class ActionEnum:
         related_resource_types=[ResourceEnum.MYSQL],
         subgroup=_("查询与变更"),
         is_ticket_action=True,
-        common_labels=[CommonActionLabel.EXTERNAL_DEVELOPER, CommonActionLabel.DEVELOPER],
+        common_labels=[CommonActionLabel.EXTERNAL_DEVELOPER, CommonActionLabel.DEVELOPER, CommonActionLabel.BIZ_MAINTAIN],
     )
 
     MYSQL_WEBCONSOLE = ActionMeta(
@@ -637,6 +638,13 @@ class ActionEnum:
             CommonActionLabel.DEVELOPER,
             CommonActionLabel.EXTERNAL_DEVELOPER
         ],
+    )
+
+    MYSQL_DATA_MIGRATE = ActionMeta(
+        id=TicketType.MYSQL_DATA_MIGRATE.lower(),
+        subgroup=_("克隆与开区"),
+        is_ticket_action=True,
+        common_labels=[CommonActionLabel.BIZ_MAINTAIN],
     )
 
     MYSQL_ADMIN_PWD_MODIFY = ActionMeta(
@@ -807,7 +815,7 @@ class ActionEnum:
         id=TicketType.MYSQL_FLASHBACK.lower(),
         subgroup=_("数据恢复"),
         is_ticket_action=True,
-        common_labels=[CommonActionLabel.DEVELOPER],
+        common_labels=[CommonActionLabel.DEVELOPER, CommonActionLabel.BIZ_MAINTAIN],
     )
 
     MYSQL_ROLLBACK = ActionMeta(
@@ -838,7 +846,14 @@ class ActionEnum:
         id=TicketType.MYSQL_HA_DB_TABLE_BACKUP.lower(),
         subgroup=_("备份"),
         is_ticket_action=True,
-        common_labels=[CommonActionLabel.DEVELOPER],
+        common_labels=[CommonActionLabel.DEVELOPER, CommonActionLabel.BIZ_MAINTAIN],
+    )
+
+    MYSQL_HA_FULL_BACKUP = ActionMeta(
+        id=TicketType.MYSQL_HA_FULL_BACKUP.lower(),
+        subgroup=_("备份"),
+        is_ticket_action=True,
+        common_labels=[CommonActionLabel.BIZ_MAINTAIN],
     )
 
     MYSQL_HA_RENAME_DATABASE = ActionMeta(
@@ -1307,7 +1322,14 @@ class ActionEnum:
         id=TicketType.MYSQL_RENAME_DATABASE.lower(),
         subgroup=_("查询与变更"),
         is_ticket_action=True,
-        common_labels=[CommonActionLabel.DEVELOPER],
+        common_labels=[CommonActionLabel.DEVELOPER, CommonActionLabel.BIZ_MAINTAIN],
+    )
+
+    MYSQL_HA_FULL_BACKUP = ActionMeta(
+        id=TicketType.MYSQL_HA_FULL_BACKUP.lower(),
+        subgroup=_("备份"),
+        is_ticket_action=True,
+        common_labels=[CommonActionLabel.BIZ_MAINTAIN],
     )
 
     MYSQL_OPENAREA = ActionMeta(
@@ -1319,6 +1341,7 @@ class ActionEnum:
         related_resource_types=[ResourceEnum.MYSQL],
         group=_("MySQL"),
         subgroup=_("克隆与开区"),
+        common_labels=[CommonActionLabel.BIZ_MAINTAIN],
     )
 
     MYSQL_OPEN_AREA = ActionMeta(
@@ -1553,7 +1576,10 @@ class ActionEnum:
         related_resource_types=[ResourceEnum.TENDBCLUSTER],
         subgroup=_("查询与变更"),
         is_ticket_action=True,
-        common_labels=[CommonActionLabel.TENDBCLUSTER_IMPORT_SQLFILE, CommonActionLabel.DEVELOPER],
+        common_labels=[
+            CommonActionLabel.TENDBCLUSTER_IMPORT_SQLFILE,
+            CommonActionLabel.DEVELOPER,
+            CommonActionLabel.BIZ_MAINTAIN],
     )
 
     TENDBCLUSTER_DUMP_DATA = ActionMeta(
@@ -1561,7 +1587,7 @@ class ActionEnum:
         related_resource_types=[ResourceEnum.TENDBCLUSTER],
         subgroup=_("查询与变更"),
         is_ticket_action=True,
-        common_labels=[CommonActionLabel.EXTERNAL_DEVELOPER, CommonActionLabel.DEVELOPER],
+        common_labels=[CommonActionLabel.EXTERNAL_DEVELOPER, CommonActionLabel.DEVELOPER, CommonActionLabel.BIZ_MAINTAIN],
     )
 
     TENDBCLUSTER_WEBCONSOLE = ActionMeta(
@@ -1676,6 +1702,7 @@ class ActionEnum:
         related_resource_types=[ResourceEnum.TENDBCLUSTER],
         group=_("TenDBCluster"),
         subgroup=_("克隆与开区"),
+        common_labels=[CommonActionLabel.BIZ_MAINTAIN],
     )
 
     TENDBCLUSTER_OPEN_AREA = ActionMeta(
@@ -1762,28 +1789,49 @@ class ActionEnum:
         id=TicketType.TENDBCLUSTER_DB_TABLE_BACKUP.lower(),
         subgroup=_("备份"),
         is_ticket_action=True,
-        common_labels=[CommonActionLabel.DEVELOPER],
+        common_labels=[CommonActionLabel.DEVELOPER, CommonActionLabel.BIZ_MAINTAIN],
+    )
+
+    TENDBCLUSTER_DESTROY = ActionMeta(
+        id=TicketType.TENDBCLUSTER_DESTROY.lower(),
+        subgroup=_("备份"),
+        is_ticket_action=True,
+        common_labels=[CommonActionLabel.BIZ_MAINTAIN],
     )
 
     TENDBCLUSTER_TRUNCATE_DATABASE = ActionMeta(
         id=TicketType.TENDBCLUSTER_TRUNCATE_DATABASE.lower(),
         subgroup=_("数据清理"),
         is_ticket_action=True,
-        common_labels=[CommonActionLabel.DEVELOPER],
+        common_labels=[CommonActionLabel.DEVELOPER, CommonActionLabel.BIZ_MAINTAIN],
     )
 
     TENDBCLUSTER_RENAME_DATABASE = ActionMeta(
         id=TicketType.TENDBCLUSTER_RENAME_DATABASE.lower(),
         subgroup=_("查询与变更"),
         is_ticket_action=True,
-        common_labels=[CommonActionLabel.DEVELOPER],
+        common_labels=[CommonActionLabel.DEVELOPER, CommonActionLabel.BIZ_MAINTAIN],
+    )
+
+    TENDBCLUSTER_TEMPORARY_DESTROY = ActionMeta(
+        id=TicketType.TENDBCLUSTER_TEMPORARY_DESTROY.lower(),
+        subgroup=_("集群管理"),
+        is_ticket_action=True,
+        common_labels=[CommonActionLabel.DEVELOPER, CommonActionLabel.BIZ_MAINTAIN],
     )
 
     TENDBCLUSTER_FLASHBACK = ActionMeta(
         id=TicketType.TENDBCLUSTER_FLASHBACK.lower(),
         subgroup=_("数据恢复"),
         is_ticket_action=True,
-        common_labels=[CommonActionLabel.DEVELOPER],
+        common_labels=[CommonActionLabel.DEVELOPER, CommonActionLabel.BIZ_MAINTAIN],
+    )
+
+    TENDBCLUSTER_FULL_BACKUP = ActionMeta(
+        id=TicketType.TENDBCLUSTER_FULL_BACKUP.lower(),
+        subgroup=_("数据恢复"),
+        is_ticket_action=True,
+        common_labels=[CommonActionLabel.BIZ_MAINTAIN],
     )
 
     TENDBCLUSTER_ROLLBACK = ActionMeta(
@@ -1814,7 +1862,7 @@ class ActionEnum:
         id=TicketType.TENDBCLUSTER_DATA_MIGRATE.lower(),
         subgroup=_("克隆与开区"),
         is_ticket_action=True,
-        common_labels=[CommonActionLabel.DEVELOPER],
+        common_labels=[CommonActionLabel.DEVELOPER, CommonActionLabel.BIZ_MAINTAIN],
     )
 
     TENDBCLUSTER_PARTITION = ActionMeta(
@@ -2238,42 +2286,49 @@ class ActionEnum:
         id=TicketType.REDIS_BACKUP.lower(),
         subgroup=_("备份"),
         is_ticket_action=True,
-        common_labels=[CommonActionLabel.DEVELOPER],
+        common_labels=[CommonActionLabel.DEVELOPER, CommonActionLabel.BIZ_MAINTAIN],
     )
 
     REDIS_CLUSTER_DATA_COPY = ActionMeta(
         id=TicketType.REDIS_CLUSTER_DATA_COPY.lower(),
         subgroup=_("数据复制与构造"),
         is_ticket_action=True,
-        common_labels=[CommonActionLabel.DEVELOPER],
+        common_labels=[CommonActionLabel.DEVELOPER, CommonActionLabel.BIZ_MAINTAIN],
     )
 
     REDIS_CLUSTER_ROLLBACK_DATA_COPY = ActionMeta(
         id=TicketType.REDIS_CLUSTER_ROLLBACK_DATA_COPY.lower(),
         subgroup=_("数据复制与构造"),
         is_ticket_action=True,
-        common_labels=[CommonActionLabel.DEVELOPER],
+        common_labels=[CommonActionLabel.DEVELOPER, CommonActionLabel.BIZ_MAINTAIN],
     )
 
     REDIS_DATA_STRUCTURE = ActionMeta(
         id=TicketType.REDIS_DATA_STRUCTURE.lower(),
         subgroup=_("数据复制与构造"),
         is_ticket_action=True,
-        common_labels=[CommonActionLabel.DEVELOPER],
+        common_labels=[CommonActionLabel.DEVELOPER, CommonActionLabel.BIZ_MAINTAIN],
     )
 
     REDIS_DATA_STRUCTURE_TASK_DELETE = ActionMeta(
         id=TicketType.REDIS_DATA_STRUCTURE_TASK_DELETE.lower(),
         subgroup=_("数据复制与构造"),
         is_ticket_action=True,
-        common_labels=[CommonActionLabel.DEVELOPER],
+        common_labels=[CommonActionLabel.DEVELOPER, CommonActionLabel.BIZ_MAINTAIN],
+    )
+
+    REDIS_DESTROY = ActionMeta(
+        id=TicketType.REDIS_DESTROY.lower(),
+        subgroup=_("集群管理"),
+        is_ticket_action=True,
+        common_labels=[CommonActionLabel.BIZ_MAINTAIN],
     )
 
     REDIS_PURGE = ActionMeta(
         id=TicketType.REDIS_PURGE.lower(),
         subgroup=_("数据清理"),
         is_ticket_action=True,
-        common_labels=[CommonActionLabel.DEVELOPER],
+        common_labels=[CommonActionLabel.DEVELOPER, CommonActionLabel.BIZ_MAINTAIN],
     )
 
     REDIS_DATACOPY_CHECK_REPAIR = ActionMeta(
@@ -2586,28 +2641,35 @@ class ActionEnum:
         id=TicketType.REDIS_KEYS_EXTRACT.lower(),
         subgroup=_("查询与变更"),
         is_ticket_action=True,
-        common_labels=[CommonActionLabel.DEVELOPER],
+        common_labels=[CommonActionLabel.DEVELOPER, CommonActionLabel.BIZ_MAINTAIN],
     )
 
     REDIS_KEYS_DELETE = ActionMeta(
         id=TicketType.REDIS_KEYS_DELETE.lower(),
         subgroup=_("查询与变更"),
         is_ticket_action=True,
-        common_labels=[CommonActionLabel.DEVELOPER],
+        common_labels=[CommonActionLabel.DEVELOPER, CommonActionLabel.BIZ_MAINTAIN],
     )
 
     REDIS_HOT_KEY_ANALYSIS = ActionMeta(
         id=TicketType.REDIS_HOT_KEY_ANALYSIS.lower(),
         subgroup=_("查询与变更"),
         is_ticket_action=True,
-        common_labels=[CommonActionLabel.DEVELOPER],
+        common_labels=[CommonActionLabel.DEVELOPER, CommonActionLabel.BIZ_MAINTAIN],
+    )
+
+    REDIS_INSTANCE_DESTROY = ActionMeta(
+        id=TicketType.REDIS_INSTANCE_DESTROY.lower(),
+        subgroup=_("集群管理"),
+        is_ticket_action=True,
+        common_labels=[CommonActionLabel.BIZ_MAINTAIN],
     )
 
     REDIS_KEYSTAT = ActionMeta(
         id=TicketType.REDIS_KEYSTAT.lower(),
         subgroup=_("查询与变更"),
         is_ticket_action=True,
-        common_labels=[CommonActionLabel.DEVELOPER],
+        common_labels=[CommonActionLabel.DEVELOPER, CommonActionLabel.BIZ_MAINTAIN],
     )
 
     REDIS_OPEN_CLOSE = ActionMeta(
@@ -2694,6 +2756,17 @@ class ActionEnum:
         group=_("ElasticSearch"),
         subgroup=_("集群管理"),
         common_labels=[CommonActionLabel.BIZ_MAINTAIN, CommonActionLabel.DEVELOPER],
+    )
+
+    ES_DESTROY = ActionMeta(
+        id=TicketType.ES_DESTROY.lower(),
+        name=_("ES 集群删除"),
+        name_en="ES_DESTROY",
+        type="execute",
+        related_resource_types=[ResourceEnum.ES],
+        group=_("ElasticSearch"),
+        subgroup=_("集群管理"),
+        common_labels=[CommonActionLabel.BIZ_MAINTAIN],
     )
 
     ES_LOADBALANCE_MANAGE = ActionMeta(
@@ -2917,6 +2990,17 @@ class ActionEnum:
         common_labels=[CommonActionLabel.BIZ_MAINTAIN, CommonActionLabel.DEVELOPER],
     )
 
+    DORIS_DESTROY = ActionMeta(
+        id=TicketType.DORIS_DESTROY.lower(),
+        name=_("Doris 集群删除"),
+        name_en="DORIS_DESTROY",
+        type="execute",
+        related_resource_types=[ResourceEnum.DORIS],
+        group=_("Doris"),
+        subgroup=_("集群管理"),
+        common_labels=[CommonActionLabel.BIZ_MAINTAIN],
+    )
+
     DORIS_SCALE_UP = ActionMeta(
         id=TicketType.DORIS_SCALE_UP.lower(),
         name=_("Doris 集群扩容"),
@@ -3022,6 +3106,17 @@ class ActionEnum:
         group=_("Kafka"),
         subgroup=_("集群管理"),
         common_labels=[CommonActionLabel.BIZ_MAINTAIN, CommonActionLabel.DEVELOPER],
+    )
+
+    KAFKA_DESTROY = ActionMeta(
+        id=TicketType.KAFKA_DESTROY.lower(),
+        name=_("Kafka 集群删除"),
+        name_en="KAFKA_DESTROY",
+        type="execute",
+        related_resource_types=[ResourceEnum.KAFKA],
+        group=_("Kafka"),
+        subgroup=_("集群管理"),
+        common_labels=[CommonActionLabel.BIZ_MAINTAIN],
     )
 
     KAFKA_SUBSCRIBE_MONITOR = ActionMeta(
@@ -3183,6 +3278,17 @@ class ActionEnum:
         common_labels=[CommonActionLabel.BIZ_MAINTAIN, CommonActionLabel.DEVELOPER],
     )
 
+    HDFS_DESTROY = ActionMeta(
+        id=TicketType.HDFS_DESTROY.lower(),
+        name=_("HDFS 集群删除"),
+        name_en="HDFS_DESTROY",
+        type="execute",
+        related_resource_types=[ResourceEnum.HDFS],
+        group=_("HDFS"),
+        subgroup=_("集群管理"),
+        common_labels=[CommonActionLabel.BIZ_MAINTAIN],
+    )
+
     HDFS_SUBSCRIBE_MONITOR = ActionMeta(
         id="hdfs_subscribe_monitor",
         name=_("HDFS 集群告警订阅"),
@@ -3293,6 +3399,13 @@ class ActionEnum:
         id=TicketType.RIAK_CLUSTER_APPLY.lower(),
         related_actions=[DB_MANAGE.id],
         related_resource_types=[ResourceEnum.BUSINESS],
+        subgroup=_("集群管理"),
+        is_ticket_action=True,
+        common_labels=[CommonActionLabel.BIZ_MAINTAIN],
+    )
+
+    RIAK_CLUSTER_DESTROY = ActionMeta(
+        id=TicketType.RIAK_CLUSTER_DESTROY.lower(),
         subgroup=_("集群管理"),
         is_ticket_action=True,
         common_labels=[CommonActionLabel.BIZ_MAINTAIN],
@@ -3590,7 +3703,7 @@ class ActionEnum:
         related_resource_types=[ResourceEnum.MONGODB],
         group=_("MongoDB"),
         subgroup=_("查询与变更"),
-        common_labels=[CommonActionLabel.DEVELOPER],
+        common_labels=[CommonActionLabel.DEVELOPER, CommonActionLabel.BIZ_MAINTAIN],
     )
 
     MONGODB_RESTORE = ActionMeta(
@@ -3602,7 +3715,7 @@ class ActionEnum:
         related_resource_types=[ResourceEnum.MONGODB],
         group=_("MongoDB"),
         subgroup=_("数据恢复"),
-        common_labels=[CommonActionLabel.DEVELOPER],
+        common_labels=[CommonActionLabel.DEVELOPER, CommonActionLabel.BIZ_MAINTAIN],
     )
 
     MONGODB_PITR_RESTORE = ActionMeta(
@@ -3614,7 +3727,7 @@ class ActionEnum:
         related_resource_types=[ResourceEnum.MONGODB],
         group=_("MongoDB"),
         subgroup=_("数据恢复"),
-        common_labels=[CommonActionLabel.DEVELOPER],
+        common_labels=[CommonActionLabel.DEVELOPER, CommonActionLabel.BIZ_MAINTAIN],
     )
 
     MONGODB_REMOVE_NS = ActionMeta(
@@ -3626,7 +3739,7 @@ class ActionEnum:
         related_resource_types=[ResourceEnum.MONGODB],
         group=_("MongoDB"),
         subgroup=_("数据清理"),
-        common_labels=[CommonActionLabel.DEVELOPER],
+        common_labels=[CommonActionLabel.DEVELOPER, CommonActionLabel.BIZ_MAINTAIN],
     )
 
     MONGODB_IMPORT = ActionMeta(
@@ -3863,7 +3976,21 @@ class ActionEnum:
         id=TicketType.MONGODB_BACKUP.lower(),
         subgroup=_("备份"),
         is_ticket_action=True,
-        common_labels=[CommonActionLabel.DEVELOPER],
+        common_labels=[CommonActionLabel.DEVELOPER, CommonActionLabel.BIZ_MAINTAIN],
+    )
+
+    MONGODB_DESTROY = ActionMeta(
+        id=TicketType.MONGODB_DESTROY.lower(),
+        subgroup=_("集群管理"),
+        is_ticket_action=True,
+        common_labels=[CommonActionLabel.BIZ_MAINTAIN],
+    )
+
+    MONGODB_TEMPORARY_DESTROY = ActionMeta(
+        id=TicketType.MONGODB_TEMPORARY_DESTROY.lower(),
+        subgroup=_("集群维护"),
+        is_ticket_action=True,
+        common_labels=[CommonActionLabel.BIZ_MAINTAIN],
     )
 
     MONGODB_EXEC_SCRIPT_APPLY = ActionMeta(
@@ -3875,14 +4002,14 @@ class ActionEnum:
         related_resource_types=[ResourceEnum.MONGODB],
         group=_("MongoDB"),
         subgroup=_("查询与变更"),
-        common_labels=[CommonActionLabel.DEVELOPER],
+        common_labels=[CommonActionLabel.DEVELOPER, CommonActionLabel.BIZ_MAINTAIN],
     )
 
     MONGODB_FULL_BACKUP = ActionMeta(
         id=TicketType.MONGODB_FULL_BACKUP.lower(),
         subgroup=_("备份"),
         is_ticket_action=True,
-        common_labels=[CommonActionLabel.DEVELOPER],
+        common_labels=[CommonActionLabel.DEVELOPER, CommonActionLabel.BIZ_MAINTAIN],
     )
 
     SQLSERVER_VIEW = ActionMeta(
@@ -3925,6 +4052,55 @@ class ActionEnum:
         group=_("SQLServer"),
         subgroup=_("集群管理"),
         common_labels=[CommonActionLabel.BIZ_MAINTAIN, CommonActionLabel.DEVELOPER],
+    )
+
+    SQLSERVER_BACKUP_DBS = ActionMeta(
+        id=TicketType.SQLSERVER_BACKUP_DBS.lower(),
+        subgroup=_("备份"),
+        is_ticket_action=True,
+        common_labels=[CommonActionLabel.BIZ_MAINTAIN],
+    )
+
+    SQLSERVER_CLEAR_DBS = ActionMeta(
+        id=TicketType.SQLSERVER_CLEAR_DBS.lower(),
+        subgroup=_("数据处理"),
+        is_ticket_action=True,
+        common_labels=[CommonActionLabel.BIZ_MAINTAIN],
+    )
+
+    SQLSERVER_DATA_EXPORT = ActionMeta(
+        id=TicketType.SQLSERVER_DATA_EXPORT.lower(),
+        subgroup=_("数据处理"),
+        is_ticket_action=True,
+        common_labels=[CommonActionLabel.BIZ_MAINTAIN],
+    )
+
+    SQLSERVER_DBRENAME = ActionMeta(
+        id=TicketType.SQLSERVER_DBRENAME.lower(),
+        subgroup=_("集群维护"),
+        is_ticket_action=True,
+        common_labels=[CommonActionLabel.BIZ_MAINTAIN],
+    )
+
+    SQLSERVER_FULL_MIGRATE = ActionMeta(
+        id=TicketType.SQLSERVER_FULL_MIGRATE.lower(),
+        subgroup=_("数据处理"),
+        is_ticket_action=True,
+        common_labels=[CommonActionLabel.BIZ_MAINTAIN],
+    )
+
+    SQLSERVER_IMPORT_SQLFILE = ActionMeta(
+        id=TicketType.SQLSERVER_IMPORT_SQLFILE.lower(),
+        subgroup=_("数据处理"),
+        is_ticket_action=True,
+        common_labels=[CommonActionLabel.BIZ_MAINTAIN],
+    )
+
+    SQLSERVER_INCR_MIGRATE = ActionMeta(
+        id=TicketType.SQLSERVER_INCR_MIGRATE.lower(),
+        subgroup=_("数据处理"),
+        is_ticket_action=True,
+        common_labels=[CommonActionLabel.BIZ_MAINTAIN],
     )
 
     SQLSERVER_ADMIN_PWD_MODIFY = ActionMeta(
@@ -4872,6 +5048,20 @@ class ActionEnum:
         related_resource_types=[ResourceEnum.SQLSERVER],
         group=_("SQLServer"),
         subgroup=_("集群管理"),
+    )
+
+    # SQLServer 原地回档：重新定义权限，不挂到常用操作 BIZ_MAINTAIN 下
+    SQLSERVER_ROLLBACK_LOCAL = ActionMeta(
+        id="sqlserver_rollback_local",
+        name=_("SQLServer 原地回档"),
+        name_en="sqlserver_rollback_local",
+        description=_("SQLServer 集群原地回档操作"),
+        type="execute",
+        related_actions=[],
+        related_resource_types=[ResourceEnum.SQLSERVER],
+        group=_("SQLServer"),
+        subgroup=_("数据处理"),
+        common_labels=[CommonActionLabel.BIZ_MAINTAIN],
     )
 
     ORACLE_MANAGE = ActionMeta(
