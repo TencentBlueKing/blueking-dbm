@@ -89,12 +89,16 @@ def run_batch_with_lock(task_name: str, lock_key: str, cluster_count: int) -> It
       - 无论成功/失败，finally 均释放 batch 锁；锁自然过期后可能已被别人重新抢占，
         本上下文不做二次校验（拿锁的人负责释放，其它人只有等 TTL 或抢占）。
     """
-    logger.info("batch start: task=%s lock_key=%s cluster_count=%d", task_name, lock_key, cluster_count)
+    logger.info("[%s] batch start: task=%s lock_key=%s cluster_count=%d", lock_key, task_name, lock_key, cluster_count)
     try:
         yield
-        logger.info("batch done: task=%s lock_key=%s cluster_count=%d", task_name, lock_key, cluster_count)
+        logger.info(
+            "[%s] batch done: task=%s lock_key=%s cluster_count=%d", lock_key, task_name, lock_key, cluster_count
+        )
     except Exception:  # noqa
-        logger.exception("batch failed: task=%s lock_key=%s cluster_count=%d", task_name, lock_key, cluster_count)
+        logger.exception(
+            "[%s] batch failed: task=%s lock_key=%s cluster_count=%d", lock_key, task_name, lock_key, cluster_count
+        )
         raise
     finally:
         # 拿锁的人负责释放；即便锁已自然过期或被别人抢占，delete 也是幂等的
@@ -203,12 +207,12 @@ class ExpiredJobUserDispatcher(object):
         # timeout 是"锁的 TTL"（不是加锁动作的超时）——正常路径由 finally 主动 delete；
         # 兜底场景是 dispatcher 崩溃时靠 TTL 自愈，避免锁永久泄漏。
         if not cache.add(self._dispatch_lock_key, 1, timeout=self.dispatch_lock_timeout):
-            logger.warning("dispatch skip, lock held: %s", self._dispatch_lock_key)
+            logger.warning("[%s] dispatch skip, lock held: %s", self._lock_key_prefix, self._dispatch_lock_key)
             return
         try:
             self._do_dispatch()
         except Exception:  # noqa
-            logger.exception("dispatch failed: %s", self._dispatch_lock_key)
+            logger.exception("[%s] dispatch failed: %s", self._lock_key_prefix, self._dispatch_lock_key)
             raise
         finally:
             # 正常路径主动释放；即使异常/崩溃未走到这里，也有 TTL 兜底
@@ -233,14 +237,15 @@ class ExpiredJobUserDispatcher(object):
         clusters_q = Cluster.objects.filter(cluster_type__in=self.cluster_types)
         cluster_count = clusters_q.count()
         if cluster_count == 0:
-            logger.info("dispatch skip, no cluster: name=%s", self.name)
+            logger.info("[%s] dispatch skip, no cluster: name=%s", self._lock_key_prefix, self.name)
             return
 
         hash_cnt = math.ceil(cluster_count / self.batch_size)
         scheduled, skipped_lock, empty_batch = 0, 0, 0
 
         logger.info(
-            "dispatch start: name=%s cluster_count=%d hash_cnt=%d batch_size=%d",
+            "[%s] dispatch start: name=%s cluster_count=%d hash_cnt=%d batch_size=%d",
+            self._lock_key_prefix,
             self.name,
             cluster_count,
             hash_cnt,
@@ -257,7 +262,8 @@ class ExpiredJobUserDispatcher(object):
                 empty_batch += 1
 
         logger.info(
-            "dispatch done: name=%s scheduled=%d skipped_lock=%d empty_batch=%d total_hash=%d",
+            "[%s] dispatch done: name=%s scheduled=%d skipped_lock=%d empty_batch=%d total_hash=%d",
+            self._lock_key_prefix,
             self.name,
             scheduled,
             skipped_lock,
@@ -285,12 +291,13 @@ class ExpiredJobUserDispatcher(object):
             .values_list("id", flat=True)
         )
         if not cluster_ids:
-            logger.warning("empty batch: name=%s hash_value=%d", self.name, hash_value)
+            logger.warning("[%s] empty batch: name=%s hash_value=%d", self._lock_key_prefix, self.name, hash_value)
             return "empty_batch"
 
         if not cache.add(lock_key, 1, timeout=self.batch_lock_timeout):
             logger.warning(
-                "batch skip, lock held: name=%s lock_key=%s cluster_count=%d",
+                "[%s] batch skip, lock held: name=%s lock_key=%s cluster_count=%d",
+                self._lock_key_prefix,
                 self.name,
                 lock_key,
                 len(cluster_ids),
@@ -327,7 +334,8 @@ class ExpiredJobUserDispatcher(object):
                     time_limit=self.batch_time_limit,
                 )
             logger.info(
-                "batch scheduled: name=%s lock_key=%s hash_value=%d cluster_count=%d countdown=%ds",
+                "[%s] batch scheduled: name=%s lock_key=%s hash_value=%d cluster_count=%d countdown=%ds",
+                self._lock_key_prefix,
                 self.name,
                 lock_key,
                 hash_value,
@@ -337,7 +345,8 @@ class ExpiredJobUserDispatcher(object):
             return "scheduled"
         except Exception:  # noqa
             logger.exception(
-                "batch schedule failed: name=%s lock_key=%s hash_value=%d cluster_count=%d",
+                "[%s] batch schedule failed: name=%s lock_key=%s hash_value=%d cluster_count=%d",
+                self._lock_key_prefix,
                 self.name,
                 lock_key,
                 hash_value,

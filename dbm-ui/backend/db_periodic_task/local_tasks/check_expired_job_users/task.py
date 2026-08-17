@@ -41,9 +41,9 @@ def check_expired_job_users_for_mysql():
     mysql_dispatcher.dispatch()
 
 
-@register_periodic_task(run_every=crontab(minute=00, hour=7))
+@register_periodic_task(run_every=crontab(minute=00, hour=8))
 def check_expired_job_users_for_sqlserver():
-    """SQLServer 临时账号巡检 —— dispatcher 入口（每天凌晨 7 点触发）。
+    """SQLServer 临时账号巡检 —— dispatcher 入口（每天凌晨 8 点触发）。
 
     功能说明：
       - 委托 sqlserver_dispatcher 完成分片、错峰、双层锁、投递；
