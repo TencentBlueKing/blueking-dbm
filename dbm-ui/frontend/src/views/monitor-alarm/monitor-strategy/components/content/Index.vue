@@ -204,16 +204,35 @@
                     :model-value="row.is_enabled"
                     size="small"
                     theme="primary" />
-                  <BkPopConfirm
+                  <AuthTemplate
                     v-else-if="getEnablePopConfirmInfo(row).content"
-                    :content="getEnablePopConfirmInfo(row).content"
-                    :is-show="showTipMap[row.id]"
-                    placement="bottom"
-                    :title="getEnablePopConfirmInfo(row).title"
-                    trigger="manual"
-                    :width="320"
-                    @cancel="() => handleCancelConfirm(row)"
-                    @confirm="() => handleClickConfirm(row)">
+                    action-id="monitor_policy_manage"
+                    :permission="row.permission.monitor_policy_manage"
+                    :resource="dbType">
+                    <BkPopConfirm
+                      :content="getEnablePopConfirmInfo(row).content"
+                      :is-show="showTipMap[row.id]"
+                      placement="bottom"
+                      :title="getEnablePopConfirmInfo(row).title"
+                      trigger="manual"
+                      :width="320"
+                      @cancel="() => handleCancelConfirm(row)"
+                      @confirm="() => handleClickConfirm(row)">
+                      <AuthSwitcher
+                        v-model="row.is_enabled"
+                        action-id="monitor_policy_manage"
+                        :permission="row.permission.monitor_policy_manage"
+                        :resource="dbType"
+                        size="small"
+                        theme="primary"
+                        @change="() => handleChangeSwitchPopConfirm(row)" />
+                    </BkPopConfirm>
+                  </AuthTemplate>
+                  <AuthTemplate
+                    v-else
+                    action-id="monitor_policy_manage"
+                    :permission="row.permission.monitor_policy_manage"
+                    :resource="dbType">
                     <AuthSwitcher
                       v-model="row.is_enabled"
                       action-id="monitor_policy_manage"
@@ -221,17 +240,8 @@
                       :resource="dbType"
                       size="small"
                       theme="primary"
-                      @change="() => handleChangeSwitchPopConfirm(row)" />
-                  </BkPopConfirm>
-                  <AuthSwitcher
-                    v-else
-                    v-model="row.is_enabled"
-                    action-id="monitor_policy_manage"
-                    :permission="row.permission.monitor_policy_manage"
-                    :resource="dbType"
-                    size="small"
-                    theme="primary"
-                    @change="() => handleChangeSwitchCommon(row)" />
+                      @change="() => handleChangeSwitchCommon(row)" />
+                  </AuthTemplate>
                 </template>
               </TableColumn>
               <TableColumn

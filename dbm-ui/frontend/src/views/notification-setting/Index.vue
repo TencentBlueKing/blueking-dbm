@@ -55,21 +55,23 @@
         </DbForm>
       </div>
       <template #action>
-        <div>
+        <div :key="dbType">
           <AuthButton
-            action-id="update_duty_notices_config"
+            action-id="duty_notice_config_update"
             class="mr-8 w-88"
             :disabled="sendLoading || resetLoading"
             :loading="updateLoading"
+            :resource="dbType"
             theme="primary"
             @click="handleSave">
             {{ t('保存') }}
           </AuthButton>
           <AuthButton
-            action-id="update_duty_notices_config"
+            action-id="duty_notice_config_update"
             class="mr-8 w-88"
             :disabled="updateLoading || resetLoading"
             :loading="sendLoading"
+            :resource="dbType"
             @click="handleSend">
             {{ t('立即发送') }}
           </AuthButton>
@@ -79,10 +81,11 @@
             :title="t('确认重置当前配置？')">
             <span>
               <AuthButton
-                action-id="update_duty_notices_config"
+                action-id="duty_notice_config_update"
                 class="w-88"
                 :disabled="updateLoading || sendLoading"
-                :loading="resetLoading">
+                :loading="resetLoading"
+                :resource="dbType">
                 {{ t('重置') }}
               </AuthButton>
             </span>

@@ -183,26 +183,31 @@
         :title="t('启停')"
         :width="120">
         <template #default="{ row }: { row: ResourceSpecModel }">
-          <BkPopConfirm
-            :confirm-text="row.enable ? t('停用') : t('启用')"
-            :content="
-              row.enable
-                ? t('停用后，存量集群的变更操作不受影响，新增集群不可使用此规格')
-                : t('启用后，所有场景均可使用，如：部署、扩容、迁移规格')
-            "
-            placement="bottom"
-            :title="row.enable ? t('确认停用该规格？') : t('确认启用该规格？')"
-            trigger="click"
-            width="308"
-            @confirm="() => handleConfirmSwitch(row)">
-            <AuthSwitcher
-              action-id="spec_manage"
-              :model-value="row.enable"
-              :permission="row.permission.spec_manage"
-              :resource="dbType"
-              size="small"
-              theme="primary" />
-          </BkPopConfirm>
+          <AuthTemplate
+            action-id="spec_manage"
+            :permission="row.permission.spec_manage"
+            :resource="dbType">
+            <BkPopConfirm
+              :confirm-text="row.enable ? t('停用') : t('启用')"
+              :content="
+                row.enable
+                  ? t('停用后，存量集群的变更操作不受影响，新增集群不可使用此规格')
+                  : t('启用后，所有场景均可使用，如：部署、扩容、迁移规格')
+              "
+              placement="bottom"
+              :title="row.enable ? t('确认停用该规格？') : t('确认启用该规格？')"
+              trigger="click"
+              width="308"
+              @confirm="() => handleConfirmSwitch(row)">
+              <AuthSwitcher
+                action-id="spec_manage"
+                :model-value="row.enable"
+                :permission="row.permission.spec_manage"
+                :resource="dbType"
+                size="small"
+                theme="primary" />
+            </BkPopConfirm>
+          </AuthTemplate>
         </template>
       </TableColumn>
       <TableColumn
