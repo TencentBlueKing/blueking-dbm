@@ -216,23 +216,31 @@
         :title="t('自动补货')"
         :width="120">
         <template #default="{ row }: { row: ResourceSpecModel }">
-          <BkPopConfirm
-            :confirm-text="row.needReplenish ? t('停用') : t('开启')"
-            :content="
-              row.needReplenish
-                ? t('停用后，当资源池主机数低于资源水位时，不触发自动补货')
-                : t('开启后，当资源池主机数低于参考水位时，将自动补货至目标配置')
-            "
-            placement="bottom"
-            :title="row.needReplenish ? t('确认停用自动补货？') : t('确认开启自动补货？')"
-            trigger="click"
-            width="308"
-            @confirm="() => handleConfirmNeedReplenish(row)">
-            <BkSwitcher
-              v-model="row.needReplenish"
-              size="small"
-              theme="primary" />
-          </BkPopConfirm>
+          <AuthTemplate
+            action-id="spec_manage"
+            :permission="row.permission.spec_manage"
+            :resource="dbType">
+            <BkPopConfirm
+              :confirm-text="row.needReplenish ? t('停用') : t('开启')"
+              :content="
+                row.needReplenish
+                  ? t('停用后，当资源池主机数低于资源水位时，不触发自动补货')
+                  : t('开启后，当资源池主机数低于参考水位时，将自动补货至目标配置')
+              "
+              placement="bottom"
+              :title="row.needReplenish ? t('确认停用自动补货？') : t('确认开启自动补货？')"
+              trigger="click"
+              width="308"
+              @confirm="() => handleConfirmNeedReplenish(row)">
+              <AuthSwitcher
+                v-model="row.needReplenish"
+                action-id="spec_manage"
+                :permission="row.permission.spec_manage"
+                :resource="dbType"
+                size="small"
+                theme="primary" />
+            </BkPopConfirm>
+          </AuthTemplate>
         </template>
       </TableColumn>
       <TableColumn
@@ -513,7 +521,9 @@
     },
   });
 
-  const { data: ratioMap, run: fetchRadioMap } = useRequest(getSpecReplenishRatio);
+  const { data: ratioMap, run: fetchRadioMap } = useRequest(getSpecReplenishRatio, {
+    manual: true,
+  });
 
   watch(
     () => [props.dbType, props.machineType],
