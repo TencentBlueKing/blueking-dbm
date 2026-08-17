@@ -84,7 +84,6 @@ class MonitorDutyRuleViewSet(viewsets.AuditedModelViewSet):
 
     def get_action_permission_map(self):
         return {
-            ("list",): [ResourceActionPermission([ActionEnum.DUTY_RULE_LIST], ResourceEnum.DBTYPE, self.inst_getter)],
             ("create",): [
                 ResourceActionPermission([ActionEnum.DUTY_RULE_MANAGE], ResourceEnum.DBTYPE, self.inst_getter)
             ],
@@ -94,7 +93,7 @@ class MonitorDutyRuleViewSet(viewsets.AuditedModelViewSet):
             ("destroy",): [
                 ResourceActionPermission([ActionEnum.DUTY_RULE_MANAGE], ResourceEnum.DBTYPE, self.inst_getter)
             ],
-            ("priority_distinct",): [],
+            ("priority_distinct", "list"): [],
         }
 
     @staticmethod
