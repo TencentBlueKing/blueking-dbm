@@ -13,6 +13,7 @@ import logging
 from django.utils.translation import gettext as _
 
 from backend.flow.engine.controller.pulsar import PulsarController
+from backend.iam_app.dataclass.actions import ActionEnum
 from backend.ticket import builders
 from backend.ticket.builders.common.bigdata import (
     BasePulsarTicketFlowBuilder,
@@ -39,7 +40,9 @@ class PulsarReplaceResourceParamBuilder(BigDataReplaceResourceParamBuilder):
     pass
 
 
-@builders.BuilderFactory.register(TicketType.PULSAR_REPLACE, is_apply=True, is_recycle=True)
+@builders.BuilderFactory.register(
+    TicketType.PULSAR_REPLACE, is_apply=True, is_recycle=True, iam=ActionEnum.PULSAR_MANAGE
+)
 class PulsarReplaceFlowBuilder(BasePulsarTicketFlowBuilder):
     serializer = PulsarReplaceDetailSerializer
     inner_flow_builder = PulsarReplaceFlowParamBuilder

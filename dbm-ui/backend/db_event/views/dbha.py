@@ -27,7 +27,7 @@ SWAGGER_TAG = _("DBHA事件")
 
 class DBHAEventViewSet(viewsets.SystemViewSet):
     def get_action_permission_map(self):
-        return {("cat",): []}
+        return {("cat", "ls"): []}
 
     @common_swagger_auto_schema(
         operation_summary=_("DBHA切换事件列表"),

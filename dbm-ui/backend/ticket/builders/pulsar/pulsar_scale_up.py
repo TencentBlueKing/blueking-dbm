@@ -13,6 +13,7 @@ import logging
 from django.utils.translation import gettext as _
 
 from backend.flow.engine.controller.pulsar import PulsarController
+from backend.iam_app.dataclass.actions import ActionEnum
 from backend.ticket import builders
 from backend.ticket.builders.common.bigdata import (
     BasePulsarTicketFlowBuilder,
@@ -39,7 +40,7 @@ class PulsarScaleUpResourceParamBuilder(BigDataScaleUpResourceParamBuilder):
     pass
 
 
-@builders.BuilderFactory.register(TicketType.PULSAR_SCALE_UP, is_apply=True)
+@builders.BuilderFactory.register(TicketType.PULSAR_SCALE_UP, is_apply=True, iam=ActionEnum.PULSAR_MANAGE)
 class PulsarScaleUpFlowBuilder(BasePulsarTicketFlowBuilder):
     serializer = PulsarScaleUpDetailSerializer
     inner_flow_builder = PulsarScaleUpFlowParamBuilder

@@ -14,6 +14,7 @@ import logging
 from django.utils.translation import gettext as _
 
 from backend.flow.engine.controller.pulsar import PulsarController
+from backend.iam_app.dataclass.actions import ActionEnum
 from backend.ticket import builders
 from backend.ticket.builders.common.bigdata import BasePulsarTicketFlowBuilder, BigDataRebootDetailSerializer
 from backend.ticket.constants import TicketType
@@ -32,7 +33,7 @@ class PulsarRebootFlowParamBuilder(builders.FlowParamBuilder):
         super().format_ticket_data()
 
 
-@builders.BuilderFactory.register(TicketType.PULSAR_REBOOT)
+@builders.BuilderFactory.register(TicketType.PULSAR_REBOOT, iam=ActionEnum.PULSAR_MANAGE)
 class PulsarRebootFlowBuilder(BasePulsarTicketFlowBuilder):
     serializer = PulsarRebootDetailSerializer
     inner_flow_builder = PulsarRebootFlowParamBuilder
