@@ -83,9 +83,33 @@ class CalcRecycleApplyHostParamBuilder(FlowParamBuilder):
     controller = None
 
     def build_controller_info(self):
+        """反射父单据 inner_flow 挂载的 revoke 类，生成 controller_info。
+
+        功能说明 / 怎么做：
+          - 从父单据 TERMINATED 的 flow 读取已挂载的 ``revoke_flow_class``（由
+            ``@revoke_with`` 装饰器在 import 期挂载），作为"实际执行回退"的类引用；
+          - 据此直接以 ``revoke_class.__name__`` / ``__module__`` 写入 class_name / module，
+            避免依赖 ``revoke_flow.__qualname__.split(".")[0]`` 推断（后者在子类未
+            自定义 revoke_flow 方法时，会固化为"方法真实定义所在的父类名"，导致后续
+            :meth:`Flow.get_inner_controller_func` 反射构造出错误的父类实例，继而
+            ``self.EXTRACTOR_CLASS`` / ``self._LOG_PREFIX`` 走到父类版本）。
+
+        :return: dict，含 func_name / class_name / module 三元组
+        边界：
+          - 父单据不存在 TERMINATED flow -> ``Flow.DoesNotExist``
+          - 父 inner flow 未挂 ``revoke_flow_class`` 属性（历史未装饰或装饰器未升级）
+            -> ``AttributeError``，让问题在首次 revoke 立即暴露
+        """
         parent_flow = Flow.objects.get(status=TicketFlowStatus.TERMINATED, ticket_id=self.ticket_data["parent_ticket"])
-        self.controller = parent_flow.get_inner_controller_func().revoke_flow
-        return super().build_controller_info()
+        inner_func = parent_flow.get_inner_controller_func()
+        # revoke_flow_class：@revoke_with 装饰器挂载的"回退流程类对象"（权威真源）
+        revoke_class = inner_func.revoke_flow_class
+        self.controller = revoke_class.revoke_flow
+        return {
+            "func_name": "revoke_flow",
+            "class_name": revoke_class.__name__,
+            "module": revoke_class.__module__,
+        }
 
     def format_ticket_data(self):
         # 计算参数来源于原来的单据flow信息
@@ -104,10 +128,28 @@ class CalcRecycleApplyHostParamBuilder(FlowParamBuilder):
         return recycle_hosts
 
     def post_callback(self):
+        """F1「核对待退回主机」结束后：根据 revoke_flow 产出的回收主机清单，决定后续 flow 的走向。
+
+        功能说明 / 怎么做：
+          - 数据源：``current_flow.output_data``，真源是 ``FlowSummary.summary``，由 revoke_flow
+            内各节点通过 ``FlowOutputHandler(RecycleOutputContext.*Serializer).insert_data`` 落地；
+          - 空 ``output_data`` == revoke_flow 判定无机器需回收， 等价于空清单，跳过后续
+            PAUSE / 分池 flow，让单据顺利收尾；
+          - 非空清单 → 标准化（挪到 pending 模块 + 补标签）后写入分池 flow 的 ticket_data。
+
+        :return: None
+        边界 / 异常：
+          - ``output_data == []`` -> ``recycle_hosts = []``，走 SKIPPED 分支，禁止再抛
+            IndexError 导致单据静默 hang；
+          - 其它 ``AppBaseException`` -> ``run_error_status_handler`` 落 ``Flow.err_msg``。
+        """
         # 需要根据确定的回收主机，修改数据清理和分池处理的参数
         try:
-            recycle_hosts = self.ticket.current_flow().output_data[0]["values"]
-            recycle_hosts = self.__standardized(recycle_hosts)
+            # 空 output_data == revoke_flow 判定无机器需要回收，等价于空清单
+            output_data = self.ticket.current_flow().output_data
+            recycle_hosts = output_data[0]["values"] if output_data else []
+            if recycle_hosts:
+                recycle_hosts = self.__standardized(recycle_hosts)
             ticket_flows = list(self.ticket.flows.all())
         except AppBaseException as e:
             BaseTicketFlow(self.ticket.current_flow()).run_error_status_handler(e)
