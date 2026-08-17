@@ -150,6 +150,7 @@ type HarvestBaseData struct {
 	ReportTimestamp uint64                     `json:"report_timestamp,omitempty"`
 	Events          []*DbEvent                 `json:"events,omitempty"`
 	Host            *HostMetric                `json:"host,omitempty"`
+	Probe           *ProbeMetric               `json:"probe,omitempty"`
 }
 
 // HarvestData contains the data collected by harvester

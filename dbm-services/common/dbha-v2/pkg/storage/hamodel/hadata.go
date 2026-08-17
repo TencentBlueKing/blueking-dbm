@@ -52,6 +52,7 @@ const (
 	DbhaStatusFieldDbPort          = "db_port"
 	DbhaStatusFieldReportTimestamp = "report_timestamp"
 	DbhaStatusFieldHost            = "host"
+	DbhaStatusFieldProbe           = "probe"
 	DbhaStatusFieldData            = "data"
 	DbhaStatusFieldCreatedAt       = "created_at"
 	DbhaStatusFieldUpdatedAt       = "updated_at"
@@ -75,6 +76,7 @@ type DbhaDataStatus struct {
 	MachineType     haprobe.DbmMetadataMachineType     `gorm:"column:machine_type"`
 	ReportTimestamp uint64                             `gorm:"column:report_timestamp"`
 	Host            JSON[*haprobe.HostMetric]          `gorm:"column:host;type:json"`
+	Probe           JSON[*haprobe.ProbeMetric]         `gorm:"column:probe;type:json"`
 	Events          JSON[[]*haprobe.DbEvent]           `gorm:"column:event;type:json"`
 	Value           JSON[json.RawMessage]              `gorm:"column:data;type:json"`
 
@@ -105,6 +107,10 @@ func NewDbhaData(msg *haprobe.HarvestData) *DbhaDataStatus {
 	if msg.Host != nil {
 		data.IPs = JSON[[]string]{Data: msg.Host.NetIPs, Valid: true}
 		data.Host = JSON[*haprobe.HostMetric]{Data: msg.Host, Valid: true}
+	}
+
+	if msg.Probe != nil {
+		data.Probe = JSON[*haprobe.ProbeMetric]{Data: msg.Probe, Valid: true}
 	}
 
 	if msg.Events != nil {
