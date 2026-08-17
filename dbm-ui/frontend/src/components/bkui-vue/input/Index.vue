@@ -159,7 +159,7 @@
   });
 
   const props = withDefaults(defineProps<Props>(), {
-    allowEmptyValue: false,
+    allowEmptyValue: true,
     behavior: 'normal',
     clearable: false,
     disabled: false,
