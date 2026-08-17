@@ -51,6 +51,7 @@ const withBizActionList = [
   'hdfs_apply',
   'hdfs_manage',
   'pulsar_apply',
+  'pulsar_manage',
   'influxdb_apply',
   'notify_group_manage',
   'monitor_policy_manage',
