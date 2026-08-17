@@ -331,7 +331,7 @@ class ActionEnum:
         related_actions=[PLATFORM_MANAGE.id],
         related_resource_types=[],
         group=_("平台管理"),
-        common_labels=[CommonActionLabel.BIZ_MAINTAIN],
+        common_labels=[],
         hidden=True,
     )
 
@@ -3359,6 +3359,49 @@ class ActionEnum:
         common_labels=[CommonActionLabel.BIZ_MAINTAIN],
     )
 
+    PULSAR_DESTROY = ActionMeta(
+        id=TicketType.PULSAR_DESTROY.lower(),
+        subgroup=_("集群管理"),
+        is_ticket_action=True,
+        common_labels=[CommonActionLabel.BIZ_MAINTAIN],
+    )
+
+    PULSAR_SCALE_UP = ActionMeta(
+        id=TicketType.PULSAR_SCALE_UP.lower(),
+        name=_("Pulsar 集群扩容"),
+        name_en="PULSAR_SCALE_UP",
+        type="execute",
+        related_resource_types=[ResourceEnum.PULSAR],
+        group=_("已废弃"),
+    )
+
+    PULSAR_SHRINK = ActionMeta(
+        id=TicketType.PULSAR_SHRINK.lower(),
+        name=_("Pulsar 集群缩容"),
+        name_en="PULSAR_SHRINK",
+        type="execute",
+        related_resource_types=[ResourceEnum.PULSAR],
+        group=_("已废弃"),
+    )
+
+    PULSAR_REBOOT = ActionMeta(
+        id=TicketType.PULSAR_REBOOT.lower(),
+        name=_("Pulsar 实例重启"),
+        name_en="PULSAR_REBOOT",
+        type="execute",
+        related_resource_types=[ResourceEnum.PULSAR],
+        group=_("已废弃"),
+    )
+
+    PULSAR_REPLACE = ActionMeta(
+        id=TicketType.PULSAR_REPLACE.lower(),
+        name=_("Pulsar 集群替换"),
+        name_en="PULSAR_REPLACE",
+        type="execute",
+        related_resource_types=[ResourceEnum.PULSAR],
+        group=_("已废弃"),
+    )
+
     PULSAR_SUBSCRIBE_MONITOR = ActionMeta(
         id="pulsar_subscribe_monitor",
         name=_("Pulsar 集群告警订阅"),
@@ -3373,7 +3416,7 @@ class ActionEnum:
 
     PULSAR_ACCESS_ENTRY_VIEW = ActionMeta(
         id="pulsar_access_entry_view",
-        name=_("Pulsar 集群访问"),
+        name=_("Pulsar 获取访问方式"),
         name_en="pulsar_access_entry_view",
         type="view",
         related_actions=[DB_MANAGE.id],
@@ -4967,7 +5010,7 @@ class ActionEnum:
         type="manage",
         related_actions=[],
         related_resource_types=[ResourceEnum.ES],
-        group=_("ES"),
+        group=_("ElasticSearch"),
         subgroup=_("集群管理"),
     )
 
@@ -5018,7 +5061,7 @@ class ActionEnum:
 
     PULSAR_MANAGE = ActionMeta(
         id="pulsar_manage",
-        name=_("Pulsar 集群管理"),
+        name=_("Pulsar 集群运维管理"),
         name_en="pulsar_manage",
         type="manage",
         related_actions=[],
@@ -5050,6 +5093,13 @@ class ActionEnum:
         subgroup=_("集群管理"),
     )
 
+    SQLSERVER_ROLLBACK = ActionMeta(
+        id=TicketType.SQLSERVER_ROLLBACK.lower(),
+        subgroup=_("数据处理"),
+        is_ticket_action=True,
+        common_labels=[CommonActionLabel.BIZ_MAINTAIN],
+    )
+
     # SQLServer 原地回档：重新定义权限，不挂到常用操作 BIZ_MAINTAIN 下
     SQLSERVER_ROLLBACK_LOCAL = ActionMeta(
         id="sqlserver_rollback_local",
@@ -5066,7 +5116,7 @@ class ActionEnum:
 
     ORACLE_MANAGE = ActionMeta(
         id="oracle_manage",
-        name=_("Oracle 集群管理"),
+        name=_("Oracle 集群运维管理"),
         name_en="oracle_manage",
         type="manage",
         related_actions=[],
