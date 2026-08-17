@@ -506,9 +506,7 @@ class ActionEnum:
         type="view",
         related_actions=[GLOBAL_MANAGE.id],
         related_resource_types=[ResourceEnum.DBTYPE],
-        group=_("全局设置"),
-        subgroup=_("数据库配置定义"),
-        hidden=True,
+        group=_("已废弃"),
     )
 
     GLOBAL_DBCONFIG_EDIT = ActionMeta(
@@ -516,7 +514,7 @@ class ActionEnum:
         name=_("全局参数配置编辑"),
         name_en="global_dbconfig_edit",
         type="manage",
-        related_actions=[GLOBAL_MANAGE.id, GLOBAL_DBCONFIG_VIEW.id],
+        related_actions=[GLOBAL_MANAGE.id],
         related_resource_types=[ResourceEnum.DBTYPE],
         group=_("全局设置"),
         subgroup=_("数据库配置定义"),
@@ -4235,8 +4233,7 @@ class ActionEnum:
         type="view",
         related_actions=[],
         related_resource_types=[ResourceEnum.BUSINESS],
-        group=_("可观测"),
-        common_labels=[CommonActionLabel.BIZ_MAINTAIN, CommonActionLabel.DEVELOPER],
+        group=_("已废弃"),
     )
 
     DBHA_SWITCH_EVENT_VIEW = ActionMeta(
@@ -4246,8 +4243,7 @@ class ActionEnum:
         type="view",
         related_actions=[],
         related_resource_types=[ResourceEnum.BUSINESS],
-        group=_("可观测"),
-        common_labels=[CommonActionLabel.BIZ_MAINTAIN, CommonActionLabel.DEVELOPER],
+        group=_("已废弃"),
     )
 
     NOTIFY_GROUP_MANAGE = ActionMeta(
@@ -4611,9 +4607,7 @@ class ActionEnum:
         type="view",
         related_actions=[GLOBAL_MANAGE.id],
         related_resource_types=[ResourceEnum.DBTYPE],
-        group=_("全局设置"),
-        subgroup=_("轮值策略"),
-        hidden=True,
+        group=_("已废弃"),
     )
 
     DUTY_RULE_MANAGE = ActionMeta(
@@ -4631,7 +4625,7 @@ class ActionEnum:
         name=_("轮值策略新增"),
         name_en="duty_rule_create",
         type="create",
-        related_actions=[GLOBAL_MANAGE.id, DUTY_RULE_LIST.id],
+        related_actions=[GLOBAL_MANAGE.id],
         related_resource_types=[ResourceEnum.DBTYPE],
         group=_("已废弃"),
     )
@@ -4641,7 +4635,7 @@ class ActionEnum:
         name=_("轮值策略编辑"),
         name_en="duty_rule_update",
         type="manage",
-        related_actions=[GLOBAL_MANAGE.id, DUTY_RULE_LIST.id],
+        related_actions=[GLOBAL_MANAGE.id],
         related_resource_types=[ResourceEnum.DBTYPE],
         group=_("已废弃"),
     )
@@ -4651,7 +4645,7 @@ class ActionEnum:
         name=_("轮值策略删除"),
         name_en="duty_rule_destroy",
         type="delete",
-        related_actions=[GLOBAL_MANAGE.id, DUTY_RULE_LIST.id],
+        related_actions=[GLOBAL_MANAGE.id],
         related_resource_types=[ResourceEnum.DBTYPE],
         group=_("已废弃"),
     )

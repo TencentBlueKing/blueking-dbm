@@ -21,10 +21,6 @@ from backend.components.hadb.client import HADBApi
 from backend.components.hadbv2.client import HADBApiV2
 from backend.db_event.serializers import QueryDetailSerializer, QueryListSerializer
 from backend.db_meta.models import AppCache, Cluster
-from backend.iam_app.dataclass import ResourceEnum
-from backend.iam_app.dataclass.actions import ActionEnum
-from backend.iam_app.handlers.drf_perm.base import ResourceActionPermission, get_request_key_id
-from backend.iam_app.handlers.permission import Permission
 
 SWAGGER_TAG = _("DBHA事件")
 
@@ -33,22 +29,10 @@ class DBHAEventViewSet(viewsets.SystemViewSet):
     def get_action_permission_map(self):
         return {("cat",): []}
 
-    def get_default_permission_class(self):
-        return [ResourceActionPermission([ActionEnum.DBHA_SWITCH_EVENT_VIEW], ResourceEnum.BUSINESS, self.inst_getter)]
-
-    @staticmethod
-    def inst_getter(request, view):
-        return [get_request_key_id(request, "app")]
-
     @common_swagger_auto_schema(
         operation_summary=_("DBHA切换事件列表"),
         query_serializer=QueryListSerializer,
         tags=[SWAGGER_TAG],
-    )
-    @Permission.decorator_external_permission_field(
-        param_field=lambda d: d["app"],
-        actions=[ActionEnum.DBHA_SWITCH_EVENT_VIEW],
-        resource_meta=ResourceEnum.BUSINESS,
     )
     @action(methods=["GET"], detail=False, serializer_class=QueryListSerializer, pagination_class=None)
     def ls(self, request):
