@@ -26,12 +26,41 @@ Admin 下发默认写入 GSE reporter 块；运行时 gRPC / GSE 二选一见下
    - **GSE**：写入本机 GSE Agent（可选 `localSocketPort`）；下游可经 Kafka 再被 receiver 消费
 5. Receiver sink 写入 `t_dbha_status`，供 analysis 扫描。
 
+### 探针自身指标（`probe` 字段）
+
+框架在 [`internal/probe/selfmetric`](../../internal/probe/selfmetric) 以**固定 60 秒**周期采样当前 **worker** 进程自身指标（与 harvester `interval` 解耦），在 `runPlugin` 挂到 `HarvestData.probe` 后随实例状态上报，并落到 `t_dbha_status.probe` JSON 列。
+
+| 项 | 说明 |
+|----|------|
+| **采集范围** | 仅 worker；guard / keepalive 不进入 `Probe.Run`，不采样 |
+| **内容** | 构建版本（version / git_tag / git_hash / build_time）、进程 CPU/内存、启动时间、运行时长 |
+| **CPU 语义** | 单核基准（与 top `%CPU` 一致），多核上可超过 100；携带 `num_cpu` 供归一化 |
+| **运行时长** | 操作系统 tick 口径（Linux `/proc`，Windows `GetTickCount64`），不受系统时间调整影响 |
+| **启动时刻** | 绝对时间，**不能** tick 免疫（Linux 依赖 `btime`，会随墙钟调整变化） |
+| **新鲜度** | `sampled_at` 为采样时刻；与 `report_timestamp` 的差值表示快照陈旧程度 |
+| **重启瞬间** | upsert 全字段覆盖：首次采样完成前若刚好上报，`probe` 列可能为 NULL，下一轮自愈，不是采集故障 |
+
+### 两类 version（勿混淆）
+
+| 名称 | 含义 |
+|------|------|
+| **`ProbeMetric.version`** | 二进制构建版本（`-ldflags -X` 注入） |
+| **probe.yaml `version` / `configVersion`** | 配置版本（与 Admin Heartbeat 的配置同步相关） |
+
 ### 两类 Heartbeat（勿混淆）
 
 | 名称 | 含义 | 位置 |
 |------|------|------|
 | **Admin gRPC Heartbeat** | Probe 进程 / 配置连接存活上报 | AdminService |
 | **master_slave_heartbeat** | MySQL 主从心跳表读写与延迟，作为探测指标 | MySQL harvester → 状态字段；切换侧可用 `AllowedMaxHeartbeatDelay` 等策略参数 |
+
+### 升级顺序与回滚
+
+`t_dbha_status` 新增 `probe` 列由 `dbha-admin migrate`（GORM AutoMigrate）完成。
+
+**升级顺序（硬约束）**：先 `dbha-admin migrate` → 再升 receiver → 最后升 probe。若 receiver 已升级而表尚无 `probe` 列，全字段 upsert 会因 `Unknown column 'probe'` 失败，实例状态全部写不进库。
+
+**回滚 / 止血**：立刻补跑 migrate（推荐），或回滚 receiver。probe 侧无需回滚；多出的 `probe` JSON 字段会被旧 receiver 忽略。
 
 ## 3. 交互顺序图
 
@@ -61,6 +90,7 @@ sequenceDiagram
 | 步骤 | 路径 |
 |------|------|
 | Probe 框架 | [`internal/probe/probe.go`](../../internal/probe/probe.go)、[`run.go`](../../internal/probe/run.go) |
+| 探针自身采样 | [`internal/probe/selfmetric`](../../internal/probe/selfmetric)、[`pkg/process` uptime](../../pkg/process/uptime.go) |
 | 插件工厂 | [`internal/probe/factory.go`](../../internal/probe/factory.go) |
 | MySQL / Redis / Proxy | [`internal/probe/harvester/`](../../internal/probe/harvester) |
 | Reporter 创建 | [`internal/probe/client/reporter.go`](../../internal/probe/client/reporter.go) |
