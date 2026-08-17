@@ -465,7 +465,7 @@ class TicketType(StrStructuredEnum):
     SQLSERVER_RESET = TicketEnumField("SQLSERVER_RESET", _("SQLServer 集群重置"), _("集群维护"))
     SQLSERVER_FULL_MIGRATE = TicketEnumField("SQLSERVER_FULL_MIGRATE", _("SQLServer 全备迁移"), _("数据处理"))
     SQLSERVER_INCR_MIGRATE = TicketEnumField("SQLSERVER_INCR_MIGRATE", _("SQLServer 增量迁移"), _("数据处理"))
-    SQLSERVER_ROLLBACK = TicketEnumField("SQLSERVER_ROLLBACK", _("SQLServer 定点构造"), _("数据处理"), register_iam=True)
+    SQLSERVER_ROLLBACK = TicketEnumField("SQLSERVER_ROLLBACK", _("SQLServer 定点构造"), _("数据处理"))
     SQLSERVER_ROLLBACK_LOCAL = TicketEnumField("SQLSERVER_ROLLBACK_LOCAL", _("SQLServer 原地回档"), _("数据处理"))
     SQLSERVER_AUTHORIZE_RULES = TicketEnumField("SQLSERVER_AUTHORIZE_RULES", _("SQLServer 集群授权"), _("权限管理"))
     SQLSERVER_EXCEL_AUTHORIZE_RULES = TicketEnumField("SQLSERVER_EXCEL_AUTHORIZE_RULES", _("SQLServer EXCEL授权"),
@@ -586,13 +586,13 @@ class TicketType(StrStructuredEnum):
     ES_DELETE_POLARIS = TicketEnumField("ES_DELETE_POLARIS", _("ES 删除Polaris"), _("集群管理"))
 
     PULSAR_APPLY = TicketEnumField("PULSAR_APPLY", _("Pulsar 集群部署"))
-    PULSAR_SCALE_UP = TicketEnumField("PULSAR_SCALE_UP", _("Pulsar 集群扩容"), _("集群管理"), register_iam=True)
-    PULSAR_SHRINK = TicketEnumField("PULSAR_SHRINK", _("Pulsar 集群缩容"), _("集群管理"), register_iam=True)
-    PULSAR_REBOOT = TicketEnumField("PULSAR_REBOOT", _("Pulsar 实例重启"), _("集群管理"), register_iam=True)
-    PULSAR_REPLACE = TicketEnumField("PULSAR_REPLACE", _("Pulsar 集群替换"), _("集群管理"), register_iam=True)
+    PULSAR_SCALE_UP = TicketEnumField("PULSAR_SCALE_UP", _("Pulsar 集群扩容"), _("集群管理"))
+    PULSAR_SHRINK = TicketEnumField("PULSAR_SHRINK", _("Pulsar 集群缩容"), _("集群管理"))
+    PULSAR_REBOOT = TicketEnumField("PULSAR_REBOOT", _("Pulsar 实例重启"), _("集群管理"))
+    PULSAR_REPLACE = TicketEnumField("PULSAR_REPLACE", _("Pulsar 集群替换"), _("集群管理"))
     PULSAR_ENABLE = TicketEnumField("PULSAR_ENABLE", _("Pulsar 集群启用"))
     PULSAR_DISABLE = TicketEnumField("PULSAR_DISABLE", _("Pulsar 集群禁用"))
-    PULSAR_DESTROY = TicketEnumField("PULSAR_DESTROY", _("Pulsar 集群删除"), _("集群管理"), register_iam=True)
+    PULSAR_DESTROY = TicketEnumField("PULSAR_DESTROY", _("Pulsar 集群删除"), _("集群管理"))
 
     # TODO: 暂时屏蔽对influxdb的鉴权
     INFLUXDB_APPLY = TicketEnumField("INFLUXDB_APPLY", _("InfluxDB 实例部署"), _("实例管理"))
