@@ -101,7 +101,7 @@ class ConfigViewSet(viewsets.SystemViewSet):
             "list_platform_configs",
             "get_platform_config",
             "list_confname_changes",
-        ): [GlobalConfigPermission([ActionEnum.GLOBAL_DBCONFIG_VIEW])],
+        ): [ResourceActionPermission([ActionEnum.GLOBAL_MANAGE])],
         (
             "create_platform_config",
             "upsert_platform_config",
