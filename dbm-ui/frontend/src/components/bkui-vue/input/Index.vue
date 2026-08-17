@@ -29,7 +29,8 @@
       v-if="showClear"
       class="dbm-textarea-clear-icon"
       :class="{ 'is-show-clear-only-hover': showClearOnlyHover }"
-      @click="handleClear">
+      @click="handleClear"
+      @mousedown.prevent>
       <Close />
     </span>
     <span
@@ -77,7 +78,8 @@
       v-if="showClear"
       class="dbm-input-suffix-icon dbm-input-clear-icon"
       :class="{ 'is-show-clear-only-hover': showClearOnlyHover }"
-      @click="handleClear">
+      @click="handleClear"
+      @mousedown.prevent>
       <Close />
     </span>
     <span
@@ -318,6 +320,8 @@
     }
     const value = props.type === 'number' ? getNumberEmptyValue() : '';
     modelValue.value = value;
+    syncNativeValue(value);
+    emits('input', value);
     emits('change', value);
     emits('clear');
   };
