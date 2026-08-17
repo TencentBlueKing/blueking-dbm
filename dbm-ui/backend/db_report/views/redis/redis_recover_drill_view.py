@@ -109,6 +109,7 @@ class RedisRecoverDrillTaskViewSet(RecoverDrillTaskViewSet):
             RedisRollbackExerciseTaskStage.RESOURCE_APPLI_FAILED,
             RedisRollbackExerciseTaskStage.ROLLBACK_FAILED,
             RedisRollbackExerciseTaskStage.CLEANUP_FAILED,
+            RedisRollbackExerciseTaskStage.SCENE_PRESERVED,
             RedisRollbackExerciseTaskStage.SKIPPED,
             RedisRollbackExerciseTaskStage.BACKUP_INVALID,
         ]

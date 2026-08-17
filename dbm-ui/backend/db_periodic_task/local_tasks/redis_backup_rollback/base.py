@@ -435,6 +435,7 @@ class RedisRollbackExercise:
                         "polling_interval": self.config.polling_interval,
                         "polling_timeout": self.config.polling_timeout,
                         "error_ignorable": self.config.error_ignorable,
+                        "preserve_scene_shield_minutes": self.config.preserve_scene_shield_minutes,
                     },
                 },
                 auto_execute=True,

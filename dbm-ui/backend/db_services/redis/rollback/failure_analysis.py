@@ -72,7 +72,7 @@ _BKLOG_SORT_DESC = [
 ]
 
 # Stages whose failure evidence lives on a child flow (need BKLog fetch at mark time).
-_FLOW_FAILURE_STAGES = (TaskStage.ROLLBACK_FAILED, TaskStage.CLEANUP_FAILED)
+_FLOW_FAILURE_STAGES = (TaskStage.ROLLBACK_FAILED, TaskStage.CLEANUP_FAILED, TaskStage.SCENE_PRESERVED)
 
 
 def _end_sentinel_for(sentinel: str) -> str:
@@ -99,14 +99,18 @@ def enqueue_exercise_failure_analysis(report_id: int, countdown: int = AI_ANALYS
     """Fire an async AI analysis only when the report is confirmed failed.
 
     Safe to call from ``Report.mark()``: never raises. No-ops when AI analysis is
-    disabled or the report is missing / not in a failed stage.
+    disabled, the report is missing / not in a failed stage, or a successful AI
+    analysis block has already been appended (e.g. enqueued at SCENE_PRESERVED and
+    later marked terminal again after the DBA skips the failed node).
     """
     if not is_exercise_ai_analysis_enabled() or not report_id:
         return False
 
     try:
-        report = Report.objects.filter(id=report_id).only("id", "task_stage").first()
+        report = Report.objects.filter(id=report_id).only("id", "task_stage", "task_message").first()
         if not report or report.task_stage not in FAILED_STAGES:
+            return False
+        if AI_ANALYSIS_SENTINEL in (report.task_message or ""):
             return False
 
         analyze_redis_rollback_exercise_failure.apply_async(
@@ -131,7 +135,9 @@ def _resolve_flow_root_id(report: Report, stage=None) -> str:
     to be applied when embedding logs before ``mark()`` persists it.
     """
     stage = stage if stage is not None else report.task_stage
-    if stage == TaskStage.CLEANUP_FAILED:
+    # Same as CLEANUP_FAILED: rollback-stage preserve has no delete_flow_obj_id yet,
+    # so fall back to rollback_flow_obj_id.
+    if stage in (TaskStage.CLEANUP_FAILED, TaskStage.SCENE_PRESERVED):
         return report.delete_flow_obj_id or report.rollback_flow_obj_id or ""
     if stage == TaskStage.ROLLBACK_FAILED:
         return report.rollback_flow_obj_id or ""

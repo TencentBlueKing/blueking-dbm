@@ -62,6 +62,8 @@ EXPECTED_CLEANUP_CHILD_BY_STATUS = {
 
 REASON_MISSING_CLEANUP = "missing_cleanup_child"
 REASON_NON_TERMINAL_TIMEOUT = "non_terminal_timeout"
+# SCENE_PRESERVED: wait for DBA skip+cleanup; do not flag as missing_cleanup
+REASON_SCENE_PRESERVED = "scene_preserved"
 
 
 @dataclass(frozen=True)
@@ -233,9 +235,30 @@ def collect_redis_rollback_exercise_ticket_anomalies(
         return []
 
     linked_types = linked_recycle_ticket_types_by_parent([t.id for t in tickets])
+    # Batch-load preserved tickets so daily inspection does not flag missing_cleanup_child
+    preserved_ticket_ids = set(
+        Report.objects.filter(ticket_id__in=[t.id for t in tickets], task_stage=TaskStage.SCENE_PRESERVED).values_list(
+            "ticket_id", flat=True
+        )
+    )
     anomalies: List[TicketAnomaly] = []
 
     for ticket in tickets:
+        if ticket.id in preserved_ticket_ids:
+            anomalies.append(
+                TicketAnomaly(
+                    ticket_id=ticket.id,
+                    bk_biz_id=ticket.bk_biz_id,
+                    status=ticket.status,
+                    reason=REASON_SCENE_PRESERVED,
+                    detail=_("现场保留待排查，需人工在页面跳过后清理"),
+                    update_at=ticket.update_at,
+                    create_at=ticket.create_at,
+                    url=ticket.url,
+                )
+            )
+            continue
+
         if ticket.status in NON_TERMINAL_TICKET_STATUSES:
             if ticket.update_at < timeout_cutoff:
                 anomalies.append(
@@ -377,6 +400,8 @@ def repair_stuck_redis_rollback_exercise():
     overdue_cutoff = now - timedelta(seconds=polling_timeout)
     long_overdue_cutoff = now - timedelta(seconds=polling_timeout * 3)
 
+    # SCENE_PRESERVED is omitted on purpose: never auto-wakeup; DBA skip on the page.
+    # Wakeup also guards FAILED runner nodes.
     reports = list(
         Report.objects.filter(
             task_stage__in=[TaskStage.ROLLBACK_STARTED, TaskStage.ROLLBACK_SUCCEEDED],
