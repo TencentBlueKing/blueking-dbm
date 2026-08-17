@@ -85,6 +85,7 @@ func Register(e Entry) {
 func Entries() []Entry {
 	registryMu.RLock()
 	defer registryMu.RUnlock()
+
 	out := make([]Entry, 0, len(regOrder))
 	for _, name := range regOrder {
 		out = append(out, registry[name])
