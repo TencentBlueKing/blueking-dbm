@@ -263,6 +263,36 @@ func TestSnapshotIsCopy(t *testing.T) {
 	}
 }
 
+func TestSamplerCpuUsageFirstSample(t *testing.T) {
+	s, err := newSampler()
+	if err != nil {
+		t.Fatalf("newSampler failed, errmsg: %s", err)
+	}
+	got := s.cpuUsage(0)
+	if math.IsInf(got, 0) || math.IsNaN(got) {
+		t.Fatalf("cpuUsage(0) returned non-finite value: %v", got)
+	}
+	if got != 0 {
+		t.Errorf("cpuUsage(0) = %v, want 0", got)
+	}
+	if s.prev == nil {
+		t.Fatal("prev should be set after first cpuUsage even when uptime is 0")
+	}
+}
+
+func TestSamplerCpuUsageSecondSample(t *testing.T) {
+	s, err := newSampler()
+	if err != nil {
+		t.Fatalf("newSampler failed, errmsg: %s", err)
+	}
+	_ = s.cpuUsage(time.Second)
+	time.Sleep(10 * time.Millisecond)
+	got := s.cpuUsage(time.Second)
+	if math.IsInf(got, 0) || math.IsNaN(got) || got < 0 {
+		t.Fatalf("second cpuUsage returned invalid value: %v", got)
+	}
+}
+
 func TestConcurrentSnapshot(t *testing.T) {
 	s, err := newSampler()
 	if err != nil {
