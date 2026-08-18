@@ -59,7 +59,7 @@ func QueryKafkaMetaWithBkDataId(sinker *Sinker, bkdata *config.BkmApiInfo) error
 	}{
 		BkAppCode:   bkdata.BkAppCode,
 		BkAppSecret: bkdata.BkAppSecret,
-		BkUsername:  "fake",
+		BkUsername:  "admin",
 	})
 	if err != nil {
 		slog.Error("pack header", err.Error())

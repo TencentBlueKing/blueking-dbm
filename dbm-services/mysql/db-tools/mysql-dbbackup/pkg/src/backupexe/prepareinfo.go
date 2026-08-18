@@ -360,13 +360,13 @@ func trimQuotes(s string) string {
 func openXtrabackupFile(binpath string, fileName string, tmpFileName string) (*bytes.Buffer, error) {
 	readCmd := []string{}
 	if exist, _ := util.FileExist(fileName); exist {
-		readCmd = append(readCmd, "cat")
+		readCmd = append(readCmd, "cat", fileName)
 	} else if exist, _ = util.FileExist(fileName + cst.QpSuffix); exist {
 		readCmd = append(readCmd, binpath, "-do", fileName+cst.QpSuffix)
 	} else if exist, _ = util.FileExist(fileName + cst.ZstdSuffix); exist {
 		readCmd = append(readCmd, CmdZstd, "-dc", fileName+cst.ZstdSuffix)
 	} else {
-		err := fmt.Errorf("%s dosen't exist", fileName)
+		err := fmt.Errorf("%s does not exist", fileName)
 		return nil, err
 	}
 	content, errBytes, err := cmutil.ExecCommandReturnBytes(false, "", readCmd[0], readCmd[1:]...)

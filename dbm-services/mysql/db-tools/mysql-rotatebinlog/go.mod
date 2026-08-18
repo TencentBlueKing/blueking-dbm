@@ -6,6 +6,7 @@ toolchain go1.24.2
 
 require (
 	github.com/Masterminds/squirrel v1.5.4
+	github.com/avast/retry-go/v4 v4.7.0
 	github.com/ghodss/yaml v1.0.0
 	github.com/go-mysql-org/go-mysql v1.7.0
 	github.com/go-viper/mapstructure/v2 v2.4.0

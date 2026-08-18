@@ -47,7 +47,7 @@ func queryMeta() error {
 	}{
 		BkAppCode:   config.RuntimeConfig.BkAppCode,
 		BkAppSecret: config.RuntimeConfig.BkAppSecret,
-		BkUsername:  "fake",
+		BkUsername:  "admin",
 	})
 	if err != nil {
 		slog.Error("pack header", err.Error())

@@ -7,6 +7,7 @@ toolchain go1.24.2
 require (
 	github.com/Shopify/sarama v1.38.1
 	github.com/avast/retry-go/v4 v4.6.0
+	github.com/coocood/freecache v1.2.7
 	github.com/gin-gonic/gin v1.10.1
 	github.com/go-playground/validator/v10 v10.27.0
 	github.com/go-sql-driver/mysql v1.9.3

@@ -310,7 +310,8 @@ func (t *backupTask) run(ctx context.Context, cnf *config.BackupConfig) (err err
 	if err != nil {
 		logger.Log.Error("report NewCore failed", err.Error()) // reportCore is nil
 	}
-	if resp, reportErr := reapi.SyncReport(reportCore, t.statusReport.SetStatus("Begin", "")); reportErr != nil {
+	if resp, reportErr := reapi.SyncReportWithDelegateRetry(
+		reportCore, t.statusReport.SetStatus("Begin", "")); reportErr != nil {
 		logger.Log.Warnf("report backup status, resp: %s", string(resp))
 	}
 	logger.Log.Info("parse config file: end")
@@ -328,7 +329,7 @@ func (t *backupTask) run(ctx context.Context, cnf *config.BackupConfig) (err err
 		logger.Log.Infof("backup grant for %d: begin", cnf.Public.MysqlPort)
 		if err := runner.BackupGrant(&cnf.Public); err != nil {
 			logger.Log.Error("Failed to backup Grant information")
-			if resp, reportErr := reapi.SyncReport(
+			if resp, reportErr := reapi.SyncReportWithDelegateRetry(
 				reportCore, t.statusReport.SetStatus("Failed", "backup grant failed")); reportErr != nil {
 				logger.Log.Warnf("report backup status, resp: %s", string(resp))
 			}
@@ -348,7 +349,8 @@ func (t *backupTask) run(ctx context.Context, cnf *config.BackupConfig) (err err
 	// check slave status
 
 	// execute backup
-	if resp, reportErr := reapi.SyncReport(reportCore, t.statusReport.SetStatus("Running", "")); reportErr != nil {
+	if resp, reportErr := reapi.SyncReportWithDelegateRetry(
+		reportCore, t.statusReport.SetStatus("Running", "")); reportErr != nil {
 		logger.Log.Warnf("report backup status, resp: %s", string(resp))
 	}
 	var sshClient *sshgo.Client
@@ -377,7 +379,8 @@ func (t *backupTask) run(ctx context.Context, cnf *config.BackupConfig) (err err
 	}
 	logger.Log.Info("backup main finish:", cnf.Public.MysqlPort, indexFilePath)
 
-	if resp, reportErr := reapi.SyncReport(reportCore, t.statusReport.SetStatus("Tarball", "")); reportErr != nil {
+	if resp, reportErr := reapi.SyncReportWithDelegateRetry(
+		reportCore, t.statusReport.SetStatus("Tarball", "")); reportErr != nil {
 		logger.Log.Warnf("report backup status, resp: %s", string(resp))
 	}
 	if cnf.BackupToRemote.EnableRemote {
@@ -391,7 +394,8 @@ func (t *backupTask) run(ctx context.Context, cnf *config.BackupConfig) (err err
 		}
 	}
 	fmt.Printf("backup_index_file:%s\n", indexFilePath)
-	if resp, reportErr := reapi.SyncReport(reportCore, t.statusReport.SetStatus("Success", "")); reportErr != nil {
+	if resp, reportErr := reapi.SyncReportWithDelegateRetry(
+		reportCore, t.statusReport.SetStatus("Success", "")); reportErr != nil {
 		logger.Log.Warnf("report backup status, resp: %s", string(resp))
 	}
 	logger.Log.Infof("Dbbackup Success for %d", cnf.Public.MysqlPort)
