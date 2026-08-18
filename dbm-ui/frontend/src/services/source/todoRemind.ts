@@ -11,7 +11,7 @@
  * the specific language governing permissions and limitations under the License.
  */
 
-import http from '../http';
+import http, { type IRequestPayload } from '../http';
 
 const path = '/apis/conf/todo_remind';
 
@@ -31,8 +31,8 @@ interface TodoRemindParams {
 /**
  * 获取每日待办提醒
  */
-export const getTodoRemind = function () {
-  return http.get<TodoRemindParams>(`${path}/get_todo_remind_conf/`);
+export const getTodoRemind = function (payload = {} as IRequestPayload) {
+  return http.get<TodoRemindParams>(`${path}/get_todo_remind_conf/`, {}, payload);
 };
 
 /**

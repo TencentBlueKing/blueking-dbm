@@ -12,137 +12,139 @@
 -->
 
 <template>
-  <BkLoading :loading="getTodoRemindLoading || groupNotifyLoading">
-    <SmartAction
-      class="todo-remind-page"
-      :offset-target="getSmartActionOffsetTarget">
-      <BkCard
-        :border="false"
-        class="mb-32"
-        :show-header="false">
-        <BkAlert
-          class="mt-16"
-          :title="
-            t(
-              '提醒范围：自动涵盖个人工作台「我的待办」下所有待办类型（单据待办、告警事件待办、巡检待办、主机处理待办、集群下架待办、风险备忘录），未来新增待办类型自动纳入。',
-            )
-          " />
-        <DbForm
-          ref="form"
-          class="notice-form"
-          :label-width="100"
-          :model="formData">
-          <DbFormItem
-            :label="t('启用提醒')"
-            required>
-            <BkSwitcher
-              v-model="formData.isEnable"
-              theme="primary"
-              @change="handleEnableChange" />
-          </DbFormItem>
-          <DbFormItem
-            :label="t('提醒时间')"
-            property="remindTime"
-            required>
-            <div class="remind-time">
-              <div class="time-text">{{ t('每日') }}</div>
-              <BkTimePicker
-                v-model="formData.remindTime"
-                append-to-body
-                class="time-picker"
-                :disabled="!formData.isEnable"
-                format="HH:mm"
-                style="width: 120px" />
-              <BkCheckbox
-                v-model="formData.dayOfWeek"
-                class="ml-8"
-                :disabled="!formData.isEnable">
-                {{ t('周末（周六/周日）不发送提醒') }}
-              </BkCheckbox>
-            </div>
-          </DbFormItem>
-          <DbFormItem
-            :label="t('通知渠道')"
-            property="notice"
-            required
-            :rules="noticeRules">
-            <div class="channel-config">
-              <!-- 个人通知（全员） -->
-              <div class="channel-group">
-                <div class="channel-group-head">
-                  <span class="channel-group-title-text">{{ t('个人通知（全员）') }}</span>
-                  <span class="channel-group-inline-desc">
-                    {{ t('面向所有有待办的用户，按人发送个性化汇总；与是否启用群聊无关。') }}
-                  </span>
+  <ApplyPermissionCatch>
+    <BkLoading :loading="getTodoRemindLoading || groupNotifyLoading">
+      <SmartAction
+        class="todo-remind-page"
+        :offset-target="getSmartActionOffsetTarget">
+        <BkCard
+          :border="false"
+          class="mb-32"
+          :show-header="false">
+          <BkAlert
+            class="mt-16"
+            :title="
+              t(
+                '提醒范围：自动涵盖个人工作台「我的待办」下所有待办类型（单据待办、告警事件待办、巡检待办、主机处理待办、集群下架待办、风险备忘录），未来新增待办类型自动纳入。',
+              )
+            " />
+          <DbForm
+            ref="form"
+            class="notice-form"
+            :label-width="100"
+            :model="formData">
+            <DbFormItem
+              :label="t('启用提醒')"
+              required>
+              <BkSwitcher
+                v-model="formData.isEnable"
+                theme="primary"
+                @change="handleEnableChange" />
+            </DbFormItem>
+            <DbFormItem
+              :label="t('提醒时间')"
+              property="remindTime"
+              required>
+              <div class="remind-time">
+                <div class="time-text">{{ t('每日') }}</div>
+                <BkTimePicker
+                  v-model="formData.remindTime"
+                  append-to-body
+                  class="time-picker"
+                  :disabled="!formData.isEnable"
+                  format="HH:mm"
+                  style="width: 120px" />
+                <BkCheckbox
+                  v-model="formData.dayOfWeek"
+                  class="ml-8"
+                  :disabled="!formData.isEnable">
+                  {{ t('周末（周六/周日）不发送提醒') }}
+                </BkCheckbox>
+              </div>
+            </DbFormItem>
+            <DbFormItem
+              :label="t('通知渠道')"
+              property="notice"
+              required
+              :rules="noticeRules">
+              <div class="channel-config">
+                <!-- 个人通知（全员） -->
+                <div class="channel-group">
+                  <div class="channel-group-head">
+                    <span class="channel-group-title-text">{{ t('个人通知（全员）') }}</span>
+                    <span class="channel-group-inline-desc">
+                      {{ t('面向所有有待办的用户，按人发送个性化汇总；与是否启用群聊无关。') }}
+                    </span>
+                  </div>
+                  <div class="personal-channels">
+                    <BkCheckbox
+                      v-for="item in personalChannelList"
+                      :key="item.type"
+                      v-model="formData.notice.checkbox[item.type]"
+                      class="channel-check-label"
+                      :disabled="!formData.isEnable"
+                      @change="handleCheckboxChange">
+                      <img
+                        class="channel-icon"
+                        :src="`data:image/png;base64,${item.icon}`" />
+                      {{ item.label }}
+                    </BkCheckbox>
+                  </div>
                 </div>
-                <div class="personal-channels">
-                  <BkCheckbox
-                    v-for="item in personalChannelList"
-                    :key="item.type"
-                    v-model="formData.notice.checkbox[item.type]"
-                    class="channel-check-label"
-                    :disabled="!formData.isEnable"
-                    @change="handleCheckboxChange">
-                    <img
-                      class="channel-icon"
-                      :src="`data:image/png;base64,${item.icon}`" />
-                    {{ item.label }}
-                  </BkCheckbox>
+                <!-- 企微群聊（仅 DBA） -->
+                <div class="channel-group">
+                  <div class="channel-group-head">
+                    <span class="channel-group-title-text">{{ t('企微群聊（仅 DBA）') }}</span>
+                    <span class="channel-group-inline-desc">{{
+                      t('仅汇总 DBA 待办并发送到所填群聊，不包含普通用户。')
+                    }}</span>
+                  </div>
+                  <div class="group-channel-row mb-12">
+                    <span class="group-field-label">{{ t('企微群聊 ID') }}</span>
+                    <BkInput
+                      v-model="formData.notice.input[MessageTypes.WECOM_ROBOT]"
+                      class="group-input-wrap"
+                      clearable
+                      :disabled="!formData.isEnable"
+                      :placeholder="t('请输入群聊 ID，多个用英文逗号分隔')" />
+                    <DbIcon
+                      v-bk-tooltips="{ content: t('填写企微群聊 ID，多个群 ID 用英文逗号分隔') }"
+                      class="group-help-icon"
+                      type="attention" />
+                  </div>
                 </div>
               </div>
-              <!-- 企微群聊（仅 DBA） -->
-              <div class="channel-group">
-                <div class="channel-group-head">
-                  <span class="channel-group-title-text">{{ t('企微群聊（仅 DBA）') }}</span>
-                  <span class="channel-group-inline-desc">{{
-                    t('仅汇总 DBA 待办并发送到所填群聊，不包含普通用户。')
-                  }}</span>
-                </div>
-                <div class="group-channel-row mb-12">
-                  <span class="group-field-label">{{ t('企微群聊 ID') }}</span>
-                  <BkInput
-                    v-model="formData.notice.input[MessageTypes.WECOM_ROBOT]"
-                    class="group-input-wrap"
-                    clearable
-                    :disabled="!formData.isEnable"
-                    :placeholder="t('请输入群聊 ID，多个用英文逗号分隔')" />
-                  <DbIcon
-                    v-bk-tooltips="{ content: t('填写企微群聊 ID，多个群 ID 用英文逗号分隔') }"
-                    class="group-help-icon"
-                    type="attention" />
-                </div>
-              </div>
-            </div>
-          </DbFormItem>
-        </DbForm>
-      </BkCard>
-      <template #action>
-        <BkButton
-          class="w-88"
-          :disabled="resetTodoRemindLoading"
-          :loading="updateTodoRemindLoading"
-          theme="primary"
-          @click="handleSave">
-          {{ t('保存') }}
-        </BkButton>
-        <DbPopconfirm
-          ref="dbPopconfirm"
-          :confirm-handler="handleReset"
-          :content="t('重置将会恢复默认设置的内容')"
-          :title="t('确认重置')">
-          <span>
-            <BkButton
-              action-id="biz_notify_config"
-              class="ml-8 w-88"
-              :disabled="updateTodoRemindLoading"
-              :loading="resetTodoRemindLoading">
-              {{ t('重置') }}
-            </BkButton>
-          </span>
-        </DbPopconfirm>
-      </template>
-    </SmartAction>
-  </BkLoading>
+            </DbFormItem>
+          </DbForm>
+        </BkCard>
+        <template #action>
+          <BkButton
+            class="w-88"
+            :disabled="resetTodoRemindLoading"
+            :loading="updateTodoRemindLoading"
+            theme="primary"
+            @click="handleSave">
+            {{ t('保存') }}
+          </BkButton>
+          <DbPopconfirm
+            ref="dbPopconfirm"
+            :confirm-handler="handleReset"
+            :content="t('重置将会恢复默认设置的内容')"
+            :title="t('确认重置')">
+            <span>
+              <BkButton
+                action-id="biz_notify_config"
+                class="ml-8 w-88"
+                :disabled="updateTodoRemindLoading"
+                :loading="resetTodoRemindLoading">
+                {{ t('重置') }}
+              </BkButton>
+            </span>
+          </DbPopconfirm>
+        </template>
+      </SmartAction>
+    </BkLoading>
+  </ApplyPermissionCatch>
 </template>
 <script setup lang="tsx">
   import _ from 'lodash';
@@ -153,6 +155,8 @@
   import { getTodoRemind, updateTodoRemind } from '@services/source/todoRemind';
 
   import { InputMessageTypes, MessageTypes } from '@common/const';
+
+  import ApplyPermissionCatch from '@components/apply-permission/Catch.vue';
 
   import { messageSuccess } from '@utils';
 
@@ -291,7 +295,7 @@
   const getSmartActionOffsetTarget = () => document.querySelector('.bk-form-content');
 
   const getData = () => {
-    runGetTodoRemind();
+    runGetTodoRemind({ permission: 'catch' });
     runGetAlarmGroupNotifyList({});
   };
 
