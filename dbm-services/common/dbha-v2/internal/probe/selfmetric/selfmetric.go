@@ -43,6 +43,17 @@ import (
 	gopsutil "github.com/shirou/gopsutil/v3/process"
 )
 
+var (
+	// loadDefaultSampler builds the process-wide sampler at most once and caches both
+	// results, so repeated Run and Snapshot calls share one instance. It returns a nil
+	// sampler with an error when the process handle cannot be opened.
+	loadDefaultSampler = sync.OnceValues(newSampler)
+
+	// runOnce keeps a second Run call from starting another sampling loop over the
+	// snapshot the first loop already owns.
+	runOnce sync.Once
+)
+
 // SampleInterval is the fixed period for probe self-metric sampling.
 const SampleInterval = 60 * time.Second
 
@@ -135,6 +146,25 @@ func (s *sampler) takeCPUSample() (sample, error) {
 	}, nil
 }
 
+// cpuUsage samples the process CPU counter and returns single-core based usage.
+// uptime is only consulted for the very first sample, which has no predecessor to
+// diff against; a zero uptime there yields 0 instead of a bogus rate.
+func (s *sampler) cpuUsage(uptime time.Duration) float64 {
+	cur, err := s.takeCPUSample()
+	if err != nil {
+		logger.Warn("sample probe cpu failed, errmsg: %s", err)
+		return 0
+	}
+
+	prev := s.prev
+	s.prev = &cur
+
+	if prev == nil {
+		return cpuUsageSinceStart(cur.cpuSeconds, uptime)
+	}
+	return cpuUsagePercent(*prev, cur)
+}
+
 func (s *sampler) sampleOnce() {
 	metric := &haprobe.ProbeMetric{}
 	info := version.Get()
@@ -146,22 +176,18 @@ func (s *sampler) sampleOnce() {
 	metric.NumCPU = runtime.NumCPU()
 	metric.SampledAt = toNonNegUint64(time.Now().Unix())
 
-	cur, err := s.takeCPUSample()
+	// Sampled before cpuUsage below, which needs it for its very first sample.
+	uptime, err := process.SelfUptime()
 	if err != nil {
-		logger.Warn("sample probe cpu failed, errmsg: %s", err)
+		logger.Warn("sample probe uptime failed, errmsg: %s", err)
 	} else {
-		if s.prev == nil {
-			uptime, upErr := process.SelfUptime()
-			if upErr != nil {
-				logger.Warn("sample probe uptime for cpu failed, errmsg: %s", upErr)
-			} else {
-				metric.CpuUsagePercent = cpuUsageSinceStart(cur.cpuSeconds, uptime)
-			}
-		} else {
-			metric.CpuUsagePercent = cpuUsagePercent(*s.prev, cur)
+		metric.UptimeSeconds = durationToNonNegSeconds(uptime)
+		if uptime > 0 {
+			metric.Uptime = durafmt.Parse(uptime).LimitFirstN(2).String()
 		}
-		s.prev = &cur
 	}
+
+	metric.CpuUsagePercent = s.cpuUsage(uptime)
 
 	if memInfo, err := s.proc.MemoryInfo(); err != nil {
 		logger.Warn("sample probe memory rss failed, errmsg: %s", err)
@@ -179,15 +205,6 @@ func (s *sampler) sampleOnce() {
 		logger.Warn("sample probe started_at failed, errmsg: %s", err)
 	} else {
 		metric.StartedAt = toNonNegUint64(startedAt.Unix())
-	}
-
-	if uptime, err := process.SelfUptime(); err != nil {
-		logger.Warn("sample probe uptime failed, errmsg: %s", err)
-	} else {
-		metric.UptimeSeconds = durationToNonNegSeconds(uptime)
-		if uptime > 0 {
-			metric.Uptime = durafmt.Parse(uptime).LimitFirstN(2).String()
-		}
 	}
 
 	metric.CpuUsagePercent = sanitizePercent(metric.CpuUsagePercent)
@@ -213,38 +230,26 @@ func (s *sampler) run(ctx context.Context, quit <-chan struct{}, interval time.D
 	}
 }
 
-var (
-	defaultSampler     *sampler
-	defaultSamplerOnce sync.Once
-	defaultSamplerErr  error
-	runOnce            sync.Once
-)
-
-func ensureDefaultSampler() error {
-	defaultSamplerOnce.Do(func() {
-		defaultSampler, defaultSamplerErr = newSampler()
-	})
-	return defaultSamplerErr
-}
-
 // Run samples the current process on SampleInterval until ctx is done or quit is
 // closed. It takes the first sample immediately so Snapshot returns data right
 // after startup. Repeated calls are no-ops.
 func Run(ctx context.Context, quit <-chan struct{}) {
 	runOnce.Do(func() {
-		if err := ensureDefaultSampler(); err != nil {
+		s, err := loadDefaultSampler()
+		if err != nil {
 			logger.Warn("init probe self metric sampler failed, errmsg: %s", err)
 			return
 		}
-		defaultSampler.run(ctx, quit, SampleInterval)
+		s.run(ctx, quit, SampleInterval)
 	})
 }
 
 // Snapshot returns a copy of the latest sampled metric, or nil before the first
 // successful sample.
 func Snapshot() *haprobe.ProbeMetric {
-	if err := ensureDefaultSampler(); err != nil {
+	s, err := loadDefaultSampler()
+	if err != nil {
 		return nil
 	}
-	return defaultSampler.snapshot()
+	return s.snapshot()
 }
