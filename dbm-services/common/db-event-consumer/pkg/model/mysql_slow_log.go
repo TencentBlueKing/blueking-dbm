@@ -16,6 +16,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/coocood/freecache"
 	"github.com/go-viper/mapstructure/v2"
 	sb "github.com/huandu/go-sqlbuilder"
 	"github.com/jinzhu/copier"
@@ -27,6 +28,14 @@ import (
 	"dbm-services/common/db-event-consumer/pkg/sinker"
 	"dbm-services/common/go-pubpkg/cmutil"
 )
+
+// slowLogDbNameCache 用于缓存每个实例当前上下文的 db_name。
+// 10万实例，每个 key 约 30 字节（ip:port），value 约 64 字节（db_name），
+// 分配 32MB 足够存储所有实例的上下文信息。
+// 过期时间设为 1 小时，避免长时间不活跃的实例占用内存。
+var slowLogDbNameCache = freecache.NewCache(64 * 1024 * 1024)
+
+const slowLogDbNameExpireSec = 86400 // 60分钟
 
 type MysqlSlowLogModel struct {
 	ID uint `gorm:"primaryKey;autoIncrement:true"`
@@ -103,8 +112,9 @@ type DimExt struct {
 type SlowLog struct {
 	Username   string `json:"username"`
 	ClientHost string `json:"client_host"`
-	// DbName	Schema: or Use xxx
-	Schema       string  `json:"schema"`
+	// Schema Schema: or Use xxx
+	Schema string `json:"schema"`
+	// DbName 与 Schema 字段等价
 	DbName       string  `json:"db_name"`
 	QueryTime    float32 `json:"query_time"`
 	LockTime     float32 `json:"lock_time"`
@@ -118,7 +128,7 @@ type SlowLog struct {
 	QueryDigestMd5  string `json:"query_digest_md5"`
 	QueryCommand    string `json:"query_command"`
 	QueryLength     int    `json:"query_length"`
-	// QueryDbName parsed from query_string
+	// QueryDbName parsed from query_string, 只是为了补充 Schema/DbName
 	QueryDbName  string `json:"query_db_name"`
 	TableNames   string `json:"table_names"`
 	SessionId    int64  `json:"session_id"`
@@ -126,7 +136,7 @@ type SlowLog struct {
 }
 
 func (m *MysqlSlowLogModel) TableName() string {
-	return "tb_mysql_slow_log"
+	return "tb_mysql_slow_log2"
 }
 
 func (m *MysqlSlowLogModel) MigrateSchema(w base.DSWriter) error {
@@ -416,12 +426,8 @@ func (m *MysqlSlowLogModel) UnmarshalItem(data []byte, msg base.MessageWrapper) 
 	m.BkCloudId = cast.ToInt(dimExt.BkCloudId)
 	m.InstancePort = cast.ToInt(dimExt.InstancePort)
 
-	// 公共的字段
-	if m.QueryStartTs > 0 {
-		m.SqlTimestamp = m.QueryStartTs
-	} else if m.SqlTimestamp == 0 {
-		m.SqlTimestamp = msg.Ts
-	}
+	m.GetSchemaFromContext()
+
 	m.DtEventTimeStamp = msg.LogTime.Time
 	m.LogTime = msg.UtcTime.Time
 
@@ -429,4 +435,22 @@ func (m *MysqlSlowLogModel) UnmarshalItem(data []byte, msg base.MessageWrapper) 
 	m.DtEventTimeHour = m.LogTime.Format("2006-01-02 15")
 
 	return nil
+}
+
+// GetSchemaFromContext 当慢查询段中没有 USE db 或 Schema 为空时，从缓存中获取上一次的 db_name
+// 使用 freecache 维护每个实例的上下文 db_name
+func (m *MysqlSlowLogModel) GetSchemaFromContext() {
+	// 使用 freecache 维护每个实例的上下文 db_name
+	// 当慢查询段中没有 USE db 或 Schema 为空时，从缓存中获取上一次的 db_name
+	instanceKey := []byte(fmt.Sprintf("%s:%d", m.InstanceHost, m.InstancePort))
+	if m.DbName != "" {
+		// 当前慢查询解析出了 db_name（来自 Schema: 或 USE db），更新缓存
+		_ = slowLogDbNameCache.Set(instanceKey, []byte(m.DbName), slowLogDbNameExpireSec)
+		// TODO 需要测试下 freecache 读/写的性能。如果写性能差，建议改成先读，如果 DbName 不一样才 set
+	} else {
+		// 当前慢查询没有 db_name，尝试从缓存中获取该实例上下文的 db_name
+		if cachedDb, err := slowLogDbNameCache.Get(instanceKey); err == nil && len(cachedDb) > 0 {
+			m.DbName = string(cachedDb)
+		}
+	}
 }

@@ -19,7 +19,7 @@ var ModelSinkerRegistered = make(map[string]base.ModelSinker)
 func RegisterModelSinker(modelObj base.ModelSinker) error {
 	name := modelObj.TableName()
 	if _, ok := ModelSinkerRegistered[name]; ok {
-		return errors.Errorf("model sinker name [%s] is exist", name)
+		return errors.Errorf("model sinker name [%s] already exists", name)
 	}
 
 	ModelSinkerRegistered[name] = modelObj
@@ -36,3 +36,14 @@ func RegisterModelWriteType(typeObj base.DSWriter) error {
 	ModelWriterType[name] = typeObj
 	return nil
 }
+
+// ModelSinkEntry 存储 model 对应的 DSWriter、ModelSinker 和消息处理器
+type ModelSinkEntry struct {
+	Writer  base.DSWriter
+	Model   base.ModelSinker
+	Handler base.MessageHandler
+}
+
+// ModelDSWriterMap 存储每个 topic 对应的 DSWriter 和 ModelSinker
+// 在 root.go 初始化 sinker 时注册，供 retry_event 路由时通过 event_type(=topic) 直接查找
+var ModelDSWriterMap = make(map[string]ModelSinkEntry)

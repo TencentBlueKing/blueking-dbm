@@ -38,7 +38,7 @@ var slowLogAdminRe = regexp.MustCompile(`command: (.+)`)
 var slowLogSetRe = regexp.MustCompile(`^SET (?:last_insert_id|insert_id|timestamp)`)
 
 // slowLogUseRe 匹配 USE db 语句
-var slowLogUseRe = regexp.MustCompile(`^(?i)use `)
+var slowLogUsedbRe = regexp.MustCompile(`^(?i)use `)
 
 // parseOneSlowLog 解析一段慢日志文本（单条慢查询），返回 SlowLog 结构体。
 // 对齐 https://github.com/percona/go-mysql/blob/main/log/slow/parser.go 的全部 header 解析逻辑。
@@ -113,22 +113,34 @@ func parseOneSlowLog(data string, digest bool) (*SlowLog, error) {
 				break
 			}
 			// 跳过 SET last_insert_id / insert_id / timestamp（但提取 timestamp 值）
+			// 暂时不考虑 8.0新加的 Start (log_slow_extra=on)
 			if slowLogSetRe.MatchString(line) {
 				// 提取 SET timestamp=xxx
 				if idx := strings.Index(line, "timestamp="); idx >= 0 {
 					valStr := strings.TrimRight(line[idx+len("timestamp="):], ";")
 					if v, err := strconv.ParseUint(valStr, 10, 64); err == nil {
-						result.SqlTimestamp = uint(v)
+						setTimestamp := uint(v)
+						if setTimestamp == result.SqlTimestamp {
+							// 如果 comment time ==  set time, 则要减去执行时间，获得 sql开始时间
+							result.QueryStartTs = uint(float32(setTimestamp) - result.QueryTime)
+						} else {
+							// 如果两个 time 不相同，说明 set time 是 sql 开始时间
+							result.QueryStartTs = setTimestamp
+							result.SqlTimestamp = setTimestamp // fix ts
+						}
 					}
 				}
 				continue
 			}
+			if result.QueryStartTs == 0 {
+				result.QueryStartTs = result.SqlTimestamp
+			}
 			// USE db 语句
-			if isUse := slowLogUseRe.FindString(line); isUse != "" {
+			if isUse := slowLogUsedbRe.FindString(line); isUse != "" {
 				db := strings.TrimPrefix(line, isUse)
 				db = strings.TrimRight(db, ";")
 				db = strings.Trim(db, "`")
-				result.Schema = strings.TrimSpace(db)
+				result.Schema = strings.TrimSpace(db) // use xxxdb;
 				// 若还没有真正的 SQL，先把 use 语句作为 query（对齐 percona 行为）
 				if len(queryLines) == 0 {
 					queryLines = append(queryLines, line)
@@ -136,7 +148,7 @@ func parseOneSlowLog(data string, digest bool) (*SlowLog, error) {
 				continue
 			}
 			// 真正的 SQL 行：若之前只有 use 语句，替换掉它
-			if len(queryLines) == 1 && slowLogUseRe.MatchString(queryLines[0]) {
+			if len(queryLines) == 1 && slowLogUsedbRe.MatchString(queryLines[0]) {
 				queryLines = []string{line}
 			} else {
 				queryLines = append(queryLines, line)
@@ -153,6 +165,11 @@ func parseOneSlowLog(data string, digest bool) (*SlowLog, error) {
 		if err != nil {
 			return nil, err
 		}
+		if result.Schema == "" && digestResp.DbName != "" {
+			result.Schema = digestResp.DbName
+		}
+		result.DbName = result.Schema
+
 		result.QueryDigestMd5 = digestResp.QueryDigestMd5
 		result.QueryDigestText = digestResp.QueryDigestText
 		result.QueryCommand = digestResp.Command
@@ -186,6 +203,16 @@ func parseSlowLogHeader(line string, result *SlowLog) {
 
 	case strings.HasPrefix(line, "# User"):
 		parseSlowLogUser(line, result)
+		// User@Host 行末尾可能包含 Id: xxx，需要额外提取 SessionId
+		for _, smv := range slowLogMetricsRe.FindAllStringSubmatch(line, -1) {
+			key, val := smv[1], smv[2]
+			switch key {
+			case "Id", "Thread_id", "Session_id":
+				if v, err := strconv.ParseUint(val, 10, 64); err == nil {
+					result.SessionId = int64(v)
+				}
+			}
+		}
 
 	case strings.HasPrefix(line, "# admin"):
 		// admin command 出现在 header 区域时
@@ -220,10 +247,8 @@ func parseSlowLogHeader(line string, result *SlowLog) {
 				}
 			case val == "Yes" || val == "No":
 				// 布尔指标，暂不存储
-			case key == "Schema" && val != "":
+			case (key == "Schema" || key == "Db") && val != "":
 				result.Schema = val
-			case key == "Db_name" && val != "":
-				result.DbName = val
 			default:
 				// 整数指标
 				v, _ := strconv.ParseUint(val, 10, 64)
@@ -232,13 +257,10 @@ func parseSlowLogHeader(line string, result *SlowLog) {
 					result.RowsExamined = int(v)
 				case "Rows_sent":
 					result.RowsSent = int(v)
-				case "Session_id":
+				case "Id", "Thread_id", "Session_id":
 					result.SessionId = int64(v)
 				}
 			}
-		}
-		if result.Schema == "" {
-			result.Schema = result.DbName
 		}
 	}
 }

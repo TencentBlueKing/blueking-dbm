@@ -11,11 +11,12 @@
 package partitionsvr
 
 import (
+	"fmt"
+	"time"
+
 	"dbm-services/common/go-pubpkg/logger"
 	reapi "dbm-services/common/reverseapi/apis/common"
 	recore "dbm-services/common/reverseapi/pkg/core"
-	"fmt"
-	"time"
 )
 
 // 定义一个事件类型，实现 ISyncReportEvent 接口
@@ -59,7 +60,7 @@ func ReportPartitionResult(result *PartitionResultReportEvent) (err error) {
 		return fmt.Errorf("report NewCore failed: %s", err.Error())
 	}
 
-	resp, err := reapi.SyncReport(reportCore, result)
+	resp, err := reapi.SyncReportWithDelegateRetry(reportCore, result)
 	if err != nil {
 		if resp != nil {
 			logger.Error("reverseapi protocol error: %s", string(resp))

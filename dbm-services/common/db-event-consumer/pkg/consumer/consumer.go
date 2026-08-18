@@ -317,7 +317,7 @@ func (s *AnySinker) HandleMessagesBklogGorm(msgs []*sarama.ConsumerMessage, sk *
 			if bklogItem, ok := obj.(base.BklogUnmarshalItem); ok {
 				err = bklogItem.UnmarshalItem(item.Data, msg)
 				if err != nil {
-					slog.Error("unmarshal bklog item", err)
+					// slog.Error("unmarshal bklog item", err)
 					continue
 				}
 				result = reflect.Append(result, objValue.Elem())
@@ -347,6 +347,19 @@ func (s *AnySinker) HandleMessagesBklogGorm(msgs []*sarama.ConsumerMessage, sk *
 		err = s.dsWriter.WriteBatch(s.modelObject, result.Interface())
 	}
 	return err
+}
+
+// HandleRawMessages 将原始消息体（[][]byte）包装后复用完整的消费入库逻辑
+// 供 retry_event 路由时调用，避免重复实现反序列化、write_mode、omit_fields 等边界逻辑
+func (s *AnySinker) HandleRawMessages(payloads [][]byte) error {
+	if len(payloads) == 0 {
+		return nil
+	}
+	msgs := make([]*sarama.ConsumerMessage, 0, len(payloads))
+	for _, p := range payloads {
+		msgs = append(msgs, &sarama.ConsumerMessage{Value: p})
+	}
+	return s.HandleMessageTryBatch(msgs, s.Sinker)
 }
 
 // HandleMessagesBklogMapper bklog 需要解包处理

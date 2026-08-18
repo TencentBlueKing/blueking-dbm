@@ -1,11 +1,12 @@
 package common
 
 import (
-	"dbm-services/common/go-pubpkg/reportlog"
 	"encoding/json"
 	"os"
 	"path/filepath"
 	"time"
+
+	"dbm-services/common/go-pubpkg/reportlog"
 
 	"dbm-services/common/reverseapi/pkg/core"
 
@@ -91,24 +92,27 @@ func SyncReport[T common.ISyncReportEvent](core *core.Core, events ...T) ([]byte
 	return data, nil
 }
 
+// SyncReportWithDelegateRetry 在 SyncReport 失败之后，打印本地 log, 通过日志平台采集上去
 func SyncReportWithDelegateRetry[T common.ISyncReportEvent](core *core.Core, events ...T) ([]byte, error) {
 	data, err := SyncReport[T](core, events...)
 	if err == nil {
 		return data, nil
 	}
 
-	err = os.MkdirAll("/home/mysql/dbareport/event_retry", os.ModePerm)
+	reportPath := "/home/mysql/dbareport/event_retry"
+	// unix style only?
+	err = os.MkdirAll(reportPath, os.ModePerm)
 	if err != nil {
-		return nil, errors.Wrapf(err, "failed to make dir /home/mysql/dbareport/event_retry")
+		return nil, errors.Wrapf(err, "failed to make dir %s", reportPath)
 	}
 
 	reporter, err := reportlog.NewReporter(
-		filepath.Join("/home/mysql/dbareport/event_retry"),
+		filepath.Join(reportPath),
 		"event_retry.log",
 		&reportlog.LoggerOption{
 			MaxSize:    50,
-			MaxBackups: 1,
-			MaxAge:     3,
+			MaxBackups: 7,
+			MaxAge:     7,
 			Compress:   false,
 		},
 	)
@@ -125,6 +129,7 @@ func SyncReportWithDelegateRetry[T common.ISyncReportEvent](core *core.Core, eve
 			EventCreateTimestamp: e.EventCreateTime().UTC().UnixMicro(),
 			EventReportTimestamp: time.Now().UTC().UnixMicro(),
 			EventUUID:            uuid.New().String(),
+			// EventSourceIp is empty: to indicate that this event is saved by bklog
 		}
 
 		reporter.Println(ie)
