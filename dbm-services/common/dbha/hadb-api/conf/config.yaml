@@ -5,6 +5,14 @@ hadbInfo:
   user: "nouser"
   password: "nouser"
   charset: "utf8"
+  # 连接池配置，可选；不配置或字段 <=0 时使用默认值
+  # 默认值：maxOpenConns=50, maxIdleConns=10,
+  #        connMaxLifetimeSec=1800, connMaxIdleTimeSec=300
+  pool:
+    maxOpenConns: 50
+    maxIdleConns: 10
+    connMaxLifetimeSec: 1800
+    connMaxIdleTimeSec: 300
 serverInfo:
   name: "model-api"
 netInfo:
