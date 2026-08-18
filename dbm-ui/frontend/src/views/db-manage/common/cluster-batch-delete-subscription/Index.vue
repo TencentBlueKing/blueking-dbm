@@ -2,78 +2,94 @@
   <BkDialog
     v-model:is-show="isShow"
     class="batch-delete-subscription-dialog"
-    :esc-close="false"
-    :quick-close="false"
+    header-align="center"
+    quick-close
     :width="480">
-    <div class="content-main">
-      <div class="title">{{ t('确定批量删除n个集群的告警订阅？', { n: selected.length }) }}</div>
-      <div class="tip-main">
-        {{
-          showUpdate
-            ? t('已订阅的集群将停止发送订阅通知并删除配置，未订阅的将忽略')
-            : t('删除订阅将停止发送告警通知并删除配置，如有需要可再次订阅')
-        }}
-      </div>
-      <div class="list-main">
-        <div class="count-main">
-          <I18nT
-            keypath="共n个"
-            style="font-size: 14px">
-            <span
-              class="mr-4 ml-4"
-              style="font-weight: 700">
-              {{ selected.length }}
-            </span>
-          </I18nT>
-          <template v-if="showUpdate">
-            <template v-if="countInfo.delete">
-              <span class="mr-4 ml-4">,</span>
-              <span class="mr-4">{{ t('删除') }}</span>
-              <span style="font-weight: 700; color: #ea3636">{{ countInfo.delete }}</span>
-            </template>
-            <template v-if="countInfo.ignore">
-              <span class="mr-4 ml-4">,</span>
-              <span class="mr-4">{{ t('忽略') }}</span>
-              <span style="font-weight: 700; color: #f59500">{{ countInfo.ignore }}</span>
-            </template>
+    <template #header>
+      <span class="dialog-title">{{ t('确定批量删除n个集群的告警订阅？', { n: count.k }) }}</span>
+    </template>
+    <div class="operate-cluster-confirm-content">
+      <BkAlert
+        class="mb-12"
+        theme="info"
+        :title="t('已订阅的集群将停止发送订阅通知并删除配置。没有订阅的集群保持不变。')" />
+      <div class="confirm-summary">
+        <span>{{ t('已选集群') }}：</span>
+        <I18nT
+          keypath="共 {n} 个，{action} {k}"
+          tag="span">
+          <template #n>
+            <strong>{{ count.n }}</strong>
           </template>
-        </div>
-        <div class="cluster-list">
-          <div
-            v-for="item in domainList"
-            :key="item.master_domain"
-            class="domain-item">
-            <div
-              v-overflow-tips
-              class="domain-name">
-              {{ item.master_domain }}
-            </div>
-            <BkTag
-              v-if="showUpdate"
-              class="status-tag"
-              size="small"
-              :theme="item.isSubscribed ? 'danger' : 'warning'">
-              {{ item.isSubscribed ? t('删除') : t('忽略') }}
-            </BkTag>
-          </div>
-        </div>
+          <template #action>{{ t('删除') }}</template>
+          <template #k>
+            <strong>{{ count.k }}</strong>
+          </template>
+        </I18nT>
+        <I18nT
+          v-if="count.s > 0"
+          keypath="，跳过 {s}"
+          tag="span">
+          <template #s>
+            <span class="skip-num">{{ count.s }}</span>
+          </template>
+        </I18nT>
+        <I18nT
+          v-if="count.a > 0 && count.b > 0"
+          keypath="（无权限 {a}，{reason} {b}）"
+          tag="span">
+          <template #a>{{ count.a }}</template>
+          <template #reason>{{ t('未订阅') }}</template>
+          <template #b>{{ count.b }}</template>
+        </I18nT>
+        <I18nT
+          v-else-if="count.a > 0"
+          keypath="（无权限 {a}）"
+          tag="span">
+          <template #a>{{ count.a }}</template>
+        </I18nT>
+        <I18nT
+          v-else-if="count.b > 0"
+          keypath="（{reason} {b}）"
+          tag="span">
+          <template #reason>{{ t('未订阅') }}</template>
+          <template #b>{{ count.b }}</template>
+        </I18nT>
       </div>
-      <div class="operation-main">
-        <BkButton
-          class="w-88"
-          :disabled="!countInfo.delete"
-          :loading="deleteLoading"
-          theme="danger"
-          @click="handleConfirm">
-          {{ t('删除') }}
-        </BkButton>
-        <BkButton
-          class="w-88 ml-8"
-          @click="handleCancel">
-          {{ t('取消') }}
-        </BkButton>
+      <div class="confirm-list">
+        <div class="list-title">{{ t('将删除告警订阅的集群（{n}）', { n: count.k }) }}</div>
+        <div
+          v-for="item in subscribedList"
+          :key="item.master_domain"
+          class="list-item">
+          <span
+            v-overflow-tips
+            class="domain-name">
+            {{ item.master_domain }}
+          </span>
+          <!-- <BkTag
+            v-if="showUpdate"
+            class="status-tag"
+            size="small"
+            theme="danger">
+            {{ t('删除') }}
+          </BkTag> -->
+        </div>
       </div>
     </div>
+    <template #footer>
+      <BkButton
+        class="mr-8"
+        :disabled="!count.k"
+        :loading="deleteLoading"
+        theme="danger"
+        @click="handleConfirm">
+        {{ t('删除') }}
+      </BkButton>
+      <BkButton @click="handleCancel">
+        {{ t('取消') }}
+      </BkButton>
+    </template>
   </BkDialog>
 </template>
 <script setup lang="ts">
@@ -84,13 +100,18 @@
 
   import { useAlarmSubscribe } from '@hooks';
 
-  import { messageSuccess } from '@utils';
+  import { DBTypes } from '@common/const';
+
+  import { countBatchOperation, messageSuccess } from '@utils';
 
   interface Props {
     selected?: {
+      db_type?: string;
+      id?: number;
       master_domain: string;
+      permission?: Record<string, boolean>;
     }[];
-    showUpdate?: boolean;
+    // showUpdate?: boolean;
   }
 
   type Emits = (e: 'success') => void;
@@ -109,15 +130,44 @@
 
   const domainList = ref<
     {
+      hasPermission: boolean;
       isSubscribed: boolean;
       master_domain: string;
     }[]
   >([]);
-  const countInfo = ref({
-    delete: 0,
-    ignore: 0,
-  });
   const domainSubscribeIdMap = ref<Record<string, number>>({});
+
+  /** 各数据库类型对应的告警订阅权限 action */
+  const subscribeMonitorActionIdMap: Record<string, string> = {
+    [DBTypes.DORIS]: 'doris_subscribe_monitor',
+    [DBTypes.ES]: 'es_subscribe_monitor',
+    [DBTypes.HDFS]: 'hdfs_subscribe_monitor',
+    [DBTypes.INFLUXDB]: 'influxdb_subscribe_monitor',
+    [DBTypes.KAFKA]: 'kafka_subscribe_monitor',
+    [DBTypes.MONGODB]: 'mongodb_subscribe_monitor',
+    [DBTypes.MYSQL]: 'mysql_subscribe_monitor',
+    [DBTypes.ORACLE]: 'oracle_subscribe_monitor',
+    [DBTypes.PULSAR]: 'pulsar_subscribe_monitor',
+    [DBTypes.REDIS]: 'redis_subscribe_monitor',
+    [DBTypes.RIAK]: 'riak_subscribe_monitor',
+    [DBTypes.SQLSERVER]: 'sqlserver_subscribe_monitor',
+    [DBTypes.TENDBCLUSTER]: 'tendbcluster_subscribe_monitor',
+  };
+
+  /** 集群是否具备告警订阅权限（permission 字段始终返回布尔值） */
+  const hasSubscribePermission = (item: NonNullable<Props['selected']>[number]) =>
+    item.permission?.[subscribeMonitorActionIdMap[item.db_type ?? '']] !== false;
+
+  /** 统一计数：无权限跳过（a）+ 未订阅跳过（b） */
+  const count = computed(() =>
+    countBatchOperation(domainList.value, {
+      hasPermission: (item) => item.hasPermission,
+      statusMismatch: (item) => !item.isSubscribed,
+    }),
+  );
+
+  /** 将删除告警订阅的集群（有权限且已订阅的，即 K） */
+  const subscribedList = computed(() => domainList.value.filter((item) => item.hasPermission && item.isSubscribed));
 
   const { loading: deleteLoading, run: runDeleteSubscribe } = useRequest(deleteSubscribe, {
     manual: true,
@@ -142,21 +192,13 @@
         );
 
         domainList.value = [];
-        countInfo.value = {
-          delete: 0,
-          ignore: 0,
-        };
         props.selected.forEach((item) => {
           const isSubscribed = checkIsDomainSubscribe(item.master_domain);
           domainList.value.push({
+            hasPermission: hasSubscribePermission(item),
             isSubscribed,
             master_domain: item.master_domain,
           });
-          if (isSubscribed) {
-            countInfo.value.delete++;
-          } else {
-            countInfo.value.ignore++;
-          }
         });
       }
     },
@@ -175,97 +217,67 @@
   };
 </script>
 <style lang="less">
-  .batch-delete-subscription-dialog {
-    .bk-dialog-header {
-      height: 16px;
-      padding: 0;
-    }
+  .dialog-title {
+    font-size: 16px;
+    font-weight: 700;
+  }
 
-    .bk-modal-close {
-      font-size: 26px;
-      color: #c4c6cc;
-    }
+  .operate-cluster-confirm-content {
+    .confirm-summary {
+      padding: 8px 12px;
+      font-size: 12px;
+      line-height: 20px;
+      color: #63656e;
+      background-color: #f0f1f5;
 
-    .bk-dialog-content {
-      padding: 0;
-      margin: 0;
-    }
-
-    .bk-modal-footer {
-      display: none;
-    }
-
-    .content-main {
-      padding: 32px 32px 24px;
-      font-family: MicrosoftYaHei, Arial, sans-serif;
-
-      .title {
-        width: 100%;
-        font-size: 20px;
+      strong {
+        font-weight: 700;
         color: #313238;
-        text-align: center;
       }
 
-      .tip-main {
-        padding: 12px 16px;
-        margin: 16px 0;
-        font-size: 14px;
-        color: #4d4f56;
-        background: #f5f7fa;
-        border-radius: 2px;
+      .skip-num {
+        font-weight: 700;
+        color: #ff9c01;
+      }
+    }
+
+    .confirm-list {
+      max-height: 240px;
+      overflow-y: auto;
+      border: 1px solid #eaebf0;
+      border-top: none;
+
+      .list-title {
+        padding: 8px 12px;
+        font-size: 12px;
+        font-weight: 700;
+        color: #313238;
+        background-color: #fff;
+        border-bottom: 1px solid #f0f1f5;
       }
 
-      .list-main {
+      .list-item {
         display: flex;
-        max-height: 192px;
-        overflow: hidden;
-        border: 1px solid #eaebf0;
-        border-radius: 2px;
-        flex-direction: column;
+        align-items: center;
+        padding: 8px 12px;
+        font-size: 12px;
+        color: #63656e;
+        border-bottom: 1px solid #f0f1f5;
 
-        .count-main {
-          display: flex;
-          height: 32px;
-          padding-left: 16px;
-          background: #f0f1f5;
-          align-items: center;
+        &:last-child {
+          border-bottom: none;
         }
 
-        .cluster-list {
-          overflow-y: auto;
-          font-size: 12px;
-          color: #4d4f56;
+        .domain-name {
           flex: 1;
-
-          .domain-item {
-            display: flex;
-            height: 32px;
-            padding: 0 12px 0 16px;
-            background: #fff;
-            align-items: center;
-
-            &:nth-child(even) {
-              background: #fafbfd;
-            }
-
-            .domain-name {
-              flex: 1;
-              overflow: hidden;
-              text-overflow: ellipsis;
-              white-space: nowrap;
-            }
-
-            .status-tag {
-              margin-left: 12px;
-            }
-          }
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
         }
-      }
 
-      .operation-main {
-        display: flex;
-        justify-content: center;
-        margin-top: 22px;
+        .status-tag {
+          margin-left: 12px;
+        }
       }
     }
   }

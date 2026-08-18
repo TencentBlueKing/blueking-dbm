@@ -390,7 +390,7 @@
 
   const isShowDumperEntry = computed(() => {
     const currentKey = `dumper_biz_${window.PROJECT_CONFIG.BIZ_ID}` as MySQLFunctions;
-    return funControllerStore.funControllerData.mysql.children[currentKey];
+    return funControllerStore.funControllerData.mysql.children[currentKey]?.is_enabled;
   });
 
   const { settings, updateTableSettings } = useTableSettings(UserPersonalSettings.TENDBHA_TABLE_SETTINGS, {

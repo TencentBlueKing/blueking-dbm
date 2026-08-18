@@ -1,48 +1,64 @@
 <template>
   <BkDropdownItem v-db-console="'doris.clusterManage.batchAddTag'">
-    <BkButton
-      class="opration-button"
-      :disabled="!isClusterTagEditable"
-      text
-      @click="() => (showClusterBatchAddTag = true)">
+    <BatchOperationButton
+      :action-id="TAG_ACTION_ID"
+      :no-permission="tagNoPermission"
+      :resources="resources"
+      @click="handleAddTagClick">
       {{ t('添加标签') }}
-    </BkButton>
+    </BatchOperationButton>
   </BkDropdownItem>
   <BkDropdownItem v-db-console="'doris.clusterManage.batchRemoveTag'">
-    <BkButton
-      class="opration-button"
-      :disabled="!isClusterTagEditable"
-      text
-      @click="() => (showClusterBatchRemoveTag = true)">
+    <BatchOperationButton
+      :action-id="TAG_ACTION_ID"
+      :no-permission="tagNoPermission"
+      :resources="resources"
+      @click="handleRemoveTagClick">
       {{ t('移除标签') }}
-    </BkButton>
+    </BatchOperationButton>
   </BkDropdownItem>
   <BkDropdownItem
     v-if="isClusterTypeAlarmSupported"
+    v-bk-tooltips="{
+      disabled: !subscriptionTooltip || subscriptionNoPermission,
+      content: t('所选集群均已禁用'),
+      placement: 'right',
+    }"
     v-db-console="'doris.clusterManage.configAlarmSubscription'">
-    <BkButton
-      class="opration-button"
-      text
-      @click="() => (showClusterBatchEditSubscription = true)">
+    <BatchOperationButton
+      :action-id="SUBSCRIBE_ACTION_ID"
+      :disabled="subscriptionDisabled"
+      :no-permission="subscriptionNoPermission"
+      :resources="resources"
+      @click="handleEditSubscriptionClick">
       {{ t('设置告警订阅') }}
-    </BkButton>
+    </BatchOperationButton>
   </BkDropdownItem>
   <BkDropdownItem
     v-if="isClusterTypeAlarmSupported"
+    v-bk-tooltips="{
+      disabled: !subscriptionTooltip || subscriptionNoPermission,
+      content: t('所选集群均已禁用'),
+      placement: 'right',
+    }"
     v-db-console="'doris.clusterManage.deleteAlarmSubscription'">
-    <BkButton
-      class="opration-button"
-      text
-      @click="() => (showClusterBatchDeleteSubscription = true)">
+    <BatchOperationButton
+      :action-id="SUBSCRIBE_ACTION_ID"
+      :disabled="subscriptionDisabled"
+      :no-permission="subscriptionNoPermission"
+      :resources="resources"
+      @click="handleDeleteSubscriptionClick">
       {{ t('删除告警订阅') }}
-    </BkButton>
+    </BatchOperationButton>
   </BkDropdownItem>
   <ClusterBatchAddTag
     v-model:is-show="showClusterBatchAddTag"
+    :get-editable="(item) => item.permission?.doris_edit !== false"
     :selected="selected"
     @success="handleSuccess" />
   <ClusterBatchRemoveTag
     v-model:is-show="showClusterBatchRemoveTag"
+    :get-editable="(item) => item.permission?.doris_edit !== false"
     :selected="selected"
     @success="handleSuccess" />
   <ClusterBatchEditSubscription
@@ -69,6 +85,8 @@
   import ClusterBatchEditSubscription from '@views/db-manage/common/cluster-batch-edit-subscription/Index.vue';
   import ClusterBatchRemoveTag from '@views/db-manage/common/cluster-batch-remove-tag/Index.vue';
 
+  import BatchOperationButton from '../BatchOperationButton.vue';
+
   interface Props {
     selected: DorisModel[];
   }
@@ -91,7 +109,49 @@
   const showClusterBatchEditSubscription = ref(false);
   const showClusterBatchDeleteSubscription = ref(false);
 
-  const isClusterTagEditable = computed(() => props.selected.every((data) => data.permission.doris_edit));
+  /** 添加/移除标签鉴权 action-id（与单行一致） */
+  const TAG_ACTION_ID = 'doris_edit';
+  /** 设置/删除告警订阅鉴权 action-id（与单行一致） */
+  const SUBSCRIBE_ACTION_ID = 'doris_subscribe_monitor';
+  /** 是否具备告警订阅权限 */
+  const hasSubscribePermission = (data: DorisModel) =>
+    (data.permission as Record<string, boolean | undefined>)?.[SUBSCRIBE_ACTION_ID] !== false;
+  /** 添加/移除标签：全部无权限时置灰可点击，点击弹权限申请 */
+  const tagNoPermission = computed(
+    () => props.selected.length > 0 && props.selected.every((data) => data.permission.doris_edit === false),
+  );
+  /** 设置/删除告警订阅：全部无权限时置灰可点击，点击弹权限申请 */
+  const subscriptionNoPermission = computed(
+    () => props.selected.length > 0 && props.selected.every((data) => !hasSubscribePermission(data)),
+  );
+  /** 设置/删除告警订阅：全部有权限且全部已禁用时置灰并 hover tooltip */
+  const subscriptionDisabled = computed(
+    () =>
+      !subscriptionNoPermission.value &&
+      !props.selected.some((data) => hasSubscribePermission(data) && !data.isOffline),
+  );
+  const subscriptionTooltip = computed(
+    () => props.selected.length > 0 && props.selected.every((data) => data.isOffline),
+  );
+  /** 批量操作权限申请的资源列表 */
+  const resources = computed(() => props.selected.map((data) => ({ id: data.id, type: data.db_type })));
+
+  /** 添加标签 */
+  const handleAddTagClick = () => {
+    showClusterBatchAddTag.value = true;
+  };
+  /** 移除标签 */
+  const handleRemoveTagClick = () => {
+    showClusterBatchRemoveTag.value = true;
+  };
+  /** 设置告警订阅 */
+  const handleEditSubscriptionClick = () => {
+    showClusterBatchEditSubscription.value = true;
+  };
+  /** 删除告警订阅 */
+  const handleDeleteSubscriptionClick = () => {
+    showClusterBatchDeleteSubscription.value = true;
+  };
 
   const handleSuccess = () => {
     emits('success');

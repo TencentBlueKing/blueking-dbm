@@ -91,6 +91,7 @@ export default class Pulsar extends ClusterBase {
     pulsar_edit: boolean;
     pulsar_enable_disable: boolean;
     pulsar_manage: boolean;
+    pulsar_subscribe_monitor: boolean;
     pulsar_view: boolean;
   };
   phase: string;

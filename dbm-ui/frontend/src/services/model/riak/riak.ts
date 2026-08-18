@@ -78,6 +78,7 @@ export default class Riak extends ClusterBase {
     riak_edit: boolean;
     riak_enable_disable: boolean;
     riak_manage: boolean;
+    riak_subscribe_monitor: boolean;
     riak_view: boolean;
   };
   phase: 'online' | 'offline';
