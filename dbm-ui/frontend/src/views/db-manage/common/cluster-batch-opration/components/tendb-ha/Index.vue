@@ -69,13 +69,8 @@
     v-db-console="'mysql.haClusterList.disable'"
     @click="handleDisableCluster(selected)">
     <BkButton
-      v-bk-tooltips="{
-        disabled: !batchDisabledDisabled,
-        content: t('仅可禁用状态为“已启用”的集群'),
-        placement: 'right',
-      }"
       class="opration-button"
-      :disabled="batchDisabledDisabled"
+      :disabled="disableDisabled"
       text
       @click="handleDisableCluster(selected)">
       {{ t('禁用') }}
@@ -83,13 +78,8 @@
   </BkDropdownItem>
   <BkDropdownItem v-db-console="'mysql.haClusterList.enable'">
     <BkButton
-      v-bk-tooltips="{
-        disabled: !batchEnableDisabled,
-        content: t('仅可启用状态为“已禁用”的集群'),
-        placement: 'right',
-      }"
       class="opration-button"
-      :disabled="batchEnableDisabled"
+      :disabled="enableDisabled"
       text
       @click="handleEnableCluster(selected)">
       {{ t('启用') }}
@@ -97,13 +87,8 @@
   </BkDropdownItem>
   <BkDropdownItem v-db-console="'mysql.haClusterList.delete'">
     <BkButton
-      v-bk-tooltips="{
-        disabled: !batchDeleteDisabled,
-        content: t('仅可删除状态为“已禁用”的集群'),
-        placement: 'right',
-      }"
       class="opration-button"
-      :disabled="batchDeleteDisabled"
+      :disabled="deleteDisabled"
       text
       @click="handleDeleteCluster(selected)">
       {{ t('删除') }}
@@ -122,10 +107,12 @@
     @success="handleAuthorizeSuccess" />
   <ClusterBatchAddTag
     v-model:is-show="showClusterBatchAddTag"
+    :get-editable="(item) => item.permission?.mysql_edit !== false"
     :selected="selected"
     @success="handleSuccess" />
   <ClusterBatchRemoveTag
     v-model:is-show="showClusterBatchRemoveTag"
+    :get-editable="(item) => item.permission?.mysql_edit !== false"
     :selected="selected"
     @success="handleSuccess" />
   <ClusterBatchEditSubscription
@@ -136,6 +123,10 @@
     v-model:is-show="showClusterBatchDeleteSubscription"
     :selected="selected"
     @success="handleSuccess" />
+  <OperateClusterConfirmDialog
+    v-model:is-show="isShow"
+    v-bind="operateDialog"
+    @confirm="handleConfirmDialog" />
 </template>
 
 <script setup lang="ts">
@@ -152,7 +143,8 @@
   import ClusterBatchDeleteSubscription from '@views/db-manage/common/cluster-batch-delete-subscription/Index.vue';
   import ClusterBatchEditSubscription from '@views/db-manage/common/cluster-batch-edit-subscription/Index.vue';
   import ClusterBatchRemoveTag from '@views/db-manage/common/cluster-batch-remove-tag/Index.vue';
-  import { useOperateClusterBasic } from '@views/db-manage/common/hooks';
+  import { useOperateClusterBatch } from '@views/db-manage/common/hooks';
+  import OperateClusterConfirmDialog from '@views/db-manage/common/OperateClusterConfirmDialog/Index.vue';
   import CreateSubscribeRuleSlider from '@views/db-manage/mysql/dumper/components/create-rule/Index.vue';
 
   interface Props {
@@ -172,12 +164,15 @@
   });
 
   const { t } = useI18n();
-  const { handleDeleteCluster, handleDisableCluster, handleEnableCluster } = useOperateClusterBasic(
-    ClusterTypes.TENDBHA,
-    {
+  const { handleConfirmDialog, handleDeleteCluster, handleDisableCluster, handleEnableCluster, isShow, operateDialog } =
+    useOperateClusterBatch<TendbHaModel>(ClusterTypes.TENDBHA, {
+      deleteMismatch: (data) => data.isOnline || Boolean(data.operationTicketId),
+      disableMismatch: (data) => data.isOffline || Boolean(data.operationTicketId),
+      enableMismatch: (data) => data.isOnline || data.isStarting,
+      hasPermission: (data) =>
+        data.permission.mysql_enable_disable !== false || data.permission.mysql_destroy !== false,
       onSuccess: () => handleSuccess(),
-    },
-  );
+    });
 
   const { isClusterTypeAlarmSupported } = useAlarmSubscribe([ClusterTypes.TENDBHA]);
 
@@ -190,14 +185,21 @@
 
   const batchSubscriptionDisabled = computed(() => props.selected.some((data) => data.isOffline));
   const batchAuthorizeDisabled = computed(() => props.selected.some((data) => data.isOffline));
-  const batchDisabledDisabled = computed(() =>
-    props.selected.some((data) => data.isOffline || Boolean(data.operationTicketId)),
+  const isClusterTagEditable = computed(() => props.selected.some((data) => data.permission.mysql_edit !== false));
+  /** 是否具备禁用/启用/删除权限 */
+  const hasOperatePermission = (data: TendbHaModel) =>
+    data.permission.mysql_enable_disable !== false || data.permission.mysql_destroy !== false;
+  /** 禁用/启用/删除：至少 1 个集群有权限且不计入跳过 b（状态不符）才亮起，全部无权限或全部计入跳过 b 则置灰。
+   *  跳过 b 条件与摘要一致：禁用=已禁用或有操作单；启用=已启用或启动中；删除=未禁用或有操作单 */
+  const disableDisabled = computed(
+    () => !props.selected.some((data) => hasOperatePermission(data) && !data.isOffline && !data.operationTicketId),
   );
-  const batchEnableDisabled = computed(() => props.selected.some((data) => data.isOnline || data.isStarting));
-  const batchDeleteDisabled = computed(() =>
-    props.selected.some((data) => data.isOnline || Boolean(data.operationTicketId)),
+  const enableDisabled = computed(
+    () => !props.selected.some((data) => hasOperatePermission(data) && !data.isOnline && !data.isStarting),
   );
-  const isClusterTagEditable = computed(() => props.selected.every((data) => data.permission.mysql_edit));
+  const deleteDisabled = computed(
+    () => !props.selected.some((data) => hasOperatePermission(data) && !data.isOnline && !data.operationTicketId),
+  );
 
   watch([showCreateSubscribeRuleSlider, clusterAuthorizeShow], () => {
     sideSliderShow.value = showCreateSubscribeRuleSlider.value || clusterAuthorizeShow.value;

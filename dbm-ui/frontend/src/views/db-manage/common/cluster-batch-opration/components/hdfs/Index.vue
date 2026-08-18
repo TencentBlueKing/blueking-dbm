@@ -39,10 +39,12 @@
   </BkDropdownItem>
   <ClusterBatchAddTag
     v-model:is-show="showClusterBatchAddTag"
+    :get-editable="(item) => item.permission?.hdfs_edit !== false"
     :selected="selected"
     @success="handleSuccess" />
   <ClusterBatchRemoveTag
     v-model:is-show="showClusterBatchRemoveTag"
+    :get-editable="(item) => item.permission?.hdfs_edit !== false"
     :selected="selected"
     @success="handleSuccess" />
   <ClusterBatchEditSubscription
@@ -91,7 +93,7 @@
   const showClusterBatchEditSubscription = ref(false);
   const showClusterBatchDeleteSubscription = ref(false);
 
-  const isClusterTagEditable = computed(() => props.selected.every((data) => data.permission.hdfs_edit));
+  const isClusterTagEditable = computed(() => props.selected.some((data) => data.permission.hdfs_edit));
 
   const handleSuccess = () => {
     emits('success');

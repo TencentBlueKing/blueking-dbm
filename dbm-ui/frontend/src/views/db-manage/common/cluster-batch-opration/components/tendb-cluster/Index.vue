@@ -55,13 +55,8 @@
     v-db-console="'tendbCluster.clusterManage.disable'"
     @click="handleDisableCluster(selected)">
     <BkButton
-      v-bk-tooltips="{
-        disabled: !batchDisabledDisabled,
-        content: t('仅可禁用状态为“已启用”的集群'),
-        placement: 'right',
-      }"
       class="opration-button"
-      :disabled="batchDisabledDisabled"
+      :disabled="disableDisabled"
       text
       @click="handleDisableCluster(selected)">
       {{ t('禁用') }}
@@ -69,13 +64,8 @@
   </BkDropdownItem>
   <BkDropdownItem v-db-console="'tendbCluster.clusterManage.enable'">
     <BkButton
-      v-bk-tooltips="{
-        disabled: !batchEnableDisabled,
-        content: t('仅可启用状态为“已禁用”的集群'),
-        placement: 'right',
-      }"
       class="opration-button"
-      :disabled="batchEnableDisabled"
+      :disabled="enableDisabled"
       text
       @click="handleEnableCluster(selected)">
       {{ t('启用') }}
@@ -83,13 +73,8 @@
   </BkDropdownItem>
   <BkDropdownItem v-db-console="'tendbCluster.clusterManage.delete'">
     <BkButton
-      v-bk-tooltips="{
-        disabled: !batchDeleteDisabled,
-        content: t('仅可删除状态为“已禁用”的集群'),
-        placement: 'right',
-      }"
       class="opration-button"
-      :disabled="batchDeleteDisabled"
+      :disabled="deleteDisabled"
       text
       @click="handleDeleteCluster(selected)">
       {{ t('删除') }}
@@ -103,10 +88,12 @@
     @success="handleAuthorizeSuccess" />
   <ClusterBatchAddTag
     v-model:is-show="showClusterBatchAddTag"
+    :get-editable="(item) => item.permission?.tendbcluster_edit !== false"
     :selected="selected"
     @success="handleSuccess" />
   <ClusterBatchRemoveTag
     v-model:is-show="showClusterBatchRemoveTag"
+    :get-editable="(item) => item.permission?.tendbcluster_edit !== false"
     :selected="selected"
     @success="handleSuccess" />
   <ClusterBatchEditSubscription
@@ -117,6 +104,10 @@
     v-model:is-show="showClusterBatchDeleteSubscription"
     :selected="selected"
     @success="handleSuccess" />
+  <OperateClusterConfirmDialog
+    v-model:is-show="isShow"
+    v-bind="operateDialog"
+    @confirm="handleConfirmDialog" />
 </template>
 
 <script setup lang="ts">
@@ -133,7 +124,8 @@
   import ClusterBatchDeleteSubscription from '@views/db-manage/common/cluster-batch-delete-subscription/Index.vue';
   import ClusterBatchEditSubscription from '@views/db-manage/common/cluster-batch-edit-subscription/Index.vue';
   import ClusterBatchRemoveTag from '@views/db-manage/common/cluster-batch-remove-tag/Index.vue';
-  import { useOperateClusterBasic } from '@views/db-manage/common/hooks';
+  import { useOperateClusterBatch } from '@views/db-manage/common/hooks';
+  import OperateClusterConfirmDialog from '@views/db-manage/common/OperateClusterConfirmDialog/Index.vue';
 
   interface Props {
     selected: TendbClusterModel[];
@@ -152,12 +144,15 @@
   });
 
   const { t } = useI18n();
-  const { handleDeleteCluster, handleDisableCluster, handleEnableCluster } = useOperateClusterBasic(
-    ClusterTypes.TENDBCLUSTER,
-    {
+  const { handleConfirmDialog, handleDeleteCluster, handleDisableCluster, handleEnableCluster, isShow, operateDialog } =
+    useOperateClusterBatch<TendbClusterModel>(ClusterTypes.TENDBCLUSTER, {
+      deleteMismatch: (data) => data.isOnline || Boolean(data.operationTicketId),
+      disableMismatch: (data) => data.isOffline || Boolean(data.operationTicketId),
+      enableMismatch: (data) => data.isOnline || data.isStarting,
+      hasPermission: (data) =>
+        data.permission.tendbcluster_enable_disable !== false || data.permission.tendbcluster_destroy !== false,
       onSuccess: () => handleSuccess(),
-    },
-  );
+    });
 
   const { isClusterTypeAlarmSupported } = useAlarmSubscribe([ClusterTypes.TENDBCLUSTER]);
 
@@ -168,14 +163,23 @@
   const showClusterBatchDeleteSubscription = ref(false);
 
   const batchAuthorizeDisabled = computed(() => props.selected.some((data) => data.isOffline));
-  const batchDisabledDisabled = computed(() =>
-    props.selected.some((data) => data.isOffline || Boolean(data.operationTicketId)),
+  const isClusterTagEditable = computed(() =>
+    props.selected.some((data) => data.permission.tendbcluster_edit !== false),
   );
-  const batchEnableDisabled = computed(() => props.selected.some((data) => data.isOnline || data.isStarting));
-  const batchDeleteDisabled = computed(() =>
-    props.selected.some((data) => data.isOnline || Boolean(data.operationTicketId)),
+  /** 是否具备禁用/启用/删除权限 */
+  const hasOperatePermission = (data: TendbClusterModel) =>
+    data.permission.tendbcluster_enable_disable !== false || data.permission.tendbcluster_destroy !== false;
+  /** 禁用/启用/删除：至少 1 个集群有权限且不计入跳过 b（状态不符）才亮起，全部无权限或全部计入跳过 b 则置灰。
+   *  跳过 b 条件与摘要一致：禁用=已禁用或有操作单；启用=已启用或启动中；删除=未禁用或有操作单 */
+  const disableDisabled = computed(
+    () => !props.selected.some((data) => hasOperatePermission(data) && !data.isOffline && !data.operationTicketId),
   );
-  const isClusterTagEditable = computed(() => props.selected.every((data) => data.permission.tendbcluster_edit));
+  const enableDisabled = computed(
+    () => !props.selected.some((data) => hasOperatePermission(data) && !data.isOnline && !data.isStarting),
+  );
+  const deleteDisabled = computed(
+    () => !props.selected.some((data) => hasOperatePermission(data) && !data.isOnline && !data.operationTicketId),
+  );
 
   watch(clusterAuthorizeShow, () => {
     sideSliderShow.value = clusterAuthorizeShow.value;
