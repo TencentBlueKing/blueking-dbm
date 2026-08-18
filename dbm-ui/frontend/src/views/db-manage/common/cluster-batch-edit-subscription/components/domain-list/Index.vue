@@ -43,7 +43,8 @@
           <div
             v-for="(item, index) in list"
             :key="item.clusterDomian"
-            class="result-item">
+            class="result-item"
+            :class="{ 'is-skip': !item.hasPermission }">
             <div
               v-overflow-tips
               class="domain-display text-overflow">
@@ -52,7 +53,6 @@
             <BkTag
               v-if="showUpdate"
               class="status-tag"
-              :class="{ 'is-ignore': item.isIgnore }"
               size="small"
               :theme="getTheme(item)">
               {{ getTagText(item) }}
@@ -82,6 +82,7 @@
   export interface DomainInfo {
     clusterDomian: string;
     clusterType: string;
+    hasPermission?: boolean;
     isIgnore?: boolean;
     isNew?: boolean;
   }
@@ -108,19 +109,19 @@
   const isEmpty = computed(() => _.every(Object.values(selectedMap.value), (item) => item.length === 0));
 
   const getTheme = (item: DomainInfo) => {
-    if (item.isIgnore) {
-      return '';
+    if (!item.hasPermission) {
+      return undefined;
     }
 
-    return item.isNew ? 'success' : 'warning';
+    return 'success';
   };
 
   const getTagText = (item: DomainInfo) => {
-    if (item.isIgnore) {
-      return t('忽略');
+    if (!item.hasPermission) {
+      return t('跳过');
     }
 
-    return item.isNew ? t('新增') : t('更新');
+    return t('设置');
   };
 
   const getCoountInfo = (list: DomainInfo[]) => {
@@ -219,6 +220,10 @@
         .is-ignore {
           color: #75a646;
           background-color: #ecf6d0;
+        }
+
+        &.is-skip .domain-display {
+          color: #c4c6cc;
         }
 
         .remove-icon,

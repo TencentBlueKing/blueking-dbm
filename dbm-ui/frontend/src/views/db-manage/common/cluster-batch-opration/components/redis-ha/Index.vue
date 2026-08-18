@@ -99,13 +99,8 @@
     v-db-console="'redis.haClusterManage.disable'"
     @click="handleDisableCluster(selected)">
     <BkButton
-      v-bk-tooltips="{
-        disabled: !batchDisabledDisabled,
-        content: t('仅可禁用状态为“已启用”的集群'),
-        placement: 'right',
-      }"
       class="opration-button"
-      :disabled="batchDisabledDisabled"
+      :disabled="disableDisabled"
       text
       @click="handleDisableCluster(selected)">
       {{ t('禁用') }}
@@ -113,13 +108,8 @@
   </BkDropdownItem>
   <BkDropdownItem v-db-console="'redis.haClusterManage.enable'">
     <BkButton
-      v-bk-tooltips="{
-        disabled: !batchEnableDisabled,
-        content: t('仅可启用状态为“已禁用”的集群'),
-        placement: 'right',
-      }"
       class="opration-button"
-      :disabled="batchEnableDisabled"
+      :disabled="enableDisabled"
       text
       @click="handleEnableCluster(selected)">
       {{ t('启用') }}
@@ -127,13 +117,8 @@
   </BkDropdownItem>
   <BkDropdownItem v-db-console="'redis.haClusterManage.delete'">
     <BkButton
-      v-bk-tooltips="{
-        disabled: !batchDeleteDisabled,
-        content: t('仅可删除状态为“已禁用”的集群'),
-        placement: 'right',
-      }"
       class="opration-button"
-      :disabled="batchDeleteDisabled"
+      :disabled="deleteDisabled"
       text
       @click="handleDeleteCluster(selected)">
       {{ t('删除') }}
@@ -141,10 +126,12 @@
   </BkDropdownItem>
   <ClusterBatchAddTag
     v-model:is-show="showClusterBatchAddTag"
+    :get-editable="(item) => item.permission?.redis_edit !== false"
     :selected="selected"
     @success="handleSuccess" />
   <ClusterBatchRemoveTag
     v-model:is-show="showClusterBatchRemoveTag"
+    :get-editable="(item) => item.permission?.redis_edit !== false"
     :selected="selected"
     @success="handleSuccess" />
   <ClusterBatchEditSubscription
@@ -155,6 +142,10 @@
     v-model:is-show="showClusterBatchDeleteSubscription"
     :selected="selected"
     @success="handleSuccess" />
+  <OperateClusterConfirmDialog
+    v-model:is-show="isShow"
+    v-bind="operateDialog"
+    @confirm="handleConfirmDialog" />
 </template>
 
 <script setup lang="ts">
@@ -170,7 +161,8 @@
   import ClusterBatchDeleteSubscription from '@views/db-manage/common/cluster-batch-delete-subscription/Index.vue';
   import ClusterBatchEditSubscription from '@views/db-manage/common/cluster-batch-edit-subscription/Index.vue';
   import ClusterBatchRemoveTag from '@views/db-manage/common/cluster-batch-remove-tag/Index.vue';
-  import { useOperateClusterBasic, useRedisClusterListToToolbox } from '@views/db-manage/common/hooks';
+  import { useOperateClusterBatch, useRedisClusterListToToolbox } from '@views/db-manage/common/hooks';
+  import OperateClusterConfirmDialog from '@views/db-manage/common/OperateClusterConfirmDialog/Index.vue';
 
   interface Props {
     selected: RedisModel[];
@@ -190,12 +182,14 @@
   const { handleToToolbox } = useRedisClusterListToToolbox();
   const { isClusterTypeAlarmSupported } = useAlarmSubscribe([ClusterTypes.REDIS_INSTANCE]);
 
-  const { handleDeleteCluster, handleDisableCluster, handleEnableCluster } = useOperateClusterBasic(
-    ClusterTypes.REDIS_INSTANCE,
-    {
+  const { handleConfirmDialog, handleDeleteCluster, handleDisableCluster, handleEnableCluster, isShow, operateDialog } =
+    useOperateClusterBatch<RedisModel>(ClusterTypes.REDIS_INSTANCE, {
+      deleteMismatch: (data) => data.isOnline || Boolean(data.operationTicketId),
+      disableMismatch: (data) => data.isOffline || Boolean(data.operationTicketId),
+      enableMismatch: (data) => data.isOnline || data.isStarting,
+      hasPermission: (data) => data.permission.redis_open_close !== false || data.permission.redis_destroy !== false,
       onSuccess: () => handleSuccess(),
-    },
-  );
+    });
 
   const showClusterBatchAddTag = ref(false);
   const showClusterBatchRemoveTag = ref(false);
@@ -219,14 +213,21 @@
     }),
   );
 
-  const batchDisabledDisabled = computed(() =>
-    props.selected.some((data) => data.isOffline || Boolean(data.operationTicketId)),
+  const isClusterTagEditable = computed(() => props.selected.some((data) => data.permission.redis_edit !== false));
+  /** 是否具备禁用/启用/删除权限 */
+  const hasOperatePermission = (data: RedisModel) =>
+    data.permission.redis_open_close !== false || data.permission.redis_destroy !== false;
+  /** 禁用/启用/删除：至少 1 个集群有权限且不计入跳过 b（状态不符）才亮起，全部无权限或全部计入跳过 b 则置灰。
+   *  跳过 b 条件与摘要一致：禁用=已禁用或有操作单；启用=已启用或启动中；删除=未禁用或有操作单 */
+  const disableDisabled = computed(
+    () => !props.selected.some((data) => hasOperatePermission(data) && !data.isOffline && !data.operationTicketId),
   );
-  const batchEnableDisabled = computed(() => props.selected.some((data) => data.isOnline || data.isStarting));
-  const batchDeleteDisabled = computed(() =>
-    props.selected.some((data) => data.isOnline || Boolean(data.operationTicketId)),
+  const enableDisabled = computed(
+    () => !props.selected.some((data) => hasOperatePermission(data) && !data.isOnline && !data.isStarting),
   );
-  const isClusterTagEditable = computed(() => props.selected.every((data) => data.permission.redis_edit));
+  const deleteDisabled = computed(
+    () => !props.selected.some((data) => hasOperatePermission(data) && !data.isOnline && !data.operationTicketId),
+  );
 
   const handleSuccess = () => {
     emits('success');

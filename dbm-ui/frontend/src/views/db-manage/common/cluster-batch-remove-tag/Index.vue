@@ -61,14 +61,26 @@
       <template #aside>
         <div class="preview-operate-main">
           <div class="title-main">
-            <span>{{ t('已选集群') }}</span>
-            【
+            <span>{{ t('已选集群') }}：</span>
             <I18nT
-              keypath="共n个"
+              keypath="共 {n} 个，{action} {k}"
               tag="span">
-              <span style="color: #3a84ff">{{ selectedClusters.length }}</span>
+              <template #n>{{ count.n }}</template>
+              <template #action>{{ t('移除') }}</template>
+              <template #k>{{ count.k }}</template>
             </I18nT>
-            】
+            <I18nT
+              v-if="count.s > 0"
+              keypath="，跳过 {s}"
+              tag="span">
+              <template #s>{{ count.s }}</template>
+            </I18nT>
+            <I18nT
+              v-if="count.a > 0"
+              keypath="（无权限 {a}）"
+              tag="span">
+              <template #a>{{ count.a }}</template>
+            </I18nT>
           </div>
           <div class="cluster-list-main">
             <div
@@ -90,6 +102,19 @@
                 style="font-size: 18px"
                 type="close"
                 @click="() => handleRemoveCluster(index)" />
+              <BkTag
+                v-if="noPermissionIds.includes(item.id)"
+                class="status-icon"
+                size="small">
+                {{ t('跳过') }}
+              </BkTag>
+              <BkTag
+                v-else
+                class="status-icon"
+                size="small"
+                theme="danger">
+                {{ t('移除') }}
+              </BkTag>
             </div>
           </div>
         </div>
@@ -101,11 +126,11 @@
         <div>
           <BkButton
             class="mr-8 w-64"
-            :disabled="!checkboxGroupValue.length && !isCheckAll"
+            :disabled="(!checkboxGroupValue.length && !isCheckAll) || !count.k"
             :loading="confirmLoading"
             theme="primary"
             @click="handleConfirm">
-            {{ t('确定') }}
+            {{ t('移除') }}
           </BkButton>
           <BkButton
             class="w-64"
@@ -124,15 +149,20 @@
   import { removeClusterTagKeys } from '@services/source/dbbase';
   import type { ClusterCommonInfo } from '@services/types';
 
-  import { encodeRegexp, execCopy, messageSuccess } from '@utils';
+  import { countBatchOperation, encodeRegexp, execCopy, messageSuccess } from '@utils';
 
   interface Props {
-    selected: ClusterCommonInfo[];
+    /** 集群是否可编辑（有标签权限），无法判断时默认全部可编辑 */
+    getEditable?: (item: { permission?: Record<string, boolean> } & ClusterCommonInfo) => boolean;
+    selected?: ClusterCommonInfo[];
   }
 
   type Emits = (e: 'success') => void;
 
-  const props = defineProps<Props>();
+  const props = withDefaults(defineProps<Props>(), {
+    getEditable: () => true,
+    selected: () => [],
+  });
   const emits = defineEmits<Emits>();
 
   const isShow = defineModel<boolean>('isShow', {
@@ -148,6 +178,19 @@
   const selectedClusters = ref<NonNullable<Props['selected']>>([]);
   const tagList = ref<string[]>([]);
   const isCheckAll = ref(false);
+
+  /** 无权限跳过的集群ID */
+  const noPermissionIds = computed(() =>
+    selectedClusters.value.filter((item) => !props.getEditable(item)).map((item) => item.id),
+  );
+
+  /** 统一计数：移除标签仅按权限跳过，无状态不符维度 */
+  const count = computed(() =>
+    countBatchOperation(selectedClusters.value, {
+      hasPermission: (item) => props.getEditable(item),
+      statusMismatch: () => false,
+    }),
+  );
 
   const { loading: confirmLoading, run: handleRemoveClusterTagKeys } = useRequest(removeClusterTagKeys, {
     manual: true,
@@ -182,6 +225,12 @@
   watch(isCheckAll, () => {
     if (isCheckAll.value) {
       checkboxGroupValue.value = [];
+    }
+  });
+
+  watch(checkboxGroupValue, (val) => {
+    if (val.length) {
+      isCheckAll.value = false;
     }
   });
 

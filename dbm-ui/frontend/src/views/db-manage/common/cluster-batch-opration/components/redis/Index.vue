@@ -106,10 +106,12 @@
   </BkDropdownItem>
   <ClusterBatchAddTag
     v-model:is-show="showClusterBatchAddTag"
+    :get-editable="(item) => item.permission?.redis_edit !== false"
     :selected="selected"
     @success="handleSuccess" />
   <ClusterBatchRemoveTag
     v-model:is-show="showClusterBatchRemoveTag"
+    :get-editable="(item) => item.permission?.redis_edit !== false"
     :selected="selected"
     @success="handleSuccess" />
   <ClusterBatchEditSubscription
@@ -176,7 +178,7 @@
     }),
   );
 
-  const isClusterTagEditable = computed(() => props.selected.every((data) => data.permission.redis_edit));
+  const isClusterTagEditable = computed(() => props.selected.some((data) => data.permission.redis_edit));
 
   const handleSuccess = () => {
     emits('success');

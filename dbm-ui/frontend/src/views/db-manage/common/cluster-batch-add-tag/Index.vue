@@ -53,24 +53,41 @@
       <template #aside>
         <div class="preview-operate-main">
           <div class="title-main">
-            <span style="font-weight: 700">{{ t('已选集群') }}</span>
-            <span class="ml-4 mr-4">(</span>
+            <span style="font-weight: 700">{{ t('已选集群') }}：</span>
             <I18nT
-              keypath="共 n 个，添加 x 个，跳过 y 个"
+              keypath="共 {n} 个，{action} {k}"
               tag="span">
-              <template #n>
-                <span style="font-weight: 700">{{ selectedClusters.length }}</span>
-              </template>
-              <template #x>
-                <span style="font-weight: 700; color: #2caf5e">{{
-                  selectedClusters.length - filterClusterIds.length
-                }}</span>
-              </template>
-              <template #y>
-                <span style="font-weight: 700">{{ filterClusterIds.length }}</span>
-              </template>
+              <template #n>{{ count.n }}</template>
+              <template #action>{{ t('添加') }}</template>
+              <template #k>{{ count.k }}</template>
             </I18nT>
-            <span class="ml-4 mr-4">)</span>
+            <I18nT
+              v-if="count.s > 0"
+              keypath="，跳过 {s}"
+              tag="span">
+              <template #s>{{ count.s }}</template>
+            </I18nT>
+            <I18nT
+              v-if="count.a > 0 && count.b > 0"
+              keypath="（无权限 {a}，{reason} {b}）"
+              tag="span">
+              <template #a>{{ count.a }}</template>
+              <template #reason>{{ t('同名标签') }}</template>
+              <template #b>{{ count.b }}</template>
+            </I18nT>
+            <I18nT
+              v-else-if="count.a > 0"
+              keypath="（无权限 {a}）"
+              tag="span">
+              <template #a>{{ count.a }}</template>
+            </I18nT>
+            <I18nT
+              v-else-if="count.b > 0"
+              keypath="（{reason} {b}）"
+              tag="span">
+              <template #reason>{{ t('同名标签') }}</template>
+              <template #b>{{ count.b }}</template>
+            </I18nT>
           </div>
           <div class="cluster-list-main">
             <div
@@ -112,6 +129,20 @@
         </div>
       </template>
     </BkResizeLayout>
+    <template #footer>
+      <BkButton
+        class="mr-8 w-64"
+        :disabled="!selectedClusters.length || !isAbleToAddTags"
+        theme="primary"
+        @click="handleConfirm">
+        {{ t('添加') }}
+      </BkButton>
+      <BkButton
+        class="w-64"
+        @click="handleClose">
+        {{ t('取消') }}
+      </BkButton>
+    </template>
   </DbDialog>
 </template>
 <script setup lang="tsx">
@@ -122,17 +153,22 @@
   import { addClusterTagKeys } from '@services/source/dbbase';
   import type { ClusterCommonInfo } from '@services/types';
 
-  import { execCopy, messageSuccess } from '@utils';
+  import { countBatchOperation, execCopy, messageSuccess } from '@utils';
 
   import TagOperation from './components/tag-operation/Index.vue';
 
   interface Props {
-    selected: ClusterCommonInfo[];
+    /** 集群是否可编辑（有标签权限），无法判断时默认全部可编辑 */
+    getEditable?: (item: { permission?: Record<string, boolean> } & ClusterCommonInfo) => boolean;
+    selected?: ClusterCommonInfo[];
   }
 
   type Emits = (e: 'success') => void;
 
-  const props = defineProps<Props>();
+  const props = withDefaults(defineProps<Props>(), {
+    getEditable: () => true,
+    selected: () => [],
+  });
   const emits = defineEmits<Emits>();
 
   const isShow = defineModel<boolean>('isShow', {
@@ -143,9 +179,24 @@
 
   const tagOperationRef = ref<InstanceType<typeof TagOperation>>();
   const selectedClusters = ref<NonNullable<Props['selected']>>([]);
-  /** 跳过的集群ID */
-  const filterClusterIds = ref<number[]>([]);
+  /** 无权限跳过的集群ID（基于 getEditable 即时计算，打开弹窗即生效） */
+  const noPermissionIds = computed(() =>
+    selectedClusters.value.filter((item) => !props.getEditable(item)).map((item) => item.id),
+  );
+  /** 同名标签跳过的集群ID */
+  const sameTagIds = ref<number[]>([]);
   const isAbleToAddTags = ref(false);
+
+  /** 统一计数：无权限 a / 同名标签 b / 将提交 k */
+  const count = computed(() =>
+    countBatchOperation(selectedClusters.value, {
+      hasPermission: (item) => props.getEditable(item),
+      statusMismatch: (item) => sameTagIds.value.includes(item.id),
+    }),
+  );
+
+  /** 所有跳过的集群ID（无权限 + 同名标签） */
+  const filterClusterIds = computed(() => [...noPermissionIds.value, ...sameTagIds.value]);
 
   const { runAsync: handleAddClusterTagKeys } = useRequest(addClusterTagKeys, {
     manual: true,
@@ -153,7 +204,7 @@
       messageSuccess(t('操作成功'));
       emits('success');
       isShow.value = false;
-      filterClusterIds.value = [];
+      sameTagIds.value = [];
     },
   });
 
@@ -178,7 +229,7 @@
   };
 
   const checkValidTags = () => {
-    return new Promise((resolve) => {
+    return new Promise<{ clusterIds: number[]; tags: Record<string, string>[] } | null>((resolve) => {
       setTimeout(async () => {
         const tagsInfo = await tagOperationRef.value!.getValue();
         if (!tagsInfo) {
@@ -187,7 +238,7 @@
           return;
         }
 
-        filterClusterIds.value = [];
+        sameTagIds.value = [];
         const tags = tagsInfo.map((item) => ({
           [item.key]: item.value,
         }));
@@ -208,11 +259,11 @@
         const tagsKeys = tags.map((tag) => Object.keys(tag)[0]);
         Object.entries(clusterIdTagsMap).forEach(([clusterId, tagsObj]) => {
           if (tagsKeys.every((tagKey) => tagKey in tagsObj)) {
-            filterClusterIds.value.push(Number(clusterId));
+            sameTagIds.value.push(Number(clusterId));
           }
         });
         const clusterIds = selectedClusters.value.map((item) => item.id);
-        if (filterClusterIds.value.length === selectedClusters.value.length) {
+        if (count.value.k === 0) {
           isAbleToAddTags.value = false;
           return null;
         }
