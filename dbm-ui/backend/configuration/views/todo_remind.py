@@ -21,13 +21,18 @@ from backend.configuration.serializers import TodoRemindSerializer
 from backend.configuration.tasks.todo_remind_tasks import send_todo_remind
 from backend.db_periodic_task.constants import PeriodicTaskType
 from backend.db_periodic_task.models import DBPeriodicTask
+from backend.iam_app.handlers.drf_perm.base import ResourceActionPermission
+from backend.iam_app.handlers.permission import ActionEnum
 
 SWAGGER_TAG = _("每日代办提醒")
 
 
 class TodoRemindViewSet(viewsets.SystemViewSet):
     serializer_class = TodoRemindSerializer
-    default_permission_class = []
+    action_permission_map = {
+        ("get_todo_remind_conf",): [ResourceActionPermission([ActionEnum.PLATFORM_TODO_REMIND_VIEW])],
+        ("update_todo_remind_conf",): [],
+    }
 
     @common_swagger_auto_schema(operation_summary=_("查询代办提醒配置"), tags=[SWAGGER_TAG])
     @action(methods=["GET"], detail=False)
