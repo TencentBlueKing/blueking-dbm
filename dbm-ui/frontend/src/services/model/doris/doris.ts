@@ -93,6 +93,7 @@ export default class Doris extends ClusterBase {
     doris_edit: boolean;
     doris_enable_disable: boolean;
     doris_manage: boolean;
+    doris_subscribe_monitor: boolean;
     doris_view: boolean;
   };
   phase: 'online' | 'offline';

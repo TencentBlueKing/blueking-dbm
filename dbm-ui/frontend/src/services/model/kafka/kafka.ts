@@ -88,6 +88,7 @@ export default class Kafka extends ClusterBase {
     kafka_edit: boolean;
     kafka_enable_disable: boolean;
     kafka_manage: boolean;
+    kafka_subscribe_monitor: boolean;
     kafka_view: boolean;
   };
   phase: 'online' | 'offline';
