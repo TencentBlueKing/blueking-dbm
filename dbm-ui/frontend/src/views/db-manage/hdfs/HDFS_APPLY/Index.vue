@@ -363,12 +363,10 @@
           @click="handleSubmit">
           {{ t('提交') }}
         </BkButton>
-        <BkButton
-          class="ml-8 w-88"
-          :disabled="baseState.isSubmitting"
-          @click="handleReset">
-          {{ t('重置') }}
-        </BkButton>
+        <DbResetButton
+          class="ml-8"
+          :confirm-handler="handleReset"
+          :disabled="baseState.isSubmitting" />
         <BkButton
           class="ml-8 w-88"
           :disabled="baseState.isSubmitting"
@@ -380,7 +378,6 @@
   </SmartAction>
 </template>
 <script setup lang="ts">
-  import InfoBox from 'bkui-vue/lib/info-box';
   import _ from 'lodash';
   import { inject, reactive } from 'vue';
   import { useI18n } from 'vue-i18n';
@@ -728,17 +725,10 @@
 
   // 重置表单
   const handleReset = () => {
-    InfoBox({
-      content: t('重置后_将会清空当前填写的内容'),
-      onConfirm: () => {
-        Object.assign(formData, genDefaultFormData());
-        formRef.value.clearValidate();
-        nextTick(() => {
-          window.changeConfirm = false;
-        });
-        return true;
-      },
-      title: t('确认重置表单内容'),
+    Object.assign(formData, genDefaultFormData());
+    formRef.value.clearValidate();
+    nextTick(() => {
+      window.changeConfirm = false;
     });
   };
 
