@@ -117,27 +117,28 @@
         </DbForm>
       </BkCard>
       <template #action>
-        <BkButton
+        <AuthButton
+          action-id="platform_todo_remind_manage"
           class="w-88"
           :disabled="resetTodoRemindLoading"
           :loading="updateTodoRemindLoading"
           theme="primary"
           @click="handleSave">
           {{ t('保存') }}
-        </BkButton>
+        </AuthButton>
         <DbPopconfirm
           ref="dbPopconfirm"
           :confirm-handler="handleReset"
           :content="t('重置将会恢复默认设置的内容')"
           :title="t('确认重置')">
           <span>
-            <BkButton
-              action-id="biz_notify_config"
+            <AuthButton
+              action-id="platform_todo_remind_manage"
               class="ml-8 w-88"
               :disabled="updateTodoRemindLoading"
               :loading="resetTodoRemindLoading">
               {{ t('重置') }}
-            </BkButton>
+            </AuthButton>
           </span>
         </DbPopconfirm>
       </template>
