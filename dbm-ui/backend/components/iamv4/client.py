@@ -26,6 +26,8 @@ logger = logging.getLogger("root")
 MODEL_URL = f"/api/v1/open/rbac/model/systems/{env.BK_IAM_SYSTEM_ID}"
 # 鉴权
 AUTH_URL = f"/api/v1/open/rbac/authorization/systems/{env.BK_IAM_SYSTEM_ID}"
+# 授权管理
+MGMT_URL = f"/api/v1/open/rbac/mgmt/systems/{env.BK_IAM_SYSTEM_ID}"
 # 系统共享查询。注：IAM侧路径拼写为 rabc 而非 rbac，需照此调用
 SHARE_MODEL_URL = f"/api/v1/open/rabc/share/model/systems/{env.BK_IAM_SYSTEM_ID}"
 
@@ -162,6 +164,12 @@ class _IAMV4Api(BaseApi):
             method="POST",
             url=f"{AUTH_URL}/auth/",
             description=_("直接鉴权"),
+        )
+        # body为授权记录数组，单次最多20条，调用时必须带上 X-Bkiam-Operator 头
+        self.add_authorization = self.generate_data_api(
+            method="POST",
+            url=f"{MGMT_URL}/authorizations/",
+            description=_("批量角色授权"),
         )
 
     def batch_create_role_action(self, role_id: str, actions: List[Dict]):

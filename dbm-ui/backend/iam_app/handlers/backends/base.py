@@ -59,7 +59,9 @@ class IAMBackend(metaclass=abc.ABCMeta):
         """单个动作对单个资源鉴权"""
         raise NotImplementedError
 
-    def abc(self, a, b, c):
+    @abc.abstractmethod
+    def grant_creator_actions(self, resource: Resource, creator: str) -> Any:
+        """资源新建后给创建者授权"""
         raise NotImplementedError
 
 
@@ -68,3 +70,6 @@ class DummyIAMBackend(IAMBackend):
 
     def is_allowed(self, username: str, action: ActionMeta, resources: List[Resource]) -> bool:
         return True
+
+    def grant_creator_actions(self, resource: Resource, creator: str) -> Any:
+        return None

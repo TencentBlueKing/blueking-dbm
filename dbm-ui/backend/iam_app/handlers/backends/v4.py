@@ -10,13 +10,15 @@ specific language governing permissions and limitations under the License.
 """
 
 import logging
-from typing import Dict, List, Union
+import time
+from typing import Any, Dict, List, Union
 
 from iam import Resource
 from iam.eval.constants import KEYWORD_BK_IAM_PATH
 
 from backend.components.iamv4.client import IAMV4Api
 from backend.iam_app.dataclass.actions import ActionMeta
+from backend.iam_app.dataclass.resources import ResourceEnum
 from backend.iam_app.handlers.backends.base import IAMBackend
 
 logger = logging.getLogger("root")
@@ -24,6 +26,9 @@ logger = logging.getLogger("root")
 
 class IAMV4Backend(IAMBackend):
     """基于 IAMV4Api 的 V4 鉴权后端"""
+
+    # 授权有效期，V4限制最长365天，到期后需要重新授权
+    AUTHORIZATION_EXPIRED_DAYS = 365
 
     @staticmethod
     def make_resource(action: ActionMeta, resources: List[Resource]) -> Union[Dict, None]:
@@ -61,5 +66,27 @@ class IAMV4Backend(IAMBackend):
         data = self.call_with_retry(IAMV4Api.direct_auth, params=params, default=None)
         return bool((data or {}).get("allowed"))
 
-    def abc(self, a, b, c):
-        pass
+    def grant_creator_actions(self, resource: Resource, creator: str) -> Any:
+        """
+        V4没有属性授权，改为把创建者授予该资源类型的创建者角色 + 该实例。
+        未声明创建者角色的资源不做授权
+        """
+        creator_role = ResourceEnum.get_resource_by_id(resource.type).creator_role_v4
+        if not creator_role:
+            return None
+
+        authorization = {
+            "subject": {"type": "user", "id": creator},
+            "role_id": creator_role.value,
+            "related_resource_type_id": resource.type,
+            "resources": [{"type": resource.type, "id": str(resource.id)}],
+            "expired_at": int(time.time()) + self.AUTHORIZATION_EXPIRED_DAYS * 24 * 3600,
+        }
+        # 授权接口要求带上操作人。授权失败不重试，避免重复授权，也不影响资源创建的主流程
+        try:
+            result = IAMV4Api.add_authorization(params=[authorization], headers={"X-Bkiam-Operator": creator})
+            logger.info("[grant_creator_actions] success, resource: %s, result: %s", resource.to_dict(), result)
+            return result
+        except Exception as e:  # pylint: disable=broad-except
+            logger.exception("[grant_creator_actions] failed, resource: %s, error: %s", resource.to_dict(), e)
+            return None

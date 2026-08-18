@@ -42,7 +42,6 @@ def test_create_account_triggers_signal(monkeypatch, account_handler):
         "backend.db_services.dbpermission.db_account.handlers.DBPrivManagerApi.create_account", create_mock
     )
     monkeypatch.setattr("backend.db_services.dbpermission.db_account.handlers.DBPrivManagerApi.get_account", get_mock)
-    monkeypatch.setattr("backend.db_services.dbpermission.db_account.handlers.create_account_signal", signal_mock)
 
     resp = account_handler.create_account(account)
 
