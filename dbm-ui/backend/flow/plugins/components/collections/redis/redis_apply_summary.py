@@ -40,7 +40,7 @@ class RedisApplySummarySerializer(BaseFlowOutputSerializer):
     clb_domain = serializers.CharField(help_text=_("CLB域名"), allow_blank=True, default="")
     polaris_name = serializers.CharField(help_text=_("北极星服务名称"), allow_blank=True, default="")
     polaris_l5 = serializers.CharField(help_text=_("北极星L5"), allow_blank=True, default="")
-    password_url = serializers.CharField(help_text=_("密码获取"), allow_blank=True, default="")
+    password_url = BaseFlowOutputSerializer.URLField(help_text=_("密码获取"), allow_blank=True, default="")
 
 
 class RedisApplySummaryService(BaseService):
@@ -146,7 +146,7 @@ class RedisInsApplySummarySerializer(BaseFlowOutputSerializer):
     domain_name = serializers.CharField(help_text=_("域名"))
     region = serializers.CharField(help_text=_("地区"), allow_blank=True, default="")
     proxy_port = serializers.IntegerField(help_text=_("端口"))
-    password_url = serializers.CharField(help_text=_("密码获取"), allow_blank=True, default="")
+    password_url = BaseFlowOutputSerializer.URLField(help_text=_("密码获取"), allow_blank=True, default="")
 
 
 class RedisInsApplySummaryService(BaseService):

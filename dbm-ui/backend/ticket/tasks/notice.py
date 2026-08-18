@@ -21,11 +21,13 @@ def build_html_table_from_data(data_list):
         return _("<p>无数据</p>")
 
     html_parts = []
+    remark_list = []
     for table_index, table_data in enumerate(data_list):
         titles = table_data.get("titles", [])
         values = table_data.get("values", [])
-        table_name = table_data.get("table_name", _("表格 {}").format(table_index + 1))
-
+        table_name = table_data.get("table_display_name", _("表格 {}").format(table_index + 1))
+        if table_data.get("remark"):
+            remark_list.append(table_data["remark"].replace("\n", "<br/>"))
         if not titles or not values:
             continue
 
@@ -60,7 +62,7 @@ def build_html_table_from_data(data_list):
         table_html += "</tbody></table>"
 
         html_parts.append(table_html)
-
+    html_parts.extend(remark_list)
     return "<br>".join(html_parts)
 
 
@@ -71,7 +73,6 @@ def get_mail_context(ticket_id, flow_summary, ticket_dir):
     for summary in flow_summary:
         html_context = build_html_table_from_data(summary.summary)
         context += html_context
-    context += _("<br>密码等访问凭据请登录 DBM，在对应集群的「连接信息查看」中获取")
 
     return context
 
@@ -81,6 +82,7 @@ def get_rtx_context(ticket_id, flow_summary):
     count = 0
     cluster_info = []
     table_title = []
+    remark_list = []
     for summary in flow_summary:
         data_list = summary.summary
         if not data_list:
@@ -89,6 +91,8 @@ def get_rtx_context(ticket_id, flow_summary):
         fields = [title["id"] for title in data_list[0]["titles"][:3]]
         table_title = [title["display_name"] for title in data_list[0]["titles"][:3]]
         for data in data_list:
+            if data.get("remark"):
+                remark_list.append(data["remark"])
             for value in data["values"]:
                 cluster_info.append([str(value.get(field, "")) for field in fields])
         count += len(summary.summary)
@@ -97,6 +101,6 @@ def get_rtx_context(ticket_id, flow_summary):
     context += " ".join(table_title) + "\n"
     for info in cluster_info:
         context += " ".join(info) + "\n"
-
-    context += _("密码等访问凭据请登录 DBM，在对应集群的「获取连接信息」中获取。")
+    if remark_list:
+        context += "\n".join(remark_list)
     return context

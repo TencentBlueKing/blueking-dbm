@@ -25,10 +25,21 @@ class BaseFlowOutputSerializer(serializers.Serializer):
     table_name: str = ""  # 表名(表唯一标识)
     table_display_name: str = ""  # 表显示名(前端摘要显示名)，为空则取table_name
     table_primary_key: str = ""  # 表主键(保证表数据唯一性)，为空则表示无需主键。这里的主键必须是可hash的(建议用int, str类)
+    remark: str = ""  # 表备注
     hidden: bool = False  # 是否隐藏(隐藏则不在前端显示)
     dynamic_key: str = ""  # 动态字段的key(动态表格需要定义动态字段的key)
 
     # 基础字段的定义，可根据需要拓展
+    class BaseFlowOutputField(serializers.CharField):
+        """流程输出字段的基础定义，display_type 为字段在前端的展示类型，默认 text"""
+
+        display_type = "text"
+
+    class URLField(BaseFlowOutputField):
+        """url字段的定义(前端渲染为可点击链接)"""
+
+        display_type = "url"
+
     class IpField(serializers.IPAddressField):
         """ip字段的定义"""
 
@@ -93,13 +104,18 @@ class FlowOutputHandler:
         table_name__index = {d["table_name"]: i for i, d in enumerate(output_data)}
         if self.slz.table_name not in table_name__index:
             titles = [
-                {"id": name, "display_name": (name if self.slz.dynamic_key else field.help_text)}
+                {
+                    "id": name,
+                    "display_name": (name if self.slz.dynamic_key else field.help_text),
+                    "type": getattr(field, "display_type", "text"),
+                }
                 for name, field in item_list
             ]
             table_data = {
                 "table_name": self.slz.table_name,
                 "table_display_name": self.slz.table_display_name or self.slz.table_name,
                 "table_primary_key": self.slz.table_primary_key,
+                "remark": self.slz.remark,
                 "titles": titles,
                 "values": [],
                 "hidden": self.slz.hidden,
