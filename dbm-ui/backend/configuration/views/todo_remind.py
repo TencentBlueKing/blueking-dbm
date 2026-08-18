@@ -30,8 +30,8 @@ SWAGGER_TAG = _("每日代办提醒")
 class TodoRemindViewSet(viewsets.SystemViewSet):
     serializer_class = TodoRemindSerializer
     action_permission_map = {
-        ("get_todo_remind_conf",): [ResourceActionPermission([ActionEnum.PLATFORM_TODO_REMIND_VIEW])],
-        ("update_todo_remind_conf",): [],
+        ("get_todo_remind_conf",): [],
+        ("update_todo_remind_conf",): [ResourceActionPermission([ActionEnum.PLATFORM_TODO_REMIND_MANAGE])],
     }
 
     @common_swagger_auto_schema(operation_summary=_("查询代办提醒配置"), tags=[SWAGGER_TAG])
