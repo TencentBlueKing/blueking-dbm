@@ -301,11 +301,11 @@ class ActionEnum:
         common_labels=[],
     )
 
-    PLATFORM_TODO_REMIND_VIEW = ActionMeta(
-        id="platform_todo_remind_view",
-        name=_("每日代办提醒查看"),
-        name_en="platform_todo_remind_view",
-        type="view",
+    PLATFORM_TODO_REMIND_MANAGE = ActionMeta(
+        id="platform_todo_remind_manage",
+        name=_("每日待办提醒管理"),
+        name_en="platform_todo_remind_manage",
+        type="manage",
         related_actions=[],
         related_resource_types=[],
         group=_("平台管理"),
