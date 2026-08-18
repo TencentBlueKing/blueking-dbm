@@ -10,7 +10,8 @@ specific language governing permissions and limitations under the License.
 """
 
 import logging
-from typing import List
+from collections import defaultdict
+from typing import Any, Dict, List, Tuple
 
 from iam import Request, Resource, Subject
 
@@ -20,9 +21,15 @@ from backend.iam_app.handlers.backends.base import IAMBackend
 
 logger = logging.getLogger("root")
 
+# 已授权过的资源属性。属性授权是一条规则覆盖创建者名下所有同类资源，无需按实例重复授权
+_granted_resource_attrs: Dict[str, List[Tuple]] = defaultdict(list)
+
 
 class IAMV3Backend(IAMBackend):
     """基于 bk-iam SDK 的 V3 鉴权后端"""
+
+    # 资源实例的专用字段，不参与属性授权的规则
+    EXCLUDED_GRANT_ATTRS = ["_bk_iam_path_", "id", "name"]
 
     def __init__(self, iam_client):
         self.iam = iam_client
@@ -40,5 +47,34 @@ class IAMV3Backend(IAMBackend):
         request = self.make_request(username, action, resources)
         return bool(self.call_with_retry(self.iam.is_allowed, request, default=False))
 
-    def abc(self, a, b, c):
-        pass
+    def grant_creator_actions(self, resource: Resource, creator: str) -> Any:
+        """
+        V3走属性授权：为 creator=xxx 这条规则授权，一次授权即覆盖该创建者名下所有同类资源，
+        因此相同的属性组合只需要授权一次
+        """
+        attributes = {
+            attr_id: value
+            for attr_id, value in (resource.attribute or {}).items()
+            if attr_id not in self.EXCLUDED_GRANT_ATTRS
+        }
+        attr_tuple = tuple(sorted(attributes.values()))
+        if attr_tuple in _granted_resource_attrs[resource.type]:
+            return None
+
+        application = {
+            "system": resource.system,
+            "type": resource.type,
+            "creator": creator,
+            "attributes": [
+                {"id": attr_id, "name": attr_id, "values": [{"id": value, "name": value}]}
+                for attr_id, value in attributes.items()
+            ],
+        }
+        try:
+            result = self.iam.grant_resource_creator_action_attributes(application)
+            _granted_resource_attrs[resource.type].append(attr_tuple)
+            logger.info("[grant_creator_actions] success, resource: %s, result: %s", resource.to_dict(), result)
+            return result
+        except Exception as e:  # pylint: disable=broad-except
+            logger.exception("[grant_creator_actions] failed, resource: %s, error: %s", resource.to_dict(), e)
+            return None
