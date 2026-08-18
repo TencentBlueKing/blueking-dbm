@@ -9,17 +9,13 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 import logging
-from collections import defaultdict
-from typing import Dict, List, Tuple
 
 from django.db.models.signals import post_save
 from django.dispatch import receiver
 
 from backend import env
-from backend.db_meta.enums import MachineType
-from backend.db_meta.models import Cluster, StorageInstance
+from backend.db_meta.models import Cluster
 from backend.db_monitor.models import MonitorPolicy, NoticeGroup
-from backend.db_services.dbpermission.db_account.signals import create_account_signal
 from backend.db_services.mysql.dumper.models import DumperSubscribeConfig
 from backend.db_services.mysql.open_area.models import TendbOpenAreaConfig
 from backend.flow.models import FlowTree
@@ -29,32 +25,17 @@ from backend.ticket.models import Ticket
 
 logger = logging.getLogger("root")
 
-# 缓存已经授权过的资源属性
-__cache_resource_attr: Dict[str, List[Tuple]] = defaultdict(list)
-
 
 def post_save_grant_iam(resource_meta, model, instance, creator, created):
+    """新建资源后给创建者授权。V3与V4的授权方式差异由 Permission 的鉴权后端消化"""
     if not created or not creator or env.BK_IAM_SKIP:
         return
 
-    resource = resource_meta.create_instance(getattr(instance, resource_meta.lookup_field))
-
-    # 排除_bk_iam_path_, id, name这些专用字段
-    pop_fields = ["_bk_iam_path_", "id", "name"]
-    for field in pop_fields:
-        resource.attribute.pop(field, None)
-
-    # 如果已被缓存，则无需授权
-    attr_tuple = tuple(sorted([attr for attr in resource.attribute.values()]))
-    if attr_tuple in __cache_resource_attr[resource.type]:
-        return
-
-    # 新建关联属性授权
     try:
-        Permission(username="admin").grant_creator_actions_attr(resource, creator)
-        __cache_resource_attr[resource.type].append(attr_tuple)
-    except Exception as e:
-        logger.error(f"Grant creator actions attr failed: {e}")
+        resource = resource_meta.create_instance(getattr(instance, resource_meta.lookup_field))
+        Permission(username="admin").grant_creator_actions(resource, creator)
+    except Exception as e:  # pylint: disable=broad-except
+        logger.error(f"Grant creator actions failed: {e}")
 
 
 @receiver(post_save, sender=FlowTree)
@@ -73,14 +54,6 @@ def post_save_cluster(sender, instance, created, **kwargs):
     if resource_meta is None:
         return
     post_save_grant_iam(resource_meta, Cluster, instance, instance.creator, created)
-
-
-@receiver(post_save, sender=StorageInstance)
-def post_save_storage_instance(sender, instance, created, **kwargs):
-    if instance.machine_type != MachineType.INFLUXDB:
-        return
-    resource_meta = ResourceEnum.INFLUXDB
-    post_save_grant_iam(resource_meta, StorageInstance, instance, instance.creator, created)
 
 
 @receiver(post_save, sender=MonitorPolicy)
@@ -105,10 +78,3 @@ def post_save_openarea_config(sender, instance, created, **kwargs):
 def post_save_dumper_subscribe_config(sender, instance, created, **kwargs):
     resource_meta = ResourceEnum.DUMPER_SUBSCRIBE_CONFIG
     post_save_grant_iam(resource_meta, DumperSubscribeConfig, instance, instance.creator, created)
-
-
-# TODO: 新建账号需要自定义信号
-@receiver(create_account_signal, sender=None)
-def post_save_account(sender, account, **kwargs):
-    resource_meta = getattr(ResourceEnum, f"{account.account_type.upper()}_ACCOUNT")
-    post_save_grant_iam(resource_meta, DumperSubscribeConfig, account, account.creator, True)

@@ -442,53 +442,13 @@ class Permission(object):
 
         return data, url
 
-    def _grant_actions(self, resource, application, grant_func, raise_exception=True):
-        grant_result = None
-        try:
-            grant_result = grant_func(application)
-            logger.info(f"[grant_creator_action] Success! resource: {resource.to_dict()}, result: {grant_result}")
-        except Exception as e:
-            logger.exception(f"[grant_creator_action] Failed! resource: {resource.to_dict()}, result: {e}")
-
-            if raise_exception:
-                raise e
-
-        return grant_result
-
     def grant_creator_actions(self, resource: Resource, creator: str = None):
         """
-        新建实例关联权限授权
+        新建实例给创建者授权。V3走属性授权，V4走角色实例授权，差异由后端消化
         :param resource: 资源实例
         :param creator: 资源创建者
-        :return:
         """
-        application = {
-            "system": resource.system,
-            "type": resource.type,
-            "id": resource.id,
-            "name": resource.attribute.get("name", resource.id) if resource.attribute else resource.id,
-            "creator": creator or self.username,
-        }
-        return self._grant_actions(resource, application, self._iam.grant_resource_creator_actions)
-
-    def grant_creator_actions_attr(self, resource: Resource, creator: str = None):
-        """
-        新建实例属性关联权限授权
-        :param resource: 资源实例
-        :param creator: 资源创建者
-        :return:
-        """
-        attributes = [
-            {"id": attr_id, "name": attr_id, "values": [{"id": attr_value, "name": attr_value}]}
-            for attr_id, attr_value in resource.attribute.items()
-        ]
-        application = {
-            "system": resource.system,
-            "type": resource.type,
-            "creator": creator or self.username,
-            "attributes": attributes,
-        }
-        return self._grant_actions(resource, application, self._iam.grant_resource_creator_action_attributes)
+        return self._call("grant_creator_actions", resource, creator or self.username)
 
     @classmethod
     def insert_permission_field(

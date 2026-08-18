@@ -43,3 +43,6 @@ class RoleActionLabel(StrStructuredEnum):
 
     BIZ_READ_ONLY = EnumField("biz_read_only", _("业务只读"))
     RESOURCE_MANAGE = EnumField("resource_manage", _("资源管理员"))
+
+    # 创建者角色，资源创建后授予创建者，由 ResourceMeta.creator_role_v4 指向
+    MYSQL_CREATOR = EnumField("mysql_creator", _("MySQL集群创建者"))
