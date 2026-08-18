@@ -36,8 +36,10 @@ export function getSystemEnviron() {
     BK_DOMAIN: string;
     BK_HCM_URL: string;
     BK_HELPER_URL: string;
+    BK_IAM_URL: string;
     BK_NODEMAN_URL: string;
     BK_SCR_URL: string;
+    BK_USER_MANAGE_URL: string;
     BKDATA_FRONTEND_REPORT_URL: string;
     BKMONITOR_URL: string;
     CC_IDLE_MODULE_ID: string;
