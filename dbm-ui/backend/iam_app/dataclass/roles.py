@@ -66,6 +66,9 @@ class RoleEnum:
     BIZ_READ_ONLY = RoleMeta(RoleActionLabel.BIZ_READ_ONLY, _("业务下各集群的查看权限"))
     RESOURCE_MANAGE = RoleMeta(RoleActionLabel.RESOURCE_MANAGE, _("资源池、资源规格与标签的管理权限"))
 
+    # 创建者角色，资源创建后由 ResourceMeta.creator_role_v4 指向并授予创建者
+    MYSQL_CREATOR = RoleMeta(RoleActionLabel.MYSQL_CREATOR, _("对自己创建的MySQL集群的管理权限"))
+
 
 # 角色的动作列表不允许为空，无动作的角色不注册到IAM
 _all_roles = {
