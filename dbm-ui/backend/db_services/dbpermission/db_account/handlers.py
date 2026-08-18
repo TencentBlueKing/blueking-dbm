@@ -14,7 +14,6 @@ from collections import defaultdict
 from typing import Any, Dict, List, Optional
 
 from django.utils.translation import gettext as _
-from iam.resource.utils import FancyDict
 
 from backend.components.mysql_priv_manager.client import DBPrivManagerApi
 from backend.core.encrypt.constants import AsymmetricCipherConfigType
@@ -26,7 +25,6 @@ from backend.db_services.dbpermission.db_account.dataclass import (
     AccountRuleMeta,
     AccountUserMeta,
 )
-from backend.db_services.dbpermission.db_account.signals import create_account_signal
 from backend.db_services.dbpermission.db_authorize.models import DBRuleActionLog
 from backend.db_services.mysql.open_area.models import TendbOpenAreaConfig
 from backend.db_services.mysql.permission.exceptions import DBPermissionBaseException
@@ -112,7 +110,6 @@ class AccountHandler(object):
         )["results"]
         account = {info["user"]: info for info in account_data}.get(account.user)
         account.update(account_type=self.account_type)
-        create_account_signal.send(sender=None, account=FancyDict(account))
 
         return resp
 
