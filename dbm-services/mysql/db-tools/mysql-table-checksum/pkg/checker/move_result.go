@@ -42,14 +42,14 @@ func (r *Checker) moveResult() error {
 	_, err = r.conn.ExecContext(
 		context.Background(),
 		fmt.Sprintf(
-			`REPLACE INTO %s.%s (%s) SELECT %s FROM %s.%s WHERE ts >= ?`,
+			`REPLACE INTO %s.%s (%s) SELECT %s FROM %s.%s WHERE ts >= ? AND master_ip = ? AND master_port = ?`,
 			r.resultDB,
 			r.resultHistoryTable,
 			columnsStr,
 			columnsStr,
 			r.resultDB,
 			r.resultTbl,
-		), r.startTS,
+		), r.startTS, r.Config.Ip, r.Config.Port,
 	)
 	if err != nil {
 		slog.Error("move result", slog.String("error", err.Error()))
