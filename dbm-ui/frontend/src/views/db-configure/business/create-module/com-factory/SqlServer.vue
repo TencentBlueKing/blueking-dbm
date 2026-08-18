@@ -192,12 +192,10 @@
         @click="handleSubmit">
         {{ t('确定') }}
       </BkButton>
-      <BkButton
-        class="w-88 ml-8"
-        :disabled="isSubmitting"
-        @click="handleReset">
-        {{ t('重置') }}
-      </BkButton>
+      <DbResetButton
+        class="ml-8"
+        :confirm-handler="handleReset"
+        :disabled="isSubmitting" />
       <BkButton
         class="w-88 ml-8"
         :disabled="isSubmitting"
@@ -223,7 +221,6 @@
 </template>
 
 <script setup lang="ts">
-  import InfoBox from 'bkui-vue/lib/info-box';
   import { I18nT, useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
@@ -497,18 +494,10 @@
 
   /** 重置 */
   const handleReset = () => {
-    InfoBox({
-      cancelText: t('取消'),
-      content: t('重置后_将会清空当前填写的内容'),
-      onConfirm: () => {
-        Object.assign(formData, getFormData());
-        Object.values(tableRefs.value).forEach((ref) => ref?.handleReset?.());
-        nextTick(() => {
-          window.changeConfirm = false;
-        });
-        return true;
-      },
-      title: t('确认重置表单内容'),
+    Object.assign(formData, getFormData());
+    Object.values(tableRefs.value).forEach((ref) => ref?.handleReset?.());
+    nextTick(() => {
+      window.changeConfirm = false;
     });
   };
 
