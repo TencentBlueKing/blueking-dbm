@@ -117,22 +117,15 @@
         @click="handleSubmit()">
         {{ t('保存') }}
       </AuthButton>
-      <DbPopconfirm
-        :confirm-handler="handleReset"
-        :content="t('重置将会恢复默认设置的内容！')"
-        :title="t('确认重置当前配置？')">
-        <AuthButton
-          action-id="set_password_policy"
-          :resource="DBTypes.MYSQL">
-          {{ t('重置') }}
-        </AuthButton>
-      </DbPopconfirm>
+      <BkButton @click="handleReset">
+        {{ t('恢复默认') }}
+      </BkButton>
     </div>
   </BkLoading>
 </template>
 
 <script setup lang="ts">
-  import { Message } from 'bkui-vue';
+  import { InfoBox, Message } from 'bkui-vue';
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
@@ -324,22 +317,30 @@
       }
       window.changeConfirm = false;
       Message({
-        message: submitType === 'edit' ? t('保存成功') : t('重置成功'),
+        message: submitType === 'edit' ? t('保存成功') : t('恢复默认成功'),
         theme: 'success',
       });
     },
   });
 
   const handleReset = () => {
-    submitType = 'reset';
-    modifyRandomCycleRun({
-      crontab: {
-        day_of_month: '*',
-        day_of_week: '*',
-        hour: '0',
-        minute: '0',
+    InfoBox({
+      cancelText: t('取消'),
+      confirmText: t('确认'),
+      content: t('当前页面的所有配置将恢复为系统默认值。'),
+      onConfirm: () => {
+        submitType = 'reset';
+        modifyRandomCycleRun({
+          crontab: {
+            day_of_month: '*',
+            day_of_week: '*',
+            hour: '0',
+            minute: '0',
+          },
+          db_type: DBTypes.MYSQL,
+        });
       },
-      db_type: DBTypes.MYSQL,
+      title: t('确认恢复默认值？'),
     });
   };
 

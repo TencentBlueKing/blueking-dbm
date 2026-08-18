@@ -126,17 +126,11 @@
         @click="handleSubmit">
         {{ t('提交') }}
       </BkButton>
-      <DbPopconfirm
+      <DbResetButton
+        class="ml-8"
         :confirm-handler="handleReset"
-        :content="t('重置将会清空当前填写的所有内容_请谨慎操作')"
-        :title="t('确认重置页面')">
-        <BkButton
-          class="w-88 ml-8"
-          :disabled="isSubmitting"
-          style="margin-left: 8px">
-          {{ t('重置') }}
-        </BkButton>
-      </DbPopconfirm>
+        :disabled="isSubmitting"
+        style="margin-left: 8px" />
     </template>
   </SmartAction>
 </template>
