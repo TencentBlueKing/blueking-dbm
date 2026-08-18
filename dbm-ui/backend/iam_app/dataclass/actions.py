@@ -580,7 +580,7 @@ class ActionEnum:
             CommonActionLabel.DEVELOPER,
             CommonActionLabel.EXTERNAL_DEVELOPER
         ],
-        role_labels_v4=[RoleActionLabel.BIZ_READ_ONLY],
+        role_labels_v4=[RoleActionLabel.BIZ_READ_ONLY, RoleActionLabel.MYSQL_CREATOR],
     )
 
     MYSQL_EDIT = ActionMeta(
@@ -595,6 +595,7 @@ class ActionEnum:
         group=_("MySQL"),
         subgroup=_("集群管理"),
         common_labels=[CommonActionLabel.BIZ_MAINTAIN, CommonActionLabel.DEVELOPER],
+        role_labels_v4=[RoleActionLabel.MYSQL_CREATOR],
     )
 
     MYSQL_SUBSCRIBE_MONITOR = ActionMeta(
@@ -660,6 +661,7 @@ class ActionEnum:
         group=_("MySQL"),
         subgroup=_("集群管理"),
         common_labels=[CommonActionLabel.BIZ_MAINTAIN],
+        role_labels_v4=[RoleActionLabel.MYSQL_CREATOR],
     )
 
     MYSQL_DESTROY = ActionMeta(
@@ -672,6 +674,7 @@ class ActionEnum:
         group=_("MySQL"),
         subgroup=_("集群管理"),
         common_labels=[CommonActionLabel.BIZ_MAINTAIN],
+        role_labels_v4=[RoleActionLabel.MYSQL_CREATOR],
     )
 
     MYSQL_FLASHBACK = ActionMeta(
