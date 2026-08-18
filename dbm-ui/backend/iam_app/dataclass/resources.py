@@ -21,7 +21,7 @@ from backend.configuration.constants import DBType
 from backend.db_meta.enums import ClusterType, InstanceRole
 from backend.db_meta.models import AppCache
 from backend.env import BK_IAM_SYSTEM_ID, ENABLE_IAM_V4
-from backend.iam_app.constans import GLOBAL_BIZ_ID_V4
+from backend.iam_app.constans import GLOBAL_BIZ_ID_V4, RoleActionLabel
 from backend.iam_app.exceptions import ResourceNotExistError
 
 
@@ -48,6 +48,8 @@ class ResourceMeta(metaclass=abc.ABCMeta):
     ancestors_v4: List["ResourceMeta"] = None  # V4 资源拓扑，从根到直接上级，顶层资源为空
     # 该资源及其关联动作不同步到V4。V4要求祖先链是严格的层级链，多平行父级的资源暂时无法注册
     iamv4_disable: bool = False
+    # 资源创建后授予创建者的角色，为空表示不做创建者授权。V4没有属性授权，改为对实例直接授权
+    creator_role_v4: RoleActionLabel = None
 
     def __post_init__(self):
         self.select_id = self.select_id or self.id
@@ -393,6 +395,7 @@ class MySQLResourceMeta(ClusterResourceMeta):
 
     id: str = "mysql"
     name: str = _("MySQL集群")
+    creator_role_v4: RoleActionLabel = RoleActionLabel.MYSQL_CREATOR
 
 
 @dataclass
