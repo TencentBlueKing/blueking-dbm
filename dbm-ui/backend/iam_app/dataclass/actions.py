@@ -298,6 +298,18 @@ class ActionEnum:
         common_labels=[],
     )
 
+    PLATFORM_TODO_REMIND_VIEW = ActionMeta(
+        id="platform_todo_remind_view",
+        name=_("每日代办提醒查看"),
+        name_en="platform_todo_remind_view",
+        type="view",
+        related_actions=[],
+        related_resource_types=[],
+        group=_("平台管理"),
+        subgroup="",
+        common_labels=[],
+    )
+
     MYSQL_DBCONSOLE = ActionMeta(
         id="mysql_dbconsole",
         name=_("MySQL 管理控制台"),
