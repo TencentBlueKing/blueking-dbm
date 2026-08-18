@@ -1730,6 +1730,7 @@ class ExecuteShellScriptUser(StrStructuredEnum):
 class OracleDBActuatorActionEnum(StrStructuredEnum):
     OsInit = EnumField("os_oracle_init", _("os_oracle_init"))
     OracleExecuteScript = EnumField("execute_script", _("execute_script"))
+    OracleCheckLongTransaction = EnumField("check_long_transaction", _("check_long_transaction"))
 
 
 class TendbSingleRestoreType(StrStructuredEnum):

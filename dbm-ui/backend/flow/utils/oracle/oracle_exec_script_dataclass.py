@@ -163,6 +163,22 @@ class ExecuteScriptActKwargs:
             },
         }
 
+    def get_check_long_transaction_kwargs(self, info: dict) -> dict:
+        """查询并处理 Oracle 长事务"""
+
+        return {
+            "set_trans_data_dataclass": CommonContext.__name__,
+            "get_trans_data_ip_var": None,
+            "exec_account": ExecuteShellScriptUser.Oracle.value,
+            "bk_cloud_id": info["bk_cloud_id"],
+            "exec_ip": info["ip"],
+            "db_act_template": {
+                "action": OracleDBActuatorActionEnum.OracleCheckLongTransaction,
+                "file_path": self.work_path,
+                "payload": {},
+            },
+        }
+
 
 @dataclass()
 class CommonContext:

@@ -129,6 +129,7 @@ func (m *JobGenericManager) RegisterAtomJob() {
 		for _, f := range []AtomJobCreatorFunc{
 			atomsys.NewOsOracleInit,
 			atomoracle.NewExecuteScript,
+			atomoracle.NewCheckLongTransaction,
 		} {
 			m.atomJobMapper[f().Name()] = f
 		}
