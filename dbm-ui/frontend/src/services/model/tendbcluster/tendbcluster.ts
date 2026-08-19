@@ -75,7 +75,6 @@ export default class TendbCluster extends ClusterBase {
   master_domain: string;
   operations: ClusterListOperation[];
   permission: {
-    access_entry_edit: boolean;
     tendbcluster_admin_pwd_view: boolean;
     tendbcluster_authorize: boolean;
     tendbcluster_dbconfig_edit: boolean;

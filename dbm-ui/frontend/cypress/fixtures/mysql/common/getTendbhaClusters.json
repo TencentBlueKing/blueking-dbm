@@ -872,10 +872,7 @@
           "mysql_webconsole": true
         }
       }
-    ],
-    "permission": {
-      "access_entry_edit": true
-    }
+    ]
   },
   "code": 0,
   "result": true,
