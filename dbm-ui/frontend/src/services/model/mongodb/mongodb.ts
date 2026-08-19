@@ -13,7 +13,7 @@
 
 import { uniq } from 'lodash';
 
-import type { ClusterListEntry, ClusterListNode, ClusterListSpec } from '@services/types';
+import type { ClusterListEntry, ClusterListNode, ClusterListSpec, MachineSpec } from '@services/types';
 
 import { Affinity, ClusterTypes, mongodbAffinityMap, PipelineStatus, TicketTypes } from '@common/const';
 
@@ -57,6 +57,7 @@ export default class Mongodb extends ClusterBase {
   disaster_tolerance_level: Affinity;
   id: number;
   machine_instance_num: number; // 单机部署实例数
+  machine_specs: MachineSpec[];
   machine_type: string;
   major_version: string;
   master_domain: string;
@@ -76,6 +77,7 @@ export default class Mongodb extends ClusterBase {
   }[];
   permission: {
     mongodb_access_entry_view: boolean;
+    mongodb_authorize?: boolean;
     mongodb_dbconfig_edit: boolean;
     mongodb_destroy: boolean;
     mongodb_edit: boolean;
@@ -117,6 +119,7 @@ export default class Mongodb extends ClusterBase {
     this.disaster_tolerance_level = payload.disaster_tolerance_level;
     this.cluster_name = payload.cluster_name;
     this.cluster_spec = payload.cluster_spec || {};
+    this.machine_specs = payload.machine_specs || [];
     this.cluster_stats = payload.cluster_stats || {};
     this.cluster_time_zone = payload.cluster_time_zone;
     this.cluster_type = payload.cluster_type;
