@@ -91,12 +91,16 @@ type DbEndpointConfig struct {
 // RawHarvesterConfig is the common shape of a probe harvester YAML block.
 // Known blocks (mysql / mysqlProxyAdmin / redis) and future DB types share this layout.
 // Timeout bounds both DSN dial timeout and per-query context timeout for MySQL collectors.
+// HeartbeatInterval / ReplDelayInterval only apply to the MySQL family blocks; other
+// DB types leave them zero and their collectors fall back to Interval.
 type RawHarvesterConfig struct {
-	User      string             `yaml:"user"      mapstructure:"user"`
-	Password  string             `yaml:"password"  mapstructure:"password"`
-	Interval  time.Duration      `yaml:"interval"  mapstructure:"interval"`
-	Timeout   time.Duration      `yaml:"timeout"   mapstructure:"timeout"`
-	Endpoints []DbEndpointConfig `yaml:"endpoints" mapstructure:"endpoints"`
+	User              string             `yaml:"user"              mapstructure:"user"`
+	Password          string             `yaml:"password"          mapstructure:"password"`
+	Interval          time.Duration      `yaml:"interval"          mapstructure:"interval"`
+	HeartbeatInterval time.Duration      `yaml:"heartbeatInterval" mapstructure:"heartbeatInterval"`
+	ReplDelayInterval time.Duration      `yaml:"replDelayInterval" mapstructure:"replDelayInterval"`
+	Timeout           time.Duration      `yaml:"timeout"           mapstructure:"timeout"`
+	Endpoints         []DbEndpointConfig `yaml:"endpoints"         mapstructure:"endpoints"`
 }
 
 // Well-known harvester block names (YAML keys under harvester:).
