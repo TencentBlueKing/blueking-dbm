@@ -86,6 +86,18 @@ export const retrieveQdrantHaInstanceDetail = function (params: {
 };
 
 /**
+ * 修改集群元数据（别名 / 标签）
+ */
+export function updateQdrantHaClusterMeta(params: {
+  bk_biz_id: number;
+  cluster_alias?: string;
+  cluster_id: number;
+  tags?: Record<string, string>[];
+}) {
+  return http.post<Record<string, never>>(`${getRootPath()}/update_cluster_meta/`, params);
+}
+
+/**
  * 导出集群数据为 excel 文件
  */
 export function exportQdrantHaClusterToExcel(params: { cluster_ids?: number[] }) {

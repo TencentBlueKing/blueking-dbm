@@ -56,6 +56,7 @@
   <ClusterAddTag
     v-model:is-show="isShowAddTag"
     :cluster-id="data.id"
+    :cluster-type="data.cluster_type"
     :data="data.availableTags"
     :domain="data.masterDomain"
     @success="handleOperateSuccess" />
@@ -71,7 +72,7 @@
   import ClusterAddTag from './components/AddTag.vue';
 
   interface Props {
-    data: { permission: Record<string, boolean> } & ClusterCommonInfo;
+    data: { cluster_type: string; permission: Record<string, boolean> } & ClusterCommonInfo;
     mode?: 'horizontal' | 'vertical';
   }
 
