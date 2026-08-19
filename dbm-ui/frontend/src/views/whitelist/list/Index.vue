@@ -102,36 +102,45 @@
         :width="140">
         <template #default="{ row: data }: { row: IpWhiteModel }">
           <span
-            v-bk-tooltips="{
-              content: t('全局白名单如需编辑请联系平台管理员'),
-              disabled: !(data.is_global && !isPlatformManage),
-            }">
-            <AuthButton
-              :action-id="managePermissionActionId"
+            v-if="data.is_global && !isPlatformManage"
+            v-bk-tooltips="t('全局白名单如需编辑请联系平台管理员')">
+            <BkButton
               class="mr-8"
-              :disabled="data.is_global && !isPlatformManage"
-              :permission="data.permission[managePermissionActionId]"
+              disabled
               text
-              theme="primary"
-              @click="handleEdit(data)">
+              theme="primary">
               {{ t('编辑') }}
-            </AuthButton>
+            </BkButton>
           </span>
+          <AuthButton
+            v-else
+            :action-id="managePermissionActionId"
+            class="mr-8"
+            :permission="data.permission[managePermissionActionId]"
+            text
+            theme="primary"
+            @click="handleEdit(data)">
+            {{ t('编辑') }}
+          </AuthButton>
           <span
-            v-bk-tooltips="{
-              content: t('全局白名单如需编辑请联系平台管理员'),
-              disabled: !(data.is_global && !isPlatformManage),
-            }">
-            <AuthButton
-              :action-id="managePermissionActionId"
-              :disabled="data.is_global && !isPlatformManage"
-              :permission="data.permission[managePermissionActionId]"
+            v-if="data.is_global && !isPlatformManage"
+            v-bk-tooltips="t('全局白名单如需编辑请联系平台管理员')">
+            <BkButton
+              disabled
               text
-              theme="primary"
-              @click="handleDelete([data.id])">
+              theme="primary">
               {{ t('删除') }}
-            </AuthButton>
+            </BkButton>
           </span>
+          <AuthButton
+            v-else
+            :action-id="managePermissionActionId"
+            :permission="data.permission[managePermissionActionId]"
+            text
+            theme="primary"
+            @click="handleDelete([data.id])">
+            {{ t('删除') }}
+          </AuthButton>
         </template>
       </TableColumn>
     </DbTable>
