@@ -33,6 +33,9 @@ MYSQL_DTS_CATCHUP_MAX_FAIL_STREAK = 20
 MYSQL_DTS_FULL_LOAD_POLL_INTERVAL = 15
 MYSQL_DTS_FULL_LOAD_MAX_FAIL_STREAK = 20
 
+# CC 标准化：Set 名 = get_monitor_set_name(MySQL, DTS_CC_MONITOR_PLUGIN_NAME) → db.mysql.dts
+DTS_CC_MONITOR_PLUGIN_NAME = "dts"
+
 # dbbackup 包解压后 myloader 默认相对路径（可通过 MyloaderSpec.myloader_path 覆盖）
 DEFAULT_MYLOADER_PATH = "/home/mysql/dbbackup/bin/myloader"
 MYSQL_DTS_MYLOADER_BACKUP_DIR_TMPL = "/data/dbbak/{root_id}/dts_myloader/{source_name}"

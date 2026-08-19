@@ -411,6 +411,9 @@ class MysqlDtsClusterDestroyFlowBuilder(BaseMySQLTicketFlowBuilder):
         供成功钩子 `create_recycle_ticket` 消费。显式 False 时写空列表以跳过关联单。
         """
         details = self.ticket.details
+        # 派生的 RECYCLE_OLD_HOST 属于 mysql 分组，但必须保留 DTS 子类型和部署目录，
+        # 供清机 Flow 选择 DTS 专用脚本，禁止误用 MySQL 通用清机脚本。
+        details["cluster_type"] = ClusterType.MySQLDTS.value
         should_recycle = details.get("recycle_hosts", True)
         if should_recycle is False:
             details["recycle_hosts"] = []
@@ -422,6 +425,8 @@ class MysqlDtsClusterDestroyFlowBuilder(BaseMySQLTicketFlowBuilder):
             logger.warning(gettext_runtime("DTS 销毁补齐回收主机失败: 集群 {} 不存在").format(dts_cluster_id))
             details["recycle_hosts"] = []
             return
+
+        details["dts_deploy_path"] = dts_cluster.deploy_path
 
         # master/worker 同机部署时按 (ip, bk_cloud_id) 去重
         host_keys = []

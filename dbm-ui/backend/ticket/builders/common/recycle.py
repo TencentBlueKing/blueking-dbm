@@ -42,6 +42,7 @@ class RecycleHostDetailSerializer(serializers.Serializer):
     recycle_hosts = serializers.JSONField(help_text=_("下架机器的回收信息"), default=[])
     group = serializers.ChoiceField(help_text=_("所属组件"), choices=DBType.get_choices())
     cluster_type = serializers.CharField(help_text=_("所属集群"), default="")
+    dts_deploy_path = serializers.CharField(help_text=_("DTS 部署目录"), default="", allow_blank=True)
     parent_ticket = serializers.IntegerField(help_text=_("发起单据号"))
     immediate_recycle = serializers.BooleanField(help_text=_("立即回收"), default=False)
     parent_ticket_type = serializers.CharField(help_text=_("发起的单据类型"), default="")

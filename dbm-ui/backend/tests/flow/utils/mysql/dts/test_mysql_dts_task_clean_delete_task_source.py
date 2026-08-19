@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""锁定 dts-task-clean：并行挂载、本单名称组装、不引用 DESTROY 全量扫删。"""
+"""锁定 dts-task-clean：串行挂载（先清 task/source 再 DROP 账号）、本单名称组装、不引用 DESTROY 全量扫删。"""
 from types import SimpleNamespace
 from unittest.mock import MagicMock, call, patch
 
@@ -100,13 +100,13 @@ class BuildTicketDtsCleanNamesTest(SimpleTestCase):
         self.assertEqual(source_names, ["src-a"])
 
 
-class MysqlDtsTaskCleanParallelMountTest(SimpleTestCase):
+class MysqlDtsTaskCleanSerialMountTest(SimpleTestCase):
     @patch(
         "backend.flow.engine.bamboo.scene.mysql.dts.mysql_dts_task_clean_subflow.mysql_dts_delete_task_source_subflow"
     )
     @patch("backend.flow.engine.bamboo.scene.mysql.dts.mysql_dts_task_clean_subflow.mysql_dts_drop_user_subflow")
     @patch("backend.flow.engine.bamboo.scene.mysql.dts.mysql_dts_task_clean_subflow.SubBuilder")
-    def test_parallel_mounts_drop_and_delete_task_source(self, mock_sub_builder, mock_drop_user, mock_delete):
+    def test_delete_task_source_runs_before_drop_user(self, mock_sub_builder, mock_drop_user, mock_delete):
         from backend.flow.engine.bamboo.scene.mysql.dts.mysql_dts_task_clean_subflow import (
             mysql_dts_task_clean_subflow,
         )
@@ -150,8 +150,9 @@ class MysqlDtsTaskCleanParallelMountTest(SimpleTestCase):
         delete_sub.build_sub_process.assert_called_once()
         self.assertEqual(str(delete_sub.build_sub_process.call_args.kwargs.get("sub_name")), str(_("清理 dts-task")))
 
-        sub.add_parallel_sub_pipeline.assert_called_once_with(sub_flow_list=["drop-sub", "delete-sub"])
-        sub.add_sub_pipeline.assert_not_called()
+        # 顺序不可调换：DM 删 task/source 仍要用临时账号连下游，账号先 DROP 会导致 1045
+        self.assertEqual(sub.add_sub_pipeline.call_args_list, [call("delete-sub"), call("drop-sub")])
+        sub.add_parallel_sub_pipeline.assert_not_called()
 
     def test_task_clean_module_does_not_import_destroy_stop_tasks(self):
         import backend.flow.engine.bamboo.scene.mysql.dts.mysql_dts_delete_task_source_subflow as delete_mod

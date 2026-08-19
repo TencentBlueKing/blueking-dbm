@@ -70,9 +70,9 @@ class MysqlDtsTaskCleanSubflowTest(SimpleTestCase):
         drop_inp = mock_drop_user.call_args[0][0]
         self.assertEqual(drop_inp.dts_user, "dts_m_abc")
         self.assertTrue(drop_inp.ignore_errors)
-        # 二期：drop_user 与本单 delete_task/source 并行挂载
-        sub.add_parallel_sub_pipeline.assert_called_once_with(sub_flow_list=["drop-sub", "delete-sub"])
-        sub.add_sub_pipeline.assert_not_called()
+        # DROP 账号必须排在 delete_task/source 之后，否则 DM 删 task 连下游会 1045
+        self.assertEqual(sub.add_sub_pipeline.call_args_list, [call("delete-sub"), call("drop-sub")])
+        sub.add_parallel_sub_pipeline.assert_not_called()
 
 
 class MysqlDtsMigrateSubflowNoTailDropTest(SimpleTestCase):

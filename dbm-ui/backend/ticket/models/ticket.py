@@ -393,7 +393,9 @@ class Ticket(AuditedModel):
                 "parent_ticket": revoke_ticket_id,
                 "parent_ticket_type": revoke_ticket.ticket_type,
                 "group": revoke_ticket.group,
-                "cluster_type": __add_cluster_types(revoke_ticket.details.get("clusters", {}), revoke_ticket.group),
+                "cluster_type": revoke_ticket.details.get("cluster_type")
+                or __add_cluster_types(revoke_ticket.details.get("clusters", {}), revoke_ticket.group),
+                "dts_deploy_path": revoke_ticket.details.get("dts_deploy_path", ""),
                 "recycle_hosts": hosts,
                 "immediate_recycle": immediate_recycle,
             },

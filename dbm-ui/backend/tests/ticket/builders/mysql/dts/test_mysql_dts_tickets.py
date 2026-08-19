@@ -673,6 +673,7 @@ class MysqlDtsClusterDestroyRecyclePatchTest(SimpleTestCase):
         return SimpleNamespace(
             id=9,
             bk_cloud_id=bk_cloud_id,
+            deploy_path="/data/dts/dts-make-test",
             master_nodes=master_nodes,
             worker_nodes=worker_nodes,
         )
@@ -707,6 +708,8 @@ class MysqlDtsClusterDestroyRecyclePatchTest(SimpleTestCase):
 
         host_ids = {h["bk_host_id"] for h in builder.ticket.details["recycle_hosts"]}
         self.assertEqual(host_ids, {1002, 1003})
+        self.assertEqual(builder.ticket.details["cluster_type"], ClusterType.MySQLDTS.value)
+        self.assertEqual(builder.ticket.details["dts_deploy_path"], "/data/dts/dts-make-test")
         mock_standardize.assert_called_once()
         call_hosts = mock_standardize.call_args[0][0]
         self.assertEqual({h["bk_host_id"] for h in call_hosts}, {1002, 1003})
@@ -733,6 +736,7 @@ class MysqlDtsClusterDestroyRecyclePatchTest(SimpleTestCase):
         builder = _make_destroy_builder({"dts_cluster_id": 9, "recycle_hosts": False})
         builder.patch_recycle_dts_host_details()
         self.assertEqual(builder.ticket.details["recycle_hosts"], [])
+        self.assertEqual(builder.ticket.details["cluster_type"], ClusterType.MySQLDTS.value)
 
     @patch("backend.ticket.builders.mysql.dts.mysql_dts_tickets.ResourceHandler.standardized_resource_host")
     @patch("backend.ticket.builders.mysql.dts.mysql_dts_tickets.Machine.objects.filter")

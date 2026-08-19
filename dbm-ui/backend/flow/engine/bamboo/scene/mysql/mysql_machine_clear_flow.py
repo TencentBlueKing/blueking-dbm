@@ -15,6 +15,7 @@ from typing import Dict, List, Optional
 
 from django.utils.translation import gettext as _
 
+from backend.db_meta.enums import ClusterType
 from backend.flow.engine.bamboo.scene.common.builder import Builder
 from backend.flow.plugins.components.collections.common.exec_clear_machine import ClearMachineScriptComponent
 from backend.flow.plugins.components.collections.common.reset_os_timezone import (
@@ -22,6 +23,7 @@ from backend.flow.plugins.components.collections.common.reset_os_timezone import
     OsTimeZoneResetKwargs,
 )
 from backend.flow.plugins.components.collections.mysql.mysql_db_meta import MySQLDBMetaComponent
+from backend.flow.utils.mysql.dts.script_template import render_clean_data_dir_script, render_stop_process_script
 from backend.flow.utils.mysql.mysql_act_dataclass import DBMetaOPKwargs
 from backend.flow.utils.mysql.mysql_db_meta import MySQLDBMeta
 
@@ -74,16 +76,26 @@ class ClearMysqlMachineFlow(object):
         # 定义主流程
         main_pipeline = Builder(root_id=self.root_id, data=self.data)
 
-        main_pipeline.add_act(
-            act_name=_("清理机器cmdb元数据"),
-            act_component_code=MySQLDBMetaComponent.code,
-            kwargs=asdict(DBMetaOPKwargs(db_meta_class_func=MySQLDBMeta.clear_machines.__name__)),
-        )
+        is_mysql_dts = self.data.get("cluster_type") == ClusterType.MySQLDTS.value
+        if not is_mysql_dts:
+            main_pipeline.add_act(
+                act_name=_("清理机器cmdb元数据"),
+                act_component_code=MySQLDBMetaComponent.code,
+                kwargs=asdict(DBMetaOPKwargs(db_meta_class_func=MySQLDBMeta.clear_machines.__name__)),
+            )
 
+        clear_kwargs = {"exec_ips": self.data["clear_hosts"]}
+        if is_mysql_dts:
+            deploy_path = self.data.get("dts_deploy_path")
+            if not deploy_path:
+                raise ValueError(_("DTS 清机缺少 dts_deploy_path，拒绝回退到 MySQL 通用清机脚本"))
+            clear_kwargs["clear_machine_script"] = "\n".join(
+                [render_stop_process_script(deploy_path), render_clean_data_dir_script(deploy_path)]
+            )
         main_pipeline.add_act(
             act_name=_("清理机器"),
             act_component_code=ClearMachineScriptComponent.code,
-            kwargs={"exec_ips": self.data["clear_hosts"]},
+            kwargs=clear_kwargs,
         )
 
         # 按 bk_cloud_id 拆分：每个云区域生成一个独立 act，最终通过并行网关一次性下发
