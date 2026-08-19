@@ -22,7 +22,7 @@
  * SOFTWARE.
  */
 
-// Package redis implements the Redis harvester plugin that collects status from
+// Package harvest implements the Redis harvester plugin that collects status from
 // Redis-family backends (RedisCluster, TendisCache, TendisSSD, TendisPlus, Predixy, Twemproxy).
 package harvest
 

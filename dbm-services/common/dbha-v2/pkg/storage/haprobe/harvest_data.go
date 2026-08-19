@@ -145,23 +145,9 @@ const (
 	HarvestTypeReplDelay HarvestType = "repldelay"
 )
 
-// knownHarvestTypes is the closed set IsKnown uses. New HarvestType constants
-// must be added here; TestHarvestTypeConstsAreKnown fails if one is omitted.
-var knownHarvestTypes = map[HarvestType]struct{}{
-	HarvestTypeDefault:   {},
-	HarvestTypeHeartbeat: {},
-	HarvestTypeReplDelay: {},
-}
-
 // String returns the string representation of HarvestType.
 func (t HarvestType) String() string {
 	return string(t)
-}
-
-// IsKnown reports whether t is one of the defined collection groups.
-func (t HarvestType) IsKnown() bool {
-	_, ok := knownHarvestTypes[t]
-	return ok
 }
 
 // HarvestBaseData represents the base data collected by harvester
