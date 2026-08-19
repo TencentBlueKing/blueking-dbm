@@ -1,8 +1,9 @@
-bk_data_id: 123
-bk_collector_name: ""
+bk_data_id: 0
+bk_collector_name: "backup_stm_log"
 bk_app_code: aa
 bk_app_secret: xxxx-xxx
 alt_broker: x.x.x.x:kafka_port
+bk_username: admin
 bkmonitor_api_url: https://bk-monitor.xxxx.com/prod/
 bklog_api_url: https://log-search.xxxx.com/prod/
 client_id: "backup-stm"

@@ -51,7 +51,9 @@ func QueryKafkaMetaWithBkDataId(sinker *Sinker, bkdata *config.BkmApiInfo) error
 		slog.Error("new request", err)
 		return err
 	}
-
+	if bkdata.BkUsername == "" {
+		bkdata.BkUsername = "admin"
+	}
 	content, err := json.Marshal(struct {
 		BkAppCode   string `json:"bk_app_code"`
 		BkAppSecret string `json:"bk_app_secret"`
@@ -59,7 +61,7 @@ func QueryKafkaMetaWithBkDataId(sinker *Sinker, bkdata *config.BkmApiInfo) error
 	}{
 		BkAppCode:   bkdata.BkAppCode,
 		BkAppSecret: bkdata.BkAppSecret,
-		BkUsername:  "admin",
+		BkUsername:  bkdata.BkUsername,
 	})
 	if err != nil {
 		slog.Error("pack header", err.Error())
@@ -158,7 +160,9 @@ func ListBkDataId(bkdata *config.BkmApiInfo) (map[string]*config.BkDataConfig, e
 		slog.Error("new request", err)
 		return nil, err
 	}
-
+	if bkdata.BkUsername == "" {
+		bkdata.BkUsername = "admin"
+	}
 	content, err := json.Marshal(struct {
 		BkAppCode   string `json:"bk_app_code"`
 		BkAppSecret string `json:"bk_app_secret"`
@@ -166,7 +170,7 @@ func ListBkDataId(bkdata *config.BkmApiInfo) (map[string]*config.BkDataConfig, e
 	}{
 		BkAppCode:   bkdata.BkAppCode,
 		BkAppSecret: bkdata.BkAppSecret,
-		BkUsername:  "admin",
+		BkUsername:  bkdata.BkUsername,
 	})
 	if err != nil {
 		slog.Error("pack header", err.Error())

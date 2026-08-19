@@ -32,6 +32,32 @@ type AnySinker struct {
 	writeMode string
 
 	strictSchema bool
+
+	// metrics 相关
+	metrics    *base.TopicMetrics
+	modelTable string
+	writer     string
+	groupID    string
+}
+
+// recordMetricsAttempt 记录消费尝试指标
+func (s *AnySinker) recordMetricsAttempt(topic string, msgCount int) {
+	s.metrics.RecordConsumeAttempt(topic, s.modelTable, s.writer, s.groupID, msgCount)
+}
+
+// recordMetricsSuccess 记录消费成功指标
+func (s *AnySinker) recordMetricsSuccess(topic string) {
+	s.metrics.RecordConsumeSuccess(topic, s.modelTable, s.writer, s.groupID)
+}
+
+// recordMetricsFailed 记录消费失败指标
+func (s *AnySinker) recordMetricsFailed(topic string, errorType string) {
+	s.metrics.RecordConsumeFailed(topic, s.modelTable, s.writer, s.groupID, errorType)
+}
+
+// recordMetricsFatalError 记录致命错误指标
+func (s *AnySinker) recordMetricsFatalError(topic string, errorType string) {
+	s.metrics.RecordFatalError(topic, s.modelTable, s.writer, s.groupID, errorType)
 }
 
 // Setup run default migrate or custom migrate
@@ -48,15 +74,11 @@ func (s *AnySinker) Setup(sarama.ConsumerGroupSession) error {
 
 	// 如果遇到错误，上报 fatal_errors 指标
 	if err != nil {
-		metrics := base.GetTopicMetrics()
 		topic := s.Sinker.RuntimeConfig.Topic
-		modelTable := s.Sinker.RuntimeConfig.ModelTable
-		writer := s.Sinker.RuntimeConfig.Datasource
-		groupID := s.Sinker.RuntimeConfig.Topic + s.Sinker.RuntimeConfig.GroupIdSuffix
-		metrics.RecordFatalError(topic, modelTable, writer, groupID, "setup_error")
+		s.recordMetricsFatalError(topic, "setup_error")
 		slog.Error("setup failed", slog.Any("error", err),
 			slog.String("topic", topic),
-			slog.String("model_table", modelTable))
+			slog.String("model_table", s.modelTable))
 	}
 
 	return err
@@ -133,17 +155,10 @@ func (s *AnySinker) ConsumeClaim(session sarama.ConsumerGroupSession, claim sara
 
 // HandleMessageTryBatch 先尝试批量写入到 db，如果失败，再尝试单条写入
 func (s *AnySinker) HandleMessageTryBatch(msgs []*sarama.ConsumerMessage, sk *Sinker) error {
-	// 获取指标收集器
-	metrics := base.GetTopicMetrics()
-
-	// 获取标签信息
 	topic := sk.RuntimeConfig.Topic
-	modelTable := sk.RuntimeConfig.ModelTable
-	writer := sk.RuntimeConfig.Datasource
-	groupID := sk.RuntimeConfig.Topic + sk.RuntimeConfig.GroupIdSuffix
 
 	// 记录消费尝试和消息数量
-	metrics.RecordConsumeAttempt(topic, modelTable, writer, groupID, len(msgs))
+	s.recordMetricsAttempt(topic, len(msgs))
 
 	var err error
 	if s.Sinker.RuntimeConfig.BkDataId > 0 {
@@ -167,9 +182,9 @@ func (s *AnySinker) HandleMessageTryBatch(msgs []*sarama.ConsumerMessage, sk *Si
 
 	// 记录消费结果
 	if err != nil {
-		metrics.RecordConsumeFailed(topic, modelTable, writer, groupID)
+		s.recordMetricsFailed(topic, "handle_failed")
 	} else {
-		metrics.RecordConsumeSuccess(topic, modelTable, writer, groupID)
+		s.recordMetricsSuccess(topic)
 	}
 
 	return err
@@ -194,6 +209,7 @@ func (s *AnySinker) HandleMessages(msgs []*sarama.ConsumerMessage, sk *Sinker) e
 		err := json.Unmarshal(message.Value, obj)
 		if err != nil {
 			slog.Error("unmarshal task object", err, slog.Any("msg", message.Value))
+			s.recordMetricsFailed(s.Sinker.RuntimeConfig.Topic, "unmarshal")
 			return err
 		}
 		result = reflect.Append(result, objValue.Elem())
@@ -219,6 +235,7 @@ func (s *AnySinker) HandleMessagesXorm(msgs []*sarama.ConsumerMessage, sk *Sinke
 		err := json.Unmarshal(message.Value, &obj)
 		if err != nil {
 			slog.Error("unmarshal task object", err, slog.Any("msg", message.Value))
+			s.recordMetricsFailed(s.Sinker.RuntimeConfig.Topic, "unmarshal")
 			return err
 		}
 		objs = append(objs, obj.(base.ModelSinker))
@@ -244,6 +261,7 @@ func (s *AnySinker) HandleMessagesMapper(msgs []*sarama.ConsumerMessage, sk *Sin
 		err := json.Unmarshal(message.Value, &obj)
 		if err != nil {
 			slog.Error("unmarshal task object", err, slog.Any("msg", message.Value))
+			s.recordMetricsFailed(s.Sinker.RuntimeConfig.Topic, "unmarshal")
 			return err
 		}
 		objs = append(objs, obj)
@@ -308,6 +326,7 @@ func (s *AnySinker) HandleMessagesBklogGorm(msgs []*sarama.ConsumerMessage, sk *
 		err := json.Unmarshal(message.Value, &msg)
 		if err != nil {
 			slog.Error("unmarshal message", err)
+			s.recordMetricsFailed(s.Sinker.RuntimeConfig.Topic, "parse")
 			continue
 		}
 
@@ -318,6 +337,7 @@ func (s *AnySinker) HandleMessagesBklogGorm(msgs []*sarama.ConsumerMessage, sk *
 				err = bklogItem.UnmarshalItem(item.Data, msg)
 				if err != nil {
 					// slog.Error("unmarshal bklog item", err)
+					s.recordMetricsFailed(s.Sinker.RuntimeConfig.Topic, "unmarshal")
 					continue
 				}
 				result = reflect.Append(result, objValue.Elem())
@@ -330,6 +350,7 @@ func (s *AnySinker) HandleMessagesBklogGorm(msgs []*sarama.ConsumerMessage, sk *
 
 				err = json.Unmarshal([]byte(unquoteData), &obj)
 				if err != nil {
+					s.recordMetricsFailed(s.Sinker.RuntimeConfig.Topic, "unmarshal")
 					slog.Error("unmarshal task object", err, slog.Any("msg", unquoteData))
 					return err
 				}
@@ -359,7 +380,17 @@ func (s *AnySinker) HandleRawMessages(payloads [][]byte) error {
 	for _, p := range payloads {
 		msgs = append(msgs, &sarama.ConsumerMessage{Value: p})
 	}
-	return s.HandleMessageTryBatch(msgs, s.Sinker)
+	err := s.HandleMessageTryBatch(msgs, s.Sinker)
+
+	// 记录 retry_event 维度的指标（success/failed）
+	topic := s.Sinker.RuntimeConfig.BkCollectorName
+	s.recordMetricsAttempt(topic, len(payloads))
+	if err != nil {
+		s.recordMetricsFailed(topic, "handle_failed")
+	} else {
+		s.recordMetricsSuccess(topic)
+	}
+	return err
 }
 
 // HandleMessagesBklogMapper bklog 需要解包处理

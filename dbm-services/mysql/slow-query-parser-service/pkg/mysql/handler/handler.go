@@ -1,4 +1,4 @@
-package mysql
+package handler
 
 import (
 	"log/slog"
@@ -6,6 +6,8 @@ import (
 	"regexp"
 
 	"github.com/gin-gonic/gin"
+
+	"dbm-services/mysql/slow-query-parser-service/pkg/mysql"
 )
 
 var SqlTextReplace = regexp.MustCompile(`# Time: .*`)
@@ -15,16 +17,15 @@ func AddRouter(r *gin.Engine) {
 	g := r.Group("/mysql")
 
 	g.POST("/", func(ctx *gin.Context) {
-		body := Request{}
+		body := mysql.Request{}
 		err := ctx.BindJSON(&body)
 		if err != nil {
 			slog.Error("mysql", err)
 			ctx.JSON(http.StatusBadRequest, err.Error())
 			return
 		}
-		// slog.Info("mysql", slog.Any("body", body), slog.String("path", g.BasePath()))
 		sqlText := SqlTextReplace.ReplaceAllString(body.Content, "")
-		res, err := AnalyzeSql(body.Db, sqlText)
+		res, err := mysql.AnalyzeSql(body.Db, sqlText)
 		if err != nil {
 			slog.Error("mysql", err)
 			ctx.JSON(http.StatusInternalServerError, err.Error())

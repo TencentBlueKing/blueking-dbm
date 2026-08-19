@@ -14,7 +14,6 @@ import (
 	"path/filepath"
 
 	"github.com/samber/lo"
-	"github.com/spf13/viper"
 	"gopkg.in/yaml.v2"
 
 	"dbm-services/common/db-event-consumer/pkg/base"
@@ -56,8 +55,8 @@ type mainConfig struct {
 	OtelPort   int                  `yaml:"otel_port"`
 }
 
-func InitConfig() {
-	mainConfigFile := InitMainConfig()
+func InitConfig(configPath string) {
+	mainConfigFile := InitMainConfig(configPath)
 	var err error
 	SinkerConfigs, err = InitSinkerConfig(mainConfigFile)
 	if err != nil {
@@ -65,16 +64,13 @@ func InitConfig() {
 	}
 }
 
-func InitMainConfig() (configFile string) {
-	configPath := viper.GetString("config")
+func InitMainConfig(configPath string) (configFile string) {
 	if !filepath.IsAbs(configPath) {
 		cwd, err := os.Getwd()
 		if err != nil {
 			panic(err)
 		}
-
 		configPath = filepath.Join(cwd, configPath)
-		viper.Set("config", configPath)
 	}
 
 	content, err := os.ReadFile(configPath)
@@ -82,7 +78,7 @@ func InitMainConfig() (configFile string) {
 		panic(err)
 	}
 
-	err = yaml.UnmarshalStrict(content, MainConfig)
+	err = yaml.Unmarshal(content, MainConfig)
 	if err != nil {
 		panic(err)
 	}
@@ -106,7 +102,7 @@ func InitSinkerConfig(mainConfFile string) ([]*SinkerConfig, error) {
 		if err != nil {
 			panic(err)
 		}
-		if err = yaml.UnmarshalStrict(content, &sinkers); err != nil {
+		if err = yaml.Unmarshal(content, &sinkers); err != nil {
 			os.Stderr.WriteString(fmt.Sprintf("error parsing %s: %v", f, err))
 			continue
 		}

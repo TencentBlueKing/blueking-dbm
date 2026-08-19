@@ -25,7 +25,7 @@ func TestTopicMetrics(t *testing.T) {
 	metrics.RecordConsumeSuccess(topic, modelTable, writer, groupID)
 
 	// 记录消费失败
-	metrics.RecordConsumeFailed(topic, modelTable, writer, groupID)
+	metrics.RecordConsumeFailed(topic, modelTable, writer, groupID, "write_failed")
 
 	// 记录致命错误
 	metrics.RecordFatalError(topic, modelTable, writer, groupID, "setup_error")

@@ -53,6 +53,10 @@ func (s *Sinker) NewSinkHandler() (sarama.ConsumerGroupHandler, error) {
 			Sinker:      s,
 			// 如果找到了 model 定义，则一定是按照定义的 StrictSchema 来决定是使用 struct 还是 map 来反序列化
 			strictSchema: modelTable.StrictSchema(),
+			metrics:      base.GetTopicMetrics(),
+			modelTable:   s.RuntimeConfig.ModelTable,
+			writer:       s.RuntimeConfig.Datasource,
+			groupID:      s.RuntimeConfig.Topic + s.RuntimeConfig.GroupIdSuffix,
 		}
 	} else {
 		// 如果没有找到 model 定义，且 strict_schema=false, 则使用 map 来反序列化，自动根据字段名来写 db（没有 schema migrate）
@@ -70,6 +74,10 @@ func (s *Sinker) NewSinkHandler() (sarama.ConsumerGroupHandler, error) {
 				modelType:    modelType,  //for not panic
 				modelValue:   modelValue, // for not panic
 				strictSchema: false,      // true
+				metrics:      base.GetTopicMetrics(),
+				modelTable:   s.RuntimeConfig.ModelTable,
+				writer:       s.RuntimeConfig.Datasource,
+				groupID:      s.RuntimeConfig.Topic + s.RuntimeConfig.GroupIdSuffix,
 			}
 		} else {
 			return nil, fmt.Errorf("table [%s] is not registered to struct", s.RuntimeConfig.ModelTable)

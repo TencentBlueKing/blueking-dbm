@@ -33,7 +33,7 @@ func InitConfig() {
 		panic(err)
 	}
 
-	err = yaml.UnmarshalStrict(content, RuntimeConfig)
+	err = yaml.Unmarshal(content, RuntimeConfig)
 	if err != nil {
 		panic(err)
 	}

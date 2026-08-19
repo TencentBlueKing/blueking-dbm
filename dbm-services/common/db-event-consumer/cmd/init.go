@@ -16,7 +16,6 @@ import (
 	"path/filepath"
 
 	"github.com/natefinch/lumberjack"
-	"github.com/spf13/viper"
 
 	"dbm-services/common/db-event-consumer/pkg/config"
 )
@@ -24,15 +23,15 @@ import (
 var executable string
 var executableName string
 var executableDir string
+var configFile string
 
 func init() {
 	executable, _ = os.Executable()
 	executableName = filepath.Base(executable)
 	executableDir = filepath.Dir(executable)
 
-	rootCmd.PersistentFlags().StringP("config", "c", "", "runtime config file")
+	rootCmd.PersistentFlags().StringVarP(&configFile, "config", "c", "", "runtime config file")
 	_ = rootCmd.MarkPersistentFlagRequired("config")
-	_ = viper.BindPFlag("config", rootCmd.PersistentFlags().Lookup("config"))
 }
 
 func initLogger(cfg *config.LogConfig) {
