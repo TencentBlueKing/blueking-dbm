@@ -165,6 +165,12 @@ class _IAMV4Api(BaseApi):
             url=f"{AUTH_URL}/auth/",
             description=_("直接鉴权"),
         )
+        # 一次返回该动作下所有资源类型的授权实例，调用方自行按类型过滤
+        self.list_authorized_resource = self.generate_data_api(
+            method="POST",
+            url=f"{AUTH_URL}/relation/authorized-resources/",
+            description=_("查询有权限的资源实例"),
+        )
         # body为授权记录数组，单次最多20条，调用时必须带上 X-Bkiam-Operator 头
         self.add_authorization = self.generate_data_api(
             method="POST",
