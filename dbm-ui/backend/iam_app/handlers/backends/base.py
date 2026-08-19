@@ -12,7 +12,7 @@ specific language governing permissions and limitations under the License.
 import abc
 import logging
 import time
-from typing import Any, Callable, List
+from typing import Any, Callable, List, Union
 
 from iam import Resource
 from requests.exceptions import ConnectionError as RequestsConnectionError
@@ -60,6 +60,11 @@ class IAMBackend(metaclass=abc.ABCMeta):
         raise NotImplementedError
 
     @abc.abstractmethod
+    def policy_query(self, username: str, action: ActionMeta, obj_list: List[Union[int, str]]) -> List:
+        """从待判定的对象中筛出有权限的部分，返回原始对象"""
+        raise NotImplementedError
+
+    @abc.abstractmethod
     def grant_creator_actions(self, resource: Resource, creator: str) -> Any:
         """资源新建后给创建者授权"""
         raise NotImplementedError
@@ -70,6 +75,9 @@ class DummyIAMBackend(IAMBackend):
 
     def is_allowed(self, username: str, action: ActionMeta, resources: List[Resource]) -> bool:
         return True
+
+    def policy_query(self, username: str, action: ActionMeta, obj_list: List[Union[int, str]]) -> List:
+        return list(obj_list)
 
     def grant_creator_actions(self, resource: Resource, creator: str) -> Any:
         return None

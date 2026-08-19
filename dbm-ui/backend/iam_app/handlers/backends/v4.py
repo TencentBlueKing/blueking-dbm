@@ -29,6 +29,8 @@ class IAMV4Backend(IAMBackend):
 
     # 授权有效期，V4限制最长365天，到期后需要重新授权
     AUTHORIZATION_EXPIRED_DAYS = 365
+    # 资源实例ID为该值时表示这一资源类型的无限制授权
+    ANY_RESOURCE_ID = "*"
 
     @staticmethod
     def make_resource(action: ActionMeta, resources: List[Resource]) -> Union[Dict, None]:
@@ -65,6 +67,34 @@ class IAMV4Backend(IAMBackend):
 
         data = self.call_with_retry(IAMV4Api.direct_auth, params=params, default=None)
         return bool((data or {}).get("allowed"))
+
+    def policy_query(self, username: str, action: ActionMeta, obj_list: List[Union[int, str]]) -> List:
+        """
+        V4没有策略表达式，改为查出用户在该动作下有权限的资源实例，再与待判定的对象求交。
+        仅支持顶层资源类型，DBM当前的调用都是业务维度
+        """
+        resource_type = action.get_related_resource_type_v4()
+        if not resource_type:
+            return []
+
+        params = {"subject": {"type": "user", "id": username}, "action_id": action.id}
+        # TODO: 该接口的分页与返回上限尚未明确(见06文档B2)，此处按无上限处理。
+        #  若IAM侧存在默认截断，会表现为部分有权限的实例被判定为无权限
+        authorized_resources = self.call_with_retry(IAMV4Api.list_authorized_resource, params=params, default=None)
+        if not authorized_resources:
+            return []
+
+        # 接口一次返回该动作下所有资源类型的授权，取动作关联的那个
+        allowed_ids = set()
+        for item in authorized_resources:
+            if item.get("type") == resource_type.id:
+                allowed_ids.update(item.get("ids") or [])
+
+        if self.ANY_RESOURCE_ID in allowed_ids:
+            return list(obj_list)
+
+        # 接口返回的实例ID是字符串，而调用方传入的可能是整型，按字符串比对但返回原始对象
+        return [obj for obj in obj_list if str(obj) in allowed_ids]
 
     def grant_creator_actions(self, resource: Resource, creator: str) -> Any:
         """
