@@ -22,8 +22,10 @@ from backend.flow.consts import DBA_ROOT_USER
 from backend.flow.plugins.components.collections.common.base_service import BaseService
 from backend.flow.utils.mysql.dts.constants import FullLoadEngine, get_full_migrate_data_dir
 from backend.flow.utils.mysql.dts.migrate_helper import (
+    is_relay_not_enabled_error,
     resolve_dts_cluster_id,
     resolve_purge_relay_binlog_name,
+    resolve_source_relay_enabled,
     task_mode_runs_incremental,
 )
 from backend.flow.utils.mysql.dts.script_template import render_clean_ticket_dump_script
@@ -38,6 +40,7 @@ class MysqlDtsDeleteTaskSourceService(BaseService):
 
     成功路径串行顺序：增量先 purge_relay → delete_task → builtin dump rm → delete_source。
     purge 必须在 delete_task 之前，否则删任务后 relay worker 可能已下线导致 purge 49001。
+    未启用 relay 的 Source 直接跳过 purge；relay 相关失败只告警，不判本节点失败。
 
     与 DESTROY ``MysqlDtsStopTasksService`` 的差异：
       - 本组件只删除入参 ``task_names`` / ``source_names``，**禁止** ``list_tasks`` / ``list_sources`` 全量扫删
@@ -107,6 +110,9 @@ class MysqlDtsDeleteTaskSourceService(BaseService):
     def _purge_relays(self, master_addr: str, bk_cloud_id: int, source_names: list[str], ignore_errors: bool) -> bool:
         ok = True
         for source_name in source_names:
+            if not self._relay_enabled(master_addr, bk_cloud_id, source_name):
+                self.log_warning(_("Source {} 未启用 relay，跳过 purge_relay").format(source_name))
+                continue
             try:
                 status_resp = MySQLDTSApi.get_source_status(master_addr, source_name, bk_cloud_id=bk_cloud_id)
             except Exception as exc:  # pylint: disable=broad-except
@@ -129,12 +135,21 @@ class MysqlDtsDeleteTaskSourceService(BaseService):
                 )
                 self.log_info(_("purge_relay 成功: source={} before={}").format(source_name, binlog_name))
             except Exception as exc:  # pylint: disable=broad-except
-                if ignore_errors:
+                if ignore_errors or is_relay_not_enabled_error(exc):
                     self.log_warning(_("尽力清理：purge_relay {} 失败: {}").format(source_name, exc))
                     continue
                 self.log_error(_("purge_relay {} 失败: {}").format(source_name, exc))
                 ok = False
         return ok
+
+    def _relay_enabled(self, master_addr: str, bk_cloud_id: int, source_name: str) -> bool:
+        """relay 未启用时 Master 会拒绝 purge（49001）。查询失败按启用处理，交给 purge 自身的容错。"""
+        try:
+            source_resp = MySQLDTSApi.get_source(master_addr, source_name, bk_cloud_id=bk_cloud_id)
+        except Exception as exc:  # pylint: disable=broad-except
+            self.log_warning(_("查询 Source {} relay 配置失败，按已启用继续: {}").format(source_name, exc))
+            return True
+        return resolve_source_relay_enabled(source_resp)
 
     def _rm_ticket_dump_dirs(self, kwargs: dict, trans_data, task_names: list[str], ignore_errors: bool) -> bool:
         plan_like = SimpleNamespace(dts_cluster_id=kwargs.get("dts_cluster_id"))

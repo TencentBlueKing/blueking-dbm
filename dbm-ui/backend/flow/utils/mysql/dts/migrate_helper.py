@@ -445,6 +445,29 @@ def task_mode_runs_incremental(task_mode: str | None) -> bool:
     return (task_mode or "").strip().lower() != "full"
 
 
+def resolve_source_relay_enabled(source_resp) -> bool:
+    """从 get_source 结果判断 Source 是否启用 relay。
+
+    ``get_source_status.relay_status.master_binlog`` 未启用 relay 时也会返回上游位点，不能当判据；
+    只有 ``relay_config.enable_relay`` 能区分。字段缺失按未启用处理。
+    """
+    relay_config = getattr(source_resp, "relay_config", None)
+    if relay_config is None and isinstance(source_resp, dict):
+        relay_config = source_resp.get("relay_config")
+    if relay_config is None:
+        return False
+    enabled = getattr(relay_config, "enable_relay", None)
+    if enabled is None and isinstance(relay_config, dict):
+        enabled = relay_config.get("enable_relay")
+    return bool(enabled)
+
+
+def is_relay_not_enabled_error(exc: Exception) -> bool:
+    """DTS 49001：source 无 relay worker，需先 enable-relay。relay 未启用不是清理失败。"""
+    text = str(exc)
+    return "49001" in text or "enable-relay" in text
+
+
 def resolve_purge_relay_binlog_name(status_resp) -> str | None:
     """从 get_source_status 结果解析 purge_relay 所需文件名。
 

@@ -11,6 +11,9 @@ specific language governing permissions and limitations under the License.
 from django.utils.translation import gettext as _
 
 from backend.flow.engine.bamboo.scene.common.builder import SubBuilder
+from backend.flow.engine.bamboo.scene.mysql.dts.mysql_dts_cc_standardize_subflow import (
+    mysql_dts_cc_standardize_subflow,
+)
 from backend.flow.engine.bamboo.scene.mysql.dts.mysql_dts_deploy_worker_subflow import mysql_dts_deploy_worker_subflow
 from backend.flow.engine.bamboo.scene.mysql.dts.subflow_common import build_worker_nodes
 from backend.flow.plugins.components.collections.mysql.dts.deploy.register_meta import (
@@ -54,5 +57,15 @@ def mysql_dts_append_worker_subflow(inp: MysqlDtsAppendWorkerSubflowInput) -> Su
             "creator": inp.creator,
             "register_mode": DtsRegisterMode.APPEND_WORKER.value,
         },
+    )
+    # 幂等：按集群 id 拉全量 IP 再进同一 Module（含新 Worker / 同机升级）
+    sub.add_sub_pipeline(
+        mysql_dts_cc_standardize_subflow(
+            root_id=inp.root_id,
+            bk_biz_id=inp.bk_biz_id,
+            bk_cloud_id=inp.bk_cloud_id,
+            dts_cluster_id=inp.dts_cluster_id,
+            creator=inp.creator,
+        ).build_sub_process(sub_name=_("DTS 标准化"))
     )
     return sub

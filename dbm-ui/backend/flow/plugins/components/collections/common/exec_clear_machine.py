@@ -65,7 +65,11 @@ class ClearMachineScriptService(BkJobService):
             "timeout": kwargs.get("job_timeout", 3600),
             "account_alias": db_type_account_user_map[global_data["db_type"]],
             "task_name": f"DBM_{node_name}_{node_id}",
-            "script_content": base64_encode(db_type_script_map[global_data["db_type"]]),
+            # 少数组件归属同一 DBType，但机器布局不同（如 mysql_dts 归属 mysql）。
+            # 允许场景 Flow 显式覆盖脚本，避免误用 MySQL 通用清机脚本。
+            "script_content": base64_encode(
+                kwargs.get("clear_machine_script") or db_type_script_map[global_data["db_type"]]
+            ),
             "script_language": os_script_language_map[global_data["os_type"]],
             "target_server": {"ip_list": exec_ips},
         }

@@ -21,7 +21,8 @@ def mysql_dts_delete_task_source_subflow(inp: MysqlDtsDeleteTaskSourceSubflowInp
     """本单维度清理 DTS task/source 子流程（节点名建议「清理 dts-task」）。
 
     内部由组件串行执行：增量先 purge_relay → delete_task → builtin dump rm → delete_source。
-    仅删除显式名称列表。挂载于成功路径 mysql_dts_task_clean_subflow 内，与 drop_user 并行；终止路径不调用。
+    仅删除显式名称列表。挂载于成功路径 mysql_dts_task_clean_subflow 内，**必须排在 drop_user 之前**
+    （DM 删 task/source 仍要用临时账号连下游）；终止路径不调用。
     """
     sub = SubBuilder(
         root_id=inp.root_id,
