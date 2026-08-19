@@ -19,13 +19,14 @@
             :title="titleItem.label">
             <template #default="{ row }">
               <a
-                v-if="titleItem.type === 'url'"
+                v-if="titleItem.type === 'url' && isHttpUrl(row[titleItem.field])"
                 :href="row[titleItem.field]"
                 target="_blank">
                 {{ titleItem.label }}
               </a>
+              <span v-else-if="titleItem.type === 'url'"> -- </span>
               <span v-else>
-                {{ row[titleItem.field] }}
+                {{ row[titleItem.field] || '--' }}
               </span>
             </template>
           </TicketInfoTableColumn>
@@ -40,6 +41,8 @@
   import FlowMode from '@services/model/ticket/flow';
 
   import TableCollapse from '@components/table-collapse/Index.vue';
+
+  import { isHttpUrl } from '@utils';
 
   import FlowCollapse from '../FlowCollapse.vue';
 
