@@ -28,6 +28,8 @@ import (
 	"testing"
 
 	"dbm-services/common/dbha-v2/pkg/gerrors"
+	"dbm-services/common/dbha-v2/pkg/storage/hamodel"
+	"dbm-services/common/dbha-v2/pkg/storage/haprobe"
 )
 
 // TestMySQLSaveUnknownClusterTypeOK asserts Save does not reject probe payloads whose
@@ -35,6 +37,7 @@ import (
 // valid HarvestData JSON (dbs may be nil — no DB write is required for this check).
 func TestMySQLSaveUnknownClusterTypeOK(t *testing.T) {
 	payload := []byte(`{
+		"harvest_type":"default",
 		"cluster_type":"someFutureDb",
 		"db_type_name":"future",
 		"machine_type":"future_machine",
@@ -47,6 +50,40 @@ func TestMySQLSaveUnknownClusterTypeOK(t *testing.T) {
 	err := s.Save(&Message{Topic: "probe", Data: payload})
 	if err != nil {
 		t.Fatalf("Save returned error for unknown cluster_type, errmsg: %s", err)
+	}
+}
+
+// TestMySQLSaveMissingHarvestTypeOK asserts Save keeps accepting payloads from probes that
+// predate the multi-cadence collection change and report no harvest_type.
+func TestMySQLSaveMissingHarvestTypeOK(t *testing.T) {
+	payload := []byte(`{
+		"cluster_type":"tendbha",
+		"db_type_name":"mysql",
+		"machine_type":"backend",
+		"db_ip":"127.0.0.1",
+		"db_port":3306,
+		"data":{"x":1}
+	}`)
+
+	s := &mysql{}
+	if err := s.Save(&Message{Topic: "probe", Data: payload}); err != nil {
+		t.Fatalf("Save returned error for payload without harvest_type, errmsg: %s", err)
+	}
+}
+
+// TestApplyHarvestTypeFallback asserts the empty harvest_type is normalized to the default
+// collection group while an explicit value is left untouched.
+func TestApplyHarvestTypeFallback(t *testing.T) {
+	data := &hamodel.DbhaDataStatus{DbIp: "127.0.0.1", DbPort: 3306}
+	applyHarvestTypeFallback(data, "probe")
+	if data.HarvestType != haprobe.HarvestTypeDefault {
+		t.Errorf("harvest_type not filled, got: %s, want: %s", data.HarvestType, haprobe.HarvestTypeDefault)
+	}
+
+	data = &hamodel.DbhaDataStatus{HarvestType: haprobe.HarvestTypeHeartbeat}
+	applyHarvestTypeFallback(data, "probe")
+	if data.HarvestType != haprobe.HarvestTypeHeartbeat {
+		t.Errorf("harvest_type altered, got: %s, want: %s", data.HarvestType, haprobe.HarvestTypeHeartbeat)
 	}
 }
 

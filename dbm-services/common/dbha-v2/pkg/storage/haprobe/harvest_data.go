@@ -164,6 +164,11 @@ func (t HarvestType) IsKnown() bool {
 	return ok
 }
 
+// String returns the string representation of HarvestType.
+func (t HarvestType) String() string {
+	return string(t)
+}
+
 // HarvestBaseData represents the base data collected by harvester
 type HarvestBaseData struct {
 	HarvestType     HarvestType                `json:"harvest_type"`
