@@ -113,7 +113,7 @@ export default class Flow<
     titles: {
       display_name: string;
       id: string;
-      type: 'url';
+      type?: 'url'; // 标记为 url 时单元格按链接渲染，缺省为文本栏
     }[];
 
     values: Record<string, any>[];
