@@ -13,9 +13,14 @@ from unittest.mock import MagicMock, patch
 
 from django.test import SimpleTestCase
 
-from backend.components.mysqldtsapi.types import TaskStatusItem, TaskStatusListResponse
+from backend.components.mysqldtsapi.types import DumpStatus, LoadStatus, TaskStatusItem, TaskStatusListResponse
 from backend.flow.plugins.components.collections.mysql.dts.migrate.poll_full_load import (
     MysqlDtsPollFullLoadService,
+    _ascii_progress_bar,
+    _format_bytes,
+    _format_dump_progress,
+    _format_load_progress,
+    _percent,
     evaluate_poll_full_load_tick,
 )
 
@@ -27,6 +32,8 @@ def _item(
     error_msg: str | None = None,
     source_name: str = "src1",
     name: str = "t1",
+    dump_status: DumpStatus | None = None,
+    load_status: LoadStatus | None = None,
 ) -> TaskStatusItem:
     return TaskStatusItem(
         name=name,
@@ -35,7 +42,34 @@ def _item(
         unit=unit,
         worker_name="worker-1",
         error_msg=error_msg,
+        dump_status=dump_status,
+        load_status=load_status,
     )
+
+
+class FormatHelperTest(SimpleTestCase):
+    def test_ascii_bar_and_percent(self):
+        self.assertEqual(_ascii_progress_bar(25, 100), "[##--------]")
+        self.assertEqual(_percent(25, 100), 25)
+        self.assertEqual(_ascii_progress_bar(100, 100), "[##########]")
+        self.assertEqual(_percent(150, 100), 100)
+        self.assertIsNone(_ascii_progress_bar(12, 0))
+        self.assertIsNone(_percent(12, 0))
+
+    def test_format_bytes(self):
+        self.assertEqual(_format_bytes(536870912), "512.0MiB")
+        self.assertEqual(_format_bytes(2147483648), "2.0GiB")
+
+    def test_format_dump_and_load(self):
+        dump = _format_dump_progress(DumpStatus(completed_tables=12, total_tables=100))
+        self.assertIn("表进度=12/100", dump)
+        self.assertIn("12%", dump)
+        load = _format_load_progress(LoadStatus(finished_bytes=536870912, total_bytes=2147483648))
+        self.assertIn("512.0MiB/2.0GiB", load)
+        self.assertIn("25%", load)
+        missing = _format_dump_progress(DumpStatus(completed_tables=12, total_tables=0))
+        self.assertIn("12/未知", missing)
+        self.assertNotIn("%", missing)
 
 
 class EvaluatePollFullLoadTickTest(SimpleTestCase):
@@ -63,6 +97,88 @@ class EvaluatePollFullLoadTickTest(SimpleTestCase):
             self.assertFalse(r.finished, msg=unit)
             self.assertFalse(r.success, msg=unit)
             self.assertEqual(r.fail_streak, 0, msg=unit)
+
+    def test_dump_running_reason_has_progress_omits_stage(self):
+        dump = DumpStatus(
+            completed_tables=12,
+            total_tables=100,
+            finished_rows=1200000,
+            estimate_total_rows=10000000,
+        )
+        r = evaluate_poll_full_load_tick(
+            items=[_item(stage="Running", unit="Dump", dump_status=dump)],
+            fail_streak=0,
+        )
+        self.assertFalse(r.finished)
+        self.assertNotIn("stage=Running", r.reason)
+        self.assertIn("unit=Dump", r.reason)
+        self.assertIn("表进度=12/100", r.reason)
+        self.assertIn("12%", r.reason)
+        self.assertIn("[", r.reason)
+        self.assertIn("行进度=1200000/10000000", r.reason)
+
+    def test_load_running_reason_human_bytes_and_percent(self):
+        load = LoadStatus(finished_bytes=536870912, total_bytes=2147483648, progress="25%")
+        r = evaluate_poll_full_load_tick(
+            items=[_item(stage="Running", unit="Load", load_status=load)],
+            fail_streak=0,
+        )
+        self.assertFalse(r.finished)
+        self.assertNotIn("stage=Running", r.reason)
+        self.assertIn("unit=Load", r.reason)
+        self.assertIn("字节进度=512.0MiB/2.0GiB", r.reason)
+        self.assertIn("[##--------]", r.reason)
+        self.assertIn("25%", r.reason)
+        self.assertIn("progress=25%", r.reason)
+
+    def test_stopped_dump_keeps_stage_in_reason(self):
+        dump = DumpStatus(completed_tables=3, total_tables=10)
+        r = evaluate_poll_full_load_tick(
+            items=[_item(stage="Stopped", unit="Dump", dump_status=dump)],
+            fail_streak=0,
+        )
+        self.assertFalse(r.finished)
+        self.assertIn("stage=Stopped", r.reason)
+        self.assertIn("表进度=3/10", r.reason)
+
+    def test_dump_missing_total_no_fake_percent(self):
+        dump = DumpStatus(completed_tables=12, total_tables=0)
+        r = evaluate_poll_full_load_tick(
+            items=[_item(unit="Dump", dump_status=dump)],
+            fail_streak=0,
+        )
+        self.assertFalse(r.finished)
+        self.assertIn("表进度=12/未知", r.reason)
+        self.assertNotIn("%", r.reason)
+        self.assertNotIn("[", r.reason)
+
+    def test_multi_source_waiting_reason_per_source(self):
+        items = [
+            _item(
+                source_name="shard-a",
+                unit="Dump",
+                dump_status=DumpStatus(completed_tables=1, total_tables=10),
+            ),
+            _item(
+                source_name="shard-b",
+                unit="Load",
+                load_status=LoadStatus(finished_bytes=100, total_bytes=400),
+            ),
+        ]
+        r = evaluate_poll_full_load_tick(items=items, fail_streak=0)
+        self.assertFalse(r.finished)
+        self.assertIn("各源仍在全量导入", r.reason)
+        self.assertIn("shard-a", r.reason)
+        self.assertIn("shard-b", r.reason)
+        self.assertIn("表进度=1/10", r.reason)
+        self.assertIn("25%", r.reason)
+
+    def test_sync_success_reason_unchanged_shape(self):
+        r = evaluate_poll_full_load_tick(items=[_item(stage="Running", unit="Sync")], fail_streak=0)
+        self.assertTrue(r.finished)
+        self.assertTrue(r.success)
+        self.assertIn("DTS 全量导入已完成", r.reason)
+        self.assertNotIn("表进度=", r.reason)
 
     def test_stopped_dump_or_load_continues_not_hard_fail(self):
         for unit in ("Dump", "Load"):
@@ -252,3 +368,23 @@ class MysqlDtsPollFullLoadServiceTest(SimpleTestCase):
         self.assertTrue(result)
         service.finish_schedule.assert_not_called()
         self.assertEqual(data.outputs.fail_streak, 1)
+
+    @patch("backend.flow.plugins.components.collections.mysql.dts.migrate.poll_full_load.MySQLDTSApi.get_task_status")
+    def test_schedule_continues_logs_progress(self, mock_status):
+        mock_status.return_value = TaskStatusListResponse(
+            total=1,
+            data=[
+                _item(
+                    unit="Dump",
+                    dump_status=DumpStatus(completed_tables=12, total_tables=100),
+                )
+            ],
+        )
+        service = self._make_service()
+        data = self._make_data()
+        result = service._schedule(data, parent_data=None)
+        self.assertTrue(result)
+        service.log_info.assert_called()
+        logged = service.log_info.call_args[0][0]
+        self.assertIn("表进度=12/100", logged)
+        self.assertNotIn("stage=Running", logged)
