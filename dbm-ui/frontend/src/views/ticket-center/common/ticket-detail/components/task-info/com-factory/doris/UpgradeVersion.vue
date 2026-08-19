@@ -16,6 +16,9 @@
     <InfoItem :label="t('目标集群')">
       {{ clusterDomain }}
     </InfoItem>
+    <InfoItem :label="t('当前版本')">
+      {{ ticketDetails.details.clusters?.[ticketDetails.details.cluster_id]?.major_version || '--' }}
+    </InfoItem>
     <InfoItem :label="t('目标版本')">
       {{ ticketDetails.details.new_version }}
     </InfoItem>
@@ -29,7 +32,7 @@
 
   import { TicketTypes } from '@common/const';
 
-import InfoList, { Item as InfoItem } from '../components/info-list/Index.vue';
+  import InfoList, { Item as InfoItem } from '../components/info-list/Index.vue';
 
   interface Props {
     ticketDetails: TicketModel<Doris.UpgradeVersion>;
