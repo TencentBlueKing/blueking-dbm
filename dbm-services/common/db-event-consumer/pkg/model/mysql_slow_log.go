@@ -14,6 +14,7 @@ import (
 	"log/slog"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/coocood/freecache"
@@ -31,11 +32,33 @@ import (
 
 // slowLogDbNameCache 用于缓存每个实例当前上下文的 db_name。
 // 10万实例，每个 key 约 30 字节（ip:port），value 约 64 字节（db_name），
-// 分配 32MB 足够存储所有实例的上下文信息。
-// 过期时间设为 1 小时，避免长时间不活跃的实例占用内存。
-var slowLogDbNameCache = freecache.NewCache(64 * 1024 * 1024)
+// 分配 64MB 足够存储所有实例的上下文信息。
+var slowLogDbNameCache *freecache.Cache
+var slowLogCacheOnce sync.Once
 
-const slowLogDbNameExpireSec = 86400 // 60分钟
+const slowLogDbNameExpireSec = 86400 // 24小时
+
+// initSlowLogDbNameCache 初始化 slowLogDbNameCache 并启动定时状态打印
+func initSlowLogDbNameCache() {
+	slowLogCacheOnce.Do(func() {
+		slowLogDbNameCache = freecache.NewCache(64 * 1024 * 1024)
+		go func() {
+			ticker := time.NewTicker(1 * time.Hour)
+			defer ticker.Stop()
+			for range ticker.C {
+				slog.Info("slowLogDbNameCache stats",
+					slog.Int64("entry_count", slowLogDbNameCache.EntryCount()),
+					slog.Int64("evacuate_count", slowLogDbNameCache.EvacuateCount()),
+					slog.Int64("hit_count", slowLogDbNameCache.HitCount()),
+					slog.Int64("miss_count", slowLogDbNameCache.MissCount()),
+					slog.Float64("hit_rate", slowLogDbNameCache.HitRate()),
+					slog.Int64("overwrite_count", slowLogDbNameCache.OverwriteCount()),
+					slog.Int64("lookup_count", slowLogDbNameCache.LookupCount()),
+				)
+			}
+		}()
+	})
+}
 
 type MysqlSlowLogModel struct {
 	ID uint `gorm:"primaryKey;autoIncrement:true"`
@@ -136,10 +159,11 @@ type SlowLog struct {
 }
 
 func (m *MysqlSlowLogModel) TableName() string {
-	return "tb_mysql_slow_log2"
+	return "tb_mysql_slow_log"
 }
 
 func (m *MysqlSlowLogModel) MigrateSchema(w base.DSWriter) error {
+	initSlowLogDbNameCache()
 	slog.Info("run migrate for MysqlSlowLogModel", slog.String("table", m.TableName()))
 	dbWriter, ok := w.(base.GormMigrator)
 	if !ok {

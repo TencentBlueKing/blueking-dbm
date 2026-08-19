@@ -62,7 +62,7 @@ func GetTopicMetrics() *TopicMetrics {
 					Name: "kafka_consume_failed_total",
 					Help: "Total number of failed kafka consume",
 				},
-				[]string{"topic", "model_table", "writer", "group_id"},
+				[]string{"topic", "model_table", "writer", "group_id", "error_type"},
 			),
 			ConsumeMessages: prometheus.NewCounterVec(
 				prometheus.CounterOpts{
@@ -102,8 +102,8 @@ func (tm *TopicMetrics) RecordConsumeSuccess(topic, modelTable, writer, groupID 
 }
 
 // RecordConsumeFailed 记录消费失败
-func (tm *TopicMetrics) RecordConsumeFailed(topic, modelTable, writer, groupID string) {
-	tm.ConsumeFailed.WithLabelValues(topic, modelTable, writer, groupID).Inc()
+func (tm *TopicMetrics) RecordConsumeFailed(topic, modelTable, writer, groupID, errorType string) {
+	tm.ConsumeFailed.WithLabelValues(topic, modelTable, writer, groupID, errorType).Inc()
 }
 
 // RecordFatalError 记录致命错误

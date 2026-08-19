@@ -22,7 +22,6 @@ import (
 	"dbm-services/common/db-event-consumer/pkg/consumer"
 	sinkerPkg "dbm-services/common/db-event-consumer/pkg/sinker"
 
-	"github.com/gin-gonic/gin"
 	"github.com/spf13/cobra"
 	"golang.org/x/exp/slog"
 )
@@ -32,7 +31,7 @@ var rootCmd = &cobra.Command{
 	Short: "db-event-consumer",
 	Long:  "db-event-consumer",
 	RunE: func(cmd *cobra.Command, args []string) error {
-		config.InitConfig()
+		config.InitConfig(configFile)
 		initLogger(config.MainConfig.Log)
 		if err := sinkerPkg.InitDatasource(); err != nil {
 			return err
@@ -89,27 +88,30 @@ func initHTTPServer() {
 	if config.MainConfig.OtelPort <= 0 {
 		return
 	}
-	r := gin.Default()
-	r.Handle("GET", "/ping", func(context *gin.Context) {
-		context.String(http.StatusOK, "pong")
+	mux := http.NewServeMux()
+	mux.HandleFunc("/ping", func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte("pong"))
 	})
 
-	pprofGroup := r.Group("/debug/pprof")
-	{
-		pprofGroup.GET("/", gin.WrapF(pprof.Index))
-		pprofGroup.GET("/cmdline", gin.WrapF(pprof.Cmdline))
-		pprofGroup.GET("/profile", gin.WrapF(pprof.Profile))
-		pprofGroup.GET("/symbol", gin.WrapF(pprof.Symbol))
-		pprofGroup.GET("/trace", gin.WrapF(pprof.Trace))
-		pprofGroup.GET("/allocs", gin.WrapH(pprof.Handler("allocs")))
-		pprofGroup.GET("/block", gin.WrapH(pprof.Handler("block")))
-		pprofGroup.GET("/goroutine", gin.WrapH(pprof.Handler("goroutine")))
-		pprofGroup.GET("/heap", gin.WrapH(pprof.Handler("heap")))
-		pprofGroup.GET("/mutex", gin.WrapH(pprof.Handler("mutex")))
-		pprofGroup.GET("/threadcreate", gin.WrapH(pprof.Handler("threadcreate")))
-	}
+	mux.HandleFunc("/debug/pprof/", pprof.Index)
+	mux.HandleFunc("/debug/pprof/cmdline", pprof.Cmdline)
+	mux.HandleFunc("/debug/pprof/profile", pprof.Profile)
+	mux.HandleFunc("/debug/pprof/symbol", pprof.Symbol)
+	mux.HandleFunc("/debug/pprof/trace", pprof.Trace)
+	mux.Handle("/debug/pprof/allocs", pprof.Handler("allocs"))
+	mux.Handle("/debug/pprof/block", pprof.Handler("block"))
+	mux.Handle("/debug/pprof/goroutine", pprof.Handler("goroutine"))
+	mux.Handle("/debug/pprof/heap", pprof.Handler("heap"))
+	mux.Handle("/debug/pprof/mutex", pprof.Handler("mutex"))
+	mux.Handle("/debug/pprof/threadcreate", pprof.Handler("threadcreate"))
+
 	go func() {
-		_ = r.Run(fmt.Sprintf("127.0.0.1:%d", config.MainConfig.OtelPort))
+		addr := fmt.Sprintf("127.0.0.1:%d", config.MainConfig.OtelPort)
+		slog.Info("http server starting", slog.String("addr", addr))
+		if err := http.ListenAndServe(addr, mux); err != nil {
+			slog.Error("http server failed", slog.String("error", err.Error()))
+		}
 	}()
 }
 

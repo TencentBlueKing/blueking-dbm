@@ -15,6 +15,7 @@ data:
     bk_collector_name: "{{ index .Values "backup-consumer" "bk_collector_name" }}"
     bk_app_code: "{{ .Values.dbm.envs.bkAppCode }}"
     bk_app_secret: "{{ .Values.dbm.envs.bkAppToken }}"
+    bk_username: "{{ .Values.dbm.envs.bkAdminUser }}"
     {{- if .Values.bk.bkMonitorApiUrl }}
     bkmonitor_api_url: "{{ .Values.bk.bkMonitorApiUrl }}"
     {{- else }}

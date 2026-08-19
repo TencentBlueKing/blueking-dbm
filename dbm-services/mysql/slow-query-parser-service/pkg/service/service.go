@@ -6,7 +6,7 @@ import (
 
 	"dbm-services/common/go-pubpkg/apm/metric"
 	"dbm-services/common/go-pubpkg/apm/trace"
-	"dbm-services/mysql/slow-query-parser-service/pkg/mysql"
+	"dbm-services/mysql/slow-query-parser-service/pkg/mysql/handler"
 
 	"go.opentelemetry.io/contrib/instrumentation/github.com/gin-gonic/gin/otelgin"
 
@@ -28,7 +28,7 @@ func Start(address string) error {
 	// apm: add prom metrics middleware
 	metric.NewPrometheus("").Use(r)
 
-	mysql.AddRouter(r)
+	handler.AddRouter(r)
 
 	r.Handle("GET", "/ping", func(context *gin.Context) {
 		context.String(http.StatusOK, "pong")
