@@ -11,6 +11,8 @@ harvester:
         user: mysql_user
         password: mysql_pwd
         interval: 20s
+        heartbeatInterval: 3s
+        replDelayInterval: 20s
         timeout: 5s
         endpoints:
             - proto: tcp
@@ -26,6 +28,8 @@ harvester:
         user: proxy_admin_user
         password: proxy_admin_pwd
         interval: 20s
+        heartbeatInterval: 3s
+        replDelayInterval: 20s
         timeout: 5s
         endpoints:
             - proto: tcp

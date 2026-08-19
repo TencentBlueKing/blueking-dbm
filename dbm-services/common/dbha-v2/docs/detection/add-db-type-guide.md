@@ -98,6 +98,8 @@ Probe `genconfig` 经 `dbtype.RouteEndpoint` 分派端点：
 - Probe 运行时配置：命名块 `mysql` / `mysqlProxyAdmin` / `redis` 保持零回归；新 DB 走 `HarvesterConfig.Extra`（YAML 同级键）。
 - Admin 下发：命名 `probeMysql` / `probeRedis` / `probeProxyAdmin` 不变；新 DB 凭证写入 `probeHarvesters`，admin **纯 pass-through** 到 payload `harvesters`（不 import provider 业务包，只 blank-import `alldesc`）。
 - Probe `genconfig`：经 `RouteEndpoint` 得到 `map[blockName]endpoints`，再按命名三块常量拆回 `mysql` / `mysqlProxyAdmin` / `redis` 与 Extra；凭证仍走命名字段 + `lookupExtraHarvesterCred`。
+- 上报数据必须设置 `HarvestBaseData.HarvestType`：只有一档采集的 DB 填 `haprobe.HarvestTypeDefault`；`harvest_type` 是 `t_dbha_status` 主键的一部分，缺失时 receiver 会兜底为 `default` 并打 warn。
+- `heartbeatInterval` / `replDelayInterval` 是 MySQL 家族专属，通用凭证块（`probeHarvesters` / `RawHarvesterConfig` 的对应字段）留空即可，新 DB 只用 `interval`。
 
 ## 切换与解析
 
