@@ -11,12 +11,13 @@ specific language governing permissions and limitations under the License.
 
 import logging
 from collections import defaultdict
-from typing import Any, Dict, List, Tuple
+from typing import Any, Dict, List, Tuple, Union
 
-from iam import Request, Resource, Subject
+from iam import ObjectSet, Request, Resource, Subject, make_expression
 
 from backend import env
 from backend.iam_app.dataclass.actions import ActionMeta
+from backend.iam_app.dataclass.resources import ResourceEnum
 from backend.iam_app.handlers.backends.base import IAMBackend
 
 logger = logging.getLogger("root")
@@ -46,6 +47,22 @@ class IAMV3Backend(IAMBackend):
     def is_allowed(self, username: str, action: ActionMeta, resources: List[Resource]) -> bool:
         request = self.make_request(username, action, resources)
         return bool(self.call_with_retry(self.iam.is_allowed, request, default=False))
+
+    def policy_query(self, username: str, action: ActionMeta, obj_list: List[Union[int, str]]) -> List:
+        """V3拉取动作的策略表达式，在本地对每个对象逐一求值"""
+        request = self.make_request(username, action, resources=None)
+        policies = self.call_with_retry(self.iam._do_policy_query, request, default=None)
+        if not policies:
+            return []
+
+        expression = make_expression(policies)
+        allowed_objs = []
+        for obj in obj_list:
+            iam_obj = ObjectSet()
+            iam_obj.add_object(ResourceEnum.BUSINESS.id, {"id": str(obj)})
+            if self.iam._eval_expr(expression, iam_obj):
+                allowed_objs.append(obj)
+        return allowed_objs
 
     def grant_creator_actions(self, resource: Resource, creator: str) -> Any:
         """

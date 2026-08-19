@@ -17,7 +17,7 @@ from typing import Any, Callable, Dict, List, Tuple, Union
 from blueapps.account.models import User
 from django.conf import settings
 from django.utils.translation import gettext as _
-from iam import IAM, DummyIAM, MultiActionRequest, ObjectSet, Request, Resource, Subject, make_expression
+from iam import IAM, DummyIAM, MultiActionRequest, Request, Resource, Subject
 from iam.apply.models import (
     ActionWithoutResources,
     ActionWithResources,
@@ -301,29 +301,8 @@ class Permission(object):
         if env.BK_IAM_SKIP or self.is_superuser:
             return obj_list
 
-        # 获得策略数据
-        try:
-            request = self.make_request(action=action)
-            policies = self._iam._do_policy_query(request)
-        except AuthAPIError as e:
-            logger.exception(f"IAM AuthAPIError: {e}")
-            return []
-
-        if not policies:
-            return []
-
-        # 将策略数据生成表达式，并根据表达式判断业务权限
-        expression = make_expression(policies)
-        allow_biz_list = []
-        for obj in obj_list:
-            iam_obj = ObjectSet()
-            iam_obj.add_object(ResourceEnum.BUSINESS.id, {"id": str(obj)})
-
-            is_allowed = self._iam._eval_expr(expression, iam_obj)
-            if is_allowed:
-                allow_biz_list.append(obj)
-
-        return allow_biz_list
+        action = ActionEnum.get_action_by_id(action)
+        return self._call("policy_query", self.username, action, obj_list)
 
     def make_application(
         self, action_ids: List[str], resources_list: List[List[Resource]] = None, system_id: str = env.BK_IAM_SYSTEM_ID
