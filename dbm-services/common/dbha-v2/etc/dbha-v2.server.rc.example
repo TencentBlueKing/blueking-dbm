@@ -208,17 +208,6 @@ ADMIN_PROBE_PROXY_ADMIN_HEARTBEAT_INTERVAL=3s
 ADMIN_PROBE_PROXY_ADMIN_REPL_DELAY_INTERVAL=20s
 ADMIN_PROBE_PROXY_ADMIN_TIMEOUT=5s
 
-# ## admin · probe metadata cache freshness
-# How recently a cached t_dbm_metadata row must have been refreshed for admin to answer a probe
-# from cache. If any row for the requesting IP is older, the whole machine is re-read from the
-# DBM API. Raise it if metadata sync runs slowly and DBM fallbacks become frequent; lower it if
-# probes must react to topology changes faster. Minimum 1m; rc files omitting it default to 10m.
-ADMIN_PROBE_METADATA_CACHE_MAX_AGE=10m
-# Age past which a cached row is ignored outright. Metadata sync never deletes, so rows left by
-# decommissioned instances would otherwise stay permanently stale and disable the cache for
-# that IP. Must be at least CACHE_MAX_AGE; rc files omitting it default to 24h.
-ADMIN_PROBE_METADATA_TOMBSTONE_AGE=24h
-
 # --- analysis ---
 
 # ## analysis · process and identity
@@ -265,8 +254,6 @@ ANALYSIS_WORKFLOW_SWITCHFLOW_SLAVE_ALLOWED_IGNORE_SLAVE_DELAY=false
 ANALYSIS_WORKFLOW_SWITCHFLOW_SLAVE_ALLOWED_SLOW_BYTES=0
 ANALYSIS_WORKFLOW_SWITCHFLOW_SLAVE_ALLOWED_MAX_CHECKSUM_FAIL_CNT=2
 ANALYSIS_WORKFLOW_SWITCHFLOW_SLAVE_ALLOWED_MAX_HEARTBEAT_DELAY=600
-ANALYSIS_WORKFLOW_SWITCHFLOW_SLAVE_ALLOWED_MAX_SECONDS_BEHIND_MASTER=600
-
 # ## analysis · database (mysql control)
 ANALYSIS_DATABASE_MYSQL_CTRL_USER=mysql
 ANALYSIS_DATABASE_MYSQL_CTRL_PASSWORD=xxx

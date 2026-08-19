@@ -26,6 +26,18 @@ Admin 下发默认写入 GSE reporter 块；运行时 gRPC / GSE 二选一见下
    - **GSE**：写入本机 GSE Agent（可选 `localSocketPort`）；下游可经 Kafka 再被 receiver 消费
 5. Receiver sink 写入 `t_dbha_status`，供 analysis 扫描。
 
+### 采集类别（`harvest_type`）
+
+MySQL harvester 分成三个独立定时循环，各自按自己的间隔上报，用 `harvest_type` 区分；Redis 等其他 DB 只有 `default` 一类。
+
+| `harvest_type` | 间隔配置 | 内容 |
+|----------------|----------|------|
+| `default` | `interval` | 全量状态（主机指标、GlobalStatus、proxy backends、spider 路由等） |
+| `heartbeat` | `heartbeatInterval` | 写 `infodba_schema.dbha_heartbeat`（`sql_log_bin=OFF`），失败会 emit `dbha_heartbeat_write_failure` |
+| `repldelay` | `replDelayInterval` | 主库写 `infodba_schema.dbha_repl_heartbeat`（`sql_log_bin=ON`），从库读复制来的行算 delay |
+
+`harvest_type` 是 `t_dbha_status` 主键的一部分，同一实例的三类结果各占一行、互不覆盖。新增 DB 类型的 harvester 上报时必须设置 `HarvestType`；receiver 对未带该字段的旧版 probe 数据会兜底为 `default` 并打 warn，不丢数据。
+
 ### 探针自身指标（`probe` 字段）
 
 框架在 [`internal/probe/selfmetric`](../../internal/probe/selfmetric) 以**固定 60 秒**周期采样当前 **worker** 进程自身指标（与 harvester `interval` 解耦），在 `runPlugin` 挂到 `HarvestData.probe` 后随实例状态上报，并落到 `t_dbha_status.probe` JSON 列。
@@ -52,7 +64,7 @@ Admin 下发默认写入 GSE reporter 块；运行时 gRPC / GSE 二选一见下
 | 名称 | 含义 | 位置 |
 |------|------|------|
 | **Admin gRPC Heartbeat** | Probe 进程 / 配置连接存活上报 | AdminService |
-| **master_slave_heartbeat** | MySQL 主从心跳表读写与延迟，作为探测指标 | MySQL harvester → 状态字段；切换侧可用 `AllowedMaxHeartbeatDelay` 等策略参数 |
+| **dbha_heartbeat / dbha_repl_heartbeat** | 探针自有心跳表读写与延迟，作为探测指标 | MySQL harvester → 状态字段；切换侧读 `dbha_repl_heartbeat` 并用 `AllowedMaxHeartbeatDelay` 等策略参数 |
 
 ### 升级顺序与回滚
 
@@ -61,6 +73,8 @@ Admin 下发默认写入 GSE reporter 块；运行时 gRPC / GSE 二选一见下
 **升级顺序（硬约束）**：先 `dbha-admin migrate` → 再升 receiver → 最后升 probe。若 receiver 已升级而表尚无 `probe` 列，全字段 upsert 会因 `Unknown column 'probe'` 失败，实例状态全部写不进库。
 
 **回滚 / 止血**：立刻补跑 migrate（推荐），或回滚 receiver。probe 侧无需回滚；多出的 `probe` JSON 字段会被旧 receiver 忽略。
+
+**`harvest_type` 主键（需人工处理）**：`t_dbha_status` 主键新增 `harvest_type`，而 AutoMigrate 只加列不改主键。已有环境升级后需手工调整主键（把 `harvest_type` 加入主键），否则三类采集会因 `OnConflict UpdateAll` 相互覆盖，只剩最后一次写入。
 
 ## 3. 交互顺序图
 
@@ -102,4 +116,4 @@ sequenceDiagram
 
 Probe 可另开 keepalive HTTP（`--ping-http-addr`），供运维 / 人工确认边缘进程可达。启停脚本见 `scripts/start-probe-keepalive.*`。该路径与 analysis 二次探测（SSH + `dbha-probe health -j`）**解耦**，**不替代**业务实例探测，也不参与入窗判定。
 
-harvester 建连失败会 emit `DetectFailure`（`connection exception`），写入 `HarvestData.Events` 后仅作为 Analysis 二次探测候选，**不直接入窗**；入窗细则见 [mysql-detection-design.md §5](../detection/mysql-detection-design.md) 与 [故障判定与切换](failure-detection-and-failover.md)。
+harvester 建连失败会 emit `DetectFailure`（`connection exception`），MySQL 心跳写失败会 emit `dbha_heartbeat_write_failure`；两者写入 `HarvestData.Events` 后仅作为 Analysis 二次探测候选，**不直接入窗**；入窗细则见 [mysql-detection-design.md §5](../detection/mysql-detection-design.md) 与 [故障判定与切换](failure-detection-and-failover.md)。
