@@ -12,7 +12,7 @@
 -->
 
 <template>
-  <BkSideslider
+  <DbSideslider
     :is-show="isShow"
     render-directive="if"
     :show-footer="false"
@@ -63,6 +63,10 @@
       <DbTable
         ref="tableRef"
         :data-source="dataSource"
+        :max-height="tableMaxHeight"
+        :pagination-extra="{
+          small: true,
+        }"
         :releate-url-query="false"
         row-class-name="temporary-password-modify-instance-box-table-row"
         row-key="uniqueKey"
@@ -72,22 +76,21 @@
         <TableColumn
           col-key="bk_cloud_name"
           :title="t('云区域')"
-          :width="100" />
+          :width="100">
+        </TableColumn>
         <TableColumn
           col-key="instance"
           ellipsis
           :title="t('实例')"
           :width="150">
-          <template #default="{ row }">
+          <template #default="{ row: data }: { row: AdminPasswordModel }">
             <TextOverflowLayout>
-              <template #default>
-                {{ `${row.ip}:${row.port}` }}
-              </template>
+              {{ `${data.ip}:${data.port}` }}
               <template #append>
                 <BkButton
                   text
                   theme="primary"
-                  @click="handleCopy(`${row.ip}:${row.port}`)">
+                  @click="handleCopy(`${data.ip}:${data.port}`)">
                   <DbIcon
                     class="row-copy-icon ml-4"
                     type="copy" />
@@ -118,24 +121,22 @@
               </BkButton>
             </span>
           </template>
-          <template #default="{ row }">
-            <TextOverflowLayout :key="Number(isRowPasswordShow(row))">
-              <template #default>
-                <span>{{ isRowPasswordShow(row) ? getRowPassword(row) : '******' }}</span>
-              </template>
+          <template #default="{ row: data }: { row: AdminPasswordModel }">
+            <TextOverflowLayout :key="Number(isRowPasswordShow(data))">
+              <span>{{ isRowPasswordShow(data) ? getRowPassword(data) : '******' }}</span>
               <template #append>
                 <AuthTemplate
                   :action-id="adminPwdViewActionMap[dbType]"
-                  :permission="row.permission[adminPwdViewActionMap[dbType]]"
-                  :resource="row.cluster_id">
+                  :permission="data.permission[adminPwdViewActionMap[dbType]]"
+                  :resource="data.cluster_id">
                   <DbIcon
                     class="row-copy-icon ml-4"
                     type="copy"
-                    @click="handleCopy(getRowPassword(row))" />
+                    @click="handleCopy(getRowPassword(data))" />
                   <DbIcon
                     class="row-view-icon ml-4"
                     type="visible1"
-                    @click="handleToggleRowPassword(row)" />
+                    @click="handleToggleRowPassword(data)" />
                 </AuthTemplate>
               </template>
             </TextOverflowLayout>
@@ -156,13 +157,13 @@
           :min-width="280"
           sorter
           :title="t('过期时间')">
-          <template #default="{ row }">
+          <template #default="{ row: data }: { row: AdminPasswordModel }">
             <span
-              v-if="isExpiringSoon(row)"
+              v-if="isExpiringSoon(data)"
               class="expired-time">
-              {{ row.lockUntilDisplay }}（{{ t('n天后过期', { n: expireDays(row) }) }}）
+              {{ data.lockUntilDisplay }}（{{ t('n天后过期', [expireDays(data)]) }}）
             </span>
-            <span v-else>{{ row.lockUntilDisplay }}</span>
+            <span v-else>{{ data.lockUntilDisplay }}</span>
           </template>
         </TableColumn>
         <TableColumn
@@ -175,10 +176,14 @@
           ellipsis
           sorter
           :title="t('修改时间')"
-          :width="260" />
+          :width="160">
+          <template #default="{ row: data }: { row: AdminPasswordModel }">
+            {{ data.updateTimeDisplay }}
+          </template>
+        </TableColumn>
       </DbTable>
     </div>
-  </BkSideslider>
+  </DbSideslider>
 </template>
 
 <script setup lang="tsx">
@@ -189,7 +194,9 @@
   import AdminPasswordModel from '@services/model/admin-password/admin-password';
   import { getInstancePassword, queryAdminPassword } from '@services/source/permission';
 
-  import { DBTypes } from '@common/const';
+  import { useTableMaxHeight } from '@hooks';
+
+  import { DBTypes, OccupiedInnerHeight } from '@common/const';
 
   import DbTable from '@components/db-table/IndexNew.vue';
   import TextOverflowLayout from '@components/text-overflow-layout/Index.vue';
