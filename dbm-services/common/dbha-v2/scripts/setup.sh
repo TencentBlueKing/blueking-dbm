@@ -390,7 +390,6 @@ workflow:
     slaveAllowedSlowBytes: 0
     slaveAllowedMaxChecksumFailCnt: 2
     slaveAllowedMaxHeartbeatDelay: 600
-    slaveAllowedMaxIODelay: 300
 
   dbmApiMetadata:
     api: ${DBM_API_BASE}/apis/proxypass/dbmeta/dbha/instances

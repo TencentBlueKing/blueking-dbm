@@ -35,6 +35,7 @@ import (
 	"dbm-services/common/dbha-v2/internal/analysis/switcher/switchcore"
 	"dbm-services/common/dbha-v2/internal/analysis/switcher/switchlogger"
 	"dbm-services/common/dbha-v2/pkg/gerrors"
+	"dbm-services/common/dbha-v2/pkg/storage/hamodel"
 	"dbm-services/common/dbha-v2/pkg/storage/hamysql"
 )
 
@@ -43,7 +44,6 @@ const (
 	defaultAllowedSlowBytes          = 0
 	defaultAllowedMaxChecksumFailCnt = 2
 	defaultAllowedMaxHeartbeatDelay  = 600
-	defaultAllowedMaxIODelay         = 300
 )
 
 // TODO: cancel the reliance on infodba_schema
@@ -69,13 +69,11 @@ const (
 		"FROM infodba_schema.checksum_history " +
 		"WHERE (this_crc <> master_crc OR this_cnt <> master_cnt) AND ts > DATE_SUB(NOW(), INTERVAL 7 DAY)"
 
-	// CheckDelaySQL: master/slave time delay; GREATEST(...,0) on SIGNED avoids negative-to-UNSIGNED wraparound.
-	CheckDelaySQL = `
-		SELECT GREATEST(CAST(UNIX_TIMESTAMP(NOW()) - UNIX_TIMESTAMP(master_time) AS SIGNED), 0) AS heartbeat_delay,
-		       GREATEST(CAST(IFNULL(delay_sec, 0) AS SIGNED), 0) AS io_delay
-		FROM infodba_schema.master_slave_heartbeat 
-		WHERE master_server_id = ? and slave_server_id != master_server_id
-	`
+	// CheckDelaySQL: probe-owned repl heartbeat delay.
+	CheckDelaySQL = "SELECT GREATEST(CAST(TIMESTAMPDIFF(SECOND, update_time, SYSDATE()) AS SIGNED), 0) " +
+		"AS heartbeat_delay " +
+		"FROM `" + hamodel.ProbeMysqlDbName + "`.`" + hamodel.DbhaReplHeartbeatTableName + "` " +
+		"WHERE host = ? AND port = ? AND server_id = ? ORDER BY update_time DESC LIMIT 1"
 )
 
 var systemDbs = map[string]struct{}{
@@ -145,15 +143,6 @@ func (*MySQLSlaveChecker) allowedMaxHeartbeatDelay() int {
 	return v
 }
 
-// allowedMaxIODelay returns workflow.switchflow.slaveAllowedMaxIODelay, or default when not positive.
-func (*MySQLSlaveChecker) allowedMaxIODelay() int {
-	v := config.Cfg.Workflow.SwitchFlow.AllowedMaxIODelay
-	if v <= 0 {
-		return defaultAllowedMaxIODelay
-	}
-	return v
-}
-
 // Check is the entry function to verify if slave node satisfies switching conditions
 func (checker *MySQLSlaveChecker) Check() error {
 	checker.ReportLogf(switchlogger.SwitchInfo, "Start to check slave(%s:%d) status for current mysql master",
@@ -184,9 +173,9 @@ func (checker *MySQLSlaveChecker) Check() error {
 		return err
 	}
 
-	var ioDelay, heartbeatDelay int
+	var heartbeatDelay int
 	if !ignoreSlaveDelay {
-		if heartbeatDelay, ioDelay, err = checker.GetSlaveTimeDelay(slaveDB); err != nil {
+		if heartbeatDelay, err = checker.GetSlaveTimeDelay(slaveDB); err != nil {
 			return err
 		}
 	}
@@ -211,7 +200,7 @@ func (checker *MySQLSlaveChecker) Check() error {
 	}
 
 	if checker.MasterStatus == dbm.Available { // Is this necessary? Actually the delay check is not skipped
-		checksumCnt, checksumFailCnt, ioDelay, heartbeatDelay = 1, 0, 0, 0
+		checksumCnt, checksumFailCnt, heartbeatDelay = 1, 0, 0
 		checker.ReportLogf(switchlogger.SwitchInfo,
 			"the status of mysql master(%s:%d) is %s, skip the check of delay and checksum for its slave(%s:%d)",
 			checker.MasterIp, checker.MasterPort, string(checker.MasterStatus), ip, port)
@@ -221,7 +210,7 @@ func (checker *MySQLSlaveChecker) Check() error {
 		return err
 	}
 
-	if err = checker.CheckSlaveTimeDelay(ip, port, ioDelay, heartbeatDelay); err != nil {
+	if err = checker.CheckSlaveTimeDelay(ip, port, heartbeatDelay); err != nil {
 		return err
 	}
 
@@ -325,10 +314,10 @@ func queryMaxBinlogSize(slaveDB *hamysql.GormDB) (uint64, error) {
 	return maxBinlogSize, nil
 }
 
-// GetSlaveTimeDelay retrieves slave replication time delay information
-func (checker *MySQLSlaveChecker) GetSlaveTimeDelay(slaveDB *hamysql.GormDB) (int, int, error) {
+// GetSlaveTimeDelay retrieves slave replication heartbeat delay from dbha_repl_heartbeat.
+func (checker *MySQLSlaveChecker) GetSlaveTimeDelay(slaveDB *hamysql.GormDB) (int, error) {
 	if slaveDB == nil {
-		return 0, 0, gerrors.New(gerrors.InvalidParameter, "get nil mysql connection when getting slave time delay")
+		return 0, gerrors.New(gerrors.InvalidParameter, "get nil mysql connection when getting slave time delay")
 	}
 
 	ip := slaveDB.Host()
@@ -340,11 +329,12 @@ func (checker *MySQLSlaveChecker) GetSlaveTimeDelay(slaveDB *hamysql.GormDB) (in
 
 	err := gdb1.Raw("show slave status").Scan(&slaveStatus).Error
 	if err != nil {
-		return 0, 0, gerrors.Newf(gerrors.Failure, "failed to query slave status from node(%s:%d): %s",
-			ip, port, err.Error())
+		return 0, gerrors.Newf(gerrors.Failure,
+			"failed to query slave status, slave: %s:%d, errmsg: %s", ip, port, err.Error())
 	}
-	checker.ReportLogf(switchlogger.SwitchInfo, "successfully get Master_Server_Id of slave node(%s:%d): %d",
-		ip, port, slaveStatus.MasterServerID)
+	checker.ReportLogf(switchlogger.SwitchInfo,
+		"successfully get master identity, slave: %s:%d, master: %s:%d, master_server_id: %d",
+		ip, port, slaveStatus.MasterHost, slaveStatus.MasterPort, slaveStatus.MasterServerID)
 
 	// fallbackDelaySec is reported when repl is broken/heartbeat missing, so a broken slave isn't seen healthy.
 	const fallbackDelaySec = 365 * 24 * 60 * 60
@@ -353,34 +343,35 @@ func (checker *MySQLSlaveChecker) GetSlaveTimeDelay(slaveDB *hamysql.GormDB) (in
 	// no heartbeat row can match, so report the fallback delay instead of 0.
 	if slaveStatus.MasterServerID == 0 {
 		checker.ReportLogf(switchlogger.SwitchInfo,
-			"slave node(%s:%d) Master_Server_Id is 0 (replication not connected), use fallback delay", ip, port)
-		return fallbackDelaySec, fallbackDelaySec, nil
+			"replication not connected, use fallback delay, slave: %s:%d, master_server_id: 0", ip, port)
+		return fallbackDelaySec, nil
 	}
 
 	delayInfo := SlaveTimeDelayInfo{}
 	gdb2, cancel2 := switchcore.GormWithExecSqlTimeout(slaveDB)
 	defer cancel2()
 
-	tx := gdb2.Raw(CheckDelaySQL, slaveStatus.MasterServerID).Scan(&delayInfo)
+	tx := gdb2.Raw(CheckDelaySQL, slaveStatus.MasterHost, slaveStatus.MasterPort, slaveStatus.MasterServerID).
+		Scan(&delayInfo)
 	if tx.Error != nil {
-		return 0, 0, gerrors.Newf(gerrors.Failure, "failed to query slave time delay info from node(%s:%d): %s",
-			ip, port, tx.Error.Error())
+		return 0, gerrors.Newf(gerrors.Failure,
+			"failed to query slave time delay, slave: %s:%d, master: %s:%d, server_id: %d, errmsg: %s",
+			ip, port, slaveStatus.MasterHost, slaveStatus.MasterPort, slaveStatus.MasterServerID, tx.Error.Error())
 	}
 	if tx.RowsAffected == 0 {
 		// No matching heartbeat row (stale/ownership changed): use fallback, never report 0 for broken repl.
 		checker.ReportLogf(switchlogger.SwitchInfo,
-			"no heartbeat row for master_server_id=%d on slave node(%s:%d), use fallback delay",
-			slaveStatus.MasterServerID, ip, port)
-		return fallbackDelaySec, fallbackDelaySec, nil
+			"no repl heartbeat row, use fallback delay, slave: %s:%d, master: %s:%d, server_id: %d",
+			ip, port, slaveStatus.MasterHost, slaveStatus.MasterPort, slaveStatus.MasterServerID)
+		return fallbackDelaySec, nil
 	}
 
-	checker.ReportLogf(switchlogger.SwitchInfo, "successfully get slave time delay of slave node(%s:%d), "+
-		"SlaveHeartbeatDelay: %f, SlaveIODelay: %f", ip, port, delayInfo.SlaveHeartbeatDelay, delayInfo.SlaveIODelay)
-
 	heartbeatDelay := int(delayInfo.SlaveHeartbeatDelay)
-	ioDelay := int(delayInfo.SlaveIODelay)
+	checker.ReportLogf(switchlogger.SwitchInfo,
+		"successfully get slave heartbeat delay, slave: %s:%d, heartbeat_delay: %d",
+		ip, port, heartbeatDelay)
 
-	return heartbeatDelay, ioDelay, nil
+	return heartbeatDelay, nil
 }
 
 // GetSlaveCheckSum returns checksum count and failure count
@@ -437,23 +428,16 @@ func (checker *MySQLSlaveChecker) CheckSlaveCheckSum(ip string, port int, checks
 	return nil
 }
 
-// CheckSlaveTimeDelay checks the slave time delay
-func (checker *MySQLSlaveChecker) CheckSlaveTimeDelay(ip string, port int, ioDelay int, heartbeatDelay int) error {
-	maxIO := checker.allowedMaxIODelay()
-	if ioDelay >= maxIO {
-		return gerrors.Newf(gerrors.NodeAbnormal, "IO_Thread delay (%d) on slave(%s:%d) is larger than allowed (%d)",
-			ioDelay, ip, port, maxIO)
+// CheckSlaveTimeDelay checks the slave heartbeat delay from dbha_repl_heartbeat.
+func (checker *MySQLSlaveChecker) CheckSlaveTimeDelay(ip string, port int, heartbeatDelay int) error {
+	maxHeartbeatDelay := checker.allowedMaxHeartbeatDelay()
+	if heartbeatDelay >= maxHeartbeatDelay {
+		return gerrors.Newf(gerrors.NodeAbnormal, "slave heartbeat delay is larger than allowed, "+
+			"slave: %s:%d, heartbeat_delay: %d, allowed: %d", ip, port, heartbeatDelay, maxHeartbeatDelay)
 	}
-	checker.ReportLogf(switchlogger.SwitchInfo, "IO_Thread delay (%d) on slave(%s:%d) is in allowed range(%d)",
-		ioDelay, ip, port, maxIO)
-
-	maxHB := checker.allowedMaxHeartbeatDelay()
-	if heartbeatDelay >= maxHB {
-		return gerrors.Newf(gerrors.NodeAbnormal, "heartbeat delay (%d) on slave(%s:%d) is larger than allowed (%d)",
-			heartbeatDelay, ip, port, maxHB)
-	}
-	checker.ReportLogf(switchlogger.SwitchInfo, "heartbeat delay (%d) on slave(%s:%d) is in allowed range(%d)",
-		heartbeatDelay, ip, port, maxHB)
+	checker.ReportLogf(switchlogger.SwitchInfo, "slave heartbeat delay is in allowed range, "+
+		"slave: %s:%d, heartbeat_delay: %d, allowed: %d",
+		ip, port, heartbeatDelay, maxHeartbeatDelay)
 
 	return nil
 }

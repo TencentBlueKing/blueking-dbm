@@ -44,14 +44,15 @@ import (
 type collector struct {
 	base.Collector
 
-	clusterType haprobe.DbmMetadataClusterType
-	machineType haprobe.DbmMetadataMachineType
-	accessLayer haprobe.DbmMetadataAccessLayerType
-	user        string
-	password    string
-	endpoint    *hanet.Endpoint
-	timeout     time.Duration
-	rdb         *redis.Client
+	clusterType  haprobe.DbmMetadataClusterType
+	machineType  haprobe.DbmMetadataMachineType
+	accessLayer  haprobe.DbmMetadataAccessLayerType
+	instanceRole haprobe.DbmMetadataInstanceRole
+	user         string
+	password     string
+	endpoint     *hanet.Endpoint
+	timeout      time.Duration
+	rdb          *redis.Client
 }
 
 func (c *collector) open(ctx context.Context) (*haprobe.DbEvent, error) {

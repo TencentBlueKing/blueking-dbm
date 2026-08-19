@@ -60,8 +60,6 @@ func NewSwitchingSnapshotData(
 
 		if len(group.Instances) > 0 {
 			data.DbSwitchingSnapshotLog.BkBizID = group.Instances[0].BkBizID
-			data.DbSwitchingSnapshotLog.ClusterID = group.Instances[0].ClusterID
-			data.DbSwitchingSnapshotLog.ClusterName = group.Instances[0].Cluster
 			data.DbSwitchingSnapshotLog.Reason = group.Instances[0].EventNameReason.Str().String()
 		}
 	}
@@ -235,6 +233,8 @@ func buildInstancesListFromMetadata(
 		}
 
 		instances = append(instances, &hamodel.SwitchingSnapshotInstance{
+			ClusterID:         meta.ClusterID,
+			ClusterName:       meta.Cluster,
 			IP:                meta.IP,
 			Port:              meta.Port,
 			MachineType:       string(meta.MachineType),

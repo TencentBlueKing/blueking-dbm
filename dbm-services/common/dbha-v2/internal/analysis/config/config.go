@@ -72,7 +72,6 @@ var Cfg = Configuration{
 			AllowedSlowBytes:                 0,
 			AllowedMaxChecksumFailCnt:        2,
 			AllowedMaxHeartbeatDelay:         600,
-			AllowedMaxIODelay:                300,
 		},
 	},
 
@@ -123,7 +122,6 @@ type SwitchFlowConfig struct {
 	AllowedSlowBytes                 int           `yaml:"slaveAllowedSlowBytes"            mapstructure:"slaveAllowedSlowBytes"`
 	AllowedMaxChecksumFailCnt        int           `yaml:"slaveAllowedMaxChecksumFailCnt"   mapstructure:"slaveAllowedMaxChecksumFailCnt"`
 	AllowedMaxHeartbeatDelay         int           `yaml:"slaveAllowedMaxHeartbeatDelay"    mapstructure:"slaveAllowedMaxHeartbeatDelay"`
-	AllowedMaxIODelay                int           `yaml:"slaveAllowedMaxIODelay"           mapstructure:"slaveAllowedMaxIODelay"`
 }
 
 // WorkflowConfig workflow's configuration

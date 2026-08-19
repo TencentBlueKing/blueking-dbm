@@ -51,6 +51,9 @@ func (c *BusinessChecker) CheckEventWithBizId(bizId int, dbEvents []*haprobe.DbE
 
 	badInsts := []detector.DoubleCheckTask{}
 
+	// recheckInsts records instance keys already queued for SSH double-check in this scan.
+	recheckInsts := map[string]struct{}{}
+
 	for _, event := range dbEvents {
 		key := instanceKey(event.BkCloudID, event.Endpoint.Host, event.Endpoint.Port)
 
@@ -64,6 +67,11 @@ func (c *BusinessChecker) CheckEventWithBizId(bizId int, dbEvents []*haprobe.DbE
 			logger.Warn("not found the meta for the db-inst: %s", key)
 			continue
 		}
+
+		if _, exists := recheckInsts[key]; exists {
+			continue
+		}
+		recheckInsts[key] = struct{}{}
 
 		logger.Warn("recheck the db-inst: %s", key)
 		badInsts = append(badInsts, detector.DoubleCheckTask{

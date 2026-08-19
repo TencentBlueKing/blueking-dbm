@@ -35,21 +35,47 @@ import (
 
 func TestClampProbeHarvesterInterval(t *testing.T) {
 	cases := []struct {
-		name string
-		in   time.Duration
-		want time.Duration
+		name  string
+		in    time.Duration
+		floor time.Duration
+		want  time.Duration
 	}{
-		{name: "zero is clamped", in: 0, want: minProbeHarvesterInterval},
-		{name: "below minimum is clamped", in: time.Second, want: minProbeHarvesterInterval},
-		{name: "at minimum is preserved", in: minProbeHarvesterInterval, want: minProbeHarvesterInterval},
-		{name: "above minimum is preserved", in: 30 * time.Second, want: 30 * time.Second},
+		{name: "zero is clamped", in: 0, floor: minProbeHarvesterInterval, want: minProbeHarvesterInterval},
+		{
+			name: "below minimum is clamped", in: time.Second,
+			floor: minProbeHarvesterInterval, want: minProbeHarvesterInterval,
+		},
+		{
+			name: "at minimum is preserved", in: minProbeHarvesterInterval,
+			floor: minProbeHarvesterInterval, want: minProbeHarvesterInterval,
+		},
+		{
+			name: "above minimum is preserved", in: 30 * time.Second,
+			floor: minProbeHarvesterInterval, want: 30 * time.Second,
+		},
+		{
+			name: "heartbeat below floor is clamped", in: 100 * time.Millisecond,
+			floor: minProbeHarvesterHeartbeatInterval, want: minProbeHarvesterHeartbeatInterval,
+		},
+		{
+			name: "heartbeat at floor is preserved", in: minProbeHarvesterHeartbeatInterval,
+			floor: minProbeHarvesterHeartbeatInterval, want: minProbeHarvesterHeartbeatInterval,
+		},
+		{
+			name: "repl heartbeat below floor is clamped", in: time.Second,
+			floor: minProbeHarvesterReplHeartbeatInterval, want: minProbeHarvesterReplHeartbeatInterval,
+		},
+		{
+			name: "repl heartbeat at floor is preserved", in: minProbeHarvesterReplHeartbeatInterval,
+			floor: minProbeHarvesterReplHeartbeatInterval, want: minProbeHarvesterReplHeartbeatInterval,
+		},
 	}
 
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			got := clampProbeHarvesterInterval("test", tc.in)
+			got := clampProbeHarvesterInterval("test", tc.in, tc.floor)
 			if got != tc.want {
-				t.Errorf("clampProbeHarvesterInterval(%s) = %s, want: %s", tc.in, got, tc.want)
+				t.Errorf("clampProbeHarvesterInterval(%s, floor: %s) = %s, want: %s", tc.in, tc.floor, got, tc.want)
 			}
 		})
 	}
@@ -133,6 +159,8 @@ probeMysql:
   user: ""
   password: ""
   interval: 0s
+  heartbeatInterval: 0s
+  replDelayInterval: 0s
   timeout: 0s
 probeRedis:
   user: ""
@@ -143,6 +171,8 @@ probeProxyAdmin:
   user: ""
   password: ""
   interval: 0s
+  heartbeatInterval: 0s
+  replDelayInterval: 0s
   timeout: 0s
 `
 	if err := os.WriteFile(path, []byte(content), 0o600); err != nil {
@@ -156,6 +186,12 @@ probeProxyAdmin:
 	if Cfg.ProbeMysql.Interval != minProbeHarvesterInterval {
 		t.Errorf("ProbeMysql.Interval not clamped, got: %s", Cfg.ProbeMysql.Interval)
 	}
+	if Cfg.ProbeMysql.HeartbeatInterval != minProbeHarvesterHeartbeatInterval {
+		t.Errorf("ProbeMysql.HeartbeatInterval not clamped, got: %s", Cfg.ProbeMysql.HeartbeatInterval)
+	}
+	if Cfg.ProbeMysql.ReplDelayInterval != minProbeHarvesterReplHeartbeatInterval {
+		t.Errorf("ProbeMysql.ReplDelayInterval not clamped, got: %s", Cfg.ProbeMysql.ReplDelayInterval)
+	}
 	if Cfg.ProbeMysql.Timeout != minProbeHarvesterTimeout {
 		t.Errorf("ProbeMysql.Timeout not clamped, got: %s", Cfg.ProbeMysql.Timeout)
 	}
@@ -167,6 +203,12 @@ probeProxyAdmin:
 	}
 	if Cfg.ProbeProxyAdmin.Interval != minProbeHarvesterInterval {
 		t.Errorf("ProbeProxyAdmin.Interval not clamped, got: %s", Cfg.ProbeProxyAdmin.Interval)
+	}
+	if Cfg.ProbeProxyAdmin.HeartbeatInterval != minProbeHarvesterHeartbeatInterval {
+		t.Errorf("ProbeProxyAdmin.HeartbeatInterval not clamped, got: %s", Cfg.ProbeProxyAdmin.HeartbeatInterval)
+	}
+	if Cfg.ProbeProxyAdmin.ReplDelayInterval != minProbeHarvesterReplHeartbeatInterval {
+		t.Errorf("ProbeProxyAdmin.ReplDelayInterval not clamped, got: %s", Cfg.ProbeProxyAdmin.ReplDelayInterval)
 	}
 	if Cfg.ProbeProxyAdmin.Timeout != minProbeHarvesterTimeout {
 		t.Errorf("ProbeProxyAdmin.Timeout not clamped, got: %s", Cfg.ProbeProxyAdmin.Timeout)
@@ -190,6 +232,8 @@ probeMysql:
   user: ""
   password: ""
   interval: 30s
+  heartbeatInterval: 3s
+  replDelayInterval: 25s
   timeout: 4s
 probeRedis:
   user: ""
@@ -200,6 +244,8 @@ probeProxyAdmin:
   user: ""
   password: ""
   interval: 40s
+  heartbeatInterval: 4s
+  replDelayInterval: 30s
   timeout: 2s
 `
 	if err := os.WriteFile(path, []byte(content), 0o600); err != nil {
@@ -213,6 +259,12 @@ probeProxyAdmin:
 	if Cfg.ProbeMysql.Interval != 30*time.Second {
 		t.Errorf("ProbeMysql.Interval altered, got: %s", Cfg.ProbeMysql.Interval)
 	}
+	if Cfg.ProbeMysql.HeartbeatInterval != 3*time.Second {
+		t.Errorf("ProbeMysql.HeartbeatInterval altered, got: %s", Cfg.ProbeMysql.HeartbeatInterval)
+	}
+	if Cfg.ProbeMysql.ReplDelayInterval != 25*time.Second {
+		t.Errorf("ProbeMysql.ReplDelayInterval altered, got: %s", Cfg.ProbeMysql.ReplDelayInterval)
+	}
 	if Cfg.ProbeMysql.Timeout != 4*time.Second {
 		t.Errorf("ProbeMysql.Timeout altered, got: %s", Cfg.ProbeMysql.Timeout)
 	}
@@ -224,6 +276,12 @@ probeProxyAdmin:
 	}
 	if Cfg.ProbeProxyAdmin.Interval != 40*time.Second {
 		t.Errorf("ProbeProxyAdmin.Interval altered, got: %s", Cfg.ProbeProxyAdmin.Interval)
+	}
+	if Cfg.ProbeProxyAdmin.HeartbeatInterval != 4*time.Second {
+		t.Errorf("ProbeProxyAdmin.HeartbeatInterval altered, got: %s", Cfg.ProbeProxyAdmin.HeartbeatInterval)
+	}
+	if Cfg.ProbeProxyAdmin.ReplDelayInterval != 30*time.Second {
+		t.Errorf("ProbeProxyAdmin.ReplDelayInterval altered, got: %s", Cfg.ProbeProxyAdmin.ReplDelayInterval)
 	}
 	if Cfg.ProbeProxyAdmin.Timeout != 2*time.Second {
 		t.Errorf("ProbeProxyAdmin.Timeout altered, got: %s", Cfg.ProbeProxyAdmin.Timeout)

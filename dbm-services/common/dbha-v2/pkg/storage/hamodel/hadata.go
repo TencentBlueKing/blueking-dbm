@@ -41,12 +41,14 @@ const (
 	DbhaStatusFieldMachineID       = "machine_id"
 	DbhaStatusFieldAgentID         = "agent_id"
 	DbhaStatusFieldBkCloudID       = "bk_cloud_id"
+	DbhaStatusFieldHarvestType     = "harvest_type"
 	DbhaStatusFieldIPs             = "ips"
 	DbhaStatusFieldMessageID       = "message_id"
 	DbhaStatusFieldServiceID       = "service_id"
 	DbhaStatusFieldAccessLayer     = "access_layer"
 	DbhaStatusFieldClusterType     = "cluster_type"
 	DbhaStatusFieldMachineType     = "machine_type"
+	DbhaStatusFieldInstanceRole    = "instance_role"
 	DbhaStatusFieldDbTypeName      = "db_type_name"
 	DbhaStatusFieldDbIp            = "db_ip"
 	DbhaStatusFieldDbPort          = "db_port"
@@ -59,12 +61,15 @@ const (
 	DbhaStatusFieldDeletedAt       = "deleted_at"
 )
 
-// DbhaDataStatus contains system and databases metrics
+// DbhaDataStatus contains system and databases metrics.
+// Primary key includes harvest_type so one instance can keep one row per collection group
+// (default / heartbeat / repldelay) in the same table.
 type DbhaDataStatus struct {
 	MachineID       string                             `gorm:"column:machine_id;primaryKey"`
 	BkCloudID       int                                `gorm:"column:bk_cloud_id;primaryKey"`
 	DbIp            string                             `gorm:"column:db_ip;primaryKey"`
 	DbPort          int                                `gorm:"column:db_port;primaryKey"`
+	HarvestType     haprobe.HarvestType                `gorm:"column:harvest_type;primaryKey;type:varchar(32);not null"`
 	SequenceID      uint64                             `gorm:"column:sequence_id"`
 	AgentID         string                             `gorm:"column:agent_id"`
 	IPs             JSON[[]string]                     `gorm:"column:ips;type:json"`
@@ -74,6 +79,7 @@ type DbhaDataStatus struct {
 	AccessLayer     haprobe.DbmMetadataAccessLayerType `gorm:"column:access_layer"`
 	ClusterType     haprobe.DbmMetadataClusterType     `gorm:"column:cluster_type"`
 	MachineType     haprobe.DbmMetadataMachineType     `gorm:"column:machine_type"`
+	InstanceRole    haprobe.DbmMetadataInstanceRole    `gorm:"column:instance_role"`
 	ReportTimestamp uint64                             `gorm:"column:report_timestamp"`
 	Host            JSON[*haprobe.HostMetric]          `gorm:"column:host;type:json"`
 	Probe           JSON[*haprobe.ProbeMetric]         `gorm:"column:probe;type:json"`
@@ -100,8 +106,10 @@ func NewDbhaData(msg *haprobe.HarvestData) *DbhaDataStatus {
 	data.AccessLayer = msg.AccessLayer
 	data.ClusterType = msg.ClusterType
 	data.MachineType = msg.MachineType
+	data.InstanceRole = msg.InstanceRole
 	data.DbIp = msg.DbIp
 	data.DbPort = msg.DbPort
+	data.HarvestType = msg.HarvestType
 	data.ReportTimestamp = msg.ReportTimestamp
 
 	if msg.Host != nil {

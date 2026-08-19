@@ -53,10 +53,12 @@ type GseConfig struct {
 // Timeout bounds DSN dial timeout and per-query context timeout in the mysql harvester.
 // Admin clamps Timeout at minProbeHarvesterTimeout before sending.
 type ProbeMySQLConfig struct {
-	User     string `json:"user"`
-	Password string `json:"password"`
-	Interval string `json:"interval"`
-	Timeout  string `json:"timeout"`
+	User              string `json:"user"`
+	Password          string `json:"password"`
+	Interval          string `json:"interval"`
+	HeartbeatInterval string `json:"heartbeat_interval"`
+	ReplDelayInterval string `json:"repl_delay_interval"`
+	Timeout           string `json:"timeout"`
 }
 
 // ProbeRedisConfig carries Redis harvester credentials/timing from admin to probe.
@@ -71,10 +73,12 @@ type ProbeRedisConfig struct {
 // ProbeProxyAdminConfig carries proxy-admin harvester credentials/timing from admin to probe.
 // Interval / Timeout are YAML duration strings (e.g. "20s") emitted verbatim into probe.yaml.
 type ProbeProxyAdminConfig struct {
-	User     string `json:"user"`
-	Password string `json:"password"`
-	Interval string `json:"interval"`
-	Timeout  string `json:"timeout"`
+	User              string `json:"user"`
+	Password          string `json:"password"`
+	Interval          string `json:"interval"`
+	HeartbeatInterval string `json:"heartbeat_interval"`
+	ReplDelayInterval string `json:"repl_delay_interval"`
+	Timeout           string `json:"timeout"`
 }
 
 // ProbeHarvesterConfig carries credentials/timing for a generic (non-named) harvester block.

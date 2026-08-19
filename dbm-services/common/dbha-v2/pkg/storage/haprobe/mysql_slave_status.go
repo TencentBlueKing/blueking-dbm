@@ -35,5 +35,4 @@ type MySqlSlaveStatus struct {
 	SecondsBehindMaster uint64 `json:"seconds_behind_master"`
 	MasterServerId      uint64 `json:"master_server_id"`
 	HeartbeatDelay      uint64 `json:"heartbeat_delay"`
-	LastIODelay         uint64 `json:"last_io_delay"`
 }
