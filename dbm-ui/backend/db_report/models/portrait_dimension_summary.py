@@ -106,6 +106,15 @@ class PortraitDimensionSummary(models.Model):
         help_text=_("本次巡检产出的详情页完整链接，前端画像报告在该维度卡片提供跳转"),
     )
 
+    #: 本次摘要结果的分数；为空表示未上报分数
+    score = models.FloatField(
+        null=True,
+        blank=True,
+        default=None,
+        verbose_name=_("分数"),
+        help_text=_("本次巡检摘要结果的分数，为空表示未上报"),
+    )
+
     create_at = models.DateTimeField(auto_now_add=True, verbose_name=_("创建时间"))
 
     class Meta:
