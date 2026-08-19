@@ -61,8 +61,8 @@ const path = '/apis/conf/password_policy';
 /**
  * 查询密码安全策略
  */
-export const getPasswordPolicy = (params: { name: string }) =>
-  http.get<PasswordPolicy>(`${path}/get_password_policy/`, params);
+export const getPasswordPolicy = (params: { name?: string }, payload = {} as IRequestPayload) =>
+  http.get<PasswordPolicy>(`${path}/get_password_policy/`, params, payload);
 
 /**
  * 更新密码安全策略
