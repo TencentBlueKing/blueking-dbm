@@ -308,7 +308,7 @@ class ActionEnum:
         type="manage",
         related_actions=[],
         related_resource_types=[],
-        group=_("平台管理"),
+        group=_("全局设置"),
         subgroup="",
         common_labels=[],
     )
@@ -4421,6 +4421,13 @@ class ActionEnum:
         common_labels=[CommonActionLabel.BIZ_MAINTAIN],
     )
 
+    ORACLE_EXEC_SCRIPT_APPLY = ActionMeta(
+        id=TicketType.ORACLE_EXEC_SCRIPT_APPLY.lower(),
+        subgroup=_("脚本任务"),
+        is_ticket_action=True,
+        common_labels=[CommonActionLabel.BIZ_MAINTAIN],
+    )
+
     RESOURCE_POLL_MANAGE = ActionMeta(
         id="resource_pool_manage",
         name=_("资源管理"),
@@ -5068,7 +5075,6 @@ class ActionEnum:
         related_resource_types=[ResourceEnum.RIAK],
         group=_("Riak"),
         subgroup=_("集群管理"),
-        common_labels=[CommonActionLabel.BIZ_MAINTAIN],
     )
 
     PULSAR_MANAGE = ActionMeta(
@@ -5703,6 +5709,472 @@ class ActionEnum:
         related_resource_types=[ResourceEnum.BUSINESS],
         group=_("K8s数据库"),
         subgroup=_("Addon管理"),
+    )
+
+    # --- 已废弃权限（历史遗留动作，仅保留注册）---
+    FLOW_VIEW = ActionMeta(
+        id="flow_view",
+        name=_("任务流程查看"),
+        name_en="flow_view",
+        type="view",
+        related_resource_types=[ResourceEnum.BUSINESS],
+        group=_("已废弃"),
+    )
+    MYSQL_SINGLE_APPLY = ActionMeta(
+        id="mysql_single_apply",
+        name=_("MySQL 单节点部署"),
+        name_en="mysql_single_apply",
+        type="execute",
+        related_resource_types=[ResourceEnum.BUSINESS],
+        group=_("已废弃"),
+    )
+    MYSQL_SINGLE_ENABLE_DISABLE = ActionMeta(
+        id="mysql_single_enable_disable",
+        name=_("MySQL 单节点集群禁用和启用"),
+        name_en="mysql_single_enable_disable",
+        type="execute",
+        related_resource_types=[ResourceEnum.MYSQL],
+        group=_("已废弃"),
+    )
+    MYSQL_SINGLE_DESTROY = ActionMeta(
+        id="mysql_single_destroy",
+        name=_("MySQL 单节点集群删除"),
+        name_en="mysql_single_destroy",
+        type="execute",
+        related_resource_types=[ResourceEnum.MYSQL],
+        group=_("已废弃"),
+    )
+    MYSQL_SINGLE_VIEW = ActionMeta(
+        id="mysql_single_view",
+        name=_("MySQL 单节点详情查看"),
+        name_en="mysql_single_view",
+        type="view",
+        related_resource_types=[ResourceEnum.MYSQL],
+        group=_("已废弃"),
+    )
+    MYSQL_HA_APPLY = ActionMeta(
+        id="mysql_ha_apply",
+        name=_("MySQL 高可用部署"),
+        name_en="mysql_ha_apply",
+        type="view",
+        related_resource_types=[ResourceEnum.BUSINESS],
+        group=_("已废弃"),
+    )
+    MYSQL_HA_ENABLE_DISABLE = ActionMeta(
+        id="mysql_ha_enable_disable",
+        name=_("MySQL 高可用集群禁用和启用"),
+        name_en="mysql_ha_enable_disable",
+        type="execute",
+        related_resource_types=[ResourceEnum.MYSQL],
+        group=_("已废弃"),
+    )
+    MYSQL_HA_DESTROY = ActionMeta(
+        id="mysql_ha_destroy",
+        name=_("MySQL 高可用集群删除"),
+        name_en="mysql_ha_destroy",
+        type="execute",
+        related_resource_types=[ResourceEnum.MYSQL],
+        group=_("已废弃"),
+    )
+    MYSQL_HA_VIEW = ActionMeta(
+        id="mysql_ha_view",
+        name=_("MySQL 高可用详情查看"),
+        name_en="mysql_ha_view",
+        type="view",
+        related_resource_types=[ResourceEnum.MYSQL],
+        group=_("已废弃"),
+    )
+    MYSQL_ACCOUNT_RULE_CREATE = ActionMeta(
+        id="mysql_account_rule_create",
+        name=_("MySQL 账号规则创建"),
+        name_en="mysql_account_rule_create",
+        type="create",
+        related_resource_types=[ResourceEnum.BUSINESS],
+        group=_("已废弃"),
+    )
+    MYSQL_EXCEL_AUTHORIZE = ActionMeta(
+        id="mysql_excel_authorize",
+        name=_("MySQL 导入授权"),
+        name_en="mysql_excel_authorize",
+        type="execute",
+        related_resource_types=[ResourceEnum.BUSINESS],
+        group=_("已废弃"),
+    )
+    TENDBCLUSTER_CLUSTER_CLONE_RULES = ActionMeta(
+        id="tendbcluster_cluster_clone_rules",
+        name=_("TendbCluster 客户端权限克隆"),
+        name_en="tendbcluster_cluster_clone_rules",
+        type="execute",
+        related_resource_types=[ResourceEnum.BUSINESS],
+        group=_("已废弃"),
+    )
+    INFLUXDB_APPLY = ActionMeta(
+        id="influxdb_apply",
+        name=_("InfluxDB 实例部署"),
+        name_en="influxdb_apply",
+        type="execute",
+        related_resource_types=[ResourceEnum.BUSINESS],
+        group=_("已废弃"),
+    )
+    INFLUXDB_VIEW = ActionMeta(
+        id="influxdb_view",
+        name=_("InfluxDB 实例查看"),
+        name_en="influxdb_view",
+        type="view",
+        related_resource_types=[ResourceEnum.INFLUXDB],
+        group=_("已废弃"),
+    )
+    INFLUXDB_REBOOT = ActionMeta(
+        id="influxdb_reboot",
+        name=_("InfluxDB 实例重启"),
+        name_en="influxdb_reboot",
+        type="execute",
+        related_resource_types=[ResourceEnum.INFLUXDB],
+        group=_("已废弃"),
+    )
+    INFLUXDB_ENABLE_DISABLE = ActionMeta(
+        id="influxdb_enable_disable",
+        name=_("InfluxDB 实例禁用启用"),
+        name_en="influxdb_enable_disable",
+        type="execute",
+        related_resource_types=[ResourceEnum.INFLUXDB],
+        group=_("已废弃"),
+    )
+    INFLUXDB_DESTROY = ActionMeta(
+        id="influxdb_destroy",
+        name=_("InfluxDB 实例删除"),
+        name_en="influxdb_destroy",
+        type="execute",
+        related_resource_types=[ResourceEnum.INFLUXDB],
+        group=_("已废弃"),
+    )
+    INFLUXDB_REPLACE = ActionMeta(
+        id="influxdb_replace",
+        name=_("InfluxDB 实例替换"),
+        name_en="influxdb_replace",
+        type="execute",
+        related_resource_types=[ResourceEnum.INFLUXDB],
+        group=_("已废弃"),
+    )
+    DIRTY_POOL_MANAGE = ActionMeta(
+        id="dirty_pool_manage",
+        name=_("污点池管理"),
+        name_en="dirty_pool_manage",
+        type="manage",
+        related_resource_types=[],
+        group=_("已废弃"),
+    )
+    GLOBAL_NOTIFY_GROUP_LIST = ActionMeta(
+        id="global_notify_group_list",
+        name=_("全局告警组查看"),
+        name_en="global_notify_group_list",
+        type="view",
+        related_resource_types=[],
+        group=_("已废弃"),
+    )
+    GLOBAL_NOTIFY_GROUP_CREATE = ActionMeta(
+        id="global_notify_group_create",
+        name=_("全局告警组新建"),
+        name_en="global_notify_group_create",
+        type="create",
+        related_resource_types=[],
+        group=_("已废弃"),
+    )
+    GLOBAL_NOTIFY_GROUP_DELETE = ActionMeta(
+        id="global_notify_group_delete",
+        name=_("全局告警组删除"),
+        name_en="global_notify_group_delete",
+        type="delete",
+        related_resource_types=[],
+        group=_("已废弃"),
+    )
+    MONITOR_POLICY_ALARM_VIEW = ActionMeta(
+        id="monitor_policy_alarm_view",
+        name=_("监控告警查看"),
+        name_en="monitor_policy_alarm_view",
+        type="view",
+        related_resource_types=[ResourceEnum.MONITOR_POLICY],
+        group=_("已废弃"),
+    )
+    REDIS_DATA_STRUCTURE_MANAGE = ActionMeta(
+        id="redis_data_structure_manage",
+        name=_("Redis 数据构造记录管理"),
+        name_en="redis_data_structure_manage",
+        type="execute",
+        related_resource_types=[ResourceEnum.BUSINESS],
+        group=_("已废弃"),
+    )
+    MONGODB_REPLICASET_APPLY = ActionMeta(
+        id="mongodb_replicaset_apply",
+        name=_("MongoDB 副本集集群部署"),
+        name_en="mongodb_replicaset_apply",
+        type="execute",
+        related_resource_types=[ResourceEnum.BUSINESS],
+        group=_("已废弃"),
+    )
+    MONGODB_SHARD_APPLY = ActionMeta(
+        id="mongodb_shard_apply",
+        name=_("MongoDB 分片集群部署"),
+        name_en="mongodb_shard_apply",
+        type="execute",
+        related_resource_types=[ResourceEnum.BUSINESS],
+        group=_("已废弃"),
+    )
+    MONGODB_EXCEL_AUTHORIZE = ActionMeta(
+        id="mongodb_excel_authorize",
+        name=_("MongoDB Excel授权"),
+        name_en="mongodb_excel_authorize",
+        type="execute",
+        related_resource_types=[ResourceEnum.MONGODB],
+        group=_("已废弃"),
+    )
+    MONGODB_DELETE_CREATE = ActionMeta(
+        id="mongodb_delete_create",
+        name=_("MongoDB 账号删除"),
+        name_en="mongodb_delete_create",
+        type="delete",
+        related_resource_types=[ResourceEnum.BUSINESS],
+        group=_("已废弃"),
+    )
+    SQLSERVER_DELETE_CREATE = ActionMeta(
+        id="sqlserver_delete_create",
+        name=_("SQLServer 账号删除"),
+        name_en="sqlserver_delete_create",
+        type="delete",
+        related_resource_types=[ResourceEnum.BUSINESS],
+        group=_("已废弃"),
+    )
+    MYSQL_DATA_REPAIR = ActionMeta(
+        id="mysql_data_repair",
+        name=_("MySQL 数据修复"),
+        name_en="mysql_data_repair",
+        type="execute",
+        related_resource_types=[ResourceEnum.MYSQL],
+        group=_("已废弃"),
+    )
+    SQLSERVER_DATA_MIGRATE = ActionMeta(
+        id="sqlserver_data_migrate",
+        name=_("SQLServer 数据迁移"),
+        name_en="sqlserver_data_migrate",
+        type="execute",
+        related_resource_types=[ResourceEnum.SQLSERVER],
+        group=_("已废弃"),
+    )
+    INFLUXDB_ENABLE = ActionMeta(
+        id="influxdb_enable",
+        name=_("InfluxDB 实例启用"),
+        name_en="influxdb_enable",
+        type="execute",
+        related_resource_types=[ResourceEnum.INFLUXDB],
+        group=_("已废弃"),
+    )
+    INFLUXDB_DISABLE = ActionMeta(
+        id="influxdb_disable",
+        name=_("InfluxDB 实例禁用"),
+        name_en="influxdb_disable",
+        type="execute",
+        related_resource_types=[ResourceEnum.INFLUXDB],
+        group=_("已废弃"),
+    )
+    RIAK_CLUSTER_ENABLE = ActionMeta(
+        id="riak_cluster_enable",
+        name=_("Riak 集群启用"),
+        name_en="riak_cluster_enable",
+        type="execute",
+        related_resource_types=[ResourceEnum.RIAK],
+        group=_("已废弃"),
+    )
+    RIAK_CLUSTER_DISABLE = ActionMeta(
+        id="riak_cluster_disable",
+        name=_("Riak 集群禁用"),
+        name_en="riak_cluster_disable",
+        type="execute",
+        related_resource_types=[ResourceEnum.RIAK],
+        group=_("已废弃"),
+    )
+    TBINLOGDUMPER_DISABLE_NODES = ActionMeta(
+        id="tbinlogdumper_disable_nodes",
+        name=_("TBINLOGDUMPER 禁用"),
+        name_en="tbinlogdumper_disable_nodes",
+        type="execute",
+        related_resource_types=[ResourceEnum.MYSQL],
+        group=_("已废弃"),
+    )
+    TBINLOGDUMPER_ENABLE_NODES = ActionMeta(
+        id="tbinlogdumper_enable_nodes",
+        name=_("TBINLOGDUMPER 启用"),
+        name_en="tbinlogdumper_enable_nodes",
+        type="execute",
+        related_resource_types=[ResourceEnum.MYSQL],
+        group=_("已废弃"),
+    )
+    GROUP_MANAGE = ActionMeta(
+        id="group_manage",
+        name=_("InfluxDB 分组管理"),
+        name_en="group_manage",
+        type="manage",
+        related_resource_types=[ResourceEnum.BUSINESS],
+        group=_("已废弃"),
+    )
+    RESOURCE_OPERATION_VIEW = ActionMeta(
+        id="resource_operation_view",
+        name=_("资源池操作记录查看"),
+        name_en="resource_operation_view",
+        type="view",
+        related_resource_types=[],
+        group=_("已废弃"),
+    )
+    REDIS_DTS_ONLINE_SWITCH = ActionMeta(
+        id="redis_dts_online_switch",
+        name=_("Redis DTS在线切换"),
+        name_en="redis_dts_online_switch",
+        type="execute",
+        related_resource_types=[ResourceEnum.REDIS],
+        group=_("已废弃"),
+    )
+    REDIS_CLUSTER_PROXYS_UPGRADE = ActionMeta(
+        id="redis_cluster_proxys_upgrade",
+        name=_("Redis 集群proxys版本升级"),
+        name_en="redis_cluster_proxys_upgrade",
+        type="execute",
+        related_resource_types=[ResourceEnum.REDIS],
+        group=_("已废弃"),
+    )
+    MYSQL_SINGLE_DB_TABLE_BACKUP = ActionMeta(
+        id="mysql_single_db_table_backup",
+        name=_("TenDBSingle 库表备份"),
+        name_en="mysql_single_db_table_backup",
+        type="execute",
+        related_resource_types=[ResourceEnum.MYSQL],
+        group=_("已废弃"),
+    )
+    MYSQL_SINGLE_FULL_BACKUP = ActionMeta(
+        id="mysql_single_full_backup",
+        name=_("TenDB Single全库备份"),
+        name_en="mysql_single_full_backup",
+        type="execute",
+        related_resource_types=[ResourceEnum.MYSQL],
+        group=_("已废弃"),
+    )
+    MYSQL_AUTOFIX_PROXY_SWITCH = ActionMeta(
+        id="mysql_autofix_proxy_switch",
+        name=_("MySQL PROXY 自愈替换"),
+        name_en="mysql_autofix_proxy_switch",
+        type="execute",
+        related_resource_types=[ResourceEnum.MYSQL],
+        group=_("已废弃"),
+    )
+    MYSQL_AUTOFIX_SPIDER_ADD = ActionMeta(
+        id="mysql_autofix_spider_add",
+        name=_("MySQL SPIDER 自愈扩容"),
+        name_en="mysql_autofix_spider_add",
+        type="execute",
+        related_resource_types=[ResourceEnum.MYSQL],
+        group=_("已废弃"),
+    )
+    MYSQL_AUTOFIX_SPIDER_REDUCE = ActionMeta(
+        id="mysql_autofix_spider_reduce",
+        name=_("MySQL SPIDER 自愈踢除故障"),
+        name_en="mysql_autofix_spider_reduce",
+        type="execute",
+        related_resource_types=[ResourceEnum.MYSQL],
+        group=_("已废弃"),
+    )
+    MYSQL_DBHA_AF_SPIDER_ADD = ActionMeta(
+        id="mysql_dbha_af_spider_add",
+        name=_("MySQL SPIDER DBHA 自愈扩容"),
+        name_en="mysql_dbha_af_spider_add",
+        type="execute",
+        related_resource_types=[ResourceEnum.MYSQL],
+        group=_("已废弃"),
+    )
+    MYSQL_DBHA_AF_SPIDER_REDUCE = ActionMeta(
+        id="mysql_dbha_af_spider_reduce",
+        name=_("MySQL SPIDER DBHA 自愈踢除故障"),
+        name_en="mysql_dbha_af_spider_reduce",
+        type="execute",
+        related_resource_types=[ResourceEnum.MYSQL],
+        group=_("已废弃"),
+    )
+    MYSQL_FIXPOINT = ActionMeta(
+        id="mysql_fixpoint",
+        name=_("MySQL 定点构造V2"),
+        name_en="mysql_fixpoint",
+        type="execute",
+        related_resource_types=[ResourceEnum.MYSQL],
+        group=_("已废弃"),
+    )
+    MYSQL_DBHA_AF_SCHEDULE = ActionMeta(
+        id="mysql_dbha_af_schedule",
+        name=_("MySQL DBHA 自愈调度"),
+        name_en="mysql_dbha_af_schedule",
+        type="execute",
+        related_resource_types=[ResourceEnum.MYSQL],
+        group=_("已废弃"),
+    )
+    REDIS_PROXY_FAST_FIX = ActionMeta(
+        id="redis_proxy_fast_fix",
+        name=_("Redis 集群Proxy快速恢复"),
+        name_en="redis_proxy_fast_fix",
+        type="execute",
+        related_resource_types=[ResourceEnum.REDIS],
+        group=_("已废弃"),
+    )
+    TENDBCLUSTER_FIXPOINT_NEW = ActionMeta(
+        id="tendbcluster_fixpoint_new",
+        name=_("TENDBCLUSTER 数据构造到新集群"),
+        name_en="tendbcluster_fixpoint_new",
+        type="execute",
+        related_resource_types=[ResourceEnum.TENDBCLUSTER],
+        group=_("已废弃"),
+    )
+    TENDBCLUSTER_FIXPOINT_EXIST = ActionMeta(
+        id="tendbcluster_fixpoint_exist",
+        name=_("TENDBCLUSTER 数据构造到已有集群"),
+        name_en="tendbcluster_fixpoint_exist",
+        type="execute",
+        related_resource_types=[ResourceEnum.TENDBCLUSTER],
+        group=_("已废弃"),
+    )
+    MYSQL_PARTITION_V2 = ActionMeta(
+        id="mysql_partition_v2",
+        name=_("MySQL 分区v2"),
+        name_en="mysql_partition_v2",
+        type="execute",
+        related_resource_types=[ResourceEnum.MYSQL],
+        group=_("已废弃"),
+    )
+    DBCONFIG_COMMON_VIEW = ActionMeta(
+        id="dbconfig_common_view",
+        name=_("通用配置查看"),
+        name_en="dbconfig_common_view",
+        type="view",
+        related_resource_types=[ResourceEnum.BUSINESS],
+        group=_("已废弃"),
+    )
+    DBCONFIG_COMMON_EDIT = ActionMeta(
+        id="dbconfig_common_edit",
+        name=_("通用配置编辑"),
+        name_en="dbconfig_common_edit",
+        type="manage",
+        related_resource_types=[ResourceEnum.BUSINESS],
+        group=_("已废弃"),
+    )
+    MYSQL_TO_MYSQL_MIGRATE = ActionMeta(
+        id="mysql_to_mysql_migrate",
+        name=_("MySQL 数据迁移"),
+        name_en="mysql_to_mysql_migrate",
+        type="execute",
+        related_resource_types=[ResourceEnum.MYSQL],
+        group=_("已废弃"),
+    )
+    MYSQL_HA_TO_CLUSTER_MIGRATE = ActionMeta(
+        id="mysql_ha_to_cluster_migrate",
+        name=_("MySQL HA到Cluster数据迁移"),
+        name_en="mysql_ha_to_cluster_migrate",
+        type="execute",
+        related_resource_types=[ResourceEnum.MYSQL],
+        group=_("已废弃"),
     )
 
     @classmethod
