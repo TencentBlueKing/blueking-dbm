@@ -114,22 +114,24 @@ class TestPermission:
         assert multi_request.subject.id == test_username
         assert len(multi_request.actions) == 2
 
-    def test_is_allowed_success(self, test_username, mock_iam_client):
+    def test_is_allowed_success(self, test_username, mock_iam_backend):
         """测试权限验证成功"""
         perm = Permission(username=test_username)
-        perm._iam = mock_iam_client
+        perm.backend = mock_iam_backend
         resource = ResourceEnum.BUSINESS.create_instance(str(constant.BK_BIZ_ID))
 
         result = perm.is_allowed(ActionEnum.DB_MANAGE, [resource])
 
         assert result is True
 
-    def test_is_allowed_denied(self, test_username, mock_iam_client):
+    def test_is_allowed_denied(self, test_username, mock_iam_client, mock_iam_backend):
         """测试权限验证失败"""
-        mock_iam_client.is_allowed.return_value = False
+        mock_iam_backend.is_allowed.return_value = False
         mock_iam_client.get_apply_url.return_value = (True, "", "http://apply.url")
 
         perm = Permission(username=test_username)
+        perm.backend = mock_iam_backend
+        # 无权限时会组装申请链接，该能力尚未下沉到后端
         perm._iam = mock_iam_client
         resource = ResourceEnum.BUSINESS.create_instance(str(constant.BK_BIZ_ID))
 
@@ -166,19 +168,19 @@ class TestPermission:
 
         assert str(constant.BK_BIZ_ID) in result
 
-    def test_policy_query(self, test_username, mock_iam_client):
+    def test_policy_query(self, test_username, mock_iam_backend):
         """测试策略查询"""
-        # Mock policy query返回一个简单的策略对象
-        mock_policy = {"op": "OR", "content": []}
-        mock_iam_client._do_policy_query.return_value = mock_policy
+        obj_list = [str(constant.BK_BIZ_ID), "99999"]
+        mock_iam_backend.policy_query.return_value = [str(constant.BK_BIZ_ID)]
 
         perm = Permission(username=test_username)
-        perm._iam = mock_iam_client
+        perm.backend = mock_iam_backend
 
-        policy = perm.policy_query(ActionEnum.DB_MANAGE, [str(constant.BK_BIZ_ID)])
+        policy = perm.policy_query(ActionEnum.DB_MANAGE, obj_list)
 
-        # policy_query应该返回一个列表
+        # 只返回有权限的对象
         assert isinstance(policy, list)
+        assert str(constant.BK_BIZ_ID) in policy
 
     def test_make_application(self, test_username):
         """测试创建权限申请"""
@@ -209,25 +211,16 @@ class TestPermission:
 
         assert len(data) > 0
 
-    def test_grant_creator_actions(self, test_username, mock_iam_client, test_cluster_for_iam):
-        """测试授权创建者"""
+    def test_grant_creator_actions(self, test_username, mock_iam_backend, test_cluster_for_iam):
+        """测试授权创建者。V3走属性授权、V4走角色实例授权，差异由后端消化"""
         perm = Permission(username=test_username)
-        perm._iam = mock_iam_client
+        perm.backend = mock_iam_backend
         resource = ResourceEnum.MYSQL.create_instance(str(test_cluster_for_iam.id))
 
         result = perm.grant_creator_actions(resource, test_username)
 
         assert result is not None
-
-    def test_grant_creator_actions_attr(self, test_username, mock_iam_client, test_cluster_for_iam):
-        """测试授权创建者属性"""
-        perm = Permission(username=test_username)
-        perm._iam = mock_iam_client
-        resource = ResourceEnum.MYSQL.create_instance(str(test_cluster_for_iam.id))
-
-        result = perm.grant_creator_actions_attr(resource, test_username)
-
-        assert result is not None
+        mock_iam_backend.grant_creator_actions.assert_called_once_with(resource, test_username)
 
     @patch("backend.iam_app.handlers.permission.Permission")
     def test_insert_permission_field(self, mock_perm_class, test_username, test_app_cache):
