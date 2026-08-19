@@ -284,11 +284,9 @@ class TicketType(StrStructuredEnum):
     MYSQL_FIXPOINT_EXIST_CLUSTER = TicketEnumField("MYSQL_FIXPOINT_EXIST_CLUSTER", _("MySQL 数据构造到已有集群"), _("构造"))
     MYSQL_HA_FULL_BACKUP = TicketEnumField("MYSQL_HA_FULL_BACKUP", _("MySQL 全库备份"), _("备份"), register_iam=True)
     MYSQL_SINGLE_TRUNCATE_DATA = TicketEnumField("MYSQL_SINGLE_TRUNCATE_DATA", _("MySQL 单节点清档"), _("数据处理"))
-    MYSQL_DTS_CLUSTER_APPLY = TicketEnumField("MYSQL_DTS_CLUSTER_APPLY", _("MySQL DTS 集群部署"), register_iam=False)
-    MYSQL_DTS_CLUSTER_DESTROY = TicketEnumField("MYSQL_DTS_CLUSTER_DESTROY", _("MySQL DTS 集群销毁"), register_iam=False)
-    MYSQL_DTS_CLUSTER_REINSTALL = TicketEnumField(
-        "MYSQL_DTS_CLUSTER_REINSTALL", _("MySQL DTS 集群重装"), register_iam=False
-    )
+    MYSQL_DTS_CLUSTER_APPLY = TicketEnumField("MYSQL_DTS_CLUSTER_APPLY", _("MySQL DTS 集群部署"))
+    MYSQL_DTS_CLUSTER_DESTROY = TicketEnumField("MYSQL_DTS_CLUSTER_DESTROY", _("MySQL DTS 集群销毁"))
+    MYSQL_DTS_CLUSTER_REINSTALL = TicketEnumField("MYSQL_DTS_CLUSTER_REINSTALL", _("MySQL DTS 集群重装"))
     MYSQL_TO_MYSQL_MIGRATE = TicketEnumField("MYSQL_TO_MYSQL_MIGRATE", _("MySQL 数据迁移"), _("数据处理"))
     MYSQL_HA_TO_CLUSTER_MIGRATE = TicketEnumField(
         "MYSQL_HA_TO_CLUSTER_MIGRATE", _("MySQL HA到Cluster数据迁移"), _("数据处理")
@@ -494,7 +492,7 @@ class TicketType(StrStructuredEnum):
     REDIS_INSTANCE_OPEN = TicketEnumField("REDIS_INSTANCE_OPEN", _("Redis 主从启用"))
     REDIS_INSTANCE_CLOSE = TicketEnumField("REDIS_INSTANCE_CLOSE", _("Redis 主从禁用"))
     REDIS_DESTROY = TicketEnumField("REDIS_DESTROY", _("Redis 集群删除"), _("集群管理"), register_iam=True)
-    REDIS_INSTANCE_DESTROY = TicketEnumField("REDIS_INSTANCE_DESTROY", _("Redis 主从集群删除"), _("集群管理"), register_iam=True)
+    REDIS_INSTANCE_DESTROY = TicketEnumField("REDIS_INSTANCE_DESTROY", _("Redis 主从集群删除"), _("集群管理"), register_iam=True) # noqa
     REDIS_PURGE = TicketEnumField("REDIS_PURGE", _("Redis 集群清档"), _("集群管理"))
     REDIS_PROXY_KICKOFF = TicketEnumField("REDIS_PROXY_KICKOFF", _("Redis 集群Proxy剔除"), _("集群管理"))
     REDIS_PROXY_FIX = TicketEnumField("REDIS_PROXY_FIX", _("Redis 集群Proxy恢复"), _("集群管理"))
@@ -712,9 +710,7 @@ class TicketType(StrStructuredEnum):
     VM_DESTROY = TicketEnumField("VM_DESTROY", _("VM 集群删除"), _("集群管理"), register_iam=True)
 
     # ORACLE
-    ORACLE_EXEC_SCRIPT_APPLY = TicketEnumField(
-        "ORACLE_EXEC_SCRIPT_APPLY", _("ORACLE 变更SQL执行"), _("脚本任务"), register_iam=True
-    )
+    ORACLE_EXEC_SCRIPT_APPLY = TicketEnumField("ORACLE_EXEC_SCRIPT_APPLY", _("ORACLE 变更SQL执行"), _("脚本任务"))
 
     # 测试
     FAKE_TICKET = TicketEnumField("FAKE_TICKET", _("测试专用单据"))
