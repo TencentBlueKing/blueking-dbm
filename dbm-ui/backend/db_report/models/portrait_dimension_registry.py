@@ -30,6 +30,7 @@ from django.db import models
 from django.utils.translation import gettext_lazy as _
 
 from backend.configuration.constants import DBType
+from backend.db_report.enums import SummaryFetchStrategy
 
 
 class PortraitDimensionRegistry(models.Model):
@@ -83,6 +84,24 @@ class PortraitDimensionRegistry(models.Model):
         default=True,
         verbose_name=_("是否启用"),
         help_text=_("False 表示该维度暂不参与集群画像分析"),
+    )
+
+    #: 维度计算分数权重；为空表示未配置权重
+    weight = models.FloatField(
+        null=True,
+        blank=True,
+        default=None,
+        verbose_name=_("权重"),
+        help_text=_("该维度在画像综合评分中的计算权重，为空表示未配置"),
+    )
+
+    #: 获取摘要结果的策略；决定 portrait_fetch_summaries 时间范围内返回哪些结果
+    summary_fetch_strategy = models.CharField(
+        max_length=16,
+        choices=SummaryFetchStrategy.get_choices(),
+        default=SummaryFetchStrategy.ALL.value,
+        verbose_name=_("摘要获取策略"),
+        help_text=_("获取该维度摘要结果的策略：all 返回全部 / last 返回最新一条 / first 返回最老一条"),
     )
 
     create_at = models.DateTimeField(auto_now_add=True, verbose_name=_("创建时间"))

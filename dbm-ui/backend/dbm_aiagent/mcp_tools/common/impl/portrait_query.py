@@ -36,12 +36,14 @@ specific language governing permissions and limitations under the License.
     - 某 code 时间窗内 N 条数据      -> 该 code 在 summaries 中出现 N 次；不做去重
 """
 from datetime import datetime
+from itertools import groupby
 from typing import Dict, List, Optional, Tuple
 
 from django.db.models import QuerySet
 
 from backend.db_meta.enums import ClusterType
 from backend.db_meta.models import Cluster
+from backend.db_report.enums import SummaryFetchStrategy
 from backend.db_report.models.portrait_dimension_registry import PortraitDimensionRegistry
 from backend.db_report.models.portrait_dimension_summary import PortraitDimensionSummary
 
@@ -121,6 +123,8 @@ class PortraitQueryService:
                 "dimension_code": obj.code,
                 "name": obj.name,
                 "description": obj.description or "",
+                "weight": obj.weight,
+                "summary_fetch_strategy": obj.summary_fetch_strategy or SummaryFetchStrategy.ALL.value,
             }
             for obj in qs
         ]
@@ -155,7 +159,8 @@ class PortraitQueryService:
                - 调用方显式传 codes -> 取交集：codes ∩ (db_type 下 enabled)
                - 未传 codes         -> 取该 db_type 下全部启用维度作为默认集合
             4) 一次 SQL 拉取 effective 时间窗内所有匹配记录（按 code 升序 + report_time 升序）
-            5) 逐条装配返回；同时统计"时间窗内 0 条数据"的 code 归入 missing_codes
+            5) 按每个维度的 ``summary_fetch_strategy`` 过滤：all 保留全部 / last 取最新一条 / first 取最老一条
+            6) 逐条装配返回；同时统计"时间窗内 0 条数据"的 code 归入 missing_codes
 
         :param bk_biz_id: 业务 ID（用于强约束数据归属，避免跨业务读取）
         :param cluster_domain: 集群不可变域名
@@ -251,7 +256,11 @@ class PortraitQueryService:
             until=effective_until,
         )
 
-        # 5) 逐条装配 + 统计 missing_codes
+        # 5) 按每个维度的 summary_fetch_strategy 过滤：
+        #    all  -> 保留全部；last -> 每组取最新一条；first -> 每组取最老一条
+        rows = cls._filter_rows_by_strategy(rows=rows, registry_map=registry_map)
+
+        # 6) 逐条装配 + 统计 missing_codes
         #    注意：row.code 是 ORM 字段读取，保持不变；出参 dict 键名统一为 dimension_code
         summaries: List[Dict] = [
             {
@@ -263,6 +272,7 @@ class PortraitQueryService:
                 "report_time": row.report_time,
                 "summary": row.summary or "",
                 "detail_url": row.detail_url or "",
+                "score": row.score,
             }
             for row in rows
         ]
@@ -406,3 +416,40 @@ class PortraitQueryService:
             qs = qs.filter(report_time__lte=until)
 
         return list(qs.order_by("code", "report_time", "id"))
+
+    @classmethod
+    def _filter_rows_by_strategy(
+        cls,
+        rows: List[PortraitDimensionSummary],
+        registry_map: Dict[str, PortraitDimensionRegistry],
+    ) -> List[PortraitDimensionSummary]:
+        """依据每个维度的 ``summary_fetch_strategy`` 过滤时间窗内拉取到的摘要记录。
+
+        前置条件：
+            - ``rows`` 已按 ``(code 升序, report_time 升序, id 升序)`` 排序，保证同 ``code`` 的记录连续，
+              从而 ``itertools.groupby`` 能正确分组；
+            - 同 ``code`` 分组内，首条即"最老一条"、末条即"最新一条"（report_time 与 id 双升序兜底）。
+
+        过滤规则：
+            - ``all``（或 ``None`` / 未知值，兜底按 ``all`` 处理）：保留该维度全部记录
+            - ``last`` ：只保留该维度最新一条记录
+            - ``first``：只保留该维度最老一条记录
+
+        :param rows: 时间窗内拉取到的全部摘要记录（已按 code 升序）
+        :param registry_map: {code: registry_obj} 映射；策略取自 ``registry_obj.summary_fetch_strategy``
+        :return: 过滤后的记录列表，顺序保持与原 ``rows`` 一致
+        """
+        filtered_rows: List[PortraitDimensionSummary] = []
+        for _code, group_iter in groupby(rows, key=lambda r: r.code):
+            code_rows: List[PortraitDimensionSummary] = list(group_iter)
+            strategy: Optional[str] = getattr(registry_map.get(_code), "summary_fetch_strategy", None)
+            strategy = strategy or SummaryFetchStrategy.ALL.value
+
+            if strategy == SummaryFetchStrategy.LAST.value:
+                filtered_rows.append(code_rows[-1])
+            elif strategy == SummaryFetchStrategy.FIRST.value:
+                filtered_rows.append(code_rows[0])
+            else:  # ALL（含 None 兜底）
+                filtered_rows.extend(code_rows)
+
+        return filtered_rows

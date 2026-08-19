@@ -11,6 +11,7 @@ specific language governing permissions and limitations under the License.
 from .affinity_check_report import AffinityCheckReport
 from .ai_analysis_report import AiAnalysisReport
 from .checksum_check_report import ChecksumCheckReport, ChecksumInstance
+from .cluster_portrait_report import ClusterPortraitReport
 from .dbmon_heartbeat_report import DbmonHeartbeatReport
 from .es_account_report import EsAccountReport
 from .es_datanode_report import EsDatanodeReport
@@ -38,6 +39,8 @@ from .mysql_slowlog_detail import MysqlSlowlogDetail
 from .mysql_sql_exec_duration import MysqlSqlExecDuration
 from .mysql_sql_file_exec_duration import MysqlSqlFileExecDuration
 from .mysqlbackup_check_report import MysqlBackupCheckReport
+from .portrait_dimension_registry import PortraitDimensionRegistry
+from .portrait_dimension_summary import PortraitDimensionSummary
 from .redis_check_report import RedisCheckReport
 from .redis_rollback_exercise_report import RedisRollbackExerciseReport
 from .redisbackup_check_report import RedisBackupCheckReport

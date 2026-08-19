@@ -124,6 +124,7 @@ class PortraitIngestSDK:
         report_time: datetime,
         summary: str = "",
         detail_url: str = "",
+        score: Optional[float] = None,
     ) -> PortraitDimensionSummary:
         """写入一条巡检维度摘要。
 
@@ -141,6 +142,7 @@ class PortraitIngestSDK:
                             **必须 >= 目标集群 ``create_at``**，否则视为脏数据被拒绝
         :param summary: 本次巡检的摘要文本；允许为空字符串（视为无风险要点）；单条 <= 4000 字符
         :param detail_url: 本次巡检详情页链接；允许为空；<= 1024 字符
+        :param score: 本次摘要结果的分数；允许为 None（表示未上报）；若传入须为数值（int/float，排除 bool）
         :return: 新落库的 :class:`PortraitDimensionSummary` 实例（含自增 id）
 
         边界 / 异常：
@@ -160,6 +162,7 @@ class PortraitIngestSDK:
             report_time=report_time,
             summary=summary,
             detail_url=detail_url,
+            score=score,
         )
 
         # 2) 提取契约字段：db_type_value 落库用小写字符串；code/name/description 来自枚举
@@ -185,6 +188,7 @@ class PortraitIngestSDK:
             report_time=report_time,
             summary=summary or "",
             detail_url=detail_url or "",
+            score=score,
         )
 
         logger.info(
@@ -211,6 +215,7 @@ class PortraitIngestSDK:
         report_time: datetime,
         summary: str,
         detail_url: str,
+        score: Optional[float],
     ) -> None:
         """入参格式 + 集群语义校验；不合法直接抛出 :class:`PortraitInvalidPayloadException` 或其子类。
 
@@ -269,6 +274,11 @@ class PortraitIngestSDK:
             raise PortraitInvalidPayloadException(
                 context={"msg": _("detail_url 长度超过上限 {limit} 字符").format(limit=self.MAX_DETAIL_URL_CHARS)}
             )
+
+        if score is not None:
+            # score 允许 int/float，但排除 bool（bool 是 int 子类，语义上不应作为分数）
+            if isinstance(score, bool) or not isinstance(score, (int, float)):
+                raise PortraitInvalidPayloadException(context={"msg": _("score 必须为数值类型（int/float）或 None")})
 
         # ---- B. 集群语义校验 --------------------------------------------
         cluster_created_at: Optional[datetime] = self._get_cluster_created_at(
@@ -355,6 +365,7 @@ def ingest_summary(
     report_time: datetime,
     summary: str = "",
     detail_url: str = "",
+    score: Optional[float] = None,
 ) -> PortraitDimensionSummary:
     """对外模块级快捷函数；等价于 ``PortraitIngestSDK().ingest(**kwargs)``。
 
@@ -367,6 +378,7 @@ def ingest_summary(
     :param report_time: 巡检产出时间；**必须 >= 目标集群 ``create_at``**
     :param summary: 摘要文本（默认空字符串）
     :param detail_url: 详情页链接（默认空字符串）
+    :param score: 摘要结果分数（默认 None）
     :return: 新落库的 :class:`PortraitDimensionSummary` 实例
     边界 / 异常：同 :meth:`PortraitIngestSDK.ingest`
     """
@@ -378,4 +390,5 @@ def ingest_summary(
         report_time=report_time,
         summary=summary,
         detail_url=detail_url,
+        score=score,
     )

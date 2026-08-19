@@ -105,6 +105,7 @@ class PortraitIngestService:
         report_time: Any,
         summary: Any = "",
         detail_url: Any = "",
+        score: Any = None,
     ) -> Dict:
         """写入一条集群维度巡检摘要（MCP 写侧唯一入口）。
 
@@ -141,6 +142,7 @@ class PortraitIngestService:
                             **必须 >= 目标集群 ``create_at``**，否则会被 SDK 拒绝
         :param summary: 摘要文本，允许为空；<= 4000 字符
         :param detail_url: 详情页链接，允许为空；<= 1024 字符
+        :param score: 摘要结果分数；允许为 None（表示未上报）；数值 int/float（排除 bool）-> float
         :return: dict，字段结构对齐 ``PortraitIngestSummaryOutputSerializer``::
 
             {
@@ -170,6 +172,7 @@ class PortraitIngestService:
             report_time=report_time,
             summary=summary,
             detail_url=detail_url,
+            score=score,
         )
         if err_msg is not None:
             return cls._fail(
@@ -247,6 +250,7 @@ class PortraitIngestService:
                 report_time=norm_report_time,
                 summary=normalized["summary"],
                 detail_url=normalized["detail_url"],
+                score=normalized["score"],
             )
         except PortraitReportTimeStaleException as exc:
             # 8a) SDK 侧"report_time 早于集群创建时间"专用异常 -> 独立 status 分支
@@ -317,6 +321,7 @@ class PortraitIngestService:
         report_time: Any,
         summary: Any,
         detail_url: Any,
+        score: Any = None,
     ) -> Tuple[Dict[str, Any], Optional[str]]:
         """把 MCP/Agent 通道的宽松入参正规化为 SDK 期望的强类型。
 
@@ -326,12 +331,14 @@ class PortraitIngestService:
             - ``report_time``：``datetime`` / ISO8601 str / 数值时间戳 -> ``datetime``；
               其它 -> 报错
             - ``summary`` / ``detail_url``：None -> ""；非 str 也 None -> ""（SDK 再做长度校验）
+            - ``score``：None -> None；数值 int/float（排除 bool）-> float；其它 -> None（SDK 再校验）
 
         :param bk_biz_id: 业务 ID 原始值（可能为 int 或 str）
         :param cluster_domain: 集群域名原始值
         :param report_time: 巡检时间原始值（可能为 datetime / str / 数值）
         :param summary: 摘要文本原始值
         :param detail_url: 详情链接原始值
+        :param score: 摘要分数原始值（可能为 int / float / None）
         :return: (规范化后的字典, 错误消息)。错误消息为 None 表示成功；
                  否则调用方应把该消息透传到 status="invalid_payload" 分支。
         边界：本方法**只做类型转换 + 明显非法**兜底，具体格式类校验（长度、正整数等）
@@ -362,6 +369,9 @@ class PortraitIngestService:
             detail_url if isinstance(detail_url, str) else ("" if detail_url is None else str(detail_url))
         )
 
+        # score：None -> None；数值 int/float（排除 bool）-> float；其它 -> None（SDK 再做校验）
+        score_val: Optional[float] = cls._coerce_score(score)
+
         return (
             {
                 "bk_biz_id": biz_id_val,
@@ -369,6 +379,7 @@ class PortraitIngestService:
                 "report_time": rt_val,
                 "summary": summary_val,
                 "detail_url": detail_val,
+                "score": score_val,
             },
             None,
         )
@@ -390,6 +401,22 @@ class PortraitIngestService:
                 return int(value.strip())
             except ValueError:
                 return None
+        return None
+
+    @staticmethod
+    def _coerce_score(value: Any) -> Optional[float]:
+        """将宽松形式的分数入参转换为 float；不合法返回 None。
+
+        :param value: 原始值（可能为 int / float / None / 其它）
+        :return: 合法的 float 或 None
+        边界：布尔值虽然是 int 的子类，但语义上不应被视为分数，视为非法（返回 None）
+        """
+        if value is None:
+            return None
+        if isinstance(value, bool):
+            return None
+        if isinstance(value, (int, float)):
+            return float(value)
         return None
 
     @staticmethod

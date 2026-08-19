@@ -37,6 +37,7 @@ specific language governing permissions and limitations under the License.
     - 读侧（Agent / MCP 工具）目前直接查询 :class:`PortraitDimensionRegistry` ORM，不经本类；
       如未来出现多处读侧复用需求，再补充读侧方法
 """
+from backend.db_report.enums.portrait import DEFAULT_DIMENSION_WEIGHT
 from backend.db_report.models.portrait_dimension_registry import PortraitDimensionRegistry
 
 
@@ -74,7 +75,11 @@ class RegistryHelper:
             - 契约由上游 :class:`PortraitDimensionCode` 枚举保证 (db_type, code) 的正确性
             - name / description **仅在首次注册时**落库；后续不再由 SDK 回写
               （避免与运维后台 / 人工修订等其他写入路径互相覆盖）
-            - **不修改 enabled**：enabled 是运维旁路开关，只能由 command 显式启停
+            - weight **仅在首次注册时**落库，取默认常量 :data:`DEFAULT_DIMENSION_WEIGHT`
+              （0.5，中等重要）；之后运维可在注册表上自由调整，SDK 不回写
+            - **不修改 enabled / summary_fetch_strategy**：二者均为管理侧字段，SDK 上报路径
+              既不设置也不回写；enabled 由 ``sync_portrait_dimensions`` command 显式启停，
+              summary_fetch_strategy 走模型默认值（all）
 
         :param db_type: 数据库类型（DBType.value）
         :param code: 维度短码
@@ -83,11 +88,14 @@ class RegistryHelper:
         :return: :class:`PortraitDimensionRegistry` 实例
 
         边界：
-            - 首次调用     -> 新建，enabled 默认 True，name/description 按入参落库
-            - 已存在        -> 原样返回，不回写任何字段（含 name/description/enabled）
+            - 首次调用     -> 新建，enabled 默认 True，name/description 按入参落库，
+                              weight 取默认常量 DEFAULT_DIMENSION_WEIGHT（0.5）；
+                              summary_fetch_strategy 不设置，走模型默认值（all）
+            - 已存在        -> 原样返回，不回写任何字段（含 name/description/enabled/weight/summary_fetch_strategy）
             - 并发首次调用  -> 由 ``get_or_create`` + 唯一键 (db_type, code) 兜底，
                               只会有一条 create 成功，其余无冲突地走 get 分支
         """
+
         obj, _created = PortraitDimensionRegistry.objects.get_or_create(
             db_type=db_type,
             code=code,
@@ -96,6 +104,8 @@ class RegistryHelper:
                 "name": name,
                 "description": description or "",
                 "enabled": True,
+                # 首次注册给"中等重要"默认权重；后续运维可自由调整，SDK 不覆盖
+                "weight": DEFAULT_DIMENSION_WEIGHT,
             },
         )
         return obj

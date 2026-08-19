@@ -61,8 +61,11 @@ class ClusterPortraitMcpToolsViewSet(McpToolsViewSet):
         description=str(
             _(
                 "集群画像 - 发现集群启用维度：按 (bk_biz_id, cluster_domain) 反查集群 db_type，"
-                "返回该集群 db_type 下所有启用中的巡检维度（含 dimension_code / name / description），"
-                "供 Agent 决定本轮画像分析要采集哪些维度。集群不存在时通过 status=cluster_not_found 返回。"
+                "返回该集群 db_type 下所有启用中的巡检维度（含 dimension_code / name / description / "
+                "weight / summary_fetch_strategy），供 Agent 决定本轮画像分析要采集哪些维度。"
+                "其中 summary_fetch_strategy 表示拉取该维度摘要时应采用的策略（all 返回全部 / "
+                "last 返回最新一条 / first 返回最老一条），weight 为该维度综合评分权重（未配置为 null）。"
+                "集群不存在时通过 status=cluster_not_found 返回。"
             )
         ),
         request_slz=PortraitDiscoverDimensionsInputSerializer,
@@ -91,9 +94,10 @@ class ClusterPortraitMcpToolsViewSet(McpToolsViewSet):
     @mcp_tools_api_decorator(
         description=str(
             _(
-                "集群画像 - 拉取维度摘要（时间范围内全部匹配）：按 (bk_biz_id, cluster_domain) 批量取"
-                "指定维度 codes 在时间窗内的**全部**巡检摘要记录；同一 code 在时间窗内多次上报会返回多条，"
-                "不做「每 code 取最新」的聚合。codes 不传时默认取该集群 db_type 下所有启用维度。"
+                "集群画像 - 拉取维度摘要：按 (bk_biz_id, cluster_domain) 批量取指定维度 codes 在时间窗内的"
+                "巡检摘要记录（每条含 score 分数，未上报为 null）。返回条数由各维度在注册表中的 "
+                "summary_fetch_strategy 决定：all 返回时间窗内全部记录；last 返回最新一条；"
+                "first 返回最老一条。codes 不传时默认取该集群 db_type 下所有启用维度。"
             )
         ),
         request_slz=PortraitFetchSummariesInputSerializer,
@@ -131,8 +135,8 @@ class ClusterPortraitMcpToolsViewSet(McpToolsViewSet):
                 "集群画像 - 上报维度巡检摘要：写入一条 (集群, 维度) 的单次巡检摘要，"
                 "作为 Agent 生成画像报告的数据源。db_type 由服务端通过 (bk_biz_id, cluster_domain) "
                 "反查集群元数据自动得到，无需调用方传入；dimension_code 须为该集群 db_type 下"
-                "已定义的维度枚举 value。首次上报会自动懒注册到维度注册表。可预期失败通过 "
-                "status 字段返回，不抛异常。"
+                "已定义的维度枚举 value；score 为该条摘要的分数（可选，数值类型，未上报传 null）。"
+                "首次上报会自动懒注册到维度注册表。可预期失败通过 status 字段返回，不抛异常。"
             )
         ),
         request_slz=PortraitIngestSummaryInputSerializer,
@@ -157,6 +161,7 @@ class ClusterPortraitMcpToolsViewSet(McpToolsViewSet):
         report_time = self.get_param("report_time")
         summary: str = self.get_param("summary", "") or ""
         detail_url: str = self.get_param("detail_url", "") or ""
+        score = self.get_param("score", None)
         return Response(
             PortraitIngestService.ingest_summary(
                 code=code,
@@ -165,5 +170,6 @@ class ClusterPortraitMcpToolsViewSet(McpToolsViewSet):
                 report_time=report_time,
                 summary=summary,
                 detail_url=detail_url,
+                score=score,
             )
         )

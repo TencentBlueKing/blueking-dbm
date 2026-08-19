@@ -18,6 +18,8 @@ specific language governing permissions and limitations under the License.
 from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
+from backend.db_report.enums import SummaryFetchStrategy
+
 # ----------------------------------------------------------------------
 # 通用嵌套结构
 # ----------------------------------------------------------------------
@@ -30,6 +32,23 @@ class PortraitDimensionSerializer(serializers.Serializer):
     dimension_code = serializers.CharField(help_text=_("维度短码，同 db_type 下唯一"))
     name = serializers.CharField(help_text=_("维度中文名称"))
     description = serializers.CharField(help_text=_("维度描述文本；用于告诉 Agent 该维度关注什么"), allow_blank=True)
+    weight = serializers.FloatField(
+        help_text=_("该维度在画像综合评分中的计算权重；未配置时为 null"),
+        allow_null=True,
+        required=False,
+    )
+    summary_fetch_strategy = serializers.ChoiceField(
+        choices=SummaryFetchStrategy.get_choices(),
+        help_text=_("获取该维度摘要结果的策略：all 返回全部 / last 返回最新一条 / first 返回最老一条"),
+        # 与模型层 PortraitDimensionRegistry.summary_fetch_strategy 的 default 严格对齐：
+        # - 模型层 null=False + default="all"，DB 层不会出现 NULL；
+        # - Serializer 兜底 default 用于两类边界：
+        #   1) 未来若本 Serializer 被复用为入参（如管理侧编辑维度），允许缺省；
+        #   2) 极端场景下数据迁移遗漏 / 直接 SQL 写入产生空值时的防御性兜底；
+        # - 不加 allow_null=True：模型语义不允许 null，避免向下游 Agent 传递虚假的 null 分支。
+        required=False,
+        default=SummaryFetchStrategy.ALL.value,
+    )
 
 
 class PortraitSummarySerializer(serializers.Serializer):
@@ -43,6 +62,11 @@ class PortraitSummarySerializer(serializers.Serializer):
     report_time = serializers.DateTimeField(help_text=_("本次巡检产出的业务时间（精确到秒）"))
     summary = serializers.CharField(help_text=_("巡检摘要文本"), allow_blank=True)
     detail_url = serializers.CharField(help_text=_("巡检详情页链接，供用户点击查看完整报告"), allow_blank=True)
+    score = serializers.FloatField(
+        help_text=_("该条摘要结果的分数；未上报时为 null"),
+        allow_null=True,
+        required=False,
+    )
 
 
 # ----------------------------------------------------------------------
@@ -212,6 +236,12 @@ class PortraitIngestSummaryInputSerializer(serializers.Serializer):
         allow_blank=True,
         default="",
         max_length=1024,
+    )
+    score = serializers.FloatField(
+        help_text=_("本次摘要结果的分数；允许为空（null 表示未上报）"),
+        required=False,
+        allow_null=True,
+        default=None,
     )
 
 
