@@ -74,7 +74,28 @@ func GenProbeYAML(payload probeconfig.ProbeConfigPayload) (string, error) {
 		sortEndpoints(mysqlEndpoints)
 	}
 
-	cfg := probeYAML{
+	cfg := newProbeYAML(payload)
+
+	fillNamedHarvesters(&cfg, payload, mysqlEndpoints, mysqlProxyAdminEndpoints, redisEndpoints)
+	fillExtraHarvesters(&cfg, payload, extraEndpoints)
+
+	if len(payload.Metadata) > 0 &&
+		cfg.Harvester.MySQL == nil &&
+		cfg.Harvester.MySQLProxyAdmin == nil &&
+		cfg.Harvester.Redis == nil &&
+		len(cfg.Harvester.Extra) == 0 {
+		logger.Warn(
+			"probe yaml has metadata but no harvester blocks; check provider harvest registration",
+		)
+	}
+
+	return marshalProbeYAML(cfg)
+}
+
+// newProbeYAML builds the probe config skeleton: fixed process/log defaults plus the
+// gse reporter block taken from the payload. Harvester blocks are filled separately.
+func newProbeYAML(payload probeconfig.ProbeConfigPayload) probeYAML {
+	return probeYAML{
 		Name:    "probe",
 		Version: defaultProbeConfigVersion,
 		PidFile: "./pids/probe.pid",
@@ -95,7 +116,17 @@ func GenProbeYAML(payload probeconfig.ProbeConfigPayload) (string, error) {
 			FileSize:  500,
 		},
 	}
+}
 
+// fillNamedHarvesters writes the three well-known harvester blocks; a block is emitted
+// only when both its credentials and its routed endpoints are present.
+func fillNamedHarvesters(
+	cfg *probeYAML,
+	payload probeconfig.ProbeConfigPayload,
+	mysqlEndpoints []DbEndpointConfig,
+	mysqlProxyAdminEndpoints []DbEndpointConfig,
+	redisEndpoints []DbEndpointConfig,
+) {
 	if payload.MySQL != nil && len(mysqlEndpoints) > 0 {
 		cfg.Harvester.MySQL = buildMySQLHarvester(
 			payload.MySQL.User,
@@ -103,6 +134,8 @@ func GenProbeYAML(payload probeconfig.ProbeConfigPayload) (string, error) {
 			payload.MySQL.Interval,
 			payload.MySQL.Timeout,
 			mysqlEndpoints,
+			payload.MySQL.HeartbeatInterval,
+			payload.MySQL.ReplDelayInterval,
 		)
 	}
 
@@ -113,8 +146,11 @@ func GenProbeYAML(payload probeconfig.ProbeConfigPayload) (string, error) {
 			payload.ProxyAdmin.Interval,
 			payload.ProxyAdmin.Timeout,
 			mysqlProxyAdminEndpoints,
+			payload.ProxyAdmin.HeartbeatInterval,
+			payload.ProxyAdmin.ReplDelayInterval,
 		)
 	}
+
 	if payload.Redis != nil && len(redisEndpoints) > 0 {
 		cfg.Harvester.Redis = buildRedisHarvester(
 			payload.Redis.User,
@@ -124,43 +160,43 @@ func GenProbeYAML(payload probeconfig.ProbeConfigPayload) (string, error) {
 			redisEndpoints,
 		)
 	}
+}
 
-	if len(extraEndpoints) > 0 {
-		cfg.Harvester.Extra = make(map[string]*probeGenericHarvesterYAML, len(extraEndpoints))
-		for _, blockName := range sortedExtraBlockNames(extraEndpoints) {
-			eps := extraEndpoints[blockName]
-			if len(eps) == 0 {
-				continue
-			}
-			cred, ok := lookupExtraHarvesterCred(payload, blockName)
-			if !ok {
-				logger.Info(
-					"skip extra harvester block without payload credentials, block: %s, endpoints: %d",
-					blockName, len(eps),
-				)
-				continue
-			}
-			cfg.Harvester.Extra[blockName] = &probeGenericHarvesterYAML{
-				User:      cred.User,
-				Password:  cred.Password,
-				Interval:  cred.Interval,
-				Timeout:   cred.Timeout,
-				Endpoints: eps,
-			}
+// fillExtraHarvesters writes the harvester blocks of newly added DB types, in sorted
+// block-name order. Blocks whose credentials are absent from the payload are skipped.
+func fillExtraHarvesters(
+	cfg *probeYAML,
+	payload probeconfig.ProbeConfigPayload,
+	extraEndpoints map[string][]DbEndpointConfig,
+) {
+	if len(extraEndpoints) == 0 {
+		return
+	}
+
+	cfg.Harvester.Extra = make(map[string]*probeGenericHarvesterYAML, len(extraEndpoints))
+	for _, blockName := range sortedExtraBlockNames(extraEndpoints) {
+		eps := extraEndpoints[blockName]
+		if len(eps) == 0 {
+			continue
+		}
+
+		cred, ok := lookupExtraHarvesterCred(payload, blockName)
+		if !ok {
+			logger.Info(
+				"skip extra harvester block without payload credentials, block: %s, endpoints: %d",
+				blockName, len(eps),
+			)
+			continue
+		}
+
+		cfg.Harvester.Extra[blockName] = &probeGenericHarvesterYAML{
+			User:      cred.User,
+			Password:  cred.Password,
+			Interval:  cred.Interval,
+			Timeout:   cred.Timeout,
+			Endpoints: eps,
 		}
 	}
-
-	if len(payload.Metadata) > 0 &&
-		cfg.Harvester.MySQL == nil &&
-		cfg.Harvester.MySQLProxyAdmin == nil &&
-		cfg.Harvester.Redis == nil &&
-		len(cfg.Harvester.Extra) == 0 {
-		logger.Warn(
-			"probe yaml has metadata but no harvester blocks; check provider harvest registration",
-		)
-	}
-
-	return marshalProbeYAML(cfg)
 }
 
 // lookupExtraHarvesterCred finds credentials for an extra block.
@@ -188,13 +224,17 @@ func buildMySQLHarvester(
 	interval string,
 	timeout string,
 	endpoints []DbEndpointConfig,
+	heartbeatInterval string,
+	replDelayInterval string,
 ) *probeMySQLHarvesterYAML {
 	return &probeMySQLHarvesterYAML{
-		User:      user,
-		Password:  password,
-		Interval:  interval,
-		Timeout:   timeout,
-		Endpoints: endpoints,
+		User:              user,
+		Password:          password,
+		Interval:          interval,
+		HeartbeatInterval: heartbeatInterval,
+		ReplDelayInterval: replDelayInterval,
+		Timeout:           timeout,
+		Endpoints:         endpoints,
 	}
 }
 

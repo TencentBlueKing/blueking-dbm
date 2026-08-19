@@ -125,11 +125,7 @@ func (s *mysql) Save(msg *Message) error {
 	logger.Debug("outputter(mysql) save msg: %s, raw: %s", string(msg.Data), string(dbStatus.RawValue))
 
 	data := hamodel.NewDbhaData(dbStatus)
-	if !data.HarvestType.IsKnown() {
-		return gerrors.Newf(gerrors.InvalidParameter,
-			"unknown harvest_type, topic: %s, db: %s:%d, harvest_type: %s",
-			msg.Topic, data.DbIp, data.DbPort, data.HarvestType)
-	}
+	applyHarvestTypeFallback(data, msg.Topic)
 
 	for _, db := range s.dbs {
 		err := db.DB().Session(&gorm.Session{FullSaveAssociations: true}).
@@ -159,6 +155,20 @@ func (s *mysql) Save(msg *Message) error {
 		logger.Warn("update mysql write bytes metric failed, errmsg: %s", err)
 	}
 	return nil
+}
+
+// applyHarvestTypeFallback fills harvest_type when the probe did not report it.
+// Probes older than the multi-cadence collection change send no harvest_type, and
+// harvest_type is part of the t_dbha_status primary key, so an empty value would break
+// the upsert. Treat such reports as the default collection group instead of dropping them.
+func applyHarvestTypeFallback(data *hamodel.DbhaDataStatus, topic string) {
+	if data == nil || data.HarvestType != "" {
+		return
+	}
+
+	data.HarvestType = haprobe.HarvestTypeDefault
+	logger.Warn("harvest_type missing, fallback to default, topic: %s, db_ip: %s, db_port: %d",
+		topic, data.DbIp, data.DbPort)
 }
 
 func (s *mysql) Close() {

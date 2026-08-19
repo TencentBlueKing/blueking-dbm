@@ -50,12 +50,16 @@ type probeReporterYAML struct {
 }
 
 // probeGenericHarvesterYAML is the on-wire shape shared by named and extra harvester blocks.
+// HeartbeatInterval / ReplDelayInterval are omitempty because only the MySQL family blocks
+// carry them; redis and extra blocks stay byte-identical to the previous output.
 type probeGenericHarvesterYAML struct {
-	User      string             `yaml:"user"`
-	Password  string             `yaml:"password"`
-	Interval  string             `yaml:"interval"`
-	Timeout   string             `yaml:"timeout"`
-	Endpoints []DbEndpointConfig `yaml:"endpoints"`
+	User              string             `yaml:"user"`
+	Password          string             `yaml:"password"`
+	Interval          string             `yaml:"interval"`
+	HeartbeatInterval string             `yaml:"heartbeatInterval,omitempty"`
+	ReplDelayInterval string             `yaml:"replDelayInterval,omitempty"`
+	Timeout           string             `yaml:"timeout"`
+	Endpoints         []DbEndpointConfig `yaml:"endpoints"`
 }
 
 type probeMySQLHarvesterYAML = probeGenericHarvesterYAML
