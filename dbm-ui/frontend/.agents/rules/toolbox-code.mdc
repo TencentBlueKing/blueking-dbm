@@ -1,0 +1,280 @@
+---
+description: 用于生成 dbm 工具箱提单的完整指南，包括路由注册、组件实现、类型定义和单据详情页配置
+globs: ["**/db-manage/**/*.vue", "**/db-manage/**/routes.ts", "**/common/const/ticketTypes.ts"]
+alwaysApply: false
+---
+
+# DBM 工具箱生成指南
+
+本规则用于指导如何正确实现 DBM 工具箱提单功能。
+
+## 目录结构
+
+工具箱提单文件位于：`src/views/db-manage/{db-type}/{TICKET_TYPE}/Index.vue`
+
+其中：
+- `{db-type}` 为数据库类型（如 `mysql`, `redis`, `mongodb`, `tendb-cluster` 等）
+- `{TICKET_TYPE}` 为大写字母命名的单据类型（如 `MYSQL_DATA_MIGRATE`, `REDIS_BACKUP` 等）
+
+## 实现步骤
+
+### 1. 注册 TicketType 常量
+
+在 `src/common/const/ticketTypes.ts` 中添加新的单据类型枚举值：
+
+```typescript
+export enum TicketTypes {
+  // ... 其他类型
+  MYSQL_YOUR_NEW_TYPE = 'MYSQL_YOUR_NEW_TYPE',
+}
+```
+
+**注意事项：**
+- 枚举值必须与后端 API 的 `ticket_type` 字段完全一致
+- 命名格式：`{DB_TYPE}_{FEATURE_NAME}`（全大写，下划线分隔）
+
+### 2. 创建工具箱页面组件
+
+在 `src/views/db-manage/{db-type}/{TICKET_TYPE}/Index.vue` 创建页面组件。
+
+#### 组件结构
+
+```vue
+<template>
+  <div class="toolbox-container">
+    <!-- 批量操作区域（可选） -->
+    <BatchInput
+      v-if="showBatchInput"
+      @change="handleBatchInput" />
+    
+    <!-- 表单区域 -->
+    <DbForm
+      ref="form"
+      class="toolbox-form"
+      form-type="vertical"
+      :model="formData">
+      <!-- 可编辑表格 -->
+      <EditableTable
+        ref="editableTable"
+        class="mt-16 mb-16"
+        :model="formData.tableData">
+        <EditableRow
+          v-for="(item, index) in formData.tableData"
+          :key="index">
+          <!-- 自定义列组件 -->
+          <ClusterColumn
+            v-model="item.cluster"
+            :label="t('集群')"
+            :selected="selected"
+            @batch-edit="handleClusterBatchEdit" />
+          
+          <EditableColumn
+            :label="t('字段名')"
+            :width="200"
+            required>
+            <EditableInput
+              v-model="item.field_name"
+              :placeholder="t('请输入')" />
+          </EditableColumn>
+          
+          <!-- 操作列（必须） -->
+          <OperationColumn
+            :create-row-method="createRowData"
+            :table-data="formData.tableData" />
+        </EditableRow>
+      </EditableTable>
+      
+      <!-- 单据负载（必须） -->
+      <TicketPayload v-model="formData.payload" />
+    </DbForm>
+  </div>
+  
+  <template #action>
+    <BkButton
+      :loading="isSubmitting"
+      theme="primary"
+      @click="handleSubmit">
+      {{ t('提交') }}
+    </BkButton>
+  </template>
+</template>
+
+<script setup lang="ts">
+defineOptions({
+  name: 'ToolboxPageName',
+});
+
+import { ref } from 'vue';
+import { useI18n } from 'vue-i18n';
+
+import { useCreateTicket } from '@hooks';
+
+import type { TicketTypes } from '@common/const';
+
+// 使用 useCreateTicket hook
+const { loading: isSubmitting, run: submitTicket } = useCreateTicket(
+  TicketTypes.YOUR_TICKET_TYPE,
+  {
+    onSuccess: (ticketId) => {
+      // 成功回调
+    },
+    onError: (errors) => {
+      // 错误处理
+    },
+  },
+);
+
+const formData = ref({
+  tableData: [createRowData()],
+  payload: {},
+});
+
+function createRowData() {
+  return {
+    // 初始化行数据
+  };
+}
+
+function handleSubmit() {
+  // 表单验证
+  editableTable.value?.validate().then((valid) => {
+    if (valid) {
+      submitTicket(formData.value);
+    }
+  });
+}
+</script>
+```
+
+#### 核心组件说明
+
+- **EditableTable**: 可编辑表格容器，提供表单验证功能
+- **EditableRow**: 表格行组件，包裹每一行数据
+- **EditableColumn**: 表格列组件，定义列的显示和编辑方式
+- **EditableInput/EditableSelect/EditableDatePicker 等**: 可编辑单元格组件
+- **OperationColumn**: 操作列组件（增删行），必须包含
+- **TicketPayload**: 单据负载组件，用于设置单据的额外参数，必须包含
+
+#### 常用列组件
+
+在 `src/views/db-manage/common/toolbox-field/column/` 目录下有大量可复用的列组件：
+
+- `ClusterColumn`: 集群选择
+- `HostColumn`: 主机选择
+- `SpecColumn`: 规格选择
+- `CountColumn`: 数量输入
+- `ResourceTagColumn`: 资源标签
+- `OperationColumn`: 操作列（增删行）
+
+### 3. 注册路由
+
+在 `src/views/db-manage/{db-type}/routes.ts` 中注册路由：
+
+```typescript
+import { createToolboxRoute } from '@utils/createToolboxRoute';
+import { DBTypes, TicketTypes } from '@common/const';
+
+const { createRouteItem } = createToolboxRoute(DBTypes.MYSQL);
+
+export default [
+  // ... 其他路由
+  createRouteItem(
+    TicketTypes.MYSQL_YOUR_NEW_TYPE,
+    t('你的功能名称'),
+    {
+      fullscreen: true,
+      ticketType: TicketTypes.MYSQL_YOUR_NEW_TYPE,
+    },
+  ),
+];
+```
+
+**注意事项：**
+- 使用 `createToolboxRoute` 工具函数创建路由
+- `ticketType` 必须在 `meta` 中设置，用于提交后的跳转
+- 路由 `name` 会自动设置为 `TicketTypes` 的值
+
+### 4. 注册单据详情页
+
+在 `src/views/ticket-center/common/ticket-detail/components/task-info/com-factory/` 目录下创建详情页组件。
+
+组件必须通过 `defineOptions` 注册 `name`，且 `name` 必须与 `TicketTypes` 枚举值完全一致：
+
+```vue
+<script setup lang="ts">
+defineOptions({
+  name: TicketTypes.MYSQL_YOUR_NEW_TYPE, // 必须与 TicketTypes 枚举值一致
+});
+
+// ... 组件实现
+</script>
+```
+
+### 5. 添加到工具箱菜单（可选）
+
+如果需要在工具箱菜单中显示，在 `src/views/db-manage/{db-type}/toolbox-menu.ts` 中添加菜单项：
+
+```typescript
+export default [
+  {
+    children: [
+      {
+        dbConsoleValue: 'mysql.toolbox.yourFeature',
+        id: TicketTypes.MYSQL_YOUR_NEW_TYPE,
+        name: t('你的功能名称'),
+        parentId: 'category-id',
+      },
+    ],
+    icon: 'db-icon-category',
+    id: 'category-id',
+    name: t('分类名称'),
+  },
+];
+```
+
+## 实现检查清单
+
+在实现工具箱需求时，必须确保以下项目已完成：
+
+- [ ] **TicketType 常量已注册**：在 `src/common/const/ticketTypes.ts` 中添加枚举值
+- [ ] **路由已注册**：在 `src/views/db-manage/{db-type}/routes.ts` 中注册路由
+- [ ] **TypeScript 类型正确**：确保所有类型定义正确，无类型错误
+- [ ] **单据详情页已实现**：在 `com-factory` 目录下创建详情页，且 `name` 与 `TicketType` 一致
+- [ ] **表单验证完整**：使用 `EditableTable` 的 `validate` 方法进行表单验证
+- [ ] **错误处理完善**：使用 `useCreateTicket` 的 `onError` 回调处理错误
+- [ ] **后端 API 协议确认**：确认后端 API 接口的数据格式和字段要求
+
+## 最佳实践
+
+1. **参考已有实现**：在实现新工具箱时，先阅读所有已实现的工具箱代码，了解通用模式
+2. **复用组件**：优先使用 `src/views/db-manage/common/toolbox-field/column/` 下的列组件
+3. **使用工具函数**：使用 `createToolboxRoute` 创建路由，使用 `useCreateTicket` 提交单据
+4. **类型安全**：充分利用 TypeScript 类型检查，避免运行时错误
+5. **国际化**：所有文本使用 `t()` 函数进行国际化处理
+6. **表单验证**：使用 `EditableTable` 的内置验证功能，提供清晰的错误提示
+
+## 常见问题
+
+### Q: 如何实现批量编辑功能？
+
+A: 使用列组件的 `@batch-edit` 事件，在事件处理函数中更新所有行的对应字段。
+
+### Q: 如何自定义列组件？
+
+A: 参考 `src/views/db-manage/common/toolbox-field/column/` 下的现有组件，创建新的列组件。
+
+### Q: 提交后如何跳转到结果页？
+
+A: `useCreateTicket` hook 会自动处理跳转，只需确保路由 `meta.ticketType` 正确设置。
+
+### Q: 如何添加表单验证规则？
+
+A: 使用 `EditableTable` 的 `rules` 属性，或使用列组件的 `required` 属性。
+
+## 参考文件
+
+- 工具箱路由工具：`src/utils/createToolboxRoute.ts`
+- 单据创建 Hook：`src/hooks/useCreateTicket.tsx`
+- TicketType 常量：`src/common/const/ticketTypes.ts`
+- 可编辑表格组件：`src/components/editable-table/Index.vue`
+- 列组件目录：`src/views/db-manage/common/toolbox-field/column/`
