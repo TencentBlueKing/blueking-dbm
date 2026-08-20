@@ -38,7 +38,13 @@ from backend.components.mysqldtsapi.types import (
 from backend.db_meta.enums import ClusterType, InstanceRole, TenDBClusterSpiderRole
 from backend.db_meta.models import Cluster, MysqlDtsCluster, ProxyInstance, StorageInstance
 from backend.db_services.dbbase.constants import IP_PORT_DIVIDER
-from backend.flow.utils.mysql.dts.constants import FullLoadEngine, MigrateType, get_full_migrate_data_dir
+from backend.flow.utils.mysql.dts.constants import (
+    DTS_CHECKPOINT_FLUSH_INTERVAL_DEFAULT,
+    DTS_COLLATION_COMPATIBLE_STRICT,
+    FullLoadEngine,
+    MigrateType,
+    get_full_migrate_data_dir,
+)
 from backend.flow.utils.mysql.dts.migrate_credentials import DtsGrantTarget
 from backend.flow.utils.mysql.dts.migrate_plan import (
     DtsMigratePlan,
@@ -445,6 +451,20 @@ def task_mode_runs_incremental(task_mode: str | None) -> bool:
     return (task_mode or "").strip().lower() != "full"
 
 
+def _build_platform_incr_migrate_conf(cfg: DtsTaskConfig) -> IncrMigrateConfig | None:
+    """增量任务强制 checkpoint=5；纯全量且未传 incr 则不造 incr 段。单据同名字段丢弃。"""
+    payload = dict(cfg.incr_migrate or {})
+    payload.pop("checkpoint_flush_interval", None)
+    payload.pop("collation_compatible", None)
+    if not task_mode_runs_incremental(cfg.task_mode):
+        if not payload:
+            return None
+        return IncrMigrateConfig(**payload)
+    conf = IncrMigrateConfig(**payload) if payload else IncrMigrateConfig()
+    conf.checkpoint_flush_interval = DTS_CHECKPOINT_FLUSH_INTERVAL_DEFAULT
+    return conf
+
+
 def resolve_source_relay_enabled(source_resp) -> bool:
     """从 get_source 结果判断 Source 是否启用 relay。
 
@@ -766,7 +786,7 @@ def build_dts_task_request(
         source_config = SourceConfig(
             source_conf=source_conf,
             full_migrate_conf=None,
-            incr_migrate_conf=IncrMigrateConfig(**cfg.incr_migrate) if cfg.incr_migrate else None,
+            incr_migrate_conf=_build_platform_incr_migrate_conf(cfg),
             myloaders=myloaders,
         )
     else:
@@ -777,7 +797,7 @@ def build_dts_task_request(
         source_config = SourceConfig(
             source_conf=source_conf,
             full_migrate_conf=build_full_migrate_config(cluster_name, task_spec.task_name, cfg.full_migrate),
-            incr_migrate_conf=IncrMigrateConfig(**cfg.incr_migrate) if cfg.incr_migrate else None,
+            incr_migrate_conf=_build_platform_incr_migrate_conf(cfg),
         )
 
     task = Task(
@@ -786,6 +806,7 @@ def build_dts_task_request(
         shard_mode=cfg.shard_mode or "",
         on_duplicate=cfg.on_duplicate,
         meta_schema=cfg.meta_schema,
+        collation_compatible=DTS_COLLATION_COMPATIBLE_STRICT,
         ignore_checking_items=cfg.ignore_checking_items,
         target_config=target_cfg,
         source_config=source_config,

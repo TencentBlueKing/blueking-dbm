@@ -297,6 +297,7 @@ class MyLoaderConfig(BaseModel):
 class IncrMigrateConfig(BaseModel):
     repl_threads: int = Field(default=16, description=_("syncer DML worker 数"))
     repl_batch: int = Field(default=100, description=_("syncer 每批 SQL 行数"))
+    checkpoint_flush_interval: int | None = Field(default=None, description=_("checkpoint 落盘间隔（秒）；查询位点取自 checkpoint"))
 
 
 class SourceConfig(BaseModel):
@@ -349,6 +350,7 @@ class Task(BaseModel):
     enhance_online_schema_change: bool = Field(default=True, description=_("启用 online-DDL"))
     on_duplicate: str = Field(default="replace", description=_("冲突策略: replace | error | ignore"))
     meta_schema: str = Field(default="dm_meta", description=_("元数据库名"))
+    collation_compatible: str = Field(default="loose", description=_("排序集兼容: loose | strict"))
     ignore_checking_items: list[str] = Field(default_factory=list, description=_("忽略的检查项"))
     target_config: TargetConfig = Field(description=_("目标端配置"))
     source_config: SourceConfig = Field(description=_("源端配置"))

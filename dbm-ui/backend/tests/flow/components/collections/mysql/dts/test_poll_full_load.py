@@ -22,6 +22,7 @@ from backend.flow.plugins.components.collections.mysql.dts.migrate.poll_full_loa
     _format_load_progress,
     _percent,
     evaluate_poll_full_load_tick,
+    is_dump_global_lock_timeout,
 )
 
 
@@ -190,6 +191,36 @@ class EvaluatePollFullLoadTickTest(SimpleTestCase):
         r = evaluate_poll_full_load_tick(items=[_item(error_msg="disk full")], fail_streak=0)
         self.assertTrue(r.finished)
         self.assertFalse(r.success)
+        self.assertFalse(r.retry_dump_lock)
+
+    def test_dump_lock_timeout_retries_then_fails(self):
+        err = "[code=32004:] flush tables lock acquisition timed out after 10 seconds"
+        r1 = evaluate_poll_full_load_tick(
+            items=[_item(error_msg=err, unit="Dump")], fail_streak=0, lock_timeout_attempts=0
+        )
+        self.assertFalse(r1.finished)
+        self.assertTrue(r1.retry_dump_lock)
+        self.assertEqual(r1.lock_timeout_attempts, 1)
+        r2 = evaluate_poll_full_load_tick(
+            items=[_item(error_msg=err, unit="Dump")], fail_streak=0, lock_timeout_attempts=1
+        )
+        self.assertFalse(r2.finished)
+        self.assertTrue(r2.retry_dump_lock)
+        self.assertEqual(r2.lock_timeout_attempts, 2)
+        r3 = evaluate_poll_full_load_tick(
+            items=[_item(error_msg=err, unit="Dump")], fail_streak=0, lock_timeout_attempts=2
+        )
+        self.assertTrue(r3.finished)
+        self.assertFalse(r3.success)
+        self.assertFalse(r3.retry_dump_lock)
+        self.assertEqual(r3.lock_timeout_attempts, 3)
+        self.assertIn("10", r3.reason)
+
+    def test_dump_running_does_not_count_lock_attempts(self):
+        r = evaluate_poll_full_load_tick(items=[_item(stage="Running", unit="Dump")], fail_streak=0)
+        self.assertFalse(r.finished)
+        self.assertFalse(r.retry_dump_lock)
+        self.assertEqual(r.lock_timeout_attempts, 0)
 
     def test_stage_failed_hard_fail(self):
         r = evaluate_poll_full_load_tick(items=[_item(stage="Failed", unit="Load")], fail_streak=0)
@@ -306,6 +337,7 @@ class MysqlDtsPollFullLoadServiceTest(SimpleTestCase):
             last_stage="",
             last_unit="",
             task_query_result=None,
+            lock_timeout_attempts=0,
         )
         data = MagicMock()
         data.get_one_of_inputs.side_effect = lambda key: {
@@ -388,3 +420,38 @@ class MysqlDtsPollFullLoadServiceTest(SimpleTestCase):
         logged = service.log_info.call_args[0][0]
         self.assertIn("表进度=12/100", logged)
         self.assertNotIn("stage=Running", logged)
+
+    @patch("backend.flow.plugins.components.collections.mysql.dts.migrate.poll_full_load.MySQLDTSApi.start_task")
+    @patch("backend.flow.plugins.components.collections.mysql.dts.migrate.poll_full_load.MySQLDTSApi.get_task_status")
+    def test_schedule_dump_lock_timeout_starts_task(self, mock_status, mock_start):
+        err = "[code=32004:] dump unit stopped"
+        mock_status.return_value = TaskStatusListResponse(total=1, data=[_item(error_msg=err, unit="Dump")])
+        service = self._make_service()
+        data = self._make_data()
+        result = service._schedule(data, parent_data=None)
+        self.assertTrue(result)
+        service.finish_schedule.assert_not_called()
+        mock_start.assert_called_once()
+        self.assertEqual(data.outputs.lock_timeout_attempts, 1)
+
+    @patch("backend.flow.plugins.components.collections.mysql.dts.migrate.poll_full_load.MySQLDTSApi.start_task")
+    @patch("backend.flow.plugins.components.collections.mysql.dts.migrate.poll_full_load.MySQLDTSApi.get_task_status")
+    def test_schedule_dump_lock_timeout_third_fails_without_start(self, mock_status, mock_start):
+        err = "[code=32004:] dump unit stopped"
+        mock_status.return_value = TaskStatusListResponse(total=1, data=[_item(error_msg=err, unit="Dump")])
+        service = self._make_service()
+        data = self._make_data()
+        data.outputs.lock_timeout_attempts = 2
+        result = service._schedule(data, parent_data=None)
+        self.assertFalse(result)
+        service.finish_schedule.assert_called_once()
+        mock_start.assert_not_called()
+
+
+class IsDumpGlobalLockTimeoutTest(SimpleTestCase):
+    def test_recognizes_code_and_message(self):
+        self.assertTrue(is_dump_global_lock_timeout("[code=32004:] x"))
+        self.assertTrue(is_dump_global_lock_timeout("flush tables lock acquisition timed out after 10 seconds"))
+        self.assertTrue(is_dump_global_lock_timeout("ErrDumpUnitGlobalLock"))
+        self.assertFalse(is_dump_global_lock_timeout("disk full"))
+        self.assertFalse(is_dump_global_lock_timeout(""))
