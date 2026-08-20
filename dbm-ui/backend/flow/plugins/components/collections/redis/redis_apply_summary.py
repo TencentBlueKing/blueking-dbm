@@ -32,6 +32,7 @@ class RedisApplySummarySerializer(BaseFlowOutputSerializer):
     table_name = "redis_cluster_info"
     table_display_name = _("集群信息")
     table_primary_key = "domain_name"
+    remark = _("密码等访问凭据请登录 DBM，在对应集群的「获取连接信息」中获取。\n Redis开发最佳实践：https://iwiki.woa.com/p/4013643362")
 
     domain_name = serializers.CharField(help_text=_("域名"))
     region = serializers.CharField(help_text=_("地区"), allow_blank=True, default="")
