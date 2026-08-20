@@ -58,17 +58,17 @@
       </InfoItem>
       <InfoItem :label="t('资源标签')">
         <template v-if="riakSpec && riakSpec.label_names?.length">
-          <BkTag
+          <DbTag
             v-for="item in riakSpec.label_names"
             :key="item">
             {{ item }}
-          </BkTag>
+          </DbTag>
         </template>
-        <BkTag
+        <DbTag
           v-else
           theme="success">
           {{ t('通用无标签') }}
-        </BkTag>
+        </DbTag>
       </InfoItem>
       <InfoItem :label="t('节点数量')">
         {{ riakSpec?.count || '--' }}

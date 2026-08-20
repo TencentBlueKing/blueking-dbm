@@ -54,17 +54,17 @@
     </InfoItem>
     <InfoItem :label="t('Config Server 资源标签')">
       <template v-if="configServerSpec && configServerSpec.label_names?.length">
-        <BkTag
+        <DbTag
           v-for="item in configServerSpec.label_names"
           :key="item">
           {{ item }}
-        </BkTag>
+        </DbTag>
       </template>
-      <BkTag
+      <DbTag
         v-else
         theme="success">
         {{ t('通用无标签') }}
-      </BkTag>
+      </DbTag>
     </InfoItem>
     <InfoItem :label="t('Mongos资源规格')">
       <SpecDetailPopover
@@ -81,17 +81,17 @@
     </InfoItem>
     <InfoItem :label="t('Mongos 资源标签')">
       <template v-if="mongosSpec && mongosSpec.label_names?.length">
-        <BkTag
+        <DbTag
           v-for="item in mongosSpec.label_names"
           :key="item">
           {{ item }}
-        </BkTag>
+        </DbTag>
       </template>
-      <BkTag
+      <DbTag
         v-else
         theme="success">
         {{ t('通用无标签') }}
-      </BkTag>
+      </DbTag>
     </InfoItem>
     <InfoItem
       :label="t('ShardSvr 部署方案')"
@@ -109,17 +109,17 @@
           :title="t('资源标签')">
           <template #default>
             <template v-if="ticketDetails.details.resource_spec.mongodb.label_names?.length">
-              <BkTag
+              <DbTag
                 v-for="item in ticketDetails.details.resource_spec.mongodb.label_names"
                 :key="item">
                 {{ item }}
-              </BkTag>
+              </DbTag>
             </template>
-            <BkTag
+            <DbTag
               v-else
               theme="success">
               {{ t('通用无标签') }}
-            </BkTag>
+            </DbTag>
           </template>
         </TicketInfoTableColumn>
         <TicketInfoTableColumn

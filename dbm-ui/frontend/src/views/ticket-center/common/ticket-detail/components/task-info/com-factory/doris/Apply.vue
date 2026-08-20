@@ -58,17 +58,17 @@
       </InfoItem>
       <InfoItem :label="t('Follower 节点资源标签')">
         <template v-if="followerSpec && followerSpec.label_names?.length">
-          <BkTag
+          <DbTag
             v-for="item in followerSpec.label_names"
             :key="item">
             {{ item }}
-          </BkTag>
+          </DbTag>
         </template>
-        <BkTag
+        <DbTag
           v-else
           theme="success">
           {{ t('通用无标签') }}
-        </BkTag>
+        </DbTag>
       </InfoItem>
       <InfoItem :label="t('Observer 节点标签')">
         <SpecDetailPopover
@@ -85,17 +85,17 @@
       </InfoItem>
       <InfoItem :label="t('Observer节点资源标签')">
         <template v-if="observerSpec && observerSpec.label_names?.length">
-          <BkTag
+          <DbTag
             v-for="item in observerSpec.label_names"
             :key="item">
             {{ item }}
-          </BkTag>
+          </DbTag>
         </template>
-        <BkTag
+        <DbTag
           v-else
           theme="success">
           {{ t('通用无标签') }}
-        </BkTag>
+        </DbTag>
       </InfoItem>
       <InfoItem :label="t('热节点规格')">
         <SpecDetailPopover
@@ -112,17 +112,17 @@
       </InfoItem>
       <InfoItem :label="t('热节点资源标签')">
         <template v-if="hotSpec && hotSpec.label_names?.length">
-          <BkTag
+          <DbTag
             v-for="item in hotSpec.label_names"
             :key="item">
             {{ item }}
-          </BkTag>
+          </DbTag>
         </template>
-        <BkTag
+        <DbTag
           v-else
           theme="success">
           {{ t('通用无标签') }}
-        </BkTag>
+        </DbTag>
       </InfoItem>
       <InfoItem :label="t('温节点规格')">
         <SpecDetailPopover
@@ -139,17 +139,17 @@
       </InfoItem>
       <InfoItem :label="t('温节点资源标签')">
         <template v-if="warmSpec && warmSpec.label_names?.length">
-          <BkTag
+          <DbTag
             v-for="item in warmSpec.label_names"
             :key="item">
             {{ item }}
-          </BkTag>
+          </DbTag>
         </template>
-        <BkTag
+        <DbTag
           v-else
           theme="success">
           {{ t('通用无标签') }}
-        </BkTag>
+        </DbTag>
       </InfoItem>
       <InfoItem
         v-db-console="'common.dorisColdResource'"
