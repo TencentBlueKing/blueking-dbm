@@ -61,27 +61,21 @@
           @click="handleSave">
           {{ t('保存') }}
         </AuthButton>
-        <DbPopconfirm
-          ref="dbPopconfirm"
-          :confirm-handler="handleReset"
-          :content="t('重置将会恢复默认设置的内容')"
-          :title="t('确认重置')">
-          <span>
-            <AuthButton
-              action-id="biz_notify_config"
-              class="ml-8 w-88"
-              :disabled="updateSettingLoading"
-              :loading="resetSettingLoading"
-              :resource="bizId">
-              {{ t('重置') }}
-            </AuthButton>
-          </span>
-        </DbPopconfirm>
+        <AuthButton
+          action-id="biz_notify_config"
+          class="ml-8 w-88"
+          :disabled="updateSettingLoading"
+          :loading="resetSettingLoading"
+          :resource="bizId"
+          @click="handleReset">
+          {{ t('恢复默认') }}
+        </AuthButton>
       </template>
     </SmartAction>
   </BkLoading>
 </template>
 <script setup lang="tsx">
+  import { InfoBox } from 'bkui-vue';
   import _ from 'lodash';
   import type { PrimaryTableCol } from 'tdesign-vue-next';
   import { useI18n } from 'vue-i18n';
@@ -235,7 +229,7 @@
   const { loading: resetSettingLoading, run: runResetBizSetting } = useRequest(updateBizSetting, {
     manual: true,
     onSuccess: () => {
-      messageSuccess(t('重置成功'));
+      messageSuccess(t('恢复默认成功'));
       getData();
     },
   });
@@ -344,22 +338,30 @@
   };
 
   const handleReset = () => {
-    runResetBizSetting({
-      bk_biz_id: bizId,
-      key: BizSettingKeys.NOTIFY_CONFIG,
-      value: [...NoticeTicketTypeList, ...TicketExcuteList].reduce<TicketNoticeSetting>(
-        (prevSettingMap, [status]) =>
-          Object.assign({}, prevSettingMap, {
-            [status]: DefaultMessageTypeList.reduce<Record<string, boolean>>(
-              (prevValueMap, type) =>
-                Object.assign({}, prevValueMap, {
-                  [type]: true,
-                }),
-              {},
-            ),
-          }),
-        {},
-      ),
+    InfoBox({
+      cancelText: t('取消'),
+      confirmText: t('确认'),
+      content: t('当前页面的所有配置将恢复为系统默认值。'),
+      onConfirm: () => {
+        runResetBizSetting({
+          bk_biz_id: bizId,
+          key: BizSettingKeys.NOTIFY_CONFIG,
+          value: [...NoticeTicketTypeList, ...TicketExcuteList].reduce<TicketNoticeSetting>(
+            (prevSettingMap, [status]) =>
+              Object.assign({}, prevSettingMap, {
+                [status]: DefaultMessageTypeList.reduce<Record<string, boolean>>(
+                  (prevValueMap, type) =>
+                    Object.assign({}, prevValueMap, {
+                      [type]: true,
+                    }),
+                  {},
+                ),
+              }),
+            {},
+          ),
+        });
+      },
+      title: t('确认恢复默认值？'),
     });
   };
 
