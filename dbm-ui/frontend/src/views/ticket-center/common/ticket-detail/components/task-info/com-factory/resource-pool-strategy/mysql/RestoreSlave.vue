@@ -31,7 +31,9 @@
     </TicketInfoTableColumn>
     <TicketInfoTableColumn
       col-key="cluster_ids"
-      :get-copy-value="(row: RowData) => row.cluster_ids.map((clusterId) => ticketDetails.details.clusters[clusterId].immute_domain)"
+      :get-copy-value="
+        (row: RowData) => row.cluster_ids.map((clusterId) => ticketDetails.details.clusters[clusterId].immute_domain)
+      "
       :min-width="220"
       :title="t('同机关联集群')">
       <template #default="{ row: data }: { row: RowData }">
@@ -58,17 +60,17 @@
         :title="t('资源标签')">
         <template #default="{ row: data }: { row: RowData }">
           <template v-if="data.resource_spec.new_slave?.label_names?.length">
-            <BkTag
+            <DbTag
               v-for="item in data.resource_spec.new_slave.label_names"
               :key="item">
               {{ item }}
-            </BkTag>
+            </DbTag>
           </template>
-          <BkTag
+          <DbTag
             v-else
             theme="success">
             {{ t('通用无标签') }}
-          </BkTag>
+          </DbTag>
         </template>
       </TicketInfoTableColumn>
     </template>

@@ -33,11 +33,11 @@
       :title="t('分区动作')">
       <template #default="{ row }">
         <div>
-          <BkTag
+          <DbTag
             v-for="(item, index) in row.action"
             :key="index">
             {{ item }}
-          </BkTag>
+          </DbTag>
         </div>
       </template>
     </TicketInfoTableColumn>

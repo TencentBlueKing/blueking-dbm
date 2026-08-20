@@ -49,7 +49,7 @@
               v-for="(rule, ruleIndex) in getRenderList(row)"
               :key="ruleIndex"
               class="sqlserver-permission-cell">
-              <BkTag>{{ rule.access_db }}</BkTag>
+              <DbTag>{{ rule.access_db }}</DbTag>
             </div>
           </template>
         </TicketInfoTableColumn>

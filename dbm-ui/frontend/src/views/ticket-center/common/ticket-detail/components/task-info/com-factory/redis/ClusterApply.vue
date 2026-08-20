@@ -94,17 +94,17 @@
         </InfoItem>
         <InfoItem :label="t('Proxy 资源标签')">
           <template v-if="ticketDetails.details.resource_spec.proxy.label_names?.length">
-            <BkTag
+            <DbTag
               v-for="item in ticketDetails.details.resource_spec.proxy.label_names"
               :key="item">
               {{ item }}
-            </BkTag>
+            </DbTag>
           </template>
-          <BkTag
+          <DbTag
             v-else
             theme="success">
             {{ t('通用无标签') }}
-          </BkTag>
+          </DbTag>
         </InfoItem>
         <InfoItem
           v-if="isLoadBalanceShow"
@@ -144,17 +144,17 @@
               :title="t('资源标签')">
               <template #default>
                 <template v-if="ticketDetails.details.resource_spec.backend_group.label_names?.length">
-                  <BkTag
+                  <DbTag
                     v-for="item in ticketDetails.details.resource_spec.backend_group.label_names"
                     :key="item">
                     {{ item }}
-                  </BkTag>
+                  </DbTag>
                 </template>
-                <BkTag
+                <DbTag
                   v-else
                   theme="success">
                   {{ t('通用无标签') }}
-                </BkTag>
+                </DbTag>
               </template>
             </TicketInfoTableColumn>
             <TicketInfoTableColumn

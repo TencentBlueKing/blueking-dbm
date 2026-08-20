@@ -37,19 +37,19 @@
       :title="t('主从主机')">
       <template #default="{ row }: { row: RowData }">
         <div>
-          <BkTag
+          <DbTag
             size="small"
             theme="info">
             M
-          </BkTag>
+          </DbTag>
           {{ row.display_info.old_master_slave[0] }}
         </div>
         <div>
-          <BkTag
+          <DbTag
             size="small"
             theme="success">
             S
-          </BkTag>
+          </DbTag>
           {{ row.display_info.old_master_slave[1] }}
         </div>
       </template>
@@ -103,19 +103,19 @@
       :title="t('新主从主机')">
       <template #default="{ row }: { row: RowData }">
         <div>
-          <BkTag
+          <DbTag
             size="small"
             theme="info">
             M
-          </BkTag>
+          </DbTag>
           {{ row.new_master.ip }}
         </div>
         <div>
-          <BkTag
+          <DbTag
             size="small"
             theme="success">
             S
-          </BkTag>
+          </DbTag>
           {{ row.new_slave.ip }}
         </div>
       </template>
