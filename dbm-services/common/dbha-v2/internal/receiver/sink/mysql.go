@@ -125,9 +125,10 @@ func (s *mysql) Save(msg *Message) error {
 	logger.Debug("outputter(mysql) save msg: %s, raw: %s", string(msg.Data), string(dbStatus.RawValue))
 
 	data := hamodel.NewDbhaData(dbStatus)
-	if data.HarvestType == "" {
+	if !data.HarvestType.IsKnown() {
 		return gerrors.Newf(gerrors.InvalidParameter,
-			"harvest_type is required, topic: %s, db: %s:%d", msg.Topic, data.DbIp, data.DbPort)
+			"unknown harvest_type, topic: %s, db: %s:%d, harvest_type: %s",
+			msg.Topic, data.DbIp, data.DbPort, data.HarvestType)
 	}
 
 	for _, db := range s.dbs {
