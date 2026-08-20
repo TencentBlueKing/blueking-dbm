@@ -59,13 +59,13 @@
           <div class="content-label">{{ t('备份类型 ：') }}</div>
           <div class="content-value">
             <span v-if="row.backupinfo.backup_type_list?.length < 1">--</span>
-            <BkTag
+            <DbTag
               v-for="item in row.backupinfo.backup_type_list"
               v-else
               :key="item"
               :theme="backupTypeMap[item].theme">
               {{ backupTypeMap[item].label }}
-            </BkTag>
+            </DbTag>
           </div>
           <div class="content-label">{{ t('备份范围 ：') }}</div>
           <div class="content-value">
@@ -107,11 +107,11 @@
       :min-width="120"
       :title="t('源 DB')">
       <template #default="{ row }: { row: RowData }">
-        <BkTag
+        <DbTag
           v-for="item in row.databases"
           :key="item">
           {{ item }}
-        </BkTag>
+        </DbTag>
         <span v-if="row.databases.length < 1">--</span>
       </template>
     </TicketInfoTableColumn>
@@ -120,11 +120,11 @@
       :min-width="120"
       :title="t('源表')">
       <template #default="{ row }: { row: RowData }">
-        <BkTag
+        <DbTag
           v-for="item in row.tables"
           :key="item">
           {{ item }}
-        </BkTag>
+        </DbTag>
         <span v-if="row.tables.length < 1">--</span>
       </template>
     </TicketInfoTableColumn>

@@ -27,9 +27,9 @@
       col-key="from_database "
       :title="t('源DB名')">
       <template #default="{ row: data }: { row: RowData }">
-        <BkTag v-if="data.from_database">
+        <DbTag v-if="data.from_database">
           {{ data.from_database }}
-        </BkTag>
+        </DbTag>
         <span v-else>--</span>
       </template>
     </TicketInfoTableColumn>
@@ -37,9 +37,9 @@
       col-key="to_database"
       :title="t('新DB名')">
       <template #default="{ row: data }: { row: RowData }">
-        <BkTag v-if="data.to_database">
+        <DbTag v-if="data.to_database">
           {{ data.to_database }}
-        </BkTag>
+        </DbTag>
         <span v-else>--</span>
       </template>
     </TicketInfoTableColumn>

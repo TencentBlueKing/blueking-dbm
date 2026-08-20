@@ -27,11 +27,11 @@
       col-key="from_database"
       :title="t('同步 DB')">
       <template #default="{ row: data }: { row: RowData }">
-        <BkTag
+        <DbTag
           v-for="dbName in data.sync_dbs"
           :key="dbName">
           {{ dbName }}
-        </BkTag>
+        </DbTag>
         <span v-if="data.sync_dbs.length < 1">--</span>
       </template>
     </TicketInfoTableColumn>

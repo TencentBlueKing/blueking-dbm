@@ -59,17 +59,17 @@
       :title="t('资源标签')">
       <template #default="{ row }: { row: RowData }">
         <template v-if="row.resource_spec.shard_nodes?.label_names?.length">
-          <BkTag
+          <DbTag
             v-for="item in row.resource_spec.shard_nodes.label_names"
             :key="item">
             {{ item }}
-          </BkTag>
+          </DbTag>
         </template>
-        <BkTag
+        <DbTag
           v-else
           theme="success">
           {{ t('通用无标签') }}
-        </BkTag>
+        </DbTag>
       </template>
     </TicketInfoTableColumn>
   </TicketInfoTable>

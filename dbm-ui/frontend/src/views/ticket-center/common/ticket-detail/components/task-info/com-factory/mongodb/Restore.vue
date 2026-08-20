@@ -48,11 +48,11 @@
             v-overflow-tips="{ content: row.db_patterns }"
             class="text-overflow">
             <template v-if="row.db_patterns.length > 0">
-              <BkTag
+              <DbTag
                 v-for="(item, index) in row.db_patterns"
                 :key="index">
                 {{ item }}
-              </BkTag>
+              </DbTag>
             </template>
             <span v-else> -- </span>
           </div>
@@ -66,11 +66,11 @@
             v-overflow-tips="{ content: row.ignore_dbs }"
             class="text-overflow">
             <template v-if="row.ignore_dbs.length > 0">
-              <BkTag
+              <DbTag
                 v-for="(item, index) in row.ignore_dbs"
                 :key="index">
                 {{ item }}
-              </BkTag>
+              </DbTag>
             </template>
             <span v-else> -- </span>
           </div>
@@ -84,11 +84,11 @@
             v-overflow-tips="{ content: row.table_patterns }"
             class="text-overflow">
             <template v-if="row.table_patterns.length > 0">
-              <BkTag
+              <DbTag
                 v-for="(item, index) in row.table_patterns"
                 :key="index">
                 {{ item }}
-              </BkTag>
+              </DbTag>
             </template>
             <span v-else> -- </span>
           </div>
@@ -102,11 +102,11 @@
             v-overflow-tips="{ content: row.ignore_tables }"
             class="text-overflow">
             <template v-if="row.ignore_tables.length > 0">
-              <BkTag
+              <DbTag
                 v-for="(item, index) in row.ignore_tables"
                 :key="index">
                 {{ item }}
-              </BkTag>
+              </DbTag>
             </template>
             <span v-else> -- </span>
           </div>

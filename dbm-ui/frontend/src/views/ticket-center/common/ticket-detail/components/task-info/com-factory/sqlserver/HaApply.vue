@@ -56,17 +56,17 @@
       </InfoItem>
       <InfoItem :label="t('Proxy 资源标签')">
         <template v-if="resourceSpecs.label_names?.length">
-          <BkTag
+          <DbTag
             v-for="item in resourceSpecs.label_names"
             :key="item">
             {{ item }}
-          </BkTag>
+          </DbTag>
         </template>
-        <BkTag
+        <DbTag
           v-else
           theme="success">
           {{ t('通用无标签') }}
-        </BkTag>
+        </DbTag>
       </InfoItem>
     </template>
     <InfoItem
@@ -106,19 +106,19 @@
           title="Master / Slave IP">
           <template #default="{ rowIndex }">
             <div>
-              <BkTag
+              <DbTag
                 size="small"
                 theme="info">
                 M
-              </BkTag>
+              </DbTag>
               {{ ticketDetails.details.nodes.backend[rowIndex * 2].ip }}
             </div>
             <div>
-              <BkTag
+              <DbTag
                 size="small"
                 theme="success">
                 S
-              </BkTag>
+              </DbTag>
               {{ ticketDetails.details.nodes.backend[rowIndex * 2 + 1].ip }}
             </div>
           </template>
