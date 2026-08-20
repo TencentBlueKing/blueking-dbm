@@ -1,0 +1,95 @@
+---
+description: DBM 导航壳与菜单体系设计。覆盖一级导航与二级菜单的映射、routeGroup 登记、自研菜单组件与 provide/inject 契约、侧栏折叠态、DB 模块菜单、内容区扩展点。改 src/layout 或新增页面菜单入口时读。
+globs: ['**/layout/**', '**/router/**']
+alwaysApply: false
+---
+
+# 导航与布局 `src/layout/`
+
+仓库分层与编码约定见 `AGENTS.md`。
+
+`src/layout/Index.vue` 是全局导航壳，基于 bkui-vue `BkNavigation`（`navigation-type="top-bottom"`），分三块：顶部一级导航、左侧二级菜单、内容区。
+
+## 一级导航与二级菜单
+
+一级导航由 `menuEnum` 定义，每项对应一个二级菜单组件（`renderMenuCom` 的 `comMap`）：
+
+| `menuEnum`           | 文案       | 二级菜单组件                | 可见条件                     |
+| -------------------- | ---------- | --------------------------- | ---------------------------- |
+| `databaseManage`     | 数据库管理 | `database-manage/Index.vue` | 始终                         |
+| `observableManage`   | 可观测     | `ObservableManage.vue`      | 始终                         |
+| `configManage`       | 业务配置   | `ConfigManage.vue`          | 始终                         |
+| `resourceManage`     | 资源管理   | `ResourceManage.vue`        | `userProfile.resourceManage` |
+| `globalConfigManage` | 全局配置   | `GlobalConfigManage.vue`    | `userProfile.globalManage`   |
+| `platformManage`     | 平台管理   | `PlatformManage.vue`        | `userProfile.platformManage` |
+| `personalWorkbench`  | 个人工作台 | `PersonalWorkbench.vue`     | 始终                         |
+
+- 权限之外还有功能开关：导航项挂 `v-db-console`，菜单内部可用 `v-db-console` 或 `FunController`
+- 二级菜单用 `<Suspense :key="menuType">` 包裹，所以菜单组件允许 `<script setup async>` 顶层 await（`database-manage` 就靠这个先拉集群数量再决定默认页）
+
+## routeGroup 登记（新增页面必做）
+
+`Index.vue` 里的 `routeGroup` 是「一级导航 key → 路由 name 列表」的映射。`watch(route)` 遍历 `route.matched`，命中任一 name 就把 `menuType` 设成对应分组。
+
+**路由 name 没登记进 `routeGroup`，顶部导航不会高亮，左侧菜单也整体不渲染**（`needMenu = Boolean(menuType)`，全局搜索结果页正是利用这一点隐藏菜单）。`route.name === 'index'` 时兜底为 `databaseManage`。
+
+新增一个带菜单入口的页面，四步：
+
+1. 路由 `name` 加进 `layout/Index.vue` 的 `routeGroup` 对应分组
+2. 在该分组的二级菜单组件里加 `DbMenuItem`，`route-name` 与路由 `name` 完全一致
+3. 需要功能开关就挂 `v-db-console` 或用 `FunController` 包裹
+4. 文案走 `t()`
+
+## 菜单组件 `components/menu/`
+
+自研的一套菜单，不要用第三方菜单替代。
+
+| 组件          | 用法                      | 关键 props                              |
+| ------------- | ------------------------- | --------------------------------------- |
+| `Index.vue`   | `DbMenu`，菜单根容器      | `activeKey`、`openedKeys`，emit `click` |
+| `Group.vue`   | `DbMenuGroup`，分组标题   | `name`、`foldName`                      |
+| `Item.vue`    | `DbMenuItem`，可点击项    | `routeName`、`icon`、`svg`              |
+| `Submenu.vue` | `DbSubmenu`，可展开子菜单 | `id`、`icon`、`title`                   |
+
+通信全靠 `menu/common/context.ts` 的 provide/inject，不要改成 props 逐层透传：
+
+- `menuContextKey`：`activeKey`、`openedKeys`、`collapse`、`menuMap`、`register` / `unregister`、`toggleSubmenu`、`handleItemClick`
+- `Item` / `Submenu` 挂载时 `register({ key, parentKey })` 写入 `menuMap`，卸载时 `unregister`；`Item` 的 key 就是 `routeName`
+- `Submenu` 通过 `submenuIdKey` 把自己的 id 下发给子项当 `parentKey`
+- `toggleSubmenu` 是单开的，`openedKeys` 最多保留一个
+
+## 折叠态
+
+折叠状态存 localStorage `is_side_menu_flod`，**语义与命名相反，`true` 表示展开**（为兼容存量存储保留，不要"修正"）。`Index.vue` 取反后 provide 为 `sideMenuCollapseKey`，菜单侧用 `useSideMenuCollapse()` 读。
+
+折叠后轨道只剩 60px 图标，渲染分支随之切换：
+
+- `openedKeys` 强制清空，`Submenu` 不再内联展开，子项 `Teleport` 到 tippy 浮层（theme `light db-menu-flyout`），并 provide `menuFlyoutKey` 让子项走轻量渲染
+- `Item` 在折叠且有 `icon` 时，文字和角标改由 tooltip 承载（theme `dbm-tooltips db-menu-tooltip`）
+- `Group` 显示 `foldName`，DB 分组另有 `foldNameMap` 缩写（`MySQL`、`MSSQL`、`TenDB` 等）
+
+## 高亮回填 `useActiveKey`
+
+`useActiveKey(menuRef, defaultKey, { checkMethod })` 倒序遍历 `route.matched`，在 `menuMap` 里找命中项，返回 `key`、`parentKey`、`routeLocation`。路由与菜单对不上时会 `router.push(defaultKey)` 兜底，但它用 `checkedFullPath` 记住已检查过的路径——菜单项动态增删（工具箱收藏变更、折叠重建）不会把用户踢回默认页。
+
+`useMenuStyles(menuBoxRef)` 在 `onMounted` 时按元素 `top` 算高度，用于菜单区滚动容器。
+
+## DB 模块菜单
+
+`database-manage/Index.vue` 用 `useBizDbDisplay()` 拉当前业务启用的 DB 列表，`TransitionGroup` 渲染 `ModuleGroup`；`module-group/Index.vue` 按 `DBTypes` 映射到 13 个 DB 各自的组件（`Mysql.vue`、`Redis.vue`、`TendbCluster.vue` 等）。
+
+单个 DB 组件的组成：
+
+- 最外层 `FunController`（`module-id` / `controller-id`）做功能开关
+- `MenuGroup`（传 `dbType`）提供分组标题与 DB 置顶按钮，置顶写入 `userProfile` 的 `UserPersonalSettings.TOP_DB_TYPES`
+- 集群 / 实例入口用 `DbSubmenu` + `DbMenuItem`，数量角标用 `CountTag`（`cluster-type` + `role`）
+- 工具箱入口用 `ToolboxMenu`，收藏与排序走 `useToolboxFavor(dbType, ...)`，读写 `userProfile` 中由 `toolboxProfileKeyMap` 决定的 key
+
+新增某个 DB 的菜单项，改对应的 `module-group/{Db}.vue`，不要在 `database-manage/Index.vue` 里堆。
+
+## 内容区与扩展点
+
+- 标题取 `route.meta.navName`，`route.meta.hideTitle` 为真时不显示
+- `route.meta.fullscreen` 为真时内容区 padding 归零
+- 正文高度 `calc(100vh - var(--notice-height) - 52px - 52px)`，最后一段是内容头高度，`AgentChatIndex` 路由会把内容头整体隐藏
+- 页面往导航区追加内容的挂载点：插槽 `navigationHeaderRight`、`content-header`，以及 DOM 节点 `#dbContentTitleAppend`、`#dbContentHeaderAppend`
