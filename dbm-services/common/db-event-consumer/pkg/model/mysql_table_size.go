@@ -172,7 +172,7 @@ func (m *MysqlTableSize) dorisCreate(i interface{}, db *gorm.DB) error {
 	err = db.Exec(sqlFull).Error
 	if err != nil {
 		slog.Error("replace message",
-			slog.Any("msg", err), slog.String("sql", sqlStr), slog.Any("args", sqlArgs))
+			slog.Any("msg", err), slog.String("sql", sqlFull))
 		//return err
 	}
 	return nil

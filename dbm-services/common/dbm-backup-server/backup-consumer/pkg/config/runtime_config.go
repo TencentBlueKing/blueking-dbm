@@ -1,8 +1,8 @@
 package config
 
 type runtimeConfig struct {
-	BkmApiInfo
-	BkDataId int `yaml:"bk_data_id"`
+	BkmApiInfo `yaml:",inline" json:",inline"`
+	BkDataId   int `yaml:"bk_data_id"`
 	// BkCollectorName collector_config_name_en
 	BkCollectorName string `yaml:"bk_collector_name"`
 

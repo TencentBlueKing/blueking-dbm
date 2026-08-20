@@ -208,7 +208,7 @@ func (m *MysqlProxyConnlog) dorisCreate(i interface{}, db *gorm.DB) error {
 	err = db.Exec(sqlFull).Error
 	if err != nil {
 		slog.Error("replace message",
-			slog.Any("msg", err), slog.String("sql", sqlStr), slog.Any("args", sqlArgs))
+			slog.Any("msg", err), slog.String("sql", sqlFull))
 		//return err
 	}
 	return nil
@@ -217,6 +217,9 @@ func (m *MysqlProxyConnlog) dorisCreate(i interface{}, db *gorm.DB) error {
 var CREATE_TABLE_MYSQL_MYSQL_PROXY_CONNLOG = `
 `
 
+// CREATE_TABLE_DORIS_MYSQL_PROXY_CONNLOG doris table
+//
+//	4.x "group_commit_mode" = "async_mode"
 var CREATE_TABLE_DORIS_MYSQL_PROXY_CONNLOG = `
 CREATE TABLE IF NOT EXISTS %s (
   cluster_domain varchar(200) NOT NULL,
@@ -237,7 +240,7 @@ DISTRIBUTED BY HASH(cluster_domain) BUCKETS 12
 PROPERTIES (
   "replication_allocation" = "tag.location.default: 1",
   "min_load_replica_num" = "-1",
-  "bloom_filter_columns" = "cluster_domain, instance_host, conn_user",
+  "bloom_filter_columns" = "cluster_domain, proxy_ip, conn_user",
   "is_being_synced" = "false",
   "dynamic_partition.enable" = "true",
   "dynamic_partition.time_unit" = "DAY",
