@@ -211,6 +211,7 @@
               </BkTag>
               <AuthTemplate
                 actionId='biz_ticket_config_set'
+                disabled={!row.editable}
                 permission={row.permission.biz_ticket_config_set}
                 resource={props.dbType}>
                 {row.editable ? (
@@ -249,6 +250,7 @@
             {!hasChildren && <span class='tree-icon-placeholder' />}
             <AuthTemplate
               actionId='biz_ticket_config_set'
+              disabled={!row.editable}
               permission={row.permission.biz_ticket_config_set}
               resource={props.dbType}>
               {row.editable ? (
@@ -388,6 +390,7 @@
             <AuthTemplate
               actionId='biz_ticket_config_set'
               class='action-btns'
+              disabled={!row.editable}
               permission={row.permission.biz_ticket_config_set}
               resource={props.dbType}>
               <BkButton
@@ -411,6 +414,7 @@
           <AuthTemplate
             actionId='biz_ticket_config_set'
             class='action-btns'
+            disabled={!row.editable}
             permission={row.permission.biz_ticket_config_set}
             resource={props.dbType}>
             <BkButton
