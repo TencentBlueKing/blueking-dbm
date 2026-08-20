@@ -16,7 +16,7 @@ from django.utils import timezone
 
 from backend import env
 from backend.components import BKLogApi
-from backend.db_report.models import MysqlSlowlogDetail
+from backend.db_report.models import MysqlProxyConnlog, MysqlSlowlogDetail
 from backend.dbm_aiagent.mcp_tools.exceptions import DBMMcpBaseException
 from backend.utils.time import timezone2timestamp
 
@@ -217,6 +217,36 @@ def query_slow_log_detail(
         return one_slow_log
 
 
+def _resolve_tendbha_client_host(item: Dict) -> None:
+    """对于 tendbha 集群，client_host 字段实际是 mysql-proxy ip。
+    通过 MysqlProxyConnlog 表根据 conn_user、proxy_ip、session_id 查询真正的来源客户端 IP，
+    查到则替换 client_host，查不到则保持不变。
+    """
+    if item.get("cluster_type") != "tendbha" or not item.get("client_host") or not item.get("session_ids"):
+        return
+
+    try:
+        proxy_ips = [ip.strip() for ip in item["client_host"].split(",") if ip.strip()]
+        session_id_list = [int(sid.strip()) for sid in item["session_ids"].split(",") if sid.strip()]
+        conn_user = item.get("username", "")
+        if not (proxy_ips and session_id_list and conn_user):
+            return
+
+        real_client_ips = list(
+            MysqlProxyConnlog.objects.filter(
+                conn_user=conn_user,
+                proxy_ip__in=proxy_ips,
+                session_id__in=session_id_list,
+            )
+            .values_list("client_ip", flat=True)
+            .distinct()
+        )
+        if real_client_ips:
+            item["client_host"] = ",".join(real_client_ips)
+    except Exception:  # noqa: E722
+        pass
+
+
 def query_slowlog_aggregated(
     cluster_domain: str,
     instance_role: str,
@@ -258,16 +288,14 @@ def query_slowlog_aggregated(
         function = "ANY_VALUE"
         name = "AnyValue"
 
-    # 自定义 GROUP_CONCAT 聚合函数，兼容 MySQL 和 Doris
+    # 自定义 GROUP_CONCAT 聚合函数，兼容 Doris（不支持 DISTINCT）
     class GroupConcat(Aggregate):
         function = "GROUP_CONCAT"
         name = "GroupConcat"
-        template = "%(function)s(%(distinct)s%(expressions)s%(separator)s)"
+        template = "%(function)s(%(expressions)s%(separator)s)"
 
-        def __init__(self, expression, distinct=False, separator=",", **extra):
-            super().__init__(
-                expression, distinct="DISTINCT " if distinct else "", separator=f" SEPARATOR '{separator}'", **extra
-            )
+        def __init__(self, expression, separator=",", **extra):
+            super().__init__(expression, separator=f" SEPARATOR '{separator}'", **extra)
 
     # 允许排序的字段白名单
     allowed_order_by = {
@@ -319,10 +347,11 @@ def query_slowlog_aggregated(
                 query_db_name=AnyValue("query_db_name", output_field=CharField()),
                 table_names=AnyValue("table_names", output_field=CharField()),
                 username=AnyValue("username", output_field=CharField()),
-                client_host=GroupConcat("client_host", distinct=True, output_field=CharField()),
+                client_host=GroupConcat("client_host", output_field=CharField()),
                 session_ids=GroupConcat("session_id", output_field=CharField()),
                 instance_host=AnyValue("instance_host", output_field=CharField()),
                 instance_port=AnyValue("instance_port", output_field=IntegerField()),
+                cluster_type=AnyValue("cluster_type", output_field=CharField()),
             )
             .order_by(f"-{order_by}")[:limit]
         )
@@ -341,9 +370,15 @@ def query_slowlog_aggregated(
         # 去除 query_digest_text 中的反引号，优化 markdown 展示
         if item.get("query_digest_text"):
             item["query_digest_text"] = item["query_digest_text"].replace("`", "")
+        # GROUP_CONCAT 无 DISTINCT，在 Python 层对 client_host 去重
+        if item.get("client_host"):
+            item["client_host"] = ",".join(set(ip.strip() for ip in item["client_host"].split(",") if ip.strip()))
+        # 对于 tendbha 集群，client_host 实际是 proxy ip，需要通过 MysqlProxyConnlog 查询真正的来源 IP
+        _resolve_tendbha_client_host(item)
         # 删除不必要的返回字段
         item.pop("cluster_domain", None)
         item.pop("instance_role", None)
+        item.pop("cluster_type", None)
         if not query_sample:
             # 不查询慢日志样本时，删除 query_string 字段。某些情况 sample 非常大，返回给 mcp 占用大量上下文
             item.pop("query_string", None)

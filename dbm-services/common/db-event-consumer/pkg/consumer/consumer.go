@@ -89,22 +89,15 @@ func (s *AnySinker) Cleanup(sarama.ConsumerGroupSession) error {
 }
 
 func (s *AnySinker) ConsumeClaim(session sarama.ConsumerGroupSession, claim sarama.ConsumerGroupClaim) error {
-	if s.Sinker.RuntimeConfig.FromBeginning {
-		slog.Info("consumer from beginning",
-			slog.Any("topic", claim.Topic()),
-			slog.Any("partition", claim.Partition()),
-			slog.Any("groupId", s.Sinker.RuntimeConfig.Topic+s.Sinker.RuntimeConfig.GroupIdSuffix))
-		session.ResetOffset(claim.Topic(), claim.Partition(), 0, "")
-	} else {
-		slog.Info("consumer from offset",
-			slog.Any("topic", claim.Topic()),
-			slog.Any("partition", claim.Partition()),
-			slog.Any("groupId", s.Sinker.RuntimeConfig.Topic+s.Sinker.RuntimeConfig.GroupIdSuffix),
-			slog.Any("model", s.Sinker.RuntimeConfig.ModelTable),
-			slog.Any("offset", claim.InitialOffset()))
-	}
+	slog.Info("consumer claim started",
+		slog.String("topic", claim.Topic()),
+		slog.Any("partition", claim.Partition()),
+		slog.String("groupId", s.groupID),
+		slog.String("model", s.Sinker.RuntimeConfig.ModelTable),
+		slog.Any("offset", claim.InitialOffset()),
+		slog.Bool("from_beginning", s.Sinker.RuntimeConfig.FromBeginning))
 
-	const BatchSize = 100
+	const BatchSize = 10
 	const FlushInterval = 500 * time.Millisecond
 
 	msgs := make([]*sarama.ConsumerMessage, 0, BatchSize)
@@ -133,6 +126,10 @@ func (s *AnySinker) ConsumeClaim(session sarama.ConsumerGroupSession, claim sara
 		case message, ok := <-claim.Messages():
 			if !ok {
 				// channel 已关闭（partition 被撤回或 rebalance），退出消费循环
+				slog.Warn("claim.Messages() channel closed, session ending",
+					slog.String("topic", claim.Topic()),
+					slog.Any("partition", claim.Partition()),
+					slog.String("model", s.Sinker.RuntimeConfig.ModelTable))
 				flushBatch()
 				return nil
 			}
@@ -147,6 +144,10 @@ func (s *AnySinker) ConsumeClaim(session sarama.ConsumerGroupSession, claim sara
 			flushBatch()
 		case <-session.Context().Done():
 			// 退出前尝试刷新剩余消息
+			slog.Warn("session context done, flushing remaining messages",
+				slog.String("topic", claim.Topic()),
+				slog.Any("partition", claim.Partition()),
+				slog.String("model", s.Sinker.RuntimeConfig.ModelTable))
 			flushBatch()
 			return nil
 		}
@@ -336,8 +337,8 @@ func (s *AnySinker) HandleMessagesBklogGorm(msgs []*sarama.ConsumerMessage, sk *
 			if bklogItem, ok := obj.(base.BklogUnmarshalItem); ok {
 				err = bklogItem.UnmarshalItem(item.Data, msg)
 				if err != nil {
-					// slog.Error("unmarshal bklog item", err)
-					s.recordMetricsFailed(s.Sinker.RuntimeConfig.Topic, "unmarshal")
+					// slog.Error("unmarshal bklog item", err, slog.Any("msg", string(item.Data)))
+					s.recordMetricsFailed(s.Sinker.RuntimeConfig.Topic, "unmarshal-1")
 					continue
 				}
 				result = reflect.Append(result, objValue.Elem())
@@ -350,7 +351,7 @@ func (s *AnySinker) HandleMessagesBklogGorm(msgs []*sarama.ConsumerMessage, sk *
 
 				err = json.Unmarshal([]byte(unquoteData), &obj)
 				if err != nil {
-					s.recordMetricsFailed(s.Sinker.RuntimeConfig.Topic, "unmarshal")
+					s.recordMetricsFailed(s.Sinker.RuntimeConfig.Topic, "unmarshal-2")
 					slog.Error("unmarshal task object", err, slog.Any("msg", unquoteData))
 					return err
 				}

@@ -134,6 +134,15 @@ func startSinkerConsumer(sink *config.SinkerConfig, dsWriter base.DSWriter, coll
 			slog.String("groupId", sinker.RuntimeConfig.Topic+sinker.RuntimeConfig.GroupIdSuffix))
 		return
 	}
+	go func() {
+		for err := range cg.Errors() {
+			slog.Error("consumer group error",
+				slog.Any("error", err),
+				slog.String("topic", sinker.RuntimeConfig.Topic),
+				slog.String("groupId", sinker.RuntimeConfig.Topic+sinker.RuntimeConfig.GroupIdSuffix),
+				slog.String("model", sinker.RuntimeConfig.ModelTable))
+		}
+	}()
 	consumerHandler, err := sinker.NewSinkHandler()
 	if err != nil {
 		slog.Error("new sink handler", slog.String("error", err.Error()),
@@ -160,6 +169,8 @@ func startSinkerConsumer(sink *config.SinkerConfig, dsWriter base.DSWriter, coll
 			if err != nil {
 				slog.Error("consume message", err)
 				break
+			} else {
+				slog.Info("re-consume message", slog.String("topic", sinker.RuntimeConfig.Topic))
 			}
 			if err := ctx.Err(); err != nil {
 				slog.Error("consume context", err)

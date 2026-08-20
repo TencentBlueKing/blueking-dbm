@@ -92,7 +92,13 @@ func (s *Sinker) NewSinkHandler() (sarama.ConsumerGroupHandler, error) {
 func (s *Sinker) NewConsumerGroup() (sarama.ConsumerGroup, error) {
 	consumerConfig := sarama.NewConfig()
 	consumerConfig.Consumer.Group.Rebalance.GroupStrategies = []sarama.BalanceStrategy{sarama.BalanceStrategyRoundRobin}
-	consumerConfig.Consumer.Offsets.Initial = sarama.OffsetOldest
+	// FromBeginning=true 时，无 committed offset 则从最早消息开始；否则从最新消息开始
+	// Offsets.Initial 只在 broker 上找不到该 consumer group 的已提交 offset 时才生效
+	if s.RuntimeConfig.FromBeginning {
+		consumerConfig.Consumer.Offsets.Initial = sarama.OffsetOldest
+	} else {
+		consumerConfig.Consumer.Offsets.Initial = sarama.OffsetNewest
+	}
 	consumerConfig.Version = sarama.V0_10_2_0
 	consumerConfig.Consumer.Return.Errors = true
 	consumerConfig.Consumer.MaxProcessingTime = 200 * time.Millisecond
