@@ -75,7 +75,8 @@ commit message 走 Conventional Commits，`commit-msg` 钩子会跑 commitlint �
 - script setup 宏顺序：`defineOptions` → `defineProps` → `defineEmits` → `defineSlots` → `defineModel` → `defineExpose`
 - Props 用 `interface` + `withDefaults`；Emits 用类型别名，如 `type Emits = (e: 'change', value: string) => void`
 - 文案一律走 `t()`（`useI18n`），语言包在 `src/locales/`
-- UI 组件优先用 bkui-vue（`main.ts` 已全局注册）；element-plus 仅存量日期类组件在用，新代码不要再引入
+- 基础组件优先用 `src/components/bkui-vue/` 下的本地实现（如 `DbInput`，在 `src/common/importComps.ts`
+  全局注册）；该目录没有的组件再用 bkui-vue 包（`main.ts` 已全局注册）；element-plus 仅存量日期类组件在用，新代码不要再引入
 - Pinia 沿用 options 风格（`state` / `getters` / `actions`），现有 store 都是这个写法
 - 类名写完整的嵌套类名，禁止 `&_name`、`&-name`、`--name`
 - 路径别名优先于相对路径（`@services/*`、`@components/*`、`@views/*`、`@common/*`、`@utils`、`@hooks`、`@stores`
