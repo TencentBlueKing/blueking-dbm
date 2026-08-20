@@ -126,26 +126,20 @@
           @click="handleSave">
           {{ t('保存') }}
         </AuthButton>
-        <DbPopconfirm
-          ref="dbPopconfirm"
-          :confirm-handler="handleReset"
-          :content="t('重置将会恢复默认设置的内容')"
-          :title="t('确认重置')">
-          <span>
-            <AuthButton
-              action-id="platform_todo_remind_manage"
-              class="ml-8 w-88"
-              :disabled="updateTodoRemindLoading"
-              :loading="resetTodoRemindLoading">
-              {{ t('重置') }}
-            </AuthButton>
-          </span>
-        </DbPopconfirm>
+        <BkButton
+          action-id="biz_notify_config"
+          class="ml-8 w-88"
+          :disabled="updateTodoRemindLoading"
+          :loading="resetTodoRemindLoading"
+          @click="handleReset">
+          {{ t('恢复默认') }}
+        </BkButton>
       </template>
     </SmartAction>
   </BkLoading>
 </template>
 <script setup lang="tsx">
+  import { InfoBox } from 'bkui-vue';
   import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
@@ -223,7 +217,7 @@
   const { loading: resetTodoRemindLoading, run: runResetTodoRemind } = useRequest(updateTodoRemind, {
     manual: true,
     onSuccess: () => {
-      messageSuccess(t('重置成功'));
+      messageSuccess(t('恢复默认成功'));
       window.changeConfirm = false;
       getData();
     },
@@ -335,16 +329,24 @@
   };
 
   const handleReset = () => {
-    runResetTodoRemind({
-      is_enable: false,
-      notice: DefaultMessageTypeList.map((type) => ({
-        type,
-        value: '',
-      })),
-      remind_time: {
-        hour: '10',
-        minute: '00',
+    InfoBox({
+      cancelText: t('取消'),
+      confirmText: t('确认'),
+      content: t('当前页面的所有配置将恢复为系统默认值。'),
+      onConfirm: () => {
+        runResetTodoRemind({
+          is_enable: false,
+          notice: DefaultMessageTypeList.map((type) => ({
+            type,
+            value: '',
+          })),
+          remind_time: {
+            hour: '10',
+            minute: '00',
+          },
+        });
       },
+      title: t('确认恢复默认值？'),
     });
   };
 

@@ -322,12 +322,10 @@
           @click="handleShowPreview">
           {{ t('预览') }}
         </BkButton>
-        <BkButton
-          class="ml-8 w-88"
-          :disabled="baseState.isSubmitting"
-          @click="handleResetFormdata">
-          {{ t('重置') }}
-        </BkButton>
+        <DbResetButton
+          class="ml-8"
+          :confirm-handler="handleResetFormdata"
+          :disabled="baseState.isSubmitting" />
         <BkButton
           class="ml-8 w-88"
           :disabled="baseState.isSubmitting"
@@ -360,7 +358,6 @@
 </template>
 
 <script setup lang="tsx">
-  import { InfoBox } from 'bkui-vue';
   import _ from 'lodash';
   import { type ComponentProps } from 'vue-component-type-helpers';
   import { useI18n } from 'vue-i18n';
@@ -976,17 +973,9 @@
   };
 
   const handleResetFormdata = () => {
-    InfoBox({
-      cancelText: t('取消'),
-      content: t('重置后_将会清空当前填写的内容'),
-      onConfirm: () => {
-        _.merge(formData, getFormData());
-        nextTick(() => {
-          window.changeConfirm = false;
-        });
-        return true;
-      },
-      title: t('确认重置表单内容'),
+    _.merge(formData, getFormData());
+    nextTick(() => {
+      window.changeConfirm = false;
     });
   };
 </script>

@@ -126,22 +126,16 @@
           @click="handleSubmit">
           {{ t('保存') }}
         </AuthButton>
-        <DbPopconfirm
-          :confirm-handler="handleReset"
-          :content="t('重置将会恢复默认设置的内容')"
-          :title="t('确认重置')">
-          <AuthButton
-            action-id="set_password_policy"
-            :resource="dbType">
-            {{ t('重置') }}
-          </AuthButton>
-        </DbPopconfirm>
+        <BkButton @click="handleReset">
+          {{ t('恢复默认') }}
+        </BkButton>
       </BkFormItem>
     </DbForm>
   </BkLoading>
 </template>
 
 <script setup lang="ts">
+  import { InfoBox } from 'bkui-vue';
   import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
@@ -295,19 +289,27 @@
     }
   };
 
-  const handleReset = () =>
-    updatePasswordPolicyRunAsync({
-      ...passwordPolicyData,
-      db_type: props.dbType,
-      reset: true,
-      rule: {
-        ...formData,
-        symbols_allowed: _.uniq(formData.symbols_allowed.split('')).join(''),
-      },
-    }).then(() => {
-      messageSuccess(t('重置成功'));
-      fetchData();
+  const handleReset = () => {
+    InfoBox({
+      cancelText: t('取消'),
+      confirmText: t('确认'),
+      content: t('当前页面的所有配置将恢复为系统默认值。'),
+      onConfirm: () =>
+        updatePasswordPolicyRunAsync({
+          ...passwordPolicyData,
+          db_type: props.dbType,
+          reset: true,
+          rule: {
+            ...formData,
+            symbols_allowed: _.uniq(formData.symbols_allowed.split('')).join(''),
+          },
+        }).then(() => {
+          messageSuccess(t('恢复默认成功'));
+          fetchData();
+        }),
+      title: t('确认恢复默认值？'),
     });
+  };
 </script>
 
 <style lang="less" scoped>

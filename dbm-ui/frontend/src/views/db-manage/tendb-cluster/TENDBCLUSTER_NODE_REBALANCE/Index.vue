@@ -75,16 +75,10 @@
         @click="handleSubmit">
         {{ t('提交') }}
       </BkButton>
-      <DbPopconfirm
+      <DbResetButton
+        class="ml-8"
         :confirm-handler="handleReset"
-        :content="t('重置将会情况当前填写的所有内容_请谨慎操作')"
-        :title="t('确认重置页面')">
-        <BkButton
-          class="ml-8 w-88"
-          :disabled="isSubmitting">
-          {{ t('重置') }}
-        </BkButton>
-      </DbPopconfirm>
+        :disabled="isSubmitting" />
     </template>
   </SmartAction>
 </template>
@@ -327,7 +321,7 @@
    * 统一设置目标容量
    * 仅对 cluster_shard_num 能被 count 整除的行应用，跳过不满足条件的行
    */
-  const handleBatchEditCapacity = (value: { specId: number; count: number; specData: TicketSpecInfo }) => {
+  const handleBatchEditCapacity = (value: { count: number; specData: TicketSpecInfo; specId: number }) => {
     formData.tableData.forEach((rowData) => {
       const shardNum = rowData.cluster.cluster_shard_num;
       if (shardNum > 0 && shardNum % value.count === 0) {
