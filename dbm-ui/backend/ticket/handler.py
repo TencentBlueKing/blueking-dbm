@@ -486,12 +486,22 @@ class TicketHandler:
 
         cluster_tags = cluster_tags or []
 
+        def check_editable_configs(configs_qs):
+            uneditable_configs = list(configs_qs.filter(editable=False).values_list("id", "ticket_type"))
+            if uneditable_configs:
+                raise TicketFlowsConfigException(_("流程配置不允许编辑，配置ID和单据类型: {}").format(uneditable_configs))
+
         def check_create_config(ticket_type):
             if not bk_biz_id:
                 raise TicketFlowsConfigException(_("不允许新增平台级别的流程设置"))
 
             global_config = TicketFlowsConfig.objects.get(bk_biz_id=0, ticket_type=ticket_type)
             biz_configs = TicketFlowsConfig.objects.filter(bk_biz_id=bk_biz_id, ticket_type=ticket_type)
+            editable_config_qs = TicketFlowsConfig.objects.filter(
+                bk_biz_id__in=[PLAT_BIZ_ID, bk_biz_id],
+                ticket_type=ticket_type,
+            )
+            check_editable_configs(editable_config_qs)
 
             if configs.get("need_manual_confirm") and configs.get("need_manual_confirm") != global_config.configs.get(
                 "need_manual_confirm"
