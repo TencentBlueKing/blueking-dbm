@@ -82,11 +82,11 @@
         :min-width="120"
         :title="t('回档DB')">
         <template #default="{ row: data }: { row: RowData }">
-          <BkTag
+          <DbTag
             v-for="item in data.databases"
             :key="item">
             {{ item }}
-          </BkTag>
+          </DbTag>
           <span v-if="data.databases.length < 1">--</span>
         </template>
       </TicketInfoTableColumn>
@@ -95,11 +95,11 @@
         :min-width="120"
         :title="t('忽略 DB')">
         <template #default="{ row: data }: { row: RowData }">
-          <BkTag
+          <DbTag
             v-for="item in data.databases_ignore"
             :key="item">
             {{ item }}
-          </BkTag>
+          </DbTag>
           <span v-if="data.databases_ignore.length < 1">--</span>
         </template>
       </TicketInfoTableColumn>
@@ -108,11 +108,11 @@
         :min-width="120"
         :title="t('回档表名')">
         <template #default="{ row: data }: { row: RowData }">
-          <BkTag
+          <DbTag
             v-for="item in data.tables"
             :key="item">
             {{ item }}
-          </BkTag>
+          </DbTag>
           <span v-if="data.tables.length < 1">--</span>
         </template>
       </TicketInfoTableColumn>
@@ -121,11 +121,11 @@
         :min-width="120"
         :title="t('忽略表名')">
         <template #default="{ row: data }: { row: RowData }">
-          <BkTag
+          <DbTag
             v-for="item in data.tables_ignore"
             :key="item">
             {{ item }}
-          </BkTag>
+          </DbTag>
           <span v-if="data.tables_ignore.length < 1">--</span>
         </template>
       </TicketInfoTableColumn>

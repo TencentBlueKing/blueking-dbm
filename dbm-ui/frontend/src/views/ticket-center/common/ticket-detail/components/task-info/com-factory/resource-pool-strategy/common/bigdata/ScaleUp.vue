@@ -33,11 +33,11 @@
         <TagBlock
           v-if="item.labelNames.length"
           :data="item.labelNames" />
-        <BkTag
+        <DbTag
           v-else
           theme="success">
           {{ t('通用无标签') }}
-        </BkTag>
+        </DbTag>
       </InfoItem>
       <InfoItem :label="t('扩容数量')">
         {{ t('n台', [item.count]) }}({{

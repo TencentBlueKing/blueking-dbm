@@ -51,11 +51,11 @@
       col-key="databases_ignore"
       :title="t('忽略库')">
       <template #default="{ row: data }: { row: RowData }">
-        <BkTag
+        <DbTag
           v-for="item in data.databases_ignore"
           :key="item">
           {{ item }}
-        </BkTag>
+        </DbTag>
         <span v-if="data.databases_ignore.length < 1">--</span>
       </template>
     </TicketInfoTableColumn>

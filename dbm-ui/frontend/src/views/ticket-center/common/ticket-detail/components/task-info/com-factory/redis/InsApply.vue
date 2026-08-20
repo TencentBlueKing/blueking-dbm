@@ -87,17 +87,17 @@
       v-if="!isAppend"
       :label="t('资源标签')">
       <template v-if="backendSpec && backendSpec.label_names?.length">
-        <BkTag
+        <DbTag
           v-for="item in backendSpec.label_names"
           :key="item">
           {{ item }}
-        </BkTag>
+        </DbTag>
       </template>
-      <BkTag
+      <DbTag
         v-else
         theme="success">
         {{ t('通用无标签') }}
-      </BkTag>
+      </DbTag>
     </InfoItem>
   </InfoList>
   <div class="ticket-details-info-title">{{ t('补充信息') }}</div>

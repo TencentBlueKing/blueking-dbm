@@ -4,7 +4,7 @@
     :width="900">
     <template #header>
       <span>{{ t('手动修改迁移的 DB 名') }}</span>
-      <BkTag class="ml-8">{{ domain }}</BkTag>
+      <DbTag class="ml-8">{{ domain }}</DbTag>
     </template>
     <div class="edit-name-box">
       <ClusterDb v-bind="props" />

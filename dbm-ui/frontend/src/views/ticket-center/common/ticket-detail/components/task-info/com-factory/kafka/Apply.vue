@@ -49,17 +49,17 @@
       </InfoItem>
       <InfoItem :label="t('Broker 节点资源标签')">
         <template v-if="brokerSpec && brokerSpec.label_names?.length">
-          <BkTag
+          <DbTag
             v-for="item in brokerSpec.label_names"
             :key="item">
             {{ item }}
-          </BkTag>
+          </DbTag>
         </template>
-        <BkTag
+        <DbTag
           v-else
           theme="success">
           {{ t('通用无标签') }}
-        </BkTag>
+        </DbTag>
       </InfoItem>
       <InfoItem :label="t('Zookeeper节点规格')">
         <SpecDetailPopover
@@ -76,17 +76,17 @@
       </InfoItem>
       <InfoItem :label="t('Zookeeper 节点资源标签')">
         <template v-if="zookeeperSpec && zookeeperSpec.label_names?.length">
-          <BkTag
+          <DbTag
             v-for="item in zookeeperSpec.label_names"
             :key="item">
             {{ item }}
-          </BkTag>
+          </DbTag>
         </template>
-        <BkTag
+        <DbTag
           v-else
           theme="success">
           {{ t('通用无标签') }}
-        </BkTag>
+        </DbTag>
       </InfoItem>
     </template>
     <template v-else>

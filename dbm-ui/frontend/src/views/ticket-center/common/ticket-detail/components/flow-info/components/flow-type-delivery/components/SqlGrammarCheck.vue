@@ -82,20 +82,20 @@
       <span style="margin-left: 30px; font-size: 12px; font-weight: normal; color: #63656e">
         <span>{{ t('变更的 DB:') }}</span>
         <span class="ml-4">
-          <BkTag
+          <DbTag
             v-for="item in currentFileExecuteObject.dbnames"
             :key="item">
             {{ item }}
-          </BkTag>
+          </DbTag>
           <template v-if="currentFileExecuteObject.dbnames.length < 1">--</template>
         </span>
         <span class="ml-25">{{ t('忽略的 DB:') }}</span>
         <span class="ml-4">
-          <BkTag
+          <DbTag
             v-for="item in currentFileExecuteObject.ignore_dbnames"
             :key="item">
             {{ item }}
-          </BkTag>
+          </DbTag>
           <template v-if="currentFileExecuteObject.ignore_dbnames.length < 1">--</template>
         </span>
       </span>

@@ -49,17 +49,17 @@
       </InfoItem>
       <InfoItem :label="t('NameNode 资源标签')">
         <template v-if="namenodeSpec && namenodeSpec.label_names?.length">
-          <BkTag
+          <DbTag
             v-for="item in namenodeSpec.label_names"
             :key="item">
             {{ item }}
-          </BkTag>
+          </DbTag>
         </template>
-        <BkTag
+        <DbTag
           v-else
           theme="success">
           {{ t('通用无标签') }}
-        </BkTag>
+        </DbTag>
       </InfoItem>
       <InfoItem label="Zookeepers/JournalNodes">
         <SpecDetailPopover
@@ -76,17 +76,17 @@
       </InfoItem>
       <InfoItem :label="t('Zookeepers/JournalNodes 资源标签')">
         <template v-if="zookeeperSpec && zookeeperSpec.label_names?.length">
-          <BkTag
+          <DbTag
             v-for="item in zookeeperSpec.label_names"
             :key="item">
             {{ item }}
-          </BkTag>
+          </DbTag>
         </template>
-        <BkTag
+        <DbTag
           v-else
           theme="success">
           {{ t('通用无标签') }}
-        </BkTag>
+        </DbTag>
       </InfoItem>
       <InfoItem label="DataNodes">
         <SpecDetailPopover
@@ -103,17 +103,17 @@
       </InfoItem>
       <InfoItem :label="t('DataNodes 资源标签')">
         <template v-if="datanodeSpec && datanodeSpec.label_names?.length">
-          <BkTag
+          <DbTag
             v-for="item in datanodeSpec.label_names"
             :key="item">
             {{ item }}
-          </BkTag>
+          </DbTag>
         </template>
-        <BkTag
+        <DbTag
           v-else
           theme="success">
           {{ t('通用无标签') }}
-        </BkTag>
+        </DbTag>
       </InfoItem>
     </template>
     <template v-else>

@@ -11,11 +11,11 @@
         :min-width="200"
         required>
         <EditableBlock :placeholder="t('--')">
-          <BkTag
+          <DbTag
             v-for="db in item.db_list"
             :key="db">
             {{ db }}
-          </BkTag>
+          </DbTag>
         </EditableBlock>
       </EditableColumn>
       <EditableColumn
@@ -23,11 +23,11 @@
         :label="t('忽略 DB 名')"
         :min-width="200">
         <EditableBlock :placeholder="t('--')">
-          <BkTag
+          <DbTag
             v-for="db in item.ignore_db_list"
             :key="db">
             {{ db }}
-          </BkTag>
+          </DbTag>
         </EditableBlock>
       </EditableColumn>
     </EditableRow>
