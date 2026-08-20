@@ -496,7 +496,11 @@ class TicketFlowsConfig(AuditedModel):
         for tag_cfg in tag_configs:
             tag_cfg_rules = defaultdict(set)
             for tag in tag_cfg.cluster_tags:
-                tag_cfg_rules[tag["tag_key"]].add(tag["tag_value"])
+                tag_key = tag.get("tag_key")
+                tag_value = tag.get("tag_value")
+                if tag_key is None or tag_value is None:
+                    continue
+                tag_cfg_rules[tag_key].add(tag_value)
             tag_cfg_rule_list.append((tag_cfg, tag_cfg_rules))
 
         # 查询当前单据涉及的集群标签，整理成 {cluster_id: {tag_key: {tag_value1, tag_value2}}}，便于和 tag_cfg_rules 对比。
