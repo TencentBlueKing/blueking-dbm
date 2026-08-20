@@ -176,11 +176,11 @@
       render: () => {
         if (data.resource_spec.backend_group.label_names?.length) {
           const tags = data.resource_spec.backend_group.label_names.map((labelItem) => (
-            <bk-tag key={labelItem}>{labelItem}</bk-tag>
+            <db-tag key={labelItem}>{labelItem}</db-tag>
           ));
           return <>{tags}</>;
         }
-        return <bk-tag theme='success'>{t('通用无标签')}</bk-tag>;
+        return <db-tag theme='success'>{t('通用无标签')}</db-tag>;
       },
       title: t('资源标签'),
     },
