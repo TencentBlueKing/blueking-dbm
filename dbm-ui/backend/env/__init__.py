@@ -34,6 +34,9 @@ REDIS_PORT = get_type_env(key="REDIS_PORT", _type=int, default=6379)
 REDIS_PASSWORD = get_type_env(key="REDIS_PASSWORD", _type=str, default="")
 REDIS_URL = f"redis://{f':{REDIS_PASSWORD}@' if REDIS_PASSWORD else ''}{REDIS_HOST}:{REDIS_PORT}/1"
 
+# Redis 开发最佳实践文档地址(内网iwiki),开源环境默认留空,内网环境通过环境变量 REDIS_DEV_BEST_PRACTICE_URL 配置
+REDIS_DEV_BEST_PRACTICE_URL = get_type_env(key="REDIS_DEV_BEST_PRACTICE_URL", _type=str, default="")
+
 BROKER_URL = get_type_env(key="BROKER_URL", default=REDIS_URL, _type=str)
 SESSION_COOKIE_DOMAIN = get_type_env(key="SESSION_COOKIE_DOMAIN", default="", _type=str)
 
