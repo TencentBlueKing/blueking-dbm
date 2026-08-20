@@ -8,7 +8,7 @@
         :key="item"
         :size="size"
         :theme="theme">
-        {{ item }}asdaasdasdasdasdasdasdasdasdasdasdasdasd
+        {{ item }}
       </DbTag>
       <DbTag
         v-if="moreTagCount > 0"
