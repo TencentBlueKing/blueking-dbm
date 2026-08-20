@@ -276,6 +276,8 @@ export const useTreeData = (treeState: TreeState) => {
     moduleId: string | number;
     /** 源模块名称（克隆场景，即当前模块名称） */
     moduleName: string;
+    /** 源模块接入层版本（克隆场景，即当前模块 spider 版本，TenDBCluster 专用） */
+    spiderConfFile?: string;
   }) {
     if (!clusterType?.value) return;
     router.push({
