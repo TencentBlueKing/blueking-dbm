@@ -41,7 +41,7 @@
           <p
             v-for="item in row.white_regex.split('\n')"
             :key="item">
-            <BkTag>{{ item }}</BkTag>
+            <DbTag>{{ item }}</DbTag>
           </p>
         </template>
       </template>
@@ -55,7 +55,7 @@
           <p
             v-for="item in row.black_regex.split('\n')"
             :key="item">
-            <BkTag>{{ item }}</BkTag>
+            <DbTag>{{ item }}</DbTag>
           </p>
         </template>
       </template>

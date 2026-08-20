@@ -19,11 +19,11 @@
   </InfoList>
   <InfoList>
     <InfoItem label="Topic">
-      <BkTag
+      <DbTag
         v-for="topic in ticketDetails.details.topics"
         :key="topic">
         {{ topic }}
-      </BkTag>
+      </DbTag>
     </InfoItem>
     <InfoItem :label="t('速率')">
       {{ ticketDetails.details.throttle_rate ? ticketDetails.details.throttle_rate + ' byte/s' : '--' }}

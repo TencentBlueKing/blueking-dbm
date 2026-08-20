@@ -99,17 +99,17 @@
         :title="t('资源标签')">
         <template #default="{ row: data }: { row: RowData }">
           <template v-if="data.resource_spec.backend_group?.label_names?.length">
-            <BkTag
+            <DbTag
               v-for="item in data.resource_spec.backend_group.label_names"
               :key="item">
               {{ item }}
-            </BkTag>
+            </DbTag>
           </template>
-          <BkTag
+          <DbTag
             v-else
             theme="success">
             {{ t('通用无标签') }}
-          </BkTag>
+          </DbTag>
         </template>
       </TicketInfoTableColumn>
     </template>
@@ -120,19 +120,19 @@
         :title="t('新主从主机')">
         <template #default="{ row: data }: { row: RowData }">
           <div>
-            <BkTag
+            <DbTag
               size="small"
               theme="success">
               M
-            </BkTag>
+            </DbTag>
             {{ data.resource_spec.new_master?.hosts?.[0]?.ip || '--' }}
           </div>
           <div>
-            <BkTag
+            <DbTag
               size="small"
               theme="info">
               S
-            </BkTag>
+            </DbTag>
             {{ data.resource_spec.new_slave?.hosts?.[0]?.ip || '--' }}
           </div>
         </template>

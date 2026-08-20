@@ -31,18 +31,18 @@
       col-key="dblike"
       :title="t('DB 名')">
       <template #default="{ row }: { row: RowData }">
-        <BkTag>
+        <DbTag>
           {{ row.dblike }}
-        </BkTag>
+        </DbTag>
       </template>
     </TicketInfoTableColumn>
     <TicketInfoTableColumn
       col-key="tblike"
       :title="t('表名')">
       <template #default="{ row }: { row: RowData }">
-        <BkTag>
+        <DbTag>
           {{ row.tblike }}
-        </BkTag>
+        </DbTag>
       </template>
     </TicketInfoTableColumn>
     <TicketInfoTableColumn

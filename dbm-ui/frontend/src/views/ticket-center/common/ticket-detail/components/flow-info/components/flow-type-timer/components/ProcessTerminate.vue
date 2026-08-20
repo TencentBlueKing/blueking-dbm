@@ -10,12 +10,12 @@
       <div style="font-size: 12px; color: #63656e">
         <div>
           {{ t('操作：') }}
-          <BkTag
+          <DbTag
             class="mr-4"
             theme="danger"
             type="stroke">
             {{ t('终止单据') }}
-          </BkTag>
+          </DbTag>
           <span>{{ t('终止后，单据将作废处理') }}</span>
         </div>
       </div>

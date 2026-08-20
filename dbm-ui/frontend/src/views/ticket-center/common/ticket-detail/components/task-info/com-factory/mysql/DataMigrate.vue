@@ -37,11 +37,11 @@
       :min-width="180"
       :title="t('克隆 DB 名')">
       <template #default="{ row }: { row: RowData }">
-        <BkTag
+        <DbTag
           v-for="item in row.clone_db_list"
           :key="item">
           {{ item }}
-        </BkTag>
+        </DbTag>
         <span v-if="row.clone_db_list.length < 1">--</span>
       </template>
     </TicketInfoTableColumn>
@@ -50,11 +50,11 @@
       :min-width="180"
       :title="t('忽略 DB')">
       <template #default="{ row }: { row: RowData }">
-        <BkTag
+        <DbTag
           v-for="item in row.ignore_db_list"
           :key="item">
           {{ item }}
-        </BkTag>
+        </DbTag>
         <span v-if="row.ignore_db_list.length < 1">--</span>
       </template>
     </TicketInfoTableColumn>

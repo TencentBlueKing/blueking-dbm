@@ -38,16 +38,16 @@
       col-key="cluster_type"
       :title="t('集群类型')">
       <template #default="{ row }: { row: RowData }">
-        <BkTag
+        <DbTag
           v-if="row.cluster_type === ClusterTypes.MONGO_REPLICA_SET"
           theme="info">
           {{ t('副本集') }}
-        </BkTag>
-        <BkTag
+        </DbTag>
+        <DbTag
           v-else-if="row.cluster_type === ClusterTypes.MONGO_SHARED_CLUSTER"
           theme="success">
           {{ t('分片集群') }}
-        </BkTag>
+        </DbTag>
         <span v-else>--</span>
       </template>
     </TicketInfoTableColumn>

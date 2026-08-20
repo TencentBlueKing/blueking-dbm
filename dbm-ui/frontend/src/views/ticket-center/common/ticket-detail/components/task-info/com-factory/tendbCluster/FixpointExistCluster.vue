@@ -59,13 +59,13 @@
           <div class="content-label">{{ t('备份类型 ：') }}</div>
           <div class="content-value">
             <span v-if="row.backupinfo.backup_type_list?.length < 1">--</span>
-            <BkTag
+            <DbTag
               v-for="item in row.backupinfo.backup_type_list"
               v-else
               :key="item"
               :theme="backupTypeMap[item].theme">
               {{ backupTypeMap[item].label }}
-            </BkTag>
+            </DbTag>
           </div>
           <div class="content-label">{{ t('备份范围 ：') }}</div>
           <div class="content-value">
@@ -107,11 +107,11 @@
       :min-width="120"
       :title="t('源 DB')">
       <template #default="{ row }: { row: RowData }">
-        <BkTag
+        <DbTag
           v-for="item in row.databases"
           :key="item">
           {{ item }}
-        </BkTag>
+        </DbTag>
         <span v-if="row.databases.length < 1">--</span>
       </template>
     </TicketInfoTableColumn>
@@ -120,11 +120,11 @@
       :min-width="120"
       :title="t('源表')">
       <template #default="{ row }: { row: RowData }">
-        <BkTag
+        <DbTag
           v-for="item in row.tables"
           :key="item">
           {{ item }}
-        </BkTag>
+        </DbTag>
         <span v-if="row.tables.length < 1">--</span>
       </template>
     </TicketInfoTableColumn>
@@ -158,21 +158,21 @@
     :width="900">
     <template #header>
       <span>{{ t('受影响的 DB') }}</span>
-      <BkTag class="ml-10">
+      <DbTag class="ml-10">
         {{ t('源集群：') }}{{ ticketDetails.details.clusters[rowData.cluster_id].immute_domain }}
-      </BkTag>
-      <BkTag
+      </DbTag>
+      <DbTag
         v-for="item in rowData.databases"
         :key="item"
         class="ml-4">
         {{ t('源 DB：') }}{{ item }}
-      </BkTag>
-      <BkTag
+      </DbTag>
+      <DbTag
         v-for="item in rowData.databases"
         :key="item"
         class="ml-4">
         {{ t('源表：') }}{{ item }}
-      </BkTag>
+      </DbTag>
     </template>
     <div class="priview-conflict-dbs">
       <BkAlert
