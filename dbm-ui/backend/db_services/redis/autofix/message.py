@@ -134,7 +134,7 @@ def send_msg_2_qywx(sub_title: str, msgs):
                 session_code=session_code,
             )
             RedisConn.set(session_code_key, session_code)
-            content += _("{}\n".format(rest[:300]))
+            content += _("{}\n".format(rest[:500]))
         except Exception as e:
             logger.exception("AI agent query failed for cluster %s: %s", immute_doamin, e)
     content += _("消息时间 : {}\n".format(date2str(datetime.datetime.now(), "%Y-%m-%d %H:%M:%S")))

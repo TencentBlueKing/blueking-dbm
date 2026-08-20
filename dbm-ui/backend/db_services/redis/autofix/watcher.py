@@ -148,11 +148,17 @@ def check_and_process(batch_small: int, switch_hosts: Dict):
             logger.info("machine all instance swithed success -_- {} {} ".format(swiched_host.ip, swiched_host))
             succ_cnt += 1
             # check if aleardy autofixed .
-            if NeedStartAutofix(swiched_host):
-                will_autofix[swiched_host.ip] = swiched_host
-                logger.info("autofix_will_start ip:{}".format(swiched_host.ip))
-            else:
-                logger.info("autofix_aleardy_started, this time will ignore :{}".format(swiched_host.ip))
+            try:
+                if NeedStartAutofix(swiched_host):
+                    will_autofix[swiched_host.ip] = swiched_host
+                    logger.info("autofix_will_start ip:{}".format(swiched_host.ip))
+                else:
+                    logger.info("autofix_aleardy_started, this time will ignore :{}".format(swiched_host.ip))
+            except Exception as e:
+                # 单个IP处理异常不应影响其他IP，特别是不能影响其他成功IP进入自愈表
+                logger.error(
+                    "NeedStartAutofix failed for ip:{}, err:{}\n{}".format(swiched_host.ip, e, traceback.format_exc())
+                )
             # 推进下一批轮询ID
             if succ_max_uid < swiched_host.sw_max_id:
                 succ_max_uid = swiched_host.sw_max_id
@@ -168,7 +174,15 @@ def check_and_process(batch_small: int, switch_hosts: Dict):
                 ignore_cnt += 1
                 swiched_host.ignore_fix = True
                 # save ignore swithed host
-                save_ignore_host(swiched_host, "wait_timeout")
+                # 单个IP的忽略/建单异常不能中断整个循环，否则会导致同批次的成功IP无法落自愈表
+                try:
+                    save_ignore_host(swiched_host, "wait_timeout")
+                except Exception as e:
+                    logger.error(
+                        "save_ignore_host failed for ip:{}, err:{}\n{}".format(
+                            swiched_host.ip, e, traceback.format_exc()
+                        )
+                    )
                 if wait_small_uid < swiched_host.sw_max_id:  # 不等了，跳过去
                     wait_small_uid = swiched_host.sw_max_id
             else:
@@ -356,6 +370,7 @@ def save_ignore_host(switched_host: RedisSwitchHost, msg):
 
         # 部分切换（有成功也有失败/info）时，辅助 DBA 提主从切换单据
         if switched_host.instance_type == InstanceRole.REDIS_MASTER.value:
+            ticket_url = ""
             succ_ports = switched_host.sw_result.get(DBHASwitchResult.SUCC.value, [])
             has_partial_switch = succ_ports and len(switched_host.sw_result) > 1
             if has_partial_switch:
