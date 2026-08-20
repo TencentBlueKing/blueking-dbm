@@ -89,6 +89,7 @@
                 :placeholder="t('请选择xx', [t('接入层版本')])"
                 :prefix="t('接入层版本')"
                 query-key="spider"
+                :source-version="String(route.query.spiderConfFile || '')"
                 @change="handleValidate" />
             </FormItemWithHint>
             <FormItemWithHint
@@ -143,11 +144,11 @@
               <template #label>
                 {{ tab.name }}
               </template>
-              <!-- 首个 Tab（dbconf）：克隆对比模式，含 diff/废弃 -->
+              <!-- dbconf / proxyconf：克隆对比模式，含 diff/废弃 -->
               <ParamTable
-                v-if="tab.conf_type === 'dbconf'"
+                v-if="tab.conf_type === 'dbconf' || tab.conf_type === 'proxyconf'"
                 :ref="(el: any) => setTableRef(tab.conf_file, el)"
-                :deprecated-count="removedCount"
+                :deprecated-count="getDeprecatedCount(tab.conf_type)"
                 @deprecated-click="handleShowDeprecated" />
               <!-- 其他 Tab：层级配置模式，仅自定义过滤 -->
               <LevelConfigTable
@@ -356,8 +357,8 @@
     ],
   };
 
-  // 克隆查询原始结果
-  const cloneResult = ref<CloneModuleQueryResult>({
+  /** 创建空的 CloneModuleQueryResult */
+  const createEmptyCloneResult = (): CloneModuleQueryResult => ({
     bk_biz_id: '',
     conf_file_info: {
       conf_file: '',
@@ -379,13 +380,29 @@
     level_value: '',
   });
 
+  // 克隆查询原始结果（按 conf_type 分组）
+  const cloneResultMap = reactive<Record<string, CloneModuleQueryResult>>({
+    dbconf: createEmptyCloneResult(),
+    proxyconf: createEmptyCloneResult(),
+  });
+
+  /** 获取当前活跃 Tab 对应的 cloneResult */
+  const currentCloneResult = computed(() => cloneResultMap[activeConfTypeConfType.value] || createEmptyCloneResult());
+
+  /** 当前活跃 Tab 的 conf_type */
+  const activeConfTypeConfType = computed(() => {
+    const tab = confTabs.value.find((t) => t.conf_file === activeConfType.value);
+    return tab?.conf_type || 'dbconf';
+  });
+
   /** 将 content 对象转为数组，并标注 value_source 和 diff_type */
   const currentConfItems = computed<CloneConfItem[]>(() => {
-    if (!cloneResult.value.content) return [];
-    const modifiedSet = new Set(cloneResult.value.conf_names_value_modified || []);
-    const diffMap = cloneResult.value.conf_names_value_diff || {};
+    const result = currentCloneResult.value;
+    if (!result.content) return [];
+    const modifiedSet = new Set(result.conf_names_value_modified || []);
+    const diffMap = result.conf_names_value_diff || {};
 
-    return Object.values(cloneResult.value.content).map((item) => {
+    return Object.values(result.content).map((item) => {
       const diffValue = (diffMap as Record<string, string>)[item.conf_name];
       const isInDiff = diffValue !== undefined;
 
@@ -400,24 +417,47 @@
 
   /** 全 Tab 汇总统计 */
   const totalCounts = computed(() => {
-    const items = currentConfItems.value;
+    const allItems = [...getConfItems('dbconf'), ...getConfItems('proxyconf')];
     return {
-      changed: items.filter((i) => i.diff_type === 'changed' || i.diff_type === 'new').length,
-      custom: items.filter((i) => i.value_source === 'custom').length,
-      removed: deprecatedNames.value.length,
+      changed: allItems.filter((i) => i.diff_type === 'changed' || i.diff_type === 'new').length,
+      custom: allItems.filter((i) => i.value_source === 'custom').length,
+      removed: getDeprecatedNames('dbconf').length + getDeprecatedNames('proxyconf').length,
     };
   });
 
-  /** 废弃数量 */
-  const removedCount = computed(() => deprecatedNames.value.length);
+  /** 获取指定 conf_type 的废弃参数名列表 */
+  const getDeprecatedNames = (confType: string): string[] => cloneResultMap[confType]?.conf_names_deprecated || [];
 
-  /** 废弃参数名列表 */
-  const deprecatedNames = computed(() => cloneResult.value.conf_names_deprecated || []);
+  /** 获取指定 conf_type 的 conf items */
+  const getConfItems = (confType: string): CloneConfItem[] => {
+    const result = cloneResultMap[confType];
+    if (!result?.content) return [];
+    const modifiedSet = new Set(result.conf_names_value_modified || []);
+    const diffMap = result.conf_names_value_diff || {};
+    return Object.values(result.content).map((item) => {
+      const diffValue = (diffMap as Record<string, string>)[item.conf_name];
+      const isInDiff = diffValue !== undefined;
+      return {
+        ...item,
+        diff_type: !isInDiff ? 'none' : diffValue === '_NONE_' ? 'new' : 'changed',
+        source_conf_value: diffValue && diffValue !== '_NONE_' ? diffValue : undefined,
+        value_source: modifiedSet.has(item.conf_name) ? 'custom' : 'source',
+      };
+    });
+  };
 
-  /** 废弃参数列表（用于侧滑展示） */
-  const deprecatedItems = computed<CloneConfItem[]>(() =>
-    deprecatedNames.value.map((name) => {
-      const item = cloneResult.value.content[name];
+  /** 获取指定 conf_type 的废弃数量 */
+  const getDeprecatedCount = (confType: string): number => getDeprecatedNames(confType).length;
+
+  /** 废弃参数名列表（当前 Tab） */
+  const deprecatedNames = computed(() => getDeprecatedNames(activeConfTypeConfType.value));
+
+  /** 废弃参数列表（用于侧滑展示，当前 Tab） */
+  const deprecatedItems = computed<CloneConfItem[]>(() => {
+    const names = deprecatedNames.value;
+    const result = currentCloneResult.value;
+    return names.map((name) => {
+      const item = result.content[name];
       return item
         ? { ...item, diff_type: 'removed' as const, value_source: 'source' as const }
         : ({
@@ -434,21 +474,35 @@
             up_level_value: null,
             value_source: 'source' as const,
           } satisfies CloneConfItem);
-    }),
-  );
+    });
+  });
 
   /** 废弃侧滑数据源 */
   const deprecatedDataSource = () =>
     Promise.resolve({ count: deprecatedItems.value.length, results: deprecatedItems.value });
 
-  /** 获取克隆对比结果 */
-  const { run: fetchCloneResult } = useRequest(moduleCloneQuery, {
-    manual: true,
-    onSuccess(res) {
-      cloneResult.value = res;
-      nextTick(() => currentParamTable.value?.refreshData());
-    },
-  });
+  /** 获取克隆对比结果（直接调用，避免 useRequest 连续调用时取消前一个请求） */
+  const fetchCloneResult = (params: {
+    conf_type: string;
+    meta_cluster_type: string;
+    source_bk_biz_id: string;
+    source_conf_file: string;
+    source_module_id: string;
+    target_bk_biz_id: string;
+    target_conf_file: string;
+  }) => {
+    return moduleCloneQuery(params)
+      .then((res) => {
+        const confType = params.conf_type;
+        cloneResultMap[confType] = res;
+        // 刷新当前活跃 Tab 的表格（如果正在查看此 conf_type）
+        const currentTab = confTabs.value.find((t) => t.conf_file === activeConfType.value);
+        if (currentTab?.conf_type === confType) {
+          nextTick(() => currentParamTable.value?.refreshData());
+        }
+      })
+      .catch(() => {});
+  };
 
   /** 获取配置文件 Tab 列表 */
   const { run: fetchConfTabs } = useRequest(getListClusterModuleConfFiles, {
@@ -510,7 +564,10 @@
     formData.alias_name = String(route.query.moduleName);
   }
   if (route.query.confFile) {
-    cloneResult.value.conf_file_info.conf_file = String(route.query.confFile);
+    cloneResultMap.dbconf.conf_file_info.conf_file = String(route.query.confFile);
+  }
+  if (route.query.spiderConfFile) {
+    cloneResultMap.proxyconf.conf_file_info.conf_file = String(route.query.spiderConfFile);
   }
   // 源字符集从路由取（由源模块列表页 moduleInfo.charset 传入）
   if (route.query.charset) {
@@ -527,15 +584,30 @@
         deploy_versions: JSON.stringify({ db_version: formData.db_version }),
         meta_cluster_type: ClusterTypes.TENDBCLUSTER,
       });
-      fetchCloneResult({
-        conf_type: 'dbconf',
-        meta_cluster_type: ClusterTypes.TENDBCLUSTER,
-        source_bk_biz_id: String(bizId),
-        source_conf_file: String(route.query.confFile || ''),
-        source_module_id: String(route.query.moduleId || ''),
-        target_bk_biz_id: String(bizId),
-        target_conf_file: formData.db_version,
-      });
+      // 存储层版本差异对比
+      if (formData.db_version) {
+        fetchCloneResult({
+          conf_type: 'dbconf',
+          meta_cluster_type: ClusterTypes.TENDBCLUSTER,
+          source_bk_biz_id: String(bizId),
+          source_conf_file: String(route.query.confFile || ''),
+          source_module_id: String(route.query.moduleId || ''),
+          target_bk_biz_id: String(bizId),
+          target_conf_file: formData.db_version,
+        });
+      }
+      // 接入层版本差异对比
+      if (formData.spider_version) {
+        fetchCloneResult({
+          conf_type: 'proxyconf',
+          meta_cluster_type: ClusterTypes.TENDBCLUSTER,
+          source_bk_biz_id: String(bizId),
+          source_conf_file: String(route.query.spiderConfFile || ''),
+          source_module_id: String(route.query.moduleId || ''),
+          target_bk_biz_id: String(bizId),
+          target_conf_file: formData.spider_version,
+        });
+      }
     },
   );
 
@@ -547,10 +619,15 @@
     { immediate: true },
   );
 
-  /** Tab 切换时：非 dbconf 调用 getLevelConfig */
+  /** Tab 切换时：非 dbconf/proxyconf 调用 getLevelConfig */
   watch(activeConfType, (tabKey) => {
     const currentTab = confTabs.value.find((t) => t.conf_file === tabKey);
-    if (!currentTab || currentTab.conf_type === 'dbconf') return;
+    if (!currentTab) return;
+    // dbconf / proxyconf 使用克隆对比数据，无需 getLevelConfig
+    if (currentTab.conf_type === 'dbconf' || currentTab.conf_type === 'proxyconf') {
+      nextTick(() => currentParamTable.value?.refreshData());
+      return;
+    }
 
     fetchLevelConfig({
       bk_biz_id: Number(bizId),

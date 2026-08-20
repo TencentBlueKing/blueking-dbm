@@ -275,6 +275,7 @@
       confFile: moduleInfo.version,
       moduleId: moduleInfo.moduleId,
       moduleName: moduleInfo.moduleName,
+      spiderConfFile: moduleInfo.spiderVersion,
     });
   };
 
