@@ -75,23 +75,6 @@
             @click="handleSend">
             {{ t('立即发送') }}
           </AuthButton>
-<<<<<<< HEAD
-          <DbPopconfirm
-            :confirm-handler="handleReset"
-            :content="t('重置将会恢复默认设置的内容！')"
-            :title="t('确认重置当前配置？')">
-            <span>
-              <AuthButton
-                action-id="duty_notice_config_update"
-                class="w-88"
-                :disabled="updateLoading || sendLoading"
-                :loading="resetLoading"
-                :resource="dbType">
-                {{ t('重置') }}
-              </AuthButton>
-            </span>
-          </DbPopconfirm>
-=======
           <AuthButton
             action-id="update_duty_notices_config"
             class="w-88"
@@ -100,7 +83,6 @@
             @click="handleReset">
             {{ t('恢复默认') }}
           </AuthButton>
->>>>>>> edd43eae4 (perf( frontend): 重置按钮体验优化 #19791)
         </div>
       </template>
     </SmartAction>
