@@ -1,0 +1,142 @@
+---
+description: DBM 数据库管理模块约定。覆盖集群列表、实例列表、集群详情、工具箱提单、路由注册、单据详情与服务层。仓库分层与编码约定见 AGENTS.md，工具箱逐步实现见 toolbox-code.mdc。
+globs: ['**/db-manage/**', '**/services/**', '**/ticket-center/**', '**/common/const/ticketTypes.ts']
+alwaysApply: false
+---
+
+# 数据库管理 `src/views/db-manage/`
+
+仓库分层、命令与编码约定见 `AGENTS.md`。工具箱提单逐步实现见 `toolbox-code.mdc`。排版交互见 `dbm-frontend-design` skill。
+
+每个 DB 一个目录。公共能力放 `common/`、`hooks/`、`const/`、`utils/`。
+
+| 目录             | `DBTypes`      | 说明                                  |
+| ---------------- | -------------- | ------------------------------------- |
+| `mysql`          | `MYSQL`        | 含 ha / single                        |
+| `tendb-cluster`  | `TENDBCLUSTER` | 路由工具会把该类型映射到此目录        |
+| `redis`          | `REDIS`        |                                       |
+| `mongodb`        | `MONGODB`      | replica-set / shared-cluster          |
+| `sqlserver`      | `SQLSERVER`    | ha / single                           |
+| `oracle`         | `ORACLE`       | ha / single                           |
+| `doris`          | `DORIS`        | 大数据                                |
+| `elastic-search` | `ES`           | 大数据。枚举值是 `es`，与目录名不一致 |
+| `hdfs`           | `HDFS`         | 大数据                                |
+| `influxdb`       | `INFLUXDB`     | 大数据                                |
+| `kafka`          | `KAFKA`        | 大数据                                |
+| `pulsar`         | `PULSAR`       | 大数据                                |
+| `riak`           | `RIAK`         | 大数据                                |
+
+单 DB 内常见页面：
+
+- 集群列表：`list/`、`cluster-list/`、`ha-cluster-list/`、`single-cluster-list/` 等
+- 实例列表：`instance-list/`、`ha-instance-list/` 等
+- 集群详情：`*-detail/`
+- 工具箱入口：`toolbox/`
+- 工具箱提单：`{TICKET_TYPE}/Index.vue`（全大写，与后端 `ticket_type` 一致）
+- 路由：`routes.ts`
+- 工具箱菜单：`toolbox/toolboxMenuList.ts` 或 `toolbox-menu.ts`
+
+## 集群列表
+
+所有集群列表复用 `src/views/db-manage/common/cluster-table/Index.vue`。
+
+内置列（不要在业务页重复实现）：`IdColumn`、`ClusterAliasColumn`、`CommonColumn`（版本、容灾、地域、规格、管控区域、创建人、部署时间、时区等）。
+
+可覆盖 / 扩展的 slot：`operation`、`masterDomain`、`slaveDomain`、`clusterTag`、`status`、`clusterState`、`role`、`clusterTypeName`、`syncMode`、`moduleNames`。
+
+- 所有集群都要的列：改 `CommonColumn.vue`
+- 某个集群独有的列：
+  1. 若 slot 不存在，先在 `cluster-table/Index.vue` 按字段名加 slot
+  2. 在该 DB 的集群列表里实现 slot，优先用同目录导出的列组件（`RoleColumn`、`MasterDomainColumn` 等）
+
+参考：`src/views/db-manage/mysql/ha-cluster-list/Index.vue`
+
+## 实例列表
+
+所有实例列表复用 `src/views/db-manage/common/instance-table/Index.vue`。
+
+slot：`operation`、`instanceAddress`、`domain`、`shard`、`relatedCluster`、`ip`、`mongodbState`。
+
+公共列改 `instance-table/CommonColumn.vue`，独有列走 slot，规则与集群列表相同。
+
+## 集群详情
+
+复用 `src/views/db-manage/common/cluster-details/`（基础信息、拓扑、实例/主机列表、监控、告警订阅、单据记录）。各 DB 详情页组合这些块，不要另起一套详情骨架。
+
+`src/views/db-manage/const/clusterTypeListPageMap.ts` 维护 `ClusterTypes` → 详情路由 name。
+
+## 工具箱提单
+
+路径：`src/views/db-manage/{db}/{TICKET_TYPE}/Index.vue`
+
+四者必须完全一致：
+
+1. `TicketTypes` 枚举值（`src/common/const/ticketTypes.ts`）
+2. 提单目录名
+3. 路由 `name`
+4. 单据详情组件 `defineOptions({ name })`
+
+实现要点：
+
+- 先读同 DB 已有提单，确认后端 `ticket_type` 与 details 协议
+- 表格用 `EditableTable` / `EditableRow` / `EditableColumn`，行操作列用 `OperationColumn`，单据备注用 `TicketPayload`
+- 提交用 `useCreateTicket(TicketTypes.XXX)`
+- 列优先复用 `src/views/db-manage/common/toolbox-field/` 以及该 DB 的 `common/toolbox-field/`
+- 菜单：在对应 `toolboxMenuList.ts` / `toolbox-menu.ts` 增加节点
+
+逐步代码模板与检查清单见 `toolbox-code.mdc`。
+
+## 路由
+
+- 总入口：`src/views/db-manage/routes.ts` 通过 `import.meta.glob('./*/routes.ts')` 收集各 DB 路由
+- 业务侧：`registerBusinessModule` → `/db-manage`
+- DBA 工具箱：`registerModule` 收集 `./*/dba-manage/routes.ts` → `/dba-manage`
+
+各 DB 的 `routes.ts` 导出 `getRoutes(funControllerData)`，按功能开关返回路由。工具箱路由用 `createToolboxRoute(DBTypes.XXX)`：
+
+```ts
+const { createRouteItem } = createToolboxRoute(DBTypes.MYSQL);
+createRouteItem(TicketTypes.MYSQL_DATA_MIGRATE, t('数据迁移'));
+```
+
+`createToolboxRoute` 会按 `TicketTypes` 懒加载 `{db}/{TICKET_TYPE}/Index.vue`，并把 `meta.ticketType`、`name` 设为该枚举值。`TENDBCLUSTER` 目录固定为 `tendb-cluster`。
+
+## 单据详情
+
+工厂：`src/views/ticket-center/common/ticket-detail/components/task-info/com-factory/`
+
+按 `ticket_type` 匹配组件 `name`。glob 范围为 `{db}/*.vue`、`{db}/*/*.vue`，资源池策略优先匹配 `resource-pool-strategy/`。匹配不到则走 `Default.vue`。
+
+```ts
+defineOptions({
+  name: TicketTypes.MYSQL_DATA_MIGRATE,
+  inheritAttrs: false,
+});
+```
+
+详情数据类型：`TicketModel<Mysql.DataMigrate>`，定义放在 `src/services/model/ticket/details/{db}/`。
+
+展示优先用 `InfoList` / `TicketInfoTable`，参考 `com-factory/mysql/DataMigrate.vue`。
+
+---
+
+# 服务层 `src/services/`
+
+| 目录      | 职责                               |
+| --------- | ---------------------------------- |
+| `source/` | 接口函数，经 `http` 发请求         |
+| `model/`  | 列表/详情数据类与单据 details 类型 |
+| `http/`   | 请求封装                           |
+| `types/`  | 列表分页等通用类型                 |
+
+新增接口：在 `source/` 按资源写函数；列表行用 `model/` 类包装。单据 details 接口与提单字段对齐，并在 `model/ticket/details/{db}/index.ts` 导出。
+
+## 新增工具箱一次做完
+
+1. `TicketTypes` 增加枚举，值与后端 `ticket_type` 相同
+2. `services/model/ticket/details/{db}/` 补 details 类型并导出
+3. 建 `{TICKET_TYPE}/Index.vue` 提单页
+4. `{db}/routes.ts` 用 `createRouteItem` 注册
+5. 工具箱菜单增加入口
+6. `com-factory/{db}/Xxx.vue` 注册同名详情组件
+7. 文案走 `t()`，`yarn type-check` 通过
