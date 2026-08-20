@@ -234,13 +234,10 @@
 
   const isOverLimit = computed(() => props.maxlength !== undefined && currentLength.value > props.maxlength);
 
-  const minDisabled = computed(
-    () => props.disabled || props.readonly || Number(modelValue.value) - props.step < props.min,
-  );
+  // 到达边界才禁用箭头，未达边界时点击由 clampNumber 收敛到边界；空值按 0 处理，与 handleControlClick 一致
+  const minDisabled = computed(() => props.disabled || props.readonly || Number(modelValue.value) <= props.min);
 
-  const maxDisabled = computed(
-    () => props.disabled || props.readonly || Number(modelValue.value) + props.step > props.max,
-  );
+  const maxDisabled = computed(() => props.disabled || props.readonly || Number(modelValue.value) >= props.max);
 
   // 数字输入框空值处理：默认取 min（未设置 min 时为 0），allowEmptyValue 时允许为空
   const getNumberEmptyValue = () => {
@@ -576,7 +573,8 @@
       flex-direction: column;
       align-items: center;
 
-      span {
+      // 图标组件自身渲染为 span，必须限定直接子元素，否则内层图标会覆盖箭头的禁用色与光标
+      > span {
         display: flex;
         overflow: hidden;
         line-height: 1;
