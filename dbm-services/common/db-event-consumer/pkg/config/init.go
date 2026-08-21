@@ -45,6 +45,7 @@ func init() {
 	_ = sinker.RegisterModelWriteType(&sinker.XormWriter{})
 	_ = sinker.RegisterModelWriteType(&sinker.MysqlRawWriter{})
 	_ = sinker.RegisterModelWriteType(&sinker.DorisWriter{})
+	_ = sinker.RegisterModelWriteType(&sinker.DorisHttpWriter{})
 }
 
 type mainConfig struct {

@@ -288,14 +288,10 @@ def query_slowlog_aggregated(
         function = "ANY_VALUE"
         name = "AnyValue"
 
-    # 自定义 GROUP_CONCAT 聚合函数，兼容 Doris（不支持 DISTINCT）
+    # 自定义 GROUP_CONCAT 聚合函数，兼容 Doris（不指定 separator，默认逗号分隔）
     class GroupConcat(Aggregate):
         function = "GROUP_CONCAT"
         name = "GroupConcat"
-        template = "%(function)s(%(expressions)s%(separator)s)"
-
-        def __init__(self, expression, separator=",", **extra):
-            super().__init__(expression, separator=f" SEPARATOR '{separator}'", **extra)
 
     # 允许排序的字段白名单
     allowed_order_by = {
