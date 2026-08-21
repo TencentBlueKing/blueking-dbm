@@ -1,10 +1,7 @@
 <template>
   <TextOverflowLayout>
-    <AuthButton
+    <BkButton
       v-if="data.instance_domain"
-      :action-id="viewActionId"
-      :permission="Boolean(_.get(data.permission, viewActionId))"
-      :resource="data.id"
       text
       theme="primary"
       @click="(event: MouseEvent) => handleToDetails(data.cluster_id, event)">
@@ -13,7 +10,7 @@
         :keyword="searchKeyword">
         {{ data.instance_domain }}
       </TextHighlight>
-    </AuthButton>
+    </BkButton>
     <span v-else>--</span>
     <template
       v-if="data.instance_domain"
@@ -30,7 +27,6 @@
   </TextOverflowLayout>
 </template>
 <script setup lang="ts">
-  import _ from 'lodash';
   import type { VNode } from 'vue';
   import { useI18n } from 'vue-i18n';
   import { useRoute } from 'vue-router';
@@ -66,16 +62,13 @@
     Props['clusterType'],
     {
       routeName: string;
-      viewActionId: string;
     }
   > = {
     [ClusterTypes.MONGO_REPLICA_SET]: {
       routeName: 'MongoDBReplicaSetDetail',
-      viewActionId: 'mongodb_view',
     },
     [ClusterTypes.MONGO_SHARED_CLUSTER]: {
       routeName: 'MongoDBSharedClusterDetail',
-      viewActionId: 'mongodb_view',
     },
   };
 
@@ -84,8 +77,6 @@
   const router = useRouter();
 
   const searchKeyword = ref('');
-
-  const viewActionId = computed(() => infoMap[props.clusterType].viewActionId);
 
   watch(
     route,
