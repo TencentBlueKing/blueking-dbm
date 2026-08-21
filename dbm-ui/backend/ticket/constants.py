@@ -922,6 +922,11 @@ class ItsmApproveMode(IntStructuredEnum):
     CounterSign = EnumField(1, _("会签模式"))
 
 
+class ItsmShowTable(IntStructuredEnum):
+    HIDE = EnumField(0, _("不展示表格"))
+    SHOW = EnumField(1, _("展示表格"))
+
+
 class TicketExpireType(StrStructuredEnum):
     """单据过期类型"""
 
