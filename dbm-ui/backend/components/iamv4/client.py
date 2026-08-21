@@ -11,6 +11,7 @@ specific language governing permissions and limitations under the License.
 
 import json
 import logging
+from collections import defaultdict
 from typing import Any, Dict, List, Tuple
 
 from django.utils.translation import gettext_lazy as _
@@ -225,6 +226,17 @@ class _IAMV4Api(BaseApi):
         updated = [item for item in local if item["id"] in remote_ids]
         return created, updated
 
+    @staticmethod
+    def _group_by_depth(resources: List[Dict]) -> List[List[Dict]]:
+        """
+        按祖先链长度把资源类型分层。IAM校验祖先是否存在只认已落库的资源，
+        同一个批量请求内新建的祖先它看不到，因此父级必须在更靠前的请求中提交
+        """
+        by_depth = defaultdict(list)
+        for resource in resources:
+            by_depth[len(resource.get("ancestors") or [])].append(resource)
+        return [by_depth[depth] for depth in sorted(by_depth)]
+
     def migrate_model(self, model: Dict, dry_run: bool = False) -> Dict[str, Any]:
         """
         迁移权限模型，model 的结构为 {"system": {}, "resource_types": [], "actions": [], "roles": []}。
@@ -265,11 +277,12 @@ class _IAMV4Api(BaseApi):
         add_role_actions = {role_id: actions for role_id, actions in add_role_actions.items() if actions}
 
         if not dry_run:
-            # 资源类型：动作与角色都引用它，必须最先注册
-            for chunk in self._chunks(new_resources):
-                self.batch_create_resource_type(params=chunk)
-            # 资源类型的 name 与 ancestors 均可更新
-            for item in mod_resources:
+            # 资源类型：动作与角色都引用它，必须最先注册。按拓扑逐层提交，确保祖先先于子级落库
+            for layer in self._group_by_depth(new_resources):
+                for chunk in self._chunks(layer):
+                    self.batch_create_resource_type(params=chunk)
+            # 资源类型的 name 与 ancestors 均可更新，同样按拓扑顺序，新增的祖先在上一步已落库
+            for item in sorted(mod_resources, key=lambda resource: len(resource["ancestors"])):
                 params = {"resource_type_id": item["id"], "name": item["name"], "ancestors": item["ancestors"]}
                 self.update_resource_type(params=params)
             # 操作：角色引用它，需先于角色注册
@@ -314,6 +327,40 @@ class _IAMV4Api(BaseApi):
             if isinstance(item, dict)
         }
         logger.info("[migrate_model] dry_run=%s, changes=%s", dry_run, json.dumps(counts, ensure_ascii=False))
+        return summary
+
+    def delete_model(self, dry_run: bool = False) -> Dict[str, Any]:
+        """
+        清空系统的权限模型但保留系统本身，删除范围是远端现存的全部角色、操作与资源类型，
+        注意：模型删除后相关的授权数据一并失效且不可恢复，仅用于开发测试环境重建模型。
+        """
+        roles = self._list_all(self.list_role)
+        actions = self._list_all(self.list_action)
+        resources = self._list_all(self.list_resource_type)
+
+        if not dry_run:
+            for role in roles:
+                self.delete_role(params={"role_id": role["id"]})
+            for action in actions:
+                self.delete_action(params={"action_id": action["id"]})
+            # 子级的祖先链引用父级，从最深的一层开始删
+            for layer in reversed(self._group_by_depth(resources)):
+                for resource in layer:
+                    self.delete_resource_type(params={"resource_type_id": resource["id"]})
+
+        summary = {
+            "dry_run": dry_run,
+            "roles": [item["id"] for item in roles],
+            "actions": [item["id"] for item in actions],
+            "resource_types": [item["id"] for item in resources],
+        }
+        logger.info(
+            "[delete_model] dry_run=%s, roles=%s, actions=%s, resource_types=%s",
+            dry_run,
+            len(roles),
+            len(actions),
+            len(resources),
+        )
         return summary
 
 
