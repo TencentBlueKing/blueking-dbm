@@ -19,6 +19,7 @@ from django.utils.translation import gettext as _
 from rest_framework.decorators import action
 from rest_framework.parsers import MultiPartParser
 from rest_framework.response import Response
+from rest_framework.serializers import Serializer
 
 from backend.bk_web import viewsets
 from backend.bk_web.swagger import common_swagger_auto_schema
@@ -344,7 +345,7 @@ class DBPackageViewSet(viewsets.AuditedModelViewSet):
         operation_summary=_("获取介质支持的操作系统"),
         tags=[DB_PACKAGE_TAG],
     )
-    @action(methods=["GET"], detail=False, serializer_class=None, filter_class=None)
+    @action(methods=["GET"], detail=False, serializer_class=Serializer, filter_class=None)
     def list_support_systems(self, request, *args, **kwargs):
         systems = SystemSettings.get_setting_value(
             key=SystemSettingsEnum.PACKAGE_SUPPORT_SYSTEMS, default=DEFAULT_PACKAGE_SUPPORT_SYSTEMS

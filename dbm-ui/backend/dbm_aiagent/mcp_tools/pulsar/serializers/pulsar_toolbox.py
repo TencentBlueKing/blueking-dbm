@@ -39,7 +39,7 @@ class ListNamespacesInputSerializer(PulsarToolboxClusterInputSerializer):
     tenant = serializers.CharField(help_text=_("租户名称，如 public"), validators=[tenant_validator])
 
 
-class ListTopicsInputSerializer(PulsarToolboxClusterInputSerializer):
+class PulsarListTopicsInputSerializer(PulsarToolboxClusterInputSerializer):
     namespace = serializers.CharField(
         help_text=_("namespace名称，格式 tenant/namespace，如 public/default"), validators=[namespace_validator]
     )
@@ -74,13 +74,13 @@ class ListNamespacesOutputSerializer(serializers.Serializer):
     count = serializers.IntegerField(help_text=_("namespace数量"))
 
 
-class ListTopicsOutputSerializer(serializers.Serializer):
+class PulsarListTopicsOutputSerializer(serializers.Serializer):
     namespace = serializers.CharField(help_text=_("namespace名称"))
     topics = serializers.ListField(child=serializers.CharField(), help_text=_("topic名称列表"))
     count = serializers.IntegerField(help_text=_("topic数量"))
 
 
-class DescribeTopicOutputSerializer(serializers.Serializer):
+class PulsarDescribeTopicOutputSerializer(serializers.Serializer):
     topic = serializers.CharField(help_text=_("topic名称"))
     stats = serializers.DictField(
         help_text=_("topic统计信息，含 msgRateIn/msgRateOut(生产消费速率)、storageSize(存储大小)、subscriptions(各订阅积压)等")
@@ -109,7 +109,7 @@ class ListBrokersOutputSerializer(serializers.Serializer):
     count = serializers.IntegerField(help_text=_("在线broker数量"))
 
 
-class ClusterHealthCheckOutputSerializer(serializers.Serializer):
+class PulsarClusterHealthCheckOutputSerializer(serializers.Serializer):
     cluster_name = serializers.CharField(help_text=_("Pulsar集群名"))
     healthcheck_ok = serializers.BooleanField(help_text=_("broker自检是否通过"))
     healthcheck_output = serializers.CharField(help_text=_("broker自检原始输出"))

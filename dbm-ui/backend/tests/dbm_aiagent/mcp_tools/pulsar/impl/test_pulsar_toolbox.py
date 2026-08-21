@@ -17,7 +17,7 @@ import pytest
 from backend.dbm_aiagent.mcp_tools.pulsar.impl import pulsar_toolbox as mod
 from backend.dbm_aiagent.mcp_tools.pulsar.serializers.pulsar_toolbox import (
     ListNamespacesInputSerializer,
-    ListTopicsInputSerializer,
+    PulsarListTopicsInputSerializer,
     TopicInputSerializer,
 )
 
@@ -85,7 +85,7 @@ class TestPulsarToolboxInputValidation:
         "serializer_cls,data",
         [
             (ListNamespacesInputSerializer, {"cluster_domain": "test.db", "tenant": "tenant;id"}),
-            (ListTopicsInputSerializer, {"cluster_domain": "test.db", "namespace": "public/default;id"}),
+            (PulsarListTopicsInputSerializer, {"cluster_domain": "test.db", "namespace": "public/default;id"}),
             (
                 TopicInputSerializer,
                 {"cluster_domain": "test.db", "topic": "persistent://public/default/topic;id"},
@@ -101,7 +101,7 @@ class TestPulsarToolboxInputValidation:
         "serializer_cls,data",
         [
             (ListNamespacesInputSerializer, {"cluster_domain": "test.db", "tenant": "public"}),
-            (ListTopicsInputSerializer, {"cluster_domain": "test.db", "namespace": "public/default"}),
+            (PulsarListTopicsInputSerializer, {"cluster_domain": "test.db", "namespace": "public/default"}),
             (
                 TopicInputSerializer,
                 {"cluster_domain": "test.db", "topic": "persistent://public/default/topic-1"},
