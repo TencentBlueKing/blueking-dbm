@@ -21,6 +21,9 @@ GLOBAL_BIZ_ID_V4 = 0
 # 已废弃的动作分组，该分组下的动作不注册到V4
 DEPRECATED_ACTION_GROUP = _("已废弃")
 
+# DB类型的兜底实例，不属于任何真实DB的配置、单据与任务流程都归入此类
+COMMON_DB_TYPE = "common"
+
 
 class CommonActionLabel(StrStructuredEnum):
     BIZ_READ_ONLY = EnumField("biz_read_only", _("业务只读"))
