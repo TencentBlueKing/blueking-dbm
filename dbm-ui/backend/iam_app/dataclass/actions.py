@@ -216,6 +216,8 @@ class ActionEnum:
         type="edit",
         related_actions=[DB_MANAGE.id],
         related_resource_types=[ResourceEnum.BUSINESS, ResourceEnum.DBTYPE],
+        # V4只能关联一个资源，业务与DB类型合成为业务DB类型
+        related_resource_type_v4=ResourceEnum.BIZ_DBTYPE,
         group=_("业务配置"),
     )
 
@@ -389,6 +391,8 @@ class ActionEnum:
         type="manage",
         related_actions=[],
         related_resource_types=[ResourceEnum.BUSINESS, ResourceEnum.DBTYPE],
+        # V4只能关联一个资源，业务与DB类型合成为业务DB类型
+        related_resource_type_v4=ResourceEnum.BIZ_DBTYPE,
         group=_("业务配置"),
         subgroup=_("数据库配置"),
     )
@@ -2648,6 +2652,8 @@ class ActionEnum:
         type="view",
         related_actions=[DB_MANAGE.id],
         related_resource_types=[ResourceEnum.BUSINESS, ResourceEnum.DBTYPE],
+        # V4只能关联一个资源，业务与DB类型合成为业务DB类型
+        related_resource_type_v4=ResourceEnum.BIZ_DBTYPE,
         group=_("业务配置"),
         subgroup=_("监控策略"),
         common_labels=[CommonActionLabel.BIZ_MAINTAIN, CommonActionLabel.DEVELOPER],
@@ -2732,6 +2738,8 @@ class ActionEnum:
         type="create",
         related_actions=[DB_MANAGE.id],
         related_resource_types=[ResourceEnum.BUSINESS, ResourceEnum.DBTYPE],
+        # V4只能关联一个资源，业务与DB类型合成为业务DB类型
+        related_resource_type_v4=ResourceEnum.BIZ_DBTYPE,
         group=_("业务配置"),
         subgroup=_("监控策略"),
         common_labels=[CommonActionLabel.BIZ_MAINTAIN],
@@ -2997,6 +3005,8 @@ class ActionEnum:
         type="edit",
         related_actions=[],
         related_resource_types=[ResourceEnum.BUSINESS, ResourceEnum.DBTYPE],
+        # V4只能关联一个资源，业务与DB类型合成为业务DB类型
+        related_resource_type_v4=ResourceEnum.BIZ_DBTYPE,
         group=_("业务"),
     )
 
@@ -3007,6 +3017,8 @@ class ActionEnum:
         type="view",
         related_actions=[DB_MANAGE.id],
         related_resource_types=[ResourceEnum.BUSINESS, ResourceEnum.DBTYPE],
+        # V4只能关联一个资源，业务与DB类型合成为业务DB类型
+        related_resource_type_v4=ResourceEnum.BIZ_DBTYPE,
         group=_("业务"),
     )
 

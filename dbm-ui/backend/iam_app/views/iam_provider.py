@@ -146,12 +146,9 @@ class BaseResourceProvider(ResourceProvider, CommonProviderMixin, metaclass=abc.
         conditions = filter.get("conditions") or {}
         # 优先以祖先的拓扑层级过滤，其次考虑直接父级的过滤
         filter.ancestors = filter.get("ancestors") or [filter.get("parent")] or []
-        ancestors_filter = {
-            ResourceEnum.get_resource_by_id(parent["type"]).lookup_field: parent["id"]
-            for parent in filter.ancestors
-            if parent
-        }
-        conditions.update(ancestors_filter)
+        for parent in filter.ancestors:
+            if parent:
+                conditions.update(ResourceEnum.get_resource_by_id(parent["type"]).make_ancestor_filter(parent["id"]))
         # iam页面过滤搜索
         keyword = filter.get("search") or filter.get("keyword")
         if keyword:
