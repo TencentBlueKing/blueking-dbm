@@ -33,7 +33,7 @@ type SinkerConfig struct {
 	FromBeginning bool `yaml:"from_beginning"`
 	// FetchMinBytes consumer fetch messages at least this size, default 1024 bytes
 	FetchMinBytes int32 `yaml:"fetch_min_bytes"`
-	// SinkBatchSize 一次 fetch 可能有多条记录，sink_batch_size 控制多少次 fetch 合并成一次 sink. default 1
+	// SinkBatchSize 一次 fetch 可能有多条记录，sink_batch_size 控制多少次 fetch 合并成一次 sink. default 10
 	SinkBatchSize int `yaml:"sink_batch_size"`
 	// WriteMode default is upsert, allowed: insert_ignore, insert, upsert
 	WriteMode  string `yaml:"write_mode"`
