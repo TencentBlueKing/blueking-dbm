@@ -649,8 +649,12 @@
   // 显示废弃参数侧滑
   const handleShowDeprecated = () => {
     isShowSlider.value = true;
-    nextTick(() => {
-      sliderTableRef.value?.fetchData();
+    // BkSideslider 内容懒渲染，需等 DbTable 挂载后再 fetchData
+    const stop = watch(sliderTableRef, (val) => {
+      if (val) {
+        nextTick(() => sliderTableRef.value?.fetchData());
+        stop();
+      }
     });
   };
 
