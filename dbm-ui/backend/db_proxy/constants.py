@@ -24,6 +24,9 @@ NGINX_PUSH_TARGET_PATH = "/usr/local/bkdb/nginx-portable/conf/cluster_service/"
 JOB_INSTANCE_EXPIRE_TIME = 5 * 60
 # 定义token过期时间1天，防止废弃的token复用
 DB_CLOUD_TOKEN_EXPIRE_TIME = 1 * 24 * 60 * 60
+# 云区域 token 进程内缓存：命中则跳过 redis，缩短于 redis TTL 以便进程间最终收敛
+DB_CLOUD_TOKEN_LOCAL_CACHE_TTL = 10 * 60
+DB_CLOUD_TOKEN_LOCAL_CACHE_MAXSIZE = 512
 # 定义云区域proxy缓存过期时间为1天
 DB_CLOUD_PROXY_EXPIRE_TIME = 1 * 24 * 60 * 60
 # 定义machine缓存过期时间为1天
