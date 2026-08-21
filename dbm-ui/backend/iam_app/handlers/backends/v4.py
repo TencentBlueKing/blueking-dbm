@@ -35,14 +35,14 @@ class IAMV4Backend(IAMBackend):
     @staticmethod
     def make_resource(action: ActionMeta, resources: List[Resource]) -> Union[Dict, None]:
         """
-        构造V4的鉴权资源。V4一个动作只关联一个资源类型，多资源动作要按V4声明的类型挑选，
+        构造V4的鉴权资源。V4一个动作只关联一个资源类型，具体取哪个由资源类型自己决定：
+        默认按类型匹配，业务DB类型这类合成资源则由业务与DB类型两个实例拼出
         """
         resource_type = action.get_related_resource_type_v4()
         if not resource_type or not resources:
             return None
 
-        # 只取一个资源，V4限定只有action之关联一种资源
-        resource = next((item for item in resources if item.type == resource_type.id), None)
+        resource = resource_type.make_resource_v4(resources)
         if not resource:
             logger.warning("[iam_v4] action(%s) expects resource(%s) but not given", action.id, resource_type.id)
             return None
