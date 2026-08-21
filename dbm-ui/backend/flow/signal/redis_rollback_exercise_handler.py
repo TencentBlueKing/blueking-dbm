@@ -113,8 +113,8 @@ def wakeup_redis_rollback_runner_by_child(child_root_id: str, child_state: str, 
         f"runner_node_id={runner_node_id}, cached={'yes' if cached else 'no'}"
     )
 
-    # Preserve guard: only wake runners that are still active. Cache hits would otherwise
-    # blindly callback FAILED (scene preserved) / FINISHED / REVOKED nodes. Skip is DBA-driven.
+    # Preserve guard: only wake runners that are still active. After a runner records
+    # SCENE_PRESERVED it finishes normally and the separate confirmation node is DBA-driven.
     runner_alive = FlowNode.objects.filter(
         root_id=parent_root_id,
         node_id=runner_node_id,

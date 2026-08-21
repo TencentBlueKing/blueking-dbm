@@ -287,7 +287,7 @@ class GetFileList(object):
             f"{env.BKREPO_PROJECT}/{env.BKREPO_BUCKET}/{redis_tool_pkg.path}",
             f"{env.BKREPO_PROJECT}/{env.BKREPO_BUCKET}/{bkdbmon_pkg.path}",
         ]
-        if db_version.startswith("Redis-"):
+        if db_version.startswith(("Redis-", "Valkey-")):
             # 如果是 cache Redis,则下发 redis modules 介质
             redismodules_pkg = Package.get_latest_package(
                 version=MediumEnum.Latest, pkg_type=MediumEnum.RedisModules, db_type=DBType.Redis

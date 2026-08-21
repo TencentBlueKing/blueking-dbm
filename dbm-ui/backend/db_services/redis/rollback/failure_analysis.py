@@ -101,7 +101,7 @@ def enqueue_exercise_failure_analysis(report_id: int, countdown: int = AI_ANALYS
     Safe to call from ``Report.mark()``: never raises. No-ops when AI analysis is
     disabled, the report is missing / not in a failed stage, or a successful AI
     analysis block has already been appended (e.g. enqueued at SCENE_PRESERVED and
-    later marked terminal again after the DBA skips the failed node).
+    later marked terminal again after the DBA completes the confirmation node).
     """
     if not is_exercise_ai_analysis_enabled() or not report_id:
         return False

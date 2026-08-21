@@ -22,6 +22,7 @@ from backend.db_report.models import RedisRollbackExerciseReport as Report
 from backend.flow.consts import DEFAULT_REDIS_START_PORT
 from backend.flow.engine.bamboo.scene.common.builder import Builder, Conditions, SubBuilder
 from backend.flow.plugins.components.collections.common.disable_alarm_shield import DisableAlarmShieldComponent
+from backend.flow.plugins.components.collections.common.pause import PauseComponent
 from backend.flow.plugins.components.collections.redis.redis_rollback_exercise import (
     RedisExerciseBestEffortCleanupComponent,
     RedisExerciseFlowRunnerComponent,
@@ -64,8 +65,8 @@ class RedisRollbackExerciseFlow(object):
                     "drill_config": {
                         "polling_interval": 10,
                         "polling_timeout": 3600,
-                        # False (default): stop and preserve scene on child failure/timeout;
-                        # DBA skip then marks failed and cleans up. True: continue and clean up immediately.
+                        # False (default): preserve the scene and wait at a manual confirmation node.
+                        # True: continue and clean up immediately.
                         "error_ignorable": False,
                         "preserve_scene_shield_minutes": 4320,  # Alarm-shield minutes while the scene is preserved
                     },
@@ -191,13 +192,13 @@ class RedisRollbackExerciseFlow(object):
           - success  -> report_succeeded -> task_delete -> report_done
           - failure  -> report_rollback_failed
 
-        With ``error_ignorable=False`` (preserve mode, default) a failed/timed-out
-        child pipeline makes the runner node FAILED and stops the flow with the
-        scene preserved (report marked SCENE_PRESERVED); after the DBA clicks
-        'skip' on the failed node, the gateway branches on ``rollback_code=1`` to
-        mark the rollback failed, then the main pipeline's best-effort cleanup
-        runs. With ``error_ignorable=True`` the sub-flow never hard-fails and
-        cleanup runs immediately.
+        With ``error_ignorable=False`` (preserve mode, default), a failed/timed-out
+        child pipeline completes the runner with a failure output and pauses only
+        that branch at a manual confirmation node. The parent ticket stays RUNNING,
+        so sibling branches can continue launching child pipelines. After the DBA
+        confirms, the branch marks the failure and the main pipeline's best-effort
+        cleanup runs. With ``error_ignorable=True`` there is no pause and cleanup
+        runs immediately.
         """
         cluster_id = info["cluster_id"]
         instance_ip = info["instance_ip"]
@@ -295,19 +296,20 @@ class RedisRollbackExerciseFlow(object):
           - delete success    -> report_done
           - delete failure    -> no-op (best-effort cleanup reconciles)
 
-        ``error_ignorable=False`` (preserve mode, default) makes the runner node
-        FAILED when its child pipeline fails or times out: the flow stops with the
-        scene preserved (report marked SCENE_PRESERVED, child pipeline not revoked).
-        After the DBA clicks 'skip' on the failed node, the gateway branches on
-        ``rollback_code=1`` / ``delete_code=1`` to mark the failure, and the main
-        pipeline's best-effort cleanup (which first revokes leftover child flows) runs.
-        ``error_ignorable=True`` keeps the legacy behavior: the runner always returns
-        True, failures are expressed only through the gateway branch, and cleanup
-        runs immediately.
+        ``error_ignorable=False`` (preserve mode, default) keeps a failed/timed-out
+        child pipeline for inspection, marks the report SCENE_PRESERVED, and routes
+        ``rollback_code=1`` / ``delete_code=1`` to a manual confirmation node. The
+        runner itself finishes normally, so the ticket stays RUNNING and sibling
+        branches are not blocked. After confirmation, the branch marks the failure
+        and the main pipeline's best-effort cleanup first revokes leftover child
+        flows before removing temporary instances.
+        ``error_ignorable=True`` keeps the legacy behavior without manual
+        confirmation and proceeds to cleanup immediately.
 
-        In preserve mode both runner nodes are also ``retryable=False`` (skip only);
-        the runner service additionally revokes any previous non-terminal child
-        pipeline as a force-retry safety net before submitting a new one.
+        Both runner nodes are ``retryable=False`` because child failures are handled
+        as business outcomes. The runner service additionally revokes any previous
+        non-terminal child pipeline as a force-retry safety net before submitting a
+        new one in preserve mode.
         """
         rollback_runner_act = sub_flow.add_act(
             act_name=_("回档流程"),
@@ -377,17 +379,36 @@ class RedisRollbackExerciseFlow(object):
             extend=False,
         )
 
-        delete_failure_act = success_branch.add_act(
-            act_name=_("标记清理失败 (最佳尝试清理兜底)"),
-            act_component_code=RedisExerciseReportUpdateComponent.code,
-            kwargs={
-                "set_trans_data_dataclass": RedisRollbackExerciseContext.__name__,
-                "report_id": report_id,
-                "info_index": info_index,
-                "stage": TaskStage.CLEANUP_FAILED,
-            },
-            extend=False,
-        )
+        if error_ignorable:
+            delete_failure_act = success_branch.add_act(
+                act_name=_("标记清理失败 (最佳尝试清理兜底)"),
+                act_component_code=RedisExerciseReportUpdateComponent.code,
+                kwargs={
+                    "set_trans_data_dataclass": RedisRollbackExerciseContext.__name__,
+                    "report_id": report_id,
+                    "info_index": info_index,
+                    "stage": TaskStage.CLEANUP_FAILED,
+                },
+                extend=False,
+            )
+        else:
+            delete_failure_branch = SubBuilder(root_id=self.root_id, data=success_branch.data)
+            delete_failure_branch.add_act(
+                act_name=_("现场保留：确认清理失败并执行兜底清理"),
+                act_component_code=PauseComponent.code,
+                kwargs={"description": _("排查清理失败现场后，确认继续执行兜底清理")},
+            )
+            delete_failure_branch.add_act(
+                act_name=_("标记清理失败 (最佳尝试清理兜底)"),
+                act_component_code=RedisExerciseReportUpdateComponent.code,
+                kwargs={
+                    "set_trans_data_dataclass": RedisRollbackExerciseContext.__name__,
+                    "report_id": report_id,
+                    "info_index": info_index,
+                    "stage": TaskStage.CLEANUP_FAILED,
+                },
+            )
+            delete_failure_act = delete_failure_branch.build_sub_process(sub_name=_("清理失败现场确认"))
 
         success_branch.add_conditional_subs(
             source_act=delete_runner_act,
@@ -401,18 +422,37 @@ class RedisRollbackExerciseFlow(object):
 
         success_sub = success_branch.build_sub_process(sub_name=_("回档成功处理"))
 
-        # ---- Failure branch: mark rollback failed ----
-        rollback_failure_act = sub_flow.add_act(
-            act_name=_("标记回档失败"),
-            act_component_code=RedisExerciseReportUpdateComponent.code,
-            kwargs={
-                "set_trans_data_dataclass": RedisRollbackExerciseContext.__name__,
-                "report_id": report_id,
-                "info_index": info_index,
-                "stage": TaskStage.ROLLBACK_FAILED,
-            },
-            extend=False,
-        )
+        # ---- Failure branch: optionally hold the scene, then mark rollback failed ----
+        if error_ignorable:
+            rollback_failure_act = sub_flow.add_act(
+                act_name=_("标记回档失败"),
+                act_component_code=RedisExerciseReportUpdateComponent.code,
+                kwargs={
+                    "set_trans_data_dataclass": RedisRollbackExerciseContext.__name__,
+                    "report_id": report_id,
+                    "info_index": info_index,
+                    "stage": TaskStage.ROLLBACK_FAILED,
+                },
+                extend=False,
+            )
+        else:
+            rollback_failure_branch = SubBuilder(root_id=self.root_id, data=sub_flow.data)
+            rollback_failure_branch.add_act(
+                act_name=_("现场保留：确认回档失败并清理"),
+                act_component_code=PauseComponent.code,
+                kwargs={"description": _("排查回档失败现场后，确认标记失败并清理临时实例")},
+            )
+            rollback_failure_branch.add_act(
+                act_name=_("标记回档失败"),
+                act_component_code=RedisExerciseReportUpdateComponent.code,
+                kwargs={
+                    "set_trans_data_dataclass": RedisRollbackExerciseContext.__name__,
+                    "report_id": report_id,
+                    "info_index": info_index,
+                    "stage": TaskStage.ROLLBACK_FAILED,
+                },
+            )
+            rollback_failure_act = rollback_failure_branch.build_sub_process(sub_name=_("回档失败现场确认"))
 
         # ---- Conditional gateway on rollback result ----
         sub_flow.add_conditional_subs(
