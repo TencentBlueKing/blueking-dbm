@@ -14,12 +14,17 @@
 <template>
   <div class="dbha-events">
     <div class="dbha-events-operations">
+      <BkButton
+        theme="primary"
+        @click="handleExport">
+        {{ t('导出') }}
+      </BkButton>
       <BkDatePicker
         v-model="filterDateRang"
         append-to-body
         clearable
         :placeholder="t('请选择')"
-        style="width: 340px"
+        style="width: 340px; margin-left: auto"
         type="datetimerange"
         @change="fetchTableData" />
     </div>
@@ -90,7 +95,7 @@
   import DbStatus from '@components/db-status/index.vue';
   import EmptyStatus from '@components/empty-status/EmptyStatus.vue';
 
-  import { getCostTimeDisplay, utcDisplayTime } from '@utils';
+  import { exportExcelFile, getCostTimeDisplay, utcDisplayTime } from '@utils';
 
   import SwtichEventDetatils from './components/SwtichEventDetatils.vue';
 
@@ -288,6 +293,45 @@
       });
   };
   fetchTableData();
+
+  const handleExport = () => {
+    const checkedKeys = (settings.value.checked ??
+      columns.map((item) => item.colKey).filter((key) => !!key && key !== 'row-operation')) as string[];
+    const exportColumns = columns.filter(
+      (item) => item.colKey && checkedKeys.includes(item.colKey as string) && item.colKey !== 'row-operation',
+    );
+    const formatData = tableData.value.map((row) => {
+      const record: Record<string, string> = {};
+      exportColumns.forEach((col) => {
+        const key = col.colKey as string;
+        const title = col.title as string;
+        let value: string;
+        switch (key) {
+          case 'db_role':
+            value = row.db_role || '--';
+            break;
+          case 'slave_ip':
+            value = row.slave_ip || '--';
+            break;
+          case 'switch_start_time':
+            value = utcDisplayTime(row.switch_start_time) || '--';
+            break;
+          case 'switch_finished_time':
+            value = utcDisplayTime(row.switch_finished_time) || '--';
+            break;
+          case 'switch_result':
+            value = row.result_info?.text || row.switch_result || '--';
+            break;
+          default:
+            value = String((row as unknown as Record<string, unknown>)[key] ?? '--');
+        }
+        record[title] = value;
+      });
+      return record;
+    });
+    const colsWidths = exportColumns.map(() => ({ width: 20 }));
+    exportExcelFile(formatData, colsWidths, 'Sheet1', `dbha_switch_events_${dayjs().format('YYYYMMDDHHmmss')}.xlsx`);
+  };
 
   const handleShowDetails = (data: TableItem) => {
     logState.isShow = true;
