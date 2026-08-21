@@ -70,7 +70,7 @@ func (i *UpdateMetaDataService) UpdateMetaDataInternal() (failHostMap map[string
 			metaDataSql := fmt.Sprintf("ALTER SYSTEM %s %s '%s:%d'", i.Params.Operation,
 				metaRole, host, roleEnum.InnerPort())
 			// 仅在 ADD BACKEND 且角色为 cold/warm 时，通过 PROPERTIES 一条 SQL 直接打上 tag.location=cold
-			// 上游 role 名兼容 cold 和 warm，BE tag 统一归为 cold（与 init_grant.go 中用户 resource_tags 保持一致）
+			// 上游 role 名兼容 cold 和 warm，BE tag 统一归为 cold（用户侧 resource_tags 由运行时配置管理下发）
 			if i.Params.Operation == Add &&
 				(roleEnum.Value() == Cold || roleEnum.Value() == Warm) {
 				metaDataSql = fmt.Sprintf(`%s PROPERTIES("tag.location" = "%s")`, metaDataSql, BeTagLocationCold)
