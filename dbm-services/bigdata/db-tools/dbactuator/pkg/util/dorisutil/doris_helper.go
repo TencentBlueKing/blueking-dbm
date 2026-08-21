@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"regexp"
+	"strings"
 )
 
 // GetLocalNetwork 获取本地网络
@@ -55,4 +57,30 @@ func DefaultString(originalStr, defaultStr string) string {
 		return defaultStr
 	}
 	return originalStr
+}
+
+// EscapeSQLString 对 SQL 字符串字面值做转义，用于安全地拼进 '...' 单引号字面值中。
+// 遵循 MySQL/Doris 的字符串字面值转义规则：反斜杠 \ 转义为 \\，单引号 ' 转义为 \'。
+// 该函数不负责给结果加外层单引号，调用方仍需自行包一层 '%s'。
+// 注意：Doris 目前 SQL 层不支持 prepared statement 占位符（对 ALTER USER 等 DDL 更如此），
+// 因此对涉及用户输入（如密码）的场景必须走本转义函数，避免注入或语法破坏。
+func EscapeSQLString(s string) string {
+	replacer := strings.NewReplacer(
+		`\`, `\\`,
+		`'`, `\'`,
+	)
+	return replacer.Replace(s)
+}
+
+// sqlIdentifierRe 合法 SQL 标识符：首字符为字母或下划线，其余为字母/数字/下划线，长度 1~64。
+// 与 MySQL/Doris 的未引号标识符规则对齐，避免用户输入包含 `、' 、空格、; 等破坏 SQL 结构的字符。
+var sqlIdentifierRe = regexp.MustCompile(`^[A-Za-z_][A-Za-z0-9_]{0,63}$`)
+
+// ValidateSQLIdentifier 校验字符串是否为合法的 SQL 标识符（如用户名、库名、表名）。
+// 该校验用于阻止将不受信任的输入直接拼入 SQL DDL 语句，防止注入和语法破坏。
+func ValidateSQLIdentifier(name string) error {
+	if !sqlIdentifierRe.MatchString(name) {
+		return fmt.Errorf("invalid SQL identifier %q: must match ^[A-Za-z_][A-Za-z0-9_]{0,63}$", name)
+	}
+	return nil
 }

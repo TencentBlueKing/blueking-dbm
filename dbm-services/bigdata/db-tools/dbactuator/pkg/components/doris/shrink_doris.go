@@ -15,6 +15,17 @@ import (
 	"github.com/pkg/errors"
 )
 
+const (
+	// CheckDecommissionRetryTimes 检查 BE 退役进度的最大重试次数。
+	// 单次执行最多轮询 10 次，最多发生 9 次等待，配合 CheckDecommissionWaitTime=5min，
+	// 总等待时长上限约 45 分钟（外加每次 HTTP 请求耗时），控制在作业平台单次脚本执行超时（3600s）以内，
+	// 避免被作业平台强杀导致真实失败原因丢失。
+	// 超过上限后本 actor 返回失败，由人工在 dbm 流程上重试；本检查为只读操作，可安全重复执行。
+	CheckDecommissionRetryTimes = 10
+	// CheckDecommissionWaitTime 每次重试之间的等待时间
+	CheckDecommissionWaitTime = 5 * time.Minute
+)
+
 // CheckDecommissionParams TODO
 type CheckDecommissionParams struct {
 	Host         string              `json:"host" validate:"required,ip" ` // 本机IP
@@ -34,9 +45,41 @@ type CheckDecommissionService struct {
 	RollBackContext rollback.RollBackObjects
 }
 
-// CheckDecommission TODO
+// CheckDecommission 循环检查 BE 节点退役进度，直到退役完成或超过最大重试次数。
+// 增加重试：每次调用 checkDecommissionOnce 判断是否完成；
+// 未完成且后面仍有重试机会时，等待 CheckDecommissionWaitTime 后继续重试，最多检查 CheckDecommissionRetryTimes 次。
 func (c *CheckDecommissionService) CheckDecommission() (err error) {
-	decommissioningErr := errors.New("Backend Decommissioning")
+	logger.Info("start checking BE decommission progress, max retry %d times, interval %s",
+		CheckDecommissionRetryTimes, CheckDecommissionWaitTime)
+
+	for i := 0; i < CheckDecommissionRetryTimes; i++ {
+		done, checkErr := c.checkDecommissionOnce()
+		if checkErr != nil {
+			// request or parse error, return immediately without retry
+			logger.Error("check BE decommission progress failed: %s", checkErr.Error())
+			return checkErr
+		}
+		if done {
+			logger.Info("Backend Decommission completed")
+			return nil
+		}
+
+		if i < CheckDecommissionRetryTimes-1 {
+			logger.Info("BE is still decommissioning, check %d/%d not finished, wait %s and retry",
+				i+1, CheckDecommissionRetryTimes, CheckDecommissionWaitTime)
+			time.Sleep(CheckDecommissionWaitTime)
+		}
+	}
+
+	return fmt.Errorf("BE decommission still not finished after %d attempts", CheckDecommissionRetryTimes)
+}
+
+// checkDecommissionOnce 单次检查 BE 节点退役进度。
+// 返回值：
+//   - done == true 表示所有处于退役状态的 BE 节点 tablet 数都已为 0，退役完成；
+//   - done == false && err == nil 表示仍有 BE 节点 tablet 数 > 0，尚在退役中，调用方应继续重试；
+//   - err != nil 表示请求/解析等异常，调用方应中止重试并返回错误。
+func (c *CheckDecommissionService) checkDecommissionOnce() (done bool, err error) {
 	rootPwd := dorisutil.DefaultString(c.Params.RootPassword, c.Params.Password)
 
 	// 通过http判断节点是否退役
@@ -50,41 +93,45 @@ func (c *CheckDecommissionService) CheckDecommission() (err error) {
 	}
 	responseBody, err := util.HttpGet(u.String())
 	if err != nil {
-		return err
+		return false, err
 	}
 	var response CheckDecommissionResponse
 	if err = json.Unmarshal(responseBody, &response); err != nil {
-		logger.Error("transfer response to json failed", err.Error())
-		return err
-	}
-	data := response.Data
-	if &data != nil {
-		for _, backendInfo := range data.Rows {
-			// backend 属于要下架的IP
-			decommissionState, err := strconv.ParseBool(backendInfo.SystemDecommissioned)
-			if err != nil {
-				logger.Error("transfer response backend info SystemDecommissioned to bool failed", err.Error())
-				return err
-			} else if !decommissionState {
-				// 非 退役节点，跳过
-				continue
-			}
-			tabletNum, err := strconv.Atoi(backendInfo.TabletNum)
-			if err != nil {
-				logger.Error("transfer response backend info tablet num to int failed", err.Error())
-				return err
-			} else if tabletNum > 0 {
-				logger.Error("backend ip is %s, tablet num is %d, cannot drop", backendInfo.Host, tabletNum)
-				return decommissioningErr
-			}
-		}
-	} else {
-		logger.Error("transfer response to CheckDecommissionData failed ", err.Error())
-		return decommissioningErr
+		logger.Error("transfer response to json failed: %s", err.Error())
+		return false, err
 	}
 
-	logger.Info("Backend Decommission completed")
-	return nil
+	data := response.Data
+	// 同时覆盖两种异常：JSON 里没有 rows 字段（nil slice） 与 "rows": [] （len 0 的非 nil slice）。
+	// 前一种可能是接口结构变更；后一种可能是接口异常/参数错——两者都不应被判定为"退役完成"。
+	if len(data.Rows) == 0 {
+		logger.Error("backends rows is empty in FE response")
+		return false, errors.New("empty backends rows returned by FE")
+	}
+
+	for _, backendInfo := range data.Rows {
+		decommissionState, parseErr := strconv.ParseBool(backendInfo.SystemDecommissioned)
+		if parseErr != nil {
+			logger.Error("transfer response backend info SystemDecommissioned to bool failed: %s", parseErr.Error())
+			return false, parseErr
+		}
+		if !decommissionState {
+			// 非退役节点，跳过
+			continue
+		}
+		tabletNum, parseErr := strconv.Atoi(backendInfo.TabletNum)
+		if parseErr != nil {
+			logger.Error("transfer response backend info tablet num to int failed: %s", parseErr.Error())
+			return false, parseErr
+		}
+		if tabletNum > 0 {
+			logger.Info("backend ip is %s, tablet num is %d, still decommissioning",
+				backendInfo.Host, tabletNum)
+			return false, nil
+		}
+	}
+
+	return true, nil
 }
 
 // BackendInfo BE信息 结构体
