@@ -43,10 +43,8 @@ class TicketResourceProvider(BaseModelResourceProvider):
         return super().list_instance(filter, page, **options)
 
     def _list_instance(self, data_source: models.Model, condition, value_list, page):
-        # ticket的db_type字段是group
+        # ticket的db_type字段是group，无DB类型的单据落库存的就是common，与权限侧的兜底分类一致，无需转换
         if "db_type" in condition:
-            if condition["db_type"] == "other":
-                condition["db_type"] = ""
             condition["group"] = condition.pop("db_type")
         return super()._list_instance(data_source, condition, value_list, page)
 
