@@ -71,5 +71,11 @@ PROBE_REDIS_EP_IP=127.0.0.1
 PROBE_REDIS_EP_PORTS=[3306,10000-12000]
 PROBE_REDIS_EP_ADMIN_PORTS=[]
 
+# ## probe · health
+# Disk dirs the probe health command writes a marker file into to verify the
+# local disk is writable; List as a YAML array literal; existing rc files that 
+# omit this key are auto-defaulted to [] by render_configs.py.
+PROBE_HEALTH_DISK_WRITE_DIRS=[]
+
 # ## probe · logging
 PROBE_LOG_PATH=./logs/probe.log

@@ -90,6 +90,10 @@ func GenProbeYAML(payload probeconfig.ProbeConfigPayload) (string, error) {
 		},
 	}
 
+	if payload.Health != nil {
+		cfg.Health = &probeHealthYAML{DiskWriteDirs: payload.Health.DiskWriteDirs}
+	}
+
 	if payload.MySQL != nil && len(mysqlEndpoints) > 0 {
 		cfg.Harvester.MySQL = buildMySQLHarvester(
 			payload.MySQL.User,

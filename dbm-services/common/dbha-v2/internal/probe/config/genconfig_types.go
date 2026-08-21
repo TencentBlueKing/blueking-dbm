@@ -31,7 +31,13 @@ type probeYAML struct {
 	PidFile   string             `yaml:"pidFile"`
 	Reporter  probeReporterYAML  `yaml:"reporter"`
 	Harvester probeHarvesterYAML `yaml:"harvester"`
+	Health    *probeHealthYAML   `yaml:"health,omitempty"`
 	Log       LogConfig          `yaml:"log"`
+}
+
+// probeHealthYAML is the on-wire shape of the health-check write verification config.
+type probeHealthYAML struct {
+	DiskWriteDirs []string `yaml:"diskWriteDirs"`
 }
 
 // probeReporterYAML has ConnTimeout as string for YAML output (e.g. "5s"); ReporterConfig uses time.Duration.

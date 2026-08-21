@@ -171,6 +171,90 @@ func TestMatchStrategyForGroup_TriggerCountZeroDefaultsToOne(t *testing.T) {
 	}
 }
 
+func TestMatchStrategyForGroup_GlobalStrategies(t *testing.T) {
+	events := []haprobe.DbEventName{
+		haprobe.DbEventNameDoubleCheckSshFailureV1,
+		haprobe.DbEventNameSshAuthFailure,
+		haprobe.DbEventNameSshTimeout,
+		haprobe.DbEventNameDiskWriteFailure,
+		haprobe.DbEventNameUptimeFailure,
+	}
+
+	for _, event := range events {
+		t.Run(event.String(), func(t *testing.T) {
+			executor, td := newTestSwitchExecutor(t)
+
+			targetName := "target-" + event.String()
+
+			testutil.InsertStrategies(t, td.DbhaData,
+				&hamodel.DbSwitchingStrategy{ // target strategy
+					Name:             "target-" + event.String(),
+					BkBizID:          0, // global strategy
+					Status:           hamodel.StatusTypeEnabled,
+					TriggerEventName: event,
+					TriggerCount:     2,
+					Priority:         1,
+					Action:           hamodel.ActionTypeSwitch,
+				},
+				&hamodel.DbSwitchingStrategy{ // different event name
+					Name:             "interference-diff-event-" + event.String(),
+					BkBizID:          21,
+					Status:           hamodel.StatusTypeEnabled,
+					TriggerEventName: haprobe.DbEventNameProbeOffline,
+					TriggerCount:     2,
+					Priority:         1,
+					Action:           hamodel.ActionTypeSwitch,
+				},
+				&hamodel.DbSwitchingStrategy{ // different bizID
+					Name:             "interference-diff-biz-" + event.String(),
+					BkBizID:          99,
+					Status:           hamodel.StatusTypeEnabled,
+					TriggerEventName: event,
+					TriggerCount:     2,
+					Priority:         1,
+					Action:           hamodel.ActionTypeSwitch,
+				},
+				&hamodel.DbSwitchingStrategy{ // disabled strategy
+					Name:             "interference-disabled-" + event.String(),
+					BkBizID:          21,
+					Status:           hamodel.StatusTypeDisabled,
+					TriggerEventName: event,
+					TriggerCount:     2,
+					Priority:         1,
+					Action:           hamodel.ActionTypeSwitch,
+				},
+				&hamodel.DbSwitchingStrategy{ // deleted strategy
+					Name:             "interference-deleted-" + event.String(),
+					BkBizID:          21,
+					Status:           hamodel.StatusTypeDeleted,
+					TriggerEventName: event,
+					TriggerCount:     2,
+					Priority:         1,
+					Action:           hamodel.ActionTypeSwitch,
+				},
+			)
+
+			group := &FailureGroup{
+				Instances: []FailureInstanceInfo{
+					{BkBizID: 21, EventName: event},
+					{BkBizID: 21, EventName: event},
+				},
+			}
+
+			matched, strategy := executor.MatchStrategyForGroup(context.Background(), group)
+			if !matched {
+				t.Fatal("expected matched=true")
+			}
+			if strategy == nil {
+				t.Fatal("expected non-nil strategy")
+			}
+			if strategy.Name != targetName {
+				t.Errorf("expected strategy name %q, got %q", targetName, strategy.Name)
+			}
+		})
+	}
+}
+
 func TestMatchStrategyForGroup_SpecialStrategyMatched(t *testing.T) {
 	executor, td := newTestSwitchExecutor(t)
 
