@@ -42,6 +42,7 @@ func RegisterRouter(engine *gin.Engine) {
 	p2 := engine.Group("/partition/v2")
 	p2.POST("/query_conf", v2.QueryConf)
 	p2.POST("/create_conf", v2.CreateConf)
+	p2.POST("/clone_conf", v2.CloneConf)
 	p2.POST("/update_conf", v2.UpdateConf)
 	p2.POST("/del_conf", v2.DelConf)
 	p2.POST("/disable_partition", v2.DisablePartition)

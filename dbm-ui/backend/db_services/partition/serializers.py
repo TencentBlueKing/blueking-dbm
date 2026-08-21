@@ -107,6 +107,168 @@ class PartitionUpdateSerializer(PartitionCreateSerializer):
     pass
 
 
+class PartitionCloneSourceV2Serializer(serializers.Serializer):
+    immute_domain = serializers.CharField(help_text=_("源集群域名"))
+    bk_cloud_id = serializers.IntegerField(help_text=_("源云区域ID"), min_value=0)
+    bk_biz_id = serializers.IntegerField(help_text=_("源业务ID"))
+    dblikes = serializers.ListField(
+        help_text=_("源库名列表，为空表示全部库"),
+        child=serializers.CharField(),
+        required=False,
+        default=list,
+    )
+    tblikes = serializers.ListField(
+        help_text=_("源表名列表，为空表示命中库范围内的全部表"),
+        child=serializers.CharField(),
+        required=False,
+        default=list,
+    )
+
+    def validate(self, attrs):
+        try:
+            cluster = Cluster.objects.get(
+                bk_biz_id=attrs["bk_biz_id"],
+                bk_cloud_id=attrs["bk_cloud_id"],
+                immute_domain=attrs["immute_domain"],
+            )
+        except Cluster.DoesNotExist:
+            raise serializers.ValidationError(_("源集群不存在"))
+        except Cluster.MultipleObjectsReturned:
+            raise serializers.ValidationError(_("源集群查询结果不唯一"))
+
+        attrs.update(
+            bk_biz_id=cluster.bk_biz_id,
+            bk_cloud_id=cluster.bk_cloud_id,
+            immute_domain=cluster.immute_domain,
+        )
+        return attrs
+
+
+class PartitionCloneTargetV2Serializer(serializers.Serializer):
+    immute_domain = serializers.CharField(help_text=_("目标集群域名"))
+    cluster_id = serializers.IntegerField(help_text=_("目标集群ID"), required=False)
+    port = serializers.IntegerField(help_text=_("目标集群端口"), required=False)
+    bk_cloud_id = serializers.IntegerField(help_text=_("目标云区域ID"), min_value=0)
+    bk_biz_id = serializers.IntegerField(help_text=_("目标业务ID"))
+    db_app_abbr = serializers.CharField(help_text=_("目标业务英文缩写"), required=False, allow_blank=True)
+    bk_biz_name = serializers.CharField(help_text=_("目标业务名"), required=False, allow_blank=True)
+    dblikes = serializers.ListField(
+        help_text=_("目标库名列表，为空表示沿用源库名"),
+        child=serializers.CharField(),
+        required=False,
+        default=list,
+    )
+    tblikes = serializers.ListField(
+        help_text=_("目标表名列表，为空表示沿用源表名"),
+        child=serializers.CharField(),
+        required=False,
+        default=list,
+    )
+
+    def validate(self, attrs):
+        cluster = self._get_target_cluster(attrs)
+        try:
+            app = AppCache.objects.get(bk_biz_id=cluster.bk_biz_id)
+        except AppCache.DoesNotExist:
+            raise serializers.ValidationError(_("目标集群所属业务不存在"))
+
+        meta_fields = {
+            "cluster_id": cluster.id,
+            "immute_domain": cluster.immute_domain,
+            "port": cluster.get_partition_port(),
+            "bk_cloud_id": cluster.bk_cloud_id,
+            "bk_biz_id": cluster.bk_biz_id,
+            "db_app_abbr": app.db_app_abbr,
+            "bk_biz_name": app.bk_biz_name,
+        }
+        inconsistent_fields = [
+            field
+            for field, value in meta_fields.items()
+            if attrs.get(field) not in (None, "") and attrs[field] != value
+        ]
+        if inconsistent_fields:
+            raise serializers.ValidationError(_("目标集群身份信息与元数据不一致: {}").format(", ".join(inconsistent_fields)))
+
+        attrs.update(meta_fields)
+        return attrs
+
+    @staticmethod
+    def _get_target_cluster(attrs):
+        cluster_id = attrs.get("cluster_id")
+        try:
+            if cluster_id:
+                return Cluster.objects.get(id=cluster_id)
+            return Cluster.objects.get(
+                bk_biz_id=attrs["bk_biz_id"],
+                bk_cloud_id=attrs["bk_cloud_id"],
+                immute_domain=attrs["immute_domain"],
+            )
+        except Cluster.DoesNotExist:
+            raise serializers.ValidationError(_("目标集群不存在"))
+        except Cluster.MultipleObjectsReturned:
+            raise serializers.ValidationError(_("目标集群查询结果不唯一，请补充 cluster_id"))
+
+
+class PartitionCloneInfoV2Serializer(serializers.Serializer):
+    source = PartitionCloneSourceV2Serializer(help_text=_("源分区配置范围"))
+    target = PartitionCloneTargetV2Serializer(help_text=_("目标集群信息"))
+
+    def validate(self, attrs):
+        source = attrs["source"]
+        target = attrs["target"]
+        source_dblikes = source["dblikes"]
+        source_tblikes = source["tblikes"]
+        target_dblikes = target["dblikes"]
+        target_tblikes = target["tblikes"]
+
+        if source_tblikes and not source_dblikes:
+            raise serializers.ValidationError(_("指定源表时必须同时指定源库列表"))
+        if target_dblikes and len(target_dblikes) != len(source_dblikes):
+            raise serializers.ValidationError(_("目标库列表须与源库列表等长，或为空表示同名映射"))
+        if target_tblikes and len(target_tblikes) != len(source_tblikes):
+            raise serializers.ValidationError(_("目标表列表须与源表列表等长，或为空表示同名映射"))
+        return attrs
+
+
+class PartitionCloneV2Serializer(serializers.Serializer):
+    """分区v2配置克隆序列化器"""
+
+    cluster_type = serializers.ChoiceField(help_text=_("集群类型"), choices=ClusterType.get_choices())
+    operator = serializers.SerializerMethodField(help_text=_("操作者"))
+    infos = PartitionCloneInfoV2Serializer(help_text=_("源集群到目标集群的克隆信息"), many=True, allow_empty=False)
+
+    def get_operator(self, obj):
+        return self.context["request"].user.username
+
+    def validate_cluster_type(self, value):
+        supported_cluster_types = {
+            ClusterType.TenDBHA.value,
+            ClusterType.TenDBSingle.value,
+            ClusterType.TenDBCluster.value,
+        }
+        if value not in supported_cluster_types:
+            raise serializers.ValidationError(_("分区配置克隆仅支持tendbha、tendbsingle、tendbcluster三种集群类型"))
+        return value
+
+    def validate(self, attrs):
+        cluster_type = attrs["cluster_type"]
+        target_cluster_ids = [info["target"]["cluster_id"] for info in attrs["infos"]]
+        actual_cluster_types = set(
+            Cluster.objects.filter(id__in=target_cluster_ids).values_list("cluster_type", flat=True)
+        )
+        if actual_cluster_types != {cluster_type}:
+            raise serializers.ValidationError(_("所有目标集群类型必须与请求的cluster_type一致"))
+        return attrs
+
+
+class PartitionCloneV2ResponseSerializer(serializers.Serializer):
+    """分区v2配置克隆响应序列化器"""
+
+    success_count = serializers.IntegerField(help_text=_("克隆成功条数"))
+    errors = serializers.ListField(help_text=_("未克隆配置的原因"), child=serializers.CharField())
+    info = serializers.CharField(help_text=_("克隆结果说明"))
+
+
 class PartitionDisableSerializer(serializers.Serializer):
     cluster_type = serializers.ChoiceField(help_text=_("集群类型"), choices=ClusterType.get_choices())
     bk_biz_id = serializers.IntegerField(help_text=_("业务ID"))

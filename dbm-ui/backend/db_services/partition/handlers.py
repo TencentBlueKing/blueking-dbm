@@ -372,6 +372,16 @@ class PartitionHandler(object):
         return cls.execute_partition_v2(user, **partition_execute_objects)
 
     @classmethod
+    def clone_conf_v2(cls, clone_data: Dict):
+        """
+        克隆分区v2配置。
+
+        后端分区服务会将成功条数放入 success_count，并将源配置为空、目标配置冲突等
+        业务失败汇集到 errors；此处保留该部分成功结果供调用方处理。
+        """
+        return DBPartitionApi.clone_conf_v2(params=clone_data)
+
+    @classmethod
     def execute_partition_v2(cls, user: str, **partition_objects: Dict[str, Any]):
         """
         执行分区策略
