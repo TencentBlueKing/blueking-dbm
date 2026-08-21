@@ -24,6 +24,7 @@ from backend.iam_app.views.account_provider import (
     SQLServerAccountResourceProvider,
     TendbClusterAccountResourceProvider,
 )
+from backend.iam_app.views.biz_dbtype_provider import BizDBTypeResourceProvider
 from backend.iam_app.views.biz_provider import BusinessResourceProvider
 from backend.iam_app.views.cluster_provider import (
     DorisClusterResourceProvider,
@@ -49,7 +50,6 @@ from backend.iam_app.views.flow_provider import FlowResourceProvider
 from backend.iam_app.views.monitor_policy_provider import MonitorPolicyResourceProvider
 from backend.iam_app.views.notify_group_provider import NotifyGroupResourceProvider
 from backend.iam_app.views.openarea_config_provider import OpenareaConfigResourceProvider
-from backend.iam_app.views.ticket_group_provider import TicketGroupResourceProvider
 from backend.iam_app.views.ticket_provider import TicketResourceProvider
 from backend.iam_app.views.v4.dispatcher import IAMV4ResourceApiDispatcher
 from backend.iam_app.views.views import IAMViewSet
@@ -61,7 +61,6 @@ resource_providers = {
     r"flow": FlowResourceProvider(),
     r"ticket": TicketResourceProvider(),
     r"dbtype": DBTypeResourceProvider(),
-    r"ticket_group": TicketGroupResourceProvider(),
     r"openarea_config": OpenareaConfigResourceProvider(),
     r"dumper_subscribe_config": DumperSubscribeConfigResourceProvider(),
     r"mysql": MySQLResourceProvider(),
@@ -100,6 +99,8 @@ for resource_type, resource_provider in resource_providers.items():
 
 # 业务在V3是cmdb的跨系统资源，只有V4才需要dbm自己提供回调
 v4_dispatcher.register(r"biz", BusinessResourceProvider())
+# 业务DB类型是V4专有的合成资源，用于表达「业务 + DB类型」的双维度管控
+v4_dispatcher.register(r"biz_dbtype", BizDBTypeResourceProvider())
 
 
 urlpatterns = [
