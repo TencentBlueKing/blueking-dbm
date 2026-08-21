@@ -76,7 +76,7 @@ class MySQLDBHAAFCheckReplicateService(BaseService):
 
             if not (
                 status_master_host == master_address.split(":")[0]
-                and status_master_port == master_address.split(":")[1]
+                and int(status_master_port) == int(master_address.split(":")[1])
             ):
                 self.log_error(f"bad master {status_master_host}:{status_master_port}!={master_address}")
                 self.finish_schedule()

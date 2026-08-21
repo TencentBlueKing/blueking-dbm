@@ -17,7 +17,7 @@ from dataclasses import asdict
 from django.utils.translation import gettext as _
 
 from backend.configuration.constants import MYSQL_DATA_RESTORE_TIME, MYSQL_USUAL_JOB_TIME, DBType
-from backend.db_meta.enums import ClusterType, InstanceInnerRole
+from backend.db_meta.enums import ClusterType, InstanceInnerRole, InstanceStatus
 from backend.db_meta.models import Cluster
 from backend.db_report.mysql_backup.handers import MySQLBackupHandler
 from backend.flow.consts import (
@@ -229,7 +229,15 @@ def mysql_restore_data_sub_flow(
         cluster["repl_ip"] = cluster["new_slave_ip"]
         cluster["repl_port"] = cluster["new_slave_port"]
         exec_act_kwargs.cluster = copy.deepcopy(cluster)
-        exec_act_kwargs.exec_ip = cluster["master_ip"]
+        # exec_act_kwargs.exec_ip = cluster["master_ip"]
+        # 这里把 standby 主备都找出来, 兼容添加只读 slave
+        exec_act_kwargs.exec_ip = list(
+            set(
+                cluster_model.storageinstance_set.filter(status=InstanceStatus.RUNNING, is_stand_by=True).values_list(
+                    "machine__ip", flat=True
+                )
+            )
+        )
         exec_act_kwargs.job_timeout = MYSQL_USUAL_JOB_TIME
         exec_act_kwargs.get_mysql_payload_func = MysqlActPayload.tendb_grant_remotedb_repl_user.__name__
         sub_pipeline.add_act(
