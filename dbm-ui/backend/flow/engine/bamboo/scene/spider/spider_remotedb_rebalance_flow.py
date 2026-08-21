@@ -470,6 +470,7 @@ class TenDBRemoteRebalanceFlow(object):
                     with_collect_sysinfo=False,
                     with_instance_standardize=False,
                     with_cc_standardize=False,
+                    with_probe=False,
                 )
             )
             # todo 添加checksum单据状态检查 、添加通过后添加checksum结果的查询

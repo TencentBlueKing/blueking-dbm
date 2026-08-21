@@ -194,7 +194,7 @@ fi
 cd "{_PROBE_DIR}"
 
 ./stop-probe.sh
-
+./bin/dbha-probe gen-config --admin-endpoints '${{ADMIN_ENDPOINTS}}' -o etc/probe.yaml
 ./start-probe.sh
 
 ./bin/dbha-probe health

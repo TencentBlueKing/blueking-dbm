@@ -19,6 +19,7 @@ from typing import List
 from django.conf import settings
 from django.utils.translation import gettext as _
 
+from backend import env
 from backend.constants import IP_PORT_DIVIDER
 from backend.core.consts import BK_PKG_INSTALL_PATH
 from backend.core.encrypt.constants import AsymmetricCipherConfigType
@@ -27,6 +28,7 @@ from backend.db_meta.enums import InstanceInnerRole, MachineType, TenDBClusterSp
 from backend.db_meta.exceptions import DBMetaException
 from backend.db_meta.models import Cluster, Machine, StorageInstanceTuple
 from backend.db_package.models import Package
+from backend.db_proxy.models import DBExtension
 from backend.db_proxy.reverse_api.common.impl import list_nginx_addrs
 from backend.db_services.mysql.sql_import.constants import BKREPO_DBCONSOLE_DUMPFILE_PATH, BKREPO_SQLFILE_PATH
 from backend.flow.consts import (
@@ -1215,6 +1217,20 @@ class MysqlActPayload(PayloadHandler, ProxyActPayload, TBinlogDumperActPayload):
         拼接获取集群维度清理周边配置的payload，如例行校验、例行备份、rotate_binlog等
         clear_ports 是代表这次需要清理实例端口, 通过单据的cluster信息捕捉
         兼容单节点集群和主从集群的场景
+        增加对DBHA v2的兼容：处理DBHA探针的配置
+
+        入参:
+          kwargs["ip"]: 目标机器 IP，用于反查 machine_type 决定 clear_ports
+          kwargs["dbha_admin_endpoints"] (可选): DBHA v2 admin endpoints 字符串（多个用 ; 分隔）。
+              未显式传入时，回落到 DBExtension.get_dbha_v2_admin_endpoints() 从 DB 实时拉取；
+              拉取失败仅记录 warning 日志，不阻塞主流程（此时下发空串给 actuator）。
+
+        返回:
+          dict payload，其中 extend.dbha_admin_endpoints 供 actuator 侧清理 DBHA 探针配置使用。
+
+        边界:
+          - machine_type 不支持时抛异常
+          - DBExtension 查询异常时降级为空串，避免阻塞清理主流程
         """
         ports = []
         machine = Machine.objects.get(ip=kwargs["ip"])
@@ -1245,12 +1261,25 @@ class MysqlActPayload(PayloadHandler, ProxyActPayload, TBinlogDumperActPayload):
         else:
             raise Exception(f"not support machine_type:{machine.machine_type}")
 
+        # DBHA v2 admin endpoints: 优先使用调用方显式传入的值（便于测试/覆盖）；
+        # 未传入时回落到 DBExtension 从 DB 实时拉取；异常不阻塞主流程，降级为空串。
+        try:
+            dbha_admin_endpoints = DBExtension.get_dbha_v2_admin_endpoints()
+        except Exception as err:
+            logger.warning(f"get_dbha_v2_admin_endpoints failed, fallback to empty: {err}")
+            dbha_admin_endpoints = ""
+
         return {
             "db_type": DBActuatorTypeEnum.MySQL.value,
             "action": DBActuatorActionEnum.MysqlClearSurroundingConfig.value,
             "payload": {
                 "general": {"runtime_account": self.account},
-                "extend": {"clear_ports": ports, "machine_type": machine.machine_type},
+                "extend": {
+                    "clear_ports": ports,
+                    "machine_type": machine.machine_type,
+                    "clear_dbha_probe_config": env.ENABLE_DBHA_V2,
+                    "dbha_admin_endpoints": dbha_admin_endpoints,
+                },
             },
         }
 
