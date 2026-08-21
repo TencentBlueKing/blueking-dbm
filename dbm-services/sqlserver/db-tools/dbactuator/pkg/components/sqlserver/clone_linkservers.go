@@ -12,6 +12,7 @@ package sqlserver
 
 import (
 	"fmt"
+	"regexp"
 	"strings"
 
 	"dbm-services/common/go-pubpkg/logger"
@@ -20,6 +21,24 @@ import (
 	"dbm-services/sqlserver/db-tools/dbactuator/pkg/util/crypto"
 	"dbm-services/sqlserver/db-tools/dbactuator/pkg/util/sqlserver"
 )
+
+// rmtPwdMaskRe matches the value of @rmtpassword in sp_addlinkedsrvlogin, whether
+// it is written as N'...' or '...'. The literal may contain escaped single quotes
+// (”); we consume characters lazily up to a closing quote that is NOT followed
+// by another quote. Case-insensitive to be safe.
+var rmtPwdMaskRe = regexp.MustCompile(`(?i)(@rmtpassword\s*=\s*N?)'((?:[^']|'')*)'`)
+
+// maskPasswordInSQL scrubs the password literal in sp_addlinkedsrvlogin statements
+// so that logs / error messages never leak the plaintext password.
+// Any '@rmtpassword=N”...”' or '@rmtpassword=”...”' is rewritten to
+// '@rmtpassword=N”********”'.
+// Safe to call on arbitrary strings (SQL text, wrapped error messages, etc.).
+func maskPasswordInSQL(s string) string {
+	if s == "" {
+		return s
+	}
+	return rmtPwdMaskRe.ReplaceAllString(s, `${1}'********'`)
+}
 
 // CloneLinkserversComp 克隆linkserver
 type CloneLinkserversComp struct {
@@ -254,9 +273,14 @@ func (c *CloneLinkserversComp) CloneLinkservers() error {
 		fullSQL := sk.CreateSQL + "\r\n" + loginStmt
 
 		if _, err := c.LocalDB.Exec(fullSQL); err != nil {
+			// IMPORTANT: the underlying ExecMore wraps the full SQL text into the
+			// error message (fmt.Errorf("exec %s failed,err:%w", sqlStr, err)),
+			// which for linked-server cloning contains sp_addlinkedsrvlogin with
+			// the plaintext @rmtpassword. Scrub it before logging so credentials
+			// never leak into log files.
 			logger.Error("exec create linkserver [%s] on target [%s:%d] failed: %s",
-				sk.Name, c.Params.Host, c.Params.Port, err.Error())
-			return err
+				sk.Name, c.Params.Host, c.Params.Port, maskPasswordInSQL(err.Error()))
+			return fmt.Errorf("%s", maskPasswordInSQL(err.Error()))
 		}
 		logger.Info("linkserver [%s] cloned (useself=%v)", sk.Name, meta.UseSelf)
 	}

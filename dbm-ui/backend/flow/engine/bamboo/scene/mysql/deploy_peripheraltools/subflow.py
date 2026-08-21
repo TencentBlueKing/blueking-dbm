@@ -16,7 +16,7 @@ from django.utils.translation import gettext as _
 from backend import env
 from backend.db_meta.models import Cluster, ProxyInstance, StorageInstance
 from backend.flow.engine.bamboo.scene.common.builder import SubBuilder, SubProcess
-from backend.flow.engine.bamboo.scene.common.deploy_probe_sub_flow import deploy_probe_sub_flow
+from backend.flow.engine.bamboo.scene.common.deploy_probe_sub_flow import probe_upgrade_sub_flow
 from backend.flow.engine.bamboo.scene.mysql.deploy_peripheraltools.cc_trans_module import cc_standardize
 from backend.flow.engine.bamboo.scene.mysql.deploy_peripheraltools.collect_sysinfo import collect_sysinfo
 from backend.flow.engine.bamboo.scene.mysql.deploy_peripheraltools.departs import (
@@ -48,7 +48,7 @@ def standardize_mysql_cluster_subflow(
     with_instance_standardize: bool = True,
     with_backup_client: bool = True,
     with_exporter_config: bool = True,
-    with_probe: bool = False,
+    with_probe: bool = True,
 ) -> SubProcess:
     """
     使用反向接口生成周边配置
@@ -171,7 +171,7 @@ def standardize_mysql_cluster_subflow(
     # 当 env.ENABLE_DBHA_V2 = False 时禁用部署流程
     if with_probe and env.ENABLE_DBHA_V2:
         pipe.add_sub_pipeline(
-            sub_flow=deploy_probe_sub_flow(
+            sub_flow=probe_upgrade_sub_flow(
                 root_id=root_id,
                 data=data,
                 bk_cloud_id=bk_cloud_id,
@@ -199,6 +199,7 @@ def standardize_mysql_cluster_by_ip_subflow(
     with_instance_standardize: bool = True,
     with_backup_client: bool = True,
     with_exporter_config: bool = True,
+    with_probe: bool = True,
 ) -> SubProcess:
     instances = [
         ele.ip_port for ele in StorageInstance.objects.filter(machine__bk_cloud_id=bk_cloud_id, machine__ip__in=ips)
@@ -223,6 +224,7 @@ def standardize_mysql_cluster_by_ip_subflow(
         with_instance_standardize=with_instance_standardize,
         with_backup_client=with_backup_client,
         with_exporter_config=with_exporter_config,
+        with_probe=with_probe,
     )
 
 
@@ -242,6 +244,7 @@ def standardize_mysql_cluster_by_cluster_subflow(
     with_instance_standardize: bool = True,
     with_backup_client: bool = False,
     with_exporter_config: bool = False,
+    with_probe: bool = True,
 ) -> SubProcess:
     instances = []
     for cluster_obj in Cluster.objects.filter(bk_cloud_id=bk_cloud_id, pk__in=cluster_ids):
@@ -272,4 +275,5 @@ def standardize_mysql_cluster_by_cluster_subflow(
         with_backup_client=with_backup_client,
         with_instance_standardize=with_instance_standardize,
         with_exporter_config=with_exporter_config,
+        with_probe=with_probe,
     )

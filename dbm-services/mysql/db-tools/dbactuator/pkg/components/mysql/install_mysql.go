@@ -1031,7 +1031,7 @@ func (a *AdditionalAccount) GetDBHAAccount(realVersion string) (initAccountsql [
 		)
 		initAccountsql = append(
 			initAccountsql, fmt.Sprintf(
-				"GRANT RELOAD, PROCESS, SHOW DATABASES, SUPER, REPLICATION CLIENT, SHOW VIEW "+
+				"GRANT CREATE, RELOAD, PROCESS, SHOW DATABASES, SUPER, REPLICATION CLIENT, SHOW VIEW "+
 					"ON *.* TO '%s'@'%%' WITH GRANT OPTION ;",
 				a.User,
 			),
@@ -1040,7 +1040,7 @@ func (a *AdditionalAccount) GetDBHAAccount(realVersion string) (initAccountsql [
 		initAccountsql = append(
 			initAccountsql,
 			fmt.Sprintf(
-				"GRANT RELOAD, PROCESS, SHOW DATABASES, SUPER, REPLICATION CLIENT, SHOW VIEW "+
+				"GRANT CREATE, RELOAD, PROCESS, SHOW DATABASES, SUPER, REPLICATION CLIENT, SHOW VIEW "+
 					"ON *.* TO '%s'@'%%' IDENTIFIED BY '%s' WITH GRANT OPTION ;",
 				a.User, a.Pwd,
 			),
@@ -1049,7 +1049,7 @@ func (a *AdditionalAccount) GetDBHAAccount(realVersion string) (initAccountsql [
 
 	initAccountsql = append(
 		initAccountsql,
-		fmt.Sprintf("GRANT SELECT, INSERT, DELETE ON `infodba_schema`.* TO '%s'@'%%' ;", a.User),
+		fmt.Sprintf("GRANT ALL PRIVILEGES ON `infodba_schema`.* TO '%s'@'%%' ;", a.User),
 	)
 
 	initAccountsql = append(
@@ -1413,29 +1413,29 @@ func (i *InstallMySQLComp) getSuperUserAccountForSpider(ver string) (initAccount
 			),
 		)
 	}
-	for _, host := range i.Params.DBHAAccount.AccessHosts {
-		initAccountsql = append(
-			initAccountsql,
-			fmt.Sprintf(
-				"GRANT RELOAD, PROCESS, SHOW DATABASES, SUPER, %s REPLICATION CLIENT, SHOW VIEW "+
-					"ON *.* TO '%s'@'%s' IDENTIFIED BY '%s' WITH GRANT OPTION;",
-				superExtendGrant, i.Params.DBHAAccount.User, host, i.Params.DBHAAccount.Pwd,
-			),
-		)
-		initAccountsql = append(
-			initAccountsql,
-			fmt.Sprintf(
-				"GRANT SELECT ON mysql.servers TO '%s'@'%s' ;", i.Params.DBHAAccount.User, host,
-			),
-		)
-		initAccountsql = append(
-			initAccountsql,
-			fmt.Sprintf(
-				" GRANT SELECT, INSERT, DELETE ON `infodba_schema`.* TO '%s'@'%s';",
-				i.Params.DBHAAccount.User, host,
-			),
-		)
-	}
+	// DBHAAccount 使用 % 授权，忽略指定 IP
+	initAccountsql = append(
+		initAccountsql,
+		fmt.Sprintf(
+			"GRANT CREATE, RELOAD, PROCESS, SHOW DATABASES, SUPER, %s REPLICATION CLIENT, SHOW VIEW "+
+				"ON *.* TO '%s'@'%s' IDENTIFIED BY '%s' WITH GRANT OPTION;",
+			superExtendGrant, i.Params.DBHAAccount.User, "%", i.Params.DBHAAccount.Pwd,
+		),
+	)
+	initAccountsql = append(
+		initAccountsql,
+		fmt.Sprintf(
+			"GRANT SELECT ON mysql.servers TO '%s'@'%s' ;", i.Params.DBHAAccount.User, "%",
+		),
+	)
+	initAccountsql = append(
+		initAccountsql,
+		fmt.Sprintf(
+			" GRANT ALL PRIVILEGES ON `infodba_schema`.* TO '%s'@'%s';",
+			i.Params.DBHAAccount.User, "%",
+		),
+	)
+
 	for _, host := range i.Params.WEBCONSOLERSAccount.AccessHosts {
 		initAccountsql = append(
 			initAccountsql,
