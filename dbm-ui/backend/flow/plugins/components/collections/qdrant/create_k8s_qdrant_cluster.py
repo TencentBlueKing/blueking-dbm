@@ -76,7 +76,6 @@ class CreateK8sQdrantClusterService(BaseService):
             "componentList": component_list,
             "async_to_dbm": False,
             "bk_username": global_data["creator"],
-            "tags": ["dbs"],
             "observeConfig": {
                 "bkLogConfig": {"enabled": False},
                 "svcMonitor": {"enabled": True, "interval": "60s", "labels": {}},
