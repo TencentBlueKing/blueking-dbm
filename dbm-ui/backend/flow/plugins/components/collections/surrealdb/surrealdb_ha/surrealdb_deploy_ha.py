@@ -20,7 +20,7 @@ import backend.flow.utils.surrealdb.surrealdb_context_dataclass as flow_context
 from backend.components import KubernetesApi
 from backend.exceptions import ApiRequestError, ApiResultError
 from backend.flow.plugins.components.collections.common.base_service import BaseService
-from backend.flow.utils.surrealdb.consts import NAMESPACE_PREFIX, HA_TAGS, HA_TOPO_NAME, STORAGE_ADDON_TYPE
+from backend.flow.utils.surrealdb.consts import NAMESPACE_PREFIX, HA_TOPO_NAME, STORAGE_ADDON_TYPE
 
 
 logger = logging.getLogger("flow")
@@ -106,7 +106,6 @@ class DeployK8sSurrealdbHaService(BaseService):
             "componentList": component_list,
             "async_to_dbm": False,
             "bk_username": global_data["created_by"],
-            "tags": HA_TAGS,
             "observeConfig": {
                 "bkLogConfig": {"enabled": False},
                 "svcMonitor": {"enabled": True, "interval": "60s", "labels": {}},

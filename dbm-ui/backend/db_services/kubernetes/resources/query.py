@@ -370,8 +370,6 @@ class KubernetesBaseListRetrieveResource(query.ListRetrieveResource, KubernetesB
             cluster.save(update_fields=["alias"])
 
         if tags is not None:
-            # 编辑前 DBM 维护的用户 tag，用于区分 DBS 中"集群自带的 tag"
-            old_user_tags = [f"{t.key}:{t.value}" for t in cluster.tags.all()]
             tag_objs = []
             for tag_item in tags:
                 (tag_key,) = tag_item.keys()
@@ -399,12 +397,6 @@ class KubernetesBaseListRetrieveResource(query.ListRetrieveResource, KubernetesB
         if cluster_alias is not None:
             params["clusterAlias"] = cluster_alias
         if tags is not None:
-            dbs_existing_tags = [t.get("clusterTag") for t in cluster_detail.get("tags", []) if t.get("clusterTag")]
             new_tags = [f"{list(t.keys())[0]}:{list(t.values())[0]}" for t in tags]
-            # 集群自带 tag = DBS 现有 tag 中不属于 DBM 用户 tag 的部分，不应被用户编辑删除
-            builtin_tags = [t for t in dbs_existing_tags if t not in set(old_user_tags)]
-            merged = {}
-            for tag in builtin_tags + new_tags:
-                merged[tag.split(":", 1)[0]] = tag
-            params["tags"] = list(merged.values())
+            params["tags"] = new_tags
         KubernetesApi.update_cluster_meta(params, use_admin=True)
