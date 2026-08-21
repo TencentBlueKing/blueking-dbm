@@ -16,6 +16,7 @@ from typing import Any, Dict, List, Union
 from iam import Resource
 from iam.eval.constants import KEYWORD_BK_IAM_PATH
 
+from backend import env
 from backend.components.iamv4.client import IAMV4Api
 from backend.iam_app.dataclass.actions import ActionMeta
 from backend.iam_app.dataclass.resources import ResourceEnum
@@ -31,6 +32,8 @@ class IAMV4Backend(IAMBackend):
     AUTHORIZATION_EXPIRED_DAYS = 365
     # 资源实例ID为该值时表示这一资源类型的无限制授权
     ANY_RESOURCE_ID = "*"
+    # iam权限api接口参数分片限制
+    AUTH_BATCH_SIZE = 20
 
     @staticmethod
     def make_resource(action: ActionMeta, resources: List[Resource]) -> Union[Dict, None]:
@@ -52,6 +55,20 @@ class IAMV4Backend(IAMBackend):
         if bk_iam_path:
             auth_resource["attributes"] = {KEYWORD_BK_IAM_PATH: bk_iam_path}
         return auth_resource
+
+    @staticmethod
+    def get_ancestors(resource: Resource):
+        bk_iam_path = f"{resource.attribute.get('_bk_iam_path_', '//')}"
+        ancestors = []
+        for topo in bk_iam_path.split("/")[1:-1][:-1]:
+            rtype, rid = topo.split(",")
+            ancestors.append(
+                {
+                    "id": rid,
+                    "type": rtype,
+                }
+            )
+        return ancestors
 
     def is_allowed(self, username: str, action: ActionMeta, resources: List[Resource]) -> bool:
         # TODO: 这些动作的资源存在多平行父级，暂未注册到V4(见06文档B1)，先放行，待IAM支持拓扑后移除
@@ -120,3 +137,103 @@ class IAMV4Backend(IAMBackend):
         except Exception as e:  # pylint: disable=broad-except
             logger.exception("[grant_creator_actions] failed, resource: %s, error: %s", resource.to_dict(), e)
             return None
+
+    def multi_actions_is_allowed(
+        self, username: str, actions: List[Union[ActionMeta, str]], resources: List[Resource]
+    ):
+        result = {}
+        not_disabled_v4_list = []
+        for action in actions:
+            if action.is_disabled_v4():
+                logger.warning("[iam_v4] action(%s) is not registered in V4, allowed by default", action.id)
+                result[action.id] = True
+            else:
+                not_disabled_v4_list.append(action)
+        if not not_disabled_v4_list:
+            return result
+
+        subject = {"type": "user", "id": username}
+        # 预置为无权限，请求失败或响应缺项时直接沿用
+        result.update({action.id: False for action in not_disabled_v4_list})
+        # 复用逐个资源对一批动作鉴权的逻辑
+        for _, action_id, allowed in self._auth_by_actions(subject, not_disabled_v4_list, [resources]):
+            result[action_id] = allowed
+
+        return result
+
+    def batch_is_allowed(
+        self, username: str, actions: List[Union[ActionMeta, str]], resources_list: List[List[Resource]]
+    ):
+        subject = {"type": "user", "id": username}
+        # 预置为无权限，请求失败或响应缺项时直接沿用
+        result = {str(resources[0].id): {action.id: False for action in actions} for resources in resources_list}
+        # 择数量少的一方做外层循环，另一方分片，请求数取决于少的那边
+        if len(actions) > len(resources_list):
+            auth_results = self._auth_by_actions(subject, actions, resources_list)
+        else:
+            auth_results = self._auth_by_resources(subject, actions, resources_list)
+
+        for resource_id, action_id, allowed in auth_results:
+            result[resource_id][action_id] = allowed
+        return result
+
+    def _auth_by_actions(self, subject, actions, resources_list):
+        """逐个资源对一批动作鉴权，产出 (资源ID, 动作ID, 是否有权限)"""
+        for resources in resources_list:
+            resource = self.make_resource(actions[0], resources)
+            for chunk in self._chunks(actions):
+                params = {"subject": subject, "action_ids": [action.id for action in chunk]}
+                # 动作不关联资源时不传，否则IAM会按资源维度校验
+                if resource:
+                    params["resource"] = resource
+                data = self.call_with_retry(IAMV4Api.direct_auth_by_actions, params=params, default=[])
+                for item in data:
+                    yield str(resources[0].id), item["action_id"], item["allowed"]
+
+    def _auth_by_resources(self, subject, actions, resources_list):
+        """逐个动作对一批资源鉴权，产出 (资源ID, 动作ID, 是否有权限)"""
+        for action in actions:
+            for chunk in self._chunks(resources_list):
+                resources = [self.make_resource(action, item) for item in chunk]
+                params = {
+                    "subject": subject,
+                    "action_id": action.id,
+                    "resources": [resource for resource in resources if resource],
+                }
+                data = self.call_with_retry(IAMV4Api.direct_auth_by_resources, params=params, default=[])
+                for item in data:
+                    yield str(item["resource_id"]), action.id, item["allowed"]
+
+    @staticmethod
+    def _chunks(items, size=AUTH_BATCH_SIZE):
+        for index in range(0, len(items), size):
+            yield items[index : index + size]
+
+    def get_apply_url(
+        self, action_ids: List[str], resources_list: List[List[Resource]] = None, system_id: str = env.BK_IAM_SYSTEM_ID
+    ):
+        params = {"system_id": "system_id", "permissions": []}
+        for action_id in action_ids:
+            resource_info = []
+            for resource in resources_list:
+                ancestors = self.get_ancestors(resource)
+                resource_info.append(
+                    {
+                        "id": resource.id,
+                        "type": resource.type,
+                        "ancestors": ancestors,
+                    }
+                )
+            params["permissions"].append(
+                {
+                    "action_id": action_id,
+                    "resources": resource_info,
+                }
+            )
+        data = self.call_with_retry(IAMV4Api.generate_perm_apply_url, params=params, default={})
+        return data.get("url", "")
+
+    def get_system_info(self):
+        params = {"fields": "system_info,resource_types,actions"}
+        data = self.call_with_retry(IAMV4Api.share_retrieve_system, params=params, default={})
+        return data

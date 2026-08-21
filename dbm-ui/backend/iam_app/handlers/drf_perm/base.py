@@ -310,6 +310,7 @@ class BizDBTypeResourceActionPermission(MoreResourceActionPermission):
     """
 
     def __init__(self, actions: List[ActionMeta], instance_biz_getter: Callable, instance_dbtype_getter: Callable):
+
         resource_metes = [ResourceEnum.BUSINESS, ResourceEnum.DBTYPE]
         instance_ids_getters = lambda request, view: [  # noqa
             (instance_biz_getter(request, view)[0], instance_dbtype_getter(request, view)[0])
