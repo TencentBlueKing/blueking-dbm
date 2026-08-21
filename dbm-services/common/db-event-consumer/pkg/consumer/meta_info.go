@@ -232,9 +232,7 @@ func ListBkDataId(bkdata *config.BkmApiInfo) (map[string]*config.BkDataConfig, e
 			collectorsMap[c.CollectorConfigNameEn] = c
 		}
 	}
-	slog.Info("ListBkDataId result",
-		slog.Int("total", res.Data.Total),
-		slog.Int("matched", len(collectorsMap)))
+	slog.Info("ListBkDataId result", slog.Int("total", res.Data.Total))
 
 	return collectorsMap, nil
 }

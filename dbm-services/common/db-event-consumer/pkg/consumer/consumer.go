@@ -97,10 +97,13 @@ func (s *AnySinker) ConsumeClaim(session sarama.ConsumerGroupSession, claim sara
 		slog.Any("offset", claim.InitialOffset()),
 		slog.Bool("from_beginning", s.Sinker.RuntimeConfig.FromBeginning))
 
-	const BatchSize = 10
+	batchSize := 10
+	if s.Sinker.RuntimeConfig.SinkBatchSize > 0 {
+		batchSize = s.Sinker.RuntimeConfig.SinkBatchSize
+	}
 	const FlushInterval = 500 * time.Millisecond
 
-	msgs := make([]*sarama.ConsumerMessage, 0, BatchSize)
+	msgs := make([]*sarama.ConsumerMessage, 0, batchSize)
 	ticker := time.NewTicker(FlushInterval)
 	defer ticker.Stop()
 
@@ -137,7 +140,7 @@ func (s *AnySinker) ConsumeClaim(session sarama.ConsumerGroupSession, claim sara
 				continue
 			}
 			msgs = append(msgs, message)
-			if len(msgs) >= BatchSize {
+			if len(msgs) >= batchSize {
 				flushBatch()
 			}
 		case <-ticker.C:

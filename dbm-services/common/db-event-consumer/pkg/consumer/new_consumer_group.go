@@ -101,7 +101,7 @@ func (s *Sinker) NewConsumerGroup() (sarama.ConsumerGroup, error) {
 	}
 	consumerConfig.Version = sarama.V0_10_2_0
 	consumerConfig.Consumer.Return.Errors = true
-	consumerConfig.Consumer.MaxProcessingTime = 200 * time.Millisecond
+	consumerConfig.Consumer.MaxProcessingTime = 2 * time.Second
 	if s.RuntimeConfig.FetchMinBytes > 0 {
 		consumerConfig.Consumer.Fetch.Min = s.RuntimeConfig.FetchMinBytes
 	} else {
