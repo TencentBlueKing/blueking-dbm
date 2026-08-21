@@ -1,5 +1,5 @@
 <template>
-  <tr ref="rowRootRef">
+  <tr ref="rowRoot">
     <slot />
   </tr>
 </template>
@@ -20,7 +20,7 @@
 <script setup lang="ts">
   const tableContext = inject(tableInjectKey);
 
-  const rowRootRef = ref<HTMLElement>();
+  const rowRootRef = useTemplateRef<HTMLElement>('rowRoot');
 
   const columnList: IColumnContext[] = [];
 
@@ -31,7 +31,6 @@
     } else {
       columnList.push(column);
     }
-
     tableContext?.updateRow();
   };
 
