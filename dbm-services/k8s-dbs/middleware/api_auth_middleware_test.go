@@ -40,15 +40,18 @@ type mockIAMChecker struct {
 	allowed   bool
 	applyData *infresp.ApplyData
 	err       error
+	called    bool
 }
 
 func (m *mockIAMChecker) SimpleCheckAllowed(_, _ string, _ int, _ string) (bool, *infresp.ApplyData, error) {
+	m.called = true
 	return m.allowed, m.applyData, m.err
 }
 
 // mockClusterTypeResolver 实现 ClusterTypeResolver 接口，供测试注入
 type mockClusterTypeResolver struct {
 	clusterType  string
+	addonType    string
 	dbmClusterID uint64
 	err          error
 }
@@ -57,7 +60,7 @@ func (m *mockClusterTypeResolver) Resolve(_ string, _ []byte) (*ResolveResult, e
 	if m.err != nil {
 		return nil, m.err
 	}
-	return &ResolveResult{ClusterType: m.clusterType, DbmClusterID: m.dbmClusterID}, nil
+	return &ResolveResult{ClusterType: m.clusterType, AddonType: m.addonType, DbmClusterID: m.dbmClusterID}, nil
 }
 
 // toJSON 将 map 序列化为 JSON bytes，用于测试
@@ -176,6 +179,77 @@ func TestCheckIAMPermission_DBMError(t *testing.T) {
 	assert.False(t, IsResolverError(err), "DBM error should not be a resolver error")
 }
 
+func TestCheckIAMPermission_StorageWhitelistUnset_CallsIAM(t *testing.T) {
+	t.Setenv(iamExemptStorageWhitelistEnv, "")
+	checker := &mockIAMChecker{allowed: true}
+	resolver := &mockClusterTypeResolver{clusterType: "k8s_surrealdb_ha", addonType: "surrealdb", dbmClusterID: 42}
+
+	allowed, _, err := checkIAMPermission(checker, resolver, constant.APIClusterDelete, toJSON(map[string]interface{}{
+		"clusterName": "cluster-1",
+	}), "user1")
+
+	assert.NoError(t, err)
+	assert.True(t, allowed)
+	assert.True(t, checker.called, "unset whitelist should keep IAM check enabled")
+}
+
+func TestCheckIAMPermission_StorageWhitelistMatched_SkipsIAM(t *testing.T) {
+	t.Setenv(iamExemptStorageWhitelistEnv, "surrealdb,qdrant")
+	checker := &mockIAMChecker{allowed: false, err: fmt.Errorf("should not call IAM")}
+	resolver := &mockClusterTypeResolver{clusterType: "k8s_surrealdb_ha", addonType: "surrealdb", dbmClusterID: 0}
+
+	allowed, applyData, err := checkIAMPermission(checker, resolver, constant.APIClusterDelete, toJSON(map[string]interface{}{
+		"clusterName": "cluster-1",
+	}), "user1")
+
+	assert.NoError(t, err)
+	assert.True(t, allowed)
+	assert.Nil(t, applyData)
+	assert.False(t, checker.called, "matched whitelist should skip IAM check")
+}
+
+func TestCheckIAMPermission_StorageWhitelistNotMatched_CallsIAM(t *testing.T) {
+	t.Setenv(iamExemptStorageWhitelistEnv, "surrealdb,qdrant")
+	checker := &mockIAMChecker{allowed: true}
+	resolver := &mockClusterTypeResolver{clusterType: "k8s_milvus_ha", addonType: "milvus", dbmClusterID: 42}
+
+	allowed, _, err := checkIAMPermission(checker, resolver, constant.APIClusterDelete, toJSON(map[string]interface{}{
+		"clusterName": "cluster-1",
+	}), "user1")
+
+	assert.NoError(t, err)
+	assert.True(t, allowed)
+	assert.True(t, checker.called, "non-matched whitelist should keep IAM check enabled")
+}
+
+func TestCheckIAMPermission_StorageWhitelistTrimAndCaseInsensitive(t *testing.T) {
+	t.Setenv(iamExemptStorageWhitelistEnv, " SurrealDB , qDrAnT ")
+	checker := &mockIAMChecker{allowed: false, err: fmt.Errorf("should not call IAM")}
+	resolver := &mockClusterTypeResolver{clusterType: "k8s_qdrant_ha", addonType: "qdrant", dbmClusterID: 0}
+
+	allowed, _, err := checkIAMPermission(checker, resolver, constant.APIClusterDelete, toJSON(map[string]interface{}{
+		"clusterName": "cluster-1",
+	}), "user1")
+
+	assert.NoError(t, err)
+	assert.True(t, allowed)
+	assert.False(t, checker.called, "whitelist match should ignore spaces and case")
+}
+
+func TestCheckIAMPermission_StorageWhitelistOnlyEmptyItems_CallsIAM(t *testing.T) {
+	t.Setenv(iamExemptStorageWhitelistEnv, " , ,, ")
+	checker := &mockIAMChecker{allowed: true}
+	resolver := &mockClusterTypeResolver{clusterType: "k8s_surrealdb_ha", addonType: "surrealdb", dbmClusterID: 42}
+
+	allowed, _, err := checkIAMPermission(checker, resolver, constant.APIClusterDelete, toJSON(map[string]interface{}{
+		"clusterName": "cluster-1",
+	}), "user1")
+
+	assert.NoError(t, err)
+	assert.True(t, allowed)
+	assert.True(t, checker.called, "empty whitelist items should not enable exemption")
+}
+
 // --- APIAuthMiddleware integration tests ---
 
 func setupRouter(checker iamChecker, resolver ClusterTypeResolver) *gin.Engine {
@@ -201,7 +275,7 @@ func setupRouter(checker iamChecker, resolver ClusterTypeResolver) *gin.Engine {
 }
 
 func defaultResolver() *mockClusterTypeResolver {
-	return &mockClusterTypeResolver{clusterType: "k8s_surrealdb_ha", dbmClusterID: 42}
+	return &mockClusterTypeResolver{clusterType: "k8s_surrealdb_ha", addonType: "surrealdb", dbmClusterID: 42}
 }
 
 func TestAPIAuthMiddleware_GETRequest_Passthrough(t *testing.T) {

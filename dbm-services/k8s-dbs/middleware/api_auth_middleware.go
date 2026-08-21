@@ -27,6 +27,8 @@ type iamChecker interface {
 	SimpleCheckAllowed(username, actionID string, bkBizID int, resourceID string) (bool, *infresp.ApplyData, error)
 }
 
+const iamExemptStorageWhitelistEnv = "K8S_DBS_IAM_EXEMPT_STORAGE_WHITELIST"
+
 // APIAuthMiddleware API 权限校验中间件（调用 DBM IAM 接口做细粒度鉴权）
 func APIAuthMiddleware() gin.HandlerFunc {
 	resolver := NewDBClusterTypeResolver()
@@ -120,6 +122,12 @@ func checkIAMPermission(
 		return false, nil, resolveErr
 	}
 
+	if isStorageIAMExempted(result.AddonType) {
+		slog.Info("存储类型命中 IAM 鉴权豁免白名单，跳过权限检查",
+			"addonType", result.AddonType, "api", apiName, "user", userName)
+		return true, nil, nil
+	}
+
 	iamPrefix, ok := constant.ClusterTypeToIAMPrefix[result.ClusterType]
 	if !ok {
 		return false, nil, newResolverError("未知的集群类型: %s", result.ClusterType)
@@ -152,6 +160,27 @@ func checkIAMPermission(
 	}
 
 	return checker.SimpleCheckAllowed(userName, actionID, bkBizID, resourceID)
+}
+
+// isStorageIAMExempted 判断 addonType 是否命中 IAM 鉴权豁免白名单。
+// 白名单由 K8S_DBS_IAM_EXEMPT_STORAGE_WHITELIST 配置，逗号分隔，大小写不敏感。
+// 未配置或解析后为空时，不启用豁免，保持原有鉴权行为。
+func isStorageIAMExempted(addonType string) bool {
+	whitelist := os.Getenv(iamExemptStorageWhitelistEnv)
+	if whitelist == "" || addonType == "" {
+		return false
+	}
+
+	target := strings.ToLower(strings.TrimSpace(addonType))
+	if target == "" {
+		return false
+	}
+	for _, item := range strings.Split(whitelist, ",") {
+		if strings.ToLower(strings.TrimSpace(item)) == target {
+			return true
+		}
+	}
+	return false
 }
 
 // isAddonAPI 判断是否为 addon 管理操作。
