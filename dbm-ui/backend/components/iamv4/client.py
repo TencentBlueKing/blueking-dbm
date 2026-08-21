@@ -31,6 +31,8 @@ AUTH_URL = f"/api/v1/open/rbac/authorization/systems/{env.BK_IAM_SYSTEM_ID}"
 MGMT_URL = f"/api/v1/open/rbac/mgmt/systems/{env.BK_IAM_SYSTEM_ID}"
 # 系统共享查询。注：IAM侧路径拼写为 rabc 而非 rbac，需照此调用
 SHARE_MODEL_URL = f"/api/v1/open/rabc/share/model/systems/{env.BK_IAM_SYSTEM_ID}"
+# IAM SAAS URL
+SAAS_URL = "/api/bkiam/prod/api/v1/open/application"
 
 # 分页拉取的每页条数，list_role 协议明确上限为100，其余列表接口未给上限，统一按100取
 LIST_PAGE_SIZE = 100
@@ -177,6 +179,15 @@ class _IAMV4Api(BaseApi):
             method="POST",
             url=f"{MGMT_URL}/authorizations/",
             description=_("批量角色授权"),
+        )
+        self.direct_auth_by_actions = self.generate_data_api(
+            method="POST", url=f"{AUTH_URL}/auth-by-actions/", description=_("批量操作直接鉴权")
+        )
+        self.direct_auth_by_resources = self.generate_data_api(
+            method="POST", url=f"{AUTH_URL}/auth-by-resources/", description=_("批量资源直接鉴权")
+        )
+        self.generate_perm_apply_url = self.generate_data_api(
+            method="POST", url=f"{SAAS_URL}/permission-apply-urls/", description=_("获取申请权限url")
         )
 
     def batch_create_role_action(self, role_id: str, actions: List[Dict]):
