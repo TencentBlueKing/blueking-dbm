@@ -112,7 +112,7 @@ def test_check_all_clusters_ingests_portrait_and_survives_ingest_failure(redis_a
     ), patch.object(
         redis_affinity_module, "safe_write_meta_reports"
     ) as write_mock, patch.object(
-        redis_affinity_module, "ingest_abnormal_cluster_rows"
+        redis_affinity_module, "ingest_daily_cluster_rows"
     ) as ingest:
         checker.check_all_clusters()
 

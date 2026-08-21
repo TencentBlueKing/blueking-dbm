@@ -29,7 +29,7 @@ from backend.db_meta.models import Cluster, ProxyInstance, StorageInstance
 from backend.db_report.enums import ReportStateType
 from backend.db_report.enums.redis_sub_type import RedisCheckSubType
 from backend.db_report.portrait.redis_dimensions import RedisPortraitDimensionCode
-from backend.db_report.portrait.redis_ingest import ingest_abnormal_cluster_rows
+from backend.db_report.portrait.redis_ingest import ingest_daily_cluster_rows
 from backend.flow.consts import SUCCESS_LIST
 from backend.flow.plugins.components.collections.common.base_service import BaseService
 from backend.flow.utils.base.payload_handler import DEFAULT_REDIS_PASSWORD_BATCH_SIZE, PayloadHandler
@@ -669,7 +669,7 @@ def _evaluate_and_report(
             )
     collapsed_rows = _collapse_conf_check_report_rows(report_rows)
     writer.write_redis_reports(collapsed_rows)
-    ingest_abnormal_cluster_rows(
+    ingest_daily_cluster_rows(
         collapsed_rows,
         dimension=RedisPortraitDimensionCode.CONFIG_HEALTH,
         prefix=_("[配置]"),
