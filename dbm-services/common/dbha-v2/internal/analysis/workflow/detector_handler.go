@@ -63,6 +63,17 @@ func (h *DetectorHandler) ProcessResponse(resp *detector.Response) error {
 		return ErrDetectorFailure
 	}
 
+	if resp.Err == detector.ErrDetectorSshAuth {
+		resp.DbEventName = haprobe.DbEventNameSshAuthFailure
+		resp.DbEventNameReason = haprobe.DbEventNameReasonSSHAuthException
+
+		content := fmt.Sprintf("failed to authenticate the remote host with SSH, host: %d:%s:%d",
+			resp.Meta.BkCloudID, resp.Meta.IP, config.Cfg.Detector.Ssh.Port)
+
+		h.alarm.TriggerWithDetectorResponse("", "", content, gerrors.Failure.Int(), resp)
+		return ErrDetectorFailure
+	}
+
 	if resp.Err == detector.ErrDetectorCreateSshSession {
 		resp.DbEventName = haprobe.DbEventNameDoubleCheckSshFailureV1
 		resp.DbEventNameReason = haprobe.DbEventNameReasonConnectionException
@@ -77,6 +88,32 @@ func (h *DetectorHandler) ProcessResponse(resp *detector.Response) error {
 	if resp.Err != nil {
 		h.alarm.TriggerWithDetectorResponse("", "", resp.Err.Error(), gerrors.Failure.Int(), resp)
 		return nil
+	}
+
+	if resp.SshResp.ErrMsg == detector.ErrDetectorSshTimeout.Error() {
+		resp.DbEventName = haprobe.DbEventNameSshTimeout
+		resp.DbEventNameReason = haprobe.DbEventNameReasonSshTimeout
+		content := fmt.Sprintf("%s, host: %d:%s", resp.SshResp.ErrMsg, resp.Meta.BkCloudID, resp.Meta.IP)
+		h.alarm.TriggerWithDetectorResponse("", "", content, resp.SshResp.ExitCode, resp)
+		return ErrDetectorFailure
+	}
+
+	if resp.SshResp.ExitCode == process.ExitCodeHealthDiskWriteFail {
+		resp.DbEventName = haprobe.DbEventNameDiskWriteFailure
+		resp.DbEventNameReason = haprobe.DbEventNameReasonDiskWriteException
+		content := fmt.Sprintf("disk write verification failed, host: %d:%s, errmsg: %s",
+			resp.Meta.BkCloudID, resp.Meta.IP, resp.SshResp.Data)
+		h.alarm.TriggerWithDetectorResponse("", "", content, resp.SshResp.ExitCode, resp)
+		return ErrDetectorFailure
+	}
+
+	if resp.SshResp.ExitCode == process.ExitCodeHealthUptimeFail {
+		resp.DbEventName = haprobe.DbEventNameUptimeFailure
+		resp.DbEventNameReason = haprobe.DbEventNameReasonUptimeException
+		content := fmt.Sprintf("uptime collection failed, host: %d:%s, errmsg: %s",
+			resp.Meta.BkCloudID, resp.Meta.IP, resp.SshResp.Data)
+		h.alarm.TriggerWithDetectorResponse("", "", content, resp.SshResp.ExitCode, resp)
+		return ErrDetectorFailure
 	}
 
 	if resp.SshResp.ExitCode != 0 {

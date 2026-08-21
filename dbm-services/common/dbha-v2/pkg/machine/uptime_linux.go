@@ -1,3 +1,5 @@
+//go:build linux
+
 /**
  * MIT License
  *
@@ -22,39 +24,33 @@
  * SOFTWARE.
  */
 
-package process
+package machine
 
-// Status is the type of process status.
-type Status string
-
-func (p Status) String() string {
-	return string(p)
-}
-
-const (
-	StatusRunning Status = "running"
-	StatusStopped Status = "stopped"
+import (
+	"fmt"
+	"os"
+	"strconv"
+	"strings"
 )
 
-// Probe health exit codes. The analysis detector captures these from the SSH
-// session when it runs "dbha-probe health -j" on the remote host.
-const (
-	ExitCodeHealthDiskWriteFail = 40
-	ExitCodeHealthUptimeFail    = 41
-)
+// UptimeSeconds returns the machine uptime in seconds since last boot.
+// On Linux it reads the first field of /proc/uptime. It returns an error when
+// the uptime cannot be read or parsed.
+func UptimeSeconds() (int64, error) {
+	data, err := os.ReadFile("/proc/uptime")
+	if err != nil {
+		return 0, err
+	}
 
-// ProbeHealthMarkerFile is the fixed marker file name the probe health command
-// writes into each write verification dir to verify the local disk is writable.
-const ProbeHealthMarkerFile = "dbhav2_probe"
+	fields := strings.Fields(string(data))
+	if len(fields) == 0 {
+		return 0, fmt.Errorf("empty uptime output")
+	}
 
-// HealthInfo health information.
-type HealthInfo struct {
-	Pid      int32  `json:"pid"`
-	ProcName string `json:"procName"`
-	Status   Status `json:"status"`
-	ErrMsg   string `json:"errmsg"`
-}
+	seconds, err := strconv.ParseFloat(fields[0], 64)
+	if err != nil {
+		return 0, err
+	}
 
-func (h HealthInfo) IsAlive() bool {
-	return h.Status == StatusRunning
+	return int64(seconds), nil
 }

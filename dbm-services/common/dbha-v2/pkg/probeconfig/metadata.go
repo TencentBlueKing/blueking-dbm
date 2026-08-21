@@ -83,6 +83,13 @@ type ProbeProxyAdminConfig struct {
 	Timeout           string `json:"timeout"`
 }
 
+// ProbeHealthConfig carries probe health-check write verification dirs from admin to probe.
+// DiskWriteDirs lists the directories the probe health command writes a marker file into to
+// verify the local disk is writable; empty means fall back to the default dirs (DefaultDiskWriteDirs).
+type ProbeHealthConfig struct {
+	DiskWriteDirs []string `json:"disk_write_dirs"`
+}
+
 // ProbeConfigPayload is the JSON payload returned by admin GetProbeConfig.
 // Probe parses it to render the final probe YAML (gse reporter + harvester credentials + db endpoints).
 // Admin always populates MySQL / Redis / ProxyAdmin defaults; probe routes per endpoint based on
@@ -94,6 +101,7 @@ type ProbeConfigPayload struct {
 	MySQL      *ProbeMySQLConfig      `json:"mysql,omitempty"`
 	Redis      *ProbeRedisConfig      `json:"redis,omitempty"`
 	ProxyAdmin *ProbeProxyAdminConfig `json:"proxy_admin,omitempty"`
+	Health     *ProbeHealthConfig     `json:"health,omitempty"`
 	Metadata   []ProbeMetadataItem    `json:"metadata"`
 }
 
