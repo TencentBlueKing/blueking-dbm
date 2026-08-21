@@ -102,6 +102,11 @@ class _PartitionApi(BaseApi):
             url="partition/v2/create_conf",
             description=_("添加分区配置v2"),
         )
+        self.clone_conf_v2 = self.generate_data_api(
+            method="POST",
+            url="partition/v2/clone_conf",
+            description=_("克隆分区配置v2"),
+        )
         self.update_conf_v2 = self.generate_data_api(
             method="POST",
             url="partition/v2/update_conf",

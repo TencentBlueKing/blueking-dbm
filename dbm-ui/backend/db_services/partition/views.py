@@ -21,6 +21,8 @@ from backend.db_meta.enums import ClusterType
 from backend.db_services.partition.serializers import (
     PartitionBatchDryRunResponseSerializer,
     PartitionBatchDryRunSerializer,
+    PartitionCloneV2ResponseSerializer,
+    PartitionCloneV2Serializer,
     PartitionColumnVerifyResponseSerializer,
     PartitionColumnVerifySerializer,
     PartitionCreateSerializer,
@@ -136,6 +138,18 @@ class DBPartitionViewSet(viewsets.SystemViewSet):
         """
         validated_data = self.params_validate(PartitionCreateSerializer)
         return Response(PartitionHandler.create_and_run_partition_v2(request.user.username, validated_data))
+
+    @common_swagger_auto_schema(
+        operation_summary=_("克隆分区v2配置"),
+        request_body=PartitionCloneV2Serializer(),
+        responses={status.HTTP_200_OK: PartitionCloneV2ResponseSerializer()},
+        tags=[SWAGGER_TAG],
+    )
+    @action(methods=["POST"], detail=False, serializer_class=PartitionCloneV2Serializer)
+    def clone_conf_v2(self, request, *args, **kwargs):
+        """按源集群及库表范围克隆分区v2配置到目标集群"""
+        validated_data = self.params_validate(PartitionCloneV2Serializer, representation=True)
+        return Response(PartitionHandler.clone_conf_v2(validated_data))
 
     @common_swagger_auto_schema(
         operation_summary=_("批量删除分区v2策略"),

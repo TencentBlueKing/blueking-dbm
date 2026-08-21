@@ -140,6 +140,31 @@ class PartitionManagePermission(ResourceActionPermission):
                 self.resource_meta = getattr(ResourceEnum, f"{db_type.upper()}")
                 return [cluster.id]
 
+        elif view.action == "clone_conf_v2":
+            target_clusters = []
+            for info in request.data.get("infos") or []:
+                target = info.get("target") or {}
+                cluster = None
+                if target.get("cluster_id"):
+                    cluster = Cluster.objects.filter(id=target["cluster_id"]).first()
+                elif target.get("immute_domain"):
+                    cluster = Cluster.objects.filter(
+                        bk_biz_id=target.get("bk_biz_id"),
+                        bk_cloud_id=target.get("bk_cloud_id"),
+                        immute_domain=target["immute_domain"],
+                    ).first()
+                if cluster:
+                    target_clusters.append(cluster)
+
+            db_types = {convert(cluster.cluster_type) for cluster in target_clusters}
+            if not target_clusters or len(db_types) != 1:
+                raise ResourceInvalidError(_("目标集群不存在或集群类型不一致"))
+
+            db_type = db_types.pop()
+            self.actions = [getattr(ActionEnum, f"{db_type.upper()}_PARTITION_CREATE")]
+            self.resource_meta = ResourceEnum.BUSINESS
+            return list({cluster.bk_biz_id for cluster in target_clusters})
+
         elif view.action in ["enable", "disable", "batch_delete"]:
             db_type = convert(request.data["cluster_type"])
             params = {"limit": len(request.data["ids"]), "offset": 0, **request.data}
