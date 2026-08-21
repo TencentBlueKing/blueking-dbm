@@ -81,6 +81,12 @@ class _ItsmV4Api(BaseApi):
         return [item.strip() for item in value.split(",") if item.strip()]
 
     @classmethod
+    def format_text_value(cls, value):
+        if value is None:
+            return ""
+        return str(value)
+
+    @classmethod
     def format_dynamic_fields(cls, dynamic_fields):
         link_field = next((field for field in dynamic_fields if field.get("type") == "LINK"), {})
         string_fields = [field for field in dynamic_fields if field.get("type") == "STRING"]
@@ -91,21 +97,31 @@ class _ItsmV4Api(BaseApi):
                     "type": "table",
                     "attrs": {
                         "column": [
-                            {"name": "检查项", "type": "text", "key": "column1", "attrs": {"width": 10}},
-                            {"name": "内容", "type": "text", "key": "column2", "attrs": {"width": 10}},
+                            {
+                                "name": cls.format_text_value(_("检查项")),
+                                "type": "text",
+                                "key": "column1",
+                                "attrs": {"width": 10},
+                            },
+                            {
+                                "name": cls.format_text_value(_("内容")),
+                                "type": "text",
+                                "key": "column2",
+                                "attrs": {"width": 10},
+                            },
                         ]
                     },
                 }
             },
             "data": [
                 {
-                    "label": link_field.get("name", ""),
+                    "label": cls.format_text_value(link_field.get("name")),
                     "scheme": "base_table_scheme",
-                    "extras": {"link": link_field.get("value", "")},
+                    "extras": {"link": cls.format_text_value(link_field.get("value"))},
                     "value": [
                         {
-                            "column1": {"value": field.get("name", "")},
-                            "column2": {"value": field.get("value", "")},
+                            "column1": {"value": cls.format_text_value(field.get("name"))},
+                            "column2": {"value": cls.format_text_value(field.get("value"))},
                         }
                         for field in string_fields
                     ],
@@ -134,7 +150,7 @@ class _ItsmV4Api(BaseApi):
                 key = "ticket__title"
             if key == "ticket_url":
                 key = "dbm_ticket_url"
-                value = {"show_text": "点击查看", "url": value}
+                value = {"show_text": cls.format_text_value(_("点击查看")), "url": cls.format_text_value(value)}
             if key == "approver":
                 value = cls.format_operator_value(value)
             form_data[key] = value
