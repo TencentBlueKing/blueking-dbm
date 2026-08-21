@@ -409,37 +409,35 @@ class TicketHandler:
         ]
 
     @classmethod
-    def build_ticket_flow_config_tag_rules(cls, cluster_tags):
-        """将标签列表整理成 {tag_key: {tag_value}}，用于判断两个标签条件是否存在命中范围交集。"""
-        tag_rules = defaultdict(set)
-        for tag in cluster_tags:
-            tag_rules[tag.get("tag_key")].add(tag.get("tag_value"))
-        return tag_rules
-
-    @classmethod
-    def is_ticket_flow_config_tag_scope_overlap(cls, left_rules, right_rules):
-        """判断拟保存标签条件(left)是否命中已有标签条件(right)。"""
-        # 没有共同 tag_key 时，普通标签条件不存在冲突可能。
-        common_keys = set(left_rules) & set(right_rules)
-        if not common_keys:
-            return False
-
-        # 所有共同 tag_key 都必须存在取值交集，才认为两组条件覆盖范围有交集。
-        for tag_key in common_keys:
-            left_values = left_rules[tag_key]
-            right_values = right_rules[tag_key]
-            right_has_wildcard = CLUSTER_TAG_WILDCARD_VALUE in right_values
-            if not right_has_wildcard and not (left_values & right_values):
-                return False
-        return True
-
-    @classmethod
     def check_ticket_flow_config_cluster_tag_repeat(cls, bk_biz_id, cluster_tags, ticket_type, config_id=None):
         """给前端预校验使用，返回每个集群标签是否已命中已有流程配置。"""
         if not cluster_tags:
             return []
 
-        current_tag_rules = cls.build_ticket_flow_config_tag_rules(cluster_tags)
+        def build_tag_rules(tags):
+            """将标签列表整理成 {tag_key: {tag_value}}，用于判断两个标签条件是否存在命中范围交集。"""
+            tag_rules = defaultdict(set)
+            for tag in tags:
+                tag_rules[tag.get("tag_key")].add(tag.get("tag_value"))
+            return tag_rules
+
+        def is_tag_scope_overlap(left_rules, right_rules):
+            """判断拟保存标签条件(left)是否命中已有标签条件(right)。"""
+            # 没有共同 tag_key 时，普通标签条件不存在冲突可能。
+            common_keys = set(left_rules) & set(right_rules)
+            if not common_keys:
+                return False
+
+            # 所有共同 tag_key 都必须存在取值交集，才认为两组条件覆盖范围有交集。
+            for tag_key in common_keys:
+                left_values = left_rules[tag_key]
+                right_values = right_rules[tag_key]
+                right_has_wildcard = CLUSTER_TAG_WILDCARD_VALUE in right_values
+                if not right_has_wildcard and not (left_values & right_values):
+                    return False
+            return True
+
+        current_tag_rules = build_tag_rules(cluster_tags)
         tag_configs = TicketFlowsConfig.objects.filter(bk_biz_id=bk_biz_id, ticket_type=ticket_type).exclude(
             cluster_tags=[]
         )
@@ -448,8 +446,8 @@ class TicketHandler:
 
         conflict_tag_pairs = set()
         for tag_config in tag_configs:
-            existed_tag_rules = cls.build_ticket_flow_config_tag_rules(tag_config.cluster_tags)
-            if cls.is_ticket_flow_config_tag_scope_overlap(current_tag_rules, existed_tag_rules):
+            existed_tag_rules = build_tag_rules(tag_config.cluster_tags)
+            if is_tag_scope_overlap(current_tag_rules, existed_tag_rules):
                 # 只在同一个 tag_key 下处理“任意值”通配，避免不同 key 之间被误报为重复。
                 for tag_key in set(current_tag_rules) & set(existed_tag_rules):
                     current_values = current_tag_rules[tag_key]
