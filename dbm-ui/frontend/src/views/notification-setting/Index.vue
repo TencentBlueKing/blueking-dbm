@@ -216,6 +216,7 @@
         runResetDutyNoticeConfig({ ...initData(), db_type: dbType.value });
       },
       title: t('确认恢复默认值？'),
+      type: 'warning',
     });
   };
 
