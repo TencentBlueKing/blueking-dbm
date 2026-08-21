@@ -14,6 +14,7 @@ import (
 	"log/slog"
 	"reflect"
 	"strconv"
+	"sync"
 	"time"
 
 	"github.com/Shopify/sarama"
@@ -89,12 +90,14 @@ func (s *AnySinker) Cleanup(sarama.ConsumerGroupSession) error {
 }
 
 func (s *AnySinker) ConsumeClaim(session sarama.ConsumerGroupSession, claim sarama.ConsumerGroupClaim) error {
+	ingestThreads := s.Sinker.RuntimeConfig.IngestThreads
 	slog.Info("consumer claim started",
 		slog.String("topic", claim.Topic()),
 		slog.Any("partition", claim.Partition()),
 		slog.String("groupId", s.groupID),
 		slog.String("model", s.Sinker.RuntimeConfig.ModelTable),
 		slog.Any("offset", claim.InitialOffset()),
+		slog.Int("ingest_threads", ingestThreads),
 		slog.Bool("from_beginning", s.Sinker.RuntimeConfig.FromBeginning))
 
 	batchSize := 10
@@ -102,6 +105,11 @@ func (s *AnySinker) ConsumeClaim(session sarama.ConsumerGroupSession, claim sara
 		batchSize = s.Sinker.RuntimeConfig.SinkBatchSize
 	}
 	const FlushInterval = 500 * time.Millisecond
+
+	// 当 ingest_threads > 1 时，启用并发写入模式
+	if ingestThreads > 1 {
+		return s.consumeClaimConcurrent(session, claim, batchSize, FlushInterval, ingestThreads)
+	}
 
 	msgs := make([]*sarama.ConsumerMessage, 0, batchSize)
 	ticker := time.NewTicker(FlushInterval)
@@ -152,6 +160,88 @@ func (s *AnySinker) ConsumeClaim(session sarama.ConsumerGroupSession, claim sara
 				slog.Any("partition", claim.Partition()),
 				slog.String("model", s.Sinker.RuntimeConfig.ModelTable))
 			flushBatch()
+			return nil
+		}
+	}
+}
+
+// consumeClaimConcurrent 并发写入模式：启动固定数量的 goroutine 来并发处理消息批次
+// 主 goroutine 负责从 kafka 攒批并 MarkMessage（offset 始终向前推进），然后将批次分发给 worker 写入
+func (s *AnySinker) consumeClaimConcurrent(
+	session sarama.ConsumerGroupSession,
+	claim sarama.ConsumerGroupClaim,
+	batchSize int,
+	flushInterval time.Duration,
+	workers int,
+) error {
+	jobCh := make(chan []*sarama.ConsumerMessage, workers)
+
+	// 启动 worker goroutine
+	var wg sync.WaitGroup
+	for i := 0; i < workers; i++ {
+		wg.Add(1)
+		go func(workerID int) {
+			defer wg.Done()
+			for msgs := range jobCh {
+				if err := s.HandleMessageTryBatch(msgs, s.Sinker); err != nil {
+					slog.Error("handle message batch (concurrent)",
+						slog.Any("error", err),
+						slog.String("table", s.Sinker.RuntimeConfig.ModelTable),
+						slog.Int("msg_count", len(msgs)),
+						slog.Int("worker_id", workerID))
+					time.Sleep(200 * time.Millisecond)
+				}
+			}
+		}(i)
+	}
+
+	msgs := make([]*sarama.ConsumerMessage, 0, batchSize)
+	ticker := time.NewTicker(flushInterval)
+	defer ticker.Stop()
+
+	// dispatchBatch 主线程 MarkMessage 后将批次分发给 worker 写入
+	dispatchBatch := func() {
+		if len(msgs) == 0 {
+			return
+		}
+		session.MarkMessage(msgs[len(msgs)-1], "")
+		batch := make([]*sarama.ConsumerMessage, len(msgs))
+		copy(batch, msgs)
+		jobCh <- batch
+		msgs = msgs[:0]
+	}
+
+	defer func() {
+		close(jobCh)
+		wg.Wait()
+	}()
+
+	for {
+		select {
+		case message, ok := <-claim.Messages():
+			if !ok {
+				slog.Warn("claim.Messages() channel closed, session ending (concurrent)",
+					slog.String("topic", claim.Topic()),
+					slog.Any("partition", claim.Partition()),
+					slog.String("model", s.Sinker.RuntimeConfig.ModelTable))
+				dispatchBatch()
+				return nil
+			}
+			if message == nil {
+				continue
+			}
+			msgs = append(msgs, message)
+			if len(msgs) >= batchSize {
+				dispatchBatch()
+			}
+		case <-ticker.C:
+			dispatchBatch()
+		case <-session.Context().Done():
+			slog.Warn("session context done, flushing remaining messages (concurrent)",
+				slog.String("topic", claim.Topic()),
+				slog.Any("partition", claim.Partition()),
+				slog.String("model", s.Sinker.RuntimeConfig.ModelTable))
+			dispatchBatch()
 			return nil
 		}
 	}

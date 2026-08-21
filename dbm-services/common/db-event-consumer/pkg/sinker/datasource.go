@@ -86,6 +86,14 @@ func GetDSWriter(ds *Datasource) (base.DSWriter, error) {
 			return nil, errors.WithMessagef(err, "decode dsn %s", ds.Dsn)
 		}
 		return NewDorisWriter(&dorisDsn)
+
+	} else if ds.Type == "doris_http" {
+		var dorisDsn DorisHttpDsn
+		if err := mapstructure.Decode(ds.Dsn, &dorisDsn); err != nil {
+			return nil, errors.WithMessagef(err, "decode dsn %s", ds.Dsn)
+		}
+		return NewDorisHttpWriter(&dorisDsn)
+
 	} else {
 		return nil, errors.Errorf("unknown datasource type %s", ds.Type)
 	}

@@ -12,17 +12,14 @@ import (
 	"fmt"
 	"log/slog"
 	"strconv"
-	"strings"
 	"time"
 
 	sb "github.com/huandu/go-sqlbuilder"
 	"github.com/pkg/errors"
-	"github.com/spf13/cast"
 	"gorm.io/gorm"
 
 	"dbm-services/common/db-event-consumer/pkg/base"
 	"dbm-services/common/db-event-consumer/pkg/sinker"
-	"dbm-services/common/go-pubpkg/cmutil"
 )
 
 type MysqlTableSize struct {
@@ -61,32 +58,13 @@ func (m *MysqlTableSize) MigrateSchema(w base.DSWriter) error {
 	}
 	db := dbWriter.GormDB()
 	if w.Type() == "mysql" || w.Type() == "mysql_raw" {
-		createTableSql := ""
-		timeNow := time.Now()
-
-		// 第一次 migrate 创建表的时候，同时创建未来 7 天的分区
-		partitionsPreCreated := []string{}
-		for i := -7; i < 7; i++ {
-			days := cmutil.TimeToDays(timeNow.AddDate(0, 0, i))
-			dateint := cast.ToInt(timeNow.AddDate(0, 0, i).Format("20060102"))
-			partitionsPreCreated = append(partitionsPreCreated,
-				fmt.Sprintf("PARTITION p%d VALUES LESS THAN (%d) ENGINE = InnoDB", dateint, days+1))
-		}
-		//partitionInfo = append(partitionInfo, "PARTITION pmax VALUES LESS THAN (MAXVALUE) ENGINE = InnoDB")
-		partitionInfo := []string{
-			"/*!50100 PARTITION BY RANGE (to_days(`dteventtimehour`))",
-			"(",
-			strings.Join(partitionsPreCreated, ",\n"),
-			")",
-			"*/",
-		}
-		createTableSql = CREATE_TABLE_SQL_MYSQL + strings.Join(partitionInfo, "\n")
+		createTableSql := CREATE_TABLE_SQL_MYSQL + BuildMysqlPartitionClause("dteventtimehour")
 		if err := db.Exec(fmt.Sprintf(createTableSql, m.TableName())).Error; err != nil {
 			slog.Error("create table failed", slog.Any("err", err), slog.String("sql", createTableSql))
 			return err
 		}
 		return nil
-	} else if w.Type() == "doris" {
+	} else if w.Type() == "doris" || w.Type() == "doris_http" {
 		if err := db.Exec(fmt.Sprintf(CREATE_TABLE_SQL_DORIS, m.TableName())).Error; err != nil {
 			slog.Error("create table failed", slog.Any("err", err), slog.String("sql", CREATE_TABLE_SQL_DORIS))
 			return err
@@ -104,6 +82,8 @@ func (m *MysqlTableSize) StrictSchema() bool {
 func (m *MysqlTableSize) Create(objs interface{}, w base.DSWriter) error {
 	if writer, ok := w.(*sinker.DorisWriter); ok {
 		return m.dorisCreate(objs, writer.GormDB())
+	} else if writer, ok := w.(*sinker.DorisHttpWriter); ok {
+		return m.dorisHttpCreate(objs, writer)
 	} else if writer, ok := w.(*sinker.MysqlWriter); ok {
 		return m.dorisCreate(objs, writer.GormDB())
 	} else {
@@ -112,6 +92,14 @@ func (m *MysqlTableSize) Create(objs interface{}, w base.DSWriter) error {
 		newObj := objs.([]MysqlTableSize)
 		return w.WriteBatch(m, newObj)
 	}
+}
+
+func (m *MysqlTableSize) dorisHttpCreate(i interface{}, w *sinker.DorisHttpWriter) error {
+	kafkaObjs, ok := i.([]MysqlTableSize)
+	if !ok {
+		kafkaObjs = []MysqlTableSize{i.(MysqlTableSize)}
+	}
+	return w.WriteBatch(m, kafkaObjs)
 }
 
 func (m *MysqlTableSize) dorisCreate(i interface{}, db *gorm.DB) error {

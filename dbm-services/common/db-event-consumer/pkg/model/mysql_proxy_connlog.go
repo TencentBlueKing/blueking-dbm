@@ -13,7 +13,6 @@ import (
 	"log/slog"
 	"regexp"
 	"strconv"
-	"strings"
 	"time"
 
 	sb "github.com/huandu/go-sqlbuilder"
@@ -23,13 +22,12 @@ import (
 
 	"dbm-services/common/db-event-consumer/pkg/base"
 	"dbm-services/common/db-event-consumer/pkg/sinker"
-	"dbm-services/common/go-pubpkg/cmutil"
 )
 
 type MysqlProxyConnlog struct {
 	ID uint `gorm:"primaryKey;autoIncrement:true"`
 	// TheDate 20250101
-	TheDate int `gorm:"column:thedate;type:int;not null" json:"thedate" db:"thedate"`
+	// TheDate int `gorm:"column:thedate;type:int;not null" json:"thedate" db:"thedate"`
 	// DtEventTimeStamp 1577836800000
 	DtEventTimeStamp time.Time `gorm:"column:dteventtimestamp;type:bigint;not null" json:"dtEventTimeStamp" db:"dteventtimestamp"`
 	// DtEventTimeHour	'2020-01-01 01:00:00'
@@ -82,10 +80,16 @@ func (m *MysqlProxyConnlog) UnmarshalItem(data []byte, msg base.MessageWrapper) 
 	m.ConnTime = connTime
 	m.ConnUser = matches[2]
 	m.ClientIp = matches[3]
-	m.SessionId, _ = strconv.ParseInt(matches[4], 10, 64)
+	sessionId, _ := strconv.ParseInt(matches[4], 10, 64)
+	// 上游用 int32 处理 session_id，超过 int32 最大值时会溢出为负数，这里转回原始的 uint32 值
+	if sessionId < 0 {
+		m.SessionId = int64(uint32(int32(sessionId)))
+	} else {
+		m.SessionId = sessionId
+	}
 
 	// 公共时间字段
-	m.TheDate, _ = strconv.Atoi(connTime.Format("20060102"))
+	//m.TheDate, _ = strconv.Atoi(connTime.Format("20060102"))
 	m.DtEventTimeHour = connTime.Format("2006-01-02 15")
 
 	// 维度字段从 msg.Ext 中提取
@@ -109,32 +113,14 @@ func (m *MysqlProxyConnlog) MigrateSchema(w base.DSWriter) error {
 	}
 	db := dbWriter.GormDB()
 	if w.Type() == "mysql" || w.Type() == "mysql_raw" {
-		createTableSql := ""
-		timeNow := time.Now()
-
-		// 第一次 migrate 创建表的时候，同时创建未来 7 天的分区
-		partitionsPreCreated := []string{}
-		for i := -7; i < 7; i++ {
-			days := cmutil.TimeToDays(timeNow.AddDate(0, 0, i))
-			dateint := cast.ToInt(timeNow.AddDate(0, 0, i).Format("20060102"))
-			partitionsPreCreated = append(partitionsPreCreated,
-				fmt.Sprintf("PARTITION p%d VALUES LESS THAN (%d) ENGINE = InnoDB", dateint, days+1))
-		}
-		//partitionInfo = append(partitionInfo, "PARTITION pmax VALUES LESS THAN (MAXVALUE) ENGINE = InnoDB")
-		partitionInfo := []string{
-			"/*!50100 PARTITION BY RANGE (to_days(`dteventtimehour`))",
-			"(",
-			strings.Join(partitionsPreCreated, ",\n"),
-			")",
-			"*/",
-		}
-		createTableSql = CREATE_TABLE_MYSQL_MYSQL_PROXY_CONNLOG + strings.Join(partitionInfo, "\n")
+		createTableSql := CREATE_TABLE_MYSQL_MYSQL_PROXY_CONNLOG +
+			BuildMysqlPartitionClause("dteventtimehour")
 		if err := db.Exec(fmt.Sprintf(createTableSql, m.TableName())).Error; err != nil {
 			slog.Error("create table failed", slog.Any("err", err), slog.String("sql", createTableSql))
 			return err
 		}
 		return nil
-	} else if w.Type() == "doris" {
+	} else if w.Type() == "doris" || w.Type() == "doris_http" {
 		if err := db.Exec(fmt.Sprintf(CREATE_TABLE_DORIS_MYSQL_PROXY_CONNLOG, m.TableName())).Error; err != nil {
 			slog.Error("create table failed", slog.Any("err", err), slog.String("sql", CREATE_TABLE_SQL_DORIS))
 			return err
@@ -152,6 +138,8 @@ func (m *MysqlProxyConnlog) StrictSchema() bool {
 func (m *MysqlProxyConnlog) Create(objs interface{}, w base.DSWriter) error {
 	if writer, ok := w.(*sinker.DorisWriter); ok {
 		return m.dorisCreate(objs, writer.GormDB())
+	} else if writer, ok := w.(*sinker.DorisHttpWriter); ok {
+		return m.dorisHttpCreate(objs, writer)
 	} else if writer, ok := w.(*sinker.MysqlWriter); ok {
 		return m.dorisCreate(objs, writer.GormDB())
 	} else {
@@ -160,6 +148,14 @@ func (m *MysqlProxyConnlog) Create(objs interface{}, w base.DSWriter) error {
 		newObj := objs.([]MysqlProxyConnlog)
 		return w.WriteBatch(m, newObj)
 	}
+}
+
+func (m *MysqlProxyConnlog) dorisHttpCreate(i interface{}, w *sinker.DorisHttpWriter) error {
+	kafkaObjs, ok := i.([]MysqlProxyConnlog)
+	if !ok {
+		kafkaObjs = []MysqlProxyConnlog{i.(MysqlProxyConnlog)}
+	}
+	return w.WriteBatch(m, kafkaObjs)
 }
 
 func (m *MysqlProxyConnlog) dorisCreate(i interface{}, db *gorm.DB) error {
@@ -173,7 +169,7 @@ func (m *MysqlProxyConnlog) dorisCreate(i interface{}, db *gorm.DB) error {
 	builder := sb.NewInsertBuilder()
 	builder.InsertInto(m.TableName())
 	builder.Cols(
-		"thedate", "dteventtimestamp", "dteventtimehour",
+		"dteventtimestamp", "dteventtimehour",
 		"cluster_domain",
 		"proxy_ip",
 		"conn_time",
@@ -184,11 +180,11 @@ func (m *MysqlProxyConnlog) dorisCreate(i interface{}, db *gorm.DB) error {
 		"bk_cloud_id",
 	)
 	for _, kafkaObj := range kafkaObjs {
-		kafkaObj.TheDate, _ = strconv.Atoi(kafkaObj.DtEventTimeStamp.Format("20060102"))
+		//kafkaObj.TheDate, _ = strconv.Atoi(kafkaObj.DtEventTimeStamp.Format("20060102"))
 		kafkaObj.DtEventTimeHour = kafkaObj.DtEventTimeStamp.Format("2006-01-02 15")
 		// slog.Debug("unmarshal task obj", slog.Any("obj", kafkaObj))
 		builder.Values(
-			kafkaObj.TheDate, kafkaObj.DtEventTimeStamp, kafkaObj.DtEventTimeHour,
+			kafkaObj.DtEventTimeStamp, kafkaObj.DtEventTimeHour,
 			kafkaObj.ClusterDomain,
 			kafkaObj.ProxyIp,
 			kafkaObj.ConnTime,
@@ -215,6 +211,24 @@ func (m *MysqlProxyConnlog) dorisCreate(i interface{}, db *gorm.DB) error {
 }
 
 var CREATE_TABLE_MYSQL_MYSQL_PROXY_CONNLOG = `
+CREATE TABLE IF NOT EXISTS %s (
+  id bigint NOT NULL AUTO_INCREMENT,
+  cluster_domain varchar(200) NOT NULL,
+  dteventtimehour datetime NOT NULL COMMENT 'datetime precision to hour, used as where,group-by,expire',
+  dteventtimestamp datetime NOT NULL,
+  proxy_ip varchar(60) NOT NULL,
+  conn_time datetime NOT NULL,
+  client_ip varchar(127) DEFAULT NULL,
+  conn_user varchar(127) DEFAULT NULL,
+  session_id bigint DEFAULT NULL,
+  bk_biz_id int DEFAULT NULL,
+  bk_cloud_id int DEFAULT NULL,
+  PRIMARY KEY (proxy_ip,dteventtimehour),
+  KEY idx_0 (id),
+  KEY idx_1 (proxy_ip,conn_time),
+  KEY idx_2 (client_ip),
+  KEY idx_3 (conn_user)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 
 `
 
 // CREATE_TABLE_DORIS_MYSQL_PROXY_CONNLOG doris table
@@ -224,13 +238,12 @@ var CREATE_TABLE_DORIS_MYSQL_PROXY_CONNLOG = `
 CREATE TABLE IF NOT EXISTS %s (
   cluster_domain varchar(200) NOT NULL,
   dteventtimehour datetime NOT NULL COMMENT "datetime precision to hour, used as where,group-by,expire",
-  thedate int NOT NULL,
   dteventtimestamp datetime NOT NULL,
   proxy_ip varchar(60) NOT NULL,
   conn_time datetime NOT NULL,
   client_ip varchar(60) NULL,
   conn_user varchar(100) NULL,
-  session_id int NULL,
+  session_id bigint NULL,
   bk_biz_id int NULL,
   bk_cloud_id int NULL
 ) ENGINE=OLAP
