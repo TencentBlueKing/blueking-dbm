@@ -67,7 +67,7 @@
           <BkPopover
             v-for="tabItem of tabList"
             :key="tabItem.id"
-            ref="tabTipsRef"
+            ref="tabTips"
             :disabled="!onlyOneType"
             theme="light">
             <div
@@ -147,6 +147,7 @@
   ">
   import _ from 'lodash';
   import type { VNode } from 'vue';
+  import { ref, useTemplateRef } from 'vue';
   import { useI18n } from 'vue-i18n';
 
   import MongodbModel from '@services/model/mongodb/mongodb';
@@ -449,7 +450,7 @@
     },
   };
 
-  const tabTipsRef = ref();
+  const tabTipsRef = useTemplateRef<HTMLElement>('tabTips');
   const activeTab = ref(ClusterTypes.TENDBCLUSTER as string);
   const showTabTips = ref(false);
   const isSelectedAll = ref(false);
