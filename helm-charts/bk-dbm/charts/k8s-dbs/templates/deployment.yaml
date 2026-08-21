@@ -84,6 +84,8 @@ spec:
             value: "{{ .Values.server.dbmConfig.syncDataApiUrl }}"
           - name: DBM_AUTH_API_URL
             value: "{{ .Values.server.dbmConfig.dbmAuthApiUrl }}"
+          - name: K8S_DBS_IAM_EXEMPT_STORAGE_WHITELIST
+            value: "{{ .Values.server.dbmConfig.iamExemptStorageWhitelist }}"
           - name: BKBASE_BIZ_API_URL
             value: "{{ .Values.server.dbmConfig.bkbaseBizApiUrl }}"
           - name: INNER_BK_APP_CODE

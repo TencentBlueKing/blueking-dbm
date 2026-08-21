@@ -49,6 +49,7 @@ server:
     asyncToDbm: "true"
     syncDataApiUrl: ""          # 内部直连地址（同步用）
     dbmAuthApiUrl: ""           # 鉴权地址（host:port/path 格式，合并原 gateway + IAM base path）
+    iamExemptStorageWhitelist: ""  # IAM 鉴权豁免存储白名单，逗号分隔 addonType，如 surrealdb,qdrant；为空则不启用豁免
     bkbaseBizApiUrl: ""            # bkbase网关获取业务列表地址
     innerBkAppCode: ""           # 统一凭据 app_code（同步 + 鉴权）
     innerBkAppSecret: ""         # 统一凭据 app_secret（同步 + 鉴权）

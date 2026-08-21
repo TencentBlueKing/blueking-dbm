@@ -112,6 +112,7 @@ func TestResolve_Create_TopLevelStorageAddonType(t *testing.T) {
 
 	require.NoError(t, err)
 	assert.Equal(t, "k8s_surrealdb_ha", result.ClusterType)
+	assert.Equal(t, "surrealdb", result.AddonType)
 	assert.Equal(t, uint64(0), result.DbmClusterID, "create operation should have DbmClusterID=0")
 }
 
@@ -122,6 +123,7 @@ func TestResolve_Create_NestedStorageAddonType(t *testing.T) {
 
 	require.NoError(t, err)
 	assert.Equal(t, "k8s_victoriametrics_ha", result.ClusterType)
+	assert.Equal(t, "victoriametrics", result.AddonType)
 }
 
 func TestResolve_Create_MissingStorageAddonType(t *testing.T) {
@@ -164,6 +166,7 @@ func TestResolve_NonCreate_DBQuerySuccess(t *testing.T) {
 
 	require.NoError(t, err)
 	assert.Equal(t, "k8s_qdrant_ha", result.ClusterType)
+	assert.Equal(t, "qdrant", result.AddonType)
 	assert.Equal(t, uint64(999), result.DbmClusterID)
 }
 
@@ -364,6 +367,7 @@ func TestResolve_NonCreate_NestedFields(t *testing.T) {
 
 	require.NoError(t, err)
 	assert.Equal(t, "k8s_risingwave_ha", result.ClusterType)
+	assert.Equal(t, "risingwave", result.AddonType)
 	assert.Equal(t, uint64(77), result.DbmClusterID)
 }
 
@@ -419,6 +423,7 @@ func TestResolve_Create_ExplicitClusterType_Trusted(t *testing.T) {
 
 	require.NoError(t, err)
 	assert.Equal(t, "k8s_milvus_ha", result.ClusterType)
+	assert.Equal(t, "milvus", result.AddonType)
 }
 
 // --- Addon 操作测试 ---

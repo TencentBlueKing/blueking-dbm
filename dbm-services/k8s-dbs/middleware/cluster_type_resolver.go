@@ -54,6 +54,7 @@ func IsResolverError(err error) bool {
 // ResolveResult 包含 resolver 推断出的集群类型和可选的 DBM cluster ID。
 type ResolveResult struct {
 	ClusterType  string // cluster_type，如 "k8s_surrealdb_ha"
+	AddonType    string // addon_type，如 "surrealdb"，用于存储白名单匹配
 	DbmClusterID uint64 // DBM 侧的集群 ID（非创建操作从本地 DB 获取，创建操作为 0）
 	BkBizID      uint64 // 业务 ID（非创建操作从本地 DB 获取，创建操作为 0）
 }
@@ -117,7 +118,7 @@ func (r *DBClusterTypeResolver) resolveForCreate(rawJSON []byte) (*ResolveResult
 	if !ok {
 		return nil, newResolverError("未知的 addon 类型: %s (topoName=%s)", addonType, topoName)
 	}
-	return &ResolveResult{ClusterType: clusterType, DbmClusterID: 0}, nil
+	return &ResolveResult{ClusterType: clusterType, AddonType: addonType, DbmClusterID: 0}, nil
 }
 
 // resolveForNonCreate 从 DB 查询集群的 addonType 并映射到 IAM cluster_type。
@@ -188,6 +189,7 @@ func (r *DBClusterTypeResolver) resolveForNonCreate(apiName string, rawJSON []by
 
 	return &ResolveResult{
 		ClusterType:  clusterType,
+		AddonType:    addonType,
 		DbmClusterID: clusterEntity.DbmClusterID,
 		BkBizID:      clusterEntity.BkBizID,
 	}, nil
