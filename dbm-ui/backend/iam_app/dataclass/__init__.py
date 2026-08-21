@@ -70,7 +70,7 @@ def generate_iam_migration_json(json_name: str = ""):
 
     # 获取资源的json内容
     for resource in _all_resources.values():
-        if resource.system_id != env.BK_IAM_SYSTEM_ID:
+        if resource.system_id != env.BK_IAM_SYSTEM_ID or resource.iamv3_disable:
             continue
 
         iam_resources.append(resource.to_json())
@@ -184,15 +184,24 @@ def migrate_iamv4_model(dry_run: bool = False) -> Dict[str, Any]:
     根据dataclass的定义迁移V4权限模型，包含系统、资源类型、操作和角色的创建与更新。
     与V3的差异：没有实例视图、操作组、常用操作和资源创建联动，常用操作的语义由角色承载
     """
+    v4_resource_types = [resource.to_json_v4() for resource in _all_resources.values() if not resource.iamv4_disable]
+    v4_actions = [action.to_json_v4() for action in _all_actions.values() if not action.is_disabled_v4()]
+    v4_roles = [role.to_json_v4() for role in _all_roles.values()]
     model = {
         "system": IAM_V4_SYSTEM_DEFINITION,
-        "resource_types": [
-            resource.to_json_v4() for resource in _all_resources.values() if not resource.iamv4_disable
-        ],
-        "actions": [action.to_json_v4() for action in _all_actions.values() if not action.is_disabled_v4()],
-        "roles": [role.to_json_v4() for role in _all_roles.values()],
+        "resource_types": v4_resource_types,
+        "actions": v4_actions,
+        "roles": v4_roles,
     }
     return IAMV4Api.migrate_model(model, dry_run=dry_run)
+
+
+def delete_iamv4_model(dry_run: bool = False) -> Dict[str, Any]:
+    """
+    清空V4权限模型但保留系统，删除的是远端现存的全部角色、操作与资源类型，不依赖本地定义，
+    注意：模型删除后相关的授权数据一并失效且不可恢复，仅用于开发测试环境重建模型
+    """
+    return IAMV4Api.delete_model(dry_run=dry_run)
 
 
 def generate_resource_topo_auth(res_actions: list, bk_biz_id: int = None, bk_biz_name=None):
