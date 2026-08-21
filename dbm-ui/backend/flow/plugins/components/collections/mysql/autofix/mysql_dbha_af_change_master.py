@@ -15,7 +15,6 @@ from django.utils.translation import gettext as _
 from pipeline.component_framework.component import Component
 
 from backend.components import DRSApi
-from backend.db_meta.models import StorageInstance, StorageInstanceTuple
 from backend.flow.plugins.components.collections.common.base_service import BaseService
 
 logger = logging.getLogger("root")
@@ -70,19 +69,21 @@ class MySQLDBHAAFChangeMasterService(BaseService):
             if cmdr["error_msg"]:
                 return False
 
-        old_master_instance = StorageInstance.objects.get(
-            machine__ip=old_master_address.split(":")[0], port=old_master_address.split(":")[1]
-        )
-        new_master_instance = StorageInstance.objects.get(
-            machine__ip=new_master_address.split(":")[0], port=new_master_address.split(":")[1]
-        )
-        ro_slave_instance = StorageInstance.objects.get(
-            machine__ip=ro_slave_address.split(":")[0], port=ro_slave_address.split(":")[1]
-        )
-
-        stp = StorageInstanceTuple.objects.get(ejector=old_master_instance, receiver=ro_slave_instance)
-        stp.ejector = new_master_instance
-        stp.save(update_fields=["ejector"])
+        # 给 dbha 的 swap api 做了 tuple 修正了, 所以这里不用做了
+        # 代码先留在这里
+        # old_master_instance = StorageInstance.objects.get(
+        #     machine__ip=old_master_address.split(":")[0], port=old_master_address.split(":")[1]
+        # )
+        # new_master_instance = StorageInstance.objects.get(
+        #     machine__ip=new_master_address.split(":")[0], port=new_master_address.split(":")[1]
+        # )
+        # ro_slave_instance = StorageInstance.objects.get(
+        #     machine__ip=ro_slave_address.split(":")[0], port=ro_slave_address.split(":")[1]
+        # )
+        #
+        # stp = StorageInstanceTuple.objects.get(ejector=old_master_instance, receiver=ro_slave_instance)
+        # stp.ejector = new_master_instance
+        # stp.save(update_fields=["ejector"])
 
         self.log_info(_("同步关系更新完成"))
         return True
