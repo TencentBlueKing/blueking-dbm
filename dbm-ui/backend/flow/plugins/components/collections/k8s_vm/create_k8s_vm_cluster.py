@@ -24,7 +24,6 @@ from backend.flow.utils.k8s_vm.consts import (
     COMPONENT_VMINSERT,
     COMPONENT_VMSELECT,
     COMPONENT_VMSTORAGE,
-    HA_TAGS,
     HA_TOPO_NAME,
     NAMESPACE_PREFIX,
     STORAGE_ADDON_TYPE,
@@ -105,7 +104,6 @@ class CreateK8sVmClusterService(BaseService):
             "componentList": component_list,
             "async_to_dbm": False,
             "bk_username": global_data["created_by"],
-            "tags": HA_TAGS,
             "observeConfig": {
                 "bkLogConfig": {"enabled": False},
                 "svcMonitor": {"enabled": True, "interval": "60s", "labels": {}},
