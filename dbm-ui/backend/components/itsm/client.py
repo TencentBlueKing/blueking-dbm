@@ -13,6 +13,7 @@ from django.utils.translation import gettext_lazy as _
 
 from backend.configuration.constants import SystemSettingsEnum
 from backend.configuration.models.system import SystemSettings
+from backend.ticket.constants import ItsmShowTable
 
 from ..base import BaseApi
 from ..domains import ITSM_APIGW_DOMAIN, ITSM_V4_APIGW_DOMAIN
@@ -80,10 +81,47 @@ class _ItsmV4Api(BaseApi):
         return [item.strip() for item in value.split(",") if item.strip()]
 
     @classmethod
+    def format_dynamic_fields(cls, dynamic_fields):
+        link_field = next((field for field in dynamic_fields if field.get("type") == "LINK"), {})
+        string_fields = [field for field in dynamic_fields if field.get("type") == "STRING"]
+
+        return {
+            "schemes": {
+                "base_table_scheme": {
+                    "type": "table",
+                    "attrs": {
+                        "column": [
+                            {"name": "检查项", "type": "text", "key": "column1", "attrs": {"width": 10}},
+                            {"name": "内容", "type": "text", "key": "column2", "attrs": {"width": 10}},
+                        ]
+                    },
+                }
+            },
+            "data": [
+                {
+                    "label": link_field.get("name", ""),
+                    "scheme": "base_table_scheme",
+                    "extras": {"link": link_field.get("value", "")},
+                    "value": [
+                        {
+                            "column1": {"value": field.get("name", "")},
+                            "column2": {"value": field.get("value", "")},
+                        }
+                        for field in string_fields
+                    ],
+                }
+            ],
+        }
+
+    @classmethod
     def format_create_ticket_params(cls, params):
+        dynamic_fields = params.get("dynamic_fields", [])
         if "workflow_key" in params and "form_data" in params:
             if "approver" in params["form_data"]:
                 params["form_data"]["approver"] = cls.format_operator_value(params["form_data"]["approver"])
+            params["form_data"]["show_table"] = (
+                ItsmShowTable.SHOW.value if dynamic_fields else ItsmShowTable.HIDE.value
+            )
             return params
 
         form_data = {}
@@ -91,14 +129,19 @@ class _ItsmV4Api(BaseApi):
             key = field.get("key")
             if not key:
                 continue
+            value = field.get("value")
             if key == "title":
                 key = "ticket__title"
             if key == "ticket_url":
-                key = "v4_ticket_url"
-            value = field.get("value")
+                key = "dbm_ticket_url"
+                value = {"show_text": "点击查看", "url": value}
             if key == "approver":
                 value = cls.format_operator_value(value)
             form_data[key] = value
+
+        form_data["show_table"] = ItsmShowTable.SHOW.value if dynamic_fields else ItsmShowTable.HIDE.value
+        if dynamic_fields:
+            form_data["dynamic_fields"] = cls.format_dynamic_fields(dynamic_fields)
 
         return {
             "workflow_key": cls.get_workflow_key(),
