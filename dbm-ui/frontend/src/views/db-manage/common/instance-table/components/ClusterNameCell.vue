@@ -1,9 +1,6 @@
 <template>
   <TextOverflowLayout>
-    <AuthButton
-      :action-id="viewActionId"
-      :permission="Boolean(_.get(data.permission, viewActionId))"
-      :resource="data.id"
+    <BkButton
       text
       theme="primary"
       @click="(event: MouseEvent) => handleToDetails(data.cluster_id, event)">
@@ -12,7 +9,7 @@
         :keyword="searchKeyword">
         {{ data.cluster_name }}
       </TextHighlight>
-    </AuthButton>
+    </BkButton>
     <template #append>
       <slot
         name="append"
@@ -26,7 +23,6 @@
   </TextOverflowLayout>
 </template>
 <script setup lang="ts">
-  import _ from 'lodash';
   import type { VNode } from 'vue';
   import { useI18n } from 'vue-i18n';
   import { useRoute } from 'vue-router';
@@ -60,40 +56,31 @@
     ISupportClusterType,
     {
       routeName: string;
-      viewActionId: string;
     }
   > = {
     [ClusterTypes.MONGO_REPLICA_SET]: {
       routeName: 'MongoDBReplicaSetDetail',
-      viewActionId: 'mongodb_view',
     },
     [ClusterTypes.MONGO_SHARED_CLUSTER]: {
       routeName: 'MongoDBSharedClusterDetail',
-      viewActionId: 'mongodb_view',
     },
     [ClusterTypes.ORACLE_PRIMARY_STANDBY]: {
       routeName: 'OracleHaDetail',
-      viewActionId: 'oracle_view',
     },
     [ClusterTypes.REDIS_CLUSTER]: {
       routeName: 'redisClusterDetail',
-      viewActionId: 'redis_view',
     },
     [ClusterTypes.REDIS_INSTANCE]: {
       routeName: 'redisClusterHaDetail',
-      viewActionId: 'redis_view',
     },
     [ClusterTypes.SQLSERVER_HA]: {
       routeName: 'SqlServerHaClusterDetail',
-      viewActionId: 'sqlserver_view',
     },
     [ClusterTypes.TENDBCLUSTER]: {
       routeName: 'tendbClusterDetail',
-      viewActionId: 'tendbcluster_view',
     },
     [ClusterTypes.TENDBHA]: {
       routeName: 'tendbHaDetail',
-      viewActionId: 'mysql_view',
     },
   };
 
@@ -102,8 +89,6 @@
   const router = useRouter();
 
   const searchKeyword = ref('');
-
-  const viewActionId = computed(() => infoMap[props.clusterType].viewActionId);
 
   watch(
     route,
