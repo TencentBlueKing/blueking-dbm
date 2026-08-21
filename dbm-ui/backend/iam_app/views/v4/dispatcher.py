@@ -131,8 +131,11 @@ class IAMV4ResourceApiDispatcher(DjangoBasicResourceApiDispatcher):
 
     @staticmethod
     def _list_instance_filter(data: Dict) -> FancyDict:
-        """V4的关键字字段是 keyword，provider 同时读 search 和 keyword，这里补齐 search"""
-        filter_obj = get_filter_obj(data.get("filter"), ["parent", "keyword"])
+        """
+        V4的关键字字段是 keyword和parent(ancestors可选？)
+        provider 同时读 search 和 keyword，这里补齐 search。
+        """
+        filter_obj = get_filter_obj(data.get("filter"), ["parent", "ancestors", "keyword"])
         filter_obj.search = filter_obj.keyword
         return filter_obj
 
