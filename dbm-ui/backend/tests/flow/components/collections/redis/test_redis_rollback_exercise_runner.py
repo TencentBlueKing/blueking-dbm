@@ -113,9 +113,9 @@ def _mock_preserved_report():
 
 
 def _assert_scene_preserved(result, data, service, mock_revoke, report):
-    assert result is False
+    assert result is True
     assert data.outputs.rollback_code == 1
-    service.finish_schedule.assert_not_called()
+    service.finish_schedule.assert_called_once()
     mock_revoke.assert_not_called()
     report.mark.assert_called_once()
     assert report.mark.call_args.args[0] == TaskStage.SCENE_PRESERVED
@@ -287,6 +287,24 @@ def test_execute_flow_launch_exception_sets_code_1():
     assert result is True
     assert data.outputs.rollback_code == 1
     service.finish_schedule.assert_called_once()
+
+
+def test_execute_rejected_child_launch_sets_code_1_without_recording_fake_child():
+    service, data = _execute()
+
+    with patch(f"{RUNNER_MOD}.generate_root_id", return_value=CHILD_ROOT_ID), patch(
+        f"{RUNNER_MOD}.RedisDataStructureFlow.redis_data_structure_flow", return_value=False
+    ), patch(f"{RUNNER_MOD}.Report.objects.filter") as mock_report_filter, patch(
+        f"{RUNNER_MOD}.cache.set"
+    ) as mock_cache_set:
+        result = service._execute_inner_captured(data, parent_data=None)
+
+    assert result is True
+    assert data.outputs.rollback_code == 1
+    service.finish_schedule.assert_called_once()
+    mock_report_filter.assert_not_called()
+    mock_cache_set.assert_not_called()
+    assert not hasattr(data.outputs, "child_root_id")
 
 
 # ==================== Best-effort cleanup guards ====================
@@ -507,7 +525,7 @@ def test_cleanup_script_removes_only_allowlisted_work_dirs():
 @patch(f"{RUNNER_MOD}.Report.objects.get")
 @patch(f"{RUNNER_MOD}.BambooEngine.revoke_pipeline")
 @patch(f"{RUNNER_MOD}.FlowTree.objects.get")
-def test_failed_preserve_marks_scene_and_returns_false(
+def test_failed_preserve_marks_scene_and_finishes_runner(
     mock_flowtree_get, mock_revoke, mock_report_get, _mock_embed, child_state, via
 ):
     mock_flowtree_get.return_value = SimpleNamespace(status=child_state)
@@ -527,7 +545,7 @@ def test_failed_preserve_marks_scene_and_returns_false(
 @patch(EMBED_PATCH, return_value=_EMBEDDED_LOGS)
 @patch(f"{RUNNER_MOD}.Report.objects.get")
 @patch(f"{RUNNER_MOD}.BambooEngine.revoke_pipeline", return_value=_OK_REVOKE)
-def test_timeout_preserve_does_not_revoke_and_returns_false(mock_revoke, mock_report_get, _mock_embed):
+def test_timeout_preserve_does_not_revoke_and_finishes_runner(mock_revoke, mock_report_get, _mock_embed):
     report = _mock_preserved_report()
     mock_report_get.return_value = report
     service = _make_runner()
@@ -539,15 +557,16 @@ def test_timeout_preserve_does_not_revoke_and_returns_false(mock_revoke, mock_re
 
 @patch(f"{RUNNER_MOD}.Report.objects.get")
 @patch(f"{RUNNER_MOD}.BambooEngine.revoke_pipeline")
-def test_callback_failed_preserve_report_missing_still_returns_false(mock_revoke, mock_report_get):
+def test_callback_failed_preserve_report_missing_still_finishes_runner(mock_revoke, mock_report_get):
     mock_report_get.side_effect = RedisRollbackExerciseReport.DoesNotExist
     service = _make_runner()
     data = _build_schedule_data(preserve=True)
 
     result = _schedule(service, data, child_state=StateType.FAILED)
 
-    assert result is False
+    assert result is True
     assert data.outputs.rollback_code == 1
+    service.finish_schedule.assert_called_once()
 
 
 @patch(EMBED_PATCH)

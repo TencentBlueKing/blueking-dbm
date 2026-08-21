@@ -354,7 +354,7 @@ class TestReportStateMapping(TestCase):
         assert TaskStage.SCENE_PRESERVED in REDIS_ROLLBACK_EXER_FAILED_STAGES
 
     def test_mark_scene_preserved_then_rollback_failed_transition(self):
-        """SCENE_PRESERVED does not set task_end_time; DBA skip can overwrite to a terminal failure."""
+        """SCENE_PRESERVED stays open until DBA confirmation marks a terminal failure."""
         report = Report.objects.create(**self.common_kwargs)
 
         report.mark(TaskStage.SCENE_PRESERVED, task_message="scene held")

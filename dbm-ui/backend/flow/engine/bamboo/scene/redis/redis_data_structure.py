@@ -126,7 +126,7 @@ class RedisDataStructureFlow(object):
         for info in self.data["infos"]:
             sub_pipelines_multi_cluster.append(self.build_cluster_data_structure(info))
         redis_pipeline_all.add_parallel_sub_pipeline(sub_flow_list=sub_pipelines_multi_cluster)
-        redis_pipeline_all.run_pipeline()
+        return redis_pipeline_all.run_pipeline()
 
     def build_cluster_data_structure(self, info: dict):
         """Build a SubProcess for a single cluster's data-structure steps.

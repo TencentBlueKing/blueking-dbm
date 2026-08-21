@@ -317,11 +317,14 @@ class RedisExerciseFlowRunnerService(RedisLogCapturingService):
         setattr(data.outputs, output_var, code)
 
     def _finish_by_child_state(self, data, child_root_id: str, child_state):
-        """Tri-state; callers must propagate the return value:
+        """Handle child state and return whether the runner can complete:
 
-        - True: child finished; schedule completed (finish_schedule already called).
-        - False: terminal preserve — return False so the engine marks this node FAILED and stops.
-        - None: child still running; keep polling.
+        - True: child reached a terminal state; schedule completed.
+        - None: child is still running; keep polling.
+
+        A child failure is a business outcome, not a runner failure. Preserve mode
+        records the scene and lets the following pause node hold this branch for
+        manual confirmation, keeping the parent ticket RUNNING.
         """
         if child_state == StateType.FINISHED:
             self.log_info(_("Child pipeline {} finished successfully").format(child_root_id))
@@ -331,17 +334,19 @@ class RedisExerciseFlowRunnerService(RedisLogCapturingService):
 
         if child_state in (StateType.FAILED, StateType.REVOKED):
             if data.get_one_of_outputs("preserve_scene_on_failure"):
-                # Preserve: do not revoke the child or clean up. Node stays FAILED until DBA skips,
-                # then the gateway marks failure and cleanup runs.
+                # Preserve the child and complete this runner normally. The failure
+                # output routes the branch to a manual-confirmation pause node.
                 self.log_error(
                     _(
                         "Child pipeline {} ended with status {}, scene preserved for manual inspection. "
-                        "Please investigate and click 'skip' on this node to mark the rollback failed and clean up."
+                        "Please investigate and complete the following confirmation node to mark the failure "
+                        "and clean up."
                     ).format(child_root_id, child_state)
                 )
                 self._set_result(data, 1)
                 self._preserve_scene(data, child_root_id)
-                return False
+                self.finish_schedule()
+                return True
 
             self.log_error(_("Child pipeline {} ended with status {}").format(child_root_id, child_state))
             # FAILED means the pipeline errored out but sibling/pending nodes may still be running.
@@ -358,7 +363,8 @@ class RedisExerciseFlowRunnerService(RedisLogCapturingService):
         """Mark this runner's report as SCENE_PRESERVED.
 
         Embed child failure-node logs before mark so task_message keeps evidence.
-        Mark failures are logged only; the node still stays FAILED.
+        Mark failures are logged only; the runner still completes so the
+        following pause node can preserve the scene without failing the ticket.
         """
         kwargs = data.get_one_of_inputs("kwargs") or {}
         report_id = kwargs.get("report_id")
@@ -502,9 +508,17 @@ class RedisExerciseFlowRunnerService(RedisLogCapturingService):
 
         try:
             flow_instance = flow_class(root_id=child_root_id, data=copy.deepcopy(flow_data))
-            getattr(flow_instance, method_name)()
+            launch_result = getattr(flow_instance, method_name)()
         except Exception as e:
             self.log_error(_("Failed to run {} (root_id={}): {}").format(flow_identifier, child_root_id, e))
+            self._set_result(data, 1)
+            self.finish_schedule()
+            return True
+
+        if launch_result is False:
+            self.log_error(
+                _("Child pipeline {} ({}) was rejected before submission").format(child_root_id, flow_identifier)
+            )
             self._set_result(data, 1)
             self.finish_schedule()
             return True
@@ -571,17 +585,19 @@ class RedisExerciseFlowRunnerService(RedisLogCapturingService):
 
         if elapsed > polling_timeout:
             if data.get_one_of_outputs("preserve_scene_on_failure"):
-                # Preserve: do not revoke — the hung child *is* the scene. Node stays FAILED until DBA skip.
+                # Preserve: do not revoke — the hung child is the scene. Complete
+                # the runner and let the following pause node hold the branch.
                 self.log_error(
                     _(
                         "Child pipeline {} timed out after {:.0f}s, still running and scene preserved for manual "
-                        "inspection. Please investigate and click 'skip' on this node to mark the rollback failed "
-                        "and clean up."
+                        "inspection. Please investigate and complete the following confirmation node to mark "
+                        "the failure and clean up."
                     ).format(child_root_id, elapsed)
                 )
                 self._set_result(data, 1)
                 self._preserve_scene(data, child_root_id)
-                return False
+                self.finish_schedule()
+                return True
             self.log_error(_("Child pipeline {} timed out after {:.0f}s").format(child_root_id, elapsed))
             self._terminate_child_pipeline(child_root_id)
             self._set_result(data, 1)
@@ -594,7 +610,7 @@ class RedisExerciseFlowRunnerService(RedisLogCapturingService):
             return True
 
         outcome = self._finish_by_child_state(data, child_root_id, flow_tree.status)
-        # None (still running) -> keep polling (True); True/False pass through (False fails the node).
+        # None (still running) -> keep polling; terminal states finish the runner.
         return True if outcome is None else outcome
 
 

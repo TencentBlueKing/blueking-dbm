@@ -11,6 +11,7 @@ from backend.flow.engine.bamboo.scene.redis.revoke.redis_rollback_exercise_revok
     RedisRollbackExerciseRevokeFlow,
 )
 from backend.flow.engine.controller.redis import RedisController
+from backend.flow.plugins.components.collections.common.pause import PauseComponent
 from backend.flow.plugins.components.collections.redis.redis_rollback_exercise import (
     RedisExerciseBestEffortCleanupComponent,
     RedisExerciseBestEffortCleanupService,
@@ -156,13 +157,15 @@ def _build_sub_flow_with_config(drill_config: dict):
 
 
 @pytest.mark.parametrize(
-    "drill_config, error_ignorable, preserve, shield_duration, shield_name_contains",
+    "drill_config, error_ignorable, preserve, pause_count, shield_duration, shield_name_contains",
     [
-        pytest.param({}, False, True, max(3600, 4320 * 60), "4320.0 mins", id="preserve"),
-        pytest.param({"error_ignorable": True}, True, False, 3600, None, id="ignorable"),
+        pytest.param({}, False, True, 2, max(3600, 4320 * 60), "4320.0 mins", id="preserve"),
+        pytest.param({"error_ignorable": True}, True, False, 0, 3600, None, id="ignorable"),
     ],
 )
-def test_build_runner_flow_kwargs(drill_config, error_ignorable, preserve, shield_duration, shield_name_contains):
+def test_build_runner_flow_kwargs(
+    drill_config, error_ignorable, preserve, pause_count, shield_duration, shield_name_contains
+):
     acts = _build_sub_flow_with_config(drill_config)
 
     runner_acts = [a for a in acts if a["act_component_code"] == RedisExerciseFlowRunnerComponent.code]
@@ -171,6 +174,9 @@ def test_build_runner_flow_kwargs(drill_config, error_ignorable, preserve, shiel
         assert act["extra"]["error_ignorable"] is error_ignorable
         assert act["extra"]["retryable"] is False
         assert act["kwargs"]["preserve_scene_on_failure"] is preserve
+
+    pause_acts = [a for a in acts if a["act_component_code"] == PauseComponent.code]
+    assert len(pause_acts) == pause_count
 
     shield_act = next(a for a in acts if a["act_component_code"] == RedisRollbackExerciseAlarmShieldComponent.code)
     assert shield_act["kwargs"]["duration_seconds"] == shield_duration

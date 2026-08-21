@@ -46,6 +46,6 @@ FAILED_STAGES = [
     RedisRollbackExerciseTaskStage.RESOURCE_APPLI_FAILED,
     RedisRollbackExerciseTaskStage.ROLLBACK_FAILED,
     RedisRollbackExerciseTaskStage.CLEANUP_FAILED,
-    # Count as failed: weights the cluster now; DBA skip later marks a terminal failure
+    # Count as failed: weights the cluster now; DBA confirmation later marks a terminal failure
     RedisRollbackExerciseTaskStage.SCENE_PRESERVED,
 ]

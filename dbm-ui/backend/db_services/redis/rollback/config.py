@@ -73,8 +73,8 @@ class RedisRollbackExerciseConfig:
     not_exercised_days_threshold: int = 180  # Days threshold for "not exercised" status
 
     # Error handling
-    # False (default): on child failure/timeout, stop and keep the scene
-    # (temp instances and child pipelines stay) until DBA skips the node; then mark failed and clean up.
+    # False (default): on child failure/timeout, keep the scene and wait at a manual
+    # confirmation node; the ticket remains RUNNING so sibling branches can continue.
     # True: legacy behavior — continue and clean up immediately.
     error_ignorable: bool = False
     # Alarm-shield duration (minutes) while the scene is preserved, so temp instances stay quiet.
