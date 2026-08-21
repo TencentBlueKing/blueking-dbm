@@ -21,7 +21,7 @@ from backend.configuration.constants import DBType
 from backend.db_meta.enums import ClusterType, InstanceRole
 from backend.db_meta.models import AppCache
 from backend.env import BK_IAM_SYSTEM_ID, ENABLE_IAM_V4
-from backend.iam_app.constans import GLOBAL_BIZ_ID_V4, RoleActionLabel
+from backend.iam_app.constans import COMMON_DB_TYPE, GLOBAL_BIZ_ID_V4, RoleActionLabel
 from backend.iam_app.exceptions import ResourceNotExistError
 
 
@@ -48,6 +48,8 @@ class ResourceMeta(metaclass=abc.ABCMeta):
     ancestors_v4: List["ResourceMeta"] = None  # V4 资源拓扑，从根到直接上级，顶层资源为空
     # 该资源及其关联动作不同步到V4。V4要求祖先链是严格的层级链，多平行父级的资源暂时无法注册
     iamv4_disable: bool = False
+    # 该资源不同步到V3，用于V4专有的资源类型
+    iamv3_disable: bool = False
     # 资源创建后授予创建者的角色，为空表示不做创建者授权。V4没有属性授权，改为对实例直接授权
     creator_role_v4: RoleActionLabel = None
 
@@ -161,6 +163,10 @@ class ResourceMeta(metaclass=abc.ABCMeta):
         }
         return resource_json
 
+    def make_ancestor_filter(self, instance_id: str) -> Dict:
+        """反向拉取时本资源作为祖先，转换为子资源的数据查询条件。"""
+        return {self.lookup_field: instance_id}
+
     def get_ancestors_v4(self) -> List["ResourceMeta"]:
         """
         获取V4的资源拓扑，顺序为从根到直接上级。
@@ -176,6 +182,10 @@ class ResourceMeta(metaclass=abc.ABCMeta):
             "ancestors": [resource.id for resource in self.get_ancestors_v4()],
         }
         return resource_json
+
+    def make_resource_v4(self, resources: List[Resource]) -> Union[Resource, None]:
+        """V4一个动作只关联一个资源类型，默认按类型匹配，需要合成实例的资源类型可覆写"""
+        return next((resource for resource in resources if resource.type == self.id), None)
 
 
 @dataclass
@@ -246,25 +256,69 @@ class DBTypeResourceMeta(ResourceMeta):
     selection_mode: str = "instance"
     lookup_field: str = "db_type"
 
+    @staticmethod
+    def get_display_name(db_type: str) -> str:
+        if db_type == COMMON_DB_TYPE:
+            return _("通用")
+        return DBType.get_choice_label(db_type)
+
     def create_instance(self, instance_id: str, attr=None) -> Resource:
         resource = self._create_simple_instance(instance_id, attr)
-        resource.attribute = {"id": str(instance_id), "name": DBType.get_choice_label(instance_id)}
+        resource.attribute = {"id": str(instance_id), "name": self.get_display_name(instance_id)}
         return resource
 
 
 @dataclass
-class TicketGroupResourceMeta(DBTypeResourceMeta):
-    """单据分类的resource 属性定义，与dbtype的唯一区别是多了个'其他'分类"""
+class BizDBTypeResourceMeta(ResourceMeta):
+    """业务DB类型resource 属性定义
 
-    id: str = "ticket_group"
-    name: str = _("单据分类")
+    V4的一个动作只能关联一个资源类型，无法表达「业务 + DB类型」这种双维度的管控。
+    这里把两者合成一个挂在业务下的资源类型，实例ID为 {业务ID}-{DB类型}，
+    按业务授权时通过祖先链自动覆盖其下所有DB类型。仅V4使用。
+    """
+
+    system_id: str = BK_IAM_SYSTEM_ID
+    id: str = "biz_dbtype"
+    name: str = _("业务DB类型")
+    selection_mode: str = "instance"
+    lookup_field: str = "biz_db_type"
+    parent: ResourceMeta = field(default_factory=BusinessResourceMeta)
+
+    ancestors_v4: List[ResourceMeta] = ResourceMeta.Field([DBMBizResourceMeta()])
+    iamv3_disable: bool = True
+
+    @staticmethod
+    def make_instance_id(bk_biz_id: Union[int, str], db_type: str) -> str:
+        # DB类型自身含下划线(如 k8s_surrealdb)，用连字符分隔避免解析歧义
+        return "{}-{}".format(bk_biz_id, db_type)
+
+    @staticmethod
+    def parse_instance_id(instance_id: str) -> Tuple[str, str]:
+        bk_biz_id, __, db_type = str(instance_id).partition("-")
+        return bk_biz_id, db_type
 
     def create_instance(self, instance_id: str, attr=None) -> Resource:
         resource = self._create_simple_instance(instance_id, attr)
-        resource.attribute = {"id": str(instance_id), "name": DBType.get_choice_label(instance_id)}
-        if instance_id == "other":
-            resource.attribute["name"] = _("其他")
+        bk_biz_id, db_type = self.parse_instance_id(instance_id)
+        resource.attribute = {
+            "id": str(instance_id),
+            "name": str(DBTypeResourceMeta.get_display_name(db_type) or db_type),
+            "_bk_iam_path_": "/{},{}/".format(BusinessResourceMeta.id, bk_biz_id),
+        }
         return resource
+
+    def make_ancestor_filter(self, instance_id: str) -> Dict:
+        """本资源是合成的，作为祖先过滤子资源时要拆回业务与DB类型两个维度"""
+        bk_biz_id, db_type = self.parse_instance_id(instance_id)
+        return {BusinessResourceMeta.lookup_field: bk_biz_id, DBTypeResourceMeta.lookup_field: db_type}
+
+    def make_resource_v4(self, resources: List[Resource]) -> Union[Resource, None]:
+        """上层仍按V3传入业务与DB类型两个实例，这里合成V4的单个资源实例"""
+        biz = next((item for item in resources if item.type == BusinessResourceMeta.id), None)
+        db_type = next((item for item in resources if item.type == DBTypeResourceMeta.id), None)
+        if not biz or not db_type:
+            return None
+        return self.create_instance(self.make_instance_id(biz.id, db_type.id))
 
 
 @dataclass
@@ -282,9 +336,8 @@ class TaskFlowResourceMeta(ResourceMeta):
     attribute_display: str = _("创建者")
     parent: ResourceMeta = field(default_factory=BusinessResourceMeta)
 
-    # ticket_group 是顶层资源，无法作为 biz 的下一级，该拓扑暂时无法在V4注册
-    ancestors_v4: List[ResourceMeta] = ResourceMeta.Field([DBMBizResourceMeta(), TicketGroupResourceMeta()])
-    iamv4_disable: bool = True
+    # V3挂在单据分类下，V4的单据分类没有业务维度，改挂业务DB类型
+    ancestors_v4: List[ResourceMeta] = ResourceMeta.Field([DBMBizResourceMeta(), BizDBTypeResourceMeta()])
 
     def create_instance(self, instance_id: str, attr=None) -> Resource:
         from backend.flow.models import FlowTree
@@ -300,15 +353,12 @@ class TaskFlowResourceMeta(ResourceMeta):
         return resources
 
     def get_bk_iam_path(self, instance):
-        biz_topo = "/{},{}".format(BusinessResourceMeta.id, instance.bk_biz_id)
-        group_topo = "/{},{}".format(TicketGroupResourceMeta.id, instance.db_type or "other")
-        slash = "/"
-        return biz_topo + group_topo + slash
+        return TicketResourceMeta.make_iam_path(instance.bk_biz_id, instance.db_type)
 
     def resource_type_chain(self):
         return [
             {"system_id": BusinessResourceMeta.system_id, "id": BusinessResourceMeta.id},
-            {"system_id": TicketGroupResourceMeta.system_id, "id": TicketGroupResourceMeta.id},
+            {"system_id": DBTypeResourceMeta.system_id, "id": DBTypeResourceMeta.id},
             {"system_id": self.system_id, "id": self.id},
         ]
 
@@ -328,9 +378,8 @@ class TicketResourceMeta(ResourceMeta):
     attribute_display: str = _("创建者")
     parent: ResourceMeta = field(default_factory=BusinessResourceMeta)
 
-    # ticket_group 是顶层资源，无法作为 biz 的下一级，该拓扑暂时无法在V4注册
-    ancestors_v4: List[ResourceMeta] = ResourceMeta.Field([DBMBizResourceMeta(), TicketGroupResourceMeta()])
-    iamv4_disable: bool = True
+    # V3挂在单据分类下，V4的单据分类没有业务维度，改挂业务DB类型
+    ancestors_v4: List[ResourceMeta] = ResourceMeta.Field([DBMBizResourceMeta(), BizDBTypeResourceMeta()])
 
     def create_instance(self, instance_id: str, attr=None) -> Resource:
         from backend.ticket.models import Ticket
@@ -345,16 +394,28 @@ class TicketResourceMeta(ResourceMeta):
         resources = [item[0] for item in self.batch_create_with_iam_path(Ticket, instance_ids, attr=attr)]
         return resources
 
+    @staticmethod
+    def make_iam_path(bk_biz_id: Union[int, str], db_type: str) -> str:
+        """
+        单据与任务流程的拓扑路径，无DB类型的归入通用。
+        V3挂在全局的DB类型下，V4挂在业务DB类型下
+        """
+        db_type = db_type or COMMON_DB_TYPE
+        if ENABLE_IAM_V4:
+            child_topo = "{},{}".format(
+                BizDBTypeResourceMeta.id, BizDBTypeResourceMeta.make_instance_id(bk_biz_id, db_type)
+            )
+        else:
+            child_topo = "{},{}".format(DBTypeResourceMeta.id, db_type)
+        return "/{},{}/{}/".format(BusinessResourceMeta.id, bk_biz_id, child_topo)
+
     def get_bk_iam_path(self, instance):
-        biz_topo = "/{},{}".format(BusinessResourceMeta.id, instance.bk_biz_id)
-        group_topo = "/{},{}".format(TicketGroupResourceMeta.id, instance.group or "other")
-        slash = "/"
-        return biz_topo + group_topo + slash
+        return TicketResourceMeta.make_iam_path(instance.bk_biz_id, instance.group)
 
     def resource_type_chain(self):
         return [
             {"system_id": BusinessResourceMeta.system_id, "id": BusinessResourceMeta.id},
-            {"system_id": TicketGroupResourceMeta.system_id, "id": TicketGroupResourceMeta.id},
+            {"system_id": DBTypeResourceMeta.system_id, "id": DBTypeResourceMeta.id},
             {"system_id": self.system_id, "id": self.id},
         ]
 
@@ -825,6 +886,7 @@ class ResourceEnum:
 
     BUSINESS = BusinessResourceMeta()
     DBMBIZ = DBMBizResourceMeta()
+    BIZ_DBTYPE = BizDBTypeResourceMeta()
     TASKFLOW = TaskFlowResourceMeta()
     TICKET = TicketResourceMeta()
     MYSQL = MySQLResourceMeta()
@@ -841,7 +903,6 @@ class ResourceEnum:
     SQLSERVER = SQLServerResourceMeta()
     ORACLE = OracleResourceMeta()
     DBTYPE = DBTypeResourceMeta()
-    TICKET_GROUP = TicketGroupResourceMeta()
     MONITOR_POLICY = MonitorPolicyResourceMeta()
     GLOBAL_MONITOR_POLICY = GlobalMonitorPolicyResourceMeta()
     NOTIFY_GROUP = NotifyGroupResourceMeta()
@@ -885,14 +946,20 @@ class ResourceEnum:
             return cls.INFLUXDB
 
 
-# DBMBIZ 与 BUSINESS 共用 biz 这个ID，只能二选一进字典：
-# V4 不支持跨系统资源，业务资源用挂在dbm下的 DBMBIZ；V3 仍用 cmdb 的 BUSINESS
-_excluded_biz_resource = ResourceEnum.BUSINESS if ENABLE_IAM_V4 else ResourceEnum.DBMBIZ
+def _is_registered_resource(resource: ResourceMeta) -> bool:
+    """
+    资源是否纳入资源字典。DBMBIZ 与 BUSINESS 共用 biz 这个ID，只能二选一：
+    V4不支持跨系统资源，业务资源用挂在dbm下的 DBMBIZ；V3 仍用 cmdb 的 BUSINESS。
+    """
+    if resource.for_select:
+        return False
+    return resource is not (ResourceEnum.BUSINESS if ENABLE_IAM_V4 else ResourceEnum.DBMBIZ)
+
 
 _all_resources = {
     resource.id: resource
     for resource in ResourceEnum.__dict__.values()
-    if isinstance(resource, ResourceMeta) and not resource.for_select and resource is not _excluded_biz_resource
+    if isinstance(resource, ResourceMeta) and _is_registered_resource(resource)
 }
 
 _extra_instance_selections = [
