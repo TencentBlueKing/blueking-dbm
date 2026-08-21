@@ -650,7 +650,7 @@ def test_start_ingests_portrait_and_survives_ingest_failure():
     ]
 
     with patches[0], patches[1], patches[2], patches[3], patches[4], patches[5], patch(
-        "backend.db_periodic_task.local_tasks.redis_backup.check_full_backup.ingest_abnormal_cluster_rows"
+        "backend.db_periodic_task.local_tasks.redis_backup.check_full_backup.ingest_daily_cluster_rows"
     ) as ingest:
         task.start()
 

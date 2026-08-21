@@ -11,18 +11,26 @@ the specific language governing permissions and limitations under the License.
 Redis 集群画像摘要上报助手。
 
 职责：
-    - 按集群聚合巡检异常消息，带检查项前缀写入画像摘要表
+    - 按集群聚合巡检消息，带检查项前缀写入画像摘要表
     - 吞掉 SDK / ORM 异常，绝不阻断巡检主流程
 
+注入策略（每日注入）：
+    - 每个 (集群, 子检查前缀) 每天产一条摘要，**正常态也写**：
+      组内存在告警/异常行时只写这些行的消息；全部正常时写一条固定的正常文案，
+      避免把 N 条实例级 "ok" 拼进摘要。
+    - 因此「时间窗内无摘要」的语义是「当天巡检未执行或未覆盖该集群」，
+      不再是「健康」。消费侧口径见 redis_dimensions._DESCRIPTIONS 与
+      redis-portrait-generator skill 的判读规则。
+
 边界：
-    - 只接 daily 巡检源。所有源一天最多产一条摘要，因此不做写入节流；
-      如需接入高频源（一天多次），必须先补节流，否则会压垮画像摘要的信噪比。
+    - 只接 daily 巡检源，一天一条，因此不做写入节流；如需接入高频源（一天多次），
+      必须先补节流，否则会压垮画像摘要的信噪比。
+    - 本表纯追加、无当天去重：巡检任务重跑会在同一天留下重复行（已知取舍）。
 """
 from __future__ import annotations
 
 import logging
-from collections import defaultdict
-from typing import Any, Dict, Iterable, List, Optional, Tuple
+from typing import Any, Dict, Iterable, List, Optional, Set, Tuple
 
 from django.utils import timezone
 from django.utils.translation import gettext as _
@@ -35,6 +43,8 @@ from backend.db_report.portrait.sdk import PortraitIngestSDK, ingest_summary
 
 logger = logging.getLogger("root")
 
+# prefix_by_subtype miss 时的兜底前缀：写入维度摘要，避免静默跳过被消费侧判成巡检缺口。
+UNMAPPED_SUBTYPE_PREFIX = _("[未映射]")
 MAX_MSGS_PER_SUMMARY = 8
 # 单条消息上限：8 条 + 前缀 + 「等共 N 项」仍远低于 SDK 4000 字符硬顶，避免硬切把尾巴截掉。
 _MAX_MSG_CHARS = 400
@@ -98,7 +108,7 @@ def ingest_redis_cluster_summary(
     messages: List[str],
     detail_url: str = "",
 ) -> None:
-    """按集群写入一条画像摘要。无异常消息时不写。失败只记日志，绝不外抛。"""
+    """按集群写入一条画像摘要。messages 为空时不写。失败只记日志，绝不外抛。"""
     try:
         if not messages:
             return
@@ -129,7 +139,7 @@ def ingest_redis_cluster_summary(
         )
 
 
-def ingest_abnormal_cluster_rows(
+def ingest_daily_cluster_rows(
     rows: Iterable[Any],
     *,
     dimension: RedisPortraitDimensionCode,
@@ -137,22 +147,50 @@ def ingest_abnormal_cluster_rows(
     prefix_by_subtype: Optional[Dict[str, str]] = None,
     detail_url: str = "",
 ) -> None:
-    """把实例级巡检行按集群（及可选 subtype）聚合成画像摘要。"""
+    """把实例级巡检行按集群（及可选 subtype）聚合成每日画像摘要。
+
+    每个 (集群, 子检查前缀) 产一条：组内有告警/异常行时只写这些行的消息，
+    全部正常时写一条固定的正常文案。正常行只用来占位分组，其 msg（通常是 "ok"）不入摘要。
+
+    prefix_by_subtype 未命中时不静默丢弃：打 warning，并以 [未映射] 前缀写入摘要（含 subtype），
+    避免消费侧把漏配误判成巡检缺口或健康。
+    """
     try:
-        grouped: Dict[Tuple[str, int, str], List[str]] = defaultdict(list)
+        # 用普通 dict 而非 set 收集分组，保证写入顺序与巡检行顺序一致，便于排查
+        grouped: Dict[Tuple[str, int, str], List[str]] = {}
+        warned_unmapped: Set[Tuple[str, str]] = set()
         for row in rows:
-            if _is_normal_state(_row_get(row, "state")):
-                continue
             domain, bk_biz_id = _cluster_identity(row)
             if not domain or bk_biz_id <= 0:
                 continue
+            subtype = _enum_value(_row_get(row, "subtype"))
             item_prefix = prefix
+            unmapped = False
             if prefix_by_subtype is not None:
-                item_prefix = prefix_by_subtype.get(_enum_value(_row_get(row, "subtype")), "")
+                item_prefix = prefix_by_subtype.get(subtype, "")
+                if not item_prefix:
+                    unmapped = True
+                    item_prefix = UNMAPPED_SUBTYPE_PREFIX
+                    warn_key = (domain, subtype)
+                    if warn_key not in warned_unmapped:
+                        warned_unmapped.add(warn_key)
+                        logger.warning(
+                            "redis portrait ingest unmapped subtype: domain=%s subtype=%s dim=%s",
+                            domain,
+                            subtype or "-",
+                            getattr(dimension, "value", dimension),
+                        )
             if not item_prefix:
                 continue
-            msg = _row_get(row, "msg") or ""
-            grouped[(domain, bk_biz_id, item_prefix)].append(str(msg))
+            messages = grouped.setdefault((domain, bk_biz_id, item_prefix), [])
+            if unmapped:
+                warn_msg = _("subtype={subtype} 未配置检查项前缀").format(subtype=subtype or "-")
+                if warn_msg not in messages:
+                    messages.append(warn_msg)
+            if _is_normal_state(_row_get(row, "state")):
+                continue
+            # 异常行 msg 为空时补占位，避免被下面的正常态兜底误判成「正常」
+            messages.append(str(_row_get(row, "msg") or "") or _("异常（无详情）"))
 
         for (domain, bk_biz_id, item_prefix), messages in grouped.items():
             ingest_redis_cluster_summary(
@@ -160,7 +198,7 @@ def ingest_abnormal_cluster_rows(
                 bk_biz_id=bk_biz_id,
                 dimension=dimension,
                 prefix=item_prefix,
-                messages=messages,
+                messages=messages or [_("正常")],
                 detail_url=detail_url,
             )
     except Exception:  # noqa

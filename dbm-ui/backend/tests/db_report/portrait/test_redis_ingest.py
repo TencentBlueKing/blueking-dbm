@@ -107,7 +107,7 @@ def test_dirty_cluster_identity_skips_row_not_batch(redis_ingest):
         {"cluster": good, "state": ReportStateType.ABNORMAL, "msg": "lonely master", "subtype": "alone_instance"},
     ]
     with patch.object(redis_ingest, "ingest_redis_cluster_summary") as ingest:
-        redis_ingest.ingest_abnormal_cluster_rows(
+        redis_ingest.ingest_daily_cluster_rows(
             rows,
             dimension=RedisPortraitDimensionCode.TOPOLOGY_SCALE,
             prefix="[孤立实例]",
@@ -117,7 +117,7 @@ def test_dirty_cluster_identity_skips_row_not_batch(redis_ingest):
     assert ingest.call_args.kwargs["messages"] == ["lonely master"]
 
 
-def test_ingest_abnormal_rows_groups_and_skips_normal(redis_ingest):
+def test_ingest_daily_rows_groups_by_subtype(redis_ingest):
     cluster = SimpleNamespace(immute_domain="a.redis.db", bk_biz_id=1001)
     rows = [
         {"cluster": cluster, "state": ReportStateType.NORMAL, "msg": "ok", "subtype": "alone_instance"},
@@ -125,14 +125,98 @@ def test_ingest_abnormal_rows_groups_and_skips_normal(redis_ingest):
         {"cluster": cluster, "state": ReportStateType.WARNING, "msg": "not running", "subtype": "status_abnormal"},
     ]
     with patch.object(redis_ingest, "ingest_redis_cluster_summary") as ingest:
-        redis_ingest.ingest_abnormal_cluster_rows(
+        redis_ingest.ingest_daily_cluster_rows(
             rows,
             dimension=RedisPortraitDimensionCode.TOPOLOGY_SCALE,
             prefix_by_subtype={"alone_instance": "[孤立实例]", "status_abnormal": "[实例状态]"},
         )
     assert ingest.call_count == 2
-    prefixes = {call.kwargs["prefix"] for call in ingest.call_args_list}
-    assert prefixes == {"[孤立实例]", "[实例状态]"}
+    by_prefix = {call.kwargs["prefix"]: call.kwargs["messages"] for call in ingest.call_args_list}
+    # 同组内有异常行时，正常行的 "ok" 不入摘要
+    assert by_prefix == {"[孤立实例]": ["lonely master"], "[实例状态]": ["not running"]}
+
+
+def test_ingest_daily_rows_writes_normal_summary_when_all_pass(redis_ingest):
+    """每日注入：全部正常也写一条，且坍缩成固定文案而非拼 N 条实例级 ok。"""
+    cluster = SimpleNamespace(immute_domain="a.redis.db", bk_biz_id=1001)
+    rows = [{"cluster": cluster, "state": ReportStateType.NORMAL, "msg": "ok"} for _ in range(50)]
+    with patch.object(redis_ingest, "ingest_redis_cluster_summary") as ingest:
+        redis_ingest.ingest_daily_cluster_rows(
+            rows,
+            dimension=RedisPortraitDimensionCode.RELIABILITY,
+            prefix="[全备]",
+        )
+    ingest.assert_called_once()
+    assert ingest.call_args.kwargs["messages"] == ["正常"]
+
+
+def test_ingest_daily_rows_normal_cluster_does_not_borrow_abnormal_of_another(redis_ingest):
+    healthy = SimpleNamespace(immute_domain="ok.redis.db", bk_biz_id=1001)
+    broken = SimpleNamespace(immute_domain="bad.redis.db", bk_biz_id=1001)
+    rows = [
+        {"cluster": healthy, "state": ReportStateType.NORMAL, "msg": "ok"},
+        {"cluster": broken, "state": ReportStateType.ABNORMAL, "msg": "missing backup"},
+    ]
+    with patch.object(redis_ingest, "ingest_redis_cluster_summary") as ingest:
+        redis_ingest.ingest_daily_cluster_rows(
+            rows,
+            dimension=RedisPortraitDimensionCode.RELIABILITY,
+            prefix="[全备]",
+        )
+    by_domain = {call.kwargs["cluster_domain"]: call.kwargs["messages"] for call in ingest.call_args_list}
+    assert by_domain == {"ok.redis.db": ["正常"], "bad.redis.db": ["missing backup"]}
+
+
+def test_ingest_daily_rows_empty_abnormal_msg_not_reported_as_normal(redis_ingest):
+    cluster = SimpleNamespace(immute_domain="a.redis.db", bk_biz_id=1001)
+    rows = [{"cluster": cluster, "state": ReportStateType.ABNORMAL, "msg": ""}]
+    with patch.object(redis_ingest, "ingest_redis_cluster_summary") as ingest:
+        redis_ingest.ingest_daily_cluster_rows(
+            rows,
+            dimension=RedisPortraitDimensionCode.RELIABILITY,
+            prefix="[全备]",
+        )
+    assert ingest.call_args.kwargs["messages"] == ["异常（无详情）"]
+
+
+def test_ingest_daily_rows_unmapped_subtype_writes_warning_summary(redis_ingest):
+    """prefix_by_subtype miss：打 warning，并以 [未映射] 写入摘要，不静默跳过。"""
+    cluster = SimpleNamespace(immute_domain="a.redis.db", bk_biz_id=1001)
+    rows = [
+        {"cluster": cluster, "state": ReportStateType.NORMAL, "msg": "ok", "subtype": "unmapped"},
+        {"cluster": cluster, "state": ReportStateType.ABNORMAL, "msg": "lonely master", "subtype": "unmapped"},
+        {"cluster": cluster, "state": ReportStateType.ABNORMAL, "msg": "real issue", "subtype": "alone_instance"},
+    ]
+    with patch.object(redis_ingest, "ingest_redis_cluster_summary") as ingest, patch.object(
+        redis_ingest.logger, "warning"
+    ) as warn:
+        redis_ingest.ingest_daily_cluster_rows(
+            rows,
+            dimension=RedisPortraitDimensionCode.TOPOLOGY_SCALE,
+            prefix_by_subtype={"alone_instance": "[孤立实例]"},
+        )
+    by_prefix = {call.kwargs["prefix"]: call.kwargs["messages"] for call in ingest.call_args_list}
+    assert by_prefix == {
+        redis_ingest.UNMAPPED_SUBTYPE_PREFIX: ["subtype=unmapped 未配置检查项前缀", "lonely master"],
+        "[孤立实例]": ["real issue"],
+    }
+    warn.assert_called_once()
+    assert warn.call_args.args[1:] == ("a.redis.db", "unmapped", "topology_scale")
+
+
+def test_ingest_daily_rows_unmapped_normal_is_not_reported_as_healthy(redis_ingest):
+    """未映射的正常行不得兜底成「正常」，否则消费侧会把漏配当健康。"""
+    cluster = SimpleNamespace(immute_domain="a.redis.db", bk_biz_id=1001)
+    rows = [{"cluster": cluster, "state": ReportStateType.NORMAL, "msg": "ok", "subtype": "unmapped"}]
+    with patch.object(redis_ingest, "ingest_redis_cluster_summary") as ingest:
+        redis_ingest.ingest_daily_cluster_rows(
+            rows,
+            dimension=RedisPortraitDimensionCode.TOPOLOGY_SCALE,
+            prefix_by_subtype={"alone_instance": "[孤立实例]"},
+        )
+    ingest.assert_called_once()
+    assert ingest.call_args.kwargs["prefix"] == redis_ingest.UNMAPPED_SUBTYPE_PREFIX
+    assert ingest.call_args.kwargs["messages"] == ["subtype=unmapped 未配置检查项前缀"]
 
 
 def test_rollback_skips_skipped_and_backup_invalid(redis_ingest):

@@ -29,7 +29,7 @@ from backend.db_periodic_task.local_tasks.redis_tasks.report_op import RedisChec
 from backend.db_report.enums import ReportStateType
 from backend.db_report.enums.redis_sub_type import RedisCheckSubType
 from backend.db_report.portrait.redis_dimensions import RedisPortraitDimensionCode
-from backend.db_report.portrait.redis_ingest import ingest_abnormal_cluster_rows
+from backend.db_report.portrait.redis_ingest import ingest_daily_cluster_rows
 from backend.db_report.repo.task_record_repo import get_report_day_from_time
 
 logger = logging.getLogger("root")
@@ -191,7 +191,7 @@ class CheckRedisUpMetricTask:
                 rows = self.check_cluster(cluster, report_day)
                 if rows:
                     cluster_state_total[rows[0].state] += 1
-                    ingest_abnormal_cluster_rows(
+                    ingest_daily_cluster_rows(
                         rows,
                         dimension=RedisPortraitDimensionCode.CONFIG_HEALTH,
                         prefix="[exporter]",

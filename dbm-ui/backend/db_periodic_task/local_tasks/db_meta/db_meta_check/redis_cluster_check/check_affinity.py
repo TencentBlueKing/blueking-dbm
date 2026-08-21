@@ -26,7 +26,7 @@ from backend.db_meta.models.city_map import BKSubzone
 from backend.db_meta.models.storage_instance_tuple import StorageInstanceTuple
 from backend.db_report.enums import MetaCheckSubType, ReportStateType
 from backend.db_report.portrait.redis_dimensions import RedisPortraitDimensionCode
-from backend.db_report.portrait.redis_ingest import ingest_abnormal_cluster_rows
+from backend.db_report.portrait.redis_ingest import ingest_daily_cluster_rows
 from backend.flow.utils.redis.redis_report_utils import (
     META_CHECK_CLUSTER_PAGE_SIZE,
     RedisReportWriter,
@@ -262,7 +262,7 @@ class RedisAffinityChecker:
                     )
             if page_rows:
                 safe_write_meta_reports(self._writer, page_rows, context="affinity_check page")
-                ingest_abnormal_cluster_rows(
+                ingest_daily_cluster_rows(
                     page_rows,
                     dimension=RedisPortraitDimensionCode.TOPOLOGY_SCALE,
                     prefix="[亲和性]",

@@ -83,7 +83,9 @@ _DESCRIPTIONS: Dict[RedisPortraitDimensionCode, StrOrPromise] = {
         "本维度摘要只收拓扑完整性巡检：孤立实例、实例状态非 RUNNING、访问入口绑定与元数据不一致、"
         "主从或 proxy 可用区亲和性违反、同集群规格不一致。"
         "summary 以 [孤立实例] / [实例状态] / [亲和性] / [入口] 等前缀区分子检查来源；"
-        "时间窗内无摘要代表拓扑完整、无异常。"
+        "每个子检查每天注入一条，正常也上报（正常态摘要形如 '[亲和性] 正常'）；"
+        "若出现 [未映射] 前缀，代表巡检行的 subtype 未配置检查项前缀，属于接入缺陷，不代表健康、也不代表巡检未执行；"
+        "时间窗内某子检查无摘要代表当天巡检未执行或未覆盖该集群，不代表健康。"
     ),
     RedisPortraitDimensionCode.LOAD_CAPACITY: _(
         "集群负载与容量水位。覆盖 CPU / 内存 / 连接数 / QPS / 磁盘 IO 等负载指标的水位与变化趋势，"
@@ -97,14 +99,16 @@ _DESCRIPTIONS: Dict[RedisPortraitDimensionCode, StrOrPromise] = {
         "集群可靠性与数据安全。覆盖全量备份是否按 schedule 覆盖（缺备 / 偏班 / 失败）、"
         "TendisPlus 与 SSD 集群从库 binlog 连续性、定期回档演练的成败结果与失败阶段。"
         "summary 以 [全备] / [binlog] / [回档演练] 等前缀区分来源；"
-        "备份类异常才上报，演练类每次结束必报（含成功样本）。"
-        "时间窗内无摘要代表备份正常且无演练记录。"
+        "备份类每天注入一条，正常也上报（正常态摘要形如 '[全备] 正常'）；"
+        "演练类为事件驱动，每次演练结束必报（含成功样本），不保证每天都有。"
+        "时间窗内 [全备] / [binlog] 无摘要代表当天备份巡检未执行或未覆盖该集群，不代表健康。"
     ),
     RedisPortraitDimensionCode.CONFIG_HEALTH: _(
         "集群配置与管控组件健康。覆盖存储节点角色与 INFO REPLICATION 实际状态一致性、"
         "Predixy INFO Servers 异常与磁盘配置文件漂移等配置巡检，"
         "以及 redis / proxy exporter 的 down / duplicate / redundant / 跨集群指标串扰等监控组件异常。"
         "summary 以 [配置] / [exporter] 等前缀区分来源；"
-        "异常才上报，时间窗内无摘要代表配置一致、组件健康。"
+        "每个子检查每天注入一条，正常也上报（正常态摘要形如 '[exporter] 正常'）；"
+        "时间窗内某子检查无摘要代表当天巡检未执行或未覆盖该集群，不代表健康。"
     ),
 }
