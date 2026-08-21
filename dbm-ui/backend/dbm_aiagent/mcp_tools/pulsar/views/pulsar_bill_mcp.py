@@ -26,7 +26,7 @@ from backend.dbm_aiagent.mcp_tools.pulsar.impl.pulsar_bill import (
     submit_pulsar_shrink_bill,
 )
 from backend.dbm_aiagent.mcp_tools.pulsar.serializers.pulsar_bill import (
-    SubmitBillOutputSerializer,
+    PulsarSubmitBillOutputSerializer,
     SubmitBillPulsarApplyInputSerializer,
     SubmitBillPulsarRebootInputSerializer,
     SubmitBillPulsarReplaceInputSerializer,
@@ -61,7 +61,7 @@ class PulsarBillMcpToolsViewSet(McpToolsViewSet):
             )
         ),
         request_slz=SubmitBillPulsarScaleUpInputSerializer,
-        response_slz=SubmitBillOutputSerializer,
+        response_slz=PulsarSubmitBillOutputSerializer,
         tags=[DBMMCPTags.READ, DBMMCPTags.WRITE],
         mcp=[DBMMcpTools.PULSAR_BILL],
         name_prefix="pulsar_bill",
@@ -89,7 +89,7 @@ class PulsarBillMcpToolsViewSet(McpToolsViewSet):
             )
         ),
         request_slz=SubmitBillPulsarShrinkInputSerializer,
-        response_slz=SubmitBillOutputSerializer,
+        response_slz=PulsarSubmitBillOutputSerializer,
         tags=[DBMMCPTags.READ, DBMMCPTags.WRITE],
         mcp=[DBMMcpTools.PULSAR_BILL],
         name_prefix="pulsar_bill",
@@ -113,7 +113,7 @@ class PulsarBillMcpToolsViewSet(McpToolsViewSet):
             )
         ),
         request_slz=SubmitBillPulsarReplaceInputSerializer,
-        response_slz=SubmitBillOutputSerializer,
+        response_slz=PulsarSubmitBillOutputSerializer,
         tags=[DBMMCPTags.READ, DBMMCPTags.WRITE],
         mcp=[DBMMcpTools.PULSAR_BILL],
         name_prefix="pulsar_bill",
@@ -140,7 +140,7 @@ class PulsarBillMcpToolsViewSet(McpToolsViewSet):
             )
         ),
         request_slz=SubmitBillPulsarRebootInputSerializer,
-        response_slz=SubmitBillOutputSerializer,
+        response_slz=PulsarSubmitBillOutputSerializer,
         tags=[DBMMCPTags.READ, DBMMCPTags.WRITE],
         mcp=[DBMMcpTools.PULSAR_BILL],
         name_prefix="pulsar_bill",
@@ -158,7 +158,7 @@ class PulsarBillMcpToolsViewSet(McpToolsViewSet):
     @mcp_tools_api_decorator(
         description=str(_("Pulsar集群启用单据，将已禁用的集群重新启用")),
         request_slz=SubmitBillPulsarTakeDownInputSerializer,
-        response_slz=SubmitBillOutputSerializer,
+        response_slz=PulsarSubmitBillOutputSerializer,
         tags=[DBMMCPTags.READ, DBMMCPTags.WRITE],
         mcp=[DBMMcpTools.PULSAR_BILL],
         name_prefix="pulsar_bill",
@@ -175,7 +175,7 @@ class PulsarBillMcpToolsViewSet(McpToolsViewSet):
     @mcp_tools_api_decorator(
         description=str(_("Pulsar集群禁用单据，禁用后集群不可访问，是删除集群的前置步骤")),
         request_slz=SubmitBillPulsarTakeDownInputSerializer,
-        response_slz=SubmitBillOutputSerializer,
+        response_slz=PulsarSubmitBillOutputSerializer,
         tags=[DBMMCPTags.READ, DBMMCPTags.WRITE],
         mcp=[DBMMcpTools.PULSAR_BILL],
         name_prefix="pulsar_bill",
@@ -192,7 +192,7 @@ class PulsarBillMcpToolsViewSet(McpToolsViewSet):
     @mcp_tools_api_decorator(
         description=str(_("Pulsar集群删除单据，会清理集群所有数据和元信息，需集群已处于禁用状态。该操作不可逆，务必与用户确认")),
         request_slz=SubmitBillPulsarTakeDownInputSerializer,
-        response_slz=SubmitBillOutputSerializer,
+        response_slz=PulsarSubmitBillOutputSerializer,
         tags=[DBMMCPTags.READ, DBMMCPTags.WRITE],
         mcp=[DBMMcpTools.PULSAR_BILL],
         name_prefix="pulsar_bill",
@@ -217,7 +217,7 @@ class PulsarBillMcpToolsViewSet(McpToolsViewSet):
             )
         ),
         request_slz=SubmitBillPulsarApplyInputSerializer,
-        response_slz=SubmitBillOutputSerializer,
+        response_slz=PulsarSubmitBillOutputSerializer,
         tags=[DBMMCPTags.READ, DBMMCPTags.WRITE],
         mcp=[DBMMcpTools.PULSAR_BILL],
         name_prefix="pulsar_bill",

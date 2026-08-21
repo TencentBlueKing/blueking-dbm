@@ -86,7 +86,7 @@ class PulsarPerformanceSummaryInputSerializer(serializers.Serializer):
     )
 
 
-class MetricStatisticsSerializer(serializers.Serializer):
+class PulsarMetricStatisticsSerializer(serializers.Serializer):
     min = serializers.FloatField(help_text=_("最小值"))
     max = serializers.FloatField(help_text=_("最大值"))
     avg = serializers.FloatField(help_text=_("平均值"))
@@ -94,13 +94,13 @@ class MetricStatisticsSerializer(serializers.Serializer):
     count = serializers.IntegerField(help_text=_("数据点数量"))
 
 
-class MetricDataSerializer(serializers.Serializer):
+class PulsarMetricDataSerializer(serializers.Serializer):
     description = serializers.CharField(help_text=_("指标描述"))
     data_points = serializers.ListField(
         child=serializers.ListField(),
         help_text=_("时间序列数据点 [[value, timestamp], ...]"),
     )
-    statistics = MetricStatisticsSerializer(help_text=_("统计信息"))
+    statistics = PulsarMetricStatisticsSerializer(help_text=_("统计信息"))
 
 
 class PulsarMetricsOutputSerializer(serializers.Serializer):
@@ -111,7 +111,7 @@ class PulsarMetricsOutputSerializer(serializers.Serializer):
     end_time = serializers.CharField(help_text=_("查询结束时间"))
     time_range_days = serializers.IntegerField(help_text=_("时间范围(天)"))
     metrics = serializers.DictField(
-        child=MetricDataSerializer(),
+        child=PulsarMetricDataSerializer(),
         help_text=_("监控指标数据，key为指标类型，value为指标数据"),
     )
 
