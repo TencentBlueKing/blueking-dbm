@@ -116,6 +116,9 @@ probeMetadata:
   cacheMaxAge: {{ADMIN_PROBE_METADATA_CACHE_MAX_AGE}}
   tombstoneAge: {{ADMIN_PROBE_METADATA_TOMBSTONE_AGE}}
 
+probeHealth:
+  diskWriteDirs: {{ADMIN_PROBE_HEALTH_DISK_WRITE_DIRS}}
+
 log:
   path: "{{ADMIN_LOG_PATH}}"
   level: {{COMMON_LOG_LEVEL}}

@@ -170,6 +170,19 @@ def apply_probe_reporter_local_socket_port_default(values: Dict[str, str]) -> No
         values["PROBE_REPORTER_LOCAL_SOCKET_PORT"] = _DEFAULT_PROBE_REPORTER_LOCAL_SOCKET_PORT
 
 
+def apply_probe_health_disk_write_dirs_default(values: Dict[str, str]) -> None:
+    """Inject a default of "[]" for PROBE_HEALTH_DISK_WRITE_DIRS when the rc omits it.
+
+    probe.yaml now references this placeholder for the health disk-write check.
+    Existing probe rc files predate the key; without a default the placeholder
+    would stay unrendered and render_configs.py would treat it as an undefined
+    placeholder and exit 1, breaking upgrades of existing deployments. Injecting
+    "[]" keeps existing probe configs valid.
+    """
+    if not values.get("PROBE_HEALTH_DISK_WRITE_DIRS", "").strip():
+        values["PROBE_HEALTH_DISK_WRITE_DIRS"] = "[]"
+
+
 def apply_admin_probe_gse_local_socket_port_default(values: Dict[str, str]) -> None:
     """Inject a default of "0" for ADMIN_PROBE_GSE_LOCAL_SOCKET_PORT when the rc omits it.
 
@@ -469,6 +482,7 @@ def main() -> None:
     else:
         apply_probe_reporter_local_socket_port_default(values)
         apply_probe_admin_sync_defaults(values, ip_detect_host)
+        apply_probe_health_disk_write_dirs_default(values)
 
     # Phase 1: expand _YAML_FILE keys into raw YAML text (no placeholder rendering).
     apply_yaml_snippet_files(values, rc_resolved)
