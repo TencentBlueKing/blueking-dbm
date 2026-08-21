@@ -172,6 +172,21 @@ def apply_probe_health_disk_write_dirs_default(values: Dict[str, str]) -> None:
         values["PROBE_HEALTH_DISK_WRITE_DIRS"] = "[]"
 
 
+def apply_admin_probe_health_disk_write_dirs_default(values: Dict[str, str]) -> None:
+    """Inject a default of "[]" for AD's probeHealth.diskWriteDirs when the rc omits it.
+
+    admin.yaml now references ADMIN_PROBE_HEALTH_DISK_WRITE_DIRS for the
+    probeHealth.diskWriteDirs block returned to probe via GetProbeConfig.
+    Existing server rc files predate the key; without a default the placeholder
+    would stay unrendered and render_configs.py would treat it as an undefined
+    placeholder and exit 1, breaking upgrades of existing deployments. Injecting
+    "[]" keeps existing server configs valid (check disabled), consistent with
+    the probe-side apply_probe_health_disk_write_dirs_default behavior.
+    """
+    if not values.get("ADMIN_PROBE_HEALTH_DISK_WRITE_DIRS", "").strip():
+        values["ADMIN_PROBE_HEALTH_DISK_WRITE_DIRS"] = "[]"
+
+
 def apply_admin_probe_gse_local_socket_port_default(values: Dict[str, str]) -> None:
     """Inject a default of "0" for ADMIN_PROBE_GSE_LOCAL_SOCKET_PORT when the rc omits it.
 
@@ -430,6 +445,7 @@ def main() -> None:
         apply_admin_grpc_listen_address_default(values, ip_detect_host)
         apply_admin_web_listen_address_default(values, ip_detect_host)
         apply_admin_probe_gse_local_socket_port_default(values)
+        apply_admin_probe_health_disk_write_dirs_default(values)
     else:
         apply_probe_reporter_local_socket_port_default(values)
         apply_probe_health_disk_write_dirs_default(values)
