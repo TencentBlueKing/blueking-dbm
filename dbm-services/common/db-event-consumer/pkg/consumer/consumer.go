@@ -9,15 +9,14 @@
 package consumer
 
 import (
-	"encoding/json"
 	"errors"
 	"log/slog"
 	"reflect"
-	"strconv"
 	"sync"
 	"time"
 
-	"github.com/Shopify/sarama"
+	"github.com/IBM/sarama"
+	json "github.com/goccy/go-json"
 
 	"dbm-services/common/db-event-consumer/pkg/base"
 )
@@ -100,7 +99,7 @@ func (s *AnySinker) ConsumeClaim(session sarama.ConsumerGroupSession, claim sara
 		slog.Int("ingest_threads", ingestThreads),
 		slog.Bool("from_beginning", s.Sinker.RuntimeConfig.FromBeginning))
 
-	batchSize := 10
+	batchSize := 1
 	if s.Sinker.RuntimeConfig.SinkBatchSize > 0 {
 		batchSize = s.Sinker.RuntimeConfig.SinkBatchSize
 	}
@@ -147,6 +146,17 @@ func (s *AnySinker) ConsumeClaim(session sarama.ConsumerGroupSession, claim sara
 			if message == nil {
 				continue
 			}
+			// 将 Value 复制一份独立的 []byte，断开与 sarama 内部 FetchResponse 大 buffer 的引用关系。
+			// sarama 的 Record.Value/Key/Headers 都是原始 buf 的子切片（零拷贝），
+			// 只要任何一个字段还在引用 buf，整个 FetchResponse buffer（最大 1MB）都无法被 GC。
+			if message.Value != nil {
+				valueCopy := make([]byte, len(message.Value))
+				copy(valueCopy, message.Value)
+				message.Value = valueCopy
+			}
+			// Key 和 Headers 同样引用原始 buf，必须断开引用
+			message.Key = nil
+			message.Headers = nil
 			msgs = append(msgs, message)
 			if len(msgs) >= batchSize {
 				flushBatch()
@@ -230,6 +240,16 @@ func (s *AnySinker) consumeClaimConcurrent(
 			if message == nil {
 				continue
 			}
+			// 将 Value 复制一份独立的 []byte，断开与 sarama 内部 fetch response 大 buf 的引用关系。
+			// sarama 的 ConsumerMessage.Value/Key/Headers 是对整个 FetchResponse 原始字节的子切片引用，
+			// 如果不断开引用，只要有一条消息未处理完，整个 response buf（可能数 MB）都无法被 GC 回收。
+			if message.Value != nil {
+				valueCopy := make([]byte, len(message.Value))
+				copy(valueCopy, message.Value)
+				message.Value = valueCopy
+			}
+			message.Key = nil
+			message.Headers = nil
 			msgs = append(msgs, message)
 			if len(msgs) >= batchSize {
 				dispatchBatch()
@@ -291,12 +311,12 @@ func (s *AnySinker) HandleMessages(msgs []*sarama.ConsumerMessage, sk *Sinker) e
 	}
 	var err error
 
-	// 创建目标切片
+	// 预分配精确容量，用 reflect.Index + Set 替代 reflect.Append 避免 growslice
 	sliceType := reflect.SliceOf(s.modelType)
-	result := reflect.MakeSlice(sliceType, 0, 0)
+	result := reflect.MakeSlice(sliceType, len(msgs), len(msgs))
+	idx := 0
 
 	for _, message := range msgs {
-		// slog.Debug("process message", slog.String("Value", string(message.Value)))
 		objValue := reflect.New(s.modelType)
 		obj := objValue.Interface()
 
@@ -306,8 +326,11 @@ func (s *AnySinker) HandleMessages(msgs []*sarama.ConsumerMessage, sk *Sinker) e
 			s.recordMetricsFailed(s.Sinker.RuntimeConfig.Topic, "unmarshal")
 			return err
 		}
-		result = reflect.Append(result, objValue.Elem())
+		result.Index(idx).Set(objValue.Elem())
+		idx++
 	}
+	result = result.Slice(0, idx)
+
 	if creator, ok := s.modelObject.(base.CustomCreator); ok {
 		err = creator.Create(result.Interface(), s.dsWriter)
 	} else {
@@ -381,9 +404,9 @@ func (s *AnySinker) HandleMessagesBklog(msgs []*sarama.ConsumerMessage, sk *Sink
 			continue
 		}
 		for _, item := range msg.Items {
-			unquoteData, err := strconv.Unquote(string(item.Data))
-			if err != nil {
-				slog.Error("unquote message payload", err)
+			var unquoteData string
+			if err := json.Unmarshal(item.Data, &unquoteData); err != nil {
+				slog.Error("unmarshal item data as string", slog.Any("error", err))
 				continue
 			}
 			obj := reflect.New(s.modelType).Interface()
@@ -411,11 +434,17 @@ func (s *AnySinker) HandleMessagesBklogGorm(msgs []*sarama.ConsumerMessage, sk *
 	if len(msgs) == 0 {
 		return nil
 	}
-	// 创建目标切片
-	sliceType := reflect.SliceOf(s.modelType)
-	result := reflect.MakeSlice(sliceType, 0, 0)
+
+	// 第一遍：预解析所有消息，收集 MessageWrapper 和总 items 数量
+	type parsedMsg struct {
+		msg   base.MessageWrapper
+		items []struct {
+			Data json.RawMessage `json:"data"`
+		}
+	}
+	parsedMsgs := make([]parsedMsg, 0, len(msgs))
+	totalItems := 0
 	for _, message := range msgs {
-		// slog.Debug("process message", slog.String("Value", string(message.Value)))
 		var msg base.MessageWrapper
 		err := json.Unmarshal(message.Value, &msg)
 		if err != nil {
@@ -423,38 +452,55 @@ func (s *AnySinker) HandleMessagesBklogGorm(msgs []*sarama.ConsumerMessage, sk *
 			s.recordMetricsFailed(s.Sinker.RuntimeConfig.Topic, "parse")
 			continue
 		}
+		totalItems += len(msg.Items)
+		parsedMsgs = append(parsedMsgs, parsedMsg{msg: msg, items: msg.Items})
+	}
+	if totalItems == 0 {
+		return nil
+	}
 
-		for _, item := range msg.Items {
+	// 预分配精确容量的目标切片，用 reflect.Index + Set 替代 reflect.Append，
+	// 避免 reflect.Append 的类型检查开销和 growslice 扩容
+	sliceType := reflect.SliceOf(s.modelType)
+	result := reflect.MakeSlice(sliceType, totalItems, totalItems)
+	idx := 0
+
+	for _, pm := range parsedMsgs {
+		for _, item := range pm.items {
 			objValue := reflect.New(s.modelType)
 			obj := objValue.Interface()
 			if bklogItem, ok := obj.(base.BklogUnmarshalItem); ok {
-				err = bklogItem.UnmarshalItem(item.Data, msg)
+				err := bklogItem.UnmarshalItem(item.Data, pm.msg)
 				if err != nil {
-					// slog.Error("unmarshal bklog item", err, slog.Any("msg", string(item.Data)))
 					s.recordMetricsFailed(s.Sinker.RuntimeConfig.Topic, "unmarshal-1")
 					continue
 				}
-				result = reflect.Append(result, objValue.Elem())
+				result.Index(idx).Set(objValue.Elem())
+				idx++
 			} else { // json
-				unquoteData, err := strconv.Unquote(string(item.Data))
-				if err != nil {
-					slog.Error("unquote message payload", err)
+				// 用 json.Unmarshal 直接解引号，避免 string(data) + strconv.Unquote + []byte(unquoteData) 三次分配
+				var unquoteData string
+				if err := json.Unmarshal(item.Data, &unquoteData); err != nil {
+					slog.Error("unmarshal item data as string", slog.Any("error", err))
 					continue
 				}
 
-				err = json.Unmarshal([]byte(unquoteData), &obj)
-				if err != nil {
+				if err := json.Unmarshal([]byte(unquoteData), &obj); err != nil {
 					s.recordMetricsFailed(s.Sinker.RuntimeConfig.Topic, "unmarshal-2")
-					slog.Error("unmarshal task object", err, slog.Any("msg", unquoteData))
+					slog.Error("unmarshal task object", slog.Any("error", err), slog.Any("msg", unquoteData))
 					return err
 				}
-				result = reflect.Append(result, objValue.Elem())
+				result.Index(idx).Set(objValue.Elem())
+				idx++
 			}
 		}
 	}
-	if result.Len() == 0 {
+	if idx == 0 {
 		return nil
 	}
+	// 截断到实际成功解析的数量
+	result = result.Slice(0, idx)
+
 	var err error
 	if creator, ok := s.modelObject.(base.CustomCreator); ok {
 		err = creator.Create(result.Interface(), s.dsWriter)
@@ -502,9 +548,9 @@ func (s *AnySinker) HandleMessagesBklogMapper(msgs []*sarama.ConsumerMessage, sk
 			continue
 		}
 		for _, item := range msg.Items {
-			unquoteData, err := strconv.Unquote(string(item.Data))
-			if err != nil {
-				slog.Error("unquote message payload", err)
+			var unquoteData string
+			if err := json.Unmarshal(item.Data, &unquoteData); err != nil {
+				slog.Error("unmarshal item data as string", slog.Any("error", err))
 				continue
 			}
 			var obj map[string]interface{}
