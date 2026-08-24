@@ -1,7 +1,28 @@
 <template>
   <div class="result-preview-main">
     <div class="title-main">
-      <div class="title">{{ t('已选集群') }}</div>
+      <div class="title">{{ t('已选集群') }}：</div>
+      <div class="count-info">
+        <I18nT
+          keypath="共 {n} 个，{action} {k}"
+          tag="span">
+          <template #n>{{ count.n }}</template>
+          <template #action>{{ t('设置') }}</template>
+          <template #k>{{ count.k }}</template>
+        </I18nT>
+        <I18nT
+          v-if="count.s > 0"
+          keypath="，跳过 {s}"
+          tag="span">
+          <template #s>{{ count.s }}</template>
+        </I18nT>
+        <I18nT
+          v-if="count.a > 0"
+          keypath="（无权限 {a}）"
+          tag="span">
+          <template #a>{{ count.a }}</template>
+        </I18nT>
+      </div>
       <BkDropdown
         :popover-options="{
           clickContentAutoHide: true,
@@ -44,7 +65,7 @@
             v-for="(item, index) in list"
             :key="item.clusterDomian"
             class="result-item"
-            :class="{ 'is-skip': !item.hasPermission }">
+            :class="{ 'is-skip': !item.hasPermission || item.isIgnore }">
             <div
               v-overflow-tips
               class="domain-display text-overflow">
@@ -75,7 +96,7 @@
   import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
 
-  import { execCopy } from '@utils';
+  import { countBatchOperation, execCopy } from '@utils';
 
   import CollapseMini from './components/CollapseMini.vue';
 
@@ -108,8 +129,16 @@
   // 选中结果是否为空
   const isEmpty = computed(() => _.every(Object.values(selectedMap.value), (item) => item.length === 0));
 
+  /** 已选集群数量统计：无权限 a + 状态不符（无可配置指标）b，一行只算一次、无权限优先 */
+  const count = computed(() =>
+    countBatchOperation(Object.values(selectedMap.value).flat(), {
+      hasPermission: (item) => item.hasPermission !== false,
+      statusMismatch: (item) => item.isIgnore === true,
+    }),
+  );
+
   const getTheme = (item: DomainInfo) => {
-    if (!item.hasPermission) {
+    if (item.isIgnore || !item.hasPermission) {
       return undefined;
     }
 
@@ -117,7 +146,7 @@
   };
 
   const getTagText = (item: DomainInfo) => {
-    if (!item.hasPermission) {
+    if (item.isIgnore || !item.hasPermission) {
       return t('跳过');
     }
 
@@ -127,20 +156,22 @@
   const getCoountInfo = (list: DomainInfo[]) => {
     const total = list.length;
     let isNewCount = 0;
-    let isIgnoreCount = 0;
     list.forEach((item) => {
-      if (item.isNew) {
+      // 仅统计实际可提交（非跳过）的新增集群
+      if (item.isNew && !item.isIgnore && item.hasPermission) {
         isNewCount++;
       }
-      if (item.isIgnore) {
-        isIgnoreCount++;
-      }
+    });
+    /** 跳过数：无权限 a + 状态不符（无可配置指标）b，一行只算一次、无权限优先 */
+    const { s } = countBatchOperation(list, {
+      hasPermission: (item) => item.hasPermission !== false,
+      statusMismatch: (item) => item.isIgnore === true,
     });
     return {
       add: isNewCount,
-      ignore: isIgnoreCount,
+      ignore: s,
       total,
-      update: total - isNewCount - isIgnoreCount,
+      update: total - isNewCount - s,
     };
   };
 
@@ -183,6 +214,12 @@
         font-size: 12px;
         font-weight: 700;
         color: #313238;
+      }
+
+      .count-info {
+        font-size: 12px;
+        color: #313238;
+        flex: 1;
       }
 
       .more-trigger {
