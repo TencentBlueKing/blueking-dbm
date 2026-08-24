@@ -33,7 +33,7 @@ const orderBySameSvrOwnerCount = "same_svr_owner_count"
 
 // 按同母机台数排序时的防护阈值（全量候选进内存）
 const (
-	maxSameSvrOwnerSortCandidates = 5000
+	maxSameSvrOwnerSortCandidates = 20000
 	maxSameSvrOwnerSortLimit      = 500
 )
 
