@@ -201,6 +201,9 @@ class ResourceSpecBaseSerializer(serializers.Serializer):
 class TicketBaseValidateSerializerMixin(object):
     # 检查提单集群所在业务是否与当前业务一致
     def validated_biz(self, attrs):
+        # 特殊单据需要跨业务提单 跳过校验
+        if self.context.get("ticket_type") == TicketType.REDIS_CLUSTER_DATA_COPY:
+            return attrs
         if not self.context.get("bk_biz_id"):
             return attrs
         bk_biz_id = int(self.context["bk_biz_id"])
