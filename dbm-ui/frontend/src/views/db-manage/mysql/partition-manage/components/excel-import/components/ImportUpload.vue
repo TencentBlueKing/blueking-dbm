@@ -63,7 +63,7 @@
   const uploadRef = ref();
   const uploadKey = ref(0);
 
-  const templatePath = `${window.PROJECT_ENV.VITE_PUBLIC_PATH}cluster-partition-template.xlsx`;
+  const templatePath = `${window.PROJECT_STATIC_PATH}cluster-partition-template.xlsx`;
 
   /** 模拟进度事件 */
   const mockProgressEvent = (percent: number): ProgressEvent =>
