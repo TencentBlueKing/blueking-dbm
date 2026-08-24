@@ -38,7 +38,7 @@ let currentIsLogAnalysisMode = false;
 let aiLogAnalysisShortCut: ShortCutInfo | null = null;
 
 export const useState = () => {
-  const apiUrl = urlJoin(window.PROJECT_ENV.VITE_AJAX_URL_PREFIX, '/apis/ai/agent');
+  const apiUrl = urlJoin(window.BK_AJAX_URL, '/apis/ai/agent');
 
   const hideNimbus = ref(false);
   const showNewChatIcon = ref(true);

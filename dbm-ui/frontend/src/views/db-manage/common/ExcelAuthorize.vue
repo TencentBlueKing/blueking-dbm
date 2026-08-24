@@ -145,7 +145,7 @@
   const globalBizsStore = useGlobalBizs();
   const ticketMessage = useTicketMessage();
 
-  const basePath = window.PROJECT_ENV.VITE_PUBLIC_PATH ? window.PROJECT_ENV.VITE_PUBLIC_PATH : '/';
+  const basePath = window.PROJECT_STATIC_PATH ? window.PROJECT_STATIC_PATH : '/';
   const excelState = reactive({
     importable: false,
     isLoading: false,
