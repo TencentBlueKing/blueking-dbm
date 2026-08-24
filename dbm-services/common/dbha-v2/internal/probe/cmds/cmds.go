@@ -175,6 +175,80 @@ func HealthCmdRunE(cmd *cobra.Command, _ []string) error {
 	return nil
 }
 
+func genConfigDuration(cmd *cobra.Command, name string, fallback time.Duration) time.Duration {
+	d, _ := cmd.Flags().GetDuration(name)
+	if d <= 0 {
+		return fallback
+	}
+	return d
+}
+
+func unmarshalProbeConfigPayload(raw string) (probeconfig.ProbeConfigPayload, error) {
+	var payload probeconfig.ProbeConfigPayload
+	if err := json.Unmarshal([]byte(raw), &payload); err != nil {
+		// Legacy admin returns a raw metadata list ([]ProbeMetadataItem) instead of ProbeConfigPayload;
+		// detect this to provide a clear version-mismatch error rather than a generic unmarshal error.
+		if len(raw) > 0 && raw[0] == '[' {
+			return payload, fmt.Errorf(
+				"admin returned legacy metadata array instead of ProbeConfigPayload, "+
+					"please upgrade admin to match the probe version: %w", err)
+		}
+		return payload, fmt.Errorf("parse probe config payload from admin: %w", err)
+	}
+	return payload, nil
+}
+
+func fetchAndRenderProbeYAML(
+	timeout time.Duration, cloudID uint64, localIP string, endpoints []string, clearPorts []int,
+) (string, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	defer cancel()
+	req := &proto.ProbeConfigRequest{
+		BkCloudId:   cloudID,
+		Ip:          localIP,
+		ClientID:    "",
+		Version:     "",
+		UpdatedTime: 0,
+	}
+
+	raw, err := getProbeConfigPayload(ctx, endpoints, req)
+	if err != nil {
+		return "", err
+	}
+	payload, err := unmarshalProbeConfigPayload(raw)
+	if err != nil {
+		return "", err
+	}
+	applyClearPorts(payload.Metadata, clearPorts)
+	yamlStr, err := config.GenProbeYAML(payload)
+	if err != nil {
+		return "", fmt.Errorf("generate probe config: %w", err)
+	}
+	return yamlStr, nil
+}
+
+func writeOrPrintProbeYAML(
+	cmd *cobra.Command, outputPath, yamlStr string, lockTimeout time.Duration, reload bool,
+) error {
+	if outputPath == "" {
+		fmt.Fprint(cmd.OutOrStdout(), yamlStr)
+		return nil
+	}
+	// Skipping an unchanged file stays internal: this line is the output contract
+	// callers already had, so both paths must keep printing it.
+	if _, err := process.WriteFileWithLock(outputPath, []byte(yamlStr), lockTimeout); err != nil {
+		return fmt.Errorf("write config file: %w", err)
+	}
+	fmt.Fprintln(cmd.OutOrStdout(), "Config written to", outputPath)
+	if !reload {
+		return nil
+	}
+	// Deliberately not config.Load(outputPath): that would rewrite the viper
+	// globals for the rest of this process. The default pid file matches what
+	// GenProbeYAML just rendered.
+	return process.ReloadCmdRunE(cmd, nil, config.Cfg.PidFile, procName(), 0, false)
+}
+
 // GenConfigCmdRunE fetches probe metadata from admin, generates YAML locally, writes to file or stdout.
 func GenConfigCmdRunE(cmd *cobra.Command, args []string) error {
 	adminEndpointsStr, _ := cmd.Flags().GetString("admin-endpoints")
@@ -182,15 +256,8 @@ func GenConfigCmdRunE(cmd *cobra.Command, args []string) error {
 	localIP, _ := cmd.Flags().GetString("local-ip")
 	localIPInterface, _ := cmd.Flags().GetString("local-ip-interface")
 	outputPath, _ := cmd.Flags().GetString("output")
-	timeout, _ := cmd.Flags().GetDuration("timeout")
-	if timeout <= 0 {
-		timeout = DefaultGenConfigTimeout
-	}
-	lockTimeout, _ := cmd.Flags().GetDuration("lock-timeout")
-	if lockTimeout <= 0 {
-		lockTimeout = DefaultGenConfigLockTimeout
-	}
-
+	timeout := genConfigDuration(cmd, "timeout", DefaultGenConfigTimeout)
+	lockTimeout := genConfigDuration(cmd, "lock-timeout", DefaultGenConfigLockTimeout)
 	clearPortStr, _ := cmd.Flags().GetString("clear-port")
 	reload, _ := cmd.Flags().GetBool("reload")
 
@@ -214,54 +281,11 @@ func GenConfigCmdRunE(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("admin-endpoints has no valid address")
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), timeout)
-	defer cancel()
-	req := &proto.ProbeConfigRequest{
-		BkCloudId:   cloudID,
-		Ip:          localIP,
-		ClientID:    "",
-		Version:     "",
-		UpdatedTime: 0,
-	}
-
-	raw, err := getProbeConfigPayload(ctx, endpoints, req)
+	yamlStr, err := fetchAndRenderProbeYAML(timeout, cloudID, localIP, endpoints, clearPorts)
 	if err != nil {
 		return err
 	}
-
-	var payload probeconfig.ProbeConfigPayload
-	if err := json.Unmarshal([]byte(raw), &payload); err != nil {
-		// Legacy admin returns a raw metadata list ([]ProbeMetadataItem) instead of ProbeConfigPayload;
-		// detect this to provide a clear version-mismatch error rather than a generic unmarshal error.
-		if len(raw) > 0 && raw[0] == '[' {
-			return fmt.Errorf("admin returned legacy metadata array instead of ProbeConfigPayload, please upgrade admin to match the probe version: %w", err)
-		}
-		return fmt.Errorf("parse probe config payload from admin: %w", err)
-	}
-	applyClearPorts(payload.Metadata, clearPorts)
-
-	yamlStr, err := config.GenProbeYAML(payload)
-	if err != nil {
-		return fmt.Errorf("generate probe config: %w", err)
-	}
-
-	if outputPath != "" {
-		// Skipping an unchanged file stays internal: this line is the output contract
-		// callers already had, so both paths must keep printing it.
-		if _, err := process.WriteFileWithLock(outputPath, []byte(yamlStr), lockTimeout); err != nil {
-			return fmt.Errorf("write config file: %w", err)
-		}
-		fmt.Fprintln(cmd.OutOrStdout(), "Config written to", outputPath)
-		if reload {
-			// Deliberately not config.Load(outputPath): that would rewrite the viper
-			// globals for the rest of this process. The default pid file matches what
-			// GenProbeYAML just rendered.
-			return process.ReloadCmdRunE(cmd, nil, config.Cfg.PidFile, procName(), 0, false)
-		}
-		return nil
-	}
-	fmt.Fprint(cmd.OutOrStdout(), yamlStr)
-	return nil
+	return writeOrPrintProbeYAML(cmd, outputPath, yamlStr, lockTimeout, reload)
 }
 
 // resolveGenConfigLocalIP picks a local IP for gen-config when --local-ip is unset.
