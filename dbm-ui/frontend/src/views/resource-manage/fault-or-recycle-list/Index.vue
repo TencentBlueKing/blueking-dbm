@@ -72,11 +72,13 @@
     </div>
     <DbTable
       ref="tableRef"
+      :bk-ui-settings="settings"
       :data-source="dataSource"
       :filter-value="quickSearchValue"
       releate-url-query
       row-key="bk_host_id"
       selectable
+      @bk-ui-settings-change="updateTableSettings"
       @filter-change="handleFilterChange"
       @selection="handleSelection">
       <TableColumn
@@ -225,6 +227,10 @@
   import FaultOrRecycleMachineModel from '@services/model/db-resource/FaultOrRecycleMachine';
   import { getMachinePool, transferMachinePool } from '@services/source/dbdirty';
 
+  import { useTableSettings } from '@hooks';
+
+  import { UserPersonalSettings } from '@common/const/userPersonalSettings';
+
   import DbStatus from '@components/db-status/index.vue';
   import DbTable from '@components/db-table/IndexNew.vue';
 
@@ -236,12 +242,20 @@
   import { useRecycleRefresh } from '@views/resource-manage/common/hooks/useRecycleRefresh';
 
   import { execCopy, messageWarn } from '@utils';
+  
 
   const { t } = useI18n();
   const route = useRoute();
 
   const isFaultPool = route.name === 'faultPool';
   const pool = isFaultPool ? 'fault' : 'recycle';
+
+  const settingsKey = isFaultPool
+    ? UserPersonalSettings.FAULT_POOL_HOST_LIST_SETTINGS
+    : UserPersonalSettings.RECYCLE_POOL_HOST_LIST_SETTINGS;
+  const { settings, updateTableSettings } = useTableSettings(settingsKey, {
+    disabled: ['ips'],
+  });
   const { isSearching, quickSearchData, quickSearchValue } = useQuickSearch(pool);
   const { data: columnFilter } = useColumnFilter(pool);
   const { handleRecycleRefresh } = useRecycleRefresh({
