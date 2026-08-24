@@ -1,3 +1,5 @@
+//go:build unix
+
 /**
  * MIT License
  *
@@ -22,53 +24,20 @@
  * SOFTWARE.
  */
 
-package main
+package process
 
-import (
-	"os"
+import "os"
 
-	"dbm-services/common/dbha-v2/internal/admin"
-	"dbm-services/common/dbha-v2/pkg/logger"
-
-	"github.com/spf13/cobra"
-)
-
-func run(args []string) int {
-	// cobra falls back to os.Args[1:] when the args slice is nil, which is the
-	// test binary's own command line under go test.
-	if args == nil {
-		args = []string{}
+// syncDir flushes the directory entries of dir to disk, making a preceding rename
+// survive a crash instead of rolling back to the replaced file.
+// It returns the open or fsync error, which callers treat as non-fatal: the data
+// itself is already durable by then.
+func syncDir(dir string) error {
+	f, err := os.Open(dir)
+	if err != nil {
+		return err
 	}
+	defer func() { _ = f.Close() }()
 
-	rootCmd := &cobra.Command{
-		Use:          "admin",
-		Short:        "DBHA Admin Server",
-		SilenceUsage: true,
-		RunE:         admin.Run,
-	}
-
-	rootCmd.PersistentFlags().StringVarP(&admin.ConfigFilePath, "config", "c", "./etc/admin.yaml", "")
-	rootCmd.CompletionOptions.DisableDefaultCmd = true
-
-	rootCmd.AddCommand(admin.VersionCmd)
-	rootCmd.AddCommand(admin.MigrateCmd)
-	rootCmd.AddCommand(admin.HealthCmd)
-	rootCmd.AddCommand(admin.StartCmd)
-	rootCmd.AddCommand(admin.DaemonStartCmd)
-	rootCmd.AddCommand(admin.StopCmd)
-	rootCmd.AddCommand(admin.RestartCmd)
-	rootCmd.AddCommand(admin.ReloadCmd)
-
-	rootCmd.SetArgs(args)
-
-	if err := rootCmd.Execute(); err != nil {
-		logger.Error("failed to start admin server, errmsg: %s", err)
-		return 1
-	}
-
-	return 0
-}
-
-func main() {
-	os.Exit(run(os.Args[1:]))
+	return f.Sync()
 }

@@ -13,6 +13,7 @@
 | 文档 | 说明 |
 | --- | --- |
 | [配置下发](flows/config-sync.md) | Probe 从 Admin 拉取配置元信息并在本地渲染 `probe.yaml` |
+| [gen-config 设计](flows/gen-config-design.md) | `gen-config` 加锁原子落盘、`--clear-port` 端口裁剪、`--reload` 通知、失败退出码 |
 | [采集与上报](flows/probe-harvest-and-report.md) | Harvester 采集 → Reporter（gRPC / GSE）→ Receiver → MySQL |
 | [故障判定与切换](flows/failure-detection-and-failover.md) | Analysis：同步元数据、Scan、二次探测条件入窗、滑动窗口、策略匹配、执行切换 |
 

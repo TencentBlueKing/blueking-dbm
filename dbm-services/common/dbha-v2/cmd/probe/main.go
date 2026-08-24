@@ -33,17 +33,24 @@ import (
 	"github.com/spf13/cobra"
 )
 
-func main() {
-	pingAddr, enabled, err := probe.ExtractPingHTTPAddrFromArgs(os.Args[1:])
+func run(args []string) int {
+	// cobra falls back to os.Args[1:] when the args slice is nil, which is the
+	// test binary's own command line under go test.
+	if args == nil {
+		args = []string{}
+	}
+
+	pingAddr, enabled, err := probe.ExtractPingHTTPAddrFromArgs(args)
 	if err != nil {
 		fmt.Println("failed to execute probe. errmsg:", err.Error())
-		return
+		return 1
 	}
 	if enabled {
-		if err := probe.RunKeepaliveMode(pingAddr, os.Args[1:]); err != nil {
+		if err := probe.RunKeepaliveMode(pingAddr, args); err != nil {
 			fmt.Println("failed to execute probe. errmsg:", err.Error())
+			return 1
 		}
-		return
+		return 0
 	}
 
 	rootCmd := &cobra.Command{
@@ -74,9 +81,16 @@ func main() {
 	rootCmd.AddCommand(probe.EnsureCmd)
 	rootCmd.AddCommand(probe.EnsureKeepaliveCmd)
 
+	rootCmd.SetArgs(args)
+
 	if err := rootCmd.Execute(); err != nil {
 		fmt.Println("failed to execute probe. errmsg:", err.Error())
-		return
+		return 1
 	}
 
+	return 0
+}
+
+func main() {
+	os.Exit(run(os.Args[1:]))
 }

@@ -25,13 +25,21 @@
 package main
 
 import (
+	"os"
+
 	"dbm-services/common/dbha-v2/internal/receiver"
 	"dbm-services/common/dbha-v2/pkg/logger"
 
 	"github.com/spf13/cobra"
 )
 
-func main() {
+func run(args []string) int {
+	// cobra falls back to os.Args[1:] when the args slice is nil, which is the
+	// test binary's own command line under go test.
+	if args == nil {
+		args = []string{}
+	}
+
 	rootCmd := &cobra.Command{
 		Use:          "receiver",
 		Short:        "DBHA Receiver Server",
@@ -49,9 +57,16 @@ func main() {
 	rootCmd.AddCommand(receiver.RestartCmd)
 	rootCmd.AddCommand(receiver.ReloadCmd)
 
+	rootCmd.SetArgs(args)
+
 	if err := rootCmd.Execute(); err != nil {
 		logger.Error("failed to start receiver server, errmsg: %s", err)
-		return
+		return 1
 	}
 
+	return 0
+}
+
+func main() {
+	os.Exit(run(os.Args[1:]))
 }

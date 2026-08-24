@@ -29,7 +29,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"os"
+	"strconv"
 	"strings"
 	"time"
 	"unicode"
@@ -56,6 +56,11 @@ var (
 // DefaultGenConfigTimeout is the default deadline applied to gen-config when --timeout
 // is omitted or non-positive; covers the entire admin-endpoints fan-out.
 const DefaultGenConfigTimeout = 30 * time.Second
+
+// DefaultGenConfigLockTimeout is the default deadline applied to gen-config when
+// --lock-timeout is omitted or non-positive; covers waiting for the config file lock
+// held by a concurrent gen-config.
+const DefaultGenConfigLockTimeout = 10 * time.Second
 
 // ProbeHealthInfo extends base process health with probe-specific db types (MySQL, Redis, etc.).
 type ProbeHealthInfo struct {
@@ -181,9 +186,20 @@ func GenConfigCmdRunE(cmd *cobra.Command, args []string) error {
 	if timeout <= 0 {
 		timeout = DefaultGenConfigTimeout
 	}
+	lockTimeout, _ := cmd.Flags().GetDuration("lock-timeout")
+	if lockTimeout <= 0 {
+		lockTimeout = DefaultGenConfigLockTimeout
+	}
+
+	clearPortStr, _ := cmd.Flags().GetString("clear-port")
+	reload, _ := cmd.Flags().GetBool("reload")
 
 	if adminEndpointsStr == "" {
 		return fmt.Errorf("admin-endpoints is required")
+	}
+	clearPorts, err := validateGenConfigFlags(clearPortStr, outputPath, reload)
+	if err != nil {
+		return err
 	}
 	if localIP == "" {
 		resolved, err := resolveGenConfigLocalIP(localIPInterface, adminEndpointsStr)
@@ -222,6 +238,7 @@ func GenConfigCmdRunE(cmd *cobra.Command, args []string) error {
 		}
 		return fmt.Errorf("parse probe config payload from admin: %w", err)
 	}
+	applyClearPorts(payload.Metadata, clearPorts)
 
 	yamlStr, err := config.GenProbeYAML(payload)
 	if err != nil {
@@ -229,10 +246,18 @@ func GenConfigCmdRunE(cmd *cobra.Command, args []string) error {
 	}
 
 	if outputPath != "" {
-		if err := os.WriteFile(outputPath, []byte(yamlStr), 0644); err != nil {
+		// Skipping an unchanged file stays internal: this line is the output contract
+		// callers already had, so both paths must keep printing it.
+		if _, err := process.WriteFileWithLock(outputPath, []byte(yamlStr), lockTimeout); err != nil {
 			return fmt.Errorf("write config file: %w", err)
 		}
 		fmt.Fprintln(cmd.OutOrStdout(), "Config written to", outputPath)
+		if reload {
+			// Deliberately not config.Load(outputPath): that would rewrite the viper
+			// globals for the rest of this process. The default pid file matches what
+			// GenProbeYAML just rendered.
+			return process.ReloadCmdRunE(cmd, nil, config.Cfg.PidFile, procName(), 0, false)
+		}
 		return nil
 	}
 	fmt.Fprint(cmd.OutOrStdout(), yamlStr)
@@ -266,6 +291,81 @@ func resolveGenConfigLocalIP(localIPInterface, adminEndpointsStr string) (string
 		)
 	}
 	return outboundIP, nil
+}
+
+// validateGenConfigFlags checks the gen-config flag combinations that do not depend on
+// admin, so a bad invocation fails before any network call. It returns the parsed
+// --clear-port list for the caller to apply to the payload.
+func validateGenConfigFlags(clearPortStr, outputPath string, reload bool) ([]int, error) {
+	clearPorts, err := parseClearPorts(clearPortStr)
+	if err != nil {
+		return nil, err
+	}
+	if reload && outputPath == "" {
+		return nil, fmt.Errorf("--reload requires --output")
+	}
+	return clearPorts, nil
+}
+
+// parseClearPorts splits a --clear-port value into ports. Only comma and semicolon
+// separate entries: whitespace inside a token (e.g. "100 200") is rejected rather than
+// treated as a separator, so a mistyped value cannot silently drop an extra port.
+// Empty segments from repeated or trailing separators are ignored, but a non-empty
+// value that yields no port at all is an error instead of a silent no-op.
+func parseClearPorts(s string) ([]int, error) {
+	if strings.TrimSpace(s) == "" {
+		return nil, nil
+	}
+
+	seen := make(map[int]struct{})
+	var ports []int
+	for _, token := range strings.FieldsFunc(s, func(r rune) bool { return r == ',' || r == ';' }) {
+		token = strings.TrimSpace(token)
+		if token == "" {
+			continue
+		}
+		port, err := strconv.Atoi(token)
+		if err != nil {
+			return nil, fmt.Errorf("clear-port has an invalid port: %q", token)
+		}
+		if port < 1 || port > 65535 {
+			return nil, fmt.Errorf("clear-port is out of range 1-65535: %d", port)
+		}
+		if _, dup := seen[port]; dup {
+			continue
+		}
+		seen[port] = struct{}{}
+		ports = append(ports, port)
+	}
+
+	if len(ports) == 0 {
+		return nil, fmt.Errorf("clear-port has no valid port: %q", s)
+	}
+	return ports, nil
+}
+
+// applyClearPorts drops the given ports from the metadata by zeroing the matching
+// Port / AdminPort fields; GenProbeYAML already skips zero ports, so they never reach
+// the rendered config. Items are not removed outright because one entry can carry both
+// a data port and an admin port, and only the matching one may disappear.
+func applyClearPorts(metadata []probeconfig.ProbeMetadataItem, ports []int) {
+	if len(ports) == 0 {
+		return
+	}
+
+	cleared := make(map[int]struct{}, len(ports))
+	for _, port := range ports {
+		cleared[port] = struct{}{}
+	}
+
+	for i := range metadata {
+		if _, ok := cleared[metadata[i].Port]; ok {
+			metadata[i].Port = 0
+		}
+		if _, ok := cleared[metadata[i].AdminPort]; ok {
+			metadata[i].AdminPort = 0
+		}
+	}
 }
 
 func parseAdminEndpoints(s string) []string {
