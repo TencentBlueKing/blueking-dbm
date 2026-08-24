@@ -68,6 +68,7 @@ def mysql_dts_task_clean_subflow(inp: MysqlDtsTaskCleanSubflowInput) -> SubBuild
         ignore_errors=False,
         creator=inp.creator,
         dts_cluster_id=inp.dts_cluster_id,
+        cluster_name=inp.cluster_name,
         task_mode=inp.task_mode,
         full_load_engine=inp.full_load_engine,
     )

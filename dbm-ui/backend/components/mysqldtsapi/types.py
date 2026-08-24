@@ -348,7 +348,7 @@ class Task(BaseModel):
     shard_mode: str = Field(default="", description=_("分片模式: '' | pessimistic | optimistic"))
     strict_optimistic_shard_mode: bool = Field(default=False, description=_("严格spider模式"))
     enhance_online_schema_change: bool = Field(default=True, description=_("启用 online-DDL"))
-    on_duplicate: str = Field(default="replace", description=_("冲突策略: replace | error | ignore"))
+    on_duplicate: str = Field(default="error", description=_("冲突策略: replace | error | ignore"))
     meta_schema: str = Field(default="dm_meta", description=_("元数据库名"))
     collation_compatible: str = Field(default="loose", description=_("排序集兼容: loose | strict"))
     ignore_checking_items: list[str] = Field(default_factory=list, description=_("忽略的检查项"))

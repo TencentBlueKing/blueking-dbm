@@ -19,7 +19,6 @@ from backend.db_meta.models.mysql_dts import MysqlDtsInfo, MysqlDtsStatus
 from backend.flow.consts import StateType
 from backend.flow.engine.bamboo.engine import BambooEngine
 from backend.flow.signal.callback_map import create_ticket_handler
-from backend.flow.utils.mysql.dts.constants import DtsLifecycleMode
 from backend.flow.utils.mysql.dts.migrate_credentials import (
     best_effort_drop_dts_temp_accounts_from_snapshots,
     collect_unique_temp_account_snapshots,
@@ -114,9 +113,8 @@ def _finalize_ephemeral_dts(global_data: dict):
     """临时 DTS 终态回收元数据（与临时账号回收相互独立）。"""
     ticket_id = global_data.get("ticket_id")
     migrate_plan = _as_mapping(global_data.get("migrate_plan"))
-    lifecycle = migrate_plan.get("dts_lifecycle", "")
     cleanup_after = migrate_plan.get("cleanup_after_migrate", False)
-    if lifecycle != DtsLifecycleMode.DEPLOY_EPHEMERAL.value and not cleanup_after:
+    if not cleanup_after:
         return
     dts_info = MysqlDtsInfo.objects.filter(ticket_id=ticket_id).first()
     if not dts_info or not dts_info.dts_cluster_id:

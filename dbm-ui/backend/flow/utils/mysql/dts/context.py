@@ -38,6 +38,7 @@ class MysqlDtsMigrateContext:
     master_addr: str = ""
     bk_cloud_id: int | None = None
     dts_cluster_id: int | None = None
+    cluster_name: str = ""
     created_dts_info_ids: list[int] = field(default_factory=list)
     dts_user: str = ""
     dts_password: str = ""
@@ -178,6 +179,7 @@ class MysqlDtsTaskCleanSubflowInput:
     task_names: list[str] | None = None
     source_names: list[str] | None = None
     dts_cluster_id: int | None = None
+    cluster_name: str = ""
     task_mode: str = "all"
     full_load_engine: str = "builtin"
 
@@ -195,6 +197,7 @@ class MysqlDtsDeleteTaskSourceSubflowInput:
     ignore_errors: bool = False  # 成功路径默认不吞错；与 drop_user 尽力清理分离
     creator: str = ""
     dts_cluster_id: int | None = None
+    cluster_name: str = ""
     task_mode: str = "all"
     full_load_engine: str = "builtin"
 

@@ -17,13 +17,14 @@ from pipeline.component_framework.component import Component
 from backend import env
 from backend.components import JobApi, MySQLDTSApi
 from backend.components.mysqldtsapi.types import PurgeRelayRequest
-from backend.db_meta.models import MysqlDtsCluster
 from backend.flow.consts import DBA_ROOT_USER
 from backend.flow.plugins.components.collections.common.base_service import BaseService
 from backend.flow.utils.mysql.dts.constants import FullLoadEngine, get_full_migrate_data_dir
 from backend.flow.utils.mysql.dts.migrate_helper import (
     is_relay_not_enabled_error,
+    load_active_dts_cluster,
     resolve_dts_cluster_id,
+    resolve_dts_cluster_name,
     resolve_purge_relay_binlog_name,
     resolve_source_relay_enabled,
     task_mode_runs_incremental,
@@ -152,15 +153,21 @@ class MysqlDtsDeleteTaskSourceService(BaseService):
         return resolve_source_relay_enabled(source_resp)
 
     def _rm_ticket_dump_dirs(self, kwargs: dict, trans_data, task_names: list[str], ignore_errors: bool) -> bool:
-        plan_like = SimpleNamespace(dts_cluster_id=kwargs.get("dts_cluster_id"))
         migrate_context = getattr(trans_data, "migrate_context", None) if trans_data is not None else None
+        plan_like = SimpleNamespace(
+            dts_cluster_id=kwargs.get("dts_cluster_id"),
+            cluster_name=kwargs.get("cluster_name"),
+            deploy_subflow_inp=None,
+        )
+        cluster_name = resolve_dts_cluster_name(plan_like, migrate_context)
         dts_cluster_id = resolve_dts_cluster_id(plan_like, migrate_context)
-        if not dts_cluster_id:
-            self.log_error(_("DTS 集群 ID 为空，无法删除本单 dump 目录"))
-            return bool(ignore_errors)
-        cluster = MysqlDtsCluster.objects.filter(id=dts_cluster_id).first()
+        cluster = load_active_dts_cluster(
+            dts_cluster_id=dts_cluster_id,
+            bk_biz_id=kwargs.get("bk_biz_id"),
+            cluster_name=cluster_name,
+        )
         if not cluster or not cluster.name:
-            self.log_error(_("DTS 集群 {} 不存在或名称为空，无法删除本单 dump 目录").format(dts_cluster_id))
+            self.log_error(_("未找到 DTS 集群，无法删除本单 dump 目录: name={} id={}").format(cluster_name, dts_cluster_id))
             return bool(ignore_errors)
         workers = [n for n in (cluster.worker_nodes or []) if n.get("ip")]
         if not workers:

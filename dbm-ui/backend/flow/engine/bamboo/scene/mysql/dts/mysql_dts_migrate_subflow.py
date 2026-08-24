@@ -27,6 +27,7 @@ from backend.flow.utils.mysql.dts.migrate_credentials import (
     grant_targets_to_dicts,
     resolve_migrate_temp_account_for_pipeline,
 )
+from backend.flow.utils.mysql.dts.migrate_helper import plan_deploy_cluster_name
 
 
 def _ensure_cluster_sub_name(plan) -> str:
@@ -95,6 +96,9 @@ def mysql_dts_migrate_subflow(inp: MysqlDtsMigrateSubflowInput) -> SubBuilder:
             "dts_password": dts_password,
             "grant_hosts": grant_hosts,
             "grant_targets": grant_targets_to_dicts(grant_targets),
+            "bk_biz_id": inp.bk_biz_id,
+            "dts_cluster_id": getattr(plan, "dts_cluster_id", None) or None,
+            "cluster_name": plan_deploy_cluster_name(plan),
         },
     )
     sub.add_parallel_acts(

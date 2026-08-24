@@ -27,7 +27,7 @@ from backend.flow.utils.mysql.dts.migrate_credentials import (
     grant_targets_to_dicts,
     resolve_migrate_temp_account_for_pipeline,
 )
-from backend.flow.utils.mysql.dts.migrate_helper import build_ticket_dts_clean_names
+from backend.flow.utils.mysql.dts.migrate_helper import build_ticket_dts_clean_names, plan_deploy_cluster_name
 from backend.flow.utils.mysql.dts.migrate_plan import resolve_migrate_plan_from_ticket_data
 
 logger = logging.getLogger("flow")
@@ -87,6 +87,7 @@ class MysqlToMysqlMigrateFlow:
             task_names=task_names,
             source_names=source_names,
             dts_cluster_id=getattr(migrate_plan, "dts_cluster_id", None) or None,
+            cluster_name=plan_deploy_cluster_name(migrate_plan),
             task_mode=task_mode,
             full_load_engine=full_load_engine,
         )

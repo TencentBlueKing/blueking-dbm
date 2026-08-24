@@ -29,9 +29,10 @@ class MysqlDtsUpdateMetaServiceTest(TestCase):
     def _make_service(self):
         service = MysqlDtsUpdateMetaService()
         service.log_info = MagicMock()
+        service.log_error = MagicMock()
         return service
 
-    def _run(self, sources, *, target_cluster_id=200):
+    def _run(self, sources, *, target_cluster_id=200, dts_cluster_id=1, context_cluster_id=1, expect_ok=True):
         task_spec = DtsTaskSpec(
             task_name="mysql-dts-test-task",
             target_cluster_id=target_cluster_id,
@@ -40,7 +41,7 @@ class MysqlDtsUpdateMetaServiceTest(TestCase):
         )
         migrate_context = SimpleNamespace(
             registered_source_names=[],
-            dts_cluster_id=1,
+            dts_cluster_id=context_cluster_id,
             dts_user="",
             grant_hosts=[],
             grant_targets=[],
@@ -57,7 +58,7 @@ class MysqlDtsUpdateMetaServiceTest(TestCase):
                 "ticket_id": 100,
                 "root_id": "root-1",
                 "task_name": task_spec.task_name,
-                "dts_cluster_id": 1,
+                "dts_cluster_id": dts_cluster_id,
                 "creator": "tester",
             },
             "global_data": {"root_id": "root-1"},
@@ -66,6 +67,9 @@ class MysqlDtsUpdateMetaServiceTest(TestCase):
         # pipeline DataObject 同时支持 outputs["k"]= 与 outputs.attr =
         data.outputs = MagicMock()
         ok = self._make_service()._execute(data, parent_data=None)
+        if not expect_ok:
+            self.assertFalse(ok)
+            return None, migrate_context
         self.assertTrue(ok)
         return MysqlDtsInfo.objects.get(id=data.outputs.dts_info_id), migrate_context
 
@@ -108,3 +112,13 @@ class MysqlDtsUpdateMetaServiceTest(TestCase):
         self.assertEqual(MysqlDtsInfo.objects.filter(ticket_id=100, dts_task_id="mysql-dts-test-task").count(), 1)
         self.assertEqual(row.status, MysqlDtsStatus.FullOnline.value)
         self.assertEqual(row.source_cluster_ids, [101])
+
+    def test_missing_cluster_id_fails_without_write(self):
+        sources = [SourceSpec(cluster_id=101, source_name="s1", sync_scope=SyncScope(do_dbs=["db_a"]))]
+        unused_row, unused_ctx = self._run(sources, dts_cluster_id=None, context_cluster_id=None, expect_ok=False)
+        self.assertFalse(MysqlDtsInfo.objects.filter(ticket_id=100, dts_task_id="mysql-dts-test-task").exists())
+
+    def test_context_id_used_when_kwargs_empty(self):
+        sources = [SourceSpec(cluster_id=101, source_name="s1", sync_scope=SyncScope(do_dbs=["db_a"]))]
+        row, unused_ctx = self._run(sources, dts_cluster_id=None, context_cluster_id=7)
+        self.assertEqual(row.dts_cluster_id, 7)

@@ -60,11 +60,15 @@ class MysqlDtsUpdateMetaService(BaseService):
             ).first()
             or MysqlDtsInfo.objects.filter(ticket_id=ticket_id, dts_task_id=task_name).first()
         )
+        dts_cluster_id = kwargs.get("dts_cluster_id") or trans_data.migrate_context.dts_cluster_id or 0
+        if not dts_cluster_id:
+            self.log_error(_("DTS 集群 ID 为空，无法写入迁移元数据（请先完成准备临时账号）"))
+            return False
         fields = {
             "bk_biz_id": kwargs["bk_biz_id"],
             "source_cluster_ids": source_cluster_ids,
             "target_cluster_id": task_spec.target_cluster_id,
-            "dts_cluster_id": kwargs.get("dts_cluster_id") or trans_data.migrate_context.dts_cluster_id or 0,
+            "dts_cluster_id": dts_cluster_id,
             "migrate_type": kwargs["migrate_type"],
             "migrate_topology": kwargs.get("migrate_topology", ""),
             "ticket_id": ticket_id,
