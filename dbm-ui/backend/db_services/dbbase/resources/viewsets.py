@@ -51,18 +51,8 @@ class ResourceViewSet(SystemViewSet):
     # 给实例列表数据嵌入权限字段
     list_instance_perm_actions = []
     # (可选)给集群列表数据嵌入全局权限字段
-    # 如果此变量不为空，需要实现_external_perm_param_field方法
-    list_external_perm_actions = []
     # 绑定资源是业务id的管理权限
     list_external_manage_actions = []
-
-    @staticmethod
-    def _external_perm_param_field(kwargs):
-        """
-        全局权限字段资源的获取函数，默认不实现
-        kwargs包含了request.data, request.query_params和view_class
-        """
-        raise NotImplementedError
 
     def _get_custom_permissions(self):
         if self.detail or self.action in ["retrieve_instance"]:
@@ -87,10 +77,6 @@ class ResourceViewSet(SystemViewSet):
         param_field=lambda d: d["bk_biz_id"],
         action_filed=lambda d: d["view_class"].list_external_manage_actions,
         resource_meta=ResourceEnum.BUSINESS,
-    )
-    @Permission.decorator_external_permission_field(
-        param_field=lambda d: d["view_class"]._external_perm_param_field(d),
-        action_filed=lambda d: d["view_class"].list_external_perm_actions,
     )
     def list(self, request, bk_biz_id: int):
         """查询集群列表"""

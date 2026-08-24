@@ -45,8 +45,11 @@ class NotifyGroupPermission(ResourceActionPermission):
             self.resource_meta = ResourceEnum.BUSINESS
             return [get_request_key_id(request, key="bk_biz_id")]
         elif view.action in ["partial_update", "update", "destroy", "create"]:
-            notify_group = NoticeGroup.objects.get(id=view.kwargs.get("pk"))
-            bk_biz_id = notify_group.bk_biz_id
+            if view.action == "create":
+                bk_biz_id = get_request_key_id(request, key="bk_biz_id")
+            else:
+                notify_group = NoticeGroup.objects.get(id=view.kwargs.get("pk"))
+                bk_biz_id = notify_group.bk_biz_id
             if bk_biz_id:
                 self.actions = [ActionEnum.NOTIFY_GROUP_MANAGE]
                 self.resource_meta = ResourceEnum.BUSINESS
