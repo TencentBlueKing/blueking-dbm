@@ -75,8 +75,8 @@ type MysqlSlowLogModel struct {
 
 	QueryTime    float32 `gorm:"column:query_time;type:float;not null" json:"query_time" db:"query_time"`
 	LockTime     float32 `gorm:"column:lock_time;type:float;not null" json:"lock_time" db:"lock_time"`
-	RowsExamined int     `gorm:"column:rows_examined;type:int;not null" json:"rows_examined" db:"rows_examined"`
-	RowsSent     int     `gorm:"column:rows_sent;type:int;not null" json:"rows_sent" db:"rows_sent"`
+	RowsExamined int64   `gorm:"column:rows_examined;type:int;not null" json:"rows_examined" db:"rows_examined"`
+	RowsSent     int64   `gorm:"column:rows_sent;type:int;not null" json:"rows_sent" db:"rows_sent"`
 
 	QueryDigestMd5  string `gorm:"column:query_digest_md5;type:varchar(60);not null" json:"query_digest_md5" db:"query_digest_md5"`
 	QueryDigestText string `gorm:"column:query_digest_text;type:text;not null" json:"query_digest_text" db:"query_digest_text"`
@@ -137,8 +137,8 @@ type SlowLog struct {
 	DbName       string  `json:"db_name"`
 	QueryTime    float32 `json:"query_time"`
 	LockTime     float32 `json:"lock_time"`
-	RowsExamined int     `json:"rows_examined"`
-	RowsSent     int     `json:"rows_sent"`
+	RowsExamined int64   `json:"rows_examined"`
+	RowsSent     int64   `json:"rows_sent"`
 	// SqlTimestamp	set timestamp=xxxx
 	// # Time: 260309 12:57:05
 	SqlTimestamp    uint   `json:"sql_timestamp"`
@@ -317,8 +317,8 @@ CREATE TABLE IF NOT EXISTS %s (
 
   query_time float DEFAULT NULL,
   lock_time float DEFAULT NULL,
-  rows_examined int DEFAULT NULL,
-  rows_sent int DEFAULT NULL,
+  rows_examined bigint DEFAULT NULL,
+  rows_sent bigint DEFAULT NULL,
   query_digest_text text DEFAULT NULL,
   query_string text DEFAULT NULL,
   query_length int DEFAULT NULL,
@@ -359,8 +359,8 @@ CREATE TABLE IF NOT EXISTS %s (
 
   query_time float NULL,
   lock_time float NULL,
-  rows_examined int NULL,
-  rows_sent int NULL,
+  rows_examined bigint NULL,
+  rows_sent bigint NULL,
     
   query_digest_text varchar(8192) NULL,
   query_string string NULL,
@@ -370,7 +370,7 @@ CREATE TABLE IF NOT EXISTS %s (
   db_name varchar(100) NULL,
   table_names varchar(1024) NULL,
 
-  session_id int NULL,
+  session_id bigint NULL,
   client_host varchar(60) NULL,
   username varchar(60) NULL,
   cluster_type varchar(60) NULL,

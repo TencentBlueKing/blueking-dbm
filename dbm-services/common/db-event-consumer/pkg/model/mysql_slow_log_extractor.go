@@ -254,9 +254,9 @@ func parseSlowLogHeader(line string, result *SlowLog) {
 				v, _ := strconv.ParseUint(val, 10, 64)
 				switch key {
 				case "Rows_examined":
-					result.RowsExamined = int(v)
+					result.RowsExamined = int64(v)
 				case "Rows_sent":
-					result.RowsSent = int(v)
+					result.RowsSent = int64(v)
 				case "Id", "Thread_id", "Session_id":
 					result.SessionId = int64(v)
 				}
