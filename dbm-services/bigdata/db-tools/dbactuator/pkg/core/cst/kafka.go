@@ -57,6 +57,8 @@ const (
 	ReassignJSONFile = DefaultKafkaEnv + "/reassign.json"
 	// ThrottleFile 	限流文件
 	ThrottleFile = "./throttle_rate.txt"
+	// ProgressFile rebalance 进度文件，供 MCP 工具/值守查询当前进度
+	ProgressFile = "./progress.json"
 	// KafkaUIPort kafkaui默认监听端口
 	KafkaUIPort = 9001
 	// KafkaStorageBin 执行路径
