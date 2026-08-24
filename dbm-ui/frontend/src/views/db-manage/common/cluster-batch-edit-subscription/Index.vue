@@ -19,28 +19,6 @@
       placement="right"
       style="height: 100%">
       <template #aside>
-        <div class="aside-summary-main">
-          <span>{{ t('已选集群') }}：</span>
-          <I18nT
-            keypath="共 {n} 个，{action} {k}"
-            tag="span">
-            <template #n>{{ count.n }}</template>
-            <template #action>{{ t('设置') }}</template>
-            <template #k>{{ count.k }}</template>
-          </I18nT>
-          <I18nT
-            v-if="count.s > 0"
-            keypath="，跳过 {s}"
-            tag="span">
-            <template #s>{{ count.s }}</template>
-          </I18nT>
-          <I18nT
-            v-if="count.a > 0"
-            keypath="（无权限 {a}）"
-            tag="span">
-            <template #a>{{ count.a }}</template>
-          </I18nT>
-        </div>
         <DomainList
           v-model="domainMapList"
           :show-update="showUpdate" />
@@ -134,11 +112,11 @@
   const hasSubscribePermission = (item: NonNullable<Props['selected']>[number]) =>
     item.permission?.[subscribeMonitorActionIdMap[item.db_type ?? '']] !== false;
 
-  /** 统一计数：设置告警订阅仅无权限跳过（a），无状态不符维度 */
+  /** 统一计数：无权限跳过（a）+ 状态不符（无可配置指标）跳过（b），一行只算一次、无权限优先 */
   const count = computed(() =>
     countBatchOperation(props.selected, {
       hasPermission: hasSubscribePermission,
-      statusMismatch: () => false,
+      statusMismatch: (item) => !metricsMap.value[item.cluster_type].list.length,
     }),
   );
 
@@ -190,10 +168,10 @@
 
   const handleConfirm = () => {
     const contentData = editContentRef.value!.getData();
-    // 仅提交有权限的集群，跳过无权限的
+    // 仅提交有权限且状态可做（有可配置指标）的集群，跳过无权限/状态不符的
     const domainList = Object.values(domainMapList.value)
       .flat()
-      .filter((item) => item.hasPermission);
+      .filter((item) => item.hasPermission && !item.isIgnore);
     const params = {
       ...contentData,
       clusters: domainList.map((item) => ({
@@ -223,17 +201,6 @@
       padding: 16px 24px 0;
       font-size: 20px;
       color: #313238;
-    }
-
-    .aside-summary-main {
-      display: flex;
-      height: 40px;
-      padding-left: 24px;
-      font-size: 12px;
-      color: #313238;
-      background: #fff;
-      border-bottom: 1px solid #dcdee5;
-      align-items: center;
     }
   }
 </style>

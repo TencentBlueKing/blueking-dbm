@@ -33,10 +33,16 @@ interface ClusterCommon {
 interface OperateClusterBatchOptions<T = ClusterCommon> {
   /** 删除时状态不符判断（未禁用计入跳过 b） */
   deleteMismatch?: (item: T) => boolean;
+  /** 删除操作是否有权限（无权限计入跳过 a） */
+  deletePermission?: (item: T) => boolean;
   /** 禁用时状态不符判断（已禁用计入跳过 b） */
   disableMismatch?: (item: T) => boolean;
+  /** 禁用操作是否有权限（无权限计入跳过 a） */
+  disablePermission?: (item: T) => boolean;
   /** 启用时状态不符判断（已启用计入跳过 b） */
   enableMismatch?: (item: T) => boolean;
+  /** 启用操作是否有权限（无权限计入跳过 a） */
+  enablePermission?: (item: T) => boolean;
   /** 是否有操作权限，默认全部有权限（无权限计入跳过 a） */
   hasPermission?: (item: T) => boolean;
   onSuccess: () => void;
@@ -193,8 +199,8 @@ export const useOperateClusterBatch = <T extends ClusterCommon>(
   };
 
   /** 计算批量操作计数与将提交列表（一行只算一次，无权限优先） */
-  const getOperateInfo = (dataList: T[], mismatched?: (item: T) => boolean) => {
-    const hasPermission = options.hasPermission ?? (() => true);
+  const getOperateInfo = (dataList: T[], permission: (item: T) => boolean, mismatched?: (item: T) => boolean) => {
+    const hasPermission = permission;
     const isMismatch = mismatched ?? (() => false);
     const count = countBatchOperation(dataList, {
       hasPermission,
@@ -250,7 +256,11 @@ export const useOperateClusterBatch = <T extends ClusterCommon>(
   };
 
   const handleDisableCluster = (dataList: T[]) => {
-    const { count, toOperate } = getOperateInfo(dataList, options.disableMismatch);
+    const { count, toOperate } = getOperateInfo(
+      dataList,
+      options.disablePermission ?? options.hasPermission ?? (() => true),
+      options.disableMismatch,
+    );
     openDialog(ticketTypeInfo.disable, {
       actionWord: t('禁用'),
       confirmButtonTheme: 'primary',
@@ -265,7 +275,11 @@ export const useOperateClusterBatch = <T extends ClusterCommon>(
   };
 
   const handleEnableCluster = (dataList: T[]) => {
-    const { count, toOperate } = getOperateInfo(dataList, options.enableMismatch);
+    const { count, toOperate } = getOperateInfo(
+      dataList,
+      options.enablePermission ?? options.hasPermission ?? (() => true),
+      options.enableMismatch,
+    );
     openDialog(ticketTypeInfo.enable, {
       actionWord: t('启用'),
       confirmButtonTheme: 'primary',
@@ -280,7 +294,11 @@ export const useOperateClusterBatch = <T extends ClusterCommon>(
   };
 
   const handleDeleteCluster = (dataList: T[]) => {
-    const { count, toOperate } = getOperateInfo(dataList, options.deleteMismatch);
+    const { count, toOperate } = getOperateInfo(
+      dataList,
+      options.deletePermission ?? options.hasPermission ?? (() => true),
+      options.deleteMismatch,
+    );
     openDialog(ticketTypeInfo.delete, {
       actionWord: t('删除'),
       confirmButtonTheme: 'danger',
