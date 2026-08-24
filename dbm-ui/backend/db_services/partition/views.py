@@ -91,18 +91,6 @@ class DBPartitionViewSet(viewsets.SystemViewSet):
         else [ActionEnum.MYSQL_PARTITION_MANAGE],
         resource_meta=ResourceEnum.BUSINESS,
     )
-    # @Permission.decorator_permission_field(
-    #     id_field=lambda d: d["cluster_id"],
-    #     data_field=lambda d: d["results"],
-    #     action_filed=lambda d: [
-    #         *ActionEnum.get_match_actions(
-    #             "tendbcluster_partition", exclude=[ActionEnum.TENDBCLUSTER_PARTITION_CREATE]
-    #         ),
-    #         ActionEnum.TENDBCLUSTER_PARTITION_ENABLE_DISABLE,
-    #     ]
-    #     if d["cluster_type"] == ClusterType.TenDBCluster
-    #     else [*ActionEnum.get_match_actions("mysql_partition", exclude=[ActionEnum.MYSQL_PARTITION_CREATE])],
-    # )
     def list(self, request, *args, **kwargs):
         """
         # 分区v2相关接口

@@ -59,7 +59,7 @@ def decorator_permission_field():
             if not result_list:
                 return response
 
-            cluster_ids = set([res["cluster_id"] for res in result_list])
+            cluster_ids = set([res["cluster_id"] for res in result_list if res.get("cluster_id")])
             resources_list = [[instance] for instance in action_resource_meta.batch_create_instances(cluster_ids)]
 
             permission_result = Permission().batch_is_allowed(perm_actions, resources_list)

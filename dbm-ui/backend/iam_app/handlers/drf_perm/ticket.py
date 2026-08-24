@@ -69,13 +69,13 @@ class CreateTicketOneResourcePermission(ResourceActionPermission):
             instance_ids_getter = self.instance_dumper_cluster_ids_getter
         # DB实例权限克隆执行, 查询源客户端IP已在哪些集群
         elif ticket_type in [TicketType.MYSQL_INSTANCE_CLONE_RULES, TicketType.TENDBCLUSTER_INSTANCE_CLONE_RULES]:
-            instance_ids_getter = self.instance_instance_ids_getter
+            instance_ids_getter = self.clonepriv_instance_cluster_ids_getter
         else:
             instance_ids_getter = self.instance_cluster_ids_getter
 
         super().__init__(actions, resource_meta, instance_ids_getter=instance_ids_getter)
 
-    def instance_instance_ids_getter(self, request, view):
+    def clonepriv_instance_cluster_ids_getter(self, request, view):
         details = request.data.get("details") or request.data
         target_ips = [clone_data["target"] for clone_data in details.get("clone_data_list", [])]
         ips = [ip_port.split(":")[0] for ip_port in target_ips if ":" in ip_port]
