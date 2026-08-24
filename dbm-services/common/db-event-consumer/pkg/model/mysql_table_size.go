@@ -23,7 +23,7 @@ import (
 )
 
 type MysqlTableSize struct {
-	ID uint `gorm:"primaryKey;autoIncrement:true"`
+	// ID uint `gorm:"primaryKey;autoIncrement:true"`
 	// TheDate 20250101
 	TheDate int `gorm:"column:thedate;type:int;not null" json:"thedate" db:"thedate"`
 	// DtEventTimeStamp 1577836800000
@@ -98,6 +98,11 @@ func (m *MysqlTableSize) dorisHttpCreate(i interface{}, w *sinker.DorisHttpWrite
 	kafkaObjs, ok := i.([]MysqlTableSize)
 	if !ok {
 		kafkaObjs = []MysqlTableSize{i.(MysqlTableSize)}
+	}
+	for idx := range kafkaObjs {
+		kafkaObjs[idx].TheDate, _ = strconv.Atoi(kafkaObjs[idx].ReportTime.Format("20060102"))
+		kafkaObjs[idx].DtEventTimeStamp = kafkaObjs[idx].ReportTime.UnixMilli()
+		kafkaObjs[idx].DtEventTimeHour = kafkaObjs[idx].ReportTime.Format("2006-01-02 15")
 	}
 	return w.WriteBatch(m, kafkaObjs)
 }

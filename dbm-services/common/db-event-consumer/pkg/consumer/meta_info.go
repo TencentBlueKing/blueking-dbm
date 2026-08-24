@@ -9,13 +9,13 @@
 package consumer
 
 import (
-	"encoding/json"
 	"io"
 	"net/http"
 	"net/url"
 	"os"
 	"strconv"
 
+	json "github.com/goccy/go-json"
 	"github.com/pkg/errors"
 	"golang.org/x/exp/slog"
 

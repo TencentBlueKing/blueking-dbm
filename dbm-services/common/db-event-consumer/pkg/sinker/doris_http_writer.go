@@ -10,15 +10,13 @@ package sinker
 
 import (
 	"bytes"
-	"encoding/json"
 	"fmt"
 	"io"
 	"log/slog"
 	"net/http"
-	"reflect"
 	"time"
 
-	"github.com/gogf/gf/v2/util/gconv"
+	json "github.com/goccy/go-json"
 	"github.com/pkg/errors"
 	"gorm.io/gorm"
 	"gorm.io/gorm/schema"
@@ -99,23 +97,37 @@ func (w *DorisHttpWriter) AutoMigrate(m interface{}) error {
 	return w.dbGorm.Migrator().AutoMigrate(m)
 }
 
-// WriteBatch 使用 Doris HTTP Stream Load 写入一批数据
+// WriteBatch 使用 Doris HTTP Stream Load 写入一批数据。
+// 直接将 models 序列化为 JSON，避免 struct -> map -> json 的多层转换。
 func (w *DorisHttpWriter) WriteBatch(table interface{}, models interface{}) error {
 	tableName, err := w.getTableName(table)
 	if err != nil {
 		return err
 	}
 
-	// 将 models 转换为 []map[string]interface{}
-	objs, err := w.modelsToMaps(models)
+	return w.writeBatchJSON(tableName, models)
+}
+
+// WriteBatchJSON 使用 Doris HTTP Stream Load 接口写入一批数据（快路径）。
+func (w *DorisHttpWriter) WriteBatchJSON(table interface{}, models interface{}) error {
+	tableName, err := w.getTableName(table)
 	if err != nil {
 		return err
 	}
-	if len(objs) == 0 {
+
+	return w.writeBatchJSON(tableName, models)
+}
+
+func (w *DorisHttpWriter) writeBatchJSON(tableName string, models interface{}) error {
+	jsonData, err := json.Marshal(models)
+	if err != nil {
+		return errors.WithMessage(err, "marshal models to json")
+	}
+	if len(jsonData) == 0 || string(jsonData) == "null" || string(jsonData) == "[]" {
 		return nil
 	}
 
-	return w.streamLoad(tableName, objs)
+	return w.streamLoadRaw(tableName, jsonData)
 }
 
 func (w *DorisHttpWriter) OnDuplicate(objs interface{}) error {
@@ -142,15 +154,9 @@ func (w *DorisHttpWriter) CloseGormDB() error {
 	return db.Close()
 }
 
-// streamLoad 执行 Doris Stream Load HTTP 请求
-// FE 收到请求后会返回 307 重定向到 BE 节点，需要手动跟随重定向并重新发送数据
-func (w *DorisHttpWriter) streamLoad(tableName string, objs []map[string]interface{}) error {
-	// 将数据序列化为 JSON 数组
-	jsonData, err := json.Marshal(objs)
-	if err != nil {
-		return errors.WithMessage(err, "marshal data to json")
-	}
-
+// streamLoadRaw 执行 Doris Stream Load HTTP 请求（接收已序列化的 JSON 字节）。
+// FE 收到请求后会返回 307 重定向到 BE 节点，需要手动跟随重定向并重新发送数据。
+func (w *DorisHttpWriter) streamLoadRaw(tableName string, jsonData []byte) error {
 	// 构建 Stream Load URL: http://<fe_host>:<fe_http_port>/api/<db>/<table>/_stream_load
 	feURL := fmt.Sprintf("http://%s/api/%s/%s/_stream_load", w.dsn.Address, w.dsn.Database, tableName)
 
@@ -176,8 +182,7 @@ func (w *DorisHttpWriter) streamLoad(tableName string, objs []map[string]interfa
 		// 关闭 FE 响应体
 		io.Copy(io.Discard, resp.Body)
 		resp.Body.Close()
-
-		slog.Debug("stream load redirected to BE", slog.String("be_url", beURL))
+		// slog.Debug("stream load redirected to BE", slog.String("be_url", beURL))
 
 		// 重新构建请求发送到 BE
 		beReq, err := http.NewRequest(http.MethodPut, beURL, bytes.NewReader(jsonData))
@@ -188,11 +193,15 @@ func (w *DorisHttpWriter) streamLoad(tableName string, objs []map[string]interfa
 
 		beResp, err := w.httpClient.Do(beReq)
 		if err != nil {
-			return errors.WithMessagef(err, "stream load request to BE %s", beURL)
+			return errors.WithMessagef(err, "stream load request to BE %s. data:%s", beURL, string(jsonData))
 		}
 		defer beResp.Body.Close()
 
-		return w.parseStreamLoadResponse(beResp, tableName)
+		err = w.parseStreamLoadResponse(beResp, tableName)
+		if err != nil {
+			return errors.WithMessagef(err, "stream load response from BE %s. data:%s", beURL, string(jsonData))
+		}
+		return nil
 	}
 
 	// 如果 FE 没有重定向（比如直接连 BE 或者某些版本直接返回结果），直接解析响应
@@ -255,41 +264,4 @@ func (w *DorisHttpWriter) getTableName(table interface{}) (string, error) {
 		return t.TableName(), nil
 	}
 	return "", errors.Errorf("cannot find TableName() for table %v", table)
-}
-
-// modelsToMaps 将 models 转换为 []map[string]interface{}
-func (w *DorisHttpWriter) modelsToMaps(models interface{}) ([]map[string]interface{}, error) {
-	var objs []map[string]interface{}
-	sliceValue := reflect.Indirect(reflect.ValueOf(models))
-	if sliceValue.Kind() == reflect.Slice {
-		canMap := false
-		if sliceValue.Len() == 0 {
-			return nil, nil
-		}
-		firstObj := sliceValue.Index(0)
-		if firstObj.Kind() == reflect.Struct {
-			canMap = true
-		} else if firstObj.Kind() == reflect.Ptr && firstObj.Elem().Kind() == reflect.Struct {
-			canMap = true
-		}
-		if canMap {
-			for i := 0; i < sliceValue.Len(); i++ {
-				obj := sliceValue.Index(i).Interface()
-				m := gconv.Map(obj, gconv.MapOption{
-					Tags: []string{"db"},
-				})
-				objs = append(objs, m)
-			}
-		} else {
-			if err := gconv.Scan(models, &objs); err != nil {
-				return nil, errors.WithMessagef(err, "gconv.Scan failed for models %+v", models)
-			}
-		}
-	} else {
-		m := gconv.Map(models, gconv.MapOption{
-			Tags: []string{"db"},
-		})
-		objs = append(objs, m)
-	}
-	return objs, nil
 }

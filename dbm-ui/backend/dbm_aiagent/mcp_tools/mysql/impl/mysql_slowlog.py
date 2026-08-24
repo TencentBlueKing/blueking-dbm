@@ -12,6 +12,7 @@ import copy
 from typing import Dict, List
 
 from django.db.models import Aggregate, CharField, Count, IntegerField, Max, Min, Q, Sum
+from django.db.models.functions import Cast
 from django.utils import timezone
 
 from backend import env
@@ -344,7 +345,7 @@ def query_slowlog_aggregated(
                 table_names=AnyValue("table_names", output_field=CharField()),
                 username=AnyValue("username", output_field=CharField()),
                 client_host=GroupConcat("client_host", output_field=CharField()),
-                session_ids=GroupConcat("session_id", output_field=CharField()),
+                session_ids=GroupConcat(Cast("session_id", output_field=CharField()), output_field=CharField()),
                 instance_host=AnyValue("instance_host", output_field=CharField()),
                 instance_port=AnyValue("instance_port", output_field=IntegerField()),
                 cluster_type=AnyValue("cluster_type", output_field=CharField()),

@@ -2,13 +2,13 @@ package base
 
 import (
 	"bytes"
-	"encoding/json"
 	"fmt"
 	"log/slog"
 	"net/http"
 	"sync"
 	"time"
 
+	json "github.com/goccy/go-json"
 	"github.com/prometheus/client_golang/prometheus"
 )
 

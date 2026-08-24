@@ -15,6 +15,7 @@ import (
 	"strconv"
 	"time"
 
+	json "github.com/goccy/go-json"
 	sb "github.com/huandu/go-sqlbuilder"
 	"github.com/pkg/errors"
 	"github.com/spf13/cast"
@@ -25,23 +26,19 @@ import (
 )
 
 type MysqlProxyConnlog struct {
-	ID uint `gorm:"primaryKey;autoIncrement:true"`
 	// TheDate 20250101
 	// TheDate int `gorm:"column:thedate;type:int;not null" json:"thedate" db:"thedate"`
 	// DtEventTimeStamp 1577836800000
-	DtEventTimeStamp time.Time `gorm:"column:dteventtimestamp;type:bigint;not null" json:"dtEventTimeStamp" db:"dteventtimestamp"`
+	DtEventTimeStamp time.Time `gorm:"column:dteventtimestamp;type:bigint;not null" json:"dteventtimestamp" db:"dteventtimestamp"`
 	// DtEventTimeHour	'2020-01-01 01:00:00'
 	DtEventTimeHour string `gorm:"column:dteventtimehour;type:varchar(127);not null" json:"dteventtimehour" db:"dteventtimehour"`
 	BkBizId         int    `gorm:"column:bk_biz_id;type:int;not null" json:"bk_biz_id" db:"bk_biz_id"`
 	BkCloudId       int    `gorm:"column:bk_cloud_id;type:int;not null" json:"bk_cloud_id" db:"bk_cloud_id"`
-	ClusterDomain   string `gorm:"column:cluster_domain;type:varchar(127);not null" json:"__module__" db:"cluster_domain"`
+	ClusterDomain   string `gorm:"column:cluster_domain;type:varchar(127);not null" json:"cluster_domain" db:"cluster_domain"`
 	//ClusterDomain   string `gorm:"column:cluster_domain;type:varchar(127);not null" json:"cluster_domain" db:"cluster_domain"`
 	//BkCloudId       int    `gorm:"column:bk_cloud_id;type:int;not null" json:"cloudId" db:"bk_cloud_id"`
 	// ProxyIp proxy serverIp
-	ProxyIp string `gorm:"column:proxy_ip;type:varchar(127);not null" json:"proxy_ip" db:"proxy_ip"`
-	// ProxyPort mysql-proxy port
-	ProxyPort int `gorm:"column:proxy_port;type:int;not null" json:"proxy_port" db:"proxy_port"`
-
+	ProxyIp   string    `gorm:"column:proxy_ip;type:varchar(127);not null" json:"proxy_ip" db:"proxy_ip"`
 	ClientIp  string    `gorm:"column:client_ip;type:varchar(127);not null" json:"client_ip" db:"client_ip"`
 	ConnUser  string    `gorm:"column:conn_user;type:varchar(127);not null" json:"conn_user" db:"conn_user"`
 	ConnTime  time.Time `gorm:"column:conn_time;type:datetime;not null" json:"conn_time" db:"conn_time"`
@@ -56,8 +53,9 @@ func (m *MysqlProxyConnlog) TableName() string {
 // item.Data 格式: 2026-08-10 19:43:31: (critical) conn_log, current user is 'user1'@'1.2.3.4' 13872793
 // 解析出 conn_time, conn_user, client_ip, session_id
 func (m *MysqlProxyConnlog) UnmarshalItem(data []byte, msg base.MessageWrapper) error {
-	queryString, err := strconv.Unquote(string(data))
-	if err != nil || queryString == "" {
+	// 用 json.Unmarshal 直接解引号，比 strconv.Unquote(string(data)) 少一次 []byte→string 的内存分配
+	var queryString string
+	if err := json.Unmarshal(data, &queryString); err != nil || queryString == "" {
 		return fmt.Errorf("invalid data: %s", data)
 	}
 
@@ -155,6 +153,9 @@ func (m *MysqlProxyConnlog) dorisHttpCreate(i interface{}, w *sinker.DorisHttpWr
 	if !ok {
 		kafkaObjs = []MysqlProxyConnlog{i.(MysqlProxyConnlog)}
 	}
+	for idx := range kafkaObjs {
+		kafkaObjs[idx].DtEventTimeHour = kafkaObjs[idx].DtEventTimeStamp.Format("2006-01-02 15")
+	}
 	return w.WriteBatch(m, kafkaObjs)
 }
 
@@ -180,9 +181,7 @@ func (m *MysqlProxyConnlog) dorisCreate(i interface{}, db *gorm.DB) error {
 		"bk_cloud_id",
 	)
 	for _, kafkaObj := range kafkaObjs {
-		//kafkaObj.TheDate, _ = strconv.Atoi(kafkaObj.DtEventTimeStamp.Format("20060102"))
 		kafkaObj.DtEventTimeHour = kafkaObj.DtEventTimeStamp.Format("2006-01-02 15")
-		// slog.Debug("unmarshal task obj", slog.Any("obj", kafkaObj))
 		builder.Values(
 			kafkaObj.DtEventTimeStamp, kafkaObj.DtEventTimeHour,
 			kafkaObj.ClusterDomain,

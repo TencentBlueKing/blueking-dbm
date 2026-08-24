@@ -14,7 +14,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/Shopify/sarama"
+	"github.com/IBM/sarama"
 	"github.com/samber/lo"
 	"golang.org/x/exp/slog"
 
@@ -107,6 +107,11 @@ func (s *Sinker) NewConsumerGroup() (sarama.ConsumerGroup, error) {
 	} else {
 		consumerConfig.Consumer.Fetch.Min = 1024
 	}
+	consumerConfig.Consumer.Fetch.Default = 256 * 1024   // 256KB，降低单次 fetch 分配以减少内存驻留
+	consumerConfig.Consumer.Fetch.Max = 10 * 1024 * 1024 // 2MB，大幅降低 responseReceiver buf 大小（每个 buf 最大 1MB）
+	consumerConfig.ChannelBufferSize = 10                // 最小化 channel 缓冲，减少 pin 住 FetchResponse buf 的消息数
+	consumerConfig.Net.MaxOpenRequests = 2               // 从默认 5 降到 2，减少 broker 级别并发 response 数量
+	// consumerConfig.Consumer.MaxWaitTime = 500 * time.Millisecond // 默认 250ms
 	consumerConfig.Consumer.Group.Rebalance.GroupStrategies = []sarama.BalanceStrategy{
 		sarama.BalanceStrategyRoundRobin,
 		sarama.BalanceStrategyRange,

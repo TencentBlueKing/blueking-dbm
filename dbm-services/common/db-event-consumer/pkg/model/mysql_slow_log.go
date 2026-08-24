@@ -9,7 +9,6 @@
 package model
 
 import (
-	"encoding/json"
 	"fmt"
 	"log/slog"
 	"strconv"
@@ -17,9 +16,8 @@ import (
 	"time"
 
 	"github.com/coocood/freecache"
-	"github.com/go-viper/mapstructure/v2"
+	json "github.com/goccy/go-json"
 	sb "github.com/huandu/go-sqlbuilder"
-	"github.com/jinzhu/copier"
 	"github.com/pkg/errors"
 	"github.com/spf13/cast"
 	"gorm.io/gorm"
@@ -414,30 +412,47 @@ PROPERTIES (
 `
 
 func (m *MysqlSlowLogModel) UnmarshalItem(data []byte, msg base.MessageWrapper) error {
-	queryString, err := strconv.Unquote(string(data))
-	if err != nil || queryString == "" {
+	// 用 json.Unmarshal 直接解引号，比 strconv.Unquote(string(data)) 少一次 []byte→string 的内存分配
+	var queryString string
+	if err := json.Unmarshal(data, &queryString); err != nil || queryString == "" {
 		return fmt.Errorf("invalid data: %s", data)
 	}
 	logParsed, err := parseOneSlowLog(queryString, true)
 	if err != nil {
 		return errors.WithMessagef(err, "parse slow log failed: %s", queryString)
 	}
-	// sql解析结果字段
-	_ = copier.Copy(m, logParsed)
-	// 维度字段
-	dimExt := &DimExt{}
-	config := &mapstructure.DecoderConfig{
-		Metadata: nil,
-		Result:   dimExt,
-		TagName:  "json", // Specify the custom tag name here
-	}
 
-	decoder, _ := mapstructure.NewDecoder(config)
-	_ = decoder.Decode(msg.Ext)
-	_ = copier.Copy(m, dimExt)
-	m.BkBizId = cast.ToInt(dimExt.BkBizId)
-	m.BkCloudId = cast.ToInt(dimExt.BkCloudId)
-	m.InstancePort = cast.ToInt(dimExt.InstancePort)
+	// 直接赋值替代 copier.Copy(m, logParsed)，消除反射开销和临时对象分配
+	m.Username = logParsed.Username
+	m.ClientHost = logParsed.ClientHost
+	m.QueryTime = logParsed.QueryTime
+	m.LockTime = logParsed.LockTime
+	m.RowsExamined = logParsed.RowsExamined
+	m.RowsSent = logParsed.RowsSent
+	m.SqlTimestamp = logParsed.SqlTimestamp
+	m.QueryString = logParsed.QueryString
+	m.QueryDigestText = logParsed.QueryDigestText
+	m.QueryDigestMd5 = logParsed.QueryDigestMd5
+	m.QueryCommand = logParsed.QueryCommand
+	m.QueryLength = logParsed.QueryLength
+	m.QueryDbName = logParsed.QueryDbName
+	m.DbName = logParsed.DbName
+	m.TableNames = logParsed.TableNames
+	m.SessionId = logParsed.SessionId
+	m.QueryStartTs = logParsed.QueryStartTs
+
+	// 直接从 msg.Ext 提取维度字段，替代 mapstructure.Decode + copier.Copy，
+	// 避免每条消息创建 DimExt、DecoderConfig、Decoder 等临时对象
+	if msg.Ext != nil {
+		m.BkBizId = cast.ToInt(msg.Ext["app_id"])
+		m.BkCloudId = cast.ToInt(msg.Ext["bk_cloud_id"])
+		m.ClusterDomain = cast.ToString(msg.Ext["cluster_domain"])
+		m.InstanceHost = cast.ToString(msg.Ext["instance_host"])
+		m.InstancePort = cast.ToInt(msg.Ext["instance_port"])
+		m.InstanceRole = cast.ToString(msg.Ext["instance_role"])
+		m.ClusterType = cast.ToString(msg.Ext["cluster_type"])
+		m.AppName = cast.ToString(msg.Ext["app"])
+	}
 
 	m.GetSchemaFromContext()
 

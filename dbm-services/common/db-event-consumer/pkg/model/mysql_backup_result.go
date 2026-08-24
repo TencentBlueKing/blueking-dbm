@@ -9,11 +9,11 @@
 package model
 
 import (
-	"encoding/json"
 	"log/slog"
 	"time"
 
 	"github.com/go-playground/validator/v10"
+	json "github.com/goccy/go-json"
 	sb "github.com/huandu/go-sqlbuilder"
 	"github.com/jinzhu/copier"
 	"github.com/pkg/errors"
