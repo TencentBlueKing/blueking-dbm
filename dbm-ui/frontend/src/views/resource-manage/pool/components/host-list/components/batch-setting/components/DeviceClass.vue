@@ -66,7 +66,7 @@
     defaultParams: [searchParams],
     onSuccess(data) {
       scrollLoading.value = false;
-      const deviceClassList = data.results.map((item) => item.device_type);
+      const deviceClassList = data.results?.map((item) => item.device_type);
       if (isAppend) {
         deviceList.value.push(...deviceClassList);
         return;
