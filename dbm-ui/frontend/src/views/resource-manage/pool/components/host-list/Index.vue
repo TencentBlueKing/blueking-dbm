@@ -148,6 +148,7 @@
     </div>
     <DbTable
       ref="tableRef"
+      :bk-ui-settings="settings"
       class="db-instance-table"
       :container-height="tableContentHeight"
       :data-source="dataSource"
@@ -155,6 +156,7 @@
       row-class-name="my-row-cls"
       row-key="bk_host_id"
       selectable
+      @bk-ui-settings-change="updateTableSettings"
       @selection="handleSelection">
       <TableColumn
         col-key="ip"
@@ -366,9 +368,12 @@
   import DbResourceModel from '@services/model/db-resource/DbResource';
   import { fetchList, fetchSameSvrOwnerIps, resourceExport } from '@services/source/dbresourceResource';
 
+  import { useTableSettings } from '@hooks';
+
   import { useGlobalBizs } from '@stores';
 
   import { TicketTypes } from '@common/const';
+  import { UserPersonalSettings } from '@common/const/userPersonalSettings';
 
   import DbIcon from '@components/db-icon';
   import DbTable from '@components/db-table/IndexNew.vue';
@@ -404,6 +409,10 @@
   const { t } = useI18n();
   const { currentBizId } = useGlobalBizs();
   const tableContentHeight = ref(window.innerHeight - 320);
+
+  const { settings, updateTableSettings } = useTableSettings(UserPersonalSettings.RESOURCE_POOL_HOST_LIST_SETTINGS, {
+    disabled: ['ip'],
+  });
 
   const pageRef = useTemplateRef('pageRef');
   const searchBoxRef = useTemplateRef('searchBoxRef');
