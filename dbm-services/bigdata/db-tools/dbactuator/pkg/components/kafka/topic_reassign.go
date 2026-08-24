@@ -73,9 +73,8 @@ func (t *TopicReassignComp) Init() error {
 func (t *TopicReassignComp) GenerateReassignmentPlans() error {
 	// 删除上次生成的文件
 	cleanFiles()
-	// 写入 ThrottleRate 到文件
-	throttleFile := cst.ThrottleFile
-	if err := os.WriteFile(throttleFile, fmt.Appendf(nil, "%d", t.Params.ThrottleRate), 0644); err != nil {
+	// 写入 ThrottleRate 到文件（原子写，防止并发读者读到截断内容）
+	if err := writeAtomically(cst.ThrottleFile, fmt.Appendf(nil, "%d", t.Params.ThrottleRate)); err != nil {
 		return fmt.Errorf("failed to write throttle rate file: %w", err)
 	}
 
@@ -465,7 +464,15 @@ func (t *TopicReassignComp) GenerateReassignmentPlans() error {
 }
 
 // ExecuteReassignment executes the reassignment plans for all topics
-func (t *TopicReassignComp) ExecuteReassignment() error {
+func (t *TopicReassignComp) ExecuteReassignment() (retErr error) {
+	// 用指针跟踪执行进度，让 defer 在错误退出时能记录失败时已完成的 topic 数和总数，
+	// 便于值守判断"失败前完成了多少、是否值得从 done.list 恢复"
+	var doneCountRef, totalRef int
+	defer func() {
+		if retErr != nil {
+			writeProgress(doneCountRef, totalRef, "", "failed")
+		}
+	}()
 	version, verErr := kafkautil.GetKafkaVersion(cst.DefaultTopicBin)
 	logger.Info("Detected Kafka version: %s", version)
 	useBootstrapAPI := false
@@ -502,21 +509,36 @@ func (t *TopicReassignComp) ExecuteReassignment() error {
 	}
 
 	// Read list of topics
-	topics, err := os.ReadFile(cst.TopicListFilePath)
+	rawTopics, err := os.ReadFile(cst.TopicListFilePath)
 	if err != nil {
 		return fmt.Errorf("failed to read topic list: %w", err)
 	}
 
-	topicList := strings.Split(strings.TrimSpace(string(topics)), "\n")
+	// 过滤空行后再计算 total，防止空文件或尾部空行导致 total 虚高、百分比偏低
+	topicList := make([]string, 0)
+	for _, line := range strings.Split(string(rawTopics), "\n") {
+		if line = strings.TrimSpace(line); line != "" {
+			topicList = append(topicList, line)
+		}
+	}
 	total := len(topicList)
+	totalRef = total // 供 defer 读取
 	doneFile := cst.DoneFile
 	logger.Info("Total topics to reassign: %d", total)
+
+	// 明确写入初始状态，防止上一次任务遗留的 progress.json 被 MCP/值守误读
+	writeProgress(0, total, "", "pending")
 
 	// reassign endpoint
 	reassignEndpoint := zkStr
 	if reassignFlag == cst.KafkaBootstrapFlag {
 		reassignEndpoint = bootstrapStr + fmt.Sprintf(" --command-config %s ", cst.KafkaClientProperties)
 	}
+
+	// doneCountRef 记录已真正完成的 topic 数量（含本次跳过的已完成项），
+	// 用于进度计算，比用循环索引 i 更准确。
+	// 同时被 defer 闭包捕获，出错退出时能记录失败前已完成的数量
+	doneCountRef = 0
 
 	for i, topic := range topicList {
 		if topic == "" {
@@ -534,25 +556,28 @@ func (t *TopicReassignComp) ExecuteReassignment() error {
 			}
 		}
 		if isDone {
+			doneCountRef++
 			logger.Info("Skipping reassignment for topic %s (already done)", topic)
+			// 跳过已完成 topic 时也更新进度，恢复执行时进度不会长期落后
+			writeProgress(doneCountRef, total, topic, "in_progress")
 			continue
 		}
 
-		// 读取 throttle_rate.txt 文件, 动态修改速度
-		throttleFile := cst.ThrottleFile
-		throttleBytes, err := os.ReadFile(throttleFile)
+		// 读取并校验 throttle_rate.txt：throttle_rate.txt 由单据值守动态写入，
+		// 是跨进程输入边界，必须在 dbactuator 侧做最后一道数值校验，
+		// 防止文件写入中途（空/半截）、非数字或负数内容被直接拼入 shell 命令
+		throttleRate, err := readThrottleRate(cst.ThrottleFile)
 		if err != nil {
-			return fmt.Errorf("failed to read throttle rate file: %w", err)
+			return fmt.Errorf("invalid initial throttle rate: %w", err)
 		}
-		throttleStr := strings.TrimSpace(string(throttleBytes))
 
 		logger.Info("[%d/%d] Starting reassignment for topic %s...", i+1, total, topic)
 
 		// Execute reassignment
 		planJSONFile := fmt.Sprintf("reassign-%s.json", topic)
 
-		cmd := fmt.Sprintf("%s --execute --reassignment-json-file %s --throttle %s %s %s",
-			cst.DefaultReassignPartitionsBin, planJSONFile, throttleStr, reassignFlag, reassignEndpoint)
+		cmd := fmt.Sprintf("%s --execute --reassignment-json-file %s --throttle %d %s %s",
+			cst.DefaultReassignPartitionsBin, planJSONFile, throttleRate, reassignFlag, reassignEndpoint)
 
 		logger.Info("Executing reassignment command: [%s]", cmd)
 		if output, err, exitCode := osutil.ExecShellCommandBd(false, cmd); exitCode != 0 {
@@ -574,31 +599,119 @@ func (t *TopicReassignComp) ExecuteReassignment() error {
 				break
 			}
 
-			logger.Info("[%d/%d] Topic %s reassignment in progress, waiting 10 seconds...", i+1, total, topic)
+			// 动态感知 throttle 变化：每次 verify 轮询时重新读取 throttle_rate.txt，
+			// 若值发生变化则重跑 --execute 更新限速（--alter 在部分 Kafka 版本不存在，
+			// 重跑 --execute 在 reassignment 进行中只会更新 throttle，不会重置分区迁移进度）。
+			// 只有命令成功后才更新内存速率，避免 Kafka 实际速率与值守目标速率永久不一致
+			newRate, readErr := readThrottleRate(cst.ThrottleFile)
+			if readErr != nil {
+				logger.Warn("ignore invalid throttle rate update: %v", readErr)
+			} else if newRate != throttleRate {
+				alterCmd := fmt.Sprintf("%s --execute --reassignment-json-file %s --throttle %d %s %s",
+					cst.DefaultReassignPartitionsBin, planJSONFile, newRate, reassignFlag, reassignEndpoint)
+				logger.Info("Throttle rate changed %d -> %d, applying: [%s]", throttleRate, newRate, alterCmd)
+				if _, _, altExitCode := osutil.ExecShellCommandBd(false, alterCmd); altExitCode != 0 {
+					logger.Warn("failed to apply new throttle rate for topic %s, will retry next poll", topic)
+				} else {
+					throttleRate = newRate
+				}
+			}
+
+			// 更新进度：当前 topic 仍在进行中
+			writeProgress(doneCountRef, total, topic, "in_progress")
+			logger.Info("[%d/%d] Topic %s reassignment in progress, waiting 5 seconds...", i+1, total, topic)
 			time.Sleep(5 * time.Second)
 		}
 
-		// Mark as done
+		// Mark as done：先写持久化恢复点，再更新进度，保证两者一致
+		// 不用 defer，立即关闭 fd，避免大量 topic 时积累 fd 触发 "too many open files"
 		f, err := os.OpenFile(doneFile, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 		if err != nil {
 			return fmt.Errorf("failed to open done file for append: %w", err)
 		}
-		defer f.Close()
-
 		if _, err := f.WriteString(topic + "\n"); err != nil {
+			_ = f.Close()
 			return fmt.Errorf("failed to update done file: %w", err)
 		}
+		if err := f.Close(); err != nil {
+			return fmt.Errorf("failed to close done file: %w", err)
+		}
+		doneCountRef++
+		// 进度更新在 done.list 写入成功后，保证持久化恢复点与可观测状态一致
+		writeProgress(doneCountRef, total, topic, "in_progress")
 	}
 
 	logger.Info("All topic reassignments completed!")
+	writeProgress(total, total, "", "completed")
 
 	return nil
 
 }
 
+// readThrottleRate 读取并校验限速文件，返回解析后的 int64 速率（bytes/s）。
+// throttle_rate.txt 由单据值守动态写入，是跨进程输入边界；在 dbactuator 侧做最后一道
+// 强校验，防止文件写入中途（空/半截内容）或异常值（非数字、负数）被直接拼入 shell 命令。
+// 业务上限由上游（页面序列化器 / MCP 序列化器）负责，actuator 侧只做格式与符号校验
+func readThrottleRate(path string) (int64, error) {
+	raw, err := os.ReadFile(path)
+	if err != nil {
+		return 0, err
+	}
+	rate, err := strconv.ParseInt(strings.TrimSpace(string(raw)), 10, 64)
+	if err != nil || rate <= 0 {
+		return 0, fmt.Errorf("invalid throttle rate: %q (must be a positive integer)", strings.TrimSpace(string(raw)))
+	}
+	return rate, nil
+}
+
+// writeAtomically 通过临时文件后 rename 实现原子写入，防止并发读者读到截断/半截内容
+func writeAtomically(path string, data []byte) error {
+	tmp := path + ".tmp"
+	if err := os.WriteFile(tmp, data, 0644); err != nil {
+		return err
+	}
+	return os.Rename(tmp, path)
+}
+
+// writeProgress 将当前 rebalance 进度写入 progress.json，供 MCP 工具/值守查询。
+// 写失败只打 warn 日志，不中断主流程。
+func writeProgress(current, total int, currentTopic, status string) {
+	type progress struct {
+		CurrentTopic string  `json:"current_topic"`
+		Current      int     `json:"current"`
+		Total        int     `json:"total"`
+		Percent      float64 `json:"percent"`
+		Status       string  `json:"status"`
+	}
+	pct := 0.0
+	if total > 0 {
+		pct = float64(current) / float64(total) * 100
+	}
+	p := progress{
+		CurrentTopic: currentTopic,
+		Current:      current,
+		Total:        total,
+		Percent:      pct,
+		Status:       status,
+	}
+	data, err := json.Marshal(p)
+	if err != nil {
+		logger.Warn("failed to marshal progress: %v", err)
+		return
+	}
+	if err := writeAtomically(cst.ProgressFile, data); err != nil {
+		logger.Warn("failed to write progress file: %v", err)
+	}
+}
+
 func cleanFiles() {
-	// Clean up files
-	filesToRemove := []string{cst.ThrottleFile, cst.TopicListFilePath, cst.DoneFile}
+	// Clean up files（含 .tmp 残留，防止 writeAtomically 中途崩溃遗留）
+	filesToRemove := []string{
+		cst.ThrottleFile, cst.ThrottleFile + ".tmp",
+		cst.TopicListFilePath,
+		cst.DoneFile,
+		cst.ProgressFile, cst.ProgressFile + ".tmp",
+	}
 	jsonFiles, err := filepath.Glob("*.json")
 	if err != nil {
 		logger.Warn("failed to list JSON files: %v", err)
