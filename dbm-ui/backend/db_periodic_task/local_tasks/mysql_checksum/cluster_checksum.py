@@ -102,7 +102,8 @@ class ChecksumService:
                     "addresses": [inst.ip_port],
                     "cmds": [
                         "SELECT COUNT(*) AS cnt FROM infodba_schema.checksum_history \
-                        WHERE ts >= DATE_SUB(NOW(), INTERVAL 24 HOUR) AND (master_ip = '{}' AND master_port = {})".format(
+                        WHERE ts >= DATE_SUB(NOW(), INTERVAL 24 HOUR) AND (master_ip = '{}' AND master_port = {}) \
+                        AND db NOT IN ('_dba_fake_daily', '_dba_fake_round_start')".format(
                             master_ip,
                             master_port,
                         ),
