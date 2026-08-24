@@ -9,6 +9,7 @@ from backend.flow.utils.mysql.dts.constants import (
     MYSQL_DTS_MIGRATE_USER_PREFIX,
     MYSQL_DTS_MIGRATE_USER_SUFFIX_LENGTH,
     MYSQL_DTS_VERIFY_MAX_RETRIES,
+    DtsLifecycleMode,
     MigrateTopology,
 )
 from backend.flow.utils.mysql.dts.context import DtsHostSpec
@@ -23,6 +24,7 @@ from backend.flow.utils.mysql.dts.migrate_plan import (
     build_migrate_plan,
     dts_task_spec_from_dict,
     dts_task_spec_to_dict,
+    infer_dts_resource_intent,
 )
 
 # 内部默认名：source-{cluster_id}-{12 hex}
@@ -119,7 +121,7 @@ class MigratePlanTest(SimpleTestCase):
 
     def test_layered_details_consumes_written_task_name(self):
         details = {
-            "dts_resource": {"mode": "use_existing", "dts_cluster_id": 9},
+            "dts_resource": {"dts_cluster_id": 9},
             "migrate": {
                 "topology": MigrateTopology.ONE_TO_ONE.value,
                 "one_to_one": {
@@ -171,7 +173,7 @@ class MigratePlanTest(SimpleTestCase):
     def test_layered_target_spider_in_plan(self):
         """U2：分层 details 透传 target_spider 至 DtsTaskSpec。"""
         details = {
-            "dts_resource": {"mode": "use_existing", "dts_cluster_id": 9},
+            "dts_resource": {"dts_cluster_id": 9},
             "migrate": {
                 "topology": MigrateTopology.ONE_TO_ONE.value,
                 "one_to_one": {
@@ -563,7 +565,7 @@ class MigrateCredentialsTest(SimpleTestCase):
             topology="one_to_one",
             migrate_type="mysql_to_mysql",
             dts_cluster_id=None,
-            dts_lifecycle="deploy_ephemeral",
+            dts_lifecycle="deploy",
             auto_deploy_dts=True,
             deploy_subflow_inp=MysqlDtsDeploySubflowInput(
                 root_id="r1",
@@ -658,3 +660,59 @@ class DeployHelperTest(SimpleTestCase):
         self.assertIn("log-file", content)
         self.assertNotIn("[log]", content)
         self.assertNotIn("[security]", content)
+
+
+class InferDtsResourceIntentTest(SimpleTestCase):
+    def test_id_only(self):
+        intent = infer_dts_resource_intent({"dts_cluster_id": 2})
+        self.assertEqual(intent.kind, DtsLifecycleMode.USE_EXISTING.value)
+        self.assertFalse(intent.default_cleanup)
+        self.assertEqual(intent.dts_cluster_id, 2)
+        self.assertIsNone(intent.deploy)
+
+    def test_deploy_only(self):
+        deploy = {"cluster_name": "dts-1", "master_hosts": [{"ip": "127.0.0.2"}]}
+        intent = infer_dts_resource_intent({"deploy": deploy})
+        self.assertEqual(intent.kind, DtsLifecycleMode.DEPLOY.value)
+        self.assertTrue(intent.default_cleanup)
+        self.assertIsNone(intent.dts_cluster_id)
+        self.assertEqual(intent.deploy, deploy)
+
+    def test_deploy_destroy_defaults_cleanup_false(self):
+        intent = infer_dts_resource_intent({"deploy": {"cluster_name": "dts-1"}, "destroy_after_migrate": True})
+        self.assertEqual(intent.kind, DtsLifecycleMode.DEPLOY.value)
+        self.assertFalse(intent.default_cleanup)
+
+    def test_both_rejected(self):
+        with self.assertRaises(ValueError) as ctx:
+            infer_dts_resource_intent({"dts_cluster_id": 2, "deploy": {"cluster_name": "x"}})
+        self.assertIn("不能同时", str(ctx.exception))
+
+    def test_neither_rejected(self):
+        with self.assertRaises(ValueError) as ctx:
+            infer_dts_resource_intent({})
+        self.assertIn("之一", str(ctx.exception))
+
+    def test_legacy_mode_rejected(self):
+        with self.assertRaises(ValueError):
+            infer_dts_resource_intent({"mode": "deploy_ephemeral", "deploy": {"cluster_name": "x"}})
+
+    def test_mode_conflicts_with_fields(self):
+        with self.assertRaises(ValueError) as ctx:
+            infer_dts_resource_intent({"mode": DtsLifecycleMode.USE_EXISTING.value, "deploy": {"cluster_name": "x"}})
+        self.assertIn("不一致", str(ctx.exception))
+
+    def test_wrap_plan_auto_deploy_defaults_cleanup(self):
+        plan = build_migrate_plan(
+            {
+                "migrate_topology": MigrateTopology.ONE_TO_ONE.value,
+                "auto_deploy_dts": True,
+                "one_to_one": {
+                    "task_name": "mysql-dts-1-1-2",
+                    "src_info": {"cluster_id": 1},
+                    "dst_info": {"cluster_id": 2},
+                },
+            }
+        )
+        self.assertEqual(plan.dts_lifecycle, DtsLifecycleMode.DEPLOY.value)
+        self.assertTrue(plan.cleanup_after_migrate)

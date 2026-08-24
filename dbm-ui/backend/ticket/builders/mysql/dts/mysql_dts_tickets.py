@@ -16,6 +16,7 @@ from rest_framework import serializers
 
 from backend.db_meta.enums import ClusterType, TenDBClusterSpiderRole
 from backend.db_meta.models import Cluster, Machine, MysqlDtsCluster
+from backend.db_meta.models.mysql_dts import MysqlDtsInfo
 from backend.db_services.dbbase.constants import IP_PORT_DIVIDER
 from backend.db_services.dbresource.handlers import ResourceHandler
 from backend.flow.engine.controller.mysql import MySQLController
@@ -26,7 +27,7 @@ from backend.flow.utils.mysql.dts.constants import (
     get_default_deploy_path,
 )
 from backend.flow.utils.mysql.dts.migrate_credentials import parse_dts_migrate_major_version
-from backend.flow.utils.mysql.dts.migrate_plan import build_migrate_plan
+from backend.flow.utils.mysql.dts.migrate_plan import build_migrate_plan, infer_dts_resource_intent
 from backend.flow.utils.mysql.dts.task_name import patch_migrate_task_names_into_details
 from backend.ticket import builders
 from backend.ticket.builders.mysql.base import BaseMySQLTicketFlowBuilder
@@ -195,26 +196,30 @@ class DtsResourceSerializer(serializers.Serializer):
 
     mode = serializers.ChoiceField(
         choices=DtsLifecycleMode.get_choices(),
-        help_text=_("DTS 资源模式: use_existing | deploy_ephemeral | deploy_persistent"),
+        required=False,
+        allow_blank=True,
+        allow_null=True,
+        help_text=_("可选，默认不传；按 dts_cluster_id / deploy 推断 use_existing | deploy"),
     )
-    dts_cluster_id = serializers.IntegerField(
-        required=False, help_text=_("已有 DTS 集群 ID（mode=use_existing 时必填，MysqlDtsCluster.id）")
+    dts_cluster_id = serializers.IntegerField(required=False, help_text=_("已有 DTS 集群 ID（复用时必填，MysqlDtsCluster.id）"))
+    deploy = DtsDeploySerializer(required=False, help_text=_("本单现场部署参数（与 dts_cluster_id 二选一）"))
+    cleanup_after_migrate = serializers.BooleanField(
+        required=False, help_text=_("迁移结束后是否清理 DTS（deploy 默认 true，复用默认 false）")
     )
-    deploy = DtsDeploySerializer(required=False, help_text=_("部署参数（mode=deploy_* 时必填）"))
-    cleanup_after_migrate = serializers.BooleanField(required=False, help_text=_("迁移结束后是否清理临时 DTS（默认：ephemeral=true）"))
     recycle_hosts = serializers.BooleanField(required=False, default=True, help_text=_("清理时是否回收主机"))
-    destroy_after_migrate = serializers.BooleanField(required=False, default=False, help_text=_("迁移成功后是否销毁已有 DTS 集群"))
+    destroy_after_migrate = serializers.BooleanField(
+        required=False, default=True, help_text=_("迁移成功后是否串联销毁单据（默认 true；复用或本单部署均可）")
+    )
 
     def validate(self, attrs):
-        mode = attrs["mode"]
-        if mode == DtsLifecycleMode.USE_EXISTING.value:
-            if not attrs.get("dts_cluster_id"):
-                raise serializers.ValidationError(gettext_runtime("mode=use_existing 时必须填写 dts_cluster_id"))
-        elif mode in (DtsLifecycleMode.DEPLOY_EPHEMERAL.value, DtsLifecycleMode.DEPLOY_PERSISTENT.value):
-            if not attrs.get("deploy"):
-                raise serializers.ValidationError(gettext_runtime("mode={} 时必须填写 deploy").format(mode))
-        if attrs.get("destroy_after_migrate") and mode != DtsLifecycleMode.USE_EXISTING.value:
-            raise serializers.ValidationError(gettext_runtime("destroy_after_migrate 仅在 mode=use_existing 时允许为 true"))
+        try:
+            infer_dts_resource_intent(attrs)
+        except ValueError as exc:
+            raise serializers.ValidationError(str(exc))
+        if attrs.get("destroy_after_migrate") and attrs.get("cleanup_after_migrate"):
+            raise serializers.ValidationError(
+                gettext_runtime("destroy_after_migrate 与 cleanup_after_migrate 不能同时为 true")
+            )
         return attrs
 
 
@@ -234,7 +239,7 @@ class TaskSpecSerializer(serializers.Serializer):
     full_load = FullLoadSerializer(required=False, help_text=_("全量导入配置"))
     enable_validator = serializers.BooleanField(required=False, default=False, help_text=_("是否开启数据校验"))
     shard_mode = serializers.CharField(required=False, allow_blank=True, default="", help_text=_("分片模式（可选）"))
-    on_duplicate = serializers.CharField(required=False, default="replace", help_text=_("冲突策略"))
+    on_duplicate = serializers.CharField(required=False, default="error", help_text=_("冲突策略"))
     meta_schema = serializers.CharField(required=False, default="dm_meta", help_text=_("元数据库名"))
     ignore_checking_items = serializers.ListField(
         child=serializers.CharField(), required=False, default=list, help_text=_("忽略的检查项")
@@ -491,19 +496,30 @@ def _has_related_destroy_for_cluster(ticket, dts_cluster_id) -> bool:
         return False
 
 
+def _resolve_destroy_dts_cluster_id(ticket, intent) -> int | None:
+    """复用已有集群用入参 ID；本单部署则读迁移落库的 MysqlDtsInfo。"""
+    if intent.dts_cluster_id:
+        return intent.dts_cluster_id
+    row = MysqlDtsInfo.objects.filter(ticket_id=ticket.id).order_by("-id").first()
+    dts_cluster_id = getattr(row, "dts_cluster_id", None) or 0
+    return dts_cluster_id or None
+
+
 def _maybe_create_destroy_after_migrate(ticket) -> None:
     """
     迁移单据成功后，按需串联 MYSQL_DTS_CLUSTER_DESTROY。
 
-    仅 use_existing + destroy_after_migrate=true 时生效；创单异常只记日志，不回滚迁移成功态。
+    destroy_after_migrate=true 时生效（复用已有或本单部署均可）；创单异常只记日志，不回滚迁移成功态。
     """
     try:
         dts_resource = (ticket.details or {}).get("dts_resource") or {}
-        if dts_resource.get("mode") != DtsLifecycleMode.USE_EXISTING.value:
-            return
         if not dts_resource.get("destroy_after_migrate"):
             return
-        dts_cluster_id = dts_resource.get("dts_cluster_id")
+        try:
+            intent = infer_dts_resource_intent(dts_resource)
+        except ValueError:
+            return
+        dts_cluster_id = _resolve_destroy_dts_cluster_id(ticket, intent)
         if not dts_cluster_id:
             return
         if _has_related_destroy_for_cluster(ticket, dts_cluster_id):

@@ -10,7 +10,7 @@ specific language governing permissions and limitations under the License.
 """
 from unittest.mock import MagicMock, patch
 
-from django.test import TestCase
+from django.test import SimpleTestCase, TestCase
 
 from backend.db_meta.models.mysql_dts import MysqlDtsInfo, MysqlDtsStatus
 from backend.flow.consts import StateType
@@ -305,3 +305,32 @@ class MysqlDtsMigrateHandlerRecycleTest(TestCase):
         handler = TICKET_TYPE_HANDLERS.get(TicketType.MYSQL_HA_TO_CLUSTER_MIGRATE.lower())
         handler(root_id="root-recycle-1", node_id="node-1", status=StateType.FAILED)
         mock_drop.assert_not_called()
+
+
+class FinalizeCleanupDtsTest(SimpleTestCase):
+    """终态回收 DTS 只认 cleanup_after_migrate。"""
+
+    @patch("backend.flow.signal.mysql_dts_migrate_handler.MysqlDtsInfo.objects.filter")
+    def test_skips_when_cleanup_false(self, mock_filter):
+        from backend.flow.signal.mysql_dts_migrate_handler import _finalize_ephemeral_dts
+
+        _finalize_ephemeral_dts(
+            {
+                "ticket_id": 1,
+                "migrate_plan": {"dts_lifecycle": "deploy", "cleanup_after_migrate": False},
+            }
+        )
+        mock_filter.assert_not_called()
+
+    @patch("backend.flow.signal.mysql_dts_migrate_handler.MysqlDtsInfo.objects.filter")
+    def test_looks_up_when_cleanup_true(self, mock_filter):
+        from backend.flow.signal.mysql_dts_migrate_handler import _finalize_ephemeral_dts
+
+        mock_filter.return_value.first.return_value = None
+        _finalize_ephemeral_dts(
+            {
+                "ticket_id": 1,
+                "migrate_plan": {"dts_lifecycle": "use_existing", "cleanup_after_migrate": True},
+            }
+        )
+        mock_filter.assert_called_once()

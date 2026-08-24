@@ -93,7 +93,7 @@ class DtsTaskConfig:
     task_mode: str = "all"
     enable_validator: bool = False
     shard_mode: str = ""
-    on_duplicate: str = "replace"
+    on_duplicate: str = "error"
     meta_schema: str = "dm_meta"
     ignore_checking_items: list[str] = field(default_factory=list)
     full_migrate: dict = field(default_factory=dict)
@@ -127,6 +127,62 @@ class DtsTaskSpec:
     target_spider: str | None = None
     sync_scope_merged: list[dict] = field(default_factory=list)
     dts_task_config: DtsTaskConfig = field(default_factory=DtsTaskConfig)
+
+
+@dataclass(frozen=True)
+class DtsResourceIntent:
+    """dts_resource 字段推断结果（不回写 mode）。"""
+
+    kind: str
+    default_cleanup: bool
+    dts_cluster_id: int | None
+    deploy: dict | None
+
+
+def infer_dts_resource_intent(dts_resource: dict[str, Any] | None) -> DtsResourceIntent:
+    """按 dts_cluster_id / deploy 推断资源来源；mode 可选且须与字段一致。"""
+    resource = dts_resource or {}
+    if not isinstance(resource, dict):
+        raise ValueError(_("dts_resource 必须是对象"))
+
+    raw_id = resource.get("dts_cluster_id")
+    has_id = raw_id is not None and raw_id != "" and int(raw_id) != 0
+    deploy = resource.get("deploy")
+    has_deploy = bool(deploy)
+    raw_mode = resource.get("mode")
+    mode = str(raw_mode).strip() if raw_mode else ""
+
+    if has_id and has_deploy:
+        raise ValueError(_("dts_resource 不能同时提供 dts_cluster_id 与 deploy"))
+    if not has_id and not has_deploy:
+        raise ValueError(_("dts_resource 必须提供 dts_cluster_id 或 deploy 之一"))
+
+    if has_id:
+        kind = DtsLifecycleMode.USE_EXISTING.value
+        default_cleanup = False
+        dts_cluster_id = int(raw_id)
+        deploy_spec = None
+    else:
+        kind = DtsLifecycleMode.DEPLOY.value
+        default_cleanup = True
+        dts_cluster_id = None
+        deploy_spec = deploy
+    # 迁完要串销毁单时，本流程不再默认 cleanup，避免和下架单抢同一套集群
+    if resource.get("destroy_after_migrate"):
+        default_cleanup = False
+
+    if mode:
+        if mode not in (DtsLifecycleMode.USE_EXISTING.value, DtsLifecycleMode.DEPLOY.value):
+            raise ValueError(_("不支持的 dts_resource.mode: {}").format(mode))
+        if mode != kind:
+            raise ValueError(_("dts_resource.mode={} 与字段不一致").format(mode))
+
+    return DtsResourceIntent(
+        kind=kind,
+        default_cleanup=default_cleanup,
+        dts_cluster_id=dts_cluster_id,
+        deploy=deploy_spec,
+    )
 
 
 @dataclass
@@ -224,7 +280,7 @@ def _parse_dts_task_config(raw: dict | None) -> DtsTaskConfig:
         task_mode=raw.get("task_mode", "all"),
         enable_validator=raw.get("enable_validator", False),
         shard_mode=raw.get("shard_mode", ""),
-        on_duplicate=raw.get("on_duplicate", "replace"),
+        on_duplicate=raw.get("on_duplicate", "error"),
         meta_schema=raw.get("meta_schema", "dm_meta"),
         ignore_checking_items=raw.get("ignore_checking_items", []),
         full_migrate=raw.get("full_migrate", {}),
@@ -356,12 +412,9 @@ def _build_one_to_many_plan(details: dict[str, Any], *, require_task_name: bool 
 def _wrap_plan(details: dict[str, Any], task_specs: list[DtsTaskSpec], worker_count: int) -> DtsMigratePlan:
     dts_lifecycle = details.get("dts_lifecycle")
     if not dts_lifecycle:
-        if details.get("dts_cluster_id"):
-            dts_lifecycle = DtsLifecycleMode.USE_EXISTING.value
-        elif details.get("auto_deploy_dts"):
-            dts_lifecycle = DtsLifecycleMode.DEPLOY_EPHEMERAL.value
-        else:
-            dts_lifecycle = DtsLifecycleMode.USE_EXISTING.value
+        dts_lifecycle = (
+            DtsLifecycleMode.DEPLOY.value if details.get("auto_deploy_dts") else DtsLifecycleMode.USE_EXISTING.value
+        )
     return DtsMigratePlan(
         topology=details["migrate_topology"],
         migrate_type=details.get("migrate_type", MigrateType.MYSQL_TO_MYSQL.value),
@@ -369,9 +422,7 @@ def _wrap_plan(details: dict[str, Any], task_specs: list[DtsTaskSpec], worker_co
         dts_lifecycle=dts_lifecycle,
         auto_deploy_dts=details.get("auto_deploy_dts", False),
         deploy_subflow_inp=_parse_deploy_subflow_inp(details),
-        cleanup_after_migrate=details.get(
-            "cleanup_after_migrate", dts_lifecycle == DtsLifecycleMode.DEPLOY_EPHEMERAL.value
-        ),
+        cleanup_after_migrate=details.get("cleanup_after_migrate", dts_lifecycle == DtsLifecycleMode.DEPLOY.value),
         recycle_dts_hosts=details.get("recycle_dts_hosts", True),
         dts_task_config=_parse_dts_task_config(details.get("dts_task_config")),
         task_specs=task_specs,
@@ -401,25 +452,11 @@ def normalize_migrate_ticket_details(details: dict[str, Any]) -> dict[str, Any]:
     migrate = details.get("migrate") or {}
     task = details.get("task") or {}
 
-    mode = dts_resource.get("mode") or DtsLifecycleMode.USE_EXISTING.value
-    if mode == DtsLifecycleMode.USE_EXISTING.value:
-        if not dts_resource.get("dts_cluster_id"):
-            raise ValueError(_("dts_resource.mode=use_existing 时必须提供 dts_cluster_id"))
-        auto_deploy = False
-        dts_cluster_id = dts_resource.get("dts_cluster_id")
-        deploy_subflow = None
-        default_cleanup = False
-    elif mode in (DtsLifecycleMode.DEPLOY_EPHEMERAL.value, DtsLifecycleMode.DEPLOY_PERSISTENT.value):
-        deploy = dts_resource.get("deploy")
-        if not deploy:
-            raise ValueError(_("dts_resource.mode={} 时必须提供 deploy").format(mode))
-        auto_deploy = True
-        # deploy_* 模式下 DTS 集群尚未创建，dts_cluster_id 可选（建流后回写）
-        dts_cluster_id = dts_resource.get("dts_cluster_id")
-        deploy_subflow = deploy
-        default_cleanup = mode == DtsLifecycleMode.DEPLOY_EPHEMERAL.value
-    else:
-        raise ValueError(_("不支持的 dts_resource.mode: {}").format(mode))
+    intent = infer_dts_resource_intent(dts_resource)
+    auto_deploy = intent.kind == DtsLifecycleMode.DEPLOY.value
+    dts_cluster_id = intent.dts_cluster_id
+    deploy_subflow = intent.deploy
+    default_cleanup = intent.default_cleanup
 
     topology = migrate.get("topology")
     if not topology:
@@ -429,7 +466,7 @@ def normalize_migrate_ticket_details(details: dict[str, Any]) -> dict[str, Any]:
         "migrate_topology": topology,
         "dts_cluster_id": dts_cluster_id,
         "auto_deploy_dts": auto_deploy,
-        "dts_lifecycle": mode,
+        "dts_lifecycle": intent.kind,
         "cleanup_after_migrate": dts_resource.get("cleanup_after_migrate", default_cleanup),
         "recycle_dts_hosts": dts_resource.get("recycle_hosts", True),
         "bk_biz_id": details.get("bk_biz_id", 0),
@@ -474,7 +511,7 @@ def normalize_migrate_ticket_details(details: dict[str, Any]) -> dict[str, Any]:
         "task_mode": task.get("task_mode", "all"),
         "enable_validator": task.get("enable_validator", False),
         "shard_mode": task.get("shard_mode", ""),
-        "on_duplicate": task.get("on_duplicate", "replace"),
+        "on_duplicate": task.get("on_duplicate", "error"),
         "meta_schema": task.get("meta_schema", "dm_meta"),
         "ignore_checking_items": task.get("ignore_checking_items", []),
         "full_migrate": engine_options.get("full_migrate", {}),

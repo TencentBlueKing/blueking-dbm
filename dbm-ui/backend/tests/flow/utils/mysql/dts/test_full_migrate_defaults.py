@@ -18,6 +18,7 @@ from backend.flow.utils.mysql.dts.migrate_helper import (
     build_dts_task_request,
     build_full_migrate_config,
     resolve_dts_cluster_id,
+    resolve_dts_cluster_name,
 )
 from backend.flow.utils.mysql.dts.migrate_plan import DtsMigratePlan, DtsTaskConfig, DtsTaskSpec, SourceSpec, SyncScope
 
@@ -152,6 +153,19 @@ class ResolveDtsClusterIdTest(SimpleTestCase):
         self.assertIsNone(resolve_dts_cluster_id(SimpleNamespace(dts_cluster_id=0), SimpleNamespace()))
 
 
+class ResolveDtsClusterNameTest(SimpleTestCase):
+    def test_deploy_name_wins_without_id(self):
+        plan = SimpleNamespace(
+            dts_cluster_id=None,
+            deploy_subflow_inp=SimpleNamespace(cluster_name="dts-migrate-18801"),
+        )
+        self.assertEqual(resolve_dts_cluster_name(plan, SimpleNamespace()), "dts-migrate-18801")
+
+    def test_missing_name_and_id_is_empty(self):
+        plan = SimpleNamespace(dts_cluster_id=None, deploy_subflow_inp=None)
+        self.assertIsNone(resolve_dts_cluster_name(plan, SimpleNamespace()))
+
+
 class CreateTaskClusterLookupTest(SimpleTestCase):
     def _make_service(self):
         service = MysqlDtsCreateTaskService()
@@ -207,7 +221,7 @@ class CreateTaskClusterLookupTest(SimpleTestCase):
         ), patch(
             "backend.flow.plugins.components.collections.mysql.dts.migrate.create_task._apply_myloader_context_to_task_spec",
         ), patch(
-            "backend.flow.plugins.components.collections.mysql.dts.migrate.create_task.load_dts_cluster_name",
+            "backend.flow.utils.mysql.dts.migrate_helper.load_dts_cluster_name",
             return_value=cluster_name,
         ):
             mock_build.return_value = SimpleNamespace(
@@ -226,6 +240,59 @@ class CreateTaskClusterLookupTest(SimpleTestCase):
         self.assertTrue(ok)
         mock_api.create_task.assert_called_once()
         self.assertEqual(mock_build.call_args.kwargs["cluster_name"], "dts-ut")
+
+    def test_builtin_uses_deploy_name_without_id(self):
+        task_spec = _task_spec(full_load_engine=FullLoadEngine.BUILTIN.value)
+        migrate_context = SimpleNamespace(
+            master_addr="127.0.0.1:8261",
+            bk_cloud_id=0,
+            dts_user="dts_u",
+            dts_password="pwd",
+            dts_cluster_id=None,
+            myloader_dirs={},
+            myloader_path="",
+            target_host="",
+            target_port=0,
+            target_cluster_type="",
+        )
+        trans_data = SimpleNamespace(migrate_context=migrate_context)
+        data = MagicMock()
+        data.get_one_of_inputs.side_effect = lambda key: {
+            "kwargs": {
+                "master_addr": "127.0.0.1:8261",
+                "bk_cloud_id": 0,
+                "task_spec": {"task_name": task_spec.task_name},
+                "migrate_plan": {},
+            },
+            "trans_data": trans_data,
+        }.get(key)
+        data.outputs = MagicMock()
+        plan = _plan(dts_cluster_id=None)
+        plan.deploy_subflow_inp = SimpleNamespace(cluster_name="dts-migrate-18801")
+        resp = SimpleNamespace(task={"name": task_spec.task_name}, check_result={"ok": True})
+        with patch(
+            "backend.flow.plugins.components.collections.mysql.dts.migrate.create_task.MySQLDTSApi"
+        ) as mock_api, patch(
+            "backend.flow.plugins.components.collections.mysql.dts.migrate.create_task.build_dts_task_request"
+        ) as mock_build, patch(
+            "backend.flow.plugins.components.collections.mysql.dts.migrate.create_task.dts_migrate_plan_from_dict",
+            return_value=plan,
+        ), patch(
+            "backend.flow.plugins.components.collections.mysql.dts.migrate.create_task.dts_task_spec_from_dict",
+            return_value=task_spec,
+        ), patch(
+            "backend.flow.plugins.components.collections.mysql.dts.migrate.create_task._apply_myloader_context_to_task_spec",
+        ), patch(
+            "backend.flow.utils.mysql.dts.migrate_helper.load_dts_cluster_name",
+        ) as mock_load:
+            mock_build.return_value = SimpleNamespace(
+                task=SimpleNamespace(target_config=SimpleNamespace(host="127.0.0.1", port=3306, cluster_type="mysql"))
+            )
+            mock_api.create_task.return_value = resp
+            ok = self._make_service()._execute(data, parent_data=None)
+        self.assertTrue(ok)
+        mock_load.assert_not_called()
+        self.assertEqual(mock_build.call_args.kwargs["cluster_name"], "dts-migrate-18801")
 
     def test_builtin_missing_cluster_id_fails_without_api(self):
         ok, mock_api, unused_build = self._run(

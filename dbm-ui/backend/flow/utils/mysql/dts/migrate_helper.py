@@ -37,6 +37,7 @@ from backend.components.mysqldtsapi.types import (
 )
 from backend.db_meta.enums import ClusterType, InstanceRole, TenDBClusterSpiderRole
 from backend.db_meta.models import Cluster, MysqlDtsCluster, ProxyInstance, StorageInstance
+from backend.db_meta.models.mysql_dts import MysqlDtsClusterStatus
 from backend.db_services.dbbase.constants import IP_PORT_DIVIDER
 from backend.flow.utils.mysql.dts.constants import (
     DTS_CHECKPOINT_FLUSH_INTERVAL_DEFAULT,
@@ -729,11 +730,49 @@ def resolve_dts_cluster_id(plan, migrate_context) -> int | None:
     return None
 
 
+def resolve_dts_cluster_name(plan, migrate_context=None) -> str | None:
+    """dump / 建任务认名字：部署入参或上下文；use_existing 再按 ID 反查。"""
+    deploy_inp = getattr(plan, "deploy_subflow_inp", None) if plan is not None else None
+    for obj in (deploy_inp, plan, migrate_context):
+        if obj is None:
+            continue
+        name = getattr(obj, "cluster_name", None)
+        if name:
+            return str(name)
+    dts_cluster_id = resolve_dts_cluster_id(plan, migrate_context)
+    if dts_cluster_id:
+        return load_dts_cluster_name(dts_cluster_id)
+    return None
+
+
 def load_dts_cluster_name(dts_cluster_id: int) -> str | None:
     cluster = MysqlDtsCluster.objects.filter(id=dts_cluster_id).first()
     if not cluster or not cluster.name:
         return None
     return cluster.name
+
+
+def load_active_dts_cluster(
+    *, dts_cluster_id: int | None = None, bk_biz_id: int | None = None, cluster_name: str | None = None
+) -> MysqlDtsCluster | None:
+    """运行时取活跃行：有 ID 按 ID，否则按业务+名。给 prepare_user / 清 dump 用。"""
+    if dts_cluster_id:
+        return MysqlDtsCluster.objects.filter(id=dts_cluster_id).first()
+    if bk_biz_id and cluster_name:
+        return MysqlDtsCluster.objects.filter(
+            bk_biz_id=bk_biz_id,
+            name=cluster_name,
+            status__in=(
+                MysqlDtsClusterStatus.DEPLOYING.value,
+                MysqlDtsClusterStatus.RUNNING.value,
+            ),
+        ).first()
+    return None
+
+
+def plan_deploy_cluster_name(plan) -> str:
+    deploy_inp = getattr(plan, "deploy_subflow_inp", None) if plan is not None else None
+    return getattr(deploy_inp, "cluster_name", "") or ""
 
 
 def build_full_migrate_config(cluster_name: str, task_name: str, user_full_migrate: dict | None) -> FullMigrateConfig:

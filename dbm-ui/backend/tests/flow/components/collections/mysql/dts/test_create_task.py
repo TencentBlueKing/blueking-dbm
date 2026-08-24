@@ -58,15 +58,12 @@ class MysqlDtsCreateTaskNameContractTest(SimpleTestCase):
             "backend.flow.plugins.components.collections.mysql.dts.migrate.create_task.build_dts_task_request"
         ) as mock_build, patch(
             "backend.flow.plugins.components.collections.mysql.dts.migrate.create_task.dts_migrate_plan_from_dict",
-            return_value=SimpleNamespace(dts_cluster_id=1),
+            return_value=SimpleNamespace(dts_cluster_id=1, cluster_name="dts-ut", deploy_subflow_inp=None),
         ), patch(
             "backend.flow.plugins.components.collections.mysql.dts.migrate.create_task.dts_task_spec_from_dict",
             return_value=task_spec,
         ), patch(
             "backend.flow.plugins.components.collections.mysql.dts.migrate.create_task._apply_myloader_context_to_task_spec",
-        ), patch(
-            "backend.flow.plugins.components.collections.mysql.dts.migrate.create_task.load_dts_cluster_name",
-            return_value="dts-ut",
         ):
             mock_build.return_value = SimpleNamespace(
                 task=SimpleNamespace(

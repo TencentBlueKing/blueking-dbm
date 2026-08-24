@@ -66,8 +66,7 @@ class DtsRegisterMode(StrStructuredEnum):
 
 class DtsLifecycleMode(StrStructuredEnum):
     USE_EXISTING = EnumField("use_existing", _("use_existing"))
-    DEPLOY_EPHEMERAL = EnumField("deploy_ephemeral", _("deploy_ephemeral"))
-    DEPLOY_PERSISTENT = EnumField("deploy_persistent", _("deploy_persistent"))
+    DEPLOY = EnumField("deploy", _("deploy"))
 
 
 class FullLoadEngine(StrStructuredEnum):

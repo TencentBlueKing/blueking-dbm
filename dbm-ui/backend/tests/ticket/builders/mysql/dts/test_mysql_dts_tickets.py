@@ -32,10 +32,20 @@ from backend.ticket.constants import EXCLUSIVE_TICKET_EXCEL_PATH, TicketFlowStat
 from backend.utils.excel import ExcelHandler
 
 
+def _minimal_deploy(**overrides):
+    data = {
+        "cluster_name": "dts-test",
+        "bk_cloud_id": 0,
+        "master_hosts": [{"ip": "127.0.0.2", "bk_cloud_id": 0}],
+        "worker_hosts": [{"ip": "127.0.0.3", "bk_cloud_id": 0}],
+    }
+    data.update(overrides)
+    return data
+
+
 def _minimal_layered_details(**overrides):
     data = {
         "dts_resource": {
-            "mode": DtsLifecycleMode.USE_EXISTING.value,
             "dts_cluster_id": 1,
         },
         "migrate": {
@@ -106,36 +116,70 @@ class MysqlDtsTicketSerializerTest(SimpleTestCase):
     def test_migrate_serializer_requires_topology_block(self):
         slz = MysqlMigrateBaseDetailSerializer(
             data={
-                "dts_resource": {"mode": DtsLifecycleMode.USE_EXISTING.value, "dts_cluster_id": 1},
+                "dts_resource": {"dts_cluster_id": 1},
                 "migrate": {"topology": MigrateTopology.ONE_TO_ONE.value},
             }
         )
         self.assertFalse(slz.is_valid())
         self.assertIn("one_to_one", str(slz.errors))
 
-    def test_deploy_ephemeral_requires_deploy(self):
-        slz = MysqlMigrateBaseDetailSerializer(
-            data=_minimal_layered_details(
-                dts_resource={"mode": DtsLifecycleMode.DEPLOY_EPHEMERAL.value},
-            )
-        )
-        self.assertFalse(slz.is_valid())
-        self.assertIn("deploy", str(slz.errors))
-
-    def test_use_existing_requires_dts_cluster_id(self):
-        slz = MysqlMigrateBaseDetailSerializer(
-            data=_minimal_layered_details(dts_resource={"mode": DtsLifecycleMode.USE_EXISTING.value})
-        )
+    def test_resource_requires_id_or_deploy(self):
+        slz = MysqlMigrateBaseDetailSerializer(data=_minimal_layered_details(dts_resource={}))
         self.assertFalse(slz.is_valid())
         self.assertIn("dts_cluster_id", str(slz.errors))
 
     def test_use_existing_old_cluster_id_key_ignored(self):
         """AE2：仅传旧键 cluster_id、不传 dts_cluster_id → 缺新键失败；旧键不顶替。"""
-        slz = MysqlMigrateBaseDetailSerializer(
-            data=_minimal_layered_details(dts_resource={"mode": DtsLifecycleMode.USE_EXISTING.value, "cluster_id": 1})
-        )
+        slz = MysqlMigrateBaseDetailSerializer(data=_minimal_layered_details(dts_resource={"cluster_id": 1}))
         self.assertFalse(slz.is_valid())
         self.assertIn("dts_cluster_id", str(slz.errors))
+
+    def test_resource_both_id_and_deploy_rejected(self):
+        slz = MysqlMigrateBaseDetailSerializer(
+            data=_minimal_layered_details(
+                dts_resource={"dts_cluster_id": 1, "deploy": _minimal_deploy()},
+            )
+        )
+        self.assertFalse(slz.is_valid())
+        self.assertIn("deploy", str(slz.errors))
+
+    def test_legacy_deploy_modes_rejected(self):
+        for legacy_mode in ("deploy_ephemeral", "deploy_persistent"):
+            slz = MysqlMigrateBaseDetailSerializer(
+                data=_minimal_layered_details(
+                    dts_resource={"mode": legacy_mode, "deploy": _minimal_deploy()},
+                )
+            )
+            self.assertFalse(slz.is_valid(), legacy_mode)
+            self.assertIn("mode", str(slz.errors))
+
+    def test_no_mode_use_existing_does_not_write_mode(self):
+        slz = MysqlMigrateBaseDetailSerializer(data=_minimal_layered_details())
+        self.assertTrue(slz.is_valid(), slz.errors)
+        self.assertFalse(slz.validated_data["dts_resource"].get("mode"))
+        self.assertFalse(slz.context["migrate_plan"].auto_deploy_dts)
+        self.assertFalse(slz.context["migrate_plan"].cleanup_after_migrate)
+
+    def test_no_mode_deploy_defaults_destroy_true_cleanup_false(self):
+        slz = MysqlMigrateBaseDetailSerializer(
+            data=_minimal_layered_details(dts_resource={"deploy": _minimal_deploy()})
+        )
+        self.assertTrue(slz.is_valid(), slz.errors)
+        self.assertFalse(slz.validated_data["dts_resource"].get("mode"))
+        self.assertTrue(slz.validated_data["dts_resource"]["destroy_after_migrate"])
+        plan = slz.context["migrate_plan"]
+        self.assertTrue(plan.auto_deploy_dts)
+        self.assertFalse(plan.cleanup_after_migrate)
+        self.assertEqual(plan.dts_lifecycle, DtsLifecycleMode.DEPLOY.value)
+
+    def test_no_mode_deploy_cleanup_false(self):
+        slz = MysqlMigrateBaseDetailSerializer(
+            data=_minimal_layered_details(
+                dts_resource={"deploy": _minimal_deploy(), "cleanup_after_migrate": False},
+            )
+        )
+        self.assertTrue(slz.is_valid(), slz.errors)
+        self.assertFalse(slz.context["migrate_plan"].cleanup_after_migrate)
 
     def test_grant_cluster_empty_major_version_rejected(self):
         """AE8：授权目标集群 major_version 为空 → 拒单。"""
@@ -172,18 +216,16 @@ class MysqlDtsTicketSerializerTest(SimpleTestCase):
         self.assertEqual(plan.dts_task_config.full_load_engine, FullLoadEngine.MYLOADER.value)
         self.assertEqual(plan.task_specs[0].sources[0].myloader.threads, 12)
 
-    def test_destroy_after_migrate_defaults_false(self):
-        """AE1：use_existing 缺省 destroy_after_migrate → false。"""
+    def test_destroy_after_migrate_defaults_true(self):
         slz = MysqlMigrateBaseDetailSerializer(data=_minimal_layered_details())
         self.assertTrue(slz.is_valid(), slz.errors)
-        self.assertFalse(slz.validated_data["dts_resource"]["destroy_after_migrate"])
+        self.assertTrue(slz.validated_data["dts_resource"]["destroy_after_migrate"])
 
     def test_destroy_after_migrate_true_on_use_existing(self):
         """AE2 入参：use_existing + destroy_after_migrate=true 可通过。"""
         slz = MysqlMigrateBaseDetailSerializer(
             data=_minimal_layered_details(
                 dts_resource={
-                    "mode": DtsLifecycleMode.USE_EXISTING.value,
                     "dts_cluster_id": 1,
                     "destroy_after_migrate": True,
                 }
@@ -192,57 +234,38 @@ class MysqlDtsTicketSerializerTest(SimpleTestCase):
         self.assertTrue(slz.is_valid(), slz.errors)
         self.assertTrue(slz.validated_data["dts_resource"]["destroy_after_migrate"])
 
-    def test_destroy_after_migrate_rejected_on_deploy_ephemeral(self):
-        """AE6：非 use_existing 传 true → ValidationError。"""
+    def test_destroy_after_migrate_true_on_deploy(self):
         slz = MysqlMigrateBaseDetailSerializer(
             data=_minimal_layered_details(
                 dts_resource={
-                    "mode": DtsLifecycleMode.DEPLOY_EPHEMERAL.value,
                     "destroy_after_migrate": True,
-                    "deploy": {
-                        "cluster_name": "dts-test",
-                        "bk_cloud_id": 0,
-                        "master_hosts": [{"ip": "127.0.0.2", "bk_cloud_id": 0}],
-                        "worker_hosts": [{"ip": "127.0.0.3", "bk_cloud_id": 0}],
-                    },
+                    "deploy": _minimal_deploy(),
                 }
             )
         )
-        self.assertFalse(slz.is_valid())
-        self.assertIn("destroy_after_migrate", str(slz.errors))
+        self.assertTrue(slz.is_valid(), slz.errors)
+        self.assertTrue(slz.validated_data["dts_resource"]["destroy_after_migrate"])
+        self.assertFalse(slz.context["migrate_plan"].cleanup_after_migrate)
 
-    def test_destroy_after_migrate_rejected_on_deploy_persistent(self):
-        """AE6：deploy_persistent + true → invalid。"""
+    def test_destroy_and_cleanup_both_true_rejected(self):
         slz = MysqlMigrateBaseDetailSerializer(
             data=_minimal_layered_details(
                 dts_resource={
-                    "mode": DtsLifecycleMode.DEPLOY_PERSISTENT.value,
                     "destroy_after_migrate": True,
-                    "deploy": {
-                        "cluster_name": "dts-persist",
-                        "bk_cloud_id": 0,
-                        "master_hosts": [{"ip": "127.0.0.2", "bk_cloud_id": 0}],
-                        "worker_hosts": [{"ip": "127.0.0.3", "bk_cloud_id": 0}],
-                    },
+                    "cleanup_after_migrate": True,
+                    "deploy": _minimal_deploy(),
                 }
             )
         )
         self.assertFalse(slz.is_valid())
-        self.assertIn("destroy_after_migrate", str(slz.errors))
+        self.assertIn("cleanup_after_migrate", str(slz.errors))
 
     def test_destroy_after_migrate_false_ok_on_deploy(self):
-        """非 use_existing + false/缺省不因本字段失败。"""
         slz = MysqlMigrateBaseDetailSerializer(
             data=_minimal_layered_details(
                 dts_resource={
-                    "mode": DtsLifecycleMode.DEPLOY_EPHEMERAL.value,
                     "destroy_after_migrate": False,
-                    "deploy": {
-                        "cluster_name": "dts-test",
-                        "bk_cloud_id": 0,
-                        "master_hosts": [{"ip": "127.0.0.2", "bk_cloud_id": 0}],
-                        "worker_hosts": [{"ip": "127.0.0.3", "bk_cloud_id": 0}],
-                    },
+                    "deploy": _minimal_deploy(),
                 }
             )
         )
@@ -497,7 +520,7 @@ class MysqlMigrateTaskNamePatchTest(SimpleTestCase):
 
     def test_patch_many_to_one(self):
         details = {
-            "dts_resource": {"mode": DtsLifecycleMode.USE_EXISTING.value, "dts_cluster_id": 1},
+            "dts_resource": {"dts_cluster_id": 1},
             "migrate": {
                 "topology": MigrateTopology.MANY_TO_ONE.value,
                 "many_to_one": {
@@ -514,7 +537,7 @@ class MysqlMigrateTaskNamePatchTest(SimpleTestCase):
 
     def test_patch_one_to_many(self):
         details = {
-            "dts_resource": {"mode": DtsLifecycleMode.USE_EXISTING.value, "dts_cluster_id": 1},
+            "dts_resource": {"dts_cluster_id": 1},
             "migrate": {
                 "topology": MigrateTopology.ONE_TO_MANY.value,
                 "one_to_many": {
@@ -534,7 +557,7 @@ class MysqlMigrateTaskNamePatchTest(SimpleTestCase):
     def test_patch_overlong_many_to_one_fits(self):
         srcs = [{"cluster_id": cid} for cid in range(1000, 1100)]
         details = {
-            "dts_resource": {"mode": DtsLifecycleMode.USE_EXISTING.value, "dts_cluster_id": 1},
+            "dts_resource": {"dts_cluster_id": 1},
             "migrate": {
                 "topology": MigrateTopology.MANY_TO_ONE.value,
                 "many_to_one": {"sources": srcs, "target": {"cluster_id": 200}},
@@ -586,27 +609,27 @@ class NormalizeMigrateTicketDetailsTest(SimpleTestCase):
         self.assertEqual(flat["one_to_one"]["dst_info"]["cluster_id"], 200)
         self.assertEqual(flat["dts_task_config"]["full_load_engine"], FullLoadEngine.BUILTIN.value)
 
-    def test_normalize_deploy_ephemeral(self):
-        details = _minimal_layered_details(
-            dts_resource={
-                "mode": DtsLifecycleMode.DEPLOY_EPHEMERAL.value,
-                "deploy": {
-                    "cluster_name": "dts-test",
-                    "bk_cloud_id": 0,
-                    "master_hosts": [{"ip": "127.0.0.2", "bk_cloud_id": 0}],
-                    "worker_hosts": [{"ip": "127.0.0.3", "bk_cloud_id": 0}],
-                },
-            }
-        )
+    def test_normalize_deploy(self):
+        details = _minimal_layered_details(dts_resource={"deploy": _minimal_deploy()})
         flat = normalize_migrate_ticket_details(details)
         self.assertTrue(flat["auto_deploy_dts"])
         self.assertTrue(flat["cleanup_after_migrate"])
+        self.assertEqual(flat["dts_lifecycle"], DtsLifecycleMode.DEPLOY.value)
+        self.assertIsNone(flat["dts_cluster_id"])
         self.assertIn("deploy_subflow", flat)
         self.assertEqual(flat["deploy_subflow"]["cluster_name"], "dts-test")
 
+    def test_normalize_deploy_cleanup_false(self):
+        details = _minimal_layered_details(
+            dts_resource={"deploy": _minimal_deploy(), "cleanup_after_migrate": False},
+        )
+        flat = normalize_migrate_ticket_details(details)
+        self.assertTrue(flat["auto_deploy_dts"])
+        self.assertFalse(flat["cleanup_after_migrate"])
+
     def test_normalize_many_to_one_sources(self):
         details = {
-            "dts_resource": {"mode": DtsLifecycleMode.USE_EXISTING.value, "dts_cluster_id": 9},
+            "dts_resource": {"dts_cluster_id": 9},
             "migrate": {
                 "topology": MigrateTopology.MANY_TO_ONE.value,
                 "many_to_one": {
@@ -791,7 +814,6 @@ class MysqlDtsDestroyAfterMigrateHookTest(SimpleTestCase):
         mock_create.return_value = destroy
         ticket = self._ticket(
             {
-                "mode": DtsLifecycleMode.USE_EXISTING.value,
                 "dts_cluster_id": 9,
                 "destroy_after_migrate": True,
                 "recycle_hosts": True,
@@ -814,7 +836,6 @@ class MysqlDtsDestroyAfterMigrateHookTest(SimpleTestCase):
         mock_create.return_value = SimpleNamespace(id=99002)
         ticket = self._ticket(
             {
-                "mode": DtsLifecycleMode.USE_EXISTING.value,
                 "dts_cluster_id": 9,
                 "destroy_after_migrate": True,
                 "recycle_hosts": False,
@@ -828,7 +849,6 @@ class MysqlDtsDestroyAfterMigrateHookTest(SimpleTestCase):
         """AE4：非 SUCCEEDED → 不创 DESTROY。"""
         ticket = self._ticket(
             {
-                "mode": DtsLifecycleMode.USE_EXISTING.value,
                 "dts_cluster_id": 9,
                 "destroy_after_migrate": True,
             },
@@ -843,7 +863,6 @@ class MysqlDtsDestroyAfterMigrateHookTest(SimpleTestCase):
         """AE1：destroy_after_migrate=false → 不创 DESTROY。"""
         ticket = self._ticket(
             {
-                "mode": DtsLifecycleMode.USE_EXISTING.value,
                 "dts_cluster_id": 9,
                 "destroy_after_migrate": False,
             }
@@ -851,18 +870,38 @@ class MysqlDtsDestroyAfterMigrateHookTest(SimpleTestCase):
         MysqlToMysqlMigrateFlowParamBuilder(ticket).post_callback()
         mock_create.assert_not_called()
 
+    @patch("backend.ticket.builders.mysql.dts.mysql_dts_tickets.MysqlDtsInfo.objects.filter")
     @patch("backend.ticket.builders.mysql.dts.mysql_dts_tickets.Ticket.create_ticket")
-    def test_non_use_existing_helper_noop(self, mock_create):
-        """AE6：mode 非 use_existing（脏写 true）→ helper no-op。"""
+    def test_deploy_without_info_skips_destroy(self, mock_create, mock_filter):
+        """本单部署但尚未落 dts_cluster_id → 不创销毁单。"""
+        mock_filter.return_value.order_by.return_value.first.return_value = None
         ticket = self._ticket(
             {
-                "mode": DtsLifecycleMode.DEPLOY_EPHEMERAL.value,
+                "deploy": _minimal_deploy(),
                 "destroy_after_migrate": True,
-                "cluster_id": 9,
             }
         )
         _maybe_create_destroy_after_migrate(ticket)
         mock_create.assert_not_called()
+
+    @patch("backend.ticket.builders.mysql.dts.mysql_dts_tickets.MysqlDtsInfo.objects.filter")
+    @patch("backend.ticket.builders.mysql.dts.mysql_dts_tickets.Ticket.create_ticket")
+    def test_deploy_creates_destroy_from_dts_info(self, mock_create, mock_filter):
+        """本单部署成功后从 MysqlDtsInfo 取 ID 串联销毁单。"""
+        mock_filter.return_value.order_by.return_value.first.return_value = SimpleNamespace(dts_cluster_id=13)
+        mock_create.return_value = SimpleNamespace(id=99004)
+        ticket = self._ticket(
+            {
+                "deploy": _minimal_deploy(),
+                "destroy_after_migrate": True,
+                "recycle_hosts": False,
+            }
+        )
+        _maybe_create_destroy_after_migrate(ticket)
+        mock_create.assert_called_once()
+        self.assertEqual(mock_create.call_args.kwargs["details"]["dts_cluster_id"], 13)
+        self.assertFalse(mock_create.call_args.kwargs["details"]["recycle_hosts"])
+        ticket.add_related_ticket.assert_called_once()
 
     @patch("backend.ticket.builders.mysql.dts.mysql_dts_tickets.Ticket.create_ticket")
     def test_ha_builder_also_creates_destroy(self, mock_create):
@@ -871,7 +910,6 @@ class MysqlDtsDestroyAfterMigrateHookTest(SimpleTestCase):
         mock_create.return_value = destroy
         ticket = self._ticket(
             {
-                "mode": DtsLifecycleMode.USE_EXISTING.value,
                 "dts_cluster_id": 11,
                 "destroy_after_migrate": True,
                 "recycle_hosts": True,
@@ -889,7 +927,6 @@ class MysqlDtsDestroyAfterMigrateHookTest(SimpleTestCase):
         mock_create.side_effect = RuntimeError("boom")
         ticket = self._ticket(
             {
-                "mode": DtsLifecycleMode.USE_EXISTING.value,
                 "dts_cluster_id": 9,
                 "destroy_after_migrate": True,
             }

@@ -44,6 +44,8 @@ def mysql_dts_delete_task_source_subflow(inp: MysqlDtsDeleteTaskSourceSubflowInp
             "source_names": list(inp.source_names),
             "ignore_errors": inp.ignore_errors,
             "dts_cluster_id": inp.dts_cluster_id,
+            "cluster_name": inp.cluster_name,
+            "bk_biz_id": inp.bk_biz_id,
             "task_mode": inp.task_mode,
             "full_load_engine": inp.full_load_engine,
         },
