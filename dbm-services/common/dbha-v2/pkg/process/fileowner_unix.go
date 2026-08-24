@@ -1,3 +1,5 @@
+//go:build unix
+
 /**
  * MIT License
  *
@@ -22,52 +24,28 @@
  * SOFTWARE.
  */
 
-package main
+package process
 
 import (
 	"os"
-
-	"dbm-services/common/dbha-v2/internal/analysis"
-	"dbm-services/common/dbha-v2/pkg/logger"
-
-	"github.com/spf13/cobra"
+	"syscall"
 )
 
-func run(args []string) int {
-	// cobra falls back to os.Args[1:] when the args slice is nil, which is the
-	// test binary's own command line under go test.
-	if args == nil {
-		args = []string{}
+// preserveOwner changes the ownership of tmpPath to the uid/gid recorded in info,
+// so replacing a file through rename does not silently transfer it to the caller.
+// info may be nil (target does not exist yet) or carry a non-unix Sys() value, in
+// which case nothing is done and nil is returned.
+// It returns the chown error, which callers treat as non-fatal: an unprivileged
+// user cannot chown a file owned by somebody else.
+func preserveOwner(tmpPath string, info os.FileInfo) error {
+	if info == nil {
+		return nil
 	}
 
-	rootCmd := &cobra.Command{
-		Use:          "analysis",
-		Short:        "DBHA Analysis Server",
-		SilenceUsage: true,
-		RunE:         analysis.Run,
+	st, ok := info.Sys().(*syscall.Stat_t)
+	if !ok {
+		return nil
 	}
 
-	rootCmd.PersistentFlags().StringVarP(&analysis.ConfigFilePath, "config", "c", "./etc/analysis.yaml", "")
-	rootCmd.CompletionOptions.DisableDefaultCmd = true
-
-	rootCmd.AddCommand(analysis.VersionCmd)
-	rootCmd.AddCommand(analysis.HealthCmd)
-	rootCmd.AddCommand(analysis.StartCmd)
-	rootCmd.AddCommand(analysis.DaemonStartCmd)
-	rootCmd.AddCommand(analysis.StopCmd)
-	rootCmd.AddCommand(analysis.RestartCmd)
-	rootCmd.AddCommand(analysis.ReloadCmd)
-
-	rootCmd.SetArgs(args)
-
-	if err := rootCmd.Execute(); err != nil {
-		logger.Error("failed to start analysis server, errmsg: %s", err)
-		return 1
-	}
-
-	return 0
-}
-
-func main() {
-	os.Exit(run(os.Args[1:]))
+	return os.Chown(tmpPath, int(st.Uid), int(st.Gid))
 }
