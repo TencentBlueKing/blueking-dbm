@@ -22,7 +22,6 @@ from backend.configuration.constants import DBType
 from backend.core import notify
 from backend.db_meta.models import Cluster
 from backend.dbm_aiagent.agent.constants import DBMAgentCode
-from backend.dbm_aiagent.agent.handlers import AgentHandler
 from backend.flow.models import FlowTree, FlowWithAITaskGuardianReport
 from backend.flow.plugins.components.collections.common.sidecar_service_abc import SidecarServiceABC
 from backend.utils.time import datetime2str
@@ -149,6 +148,9 @@ class CheckClusterAlarmForAIService(SidecarServiceABC):
         if not last_report:
             return False
 
+        # 延迟导入: AgentHandler 依赖的 aidev_bkplugin 仅在 ENABLE_DBM_AI=true 时进入 INSTALLED_APPS
+        from backend.dbm_aiagent.agent.handlers import AgentHandler
+
         # 根据DB组件类型选择对应的单据值守智能体，未匹配则使用通用单据值守智能体
         agent_code = TASK_GUARDIAN_AGENT_MAP.get(db_type, DBMAgentCode.TASK_GUARDIAN)
 
@@ -219,6 +221,9 @@ class CheckClusterAlarmForAIService(SidecarServiceABC):
             str: AI智能体的返回文本，调用失败返回 None
         """
         try:
+            # 延迟导入: AgentHandler 依赖的 aidev_bkplugin 仅在 ENABLE_DBM_AI=true 时进入 INSTALLED_APPS
+            from backend.dbm_aiagent.agent.handlers import AgentHandler
+
             db_type = DBType(ctx["flow_tree"].db_type)
             if db_type not in ASK_AI_COMMAND_MAP:
                 self.log_warning(_("当前组件类型 {} 暂不支持AI值守，跳过".format(db_type)))

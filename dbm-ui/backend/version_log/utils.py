@@ -139,7 +139,7 @@ def _get_version_parsed_list(version):
 
 def _md_parse_to_html_and_save(md_file_path, html_file_path):
     """将存在的md文件解析并保存为html文件"""
-    parser = mistune.Markdown(hard_wrap=True)
+    parser = mistune.create_markdown(escape=False, hard_wrap=True)
     with open(md_file_path, encoding="utf-8") as read_file, open(html_file_path, "w", encoding="utf-8") as write_file:
         md_version_log = read_file.read()
         html_version_log = parser(md_version_log)
