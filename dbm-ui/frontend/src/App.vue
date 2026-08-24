@@ -109,7 +109,7 @@
     'zh-cn': '数据库管理 | 腾讯蓝鲸智云',
   };
 
-  const noticeApi = urlJoin(window.PROJECT_ENV.VITE_AJAX_URL_PREFIX, '/notice/announcements/');
+  const noticeApi = urlJoin(window.BK_AJAX_URL, '/notice/announcements/');
   const isShowBKNotice = ref(false);
   const isShowSystemVersionLog = ref(false);
 
