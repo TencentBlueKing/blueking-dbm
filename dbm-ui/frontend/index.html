@@ -15,9 +15,29 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <link
-      rel="icon"
-      href="/favicon.png" />
+    <script>
+      // BK_SITE_PATH 为站点根路径，BK_STATIC_URL 为静态资源根路径，均由后端模板下发，取值为 / 或 /dbm/ 形式
+      window.BK_SITE_PATH = '{{BK_SITE_PATH}}';
+      window.BK_STATIC_URL = '{{BK_STATIC_URL}}';
+
+      // 所有静态资源地址统一经此拼接，与 vite.config.mts 的 renderBuiltUrl 对应；须早于 monaco worker 配置定义
+      window.__loadAssetsUrl__ = function (src) {
+        const base = String(window.BK_STATIC_URL || '');
+        const path = String(src).replace(/^\/+/, '');
+        // 模板变量未被后端替换时回退为根路径，避免拼出无效地址
+        if (!base || base.includes('{{')) {
+          return '/' + path;
+        }
+        const url = base.replace(/\/+$/, '') + '/' + path;
+        // 相对地址在深链路由下会基于当前页面 URL 解析，统一补根路径
+        return /^(https?:)?\/\//.test(url) || url.startsWith('/') ? url : '/' + url;
+      };
+
+      const faviconLink = document.createElement('link');
+      faviconLink.rel = 'icon';
+      faviconLink.href = window.__loadAssetsUrl__('favicon.png');
+      document.head.appendChild(faviconLink);
+    </script>
     <meta
       name="viewport"
       content="width=device-width, initial-scale=1.0, user-scalable=yes" />
@@ -40,7 +60,8 @@
       src="/src/main.ts"></script>
     <script>
       window.PROJECT_ENV = {
-        VITE_PUBLIC_PATH: '%VITE_PUBLIC_PATH%',
+        // public 资源（xlsx 模板、login-success.html 等）经此拼接，取运行时静态根路径以跟随 BK_STATIC_URL
+        VITE_PUBLIC_PATH: window.__loadAssetsUrl__(''),
         VITE_AJAX_URL_PREFIX: '%VITE_AJAX_URL_PREFIX%',
         VITE_ROUTER_PERFIX: '%VITE_ROUTER_PERFIX%',
       };
@@ -49,6 +70,67 @@
       };
       window.changeConfirm = false;
       window.HAS_LOGGED_IN = false;
+    </script>
+    <script>
+      function loadScript(src) {
+        const script = document.createElement('script');
+        script.src = window.__loadAssetsUrl__(src);
+        script.type = 'module';
+        document.body.appendChild(script);
+      }
+
+      function loadStyle(href) {
+        const link = document.createElement('link');
+        link.type = 'text/css';
+        link.rel = 'stylesheet';
+        link.href = window.__loadAssetsUrl__(href);
+        document.head.appendChild(link);
+      }
+
+      // manifest 是版本指针文件，加时间戳防止浏览器/CDN 缓存旧版本
+      // 开发环境通过 /src/main.ts 直引加载（dev server 会追加 ?t= 参数，故用前缀匹配），构建产物中该标签已被移除，走 manifest 加载
+      if (!document.querySelector('script[src^="/src/main.ts"]')) {
+        fetch(window.__loadAssetsUrl__('.vite/manifest.json') + '?v=' + new Date().getTime())
+          .then((res) => {
+            if (!res.ok) {
+              throw new Error('manifest 请求失败: ' + res.status);
+            }
+            return res.json();
+          })
+          .then((data) => {
+            const cssList = [];
+            const loaded = new Set();
+            // 入口的 css 只含自身 chunk，需递归静态依赖链收集，依赖在前保证样式覆盖顺序
+            const collectCss = (key) => {
+              if (loaded.has(key)) {
+                return;
+              }
+              loaded.add(key);
+              const item = data[key];
+              if (!item) {
+                return;
+              }
+              (item.imports || []).forEach(collectCss);
+              (item.css || []).forEach((css) => cssList.push(css));
+            };
+            Object.entries(data).forEach(([key, item]) => {
+              if (!item.isEntry) {
+                return;
+              }
+              collectCss(key);
+              loadScript(item.file);
+            });
+            cssList.forEach(loadStyle);
+          })
+          .catch((err) => {
+            console.error('[dbm] 静态资源加载失败:', err);
+            const appEl = document.getElementById('app');
+            if (appEl) {
+              appEl.innerHTML =
+                '<div style="padding: 48px; text-align: center; color: #63656e;">页面资源加载失败，请刷新重试或联系管理员</div>';
+            }
+          });
+      }
     </script>
   </body>
 </html>

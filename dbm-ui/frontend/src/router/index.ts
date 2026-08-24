@@ -161,8 +161,11 @@ export default () => {
     renderPageWithComponent(routes[1]!, BizPermission);
   }
 
+  // BK_SITE_PATH 由后端模板注入，为 / 或 /dbm/ 形式的站点根路径，未注入时（本地开发）回退为 /
+  const routerBase = window.BK_SITE_PATH && !window.BK_SITE_PATH.includes('{{') ? window.BK_SITE_PATH : '/';
+
   appRouter = createRouter({
-    history: createWebHistory(),
+    history: createWebHistory(routerBase),
     routes,
   });
   connectToMain(appRouter);
