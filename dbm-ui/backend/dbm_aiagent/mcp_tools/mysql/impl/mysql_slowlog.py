@@ -244,6 +244,7 @@ def _resolve_tendbha_client_host(item: Dict) -> None:
         )
         if real_client_ips:
             item["client_host"] = ",".join(real_client_ips)
+            item.pop("session_ids", None)
     except Exception:  # noqa: E722
         pass
 
