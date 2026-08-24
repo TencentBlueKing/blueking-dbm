@@ -32,7 +32,7 @@ const redirectLogin = (loginUrl: string) => {
 
   if (window.HAS_LOGGED_IN) {
     showLoginModal({
-      loginUrl: `${domain}?is_from_logout=1&c_url=${decodeURIComponent(`${window.location.origin}${window.PROJECT_ENV.VITE_PUBLIC_PATH}login-success.html`)}`,
+      loginUrl: `${domain}?is_from_logout=1&c_url=${decodeURIComponent(`${window.location.origin}${window.PROJECT_STATIC_PATH}login-success.html`)}`,
     });
   } else {
     window.location.href = `${domain}?is_from_logout=1&c_url=${decodeURIComponent(window.location.href)}`;
@@ -100,7 +100,7 @@ export default (interceptors: AxiosInterceptorManager<AxiosResponse>) => {
         }
         return Promise.reject(new RequestError(error.response.status || -1, errorMessage, error.response));
       }
-      return Promise.reject(new RequestError(-1, `${window.PROJECT_ENV.VITE_AJAX_URL_PREFIX} 无法访问`));
+      return Promise.reject(new RequestError(-1, `${window.BK_AJAX_URL} 无法访问`));
     },
   );
 
