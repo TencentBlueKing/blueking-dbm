@@ -13,16 +13,28 @@ import (
 )
 
 // TopicMetrics 每个 topic 的消费指标
+// 概念区分：
+//   - message: 一条 kafka 消息（ConsumerMessage），即从 kafka broker 拉取的原始消息
+//   - event: 一条业务事件（item/obj），一条 message 可能包含多个 event（如 bklog 解包场景）
 type TopicMetrics struct {
-	// 消费次数
-	ConsumeTotal *prometheus.CounterVec
-	// 消费成功次数
-	ConsumeSuccess *prometheus.CounterVec
-	// 消费失败次数
-	ConsumeFailed *prometheus.CounterVec
-	// 消费消息数量
-	ConsumeMessages *prometheus.CounterVec
-	// 致命错误次数（如 Setup 失败）
+	// --- Message 维度指标 ---
+	// MessageTotal 消费的 kafka message 总数
+	MessageTotal *prometheus.CounterVec
+	// MessageSuccess 成功处理的 kafka message 数量
+	MessageSuccess *prometheus.CounterVec
+	// MessageFailed 处理失败的 kafka message 数量
+	MessageFailed *prometheus.CounterVec
+
+	// --- Event 维度指标 ---
+	// EventTotal 解包后的 event 总数（尝试处理的 items/obj 条数）
+	EventTotal *prometheus.CounterVec
+	// EventSuccess 成功写入 DB 的 event 数量
+	EventSuccess *prometheus.CounterVec
+	// EventFailed 处理失败的 event 数量
+	EventFailed *prometheus.CounterVec
+
+	// --- 其他指标 ---
+	// FatalErrors 致命错误次数（如 Setup 失败）
 	FatalErrors *prometheus.CounterVec
 }
 
@@ -42,35 +54,53 @@ type BKReportConfig struct {
 // GetTopicMetrics 获取全局的 TopicMetrics 实例
 func GetTopicMetrics() *TopicMetrics {
 	once.Do(func() {
+		labels := []string{"topic", "model_table", "writer", "group_id"}
 		topicMetrics = &TopicMetrics{
-			ConsumeTotal: prometheus.NewCounterVec(
+			// Message 维度
+			MessageTotal: prometheus.NewCounterVec(
 				prometheus.CounterOpts{
-					Name: "kafka_consume_total",
-					Help: "Total number of kafka consume attempts",
+					Name: "kafka_message_total",
+					Help: "Total number of kafka messages consumed (raw ConsumerMessage from broker)",
 				},
-				[]string{"topic", "model_table", "writer", "group_id"},
+				labels,
 			),
-			ConsumeSuccess: prometheus.NewCounterVec(
+			MessageSuccess: prometheus.NewCounterVec(
 				prometheus.CounterOpts{
-					Name: "kafka_consume_success_total",
-					Help: "Total number of successful kafka consume",
+					Name: "kafka_message_success_total",
+					Help: "Total number of kafka messages successfully processed",
 				},
-				[]string{"topic", "model_table", "writer", "group_id"},
+				labels,
 			),
-			ConsumeFailed: prometheus.NewCounterVec(
+			MessageFailed: prometheus.NewCounterVec(
 				prometheus.CounterOpts{
-					Name: "kafka_consume_failed_total",
-					Help: "Total number of failed kafka consume",
+					Name: "kafka_message_failed_total",
+					Help: "Total number of kafka messages failed to process",
 				},
 				[]string{"topic", "model_table", "writer", "group_id", "error_type"},
 			),
-			ConsumeMessages: prometheus.NewCounterVec(
+			// Event 维度
+			EventTotal: prometheus.NewCounterVec(
 				prometheus.CounterOpts{
-					Name: "kafka_consume_messages_total",
-					Help: "Total number of kafka messages consumed",
+					Name: "kafka_event_total",
+					Help: "Total number of events (items/objects) unpacked from messages",
 				},
-				[]string{"topic", "model_table", "writer", "group_id"},
+				labels,
 			),
+			EventSuccess: prometheus.NewCounterVec(
+				prometheus.CounterOpts{
+					Name: "kafka_event_success_total",
+					Help: "Total number of events successfully written to DB",
+				},
+				labels,
+			),
+			EventFailed: prometheus.NewCounterVec(
+				prometheus.CounterOpts{
+					Name: "kafka_event_failed_total",
+					Help: "Total number of events failed to process",
+				},
+				[]string{"topic", "model_table", "writer", "group_id", "error_type"},
+			),
+			// 其他
 			FatalErrors: prometheus.NewCounterVec(
 				prometheus.CounterOpts{
 					Name: "kafka_fatal_errors_total",
@@ -81,29 +111,45 @@ func GetTopicMetrics() *TopicMetrics {
 		}
 
 		// 注册指标
-		prometheus.MustRegister(topicMetrics.ConsumeTotal)
-		prometheus.MustRegister(topicMetrics.ConsumeSuccess)
-		prometheus.MustRegister(topicMetrics.ConsumeFailed)
-		prometheus.MustRegister(topicMetrics.ConsumeMessages)
+		prometheus.MustRegister(topicMetrics.MessageTotal)
+		prometheus.MustRegister(topicMetrics.MessageSuccess)
+		prometheus.MustRegister(topicMetrics.MessageFailed)
+		prometheus.MustRegister(topicMetrics.EventTotal)
+		prometheus.MustRegister(topicMetrics.EventSuccess)
+		prometheus.MustRegister(topicMetrics.EventFailed)
 		prometheus.MustRegister(topicMetrics.FatalErrors)
 	})
 	return topicMetrics
 }
 
-// RecordConsumeAttempt 记录消费尝试
-func (tm *TopicMetrics) RecordConsumeAttempt(topic, modelTable, writer, groupID string, msgCount int) {
-	tm.ConsumeTotal.WithLabelValues(topic, modelTable, writer, groupID).Inc()
-	tm.ConsumeMessages.WithLabelValues(topic, modelTable, writer, groupID).Add(float64(msgCount))
+// RecordMessageTotal 记录消费的 kafka message 总数
+func (tm *TopicMetrics) RecordMessageTotal(topic, modelTable, writer, groupID string, count int) {
+	tm.MessageTotal.WithLabelValues(topic, modelTable, writer, groupID).Add(float64(count))
 }
 
-// RecordConsumeSuccess 记录消费成功
-func (tm *TopicMetrics) RecordConsumeSuccess(topic, modelTable, writer, groupID string) {
-	tm.ConsumeSuccess.WithLabelValues(topic, modelTable, writer, groupID).Inc()
+// RecordMessageSuccess 记录成功处理的 kafka message 数量
+func (tm *TopicMetrics) RecordMessageSuccess(topic, modelTable, writer, groupID string, count int) {
+	tm.MessageSuccess.WithLabelValues(topic, modelTable, writer, groupID).Add(float64(count))
 }
 
-// RecordConsumeFailed 记录消费失败
-func (tm *TopicMetrics) RecordConsumeFailed(topic, modelTable, writer, groupID, errorType string) {
-	tm.ConsumeFailed.WithLabelValues(topic, modelTable, writer, groupID, errorType).Inc()
+// RecordMessageFailed 记录处理失败的 kafka message 数量
+func (tm *TopicMetrics) RecordMessageFailed(topic, modelTable, writer, groupID, errorType string, count int) {
+	tm.MessageFailed.WithLabelValues(topic, modelTable, writer, groupID, errorType).Add(float64(count))
+}
+
+// RecordEventTotal 记录解包后的 event 总数（尝试处理的 items/obj）
+func (tm *TopicMetrics) RecordEventTotal(topic, modelTable, writer, groupID string, count int) {
+	tm.EventTotal.WithLabelValues(topic, modelTable, writer, groupID).Add(float64(count))
+}
+
+// RecordEventSuccess 记录成功写入 DB 的 event 数量
+func (tm *TopicMetrics) RecordEventSuccess(topic, modelTable, writer, groupID string, count int) {
+	tm.EventSuccess.WithLabelValues(topic, modelTable, writer, groupID).Add(float64(count))
+}
+
+// RecordEventFailed 记录处理失败的 event 数量
+func (tm *TopicMetrics) RecordEventFailed(topic, modelTable, writer, groupID, errorType string, count int) {
+	tm.EventFailed.WithLabelValues(topic, modelTable, writer, groupID, errorType).Add(float64(count))
 }
 
 // RecordFatalError 记录致命错误
@@ -170,10 +216,12 @@ func (mr *MetricsReporter) Report() error {
 	for _, mf := range metricFamilies {
 		metricName := mf.GetName()
 		// 只上报我们定义的 kafka 消费指标，忽略 golang 内置的指标
-		if metricName != "kafka_consume_total" &&
-			metricName != "kafka_consume_success_total" &&
-			metricName != "kafka_consume_failed_total" &&
-			metricName != "kafka_consume_messages_total" &&
+		if metricName != "kafka_message_total" &&
+			metricName != "kafka_message_success_total" &&
+			metricName != "kafka_message_failed_total" &&
+			metricName != "kafka_event_total" &&
+			metricName != "kafka_event_success_total" &&
+			metricName != "kafka_event_failed_total" &&
 			metricName != "kafka_fatal_errors_total" {
 			continue
 		}

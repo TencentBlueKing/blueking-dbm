@@ -13,7 +13,10 @@ import (
 	"fmt"
 	"io"
 	"log/slog"
+	"math/rand"
+	"net"
 	"net/http"
+	"strings"
 	"time"
 
 	json "github.com/goccy/go-json"
@@ -26,39 +29,44 @@ import (
 type DorisHttpDsn struct {
 	User     string `yaml:"user" mapstructure:"user"`
 	Password string `yaml:"password" mapstructure:"password"`
-	// Address 为 Doris FE 的 HTTP 地址，格式为 host:port（默认端口 8030）
+	// Address mysql, 用于 AutoMigrate（DDL），格式为 host:port（默认端口 9030）
 	Address  string `yaml:"address" mapstructure:"address"`
 	Database string `yaml:"database" mapstructure:"database"`
-	// MysqlAddress 用于 AutoMigrate（DDL），格式为 host:port（默认端口 9030）
-	MysqlAddress string `yaml:"mysql_address" mapstructure:"mysql_address"`
+	// FeHttpAddress 为 Doris FE 的 HTTP 地址，支持逗号分隔的多个 ip:port（默认端口 8030）。
+	// 如果为空，则取 Address 的 host:8030
+	FeHttpAddress string `yaml:"fe_http_address" mapstructure:"fe_http_address"`
 }
 
 // DorisHttpWriter 使用 Doris HTTP Stream Load 接口写入数据
 type DorisHttpWriter struct {
-	dsn        *DorisHttpDsn
-	dbGorm     *gorm.DB // 用于 AutoMigrate
-	httpClient *http.Client
-	writeMode  string
+	dsn             *DorisHttpDsn
+	dbGorm          *gorm.DB // 用于 AutoMigrate
+	httpClient      *http.Client
+	writeMode       string
+	feHttpAddresses []string // 解析后的 FE HTTP 地址列表
 }
 
 func NewDorisHttpWriter(dsn *DorisHttpDsn) (*DorisHttpWriter, error) {
 	if dsn == nil {
 		return nil, errors.New("dsn is nil")
 	}
-	if dsn.Address == "" {
-		return nil, errors.New("doris http address is required")
-	}
 	if dsn.Database == "" {
 		return nil, errors.New("doris database is required")
 	}
 
+	// 解析 FE HTTP 地址列表
+	feAddresses, err := parseFeHttpAddresses(dsn.FeHttpAddress, dsn.Address)
+	if err != nil {
+		return nil, err
+	}
+
 	// 初始化 gorm 连接用于 AutoMigrate（DDL 操作仍需 MySQL 协议）
 	var dbGorm *gorm.DB
-	if dsn.MysqlAddress != "" {
+	if dsn.Address != "" {
 		mysqlDsn := &InstanceDsn{
 			User:     dsn.User,
 			Password: dsn.Password,
-			Address:  dsn.MysqlAddress,
+			Address:  dsn.Address,
 			Database: dsn.Database,
 		}
 		var err error
@@ -78,10 +86,47 @@ func NewDorisHttpWriter(dsn *DorisHttpDsn) (*DorisHttpWriter, error) {
 	}
 
 	return &DorisHttpWriter{
-		dsn:        dsn,
-		dbGorm:     dbGorm,
-		httpClient: httpClient,
+		dsn:             dsn,
+		dbGorm:          dbGorm,
+		httpClient:      httpClient,
+		feHttpAddresses: feAddresses,
 	}, nil
+}
+
+// parseFeHttpAddresses 解析 FE HTTP 地址列表。
+// 支持逗号分隔的多个 ip:port，如果为空则取 address 的 host:8030
+func parseFeHttpAddresses(feHttpAddress, address string) ([]string, error) {
+	if feHttpAddress != "" {
+		parts := strings.Split(feHttpAddress, ",")
+		var addresses []string
+		for _, p := range parts {
+			p = strings.TrimSpace(p)
+			if p != "" {
+				addresses = append(addresses, p)
+			}
+		}
+		if len(addresses) > 0 {
+			return addresses, nil
+		}
+	}
+	// FeHttpAddress 为空，从 Address 中提取 host，拼接默认端口 8030
+	if address == "" {
+		return nil, errors.New("both fe_http_address and address are empty, cannot determine FE HTTP address")
+	}
+	host, _, err := net.SplitHostPort(address)
+	if err != nil {
+		// address 可能没有端口，直接当作 host
+		host = address
+	}
+	return []string{fmt.Sprintf("%s:8030", host)}, nil
+}
+
+// pickFeAddress 从 FE 地址列表中随机选择一个
+func (w *DorisHttpWriter) pickFeAddress() string {
+	if len(w.feHttpAddresses) == 1 {
+		return w.feHttpAddresses[0]
+	}
+	return w.feHttpAddresses[rand.Intn(len(w.feHttpAddresses))]
 }
 
 func (w *DorisHttpWriter) Type() string {
@@ -158,7 +203,8 @@ func (w *DorisHttpWriter) CloseGormDB() error {
 // FE 收到请求后会返回 307 重定向到 BE 节点，需要手动跟随重定向并重新发送数据。
 func (w *DorisHttpWriter) streamLoadRaw(tableName string, jsonData []byte) error {
 	// 构建 Stream Load URL: http://<fe_host>:<fe_http_port>/api/<db>/<table>/_stream_load
-	feURL := fmt.Sprintf("http://%s/api/%s/%s/_stream_load", w.dsn.Address, w.dsn.Database, tableName)
+	feAddr := w.pickFeAddress()
+	feURL := fmt.Sprintf("http://%s/api/%s/%s/_stream_load", feAddr, w.dsn.Database, tableName)
 
 	// 第一步：发送请求到 FE，获取 BE 重定向地址
 	req, err := http.NewRequest(http.MethodPut, feURL, bytes.NewReader(jsonData))
@@ -234,12 +280,12 @@ func (w *DorisHttpWriter) parseStreamLoadResponse(resp *http.Response, tableName
 		return errors.Errorf("stream load failed for table %s: status=%s, message=%s, errorURL=%s",
 			tableName, result.Status, result.Message, result.ErrorURL)
 	}
-
-	slog.Debug("stream load success",
-		slog.String("table", tableName),
-		slog.Int64("loaded_rows", result.NumberLoadedRows),
-		slog.Int64("filtered_rows", result.NumberFilteredRows))
-
+	/*
+		slog.Debug("stream load success",
+			slog.String("table", tableName),
+			slog.Int64("loaded_rows", result.NumberLoadedRows),
+			slog.Int64("filtered_rows", result.NumberFilteredRows)
+	*/
 	return nil
 }
 

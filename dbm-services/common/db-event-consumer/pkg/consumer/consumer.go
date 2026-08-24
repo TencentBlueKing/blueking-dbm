@@ -40,23 +40,38 @@ type AnySinker struct {
 	groupID    string
 }
 
-// recordMetricsAttempt 记录消费尝试指标
-func (s *AnySinker) recordMetricsAttempt(topic string, msgCount int) {
-	s.metrics.RecordConsumeAttempt(topic, s.modelTable, s.writer, s.groupID, msgCount)
+// recordMessageTotal 记录消费的 kafka message 总数
+func (s *AnySinker) recordMessageTotal(topic string, count int) {
+	s.metrics.RecordMessageTotal(topic, s.modelTable, s.writer, s.groupID, count)
 }
 
-// recordMetricsSuccess 记录消费成功指标
-func (s *AnySinker) recordMetricsSuccess(topic string) {
-	s.metrics.RecordConsumeSuccess(topic, s.modelTable, s.writer, s.groupID)
+// recordMessageSuccess 记录成功处理的 kafka message 数量
+func (s *AnySinker) recordMessageSuccess(topic string, count int) {
+	s.metrics.RecordMessageSuccess(topic, s.modelTable, s.writer, s.groupID, count)
 }
 
-// recordMetricsFailed 记录消费失败指标
-func (s *AnySinker) recordMetricsFailed(topic string, errorType string) {
-	s.metrics.RecordConsumeFailed(topic, s.modelTable, s.writer, s.groupID, errorType)
+// recordMessageFailed 记录处理失败的 kafka message 数量
+func (s *AnySinker) recordMessageFailed(topic string, count int, errorType string) {
+	s.metrics.RecordMessageFailed(topic, s.modelTable, s.writer, s.groupID, errorType, count)
 }
 
-// recordMetricsFatalError 记录致命错误指标
-func (s *AnySinker) recordMetricsFatalError(topic string, errorType string) {
+// recordEventTotal 记录解包后的 event 总数
+func (s *AnySinker) recordEventTotal(topic string, count int) {
+	s.metrics.RecordEventTotal(topic, s.modelTable, s.writer, s.groupID, count)
+}
+
+// recordEventSuccess 记录成功写入 DB 的 event 数量
+func (s *AnySinker) recordEventSuccess(topic string, count int) {
+	s.metrics.RecordEventSuccess(topic, s.modelTable, s.writer, s.groupID, count)
+}
+
+// recordEventFailed 记录处理失败的 event 数量
+func (s *AnySinker) recordEventFailed(topic string, count int, errorType string) {
+	s.metrics.RecordEventFailed(topic, s.modelTable, s.writer, s.groupID, errorType, count)
+}
+
+// recordFatalError 记录致命错误指标
+func (s *AnySinker) recordFatalError(topic string, errorType string) {
 	s.metrics.RecordFatalError(topic, s.modelTable, s.writer, s.groupID, errorType)
 }
 
@@ -75,7 +90,7 @@ func (s *AnySinker) Setup(sarama.ConsumerGroupSession) error {
 	// 如果遇到错误，上报 fatal_errors 指标
 	if err != nil {
 		topic := s.Sinker.RuntimeConfig.Topic
-		s.recordMetricsFatalError(topic, "setup_error")
+		s.recordFatalError(topic, "setup_error")
 		slog.Error("setup failed", slog.Any("error", err),
 			slog.String("topic", topic),
 			slog.String("model_table", s.modelTable))
@@ -270,25 +285,35 @@ func (s *AnySinker) consumeClaimConcurrent(
 // HandleMessageTryBatch 先尝试批量写入到 db，如果失败，再尝试单条写入
 func (s *AnySinker) HandleMessageTryBatch(msgs []*sarama.ConsumerMessage, sk *Sinker) error {
 	topic := sk.RuntimeConfig.Topic
+	msgCount := len(msgs)
 
-	// 记录消费尝试和消息数量
-	s.recordMetricsAttempt(topic, len(msgs))
+	// 记录 MessageTotal
+	s.recordMessageTotal(topic, msgCount)
 
 	var err error
+	var eventCount int
 	if s.Sinker.RuntimeConfig.BkDataId > 0 {
-		err = s.HandleMessagesBklogGorm(msgs, sk)
+		eventCount, err = s.HandleMessagesBklogGorm(msgs, sk)
+		// bklog 场景的 EventTotal 在 HandleMessagesBklogGorm 内部记录
 	} else if !s.strictSchema {
-		err = s.HandleMessagesMapper(msgs, sk)
+		// 非 bklog 场景：1 message = 1 event
+		s.recordEventTotal(topic, msgCount)
+		eventCount, err = s.HandleMessagesMapper(msgs, sk)
 	} else if s.dsWriter.Type() == "mysql_xorm" {
-		err = s.HandleMessagesXorm(msgs, sk)
+		s.recordEventTotal(topic, msgCount)
+		eventCount, err = s.HandleMessagesXorm(msgs, sk)
 	} else {
-		err = s.HandleMessages(msgs, sk)
+		s.recordEventTotal(topic, msgCount)
+		eventCount, err = s.HandleMessages(msgs, sk)
 		if err != nil {
 			err = nil
+			eventCount = 0
 			for _, msg := range msgs {
-				if err2 := s.HandleMessages([]*sarama.ConsumerMessage{msg}, sk); err2 != nil {
+				if cnt, err2 := s.HandleMessages([]*sarama.ConsumerMessage{msg}, sk); err2 != nil {
 					slog.Error("handle message", err2)
 					err = errors.Join(err, err2)
+				} else {
+					eventCount += cnt
 				}
 			}
 		}
@@ -296,18 +321,20 @@ func (s *AnySinker) HandleMessageTryBatch(msgs []*sarama.ConsumerMessage, sk *Si
 
 	// 记录消费结果
 	if err != nil {
-		s.recordMetricsFailed(topic, "handle_failed")
+		s.recordMessageFailed(topic, msgCount, "handle_failed")
+		// failed event metrics is reported in Handler
 	} else {
-		s.recordMetricsSuccess(topic)
+		s.recordMessageSuccess(topic, msgCount)
+		s.recordEventSuccess(topic, eventCount)
 	}
 
 	return err
 }
 
 // HandleMessages for gorm, gorm 主要是 migrate 方便
-func (s *AnySinker) HandleMessages(msgs []*sarama.ConsumerMessage, sk *Sinker) error {
+func (s *AnySinker) HandleMessages(msgs []*sarama.ConsumerMessage, sk *Sinker) (int, error) {
 	if len(msgs) == 0 {
-		return nil
+		return 0, nil
 	}
 	var err error
 
@@ -323,8 +350,8 @@ func (s *AnySinker) HandleMessages(msgs []*sarama.ConsumerMessage, sk *Sinker) e
 		err := json.Unmarshal(message.Value, obj)
 		if err != nil {
 			slog.Error("unmarshal task object", err, slog.Any("msg", message.Value))
-			s.recordMetricsFailed(s.Sinker.RuntimeConfig.Topic, "unmarshal")
-			return err
+			s.recordEventFailed(s.Sinker.RuntimeConfig.Topic, 1, "unmarshal")
+			return 0, err
 		}
 		result.Index(idx).Set(objValue.Elem())
 		idx++
@@ -336,13 +363,17 @@ func (s *AnySinker) HandleMessages(msgs []*sarama.ConsumerMessage, sk *Sinker) e
 	} else {
 		err = s.dsWriter.WriteBatch(s.modelObject, result.Interface())
 	}
-	return err
+	if err != nil {
+		s.recordEventFailed(s.Sinker.RuntimeConfig.Topic, idx, "write")
+		return 0, err
+	}
+	return idx, nil
 }
 
 // HandleMessagesXorm xorm 实现写入简单很多
-func (s *AnySinker) HandleMessagesXorm(msgs []*sarama.ConsumerMessage, sk *Sinker) error {
+func (s *AnySinker) HandleMessagesXorm(msgs []*sarama.ConsumerMessage, sk *Sinker) (int, error) {
 	if len(msgs) == 0 {
-		return nil
+		return 0, nil
 	}
 	var objs []base.ModelSinker
 	for _, message := range msgs {
@@ -352,23 +383,24 @@ func (s *AnySinker) HandleMessagesXorm(msgs []*sarama.ConsumerMessage, sk *Sinke
 		err := json.Unmarshal(message.Value, &obj)
 		if err != nil {
 			slog.Error("unmarshal task object", err, slog.Any("msg", message.Value))
-			s.recordMetricsFailed(s.Sinker.RuntimeConfig.Topic, "unmarshal")
-			return err
+			s.recordEventFailed(s.Sinker.RuntimeConfig.Topic, 1, "unmarshal")
+			return 0, err
 		}
 		objs = append(objs, obj.(base.ModelSinker))
 	}
 
 	if err := s.dsWriter.WriteBatch(s.modelObject, objs); err != nil {
-		return err
+		s.recordEventFailed(s.Sinker.RuntimeConfig.Topic, len(objs), "write")
+		return 0, err
 	}
-	return nil
+	return len(objs), nil
 }
 
 // HandleMessagesMapper map 形式，根据 map key拼成 sql 写入。不关心表结构
 // 如果表结构上字段不存在，会报错。要结合 AutoMigrate 使用
-func (s *AnySinker) HandleMessagesMapper(msgs []*sarama.ConsumerMessage, sk *Sinker) error {
+func (s *AnySinker) HandleMessagesMapper(msgs []*sarama.ConsumerMessage, sk *Sinker) (int, error) {
 	if len(msgs) == 0 {
-		return nil
+		return 0, nil
 	}
 	var objs []map[string]interface{}
 	for _, message := range msgs {
@@ -378,61 +410,22 @@ func (s *AnySinker) HandleMessagesMapper(msgs []*sarama.ConsumerMessage, sk *Sin
 		err := json.Unmarshal(message.Value, &obj)
 		if err != nil {
 			slog.Error("unmarshal task object", err, slog.Any("msg", message.Value))
-			s.recordMetricsFailed(s.Sinker.RuntimeConfig.Topic, "unmarshal")
-			return err
+			s.recordEventFailed(s.Sinker.RuntimeConfig.Topic, 1, "unmarshal")
+			return 0, err
 		}
 		objs = append(objs, obj)
 	}
 	if err := s.dsWriter.WriteBatch(s.modelObject, objs); err != nil {
-		return err
+		s.recordEventFailed(s.Sinker.RuntimeConfig.Topic, len(objs), "write")
+		return 0, err
 	}
-	return nil
-}
-
-// HandleMessagesBklog bklog 需要解包处理
-func (s *AnySinker) HandleMessagesBklog(msgs []*sarama.ConsumerMessage, sk *Sinker) error {
-	if len(msgs) == 0 {
-		return nil
-	}
-	var objs []base.ModelSinker
-	for _, message := range msgs {
-		// slog.Debug("process message", slog.String("Value", string(message.Value)))
-		var msg base.MessageWrapper
-		err := json.Unmarshal(message.Value, &msg)
-		if err != nil {
-			slog.Error("unmarshal message", err)
-			continue
-		}
-		for _, item := range msg.Items {
-			var unquoteData string
-			if err := json.Unmarshal(item.Data, &unquoteData); err != nil {
-				slog.Error("unmarshal item data as string", slog.Any("error", err))
-				continue
-			}
-			obj := reflect.New(s.modelType).Interface()
-
-			err = json.Unmarshal([]byte(unquoteData), &obj)
-			if err != nil {
-				slog.Error("unmarshal task object", err, slog.Any("msg", unquoteData))
-				return err
-			}
-
-			objs = append(objs, obj.(base.ModelSinker))
-		}
-	}
-	var err error
-	if creator, ok := s.modelObject.(base.CustomCreator); ok {
-		err = creator.Create(objs, s.dsWriter)
-	} else {
-		err = s.dsWriter.WriteBatch(s.modelObject, objs)
-	}
-	return err
+	return len(objs), nil
 }
 
 // HandleMessagesBklogGorm bklog 需要解包处理
-func (s *AnySinker) HandleMessagesBklogGorm(msgs []*sarama.ConsumerMessage, sk *Sinker) error {
+func (s *AnySinker) HandleMessagesBklogGorm(msgs []*sarama.ConsumerMessage, sk *Sinker) (int, error) {
 	if len(msgs) == 0 {
-		return nil
+		return 0, nil
 	}
 
 	// 第一遍：预解析所有消息，收集 MessageWrapper 和总 items 数量
@@ -449,15 +442,17 @@ func (s *AnySinker) HandleMessagesBklogGorm(msgs []*sarama.ConsumerMessage, sk *
 		err := json.Unmarshal(message.Value, &msg)
 		if err != nil {
 			slog.Error("unmarshal message", err)
-			s.recordMetricsFailed(s.Sinker.RuntimeConfig.Topic, "parse")
+			s.recordMessageFailed(s.Sinker.RuntimeConfig.Topic, 1, "parse")
 			continue
 		}
 		totalItems += len(msg.Items)
 		parsedMsgs = append(parsedMsgs, parsedMsg{msg: msg, items: msg.Items})
 	}
 	if totalItems == 0 {
-		return nil
+		return 0, nil
 	}
+	// 记录 EventTotal（bklog 解包后的 event 总数）
+	s.recordEventTotal(s.Sinker.RuntimeConfig.Topic, totalItems)
 
 	// 预分配精确容量的目标切片，用 reflect.Index + Set 替代 reflect.Append，
 	// 避免 reflect.Append 的类型检查开销和 growslice 扩容
@@ -472,7 +467,7 @@ func (s *AnySinker) HandleMessagesBklogGorm(msgs []*sarama.ConsumerMessage, sk *
 			if bklogItem, ok := obj.(base.BklogUnmarshalItem); ok {
 				err := bklogItem.UnmarshalItem(item.Data, pm.msg)
 				if err != nil {
-					s.recordMetricsFailed(s.Sinker.RuntimeConfig.Topic, "unmarshal-1")
+					s.recordEventFailed(s.Sinker.RuntimeConfig.Topic, 1, "unmarshal-1")
 					continue
 				}
 				result.Index(idx).Set(objValue.Elem())
@@ -486,9 +481,9 @@ func (s *AnySinker) HandleMessagesBklogGorm(msgs []*sarama.ConsumerMessage, sk *
 				}
 
 				if err := json.Unmarshal([]byte(unquoteData), &obj); err != nil {
-					s.recordMetricsFailed(s.Sinker.RuntimeConfig.Topic, "unmarshal-2")
+					s.recordEventFailed(s.Sinker.RuntimeConfig.Topic, 1, "unmarshal-2")
 					slog.Error("unmarshal task object", slog.Any("error", err), slog.Any("msg", unquoteData))
-					return err
+					return 0, err
 				}
 				result.Index(idx).Set(objValue.Elem())
 				idx++
@@ -496,7 +491,7 @@ func (s *AnySinker) HandleMessagesBklogGorm(msgs []*sarama.ConsumerMessage, sk *
 		}
 	}
 	if idx == 0 {
-		return nil
+		return 0, nil
 	}
 	// 截断到实际成功解析的数量
 	result = result.Slice(0, idx)
@@ -507,7 +502,11 @@ func (s *AnySinker) HandleMessagesBklogGorm(msgs []*sarama.ConsumerMessage, sk *
 	} else {
 		err = s.dsWriter.WriteBatch(s.modelObject, result.Interface())
 	}
-	return err
+	if err != nil {
+		s.recordEventFailed(s.Sinker.RuntimeConfig.Topic, idx, "write")
+		return 0, err
+	}
+	return idx, nil
 }
 
 // HandleRawMessages 将原始消息体（[][]byte）包装后复用完整的消费入库逻辑
@@ -522,13 +521,13 @@ func (s *AnySinker) HandleRawMessages(payloads [][]byte) error {
 	}
 	err := s.HandleMessageTryBatch(msgs, s.Sinker)
 
-	// 记录 retry_event 维度的指标（success/failed）
+	// 记录 retry_event 维度的指标
 	topic := s.Sinker.RuntimeConfig.BkCollectorName
-	s.recordMetricsAttempt(topic, len(payloads))
+	s.recordMessageTotal(topic, len(payloads))
 	if err != nil {
-		s.recordMetricsFailed(topic, "handle_failed")
+		s.recordMessageFailed(topic, len(payloads), "handle_failed")
 	} else {
-		s.recordMetricsSuccess(topic)
+		s.recordMessageSuccess(topic, len(payloads))
 	}
 	return err
 }
