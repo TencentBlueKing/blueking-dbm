@@ -35,11 +35,13 @@
     </div>
     <DbTable
       ref="tableRef"
+      :bk-ui-settings="settings"
       :data-source="dataSource"
       :filter-value="quickSearchValue"
       releate-url-query
       row-key="bk_host_id"
       selectable
+      @bk-ui-settings-change="updateTableSettings"
       @filter-change="handleFilterChange"
       @selection="handleSelection">
       <TableColumn
@@ -131,6 +133,10 @@
   import FaultOrRecycleMachineModel from '@services/model/db-resource/FaultOrRecycleMachine';
   import { getMachinePool } from '@services/source/dbdirty';
 
+  import { useTableSettings } from '@hooks';
+
+  import { UserPersonalSettings } from '@common/const/userPersonalSettings';
+
   import DbTable from '@components/db-table/IndexNew.vue';
 
   import { useColumnFilter } from '@views/resource-manage/common/hooks/useColumnFilter';
@@ -143,6 +149,10 @@
   const { t } = useI18n();
   const { isSearching, quickSearchData, quickSearchValue } = useQuickSearch();
   const { data: columnFilter } = useColumnFilter();
+
+  const { settings, updateTableSettings } = useTableSettings(UserPersonalSettings.ALL_HOST_LIST_SETTINGS, {
+    disabled: ['ips'],
+  });
 
   const tableRef = useTemplateRef('tableRef');
 

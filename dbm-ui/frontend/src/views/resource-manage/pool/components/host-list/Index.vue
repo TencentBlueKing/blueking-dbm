@@ -148,6 +148,7 @@
     </div>
     <DbTable
       ref="tableRef"
+      :bk-ui-settings="settings"
       class="db-instance-table"
       :container-height="tableContentHeight"
       :data-source="dataSource"
@@ -155,6 +156,7 @@
       row-class-name="my-row-cls"
       row-key="bk_host_id"
       selectable
+      @bk-ui-settings-change="updateTableSettings"
       @selection="handleSelection">
       <TableColumn
         col-key="ip"
@@ -366,9 +368,12 @@
   import DbResourceModel from '@services/model/db-resource/DbResource';
   import { fetchList, fetchSameSvrOwnerIps, resourceExport } from '@services/source/dbresourceResource';
 
+  import { useTableSettings } from '@hooks';
+
   import { useGlobalBizs } from '@stores';
 
   import { TicketTypes } from '@common/const';
+  import { UserPersonalSettings } from '@common/const/userPersonalSettings';
 
   import DbIcon from '@components/db-icon';
   import DbTable from '@components/db-table/IndexNew.vue';
@@ -404,6 +409,65 @@
   const { t } = useI18n();
   const { currentBizId } = useGlobalBizs();
   const tableContentHeight = ref(window.innerHeight - 320);
+
+  const { settings, updateTableSettings } = useTableSettings(UserPersonalSettings.RESOURCE_POOL_HOST_LIST_SETTINGS, {
+    disabled: ['ip'],
+  });
+
+  // 前端 col-key → 后端导出 id 映射（resourceOwner 拆分为 3 列）
+  const colKeyToExportIds: Record<string, string[]> = {
+    agent_status: ['agent_status'],
+    bk_cloud_name: ['bk_cloud_name'],
+    bk_cpu: ['bk_cpu'],
+    bkMemText: ['bk_mem'],
+    city: ['city'],
+    createTimeDisplay: ['create_time'],
+    device_class: ['device_class'],
+    ip: ['ip'],
+    operator: ['operator'],
+    os_name: ['os_name'],
+    rack_id: ['rack_id'],
+    resourceOwner: ['bk_biz_name', 'resource_type', 'labels'],
+    same_svr_owner_count: ['same_svr_owner_count'],
+    sub_zone: ['sub_zone'],
+    total_data_storage_cap: ['total_data_storage_cap'],
+  };
+
+  // 后端导出表头定义（id 对齐后端）
+  const exportColumnList = computed(() => [
+    { id: 'ip', name: 'IP' },
+    { id: 'bk_cloud_name', name: t('管控区域') },
+    { id: 'agent_status', name: t('Agent 状态') },
+    { id: 'bk_biz_name', name: t('所属业务') },
+    { id: 'resource_type', name: t('所属DB') },
+    { id: 'labels', name: t('资源标签') },
+    { id: 'city', name: t('地域') },
+    { id: 'sub_zone', name: t('园区') },
+    { id: 'rack_id', name: t('机架') },
+    { id: 'same_svr_owner_count', name: t('同母机台数') },
+    { id: 'os_name', name: t('操作系统名称') },
+    { id: 'device_class', name: t('机型') },
+    { id: 'bk_cpu', name: t('CPU（核）') },
+    { id: 'bk_mem', name: t('内存（G）') },
+    { id: 'total_data_storage_cap', name: t('数据盘容量（G）') },
+    { id: 'create_time', name: t('转入时间') },
+    { id: 'operator', name: t('转入人') },
+  ]);
+
+  // 导出表头（合并 order + checked，id 对齐后端；无自定义设置时不传，用后端默认）
+  const exportHeaders = computed(() => {
+    const order = settings.value.order;
+    const checked = settings.value.checked;
+    if (!order || !checked) return undefined;
+    const checkedIds = new Set(checked.flatMap((key) => colKeyToExportIds[key] ?? []));
+    return order
+      .flatMap((key) => colKeyToExportIds[key] ?? [])
+      .filter((id) => checkedIds.has(id))
+      .map((id) => {
+        const col = exportColumnList.value.find((item) => item.id === id);
+        return { id, name: col?.name };
+      });
+  });
 
   const pageRef = useTemplateRef('pageRef');
   const searchBoxRef = useTemplateRef('searchBoxRef');
@@ -521,11 +585,13 @@
     if (isFilter.value) {
       resourceExport({
         ...searchParams.value,
+        headers: exportHeaders.value,
         limit: -1,
         offset: 0,
       });
     } else {
       resourceExport({
+        headers: exportHeaders.value,
         limit: -1,
         offset: 0,
       });
@@ -537,6 +603,7 @@
       return;
     }
     resourceExport({
+      headers: exportHeaders.value,
       hosts: selectionList.value.map((item) => item.ip).join(','),
       limit: -1,
       offset: 0,
