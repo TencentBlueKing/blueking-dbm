@@ -25,7 +25,7 @@
   },
   "dependencies": {
     "@antv/g6": "5.1.1",
-    "@blueking/ai-blueking": "2.2.2",
+    "@blueking/ai-blueking": "2.2.1-beta.2",
     "@blueking/app-select": "0.0.1-beta.19",
     "@blueking/bk-trace-core": "0.0.6",
     "@blueking/bk-user-selector": "0.1.13",
