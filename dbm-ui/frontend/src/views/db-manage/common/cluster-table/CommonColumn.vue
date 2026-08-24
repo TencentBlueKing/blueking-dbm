@@ -28,7 +28,7 @@
     </template>
   </TableColumn>
   <TableColumn
-    col-key="machine_specs"
+    col-key="cluster_spec"
     :min-width="220"
     :title="t('规格')">
     <template #default="{ row }: { row: IRowData }">
