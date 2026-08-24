@@ -17,32 +17,28 @@
     </template>
     <template v-else>
       <div
-        v-for="(item, index) in displayList"
-        :key="`${item.machineType}-${item.spec.spec_name}`"
+        v-for="group in groups"
+        :key="group.machineType"
         class="machine-spec-cell-line">
-        <span class="machine-spec-cell-role">{{ item.roleName }}</span>
+        <span class="machine-spec-cell-role">{{ group.roleName }}</span>
         <span>：</span>
-        <MachineSpecItem :spec="item.spec" />
+        <MachineSpecItem :spec="group.representative" />
         <BkPopover
-          v-if="index === displayList.length - 1 && flatList.length > MAX_DISPLAY"
+          v-if="group.specs.length > 1"
           ext-cls="machine-spec-cell-popover-wrapper"
           theme="light"
           trigger="click">
-          <span class="machine-spec-cell-more">({{ t('共 n 个', [flatList.length]) }})</span>
+          <span class="machine-spec-cell-more">({{ t('等 n 个', [group.specs.length]) }})</span>
           <template #content>
             <div class="machine-spec-cell-popover">
-              <div class="popover-header">{{ t('共 n 个', [flatList.length]) }}</div>
+              <div class="popover-header">{{ t('共 n 个', [group.specs.length]) }}</div>
               <div
-                v-for="g in groups"
-                :key="g.machineType">
-                <div
-                  v-for="(spec, specIndex) in g.specs"
-                  :key="specIndex"
-                  class="popover-line">
-                  <span class="popover-role">{{ g.roleName }}</span>
-                  <span class="popover-colon">：</span>
-                  <MachineSpecItem :spec="spec" />
-                </div>
+                v-for="(spec, specIndex) in group.specs"
+                :key="specIndex"
+                class="popover-line">
+                <span class="popover-role">{{ group.roleName }}</span>
+                <span class="popover-colon">：</span>
+                <MachineSpecItem :spec="spec" />
               </div>
             </div>
           </template>
@@ -74,16 +70,7 @@
 
   const { t } = useI18n();
 
-  /** 列表场景最多展示的规格记录条数 */
-  const MAX_DISPLAY = 2;
-
   const groups = computed(() => groupMachineSpecs(props.specs || []));
-
-  /** 按「角色 → 规格」双层循环展平为有序列表 */
-  const flatList = computed(() => groups.value.flatMap((group) => group.specs.map((spec) => ({ ...group, spec }))));
-
-  /** 列表场景仅展示前 2 条规格记录 */
-  const displayList = computed(() => (props.all ? [] : flatList.value.slice(0, MAX_DISPLAY)));
 </script>
 <style lang="less">
   .machine-spec-cell-line {
