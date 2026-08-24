@@ -62,17 +62,19 @@ type UpdateClusterMetadataRequest struct {
 	Namespace   string `json:"namespace" binding:"required"`
 	ClusterName string `json:"clusterName" binding:"required"`
 
-	DbmClusterID        *uint64 `json:"dbmClusterId"`
-	BkBizID             *uint64 `json:"bkBizId"`
-	BkBizName           *string `json:"bkBizName"`
-	BkAppAbbr           *string `json:"bkAppAbbr"`
-	BkAppCode           *string `json:"bkAppCode"`
-	ClusterAlias        *string `json:"clusterAlias"`
-	VIP                 *string `json:"vip"`
-	Description         *string `json:"description"`
-	TopoName            *string `json:"topoName"`
-	ServiceVersion      *string `json:"serviceVersion"`
-	AddonClusterVersion *string `json:"addonClusterVersion"`
+	DbmClusterID        *uint64   `json:"dbmClusterId"`
+	BkBizID             *uint64   `json:"bkBizId"`
+	BkBizName           *string   `json:"bkBizName"`
+	BkAppAbbr           *string   `json:"bkAppAbbr"`
+	BkAppCode           *string   `json:"bkAppCode"`
+	ClusterAlias        *string   `json:"clusterAlias"`
+	VIP                 *string   `json:"vip"`
+	Description         *string   `json:"description"`
+	TopoName            *string   `json:"topoName"`
+	ServiceVersion      *string   `json:"serviceVersion"`
+	AddonClusterVersion *string   `json:"addonClusterVersion"`
+	Tags                *[]string `json:"tags"`
+	UpdatedBy           string    `json:"updatedBy"`
 }
 
 // ApplyTo 将请求中的非空更新字段应用到集群实体
@@ -109,6 +111,19 @@ func (r *UpdateClusterMetadataRequest) ApplyTo(entity *metaentity.K8sCrdClusterE
 	}
 	if r.AddonClusterVersion != nil {
 		entity.AddonClusterVersion = *r.AddonClusterVersion
+	}
+	if r.Tags != nil {
+		tagEntities := make([]*metaentity.K8sCrdClusterTagEntity, 0, len(*r.Tags))
+		for _, tag := range *r.Tags {
+			tagEntities = append(tagEntities, &metaentity.K8sCrdClusterTagEntity{
+				ClusterTag: tag,
+				Active:     true,
+			})
+		}
+		entity.Tags = tagEntities
+	}
+	if r.UpdatedBy != "" {
+		entity.UpdatedBy = r.UpdatedBy
 	}
 }
 
@@ -398,6 +413,27 @@ func (k *K8sCrdClusterProviderImpl) UpdateCluster(entity *metaentity.K8sCrdClust
 	rows, err := k.clusterDbAccess.Update(&clusterModel)
 	if err != nil {
 		return 0, errors.Wrapf(err, "failed to update cluster with entity: %+v", entity)
+	}
+
+	if entity.Tags != nil {
+		if _, err := k.clusterTagDbAccess.DeleteByClusterID(clusterModel.ID); err != nil {
+			return rows, errors.Wrapf(err, "failed to delete old tags for cluster %d", clusterModel.ID)
+		}
+		if len(entity.Tags) > 0 {
+			tagModels := make([]*models.K8sCrdClusterTagModel, 0, len(entity.Tags))
+			for _, tag := range entity.Tags {
+				tagModels = append(tagModels, &models.K8sCrdClusterTagModel{
+					CrdClusterID: clusterModel.ID,
+					ClusterTag:   tag.ClusterTag,
+					Active:       true,
+					CreatedBy:    entity.UpdatedBy,
+					UpdatedBy:    entity.UpdatedBy,
+				})
+			}
+			if _, err := k.clusterTagDbAccess.BatchCreate(tagModels); err != nil {
+				return rows, errors.Wrapf(err, "failed to batch create tags for cluster %d", clusterModel.ID)
+			}
+		}
 	}
 	return rows, nil
 }
