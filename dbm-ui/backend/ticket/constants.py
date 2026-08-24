@@ -872,6 +872,7 @@ class LoadConfirmType(StrStructuredEnum):
     FO4_UTIL = EnumField("fo4_util", _("fo4_util"))
     JLSY_B2 = EnumField("jlsy-b2", _("jlsy-b2"))
     REDIS_JSON = EnumField("redisjson", _("redisjson"))
+    REDIS_SEARCH = EnumField("redisearch", _("redisearch"))
 
 
 class SyncDisconnectSettingType(StrStructuredEnum):
