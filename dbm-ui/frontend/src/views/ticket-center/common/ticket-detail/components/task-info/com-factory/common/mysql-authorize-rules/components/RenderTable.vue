@@ -212,7 +212,7 @@
 
 <style lang="less" scoped>
   .preview-privilege-table {
-    :deep(.vxe-cell) {
+    :deep(td) {
       padding: 4px 16px !important;
       line-height: 20px !important;
 

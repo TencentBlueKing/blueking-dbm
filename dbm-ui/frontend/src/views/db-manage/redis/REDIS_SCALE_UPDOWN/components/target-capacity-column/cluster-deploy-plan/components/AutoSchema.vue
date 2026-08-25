@@ -31,12 +31,13 @@
       @change="handleTesourceTagChange" />
   </DbFormItem>
   <BkLoading :loading="loading">
-    <DbOriginalTable
+    <PrimaryTable
       class="deploy-table"
       :columns="columns"
       :data="tableData"
-      @column-sort="handleColumnSort"
-      @row-click.stop="handleRowClick">
+      row-key="spec_id"
+      @row-click="handleRowClick"
+      @sort-change="handleColumnSort">
       <template #empty>
         <p
           v-if="!capacity"
@@ -53,12 +54,13 @@
           style="font-size: 12px"
           type="empty" />
       </template>
-    </DbOriginalTable>
+    </PrimaryTable>
   </BkLoading>
 </template>
 
 <script setup lang="tsx">
   import _ from 'lodash';
+  import type { PrimaryTableCol, TableRowData, TableSort } from 'tdesign-vue-next';
   import type { UnwrapRef } from 'vue';
   import type { ComponentProps } from 'vue-component-type-helpers';
   import { useI18n } from 'vue-i18n';
@@ -149,40 +151,40 @@
   };
 
   const columns = computed(() => {
-    const cols = [
+    const cols: PrimaryTableCol[] = [
       {
-        field: 'spec',
-        label: t('资源规格'),
-        render: ({ index, row }: { index: number; row: ClusterSpecModel }) => (
+        cell: (_, { row, rowIndex }) => (
           <div style='display:flex;align-items:center;'>
             <bk-radio
               v-model={radioValue.value}
-              disabled={specDisabledMap.value[row.spec_id] || isDisabled(row)}
-              label={index}>
+              disabled={specDisabledMap.value[row.spec_id] || isDisabled(row as ClusterSpecModel)}
+              label={rowIndex}>
               <span style='font-size: 12px'>{row.spec_name}</span>
             </bk-radio>
           </div>
         ),
-        showOverflowTooltip: true,
+        colKey: 'spec',
+        ellipsis: true,
+        title: t('资源规格'),
         width: 260,
       },
       {
-        field: 'machine_pair',
-        label: t('需机器组数'),
-        sort: true,
+        colKey: 'machine_pair',
+        sorter: true,
+        title: t('需机器组数'),
       },
       {
-        field: 'cluster_capacity',
-        label: t('集群容量(G)'),
-        sort: true,
+        colKey: 'cluster_capacity',
+        sorter: true,
+        title: t('集群容量(G)'),
       },
     ];
 
     if (isTendisplus.value) {
       cols.splice(2, 0, {
-        field: 'cluster_shard_num',
-        label: t('集群分片'),
-        sort: true,
+        colKey: 'cluster_shard_num',
+        sorter: true,
+        title: t('集群分片'),
       });
     }
 
@@ -203,8 +205,8 @@
     }
   };
 
-  const handleRowClick = (_event: PointerEvent, row: ClusterSpecModel, index: number) => {
-    if (isDisabled(row)) {
+  const handleRowClick = ({ index, row }: { index: number; row: TableRowData }) => {
+    if (isDisabled(row as ClusterSpecModel)) {
       messageError(t('当前集群分片数不能被该规格的机器组数整除，请选择其他规格'));
       return;
     }
@@ -214,17 +216,14 @@
     radioValue.value = index;
   };
 
-  const handleColumnSort = (data: { column: { field: string }; index: number; type: string }) => {
-    const { column, type } = data;
-    const field = column.field as keyof ClusterSpecModel;
-
-    if (type === 'asc' || type === 'desc') {
-      const multiplier = type === 'asc' ? 1 : -1;
-      tableData.value.sort((a, b) => {
-        const aValue = a[field] as number;
-        const bValue = b[field] as number;
-        return (aValue - bValue) * multiplier;
-      });
+  const handleColumnSort = (payload: TableSort) => {
+    if (Array.isArray(payload)) {
+      return;
+    }
+    if (payload) {
+      const field = payload.sortBy as keyof ClusterSpecModel;
+      const sortOrder = payload.descending ? -1 : 1;
+      tableData.value.sort((a, b) => ((a[field] as number) - (b[field] as number)) * sortOrder);
     } else {
       tableData.value = [...rawTableData];
     }

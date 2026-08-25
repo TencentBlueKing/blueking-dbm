@@ -43,16 +43,17 @@
     <DbTable
       ref="tableRef"
       :data-source="queryAnalysisRecords"
+      :filter-value="columnCheckedMap"
       releate-url-query
-      :show-overflow="false"
+      row-key="id"
       @clear-search="handleClearSearch"
-      @column-filter="columnFilterChange">
-      <BkTableColumn
-        field="root_id"
+      @filter-change="handleFilterChange">
+      <TableColumn
+        col-key="root_id"
         fixed="left"
-        :label="t('任务 ID')"
-        :min-width="180">
-        <template #default="{data}: {data: RedisHotKeyAnalysisModel}">
+        :min-width="180"
+        :title="t('任务 ID')">
+        <template #default="{ row: data }: { row: RedisHotKeyAnalysisModel }">
           <div
             v-if="data.root_id"
             class="hot-key-task-id">
@@ -73,13 +74,13 @@
           </div>
           <span v-else>--</span>
         </template>
-      </BkTableColumn>
-      <BkTableColumn
-        field="ins_list"
-        :label="t('目标实例')"
+      </TableColumn>
+      <TableColumn
+        col-key="ins_list"
         min-width="200"
-        :show-overflow="false">
-        <template #default="{ data }: { data: RedisHotKeyAnalysisModel }">
+        :show-overflow="false"
+        :title="t('目标实例')">
+        <template #default="{ row: data }: { row: RedisHotKeyAnalysisModel }">
           <div
             v-if="data.ins_list"
             style="line-height: 20px">
@@ -106,12 +107,12 @@
           </div>
           <template v-if="data.ins_list.length < 1"> -- </template>
         </template>
-      </BkTableColumn>
-      <BkTableColumn
-        field="immute_domain"
-        :label="t('所属集群')"
-        :min-width="200">
-        <template #default="{data}: {data: RedisHotKeyAnalysisModel}">
+      </TableColumn>
+      <TableColumn
+        col-key="immute_domain"
+        :min-width="200"
+        :title="t('所属集群')">
+        <template #default="{ row: data }: { row: RedisHotKeyAnalysisModel }">
           <BkButton
             text
             theme="primary"
@@ -119,45 +120,41 @@
             {{ data.immute_domain }}
           </BkButton>
         </template>
-      </BkTableColumn>
-      <BkTableColumn
-        field="status"
-        :filterss="{
-          list: Object.keys(RedisHotKeyAnalysisModel.STATUS_TEXT_MAP).map((id) => ({
-            label: t(RedisHotKeyAnalysisModel.STATUS_TEXT_MAP[id]),
-            value: id,
-          })),
-          checked: columnCheckedMap.status,
+      </TableColumn>
+      <TableColumn
+        col-key="status"
+        :filter="{
+          list: statusFilterList,
+          showConfirmAndReset: true,
+          type: 'multiple',
         }"
-        :label="t('任务状态')"
+        :title="t('任务状态')"
         :width="120">
-        <template #default="{data}: {data: RedisHotKeyAnalysisModel}">
+        <template #default="{ row: data }: { row: RedisHotKeyAnalysisModel }">
           <DbStatus
             :theme="data.statusTheme"
             type="linear">
             {{ t(data.statusText) }}
           </DbStatus>
         </template>
-      </BkTableColumn>
-      <BkTableColumn
-        field="analysis_time"
-        :label="t('分析时长')"
+      </TableColumn>
+      <TableColumn
+        col-key="analysis_time"
+        :title="t('分析时长')"
         :width="80">
-        <template #default="{data}: {data: RedisHotKeyAnalysisModel}">
+        <template #default="{ row: data }: { row: RedisHotKeyAnalysisModel }">
           {{ `${data.analysis_time}s` }}
         </template>
-      </BkTableColumn>
-      <BkTableColumn
-        field="creator"
-        :label="t('创建人')"
-        show-overflow
-        :width="150">
-      </BkTableColumn>
-      <BkTableColumn
-        field="ticket_id"
-        :label="t('关联单据')"
+      </TableColumn>
+      <TableColumn
+        col-key="creator"
+        :title="t('创建人')"
+        :width="150"></TableColumn>
+      <TableColumn
+        col-key="ticket_id"
+        :title="t('关联单据')"
         :width="100">
-        <template #default="{data}: {data: RedisHotKeyAnalysisModel}">
+        <template #default="{ row: data }: { row: RedisHotKeyAnalysisModel }">
           <BkButton
             text
             theme="primary"
@@ -165,22 +162,21 @@
             {{ data.ticket_id }}
           </BkButton>
         </template>
-      </BkTableColumn>
-      <BkTableColumn
-        field="createAtDisplay"
-        :label="t('开始时间')"
-        :width="180">
-      </BkTableColumn>
-      <BkTableColumn
-        field="updateAtDisplay"
-        :label="t('结束时间')"
-        :width="180">
-      </BkTableColumn>
-      <BkTableColumn
+      </TableColumn>
+      <TableColumn
+        col-key="createAtDisplay"
+        :title="t('开始时间')"
+        :width="180"></TableColumn>
+      <TableColumn
+        col-key="updateAtDisplay"
+        :title="t('结束时间')"
+        :width="180"></TableColumn>
+      <TableColumn
+        col-key="operations"
         fixed="right"
-        :label="t('操作')"
+        :title="t('操作')"
         :width="100">
-        <template #default="{data}: {data: RedisHotKeyAnalysisModel}">
+        <template #default="{ row: data }: { row: RedisHotKeyAnalysisModel }">
           <template v-if="data.status === 'FINISHED'">
             <BkButton
               text
@@ -198,7 +194,7 @@
           </template>
           <template v-else>--</template>
         </template>
-      </BkTableColumn>
+      </TableColumn>
     </DbTable>
     <Detail
       v-model:current-index="currentDetailIndex"
@@ -225,6 +221,7 @@
   import { ClusterTypes } from '@common/const';
 
   import DbStatus from '@components/db-status/index.vue';
+  import DbTable from '@components/db-table/IndexNew.vue';
 
   import { getBusinessHref, getMenuListSearch, getSearchSelectorParams } from '@utils';
 
@@ -234,7 +231,7 @@
   const route = useRoute();
   const { t } = useI18n();
 
-  const { clearSearchValue, columnCheckedMap, columnFilterChange, handleSearchValueChange, searchValue } =
+  const { clearSearchValue, columnCheckedMap, handleSearchValueChange, searchValue, tableColumnFilterChange } =
     useLinkQueryColumnSerach({
       attrs: [],
       fetchDataFn: () => fetchTableData(),
@@ -242,6 +239,11 @@
       isQueryAttrs: false,
       searchType: 'resource_record',
     });
+
+  const statusFilterList = Object.keys(RedisHotKeyAnalysisModel.STATUS_TEXT_MAP).map((id) => ({
+    label: t(RedisHotKeyAnalysisModel.STATUS_TEXT_MAP[id]),
+    value: id,
+  }));
 
   /**
    * 近 15 天
@@ -350,6 +352,15 @@
   const handleClearSearch = () => {
     daterange.value = ['', ''];
     clearSearchValue();
+  };
+
+  const handleFilterChange = (filterValue: Record<string, string[]>) => {
+    tableColumnFilterChange(filterValue, {
+      status: {
+        list: statusFilterList,
+        name: t('任务状态'),
+      },
+    });
   };
 
   const handleShowDetail = (data: RedisHotKeyAnalysisModel) => {

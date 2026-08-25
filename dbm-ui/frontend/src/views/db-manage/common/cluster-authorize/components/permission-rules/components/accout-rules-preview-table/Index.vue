@@ -13,12 +13,11 @@
 
 <template>
   <div class="mongo-permission">
-    <DbOriginalTable
+    <PrimaryTable
       class="mongo-permission-table"
       :columns="columns"
       :data="tableList"
-      row-hover="auto"
-      :show-overflow="false" />
+      row-key="account.account_id" />
   </div>
 </template>
 
@@ -33,6 +32,7 @@
     }
   ">
   import _ from 'lodash';
+  import type { PrimaryTableCol } from 'tdesign-vue-next';
   import { useI18n } from 'vue-i18n';
 
   import type { PermissionRule } from '@services/types';
@@ -58,45 +58,46 @@
 
   const expandMap = ref<Record<number, boolean>>({});
 
-  const columns = [
+  const columns: PrimaryTableCol[] = [
     {
-      field: 'user',
-      label: t('账号名称'),
-      render: ({ data }: { data: T }) => (
-        <div
-          class='mongo-permission-cell'
-          onClick={() => handleToggleExpand(data)}>
-          {data.rules.length > 1 && (
-            <db-icon
-              class={['user-icon', { 'user-icon-expand': !expandMap.value[data.account.account_id] }]}
-              type='down-shape'
-            />
-          )}
-          <div class='user-name'>{data.account.user}</div>
-          {data.isNew && (
-            <bk-tag
-              class='ml-4'
-              size='small'
-              theme='success'>
-              NEW
-            </bk-tag>
-          )}
-        </div>
-      ),
-      showOverflowTooltip: false,
+      cell: (_, { row }) => {
+        const data = row as T;
+        return (
+          <div
+            class='mongo-permission-cell'
+            onClick={() => handleToggleExpand(data)}>
+            {data.rules.length > 1 && (
+              <db-icon
+                class={['user-icon', { 'user-icon-expand': !expandMap.value[data.account.account_id] }]}
+                type='down-shape'
+              />
+            )}
+            <div class='user-name'>{data.account.user}</div>
+            {data.isNew && (
+              <bk-tag
+                class='ml-4'
+                size='small'
+                theme='success'>
+                NEW
+              </bk-tag>
+            )}
+          </div>
+        );
+      },
+      colKey: 'user',
+      title: t('账号名称'),
     },
     {
-      field: 'access_db',
-      label: t('访问DB'),
-      render: ({ data }: { data: T; index: number }) => {
+      cell: (_, { row }) => {
+        const data = row as T;
         if (data.rules.length === 0) {
           return (
             <div class='mongo-permission-cell access-db'>
               <span>{t('暂无规则')}，</span>
               <bk-button
                 size='small'
-                theme='primary'
                 text
+                theme='primary'
                 onClick={(event: Event) => handleShowCreateRule(data, event)}>
                 {t('立即新建')}
               </bk-button>
@@ -110,12 +111,13 @@
           </div>
         ));
       },
-      showOverflowTooltip: true,
+      colKey: 'access_db',
+      ellipsis: true,
+      title: t('访问DB'),
     },
     {
-      field: 'privilege',
-      label: t('权限'),
-      render: ({ data }: { data: T; index: number }) => {
+      cell: (_, { row }) => {
+        const data = row as T;
         if (data.rules.length > 0) {
           return renderList(data).map((rule) => {
             const { privilege } = rule;
@@ -126,21 +128,25 @@
 
         return <div class='mongo-permission-cell'>--</div>;
       },
-      showOverflowTooltip: false,
+      colKey: 'privilege',
+      title: t('权限'),
     },
     {
-      label: t('操作'),
-      render: ({ data, index }: { data: T; index: number }) =>
-        renderList(data).map((rule, ruleIndex) => (
+      cell: (_, { row, rowIndex: index }) => {
+        const data = row as T;
+        return renderList(data).map((rule, ruleIndex) => (
           <div class='mongo-permission-cell'>
             <bk-button
-              theme='primary'
               text
+              theme='primary'
               onClick={() => handleDelete(index, ruleIndex)}>
               {t('删除')}
             </bk-button>
           </div>
-        )),
+        ));
+      },
+      colKey: 'operation',
+      title: t('操作'),
       width: 100,
     },
   ];
@@ -243,17 +249,7 @@
     transition: all 0.5s;
 
     td {
-      .vxe-cell {
-        padding: 0 !important;
-      }
-    }
-
-    td:first-child {
-      .cell,
-      .mongo-permission-cell {
-        // height: 100% !important;
-        height: calc(var(--row-height) - 1px);
-      }
+      padding: 0 !important;
     }
   }
 </style>

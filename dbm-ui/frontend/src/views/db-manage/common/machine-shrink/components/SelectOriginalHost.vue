@@ -17,11 +17,12 @@
     quick-close
     :title="t('手动添加节点 IP')"
     :width="1100">
-    <BkTable
+    <PrimaryTable
       class="mb-16"
       :columns="tableColumns"
       :data="originalNodeList"
       :max-height="tableMaxHeight"
+      row-key="bk_host_id"
       @row-click="handleRowClick" />
     <template #footer>
       <I18nT
@@ -69,6 +70,7 @@
   }
 </script>
 <script setup lang="tsx" generic="T extends IModleValue">
+  import { Checkbox, type PrimaryTableCol, type TableRowData } from 'tdesign-vue-next';
   import { computed, shallowRef, watch } from 'vue';
   import { useI18n } from 'vue-i18n';
 
@@ -125,66 +127,67 @@
     return options;
   };
 
-  const tableColumns = [
+  const tableColumns: PrimaryTableCol[] = [
     {
-      label: () => (
-        <bk-checkbox
-          model-value={
-            Object.values(checkedNodeMap.value).length === props.originalNodeList.length &&
-            props.originalNodeList.length > 0
-          }
-          label={true}
-          onChange={handleSelectAll}
-        />
-      ),
-      render: ({ data }: { data: IRowData }) => {
-        const disabledInfo = checkNodeDisable(data);
+      cell: (_, { row }) => {
+        const disabledInfo = checkNodeDisable(row as IRowData);
         return (
           <span v-bk-tooltips={disabledInfo.tooltips}>
-            <bk-checkbox
+            <Checkbox
+              checked={Boolean(checkedNodeMap.value[row.bk_host_id])}
               disabled={disabledInfo.disabled}
-              label={true}
-              model-value={Boolean(checkedNodeMap.value[data.bk_host_id])}
               style='vertical-align: middle; pointer-events: none;'
             />
           </span>
         );
       },
+      colKey: 'row-select',
+      title: () => (
+        <Checkbox
+          checked={
+            Object.values(checkedNodeMap.value).length === props.originalNodeList.length &&
+            props.originalNodeList.length > 0
+          }
+          onChange={handleSelectAll}
+        />
+      ),
       width: 60,
     },
     {
-      field: 'ip',
-      label: t('节点IP'),
+      colKey: 'ip',
+      title: t('节点IP'),
     },
     {
-      field: 'node_count',
-      label: t('实例数量'),
+      colKey: 'node_count',
+      title: t('实例数量'),
     },
     {
-      label: t('类型'),
-      render: ({ data }: { data: IRowData }) => {
-        return <RenderClusterRole data={data.role_set || [data.role as string]} />;
+      cell: (_, { row }) => {
+        return <RenderClusterRole data={row.role_set || [row.role as string]} />;
       },
+      colKey: 'role_set',
+      title: t('类型'),
       width: 300,
     },
     {
-      label: t('Agent状态'),
-      render: ({ data }: { data: IRowData }) => <RenderHostStatus data={data.status} />,
+      cell: (_, { row }) => <RenderHostStatus data={row.status} />,
+      colKey: 'status',
+      title: t('Agent状态'),
     },
     {
-      field: 'cpu',
-      label: 'CPU',
-      render: ({ data }: { data: IRowData }) => (data.cpu ? `${data.cpu} ${t('核')}` : '--'),
+      cell: (_, { row }) => (row.cpu ? `${row.cpu} ${t('核')}` : '--'),
+      colKey: 'cpu',
+      title: 'CPU',
     },
     {
-      field: 'mem',
-      label: t('内存_MB'),
-      render: ({ data }: { data: IRowData }) => data.mem || '--',
+      cell: (_, { row }) => row.mem || '--',
+      colKey: 'mem',
+      title: t('内存_MB'),
     },
     {
-      field: 'disk',
-      label: t('磁盘_GB'),
-      render: ({ data }: { data: IRowData }) => data.disk || '--',
+      cell: (_, { row }) => row.disk || '--',
+      colKey: 'disk',
+      title: t('磁盘_GB'),
     },
   ];
 
@@ -216,15 +219,15 @@
   };
 
   // 选中单行
-  const handleRowClick = (event: MouseEvent, data: IRowData) => {
-    if (checkNodeDisable(data).disabled) {
+  const handleRowClick = ({ row }: { row: TableRowData }) => {
+    if (checkNodeDisable(row as IRowData).disabled) {
       return;
     }
     const selectMap = { ...checkedNodeMap.value };
-    if (!selectMap[data.bk_host_id]) {
-      selectMap[data.bk_host_id] = data;
+    if (!selectMap[row.bk_host_id]) {
+      selectMap[row.bk_host_id] = row as IRowData;
     } else {
-      delete selectMap[data.bk_host_id];
+      delete selectMap[row.bk_host_id];
     }
     checkedNodeMap.value = selectMap;
   };

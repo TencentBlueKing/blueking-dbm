@@ -65,32 +65,33 @@
               {{ t('手动添加') }}
             </BkButton>
           </div>
-          <BkTable
+          <PrimaryTable
             v-if="nodeTableData.length > 0"
-            :data="nodeTableData">
-            <BkTableColumn
-              field="ip"
-              label="IP" />
-            <BkTableColumn
-              field="host_info"
-              :label="t('状态')">
-              <template #default="{ data: hostItem }: { data: TShrinkNode['hostList'][number] }">
+            :data="nodeTableData"
+            row-key="bk_host_id">
+            <TableColumn
+              col-key="ip"
+              title="IP" />
+            <TableColumn
+              col-key="host_info"
+              :title="t('状态')">
+              <template #default="{ row: hostItem }: { row: TShrinkNode['hostList'][number] }">
                 <HostAgentStatus :data="hostItem.alive || 0" />
               </template>
-            </BkTableColumn>
-            <BkTableColumn
-              field="host_info.bk_disk"
-              :label="t('磁盘G')">
-              <template #default="{ data: hostItem }: { data: TShrinkNode['hostList'][number] }">
+            </TableColumn>
+            <TableColumn
+              col-key="bk_disk"
+              :title="t('磁盘G')">
+              <template #default="{ row: hostItem }: { row: TShrinkNode['hostList'][number] }">
                 {{ hostItem.bk_disk || '--' }}
               </template>
-            </BkTableColumn>
-            <BkTableColumn
-              field=""
+            </TableColumn>
+            <TableColumn
+              col-key="operation"
               fixed="right"
-              :label="t('操作')"
+              :title="t('操作')"
               :width="120">
-              <template #default="{ data: hostItem }: { data: TShrinkNode['hostList'][number] }">
+              <template #default="{ row: hostItem }: { row: TShrinkNode['hostList'][number] }">
                 <BkButton
                   text
                   theme="primary"
@@ -98,8 +99,8 @@
                   {{ t('删除') }}
                 </BkButton>
               </template>
-            </BkTableColumn>
-          </BkTable>
+            </TableColumn>
+          </PrimaryTable>
         </div>
       </BkFormItem>
       <div

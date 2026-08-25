@@ -48,7 +48,7 @@
             <BkDropdownItem
               v-for="(item, index) of operations"
               :key="index"
-              @click="item.onClick(tableProps.data)">
+              @click="item.onClick(tableProps.data ?? [])">
               {{ item.label }}
             </BkDropdownItem>
           </BkDropdownMenu>
@@ -57,34 +57,39 @@
     </div>
 
     <Transition mode="in-out">
-      <DbOriginalTable
+      <div
         v-show="state.collapse"
-        class="db-collapse-table-content"
-        v-bind="tableProps" />
+        class="db-collapse-table-content">
+        <PrimaryTable
+          v-bind="tableProps"
+          :data="renderData"
+          :row-key="tableProps.rowKey ?? 'id'" />
+        <div class="table-footer">
+          <BkPagination
+            v-bind="pagination"
+            :layout="['total', 'limit', 'list']"
+            :model-value="pagination.current"
+            @change="handlePageChange"
+            @limit-change="handleLimitChange" />
+        </div>
+      </div>
     </Transition>
   </div>
 </template>
 <script lang="ts">
-  import type { TablePropTypes } from 'bkui-vue/lib/table/props';
+  import type { PrimaryTableProps } from '@components/tdesign-ui/table';
 
   interface Props {
     collapse?: boolean;
     operations?: CollapseTableOperation[];
     showIcon?: boolean;
-    tableProps?: {
-      columns: TablePropTypes['columns'];
-      data: TablePropTypes['data'];
-    };
+    tableProps?: Partial<PrimaryTableProps>;
     title?: string;
   }
 
   export type CollapseTableOperation = {
     label: string;
     onClick: (params: Array<any>) => void;
-  };
-
-  export type ClusterTableProps = {
-    -readonly [K in keyof TablePropTypes]: TablePropTypes[K];
   };
 
   export default {
@@ -97,10 +102,7 @@
     collapse: true,
     operations: () => [],
     showIcon: true,
-    tableProps: () => ({
-      columns: [] as TablePropTypes['columns'],
-      data: [] as TablePropTypes['data'],
-    }),
+    tableProps: () => ({}),
     title: 'Title',
   });
 
@@ -109,6 +111,20 @@
   });
   const nums = computed(() => props.tableProps?.data?.length ?? 0);
 
+  const pagination = reactive({
+    align: 'right' as const,
+    count: 0,
+    current: 1,
+    limit: 10,
+    limitList: [10, 20, 50, 100],
+  });
+
+  const renderData = computed(() => {
+    const data = props.tableProps?.data ?? [];
+    const start = (pagination.current - 1) * pagination.limit;
+    return data.slice(start, start + pagination.limit);
+  });
+
   watch(
     () => props.collapse,
     () => {
@@ -116,9 +132,25 @@
     },
   );
 
+  watchEffect(() => {
+    pagination.count = props.tableProps?.data?.length ?? 0;
+    if ((pagination.current - 1) * pagination.limit >= pagination.count) {
+      pagination.current = 1;
+    }
+  });
+
   function handleToggle() {
     state.collapse = !state.collapse;
   }
+
+  const handlePageChange = (current: number) => {
+    pagination.current = current;
+  };
+
+  const handleLimitChange = (limit: number) => {
+    pagination.limit = limit;
+    pagination.current = 1;
+  };
 </script>
 
 <style lang="less" scoped>
@@ -171,7 +203,7 @@
 
     .db-collapse-table-content {
       :deep(thead th),
-      :deep(.table-head-settings) {
+      :deep(.__table-custom-setting-col__) {
         background-color: #f5f7fa !important;
       }
 

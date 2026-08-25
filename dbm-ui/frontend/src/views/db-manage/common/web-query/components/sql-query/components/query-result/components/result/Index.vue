@@ -62,26 +62,25 @@
         {{ t('导出结果') }}
       </BkButton>
     </div>
-    <BkTable
+    <PrimaryTable
       ref="tableRef"
-      border="none"
       class="query-result-table"
       :class="{ 'is-no-table-data': !tableData.length }"
       :columns="columns"
-      :data="tableData"
-      :pagination="pagination"
-      :pagination-limit="20"
-      :remote-pagination="false"
-      :row-config="{
-        isHover: false,
-        height: 28,
-      }"
-      stripe
-      @page-limit-change="handlePageLimitChange"
-      @page-value-change="handlePageValueChange" />
+      :data="pageData"
+      row-key="index"
+      stripe />
+    <div class="table-footer">
+      <BkPagination
+        v-bind="pagination"
+        :model-value="pagination.current"
+        @change="handlePageValueChange"
+        @limit-change="handlePageLimitChange" />
+    </div>
   </div>
 </template>
 <script setup lang="ts">
+  import type { PrimaryTableCol } from 'tdesign-vue-next';
   import { useI18n } from 'vue-i18n';
 
   import { DBTypes } from '@common/const';
@@ -118,14 +117,7 @@
     limitList: [10, 20, 50, 100],
   });
   const resultMainRef = ref<HTMLElement>();
-  const columns = ref<
-    {
-      field: string;
-      fixed?: string;
-      label: string;
-      width?: number;
-    }[]
-  >([]);
+  const columns = ref<PrimaryTableCol[]>([]);
 
   const failedInstances = computed(() => {
     if (!props.data.length) {
@@ -157,6 +149,12 @@
     }, []);
   });
 
+  // 本地分页数据
+  const pageData = computed(() => {
+    const start = (pagination.current - 1) * pagination.limit;
+    return tableData.value.slice(start, start + pagination.limit);
+  });
+
   watch(
     () => props.data,
     () => {
@@ -164,14 +162,14 @@
         const firstValidTableData = props.data.find((item) => !!item.table_data && item.table_data.length);
         if (firstValidTableData) {
           const dataKeys = Object.keys(firstValidTableData.table_data[0]).map((key) => ({
-            field: key,
-            label: key,
+            colKey: key,
+            title: key,
           }));
           columns.value = [
             {
-              field: instanceId,
+              colKey: instanceId,
               fixed: 'left',
-              label: 'Instance',
+              title: 'Instance',
               width: 200,
             },
             ...dataKeys,
@@ -217,7 +215,7 @@
   const handleExport = () => {
     const formatData = tableData.value.map((item) =>
       columns.value.reduce<Record<string, string>>((results, column) => {
-        Object.assign(results, { [column.label]: item[column.field] });
+        Object.assign(results, { [column.title as string]: item[column.colKey as string] });
         return results;
       }, {}),
     );
@@ -263,21 +261,30 @@
 <style lang="less">
   .query-result-table {
     &.is-no-table-data {
-      .vxe-table--header-wrapper {
+      .t-table__header {
         display: none;
       }
     }
 
-    .vxe-table--header-inner-wrapper {
-      height: 28px !important;
+    .t-table__header {
+      th {
+        height: 28px !important;
+        padding: 3px 0 !important;
+      }
     }
 
-    .vxe-header--column {
-      padding: 3px 0 !important;
+    .t-table__body {
+      td {
+        height: 28px;
+        padding-top: 3px !important;
+        padding-bottom: 3px !important;
+      }
     }
+  }
 
-    .vxe-table--append-wrapper {
-      border-bottom: none;
-    }
+  .table-footer {
+    display: flex;
+    margin-top: 12px;
+    justify-content: flex-end;
   }
 </style>
