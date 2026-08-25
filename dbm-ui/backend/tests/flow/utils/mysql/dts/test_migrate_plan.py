@@ -4,6 +4,7 @@ from unittest.mock import patch
 
 from django.test import SimpleTestCase
 
+from backend.db_meta.enums import ClusterType
 from backend.flow.utils.mysql.dts.constants import (
     MYSQL_DTS_MIGRATE_USER_MAX_LENGTH,
     MYSQL_DTS_MIGRATE_USER_PREFIX,
@@ -11,6 +12,7 @@ from backend.flow.utils.mysql.dts.constants import (
     MYSQL_DTS_VERIFY_MAX_RETRIES,
     DtsLifecycleMode,
     MigrateTopology,
+    MigrateType,
 )
 from backend.flow.utils.mysql.dts.context import DtsHostSpec
 from backend.flow.utils.mysql.dts.deploy_helper import build_master_node_name, group_deploy_hosts, render_master_config
@@ -21,10 +23,18 @@ from backend.flow.utils.mysql.dts.migrate_credentials import (
 from backend.flow.utils.mysql.dts.migrate_helper import _build_table_migrate_rules
 from backend.flow.utils.mysql.dts.migrate_plan import (
     SyncScope,
+    TableRoute,
     build_migrate_plan,
+    build_migrate_plans,
     dts_task_spec_from_dict,
     dts_task_spec_to_dict,
     infer_dts_resource_intent,
+    infer_rename_migrate_type,
+    is_real_rename_route,
+    iter_migrate_row_details,
+    patch_deploy_cluster_names_into_details,
+    resolve_ticket_destroy_policy,
+    resolve_ticket_lifecycle,
 )
 
 # 内部默认名：source-{cluster_id}-{12 hex}
@@ -716,3 +726,183 @@ class InferDtsResourceIntentTest(SimpleTestCase):
         )
         self.assertEqual(plan.dts_lifecycle, DtsLifecycleMode.DEPLOY.value)
         self.assertTrue(plan.cleanup_after_migrate)
+
+
+class MultiRowMigratePlanTest(SimpleTestCase):
+    def _infos_row(self, src, dst, *, cluster_name="", master_ip="127.0.0.2", worker_ip="127.0.0.3"):
+        deploy = {
+            "bk_cloud_id": 0,
+            "master_hosts": [{"ip": master_ip, "bk_cloud_id": 0}],
+            "worker_hosts": [{"ip": worker_ip, "bk_cloud_id": 0}],
+        }
+        if cluster_name:
+            deploy["cluster_name"] = cluster_name
+        return {
+            "dts_resource": {"deploy": deploy},
+            "migrate": {
+                "topology": MigrateTopology.ONE_TO_ONE.value,
+                "one_to_one": {
+                    "task_name": f"mysql-dts-12-{src}-{dst}",
+                    "source": {"cluster_id": src},
+                    "target": {"cluster_id": dst},
+                },
+            },
+        }
+
+    def test_build_migrate_plans_two_deploy_rows(self):
+        details = {
+            "ticket_id": 19943,
+            "bk_biz_id": 1,
+            "infos": [
+                self._infos_row(100, 200, master_ip="127.0.0.2", worker_ip="127.0.0.3"),
+                self._infos_row(101, 201, master_ip="127.0.0.4", worker_ip="127.0.0.5"),
+            ],
+        }
+        plans = build_migrate_plans(details)
+        self.assertEqual(len(plans), 2)
+        self.assertEqual(plans[0].task_specs[0].sources[0].cluster_id, 100)
+        self.assertEqual(plans[1].task_specs[0].target_cluster_id, 201)
+        name0 = plans[0].deploy_subflow_inp.cluster_name
+        name1 = plans[1].deploy_subflow_inp.cluster_name
+        self.assertRegex(name0, r"^dts-migrate-19943-0-[0-9a-f]{12}$")
+        self.assertRegex(name1, r"^dts-migrate-19943-1-[0-9a-f]{12}$")
+        self.assertNotEqual(name0, name1)
+        self.assertFalse(plans[0].cleanup_after_migrate)
+        self.assertTrue(plans[0].recycle_dts_hosts)
+
+    def test_iter_rows_injects_ticket_lifecycle(self):
+        details = {
+            "ticket_id": 19943,
+            "bk_biz_id": 1,
+            "destroy_after_migrate": False,
+            "recycle_hosts": False,
+            "cleanup_after_migrate": True,
+            "infos": [
+                self._infos_row(100, 200, master_ip="127.0.0.2", worker_ip="127.0.0.3"),
+                self._infos_row(101, 201, master_ip="127.0.0.4", worker_ip="127.0.0.5"),
+            ],
+        }
+        rows = iter_migrate_row_details(details)
+        for row in rows:
+            resource = row["dts_resource"]
+            self.assertFalse(resource["destroy_after_migrate"])
+            self.assertFalse(resource["recycle_hosts"])
+            self.assertTrue(resource["cleanup_after_migrate"])
+        self.assertNotIn("destroy_after_migrate", details["infos"][0]["dts_resource"])
+        plans = build_migrate_plans(details)
+        self.assertTrue(plans[0].cleanup_after_migrate)
+        self.assertFalse(plans[0].recycle_dts_hosts)
+        self.assertTrue(plans[1].cleanup_after_migrate)
+        self.assertFalse(plans[1].recycle_dts_hosts)
+
+    def test_patch_same_src_dst_cluster_names_get_random(self):
+        """同源同目标、迁移对象不同：两行 deploy cluster_name 仍须唯一。"""
+        details = {
+            "infos": [
+                self._infos_row(100, 200, cluster_name="gamedb.src", master_ip="127.0.0.2", worker_ip="127.0.0.3"),
+                self._infos_row(100, 200, cluster_name="gamedb.src", master_ip="127.0.0.4", worker_ip="127.0.0.5"),
+            ]
+        }
+        patch_deploy_cluster_names_into_details(details, 19943)
+        name0 = details["infos"][0]["dts_resource"]["deploy"]["cluster_name"]
+        name1 = details["infos"][1]["dts_resource"]["deploy"]["cluster_name"]
+        self.assertRegex(name0, r"^gamedb.src-[0-9a-f]{12}$")
+        self.assertRegex(name1, r"^gamedb.src-[0-9a-f]{12}$")
+        self.assertNotEqual(name0, name1)
+        patch_deploy_cluster_names_into_details(details, 19943)
+        self.assertEqual(details["infos"][0]["dts_resource"]["deploy"]["cluster_name"], name0)
+        self.assertEqual(details["infos"][1]["dts_resource"]["deploy"]["cluster_name"], name1)
+
+    def test_single_row_keeps_ticket_cluster_name(self):
+        details = {
+            "ticket_id": 12,
+            "bk_biz_id": 1,
+            "dts_resource": {
+                "deploy": {
+                    "bk_cloud_id": 0,
+                    "master_hosts": [{"ip": "127.0.0.2", "bk_cloud_id": 0}],
+                    "worker_hosts": [{"ip": "127.0.0.3", "bk_cloud_id": 0}],
+                }
+            },
+            "migrate": {
+                "topology": MigrateTopology.ONE_TO_ONE.value,
+                "one_to_one": {
+                    "task_name": "mysql-dts-12-1-2",
+                    "source": {"cluster_id": 1},
+                    "target": {"cluster_id": 2},
+                },
+            },
+        }
+        plans = build_migrate_plans(details)
+        self.assertEqual(len(plans), 1)
+        self.assertEqual(plans[0].deploy_subflow_inp.cluster_name, "dts-migrate-12")
+
+    def test_build_migrate_plan_rejects_infos(self):
+        with self.assertRaises(ValueError) as ctx:
+            build_migrate_plan({"infos": [self._infos_row(1, 2)]})
+        self.assertIn("build_migrate_plans", str(ctx.exception))
+
+
+class RenameMigrateTypeHelperTest(SimpleTestCase):
+    def test_is_real_rename_route(self):
+        self.assertTrue(is_real_rename_route(TableRoute(source_db="a", target_db="b")))
+        self.assertTrue(is_real_rename_route(TableRoute(source_db="a", source_table="t1", target_table="t2")))
+        self.assertFalse(is_real_rename_route(TableRoute(source_db="a", source_table="t1")))
+        self.assertFalse(
+            is_real_rename_route(TableRoute(source_db="a", source_table="t1", target_db="a", target_table="t1"))
+        )
+
+    def test_infer_rename_migrate_type(self):
+        self.assertEqual(
+            infer_rename_migrate_type({ClusterType.TenDBHA.value}, ClusterType.TenDBHA.value),
+            MigrateType.MYSQL_TO_MYSQL.value,
+        )
+        self.assertEqual(
+            infer_rename_migrate_type({ClusterType.TenDBHA.value}, ClusterType.TenDBCluster.value),
+            MigrateType.HA_TO_CLUSTER.value,
+        )
+        with self.assertRaises(ValueError):
+            infer_rename_migrate_type({ClusterType.TenDBCluster.value}, ClusterType.TenDBHA.value)
+
+
+class TicketLifecyclePolicyTest(SimpleTestCase):
+    """P2-8：单行读 dts_resource，多行读单据顶层，同一套默认值。"""
+
+    def test_infos_reads_top_level(self):
+        details = {
+            "destroy_after_migrate": False,
+            "recycle_hosts": False,
+            "cleanup_after_migrate": True,
+            "infos": [{"dts_resource": {"dts_cluster_id": 1, "destroy_after_migrate": True}}],
+        }
+        self.assertEqual(
+            resolve_ticket_lifecycle(details),
+            {"destroy_after_migrate": False, "recycle_hosts": False, "cleanup_after_migrate": True},
+        )
+        self.assertEqual(
+            resolve_ticket_destroy_policy(details),
+            {"destroy_after_migrate": False, "recycle_hosts": False},
+        )
+
+    def test_single_row_reads_dts_resource_not_top_level(self):
+        details = {
+            "destroy_after_migrate": False,
+            "recycle_hosts": False,
+            "cleanup_after_migrate": True,
+            "dts_resource": {"dts_cluster_id": 1, "destroy_after_migrate": True, "recycle_hosts": True},
+        }
+        self.assertEqual(
+            resolve_ticket_lifecycle(details),
+            {"destroy_after_migrate": True, "recycle_hosts": True, "cleanup_after_migrate": False},
+        )
+        self.assertEqual(
+            resolve_ticket_destroy_policy(details),
+            {"destroy_after_migrate": True, "recycle_hosts": True},
+        )
+
+    def test_defaults(self):
+        infos_defaults = resolve_ticket_lifecycle({"infos": [{"dts_resource": {"dts_cluster_id": 1}}]})
+        single_defaults = resolve_ticket_lifecycle({"dts_resource": {"dts_cluster_id": 1}})
+        expected = {"destroy_after_migrate": True, "recycle_hosts": True, "cleanup_after_migrate": False}
+        self.assertEqual(infos_defaults, expected)
+        self.assertEqual(single_defaults, expected)

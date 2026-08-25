@@ -9,7 +9,6 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 import logging
-from types import SimpleNamespace
 
 from django.utils.translation import gettext as _
 from pipeline.component_framework.component import Component
@@ -23,8 +22,6 @@ from backend.flow.utils.mysql.dts.constants import FullLoadEngine, get_full_migr
 from backend.flow.utils.mysql.dts.migrate_helper import (
     is_relay_not_enabled_error,
     load_active_dts_cluster,
-    resolve_dts_cluster_id,
-    resolve_dts_cluster_name,
     resolve_purge_relay_binlog_name,
     resolve_source_relay_enabled,
     task_mode_runs_incremental,
@@ -153,21 +150,17 @@ class MysqlDtsDeleteTaskSourceService(BaseService):
         return resolve_source_relay_enabled(source_resp)
 
     def _rm_ticket_dump_dirs(self, kwargs: dict, trans_data, task_names: list[str], ignore_errors: bool) -> bool:
-        migrate_context = getattr(trans_data, "migrate_context", None) if trans_data is not None else None
-        plan_like = SimpleNamespace(
-            dts_cluster_id=kwargs.get("dts_cluster_id"),
-            cluster_name=kwargs.get("cluster_name"),
-            deploy_subflow_inp=None,
-        )
-        cluster_name = resolve_dts_cluster_name(plan_like, migrate_context)
-        dts_cluster_id = resolve_dts_cluster_id(plan_like, migrate_context)
         cluster = load_active_dts_cluster(
-            dts_cluster_id=dts_cluster_id,
+            dts_cluster_id=kwargs.get("dts_cluster_id"),
             bk_biz_id=kwargs.get("bk_biz_id"),
-            cluster_name=cluster_name,
+            cluster_name=kwargs.get("cluster_name"),
         )
         if not cluster or not cluster.name:
-            self.log_error(_("未找到 DTS 集群，无法删除本单 dump 目录: name={} id={}").format(cluster_name, dts_cluster_id))
+            self.log_error(
+                _("未找到 DTS 集群，无法删除本单 dump 目录: name={} id={}").format(
+                    kwargs.get("cluster_name"), kwargs.get("dts_cluster_id")
+                )
+            )
             return bool(ignore_errors)
         workers = [n for n in (cluster.worker_nodes or []) if n.get("ip")]
         if not workers:

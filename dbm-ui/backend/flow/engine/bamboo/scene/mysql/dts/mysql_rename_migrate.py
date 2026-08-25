@@ -11,34 +11,57 @@ specific language governing permissions and limitations under the License.
 import logging
 from typing import Dict, Optional
 
+from backend.db_meta.models import Cluster
 from backend.flow.engine.bamboo.scene.common.builder import Builder
 from backend.flow.engine.bamboo.scene.mysql.dts.mysql_dts_migrate_row_subflow import (
     build_parallel_migrate_row_pipelines,
 )
-from backend.flow.utils.mysql.dts.constants import MigrateType
 from backend.flow.utils.mysql.dts.context import MysqlDtsTransData
-from backend.flow.utils.mysql.dts.migrate_plan import resolve_migrate_plans_from_ticket_data
+from backend.flow.utils.mysql.dts.migrate_plan import (
+    infer_rename_migrate_type_from_plan,
+    resolve_migrate_plans_from_ticket_data,
+)
 
 logger = logging.getLogger("flow")
 
 
-class MysqlToMysqlMigrateFlow:
-    """TenDBHA/TenDBSingle 互迁数据迁移 Flow（MYSQL_TO_MYSQL_MIGRATE）。"""
+def _collect_plan_cluster_ids(plans) -> set[int]:
+    ids: set[int] = set()
+    for plan in plans:
+        for spec in plan.task_specs:
+            for source in spec.sources:
+                ids.add(source.cluster_id)
+            ids.add(spec.target_cluster_id)
+    return ids
+
+
+def fill_rename_migrate_types(plans) -> None:
+    """按行补 plan.migrate_type；已有值保留。"""
+    missing = [plan for plan in plans if not getattr(plan, "migrate_type", "")]
+    if not missing:
+        return
+    cluster_ids = _collect_plan_cluster_ids(missing)
+    clusters = {c.id: c for c in Cluster.objects.filter(id__in=cluster_ids)} if cluster_ids else {}
+    for plan in missing:
+        plan.migrate_type = infer_rename_migrate_type_from_plan(plan, clusters)
+
+
+class MysqlRenameMigrateFlow:
+    """MySQL 重命名迁移 Flow（MYSQL_RENAME_MIGRATE）：复用并行行子流程，按行 migrate_type。"""
 
     def __init__(self, root_id: str, data: Optional[Dict]):
         self.root_id = root_id
         self.data = data
 
     def run_flow(self):
-        # FlowParamBuilder.add_common_params 会注入 uid=ticket.id；无单据场景兜底 root_id
         self.data.setdefault("uid", self.data.get("ticket_id") or self.root_id)
         migrate_plans = resolve_migrate_plans_from_ticket_data(self.data)
+        fill_rename_migrate_types(migrate_plans)
         pipeline = Builder(root_id=self.root_id, data=self.data)
         build_parallel_migrate_row_pipelines(
             pipeline=pipeline,
             root_id=self.root_id,
             data=self.data,
             migrate_plans=migrate_plans,
-            migrate_type=MigrateType.MYSQL_TO_MYSQL.value,
         )
         pipeline.run_pipeline(init_trans_data_class=MysqlDtsTransData())

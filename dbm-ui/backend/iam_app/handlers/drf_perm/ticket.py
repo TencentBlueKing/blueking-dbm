@@ -18,7 +18,8 @@ from django.utils.translation import gettext as _
 from rest_framework.permissions import BasePermission
 
 from backend.configuration.models import DBAdministrator
-from backend.db_meta.models import ExtraProcessInstance, Machine, ProxyInstance, StorageInstance
+from backend.db_meta.enums import ClusterType
+from backend.db_meta.models import Cluster, ExtraProcessInstance, Machine, ProxyInstance, StorageInstance
 from backend.exceptions import AppBaseException
 from backend.iam_app.dataclass.actions import ActionEnum
 from backend.iam_app.dataclass.resources import ClusterResourceMeta, ResourceEnum
@@ -207,12 +208,60 @@ class CreateTicketMoreResourcePermission(MoreResourceActionPermission):
         return [(details["details"]["config_id"], details["details"]["cluster_id"]) for details in openarea_details]
 
 
+class CreateTicketMysqlOrTendbclusterPermission(IAMPermission):
+    """同一动作同时关联 MYSQL 与 TENDBCLUSTER 时，按集群类型分别鉴权（不是 MoreResource 的 AND 元组）。"""
+
+    MYSQL_CLUSTER_TYPES = {ClusterType.TenDBSingle.value, ClusterType.TenDBHA.value}
+    TENDBCLUSTER_TYPES = {ClusterType.TenDBCluster.value}
+
+    def __init__(self, ticket_type: TicketType, batch: bool = False) -> None:
+        self.ticket_type = ticket_type
+        self.batch = batch
+        action = BuilderFactory.ticket_type__iam_action.get(ticket_type)
+        super().__init__(actions=[action] if action else [])
+
+    def _cluster_ids(self, request) -> List[int]:
+        tickets = request.data.get("tickets", []) if self.batch else [request.data]
+        cluster_ids: List[int] = []
+        for ticket in tickets:
+            details = ticket.get("details") or ticket
+            cluster_ids.extend(fetch_cluster_ids(details))
+        return [int(cid) for cid in cluster_ids if isinstance(cid, int) or (isinstance(cid, str) and cid.isdigit())]
+
+    def has_permission(self, request, view):
+        if not self.actions:
+            return True
+        action = self.actions[0]
+        cluster_ids = self._cluster_ids(request)
+        if not cluster_ids:
+            return True
+        type_map = dict(Cluster.objects.filter(id__in=cluster_ids).values_list("id", "cluster_type"))
+        mysql_ids = [cid for cid in cluster_ids if type_map.get(cid) in self.MYSQL_CLUSTER_TYPES]
+        tendb_ids = [cid for cid in cluster_ids if type_map.get(cid) in self.TENDBCLUSTER_TYPES]
+        if mysql_ids:
+            perm = ResourceActionPermission([action], ResourceEnum.MYSQL, instance_ids_getter=lambda _r, _v: mysql_ids)
+            if not perm.has_permission(request, view):
+                return False
+        if tendb_ids:
+            perm = ResourceActionPermission(
+                [action], ResourceEnum.TENDBCLUSTER, instance_ids_getter=lambda _r, _v: tendb_ids
+            )
+            if not perm.has_permission(request, view):
+                return False
+        return True
+
+    def has_object_permission(self, request, view, obj):
+        return self.has_permission(request, view)
+
+
 def create_ticket_permission(ticket_type: TicketType, batch: bool = False) -> List[IAMPermission]:
     action = BuilderFactory.ticket_type__iam_action.get(ticket_type)
     if not action:
         # 对于未注册到iam的单据动作，默认只开放给superuser
         logger.warning(_("单据动作ID:{} 不存在").format(action))
         return [RejectPermission()]
+    if ticket_type == TicketType.MYSQL_RENAME_MIGRATE:
+        return [CreateTicketMysqlOrTendbclusterPermission(ticket_type=ticket_type, batch=batch)]
     if len(action.related_resource_types) <= 1:
         return [CreateTicketOneResourcePermission(ticket_type=ticket_type, batch=batch)]
     else:

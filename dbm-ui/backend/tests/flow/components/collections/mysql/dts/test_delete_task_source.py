@@ -163,20 +163,20 @@ class MysqlDtsDeleteTaskSourceServiceTest(SimpleTestCase):
         kwargs.update(overrides)
         return kwargs
 
-    def _mock_cluster(self, mock_cluster_cls, *, name="dts-prod", workers=None):
+    def _mock_cluster(self, mock_load, *, name="dts-prod", workers=None):
         cluster = MagicMock()
         cluster.name = name
         cluster.worker_nodes = workers if workers is not None else [{"ip": "127.0.0.2", "bk_cloud_id": 0}]
-        mock_cluster_cls.objects.filter.return_value.first.return_value = cluster
+        mock_load.return_value = cluster
         return cluster
 
     @patch("backend.flow.plugins.components.collections.mysql.dts.migrate.delete_task_source.JobApi")
-    @patch("backend.flow.plugins.components.collections.mysql.dts.migrate.delete_task_source.MysqlDtsCluster")
+    @patch("backend.flow.plugins.components.collections.mysql.dts.migrate.delete_task_source.load_active_dts_cluster")
     @patch("backend.flow.plugins.components.collections.mysql.dts.migrate.delete_task_source.MySQLDTSApi")
-    def test_incremental_builtin_order_purge_then_dump_then_delete_source(self, mock_api, mock_cluster_cls, mock_job):
+    def test_incremental_builtin_order_purge_then_dump_then_delete_source(self, mock_api, mock_load, mock_job):
         mock_api.get_source.return_value = _source_with_relay("s1", True)
         mock_api.get_source_status.return_value = _status_with_binlog("s1", "(mysql-bin.000005, 4)")
-        self._mock_cluster(mock_cluster_cls)
+        self._mock_cluster(mock_load)
         ok = self._run(self._incremental_builtin_kwargs())
         self.assertTrue(ok)
         self.assertEqual(
@@ -206,12 +206,12 @@ class MysqlDtsDeleteTaskSourceServiceTest(SimpleTestCase):
         self.assertEqual(body["target_server"]["ip_list"], [{"bk_cloud_id": 0, "ip": "127.0.0.2"}])
 
     @patch("backend.flow.plugins.components.collections.mysql.dts.migrate.delete_task_source.JobApi")
-    @patch("backend.flow.plugins.components.collections.mysql.dts.migrate.delete_task_source.MysqlDtsCluster")
+    @patch("backend.flow.plugins.components.collections.mysql.dts.migrate.delete_task_source.load_active_dts_cluster")
     @patch("backend.flow.plugins.components.collections.mysql.dts.migrate.delete_task_source.MySQLDTSApi")
-    def test_parses_binlog_coord_not_raw_string(self, mock_api, mock_cluster_cls, mock_job):
+    def test_parses_binlog_coord_not_raw_string(self, mock_api, mock_load, mock_job):
         mock_api.get_source.return_value = _source_with_relay("s1", True)
         mock_api.get_source_status.return_value = _status_with_binlog("s1", "(mysql-bin.000005, 4)")
-        self._mock_cluster(mock_cluster_cls)
+        self._mock_cluster(mock_load)
         self._run(self._incremental_builtin_kwargs())
         req = mock_api.purge_relay.call_args.args[2]
         self.assertEqual(req.relay_binlog_name, "mysql-bin.000005")
@@ -219,23 +219,23 @@ class MysqlDtsDeleteTaskSourceServiceTest(SimpleTestCase):
         self.assertIsNone(req.relay_dir)
 
     @patch("backend.flow.plugins.components.collections.mysql.dts.migrate.delete_task_source.JobApi")
-    @patch("backend.flow.plugins.components.collections.mysql.dts.migrate.delete_task_source.MysqlDtsCluster")
+    @patch("backend.flow.plugins.components.collections.mysql.dts.migrate.delete_task_source.load_active_dts_cluster")
     @patch("backend.flow.plugins.components.collections.mysql.dts.migrate.delete_task_source.MySQLDTSApi")
-    def test_purge_relay_failure_strict_mode_fails(self, mock_api, mock_cluster_cls, mock_job):
+    def test_purge_relay_failure_strict_mode_fails(self, mock_api, mock_load, mock_job):
         mock_api.get_source.return_value = _source_with_relay("s1", True)
         mock_api.get_source_status.return_value = _status_with_binlog("s1", "(mysql-bin.000005, 4)")
         mock_api.purge_relay.side_effect = RuntimeError("disk full")
-        self._mock_cluster(mock_cluster_cls)
+        self._mock_cluster(mock_load)
         ok = self._run(self._incremental_builtin_kwargs())
         self.assertFalse(ok)
         mock_api.delete_source.assert_called_once()
 
     @patch("backend.flow.plugins.components.collections.mysql.dts.migrate.delete_task_source.JobApi")
-    @patch("backend.flow.plugins.components.collections.mysql.dts.migrate.delete_task_source.MysqlDtsCluster")
+    @patch("backend.flow.plugins.components.collections.mysql.dts.migrate.delete_task_source.load_active_dts_cluster")
     @patch("backend.flow.plugins.components.collections.mysql.dts.migrate.delete_task_source.MySQLDTSApi")
-    def test_relay_disabled_skips_purge_without_status_query(self, mock_api, mock_cluster_cls, mock_job):
+    def test_relay_disabled_skips_purge_without_status_query(self, mock_api, mock_load, mock_job):
         mock_api.get_source.return_value = _source_with_relay("s1", False)
-        self._mock_cluster(mock_cluster_cls)
+        self._mock_cluster(mock_load)
         ok = self._run(self._incremental_builtin_kwargs())
         self.assertTrue(ok)
         mock_api.get_source_status.assert_not_called()
@@ -244,67 +244,67 @@ class MysqlDtsDeleteTaskSourceServiceTest(SimpleTestCase):
         mock_api.delete_source.assert_called_once()
 
     @patch("backend.flow.plugins.components.collections.mysql.dts.migrate.delete_task_source.JobApi")
-    @patch("backend.flow.plugins.components.collections.mysql.dts.migrate.delete_task_source.MysqlDtsCluster")
+    @patch("backend.flow.plugins.components.collections.mysql.dts.migrate.delete_task_source.load_active_dts_cluster")
     @patch("backend.flow.plugins.components.collections.mysql.dts.migrate.delete_task_source.MySQLDTSApi")
-    def test_purge_relay_49001_not_treated_as_failure(self, mock_api, mock_cluster_cls, mock_job):
+    def test_purge_relay_49001_not_treated_as_failure(self, mock_api, mock_load, mock_job):
         # relay 启用状态与 Master 实际不一致时（无 relay worker），49001 不应判死清理节点
         mock_api.get_source.return_value = _source_with_relay("s1", True)
         mock_api.get_source_status.return_value = _status_with_binlog("s1", "(mysql-bin.000005, 4)")
         mock_api.purge_relay.side_effect = RuntimeError(
             '{"error_code": 49001, "error_msg": "relay worker for source s1 not found, `enable-relay` first"}'
         )
-        self._mock_cluster(mock_cluster_cls)
+        self._mock_cluster(mock_load)
         ok = self._run(self._incremental_builtin_kwargs())
         self.assertTrue(ok)
         mock_api.delete_task.assert_called_once()
         mock_api.delete_source.assert_called_once()
 
     @patch("backend.flow.plugins.components.collections.mysql.dts.migrate.delete_task_source.JobApi")
-    @patch("backend.flow.plugins.components.collections.mysql.dts.migrate.delete_task_source.MysqlDtsCluster")
+    @patch("backend.flow.plugins.components.collections.mysql.dts.migrate.delete_task_source.load_active_dts_cluster")
     @patch("backend.flow.plugins.components.collections.mysql.dts.migrate.delete_task_source.MySQLDTSApi")
-    def test_get_source_failure_still_attempts_purge(self, mock_api, mock_cluster_cls, mock_job):
+    def test_get_source_failure_still_attempts_purge(self, mock_api, mock_load, mock_job):
         mock_api.get_source.side_effect = RuntimeError("master unreachable")
         mock_api.get_source_status.return_value = _status_with_binlog("s1", "(mysql-bin.000005, 4)")
-        self._mock_cluster(mock_cluster_cls)
+        self._mock_cluster(mock_load)
         ok = self._run(self._incremental_builtin_kwargs())
         self.assertTrue(ok)
         mock_api.purge_relay.assert_called_once()
 
     @patch("backend.flow.plugins.components.collections.mysql.dts.migrate.delete_task_source.JobApi")
-    @patch("backend.flow.plugins.components.collections.mysql.dts.migrate.delete_task_source.MysqlDtsCluster")
+    @patch("backend.flow.plugins.components.collections.mysql.dts.migrate.delete_task_source.load_active_dts_cluster")
     @patch("backend.flow.plugins.components.collections.mysql.dts.migrate.delete_task_source.MySQLDTSApi")
-    def test_unparseable_binlog_skips_purge_still_deletes_source(self, mock_api, mock_cluster_cls, mock_job):
+    def test_unparseable_binlog_skips_purge_still_deletes_source(self, mock_api, mock_load, mock_job):
         mock_api.get_source.return_value = _source_with_relay("s1", True)
         mock_api.get_source_status.return_value = _status_with_binlog("s1", "not-a-coord")
-        self._mock_cluster(mock_cluster_cls)
+        self._mock_cluster(mock_load)
         ok = self._run(self._incremental_builtin_kwargs())
         self.assertTrue(ok)
         mock_api.purge_relay.assert_not_called()
         mock_api.delete_source.assert_called_once()
 
     @patch("backend.flow.plugins.components.collections.mysql.dts.migrate.delete_task_source.JobApi")
-    @patch("backend.flow.plugins.components.collections.mysql.dts.migrate.delete_task_source.MysqlDtsCluster")
+    @patch("backend.flow.plugins.components.collections.mysql.dts.migrate.delete_task_source.load_active_dts_cluster")
     @patch("backend.flow.plugins.components.collections.mysql.dts.migrate.delete_task_source.MySQLDTSApi")
-    def test_runtime_cluster_id_from_migrate_context(self, mock_api, mock_cluster_cls, mock_job):
+    def test_runtime_cluster_from_kwargs_name(self, mock_api, mock_load, mock_job):
         mock_api.get_source.return_value = _source_with_relay("s1", True)
         mock_api.get_source_status.return_value = _status_with_binlog("s1", "(mysql-bin.000005, 4)")
-        self._mock_cluster(mock_cluster_cls)
+        self._mock_cluster(mock_load)
         trans_data = SimpleNamespace(
             migrate_context=SimpleNamespace(dts_cluster_id=9, master_addr="", bk_cloud_id=None)
         )
         ok = self._run(
-            self._incremental_builtin_kwargs(dts_cluster_id=None),
+            self._incremental_builtin_kwargs(dts_cluster_id=None, cluster_name="dts-prod", bk_biz_id=20),
             trans_data=trans_data,
         )
         self.assertTrue(ok)
-        mock_cluster_cls.objects.filter.assert_called_once_with(id=9)
+        mock_load.assert_called_once_with(dts_cluster_id=None, bk_biz_id=20, cluster_name="dts-prod")
         mock_job.fast_execute_script.assert_called_once()
 
     @patch("backend.flow.plugins.components.collections.mysql.dts.migrate.delete_task_source.JobApi")
-    @patch("backend.flow.plugins.components.collections.mysql.dts.migrate.delete_task_source.MysqlDtsCluster")
+    @patch("backend.flow.plugins.components.collections.mysql.dts.migrate.delete_task_source.load_active_dts_cluster")
     @patch("backend.flow.plugins.components.collections.mysql.dts.migrate.delete_task_source.MySQLDTSApi")
-    def test_full_mode_skips_purge_still_rms_dump(self, mock_api, mock_cluster_cls, mock_job):
-        self._mock_cluster(mock_cluster_cls)
+    def test_full_mode_skips_purge_still_rms_dump(self, mock_api, mock_load, mock_job):
+        self._mock_cluster(mock_load)
         ok = self._run(self._incremental_builtin_kwargs(task_mode="full"))
         self.assertTrue(ok)
         mock_api.get_source.assert_not_called()
@@ -314,22 +314,23 @@ class MysqlDtsDeleteTaskSourceServiceTest(SimpleTestCase):
         mock_api.delete_source.assert_called_once()
 
     @patch("backend.flow.plugins.components.collections.mysql.dts.migrate.delete_task_source.JobApi")
-    @patch("backend.flow.plugins.components.collections.mysql.dts.migrate.delete_task_source.MysqlDtsCluster")
+    @patch("backend.flow.plugins.components.collections.mysql.dts.migrate.delete_task_source.load_active_dts_cluster")
     @patch("backend.flow.plugins.components.collections.mysql.dts.migrate.delete_task_source.MySQLDTSApi")
-    def test_myloader_skips_dump_rm(self, mock_api, mock_cluster_cls, mock_job):
+    def test_myloader_skips_dump_rm(self, mock_api, mock_load, mock_job):
         mock_api.get_source.return_value = _source_with_relay("s1", True)
         mock_api.get_source_status.return_value = _status_with_binlog("s1", "(mysql-bin.000005, 4)")
         ok = self._run(self._incremental_builtin_kwargs(full_load_engine=FullLoadEngine.MYLOADER.value))
         self.assertTrue(ok)
         mock_job.fast_execute_script.assert_not_called()
-        mock_cluster_cls.objects.filter.assert_not_called()
+        mock_load.assert_not_called()
         mock_api.purge_relay.assert_called_once()
         mock_api.delete_source.assert_called_once()
 
     @patch("backend.flow.plugins.components.collections.mysql.dts.migrate.delete_task_source.JobApi")
-    @patch("backend.flow.plugins.components.collections.mysql.dts.migrate.delete_task_source.MysqlDtsCluster")
+    @patch("backend.flow.plugins.components.collections.mysql.dts.migrate.delete_task_source.load_active_dts_cluster")
     @patch("backend.flow.plugins.components.collections.mysql.dts.migrate.delete_task_source.MySQLDTSApi")
-    def test_builtin_missing_cluster_id_fails(self, mock_api, mock_cluster_cls, mock_job):
+    def test_builtin_missing_cluster_id_fails(self, mock_api, mock_load, mock_job):
+        mock_load.return_value = None
         ok = self._run(self._incremental_builtin_kwargs(dts_cluster_id=None, task_mode="full"))
         self.assertFalse(ok)
         mock_job.fast_execute_script.assert_not_called()

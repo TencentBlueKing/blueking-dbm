@@ -29,6 +29,7 @@ from backend.flow.utils.mysql.dts.constants import (
     MYSQL_DTS_FULL_LOAD_POLL_INTERVAL,
     FullLoadEngine,
 )
+from backend.flow.utils.mysql.dts.migrate_helper import plan_deploy_cluster_name
 from backend.flow.utils.mysql.dts.migrate_plan import (
     DtsMigratePlan,
     DtsTaskSpec,
@@ -67,6 +68,7 @@ def mysql_dts_migrate_task_subflow(
     task_spec_payload = dts_task_spec_to_dict(task_spec)
     migrate_plan_payload = dts_migrate_plan_to_dict(migrate_plan)
     bk_cloud_id = int(migrate_plan.bk_cloud_id or 0)
+    cluster_name = plan_deploy_cluster_name(migrate_plan)
     sub = SubBuilder(
         root_id=root_id,
         data={
@@ -76,6 +78,8 @@ def mysql_dts_migrate_task_subflow(
             "creator": creator,
             "created_by": creator,
             "root_id": root_id,
+            "task_name": task_spec.task_name,
+            "dts_task_ids": [task_spec.task_name] if task_spec.task_name else [],
         },
     )
 
@@ -87,6 +91,8 @@ def mysql_dts_migrate_task_subflow(
             "bk_cloud_id": bk_cloud_id,
             "task_spec": task_spec_payload,
             "migrate_type": migrate_plan.migrate_type,
+            "dts_user": dts_user,
+            "dts_password": dts_password,
         },
     )
 
@@ -113,6 +119,9 @@ def mysql_dts_migrate_task_subflow(
                 "bk_cloud_id": bk_cloud_id,
                 "task_spec": task_spec_payload,
                 "migrate_plan": migrate_plan_payload,
+                "dts_user": dts_user,
+                "dts_password": dts_password,
+                "cluster_name": cluster_name,
             },
         )
         sub.add_act(
@@ -137,6 +146,7 @@ def mysql_dts_migrate_task_subflow(
             "migrate_topology": migrate_plan.topology,
             "task_name": task_spec.task_name,
             "dts_cluster_id": migrate_plan.dts_cluster_id,
+            "cluster_name": cluster_name,
             "creator": creator,
         },
     )

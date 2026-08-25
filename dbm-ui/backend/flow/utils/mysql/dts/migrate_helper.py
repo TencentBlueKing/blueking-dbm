@@ -730,6 +730,23 @@ def resolve_dts_cluster_id(plan, migrate_context) -> int | None:
     return None
 
 
+def resolve_destroy_cluster_ids(details: dict) -> list[int]:
+    """从销毁单 details 解析集群 ID 列表（dts_cluster_ids 或单个 dts_cluster_id）。"""
+    raw_ids = details.get("dts_cluster_ids") or []
+    ids: list[int] = []
+    seen: set[int] = set()
+    extra = details.get("dts_cluster_id")
+    for raw in list(raw_ids) + ([extra] if extra else []):
+        try:
+            cid = int(raw)
+        except (TypeError, ValueError):
+            continue
+        if cid and cid not in seen:
+            seen.add(cid)
+            ids.append(cid)
+    return ids
+
+
 def resolve_dts_cluster_name(plan, migrate_context=None) -> str | None:
     """dump / 建任务认名字：部署入参或上下文；use_existing 再按 ID 反查。"""
     deploy_inp = getattr(plan, "deploy_subflow_inp", None) if plan is not None else None

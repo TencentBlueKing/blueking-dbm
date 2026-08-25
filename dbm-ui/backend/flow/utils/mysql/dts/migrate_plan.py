@@ -8,13 +8,16 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+import re
 import uuid
 from dataclasses import asdict, dataclass, field, is_dataclass
 from typing import Any
 
 from django.utils.translation import gettext as _
 
+from backend.bk_web.constants import LEN_NORMAL
 from backend.components.mysqldtsapi.types import TargetConfig
+from backend.db_meta.enums import ClusterType
 from backend.flow.utils.mysql.dts.constants import (
     DtsLifecycleMode,
     FullLoadEngine,
@@ -23,6 +26,17 @@ from backend.flow.utils.mysql.dts.constants import (
     get_default_deploy_path,
 )
 from backend.flow.utils.mysql.dts.context import DtsHostSpec, MysqlDtsDeploySubflowInput
+
+_RENAME_SOURCE_CLUSTER_TYPES = {ClusterType.TenDBHA.value, ClusterType.TenDBSingle.value}
+_RENAME_TARGET_CLUSTER_TYPES = {
+    ClusterType.TenDBHA.value,
+    ClusterType.TenDBSingle.value,
+    ClusterType.TenDBCluster.value,
+}
+
+# 多行 deploy cluster_name 随机后缀（与 source_name 相同：uuid4 hex 前 12 位）
+DEPLOY_CLUSTER_NAME_RAND_LEN = 12
+_DEPLOY_CLUSTER_NAME_RAND_RE = re.compile(rf"-[0-9a-f]{{{DEPLOY_CLUSTER_NAME_RAND_LEN}}}$")
 
 
 def _resolve_task_name(raw_name: Any, *, require: bool) -> str:
@@ -59,6 +73,13 @@ class TableRoute:
 
 @dataclass
 class SyncScope:
+    """同步范围。两套写法共用，约定按场景选用，单据层不互斥。
+
+    同名迁移用 do_dbs / do_tables（可选 ignore_*）；rename 用 table_routes，do_dbs 应空着不传。
+    整实例全量写 do_dbs=['*']，空范围拒单。创建任务时若 table_routes 非空则只吃路由，白名单不生效。
+    binlog_filters 两套都能用。
+    """
+
     do_dbs: list[str] = field(default_factory=list)
     ignore_dbs: list[str] = field(default_factory=list)
     do_tables: list[dict] = field(default_factory=list)
@@ -299,9 +320,7 @@ def _parse_deploy_subflow_inp(details: dict[str, Any]) -> MysqlDtsDeploySubflowI
     if not raw or not isinstance(raw, dict):
         return None
 
-    cluster_name = (
-        raw.get("cluster_name") or details.get("cluster_name") or f"dts-migrate-{details.get('ticket_id', 0)}"
-    )
+    cluster_name = raw.get("cluster_name") or details.get("cluster_name") or default_deploy_cluster_name(details)
     master_hosts = [
         DtsHostSpec(ip=h["ip"], bk_cloud_id=h["bk_cloud_id"], name=h.get("name")) for h in raw.get("master_hosts", [])
     ]
@@ -432,9 +451,171 @@ def _wrap_plan(details: dict[str, Any], task_specs: list[DtsTaskSpec], worker_co
     )
 
 
+def _has_deploy_cluster_name_random_suffix(name: str) -> bool:
+    return bool(name and _DEPLOY_CLUSTER_NAME_RAND_RE.search(name))
+
+
+def _unique_deploy_cluster_name(base: str, used: set[str] | None = None) -> str:
+    """在 base 后追加 uuid4 hex 前 12 位，保证 ≤LEN_NORMAL 且 used 内唯一。"""
+    used_names = used if used is not None else set()
+    suffix_len = 1 + DEPLOY_CLUSTER_NAME_RAND_LEN
+    keep = max(LEN_NORMAL - suffix_len, 1)
+    trimmed = (base or "dts-migrate").strip("-")[:keep].rstrip("-") or "dts-migrate"
+    while True:
+        name = f"{trimmed}-{uuid.uuid4().hex[:DEPLOY_CLUSTER_NAME_RAND_LEN]}"
+        if name not in used_names:
+            used_names.add(name)
+            return name
+
+
+def default_deploy_cluster_name(details: dict[str, Any]) -> str:
+    """本单部署未填 cluster_name 时的默认名。
+
+    单行：dts-migrate-{ticket_id}
+    多行 infos：dts-migrate-{ticket_id}-{row_index}-{12hex}。
+    多行可能同源、甚至同源同目标只是迁移对象不同，随机后缀避免目录 / MysqlDtsCluster.name 撞名。
+    """
+    ticket_id = details.get("ticket_id", 0)
+    row_index = details.get("row_index")
+    if row_index is not None:
+        return _unique_deploy_cluster_name(f"dts-migrate-{ticket_id}-{row_index}")
+    return f"dts-migrate-{ticket_id}"
+
+
+def patch_deploy_cluster_names_into_details(details: dict[str, Any], ticket_id: int | str) -> dict[str, Any]:
+    """多行 infos 本单部署：把带随机后缀的 cluster_name 写回 details（原地修改）。
+
+    多行可能同源同目标、仅迁移对象不同，用户按源集群填名也会撞车；已带 12 hex 后缀则视为已 patch，幂等。单行不改。
+    """
+    if not ticket_id:
+        return details
+    infos = details.get("infos")
+    if not infos:
+        return details
+    used: set[str] = set()
+    for idx, row in enumerate(infos):
+        deploy = (row.get("dts_resource") or {}).get("deploy")
+        if not isinstance(deploy, dict):
+            continue
+        name = (deploy.get("cluster_name") or "").strip()
+        if name and _has_deploy_cluster_name_random_suffix(name) and name not in used:
+            used.add(name)
+            continue
+        if not name:
+            name = f"dts-migrate-{ticket_id}-{idx}"
+        deploy["cluster_name"] = _unique_deploy_cluster_name(name, used)
+        if not (deploy.get("deploy_path") or "").strip():
+            deploy["deploy_path"] = get_default_deploy_path(deploy["cluster_name"])
+    return details
+
+
 def _is_layered_ticket_details(details: dict[str, Any]) -> bool:
     """是否为分层单据契约（dts_resource / migrate / task）。"""
     return "dts_resource" in details or "migrate" in details
+
+
+# 多行 infos 的整单生命周期字段（不写在 infos[].dts_resource）
+TICKET_LIFECYCLE_FIELDS = ("destroy_after_migrate", "recycle_hosts", "cleanup_after_migrate")
+
+
+def is_real_rename_route(route: TableRoute) -> bool:
+    """table_route 是否带真实改名（target 非空且与源库/源表不完全相同）。"""
+    source_db = route.source_schema()
+    source_table = route.source_table_name()
+    target_db = (route.target_db or "").strip()
+    target_table = (route.target_table or "").strip()
+    if not target_db and not target_table:
+        return False
+    db_renamed = bool(target_db) and target_db != source_db
+    table_renamed = bool(target_table) and target_table != source_table
+    return db_renamed or table_renamed
+
+
+def infer_rename_migrate_type(source_types: set[str], target_type: str) -> str:
+    """按源/目标集群类型推断 rename 单的 migrate_type。非法组合抛 ValueError。"""
+    illegal_sources = sorted(t for t in source_types if t not in _RENAME_SOURCE_CLUSTER_TYPES)
+    if illegal_sources:
+        raise ValueError(_("重命名迁移源集群仅支持 TenDBHA/TenDBSingle，实际为 {}").format(", ".join(illegal_sources)))
+    if target_type not in _RENAME_TARGET_CLUSTER_TYPES:
+        raise ValueError(_("重命名迁移目标集群仅支持 TenDBHA/TenDBSingle/TenDBCluster，实际为 {}").format(target_type))
+    if target_type == ClusterType.TenDBCluster.value:
+        return MigrateType.HA_TO_CLUSTER.value
+    return MigrateType.MYSQL_TO_MYSQL.value
+
+
+def infer_rename_migrate_type_from_plan(plan: "DtsMigratePlan", clusters: dict) -> str:
+    """从 plan 的源/目标集群推断 migrate_type。"""
+    source_types: set[str] = set()
+    target_type = ""
+    for spec in plan.task_specs:
+        for source in spec.sources:
+            cluster = clusters.get(source.cluster_id)
+            if cluster is None:
+                raise ValueError(_("集群 {} 不存在").format(source.cluster_id))
+            source_types.add(cluster.cluster_type)
+        target = clusters.get(spec.target_cluster_id)
+        if target is None:
+            raise ValueError(_("集群 {} 不存在").format(spec.target_cluster_id))
+        target_type = target.cluster_type
+    if not source_types or not target_type:
+        raise ValueError(_("重命名迁移缺少源或目标集群"))
+    return infer_rename_migrate_type(source_types, target_type)
+
+
+def _lifecycle_source(details: dict[str, Any]) -> dict[str, Any]:
+    """多行读单据顶层；单行读 dts_resource。"""
+    if details.get("infos"):
+        return details
+    resource = details.get("dts_resource")
+    return resource if isinstance(resource, dict) else {}
+
+
+def resolve_ticket_lifecycle(details: dict[str, Any]) -> dict[str, bool]:
+    """整单生命周期。缺省 destroy/recycle=true、cleanup=false。"""
+    source = _lifecycle_source(details)
+    destroy = source.get("destroy_after_migrate")
+    recycle = source.get("recycle_hosts")
+    cleanup = source.get("cleanup_after_migrate")
+    return {
+        "destroy_after_migrate": True if destroy is None else bool(destroy),
+        "recycle_hosts": True if recycle is None else bool(recycle),
+        "cleanup_after_migrate": False if cleanup is None else bool(cleanup),
+    }
+
+
+def resolve_ticket_destroy_policy(details: dict[str, Any]) -> dict[str, bool]:
+    """销毁串联策略：是否销毁、销毁时是否回收主机。"""
+    lifecycle = resolve_ticket_lifecycle(details)
+    return {
+        "destroy_after_migrate": lifecycle["destroy_after_migrate"],
+        "recycle_hosts": lifecycle["recycle_hosts"],
+    }
+
+
+def iter_migrate_row_details(details: dict[str, Any]) -> list[dict[str, Any]]:
+    """将票据 details 展开为按行的分层契约（单行即其自身）。
+
+    多行时把整单生命周期注入各行 dts_resource 副本，供 normalize / infer 复用；不改 infos 原文。
+    """
+    rows = details.get("infos")
+    if not rows:
+        return [details]
+    lifecycle = resolve_ticket_lifecycle(details)
+    expanded = []
+    for idx, row in enumerate(rows):
+        resource = dict(row.get("dts_resource") or {})
+        resource.update(lifecycle)
+        expanded.append(
+            {
+                **row,
+                "dts_resource": resource,
+                "bk_biz_id": details.get("bk_biz_id", row.get("bk_biz_id", 0)),
+                "ticket_id": details.get("ticket_id", row.get("ticket_id")),
+                "migrate_type": details.get("migrate_type") or row.get("migrate_type"),
+                "row_index": idx,
+            }
+        )
+    return expanded
 
 
 def normalize_migrate_ticket_details(details: dict[str, Any]) -> dict[str, Any]:
@@ -476,6 +657,8 @@ def normalize_migrate_ticket_details(details: dict[str, Any]) -> dict[str, Any]:
         flat["migrate_type"] = details["migrate_type"]
     if details.get("ticket_id") is not None:
         flat["ticket_id"] = details["ticket_id"]
+    if details.get("row_index") is not None:
+        flat["row_index"] = details["row_index"]
     if details.get("worker_count_required") is not None:
         flat["worker_count_required"] = details["worker_count_required"]
     if deploy_subflow is not None:
@@ -542,6 +725,16 @@ def _normalize_target_block(raw: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+def build_migrate_plans(ticket_details: dict[str, Any], *, require_task_name: bool = True) -> list[DtsMigratePlan]:
+    """构建迁移计划列表。多行 infos 切成 N 个独立 plan；单行走长度为 1 的列表。"""
+    if ticket_details.get("infos"):
+        return [
+            build_migrate_plan(row_details, require_task_name=require_task_name)
+            for row_details in iter_migrate_row_details(ticket_details)
+        ]
+    return [build_migrate_plan(ticket_details, require_task_name=require_task_name)]
+
+
 def build_migrate_plan(ticket_details: dict[str, Any], *, require_task_name: bool = True) -> DtsMigratePlan:
     """构建迁移计划。
 
@@ -549,6 +742,8 @@ def build_migrate_plan(ticket_details: dict[str, Any], *, require_task_name: boo
       - True（默认）：生产路径，details 中必须已有回写的 task_name
       - False：单据 validate 阶段（尚无 ticket.id），允许空名仅做结构校验
     """
+    if ticket_details.get("infos"):
+        raise ValueError(_("多行 infos 请使用 build_migrate_plans"))
     details = (
         normalize_migrate_ticket_details(ticket_details)
         if _is_layered_ticket_details(ticket_details)
@@ -692,11 +887,20 @@ def contains_dataclass(obj: Any) -> bool:
     return False
 
 
+def resolve_migrate_plans_from_ticket_data(data: dict[str, Any]) -> list[DtsMigratePlan]:
+    """从 Flow ticket_data 解析 plan 列表，并 pop 掉 migrate_plan(s) 避免污染 Builder global_data。"""
+    data.pop("migrate_plan", None)
+    raw_plans = data.pop("migrate_plans", None)
+    if isinstance(raw_plans, list) and raw_plans:
+        return [
+            dts_migrate_plan_from_dict(item) if not isinstance(item, DtsMigratePlan) else item for item in raw_plans
+        ]
+    return build_migrate_plans(data)
+
+
 def resolve_migrate_plan_from_ticket_data(data: dict[str, Any]) -> DtsMigratePlan:
-    """从 Flow ticket_data 解析 plan，并 pop 掉 migrate_plan 避免污染 Builder global_data。"""
-    raw_plan = data.pop("migrate_plan", None)
-    if isinstance(raw_plan, DtsMigratePlan):
-        return raw_plan
-    if isinstance(raw_plan, dict):
-        return dts_migrate_plan_from_dict(raw_plan)
-    return build_migrate_plan(data)
+    """从 Flow ticket_data 解析单个 plan（兼容旧调用）；多行时取第一行。"""
+    plans = resolve_migrate_plans_from_ticket_data(data)
+    if not plans:
+        raise ValueError(_("未能从 ticket_data 解析出迁移计划"))
+    return plans[0]

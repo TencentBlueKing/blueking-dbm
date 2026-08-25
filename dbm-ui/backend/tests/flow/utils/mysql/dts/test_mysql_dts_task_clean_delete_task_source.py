@@ -177,6 +177,8 @@ class RevokedPathDoesNotCleanRelayOrDumpTest(SimpleTestCase):
 
 
 class OuterRunFlowCleanInputNamesTest(SimpleTestCase):
+    _ROW_MOD = "backend.flow.engine.bamboo.scene.mysql.dts.mysql_dts_migrate_row_subflow"
+
     def _assert_clean_input_has_ticket_names(self, flow_cls, module_path):
         grant_targets = [DtsGrantTarget(bk_cloud_id=0, address="127.0.0.2:3306", cluster_id=1)]
         src = SourceSpec(cluster_id=1, source_name="src-ticket", sync_scope=SyncScope(do_dbs=["db"]))
@@ -191,31 +193,30 @@ class OuterRunFlowCleanInputNamesTest(SimpleTestCase):
             ]
         )
 
-        with patch(f"{module_path}.resolve_migrate_plan_from_ticket_data", return_value=plan), patch(
-            f"{module_path}.resolve_migrate_temp_account_for_pipeline",
+        with patch(f"{module_path}.resolve_migrate_plans_from_ticket_data", return_value=[plan]), patch(
+            f"{self._ROW_MOD}.resolve_migrate_temp_account_for_pipeline",
             return_value=("dts_m_shared", "pwd", ["127.0.0.3"], grant_targets),
-        ), patch(f"{module_path}.resolve_master_addr_from_plan", return_value="127.0.0.4:8261"), patch(
-            f"{module_path}.mysql_dts_migrate_subflow"
+        ), patch(f"{self._ROW_MOD}.resolve_master_addr_from_plan", return_value="127.0.0.4:8261"), patch(
+            f"{self._ROW_MOD}.mysql_dts_migrate_subflow"
         ) as mock_migrate, patch(
-            f"{module_path}.mysql_dts_task_clean_subflow"
+            f"{self._ROW_MOD}.mysql_dts_task_clean_subflow"
         ) as mock_clean, patch(
+            f"{self._ROW_MOD}.SubBuilder"
+        ) as mock_sub_builder, patch(
             f"{module_path}.Builder"
         ) as mock_builder:
             pipeline = MagicMock()
             mock_builder.return_value = pipeline
+            row_pipe = MagicMock()
+            mock_sub_builder.return_value = row_pipe
+            row_pipe.build_sub_process.return_value = MagicMock()
             mock_migrate.return_value.build_sub_process.return_value = MagicMock()
             mock_clean.return_value.build_sub_process.return_value = MagicMock()
 
             flow = flow_cls(root_id="root-outer", data={"bk_biz_id": 1, "ticket_id": 18801, "created_by": "t"})
             flow.run_flow()
 
-            self.assertEqual(
-                pipeline.add_sub_pipeline.call_args_list,
-                [
-                    call(mock_migrate.return_value.build_sub_process.return_value),
-                    call(mock_clean.return_value.build_sub_process.return_value),
-                ],
-            )
+            pipeline.add_parallel_sub_pipeline.assert_called_once()
             clean_sub_name = mock_clean.return_value.build_sub_process.call_args.kwargs.get("sub_name")
             self.assertEqual(str(clean_sub_name), str(_("dts-task-clean")))
             clean_inp = mock_clean.call_args[0][0]

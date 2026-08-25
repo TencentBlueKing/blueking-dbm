@@ -28,6 +28,7 @@ from backend.flow.engine.bamboo.scene.mysql.dts.mysql_dts_cluster_apply import M
 from backend.flow.engine.bamboo.scene.mysql.dts.mysql_dts_cluster_destroy import MysqlDtsClusterDestroyFlow
 from backend.flow.engine.bamboo.scene.mysql.dts.mysql_dts_cluster_reinstall import MysqlDtsClusterReinstallFlow
 from backend.flow.engine.bamboo.scene.mysql.dts.mysql_ha_to_cluster_migrate import MysqlHaToClusterMigrateFlow
+from backend.flow.engine.bamboo.scene.mysql.dts.mysql_rename_migrate import MysqlRenameMigrateFlow
 from backend.flow.engine.bamboo.scene.mysql.dts.mysql_to_mysql_migrate import MysqlToMysqlMigrateFlow
 from backend.flow.engine.bamboo.scene.mysql.import_sqlfile_flow import ImportSQLFlow
 from backend.flow.engine.bamboo.scene.mysql.mysql_authorize_rules import MySQLAuthorizeRulesFlows
@@ -868,4 +869,8 @@ class MySQLController(BaseController):
 
     def mysql_ha_to_cluster_migrate_scene(self):
         flow = MysqlHaToClusterMigrateFlow(root_id=self.root_id, data=self.ticket_data)
+        flow.run_flow()
+
+    def mysql_rename_migrate_scene(self):
+        flow = MysqlRenameMigrateFlow(root_id=self.root_id, data=self.ticket_data)
         flow.run_flow()

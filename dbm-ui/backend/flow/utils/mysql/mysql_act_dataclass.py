@@ -451,6 +451,9 @@ class MysqlCheckSumKwargs:
     bk_biz_id: int
     created_by: str
     checksum_info: dict = None
+    # 默认 False：关联节点 PENDING，inner 结束后由 DeliveryFlow 跑成成功，与主从迁移一致。
+    # 显式 True 会在 inner 仍 RUNNING 时插入 SUCCEEDED DELIVERY，劫持 current_flow()。
+    related_ticket_done: bool = False
 
 
 @dataclass()

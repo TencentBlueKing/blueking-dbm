@@ -43,9 +43,9 @@ class MysqlDtsPrepareMigrateUserService(BaseService):
 
         migrate_context = trans_data.migrate_context
         dts_cluster = load_active_dts_cluster(
-            dts_cluster_id=kwargs.get("dts_cluster_id") or migrate_context.dts_cluster_id,
+            dts_cluster_id=kwargs.get("dts_cluster_id"),
             bk_biz_id=kwargs.get("bk_biz_id"),
-            cluster_name=kwargs.get("cluster_name") or getattr(migrate_context, "cluster_name", None),
+            cluster_name=kwargs.get("cluster_name"),
         )
         if dts_cluster is None:
             self.log_error(

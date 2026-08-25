@@ -65,6 +65,23 @@ class ClearMysqlMachineFlow(object):
             cloud_to_ips[host["bk_cloud_id"]].append(host["ip"])
         return dict(cloud_to_ips)
 
+    def _dts_clear_groups(self) -> List[tuple]:
+        """按 deploy_path 分组清机目标。单路径时返回一份；多路径来自 dts_deploy_path_by_host。"""
+        hosts = self.data.get("clear_hosts") or []
+        path_by_host = self.data.get("dts_deploy_path_by_host") or {}
+        if not path_by_host:
+            deploy_path = self.data.get("dts_deploy_path")
+            return [(deploy_path, hosts)] if deploy_path else []
+
+        grouped: Dict[str, List] = defaultdict(list)
+        for host in hosts:
+            hid = host.get("bk_host_id")
+            path = path_by_host.get(str(hid)) or path_by_host.get(hid) or self.data.get("dts_deploy_path")
+            if not path:
+                raise ValueError(_("DTS 清机缺少 dts_deploy_path，拒绝回退到 MySQL 通用清机脚本"))
+            grouped[path].append(host)
+        return list(grouped.items())
+
     def run_flow(self):
         """
         定义清理机器的执行流程
@@ -86,17 +103,44 @@ class ClearMysqlMachineFlow(object):
 
         clear_kwargs = {"exec_ips": self.data["clear_hosts"]}
         if is_mysql_dts:
-            deploy_path = self.data.get("dts_deploy_path")
-            if not deploy_path:
-                raise ValueError(_("DTS 清机缺少 dts_deploy_path，拒绝回退到 MySQL 通用清机脚本"))
-            clear_kwargs["clear_machine_script"] = "\n".join(
-                [render_stop_process_script(deploy_path), render_clean_data_dir_script(deploy_path)]
+            path_groups = self._dts_clear_groups()
+            if len(path_groups) > 1:
+                clear_acts = []
+                for deploy_path, hosts in path_groups:
+                    clear_acts.append(
+                        {
+                            "act_name": _("清理机器({})").format(deploy_path),
+                            "act_component_code": ClearMachineScriptComponent.code,
+                            "kwargs": {
+                                "exec_ips": hosts,
+                                "clear_machine_script": "\n".join(
+                                    [
+                                        render_stop_process_script(deploy_path),
+                                        render_clean_data_dir_script(deploy_path),
+                                    ]
+                                ),
+                            },
+                        }
+                    )
+                main_pipeline.add_parallel_acts(acts_list=clear_acts)
+            else:
+                deploy_path = path_groups[0][0] if path_groups else self.data.get("dts_deploy_path")
+                if not deploy_path:
+                    raise ValueError(_("DTS 清机缺少 dts_deploy_path，拒绝回退到 MySQL 通用清机脚本"))
+                clear_kwargs["clear_machine_script"] = "\n".join(
+                    [render_stop_process_script(deploy_path), render_clean_data_dir_script(deploy_path)]
+                )
+                main_pipeline.add_act(
+                    act_name=_("清理机器"),
+                    act_component_code=ClearMachineScriptComponent.code,
+                    kwargs=clear_kwargs,
+                )
+        else:
+            main_pipeline.add_act(
+                act_name=_("清理机器"),
+                act_component_code=ClearMachineScriptComponent.code,
+                kwargs=clear_kwargs,
             )
-        main_pipeline.add_act(
-            act_name=_("清理机器"),
-            act_component_code=ClearMachineScriptComponent.code,
-            kwargs=clear_kwargs,
-        )
 
         # 按 bk_cloud_id 拆分：每个云区域生成一个独立 act，最终通过并行网关一次性下发
         # 目标时区值由组件侧 OsTimeZoneReset._resolve_time_zone 从环境变量

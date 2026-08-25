@@ -70,3 +70,63 @@ class ClearMysqlMachineFlowTest(SimpleTestCase):
 
         with self.assertRaisesRegex(ValueError, "dts_deploy_path"):
             flow.run_flow()
+
+    @patch("backend.flow.engine.bamboo.scene.mysql.mysql_machine_clear_flow.Builder")
+    def test_mysql_dts_multi_path_parallel_clear_same_recycle_ticket(self, mock_builder):
+        from backend.flow.engine.bamboo.scene.mysql.mysql_machine_clear_flow import ClearMysqlMachineFlow
+
+        pipeline = MagicMock()
+        mock_builder.return_value = pipeline
+        flow = ClearMysqlMachineFlow(
+            root_id="root-dts-multi-path",
+            data={
+                "hosts": [
+                    {"ip": "127.0.0.2", "bk_cloud_id": 0, "bk_host_id": 1002},
+                    {"ip": "127.0.0.3", "bk_cloud_id": 0, "bk_host_id": 1003},
+                    {"ip": "127.0.0.4", "bk_cloud_id": 0, "bk_host_id": 1004},
+                    {"ip": "127.0.0.5", "bk_cloud_id": 0, "bk_host_id": 1005},
+                ],
+                "cluster_type": ClusterType.MySQLDTS.value,
+                "dts_deploy_path": "/data/dts/a",
+                "dts_deploy_path_by_host": {
+                    "1002": "/data/dts/a",
+                    "1003": "/data/dts/a",
+                    "1004": "/data/dts/b",
+                    "1005": "/data/dts/b",
+                },
+            },
+        )
+        flow.run_flow()
+
+        pipeline.add_act.assert_not_called()
+        clear_call = pipeline.add_parallel_acts.call_args_list[0]
+        acts = clear_call.kwargs.get("acts_list") or clear_call.args[0]
+        self.assertEqual(len(acts), 2)
+        scripts = [a["kwargs"]["clear_machine_script"] for a in acts]
+        self.assertTrue(any("/data/dts/a" in s for s in scripts))
+        self.assertTrue(any("/data/dts/b" in s for s in scripts))
+        for script in scripts:
+            self.assertGreaterEqual(script.count("pkill"), 1)
+            self.assertIn("dm-worker", script)
+
+    @patch("backend.flow.engine.bamboo.scene.mysql.mysql_machine_clear_flow.Builder")
+    def test_mysql_dts_same_path_by_host_stays_serial(self, mock_builder):
+        from backend.flow.engine.bamboo.scene.mysql.mysql_machine_clear_flow import ClearMysqlMachineFlow
+
+        pipeline = MagicMock()
+        mock_builder.return_value = pipeline
+        flow = ClearMysqlMachineFlow(
+            root_id="root-dts-one-path",
+            data={
+                "hosts": [
+                    {"ip": "127.0.0.2", "bk_cloud_id": 0, "bk_host_id": 1002},
+                    {"ip": "127.0.0.3", "bk_cloud_id": 0, "bk_host_id": 1003},
+                ],
+                "cluster_type": ClusterType.MySQLDTS.value,
+                "dts_deploy_path_by_host": {"1002": "/data/dts/a", "1003": "/data/dts/a"},
+            },
+        )
+        flow.run_flow()
+        clear_call = pipeline.add_act.call_args
+        self.assertEqual(clear_call.kwargs["act_component_code"], ClearMachineScriptComponent.code)
+        self.assertIn("/data/dts/a", clear_call.kwargs["kwargs"]["clear_machine_script"])
