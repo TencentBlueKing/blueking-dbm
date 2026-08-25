@@ -48,7 +48,7 @@ data:
         user: "{{ $reportDB.user }}"
         password: "{{ $reportDB.password }}"
         database: "{{ $reportDB.name }}"
-        charset: utf8
+        charset: utf8mb4
     - name: prod_bk_dbm_report_raw
       type: mysql_raw
       dsn:
@@ -56,7 +56,7 @@ data:
         user: "{{ $reportDB.user }}"
         password: "{{ $reportDB.password }}"
         database: "{{ $reportDB.name }}"
-        charset: utf8
+        charset: utf8mb4
     - name: doris_bk_dbm_stats
       type: doris
       dsn:
@@ -64,7 +64,7 @@ data:
         user: "{{ $statsDB.user }}"
         password: "{{ $statsDB.password }}"
         database: "{{ $statsDB.name }}"
-        charset: utf8
+        charset: utf8mb4
         session_variables:
           group_commit: async_mode
     - name: doris_http_bk_dbm_stats
@@ -75,7 +75,7 @@ data:
         user: "{{ $statsDB.user }}"
         password: "{{ $statsDB.password }}"
         database: "{{ $statsDB.name }}"
-        charset: utf8
+        charset: utf8mb4
         session_variables:
           group_commit: async_mode
   data.sinkers.yaml: |

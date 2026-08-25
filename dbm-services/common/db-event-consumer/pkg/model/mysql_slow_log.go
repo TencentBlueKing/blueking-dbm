@@ -57,13 +57,15 @@ func initSlowLogDbNameCache() {
 }
 
 type MysqlSlowLogModel struct {
-	ID uint `gorm:"primaryKey;autoIncrement:true"`
+	//ID uint `gorm:"primaryKey;autoIncrement:true"`
 	// DtEventTimeStamp 2026-03-10 16:27:07
 	DtEventTimeStamp time.Time `gorm:"column:dteventtimestamp;type:timestamp;not null" json:"dteventtimestamp" db:"dteventtimestamp"`
 	// DtEventTimeHour	'2020-01-01 01:00:00'
 	DtEventTimeHour string `gorm:"column:dteventtimehour;type:varchar(127);not null" json:"dteventtimehour" db:"dteventtimehour"`
 	// LogTime	2026-03-10 16:27:07
-	LogTime time.Time `gorm:"column:log_time;type:datetime;not null" json:"time" db:"log_time"`
+	LogTime time.Time `gorm:"column:log_time;type:datetime;not null" json:"log_time" db:"log_time"`
+	// SqlTimestamp	1773131220
+	SqlTimestamp uint `gorm:"column:sql_timestamp;type:bigint;not null" json:"sql_timestamp" db:"sql_timestamp"`
 	// TheDate 20250101
 	TheDate int `gorm:"column:thedate;type:int;not null" json:"thedate" db:"thedate"`
 
@@ -89,7 +91,7 @@ type MysqlSlowLogModel struct {
 	DbName    string `gorm:"column:db_name;type:varchar(255);not null" json:"db_name" db:"db_name"`
 	SessionId int64  `gorm:"column:session_id;type:bigint;not null" json:"session_id" db:"session_id"`
 	// QueryStartTs SqlTimestamp
-	QueryStartTs uint `gorm:"column:query_start_ts;type:bigint;not null" json:"query_start_ts" db:"query_start_ts"`
+	// QueryStartTs uint `gorm:"column:query_start_ts;type:bigint;not null" json:"query_start_ts" db:"query_start_ts"`
 
 	Username     string `gorm:"column:username;type:varchar(127);not null" json:"user" db:"username"`
 	ClientHost   string `gorm:"column:client_host;type:varchar(60);not null" json:"client_host" db:"client_host"`
@@ -97,8 +99,6 @@ type MysqlSlowLogModel struct {
 	BkBizId      int    `gorm:"column:bk_biz_id;type:int;not null" json:"app_id" db:"bk_biz_id"`
 	BkCloudId    int    `gorm:"column:bk_cloud_id;type:int;not null" json:"bk_cloud_id" db:"bk_cloud_id"`
 	ParseFailure int    `gorm:"column:parse_failure;type:int;not null" json:"parse_failure" db:"parse_failure"`
-	// SqlTimestamp	1773131220
-	SqlTimestamp uint `gorm:"column:sql_timestamp;type:bigint;not null" json:"sql_timestamp" db:"sql_timestamp"`
 }
 
 type MysqlSlowLogMsg struct {
@@ -306,9 +306,10 @@ CREATE TABLE IF NOT EXISTS %s (
   cluster_domain varchar(200) NOT NULL,
   instance_role varchar(60) DEFAULT NULL,
   dteventtimehour datetime NOT NULL COMMENT 'datetime precision to hour, used as where,group-by,expire',
-  thedate int NOT NULL,
-  log_time datetime NOT NULL,
   dteventtimestamp datetime NOT NULL,
+  sql_timestamp int NULL,
+  thedate int NOT NULL,
+  log_time datetime NULL,
   query_digest_md5 varchar(60) DEFAULT NULL,
   instance_host varchar(60) DEFAULT NULL,
   instance_port int DEFAULT NULL,
@@ -350,10 +351,11 @@ CREATE TABLE IF NOT EXISTS %s (
   instance_role varchar(60) NULL,
   query_digest_md5 varchar(100) NULL,
   dteventtimehour datetime NOT NULL COMMENT "datetime precision to hour, used as where,group-by,expire",
-
-  log_time datetime NOT NULL,
+  
   dteventtimestamp datetime NOT NULL,
-  thedate int NOT NULL,
+  sql_timestamp int NULL,
+  thedate int NULL,
+  log_time datetime NULL,
   instance_host varchar(60) NULL,
   instance_port int NULL,
 
@@ -439,7 +441,7 @@ func (m *MysqlSlowLogModel) UnmarshalItem(data []byte, msg base.MessageWrapper) 
 	m.DbName = logParsed.DbName
 	m.TableNames = logParsed.TableNames
 	m.SessionId = logParsed.SessionId
-	m.QueryStartTs = logParsed.QueryStartTs
+	// m.QueryStartTs = logParsed.QueryStartTs
 
 	// 直接从 msg.Ext 提取维度字段，替代 mapstructure.Decode + copier.Copy，
 	// 避免每条消息创建 DimExt、DecoderConfig、Decoder 等临时对象
