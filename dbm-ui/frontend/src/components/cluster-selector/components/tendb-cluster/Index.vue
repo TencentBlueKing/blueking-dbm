@@ -27,7 +27,7 @@
       :columns="generatedColumns"
       :data="tableData"
       :filter-value="columnCheckedMap"
-      :max-height="528"
+      :max-height="472"
       :row-class-name="getRowClass"
       row-key="id"
       @filter-change="handleFilterChange"
@@ -40,9 +40,7 @@
           @refresh="fetchResources" />
       </template>
     </PrimaryTable>
-    <div
-      v-if="pagination.count >= 10"
-      class="table-footer">
+    <div class="table-footer">
       <BkPagination
         v-bind="pagination"
         :model-value="pagination.current"
@@ -63,12 +61,13 @@
   import EmptyStatus from '@components/empty-status/EmptyStatus.vue';
   import TextOverflowLayout from '@components/text-overflow-layout/Index.vue';
 
+  import ClusterDetailRelatedTicket from '@views/db-manage/common/ClusterDetailRelatedTicket.vue';
+
   import { getSearchSelectorParams } from '@utils';
 
   import type { TabItem } from '../../Index.vue';
   import { tagsColumn, transBkuiColumns } from '../common/columns';
   import SerachBar from '../common/SearchBar.vue';
-  import ClusterRelatedTasks from '../common/task-panel/Index.vue';
 
   import { useClusterData } from './useClusterData';
 
@@ -213,7 +212,6 @@
         );
       },
       colKey: 'row-select',
-      minWidth: 70,
       title: () =>
         props.multiple && (
           <div style='display:flex;align-items:center'>
@@ -242,6 +240,7 @@
           </bk-popover> */}
           </div>
         ),
+      width: 36,
     },
     {
       cell: (_, { row }) => (
@@ -249,22 +248,7 @@
           {{
             append: () => (
               <>
-                {row.operations && row.operations.length > 0 && (
-                  <bk-popover
-                    theme='light'
-                    width='360'>
-                    {{
-                      content: () => <ClusterRelatedTasks data={row.operations} />,
-                      default: () => (
-                        <bk-tag
-                          class='tag-box'
-                          theme='info'>
-                          {row.operations.length}
-                        </bk-tag>
-                      ),
-                    }}
-                  </bk-popover>
-                )}
+                {row.operations && row.operations.length > 0 && <ClusterDetailRelatedTicket data={row.operations} />}
                 {row.isOffline && (
                   <bk-tag
                     class='ml-8'
@@ -479,12 +463,6 @@
         overflow: hidden;
         text-overflow: ellipsis;
         white-space: nowrap;
-      }
-
-      .tag-box {
-        height: 16px;
-        color: #3a84ff;
-        border-radius: 8px !important;
       }
     }
   }
