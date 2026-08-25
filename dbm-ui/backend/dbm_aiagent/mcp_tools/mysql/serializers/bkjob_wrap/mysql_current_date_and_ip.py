@@ -13,7 +13,7 @@ from rest_framework import serializers
 
 
 class MysqlCurrentDateAndIpInputSerializer(serializers.Serializer):
-    bk_cloud_id = serializers.IntegerField(help_text=_("云区域 ID"))
+    bk_cloud_id = serializers.IntegerField(help_text=_("云区域 ID"), default=0)
     ips = serializers.ListField(child=serializers.CharField(), help_text=_("目标 IP 列表"))
-    bk_scope_type = serializers.CharField(help_text=_("资源范围类型，例如 biz_set"))
-    bk_scope_id = serializers.CharField(help_text=_("资源范围 ID"))
+    bk_scope_type = serializers.CharField(help_text=_("资源范围类型：仅支持 biz（单业务），禁止 biz_set"))
+    bk_scope_id = serializers.CharField(help_text=_("CMDB 业务ID（注意非 DBM 平台内部业务ID）"))

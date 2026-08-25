@@ -21,13 +21,13 @@ from backend.dbm_aiagent.mcp_tools.common.impl.bkjob_wrap.enums import (
 
 class QueryResultInputSerializer(serializers.Serializer):
     bk_scope_type = serializers.ChoiceField(
-        choices=[("biz", _("业务")), ("biz_set", _("业务集"))],
-        help_text=_("蓝鲸业务范围类型: biz - 业务, biz_set - 业务集"),
+        choices=[("biz", _("业务"))],
+        help_text=_("资源范围类型，biz 表示单业务"),
         required=False,
-        default="biz_set",
+        default="biz",
     )
     bk_scope_id = serializers.IntegerField(
-        help_text=_("蓝鲸业务范围 ID, 如业务 ID 或业务集 ID"), required=False, default=env.JOB_BLUEKING_BIZ_ID
+        help_text=_("CMDB 业务ID（注意非 DBM 平台内部业务ID）"), required=False, default=env.JOB_BLUEKING_BIZ_ID
     )
     job_instance_id = serializers.IntegerField(help_text=_("作业实例 ID"))
 
