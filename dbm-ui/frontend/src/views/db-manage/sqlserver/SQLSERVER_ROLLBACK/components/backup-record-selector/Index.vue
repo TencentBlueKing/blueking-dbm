@@ -33,6 +33,7 @@
           clearable
           :disabled-date="disableDate"
           :placeholder="t('请选择')"
+          :shortcuts="shortcuts"
           style="width: 100%"
           type="datetimerange"
           @change="handleDateChange"
@@ -322,6 +323,25 @@
   };
 
   const disableDate = (date?: Date | number) => dayjs(date).isAfter(dayjs(), 'day');
+
+  const shortcuts = [
+    {
+      text: t('今天'),
+      value: () => [dayjs().startOf('day').toDate(), dayjs().endOf('day').toDate()],
+    },
+    {
+      text: t('近 7 天'),
+      value: () => [dayjs().subtract(6, 'day').startOf('day').toDate(), dayjs().endOf('day').toDate()],
+    },
+    {
+      text: t('近 15 天'),
+      value: () => [dayjs().subtract(14, 'day').startOf('day').toDate(), dayjs().endOf('day').toDate()],
+    },
+    {
+      text: t('近 30 天'),
+      value: () => [dayjs().subtract(29, 'day').startOf('day').toDate(), dayjs().endOf('day').toDate()],
+    },
+  ];
 
   const handleDateChange = () => {
     comfirmDaterange.value = daterange.value;
