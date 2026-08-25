@@ -4,7 +4,8 @@
     field="backupTime"
     :label="t('指定时间')"
     :min-width="240"
-    required>
+    required
+    :rules="rules">
     <template #headAppend>
       <BatchEditColumn
         v-model="isShowBatchEdit"
@@ -189,7 +190,19 @@
   });
 
   const disabledMethod = () => (props.cluster.id ? false : t('请先选择集群'));
-  const disableDate = (date?: Date | number) => dayjs(date).isAfter(dayjs(), 'day');
+  const disableDate = (date?: Date | number) =>
+    dayjs(date).isAfter(dayjs(), 'day') || dayjs(date).isBefore(dayjs().subtract(15, 'day'), 'day');
+
+  const rules = [
+    {
+      message: t('指定时间不能超过 15 天'),
+      trigger: 'blur',
+      validator: (value: string) => {
+        if (!value) return true;
+        return dayjs(value).isAfter(dayjs().subtract(15, 'day'), 'day');
+      },
+    },
+  ];
 
   const handleShowSelector = () => {
     isShowSelector.value = true;
