@@ -560,34 +560,35 @@ func (task *BackupTask) newConnect() {
 
 // PreCheckReplLink 主从关系链检查
 func (task *BackupTask) PreCheckReplLink() {
-	maxCheckMinute := 10
-	for i := 0; i < maxCheckMinute*2; i++ {
-		mylog.Logger.Info("PreCheckReplLink %d begin...", i)
-
-		// 每30秒 check 一次
+	const checkInterval = 30 * time.Second
+	maxCheckTimes := 20 // 最多检查 10 分钟
+	for i := 0; i < maxCheckTimes; i++ {
+		mylog.Logger.Info("PreCheckReplLink redis(%s) check %d begin...", task.Addr(), i)
 		task.Err = nil
-		time.Sleep(30 * time.Second)
 		masterIp, masterPort, linkStatus, selfRole, err := task.Cli.GetMasterData()
 		if err != nil {
 			task.Err = err
-			continue
+			mylog.Logger.Warn("PreCheckReplLink redis(%s) GetMasterData fail,err:%v", task.Addr(), err)
+		} else {
+			mylog.Logger.Info("myself:%s, master:%s:%s, linkStatus:%s", task.Addr(), masterIp, masterPort, linkStatus)
+			// 如果是master，那么直接在master上执行备份逻辑。场景：清档前备份
+			if selfRole == consts.RedisMasterRole {
+				mylog.Logger.Warn("redis(%s) role is master, sure backup in master?", task.Addr())
+				break
+			}
+			if linkStatus == consts.MasterLinkStatusUP {
+				break
+			}
+			task.Err = fmt.Errorf("master_ip: %s, master_port: %s, link_status: %s. check repl status failed, don't backup",
+				masterIp, masterPort, linkStatus)
 		}
-
-		mylog.Logger.Info("myself:%s, master:%s:%s, linkStatus:%s", task.Addr(), masterIp, masterPort, linkStatus)
-		// 如果是master，那么直接在master上执行备份逻辑。场景：清档前备份
-		if selfRole == consts.RedisMasterRole {
-			mylog.Logger.Warn("my role is master, sure backup in master?")
+		if i == maxCheckTimes-1 {
 			break
 		}
-		if linkStatus != consts.MasterLinkStatusUP {
-			task.Err = fmt.Errorf("master_ip: %s, master_port: %s, link_status: %s. check repl status failed, don't backup", masterIp, masterPort, linkStatus)
-			continue
-		}
-		// 走到这里，说明master_link_status is up
-		break
+		mylog.Logger.Info("PreCheckReplLink redis(%s) not ready, sleep %s then retry", task.Addr(), checkInterval)
+		time.Sleep(checkInterval)
 	}
-	mylog.Logger.Info("PreCheckReplLink end...")
-	return
+	mylog.Logger.Info("PreCheckReplLink redis(%s) end...", task.Addr())
 }
 
 // PrecheckDisk 磁盘检查
