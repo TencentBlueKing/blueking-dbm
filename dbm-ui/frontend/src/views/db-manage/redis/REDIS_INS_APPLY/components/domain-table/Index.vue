@@ -13,11 +13,12 @@
 
 <template>
   <div class="domain-table">
-    <DbOriginalTable
+    <PrimaryTable
       class="custom-edit-table"
       :columns="columns"
       :data="tableData"
-      :empty-text="t('请选择业务')" />
+      :empty="t('请选择业务')"
+      row-key="cluster_name" />
     <InstanceSelector
       :key="instanceSelectorKey"
       v-model:is-show="isShowInstanceSelector"
@@ -29,8 +30,8 @@
 </template>
 
 <script setup lang="tsx">
-  import type { Column } from 'bkui-vue/lib/table/props';
   import _ from 'lodash';
+  import type { PrimaryTableCol } from 'tdesign-vue-next';
   import { useI18n } from 'vue-i18n';
 
   import RedisModel from '@services/model/redis/redis';
@@ -179,15 +180,68 @@
   };
 
   const columns = computed(() => {
-    const baseColums: Column[] = [
+    const baseColums: PrimaryTableCol[] = [
       {
-        label: t('序号'),
-        type: 'seq',
+        cell: (_, { rowIndex }) => String(rowIndex + 1),
+        colKey: 'index',
+        title: t('序号'),
         width: 60,
       },
       {
-        field: 'cluster_name',
-        label: () => (
+        cell: (_, { rowIndex }) => (
+          <div class='cluster_name'>
+            <div class='mr-4'>
+              {/* ins. */}
+              {getDomainPreview(domains.value[rowIndex]?.cluster_name).masterDomain.prefix}
+            </div>
+            <bk-form-item
+              key={rowIndex}
+              class={{
+                'cell-item': true,
+                'domain-address-item-empty': !domains.value[rowIndex]?.cluster_name,
+              }}
+              errorDisplayType='tooltips'
+              label-width={0}
+              property={`details.infos.${rowIndex}.cluster_name`}
+              rules={rules.cluster_name}>
+              <db-input
+                v-bk-tooltips={{
+                  content: t('仅支持小写字母、数字、连字符，同时会参与集群域名生成，创建后不可改'),
+                  placement: 'top',
+                  theme: 'light',
+                  trigger: 'click',
+                }}
+                maxlength={63}
+                model-value={domains.value[rowIndex]?.cluster_name}
+                show-word-limit
+                style='width: 200px'
+                onChange={(value: string) => handleChangeCellValue(value, rowIndex, 'cluster_name')}>
+                {{
+                  suffix: () =>
+                    domains.value[rowIndex]?.cluster_name && <span class='domain-address-placeholder ml-4'></span>,
+                }}
+              </db-input>
+            </bk-form-item>
+            {typeof props.portType === 'string' ? (
+              <div class='ml-4'>
+                {/* .{props.appAbbr}.db */}
+                {getDomainPreview(domains.value[rowIndex]?.cluster_name).masterDomain.suffix}
+                {props.isAppend ? '' : `#${props.portType === 'increment' ? props.port + rowIndex : props.port}`}
+              </div>
+            ) : (
+              <div class='ml-4'>
+                {/* .{props.appAbbr}.db */}
+                {getDomainPreview(domains.value[rowIndex]?.cluster_name).masterDomain.suffix}
+                {props.isAppend
+                  ? ''
+                  : `#${props.portType.length === tableData.value.length ? props.portType[rowIndex] : ''}`}
+              </div>
+            )}
+          </div>
+        ),
+        colKey: 'cluster_name',
+        minWidth: 300,
+        title: () => (
           <div class='table-custom-label'>
             {t('主访问入口')}
             <span class='required-mark'>*</span>
@@ -201,58 +255,6 @@
             )}
           </div>
         ),
-        minWidth: 300,
-        render: ({ index }: { index: number }) => (
-          <div class='cluster_name'>
-            <div class='mr-4'>
-              {/* ins. */}
-              {getDomainPreview(domains.value[index]?.cluster_name).masterDomain.prefix}
-            </div>
-            <bk-form-item
-              key={index}
-              class={{
-                'cell-item': true,
-                'domain-address-item-empty': !domains.value[index]?.cluster_name,
-              }}
-              errorDisplayType='tooltips'
-              label-width={0}
-              property={`details.infos.${index}.cluster_name`}
-              rules={rules.cluster_name}>
-              <db-input
-                v-bk-tooltips={{
-                  content: t('仅支持小写字母、数字、连字符，同时会参与集群域名生成，创建后不可改'),
-                  placement: 'top',
-                  theme: 'light',
-                  trigger: 'click',
-                }}
-                maxlength={63}
-                model-value={domains.value[index]?.cluster_name}
-                show-word-limit
-                style='width: 200px'
-                onChange={(value: string) => handleChangeCellValue(value, index, 'cluster_name')}>
-                {{
-                  suffix: () =>
-                    domains.value[index]?.cluster_name && <span class='domain-address-placeholder ml-4'></span>,
-                }}
-              </db-input>
-            </bk-form-item>
-            {typeof props.portType === 'string' ? (
-              <div class='ml-4'>
-                {/* .{props.appAbbr}.db */}
-                {getDomainPreview(domains.value[index]?.cluster_name).masterDomain.suffix}
-                {props.isAppend ? '' : `#${props.portType === 'increment' ? props.port + index : props.port}`}
-              </div>
-            ) : (
-              <div class='ml-4'>
-                {/* .{props.appAbbr}.db */}
-                {getDomainPreview(domains.value[index]?.cluster_name).masterDomain.suffix}
-                {props.isAppend
-                  ? ''
-                  : `#${props.portType.length === tableData.value.length ? props.portType[index] : ''}`}
-              </div>
-            )}
-          </div>
-        ),
       },
       // {
       //   label: t('从域名'),
@@ -261,8 +263,25 @@
       //   render: ({ data, index }: { data: Domain, index: number }) => `ins-slave.${data.cluster_name}.${props.appAbbr}.db${props.isAppend ? '' : `#${props.port + index}`}`
       // },
       {
-        field: 'databases',
-        label: () => (
+        cell: (_, { rowIndex }) => (
+          <bk-form-item
+            key={rowIndex}
+            class='cell-item'
+            errorDisplayType='tooltips'
+            label-width={0}
+            property={`details.infos.${rowIndex}.databases`}>
+            <db-input
+              max={16}
+              min={2}
+              model-value={domains.value[rowIndex]?.databases}
+              placeholder={t('范围 2～16')}
+              type='number'
+              onChange={(value: string) => handleChangeCellValue(value, rowIndex, 'databases')}
+            />
+          </bk-form-item>
+        ),
+        colKey: 'databases',
+        title: () => (
           <div class='table-custom-label'>
             Databases
             <span class='required-mark'>*</span>
@@ -273,38 +292,49 @@
             )}
           </div>
         ),
-        render: ({ index }: { index: number }) => (
-          <bk-form-item
-            key={index}
-            class='cell-item'
-            errorDisplayType='tooltips'
-            label-width={0}
-            property={`details.infos.${index}.databases`}>
-            <db-input
-              max={16}
-              min={2}
-              model-value={domains.value[index]?.databases}
-              placeholder={t('范围 2～16')}
-              type='number'
-              onChange={(value: string) => handleChangeCellValue(value, index, 'databases')}
-            />
-          </bk-form-item>
-        ),
         width: 150,
       },
     ];
-    const newColums: Column[] = [
+    const newColums: PrimaryTableCol[] = [
       {
-        field: 'maxmemory',
-        label: 'Maxmemory',
-        render: () => props.maxMemory,
+        cell: () => props.maxMemory,
+        colKey: 'maxmemory',
+        title: 'Maxmemory',
         width: 200,
       },
     ];
-    const appendColums: Column[] = [
+    const appendColums: PrimaryTableCol[] = [
       {
-        field: 'masterHost',
-        label: () => (
+        cell: (_, { rowIndex }) => (
+          <bk-form-item
+            key={rowIndex}
+            class='cell-item master-ip-input-item'
+            errorDisplayType='tooltips'
+            label-width={0}
+            property={`details.infos.${rowIndex}.masterHost.ip`}
+            rules={rules['masterHost.ip']}>
+            <db-input
+              model-value={domains.value[rowIndex]?.masterHost.ip}
+              placeholder={t('请输入或选择')}
+              onChange={(value: string) => handleHostIpChange(value, rowIndex)}>
+              {{
+                suffix: () => (
+                  <bk-button
+                    class='mr-8'
+                    text
+                    onClick={() => handleInstancesSelectorShow(rowIndex)}>
+                    <db-icon
+                      v-bk-tooltips={t('选择主机')}
+                      type='host-select'
+                    />
+                  </bk-button>
+                ),
+              }}
+            </db-input>
+          </bk-form-item>
+        ),
+        colKey: 'masterHost',
+        title: () => (
           <div class='table-custom-label'>
             {t('待部署主库主机')}
             <span class='required-mark'>*</span>
@@ -319,54 +349,26 @@
             )}
           </div>
         ),
-        render: ({ index }: { index: number }) => (
-          <bk-form-item
-            key={index}
-            class='cell-item master-ip-input-item'
-            errorDisplayType='tooltips'
-            label-width={0}
-            property={`details.infos.${index}.masterHost.ip`}
-            rules={rules['masterHost.ip']}>
-            <db-input
-              model-value={domains.value[index]?.masterHost.ip}
-              placeholder={t('请输入或选择')}
-              onChange={(value: string) => handleHostIpChange(value, index)}>
-              {{
-                suffix: () => (
-                  <bk-button
-                    class='mr-8'
-                    text
-                    onClick={() => handleInstancesSelectorShow(index)}>
-                    <db-icon
-                      v-bk-tooltips={t('选择主机')}
-                      type='host-select'
-                    />
-                  </bk-button>
-                ),
-              }}
-            </db-input>
-          </bk-form-item>
-        ),
         width: 220,
       },
       {
-        field: 'slaveHost',
-        label: t('待部署从库主机'),
-        render: ({ index }: { index: number }) => (
+        cell: (_, { rowIndex }) => (
           <bk-form-item
-            key={index}
+            key={rowIndex}
             class='cell-item'
             errorDisplayType='tooltips'
             label-width={0}
-            property={`details.infos.${index}.slaveHost.ip`}
+            property={`details.infos.${rowIndex}.slaveHost.ip`}
             rules={rules['slaveHost.ip']}>
             <db-input
-              model-value={domains.value[index]?.slaveHost.ip}
+              model-value={domains.value[rowIndex]?.slaveHost.ip}
               placeholder={t('选择主库主机后自动生成')}
               readonly
             />
           </bk-form-item>
         ),
+        colKey: 'slaveHost',
+        title: t('待部署从库主机'),
         width: 220,
       },
     ];
@@ -519,15 +521,15 @@
 
     return strategy({
       clusterName,
+      clusterType: ClusterTypes.REDIS_INSTANCE,
       dbAppAbbr: props.appAbbr,
-      moduleName: '',
     });
   };
 </script>
 
 <style lang="less">
   .domain-table {
-    .bk-table {
+    .t-table {
       .bk-form-content {
         margin-left: 0 !important;
       }

@@ -7,26 +7,19 @@
       clearable
       @clear="handleSearch"
       @enter="handleSearch" />
-    <BkTable
-      border="none"
+    <PrimaryTable
       class="table-main"
       :data="tableData"
-      header-row-class-name="my-collect-table-header-row"
       height="100%"
       row-class-name="my-collect-table-row-class"
-      :row-config="{
-        keyField: 'name',
-      }"
-      :sort-config="{
-        sortMethod: handleSort,
-      }"
+      row-key="name"
       @cell-click="handleCellClick">
-      <BkTableColumn
-        field="name"
-        :label="t('名称')"
+      <TableColumn
+        col-key="name"
         :min-width="200"
-        sortable>
-        <template #default="{ data, rowIndex }: { data: IDataRow; rowIndex: number }">
+        :sorter="handleSort"
+        :title="t('名称')">
+        <template #default="{ row: data, rowIndex }: { row: IDataRow; rowIndex: number }">
           <div class="my-collect-name-main">
             <div class="icon-main">
               <DbIcon
@@ -43,9 +36,10 @@
             <div class="name-display">{{ data.name }}</div>
           </div>
         </template>
-      </BkTableColumn>
-      <BkTableColumn
-        :label="t('操作')"
+      </TableColumn>
+      <TableColumn
+        col-key="operation"
+        :title="t('操作')"
         :width="120">
         <template #default="{ rowIndex }: { rowIndex: number }">
           <BkPopConfirm
@@ -87,12 +81,13 @@
             </BkButton>
           </BkPopConfirm>
         </template>
-      </BkTableColumn>
-    </BkTable>
+      </TableColumn>
+    </PrimaryTable>
   </div>
 </template>
 <script setup lang="ts">
   import _ from 'lodash';
+  import type { TableRowData } from 'tdesign-vue-next';
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
@@ -153,7 +148,7 @@
     },
   );
 
-  const handleCellClick = (data: { row: IDataRow }) => {
+  const handleCellClick = (data: { row: TableRowData }) => {
     emits('chooseSql', data.row.sql);
   };
 
@@ -201,16 +196,7 @@
     handleUpdateProfile(tableData.value);
   };
 
-  const handleSort = (data: {
-    data: IDataRow[];
-    sortList: {
-      field: string;
-      order: 'desc' | 'asc';
-    }[];
-  }) => {
-    const { order } = data.sortList[0];
-    return data.data.sort((a, b) => (order === 'desc' ? b.name.localeCompare(a.name) : a.name.localeCompare(b.name)));
-  };
+  const handleSort = (a: TableRowData, b: TableRowData) => a.name.localeCompare(b.name);
 
   const handleUpdateProfile = (data: IDataRow[]) => {
     updateProfile({
@@ -268,70 +254,50 @@
     .table-main {
       height: calc(100% - 48px);
 
-      :deep(.vxe-table--body-wrapper) {
+      :deep(.t-table__content) {
         background-color: #282829 !important;
-      }
 
-      :deep(.vxe-table--scroll-y-virtual) {
-        visibility: visible;
-
-        &::before {
-          border: none;
-        }
-
-        .vxe-table--scroll-y-top-corner {
-          background-color: #282829;
-          border-bottom: none;
-        }
-
-        .vxe-table--scroll-y-handle {
-          background-color: #282829;
+        &::-webkit-scrollbar {
+          width: 6px;
+          height: 6px;
+          background: #282829;
+          border-radius: 3px;
 
           &:hover {
-            &::-webkit-scrollbar {
-              width: 10px;
-              height: 10px;
-              border-radius: 5px;
-              opacity: 68%;
-            }
+            width: 10px;
+            height: 10px;
+            border-radius: 5px;
           }
+        }
 
-          &::-webkit-scrollbar {
-            width: 6px;
-            height: 6px;
-            background: #f0f5ff;
-            border-radius: 3px;
-            opacity: 40%;
+        &::-webkit-scrollbar-thumb {
+          background: #f0f5ff;
+          border-radius: 3px;
+          opacity: 40%;
+        }
 
-            &:hover {
-              width: 10px;
-              height: 10px;
-              border-radius: 5px;
-              opacity: 68%;
-            }
-          }
-
-          &::-webkit-scrollbar-track {
-            background: #282829;
-          }
+        &::-webkit-scrollbar-track {
+          background: #282829;
         }
       }
     }
   }
 </style>
 <style lang="less">
-  .my-collect-table-header-row {
-    .vxe-header--column {
-      background-color: #3d3d3d;
-      background-image: none !important;
+  .table-main {
+    .t-table__header {
+      th {
+        background-color: #3d3d3d;
+        background-image: none !important;
 
-      &:hover {
-        background-color: #474747 !important;
+        &:hover {
+          background-color: #474747 !important;
+        }
       }
-    }
 
-    .vxe-cell--title {
-      color: #eaebf0;
+      .t-table__cell--title {
+        color: #eaebf0;
+      }
     }
   }
 
@@ -351,12 +317,9 @@
       }
     }
 
-    .vxe-body--column {
+    td {
+      color: #c4c6cc;
       border-bottom: solid 1px #3d3d3d;
-
-      .vxe-cell {
-        color: #c4c6cc;
-      }
     }
   }
 

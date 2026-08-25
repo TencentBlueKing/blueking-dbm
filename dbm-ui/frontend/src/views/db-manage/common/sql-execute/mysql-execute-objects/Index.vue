@@ -32,32 +32,33 @@
           type="add" />
         <span>{{ t('添加') }}</span>
       </BkButton>
-      <BkTable
+      <PrimaryTable
         v-if="modelValue.length > 0"
         :key="renderKey"
         class="mt-16"
-        :data="modelValue">
-        <BkTableColumn
-          field="dbnames"
-          :label="t('变更 DB')"
-          :min-width="200">
-          <template #default="{ data }: {data: ExcuteObject}">
+        :data="modelValue"
+        row-key="index">
+        <TableColumn
+          col-key="dbnames"
+          :min-width="200"
+          :title="t('变更 DB')">
+          <template #default="{ row: data }: {row: ExcuteObject}">
             <TagBlock :data="data.dbnames" />
           </template>
-        </BkTableColumn>
-        <BkTableColumn
-          field="ignore_dbnames"
-          :label="t('忽略 DB')"
-          :min-width="200">
-          <template #default="{ data }: {data: ExcuteObject}">
+        </TableColumn>
+        <TableColumn
+          col-key="ignore_dbnames"
+          :min-width="200"
+          :title="t('忽略 DB')">
+          <template #default="{ row: data }: {row: ExcuteObject}">
             <TagBlock :data="data.ignore_dbnames" />
           </template>
-        </BkTableColumn>
-        <BkTableColumn
-          field="sql_files"
-          :label="t('执行的 SQL')"
+        </TableColumn>
+        <TableColumn
+          col-key="sql_files"
+          :title="t('执行的 SQL')"
           width="300">
-          <template #default="{ data, rowIndex }: {data: ExcuteObject, rowIndex: number}">
+          <template #default="{ row: data, rowIndex }: {row: ExcuteObject, rowIndex: number}">
             <BkButton
               v-if="data.sql_files"
               text
@@ -74,12 +75,12 @@
               </template>
             </BkButton>
           </template>
-        </BkTableColumn>
-        <BkTableColumn
-          field=""
-          :label="t('操作')"
+        </TableColumn>
+        <TableColumn
+          col-key="operation"
+          :title="t('操作')"
           width="100">
-          <template #default="{ data, rowIndex }: {data: ExcuteObject, rowIndex: number}">
+          <template #default="{ row: data, rowIndex }: {row: ExcuteObject, rowIndex: number}">
             <BkButton
               text
               theme="primary"
@@ -94,8 +95,8 @@
               {{ t('删除') }}
             </BkButton>
           </template>
-        </BkTableColumn>
-      </BkTable>
+        </TableColumn>
+      </PrimaryTable>
     </DbFormItem>
     <DbSideslider
       v-model:is-show="isShowSideSlider"

@@ -24,27 +24,25 @@
     </div>
     <DbTable
       ref="tableRef"
+      :bk-ui-settings="settings"
       :data-source="getOracleHaInstanceList"
       releate-url-query
-      :row-class="setRowClass"
-      :settings="settings"
-      show-settings
-      @clear-search="clearSearchValue"
-      @column-filter="columnFilterChange"
-      @column-sort="columnSortChange"
-      @setting-change="updateTableSettings">
-      <BkTableColumn
-        field="id"
+      :row-class-name="setRowClass"
+      row-key="id"
+      @bk-ui-settings-change="updateTableSettings"
+      @clear-search="clearSearchValue">
+      <TableColumn
+        col-key="id"
         fixed="left"
-        label="ID"
+        title="ID"
         :width="80">
-      </BkTableColumn>
-      <BkTableColumn
-        field="instance_address"
+      </TableColumn>
+      <TableColumn
+        col-key="instance_address"
         fixed="left"
-        :label="t('实例')"
-        :min-width="200">
-        <template #default="{ data }: { data: OraclehaInstanceModel }">
+        :min-width="200"
+        :title="t('实例')">
+        <template #default="{ row: data }: { row: OraclehaInstanceModel }">
           <TextOverflowLayout>
             <AuthButton
               action-id="oracle_view"
@@ -66,33 +64,33 @@
             </template>
           </TextOverflowLayout>
         </template>
-      </BkTableColumn>
-      <BkTableColumn
-        field="status"
-        :label="t('状态')"
+      </TableColumn>
+      <TableColumn
+        col-key="status"
+        :title="t('状态')"
         :width="140">
-        <template #default="{ data }: { data: OraclehaInstanceModel }">
-          <DbStatus :theme="data.statusInfo.theme">{{ data.statusInfo.text }}</DbStatus>
+        <template #default="{ row: data }: { row: OraclehaInstanceModel }">
+          <ClusterInstanceStatus :data="data.status" />
         </template>
-      </BkTableColumn>
-      <BkTableColumn
-        field="role"
-        :label="t('部署角色')"
+      </TableColumn>
+      <TableColumn
+        col-key="role"
+        :title="t('部署角色')"
         :width="140">
-      </BkTableColumn>
-      <BkTableColumn
-        field="bk_sub_zone"
-        :label="t('所在园区')"
+      </TableColumn>
+      <TableColumn
+        col-key="bk_sub_zone"
+        :title="t('所在园区')"
         :width="140">
-        <template #default="{ data }: { data: OraclehaInstanceModel }">
+        <template #default="{ row: data }: { row: OraclehaInstanceModel }">
           {{ data.bk_sub_zone || '--' }}
         </template>
-      </BkTableColumn>
-      <BkTableColumn
-        field="master_domain"
-        :label="t('所属集群')"
-        :min-width="250">
-        <template #default="{ data }: { data: OraclehaInstanceModel }">
+      </TableColumn>
+      <TableColumn
+        col-key="master_domain"
+        :min-width="250"
+        :title="t('所属集群')">
+        <template #default="{ row: data }: { row: OraclehaInstanceModel }">
           <TextOverflowLayout>
             {{ data.master_domain }}
             <template #append>
@@ -104,12 +102,12 @@
             </template>
           </TextOverflowLayout>
         </template>
-      </BkTableColumn>
-      <BkTableColumn
-        field="cluster_name"
-        :label="t('集群名称')"
-        :min-width="180">
-        <template #default="{ data }: { data: OraclehaInstanceModel }">
+      </TableColumn>
+      <TableColumn
+        col-key="cluster_name"
+        :min-width="180"
+        :title="t('集群名称')">
+        <template #default="{ row: data }: { row: OraclehaInstanceModel }">
           <TextOverflowLayout>
             <AuthButton
               action-id="oracle_view"
@@ -129,21 +127,22 @@
             </template>
           </TextOverflowLayout>
         </template>
-      </BkTableColumn>
-      <BkTableColumn
-        field="create_at"
-        :label="t('部署时间')"
+      </TableColumn>
+      <TableColumn
+        col-key="create_at"
+        :title="t('部署时间')"
         :width="240">
-        <template #default="{ data }: { data: OraclehaInstanceModel }">
+        <template #default="{ row: data }: { row: OraclehaInstanceModel }">
           {{ data.createAtDisplay || '--' }}
         </template>
-      </BkTableColumn>
-      <BkTableColumn
+      </TableColumn>
+      <TableColumn
         v-if="!isStretchLayoutOpen"
+        col-key="row-operation"
         fixed="right"
-        :label="t('操作')"
+        :title="t('操作')"
         :width="100">
-        <template #default="{ data }: { data: OraclehaInstanceModel }">
+        <template #default="{ row: data }: { row: OraclehaInstanceModel }">
           <AuthButton
             action-id="oracle_view"
             :permission="data.permission.oracle_view"
@@ -154,7 +153,7 @@
             {{ t('查看详情') }}
           </AuthButton>
         </template>
-      </BkTableColumn>
+      </TableColumn>
     </DbTable>
   </div>
 </template>
@@ -169,7 +168,8 @@
 
   import { ClusterTypes, UserPersonalSettings } from '@common/const';
 
-  import DbStatus from '@components/db-status/index.vue';
+  import ClusterInstanceStatus from '@components/cluster-instance-status/Index.vue';
+  import DbTable from '@components/db-table/IndexNew.vue';
   import TextOverflowLayout from '@components/text-overflow-layout/Index.vue';
 
   import { execCopy, getSearchSelectorParams } from '@utils';
@@ -179,7 +179,7 @@
   let isInit = true;
   const fetchData = (loading?: boolean) => {
     const params = getSearchSelectorParams(searchValue.value);
-    tableRef.value.fetchData(params, { ...sortValue }, loading);
+    tableRef.value.fetchData(params, loading);
     isInit = false;
   };
 
@@ -191,12 +191,9 @@
     clearSearchValue,
     // columnAttrs,
     // columnCheckedMap,
-    columnFilterChange,
-    columnSortChange,
     handleSearchValueChange,
     searchAttrs,
     searchValue,
-    sortValue,
     validateSearchValues,
   } = useLinkQueryColumnSerach({
     attrs: ['role'],
@@ -258,7 +255,7 @@
   const tableRef = ref();
 
   // 设置行样式
-  const setRowClass = (row: OraclehaInstanceModel) => {
+  const setRowClass = ({ row }: { row: OraclehaInstanceModel }) => {
     const classList = [row.isNew ? 'is-new-row' : ''];
 
     if (
@@ -309,7 +306,7 @@
     margin: 0 24px;
     overflow: hidden;
 
-    .vxe-cell {
+    .t-table__cell {
       .copy-btn {
         display: none;
         margin-left: 4px;

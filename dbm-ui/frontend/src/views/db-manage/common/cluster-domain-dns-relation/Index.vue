@@ -29,17 +29,16 @@
       :width="560"
       @closed="() => (isShow = false)">
       <BkLoading :loading="loading">
-        <BkTable
-          :cell-class="generateCellClass"
+        <PrimaryTable
           class="entry-config-table-box"
           :data="tableData"
           :max-height="450"
-          :show-overflow="false">
-          <BkTableColumn
-            field="entry"
-            :label="t('访问入口')"
+          row-key="entry">
+          <TableColumn
+            col-key="entry"
+            :title="t('访问入口')"
             :width="300">
-            <template #default="{ data: rowData }: { data: ClusterEntryInfo }">
+            <template #default="{ row: rowData }: { row: ClusterEntryInfo }">
               {{ rowData.cluster_entry_type }}
               <template v-if="['master_entry', 'proxy_entry'].includes(rowData.role)">
                 <BkTag
@@ -77,13 +76,13 @@
               </BkTag>
               {{ rowData.entry }}
             </template>
-          </BkTableColumn>
-          <BkTableColumn
-            field="ips"
-            label="Bind IP"
+          </TableColumn>
+          <TableColumn
+            class-name="entry-config-ips-column"
+            col-key="ips"
             :min-width="200"
-            :show-overflow="false">
-            <template #default="{ data: rowData }: { data: ClusterEntryInfo }">
+            title="Bind IP">
+            <template #default="{ row: rowData }: { row: ClusterEntryInfo }">
               <RenderBindIps
                 v-if="rowData.ips"
                 :cluster-data="data"
@@ -91,8 +90,8 @@
                 @success="handleSuccess" />
               <span v-if="!rowData.ips">--</span>
             </template>
-          </BkTableColumn>
-        </BkTable>
+          </TableColumn>
+        </PrimaryTable>
       </BkLoading>
     </BkDialog>
   </span>
@@ -177,8 +176,6 @@
   const { isSuperuser } = useUserProfile();
 
   const isShowButton = computed(() => isBizComponentDba.value || isSuperuser);
-
-  const generateCellClass = (cell: { field: string }) => (cell.field === 'ips' ? 'entry-config-ips-column' : '');
 
   const tableData = ref<ClusterEntryInfo[]>([]);
 

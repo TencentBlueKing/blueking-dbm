@@ -295,11 +295,11 @@
           border-radius: 2px;
         }
 
-        .cell-privilege:has(.vxe-cell .add) {
+        .cell-privilege:has(.add) {
           background-color: #f2fff4;
         }
 
-        .cell-privilege:has(.vxe-cell .delete) {
+        .cell-privilege:has(.delete) {
           color: #f8b4b4;
           text-decoration: line-through;
           background-color: #ffeeeee6;

@@ -15,12 +15,132 @@
   </div>
   <DbTable
     ref="tableRef"
-    :columns="tableColumns"
     :data-source="queryFixpointLog"
     :disable-select-method="disableSelectMethodCallback"
-    primary-key="target_cluster.cluster_id"
+    row-key="target_cluster.cluster_id"
     selectable
-    @selection="handleSelectionChange" />
+    @selection="handleSelectionChange">
+    <TableColumn
+      col-key="source_cluster"
+      :title="t('源集群')"
+      :width="200">
+      <template #default="{ row }: { row: FixpointLogModel }">
+        {{ row.source_cluster.immute_domain }}
+      </template>
+    </TableColumn>
+    <TableColumn
+      col-key="ip"
+      :min-width="200"
+      :title="t('构造主机')">
+      <template #default="{ row }: { row: FixpointLogModel }">
+        {{ row.ipText || '--' }}
+      </template>
+    </TableColumn>
+    <TableColumn
+      col-key="rollback_type"
+      :min-width="200"
+      :title="t('回档类型')">
+      <template #default="{ row }: { row: FixpointLogModel }">
+        {{ row.rollbackTypeText }}
+      </template>
+    </TableColumn>
+    <TableColumn
+      col-key="databases"
+      :min-width="100"
+      :title="t('构造 DB 名')">
+      <template #default="{ row }: { row: FixpointLogModel }">
+        <template v-if="row.databases.length > 0">
+          <BkTag
+            v-for="item in row.databases"
+            :key="item">
+            {{ item }}
+          </BkTag>
+        </template>
+        <span v-else>--</span>
+      </template>
+    </TableColumn>
+    <TableColumn
+      col-key="databases_ignore"
+      :min-width="100"
+      :title="t('忽略 DB 名')">
+      <template #default="{ row }: { row: FixpointLogModel }">
+        <template v-if="row.databases_ignore.length > 0">
+          <BkTag
+            v-for="item in row.databases_ignore"
+            :key="item">
+            {{ item }}
+          </BkTag>
+        </template>
+        <span v-else>--</span>
+      </template>
+    </TableColumn>
+    <TableColumn
+      col-key="tables"
+      :min-width="100"
+      :title="t('构造表名')">
+      <template #default="{ row }: { row: FixpointLogModel }">
+        <template v-if="row.tables.length > 0">
+          <BkTag
+            v-for="item in row.tables"
+            :key="item">
+            {{ item }}
+          </BkTag>
+        </template>
+        <span v-else>--</span>
+      </template>
+    </TableColumn>
+    <TableColumn
+      col-key="tables_ignore"
+      :min-width="100"
+      :title="t('忽略表名')">
+      <template #default="{ row }: { row: FixpointLogModel }">
+        <template v-if="row.tables_ignore.length > 0">
+          <BkTag
+            v-for="item in row.tables_ignore"
+            :key="item">
+            {{ item }}
+          </BkTag>
+        </template>
+        <span v-else>--</span>
+      </template>
+    </TableColumn>
+    <TableColumn
+      col-key="ticket_id"
+      :title="t('关联单据')"
+      :width="90">
+      <template #default="{ row }: { row: FixpointLogModel }">
+        <RouterLink
+          target="_blank"
+          :to="{
+            name: 'bizTicketManage',
+            params: {
+              ticketId: row.ticket_id,
+            },
+          }">
+          {{ row.ticket_id }}
+        </RouterLink>
+      </template>
+    </TableColumn>
+    <TableColumn
+      col-key="operation"
+      fixed="right"
+      :title="t('操作')"
+      :width="100">
+      <template #default="{ row }: { row: FixpointLogModel }">
+        <DbPopconfirm
+          :confirm-handler="() => handleDestroy(row)"
+          :content="t('移除后将不可恢复')"
+          :title="t('确认销毁选中的实例')">
+          <BkButton
+            :disabled="!row.isDestoryEnable"
+            text
+            theme="primary">
+            {{ t('销毁') }}
+          </BkButton>
+        </DbPopconfirm>
+      </template>
+    </TableColumn>
+  </DbTable>
 </template>
 <script setup lang="tsx">
   import { onMounted, ref } from 'vue';
@@ -36,6 +156,8 @@
 
   import { TicketTypes } from '@common/const';
 
+  import DbTable from '@components/db-table/IndexNew.vue';
+
   const { t } = useI18n();
   const router = useRouter();
   const { currentBizId } = useGlobalBizs();
@@ -43,122 +165,6 @@
 
   const tableRef = ref();
   const selectionList = ref<string[]>([]);
-
-  const tableColumns = [
-    {
-      label: t('源集群'),
-      render: ({ data }: { data: FixpointLogModel }) => data.source_cluster.immute_domain,
-      showOverflowTooltip: true,
-      width: 200,
-    },
-    {
-      label: t('构造主机'),
-      minWidth: 200,
-      render: ({ data }: { data: FixpointLogModel }) => data.ipText || '--',
-      showOverflowTooltip: true,
-    },
-    {
-      label: t('回档类型'),
-      minWidth: 200,
-      render: ({ data }: { data: FixpointLogModel }) => data.rollbackTypeText,
-      showOverflowTooltip: true,
-    },
-    {
-      label: t('构造 DB 名'),
-      minWidth: 100,
-      render: ({ data }: { data: FixpointLogModel }) =>
-        data.databases.length < 1 ? (
-          '--'
-        ) : (
-          <>
-            {data.databases.map((item) => (
-              <bk-tag>{item}</bk-tag>
-            ))}
-          </>
-        ),
-      showOverflowTooltip: true,
-    },
-    {
-      label: t('忽略 DB 名'),
-      minWidth: 100,
-      render: ({ data }: { data: FixpointLogModel }) =>
-        data.databases_ignore.length < 1 ? (
-          '--'
-        ) : (
-          <>
-            {data.databases_ignore.map((item) => (
-              <bk-tag>{item}</bk-tag>
-            ))}
-          </>
-        ),
-      showOverflowTooltip: true,
-    },
-    {
-      label: t('构造表名'),
-      minWidth: 100,
-      render: ({ data }: { data: FixpointLogModel }) =>
-        data.tables.length < 1 ? (
-          '--'
-        ) : (
-          <>
-            {data.tables.map((item) => (
-              <bk-tag>{item}</bk-tag>
-            ))}
-          </>
-        ),
-      showOverflowTooltip: true,
-    },
-    {
-      label: t('忽略表名'),
-      minWidth: 100,
-      render: ({ data }: { data: FixpointLogModel }) =>
-        data.tables_ignore.length < 1 ? (
-          '--'
-        ) : (
-          <>
-            {data.tables_ignore.map((item) => (
-              <bk-tag>{item}</bk-tag>
-            ))}
-          </>
-        ),
-      showOverflowTooltip: true,
-    },
-    {
-      label: t('关联单据'),
-      render: ({ data }: { data: FixpointLogModel }) => (
-        <router-link
-          target='_blank'
-          to={{
-            name: 'bizTicketManage',
-            params: {
-              ticketId: data.ticket_id,
-            },
-          }}>
-          {data.ticket_id}
-        </router-link>
-      ),
-      showOverflowTooltip: true,
-      width: 90,
-    },
-    {
-      fixed: 'right',
-      label: t('操作'),
-      render: ({ data }: { data: FixpointLogModel }) => (
-        <db-popconfirm
-          confirm-handler={() => handleDestroy(data)}
-          content={t('移除后将不可恢复')}
-          title={t('确认销毁选中的实例')}>
-          <bk-button
-            disabled={!data.isDestoryEnable}
-            text
-            theme='primary'>
-            {t('销毁')}
-          </bk-button>
-        </db-popconfirm>
-      ),
-      width: 100,
-    },
-  ];
 
   const fetchData = () => {
     tableRef.value.fetchData();

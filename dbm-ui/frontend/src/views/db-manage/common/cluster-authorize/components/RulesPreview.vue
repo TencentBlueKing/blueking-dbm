@@ -22,13 +22,15 @@
     :title="t('预览权限')"
     :width="1200"
     @closed="handleClose">
-    <BkTable
+    <PrimaryTable
       class="preview-privilege-table"
-      :data="tableData">
-      <BkTableColumn
-        :label="t('访问源')"
+      :data="tableData"
+      row-key="account">
+      <TableColumn
+        col-key="ips"
+        :title="t('访问源')"
         :width="150">
-        <template #default="{ data: rowData }: { data: IDataRow }">
+        <template #default="{ row: rowData }: { row: IDataRow }">
           <div>
             <p
               v-for="(ip, index) in showAllIp ? rowData.ips : rowData.ips.slice(0, 10)"
@@ -53,11 +55,12 @@
             </BkButton>
           </div>
         </template>
-      </BkTableColumn>
-      <BkTableColumn
-        :label="t('集群域名')"
+      </TableColumn>
+      <TableColumn
+        col-key="clusterDomains"
+        :title="t('集群域名')"
         :width="250">
-        <template #default="{ data: rowData }: { data: IDataRow }">
+        <template #default="{ row: rowData }: { row: IDataRow }">
           <div class="cell-cluster">
             <p
               v-for="(item, index) in rowData.clusterDomains"
@@ -70,15 +73,16 @@
             </p>
           </div>
         </template>
-      </BkTableColumn>
-      <BkTableColumn
-        :label="t('账号')"
-        prop="account"
+      </TableColumn>
+      <TableColumn
+        col-key="account"
+        :title="t('账号')"
         :width="150" />
-      <BkTableColumn
-        :label="t('访问DB')"
+      <TableColumn
+        col-key="accessDbs"
+        :title="t('访问DB')"
         :width="150">
-        <template #default="{ data: rowData }: { data: IDataRow }">
+        <template #default="{ row: rowData }: { row: IDataRow }">
           <div>
             <p
               v-for="item in showAllDb ? rowData.accessDbs : rowData.accessDbs.slice(0, 10)"
@@ -102,11 +106,12 @@
             </BkButton>
           </div>
         </template>
-      </BkTableColumn>
-      <BkTableColumn
-        :label="t('权限')"
+      </TableColumn>
+      <TableColumn
+        col-key="privilege"
+        :title="t('权限')"
         :width="350">
-        <template #default="{ data: rowData }: { data: IDataRow }">
+        <template #default="{ row: rowData }: { row: IDataRow }">
           <div
             v-for="(privilege, key) in rowData.privilege"
             :key="`${rowData.account}#${key}`">
@@ -131,8 +136,8 @@
             </div>
           </div>
         </template>
-      </BkTableColumn>
-    </BkTable>
+      </TableColumn>
+    </PrimaryTable>
     <template #footer>
       <BkButton @click="handleClose">{{ t('关闭') }}</BkButton>
     </template>
@@ -231,7 +236,7 @@
 
 <style lang="less" scoped>
   .preview-privilege-table {
-    :deep(.cell) {
+    :deep(td) {
       padding: 4px 16px !important;
       line-height: 20px !important;
 

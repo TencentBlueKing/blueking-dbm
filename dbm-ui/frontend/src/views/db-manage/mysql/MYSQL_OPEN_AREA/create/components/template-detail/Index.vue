@@ -23,18 +23,23 @@
       <BkCollapsePanel name="clone-rule">
         <span>{{ t('克隆的规则') }}</span>
         <template #content>
-          <BkTable
+          <PrimaryTable
             class="template-detail-table"
-            :data="data.config_rules">
-            <BkTableColumn
-              field="source_db"
-              :label="t('克隆 DB')" />
-            <BkTableColumn :label="t('克隆表结构')">
+            :data="data.config_rules"
+            row-key="source_db">
+            <TableColumn
+              col-key="source_db"
+              :title="t('克隆 DB')" />
+            <TableColumn
+              col-key="schema_tblist"
+              :title="t('克隆表结构')">
               <template #default>
                 {{ t('所有表') }}
               </template>
-            </BkTableColumn>
-            <BkTableColumn :label="t('克隆表数据')">
+            </TableColumn>
+            <TableColumn
+              col-key="data_tblist"
+              :title="t('克隆表数据')">
               <template #default="{ row }:{ row: OpenareaTemplateModel['config_rules'][0] }">
                 <span v-if="!row.data_tblist.length">--</span>
                 <BkTag
@@ -44,24 +49,24 @@
                   {{ item }}
                 </BkTag>
               </template>
-            </BkTableColumn>
-            <BkTableColumn
-              field="target_db_pattern"
-              :label="t('生成目标 DB 范式')" />
-          </BkTable>
+            </TableColumn>
+            <TableColumn
+              col-key="target_db_pattern"
+              :title="t('生成目标 DB 范式')" />
+          </PrimaryTable>
         </template>
       </BkCollapsePanel>
       <BkCollapsePanel name="permission-rule">
         <span>{{ t('权限规则') }}</span>
         <template #content>
           <BkLoading :loading="loading">
-            <BkTable
+            <PrimaryTable
               class="template-detail-permission-table"
-              :data="tableData">
-              <BkTableColumn
-                field="user"
-                :label="t('账号名称')"
-                :show-overflow="false"
+              :data="tableData"
+              row-key="account.account_id">
+              <TableColumn
+                col-key="user"
+                :title="t('账号名称')"
                 :width="220">
                 <template #default="{ row }: { row: MysqlPermissionAccountModel }">
                   <DbIcon
@@ -74,10 +79,10 @@
                     @click="() => handleToogleExpand(row.account.user)" />
                   <span style="font-weight: 700">{{ row.account.user }}</span>
                 </template>
-              </BkTableColumn>
-              <BkTableColumn
-                field="access_db"
-                :label="t('访问DB')"
+              </TableColumn>
+              <TableColumn
+                col-key="access_db"
+                :title="t('访问DB')"
                 :width="300">
                 <template #default="{ row }: { row: MysqlPermissionAccountModel }">
                   <BkTag
@@ -86,11 +91,10 @@
                     {{ item.access_db }}
                   </BkTag>
                 </template>
-              </BkTableColumn>
-              <BkTableColumn
-                field="privilege"
-                :label="t('权限')"
-                :show-overflow="false"
+              </TableColumn>
+              <TableColumn
+                col-key="privilege"
+                :title="t('权限')"
                 :width="300">
                 <template #default="{ row }: { row: MysqlPermissionAccountModel }">
                   <span v-if="!row.rules.length">--</span>
@@ -101,8 +105,8 @@
                     {{ item.privilege }}
                   </TextOverflowLayout>
                 </template>
-              </BkTableColumn>
-            </BkTable>
+              </TableColumn>
+            </PrimaryTable>
           </BkLoading>
         </template>
       </BkCollapsePanel>
