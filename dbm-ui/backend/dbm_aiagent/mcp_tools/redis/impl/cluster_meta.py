@@ -93,9 +93,11 @@ def get_machine_stats(all_machine_ids) -> Dict:
         if machine.bk_os_name:
             machine_distribution["by_os"][machine.bk_os_name] += 1
 
-        # 设备类型分布
-        if machine.bk_svr_device_cls_name:
-            machine_distribution["by_device_class"][machine.bk_svr_device_cls_name] += 1
+        # 机型分布（来自 spec_config.device_class，格式为列表）
+        device_classes = (machine.spec_config or {}).get("device_class") or []
+        for dc in device_classes:
+            if dc:
+                machine_distribution["by_device_class"][dc] += 1
 
         # 规格统计
         if machine.spec_id:
@@ -140,7 +142,7 @@ def cluster_proxy_overview(immute_domain: str) -> Dict:
     proxy_stats = {
         "by_status": defaultdict(int),
         "by_machine_type": defaultdict(int),
-        "versions": set(),
+        "versions": defaultdict(int),
         "machines": set(),
     }
 
@@ -148,14 +150,15 @@ def cluster_proxy_overview(immute_domain: str) -> Dict:
         proxy_stats["by_status"][instance.status] += 1
         proxy_stats["by_machine_type"][instance.machine_type] += 1
         if instance.version:
-            proxy_stats["versions"].add(instance.version)
+            proxy_stats["versions"][instance.version] += 1
         proxy_stats["machines"].add(instance.machine.bk_host_id)
 
     proxy_machines = get_machine_stats(proxy_stats["machines"])
     stats = {
         "node_count": proxy_instances.count(),
         "by_status": dict(sorted(proxy_stats["by_status"].items())),
-        "versions": sorted(list(proxy_stats["versions"])),
+        "by_version": dict(sorted(proxy_stats["versions"].items())),
+        "by_machine_type": dict(sorted(proxy_stats["by_machine_type"].items())),
         "machine_count": len(proxy_stats["machines"]),
         "by_os": dict(sorted(proxy_machines["by_os"].items())),
         "by_sub_zone": dict(sorted(proxy_machines["by_sub_zone"].items())),
@@ -179,7 +182,7 @@ def cluster_redis_overview(immute_domain: str, role: str) -> Dict:
         "by_role": defaultdict(int),
         "by_status": defaultdict(int),
         "by_machine_type": defaultdict(int),
-        "versions": set(),
+        "versions": defaultdict(int),
         "machines": set(),
     }
 
@@ -188,7 +191,7 @@ def cluster_redis_overview(immute_domain: str, role: str) -> Dict:
         storage_stats["by_status"][instance.status] += 1
         storage_stats["by_machine_type"][instance.machine_type] += 1
         if instance.version:
-            storage_stats["versions"].add(instance.version)
+            storage_stats["versions"][instance.version] += 1
         storage_stats["machines"].add(instance.machine.bk_host_id)
 
     storage_machines = get_machine_stats(storage_stats["machines"])
@@ -196,7 +199,8 @@ def cluster_redis_overview(immute_domain: str, role: str) -> Dict:
     stats = {
         "node_count": storage_instances.count(),
         "by_status": dict(sorted(storage_stats["by_status"].items())),
-        "versions": sorted(list(storage_stats["versions"])),
+        "by_version": dict(sorted(storage_stats["versions"].items())),
+        "by_machine_type": dict(sorted(storage_stats["by_machine_type"].items())),
         "machine_count": len(storage_stats["machines"]),
         "by_os": dict(sorted(storage_machines["by_os"].items())),
         "by_sub_zone": dict(sorted(storage_machines["by_sub_zone"].items())),
