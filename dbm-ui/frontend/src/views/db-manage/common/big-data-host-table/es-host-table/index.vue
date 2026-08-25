@@ -69,16 +69,157 @@
         <BkLoading
           v-show="isShowTable"
           :loading="isLoading">
-          <DbOriginalTable
-            :columns="columns"
-            :data="serachList"
-            :is-searching="!!searchKey"
-            :pagination="pagination"
-            :settings="tableSetting"
-            :thead="tableHeadOption"
-            @clear-search="handleClearSearch"
-            @page-limit-change="handlePaginationLimitChange"
-            @page-value-change="handlePaginationCurrentChange" />
+          <PrimaryTable
+            :bk-ui-settings="tableSetting"
+            :data="data"
+            row-key="host_id">
+            <TableColumn
+              col-key="host_id"
+              :title="t('主机ID')">
+              <template #default="{ row }">
+                {{ row.host_id || '--' }}
+              </template>
+            </TableColumn>
+            <TableColumn
+              col-key="ip"
+              title="IP"
+              :width="120" />
+            <TableColumn
+              col-key="instance_num"
+              :title="t('每台主机实例数')"
+              :width="150">
+              <template #title>
+                <BkPopover
+                  :is-show="isShowBatchEditPopover"
+                  placement="bottom"
+                  theme="light"
+                  trigger="manual"
+                  :width="316">
+                  <span @click="handleShowBatchEdit">
+                    {{ t('每台主机实例数') }}
+                    <i
+                      class="db-icon-bulk-edit"
+                      style="color: #3a84ff; margin-left: 5px" />
+                  </span>
+                  <template #content>
+                    <div>
+                      <div style="font-size: 16px; color: #313238; line-height: 24px">
+                        {{ t('批量设置每台主机节点数') }}
+                      </div>
+                      <BkInput
+                        v-model="batchEditValue"
+                        :min="1"
+                        style="margin: 19px 0 17px"
+                        type="number" />
+                      <div style="text-align: right">
+                        <BkButton
+                          theme="primary"
+                          @click="handleSubmitBatchEditInstanceNum">
+                          {{ t('确定') }}
+                        </BkButton>
+                        <BkButton
+                          style="margin-left: 8px"
+                          @click="handleCloseBatchEdit">
+                          {{ t('取消') }}
+                        </BkButton>
+                      </div>
+                    </div>
+                  </template>
+                </BkPopover>
+              </template>
+              <template #default="{ row }">
+                <EditHostInstance
+                  :key="row.instance_num"
+                  :model-value="row.instance_num"
+                  @change="handleInstanceNumChange($event, row)" />
+              </template>
+            </TableColumn>
+            <TableColumn
+              col-key="bk_cpu"
+              :title="t('机型')">
+              <template #default="{ row }">
+                {{ row.bk_cpu || '--' }}
+              </template>
+            </TableColumn>
+            <TableColumn
+              col-key="bk_idc_name"
+              :title="t('机房')">
+              <template #default="{ row }">
+                {{ row.bk_idc_name || '--' }}
+              </template>
+            </TableColumn>
+            <TableColumn
+              col-key="host_name"
+              :title="t('主机名称')">
+              <template #default="{ row }">
+                {{ row.host_name || '--' }}
+              </template>
+            </TableColumn>
+            <TableColumn
+              col-key="alive"
+              :title="t('Agent状态')">
+              <template #default="{ row }">
+                <DbStatus :theme="row.alive === 1 ? 'success' : 'danger'">
+                  {{ row.alive === 1 ? t('正常') : t('异常') }}
+                </DbStatus>
+              </template>
+            </TableColumn>
+            <TableColumn
+              col-key="cloud_area"
+              :title="t('管控区域')">
+              <template #default="{ row }">
+                {{ row.cloud_area.name || '--' }}
+              </template>
+            </TableColumn>
+            <TableColumn
+              col-key="os_name"
+              :title="t('OS名称')">
+              <template #default="{ row }">
+                {{ row.os_name || '--' }}
+              </template>
+            </TableColumn>
+            <TableColumn
+              col-key="os_type"
+              :title="t('OS类型')">
+              <template #default="{ row }">
+                {{ row.os_type || '--' }}
+              </template>
+            </TableColumn>
+            <TableColumn
+              col-key="agent_id"
+              title="Agent ID">
+              <template #default="{ row }">
+                {{ row.agent_id || '--' }}
+              </template>
+            </TableColumn>
+            <TableColumn
+              col-key="row-operation"
+              :title="t('操作')"
+              :width="100">
+              <template #default="{ row }">
+                <BkButton
+                  text
+                  theme="primary"
+                  @click="handleRemove(row)">
+                  {{ t('删除') }}
+                </BkButton>
+              </template>
+            </TableColumn>
+            <template #empty>
+              <EmptyStatus
+                :is-anomalies="false"
+                :is-searching="!!searchKey"
+                @clear-search="handleClearSearch" />
+            </template>
+          </PrimaryTable>
+          <div class="table-footer">
+            <BkPagination
+              v-bind="pagination"
+              :layout="['total', 'limit', 'list']"
+              :model-value="pagination.current"
+              @change="handlePaginationCurrentChange"
+              @limit-change="handlePaginationLimitChange" />
+          </div>
         </BkLoading>
       </Transition>
     </div>
@@ -104,6 +245,7 @@
   import { ref, shallowRef, watch } from 'vue';
 
   import DbStatus from '@components/db-status/index.vue';
+  import EmptyStatus from '@components/empty-status/EmptyStatus.vue';
 
   import { execCopy, messageWarn } from '@utils';
 
@@ -124,140 +266,6 @@
   const localTableData = shallowRef<Array<IHostTableDataWithInstance>>([]);
   const isShowBatchEditPopover = ref(false);
 
-  const columns = [
-    {
-      field: 'host_id',
-      label: t('主机ID'),
-      render: ({ data }: { data: IHostTableDataWithInstance }) => data.host_id || '--',
-    },
-    {
-      field: 'ip',
-      label: 'IP',
-      render: ({ data }: { data: HostInfo }) => data.ip,
-      width: 120,
-    },
-    {
-      label: t('每台主机实例数'),
-      render: ({ data }: { data: IHostTableDataWithInstance }) => (
-        <EditHostInstance
-          key={data.instance_num}
-          modelValue={data.instance_num}
-          onChange={(value) => handleInstanceNumChange(value, data)}
-        />
-      ),
-      width: 150,
-    },
-    {
-      field: 'bk_cpu',
-      label: t('机型'),
-      render: ({ data }: { data: IHostTableDataWithInstance }) => data.bk_cpu || '--',
-    },
-    {
-      field: 'bk_idc_name',
-      label: t('机房'),
-      render: ({ data }: { data: IHostTableDataWithInstance }) => data.bk_idc_name || '--',
-    },
-    {
-      field: 'host_name',
-      label: t('主机名称'),
-      render: ({ data }: { data: IHostTableDataWithInstance }) => data.host_name || '--',
-    },
-    {
-      field: 'alive',
-      label: t('Agent状态'),
-      render: ({ data }: { data: IHostTableDataWithInstance }) => {
-        const info = data.alive === 1 ? { text: t('正常'), theme: 'success' } : { text: t('异常'), theme: 'danger' };
-        return <DbStatus theme={info.theme}>{info.text}</DbStatus>;
-      },
-    },
-    {
-      field: 'cloud_area',
-      label: t('管控区域'),
-      render: ({ data }: { data: IHostTableDataWithInstance }) => data.cloud_area.name || '--',
-    },
-    {
-      field: 'os_name',
-      label: t('OS名称'),
-      render: ({ data }: { data: IHostTableDataWithInstance }) => data.os_name || '--',
-    },
-    {
-      field: 'os_type',
-      label: t('OS类型'),
-      render: ({ data }: { data: IHostTableDataWithInstance }) => data.os_type || '--',
-    },
-    {
-      field: 'agent_id',
-      label: 'Agent ID',
-      render: ({ data }: { data: IHostTableDataWithInstance }) => data.agent_id || '--',
-    },
-    {
-      field: 'operation',
-      label: t('操作'),
-      render: ({ data }: { data: IHostTableDataWithInstance }) => (
-        <bk-button
-          text
-          theme='primary'
-          onClick={() => handleRemove(data)}>
-          {t('删除')}
-        </bk-button>
-      ),
-      width: 100,
-    },
-  ];
-
-  const tableHeadOption = {
-    cellFn: (data: { label: string }) => {
-      if (data.label !== t('每台主机节点数')) {
-        return data.label;
-      }
-      return (
-        <bk-popover
-          isShow={isShowBatchEditPopover.value}
-          placement='bottom'
-          theme='light'
-          trigger='manual'
-          width='316'>
-          {{
-            content: () => (
-              <div>
-                <div style='font-size: 16px; color:#313238; line-height: 24px'>{t('批量设置每台主机节点数')}</div>
-                <bk-input
-                  v-model={batchEditValue.value}
-                  min={1}
-                  style='margin: 19px 0 17px;'
-                  type='number'
-                />
-                <div style='text-align: right'>
-                  <bk-button
-                    theme='primary'
-                    onClick={handleSubmitBatchEditInstanceNum}>
-                    {t('确定')}
-                  </bk-button>
-                  <bk-button
-                    style='margin-left: 8px;'
-                    onClick={handleCloseBatchEdit}>
-                    {t('取消')}
-                  </bk-button>
-                </div>
-              </div>
-            ),
-            default: () => (
-              <span onClick={handleShowBatchEdit}>
-                {data.label}
-                <i
-                  class='db-icon-bulk-edit'
-                  style='color: #3A84FF; margin-left: 5px'
-                />
-              </span>
-            ),
-          }}
-        </bk-popover>
-      );
-    },
-    height: 40,
-    isShow: true,
-  };
-
   let isInnerChange = false;
   watch(
     () => props.data,
@@ -273,7 +281,7 @@
     },
   );
 
-  const { handlePaginationCurrentChange, handlePaginationLimitChange, pagination, searchKey, serachList } =
+  const { data, handlePaginationCurrentChange, handlePaginationLimitChange, pagination, searchKey, serachList } =
     useLocalPagination(localTableData);
 
   const handleClearSearch = () => {
@@ -446,10 +454,16 @@
       }
     }
 
-    :deep(.bk-table) {
+    :deep(.t-table__header) {
       th {
-        background-color: #f5f7fa !important;
+        background-color: #f5f7fa;
       }
+    }
+
+    .table-footer {
+      display: flex;
+      justify-content: flex-end;
+      margin-top: 12px;
     }
   }
 </style>

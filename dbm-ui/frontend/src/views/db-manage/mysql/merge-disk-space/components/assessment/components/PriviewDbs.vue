@@ -21,13 +21,14 @@
       <BkTag class="ml-10">{{ t('源集群：') }}{{ data.source }}</BkTag>
     </template>
     <div class="merge-disk-space-priview-dbs">
-      <BkTable
-        border
-        :data="tableData">
-        <BkTableColumn
-          field="clone_db_list"
-          :label="t('克隆 DB 名')"
-          :min-width="200">
+      <PrimaryTable
+        bordered
+        :data="tableData"
+        row-key="source">
+        <TableColumn
+          col-key="clone_db_list"
+          :min-width="200"
+          :title="t('克隆 DB 名')">
           <template #default="{ row }: { row: MysqlMergeDiskSpaceModel }">
             <BkTag
               v-for="dbname in row.clone_db_list"
@@ -35,11 +36,11 @@
               {{ dbname }}
             </BkTag>
           </template>
-        </BkTableColumn>
-        <BkTableColumn
-          field="ignore_db_list"
-          :label="t('忽略 DB')"
-          :min-width="200">
+        </TableColumn>
+        <TableColumn
+          col-key="ignore_db_list"
+          :min-width="200"
+          :title="t('忽略 DB')">
           <template #default="{ row }: { row: MysqlMergeDiskSpaceModel }">
             <BkTag
               v-for="dbname in row.ignore_db_list"
@@ -47,8 +48,8 @@
               {{ dbname }}
             </BkTag>
           </template>
-        </BkTableColumn>
-      </BkTable>
+        </TableColumn>
+      </PrimaryTable>
       <div class="mt-24 mb-12">
         <span class="db-list-title">{{ t('DB 列表') }}</span>
         <span class="ml-6">
@@ -57,22 +58,23 @@
           }}
         </span>
       </div>
-      <BkTable
-        border
-        :data="dbList">
-        <BkTableColumn
-          field="name"
-          :label="t('DB 名称')"
-          :min-width="200" />
-        <BkTableColumn
-          field="size"
-          :label="t('DB 大小 ( G )')"
-          :min-width="200">
+      <PrimaryTable
+        bordered
+        :data="dbList"
+        row-key="name">
+        <TableColumn
+          col-key="name"
+          :min-width="200"
+          :title="t('DB 名称')" />
+        <TableColumn
+          col-key="size"
+          :min-width="200"
+          :title="t('DB 大小 ( G )')">
           <template #default="{ row }: { row: { name: string; size: number } }">
             {{ row.size || '--' }}
           </template>
-        </BkTableColumn>
-      </BkTable>
+        </TableColumn>
+      </PrimaryTable>
     </div>
   </BkSideslider>
 </template>

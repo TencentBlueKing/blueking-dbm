@@ -96,9 +96,30 @@
       </div>
       <DbTable
         ref="tableRef"
-        :columns="columns"
         :data-source="dataSource"
-        style="margin-bottom: 34px" />
+        row-key="instance_address"
+        style="margin-bottom: 34px">
+        <TableColumn
+          col-key="instance_address"
+          :title="t('实例')" />
+        <TableColumn
+          col-key="role"
+          :title="t('部署角色')">
+          <template #default="{ row }">
+            <RenderClusterRole :data="[row.role]" />
+          </template>
+        </TableColumn>
+        <TableColumn
+          col-key="status"
+          :title="t('实例状态')">
+          <template #default="{ row }">
+            <RenderInstanceStatus :data="row.status" />
+          </template>
+        </TableColumn>
+        <TableColumn
+          col-key="create_at"
+          :title="t('部署时间')" />
+      </DbTable>
       <template #footer>
         <BkButton @click="handleHideMore">
           {{ t('关闭') }}
@@ -114,6 +135,8 @@
   import { useCopy } from '@hooks';
 
   import { useGlobalBizs } from '@stores';
+
+  import DbTable from '@components/db-table/IndexNew.vue';
 
   import RenderInstanceStatus from '@views/db-manage/common/RenderInstanceStatus.vue';
   import RenderClusterRole from '@views/db-manage/common/RenderRole.vue';
@@ -151,27 +174,6 @@
   const search = ref('');
 
   const copy = useCopy();
-
-  const columns = [
-    {
-      field: 'instance_address',
-      label: t('实例'),
-    },
-    {
-      field: 'role',
-      label: t('部署角色'),
-      render: ({ data }: { data: ITableData }) => <RenderClusterRole data={[data.role]} />,
-    },
-    {
-      field: 'status',
-      label: t('实例状态'),
-      render: ({ data }: { data: ITableData }) => <RenderInstanceStatus data={data.status} />,
-    },
-    {
-      field: 'create_at',
-      label: t('部署时间'),
-    },
-  ];
 
   // 显示实例详情
   const handleShowMore = () => {

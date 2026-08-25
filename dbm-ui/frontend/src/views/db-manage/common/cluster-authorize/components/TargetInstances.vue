@@ -35,6 +35,7 @@
 </template>
 
 <script setup lang="tsx">
+  import type { PrimaryTableCol } from 'tdesign-vue-next';
   import { useI18n } from 'vue-i18n';
 
   import { getTendbSlaveClusterList } from '@services/source/tendbcluster';
@@ -188,10 +189,6 @@
     } as ClusterSelectorResult,
     tableProps: {
       data: [] as ResourceItem[],
-      pagination: {
-        count: 0,
-        small: true,
-      },
     },
   });
 
@@ -206,43 +203,43 @@
   );
 
   const collapseTableColumns = computed(() => {
-    const columns = [
+    const columns: PrimaryTableCol[] = [
       {
-        field: 'master_domain',
-        label: t('域名'),
-        render: ({ data }: { data: ResourceItem }) =>
-          data.isMaster !== undefined ? (
+        cell: (_, { row }) =>
+          row.isMaster !== undefined ? (
             <div class='domain-column'>
-              {data.isMaster ? <span class='master-icon'>{t('主')}</span> : <span class='slave-icon'>{t('从')}</span>}
-              <span class='ml-6'>{data.master_domain}</span>
+              {row.isMaster ? <span class='master-icon'>{t('主')}</span> : <span class='slave-icon'>{t('从')}</span>}
+              <span class='ml-6'>{row.master_domain}</span>
             </div>
           ) : (
-            <span>{data.master_domain}</span>
+            <span>{row.master_domain}</span>
           ),
+        colKey: 'master_domain',
+        title: t('域名'),
       },
       {
-        field: 'cluster_name',
-        label: t('集群'),
+        colKey: 'cluster_name',
+        title: t('集群'),
       },
       {
-        field: 'operation',
-        label: t('操作'),
-        render: ({ index }: { index: number }) => (
+        cell: (_, { rowIndex }) => (
           <bk-button
-            theme='primary'
             text
-            onClick={() => handleRemoveSelected(index)}>
+            theme='primary'
+            onClick={() => handleRemoveSelected(rowIndex)}>
             {t('删除')}
           </bk-button>
         ),
+        colKey: 'operation',
+        title: t('操作'),
         width: 100,
       },
     ];
 
     if (props.accountType !== AccountTypes.MONGODB) {
       columns.splice(2, 0, {
-        field: 'db_module_name',
-        label: t('所属DB模块'),
+        colKey: 'db_module_name',
+        title: t('所属DB模块'),
       });
     }
 
@@ -277,7 +274,6 @@
   const updateTableData = (data: ResourceItem[]) => {
     formRef.value.clearValidate();
     state.tableProps.data = data;
-    state.tableProps.pagination.count = data.length;
     targetInstances.value = data.map((item) => item.master_domain);
   };
 
@@ -295,7 +291,6 @@
 
   const handleRemoveSelected = (index: number) => {
     state.tableProps.data.splice(index, 1);
-    state.tableProps.pagination.count = state.tableProps.pagination.count - 1;
   };
 
   defineExpose<Exposes>({

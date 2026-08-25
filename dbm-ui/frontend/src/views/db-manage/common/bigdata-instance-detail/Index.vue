@@ -40,10 +40,16 @@
           <BkLoading
             :loading="isLoading"
             :z-index="2">
-            <DbOriginalTable
+            <PrimaryTable
               :columns="tableColumns"
               :data="tableData"
-              :is-anomalies="isAnomalies" />
+              row-key="id">
+              <template #empty>
+                <EmptyStatus
+                  :is-anomalies="isAnomalies"
+                  :is-searching="false" />
+              </template>
+            </PrimaryTable>
           </BkLoading>
         </template>
       </BkCollapsePanel>
@@ -56,6 +62,7 @@
   lang="tsx"
   generic="T extends EsNodeModel | HdfsNodeModel | KafkaNodeModel | PulsarNodeModel | DorisNodeModel">
   import { InfoBox } from 'bkui-vue';
+  import { Checkbox, type PrimaryTableCol } from 'tdesign-vue-next';
   import { useI18n } from 'vue-i18n';
 
   import type DorisInstanceModel from '@services/model/doris/doris-instance';
@@ -82,6 +89,7 @@
   import { ClusterTypes, TicketTypes } from '@common/const';
 
   import EditInfo, { type InfoColumn } from '@components/editable-info/index.vue';
+  import EmptyStatus from '@components/empty-status/EmptyStatus.vue';
   import RenderHostStatus from '@components/render-host-status/Index.vue';
 
   import OperationBtnStatusTips from '@views/db-manage/common/OperationBtnStatusTips.vue';
@@ -91,11 +99,7 @@
   import { useTimeoutPoll } from '@vueuse/core';
 
   type InstanceModel =
-    | EsInstanceModel
-    | HdfsInstanceModel
-    | KafkaInstanceModel
-    | PulsarInstanceModel
-    | DorisInstanceModel;
+    EsInstanceModel | HdfsInstanceModel | KafkaInstanceModel | PulsarInstanceModel | DorisInstanceModel;
 
   interface Props {
     clusterId: number;
@@ -159,44 +163,41 @@
     ],
   ];
 
-  const tableColumns = [
+  const tableColumns: PrimaryTableCol[] = [
     {
-      label: () => (
-        <bk-checkbox
-          disabled={mainSelectDisable.value}
-          indeterminate={isIndeterminate.value}
-          label={true}
-          model-value={isSelectedAll.value}
-          onChange={handleSelectAll}
-        />
-      ),
-      render: ({ data }: { data: InstanceModel }) => (
+      cell: (_, { row }) => (
         <bk-popover
           placement='top'
           theme='dark'>
           {{
             content: () => <span>{t('实例正在重启中，不能勾选')}</span>,
             default: () => (
-              <bk-checkbox
-                disabled={Boolean(data.operationRunningStatus)}
-                label={true}
-                model-value={Boolean(batchSelectNodeMap.value[data.id])}
+              <Checkbox
+                checked={Boolean(batchSelectNodeMap.value[row.id])}
+                disabled={Boolean(row.operationRunningStatus)}
                 style='vertical-align: middle;'
-                onChange={(value: boolean) => handleSelectRow(data, value)}
+                onChange={(value: boolean) => handleSelectRow(row as InstanceModel, value)}
               />
             ),
           }}
         </bk-popover>
       ),
+      colKey: 'row-select',
+      title: () => (
+        <Checkbox
+          checked={isSelectedAll.value}
+          disabled={mainSelectDisable.value}
+          indeterminate={isIndeterminate.value}
+          onChange={handleSelectAll}
+        />
+      ),
       width: 60,
     },
     {
-      field: 'instance_address',
-      label: t('实例'),
-      render: ({ data }: { data: InstanceModel }) => (
+      cell: (_, { row }) => (
         <div>
-          <span>{data.instance_address || '--'}</span>
-          {data.operationTagTips.map((item) => (
+          <span>{row.instance_address || '--'}</span>
+          {(row as InstanceModel).operationTagTips.map((item) => (
             <RenderOperationTag
               class='ml-4'
               data={item}
@@ -204,44 +205,48 @@
           ))}
         </div>
       ),
+      colKey: 'instance_address',
+      title: t('实例'),
     },
     {
-      field: 'status',
-      label: t('实例状态'),
-      render: ({ data }: { data: InstanceModel }) => (
+      cell: (_, { row }) => (
         <>
-          {data.operationRunningStatus ? (
+          {row.operationRunningStatus ? (
             <div class='loading-box'>
               <db-icon
                 class='rotate-loading mr-4'
-                type='loading'
                 svg
+                type='loading'
               />
               <div>{t('重启中')}</div>
             </div>
           ) : (
-            <RenderInstanceStatus data={data.status} />
+            <RenderInstanceStatus data={row.status} />
           )}
         </>
       ),
+      colKey: 'status',
+      title: t('实例状态'),
     },
     {
-      label: t('上次重启时间'),
-      render: ({ data }: { data: InstanceModel }) => data.restart_at || '--',
+      cell: (_, { row }) => row.restart_at || '--',
+      colKey: 'restart_at',
+      title: t('上次重启时间'),
     },
     {
-      label: t('操作'),
-      render: ({ data }: { data: InstanceModel }) => (
-        <OperationBtnStatusTips data={data}>
+      cell: (_, { row }) => (
+        <OperationBtnStatusTips data={row as InstanceModel}>
           <bk-button
-            disabled={data.operationDisabled || isRestartActionDisabled.value}
-            theme='primary'
+            disabled={row.operationDisabled || isRestartActionDisabled.value}
             text
-            onClick={() => handleRestart(data)}>
+            theme='primary'
+            onClick={() => handleRestart(row as InstanceModel)}>
             {t('重启')}
           </bk-button>
         </OperationBtnStatusTips>
       ),
+      colKey: 'row-operation',
+      title: t('操作'),
       width: 116,
     },
   ];

@@ -53,15 +53,16 @@
         {{ t('再次提单') }}
       </BkButton>
     </div>
-    <BkTable
+    <PrimaryTable
       class="result-table"
       :data="tableData"
       :loading="isLoading"
-      :show-overflow="false">
-      <BkTableColumn
-        :label="t('单号')"
+      row-key="id">
+      <TableColumn
+        col-key="id"
+        :title="t('单号')"
         :width="250">
-        <template #default="{ data: rowData }: { data: RowData }">
+        <template #default="{ row: rowData }: { row: RowData }">
           <BkButton
             text
             theme="primary"
@@ -69,16 +70,19 @@
             {{ rowData.id }}
           </BkButton>
         </template>
-      </BkTableColumn>
-      <BkTableColumn
-        :label="t('业务')"
+      </TableColumn>
+      <TableColumn
+        col-key="bk_biz_id"
+        :title="t('业务')"
         :width="250">
-        <template #default="{ data: rowData }: { data: RowData }">
+        <template #default="{ row: rowData }: { row: RowData }">
           {{ getBizInfoById(rowData.bk_biz_id)?.name || '--' }}
         </template>
-      </BkTableColumn>
-      <BkTableColumn :label="t('集群')">
-        <template #default="{ data: rowData }: { data: RowData }">
+      </TableColumn>
+      <TableColumn
+        col-key="related_object"
+        :title="t('集群')">
+        <template #default="{ row: rowData }: { row: RowData }">
           <div v-if="rowData.related_object?.objects?.length > 0">
             <p
               v-for="item in rowData.related_object.objects"
@@ -88,8 +92,8 @@
           </div>
           <span v-else>--</span>
         </template>
-      </BkTableColumn>
-    </BkTable>
+      </TableColumn>
+    </PrimaryTable>
   </div>
 </template>
 <script setup lang="ts">

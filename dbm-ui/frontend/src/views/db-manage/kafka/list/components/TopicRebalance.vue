@@ -102,12 +102,13 @@
               </div>
             </div>
           </template>
-          <BkTable
-            border
+          <PrimaryTable
+            bordered
             :data="isFilter ? checkedInstances : formData.instance_list"
-            :loading="loading">
-            <BkTableColumn
-              :resizable="false"
+            :loading="loading"
+            row-key="bk_host_id">
+            <TableColumn
+              col-key="row-select"
               :width="51">
               <template #header>
                 <BkCheckbox
@@ -122,15 +123,15 @@
                   :disabled="row.agentStatus !== 1"
                   @change="handleSelect" />
               </template>
-            </BkTableColumn>
-            <BkTableColumn
-              field="instance_address"
-              label="Broker"
-              :min-width="200" />
-            <BkTableColumn
-              field="agentStatus"
-              :label="t('主机 Agent 状态')"
-              :min-width="200">
+            </TableColumn>
+            <TableColumn
+              col-key="instance_address"
+              :min-width="200"
+              title="Broker" />
+            <TableColumn
+              col-key="agentStatus"
+              :min-width="200"
+              :title="t('主机 Agent 状态')">
               <template #default="{ row }: { row: RowData }">
                 <DbStatus
                   v-if="row.agentStatus === 1"
@@ -144,13 +145,13 @@
                 </DbStatus>
                 <span v-else>--</span>
               </template>
-            </BkTableColumn>
-            <BkTableColumn
-              field="createAt"
-              :label="t('部署时间')"
+            </TableColumn>
+            <TableColumn
+              col-key="createAt"
               :min-width="200"
-              sort />
-          </BkTable>
+              sorter
+              :title="t('部署时间')" />
+          </PrimaryTable>
         </BkFormItem>
       </BkForm>
     </div>
@@ -186,8 +187,10 @@
 
   import { utcDisplayTime } from '@utils';
 
-  interface RowData
-    extends Pick<KafkaInstanceModel, 'instance_address' | 'bk_cloud_id' | 'bk_host_id' | 'ip' | 'port'> {
+  interface RowData extends Pick<
+    KafkaInstanceModel,
+    'instance_address' | 'bk_cloud_id' | 'bk_host_id' | 'ip' | 'port'
+  > {
     agentStatus: number;
     checked: boolean; // Add checked state for selection
     createAt: string;

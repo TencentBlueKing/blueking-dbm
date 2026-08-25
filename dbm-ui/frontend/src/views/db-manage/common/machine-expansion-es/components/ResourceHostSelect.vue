@@ -30,48 +30,51 @@
         </span>
       </I18nT>
     </div>
-    <BkTable :data="hostList">
-      <BkTableColumn
-        field="ip"
-        :label="t('节点 IP')"
-        :min-width="100" />
-      <BkTableColumn
+    <PrimaryTable
+      :data="hostList"
+      row-key="bk_host_id">
+      <TableColumn
+        col-key="ip"
+        :min-width="100"
+        :title="t('节点 IP')" />
+      <TableColumn
         v-if="!isClientNode"
-        field="instance_num"
-        :label="t('每台主机实例数量')"
-        :min-width="150">
-        <template #default="{ data }">
+        col-key="instance_num"
+        :min-width="150"
+        :title="t('每台主机实例数量')">
+        <template #default="{ row }">
           <EditHostInstance
-            :model-value="data.instance_num"
-            @change="(value: number) => handleInstanceNumChange(value, data)" />
+            :model-value="row.instance_num"
+            @change="(value: number) => handleInstanceNumChange(value, row)" />
         </template>
-      </BkTableColumn>
-      <BkTableColumn
-        field="agent_status"
-        :label="t('Agent状态')"
-        :min-width="120">
-        <template #default="{ data }">
-          <HostAgentStatus :data="data.agent_status" />
+      </TableColumn>
+      <TableColumn
+        col-key="agent_status"
+        :min-width="120"
+        :title="t('Agent状态')">
+        <template #default="{ row }">
+          <HostAgentStatus :data="row.agent_status" />
         </template>
-      </BkTableColumn>
-      <BkTableColumn
-        field="bk_disk"
-        :label="t('磁盘_GB')"
-        :min-width="100" />
-      <BkTableColumn
+      </TableColumn>
+      <TableColumn
+        col-key="bk_disk"
+        :min-width="100"
+        :title="t('磁盘_GB')" />
+      <TableColumn
+        col-key="operation"
         fixed="right"
-        :label="t('操作')"
-        :min-width="100">
-        <template #default="{ data }">
+        :min-width="100"
+        :title="t('操作')">
+        <template #default="{ row }">
           <BkButton
             text
             theme="primary"
-            @click="handleRemoveHost(data.bk_host_id)">
+            @click="handleRemoveHost(row.bk_host_id)">
             {{ t('删除') }}
           </BkButton>
         </template>
-      </BkTableColumn>
-    </BkTable>
+      </TableColumn>
+    </PrimaryTable>
   </div>
 </template>
 <script setup lang="tsx">

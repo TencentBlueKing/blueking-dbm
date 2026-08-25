@@ -18,7 +18,7 @@
     :columns="columns"
     :data-source="dataSource"
     :max-height="700"
-    :show-overflow="false"
+    row-key="account.account_id"
     @clear-search="handleClearSearch" />
 </template>
 
@@ -33,7 +33,7 @@
     }
   ">
   import _ from 'lodash';
-  import type { UnwrapRef } from 'vue';
+  import { Checkbox, type PrimaryTableCol } from 'tdesign-vue-next';
   import { useI18n } from 'vue-i18n';
 
   import { getPermissionRules as getMongodbPermissionRules } from '@services/source/mongodbPermissionAccount';
@@ -42,15 +42,29 @@
 
   import { AccountTypes } from '@common/const';
 
-  import DbTable from '@components/db-table/index.vue';
+  import DbTable from '@components/db-table/IndexNew.vue';
 
   export interface Props<T> {
     accountType: AccountTypes;
     selectedList?: T[];
   }
 
-  export interface Emits<T> {
-    (e: 'change', value: UnwrapRef<typeof selectedMap>): void;
+  export interface Emits<
+    T extends {
+      account: PermissionRule['account'];
+      rules: PermissionRule['rules'];
+    },
+  > {
+    (
+      e: 'change',
+      value: Record<
+        string,
+        {
+          account: T['account'];
+          rule: T['rules'][number];
+        }
+      >,
+    ): void;
     (e: 'delete', value: T[]): void;
   }
 
@@ -81,47 +95,45 @@
   const expandMap = ref<Record<number, boolean>>({});
   const tableRef = ref<InstanceType<typeof DbTable>>();
 
-  const columns = [
+  const columns: PrimaryTableCol[] = [
     {
-      field: 'user',
-      label: t('账号名称'),
-      render: ({ data }: { data: T }) => (
-        <div
-          class='mongo-permission-cell'
-          onClick={() => handleToggleExpand(data)}>
-          {data.rules.length > 1 && (
-            <db-icon
-              class={['user-icon', { 'user-icon-expand': !expandMap.value[data.account.account_id] }]}
-              type='down-shape'
-            />
-          )}
-          {<div class='user-name'>{data.account.user}</div>}
-          {data.isNew && (
-            <span
-              class='glob-new-tag ml-6'
-              data-text='NEW'
-            />
-          )}
-        </div>
-      ),
-      showOverflowTooltip: false,
+      cell: (_, { row }) => {
+        const data = row as T;
+        return (
+          <div
+            class='mongo-permission-cell'
+            onClick={() => handleToggleExpand(data)}>
+            {data.rules.length > 1 && (
+              <db-icon
+                class={['user-icon', { 'user-icon-expand': !expandMap.value[data.account.account_id] }]}
+                type='down-shape'
+              />
+            )}
+            {<div class='user-name'>{data.account.user}</div>}
+            {data.isNew && (
+              <span
+                class='glob-new-tag ml-6'
+                data-text='NEW'
+              />
+            )}
+          </div>
+        );
+      },
+      colKey: 'user',
+      title: t('账号名称'),
     },
     {
-      field: 'access_db',
-      label: t('访问DB'),
-      render: ({ data, index }: { data: T; index: number }) => {
+      cell: (_, { row, rowIndex: index }) => {
+        const data = row as T;
         if (data.rules.length === 0) {
           return (
             <div class='mongo-permission-cell access-db'>
-              <bk-checkbox
-                disabled={true}
-                label={true}
-              />
+              <Checkbox disabled={true} />
               <span>{t('暂无规则')}，</span>
               <bk-button
                 size='small'
-                theme='primary'
                 text
+                theme='primary'
                 onClick={(event: Event) => handleShowCreateRule(data, event)}>
                 {t('立即新建')}
               </bk-button>
@@ -133,21 +145,23 @@
           <div
             class='mongo-permission-cell access-db'
             onClick={() => handleChange(index, ruleIndex)}>
-            <bk-checkbox
-              label={true}
-              model-value={Boolean(selectedDomainMap.value[rule.rule_id])}
-              onChange={() => handleChange(index, ruleIndex)}
-            />
+            <span onClick={(e: Event) => e.stopPropagation()}>
+              <Checkbox
+                checked={Boolean(selectedDomainMap.value[rule.rule_id])}
+                onChange={() => handleChange(index, ruleIndex)}
+              />
+            </span>
             <bk-tag>{rule.access_db}</bk-tag>
           </div>
         ));
       },
-      showOverflowTooltip: true,
+      colKey: 'access_db',
+      ellipsis: true,
+      title: t('访问DB'),
     },
     {
-      field: 'privilege',
-      label: t('权限'),
-      render: ({ data, index }: { data: T; index: number }) => {
+      cell: (_, { row, rowIndex: index }) => {
+        const data = row as T;
         if (data.rules.length > 0) {
           return renderList(data).map((rule, ruleIndex) => {
             const { privilege } = rule;
@@ -164,7 +178,8 @@
 
         return <div class='mongo-permission-cell'>--</div>;
       },
-      showOverflowTooltip: false,
+      colKey: 'privilege',
+      title: t('权限'),
     },
   ];
 
@@ -199,14 +214,10 @@
   );
 
   const getList = (searchSelectorParams: Record<string, string> = {}) => {
-    tableRef.value!.fetchData(
-      {
-        ...searchSelectorParams,
-      },
-      {
-        account_type: props.accountType,
-      },
-    );
+    tableRef.value!.fetchData({
+      ...searchSelectorParams,
+      account_type: props.accountType,
+    });
   };
 
   const handleClearSearch = () => {
@@ -316,17 +327,7 @@
     transition: all 0.5s;
 
     td {
-      .vxe-cell {
-        padding: 0 !important;
-      }
-    }
-
-    td:first-child {
-      .cell,
-      .mongo-permission-cell {
-        // height: 100% !important;
-        height: calc(var(--row-height) - 1px);
-      }
+      padding: 0 !important;
     }
   }
 </style>

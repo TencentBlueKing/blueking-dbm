@@ -33,24 +33,36 @@
     <BkLoading
       :loading="isTableDataLoading"
       :z-index="2">
-      <DbOriginalTable
+      <PrimaryTable
+        :bk-ui-settings="settings"
         class="record-table"
         :columns="columns"
         :data="tableData"
         :max-height="tableHeight"
-        :pagination="pagination"
-        remote-pagination
-        :row-class="setRowClass"
-        :settings="settings"
-        @page-limit-change="handeChangeLimit"
-        @page-value-change="handleChangePage"
-        @refresh="fetchHostNodes" />
+        :row-class-name="setRowClass"
+        row-key="id">
+        <template #empty>
+          <EmptyStatus
+            :is-anomalies="false"
+            :is-searching="false"
+            @refresh="fetchHostNodes" />
+        </template>
+      </PrimaryTable>
+      <div class="table-footer">
+        <BkPagination
+          v-bind="pagination"
+          :layout="['total', 'limit', 'list']"
+          :model-value="pagination.current"
+          @change="handleChangePage"
+          @limit-change="handeChangeLimit" />
+      </div>
     </BkLoading>
   </div>
 </template>
 
 <script setup lang="tsx">
   import { InfoBox } from 'bkui-vue';
+  import { Checkbox, type PrimaryTableCol } from 'tdesign-vue-next';
   import { useI18n } from 'vue-i18n';
   import { useRouter } from 'vue-router';
 
@@ -63,6 +75,8 @@
   import { useGlobalBizs } from '@stores';
 
   import { TicketTypes } from '@common/const';
+
+  import EmptyStatus from '@components/empty-status/EmptyStatus.vue';
 
   import useResetTableHeight from '@views/db-manage/redis/common/hooks/useResetTableHeight';
 
@@ -157,12 +171,11 @@
 
   // 渲染多选框
   const renderCheckbox = (data: RedisRollbackModel) => (
-    <bk-checkbox
+    <Checkbox
+      checked={Boolean(checkedMap.value[data.id])}
       disabled={!data.isNotDestroyed}
-      model-value={Boolean(checkedMap.value[data.id])}
       style='margin-right:8px;vertical-align: middle;'
       onChange={(value: boolean) => handleTableSelectOne(value, data)}
-      onClick={(e: Event) => e.stopPropagation()}
     />
   );
 
@@ -197,13 +210,13 @@
                 <span>
                   {t('销毁任务正在进行中，跳转')}{' '}
                   <router-link
+                    target='_blank'
                     to={{
                       name: 'bizTicketManage',
                       params: {
                         ticketId: data.related_rollback_bill_id,
                       },
-                    }}
-                    target='_blank'>
+                    }}>
                     {t('单据')}
                   </router-link>
                   {t('查看进度')}
@@ -261,105 +274,97 @@
     );
   };
 
-  const columns = [
+  const columns: PrimaryTableCol[] = [
     {
-      field: 'prod_cluster',
-      label: () => (
+      cell: (_, { row }) => renderColumnCluster(row as RedisRollbackModel),
+      colKey: 'prod_cluster',
+      minWidth: 150,
+      title: () => (
         <div class='first-column'>
-          <bk-checkbox
+          <Checkbox
+            checked={isSelectedAll.value}
             indeterminate={isSelectedAll.value ? false : isIndeterminate.value}
-            label={true}
-            model-value={isSelectedAll.value}
             onChange={handleSelectPageAll}
-            onClick={(e: Event) => e.stopPropagation()}
           />
           {t('构造的集群')}
         </div>
       ),
-      minWidth: 150,
-      render: ({ data }: { data: RedisRollbackModel }) => renderColumnCluster(data),
-      showOverflowTooltip: false,
     },
     {
-      field: 'prod_instance_range',
-      label: t('构造实例范围'),
+      cell: (_, { row, rowIndex }) => renderInstanceRange(rowIndex, row as RedisRollbackModel),
+      colKey: 'prod_instance_range',
       minWidth: 150,
-      render: ({ data, index }: { data: RedisRollbackModel; index: number }) => renderInstanceRange(index, data),
-      showOverflowTooltip: false,
+      title: t('构造实例范围'),
       width: 250,
     },
     {
-      field: 'temp_cluster_proxy',
-      label: t('构造产物访问入口'),
+      colKey: 'temp_cluster_proxy',
       minWidth: 130,
+      title: t('构造产物访问入口'),
     },
     {
-      field: 'specification',
-      label: t('规格需求'),
+      cell: (_, { row }) => <span>{row.specification.name}</span>,
+      colKey: 'specification',
       minWidth: 100,
-      render: ({ data }: { data: RedisRollbackModel }) => <span>{data.specification.name}</span>,
+      title: t('规格需求'),
     },
     {
-      field: 'related_rollback_bill_id',
-      label: t('关联单据'),
-      minWidth: 100,
-      render: ({ data }: { data: RedisRollbackModel }) =>
-        data.related_rollback_bill_id ? (
+      cell: (_, { row }) =>
+        row.related_rollback_bill_id ? (
           <router-link
+            target='_blank'
             to={{
               name: 'bizTicketManage',
               params: {
-                ticketId: data.related_rollback_bill_id,
+                ticketId: row.related_rollback_bill_id,
               },
-            }}
-            target='_blank'>
-            {data.related_rollback_bill_id}
+            }}>
+            {row.related_rollback_bill_id}
           </router-link>
         ) : (
           '--'
         ),
-      showOverflowTooltip: true,
+      colKey: 'related_rollback_bill_id',
+      minWidth: 100,
+      title: t('关联单据'),
       width: 110,
     },
     {
-      field: 'host_count',
-      label: t('构造的主机数量'),
+      colKey: 'host_count',
       minWidth: 120,
-      showOverflowTooltip: true,
+      title: t('构造的主机数量'),
       width: 120,
     },
     {
-      field: 'recovery_time_point',
-      label: t('构造到指定时间'),
+      cell: (_, { row }) => <span>{row.recoveryTimePointDisplay}</span>,
+      colKey: 'recovery_time_point',
       minWidth: 150,
-      render: ({ data }: { data: RedisRollbackModel }) => <span>{data.recoveryTimePointDisplay}</span>,
-      showOverflowTooltip: true,
+      title: t('构造到指定时间'),
     },
     {
-      field: '',
-      fixed: 'right',
-      label: t('操作'),
-      minWidth: 140,
-      render: ({ data }: { data: RedisRollbackModel }) => (
+      cell: (_, { row }) => (
         <div
           class='operate-box'
-          style={{ color: data.isNotDestroyed ? '#3A84FF' : '#C4C6CC' }}>
+          style={{ color: row.isNotDestroyed ? '#3A84FF' : '#C4C6CC' }}>
           <bk-button
-            theme='primary'
             text
-            onClick={() => handleClickDestructItem(data)}>
+            theme='primary'
+            onClick={() => handleClickDestructItem(row as RedisRollbackModel)}>
             {t('销毁')}
           </bk-button>
           <bk-button
             style='margin-left:10px;'
-            theme='primary'
             text
-            onClick={() => handleClickDataCopy(data)}>
+            theme='primary'
+            onClick={() => handleClickDataCopy(row as RedisRollbackModel)}>
             {t('回写数据')}
           </bk-button>
         </div>
       ),
-      showOverflowTooltip: true,
+      colKey: 'row-operation',
+      fixed: 'right',
+      minWidth: 140,
+      title: t('操作'),
       width: 180,
     },
   ];
@@ -425,7 +430,7 @@
   };
 
   // 设置行样式
-  const setRowClass = (row: RedisRollbackModel) => (row.isDestroyed ? 'disable-color' : 'normal-color');
+  const setRowClass = ({ row }: { row: RedisRollbackModel }) => (row.isDestroyed ? 'disable-color' : 'normal-color');
 
   // 批量销毁
   const handleBatchDestruct = () => {
@@ -506,13 +511,13 @@
 <style lang="less" scoped>
   .record-table {
     :deep(.normal-color) {
-      .vxe-cell {
+      td {
         color: #63656e;
       }
     }
 
     :deep(.disable-color) {
-      .vxe-cell {
+      td {
         color: #c4c6cc;
       }
     }
@@ -571,6 +576,26 @@
 
     .buttons {
       margin: 16px 0;
+    }
+
+    .table-footer {
+      position: relative;
+      z-index: 1;
+      display: flex;
+      height: 60px;
+      padding: 0 16px;
+      margin-top: -1px;
+      background: #fff;
+      border-top: 1px solid var(--td-component-border);
+      align-items: center;
+
+      :deep(.bk-pagination) {
+        width: 100%;
+
+        & > .is-last {
+          margin-left: auto;
+        }
+      }
     }
 
     .page-action-box {

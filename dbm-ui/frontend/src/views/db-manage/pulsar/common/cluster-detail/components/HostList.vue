@@ -357,8 +357,8 @@
   .pulsar-detail-host-list {
     padding: 24px 0;
 
-    .bk-vxe-table {
-      .bk-checkbox {
+    .t-table {
+      .t-checkbox {
         vertical-align: middle;
       }
     }
