@@ -56,76 +56,71 @@
         </BkButton>
       </div>
       <BkLoading :loading="isTableLoading">
-        <BkTable
-          border="inner"
+        <PrimaryTable
           class="query-result-table"
           :data="tableData"
-          :merge-cells="mergeCells"
-          :remote-pagination="false"
-          :row-config="{
-            isHover: false,
-            height: 28,
-          }"
+          row-key="index"
+          :rowspan-and-colspan="handleRowspanAndColspan"
           stripe>
-          <BkTableColumn
-            field="cluster_domain"
-            :label="t('集群')"
-            :min-width="200" />
-          <BkTableColumn
-            field="status"
-            :label="t('统计的集群主机')"
-            :min-width="200">
-            <template #default="{ data }: { data: RowData }">
+          <TableColumn
+            col-key="cluster_domain"
+            :min-width="200"
+            :title="t('集群')" />
+          <TableColumn
+            col-key="status"
+            :min-width="200"
+            :title="t('统计的集群主机')">
+            <template #default="{ row: data }: { row: RowData }">
               <StatusContent
                 :error-list="data.error_list"
                 :success-list="data.success_list" />
             </template>
-          </BkTableColumn>
-          <BkTableColumn
-            field="remote_ip"
-            :label="t('来源 IP')"
-            :min-width="200">
-            <template #default="{ data }: { data: RowData }">
+          </TableColumn>
+          <TableColumn
+            col-key="remote_ip"
+            :min-width="200"
+            :title="t('来源 IP')">
+            <template #default="{ row: data }: { row: RowData }">
               {{ data.remote_ip || '--' }}
             </template>
-          </BkTableColumn>
-          <BkTableColumn
-            field="establish"
-            :label="t('连接数（ESTAB）')">
-            <template #default="{ data }: { data: RowData }">
+          </TableColumn>
+          <TableColumn
+            col-key="establish"
+            :title="t('连接数（ESTAB）')">
+            <template #default="{ row: data }: { row: RowData }">
               {{ data.remote_ip ? data.establish : data.success_list.length ? 0 : '--' }}
             </template>
-          </BkTableColumn>
-          <BkTableColumn
-            field="all_connections"
-            :label="t('连接数（ALL）')">
-            <template #default="{ data }: { data: RowData }">
+          </TableColumn>
+          <TableColumn
+            col-key="all_connections"
+            :title="t('连接数（ALL）')">
+            <template #default="{ row: data }: { row: RowData }">
               {{ data.remote_ip ? data.all_connections : data.success_list.length ? 0 : '--' }}
             </template>
-          </BkTableColumn>
-          <BkTableColumn
-            field="topo"
-            :label="t('业务模块')"
-            :min-width="200">
-            <template #default="{ data }: { data: RowData }">
+          </TableColumn>
+          <TableColumn
+            col-key="topo"
+            :min-width="200"
+            :title="t('业务模块')">
+            <template #default="{ row: data }: { row: RowData }">
               {{ data.topo && data.topo.length ? data.topo[0] : '--' }}
             </template>
-          </BkTableColumn>
-          <BkTableColumn
-            field="operator"
-            :label="t('主要负责人')">
-            <template #default="{ data }: { data: RowData }">
+          </TableColumn>
+          <TableColumn
+            col-key="operator"
+            :title="t('主要负责人')">
+            <template #default="{ row: data }: { row: RowData }">
               {{ data.operator || '--' }}
             </template>
-          </BkTableColumn>
-          <BkTableColumn
-            field="bak_operator"
-            :label="t('备份负责人')">
-            <template #default="{ data }: { data: RowData }">
+          </TableColumn>
+          <TableColumn
+            col-key="bak_operator"
+            :title="t('备份负责人')">
+            <template #default="{ row: data }: { row: RowData }">
               {{ data.bak_operator || '--' }}
             </template>
-          </BkTableColumn>
-        </BkTable>
+          </TableColumn>
+        </PrimaryTable>
       </BkLoading>
     </div>
   </BkFormItem>
@@ -320,6 +315,27 @@
 
   const { pause: pauseQueryTableData, resume: resumeQueryTableData } = useTimeoutPoll(queryTableData, 3000);
 
+  // 单元格合并（tdesign 需要同时返回主单元格跨度与被覆盖单元格的 0 跨度）
+  const handleRowspanAndColspan = ({ colIndex, rowIndex }: { colIndex: number; rowIndex: number }) => {
+    const masterCell = mergeCells.value.find((item) => item.row === rowIndex && item.col === colIndex);
+    if (masterCell) {
+      return {
+        colspan: masterCell.colspan,
+        rowspan: masterCell.rowspan,
+      };
+    }
+    const isCoveredCell = mergeCells.value.some(
+      (item) => item.col === colIndex && rowIndex > item.row && rowIndex < item.row + item.rowspan,
+    );
+    if (isCoveredCell) {
+      return {
+        colspan: 0,
+        rowspan: 0,
+      };
+    }
+    return {};
+  };
+
   const handleExport = () => {
     /* eslint-disable perfectionist/sort-objects */
     const formatData = tableData.value.map((item) => ({
@@ -391,16 +407,19 @@
     }
 
     .query-result-table {
-      .vxe-table--header-inner-wrapper {
-        height: 28px !important;
+      .t-table__header {
+        th {
+          height: 28px !important;
+          padding: 3px 0 !important;
+        }
       }
 
-      .vxe-header--column {
-        padding: 3px 0 !important;
-      }
-
-      .vxe-table--append-wrapper {
-        border-bottom: none;
+      .t-table__body {
+        td {
+          height: 28px;
+          padding-top: 3px !important;
+          padding-bottom: 3px !important;
+        }
       }
 
       .cluster-host-status {
@@ -411,15 +430,6 @@
           margin-left: 5px;
           color: #ea3636;
         }
-      }
-
-      .vxe-table--filter-body {
-        max-height: 120px !important;
-      }
-
-      .vxe-table--filter-option {
-        padding: 0 0 0 8px !important;
-        margin: 0;
       }
     }
   }

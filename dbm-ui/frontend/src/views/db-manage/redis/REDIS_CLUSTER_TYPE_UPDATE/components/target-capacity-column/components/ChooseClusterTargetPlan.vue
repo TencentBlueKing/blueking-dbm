@@ -153,12 +153,13 @@
         </DbFormItem>
         <div class="deploy-box">
           <BkLoading :loading="isTableLoading">
-            <DbOriginalTable
+            <PrimaryTable
               class="deploy-table"
               :columns="columns"
               :data="tableData"
-              @column-sort="handleColumnSort"
-              @row-click.stop="handleRowClick">
+              row-key="spec_id"
+              @row-click="handleRowClick"
+              @sort-change="handleColumnSort">
               <template #empty>
                 <p
                   v-if="!specInfo.capacityNeed || !specInfo.capacityFutureNeed"
@@ -175,7 +176,7 @@
                   style="font-size: 12px"
                   type="empty" />
               </template>
-            </DbOriginalTable>
+            </PrimaryTable>
           </BkLoading>
         </div>
       </template>
@@ -189,11 +190,11 @@
 </template>
 <script setup lang="tsx">
   import _ from 'lodash';
+  import type { PrimaryTableCol, TableRowData, TableSort } from 'tdesign-vue-next';
   import type { ComponentProps } from 'vue-component-type-helpers';
   import { useI18n } from 'vue-i18n';
 
   import RedisModel from '@services/model/redis/redis';
-  import ClusterSpecModel from '@services/model/resource-spec/cluster-sepc';
   import { getFilterClusterSpec } from '@services/source/dbresourceSpec';
 
   import { ClusterTypes } from '@common/const';
@@ -342,36 +343,36 @@
   });
 
   const columns = computed(() => {
-    const totalColums = [
+    const totalColums: PrimaryTableCol[] = [
       {
-        field: 'spec',
-        label: t('资源规格'),
-        render: ({ index, row }: { index: number; row: ClusterSpecModel }) => (
+        cell: (_, { row, rowIndex }) => (
           <div style='display:flex;align-items:center;'>
             <bk-radio
               v-model={radioValue.value}
-              label={index}>
+              label={rowIndex}>
               {row.spec_name}
             </bk-radio>
           </div>
         ),
-        showOverflowTooltip: true,
+        colKey: 'spec',
+        ellipsis: true,
+        title: t('资源规格'),
         width: 260,
       },
       {
-        field: 'machine_pair',
-        label: t('需机器组数'),
-        sort: true,
+        colKey: 'machine_pair',
+        sorter: true,
+        title: t('需机器组数'),
       },
       {
-        field: 'cluster_shard_num',
-        label: t('集群分片'),
-        sort: true,
+        colKey: 'cluster_shard_num',
+        sorter: true,
+        title: t('集群分片'),
       },
       {
-        field: 'cluster_capacity',
-        label: t('集群容量(G)'),
-        sort: true,
+        colKey: 'cluster_capacity',
+        sorter: true,
+        title: t('集群容量(G)'),
       },
     ];
     return totalColums;
@@ -481,18 +482,21 @@
   //   }
   // };
 
-  const handleRowClick = (event: PointerEvent, row: FilterClusterSpecItem, index: number) => {
+  const handleRowClick = ({ index, row }: { index: number; row: TableRowData }) => {
     radioValue.value = index;
     radioChoosedId.value = row.spec_name;
   };
 
-  const handleColumnSort = (data: { column: { field: string }; index: number; type: string }) => {
-    const { column, type } = data;
-    const filed = column.field as keyof FilterClusterSpecItem;
-    if (type === 'asc') {
-      tableData.value.sort((prevItem, nextItem) => (prevItem[filed] as number) - (nextItem[filed] as number));
-    } else if (type === 'desc') {
-      tableData.value.sort((prevItem, nextItem) => (nextItem[filed] as number) - (prevItem[filed] as number));
+  const handleColumnSort = (payload: TableSort) => {
+    if (Array.isArray(payload)) {
+      return;
+    }
+    if (payload) {
+      const field = payload.sortBy as keyof FilterClusterSpecItem;
+      const sortOrder = payload.descending ? -1 : 1;
+      tableData.value.sort(
+        (prevItem, nextItem) => ((prevItem[field] as number) - (nextItem[field] as number)) * sortOrder,
+      );
     } else {
       tableData.value = rawTableData;
     }

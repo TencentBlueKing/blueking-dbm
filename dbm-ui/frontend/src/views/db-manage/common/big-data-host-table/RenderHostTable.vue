@@ -65,15 +65,107 @@
         <BkLoading
           v-show="isShowTable"
           :loading="isLoading">
-          <DbOriginalTable
-            :columns="columns"
-            :data="serachList"
-            :is-searching="!!searchKey"
-            :pagination="pagination"
-            :settings="tableSetting"
-            @clear-search="handleClearSearch"
-            @page-limit-change="handlePaginationLimitChange"
-            @page-value-change="handlePaginationCurrentChange" />
+          <PrimaryTable
+            :bk-ui-settings="tableSetting"
+            :data="data"
+            row-key="host_id">
+            <TableColumn
+              col-key="ip"
+              title="IP"
+              :width="160" />
+            <TableColumn
+              col-key="bk_cpu"
+              :title="t('机型')">
+              <template #default="{ row }">
+                {{ row.bk_cpu || '--' }}
+              </template>
+            </TableColumn>
+            <TableColumn
+              col-key="bk_idc_name"
+              :title="t('机房')">
+              <template #default="{ row }">
+                {{ row.bk_idc_name || '--' }}
+              </template>
+            </TableColumn>
+            <TableColumn
+              col-key="host_name"
+              :title="t('主机名称')">
+              <template #default="{ row }">
+                {{ row.host_name || '--' }}
+              </template>
+            </TableColumn>
+            <TableColumn
+              col-key="alive"
+              :title="t('Agent状态')">
+              <template #default="{ row }">
+                <DbStatus :theme="row.alive === 1 ? 'success' : 'danger'">
+                  {{ row.alive === 1 ? t('正常') : t('异常') }}
+                </DbStatus>
+              </template>
+            </TableColumn>
+            <TableColumn
+              col-key="cloud_area"
+              :title="t('管控区域')">
+              <template #default="{ row }">
+                {{ row.cloud_area.name || '--' }}
+              </template>
+            </TableColumn>
+            <TableColumn
+              col-key="os_name"
+              :title="t('OS名称')">
+              <template #default="{ row }">
+                {{ row.os_name || '--' }}
+              </template>
+            </TableColumn>
+            <TableColumn
+              col-key="os_type"
+              :title="t('OS类型')">
+              <template #default="{ row }">
+                {{ row.os_type || '--' }}
+              </template>
+            </TableColumn>
+            <TableColumn
+              col-key="host_id"
+              :title="t('主机ID')">
+              <template #default="{ row }">
+                {{ row.host_id || '--' }}
+              </template>
+            </TableColumn>
+            <TableColumn
+              col-key="agent_id"
+              title="Agent ID">
+              <template #default="{ row }">
+                {{ row.agent_id || '--' }}
+              </template>
+            </TableColumn>
+            <TableColumn
+              col-key="row-operation"
+              :title="t('操作')"
+              :width="100">
+              <template #default="{ row }">
+                <BkButton
+                  text
+                  theme="primary"
+                  @click="handleRemove(row)">
+                  {{ t('删除') }}
+                </BkButton>
+              </template>
+            </TableColumn>
+            <template #empty>
+              <EmptyStatus
+                :is-anomalies="false"
+                :is-searching="!!searchKey"
+                @clear-search="handleClearSearch" />
+            </template>
+          </PrimaryTable>
+          <div class="table-footer">
+            <BkPagination
+              v-bind="pagination"
+              :layout="['total', 'limit', 'list']"
+              :model-value="pagination.current"
+              @change="handlePaginationCurrentChange"
+              @limit-change="handlePaginationLimitChange" />
+          </div>
         </BkLoading>
       </Transition>
     </div>
@@ -86,6 +178,7 @@
   import type { HostInfo } from '@services/types';
 
   import DbStatus from '@components/db-status/index.vue';
+  import EmptyStatus from '@components/empty-status/EmptyStatus.vue';
 
   import { execCopy } from '@utils';
 
@@ -106,76 +199,6 @@
   const localData = shallowRef(props.data);
   const isShowTable = ref(true);
 
-  const columns = [
-    {
-      field: 'ip',
-      label: 'IP',
-      render: ({ data }: { data: HostInfo }) => data.ip,
-      width: 160,
-    },
-    {
-      field: 'bk_cpu',
-      label: t('机型'),
-      render: ({ data }: { data: HostInfo }) => data.bk_cpu || '--',
-    },
-    {
-      field: 'bk_idc_name',
-      label: t('机房'),
-      render: ({ data }: { data: HostInfo }) => data.bk_idc_name || '--',
-    },
-    {
-      field: 'host_name',
-      label: t('主机名称'),
-      render: ({ data }: { data: HostInfo }) => data.host_name || '--',
-    },
-    {
-      field: 'alive',
-      label: t('Agent状态'),
-      render: ({ data }: { data: HostInfo }) => {
-        const info = data.alive === 1 ? { text: t('正常'), theme: 'success' } : { text: t('异常'), theme: 'danger' };
-        return <DbStatus theme={info.theme}>{info.text}</DbStatus>;
-      },
-    },
-    {
-      field: 'cloud_area',
-      label: t('管控区域'),
-      render: ({ data }: { data: HostInfo }) => data.cloud_area.name || '--',
-    },
-    {
-      field: 'os_name',
-      label: t('OS名称'),
-      render: ({ data }: { data: HostInfo }) => data.os_name || '--',
-    },
-    {
-      field: 'os_type',
-      label: t('OS类型'),
-      render: ({ data }: { data: HostInfo }) => data.os_type || '--',
-    },
-    {
-      field: 'host_id',
-      label: t('主机ID'),
-      render: ({ data }: { data: HostInfo }) => data.host_id || '--',
-    },
-    {
-      field: 'agent_id',
-      label: 'Agent ID',
-      render: ({ data }: { data: HostInfo }) => data.agent_id || '--',
-    },
-    {
-      field: 'operation',
-      label: t('操作'),
-      render: ({ data }: { data: HostInfo }) => (
-        <bk-button
-          text
-          theme='primary'
-          onClick={() => handleRemove(data)}>
-          {t('删除')}
-        </bk-button>
-      ),
-      width: 100,
-    },
-  ];
-
   watch(
     () => props.data,
     () => {
@@ -183,7 +206,7 @@
     },
   );
 
-  const { handlePaginationCurrentChange, handlePaginationLimitChange, pagination, searchKey, serachList } =
+  const { data, handlePaginationCurrentChange, handlePaginationLimitChange, pagination, searchKey, serachList } =
     useLocalPagination(localData);
 
   const handleClearSearch = () => {
@@ -314,10 +337,16 @@
       }
     }
 
-    :deep(.bk-table) {
+    :deep(.t-table__header) {
       th {
-        background-color: #f5f7fa !important;
+        background-color: #f5f7fa;
       }
+    }
+
+    .table-footer {
+      display: flex;
+      justify-content: flex-end;
+      margin-top: 12px;
     }
   }
 </style>

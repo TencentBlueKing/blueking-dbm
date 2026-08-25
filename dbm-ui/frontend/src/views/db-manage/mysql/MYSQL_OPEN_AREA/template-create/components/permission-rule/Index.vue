@@ -28,15 +28,15 @@
       <span>{{ t('添加权限') }}</span>
     </BkButton>
     <BKLoading :loading="loading">
-      <BkTable
+      <PrimaryTable
         v-if="tableData.length > 0"
         class="openarea-permission-rule-table"
         :data="tableData"
         :row-class-name="rowClass"
-        :show-overflow="false">
-        <BkTableColumn
-          field="user"
-          :label="t('账号名称')"
+        row-key="account.account_id">
+        <TableColumn
+          col-key="user"
+          :title="t('账号名称')"
           :width="220">
           <template #default="{ row }: { row: MysqlPermissionAccountModel }">
             <DbIcon
@@ -49,10 +49,10 @@
               @click="() => handleToogleExpand(row.account.user)" />
             {{ row.account.user }}
           </template>
-        </BkTableColumn>
-        <BkTableColumn
-          field="access_db"
-          :label="t('访问DB')"
+        </TableColumn>
+        <TableColumn
+          col-key="access_db"
+          :title="t('访问DB')"
           :width="300">
           <template #default="{ row }: { row: MysqlPermissionAccountModel }">
             <p
@@ -62,11 +62,11 @@
               <BkTag>{{ item.access_db }}</BkTag>
             </p>
           </template>
-        </BkTableColumn>
-        <BkTableColumn
-          field="privilege"
-          :label="t('权限')"
-          :min-width="300">
+        </TableColumn>
+        <TableColumn
+          col-key="privilege"
+          :min-width="300"
+          :title="t('权限')">
           <template #default="{ row }: { row: MysqlPermissionAccountModel }">
             <TextOverflowLayout
               v-for="item in rowFlodMap[row.account.user] ? row.rules : row.rules.slice(0, 1)"
@@ -75,11 +75,11 @@
               {{ item.privilege }}
             </TextOverflowLayout>
           </template>
-        </BkTableColumn>
-        <BkTableColumn
-          field="operate"
-          :label="t('操作')"
-          :min-width="145">
+        </TableColumn>
+        <TableColumn
+          col-key="operate"
+          :min-width="145"
+          :title="t('操作')">
           <template #default="{ row }: { row: MysqlPermissionAccountModel }">
             <p
               v-for="item in rowFlodMap[row.account.user] ? row.rules : row.rules.slice(0, 1)"
@@ -92,8 +92,8 @@
               </BkButton>
             </p>
           </template>
-        </BkTableColumn>
-      </BkTable>
+        </TableColumn>
+      </PrimaryTable>
     </BKLoading>
     <PermissionRuleSelector
       v-model="permissionRules"

@@ -111,7 +111,6 @@
   </BkDialog>
 </template>
 <script lang="tsx">
-  import type { TablePropTypes } from 'bkui-vue/lib/table/props';
   import _ from 'lodash';
 
   import { checkHost, getHostDetails, getHosts, getHostTopo } from '@services/source/ipchooser';
@@ -124,6 +123,7 @@
 
   import DBCollapseTable from '@components/db-collapse-table/DBCollapseTable.vue';
   import DbStatus from '@components/db-status/index.vue';
+  import type { PrimaryTableCol, PrimaryTableProps } from '@components/tdesign-ui/table';
 
   import { execCopy } from '@utils';
 
@@ -158,7 +158,7 @@
     serviceMode?: 'all' | 'idle_only';
     showView?: boolean;
     singleHostSelect?: boolean;
-    tableProps?: TablePropTypes;
+    tableProps?: Partial<PrimaryTableProps>;
     title?: string;
   }
 
@@ -185,7 +185,7 @@
     serviceMode: 'idle_only',
     showView: true,
     singleHostSelect: false,
-    tableProps: () => ({}) as TablePropTypes,
+    tableProps: () => ({}),
     title: t('静态拓扑'),
   });
   const emits = defineEmits<Emits>();
@@ -230,13 +230,7 @@
   const dbCollapseTableTableData = computed(() => ({
     ...previewTableProps.value,
     data: renderData.value,
-    pagination: previewTableProps.value.pagination
-      ? {
-          ...(previewTableProps.value.pagination as Exclude<TablePropTypes['pagination'], boolean>),
-          count: renderData.value.length,
-        }
-      : previewTableProps.value.pagination,
-  })) as unknown as TablePropTypes;
+  }));
 
   const buttonTips = computed(() => {
     const tips = {
@@ -416,94 +410,82 @@
    * ip 选择器预览表默认配置
    */
   function initTableProps() {
-    const columns = [
+    const columns: PrimaryTableCol[] = [
       {
-        field: 'ip',
-        label: 'IP',
+        colKey: 'ip',
+        title: 'IP',
       },
       {
-        field: 'cloud_area',
-        label: t('管控区域'),
-        render: ({ data }: { data: HostInfo }) => data.cloud_area.name || '--',
+        cell: (_, { row }) => row.cloud_area.name || '--',
+        colKey: 'cloud_area',
+        title: t('管控区域'),
       },
       {
-        field: 'alive',
-        label: t('Agent状态'),
-        render: ({ data }: { data: HostInfo }) => {
-          const info = data.alive === 1 ? { text: t('正常'), theme: 'success' } : { text: t('异常'), theme: 'danger' };
+        cell: (_, { row }) => {
+          const info = row.alive === 1 ? { text: t('正常'), theme: 'success' } : { text: t('异常'), theme: 'danger' };
           return <DbStatus theme={info.theme}>{info.text}</DbStatus>;
         },
+        colKey: 'alive',
+        title: t('Agent状态'),
       },
       {
-        field: 'host_name',
-        label: t('主机名称'),
-        render: ({ data }: { data: HostInfo }) => data.host_name || '--',
+        cell: (_, { row }) => row.host_name || '--',
+        colKey: 'host_name',
+        title: t('主机名称'),
       },
       {
-        field: 'os_name',
-        label: t('OS名称'),
-        render: ({ data }: { data: HostInfo }) => data.os_name || '--',
+        cell: (_, { row }) => row.os_name || '--',
+        colKey: 'os_name',
+        title: t('OS名称'),
       },
       {
-        field: 'cloud_vendor',
-        label: t('所属云厂商'),
-        render: ({ data }: { data: HostInfo }) => data.cloud_vendor || '--',
+        cell: (_, { row }) => row.cloud_vendor || '--',
+        colKey: 'cloud_vendor',
+        title: t('所属云厂商'),
       },
       {
-        field: 'os_type',
-        label: t('OS类型'),
-        render: ({ data }: { data: HostInfo }) => data.os_type || '--',
+        cell: (_, { row }) => row.os_type || '--',
+        colKey: 'os_type',
+        title: t('OS类型'),
       },
       {
-        field: 'host_id',
-        label: t('主机ID'),
-        render: ({ data }: { data: HostInfo }) => data.host_id || '--',
+        cell: (_, { row }) => row.host_id || '--',
+        colKey: 'host_id',
+        title: t('主机ID'),
       },
       {
-        field: 'agent_id',
-        label: 'Agent ID',
-        render: ({ data }: { data: HostInfo }) => data.agent_id || '--',
+        cell: (_, { row }) => row.agent_id || '--',
+        colKey: 'agent_id',
+        title: 'Agent ID',
       },
       {
-        field: 'ipv6',
-        label: 'IPv6',
-        render: ({ data }: { data: HostInfo }) => data.ipv6 || '--',
+        cell: (_, { row }) => row.ipv6 || '--',
+        colKey: 'ipv6',
+        title: 'IPv6',
       },
       {
-        field: 'operation',
-        label: t('操作'),
-        render: ({ index }: { index: number }) => (
+        cell: (_, { rowIndex }) => (
           <bk-button
             text
             theme='primary'
-            onClick={() => handleRemoveSelected(index)}>
+            onClick={() => handleRemoveSelected(rowIndex)}>
             {t('删除')}
           </bk-button>
         ),
+        colKey: 'operation',
+        title: t('操作'),
         width: 100,
       },
     ];
     const checked = ['ip', 'host_name', 'alive', 'operation'];
     const disabledKeys = ['ip', 'operation'];
     return {
+      bkUiSettings: {
+        checked,
+        disabled: disabledKeys,
+      },
       columns,
       maxHeight: 474,
-      pagination: {
-        align: 'right',
-        count: 0,
-        current: 1,
-        layout: ['total', 'limit', 'list'],
-        limit: 10,
-        limitList: [10, 20, 50, 100],
-      },
-      settings: {
-        checked,
-        fields: columns.map((item) => ({
-          disabled: disabledKeys.includes(item.field),
-          field: item.field,
-          label: item.label,
-        })),
-      },
     };
   }
 

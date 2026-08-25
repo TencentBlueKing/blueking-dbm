@@ -1,18 +1,17 @@
 <template>
-  <DbOriginalTable
-    :cell-class="setCellClass"
+  <PrimaryTable
     class="preview-table"
     :columns="columns"
     :data="data"
     :max-height="maxHeight"
+    row-key="domain"
+    :rowspan-and-colspan="rowspanAndColspan"
     v-bind="$attrs" />
 </template>
 
 <script setup lang="tsx">
-  import type { Table } from 'bkui-vue';
+  import type { PrimaryTableCol, PrimaryTableProps } from 'tdesign-vue-next';
   import { useI18n } from 'vue-i18n';
-
-  type TableProps = InstanceType<typeof Table>['$props'];
 
   interface Props {
     data: {
@@ -43,33 +42,31 @@
 
   const columns = computed(() => {
     if (props.isSingleType) {
-      const singleColumns: TableProps['columns'] = [
+      const singleColumns: PrimaryTableCol[] = [
         {
-          field: 'domain',
-          label: t('主访问入口'),
-          showOverflowTooltip: true,
+          colKey: 'domain',
+          ellipsis: true,
+          title: t('主访问入口'),
         },
         {
-          field: 'deployStructure',
-          label: t('部署架构'),
-          showOverflowTooltip: true,
+          colKey: 'deployStructure',
+          ellipsis: true,
+          title: t('部署架构'),
         },
         {
-          field: 'version',
-          label: t('数据库版本'),
-          showOverflowTooltip: true,
+          colKey: 'version',
+          ellipsis: true,
+          title: t('数据库版本'),
         },
         {
-          field: 'charset',
-          label: t('字符集'),
-          showOverflowTooltip: true,
+          colKey: 'charset',
+          ellipsis: true,
+          title: t('字符集'),
         },
       ];
       if (props.isShowNodes) {
         singleColumns.push({
-          field: 'backend',
-          label: t('服务器'),
-          render: () => {
+          cell: () => {
             const { nodeList } = props;
             return (
               <div class='host-list'>
@@ -84,53 +81,61 @@
               </div>
             );
           },
-          rowspan: () => props.data.length || 1,
+          className: 'host-td',
+          colKey: 'backend',
+          title: t('服务器'),
           width: 200,
         });
       }
       return singleColumns;
     }
-    const haColumns: TableProps['columns'] = [
+    const haColumns: PrimaryTableCol[] = [
       {
-        field: 'domain',
-        label: t('主访问入口'),
-        showOverflowTooltip: true,
+        colKey: 'domain',
+        ellipsis: true,
+        title: t('主访问入口'),
       },
       {
-        field: 'slaveDomain',
-        label: t('从访问入口'),
-        showOverflowTooltip: true,
+        colKey: 'slaveDomain',
+        ellipsis: true,
+        title: t('从访问入口'),
       },
       {
-        field: 'deployStructure',
-        label: t('部署架构'),
-        showOverflowTooltip: true,
+        colKey: 'deployStructure',
+        ellipsis: true,
+        title: t('部署架构'),
       },
       {
-        field: 'version',
-        label: t('数据库版本'),
-        showOverflowTooltip: true,
+        colKey: 'version',
+        ellipsis: true,
+        title: t('数据库版本'),
       },
       {
-        field: 'charset',
-        label: t('字符集'),
-        showOverflowTooltip: true,
+        colKey: 'charset',
+        ellipsis: true,
+        title: t('字符集'),
       },
     ];
     return haColumns;
   });
 
-  const setCellClass = ({ field }: { field: string }) => ('backend' === field ? 'host-td' : '');
+  const rowspanAndColspan: PrimaryTableProps['rowspanAndColspan'] = ({ col, rowIndex }) => {
+    if (col.colKey === 'backend' && rowIndex === 0) {
+      return {
+        rowspan: props.data.length || 1,
+      };
+    }
+    return {};
+  };
 </script>
 
 <style lang="less" scoped>
   .preview-table {
-    :deep(.bk-vxe-table) {
+    :deep(.t-table) {
       td {
         position: relative;
 
-        &.host-td .vxe-cell {
-          height: 100% !important;
+        &.host-td {
           padding: 0;
           line-height: normal !important;
         }

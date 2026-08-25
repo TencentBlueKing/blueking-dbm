@@ -13,17 +13,18 @@
 
 <template>
   <div class="domain-table">
-    <DbOriginalTable
+    <PrimaryTable
       class="domain-address"
       :columns="columns"
       :data="tableData"
-      :empty-text="t('请选择业务和DB模块名')" />
+      :empty="t('请选择业务和DB模块名')"
+      row-key="set_id" />
   </div>
 </template>
 
 <script setup lang="tsx">
   import { Form } from 'bkui-vue';
-  import type { Column } from 'bkui-vue/lib/table/props';
+  import type { PrimaryTableCol } from 'tdesign-vue-next';
   import { useI18n } from 'vue-i18n';
 
   import { checkDomainRepeat } from '@services/source/ticket.tsx';
@@ -121,22 +122,52 @@
     // ],
   };
 
-  const columns: Column[] = [
+  const columns: PrimaryTableCol[] = [
     {
-      label: t('序号'),
-      render: ({ index }: { index: number }) => index + 1,
-      // type: 'index',
+      colKey: 'serial-number',
+      title: t('序号'),
       width: 80,
     },
     {
-      field: 'domain',
-      label: t('主域名'),
-      render: ({ data }: { data: Domain }) => getDomainDisplay(data.set_id),
+      cell: (_, { row }) => getDomainDisplay(row.set_id),
+      colKey: 'domain',
+      title: t('主域名'),
       width: 200,
     },
     {
-      field: 'set_id',
-      label: () => (
+      cell: (_, { rowIndex }) => (
+        <bk-form-item
+          key={rowIndex}
+          ref={(value: FormItem) => setSetIdRef(value)}
+          class={{
+            'cell-item': true,
+            'domain-address-item-empty': !domains.value[rowIndex]?.set_id,
+          }}
+          errorDisplayType='tooltips'
+          label-width={0}
+          property={`details.replica_sets.${rowIndex}.set_id`}
+          rules={rules.set_id}>
+          <db-input
+            v-bk-tooltips={{
+              content: t('仅支持小写字母、数字、连字符，同时会参与集群域名生成，创建后不可改'),
+              placement: 'top',
+              theme: 'light',
+              trigger: 'click',
+            }}
+            maxlength={63}
+            model-value={domains.value[rowIndex]?.set_id}
+            placeholder={t('请输入')}
+            show-word-limit
+            onInput={(value: string) => handleChangeCellValue(value, rowIndex, 'set_id')}>
+            {{
+              suffix: () => domains.value[rowIndex]?.set_id && <span class='domain-address-placeholder ml-4'></span>,
+            }}
+          </db-input>
+        </bk-form-item>
+      ),
+      colKey: 'set_id',
+      minWidth: 300,
+      title: () => (
         <div class='table-custom-label'>
           {t('集群ID')}
           {tableData.value.length !== 0 && (
@@ -147,41 +178,26 @@
           <span class='required-mark ml-4'>*</span>
         </div>
       ),
-      minWidth: 300,
-      render: ({ index }: { index: number }) => (
-        <bk-form-item
-          key={index}
-          ref={(value: FormItem) => setSetIdRef(value)}
-          class={{
-            'cell-item': true,
-            'domain-address-item-empty': !domains.value[index]?.set_id,
-          }}
-          errorDisplayType='tooltips'
-          label-width={0}
-          property={`details.replica_sets.${index}.set_id`}
-          rules={rules.set_id}>
-          <db-input
-            v-bk-tooltips={{
-              content: t('仅支持小写字母、数字、连字符，同时会参与集群域名生成，创建后不可改'),
-              placement: 'top',
-              theme: 'light',
-              trigger: 'click',
-            }}
-            maxlength={63}
-            model-value={domains.value[index]?.set_id}
-            placeholder={t('请输入')}
-            show-word-limit
-            onInput={(value: string) => handleChangeCellValue(value, index, 'set_id')}>
-            {{
-              suffix: () => domains.value[index]?.set_id && <span class='domain-address-placeholder ml-4'></span>,
-            }}
-          </db-input>
-        </bk-form-item>
-      ),
     },
     {
-      field: 'name',
-      label: () => (
+      cell: (_, { rowIndex }) => (
+        <bk-form-item
+          key={rowIndex}
+          ref={(value: FormItem) => setNameRef(value)}
+          class='cell-item'
+          errorDisplayType='tooltips'
+          label-width={0}
+          property={`details.replica_sets.${rowIndex}.name`}>
+          <db-input
+            model-value={domains.value[rowIndex]?.name}
+            placeholder={t('请输入')}
+            onInput={(value: string) => handleChangeCellValue(value, rowIndex, 'name')}
+          />
+        </bk-form-item>
+      ),
+      colKey: 'name',
+      minWidth: 300,
+      title: () => (
         <div class='table-custom-label'>
           {t('集群名称')}
           {tableData.value.length !== 0 && (
@@ -190,22 +206,6 @@
             </span>
           )}
         </div>
-      ),
-      minWidth: 300,
-      render: ({ index }: { index: number }) => (
-        <bk-form-item
-          key={index}
-          ref={(value: FormItem) => setNameRef(value)}
-          class='cell-item'
-          errorDisplayType='tooltips'
-          label-width={0}
-          property={`details.replica_sets.${index}.name`}>
-          <db-input
-            model-value={domains.value[index]?.name}
-            placeholder={t('请输入')}
-            onInput={(value: string) => handleChangeCellValue(value, index, 'name')}
-          />
-        </bk-form-item>
       ),
     },
   ];
@@ -286,8 +286,8 @@
     const strategy = getDomainStrategy(ClusterTypes.MONGO_REPLICA_SET);
     const domainInfo = strategy({
       clusterName: domain,
+      clusterType: ClusterTypes.MONGO_REPLICA_SET,
       dbAppAbbr: props.appAbbr,
-      moduleName: '',
     });
 
     return `${domainInfo.masterDomain.prefix}${domain || '{' + t('集群标识') + '}'}${domainInfo.masterDomain.suffix}`;
@@ -296,7 +296,7 @@
 
 <style lang="less">
   .domain-table {
-    .bk-table {
+    .t-table {
       .bk-form-content {
         margin-left: 0 !important;
       }
