@@ -152,7 +152,7 @@
         :title="t('创建时间')">
       </TableColumn>
       <TableColumn
-        col-key="operation"
+        col-key="row-operation"
         fixed="right"
         :title="t('操作')"
         :width="120">

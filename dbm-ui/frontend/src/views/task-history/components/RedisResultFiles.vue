@@ -179,7 +179,7 @@
           </bk-button>
         </div>
       ),
-      colKey: 'operations',
+      colKey: 'row-operation',
       title: t('操作'),
       width: 200,
     },

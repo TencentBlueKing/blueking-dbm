@@ -97,7 +97,7 @@
             :min-width="180"
             :title="t('更新时间')" />
           <TableColumn
-            col-key="operation"
+            col-key="row-operation"
             fixed="right"
             :title="t('操作')"
             :width="100">
