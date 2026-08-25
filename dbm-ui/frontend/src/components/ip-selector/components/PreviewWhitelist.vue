@@ -33,13 +33,13 @@
 </template>
 
 <script setup lang="tsx">
-  import type { TablePropTypes } from 'bkui-vue/lib/table/props';
   import { useI18n } from 'vue-i18n';
 
   import { getWhitelist } from '@services/source/whitelist';
 
   import DBCollapseTable from '@components/db-collapse-table/DBCollapseTable.vue';
   import RenderRow from '@components/render-row/index.vue';
+  import type { PrimaryTableCol } from '@components/tdesign-ui/table';
 
   import { execCopy } from '@utils';
 
@@ -76,28 +76,28 @@
     return props.data.filter((item) => item.ips.some((ip) => ip.includes(props.search)));
   });
 
-  const columns = [
+  const columns: PrimaryTableCol[] = [
     {
-      field: 'ips',
-      label: 'IP',
-      render: ({ data }: { data: WhitelistItem }) => <RenderRow data={data.ips} />,
-      showOverflowTooltip: false,
+      cell: (_, { row }) => <RenderRow data={row.ips} />,
+      colKey: 'ips',
+      ellipsis: false,
+      title: 'IP',
     },
     {
-      field: 'remark',
-      label: t('备注'),
+      colKey: 'remark',
+      title: t('备注'),
     },
     {
-      field: 'operation',
-      label: t('操作'),
-      render: ({ index }: { index: number }) => (
+      cell: (_, { rowIndex }) => (
         <bk-button
-          theme='primary'
           text
-          onClick={() => handleRemoveSelected(index)}>
+          theme='primary'
+          onClick={() => handleRemoveSelected(rowIndex)}>
           {t('删除')}
         </bk-button>
       ),
+      colKey: 'operation',
+      title: t('操作'),
       width: 100,
     },
   ];
@@ -106,15 +106,7 @@
     columns,
     data: renderData.value,
     maxHeight: 474,
-    pagination: {
-      align: 'right',
-      count: 0,
-      current: 1,
-      layout: ['total', 'limit', 'list'],
-      limit: 10,
-      limitList: [10, 20, 50, 100],
-    },
-  })) as unknown as TablePropTypes;
+  }));
 
   // IP 操作
   const operations = [

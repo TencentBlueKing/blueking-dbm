@@ -128,13 +128,10 @@
     transition: all 0.5s;
 
     td {
-      .vxe-cell {
-        padding: 0 !important;
-      }
+      padding: 0 !important;
     }
 
     td:first-child {
-      .cell,
       .mongo-permission-cell {
         height: 100% !important;
       }

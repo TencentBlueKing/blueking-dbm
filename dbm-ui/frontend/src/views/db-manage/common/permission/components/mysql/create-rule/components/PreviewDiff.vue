@@ -28,14 +28,16 @@
       :is-active="collapseActive.accessDb"
       mode="collapse"
       :title="t('访问DB')">
-      <BkTable :data="accessDbData">
-        <BkTableColumn
-          field="oldAccessDb"
-          :label="t('变更前')" />
-        <BkTableColumn
-          field="newAccessDb"
-          :label="t('变更后')" />
-      </BkTable>
+      <PrimaryTable
+        :data="accessDbData"
+        row-key="oldAccessDb">
+        <TableColumn
+          col-key="oldAccessDb"
+          :title="t('变更前')" />
+        <TableColumn
+          col-key="newAccessDb"
+          :title="t('变更后')" />
+      </PrimaryTable>
     </DbCard>
     <DbCard
       v-model:collapse="collapseActive.privilege"
@@ -51,16 +53,19 @@
           <span style="color: #ea3636">{{ deleteCount }}</span>
         </I18nT>
       </template>
-      <BkTable
+      <PrimaryTable
         class="privilege-table"
         :data="privilegeData"
-        :merge-cells="mergeCells">
-        <BkTableColumn
+        row-key="afterPrivilege"
+        :rowspan-and-colspan="rowspanAndColspan">
+        <TableColumn
           class-name="cell-bold"
-          field="privilegeDisplay"
-          :label="t('权限类型')" />
-        <BkTableColumn :label="t('变更前')">
-          <template #default="{ data }: { data: PrivilegeRow }">
+          col-key="privilegeDisplay"
+          :title="t('权限类型')" />
+        <TableColumn
+          col-key="beforePrivilege"
+          :title="t('变更前')">
+          <template #default="{ row: data }: { row: PrivilegeRow }">
             <div v-if="data.beforePrivilege">
               <span>{{ data.beforePrivilege }}</span>
               <span
@@ -71,11 +76,12 @@
             </div>
             <span v-else>--</span>
           </template>
-        </BkTableColumn>
-        <BkTableColumn
+        </TableColumn>
+        <TableColumn
           class-name="cell-privilege"
-          :label="t('变更后')">
-          <template #default="{ data }: { data: PrivilegeRow }">
+          col-key="afterPrivilege"
+          :title="t('变更后')">
+          <template #default="{ row: data }: { row: PrivilegeRow }">
             <div
               v-if="data.afterPrivilege"
               :class="[data.diffType]">
@@ -88,8 +94,8 @@
             </div>
             <span v-else>--</span>
           </template>
-        </BkTableColumn>
-      </BkTable>
+        </TableColumn>
+      </PrimaryTable>
     </DbCard>
   </div>
 </template>
@@ -230,6 +236,17 @@
     privilegeData.value = [...dmlData, ...ddlData, ...globData];
   });
 
+  // 合并行只在分组首行声明 rowspan，其余行由 tdesign 自动跳过
+  const rowspanAndColspan = ({ colIndex, rowIndex }: { colIndex: number; rowIndex: number }) => {
+    if (colIndex === 0) {
+      const mergeCell = mergeCells.value.find((item) => item.row === rowIndex);
+      if (mergeCell) {
+        return { rowspan: mergeCell.rowspan };
+      }
+    }
+    return {};
+  };
+
   defineExpose<Exposes>({
     changed: {
       accessDb: accessDbData.value[0].newAccessDb !== accessDbData.value[0].oldAccessDb,
@@ -332,11 +349,11 @@
           border-radius: 2px;
         }
 
-        .cell-privilege:has(.vxe-cell .add) {
+        .cell-privilege:has(.add) {
           background-color: #f2fff4;
         }
 
-        .cell-privilege:has(.vxe-cell .delete) {
+        .cell-privilege:has(.delete) {
           color: #f8b4b4;
           text-decoration: line-through;
           background-color: #ffeeeee6;

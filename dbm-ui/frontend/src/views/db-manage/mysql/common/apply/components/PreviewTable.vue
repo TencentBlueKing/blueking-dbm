@@ -12,20 +12,19 @@
 -->
 
 <template>
-  <DbOriginalTable
-    :cell-class="setCellClass"
+  <PrimaryTable
     class="preview-table"
     :columns="columns"
     :data="data"
     :max-height="maxHeight"
+    row-key="domain"
+    :rowspan-and-colspan="rowspanAndColspan"
     v-bind="$attrs" />
 </template>
 
 <script setup lang="tsx">
-  import type { Table } from 'bkui-vue';
+  import type { PrimaryTableCol, PrimaryTableProps, TableRowData } from 'tdesign-vue-next';
   import { useI18n } from 'vue-i18n';
-
-  type TableProps = InstanceType<typeof Table>['$props'];
 
   interface HostInfo {
     bk_cloud_id: number;
@@ -37,7 +36,7 @@
     proxy?: Array<HostInfo>;
   }
   interface Props {
-    data?: unknown[];
+    data?: TableRowData[];
     isShowNodes?: boolean;
     isSingleType?: boolean;
     maxHeight?: number;
@@ -59,33 +58,31 @@
 
   const columns = computed(() => {
     if (props.isSingleType) {
-      const singleColumns: TableProps['columns'] = [
+      const singleColumns: PrimaryTableCol[] = [
         {
-          field: 'domain',
-          label: t('主访问入口'),
-          showOverflowTooltip: true,
+          colKey: 'domain',
+          ellipsis: true,
+          title: t('主访问入口'),
         },
         {
-          field: 'deployStructure',
-          label: t('部署架构'),
-          showOverflowTooltip: true,
+          colKey: 'deployStructure',
+          ellipsis: true,
+          title: t('部署架构'),
         },
         {
-          field: 'version',
-          label: t('数据库版本'),
-          showOverflowTooltip: true,
+          colKey: 'version',
+          ellipsis: true,
+          title: t('数据库版本'),
         },
         {
-          field: 'charset',
-          label: t('字符集'),
-          showOverflowTooltip: true,
+          colKey: 'charset',
+          ellipsis: true,
+          title: t('字符集'),
         },
       ];
       if (props.isShowNodes) {
         singleColumns.push({
-          field: 'backend',
-          label: t('服务器'),
-          render: () => {
+          cell: () => {
             const hosts = props.nodes.backend;
             return hosts.map((item) => (
               <div class='host-list-item'>
@@ -94,42 +91,44 @@
               </div>
             ));
           },
-          rowspan: () => (props.data.length === 0 ? 1 : props.data.length),
+          className: 'host-td',
+          colKey: 'backend',
+          title: t('服务器'),
           width: 200,
         });
       }
       return singleColumns;
     }
 
-    const haColumns: TableProps['columns'] = [
+    const haColumns: PrimaryTableCol[] = [
       {
-        field: 'domain',
-        label: t('主访问入口'),
+        colKey: 'domain',
+        ellipsis: true,
         minWidth: 240,
-        showOverflowTooltip: true,
+        title: t('主访问入口'),
       },
       {
-        field: 'slaveDomain',
-        label: t('从访问入口'),
+        colKey: 'slaveDomain',
+        ellipsis: true,
         minWidth: 240,
-        showOverflowTooltip: true,
+        title: t('从访问入口'),
       },
       {
-        field: 'deployStructure',
-        label: t('部署架构'),
-        showOverflowTooltip: true,
+        colKey: 'deployStructure',
+        ellipsis: true,
+        title: t('部署架构'),
         width: 100,
       },
       {
-        field: 'version',
-        label: t('数据库版本'),
-        showOverflowTooltip: true,
+        colKey: 'version',
+        ellipsis: true,
+        title: t('数据库版本'),
         width: 120,
       },
       {
-        field: 'charset',
-        label: t('字符集'),
-        showOverflowTooltip: true,
+        colKey: 'charset',
+        ellipsis: true,
+        title: t('字符集'),
         width: 100,
       },
     ];
@@ -137,9 +136,7 @@
     if (props.isShowNodes) {
       haColumns.push(
         {
-          field: 'proxy',
-          label: 'Proxy IP',
-          render: () => {
+          cell: () => {
             const hosts = props.nodes.proxy || [];
             return getRenderHosts(hosts).map((group) => (
               <div class='host-list-group'>
@@ -152,13 +149,13 @@
               </div>
             ));
           },
-          rowspan: () => (props.data.length === 0 ? 1 : props.data.length),
+          className: 'host-td',
+          colKey: 'proxy',
+          title: 'Proxy IP',
           width: 300,
         },
         {
-          field: 'backend',
-          label: 'Master / Slave IP',
-          render: () => {
+          cell: () => {
             const hosts = props.nodes.backend;
             return getRenderHosts(hosts).map((group) => (
               <div class='host-list-group'>
@@ -174,7 +171,9 @@
               </div>
             ));
           },
-          rowspan: () => (props.data.length === 0 ? 1 : props.data.length),
+          className: 'host-td',
+          colKey: 'backend',
+          title: 'Master / Slave IP',
           width: 300,
         },
       );
@@ -182,9 +181,13 @@
     return haColumns;
   });
 
-  const setCellClass = ({ field }: { field: string }) => {
-    const targetFields = ['backend', 'proxy'];
-    return targetFields.includes(field) ? 'host-td' : '';
+  const rowspanAndColspan: PrimaryTableProps['rowspanAndColspan'] = ({ col, rowIndex }) => {
+    if (['backend', 'proxy'].includes(col.colKey as string) && rowIndex === 0) {
+      return {
+        rowspan: props.data.length === 0 ? 1 : props.data.length,
+      };
+    }
+    return {};
   };
 
   /**
@@ -205,11 +208,11 @@
 
 <style lang="less" scoped>
   .preview-table {
-    :deep(.bk-vxe-table) {
+    :deep(.t-table) {
       td {
         position: relative;
 
-        &.host-td .vxe-cell {
+        &.host-td {
           height: 100% !important;
           padding: 0;
           line-height: normal !important;

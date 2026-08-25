@@ -44,17 +44,18 @@
         closable
         theme="success"
         :title="t('磁盘评估通过。')" />
-      <BkTable
-        border
+      <PrimaryTable
+        bordered
         :data="results"
-        :max-height="400">
-        <BkTableColumn
-          field="source"
-          :label="t('源集群')"
-          :min-width="180" />
-        <BkTableColumn
-          field="db_list"
-          :label="t('最终 DB')"
+        :max-height="400"
+        row-key="row_key">
+        <TableColumn
+          col-key="source"
+          :min-width="180"
+          :title="t('源集群')" />
+        <TableColumn
+          col-key="db_list"
+          :title="t('最终 DB')"
           :width="100">
           <template #default="{ row }: { row: MysqlMergeDiskSpaceModel }">
             <BkButton
@@ -64,15 +65,15 @@
               {{ row.db_list.length }}
             </BkButton>
           </template>
-        </BkTableColumn>
-        <BkTableColumn
-          field="target"
-          :label="t('目标集群')"
-          :min-width="180" />
-        <BkTableColumn
-          field="disk_size.used_percent"
-          :label="t('当前磁盘使用率')"
-          :min-width="180">
+        </TableColumn>
+        <TableColumn
+          col-key="target"
+          :min-width="180"
+          :title="t('目标集群')" />
+        <TableColumn
+          col-key="disk_size.used_percent"
+          :min-width="180"
+          :title="t('当前磁盘使用率')">
           <template #default="{ row }">
             <div class="usage-assessment">
               <BkProgress
@@ -93,12 +94,12 @@
               }}
             </div>
           </template>
-        </BkTableColumn>
-        <BkTableColumn
-          field="disk_size.used_percent_future"
-          :label="t('合并后磁盘预估使用率')"
-          :min-width="180">
-          <template #header>
+        </TableColumn>
+        <TableColumn
+          col-key="disk_size.used_percent_future"
+          :min-width="180"
+          :title="t('合并后磁盘预估使用率')">
+          <template #title>
             <div style="display: none">
               <div
                 ref="popRef"
@@ -125,18 +126,18 @@
               {{ row.disk_size?.used_percent_future || '--' }}
             </span>
           </template>
-        </BkTableColumn>
-        <BkTableColumn
-          field="suggestion"
-          :label="t('评估结果')"
-          :min-width="150">
+        </TableColumn>
+        <TableColumn
+          col-key="suggestion"
+          :min-width="150"
+          :title="t('评估结果')">
           <template #default="{ row }">
             <BkTag :theme="suggestionMap[row.suggestion]">
               {{ row.suggestion }}
             </BkTag>
           </template>
-        </BkTableColumn>
-      </BkTable>
+        </TableColumn>
+      </PrimaryTable>
     </div>
 
     <PriviewDbs
@@ -156,7 +157,7 @@
   import { mergeDiskSpace } from '@services/source/mysqlToolbox';
   import { showDatabasesWithPatterns } from '@services/source/remoteService';
 
-  import { bytePretty } from '@utils';
+  import { bytePretty, random } from '@utils';
 
   import PriviewDbs from './components/PriviewDbs.vue';
 
@@ -202,7 +203,11 @@
   const { run: runAssessment } = useRequest(mergeDiskSpace, {
     manual: true,
     onSuccess(data: MysqlMergeDiskSpaceModel[]) {
-      results.value = data;
+      results.value = data.map((item) =>
+        Object.assign(item, {
+          row_key: random(),
+        }),
+      );
       seriousRiskClusters.value = data.filter((item) => item.suggestion === '严重风险');
       isLoading.value = false;
       setTimeout(() => {

@@ -187,13 +187,10 @@
     }
 
     .cell-privilege {
-      .vxe-cell {
-        padding: 0 !important;
-        margin-left: -16px;
+      padding: 0 !important;
 
-        .inner-row {
-          padding-left: 32px !important;
-        }
+      .inner-row {
+        padding-left: 32px !important;
       }
     }
 

@@ -151,16 +151,14 @@
     {
       content: t('注意！实例操作已移到此处，助您更快触达'),
       entry: () => {
-        const fixZIndexEle = rootRef.value!.querySelector('.vxe-table--fixed-left-wrapper');
-        if (fixZIndexEle) {
-          (fixZIndexEle as HTMLElement).style.zIndex = 'unset !important';
-        }
+        rootRef.value!.querySelectorAll('.t-table__cell--fixed-left').forEach((ele) => {
+          (ele as HTMLElement).style.setProperty('z-index', 'unset', 'important');
+        });
       },
       leave: () => {
-        const fixZIndexEle = rootRef.value!.querySelector('.vxe-table--fixed-left-wrapper');
-        if (fixZIndexEle) {
-          (fixZIndexEle as HTMLElement).style.zIndex = '';
-        }
+        rootRef.value!.querySelectorAll('.t-table__cell--fixed-left').forEach((ele) => {
+          (ele as HTMLElement).style.removeProperty('z-index');
+        });
       },
       target: '.instance-list-column-operation-btn',
       title: t('温馨提示'),
