@@ -75,7 +75,7 @@
             :allow-asterisk="false"
             :cluster-id="item.cluster?.id"
             field="databasesIgnore"
-            :label="t('排除库')"
+            :label="t('忽略库')"
             :required="false"
             @batch-edit="handleBatchEdit" />
           <FinalDbColumn

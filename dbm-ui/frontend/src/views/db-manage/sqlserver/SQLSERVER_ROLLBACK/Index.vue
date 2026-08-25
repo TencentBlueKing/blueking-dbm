@@ -22,14 +22,14 @@
           v-model="formData.rollbackMethod"
           :desc="t('使用备份文件回档数据')"
           icon="bk-dbm-icon db-icon-form"
-          :title="t('指定备份记录回档')"
+          :title="t('指定备份记录构造')"
           true-value="BACKUPID" />
         <CardCheckbox
           v-model="formData.rollbackMethod"
           class="ml-8"
           :desc="t('使用指定的时间最近的全备+binlog 回档数据')"
           icon="bk-dbm-icon db-icon-time"
-          :title="t('指定时间回档')"
+          :title="t('指定时间构造')"
           true-value="TIME" />
       </BkFormItem>
       <BatchInput
@@ -76,7 +76,7 @@
             :allow-asterisk="false"
             :cluster-id="item.cluster?.id"
             field="databasesIgnore"
-            :label="t('排除库')"
+            :label="t('忽略库')"
             :required="false"
             @batch-edit="handleBatchEdit" />
           <TargetClusterColumn
