@@ -19,9 +19,9 @@ from backend.iam_app.constans import COMMON_DB_TYPE
 from backend.iam_app.dataclass.resources import BizDBTypeResourceMeta, BusinessResourceMeta, ResourceEnum
 
 
-def get_biz_names() -> Dict[str, str]:
+def get_biz_ids() -> List[str]:
     bizs = AppCache.get_appcache(key="appcache_dict")
-    return {str(bk_biz_id): biz["bk_biz_name"] for bk_biz_id, biz in bizs.items()}
+    return [str(bk_biz_id) for bk_biz_id in bizs]
 
 
 class BizDBTypeResourceProvider(ResourceProvider):
@@ -42,10 +42,10 @@ class BizDBTypeResourceProvider(ResourceProvider):
     def get_db_type_name(db_type: str) -> str:
         return str(ResourceEnum.DBTYPE.get_display_name(db_type) or db_type)
 
-    def make_instance(self, bk_biz_id, biz_name: str, db_type: str) -> Dict:
+    def make_instance(self, bk_biz_id, db_type: str) -> Dict:
         return {
             "id": self.resource_meta.make_instance_id(bk_biz_id, db_type),
-            "display_name": "{}-{}".format(biz_name, self.get_db_type_name(db_type)),
+            "display_name": self.get_db_type_name(db_type),
         }
 
     def list_attr(self, **options):
@@ -55,17 +55,15 @@ class BizDBTypeResourceProvider(ResourceProvider):
         return ListResult(results=[], count=0)
 
     def list_instance(self, filter, page, **options):
-        biz_names = get_biz_names()
         # IAM按业务逐层选择实例时会带上直接上级，此时只展开该业务下的DB类型
         parent = filter.get("parent") or {}
         if parent.get("type") == BusinessResourceMeta.id and parent.get("id"):
-            bk_biz_id = str(parent["id"])
-            biz_names = {bk_biz_id: biz_names.get(bk_biz_id, bk_biz_id)}
+            bk_biz_ids = [str(parent["id"])]
+        else:
+            bk_biz_ids = get_biz_ids()
 
         instances = [
-            self.make_instance(bk_biz_id, biz_name, db_type)
-            for bk_biz_id, biz_name in biz_names.items()
-            for db_type in self.get_db_types()
+            self.make_instance(bk_biz_id, db_type) for bk_biz_id in bk_biz_ids for db_type in self.get_db_types()
         ]
         keyword = filter.get("search") or filter.get("keyword")
         if keyword:
@@ -79,15 +77,13 @@ class BizDBTypeResourceProvider(ResourceProvider):
         return ListResult(results=[], count=0)
 
     def fetch_instance_info(self, filter, **options):
-        biz_names = get_biz_names()
         results = []
         for instance_id in filter.ids or []:
             bk_biz_id, db_type = self.resource_meta.parse_instance_id(instance_id)
-            biz_name = biz_names.get(bk_biz_id, bk_biz_id)
             results.append(
                 {
                     "id": instance_id,
-                    "display_name": "{}-{}".format(biz_name, self.get_db_type_name(db_type)),
+                    "display_name": self.get_db_type_name(db_type),
                     "_bk_iam_path_": "/{},{}/".format(BusinessResourceMeta.id, bk_biz_id),
                 }
             )

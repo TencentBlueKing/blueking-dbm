@@ -8,6 +8,7 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+
 import abc
 from dataclasses import dataclass, field
 from typing import Dict, List, Tuple, Union
@@ -21,7 +22,7 @@ from backend.configuration.constants import DBType
 from backend.db_meta.enums import ClusterType, InstanceRole
 from backend.db_meta.models import AppCache
 from backend.env import BK_IAM_SYSTEM_ID, ENABLE_IAM_V4
-from backend.iam_app.constans import COMMON_DB_TYPE, GLOBAL_BIZ_ID_V4, RoleActionLabel
+from backend.iam_app.constans import COMMON_DB_TYPE, GLOBAL_BIZ_ID_V4
 from backend.iam_app.exceptions import ResourceNotExistError
 
 
@@ -50,8 +51,8 @@ class ResourceMeta(metaclass=abc.ABCMeta):
     iamv4_disable: bool = False
     # 该资源不同步到V3，用于V4专有的资源类型
     iamv3_disable: bool = False
-    # 资源创建后授予创建者的角色，为空表示不做创建者授权。V4没有属性授权，改为对实例直接授权
-    creator_role_v4: RoleActionLabel = None
+    # 资源创建后授予创建者的角色ID，为空表示不做创建者授权。V4没有属性授权，改为对实例直接授权
+    creator_role_v4: str = None
 
     def __post_init__(self):
         self.select_id = self.select_id or self.id
@@ -456,7 +457,6 @@ class MySQLResourceMeta(ClusterResourceMeta):
 
     id: str = "mysql"
     name: str = _("MySQL集群")
-    creator_role_v4: RoleActionLabel = RoleActionLabel.MYSQL_CREATOR
 
 
 @dataclass
