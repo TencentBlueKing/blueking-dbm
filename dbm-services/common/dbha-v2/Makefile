@@ -63,8 +63,8 @@ define GO_BUILD
 				-o $(BUILD_DIR)/$(BIN_PREFIX)$(1) cmd/$(1)/main.go
 endef
 
-.PHONY: all proto $(SERVICES) doc toolkits cluster bwmgr clean format test \
-        package package-server package-probe help \
+.PHONY: all proto $(SERVICES) doc toolkits cluster bwmgr probe-sandbox-mock \
+        clean format test package package-server package-probe help \
         probe-windows package-probe-windows check-windows
 
 # package
@@ -161,6 +161,13 @@ bwmgr:
 	@mkdir -p $(BUILD_DIR)
 	CGO_ENABLED=0 GOOS=${GO_OS} GOARCH=amd64 go build -ldflags=$(BUILD_FLAG) -gcflags="all=-trimpath=$(PWD)" \
 				-asmflags="all=-trimpath=$(PWD)" -o $(BUILD_DIR)/$(BIN_PREFIX)$@ ./tools/cmd/bwmgr
+
+# local full-path mock (admin + receiver + redis); not packaged with toolkits
+probe-sandbox-mock:
+	@mkdir -p $(BUILD_DIR)
+	CGO_ENABLED=0 GOOS=${GO_OS} GOARCH=amd64 go build -ldflags=$(BUILD_FLAG) \
+				-gcflags="all=-trimpath=$(PWD)" -asmflags="all=-trimpath=$(PWD)" \
+				-o $(BUILD_DIR)/$(BIN_PREFIX)$@ ./tools/cmd/probe-sandbox-mock
 
 # build protobuf to go
 $(GEN_DIR)/%.pb.go: $(PROTO_DIR)/%.proto
@@ -269,6 +276,7 @@ help:
 	@echo "  toolkits   - Build toolkit binaries (cluster, bwmgr)"
 	@echo "  cluster    - Build cluster toolkit (dbha-cluster)"
 	@echo "  bwmgr      - Build black-white list manager (dbha-bwmgr)"
+	@echo "  probe-sandbox-mock - Build local probe full-path mock (not packaged)"
 	@echo "  package    - Build and create both server and probe release packages"
 	@echo "  package-server - Create server release package (services + toolkits + etc templates)"
 	@echo "  package-probe  - Create probe release package ($(VERSION)-probe.tar.gz)"

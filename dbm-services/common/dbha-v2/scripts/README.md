@@ -17,6 +17,7 @@
 - `start-probe-keepalive.ps1` / `stop-probe-keepalive.ps1`: Windows 下启动/停止 probe keepalive 模式
 - `install-libs.sh`: 安装构建依赖（abseil/protobuf/protoc 插件）
 - `devenv.rc`: 本地开发环境变量示例
+- `probe-sandbox-full.sh`: 本地 mock 全链路（gen-config → 采集 → 上报），见 [probe-sandbox-mock README](../tools/cmd/probe-sandbox-mock/README.md)
 
 ## render_configs.py
 
