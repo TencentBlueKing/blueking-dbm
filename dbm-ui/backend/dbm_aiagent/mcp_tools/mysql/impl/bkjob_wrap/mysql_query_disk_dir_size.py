@@ -8,11 +8,7 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-# 各 bkjob 功能的 inline 脚本（一个功能一个脚本，定义在 impl 层，避免耦合视图）
-
-# 获取目标机器当前日期和 IP
-CURRENT_DATE_AND_IP_SCRIPT = """echo $LOCAL_IP && date"""
-
+# mysql_query_disk_dir_size 的 inline 脚本（定义在 impl 层，避免耦合视图）
 # 磁盘目录大小统计：分区总览 / 一级子目录 / 关键目录深扫 / 大文件（>20G）
 DISK_DIR_SIZE_SCRIPT = """#!/bin/sh
 # ============================================================
@@ -24,7 +20,7 @@ DISK_DIR_SIZE_SCRIPT = """#!/bin/sh
 #      - /home/mysql/*
 #      - /data/home/*
 #      - mysqllog/*/*   (under each partition)
-#      - mysqldata/*/*/* (under each partition)
+#      - mysqldata/*/*/* or mysqldata/data/* (under each partition, depending on directory structure)
 #   4. Files larger than 20G under the key directories
 #      (mysqldata/mysqllog are scanned ONCE via du -a, reused by Part 2/3)
 # Usage: sh disk_usage.sh [dir1] [dir2] ...
@@ -40,7 +36,12 @@ if [ -z "$DISK_USAGE_RENICED" ]; then
     # timeout prefix (kills the whole process group after the limit)
     TP=""
     if command -v timeout >/dev/null 2>&1; then
-        TP="timeout -k 2 $TIMEOUT_SECS"
+        # Old coreutils (e.g. tlinux 1.2) has no -k support; probe first and fall back.
+        if timeout -k 1 true 2>/dev/null; then
+            TP="timeout -k 2 $TIMEOUT_SECS"
+        else
+            TP="timeout $TIMEOUT_SECS"
+        fi
     fi
     if command -v ionice >/dev/null 2>&1; then
         $TP ionice -c3 nice -n 19 "$0" "$@"
@@ -55,6 +56,20 @@ if [ -z "$DISK_USAGE_RENICED" ]; then
         echo "[TRUNCATED] scan hit timeout after ${TIMEOUT_SECS}s, results may be incomplete" >&2
     fi
     exit "$status"
+fi
+
+# ============ 机器级互斥锁 ============
+# 同一台机器同一时间只允许一个扫描实例运行，避免多个 du/find 全盘扫描叠加
+# 导致 IO/CPU 飙高。拿不到锁直接跳过并输出明确标记（不阻塞、不重复扫描）。
+# flock 为 util-linux 自带；机器无 flock 时降级跳过，由视图层分布式锁兜底。
+LOCK_FILE="/tmp/mysql_query_disk_dir_size.lock"
+if command -v flock >/dev/null 2>&1; then
+    exec 9>"$LOCK_FILE"
+    if ! flock -n 9; then
+        echo "[SKIPPED] another disk usage scan is already running on this host, skipped to avoid resource contention"
+        exit 0
+    fi
+    # 脚本结束（或超时被杀）时 fd 9 自动关闭，锁随之释放，无需显式解锁
 fi
 
 # Output result to /home/mysql/disk_usage_<YYYYMMDD_HHMMSS> AND show on screen
@@ -148,11 +163,20 @@ done
 # Row types: T=total(dir itself), D=dir, F=file>20G
 MYSQLDATA_CACHE="/tmp/mysqldata_du_cache_$$.txt"
 trap 'rm -f "$MYSQLDATA_CACHE"' EXIT INT TERM
-:: > "$MYSQLDATA_CACHE"
+: > "$MYSQLDATA_CACHE"
 for dir in $DIRS; do
     for sub in mysqldata mysqllog; do
         if [ -d "$dir/$sub" ]; then
-            if [ "$sub" = "mysqllog" ]; then maxd=2; exact=0; else maxd=3; exact=1; fi
+            if [ "$sub" = "mysqllog" ]; then
+                maxd=2
+                exact=0
+            elif [ -d "$dir/mysqldata/data" ]; then
+                maxd=2
+                exact=1
+            else
+                maxd=3
+                exact=1
+            fi
             du -a "$dir/$sub" 2>/dev/null | awk -F'\\t' -v m="$dir/$sub" -v maxd="$maxd" -v exact="$exact" -v cutoff=20971520 '
                 function dep(p, n, a, c, i) { n=split(p,a,"/"); c=0; for(i=1;i<=n;i++) if(a[i]!="") c++; return c }
                 {
@@ -210,17 +234,21 @@ for dir in $DIRS; do
         echo "[Key Dir: $dir/mysqllog subdirs]"
         awk -F'\\t' -v m="$dir/mysqllog" '
             $1=="D" && index($3, m"/")==1 {printf "%.1fG\\t%s\\n", $2/1024/1024, $3}
-        ' "$MYSQLDATA_CACHE" \\
+        ' "$MYSQLDATA_CACHE" \
             | sort -rn -S 512M 2>/dev/null | head -n 30
         echo
     fi
     if [ -d "$dir/mysqldata" ]; then
         echo "[Key Dir: $dir/mysqldata]"
         awk -F'\\t' -v m="$dir/mysqldata" '$1=="T" && $3==m {printf "%.1fG\\t%s\\n", $2/1024/1024, $3}' "$MYSQLDATA_CACHE"
-        echo "[Key Dir: $dir/mysqldata/*/*/*]"
+        if [ -d "$dir/mysqldata/data" ]; then
+            echo "[Key Dir: $dir/mysqldata/data/*]"
+        else
+            echo "[Key Dir: $dir/mysqldata/*/*/*]"
+        fi
         awk -F'\\t' -v m="$dir/mysqldata" '
             $1=="D" && index($3, m"/")==1 {printf "%.1fG\\t%s\\n", $2/1024/1024, $3}
-        ' "$MYSQLDATA_CACHE" \\
+        ' "$MYSQLDATA_CACHE" \
             | sort -rn -S 512M 2>/dev/null | head -n 30
         echo
     fi
@@ -237,9 +265,9 @@ show_large_files() {
     key="$1"
     [ -d "$key" ] || return 0
     echo "[Files > 20G under $key]"
-    find "$key" -maxdepth 8 -type f -size +20G -printf '%s\\t%p\\n' 2>/dev/null \\
-        | sort -rn -S 512M 2>/dev/null \\
-        | awk '{printf "%.1fG\\t%s\\n", $1/1073741824, $2}' 2>/dev/null \\
+    find "$key" -maxdepth 8 -type f -size +20G -printf '%s\\t%p\\n' 2>/dev/null \
+        | sort -rn -S 512M 2>/dev/null \
+        | awk '{printf "%.1fG\\t%s\\n", $1/1073741824, $2}' 2>/dev/null \
         | head -n 30
 }
 
@@ -255,14 +283,14 @@ for dir in $DIRS; do
         echo "[Files > 20G under $dir/mysqllog]"
         awk -F'\\t' -v m="$dir/mysqllog" '
             $1=="F" && index($3, m"/")==1 {printf "%.1fG\\t%s\\n", $2/1024/1024, $3}
-        ' "$MYSQLDATA_CACHE" \\
+        ' "$MYSQLDATA_CACHE" \
             | sort -rn -S 512M 2>/dev/null | head -n 30
     fi
     if [ -d "$dir/mysqldata" ]; then
         echo "[Files > 20G under $dir/mysqldata]"
         awk -F'\\t' -v m="$dir/mysqldata" '
             $1=="F" && index($3, m"/")==1 {printf "%.1fG\\t%s\\n", $2/1024/1024, $3}
-        ' "$MYSQLDATA_CACHE" \\
+        ' "$MYSQLDATA_CACHE" \
             | sort -rn -S 512M 2>/dev/null | head -n 30
     fi
 done

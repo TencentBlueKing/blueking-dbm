@@ -8,12 +8,6 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-from django.utils.translation import gettext_lazy as _
-from rest_framework import serializers
-
-
-class CurrentDateAndIpInputSerializer(serializers.Serializer):
-    bk_cloud_id = serializers.IntegerField(help_text=_("云区域 ID"), default=0)
-    ips = serializers.ListField(child=serializers.CharField(), help_text=_("目标 IP 列表"))
-    bk_scope_type = serializers.CharField(help_text=_("资源范围类型：仅支持 biz（单业务），禁止 biz_set"))
-    bk_scope_id = serializers.CharField(help_text=_("CMDB 业务ID（注意非 DBM 平台内部业务ID）"))
+# mysql_current_date_and_ip 的 inline 脚本（定义在 impl 层，避免耦合视图）
+# 获取目标机器当前日期和 IP
+CURRENT_DATE_AND_IP_SCRIPT = """echo $LOCAL_IP && date"""
