@@ -252,17 +252,22 @@ class SQLServerRollbackHandler(object):
         backup_logs = sorted(backup_logs, key=lambda x: x["start_time"], reverse=True)
         return backup_logs
 
-    def query_backup_logs_from_model(self, start_time: datetime, end_time: datetime) -> List[Dict[str, Any]]:
+    def query_backup_logs_from_model(
+        self, start_time: datetime = None, end_time: datetime = None
+    ) -> List[Dict[str, Any]]:
         """
         基于 SQLServerBackupResult Model 查询集群的备份记录（替代 bklog 查询）
-        @param start_time: 查询开始时间
-        @param end_time: 查询结束时间
+        @param start_time: 查询开始时间，为空表示不限制开始时间
+        @param end_time: 查询结束时间，为空表示不限制结束时间
         """
-        backup_qs = SQLServerBackupResult.objects.filter(
-            cluster_id=self.cluster.id,
-            backup_end_time__gte=start_time,
-            backup_end_time__lte=end_time,
-        )
+        # 时间条件按需拼接，start_time/end_time 均为空时返回该集群的全量备份记录
+        time_filters: Dict[str, datetime] = {}
+        if start_time:
+            time_filters["backup_end_time__gte"] = start_time
+        if end_time:
+            time_filters["backup_end_time__lte"] = end_time
+
+        backup_qs = SQLServerBackupResult.objects.filter(cluster_id=self.cluster.id, **time_filters)
         backup_logs_raw = list(backup_qs.values())
 
         # 根据 backup_id 聚合备份记录，仅保留 data_schema_grant == "all" 的记录

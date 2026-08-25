@@ -24,7 +24,8 @@ from backend.utils.time import str2datetime
 
 class QueryBackupLogsSerializer(serializers.Serializer):
     cluster_id = serializers.IntegerField(help_text=_("集群 ID"))
-    days = serializers.IntegerField(help_text=_("查询时间间隔"), default=7, required=False)
+    # days 不传表示不限制时间范围，返回全量备份记录
+    days = serializers.IntegerField(help_text=_("查询时间间隔(不传则返回全量记录)"), required=False, allow_null=True)
     end_time = DBTimezoneField(help_text=_("查询结束时间"), required=False, allow_blank=True)
 
 
