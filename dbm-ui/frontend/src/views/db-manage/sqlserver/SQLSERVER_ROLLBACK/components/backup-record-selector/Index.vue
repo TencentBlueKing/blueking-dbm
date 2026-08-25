@@ -322,7 +322,8 @@
     handleChangePage(1);
   };
 
-  const disableDate = (date?: Date | number) => dayjs(date).isAfter(dayjs(), 'day');
+  const disableDate = (date?: Date | number) =>
+    dayjs(date).isAfter(props.backupTime ? dayjs(props.backupTime) : dayjs(), 'day');
 
   const shortcuts = [
     {
