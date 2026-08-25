@@ -770,6 +770,16 @@ class BuilderFactory:
         return inner_wrapper
 
     @classmethod
+    def get_ticket_iam_action(cls, ticket_type):
+        action = cls.ticket_type__iam_action.get(ticket_type)
+        if not action:
+            db_type = TicketType.get_db_type_by_ticket(ticket_type)
+            if not db_type:
+                return None
+            action = getattr(ActionEnum, f"{db_type.upper()}_MANAGE")
+        return action
+
+    @classmethod
     def get_builder_cls(cls, ticket_type: str):
         """获取构造器类"""
         if ticket_type not in cls.registry:

@@ -51,7 +51,7 @@ class CreateTicketOneResourcePermission(ResourceActionPermission):
     def __init__(self, ticket_type: TicketType, batch: bool = False) -> None:
         self.ticket_type = ticket_type
         self.batch = batch
-        action = BuilderFactory.ticket_type__iam_action.get(ticket_type)
+        action = BuilderFactory.get_ticket_iam_action(ticket_type)
         actions = [action] if action else []
         # 只考虑关联一种资源
         resource_meta = action.related_resource_types[0] if action else None
@@ -158,7 +158,7 @@ class CreateTicketMoreResourcePermission(MoreResourceActionPermission):
     def __init__(self, ticket_type: TicketType, batch: bool = False) -> None:
         self.ticket_type = ticket_type
         self.batch = batch
-        action = BuilderFactory.ticket_type__iam_action.get(ticket_type)
+        action = BuilderFactory.get_ticket_iam_action(ticket_type)
         resource_metes = action.related_resource_types
         # 根据单据类型来决定资源获取方式
         instance_ids_getters = None
@@ -208,7 +208,7 @@ class CreateTicketMoreResourcePermission(MoreResourceActionPermission):
 
 
 def create_ticket_permission(ticket_type: TicketType, batch: bool = False) -> List[IAMPermission]:
-    action = BuilderFactory.ticket_type__iam_action.get(ticket_type)
+    action = BuilderFactory.get_ticket_iam_action(ticket_type)
     if not action:
         # 对于未注册到iam的单据动作，默认只开放给superuser
         logger.warning(_("单据动作ID:{} 不存在").format(action))
@@ -293,7 +293,7 @@ def add_ticket_audit_event(ticket_id):
         return
 
     # 获取单据执行相关的iam资源
-    action = BuilderFactory.ticket_type__iam_action.get(ticket.ticket_type)
+    action = BuilderFactory.get_ticket_iam_action(ticket.ticket_type)
     if not action:
         return
 
