@@ -5,7 +5,7 @@
       class="bk-editable-input-prepend-wrapper">
       <slot name="prepend" />
     </div>
-    <BkInput
+    <DbmInput
       v-bind="{ ...attrs, ...props }"
       ref="inputRef"
       v-model="modelValue"
@@ -22,6 +22,8 @@
 </template>
 <script setup lang="ts">
   import { useAttrs, type VNode, watch } from 'vue';
+
+  import DbmInput from '@components/bkui-vue/input/Index.vue';
 
   import useColumn from '../useColumn';
 
@@ -90,8 +92,8 @@
     &.is-readonly,
     &.is-disabled {
       .bk-editable-input {
-        .bk-input {
-          .bk-input--clear-icon {
+        .dbm-input {
+          .dbm-textarea-clear-icon {
             display: none !important;
           }
 
@@ -109,16 +111,17 @@
     width: 100%;
     overflow: hidden;
 
-    .bk-input {
+    .dbm-input {
       height: 40px;
+      background: transparent;
       border: none;
       box-shadow: none !important;
 
-      .bk-input--text {
+      .dbm-input-text {
         background: transparent;
       }
 
-      .bk-input--suffix-icon {
+      .dbm-input-suffix-icon {
         background: transparent;
       }
     }

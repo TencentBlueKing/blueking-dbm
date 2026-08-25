@@ -5,12 +5,13 @@
       class="bk-editable-textarea-prepend-wrapper">
       <slot name="prepend" />
     </div>
-    <BkInput
+    <DbmInput
       v-model="modelValue"
       autosize
       clearable
       :resize="false"
       v-bind="{ ...attrs, ...props }"
+      :rows="1"
       type="textarea"
       @blur="handleBlur"
       @change="handleChange"
@@ -24,6 +25,8 @@
 </template>
 <script setup lang="ts">
   import { useAttrs, type VNode, watch } from 'vue';
+
+  import DbmInput from '@components/bkui-vue/input/Index.vue';
 
   import useColumn from '../useColumn';
 
@@ -79,10 +82,10 @@
     &.is-readonly,
     &.is-disabled {
       .bk-editable-textarea {
-        .bk-textarea {
+        .dbm-textarea {
           pointer-events: none;
 
-          .bk-input--clear-icon {
+          .dbm-input-suffix-icon {
             display: none !important;
           }
 
@@ -102,7 +105,7 @@
     padding-bottom: 6px;
     overflow: hidden;
 
-    .bk-textarea {
+    .dbm-textarea {
       background: transparent;
       border: none;
       border-radius: 0;
@@ -113,14 +116,16 @@
         background: transparent;
       }
 
-      .bk-textarea--suffix-icon {
+      .dbm-input-suffix-icon {
         align-items: center;
       }
 
-      .bk-textarea--clear-icon {
+      .dbm-textarea-clear-icon {
         top: 7px;
         right: 0;
-        height: 14px;
+        bottom: 7px;
+        min-height: 14px;
+        align-items: center;
       }
     }
   }
