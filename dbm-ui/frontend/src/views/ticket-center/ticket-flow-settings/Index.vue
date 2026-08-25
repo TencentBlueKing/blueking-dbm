@@ -52,6 +52,7 @@
     (value) => {
       if (value) {
         router.replace({
+          name: 'TicketFlowSetting',
           params: {
             dbType: value,
           },
