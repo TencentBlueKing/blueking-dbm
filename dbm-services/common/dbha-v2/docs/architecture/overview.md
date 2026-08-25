@@ -22,6 +22,7 @@ DBHA v2 负责数据库实例的**持续探测**、**故障判定**与**自动�
 | **probe**        | [cmd/probe](../../cmd/probe)、[internal/probe](../../internal/probe)             | 采集各类 DB 状态数据           |
 | **dbha-cluster** | [tools/cmd/cluster](../../tools/cmd/cluster)                                    | 集群运维（如 CLB、DBM 调用）     |
 | **dbha-bwmgr**   | [tools/cmd/bwmgr](../../tools/cmd/bwmgr)                                        | 黑白名单管理（见其 README）      |
+| **probe-sandbox-mock** | [tools/cmd/probe-sandbox-mock](../../tools/cmd/probe-sandbox-mock) | 本地全链路 mock（Admin/Receiver/Redis，不随 server 安装） |
 
 
 ## 3. 系统架构图
