@@ -89,7 +89,7 @@
       },
       placement: 'bottom',
       theme: 'light',
-      zIndex: 999,
+      zIndex: 999999,
     });
   });
 
@@ -110,7 +110,6 @@
     color: #3a84ff;
     white-space: nowrap;
     background: #e1ecff;
-    background-color: #e1ecff;
     border: 1px solid #a3c5fd;
     border-radius: 2px;
     align-items: center;

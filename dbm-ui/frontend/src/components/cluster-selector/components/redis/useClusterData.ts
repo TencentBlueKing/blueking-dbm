@@ -21,6 +21,7 @@ import { getSearchSelectorParams } from '@utils';
  */
 export function useClusterData<T>(searchSelectValue: Ref<ISearchValue[]>) {
   let baseExtraParamsMemo: Record<string, any> = {};
+  let fetchSeq = 0;
   const currentInstance = getCurrentInstance() as {
     proxy: {
       getResourceList: (params: any) => Promise<any>;
@@ -61,6 +62,8 @@ export function useClusterData<T>(searchSelectValue: Ref<ISearchValue[]>) {
     if (extraParams) {
       pagination.current = 1;
     }
+    // 并发场景下只接受最后一次请求的结果，避免旧响应覆盖分页与表格数据
+    const currentFetchSeq = ++fetchSeq;
     return currentInstance.proxy
       .getResourceList({
         bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
@@ -70,17 +73,25 @@ export function useClusterData<T>(searchSelectValue: Ref<ISearchValue[]>) {
         ...baseExtraParamsMemo,
       })
       .then((res) => {
+        if (currentFetchSeq !== fetchSeq) {
+          return;
+        }
         pagination.count = res.count;
         tableData.value = res.results;
         isAnomalies.value = false;
       })
       .catch(() => {
+        if (currentFetchSeq !== fetchSeq) {
+          return;
+        }
         tableData.value = [];
         pagination.count = 0;
         isAnomalies.value = true;
       })
       .finally(() => {
-        isLoading.value = false;
+        if (currentFetchSeq === fetchSeq) {
+          isLoading.value = false;
+        }
       });
   };
 
