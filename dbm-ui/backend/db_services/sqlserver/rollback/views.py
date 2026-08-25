@@ -8,7 +8,7 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-from datetime import datetime, timedelta
+from datetime import datetime
 
 from django.utils import timezone
 from django.utils.translation import gettext as _
@@ -52,7 +52,7 @@ class SQLServerRollbackViewSet(viewsets.SystemViewSet):
         days = data.get("days")
 
         # 不传 days 时不限制时间范围，返回全量备份记录
-        if not days:
+        if not data.get("end_time") and not days:
             return Response(SQLServerRollbackHandler(cluster_id).query_backup_logs_from_model())
 
         # 支持显式指定 end_time，否则使用当前时间
@@ -61,8 +61,7 @@ class SQLServerRollbackViewSet(viewsets.SystemViewSet):
         else:
             end_time = datetime.now(timezone.utc)
 
-        start_time = end_time - timedelta(days=days)
-        return Response(SQLServerRollbackHandler(cluster_id).query_backup_logs_from_model(start_time, end_time))
+        return Response(SQLServerRollbackHandler(cluster_id).query_backup_logs_from_model(end_time))
 
     @common_swagger_auto_schema(
         operation_summary=_("根据回档时间集群最近备份记录"),
