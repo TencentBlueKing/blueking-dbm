@@ -1,17 +1,18 @@
 <template>
   <div
     v-if="type === 'textarea'"
+    v-bk-tooltips="tooltipsConfig"
     class="dbm-textarea"
     :class="{
       'is-disabled': disabled,
       'is-focused': isFocused,
       'is-readonly': readonly,
-      'is-resizable': resize,
+      'is-resizable': resize && !autosize,
     }">
     <textarea
       ref="inputRef"
       :disabled="disabled"
-      :maxlength="maxlength"
+      :maxlength="overMaxLengthLimit ? undefined : maxlength"
       :placeholder="placeholder"
       :readonly="readonly"
       :rows="rows"
@@ -37,11 +38,17 @@
       v-if="showCounter"
       class="dbm-textarea-max-length"
       :class="{ 'is-over-limit': isOverLimit }">
-      {{ currentLength }} / <span>{{ maxlength }}</span>
+      <template v-if="overMaxLengthLimit">
+        {{ remainingLength }}
+      </template>
+      <template v-else>
+        {{ currentLength }} / <span>{{ maxlength }}</span>
+      </template>
     </span>
   </div>
   <div
     v-else
+    v-bk-tooltips="tooltipsConfig"
     class="dbm-input"
     :class="{
       'is-disabled': disabled,
@@ -60,7 +67,7 @@
       ref="inputRef"
       class="dbm-input-text"
       :disabled="disabled"
-      :maxlength="maxlength"
+      :maxlength="overMaxLengthLimit ? undefined : maxlength"
       :placeholder="placeholder"
       :readonly="readonly"
       :type="nativeType"
@@ -99,7 +106,12 @@
       v-if="showCounter"
       class="dbm-input-max-length"
       :class="{ 'is-over-limit': isOverLimit }">
-      {{ currentLength }} / <span>{{ maxlength }}</span>
+      <template v-if="overMaxLengthLimit">
+        {{ remainingLength }}
+      </template>
+      <template v-else>
+        {{ currentLength }} / <span>{{ maxlength }}</span>
+      </template>
     </span>
     <div
       v-if="type === 'number' && showControl"
@@ -128,16 +140,19 @@
 <script setup lang="ts">
   import { Close, DownSmall, Eye, Search, Unvisible } from 'bkui-vue/lib/icon';
   import { useFormItem } from 'bkui-vue/lib/shared';
-  import { computed, ref, type VNode, watch } from 'vue';
+  import { computed, nextTick, onBeforeUnmount, onMounted, ref, type VNode, watch } from 'vue';
+  import { useI18n } from 'vue-i18n';
 
   interface Props {
     allowEmptyValue?: boolean;
+    autosize?: boolean | { maxRows?: number; minRows?: number };
     behavior?: 'normal' | 'simplicity';
     clearable?: boolean;
     disabled?: boolean;
     max?: number;
     maxlength?: number;
     min?: number;
+    overMaxLengthLimit?: boolean;
     placeholder?: string;
     precision?: number;
     prefix?: string;
@@ -146,6 +161,7 @@
     rows?: number;
     showClearOnlyHover?: boolean;
     showControl?: boolean;
+    showOverflowTooltips?: boolean;
     showWordLimit?: boolean;
     size?: 'small' | 'default' | 'large';
     step?: number;
@@ -160,12 +176,14 @@
 
   const props = withDefaults(defineProps<Props>(), {
     allowEmptyValue: true,
+    autosize: false,
     behavior: 'normal',
     clearable: false,
     disabled: false,
     max: Infinity,
     maxlength: undefined,
     min: -Infinity,
+    overMaxLengthLimit: false,
     placeholder: '',
     precision: 0,
     prefix: '',
@@ -174,6 +192,7 @@
     rows: 2,
     showClearOnlyHover: true,
     showControl: true,
+    showOverflowTooltips: true,
     showWordLimit: false,
     size: 'default',
     step: 1,
@@ -194,6 +213,8 @@
   });
 
   const formItem = useFormItem();
+
+  const { t } = useI18n();
 
   watch(modelValue, () => {
     if (props.withValidate) {
@@ -219,11 +240,15 @@
   const inputRef = ref<HTMLInputElement | HTMLTextAreaElement>();
   const isFocused = ref(false);
   const isComposing = ref(false);
+  const isOverflow = ref(false);
   const pwdVisible = ref(false);
 
   const nativeType = computed(() => (props.type === 'password' && pwdVisible.value ? 'text' : props.type));
 
   const currentLength = computed(() => String(modelValue.value ?? '').length);
+
+  // overMaxLengthLimit 时计数器显示剩余可输入字数，超出为负数
+  const remainingLength = computed(() => (props.maxlength ?? 0) - currentLength.value);
 
   const showClear = computed(() => props.clearable && !props.disabled && !props.readonly && !!modelValue.value);
 
@@ -233,6 +258,17 @@
   );
 
   const isOverLimit = computed(() => props.maxlength !== undefined && currentLength.value > props.maxlength);
+
+  // 对齐 bk-input：达到字数上限的提示优先于溢出内容提示
+  const tooltipsConfig = computed(() => {
+    if (props.maxlength !== undefined && remainingLength.value === 0) {
+      return { content: t('已达到字数上限') };
+    }
+    if (props.showOverflowTooltips && isOverflow.value && modelValue.value) {
+      return { content: String(modelValue.value), sameWidth: true };
+    }
+    return { disabled: true };
+  });
 
   // 到达边界才禁用箭头，未达边界时点击由 clampNumber 收敛到边界；空值按 0 处理，与 handleControlClick 一致
   const minDisabled = computed(() => props.disabled || props.readonly || Number(modelValue.value) <= props.min);
@@ -269,6 +305,80 @@
     }
   };
 
+  // autosize：先还原为 auto 取得真实内容高度（border-box 下 scrollHeight 含 padding，即为应设高度），再按 min/maxRows 钳制
+  const resizeTextarea = () => {
+    nextTick(() => {
+      const textarea = inputRef.value as HTMLTextAreaElement | undefined;
+      if (!textarea || props.type !== 'textarea') {
+        return;
+      }
+      if (!props.autosize) {
+        textarea.style.height = '';
+        textarea.style.overflowY = '';
+        return;
+      }
+      // 隐藏时 scrollHeight 为 0 且无意义，跳过计算，显示后由 ResizeObserver 触发重算
+      if (textarea.offsetParent === null) {
+        return;
+      }
+      textarea.style.height = 'auto';
+      let height = textarea.scrollHeight;
+      let overflowY = 'hidden';
+      if (typeof props.autosize === 'object') {
+        const { maxRows, minRows } = props.autosize;
+        const { lineHeight, paddingBottom, paddingTop } = window.getComputedStyle(textarea);
+        const rowHeight = parseFloat(lineHeight);
+        const verticalPadding = parseFloat(paddingTop) + parseFloat(paddingBottom);
+        if (minRows) {
+          height = Math.max(height, rowHeight * minRows + verticalPadding);
+        }
+        if (maxRows) {
+          const maxHeight = rowHeight * maxRows + verticalPadding;
+          if (height > maxHeight) {
+            height = maxHeight;
+            overflowY = 'auto';
+          }
+        }
+      }
+      textarea.style.height = `${height}px`;
+      textarea.style.overflowY = overflowY;
+    });
+  };
+
+  // 内容溢出检测（+2 容错对齐 bk-input），结果用于溢出 tooltip
+  const detectOverflow = () => {
+    nextTick(() => {
+      if (inputRef.value) {
+        isOverflow.value = inputRef.value.scrollWidth > inputRef.value.clientWidth + 2;
+      }
+    });
+  };
+
+  let resizeObserver: ResizeObserver | null = null;
+
+  onMounted(() => {
+    resizeTextarea();
+    detectOverflow();
+    if (inputRef.value) {
+      resizeObserver = new ResizeObserver(() => {
+        resizeTextarea();
+        detectOverflow();
+      });
+      resizeObserver.observe(inputRef.value);
+    }
+  });
+
+  onBeforeUnmount(() => {
+    resizeObserver?.disconnect();
+  });
+
+  watch(modelValue, () => {
+    resizeTextarea();
+    detectOverflow();
+  });
+
+  watch(() => props.autosize, resizeTextarea);
+
   const handleInput = (event: Event) => {
     if (isComposing.value) {
       return;
@@ -285,6 +395,9 @@
     }
     modelValue.value = value;
     emits('input', value, event);
+    // trim 后值不变时（如末尾只输入换行）watch 不会触发，需手动重算高度与溢出状态
+    resizeTextarea();
+    detectOverflow();
   };
 
   const handleChange = (event: Event) => {
@@ -646,12 +759,14 @@
 
     .dbm-textarea-clear-icon {
       position: absolute;
-      top: 5px;
-      right: 10px;
+      top: 7px;
+      right: 8px;
       display: flex;
+      padding-right: 8px;
       font-size: 14px;
       color: @light-gray;
       cursor: pointer;
+      background-color: #fff;
 
       &:hover {
         color: @gray-color;
