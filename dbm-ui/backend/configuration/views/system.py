@@ -50,7 +50,6 @@ class SystemSettingsViewSet(viewsets.SystemViewSet):
 
     action_permission_map = {
         ("sensitive_environ",): [RejectPermission()],
-        ("update_duty_notice_config",): [ResourceActionPermission([ActionEnum.UPDATE_DUTY_NOTICE_CONFIG])],
         (
             "disk_classes",
             "device_classes",
@@ -60,6 +59,7 @@ class SystemSettingsViewSet(viewsets.SystemViewSet):
             "machine_property",
             "builtin_labels",
             "operation_data_switch",
+            "update_duty_notice_config",
         ): [],
     }
     default_permission_class = [ResourceActionPermission([ActionEnum.GLOBAL_MANAGE])]

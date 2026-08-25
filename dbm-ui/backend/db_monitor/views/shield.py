@@ -54,7 +54,7 @@ class AlarmShieldView(SystemViewSet):
     )
     @Permission.decorator_external_permission_field(
         param_field=lambda d: d["bk_biz_id"],
-        actions=[ActionEnum.ALERT_SHIELD_CREATE, ActionEnum.ALERT_SHIELD_MANAGE],
+        actions=[ActionEnum.ALERT_SHIELD_MANAGE],
         resource_meta=ResourceEnum.BUSINESS,
     )
     def list(self, request):
