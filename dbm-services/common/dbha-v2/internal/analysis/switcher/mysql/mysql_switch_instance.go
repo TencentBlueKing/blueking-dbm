@@ -25,7 +25,7 @@
 package mysql
 
 import (
-	"database/sql"
+	"context"
 	"fmt"
 	"strings"
 
@@ -50,78 +50,16 @@ type MySQLVariableResult struct {
 	Value        string `gorm:"column:Value"`
 }
 
-// SlaveStatusInfo represents MySQL slave status information
-type SlaveStatusInfo struct {
-	SlaveIOState               string        `gorm:"column:Slave_IO_State"                json:"Slave_IO_State"`
-	MasterHost                 string        `gorm:"column:Master_Host"                   json:"Master_Host"`
-	MasterUser                 string        `gorm:"column:Master_User"                   json:"Master_User"`
-	MasterPort                 int           `gorm:"column:Master_Port"                   json:"Master_Port"`
-	ConnectRetry               int           `gorm:"column:Connect_Retry"                 json:"Connect_Retry"`
-	MasterLogFile              string        `gorm:"column:Master_Log_File"               json:"Master_Log_File"`
-	ReadMasterLogPos           uint64        `gorm:"column:Read_Master_Log_Pos"           json:"Read_Master_Log_Pos"`
-	RelayLogFile               string        `gorm:"column:Relay_Log_File"                json:"Relay_Log_File"`
-	RelayLogPos                uint64        `gorm:"column:Relay_Log_Pos"                 json:"Relay_Log_Pos"`
-	RelayMasterLogFile         string        `gorm:"column:Relay_Master_Log_File"         json:"Relay_Master_Log_File"`
-	SlaveIORunning             string        `gorm:"column:Slave_IO_Running"              json:"Slave_IO_Running"`
-	SlaveSQLRunning            string        `gorm:"column:Slave_SQL_Running"             json:"Slave_SQL_Running"`
-	ReplicateDoDB              string        `gorm:"column:Replicate_Do_DB"               json:"Replicate_Do_DB"`
-	ReplicateIgnoreDB          string        `gorm:"column:Replicate_Ignore_DB"           json:"Replicate_Ignore_DB"`
-	ReplicateDoTable           string        `gorm:"column:Replicate_Do_Table"            json:"Replicate_Do_Table"`
-	ReplicateIgnoreTable       string        `gorm:"column:Replicate_Ignore_Table"        json:"Replicate_Ignore_Table"`
-	ReplicateWildDoTable       string        `gorm:"column:Replicate_Wild_Do_Table"       json:"Replicate_Wild_Do_Table"`
-	ReplicateWildIgnoreTable   string        `gorm:"column:Replicate_Wild_Ignore_Table"   json:"Replicate_Wild_Ignore_Table"`
-	LastErrno                  int           `gorm:"column:Last_Errno"                    json:"Last_Errno"`
-	LastError                  string        `gorm:"column:Last_Error"                    json:"Last_Error"`
-	SkipCounter                int           `gorm:"column:Skip_Counter"                  json:"Skip_Counter"`
-	ExecMasterLogPos           uint64        `gorm:"column:Exec_Master_Log_Pos"           json:"Exec_Master_Log_Pos"`
-	RelayLogSpace              uint64        `gorm:"column:Relay_Log_Space"               json:"Relay_Log_Space"`
-	UntilCondition             string        `gorm:"column:Until_Condition"               json:"Until_Condition"`
-	UntilLogFile               string        `gorm:"column:Until_Log_File"                json:"Until_Log_File"`
-	UntilLogPos                uint64        `gorm:"column:Until_Log_Pos"                 json:"Until_Log_Pos"`
-	MasterSSLAllowed           string        `gorm:"column:Master_SSL_Allowed"            json:"Master_SSL_Allowed"`
-	MasterSSLCAFile            string        `gorm:"column:Master_SSL_CA_File"            json:"Master_SSL_CA_File"`
-	MasterSSLCAPath            string        `gorm:"column:Master_SSL_CA_Path"            json:"Master_SSL_CA_Path"`
-	MasterSSLCert              string        `gorm:"column:Master_SSL_Cert"               json:"Master_SSL_Cert"`
-	MasterSSLCipher            string        `gorm:"column:Master_SSL_Cipher"             json:"Master_SSL_Cipher"`
-	MasterSSLKey               string        `gorm:"column:Master_SSL_Key"                json:"Master_SSL_Key"`
-	SecondsBehindMaster        sql.NullInt64 `gorm:"column:Seconds_Behind_Master"         json:"Seconds_Behind_Master"`
-	MasterSSLVerifyServerCert  string        `gorm:"column:Master_SSL_Verify_Server_Cert" json:"Master_SSL_Verify_Server_Cert"`
-	LastIOErrno                int           `gorm:"column:Last_IO_Errno"                 json:"Last_IO_Errno"`
-	LastIOError                string        `gorm:"column:Last_IO_Error"                 json:"Last_IO_Error"`
-	LastSQLErrno               int           `gorm:"column:Last_SQL_Errno"                json:"Last_SQL_Errno"`
-	LastSQLError               string        `gorm:"column:Last_SQL_Error"                json:"Last_SQL_Error"`
-	ReplicateIgnoreServerIDs   string        `gorm:"column:Replicate_Ignore_Server_Ids"   json:"Replicate_Ignore_Server_Ids"`
-	MasterServerID             uint64        `gorm:"column:Master_Server_Id"              json:"Master_Server_Id"`
-	MasterUUID                 string        `gorm:"column:Master_UUID"                   json:"Master_UUID"`
-	MasterInfoFile             string        `gorm:"column:Master_Info_File"              json:"Master_Info_File"`
-	SqlDelay                   uint64        `gorm:"column:SQL_Delay"                     json:"SQL_Delay"`
-	SqlRemainingDelay          string        `gorm:"column:SQL_Remaining_Delay"           json:"SQL_Remaining_Delay"`
-	SlaveSqlRunningState       string        `gorm:"column:Slave_SQL_Running_State"       json:"Slave_SQL_Running_State"`
-	MasterRetryCount           int           `gorm:"column:Master_Retry_Count"            json:"Master_Retry_Count"`
-	MasterBind                 string        `gorm:"column:Master_Bind"                   json:"Master_Bind"`
-	LastIoErrorTimestamp       string        `gorm:"column:Last_IO_Error_Timestamp"       json:"Last_IO_Error_Timestamp"`
-	LastSqlErrorTimestamp      string        `gorm:"column:Last_SQL_Error_Timestamp"      json:"Last_SQL_Error_Timestamp"`
-	MasterSSLCrl               string        `gorm:"column:Master_SSL_Crl"                json:"Master_SSL_Crl"`
-	MasterSSLCrlpath           string        `gorm:"column:Master_SSL_Crlpath"            json:"Master_SSL_Crlpath"`
-	RetrievedGtidSet           string        `gorm:"column:Retrieved_Gtid_Set"            json:"Retrieved_Gtid_Set"`
-	ExecutedGtidSet            string        `gorm:"column:Executed_Gtid_Set"             json:"Executed_Gtid_Set"`
-	AutoPosition               string        `gorm:"column:Auto_Position"                 json:"Auto_Position"`
-	ReplicateWildParallelTable string        `gorm:"column:Replicate_Wild_Parallel_Table" json:"Replicate_Wild_Parallel_Table"`
-}
+// SlaveStatusInfo represents MySQL slave status information.
+type SlaveStatusInfo = hamysql.ReplicationStatus
 
 // SlaveTimeDelayInfo contains slave replication delay information
 type SlaveTimeDelayInfo struct {
 	SlaveHeartbeatDelay float64 `gorm:"column:heartbeat_delay"`
 }
 
-// MasterStatusInfo represents MySQL master status information
-type MasterStatusInfo struct {
-	File            string `gorm:"column:File"              json:"File"`
-	Position        uint64 `gorm:"column:Position"          json:"Position"`
-	BinlogDoDB      string `gorm:"column:Binlog_Do_DB"      json:"Binlog_Do_DB"`
-	BinlogIgnoreDB  string `gorm:"column:Binlog_Ignore_DB"  json:"Binlog_Ignore_DB"`
-	ExecutedGtidSet string `gorm:"column:Executed_Gtid_Set" json:"Executed_Gtid_Set"`
-}
+// MasterStatusInfo represents MySQL master status information.
+type MasterStatusInfo = hamysql.MasterStatusInfo
 
 // ProxyBackendInfo contains proxy backend connection information
 type ProxyBackendInfo struct {
@@ -248,8 +186,8 @@ func (sw *MySQLBaseSwitchInstance) ResetSlaveWithBinlogPos(slaveIp string, slave
 }
 
 // ChangeMasterAuto automatically changes master configuration
-func (sw *MySQLBaseSwitchInstance) ChangeMasterAuto(slaveIp string, slavePort int, changeMasterSQL string) error {
-	return DoChangeMasterSteps(slaveIp, slavePort, changeMasterSQL, sw.ReportLogf)
+func (sw *MySQLBaseSwitchInstance) ChangeMasterAuto(slaveIp string, slavePort int, src hamysql.ReplSource) error {
+	return DoChangeMasterSteps(slaveIp, slavePort, src, sw.ReportLogf)
 }
 
 // MySQLStorageSwitchInstance handles MySQL storage node switching
@@ -555,26 +493,33 @@ func ProxyRefreshBackends(proxyIp string, proxyAdminPort int, proxyUser string, 
 	return nil
 }
 
-// DoShowSlaveStatus executes show slave status SQL and returns the result
+// DoShowSlaveStatus executes the version-appropriate show slave status SQL and returns the result
 func DoShowSlaveStatus(slaveDB *hamysql.GormDB, reportLogf switchlogger.SwitchLogFunc) (*SlaveStatusInfo, error) {
 	if slaveDB == nil {
 		return nil, gerrors.New(gerrors.InvalidParameter, "get nil mysql connection when trying to show slave status")
 	}
 	slaveIp := slaveDB.Host()
 	slavePort := slaveDB.Port()
-	showSlaveSQL := "SHOW SLAVE STATUS"
 
-	slaveStatus := &SlaveStatusInfo{}
-	gdb, cancel := switchcore.GormWithExecSqlTimeout(slaveDB)
+	ctx, cancel := context.WithTimeout(context.Background(), switchcore.ExecSqlTimeout())
 	defer cancel()
 
-	err := gdb.Raw(showSlaveSQL).Scan(slaveStatus).Error
+	stmts, err := slaveDB.ReplStatements(ctx)
 	if err != nil {
 		return nil, gerrors.Newf(gerrors.Failure,
-			"failed to execute '%s' on slave(%s:%d), errmsg: %s", showSlaveSQL, slaveIp, slavePort, err.Error())
+			"failed to detect the server version on slave(%s:%d), errmsg: %s", slaveIp, slavePort, err.Error())
 	}
+
+	slaveStatus := &SlaveStatusInfo{}
+	err = slaveDB.DBWithContext(ctx).Raw(stmts.ShowSlaveStatus).Scan(slaveStatus).Error
+	if err != nil {
+		return nil, gerrors.Newf(gerrors.Failure,
+			"failed to execute '%s' on slave(%s:%d), errmsg: %s", stmts.ShowSlaveStatus, slaveIp, slavePort, err.Error())
+	}
+	slaveStatus.Normalize()
 	if reportLogf != nil {
-		reportLogf(switchlogger.SwitchInfo, "successfully execute '%s' on slave(%s:%d)", showSlaveSQL, slaveIp, slavePort)
+		reportLogf(switchlogger.SwitchInfo, "successfully execute '%s' on slave(%s:%d)",
+			stmts.ShowSlaveStatus, slaveIp, slavePort)
 	}
 
 	return slaveStatus, nil
@@ -587,18 +532,23 @@ func DoStopSlave(slaveDB *hamysql.GormDB, reportLogf switchlogger.SwitchLogFunc)
 	}
 	slaveIp := slaveDB.Host()
 	slavePort := slaveDB.Port()
-	stopSlaveSQL := "STOP SLAVE"
 
-	gdb, cancel := switchcore.GormWithExecSqlTimeout(slaveDB)
+	ctx, cancel := context.WithTimeout(context.Background(), switchcore.ExecSqlTimeout())
 	defer cancel()
 
-	err := gdb.Exec(stopSlaveSQL).Error
+	stmts, err := slaveDB.ReplStatements(ctx)
 	if err != nil {
 		return gerrors.Newf(gerrors.Failure,
-			"failed to execute '%s' on slave(%s:%d), errmsg: %s", stopSlaveSQL, slaveIp, slavePort, err.Error())
+			"failed to detect the server version on slave(%s:%d), errmsg: %s", slaveIp, slavePort, err.Error())
+	}
+
+	err = slaveDB.DBWithContext(ctx).Exec(stmts.StopSlave).Error
+	if err != nil {
+		return gerrors.Newf(gerrors.Failure,
+			"failed to execute '%s' on slave(%s:%d), errmsg: %s", stmts.StopSlave, slaveIp, slavePort, err.Error())
 	}
 	if reportLogf != nil {
-		reportLogf(switchlogger.SwitchInfo, "successfully execute '%s' on slave(%s:%d)", stopSlaveSQL, slaveIp, slavePort)
+		reportLogf(switchlogger.SwitchInfo, "successfully execute '%s' on slave(%s:%d)", stmts.StopSlave, slaveIp, slavePort)
 	}
 	return nil
 }
@@ -610,19 +560,29 @@ func DoShowMasterStatus(db *hamysql.GormDB, reportLogf switchlogger.SwitchLogFun
 	}
 	slaveIp := db.Host()
 	slavePort := db.Port()
-	showMasterSQL := "SHOW MASTER STATUS"
 
-	masterStatus := &MasterStatusInfo{}
-	gdb, cancel := switchcore.GormWithExecSqlTimeout(db)
+	ctx, cancel := context.WithTimeout(context.Background(), switchcore.ExecSqlTimeout())
 	defer cancel()
 
-	err := gdb.Raw(showMasterSQL).Scan(masterStatus).Error
+	stmts, err := db.ReplStatements(ctx)
 	if err != nil {
 		return nil, gerrors.Newf(gerrors.Failure,
-			"failed to execute '%s' on mysql(%s:%d), errmsg: %s", showMasterSQL, slaveIp, slavePort, err.Error())
+			"failed to detect the server version on mysql(%s:%d), errmsg: %s", slaveIp, slavePort, err.Error())
+	}
+
+	masterStatus := &MasterStatusInfo{}
+	err = db.DBWithContext(ctx).Raw(stmts.ShowMasterStatus).Scan(masterStatus).Error
+	if err != nil {
+		return nil, gerrors.Newf(gerrors.Failure,
+			"failed to execute '%s' on mysql(%s:%d), errmsg: %s", stmts.ShowMasterStatus, slaveIp, slavePort, err.Error())
+	}
+	if masterStatus.File == "" {
+		return nil, gerrors.Newf(gerrors.Failure,
+			"empty binlog file in the result of '%s' on mysql(%s:%d)", stmts.ShowMasterStatus, slaveIp, slavePort)
 	}
 	if reportLogf != nil {
-		reportLogf(switchlogger.SwitchInfo, "successfully execute '%s' on mysql(%s:%d)", showMasterSQL, slaveIp, slavePort)
+		reportLogf(switchlogger.SwitchInfo, "successfully execute '%s' on mysql(%s:%d)",
+			stmts.ShowMasterStatus, slaveIp, slavePort)
 	}
 
 	return masterStatus, nil
@@ -635,18 +595,24 @@ func DoResetSlave(slaveDB *hamysql.GormDB, reportLogf switchlogger.SwitchLogFunc
 	}
 	slaveIp := slaveDB.Host()
 	slavePort := slaveDB.Port()
-	resetSlaveSQL := "RESET SLAVE /*!50516 ALL */"
 
-	gdb, cancel := switchcore.GormWithExecSqlTimeout(slaveDB)
+	ctx, cancel := context.WithTimeout(context.Background(), switchcore.ExecSqlTimeout())
 	defer cancel()
 
-	err := gdb.Exec(resetSlaveSQL).Error
+	stmts, err := slaveDB.ReplStatements(ctx)
 	if err != nil {
 		return gerrors.Newf(gerrors.Failure,
-			"failed to execute '%s' on mysql(%s:%d), errmsg: %s", resetSlaveSQL, slaveIp, slavePort, err.Error())
+			"failed to detect the server version on slave(%s:%d), errmsg: %s", slaveIp, slavePort, err.Error())
+	}
+
+	err = slaveDB.DBWithContext(ctx).Exec(stmts.ResetSlaveAll).Error
+	if err != nil {
+		return gerrors.Newf(gerrors.Failure,
+			"failed to execute '%s' on mysql(%s:%d), errmsg: %s", stmts.ResetSlaveAll, slaveIp, slavePort, err.Error())
 	}
 	if reportLogf != nil {
-		reportLogf(switchlogger.SwitchInfo, "successfully execute '%s' on mysql(%s:%d)", resetSlaveSQL, slaveIp, slavePort)
+		reportLogf(switchlogger.SwitchInfo, "successfully execute '%s' on mysql(%s:%d)",
+			stmts.ResetSlaveAll, slaveIp, slavePort)
 	}
 
 	return nil
@@ -706,29 +672,36 @@ func DoStartSlave(slaveDB *hamysql.GormDB, reportLogf switchlogger.SwitchLogFunc
 	}
 	slaveIp := slaveDB.Host()
 	slavePort := slaveDB.Port()
-	startSlaveSQL := "START SLAVE"
 
-	gdb, cancel := switchcore.GormWithExecSqlTimeout(slaveDB)
+	ctx, cancel := context.WithTimeout(context.Background(), switchcore.ExecSqlTimeout())
 	defer cancel()
 
-	err := gdb.Exec(startSlaveSQL).Error
+	stmts, err := slaveDB.ReplStatements(ctx)
+	if err != nil {
+		return gerrors.Newf(gerrors.Failure,
+			"failed to detect the server version on slave(%s:%d), errmsg: %s", slaveIp, slavePort, err.Error())
+	}
+
+	err = slaveDB.DBWithContext(ctx).Exec(stmts.StartSlave).Error
 	if err != nil {
 		return gerrors.Newf(gerrors.Failure,
 			"failed to execute '%s' on slave(%s:%d), errmsg: %s",
-			startSlaveSQL, slaveIp, slavePort, err.Error())
+			stmts.StartSlave, slaveIp, slavePort, err.Error())
 	}
 	if reportLogf != nil {
 		reportLogf(switchlogger.SwitchInfo,
 			"successfully execute '%s' on slave(%s:%d)",
-			startSlaveSQL, slaveIp, slavePort)
+			stmts.StartSlave, slaveIp, slavePort)
 	}
 	return nil
 }
 
-// DoChangeMasterSteps connects to the slave and performs stop slave, change master, start slave
+// DoChangeMasterSteps connects to the slave and performs stop slave, change master, start slave.
+// The change-master statement is generated per the slave's own server version, falling back
+// to the other naming once when the server rejects the syntax.
 func DoChangeMasterSteps(
 	slaveIp string, slavePort int,
-	changeMasterSQL string,
+	src hamysql.ReplSource,
 	reportLogf switchlogger.SwitchLogFunc,
 ) error {
 	slaveDB, err := hamysql.NewGormDB(
@@ -762,13 +735,12 @@ func DoChangeMasterSteps(
 			slaveIp, slavePort, slaveStatus.RelayMasterLogFile, slaveStatus.ExecMasterLogPos)
 	}
 
-	gdb, cancel := switchcore.GormWithExecSqlTimeout(slaveDB)
+	ctx, cancel := context.WithTimeout(context.Background(), switchcore.ExecSqlTimeout())
 	defer cancel()
 
-	if err = gdb.Exec(changeMasterSQL).Error; err != nil {
-		return gerrors.Newf(gerrors.Failure,
-			"failed to execute '%s' on node(%s:%d), errmsg: %s",
-			changeMasterSQL, slaveIp, slavePort, err.Error())
+	changeMasterSQL, err := slaveDB.ChangeReplicationTo(ctx, src)
+	if err != nil {
+		return err
 	}
 	if reportLogf != nil {
 		reportLogf(switchlogger.SwitchInfo,
