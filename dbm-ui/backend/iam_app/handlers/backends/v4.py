@@ -17,10 +17,11 @@ from iam import Resource
 from iam.eval.constants import KEYWORD_BK_IAM_PATH
 
 from backend import env
-from backend.components.iamv4.client import IAMV4Api
+from backend.components.iamv4.client import AUTH_BATCH_SIZE, AUTHORIZATION_EXPIRED_DAYS, IAMV4Api
 from backend.iam_app.dataclass.actions import ActionMeta
 from backend.iam_app.dataclass.resources import ResourceEnum
 from backend.iam_app.handlers.backends.base import IAMBackend
+from backend.utils.basic import chunk_lists
 
 logger = logging.getLogger("root")
 
@@ -28,12 +29,8 @@ logger = logging.getLogger("root")
 class IAMV4Backend(IAMBackend):
     """基于 IAMV4Api 的 V4 鉴权后端"""
 
-    # 授权有效期，V4限制最长365天，到期后需要重新授权
-    AUTHORIZATION_EXPIRED_DAYS = 365
     # 资源实例ID为该值时表示这一资源类型的无限制授权
     ANY_RESOURCE_ID = "*"
-    # iam权限api接口参数分片限制
-    AUTH_BATCH_SIZE = 20
 
     @staticmethod
     def make_resource(action: ActionMeta, resources: List[Resource]) -> Union[Dict, None]:
@@ -124,10 +121,10 @@ class IAMV4Backend(IAMBackend):
 
         authorization = {
             "subject": {"type": "user", "id": creator},
-            "role_id": creator_role.value,
+            "role_id": creator_role,
             "related_resource_type_id": resource.type,
             "resources": [{"type": resource.type, "id": str(resource.id)}],
-            "expired_at": int(time.time()) + self.AUTHORIZATION_EXPIRED_DAYS * 24 * 3600,
+            "expired_at": int(time.time()) + AUTHORIZATION_EXPIRED_DAYS * 24 * 3600,
         }
         # 授权接口要求带上操作人。授权失败不重试，避免重复授权，也不影响资源创建的主流程
         try:
@@ -181,7 +178,7 @@ class IAMV4Backend(IAMBackend):
         """逐个资源对一批动作鉴权，产出 (资源ID, 动作ID, 是否有权限)"""
         for resources in resources_list:
             resource = self.make_resource(actions[0], resources)
-            for chunk in self._chunks(actions):
+            for chunk in chunk_lists(actions, AUTH_BATCH_SIZE):
                 params = {"subject": subject, "action_ids": [action.id for action in chunk]}
                 # 动作不关联资源时不传，否则IAM会按资源维度校验
                 if resource:
@@ -193,7 +190,7 @@ class IAMV4Backend(IAMBackend):
     def _auth_by_resources(self, subject, actions, resources_list):
         """逐个动作对一批资源鉴权，产出 (资源ID, 动作ID, 是否有权限)"""
         for action in actions:
-            for chunk in self._chunks(resources_list):
+            for chunk in chunk_lists(resources_list, AUTH_BATCH_SIZE):
                 resources = [self.make_resource(action, item) for item in chunk]
                 params = {
                     "subject": subject,
@@ -203,11 +200,6 @@ class IAMV4Backend(IAMBackend):
                 data = self.call_with_retry(IAMV4Api.direct_auth_by_resources, params=params, default=[])
                 for item in data:
                     yield str(item["resource_id"]), action.id, item["allowed"]
-
-    @staticmethod
-    def _chunks(items, size=AUTH_BATCH_SIZE):
-        for index in range(0, len(items), size):
-            yield items[index : index + size]
 
     def get_apply_url(
         self, action_ids: List[str], resources_list: List[List[Resource]] = None, system_id: str = env.BK_IAM_SYSTEM_ID
