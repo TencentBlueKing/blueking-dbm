@@ -356,9 +356,15 @@ func (c *collector) hasReplInfo() (bool, error) {
 	ctx, cancel := c.queryCtx()
 	defer cancel()
 
-	rows, err := c.db.DB().WithContext(ctx).Raw("SHOW SLAVE STATUS").Rows()
+	stmts, err := c.db.ReplStatements(ctx)
 	if err != nil {
-		logger.Warn("failed to run SHOW SLAVE STATUS, errmsg: %s", err)
+		logger.Warn("failed to detect the server version, errmsg: %s", err)
+		return false, err
+	}
+
+	rows, err := c.db.DB().WithContext(ctx).Raw(stmts.ShowSlaveStatus).Rows()
+	if err != nil {
+		logger.Warn("failed to run %s, errmsg: %s", stmts.ShowSlaveStatus, err)
 		return false, err
 	}
 	defer rows.Close()
@@ -680,9 +686,16 @@ func (c *collector) obtainSlaveStatus() (*haprobe.MySqlSlaveStatus, error) {
 		HeartbeatDelay: fallbackHeartbeatDelaySec,
 	}
 
-	var slaveInfos []slaveStatus
-	if err := c.db.DB().WithContext(ctx).Raw("SHOW SLAVE STATUS").Scan(&slaveInfos).Error; err != nil {
-		logger.Warn("failed to run SHOW SLAVE STATUS, errmsg: %s", err)
+	stmts, err := c.db.ReplStatements(ctx)
+	if err != nil {
+		logger.Warn("failed to detect the server version, errmsg: %s", err)
+		ret.State, ret.FailureReason = collectStatusResult(err)
+		return ret, err
+	}
+
+	var slaveInfos []hamysql.ReplicationStatus
+	if err := c.db.DB().WithContext(ctx).Raw(stmts.ShowSlaveStatus).Scan(&slaveInfos).Error; err != nil {
+		logger.Warn("failed to run %s, errmsg: %s", stmts.ShowSlaveStatus, err)
 		ret.State, ret.FailureReason = collectStatusResult(err)
 		return ret, err
 	}
@@ -691,16 +704,19 @@ func (c *collector) obtainSlaveStatus() (*haprobe.MySqlSlaveStatus, error) {
 	}
 
 	slaveInfo := slaveInfos[0]
+	slaveInfo.Normalize()
 	ret.MasterHost = slaveInfo.MasterHost
 	ret.MasterPort = slaveInfo.MasterPort
 	ret.SlaveIORunning = slaveInfo.SlaveIORunning
 	ret.SlaveSQLRunning = slaveInfo.SlaveSQLRunning
-	ret.SecondsBehindMaster = slaveInfo.SecondsBehindMaster
-	ret.MasterServerId = slaveInfo.MasterServerId
+	if slaveInfo.SecondsBehindMaster.Valid && slaveInfo.SecondsBehindMaster.Int64 >= 0 {
+		ret.SecondsBehindMaster = uint64(slaveInfo.SecondsBehindMaster.Int64)
+	}
+	ret.MasterServerId = slaveInfo.MasterServerID
 
 	// Master_Server_Id == 0 means replication never connected (e.g. RESET SLAVE/CHANGE MASTER):
 	// no heartbeat row can match, so keep the fallback delay instead of overwriting it with 0.
-	if slaveInfo.MasterServerId == 0 {
+	if slaveInfo.MasterServerID == 0 {
 		logger.Warn("slave Master_Server_Id is 0 (replication not connected), keep fallback delay")
 		return ret, nil
 	}
@@ -712,12 +728,12 @@ func (c *collector) obtainSlaveStatus() (*haprobe.MySqlSlaveStatus, error) {
 			"FROM `%s`.`%s` WHERE host = ? AND port = ? AND server_id = ? ORDER BY update_time DESC LIMIT 1",
 		hamodel.ProbeMysqlDbName, hamodel.DbhaReplHeartbeatTableName)
 	tx := c.db.DB().WithContext(ctx).Raw(delaySQL,
-		slaveInfo.MasterHost, slaveInfo.MasterPort, slaveInfo.MasterServerId).Scan(&heartbeatDelay)
+		slaveInfo.MasterHost, slaveInfo.MasterPort, slaveInfo.MasterServerID).Scan(&heartbeatDelay)
 	if tx.Error != nil {
 		logger.Warn("failed to query slave repl heartbeat delay, current_slave: %s:%d, master: %s:%d, "+
 			"master_server_id: %d, errmsg: %s",
 			c.endpoint.Host, c.endpoint.Port, slaveInfo.MasterHost, slaveInfo.MasterPort,
-			slaveInfo.MasterServerId, tx.Error)
+			slaveInfo.MasterServerID, tx.Error)
 		ret.State, ret.FailureReason = collectStatusResult(tx.Error)
 		return ret, tx.Error
 	}
@@ -725,7 +741,7 @@ func (c *collector) obtainSlaveStatus() (*haprobe.MySqlSlaveStatus, error) {
 		logger.Warn("no repl heartbeat row for master, keep fallback delay, current_slave: %s:%d, master: %s:%d, "+
 			"master_server_id: %d",
 			c.endpoint.Host, c.endpoint.Port, slaveInfo.MasterHost, slaveInfo.MasterPort,
-			slaveInfo.MasterServerId)
+			slaveInfo.MasterServerID)
 		return ret, nil
 	}
 
