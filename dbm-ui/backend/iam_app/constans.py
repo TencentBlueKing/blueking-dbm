@@ -36,16 +36,3 @@ class CommonActionLabel(StrStructuredEnum):
 
     TENDBCLUSTER_IMPORT_SQLFILE = EnumField("tendbcluster_import_sqlfile", _("TendbCluster SQL变更"))
     TENDBCLUSTER_AUTHORIZE_RULES = EnumField("tendbcluster_authorize_rules", _("TendbCluster DB授权"))
-
-
-class RoleActionLabel(StrStructuredEnum):
-    """
-    IAM V4 的角色标签，打在动作上圈定角色包含哪些动作。
-    与常用操作同值的标签直接复用动作已有的 common_labels 声明，其余的打在 role_labels_v4 上
-    """
-
-    BIZ_READ_ONLY = EnumField("biz_read_only", _("业务只读"))
-    RESOURCE_MANAGE = EnumField("resource_manage", _("资源管理员"))
-
-    # 创建者角色，资源创建后授予创建者，由 ResourceMeta.creator_role_v4 指向
-    MYSQL_CREATOR = EnumField("mysql_creator", _("MySQL集群创建者"))
