@@ -199,7 +199,7 @@
       trigger: 'blur',
       validator: (value: string) => {
         if (!value) return true;
-        return dayjs(value).isAfter(dayjs().subtract(15, 'day'), 'day');
+        return dayjs(value).isAfter(dayjs().subtract(15, 'day'));
       },
     },
   ];
@@ -214,6 +214,10 @@
 
   const handleDateChange = (date: string) => {
     backupTime.value = date;
+    if (!date) {
+      backupRecord.value = undefined;
+      return;
+    }
     fetchData({
       cluster_id: props.cluster.id,
       rollback_time: date,
