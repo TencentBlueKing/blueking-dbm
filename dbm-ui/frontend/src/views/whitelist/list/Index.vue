@@ -97,7 +97,7 @@
         </template>
       </TableColumn>
       <TableColumn
-        col-key="operations"
+        col-key="row-operation"
         :title="t('操作')"
         :width="140">
         <template #default="{ row: data }: { row: IpWhiteModel }">

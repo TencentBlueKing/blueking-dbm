@@ -174,7 +174,7 @@
         </template>
       </TableColumn>
       <TableColumn
-        col-key="operation"
+        col-key="row-operation"
         fixed="right"
         :title="t('操作')"
         :width="160">

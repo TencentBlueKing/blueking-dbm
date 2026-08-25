@@ -34,7 +34,7 @@
           </template>
         </TableColumn>
         <TableColumn
-          col-key="operation"
+          col-key="row-operation"
           :title="t('操作')"
           width="120">
           <template #default="{ row }: { row: BizItem }">

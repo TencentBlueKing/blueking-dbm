@@ -52,7 +52,7 @@
           :title="t('提取时间')"
           :width="250" />
         <TableColumn
-          col-key="operation"
+          col-key="row-operation"
           fixed="right"
           :title="t('操作')"
           :width="150">
