@@ -8,6 +8,7 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+
 import datetime
 import logging
 from functools import wraps
@@ -71,6 +72,7 @@ class DBAdministratorHandler(object):
         operates: Optional[List] = None,
     ):
         from backend.db_monitor.tasks import update_dba_notice_group
+        from backend.iam_app.tasks import sync_dba_role
 
         # 业务管理员
         db_type_biz_dba = {dba.db_type: dba.users for dba in DBAdministrator.objects.filter(bk_biz_id=bk_biz_id)}
@@ -89,7 +91,18 @@ class DBAdministratorHandler(object):
                 defaults={"users": new_dba, "updater": username or "system", "update_at": timezone.now()},
             )
 
+            # 同步告警组
             update_dba_notice_group.apply_async(kwargs={"dba_id": dba_obj.id})
+
+            # 同步IAM角色授权，新进的DBA授予该组件角色，移出的撤销
+            sync_dba_role.apply_async(
+                kwargs={
+                    "bk_biz_id": bk_biz_id,
+                    "db_type": db_type,
+                    "new_users": new_dba,
+                    "old_users": biz_dba,
+                }
+            )
 
             if not new_dba:
                 continue
