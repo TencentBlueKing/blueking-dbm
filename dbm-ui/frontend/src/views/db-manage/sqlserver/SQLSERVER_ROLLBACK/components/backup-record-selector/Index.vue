@@ -46,16 +46,15 @@
         style="flex: 1" />
     </div>
     <BkLoading :loading="loading">
-      <BkTable
+      <PrimaryTable
         ref="tableRef"
         :data="renderData"
         :height="500"
         :max-height="tableMaxHeight"
-        :pagination="pagination.count > 0 ? pagination : false"
-        @page-limit-change="handeChangeLimit"
-        @page-value-change="handleChangePage">
-        <BkTableColumn
-          :label="t('备份时间')"
+        row-key="backup_id">
+        <TableColumn
+          col-key="end_time"
+          :title="t('备份时间')"
           :width="230">
           <template #default="{ row }: { row: SqlserverBackupLogModel }">
             <BkRadio
@@ -65,56 +64,61 @@
               {{ utcDisplayTime(row.end_time) }}
             </BkRadio>
           </template>
-        </BkTableColumn>
-        <BkTableColumn
-          field="role"
-          :label="t('角色')"
+        </TableColumn>
+        <TableColumn
+          col-key="role"
+          :title="t('角色')"
           :width="80">
           <template #default="{ row }: { row: SqlserverBackupLogModel }">
             {{ row.role }}
           </template>
-        </BkTableColumn>
-        <BkTableColumn
-          field="backup_id"
-          :label="t('备份 ID')"
+        </TableColumn>
+        <TableColumn
+          col-key="backup_id"
+          :title="t('备份 ID')"
           :width="260">
           <template #default="{ row }: { row: SqlserverBackupLogModel }">
             {{ row.backup_id }}
           </template>
-        </BkTableColumn>
-        <BkTableColumn
-          :label="t('备份包含库')"
+        </TableColumn>
+        <TableColumn
+          col-key="backup_db_list"
+          :title="t('备份包含库')"
           :width="260">
           <template #default="{ row }: { row: SqlserverBackupLogModel }">
             <BackupDbTags :list="row.backup_db_list" />
           </template>
-        </BkTableColumn>
-        <BkTableColumn
-          :label="t('备份缺失库')"
+        </TableColumn>
+        <TableColumn
+          col-key="excluded_db_list"
+          :title="t('备份缺失库')"
           :width="260">
           <template #default="{ row }: { row: SqlserverBackupLogModel }">
             <BackupDbTags
               :list="row.excluded_db_list"
               theme="warning" />
           </template>
-        </BkTableColumn>
-        <BkTableColumn
-          :label="t('数据库大小')"
+        </TableColumn>
+        <TableColumn
+          col-key="backup_db_size_kb"
+          :title="t('数据库大小')"
           :width="120">
           <template #default="{ row }: { row: SqlserverBackupLogModel }">
             {{ bytePretty((row.backup_db_size_kb ?? 0) * 1024) }}
           </template>
-        </BkTableColumn>
-        <BkTableColumn
-          :label="t('备份文件大小')"
+        </TableColumn>
+        <TableColumn
+          col-key="backup_file_size_kb"
+          :title="t('备份文件大小')"
           :width="120">
           <template #default="{ row }: { row: SqlserverBackupLogModel }">
             {{ bytePretty((row.backup_file_size_kb ?? 0) * 1024) }}
           </template>
-        </BkTableColumn>
-        <BkTableColumn
-          :label="t('关联单据')"
-          :min-width="120">
+        </TableColumn>
+        <TableColumn
+          col-key="bill_id"
+          :min-width="120"
+          :title="t('关联单据')">
           <template #default="{ row }: { row: SqlserverBackupLogModel }">
             <RouterLink
               v-if="row.bill_id"
@@ -129,8 +133,18 @@
             </RouterLink>
             <span v-else>--</span>
           </template>
-        </BkTableColumn>
-      </BkTable>
+        </TableColumn>
+      </PrimaryTable>
+      <div
+        v-if="pagination.count > 0"
+        class="table-footer">
+        <BkPagination
+          v-bind="pagination"
+          :layout="['total', 'limit', 'list']"
+          :model-value="pagination.current"
+          @change="handleChangePage"
+          @limit-change="handeChangeLimit" />
+      </div>
     </BkLoading>
     <template #footer>
       <div class="sqlserver-backup-record-selector-footer">
@@ -300,7 +314,7 @@
 
   const handleChangePage = (value: number) => {
     pagination.value.current = value;
-    tableRef.value!.getVxeTableInstance().scrollTo(0, 0);
+    tableRef.value!.scrollToElement({ index: 0, top: 44 });
   };
 
   const handeChangeLimit = (value: number) => {
@@ -406,6 +420,12 @@
       border-radius: 2px 0 0 2px;
       align-items: center;
       justify-content: center;
+    }
+
+    .table-footer {
+      display: flex;
+      margin-top: 12px;
+      justify-content: flex-end;
     }
 
     .sqlserver-backup-record-selector-footer {

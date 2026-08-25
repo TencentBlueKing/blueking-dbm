@@ -66,15 +66,26 @@
         <BkLoading
           v-show="isShowTable"
           :loading="isLoading">
-          <DbOriginalTable
+          <PrimaryTable
+            :bk-ui-settings="tableSetting"
             :columns="columns"
-            :data="serachList"
-            :is-searching="!!searchKey"
-            :pagination="pagination"
-            :settings="tableSetting"
-            @clear-search="handleClearSearch"
-            @page-limit-change="handlePaginationLimitChange"
-            @page-value-change="handlePaginationCurrentChange" />
+            :data="data"
+            row-key="host_id">
+            <template #empty>
+              <EmptyStatus
+                :is-anomalies="false"
+                :is-searching="!!searchKey"
+                @clear-search="handleClearSearch" />
+            </template>
+          </PrimaryTable>
+          <div class="table-footer">
+            <BkPagination
+              v-bind="pagination"
+              :layout="['total', 'limit', 'list']"
+              :model-value="pagination.current"
+              @change="handlePaginationCurrentChange"
+              @limit-change="handlePaginationLimitChange" />
+          </div>
         </BkLoading>
       </Transition>
     </div>
@@ -82,12 +93,14 @@
 </template>
 <script setup lang="tsx">
   import _ from 'lodash';
+  import { Checkbox, type PrimaryTableCol } from 'tdesign-vue-next';
   import { computed, ref, shallowRef } from 'vue';
   import { useI18n } from 'vue-i18n';
 
   import type { HostInfo } from '@services/types';
 
   import DbStatus from '@components/db-status/index.vue';
+  import EmptyStatus from '@components/empty-status/EmptyStatus.vue';
 
   import { execCopy } from '@utils';
 
@@ -120,115 +133,117 @@
   // 部署 Zookeepers / JournalNodes最多3台
   const isZookeeperCheckDisabled = computed(() => Object.keys(zookeeperCheckedMap.value).length >= 3);
 
-  const columns = [
+  const columns: PrimaryTableCol[] = [
     {
-      field: 'host_id',
-      label: t('主机ID'),
-      render: ({ data }: { data: HostInfo }) => data.host_id || '--',
+      cell: (_, { row }) => row.host_id || '--',
+      colKey: 'host_id',
+      title: t('主机ID'),
     },
     {
-      field: 'ip',
-      label: 'IP',
-      render: ({ data }: { data: HostInfo }) => data.ip,
+      cell: (_, { row }) => row.ip,
+      colKey: 'ip',
+      title: 'IP',
     },
     {
-      label: t('部署NameNode_2台'),
-      render: ({ data }: { data: HostInfo }) => {
-        const isDisabled = isNameNodeCheckDisabled.value && !nameNodeCheckedMap.value[data.host_id];
+      cell: (_, { row }) => {
+        const isDisabled = isNameNodeCheckDisabled.value && !nameNodeCheckedMap.value[row.host_id];
         const tooltipsOptions = {
           content: t('最多只能选择两台'),
           disabled: !isDisabled,
         };
         return (
           <span
-            key={data.host_id}
+            key={row.host_id}
             v-bk-tooltips={tooltipsOptions}>
-            <bk-checkbox
+            <Checkbox
+              checked={Boolean(nameNodeCheckedMap.value[row.host_id])}
               disabled={isDisabled}
-              modelValue={Boolean(nameNodeCheckedMap.value[data.host_id])}
-              onChange={(value: boolean) => handleNameNodesChange(value, data)}
+              onChange={(value: boolean) => handleNameNodesChange(value, row as HostInfo)}
             />
           </span>
         );
       },
+      colKey: 'deploy_name_node',
+      title: t('部署NameNode_2台'),
       width: '180px',
     },
     {
-      label: t('部署Zookeeper_JournalNode_3台'),
-      render: ({ data }: { data: HostInfo }) => {
-        const isDisabled = isZookeeperCheckDisabled.value && !zookeeperCheckedMap.value[data.host_id];
+      cell: (_, { row }) => {
+        const isDisabled = isZookeeperCheckDisabled.value && !zookeeperCheckedMap.value[row.host_id];
         const tooltipsOptions = {
           content: t('最多只能选择三台'),
           disabled: !isDisabled,
         };
         return (
           <span
-            key={data.host_id}
+            key={row.host_id}
             v-bk-tooltips={tooltipsOptions}>
-            <bk-checkbox
+            <Checkbox
+              checked={Boolean(zookeeperCheckedMap.value[row.host_id])}
               disabled={isDisabled}
-              modelValue={Boolean(zookeeperCheckedMap.value[data.host_id])}
-              onChange={(value: boolean) => handleZookeeperChange(value, data)}
+              onChange={(value: boolean) => handleZookeeperChange(value, row as HostInfo)}
             />
           </span>
         );
       },
+      colKey: 'deploy_zookeeper',
+      title: t('部署Zookeeper_JournalNode_3台'),
       width: '250px',
     },
     {
-      field: 'bk_cpu',
-      label: t('机型'),
-      render: ({ data }: { data: HostInfo }) => data.bk_cpu || '--',
+      cell: (_, { row }) => row.bk_cpu || '--',
+      colKey: 'bk_cpu',
+      title: t('机型'),
     },
     {
-      field: 'bk_idc_name',
-      label: t('机房'),
-      render: ({ data }: { data: HostInfo }) => data.bk_idc_name || '--',
+      cell: (_, { row }) => row.bk_idc_name || '--',
+      colKey: 'bk_idc_name',
+      title: t('机房'),
     },
     {
-      field: 'host_name',
-      label: t('主机名称'),
-      render: ({ data }: { data: HostInfo }) => data.host_name || '--',
+      cell: (_, { row }) => row.host_name || '--',
+      colKey: 'host_name',
+      title: t('主机名称'),
     },
     {
-      field: 'alive',
-      label: t('Agent状态'),
-      render: ({ data }: { data: HostInfo }) => {
-        const info = data.alive === 1 ? { text: t('正常'), theme: 'success' } : { text: t('异常'), theme: 'danger' };
+      cell: (_, { row }) => {
+        const info = row.alive === 1 ? { text: t('正常'), theme: 'success' } : { text: t('异常'), theme: 'danger' };
         return <DbStatus theme={info.theme}>{info.text}</DbStatus>;
       },
+      colKey: 'alive',
+      title: t('Agent状态'),
     },
     {
-      field: 'cloud_area',
-      label: t('管控区域'),
-      render: ({ data }: { data: HostInfo }) => data.cloud_area.name || '--',
+      cell: (_, { row }) => row.cloud_area.name || '--',
+      colKey: 'cloud_area',
+      title: t('管控区域'),
     },
     {
-      field: 'os_name',
-      label: t('OS名称'),
-      render: ({ data }: { data: HostInfo }) => data.os_name || '--',
+      cell: (_, { row }) => row.os_name || '--',
+      colKey: 'os_name',
+      title: t('OS名称'),
     },
     {
-      field: 'os_type',
-      label: t('OS类型'),
-      render: ({ data }: { data: HostInfo }) => data.os_type || '--',
+      cell: (_, { row }) => row.os_type || '--',
+      colKey: 'os_type',
+      title: t('OS类型'),
     },
     {
-      field: 'agent_id',
-      label: 'Agent ID',
-      render: ({ data }: { data: HostInfo }) => data.agent_id || '--',
+      cell: (_, { row }) => row.agent_id || '--',
+      colKey: 'agent_id',
+      title: 'Agent ID',
     },
     {
-      field: 'operation',
-      label: t('操作'),
-      render: ({ index }: { index: number }) => (
+      cell: (_, { rowIndex }) => (
         <bk-button
           text
           theme='primary'
-          onClick={() => handleRemove(index)}>
+          onClick={() => handleRemove(rowIndex)}>
           {t('删除')}
         </bk-button>
       ),
+      colKey: 'row-operation',
+      title: t('操作'),
       width: 100,
     },
   ];
@@ -281,7 +296,7 @@
     },
   );
 
-  const { handlePaginationCurrentChange, handlePaginationLimitChange, pagination, searchKey, serachList } =
+  const { data, handlePaginationCurrentChange, handlePaginationLimitChange, pagination, searchKey, serachList } =
     useLocalPagination(localData);
 
   const handleClearSearch = () => {
@@ -403,10 +418,16 @@
       justify-content: flex-end;
     }
 
-    :deep(.bk-table) {
+    :deep(.t-table__header) {
       th {
-        background-color: #f5f7fa !important;
+        background-color: #f5f7fa;
       }
+    }
+
+    .table-footer {
+      display: flex;
+      justify-content: flex-end;
+      margin-top: 12px;
     }
   }
 </style>

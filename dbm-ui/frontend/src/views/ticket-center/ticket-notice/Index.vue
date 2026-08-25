@@ -79,7 +79,7 @@
 <script setup lang="tsx">
   import { InfoBox } from 'bkui-vue';
   import _ from 'lodash';
-  import type { PrimaryTableCol } from 'tdesign-vue-next';
+  import { Checkbox, type PrimaryTableCol } from 'tdesign-vue-next';
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
@@ -172,7 +172,7 @@
               />
             );
           }
-          return <bk-checkbox v-model={row.checkbox[item.type]} />;
+          return <Checkbox v-model={row.checkbox[item.type]} />;
         },
         colKey: item.type,
         minWidth: isInputType ? 320 : 120,

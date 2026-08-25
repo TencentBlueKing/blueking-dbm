@@ -15,27 +15,26 @@
   <DbCard
     mode="collapse"
     :title="info.instace">
-    <BkTable :data="info.infos">
-      <BkTableColumn
-        field="cmd_info"
-        :label="t('执行命令')"
-        :min-width="200">
-      </BkTableColumn>
-      <BkTableColumn
-        field="key"
-        label="Key"
-        :min-width="200">
-      </BkTableColumn>
-      <BkTableColumn
-        field="exec_count"
-        :label="t('数量')"
+    <PrimaryTable
+      :data="info.infos"
+      row-key="id">
+      <TableColumn
+        col-key="cmd_info"
+        :min-width="200"
+        :title="t('执行命令')"></TableColumn>
+      <TableColumn
+        col-key="key"
+        :min-width="200"
+        title="Key"></TableColumn>
+      <TableColumn
+        col-key="exec_count"
+        :title="t('数量')"
+        :width="200"></TableColumn>
+      <TableColumn
+        col-key="cpu"
+        :title="t('执行占比')"
         :width="200">
-      </BkTableColumn>
-      <BkTableColumn
-        field="cpu"
-        :label="t('执行占比')"
-        :width="200">
-        <template #default="{ data }: { data: Props['info']['infos'][number] }">
+        <template #default="{ row: data }: { row: Props['info']['infos'][number] }">
           <div class="detail-ratio">
             <BkProgress
               bg-color="#EAEBF0"
@@ -50,8 +49,8 @@
             <span class="detail-ratio">{{ data.ratio }} %</span>
           </div>
         </template>
-      </BkTableColumn>
-    </BkTable>
+      </TableColumn>
+    </PrimaryTable>
   </DbCard>
 </template>
 

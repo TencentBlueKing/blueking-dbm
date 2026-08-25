@@ -30,28 +30,31 @@
         </span>
       </I18nT>
     </div>
-    <BkTable :data="hostList">
-      <BkTableColumn
-        field="ip"
-        :label="t('节点 IP')"
-        :min-width="200" />
-      <BkTableColumn
-        field="agent_status"
-        :label="t('Agent状态')"
-        :min-width="200">
-        <template #default="{ data }: { data: IValue }">
+    <PrimaryTable
+      :data="hostList"
+      row-key="bk_host_id">
+      <TableColumn
+        col-key="ip"
+        :min-width="200"
+        :title="t('节点 IP')" />
+      <TableColumn
+        col-key="agent_status"
+        :min-width="200"
+        :title="t('Agent状态')">
+        <template #default="{ row: data }: { row: IValue }">
           <HostAgentStatus :data="data.agent_status" />
         </template>
-      </BkTableColumn>
-      <BkTableColumn
-        field="bk_disk"
-        :label="t('磁盘_GB')"
-        :min-width="200" />
-      <BkTableColumn
+      </TableColumn>
+      <TableColumn
+        col-key="bk_disk"
+        :min-width="200"
+        :title="t('磁盘_GB')" />
+      <TableColumn
+        col-key="operation"
         fixed="right"
-        :label="t('操作')"
-        :min-width="100">
-        <template #default="{ data }: { data: IValue }">
+        :min-width="100"
+        :title="t('操作')">
+        <template #default="{ row: data }: { row: IValue }">
           <BkButton
             text
             theme="primary"
@@ -59,8 +62,8 @@
             {{ t('删除') }}
           </BkButton>
         </template>
-      </BkTableColumn>
-    </BkTable>
+      </TableColumn>
+    </PrimaryTable>
   </div>
 </template>
 <script setup lang="tsx">

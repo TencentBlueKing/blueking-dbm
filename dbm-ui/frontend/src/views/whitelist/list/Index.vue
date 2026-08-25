@@ -253,7 +253,7 @@
 
 <style lang="less">
   .whitelist-page {
-    .bk-vxe-table {
+    .t-table {
       tr:hover {
         .copy-btn {
           display: inline-block;

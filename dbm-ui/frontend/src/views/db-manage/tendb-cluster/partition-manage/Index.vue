@@ -349,12 +349,10 @@
   </div>
 </template>
 <script setup lang="tsx">
-  import { InfoBox, Table as BkTable } from 'bkui-vue';
+  import { InfoBox } from 'bkui-vue';
   import _ from 'lodash';
   import { ref, shallowRef } from 'vue';
   import { useI18n } from 'vue-i18n';
-
-  const BkTableColumn = BkTable.Column;
 
   import PartitionModel from '@services/model/partition/partition';
   import {
@@ -373,6 +371,7 @@
   import { type Props as QuickSearchProps } from '@components/db-quick-search/bk-quick-search/Index.vue';
   import DbTable from '@components/db-table/IndexNew.vue';
   import MoreActionExtend from '@components/more-action-extend/Index.vue';
+  import { PrimaryTable, TableColumn } from '@components/tdesign-ui/table';
 
   import { messageSuccess, utcDisplayTime } from '@utils';
 
@@ -548,40 +547,41 @@
               {t(options.description)}
             </div>
           )}
-          <BkTable
-            border='outer'
+          <PrimaryTable
+            row-key='id'
+            bordered
             data={validRows.map((row) => ({
               dblike: row.dblike,
               id: row.id,
               immute_domain: row.immute_domain,
               tblike: row.tblike,
             }))}>
-            <BkTableColumn
+            <TableColumn
               align='left'
-              field='id'
-              label={t('策略ID')}
+              colKey='id'
               minWidth={80}
+              title={t('策略ID')}
             />
-            <BkTableColumn
+            <TableColumn
               align='left'
-              field='immute_domain'
-              label={t('集群')}
+              colKey='immute_domain'
+              ellipsis
               minWidth={120}
-              showOverflowTooltip
+              title={t('集群')}
             />
-            <BkTableColumn
+            <TableColumn
               align='left'
-              field='dblike'
-              label={t('DB名')}
+              colKey='dblike'
               minWidth={80}
+              title={t('DB名')}
             />
-            <BkTableColumn
+            <TableColumn
               align='left'
-              field='tblike'
-              label={t('表名')}
+              colKey='tblike'
               minWidth={80}
+              title={t('表名')}
             />
-          </BkTable>
+          </PrimaryTable>
         </>
       ),
       footerAlign: 'center',

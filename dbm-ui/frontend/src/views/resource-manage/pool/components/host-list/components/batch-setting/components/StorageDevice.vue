@@ -164,8 +164,8 @@
 
 <style lang="less">
   .resource-spec-storage-box {
-    .bk-vxe-table {
-      .vxe-cell {
+    .bk-editable-table {
+      .bk-editable-table-body-column {
         padding: 0 !important;
 
         .large-size {

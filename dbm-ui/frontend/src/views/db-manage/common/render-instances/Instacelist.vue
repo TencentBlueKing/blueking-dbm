@@ -22,31 +22,34 @@
         :placeholder="t('搜索实例')"
         type="search" />
     </div>
-    <BkTable
-      :column-config="{ resizable: true }"
+    <PrimaryTable
       :data="renderData"
       :height="440"
-      :scroll-y="{ enabled: true, gt: 0 }"
-      show-overflow
-      size="mini">
-      <BkTableColumn :label="t('实例')">
-        <template #default="{ data: rowData }: { data: Props['data'][number] }">
+      resizable
+      row-key="index"
+      size="small">
+      <TableColumn
+        col-key="ip"
+        :title="t('实例')">
+        <template #default="{ row: rowData }: { row: Props['data'][number] }">
           {{ rowData.ip }}:{{ rowData.port }}
         </template>
-      </BkTableColumn>
-      <BkTableColumn
-        :label="t('部署角色')"
+      </TableColumn>
+      <TableColumn
+        col-key="role"
+        :title="t('部署角色')"
         width="30%">
         {{ role }}
-      </BkTableColumn>
-      <BkTableColumn
-        :label="t('状态')"
+      </TableColumn>
+      <TableColumn
+        col-key="status"
+        :title="t('状态')"
         :width="160">
-        <template #default="{ data: rowData }: { data: Props['data'][number] }">
+        <template #default="{ row: rowData }: { row: Props['data'][number] }">
           <ClusterInstanceStatus :data="rowData.status" />
         </template>
-      </BkTableColumn>
-    </BkTable>
+      </TableColumn>
+    </PrimaryTable>
     <template #footer>
       <BkButton @click="handleClose">
         {{ t('关闭') }}

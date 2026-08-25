@@ -45,18 +45,20 @@
         }}
       </BkAlert>
       <BkLoading :loading="loading">
-        <BkTable :data="tableData">
-          <BkTableColumn
-            field="dbname"
-            :label="t('受影响的 DB')">
-            <template #header>
+        <PrimaryTable
+          :data="tableData"
+          row-key="dbname">
+          <TableColumn
+            col-key="dbname"
+            :title="t('受影响的 DB')">
+            <template #title>
               <span>{{ t('受影响的 DB') }}（{{ tableData.length }}）</span>
             </template>
             <template #default="{ row }">
               <span>{{ row.dbname }}</span>
             </template>
-          </BkTableColumn>
-        </BkTable>
+          </TableColumn>
+        </PrimaryTable>
       </BkLoading>
     </div>
   </BkSideslider>

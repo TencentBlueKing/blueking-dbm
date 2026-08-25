@@ -8,11 +8,23 @@
       class="mb-16 mt-10"
       theme="warning"
       :title="t('注意_对从域名授权时仅会授予 select 权限')" />
-    <DbOriginalTable
-      :columns="columns"
+    <PrimaryTable
       :data="modelValue"
-      :empty-text="t('请选择访问DB')"
-      :height="300" />
+      :height="300"
+      row-key="access_db">
+      <TableColumn
+        col-key="access_db"
+        ellipsis
+        title="DB" />
+      <TableColumn
+        col-key="privilege"
+        ellipsis
+        :title="t('权限')">
+        <template #default="{ row }">
+          {{ row.privilege ? row.privilege.replace(/,/g, ', ') : '--' }}
+        </template>
+      </TableColumn>
+    </PrimaryTable>
   </BkFormItem>
 </template>
 
@@ -32,25 +44,6 @@
       message: t('请添加权限规则'),
       trigger: 'change',
       validator: (value: PermissionRule['rules']) => value.length > 0,
-    },
-  ];
-
-  const columns = [
-    {
-      field: 'access_db',
-      label: 'DB',
-      showOverflowTooltip: true,
-    },
-    {
-      field: 'privilege',
-      label: t('权限'),
-      render: ({ cell }: { cell: string }) => {
-        if (!cell) {
-          return '--';
-        }
-        return cell.replace(/,/g, ', ');
-      },
-      showOverflowTooltip: true,
     },
   ];
 </script>

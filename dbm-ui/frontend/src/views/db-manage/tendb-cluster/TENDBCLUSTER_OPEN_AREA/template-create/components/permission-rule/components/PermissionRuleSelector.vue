@@ -34,14 +34,15 @@
       <DbTable
         ref="tableRef"
         :data-source="getPermissionRules"
-        :max-height="700"
+        fixed-pagination
+        :height="700"
         :row-class-name="rowClass"
-        :show-overflow="false"
+        row-key="account.account_id"
         @clear-search="handleClearSearch"
         @request-success="initRowFlodMap">
-        <BkTableColumn
-          field="user"
-          :label="t('账号名称')"
+        <TableColumn
+          col-key="user"
+          :title="t('账号名称')"
           :width="220">
           <template #default="{ row }: {row: MysqlPermissionAccountModel}">
             <DbIcon
@@ -54,10 +55,10 @@
               @click="() => handleToogleExpand(row.account.user)" />
             {{ row.account.user }}
           </template>
-        </BkTableColumn>
-        <BkTableColumn
-          field="access_db"
-          :label="t('访问DB')"
+        </TableColumn>
+        <TableColumn
+          col-key="access_db"
+          :title="t('访问DB')"
           :width="300">
           <template #default="{ row }: {row: MysqlPermissionAccountModel}">
             <div v-if="row.rules.length === 0">
@@ -84,11 +85,11 @@
               <BkTag>{{ item.access_db }}</BkTag>
             </p>
           </template>
-        </BkTableColumn>
-        <BkTableColumn
-          field="privilege"
-          :label="t('权限')"
-          :min-width="300">
+        </TableColumn>
+        <TableColumn
+          col-key="privilege"
+          :min-width="300"
+          :title="t('权限')">
           <template #default="{ row }: {row: MysqlPermissionAccountModel}">
             <TextOverflowLayout
               v-for="item in rowFlodMap[row.account.user] ? row.rules : row.rules.slice(0, 1)"
@@ -97,7 +98,7 @@
               {{ item.privilege }}
             </TextOverflowLayout>
           </template>
-        </BkTableColumn>
+        </TableColumn>
       </DbTable>
     </div>
     <template #footer>
@@ -136,6 +137,7 @@
 
   import type { AccountTypes } from '@common/const';
 
+  import DbTable from '@components/db-table/IndexNew.vue';
   import TextOverflowLayout from '@components/text-overflow-layout/Index.vue';
 
   import { getSearchSelectorParams } from '@utils';
@@ -209,28 +211,20 @@
   };
 
   const fetchTableData = () => {
-    tableRef.value.fetchData(
-      {
-        cluster_id: props.clusterId,
-      },
-      {
-        account_type: props.accountType,
-      },
-    );
+    tableRef.value.fetchData({
+      account_type: props.accountType,
+      cluster_id: props.clusterId,
+    });
   };
 
   const handleSearchChange = (valueList: ISearchValue[]) => {
     ruleCheckedMap.value = {};
     const params = getSearchSelectorParams(valueList);
-    tableRef.value.fetchData(
-      {
-        cluster_id: props.clusterId,
-        ...params,
-      },
-      {
-        account_type: props.accountType,
-      },
-    );
+    tableRef.value.fetchData({
+      account_type: props.accountType,
+      cluster_id: props.clusterId,
+      ...params,
+    });
   };
 
   const handleClearSearch = () => {
@@ -266,15 +260,11 @@
   const handleChangeOnlyShowSelected = (isShow: boolean) => {
     if (isShow) {
       const ruleIds = Object.keys(ruleCheckedMap.value).map((item) => Number(item));
-      tableRef.value.fetchData(
-        {
-          cluster_id: props.clusterId,
-          rule_ids: ruleIds.join(','),
-        },
-        {
-          account_type: props.accountType,
-        },
-      );
+      tableRef.value.fetchData({
+        account_type: props.accountType,
+        cluster_id: props.clusterId,
+        rule_ids: ruleIds.join(','),
+      });
       return;
     }
     fetchTableData();
