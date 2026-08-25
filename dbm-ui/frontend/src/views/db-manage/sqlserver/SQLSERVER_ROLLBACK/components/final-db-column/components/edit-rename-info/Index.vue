@@ -14,9 +14,7 @@
 <template>
   <DbSideslider
     v-model:is-show="isShow"
-    :confirm-handler="handleSubmit"
-    :confirm-text="t('保存')"
-    :width="900">
+    :width="960">
     <template #header>
       <span>{{ t('恢复后库名') }}</span>
       <BkTag class="ml-8">{{ data.srcCluster.master_domain }}</BkTag>
@@ -46,6 +44,19 @@
         v-model="localValue"
         :data="data" />
     </div>
+    <template #footer>
+      <BkButton
+        class="w-88 mr-8"
+        theme="primary"
+        @click="handleSubmit">
+        {{ t('保存') }}
+      </BkButton>
+      <BkButton
+        class="w-88"
+        @click="handleClose">
+        {{ t('取消') }}
+      </BkButton>
+    </template>
   </DbSideslider>
 </template>
 <script setup lang="ts">
@@ -116,6 +127,10 @@
       messageError(t('请修改冲突的 DB 名'));
       return Promise.reject();
     }
+  };
+
+  const handleClose = () => {
+    isShow.value = false;
   };
 
   watch(isShow, () => {
