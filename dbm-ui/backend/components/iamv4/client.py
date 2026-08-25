@@ -38,6 +38,10 @@ SAAS_URL = "/api/bkiam/prod/api/v1/open/application"
 LIST_PAGE_SIZE = 100
 # 批量创建的分片大小，DBM有近500个动作，一次性提交容易触发网关的包体限制
 BATCH_CREATE_SIZE = 100
+# 鉴权、授权与撤销接口的分片大小，协议限定单次最多20条
+AUTH_BATCH_SIZE = 20
+# 授权有效期，协议限定最长365天，到期需要重新授权
+AUTHORIZATION_EXPIRED_DAYS = 365
 
 
 class IAMV4DataAPI(DataAPI):
@@ -179,6 +183,12 @@ class _IAMV4Api(BaseApi):
             method="POST",
             url=f"{MGMT_URL}/authorizations/",
             description=_("批量角色授权"),
+        )
+        # 与授权同路径，用一致的 role_id + subject + resources 撤销，同样要带 X-Bkiam-Operator 头
+        self.revoke_authorization = self.generate_data_api(
+            method="DELETE",
+            url=f"{MGMT_URL}/authorizations/",
+            description=_("批量撤销授权"),
         )
         self.direct_auth_by_actions = self.generate_data_api(
             method="POST", url=f"{AUTH_URL}/auth-by-actions/", description=_("批量操作直接鉴权")
