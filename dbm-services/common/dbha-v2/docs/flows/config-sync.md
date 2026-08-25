@@ -16,7 +16,7 @@ Probe 不在本地硬编码业务元数据，而是通过 Admin 的 `GetProbeCon
 
 Probe 经 Admin 拉取 `ProbeConfigPayload` 后在本机渲染为 `probe.yaml`。
 
-配置全量刷新以 `GetProbeConfig` / `gen-config` 为主；运行期 `Heartbeat`（见 [admin.proto](../../pkg/proto/idl/admin.proto)）侧重轻量 ack，当前无配置增量，不替代全量下发。
+配置全量刷新以 `GetProbeConfig` / `gen-config` 为主；运行期 `Heartbeat`（见 [admin.proto](../../pkg/proto/idl/admin.proto)）侧重轻量 ack，当前无配置增量，不替代全量下发。写入 `probe.yaml` 后可用 `gen-config -o ... --reload` 或 `dbha-probe reload` 通知运行中的 probe 热加载（见 [gen-config-design.md](gen-config-design.md) §5.5）。
 
 ```mermaid
 sequenceDiagram
@@ -60,4 +60,5 @@ sequenceDiagram
 
 - 元数据为空时返回 `PROBE_CONFIG_NO_DATA`，需先保证 analysis 同步或 DBM 侧有该 IP 的实例信息。
 - 部署侧常用 `dbha-probe gen-config` 后再 `start` / `daemon-start`；自动化见 scripts 与 `ensure` 子命令。
+- 运行中更新配置：在安装根目录执行 `dbha-probe gen-config -o <probe.yaml 路径> --reload`（或改完文件后执行 `dbha-probe reload`），使 probe 热加载新 YAML。
 - Admin 下发默认 reporter 为 GSE；运行时 gRPC / GSE 二选一与改法见 [采集与上报](probe-harvest-and-report.md)。

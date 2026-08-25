@@ -39,16 +39,9 @@ import (
 // pid-file path.
 const defaultPidFile = "./pids/probe.pid"
 
-var Cfg = Configuration{
-	Name:    "probe",
-	PidFile: defaultPidFile,
-	Log: LogConfig{
-		Path:      "./logs/probe.log",
-		Level:     logger.InfoLevel.String(),
-		FileCount: 10,
-		FileSize:  100,
-	},
-}
+// Cfg holds the currently applied probe configuration. It is only replaced after
+// a successful Parse (via Load or a hot-reload apply path).
+var Cfg = defaultConfiguration()
 
 // ClientConfig holds gRPC client tuning (ping, message sizes) and receiver reconnect settings for the probe agent.
 type ClientConfig struct {
@@ -140,27 +133,76 @@ type Configuration struct {
 	Log       LogConfig       `yaml:"log"       mapstructure:"log"`
 }
 
-// Load loads probe configuration from file
-func Load(configFilePath string) error {
-	viper.SetConfigName("probe")
-	viper.SetConfigType("yaml")
-	viper.AddConfigPath("./etc")
+// Parse reads probe configuration from path without mutating the package-level Cfg
+// or the global viper instance.
+//
+// When path is empty, Parse looks for a file named "probe" (YAML) under ./etc,
+// matching the historical Load behavior. When path is non-empty, that file is used.
+// An empty pidFile in the file is normalized to defaultPidFile.
+//
+// On success it returns a fully populated Configuration starting from
+// defaultConfiguration so omitted keys do not retain values from a previous load.
+// On failure it returns a zero Configuration and the error; Cfg is untouched.
+func Parse(configFilePath string) (Configuration, error) {
+	v := viper.New()
+	v.SetConfigName("probe")
+	v.SetConfigType("yaml")
+	v.AddConfigPath("./etc")
 
 	if configFilePath != "" {
-		viper.SetConfigFile(configFilePath)
+		v.SetConfigFile(configFilePath)
 	}
 
-	if err := viper.ReadInConfig(); err != nil {
+	if err := v.ReadInConfig(); err != nil {
+		return Configuration{}, err
+	}
+
+	next := defaultConfiguration()
+	if err := v.Unmarshal(&next); err != nil {
+		return Configuration{}, err
+	}
+
+	if next.PidFile == "" {
+		next.PidFile = defaultPidFile
+	}
+
+	return next, nil
+}
+
+// Load loads probe configuration from file into the package-level Cfg.
+// It delegates to Parse and only replaces Cfg after a successful parse, so a
+// failed load leaves the previously applied configuration intact.
+func Load(configFilePath string) error {
+	next, err := Parse(configFilePath)
+	if err != nil {
 		return err
 	}
-
-	if err := viper.Unmarshal(&Cfg); err != nil {
-		return err
-	}
-
-	if Cfg.PidFile == "" {
-		Cfg.PidFile = defaultPidFile
-	}
-
+	Cfg = next
 	return nil
+}
+
+// RetainIdentity copies fields that must not change across a hot reload from old
+// into next. PidFile and Log are process-identity settings applied only at
+// startup; changing them requires a restart.
+// It returns next with those identity fields overwritten from old.
+func RetainIdentity(old, next Configuration) Configuration {
+	next.PidFile = old.PidFile
+	next.Log = old.Log
+	return next
+}
+
+// defaultConfiguration returns the baseline probe configuration used both as the
+// package-level Cfg initial value and as the starting point for Parse, so that
+// omitted YAML keys do not retain stale values from a previous load.
+func defaultConfiguration() Configuration {
+	return Configuration{
+		Name:    "probe",
+		PidFile: defaultPidFile,
+		Log: LogConfig{
+			Path:      "./logs/probe.log",
+			Level:     logger.InfoLevel.String(),
+			FileCount: 10,
+			FileSize:  100,
+		},
+	}
 }
