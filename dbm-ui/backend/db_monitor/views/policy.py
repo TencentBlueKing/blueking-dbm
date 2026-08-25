@@ -168,7 +168,8 @@ class MonitorPolicyViewSet(AuditedModelViewSet):
             return [permission]
         elif self.action in ["update_strategy", "destroy", "disable", "enable"]:
             policy_id = self.kwargs.get("pk")
-            bk_biz_id = str(MonitorPolicy.objects.get(id=policy_id).bk_biz_id)
+            policy = MonitorPolicy.objects.get(id=policy_id)
+            bk_biz_id = str(policy.bk_biz_id)
             # 全局策略的编辑和启停
             if not int(bk_biz_id):
                 return [GlobalMonitorPolicyPermission(actions=[ActionEnum.GLOBAL_ALARM_POLICY_MANAGE])]
