@@ -5,8 +5,6 @@ declare module 'vue' {
     AuthRouterLink: typeof import('@components/auth-component/router-link.vue').default;
     AuthSwitcher: typeof import('@components/auth-component/switch.vue').default;
     AuthTemplate: typeof import('@components/auth-component/component.vue').default;
-    BkTable: typeof import('@blueking/table/typings/BkTable.vue');
-    BkTableColumn: typeof import('@blueking/table/typings/BkTableColumn.vue');
     DbCard: typeof import('@components/db-card/index.vue').default;
     DbDateTimePicker: typeof import('@components/db-date-time-picker/Index.vue').default;
     DbForm: typeof import('@components/db-form/index.vue').default;
@@ -19,7 +17,6 @@ declare module 'vue' {
     DbSearchSelect: typeof import('@components/db-search-select/index.vue').default;
     DbSideslider: typeof import('@components/db-sideslider/index.vue').default;
     DbStatus: typeof import('@components/db-status/index.vue').default;
-    DbTable: typeof import('@components/db-table/Index.vue').default;
     DbTag: typeof import('@components/bkui-vue/tag/Index.vue').default;
     EditableBlock: typeof import('@components/editable-table/Index.vue').Block;
     EditableColumn: typeof import('@components/editable-table/Index.vue').Column;

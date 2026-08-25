@@ -14,7 +14,7 @@
 import { t } from '@locales/index';
 
 export default {
-  checked: ['ip', 'cpu', 'bk_disk', 'host_name', 'alive'],
+  checked: ['ip', 'bk_cpu', 'host_name', 'alive', 'deploy_name_node', 'deploy_zookeeper', 'instance_num'],
   fields: [
     {
       disabled: true,

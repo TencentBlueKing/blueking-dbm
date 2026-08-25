@@ -36,17 +36,29 @@
     <BkLoading
       :loading="isTableDataLoading"
       :z-index="2">
-      <DbOriginalTable
+      <PrimaryTable
+        :bk-ui-settings="settings"
         class="table-box"
         :columns="columns"
         :data="tableData"
         :max-height="tableHeight"
-        :pagination="pagination"
-        remote-pagination
-        :settings="settings"
-        @page-limit-change="handeChangeLimit"
-        @page-value-change="handleChangePage"
-        @refresh="fetchHostNodes" />
+        row-key="id">
+        <template #empty>
+          <EmptyStatus
+            :is-anomalies="false"
+            :is-searching="!!searchValue"
+            @clear-search="handleClearSearch"
+            @refresh="fetchHostNodes" />
+        </template>
+      </PrimaryTable>
+      <div class="table-footer">
+        <BkPagination
+          v-bind="pagination"
+          :layout="['total', 'limit', 'list']"
+          :model-value="pagination.current"
+          @change="handleChangePage"
+          @limit-change="handeChangeLimit" />
+      </div>
     </BkLoading>
     <DataCopyTransferDetail
       :data="currentActiveRow"
@@ -93,6 +105,7 @@
 <script setup lang="tsx">
   import { InfoBox } from 'bkui-vue';
   import type { Dayjs } from 'dayjs';
+  import type { PrimaryTableCol } from 'tdesign-vue-next';
   import { useI18n } from 'vue-i18n';
   import { useRouter } from 'vue-router';
 
@@ -104,6 +117,8 @@
   import { useDefaultPagination } from '@hooks';
 
   import { TicketTypes } from '@common/const';
+
+  import EmptyStatus from '@components/empty-status/EmptyStatus.vue';
 
   import useResetTableHeight from '@views/db-manage/redis/common/hooks/useResetTableHeight';
 
@@ -254,45 +269,44 @@
     );
   };
 
-  const columns = [
+  const columns: PrimaryTableCol[] = [
     {
-      field: 'src_cluster',
-      label: t('源集群'),
-      minWidth: 220,
-      render: ({ data }: { data: RedisDSTHistoryJobModel }) => (
+      cell: (_, { row }) => (
         <span
           style='color:#3A84FF;cursor:pointer;'
-          onClick={() => handleClickOpenTransferDetail(data)}>
-          {data.src_cluster}
+          onClick={() => handleClickOpenTransferDetail(row as RedisDSTHistoryJobModel)}>
+          {row.src_cluster}
         </span>
       ),
-    },
-    {
-      field: 'dst_cluster',
-      label: t('目标集群'),
+      colKey: 'src_cluster',
       minWidth: 220,
+      title: t('源集群'),
     },
     {
-      field: 'dts_copy_type',
+      colKey: 'dst_cluster',
+      minWidth: 220,
+      title: t('目标集群'),
+    },
+    {
+      cell: (_, { row }) => <span>{copyTypesMap[row.dts_copy_type as keyof typeof copyTypesMap]}</span>,
+      colKey: 'dts_copy_type',
       filter: {
         list: [
-          { text: t('业务内'), value: CopyModes.INTRA_BISNESS },
-          { text: t('跨业务'), value: CopyModes.CROSS_BISNESS },
-          { text: t('业务内至第三方'), value: CopyModes.INTRA_TO_THIRD },
-          { text: t('自建集群至业务内'), value: CopyModes.SELFBUILT_TO_INTRA },
+          { label: t('业务内'), value: CopyModes.INTRA_BISNESS },
+          { label: t('跨业务'), value: CopyModes.CROSS_BISNESS },
+          { label: t('业务内至第三方'), value: CopyModes.INTRA_TO_THIRD },
+          { label: t('自建集群至业务内'), value: CopyModes.SELFBUILT_TO_INTRA },
         ],
+        showConfirmAndReset: true,
+        type: 'multiple',
       },
-      label: t('复制类型'),
-      render: ({ data }: { data: RedisDSTHistoryJobModel }) => <span>{copyTypesMap[data.dts_copy_type]}</span>,
+      title: t('复制类型'),
       width: 120,
     },
     {
-      field: 'key_white_regex',
-      label: t('包含 key'),
-      minWidth: 250,
-      render: ({ data }: { data: RedisDSTHistoryJobModel }) => {
-        if (data.key_white_regex) {
-          const tags = data.key_white_regex.split('\n');
+      cell: (_, { row }) => {
+        if (row.key_white_regex) {
+          const tags = row.key_white_regex.split('\n');
           return (
             <KeyTags
               data={tags}
@@ -302,69 +316,72 @@
         }
         return <span>--</span>;
       },
-      showOverflowTooltip: false,
+      colKey: 'key_white_regex',
+      ellipsis: false,
+      minWidth: 250,
+      title: t('包含 key'),
     },
     {
-      field: 'key_black_regex',
-      label: t('排除 key'),
-      minWidth: 250,
-      render: ({ data }: { data: RedisDSTHistoryJobModel }) => {
-        if (data.key_black_regex) {
-          const tags = data.key_black_regex.split('\n');
+      cell: (_, { row }) => {
+        if (row.key_black_regex) {
+          const tags = row.key_black_regex.split('\n');
           return <KeyTags data={tags} />;
         }
         return <span>--</span>;
       },
-      showOverflowTooltip: true,
+      colKey: 'key_black_regex',
+      ellipsis: true,
+      minWidth: 250,
+      title: t('排除 key'),
     },
     {
-      field: 'bill_id',
-      label: t('关联单据'),
-      render: ({ data }: { data: RedisDSTHistoryJobModel }) =>
-        data.bill_id ? (
+      cell: (_, { row }) =>
+        row.bill_id ? (
           <router-link
             target='_blank'
             to={{
               name: 'bizTicketManage',
               params: {
-                ticketId: data.bill_id,
+                ticketId: row.bill_id,
               },
             }}>
-            {data.bill_id}
+            {row.bill_id}
           </router-link>
         ) : (
           '--'
         ),
-      showOverflowTooltip: true,
+      colKey: 'bill_id',
+      ellipsis: true,
+      title: t('关联单据'),
       width: 120,
     },
     {
-      field: 'update_time',
-      label: t('最近一次修复单'),
-      render: ({ data }: { data: RedisDSTHistoryJobModel }) => <span>{utcDisplayTime(data.update_time)}</span>,
-      showOverflowTooltip: true,
+      cell: (_, { row }) => <span>{utcDisplayTime(row.update_time)}</span>,
+      colKey: 'update_time',
+      ellipsis: true,
+      title: t('最近一次修复单'),
       width: 120,
     },
     {
-      field: 'status',
-      label: t('状态'),
-      render: ({ data }: { data: RedisDSTHistoryJobModel }) => <ExecuteStatus type={data.status} />,
-      showOverflowTooltip: true,
+      cell: (_, { row }) => <ExecuteStatus type={row.status} />,
+      colKey: 'status',
+      ellipsis: true,
+      title: t('状态'),
       width: 120,
     },
     {
-      field: 'create_time',
-      label: t('创建时间'),
-      render: ({ data }: { data: RedisDSTHistoryJobModel }) => <span>{utcDisplayTime(data.create_time)}</span>,
-      showOverflowTooltip: true,
+      cell: (_, { row }) => <span>{utcDisplayTime(row.create_time)}</span>,
+      colKey: 'create_time',
+      ellipsis: true,
+      title: t('创建时间'),
       width: 180,
     },
     {
-      field: '',
+      cell: (_, { row, rowIndex }) => renderOperation(row as RedisDSTHistoryJobModel, rowIndex),
+      colKey: 'row-operation',
+      ellipsis: true,
       fixed: 'right',
-      label: t('操作'),
-      render: ({ data, index }: { data: RedisDSTHistoryJobModel; index: number }) => renderOperation(data, index),
-      showOverflowTooltip: true,
+      title: t('操作'),
       width: 180,
     },
   ];
@@ -417,6 +434,10 @@
 
   const handleClickSearch = () => {
     fetchHostNodes();
+  };
+
+  const handleClearSearch = () => {
+    searchValue.value = '';
   };
 
   const fetchHostNodes = async () => {
@@ -528,7 +549,7 @@
 
   .normal-color {
     td {
-      .vxe-cell {
+      .t-table__cell {
         color: #63656e !important;
       }
     }
@@ -536,7 +557,7 @@
 
   .disable-color {
     td {
-      .vxe-cell {
+      .t-table__cell {
         color: #c4c6cc !important;
       }
     }
@@ -554,6 +575,12 @@
 
   .redis-struct-ins-page {
     padding-bottom: 20px;
+
+    .table-footer {
+      display: flex;
+      margin-top: 12px;
+      justify-content: flex-end;
+    }
 
     .top-operate {
       display: flex;

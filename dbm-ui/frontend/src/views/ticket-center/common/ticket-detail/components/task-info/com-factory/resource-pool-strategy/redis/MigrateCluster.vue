@@ -83,7 +83,6 @@
   // import type { UnwrapRef } from 'vue';
   import { useI18n } from 'vue-i18n';
 
-  // import type { VxeTablePropTypes } from '@blueking/vxe-table';
   import TicketModel, { type Redis } from '@services/model/ticket/ticket';
 
   import { TicketTypes } from '@common/const';

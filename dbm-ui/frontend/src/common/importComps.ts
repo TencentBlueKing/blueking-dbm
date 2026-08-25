@@ -12,9 +12,6 @@
  */
 
 import type { App } from 'vue';
-import { VxeTooltip } from 'vxe-pc-ui';
-
-import { Table, TableColumn } from '@blueking/table';
 
 import AuthButton from '@components/auth-component/button.vue';
 import AuthTemplate from '@components/auth-component/component.vue';
@@ -34,8 +31,6 @@ import DbResetButton from '@components/db-reset-button/index.vue';
 import DbSearchSelect from '@components/db-search-select/index.vue';
 import DbSideslider from '@components/db-sideslider/index.vue';
 import DbStatus from '@components/db-status/index.vue';
-import DbTable from '@components/db-table/index.vue';
-import DbOriginalTable from '@components/db-table/OriginalTable.vue';
 import DbTextarea from '@components/db-textarea/DbTextarea.vue';
 import EditableTable, {
   Block as EditableBlock,
@@ -92,9 +87,7 @@ export const setGlobalComps = (app: App<Element>) => {
   app.component('DbSideslider', DbSideslider);
   app.component('DbTag', DbTag);
   app.component('DbTextarea', DbTextarea);
-  app.component('DbTable', DbTable);
   app.component('DbStatus', DbStatus);
-  app.component('DbOriginalTable', DbOriginalTable);
   app.component('SmartAction', SmartAction);
   app.component('BkIpSelector', ipSelector);
   app.component('FunController', FunController);
@@ -114,14 +107,4 @@ export const setGlobalComps = (app: App<Element>) => {
   app.component('DbQuickSearch', DbQuickSearch);
   app.component('TicketInfoTable', InfoTable);
   app.component('TicketInfoTableColumn', InfoTableColumn);
-  setTimeout(() => {
-    // eslint-disable-next-line
-    delete app._context.components.BkTable;
-    // eslint-disable-next-line
-    delete app._context.components.BkTableColumn;
-
-    app.component('BkTable', Table);
-    app.component('BkTableColumn', TableColumn);
-    app.component('VxeTooltip', VxeTooltip);
-  });
 };

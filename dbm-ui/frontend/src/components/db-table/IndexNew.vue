@@ -113,7 +113,7 @@
     dataSource: (params: any, payload?: IRequestPayload) => Promise<any>;
     defaultLimit?: number;
     disableSelectMethod?: (data: any) => boolean | string;
-    filterValue?: Record<string, string>;
+    filterValue?: Record<string, string | string[]>;
     // 固定分页，不通过容器高度自动计算
     fixedPagination?: boolean;
     // 是否解析 URL query 参数

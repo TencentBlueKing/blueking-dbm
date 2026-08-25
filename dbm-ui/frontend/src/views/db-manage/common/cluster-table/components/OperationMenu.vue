@@ -89,15 +89,6 @@
   });
 </script>
 <style lang="less">
-  tr.vxe-body--row {
-    &.row--hover,
-    &.is-selected-row {
-      .cluster-list-column-operation-btn {
-        display: flex;
-      }
-    }
-  }
-
   .cluster-list-column-operation-btn {
     position: relative;
     display: flex;

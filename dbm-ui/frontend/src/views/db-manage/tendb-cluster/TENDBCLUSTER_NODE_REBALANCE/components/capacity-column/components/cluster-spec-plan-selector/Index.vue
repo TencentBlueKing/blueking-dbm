@@ -63,10 +63,11 @@
         v-bind="planFormItemProps"
         :label="t('集群部署方案')">
         <BkLoading :loading="isPlanLoading">
-          <BkTable
+          <PrimaryTable
             :columns="tableColumns"
             :data="planList"
-            @row-click="(event: MouseEvent, data: TicketSpecInfo) => handleRowClick(data)" />
+            row-key="spec_id"
+            @row-click="({ row }: { row: TableRowData }) => handleRowClick(row as TicketSpecInfo)" />
         </BkLoading>
       </DbFormItem>
     </template>
@@ -146,6 +147,7 @@
 <script setup lang="tsx">
   import type { FormItemProps } from 'bkui-vue/lib/form/form-item';
   import _ from 'lodash';
+  import type { PrimaryTableCol, TableRowData } from 'tdesign-vue-next';
   import { reactive, ref, watch } from 'vue';
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
@@ -215,49 +217,47 @@
     },
   ];
 
-  const tableColumns = [
+  const tableColumns: PrimaryTableCol[] = [
     {
-      field: 'spec_name',
-      label: t('资源规格'),
-      render: ({ data }: { data: ClusterSpecModel }) => (
+      cell: (_, { row }) => (
         <bk-radio
-          label={data.spec_id}
+          label={row.spec_id}
           modelValue={modelValue.value}
           style='display: flex'
-          onClick={() => handleRowClick(data)}>
+          onClick={() => handleRowClick(row as TicketSpecInfo)}>
           <div
             v-overflow-tips
             class='text-overflow'
             onClick={(event: Event) => event.stopPropagation()}>
-            {data.spec_name}
+            {row.spec_name}
           </div>
         </bk-radio>
       ),
+      colKey: 'spec_name',
+      title: t('资源规格'),
       width: 200,
     },
     {
-      field: 'machine_pair',
-      label: t('需机器组数'),
-      sort: true,
+      colKey: 'machine_pair',
+      sorter: (a, b) => a.machine_pair - b.machine_pair,
+      title: t('需机器组数'),
     },
     {
-      field: 'cluster_shard_num',
-      label: t('集群分片'),
-      sort: true,
+      colKey: 'cluster_shard_num',
+      sorter: (a, b) => a.cluster_shard_num - b.cluster_shard_num,
+      title: t('集群分片'),
     },
     {
-      field: 'cluster_capacity',
-      label: t('集群容量G'),
-      sort: true,
+      colKey: 'cluster_capacity',
+      sorter: (a, b) => a.cluster_capacity - b.cluster_capacity,
+      title: t('集群容量G'),
     },
     {
-      field: 'cluster_qps',
-      label: t('集群QPS每秒'),
+      colKey: 'cluster_qps',
+      title: t('集群QPS每秒'),
     },
     {
-      field: 'count',
-      label: t('可用主机数'),
-      render: ({ data }: { data: ClusterSpecModel }) => {
+      cell: (_, { row }) => {
         if (isCountLoading.value) {
           return (
             <div
@@ -267,8 +267,10 @@
             </div>
           );
         }
-        return `${specCountMap.value[data.spec_id]}`;
+        return `${specCountMap.value[row.spec_id]}`;
       },
+      colKey: 'count',
+      title: t('可用主机数'),
     },
   ];
 

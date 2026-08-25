@@ -20,10 +20,32 @@
     <DbTable
       ref="tableRef"
       class="mt-16"
-      :columns="columns"
       :data-source="getRiakNodeList"
+      row-key="bk_host_id"
       selectable
       @selection="handleSelection">
+      <TableColumn
+        col-key="ip"
+        :title="t('节点 IP')">
+        <template #default="{ row }">
+          {{ row.ip || '--' }}
+        </template>
+      </TableColumn>
+      <TableColumn
+        col-key="status"
+        :title="t('Agent状态')"
+        :width="100">
+        <template #default="{ row }">
+          <RenderHostStatus :data="row.status" />
+        </template>
+      </TableColumn>
+      <TableColumn
+        col-key="disk"
+        :title="t('磁盘容量(G)')">
+        <template #default="{ row }">
+          {{ row.disk || '--' }}
+        </template>
+      </TableColumn>
     </DbTable>
   </div>
 </template>
@@ -43,6 +65,7 @@
 
   import { TicketTypes } from '@common/const';
 
+  import DbTable from '@components/db-table/IndexNew.vue';
   import RenderHostStatus from '@components/render-host-status/Index.vue';
 
   import { messageWarn } from '@utils';
@@ -65,25 +88,6 @@
   const { t } = useI18n();
   const { currentBizId } = useGlobalBizs();
   const ticketMessage = useTicketMessage();
-
-  const columns = [
-    {
-      field: 'ip',
-      label: t('节点 IP'),
-      render: ({ data }: { data: RiakNodeModel }) => <span>{data.ip || '--'}</span>,
-    },
-    {
-      field: 'status',
-      label: t('Agent状态'),
-      render: ({ data }: { data: RiakNodeModel }) => <RenderHostStatus data={data.status} />,
-      width: 100,
-    },
-    {
-      field: 'disk',
-      label: t('磁盘容量(G)'),
-      render: ({ data }: { data: RiakNodeModel }) => <span>{data.disk || '--'}</span>,
-    },
-  ];
 
   let selectedList: RiakNodeModel[] = [];
 

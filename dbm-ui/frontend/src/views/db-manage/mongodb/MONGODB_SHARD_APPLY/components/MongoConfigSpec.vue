@@ -46,13 +46,14 @@
         :label="t('集群部署方案')"
         property="details.resource_spec.mongodb.spec_id"
         required>
-        <DbOriginalTable
+        <PrimaryTable
           v-bk-loading="{ loading: isLoading }"
           class="custom-edit-table"
           :data="specList"
+          row-key="spec_id"
           @row-click="handleRowClick">
-          <BkTableColumn
-            field="spec_name"
+          <TableColumn
+            col-key="spec_name"
             fixed="left">
             <template #header>
               <BkPopover
@@ -67,14 +68,14 @@
                 </template>
               </BkPopover>
             </template>
-            <template #default="{ data, index }: { data: MongoConfigSpecRow, index: number }">
+            <template #default="{ row: data, rowIndex: index }: { row: MongoConfigSpecRow, rowIndex: number }">
               <div class="spec-id-box">
                 <BkRadio
                   :key="index"
                   v-model="modelValue.spec_id"
                   class="spec-radio"
                   :label="data.spec_id"
-                  @click="(event: Event) => handleRowClick(event, data)">
+                  @click="() => handleRowClick({ row: data })">
                   <div
                     v-overflow-tips
                     class="text-overflow"
@@ -89,16 +90,16 @@
                   theme="danger" />
               </div>
             </template>
-          </BkTableColumn>
-          <BkTableColumn
-            field="shard_node_num"
-            :label="t('每个Shard节点数')"
+          </TableColumn>
+          <TableColumn
+            col-key="shard_node_num"
+            :title="t('每个Shard节点数')"
             :width="130">
-          </BkTableColumn>
-          <BkTableColumn
-            field="shard_num"
-            :label="t('Shard数量')">
-            <template #default="{ data }: { data: MongoConfigSpecRow }">
+          </TableColumn>
+          <TableColumn
+            col-key="shard_num"
+            :title="t('Shard数量')">
+            <template #default="{ row: data }: { row: MongoConfigSpecRow }">
               <BkSelect
                 v-model="data.shard_num"
                 class="shard-node-spec"
@@ -111,33 +112,33 @@
                   :value="choiceItem.shard_num" />
               </BkSelect>
             </template>
-          </BkTableColumn>
-          <BkTableColumn
-            field="shard_node_spec"
-            :label="t('Shard节点规格')">
-            <template #default="{ data }: { data: MongoConfigSpecRow }">
+          </TableColumn>
+          <TableColumn
+            col-key="shard_node_spec"
+            :title="t('Shard节点规格')">
+            <template #default="{ row: data }: { row: MongoConfigSpecRow }">
               <span>
                 {{
                   data.shard_choices.find((choiceItem) => choiceItem.shard_num === data.shard_num)?.shard_spec || '--'
                 }}
               </span>
             </template>
-          </BkTableColumn>
-          <BkTableColumn
-            field="machine_pair"
-            :label="t('所需机组数')"
+          </TableColumn>
+          <TableColumn
+            col-key="machine_pair"
+            :title="t('所需机组数')"
             :width="96">
-          </BkTableColumn>
-          <BkTableColumn
-            field="machine_num"
-            :label="t('所需机器数')"
+          </TableColumn>
+          <TableColumn
+            col-key="machine_num"
+            :title="t('所需机器数')"
             :width="96">
-          </BkTableColumn>
-          <BkTableColumn
-            field="count"
-            :label="t('可用主机数')"
+          </TableColumn>
+          <TableColumn
+            col-key="count"
+            :title="t('可用主机数')"
             :width="96">
-          </BkTableColumn>
+          </TableColumn>
           <template #empty>
             <p
               v-if="!modelValue.capacity"
@@ -154,7 +155,7 @@
               style="font-size: 12px"
               type="empty" />
           </template>
-        </DbOriginalTable>
+        </PrimaryTable>
       </BkFormItem>
     </template>
     <template v-if="applySchema === APPLY_SCHEME.CUSTOM">
@@ -248,6 +249,7 @@
 </template>
 
 <script setup lang="tsx">
+  import type { TableRowData } from 'tdesign-vue-next';
   import type { ComponentExposed } from 'vue-component-type-helpers';
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
@@ -443,7 +445,7 @@
   };
   fetchFilterClusterSpec();
 
-  const handleRowClick = (event: Event, row: MongoConfigSpecRow) => {
+  const handleRowClick = ({ row }: { row: TableRowData }) => {
     Object.assign(modelValue.value, {
       count: row.machine_num,
       shard_machine_group: row.machine_pair,
@@ -451,7 +453,7 @@
       shards_num: row.shard_num,
       spec_id: row.spec_id,
     });
-    specData.value = row;
+    specData.value = row as MongoConfigSpecRow;
   };
 
   const handleSpecChange = () => {

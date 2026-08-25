@@ -46,11 +46,12 @@
         :label="t('集群部署方案')"
         property="details.resource_spec.backend_group.spec_id"
         required>
-        <DbOriginalTable
+        <PrimaryTable
           v-bkloading="{ loading: isLoading }"
           class="custom-edit-table"
           :columns="columns"
           :data="specs"
+          row-key="spec_id"
           @row-click="handleRowClick">
           <template #empty>
             <p
@@ -68,7 +69,7 @@
               style="font-size: 12px"
               type="empty" />
           </template>
-        </DbOriginalTable>
+        </PrimaryTable>
       </BkFormItem>
     </template>
     <CustomSchema
@@ -88,6 +89,7 @@
 
 <script setup lang="tsx">
   import _ from 'lodash';
+  import type { PrimaryTableCol, TableRowData } from 'tdesign-vue-next';
   import { useI18n } from 'vue-i18n';
 
   import ClusterSpecModel from '@services/model/resource-spec/cluster-sepc';
@@ -148,41 +150,39 @@
     isMemoryType.value ? t('未来集群容量需求(内存容量)') : t('未来集群容量需求(磁盘容量)'),
   );
 
-  const columns = [
+  const columns: PrimaryTableCol[] = [
     {
-      field: 'spec_name',
-      label: t('资源规格'),
-      render: ({ data, index }: { data: ClusterSpecModel; index: number }) => (
+      cell: (_, { row }) => (
         <bk-radio
-          key={index}
           v-model={modelValue.value.spec_id}
           class='spec-radio'
-          label={data.spec_id}>
-          {data.spec_name}
+          label={row.spec_id}>
+          {row.spec_name}
         </bk-radio>
       ),
-      showOverflowTooltip: false,
+      colKey: 'spec_name',
+      title: t('资源规格'),
       width: 300,
     },
     {
-      field: 'machine_pair',
-      label: t('需机器组数'),
-      sort: true,
+      colKey: 'machine_pair',
+      sorter: (a: TableRowData, b: TableRowData) => a.machine_pair - b.machine_pair,
+      title: t('需机器组数'),
     },
     {
-      field: 'cluster_shard_num',
-      label: t('集群分片'),
-      sort: true,
+      colKey: 'cluster_shard_num',
+      sorter: (a: TableRowData, b: TableRowData) => a.cluster_shard_num - b.cluster_shard_num,
+      title: t('集群分片'),
     },
     {
-      field: 'cluster_capacity',
-      label: t('集群容量G'),
-      sort: true,
+      colKey: 'cluster_capacity',
+      sorter: (a: TableRowData, b: TableRowData) => a.cluster_capacity - b.cluster_capacity,
+      title: t('集群容量G'),
     },
     {
-      field: 'count',
-      label: t('可用主机数'),
-      render: ({ data }: { data: ClusterSpecModel }) => countMap.value[data.spec_id] || 0,
+      cell: (_, { row }) => String(countMap.value[row.spec_id] || 0),
+      colKey: 'count',
+      title: t('可用主机数'),
     },
   ];
 
@@ -303,7 +303,7 @@
     });
   }, 100);
 
-  const handleRowClick = (event: Event, row: ClusterSpecModel) => {
+  const handleRowClick = ({ row }: { row: TableRowData }) => {
     modelValue.value.spec_id = row.spec_id;
   };
 

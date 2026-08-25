@@ -86,10 +86,30 @@
         <BkFormItem
           v-else
           :label="t('订阅库表')">
-          <BkTable
+          <PrimaryTable
             class="subscribe-table"
-            :columns="subscribeColumns"
-            :data="subscribeTableData" />
+            :data="subscribeTableData"
+            row-key="db_name">
+            <TableColumn
+              col-key="db_name"
+              :title="t('DB 名')"
+              width="300" />
+            <TableColumn
+              col-key="table_names"
+              min-width="100"
+              :title="t('表名')">
+              <template #default="{ row }">
+                <div class="table-names-box">
+                  <div
+                    v-for="(item, index) in row.table_names"
+                    :key="index"
+                    class="name-item">
+                    {{ item }}
+                  </div>
+                </div>
+              </template>
+            </TableColumn>
+          </PrimaryTable>
         </BkFormItem>
         <BkFormItem
           :label="t('数据源与接收端配置')"
@@ -213,30 +233,6 @@
     {
       label: t('使用已有订阅'),
       value: 'old',
-    },
-  ];
-
-  const subscribeColumns = [
-    {
-      field: 'db_name',
-      label: t('DB 名'),
-      width: 300,
-    },
-    {
-      field: 'table_names',
-      label: t('表名'),
-      minWidth: 100,
-      render: ({ data }: { data: { table_names: string[] } }) => (
-        <div class='table-names-box'>
-          {data.table_names.map((item, index) => (
-            <div
-              key={index}
-              class='name-item'>
-              {item}
-            </div>
-          ))}
-        </div>
-      ),
     },
   ];
 
@@ -425,12 +421,6 @@
           color: #63656e;
           background: #f0f1f5;
           border-radius: 2px;
-        }
-      }
-
-      :deep(th) {
-        .head-text {
-          color: #313238;
         }
       }
     }
