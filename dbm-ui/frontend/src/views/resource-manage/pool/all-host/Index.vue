@@ -104,7 +104,7 @@
         :title="t('磁盘 (G)')">
       </TableColumn>
       <TableColumn
-        col-key="operations"
+        col-key="row-operation"
         :title="t('操作')"
         :width="100">
         <template #default="{ row }: { row: FaultOrRecycleMachineModel }">

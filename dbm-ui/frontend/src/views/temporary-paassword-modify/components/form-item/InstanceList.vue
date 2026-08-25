@@ -41,7 +41,7 @@
         :title="t('所属集群')">
       </TableColumn>
       <TableColumn
-        col-key="operations"
+        col-key="row-operation"
         :title="t('操作')"
         :width="100">
         <template #default="{ row }: { row: IRowData }">
@@ -91,10 +91,7 @@
   import InstanceSelector from '@components/instance-selector-new/Index.vue';
 
   export type IRowData =
-    | TendbhaInstanceModel
-    | TendbclusterInstanceModel
-    | SqlServerHaInstanceModel
-    | SqlServerSingleInstanceModel;
+    TendbhaInstanceModel | TendbclusterInstanceModel | SqlServerHaInstanceModel | SqlServerSingleInstanceModel;
 
   const modelValue = defineModel<IRowData[]>({
     default: () => [],

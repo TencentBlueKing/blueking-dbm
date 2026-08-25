@@ -285,7 +285,7 @@
           </TableColumn>
           <TableColumn
             v-if="!isBatchEdit"
-            col-key="operation"
+            col-key="row-operation"
             :title="t('操作')"
             width="100">
             <template #default="{ row, rowIndex }: { row: IRowData; rowIndex: number }">
