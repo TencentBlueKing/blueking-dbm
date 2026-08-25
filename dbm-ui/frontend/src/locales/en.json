@@ -6215,5 +6215,6 @@
   "上传失败，请重试": "Upload failed, please retry",
   "文件格式不支持": "File format not supported",
   "文件大小超出限制": "File size cannot exceed {0} MB",
+  "已达到字数上限": "Reached character limit",
   "这行勿动！新增翻译请在上一行添加！": ""
 }
