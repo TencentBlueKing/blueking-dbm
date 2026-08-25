@@ -38,7 +38,7 @@ class AlertView(SystemViewSet):
     @Permission.decorator_permission_field(
         id_field=lambda alerts: int({a.get("key"): a.get("value") for a in alerts.get("tags", [])}.get("appid", 0)),
         data_field=lambda d: d["alerts"],
-        actions=[ActionEnum.ALERT_SHIELD_MANAGE, ActionEnum.ALERT_SHIELD_CREATE],
+        actions=[ActionEnum.ALERT_SHIELD_MANAGE],
         resource_meta=ResourceEnum.BUSINESS,
     )
     def search(self, request):

@@ -32,9 +32,7 @@ class TendbAccountRuleChangeItsmFlowParamBuilder(MySQLAccountRuleChangeItsmFlowP
     pass
 
 
-@builders.BuilderFactory.register(
-    TicketType.TENDBCLUSTER_ACCOUNT_RULE_CHANGE, iam=ActionEnum.TENDBCLUSTER_ADD_ACCOUNT_RULE
-)
+@builders.BuilderFactory.register(TicketType.TENDBCLUSTER_ACCOUNT_RULE_CHANGE, iam=ActionEnum.TENDBCLUSTER_PRIV_MANAGE)
 class TendbAccountRuleChangeFlowBuilder(BaseTendbTicketFlowBuilder):
     serializer = TendbAccountRuleChangeSerializer
     inner_flow_builder = TendbAccountRuleChangeFlowParamBuilder
