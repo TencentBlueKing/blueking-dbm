@@ -223,6 +223,14 @@ def _resolve_tendbha_client_host(item: Dict) -> None:
     通过 MysqlProxyConnlog 表根据 conn_user、proxy_ip、session_id 查询真正的来源客户端 IP，
     查到则替换 client_host，查不到则保持不变。
     """
+    # GROUP_CONCAT 无 DISTINCT，在 Python 层对 client_host 去重，只保留前 5 个
+    if item.get("client_host"):
+        unique_ips = list(set(ip.strip() for ip in item["client_host"].split(",") if ip.strip()))
+        if len(unique_ips) > 5:
+            item["client_host"] = ",".join(unique_ips[:5]) + ",..."
+        else:
+            item["client_host"] = ",".join(unique_ips)
+
     if item.get("cluster_type") != "tendbha" or not item.get("client_host") or not item.get("session_ids"):
         return
 
@@ -242,9 +250,15 @@ def _resolve_tendbha_client_host(item: Dict) -> None:
             .values_list("client_ip", flat=True)
             .distinct()
         )
+        item.pop("session_ids", None)
         if real_client_ips:
-            item["client_host"] = ",".join(real_client_ips)
-            item.pop("session_ids", None)
+            if len(real_client_ips) > 5:
+                item["client_host"] = ",".join(real_client_ips[:5]) + ",..."
+            else:
+                item["client_host"] = ",".join(real_client_ips)
+        else:
+            # 如果没有找到真实的的客户端 ip，返回 proxy_ip 反而会误导用户，所以返回空
+            item.pop("client_host", None)
     except Exception:  # noqa: E722
         pass
 
@@ -369,8 +383,6 @@ def query_slowlog_aggregated(
         if item.get("query_digest_text"):
             item["query_digest_text"] = item["query_digest_text"].replace("`", "")
         # GROUP_CONCAT 无 DISTINCT，在 Python 层对 client_host 去重
-        if item.get("client_host"):
-            item["client_host"] = ",".join(set(ip.strip() for ip in item["client_host"].split(",") if ip.strip()))
         # 对于 tendbha 集群，client_host 实际是 proxy ip，需要通过 MysqlProxyConnlog 查询真正的来源 IP
         _resolve_tendbha_client_host(item)
         # 删除不必要的返回字段
