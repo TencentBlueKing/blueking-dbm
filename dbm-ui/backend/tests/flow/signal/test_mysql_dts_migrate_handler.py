@@ -306,6 +306,71 @@ class MysqlDtsMigrateHandlerRecycleTest(TestCase):
         handler(root_id="root-recycle-1", node_id="node-1", status=StateType.FAILED)
         mock_drop.assert_not_called()
 
+    def _create_sibling(self, dts_task_id: str, status=MysqlDtsStatus.FullOnline.value):
+        MysqlDtsInfo.objects.create(
+            bk_biz_id=3,
+            source_cluster_ids=[1],
+            target_cluster_id=3,
+            dts_cluster_id=0,
+            migrate_type="ha_to_cluster",
+            ticket_id=self.ticket_id,
+            root_id="root-recycle-1",
+            status=status,
+            temp_account_snapshot=self.snapshot,
+            dts_task_id=dts_task_id,
+            creator="tester",
+            updater="tester",
+        )
+
+    @patch("backend.flow.signal.mysql_dts_migrate_handler.best_effort_drop_dts_temp_accounts_from_snapshots")
+    @patch("backend.flow.signal.mysql_dts_migrate_handler.BambooEngine")
+    def test_failed_only_updates_matching_task(self, mock_engine_cls, mock_drop):
+        """多行并行：一行 FAILED 只把对应 dts_task_id 打成 FullFailed。"""
+        self._create_sibling("task-2")
+        mock_engine_cls.return_value = self._mock_engine(
+            {"global_data": {"ticket_id": self.ticket_id, "task_name": "task-1"}}
+        )
+        handler = TICKET_TYPE_HANDLERS.get(TicketType.MYSQL_HA_TO_CLUSTER_MIGRATE.lower())
+        handler(root_id="root-recycle-1", node_id="node-1", status=StateType.FAILED)
+
+        failed = MysqlDtsInfo.objects.get(ticket_id=self.ticket_id, dts_task_id="task-1")
+        sibling = MysqlDtsInfo.objects.get(ticket_id=self.ticket_id, dts_task_id="task-2")
+        self.assertEqual(failed.status, MysqlDtsStatus.FullFailed.value)
+        self.assertEqual(sibling.status, MysqlDtsStatus.FullOnline.value)
+        mock_drop.assert_not_called()
+
+    @patch("backend.flow.signal.mysql_dts_migrate_handler.best_effort_drop_dts_temp_accounts_from_snapshots")
+    @patch("backend.flow.signal.mysql_dts_migrate_handler.BambooEngine")
+    def test_failed_skips_when_multi_row_without_task_id(self, mock_engine_cls, mock_drop):
+        """多行且节点无 dts_task_id：不回写，避免误伤兄弟行。"""
+        self._create_sibling("task-2")
+        mock_engine_cls.return_value = self._mock_engine({"global_data": {"ticket_id": self.ticket_id}})
+        handler = TICKET_TYPE_HANDLERS.get(TicketType.MYSQL_HA_TO_CLUSTER_MIGRATE.lower())
+        handler(root_id="root-recycle-1", node_id="node-1", status=StateType.FAILED)
+
+        statuses = set(MysqlDtsInfo.objects.filter(ticket_id=self.ticket_id).values_list("status", flat=True))
+        self.assertEqual(statuses, {MysqlDtsStatus.FullOnline.value})
+        mock_drop.assert_not_called()
+
+    @patch("backend.flow.signal.mysql_dts_migrate_handler.best_effort_drop_dts_temp_accounts_from_snapshots")
+    @patch("backend.flow.signal.mysql_dts_migrate_handler.BambooEngine")
+    def test_running_only_updates_matching_task(self, mock_engine_cls, mock_drop):
+        """RUNNING 同样按行过滤，不把兄弟行刷成 FullOnline。"""
+        MysqlDtsInfo.objects.filter(ticket_id=self.ticket_id, dts_task_id="task-1").update(
+            status=MysqlDtsStatus.ToDo.value
+        )
+        self._create_sibling("task-2", status=MysqlDtsStatus.ToDo.value)
+        mock_engine_cls.return_value = self._mock_engine(
+            {"global_data": {"ticket_id": self.ticket_id, "dts_task_ids": ["task-1"]}}
+        )
+        handler = TICKET_TYPE_HANDLERS.get(TicketType.MYSQL_TO_MYSQL_MIGRATE.lower())
+        handler(root_id="root-recycle-1", node_id="node-1", status=StateType.RUNNING)
+
+        running = MysqlDtsInfo.objects.get(ticket_id=self.ticket_id, dts_task_id="task-1")
+        sibling = MysqlDtsInfo.objects.get(ticket_id=self.ticket_id, dts_task_id="task-2")
+        self.assertEqual(running.status, MysqlDtsStatus.FullOnline.value)
+        self.assertEqual(sibling.status, MysqlDtsStatus.ToDo.value)
+
 
 class FinalizeCleanupDtsTest(SimpleTestCase):
     """终态回收 DTS 只认 cleanup_after_migrate。"""
@@ -334,3 +399,32 @@ class FinalizeCleanupDtsTest(SimpleTestCase):
             }
         )
         mock_filter.assert_called_once()
+
+
+class ExtractDtsTaskIdsTest(SimpleTestCase):
+    """P1-2：节点 inputs 按行提取 dts_task_id。"""
+
+    def test_from_global_data_task_name(self):
+        from backend.flow.signal.mysql_dts_migrate_handler import _extract_dts_task_ids
+
+        self.assertEqual(_extract_dts_task_ids({"global_data": {"task_name": "task-1"}}), ["task-1"])
+
+    def test_from_kwargs_task_spec_and_list(self):
+        from backend.flow.signal.mysql_dts_migrate_handler import _extract_dts_task_ids
+
+        self.assertEqual(
+            _extract_dts_task_ids(
+                {
+                    "kwargs": {
+                        "task_spec": {"task_name": "task-1"},
+                        "dts_task_ids": ["task-1", "task-2"],
+                    }
+                }
+            ),
+            ["task-1", "task-2"],
+        )
+
+    def test_empty_when_missing(self):
+        from backend.flow.signal.mysql_dts_migrate_handler import _extract_dts_task_ids
+
+        self.assertEqual(_extract_dts_task_ids({"global_data": {"ticket_id": 1}}), [])

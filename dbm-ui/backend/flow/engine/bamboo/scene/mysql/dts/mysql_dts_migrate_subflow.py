@@ -81,6 +81,7 @@ def mysql_dts_migrate_subflow(inp: MysqlDtsMigrateSubflowInput) -> SubBuilder:
             # AddUserComponent 等通用组件读取 created_by；SubBuilder 的 data 即 global_data
             "created_by": inp.creator,
             "root_id": inp.root_id,
+            "dts_task_ids": [s.task_name for s in plan.task_specs if getattr(s, "task_name", None)],
         },
     )
     sub.add_sub_pipeline(

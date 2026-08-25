@@ -150,57 +150,58 @@ class MysqlDtsInfo(AuditedModel):
         creator: str = "",
     ) -> list["MysqlDtsInfo"]:
         """按 task_spec 预占 ToDo 行（与 update_meta 的 ticket_id+dts_task_id 对齐）。"""
-        from backend.flow.utils.mysql.dts.migrate_plan import build_migrate_plan
+        from backend.flow.utils.mysql.dts.migrate_plan import build_migrate_plans
 
-        plan = build_migrate_plan({**details, "bk_biz_id": bk_biz_id}, require_task_name=False)
-        topology = getattr(plan, "topology", "") or ""
         reserved: list[MysqlDtsInfo] = []
-        for spec in plan.task_specs:
-            task_name = (spec.task_name or "").strip()
-            if not task_name:
-                # patch_ticket_detail 应已写入；兜底保证 get_or_create 键稳定
-                task_name = f"mysql-dts-{ticket_id}-target-{spec.target_cluster_id}"
-            source_cluster_ids = [s.cluster_id for s in spec.sources]
-            existing = cls.objects.filter(ticket_id=ticket_id, dts_task_id=task_name).first()
-            if existing:
-                # 重试：非进行中行收回 ToDo；已 FullOnline 保持不动
-                if existing.status != MysqlDtsStatus.FullOnline.value:
-                    existing.bk_biz_id = bk_biz_id
-                    existing.source_cluster_ids = source_cluster_ids
-                    existing.target_cluster_id = spec.target_cluster_id
-                    existing.migrate_type = migrate_type or existing.migrate_type
-                    existing.migrate_topology = topology or existing.migrate_topology
-                    existing.status = MysqlDtsStatus.ToDo.value
-                    if creator:
-                        existing.updater = creator
-                    existing.save(
-                        update_fields=[
-                            "bk_biz_id",
-                            "source_cluster_ids",
-                            "target_cluster_id",
-                            "migrate_type",
-                            "migrate_topology",
-                            "status",
-                            "updater",
-                            "update_at",
-                        ]
+        for plan in build_migrate_plans({**details, "bk_biz_id": bk_biz_id}, require_task_name=False):
+            topology = getattr(plan, "topology", "") or ""
+            row_type = migrate_type or getattr(plan, "migrate_type", "") or ""
+            for spec in plan.task_specs:
+                task_name = (spec.task_name or "").strip()
+                if not task_name:
+                    # patch_ticket_detail 应已写入；兜底保证 get_or_create 键稳定
+                    task_name = f"mysql-dts-{ticket_id}-target-{spec.target_cluster_id}"
+                source_cluster_ids = [s.cluster_id for s in spec.sources]
+                existing = cls.objects.filter(ticket_id=ticket_id, dts_task_id=task_name).first()
+                if existing:
+                    # 重试：非进行中行收回 ToDo；已 FullOnline 保持不动
+                    if existing.status != MysqlDtsStatus.FullOnline.value:
+                        existing.bk_biz_id = bk_biz_id
+                        existing.source_cluster_ids = source_cluster_ids
+                        existing.target_cluster_id = spec.target_cluster_id
+                        existing.migrate_type = row_type or existing.migrate_type
+                        existing.migrate_topology = topology or existing.migrate_topology
+                        existing.status = MysqlDtsStatus.ToDo.value
+                        if creator:
+                            existing.updater = creator
+                        existing.save(
+                            update_fields=[
+                                "bk_biz_id",
+                                "source_cluster_ids",
+                                "target_cluster_id",
+                                "migrate_type",
+                                "migrate_topology",
+                                "status",
+                                "updater",
+                                "update_at",
+                            ]
+                        )
+                    reserved.append(existing)
+                    continue
+                reserved.append(
+                    cls.objects.create(
+                        bk_biz_id=bk_biz_id,
+                        source_cluster_ids=source_cluster_ids,
+                        target_cluster_id=spec.target_cluster_id,
+                        migrate_type=row_type,
+                        migrate_topology=topology,
+                        ticket_id=ticket_id,
+                        status=MysqlDtsStatus.ToDo.value,
+                        dts_task_id=task_name,
+                        creator=creator,
+                        updater=creator,
                     )
-                reserved.append(existing)
-                continue
-            reserved.append(
-                cls.objects.create(
-                    bk_biz_id=bk_biz_id,
-                    source_cluster_ids=source_cluster_ids,
-                    target_cluster_id=spec.target_cluster_id,
-                    migrate_type=migrate_type,
-                    migrate_topology=topology,
-                    ticket_id=ticket_id,
-                    status=MysqlDtsStatus.ToDo.value,
-                    dts_task_id=task_name,
-                    creator=creator,
-                    updater=creator,
                 )
-            )
         return reserved
 
     @classmethod

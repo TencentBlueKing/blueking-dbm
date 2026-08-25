@@ -87,6 +87,7 @@ def mysql_dts_ensure_cluster_subflow(inp: MysqlDtsMigrateSubflowInput) -> SubBui
             "creator": inp.creator,
             "created_by": inp.creator,
             "root_id": inp.root_id,
+            "dts_task_ids": [s.task_name for s in plan.task_specs if getattr(s, "task_name", None)],
         },
     )
 

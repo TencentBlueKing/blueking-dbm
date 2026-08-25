@@ -173,7 +173,15 @@ class CreateTaskClusterLookupTest(SimpleTestCase):
         service.log_error = MagicMock()
         return service
 
-    def _run(self, *, full_load_engine, dts_cluster_id=None, context_cluster_id=None, cluster_name="dts-ut"):
+    def _run(
+        self,
+        *,
+        full_load_engine,
+        dts_cluster_id=None,
+        context_cluster_id=None,
+        cluster_name="dts-ut",
+        kwargs_cluster_name=None,
+    ):
         task_spec = _task_spec(full_load_engine=full_load_engine)
         if full_load_engine == FullLoadEngine.MYLOADER.value:
             from backend.flow.utils.mysql.dts.migrate_plan import MyloaderSpec
@@ -195,14 +203,17 @@ class CreateTaskClusterLookupTest(SimpleTestCase):
             target_cluster_type="",
         )
         trans_data = SimpleNamespace(migrate_context=migrate_context)
+        kwargs = {
+            "master_addr": "127.0.0.1:8261",
+            "bk_cloud_id": 0,
+            "task_spec": {"task_name": task_spec.task_name},
+            "migrate_plan": {},
+        }
+        if kwargs_cluster_name is not None:
+            kwargs["cluster_name"] = kwargs_cluster_name
         data = MagicMock()
         data.get_one_of_inputs.side_effect = lambda key: {
-            "kwargs": {
-                "master_addr": "127.0.0.1:8261",
-                "bk_cloud_id": 0,
-                "task_spec": {"task_name": task_spec.task_name},
-                "migrate_plan": {},
-            },
+            "kwargs": kwargs,
             "trans_data": trans_data,
         }.get(key)
         data.outputs = MagicMock()
@@ -231,15 +242,25 @@ class CreateTaskClusterLookupTest(SimpleTestCase):
             ok = self._make_service()._execute(data, parent_data=None)
             return ok, mock_api, mock_build
 
-    def test_builtin_uses_context_cluster_id(self):
+    def test_builtin_uses_kwargs_cluster_name(self):
         ok, mock_api, mock_build = self._run(
             full_load_engine=FullLoadEngine.BUILTIN.value,
             dts_cluster_id=None,
             context_cluster_id=7,
+            kwargs_cluster_name="dts-from-kwargs",
         )
         self.assertTrue(ok)
         mock_api.create_task.assert_called_once()
-        self.assertEqual(mock_build.call_args.kwargs["cluster_name"], "dts-ut")
+        self.assertEqual(mock_build.call_args.kwargs["cluster_name"], "dts-from-kwargs")
+
+    def test_builtin_ignores_context_cluster_id(self):
+        ok, mock_api, unused_build = self._run(
+            full_load_engine=FullLoadEngine.BUILTIN.value,
+            dts_cluster_id=None,
+            context_cluster_id=7,
+        )
+        self.assertFalse(ok)
+        mock_api.create_task.assert_not_called()
 
     def test_builtin_uses_deploy_name_without_id(self):
         task_spec = _task_spec(full_load_engine=FullLoadEngine.BUILTIN.value)

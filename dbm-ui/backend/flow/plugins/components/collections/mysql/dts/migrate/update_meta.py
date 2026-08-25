@@ -17,6 +17,7 @@ from pipeline.component_framework.component import Component
 from backend.db_meta.models import MysqlDtsInfo
 from backend.db_meta.models.mysql_dts import MysqlDtsStatus
 from backend.flow.plugins.components.collections.common.base_service import BaseService
+from backend.flow.utils.mysql.dts.migrate_helper import load_active_dts_cluster
 from backend.flow.utils.mysql.dts.migrate_plan import dts_task_spec_from_dict
 
 logger = logging.getLogger("flow")
@@ -60,7 +61,19 @@ class MysqlDtsUpdateMetaService(BaseService):
             ).first()
             or MysqlDtsInfo.objects.filter(ticket_id=ticket_id, dts_task_id=task_name).first()
         )
-        dts_cluster_id = kwargs.get("dts_cluster_id") or trans_data.migrate_context.dts_cluster_id or 0
+        dts_cluster_id = kwargs.get("dts_cluster_id") or 0
+        try:
+            dts_cluster_id = int(dts_cluster_id)
+        except (TypeError, ValueError):
+            dts_cluster_id = 0
+        if not dts_cluster_id:
+            # deploy 行建流时还没有 ID：按本行 cluster_name 回查，禁止读共享 migrate_context
+            cluster = load_active_dts_cluster(
+                dts_cluster_id=None,
+                bk_biz_id=kwargs.get("bk_biz_id"),
+                cluster_name=(kwargs.get("cluster_name") or "").strip() or None,
+            )
+            dts_cluster_id = int(cluster.id) if cluster else 0
         if not dts_cluster_id:
             self.log_error(_("DTS 集群 ID 为空，无法写入迁移元数据（请先完成准备临时账号）"))
             return False

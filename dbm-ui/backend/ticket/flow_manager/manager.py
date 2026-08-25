@@ -39,6 +39,7 @@ from backend.ticket.flow_manager.timer import TimerFlow
 from backend.ticket.models import Ticket
 from backend.ticket.tasks.ticket_tasks import (
     create_cluster_todo,
+    create_dts_destroy_after_migrate,
     create_monitor_grafana,
     create_recycle_ticket,
     send_ticket_delivery_info,
@@ -157,6 +158,13 @@ class TicketFlowManager(object):
         if target_status == TicketStatus.SUCCEEDED and is_recycle:
             recycle_hosts = self.ticket.details.get("recycle_hosts", [])
             create_recycle_ticket.apply_async(args=(self.ticket.id, recycle_hosts, TicketType.RECYCLE_OLD_HOST))
+
+        # DTS 迁移整单成功后再挂销毁单（与主从迁移「单据完成后挂回收」同时机，不走 inner post_callback）
+        if target_status == TicketStatus.SUCCEEDED:
+            from backend.ticket.builders.mysql.dts.mysql_dts_tickets import DTS_MIGRATE_TICKET_TYPES
+
+            if self.ticket.ticket_type in DTS_MIGRATE_TICKET_TYPES:
+                create_dts_destroy_after_migrate.apply_async(args=(self.ticket.id,))
 
         # 如果是部署类单据，异常终止要联动回收主机
         is_apply = self.ticket.ticket_type in BuilderFactory.apply_ticket_type

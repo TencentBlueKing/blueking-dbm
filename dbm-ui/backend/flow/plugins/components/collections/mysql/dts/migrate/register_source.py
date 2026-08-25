@@ -39,8 +39,8 @@ class MysqlDtsRegisterSourceService(BaseService):
             self.log_error(_("DTS bk_cloud_id 为空"))
             return False
         task_spec = dts_task_spec_from_dict(kwargs["task_spec"])
-        dts_user = trans_data.migrate_context.dts_user
-        dts_password = trans_data.migrate_context.dts_password
+        dts_user = kwargs.get("dts_user") or trans_data.migrate_context.dts_user
+        dts_password = kwargs.get("dts_password") or trans_data.migrate_context.dts_password
         if not dts_user or not dts_password:
             self.log_error(_("DTS 迁移临时账号未创建，请先执行 prepare_user / AddUser 步骤"))
             return False

@@ -125,6 +125,55 @@ class MysqlDtsMigrateTaskSubflowKwargsTest(SimpleTestCase):
         "backend.flow.engine.bamboo.scene.mysql.dts.mysql_dts_migrate_task_subflow.mysql_dts_catchup_cutover_subflow"
     )
     @patch("backend.flow.engine.bamboo.scene.mysql.dts.mysql_dts_migrate_task_subflow.SubBuilder")
+    def test_deploy_row_passes_cluster_name_into_task_kwargs(self, mock_sub_builder, mock_catchup):
+        from backend.flow.engine.bamboo.scene.mysql.dts.mysql_dts_migrate_task_subflow import (
+            mysql_dts_migrate_task_subflow,
+        )
+        from backend.flow.utils.mysql.dts.context import DtsHostSpec, MysqlDtsDeploySubflowInput
+
+        sub = MagicMock()
+        mock_sub_builder.return_value = sub
+        fake_catchup = MagicMock()
+        fake_catchup.build_sub_process.return_value = MagicMock(name="catchup")
+        mock_catchup.return_value = fake_catchup
+
+        plan = _minimal_plan()
+        plan.dts_cluster_id = None
+        plan.deploy_subflow_inp = MysqlDtsDeploySubflowInput(
+            root_id="root-deploy",
+            bk_biz_id=3,
+            bk_cloud_id=0,
+            cluster_name="dts-migrate-19943-0-abcdef123456",
+            master_hosts=[DtsHostSpec(ip="127.0.0.2", bk_cloud_id=0)],
+            worker_hosts=[DtsHostSpec(ip="127.0.0.3", bk_cloud_id=0)],
+        )
+        mysql_dts_migrate_task_subflow(
+            root_id="root-deploy",
+            bk_biz_id=3,
+            ticket_id=19943,
+            master_addr="",
+            task_spec=plan.task_specs[0],
+            migrate_plan=plan,
+            creator="tester",
+        )
+        update_kwargs = next(
+            c.kwargs["kwargs"]
+            for c in sub.add_act.call_args_list
+            if c.kwargs["act_component_code"] == "mysql_dts_update_meta"
+        )
+        create_kwargs = next(
+            c.kwargs["kwargs"]
+            for c in sub.add_act.call_args_list
+            if c.kwargs["act_component_code"] == "mysql_dts_create_task"
+        )
+        self.assertFalse(update_kwargs.get("dts_cluster_id"))
+        self.assertEqual(update_kwargs["cluster_name"], "dts-migrate-19943-0-abcdef123456")
+        self.assertEqual(create_kwargs["cluster_name"], "dts-migrate-19943-0-abcdef123456")
+
+    @patch(
+        "backend.flow.engine.bamboo.scene.mysql.dts.mysql_dts_migrate_task_subflow.mysql_dts_catchup_cutover_subflow"
+    )
+    @patch("backend.flow.engine.bamboo.scene.mysql.dts.mysql_dts_migrate_task_subflow.SubBuilder")
     def test_builtin_all_inserts_poll_full_load_before_catchup(self, mock_sub_builder, mock_catchup):
         from backend.flow.engine.bamboo.scene.mysql.dts.mysql_dts_migrate_task_subflow import (
             mysql_dts_migrate_task_subflow,

@@ -20,6 +20,7 @@ from backend.flow.engine.bamboo.scene.mysql.dts.mysql_dts_deploy_colocated_host_
 from backend.flow.engine.bamboo.scene.mysql.dts.mysql_dts_deploy_master_subflow import mysql_dts_deploy_master_subflow
 from backend.flow.engine.bamboo.scene.mysql.dts.mysql_dts_deploy_worker_subflow import mysql_dts_deploy_worker_subflow
 from backend.flow.engine.bamboo.scene.mysql.dts.subflow_common import (
+    add_dts_idle_check_subflow,
     build_master_addr,
     build_master_nodes,
     build_worker_nodes,
@@ -53,6 +54,12 @@ def mysql_dts_deploy_subflow(inp: MysqlDtsDeploySubflowInput) -> SubBuilder:
             "uid": inp.root_id,
             "creator": inp.creator,
         },
+    )
+    add_dts_idle_check_subflow(
+        sub,
+        root_id=inp.root_id,
+        bk_cloud_id=inp.bk_cloud_id,
+        hosts=[*inp.master_hosts, *inp.worker_hosts],
     )
 
     all_master_nodes = []

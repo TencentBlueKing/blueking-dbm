@@ -10,7 +10,7 @@ specific language governing permissions and limitations under the License.
 """
 from dataclasses import asdict
 from types import SimpleNamespace
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 
 from django.test import TestCase
 
@@ -32,7 +32,16 @@ class MysqlDtsUpdateMetaServiceTest(TestCase):
         service.log_error = MagicMock()
         return service
 
-    def _run(self, sources, *, target_cluster_id=200, dts_cluster_id=1, context_cluster_id=1, expect_ok=True):
+    def _run(
+        self,
+        sources,
+        *,
+        target_cluster_id=200,
+        dts_cluster_id=1,
+        context_cluster_id=1,
+        cluster_name="",
+        expect_ok=True,
+    ):
         task_spec = DtsTaskSpec(
             task_name="mysql-dts-test-task",
             target_cluster_id=target_cluster_id,
@@ -59,6 +68,7 @@ class MysqlDtsUpdateMetaServiceTest(TestCase):
                 "root_id": "root-1",
                 "task_name": task_spec.task_name,
                 "dts_cluster_id": dts_cluster_id,
+                "cluster_name": cluster_name,
                 "creator": "tester",
             },
             "global_data": {"root_id": "root-1"},
@@ -115,10 +125,19 @@ class MysqlDtsUpdateMetaServiceTest(TestCase):
 
     def test_missing_cluster_id_fails_without_write(self):
         sources = [SourceSpec(cluster_id=101, source_name="s1", sync_scope=SyncScope(do_dbs=["db_a"]))]
-        unused_row, unused_ctx = self._run(sources, dts_cluster_id=None, context_cluster_id=None, expect_ok=False)
+        unused_row, unused_ctx = self._run(
+            sources, dts_cluster_id=None, cluster_name="", context_cluster_id=7, expect_ok=False
+        )
         self.assertFalse(MysqlDtsInfo.objects.filter(ticket_id=100, dts_task_id="mysql-dts-test-task").exists())
 
-    def test_context_id_used_when_kwargs_empty(self):
+    def test_name_lookup_when_kwargs_id_empty(self):
         sources = [SourceSpec(cluster_id=101, source_name="s1", sync_scope=SyncScope(do_dbs=["db_a"]))]
-        row, unused_ctx = self._run(sources, dts_cluster_id=None, context_cluster_id=7)
-        self.assertEqual(row.dts_cluster_id, 7)
+        with patch(
+            "backend.flow.plugins.components.collections.mysql.dts.migrate.update_meta.load_active_dts_cluster",
+            return_value=SimpleNamespace(id=11),
+        ) as mock_load:
+            row, unused_ctx = self._run(
+                sources, dts_cluster_id=None, cluster_name="dts-migrate-19943-0-abc", context_cluster_id=7
+            )
+        mock_load.assert_called_once_with(dts_cluster_id=None, bk_biz_id=1, cluster_name="dts-migrate-19943-0-abc")
+        self.assertEqual(row.dts_cluster_id, 11)

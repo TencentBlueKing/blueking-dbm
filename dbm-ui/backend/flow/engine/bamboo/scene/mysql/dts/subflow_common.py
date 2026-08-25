@@ -11,6 +11,8 @@ specific language governing permissions and limitations under the License.
 from dataclasses import asdict
 from typing import Any
 
+from backend import env
+from backend.flow.engine.bamboo.scene.mysql.common.common_sub_flow import init_machine_sub_flow
 from backend.flow.utils.mysql.dts.constants import (
     MYSQL_DTS_MASTER_PEER_PORT,
     MYSQL_DTS_MASTER_PORT,
@@ -35,6 +37,27 @@ def resolve_deploy_path(cluster_name: str, deploy_path: str = "") -> str:
 
 def hosts_to_exec_targets(hosts: list[DtsHostSpec]) -> list[dict]:
     return [{"ip": host.ip, "bk_cloud_id": host.bk_cloud_id} for host in hosts]
+
+
+def unique_host_ips(hosts: list[DtsHostSpec]) -> list[str]:
+    """Keep first-seen IP order; drop empties and duplicates."""
+    return list(dict.fromkeys(host.ip for host in hosts if host.ip))
+
+
+def add_dts_idle_check_subflow(sub, *, root_id: str, bk_cloud_id: int, hosts: list[DtsHostSpec]) -> None:
+    """Mount MySQL idle-check subflow for new DTS hosts; skip if no IPs or SA template."""
+    unique_ips = unique_host_ips(hosts)
+    if not unique_ips or not env.SA_CHECK_TEMPLATE_ID:
+        return
+    sub.add_sub_pipeline(
+        sub_flow=init_machine_sub_flow(
+            uid=root_id,
+            root_id=root_id,
+            bk_cloud_id=bk_cloud_id,
+            sys_init_ips=[],
+            init_check_ips=unique_ips,
+        )
+    )
 
 
 def build_dts_trans_file_kwargs(
