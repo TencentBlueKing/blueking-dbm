@@ -41,6 +41,7 @@
     activeTab,
     (value) => {
       router.replace({
+        name: 'PlatformTicketFlowSetting',
         params: {
           dbType: value,
         },
