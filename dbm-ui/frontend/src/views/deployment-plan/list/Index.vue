@@ -81,7 +81,7 @@
           :width="150">
         </TableColumn>
         <TableColumn
-          col-key="operation"
+          col-key="row-operation"
           :title="t('操作')"
           :width="150">
           <template #default="{ row: data }: { row: DeployPlanModel }">

@@ -16,7 +16,7 @@
         col-key="path"
         :title="t('路径')" />
       <TicketInfoTableColumn
-        col-key="operation"
+        col-key="row-operation"
         :title="t('操作')"
         :width="100">
         <template #default="{ row }: { row: Props['details']['ticket_data']['rules'][number] }">
