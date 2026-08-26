@@ -32,7 +32,7 @@
       <ClusterTypeColumn v-model="item.src_cluster_type" />
       <AccessCodeColumn
         v-model="item.src_cluster_password"
-        data-copy-type="copy_to_other_system"
+        data-copy-type="user_built_to_dbm"
         field="src_cluster_password"
         :label="t('访问密码')"
         :params="{
@@ -82,7 +82,7 @@
   interface Exposes {
     getValue: () => Promise<
       {
-        dst_cluster: number;
+        dst_cluster: number | string;
         key_black_regex: string;
         key_white_regex: string;
         src_cluster: string;
@@ -98,7 +98,7 @@
   interface IDataRow {
     dst_cluster: {
       domain: string;
-      id: number;
+      id: number | string;
     };
     key_black_regex: string[];
     key_white_regex: string[];
@@ -111,7 +111,7 @@
     dst_cluster: Object.assign(
       {
         domain: '',
-        id: 0,
+        id: '',
       },
       values.dst_cluster,
     ),
@@ -188,7 +188,7 @@
       tableKey.value = random();
       tableData.value = [...dataList];
     } else {
-      tableData.value = [...(tableData.value[0].cluster.id ? tableData.value : []), ...dataList];
+      tableData.value = [...(tableData.value[0].src_cluster ? tableData.value : []), ...dataList];
     }
   };
 
