@@ -18,7 +18,7 @@
   <InfoItem
     v-if="data.is_send"
     :label="t('收件人')">
-    {{ receiverUsername.length > 0 ? receiverUsername.slice(2).join('，') : '--' }}
+    {{ receiverUsername || '--' }}
   </InfoItem>
 </template>
 
@@ -41,5 +41,5 @@
 
   const { t } = useI18n();
 
-  const receiverUsername = props.data.receiver__username?.split(',') ?? [];
+  const receiverUsername = (props.data.receiver__username?.split(',') ?? []).filter(Boolean).slice(2).join('，');
 </script>
