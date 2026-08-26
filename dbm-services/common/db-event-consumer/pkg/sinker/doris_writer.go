@@ -30,11 +30,15 @@ func NewDorisWriter(dsn *InstanceDsn) (*DorisWriter, error) {
 	if dsn == nil {
 		return nil, errors.New("dsn is nil")
 	}
-	db, err := GetGoframeDB(dsn)
+	dbForMigrate, err := GetGormDB(dsn)
 	if err != nil {
 		return nil, err
 	}
-	dbForMigrate, err := GetGormDB(dsn)
+	// doris writer 默认用 group_commit async_mode
+	if _, ok := dsn.SessionVariables["group_commit"]; !ok {
+		dsn.SessionVariables["group_commit"] = "async_mode"
+	}
+	db, err := GetGoframeDB(dsn)
 	if err != nil {
 		return nil, err
 	}

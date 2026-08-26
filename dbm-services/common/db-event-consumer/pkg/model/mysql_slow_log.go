@@ -32,7 +32,8 @@ import (
 var slowLogDbNameCache *freecache.Cache
 var slowLogCacheOnce sync.Once
 
-const slowLogDbNameExpireSec = 86400 // 24小时
+// slowlog file 我们一天会 flush 一次
+const slowLogDbNameExpireSec = 86400 * 2 // 48小时
 
 // initSlowLogDbNameCache 初始化 slowLogDbNameCache 并启动定时状态打印
 func initSlowLogDbNameCache() {
@@ -155,7 +156,7 @@ type SlowLog struct {
 }
 
 func (m *MysqlSlowLogModel) TableName() string {
-	return "tb_mysql_slow_log"
+	return "tb_mysql_slow_log2"
 }
 
 func (m *MysqlSlowLogModel) MigrateSchema(w base.DSWriter) error {
@@ -320,8 +321,8 @@ CREATE TABLE IF NOT EXISTS %s (
   lock_time float DEFAULT NULL,
   rows_examined bigint DEFAULT NULL,
   rows_sent bigint DEFAULT NULL,
-  query_digest_text text DEFAULT NULL,
-  query_string text DEFAULT NULL,
+  query_digest_text longtext DEFAULT NULL,
+  query_string longtext DEFAULT NULL,
   query_length int DEFAULT NULL,
   query_command varchar(60) DEFAULT NULL,
   query_db_name varchar(127) DEFAULT NULL,
@@ -342,7 +343,7 @@ CREATE TABLE IF NOT EXISTS %s (
   KEY idx_2 (dteventtimehour,cluster_domain),
   KEY idx_3 (query_digest_md5),
   KEY idx_4 (instance_host,instance_port)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 
+) ENGINE=InnoDB ROW_FORMAT=DYNAMIC DEFAULT CHARSET=utf8mb4 
 `
 
 var CREATE_TABLE_SLOWLOG_DORIS = `
@@ -364,7 +365,7 @@ CREATE TABLE IF NOT EXISTS %s (
   rows_examined bigint NULL,
   rows_sent bigint NULL,
     
-  query_digest_text varchar(8192) NULL,
+  query_digest_text string NULL,
   query_string string NULL,
   query_length int NULL,
   query_command varchar(60) NULL,

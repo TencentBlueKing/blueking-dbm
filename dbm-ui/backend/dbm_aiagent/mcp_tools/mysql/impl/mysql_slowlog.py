@@ -356,7 +356,7 @@ def query_slowlog_aggregated(
                 query_digest_text=AnyValue("query_digest_text", output_field=CharField()),
                 query_string=AnyValue("query_string", output_field=CharField()),
                 query_command=AnyValue("query_command", output_field=CharField()),
-                query_db_name=AnyValue("query_db_name", output_field=CharField()),
+                query_db_name=AnyValue("db_name", output_field=CharField()),
                 table_names=AnyValue("table_names", output_field=CharField()),
                 username=AnyValue("username", output_field=CharField()),
                 client_host=GroupConcat("client_host", output_field=CharField()),
