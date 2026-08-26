@@ -20,8 +20,7 @@ hooks 也是先 `cd dbm-ui/frontend` 再跑。
 的文件。所以校验自己的改动要么直接 `npx eslint <改动文件> --fix`，要么 `git add` 后跑 `yarn lint:lint-staged`（它对
 `.js/.ts/.tsx/.vue` 跑 eslint + prettier，对 `.less` 跑 stylelint）。
 
-commit message 走 Conventional Commits，`commit-msg` 钩子会跑 commitlint 校验（type 白名单见
-`commitlint.config.mjs`）。
+commit message 走 Conventional Commits，`commit-msg` 钩子会跑 commitlint 校验（type 白名单见 `commitlint.config.mjs`）。
 
 ## 改完怎么验证
 
@@ -76,7 +75,8 @@ commit message 走 Conventional Commits，`commit-msg` 钩子会跑 commitlint �
 - Props 用 `interface` + `withDefaults`；Emits 用类型别名，如 `type Emits = (e: 'change', value: string) => void`
 - 文案一律走 `t()`（`useI18n`），语言包在 `src/locales/`
 - 基础组件优先用 `src/components/bkui-vue/` 下的本地实现（如 `DbInput`，在 `src/common/importComps.ts`
-  全局注册）；该目录没有的组件再用 bkui-vue 包（`main.ts` 已全局注册）；element-plus 仅存量日期类组件在用，新代码不要再引入
+  全局注册）；该目录没有的组件再用 bkui-vue 包（`main.ts`
+  已全局注册）；element-plus 仅存量日期类组件在用，新代码不要再引入
 - Pinia 沿用 options 风格（`state` / `getters` / `actions`），现有 store 都是这个写法
 - 类名写完整的嵌套类名，禁止 `&_name`、`&-name`、`--name`
 - 路径别名优先于相对路径（`@services/*`、`@components/*`、`@views/*`、`@common/*`、`@utils`、`@hooks`、`@stores`
@@ -107,6 +107,7 @@ commit message 走 Conventional Commits，`commit-msg` 钩子会跑 commitlint �
 - 用最少的代码解决问题
 - 不为一次性需求创建抽象层，不为"未来可能用到"增加扩展性和可配置性
 - 不抽离没有复用性的代码，允许大段代码保持阅读的完整性
+- 必要的代码注释，特殊变量注释，方法功能注释，逻辑分支注释
 
 多步骤任务先给简短执行计划，并标注每一步的验证方式。
 
@@ -114,11 +115,11 @@ commit message 走 Conventional Commits，`commit-msg` 钩子会跑 commitlint �
 
 `.agents/rules/` 不会被工具自动附加，agent 按下表「什么时候读」主动加载：
 
-| 文件               | 什么时候读                                              |
-| ------------------ | ------------------------------------------------------- |
-| `db-manage.mdc`    | 改 `db-manage/**`、`services/**`、`ticket-center/**`    |
-| `layout.mdc`       | 改 `src/layout/**`，或新增页面要挂菜单入口              |
-| `toolbox-code.mdc` | 新增或修改工具箱提单页                                  |
+| 文件               | 什么时候读                                           |
+| ------------------ | ---------------------------------------------------- |
+| `db-manage.mdc`    | 改 `db-manage/**`、`services/**`、`ticket-center/**` |
+| `layout.mdc`       | 改 `src/layout/**`，或新增页面要挂菜单入口           |
+| `toolbox-code.mdc` | 新增或修改工具箱提单页                               |
 
 `.agents/skills/` 按各 `SKILL.md` 的 description 触发，其中 `dbm-frontend-design`
 覆盖排版交互规范、设计令牌与四类页面骨架，新建或修改页面样式前应先读。
