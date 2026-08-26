@@ -27,9 +27,10 @@ from backend.db_services.mysql.sql_import.constants import (
     CACHE_SEMANTIC_DATA_FIELD,
     CACHE_SEMANTIC_TASK_FIELD,
     MAX_PREVIEW_SQL_FILE_SIZE,
+    MAX_UPLOAD_SQL_FILE_NAME_LENGTH,
     SQL_SEMANTIC_CHECK_DATA_EXPIRE_TIME,
 )
-from backend.db_services.mysql.sql_import.exceptions import SQLImportBaseException
+from backend.db_services.mysql.sql_import.exceptions import SQLFileNameTooLongException, SQLImportBaseException
 from backend.db_services.taskflow.handlers import TaskFlowHandler
 from backend.flow.consts import StateType
 from backend.flow.engine.bamboo.engine import BambooEngine
@@ -90,7 +91,12 @@ class SQLHandler(object):
             with sql_file as file:
                 # TODO: 是否需要考虑windows机器的路径分隔
                 sql_path = storage.save(name=os.path.join(bkrepo_path, file.name.split("/")[-1]), content=file)
-
+                # 上传制品库文件名过长抛错
+                sql_file_name = sql_path.split("/")[-1]
+                if len(sql_file_name) > MAX_UPLOAD_SQL_FILE_NAME_LENGTH:
+                    raise SQLFileNameTooLongException(
+                        _("文件名重复上传，增加随机前缀后超过最大长度限制{}个字符").format(MAX_UPLOAD_SQL_FILE_NAME_LENGTH)
+                    )
                 # 恢复文件指针为文件头，否则会无法读取内容 TODO：如果sql内容过大需要进行内容读取吗？
                 file.seek(0)
                 # 超过最大预览限制，则不支持预览
