@@ -227,7 +227,7 @@ func (pc *PartitionConfig) GetIntervalCheckBoundaryExpr(offsetDays int) (string,
 	case 4:
 		//  description 为 'YYYY-MM-DD'
 		return fmt.Sprintf(`DATE_FORMAT(date_add(now(),interval %d day),'\'%%Y-%%m-%%d\'')`, DiffOneDay+offsetDays), nil
-	case 5:
+	case 5, 6:
 		return fmt.Sprintf("UNIX_TIMESTAMP(date_add(curdate(),INTERVAL %d DAY))", DiffOneDay+offsetDays), nil
 	default:
 		return "", errno.NotSupportedPartitionType
@@ -256,7 +256,7 @@ func (pc *PartitionConfig) partitionStepMatches(desc1, desc2 string) bool {
 			return false
 		}
 		return v2-v1 == pc.PartitionTimeInterval
-	case 5:
+	case 5, 6:
 		v1, err1 := strconv.ParseInt(strings.TrimSpace(desc1), 10, 64)
 		v2, err2 := strconv.ParseInt(strings.TrimSpace(desc2), 10, 64)
 		if err1 != nil || err2 != nil {
@@ -426,7 +426,7 @@ func (pc *PartitionConfig) GetAddStatement(pd *PartitionDetail, conn *native.DbW
 	}
 
 	switch pc.PartitionType {
-	case 0, 1, 5:
+	case 0, 1, 5, 6:
 		desc, _ = strconv.Atoi(rows[0]["WANTED_DESC"].(string))
 		addSql, err = pc.NewPartitionNameDescType0Type1Type5(addStmtCtx.begin, need, name, desc, addStmtCtx.descKey)
 	case 3, 101:
@@ -486,7 +486,7 @@ func GetAddStmtCtx(partitionType int) (ctx *addStmtContext, err error) {
 		ctx.wantedName = fmt.Sprintf(
 			`DATE_FORMAT(date_sub(replace(partition_description,'\'',''),interval %d day),'%%Y%%m%%d') as WANTED_NAME`, diff)
 		ctx.wantedNameIfOld = "DATE_FORMAT(now(),'%Y%m%d')  as WANTED_NAME"
-	case 5:
+	case 5, 6:
 		diff = DiffOneDay
 		ctx.descKey = "less than"
 		ctx.boundaryExpr = fmt.Sprintf(`UNIX_TIMESTAMP(date_add(curdate(),INTERVAL %d DAY))`, diff)
@@ -506,7 +506,7 @@ func (pc *PartitionConfig) NewPartitionNameDescType0Type1Type5(begin int, need i
 	var newdesc, ratio int
 	var newname, sql string
 	ratio = 1
-	if pc.PartitionType == 5 {
+	if pc.PartitionType == 5 || pc.PartitionType == 6 {
 		ratio = 86400
 	}
 	for i := begin; i < need; i++ {
