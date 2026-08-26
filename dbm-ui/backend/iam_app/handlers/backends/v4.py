@@ -211,8 +211,8 @@ class IAMV4Backend(IAMBackend):
                 ancestors = self.get_ancestors(resource[0])
                 resource_info.append(
                     {
-                        "id": resource.id,
-                        "type": resource.type,
+                        "id": resource[0].id,
+                        "type": resource[0].type,
                         "ancestors": ancestors,
                     }
                 )
