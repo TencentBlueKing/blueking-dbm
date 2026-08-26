@@ -29,6 +29,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/spf13/cobra"
@@ -386,4 +387,25 @@ func TestConfigFlagArgs(t *testing.T) {
 			}
 		}
 	})
+}
+
+func TestReloadCmdRunE_NoPidFileSucceeds(t *testing.T) {
+	cmd := &cobra.Command{}
+	var buf bytes.Buffer
+	cmd.SetOut(&buf)
+	pidFile := filepath.Join(t.TempDir(), "missing.pid")
+	if err := ReloadCmdRunE(cmd, nil, pidFile, "probe", 0, false); err != nil {
+		t.Fatalf("ReloadCmdRunE failed, errmsg: %s", err)
+	}
+}
+
+func TestReloadIfRunning_NoPidFileErrors(t *testing.T) {
+	cmd := &cobra.Command{}
+	var buf bytes.Buffer
+	cmd.SetOut(&buf)
+	pidFile := filepath.Join(t.TempDir(), "missing.pid")
+	err := ReloadIfRunning(cmd, pidFile, "probe")
+	if !errors.Is(err, ErrProcessNotRunning) {
+		t.Fatalf("err: %v, want ErrProcessNotRunning", err)
+	}
 }

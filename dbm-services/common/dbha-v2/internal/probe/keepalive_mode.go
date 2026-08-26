@@ -52,24 +52,22 @@ var cobraSubcommands = map[string]struct{}{
 	"completion":       {},
 }
 
-func firstPositionalArg(rawArgs []string) string {
+func hasCobraSubcommand(rawArgs []string) bool {
 	for _, arg := range rawArgs {
-		if arg == "" || strings.HasPrefix(arg, "-") {
-			continue
+		if _, ok := cobraSubcommands[arg]; ok {
+			return true
 		}
-		return arg
 	}
-	return ""
+	return false
 }
 
 // ExtractPingHTTPAddrFromArgs parses raw args and returns ping-http-addr.
 // Keepalive mode is the no-subcommand entry (`dbha-probe --ping-http-addr …`).
-// Known cobra subcommands are never treated as keepalive mode.
+// Known cobra subcommands are never treated as keepalive mode, even when a
+// split flag value (such as -c PATH) appears before the subcommand token.
 func ExtractPingHTTPAddrFromArgs(rawArgs []string) (string, bool, error) {
-	if pos := firstPositionalArg(rawArgs); pos != "" {
-		if _, ok := cobraSubcommands[pos]; ok {
-			return "", false, nil
-		}
+	if hasCobraSubcommand(rawArgs) {
+		return "", false, nil
 	}
 
 	for i, arg := range rawArgs {

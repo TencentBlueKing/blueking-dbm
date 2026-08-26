@@ -71,7 +71,7 @@ func GenProbeYAML(payload probeconfig.ProbeConfigPayload) (string, error) {
 	cfg := probeYAML{
 		Name:    "probe",
 		Version: defaultProbeConfigVersion,
-		PidFile: "./pids/probe.pid",
+		PidFile: defaultPidFile,
 		Reporter: probeReporterYAML{
 			Name:            "gse",
 			Endpoint:        payload.Gse.Endpoint,

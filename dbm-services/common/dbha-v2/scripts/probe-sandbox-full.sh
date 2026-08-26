@@ -8,6 +8,7 @@ BIN="$ROOT/bin/dbha-probe"
 MOCK="$ROOT/bin/dbha-probe-sandbox-mock"
 CFG="$ROOT/etc/probe.yaml"
 CLEARED="$ROOT/etc/probe-cleared.yaml"
+CLEARED_MULTI="$ROOT/etc/probe-cleared-multi.yaml"
 PIDF="$ROOT/pids/probe.pid"
 MOCKPID="$ROOT/pids/mock.pid"
 RESULT="$ROOT/results/mock-full.txt"
@@ -114,6 +115,30 @@ if "13306" in text:
 if "16379" not in text:
     raise SystemExit("FAIL clear-port dropped redis port")
 print("PASS clear-port dropped mysql data port only")
+PY
+
+echo "gen-config --clear-port 13306,10000;16379" | tee -a "$RESULT"
+"$BIN" gen-config \
+  --admin-endpoints 127.0.0.1:19001 \
+  --local-ip 127.0.0.1 \
+  --cloud-id 0 \
+  --clear-port '13306,10000;16379' \
+  --output "$CLEARED_MULTI" | tee -a "$RESULT"
+
+python3 - "$CLEARED_MULTI" <<'PY'
+import sys
+from pathlib import Path
+text = Path(sys.argv[1]).read_text()
+for port in ("13306", "10000", "16379"):
+    if port in text:
+        raise SystemExit(f"FAIL multi clear-port left {port} in yaml")
+if "15306" not in text:
+    raise SystemExit("FAIL multi clear-port dropped proxy admin port 15306")
+if "mysqlProxyAdmin" not in text:
+    raise SystemExit("FAIL multi clear-port dropped mysqlProxyAdmin harvester")
+if "tendiscache" in text:
+    raise SystemExit("FAIL multi clear-port left redis harvester")
+print("PASS multi clear-port dropped 13306,10000,16379 and kept 15306")
 PY
 
 "$MOCK" -patch-yaml "$CFG" --receiver-addr 127.0.0.1:19100 \

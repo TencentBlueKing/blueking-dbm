@@ -55,10 +55,7 @@ func (p *Probe) reloadOnce(path string) {
 
 	next = config.RetainIdentity(config.Cfg, next)
 
-	// Skip when unchanged: this is a starvation-prevention mechanism, not a
-	// performance optimization. Harvester group loops wait a full interval
-	// before the first collect after a generation swap; frequent no-op reloads
-	// would keep resetting timers so probes never emit data.
+	// Skip when unchanged to avoid stop/quiesce/rebuild of an identical runtime.
 	if reflect.DeepEqual(next, config.Cfg) {
 		logger.Info("probe config unchanged, skip reload, config_path: %s", path)
 		return
