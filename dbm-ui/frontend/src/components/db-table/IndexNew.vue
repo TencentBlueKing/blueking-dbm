@@ -470,10 +470,12 @@
     fetchAllData: fetchAllData,
     // 获取远程数据
     fetchData(params = {} as Record<string, any>, loading = true) {
+      // 未开启 URL 联动时不会走 parseURL，此时查询条件变化才回到第一页，条件不变视为原地刷新
+      const isParamsChanged = !_.isEqual(paramsMemo, params);
       paramsMemo = {
         ...params,
       };
-      if (isReady) {
+      if (isReady || isParamsChanged) {
         pagination.current = 1;
       }
       fetchListData(loading);

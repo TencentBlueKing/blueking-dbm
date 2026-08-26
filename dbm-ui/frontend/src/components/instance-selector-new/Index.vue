@@ -93,7 +93,6 @@
       [key in C]?: ReturnType<typeof useClusterInstaceList<key>>;
     };
     disableSelectMethod?: (data: InstanceModel<C>) => boolean | string;
-    repeatable?: boolean;
     single?: boolean;
     uniquePanelSettings?: ComponentProps<typeof PanelTab>['uniquePanelSettings'];
   }
@@ -140,9 +139,6 @@
   };
 
   const handleConfirm = () => {
-    if (!props.repeatable) {
-      modelValue.value = lastValues.value;
-    }
     emits('change', lastValues.value as UnwrapRef<typeof modelValue>);
     handleClose();
   };
