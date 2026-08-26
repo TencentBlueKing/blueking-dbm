@@ -208,6 +208,8 @@ class IAMV4Backend(IAMBackend):
         for action_id in action_ids:
             resource_info = []
             for resource in resources_list:
+                if not resource:
+                    continue
                 ancestors = self.get_ancestors(resource[0])
                 resource_info.append(
                     {
@@ -222,7 +224,9 @@ class IAMV4Backend(IAMBackend):
                     "resources": resource_info,
                 }
             )
+        print(11111111111111111111111111111111, params)
         data = self.call_with_retry(IAMV4Api.generate_perm_apply_url, params=params, default={})
+        print(22222222222222222222222222222, data)
         return data.get("url", "")
 
     def get_system_info(self):
