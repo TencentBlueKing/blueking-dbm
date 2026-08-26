@@ -86,7 +86,7 @@
 </template>
 <script setup lang="tsx">
   import { InfoBox, Message } from 'bkui-vue';
-  import { differenceInHours } from 'date-fns';
+  import dayjs from 'dayjs';
   import type { PrimaryTableCol } from 'tdesign-vue-next';
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
@@ -346,7 +346,7 @@
 
     const createDay = new Date(createTime);
     const today = new Date();
-    return differenceInHours(today, createDay) <= 24;
+    return dayjs(today).diff(createDay, 'hour') <= 24;
   };
 
   const columns: PrimaryTableCol[] = [
