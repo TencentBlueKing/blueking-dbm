@@ -164,7 +164,7 @@
       return '--';
     }
 
-    const bizObj = props.data.dimensions.find((item) => item.key === 'tags.appid');
+    const bizObj = props.data.findDimension('appid');
     if (!bizObj) {
       return '--';
     }
@@ -304,8 +304,8 @@
                 value: [item.value],
               }));
             } else {
-              const domianDimension = props.data!.dimensions.find((item) => item.key === 'tags.cluster_domain')!;
-              const bizDimension = props.data!.dimensions.find((item) => item.key === 'tags.appid')!;
+              const domianDimension = props.data!.findDimension('cluster_domain')!;
+              const bizDimension = props.data!.findDimension('appid')!;
               params.dimension_config.dimension_conditions = [
                 {
                   condition: 'and',
