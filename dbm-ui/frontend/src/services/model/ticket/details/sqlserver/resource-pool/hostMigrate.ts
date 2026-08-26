@@ -4,8 +4,8 @@ export interface HostMigrate extends ResourcePoolDetailBase {
   infos: {
     cluster_ids: number[];
     origin_ip: {
-      ip: string;
       bk_host_id: number;
+      ip: string;
     };
     related_cluster_infos: {
       cluster_id: number;

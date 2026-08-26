@@ -442,7 +442,7 @@
   const dataSource = (params: ServiceParameters<typeof getRedisList>) =>
     getRedisList({
       ...params,
-      cluster_type: clusterRedisTypeList.join(','),
+      cluster_type: clusterRedisTypeList,
     });
 
   const { t } = useI18n();

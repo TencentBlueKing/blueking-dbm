@@ -15,6 +15,8 @@ import BizConfTopoTreeModel from '@services/model/config/biz-conf-topo-tree';
 
 import { useGlobalBizs } from '@stores';
 
+import type { ClusterTypes } from '@common/const';
+
 import http from '../http';
 
 const { currentBizId } = useGlobalBizs();
@@ -22,6 +24,6 @@ const { currentBizId } = useGlobalBizs();
 /**
  * 获取资源拓扑树
  */
-export function getBigdataResourceTree(params: { cluster_type: string }) {
+export function getBigdataResourceTree(params: { cluster_type: ClusterTypes }) {
   return http.get<BizConfTopoTreeModel[]>(`/apis/bigdata/bizs/${currentBizId}/resource_tree/`, params);
 }

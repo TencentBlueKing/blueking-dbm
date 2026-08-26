@@ -14,6 +14,8 @@
 import BizConfTopoTreeModel from '@services/model/config/biz-conf-topo-tree';
 import SqlserverBackupLogModel from '@services/model/sqlserver/backup-log';
 
+import type { ClusterTypes } from '@common/const';
+
 import http from '../http';
 
 const path = `/apis/sqlserver/bizs/${window.PROJECT_CONFIG.BIZ_ID}`;
@@ -35,7 +37,7 @@ export function getSqlserverDbs(params: { cluster_id: number; db_list: string[];
 /**
  * 获取业务拓扑树
  */
-export function geSqlserverResourceTree(params: { cluster_type: string }) {
+export function geSqlserverResourceTree(params: { cluster_type: ClusterTypes }) {
   return http.get<BizConfTopoTreeModel[]>(`${path}/resource_tree/`, params);
 }
 

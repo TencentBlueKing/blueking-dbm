@@ -42,7 +42,7 @@
       defaultParams: [
         {
           bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
-          cluster_type: props.clusterType === ClusterTypes.REDIS ? clusterRedisTypeList.join(',') : props.clusterType,
+          cluster_type: props.clusterType === ClusterTypes.REDIS ? clusterRedisTypeList : props.clusterType,
         },
       ],
     },

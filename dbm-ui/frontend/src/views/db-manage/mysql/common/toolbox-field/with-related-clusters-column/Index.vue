@@ -66,7 +66,7 @@
   import { filterClusters } from '@services/source/dbbase';
   import { findRelatedClustersByClusterIds } from '@services/source/mysqlCluster';
 
-  import { ClusterTypes, DBTypes } from '@common/const';
+  import { ClusterTypes, type ClusterTypesOf, clusterTypesByDBType, DBTypes } from '@common/const';
   import { domainRegex } from '@common/regex';
 
   import ClusterSelector from '@components/cluster-selector/Index.vue';
@@ -91,7 +91,7 @@
     /**
      * 选择器tab集群类型，不传默认 TENDBHA
      */
-    clusterTypes?: (ClusterTypes.TENDBHA | ClusterTypes.TENDBSINGLE)[];
+    clusterTypes?: ClusterTypesOf<DBTypes.MYSQL>[];
     /**
      * 集群选择器禁用方法，返回 true 或字符串时该集群不可选
      * @example 禁用正常状态的集群：(data) => data.status === 'normal'
@@ -267,7 +267,7 @@
       if (modelValue.value.master_domain && !modelValue.value.id) {
         queryCluster({
           bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
-          cluster_type: [ClusterTypes.TENDBHA, ClusterTypes.TENDBSINGLE].join(','),
+          cluster_type: clusterTypesByDBType[DBTypes.MYSQL],
           db_type: DBTypes.MYSQL,
           exact_domain: modelValue.value.master_domain,
         });

@@ -193,8 +193,7 @@ export const useInstanceColumnFilter = <T extends readonly string[] = Array<keyo
       Object.assign(instanceParams, { cluster_id: params.cluster_id });
     } else {
       Object.assign(instanceParams, {
-        cluster_type:
-          params.cluster_type === ClusterTypes.REDIS_CLUSTER ? clusterRedisTypeList.join(',') : params.cluster_type,
+        cluster_type: params.cluster_type === ClusterTypes.REDIS_CLUSTER ? clusterRedisTypeList : params.cluster_type,
       });
     }
     fetchBizInstanceAttrs(instanceParams);

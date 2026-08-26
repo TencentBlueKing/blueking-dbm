@@ -15,6 +15,8 @@ import type { ListBase } from '@services/types';
 
 import { useGlobalBizs } from '@stores';
 
+import type { ClusterTypes } from '@common/const';
+
 import http from '../http';
 
 interface ClusterBackupLog {
@@ -28,7 +30,7 @@ interface ClusterBackupLog {
   cluster_domain: string;
   cluster_id: number;
   cluster_name: string;
-  cluster_type: string;
+  cluster_type: ClusterTypes;
   end_time: string;
   file_name: string;
   file_path: string;
@@ -75,6 +77,6 @@ export function queryRestoreRecord(params: {
 /**
  * 获取集群备份记录
  */
-export function queryClustersBackupLog(params: { cluster_ids: number[]; cluster_type: string }) {
+export function queryClustersBackupLog(params: { cluster_ids: number[]; cluster_type: ClusterTypes }) {
   return http.post<Record<number, ClusterBackupLog[]>>(`${path}/query_clusters_backup_log/`, params);
 }

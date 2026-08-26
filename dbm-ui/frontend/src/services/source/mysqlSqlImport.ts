@@ -2,13 +2,16 @@ import GrammarCheckModel from '@services/model/sql-import/grammar-check';
 import SemanticCheckResultModel from '@services/model/sql-import/semantic-check-result';
 import SemanticDataModel from '@services/model/sql-import/semantic-data';
 import UserSemanticTaskModel from '@services/model/sql-import/user-semantic-task';
+import type { Mysql } from '@services/model/ticket/ticket';
+
+import type { ClusterTypes, DBTypes, TicketTypes } from '@common/const';
 
 import http from '../http';
 
 /**
  * 删除用户语义检查任务列表
  */
-export function deleteUserSemanticTasks(params: { cluster_type: string; task_ids: string[] }) {
+export function deleteUserSemanticTasks(params: { cluster_type: ClusterTypes; task_ids: string[] }) {
   return http.delete<number>(
     `/apis/mysql/bizs/${window.PROJECT_CONFIG.BIZ_ID}/sql_import/delete_user_semantic_tasks/`,
     params,
@@ -20,9 +23,10 @@ export function deleteUserSemanticTasks(params: { cluster_type: string; task_ids
  */
 export function getUserSemanticTasks(params: { cluster_type?: string }) {
   return http
-    .get<
-      UserSemanticTaskModel[]
-    >(`/apis/mysql/bizs/${window.PROJECT_CONFIG.BIZ_ID}/sql_import/get_user_semantic_tasks/`, params)
+    .get<UserSemanticTaskModel[]>(
+      `/apis/mysql/bizs/${window.PROJECT_CONFIG.BIZ_ID}/sql_import/get_user_semantic_tasks/`,
+      params,
+    )
     .then((data) => data.map((item) => new UserSemanticTaskModel(item)));
 }
 
@@ -60,7 +64,18 @@ export function revokeSemanticCheck(params: { root_id: string }) {
 /**
  * sql 语义检测
  */
-export function semanticCheck(params: { cluster_type: string }) {
+export function semanticCheck(params: {
+  backup: Mysql.ImportSqlFile['backup'];
+  bk_biz_id: number;
+  charset: string;
+  cluster_ids: number[];
+  cluster_type: DBTypes;
+  execute_objects: Mysql.ImportSqlFile['execute_objects'];
+  is_auto_commit: boolean;
+  remark?: string;
+  ticket_mode: Mysql.ImportSqlFile['ticket_mode'];
+  ticket_type: TicketTypes;
+}) {
   return http.post<SemanticCheckResultModel>(
     `/apis/mysql/bizs/${window.PROJECT_CONFIG.BIZ_ID}/sql_import/semantic_check/`,
     params,
@@ -70,7 +85,7 @@ export function semanticCheck(params: { cluster_type: string }) {
 /**
  * 获取语义执行的结果日志
  */
-export function semanticCheckResultLogs(params: { cluster_type: string; node_id: string; root_id: string }) {
+export function semanticCheckResultLogs(params: { cluster_type: ClusterTypes; node_id: string; root_id: string }) {
   return http.post<
     {
       filename: string;

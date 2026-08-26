@@ -1,8 +1,10 @@
+import type { ClusterTypes } from '@common/const';
+
 export interface MachineRelatedCluster {
   alias: string;
   bk_biz_id: number;
   bk_cloud_id: number;
-  cluster_type: string;
+  cluster_type: ClusterTypes;
   cluster_type_name: string;
   creator: string;
   db_module_id: number;

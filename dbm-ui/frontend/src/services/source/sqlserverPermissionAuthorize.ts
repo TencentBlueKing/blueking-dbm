@@ -11,6 +11,8 @@
  * the specific language governing permissions and limitations under the License.
  */
 
+import type { ClusterTypes } from '@common/const';
+
 import http from '../http';
 
 const getRootPath = () => `/apis/sqlserver/bizs/${window.PROJECT_CONFIG.BIZ_ID}/permission/authorize`;
@@ -20,7 +22,7 @@ const getRootPath = () => `/apis/sqlserver/bizs/${window.PROJECT_CONFIG.BIZ_ID}/
  */
 export function preCheckAuthorizeRules(params: {
   cluster_ids?: number[];
-  cluster_type: string;
+  cluster_type: ClusterTypes;
   sqlserver_users: {
     access_dbs: string[];
     user: string;
@@ -35,7 +37,7 @@ export function preCheckAuthorizeRules(params: {
         dbname: string;
       }[];
       bk_biz_id: number;
-      cluster_type: string;
+      cluster_type: ClusterTypes;
       operator: string;
       source_ips: string[];
       target_instances: string[];

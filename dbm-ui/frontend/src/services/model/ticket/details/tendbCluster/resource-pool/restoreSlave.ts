@@ -1,7 +1,6 @@
 import type { BackupSourceType } from '@services/types';
 
 import type { DetailMachines } from '../../common';
-
 import type { ResourcePoolDetailBase } from '../../resource-pool';
 
 /**

@@ -44,7 +44,7 @@ export const create = function (params: {
 };
 
 // 批量删除
-export const batchRemove = function (params: { cluster_type: string; ids: number[] }) {
+export const batchRemove = function (params: { cluster_type: ClusterTypes; ids: number[] }) {
   const { currentBizId } = useGlobalBizs();
   return http.delete('/apis/partition/batch_delete/', {
     bk_biz_id: currentBizId,
@@ -53,7 +53,7 @@ export const batchRemove = function (params: { cluster_type: string; ids: number
 };
 
 // 禁用
-export const disablePartition = function (params: { cluster_type: string; ids: number[] }) {
+export const disablePartition = function (params: { cluster_type: ClusterTypes; ids: number[] }) {
   const { currentBizId } = useGlobalBizs();
   return http.post('/apis/partition/disable/', {
     bk_biz_id: currentBizId,
@@ -62,7 +62,7 @@ export const disablePartition = function (params: { cluster_type: string; ids: n
 };
 
 // 启用
-export const enablePartition = function (params: { cluster_type: string; ids: number[] }) {
+export const enablePartition = function (params: { cluster_type: ClusterTypes; ids: number[] }) {
   const { currentBizId } = useGlobalBizs();
   return http.post('/apis/partition/enable/', {
     bk_biz_id: currentBizId,

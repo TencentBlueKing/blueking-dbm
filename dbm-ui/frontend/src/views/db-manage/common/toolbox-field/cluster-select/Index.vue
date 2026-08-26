@@ -54,7 +54,7 @@
       loading.value = true;
       const data = await filterClusters({
         bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
-        cluster_type: props.clusterTypes.join(','),
+        cluster_type: props.clusterTypes,
         db_type: props.dbType,
       });
       clusterList.value = data;

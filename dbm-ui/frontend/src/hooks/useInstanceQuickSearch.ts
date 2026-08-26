@@ -34,7 +34,7 @@ export const useInstanceQuickSearch = (params: {
       Object.assign(instanceParams, { cluster_id: params.cluster_id });
     } else {
       Object.assign(instanceParams, {
-        cluster_type: Array.isArray(params.cluster_type) ? params.cluster_type.join(',') : params.cluster_type,
+        cluster_type: params.cluster_type,
       });
     }
     return queryBizInstanceAttrs(instanceParams).then((data) => {

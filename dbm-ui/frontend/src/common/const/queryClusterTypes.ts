@@ -4,7 +4,7 @@ import { DBTypes } from './dbTypes';
 /**
  * db类型关联集群类型集合映射关系
  */
-export const queryClusterTypes = {
+export const clusterTypesByDBTypeRaw = {
   [DBTypes.DORIS]: [ClusterTypes.DORIS],
   [DBTypes.ES]: [ClusterTypes.ES],
   [DBTypes.HDFS]: [ClusterTypes.HDFS],
@@ -31,4 +31,8 @@ export const queryClusterTypes = {
   [DBTypes.RIAK]: [ClusterTypes.RIAK],
   [DBTypes.SQLSERVER]: [ClusterTypes.SQLSERVER_HA, ClusterTypes.SQLSERVER_SINGLE],
   [DBTypes.TENDBCLUSTER]: [ClusterTypes.TENDBCLUSTER],
+} as const satisfies Record<DBTypes, readonly ClusterTypes[]>;
+
+export const clusterTypesByDBType = clusterTypesByDBTypeRaw as {
+  [K in DBTypes]: [...(typeof clusterTypesByDBTypeRaw)[K]];
 };

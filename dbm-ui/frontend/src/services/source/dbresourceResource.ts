@@ -337,7 +337,7 @@ export function appendHostLabel(params: {
 
 // 计算预估成本
 export function specCostEstimate(params: {
-  db_type: string;
+  db_type: DBTypes;
   resource_spec: {
     [key: string]: {
       count: number;

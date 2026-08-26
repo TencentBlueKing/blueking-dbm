@@ -49,7 +49,7 @@
      * @default false
      */
     allowRepeat?: boolean;
-    clusterTypes: string[];
+    clusterTypes: ClusterTypes[];
     field?: string;
     label?: string;
     selected: {
@@ -146,7 +146,7 @@
       if (modelValue.value.master_domain && !modelValue.value.id) {
         queryCluster({
           bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
-          cluster_type: props.clusterTypes.join(','),
+          cluster_type: props.clusterTypes,
           db_type: DBTypes.SQLSERVER,
           exact_domain: modelValue.value.master_domain,
         });

@@ -4,6 +4,7 @@ export * from './clusterAffinity';
 export * from './clusterCountMap';
 export * from './clusterInsStatus';
 export * from './clusterLoad';
+export * from './clusterTypeGroup';
 export * from './clusterTypes';
 export * from './clusterTypesInfos/index';
 export * from './confLevels';

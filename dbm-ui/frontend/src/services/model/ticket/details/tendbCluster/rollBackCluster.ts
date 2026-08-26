@@ -5,7 +5,6 @@ import type { DetailBase, DetailClusters } from '../common';
  * v2版本分出三种单据：TENDBCLUSTER_FIXPOINT_EXIST(构造到已有集群)、TENDBCLUSTER_FIXPOINT_NEW(构造到新集群)、TENDBCLUSTER_ROLLBACK(回档)
  */
 export interface RollbackCluster extends DetailBase {
-  clusters: DetailClusters;
   apply_details: {
     bk_cloud_id: number;
     charset: string;
@@ -31,12 +30,13 @@ export interface RollbackCluster extends DetailBase {
     spider_port: number;
     spider_version: string;
   };
+  clusters: DetailClusters;
   ignore_check_db: boolean;
   infos: {
+    affect_database_list?: string[];
     backup_source: string;
     backupinfo: any; // 旧的构造还在用之前的结构
     cluster_id: number;
-    affect_database_list?: string[];
     databases: string[];
     databases_ignore: string[];
     resource_spec: {

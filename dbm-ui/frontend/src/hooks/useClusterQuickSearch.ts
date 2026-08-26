@@ -31,7 +31,7 @@ export const useClusterQuickSearch = (cluster_type: ClusterTypes | ClusterTypes[
     return queryBizClusterAttrs({
       bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
       cluster_attrs: clusterAttrs.join(','),
-      cluster_type: Array.isArray(cluster_type) ? cluster_type.join(',') : cluster_type,
+      cluster_type: cluster_type,
     }).then((data) => {
       return data[attr].map((item) => ({
         label: attr === 'bk_cloud_id' ? `${item.text}[${item.value}]` : item.text,

@@ -35,7 +35,7 @@
   </EditableColumn>
   <ClusterSelector
     v-model:is-show="showSelector"
-    :cluster-types="[ClusterTypes.TENDBHA, ClusterTypes.TENDBSINGLE]"
+    :cluster-types="clusterTypesByDBType[DBTypes.MYSQL]"
     :selected="selectedClusters"
     :tab-list-config="tabListConfig"
     @change="handleSelectorChange" />
@@ -47,7 +47,7 @@
   import TendbhaModel from '@services/model/mysql/tendbha';
   import { filterClusters } from '@services/source/dbbase';
 
-  import { ClusterTypes } from '@common/const';
+  import { ClusterTypes, clusterTypesByDBType, DBTypes } from '@common/const';
   import { batchSplitRegex, domainRegex } from '@common/regex';
 
   import ClusterSelector, { type TabConfig } from '@components/cluster-selector/Index.vue';

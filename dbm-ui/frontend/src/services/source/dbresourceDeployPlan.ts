@@ -14,6 +14,8 @@
 import DeployPlanModel from '@services/model/db-resource/DeployPlan';
 import type { ListBase } from '@services/types';
 
+import type { ClusterTypes } from '@common/const';
+
 import http from '../http';
 
 const path = '/apis/dbresource/deploy_plan';
@@ -21,7 +23,7 @@ const path = '/apis/dbresource/deploy_plan';
 /**
  * 查询部署方案列表
  */
-export function fetchDeployPlan(params: { cluster_type: string; limit: number; name?: string; offset: number }) {
+export function fetchDeployPlan(params: { cluster_type: ClusterTypes; limit: number; name?: string; offset: number }) {
   return http.get<ListBase<DeployPlanModel[]>>(`${path}/`, params).then((data) => ({
     ...data,
     results: data.results.map((item) => new DeployPlanModel(item)),

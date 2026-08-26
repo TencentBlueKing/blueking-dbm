@@ -123,7 +123,7 @@
 
   import { useDebouncedRef, useTicketDetail } from '@hooks';
 
-  import { ClusterTypes, TicketTypes } from '@common/const';
+  import { clusterTypesByDBType, DBTypes, TicketTypes } from '@common/const';
 
   import DbTable from '@components/db-table/IndexNew.vue';
 
@@ -136,7 +136,7 @@
   const searchKey = useDebouncedRef(route.query.config_name as string);
   const tableRef = ref();
   const baseParams = {
-    cluster_type: [ClusterTypes.TENDBHA, ClusterTypes.TENDBSINGLE].join(','),
+    cluster_type: clusterTypesByDBType[DBTypes.MYSQL],
   };
 
   useTicketDetail<Mysql.OpenArea>(TicketTypes.MYSQL_OPEN_AREA, {

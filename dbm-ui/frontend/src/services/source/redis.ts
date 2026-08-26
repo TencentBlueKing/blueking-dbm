@@ -18,6 +18,8 @@ import RedisInstanceModel from '@services/model/redis/redis-instance';
 import RedisMachineModel from '@services/model/redis/redis-machine';
 import type { HostNode, ListBase, ResourceTopo } from '@services/types';
 
+import type { ClusterTypes, DBTypes } from '@common/const';
+
 import http from '../http';
 
 const getRootPath = () => `/apis/redis/bizs/${window.PROJECT_CONFIG.BIZ_ID}/redis_resources`;
@@ -28,23 +30,28 @@ const getRootPath = () => `/apis/redis/bizs/${window.PROJECT_CONFIG.BIZ_ID}/redi
 export function getRedisList(params: {
   bk_biz_id?: number;
   cluster_ids?: string;
-  cluster_type?: string;
+  cluster_type?: ClusterTypes | ClusterTypes[];
   domain?: string;
   exact_domain?: string;
   limit?: number;
   offset?: number;
 }) {
-  return http.get<ListBase<RedisModel[]>>(`${getRootPath()}/`, params).then((data) => ({
-    ...data,
-    results: data.results.map(
-      (item) =>
-        new RedisModel(
-          Object.assign(item, {
-            permission: Object.assign({}, item.permission, data.permission),
-          }),
-        ),
-    ),
-  }));
+  return http
+    .get<ListBase<RedisModel[]>>(`${getRootPath()}/`, {
+      ...params,
+      cluster_type: Array.isArray(params.cluster_type) ? params.cluster_type.join(',') : params.cluster_type,
+    })
+    .then((data) => ({
+      ...data,
+      results: data.results.map(
+        (item) =>
+          new RedisModel(
+            Object.assign(item, {
+              permission: Object.assign({}, item.permission, data.permission),
+            }),
+          ),
+      ),
+    }));
 }
 
 /**
@@ -125,7 +132,7 @@ export function getRedisDetail(params: { id: number }) {
 /**
  * 查询集群主机列表
  */
-export function getRedisNodes(params: { bk_biz_id: string; cluster_id: string; db_type: string }) {
+export function getRedisNodes(params: { bk_biz_id: string; cluster_id: string; db_type: DBTypes }) {
   return http.get<HostNode[]>(`${getRootPath()}/${params.cluster_id}/get_nodes/`, params);
 }
 
@@ -150,7 +157,7 @@ export function getRedisTopoGraph(params: { cluster_id: number }) {
 /**
  * 获取业务拓扑树
  */
-export function getRedisResourceTree(params: { cluster_type: string }) {
+export function getRedisResourceTree(params: { cluster_type: ClusterTypes }) {
   return http.get<BizConfTopoTreeModel[]>(`/apis/redis/bizs/${window.PROJECT_CONFIG.BIZ_ID}/resource_tree/`, params);
 }
 
