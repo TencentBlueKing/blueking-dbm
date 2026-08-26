@@ -177,7 +177,7 @@
         col-key="row-operation"
         fixed="right"
         :title="t('操作')"
-        :width="160">
+        :width="240">
         <template #default="{ row }: { row: RowData }">
           <BkButton
             v-if="row.is_shielded"
