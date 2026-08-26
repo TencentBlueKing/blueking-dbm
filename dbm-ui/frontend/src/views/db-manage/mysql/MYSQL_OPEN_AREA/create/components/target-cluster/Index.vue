@@ -58,7 +58,7 @@
 
   import { useTicketDetail } from '@hooks';
 
-  import { type ClusterTypes, TicketTypes } from '@common/const';
+  import { type ClusterTypesOf, DBTypes, TicketTypes } from '@common/const';
   import { batchSplitRegex } from '@common/regex';
 
   import BatchInput from '@views/db-manage/common/batch-input/Index.vue';
@@ -76,7 +76,7 @@
   }
 
   interface Props {
-    clusterType: ClusterTypes.TENDBHA | ClusterTypes.TENDBSINGLE;
+    clusterType: ClusterTypesOf<DBTypes.MYSQL>;
     showIpCloumn: boolean;
     variableList: string[];
   }

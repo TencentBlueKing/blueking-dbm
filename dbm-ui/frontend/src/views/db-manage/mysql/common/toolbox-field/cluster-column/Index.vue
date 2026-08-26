@@ -50,7 +50,7 @@
   import TendbhaModel from '@services/model/mysql/tendbha';
   import { filterClusters } from '@services/source/dbbase';
 
-  import { ClusterTypes, DBTypes } from '@common/const';
+  import { ClusterTypes, clusterTypesByDBType, type ClusterTypesOf, DBTypes } from '@common/const';
   import { domainRegex } from '@common/regex';
 
   import ClusterSelector, { type TabConfig } from '@components/cluster-selector/Index.vue';
@@ -66,7 +66,7 @@
     /**
      * 选择器tab集群类型
      */
-    clusterTypes?: (ClusterTypes.TENDBHA | ClusterTypes.TENDBSINGLE)[];
+    clusterTypes?: ClusterTypesOf<DBTypes.MYSQL>[];
     field?: string;
     label?: string;
     minWidth?: number;
@@ -86,7 +86,7 @@
      * @default false
      */
     supportOfflineData?: boolean;
-    tabListConfig?: Record<ClusterTypes.TENDBHA | ClusterTypes.TENDBSINGLE, TabConfig>;
+    tabListConfig?: Record<ClusterTypesOf<DBTypes.MYSQL>, TabConfig>;
   }
 
   interface Emits {
@@ -96,7 +96,7 @@
 
   const props = withDefaults(defineProps<Props>(), {
     allowRepeat: false,
-    clusterTypes: () => [ClusterTypes.TENDBHA, ClusterTypes.TENDBSINGLE],
+    clusterTypes: () => [...clusterTypesByDBType[DBTypes.MYSQL]],
     field: 'cluster.master_domain',
     label: t('目标集群'),
     minWidth: 350,
@@ -187,7 +187,7 @@
       if (modelValue.value.master_domain && !modelValue.value.id) {
         queryCluster({
           bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
-          cluster_type: props.clusterTypes.join(','),
+          cluster_type: props.clusterTypes,
           db_type: DBTypes.MYSQL,
           exact_domain: modelValue.value.master_domain,
         });

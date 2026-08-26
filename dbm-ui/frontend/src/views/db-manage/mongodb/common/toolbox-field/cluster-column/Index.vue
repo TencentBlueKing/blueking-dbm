@@ -43,7 +43,7 @@
   import ClusterSelector, { type TabConfig } from '@components/cluster-selector/Index.vue';
 
   interface Props {
-    clusterTypes?: string[];
+    clusterTypes?: ClusterTypes[];
     field?: string;
     label?: string;
     selected: {
@@ -128,7 +128,7 @@
       if (modelValue.value.master_domain && !modelValue.value.id) {
         queryCluster({
           bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
-          cluster_type: props.clusterTypes.join(','),
+          cluster_type: props.clusterTypes,
           exact_domain: modelValue.value.master_domain,
         });
       }

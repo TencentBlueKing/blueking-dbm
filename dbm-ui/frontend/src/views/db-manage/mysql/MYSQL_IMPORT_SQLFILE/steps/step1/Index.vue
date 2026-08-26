@@ -24,7 +24,7 @@
           <ClusterIds
             v-model="formData.cluster_ids"
             v-model:cluster-version-list="clusterVersionList"
-            :cluster-type-list="[ClusterTypes.TENDBHA, ClusterTypes.TENDBSINGLE]" />
+            :cluster-type-list="clusterTypesByDBType[DBTypes.MYSQL]" />
           <ExecuteObjects
             ref="executeObjectsRef"
             v-model="formData.execute_objects"
@@ -67,7 +67,7 @@
 
   import { useTicketDetail } from '@hooks';
 
-  import { ClusterTypes, DBTypes, TicketTypes } from '@common/const';
+  import { clusterTypesByDBType, DBTypes, TicketTypes } from '@common/const';
 
   import RenderCharset from '@views/db-manage/common/sql-execute/charset/Index.vue';
   import ClusterIds from '@views/db-manage/common/sql-execute/cluster-ids/Index.vue';

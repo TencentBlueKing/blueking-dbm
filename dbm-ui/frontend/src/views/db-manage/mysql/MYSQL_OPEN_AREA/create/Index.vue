@@ -89,7 +89,7 @@
 
   import { getDetail, getPreview } from '@services/source/openarea';
 
-  import { ClusterTypes, TicketTypes } from '@common/const';
+  import { ClusterTypes, type ClusterTypesOf, DBTypes, TicketTypes } from '@common/const';
 
   import PreviewData from './components/preview-data/Index.vue';
   import TargetCluster from './components/target-cluster/Index.vue';
@@ -105,7 +105,7 @@
   const isShowTemplateDetail = ref(false);
   const isShowPreivew = ref(false);
   const variableList = ref<string[]>([]);
-  const clusterType = ref<ClusterTypes.TENDBHA | ClusterTypes.TENDBSINGLE>(ClusterTypes.TENDBHA);
+  const clusterType = ref<ClusterTypesOf<DBTypes.MYSQL>>(ClusterTypes.TENDBHA);
 
   const { data: templateData, loading } = useRequest(getDetail, {
     defaultParams: [
@@ -120,7 +120,7 @@
       }, []);
 
       variableList.value = _.uniq(matchVariableList);
-      clusterType.value = data.cluster_type as ClusterTypes.TENDBHA | ClusterTypes.TENDBSINGLE;
+      clusterType.value = data.cluster_type as ClusterTypesOf<DBTypes.MYSQL>;
     },
   });
 

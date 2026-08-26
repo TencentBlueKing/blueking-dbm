@@ -19,10 +19,19 @@ import http, { type IRequestPayload } from '../http';
 
 const path = '/apis/dbbase';
 
+const joinClusterType = (value?: ClusterTypes | ClusterTypes[]) =>
+  value == null ? undefined : (Array.isArray(value) ? value : [value]).join(',');
+
+// cluster_type 支持单值/数组，统一序列化为后端要求的逗号分隔字符串
+const withClusterType = <T extends { cluster_type?: ClusterTypes | ClusterTypes[] }>(params: T) => ({
+  ...params,
+  cluster_type: joinClusterType(params.cluster_type),
+});
+
 /**
  * 查询集群名字是否重复
  */
-export function verifyDuplicatedClusterName(params: { bk_biz_id: number; cluster_type: string; name: string }) {
+export function verifyDuplicatedClusterName(params: { bk_biz_id: number; cluster_type: ClusterTypes; name: string }) {
   return http.get<boolean>(`${path}/verify_duplicated_cluster_name/`, params);
 }
 
@@ -38,7 +47,7 @@ export function filterClusters<
     cluster_type: ClusterTypes;
     db_module_id: number;
     db_module_name: string;
-    db_type: string;
+    db_type: DBTypes;
     id: number;
     major_version: string;
     master_domain: string;
@@ -46,12 +55,12 @@ export function filterClusters<
 >(params: {
   bk_biz_id: number;
   cluster_ids?: string;
-  cluster_type?: string;
+  cluster_type?: ClusterTypes | ClusterTypes[];
   db_type?: DBTypes;
   domain?: string;
   exact_domain?: string;
 }) {
-  return http.get<T[]>(`${path}/filter_clusters/`, params);
+  return http.get<T[]>(`${path}/filter_clusters/`, withClusterType(params));
 }
 
 /*
@@ -61,7 +70,7 @@ export function filterClusters<
 export function queryBizClusterAttrs(params: {
   bk_biz_id: number;
   cluster_attrs?: string;
-  cluster_type: string;
+  cluster_type: ClusterTypes | ClusterTypes[];
   instances_attrs?: string;
   limit?: number;
   offset?: number;
@@ -74,7 +83,7 @@ export function queryBizClusterAttrs(params: {
         value: string;
       }[]
     >
-  >(`${path}/query_biz_cluster_attrs/`, params, {
+  >(`${path}/query_biz_cluster_attrs/`, withClusterType(params), {
     cache: true,
   });
 }
@@ -135,7 +144,7 @@ export function checkInstance<T extends InstanceInfos>(params: {
 // 查询全集群信息
 export function queryAllTypeCluster(params: {
   bk_biz_id: number;
-  cluster_types?: string;
+  cluster_types?: ClusterTypes[];
   immute_domain?: string;
   limit?: number;
   offset?: number;
@@ -144,14 +153,17 @@ export function queryAllTypeCluster(params: {
   return http.get<
     {
       bk_cloud_id: number;
-      cluster_type: string;
+      cluster_type: ClusterTypes;
       id: number;
       immute_domain: string;
       major_version: string;
       name: string;
       region: string;
     }[]
-  >(`${path}/simple_query_cluster/`, params);
+  >(`${path}/simple_query_cluster/`, {
+    ...params,
+    cluster_types: joinClusterType(params.cluster_types),
+  });
 }
 
 // 查询集群实例数量
@@ -176,7 +188,10 @@ export function updateClusterAlias(params: { cluster_id: number; new_alias: stri
   });
 }
 
-export function queryClusterStat(params: { bk_biz_id: number; cluster_type: string }, payload = {} as IRequestPayload) {
+export function queryClusterStat(
+  params: { bk_biz_id: number; cluster_type: ClusterTypes | ClusterTypes[] },
+  payload = {} as IRequestPayload,
+) {
   return http.get<
     Record<
       number,
@@ -186,19 +201,13 @@ export function queryClusterStat(params: { bk_biz_id: number; cluster_type: stri
         used: number;
       }
     >
-  >(
-    `${path}/query_cluster_stat/`,
-    {
-      ...params,
-    },
-    payload,
-  );
+  >(`${path}/query_cluster_stat/`, withClusterType(params), payload);
 }
 
 // dbconsole查询
 export function dbConsole(params: {
   cmd: string;
-  db_type: string;
+  db_type: DBTypes;
   instances: {
     bk_cloud_id: number;
     instance: string;
@@ -237,7 +246,7 @@ export function updateClusterTag(params: { bk_biz_id: number; cluster_id: number
 export function getGlobalInstance(params: {
   bk_biz_id?: number; // 业务ID
   cluster_id?: number; // 集群ID
-  cluster_type?: string; // 集群类型
+  cluster_type?: ClusterTypes | ClusterTypes[]; // 集群类型
   db_module_id?: number; // 模块ID
   db_type: DBTypes; // 数据库类型
   domain?: string; // 域名查询
@@ -251,7 +260,10 @@ export function getGlobalInstance(params: {
   role?: string; // 过滤的实例角色
   status?: string; // 实例状态
 }) {
-  return http.get<ListBase<({ bk_biz_id: number } & InstanceInfos)[]>>(`${path}/filter_instances/`, params);
+  return http.get<ListBase<({ bk_biz_id: number } & InstanceInfos)[]>>(
+    `${path}/filter_instances/`,
+    withClusterType(params),
+  );
 }
 
 // 查询全局主机
@@ -265,7 +277,7 @@ export function getGlobalMachine(params: {
   bk_os_name?: string; // 操作系统
   cluster_ids?: string; // 集群ID列表
   cluster_status?: string;
-  cluster_type?: string; // 集群类型，非redis集群类型必传
+  cluster_type?: ClusterTypes | ClusterTypes[]; // 集群类型，非redis集群类型必传
   creator?: string; // 创建人
   db_module_id?: number; // 模块ID
   db_type?: DBTypes; // 数据库类型，redis集群类型必传
@@ -278,7 +290,7 @@ export function getGlobalMachine(params: {
   offset?: number;
   spider_role?: string; // spider角色
 }) {
-  return http.get<ListBase<MachineInfos[]>>(`${path}/filter_machines/`, params);
+  return http.get<ListBase<MachineInfos[]>>(`${path}/filter_machines/`, withClusterType(params));
 }
 
 // 查询全局集群
@@ -288,10 +300,10 @@ export function getGlobalCluster<
     bk_cloud_id: number;
     bk_cloud_name: string;
     cluster_name: string;
-    cluster_type: string;
+    cluster_type: ClusterTypes;
     db_module_id: number;
     db_module_name: string;
-    db_type: string;
+    db_type: DBTypes;
     id: number;
     major_version: string;
     master_domain: string;
@@ -300,20 +312,23 @@ export function getGlobalCluster<
 >(params: {
   bk_biz_id?: number;
   cluster_ids?: string;
-  cluster_type?: string;
+  cluster_type?: ClusterTypes | ClusterTypes[];
   db_type: DBTypes;
   domain?: string;
   exact_domain?: string;
   limit?: number;
   offset?: number;
 }) {
-  return http.get<ListBase<T[]>>(`${path}/filter_clusters_by_type/`, params);
+  return http.get<ListBase<T[]>>(`${path}/filter_clusters_by_type/`, withClusterType(params));
 }
 
 /**
  * 查询集群负载
  */
-export function queryClusterLoad(params: { bk_biz_id: number; cluster_type: string }, payload = {} as IRequestPayload) {
+export function queryClusterLoad(
+  params: { bk_biz_id: number; cluster_type: ClusterTypes | ClusterTypes[] },
+  payload = {} as IRequestPayload,
+) {
   return http.get<{
     // 集群域名 → 机器类型（由集群类型决定，非固定）→ 指标
     cluster_load_data_map: {
@@ -335,13 +350,13 @@ export function queryClusterLoad(params: { bk_biz_id: number; cluster_type: stri
     };
     // 负载数据的时间窗口，单位小时
     time_range?: number;
-  }>(`${path}/query_cluster_load/`, params, payload);
+  }>(`${path}/query_cluster_load/`, withClusterType(params), payload);
 }
 
 export function queryBizInstanceAttrs(params: {
   bk_biz_id: number;
   cluster_id?: number;
-  cluster_type?: string;
+  cluster_type?: ClusterTypes | ClusterTypes[];
   instances_attrs: string;
 }) {
   return http.get<
@@ -352,7 +367,7 @@ export function queryBizInstanceAttrs(params: {
         value: string;
       }[]
     >
-  >(`${path}/query_biz_instance_attrs/`, params, {
+  >(`${path}/query_biz_instance_attrs/`, withClusterType(params), {
     cache: 3000,
   });
 }
@@ -360,7 +375,7 @@ export function queryBizInstanceAttrs(params: {
 export function queryBizMachineAttrs(params: {
   bk_biz_id: number;
   cluster_id?: number;
-  cluster_type: ClusterTypes;
+  cluster_type: ClusterTypes | ClusterTypes[];
   machine_attrs: string;
 }) {
   return http.get<
@@ -371,7 +386,7 @@ export function queryBizMachineAttrs(params: {
         value: string;
       }[]
     >
-  >(`${path}/query_biz_machine_attrs/`, params, {
+  >(`${path}/query_biz_machine_attrs/`, withClusterType(params), {
     cache: 3000,
   });
 }

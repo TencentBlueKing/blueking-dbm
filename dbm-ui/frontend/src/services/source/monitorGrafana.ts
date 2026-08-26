@@ -11,7 +11,7 @@
  * the specific language governing permissions and limitations under the License.
  */
 
-import type { DBTypes } from '@common/const';
+import type { ClusterTypes, DBTypes } from '@common/const';
 
 import http from '../http';
 
@@ -23,7 +23,7 @@ const path = '/apis/monitor/grafana';
 export function getMonitorUrls(
   params: {
     cluster_id?: number;
-    cluster_type: string;
+    cluster_type: ClusterTypes;
     instance_id?: number;
   } & Record<string, any>,
 ) {

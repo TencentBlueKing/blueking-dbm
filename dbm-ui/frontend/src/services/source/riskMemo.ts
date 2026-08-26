@@ -1,6 +1,8 @@
 import RiskMemoDetailModel from '@services/model/risk-memo/risk-memo-detail';
 import type { ListBase } from '@services/types';
 
+import type { DBTypes } from '@common/const';
+
 import http, { type IRequestPayload } from '../http';
 
 const path = '/apis/risk_memo';
@@ -25,7 +27,7 @@ export const getRiskMemoList = (
         biz_inpact: string[];
         bk_biz_id: number;
         create_at: string;
-        db_type: string;
+        db_type: DBTypes;
         description: string;
         duration_time: number;
         final_time: string;

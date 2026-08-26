@@ -327,7 +327,7 @@ export function retryTicketFlow(params: { flow_id: number; ticketId: number }) {
  */
 export function queryTicketFlowDescribe(params: {
   bk_biz_id?: number;
-  db_type: string;
+  db_type: DBTypes;
   limit?: number;
   offset?: number;
   ticket_types?: string;
@@ -501,7 +501,7 @@ export const saveModulesDeployInfo = (params: {
   conf_type: string;
   level_name: string;
   level_value: number;
-  meta_cluster_type: string;
+  meta_cluster_type: ClusterTypes;
   version: string;
 }) =>
   http.post<{

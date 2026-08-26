@@ -20,6 +20,8 @@ import type { ListBase } from '@services/types';
 
 import { useGlobalBizs } from '@stores';
 
+import type { ClusterTypes } from '@common/const';
+
 import http from '../http';
 
 const { currentBizId } = useGlobalBizs();
@@ -37,7 +39,7 @@ interface ClusterInfo {
   bk_biz_id: number;
   bk_cloud_id: number;
   cluster_name: string;
-  cluster_type: string;
+  cluster_type: ClusterTypes;
   creator: string;
   db_module_id: number;
   disaster_tolerance_level: string;
@@ -215,7 +217,7 @@ export function exportMongodbInstanceToExcel(params: { bk_host_ids?: number[] })
 /**
  * 获取业务拓扑树
  */
-export function getMongoDBResourceTree(params: { cluster_type: string }) {
+export function getMongoDBResourceTree(params: { cluster_type: ClusterTypes }) {
   return http.get<BizConfTopoTreeModel[]>(`/apis/mongodb/bizs/${currentBizId}/resource_tree/`, params);
 }
 

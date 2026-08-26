@@ -1,6 +1,6 @@
-import type { ResourcePoolDetailBase } from '../../resource-pool';
-
 import TendbhaModel from '@services/model/mysql/tendbha';
+
+import type { ResourcePoolDetailBase } from '../../resource-pool';
 
 export interface ProxyMigrate extends ResourcePoolDetailBase {
   infos: {

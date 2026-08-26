@@ -38,7 +38,7 @@ export interface InstanceInfos {
     bk_biz_id: number;
     bk_cloud_id: number;
     cluster_name: string;
-    cluster_type: string;
+    cluster_type: ClusterTypes;
     creator: string;
     db_module_id: number;
     id: number;

@@ -185,7 +185,7 @@
       if (modelValue.value.renderText && _.isEmpty(modelValue.value.clusters)) {
         queryCluster({
           bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
-          cluster_type: [ClusterTypes.SQLSERVER_HA, ClusterTypes.SQLSERVER_SINGLE].join(','),
+          cluster_type: [ClusterTypes.SQLSERVER_HA, ClusterTypes.SQLSERVER_SINGLE],
           db_type: DBTypes.SQLSERVER,
           exact_domain: modelValue.value.renderText.split(batchSplitRegex).join(','),
         });

@@ -1,6 +1,8 @@
 import OpenareaTemplateModel from '@services/model/openarea/openareaTemplate';
 import type { ListBase } from '@services/types';
 
+import type { ClusterTypes } from '@common/const';
+
 import http from '../http';
 
 const path = '/apis/mysql/bizs';
@@ -25,7 +27,7 @@ export const getList = function (params: {
 // 新建开区
 export const create = function (params: {
   bk_biz_id: number;
-  cluster_type?: string;
+  cluster_type?: ClusterTypes;
   config_name: string;
   config_rules: {
     data_tblist: string[];
@@ -73,7 +75,7 @@ export const getPreview = function (params: {
         dbname: string;
       }[];
       bk_biz_id: number;
-      cluster_type: string;
+      cluster_type: ClusterTypes;
       operator: string;
       source_ips: string[];
       target_instances: string[];
@@ -92,7 +94,7 @@ export const getDetail = function (params: { biz_id?: number; id: number }) {
 // 更新开区模板
 export const update = function (params: {
   bk_biz_id: number;
-  cluster_type?: string;
+  cluster_type?: ClusterTypes;
   config_name: string;
   config_rules: {
     data_tblist: string[];

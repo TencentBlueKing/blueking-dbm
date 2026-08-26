@@ -12,6 +12,8 @@
  */
 import type { ListBase } from '@services/types';
 
+import type { ClusterTypes, DBTypes } from '@common/const';
+
 import http from '../http';
 
 const path = '/apis/monitor/subscribe';
@@ -49,14 +51,14 @@ export function getSubscribeList() {
         bk_biz_id: number;
         cluster_id: string;
         cluster_name: string;
-        cluster_type: string;
+        cluster_type: ClusterTypes;
         conditions: {
           condition: string;
           field: string;
           method: string;
           value: (string | number)[];
         }[];
-        db_type: string;
+        db_type: DBTypes;
         id: number;
         is_enable: boolean;
         master_domain: string;
@@ -76,7 +78,7 @@ export function saveSubscribe(params: {
   alert_level: number[];
   clusters: {
     cluster_domain: string;
-    cluster_type: string;
+    cluster_type: ClusterTypes;
   }[];
   notice_ways: string[];
 }) {

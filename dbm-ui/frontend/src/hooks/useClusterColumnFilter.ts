@@ -230,7 +230,7 @@ export const useClusterColumnFilter = <T extends readonly string[] = Array<keyof
       ...params,
       bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
       cluster_attrs: params.cluster_attrs?.join(','),
-      cluster_type: params.cluster_type === ClusterTypes.REDIS ? clusterRedisTypeList.join(',') : params.cluster_type,
+      cluster_type: params.cluster_type === ClusterTypes.REDIS ? clusterRedisTypeList : params.cluster_type,
     });
   } else {
     data.value = {
