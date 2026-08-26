@@ -102,6 +102,14 @@ commit message 走 Conventional Commits，`commit-msg` 钩子会跑 commitlint �
 - 本次修改产生的无效导入、废弃变量直接删除
 - 项目原有的死代码、冗余内容只做文字提醒，不擅自删除
 
+改被多处引用的公共代码（`components/`、`hooks/`、`services/`）：
+
+- 按引用点逐个读，不用命名模式抽样；确实抽样了就写「抽查 N 处」，不说成「已确认全部调用方」
+- 删除看不懂的条件分支前，先能复述它区分了什么；说不清就不删
+- 一个入口承担多种调用意图时，先枚举意图再定判据，不用「多数场景对」的默认值覆盖少数场景
+- 优先加性方案（加判据、加 API），而不是删既有守卫
+- 需求与代码现状冲突时不自行选边：先弄清现有实现在区分什么，能同时满足就给兼容判据，不能就摆出来问
+
 实现取舍：
 
 - 用最少的代码解决问题
@@ -110,6 +118,9 @@ commit message 走 Conventional Commits，`commit-msg` 钩子会跑 commitlint �
 - 必要的代码注释，特殊变量注释，方法功能注释，逻辑分支注释
 
 多步骤任务先给简短执行计划，并标注每一步的验证方式。
+
+任务收尾回顾：本次读过或改过的代码里，同一语义有没有在多处独立实现并已经漂移；够判据的按 `codebase-insights`
+skill 记录，**只记录不修改**。
 
 ## 规则与技能索引
 
@@ -122,7 +133,8 @@ commit message 走 Conventional Commits，`commit-msg` 钩子会跑 commitlint �
 | `toolbox-code.mdc` | 新增或修改工具箱提单页                               |
 
 `.agents/skills/` 按各 `SKILL.md` 的 description 触发，其中 `dbm-frontend-design`
-覆盖排版交互规范、设计令牌与四类页面骨架，新建或修改页面样式前应先读。
+覆盖排版交互规范、设计令牌与四类页面骨架，新建或修改页面样式前应先读；`codebase-insights`
+存历次沉淀的一致性问题，动手改代码前查阅。
 
 ## 不要碰
 
