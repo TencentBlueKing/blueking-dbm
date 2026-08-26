@@ -65,8 +65,6 @@ data:
         password: "{{ $statsDB.password }}"
         database: "{{ $statsDB.name }}"
         charset: utf8mb4
-        session_variables:
-          group_commit: async_mode
     - name: doris_http_bk_dbm_stats
       type: doris_http
       dsn:
@@ -76,7 +74,5 @@ data:
         password: "{{ $statsDB.password }}"
         database: "{{ $statsDB.name }}"
         charset: utf8mb4
-        session_variables:
-          group_commit: async_mode
   data.sinkers.yaml: |
     {{- toYaml (index .Values "db-event-consumer").sinkers | nindent 4 }}

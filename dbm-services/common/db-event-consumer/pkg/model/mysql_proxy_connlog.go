@@ -39,6 +39,7 @@ type MysqlProxyConnlog struct {
 	//BkCloudId       int    `gorm:"column:bk_cloud_id;type:int;not null" json:"cloudId" db:"bk_cloud_id"`
 	// ProxyIp proxy serverIp
 	ProxyIp   string    `gorm:"column:proxy_ip;type:varchar(127);not null" json:"proxy_ip" db:"proxy_ip"`
+	ProxyPort int       `gorm:"column:proxy_port;type:int" json:"proxy_port" db:"proxy_port"`
 	ClientIp  string    `gorm:"column:client_ip;type:varchar(127);not null" json:"client_ip" db:"client_ip"`
 	ConnUser  string    `gorm:"column:conn_user;type:varchar(127);not null" json:"conn_user" db:"conn_user"`
 	ConnTime  time.Time `gorm:"column:conn_time;type:datetime;not null" json:"conn_time" db:"conn_time"`
@@ -112,7 +113,7 @@ func (m *MysqlProxyConnlog) MigrateSchema(w base.DSWriter) error {
 	db := dbWriter.GormDB()
 	if w.Type() == "mysql" || w.Type() == "mysql_raw" {
 		createTableSql := CREATE_TABLE_MYSQL_MYSQL_PROXY_CONNLOG +
-			BuildMysqlPartitionClause("dteventtimehour")
+			BuildMysqlPartitionClause("dteventtimestamp")
 		if err := db.Exec(fmt.Sprintf(createTableSql, m.TableName())).Error; err != nil {
 			slog.Error("create table failed", slog.Any("err", err), slog.String("sql", createTableSql))
 			return err
@@ -173,6 +174,7 @@ func (m *MysqlProxyConnlog) dorisCreate(i interface{}, db *gorm.DB) error {
 		"dteventtimestamp", "dteventtimehour",
 		"cluster_domain",
 		"proxy_ip",
+		"proxy_port",
 		"conn_time",
 		"client_ip",
 		"conn_user",
@@ -186,6 +188,7 @@ func (m *MysqlProxyConnlog) dorisCreate(i interface{}, db *gorm.DB) error {
 			kafkaObj.DtEventTimeStamp, kafkaObj.DtEventTimeHour,
 			kafkaObj.ClusterDomain,
 			kafkaObj.ProxyIp,
+			kafkaObj.ProxyPort,
 			kafkaObj.ConnTime,
 			kafkaObj.ClientIp,
 			kafkaObj.ConnUser,
@@ -213,17 +216,19 @@ var CREATE_TABLE_MYSQL_MYSQL_PROXY_CONNLOG = `
 CREATE TABLE IF NOT EXISTS %s (
   id bigint NOT NULL AUTO_INCREMENT,
   cluster_domain varchar(200) NOT NULL,
-  dteventtimehour datetime NOT NULL COMMENT 'datetime precision to hour, used as where,group-by,expire',
+  dteventtimehour datetime NOT NULL COMMENT 'datetime precision to hour, used as where,group-by',
   dteventtimestamp datetime NOT NULL,
   proxy_ip varchar(60) NOT NULL,
+  proxy_port int DEFAULT NULL,
   conn_time datetime NOT NULL,
   client_ip varchar(127) DEFAULT NULL,
   conn_user varchar(127) DEFAULT NULL,
   session_id bigint DEFAULT NULL,
   bk_biz_id int DEFAULT NULL,
   bk_cloud_id int DEFAULT NULL,
-  PRIMARY KEY (proxy_ip,dteventtimehour),
-  KEY idx_0 (id),
+  PRIMARY KEY (proxy_ip,dteventtimestamp,id),
+  KEY id(id),
+  KEY idx_0 (dteventtimestamp),
   KEY idx_1 (proxy_ip,conn_time),
   KEY idx_2 (client_ip),
   KEY idx_3 (conn_user)

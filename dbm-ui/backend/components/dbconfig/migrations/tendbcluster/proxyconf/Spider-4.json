@@ -3860,7 +3860,7 @@
     "value_default": "query_response_time",
     "value_allowed": "",
     "value_type": "STRING",
-    "value_type_sub": "STRING",
+    "value_type_sub": "",
     "conf_name_lc": "",
     "description": "query_response_time stats plugin",
     "need_restart": 0,
