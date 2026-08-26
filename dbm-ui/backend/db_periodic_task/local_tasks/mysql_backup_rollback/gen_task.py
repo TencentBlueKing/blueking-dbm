@@ -232,6 +232,7 @@ def build_recovery_storage_spec(
     """构建回档资源申请所需的 storage_spec
 
     优先从待演练集群的 master 节点规格中获取盘符布局，多块盘场景下：
+    - 超过 2 块盘时只按原规格列表顺序取前 2 块申请，避免资源池按 3 盘及以上匹配失败
     - 数据盘(/data1 优先，否则 /data)按基于备份估算出的容量申请，且不小于原规格 min 值
     - 其它盘按原规格 min 值申请，保持 mount_point 与 master 一致
     - 演练场景只关心磁盘容量是否满足，不限定磁盘类型(SSD/HDD/CLOUD_SSD 等)
@@ -261,6 +262,17 @@ def build_recovery_storage_spec(
 
     # 解析 master 规格构建多盘申请，任何异常都退避到单盘模式
     try:
+        # 超过 2 块盘时只取列表前 2 项，再在保留盘中选择数据盘
+        if len(master_storage_spec) > 2:
+            original_disk_count = len(master_storage_spec)
+            master_storage_spec = master_storage_spec[:2]
+            truncated_mounts = [item.get("mount_point") for item in master_storage_spec]
+            logger.debug(
+                _("集群 {} master 规格共 {} 块盘，演练申请仅取前 2 块: {}").format(
+                    cluster.immute_domain, original_disk_count, truncated_mounts
+                )
+            )
+
         # 选择数据盘 mount_point：优先 /data1，否则 /data，否则取第一块盘
         mount_points = [item.get("mount_point") for item in master_storage_spec]
         if "/data1" in mount_points:
