@@ -1,0 +1,1297 @@
+{
+    "bk_biz_id": null,
+    "collector_config_name": "mongodb_db_table_size",
+    "collector_config_name_en": "mongodb_db_table_size",
+    "collector_scenario_id": "row",
+    "category_id": "application_check",
+    "etl_config": "bk_log_json",
+    "data_encoding": "UTF-8",
+    "retention": 30,
+    "es_shards": 3,
+    "target_object_type": "HOST",
+    "target_node_type": "TOPO",
+    "target_nodes": [],
+    "params": {
+        "paths": [
+            "/home/mysql/dbareport/mongo/dbtablesize/dbtablesize-*.log"
+        ],
+        "exclude_files": [],
+        "conditions": {
+            "type": "none"
+        },
+        "encoding": "UTF-8",
+        "tail_files": true
+    },
+    "etl_params": {
+        "es_unique_field_list": [
+            "bk_host_id",
+            "cloudId",
+            "dtEventTimeStamp",
+            "gseIndex",
+            "iterationIndex",
+            "path",
+            "serverIp"
+        ],
+        "separator_node_source": "data",
+        "separator_node_action": "json",
+        "separator_node_name": "bk_separator_object",
+        "retain_original_text": true,
+        "separator_fields_remove": "",
+        "etl_flat": false,
+        "retain_extra_json": false,
+        "enable_origin_string": true,
+        "enable_retain_content": true,
+        "enable_log_v4_data_link": true,
+        "log_v4_data_link": {
+            "clean_rules": [
+                {
+                    "input_id": "__raw_data",
+                    "output_id": "json_data",
+                    "operator": {
+                        "type": "json_de",
+                        "error_strategy": "drop"
+                    }
+                },
+                {
+                    "input_id": "json_data",
+                    "output_id": "bk_host_id",
+                    "operator": {
+                        "type": "assign",
+                        "key_index": "bk_host_id",
+                        "alias": "bk_host_id",
+                        "desc": "主机ID",
+                        "input_type": null,
+                        "output_type": "long",
+                        "fixed_value": null,
+                        "is_time_field": null,
+                        "time_format": null,
+                        "in_place_time_parsing": null,
+                        "default_value": null
+                    }
+                },
+                {
+                    "input_id": "json_data",
+                    "output_id": "__ext",
+                    "operator": {
+                        "type": "assign",
+                        "key_index": "ext",
+                        "alias": "__ext",
+                        "desc": "额外信息字段",
+                        "input_type": null,
+                        "output_type": "dict",
+                        "fixed_value": null,
+                        "is_time_field": null,
+                        "time_format": null,
+                        "in_place_time_parsing": null,
+                        "default_value": null
+                    }
+                },
+                {
+                    "input_id": "json_data",
+                    "output_id": "cloudId",
+                    "operator": {
+                        "type": "assign",
+                        "key_index": "cloudid",
+                        "alias": "cloudId",
+                        "desc": "云区域ID",
+                        "input_type": null,
+                        "output_type": "long",
+                        "fixed_value": null,
+                        "is_time_field": null,
+                        "time_format": null,
+                        "in_place_time_parsing": null,
+                        "default_value": null
+                    }
+                },
+                {
+                    "input_id": "json_data",
+                    "output_id": "serverIp",
+                    "operator": {
+                        "type": "assign",
+                        "key_index": "ip",
+                        "alias": "serverIp",
+                        "desc": "ip",
+                        "input_type": null,
+                        "output_type": "string",
+                        "fixed_value": null,
+                        "is_time_field": null,
+                        "time_format": null,
+                        "in_place_time_parsing": null,
+                        "default_value": null
+                    }
+                },
+                {
+                    "input_id": "json_data",
+                    "output_id": "path",
+                    "operator": {
+                        "type": "assign",
+                        "key_index": "filename",
+                        "alias": "path",
+                        "desc": "日志路径",
+                        "input_type": null,
+                        "output_type": "string",
+                        "fixed_value": null,
+                        "is_time_field": null,
+                        "time_format": null,
+                        "in_place_time_parsing": null,
+                        "default_value": null
+                    }
+                },
+                {
+                    "input_id": "json_data",
+                    "output_id": "gseIndex",
+                    "operator": {
+                        "type": "assign",
+                        "key_index": "gseindex",
+                        "alias": "gseIndex",
+                        "desc": "gse索引",
+                        "input_type": null,
+                        "output_type": "long",
+                        "fixed_value": null,
+                        "is_time_field": null,
+                        "time_format": null,
+                        "in_place_time_parsing": null,
+                        "default_value": null
+                    }
+                },
+                {
+                    "input_id": "json_data",
+                    "output_id": "dtEventTimeStamp",
+                    "operator": {
+                        "type": "assign",
+                        "key_index": "utctime",
+                        "alias": "dtEventTimeStamp",
+                        "desc": "数据时间",
+                        "input_type": null,
+                        "fixed_value": null,
+                        "default_value": null,
+                        "output_type": "string",
+                        "is_time_field": null,
+                        "time_format": null,
+                        "in_place_time_parsing": {
+                            "from": {
+                                "format": "%Y-%m-%d %H:%M:%S",
+                                "zone": 0
+                            },
+                            "interval_format": null,
+                            "to": "millis",
+                            "now_if_parse_failed": true
+                        }
+                    }
+                },
+                {
+                    "input_id": "json_data",
+                    "output_id": "time",
+                    "operator": {
+                        "type": "assign",
+                        "key_index": "utctime",
+                        "alias": "time",
+                        "desc": "data timestamp in epoch second",
+                        "input_type": null,
+                        "fixed_value": null,
+                        "default_value": null,
+                        "is_time_field": null,
+                        "output_type": "long",
+                        "time_format": null,
+                        "in_place_time_parsing": {
+                            "from": {
+                                "format": "%Y-%m-%d %H:%M:%S",
+                                "zone": 0
+                            },
+                            "interval_format": null,
+                            "to": "millis",
+                            "now_if_parse_failed": true
+                        }
+                    }
+                },
+                {
+                    "input_id": "json_data",
+                    "output_id": "items",
+                    "operator": {
+                        "type": "get",
+                        "key_index": [
+                            {
+                                "type": "key",
+                                "value": "items"
+                            }
+                        ],
+                        "missing_strategy": null
+                    }
+                },
+                {
+                    "input_id": "items",
+                    "output_id": "iter_item",
+                    "operator": {
+                        "type": "iter"
+                    }
+                },
+                {
+                    "input_id": "iter_item",
+                    "output_id": "iter_string",
+                    "operator": {
+                        "type": "get",
+                        "key_index": [
+                            {
+                                "type": "key",
+                                "value": "data"
+                            }
+                        ],
+                        "missing_strategy": null
+                    }
+                },
+                {
+                    "input_id": "iter_item",
+                    "output_id": "log",
+                    "operator": {
+                        "type": "assign",
+                        "key_index": "data",
+                        "alias": "log",
+                        "output_type": "string",
+                        "default_value": null
+                    }
+                },
+                {
+                    "input_id": "iter_item",
+                    "output_id": "iterationIndex",
+                    "operator": {
+                        "type": "assign",
+                        "key_index": "iterationindex",
+                        "alias": "iterationIndex",
+                        "desc": "迭代ID",
+                        "input_type": null,
+                        "output_type": "long",
+                        "fixed_value": null,
+                        "is_time_field": null,
+                        "time_format": null,
+                        "in_place_time_parsing": null,
+                        "default_value": null
+                    }
+                },
+                {
+                    "input_id": "iter_string",
+                    "output_id": "bk_separator_object",
+                    "operator": {
+                        "type": "json_de",
+                        "error_strategy": "null"
+                    }
+                },
+                {
+                    "input_id": "bk_separator_object",
+                    "output_id": "app",
+                    "operator": {
+                        "type": "assign",
+                        "key_index": "app",
+                        "alias": "app",
+                        "output_type": "string",
+                        "default_value": null
+                    }
+                },
+                {
+                    "input_id": "bk_separator_object",
+                    "output_id": "avg_obj_size",
+                    "operator": {
+                        "type": "assign",
+                        "key_index": "avg_obj_size",
+                        "alias": "avg_obj_size",
+                        "output_type": "long",
+                        "default_value": null
+                    }
+                },
+                {
+                    "input_id": "bk_separator_object",
+                    "output_id": "bkbizid",
+                    "operator": {
+                        "type": "assign",
+                        "key_index": "bk_biz_id",
+                        "alias": "bkbizid",
+                        "output_type": "long",
+                        "default_value": null
+                    }
+                },
+                {
+                    "input_id": "bk_separator_object",
+                    "output_id": "bkcloudid",
+                    "operator": {
+                        "type": "assign",
+                        "key_index": "bk_cloud_id",
+                        "alias": "bkcloudid",
+                        "output_type": "long",
+                        "default_value": null
+                    }
+                },
+                {
+                    "input_id": "bk_separator_object",
+                    "output_id": "cluster_domain",
+                    "operator": {
+                        "type": "assign",
+                        "key_index": "cluster_domain",
+                        "alias": "cluster_domain",
+                        "output_type": "string",
+                        "default_value": null
+                    }
+                },
+                {
+                    "input_id": "bk_separator_object",
+                    "output_id": "cluster_id",
+                    "operator": {
+                        "type": "assign",
+                        "key_index": "cluster_id",
+                        "alias": "cluster_id",
+                        "output_type": "long",
+                        "default_value": null
+                    }
+                },
+                {
+                    "input_id": "bk_separator_object",
+                    "output_id": "cluster_name",
+                    "operator": {
+                        "type": "assign",
+                        "key_index": "cluster_name",
+                        "alias": "cluster_name",
+                        "output_type": "string",
+                        "default_value": null
+                    }
+                },
+                {
+                    "input_id": "bk_separator_object",
+                    "output_id": "cluster_type",
+                    "operator": {
+                        "type": "assign",
+                        "key_index": "cluster_type",
+                        "alias": "cluster_type",
+                        "output_type": "string",
+                        "default_value": null
+                    }
+                },
+                {
+                    "input_id": "bk_separator_object",
+                    "output_id": "collection",
+                    "operator": {
+                        "type": "assign",
+                        "key_index": "collection",
+                        "alias": "collection",
+                        "output_type": "string",
+                        "default_value": null
+                    }
+                },
+                {
+                    "input_id": "bk_separator_object",
+                    "output_id": "count",
+                    "operator": {
+                        "type": "assign",
+                        "key_index": "count",
+                        "alias": "count",
+                        "output_type": "long",
+                        "default_value": null
+                    }
+                },
+                {
+                    "input_id": "bk_separator_object",
+                    "output_id": "data_size",
+                    "operator": {
+                        "type": "assign",
+                        "key_index": "data_size",
+                        "alias": "data_size",
+                        "output_type": "long",
+                        "default_value": null
+                    }
+                },
+                {
+                    "input_id": "bk_separator_object",
+                    "output_id": "db",
+                    "operator": {
+                        "type": "assign",
+                        "key_index": "db",
+                        "alias": "db",
+                        "output_type": "string",
+                        "default_value": null
+                    }
+                },
+                {
+                    "input_id": "bk_separator_object",
+                    "output_id": "index_size",
+                    "operator": {
+                        "type": "assign",
+                        "key_index": "index_size",
+                        "alias": "index_size",
+                        "output_type": "long",
+                        "default_value": null
+                    }
+                },
+                {
+                    "input_id": "bk_separator_object",
+                    "output_id": "instance",
+                    "operator": {
+                        "type": "assign",
+                        "key_index": "instance",
+                        "alias": "instance",
+                        "output_type": "string",
+                        "default_value": null
+                    }
+                },
+                {
+                    "input_id": "bk_separator_object",
+                    "output_id": "instance_host",
+                    "operator": {
+                        "type": "assign",
+                        "key_index": "instance_host",
+                        "alias": "instance_host",
+                        "output_type": "string",
+                        "default_value": null
+                    }
+                },
+                {
+                    "input_id": "bk_separator_object",
+                    "output_id": "instance_port",
+                    "operator": {
+                        "type": "assign",
+                        "key_index": "instance_port",
+                        "alias": "instance_port",
+                        "output_type": "long",
+                        "default_value": null
+                    }
+                },
+                {
+                    "input_id": "bk_separator_object",
+                    "output_id": "meta_role",
+                    "operator": {
+                        "type": "assign",
+                        "key_index": "meta_role",
+                        "alias": "meta_role",
+                        "output_type": "string",
+                        "default_value": null
+                    }
+                },
+                {
+                    "input_id": "bk_separator_object",
+                    "output_id": "report_time",
+                    "operator": {
+                        "type": "assign",
+                        "key_index": "report_time",
+                        "alias": "report_time",
+                        "output_type": "string",
+                        "default_value": null
+                    }
+                },
+                {
+                    "input_id": "bk_separator_object",
+                    "output_id": "role_type",
+                    "operator": {
+                        "type": "assign",
+                        "key_index": "role_type",
+                        "alias": "role_type",
+                        "output_type": "string",
+                        "default_value": null
+                    }
+                },
+                {
+                    "input_id": "bk_separator_object",
+                    "output_id": "set_name",
+                    "operator": {
+                        "type": "assign",
+                        "key_index": "set_name",
+                        "alias": "set_name",
+                        "output_type": "string",
+                        "default_value": null
+                    }
+                },
+                {
+                    "input_id": "bk_separator_object",
+                    "output_id": "storage_size",
+                    "operator": {
+                        "type": "assign",
+                        "key_index": "storage_size",
+                        "alias": "storage_size",
+                        "output_type": "long",
+                        "default_value": null
+                    }
+                },
+                {
+                    "input_id": "bk_separator_object",
+                    "output_id": "set_sn",
+                    "operator": {
+                        "type": "assign",
+                        "key_index": "set_sn",
+                        "alias": "set_sn",
+                        "output_type": "string",
+                        "default_value": null
+                    }
+                }
+            ],
+            "es_storage_config": {
+                "unique_field_list": [
+                    "bk_host_id",
+                    "cloudId",
+                    "dtEventTimeStamp",
+                    "gseIndex",
+                    "iterationIndex",
+                    "path",
+                    "serverIp"
+                ],
+                "timezone": 8
+            }
+        },
+        "need_add_time": true,
+        "time_field": {
+            "name": "dtEventTimeStamp",
+            "type": "date",
+            "unit": "millisecond"
+        }
+    },
+    "fields": [
+        {
+            "field_name": "ext",
+            "type": "object",
+            "tag": "dimension",
+            "default_value": null,
+            "is_config_by_user": true,
+            "description": "额外信息字段",
+            "unit": "",
+            "alias_name": "__ext",
+            "option": {
+                "es_type": "object"
+            },
+            "is_disabled": false,
+            "is_built_in": true,
+            "is_time": false,
+            "field_type": "object",
+            "is_analyzed": false,
+            "is_delete": false,
+            "is_dimension": true
+        },
+        {
+            "field_name": "__parse_failure",
+            "type": "boolean",
+            "tag": "dimension",
+            "default_value": null,
+            "is_config_by_user": true,
+            "description": "清洗失败标记",
+            "unit": "",
+            "alias_name": "",
+            "option": {
+                "es_type": "boolean",
+                "real_path": "bk_separator_object.__parse_failure"
+            },
+            "is_disabled": false,
+            "is_built_in": true,
+            "is_time": false,
+            "field_type": "boolean",
+            "is_analyzed": false,
+            "is_delete": false,
+            "is_dimension": true
+        },
+        {
+            "field_name": "bk_host_id",
+            "type": "float",
+            "tag": "dimension",
+            "default_value": null,
+            "is_config_by_user": true,
+            "description": "主机ID",
+            "unit": "",
+            "alias_name": "",
+            "option": {
+                "es_type": "integer"
+            },
+            "is_disabled": false,
+            "is_built_in": true,
+            "is_time": false,
+            "field_type": "int",
+            "is_analyzed": false,
+            "is_delete": false,
+            "is_dimension": true
+        },
+        {
+            "field_name": "cloudid",
+            "type": "float",
+            "tag": "dimension",
+            "default_value": null,
+            "is_config_by_user": true,
+            "description": "云区域ID",
+            "unit": "",
+            "alias_name": "cloudId",
+            "option": {
+                "es_type": "integer"
+            },
+            "is_disabled": false,
+            "is_built_in": true,
+            "is_time": false,
+            "field_type": "int",
+            "is_analyzed": false,
+            "is_delete": false,
+            "is_dimension": true
+        },
+        {
+            "field_name": "utctime",
+            "type": "timestamp",
+            "tag": "dimension",
+            "default_value": null,
+            "is_config_by_user": true,
+            "description": "数据时间",
+            "unit": "",
+            "alias_name": "dtEventTimeStamp",
+            "option": {
+                "es_type": "date",
+                "es_format": "epoch_millis",
+                "time_format": "yyyy-MM-dd HH:mm:ss",
+                "time_zone": 0
+            },
+            "is_disabled": false,
+            "is_built_in": true,
+            "is_time": true,
+            "is_dimension": true,
+            "field_type": "string",
+            "is_analyzed": false,
+            "is_delete": false
+        },
+        {
+            "field_name": "gseindex",
+            "type": "float",
+            "tag": "dimension",
+            "default_value": null,
+            "is_config_by_user": true,
+            "description": "gse索引",
+            "unit": "",
+            "alias_name": "gseIndex",
+            "option": {
+                "es_type": "long"
+            },
+            "is_disabled": false,
+            "is_built_in": true,
+            "is_time": false,
+            "field_type": "long",
+            "is_analyzed": false,
+            "is_delete": false,
+            "is_dimension": true
+        },
+        {
+            "field_name": "iterationindex",
+            "type": "float",
+            "tag": "dimension",
+            "default_value": null,
+            "is_config_by_user": true,
+            "description": "迭代ID",
+            "unit": "",
+            "alias_name": "iterationIndex",
+            "option": {
+                "es_type": "integer"
+            },
+            "is_disabled": false,
+            "is_built_in": true,
+            "is_time": false,
+            "field_type": "int",
+            "is_analyzed": false,
+            "is_delete": false,
+            "is_dimension": true
+        },
+        {
+            "field_name": "data",
+            "type": "string",
+            "tag": "metric",
+            "default_value": null,
+            "is_config_by_user": true,
+            "description": "original_text",
+            "unit": "",
+            "alias_name": "log",
+            "option": {
+                "es_type": "text",
+                "es_norms": false
+            },
+            "is_disabled": false,
+            "is_case_sensitive": false,
+            "tokenize_on_chars": "",
+            "is_built_in": true,
+            "is_time": false,
+            "field_type": "string",
+            "is_analyzed": true,
+            "is_dimension": false,
+            "is_delete": false
+        },
+        {
+            "field_name": "filename",
+            "type": "string",
+            "tag": "dimension",
+            "default_value": null,
+            "is_config_by_user": true,
+            "description": "日志路径",
+            "unit": "",
+            "alias_name": "path",
+            "option": {
+                "es_type": "keyword"
+            },
+            "is_disabled": false,
+            "is_built_in": true,
+            "is_time": false,
+            "field_type": "string",
+            "is_analyzed": false,
+            "is_delete": false,
+            "is_dimension": true
+        },
+        {
+            "field_name": "ip",
+            "type": "string",
+            "tag": "dimension",
+            "default_value": null,
+            "is_config_by_user": true,
+            "description": "ip",
+            "unit": "",
+            "alias_name": "serverIp",
+            "option": {
+                "es_type": "keyword"
+            },
+            "is_disabled": false,
+            "is_built_in": true,
+            "is_time": false,
+            "field_type": "string",
+            "is_analyzed": false,
+            "is_delete": false,
+            "is_dimension": true
+        },
+        {
+            "field_name": "time",
+            "type": "timestamp",
+            "tag": "timestamp",
+            "default_value": "",
+            "is_config_by_user": true,
+            "description": "数据上报时间",
+            "unit": "",
+            "alias_name": "",
+            "option": {
+                "es_type": "date",
+                "es_format": "epoch_millis",
+                "time_format": "yyyy-MM-dd HH:mm:ss",
+                "time_zone": 0
+            },
+            "is_disabled": false,
+            "is_built_in": true,
+            "is_time": false,
+            "field_type": "string",
+            "is_analyzed": false,
+            "is_delete": false,
+            "is_dimension": true
+        },
+        {
+            "field_name": "app",
+            "type": "string",
+            "tag": "dimension",
+            "default_value": null,
+            "is_config_by_user": true,
+            "description": "",
+            "unit": "",
+            "alias_name": "",
+            "option": {
+                "field_index": 1,
+                "es_type": "keyword",
+                "real_path": "bk_separator_object.app"
+            },
+            "is_disabled": false,
+            "is_case_sensitive": false,
+            "tokenize_on_chars": "",
+            "is_built_in": false,
+            "is_time": false,
+            "field_type": "string",
+            "is_analyzed": false,
+            "is_delete": false,
+            "is_dimension": true
+        },
+        {
+            "field_name": "avg_obj_size",
+            "type": "int",
+            "tag": "dimension",
+            "default_value": null,
+            "is_config_by_user": true,
+            "description": "",
+            "unit": "",
+            "alias_name": "",
+            "option": {
+                "field_index": 2,
+                "es_type": "integer",
+                "real_path": "bk_separator_object.avg_obj_size"
+            },
+            "is_disabled": false,
+            "is_case_sensitive": false,
+            "tokenize_on_chars": "",
+            "is_built_in": false,
+            "is_time": false,
+            "field_type": "int",
+            "is_analyzed": false,
+            "is_delete": false,
+            "is_dimension": true
+        },
+        {
+            "field_name": "bk_biz_id",
+            "type": "int",
+            "tag": "dimension",
+            "default_value": null,
+            "is_config_by_user": true,
+            "description": "",
+            "unit": "",
+            "alias_name": "bkbizid",
+            "option": {
+                "field_index": 3,
+                "es_type": "integer",
+                "real_path": "bk_separator_object.bk_biz_id"
+            },
+            "is_disabled": false,
+            "is_built_in": false,
+            "is_time": false,
+            "field_type": "int",
+            "is_analyzed": false,
+            "is_delete": false,
+            "is_dimension": true
+        },
+        {
+            "field_name": "bk_cloud_id",
+            "type": "int",
+            "tag": "dimension",
+            "default_value": null,
+            "is_config_by_user": true,
+            "description": "",
+            "unit": "",
+            "alias_name": "bkcloudid",
+            "option": {
+                "field_index": 4,
+                "es_type": "integer",
+                "real_path": "bk_separator_object.bk_cloud_id"
+            },
+            "is_disabled": false,
+            "is_built_in": false,
+            "is_time": false,
+            "field_type": "int",
+            "is_analyzed": false,
+            "is_delete": false,
+            "is_dimension": true
+        },
+        {
+            "field_name": "cluster_domain",
+            "type": "string",
+            "tag": "dimension",
+            "default_value": null,
+            "is_config_by_user": true,
+            "description": "",
+            "unit": "",
+            "alias_name": "",
+            "option": {
+                "field_index": 5,
+                "es_type": "keyword",
+                "real_path": "bk_separator_object.cluster_domain"
+            },
+            "is_disabled": false,
+            "is_case_sensitive": false,
+            "tokenize_on_chars": "",
+            "is_built_in": false,
+            "is_time": false,
+            "field_type": "string",
+            "is_analyzed": false,
+            "is_delete": false,
+            "is_dimension": true
+        },
+        {
+            "field_name": "cluster_id",
+            "type": "int",
+            "tag": "dimension",
+            "default_value": null,
+            "is_config_by_user": true,
+            "description": "",
+            "unit": "",
+            "alias_name": "",
+            "option": {
+                "field_index": 6,
+                "es_type": "integer",
+                "real_path": "bk_separator_object.cluster_id"
+            },
+            "is_disabled": false,
+            "is_case_sensitive": false,
+            "tokenize_on_chars": "",
+            "is_built_in": false,
+            "is_time": false,
+            "field_type": "int",
+            "is_analyzed": false,
+            "is_delete": false,
+            "is_dimension": true
+        },
+        {
+            "field_name": "cluster_name",
+            "type": "string",
+            "tag": "dimension",
+            "default_value": null,
+            "is_config_by_user": true,
+            "description": "",
+            "unit": "",
+            "alias_name": "",
+            "option": {
+                "field_index": 7,
+                "es_type": "keyword",
+                "real_path": "bk_separator_object.cluster_name"
+            },
+            "is_disabled": false,
+            "is_case_sensitive": false,
+            "tokenize_on_chars": "",
+            "is_built_in": false,
+            "is_time": false,
+            "field_type": "string",
+            "is_analyzed": false,
+            "is_delete": false,
+            "is_dimension": true
+        },
+        {
+            "field_name": "cluster_type",
+            "type": "string",
+            "tag": "dimension",
+            "default_value": null,
+            "is_config_by_user": true,
+            "description": "",
+            "unit": "",
+            "alias_name": "",
+            "option": {
+                "field_index": 8,
+                "es_type": "keyword",
+                "real_path": "bk_separator_object.cluster_type"
+            },
+            "is_disabled": false,
+            "is_case_sensitive": false,
+            "tokenize_on_chars": "",
+            "is_built_in": false,
+            "is_time": false,
+            "field_type": "string",
+            "is_analyzed": false,
+            "is_delete": false,
+            "is_dimension": true
+        },
+        {
+            "field_name": "collection",
+            "type": "string",
+            "tag": "dimension",
+            "default_value": null,
+            "is_config_by_user": true,
+            "description": "",
+            "unit": "",
+            "alias_name": "",
+            "option": {
+                "field_index": 9,
+                "es_type": "keyword",
+                "real_path": "bk_separator_object.collection"
+            },
+            "is_disabled": false,
+            "is_case_sensitive": false,
+            "tokenize_on_chars": "",
+            "is_built_in": false,
+            "is_time": false,
+            "field_type": "string",
+            "is_analyzed": false,
+            "is_delete": false,
+            "is_dimension": true
+        },
+        {
+            "field_name": "count",
+            "type": "long",
+            "tag": "dimension",
+            "default_value": null,
+            "is_config_by_user": true,
+            "description": "",
+            "unit": "",
+            "alias_name": "",
+            "option": {
+                "field_index": 10,
+                "es_type": "long",
+                "real_path": "bk_separator_object.count"
+            },
+            "is_disabled": false,
+            "is_case_sensitive": false,
+            "tokenize_on_chars": "",
+            "is_built_in": false,
+            "is_time": false,
+            "field_type": "long",
+            "is_analyzed": false,
+            "is_delete": false,
+            "is_dimension": true
+        },
+        {
+            "field_name": "data_size",
+            "type": "long",
+            "tag": "dimension",
+            "default_value": null,
+            "is_config_by_user": true,
+            "description": "",
+            "unit": "",
+            "alias_name": "",
+            "option": {
+                "field_index": 11,
+                "es_type": "long",
+                "real_path": "bk_separator_object.data_size"
+            },
+            "is_disabled": false,
+            "is_case_sensitive": false,
+            "tokenize_on_chars": "",
+            "is_built_in": false,
+            "is_time": false,
+            "field_type": "long",
+            "is_analyzed": false,
+            "is_delete": false,
+            "is_dimension": true
+        },
+        {
+            "field_name": "db",
+            "type": "string",
+            "tag": "dimension",
+            "default_value": null,
+            "is_config_by_user": true,
+            "description": "",
+            "unit": "",
+            "alias_name": "",
+            "option": {
+                "field_index": 12,
+                "es_type": "keyword",
+                "real_path": "bk_separator_object.db"
+            },
+            "is_disabled": false,
+            "is_case_sensitive": false,
+            "tokenize_on_chars": "",
+            "is_built_in": false,
+            "is_time": false,
+            "field_type": "string",
+            "is_analyzed": false,
+            "is_delete": false,
+            "is_dimension": true
+        },
+        {
+            "field_name": "index_size",
+            "type": "long",
+            "tag": "dimension",
+            "default_value": null,
+            "is_config_by_user": true,
+            "description": "",
+            "unit": "",
+            "alias_name": "",
+            "option": {
+                "field_index": 13,
+                "es_type": "long",
+                "real_path": "bk_separator_object.index_size"
+            },
+            "is_disabled": false,
+            "is_case_sensitive": false,
+            "tokenize_on_chars": "",
+            "is_built_in": false,
+            "is_time": false,
+            "field_type": "long",
+            "is_analyzed": false,
+            "is_delete": false,
+            "is_dimension": true
+        },
+        {
+            "field_name": "instance",
+            "type": "string",
+            "tag": "dimension",
+            "default_value": null,
+            "is_config_by_user": true,
+            "description": "",
+            "unit": "",
+            "alias_name": "",
+            "option": {
+                "field_index": 14,
+                "es_type": "keyword",
+                "real_path": "bk_separator_object.instance"
+            },
+            "is_disabled": false,
+            "is_case_sensitive": false,
+            "tokenize_on_chars": "",
+            "is_built_in": false,
+            "is_time": false,
+            "field_type": "string",
+            "is_analyzed": false,
+            "is_delete": false,
+            "is_dimension": true
+        },
+        {
+            "field_name": "instance_host",
+            "type": "string",
+            "tag": "dimension",
+            "default_value": null,
+            "is_config_by_user": true,
+            "description": "",
+            "unit": "",
+            "alias_name": "",
+            "option": {
+                "field_index": 15,
+                "es_type": "keyword",
+                "real_path": "bk_separator_object.instance_host"
+            },
+            "is_disabled": false,
+            "is_case_sensitive": false,
+            "tokenize_on_chars": "",
+            "is_built_in": false,
+            "is_time": false,
+            "field_type": "string",
+            "is_analyzed": false,
+            "is_delete": false,
+            "is_dimension": true
+        },
+        {
+            "field_name": "instance_port",
+            "type": "int",
+            "tag": "dimension",
+            "default_value": null,
+            "is_config_by_user": true,
+            "description": "",
+            "unit": "",
+            "alias_name": "",
+            "option": {
+                "field_index": 16,
+                "es_type": "integer",
+                "real_path": "bk_separator_object.instance_port"
+            },
+            "is_disabled": false,
+            "is_case_sensitive": false,
+            "tokenize_on_chars": "",
+            "is_built_in": false,
+            "is_time": false,
+            "field_type": "int",
+            "is_analyzed": false,
+            "is_delete": false,
+            "is_dimension": true
+        },
+        {
+            "field_name": "meta_role",
+            "type": "string",
+            "tag": "dimension",
+            "default_value": null,
+            "is_config_by_user": true,
+            "description": "",
+            "unit": "",
+            "alias_name": "",
+            "option": {
+                "field_index": 17,
+                "es_type": "keyword",
+                "real_path": "bk_separator_object.meta_role"
+            },
+            "is_disabled": false,
+            "is_case_sensitive": false,
+            "tokenize_on_chars": "",
+            "is_built_in": false,
+            "is_time": false,
+            "field_type": "string",
+            "is_analyzed": false,
+            "is_delete": false,
+            "is_dimension": true
+        },
+        {
+            "field_name": "report_time",
+            "type": "string",
+            "tag": "dimension",
+            "default_value": null,
+            "is_config_by_user": true,
+            "description": "",
+            "unit": "",
+            "alias_name": "",
+            "option": {
+                "field_index": 18,
+                "es_type": "keyword",
+                "real_path": "bk_separator_object.report_time"
+            },
+            "is_disabled": false,
+            "is_case_sensitive": false,
+            "tokenize_on_chars": "",
+            "is_built_in": false,
+            "is_time": false,
+            "field_type": "string",
+            "is_analyzed": false,
+            "is_delete": false,
+            "is_dimension": true
+        },
+        {
+            "field_name": "role_type",
+            "type": "string",
+            "tag": "dimension",
+            "default_value": null,
+            "is_config_by_user": true,
+            "description": "",
+            "unit": "",
+            "alias_name": "",
+            "option": {
+                "field_index": 19,
+                "es_type": "keyword",
+                "real_path": "bk_separator_object.role_type"
+            },
+            "is_disabled": false,
+            "is_case_sensitive": false,
+            "tokenize_on_chars": "",
+            "is_built_in": false,
+            "is_time": false,
+            "field_type": "string",
+            "is_analyzed": false,
+            "is_delete": false,
+            "is_dimension": true
+        },
+        {
+            "field_name": "set_name",
+            "type": "string",
+            "tag": "dimension",
+            "default_value": null,
+            "is_config_by_user": true,
+            "description": "",
+            "unit": "",
+            "alias_name": "",
+            "option": {
+                "field_index": 20,
+                "es_type": "keyword",
+                "real_path": "bk_separator_object.set_name"
+            },
+            "is_disabled": false,
+            "is_case_sensitive": false,
+            "tokenize_on_chars": "",
+            "is_built_in": false,
+            "is_time": false,
+            "field_type": "string",
+            "is_analyzed": false,
+            "is_delete": false,
+            "is_dimension": true
+        },
+        {
+            "field_name": "storage_size",
+            "type": "long",
+            "tag": "dimension",
+            "default_value": null,
+            "is_config_by_user": true,
+            "description": "",
+            "unit": "",
+            "alias_name": "",
+            "option": {
+                "field_index": 21,
+                "es_type": "long",
+                "real_path": "bk_separator_object.storage_size"
+            },
+            "is_disabled": false,
+            "is_case_sensitive": false,
+            "tokenize_on_chars": "",
+            "is_built_in": false,
+            "is_time": false,
+            "field_type": "long",
+            "is_analyzed": false,
+            "is_delete": false,
+            "is_dimension": true
+        },
+        {
+            "field_name": "set_sn",
+            "type": "string",
+            "tag": "dimension",
+            "default_value": null,
+            "is_config_by_user": true,
+            "description": "",
+            "unit": "",
+            "alias_name": "",
+            "option": {
+                "field_index": 22,
+                "es_type": "keyword",
+                "real_path": "bk_separator_object.set_sn"
+            },
+            "is_disabled": false,
+            "is_case_sensitive": false,
+            "tokenize_on_chars": "",
+            "is_built_in": false,
+            "is_time": false,
+            "field_type": "string",
+            "is_analyzed": false,
+            "is_delete": false,
+            "is_dimension": true
+        }
+    ]
+}
