@@ -25,6 +25,7 @@ from backend.configuration.models import BizSettings, DBAdministrator
 from backend.db_meta.enums import ClusterType, ClusterTypeMachineTypeDefine
 from backend.db_meta.models import AppMonitorTopo, Cluster, ClusterMonitorTopo, Machine, ProxyInstance, StorageInstance
 from backend.db_meta.models.cluster_monitor import (
+    HOST_BKLOG_PLUGINS,
     INSTANCE_BKLOG_PLUGINS,
     INSTANCE_MONITOR_PLUGINS,
     SERVICE_INSTANCE_BKLOG_PLUGINS,
@@ -694,7 +695,7 @@ def parser_operate_collector_cache_key(cache_key: str):
 def operate_collector(bk_biz_id: int, db_type: str, machine_type: str, instance_id_to_host_id: list, action: str):
     """
     操作采集器
-    调用监控 API，针对本次变更的范围进行下发
+    调用监控/日志 API，针对本次变更的范围进行下发
     """
     if not instance_id_to_host_id:
         return
@@ -753,11 +754,15 @@ def operate_collector(bk_biz_id: int, db_type: str, machine_type: str, instance_
         if not collect:
             continue
         bklog_scope = copy.deepcopy(scope)
-        # 如果是主机维度的采集项，则维度为HOST
-        # TODO: 主机维度的采集在实例卸载的时候也会触发卸载，暂时屏蔽
-        if plugin_id not in SERVICE_INSTANCE_BKLOG_PLUGINS:
-            # bklog_scope.update(object_type="HOST", nodes=host_nodes)
+        # bklog采集只放开部分主机和实例采集
+        if plugin_id not in [*SERVICE_INSTANCE_BKLOG_PLUGINS, *HOST_BKLOG_PLUGINS]:
             continue
+        # TODO: 主机维度的采集在实例卸载的时候也会触发卸载，暂时屏蔽
+        if plugin_id in HOST_BKLOG_PLUGINS and action == OperateCollectorActionEnum.UNINSTALL.value:
+            continue
+        # 如果是主机维度的采集项，则维度为HOST
+        if plugin_id in HOST_BKLOG_PLUGINS and action == OperateCollectorActionEnum.INSTALL.value:
+            bklog_scope.update(object_type="HOST", nodes=host_nodes)
         # 下发采集器
         collect_id = collect["collector_config_id"]
         try:
@@ -773,6 +778,44 @@ def operate_collector(bk_biz_id: int, db_type: str, machine_type: str, instance_
             logger.info(f"[bklog] id:{collect_id} success, scope: {bklog_scope}")
         except ApiError as err:
             logger.error(f"[bklog] id:{collect_id} error: {err}")
+
+
+def operate_bklog_host_collectors(bk_host_ids: List[int], action: str, collector_names: List[str], bk_biz_id: int):
+    """
+    按主机维度安装/卸载日志采集项，不依赖服务实例。
+    用于资源池导入安装、回收流程卸载等场景。
+    """
+    if not bk_host_ids or not collector_names:
+        return
+
+    bk_host_ids = list(set(bk_host_ids))
+    data = BKLogApi.list_collectors({"bk_biz_id": env.DBA_APP_BK_BIZ_ID, "pagesize": 500, "page": 1}, use_admin=True)
+    collectors_name__info_map = {collector["collector_config_name_en"]: collector for collector in data["list"]}
+    scope = {
+        "bk_biz_id": bk_biz_id,
+        "object_type": "HOST",
+        "node_type": "INSTANCE",
+        "nodes": [{"bk_host_id": bk_host_id, "bk_biz_id": bk_biz_id} for bk_host_id in bk_host_ids],
+    }
+    for collector_name in collector_names:
+        collect = collectors_name__info_map.get(collector_name)
+        if not collect:
+            logger.warning(f"[bklog] collector {collector_name} not found, skip {action}")
+            continue
+        collect_id = collect["collector_config_id"]
+        try:
+            BKLogApi.run_databus_collectors(
+                {
+                    "bk_biz_id": env.DBA_APP_BK_BIZ_ID,
+                    "collector_config_id": collect_id,
+                    "scope": scope,
+                    "action": action,
+                },
+                use_admin=True,
+            )
+            logger.info(f"[bklog] {action} {collector_name} id:{collect_id} success, scope: {scope}")
+        except ApiError as err:
+            logger.error(f"[bklog] {action} {collector_name} id:{collect_id} error: {err}")
 
 
 def trigger_operate_collector(

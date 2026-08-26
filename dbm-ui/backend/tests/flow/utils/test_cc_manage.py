@@ -4,7 +4,9 @@ from unittest.mock import MagicMock, patch
 
 from backend.db_meta.enums import ClusterType
 from backend.db_meta.models import ClusterMonitorTopo
-from backend.flow.utils.cc_manage import CcManage
+from backend.exceptions import ApiError
+from backend.flow.consts import OperateCollectorActionEnum
+from backend.flow.utils.cc_manage import CcManage, operate_bklog_host_collectors
 
 
 def _build_cc_manage():
@@ -141,3 +143,50 @@ def test_delete_cc_module_skips_when_topo_missing(
     cc_manage.delete_cc_module("mongodb", ClusterType.MongoReplicaSet.value, cluster_id=63)
 
     mock_delete_module.assert_not_called()
+
+
+@patch("backend.flow.utils.cc_manage.env")
+@patch("backend.flow.utils.cc_manage.BKLogApi")
+def test_operate_bklog_host_collectors_runs_host_scope(mock_bklog_api, mock_env):
+    mock_env.DBA_APP_BK_BIZ_ID = 3
+    mock_bklog_api.list_collectors.return_value = {
+        "list": [
+            {"collector_config_name_en": "backup_stm_log", "collector_config_id": 11},
+            {"collector_config_name_en": "dbm_retry_event", "collector_config_id": 12},
+        ]
+    }
+
+    operate_bklog_host_collectors(
+        bk_host_ids=[101, 102],
+        action=OperateCollectorActionEnum.UNINSTALL.value,
+        collector_names=["backup_stm_log", "dbm_retry_event"],
+        bk_biz_id=9,
+    )
+
+    assert mock_bklog_api.run_databus_collectors.call_count == 2
+    first_call = mock_bklog_api.run_databus_collectors.call_args_list[0]
+    params = first_call.kwargs.get("params") or first_call.args[0]
+    assert params["bk_biz_id"] == 3
+    assert params["action"] == OperateCollectorActionEnum.UNINSTALL.value
+    assert params["scope"]["object_type"] == "HOST"
+    assert params["scope"]["bk_biz_id"] == 9
+    assert {node["bk_host_id"] for node in params["scope"]["nodes"]} == {101, 102}
+
+
+@patch("backend.flow.utils.cc_manage.env")
+@patch("backend.flow.utils.cc_manage.BKLogApi")
+def test_operate_bklog_host_collectors_skips_missing_and_api_error(mock_bklog_api, mock_env):
+    mock_env.DBA_APP_BK_BIZ_ID = 3
+    mock_bklog_api.list_collectors.return_value = {
+        "list": [{"collector_config_name_en": "dbm_dbactuator", "collector_config_id": 21}]
+    }
+    mock_bklog_api.run_databus_collectors.side_effect = ApiError("failed")
+
+    operate_bklog_host_collectors(
+        bk_host_ids=[101],
+        action=OperateCollectorActionEnum.INSTALL.value,
+        collector_names=["dbm_dbactuator", "not_exist"],
+        bk_biz_id=9,
+    )
+
+    mock_bklog_api.run_databus_collectors.assert_called_once()

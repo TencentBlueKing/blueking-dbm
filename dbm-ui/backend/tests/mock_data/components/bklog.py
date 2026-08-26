@@ -116,3 +116,7 @@ class BKLogApiMock(object):
     def list_collectors(cls, *args, **kwargs):
         data = BK_LOG_LIST_COLLECTOR_DATA
         return data["data"]
+
+    @classmethod
+    def run_databus_collectors(cls, *args, **kwargs):
+        return {"result": True}
