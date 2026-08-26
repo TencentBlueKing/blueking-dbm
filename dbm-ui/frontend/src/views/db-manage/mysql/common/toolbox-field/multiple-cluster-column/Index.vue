@@ -252,7 +252,7 @@
       if (modelValue.value.renderText && !modelValue.value.clusters.length) {
         queryCluster({
           bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
-          cluster_type: props.clusterTypes.join(','),
+          cluster_type: props.clusterTypes,
           db_type: DBTypes.MYSQL,
           exact_domain: modelValue.value.renderText.split(batchSplitRegex).join(','),
         });

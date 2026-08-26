@@ -62,7 +62,7 @@ export function getAdmins(params: {
 export function updateAdmins(params: {
   bk_biz_id: number;
   db_admins: {
-    db_type: string;
+    db_type: DBTypes;
     db_type_display: string;
     users: string[];
   }[];
@@ -77,7 +77,7 @@ export function updateAdmins(params: {
 export function updateGlobalAdmins(params: {
   bk_biz_id: number;
   db_admins: {
-    db_type: string;
+    db_type: DBTypes;
     db_type_display: string;
     users: string[];
   }[];
@@ -89,7 +89,7 @@ export function updateGlobalAdmins(params: {
 /**
  * 精确查询：判断当前用户是否为指定业务+组件的 DBA
  */
-export function checkBizDba(params: { bk_biz_id: number; db_type: string }) {
+export function checkBizDba(params: { bk_biz_id: number; db_type: DBTypes }) {
   return http.post<{ is_biz_dba: boolean }>(`${path}/get_dba_component/`, params);
 }
 

@@ -2,7 +2,6 @@ import type { DetailBase, DetailClusters } from '../common';
 
 export interface LocalUpgrade extends DetailBase {
   clusters: DetailClusters;
-  is_check_process: boolean;
   infos: {
     cluster_ids: number[];
     display_info: {
@@ -18,4 +17,5 @@ export interface LocalUpgrade extends DetailBase {
     new_db_module_id?: number; // 单节点集群传递
     pkg_id: number;
   }[];
+  is_check_process: boolean;
 }

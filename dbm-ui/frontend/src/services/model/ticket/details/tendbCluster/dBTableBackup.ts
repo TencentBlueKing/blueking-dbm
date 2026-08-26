@@ -11,7 +11,7 @@ export interface DbTableBackup extends DetailBase {
     db_patterns: string[];
     ignore_dbs: string[];
     ignore_tables: string[];
-    table_patterns: string[];
     spider_mnt_address: string;
+    table_patterns: string[];
   }[];
 }

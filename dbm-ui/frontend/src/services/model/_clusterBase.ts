@@ -2,17 +2,19 @@ import _ from 'lodash';
 
 import type { ClusterListNode } from '@services/types';
 
+import type { DBTypeOf, GroupedClusterTypes } from '@common/const';
+
 import { isRecentDays, utcDisplayTime } from '@utils';
 
 import { t } from '@locales/index';
 
-export default class ClusterBase {
+export default class ClusterBase<T extends GroupedClusterTypes = GroupedClusterTypes> {
   static getRoleFaildInstanceList = (data: ClusterListNode[]) => _.filter(data, (item) => item.status !== 'running');
 
   cluster_subzone_ids: number[];
   cluster_subzones: string[];
   create_at: string;
-  db_type: string;
+  db_type: DBTypeOf<T>;
   id: number;
   phase: string;
   region: string;
@@ -25,7 +27,7 @@ export default class ClusterBase {
   }[];
   update_at: string;
 
-  constructor(payload: ClusterBase) {
+  constructor(payload: ClusterBase<T>) {
     this.create_at = payload.create_at;
     this.id = payload.id;
     this.db_type = payload.db_type;

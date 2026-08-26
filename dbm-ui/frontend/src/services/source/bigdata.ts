@@ -13,11 +13,13 @@
 
 import BizConfTopoTreeModel from '@services/model/config/biz-conf-topo-tree';
 
+import type { ClusterTypes } from '@common/const';
+
 import http from '../http';
 
 /**
  * 获取资源拓扑树
  */
-export function getBigdataResourceTree(params: { cluster_type: string }) {
+export function getBigdataResourceTree(params: { cluster_type: ClusterTypes }) {
   return http.get<BizConfTopoTreeModel[]>(`/apis/bigdata/bizs/${window.PROJECT_CONFIG.BIZ_ID}/resource_tree/`, params);
 }

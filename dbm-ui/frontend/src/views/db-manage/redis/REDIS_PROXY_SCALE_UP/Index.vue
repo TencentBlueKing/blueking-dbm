@@ -248,7 +248,7 @@
     [ClusterTypes.REDIS]: {
       getResourceList: (params: ServiceParameters<typeof getRedisList>) =>
         getRedisList({
-          cluster_type: clusterRedisTypeList.join(','),
+          cluster_type: clusterRedisTypeList,
           ...params,
         }),
     },

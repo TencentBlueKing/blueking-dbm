@@ -14,6 +14,8 @@
 import ConfigItemChangeModel from '@services/model/config/config-item-change';
 import ConfigNameChangeModel from '@services/model/config/config-name-change';
 
+import type { ClusterTypes } from '@common/const';
+
 import http, { type IRequestPayload } from '../http';
 
 const path = '/apis/configs';
@@ -99,7 +101,7 @@ export function getConfigVersionDetails(params: {
   level_info?: any;
   level_name?: string;
   level_value?: number;
-  meta_cluster_type: string;
+  meta_cluster_type: ClusterTypes;
   revision?: string;
   version: string;
 }) {
@@ -119,7 +121,7 @@ export function getLevelConfig(
     };
     level_name?: string;
     level_value?: number | string;
-    meta_cluster_type: string;
+    meta_cluster_type: ClusterTypes;
     version?: string;
   },
   payload = {} as IRequestPayload,
@@ -140,7 +142,7 @@ export function getLevelConfig(
 export function getConfigBaseDetails(
   params: {
     conf_type: string;
-    meta_cluster_type: string;
+    meta_cluster_type: ClusterTypes;
     version: string;
   },
   payload = {} as IRequestPayload,
@@ -165,7 +167,7 @@ export function getBusinessConfigList(
     conf_file?: string;
     conf_type: string;
     limit?: number;
-    meta_cluster_type: string;
+    meta_cluster_type: ClusterTypes;
     offset?: number;
   },
   payload = {} as IRequestPayload,
@@ -191,7 +193,7 @@ export function getBusinessConfigList(
 /**
  * 查询配置项名称列表
  */
-export function getConfigNames(params: { conf_type: string; meta_cluster_type: string; version: string }) {
+export function getConfigNames(params: { conf_type: string; meta_cluster_type: ClusterTypes; version: string }) {
   return http.get<ParameterConfigItem[]>(`${path}/list_config_names/`, params);
 }
 
@@ -204,7 +206,7 @@ export function getConfigVersionList(params: {
   level_info?: any;
   level_name?: string;
   level_value?: number;
-  meta_cluster_type: string;
+  meta_cluster_type: ClusterTypes;
   revision?: string;
   version: string;
 }) {
@@ -233,7 +235,7 @@ export function getConfigVersionList(params: {
 export function getPlatformConfigList(
   params: {
     conf_type: string;
-    meta_cluster_type: string;
+    meta_cluster_type: ClusterTypes;
   },
   payload = {} as IRequestPayload,
 ) {
@@ -261,7 +263,7 @@ export function saveModulesDeployInfo(params: {
   conf_type: string;
   level_name: string;
   level_value: number;
-  meta_cluster_type: string;
+  meta_cluster_type: ClusterTypes;
   version: string;
 }) {
   return http.post<{
@@ -286,7 +288,7 @@ export function updateBusinessConfig(params: {
   level_info?: any;
   level_name: string;
   level_value: number | string;
-  meta_cluster_type: string;
+  meta_cluster_type: ClusterTypes;
   name: string;
   publish_description?: string;
   version: string;
@@ -309,7 +311,7 @@ export function updatePlatformConfig(params: {
   conf_type: string;
   confirm: number;
   description: string;
-  meta_cluster_type: string;
+  meta_cluster_type: ClusterTypes;
   name: string;
   publish_description?: string;
   version: string;
@@ -388,7 +390,7 @@ export function getListConfNameTypes(params: { limit?: number; offset?: number }
 }
 
 // 查询配置类型列表
-export function getListConfTypes(params: { limit?: number; meta_cluster_type: string; offset?: number }) {
+export function getListConfTypes(params: { limit?: number; meta_cluster_type: ClusterTypes; offset?: number }) {
   return http.get<
     {
       conf_type: string;
@@ -405,7 +407,7 @@ export function getListClusterModuleConfFiles(params: {
   db_module_id?: number;
   deploy_versions?: string; // json
   limit?: number;
-  meta_cluster_type: string;
+  meta_cluster_type: ClusterTypes;
   offset?: number;
 }) {
   return http.get<
@@ -419,7 +421,11 @@ export function getListClusterModuleConfFiles(params: {
 }
 
 // 删除模块配置
-export function deleteModuleConfig(params: { bk_biz_id: number; db_module_id: number; meta_cluster_type: string }) {
+export function deleteModuleConfig(params: {
+  bk_biz_id: number;
+  db_module_id: number;
+  meta_cluster_type: ClusterTypes;
+}) {
   return http.post(`${path}/delete_module_config/`, params);
 }
 
@@ -431,7 +437,7 @@ export function recoverDefaultConfigItem(params: {
   conf_type: string;
   level_name: string;
   level_value: string;
-  meta_cluster_type: string;
+  meta_cluster_type: ClusterTypes;
 }) {
   return http.post(`${path}/recover_default_conf_item/`, params);
 }
@@ -443,7 +449,7 @@ export function deleteLevelValue(params: {
   conf_type: string;
   level_name: string;
   level_value: number | string;
-  meta_cluster_type: string;
+  meta_cluster_type: ClusterTypes;
 }) {
   return http.post(`${path}/delete_level_value/`, params);
 }
@@ -486,7 +492,7 @@ export function changeConfNames(params: {
     value_type_sub: string;
   }>;
   conf_type: string;
-  meta_cluster_type: string;
+  meta_cluster_type: ClusterTypes;
 }) {
   return http.post(`${path}/change_conf_names/`, params);
 }
@@ -562,7 +568,7 @@ export function upsertCommonLevelConfig(params: {
   };
   level_name: string;
   level_value: number | string;
-  meta_cluster_type: string;
+  meta_cluster_type: ClusterTypes;
   publish_description?: string;
   version: string;
 }) {
@@ -678,7 +684,7 @@ export interface CloneModuleQueryResult {
 
 export function moduleCloneQuery(params: {
   conf_type: string;
-  meta_cluster_type: string;
+  meta_cluster_type: ClusterTypes;
   source_bk_biz_id: string;
   source_conf_file: string;
   source_module_id: string;
@@ -696,7 +702,7 @@ export function checkConfNameExists(params: {
   conf_file: string;
   conf_name: string;
   conf_type?: string;
-  meta_cluster_type: string;
+  meta_cluster_type: ClusterTypes;
 }) {
   return http.get<{ exists: boolean }>(`${path}/check_conf_name_exists/`, params);
 }

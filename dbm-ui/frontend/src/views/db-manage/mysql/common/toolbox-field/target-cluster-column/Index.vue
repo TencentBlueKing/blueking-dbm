@@ -34,7 +34,7 @@
   </EditableColumn>
   <ClusterSelector
     v-model:is-show="showSelector"
-    :cluster-types="[ClusterTypes.TENDBHA, ClusterTypes.TENDBSINGLE]"
+    :cluster-types="clusterTypesByDBType[DBTypes.MYSQL]"
     :selected="selectedClusters"
     :tab-list-config="tabListConfig"
     @change="handleSelectorChange" />
@@ -47,7 +47,7 @@
   import TendbsingleModel from '@services/model/mysql/tendbsingle';
   import { filterClusters } from '@services/source/dbbase';
 
-  import { ClusterTypes, DBTypes } from '@common/const';
+  import { ClusterTypes, clusterTypesByDBType, DBTypes } from '@common/const';
   import { domainRegex } from '@common/regex';
 
   import ClusterSelector, { type TabConfig } from '@components/cluster-selector/Index.vue';
@@ -176,7 +176,7 @@
       if (!modelValue.value.id && modelValue.value.master_domain) {
         queryCluster({
           bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
-          cluster_type: [ClusterTypes.TENDBHA, ClusterTypes.TENDBSINGLE].join(','),
+          cluster_type: clusterTypesByDBType[DBTypes.MYSQL],
           db_type: DBTypes.MYSQL,
           exact_domain: modelValue.value.master_domain,
         });
