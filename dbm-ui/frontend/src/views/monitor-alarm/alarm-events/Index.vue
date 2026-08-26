@@ -65,6 +65,7 @@
         </template>
       </TableColumn>
       <TableColumn
+        v-if="isTodoPage || isGlobalPage"
         col-key="bk_biz_id"
         :min-width="160"
         :title="t('所属业务')">
@@ -516,21 +517,28 @@
   };
 
   const handleExport = () => {
-    const formatData = selectionList.value.map((item) => ({
-      [t('告警 ID')]: item.id,
-      [t('告警主机/实例')]: item.instance,
-      [t('告警产生时间')]: item.createTimeDisplay,
-      [t('告警内容')]: item.description,
-      [t('告警名称')]: item.alert_name,
-      [t('告警等级')]: item.severityDisplayName,
-      [t('处理阶段')]: item.stage_display,
-      [t('所属业务')]: bizsMap.value[item.bk_biz_id],
-      [t('所属集群')]: item.cluster,
-      [t('状态')]: item.statusDisplay,
-      [t('负责人')]: item.appointee?.join(','),
-      [t('首次异常时间')]: item.firstAnomalyTimeDisplay,
-    }));
-    const colsWidths = Array(11)
+    const formatData = selectionList.value.map((item) => {
+      const row: Record<string, string | undefined> = {
+        [t('告警 ID')]: item.id,
+        [t('告警主机/实例')]: item.instance,
+        [t('告警产生时间')]: item.createTimeDisplay,
+        [t('告警内容')]: item.description,
+        [t('告警名称')]: item.alert_name,
+        [t('告警等级')]: item.severityDisplayName,
+        [t('处理阶段')]: item.stage_display,
+        [t('所属集群')]: item.cluster,
+        [t('状态')]: item.statusDisplay,
+        [t('负责人')]: item.appointee?.join(','),
+        [t('首次异常时间')]: item.firstAnomalyTimeDisplay,
+      };
+      // 业务上下文不导出所属业务列
+      if (isTodoPage.value || isGlobalPage.value) {
+        row[t('所属业务')] = bizsMap.value[item.bk_biz_id];
+      }
+      return row;
+    });
+    const colCount = formatData[0] ? Object.keys(formatData[0]).length : 0;
+    const colsWidths = Array(Math.max(colCount, 1))
       .fill(15)
       .map((width) => ({ width }));
     exportExcelFile(formatData, colsWidths, 'Sheet1', `${route.meta.navName}.xlsx`);
@@ -559,7 +567,8 @@
         id: data.id,
       },
     });
-    const bizId = dimensions.find((item) => item.key === 'tags.appid')?.value || 0;
+    const bizDimension = dimensions.find((item) => item.key === 'appid' || item.display_key === 'appid');
+    const bizId = bizDimension?.value || 0;
     window.open(isTodoPage || isGlobalPage ? getBusinessHref(href, Number(bizId)) : href, '_blank');
   };
 
