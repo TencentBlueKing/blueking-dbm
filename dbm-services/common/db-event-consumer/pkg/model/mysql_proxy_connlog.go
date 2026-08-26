@@ -35,8 +35,6 @@ type MysqlProxyConnlog struct {
 	BkBizId         int    `gorm:"column:bk_biz_id;type:int;not null" json:"bk_biz_id" db:"bk_biz_id"`
 	BkCloudId       int    `gorm:"column:bk_cloud_id;type:int;not null" json:"bk_cloud_id" db:"bk_cloud_id"`
 	ClusterDomain   string `gorm:"column:cluster_domain;type:varchar(127);not null" json:"cluster_domain" db:"cluster_domain"`
-	//ClusterDomain   string `gorm:"column:cluster_domain;type:varchar(127);not null" json:"cluster_domain" db:"cluster_domain"`
-	//BkCloudId       int    `gorm:"column:bk_cloud_id;type:int;not null" json:"cloudId" db:"bk_cloud_id"`
 	// ProxyIp proxy serverIp
 	ProxyIp   string    `gorm:"column:proxy_ip;type:varchar(127);not null" json:"proxy_ip" db:"proxy_ip"`
 	ProxyPort int       `gorm:"column:proxy_port;type:int" json:"proxy_port" db:"proxy_port"`

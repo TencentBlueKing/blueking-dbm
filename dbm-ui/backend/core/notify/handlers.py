@@ -651,6 +651,7 @@ class NotifyAdapter:
         base_info: dict,
         title: str,
         ai_result: str,
+        share_url: str,
         receivers: list = None,
     ):
         """
@@ -659,6 +660,7 @@ class NotifyAdapter:
         @param base_info: 告警基本维度信息
         @param title: 分析时间窗口开始
         @param ai_result: AI 分析结果
+        @param share_url: 分析报告URL report_url
         @param receivers: 接收人列表，为空则使用业务协助人
         """
         # 获取业务名称
@@ -680,6 +682,7 @@ class NotifyAdapter:
                 alarm_strategy=base_info["strategy_name"],
                 alarm_level=base_info["level"],
                 alarm_time=base_info["alarm_time"],
+                share_url=share_url,
                 ai_result=ai_result,
             )
         )

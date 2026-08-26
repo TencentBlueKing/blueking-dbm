@@ -642,6 +642,8 @@ func CreateExporterConf(fileName string, host string, port int, user string, pas
 		labelSection.NewKey("instance_role", instanceRole)
 	}
 
+	// 渲染 argument
+
 	// cfg.NewSection("label")
 	err = cfg.SaveTo(cnfPath)
 	if err != nil {
