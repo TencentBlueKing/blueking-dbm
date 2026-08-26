@@ -421,6 +421,33 @@ class CmsiHandler(BaseNotifyHandler):
         self.receivers = [DEFAULT_USERNAME]
         self._cmsi_send_msg(MsgType.WECOM_ROBOT.value, sender=env.WECOM_ROBOT, wecom_robot=wecom_robot)
 
+    def send_wecom_robot_markdown(
+        self,
+        at_short_name: bool = False,
+        attachments: list = None,
+    ):
+        """
+        企微机器人发送 markdown 类型消息
+        :param at_short_name: markdown 内容中 @人 是否使用短名字格式
+        :param attachments: attachments 内容，目前仅支持 button 类型，每个 attachment 最多 20 个 action
+                            格式: [{"callback_id": "xxx", "actions": [...]}]
+        """
+        markdown_body = {
+            "content": self.content,
+            "at_short_name": at_short_name,
+        }
+        if attachments:
+            markdown_body["attachments"] = attachments
+
+        wecom_robot = {
+            "type": "markdown",
+            "markdown": markdown_body,
+            "group_receiver": self.receivers,
+        }
+        # 机器人发送，则receiver__username要置为用户名/admin。TODO: 应该支持填会话ID or 填空的
+        self.receivers = [DEFAULT_USERNAME]
+        self._cmsi_send_msg(MsgType.WECOM_ROBOT.value, sender=env.WECOM_ROBOT, wecom_robot=wecom_robot)
+
     def send_msg(self, msg_type, context):
         getattr(self, f"send_{msg_type}")()
 

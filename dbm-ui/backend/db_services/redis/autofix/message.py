@@ -139,7 +139,7 @@ def send_msg_2_qywx(sub_title: str, msgs):
             logger.exception("AI agent query failed for cluster %s: %s", immute_doamin, e)
     content += _("消息时间 : {}\n".format(date2str(datetime.datetime.now(), "%Y-%m-%d %H:%M:%S")))
 
-    CmsiHandler(_("Tendis自愈"), content, msg_ids).send_wecom_robot()
+    CmsiHandler(_("Tendis自愈"), content, msg_ids).send_wecom_robot_markdown()
 
     if not content.__contains__(_("发起")):
         RedisConn.delete(session_code_key)
