@@ -1,10 +1,10 @@
 ---
 name: dbm-release-plan
 description: >-
-  生成 frontend_master 待合入 v1.5.0 的 commit 发布计划记录。当用户需要发布计划、
-  发版记录、核对 frontend_master 还有哪些提交未合入 v1.5.0，或给出 release PR 链接
-  要求生成 commit 清单时使用。是否已合入的判定逻辑：以 commit msg 尾部的 issue id
-  （如 #19152）在 v1.5.0 历史中是否存在相同 issue id 的提交为准（识别 cherry-pick）。
+  生成 frontend_master 待合入 v1.5.0 的 commit 发布计划记录。当用户需要发布计划、 发版记录、核对 frontend_master
+  还有哪些提交未合入 v1.5.0，或给出 release PR 链接 要求生成 commit 清单时使用。是否已合入的判定逻辑：以 commit msg
+  尾部的 issue id （如 #19152）在 v1.5.0 历史中是否存在相同 issue id 的提交为准（识别 cherry-pick）。
+disable-model-invocation: true
 ---
 
 # dbm-release-plan
@@ -62,8 +62,8 @@ done
 ## 本次发布计划（N 个）
 
 | 作者 | 提交信息 |
-|---|---|
-| ... | ... |
+| ---- | -------- |
+| ...  | ...      |
 ```
 
 - 标题带未合入个数，表格列 `作者 | 提交信息`，提交信息中保留 issue id 以便追溯。
