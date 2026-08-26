@@ -125,8 +125,15 @@ func RestartCmdRunE(cmd *cobra.Command, args []string) error {
 	return StartCmdRunE(cmd, args)
 }
 
+// chdirInstallRootIfPackaged switches to InstallRoot when the binary lives in
+// <root>/bin. Unpackaged layouts (go test, go run) keep the current directory.
+func chdirInstallRootIfPackaged() {
+	_, _ = process.ChdirInstallRoot()
+}
+
 // ReloadCmdRunE sends reload signal to the running probe process.
 func ReloadCmdRunE(cmd *cobra.Command, args []string) error {
+	chdirInstallRootIfPackaged()
 	return process.ReloadCmdRunE(cmd, args, config.Cfg.PidFile, procName(), StopTimeout, ForceStop)
 }
 
@@ -243,14 +250,14 @@ func writeOrPrintProbeYAML(
 	if !reload {
 		return nil
 	}
-	// Deliberately not config.Load(outputPath): that would rewrite the viper
-	// globals for the rest of this process. The default pid file matches what
-	// GenProbeYAML just rendered.
-	return process.ReloadCmdRunE(cmd, nil, config.Cfg.PidFile, procName(), 0, false)
+	// Deliberately not config.Load(outputPath): that would rewrite Cfg for the
+	// rest of this process. The default pid file matches what GenProbeYAML rendered.
+	return process.ReloadIfRunning(cmd, config.Cfg.PidFile, procName())
 }
 
 // GenConfigCmdRunE fetches probe metadata from admin, generates YAML locally, writes to file or stdout.
 func GenConfigCmdRunE(cmd *cobra.Command, args []string) error {
+	chdirInstallRootIfPackaged()
 	adminEndpointsStr, _ := cmd.Flags().GetString("admin-endpoints")
 	cloudID, _ := cmd.Flags().GetUint64("cloud-id")
 	localIP, _ := cmd.Flags().GetString("local-ip")

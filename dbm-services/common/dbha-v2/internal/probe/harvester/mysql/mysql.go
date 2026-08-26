@@ -184,6 +184,18 @@ func (m *MySql) Harvest(ctx context.Context, machineID, serviceID string) (<-cha
 func (m *MySql) runGroupLoop(ctx context.Context, g *harvestGroup, dataC chan<- *plugin.HarvestData) {
 	defer m.wg.Done()
 
+	if ctx.Err() != nil {
+		logger.Info("exit harvester, name: %s, group: %s", m.name, g.htype)
+		return
+	}
+
+	collectRound := func() {
+		wg := &sync.WaitGroup{}
+		m.beginCollecting(wg, dataC, g)
+		wg.Wait()
+	}
+	collectRound()
+
 	timer := time.NewTimer(g.interval)
 	defer timer.Stop()
 
@@ -194,12 +206,7 @@ func (m *MySql) runGroupLoop(ctx context.Context, g *harvestGroup, dataC chan<- 
 			return
 
 		case <-timer.C:
-			wg := &sync.WaitGroup{}
-
-			m.beginCollecting(wg, dataC, g)
-
-			wg.Wait()
-
+			collectRound()
 			timer.Reset(g.interval)
 		}
 	}

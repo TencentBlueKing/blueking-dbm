@@ -162,7 +162,7 @@ mysql-proxy 有一条既有规则：**没有管理端口的 endpoint 整条跳�
 | Unix | 向 pid 发送 `SIGHUP` | `sent SIGHUP to dbha-probe (pid=N) for reload` |
 | Windows | 置位该进程的具名 reload 事件 | `set reload event for dbha-probe (pid=N) for reload` |
 
-进程未运行、pid 文件不存在或是 stale pid 时，打印提示并**返回成功（退出码 0）**。「配置已经生成好了，进程没跑」不算失败，这与单独执行 `reload` 的语义一致。
+进程未运行、pid 文件不存在或是 stale pid 时，打印提示并**返回失败（退出码 1）**。YAML 已经落盘，不会回滚。首次部署应先 `start` / `daemon-start`，不要在进程起来之前带 `--reload`。独立子命令 `dbha-probe reload` 在进程未运行时仍退出 0。
 
 ### 5.2 必须配合 `-o`
 
@@ -176,7 +176,7 @@ mysql-proxy 有一条既有规则：**没有管理端口的 endpoint 整条跳�
 
 ### 5.4 pid 文件的相对路径语义
 
-`gen-config` **不会**切换到安装根目录（只有 `ensure` 会做 `ChdirInstallRoot`）。因此 `--reload` 使用的相对路径 `./pids/probe.pid` 是相对**当前工作目录**解析的，与单独执行 `dbha-probe reload` 的行为相同。不在安装根目录下执行时会走到 "not running" 分支并退出 0。这是既有语义。
+`gen-config` 与 probe 的 `reload` 子命令在二进制位于 `<root>/bin/` 时会切换到安装根目录（与 `ensure` 同一锚点；非打包布局保持当前工作目录）。因此相对路径 `./pids/probe.pid` 与相对 `-o` 都相对安装根解析，crontab / schtasks 的默认 CWD 不再把 pid 指到 `$HOME` 或 `system32`。
 
 在 `daemon-start` 模式下，pid 文件里记的是 guard 进程：Unix 上信号先到 guard，再由 `forwardReloadToChild` 转发给 worker；Windows 上 worker 自己监听具名事件，转发是 no-op。这条链路保持不变。
 
@@ -186,13 +186,13 @@ probe 收到 reload 信号后（`gen-config --reload` 或独立子命令 `dbha-p
 
 1. 用 `config.Parse` 解析文件（从默认值出发，因此删除的 harvester / reporter 块会真正消失）。
 2. `pidFile` 与 `log` 不热更（保留进程启动时的身份设置）；改日志路径或级别仍需 `restart`。
-3. 与当前已应用配置比较：未变则跳过（防止高频无变化 reload 反复重置采集定时器导致采集饥饿）；解析失败则打 Warn、运行时不动。
+3. 与当前已应用配置比较：未变则跳过（避免无变化时 stop/quiesce/重建）；解析失败则打 Warn、运行时不动。
 4. 有变化时：停止当前 harvester 世代 → 静默 reporter 创建协程 → 写入新 `config.Cfg` → 仅在 reporter（或 client）配置变化时重建 reporter → 启动新世代。
 
 已知限制：
 
 - **两代有界重叠**：`stop` 只等 `runPlugin` 退出，不等 harvester 内部在途 collector；上一代可能还有一次在途查询（上限约等于该 harvester 的 `Timeout`）。
-- **首次采集延迟一个 interval**：新世代的 group loop 在第一个 timer 触发前不上报（default / repldelay 约 20s，heartbeat 约 3s），与 `restart` 行为一致。不要以短于采集间隔的频率反复触发「确有变化」的 reload。
+- **新世代立即采集一轮**，之后按 interval 周期执行。不要以短于采集间隔的频率反复触发「确有变化」的 reload。
 - **`-o` 必须与进程 `-c` 指向同一文件**，否则信号发到了进程，但进程读的仍是旧路径下的内容。
 - **admin / analysis / receiver** 的 reload 仍是 stub，只有 probe 实现了进程内热加载。
 
@@ -207,7 +207,7 @@ flag 帮助文案仍写作 "signal the running probe to reload it"：CLI 侧只�
 两个细节：
 
 - `run` 内部把 `nil` 参数规范化为 `[]string{}`。cobra 在收到 `nil` 时会回退去读 `os.Args[1:]`，在 `go test` 下那是测试二进制自己的命令行，会导致不可预期的行为。
-- 「正常但未执行成功」的场景仍然退 0，不受此次改动影响，例如 `ensure` 遇到锁竞争、`reload` 时进程未运行。只有真正的错误才退 1。
+- 「正常但未执行成功」的场景仍然退 0，例如 `ensure` 遇到锁竞争、独立子命令 `reload` 时进程未运行。`gen-config --reload` 在进程未运行时视为错误，退 1。
 
 影响面：`start-probe.sh`、`start-probe-keepalive.sh`、`start-server.sh` 直接消费退出码，首次启动真的失败时不会再注册 cron guard——这是期望中的改变。已有的 crontab 条目不受影响。
 
@@ -232,6 +232,6 @@ flag 帮助文案仍写作 "signal the running probe to reload it"：CLI 侧只�
 - **内容无变化时不刷新 `mtime`**。用 mtime 判断「配置是否更新过」的监控需要改用内容哈希。
 - **并发执行是安全的**，但会互相等待，最长等 `--lock-timeout`（默认 10s）。超时会报错退出 1，可按现场情况调大。
 - **`--clear-port` 只影响本次生成的文件**，不是持久开关。下次不带该 flag 执行时，被剔除的端口会重新出现。需要长期剔除应写进定时任务的命令行。
-- **`--reload` / `dbha-probe reload` 会让运行中的 probe 热加载新配置**（见 §5.5）。配置确有变化时会产生最长一个采集周期的上报间隙（与 `restart` 相当），不要高频触发「有变化」的 reload。
-- **`--reload` 依赖当前工作目录**定位 pid 文件，建议在安装根目录下执行；`-o` 应与进程 `-c` 为同一文件。
+- **`--reload` / `dbha-probe reload` 会让运行中的 probe 热加载新配置**（见 §5.5）。配置确有变化时新世代会立刻采集一轮。不要高频触发「有变化」的 reload。
+- **打包安装下 `gen-config` 与 `reload` 会切到安装根目录**定位 pid 与相对 `-o`；`-o` 应与进程 `-c` 为同一文件。首次部署不要在进程启动前带 `--reload`。
 - **`Python` 侧的 `scripts/render_configs.py` 也会写 `probe.yaml`，但不参与这把锁**。两者并发不是常见运维场景，属于已知缺口。

@@ -25,10 +25,19 @@
 package cmds
 
 import (
+	"bytes"
+	"errors"
 	"net"
+	"os"
+	"path/filepath"
 	"testing"
+	"time"
 
+	"dbm-services/common/dbha-v2/internal/probe/config"
 	"dbm-services/common/dbha-v2/pkg/probeconfig"
+	"dbm-services/common/dbha-v2/pkg/process"
+
+	"github.com/spf13/cobra"
 )
 
 func TestResolveGenConfigLocalIP_FallbackToOutbound(t *testing.T) {
@@ -313,5 +322,36 @@ func TestResolveGenConfigLocalIP_ExplicitInterface(t *testing.T) {
 	}
 	if ip == "" {
 		t.Fatal("expected non-empty IP from loopback interface")
+	}
+}
+
+func TestChdirInstallRootIfPackaged_RestoresCallerCWD(t *testing.T) {
+	wd, err := os.Getwd()
+	if err != nil {
+		t.Fatalf("getwd failed, errmsg: %s", err)
+	}
+	t.Cleanup(func() {
+		if err := os.Chdir(wd); err != nil {
+			t.Errorf("restore cwd failed, errmsg: %s", err)
+		}
+	})
+	chdirInstallRootIfPackaged()
+}
+
+func TestWriteOrPrintProbeYAML_ReloadRequiresRunning(t *testing.T) {
+	saved := config.Cfg
+	t.Cleanup(func() { config.Cfg = saved })
+	config.Cfg.PidFile = filepath.Join(t.TempDir(), "missing.pid")
+
+	out := filepath.Join(t.TempDir(), "probe.yaml")
+	cmd := &cobra.Command{}
+	var buf bytes.Buffer
+	cmd.SetOut(&buf)
+	err := writeOrPrintProbeYAML(cmd, out, "name: probe\n", time.Second, true)
+	if !errors.Is(err, process.ErrProcessNotRunning) {
+		t.Fatalf("err: %v, want ErrProcessNotRunning", err)
+	}
+	if _, statErr := os.Stat(out); statErr != nil {
+		t.Fatalf("yaml should remain after reload failure, errmsg: %s", statErr)
 	}
 }

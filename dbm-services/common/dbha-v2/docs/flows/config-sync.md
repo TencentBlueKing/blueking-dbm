@@ -59,6 +59,6 @@ sequenceDiagram
 ## 4. 运维注意
 
 - 元数据为空时返回 `PROBE_CONFIG_NO_DATA`，需先保证 analysis 同步或 DBM 侧有该 IP 的实例信息。
-- 部署侧常用 `dbha-probe gen-config` 后再 `start` / `daemon-start`；自动化见 scripts 与 `ensure` 子命令。
-- 运行中更新配置：在安装根目录执行 `dbha-probe gen-config -o <probe.yaml 路径> --reload`（或改完文件后执行 `dbha-probe reload`），使 probe 热加载新 YAML。
+- 部署侧常用 `dbha-probe gen-config` 后再 `start` / `daemon-start`；自动化见 scripts 与 `ensure` 子命令。首次部署不要在 start 之前带 `--reload`。
+- 运行中更新配置：`dbha-probe gen-config -o <probe.yaml 路径> --reload`（或改完文件后执行 `dbha-probe reload`）。打包布局下命令会切到安装根目录；`-o` 应与进程 `-c` 为同一文件。
 - Admin 下发默认 reporter 为 GSE；运行时 gRPC / GSE 二选一与改法见 [采集与上报](probe-harvest-and-report.md)。

@@ -27,10 +27,11 @@
 package process
 
 import (
+	"errors"
 	"os"
 	"path/filepath"
-	"syscall"
 
+	"dbm-services/common/dbha-v2/pkg/constant"
 	"dbm-services/common/dbha-v2/pkg/gerrors"
 
 	"golang.org/x/sys/windows"
@@ -43,7 +44,7 @@ type FileLock struct {
 
 // TryFileLock attempts a non-blocking exclusive LockFileEx on path.
 func TryFileLock(path string) (fl *FileLock, held bool, err error) {
-	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+	if err := os.MkdirAll(filepath.Dir(path), constant.DirModePermission); err != nil {
 		return nil, false, gerrors.NewE(gerrors.Failure, err)
 	}
 	f, err := os.OpenFile(path, os.O_CREATE|os.O_RDWR, 0o644)
@@ -58,7 +59,7 @@ func TryFileLock(path string) (fl *FileLock, held bool, err error) {
 	)
 	if err != nil {
 		_ = f.Close()
-		if err == windows.ERROR_LOCK_VIOLATION || err == syscall.Errno(33) {
+		if errors.Is(err, windows.ERROR_LOCK_VIOLATION) {
 			return nil, false, nil
 		}
 		return nil, false, gerrors.NewE(gerrors.Failure, err)

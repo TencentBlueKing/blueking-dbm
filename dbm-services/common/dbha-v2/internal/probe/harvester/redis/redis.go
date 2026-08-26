@@ -103,6 +103,18 @@ func (r *Redis) Harvest(ctx context.Context, machineID, serviceID string) (<-cha
 		defer r.wg.Done()
 		defer close(dataC)
 
+		collectRound := func() {
+			wg := &sync.WaitGroup{}
+			r.beginCollecting(ctx, wg, dataC)
+			wg.Wait()
+		}
+
+		if ctx.Err() != nil {
+			logger.Info("exit harvester(redis)")
+			return
+		}
+		collectRound()
+
 		timer := time.NewTimer(r.cfg.Interval)
 		defer timer.Stop()
 
@@ -113,14 +125,7 @@ func (r *Redis) Harvest(ctx context.Context, machineID, serviceID string) (<-cha
 				return
 
 			case <-timer.C:
-				wg := &sync.WaitGroup{}
-
-				// Start the collectors.
-				r.beginCollecting(ctx, wg, dataC)
-
-				// Wait for the collectors to stop.
-				wg.Wait()
-
+				collectRound()
 				timer.Reset(r.cfg.Interval)
 			}
 		}
