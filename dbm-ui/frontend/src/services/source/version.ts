@@ -14,6 +14,8 @@
 import DbVersionModel from '@services/model/version-file/db-version';
 import ReleaseVersionModel from '@services/model/version-file/release-version';
 
+import type { DBTypes } from '@common/const';
+
 import http, { type IRequestPayload } from '../http';
 
 const path = '/apis/version';
@@ -67,7 +69,7 @@ export function getMysqlEngineList(params?: { limit?: number; offset?: number })
  * 发行版列表
  */
 export function getReleaseVersionList(
-  params: { db_type: string; engine?: string; name?: string; pkg_type: string },
+  params: { db_type: DBTypes; engine?: string; name?: string; pkg_type: string },
   payload?: IRequestPayload,
 ) {
   return http.get<ReleaseVersionModel[]>(`${path}/distribution/`, params, payload).then((data) => {
@@ -78,7 +80,7 @@ export function getReleaseVersionList(
 /**
  * 新建发行版
  */
-export function createReleaseVersion(params: { db_type: string; engine?: string; name?: string; pkg_type: string }) {
+export function createReleaseVersion(params: { db_type: DBTypes; engine?: string; name?: string; pkg_type: string }) {
   return http.post<{ id: number }>(`${path}/distribution/`, params);
 }
 
@@ -86,7 +88,7 @@ export function createReleaseVersion(params: { db_type: string; engine?: string;
  * 更新发行版
  */
 export function updateReleaseVersion(params: {
-  db_type: string;
+  db_type: DBTypes;
   engine?: string;
   id: number;
   name?: string;
@@ -99,7 +101,7 @@ export function updateReleaseVersion(params: {
  * 删除发行版
  */
 export function deleteReleaseVersion(params: {
-  db_type: string;
+  db_type: DBTypes;
   engine?: string;
   id: number;
   name?: string;
@@ -121,7 +123,7 @@ export function getDbVersionList(params: { version_series__in: string }) {
 export function createDbVersion(params: {
   description?: string;
   distribution_snapshot?: {
-    db_type: string;
+    db_type: DBTypes;
     engine: string;
     id: number;
     name: string;
@@ -146,7 +148,7 @@ export function createDbVersion(params: {
 export function updateDbVersion(params: {
   description?: string;
   distribution_snapshot?: {
-    db_type: string;
+    db_type: DBTypes;
     engine: string;
     id: number;
     name: string;
@@ -233,7 +235,7 @@ export function deleteVersionSeries(params: { distribution: number; id: number }
 /**
  * 包类型列表
  */
-export function getPkgTypeList(params: { db_type: string }, payload?: IRequestPayload) {
+export function getPkgTypeList(params: { db_type: DBTypes }, payload?: IRequestPayload) {
   return http.get<
     {
       can_delete: boolean;
@@ -250,7 +252,7 @@ export function getPkgTypeList(params: { db_type: string }, payload?: IRequestPa
  * 更新包类型
  */
 export function updatePkgType(params: {
-  db_type: string;
+  db_type: DBTypes;
   items: { name: string; value: string; version_num: number }[];
 }) {
   return http.post<null>(`${path}/dbversion/update_pkg_types/`, params);

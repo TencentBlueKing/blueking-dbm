@@ -3,6 +3,6 @@
  */
 export enum OccupiedInnerHeight {
   NOT_PAGINATION = 202,
-  NOT_PAGINATION_WITH_TIP = 284,
   WITH_PAGINATION = 218,
+  NOT_PAGINATION_WITH_TIP = 284,
 }

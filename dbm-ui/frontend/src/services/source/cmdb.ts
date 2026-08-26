@@ -14,6 +14,8 @@ import pinyin from 'tiny-pinyin';
 
 import type { BizItem } from '@services/types';
 
+import type { ClusterTypes } from '@common/const';
+
 import http from '../http';
 
 const path = '/apis/cmdb';
@@ -48,7 +50,7 @@ export function getBizs(params = {} as { action: string }) {
 export function createModules(params: {
   alias_name: string;
   biz_id: number;
-  cluster_type: string;
+  cluster_type: ClusterTypes;
   db_module_name: string;
 }) {
   return http.post<{
@@ -58,7 +60,7 @@ export function createModules(params: {
       bk_module_name: string;
     }[];
     bk_set_id: number;
-    cluster_type: string;
+    cluster_type: ClusterTypes;
     db_module_id: number;
     db_module_name: string;
     name: string;
@@ -84,7 +86,7 @@ export function getUserGroupList(params: { bk_biz_id: number }) {
 /**
  * 业务下的模块列表
  */
-export function getModules(params: { bk_biz_id: number; cluster_type: string }) {
+export function getModules(params: { bk_biz_id: number; cluster_type: ClusterTypes }) {
   return http.get<
     {
       alias_name: string;
@@ -133,7 +135,7 @@ export function createAppAbbr(params: { db_app_abbr: string; id: number }) {
  */
 export const getBizModuleTopoTree = (params: {
   bk_biz_name?: string;
-  cluster_type: string; // 逗号分隔
+  cluster_type: ClusterTypes; // 逗号分隔
   count_type?: string; // 以cluster/instance为维度 统计业务模块对应的数量信息
   limit?: number;
   module_name?: string;
@@ -158,7 +160,7 @@ export const getBizModuleTopoTree = (params: {
  */
 export function checkDbModuleUnique(params: {
   bk_biz_id: string | number;
-  cluster_type: string;
+  cluster_type: ClusterTypes;
   db_module_name: string;
 }) {
   return http.get<{

@@ -13,6 +13,8 @@
 
 import type { ListBase } from '@services/types';
 
+import type { ClusterTypes } from '@common/const';
+
 import http from '../http';
 import ClusterSpecModel from '../model/resource-spec/cluster-sepc';
 import ResourceSpecModel from '../model/resource-spec/resourceSpec';
@@ -29,7 +31,7 @@ export function getResourceSpecList(params: {
   enable?: boolean;
   limit: number;
   offset?: number;
-  spec_cluster_type: string;
+  spec_cluster_type: ClusterTypes;
   spec_db_type?: string;
   spec_ids?: string;
   spec_machine_type?: string;
@@ -74,7 +76,7 @@ export function getFilterClusterSpec(params: {
     min: number;
   };
   shard_num?: number;
-  spec_cluster_type: string;
+  spec_cluster_type: ClusterTypes;
   spec_machine_type: string;
 }) {
   return http
@@ -88,7 +90,7 @@ export function getFilterClusterSpec(params: {
 export function queryQPSRange(params: {
   capacity: number;
   future_capacity: number;
-  spec_cluster_type: string;
+  spec_cluster_type: ClusterTypes;
   spec_machine_type: string;
 }) {
   return http.get<{
@@ -120,7 +122,7 @@ export function fetchRecommendSpec(
  * 校验规格名称是否重复
  */
 export function verifyDuplicatedSpecName(params: {
-  spec_cluster_type: string;
+  spec_cluster_type: ClusterTypes;
   spec_id?: number;
   spec_machine_type: string;
   spec_name: string;
@@ -142,7 +144,7 @@ export function updateResourceSpec(
   params: {
     device_class?: string[];
     enable?: boolean;
-    spec_cluster_type: string;
+    spec_cluster_type: ClusterTypes;
     spec_id: number;
     spec_machine_type: string;
     spec_name: string;

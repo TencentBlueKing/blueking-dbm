@@ -13,6 +13,8 @@
 
 import type { HostInfo, MachineRelatedCluster, MachineRelatedInstance, MachineSpecConfig } from '@services/types';
 
+import type { ClusterTypes } from '@common/const';
+
 /**
  * 主机详细信息
  */
@@ -25,7 +27,7 @@ export interface MachineInfos {
   bk_rack_id: number;
   bk_sub_zone: string;
   bk_svr_device_cls_name: string;
-  cluster_type: string;
+  cluster_type: ClusterTypes;
   cluster_type_name: string;
   create_at: string;
   db_module_id: number;

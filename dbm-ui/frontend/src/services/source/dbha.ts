@@ -11,6 +11,8 @@
  * the specific language governing permissions and limitations under the License.
  */
 
+import type { ClusterTypes, DBTypes } from '@common/const';
+
 import http, { type IRequestPayload } from '../http';
 
 const path = '/apis/event/dbha';
@@ -27,14 +29,14 @@ export function getEventSwitchList(params: Record<string, any>, payload = {} as 
       cloud: string;
       cluster: string;
       cluster_info: {
-        cluster_type: string;
+        cluster_type: ClusterTypes;
         id: number;
         immute_domain: string;
       };
       confirm_check_time: string;
       confirm_result: string;
       db_role: string;
-      db_type: string;
+      db_type: DBTypes;
       idc: string;
       ip: string;
       port: number;

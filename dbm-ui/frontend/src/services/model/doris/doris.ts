@@ -21,7 +21,7 @@ import type {
   MachineSpec,
 } from '@services/types';
 
-import { Affinity, affinityMap, ClusterTypes, DBTypes, TicketTypes } from '@common/const';
+import { Affinity, affinityMap, ClusterTypes, TicketTypes } from '@common/const';
 
 import { t } from '@locales/index';
 
@@ -30,7 +30,7 @@ import ClusterBase from '../_clusterBase';
 const STATUS_NORMAL = 'normal';
 const STATUS_ABNORMAL = 'abnormal';
 
-export default class Doris extends ClusterBase {
+export default class Doris extends ClusterBase<ClusterTypes.DORIS> {
   static DORIS_DESTROY = TicketTypes.DORIS_DESTROY;
   static DORIS_DISABLE = TicketTypes.DORIS_DISABLE;
 
@@ -81,7 +81,6 @@ export default class Doris extends ClusterBase {
   cluster_type_name: string;
   create_at: string;
   creator: string;
-  db_type: DBTypes.DORIS;
   disaster_tolerance_level: Affinity;
   domain: string;
   doris_backend_hot: Array<ClusterListNode>;
@@ -127,7 +126,6 @@ export default class Doris extends ClusterBase {
     this.cluster_time_zone = payload.cluster_time_zone;
     this.create_at = payload.create_at;
     this.creator = payload.creator;
-    this.db_type = payload.db_type;
     this.disaster_tolerance_level = payload.disaster_tolerance_level;
     this.domain = payload.domain;
     this.master_domain = payload.master_domain;

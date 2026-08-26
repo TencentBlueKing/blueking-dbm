@@ -14,6 +14,8 @@ import http from '@services/http';
 import RedisModel from '@services/model/redis/redis';
 import type { InstanceRelatedCluster, ListBase, MachineRelatedCluster, MachineSpecConfig } from '@services/types';
 
+import type { ClusterTypes } from '@common/const';
+
 const getRootPath = (bizId = window.PROJECT_CONFIG.BIZ_ID) => `/apis/redis/bizs/${bizId}/toolbox`;
 
 interface MachineInstancePairItem {
@@ -21,7 +23,7 @@ interface MachineInstancePairItem {
   bk_cloud_id: number;
   bk_host_id: number;
   bk_instance_id: number;
-  cluster_type: string;
+  cluster_type: ClusterTypes;
   instance: string;
   ip: string;
   is_stand_by: boolean;
@@ -98,7 +100,7 @@ export function queryMachineInstancePair(params: {
         related_clusters: {
           bk_biz_id: number;
           bk_cloud_id: number;
-          cluster_type: string;
+          cluster_type: ClusterTypes;
           id: number;
           immute_domain: string;
           major_version: string;
