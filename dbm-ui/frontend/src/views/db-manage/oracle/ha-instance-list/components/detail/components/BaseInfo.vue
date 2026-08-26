@@ -12,13 +12,40 @@
 -->
 
 <template>
-  <EditInfo
-    class="base-info pt-20"
-    :columns="columns"
-    :data="data" />
+  <div class="base-info-list pt-20">
+    <ul
+      v-for="(list, index) of columns"
+      :key="index"
+      class="base-info-column">
+      <li
+        v-for="config of list"
+        :key="config.key"
+        class="base-info-item">
+        <span class="base-info-label">
+          <span
+            v-overflow-tips
+            class="text-overflow">
+            {{ config.label }}
+          </span>
+          ：
+        </span>
+        <div class="base-info-value-container">
+          <span
+            v-overflow-tips
+            class="base-info-value text-overflow">
+            <Component
+              :is="config.render"
+              v-if="config.render" />
+            <template v-else>{{ getInfoValue(config.key) || '--' }}</template>
+          </span>
+        </div>
+      </li>
+    </ul>
+  </div>
 </template>
 
 <script setup lang="tsx">
+  import type { VNode } from 'vue';
   import { useI18n } from 'vue-i18n';
 
   import OracleHaInstanceModel from '@services/model/oracle/oracle-ha-instance';
@@ -26,10 +53,15 @@
   import { type ClusterInstStatus, clusterInstStatus } from '@common/const';
 
   import DbStatus from '@components/db-status/index.vue';
-  import EditInfo, { type InfoColumn } from '@components/editable-info/index.vue';
 
   interface Props {
     data: OracleHaInstanceModel;
+  }
+
+  interface InfoColumn {
+    key: string;
+    label: string;
+    render?: () => VNode | string | null;
   }
 
   const props = defineProps<Props>();
@@ -75,8 +107,8 @@
                 v-overflow-tips
                 class='text-overflow'>
                 <bk-button
-                  theme='primary'
                   text
+                  theme='primary'
                   onClick={handleToClusterDetails}>
                   {domain}
                 </bk-button>
@@ -156,6 +188,8 @@
     ],
   ];
 
+  const getInfoValue = (key: string) => (props.data as unknown as Record<string, unknown>)[key];
+
   /**
    * 查看集群详情
    */
@@ -170,8 +204,39 @@
 </script>
 
 <style lang="less" scoped>
-  .base-info {
-    box-shadow: unset;
+  @import '@styles/mixins.less';
+
+  .base-info-list {
+    display: flex;
+    font-size: @font-size-mini;
+
+    .base-info-column {
+      flex: 0 1 50%;
+      max-width: 50%;
+    }
+
+    .base-info-item {
+      .flex-center();
+
+      line-height: 32px;
+    }
+
+    .base-info-label {
+      display: flex;
+      min-width: 80px !important;
+      padding-left: 10px;
+      text-align: right;
+      flex-shrink: 0;
+      justify-content: flex-end;
+    }
+
+    .base-info-value-container {
+      .flex-center();
+
+      overflow: hidden;
+      color: @title-color;
+      flex: 1;
+    }
 
     :deep(.inline-item) {
       display: flex;

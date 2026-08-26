@@ -96,8 +96,6 @@
 
   import { MonitorTargetLevel } from '@common/const';
 
-  import DbTagInput from '@components/db-tag-input/Index.vue';
-
   type TargetItem = MonitorPolicyModel['targets'][number];
   type CustomItem = MonitorPolicyModel['custom_conditions'][number];
 

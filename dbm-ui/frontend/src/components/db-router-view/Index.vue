@@ -15,7 +15,6 @@
   import { useEventBus } from '@hooks';
 
   import ApplyPermissionPage from '@components/apply-permission/page.vue';
-  // import SkeletonLoading from '@components/skeleton-loading/Index.vue';
 
   const eventBus = useEventBus();
 
