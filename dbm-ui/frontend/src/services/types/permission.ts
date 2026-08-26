@@ -11,7 +11,7 @@
  * the specific language governing permissions and limitations under the License.
  */
 
-import type { AccountTypesValues } from '@common/const';
+import type { AccountTypesValues, ClusterTypes } from '@common/const';
 
 import type { ListBase } from './index';
 
@@ -145,7 +145,7 @@ export interface AuthorizePreCheckData {
   access_dbs: string[];
   bk_biz_id?: number;
   cluster_ids?: number[];
-  cluster_type: string;
+  cluster_type: ClusterTypes;
   privileges?: {
     access_db: string;
     priv: string;

@@ -11,6 +11,8 @@
  * the specific language governing permissions and limitations under the License.
  */
 
+import type { ClusterTypes } from '@common/const';
+
 import http from '../http';
 
 const getRootPath = () => `/apis/mongodb/bizs/${window.PROJECT_CONFIG.BIZ_ID}/permission/authorize`;
@@ -20,7 +22,7 @@ const getRootPath = () => `/apis/mongodb/bizs/${window.PROJECT_CONFIG.BIZ_ID}/pe
  */
 export function preCheckAuthorizeRules(params: {
   cluster_ids?: number[];
-  cluster_type: string;
+  cluster_type: ClusterTypes;
   mongo_users: {
     access_dbs: string[];
     user: string;

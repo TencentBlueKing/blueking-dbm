@@ -11,6 +11,8 @@
  * the specific language governing permissions and limitations under the License.
  */
 
+import type { ClusterTypes } from '@common/const';
+
 import http from '../http';
 
 const path = '/apis/infras';
@@ -69,7 +71,7 @@ export function getInfrasSubzonesByCity(params?: { city_code?: string }) {
  */
 export function getCapSpecs(params: {
   cityCode: string;
-  cluster_type: string;
+  cluster_type: ClusterTypes;
   ip_source: string;
   nodes: {
     master: Array<{

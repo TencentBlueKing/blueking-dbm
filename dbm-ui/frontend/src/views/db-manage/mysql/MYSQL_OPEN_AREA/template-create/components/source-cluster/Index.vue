@@ -29,7 +29,7 @@
   </div>
   <ClusterSelector
     v-model:is-show="isShow"
-    :cluster-types="[ClusterTypes.TENDBHA, ClusterTypes.TENDBSINGLE]"
+    :cluster-types="clusterTypesByDBType[DBTypes.MYSQL]"
     only-one-type
     :selected="selectedCluster"
     :tab-list-config="tabListConfig"
@@ -41,7 +41,7 @@
 
   import TendbhaModel from '@services/model/mysql/tendbha';
 
-  import { ClusterTypes } from '@common/const';
+  import { ClusterTypes, clusterTypesByDBType, DBTypes } from '@common/const';
 
   import ClusterSelector, { type TabConfig } from '@components/cluster-selector/Index.vue';
 

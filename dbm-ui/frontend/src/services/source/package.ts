@@ -14,6 +14,8 @@
 import VersionFileModel from '@services/model/version-file/version-file';
 import type { ListBase } from '@services/types';
 
+import type { DBTypes } from '@common/const';
+
 import http, { type IRequestPayload } from '../http';
 
 const path = '/apis/packages';
@@ -23,7 +25,7 @@ const path = '/apis/packages';
  */
 export function getPackages(
   params: {
-    db_type: string;
+    db_type: DBTypes;
     db_version?: string;
     keyword?: string;
     limit?: number;
@@ -51,7 +53,7 @@ export function getPackages(
  */
 export function createPackage(params: {
   allow_biz_ids?: number[];
-  db_type: string;
+  db_type: DBTypes;
   md5: string;
   mode?: string;
   name: string;
@@ -93,7 +95,7 @@ export function updatePackage(params: {
 /**
  * 查询组件安装包列表
  */
-export function listPackages(params: { db_type: string; limit?: number; offset?: number; query_key: string }) {
+export function listPackages(params: { db_type: DBTypes; limit?: number; offset?: number; query_key: string }) {
   return http.get<string[]>(`${path}/list_install_packages/`, params);
 }
 
@@ -124,7 +126,7 @@ export function listSupportSystems() {
 export function batchCreatePackages(params: {
   packages: {
     allow_biz_ids?: number[];
-    db_type: string;
+    db_type: DBTypes;
     db_version?: number;
     enable?: boolean;
     md5: string;

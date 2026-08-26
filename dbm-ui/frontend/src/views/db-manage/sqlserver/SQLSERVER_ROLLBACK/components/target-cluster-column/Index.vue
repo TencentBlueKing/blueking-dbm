@@ -165,7 +165,7 @@
       if (!modelValue.value.id && modelValue.value.master_domain) {
         queryCluster({
           bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
-          cluster_type: [ClusterTypes.SQLSERVER_HA, ClusterTypes.SQLSERVER_SINGLE].join(','),
+          cluster_type: [ClusterTypes.SQLSERVER_HA, ClusterTypes.SQLSERVER_SINGLE],
           db_type: DBTypes.SQLSERVER,
           exact_domain: modelValue.value.master_domain,
         });

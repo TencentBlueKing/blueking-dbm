@@ -93,7 +93,7 @@
       ],
       getResourceList: (params: ServiceParameters<typeof getRedisList>) =>
         getRedisList({
-          cluster_type: clusterRedisTypeList.join(','),
+          cluster_type: clusterRedisTypeList,
           ...params,
         }),
     },
@@ -161,7 +161,7 @@
       if (!modelValue.value.id && modelValue.value.master_domain) {
         queryCluster({
           bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
-          cluster_type: clusterRedisTypeList.join(','),
+          cluster_type: clusterRedisTypeList,
           db_type: DBTypes.REDIS,
           exact_domain: modelValue.value.master_domain,
         });
