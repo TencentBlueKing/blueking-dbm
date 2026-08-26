@@ -42,6 +42,7 @@ import (
 // versionFakeDriver is a minimal database/sql driver serving "SELECT VERSION()" and plain
 // Exec calls. It fails the first failures queries so tests can verify that errors are never
 // cached, and the first execFailures execs with a 1064 error to exercise the retry path.
+// The default 1064 text echoes MASTER_HOST like a real naming error; execErrText overrides it.
 type versionFakeDriver struct {
 	mu           sync.Mutex
 	queries      int
@@ -49,6 +50,7 @@ type versionFakeDriver struct {
 	version      string
 	execs        []string
 	execFailures int
+	execErrText  string
 }
 
 func (d *versionFakeDriver) Open(string) (driver.Conn, error) {
@@ -70,7 +72,12 @@ func (d *versionFakeDriver) exec(query string) (driver.Result, error) {
 	defer d.mu.Unlock()
 	d.execs = append(d.execs, query)
 	if len(d.execs) <= d.execFailures {
-		return nil, errors.New("Error 1064 (42000): You have an error in your SQL syntax")
+		if d.execErrText != "" {
+			return nil, errors.New(d.execErrText)
+		}
+		return nil, errors.New("Error 1064 (42000): You have an error in your SQL syntax; " +
+			"check the manual that corresponds to your MySQL server version for the right syntax " +
+			"to use near 'MASTER_HOST' at line 1")
 	}
 	return versionFakeResult{}, nil
 }
@@ -257,4 +264,63 @@ func TestChangeReplicationToPublicKeyAuto(t *testing.T) {
 	_, err = dbOff.ChangeReplicationTo(context.Background(), srcOff)
 	require.NoError(t, err)
 	assert.NotContains(t, drvOff.execHistory()[0], "PUBLIC_KEY")
+}
+
+func TestChangeReplicationToMasksSecret(t *testing.T) {
+	src := ReplSource{
+		Host:         "192.168.1.1",
+		Port:         3306,
+		User:         "repl",
+		Password:     "p@ssw0rd-xyz",
+		AutoPosition: AutoPositionOn,
+	}
+
+	// all attempts fail: the returned error must not carry the raw password
+	drv := &versionFakeDriver{version: "8.4.0", execFailures: 99}
+	db := newGormDBWithFakeDriver(t, drv, "hamysql-version-fake-mask-err")
+	defer db.Close()
+	sqlText, err := db.ChangeReplicationTo(context.Background(), src)
+	require.Error(t, err)
+	assert.NotContains(t, err.Error(), "p@ssw0rd-xyz")
+	assert.NotContains(t, sqlText, "p@ssw0rd-xyz")
+	assert.Contains(t, err.Error(), "<secret>")
+
+	// success path: the returned statement is masked, the executed one is not
+	drvOK := &versionFakeDriver{version: "8.4.0"}
+	dbOK := newGormDBWithFakeDriver(t, drvOK, "hamysql-version-fake-mask-ok")
+	defer dbOK.Close()
+	sqlText, err = dbOK.ChangeReplicationTo(context.Background(), src)
+	require.NoError(t, err)
+	assert.NotContains(t, sqlText, "p@ssw0rd-xyz")
+	assert.Contains(t, sqlText, "<secret>")
+	assert.Contains(t, drvOK.execHistory()[0], "p@ssw0rd-xyz")
+}
+
+func TestChangeReplicationToNoRetryOnOtherSyntaxError(t *testing.T) {
+	// a 1064 without the replication keywords is a real syntax error, not a naming mismatch
+	drv := &versionFakeDriver{
+		version:      "8.4.0",
+		execFailures: 99,
+		execErrText:  "Error 1064 (42000): You have an error in your SQL syntax; near ''a'b' at line 1",
+	}
+	db := newGormDBWithFakeDriver(t, drv, "hamysql-version-fake-no-retry")
+	defer db.Close()
+
+	src := ReplSource{Host: "192.168.1.1", Port: 3306, User: "repl", Password: "secret", AutoPosition: AutoPositionOn}
+	_, err := db.ChangeReplicationTo(context.Background(), src)
+	require.Error(t, err)
+	assert.Len(t, drv.execHistory(), 1)
+	assert.NotContains(t, err.Error(), "retried with")
+}
+
+func TestChangeReplicationToRetryFailureReportsBothErrors(t *testing.T) {
+	drv := &versionFakeDriver{version: "8.4.0", execFailures: 99}
+	db := newGormDBWithFakeDriver(t, drv, "hamysql-version-fake-both-err")
+	defer db.Close()
+
+	src := ReplSource{Host: "192.168.1.1", Port: 3306, User: "repl", Password: "secret", AutoPosition: AutoPositionOn}
+	_, err := db.ChangeReplicationTo(context.Background(), src)
+	require.Error(t, err)
+	assert.Len(t, drv.execHistory(), 2)
+	assert.Contains(t, err.Error(), "retried with")
 }
