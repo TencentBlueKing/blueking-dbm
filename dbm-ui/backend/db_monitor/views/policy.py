@@ -34,6 +34,7 @@ from backend.db_meta.models import AppCache, Cluster, DBModule, ProxyInstance, S
 from backend.db_monitor import constants, serializers
 from backend.db_monitor.models import MonitorPolicy
 from backend.db_monitor.views.callbacks import mysql  # noqa: F401 - 注册 MySQL 告警回调
+from backend.db_monitor.views.callbacks import redis  # noqa: F401 - 注册 Redis 告警回调
 from backend.db_monitor.views.callbacks.base import AlarmCallback
 from backend.iam_app.dataclass import ResourceEnum
 from backend.iam_app.dataclass.actions import ActionEnum
