@@ -199,8 +199,6 @@
   import { dbSysExclude } from '@common/const';
   import { dbRegex } from '@common/regex';
 
-  import DbTagInput from '@components/db-tag-input/Index.vue';
-
   interface Props {
     data?: PartitionModel;
   }

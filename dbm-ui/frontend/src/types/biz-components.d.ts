@@ -6,7 +6,6 @@ declare module 'vue' {
     AuthSwitcher: typeof import('@components/auth-component/switch.vue').default;
     AuthTemplate: typeof import('@components/auth-component/component.vue').default;
     DbCard: typeof import('@components/db-card/index.vue').default;
-    DbDateTimePicker: typeof import('@components/db-date-time-picker/Index.vue').default;
     DbForm: typeof import('@components/db-form/index.vue').default;
     DbFormItem: typeof import('@components/db-form/item.vue').default;
     DbIcon: typeof import('@components/db-icon/index.ts').default;
@@ -18,6 +17,7 @@ declare module 'vue' {
     DbSideslider: typeof import('@components/db-sideslider/index.vue').default;
     DbStatus: typeof import('@components/db-status/index.vue').default;
     DbTag: typeof import('@components/bkui-vue/tag/Index.vue').default;
+    DbTagInput: typeof import('@components/bkui-vue/tag-input/Index.vue').default;
     EditableBlock: typeof import('@components/editable-table/Index.vue').Block;
     EditableColumn: typeof import('@components/editable-table/Index.vue').Column;
     EditableDatePicker: typeof import('@components/editable-table/Index.vue').DatePicker;
