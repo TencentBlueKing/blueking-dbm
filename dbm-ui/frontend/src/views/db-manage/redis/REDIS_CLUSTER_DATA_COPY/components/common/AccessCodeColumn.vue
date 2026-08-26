@@ -70,6 +70,9 @@
         if (!value) {
           return true;
         }
+        if (!props.params.dstCluster || !props.params.srcCluster) {
+          return true; // 源/目标集群未选时不发起连通性请求
+        }
         if (props.dataCopyType === 'copy_to_other_system') {
           return testRedisConnection({
             data_copy_type: 'copy_to_other_system',

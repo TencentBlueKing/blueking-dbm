@@ -83,7 +83,7 @@
   interface Exposes {
     getValue: () => Promise<
       {
-        dst_cluster: number;
+        dst_cluster: number | string;
         key_black_regex: string;
         key_white_regex: string;
         src_cluster: number;
@@ -101,7 +101,7 @@
       id: number;
       master_domain: string;
     };
-    dst_cluster: number;
+    dst_cluster: number | string;
     key_black_regex: string[];
     key_white_regex: string[];
   }
@@ -116,7 +116,7 @@
       },
       values.cluster,
     ),
-    dst_cluster: values?.dst_cluster || 0,
+    dst_cluster: values?.dst_cluster || '',
     key_black_regex: values?.key_black_regex || [],
     key_white_regex: values?.key_white_regex || ['*'],
   });
