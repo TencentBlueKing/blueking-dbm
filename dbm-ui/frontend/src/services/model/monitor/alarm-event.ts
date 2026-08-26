@@ -21,6 +21,7 @@ import { utcDisplayTime } from '@utils';
 import { t } from '@locales/index';
 
 type DimensionInfo = AlarmEvent['dimensions'][number] | undefined;
+type TagInfo = AlarmEvent['tags'][number] | undefined;
 
 export default class AlarmEvent {
   ack_duration: number;
@@ -94,6 +95,8 @@ export default class AlarmEvent {
   strategy_name: string;
   supervisor: string;
   tags: {
+    display_key?: string;
+    display_value?: string;
     key: string;
     value: string;
   }[];
@@ -163,7 +166,7 @@ export default class AlarmEvent {
   }
 
   get alarmBizId() {
-    const bizTag = this.tags.find((item) => item.key === 'appid');
+    const bizTag = this.findTag('appid');
     if (bizTag) {
       return Number(bizTag.value);
     }
@@ -172,7 +175,7 @@ export default class AlarmEvent {
   }
 
   get cluster() {
-    const clusterInfo = this.dimensions.find((item) => item.key === 'tags.cluster_domain');
+    const clusterInfo = this.findDimension('cluster_domain');
     return clusterInfo?.value || '--';
   }
 
@@ -185,21 +188,10 @@ export default class AlarmEvent {
   }
 
   get instance() {
-    let instanceInfo: DimensionInfo;
-    let ipInfo: DimensionInfo;
-    let hostInfo: DimensionInfo;
-    let portInfo: DimensionInfo;
-    this.dimensions.forEach((item) => {
-      if (item.key === 'instance') {
-        instanceInfo = item;
-      } else if (item.key === 'ip') {
-        ipInfo = item;
-      } else if (item.key === 'tags.instance_host') {
-        hostInfo = item;
-      } else if (item.key === 'tags.instance_port') {
-        portInfo = item;
-      }
-    });
+    const instanceInfo = this.findDimension('instance');
+    const ipInfo = this.findDimension('ip');
+    const hostInfo = this.findDimension('instance_host');
+    const portInfo = this.findDimension('instance_port');
     if (instanceInfo) {
       return instanceInfo.display_value;
     }
@@ -257,5 +249,13 @@ export default class AlarmEvent {
       default:
         return t('已失效');
     }
+  }
+
+  findDimension(key: string): DimensionInfo {
+    return this.dimensions.find((item) => item.key === key || item.display_key === key);
+  }
+
+  findTag(key: string): TagInfo {
+    return this.tags.find((item) => item.key === key || item.display_key === key);
   }
 }
