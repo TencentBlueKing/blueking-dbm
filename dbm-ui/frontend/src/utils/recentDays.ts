@@ -11,7 +11,7 @@
  * the specific language governing permissions and limitations under the License.
  */
 
-import { differenceInHours } from 'date-fns';
+import dayjs from 'dayjs';
 
 /**
  * 通过传入时间 yyyy-MM-dd HH:mm:ss | Date 判断是否为最近几天
@@ -21,5 +21,5 @@ import { differenceInHours } from 'date-fns';
 export const isRecentDays = (date: string | Date, hours: number) => {
   const createDay = new Date(date);
   const today = new Date();
-  return differenceInHours(today, createDay) < hours;
+  return dayjs(today).diff(createDay, 'hour') < hours;
 };

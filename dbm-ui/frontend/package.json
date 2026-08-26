@@ -52,7 +52,6 @@
     "@xterm/xterm": "6.0.0",
     "axios": "1.19.0",
     "bkui-vue": "3.0.6",
-    "date-fns": "4.4.0",
     "dayjs": "1.11.23",
     "dompurify": "3.4.13",
     "echarts": "6.1.0",
