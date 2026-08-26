@@ -47,7 +47,7 @@
         v-for="key in clusterTypes"
         :key="key">
         <CollapseMini
-          v-if="lastValues[key]!.length > 0"
+          v-if="lastValues[key]?.length"
           :count="lastValues[key]!.length"
           :show-title="showTitle"
           :title="tabListMap[key]">
