@@ -35,7 +35,7 @@
   import { getRedisListByBizId } from '@services/source/redis';
 
   interface Props {
-    bizId: number;
+    bizId: number | string;
     srcClusterId?: number;
   }
 
@@ -66,9 +66,9 @@
   watch(
     () => props.bizId,
     () => {
-      if (props.bizId > 0) {
+      if (Number(props.bizId) > 0) {
         run({
-          bk_biz_id: props.bizId,
+          bk_biz_id: Number(props.bizId),
           limit: -1,
           offset: 0,
         });
