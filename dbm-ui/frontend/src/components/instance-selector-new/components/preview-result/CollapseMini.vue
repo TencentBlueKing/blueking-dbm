@@ -14,7 +14,7 @@
 <template>
   <div
     class="collapse-mini"
-    :class="[{ 'collapse-mini-collapse': collapse }]">
+    :class="[{ 'collapse-mini-expand': expand }]">
     <div
       class="collapse-mini-header"
       @click="handleToggle">
@@ -33,13 +33,11 @@
         </I18nT>
       </slot>
     </div>
-    <Transition mode="in-out">
-      <div
-        v-show="collapse"
-        class="collapse-mini-content">
-        <slot />
-      </div>
-    </Transition>
+    <div
+      v-show="expand"
+      class="collapse-mini-content">
+      <slot />
+    </div>
   </div>
 </template>
 
@@ -52,10 +50,10 @@
 
   defineProps<Props>();
 
-  const collapse = ref(true);
+  const expand = ref(true);
 
   const handleToggle = () => {
-    collapse.value = !collapse.value;
+    expand.value = !expand.value;
   };
 </script>
 
@@ -82,7 +80,7 @@
       transition: all 0.2s;
     }
 
-    .collapse-mini-collapse {
+    &.collapse-mini-expand {
       .collapse-mini-icon {
         transform: rotate(0);
       }
