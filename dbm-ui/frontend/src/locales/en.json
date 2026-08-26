@@ -2370,6 +2370,7 @@
   "磁盘(G)": "Disk (G)",
   "表中包含数据，建议在低峰期执行分区；": "The table contains data, it is recommended to execute partitioning during off-peak hours;",
   "表中行数大于1千万或者表数据量大于300GB，不允许执行分区；": "Partitioning is not allowed when the table has more than 10 million rows or data size exceeds 300GB;",
+  "int或bigint类型，格式要求为：20060102": "For int or bigint, the value format must be: 20060102",
   "确定强制失败吗": "Confirm force failure?",
   "强制失败": "Force Fail",
   "当前n台_扩容至m台": "Current {n}, Scale Up to {m}",

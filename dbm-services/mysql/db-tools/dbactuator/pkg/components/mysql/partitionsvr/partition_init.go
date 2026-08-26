@@ -145,6 +145,11 @@ func (pc *PartitionConfig) GetInitStatement(pd *PartitionDetail, conn *native.Db
 		descKey = "less than"
 		descFormat = "UNIX_TIMESTAMP('2006-01-02')"
 		diff = DiffOneDay
+	case 6:
+		pkey = fmt.Sprintf("RANGE (%s)", pc.PartitionColumn)
+		descKey = "less than"
+		descFormat = "UNIX_TIMESTAMP('2006-01-02')"
+		diff = DiffOneDay
 	case 101:
 		pkey = fmt.Sprintf("RANGE (%s)", pc.PartitionColumn)
 		descKey = "less than"
