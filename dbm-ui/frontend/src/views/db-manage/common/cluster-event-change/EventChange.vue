@@ -70,7 +70,7 @@
 </template>
 
 <script setup lang="tsx">
-  import { format, subDays } from 'date-fns';
+  import dayjs from 'dayjs';
   import { nextTick } from 'vue';
   import { useI18n } from 'vue-i18n';
 
@@ -92,7 +92,7 @@
 
   const tableRef = ref();
 
-  const daterange = ref<[string, string] | [Date, Date]>([subDays(new Date(), 6), new Date()]);
+  const daterange = ref<[string, string] | [Date, Date]>([dayjs().subtract(6, 'day').toDate(), new Date()]);
 
   const dataSource = computed(() => (props.isFetchInstance ? getInstanceOperateRecords : getClusterOperateRecords));
 
@@ -118,8 +118,8 @@
       const dateParams =
         start && end
           ? {
-              end_time: format(new Date(Number(end)), 'yyyy-MM-dd HH:mm:ss'),
-              start_time: format(new Date(Number(start)), 'yyyy-MM-dd HH:mm:ss'),
+              end_time: dayjs(Number(end)).format('YYYY-MM-DD HH:mm:ss'),
+              start_time: dayjs(Number(start)).format('YYYY-MM-DD HH:mm:ss'),
             }
           : {
               end_time: '',
