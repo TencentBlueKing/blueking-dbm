@@ -16,7 +16,7 @@ from django.utils.translation import gettext as _
 from backend.flow.consts import MongoDBActuatorActionEnum
 from backend.flow.engine.bamboo.scene.common.builder import SubBuilder
 from backend.flow.engine.bamboo.scene.mongodb.sub_task.base_subtask import BaseSubTask
-from backend.flow.plugins.components.collections.mongodb.exec_actuator_job2 import ExecJobComponent2
+from backend.flow.plugins.components.collections.mongodb.mongo_backup_exec_job import MongoBackupExecJobComponent
 from backend.flow.utils.mongodb.mongodb_dataclass import CommonContext
 from backend.flow.utils.mongodb.mongodb_repo import MongoDBCluster, MongoDBNsFilter, MongoNodeWithLabel, ReplicaSet
 from backend.flow.utils.mongodb.mongodb_util import MongoUtil
@@ -106,7 +106,7 @@ class BackupSubTask(BaseSubTask):
             acts_list.append(
                 {
                     "act_name": _("{}:[{}:{}]".format(rs.set_name, exec_ip, port)),
-                    "act_component_code": ExecJobComponent2.code,
+                    "act_component_code": MongoBackupExecJobComponent.code,
                     "kwargs": kwargs,
                 }
             )
