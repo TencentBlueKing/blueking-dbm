@@ -396,6 +396,7 @@
   const specRef = ref<InstanceType<typeof SpecSelector>>();
   const clusterCountRef = ref<InstanceType<typeof Form.FormItem>>();
   const groupCountRef = ref<InstanceType<typeof Form.FormItem>>();
+  const passwordRef = ref<InstanceType<typeof PasswordInput>>();
   const cloudInfo = ref({
     id: '' as number | string,
     name: '',
@@ -427,6 +428,18 @@
           clusterCountRef.value!.clearValidate();
           return formData.details.cluster_count % value === 0;
         },
+      },
+    ],
+    'details.redis_pwd': [
+      {
+        message: t('密码不能为空'),
+        trigger: 'blur',
+        validator: (value: string) => !!value,
+      },
+      {
+        message: t('密码不满足要求'),
+        trigger: 'blur',
+        validator: () => passwordRef.value!.validate(),
       },
     ],
   };
