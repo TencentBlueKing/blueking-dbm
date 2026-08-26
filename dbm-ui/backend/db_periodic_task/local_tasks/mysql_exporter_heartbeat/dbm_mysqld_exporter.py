@@ -15,6 +15,7 @@ from datetime import datetime, timedelta, timezone
 
 from backend import env
 from backend.components import BKMonitorV3Api
+from backend.configuration.constants import DBType
 from backend.db_meta.enums import ClusterType, InstanceStatus, TenDBClusterSpiderRole
 from backend.db_meta.models import Cluster, StorageInstance
 from backend.db_monitor.constants import EXPORTER_UP_QUERY_TEMPLATE
@@ -22,6 +23,8 @@ from backend.db_periodic_task.local_tasks.db_meta.constants import UNIFY_QUERY_P
 from backend.db_report.enums import ReportStateType
 from backend.db_report.enums.mysql_exporter_check_sub_type import MysqlExporterCheckSubType
 from backend.db_report.models.mysql_exporter_check_report import MysqlExporterCheckReport
+from backend.db_report.portrait import MysqlPortraitDimensionCode, ingest_summary
+from backend.db_report.portrait.exceptions import PortraitSDKBaseException
 
 logger = logging.getLogger("root")
 
@@ -125,6 +128,17 @@ def report_to_db(c: Cluster, exporter_map: dict, instance, instance_role):
             state=ReportStateType.ABNORMAL.value,
             failed_days=failed_days,
         )
+        try:
+            ingest_summary(
+                db_type=DBType.MySQL,
+                dimension=MysqlPortraitDimensionCode.MYSQL_EXPORTER_CHECK,
+                bk_biz_id=c.bk_biz_id,
+                cluster_domain=c.immute_domain,
+                report_time=datetime.now(),
+                summary=msg,
+            )
+        except PortraitSDKBaseException:
+            logger.exception(f"report {c.immute_domain} exporter-up to portrait failed")
 
 
 def check_tendbha_exporter_up():

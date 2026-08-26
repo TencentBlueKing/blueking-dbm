@@ -76,7 +76,7 @@ def checksum_config(bk_cloud_id: int, ip: str, port_list: Optional[List[int]] = 
                 "cluster_id": i.cluster.first().id,
                 "immute_domain": i.cluster.first().immute_domain,
                 "db_module_id": i.db_module_id,
-                "schedule": checksum_yaml.get("crond", "0 5 2 * * 1-5"),
+                "schedule": checksum_yaml.get("schedule", "0 5 2 * * 1-5"),
                 "api_url": "http://127.0.0.1:9999",
                 "user": usermap["monitor_user"],
                 "password": usermap["monitor_pwd"],

@@ -9,11 +9,13 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 import logging
+import os
 import struct
 import zlib
 
 from django.http import Http404
 from django.utils.translation import gettext_lazy as _
+from rest_framework.exceptions import ValidationError
 from rest_framework.response import Response
 
 from backend import env
@@ -31,6 +33,17 @@ from backend.dbm_aiagent.mcp_tools.views import McpToolsViewSet
 from backend.iam_app.handlers.drf_perm.mcp import McpDBManagePermission
 
 logger = logging.getLogger("root")
+
+
+def validate_content_not_filepath(content: str):
+    """校验 content 不是文件路径。如果大模型只传了文件名而没有传文件内容，这是无意义的。"""
+    if (
+        content.startswith("/")
+        or content.startswith("./")
+        or content.startswith("~/")
+        or (len(content.splitlines()) == 1 and "." in os.path.basename(content) and len(content) < 260)
+    ):
+        raise ValidationError(_("content 参数内容不能是文件路径，如果是 dbm-mcp-cli/mcporter 工具调用, 路径前需要 @ 符号"))
 
 
 class AiReportMcpToolsViewSet(McpToolsViewSet):
@@ -52,6 +65,7 @@ class AiReportMcpToolsViewSet(McpToolsViewSet):
         title = self.get_param("title", "")
         summary = self.get_param("summary", "")
         content = self.get_param("content")
+        validate_content_not_filepath(content)
 
         # 获取当前用户作为创建者
         creator = request.user.username if hasattr(request, "user") and request.user else ""

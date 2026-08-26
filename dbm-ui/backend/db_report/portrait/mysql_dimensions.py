@@ -66,6 +66,9 @@ class MysqlPortraitDimensionCode(StrStructuredEnum):
     TENDBHA_META_CHECK = EnumField("TENDBHA_META_CHECK", _("TenDBHA 集群拓扑检查"))
     TENDBCLUSTER_META_CHECK = EnumField("TENDCLUSTER_META_CHECK", _("TenDBCluster 集群拓扑检查"))
     MYSQL_CHECKSUM_CHECK = EnumField("MYSQL_CHECKSUM_CHECK", _("TenDBHA/TenDBCluster 数据校验"))
+    MYSQL_BACKUP_CHECK = EnumField("MYSQL_BACKUP_CHECK", _("MySQL 备份巡检"))
+    MYSQL_BINLOG_CHECK = EnumField("MYSQL_BINLOG_CHECK", _("MySQL BINLOG巡检"))
+    MYSQL_EXPORTER_CHECK = EnumField("MYSQL_EXPORTER_CHECK", _("MySQL Exporter巡检"))
 
     @property
     def description(self) -> str:

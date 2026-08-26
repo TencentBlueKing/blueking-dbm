@@ -18,11 +18,14 @@ from blueapps.core.celery.celery import app
 from django.db.models import Q
 from django.utils import timezone
 
+from backend.configuration.constants import DBType
 from backend.db_meta.enums import ClusterType
 from backend.db_meta.models import Cluster
 from backend.db_report.enums import MysqlBackupCheckSubType, ReportStateType
 from backend.db_report.models import MysqlBackupCheckReport, MysqlBackupProgress
 from backend.db_report.models.mysql_backup_result import MysqlBackupResult
+from backend.db_report.portrait import MysqlPortraitDimensionCode, ingest_summary
+from backend.db_report.portrait.exceptions import PortraitSDKBaseException
 
 from .bklog_query import ClusterBackup
 from .check_ignore import CheckIgnore
@@ -214,6 +217,7 @@ def _check_tendbha_full_backup(date_str: str):
                 failed_days = get_backup_failed_duration(
                     c.immute_domain, MysqlBackupCheckSubType.FullBackup.value, start_time
                 )
+                failed_msg = "no success full backup found:\n{}".format(detail_failed)
                 MysqlBackupCheckReport.objects.create(
                     bk_biz_id=c.bk_biz_id,
                     bk_cloud_id=c.bk_cloud_id,
@@ -222,10 +226,21 @@ def _check_tendbha_full_backup(date_str: str):
                     subtype=MysqlBackupCheckSubType.FullBackup.value,
                     status=False,
                     state=ReportStateType.ABNORMAL.value,
-                    msg="no success full backup found:\n{}".format(detail_failed),
+                    msg=failed_msg,
                     host=" | ".join(host_failed),
                     failed_days=failed_days,
                 )
+                try:
+                    ingest_summary(
+                        db_type=DBType.MySQL,
+                        dimension=MysqlPortraitDimensionCode.MYSQL_BACKUP_CHECK,
+                        bk_biz_id=c.bk_biz_id,
+                        cluster_domain=c.immute_domain,
+                        report_time=datetime.now(),
+                        summary=failed_msg,
+                    )
+                except PortraitSDKBaseException:
+                    logger.exception(f"report {c.immute_domain} tendbha full backup report to portrait failed")
             else:
                 MysqlBackupCheckReport.objects.create(
                     bk_biz_id=c.bk_biz_id,
@@ -299,6 +314,7 @@ def _check_tendbcluster_full_backup(date_str: str):
                 failed_days = get_backup_failed_duration(
                     c.immute_domain, MysqlBackupCheckSubType.FullBackup.value, start_time
                 )
+                failed_msg = "no success full backup found:{}\n{}".format(message, detail_failed)
                 MysqlBackupCheckReport.objects.create(
                     bk_biz_id=c.bk_biz_id,
                     bk_cloud_id=c.bk_cloud_id,
@@ -307,10 +323,21 @@ def _check_tendbcluster_full_backup(date_str: str):
                     subtype=MysqlBackupCheckSubType.FullBackup.value,
                     status=False,
                     state=ReportStateType.ABNORMAL.value,
-                    msg="no success full backup found:{}\n{}".format(message, detail_failed),
+                    msg=failed_msg,
                     host=" | ".join(host_failed),
                     failed_days=failed_days,
                 )
+                try:
+                    ingest_summary(
+                        db_type=DBType.TenDBCluster,
+                        dimension=MysqlPortraitDimensionCode.MYSQL_BACKUP_CHECK,
+                        bk_biz_id=c.bk_biz_id,
+                        cluster_domain=c.immute_domain,
+                        report_time=datetime.now(),
+                        summary=failed_msg,
+                    )
+                except PortraitSDKBaseException:
+                    logger.exception(f"report {c.immute_domain} tendbcluster full backup report to portrait failed")
             else:
                 MysqlBackupCheckReport.objects.create(
                     bk_biz_id=c.bk_biz_id,

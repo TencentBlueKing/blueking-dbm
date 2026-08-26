@@ -76,7 +76,6 @@ class MySQLSlowLogCommand(CommandHandler):
         最大查询条数：{{limit}}
         instance_role: {{ instance_role}}
         只返回总结 Summary 部分的内容，具体 sql优化详情根据 skill 的指示存入 dbm 报告中心(markdown格式)返回链接即可。
-        所有返回输出控制在 1800 字符以内。
         """
 
 
@@ -91,6 +90,23 @@ class MySQLAlarmAnalyzerCommand(CommandHandler):
         /mysql_alarm_analyzer 使用告警分析 skills 来分析告警，返回输出控制在 1800 字符以内。
         告警内容:
         {{alarm_content}}
+        """
+
+
+@command
+class MySQLConfAnalyzeCommand(CommandHandler):
+    name = _("mysql参数调优")
+    command = "mysql_conf_analyze"
+    agent_code = DBMAgentCode.MYSQL_CONFIG_PERF_TUNER
+
+    def get_template(self) -> str:
+        return """
+        /mysql-config-optimization
+        结合机器的规格，帮我分析集群 {{cluster_domain}} 的配置参数
+
+        instance_role: {{ instance_role}}
+        只返回总结 Summary 部分的内容，具体 sql优化详情根据 skill 的指示存入 dbm 报告中心(markdown格式)返回链接即可。
+        所有返回输出控制在 1800 字符以内。
         """
 
 
