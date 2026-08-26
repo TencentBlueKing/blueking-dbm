@@ -29,10 +29,33 @@
           mode="collapse"
           :title="t('基本信息')">
           <BkLoading :loading="isLoading">
-            <EditInfo
-              :columns="baseColumns"
-              :data="details"
-              width="30%" />
+            <div class="base-info-list">
+              <ul
+                v-for="(list, index) of baseColumns"
+                :key="index"
+                class="base-info-column">
+                <li
+                  v-for="config of list"
+                  :key="config.key"
+                  class="base-info-item">
+                  <span class="base-info-label">
+                    <span
+                      v-overflow-tips
+                      class="text-overflow">
+                      {{ config.label }}
+                    </span>
+                    ：
+                  </span>
+                  <div class="base-info-value-container">
+                    <span
+                      v-overflow-tips
+                      class="base-info-value text-overflow">
+                      {{ getInfoValue(config.key) || '--' }}
+                    </span>
+                  </div>
+                </li>
+              </ul>
+            </div>
           </BkLoading>
         </DbCard>
         <BkTab
@@ -83,8 +106,6 @@
   import { useGlobalBizs } from '@stores';
 
   import { ClusterTypes } from '@common/const';
-
-  import EditInfo from '@components/editable-info/index.vue';
 
   import EventChange from '@views/db-manage/common/cluster-event-change/EventChange.vue';
   import MonitorDashboard from '@views/db-manage/common/cluster-monitor/MonitorDashboard.vue';
@@ -174,6 +195,8 @@
     ],
   ];
 
+  const getInfoValue = (key: string) => (details.value as unknown as Record<string, unknown> | undefined)?.[key];
+
   const { run: runGetMonitorUrls } = useRequest(getMonitorUrls, {
     manual: true,
     onSuccess(res) {
@@ -236,8 +259,43 @@
   });
 </script>
 <style lang="less">
+  @import '@styles/mixins.less';
+
   .influxdb-instance-detail {
     height: 100%;
+
+    .base-info-list {
+      display: flex;
+      font-size: @font-size-mini;
+
+      .base-info-column {
+        flex: 0 1 30%;
+        max-width: 30%;
+      }
+
+      .base-info-item {
+        .flex-center();
+
+        line-height: 32px;
+      }
+
+      .base-info-label {
+        display: flex;
+        min-width: 80px !important;
+        padding-left: 10px;
+        text-align: right;
+        flex-shrink: 0;
+        justify-content: flex-end;
+      }
+
+      .base-info-value-container {
+        .flex-center();
+
+        overflow: hidden;
+        color: @title-color;
+        flex: 1;
+      }
+    }
 
     .bk-resize-layout-aside-content {
       width: calc(100% + 1px);

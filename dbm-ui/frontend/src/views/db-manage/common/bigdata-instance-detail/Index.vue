@@ -19,9 +19,36 @@
       <BkCollapsePanel name="baseInfo">
         <span class="panel-title">{{ t('基本信息') }}</span>
         <template #content>
-          <EditInfo
-            :columns="infoColumns"
-            :data="data" />
+          <div class="base-info-list">
+            <ul
+              v-for="(list, index) of infoColumns"
+              :key="index"
+              class="base-info-column">
+              <li
+                v-for="config of list"
+                :key="config.key"
+                class="base-info-item">
+                <span class="base-info-label">
+                  <span
+                    v-overflow-tips
+                    class="text-overflow">
+                    {{ config.label }}
+                  </span>
+                  ：
+                </span>
+                <div class="base-info-value-container">
+                  <span
+                    v-overflow-tips
+                    class="base-info-value text-overflow">
+                    <Component
+                      :is="config.render"
+                      v-if="config.render" />
+                    <template v-else>{{ getInfoValue(config.key) || '--' }}</template>
+                  </span>
+                </div>
+              </li>
+            </ul>
+          </div>
         </template>
       </BkCollapsePanel>
       <BkCollapsePanel
@@ -63,6 +90,7 @@
   generic="T extends EsNodeModel | HdfsNodeModel | KafkaNodeModel | PulsarNodeModel | DorisNodeModel">
   import { InfoBox } from 'bkui-vue';
   import { Checkbox, type PrimaryTableCol } from 'tdesign-vue-next';
+  import type { VNode } from 'vue';
   import { useI18n } from 'vue-i18n';
 
   import type DorisInstanceModel from '@services/model/doris/doris-instance';
@@ -88,7 +116,6 @@
 
   import { ClusterTypes, TicketTypes } from '@common/const';
 
-  import EditInfo, { type InfoColumn } from '@components/editable-info/index.vue';
   import EmptyStatus from '@components/empty-status/EmptyStatus.vue';
   import RenderHostStatus from '@components/render-host-status/Index.vue';
 
@@ -98,18 +125,24 @@
 
   import { useTimeoutPoll } from '@vueuse/core';
 
-  type InstanceModel =
+  export type InstanceModel =
     EsInstanceModel | HdfsInstanceModel | KafkaInstanceModel | PulsarInstanceModel | DorisInstanceModel;
 
-  interface Props {
+  export interface Props<T extends EsNodeModel | HdfsNodeModel | KafkaNodeModel | PulsarNodeModel | DorisNodeModel> {
     clusterId: number;
     clusterType: ClusterTypes.ES | ClusterTypes.HDFS | ClusterTypes.KAFKA | ClusterTypes.PULSAR | ClusterTypes.DORIS;
     data: T;
   }
 
-  type Emits = (e: 'close') => void;
+  export type Emits = (e: 'close') => void;
 
-  const props = defineProps<Props>();
+  interface InfoColumn {
+    key: string;
+    label: string;
+    render?: () => VNode | string | null;
+  }
+
+  const props = defineProps<Props<T>>();
   const emits = defineEmits<Emits>();
 
   const { t } = useI18n();
@@ -162,6 +195,8 @@
       },
     ],
   ];
+
+  const getInfoValue = (key: string) => (props.data as unknown as Record<string, unknown>)[key];
 
   const tableColumns: PrimaryTableCol[] = [
     {
@@ -261,7 +296,6 @@
       pulsar: getPulsarInstanceList,
     };
     apiMap[props.clusterType]({
-      bk_biz_id: currentBizId,
       cluster_id: props.clusterId,
       ip: props.data.ip,
     })
@@ -431,8 +465,43 @@
   }
 </style>
 <style lang="less" scoped>
+  @import '@styles/mixins.less';
+
   .bigdata-instance-detail {
     padding: 20px 24px;
+
+    .base-info-list {
+      display: flex;
+      font-size: @font-size-mini;
+
+      .base-info-column {
+        flex: 0 1 50%;
+        max-width: 50%;
+      }
+
+      .base-info-item {
+        .flex-center();
+
+        line-height: 32px;
+      }
+
+      .base-info-label {
+        display: flex;
+        min-width: 80px !important;
+        padding-left: 10px;
+        text-align: right;
+        flex-shrink: 0;
+        justify-content: flex-end;
+      }
+
+      .base-info-value-container {
+        .flex-center();
+
+        overflow: hidden;
+        color: @title-color;
+        flex: 1;
+      }
+    }
 
     .panel-title {
       font-weight: 700;

@@ -27,7 +27,7 @@ commit message 走 Conventional Commits，`commit-msg` 钩子会跑 commitlint �
 
 `src/` 下没有单元测试，也没有单测基建。**不要为了"有测试"而新建测试文件或引入测试框架。**
 
-默认验证顺序：
+**验证命令（type-check、eslint、stylelint 等）执行前先经用户确认，不要改完代码就自动跑。** 用户同意后按默认顺序执行：
 
 1. `yarn type-check` 通过
 2. 改动文件 `npx eslint <改动文件> --fix` 通过，改了样式再补 stylelint
