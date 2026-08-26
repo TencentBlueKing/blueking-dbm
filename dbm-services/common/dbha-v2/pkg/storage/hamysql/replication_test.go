@@ -109,6 +109,12 @@ func TestMaskSecret(t *testing.T) {
 	assert.Equal(t, "CHANGE MASTER TO MASTER_HOST = '192.168.1.1', MASTER_PASSWORD = '<secret>', MASTER_PORT = 3306",
 		maskSecret(sqlText, "p@ss"))
 	assert.Equal(t, sqlText, maskSecret(sqlText, ""))
+
+	// the MySQL-escaped form inside a statement is masked as well
+	stmt := `SOURCE_PASSWORD = 'a\'b\\c', SOURCE_USER = 'repl'`
+	masked := maskSecret(stmt, "a'b\\c")
+	assert.Contains(t, masked, "<secret>")
+	assert.NotContains(t, masked, `a\'b`)
 }
 
 func TestChangeReplicationSQLKeepsKeywordLikeValues(t *testing.T) {
@@ -225,4 +231,21 @@ func TestIsMySQLSyntaxError(t *testing.T) {
 	assert.True(t, isMySQLSyntaxError(errors.New("Error 1064 (42000): You have an error in your SQL syntax")))
 	assert.False(t, isMySQLSyntaxError(errors.New("Error 1045 (28000): Access denied")))
 	assert.False(t, isMySQLSyntaxError(nil))
+}
+
+func TestIsReplicationNamingError(t *testing.T) {
+	assert.True(t, isReplicationNamingError(
+		errors.New("Error 1064 (42000): You have an error in your SQL syntax; near 'MASTER_HOST = 'x''")))
+	assert.True(t, isReplicationNamingError(
+		errors.New("Error 1064 (42000): You have an error in your SQL syntax; near 'SOURCE_HOST'")))
+	assert.False(t, isReplicationNamingError(
+		errors.New("Error 1064 (42000): You have an error in your SQL syntax; near ''a'b' at line 1")))
+	assert.False(t, isReplicationNamingError(errors.New("Error 1045 (28000): Access denied")))
+	assert.False(t, isReplicationNamingError(nil))
+}
+
+func TestChangeReplicationSQLEscapesValues(t *testing.T) {
+	src := ReplSource{Host: "192.168.1.1", Port: 3306, User: "repl", Password: "a'b\\c", AutoPosition: AutoPositionOn}
+	stmt := ChangeReplicationSQL(true, src)
+	assert.Contains(t, stmt, `SOURCE_PASSWORD = 'a\'b\\c'`)
 }

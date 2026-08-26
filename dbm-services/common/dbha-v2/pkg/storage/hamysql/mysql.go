@@ -102,6 +102,8 @@ func NewGormDB(opts ...Option) (*GormDB, error) {
 	}
 
 	// The driver already ran SELECT VERSION() during gorm.Open; reuse it as the version cache.
+	// Depends on gorm.io/driver/mysql Dialector.ServerVersion (exported); if a driver upgrade
+	// stops populating it, this silently degrades to the lazy path (one extra query per conn).
 	if dialector.ServerVersion != "" {
 		db.version = dialector.ServerVersion
 		db.versionOK = true

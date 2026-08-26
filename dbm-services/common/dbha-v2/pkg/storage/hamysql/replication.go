@@ -54,6 +54,9 @@ const (
 	GetPublicKeyOn = 2
 )
 
+// mysqlStringEscaper escapes a value for inclusion in a single-quoted MySQL string literal.
+var mysqlStringEscaper = strings.NewReplacer("\\", "\\\\", "'", "\\'")
+
 // ReplSource carries the replication source coordinates for building a CHANGE MASTER statement.
 type ReplSource struct {
 	Host         string
@@ -77,6 +80,8 @@ type ReplStatements struct {
 }
 
 // ReplicationStatus represents MySQL slave status information.
+// SecondsBehindMaster stays NULL (Valid=false) when the server reports NULL
+// (replication not connected); callers must check Valid before using the value.
 type ReplicationStatus struct {
 	SlaveIOState               string        `gorm:"column:Slave_IO_State"                json:"Slave_IO_State"`
 	MasterHost                 string        `gorm:"column:Master_Host"                   json:"Master_Host"`
@@ -235,12 +240,14 @@ func ChangeReplicationSQL(useReplica bool, src ReplSource) string {
 
 	var b strings.Builder
 	b.WriteString(stmt + " ")
-	fmt.Fprintf(&b, "%s_HOST = '%s', %s_PORT = %d", kw, src.Host, kw, src.Port)
+	fmt.Fprintf(&b, "%s_HOST = '%s', %s_PORT = %d", kw, mysqlStringEscaper.Replace(src.Host), kw, src.Port)
 	if src.User != "" {
-		fmt.Fprintf(&b, ", %s_USER = '%s', %s_PASSWORD = '%s'", kw, src.User, kw, src.Password)
+		fmt.Fprintf(&b, ", %s_USER = '%s', %s_PASSWORD = '%s'", kw, mysqlStringEscaper.Replace(src.User),
+			kw, mysqlStringEscaper.Replace(src.Password))
 	}
 	if src.LogFile != "" {
-		fmt.Fprintf(&b, ", %s_LOG_FILE = '%s', %s_LOG_POS = %d", kw, src.LogFile, kw, src.LogPos)
+		fmt.Fprintf(&b, ", %s_LOG_FILE = '%s', %s_LOG_POS = %d", kw, mysqlStringEscaper.Replace(src.LogFile),
+			kw, src.LogPos)
 	}
 	if src.AutoPosition != AutoPositionOmit {
 		fmt.Fprintf(&b, ", %s_AUTO_POSITION = %d", kw, src.AutoPosition)
@@ -252,8 +259,9 @@ func ChangeReplicationSQL(useReplica bool, src ReplSource) string {
 }
 
 // ChangeReplicationTo executes a change-master statement on db, retrying once with the
-// other naming on a 1064 (a compat layer may pass SHOW/STOP/START through yet parse
-// CHANGE with only one naming). Returns the statement that actually succeeded.
+// other naming on a naming-related 1064 (a compat layer may pass SHOW/STOP/START through
+// yet parse CHANGE with only one naming). It returns the executed statement with the
+// secret masked, intended for logging.
 func (db *GormDB) ChangeReplicationTo(ctx context.Context, src ReplSource) (string, error) {
 	version, err := db.Version(ctx)
 	if err != nil {
@@ -269,24 +277,36 @@ func (db *GormDB) ChangeReplicationTo(ctx context.Context, src ReplSource) (stri
 
 	changeSQL := ChangeReplicationSQL(useReplica, src)
 	execErr := db.DBWithContext(ctx).Exec(changeSQL).Error
-	if execErr != nil && isMySQLSyntaxError(execErr) {
-		retrySrc := src
+
+	var firstSQL string
+	var firstErr error
+	if execErr != nil && isReplicationNamingError(execErr) {
+		firstSQL, firstErr = changeSQL, execErr
 		if autoKey {
 			// the 1064 falsified the version evidence; drop the auto-added clause on retry
-			retrySrc.GetPublicKey = GetPublicKeyAuto
+			src.GetPublicKey = GetPublicKeyAuto
 		}
-		retrySQL := ChangeReplicationSQL(!useReplica, retrySrc)
+		changeSQL = ChangeReplicationSQL(!useReplica, src)
 		logger.Warn("got a syntax error on db(%s:%d), retry with '%s', errmsg: %s",
-			db.opts.ip, db.opts.port, maskSecret(retrySQL, src.Password), execErr.Error())
-		changeSQL = retrySQL
+			db.opts.ip, db.opts.port, maskSecret(changeSQL, src.Password),
+			maskSecret(firstErr.Error(), src.Password))
 		execErr = db.DBWithContext(ctx).Exec(changeSQL).Error
 	}
-	if execErr != nil {
-		return changeSQL, gerrors.Newf(gerrors.MysqlFailure,
-			"failed to execute '%s' on db(%s:%d), errmsg: %s",
-			changeSQL, db.opts.ip, db.opts.port, execErr.Error())
+
+	maskedSQL := maskSecret(changeSQL, src.Password)
+	if execErr == nil {
+		return maskedSQL, nil
 	}
-	return changeSQL, nil
+	if firstErr == nil {
+		return maskedSQL, gerrors.Newf(gerrors.MysqlFailure,
+			"failed to execute '%s' on db(%s:%d), errmsg: %s",
+			maskedSQL, db.opts.ip, db.opts.port, maskSecret(execErr.Error(), src.Password))
+	}
+	return maskedSQL, gerrors.Newf(gerrors.MysqlFailure,
+		"failed to execute '%s' on db(%s:%d), errmsg: %s; retried with '%s', errmsg: %s",
+		maskSecret(firstSQL, src.Password), db.opts.ip, db.opts.port,
+		maskSecret(firstErr.Error(), src.Password),
+		maskedSQL, maskSecret(execErr.Error(), src.Password))
 }
 
 // isMySQLSyntaxError reports whether err is a MySQL 1064 syntax error. It matches the
@@ -295,10 +315,22 @@ func isMySQLSyntaxError(err error) bool {
 	return err != nil && strings.Contains(err.Error(), "Error 1064")
 }
 
-// maskSecret replaces a non-empty secret in s with <secret> for safe logging.
+// isReplicationNamingError reports whether err is a 1064 caused by the wrong statement
+// naming; the server echoes MASTER_HOST/SOURCE_HOST in the error text for that case,
+// which distinguishes it from other syntax errors (e.g. a malformed literal).
+func isReplicationNamingError(err error) bool {
+	if !isMySQLSyntaxError(err) {
+		return false
+	}
+	return strings.Contains(err.Error(), "MASTER_HOST") || strings.Contains(err.Error(), "SOURCE_HOST")
+}
+
+// maskSecret replaces a non-empty secret in s with <secret> for safe logging; both the raw
+// and the MySQL-escaped form are masked.
 func maskSecret(s, secret string) string {
 	if secret == "" {
 		return s
 	}
-	return strings.ReplaceAll(s, secret, "<secret>")
+	s = strings.ReplaceAll(s, secret, "<secret>")
+	return strings.ReplaceAll(s, mysqlStringEscaper.Replace(secret), "<secret>")
 }
