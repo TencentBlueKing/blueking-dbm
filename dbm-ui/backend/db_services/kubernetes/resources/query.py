@@ -384,15 +384,12 @@ class KubernetesBaseListRetrieveResource(query.ListRetrieveResource, KubernetesB
             cluster.tags.add(*tag_objs)
 
         cluster_detail = KubernetesApi.cluster_detail({"cluster_id": cluster.id}, use_admin=True)
-        k8s_cluster_name = cluster_detail.get("k8sClusterConfig", {}).get("clusterName", "")
         namespace = cluster_detail.get("namespace", "")
         params = {
             "bk_username": bk_username,
-            "dbmClusterId": cluster.id,
-            "updatedBy": updated_by or bk_username,
-            "k8sClusterName": k8s_cluster_name,
             "namespace": namespace,
             "clusterName": cluster.name,
+            "updatedBy": updated_by or bk_username,
         }
         if cluster_alias is not None:
             params["clusterAlias"] = cluster_alias
