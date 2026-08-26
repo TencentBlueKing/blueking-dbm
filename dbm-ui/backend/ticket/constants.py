@@ -666,6 +666,7 @@ class TicketType(StrStructuredEnum):
                                                   _("集群维护"))
     MONGODB_CLUSTER_STANDARDIZE = TicketEnumField("MONGODB_CLUSTER_STANDARDIZE", _("MongoDB 集群标准化"))
     MONGODB_UPGRADE_VERSION = TicketEnumField("MONGODB_UPGRADE_VERSION", _("MongoDB 版本升级"))
+    MONGODB_CHANGE_BIZ = TicketEnumField("MONGODB_CHANGE_BIZ", _("MongoDB 集群业务变更"), _("集群维护"))
 
     # 云区域组件
     CLOUD_SERVICE_APPLY = EnumField("CLOUD_SERVICE_APPLY", _("云区域服务部署"))

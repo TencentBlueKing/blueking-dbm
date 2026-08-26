@@ -16,6 +16,7 @@ from celery import shared_task
 from django.core.cache import cache
 from django.utils.translation import gettext as _
 
+from backend import env
 from backend.components import BKMonitorV3Api
 from backend.db_meta.enums import ClusterType
 from backend.db_meta.models import Cluster
@@ -26,7 +27,6 @@ from backend.dbm_aiagent.agent.commands.commands import (
     RedisPersistAnomalyRootCauseCommand,
     RedisSingleCpuHighRootCauseCommand,
 )
-from backend.dbm_aiagent.agent.handlers import AgentHandler
 
 logger = logging.getLogger("root")
 
@@ -171,6 +171,10 @@ def call_redis_alarm_correlation_analysis(callback_data: dict, alarm_base_info: 
         )
     )
 
+    if not env.ENABLE_DBM_AI:
+        logger.info(_("[redis_alarm_correlation] ENABLE_DBM_AI 未开启，跳过 AI 关联分析"))
+        return
+
     try:
         # 设置去重锁，防止后续同策略告警重复触发
         cache.set(lock_key, 1, DEDUP_LOCK_TTL)
@@ -179,6 +183,8 @@ def call_redis_alarm_correlation_analysis(callback_data: dict, alarm_base_info: 
             "strategy_name": strategy_name,
             "cluster_domains": list(cluster_domains),
         }
+
+        from backend.dbm_aiagent.agent.handlers import AgentHandler
 
         result_summary = AgentHandler.ask_agent_with_command(
             command=RedisLatencyAlarmRootCauseCommand.command,
@@ -217,7 +223,13 @@ def call_redis_persist_anomaly_analysis(callback_data: dict, alarm_base_info: di
         logger.warning(_("[redis_persist_anomaly] 告警事件中缺少 cluster_domain，跳过分析"))
         return
 
+    if not env.ENABLE_DBM_AI:
+        logger.info(_("[redis_persist_anomaly] ENABLE_DBM_AI 未开启，跳过 AI 分析"))
+        return
+
     try:
+        from backend.dbm_aiagent.agent.handlers import AgentHandler
+
         result_summary = AgentHandler.ask_agent_with_command(
             command=RedisPersistAnomalyRootCauseCommand.command,
             command_params={
@@ -254,7 +266,13 @@ def call_redis_single_cpu_high_analysis(callback_data: dict, alarm_base_info: di
         logger.warning(_("[redis_single_cpu_high] 告警事件中缺少 cluster_domain，跳过分析"))
         return
 
+    if not env.ENABLE_DBM_AI:
+        logger.info(_("[redis_single_cpu_high] ENABLE_DBM_AI 未开启，跳过 AI 分析"))
+        return
+
     try:
+        from backend.dbm_aiagent.agent.handlers import AgentHandler
+
         result_summary = AgentHandler.ask_agent_with_command(
             command=RedisSingleCpuHighRootCauseCommand.command,
             command_params={
