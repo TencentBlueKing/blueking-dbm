@@ -20,7 +20,7 @@ from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
 from backend.flow.engine.bamboo.scene.mongodb.base_flow import MongoBaseFlow
 from backend.flow.engine.bamboo.scene.mongodb.sub_task.backup import BackupSubTask
 from backend.flow.engine.bamboo.scene.mongodb.sub_task.send_media import SendMedia
-from backend.flow.plugins.components.collections.mongodb.exec_actuator_job2 import ExecJobComponent2
+from backend.flow.plugins.components.collections.mongodb.mongo_backup_exec_job import MongoBackupExecJobComponent
 from backend.flow.utils.mongodb.mongodb_repo import MongoDBCluster, MongoDBNsFilter, MongoNode, MongoRepository
 from backend.flow.utils.mongodb.mongodb_util import MongoUtil
 
@@ -137,7 +137,7 @@ class MongoBackupFlow(MongoBaseFlow):
             acts_list.append(
                 {
                     "act_name": rs.op_title(_("exec"), MongoNode(exec_ip, port, "", 0, "", "")),
-                    "act_component_code": ExecJobComponent2.code,
+                    "act_component_code": MongoBackupExecJobComponent.code,
                     "kwargs": kwargs,
                 }
             )

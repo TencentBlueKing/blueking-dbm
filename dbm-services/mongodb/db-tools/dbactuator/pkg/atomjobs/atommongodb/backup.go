@@ -101,7 +101,7 @@ func (s *backupJob) Run() error {
 	}
 }
 
-// getBackupPath return path Like /data/dbbak
+// getBackupPath return path Like /data/dbbak/billdump
 func getBackupPath() (string, error) {
 	dbbakPath := path.Join(consts.GetMongoBackupDir(), "dbbak")
 	if !util.FileExists(dbbakPath) {
@@ -112,7 +112,48 @@ func getBackupPath() (string, error) {
 	if err != nil {
 		return "", errors.Wrap(err, "MkDirsIfNotExists")
 	}
+	// backup_client 以其它账号访问目录；目录已存在时可能是 0700/0750，需保证 others 可 traverse
+	if err = ensureBackupClientDirPerm(dbbakPath); err != nil {
+		return "", err
+	}
+	if err = ensureBackupClientDirPerm(backupPath); err != nil {
+		return "", err
+	}
 	return backupPath, nil
+}
+
+// ensureBackupClientDirPerm 为备份系统账号补齐目录 others 的 execute（及读）权限
+func ensureBackupClientDirPerm(dir string) error {
+	info, err := os.Stat(dir)
+	if err != nil {
+		return errors.Wrapf(err, "stat %s", dir)
+	}
+	mode := info.Mode().Perm()
+	want := mode | 0005 // o+rx：进入目录并读取其中文件
+	if mode == want {
+		return nil
+	}
+	if err = os.Chmod(dir, want); err != nil {
+		return errors.Wrapf(err, "chmod o+rx %s", dir)
+	}
+	return nil
+}
+
+// ensureBackupClientFilePerm 为备份系统账号补齐文件 others 的读权限（upload 前）
+func ensureBackupClientFilePerm(file string) error {
+	info, err := os.Stat(file)
+	if err != nil {
+		return errors.Wrapf(err, "stat %s", file)
+	}
+	mode := info.Mode().Perm()
+	want := mode | 0004 // o+r
+	if mode == want {
+		return nil
+	}
+	if err = os.Chmod(file, want); err != nil {
+		return errors.Wrapf(err, "chmod o+r %s", file)
+	}
+	return nil
 }
 
 // getMongoDumpOutPath return path Like /data/dbbak/mongodump-$unixtime
@@ -373,6 +414,9 @@ func (s *backupJob) doLogicalBackup() error {
 
 	fSize, _ := util.GetFileSize(tarPath)
 	s.runtime.Logger.Info("backup file: %s size: %d", tarPath, fSize)
+	if err = ensureBackupClientFilePerm(tarPath); err != nil {
+		return err
+	}
 	fileTag, err := getMongoBackupFileTag(s.ConfParams.FileTag)
 	if err != nil {
 		return errors.Wrap(err, "getMongoBackupFileTag")
@@ -392,7 +436,27 @@ func (s *backupJob) doLogicalBackup() error {
 	}
 
 	// 保存备份系统任务信息
-	return s.appendToReportFile(startTime, endTime, task, tarPath, tarFileName, fSize, isEmptyBackup, isConfigBackup)
+	if err = s.appendToReportFile(startTime, endTime, task, tarPath, tarFileName, fSize, isEmptyBackup, isConfigBackup); err != nil {
+		return err
+	}
+	s.setBackupPipeContextData(tarPath, tarFileName, fSize, task)
+	return nil
+}
+
+// setBackupPipeContextData 将备份文件信息写入 PipeContextData，供 flow 交付产物解析
+func (s *backupJob) setBackupPipeContextData(tarPath, tarFileName string, fSize int64, task *backupsys.TaskInfo) {
+	inst := s.ConfParams.BkDbmInstance
+	s.runtime.PipeContextData = map[string]interface{}{
+		"cluster_id":     inst.ClusterId,
+		"cluster_domain": inst.ClusterDomain,
+		"set_name":       inst.SetName,
+		"instance":       fmt.Sprintf("%s:%d", s.ConfParams.IP, s.ConfParams.Port),
+		"file_name":      tarFileName,
+		"file_path":      tarPath,
+		"file_size":      fSize,
+		"bs_taskid":      task.TaskId,
+		"bs_tag":         task.Tag,
+	}
 }
 
 // isTlinux12 判断是否是tlinux1.2系统. 读取/etc/os-release文件，判断是否包含tlinux1.2
