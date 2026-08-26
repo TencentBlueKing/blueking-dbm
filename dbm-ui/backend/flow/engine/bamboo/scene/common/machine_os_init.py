@@ -26,15 +26,20 @@ from backend.configuration.models import BizSettings, SystemSettings
 from backend.db_dirty.constants import MachineEventType
 from backend.db_dirty.models import MachineEvent
 from backend.db_meta.models import Machine
+from backend.db_meta.models.cluster_monitor import HOST_BKLOG_PLUGINS
 from backend.db_services.cmdb.biz import get_or_create_resource_module, get_resource_biz
 from backend.db_services.dbbase.constants import IpDest
 from backend.db_services.ipchooser.constants import BK_OS_CODE__TYPE, BkOsType
-from backend.flow.consts import LINUX_ADMIN_USER_FOR_CHECK, WINDOW_ADMIN_USER_FOR_CHECK
+from backend.flow.consts import LINUX_ADMIN_USER_FOR_CHECK, WINDOW_ADMIN_USER_FOR_CHECK, OperateCollectorActionEnum
 from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
 from backend.flow.engine.bamboo.scene.common.clean_local_mysql_client import build_clean_local_mysql_client_sub_process
 from backend.flow.engine.bamboo.scene.common.clean_residual_exporter import build_clean_residual_exporter_sub_process
 from backend.flow.engine.bamboo.scene.common.deploy_probe_sub_flow import probe_clean_sub_flow
+from backend.flow.engine.bamboo.scene.common.install_plugins import install_nodeman_plugins
 from backend.flow.plugins.components.collections.common.external_service import ExternalServiceComponent
+from backend.flow.plugins.components.collections.common.operate_host_bklog_collector import (
+    OperateHostBklogCollectorComponent,
+)
 from backend.flow.plugins.components.collections.common.resource_replenish import HCMResourceReplenishComponent
 from backend.flow.plugins.components.collections.common.sa_idle_check import CheckMachineIdleComponent
 from backend.flow.plugins.components.collections.common.sa_init import SaInitComponent
@@ -45,6 +50,7 @@ from backend.flow.utils.base.flow_output import BaseFlowOutputSerializer, FlowOu
 from backend.flow.utils.common_act_dataclass import (
     ImportMachinePollKwargs,
     InitCheckForResourceKwargs,
+    OperateHostBklogCollectorKwargs,
     ResourceHcmReplenishKwargs,
     ResourceImportContext,
 )
@@ -112,6 +118,32 @@ class ResourceReplenishOutputSerializer(HostOutputSerializer):
     bk_disk = serializers.CharField(help_text=_("磁盘"), allow_null=True, allow_blank=True, default="")
 
     table_name = _("交付结果")
+
+
+def build_install_host_common_components(p: Builder, bk_host_ids: List[int], is_windows: bool, bk_biz_id: int):
+    """
+    资源池导入后安装主机通用组件子流程。
+    """
+    sub_p = SubBuilder(root_id=p.root_id, data=p.data)
+
+    # 先安装节点管理插件（bkmonitorbeat / bkunifylogbeat），采集项依赖这些插件
+    sub_p.add_sub_pipeline(install_nodeman_plugins(root_id=p.root_id, uid=p.data.get("uid"), bk_host_ids=bk_host_ids))
+
+    # 资源池导入后主动安装 dbactuator 日志采集
+    collector_name = "dbm_win_dbactuator" if is_windows else "dbm_dbactuator"
+    sub_p.add_act(
+        act_name=_("安装{}采集项").format(collector_name),
+        act_component_code=OperateHostBklogCollectorComponent.code,
+        kwargs=asdict(
+            OperateHostBklogCollectorKwargs(
+                bk_biz_id=bk_biz_id,
+                bk_host_ids=bk_host_ids,
+                action=OperateCollectorActionEnum.INSTALL.value,
+                collector_names=[collector_name],
+            )
+        ),
+    )
+    return sub_p.build_sub_process(sub_name=_("安装通用组件"))
 
 
 class ImportResourceInitStepFlow(object):
@@ -248,8 +280,15 @@ class ImportResourceInitStepFlow(object):
             },
         )
 
-        # 主机安装节点管理插件
-        # p.add_sub_pipeline(install_nodeman_plugins(self.root_id, self.data["uid"], host_ids))
+        # 资源池导入后通用组件子流程
+        p.add_sub_pipeline(
+            build_install_host_common_components(
+                p=p,
+                bk_host_ids=host_ids,
+                is_windows=is_windows,
+                bk_biz_id=get_resource_biz(),
+            )
+        )
 
     def machine_init_flow(self):
         """资源池导入"""
@@ -420,6 +459,19 @@ class ImportResourceInitStepFlow(object):
         # 在RECYCLE_OLD_HOST流程中，SA 空闲检查前先清理 exporter 残留（使用 sa_check_ips）
         # get_resource_biz 机器已经在资源池业务中了，所以 bk_biz_id 使用资源池业务
         if self.data["ticket_type"] == TicketType.RECYCLE_OLD_HOST:
+            # 卸载主机维度日志采集，避免机器回收后仍持续上报
+            p.add_act(
+                act_name=_("卸载主机日志采集项"),
+                act_component_code=OperateHostBklogCollectorComponent.code,
+                kwargs=asdict(
+                    OperateHostBklogCollectorKwargs(
+                        bk_biz_id=get_resource_biz(),
+                        bk_host_ids=host_ids,
+                        action=OperateCollectorActionEnum.UNINSTALL.value,
+                        collector_names=HOST_BKLOG_PLUGINS,
+                    )
+                ),
+            )
             db_type = self.data.get("db_type", "")
             if not db_type:
                 logger.warning("machine_idle_check_flow: db_type is empty, skip exporter cleanup")
