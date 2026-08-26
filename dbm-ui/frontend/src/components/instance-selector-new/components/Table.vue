@@ -1,3 +1,16 @@
+<!--
+ * TencentBlueKing is pleased to support the open source community by making 蓝鲸智云-DB管理系统(BlueKing-BK-DBM) available.
+ *
+ * Copyright (C) 2017-2023 THL A29 Limited, a Tencent company. All rights reserved.
+ *
+ * Licensed under the MIT License (the "License"); you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License athttps://opensource.org/licenses/MIT
+ *
+ * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed
+ * on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for
+ * the specific language governing permissions and limitations under the License.
+-->
+
 <template>
   <div class="instance-selector-table">
     <DbQuickSearch
@@ -130,6 +143,7 @@
 </template>
 
 <script setup lang="ts" generic="T extends ISupportClusterType">
+  import type { ComponentProps } from 'vue-component-type-helpers';
   import { useI18n } from 'vue-i18n';
 
   import MongodbInstanceModel from '@services/model/mongodb/mongodb-instance';
@@ -176,7 +190,8 @@
   const containerHeight = 570 - 32 - 16; // 去除搜索框的高度和margin bottom
   const isMongodb = [ClusterTypes.MONGO_REPLICA_SET, ClusterTypes.MONGO_SHARED_CLUSTER].includes(props.clusterType);
 
-  const realDataSource = (params: any) => (props.dataSourceMap?.[props.clusterType as T] || requestHandler)(params);
+  const realDataSource: ComponentProps<typeof DbTable>['dataSource'] = (params) =>
+    (props.dataSourceMap?.[props.clusterType as T] || requestHandler)(params);
 
   const fetchData = () => {
     instanceTableRef.value!.fetchData(Object.assign({}, quickSearchValue.value));
