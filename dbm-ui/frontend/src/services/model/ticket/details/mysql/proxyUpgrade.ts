@@ -2,7 +2,6 @@ import type { DetailBase, DetailClusters } from '../common';
 
 export interface ProxyUpgrade extends DetailBase {
   clusters: DetailClusters;
-  is_check_process: boolean;
   infos: {
     cluster_ids: number[];
     display_info: {
@@ -11,4 +10,5 @@ export interface ProxyUpgrade extends DetailBase {
     };
     pkg_id: number;
   }[];
+  is_check_process: boolean;
 }

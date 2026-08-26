@@ -35,7 +35,8 @@
   <InstanceSelector
     v-model="selectedInstances"
     v-model:is-show="isShowIpSelector"
-    :cluster-types="[ClusterTypes.TENDBHA, ClusterTypes.TENDBSINGLE]"
+    :cluster-types="clusterTypesByDBType[DBTypes.MYSQL]"
+    repeatable
     @change="handleSelectorChange" />
   <EditableColumn
     field="cluster_domain"
@@ -57,7 +58,7 @@
   import TendbhaInstanceModel from '@services/model/mysql/tendbha-instance';
   import { checkInstance } from '@services/source/dbbase';
 
-  import { ClusterTypes, DBTypes } from '@common/const';
+  import { ClusterTypes, clusterTypesByDBType, DBTypes } from '@common/const';
   import { ipPort } from '@common/regex';
 
   import InstanceSelector from '@components/instance-selector-new/Index.vue';
@@ -132,7 +133,7 @@
       if (!bkHostId.value && source.value) {
         queryInstance({
           bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
-          cluster_type: [ClusterTypes.TENDBHA, ClusterTypes.TENDBSINGLE],
+          cluster_type: clusterTypesByDBType[DBTypes.MYSQL],
           db_type: DBTypes.MYSQL,
           instance_addresses: [source.value],
         });

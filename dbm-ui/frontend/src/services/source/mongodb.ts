@@ -18,6 +18,8 @@ import MongodbInstanceModel from '@services/model/mongodb/mongodb-instance';
 import MongodbMachineModel from '@services/model/mongodb/mongodb-machine';
 import type { ListBase } from '@services/types';
 
+import type { ClusterTypes } from '@common/const';
+
 import http from '../http';
 
 const getRootPath = () => `/apis/mongodb/bizs/${window.PROJECT_CONFIG.BIZ_ID}/mongodb_resources`;
@@ -33,7 +35,7 @@ interface ClusterInfo {
   bk_biz_id: number;
   bk_cloud_id: number;
   cluster_name: string;
-  cluster_type: string;
+  cluster_type: ClusterTypes;
   creator: string;
   db_module_id: number;
   disaster_tolerance_level: string;
@@ -218,7 +220,7 @@ export function exportMongodbInstanceToExcel(params: { bk_host_ids?: number[] })
 /**
  * 获取业务拓扑树
  */
-export function getMongoDBResourceTree(params: { cluster_type: string }) {
+export function getMongoDBResourceTree(params: { cluster_type: ClusterTypes }) {
   return http.get<BizConfTopoTreeModel[]>(`/apis/mongodb/bizs/${window.PROJECT_CONFIG.BIZ_ID}/resource_tree/`, params);
 }
 

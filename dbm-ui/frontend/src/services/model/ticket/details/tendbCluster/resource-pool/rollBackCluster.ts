@@ -32,10 +32,10 @@ export interface RollbackCluster extends ResourcePoolDetailBase {
   };
   ignore_check_db: boolean;
   infos: {
+    affect_database_list?: string[];
     backupinfo: any; // 旧的构造还在用之前的结构
     cluster_id: number;
     databases: string[];
-    affect_database_list?: string[];
     databases_ignore: string[];
     resource_spec: {
       remote_hosts: {

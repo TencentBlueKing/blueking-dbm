@@ -1,3 +1,5 @@
+import type { ClusterTypes } from '@common/const';
+
 export interface ClusterListSpec {
   cpu: {
     max: number;
@@ -18,7 +20,7 @@ export interface ClusterListSpec {
     max: number;
     min: number;
   };
-  spec_cluster_type: string;
+  spec_cluster_type: ClusterTypes;
   spec_id: number;
   spec_machine_type: string;
   spec_name: string;

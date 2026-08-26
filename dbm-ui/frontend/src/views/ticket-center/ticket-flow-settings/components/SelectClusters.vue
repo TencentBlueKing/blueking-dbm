@@ -31,7 +31,7 @@
   import { queryAllTypeCluster } from '@services/source/dbbase';
   import { checkTicketFlowConfigClusterRepeat, type ClusterIdItem } from '@services/source/ticket';
 
-  import { DBTypes, queryClusterTypes } from '@common/const';
+  import { clusterTypesByDBType, DBTypes } from '@common/const';
 
   import FormItemWithHint from '@components/form-item-with-hint/Index.vue';
 
@@ -130,7 +130,7 @@
       if (props.bizId) {
         fetchData({
           bk_biz_id: props.bizId,
-          cluster_types: queryClusterTypes[props.dbType as keyof typeof queryClusterTypes].join(','),
+          cluster_types: clusterTypesByDBType[props.dbType],
           limit: -1,
         });
       }

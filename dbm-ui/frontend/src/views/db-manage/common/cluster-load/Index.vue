@@ -41,7 +41,7 @@
 
   interface Props {
     clusterId?: number;
-    clusterType: string;
+    clusterType: ClusterTypes;
     domain: string;
     // eslint-disable-next-line vue/require-default-prop
     size?: ComponentProps<typeof BkTag>['size'];
@@ -156,7 +156,7 @@
       defaultParams: [
         {
           bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
-          cluster_type: props.clusterType === ClusterTypes.REDIS ? clusterRedisTypeList.join(',') : props.clusterType,
+          cluster_type: props.clusterType === ClusterTypes.REDIS ? clusterRedisTypeList : props.clusterType,
         },
       ],
       // pollingInterval: 10 * 1000,

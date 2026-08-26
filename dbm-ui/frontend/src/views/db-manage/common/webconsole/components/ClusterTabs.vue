@@ -73,7 +73,7 @@
 
   import { queryAllTypeCluster } from '@services/source/dbbase';
 
-  import { DBTypes, queryClusterTypes } from '@common/const';
+  import { clusterTypesByDBType, DBTypes } from '@common/const';
 
   import { messageWarn } from '@utils';
 
@@ -129,7 +129,7 @@
     defaultParams: [
       {
         bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
-        cluster_types: queryClusterTypes[props.dbType].join(','),
+        cluster_types: clusterTypesByDBType[props.dbType],
         phase: 'online',
       },
     ],

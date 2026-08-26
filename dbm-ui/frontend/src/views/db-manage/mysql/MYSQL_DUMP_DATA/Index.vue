@@ -32,7 +32,7 @@
         required>
         <ClusterSelect
           v-model="formData.clusterId"
-          :cluster-types="[ClusterTypes.TENDBHA, ClusterTypes.TENDBSINGLE]"
+          :cluster-types="clusterTypesByDBType[DBTypes.MYSQL]"
           :db-type="DBTypes.MYSQL"
           :placeholder="t('请选择源集群')" />
       </FormItemWithHint>
@@ -152,7 +152,7 @@
 
   import { useCreateTicket, useTicketDetail } from '@hooks';
 
-  import { ClusterTypes, DBTypes, TicketTypes } from '@common/const';
+  import { clusterTypesByDBType, DBTypes, TicketTypes } from '@common/const';
 
   import FormItemWithHint from '@components/form-item-with-hint/Index.vue';
 

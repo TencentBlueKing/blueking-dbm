@@ -1,7 +1,9 @@
+import type { DBTypes } from '@common/const';
+
 export interface ClusterCommonInfo {
   availableTags: ClusterCommonInfo['tags'];
   create_at: string;
-  db_type: string;
+  db_type: DBTypes;
   id: number;
   masterDomain: string;
   phase: string;

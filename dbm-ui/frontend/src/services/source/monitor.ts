@@ -36,7 +36,7 @@ interface UpdatePolicyParams {
 
 interface CreateCycleDutyRuleParams {
   category: string;
-  db_type: string;
+  db_type: DBTypes;
   duty_arranges: {
     duty_day: number;
     duty_number: number;
@@ -61,7 +61,7 @@ interface CreateCustomDutyRuleParams extends Omit<CreateCycleDutyRuleParams, 'du
 
 interface AlarmGroupItem {
   bk_biz_id: number;
-  db_type: string;
+  db_type: DBTypes;
   details: {
     alert_notice: {
       notify_config: {
@@ -197,7 +197,7 @@ export const getAlarmGroupList = (params: { bk_biz_id: number; db_type?: string;
 
 // 查询轮值规则列表
 export const queryDutyRuleList = (
-  params: { db_type: string; limit: number; offset: number },
+  params: { db_type: DBTypes; limit: number; offset: number },
   payload = {} as IRequestPayload,
 ) =>
   http.get<ListBase<DutyRuleModel[]>>(`${path}/duty_rule/`, params, payload).then((data) => ({
@@ -397,7 +397,7 @@ export const getPolicyList = (params: {
   http.get<
     ListBase<
       {
-        db_type: string;
+        db_type: DBTypes;
         monitor_policy_id: number;
         name: string;
       }[]
