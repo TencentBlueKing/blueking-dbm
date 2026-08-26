@@ -16,6 +16,7 @@ from rest_framework import serializers
 from backend.configuration.constants import DBType
 from backend.db_services.mysql.sql_import import mock_data
 from backend.db_services.mysql.sql_import.constants import (
+    MAX_UPLOAD_SQL_FILE_NAME_LENGTH,
     MAX_UPLOAD_SQL_FILE_SIZE,
     SQLCharset,
     SQLExecuteTicketMode,
@@ -63,6 +64,8 @@ class SQLGrammarCheckSerializer(serializers.Serializer):
         for file in attrs.get("sql_files", []):
             if file.size > MAX_UPLOAD_SQL_FILE_SIZE:
                 raise ValidationError(_("请保证单个文件{}不超过1G").fromat(file.name))
+            if len(file.name.split("/")[-1]) > MAX_UPLOAD_SQL_FILE_NAME_LENGTH:
+                raise ValidationError(_("请保证sql文件[{}]的文件名不超过{}个字符").format(file.name, MAX_UPLOAD_SQL_FILE_NAME_LENGTH))
             if file.name.rsplit(".")[-1].lower() != "sql":
                 raise ValidationError(_("请保证sql文件[{}]的后缀为.sql").format(file.name))
 

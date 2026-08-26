@@ -17,3 +17,9 @@ from backend.exceptions import AppBaseException, ErrorCode
 class SQLImportBaseException(AppBaseException):
     MODULE_CODE = ErrorCode.DB_REMOTE_SERVICE_CODE
     MESSAGE = _("SQL导入接口请求通用异常")
+
+
+class SQLFileNameTooLongException(SQLImportBaseException):
+    ERROR_CODE = "001"
+    MESSAGE = _("SQL文件名超过长度限制")
+    MESSAGE_TPL = _("SQL文件名[{filename}]超过{max_length}个字符，请缩短后重新上传")

@@ -38,6 +38,7 @@ REDIS_URL = f"redis://{f':{REDIS_PASSWORD}@' if REDIS_PASSWORD else ''}{REDIS_HO
 REDIS_DEV_BEST_PRACTICE_URL = get_type_env(key="REDIS_DEV_BEST_PRACTICE_URL", _type=str, default="")
 
 BROKER_URL = get_type_env(key="BROKER_URL", default=REDIS_URL, _type=str)
+CACHE_URL = get_type_env(key="CACHE_URL", default=REDIS_URL, _type=str)
 SESSION_COOKIE_DOMAIN = get_type_env(key="SESSION_COOKIE_DOMAIN", default="", _type=str)
 
 ENABLE_BKBASE_METRICS_REPORT = get_type_env(key="ENABLE_BKBASE_METRICS_REPORT", _type=bool, default=False)
