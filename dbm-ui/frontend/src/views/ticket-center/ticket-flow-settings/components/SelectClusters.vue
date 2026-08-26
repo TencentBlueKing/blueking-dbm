@@ -33,7 +33,6 @@
 
   import { DBTypes, queryClusterTypes } from '@common/const';
 
-  import DbTagInput from '@components/db-tag-input/Index.vue';
   import FormItemWithHint from '@components/form-item-with-hint/Index.vue';
 
   interface Props {

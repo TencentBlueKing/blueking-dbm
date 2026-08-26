@@ -20,8 +20,8 @@ import AuthRouterLink from '@components/auth-component/router-link.vue';
 import AuthSwitcher from '@components/auth-component/switcher.vue';
 import DbInput from '@components/bkui-vue/input/Index.vue';
 import DbTag from '@components/bkui-vue/tag/Index.vue';
+import DbTagInput from '@components/bkui-vue/tag-input/Index.vue';
 import DbCard from '@components/db-card/index.vue';
-import DbDateTimePicker from '@components/db-date-time-picker/Index.vue';
 import DbForm from '@components/db-form/index.vue';
 import DbFormItem from '@components/db-form/item.vue';
 import DbIcon from '@components/db-icon';
@@ -31,7 +31,6 @@ import DbResetButton from '@components/db-reset-button/index.vue';
 import DbSearchSelect from '@components/db-search-select/index.vue';
 import DbSideslider from '@components/db-sideslider/index.vue';
 import DbStatus from '@components/db-status/index.vue';
-import DbTextarea from '@components/db-textarea/DbTextarea.vue';
 import EditableTable, {
   Block as EditableBlock,
   Column as EditableColumn,
@@ -47,7 +46,6 @@ import FunController from '@components/function-controller/FunController.vue';
 import MoreActionExtend from '@components/more-action-extend/Index.vue';
 import NewFeatureGuide from '@components/new-feature-guide/Index.vue';
 import ScrollFaker from '@components/scroll-faker/Index.vue';
-import SkeletonLoading from '@components/skeleton-loading/Index.vue';
 import SmartAction from '@components/smart-action/Index.vue';
 import TableDetailDialog from '@components/table-detail-dialog/Index.vue';
 import { PrimaryTable, TableColumn as PrimaryTableColumn } from '@components/tdesign-ui/table';
@@ -82,11 +80,10 @@ export const setGlobalComps = (app: App<Element>) => {
   app.component('DbInput', DbInput);
   app.component('DbPopconfirm', DbPopconfirm);
   app.component('DbResetButton', DbResetButton);
-  app.component('DbDateTimePicker', DbDateTimePicker);
   app.component('DbSearchSelect', DbSearchSelect);
   app.component('DbSideslider', DbSideslider);
   app.component('DbTag', DbTag);
-  app.component('DbTextarea', DbTextarea);
+  app.component('DbTagInput', DbTagInput);
   app.component('DbStatus', DbStatus);
   app.component('SmartAction', SmartAction);
   app.component('BkIpSelector', ipSelector);
@@ -94,7 +91,6 @@ export const setGlobalComps = (app: App<Element>) => {
   app.component('MoreActionExtend', MoreActionExtend);
   app.component('UserSelector', UserSelector);
   app.component('ScrollFaker', ScrollFaker);
-  app.component('SkeletonLoading', SkeletonLoading);
   app.component('AuthButton', AuthButton);
   app.component('AuthTemplate', AuthTemplate);
   app.component('AuthOption', AuthOption);
