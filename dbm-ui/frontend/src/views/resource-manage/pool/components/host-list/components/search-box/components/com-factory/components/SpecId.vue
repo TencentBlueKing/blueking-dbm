@@ -14,7 +14,7 @@
 <template>
   <BkLoading :loading="isResourceSpecLoading">
     <BkComposeFormItem class="search-spec-id">
-      <BkSelect
+      <DbSelect
         :key="currentDbType"
         v-model="currentMachine"
         :clearable="false"
@@ -22,13 +22,13 @@
         filterable
         :input-search="false"
         style="width: 150px">
-        <BkOption
+        <DbOption
           v-for="item in clusterMachineList"
           :key="item.value"
           :label="item.label"
           :value="item.value" />
-      </BkSelect>
-      <BkSelect
+      </DbSelect>
+      <DbSelect
         :key="currentMachine"
         :disabled="!currentMachine"
         filterable
@@ -37,12 +37,12 @@
         :model-value="defaultValue"
         :placeholder="t('请选择匹配规格')"
         @change="handleChange">
-        <BkOption
+        <DbOption
           v-for="item in resourceSpecList?.results"
           :key="item.spec_id"
           :label="item.spec_name"
           :value="item.spec_id" />
-      </BkSelect>
+      </DbSelect>
     </BkComposeFormItem>
   </BkLoading>
 </template>

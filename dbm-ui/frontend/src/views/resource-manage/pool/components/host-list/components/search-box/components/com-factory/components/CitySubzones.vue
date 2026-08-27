@@ -13,25 +13,25 @@
 
 <template>
   <BkComposeFormItem class="search-city-subzones">
-    <BkSelect
+    <DbSelect
       v-model="cityCode"
       clearable
       style="width: 100px"
       @change="handleCityChange">
-      <BkOptionGroup group-style="divider">
-        <BkOption
+      <DbOptionGroup group-style="divider">
+        <DbOption
           v-for="item in citiyList"
           :key="item.city_code"
           :label="item.city_name"
           :value="item.city_code" />
-      </BkOptionGroup>
-      <BkOptionGroup group-style="divider">
-        <BkOption
+      </DbOptionGroup>
+      <DbOptionGroup group-style="divider">
+        <DbOption
           :label="specialOptionLabelMap[SpecialOptions.EMPTY]"
           :value="SpecialOptions.EMPTY" />
-      </BkOptionGroup>
-    </BkSelect>
-    <BkSelect
+      </DbOptionGroup>
+    </DbSelect>
+    <DbSelect
       v-model="subzoneIds"
       collapse-tags
       :disabled="!cityCode"
@@ -40,21 +40,21 @@
       multiple-mode="tag"
       show-select-all
       @change="handleChange">
-      <BkOptionGroup
+      <DbOptionGroup
         v-if="filterSubzoneList.length > 0"
         group-style="divider">
-        <BkOption
+        <DbOption
           v-for="item in filterSubzoneList"
           :key="item.value"
           :label="item.label"
           :value="item.value" />
-      </BkOptionGroup>
-      <BkOptionGroup group-style="divider">
-        <BkOption
+      </DbOptionGroup>
+      <DbOptionGroup group-style="divider">
+        <DbOption
           :label="specialOptionLabelMap[SpecialOptions.EMPTY]"
           :value="SpecialOptions.EMPTY" />
-      </BkOptionGroup>
-    </BkSelect>
+      </DbOptionGroup>
+    </DbSelect>
   </BkComposeFormItem>
 </template>
 <script setup lang="ts">

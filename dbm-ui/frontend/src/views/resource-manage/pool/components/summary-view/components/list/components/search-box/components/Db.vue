@@ -1,21 +1,21 @@
 <template>
-  <BkSelect
+  <DbSelect
     v-model="localValue"
     :clearable="false"
     @change="handleChange">
-    <BkOptionGroup group-style="divider">
-      <BkOption
+    <DbOptionGroup group-style="divider">
+      <DbOption
         v-for="item in readResourceDbTypes"
         :key="item.value"
         :label="item.label"
         :value="item.value" />
-    </BkOptionGroup>
-    <BkOptionGroup group-style="divider">
-      <BkOption
+    </DbOptionGroup>
+    <DbOptionGroup group-style="divider">
+      <DbOption
         :label="specialOptionLabelMap[SpecialOptions.PUBLIC]"
         :value="SpecialOptions.PUBLIC" />
-    </BkOptionGroup>
-  </BkSelect>
+    </DbOptionGroup>
+  </DbSelect>
 </template>
 
 <script setup lang="ts">

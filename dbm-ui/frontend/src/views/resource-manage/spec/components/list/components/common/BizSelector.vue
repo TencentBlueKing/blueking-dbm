@@ -1,5 +1,5 @@
 <template>
-  <BkSelect
+  <DbSelect
     v-model="modelValue"
     allow-create
     class="spec-manage-biz-selector"
@@ -67,7 +67,7 @@
 
 <style lang="less">
   .spec-manage-biz-selector {
-    .bk-select-tag-wrapper {
+    .dbm-select-tag-wrapper {
       flex: 1;
     }
   }

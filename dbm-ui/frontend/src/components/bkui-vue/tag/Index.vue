@@ -43,7 +43,8 @@
       class="dbm-tag-text">
       <slot />
     </span>
-    <Close
+    <!-- bkui-vue 图标里 Error 才是纯 ×，Close 是带圆圈的 ×，此处与 bk-tag 保持一致用 Error -->
+    <Error
       v-if="closable"
       class="dbm-tag-close"
       @click="handleClose" />
@@ -51,7 +52,7 @@
 </template>
 
 <script setup lang="ts">
-  import { Close } from 'bkui-vue/lib/icon';
+  import { Error } from 'bkui-vue/lib/icon';
   import type { VNode } from 'vue';
 
   interface Props {

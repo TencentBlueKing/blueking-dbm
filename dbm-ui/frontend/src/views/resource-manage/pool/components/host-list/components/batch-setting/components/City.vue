@@ -12,19 +12,19 @@
 -->
 
 <template>
-  <BkSelect
+  <DbSelect
     v-model="modelValue"
     :allow-empty-values="[0]"
     filterable
     :loading="isLoading"
     :placeholder="t('请选择地域')">
-    <BkOption
+    <DbOption
       v-for="item in cityList"
       :key="item.bk_idc_city_id"
       :label="item.bk_idc_city_name"
       :value="item.bk_idc_city_id">
-    </BkOption>
-  </BkSelect>
+    </DbOption>
+  </DbSelect>
 </template>
 <script setup lang="ts">
   import _ from 'lodash';
