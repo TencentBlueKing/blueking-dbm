@@ -25,11 +25,13 @@
 package hamysql
 
 import (
+	"bytes"
 	"context"
 	"database/sql"
 	"database/sql/driver"
 	"errors"
 	"io"
+	"log"
 	"sync"
 	"testing"
 
@@ -37,6 +39,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
+	gormlogger "gorm.io/gorm/logger"
 )
 
 // versionFakeDriver is a minimal database/sql driver serving "SELECT VERSION()" and plain
@@ -137,14 +140,26 @@ func (r *versionFakeRows) Next(dest []driver.Value) error {
 
 func newGormDBWithFakeDriver(t *testing.T, drv *versionFakeDriver, drvName string) *GormDB {
 	t.Helper()
+	return newGormDBWithFakeDriverAndBuffer(t, drv, drvName, nil)
+}
+
+// newGormDBWithFakeDriverAndBuffer routes the GORM logger into buf when it is non-nil.
+func newGormDBWithFakeDriverAndBuffer(
+	t *testing.T, drv *versionFakeDriver, drvName string, buf *bytes.Buffer,
+) *GormDB {
+	t.Helper()
 	sql.Register(drvName, drv)
 
 	sqlDB, err := sql.Open(drvName, "")
 	require.NoError(t, err)
 
+	gormCfg := &gorm.Config{}
+	if buf != nil {
+		gormCfg.Logger = gormlogger.New(log.New(buf, "", 0), gormlogger.Config{LogLevel: gormlogger.Info})
+	}
 	gdb, err := gorm.Open(&mysql.Dialector{
 		Config: &mysql.Config{Conn: sqlDB, DriverName: drvName, SkipInitializeWithVersion: true},
-	}, &gorm.Config{})
+	}, gormCfg)
 	require.NoError(t, err)
 
 	return WithGormDB(gdb, func() { sqlDB.Close() })
@@ -323,4 +338,18 @@ func TestChangeReplicationToRetryFailureReportsBothErrors(t *testing.T) {
 	require.Error(t, err)
 	assert.Len(t, drv.execHistory(), 2)
 	assert.Contains(t, err.Error(), "retried with")
+}
+
+func TestChangeReplicationToNoPasswordInGormLog(t *testing.T) {
+	drv := &versionFakeDriver{version: "8.4.0", execFailures: 1}
+	var buf bytes.Buffer
+	db := newGormDBWithFakeDriverAndBuffer(t, drv, "hamysql-version-fake-nopass-gormlog", &buf)
+	defer db.Close()
+
+	src := ReplSource{Host: "192.168.1.1", Port: 3306, User: "repl", Password: "p@ssw0rd-xyz", AutoPosition: AutoPositionOn}
+	_, err := db.ChangeReplicationTo(context.Background(), src)
+	require.NoError(t, err)
+	// the first exec failed and would be echoed by the GORM logger if not silenced
+	require.Len(t, drv.execHistory(), 2)
+	assert.NotContains(t, buf.String(), "p@ssw0rd-xyz")
 }
