@@ -41,3 +41,20 @@ class SQLSimulationApiMock:
                 "error_line": 0,
             }
         ]
+
+    @classmethod
+    def parse_file_statement(cls, *args, **kwargs):
+        params = kwargs.get("params") or {}
+        files = params.get("files") or []
+        include_sql_text = params.get("include_sql_text", False)
+        file_name = files[0] if files else "change.sql"
+        alter = {"db_name": "db1", "table_name": "t1"}
+        if include_sql_text:
+            alter["sql_text"] = "ALTER TABLE `t1` ADD COLUMN `foo` INT"
+        return {
+            "command_counts": {"alter_table": 1},
+            "file_command_counts": {file_name: {"alter_table": 1}},
+            "alter_tables": [{"file_name": file_name, "alters": [alter]}],
+            "drop_tables": [],
+            "truncate_tables": [],
+        }

@@ -168,6 +168,59 @@ func TestSummarizeParsedStatements_DropAndTruncateTables(t *testing.T) {
 	assert.Equal(t, syntax.TableRef{DbName: "db3", TableName: "t5"}, summary.TruncateTables[0].Tables[1])
 }
 
+func TestSummarizeParsedStatements_UseDbThenQualifiedOverride(t *testing.T) {
+	byFile := map[string][]syntax.ParseIncludeTableBase{
+		"a.sql": {
+			{Command: syntax.SQLTypeUseDb, DbName: "db1"},
+			{Command: syntax.SQLTypeAlterTable, TableName: "t1", QueryString: "ALTER TABLE t1 ADD COLUMN x INT"},
+			{Command: syntax.SQLTypeDropTable, TableName: "t2", QueryDigestText: "DROP TABLE `t2` "},
+			{Command: syntax.SQLTypeUseDb, DbName: "db2"},
+			{Command: syntax.SQLTypeTruncate, QueryDigestText: "TRUNCATE TABLE `t3` "},
+			{
+				Command:     syntax.SQLTypeAlterTable,
+				DbName:      "dbx",
+				TableName:   "t",
+				QueryString: "ALTER TABLE `dbx`.`t` ADD COLUMN y INT",
+			},
+		},
+	}
+
+	summary, err := syntax.SummarizeParsedStatements(byFile, []string{"a.sql"}, false)
+	require.NoError(t, err)
+
+	require.Len(t, summary.AlterTables[0].Alters, 2)
+	assert.Equal(t, syntax.AlterTableRef{DbName: "db1", TableName: "t1"}, summary.AlterTables[0].Alters[0])
+	assert.Equal(t, syntax.AlterTableRef{DbName: "dbx", TableName: "t"}, summary.AlterTables[0].Alters[1])
+	require.Len(t, summary.DropTables[0].Tables, 1)
+	assert.Equal(t, syntax.TableRef{DbName: "db1", TableName: "t2"}, summary.DropTables[0].Tables[0])
+	require.Len(t, summary.TruncateTables[0].Tables, 1)
+	assert.Equal(t, syntax.TableRef{DbName: "db2", TableName: "t3"}, summary.TruncateTables[0].Tables[0])
+}
+
+func TestSummarizeParsedStatements_FileCommandCounts(t *testing.T) {
+	byFile := map[string][]syntax.ParseIncludeTableBase{
+		"change.sql": {
+			{Command: syntax.SQLTypeUseDb, DbName: "db1"},
+			{Command: syntax.SQLTypeAlterTable, TableName: "t1"},
+			{Command: syntax.SQLTypeDelete, TableName: "t1"},
+		},
+		"dml.sql": {
+			{Command: syntax.SQLTypeInsert, TableName: "t2"},
+		},
+	}
+
+	summary, err := syntax.SummarizeParsedStatements(byFile, []string{"change.sql", "dml.sql"}, false)
+	require.NoError(t, err)
+	assert.Equal(t, map[string]int{
+		syntax.SQLTypeUseDb:      1,
+		syntax.SQLTypeAlterTable: 1,
+		syntax.SQLTypeDelete:     1,
+	}, summary.FileCommandCounts["change.sql"])
+	assert.Equal(t, map[string]int{syntax.SQLTypeInsert: 1}, summary.FileCommandCounts["dml.sql"])
+	assert.Equal(t, 1, summary.CommandCounts[syntax.SQLTypeInsert])
+	assert.Equal(t, 1, summary.CommandCounts[syntax.SQLTypeDelete])
+}
+
 func TestSummarizeParsedStatements_OmitSQLText(t *testing.T) {
 	byFile := map[string][]syntax.ParseIncludeTableBase{
 		"change.sql": {

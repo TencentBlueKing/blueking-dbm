@@ -44,10 +44,11 @@ type TableFileGroup struct {
 
 // SQLFileStatementSummary SQL 文件语句分析结果
 type SQLFileStatementSummary struct {
-	CommandCounts  map[string]int        `json:"command_counts"`
-	AlterTables    []AlterTableFileGroup `json:"alter_tables"`
-	DropTables     []TableFileGroup      `json:"drop_tables"`
-	TruncateTables []TableFileGroup      `json:"truncate_tables"`
+	CommandCounts     map[string]int            `json:"command_counts"`
+	FileCommandCounts map[string]map[string]int `json:"file_command_counts"`
+	AlterTables       []AlterTableFileGroup     `json:"alter_tables"`
+	DropTables        []TableFileGroup          `json:"drop_tables"`
+	TruncateTables    []TableFileGroup          `json:"truncate_tables"`
 }
 
 // qualifiedTableRe 匹配 `db` . `tbl` 或单独 `tbl`
@@ -58,15 +59,19 @@ var qualifiedTableRe = regexp.MustCompile("`([^`]+)`\\s*\\.\\s*`([^`]+)`|`([^`]+
 func SummarizeParsedStatements(byFile map[string][]ParseIncludeTableBase, fileOrder []string, includeSQLText bool) (
 	*SQLFileStatementSummary, error) {
 	summary := &SQLFileStatementSummary{
-		CommandCounts:  make(map[string]int),
-		AlterTables:    make([]AlterTableFileGroup, 0),
-		DropTables:     make([]TableFileGroup, 0),
-		TruncateTables: make([]TableFileGroup, 0),
+		CommandCounts:     make(map[string]int),
+		FileCommandCounts: make(map[string]map[string]int),
+		AlterTables:       make([]AlterTableFileGroup, 0),
+		DropTables:        make([]TableFileGroup, 0),
+		TruncateTables:    make([]TableFileGroup, 0),
 	}
 	for _, fileName := range buildFileOrder(byFile, fileOrder) {
 		fileSum, err := summarizeFileStatements(byFile[fileName], summary.CommandCounts, includeSQLText)
 		if err != nil {
 			return nil, err
+		}
+		if len(fileSum.commandCounts) > 0 {
+			summary.FileCommandCounts[fileName] = fileSum.commandCounts
 		}
 		appendFileGroups(summary, fileName, fileSum)
 	}
@@ -74,9 +79,10 @@ func SummarizeParsedStatements(byFile map[string][]ParseIncludeTableBase, fileOr
 }
 
 type fileStatementSummary struct {
-	alters    []AlterTableRef
-	drops     []TableRef
-	truncates []TableRef
+	commandCounts map[string]int
+	alters        []AlterTableRef
+	drops         []TableRef
+	truncates     []TableRef
 }
 
 func appendFileGroups(summary *SQLFileStatementSummary, fileName string, fileSum fileStatementSummary) {
@@ -116,9 +122,10 @@ func buildFileOrder(byFile map[string][]ParseIncludeTableBase, fileOrder []strin
 func summarizeFileStatements(queries []ParseIncludeTableBase, counts map[string]int, includeSQLText bool) (
 	fileStatementSummary, error) {
 	out := fileStatementSummary{
-		alters:    make([]AlterTableRef, 0),
-		drops:     make([]TableRef, 0),
-		truncates: make([]TableRef, 0),
+		commandCounts: make(map[string]int),
+		alters:        make([]AlterTableRef, 0),
+		drops:         make([]TableRef, 0),
+		truncates:     make([]TableRef, 0),
 	}
 	currentDb := ""
 	for _, q := range queries {
@@ -129,6 +136,7 @@ func summarizeFileStatements(queries []ParseIncludeTableBase, counts map[string]
 			continue
 		}
 		counts[q.Command]++
+		out.commandCounts[q.Command]++
 		switch q.Command {
 		case SQLTypeUseDb:
 			if lo.IsNotEmpty(q.DbName) {
