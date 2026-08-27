@@ -10,10 +10,13 @@ declare module 'vue' {
     DbFormItem: typeof import('@components/db-form/item.vue').default;
     DbIcon: typeof import('@components/db-icon/index.ts').default;
     DbInput: typeof import('@components/bkui-vue/input/Index.vue').default;
+    DbOption: typeof import('@components/bkui-vue/select/components/Option.vue').default;
+    DbOptionGroup: typeof import('@components/bkui-vue/select/components/OptionGroup.vue').default;
     DbPopconfirm: typeof import('@components/db-popconfirm/index.vue').default;
     DbQuickSearch: typeof import('@components/db-quick-search/Index.vue').default;
     DbResetButton: typeof import('@components/db-reset-button/index.vue').default;
     DbSearchSelect: typeof import('@components/db-search-select/index.vue').default;
+    DbSelect: typeof import('@components/bkui-vue/select/Index.vue').default;
     DbSideslider: typeof import('@components/db-sideslider/index.vue').default;
     DbStatus: typeof import('@components/db-status/index.vue').default;
     DbTag: typeof import('@components/bkui-vue/tag/Index.vue').default;

@@ -1,5 +1,5 @@
 <template>
-  <BkSelect
+  <DbSelect
     class="tag-research-selector"
     filterable
     :model-value="selected"
@@ -7,15 +7,14 @@
     multiple-mode="tag"
     :remote-method="handleSearch"
     :scroll-loading="isLoading"
-    selected-style="checkbox"
     @change="handleChange"
     @scroll-end="loadMore">
-    <BkOption
+    <DbOption
       v-for="item in tagList"
       :key="item.value"
       :label="item.value"
       :value="item.value" />
-  </BkSelect>
+  </DbSelect>
 </template>
 
 <script setup lang="tsx">

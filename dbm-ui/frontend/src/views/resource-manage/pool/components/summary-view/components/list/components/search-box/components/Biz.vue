@@ -1,14 +1,14 @@
 <template>
-  <BkSelect
+  <DbSelect
     v-model="localValue"
     :clearable="false"
     @change="handleChange">
-    <BkOption
+    <DbOption
       v-for="biz in bizList"
       :key="biz.bk_biz_id"
       :label="biz.display_name"
       :value="biz.bk_biz_id" />
-  </BkSelect>
+  </DbSelect>
 </template>
 
 <script setup lang="ts">

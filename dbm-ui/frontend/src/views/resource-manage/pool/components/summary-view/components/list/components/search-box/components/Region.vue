@@ -1,17 +1,17 @@
 <template>
   <BkComposeFormItem class="search-box-select-region">
-    <BkSelect
+    <DbSelect
       v-model="cityCode"
       clearable
       style="width: 100px"
       @change="handleChangeCity">
-      <BkOption
+      <DbOption
         v-for="item in citiyList"
         :key="item.city_code"
         :label="item.city_name"
         :value="item.city_code" />
-    </BkSelect>
-    <BkSelect
+    </DbSelect>
+    <DbSelect
       v-model="subzoneIds"
       collapse-tags
       :disabled="!cityCode"
@@ -20,12 +20,12 @@
       multiple-mode="tag"
       show-select-all
       @change="handleChangeSubzone">
-      <BkOption
+      <DbOption
         v-for="item in renderSubzoneList"
         :key="item.value"
         :label="item.label"
         :value="item.value" />
-    </BkSelect>
+    </DbSelect>
   </BkComposeFormItem>
 </template>
 

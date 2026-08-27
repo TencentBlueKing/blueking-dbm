@@ -1,12 +1,11 @@
 <template>
-  <BkSelect
+  <DbSelect
     v-model="modelValue"
     class="tag-research-selector"
     filterable
     multiple
     :scroll-height="200"
     :scroll-loading="isFetchingTagsList"
-    selected-style="checkbox"
     @scroll-end="loadMore">
     <template #trigger>
       <BkButton class="trigger-btn">
@@ -16,12 +15,12 @@
         {{ t('标签搜索') }}
       </BkButton>
     </template>
-    <BkOption
+    <DbOption
       v-for="item in tagList"
       :key="item.id"
       :label="item.name"
       :value="item" />
-  </BkSelect>
+  </DbSelect>
 </template>
 
 <script setup lang="tsx">
