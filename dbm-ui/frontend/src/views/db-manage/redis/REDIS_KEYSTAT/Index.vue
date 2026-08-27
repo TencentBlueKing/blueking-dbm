@@ -241,43 +241,40 @@
     }, 200);
   };
 
-  const handleSubmit = async () => {
-    const result = await editableTableRef.value!.validate();
-    if (!result) {
-      return;
-    }
-
-    formRef.value!.validate().then(() => {
-      const clusterMap = formData.tableData.reduce<Record<number, Redis.KeyStat['infos'][number]>>((prev, item) => {
-        const insItem = {
-          addr: item.instance.instance_address,
-          key_num: item.stat_info.key_num,
-          memory_total: item.stat_info.memory_total,
-        };
-        if (prev[item.instance.cluster_id]) {
+  const handleSubmit = () => {
+    editableTableRef.value!.validate().then(() => {
+      formRef.value!.validate().then(() => {
+        const clusterMap = formData.tableData.reduce<Record<number, Redis.KeyStat['infos'][number]>>((prev, item) => {
+          const insItem = {
+            addr: item.instance.instance_address,
+            key_num: item.stat_info.key_num,
+            memory_total: item.stat_info.memory_total,
+          };
+          if (prev[item.instance.cluster_id]) {
+            return Object.assign(prev, {
+              [item.instance.cluster_id]: {
+                ...prev[item.instance.cluster_id],
+                ins: prev[item.instance.cluster_id].ins.concat(insItem),
+              },
+            });
+          }
           return Object.assign(prev, {
             [item.instance.cluster_id]: {
-              ...prev[item.instance.cluster_id],
-              ins: prev[item.instance.cluster_id].ins.concat(insItem),
+              cluster_id: item.instance.cluster_id,
+              cluster_type: item.instance.cluster_type,
+              immute_domain: item.instance.master_domain,
+              ins: [insItem],
             },
           });
-        }
-        return Object.assign(prev, {
-          [item.instance.cluster_id]: {
-            cluster_id: item.instance.cluster_id,
-            cluster_type: item.instance.cluster_type,
-            immute_domain: item.instance.master_domain,
-            ins: [insItem],
-          },
-        });
-      }, {});
+        }, {});
 
-      createTicketRun({
-        details: {
-          bk_cloud_id: formData.tableData[0].instance.bk_cloud_id,
-          infos: Object.values(clusterMap),
-        },
-        ...formData.payload,
+        createTicketRun({
+          details: {
+            bk_cloud_id: formData.tableData[0].instance.bk_cloud_id,
+            infos: Object.values(clusterMap),
+          },
+          ...formData.payload,
+        });
       });
     });
   };

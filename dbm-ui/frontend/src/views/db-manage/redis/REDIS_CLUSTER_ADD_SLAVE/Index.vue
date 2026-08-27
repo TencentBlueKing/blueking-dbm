@@ -462,9 +462,8 @@
     return infos;
   };
 
-  const handleSubmit = async () => {
-    const validateResult = await editableTableRef.value!.validate();
-    if (validateResult) {
+  const handleSubmit = () => {
+    editableTableRef.value!.validate().then(() => {
       createTicketRun({
         details: {
           infos: generateRequestParam(),
@@ -472,7 +471,7 @@
         },
         ...formData.payload,
       });
-    }
+    });
   };
 
   // 重置

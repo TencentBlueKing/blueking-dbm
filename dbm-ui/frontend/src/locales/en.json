@@ -6199,5 +6199,12 @@
   "与「业务下全部集群」的审批设置一致，不再独立生效。可手动删除。": "Identical to the approval settings of \"All clusters under the business\"; it will not take effect. It can be deleted manually.",
   "业务策略基于业务下全部集群生效，该规则支持创建子策略进行例外配置。": "The business policy applies to all clusters under the business. This rule supports creating sub-policies for exception configurations.",
   "已达到字数上限": "Reached character limit",
+  "请设置值": "Please set a value",
+  "{n}不能为空": "{n} cannot be empty",
+  "{n}不是 email": "{n} is not a valid email",
+  "{n}查询中": "{n} is loading",
+  "{n}最大值 {max}": "The maximum value of {n} is {max}",
+  "{n}最小值 {min}": "The minimum value of {n} is {min}",
+  "{n}最大长度 {maxlength}": "The maximum length of {n} is {maxlength}",
   "这行勿动！新增翻译请在上一行添加！": ""
 }

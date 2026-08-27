@@ -449,29 +449,27 @@
     timing: string;
   }>(TicketTypes.MYSQL_CHECKSUM);
 
-  const handleSubmit = async () => {
-    const result = await tableRef.value!.validate();
-    if (!result) {
-      return;
-    }
-    createTicketRun({
-      details: {
-        data_repair: formData.data_repair,
-        infos: formData.tableData.map((item) => ({
-          cluster_id: item.cluster.id,
-          db_patterns: item.db_patterns,
-          ignore_dbs: item.ignore_dbs,
-          ignore_tables: item.ignore_tables,
-          master: item.master,
-          slaves: item.slaves,
-          table_patterns: item.table_patterns,
-        })),
-        need_manual_confirm: formData.execute_mode === 'manual',
-        remark: formData.payload.remark,
-        runtime_hour: formData.runtime_hour,
-        timing: formatDateToUTC(dayjs(formData.timing).format('YYYY-MM-DD HH:mm:ss')),
-      },
-      ...formData.payload,
+  const handleSubmit = () => {
+    tableRef.value!.validate().then(() => {
+      createTicketRun({
+        details: {
+          data_repair: formData.data_repair,
+          infos: formData.tableData.map((item) => ({
+            cluster_id: item.cluster.id,
+            db_patterns: item.db_patterns,
+            ignore_dbs: item.ignore_dbs,
+            ignore_tables: item.ignore_tables,
+            master: item.master,
+            slaves: item.slaves,
+            table_patterns: item.table_patterns,
+          })),
+          need_manual_confirm: formData.execute_mode === 'manual',
+          remark: formData.payload.remark,
+          runtime_hour: formData.runtime_hour,
+          timing: formatDateToUTC(dayjs(formData.timing).format('YYYY-MM-DD HH:mm:ss')),
+        },
+        ...formData.payload,
+      });
     });
   };
 
