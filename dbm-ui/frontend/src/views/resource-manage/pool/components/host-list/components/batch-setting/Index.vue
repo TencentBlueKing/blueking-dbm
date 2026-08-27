@@ -15,7 +15,7 @@
       <BkLoading
         class="mb-36"
         :loading="machinePropertyLoading">
-        <BkSelect
+        <DbSelect
           v-model="selectedOptions"
           class="mb-16 setting-item-selector"
           multiple
@@ -28,12 +28,12 @@
               {{ t('添加属性') }}
             </BkButton>
           </template>
-          <BkOption
+          <DbOption
             v-for="item in machinePropertyOptions"
             :key="item.value"
             :label="item.label"
             :value="item.value" />
-        </BkSelect>
+        </DbSelect>
         <DbForm
           ref="formRef"
           form-type="vertical"
@@ -319,7 +319,7 @@
     .com-input {
       display: flex;
 
-      .bk-select {
+      .dbm-select {
         flex: 1;
       }
     }

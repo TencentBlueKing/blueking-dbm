@@ -12,21 +12,21 @@
 -->
 
 <template>
-  <BkSelect
+  <DbSelect
     :disabled="Boolean(model.spec_id)"
     filterable
     :input-search="false"
     :model-value="defaultValue"
     :placeholder="t('请选择数据盘挂载点')"
     @change="handleChange">
-    <BkOption
+    <DbOption
       v-for="(item, index) in data"
       :key="`${item}#${index}`"
       :label="item"
       :value="item">
       {{ item }}
-    </BkOption>
-  </BkSelect>
+    </DbOption>
+  </DbSelect>
 </template>
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';

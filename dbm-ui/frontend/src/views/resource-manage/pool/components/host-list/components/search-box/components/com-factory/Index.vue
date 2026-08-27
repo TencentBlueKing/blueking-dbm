@@ -147,9 +147,9 @@
     display: inline-block;
     min-width: 0;
 
-    .bk-select {
+    .dbm-select {
       &.is-selected-all {
-        .bk-tag-close {
+        .dbm-tag-close {
           display: none !important;
         }
       }

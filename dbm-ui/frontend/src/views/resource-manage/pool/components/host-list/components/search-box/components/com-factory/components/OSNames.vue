@@ -12,30 +12,30 @@
 -->
 
 <template>
-  <BkSelect
+  <DbSelect
     filterable
     :input-search="false"
     :loading="loading"
     :model-value="defaultValue"
     :placeholder="t('请选择操作系统名称')"
     @change="handleChange">
-    <BkOptionGroup
+    <DbOptionGroup
       v-if="data?.os_names?.length > 0"
       group-style="divider">
-      <BkOption
+      <DbOption
         v-for="item in data?.os_names"
         :key="item.value"
         :label="item.text"
         :value="item.value">
         {{ item.text }}
-      </BkOption>
-    </BkOptionGroup>
-    <BkOptionGroup group-style="divider">
-      <BkOption
+      </DbOption>
+    </DbOptionGroup>
+    <DbOptionGroup group-style="divider">
+      <DbOption
         :label="specialOptionLabelMap[SpecialOptions.EMPTY]"
         :value="SpecialOptions.EMPTY" />
-    </BkOptionGroup>
-  </BkSelect>
+    </DbOptionGroup>
+  </DbSelect>
 </template>
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';

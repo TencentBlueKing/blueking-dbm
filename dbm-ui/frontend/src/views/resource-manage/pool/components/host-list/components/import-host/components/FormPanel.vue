@@ -117,22 +117,22 @@
           property="resource_type"
           required>
           <div class="com-input">
-            <BkSelect
+            <DbSelect
               v-model="formData.resource_type"
               filterable>
-              <BkOptionGroup group-style="divider">
-                <BkOption
+              <DbOptionGroup group-style="divider">
+                <DbOption
                   v-for="item in editResourceDbTypes"
                   :key="item.value"
                   :label="item.label"
                   :value="item.value" />
-              </BkOptionGroup>
-              <BkOptionGroup group-style="divider">
-                <BkOption
+              </DbOptionGroup>
+              <DbOptionGroup group-style="divider">
+                <DbOption
                   :label="specialOptionLabelMap[SpecialOptions.PUBLIC]"
                   :value="SpecialOptions.PUBLIC" />
-              </BkOptionGroup>
-            </BkSelect>
+              </DbOptionGroup>
+            </DbSelect>
           </div>
         </BkFormItem>
         <BkFormItem
@@ -414,7 +414,7 @@
     .com-input {
       display: flex;
 
-      .bk-select {
+      .dbm-select {
         flex: 1;
       }
     }

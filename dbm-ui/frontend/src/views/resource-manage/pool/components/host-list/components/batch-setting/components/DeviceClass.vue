@@ -12,7 +12,7 @@
 -->
 
 <template>
-  <BkSelect
+  <DbSelect
     v-model="modelValue"
     filterable
     :input-search="false"
@@ -22,14 +22,14 @@
     :scroll-height="384"
     :scroll-loading="scrollLoading"
     @scroll-end="handleScrollEnd">
-    <BkOption
+    <DbOption
       v-for="(item, index) in deviceList"
       :key="`${item}#${index}`"
       :label="item"
       :value="item">
       {{ item }}
-    </BkOption>
-  </BkSelect>
+    </DbOption>
+  </DbSelect>
 </template>
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
