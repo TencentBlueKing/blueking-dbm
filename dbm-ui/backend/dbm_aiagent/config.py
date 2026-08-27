@@ -49,7 +49,7 @@ BK_APIGW_STAGE_MCP_SERVERS = [
         1. mysql instance status, include run-time variables, status, explain sql and so on
         2. tendbsingle/tendbha/tendbcluster cluster info""",
         # 主动授权 app_code
-        "target_app_codes": [env.APP_CODE, "ai-dbm"],
+        "target_app_codes": [env.APP_CODE, "ai-dbm", "ai-mysql-slowlog", "ai-mysql-inspect"],
         "labels": ["mysql-query"],
         # 是否启用：1-启用，0-停止
         "status": 1,
@@ -75,7 +75,7 @@ BK_APIGW_STAGE_MCP_SERVERS = [
         "name": "mysql-slowlog",
         "description": """query mysql slow logs, include slow logs list and slow log detail""",
         # 主动授权 app_code
-        "target_app_codes": [env.APP_CODE, "ai-dbm"],
+        "target_app_codes": [env.APP_CODE, "ai-dbm", "ai-mysql-slowlog", "ai-mysql-inspect"],
         "labels": ["mysql-slowlog"],
         # 是否启用：1-启用，0-停止
         "status": 1,
@@ -89,7 +89,7 @@ BK_APIGW_STAGE_MCP_SERVERS = [
         "description": """query mysql metrics like cpu usage, qps summary,
         slow queries count,connections,threads_running""",
         # 主动授权 app_code
-        "target_app_codes": [env.APP_CODE, "ai-dbm"],
+        "target_app_codes": [env.APP_CODE, "ai-dbm", "ai-mysql-slowlog", "ai-mysql-inspect"],
         "labels": ["mysql-metrics"],
         # 是否启用：1-启用，0-停止
         "status": 1,
@@ -102,7 +102,7 @@ BK_APIGW_STAGE_MCP_SERVERS = [
         "name": "mysql-capacity",
         "description": """query mysql capacity info""",
         # 主动授权 app_code
-        "target_app_codes": [env.APP_CODE, "ai-dbm"],
+        "target_app_codes": [env.APP_CODE, "ai-dbm", "ai-mysql-inspect"],
         "labels": ["mysql-capacity"],
         # 是否启用：1-启用，0-停止
         "status": 1,
@@ -154,7 +154,7 @@ BK_APIGW_STAGE_MCP_SERVERS = [
         "name": "dbmeta-query",
         "description": """query dbm meta info""",
         # 主动授权 app_code
-        "target_app_codes": [env.APP_CODE, "ai-dbm"],
+        "target_app_codes": [env.APP_CODE, "ai-dbm", "ai-tendis-agent", "ai-mysql-slowlog", "ai-mysql-inspect"],
         "labels": ["dbmeta-query"],
         # 是否启用：1-启用，0-停止
         "status": 1,
@@ -223,7 +223,7 @@ BK_APIGW_STAGE_MCP_SERVERS = [
         "name": "ticket-op",
         "description": """dbm 单据通用操作. 提单不在这里""",
         # 主动授权 app_code
-        "target_app_codes": [env.APP_CODE, "ai-dbm"],
+        "target_app_codes": [env.APP_CODE, "ai-dbm", "ai-tendis-agent", "ai-mysql-inspect"],
         "labels": ["ticket-op"],
         # 是否启用：1-启用，0-停止
         "status": 1,
@@ -252,7 +252,7 @@ BK_APIGW_STAGE_MCP_SERVERS = [
         "name": "redis-query-meta",
         "description": """redis meta query. """,
         # 主动授权 app_code
-        "target_app_codes": [env.APP_CODE, "ai-dbm"],
+        "target_app_codes": [env.APP_CODE, "ai-dbm", "ai-tendis-agent"],
         "labels": ["redis-query-meta"],
         # 是否启用：1-启用，0-停止
         "status": 1,
@@ -265,7 +265,7 @@ BK_APIGW_STAGE_MCP_SERVERS = [
         "name": "redis-query-status",
         "description": """ redis instance running info.""",
         # 主动授权 app_code
-        "target_app_codes": [env.APP_CODE, "ai-dbm"],
+        "target_app_codes": [env.APP_CODE, "ai-dbm", "ai-tendis-agent"],
         "labels": ["redis-query-status"],
         # 是否启用：1-启用，0-停止
         "status": 1,
@@ -278,7 +278,7 @@ BK_APIGW_STAGE_MCP_SERVERS = [
         "name": "redis-query-log",
         "description": """redis的日志查询服务""",
         # 主动授权 app_code
-        "target_app_codes": [env.APP_CODE, "ai-dbm"],
+        "target_app_codes": [env.APP_CODE, "ai-dbm", "ai-tendis-agent"],
         "labels": ["redis-query-log"],
         # 是否启用：1-启用，0-停止
         "status": 1,
@@ -291,7 +291,7 @@ BK_APIGW_STAGE_MCP_SERVERS = [
         "name": "redis-query-alarm",
         "description": """redis的告警查询服务""",
         # 主动授权 app_code
-        "target_app_codes": [env.APP_CODE, "ai-dbm"],
+        "target_app_codes": [env.APP_CODE, "ai-dbm", "ai-tendis-agent"],
         "labels": ["redis-query-alarm"],
         # 是否启用：1-启用，0-停止
         "status": 1,
@@ -304,7 +304,7 @@ BK_APIGW_STAGE_MCP_SERVERS = [
         "name": "redis-bill",
         "description": """create redis bill""",
         # 主动授权 app_code
-        "target_app_codes": [env.APP_CODE, "ai-dbm"],
+        "target_app_codes": [env.APP_CODE, "ai-dbm", "ai-tendis-agent"],
         "labels": ["redis-bill"],
         # 是否启用：1-启用，0-停止
         "status": 1,
@@ -325,7 +325,7 @@ BK_APIGW_STAGE_MCP_SERVERS = [
     {
         "name": "redis-job",
         "description": """Redis Job platform operation services""",
-        "target_app_codes": [env.APP_CODE, "ai-dbm"],
+        "target_app_codes": [env.APP_CODE, "ai-dbm", "ai-tendis-agent"],
         "labels": ["redis-job"],
         "status": 1,
         "is_public": False,
@@ -334,7 +334,7 @@ BK_APIGW_STAGE_MCP_SERVERS = [
     {
         "name": "redis-metrics",
         "description": """Redis Metrics tools""",
-        "target_app_codes": [env.APP_CODE, "ai-dbm"],
+        "target_app_codes": [env.APP_CODE, "ai-dbm", "ai-tendis-agent"],
         "labels": ["redis-metrics"],
         "status": 1,
         "is_public": False,
@@ -343,7 +343,7 @@ BK_APIGW_STAGE_MCP_SERVERS = [
     {
         "name": "redis-reports",
         "description": """Redis reports query tools""",
-        "target_app_codes": [env.APP_CODE, "ai-dbm"],
+        "target_app_codes": [env.APP_CODE, "ai-dbm", "ai-tendis-agent"],
         "labels": ["redis-reports"],
         "status": 1,
         "is_public": False,
@@ -353,7 +353,7 @@ BK_APIGW_STAGE_MCP_SERVERS = [
         "name": "alarm-query",
         "description": """收集DBM集群的告警记录""",
         # 主动授权 app_code
-        "target_app_codes": [env.APP_CODE, "ai-dbm"],
+        "target_app_codes": [env.APP_CODE, "ai-dbm", "ai-tendis-agent", "ai-mysql-inspect"],
         "labels": ["alarm-query"],
         # 是否启用：1-启用，0-停止
         "status": 1,
@@ -520,7 +520,7 @@ BK_APIGW_STAGE_MCP_SERVERS = [
         "name": "ai-report",
         "description": """read or write ai report with markdown/html format""",
         # 主动授权 app_code
-        "target_app_codes": [env.APP_CODE, "ai-dbm"],
+        "target_app_codes": [env.APP_CODE, "ai-dbm", "ai-mysql-slowlog", "ai-mysql-inspect"],
         "labels": ["ai-report"],
         # 是否启用：1-启用，0-停止
         "status": 1,
@@ -572,7 +572,7 @@ BK_APIGW_STAGE_MCP_SERVERS = [
         "name": "bkjob-wrap",
         "description": """bkjob api wrap, include fast execute script and query job result""",
         # 主动授权 app_code
-        "target_app_codes": [env.APP_CODE, "ai-dbm"],
+        "target_app_codes": [env.APP_CODE, "ai-dbm", "ai-mysql-inspect"],
         "labels": ["bkjob-wrap"],
         # 是否启用：1-启用，0-停止
         "status": 1,

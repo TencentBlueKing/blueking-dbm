@@ -1,0 +1,91 @@
+# AIDEV Agent CLI Manifest v1
+apiVersion: bkai.tencent.com/aidev-agent/v1
+kind: Agent
+
+metadata:
+  code: ai-dbm
+  name: DBM平台AI助手
+  description: DBM 平台 AI 助手是DBM平台打造的智能辅助工具，专为降低 DBM 平台使用门槛、提升操作效率而生
+
+spec:
+  user_scope: public
+  prompt:
+    type: collection
+    code: dbm_ai_role
+
+  model:
+    llm_code: aidev-chat-auto
+    fallback_model: null
+    temperature: 0.7
+    context_window: 16
+    llm_token_limit: 28000
+    max_tokens: 4096
+    tool_output_compress_thrd: 4096
+
+  tools: []
+
+  conversation_settings:
+    opening_remark: ""
+    predefined_questions: []
+    enable_chat_session: true
+    enable_word_selection_popup: true
+    commands:
+      # 引用子智能体 ai-tendis-agent 的快捷指令
+      - id: query_redis_host_info
+        agent_code: ai-tendis-agent
+        alias: 【redis】IP快捷查询
+
+      - id: redis_cmr_cutoff
+        agent_code: ai-tendis-agent
+        alias: 【redis】集群架构-整机替换
+
+      # 引用子智能体 ai-mysql-slowlog 的快捷指令
+      - id: query_slow_logs
+        agent_code: ai-mysql-slowlog
+        alias: 【mysql】查询慢日志
+
+      # 引用子智能体 ai-mysql-inspect 的快捷指令
+      - id: alarm_analyzer
+        agent_code: ai-mysql-inspect
+        alias: 【mysql】告警分析
+
+  subagents:
+    - code: ai-tendis-agent
+    - code: ai-mysql-slowlog
+    - code: ai-mysql-inspect
+
+  # 仓库内保持空列表；Job 中由 docker/render_agent_configs.py 按 config.py 的
+  # target_app_codes 自动填充为完整 APIGW MCP code: {gateway}-{stage}-{name}
+  mcps: []
+
+  skills:
+    - code: dbm-common-cluster-base-info
+      envs:
+        - key: DBM_MCPS
+          value: bkdbm-mcp-prod-dbmeta-query
+        - key: OUTPUT_DIR
+          value: .storage/session
+    - code: dbm-common-ticket-op
+      envs:
+        - key: DBM_MCPS
+          value: bkdbm-mcp-prod-ticket-op
+        - key: OUTPUT_DIR
+          value: .storage/session
+
+  knowledgebases:
+    items:
+      - code: dbm_userguide
+      - code: dbm_ticket_knowledge
+    retriever_code: ""
+    query_function: mixed
+    recall_channels:
+      - dense
+      - sparse
+    rrf_weights:
+      dense: 0.7
+      sparse: 0.3
+    document_fragment_count: 20
+    polish: true
+    origin: false
+    is_response_when_no_knowledgebase_match: true
+    rejection_message: 未找到相关 DBM 文档，请补充问题信息。
