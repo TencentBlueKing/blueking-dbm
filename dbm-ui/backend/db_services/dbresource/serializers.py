@@ -24,7 +24,7 @@ from backend.db_dirty.constants import MachineEventType
 from backend.db_meta.enums import InstanceRole
 from backend.db_meta.enums.spec import SpecClusterType, SpecMachineType
 from backend.db_meta.models import Spec
-from backend.db_meta.models.machine import DeviceClass, Machine
+from backend.db_meta.models.machine import Machine
 from backend.db_meta.models.tag import Tag
 from backend.db_services.dbresource import mock
 from backend.db_services.dbresource.constants import ResourceGroupByEnum, ResourceOperation
@@ -712,13 +712,6 @@ class SpecCostEstimateSerializer(serializers.Serializer):
 class SpecCountResourceResponseSerializer(serializers.Serializer):
     class Meta:
         swagger_schema_fields = {"example": {"spec1": 10, "spec2": 10}}
-
-
-class ListCvmDeviceClassSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = DeviceClass
-        fields = "__all__"
-        swagger_schema_fields = {"example": mock.DEVICE_CLASS_DATA}
 
 
 class AppendHostLabelSerializer(serializers.Serializer):
