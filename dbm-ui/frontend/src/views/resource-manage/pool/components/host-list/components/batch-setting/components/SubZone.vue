@@ -12,18 +12,18 @@
 -->
 
 <template>
-  <BkSelect
+  <DbSelect
     v-model="modelValue"
     filterable
     :loading="isLoading"
     :placeholder="t('请选择园区')">
-    <BkOption
+    <DbOption
       v-for="item in optionList"
       :key="item.bk_sub_zone_id"
       :label="item.bk_sub_zone"
       :value="item.bk_sub_zone_id">
-    </BkOption>
-  </BkSelect>
+    </DbOption>
+  </DbSelect>
 </template>
 
 <script setup lang="ts">

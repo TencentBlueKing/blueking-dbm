@@ -14,7 +14,7 @@
 <template>
   <div class="spec-device-or-mem spec-form-item">
     <div class="spec-form-item-label device-or-mem-label">
-      <BkSelect
+      <DbSelect
         v-model="currentType"
         :disabled="!editable"
         :filterable="false"
@@ -43,12 +43,12 @@
             </span>
           </div>
         </template>
-        <BkOption
+        <DbOption
           v-for="(item, index) in titleList"
           :id="item.value"
           :key="index"
           :name="item.title" />
-      </BkSelect>
+      </DbSelect>
     </div>
     <SpecDevice
       v-if="currentType === 'device_class'"

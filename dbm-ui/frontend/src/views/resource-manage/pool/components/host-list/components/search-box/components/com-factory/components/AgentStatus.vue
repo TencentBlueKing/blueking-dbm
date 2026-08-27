@@ -12,17 +12,17 @@
 -->
 
 <template>
-  <BkSelect
+  <DbSelect
     :model-value="defaultValue"
     :placeholder="t('请选择 Agent 状态')"
     @change="handleChange">
-    <BkOption
+    <DbOption
       :label="t('正常')"
       :value="1" />
-    <BkOption
+    <DbOption
       :label="t('异常')"
       :value="0" />
-  </BkSelect>
+  </DbSelect>
 </template>
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
