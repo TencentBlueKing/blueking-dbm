@@ -1,3 +1,16 @@
+<!--
+ * TencentBlueKing is pleased to support the open source community by making 蓝鲸智云-DB管理系统(BlueKing-BK-DBM) available.
+ *
+ * Copyright (C) 2017-2023 THL A29 Limited, a Tencent company. All rights reserved.
+ *
+ * Licensed under the MIT License (the "License"); you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at https://opensource.org/licenses/MIT
+ *
+ * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed
+ * on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for
+ * the specific language governing permissions and limitations under the License.
+-->
+
 <template>
   <td
     v-if="isRowspanRender"
@@ -51,7 +64,7 @@
         name="error"
         v-bind="{ message: validateState.errorMessage }">
         <i
-          v-bk-tooltips="validateState.errorMessage"
+          v-bk-tooltips="errorTips"
           class="bk-dbm db-icon-exclamation-fill" />
       </slot>
     </div>
@@ -70,8 +83,10 @@
     onBeforeUnmount,
     provide,
     reactive,
+    type Ref,
     type VNode,
   } from 'vue';
+  import { useI18n } from 'vue-i18n';
 
   import { getColumnCount, tableInjectKey } from './Index.vue';
   import { injectKey } from './Row.vue';
@@ -121,8 +136,10 @@
   }
 
   export interface IContext {
+    clearValidate: () => void;
     el: HTMLElement;
     instance: ComponentInternalInstance;
+    isRowspanRender: Ref<boolean>;
     key: string;
     props: Props;
     slots: Slots;
@@ -138,21 +155,6 @@
     registerRules: (params: IRule[]) => void;
     validate: (trigger?: string) => Promise<boolean>;
   }> = Symbol('EditableTableColumnKey');
-
-  const rowspanNumMap: Record<string, number> = {};
-  const calcRowspanRenderQunue: [number, () => void][] = [];
-  const pushCalcRowspanRenderTaskQunue = (task: (typeof calcRowspanRenderQunue)[number]) => {
-    calcRowspanRenderQunue.push(task);
-  };
-
-  const removeCalcRowspanRenderTaskQunue = (task: (typeof calcRowspanRenderQunue)[number][number]) => {
-    _.remove(calcRowspanRenderQunue, (item) => item[1] === task);
-  };
-
-  const runCalcRowspanRenderTaskQunue = () => {
-    const latestQueue = _.sortBy(calcRowspanRenderQunue, (item) => item[0]);
-    latestQueue.forEach((item) => item[1]());
-  };
 </script>
 <script setup lang="ts">
   const props = withDefaults(defineProps<Props>(), {
@@ -175,6 +177,8 @@
   });
   const emits = defineEmits<Emits>();
   const slots = defineSlots<Slots>();
+
+  const { t } = useI18n();
 
   const tableContext = inject(tableInjectKey);
   const rowContext = inject(injectKey);
@@ -202,7 +206,7 @@
     const label = props.label || '';
     if (props.loading) {
       rules.push({
-        message: `${label}查询中`,
+        message: t('{n}查询中', { n: label }),
         trigger: '',
         validator: () => {
           clearTimeout(loadingValidatorTimer);
@@ -223,7 +227,7 @@
     }
     if (props.required) {
       rules.push({
-        message: `${label}不能为空`,
+        message: t('{n}不能为空', { n: label }),
         required: true,
         trigger: 'change',
         validator: defaultValidator.required,
@@ -232,28 +236,28 @@
     if (props.email) {
       rules.push({
         email: true,
-        message: `${label}不是 email`,
+        message: t('{n}不是 email', { n: label }),
         trigger: 'change',
         validator: (value: string) => defaultValidator.email(value),
       });
     }
-    if (Number(props.max) > -1) {
+    if (props.max !== undefined) {
       rules.push({
-        message: `${label}最大值 ${props.max}`,
+        message: t('{n}最大值 {max}', { max: props.max, n: label }),
         trigger: 'change',
         validator: (value: number) => defaultValidator.max(value, props.max as number),
       });
     }
-    if (Number(props.min) > -1) {
+    if (props.min !== undefined) {
       rules.push({
-        message: `${label}最小值 ${props.min}`,
+        message: t('{n}最小值 {min}', { min: props.min, n: label }),
         trigger: 'change',
         validator: (value) => defaultValidator.min(value, props.min as number),
       });
     }
-    if (Number(props.maxlength) > -1) {
+    if (props.maxlength !== undefined) {
       rules.push({
-        message: `${label}最大长度 ${props.maxlength}`,
+        message: t('{n}最大长度 {maxlength}', { maxlength: props.maxlength, n: label }),
         trigger: 'change',
         validator: (value) => defaultValidator.maxlength(value, props.maxlength as number),
       });
@@ -276,12 +280,12 @@
       } else if (rule.email) {
         rulevalidator = _.isFunction(rule.validator) ? rule.validator : defaultValidator.email;
         customEmail = true;
-      } else if (Number(rule.max) > -1) {
+      } else if (rule.max !== undefined) {
         rulevalidator = (value: any) => defaultValidator.max(value, rule.max as number);
-      } else if (Number(rule.min) > -1) {
-        rulevalidator = (value: any) => defaultValidator.min(value, rule.max as number);
-      } else if (Number(rule.maxlength) > -1) {
-        rulevalidator = (value: any) => defaultValidator.min(value, rule.max as number);
+      } else if (rule.min !== undefined) {
+        rulevalidator = (value: any) => defaultValidator.min(value, rule.min as number);
+      } else if (rule.maxlength !== undefined) {
+        rulevalidator = (value: any) => defaultValidator.maxlength(value, rule.maxlength as number);
       } else if (Object.prototype.toString.call(rule.pattern) === '[object RegExp]') {
         rulevalidator = (value: any) => defaultValidator.pattern(value, rule.pattern as RegExp);
       } else if (_.isFunction(rule.validator)) {
@@ -355,35 +359,40 @@
     if (typeof result === 'string') {
       return result;
     }
-    return result ? '无法操作' : '';
+    return result ? t('无法操作') : '';
   });
 
-  const calcRowspanRender = () => {
+  // tooltips 内容以 innerHTML 渲染，错误信息可能来自接口返回，需要转义
+  const errorTips = computed(() => _.escape(validateState.errorMessage));
+
+  const calcRowspanRender = (rowspanNumMap: Map<string, number>) => {
     // 判断rowspan 在当前 column生效状态
     const allColumnList = tableContext?.getAllColumnList() || [];
     for (const rowColumnList of allColumnList) {
-      let columnIndex = 0;
-      for (const columnItem of rowColumnList) {
-        if (columnItem.uniqueKey === uniqueKey) {
-          if (columnItem.props.rowspan && columnItem.props.rowspan > 0) {
-            if (rowspanNumMap[columnKey] === 0 || rowspanNumMap[columnKey] === undefined) {
-              isRowspanRender.value = true;
-              rowspanNumMap[columnKey] = -columnItem.props.rowspan;
-            } else {
-              isRowspanRender.value = false;
-            }
-            rowspanNumMap[columnKey] = rowspanNumMap[columnKey] + 1;
-          } else {
-            isRowspanRender.value = true;
-          }
-
-          if (columnIndex > 0) {
-            isPreviousSiblingRowspan.value = Number(rowColumnList[columnIndex - 1]!.props.rowspan) > 1;
-          }
-          columnIndex++;
-          return;
-        }
+      const columnIndex = _.findIndex(rowColumnList, (columnItem) => columnItem.uniqueKey === uniqueKey);
+      if (columnIndex < 0) {
+        continue;
       }
+      const columnItem = rowColumnList[columnIndex]!;
+      if (columnItem.props.rowspan && columnItem.props.rowspan > 0) {
+        const rowspanNum = rowspanNumMap.get(columnKey);
+        // 计数为 0 表示上一组合并已经结束，当前单元格作为新一组的起点渲染
+        if (!rowspanNum) {
+          isRowspanRender.value = true;
+          rowspanNumMap.set(columnKey, -columnItem.props.rowspan + 1);
+        } else {
+          isRowspanRender.value = false;
+          rowspanNumMap.set(columnKey, rowspanNum + 1);
+        }
+      } else {
+        isRowspanRender.value = true;
+      }
+
+      // 同行的前一列被合并（不渲染）时，当前单元格需要左移 1px 与前一列的边框重叠
+      if (columnIndex > 0) {
+        isPreviousSiblingRowspan.value = !rowColumnList[columnIndex - 1]!.isRowspanRender.value;
+      }
+      return;
     }
   };
 
@@ -391,7 +400,7 @@
     () => [tableContext?.props.model, props.rowspan],
     () => {
       setTimeout(() => {
-        runCalcRowspanRenderTaskQunue();
+        tableContext?.runRowspanTask();
       });
     },
   );
@@ -454,25 +463,26 @@
     validateState.errorMessage = '';
   };
 
-  const triggerChangeQueue: string[] = [];
-  const triggerBlurQueue: string[] = [];
-  const triggerQueue: undefined[] = [];
-  const validate = (trigger?: string): Promise<boolean> => {
+  interface IValidateDeferred {
+    promise: Promise<boolean>;
+    reject: (result: boolean) => void;
+    resolve: (result: boolean) => void;
+    timer?: ReturnType<typeof setTimeout>;
+  }
+
+  // 没有 trigger 表示整表验证
+  const fullValidateTriggerKey = '';
+  const validateDeferredMap: Record<string, IValidateDeferred | undefined> = {};
+
+  const runValidate = (trigger?: string): Promise<boolean> => {
     if (!tableContext) {
       return Promise.resolve(false);
     }
-    // 单元格被合并跳过验证
-    if (!isRowspanRender.value) {
-      return Promise.resolve(true);
-    }
-    // 没有设置 field 不进行验证
-    if (!props.field) {
-      return Promise.resolve(true);
-    }
+    const field = props.field || '';
     let rules: IRule[] = [];
     // 继承 table 的验证规则
-    if (tableContext?.props.rules && _.has(tableContext.props.rules, props.field)) {
-      rules = tableContext.props.rules[props.field]!;
+    if (tableContext.props.rules && _.has(tableContext.props.rules, field)) {
+      rules = tableContext.props.rules[field]!;
     }
     // column 自己的 rules 规则优先级更高
     if (props.rules) {
@@ -488,115 +498,119 @@
       rules = registerRules;
     }
 
-    const doValidate = (() => {
-      let stepIndex = -1;
-      return (
-        finalRuleList: IFinalRule[],
-        value: any,
-        rowDataValue: {
-          rowData: Record<string, any>;
-          rowIndex: number;
-        },
-      ): Promise<boolean> => {
-        stepIndex = stepIndex + 1;
-        // 验证通过
-        if (stepIndex >= finalRuleList.length) {
-          emits('validate', true, '');
-          tableContext.emits('validate', props.field || '', true, '');
-          return Promise.resolve(true);
-        }
-        const rule = finalRuleList[stepIndex]!;
+    // 合并规则属性配置
+    const finalRuleList = getTriggerRules(mergeRules(rules, getRulesFromProps(props)), trigger);
 
-        return Promise.resolve().then(() => {
-          const result = rule!.validator(value, rowDataValue);
-          // 同步验证通过下一步
-          if (result === true) {
-            return doValidate(finalRuleList, value, rowDataValue);
-          }
-          // Promise异步处理验证结果
-          return Promise.resolve(result)
-            .then((data) => {
-              // 异步验证结果为 false
-              if (data === false) {
-                return Promise.reject(getRuleMessage(rule));
-              }
-              if (typeof data === 'string') {
-                return Promise.reject(data);
-              }
-            })
-            .then(
-              () => doValidate(finalRuleList, value, rowDataValue),
-              (errorMessage: string) => {
-                validateState.isError = true;
-                validateState.errorMessage = errorMessage;
-                emits('validate', false, errorMessage);
-                tableContext.emits('validate', props.field || '', false, errorMessage);
-                return Promise.reject(validateState.errorMessage);
-              },
-            );
-        });
-      };
-    })();
-
-    if (trigger !== undefined) {
-      if (trigger === 'change') {
-        triggerChangeQueue.push(trigger);
-      } else if (trigger === 'blur') {
-        triggerBlurQueue.push(trigger);
-      }
-    } else {
-      triggerQueue.push(trigger);
+    if (finalRuleList.length > 0) {
+      // 重新触发验证重置上次的验证状态
+      validateState.isError = false;
+      validateState.errorMessage = '';
     }
 
-    return new Promise((resolve, reject) => {
-      const delay = Math.max(Number(tableContext.props.validateDelay || 60), 60);
-      setTimeout(() => {
-        // setTimeout 延迟执行 Column 可能会已经被卸载
-        if (!currentInstance.isMounted) {
-          return reject(false);
-        }
-        if (trigger === undefined) {
-          triggerQueue.pop();
-          if (triggerQueue.length > 0) {
-            return reject(false);
-          }
-        }
+    const rowIndex = rowContext!.getRowIndex();
+    const rowDataValue = {
+      rowData: tableContext.props.model[rowIndex]!,
+      rowIndex,
+    };
+    const value = _.get(rowDataValue.rowData, field || '_');
 
-        // 处理 change 和 blur 触发器
-        if (trigger === 'change' || trigger === 'blur') {
-          const latestQueue = trigger === 'change' ? triggerChangeQueue : triggerBlurQueue;
-          latestQueue.pop();
-          if (triggerQueue.length > 0 || latestQueue.length > 0) {
-            return reject(false);
-          }
-        }
+    const setValidateError = (errorMessage: string) => {
+      validateState.isError = true;
+      validateState.errorMessage = errorMessage;
+      emits('validate', false, errorMessage);
+      tableContext.emits('validate', field, false, errorMessage);
+      return Promise.reject(false);
+    };
 
-        // 合并规则属性配置
-        const finalRuleList = getTriggerRules(mergeRules(rules, getRulesFromProps(props)), trigger);
+    const doValidate = (stepIndex: number): Promise<boolean> => {
+      // 验证通过
+      if (stepIndex >= finalRuleList.length) {
+        emits('validate', true, '');
+        tableContext.emits('validate', field, true, '');
+        return Promise.resolve(true);
+      }
+      const rule = finalRuleList[stepIndex]!;
 
-        if (finalRuleList.length > 0) {
-          // 重新触发验证重置上次的验证状态
-          validateState.isError = false;
-          validateState.errorMessage = '';
-        }
-
-        const rowIndex = rowContext!.getRowIndex();
-        const rowDataValue = {
-          rowData: tableContext.props.model[rowIndex]!,
-          rowIndex,
-        };
-        const value = _.get(rowDataValue.rowData, props.field || '_');
-
-        doValidate(finalRuleList, value, rowDataValue).then(
-          () => {
-            resolve(true);
+      return Promise.resolve()
+        .then(() => rule.validator(value, rowDataValue))
+        .then(
+          (result) => {
+            // 只有 false 和字符串表示验证不通过
+            if (result === false) {
+              return setValidateError(getRuleMessage(rule));
+            }
+            if (typeof result === 'string') {
+              return setValidateError(result);
+            }
+            return doValidate(stepIndex + 1);
           },
-          () => {
-            reject(false);
-          },
+          (errorMessage: string) => setValidateError(errorMessage),
         );
+    };
+
+    return doValidate(0);
+  };
+
+  // 与 DbForm 的验证协议保持一致：验证不通过 reject(false)，通过 resolve(true)
+  const validate = (trigger?: string): Promise<boolean> => {
+    if (!tableContext) {
+      return Promise.resolve(false);
+    }
+    // 单元格被合并跳过验证
+    if (!isRowspanRender.value) {
+      return Promise.resolve(true);
+    }
+    // 没有设置 field 不进行验证
+    if (!props.field) {
+      return Promise.resolve(true);
+    }
+
+    const triggerKey = trigger ?? fullValidateTriggerKey;
+    const delay = Math.max(Number(tableContext.props.validateDelay || 60), 60);
+
+    const startTimer = (deferred: IValidateDeferred) =>
+      setTimeout(() => {
+        // 整表验证排队时以整表验证的结果为准，避免局部验证覆盖整表验证的错误状态
+        const fullValidateDeferred =
+          triggerKey === fullValidateTriggerKey ? undefined : validateDeferredMap[fullValidateTriggerKey];
+
+        validateDeferredMap[triggerKey] = undefined;
+
+        // setTimeout 延迟执行 Column 可能会已经被卸载，已卸载的单元格不阻塞验证
+        if (!currentInstance.isMounted) {
+          deferred.resolve(true);
+          return;
+        }
+        if (fullValidateDeferred) {
+          fullValidateDeferred.promise.then(deferred.resolve, deferred.reject);
+          return;
+        }
+        runValidate(trigger).then(deferred.resolve, deferred.reject);
       }, delay);
+
+    // 延迟窗口内同一触发器的重复调用共享同一次验证结果
+    const pendingDeferred = validateDeferredMap[triggerKey];
+    if (pendingDeferred) {
+      clearTimeout(pendingDeferred.timer);
+      pendingDeferred.timer = startTimer(pendingDeferred);
+      return pendingDeferred.promise;
+    }
+
+    let resolveValidate!: IValidateDeferred['resolve'];
+    let rejectValidate!: IValidateDeferred['reject'];
+    const promise = new Promise<boolean>((resolve, reject) => {
+      resolveValidate = resolve;
+      rejectValidate = reject;
     });
+    const deferred: IValidateDeferred = {
+      promise,
+      reject: rejectValidate,
+      resolve: resolveValidate,
+    };
+    validateDeferredMap[triggerKey] = deferred;
+    deferred.timer = startTimer(deferred);
+
+    return deferred.promise;
   };
 
   const viewError = (message: string, idMark: string) => {
@@ -625,8 +639,10 @@
 
   onMounted(() => {
     rowContext?.registerColumn({
+      clearValidate,
       el: rootRef.value as HTMLElement,
       instance: currentInstance,
+      isRowspanRender,
       key: columnKey,
       props,
       slots,
@@ -636,8 +652,11 @@
 
     // setTimeout 确保 registerColumn 结束
     setTimeout(() => {
-      pushCalcRowspanRenderTaskQunue([getRowIndex(), calcRowspanRender]);
-      runCalcRowspanRenderTaskQunue();
+      tableContext?.pushRowspanTask({
+        getRowIndex,
+        run: calcRowspanRender,
+      });
+      tableContext?.runRowspanTask();
     });
 
     // 初始化 tips 弹框
@@ -650,7 +669,7 @@
     rowContext?.unregisterColumn(columnKey);
     registerRules = [];
     clearTimeout(loadingValidatorTimer);
-    removeCalcRowspanRenderTaskQunue(calcRowspanRender);
+    tableContext?.removeRowspanTask(calcRowspanRender);
     if (tippyIns) {
       tippyIns.hide();
       tippyIns.unmount();

@@ -230,39 +230,36 @@
     need_checksum: boolean;
   }>(TicketTypes.TENDBCLUSTER_NODE_REBALANCE);
 
-  const handleSubmit = async () => {
-    const result = await tableRef.value!.validate();
-    if (!result) {
-      return;
-    }
-
-    createTicketRun({
-      details: {
-        backup_source: formData.backupSource,
-        infos: formData.tableData.map((item) => ({
-          bk_cloud_id: item.cluster.bk_cloud_id,
-          cluster_id: item.cluster.id,
-          cluster_shard_num: item.cluster.cluster_shard_num,
-          db_module_id: item.cluster.db_module_id,
-          prev_cluster_spec_name: item.cluster.cluster_spec.spec_name,
-          prev_machine_pair: item.cluster.machine_pair_cnt,
-          remote_shard_num: Math.ceil(item.cluster.cluster_shard_num / item.targetCapacity.machine_pair),
-          resource_spec: {
-            backend_group: {
-              affinity: item.cluster.disaster_tolerance_level,
-              count: item.targetCapacity.machine_pair,
-              futureCapacity: item.targetCapacity.cluster_capacity,
-              label_names: item.labels.map((item) => item.value),
-              labels: item.labels.map((item) => String(item.id)),
-              spec_id: item.targetCapacity.spec_id,
-              specName: item.targetCapacity.spec_name,
+  const handleSubmit = () => {
+    tableRef.value!.validate().then(() => {
+      createTicketRun({
+        details: {
+          backup_source: formData.backupSource,
+          infos: formData.tableData.map((item) => ({
+            bk_cloud_id: item.cluster.bk_cloud_id,
+            cluster_id: item.cluster.id,
+            cluster_shard_num: item.cluster.cluster_shard_num,
+            db_module_id: item.cluster.db_module_id,
+            prev_cluster_spec_name: item.cluster.cluster_spec.spec_name,
+            prev_machine_pair: item.cluster.machine_pair_cnt,
+            remote_shard_num: Math.ceil(item.cluster.cluster_shard_num / item.targetCapacity.machine_pair),
+            resource_spec: {
+              backend_group: {
+                affinity: item.cluster.disaster_tolerance_level,
+                count: item.targetCapacity.machine_pair,
+                futureCapacity: item.targetCapacity.cluster_capacity,
+                label_names: item.labels.map((item) => item.value),
+                labels: item.labels.map((item) => String(item.id)),
+                spec_id: item.targetCapacity.spec_id,
+                specName: item.targetCapacity.spec_name,
+              },
             },
-          },
-          spec_id: item.cluster.cluster_spec.spec_id,
-        })),
-        need_checksum: formData.need_checksum,
-      },
-      remark: formData.payload.remark,
+            spec_id: item.cluster.cluster_spec.spec_id,
+          })),
+          need_checksum: formData.need_checksum,
+        },
+        remark: formData.payload.remark,
+      });
     });
   };
 

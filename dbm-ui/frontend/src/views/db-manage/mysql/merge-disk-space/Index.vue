@@ -173,12 +173,10 @@
     assessmentRef.value?.reset();
   };
 
-  const handleAssessment = async () => {
-    const result = await tableRef.value?.validate();
-    if (!result) {
-      return;
-    }
-    assessmentRef.value?.run();
+  const handleAssessment = () => {
+    tableRef.value?.validate().then(() => {
+      assessmentRef.value?.run();
+    });
   };
 
   const handleBatchEditCluster = (list: TendbhaModel[]) => {

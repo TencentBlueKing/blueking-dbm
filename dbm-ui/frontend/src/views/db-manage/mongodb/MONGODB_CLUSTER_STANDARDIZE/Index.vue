@@ -155,20 +155,18 @@
     restart_exporter: boolean;
   }>(TicketTypes.MONGODB_CLUSTER_STANDARDIZE);
 
-  const handleSubmit = async () => {
-    const result = await tableRef.value!.validate();
-    if (!result) {
-      return;
-    }
-    createTicketRun({
-      details: {
-        bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
-        bk_cloud_id: formData.tableData?.[0]?.cluster.bk_cloud_id,
-        cluster_ids: formData.tableData.map((item) => item.cluster.id),
-        is_stop: false,
-        restart_exporter: formData.restart_exporter,
-      },
-      ...formData.payload,
+  const handleSubmit = () => {
+    tableRef.value!.validate().then(() => {
+      createTicketRun({
+        details: {
+          bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
+          bk_cloud_id: formData.tableData?.[0]?.cluster.bk_cloud_id,
+          cluster_ids: formData.tableData.map((item) => item.cluster.id),
+          is_stop: false,
+          restart_exporter: formData.restart_exporter,
+        },
+        ...formData.payload,
+      });
     });
   };
 

@@ -1,3 +1,16 @@
+<!--
+ * TencentBlueKing is pleased to support the open source community by making 蓝鲸智云-DB管理系统(BlueKing-BK-DBM) available.
+ *
+ * Copyright (C) 2017-2023 THL A29 Limited, a Tencent company. All rights reserved.
+ *
+ * Licensed under the MIT License (the "License"); you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at https://opensource.org/licenses/MIT
+ *
+ * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed
+ * on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for
+ * the specific language governing permissions and limitations under the License.
+-->
+
 <template>
   <div
     class="bk-editable-table"
@@ -79,6 +92,7 @@
   import Textarea from './edit/Textarea.vue';
   import TimePicker from './edit/TimePicker.vue';
   import useResize from './hooks/use-resize';
+  import useRowspan, { type IRowspanTask } from './hooks/use-rowspan';
   import useScroll from './hooks/use-scroll';
   import Row from './Row.vue';
   import { type IRule } from './types';
@@ -100,6 +114,7 @@
   }
 
   export interface Expose {
+    clearValidate: () => void;
     validate: () => Promise<boolean>;
     validateByColumnIndex: (row: number | number[]) => Promise<boolean>;
     validateByField: (row: string | string[]) => Promise<boolean>;
@@ -116,7 +131,10 @@
       getAllColumnList: () => IColumnContext[][];
       getColumnRelateRowIndexByInstance: (columnInstance: ComponentInternalInstance) => number;
       props: Props;
-      registerRow: (rowColumnList: IColumnContext[]) => void;
+      pushRowspanTask: (task: IRowspanTask) => void;
+      registerRow: (rowColumnList: IColumnContext[], rowElement: HTMLElement) => void;
+      removeRowspanTask: (run: IRowspanTask['run']) => void;
+      runRowspanTask: () => void;
       unregisterRow: (rowColumnList: IColumnContext[]) => void;
       updateRow: () => void;
     } & Expose
@@ -155,6 +173,7 @@
 
   const { columnSizeConfig, handleMouseDown, handleMouseMove } = useResize(tableRef, resizePlaceholderRef, columnList);
   const { fixedLeft, fixedRight, initalScroll, leftFixedStyles, rightFixedStyles } = useScroll(tableRef);
+  const { pushRowspanTask, removeRowspanTask, runRowspanTask } = useRowspan();
 
   watch(
     columnSizeConfig,
@@ -198,8 +217,16 @@
     isUserChange.value = true;
   };
 
-  const registerRow = (rowColumnList: IColumnContext[]) => {
-    rowList.value.push(rowColumnList);
+  // 行的注册顺序不一定与 DOM 顺序一致，按 DOM 位置插入保证行序正确
+  const registerRow = (rowColumnList: IColumnContext[], rowElement: HTMLElement) => {
+    const index = _.indexOf(rowElement.parentElement?.children, rowElement);
+    const latestRowList = [...rowList.value];
+    if (index > -1) {
+      latestRowList.splice(index, 0, rowColumnList);
+    } else {
+      latestRowList.push(rowColumnList);
+    }
+    rowList.value = latestRowList;
   };
 
   const updateRow = _.throttle(() => {
@@ -224,36 +251,43 @@
     tableRef.value?.click();
   }, 30);
 
-  const validate = () => Promise.all(_.flatten(rowList.value).map((column) => column.validate())).then(() => true);
+  // 与 DbForm 的验证协议保持一致：任一单元格验证不通过时 reject，全部通过 resolve(true)
+  const validateColumnList = (validateColumn: IColumnContext[]) =>
+    Promise.all(validateColumn.map((column) => column.validate())).then(() => true);
+
+  const validate = () => validateColumnList(_.flatten(rowList.value));
 
   const validateByRowIndex = (rowIndex: number | number[]) => {
     const rowIndexList = Array.isArray(rowIndex) ? rowIndex : [rowIndex];
 
     const columnList = rowIndexList.reduce<IColumnContext[]>((result, index) => {
-      result.push(...rowList.value[index]!);
+      result.push(...(rowList.value[index] || []));
       return result;
     }, []);
 
-    return Promise.all(columnList.map((column) => column.validate())).then(() => true);
+    return validateColumnList(columnList);
   };
 
   const validateByColumnIndex = (columnIndex: number | number[]) => {
     const columnIndexList = Array.isArray(columnIndex) ? columnIndex : [columnIndex];
 
-    const columnList = rowList.value.reduce((result, rowItem) => {
+    const columnList = rowList.value.reduce<IColumnContext[]>((result, rowItem) => {
       columnIndexList.forEach((index) => {
-        result.push(rowItem[index]!);
+        const column = rowItem[index];
+        if (column) {
+          result.push(column);
+        }
       });
       return result;
     }, []);
 
-    return Promise.all(columnList.map((column) => column.validate())).then(() => true);
+    return validateColumnList(columnList);
   };
 
   const validateByField = (field: string | string[]) => {
     const fieldList = Array.isArray(field) ? field : [field];
 
-    const columnList = rowList.value.reduce((result, rowItem) => {
+    const columnList = rowList.value.reduce<IColumnContext[]>((result, rowItem) => {
       fieldList.forEach((field) => {
         rowItem.forEach((column) => {
           if (column.props.field && column.props.field === field) {
@@ -264,10 +298,16 @@
       return result;
     }, []);
 
-    return Promise.all(columnList.map((column) => column.validate())).then(() => true);
+    return validateColumnList(columnList);
+  };
+
+  const clearValidate = () => {
+    _.flatten(rowList.value).forEach((column) => column.clearValidate());
   };
 
   const viewError = (errorList: Parameters<Expose['viewError']>[0]) => {
+    // 展示新的错误前清理上一次遗留的错误态
+    clearValidate();
     // 后端校验无法保证 row index 的正确性，需要通过 row key 来标记每一行数据
     // 优先通过 props.model 将 row key 转换成 row index
     const errorRowKeyMap = errorList.reduce<Record<string, (typeof errorList)[number]>>((result, item) => {
@@ -292,7 +332,11 @@
       }
       Array.from(rowEle.querySelectorAll('td.bk-editable-table-body-column') || []).forEach((tdEle) => {
         // eslint-disable-next-line no-underscore-dangle
-        const columnInstance = (tdEle as any).__getCurrentInstance__!();
+        const getColumnInstance = (tdEle as any).__getCurrentInstance__;
+        if (!_.isFunction(getColumnInstance)) {
+          return;
+        }
+        const columnInstance = getColumnInstance();
         if (!columnInstance) {
           return;
         }
@@ -303,6 +347,7 @@
   };
 
   provide(tableInjectKey, {
+    clearValidate,
     columnSizeConfig,
     emits,
     fixedLeft,
@@ -310,7 +355,10 @@
     getAllColumnList: () => rowList.value,
     getColumnRelateRowIndexByInstance,
     props,
+    pushRowspanTask,
     registerRow,
+    removeRowspanTask,
+    runRowspanTask,
     unregisterRow,
     updateRow,
     validate,
@@ -325,6 +373,7 @@
   });
 
   defineExpose<Expose>({
+    clearValidate,
     validate,
     validateByColumnIndex,
     validateByField,

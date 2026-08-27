@@ -244,28 +244,26 @@
     });
   };
 
-  const handleSubmit = async () => {
-    const result = await tableRef.value!.validate();
-    if (!result) {
-      return;
-    }
-    createTicketRun({
-      details: {
-        infos: formData.tableData.map((item) => ({
-          cluster_ids: [item.cluster.id, ...item.cluster.related_clusters.map((item) => item.id)],
-          current_proxy_num: item.cluster.proxies!.length,
-          resource_spec: {
-            new_proxies: {
-              count: Number(item.count),
-              label_names: item.labels.map((item) => item.value),
-              labels: item.labels.map((item) => String(item.id)),
-              spec_id: item.specId,
+  const handleSubmit = () => {
+    tableRef.value!.validate().then(() => {
+      createTicketRun({
+        details: {
+          infos: formData.tableData.map((item) => ({
+            cluster_ids: [item.cluster.id, ...item.cluster.related_clusters.map((item) => item.id)],
+            current_proxy_num: item.cluster.proxies!.length,
+            resource_spec: {
+              new_proxies: {
+                count: Number(item.count),
+                label_names: item.labels.map((item) => item.value),
+                labels: item.labels.map((item) => String(item.id)),
+                spec_id: item.specId,
+              },
             },
-          },
-        })),
-        ip_source: 'resource_pool',
-      },
-      ...formData.payload,
+          })),
+          ip_source: 'resource_pool',
+        },
+        ...formData.payload,
+      });
     });
   };
 

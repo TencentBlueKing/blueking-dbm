@@ -332,25 +332,22 @@
 
   defineExpose<Exposes>({
     getValue: () =>
-      editableTableRef.value!.validate().then((validateResult) => {
-        if (validateResult) {
-          return tableData.value.map((tableItem) => ({
-            ...tableItem.instance_data,
-            db_version: tableItem.db_version,
-            // migrate_domain: '',
-            migrate_ip: tableItem.host.ip,
-            migrate_type: 'machine',
-            resource_spec: {
-              backend_group: {
-                count: 1,
-                label_names: tableItem.labels.map((item) => item.value),
-                labels: tableItem.labels.map((item) => String(item.id)),
-                spec_id: tableItem.target_spec_id,
-              },
+      editableTableRef.value!.validate().then(() => {
+        return tableData.value.map((tableItem) => ({
+          ...tableItem.instance_data,
+          db_version: tableItem.db_version,
+          // migrate_domain: '',
+          migrate_ip: tableItem.host.ip,
+          migrate_type: 'machine',
+          resource_spec: {
+            backend_group: {
+              count: 1,
+              label_names: tableItem.labels.map((item) => item.value),
+              labels: tableItem.labels.map((item) => String(item.id)),
+              spec_id: tableItem.target_spec_id,
             },
-          }));
-        }
-        return [];
+          },
+        }));
       }),
     resetTable: () => {
       tableData.value = [createRowData()];

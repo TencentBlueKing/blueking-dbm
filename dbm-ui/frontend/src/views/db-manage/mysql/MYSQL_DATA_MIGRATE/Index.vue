@@ -234,23 +234,21 @@
     { deep: true },
   );
 
-  const handleSubmit = async () => {
-    const result = await tableRef.value!.validate();
-    if (!result) {
-      return;
-    }
-    createTicketRun({
-      details: {
-        infos: formData.tableData.map((item) => ({
-          clone_db_list: item.clone_db_list,
-          data_schema_grant: item.data_schema_grant,
-          db_list: item.db_list,
-          ignore_db_list: item.ignore_db_list,
-          source_cluster: item.source_cluster.id,
-          target_clusters: item.target_clusters.map((cluster) => cluster.id),
-        })),
-      },
-      ...formData.payload,
+  const handleSubmit = () => {
+    tableRef.value!.validate().then(() => {
+      createTicketRun({
+        details: {
+          infos: formData.tableData.map((item) => ({
+            clone_db_list: item.clone_db_list,
+            data_schema_grant: item.data_schema_grant,
+            db_list: item.db_list,
+            ignore_db_list: item.ignore_db_list,
+            source_cluster: item.source_cluster.id,
+            target_clusters: item.target_clusters.map((cluster) => cluster.id),
+          })),
+        },
+        ...formData.payload,
+      });
     });
   };
 
@@ -260,12 +258,10 @@
     assessmentRef.value?.reset();
   };
 
-  const handleAssessment = async () => {
-    const result = await tableRef.value?.validate();
-    if (!result) {
-      return;
-    }
-    assessmentRef.value?.run();
+  const handleAssessment = () => {
+    tableRef.value?.validate().then(() => {
+      assessmentRef.value?.run();
+    });
   };
 
   const handleAssessmentSuccess = (validate: boolean) => {

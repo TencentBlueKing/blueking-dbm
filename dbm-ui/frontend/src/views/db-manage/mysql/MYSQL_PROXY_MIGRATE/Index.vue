@@ -212,50 +212,48 @@
     ip_source: 'resource_pool';
   }>(TicketTypes.MYSQL_PROXY_MIGRATE);
 
-  const handleSubmit = async () => {
-    const result = await tableRef.value!.validate();
-    if (!result) {
-      return;
-    }
-    createTicketRun({
-      details: {
-        infos: formData.tableData.map((item) => {
-          const proxies = _.uniqBy(
-            item.multipleCluster.clusters
-              .flatMap((cluster) => cluster.proxies)
-              .map((instance) => ({
-                bk_biz_id: instance.bk_biz_id,
-                bk_cloud_id: instance.bk_cloud_id,
-                bk_host_id: instance.bk_host_id,
-                ip: instance.ip,
-                spec: instance.spec_config,
-              })),
-            (item) => item.ip,
-          );
+  const handleSubmit = () => {
+    tableRef.value!.validate().then(() => {
+      createTicketRun({
+        details: {
+          infos: formData.tableData.map((item) => {
+            const proxies = _.uniqBy(
+              item.multipleCluster.clusters
+                .flatMap((cluster) => cluster.proxies)
+                .map((instance) => ({
+                  bk_biz_id: instance.bk_biz_id,
+                  bk_cloud_id: instance.bk_cloud_id,
+                  bk_host_id: instance.bk_host_id,
+                  ip: instance.ip,
+                  spec: instance.spec_config,
+                })),
+              (item) => item.ip,
+            );
 
-          return {
-            cluster_ids: item.multipleCluster.clusters.map((cluster) => cluster.id),
-            old_nodes: {
-              proxy: proxies,
-            },
-            origin_proxies: proxies,
-            related_instances: item.multipleCluster.clusters.map((cluster) => ({
-              cluster_id: cluster.id,
-              instance_address: cluster.proxies.map((proxy) => `${proxy.ip}:${proxy.port}`),
-            })),
-            resource_spec: {
-              target_proxies: {
-                count: proxies.length,
-                label_names: item.labels.map((item) => item.value),
-                labels: item.labels.map((item) => String(item.id)),
-                spec_id: item.specId,
+            return {
+              cluster_ids: item.multipleCluster.clusters.map((cluster) => cluster.id),
+              old_nodes: {
+                proxy: proxies,
               },
-            },
-          };
-        }),
-        ip_source: 'resource_pool',
-      },
-      ...formData.payload,
+              origin_proxies: proxies,
+              related_instances: item.multipleCluster.clusters.map((cluster) => ({
+                cluster_id: cluster.id,
+                instance_address: cluster.proxies.map((proxy) => `${proxy.ip}:${proxy.port}`),
+              })),
+              resource_spec: {
+                target_proxies: {
+                  count: proxies.length,
+                  label_names: item.labels.map((item) => item.value),
+                  labels: item.labels.map((item) => String(item.id)),
+                  spec_id: item.specId,
+                },
+              },
+            };
+          }),
+          ip_source: 'resource_pool',
+        },
+        ...formData.payload,
+      });
     });
   };
 

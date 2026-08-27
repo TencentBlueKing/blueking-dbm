@@ -355,38 +355,31 @@
   };
 
   defineExpose<Exposes>({
-    async getValue() {
-      const validateResult = await tableRef.value?.validate();
-      if (!validateResult) {
+    getValue() {
+      return tableRef.value!.validate().then(() => {
         return {
-          infos: [],
+          infos: tableData.value.map((item) => ({
+            backup_source: item.backup_source,
+            backupinfo: item.rollback.backupinfo,
+            cluster_id: item.cluster.id,
+            databases: item.databases,
+            databases_ignore: item.databases_ignore,
+            resource_spec: {
+              rollback_host: {
+                count: 1,
+                hosts: [item.rollback_host],
+                spec_id: 0,
+              },
+            },
+            rollback_time: item.rollback.rollback_time,
+            rollback_type: `${item.backup_source.toLocaleUpperCase()}_AND_${item.rollback.rollback_type}`,
+            tables: item.tables,
+            tables_ignore: item.tables_ignore,
+          })),
           ip_source: 'resource_pool',
           rollback_cluster_type: 'BUILD_INTO_NEW_CLUSTER',
         };
-      }
-
-      return {
-        infos: tableData.value.map((item) => ({
-          backup_source: item.backup_source,
-          backupinfo: item.rollback.backupinfo,
-          cluster_id: item.cluster.id,
-          databases: item.databases,
-          databases_ignore: item.databases_ignore,
-          resource_spec: {
-            rollback_host: {
-              count: 1,
-              hosts: [item.rollback_host],
-              spec_id: 0,
-            },
-          },
-          rollback_time: item.rollback.rollback_time,
-          rollback_type: `${item.backup_source.toLocaleUpperCase()}_AND_${item.rollback.rollback_type}`,
-          tables: item.tables,
-          tables_ignore: item.tables_ignore,
-        })),
-        ip_source: 'resource_pool',
-        rollback_cluster_type: 'BUILD_INTO_NEW_CLUSTER',
-      };
+      });
     },
     reset() {
       tableData.value = [createTableRow()];
