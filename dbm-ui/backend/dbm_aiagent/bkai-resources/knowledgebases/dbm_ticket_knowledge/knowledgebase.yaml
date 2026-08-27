@@ -1,0 +1,12 @@
+apiVersion: bkai.tencent.com/v1
+kind: KnowledgeBase
+
+metadata:
+  code: dbm_ticket_knowledge
+  name: DBM单据知识库
+  description: DBM 各数据库单据操作说明与授权等知识
+
+spec:
+  generate_type: space
+  is_public: false
+  tag_names: []

@@ -1,0 +1,10 @@
+apiVersion: bkai.tencent.com/v1
+kind: Skill
+
+metadata:
+  code: dbm-mysql-slow-query-tuning
+  name: MySQL慢查询分析与调优
+
+spec:
+  generate_type: space
+  is_public: false

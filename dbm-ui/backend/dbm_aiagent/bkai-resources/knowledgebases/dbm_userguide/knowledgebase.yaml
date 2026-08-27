@@ -1,0 +1,12 @@
+apiVersion: bkai.tencent.com/v1
+kind: KnowledgeBase
+
+metadata:
+  code: dbm_userguide
+  name: DBM使用介绍
+  description: DBM 平台使用说明文档知识库
+
+spec:
+  generate_type: space
+  is_public: false
+  tag_names: []

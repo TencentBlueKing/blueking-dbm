@@ -84,6 +84,7 @@ bk:
 dbm:
   extraEnvVarsCM: bk-dbm-db-env
   enabled: true
+  # 初始化服务
   serviceInit:
     itsmEnabled: true
     iamEnabled: true
@@ -98,6 +99,28 @@ dbm:
     bknoticeEnabled: true
     # TODO: 验证后开启
     dbmServicesEnabled: false
+
+  # 蓝鲸 AIDEV（Agent Package 同步）
+  bkai:
+    enabled: false
+    # 目标空间 ID（必填，非空间名称）；租户默认 system
+    tenantId: system
+    space: system-bkaidev
+    # sync 时是否发布智能体；publishConfigOnly=1 只发配置
+    publish: true
+    publishConfigOnly: true
+    image:
+      registry: "mirrors.tencent.com"
+      repository: "build/blueking/dbm-aidev-init"
+      pullPolicy: IfNotPresent
+      tag: "latest"
+    # 仅用于 helm template 暴露镜像地址，供流水线同步仓库；容器本身只 echo 1
+    # Skill 仓库必须通过 BKAI_SKILL_IMAGE_REPO 环境变量传入，值不带末尾 /
+    skillsEnvImage:
+      registry: "mirrors.tencent.com"
+      repository: "build/blueking/bkdbm-aidev-skills-env"
+      pullPolicy: IfNotPresent
+      tag: "0.0.1-alpha.13"
 
   image:
     registry: "mirrors.tencent.com"
