@@ -187,9 +187,8 @@
     }
   });
 
-  const handleSubmit = async () => {
-    const valid = await tableRef.value!.validate();
-    if (valid) {
+  const handleSubmit = () => {
+    tableRef.value!.validate().then(() => {
       createTicketRun({
         details: {
           backup_source: formData.backupSource,
@@ -206,7 +205,7 @@
         },
         ...formData.payload,
       });
-    }
+    });
   };
 
   const handleReset = () => {

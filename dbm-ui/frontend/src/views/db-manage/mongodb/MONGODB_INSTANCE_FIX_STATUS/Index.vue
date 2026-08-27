@@ -199,24 +199,22 @@
     }[];
   }>(TicketTypes.MONGODB_INSTANCE_FIX_STATUS);
 
-  const handleSubmit = async () => {
-    const result = await tableRef.value!.validate();
-    if (!result) {
-      return;
-    }
-    createTicketRun({
-      details: {
-        infos: formData.tableData.map((item) => ({
-          bk_cloud_id: item.host.bk_cloud_id,
-          cluster_id: item.host.related_instances[0].cluster_id,
-          dry_run: false,
-          instance_address: item.host.related_instances[0].instance_address,
-          ip: item.host.ip,
-          master_domain: item.host.related_instances[0].master_domain,
-          port: item.host.port,
-        })),
-      },
-      ...formData.payload,
+  const handleSubmit = () => {
+    tableRef.value!.validate().then(() => {
+      createTicketRun({
+        details: {
+          infos: formData.tableData.map((item) => ({
+            bk_cloud_id: item.host.bk_cloud_id,
+            cluster_id: item.host.related_instances[0].cluster_id,
+            dry_run: false,
+            instance_address: item.host.related_instances[0].instance_address,
+            ip: item.host.ip,
+            master_domain: item.host.related_instances[0].master_domain,
+            port: item.host.port,
+          })),
+        },
+        ...formData.payload,
+      });
     });
   };
 

@@ -11,26 +11,34 @@
  * the specific language governing permissions and limitations under the License.
  */
 
-import { ref } from 'vue';
+import _ from 'lodash';
+
+export interface IRowspanTask {
+  getRowIndex: () => number;
+  run: (rowspanNumMap: Map<string, number>) => void;
+}
 
 export default function () {
-  const isVerticalScroll = ref(false);
-  /**
-   * @desc 鼠标在垂直滚动条区域
-   */
-  const mouseenter = () => {
-    isVerticalScroll.value = true;
+  const taskList: IRowspanTask[] = [];
+
+  const pushRowspanTask = (task: IRowspanTask) => {
+    taskList.push(task);
   };
-  /**
-   * @desc 鼠标离开垂直滚动条区域
-   */
-  const mouseleave = () => {
-    isVerticalScroll.value = false;
+
+  const removeRowspanTask = (run: IRowspanTask['run']) => {
+    _.remove(taskList, (item) => item.run === run);
+  };
+
+  // 按行序重新计算所有单元格的合并状态
+  // 合并计数每一趟独立，不受上一趟计算残留的影响
+  const runRowspanTask = () => {
+    const rowspanNumMap = new Map<string, number>();
+    _.sortBy(taskList, (item) => item.getRowIndex()).forEach((item) => item.run(rowspanNumMap));
   };
 
   return {
-    isVerticalScroll,
-    mouseenter,
-    mouseleave,
+    pushRowspanTask,
+    removeRowspanTask,
+    runRowspanTask,
   };
 }

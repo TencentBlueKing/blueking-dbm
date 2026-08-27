@@ -199,27 +199,25 @@
     ip_source: 'resource_pool';
   }>(TicketTypes.MYSQL_ADD_SLAVE);
 
-  const handleSubmit = async () => {
-    const result = await tableRef.value!.validate();
-    if (!result) {
-      return;
-    }
-    createTicketRun({
-      details: {
-        backup_source: formData.backupSource,
-        infos: formData.tableData.map((item) => ({
-          cluster_ids: [item.cluster.id, ...item.cluster.related_clusters.map((item) => item.id)],
-          resource_spec: {
-            new_slave: {
-              count: item.newSlave.length,
-              hosts: item.newSlave,
-              spec_id: item.cluster?.spec_id_list?.[0] || 0,
+  const handleSubmit = () => {
+    tableRef.value!.validate().then(() => {
+      createTicketRun({
+        details: {
+          backup_source: formData.backupSource,
+          infos: formData.tableData.map((item) => ({
+            cluster_ids: [item.cluster.id, ...item.cluster.related_clusters.map((item) => item.id)],
+            resource_spec: {
+              new_slave: {
+                count: item.newSlave.length,
+                hosts: item.newSlave,
+                spec_id: item.cluster?.spec_id_list?.[0] || 0,
+              },
             },
-          },
-        })),
-        ip_source: 'resource_pool',
-      },
-      ...formData.payload,
+          })),
+          ip_source: 'resource_pool',
+        },
+        ...formData.payload,
+      });
     });
   };
 

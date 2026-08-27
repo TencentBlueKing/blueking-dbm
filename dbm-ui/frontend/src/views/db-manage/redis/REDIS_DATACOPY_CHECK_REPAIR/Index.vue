@@ -263,9 +263,8 @@
     });
   };
 
-  const handleSubmit = async () => {
-    const validateResult = await editableTableRef.value!.validate();
-    if (validateResult) {
+  const handleSubmit = () => {
+    editableTableRef.value!.validate().then(() => {
       const info = formData.tableData[0];
       createTicketRun({
         details: {
@@ -288,7 +287,7 @@
         },
         ...formData.payload,
       });
-    }
+    });
   };
 
   // 重置

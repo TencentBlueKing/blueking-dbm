@@ -255,21 +255,19 @@
     }[];
   }>(TicketTypes.MYSQL_RENAME_DATABASE);
 
-  const handleSubmit = async () => {
-    const result = await tableRef.value!.validate();
-    if (!result) {
-      return;
-    }
-    createTicketRun({
-      details: {
-        force: formData.force,
-        infos: formData.tableData.map((item) => ({
-          cluster_id: item.cluster.id,
-          from_database: item.fromDatabase[0],
-          to_database: item.toDatabase[0],
-        })),
-      },
-      ...formData.payload,
+  const handleSubmit = () => {
+    tableRef.value!.validate().then(() => {
+      createTicketRun({
+        details: {
+          force: formData.force,
+          infos: formData.tableData.map((item) => ({
+            cluster_id: item.cluster.id,
+            from_database: item.fromDatabase[0],
+            to_database: item.toDatabase[0],
+          })),
+        },
+        ...formData.payload,
+      });
     });
   };
 

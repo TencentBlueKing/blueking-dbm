@@ -238,17 +238,14 @@
 
   defineExpose<Exposes>({
     getValue: () =>
-      editableTableRef.value!.validate().then((validateResult) => {
-        if (validateResult) {
-          return tableData.value.map((tableItem) => ({
-            dst_cluster: tableItem.dst_cluster,
-            dst_cluster_password: tableItem.dst_cluster_password,
-            key_black_regex: tableItem.key_black_regex.join('\n'),
-            key_white_regex: tableItem.key_white_regex.join('\n'),
-            src_cluster: tableItem.cluster.id,
-          }));
-        }
-        return [];
+      editableTableRef.value!.validate().then(() => {
+        return tableData.value.map((tableItem) => ({
+          dst_cluster: tableItem.dst_cluster,
+          dst_cluster_password: tableItem.dst_cluster_password,
+          key_black_regex: tableItem.key_black_regex.join('\n'),
+          key_white_regex: tableItem.key_white_regex.join('\n'),
+          src_cluster: tableItem.cluster.id,
+        }));
       }),
     resetTable: () => {
       tableData.value = [createRowData()];

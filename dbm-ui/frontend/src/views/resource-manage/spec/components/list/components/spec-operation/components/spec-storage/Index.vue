@@ -355,26 +355,23 @@
     getValue: () =>
       tableData.value.length == 0
         ? Promise.resolve([])
-        : editableTableRef.value!.validate().then((validateResult) => {
-            if (validateResult) {
-              return tableData.value.reduce<InfoItem[]>((prevList, row) => {
-                if (row.mount_point && isCapacityTruthy(row.min) && isCapacityTruthy(row.max) && row.type) {
-                  const item = {
-                    max: row.max,
-                    min: row.min,
-                    mount_point: row.mount_point,
-                    type: row.type,
-                  };
-                  if (props.mode === 'edit' && _.has(row, 'size')) {
-                    Object.assign(item, { size: item.min });
-                  }
-                  return prevList.concat(item);
+        : editableTableRef.value!.validate().then(() =>
+            tableData.value.reduce<InfoItem[]>((prevList, row) => {
+              if (row.mount_point && isCapacityTruthy(row.min) && isCapacityTruthy(row.max) && row.type) {
+                const item = {
+                  max: row.max,
+                  min: row.min,
+                  mount_point: row.mount_point,
+                  type: row.type,
+                };
+                if (props.mode === 'edit' && _.has(row, 'size')) {
+                  Object.assign(item, { size: item.min });
                 }
-                return prevList;
-              }, []);
-            }
-            return Promise.reject([]);
-          }),
+                return prevList.concat(item);
+              }
+              return prevList;
+            }, []),
+          ),
   });
 </script>
 <style lang="less" scoped>

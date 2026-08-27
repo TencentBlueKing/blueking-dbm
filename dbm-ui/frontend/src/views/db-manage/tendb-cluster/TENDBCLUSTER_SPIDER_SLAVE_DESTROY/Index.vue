@@ -167,18 +167,15 @@
     is_safe: boolean;
   }>(TicketTypes.TENDBCLUSTER_SPIDER_SLAVE_DESTROY);
 
-  const handleSubmit = async () => {
-    const result = await tableRef.value!.validate();
-    if (!result) {
-      return;
-    }
-
-    createTicketRun({
-      details: {
-        cluster_ids: formData.tableData.map((item) => item.cluster.id),
-        is_safe: true,
-      },
-      ...formData.payload,
+  const handleSubmit = () => {
+    tableRef.value!.validate().then(() => {
+      createTicketRun({
+        details: {
+          cluster_ids: formData.tableData.map((item) => item.cluster.id),
+          is_safe: true,
+        },
+        ...formData.payload,
+      });
     });
   };
 

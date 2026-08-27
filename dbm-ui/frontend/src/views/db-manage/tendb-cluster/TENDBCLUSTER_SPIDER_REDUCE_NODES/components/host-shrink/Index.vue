@@ -266,42 +266,37 @@
   };
 
   defineExpose<Exposes>({
-    async getValue() {
-      const validateResult = await tableRef.value?.validate();
-      if (!validateResult) {
-        return {
-          infos: [],
-        };
-      }
-
-      const infos = Object.entries(sameClusterIdsRowsMap).reduce<ServiceReturnType<Exposes['getValue']>['infos']>(
-        (acc, [clusterId, items]) => {
-          acc.push({
-            cluster_id: Number(clusterId),
-            old_nodes: {
+    getValue() {
+      return tableRef.value!.validate().then(() => {
+        const infos = Object.entries(sameClusterIdsRowsMap).reduce<ServiceReturnType<Exposes['getValue']>['infos']>(
+          (acc, [clusterId, items]) => {
+            acc.push({
+              cluster_id: Number(clusterId),
+              old_nodes: {
+                spider_reduced_hosts: items.map((item) => ({
+                  bk_biz_id: item.spider_reduced_host.bk_biz_id,
+                  bk_cloud_id: item.spider_reduced_host.bk_cloud_id,
+                  bk_host_id: item.spider_reduced_host.bk_host_id,
+                  ip: item.spider_reduced_host.ip,
+                })),
+              },
+              reduce_spider_role: items[0]!.spider_reduced_host.role,
               spider_reduced_hosts: items.map((item) => ({
                 bk_biz_id: item.spider_reduced_host.bk_biz_id,
                 bk_cloud_id: item.spider_reduced_host.bk_cloud_id,
                 bk_host_id: item.spider_reduced_host.bk_host_id,
                 ip: item.spider_reduced_host.ip,
               })),
-            },
-            reduce_spider_role: items[0]!.spider_reduced_host.role,
-            spider_reduced_hosts: items.map((item) => ({
-              bk_biz_id: item.spider_reduced_host.bk_biz_id,
-              bk_cloud_id: item.spider_reduced_host.bk_cloud_id,
-              bk_host_id: item.spider_reduced_host.bk_host_id,
-              ip: item.spider_reduced_host.ip,
-            })),
-          });
-          return acc;
-        },
-        [],
-      );
+            });
+            return acc;
+          },
+          [],
+        );
 
-      return {
-        infos,
-      };
+        return {
+          infos,
+        };
+      });
     },
     reset() {
       tableData.value = [createTableRow()];

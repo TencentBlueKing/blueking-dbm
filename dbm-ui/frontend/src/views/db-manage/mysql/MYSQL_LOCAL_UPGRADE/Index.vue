@@ -278,9 +278,8 @@
     formData.tableData = [...(formData.tableData[0].cluster.id ? formData.tableData : []), ...dataList];
   };
 
-  const handleSubmit = async () => {
-    const result = await tableRef.value?.validate();
-    if (result) {
+  const handleSubmit = () => {
+    tableRef.value?.validate().then(() => {
       createTicketRun({
         details: {
           infos: formData.tableData.map((item) => ({
@@ -301,7 +300,7 @@
         },
         ...formData.payload,
       });
-    }
+    });
   };
 
   const handleReset = () => {

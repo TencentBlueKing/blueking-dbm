@@ -246,40 +246,38 @@
   };
 
   defineExpose({
-    async getValue() {
-      const validated = await tableRef.value?.validate();
-      if (!validated) {
-        return;
-      }
-      return {
-        details: {
-          backup_source: formData.backup_source,
-          infos: formData.tableData.map((item) => {
-            const clusters = item.multipleCluster.clusters;
-            return {
-              cluster_ids: clusters.map((cluster) => cluster.id),
-              old_orphan: {
-                bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
-                bk_cloud_id: clusters[0].masters[0].bk_cloud_id,
-                bk_host_id: clusters[0].masters[0].bk_host_id,
-                ip: clusters[0].masters[0].ip,
-              },
-              resource_spec: {
-                bk_new_orphan: {
-                  count: 1,
-                  label_names: item.labels.map((item) => item.value),
-                  labels: item.labels.map((item) => String(item.id)),
-                  spec_id: item.specId,
+    getValue() {
+      return tableRef.value!.validate().then(() => {
+        return {
+          details: {
+            backup_source: formData.backup_source,
+            infos: formData.tableData.map((item) => {
+              const clusters = item.multipleCluster.clusters;
+              return {
+                cluster_ids: clusters.map((cluster) => cluster.id),
+                old_orphan: {
+                  bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
+                  bk_cloud_id: clusters[0].masters[0].bk_cloud_id,
+                  bk_host_id: clusters[0].masters[0].bk_host_id,
+                  ip: clusters[0].masters[0].ip,
                 },
-              },
-            };
-          }),
-          ip_source: 'resource_pool',
-          migrate_type: 'instance',
-          orphan_restore_type: formData.orphan_restore_type,
-        },
-        ...formData.payload,
-      };
+                resource_spec: {
+                  bk_new_orphan: {
+                    count: 1,
+                    label_names: item.labels.map((item) => item.value),
+                    labels: item.labels.map((item) => String(item.id)),
+                    spec_id: item.specId,
+                  },
+                },
+              };
+            }),
+            ip_source: 'resource_pool',
+            migrate_type: 'instance',
+            orphan_restore_type: formData.orphan_restore_type,
+          },
+          ...formData.payload,
+        };
+      });
     },
   });
 </script>

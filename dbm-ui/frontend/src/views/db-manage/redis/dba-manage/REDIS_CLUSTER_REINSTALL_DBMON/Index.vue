@@ -138,22 +138,20 @@
     restart_exporter: boolean;
   }>(TicketTypes.REDIS_CLUSTER_REINSTALL_DBMON);
 
-  const handleSubmit = async () => {
-    const result = await tableRef.value!.validate();
-    if (!result) {
-      return;
-    }
-    createTicketRun({
-      bizIdExtractor: (item) => item.cluster.bk_biz_id,
-      data: formData.tableData,
-      detailsExtractor: (item) => ({
-        bk_biz_id: item.cluster.bk_biz_id,
-        bk_cloud_id: item.cluster.bk_cloud_id,
-        cluster_ids: [item.cluster.id],
-        is_stop: false,
-        restart_exporter: formData.restart_exporter,
-      }),
-      ticketPayload: formData.ticketPayload,
+  const handleSubmit = () => {
+    tableRef.value!.validate().then(() => {
+      createTicketRun({
+        bizIdExtractor: (item) => item.cluster.bk_biz_id,
+        data: formData.tableData,
+        detailsExtractor: (item) => ({
+          bk_biz_id: item.cluster.bk_biz_id,
+          bk_cloud_id: item.cluster.bk_cloud_id,
+          cluster_ids: [item.cluster.id],
+          is_stop: false,
+          restart_exporter: formData.restart_exporter,
+        }),
+        ticketPayload: formData.ticketPayload,
+      });
     });
   };
 

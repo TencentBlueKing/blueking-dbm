@@ -194,18 +194,15 @@
 
   defineExpose<Exposes>({
     getValue: () =>
-      editableTableRef.value!.validate().then((validateResult) => {
-        if (validateResult) {
-          return tableData.value.map((tableItem) => ({
-            dst_cluster: tableItem.dst_cluster.id,
-            key_black_regex: tableItem.key_black_regex.join('\n'),
-            key_white_regex: tableItem.key_white_regex.join('\n'),
-            src_cluster: tableItem.src_cluster,
-            src_cluster_password: tableItem.src_cluster_password,
-            src_cluster_type: tableItem.src_cluster_type,
-          }));
-        }
-        return [];
+      editableTableRef.value!.validate().then(() => {
+        return tableData.value.map((tableItem) => ({
+          dst_cluster: tableItem.dst_cluster.id,
+          key_black_regex: tableItem.key_black_regex.join('\n'),
+          key_white_regex: tableItem.key_white_regex.join('\n'),
+          src_cluster: tableItem.src_cluster,
+          src_cluster_password: tableItem.src_cluster_password,
+          src_cluster_type: tableItem.src_cluster_type,
+        }));
       }),
     resetTable: () => {
       tableData.value = [createRowData()];

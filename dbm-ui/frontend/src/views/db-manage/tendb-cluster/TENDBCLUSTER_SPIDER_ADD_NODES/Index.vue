@@ -250,30 +250,28 @@
     ip_source: 'resource_pool';
   }>(TicketTypes.TENDBCLUSTER_SPIDER_ADD_NODES);
 
-  const handleSubmit = async () => {
-    const result = await tableRef.value!.validate();
-    if (!result) {
-      return;
-    }
-    createTicketRun({
-      details: {
-        infos: formData.tableData.map((item) => ({
-          add_spider_num: Number(item.add_spider_num),
-          add_spider_role: item.role,
-          cluster_id: item.cluster.id,
-          current_spider_num: item.current_spider_num,
-          resource_spec: {
-            spider_ip_list: {
-              count: Number(item.add_spider_num),
-              label_names: item.labels.map((item) => item.value),
-              labels: item.labels.map((item) => String(item.id)),
-              spec_id: item.specId,
+  const handleSubmit = () => {
+    tableRef.value!.validate().then(() => {
+      createTicketRun({
+        details: {
+          infos: formData.tableData.map((item) => ({
+            add_spider_num: Number(item.add_spider_num),
+            add_spider_role: item.role,
+            cluster_id: item.cluster.id,
+            current_spider_num: item.current_spider_num,
+            resource_spec: {
+              spider_ip_list: {
+                count: Number(item.add_spider_num),
+                label_names: item.labels.map((item) => item.value),
+                labels: item.labels.map((item) => String(item.id)),
+                spec_id: item.specId,
+              },
             },
-          },
-        })),
-        ip_source: 'resource_pool',
-      },
-      ...formData.payload,
+          })),
+          ip_source: 'resource_pool',
+        },
+        ...formData.payload,
+      });
     });
   };
 

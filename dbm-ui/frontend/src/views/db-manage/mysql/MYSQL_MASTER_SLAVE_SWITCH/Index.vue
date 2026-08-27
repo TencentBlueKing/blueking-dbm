@@ -201,33 +201,31 @@
     is_verify_checksum: boolean;
   }>(TicketTypes.MYSQL_MASTER_SLAVE_SWITCH);
 
-  const handleSubmit = async () => {
-    const result = await tableRef.value!.validate();
-    if (!result) {
-      return;
-    }
-    createTicketRun({
-      details: {
-        infos: formData.tableData.map((item) => ({
-          cluster_ids: item.master.related_clusters.map((item) => item.id),
-          master_ip: {
-            bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
-            bk_cloud_id: item.master.bk_cloud_id,
-            bk_host_id: item.master.bk_host_id,
-            ip: item.master.ip,
-          },
-          slave_ip: {
-            bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
-            bk_cloud_id: item.slave.bk_cloud_id,
-            bk_host_id: item.slave.bk_host_id,
-            ip: item.slave.ip,
-          },
-        })),
-        is_check_delay: formData.is_check_delay,
-        is_check_process: formData.is_check_process,
-        is_verify_checksum: formData.is_verify_checksum,
-      },
-      ...formData.payload,
+  const handleSubmit = () => {
+    tableRef.value!.validate().then(() => {
+      createTicketRun({
+        details: {
+          infos: formData.tableData.map((item) => ({
+            cluster_ids: item.master.related_clusters.map((item) => item.id),
+            master_ip: {
+              bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
+              bk_cloud_id: item.master.bk_cloud_id,
+              bk_host_id: item.master.bk_host_id,
+              ip: item.master.ip,
+            },
+            slave_ip: {
+              bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
+              bk_cloud_id: item.slave.bk_cloud_id,
+              bk_host_id: item.slave.bk_host_id,
+              ip: item.slave.ip,
+            },
+          })),
+          is_check_delay: formData.is_check_delay,
+          is_check_process: formData.is_check_process,
+          is_verify_checksum: formData.is_verify_checksum,
+        },
+        ...formData.payload,
+      });
     });
   };
 

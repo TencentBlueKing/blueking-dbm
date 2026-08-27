@@ -154,26 +154,24 @@
     pre_check: boolean;
   }>(TicketTypes.MYSQL_CLIENT_CLONE_RULES);
 
-  const handleSubmit = async () => {
-    const result = await tableRef.value!.validate();
-    if (!result) {
-      return;
-    }
-    const precheckResult = await precheckPermissionClone({
-      bizId: window.PROJECT_CONFIG.BIZ_ID,
-      clone_cluster_type: 'mysql',
-      clone_list: formData.tableData,
-      clone_type: 'client',
-    });
-    if (precheckResult.pre_check) {
-      createTicketRun({
-        details: {
-          ...precheckResult,
-          clone_type: 'client',
-        },
-        ...formData.payload,
+  const handleSubmit = () => {
+    tableRef.value!.validate().then(async () => {
+      const precheckResult = await precheckPermissionClone({
+        bizId: window.PROJECT_CONFIG.BIZ_ID,
+        clone_cluster_type: 'mysql',
+        clone_list: formData.tableData,
+        clone_type: 'client',
       });
-    }
+      if (precheckResult.pre_check) {
+        createTicketRun({
+          details: {
+            ...precheckResult,
+            clone_type: 'client',
+          },
+          ...formData.payload,
+        });
+      }
+    });
   };
 
   const handleReset = () => {
