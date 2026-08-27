@@ -32,7 +32,9 @@
     :min-width="220"
     :title="t('规格')">
     <template #default="{ row }: { row: IRowData }">
-      <MachineSpecCell :specs="row.machine_specs" />
+      <MachineSpecCell
+        mode="list"
+        :specs="row.machine_specs" />
     </template>
   </TableColumn>
   <TableColumn

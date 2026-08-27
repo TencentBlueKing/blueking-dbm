@@ -18,7 +18,7 @@
     </InfoItem>
     <InfoItem :label="t('规格')">
       <MachineSpecCell
-        all
+        mode="detail"
         :specs="data.machine_specs" />
     </InfoItem>
     <InfoItem :label="t('管控区域')">

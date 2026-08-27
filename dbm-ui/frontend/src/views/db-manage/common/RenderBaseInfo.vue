@@ -56,7 +56,7 @@
           <td>{{ t('规格') }}：</td>
           <td>
             <MachineSpecCell
-              all
+              mode="detail"
               :specs="data.machine_specs" />
           </td>
         </tr>
