@@ -99,8 +99,6 @@ class ItsmV4Backend(BaseItsmBackend):
                 "to": cls.format_deliver_processors(params.get("processors")),
                 "desc": params.get("remark"),
             }
-        if action_type == "WITHDRAW":
-            action_params["target_activity"] = params.get("activity_key")
         return {
             "ticket_id": cls.get_ticket_id(params.get("sn")),
             "task_id": params.get("task_id"),
@@ -110,6 +108,14 @@ class ItsmV4Backend(BaseItsmBackend):
                 "method": action_method,
                 "params": action_params,
             },
+        }
+
+    @classmethod
+    def format_revoke_ticket_params(cls, params):
+        """将旧版撤销单据参数转换为 ITSM V4 撤销接口参数。"""
+        return {
+            "ticket_id": cls.get_ticket_id(params.get("sn")),
+            "system_id": ItsmV4Api.get_system_id(),
         }
 
     def create_ticket(self, params, *args, **kwargs):
@@ -145,6 +151,8 @@ class ItsmV4Backend(BaseItsmBackend):
 
     def operate_ticket(self, params, *args, **kwargs):
         """处理 ITSM V4 单据。"""
+        if params.get("action_type") == "WITHDRAW":
+            return ItsmV4Api.revoke_ticket(self.format_revoke_ticket_params(params), *args, **kwargs)
         return ItsmV4Api.handle_ticket(self.format_handle_ticket_params(params), *args, **kwargs)
 
     def migrate_system(self, params, *args, **kwargs):
