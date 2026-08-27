@@ -1,0 +1,40 @@
+{{- if .Values.bkai.enabled -}}
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ include "dbm.aidevInitJobName" . }}
+  labels:
+    {{- include "dbm.labels" . | nindent 4 }}
+spec:
+  template:
+    metadata:
+      labels:
+        {{- include "dbm.labels" . | nindent 8 }}
+    spec:
+      {{- with .Values.global.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "dbm.serviceAccountName" . }}
+      restartPolicy: Never
+      containers:
+        - name: dbm-aidev-init
+          image: "{{ .Values.global.imageRegistry | default .Values.bkai.image.registry }}/{{ .Values.bkai.image.repository }}:{{ .Values.bkai.image.tag | default "latest" }}"
+          imagePullPolicy: {{ .Values.bkai.image.pullPolicy | default .Values.image.pullPolicy }}
+          # 镜像 ENTRYPOINT: render mcps → bkai-cli validate/sync
+          env:
+            {{- include "dbm.envs" . | trim | nindent 12 }}
+            - name: BKAI_SPACE
+              value: {{ .Values.bkai.space | quote }}
+          envFrom:
+            {{- if .Values.extraEnvVarsCM }}
+            - configMapRef:
+                name: {{ .Values.extraEnvVarsCM }}
+            {{- end }}
+          resources:
+            {{- toYaml .Values.initJob.resources | nindent 12 }}
+      {{- include "dbm.initContainersWaitForMigrate" . | nindent 6 }}
+      {{- if .Values.serviceInit.apigwEnabled }}
+        {{- include "dbm.initContainersWaitForApigw" . | nindent 8 }}
+      {{- end }}
+{{- end }}

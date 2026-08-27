@@ -1,0 +1,18 @@
+# AIDEV Agent Package — DBM
+# 同步示例:
+#   bkai-cli validate -f backend/dbm_aiagent/bkai-resources/bkai.yaml
+#   bkai-cli sync -f backend/dbm_aiagent/bkai-resources/bkai.yaml --space system-bkaidev
+apiVersion: bkai.tencent.com/v1
+kind: AgentPackage
+
+metadata:
+  name: bk-dbm
+  version: "1.0.0"
+
+# 声明本次需要同步的资源路径（相对本文件所在目录）
+resources:
+  - agents/ai-dbm.yaml
+  - skills/common-cluster-base-info
+  - skills/common-ticket-op
+  - knowledgebases/dbm_userguide
+  - knowledgebases/TicketKnowledge

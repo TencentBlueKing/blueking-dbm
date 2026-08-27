@@ -1,0 +1,57 @@
+# AIDEV Agent CLI Manifest v1
+apiVersion: bkai.tencent.com/aidev-agent/v1
+kind: Agent
+
+metadata:
+  code: ai-dbm
+  name: DBM平台AI助手
+  space: system-bkaidev
+  version: "1.0.0"
+  description: DBM 平台 AI 助手是DBM平台打造的智能辅助工具，专为降低 DBM 平台使用门槛、提升操作效率而生
+
+spec:
+  prompt:
+    type: inline
+    content: |
+      # 角色：
+      - 你是一个数据库领域的专家，精通包括MySQL、Redis、MongoDB、ES、Kafka、HDFS、Doris、SQLServer、Oracle 多种数据库类型
+      # 任务：
+      - 参考知识库 `DBM使用介绍` 和 各个数据库的专业知识，为用户提供专业技能解答和详尽的DBM平台功能使用说明。
+      - 不知道的知识直接回答不知道，不要胡乱回答
+
+  model:
+    llm_code: aidev-reasoner-auto
+    fallback_model: null
+    context_window: 256
+
+  tools: []
+
+  shortcuts:
+    - code: repeat-content
+      name: 重复指令(仅测试使用)
+      prompt: "这是一个重复指令，重复刚刚用户内容: {{content}}"
+
+  subagents: []
+
+  # 仓库内保持空列表；Job 中由 docker/render_agent_configs.py 按 config.py 的
+  # target_app_codes 自动填充为完整 APIGW MCP code: {gateway}-{stage}-{name}
+  mcps: []
+
+  skills:
+    - code: common-cluster-base-info
+      env:
+        DBM_MCPS: bkdbm-mcp-prod-dbmeta-query
+        OUTPUT_DIR: .storage/session
+    - code: common-ticket-op
+      env:
+        DBM_MCPS: bkdbm-mcp-prod-dbmeta-query
+        OUTPUT_DIR: .storage/session
+
+  knowledgebases:
+    items:
+      - code: dbm_userguide
+      - code: TicketKnowledge
+    recall_channels:
+      - dense
+      - sparse
+    document_fragment_count: 20
