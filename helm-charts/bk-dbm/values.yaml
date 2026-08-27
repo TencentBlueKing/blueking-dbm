@@ -84,6 +84,7 @@ bk:
 dbm:
   extraEnvVarsCM: bk-dbm-db-env
   enabled: true
+  # 初始化服务
   serviceInit:
     itsmEnabled: true
     iamEnabled: true
@@ -96,6 +97,16 @@ dbm:
     bknoticeEnabled: true
     # TODO: 验证后开启
     dbmServicesEnabled: false
+
+  # 蓝鲸 AIDEV（Agent Package 同步）
+  bkai:
+    enabled: false
+    space: system-bkaidev
+    image:
+      registry: "mirrors.tencent.com"
+      repository: "build/blueking/dbm-aidev-init"
+      pullPolicy: IfNotPresent
+      tag: "latest"
 
   image:
     registry: "mirrors.tencent.com"
