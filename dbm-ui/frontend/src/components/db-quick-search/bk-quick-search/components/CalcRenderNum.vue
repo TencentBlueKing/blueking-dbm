@@ -21,7 +21,7 @@
 </template>
 <script setup lang="ts">
   import _ from 'lodash';
-  import { getCurrentInstance, nextTick, ref, useTemplateRef, watch } from 'vue';
+  import { getCurrentInstance, nextTick, onMounted, ref, useTemplateRef, watch } from 'vue';
 
   import type { IValue, Props as ContextProps } from '../Index.vue';
   import { getValuesText } from '../utils';
@@ -30,7 +30,7 @@
 
   interface Props {
     data: ContextProps['data'];
-    fouced: boolean;
+    focused: boolean;
     valueList: IValue[];
   }
 
@@ -65,7 +65,7 @@
         return;
       }
 
-      if (props.fouced) {
+      if (props.focused) {
         renderValueTagElList.forEach((elItem) => {
           const textEl = elItem.querySelector('.bk-quick-search-value-tag-text') as HTMLDivElement;
           if (textEl) {
@@ -118,73 +118,71 @@
     },
   );
 
-  watch(
-    () => props.valueList,
-    () => {
-      isShow.value = true;
-      nextTick(() => {
-        if (!rootRef.value || !tagRefs.value) {
+  const calcRenderTagCount = () => {
+    isShow.value = true;
+    nextTick(() => {
+      if (!rootRef.value || !tagRefs.value) {
+        return;
+      }
+
+      setTimeout(() => {
+        const { width: maxWidth } = rootRef.value!.getBoundingClientRect();
+        let calcRealNeedRenderTagCount = 0;
+        let renderTagTotalWidth = 0;
+
+        // 计算 tag 的宽度总和是否超出容器宽度
+        for (const tagInst of tagRefs.value!) {
+          renderTagTotalWidth += tagInst.$el.getBoundingClientRect().width;
+          if (renderTagTotalWidth >= maxWidth - calcRealNeedRenderTagCount * 4 - 20) {
+            break;
+          }
+          calcRealNeedRenderTagCount += 1;
+        }
+
+        if (calcRealNeedRenderTagCount === props.valueList.length) {
+          modelValue.value = props.valueList.length;
           return;
         }
 
-        setTimeout(() => {
-          const { width: maxWidth } = rootRef.value!.getBoundingClientRect();
-          let calcRealNeedRenderTagCount = 0;
-          let renderTagTotalWidth = 0;
+        // 根据最大宽度响应式 tag 渲染策略
+        if (maxWidth < 180) {
+          // 折叠所有 tag
+          modelValue.value = 0;
+        } else if (maxWidth < 280) {
+          // 最大渲染一个 tag
+          const maxCount = 1;
+          const hasEnoughTags = props.valueList.length >= maxCount;
+          const minRenderCount = hasEnoughTags ? maxCount : props.valueList.length;
+          modelValue.value = Math.max(calcRealNeedRenderTagCount, minRenderCount);
+        } else if (maxWidth < 400) {
+          // 最大渲染 2 个 tag
+          const maxCount = 2;
+          const hasEnoughTags = props.valueList.length >= maxCount;
+          const minRenderCount = hasEnoughTags ? maxCount : props.valueList.length;
+          modelValue.value = Math.max(calcRealNeedRenderTagCount, minRenderCount);
+        } else {
+          // 最大渲染 3 个 tag
+          const maxCount = 3;
+          const hasEnoughTags = props.valueList.length >= maxCount;
+          const minRenderCount = hasEnoughTags ? maxCount : props.valueList.length;
+          modelValue.value = Math.max(calcRealNeedRenderTagCount, minRenderCount);
+        }
 
-          // 计算 tag 的宽度总和是否超出容器宽度
-          for (const tagInst of tagRefs.value!) {
-            renderTagTotalWidth += tagInst.$el.getBoundingClientRect().width;
-            if (renderTagTotalWidth >= maxWidth - calcRealNeedRenderTagCount * 4 - 20) {
-              break;
-            }
-            calcRealNeedRenderTagCount += 1;
-          }
-
-          if (calcRealNeedRenderTagCount === props.valueList.length) {
-            modelValue.value = props.valueList.length;
-            return;
-          }
-
-          // 根据最大宽度响应式 tag 渲染策略
-          if (maxWidth < 180) {
-            // 折叠所有 tag
-            modelValue.value = 0;
-          } else if (maxWidth < 280) {
-            // 最大渲染一个 tag
-            const maxCount = 1;
-            const hasEnoughTags = props.valueList.length >= maxCount;
-            const minRenderCount = hasEnoughTags ? maxCount : props.valueList.length;
-            modelValue.value = Math.max(calcRealNeedRenderTagCount, minRenderCount);
-          } else if (maxWidth < 400) {
-            // 最大渲染 2 个 tag
-            const maxCount = 2;
-            const hasEnoughTags = props.valueList.length >= maxCount;
-            const minRenderCount = hasEnoughTags ? maxCount : props.valueList.length;
-            modelValue.value = Math.max(calcRealNeedRenderTagCount, minRenderCount);
-          } else {
-            // 最大渲染 3 个 tag
-            const maxCount = 3;
-            const hasEnoughTags = props.valueList.length >= maxCount;
-            const minRenderCount = hasEnoughTags ? maxCount : props.valueList.length;
-            modelValue.value = Math.max(calcRealNeedRenderTagCount, minRenderCount);
-          }
-
-          if (!props.fouced) {
-            nextTick(() => {
-              calcTagSize();
-            });
-          }
-        });
+        if (!props.focused) {
+          nextTick(() => {
+            calcTagSize();
+          });
+        }
       });
-    },
-    {
-      immediate: true,
-    },
-  );
+    });
+  };
+
+  watch(() => props.valueList, calcRenderTagCount, {
+    immediate: true,
+  });
 
   watch(
-    () => props.fouced,
+    () => props.focused,
     () => {
       isShow.value = true;
       calcTagSize();
@@ -193,4 +191,26 @@
       immediate: true,
     },
   );
+
+  // 容器宽度变化（窗口缩放、侧边栏收起等）需要重新计算可渲染的 tag 数量
+  let lastContainerWidth = 0;
+  const handleContainerResize = _.throttle((entries: ResizeObserverEntry[]) => {
+    const currentWidth = entries[0]!.contentRect.width;
+    if (currentWidth === lastContainerWidth) {
+      return;
+    }
+    lastContainerWidth = currentWidth;
+    calcRenderTagCount();
+  }, 100);
+  const resizeObserver = new ResizeObserver(handleContainerResize);
+
+  onMounted(() => {
+    lastContainerWidth = rootRef.value!.getBoundingClientRect().width;
+    resizeObserver.observe(rootRef.value!);
+  });
+
+  onBeforeUnmount(() => {
+    resizeObserver.disconnect();
+    handleContainerResize.cancel();
+  });
 </script>

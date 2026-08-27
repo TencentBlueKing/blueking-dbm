@@ -3,16 +3,16 @@
     :class="{
       'is-custom-input': isFocused && isCustomInput,
     }"
-    :focued="isFocused"
+    :focused="isFocused"
     role="search-value"
-    @edit="handleFoucs"
+    @edit="handleFocus"
     @remove="handleRemove">
     {{ value.name }}
     <template
-      v-if="isFocused"
+      v-if="isFocused && currentDataConfig"
       #edit>
       <TagEdit
-        :config="currentDataConfig"
+        :config="currentDataConfig!"
         :last-value="value"
         :last-value-text="lastValueText"
         @change="handleChange"
@@ -49,11 +49,12 @@
   const props = defineProps<Props>();
   const emits = defineEmits<Emits>();
 
-  const currentDataConfig = _.find(props.data, (item) => item.id === props.value.id) as Props['data'][number];
-  const isCustomInput = !calcNeedShowValueMenu(currentDataConfig);
-
   const isFocused = ref(false);
-  const lastValueText = computed(() => getValuesText(props.value.values, currentDataConfig));
+
+  // 搜索项配置可能被外部移除，此时 tag 只支持删除，不进入编辑态
+  const currentDataConfig = computed(() => _.find(props.data, (item) => item.id === props.value.id));
+  const isCustomInput = computed(() => !calcNeedShowValueMenu(currentDataConfig.value));
+  const lastValueText = computed(() => getValuesText(props.value.values, currentDataConfig.value));
 
   const handleRemove = () => {
     emits('remove');
@@ -71,13 +72,17 @@
     isFocused.value = false;
     if (value.values.length < 1) {
       emits('remove');
-    } else {
-      emits('change', value);
+      return;
     }
+    // 退出编辑时值没有变化，不触发搜索
+    if (_.isEqual(value.values, props.value.values)) {
+      return;
+    }
+    emits('change', value);
   };
 
-  const handleFoucs = () => {
-    if (isFocused.value) {
+  const handleFocus = () => {
+    if (isFocused.value || !currentDataConfig.value) {
       return;
     }
     isFocused.value = true;

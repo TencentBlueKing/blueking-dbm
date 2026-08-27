@@ -6223,5 +6223,12 @@
   "{n}最大值 {max}": "The maximum value of {n} is {max}",
   "{n}最小值 {min}": "The minimum value of {n} is {min}",
   "{n}最大长度 {maxlength}": "The maximum length of {n} is {maxlength}",
+  "请选择搜索项": "Please select a search item",
+  "移动光标": "Move cursor",
+  "选中": "Select",
+  "不支持搜索": "Cannot search",
+  "相关数据": "related data",
+  "支持输入多个值 ”Shift + Enter“ 换行，按”Enter“完成搜索": "Multiple values supported, \"Shift + Enter\" for new line, \"Enter\" to search",
+  "”Shift + Enter“ 换行，按”Enter“完成搜索": "\"Shift + Enter\" for new line, \"Enter\" to search",
   "这行勿动！新增翻译请在上一行添加！": ""
 }
