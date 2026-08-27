@@ -33,6 +33,9 @@ import (
 	"dbm-services/common/dbha-v2/pkg/gerrors"
 	"dbm-services/common/dbha-v2/pkg/logger"
 	"dbm-services/common/go-pubpkg/cmutil"
+
+	"gorm.io/gorm"
+	gormlogger "gorm.io/gorm/logger"
 )
 
 const (
@@ -275,8 +278,11 @@ func (db *GormDB) ChangeReplicationTo(ctx context.Context, src ReplSource) (stri
 		autoKey = true
 	}
 
+	// GORM echoes the full SQL on error, bypassing maskSecret; silence it for these execs.
+	tx := db.DBWithContext(ctx).Session(&gorm.Session{Logger: gormlogger.Discard})
+
 	changeSQL := ChangeReplicationSQL(useReplica, src)
-	execErr := db.DBWithContext(ctx).Exec(changeSQL).Error
+	execErr := tx.Exec(changeSQL).Error
 
 	var firstSQL string
 	var firstErr error
@@ -290,7 +296,7 @@ func (db *GormDB) ChangeReplicationTo(ctx context.Context, src ReplSource) (stri
 		logger.Warn("got a syntax error on db(%s:%d), retry with '%s', errmsg: %s",
 			db.opts.ip, db.opts.port, maskSecret(changeSQL, src.Password),
 			maskSecret(firstErr.Error(), src.Password))
-		execErr = db.DBWithContext(ctx).Exec(changeSQL).Error
+		execErr = tx.Exec(changeSQL).Error
 	}
 
 	maskedSQL := maskSecret(changeSQL, src.Password)
