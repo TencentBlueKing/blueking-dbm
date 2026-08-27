@@ -15,8 +15,14 @@ from rest_framework.response import Response
 
 from backend.dbm_aiagent.mcp_tools.constants import DBMMCPTags, DBMMcpTools
 from backend.dbm_aiagent.mcp_tools.decorators import mcp_tools_api_decorator
-from backend.dbm_aiagent.mcp_tools.mysql.impl.sql_syntax_check import check_sql_file_grammar, syntax_check_sql_impl
+from backend.dbm_aiagent.mcp_tools.mysql.impl.sql_syntax_check import (
+    check_sql_file_grammar,
+    parse_sql_file_statement_impl,
+    syntax_check_sql_impl,
+)
 from backend.dbm_aiagent.mcp_tools.mysql.serializers.sql_syntax_check import (
+    ParseSqlFileStatementInputSerializer,
+    ParseSqlFileStatementOutputSerializer,
     SqlFileSyntaxCheckInputSerializer,
     SqlSyntaxCheckInputSerializer,
     SqlSyntaxCheckOutputSerializer,
@@ -132,3 +138,56 @@ class SqlSyntaxCheckMcpViewSet(McpToolsViewSet):
         result = check_sql_file_grammar(cluster_type=cluster_type, path=path, file_list=file_list, versions=versions)
 
         return Response({"result": result})
+
+    @mcp_tools_api_decorator(
+        description=str(
+            _(
+                "Parse SQL files in BKRepo for command counts; optionally find ALTER/DROP/TRUNCATE tables >= 500MB. "
+                "PREREQUISITE: SQL files must be uploaded to BKRepo before calling this tool. "
+                "This tool reads files from BKRepo only; it does NOT upload files. "
+                "Returns command_counts (all files) and file_command_counts (per file). "
+                "Optional cluster_ids: identify large tables. For DDL without db_name, pass execute_objects "
+                "(dbnames/ignore_dbnames/sql_files, same as SQL change ticket) to expand real databases. "
+                "include_sql_text defaults to false. path=BKRepo dir, file_list=filenames only."
+            )
+        ),
+        request_slz=ParseSqlFileStatementInputSerializer,
+        response_slz=ParseSqlFileStatementOutputSerializer,
+        permission_classes=[McpSkipPermission],
+        tags=[DBMMCPTags.READ],
+        mcp=[DBMMcpTools.SQL_SYNTAX_CHECK, DBMMcpTools.DBM_PUBLIC_MARKET],
+        name_prefix="parse_sql_file_statement",
+    )
+    def parse_sql_file_statement(self, request, *args, **kwargs):
+        """
+        Parse SQL files from BKRepo: command counts plus optional large ALTER/DROP/TRUNCATE tables.
+
+        **Prerequisite**: SQL files MUST be uploaded to BKRepo before calling this endpoint.
+
+        - path: BKRepo directory path
+        - file_list: SQL filenames (not full paths)
+        - include_sql_text: optional, default false
+        - cluster_ids: optional; when set, return large_tables (>=500MB)
+        - execute_objects: optional; expand empty db_name via dbnames - ignore_dbnames
+        """
+        path = self.get_param("path")
+        file_list = self.get_param("file_list")
+        include_sql_text = self.get_param("include_sql_text", False)
+        cluster_ids = self.get_param("cluster_ids", [])
+        execute_objects = self.get_param("execute_objects", [])
+
+        logger.info(
+            _(
+                "Received SQL file statement parse request. Path: {}, Files: {}, include_sql_text: {}, "
+                "cluster_ids: {}"
+            ).format(path, file_list, include_sql_text, cluster_ids)
+        )
+
+        result = parse_sql_file_statement_impl(
+            path=path,
+            file_list=file_list,
+            include_sql_text=include_sql_text,
+            cluster_ids=cluster_ids,
+            execute_objects=execute_objects,
+        )
+        return Response(result)
