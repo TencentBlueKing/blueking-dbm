@@ -26,6 +26,7 @@ from backend import env
 from backend.iam_app.dataclass.actions import ActionEnum, ActionMeta, _all_actions
 from backend.iam_app.dataclass.resources import ResourceEnum, ResourceMeta, _all_resources
 from backend.iam_app.exceptions import PermissionDeniedError
+from backend.iam_app.handlers import shadow
 from backend.iam_app.handlers.backends import get_iam_backend
 from backend.utils.local import local
 
@@ -61,7 +62,10 @@ class Permission(object):
         鉴权后端的统一入口。
         TODO: 接入shadow影子对比时在此按采样率额外调用另一版本的后端并比对结果(见02文档J4)
         """
-        return getattr(self.backend, method)(*args, **kwargs)
+        result = getattr(self.backend, method)(*args, **kwargs)
+        # 影子比对：在V3真实鉴权模式下，后台异步跑一次V4只打日志，不改变真实返回值
+        shadow.try_shadow(method, result, args, kwargs)
+        return result
 
     @classmethod
     def get_iam_client(cls):
