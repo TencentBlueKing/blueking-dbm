@@ -17,7 +17,16 @@ export default <T>(
     },
   );
 
+  // 面板隐藏有动画，隐藏中的面板依然在 DOM 上，此时不能再响应按键，否则一次按键会被多个面板处理
+  const isMenuVisible = () => {
+    const popBox = listRef.value?.closest('.tippy-box');
+    return !popBox || popBox.getAttribute('data-state') === 'visible';
+  };
+
   const handleKeyDown = (event: KeyboardEvent) => {
+    if (!isMenuVisible()) {
+      return;
+    }
     // enter键直接触发选中
     if (['Enter', 'NumpadEnter'].includes(event.code) && activeIndex.value > -1 && !event.metaKey && !event.ctrlKey) {
       submitCallback(list.value[activeIndex.value]!, activeIndex.value);

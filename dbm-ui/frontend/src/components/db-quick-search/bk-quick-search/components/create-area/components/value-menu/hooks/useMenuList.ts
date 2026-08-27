@@ -20,10 +20,15 @@ export default <T extends { label: string; value: string | number }>(config: Con
     return (config.list || []) as T[];
   });
 
+  // 请求序号，只接受最后一次请求的结果，避免先发的慢响应覆盖后发的结果
+  let latestRequestId = 0;
   const fetchRemoteList = () => {
     if (!isRemoteList.value) {
       return;
     }
+
+    latestRequestId = latestRequestId + 1;
+    const currentRequestId = latestRequestId;
 
     isLoading.value = true;
     Promise.resolve()
@@ -33,19 +38,26 @@ export default <T extends { label: string; value: string | number }>(config: Con
         }),
       )
       .then((data) => {
+        if (currentRequestId !== latestRequestId) {
+          return;
+        }
         remoteList.value = data as T[];
       })
       .finally(() => {
-        isLoading.value = false;
+        if (currentRequestId === latestRequestId) {
+          isLoading.value = false;
+        }
       });
   };
 
-  watch(filterKey, () => {
-    if (config.remoteMethod && config.remoteSearch) {
-      fetchRemoteList();
-      return;
-    }
-  });
+  watch(
+    filterKey,
+    _.debounce(() => {
+      if (config.remoteMethod && config.remoteSearch) {
+        fetchRemoteList();
+      }
+    }, 300),
+  );
 
   fetchRemoteList();
 
