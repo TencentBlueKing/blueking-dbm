@@ -11,7 +11,7 @@ specific language governing permissions and limitations under the License.
 
 import logging
 import time
-from typing import Dict, List
+from typing import Any, Dict, List, Tuple
 
 from celery import shared_task
 
@@ -19,6 +19,7 @@ from backend import env
 from backend.components.iamv4.client import AUTH_BATCH_SIZE, AUTHORIZATION_EXPIRED_DAYS, IAMV4Api
 from backend.iam_app.dataclass.resources import BizDBTypeResourceMeta, BusinessResourceMeta, ResourceEnum
 from backend.iam_app.dataclass.roles import RoleMeta, _all_roles
+from backend.iam_app.handlers import shadow
 from backend.utils.basic import chunk_lists
 
 logger = logging.getLogger("celery")
@@ -148,3 +149,48 @@ def sync_dba_role(
             logger.exception(
                 "[sync_dba_role] revoke failed. user=%s, biz=%s, db_type=%s", username, bk_biz_id, db_type
             )
+
+
+@shared_task
+def try_shadow(method: str, v3_result: Any, args: List, kwargs: Dict) -> None:
+    """
+    影子比对异步任务：在 V3 真实鉴权模式下，后台再跑一次 V4 只打日志，不改变真实返回值。
+    args/kwargs 已经过序列化，这里先反序列化成 ActionMeta/Resource 再调用影子后端。
+    """
+    try:
+        try:
+            shadow_backend = shadow.get_shadow_backend()
+            v4_result = getattr(shadow_backend, method)(
+                *shadow.deserialize_args(args), **shadow.deserialize_kwargs(kwargs)
+            )
+        except Exception as e:  # pylint: disable=broad-except
+            shadow.logger.warning("[iam_v4_shadow] v4 call error method=%s err=%s", method, e)
+            return
+
+        v3_norm = shadow.normalize(method, v3_result)
+        v4_norm = shadow.normalize(method, v4_result)
+        if v3_norm == v4_norm:
+            shadow.logger.debug("[iam_v4_shadow] consistent method=%s result=%s", method, v3_norm)
+        else:
+            # 附带原始(未归一化)结果：即便两版 resource key 无法一一对应，也能据此定位到具体资源
+            shadow.logger.warning(
+                "[iam_v4_shadow] MISMATCH method=%s v3=%s v4=%s raw_v3=%s raw_v4=%s",
+                method,
+                v3_norm,
+                v4_norm,
+                v3_result,
+                v4_result,
+            )
+    except Exception as e:  # pylint: disable=broad-except
+        shadow.logger.warning("[iam_v4_shadow] compare error method=%s err=%s", method, e)
+
+
+def dispatch_shadow(method: str, v3_result: Any, args: Tuple, kwargs: Dict) -> None:
+    """把影子比对投递到 celery 异步跑 V4，绝不抛异常、绝不阻塞主链路。"""
+    try:
+        payload = shadow.try_shadow(method, v3_result, args, kwargs)
+        if payload is None:
+            return
+        try_shadow.delay(*payload)
+    except Exception as e:  # pylint: disable=broad-except
+        shadow.logger.warning("[iam_v4_shadow] dispatch failed: %s", e)
