@@ -97,6 +97,7 @@ export default class Es extends ClusterBase {
     es_enable_disable: boolean;
     es_loadbalance_manage: boolean;
     es_manage: boolean;
+    es_subscribe_monitor: boolean;
     es_view: boolean;
   };
   phase: 'online' | 'offline';

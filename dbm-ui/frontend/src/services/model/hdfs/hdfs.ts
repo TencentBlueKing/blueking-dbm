@@ -98,6 +98,7 @@ export default class Hdfs extends ClusterBase {
     hdfs_edit: boolean;
     hdfs_enable_disable: boolean;
     hdfs_manage: boolean;
+    hdfs_subscribe_monitor: boolean;
     hdfs_view: boolean;
   };
   phase: string;

@@ -83,6 +83,7 @@ export default class SqlServerHaCluster extends ClusterBase {
     sqlserver_enable_disable: boolean;
     sqlserver_manage: boolean;
     sqlserver_priv_manage: boolean;
+    sqlserver_subscribe_monitor: boolean;
     sqlserver_view: boolean;
   };
   phase: string;
