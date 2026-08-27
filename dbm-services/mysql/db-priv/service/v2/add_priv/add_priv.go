@@ -4,6 +4,7 @@ import (
 	"dbm-services/common/go-pubpkg/errno"
 	"dbm-services/mysql/priv-service/service"
 	"dbm-services/mysql/priv-service/service/v2/internal"
+	"encoding/json"
 	"errors"
 	"log/slog"
 	"strings"
@@ -69,7 +70,8 @@ func (c *PrivTaskPara) AddPriv(jsonPara, ticket string) (err error) {
 			Operator: c.Operator,
 			Para:     jsonPara,
 			Time:     time.Now(),
-		})
+		},
+	)
 
 	// 目标实例的 dbmeta 信息
 	targetMetaInfos, err := c.fetchTargetDBMetaInfo()
@@ -95,13 +97,66 @@ func (c *PrivTaskPara) AddPriv(jsonPara, ticket string) (err error) {
 		}
 	}
 
-	var errChan = make(chan error, 1)
-	var reportChan = make(chan map[string][]string, 1)
-	var quitChan = make(chan int, 1)
+	// 账号规则详情和目标实例无关, 提到外面统一取, 避免每个 worker 重复查
+	accountAndRuleDetails, err := c.fetchAccountRulesDetail()
+	if err != nil {
+		slog.Error("add priv", slog.String("err", err.Error()))
+		return err
+	}
+	slog.Info(
+		"add priv",
+		slog.String("accountAndRuleDetails", accountAndRuleDetails.String()),
+	)
+	dbScopePrivs := map[string][]string{}
+	for _, dt := range accountAndRuleDetails.TbAccountRulesList {
+		if dt.GlobalPriv != "" {
+			privs := strings.Split(dt.GlobalPriv, ",")
+			scope := "*"
+			if _, ok := dbScopePrivs[scope]; !ok {
+				dbScopePrivs[scope] = []string{}
+			}
+			dbScopePrivs[scope] = append(dbScopePrivs[scope], privs...)
+		}
+		if dt.DmlDdlPriv != "" {
+			privs := strings.Split(dt.DmlDdlPriv, ",")
+			for _, db := range strings.Split(dt.Dbname, ",") {
+				db = strings.TrimSpace(db)
+				if db == "" {
+					continue
+				}
+
+				var scope string
+				if db == "*" || db == "%" {
+					scope = "*"
+				} else {
+					scope = db
+				}
+
+				if _, ok := dbScopePrivs[scope]; !ok {
+					dbScopePrivs[scope] = []string{}
+				}
+				dbScopePrivs[scope] = append(dbScopePrivs[scope], privs...)
+			}
+		}
+	}
+
+	// 密码是账号级别的, 和目标实例、规则都无关, 只需要解一次
+	var accountPSW service.MultiPsw
+	if err := json.Unmarshal([]byte(accountAndRuleDetails.TbAccount.Psw), &accountPSW); err != nil {
+		slog.Error(
+			"add priv",
+			slog.String("psw", accountAndRuleDetails.TbAccount.Psw),
+			slog.String("err", err.Error()),
+		)
+		return err
+	}
+	longPSW, shortPSW := accountPSW.Psw, accountPSW.OldPsw
+
+	errChan := make(chan error, len(targetMetaInfos))
+	reportChan := make(chan map[string][]string, len(targetMetaInfos))
+	quitChan := make(chan struct{})
 	go func() {
-		defer func() {
-			quitChan <- 1
-		}()
+		defer close(quitChan)
 
 		wg := &sync.WaitGroup{}
 		wg.Add(len(targetMetaInfos))
@@ -126,24 +181,14 @@ func (c *PrivTaskPara) AddPriv(jsonPara, ticket string) (err error) {
 					slog.Any("workingMySQLInstances", workingMySQLInstances),
 				)
 
-				// 获取相关的账号规则详情
-				// 这里面就包含了权限明细, dbname, 密码啥的
-				accountAndRuleDetails, err := c.fetchAccountRulesDetail()
-				if err != nil {
-					slog.Error("add priv", slog.String("err", err.Error()))
-					errChan <- err
-				}
-				slog.Info(
-					"add priv",
-					slog.String("accountAndRuleDetails", accountAndRuleDetails.String()),
-				)
-
 				// err 是调用函数出错, 直接报错返回
 				// reports 是实施授权的报告
-				reports, err := c.addOnMySQL(clientIps, workingMySQLInstances, accountAndRuleDetails)
+				reports, err := c.addOnMySQL(clientIps, workingMySQLInstances, dbScopePrivs, longPSW, shortPSW)
+				//reports, err := c.addOnMySQL(clientIps, workingMySQLInstances, accountAndRuleDetails, &accountPSW)
 				if err != nil {
 					slog.Error("add priv", slog.String("err", err.Error()))
 					errChan <- err
+					return
 				}
 
 				if len(reports) > 0 {
@@ -157,6 +202,7 @@ func (c *PrivTaskPara) AddPriv(jsonPara, ticket string) (err error) {
 
 	var errCollect error
 	reportCollect := make(map[string][]string)
+collectLoop:
 	for {
 		select {
 		case err := <-errChan:
@@ -173,6 +219,26 @@ func (c *PrivTaskPara) AddPriv(jsonPara, ticket string) (err error) {
 			}
 		case <-quitChan:
 			slog.Info("receive quit signal")
+			break collectLoop
+		}
+	}
+
+	// quitChan 关闭时可能还有 err/report 未被消费, 把 chan 里剩余的取完
+	for {
+		select {
+		case err := <-errChan:
+			slog.Error("add priv collect error", slog.String("err", err.Error()))
+			errCollect = errors.Join(errCollect, err)
+		case report := <-reportChan:
+			slog.Info("add priv collect report", slog.Any("report", report))
+			for k, v := range report {
+				if _, ok := reportCollect[k]; !ok {
+					reportCollect[k] = []string{}
+				}
+
+				reportCollect[k] = append(reportCollect[k], v...)
+			}
+		default:
 			if errCollect != nil {
 				slog.Error("add priv", slog.String("err", errCollect.Error()))
 				return errno.GrantPrivilegesFail.Add("\n" + errCollect.Error() + "\n")
