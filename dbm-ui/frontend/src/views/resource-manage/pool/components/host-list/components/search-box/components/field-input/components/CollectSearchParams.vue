@@ -61,15 +61,14 @@
     </span>
     <template v-if="list.length > 0">
       <div class="line" />
-      <BkSelect
-        ref="collectSelectRef"
+      <DbSelect
         v-model="collectName"
         filterable
         :input-search="false"
         :placeholder="t('请选择收藏的条件')"
         style="flex: 1"
         @change="handleCollectChange">
-        <BkOption
+        <DbOption
           v-for="(item, index) in list"
           :key="`${item.name}_${index}`"
           :label="item.name"
@@ -88,8 +87,8 @@
               </div>
             </BkPopConfirm>
           </div>
-        </BkOption>
-      </BkSelect>
+        </DbOption>
+      </DbSelect>
     </template>
   </div>
 </template>
@@ -117,7 +116,6 @@
   const { t } = useI18n();
 
   const formRef = ref();
-  const collectSelectRef = ref();
   const isShowForm = ref(false);
   const isSubmiting = ref(false);
   const collectName = ref('');
@@ -137,9 +135,7 @@
         changeBySelect = false;
         return;
       }
-      collectSelectRef.value?.handleClear({
-        stopPropagation: () => undefined,
-      });
+      collectName.value = '';
     },
   );
 
@@ -225,9 +221,7 @@
   const handleRemove = (payload: { name: string }) => {
     const result = _.filter(list.value, (item) => item.name !== payload.name);
     if (collectName.value === payload.name) {
-      collectSelectRef.value?.handleClear({
-        stopPropagation: () => undefined,
-      });
+      collectName.value = '';
     }
     return upsertProfile({
       label: PRIMARY_KEY,
