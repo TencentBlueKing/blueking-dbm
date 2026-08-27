@@ -42,6 +42,7 @@
             v-model="formData.dblikes"
             allow-create
             :disabled="isEditMode"
+            multiple
             :placeholder="t('请输入目标 DB')" />
         </DbFormItem>
         <DbFormItem
@@ -57,6 +58,7 @@
               v-model="formData.tblikes"
               allow-create
               :disabled="isEditMode"
+              multiple
               :placeholder="t('支持多张表')"
               @blur="handleTblikeBlur"
               @focus="handleTblikeFocus" />
