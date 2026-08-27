@@ -18,7 +18,7 @@ from iam.eval.constants import KEYWORD_BK_IAM_PATH
 
 from backend import env
 from backend.components.iamv4.client import AUTH_BATCH_SIZE, AUTHORIZATION_EXPIRED_DAYS, IAMV4Api
-from backend.iam_app.dataclass.actions import ActionMeta
+from backend.iam_app.dataclass.actions import ActionEnum, ActionMeta
 from backend.iam_app.dataclass.resources import ResourceEnum
 from backend.iam_app.handlers.backends.base import IAMBackend
 from backend.utils.basic import chunk_lists
@@ -207,12 +207,16 @@ class IAMV4Backend(IAMBackend):
         params = {"system_id": "system_id", "permissions": []}
         for action_id in action_ids:
             resource_info = []
+            action = ActionEnum.get_action_by_id(action_id)
+            action_id = action.id
             for resource in resources_list:
-                ancestors = self.get_ancestors(resource)
+                if not resource:
+                    continue
+                ancestors = self.get_ancestors(resource[0])
                 resource_info.append(
                     {
-                        "id": resource.id,
-                        "type": resource.type,
+                        "id": resource[0].id,
+                        "type": resource[0].type,
                         "ancestors": ancestors,
                     }
                 )

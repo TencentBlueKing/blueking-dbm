@@ -32,7 +32,7 @@ MGMT_URL = f"/api/v1/open/rbac/mgmt/systems/{env.BK_IAM_SYSTEM_ID}"
 # 系统共享查询。注：IAM侧路径拼写为 rabc 而非 rbac，需照此调用
 SHARE_MODEL_URL = f"/api/v1/open/rabc/share/model/systems/{env.BK_IAM_SYSTEM_ID}"
 # IAM SAAS URL
-SAAS_URL = "/api/bkiam/prod/api/v1/open/application"
+SAAS_URL = "/api/v1/open/application"
 
 # 分页拉取的每页条数，list_role 协议明确上限为100，其余列表接口未给上限，统一按100取
 LIST_PAGE_SIZE = 100
