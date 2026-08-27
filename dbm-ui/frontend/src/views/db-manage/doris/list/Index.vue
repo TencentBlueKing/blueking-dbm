@@ -106,7 +106,7 @@
                   </AuthButton>
                 </OperationBtnStatusTips>
               </div>
-              <!-- <div v-db-console="'doris.clusterManage.upgradeVersion'">
+              <div v-db-console="'doris.clusterManage.upgradeVersion'">
                 <OperationBtnStatusTips :data="data">
                   <AuthButton
                     action-id="doris_manage"
@@ -118,7 +118,7 @@
                     {{ t('版本升级') }}
                   </AuthButton>
                 </OperationBtnStatusTips>
-              </div> -->
+              </div>
             </template>
             <div
               v-if="data.isOnline"
@@ -364,11 +364,11 @@
     operationData.value = data;
   };
 
-  // // 版本升级
-  // const handleShowUpgradeVersion = (data: DorisModel) => {
-  //   isShowUpgradeVersion.value = true;
-  //   operationData.value = data;
-  // };
+  // 版本升级
+  const handleShowUpgradeVersion = (data: DorisModel) => {
+    isShowUpgradeVersion.value = true;
+    operationData.value = data;
+  };
 
   const handleShowPassword = (clusterData: DorisModel) => {
     operationData.value = clusterData;
