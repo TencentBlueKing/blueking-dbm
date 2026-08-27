@@ -216,7 +216,7 @@
 
   defineExpose<Exposes>({
     validate() {
-      return tableRef.value?.validate()?.then((res) => res) ?? Promise.resolve(false);
+      return tableRef.value!.validate();
     },
   });
 </script>

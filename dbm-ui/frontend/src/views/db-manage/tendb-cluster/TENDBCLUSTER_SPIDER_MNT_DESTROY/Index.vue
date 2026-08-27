@@ -200,9 +200,8 @@
     is_safe: boolean;
   }>(TicketTypes.TENDBCLUSTER_SPIDER_MNT_DESTROY);
 
-  const handleSubmit = async () => {
-    const valid = await tableRef.value!.validate();
-    if (valid) {
+  const handleSubmit = () => {
+    tableRef.value!.validate().then(() => {
       createTicketRun({
         details: {
           infos: Object.values(sameClusterIdsRowsMap).map((rows) => ({
@@ -220,7 +219,7 @@
         },
         remark: formData.payload.remark,
       });
-    }
+    });
   };
 
   const handleReset = () => {

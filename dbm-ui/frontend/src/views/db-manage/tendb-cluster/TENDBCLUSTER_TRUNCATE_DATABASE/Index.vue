@@ -251,37 +251,35 @@
     }[];
   }>(TicketTypes.TENDBCLUSTER_TRUNCATE_DATABASE);
 
-  const handleSubmit = async () => {
-    const result = await tableRef.value!.validate();
-    if (!result) {
-      return;
-    }
-    const clearMode: {
-      days?: number;
-      mode: string;
-    } = {
-      mode: 'manual',
-    };
-    if (formData.clear_mode !== 'manual') {
-      Object.assign(clearMode, {
-        days: formData.clear_mode,
-        mode: 'timer',
+  const handleSubmit = () => {
+    tableRef.value!.validate().then(() => {
+      const clearMode: {
+        days?: number;
+        mode: string;
+      } = {
+        mode: 'manual',
+      };
+      if (formData.clear_mode !== 'manual') {
+        Object.assign(clearMode, {
+          days: formData.clear_mode,
+          mode: 'timer',
+        });
+      }
+      createTicketRun({
+        details: {
+          clear_mode: clearMode,
+          infos: formData.tableData.map((item) => ({
+            cluster_id: item.cluster.id,
+            db_patterns: item.db_patterns,
+            force: formData.force,
+            ignore_dbs: item.ignore_dbs,
+            ignore_tables: item.ignore_tables,
+            table_patterns: item.table_patterns,
+            truncate_data_type: item.truncate_data_type,
+          })),
+        },
+        ...formData.payload,
       });
-    }
-    createTicketRun({
-      details: {
-        clear_mode: clearMode,
-        infos: formData.tableData.map((item) => ({
-          cluster_id: item.cluster.id,
-          db_patterns: item.db_patterns,
-          force: formData.force,
-          ignore_dbs: item.ignore_dbs,
-          ignore_tables: item.ignore_tables,
-          table_patterns: item.table_patterns,
-          truncate_data_type: item.truncate_data_type,
-        })),
-      },
-      ...formData.payload,
     });
   };
 

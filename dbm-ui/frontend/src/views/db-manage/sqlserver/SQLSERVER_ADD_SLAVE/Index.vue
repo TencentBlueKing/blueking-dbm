@@ -195,26 +195,24 @@
     ip_source: 'resource_pool';
   }>(TicketTypes.SQLSERVER_ADD_SLAVE);
 
-  const handleSubmit = async () => {
-    const result = await tableRef.value!.validate();
-    if (!result) {
-      return;
-    }
-    createTicketRun({
-      details: {
-        infos: formData.tableData.map((item) => ({
-          cluster_ids: [item.cluster.id],
-          resource_spec: {
-            new_slave: {
-              count: 1,
-              hosts: [item.slave],
-              spec_id: 0,
+  const handleSubmit = () => {
+    tableRef.value!.validate().then(() => {
+      createTicketRun({
+        details: {
+          infos: formData.tableData.map((item) => ({
+            cluster_ids: [item.cluster.id],
+            resource_spec: {
+              new_slave: {
+                count: 1,
+                hosts: [item.slave],
+                spec_id: 0,
+              },
             },
-          },
-        })),
-        ip_source: 'resource_pool',
-      },
-      ...formData.payload,
+          })),
+          ip_source: 'resource_pool',
+        },
+        ...formData.payload,
+      });
     });
   };
 

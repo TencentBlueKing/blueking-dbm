@@ -358,31 +358,29 @@
     }, {});
   };
 
-  const handleSubmit = async () => {
-    const result = await tableRef.value!.validate();
-    if (!result) {
-      return;
-    }
-    const sameClusters = _.groupBy(formData.tableData, (item) => item.host.master_domain);
+  const handleSubmit = () => {
+    tableRef.value!.validate().then(() => {
+      const sameClusters = _.groupBy(formData.tableData, (item) => item.host.master_domain);
 
-    const infos = Object.values(sameClusters).map((sameRows) => {
-      const info = {
-        bk_cloud_id: sameRows[0].host.bk_cloud_id,
-        cluster_ids: sameRows[0].host.cluster_ids,
-        switch_role: sameRows[0].host.instance_role,
-        ...getNodeInfo(sameRows, sameRows[0].host.instance_role),
-        resource_spec: resourceSpecInfo(sameRows, sameRows[0].host.instance_role),
-      };
+      const infos = Object.values(sameClusters).map((sameRows) => {
+        const info = {
+          bk_cloud_id: sameRows[0].host.bk_cloud_id,
+          cluster_ids: sameRows[0].host.cluster_ids,
+          switch_role: sameRows[0].host.instance_role,
+          ...getNodeInfo(sameRows, sameRows[0].host.instance_role),
+          resource_spec: resourceSpecInfo(sameRows, sameRows[0].host.instance_role),
+        };
 
-      return info;
-    });
+        return info;
+      });
 
-    createTicketRun({
-      details: {
-        infos,
-        ip_source: 'resource_pool',
-      },
-      ...formData.payload,
+      createTicketRun({
+        details: {
+          infos,
+          ip_source: 'resource_pool',
+        },
+        ...formData.payload,
+      });
     });
   };
 

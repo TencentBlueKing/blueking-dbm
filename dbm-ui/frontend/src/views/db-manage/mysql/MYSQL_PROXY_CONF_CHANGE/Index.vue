@@ -245,39 +245,37 @@
     });
   };
 
-  const handleSubmit = async () => {
-    const result = await tableRef.value!.validate();
-    if (!result) {
-      return;
-    }
-    const generateProxies = (proxy: TendbhaModel['proxies'][0]) => ({
-      bk_biz_id: proxy.bk_biz_id,
-      bk_cloud_id: proxy.bk_cloud_id,
-      bk_host_id: proxy.bk_host_id,
-      ip: proxy.ip,
-      port: proxy.port,
-      spec: proxy.spec_config,
-    });
-    createTicketRun({
-      details: {
-        infos: formData.tableData.map((item) => ({
-          cluster_ids: [item.cluster.id, ...item.cluster.related_clusters.map((item) => item.id)],
-          old_nodes: {
-            proxy: item.cluster.proxies!.map((proxy) => generateProxies(proxy)),
-          },
-          origin_proxies: item.cluster.proxies!.map((proxy) => generateProxies(proxy)),
-          resource_spec: {
-            target_proxies: {
-              count: item.cluster.proxies!.length,
-              label_names: item.labels.map((item) => item.value),
-              labels: item.labels.map((item) => String(item.id)),
-              spec_id: item.specId,
+  const handleSubmit = () => {
+    tableRef.value!.validate().then(() => {
+      const generateProxies = (proxy: TendbhaModel['proxies'][0]) => ({
+        bk_biz_id: proxy.bk_biz_id,
+        bk_cloud_id: proxy.bk_cloud_id,
+        bk_host_id: proxy.bk_host_id,
+        ip: proxy.ip,
+        port: proxy.port,
+        spec: proxy.spec_config,
+      });
+      createTicketRun({
+        details: {
+          infos: formData.tableData.map((item) => ({
+            cluster_ids: [item.cluster.id, ...item.cluster.related_clusters.map((item) => item.id)],
+            old_nodes: {
+              proxy: item.cluster.proxies!.map((proxy) => generateProxies(proxy)),
             },
-          },
-        })),
-        ip_source: 'resource_pool',
-      },
-      ...formData.payload,
+            origin_proxies: item.cluster.proxies!.map((proxy) => generateProxies(proxy)),
+            resource_spec: {
+              target_proxies: {
+                count: item.cluster.proxies!.length,
+                label_names: item.labels.map((item) => item.value),
+                labels: item.labels.map((item) => String(item.id)),
+                spec_id: item.specId,
+              },
+            },
+          })),
+          ip_source: 'resource_pool',
+        },
+        ...formData.payload,
+      });
     });
   };
 

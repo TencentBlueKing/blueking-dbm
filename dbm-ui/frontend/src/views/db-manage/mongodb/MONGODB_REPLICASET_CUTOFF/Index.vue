@@ -387,18 +387,16 @@
     return infos;
   };
 
-  const handleSubmit = async () => {
-    const result = await tableRef.value!.validate();
-    if (!result) {
-      return;
-    }
-    createTicketRun({
-      details: {
-        cluster_type: ClusterTypes.MONGO_REPLICA_SET,
-        infos: generateRequestParam(),
-        ip_source: 'resource_pool',
-      },
-      ...formData.payload,
+  const handleSubmit = () => {
+    tableRef.value!.validate().then(() => {
+      createTicketRun({
+        details: {
+          cluster_type: ClusterTypes.MONGO_REPLICA_SET,
+          infos: generateRequestParam(),
+          ip_source: 'resource_pool',
+        },
+        ...formData.payload,
+      });
     });
   };
 

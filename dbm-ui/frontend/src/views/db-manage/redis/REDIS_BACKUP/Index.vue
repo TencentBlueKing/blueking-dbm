@@ -259,8 +259,7 @@
 
   const handleSubmit = async () => {
     await formRef.value!.validate();
-    const validateResult = await editableTableRef.value!.validate();
-    if (validateResult) {
+    editableTableRef.value!.validate().then(() => {
       createTicketRun({
         details: {
           rules: formData.tableData.map((item) => ({
@@ -272,7 +271,7 @@
         },
         ...formData.payload,
       });
-    }
+    });
   };
 
   const handleReset = () => {
