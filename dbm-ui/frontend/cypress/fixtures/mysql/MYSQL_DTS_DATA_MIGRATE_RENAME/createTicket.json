@@ -1,0 +1,46 @@
+{
+  "bk_biz_id": 2005000002,
+  "ticket_type": "MYSQL_DTS_DATA_MIGRATE_RENAME",
+  "remark": "rename 资源池联调",
+  "ignore_duplication": true,
+  "details": {
+    "infos": [
+      {
+        "resource_spec": {
+          // 资源规格
+          "master": {
+            "spec_id": 464, //规格id
+            "count": 1, //数量（默认1）
+            "label": [] //资源标签：从资源池精确匹配目标机器，如 ['dts-pool']
+          },
+          "worker": {
+            "spec_id": 464,
+            "count": 1,
+            "label": []
+          }
+        },
+        "dts_resource": {
+          "deploy": {}
+        },
+        "migrate": {
+          "topology": "one_to_one",
+          "one_to_one": {
+            "source": {
+              "cluster_id": 1000293,
+              "sync_scope": {
+                "table_routes": [
+                  {
+                    "source_db": "test_db", //源db
+                    "target_db": "test_db" //源db
+                  }
+                ]
+              }
+            },
+            "target": { "cluster_id": 1000294 }
+          }
+        }
+      }
+    ],
+    "task": { "on_duplicate": "error" }
+  }
+}

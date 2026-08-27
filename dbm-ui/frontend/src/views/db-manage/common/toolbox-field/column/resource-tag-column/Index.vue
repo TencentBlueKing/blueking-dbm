@@ -138,7 +138,10 @@
       message: t('资源标签不能为空'),
       trigger: 'change',
       validator: () => {
-        modelValue.value = ids.value.filter((id) => id !== DEFAULT_TAG_ID).map((item) => tagMap.value[item]);
+        // ids 未回填时（批量录入后标签列表未就绪）保留 modelValue，待 tagList 就绪后回填
+        if (ids.value.length > 0 || modelValue.value.length === 0) {
+          modelValue.value = ids.value.filter((id) => id !== DEFAULT_TAG_ID).map((item) => tagMap.value[item]);
+        }
         return Boolean(ids.value.length);
       },
     },
@@ -239,7 +242,10 @@
         ];
         ids.value = [DEFAULT_TAG_ID];
         tagTheme.value = 'success';
+        return;
       }
+      // 标签列表就绪后回填 ids（批量录入重挂载时 modelValue 已有值但 tagMap 未就绪）
+      updateModel(modelValue.value);
     },
     {
       immediate: true,
