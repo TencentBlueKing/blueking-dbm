@@ -617,6 +617,8 @@ def get_logging_config(log_dir: str, log_level: str = "ERROR") -> Dict:
             "flow": {"level": "DEBUG", "handlers": ["flow"], "propagate": False},
             # shell窗口的调试信息是parso库输出的，屏蔽DEBUG类型日志
             "parso": {"level": "INFO", "handlers": ["flow"], "propagate": False},
+            # IAM V4 影子校验日志：独立 level，便于单独控制（只想看不一致时调成 WARNING）
+            "iam_v4_shadow": {"level": "INFO", "handlers": ["console"], "propagate": False},
         },
     }
 
