@@ -1,21 +1,6 @@
 <template>
   <template v-if="groups.length">
-    <template v-if="all">
-      <div
-        v-for="group in groups"
-        :key="group.machineType"
-        class="machine-spec-cell-group">
-        <div
-          v-for="(spec, specIndex) in group.specs"
-          :key="specIndex"
-          class="machine-spec-cell-line">
-          <span class="machine-spec-cell-role">{{ group.machineType }}</span>
-          <span>：</span>
-          <MachineSpecItem :spec="spec" />
-        </div>
-      </div>
-    </template>
-    <template v-else>
+    <template v-if="mode === 'list'">
       <div
         v-for="group in groups"
         :key="group.machineType"
@@ -28,21 +13,34 @@
           ext-cls="machine-spec-cell-popover-wrapper"
           theme="light"
           trigger="click">
-          <span class="machine-spec-cell-more">({{ t('等 n 个', [group.specs.length]) }})</span>
+          <span class="machine-spec-cell-more">({{ t('共 n 个', [group.specs.length]) }})</span>
           <template #content>
             <div class="machine-spec-cell-popover">
               <div class="popover-header">{{ t('共 n 个', [group.specs.length]) }}</div>
               <div
                 v-for="(spec, specIndex) in group.specs"
                 :key="specIndex"
-                class="popover-line">
-                <span class="popover-role">{{ group.machineType }}</span>
-                <span class="popover-colon">：</span>
+                class="machine-spec-cell-tooltip-line">
                 <MachineSpecItem :spec="spec" />
               </div>
             </div>
           </template>
         </BkPopover>
+      </div>
+    </template>
+    <template v-else>
+      <div
+        v-for="group in groups"
+        :key="group.machineType"
+        class="machine-spec-cell-line">
+        <span class="machine-spec-cell-role">{{ group.machineType }}</span>
+        <span>：</span>
+        <template
+          v-for="(spec, specIndex) in group.specs"
+          :key="specIndex">
+          <span v-if="specIndex > 0">，</span>
+          <MachineSpecItem :spec="spec" />
+        </template>
       </div>
     </template>
   </template>
@@ -59,13 +57,15 @@
 
   import MachineSpecItem from '../machine-spec-item/Index.vue';
 
+  type SpecCellMode = 'list' | 'detail';
+
   interface Props {
-    all?: boolean;
+    mode?: SpecCellMode;
     specs: MachineSpec[];
   }
 
   const props = withDefaults(defineProps<Props>(), {
-    all: false,
+    mode: 'list',
   });
 
   const { t } = useI18n();
@@ -89,26 +89,22 @@
   }
 
   .machine-spec-cell-popover-wrapper {
-    .popover-line {
-      line-height: 22px;
+    .machine-spec-cell-tooltip-line {
+      line-height: 20px;
     }
 
-    .popover-role {
-      color: #313238;
-    }
-  }
+    .machine-spec-cell-popover {
+      .popover-header {
+        padding-bottom: 4px;
+        font-size: 14px;
+        font-weight: bolder;
+        color: #313238;
+        // border-bottom: 1px solid #dcdee5;
+      }
 
-  .machine-spec-cell-popover {
-    .popover-header {
-      padding-bottom: 4px;
-      font-size: 14px;
-      font-weight: bolder;
-      color: #313238;
-      // border-bottom: 1px solid #dcdee5;
+      // .popover-line {
+      //   padding-top: 6px;
+      // }
     }
-
-    // .popover-line {
-    //   padding-top: 6px;
-    // }
   }
 </style>
