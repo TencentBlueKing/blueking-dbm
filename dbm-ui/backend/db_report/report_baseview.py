@@ -12,6 +12,8 @@ from collections import defaultdict
 from typing import Dict
 
 from django.db.models import Count
+from django.utils import timezone
+from django.utils.dateparse import parse_datetime
 from django.utils.translation import gettext_lazy as _
 from rest_framework import status
 from rest_framework.decorators import action
@@ -62,20 +64,46 @@ class ReportBaseViewSet(AuditedModelViewSet):
         exclude_bk_biz_ids = SystemSettings.get_setting_value(SystemSettingsEnum.DB_REPORT_EXCLUDE_BIZS, default=[])
         return queryset.exclude(bk_biz_id__in=exclude_bk_biz_ids)
 
-    def _get_time_filtered_queryset(self):
-        """
-        获取经过 time_range、bk_biz_id 和 manage 过滤的查询集，不受其他搜索/过滤条件影响
-        """
-        queryset = self.get_queryset()
+    @staticmethod
+    def _to_aware_datetime(value):
+        """URL 上的时间是本地时间字符串，补齐时区后再查询，与 django-filter 的解析口径保持一致"""
+        parsed = parse_datetime(value)
+        if parsed is None:
+            return value
+        if timezone.is_naive(parsed):
+            parsed = timezone.make_aware(parsed, timezone.get_current_timezone())
+        return parsed
 
-        # 应用 time_range 过滤
+    def _filter_time_range(self, queryset):
+        """
+        时间过滤：优先使用精确区间 create_at__gte/create_at__lte(演练报告等页面的日期选择器)，
+        都没传时才回退到 time_range(同样没传则默认近24小时)，保证统计与列表的时间范围一致
+        """
+        create_at_gte = self.request.query_params.get("create_at__gte")
+        create_at_lte = self.request.query_params.get("create_at__lte")
+        if create_at_gte or create_at_lte:
+            if create_at_gte:
+                queryset = queryset.filter(create_at__gte=self._to_aware_datetime(create_at_gte))
+            if create_at_lte:
+                queryset = queryset.filter(create_at__lte=self._to_aware_datetime(create_at_lte))
+            return queryset
+
         time_range = self.request.query_params.get("time_range", "")
         filter_instance = ReportListFilter(
             data=self.request.query_params,
             queryset=queryset,
             request=self.request,
         )
-        queryset = filter_instance.filter_time_range(queryset, "time_range", time_range)
+        return filter_instance.filter_time_range(queryset, "time_range", time_range)
+
+    def _get_time_filtered_queryset(self):
+        """
+        获取经过时间范围、bk_biz_id 和 manage 过滤的查询集，不受其他搜索/过滤条件影响
+        """
+        queryset = self.get_queryset()
+
+        # 应用时间过滤
+        queryset = self._filter_time_range(queryset)
 
         # 应用 bk_biz_id 过滤
         bk_biz_id = self.request.query_params.get("bk_biz_id")
