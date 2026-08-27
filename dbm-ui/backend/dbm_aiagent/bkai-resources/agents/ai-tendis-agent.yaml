@@ -1,0 +1,90 @@
+# AIDEV Agent CLI Manifest v1
+apiVersion: bkai.tencent.com/aidev-agent/v1
+kind: Agent
+
+metadata:
+  code: ai-tendis-agent
+  name: DBM-Redis智能助手
+  description: 一个专业的REDIS AI助手，协助人类DBA完成日常运维、自动化任务执行、问题诊断和提供最佳实践建议。
+
+spec:
+  user_scope: public
+  prompt:
+    type: collection
+    code: dbm_redis_role
+
+  model:
+    llm_code: aidev-chat-auto
+    fallback_model: null
+    temperature: 0.7
+    context_window: 16
+    llm_token_limit: 28000
+    max_tokens: 4096
+    tool_output_compress_thrd: 4096
+
+  tools: []
+
+  conversation_settings:
+    opening_remark: ""
+    predefined_questions: []
+    enable_chat_session: true
+    enable_word_selection_popup: true
+    commands:
+      - id: query_redis_host_info
+        name: IP快捷查询
+        icon: null
+        alias: null
+        content: |
+          查询这批{{ ips }}机器的所属业务ID、集群、角色、机型、园区信息，并看下所属集群的 Proxy层的QPS、Proxy层连接数情况
+        components:
+          - type: textarea
+            key: ips
+            name: 机器IP列表
+            placeholder: 请输入
+            default: 请输入
+            rows: 4
+            required: true
+            hide: false
+        enable_fill_back: false
+        fill_back_component_key: null
+        fill_regx: null
+        support_upload:
+          vision: false
+          file: false
+
+      - id: redis_cmr_cutoff
+        name: 集群架构-整机替换
+        icon: null
+        alias: null
+        content: |
+          对这批机器{{ ips }} 按照集群维度发起整机替换，要求
+          1. 一个集群只能提交一个单据，且单据里的角色只能有一种（redis_master、redis_slave、不能在同一个单据）
+          2. 提交的时候查下这个集群的状态（包括所属集群Proxy层的 QPS情况、CPU使用率）
+          3. 提交完成后，统一查看下这些单据的状态
+
+          注意这种方式只适合集群架构（必须有twemproxy/predixy的集群）
+        components:
+          - type: textarea
+            key: ips
+            name: 主机IP列表
+            placeholder: 请输入
+            default: 请输入
+            rows: 4
+            required: false
+            hide: false
+        enable_fill_back: false
+        fill_back_component_key: null
+        fill_regx: null
+        support_upload:
+          vision: false
+          file: false
+
+  subagents: []
+
+  # 仓库内保持空列表；Job 中由 docker/render_agent_configs.py 按 config.py 的
+  # target_app_codes 自动填充为完整 APIGW MCP code: {gateway}-{stage}-{name}
+  mcps: []
+
+  skills:
+    - code: dbm-redis-hotkey-diagnose
+    - code: dbm-redis-latency-diagnose
