@@ -25,7 +25,7 @@
         @keydown="handleKeydown"
         @keyup="handleKeyup" />
       <div
-        v-if="isMultipleLintEdit || isSingleEdit"
+        v-if="isMultipleLineEdit || isSingleEdit"
         style="
           position: absolute;
           right: 0;
@@ -40,8 +40,8 @@
           pointer-events: none;
           background: #fafbfd;
         ">
-        <span v-if="isMultipleLintEdit">支持输入多个值 ”Shift + Enter“ 换行，按”Enter“完成搜索</span>
-        <span v-if="isSingleEdit">”Shift + Enter“ 换行，按”Enter“完成搜索</span>
+        <span v-if="isMultipleLineEdit">{{ t('支持输入多个值 ”Shift + Enter“ 换行，按”Enter“完成搜索') }}</span>
+        <span v-if="isSingleEdit">{{ t('”Shift + Enter“ 换行，按”Enter“完成搜索') }}</span>
       </div>
     </div>
   </div>
@@ -69,7 +69,8 @@
 </template>
 <script setup lang="ts">
   import _ from 'lodash';
-  import { onMounted, ref, shallowRef, useTemplateRef } from 'vue';
+  import { type CSSProperties, onMounted, ref, shallowRef, type StyleValue, useTemplateRef } from 'vue';
+  import { useI18n } from 'vue-i18n';
 
   import useMenuPop, { update as updateMenuPop } from '@components/db-quick-search/bk-quick-search/hooks/useMenuPop';
   import useOutSideClick from '@components/db-quick-search/bk-quick-search/hooks/useOutSideClick';
@@ -111,6 +112,8 @@
     values: [],
   });
 
+  const { t } = useI18n();
+
   const context = inject(BK_QUICK_SEARCH);
 
   const rootRef = useTemplateRef<HTMLElement>('root');
@@ -125,15 +128,15 @@
 
   const currentPlaceholder = computed(() => {
     if (!currentDataConfig.value) {
-      return props.placeholder;
+      return props.placeholder || t('请选择搜索项');
     }
     if (currentDataConfig.value.placeholder) {
       return currentDataConfig.value.placeholder;
     }
     if (currentDataConfig.value.list || _.isFunction(currentDataConfig.value.remoteMethod)) {
-      return '请选择';
+      return t('请选择');
     }
-    return '请输入';
+    return t('请输入');
   });
   const isNeedShowValueMenu = computed(() => {
     if (!currentDataConfig.value || props.data.length < 1) {
@@ -141,18 +144,18 @@
     }
     return calcNeedShowValueMenu(currentDataConfig.value);
   });
-  const isMultipleLintEdit = computed(() => currentDataConfig.value?.type === comType.MULTIPLE_INPUT);
+  const isMultipleLineEdit = computed(() => currentDataConfig.value?.type === comType.MULTIPLE_INPUT);
   const isSingleEdit = computed(() => currentDataConfig.value?.type === comType.INPUT);
-  const inputValueBoxStyles = computed<any>(() => {
-    const baseStyles = {
-      'min-height': '22px',
+  const inputValueBoxStyles = computed<StyleValue>(() => {
+    const baseStyles: CSSProperties = {
+      minHeight: '22px',
       visibility: 'hidden',
-      'white-space': 'pre-wrap',
-      'word-break': 'break-all',
+      whiteSpace: 'pre-wrap',
+      wordBreak: 'break-all',
     };
     if (currentDataConfig.value) {
       Object.assign(baseStyles, {
-        'padding-bottom': isNeedShowValueMenu.value ? 0 : `22px`,
+        paddingBottom: isNeedShowValueMenu.value ? 0 : `22px`,
       });
     }
 
@@ -252,7 +255,7 @@
   };
 
   const handleKeydown = (event: KeyboardEvent) => {
-    // 手动输入模式支持 Shfit + Enter 换行
+    // 手动输入模式支持 Shift + Enter 换行
     if (
       ['Enter', 'NumpadEnter'].includes(event.code) &&
       event.shiftKey &&
@@ -279,7 +282,7 @@
         // 重置任何输入
         inputValue.value = '';
       }
-      // 手动输入模式支持 Shfit + Enter 换行，默认换行行为
+      // 手动输入模式支持 Shift + Enter 换行，默认换行行为
       if (['Enter', 'NumpadEnter'].includes(event.code) && event.shiftKey) {
         return true;
       }
@@ -303,9 +306,9 @@
 
         // value 使用 input 的值
         let errorMessage = '';
-        if ((isMultipleLintEdit || isSingleEdit) && _.isFunction(currentDataConfig.value.validator)) {
+        if ((isMultipleLineEdit.value || isSingleEdit.value) && _.isFunction(currentDataConfig.value.validator)) {
           let result: boolean | string = true;
-          if (isMultipleLintEdit) {
+          if (isMultipleLineEdit.value) {
             const valueList = context!.pasteParseMethod(inputValue.value);
             for (const valueItem of valueList) {
               const valueItemResult = currentDataConfig.value!.validator!(valueItem);
@@ -314,14 +317,14 @@
                 break;
               }
             }
-          } else if (isSingleEdit) {
+          } else if (isSingleEdit.value) {
             result = currentDataConfig.value.validator(inputValue.value);
           }
 
           if (result && _.isString(result)) {
             errorMessage = result;
           } else {
-            errorMessage = result ? '' : '格式不正确';
+            errorMessage = result ? '' : t('格式不正确');
           }
           emits('error', errorMessage);
         }

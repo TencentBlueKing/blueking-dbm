@@ -31,8 +31,8 @@
             v-for="item in list"
             :key="item.value"
             class="value-item"
-            :class="{ active: item.value === expanedParent?.value }"
-            @click="() => handleExpaneParent(item)">
+            :class="{ active: item.value === expandedParent?.value }"
+            @click="() => handleExpandParent(item)">
             <Checkbox
               v-bind="calcParentCheckStatus(item)"
               @change="(value) => handleParentChange(value, item)" />
@@ -40,10 +40,10 @@
           </div>
         </div>
         <div
-          :key="expanedParent?.value"
+          :key="expandedParent?.value"
           class="children-wrapper">
           <div
-            v-for="item in expanedParent?.children"
+            v-for="item in expandedParent?.children"
             :key="item.value"
             class="value-item"
             @click="() => handleChange(item)">
@@ -58,7 +58,7 @@
         v-if="isSearching && renderSearchList.length < 1 && !isRemoteListLoading"
         class="bk-quick-search-value-panel-filter-empty">
         <BkException
-          description="搜索为空"
+          :description="t('搜索为空')"
           scene="part"
           type="search-empty" />
       </div>
@@ -69,6 +69,7 @@
   import _ from 'lodash';
   import { Checkbox } from 'tdesign-vue-next';
   import { ref, useTemplateRef } from 'vue';
+  import { useI18n } from 'vue-i18n';
 
   import type { Props as ContextProps } from '@components/db-quick-search/bk-quick-search/Index.vue';
 
@@ -104,10 +105,12 @@
     default: () => [],
   });
 
+  const { t } = useI18n();
+
   const { filterKey, list, loading: isRemoteListLoading } = useMenuList<IListItem>(props.config);
 
   const layoutRef = useTemplateRef('layout');
-  const expanedParent = ref<IListItem>();
+  const expandedParent = ref<IListItem>();
   const localValueIdMap = shallowRef<Record<string, IResult>>({});
   const contentMinWidth = ref(0);
 
@@ -176,7 +179,7 @@
   };
 
   const getResultValue = (data: IResult) => ({
-    label: props.showAllLevels ? `${expanedParent.value?.label}/${data.label}` : data.label,
+    label: props.showAllLevels ? `${expandedParent.value?.label}/${data.label}` : data.label,
     value: data.value,
   });
 
@@ -211,17 +214,17 @@
       }
 
       if (modelValue.value.length < 1) {
-        handleExpaneParent(list.value[0]);
+        handleExpandParent(list.value[0]);
       } else {
         const currentValue = modelValue.value[0]!.value;
         for (const parentItem of list.value) {
           if (props.checkStrictly && parentItem.value === currentValue) {
-            handleExpaneParent(parentItem);
+            handleExpandParent(parentItem);
             break;
           }
           for (const childItem of parentItem.children) {
             if (childItem.value === currentValue) {
-              handleExpaneParent(parentItem);
+              handleExpandParent(parentItem);
               break;
             }
           }
@@ -234,8 +237,8 @@
     },
   );
 
-  const handleExpaneParent = (item: IListItem) => {
-    expanedParent.value = item;
+  const handleExpandParent = (item: IListItem) => {
+    expandedParent.value = item;
     calcPanelWidth();
   };
 
