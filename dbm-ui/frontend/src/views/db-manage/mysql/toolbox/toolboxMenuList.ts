@@ -118,6 +118,18 @@ export const toolboxMenuList: ToolboxTreeNode[] = [
         name: t('DB 数据克隆'),
       },
       {
+        dbConsoleValue: 'mysql.toolbox.dtsDataMigrate',
+        desc: t('按库表将数据从源集群迁到目标集群，目标库与源库同名'),
+        id: TicketTypes.MYSQL_DTS_DATA_MIGRATE,
+        name: t('MySQL DTS 同名迁移'),
+      },
+      {
+        dbConsoleValue: 'mysql.toolbox.dtsDataMigrate',
+        desc: t('按整库指定目标库名，将数据从源集群迁到目标集群'),
+        id: TicketTypes.MYSQL_DTS_DATA_MIGRATE_RENAME,
+        name: t('MySQL DTS 库改名迁移'),
+      },
+      {
         dbConsoleValue: 'mysql.toolbox.mergeDiskSpace',
         desc: t('合并前的空间占用评估'),
         id: 'MySQLMergeDiskSpace',
