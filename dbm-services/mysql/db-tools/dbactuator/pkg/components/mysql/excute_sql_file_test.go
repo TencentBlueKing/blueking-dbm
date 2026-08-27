@@ -11,6 +11,7 @@
 package mysql
 
 import (
+	"encoding/json"
 	"strings"
 	"testing"
 )
@@ -106,5 +107,33 @@ func TestCheckSQLFileNameLengthViaComp(t *testing.T) {
 	err := comp.CheckSQLFileNameLength()
 	if err == nil {
 		t.Fatal("expected error for overlong sql file name")
+	}
+}
+
+func TestSQLFileExecResultJSONIncludesDBName(t *testing.T) {
+	t.Parallel()
+	r := SQLFileExecResult{
+		Port:     3306,
+		SQLFile:  "a.sql",
+		DBName:   "db1",
+		Duration: 3,
+		Success:  true,
+	}
+	b, err := json.Marshal(r)
+	if err != nil {
+		t.Fatalf("marshal failed: %v", err)
+	}
+	got := string(b)
+	if !strings.Contains(got, `"sql_file":"a.sql"`) {
+		t.Fatalf("json should contain sql_file, got %s", got)
+	}
+	if !strings.Contains(got, `"db_name":"db1"`) {
+		t.Fatalf("json should contain db_name, got %s", got)
+	}
+	if strings.Contains(got, `"sql_file_path"`) {
+		t.Fatalf("json should not contain local sql_file_path, got %s", got)
+	}
+	if strings.Contains(got, `"Port"`) || strings.Contains(got, `"port"`) {
+		t.Fatalf("Port is json:\"-\" and should be omitted, got %s", got)
 	}
 }

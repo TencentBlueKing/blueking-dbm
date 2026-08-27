@@ -16,6 +16,7 @@ from backend.flow.utils.bk_job_record import (
     try_resolve_cluster_id,
     try_resolve_step_instance_id,
 )
+from backend.flow.utils.sql_file_exec_duration_recorder import record_sql_file_exec_durations
 
 from .exec_actuator_script import ExecuteDBActuatorScriptService
 
@@ -26,7 +27,8 @@ ACTUATOR_BK_JOB_RECORD_COMPONENT_CODE = "mysql_db_actuator_execute_with_bk_job_r
 class ExecuteDBActuatorScriptWithBkJobRecordService(ExecuteDBActuatorScriptService):
     """
     与父类行为一致，在成功调度 fast_execute_script 后将 job_instance_id
-    等写入 flow_bk_job_instance。落库失败不阻断 Job（仅打日志，仍 return True）。
+    等写入 flow_bk_job_instance。作业成功后再解析 SQL 文件执行耗时入库。
+    落库失败不阻断 Job（仅打日志，仍 return True）。
     """
 
     def _execute(self, data, parent_data) -> bool:
@@ -69,6 +71,18 @@ class ExecuteDBActuatorScriptWithBkJobRecordService(ExecuteDBActuatorScriptServi
             )
         except Exception as e:
             self.log_exception(_("落库蓝鲸作业关联失败(已忽略,不影响任务执行): {}").format(str(e)))
+        return True
+
+    def _schedule(self, data, parent_data, callback_data=None) -> bool:
+        ok = super()._schedule(data, parent_data, callback_data)
+        if not ok:
+            return False
+        if data.get_one_of_outputs("job_execute") is not True:
+            return True
+        try:
+            record_sql_file_exec_durations(data=data)
+        except Exception as exc:
+            self.log_exception(_("记录SQL文件执行耗时失败(已忽略,不影响任务执行): {}").format(str(exc)))
         return True
 
 
