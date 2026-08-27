@@ -9,7 +9,7 @@
 ## 公共说明
 
 - 所有工具均为**提单类**接口：创建 DBM 单据后返回 `bills` 列表（`bill_id` + `bill_url`），实际执行需用户在 DBM 平台完成单据审批/执行。
-- `bill_url` 链接格式：业务维度单据管理页 `{BK_SAAS_HOST}/{bk_biz_id}/ticket-business-manage/{ticket_id}`（如 `https://dbm.woa.com/5016766/ticket-business-manage/2382071`）。
+- `bill_url` 链接格式：业务维度单据管理页 `{BK_SAAS_HOST}/{bk_biz_id}/ticket-business-manage/{ticket_id}`（如 `https://dbm.example.com/5016766/ticket-business-manage/2382071`）。
 - 集群前置校验：接口内通过 `assert_cluster_type` 校验集群类型，不支持的集群类型直接报错，不产生单据。
 - 用户身份：从 `request.user.username` 获取提单人，为空时报错。
 - 输出结构统一为 `SubmitBillOutputSerializer`：
@@ -17,7 +17,7 @@
 ```json
 {
   "bills": [
-    {"bill_id": 123, "bill_url": "https://dbm.woa.com/#/tickets/detail/123"}
+    {"bill_id": 123, "bill_url": "https://dbm.example.com/#/tickets/detail/123"}
   ]
 }
 ```
