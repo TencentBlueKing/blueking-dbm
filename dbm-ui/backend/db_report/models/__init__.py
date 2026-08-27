@@ -36,6 +36,7 @@ from .mysql_proxy_connlog import MysqlProxyConnlog
 from .mysql_slowlog_ai_analysis import MysqlSlowlogAiAnalysis
 from .mysql_slowlog_detail import MysqlSlowlogDetail
 from .mysql_sql_exec_duration import MysqlSqlExecDuration
+from .mysql_sql_file_exec_duration import MysqlSqlFileExecDuration
 from .mysqlbackup_check_report import MysqlBackupCheckReport
 from .redis_check_report import RedisCheckReport
 from .redis_rollback_exercise_report import RedisRollbackExerciseReport

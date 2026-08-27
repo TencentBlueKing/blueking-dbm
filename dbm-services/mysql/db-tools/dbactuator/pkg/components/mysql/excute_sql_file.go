@@ -90,10 +90,11 @@ type SpiderMntInstance struct {
 	Port int    `json:"port"`
 }
 
-// SQLFileExecResult 单个文件执行耗时记录
+// SQLFileExecResult 单个文件在单个库上的执行耗时记录
 type SQLFileExecResult struct {
 	Port     int    `json:"-"`
 	SQLFile  string `json:"sql_file"`
+	DBName   string `json:"db_name"`  // 执行对象库
 	Duration int    `json:"duration"` // 单位：秒（整数）
 	Success  bool   `json:"success"`
 }
@@ -639,7 +640,7 @@ func (e *ExecuteSQLFileComp) Init() (err error) {
 	return nil
 }
 
-// OutputCtx 输出执行耗时结果，按端口分组
+// OutputCtx 输出执行耗时结果，按端口分组；组内每条记录对应 文件×库
 func (e *ExecuteSQLFileComp) OutputCtx() error {
 	result := make(map[int][]SQLFileExecResult)
 	for _, r := range e.execResults {
@@ -718,28 +719,32 @@ func (e *ExecuteSQLFileComp) executeOne(port int) (err error) {
 			return fmt.Errorf("没有适配到任何db")
 		}
 		logger.Info("will real excute on %v", realexcutedbs)
+		client := mysqlutil.ExecuteSqlAtLocal{
+			IsForce:          e.Params.Force,
+			Charset:          e.charsetmap[port],
+			NeedShowWarnings: false,
+			Host:             e.Params.Host,
+			Port:             port,
+			Socket:           e.socketmap[port],
+			WorkDir:          e.taskdir,
+			User:             e.GeneralParam.RuntimeAccountParam.AdminUser,
+			Password:         e.GeneralParam.RuntimeAccountParam.AdminPwd,
+		}
 		for _, sqlFile := range f.SQLFiles {
-			start := time.Now()
-			err = mysqlutil.ExecuteSqlAtLocal{
-				IsForce:          e.Params.Force,
-				Charset:          e.charsetmap[port],
-				NeedShowWarnings: false,
-				Host:             e.Params.Host,
-				Port:             port,
-				Socket:           e.socketmap[port],
-				WorkDir:          e.taskdir,
-				User:             e.GeneralParam.RuntimeAccountParam.AdminUser,
-				Password:         e.GeneralParam.RuntimeAccountParam.AdminPwd,
-			}.ExecuteSqlByMySQLClient(sqlFile, realexcutedbs)
-			e.execResults = append(e.execResults, SQLFileExecResult{
-				Port:     port,
-				SQLFile:  sqlFile,
-				Duration: int(time.Since(start).Seconds()),
-				Success:  err == nil,
-			})
-			if err != nil {
-				logger.Error("执行%s文件失败:%s", sqlFile, err.Error())
-				return err
+			for _, dbName := range realexcutedbs {
+				start := time.Now()
+				err = client.ExecuteSqlByMySQLClientOne(sqlFile, dbName, true)
+				e.execResults = append(e.execResults, SQLFileExecResult{
+					Port:     port,
+					SQLFile:  sqlFile,
+					DBName:   dbName,
+					Duration: int(time.Since(start).Seconds()),
+					Success:  err == nil,
+				})
+				if err != nil {
+					logger.Error("执行%s文件失败, db:%s :%s", sqlFile, dbName, err.Error())
+					return err
+				}
 			}
 		}
 	}
