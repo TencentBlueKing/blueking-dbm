@@ -219,27 +219,25 @@
     ip_source: 'resource_pool';
   }>(TicketTypes.TENDBCLUSTER_SPIDER_SLAVE_APPLY);
 
-  const handleSubmit = async () => {
-    const result = await tableRef.value!.validate();
-    if (!result) {
-      return;
-    }
-    createTicketRun({
-      details: {
-        infos: formData.tableData.map((item) => ({
-          cluster_id: item.cluster.id,
-          resource_spec: {
-            spider_slave_ip_list: {
-              count: Number(item.count),
-              label_names: item.labels.map((item) => item.value),
-              labels: item.labels.map((item) => String(item.id)),
-              spec_id: item.specId,
+  const handleSubmit = () => {
+    tableRef.value!.validate().then(() => {
+      createTicketRun({
+        details: {
+          infos: formData.tableData.map((item) => ({
+            cluster_id: item.cluster.id,
+            resource_spec: {
+              spider_slave_ip_list: {
+                count: Number(item.count),
+                label_names: item.labels.map((item) => item.value),
+                labels: item.labels.map((item) => String(item.id)),
+                spec_id: item.specId,
+              },
             },
-          },
-        })),
-        ip_source: 'resource_pool',
-      },
-      ...formData.payload,
+          })),
+          ip_source: 'resource_pool',
+        },
+        ...formData.payload,
+      });
     });
   };
 

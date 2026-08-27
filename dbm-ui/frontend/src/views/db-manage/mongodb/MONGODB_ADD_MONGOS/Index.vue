@@ -250,9 +250,8 @@
   const selected = computed(() => formData.tableData.filter((item) => item.cluster.id).map((item) => item.cluster));
   const selectedMap = computed(() => Object.fromEntries(selected.value.map((cur) => [cur.master_domain, true])));
 
-  const handleSubmit = async () => {
-    const validateResult = await editableTableRef.value!.validate();
-    if (validateResult) {
+  const handleSubmit = () => {
+    editableTableRef.value!.validate().then(() => {
       createTicketRun({
         details: {
           infos: formData.tableData.map((tableItem) => ({
@@ -271,7 +270,7 @@
         },
         ...formData.payload,
       });
-    }
+    });
   };
 
   // 批量选择

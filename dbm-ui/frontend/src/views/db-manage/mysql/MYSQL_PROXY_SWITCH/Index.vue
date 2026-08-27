@@ -336,9 +336,8 @@
     });
   };
 
-  const handleSubmit = async () => {
-    const valid = await tableRef.value!.validate();
-    if (valid) {
+  const handleSubmit = () => {
+    tableRef.value!.validate().then(() => {
       createTicketRun({
         details: {
           infos: Object.values(sameClusterIdsRowsMap).map((rows) => ({
@@ -382,7 +381,7 @@
         },
         ...formData.payload,
       });
-    }
+    });
   };
 
   const handleReset = () => {

@@ -181,20 +181,17 @@
       renderSqlRef.value!.setInit(cacheData);
     },
     submit() {
-      return editableTableRef.value!.validate().then((validateResult) => {
-        if (validateResult) {
-          emits('change', {
-            rowData: {
-              dbnames: tableData.value[0]!.dbnames,
-              ignore_dbnames: tableData.value[0]!.ignore_dbnames,
-              import_mode: localImportMode.value,
-              sql_files: localSqlFiles.value,
-            },
-            sqlFileData: renderSqlRef.value!.getFileData(),
-          });
-          return Promise.resolve(true);
-        }
-        return Promise.resolve(false);
+      return editableTableRef.value!.validate().then(() => {
+        emits('change', {
+          rowData: {
+            dbnames: tableData.value[0]!.dbnames,
+            ignore_dbnames: tableData.value[0]!.ignore_dbnames,
+            import_mode: localImportMode.value,
+            sql_files: localSqlFiles.value,
+          },
+          sqlFileData: renderSqlRef.value!.getFileData(),
+        });
+        return Promise.resolve(true);
       });
     },
   });

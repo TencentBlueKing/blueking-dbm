@@ -295,8 +295,7 @@
 
   const handleSubmit = async () => {
     await formRef.value!.validate();
-    const validateResult = await editableTableRef.value!.validate();
-    if (validateResult) {
+    editableTableRef.value!.validate().then(() => {
       createTicketRun({
         details: {
           dts_copy_type: 'copy_from_rollback_instance',
@@ -311,7 +310,7 @@
         },
         ...formData.payload,
       });
-    }
+    });
   };
 
   const handleReset = () => {

@@ -158,12 +158,10 @@
   };
 
   defineExpose<Exposes>({
-    async getValue() {
-      const valid = await tableRef.value?.validate();
-      if (!valid) {
-        return Promise.reject([]);
-      }
-      return tableData.value as RowData[];
+    getValue() {
+      return tableRef.value!.validate().then(() => {
+        return tableData.value as RowData[];
+      });
     },
     reset() {
       tableData.value = [createTableRow()];

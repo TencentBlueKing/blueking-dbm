@@ -225,9 +225,8 @@
     ip_source: 'resource_pool';
   }>(TicketTypes.SQLSERVER_RESTORE_SLAVE);
 
-  const handleSubmit = async () => {
-    const valid = await tableRef.value!.validate();
-    if (valid) {
+  const handleSubmit = () => {
+    tableRef.value!.validate().then(() => {
       createTicketRun({
         details: {
           infos: formData.tableData.map((item) => ({
@@ -254,7 +253,7 @@
         },
         ...formData.payload,
       });
-    }
+    });
   };
 
   const handleBatchEditSlave = (list: SqlserverMachineModel[]) => {

@@ -437,34 +437,32 @@
     timing: string;
   }>(TicketTypes.TENDBCLUSTER_CHECKSUM);
 
-  const handleSubmit = async () => {
-    const result = await tableRef.value!.validate();
-    if (!result) {
-      return;
-    }
-    const groupByCluster = _.groupBy(formData.tableData, (item) => item.cluster.id);
-    createTicketRun({
-      details: {
-        data_repair: formData.data_repair,
-        infos: Object.values(groupByCluster).map((rows) => ({
-          backup_infos: rows.map((item) => ({
-            db_patterns: item.db_patterns,
-            ignore_dbs: item.ignore_dbs,
-            ignore_tables: item.ignore_tables,
-            master: item.master.instance_address,
-            slave: item.slaves.map((slave) => slave.instance_address).join(','),
-            table_patterns: item.table_patterns,
+  const handleSubmit = () => {
+    tableRef.value!.validate().then(() => {
+      const groupByCluster = _.groupBy(formData.tableData, (item) => item.cluster.id);
+      createTicketRun({
+        details: {
+          data_repair: formData.data_repair,
+          infos: Object.values(groupByCluster).map((rows) => ({
+            backup_infos: rows.map((item) => ({
+              db_patterns: item.db_patterns,
+              ignore_dbs: item.ignore_dbs,
+              ignore_tables: item.ignore_tables,
+              master: item.master.instance_address,
+              slave: item.slaves.map((slave) => slave.instance_address).join(','),
+              table_patterns: item.table_patterns,
+            })),
+            checksum_scope: rows[0].scope,
+            cluster_id: rows[0].cluster.id,
           })),
-          checksum_scope: rows[0].scope,
-          cluster_id: rows[0].cluster.id,
-        })),
-        is_sync_non_innodb: true,
-        need_manual_confirm: formData.execute_mode === 'manual',
-        remark: formData.payload.remark,
-        runtime_hour: formData.runtime_hour,
-        timing: formatDateToUTC(dayjs(formData.timing).format('YYYY-MM-DD HH:mm:ss')),
-      },
-      ...formData.payload,
+          is_sync_non_innodb: true,
+          need_manual_confirm: formData.execute_mode === 'manual',
+          remark: formData.payload.remark,
+          runtime_hour: formData.runtime_hour,
+          timing: formatDateToUTC(dayjs(formData.timing).format('YYYY-MM-DD HH:mm:ss')),
+        },
+        ...formData.payload,
+      });
     });
   };
 

@@ -261,21 +261,16 @@
   };
 
   defineExpose<Exposes>({
-    async getValue() {
-      const validateResult = await tableRef.value?.validate();
-      if (!validateResult) {
+    getValue() {
+      return tableRef.value!.validate().then(() => {
         return {
-          infos: [],
+          infos: tableData.value.map((item) => ({
+            cluster_id: item.cluster.id,
+            reduce_spider_role: item.role,
+            spider_reduced_to_count: Number(item.spider_reduced_to_count),
+          })),
         };
-      }
-
-      return {
-        infos: tableData.value.map((item) => ({
-          cluster_id: item.cluster.id,
-          reduce_spider_role: item.role,
-          spider_reduced_to_count: Number(item.spider_reduced_to_count),
-        })),
-      };
+      });
     },
     reset() {
       tableData.value = [createTableRow()];

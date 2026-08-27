@@ -224,21 +224,45 @@
 
   defineExpose<Exposes>({
     getValue: () =>
-      editableTableRef.value!.validate().then((validateResult) => {
-        if (validateResult) {
-          const clusterMap: Record<string, Awaited<ReturnType<Exposes['getValue']>>[number]> = {};
+      editableTableRef.value!.validate().then(() => {
+        const clusterMap: Record<string, Awaited<ReturnType<Exposes['getValue']>>[number]> = {};
 
-          tableData.value.forEach((tableItem) => {
-            tableItem.host.related_clusters.forEach((clusterItem) => {
-              const clusterId = clusterItem.id;
+        tableData.value.forEach((tableItem) => {
+          tableItem.host.related_clusters.forEach((clusterItem) => {
+            const clusterId = clusterItem.id;
+            const targetVersionItem = {
+              instance_role: tableItem.host.instance_role,
+              ip: tableItem.host.ip,
+              related_clusters: tableItem.host.related_clusters.map((item) => item.immute_domain),
+              slave_ip: tableItem.host.instance_role === 'redis_master' ? tableItem.host.pair_machine.ip : '',
+              version: tableItem.target_version,
+            };
+            if (clusterMap[clusterId]) {
+              clusterMap[clusterId].target_versions.push(targetVersionItem);
+            } else {
+              Object.assign(clusterMap, {
+                [clusterId]: {
+                  cluster_id: clusterId,
+                  current_versions: tableItem.current_versions,
+                  node_type: props.nodeType,
+                  slave_current_versions: [],
+                  target_versions: [targetVersionItem],
+                },
+              });
+            }
+          });
+          if (tableItem.host.pair_machine.ip) {
+            tableItem.host.pair_machine.related_clusters.forEach((pairClusterItem) => {
+              const clusterId = pairClusterItem.id;
               const targetVersionItem = {
-                instance_role: tableItem.host.instance_role,
-                ip: tableItem.host.ip,
+                instance_role: 'redis_slave',
+                ip: tableItem.host.pair_machine.ip,
                 related_clusters: tableItem.host.related_clusters.map((item) => item.immute_domain),
-                slave_ip: tableItem.host.instance_role === 'redis_master' ? tableItem.host.pair_machine.ip : '',
+                slave_ip: '',
                 version: tableItem.target_version,
               };
               if (clusterMap[clusterId]) {
+                clusterMap[clusterId].slave_current_versions = tableItem.slave_current_versions;
                 clusterMap[clusterId].target_versions.push(targetVersionItem);
               } else {
                 Object.assign(clusterMap, {
@@ -246,43 +270,16 @@
                     cluster_id: clusterId,
                     current_versions: tableItem.current_versions,
                     node_type: props.nodeType,
-                    slave_current_versions: [],
+                    slave_current_versions: tableItem.slave_current_versions,
                     target_versions: [targetVersionItem],
                   },
                 });
               }
             });
-            if (tableItem.host.pair_machine.ip) {
-              tableItem.host.pair_machine.related_clusters.forEach((pairClusterItem) => {
-                const clusterId = pairClusterItem.id;
-                const targetVersionItem = {
-                  instance_role: 'redis_slave',
-                  ip: tableItem.host.pair_machine.ip,
-                  related_clusters: tableItem.host.related_clusters.map((item) => item.immute_domain),
-                  slave_ip: '',
-                  version: tableItem.target_version,
-                };
-                if (clusterMap[clusterId]) {
-                  clusterMap[clusterId].slave_current_versions = tableItem.slave_current_versions;
-                  clusterMap[clusterId].target_versions.push(targetVersionItem);
-                } else {
-                  Object.assign(clusterMap, {
-                    [clusterId]: {
-                      cluster_id: clusterId,
-                      current_versions: tableItem.current_versions,
-                      node_type: props.nodeType,
-                      slave_current_versions: tableItem.slave_current_versions,
-                      target_versions: [targetVersionItem],
-                    },
-                  });
-                }
-              });
-            }
-          });
+          }
+        });
 
-          return Object.values(clusterMap);
-        }
-        return Promise.reject([]);
+        return Object.values(clusterMap);
       }),
     resetTable: () => {
       tableData.value = [createRowData()];

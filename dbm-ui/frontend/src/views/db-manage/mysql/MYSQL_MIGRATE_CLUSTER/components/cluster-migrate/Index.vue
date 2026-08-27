@@ -394,42 +394,39 @@
   };
 
   defineExpose<Exposes>({
-    async getValue() {
-      const validateResult = await tableRef.value?.validate();
-      if (!validateResult) {
-        return [];
-      }
-
-      return tableData.value.map((item) => ({
-        cluster_ids: item.multipleCluster.clusters.map((item) => item.id),
-        resource_spec: {
-          backend_group:
-            props.sourceType === SourceType.RESOURCE_AUTO
-              ? {
-                  count: 1,
-                  label_names: item.labels.map((item) => item.value),
-                  labels: item.labels.map((item) => String(item.id)),
-                  spec_id: item.specId,
-                }
-              : undefined,
-          new_master:
-            props.sourceType === SourceType.RESOURCE_MANUAL
-              ? {
-                  count: 1,
-                  hosts: [item.newMaster],
-                  spec_id: item.specId,
-                }
-              : undefined,
-          new_slave:
-            props.sourceType === SourceType.RESOURCE_MANUAL
-              ? {
-                  count: 1,
-                  hosts: [item.newSlave],
-                  spec_id: item.specId,
-                }
-              : undefined,
-        },
-      }));
+    getValue() {
+      return tableRef.value!.validate().then(() => {
+        return tableData.value.map((item) => ({
+          cluster_ids: item.multipleCluster.clusters.map((item) => item.id),
+          resource_spec: {
+            backend_group:
+              props.sourceType === SourceType.RESOURCE_AUTO
+                ? {
+                    count: 1,
+                    label_names: item.labels.map((item) => item.value),
+                    labels: item.labels.map((item) => String(item.id)),
+                    spec_id: item.specId,
+                  }
+                : undefined,
+            new_master:
+              props.sourceType === SourceType.RESOURCE_MANUAL
+                ? {
+                    count: 1,
+                    hosts: [item.newMaster],
+                    spec_id: item.specId,
+                  }
+                : undefined,
+            new_slave:
+              props.sourceType === SourceType.RESOURCE_MANUAL
+                ? {
+                    count: 1,
+                    hosts: [item.newSlave],
+                    spec_id: item.specId,
+                  }
+                : undefined,
+          },
+        }));
+      });
     },
     reset() {
       tableData.value = [createTableRow()];

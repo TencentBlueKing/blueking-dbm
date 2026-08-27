@@ -256,9 +256,8 @@
     upgrade_local: boolean;
   }>(TicketTypes.TENDBCLUSTER_SPIDER_UPGRADE);
 
-  const handleSubmit = async () => {
-    const valid = await tableRef.value!.validate();
-    if (valid) {
+  const handleSubmit = () => {
+    tableRef.value!.validate().then(() => {
       const resourceSpec = (rowData: RowData, role: 'spider_master' | 'spider_slave') => {
         const hostList = rowData.cluster[role];
         if (!hostList.length) {
@@ -304,7 +303,7 @@
         },
         ...formData.payload,
       });
-    }
+    });
   };
 
   const handleReset = () => {

@@ -294,9 +294,8 @@
 
   const getCurrentSpecId = (data: MongodbModel) => data.mongodb[0]!.spec_config.id;
 
-  const handleSubmit = async () => {
-    const validateResult = await editableTableRef.value!.validate();
-    if (validateResult) {
+  const handleSubmit = () => {
+    editableTableRef.value!.validate().then(() => {
       createTicketRun({
         details: {
           cluster_type: ClusterTypes.MONGO_SHARED_CLUSTER,
@@ -323,7 +322,7 @@
         },
         ...formData.payload,
       });
-    }
+    });
   };
 
   const handleClusterBatchEdit = (clusterList: MongodbModel[]) => {

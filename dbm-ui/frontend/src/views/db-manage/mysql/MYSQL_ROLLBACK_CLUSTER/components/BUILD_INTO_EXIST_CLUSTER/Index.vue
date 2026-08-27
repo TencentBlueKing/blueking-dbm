@@ -328,30 +328,24 @@
   };
 
   defineExpose<Exposes>({
-    async getValue() {
-      const validateResult = await tableRef.value?.validate();
-      if (!validateResult) {
+    getValue() {
+      return tableRef.value!.validate().then(() => {
         return {
-          infos: [],
+          infos: tableData.value.map((item) => ({
+            backup_source: item.backup_source,
+            backupinfo: item.rollback.backupinfo,
+            cluster_id: item.cluster.id,
+            databases: item.databases,
+            databases_ignore: item.databases_ignore,
+            rollback_time: item.rollback.rollback_time,
+            rollback_type: `${item.backup_source.toLocaleUpperCase()}_AND_${item.rollback.rollback_type}`,
+            tables: item.tables,
+            tables_ignore: item.tables_ignore,
+            target_cluster_id: item.target_cluster.id,
+          })),
           rollback_cluster_type: 'BUILD_INTO_EXIST_CLUSTER',
         };
-      }
-
-      return {
-        infos: tableData.value.map((item) => ({
-          backup_source: item.backup_source,
-          backupinfo: item.rollback.backupinfo,
-          cluster_id: item.cluster.id,
-          databases: item.databases,
-          databases_ignore: item.databases_ignore,
-          rollback_time: item.rollback.rollback_time,
-          rollback_type: `${item.backup_source.toLocaleUpperCase()}_AND_${item.rollback.rollback_type}`,
-          tables: item.tables,
-          tables_ignore: item.tables_ignore,
-          target_cluster_id: item.target_cluster.id,
-        })),
-        rollback_cluster_type: 'BUILD_INTO_EXIST_CLUSTER',
-      };
+      });
     },
     reset() {
       tableData.value = [createTableRow()];

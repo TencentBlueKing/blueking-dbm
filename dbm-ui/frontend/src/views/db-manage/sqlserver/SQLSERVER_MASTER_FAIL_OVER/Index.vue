@@ -179,20 +179,18 @@
     }[];
   }>(TicketTypes.SQLSERVER_MASTER_FAIL_OVER);
 
-  const handleSubmit = async () => {
-    const result = await tableRef.value!.validate();
-    if (!result) {
-      return;
-    }
-    createTicketRun({
-      details: {
-        infos: formData.tableData.map((item) => ({
-          cluster_ids: item.master.related_clusters.map((item) => item.id),
-          master: item.master,
-          slave: item.slave,
-        })),
-      },
-      ...formData.payload,
+  const handleSubmit = () => {
+    tableRef.value!.validate().then(() => {
+      createTicketRun({
+        details: {
+          infos: formData.tableData.map((item) => ({
+            cluster_ids: item.master.related_clusters.map((item) => item.id),
+            master: item.master,
+            slave: item.slave,
+          })),
+        },
+        ...formData.payload,
+      });
     });
   };
 

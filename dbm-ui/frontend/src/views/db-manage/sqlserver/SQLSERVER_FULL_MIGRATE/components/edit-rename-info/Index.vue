@@ -105,10 +105,7 @@
 
   const handleSubmit = async () => {
     try {
-      const renameValid = await renameListRef.value?.validate();
-      if (!renameValid) {
-        throw new Error();
-      }
+      await renameListRef.value!.validate();
       emits('submit', localValue.value);
     } catch {
       messageError(t('请修改冲突的 DB 名'));

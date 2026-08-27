@@ -212,23 +212,21 @@
     ip_source: 'resource_pool';
   }>(TicketTypes.MONGODB_REDUCE_MONGOS);
 
-  const handleSubmit = async () => {
-    const result = await tableRef.value!.validate();
-    if (!result) {
-      return;
-    }
-    createTicketRun({
-      details: {
-        infos: formData.tableData.map((item) => ({
-          cluster_id: item.cluster.id,
-          old_nodes: {
-            mongos: item.hosts,
-          },
-          role: 'mongos',
-        })),
-        ip_source: 'resource_pool',
-      },
-      ...formData.payload,
+  const handleSubmit = () => {
+    tableRef.value!.validate().then(() => {
+      createTicketRun({
+        details: {
+          infos: formData.tableData.map((item) => ({
+            cluster_id: item.cluster.id,
+            old_nodes: {
+              mongos: item.hosts,
+            },
+            role: 'mongos',
+          })),
+          ip_source: 'resource_pool',
+        },
+        ...formData.payload,
+      });
     });
   };
 

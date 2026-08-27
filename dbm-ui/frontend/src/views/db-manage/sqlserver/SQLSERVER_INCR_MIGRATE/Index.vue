@@ -294,23 +294,21 @@
     need_auto_rename: boolean;
   }>(TicketTypes.SQLSERVER_INCR_MIGRATE);
 
-  const handleSubmit = async () => {
-    const result = await tableRef.value!.validate();
-    if (!result) {
-      return;
-    }
-    createTicketRun({
-      details: {
-        infos: formData.tableData.map((item) => ({
-          db_list: item.dbName,
-          dst_cluster_list: item.dstCluster.map((cur) => cur.id),
-          ignore_db_list: item.dbIgnoreName,
-          rename_infos: item.renameInfoList,
-          src_cluster: item.srcCluster.id,
-        })),
-        need_auto_rename: formData.need_auto_rename,
-      },
-      ...formData.payload,
+  const handleSubmit = () => {
+    tableRef.value!.validate().then(() => {
+      createTicketRun({
+        details: {
+          infos: formData.tableData.map((item) => ({
+            db_list: item.dbName,
+            dst_cluster_list: item.dstCluster.map((cur) => cur.id),
+            ignore_db_list: item.dbIgnoreName,
+            rename_infos: item.renameInfoList,
+            src_cluster: item.srcCluster.id,
+          })),
+          need_auto_rename: formData.need_auto_rename,
+        },
+        ...formData.payload,
+      });
     });
   };
 

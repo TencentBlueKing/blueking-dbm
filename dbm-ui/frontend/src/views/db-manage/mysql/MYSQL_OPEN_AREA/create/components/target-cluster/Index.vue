@@ -245,16 +245,14 @@
   };
 
   defineExpose<Exposes>({
-    async getValue() {
-      const valid = await tableRef.value?.validate();
-      if (!valid) {
-        return Promise.reject([]);
-      }
-      return tableData.value.map((item) => ({
-        authorize_ips: item.authorize_ips,
-        cluster_id: item.cluster.id,
-        vars: item.vars,
-      }));
+    getValue() {
+      return tableRef.value!.validate().then(() => {
+        return tableData.value.map((item) => ({
+          authorize_ips: item.authorize_ips,
+          cluster_id: item.cluster.id,
+          vars: item.vars,
+        }));
+      });
     },
   });
 </script>
