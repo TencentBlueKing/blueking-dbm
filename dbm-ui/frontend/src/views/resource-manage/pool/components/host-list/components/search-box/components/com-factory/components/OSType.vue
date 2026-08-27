@@ -12,26 +12,26 @@
 -->
 
 <template>
-  <BkSelect
+  <DbSelect
     filterable
     :input-search="false"
     :loading="loading"
     :model-value="defaultValue"
     :placeholder="t('请选择操作系统类型')"
     @change="handleChange">
-    <BkOptionGroup group-style="divider">
-      <BkOption
+    <DbOptionGroup group-style="divider">
+      <DbOption
         v-for="item in data"
         :key="item"
         :label="item"
         :value="item" />
-    </BkOptionGroup>
-    <BkOptionGroup group-style="divider">
-      <BkOption
+    </DbOptionGroup>
+    <DbOptionGroup group-style="divider">
+      <DbOption
         :label="specialOptionLabelMap[SpecialOptions.EMPTY]"
         :value="SpecialOptions.EMPTY" />
-    </BkOptionGroup>
-  </BkSelect>
+    </DbOptionGroup>
+  </DbSelect>
 </template>
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';

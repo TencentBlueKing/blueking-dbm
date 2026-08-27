@@ -12,25 +12,25 @@
 -->
 
 <template>
-  <BkSelect
+  <DbSelect
     filterable
     :input-search="false"
     :model-value="defaultValue"
     :placeholder="t('请选择所属DB类型')"
     show-selected-icon
     @change="handleChange">
-    <BkOptionGroup group-style="divider">
-      <BkOption
+    <DbOptionGroup group-style="divider">
+      <DbOption
         v-for="item in readResourceDbTypes"
         :key="item.value"
         :label="item.label"
         :value="item.value" />
-    </BkOptionGroup>
-    <BkOptionGroup group-style="divider">
-      <BkOption
+    </DbOptionGroup>
+    <DbOptionGroup group-style="divider">
+      <DbOption
         :label="specialOptionLabelMap[SpecialOptions.PUBLIC]"
         :value="SpecialOptions.PUBLIC" />
-    </BkOptionGroup>
+    </DbOptionGroup>
     <template
       v-if="simple"
       #extension>
@@ -47,7 +47,7 @@
         </div>
       </div>
     </template>
-  </BkSelect>
+  </DbSelect>
 </template>
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';

@@ -1,5 +1,5 @@
 <template>
-  <BkSelect
+  <DbSelect
     v-model="modelValue"
     :disabled="disabled"
     multiple
@@ -7,7 +7,7 @@
     :remote-method="handleSearch"
     :scroll-loading="listTagLoading"
     @scroll-end="loadMore">
-    <BkOption
+    <DbOption
       v-for="item in tagList"
       :key="item.id"
       :label="item.value"
@@ -71,7 +71,7 @@
         </div>
       </div>
     </template>
-  </BkSelect>
+  </DbSelect>
 </template>
 
 <script setup lang="tsx">
