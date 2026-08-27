@@ -3,7 +3,7 @@
     class="bk-quick-search-value-tag"
     :class="{
       'is-removeable': isShowRemoveBtn && !slots.edit,
-      'is-focused': focued,
+      'is-focused': focused,
     }"
     :style="tagStyles">
     <div
@@ -25,7 +25,7 @@
     </div>
     <div
       v-if="slots.value && removeable"
-      class="bk-quick-search-value-tag-remote-btn"
+      class="bk-quick-search-value-tag-remove-btn"
       @click="handleRemove">
       <Icon name="close" />
     </div>
@@ -38,7 +38,7 @@
   import { BK_QUICK_SEARCH } from '@components/db-quick-search/bk-quick-search/Index.vue';
 
   interface Props {
-    focued?: boolean;
+    focused?: boolean;
     removeable?: boolean;
   }
 
@@ -64,7 +64,7 @@
   const context = inject(BK_QUICK_SEARCH);
 
   const tagStyles = computed<StyleValue>(() => {
-    if (context!.isFouced || !props.removeable) {
+    if (context!.isFocused || !props.removeable) {
       return {
         height: 'auto',
       };
@@ -77,7 +77,7 @@
   const isShowRemoveBtn = computed(() => props.removeable && slots.value);
 
   const tagTextStyles = computed<StyleValue>(() => {
-    if (context!.isFouced || !props.removeable) {
+    if (context!.isFocused || !props.removeable) {
       return {
         'word-break': 'break-all',
       };
@@ -176,7 +176,7 @@
     line-clamp: 10; /* 限制显示行数 */
   }
 
-  .bk-quick-search-value-tag-remote-btn {
+  .bk-quick-search-value-tag-remove-btn {
     position: absolute;
     top: 0;
     right: 0;

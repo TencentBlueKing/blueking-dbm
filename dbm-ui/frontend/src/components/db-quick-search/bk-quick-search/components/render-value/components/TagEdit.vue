@@ -7,7 +7,7 @@
     }">
     <div style="position: absolute; z-index: -1; pointer-events: none; opacity: 0%">
       <!-- prettier-ignore -->
-      <pre ref="calcTextWidth" style="display: block; padding: 0; margin: 0; font: inherit; visibility: hidden">{{ clacWidthText }}</pre>
+      <pre ref="calcTextWidth" style="display: block; padding: 0; margin: 0; font: inherit; visibility: hidden">{{ calcWidthText }}</pre>
     </div>
     <div :style="inputStyles">
       <div :style="placeholderStyles">{{ placeholderText }}</div>
@@ -32,7 +32,7 @@
       </div>
     </div>
     <div
-      v-if="isMultipleLintEdit || isSingleEdit"
+      v-if="isMultipleLineEdit || isSingleEdit"
       style="
         position: absolute;
         right: 0;
@@ -45,8 +45,8 @@
         pointer-events: none;
         background: #fafbfd;
       ">
-      <span v-if="isMultipleLintEdit">支持输入多个值 ”Shift + Enter“ 换行，按”Enter“完成搜索</span>
-      <span v-if="isSingleEdit">”Shift + Enter“ 换行，按”Enter“完成搜索</span>
+      <span v-if="isMultipleLineEdit">{{ t('支持输入多个值 ”Shift + Enter“ 换行，按”Enter“完成搜索') }}</span>
+      <span v-if="isSingleEdit">{{ t('”Shift + Enter“ 换行，按”Enter“完成搜索') }}</span>
     </div>
   </div>
 </template>
@@ -55,12 +55,12 @@
 </script>
 <script setup lang="ts">
   import _ from 'lodash';
-  import { computed, onMounted, ref, useTemplateRef } from 'vue';
+  import { computed, type CSSProperties, onMounted, ref, useTemplateRef } from 'vue';
+  import { useI18n } from 'vue-i18n';
 
   import ValueMenu from '@components/db-quick-search/bk-quick-search/components/create-area/components/value-menu/Index.vue';
   import { comType } from '@components/db-quick-search/bk-quick-search/constants';
   import useMenuPop, { hideAll } from '@components/db-quick-search/bk-quick-search/hooks/useMenuPop';
-  import useOutSideClick from '@components/db-quick-search/bk-quick-search/hooks/useOutSideClick';
   import type { IValue, Props as ContextProps } from '@components/db-quick-search/bk-quick-search/Index.vue';
   import { BK_QUICK_SEARCH } from '@components/db-quick-search/bk-quick-search/Index.vue';
   import { calcNeedShowValueMenu } from '@components/db-quick-search/bk-quick-search/utils';
@@ -79,10 +79,12 @@
   const props = defineProps<Props>();
   const emits = defineEmits<Emits>();
 
+  const { t } = useI18n();
+
   const context = inject(BK_QUICK_SEARCH);
 
   const isReadonly = calcNeedShowValueMenu(props.config);
-  const isMultipleLintEdit = props.config.type === comType.MULTIPLE_INPUT;
+  const isMultipleLineEdit = props.config.type === comType.MULTIPLE_INPUT;
   const isSingleEdit = props.config.type === comType.INPUT;
   const valueTextSingleLineHeight = 22;
 
@@ -94,7 +96,7 @@
   const latestEditValue = ref(isReadonly ? '' : props.lastValue.values.map((item) => item.value).join('\n'));
   const inputStyles = ref({});
 
-  const clacWidthText = computed(() =>
+  const calcWidthText = computed(() =>
     props.lastValueText.length > latestEditValue.value.length ? props.lastValueText : latestEditValue.value,
   );
   const placeholderText = computed(() => {
@@ -104,15 +106,15 @@
     return props.lastValueText.length > latestEditValue.value.length ? props.lastValueText : latestEditValue.value;
   });
 
-  const placeholderStyles = computed<any>(() => {
+  const placeholderStyles = computed<CSSProperties>(() => {
     return {
-      'max-height': isReadonly ? `${10 * valueTextSingleLineHeight}px` : 'unset',
-      'min-height': `${valueTextSingleLineHeight}px`,
+      maxHeight: isReadonly ? `${10 * valueTextSingleLineHeight}px` : 'unset',
+      minHeight: `${valueTextSingleLineHeight}px`,
       overflow: 'hidden',
-      'padding-bottom': isReadonly ? 0 : `${valueTextSingleLineHeight}px`,
+      paddingBottom: isReadonly ? 0 : `${valueTextSingleLineHeight}px`,
       visibility: 'hidden',
-      'white-space': 'pre-wrap',
-      'word-break': 'break-all',
+      whiteSpace: 'pre-wrap',
+      wordBreak: 'break-all',
     };
   });
 
@@ -121,10 +123,6 @@
   const endEditCallback = () => {
     emits('change', props.lastValue);
   };
-
-  useOutSideClick(() => {
-    endEditCallback();
-  });
 
   // 计算输入框宽度，优先撑满
   const calcInputStyle = () => {
@@ -141,7 +139,7 @@
   };
 
   const handleKeydown = (event: KeyboardEvent) => {
-    // 手动输入模式支持 Shfit + Enter 换行
+    // 手动输入模式支持 Shift + Enter 换行
     if (['Enter', 'NumpadEnter'].includes(event.code) && event.shiftKey && !isReadonly) {
       return true;
     }
@@ -162,7 +160,7 @@
       latestEditValue.value = '';
       return;
     }
-    // 手动输入模式支持 Shfit + Enter 换行，默认换行行为
+    // 手动输入模式支持 Shift + Enter 换行，默认换行行为
     if (['Enter', 'NumpadEnter'].includes(event.code) && event.shiftKey) {
       return true;
     }
@@ -173,9 +171,9 @@
 
         // 输入值校验
         let errorMessage = '';
-        if ((isMultipleLintEdit || isSingleEdit) && _.isFunction(props.config.validator)) {
+        if ((isMultipleLineEdit || isSingleEdit) && _.isFunction(props.config.validator)) {
           let result: boolean | string = true;
-          if (isMultipleLintEdit) {
+          if (isMultipleLineEdit) {
             const valueList = context!.pasteParseMethod(latestEditValue.value);
             for (const valueItem of valueList) {
               const valueItemResult = props.config.validator!(valueItem);
@@ -191,7 +189,7 @@
           if (result && _.isString(result)) {
             errorMessage = result;
           } else {
-            errorMessage = result ? '' : '格式不正确';
+            errorMessage = result ? '' : t('格式不正确');
           }
           emits('error', errorMessage);
         }
@@ -206,7 +204,7 @@
                 value: latestEditValue.value,
               },
             ];
-            if (isMultipleLintEdit) {
+            if (isMultipleLineEdit) {
               values = context!.pasteParseMethod(latestEditValue.value).map((item) => ({
                 label: item,
                 value: item,
@@ -269,6 +267,9 @@
   });
   onBeforeUnmount(() => {
     document.removeEventListener('click', handleOutsideClick);
+    if (singleEndEditCallback === endEditCallback) {
+      singleEndEditCallback = null;
+    }
   });
 </script>
 <style lang="less">
