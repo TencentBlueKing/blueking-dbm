@@ -163,6 +163,12 @@ const mysqlToolboxRouter = {
       dbConsole: 'mysql.toolbox.dbInstancePermissionClone',
     }),
     createRouteItem(TicketTypes.MYSQL_DATA_MIGRATE, t('DB 数据克隆'), { dbConsole: 'mysql.toolbox.dataMigrate' }),
+    createRouteItem(TicketTypes.MYSQL_DTS_DATA_MIGRATE, t('DTS 数据迁移'), {
+      dbConsole: 'mysql.toolbox.dtsDataMigrate',
+    }),
+    createRouteItem(TicketTypes.MYSQL_DTS_DATA_MIGRATE_RENAME, t('DTS 数据迁移'), {
+      dbConsole: 'mysql.toolbox.dtsDataMigrate',
+    }),
     createRouteItem(TicketTypes.MYSQL_CLUSTER_STANDARDIZE, t('标准化'), {
       dbConsole: 'mysql.toolbox.clusterStandardize',
     }),
