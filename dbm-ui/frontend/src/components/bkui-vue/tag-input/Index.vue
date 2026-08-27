@@ -19,25 +19,34 @@
       'is-focus': isFocus,
       'is-disabled': disabled,
     }"
-    @click="handleTriggerClick">
+    @click="handleTriggerClick"
+    @mousedown="handleTriggerMousedown">
     <div
       ref="panelRef"
       class="db-tag-input-panel">
-      <div class="db-tag-input-tag-list">
-        <BkTag
-          v-for="value in visibleTagValues"
+      <div
+        ref="tagListRef"
+        class="db-tag-input-tag-list">
+        <DbTag
+          v-for="(value, index) in modelValue"
           :key="value"
           class="db-tag-input-tag"
           :closable="!disabled"
+          :stop-propagation="false"
+          :style="{ display: isTagHidden(index) ? 'none' : '' }"
           @close="handleRemoveTag(value)">
           {{ getValueLabel(value) }}
-        </BkTag>
-        <BkTag
-          v-if="collapsedTagCount > 0"
+        </DbTag>
+        <DbTag
+          v-bk-tooltips="{
+            content: collapsedTagTips,
+            disabled: !collapsedTagTips,
+          }"
           class="db-tag-input-tag db-tag-input-overflow-tag"
+          :style="{ display: collapsedTagCount > 0 ? '' : 'none' }"
           @click.stop="handleExpandTags">
           +{{ collapsedTagCount }}
-        </BkTag>
+        </DbTag>
         <input
           ref="inputRef"
           v-model="inputValue"
@@ -56,19 +65,6 @@
         class="db-tag-input-clear"
         type="close-circle-shape"
         @click.stop="handleClear" />
-    </div>
-    <!-- 隐藏测量区：用于计算 32px 高度内可容纳的最大标签数量 -->
-    <div
-      ref="measureRef"
-      class="db-tag-input-measure"
-      :style="{ width: `${triggerWidth}px` }">
-      <BkTag
-        v-for="value in modelValue"
-        :key="value"
-        class="db-tag-input-tag db-tag-input-measure-tag"
-        :closable="!disabled">
-        {{ getValueLabel(value) }}
-      </BkTag>
     </div>
     <!-- 下拉内容：作为 tippy.js 挂载源，展示时被移动到 body -->
     <div style="display: none">
@@ -102,13 +98,13 @@
               class="db-tag-input-option"
               :class="{
                 'is-highlight': index === highlightIndex,
-                'is-selected': !multiple && selectedValueMap[item.id],
+                'is-selected': !multiple && selectedValueSet.has(item.id),
               }"
               @click="handleOptionClick(item)"
               @mouseenter="highlightIndex = index">
               <BkCheckbox
                 v-if="multiple"
-                :model-value="selectedValueMap[item.id]"
+                :model-value="selectedValueSet.has(item.id)"
                 style="pointer-events: none" />
               <span
                 v-overflow-tips
@@ -116,7 +112,7 @@
                 {{ item.name }}
               </span>
               <DbIcon
-                v-if="!multiple && selectedValueMap[item.id]"
+                v-if="!multiple && selectedValueSet.has(item.id)"
                 class="db-tag-input-option-check"
                 type="check-line" />
             </div>
@@ -134,6 +130,8 @@
 
 <script setup lang="ts">
   import { Message } from 'bkui-vue';
+  import { useFormItem } from 'bkui-vue/lib/shared';
+  import { debounce } from 'lodash';
   import tippy, { type Instance, type SingleTarget } from 'tippy.js';
   import { useI18n } from 'vue-i18n';
 
@@ -156,9 +154,15 @@
     /** 是否多选。开启时候选项展示为 checkbox 并支持全选；关闭时为单选 */
     multiple?: boolean;
     placeholder?: string;
+    /** 值变化 / 失焦时是否触发所在表单项的校验 */
+    withValidate?: boolean;
   }
 
-  type Emits = (e: 'change', value: string[]) => void;
+  interface Emits {
+    (e: 'change', value: string[]): void;
+    (e: 'focus'): void;
+    (e: 'blur', value: string, tagList: string[]): void;
+  }
 
   const props = withDefaults(defineProps<Props>(), {
     allowCreate: false,
@@ -169,6 +173,7 @@
     mode: undefined,
     multiple: false,
     placeholder: '',
+    withValidate: true,
   });
 
   const emits = defineEmits<Emits>();
@@ -177,6 +182,8 @@
     default: () => [],
   });
 
+  const formItem = useFormItem();
+
   const { t } = useI18n();
 
   // 批量粘贴分隔符：逗号、分号、竖线、换行、制表符、空格（含中文全角），连续分隔符产生空段后统一丢弃
@@ -184,15 +191,16 @@
 
   const triggerRef = useTemplateRef('triggerRef');
   const panelRef = useTemplateRef('panelRef');
+  const tagListRef = useTemplateRef('tagListRef');
   const inputRef = useTemplateRef('inputRef');
   const dropdownRef = useTemplateRef('dropdownRef');
-  const measureRef = useTemplateRef('measureRef');
 
   const inputValue = ref('');
   const isFocus = ref(false);
   const highlightIndex = ref(-1);
   const triggerWidth = ref(0);
-  const visibleTagCount = ref(0);
+  // 收起态第一个被折叠的标签下标，null 表示无需折叠
+  const overflowTagIndex = ref<number | null>(null);
 
   // tippy 下拉实例
   let tippyInstance: Instance | undefined;
@@ -210,21 +218,20 @@
 
   const dropdownWidth = computed(() => `${props.contentWidth ?? triggerWidth.value}px`);
 
-  const visibleTagValues = computed(() =>
-    isFocus.value ? modelValue.value : modelValue.value.slice(0, visibleTagCount.value),
-  );
+  const isTagHidden = (index: number) =>
+    !isFocus.value && overflowTagIndex.value !== null && index >= overflowTagIndex.value;
 
   const collapsedTagCount = computed(() =>
-    isFocus.value ? 0 : Math.max(0, modelValue.value.length - visibleTagCount.value),
+    isFocus.value || overflowTagIndex.value === null ? 0 : modelValue.value.length - overflowTagIndex.value,
   );
 
   // 已选值集合，用于去重与选中态判断
-  const selectedValueMap = computed(() => Object.fromEntries(modelValue.value.map((value) => [value, true])));
+  const selectedValueSet = computed(() => new Set(modelValue.value));
 
   // 候选值展示名映射
-  const candidateNameMap = computed(() => Object.fromEntries(candidateList.value.map((item) => [item.id, item.name])));
+  const candidateNameMap = computed(() => new Map(candidateList.value.map((item) => [item.id, item.name])));
 
-  // 关键词包含匹配（不区分大小写）；多个分隔词按 OR 匹配，无关键词展示全部候选
+  // 关键词包含匹配（不区分大小写，id / 展示名任一命中即可）；多个分隔词按 OR 匹配，无关键词展示全部候选
   const filteredList = computed(() => {
     const keywords = inputValue.value
       .split(SEPARATOR_REGEX)
@@ -234,8 +241,9 @@
       return candidateList.value;
     }
     return candidateList.value.filter((item) => {
+      const id = item.id.toLowerCase();
       const name = item.name.toLowerCase();
-      return keywords.some((keyword) => name.includes(keyword));
+      return keywords.some((keyword) => name.includes(keyword) || id.includes(keyword));
     });
   });
 
@@ -245,7 +253,7 @@
       return '';
     }
     const value = inputValue.value.trim();
-    if (!value || selectedValueMap.value[value]) {
+    if (!value || selectedValueSet.value.has(value)) {
       return '';
     }
     const isCandidate = candidateList.value.some((item) => item.id === value || item.name === value);
@@ -261,7 +269,7 @@
         indeterminate: false,
       };
     }
-    const selectedCount = list.filter((item) => selectedValueMap.value[item.id]).length;
+    const selectedCount = list.filter((item) => selectedValueSet.value.has(item.id)).length;
     return {
       checked: selectedCount === list.length,
       indeterminate: selectedCount > 0 && selectedCount < list.length,
@@ -269,44 +277,32 @@
   });
 
   /**
-   * 计算失焦时单行内可展示的最大标签数量。
-   * 预留输入区和清空按钮空间，溢出的标签由 +N 占位。
+   * 计算收起态的折叠位置：先还原全部标签，找出第一个换行的标签作为折叠起点；
+   * 若 +N 自身被挤到第二行，则再少展示一个标签。容器过窄时至少保留一个标签。
    */
-  const updateVisibleTagCount = () => {
+  const calcOverflow = async () => {
     if (isFocus.value) {
-      visibleTagCount.value = modelValue.value.length;
       return;
     }
-    nextTick(() => {
-      const tagElements = measureRef.value?.querySelectorAll<HTMLElement>('.db-tag-input-measure-tag');
-      if (!tagElements?.length || !triggerRef.value) {
-        visibleTagCount.value = 0;
-        return;
-      }
-
-      const GAP_WIDTH = 4;
-      const INPUT_RESERVED_WIDTH = 40;
-      const PANEL_HORIZONTAL_SPACE = 30;
-      const availableWidth = Math.max(0, triggerRef.value.clientWidth - INPUT_RESERVED_WIDTH - PANEL_HORIZONTAL_SPACE);
-      let usedWidth = 0;
-      let count = 0;
-
-      for (let index = 0; index < tagElements.length; index += 1) {
-        const tagWidth = tagElements[index].offsetWidth;
-        const remainingCount = tagElements.length - index - 1;
-        const overflowWidth = remainingCount > 0 ? 18 + String(remainingCount).length * 7 : 0;
-        const tagGap = count > 0 ? GAP_WIDTH : 0;
-        const overflowSpace = remainingCount > 0 ? GAP_WIDTH + overflowWidth : 0;
-        if (usedWidth + tagGap + tagWidth + overflowSpace > availableWidth) {
-          break;
-        }
-        usedWidth += tagGap + tagWidth;
-        count += 1;
-      }
-
-      visibleTagCount.value = count;
-    });
+    overflowTagIndex.value = null;
+    await nextTick();
+    const tagElements = Array.from(tagListRef.value?.querySelectorAll<HTMLElement>('.db-tag-input-tag') ?? []).filter(
+      (element) => !element.classList.contains('db-tag-input-overflow-tag'),
+    );
+    const firstLineTop = tagElements[0]?.offsetTop;
+    const wrappedIndex = tagElements.findIndex((element, index) => index > 0 && element.offsetTop !== firstLineTop);
+    if (wrappedIndex <= 0) {
+      return;
+    }
+    overflowTagIndex.value = wrappedIndex;
+    await nextTick();
+    const overflowTagElement = tagListRef.value?.querySelector<HTMLElement>('.db-tag-input-overflow-tag');
+    if (overflowTagElement && overflowTagElement.offsetTop !== firstLineTop && wrappedIndex > 1) {
+      overflowTagIndex.value = wrappedIndex - 1;
+    }
   };
+
+  const debouncedCalcOverflow = debounce(calcOverflow, 150);
 
   // 内容变化后重新计算下拉位置
   const updateDropdownPosition = () => {
@@ -317,9 +313,17 @@
     }
   };
 
-  // 过滤结果变化后重置浏览高亮：恰好 1 条自动高亮，其余默认无高亮
-  watch(filteredList, (list) => {
-    highlightIndex.value = isCandidateMode.value && list.length === 1 ? 0 : -1;
+  /**
+   * 重置浏览高亮。
+   * 对齐 bk-tag-input：不允许新建时默认高亮首项，回车即可选中；
+   * 允许新建时不预选，避免抢走「新建」输入。
+   */
+  const resetHighlight = () => {
+    highlightIndex.value = isCandidateMode.value && !props.allowCreate && filteredList.value.length ? 0 : -1;
+  };
+
+  watch(filteredList, () => {
+    resetHighlight();
     updateDropdownPosition();
   });
 
@@ -327,16 +331,11 @@
     updateDropdownPosition();
   });
 
-  watch(
-    modelValue,
-    () => {
-      updateVisibleTagCount();
-    },
-    {
-      deep: true,
-      immediate: true,
-    },
-  );
+  // 已选值与展示名都会影响标签宽度，两者变化后都要重算折叠位置
+  watch([modelValue, candidateNameMap], calcOverflow, {
+    deep: true,
+    flush: 'post',
+  });
 
   watch(highlightIndex, (index) => {
     if (index < 0) {
@@ -349,11 +348,24 @@
     });
   });
 
-  const getValueLabel = (value: string) => candidateNameMap.value[value] ?? value;
+  const getValueLabel = (value: string) => candidateNameMap.value.get(value) ?? value;
+
+  // 折叠标签的 tooltip：列出被 +N 收起的值
+  const collapsedTagTips = computed(() =>
+    collapsedTagCount.value > 0
+      ? modelValue.value
+          .slice(overflowTagIndex.value ?? 0)
+          .map((value) => getValueLabel(value))
+          .join('、')
+      : '',
+  );
 
   const emitChange = (value: string[]) => {
     modelValue.value = value;
     emits('change', value);
+    if (props.withValidate) {
+      formItem?.validate?.('change');
+    }
   };
 
   // 追加值：批内 + 已选去重
@@ -410,6 +422,7 @@
     if (triggerRef.value) {
       triggerWidth.value = triggerRef.value.offsetWidth;
     }
+    resetHighlight();
     tippyInstance?.show();
     nextTick(() => {
       tippyInstance?.popperInstance?.update();
@@ -428,9 +441,6 @@
       return;
     }
     showDropdown();
-    nextTick(() => {
-      inputRef.value?.focus();
-    });
   };
 
   const handleTriggerClick = () => {
@@ -441,19 +451,56 @@
     showDropdown();
   };
 
+  /**
+   * 点击组件内非输入框区域（标签、+N、清空、面板空白）时阻止默认的焦点转移。
+   * 输入焦点不丢失，blur 便只在焦点真正离开组件时触发，无需延时兜底失焦与重新聚焦的往返。
+   * 点击输入框本身不拦截，保留光标定位与拖选。
+   */
+  const handleTriggerMousedown = (event: MouseEvent) => {
+    // 禁用态没有焦点要保住，放行以便选中复制标签文字
+    if (props.disabled) {
+      return;
+    }
+    if (event.target !== inputRef.value) {
+      event.preventDefault();
+    }
+  };
+
   const handleInputFocus = () => {
     isFocus.value = true;
-    visibleTagCount.value = modelValue.value.length;
     showDropdown();
+    emits('focus');
+  };
+
+  /**
+   * 失焦时提交残留输入，避免输入完未按回车就点击其他区域导致内容静默丢失。
+   * 命中候选的段归一化为候选值；「仅候选」且不允许新建时，非候选段无法成为标签只能丢弃。
+   */
+  const commitResidualInput = () => {
+    const segments = splitBatchText(inputValue.value);
+    if (!segments.length) {
+      return;
+    }
+    if (isCandidateMode.value && !props.allowCreate) {
+      appendValues(
+        segments.map((segment) => resolveCandidateValue(segment)).filter((value): value is string => value !== null),
+      );
+      return;
+    }
+    appendValues(segments.map((segment) => resolveCandidateValue(segment) ?? segment));
   };
 
   const handleInputBlur = () => {
-    // 延时关闭，避免点击候选项（已阻止 mousedown）之外的失焦竞态
-    setTimeout(() => {
-      isFocus.value = false;
-      hideDropdown();
-      updateVisibleTagCount();
-    }, 200);
+    const residualValue = inputValue.value;
+    commitResidualInput();
+    inputValue.value = '';
+    isFocus.value = false;
+    hideDropdown();
+    calcOverflow();
+    emits('blur', residualValue, modelValue.value);
+    if (props.withValidate) {
+      formItem?.validate?.('blur');
+    }
   };
 
   const handleInput = () => {
@@ -465,6 +512,7 @@
   };
 
   const handleClear = () => {
+    inputValue.value = '';
     emitChange([]);
   };
 
@@ -480,10 +528,18 @@
         resetKeywordKeepOpen();
         return;
       }
+      // 输入内容精确命中候选时直接选中，避免 allowCreate 下创建出与候选重复的自由值
+      const matchedValue = resolveCandidateValue(inputValue.value);
+      if (matchedValue) {
+        appendValues([matchedValue]);
+        resetKeywordKeepOpen();
+        return;
+      }
       // 无高亮时：允许新建则在回车时按分隔符拆分并创建标签，否则保留输入内容
       const createValues = splitBatchText(inputValue.value);
       if (props.allowCreate && createValues.length) {
-        appendValues(createValues);
+        // 与粘贴保持一致：命中候选的段归一化为候选值，其余原样新建
+        appendValues(createValues.map((segment) => resolveCandidateValue(segment) ?? segment));
         resetKeywordKeepOpen();
       }
       return;
@@ -591,7 +647,7 @@
 
   const handleOptionClick = (item: { id: string; name: string }) => {
     // 单选：选中即替换；多选：切换选中态
-    if (props.multiple && selectedValueMap.value[item.id]) {
+    if (props.multiple && selectedValueSet.value.has(item.id)) {
       removeValue(item.id);
     } else {
       appendValues([item.id]);
@@ -600,12 +656,12 @@
   };
 
   onMounted(() => {
+    calcOverflow();
     if (triggerRef.value) {
       triggerWidth.value = triggerRef.value.offsetWidth;
-      updateVisibleTagCount();
       resizeObserver = new ResizeObserver(([entry]) => {
         triggerWidth.value = entry.contentRect.width;
-        updateVisibleTagCount();
+        debouncedCalcOverflow();
         updateDropdownPosition();
       });
       resizeObserver.observe(triggerRef.value);
@@ -627,6 +683,7 @@
   });
 
   onBeforeUnmount(() => {
+    debouncedCalcOverflow.cancel();
     resizeObserver?.disconnect();
     resizeObserver = undefined;
     if (tippyInstance) {
@@ -665,20 +722,17 @@
       }
 
       .db-tag-input-tag-list {
-        flex-wrap: wrap;
         overflow: visible;
+      }
+
+      .db-tag-input-input {
+        min-width: 40px;
       }
     }
 
     &:not(.is-focus) {
       .db-tag-input-tag {
         max-width: 30%;
-
-        :deep(.bk-tag-text) {
-          overflow: hidden;
-          text-overflow: ellipsis;
-          white-space: nowrap;
-        }
       }
     }
 
@@ -717,7 +771,8 @@
       width: 100%;
       padding: 3px 0;
       overflow: hidden;
-      flex-wrap: nowrap;
+      // 收起态靠换行位置识别溢出标签，超出的行由 panel 的 max-height 裁掉
+      flex-wrap: wrap;
       gap: 4px;
       align-items: center;
     }
@@ -734,7 +789,8 @@
 
     .db-tag-input-input {
       height: 22px;
-      min-width: 40px;
+      // 收起态允许压缩到 0，避免输入框把标签挤到第二行
+      min-width: 0;
       padding: 0 4px;
       font-size: 12px;
       line-height: 22px;
@@ -747,16 +803,6 @@
       &::placeholder {
         color: #c4c6cc;
       }
-    }
-
-    .db-tag-input-measure {
-      position: fixed;
-      top: -9999px;
-      left: -9999px;
-      display: flex;
-      padding: 3px 24px 3px 4px;
-      visibility: hidden;
-      gap: 4px;
     }
 
     .db-tag-input-clear {
