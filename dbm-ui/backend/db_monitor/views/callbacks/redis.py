@@ -40,26 +40,26 @@ class RedisAlarm(AlarmCallback):
     """Redis 告警回调处理器"""
 
     # 处理函数 -> 匹配条件列表的映射
-    # level: 0-致命, 1-预警, 2-提醒
+    # level: 1-致命, 2-预警, 3-提醒
     STRATEGY_HANDLERS = {
         "call_redis_alarm_correlation_analysis": [
             {
                 "keyword": "耗时",
-                "level": [0],
+                "level": [1],
                 "cluster_type": [],
             },
         ],
         "call_redis_persist_anomaly_analysis": [
             {
                 "keyword": "Persist异常",
-                "level": [0],
+                "level": [1],
                 "cluster_type": [],
             },
         ],
         "call_redis_single_cpu_high_analysis": [
             {
                 "keyword": "单核CPU使用率",
-                "level": [0],
+                "level": [1],
                 "cluster_type": [],
             },
         ],
@@ -70,12 +70,25 @@ class RedisAlarm(AlarmCallback):
         """根据策略名、告警级别分发到对应的异步处理任务"""
         callback_message = callback_data.get("callback_message", {})
         strategy_name = callback_message.get("strategy", {}).get("name", "")
-        event_level = callback_message.get("event", {}).get("level")
+        raw_event_level = callback_message.get("event", {}).get("level")
+        event_level = raw_event_level
+        try:
+            event_level = int(event_level) if event_level is not None else None
+        except (TypeError, ValueError):
+            logger.warning(_("[RedisAlarm] 无法解析告警级别: {}，将按不限制级别处理").format(event_level))
+            event_level = None
 
         dimensions = callback_message.get("event", {}).get("dimensions", {})
         cluster_domain = dimensions.get("cluster_domain", "")
         cluster_type = dimensions.get("cluster_type", "")
         bk_biz_id = int(dimensions.get("appid", 0))
+
+        logger.info(
+            _(
+                "[RedisAlarm] 收到告警回调: strategy='{}', level(raw={}, parsed={}), "
+                "cluster_domain='{}', cluster_type='{}', bk_biz_id={}"
+            ).format(strategy_name, raw_event_level, event_level, cluster_domain, cluster_type, bk_biz_id)
+        )
 
         if (not cluster_type or not bk_biz_id) and cluster_domain:
             cluster = Cluster.objects.filter(immute_domain=cluster_domain).first()
@@ -94,13 +107,34 @@ class RedisAlarm(AlarmCallback):
 
         for handler_name, conditions in cls.STRATEGY_HANDLERS.items():
             for condition in conditions:
+                logger.info(
+                    _("[RedisAlarm] 开始匹配处理器: handler={}, keyword='{}', level={}, cluster_type={}").format(
+                        handler_name,
+                        condition.get("keyword", ""),
+                        condition.get("level", []),
+                        condition.get("cluster_type", []),
+                    )
+                )
                 if condition["keyword"] == "" or condition["keyword"] not in strategy_name:
+                    logger.info(
+                        _("[RedisAlarm] 跳过处理器 {}: 策略名 '{}' 不包含关键字 '{}' ").format(
+                            handler_name, strategy_name, condition.get("keyword", "")
+                        )
+                    )
                     continue
                 level_list = condition.get("level", [])
                 if level_list and event_level is not None and event_level not in level_list:
+                    logger.info(
+                        _("[RedisAlarm] 跳过处理器 {}: 告警级别 {} 不在 {} 中").format(handler_name, event_level, level_list)
+                    )
                     continue
                 cluster_type_list = condition.get("cluster_type", [])
                 if cluster_type_list and cluster_type and cluster_type not in cluster_type_list:
+                    logger.info(
+                        _("[RedisAlarm] 跳过处理器 {}: 集群类型 '{}' 不在 {} 中").format(
+                            handler_name, cluster_type, cluster_type_list
+                        )
+                    )
                     continue
 
                 handler = globals().get(handler_name)
@@ -115,6 +149,12 @@ class RedisAlarm(AlarmCallback):
                     logger.warning(_("[RedisAlarm] 未找到处理函数: {}").format(handler_name))
                 return
 
+        logger.info(
+            _("[RedisAlarm] 未匹配到任何处理器: strategy='{}', level={}, cluster_type='{}'").format(
+                strategy_name, event_level, cluster_type
+            )
+        )
+
 
 @shared_task
 def call_redis_alarm_correlation_analysis(callback_data: dict, alarm_base_info: dict):
@@ -124,6 +164,12 @@ def call_redis_alarm_correlation_analysis(callback_data: dict, alarm_base_info: 
     """
     strategy_name = alarm_base_info.get("strategy_name", "")
     cluster_domain = alarm_base_info.get("cluster_domain", "")
+
+    logger.info(
+        _("[redis_alarm_correlation] 任务启动: strategy='{}', cluster_domain='{}', bk_biz_id={}").format(
+            strategy_name, cluster_domain, alarm_base_info.get("bk_biz_id", 0)
+        )
+    )
 
     if not cluster_domain:
         logger.warning(_("[redis_alarm_correlation] 告警事件中缺少 cluster_domain，跳过分析"))
@@ -148,6 +194,11 @@ def call_redis_alarm_correlation_analysis(callback_data: dict, alarm_base_info: 
         }
         alert_result = BKMonitorV3Api.search_alert(search_params, use_admin=True)
         alerts = alert_result.get("alerts", []) if isinstance(alert_result, dict) else []
+        logger.info(
+            _("[redis_alarm_correlation] 拉取活跃告警完成: strategy='{}', alerts_count={}, time_window={}s").format(
+                strategy_name, len(alerts), CORRELATION_TIME_WINDOW
+            )
+        )
     except Exception as e:
         logger.exception(_("[redis_alarm_correlation] 拉取关联告警失败: {}").format(e))
         return
@@ -208,6 +259,11 @@ def call_redis_alarm_correlation_analysis(callback_data: dict, alarm_base_info: 
             _("AI分析结论"): result_summary,
         }
         send_msg_2_qywx(title, msgs)
+        logger.info(
+            _("[redis_alarm_correlation] 推送完成: title='{}', receivers(appointees)={}").format(
+                title, alarm_base_info.get("appointees", [])
+            )
+        )
     except Exception as e:
         logger.exception(_("[redis_alarm_correlation] AI 关联分析失败: {}").format(e))
 
@@ -218,6 +274,12 @@ def call_redis_persist_anomaly_analysis(callback_data: dict, alarm_base_info: di
     异步任务：Persist 异常告警触发 AI 分析，判断是否为母鸡（宿主机）故障导致。
     """
     cluster_domain = alarm_base_info.get("cluster_domain", "")
+
+    logger.info(
+        _("[redis_persist_anomaly] 任务启动: strategy='{}', cluster_domain='{}', bk_biz_id={}").format(
+            alarm_base_info.get("strategy_name", ""), cluster_domain, alarm_base_info.get("bk_biz_id", 0)
+        )
+    )
 
     if not cluster_domain:
         logger.warning(_("[redis_persist_anomaly] 告警事件中缺少 cluster_domain，跳过分析"))
@@ -251,6 +313,11 @@ def call_redis_persist_anomaly_analysis(callback_data: dict, alarm_base_info: di
             _("AI分析结论"): result_summary,
         }
         send_msg_2_qywx(title, msgs)
+        logger.info(
+            _("[redis_persist_anomaly] 推送完成: title='{}', receivers(appointees)={}").format(
+                title, alarm_base_info.get("appointees", [])
+            )
+        )
     except Exception as e:
         logger.exception(_("[redis_persist_anomaly] AI 分析失败: {}").format(e))
 
@@ -261,6 +328,12 @@ def call_redis_single_cpu_high_analysis(callback_data: dict, alarm_base_info: di
     异步任务：单核 CPU 使用率过高告警触发 AI 分析，判断是负载不均还是热 Key 导致。
     """
     cluster_domain = alarm_base_info.get("cluster_domain", "")
+
+    logger.info(
+        _("[redis_single_cpu_high] 任务启动: strategy='{}', cluster_domain='{}', bk_biz_id={}").format(
+            alarm_base_info.get("strategy_name", ""), cluster_domain, alarm_base_info.get("bk_biz_id", 0)
+        )
+    )
 
     if not cluster_domain:
         logger.warning(_("[redis_single_cpu_high] 告警事件中缺少 cluster_domain，跳过分析"))
@@ -294,5 +367,10 @@ def call_redis_single_cpu_high_analysis(callback_data: dict, alarm_base_info: di
             _("AI分析结论"): result_summary,
         }
         send_msg_2_qywx(title, msgs)
+        logger.info(
+            _("[redis_single_cpu_high] 推送完成: title='{}', receivers(appointees)={}").format(
+                title, alarm_base_info.get("appointees", [])
+            )
+        )
     except Exception as e:
         logger.exception(_("[redis_single_cpu_high] AI 分析失败: {}").format(e))
