@@ -1,0 +1,10 @@
+apiVersion: bkai.tencent.com/v1
+kind: Skill
+
+metadata:
+  code: dbm-mysql-alarm-analyzer
+  name: MySQL告警智能分析
+
+spec:
+  generate_type: space
+  is_public: false

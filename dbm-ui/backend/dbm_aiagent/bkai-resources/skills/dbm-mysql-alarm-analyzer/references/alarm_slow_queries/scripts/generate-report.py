@@ -1,0 +1,1910 @@
+#!/usr/bin/env python3
+"""
+将慢查询分析结果生成可交互式 HTML 报告（PMM 风格双面板布局）
+
+用法: generate-report.py <cluster_domain> [--start-time <time>] [--end-time <time>]
+
+输入:
+  $OUTPUT_DIR/slowlog_<cluster_domain>_body.json     — 慢查询数组
+  $OUTPUT_DIR/slowlog_<cluster_domain>_explain.json  — EXPLAIN 结果数组
+  $OUTPUT_DIR/slowlog_<cluster_domain>_schema.json   — 表结构结果数组
+  $OUTPUT_DIR/slowlog_<cluster_domain>_analysis.json — AI 分析结果数组（可选）
+
+输出:
+  $OUTPUT_DIR/slowlog_<cluster_domain>_report.html   — 可交互式 HTML 报告
+"""
+
+import argparse
+import html
+import json
+import os
+import sys
+from datetime import datetime
+
+
+def load_json(path):
+    """加载 JSON 文件"""
+    try:
+        with open(path, "r") as f:
+            return json.load(f)
+    except (FileNotFoundError, json.JSONDecodeError) as e:
+        print(f"[WARN] Failed to load {path}: {e}", file=sys.stderr)
+        return []
+
+
+def escape(text):
+    """HTML 转义"""
+    if text is None:
+        return ""
+    return html.escape(str(text))
+
+
+def format_number(n):
+    """格式化数字，添加千分位分隔符"""
+    if isinstance(n, float):
+        if n >= 1:
+            return f"{n:,.2f}"
+        elif n >= 0.01:
+            return f"{n:.3f}"
+        else:
+            return f"{n:.4f}"
+    if isinstance(n, int):
+        return f"{n:,}"
+    return str(n)
+
+
+def format_duration(seconds):
+    """将秒数格式化为可读时间"""
+    if seconds < 1:
+        return f"{seconds*1000:.1f} ms"
+    elif seconds < 60:
+        return f"{seconds:.2f} s"
+    elif seconds < 3600:
+        return f"{seconds/60:.1f} min"
+    else:
+        return f"{seconds/3600:.1f} h"
+
+
+def severity_class(query_time_max, rows_examined_max):
+    """根据查询耗时和扫描行数判断严重等级"""
+    if query_time_max >= 10 or rows_examined_max >= 1000000:
+        return "critical"
+    elif query_time_max >= 3 or rows_examined_max >= 100000:
+        return "warning"
+    return "normal"
+
+
+def generate_html(
+    domain, slow_logs, explain_results, schema_results, analysis_results=None, start_time="", end_time=""
+):
+    """生成完整的 HTML 报告（PMM 双面板风格）"""
+    # 兼容新格式 {"summary": {...}, "queries": [...]} 和旧格式 [...]
+    analysis_summary = {}
+    analysis_queries = []
+    if isinstance(analysis_results, dict):
+        analysis_summary = analysis_results.get("summary", {})
+        analysis_queries = analysis_results.get("queries", [])
+    elif isinstance(analysis_results, list):
+        analysis_queries = analysis_results
+    elif analysis_results is None:
+        analysis_queries = []
+
+    count = len(slow_logs)
+    now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+    # 统计摘要
+    total_query_time = sum(e.get("query_time_sum", 0) for e in slow_logs)
+    total_rows_examined = sum(e.get("rows_examined_sum", 0) for e in slow_logs)
+    total_count = sum(e.get("count_star", 0) for e in slow_logs)
+    critical_count = sum(
+        1 for e in slow_logs if severity_class(e.get("query_time_max", 0), e.get("rows_examined_max", 0)) == "critical"
+    )
+    warning_count = sum(
+        1 for e in slow_logs if severity_class(e.get("query_time_max", 0), e.get("rows_examined_max", 0)) == "warning"
+    )
+    normal_count = count - critical_count - warning_count
+
+    # 构建表格行数据（JSON），传递给前端
+    table_data = []
+    for i, entry in enumerate(slow_logs):
+        query_time_max = entry.get("query_time_max", 0)
+        query_time_sum = entry.get("query_time_sum", 0)
+        rows_examined_max = entry.get("rows_examined_max", 0)
+        rows_examined_sum = entry.get("rows_examined_sum", 0)
+        count_star = entry.get("count_star", 0)
+        severity = severity_class(query_time_max, rows_examined_max)
+
+        # 计算负载占比（用于迷你条形图）
+        load_pct = (query_time_sum / total_query_time * 100) if total_query_time > 0 else 0
+        rows_pct = (rows_examined_sum / total_rows_examined * 100) if total_rows_examined > 0 else 0
+
+        table_data.append(
+            {
+                "idx": i,
+                "severity": severity,
+                "digest_md5": entry.get("query_digest_md5", f"unknown_{i}"),
+                "query_digest_text": entry.get("query_digest_text", entry.get("query_string", "")),
+                "query_string": entry.get("query_string", ""),
+                "query_time_max": query_time_max,
+                "query_time_sum": query_time_sum,
+                "query_time_avg": query_time_sum / count_star if count_star > 0 else 0,
+                "rows_examined_max": rows_examined_max,
+                "rows_examined_sum": rows_examined_sum,
+                "rows_examined_avg": rows_examined_sum / count_star if count_star > 0 else 0,
+                "rows_sent_sum": entry.get("rows_sent_sum", 0),
+                "count_star": count_star,
+                "load_pct": load_pct,
+                "rows_pct": rows_pct,
+                "username": entry.get("username", ""),
+                "query_db_name": entry.get("query_db_name", ""),
+                "table_names": entry.get("table_names", ""),
+                "instance_host": entry.get("instance_host", ""),
+                "instance_port": entry.get("instance_port", ""),
+                "time_window_min": entry.get("time_window_min", ""),
+                "time_window_max": entry.get("time_window_max", entry.get("time_window_min", "")),
+                "lock_time_max": entry.get("lock_time_max", 0),
+                "lock_time_sum": entry.get("lock_time_sum", 0),
+            }
+        )
+
+    # 按 load_pct 降序排序，使序号代表 Load 排名
+    table_data.sort(key=lambda x: x["load_pct"], reverse=True)
+    for i, row in enumerate(table_data):
+        row["idx"] = i
+
+    # 构建详情数据 JSON（以 digest_md5 为 key 的字典，方便前端按 md5 关联）
+    detail_data = {}
+    for i, entry in enumerate(slow_logs):
+        digest_md5 = entry.get("query_digest_md5", f"unknown_{i}")
+        explain_data = explain_results[i] if i < len(explain_results) else {}
+        schema_data = schema_results[i] if i < len(schema_results) else {}
+        analysis_data = analysis_queries[i] if i < len(analysis_queries) else {}
+
+        # 解析 explain
+        explain_rows = []
+        explain_body = explain_data.get("response_body", {}).get("data", {})
+        if isinstance(explain_body, dict):
+            explain_result = explain_body.get("explain_result", [])
+            if isinstance(explain_result, dict):
+                explain_list = [explain_result]
+            elif isinstance(explain_result, list):
+                explain_list = explain_result
+            else:
+                explain_list = []
+            for row in explain_list:
+                if isinstance(row, dict):
+                    explain_rows.append(
+                        {
+                            "id": row.get("id", ""),
+                            "select_type": row.get("select_type", ""),
+                            "table": row.get("table", ""),
+                            "partitions": row.get("partitions", ""),
+                            "type": row.get("type", ""),
+                            "possible_keys": row.get("possible_keys", ""),
+                            "key": row.get("key", ""),
+                            "key_len": row.get("key_len", ""),
+                            "ref": row.get("ref", ""),
+                            "rows": row.get("rows", ""),
+                            "filtered": row.get("filtered", ""),
+                            "Extra": row.get("Extra", ""),
+                        }
+                    )
+
+        # 解析 schema
+        schema_sqls = []
+        resp_body = schema_data.get("response_body", {})
+        schema_body = resp_body.get("data", {}) if isinstance(resp_body, dict) else {}
+
+        if isinstance(schema_body, list):
+            for t in schema_body:
+                if isinstance(t, dict):
+                    create_sql_field = t.get("create_sql", "")
+                    if isinstance(create_sql_field, dict):
+                        create_sql = create_sql_field.get("create_sql", "")
+                    else:
+                        create_sql = str(create_sql_field)
+                    if create_sql:
+                        schema_sqls.append(create_sql)
+        elif isinstance(schema_body, dict):
+            tables = schema_body.get("tables_info", schema_body.get("tables", []))
+            if isinstance(tables, list):
+                for t in tables:
+                    if isinstance(t, dict):
+                        create_sql_field = t.get("create_table", t.get("create_sql", ""))
+                        if isinstance(create_sql_field, dict):
+                            create_sql = create_sql_field.get("create_sql", "")
+                        else:
+                            create_sql = str(create_sql_field)
+                        if create_sql:
+                            schema_sqls.append(create_sql)
+        elif isinstance(schema_body, str) and schema_body:
+            schema_sqls.append(schema_body)
+
+        detail_data[digest_md5] = {
+            "explain_rows": explain_rows,
+            "schema_sqls": schema_sqls,
+            "analysis": analysis_data,
+        }
+
+    # 将数据序列化为 JSON 嵌入 HTML
+    table_data_json = json.dumps(table_data, ensure_ascii=False)
+    detail_data_json = json.dumps(detail_data, ensure_ascii=False)
+    summary_data_json = json.dumps(analysis_summary, ensure_ascii=False)
+
+    return f"""<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>慢查询分析报告 - {escape(domain)}</title>
+    <style>
+        :root {{
+            --bg-primary: #0d1117;
+            --bg-secondary: #161b22;
+            --bg-tertiary: #21262d;
+            --bg-hover: #1c2128;
+            --border-color: #30363d;
+            --border-light: #21262d;
+            --text-primary: #e6edf3;
+            --text-secondary: #8b949e;
+            --text-muted: #6e7681;
+            --accent-blue: #58a6ff;
+            --accent-green: #3fb950;
+            --accent-yellow: #d29922;
+            --accent-red: #f85149;
+            --accent-purple: #bc8cff;
+            --accent-orange: #db6d28;
+            --row-selected: rgba(88, 166, 255, 0.08);
+            --summary-bg: rgba(188, 140, 255, 0.08);
+            --summary-bg-hover: rgba(188, 140, 255, 0.15);
+            --summary-border: rgba(188, 140, 255, 0.2);
+            --explain-row-hover: rgba(88, 166, 255, 0.05);
+            --badge-red-bg: rgba(248, 81, 73, 0.15);
+            --badge-yellow-bg: rgba(210, 153, 34, 0.15);
+            --badge-green-bg: rgba(63, 185, 80, 0.15);
+            --badge-blue-bg: rgba(88, 166, 255, 0.15);
+            --badge-purple-bg: rgba(188, 140, 255, 0.15);
+        }}
+
+        /* 亮色模式 */
+        :root.light {{
+            --bg-primary: #ffffff;
+            --bg-secondary: #f6f8fa;
+            --bg-tertiary: #eef1f5;
+            --bg-hover: #f0f3f6;
+            --border-color: #d0d7de;
+            --border-light: #e8ecf0;
+            --text-primary: #1f2328;
+            --text-secondary: #656d76;
+            --text-muted: #8c959f;
+            --accent-blue: #0969da;
+            --accent-green: #1a7f37;
+            --accent-yellow: #9a6700;
+            --accent-red: #cf222e;
+            --accent-purple: #8250df;
+            --accent-orange: #bc4c00;
+            --row-selected: rgba(9, 105, 218, 0.06);
+            --summary-bg: rgba(130, 80, 223, 0.06);
+            --summary-bg-hover: rgba(130, 80, 223, 0.1);
+            --summary-border: rgba(130, 80, 223, 0.15);
+            --explain-row-hover: rgba(9, 105, 218, 0.04);
+            --badge-red-bg: rgba(207, 34, 46, 0.1);
+            --badge-yellow-bg: rgba(154, 103, 0, 0.1);
+            --badge-green-bg: rgba(26, 127, 55, 0.1);
+            --badge-blue-bg: rgba(9, 105, 218, 0.1);
+            --badge-purple-bg: rgba(130, 80, 223, 0.1);
+        }}
+
+        * {{ margin: 0; padding: 0; box-sizing: border-box; }}
+
+        body {{
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans SC', sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            line-height: 1.5;
+            height: 100vh;
+            overflow: hidden;
+        }}
+
+        /* Layout: 上下双面板 */
+        .layout {{
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+        }}
+
+        /* 顶部 Header */
+        .top-bar {{
+            background: var(--bg-secondary);
+            border-bottom: 1px solid var(--border-color);
+            padding: 12px 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-shrink: 0;
+        }}
+
+        .top-bar-left {{
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }}
+
+        .top-bar-left h1 {{
+            font-size: 1.1rem;
+            color: var(--text-primary);
+            font-weight: 600;
+        }}
+
+        .top-bar-meta {{
+            display: flex;
+            gap: 16px;
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+        }}
+
+        .top-bar-right {{
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }}
+
+        .top-bar-right .search-input {{
+            padding: 5px 10px;
+            border-radius: 4px;
+            border: 1px solid var(--border-color);
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+            font-size: 0.8rem;
+            width: 180px;
+        }}
+
+        .top-bar-right .search-input:focus {{
+            outline: none;
+            border-color: var(--accent-blue);
+        }}
+
+        .filter-btn {{
+            padding: 4px 10px;
+            border-radius: 4px;
+            border: 1px solid var(--border-color);
+            background: var(--bg-secondary);
+            color: var(--text-secondary);
+            cursor: pointer;
+            font-size: 0.75rem;
+        }}
+
+        .filter-btn:hover, .filter-btn.active {{
+            border-color: var(--accent-blue);
+            color: var(--accent-blue);
+        }}
+
+        /* 上面板：SQL 列表表格 */
+        .top-panel {{
+            flex: 1;
+            min-height: 200px;
+            overflow: auto;
+            border-bottom: 2px solid var(--border-color);
+        }}
+
+        .query-table {{
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.8rem;
+            table-layout: fixed;
+        }}
+
+        .query-table thead {{
+            position: sticky;
+            top: 0;
+            z-index: 10;
+            overflow: visible;
+        }}
+
+        .query-table th {{
+            background: var(--bg-tertiary);
+            padding: 8px 10px;
+            text-align: left;
+            font-weight: 600;
+            color: var(--text-secondary);
+            border-bottom: 1px solid var(--border-color);
+            white-space: nowrap;
+            cursor: pointer;
+            user-select: none;
+            font-size: 0.75rem;
+        }}
+
+        .query-table th:hover {{
+            color: var(--accent-blue);
+        }}
+
+        /* 表头自定义 tooltip（立即显示） */
+        .query-table th[data-tip] {{
+            position: relative;
+            overflow: visible;
+        }}
+
+        .query-table th[data-tip]::after {{
+            content: attr(data-tip);
+            position: absolute;
+            top: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            margin-top: 4px;
+            background: var(--bg-primary);
+            color: var(--text-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            padding: 4px 8px;
+            font-size: 0.7rem;
+            font-weight: 400;
+            white-space: nowrap;
+            z-index: 999;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.15s;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.12);
+        }}
+
+        .query-table th[data-tip]:hover::after {{
+            opacity: 1;
+        }}
+
+        .query-table th .sort-icon {{
+            margin-left: 4px;
+            opacity: 0.3;
+        }}
+
+        .query-table th.sorted .sort-icon {{
+            opacity: 1;
+            color: var(--accent-blue);
+        }}
+
+        /* 列宽定义 */
+        .query-table .col-num {{ width: 36px; }}
+        .query-table .col-severity {{ width: 36px; }}
+        .query-table .col-query {{ width: auto; min-width: 300px; }}
+        .query-table .col-load {{ width: 120px; }}
+        .query-table .col-count {{ width: 80px; }}
+        .query-table .col-time {{ width: 90px; }}
+        .query-table .col-rows {{ width: 90px; }}
+
+        .query-table td {{
+            padding: 8px 10px;
+            border-bottom: 1px solid var(--border-light);
+            color: var(--text-primary);
+            vertical-align: middle;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }}
+
+        .query-table tbody tr {{
+            cursor: pointer;
+            transition: background 0.1s;
+        }}
+
+        .query-table tbody tr:hover {{
+            background: var(--bg-hover);
+        }}
+
+        .query-table tbody tr.selected {{
+            background: var(--row-selected);
+        }}
+
+        .query-table tbody tr.selected td {{
+            border-bottom-color: var(--accent-blue);
+        }}
+
+        /* 严重等级指示器 */
+        .severity-dot {{
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            display: inline-block;
+        }}
+
+        .severity-dot.critical {{ background: var(--accent-red); }}
+        .severity-dot.warning {{ background: var(--accent-yellow); }}
+        .severity-dot.normal {{ background: var(--accent-green); }}
+
+        /* SQL 摘要 */
+        .query-cell {{
+            font-family: 'SF Mono', Monaco, 'Cascadia Code', monospace;
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }}
+
+        /* 迷你负载条 */
+        .load-bar-wrapper {{
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }}
+
+        .load-bar {{
+            flex: 1;
+            height: 14px;
+            background: var(--bg-primary);
+            border-radius: 2px;
+            overflow: hidden;
+            position: relative;
+        }}
+
+        .load-bar-fill {{
+            height: 100%;
+            border-radius: 2px;
+            transition: width 0.3s;
+        }}
+
+        .load-bar-fill.critical {{ background: var(--accent-red); opacity: 0.8; }}
+        .load-bar-fill.warning {{ background: var(--accent-yellow); opacity: 0.8; }}
+        .load-bar-fill.normal {{ background: var(--accent-blue); opacity: 0.6; }}
+
+        .load-pct {{
+            font-size: 0.7rem;
+            color: var(--text-muted);
+            min-width: 36px;
+            text-align: right;
+        }}
+
+        /* 数值单元格 */
+        .num-cell {{
+            font-family: 'SF Mono', Monaco, monospace;
+            font-size: 0.8rem;
+            text-align: right;
+        }}
+
+        .num-cell.highlight {{ color: var(--accent-red); font-weight: 600; }}
+
+        /* 下面板：详情区域 */
+        .bottom-panel {{
+            flex: 1;
+            min-height: 250px;
+            overflow: hidden;
+            background: var(--bg-secondary);
+            display: flex;
+            flex-direction: column;
+        }}
+
+        .detail-placeholder {{
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex: 1;
+            color: var(--text-muted);
+            font-size: 0.9rem;
+        }}
+
+        /* Tab 导航 */
+        .detail-tabs {{
+            display: flex;
+            border-bottom: 1px solid var(--border-color);
+            padding: 0 20px;
+            background: var(--bg-secondary);
+            flex-shrink: 0;
+            z-index: 5;
+        }}
+
+        .detail-tab {{
+            padding: 10px 16px;
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+            transition: all 0.2s;
+        }}
+
+        .detail-tab:hover {{
+            color: var(--text-primary);
+        }}
+
+        .detail-tab.active {{
+            color: var(--accent-blue);
+            border-bottom-color: var(--accent-blue);
+        }}
+
+        /* Tab 内容 */
+        .detail-content {{
+            padding: 16px 20px;
+            flex: 1;
+            overflow-y: auto;
+        }}
+
+        .tab-pane {{
+            display: none;
+        }}
+
+        .tab-pane.active {{
+            display: block;
+        }}
+
+        /* AI 分析 Tab */
+        .analysis-section {{
+            margin-bottom: 16px;
+            padding: 14px 16px;
+            background: var(--bg-tertiary);
+            border-radius: 6px;
+            border-left: 3px solid var(--accent-blue);
+        }}
+
+        .analysis-section-title {{
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: var(--accent-blue);
+            margin-bottom: 6px;
+        }}
+
+        .analysis-section p {{
+            font-size: 0.85rem;
+            color: var(--text-primary);
+            line-height: 1.7;
+            margin: 0;
+        }}
+
+        .suggestion-list {{
+            margin: 6px 0 0 20px;
+            padding: 0;
+            font-size: 0.85rem;
+            color: var(--text-primary);
+        }}
+
+        .suggestion-list li {{
+            margin-bottom: 8px;
+            line-height: 1.6;
+        }}
+
+        .risk-badge {{
+            display: inline-block;
+            padding: 3px 12px;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }}
+
+        .risk-badge.risk-high {{ background: var(--badge-red-bg); color: var(--accent-red); }}
+        .risk-badge.risk-medium {{ background: var(--badge-yellow-bg); color: var(--accent-yellow); }}
+        .risk-badge.risk-low {{ background: var(--badge-green-bg); color: var(--accent-green); }}
+
+        /* Metrics Tab - PMM 风格 */
+        .metrics-table {{
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.8rem;
+        }}
+
+        .metrics-table th {{
+            background: var(--bg-tertiary);
+            padding: 8px 12px;
+            text-align: left;
+            font-weight: 600;
+            color: var(--text-secondary);
+            border-bottom: 1px solid var(--border-color);
+            font-size: 0.75rem;
+        }}
+
+        .metrics-table td {{
+            padding: 10px 12px;
+            border-bottom: 1px solid var(--border-light);
+            color: var(--text-primary);
+        }}
+
+        .metrics-table .metric-name {{
+            font-weight: 500;
+            color: var(--text-primary);
+        }}
+
+        .metrics-table .metric-value {{
+            font-family: 'SF Mono', Monaco, monospace;
+            color: var(--accent-blue);
+        }}
+
+        .metrics-table .metric-pct {{
+            font-size: 0.7rem;
+            color: var(--accent-green);
+        }}
+
+        .metrics-table .metric-bar {{
+            width: 100px;
+            height: 16px;
+            background: var(--bg-primary);
+            border-radius: 2px;
+            overflow: hidden;
+            display: inline-block;
+            vertical-align: middle;
+        }}
+
+        .metrics-table .metric-bar-fill {{
+            height: 100%;
+            background: var(--accent-yellow);
+            opacity: 0.7;
+            border-radius: 2px;
+        }}
+
+        /* EXPLAIN Tab */
+        .explain-table {{
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.8rem;
+            white-space: nowrap;
+        }}
+
+        .explain-table th {{
+            background: var(--bg-tertiary);
+            padding: 8px 10px;
+            text-align: left;
+            font-weight: 600;
+            color: var(--text-secondary);
+            border-bottom: 1px solid var(--border-color);
+            font-size: 0.75rem;
+        }}
+
+        .explain-table td {{
+            padding: 8px 10px;
+            border-bottom: 1px solid var(--border-light);
+            color: var(--text-primary);
+        }}
+
+        /* 单行 Explain 纵向展示 */
+        .explain-table.explain-vertical {{
+            width: auto;
+            max-width: 500px;
+        }}
+
+        .explain-table.explain-vertical th {{
+            width: 130px;
+            white-space: nowrap;
+            font-family: 'SF Mono', Monaco, monospace;
+            font-size: 0.75rem;
+        }}
+
+        .explain-table.explain-vertical td {{
+            font-family: 'SF Mono', Monaco, monospace;
+            word-break: break-all;
+            white-space: normal;
+        }}
+
+        /* Explain 布局切换按钮 */
+        .explain-toolbar {{
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            margin-bottom: 10px;
+        }}
+
+        .explain-layout-btn {{
+            padding: 3px 8px;
+            border-radius: 4px;
+            border: 1px solid var(--border-color);
+            background: var(--bg-tertiary);
+            color: var(--text-secondary);
+            cursor: pointer;
+            font-size: 0.72rem;
+            transition: all 0.2s;
+            line-height: 1;
+        }}
+
+        .explain-layout-btn:hover {{
+            border-color: var(--accent-blue);
+            color: var(--accent-blue);
+        }}
+
+        .explain-layout-btn.active {{
+            border-color: var(--accent-blue);
+            background: var(--badge-blue-bg);
+            color: var(--accent-blue);
+            font-weight: 600;
+        }}
+
+        .explain-table tr:hover td {{
+            background: var(--explain-row-hover);
+        }}
+
+        .type-badge {{
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 0.72rem;
+            font-weight: 500;
+            display: inline-block;
+        }}
+
+        .type-badge.type-all {{ background: var(--badge-red-bg); color: var(--accent-red); }}
+        .type-badge.type-index {{ background: var(--badge-yellow-bg); color: var(--accent-yellow); }}
+        .type-badge.type-range {{ background: var(--badge-green-bg); color: var(--accent-green); }}
+        .type-badge.type-ref {{ background: var(--badge-green-bg); color: var(--accent-green); }}
+        .type-badge.type-eq_ref {{ background: var(--badge-blue-bg); color: var(--accent-blue); }}
+        .type-badge.type-const {{ background: var(--badge-purple-bg); color: var(--accent-purple); }}
+        .type-badge.type-system {{ background: var(--badge-purple-bg); color: var(--accent-purple); }}
+
+        /* Schema/Tables Tab */
+        pre {{
+            background: var(--bg-primary);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            padding: 14px;
+            overflow-x: auto;
+            font-size: 0.78rem;
+            line-height: 1.5;
+            margin-bottom: 12px;
+        }}
+
+        pre code {{
+            font-family: 'SF Mono', Monaco, 'Cascadia Code', monospace;
+            color: var(--text-primary);
+        }}
+
+        /* SQL 代码块：自动换行 */
+        pre.sql-block {{
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            word-break: break-all;
+            max-height: 400px;
+            overflow-y: auto;
+            overflow-x: hidden;
+        }}
+
+        /* 格式化按钮 */
+        .fmt-btn {{
+            padding: 3px 10px;
+            border-radius: 4px;
+            border: 1px solid var(--border-color);
+            background: var(--bg-tertiary);
+            color: var(--text-secondary);
+            cursor: pointer;
+            font-size: 0.72rem;
+            transition: all 0.2s;
+        }}
+
+        .fmt-btn:hover {{
+            border-color: var(--accent-blue);
+            color: var(--accent-blue);
+            background: var(--explain-row-hover);
+        }}
+
+        /* 分割条拖拽 */
+        .resizer {{
+            height: 4px;
+            background: var(--border-color);
+            cursor: row-resize;
+            flex-shrink: 0;
+            transition: background 0.2s;
+        }}
+
+        .resizer:hover, .resizer.active {{
+            background: var(--accent-blue);
+        }}
+
+        /* 分页器 */
+        .pagination {{
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 20px;
+            background: var(--bg-tertiary);
+            border-top: 1px solid var(--border-color);
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            flex-shrink: 0;
+        }}
+
+        .pagination button {{
+            padding: 3px 8px;
+            border-radius: 4px;
+            border: 1px solid var(--border-color);
+            background: var(--bg-secondary);
+            color: var(--text-secondary);
+            cursor: pointer;
+            font-size: 0.75rem;
+        }}
+
+        .pagination button:hover:not(:disabled) {{
+            border-color: var(--accent-blue);
+            color: var(--accent-blue);
+        }}
+
+        .pagination button:disabled {{
+            opacity: 0.4;
+            cursor: not-allowed;
+        }}
+
+        .pagination select {{
+            padding: 3px 6px;
+            border-radius: 4px;
+            border: 1px solid var(--border-color);
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+            font-size: 0.75rem;
+        }}
+
+        .text-muted {{
+            color: var(--text-muted);
+            font-style: italic;
+        }}
+
+        /* Close 按钮 */
+        .detail-close {{
+            position: absolute;
+            right: 20px;
+            top: 8px;
+            padding: 4px 10px;
+            border-radius: 4px;
+            border: 1px solid var(--border-color);
+            background: var(--bg-secondary);
+            color: var(--text-secondary);
+            cursor: pointer;
+            font-size: 0.75rem;
+        }}
+
+        .detail-close:hover {{
+            border-color: var(--accent-red);
+            color: var(--accent-red);
+        }}
+
+        .detail-header {{
+            position: relative;
+        }}
+
+        /* Summary bar */
+        .summary-bar {{
+            display: flex;
+            gap: 20px;
+            padding: 8px 20px;
+            background: var(--bg-tertiary);
+            border-bottom: 1px solid var(--border-color);
+            font-size: 0.75rem;
+            flex-shrink: 0;
+        }}
+
+        .summary-item {{
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            color: var(--text-secondary);
+        }}
+
+        .summary-item .val {{
+            font-weight: 700;
+            font-family: 'SF Mono', Monaco, monospace;
+        }}
+
+        .summary-item .val.critical {{ color: var(--accent-red); }}
+        .summary-item .val.warning {{ color: var(--accent-yellow); }}
+        .summary-item .val.blue {{ color: var(--accent-blue); }}
+
+        /* No data */
+        .no-data {{
+            text-align: center;
+            padding: 40px;
+            color: var(--text-muted);
+        }}
+
+        /* AI 总结区域 */
+        .ai-summary-panel {{
+            background: var(--bg-secondary);
+            border-bottom: 1px solid var(--border-color);
+            padding: 0;
+            flex-shrink: 0;
+            overflow: hidden;
+            transition: max-height 0.3s;
+        }}
+
+        .ai-summary-panel.collapsed {{
+            max-height: 38px;
+        }}
+
+        .ai-summary-toggle {{
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px 20px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: var(--accent-purple);
+            background: var(--summary-bg);
+            border-bottom: 1px solid var(--summary-border);
+            user-select: none;
+        }}
+
+        .ai-summary-toggle:hover {{
+            background: var(--summary-bg-hover);
+        }}
+
+        .ai-summary-toggle .toggle-hint {{
+            font-size: 0.72rem;
+            font-weight: 400;
+            color: var(--text-secondary);
+            margin-left: 10px;
+            padding: 2px 8px;
+            border-radius: 3px;
+            background: var(--summary-bg);
+            border: 1px solid var(--summary-border);
+        }}
+
+        .ai-summary-toggle .toggle-right {{
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }}
+
+        .ai-summary-toggle .toggle-btn {{
+            font-size: 0.72rem;
+            font-weight: 500;
+            color: var(--accent-purple);
+            padding: 3px 10px;
+            border-radius: 4px;
+            border: 1px solid var(--summary-border);
+            background: var(--summary-bg);
+            transition: all 0.2s;
+        }}
+
+        .ai-summary-toggle:hover .toggle-btn {{
+            background: var(--summary-bg-hover);
+            border-color: var(--accent-purple);
+        }}
+
+        .ai-summary-toggle .toggle-arrow {{
+            transition: transform 0.3s;
+            font-size: 0.7rem;
+        }}
+
+        .ai-summary-panel.collapsed .toggle-arrow {{
+            transform: rotate(-90deg);
+        }}
+
+        .ai-summary-panel.collapsed .toggle-btn {{
+            color: var(--accent-blue);
+            border-color: var(--border-color);
+            background: var(--bg-tertiary);
+        }}
+
+        .ai-summary-body {{
+            padding: 14px 20px;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 14px;
+            font-size: 0.82rem;
+        }}
+
+        .ai-summary-panel.collapsed .ai-summary-body {{
+            display: none;
+        }}
+
+        .summary-block {{
+            background: var(--bg-tertiary);
+            border-radius: 6px;
+            padding: 12px 14px;
+            border-left: 3px solid var(--accent-purple);
+        }}
+
+        .summary-block.urgent {{
+            border-left-color: var(--accent-red);
+        }}
+
+        .summary-block-title {{
+            font-size: 0.72rem;
+            font-weight: 600;
+            color: var(--accent-blue);
+            margin-bottom: 6px;
+            text-transform: uppercase;
+        }}
+
+        .summary-block.urgent .summary-block-title {{
+            color: var(--accent-red);
+        }}
+
+        .summary-block p {{
+            color: var(--text-primary);
+            line-height: 1.6;
+            margin: 0;
+        }}
+
+        .summary-block ul {{
+            margin: 4px 0 0 16px;
+            padding: 0;
+            color: var(--text-primary);
+            line-height: 1.7;
+        }}
+
+        .summary-block ul li {{
+            margin-bottom: 3px;
+        }}
+
+        /* 报告 Footer */
+        .report-footer {{
+            text-align: center;
+            padding: 8px;
+            color: var(--text-muted);
+            font-size: 0.7rem;
+            background: var(--bg-secondary);
+            border-top: 1px solid var(--border-color);
+            flex-shrink: 0;
+        }}
+
+        /* 主题切换按钮 */
+        .theme-toggle {{
+            padding: 4px 10px;
+            border-radius: 4px;
+            border: 1px solid var(--border-color);
+            background: var(--bg-tertiary);
+            color: var(--text-secondary);
+            cursor: pointer;
+            font-size: 0.75rem;
+            transition: all 0.2s;
+        }}
+
+        .theme-toggle:hover {{
+            border-color: var(--accent-blue);
+            color: var(--accent-blue);
+        }}
+    </style>
+</head>
+<body>
+    <div class="layout">
+        <!-- 顶部栏 -->
+        <div class="top-bar">
+            <div class="top-bar-left">
+                <h1> 慢查询分析报告</h1>
+                <div class="top-bar-meta">
+                    <span>集群: <strong>{escape(domain)}</strong></span>
+                    <span>时间: {escape(start_time)} ~ {escape(end_time)}</span>
+                    <span>报告生成: {now}</span>
+                </div>
+            </div>
+            <div class="top-bar-right">
+                <button class="filter-btn active" onclick="filterRows('all')">全部({count})</button>
+                <button class="filter-btn" onclick="filterRows('critical')"> {critical_count}</button>
+                <button class="filter-btn" onclick="filterRows('warning')"> {warning_count}</button>
+                <button class="filter-btn" onclick="filterRows('normal')"> {normal_count}</button>
+                <input type="text" class="search-input" placeholder="搜索 SQL / 表名..." oninput="searchRows(this.value)">
+                <button class="theme-toggle" onclick="toggleTheme()" id="themeBtn" title="切换亮色/暗色模式">☀️ 亮色</button>
+            </div>
+        </div>
+
+        <!-- 摘要条 -->
+        <div class="summary-bar">
+            <div class="summary-item"><span>慢查询 Top N:</span><span class="val blue">{count}</span></div>
+            <div class="summary-item"><span>严重:</span><span class="val critical">{critical_count}</span></div>
+            <div class="summary-item"><span>警告:</span><span class="val warning">{warning_count}</span></div>
+            <div class="summary-item"><span>累计耗时:</span><span class="val blue">{format_duration(total_query_time)}</span></div>
+            <div class="summary-item"><span>累计扫描:</span><span class="val blue">{format_number(total_rows_examined)} rows</span></div>
+            <div class="summary-item"><span>累计执行:</span><span class="val blue">{format_number(total_count)} 次</span></div>
+        </div>
+
+        <!-- AI 总结区域 -->
+        <div class="ai-summary-panel" id="aiSummaryPanel">
+            <div class="ai-summary-toggle" onclick="toggleSummary()">
+                <span> AI 综合诊断总结 <span class="toggle-hint"> 点击展开/收起</span></span>
+                <div class="toggle-right">
+                    <span class="toggle-btn" id="toggleBtnText">收起 ▲</span>
+                    <span class="toggle-arrow">▼</span>
+                </div>
+            </div>
+            <div class="ai-summary-body" id="aiSummaryBody">
+            </div>
+        </div>
+
+        <!-- 上面板：SQL 列表 -->
+        <div class="top-panel" id="topPanel">
+            <table class="query-table" id="queryTable">
+                <thead>
+                    <tr>
+                        <th class="col-num" data-tip="按初始 Load 排名的序号">#</th>
+                        <th class="col-severity" data-tip="严重等级"></th>
+                        <th class="col-query" onclick="sortTable('query_digest_text')" data-tip="SQL 指纹摘要（已参数化）">Query <span class="sort-icon">⇅</span></th>
+                        <th class="col-load" onclick="sortTable('load_pct')" data-tip="该 SQL 累计耗时占所有慢 SQL 总耗时的百分比，越高说明对数据库影响越大">Load <span class="sort-icon">⇅</span></th>
+                        <th class="col-count" onclick="sortTable('count_star')" data-tip="时间段内该类慢 SQL 的执行总次数">Count <span class="sort-icon">⇅</span></th>
+                        <th class="col-time" onclick="sortTable('query_time_max')" data-tip="时间段内该类慢 SQL 单次执行的最大耗时">Max Time <span class="sort-icon">⇅</span></th>
+                        <th class="col-time" onclick="sortTable('query_time_sum')" data-tip="时间段内该类慢 SQL 所有执行的累计总耗时">Total Time <span class="sort-icon">⇅</span></th>
+                        <th class="col-rows" onclick="sortTable('rows_examined_max')" data-tip="时间段内该类慢 SQL 单次执行扫描的最大行数">Max Rows <span class="sort-icon">⇅</span></th>
+                    </tr>
+                </thead>
+                <tbody id="queryTableBody">
+                </tbody>
+            </table>
+        </div>
+
+        <!-- 分页 -->
+        <div class="pagination" id="pagination">
+            <button onclick="prevPage()" id="prevBtn" disabled>&lt;</button>
+            <span id="pageInfo">1-{count} of {count}</span>
+            <button onclick="nextPage()" id="nextBtn" disabled>&gt;</button>
+            <select onchange="changePageSize(this.value)" id="pageSizeSelect">
+                <option value="25">25 / page</option>
+                <option value="50">50 / page</option>
+                <option value="100">100 / page</option>
+            </select>
+        </div>
+
+        <!-- 拖拽分割条 -->
+        <div class="resizer" id="resizer"></div>
+
+        <!-- 下面板：详情 -->
+        <div class="bottom-panel" id="bottomPanel">
+            <div class="detail-placeholder" id="detailPlaceholder">
+                <span> 点击上方查询行查看详情</span>
+            </div>
+            <div id="detailView" style="display:none; flex:1; flex-direction:column; overflow:hidden;">
+                <div class="detail-header detail-tabs" id="detailTabs">
+                    <div class="detail-tab active" data-tab="analysis">AI 分析</div>
+                    <div class="detail-tab" data-tab="metrics">Metrics</div>
+                    <div class="detail-tab" data-tab="example">Example</div>
+                    <div class="detail-tab" data-tab="explain">Explain</div>
+                    <div class="detail-tab" data-tab="tables">Tables</div>
+                    <button class="detail-close" onclick="closeDetail()">Close</button>
+                </div>
+                <div class="detail-content" id="detailContent">
+                    <div class="tab-pane active" id="tab-analysis"></div>
+                    <div class="tab-pane" id="tab-metrics"></div>
+                    <div class="tab-pane" id="tab-example"></div>
+                    <div class="tab-pane" id="tab-explain"></div>
+                    <div class="tab-pane" id="tab-tables"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <div class="report-footer">
+            ⚠️ AI 分析结果仅供参考，执行优化操作时请咨询 DBA 的建议
+        </div>
+    </div>
+
+    <script>
+        // 数据
+        const tableData = {table_data_json};
+        const detailData = {detail_data_json};
+        const summaryData = {summary_data_json};
+
+        // 状态
+        let currentFilter = 'all';
+        let currentSearch = '';
+        let sortField = 'load_pct';
+        let sortDir = 'desc';
+        let pageSize = 25;
+        let currentPage = 0;
+        let selectedIdx = -1;
+        let filteredData = [...tableData];
+
+        // 初始化
+        applyFilters();
+        renderTable();
+
+        // 过滤
+        function filterRows(severity) {{
+            currentFilter = severity;
+            currentPage = 0;
+            document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+            event.target.classList.add('active');
+            applyFilters();
+            renderTable();
+        }}
+
+        function searchRows(query) {{
+            currentSearch = query.toLowerCase();
+            currentPage = 0;
+            applyFilters();
+            renderTable();
+        }}
+
+        function applyFilters() {{
+            filteredData = tableData.filter(row => {{
+                if (currentFilter !== 'all' && row.severity !== currentFilter) return false;
+                if (currentSearch) {{
+                    const text = (row.query_digest_text + ' ' + row.table_names + ' ' + row.digest_md5 + ' ' + row.query_db_name).toLowerCase();
+                    if (!text.includes(currentSearch)) return false;
+                }}
+                return true;
+            }});
+            // 排序
+            filteredData.sort((a, b) => {{
+                let va = a[sortField], vb = b[sortField];
+                if (typeof va === 'string') va = va.toLowerCase();
+                if (typeof vb === 'string') vb = vb.toLowerCase();
+                if (va < vb) return sortDir === 'asc' ? -1 : 1;
+                if (va > vb) return sortDir === 'asc' ? 1 : -1;
+                return 0;
+            }});
+        }}
+
+        function sortTable(field) {{
+            if (sortField === field) {{
+                sortDir = sortDir === 'desc' ? 'asc' : 'desc';
+            }} else {{
+                sortField = field;
+                sortDir = 'desc';
+            }}
+            applyFilters();
+            renderTable();
+        }}
+
+        function renderTable() {{
+            const tbody = document.getElementById('queryTableBody');
+            const start = currentPage * pageSize;
+            const end = Math.min(start + pageSize, filteredData.length);
+            const pageData = filteredData.slice(start, end);
+
+            let html = '';
+            pageData.forEach((row, i) => {{
+                const globalIdx = row.idx;
+                const isSelected = globalIdx === selectedIdx;
+                const timeClass = row.query_time_max >= 10 ? 'highlight' : '';
+                const queryShort = row.query_digest_text.substring(0, 120);
+
+                html += `<tr class="${{isSelected ? 'selected' : ''}}" onclick="selectRow(${{globalIdx}})" data-idx="${{globalIdx}}">
+                    <td>${{globalIdx + 1}}</td>
+                    <td><span class="severity-dot ${{row.severity}}"></span></td>
+                    <td class="query-cell" title="${{escapeHtml(row.query_digest_text)}}">${{escapeHtml(queryShort)}}</td>
+                    <td>
+                        <div class="load-bar-wrapper">
+                            <div class="load-bar"><div class="load-bar-fill ${{row.severity}}" style="width:${{Math.min(row.load_pct, 100)}}%"></div></div>
+                            <span class="load-pct">${{row.load_pct.toFixed(1)}}%</span>
+                        </div>
+                    </td>
+                    <td class="num-cell">${{formatNum(row.count_star)}}</td>
+                    <td class="num-cell ${{timeClass}}">${{formatDuration(row.query_time_max)}}</td>
+                    <td class="num-cell">${{formatDuration(row.query_time_sum)}}</td>
+                    <td class="num-cell">${{formatNum(row.rows_examined_max)}}</td>
+                </tr>`;
+            }});
+            tbody.innerHTML = html;
+
+            // 分页信息
+            const total = filteredData.length;
+            document.getElementById('pageInfo').textContent = `${{start+1}}-${{end}} of ${{total}} items`;
+            document.getElementById('prevBtn').disabled = currentPage === 0;
+            document.getElementById('nextBtn').disabled = end >= total;
+        }}
+
+        function prevPage() {{ currentPage--; renderTable(); }}
+        function nextPage() {{ currentPage++; renderTable(); }}
+        function changePageSize(v) {{ pageSize = parseInt(v); currentPage = 0; renderTable(); }}
+
+        // 选中行 → 展开详情
+        function selectRow(idx) {{
+            selectedIdx = idx;
+            renderTable();
+            showDetail(idx);
+        }}
+
+        function closeDetail() {{
+            selectedIdx = -1;
+            renderTable();
+            document.getElementById('detailView').style.display = 'none';
+            document.getElementById('detailPlaceholder').style.display = 'flex';
+        }}
+
+        function showDetail(idx) {{
+            document.getElementById('detailPlaceholder').style.display = 'none';
+            document.getElementById('detailView').style.display = 'flex';
+
+            const row = tableData[idx];
+            const detail = detailData[row.digest_md5];
+
+            renderAnalysisTab(row, detail);
+            renderMetricsTab(row);
+            renderExampleTab(row);
+            renderExplainTab(detail);
+            renderTablesTab(detail);
+
+            // 默认激活 AI 分析 tab
+            switchTab('analysis');
+        }}
+
+        // Tab 切换
+        document.querySelectorAll('.detail-tab').forEach(tab => {{
+            tab.addEventListener('click', () => {{
+                if (tab.classList.contains('detail-close')) return;
+                switchTab(tab.dataset.tab);
+            }});
+        }});
+
+        function switchTab(tabName) {{
+            document.querySelectorAll('.detail-tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+            document.querySelector(`.detail-tab[data-tab="${{tabName}}"]`).classList.add('active');
+            document.getElementById(`tab-${{tabName}}`).classList.add('active');
+        }}
+
+        // 渲染 AI 分析 Tab
+        function renderAnalysisTab(row, detail) {{
+            const el = document.getElementById('tab-analysis');
+            const a = detail.analysis;
+            if (!a || Object.keys(a).length === 0) {{
+                el.innerHTML = '<div class="no-data">AI 分析数据不可用</div>';
+                return;
+            }}
+
+            let html = '';
+            if (a.risk_level) {{
+                const riskClass = (a.risk_level === 'high' || a.risk_level === 'critical') ? 'high' : (a.risk_level === 'medium' ? 'medium' : 'low');
+                const riskLabel = {{'high':'高风险','critical':'严重','medium':'中风险','low':'低风险'}}[a.risk_level] || a.risk_level;
+                html += `<div style="margin-bottom:14px"><span class="risk-badge risk-${{riskClass}}">${{riskLabel}}</span></div>`;
+            }}
+            if (a.problem) {{
+                html += `<div class="analysis-section">
+                    <div class="analysis-section-title"> 问题诊断</div>
+                    <p>${{escapeHtml(a.problem)}}</p>
+                </div>`;
+            }}
+            if (a.root_cause) {{
+                html += `<div class="analysis-section">
+                    <div class="analysis-section-title"> 根因分析</div>
+                    <p>${{escapeHtml(a.root_cause)}}</p>
+                </div>`;
+            }}
+            if (a.suggestions && a.suggestions.length > 0) {{
+                const items = a.suggestions.map(s => `<li>${{escapeHtml(s)}}</li>`).join('');
+                html += `<div class="analysis-section">
+                    <div class="analysis-section-title"> 优化建议</div>
+                    <ol class="suggestion-list">${{items}}</ol>
+                </div>`;
+            }}
+            el.innerHTML = html;
+        }}
+
+        // 渲染 Metrics Tab（PMM 风格表格）
+        function renderMetricsTab(row) {{
+            const el = document.getElementById('tab-metrics');
+            const totalTime = {total_query_time};
+            const totalRows = {total_rows_examined};
+            const totalExec = {total_count};
+
+            const metrics = [
+                {{ name: 'Query Count', tip: '时间段内该类慢 SQL 的执行总次数', value: formatNum(row.count_star), pct: (row.count_star/totalExec*100).toFixed(2)+'%', perQuery: '1.00', barPct: row.count_star/totalExec*100 }},
+                {{ name: 'Query Time (max)', tip: '时间段内该类慢 SQL 单次执行的最大耗时', value: formatDuration(row.query_time_max), pct: '', perQuery: formatDuration(row.query_time_max), barPct: row.query_time_max/(tableData[0]?.query_time_max||1)*100 }},
+                {{ name: 'Query Time (sum)', tip: '时间段内该类慢 SQL 所有执行的累计总耗时', value: formatDuration(row.query_time_sum), pct: (row.query_time_sum/totalTime*100).toFixed(2)+'%', perQuery: formatDuration(row.query_time_avg), barPct: row.query_time_sum/totalTime*100 }},
+                {{ name: 'Lock Time (max)', tip: '时间段内该类慢 SQL 单次执行的最大锁等待时间', value: formatDuration(row.lock_time_max), pct: '', perQuery: formatDuration(row.lock_time_max), barPct: 0 }},
+                {{ name: 'Lock Time (sum)', tip: '时间段内该类慢 SQL 所有执行的累计锁等待总时间', value: formatDuration(row.lock_time_sum), pct: '', perQuery: row.count_star > 0 ? formatDuration(row.lock_time_sum/row.count_star) : '-', barPct: 0 }},
+                {{ name: 'Rows Examined (max)', tip: '时间段内该类慢 SQL 单次执行扫描的最大行数', value: formatNum(row.rows_examined_max), pct: '', perQuery: formatNum(row.rows_examined_max), barPct: row.rows_examined_max/(tableData[0]?.rows_examined_max||1)*100 }},
+                {{ name: 'Rows Examined (sum)', tip: '时间段内该类慢 SQL 所有执行扫描的累计总行数', value: formatNum(row.rows_examined_sum), pct: (row.rows_examined_sum/totalRows*100).toFixed(2)+'%', perQuery: formatNum(Math.round(row.rows_examined_avg)), barPct: row.rows_examined_sum/totalRows*100 }},
+                {{ name: 'Rows Sent (sum)', tip: '时间段内该类慢 SQL 所有执行返回给客户端的累计总行数', value: formatNum(row.rows_sent_sum), pct: '', perQuery: row.count_star > 0 ? formatNum(Math.round(row.rows_sent_sum/row.count_star)) : '-', barPct: 0 }},
+            ];
+
+            let html = `<table class="metrics-table">
+                <thead><tr>
+                    <th>Metric</th>
+                    <th>Value</th>
+                    <th style="width:120px">Load</th>
+                    <th>Sum (% of total)</th>
+                    <th>Per Query</th>
+                </tr></thead><tbody>`;
+
+            metrics.forEach(m => {{
+                html += `<tr>
+                    <td class="metric-name" title="${{m.tip}}">${{m.name}}<div style="font-size:0.68rem; color:var(--text-muted); font-weight:400; margin-top:2px;">${{m.tip}}</div></td>
+                    <td class="metric-value">${{m.value}}</td>
+                    <td><div class="metric-bar"><div class="metric-bar-fill" style="width:${{Math.min(m.barPct,100)}}%"></div></div></td>
+                    <td class="metric-value">${{m.pct ? '<span class="metric-pct">'+m.pct+'</span>' : '-'}}</td>
+                    <td class="metric-value">${{m.perQuery}}</td>
+                </tr>`;
+            }});
+            html += '</tbody></table>';
+
+            el.innerHTML = html;
+        }}
+
+        // 渲染 Example Tab（SQL 原文 + 基本信息）
+        function renderExampleTab(row) {{
+            const el = document.getElementById('tab-example');
+
+            // 基本信息区
+            let html = `<div style="margin-bottom:16px; padding:12px 14px; background:var(--bg-tertiary); border-radius:6px; font-size:0.8rem; display:grid; grid-template-columns:repeat(auto-fill, minmax(220px, 1fr)); gap:8px 16px;">
+                <div><span style="color:var(--text-secondary);">Database:</span> <strong>${{escapeHtml(row.query_db_name)}}</strong></div>
+                <div><span style="color:var(--text-secondary);">User:</span> <strong>${{escapeHtml(row.username)}}</strong></div>
+                <div><span style="color:var(--text-secondary);">Table:</span> <strong>${{escapeHtml(row.table_names)}}</strong></div>
+                <div><span style="color:var(--text-secondary);">Instance:</span> <strong>${{escapeHtml(row.instance_host)}}:${{row.instance_port}}</strong></div>
+                <div><span style="color:var(--text-secondary);">First Seen:</span> <strong>${{escapeHtml(row.time_window_min)}}</strong></div>
+                <div><span style="color:var(--text-secondary);">Last Seen:</span> <strong>${{escapeHtml(row.time_window_max)}}</strong></div>
+            </div>`;
+
+            const queryString = row.query_string;
+            if (!queryString) {{
+                html += '<div class="no-data">SQL 原文不可用（仅有 digest 指纹）</div>';
+                el.innerHTML = html;
+                return;
+            }}
+
+            // SQL 原文
+            html += `<div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:8px;">
+                <span style="font-size:0.75rem; color:var(--text-secondary);">SQL 原文（实际执行的完整 SQL 语句）</span>
+                <button class="fmt-btn" onclick="formatSql('sqlOriginal')">✨ 格式化</button>
+            </div>
+            <pre class="sql-block" id="sqlOriginal"><code>${{escapeHtml(queryString)}}</code></pre>`;
+
+            // SQL 指纹
+            if (row.query_digest_text && row.query_digest_text !== queryString) {{
+                html += `<div style="display:flex; align-items:center; justify-content:space-between; margin-top:16px; margin-bottom:8px;">
+                    <span style="font-size:0.75rem; color:var(--text-secondary);">SQL 指纹（参数化后）</span>
+                    <button class="fmt-btn" onclick="formatSql('sqlDigest')">✨ 格式化</button>
+                </div>
+                <pre class="sql-block" id="sqlDigest"><code>${{escapeHtml(row.query_digest_text)}}</code></pre>`;
+            }}
+            el.innerHTML = html;
+        }}
+
+        // SQL 简单格式化（关键字换行 + 缩进）
+        function formatSql(preId) {{
+            const pre = document.getElementById(preId);
+            if (!pre) return;
+            const code = pre.querySelector('code');
+            const raw = code.textContent;
+
+            // 检查是否已经格式化（通过标记判断）
+            if (pre.dataset.formatted === '1') {{
+                // 恢复原始
+                code.textContent = pre.dataset.original;
+                pre.dataset.formatted = '0';
+                return;
+            }}
+
+            // 保存原始
+            pre.dataset.original = raw;
+            pre.dataset.formatted = '1';
+
+            // 简单格式化：主要 SQL 关键字前换行
+            const keywords = ['SELECT', 'FROM', 'WHERE', 'AND', 'OR', 'LEFT JOIN', 'RIGHT JOIN', 'INNER JOIN', 'JOIN', 'ON', 'GROUP BY', 'ORDER BY', 'HAVING', 'LIMIT', 'OFFSET', 'UNION', 'INSERT INTO', 'VALUES', 'UPDATE', 'SET', 'DELETE FROM'];
+            let formatted = raw;
+
+            // 先处理多词关键字
+            const multiWord = ['LEFT JOIN', 'RIGHT JOIN', 'INNER JOIN', 'GROUP BY', 'ORDER BY', 'INSERT INTO', 'DELETE FROM'];
+            multiWord.forEach(kw => {{
+                const re = new RegExp('\\\\s+(' + kw + ')\\\\s', 'gi');
+                formatted = formatted.replace(re, '\\n$1 ');
+            }});
+
+            // 再处理单词关键字
+            const singleWord = ['SELECT', 'FROM', 'WHERE', 'AND', 'OR', 'JOIN', 'ON', 'HAVING', 'LIMIT', 'OFFSET', 'UNION', 'VALUES', 'UPDATE', 'SET'];
+            singleWord.forEach(kw => {{
+                const re = new RegExp('\\\\s+(' + kw + ')\\\\s', 'gi');
+                formatted = formatted.replace(re, '\\n$1 ');
+            }});
+
+            // 缩进非首行
+            const lines = formatted.split('\\n');
+            const indented = lines.map((line, i) => {{
+                const trimmed = line.trim();
+                if (i === 0) return trimmed;
+                // SELECT/FROM/WHERE 等主关键字不缩进，其他缩进
+                const mainKw = /^(SELECT|FROM|WHERE|GROUP BY|ORDER BY|HAVING|LIMIT|UNION|INSERT INTO|UPDATE|DELETE FROM|SET|VALUES)/i;
+                return mainKw.test(trimmed) ? trimmed : '  ' + trimmed;
+            }});
+            code.textContent = indented.join('\\n');
+        }}
+
+        // Explain 布局状态
+        let explainLayout = 'vertical'; // 默认纵向
+        let explainRowsCache = [];
+
+        // 渲染 Explain Tab
+        function renderExplainTab(detail) {{
+            const el = document.getElementById('tab-explain');
+            const rows = detail.explain_rows;
+            if (!rows || rows.length === 0) {{
+                el.innerHTML = '<div class="no-data">EXPLAIN 数据不可用</div>';
+                return;
+            }}
+
+            explainRowsCache = rows;
+
+            // 单行默认纵向，多行默认横向
+            if (rows.length === 1 && explainLayout === 'horizontal') {{
+                // 保持用户选择
+            }} else if (rows.length > 1 && explainLayout === 'vertical') {{
+                // 多行切到横向时保持，初次渲染用横向
+                explainLayout = 'horizontal';
+            }}
+
+            renderExplainContent();
+        }}
+
+        function renderExplainContent() {{
+            const el = document.getElementById('tab-explain');
+            const rows = explainRowsCache;
+            if (!rows || rows.length === 0) return;
+
+            // 工具栏：切换按钮
+            let html = `<div class="explain-toolbar">
+                <button class="explain-layout-btn ${{explainLayout === 'vertical' ? 'active' : ''}}" onclick="switchExplainLayout('vertical')">⇕ 纵向</button>
+                <button class="explain-layout-btn ${{explainLayout === 'horizontal' ? 'active' : ''}}" onclick="switchExplainLayout('horizontal')">⇔ 横向</button>
+            </div>`;
+
+            if (explainLayout === 'vertical') {{
+                // 纵向展示（每行一个字段）
+                rows.forEach((r, idx) => {{
+                    const typeClass = 'type-' + String(r.type || '').toLowerCase();
+                    const fields = [
+                        {{ label: 'id', value: escapeHtml(r.id) }},
+                        {{ label: 'select_type', value: escapeHtml(r.select_type) }},
+                        {{ label: 'table', value: escapeHtml(r.table) }},
+                        {{ label: 'partitions', value: escapeHtml(r.partitions) || '-' }},
+                        {{ label: 'type', value: `<span class="type-badge ${{typeClass}}">${{escapeHtml(r.type)}}</span>` }},
+                        {{ label: 'possible_keys', value: escapeHtml(r.possible_keys) || '-' }},
+                        {{ label: 'key', value: `<strong>${{escapeHtml(r.key) || '-'}}</strong>` }},
+                        {{ label: 'key_len', value: escapeHtml(r.key_len) || '-' }},
+                        {{ label: 'ref', value: escapeHtml(r.ref) || '-' }},
+                        {{ label: 'rows', value: formatNum(r.rows) }},
+                        {{ label: 'filtered', value: escapeHtml(r.filtered) }},
+                        {{ label: 'Extra', value: escapeHtml(r.Extra) || '-' }},
+                    ];
+                    if (rows.length > 1) {{
+                        html += `<div style="font-size:0.75rem; color:var(--text-secondary); margin:${{idx > 0 ? '14px' : '0'}} 0 6px; font-weight:600;">Row ${{idx + 1}}</div>`;
+                    }}
+                    html += `<table class="explain-table explain-vertical"><tbody>`;
+                    fields.forEach(f => {{
+                        html += `<tr><th>${{f.label}}</th><td>${{f.value}}</td></tr>`;
+                    }});
+                    html += '</tbody></table>';
+                }});
+            }} else {{
+                // 横向表格展示
+                html += `<div style="overflow-x:auto"><table class="explain-table">
+                    <thead><tr>
+                        <th>id</th><th>select_type</th><th>table</th><th>partitions</th>
+                        <th>type</th><th>possible_keys</th><th>key</th><th>key_len</th>
+                        <th>ref</th><th>rows</th><th>filtered</th><th>Extra</th>
+                    </tr></thead><tbody>`;
+
+                rows.forEach(r => {{
+                    const typeClass = 'type-' + String(r.type || '').toLowerCase();
+                    html += `<tr>
+                        <td>${{escapeHtml(r.id)}}</td>
+                        <td>${{escapeHtml(r.select_type)}}</td>
+                        <td>${{escapeHtml(r.table)}}</td>
+                        <td>${{escapeHtml(r.partitions)}}</td>
+                        <td><span class="type-badge ${{typeClass}}">${{escapeHtml(r.type)}}</span></td>
+                        <td>${{escapeHtml(r.possible_keys)}}</td>
+                        <td><strong>${{escapeHtml(r.key)}}</strong></td>
+                        <td>${{escapeHtml(r.key_len)}}</td>
+                        <td>${{escapeHtml(r.ref)}}</td>
+                        <td>${{formatNum(r.rows)}}</td>
+                        <td>${{escapeHtml(r.filtered)}}</td>
+                        <td>${{escapeHtml(r.Extra)}}</td>
+                    </tr>`;
+                }});
+                html += '</tbody></table></div>';
+            }}
+            el.innerHTML = html;
+        }}
+
+        function switchExplainLayout(layout) {{
+            explainLayout = layout;
+            renderExplainContent();
+        }}
+
+        // 渲染 Tables Tab
+        function renderTablesTab(detail) {{
+            const el = document.getElementById('tab-tables');
+            const sqls = detail.schema_sqls;
+            if (!sqls || sqls.length === 0) {{
+                el.innerHTML = '<div class="no-data">表结构数据不可用</div>';
+                return;
+            }}
+            let html = '';
+            sqls.forEach(sql => {{
+                html += `<pre><code>${{escapeHtml(sql)}}</code></pre>`;
+            }});
+            el.innerHTML = html;
+        }}
+
+        // 工具函数
+        function escapeHtml(text) {{
+            if (text === null || text === undefined) return '';
+            const div = document.createElement('div');
+            div.textContent = String(text);
+            return div.innerHTML;
+        }}
+
+        function formatNum(n) {{
+            if (n === null || n === undefined || n === '') return '-';
+            if (typeof n === 'number') {{
+                if (n >= 1000000) return (n/1000000).toFixed(2) + 'm';
+                if (n >= 1000) return (n/1000).toFixed(1) + 'k';
+                return n.toLocaleString();
+            }}
+            return String(n);
+        }}
+
+        function formatDuration(sec) {{
+            if (sec === null || sec === undefined) return '-';
+            sec = parseFloat(sec);
+            if (isNaN(sec)) return '-';
+            if (sec < 0.001) return '<1 µs';
+            if (sec < 1) return (sec * 1000).toFixed(1) + ' ms';
+            if (sec < 60) return sec.toFixed(2) + ' s';
+            if (sec < 3600) return (sec/60).toFixed(1) + ' min';
+            return (sec/3600).toFixed(1) + ' h';
+        }}
+
+        // 拖拽分割
+        const resizer = document.getElementById('resizer');
+        const topPanel = document.getElementById('topPanel');
+        const bottomPanel = document.getElementById('bottomPanel');
+        let isResizing = false;
+
+        resizer.addEventListener('mousedown', (e) => {{
+            isResizing = true;
+            resizer.classList.add('active');
+            document.addEventListener('mousemove', onMouseMove);
+            document.addEventListener('mouseup', onMouseUp);
+            e.preventDefault();
+        }});
+
+        function onMouseMove(e) {{
+            if (!isResizing) return;
+            const container = document.querySelector('.layout');
+            const rect = container.getBoundingClientRect();
+            const topBarH = document.querySelector('.top-bar').offsetHeight;
+            const summaryH = document.querySelector('.summary-bar').offsetHeight;
+            const paginationH = document.querySelector('.pagination').offsetHeight;
+            const footerH = document.querySelector('.report-footer').offsetHeight;
+            const resizerH = resizer.offsetHeight;
+            const available = rect.height - topBarH - summaryH - paginationH - footerH - resizerH;
+            const offsetY = e.clientY - rect.top - topBarH - summaryH;
+            const topH = Math.max(150, Math.min(offsetY - paginationH, available - 150));
+            topPanel.style.flex = 'none';
+            topPanel.style.height = topH + 'px';
+            bottomPanel.style.flex = '1';
+        }}
+
+        function onMouseUp() {{
+            isResizing = false;
+            resizer.classList.remove('active');
+            document.removeEventListener('mousemove', onMouseMove);
+            document.removeEventListener('mouseup', onMouseUp);
+        }}
+
+        // AI 总结面板
+        function renderSummary() {{
+            const el = document.getElementById('aiSummaryBody');
+            if (!summaryData || Object.keys(summaryData).length === 0) {{
+                el.innerHTML = '<div class="no-data" style="grid-column:1/-1; padding:12px;">AI 综合总结数据不可用</div>';
+                return;
+            }}
+
+            let html = '';
+
+            // 最紧急问题（突出显示）
+            if (summaryData.most_urgent) {{
+                html += `<div class="summary-block urgent">
+                    <div class="summary-block-title"> 最紧急问题</div>
+                    <p>${{escapeHtml(summaryData.most_urgent)}}</p>
+                </div>`;
+            }}
+
+            // 根因归纳
+            if (summaryData.root_cause_summary) {{
+                html += `<div class="summary-block">
+                    <div class="summary-block-title"> 综合根因</div>
+                    <p>${{escapeHtml(summaryData.root_cause_summary)}}</p>
+                </div>`;
+            }}
+
+            // 关键发现
+            if (summaryData.key_findings && summaryData.key_findings.length > 0) {{
+                const items = summaryData.key_findings.map(f => `<li>${{escapeHtml(f)}}</li>`).join('');
+                html += `<div class="summary-block">
+                    <div class="summary-block-title"> 关键发现</div>
+                    <ul>${{items}}</ul>
+                </div>`;
+            }}
+
+            // 处理优先级
+            if (summaryData.action_priority) {{
+                html += `<div class="summary-block">
+                    <div class="summary-block-title">⚡ 处理优先级</div>
+                    <p>${{escapeHtml(summaryData.action_priority)}}</p>
+                </div>`;
+            }}
+
+            el.innerHTML = html;
+        }}
+
+        function toggleSummary() {{
+            const panel = document.getElementById('aiSummaryPanel');
+            panel.classList.toggle('collapsed');
+            const btn = document.getElementById('toggleBtnText');
+            if (panel.classList.contains('collapsed')) {{
+                btn.textContent = '展开 ▼';
+            }} else {{
+                btn.textContent = '收起 ▲';
+            }}
+        }}
+
+        // 主题切换
+        function toggleTheme() {{
+            const root = document.documentElement;
+            const btn = document.getElementById('themeBtn');
+            root.classList.toggle('light');
+            if (root.classList.contains('light')) {{
+                btn.textContent = '☀️ 亮色';
+                localStorage.setItem('theme', 'light');
+            }} else {{
+                btn.textContent = ' 暗色';
+                localStorage.setItem('theme', 'dark');
+            }}
+        }}
+
+        // 读取保存的主题偏好（默认亮色）
+        (function() {{
+            const saved = localStorage.getItem('theme');
+            if (saved === 'dark') {{
+                // 用户主动选择了暗色
+                document.documentElement.classList.remove('light');
+                document.getElementById('themeBtn').textContent = ' 暗色';
+            }} else {{
+                // 默认亮色
+                document.documentElement.classList.add('light');
+                document.getElementById('themeBtn').textContent = '☀️ 亮色';
+            }}
+        }})();
+
+        // 初始化 AI 总结
+        renderSummary();
+
+        // 默认选中第一行
+        if (tableData.length > 0) {{
+            selectRow(0);
+        }}
+    </script>
+</body>
+</html>"""
+
+
+def main():
+    parser = argparse.ArgumentParser(description="生成慢查询分析 HTML 报告")
+    parser.add_argument("cluster_domain", help="集群域名")
+    parser.add_argument("--start-time", default="", help="采集开始时间")
+    parser.add_argument("--end-time", default="", help="采集结束时间")
+    args = parser.parse_args()
+
+    domain = args.cluster_domain
+    output_dir = os.environ.get("OUTPUT_DIR", "/app/.storage/session")
+    slow_file = os.path.join(output_dir, f"slowlog_{domain}_body.json")
+    explain_file = os.path.join(output_dir, f"slowlog_{domain}_explain.json")
+    schema_file = os.path.join(output_dir, f"slowlog_{domain}_schema.json")
+    analysis_file = os.path.join(output_dir, f"slowlog_{domain}_analysis.json")
+    output_file = os.path.join(output_dir, f"slowlog_{domain}_report.html")
+
+    # 加载数据
+    slow_logs = load_json(slow_file)
+    explain_results = load_json(explain_file)
+    schema_results = load_json(schema_file)
+    analysis_results = load_json(analysis_file)  # AI 分析结果（可选）
+
+    if not slow_logs:
+        print(f"[ERROR] No slow logs found in {slow_file}", file=sys.stderr)
+        sys.exit(1)
+
+    print(f"生成 HTML 报告: {len(slow_logs)} 条慢查询...")
+    if isinstance(analysis_results, dict):
+        queries = analysis_results.get("queries", [])
+        has_summary = bool(analysis_results.get("summary"))
+        print(f"  - 包含 {len(queries)} 条 AI 分析结果" + (" + 综合总结" if has_summary else ""))
+    elif isinstance(analysis_results, list) and analysis_results:
+        print(f"  - 包含 {len(analysis_results)} 条 AI 分析结果（旧格式）")
+    else:
+        print(f"  - 未找到 AI 分析结果 ({analysis_file})，报告中将不包含 AI 诊断")
+
+    # 生成 HTML
+    html_content = generate_html(
+        domain,
+        slow_logs,
+        explain_results,
+        schema_results,
+        analysis_results=analysis_results,
+        start_time=args.start_time,
+        end_time=args.end_time,
+    )
+
+    # 写入文件
+    with open(output_file, "w", encoding="utf-8") as f:
+        f.write(html_content)
+
+    print(f"✅ HTML 报告已生成: {output_file}")
+    print(f"   可使用浏览器打开: open {output_file}")
+
+
+if __name__ == "__main__":
+    main()
