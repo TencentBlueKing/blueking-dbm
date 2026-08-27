@@ -16,11 +16,11 @@
     <div
       v-if="renderList.length < 1"
       class="bk-quick-search-suggest-panel-empty">
-      不支持搜索 "
+      {{ t('不支持搜索') }} "
       <span>
         {{ keyword }}
       </span>
-      " 相关数据
+      " {{ t('相关数据') }}
     </div>
   </div>
   <div
@@ -34,11 +34,11 @@
         <div class="tag">
           <DbIcon type="down-big" />
         </div>
-        <span>移动光标</span>
+        <span>{{ t('移动光标') }}</span>
       </div>
       <div class="action-tips">
         <div class="tag">Enter</div>
-        <span>选中</span>
+        <span>{{ t('选中') }}</span>
       </div>
     </div>
   </div>
@@ -46,6 +46,7 @@
 <script setup lang="ts">
   import _ from 'lodash';
   import { computed, useTemplateRef, watch } from 'vue';
+  import { useI18n } from 'vue-i18n';
 
   import { comType } from '@components/db-quick-search/bk-quick-search/constants';
   import useMenuKeyboard from '@components/db-quick-search/bk-quick-search/hooks/useMenuKeyboard';
@@ -62,6 +63,8 @@
 
   const props = defineProps<Props>();
   const emits = defineEmits<Emits>();
+
+  const { t } = useI18n();
 
   const context = inject(BK_QUICK_SEARCH);
 

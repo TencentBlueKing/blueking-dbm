@@ -30,11 +30,11 @@
           <div class="tag">
             <DbIcon type="down-big" />
           </div>
-          <span>移动光标</span>
+          <span>{{ t('移动光标') }}</span>
         </div>
         <div class="action-tips">
           <div class="tag">Enter</div>
-          <span>选中</span>
+          <span>{{ t('选中') }}</span>
         </div>
       </div>
     </div>
@@ -42,6 +42,7 @@
 </template>
 <script setup lang="ts">
   import { toRef, useTemplateRef } from 'vue';
+  import { useI18n } from 'vue-i18n';
 
   import useMenuKeyboard from '@components/db-quick-search/bk-quick-search/hooks/useMenuKeyboard';
   import type { Props as ContextProps } from '@components/db-quick-search/bk-quick-search/Index.vue';
@@ -57,6 +58,8 @@
   const emits = defineEmits<Emits>();
 
   const modelValue = defineModel<ContextProps['data'][number]>();
+
+  const { t } = useI18n();
 
   const keyList = toRef(props, 'data');
   const rootRef = useTemplateRef('root');

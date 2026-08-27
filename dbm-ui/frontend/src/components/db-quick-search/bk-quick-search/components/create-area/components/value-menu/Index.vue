@@ -9,7 +9,7 @@
         @change="handleChange" />
     </ElConfigProvider>
     <div
-      v-if="isNeedComfirmAndReset || isSupportQuickSelect"
+      v-if="isNeedConfirmAndReset || isSupportQuickSelect"
       class="bk-quick-search-panel-footer">
       <div class="bk-quick-search-panel-submit-tips">
         <template v-if="isSupportQuickSelect">
@@ -20,15 +20,15 @@
             <div class="tag">
               <DbIcon type="down-big" />
             </div>
-            <span>移动光标</span>
+            <span>{{ t('移动光标') }}</span>
           </div>
           <div class="action-tips">
             <div class="tag">Enter</div>
-            <span>选中</span>
+            <span>{{ t('选中') }}</span>
           </div>
         </template>
         <div
-          v-if="isNeedComfirmAndReset"
+          v-if="isNeedConfirmAndReset"
           class="action-tips">
           <div
             v-if="isMacOs"
@@ -40,21 +40,21 @@
             class="tag">
             Ctrl + Enter
           </div>
-          <span>确定</span>
+          <span>{{ t('确定') }}</span>
         </div>
       </div>
-      <template v-if="isNeedComfirmAndReset">
+      <template v-if="isNeedConfirmAndReset">
         <Button
           size="small"
           style="margin-right: 8px; margin-left: 24px"
           variant="outline"
           @click="handleReset">
-          重置
+          {{ t('重置') }}
         </Button>
         <Button
           size="small"
           @click="handleConfirm">
-          确定
+          {{ t('确定') }}
         </Button>
       </template>
     </div>
@@ -65,6 +65,7 @@
   import zhCn from 'element-plus/es/locale/lang/zh-cn';
   import { Button } from 'tdesign-vue-next';
   import { computed, onMounted } from 'vue';
+  import { useI18n } from 'vue-i18n';
 
   import { comType } from '@components/db-quick-search/bk-quick-search/constants';
   import type { IValue, Props as ContextProps } from '@components/db-quick-search/bk-quick-search/Index.vue';
@@ -76,7 +77,7 @@
   import DatePicker from './components/DatePicker.vue';
   import DateRangePicker from './components/DateRangePicker.vue';
   import DatetimePicker from './components/DatetimePicker.vue';
-  import DatetimeRangePciker from './components/DatetimeRangePciker.vue';
+  import DatetimeRangePicker from './components/DatetimeRangePicker.vue';
   import MultCascader from './components/MultCascader.vue';
   import MultSelect from './components/MultSelect.vue';
   import Select from './components/Select.vue';
@@ -92,8 +93,9 @@
   });
   const emits = defineEmits<Emits>();
 
-  // modelValue 类型支持所有值，由各个组件自行处理
-  const modelValue = defineModel<any[]>();
+  const modelValue = defineModel<IValue['values']>();
+
+  const { t } = useI18n();
 
   const isMacOs = /Mac OS X ([\d_]+)/.test(navigator.userAgent);
 
@@ -112,7 +114,7 @@
       [comType.DATE]: DatePicker,
       [comType.DATE_RANGE]: DateRangePicker,
       [comType.DATETIME]: DatetimePicker,
-      [comType.DATETIME_RANGE]: DatetimeRangePciker,
+      [comType.DATETIME_RANGE]: DatetimeRangePicker,
       [comType.MULTIPLE]: MultSelect,
       [comType.MULTIPLE_CASCADER]: MultCascader,
       [comType.SINGLE]: Select,
@@ -143,7 +145,7 @@
     }
     return [comType.MULTIPLE, comType.SINGLE].includes(props.config.type as comType);
   });
-  const isNeedComfirmAndReset = computed(() => {
+  const isNeedConfirmAndReset = computed(() => {
     if (!props.config) {
       return false;
     }
@@ -156,7 +158,7 @@
 
   const handleChange = (value: IValue['values']) => {
     modelValue.value = value;
-    if (isNeedComfirmAndReset.value) {
+    if (isNeedConfirmAndReset.value) {
       return;
     }
     emits('change', value);
@@ -170,22 +172,24 @@
     emits('change', modelValue.value || []);
   };
 
-  onMounted(() => {
-    const handleQuickConfigm = (event: KeyboardEvent) => {
-      if (!isNeedComfirmAndReset.value) {
-        return;
-      }
+  const handleQuickConfirm = (event: KeyboardEvent) => {
+    if (!isNeedConfirmAndReset.value) {
+      return;
+    }
 
-      if (event.code === 'Enter') {
-        if ((isMacOs && event.metaKey) || (!isMacOs && event.ctrlKey)) {
-          handleConfirm();
-        }
+    if (event.code === 'Enter') {
+      if ((isMacOs && event.metaKey) || (!isMacOs && event.ctrlKey)) {
+        handleConfirm();
       }
-    };
-    document.body.addEventListener('keydown', handleQuickConfigm);
-    onBeforeUnmount(() => {
-      document.body.removeEventListener('keydown', handleQuickConfigm);
-    });
+    }
+  };
+
+  onMounted(() => {
+    document.body.addEventListener('keydown', handleQuickConfirm);
+  });
+
+  onBeforeUnmount(() => {
+    document.body.removeEventListener('keydown', handleQuickConfirm);
   });
 </script>
 <style lang="less">

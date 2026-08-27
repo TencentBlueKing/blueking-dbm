@@ -2,7 +2,12 @@ import { comType } from '../constants';
 import type { IValue, Props } from '../Index.vue';
 
 export const getValuesText = (values: IValue['values'], config?: Props['data'][number]) => {
-  if (config && config.type && [comType.DATE_RANGE, comType.DATETIME_RANGE].includes(config.type as comType)) {
+  if (
+    config &&
+    config.type &&
+    [comType.DATE_RANGE, comType.DATETIME_RANGE].includes(config.type as comType) &&
+    values.length > 1
+  ) {
     return `${values[0]!.label} ~ ${values[1]!.label}`;
   }
 
