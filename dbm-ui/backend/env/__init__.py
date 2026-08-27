@@ -114,6 +114,9 @@ BK_IAM_V4_MANAGERS = get_type_env(key="BK_IAM_V4_MANAGERS", _type=list, default=
 # V4 资源实例回调路径，与 BK_IAM_RESOURCE_API_HOST 拼接成 System.callback_url
 BK_IAM_V4_CALLBACK_PATH = get_type_env(key="BK_IAM_V4_CALLBACK_PATH", _type=str, default="/apis/iam/v4/resource/")
 
+# IAM V4 影子校验：V3 真实鉴权模式下后台异步比对 V4 结果，仅打日志、不参与鉴权
+IAM_V4_SHADOW_ENABLE = get_type_env(key="IAM_V4_SHADOW_ENABLE", _type=bool, default=False)
+
 # APIGW 相关配置
 BK_APIGW_NAME = get_type_env(key="BK_APIGW_NAME", _type=str, default="bkdbm")
 BK_APIGW_MCP_NAME = get_type_env(key="BK_APIGW_MCP_NAME", _type=str, default="bkdbm-mcp")
