@@ -29,7 +29,7 @@
         v-if="filterKey && renderList.length < 1 && !isRemoteListLoading"
         class="bk-quick-search-value-panel-filter-empty">
         <BkException
-          description="搜索为空"
+          :description="t('搜索为空')"
           scene="part"
           type="search-empty" />
       </div>
@@ -40,6 +40,7 @@
   import _ from 'lodash';
   import { Checkbox } from 'tdesign-vue-next';
   import { computed, onMounted, ref, useTemplateRef } from 'vue';
+  import { useI18n } from 'vue-i18n';
 
   import { SpecialOptions } from '@common/const';
 
@@ -71,6 +72,8 @@
   });
 
   const defaultModelValue = [...modelValue.value];
+
+  const { t } = useI18n();
 
   const { filterKey, list, loading: isRemoteListLoading } = useMenuList<IResult>(props.config);
 

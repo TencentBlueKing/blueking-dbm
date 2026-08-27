@@ -3,7 +3,7 @@
     ref="rootRef"
     class="bk-quick-search"
     :class="{
-      'is-focused': isFouced,
+      'is-focused': isFocused,
       'is-error': Boolean(errorMessage),
     }">
     <div
@@ -14,7 +14,7 @@
           key="calcRenderNum"
           v-model="renderTagCount"
           :data="data"
-          :fouced="isFouced"
+          :focused="isFocused"
           :value-list="localSelectValueList" />
         <template
           v-for="(item, index) in renderTagList"
@@ -27,16 +27,16 @@
             @remove="handleValueTagRemove(item)" />
         </template>
         <TagFlod
-          v-if="!isFouced"
-          key="tagFlod"
+          v-if="!isFocused"
+          key="tagFold"
           :data="data"
           :render-tag-count="renderTagCount"
           :value-list="localSelectValueList" />
         <CreateArea
-          v-if="(isFouced || isSelectedValueEmpty) && toBeSelectData.length > 0"
+          v-if="(isFocused || isSelectedValueEmpty) && toBeSelectData.length > 0"
           key="createArea"
           :data="toBeSelectData"
-          :default-start-select="isFoucedStartSelect"
+          :default-start-select="isFocusedStartSelect"
           :placeholder="placeholder"
           @change="handleChange"
           @error="handleError"
@@ -122,7 +122,7 @@
   export type Emits = (event: 'change', value: IValue[]) => void;
 
   export const BK_QUICK_SEARCH: InjectionKey<{
-    isFouced: boolean;
+    isFocused: boolean;
     pasteParseMethod: NonNullable<Props['pasteParseMethod']>;
   }> = Symbol.for('bk-quick-search');
 </script>
@@ -132,19 +132,18 @@
     clearable: true,
     pasteParseMethod: (text: string) =>
       _.uniq(_.filter(text.split(/[ \r\n\t,，;；|｜]/g), (item) => Boolean(_.trim(item)))),
-    placeholder: '请选择搜索项',
+    placeholder: '',
   });
 
   const emits = defineEmits<Emits>();
-  const slots = defineSlots<Slots>();
 
   const modelValue = defineModel<IValue[]>({
     default: () => [],
   });
   const rootRef = ref<HTMLElement>();
-  const isFouced = ref(false);
+  const isFocused = ref(false);
   // 获得焦点时是否开始选择。如果是点击已选择的 tag 进入编辑状态获得焦点，则不开始选择
-  const isFoucedStartSelect = ref(false);
+  const isFocusedStartSelect = ref(false);
   const errorMessage = ref('');
   const renderTagCount = ref(0);
   const localSelectValueList = shallowRef<IValue[]>([]);
@@ -165,7 +164,7 @@
 
   const renderTagList = computed(() => {
     const wholeList = [...localSelectValueList.value];
-    if (renderTagCount.value < 0 || isFouced.value) {
+    if (renderTagCount.value < 0 || isFocused.value) {
       return wholeList;
     }
     return wholeList.slice(0, renderTagCount.value);
@@ -182,25 +181,23 @@
   };
 
   useOutSideClick(() => {
-    if (!isFouced.value) {
+    if (!isFocused.value) {
       return;
     }
-    isFouced.value = false;
-    isFoucedStartSelect.value = false;
+    isFocused.value = false;
+    isFocusedStartSelect.value = false;
     errorMessage.value = '';
     hideAll();
     if (props.changeTrigger === 'blur') {
       triggerChange();
     }
-  });
+  }, rootRef);
 
   provide(
     BK_QUICK_SEARCH,
     reactive({
-      emits,
-      isFouced,
+      isFocused,
       pasteParseMethod: props.pasteParseMethod,
-      slots,
     }),
   );
 
@@ -225,20 +222,20 @@
   const handleFocus = (event: Event) => {
     event.stopPropagation();
     // 避免逻辑重复触发
-    if (isFouced.value) {
+    if (isFocused.value) {
       return;
     }
-    isFouced.value = true;
+    isFocused.value = true;
     const eventPath = event.composedPath() as HTMLElement[];
     for (const target of eventPath) {
       // 如果点击的元素是已选择的 tag，则不开始选择
       // 已选择的 tag 的 role 属性为 search-value
       if (target.getAttribute?.('role') === 'search-value') {
-        isFoucedStartSelect.value = false;
+        isFocusedStartSelect.value = false;
         return;
       }
     }
-    isFoucedStartSelect.value = true;
+    isFocusedStartSelect.value = true;
   };
 
   const handleValueTagEditChange = (payload: IValue, index: number) => {
