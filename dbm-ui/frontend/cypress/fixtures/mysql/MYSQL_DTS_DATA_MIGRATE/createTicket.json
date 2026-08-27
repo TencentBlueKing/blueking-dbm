@@ -1,0 +1,54 @@
+{
+  "bk_biz_id": 3,
+  "ticket_type": "MYSQL_DTS_DATA_MIGRATE",
+  "remark": "dts 资源池申请联调",
+  "ignore_duplication": true,
+  "details": {
+    "infos": [
+      {
+        "resource_spec": {
+          // 资源规格
+          "master": {
+            "spec_id": 464, //规格id
+            "count": 1, //数量（默认1）
+            "label": [] //资源标签：从资源池精确匹配目标机器，如 ['dts-pool']
+          },
+          "worker": {
+            "spec_id": 464,
+            "count": 1,
+            "label": []
+          }
+        },
+        "dts_resource": {
+          "deploy": {}
+        },
+        "migrate": {
+          "topology": "one_to_one",
+          "one_to_one": {
+            "source": {
+              //源集群
+              "cluster_id": 1000293, //集群id
+              "sync_scope": {
+                //库表同步范围
+                "db_patterns": [
+                  //源db
+                  "test_db"
+                ],
+                "ignore_dbs": [], //忽略db
+                "ignore_tables": [], //忽略表
+                "table_patterns": [] //源表
+              }
+            },
+            "target": {
+              //目标集群
+              "cluster_id": 1000294 //集群id
+            }
+          }
+        }
+      }
+    ],
+    "task": {
+      "on_duplicate": "error" // 冲突策略：error报错，replace替换，ignore保留
+    }
+  }
+}
