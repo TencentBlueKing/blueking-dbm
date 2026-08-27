@@ -1,0 +1,10 @@
+apiVersion: bkai.tencent.com/v1
+kind: Skill
+
+metadata:
+  code: dbm-common-cluster-base-info
+  name: DBM集群基础信息查询
+
+spec:
+  generate_type: space
+  is_public: false
