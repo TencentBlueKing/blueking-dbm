@@ -100,6 +100,7 @@ export default class TendbCluster extends ClusterBase {
     tendbcluster_spider_add_nodes: boolean;
     tendbcluster_spider_mnt_destroy: boolean;
     tendbcluster_spider_reduce_nodes: boolean;
+    tendbcluster_subscribe_monitor: boolean;
     tendbcluster_truncate_data: boolean;
     tendbcluster_view: boolean;
     tendbcluster_webconsole: boolean;

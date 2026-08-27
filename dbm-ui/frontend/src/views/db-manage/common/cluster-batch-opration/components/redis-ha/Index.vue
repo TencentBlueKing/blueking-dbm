@@ -1,74 +1,94 @@
 <template>
-  <BkDropdownItem v-db-console="'redis.haClusterManage.extractKey'">
-    <BkButton
-      v-bk-tooltips="{
-        disabled: !batchOperationDisabled,
-        content: t('仅已启用集群可以提取 Key'),
-        placement: 'right',
-      }"
-      class="opration-button"
-      :disabled="batchOperationDisabled"
-      text
-      @click="handleToToolbox(TicketTypes.REDIS_KEYS_EXTRACT, selected)">
+  <BkDropdownItem
+    v-bk-tooltips="{
+      disabled: !extractTooltip || extractNoPermission,
+      content: t('所选集群均已禁用'),
+      placement: 'right',
+    }"
+    v-db-console="'redis.haClusterManage.extractKey'">
+    <BatchOperationButton
+      :action-id="EXTRACT_ACTION_ID"
+      :disabled="extractDisabled"
+      :no-permission="extractNoPermission"
+      :resources="resources"
+      @click="handleExtractClick">
       {{ t('提取Key') }}
-    </BkButton>
+    </BatchOperationButton>
   </BkDropdownItem>
-  <BkDropdownItem v-db-console="'redis.haClusterManage.deleteKey'">
-    <BkButton
-      v-bk-tooltips="{
-        disabled: !batchOperationDisabled,
-        content: t('仅已启用集群可以删除 Key'),
-        placement: 'right',
-      }"
-      class="opration-button"
-      :disabled="batchOperationDisabled"
-      text
-      @click="handleToToolbox(TicketTypes.REDIS_KEYS_DELETE, selected)">
+  <BkDropdownItem
+    v-bk-tooltips="{
+      disabled: !deleteKeyTooltip || deleteKeyNoPermission,
+      content: t('所选集群均已禁用'),
+      placement: 'right',
+    }"
+    v-db-console="'redis.haClusterManage.deleteKey'">
+    <BatchOperationButton
+      :action-id="DELETE_KEY_ACTION_ID"
+      :disabled="deleteKeyDisabled"
+      :no-permission="deleteKeyNoPermission"
+      :resources="resources"
+      @click="handleDeleteKeyClick">
       {{ t('删除Key') }}
-    </BkButton>
+    </BatchOperationButton>
   </BkDropdownItem>
-  <BkDropdownItem v-db-console="'redis.haClusterManage.backup'">
-    <BkButton
-      v-bk-tooltips="{
-        disabled: !batchOperationDisabled,
-        content: t('仅已启用集群可以备份'),
-        placement: 'right',
-      }"
-      class="opration-button"
-      :disabled="batchOperationDisabled"
-      text
-      @click="handleToToolbox(TicketTypes.REDIS_BACKUP, selected)">
+  <BkDropdownItem
+    v-bk-tooltips="{
+      disabled: !backupTooltip || backupNoPermission,
+      content: t('所选集群均已禁用'),
+      placement: 'right',
+    }"
+    v-db-console="'redis.haClusterManage.backup'">
+    <BatchOperationButton
+      :action-id="BACKUP_ACTION_ID"
+      :disabled="backupDisabled"
+      :no-permission="backupNoPermission"
+      :resources="resources"
+      @click="handleBackupClick">
       {{ t('备份') }}
-    </BkButton>
+    </BatchOperationButton>
   </BkDropdownItem>
-  <BkDropdownItem v-db-console="'redis.haClusterManage.dbClear'">
-    <BkButton
-      v-bk-tooltips="{
-        disabled: !batchOperationDisabled,
-        content: t('仅已启用集群可以清档'),
-        placement: 'right',
-      }"
-      class="opration-button"
-      :disabled="batchOperationDisabled"
-      text
-      @click="handleToToolbox(TicketTypes.REDIS_PURGE, selected)">
+  <BkDropdownItem
+    v-bk-tooltips="{
+      disabled: !purgeTooltip || purgeNoPermission,
+      content: t('所选集群均已禁用'),
+      placement: 'right',
+    }"
+    v-db-console="'redis.haClusterManage.dbClear'">
+    <BatchOperationButton
+      :action-id="PURGE_ACTION_ID"
+      :disabled="purgeDisabled"
+      :no-permission="purgeNoPermission"
+      :resources="resources"
+      @click="handlePurgeClick">
       {{ t('清档') }}
-    </BkButton>
+    </BatchOperationButton>
   </BkDropdownItem>
-  <BkDropdownItem v-db-console="'redis.haClusterManage.batchAddTag'">
+  <BkDropdownItem
+    v-bk-tooltips="{
+      disabled: !tagTooltip || tagNoPermission,
+      content: t('所选集群均已禁用'),
+      placement: 'right',
+    }"
+    v-db-console="'redis.haClusterManage.batchAddTag'">
     <BatchOperationButton
       :action-id="TAG_ACTION_ID"
-      :disabled="!tagEditable && !tagNoPermission"
+      :disabled="tagDisabled"
       :no-permission="tagNoPermission"
       :resources="resources"
       @click="handleAddTagClick">
       {{ t('添加标签') }}
     </BatchOperationButton>
   </BkDropdownItem>
-  <BkDropdownItem v-db-console="'redis.haClusterManage.batchRemoveTag'">
+  <BkDropdownItem
+    v-bk-tooltips="{
+      disabled: !tagTooltip || tagNoPermission,
+      content: t('所选集群均已禁用'),
+      placement: 'right',
+    }"
+    v-db-console="'redis.haClusterManage.batchRemoveTag'">
     <BatchOperationButton
       :action-id="TAG_ACTION_ID"
-      :disabled="!tagEditable && !tagNoPermission"
+      :disabled="tagDisabled"
       :no-permission="tagNoPermission"
       :resources="resources"
       @click="handleRemoveTagClick">
@@ -77,10 +97,15 @@
   </BkDropdownItem>
   <BkDropdownItem
     v-if="isClusterTypeAlarmSupported"
+    v-bk-tooltips="{
+      disabled: !subscriptionTooltip || subscriptionNoPermission,
+      content: t('所选集群均已禁用'),
+      placement: 'right',
+    }"
     v-db-console="'redis.haClusterManage.configAlarmSubscription'">
     <BatchOperationButton
       :action-id="SUBSCRIBE_ACTION_ID"
-      :disabled="!subscriptionEditable && !subscriptionNoPermission"
+      :disabled="subscriptionDisabled"
       :no-permission="subscriptionNoPermission"
       :resources="resources"
       @click="handleEditSubscriptionClick">
@@ -89,10 +114,15 @@
   </BkDropdownItem>
   <BkDropdownItem
     v-if="isClusterTypeAlarmSupported"
+    v-bk-tooltips="{
+      disabled: !subscriptionTooltip || subscriptionNoPermission,
+      content: t('所选集群均已禁用'),
+      placement: 'right',
+    }"
     v-db-console="'redis.haClusterManage.deleteAlarmSubscription'">
     <BatchOperationButton
       :action-id="SUBSCRIBE_ACTION_ID"
-      :disabled="!subscriptionEditable && !subscriptionNoPermission"
+      :disabled="subscriptionDisabled"
       :no-permission="subscriptionNoPermission"
       :resources="resources"
       @click="handleDeleteSubscriptionClick">
@@ -223,22 +253,75 @@
   const showClusterBatchEditSubscription = ref(false);
   const showClusterBatchDeleteSubscription = ref(false);
 
-  const batchOperationDisabled = computed(() =>
-    props.selected.some((data) => {
-      if (!data.isOnline) {
-        return true;
-      }
-
-      if (data.operations?.length > 0) {
-        const operationData = data.operations[0];
-        return ([TicketTypes.REDIS_INSTANCE_DESTROY, TicketTypes.REDIS_INSTANCE_CLOSE] as string[]).includes(
-          operationData.ticket_type,
-        );
-      }
-
-      return false;
-    }),
+  /** 跳转类鉴权 action-id（与单行一致） */
+  const EXTRACT_ACTION_ID = 'redis_keys_extract';
+  const DELETE_KEY_ACTION_ID = 'redis_keys_delete';
+  const BACKUP_ACTION_ID = 'redis_backup';
+  const PURGE_ACTION_ID = 'redis_purge';
+  /** 是否具备跳转类操作权限 */
+  const hasExtractPermission = (data: RedisModel) => data.permission.redis_keys_extract !== false;
+  const hasDeleteKeyPermission = (data: RedisModel) => data.permission.redis_keys_delete !== false;
+  const hasBackupPermission = (data: RedisModel) => data.permission.redis_backup !== false;
+  const hasPurgePermission = (data: RedisModel) => data.permission.redis_purge !== false;
+  /**
+   * 跳转类三态（对应需求 §2.2）：
+   * - 全部无权限（含同时已禁用）：置灰（auth-button-disable 样式）可点击，点击弹权限申请
+   * - 全部有权限且全部已禁用：置灰不可点，hover tooltip「所选集群均已禁用」
+   * - 其余（含部分无权限、部分已禁用）：亮起，点击跳转工具页预填全部勾选
+   */
+  const extractNoPermission = computed(
+    () => props.selected.length > 0 && props.selected.every((data) => !hasExtractPermission(data)),
   );
+  const deleteKeyNoPermission = computed(
+    () => props.selected.length > 0 && props.selected.every((data) => !hasDeleteKeyPermission(data)),
+  );
+  const backupNoPermission = computed(
+    () => props.selected.length > 0 && props.selected.every((data) => !hasBackupPermission(data)),
+  );
+  const purgeNoPermission = computed(
+    () => props.selected.length > 0 && props.selected.every((data) => !hasPurgePermission(data)),
+  );
+  const extractDisabled = computed(
+    () =>
+      !extractNoPermission.value &&
+      props.selected.length > 0 &&
+      props.selected.every((data) => hasExtractPermission(data) && isClusterDisabled(data)),
+  );
+  const deleteKeyDisabled = computed(
+    () =>
+      !deleteKeyNoPermission.value &&
+      props.selected.length > 0 &&
+      props.selected.every((data) => hasDeleteKeyPermission(data) && isClusterDisabled(data)),
+  );
+  const backupDisabled = computed(
+    () =>
+      !backupNoPermission.value &&
+      props.selected.length > 0 &&
+      props.selected.every((data) => hasBackupPermission(data) && isClusterDisabled(data)),
+  );
+  const purgeDisabled = computed(
+    () =>
+      !purgeNoPermission.value &&
+      props.selected.length > 0 &&
+      props.selected.every((data) => hasPurgePermission(data) && isClusterDisabled(data)),
+  );
+  /** 全部有权限且全部已禁用（状态不符）时 hover 出 tooltip */
+  const extractTooltip = computed(() => extractDisabled.value);
+  const deleteKeyTooltip = computed(() => deleteKeyDisabled.value);
+  const backupTooltip = computed(() => backupDisabled.value);
+  const purgeTooltip = computed(() => purgeDisabled.value);
+  /** 单个集群是否已禁用（状态不符：离线或存在销毁/关闭单据） */
+  const isClusterDisabled = (data: RedisModel) => {
+    if (!data.isOnline) {
+      return true;
+    }
+    if (data.operations?.length > 0) {
+      return ([TicketTypes.REDIS_INSTANCE_DESTROY, TicketTypes.REDIS_INSTANCE_CLOSE] as string[]).includes(
+        data.operations[0].ticket_type,
+      );
+    }
+    return false;
+  };
 
   /** 禁用/启用鉴权 action-id（与单行一致） */
   const DISABLE_ACTION_ID = 'redis_open_close';
@@ -301,16 +384,46 @@
   const tagNoPermission = computed(
     () => props.selected.length > 0 && props.selected.every((data) => data.permission.redis_edit === false),
   );
-  /** 添加/移除标签：至少 1 个有权限则亮起 */
-  const tagEditable = computed(() => props.selected.some((data) => data.permission.redis_edit !== false));
+  /** 添加/移除标签：全部有权限且全部已禁用时置灰并 hover tooltip */
+  const tagDisabled = computed(
+    () =>
+      !tagNoPermission.value &&
+      !props.selected.some((data) => data.permission.redis_edit !== false && !isClusterDisabled(data)),
+  );
+  const tagTooltip = computed(
+    () => props.selected.length > 0 && props.selected.every((data) => isClusterDisabled(data)),
+  );
   /** 设置/删除告警订阅：全部无权限时置灰可点击，点击弹权限申请 */
   const subscriptionNoPermission = computed(
     () => props.selected.length > 0 && props.selected.every((data) => !hasSubscribePermission(data)),
   );
-  /** 设置/删除告警订阅：至少 1 个有权限则亮起 */
-  const subscriptionEditable = computed(() => props.selected.some((data) => hasSubscribePermission(data)));
+  /** 设置/删除告警订阅：全部有权限且全部已禁用时置灰并 hover tooltip */
+  const subscriptionDisabled = computed(
+    () =>
+      !subscriptionNoPermission.value &&
+      !props.selected.some((data) => hasSubscribePermission(data) && !isClusterDisabled(data)),
+  );
+  const subscriptionTooltip = computed(
+    () => props.selected.length > 0 && props.selected.every((data) => isClusterDisabled(data)),
+  );
   /** 批量操作权限申请的资源列表 */
   const resources = computed(() => props.selected.map((data) => ({ id: data.id, type: data.db_type })));
+  /** 提取Key */
+  const handleExtractClick = () => {
+    handleToToolbox(TicketTypes.REDIS_KEYS_EXTRACT, props.selected);
+  };
+  /** 删除Key */
+  const handleDeleteKeyClick = () => {
+    handleToToolbox(TicketTypes.REDIS_KEYS_DELETE, props.selected);
+  };
+  /** 备份 */
+  const handleBackupClick = () => {
+    handleToToolbox(TicketTypes.REDIS_BACKUP, props.selected);
+  };
+  /** 清档 */
+  const handlePurgeClick = () => {
+    handleToToolbox(TicketTypes.REDIS_PURGE, props.selected);
+  };
   /** 禁用 */
   const handleDisableClick = () => {
     handleDisableCluster(props.selected);

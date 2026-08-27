@@ -1,32 +1,46 @@
 <template>
-  <BkDropdownItem v-db-console="'sqlserver.haClusterList.batchAuthorize'">
-    <BkButton
-      v-bk-tooltips="{
-        disabled: !batchAuthorizeDisabled,
-        content: t('仅可授权状态为“已启用”的集群'),
-        placement: 'right',
-      }"
-      class="opration-button"
+  <BkDropdownItem
+    v-bk-tooltips="{
+      disabled: !batchAuthorizeTooltip || authorizeNoPermission,
+      content: t('所选集群均已禁用'),
+      placement: 'right',
+    }"
+    v-db-console="'sqlserver.haClusterList.batchAuthorize'">
+    <BatchOperationButton
+      :action-id="AUTHORIZE_ACTION_ID"
       :disabled="batchAuthorizeDisabled"
-      text
+      :no-permission="authorizeNoPermission"
+      :resources="resources"
       @click="clusterAuthorizeShow = true">
       {{ t('授权') }}
-    </BkButton>
+    </BatchOperationButton>
   </BkDropdownItem>
-  <BkDropdownItem v-db-console="'sqlserver.haClusterList.batchAddTag'">
+  <BkDropdownItem
+    v-bk-tooltips="{
+      disabled: !tagTooltip || tagNoPermission,
+      content: t('所选集群均已禁用'),
+      placement: 'right',
+    }"
+    v-db-console="'sqlserver.haClusterList.batchAddTag'">
     <BatchOperationButton
       :action-id="TAG_ACTION_ID"
-      :disabled="!tagEditable && !tagNoPermission"
+      :disabled="tagDisabled"
       :no-permission="tagNoPermission"
       :resources="resources"
       @click="handleAddTagClick">
       {{ t('添加标签') }}
     </BatchOperationButton>
   </BkDropdownItem>
-  <BkDropdownItem v-db-console="'sqlserver.haClusterList.batchRemoveTag'">
+  <BkDropdownItem
+    v-bk-tooltips="{
+      disabled: !tagTooltip || tagNoPermission,
+      content: t('所选集群均已禁用'),
+      placement: 'right',
+    }"
+    v-db-console="'sqlserver.haClusterList.batchRemoveTag'">
     <BatchOperationButton
       :action-id="TAG_ACTION_ID"
-      :disabled="!tagEditable && !tagNoPermission"
+      :disabled="tagDisabled"
       :no-permission="tagNoPermission"
       :resources="resources"
       @click="handleRemoveTagClick">
@@ -35,10 +49,15 @@
   </BkDropdownItem>
   <BkDropdownItem
     v-if="isClusterTypeAlarmSupported"
+    v-bk-tooltips="{
+      disabled: !subscriptionTooltip || subscriptionNoPermission,
+      content: t('所选集群均已禁用'),
+      placement: 'right',
+    }"
     v-db-console="'sqlserver.haClusterList.configAlarmSubscription'">
     <BatchOperationButton
       :action-id="SUBSCRIBE_ACTION_ID"
-      :disabled="!subscriptionEditable && !subscriptionNoPermission"
+      :disabled="subscriptionDisabled"
       :no-permission="subscriptionNoPermission"
       :resources="resources"
       @click="handleEditSubscriptionClick">
@@ -47,10 +66,15 @@
   </BkDropdownItem>
   <BkDropdownItem
     v-if="isClusterTypeAlarmSupported"
+    v-bk-tooltips="{
+      disabled: !subscriptionTooltip || subscriptionNoPermission,
+      content: t('所选集群均已禁用'),
+      placement: 'right',
+    }"
     v-db-console="'sqlserver.haClusterList.deleteAlarmSubscription'">
     <BatchOperationButton
       :action-id="SUBSCRIBE_ACTION_ID"
-      :disabled="!subscriptionEditable && !subscriptionNoPermission"
+      :disabled="subscriptionDisabled"
       :no-permission="subscriptionNoPermission"
       :resources="resources"
       @click="handleDeleteSubscriptionClick">
@@ -190,7 +214,20 @@
   const showClusterBatchEditSubscription = ref(false);
   const showClusterBatchDeleteSubscription = ref(false);
 
-  const batchAuthorizeDisabled = computed(() => props.selected.some((data) => data.isOffline));
+  /** 批量授权鉴权 action-id（与单行/详情一致） */
+  const AUTHORIZE_ACTION_ID = 'sqlserver_authorize';
+  /** 批量授权：全部无权限时置灰可点击，点击弹权限申请 */
+  const authorizeNoPermission = computed(
+    () => props.selected.length > 0 && props.selected.every((data) => data.permission.sqlserver_authorize === false),
+  );
+  /** 批量授权：全部已禁用（状态不符）时置灰并 hover tooltip */
+  const batchAuthorizeDisabled = computed(
+    () =>
+      !authorizeNoPermission.value &&
+      props.selected.length > 0 &&
+      props.selected.every((data) => data.permission.sqlserver_authorize !== false && data.isOffline),
+  );
+  const batchAuthorizeTooltip = computed(() => batchAuthorizeDisabled.value);
   /** 禁用/启用鉴权 action-id（与单行一致） */
   const DISABLE_ACTION_ID = 'sqlserver_enable_disable';
   /** 删除鉴权 action-id（与单行一致） */
@@ -253,13 +290,26 @@
     () => props.selected.length > 0 && props.selected.every((data) => data.permission.sqlserver_edit === false),
   );
   /** 添加/移除标签：至少 1 个有权限则亮起 */
-  const tagEditable = computed(() => props.selected.some((data) => data.permission.sqlserver_edit !== false));
+  /** 添加/移除标签：全部有权限且全部已禁用时置灰并 hover tooltip */
+  const tagDisabled = computed(
+    () =>
+      !tagNoPermission.value &&
+      !props.selected.some((data) => data.permission.sqlserver_edit !== false && !data.isOffline),
+  );
+  const tagTooltip = computed(() => props.selected.length > 0 && props.selected.every((data) => data.isOffline));
   /** 设置/删除告警订阅：全部无权限时置灰可点击，点击弹权限申请 */
   const subscriptionNoPermission = computed(
     () => props.selected.length > 0 && props.selected.every((data) => !hasSubscribePermission(data)),
   );
-  /** 设置/删除告警订阅：至少 1 个有权限则亮起 */
-  const subscriptionEditable = computed(() => props.selected.some((data) => hasSubscribePermission(data)));
+  /** 设置/删除告警订阅：全部有权限且全部已禁用时置灰并 hover tooltip */
+  const subscriptionDisabled = computed(
+    () =>
+      !subscriptionNoPermission.value &&
+      !props.selected.some((data) => hasSubscribePermission(data) && !data.isOffline),
+  );
+  const subscriptionTooltip = computed(
+    () => props.selected.length > 0 && props.selected.every((data) => data.isOffline),
+  );
   /** 批量操作权限申请的资源列表 */
   const resources = computed(() => props.selected.map((data) => ({ id: data.id, type: data.db_type })));
   /** 禁用 */

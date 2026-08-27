@@ -1,46 +1,63 @@
 <template>
-  <BkDropdownItem v-db-console="'mysql.haClusterList.batchSubscription'">
-    <BkButton
-      v-bk-tooltips="{
-        disabled: !batchSubscriptionDisabled,
-        content: t('仅可订阅状态为“已启用”的集群'),
-        placement: 'right',
-      }"
-      class="opration-button"
+  <BkDropdownItem
+    v-if="isShowDumperEntry"
+    v-bk-tooltips="{
+      disabled: !batchSubscriptionTooltip || subscriptionRuleNoPermission,
+      content: t('所选集群均已禁用'),
+      placement: 'right',
+    }"
+    v-db-console="'mysql.haClusterList.batchSubscription'">
+    <BatchOperationButton
+      :action-id="SUBSCRIBE_RULE_ACTION_ID"
       :disabled="batchSubscriptionDisabled"
-      text
+      :no-permission="subscriptionRuleNoPermission"
+      :resources="resources"
       @click="showCreateSubscribeRuleSlider = true">
-      {{ t('订阅') }}
-    </BkButton>
+      {{ t('数据订阅') }}
+    </BatchOperationButton>
   </BkDropdownItem>
-  <BkDropdownItem v-db-console="'mysql.haClusterList.batchAuthorize'">
-    <BkButton
-      v-bk-tooltips="{
-        disabled: !batchAuthorizeDisabled,
-        content: t('仅可授权状态为“已启用”的集群'),
-        placement: 'right',
-      }"
-      class="opration-button"
+  <BkDropdownItem
+    v-bk-tooltips="{
+      disabled: !batchAuthorizeTooltip || authorizeNoPermission,
+      content: t('所选集群均已禁用'),
+      placement: 'right',
+    }"
+    v-db-console="'mysql.haClusterList.batchAuthorize'">
+    <BatchOperationButton
+      :action-id="AUTHORIZE_ACTION_ID"
       :disabled="batchAuthorizeDisabled"
-      text
+      :no-permission="authorizeNoPermission"
+      :resources="resources"
       @click="clusterAuthorizeShow = true">
       {{ t('授权') }}
-    </BkButton>
+    </BatchOperationButton>
   </BkDropdownItem>
-  <BkDropdownItem v-db-console="'mysql.haClusterList.batchAddTag'">
+  <BkDropdownItem
+    v-bk-tooltips="{
+      disabled: !tagTooltip || tagNoPermission,
+      content: t('所选集群均已禁用'),
+      placement: 'right',
+    }"
+    v-db-console="'mysql.haClusterList.batchAddTag'">
     <BatchOperationButton
       :action-id="TAG_ACTION_ID"
-      :disabled="!tagEditable && !tagNoPermission"
+      :disabled="tagDisabled"
       :no-permission="tagNoPermission"
       :resources="resources"
       @click="handleAddTagClick">
       {{ t('添加标签') }}
     </BatchOperationButton>
   </BkDropdownItem>
-  <BkDropdownItem v-db-console="'mysql.haClusterList.batchRemoveTag'">
+  <BkDropdownItem
+    v-bk-tooltips="{
+      disabled: !tagTooltip || tagNoPermission,
+      content: t('所选集群均已禁用'),
+      placement: 'right',
+    }"
+    v-db-console="'mysql.haClusterList.batchRemoveTag'">
     <BatchOperationButton
       :action-id="TAG_ACTION_ID"
-      :disabled="!tagEditable && !tagNoPermission"
+      :disabled="tagDisabled"
       :no-permission="tagNoPermission"
       :resources="resources"
       @click="handleRemoveTagClick">
@@ -49,10 +66,15 @@
   </BkDropdownItem>
   <BkDropdownItem
     v-if="isClusterTypeAlarmSupported"
+    v-bk-tooltips="{
+      disabled: !subscriptionTooltip || subscriptionNoPermission,
+      content: t('所选集群均已禁用'),
+      placement: 'right',
+    }"
     v-db-console="'mysql.haClusterList.configAlarmSubscription'">
     <BatchOperationButton
       :action-id="SUBSCRIBE_ACTION_ID"
-      :disabled="!subscriptionEditable && !subscriptionNoPermission"
+      :disabled="subscriptionDisabled"
       :no-permission="subscriptionNoPermission"
       :resources="resources"
       @click="handleEditSubscriptionClick">
@@ -61,10 +83,15 @@
   </BkDropdownItem>
   <BkDropdownItem
     v-if="isClusterTypeAlarmSupported"
+    v-bk-tooltips="{
+      disabled: !subscriptionTooltip || subscriptionNoPermission,
+      content: t('所选集群均已禁用'),
+      placement: 'right',
+    }"
     v-db-console="'mysql.haClusterList.deleteAlarmSubscription'">
     <BatchOperationButton
       :action-id="SUBSCRIBE_ACTION_ID"
-      :disabled="!subscriptionEditable && !subscriptionNoPermission"
+      :disabled="subscriptionDisabled"
       :no-permission="subscriptionNoPermission"
       :resources="resources"
       @click="handleDeleteSubscriptionClick">
@@ -157,9 +184,12 @@
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
 
+  import type { MySQLFunctions } from '@services/model/function-controller/functionController';
   import TendbHaModel from '@services/model/mysql/tendbha';
 
   import { useAlarmSubscribe } from '@hooks';
+
+  import { useFunController } from '@stores';
 
   import { AccountTypes, ClusterTypes } from '@common/const';
 
@@ -191,6 +221,7 @@
   });
 
   const { t } = useI18n();
+  const funControllerStore = useFunController();
   const { handleConfirmDialog, handleDeleteCluster, handleDisableCluster, handleEnableCluster, isShow, operateDialog } =
     useOperateClusterBatch<TendbHaModel>(ClusterTypes.TENDBHA, {
       deleteMismatch: (data) => data.isOnline || Boolean(data.operationTicketId),
@@ -211,8 +242,38 @@
   const showClusterBatchEditSubscription = ref(false);
   const showClusterBatchDeleteSubscription = ref(false);
 
-  const batchSubscriptionDisabled = computed(() => props.selected.some((data) => data.isOffline));
-  const batchAuthorizeDisabled = computed(() => props.selected.some((data) => data.isOffline));
+  const isShowDumperEntry = computed(() => {
+    const currentKey = `dumper_biz_${window.PROJECT_CONFIG.BIZ_ID}` as MySQLFunctions;
+    return funControllerStore.funControllerData.mysql.children[currentKey]?.is_enabled;
+  });
+
+  /** 数据订阅鉴权 action-id（与单行/详情一致） */
+  const SUBSCRIBE_RULE_ACTION_ID = 'tbinlogdumper_install';
+  /** 批量授权鉴权 action-id（与单行/详情一致） */
+  const AUTHORIZE_ACTION_ID = 'mysql_authorize';
+  /** 数据订阅：全部无权限时置灰可点击，点击弹权限申请 */
+  const subscriptionRuleNoPermission = computed(
+    () => props.selected.length > 0 && props.selected.every((data) => data.permission.tbinlogdumper_install === false),
+  );
+  /** 批量授权：全部无权限时置灰可点击，点击弹权限申请 */
+  const authorizeNoPermission = computed(
+    () => props.selected.length > 0 && props.selected.every((data) => data.permission.mysql_authorize === false),
+  );
+  /** 数据订阅/批量授权：全部有权限且全部已禁用（状态不符）时置灰并 hover tooltip */
+  const batchSubscriptionDisabled = computed(
+    () =>
+      !subscriptionRuleNoPermission.value &&
+      props.selected.length > 0 &&
+      props.selected.every((data) => data.permission.tbinlogdumper_install !== false && data.isOffline),
+  );
+  const batchSubscriptionTooltip = computed(() => batchSubscriptionDisabled.value);
+  const batchAuthorizeDisabled = computed(
+    () =>
+      !authorizeNoPermission.value &&
+      props.selected.length > 0 &&
+      props.selected.every((data) => data.permission.mysql_authorize !== false && data.isOffline),
+  );
+  const batchAuthorizeTooltip = computed(() => batchAuthorizeDisabled.value);
   /** 禁用/启用鉴权 action-id（与单行一致） */
   const DISABLE_ACTION_ID = 'mysql_enable_disable';
   /** 删除鉴权 action-id（与单行一致） */
@@ -275,13 +336,25 @@
     () => props.selected.length > 0 && props.selected.every((data) => data.permission.mysql_edit === false),
   );
   /** 添加/移除标签：至少 1 个有权限则亮起 */
-  const tagEditable = computed(() => props.selected.some((data) => data.permission.mysql_edit !== false));
+  /** 添加/移除标签：全部有权限且全部已禁用时置灰并 hover tooltip */
+  const tagDisabled = computed(
+    () =>
+      !tagNoPermission.value && !props.selected.some((data) => data.permission.mysql_edit !== false && !data.isOffline),
+  );
+  const tagTooltip = computed(() => props.selected.length > 0 && props.selected.every((data) => data.isOffline));
   /** 设置/删除告警订阅：全部无权限时置灰可点击，点击弹权限申请 */
   const subscriptionNoPermission = computed(
     () => props.selected.length > 0 && props.selected.every((data) => !hasSubscribePermission(data)),
   );
-  /** 设置/删除告警订阅：至少 1 个有权限则亮起 */
-  const subscriptionEditable = computed(() => props.selected.some((data) => hasSubscribePermission(data)));
+  /** 设置/删除告警订阅：全部有权限且全部已禁用时置灰并 hover tooltip */
+  const subscriptionDisabled = computed(
+    () =>
+      !subscriptionNoPermission.value &&
+      !props.selected.some((data) => hasSubscribePermission(data) && !data.isOffline),
+  );
+  const subscriptionTooltip = computed(
+    () => props.selected.length > 0 && props.selected.every((data) => data.isOffline),
+  );
   /** 批量操作权限申请的资源列表 */
   const resources = computed(() => props.selected.map((data) => ({ id: data.id, type: data.db_type })));
   /** 禁用 */
