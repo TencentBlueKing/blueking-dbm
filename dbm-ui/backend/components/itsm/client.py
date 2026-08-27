@@ -196,6 +196,11 @@ class _ItsmV4Api(BaseApi):
             url="ticket/handle/",
             description=_("V4工单处理"),
         )
+        self.revoke_ticket = self.generate_data_api(
+            method="POST",
+            url="tickets/revoked/",
+            description=_("V4工单撤销"),
+        )
         self.handle_approval_node = self.generate_data_api(
             method="POST",
             url="handle_approval_node/",
