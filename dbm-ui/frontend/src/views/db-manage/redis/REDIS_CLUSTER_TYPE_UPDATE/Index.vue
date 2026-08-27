@@ -387,9 +387,8 @@
   //   }
   // };
 
-  const handleSubmit = async () => {
-    const validateResult = await editableTableRef.value!.validate();
-    if (validateResult) {
+  const handleSubmit = () => {
+    editableTableRef.value!.validate().then(() => {
       createTicketRun({
         details: {
           data_check_repair_setting: {
@@ -428,7 +427,7 @@
         },
         ...formData.payload,
       });
-    }
+    });
   };
 
   const handleReset = () => {

@@ -257,29 +257,26 @@
 
   defineExpose<Exposes>({
     getValue: () =>
-      editableTableRef.value!.validate().then((validateResult) => {
-        if (validateResult) {
-          return tableData.value.map((tableItem) => {
-            return {
-              ...tableItem.instance_data,
-              db_version: tableItem.db_version,
-              migrate_domain: Object.values(tableItem.batchCluster.clusters)
-                .map((item) => item.master_domain)
-                .join(','),
-              // migrate_ip: '',
-              migrate_type: 'domain',
-              resource_spec: {
-                backend_group: {
-                  count: 1,
-                  label_names: tableItem.labels.map((item) => item.value),
-                  labels: tableItem.labels.map((item) => String(item.id)),
-                  spec_id: tableItem.target_spec_id,
-                },
+      editableTableRef.value!.validate().then(() => {
+        return tableData.value.map((tableItem) => {
+          return {
+            ...tableItem.instance_data,
+            db_version: tableItem.db_version,
+            migrate_domain: Object.values(tableItem.batchCluster.clusters)
+              .map((item) => item.master_domain)
+              .join(','),
+            // migrate_ip: '',
+            migrate_type: 'domain',
+            resource_spec: {
+              backend_group: {
+                count: 1,
+                label_names: tableItem.labels.map((item) => item.value),
+                labels: tableItem.labels.map((item) => String(item.id)),
+                spec_id: tableItem.target_spec_id,
               },
-            };
-          });
-        }
-        return [];
+            },
+          };
+        });
       }),
     resetTable: () => {
       tableData.value = [createRowData()];

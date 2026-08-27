@@ -6216,5 +6216,12 @@
   "文件格式不支持": "File format not supported",
   "文件大小超出限制": "File size cannot exceed {0} MB",
   "已达到字数上限": "Reached character limit",
+  "请设置值": "Please set a value",
+  "{n}不能为空": "{n} cannot be empty",
+  "{n}不是 email": "{n} is not a valid email",
+  "{n}查询中": "{n} is loading",
+  "{n}最大值 {max}": "The maximum value of {n} is {max}",
+  "{n}最小值 {min}": "The minimum value of {n} is {min}",
+  "{n}最大长度 {maxlength}": "The maximum length of {n} is {maxlength}",
   "这行勿动！新增翻译请在上一行添加！": ""
 }

@@ -1,3 +1,16 @@
+/*
+ * TencentBlueKing is pleased to support the open source community by making 蓝鲸智云-DB管理系统(BlueKing-BK-DBM) available.
+ *
+ * Copyright (C) 2017-2023 THL A29 Limited, a Tencent company. All rights reserved.
+ *
+ * Licensed under the MIT License (the "License"); you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at https://opensource.org/licenses/MIT
+ *
+ * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed
+ * on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for
+ * the specific language governing permissions and limitations under the License.
+ */
+
 import _ from 'lodash';
 import { onBeforeUnmount, onMounted, type Ref, ref, type ShallowRef, watch } from 'vue';
 
@@ -14,6 +27,7 @@ export default function (
     Record<
       string,
       {
+        isUserResized?: boolean;
         maxWidth?: number;
         minWidth?: number;
         renderWidth: number;
@@ -38,15 +52,20 @@ export default function (
       }
       const tableWidth = tableRef.value.getBoundingClientRect().width;
 
-      const columnSizeConfigCache = { ...columnSizeConfig.value };
+      const lastColumnSizeConfig = columnSizeConfig.value;
+      // 每次都从 props 全量推导，避免多次计算叠加；已卸载列的配置随之丢弃
+      const columnSizeConfigCache: typeof columnSizeConfig.value = {};
 
       const maxColumn: IColumnContext[] = [];
       const minColumn: IColumnContext[] = [];
       const pxColumn: IColumnContext[] = [];
       const autoColumn: IColumnContext[] = [];
+      const userResizedColumn: IColumnContext[] = [];
 
       columnList.value.forEach((column) => {
-        if (column.props.width) {
+        if (lastColumnSizeConfig[column.key]?.isUserResized) {
+          userResizedColumn.push(column);
+        } else if (column.props.width) {
           pxColumn.push(column);
         } else if (column.props.minWidth) {
           minColumn.push(column);
@@ -58,11 +77,12 @@ export default function (
       });
 
       let totalWidth = 0;
+      // 用户手动调整过的列宽保持不变
+      userResizedColumn.forEach((column) => {
+        columnSizeConfigCache[column.key] = { ...lastColumnSizeConfig[column.key]! };
+        totalWidth += columnSizeConfigCache[column.key]!.renderWidth;
+      });
       pxColumn.forEach((column) => {
-        if (columnSizeConfigCache[column.key]) {
-          totalWidth += columnSizeConfigCache[column.key]!.renderWidth;
-          return;
-        }
         columnSizeConfigCache[column.key] = {
           renderWidth: Number(column.props.width),
           width: column.props.width,
@@ -70,10 +90,6 @@ export default function (
         totalWidth += Number(column.props.width);
       });
       minColumn.forEach((column) => {
-        if (columnSizeConfigCache[column.key]) {
-          totalWidth += columnSizeConfigCache[column.key]!.renderWidth;
-          return;
-        }
         columnSizeConfigCache[column.key] = {
           minWidth: column.props.minWidth,
           renderWidth: Number(column.props.minWidth),
@@ -88,9 +104,6 @@ export default function (
 
       let extraWidth = 0;
       maxColumn.forEach((column) => {
-        if (columnSizeConfigCache[column.key]) {
-          return;
-        }
         let renderWidth = meanWidth;
         if (Number(column.props.maxWidth) <= meanWidth) {
           renderWidth = Number(column.props.maxWidth);
@@ -206,6 +219,8 @@ export default function (
 
         const tableWidth = tableRef.value!.getBoundingClientRect().width;
 
+        // 标记为手动调整，后续重新计算列宽时保持不变
+        columnSizeConfig.value[columnKey]!.isUserResized = true;
         if (renderColumWidthTotal + realWidth < tableWidth) {
           columnSizeConfig.value[columnKey]!.renderWidth = tableWidth - renderColumWidthTotal;
         } else {

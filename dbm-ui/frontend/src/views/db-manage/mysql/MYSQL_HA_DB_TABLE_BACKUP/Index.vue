@@ -213,22 +213,20 @@
     }[];
   }>(TicketTypes.MYSQL_HA_DB_TABLE_BACKUP);
 
-  const handleSubmit = async () => {
-    const result = await tableRef.value!.validate();
-    if (!result) {
-      return;
-    }
-    createTicketRun({
-      details: {
-        infos: formData.tableData.map((item) => ({
-          cluster_id: item.cluster.id,
-          db_patterns: item.db_patterns,
-          ignore_dbs: item.ignore_dbs,
-          ignore_tables: item.ignore_tables,
-          table_patterns: item.table_patterns,
-        })),
-      },
-      ...formData.payload,
+  const handleSubmit = () => {
+    tableRef.value!.validate().then(() => {
+      createTicketRun({
+        details: {
+          infos: formData.tableData.map((item) => ({
+            cluster_id: item.cluster.id,
+            db_patterns: item.db_patterns,
+            ignore_dbs: item.ignore_dbs,
+            ignore_tables: item.ignore_tables,
+            table_patterns: item.table_patterns,
+          })),
+        },
+        ...formData.payload,
+      });
     });
   };
 

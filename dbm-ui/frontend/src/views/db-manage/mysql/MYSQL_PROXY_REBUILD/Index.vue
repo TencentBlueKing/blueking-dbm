@@ -227,9 +227,8 @@
     }, 200);
   };
 
-  const handleSubmit = async () => {
-    const valid = await tableRef.value!.validate();
-    if (valid) {
+  const handleSubmit = () => {
+    tableRef.value!.validate().then(() => {
       // 按 cluster_id 分组生成 infos；每组 rebuild_proxy_hosts 列出该集群下所有目标 Proxy 主机
       createTicketRun({
         details: {
@@ -247,7 +246,7 @@
         },
         ...formData.payload,
       });
-    }
+    });
   };
 
   const handleReset = () => {

@@ -156,33 +156,30 @@
   }>(TicketTypes.MONGODB_INSTANCE_RELOAD);
 
   // 提交处理
-  const handleSubmit = async () => {
+  const handleSubmit = () => {
     const tableRef = currentTableRef.value;
     if (!tableRef) {
       return;
     }
 
-    const result = await Promise.all([tableRef.validate, currentTableRef.value!.validate]);
-    if (!result) {
-      return;
-    }
+    tableRef.validate().then(() => {
+      console.log({
+        details: {
+          force: formData.force,
+          infos: tableRef.getValue(),
+          target_select_mode: formData.targetSelectMode,
+        },
+        ...formData.payload,
+      });
 
-    console.log({
-      details: {
-        force: formData.force,
-        infos: currentTableRef.value.getValue(),
-        target_select_mode: formData.targetSelectMode,
-      },
-      ...formData.payload,
-    });
-
-    createTicketRun({
-      details: {
-        force: formData.force,
-        infos: currentTableRef.value.getValue(),
-        target_select_mode: formData.targetSelectMode,
-      },
-      ...formData.payload,
+      createTicketRun({
+        details: {
+          force: formData.force,
+          infos: tableRef.getValue(),
+          target_select_mode: formData.targetSelectMode,
+        },
+        ...formData.payload,
+      });
     });
   };
 

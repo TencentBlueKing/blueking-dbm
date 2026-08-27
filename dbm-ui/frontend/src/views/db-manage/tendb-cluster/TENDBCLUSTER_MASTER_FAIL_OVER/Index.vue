@@ -227,27 +227,25 @@
     is_verify_checksum: boolean;
   }>(TicketTypes.TENDBCLUSTER_MASTER_FAIL_OVER);
 
-  const handleSubmit = async () => {
-    const result = await tableRef.value!.validate();
-    if (!result) {
-      return;
-    }
-    createTicketRun({
-      details: {
-        infos: formData.tableData.map((item) => ({
-          cluster_id: item.master.cluster_id,
-          switch_tuples: [
-            {
-              master: item.master,
-              slave: item.slave,
-            },
-          ],
-        })),
-        is_check_delay: formData.is_check_delay,
-        is_check_process: formData.is_check_process,
-        is_verify_checksum: formData.is_verify_checksum,
-      },
-      ...formData.payload,
+  const handleSubmit = () => {
+    tableRef.value!.validate().then(() => {
+      createTicketRun({
+        details: {
+          infos: formData.tableData.map((item) => ({
+            cluster_id: item.master.cluster_id,
+            switch_tuples: [
+              {
+                master: item.master,
+                slave: item.slave,
+              },
+            ],
+          })),
+          is_check_delay: formData.is_check_delay,
+          is_check_process: formData.is_check_process,
+          is_verify_checksum: formData.is_verify_checksum,
+        },
+        ...formData.payload,
+      });
     });
   };
 

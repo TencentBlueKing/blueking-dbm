@@ -174,21 +174,19 @@
     with_push_config: boolean; // 是否推送配置
   }>(TicketTypes.TENDBCLUSTER_CLUSTER_STANDARDIZE);
 
-  const handleSubmit = async () => {
-    const result = await tableRef.value!.validate();
-    if (!result) {
-      return;
-    }
-    createTicketRun({
-      details: {
-        bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
-        cluster_ids: formData.tableData.map((item) => item.cluster.id),
-        with_cc_standardize: formData.with_cc_standardize,
-        with_deploy_binary: formData.with_deploy_binary,
-        with_instance_standardize: false,
-        with_push_config: formData.with_push_config,
-      },
-      ...formData.payload,
+  const handleSubmit = () => {
+    tableRef.value!.validate().then(() => {
+      createTicketRun({
+        details: {
+          bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
+          cluster_ids: formData.tableData.map((item) => item.cluster.id),
+          with_cc_standardize: formData.with_cc_standardize,
+          with_deploy_binary: formData.with_deploy_binary,
+          with_instance_standardize: false,
+          with_push_config: formData.with_push_config,
+        },
+        ...formData.payload,
+      });
     });
   };
 

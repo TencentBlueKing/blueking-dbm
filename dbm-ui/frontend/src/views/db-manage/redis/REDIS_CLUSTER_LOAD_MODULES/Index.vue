@@ -245,9 +245,8 @@
     formData.tableData = [...(selected.value.length ? formData.tableData : []), ...newList];
   };
 
-  const handleSubmit = async () => {
-    const validateResult = await editableTableRef.value!.validate();
-    if (validateResult) {
+  const handleSubmit = () => {
+    editableTableRef.value!.validate().then(() => {
       const isSameCloud = formData.tableData.every(
         (item) => item.cluster.bk_cloud_id === formData.tableData[0].cluster.bk_cloud_id,
       );
@@ -266,7 +265,7 @@
         },
         ...formData.payload,
       });
-    }
+    });
   };
 
   // 重置
