@@ -62,7 +62,7 @@ class MongoDBUpdateDBMetaService(BaseService):
                 machine_ids = set()
                 machine_ids.update(cluster.storageinstance_set.values_list("machine_id", flat=True))
                 machine_ids.update(cluster.proxyinstance_set.values_list("machine_id", flat=True))
-                Machine.objects.filter(id__in=machine_ids).update(bk_biz_id=target_bk_biz_id)
+                Machine.objects.filter(bk_host_id__in=machine_ids).update(bk_biz_id=target_bk_biz_id)
                 self.log_info(_("更新机器业务ID完成: 共更新 {} 台机器").format(len(machine_ids)))
 
                 # 更新集群业务ID
