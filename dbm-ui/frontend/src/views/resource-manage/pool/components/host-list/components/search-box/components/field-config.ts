@@ -190,6 +190,11 @@ export default {
     service: (value: number) => getResourceSpec({ spec_id: value }),
     type: 'number',
   },
+  status: {
+    component: 'status',
+    label: t('资源状态'),
+    type: 'array',
+  },
   subzone_ids: {
     component: 'city',
     label: t('地域 - 园区'),

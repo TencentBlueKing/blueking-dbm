@@ -113,6 +113,7 @@ interface ResouceListParams {
   os_type?: string;
   resource_type?: string;
   spec_id?: string;
+  status?: string;
   subzone_ids?: string;
 }
 
