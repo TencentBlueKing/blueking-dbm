@@ -126,11 +126,14 @@ skill 记录，**只记录不修改**。
 
 `.agents/rules/` 不会被工具自动附加，agent 按下表「什么时候读」主动加载：
 
-| 文件               | 什么时候读                                           |
-| ------------------ | ---------------------------------------------------- |
-| `db-manage.mdc`    | 改 `db-manage/**`、`services/**`、`ticket-center/**` |
-| `layout.mdc`       | 改 `src/layout/**`，或新增页面要挂菜单入口           |
-| `toolbox-code.mdc` | 新增或修改工具箱提单页                               |
+| 文件                | 什么时候读                                                     |
+| ------------------- | -------------------------------------------------------------- |
+| `db-manage.mdc`     | 改 `db-manage/**`：集群/实例列表、集群详情、工具箱提单、路由    |
+| `direct-link.mdc`   | 新增或修改直达链接（URL 带 `?open=` 参数自动执行动作）入口      |
+| `layout.mdc`        | 改 `src/layout/**`，或新增页面要挂菜单入口                     |
+| `services.mdc`      | 改 `services/**`，或新增接口                                   |
+| `ticket-detail.mdc` | 改 `ticket-center/**`，或新增单据详情组件与 details 类型        |
+| `toolbox-code.mdc`  | 新增或修改工具箱提单页                                         |
 
 `.agents/skills/` 按各 `SKILL.md` 的 description 触发，其中 `dbm-frontend-design`
 覆盖排版交互规范、设计令牌与四类页面骨架，新建或修改页面样式前应先读；`codebase-insights`

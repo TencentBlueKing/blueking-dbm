@@ -1,0 +1,19 @@
+---
+description: DBM 服务层约定。覆盖 source / model / http / types 四个目录的职责与新增接口的落地顺序。仓库分层与编码约定见 AGENTS.md。
+globs: ['**/services/**']
+alwaysApply: false
+---
+
+# 服务层 `src/services/`
+
+仓库分层与编码约定见 `AGENTS.md`。
+
+| 目录      | 职责                               |
+| --------- | ---------------------------------- |
+| `source/` | 接口函数，经 `http` 发请求         |
+| `model/`  | 列表/详情数据类与单据 details 类型 |
+| `http/`   | 请求封装                           |
+| `types/`  | 列表分页等通用类型                 |
+
+新增接口：在 `source/` 按资源写函数；列表行用 `model/` 类包装。单据 details 接口与提单字段对齐，并在
+`model/ticket/details/{db}/index.ts` 导出，详见 `ticket-detail.mdc`。
