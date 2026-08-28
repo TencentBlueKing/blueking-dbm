@@ -27,6 +27,7 @@ interface ClusterCommon {
   cluster_name: string;
   cluster_type: string;
   id: number;
+  master_domain: string;
   phase: string;
 }
 

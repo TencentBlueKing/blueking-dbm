@@ -36,7 +36,7 @@
 
   interface Props {
     actionId: string;
-    disabled: boolean;
+    disabled?: boolean;
     noPermission: boolean;
     resources: { id: number; type: string }[];
   }
