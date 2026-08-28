@@ -75,11 +75,13 @@
   import { computed, onBeforeUnmount, onMounted, ref, shallowRef, watch } from 'vue';
   import { useI18n } from 'vue-i18n';
 
+  import DbResourceModel from '@services/model/db-resource/DbResource';
+
   import ComFactory from '../com-factory/Index.vue';
   import fieldConfig from '../field-config';
   import { isValueEmpty } from '../utils';
 
-  interface Props {
+  export interface Props {
     model: Record<string, any>;
     name: string;
     value: any;
@@ -120,16 +122,20 @@
       return props.value === 0 ? '异常' : '正常';
     }
 
+    if (props.name === 'status') {
+      return (props.value as string[]).map((item) => DbResourceModel.ResourceStatusDisplayMap[item] || item).join(',');
+    }
+
     const valueList = Array.isArray(props.value) ? props.value : [props.value];
 
     if (config.service && config.getNameByKey && remoteOriginalList.value.length > 0) {
       const valueNameStask: string[] = [];
-      for (let i = 0; i < remoteOriginalList.value.length; i++) {
+      for (const remoteItem of remoteOriginalList.value) {
         valueList.forEach((valueItem) => {
           if (!config.getNameByKey) {
             return;
           }
-          const renderName = config.getNameByKey(valueItem, remoteOriginalList.value[i]);
+          const renderName = config.getNameByKey(valueItem, remoteItem);
           if (renderName) {
             valueNameStask.push(renderName);
           }
