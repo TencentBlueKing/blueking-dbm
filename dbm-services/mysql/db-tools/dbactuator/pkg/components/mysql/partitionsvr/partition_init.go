@@ -81,7 +81,7 @@ func (pc *PartitionConfig) ExecuteInitStatement(pd *PartitionDetail, conn *nativ
 
 func (pc *PartitionConfig) ExecuteInitStatementByPTTool(initStatement string, forceInitInfo *ForceInitInfo, partitionStepInfo *PartitionStepInfo) {
 	// 有唯一键，使用pt工具
-	pt_tool := "percona-toolkit-3.5.0/bin/pt-online-schema-change"
+	pt_tool := "percona-toolkit-3.5.7/bin/pt-online-schema-change"
 	user := forceInitInfo.User
 	pwd := forceInitInfo.Pwd
 	host := forceInitInfo.Host
