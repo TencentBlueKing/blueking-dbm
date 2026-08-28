@@ -47,7 +47,7 @@ class ClusterEntryViewSet(viewsets.SystemViewSet):
         elif self.action == "refresh_cluster_domain":
             cluster_id = get_request_key_id(self.request, key="cluster_id")
             dbtype = ClusterType.cluster_type_to_db_type(Cluster.objects.get(id=cluster_id).cluster_type)
-            actions = [getattr(ActionEnum, f"{dbtype}_admin_pwd_view".upper())]
+            actions = [getattr(ActionEnum, f"{dbtype}_manage".upper())]
             return [ClusterEntryPermission(actions=actions)]
         else:
             return [ResourceActionPermission([ActionEnum.GLOBAL_MANAGE])]
