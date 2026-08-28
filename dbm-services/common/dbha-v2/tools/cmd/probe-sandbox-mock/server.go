@@ -30,7 +30,14 @@ func startServers(cfg mockConfig, st *appStats) ([]func(), error) {
 	}
 	stoppers := []func(){st.closeDump}
 
-	stopAdmin, err := startAdmin(cfg.adminAddr, st)
+	payload, err := defaultPayloadJSON()
+	if err != nil {
+		stopAll(stoppers)
+		return nil, err
+	}
+	ctl := newAdminControl(payload)
+
+	stopAdmin, err := startAdmin(cfg.adminAddr, st, ctl)
 	if err != nil {
 		stopAll(stoppers)
 		return nil, err
@@ -51,7 +58,7 @@ func startServers(cfg mockConfig, st *appStats) ([]func(), error) {
 	}
 	stoppers = append(stoppers, stopRedis)
 
-	stopHTTP, err := startHTTP(cfg.httpAddr, st)
+	stopHTTP, err := startHTTP(cfg.httpAddr, st, ctl)
 	if err != nil {
 		stopAll(stoppers)
 		return nil, err

@@ -32,6 +32,10 @@ const (
 	MetricLabelMethod = "method"
 	MetricLabelPath   = "path"
 	MetricLabelStatus = "status"
+	// MetricLabelReason explains why a probe config request could not be answered from the
+	// local metadata cache. It is deliberately a small fixed set of values: labelling by ip or
+	// bk_cloud_id would create one time series per machine.
+	MetricLabelReason = "reason"
 )
 
 var (
@@ -40,6 +44,10 @@ var (
 	APIRequestSizeBytes   *haapm.HaHistogram
 	APIResponseSizeBytes  *haapm.HaHistogram
 	APIRequestErrorsTotal *haapm.HaCounter
+	// ProbeMetadataFallbackTotal counts probe config requests served from the DBM API instead
+	// of the local cache. Probes now ask periodically, so a rise here means admin is amplifying
+	// that traffic onto DBM and is the signal to look at metadata sync lag.
+	ProbeMetadataFallbackTotal *haapm.HaCounter
 )
 
 func init() {
@@ -80,6 +88,13 @@ func init() {
 		"Total number of API request errors",
 		MetricLabelMethod, MetricLabelPath,
 	)
+
+	// Probe metadata cache fallback counter
+	ProbeMetadataFallbackTotal = haapm.NewHaCounter(
+		"probe_metadata_fallback_total",
+		"Total number of probe config requests that fell back to the DBM metadata API",
+		MetricLabelReason,
+	)
 }
 
 // InitAPM sets service labels for startup metric and registers all metrics to haapm (Option 2).
@@ -98,5 +113,6 @@ func InitAPM(serviceID, serviceName string) {
 		APIRequestSizeBytes,
 		APIResponseSizeBytes,
 		APIRequestErrorsTotal,
+		ProbeMetadataFallbackTotal,
 	)
 }

@@ -33,6 +33,7 @@ require (
 	github.com/shirou/gopsutil/v3 v3.24.5
 	github.com/stretchr/testify v1.11.1
 	github.com/swaggest/swgui v1.8.5
+	golang.org/x/sync v0.19.0
 	golang.org/x/time v0.14.0
 	gorm.io/driver/sqlite v1.6.0
 )

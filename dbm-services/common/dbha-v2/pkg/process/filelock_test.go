@@ -85,6 +85,108 @@ func TestAcquireFileLock_TimeoutAndRelease(t *testing.T) {
 	_ = second.Unlock()
 }
 
+// TestWriteFileLocked_UnderCallerHeldLock covers the read-modify-write pattern the periodic
+// config sync relies on: take the lock once, read the current content, derive the next one and
+// write it back, with no window for another writer in between.
+func TestWriteFileLocked_UnderCallerHeldLock(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "probe.yaml")
+	if err := os.WriteFile(path, []byte("old\n"), 0o644); err != nil {
+		t.Fatalf("seed file failed, errmsg: %s", err)
+	}
+
+	lockPath, err := LockPathFor(path)
+	if err != nil {
+		t.Fatalf("resolve lock path failed, errmsg: %s", err)
+	}
+	fl, err := AcquireFileLock(lockPath, time.Second)
+	if err != nil {
+		t.Fatalf("acquire lock failed, errmsg: %s", err)
+	}
+
+	current, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatalf("read current failed, errmsg: %s", err)
+	}
+	changed, err := WriteFileLocked(path, append(current, []byte("new\n")...))
+	if err != nil {
+		t.Fatalf("write under held lock failed, errmsg: %s", err)
+	}
+	if !changed {
+		t.Fatal("expected content change to be reported")
+	}
+	if err := fl.Unlock(); err != nil {
+		t.Fatalf("unlock failed, errmsg: %s", err)
+	}
+
+	got, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatalf("read back failed, errmsg: %s", err)
+	}
+	if string(got) != "old\nnew\n" {
+		t.Fatalf("unexpected content: %q", string(got))
+	}
+
+	// Unchanged content must still be reported as such on this path.
+	again, err := WriteFileLocked(path, []byte("old\nnew\n"))
+	if err != nil {
+		t.Fatalf("second write failed, errmsg: %s", err)
+	}
+	if again {
+		t.Fatal("expected identical content to be skipped")
+	}
+}
+
+// TestWriteFileWithLock_NestedCallTimesOut pins the constraint documented on WriteFileLocked:
+// flock excludes different descriptors even inside one process, so calling the locking variant
+// while already holding the lock deadlocks until the timeout rather than succeeding.
+func TestWriteFileWithLock_NestedCallTimesOut(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "probe.yaml")
+
+	lockPath, err := LockPathFor(path)
+	if err != nil {
+		t.Fatalf("resolve lock path failed, errmsg: %s", err)
+	}
+	fl, err := AcquireFileLock(lockPath, time.Second)
+	if err != nil {
+		t.Fatalf("acquire lock failed, errmsg: %s", err)
+	}
+	defer func() { _ = fl.Unlock() }()
+
+	if _, err := WriteFileWithLock(path, []byte("data\n"), 100*time.Millisecond); err == nil {
+		t.Fatal("expected nested WriteFileWithLock to fail while the lock is held")
+	}
+}
+
+// TestLockPathFor_MatchesSymlinkTarget makes sure a caller-held lock guards the same file the
+// write path locks, which would not hold if one side locked the link and the other the target.
+func TestLockPathFor_MatchesSymlinkTarget(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("symlink creation needs privileges on windows")
+	}
+
+	dir := t.TempDir()
+	target := filepath.Join(dir, "real.yaml")
+	link := filepath.Join(dir, "link.yaml")
+	if err := os.WriteFile(target, []byte("x\n"), 0o644); err != nil {
+		t.Fatalf("seed target failed, errmsg: %s", err)
+	}
+	if err := os.Symlink(target, link); err != nil {
+		t.Fatalf("symlink failed, errmsg: %s", err)
+	}
+
+	viaLink, err := LockPathFor(link)
+	if err != nil {
+		t.Fatalf("resolve via link failed, errmsg: %s", err)
+	}
+	viaTarget, err := LockPathFor(target)
+	if err != nil {
+		t.Fatalf("resolve via target failed, errmsg: %s", err)
+	}
+	if viaLink != viaTarget {
+		t.Fatalf("lock path differs through symlink, link: %s, target: %s", viaLink, viaTarget)
+	}
+}
+
 func TestWriteFileWithLock_ConcurrentWritersKeepFileIntact(t *testing.T) {
 	dir := t.TempDir()
 	target := filepath.Join(dir, "probe.yaml")

@@ -82,6 +82,7 @@ func (p *Probe) Run(ctx context.Context) error {
 	p.runtime = p.startRuntime(p.parent, config.Cfg.ServiceID)
 	p.reporter.start(p.parent, config.Cfg.Reporter)
 	go p.runReloadWorker()
+	go p.runAdminSync()
 	<-p.shutdown
 	return nil
 }

@@ -39,6 +39,22 @@ PROBE_CLIENT_MAX_SEND_MESSAGE_SIZE=10485760
 PROBE_CLIENT_RECEIVER_RECONNECT_INTERVAL=5s
 PROBE_CLIENT_RECEIVER_MAX_RECONNECT_ATTEMPTS=10
 
+# ## probe · periodic config sync
+# The probe can refresh its own configuration from admin on a schedule: each round asks admin
+# for this machine's config and, when the reporter / harvester sections differ, rewrites them in
+# probe.yaml and hot-reloads. The rest of the file, including this block, is preserved.
+# Comma-separated admin gRPC endpoints; also used as the fallback list for the sync request.
+PROBE_ADMIN_ENDPOINTS=""
+PROBE_ADMIN_BK_CLOUD_ID=0
+# IP this probe identifies as to admin. Left empty, render_configs.py fills in the detected
+# primary IPv4, matching how the other listen addresses are resolved.
+PROBE_ADMIN_LOCAL_IP=""
+# 0s (default) disables periodic sync, leaving probe.yaml under gen-config's control only.
+# Values below 10s are raised to 10s. Pick it against fleet size: every probe costs admin one
+# metadata lookup per interval, so 60s over 10k machines is ~167 requests/s.
+# rc files omitting these keys keep sync disabled.
+PROBE_ADMIN_SYNC_INTERVAL=0s
+
 # ## probe · harvester · mysql
 PROBE_MYSQL_SHARD_FILE=templates/snippets/probe_mysql_shard.yaml
 PROBE_MYSQL_USER=root

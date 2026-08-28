@@ -94,7 +94,6 @@ func WriteFileWithLock(path string, data []byte, timeout time.Duration) (bool, e
 	if err != nil {
 		return false, err
 	}
-	dir := filepath.Dir(target)
 
 	// The lock lives beside the target: renaming over the target would swap its
 	// inode, and a lock taken on that inode would stop excluding later writers.
@@ -103,6 +102,42 @@ func WriteFileWithLock(path string, data []byte, timeout time.Duration) (bool, e
 		return false, err
 	}
 	defer func() { _ = fl.Unlock() }()
+
+	return writeResolvedTarget(target, data)
+}
+
+// LockPathFor returns the lock file guarding path, resolving path the same way the write
+// helpers do so the caller takes exactly the lock they would take. Use it together with
+// AcquireFileLock and WriteFileLocked to hold one lock across a read-modify-write sequence.
+func LockPathFor(path string) (string, error) {
+	target, err := resolveWriteTarget(path)
+	if err != nil {
+		return "", err
+	}
+	return target + fileLockSuffix, nil
+}
+
+// WriteFileLocked is WriteFileWithLock for callers that already hold the file lock. It exists
+// so a read-modify-write sequence (read current content, derive new content, write it back) can
+// run as one atomic step against other writers, instead of leaving a window between the read
+// and the write in which another process can slip in.
+//
+// The caller must hold the lock for LockPathFor(path). Do NOT call WriteFileWithLock while
+// holding it: TryFileLock opens a fresh descriptor on every attempt and flock excludes
+// different descriptors even within the same process, so the nested acquisition would simply
+// block until it times out.
+func WriteFileLocked(path string, data []byte) (bool, error) {
+	target, err := resolveWriteTarget(path)
+	if err != nil {
+		return false, err
+	}
+
+	return writeResolvedTarget(target, data)
+}
+
+// writeResolvedTarget performs the replacement itself and assumes the target lock is held.
+func writeResolvedTarget(target string, data []byte) (bool, error) {
+	dir := filepath.Dir(target)
 
 	cleanupStaleTempFiles(dir, filepath.Base(target))
 

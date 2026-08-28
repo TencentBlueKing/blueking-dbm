@@ -29,6 +29,7 @@ import (
 	"path/filepath"
 	"reflect"
 	"testing"
+	"time"
 
 	"dbm-services/common/dbha-v2/internal/probe/config"
 
@@ -39,8 +40,150 @@ func restoreCfg(t *testing.T) {
 	t.Helper()
 	saved := config.Cfg
 	t.Cleanup(func() {
-		config.Cfg = saved
+		config.Apply(saved)
 	})
+}
+
+// TestParse_ClampsSyncInterval covers the three regions of admin.syncInterval: omitted or zero
+// means sync is off and must stay off, a positive value below the floor is raised rather than
+// rejected, and a sane value passes through untouched.
+func TestParse_ClampsSyncInterval(t *testing.T) {
+	cases := []struct {
+		name     string
+		interval string
+		want     time.Duration
+		enabled  bool
+	}{
+		{name: "omitted", interval: "", want: 0, enabled: false},
+		{name: "zero disables sync", interval: "syncInterval: 0s", want: 0, enabled: false},
+		{name: "below floor is clamped", interval: "syncInterval: 1s", want: config.MinSyncInterval, enabled: true},
+		{name: "at floor is kept", interval: "syncInterval: 10s", want: config.MinSyncInterval, enabled: true},
+		{name: "above floor is kept", interval: "syncInterval: 5m", want: 5 * time.Minute, enabled: true},
+		{name: "negative disables sync", interval: "syncInterval: -1s", want: -time.Second, enabled: false},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			doc := "name: probe\nadmin:\n  endpoints: [\"127.0.0.1:19001\"]\n  " + tc.interval + "\n"
+			parsed, err := config.ParseBytes([]byte(doc))
+			if err != nil {
+				t.Fatalf("parse failed, errmsg: %s", err)
+			}
+			if parsed.Admin.SyncInterval != tc.want {
+				t.Errorf("syncInterval: %s, want: %s", parsed.Admin.SyncInterval, tc.want)
+			}
+			if parsed.Admin.SyncEnabled() != tc.enabled {
+				t.Errorf("syncEnabled: %v, want: %v", parsed.Admin.SyncEnabled(), tc.enabled)
+			}
+		})
+	}
+}
+
+// TestParse_SyncNeedsEndpoints keeps an interval without endpoints from being treated as
+// enabled: it would tick forever with nowhere to send the request.
+func TestParse_SyncNeedsEndpoints(t *testing.T) {
+	parsed, err := config.ParseBytes([]byte("name: probe\nadmin:\n  syncInterval: 30s\n"))
+	if err != nil {
+		t.Fatalf("parse failed, errmsg: %s", err)
+	}
+	if parsed.Admin.SyncEnabled() {
+		t.Error("sync should stay disabled without admin endpoints")
+	}
+}
+
+// TestApply_KeepsSnapshotInStep guards the invariant background goroutines rely on: whatever
+// Apply installs must be visible through Snapshot, which is the only race-free read path.
+func TestApply_KeepsSnapshotInStep(t *testing.T) {
+	restoreCfg(t)
+
+	next := config.Cfg
+	next.ServiceID = "svc-applied"
+	config.Apply(next)
+
+	if got := config.Snapshot().ServiceID; got != "svc-applied" {
+		t.Fatalf("snapshot did not follow Apply, serviceID: %s", got)
+	}
+	if config.Cfg.ServiceID != "svc-applied" {
+		t.Fatalf("Cfg did not follow Apply, serviceID: %s", config.Cfg.ServiceID)
+	}
+}
+
+// TestSnapshot_ConcurrentReadsDuringApply is meaningful under -race: the periodic sync
+// goroutine reads while hot reload writes, which is exactly the pattern Apply/Snapshot exists
+// to make safe.
+func TestSnapshot_ConcurrentReadsDuringApply(t *testing.T) {
+	restoreCfg(t)
+
+	done := make(chan struct{})
+	go func() {
+		defer close(done)
+		for i := 0; i < 200; i++ {
+			_ = config.Snapshot().ServiceID
+		}
+	}()
+
+	base := config.Cfg
+	for i := 0; i < 200; i++ {
+		next := base
+		next.ServiceID = "svc"
+		config.Apply(next)
+	}
+	<-done
+}
+
+// TestParseBytes_MatchesParseFromFile pins the equivalence periodic sync depends on: a
+// rendered document is validated in memory with ParseBytes but ends up on disk and is reloaded
+// with Parse. If the two paths applied different defaults or normalization, the config compared
+// before writing would differ from the one that actually takes effect.
+func TestParseBytes_MatchesParseFromFile(t *testing.T) {
+	restoreCfg(t)
+
+	doc := []byte(`
+name: probe
+serviceID: svc-1
+harvester:
+  mysql:
+    user: u
+    password: p
+    interval: 10s
+    timeout: 1s
+    endpoints:
+      - ip: 127.0.0.1
+        ports: ["3306"]
+`)
+
+	path := filepath.Join(t.TempDir(), "probe.yaml")
+	if err := os.WriteFile(path, doc, 0o644); err != nil {
+		t.Fatalf("write config failed, errmsg: %s", err)
+	}
+
+	fromFile, err := config.Parse(path)
+	if err != nil {
+		t.Fatalf("parse from file failed, errmsg: %s", err)
+	}
+	fromBytes, err := config.ParseBytes(doc)
+	if err != nil {
+		t.Fatalf("parse from bytes failed, errmsg: %s", err)
+	}
+
+	if !reflect.DeepEqual(fromFile, fromBytes) {
+		t.Fatalf("parse paths diverged, file: %+v, bytes: %+v", fromFile, fromBytes)
+	}
+	if fromBytes.PidFile == "" {
+		t.Error("expected pidFile fallback to be applied by ParseBytes")
+	}
+}
+
+// TestParseBytes_RejectsInvalidDocument is the guard that keeps a malformed rendering from
+// reaching disk: periodic sync validates before writing and must see an error here.
+func TestParseBytes_RejectsInvalidDocument(t *testing.T) {
+	if _, err := config.ParseBytes([]byte("name: probe\n  bad-indent: true\n")); err == nil {
+		t.Fatal("expected malformed yaml to be rejected")
+	}
+	// An empty duration string is the specific shape a zero-valued Duration would render to.
+	if _, err := config.ParseBytes([]byte("name: probe\nclient:\n  pingTime: \"\"\n")); err == nil {
+		t.Fatal("expected empty duration string to be rejected")
+	}
 }
 
 // TestParse_FromDefaultsClearsOmittedBlocks ensures Parse starts from

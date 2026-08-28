@@ -36,8 +36,8 @@ import (
 
 type mockAdminServer struct {
 	proto.UnimplementedAdminServiceServer
-	st      *appStats
-	payload []byte
+	st  *appStats
+	ctl *adminControl
 }
 
 func (s *mockAdminServer) Heartbeat(
@@ -54,28 +54,21 @@ func (s *mockAdminServer) GetProbeConfig(
 	req *proto.ProbeConfigRequest,
 ) (*proto.ProbeConfigResponse, error) {
 	s.st.incGetProbeConfig()
+	s.ctl.recordRequest(req)
 	log.Printf(
-		"admin get probe config, bk_cloud_id: %d, ip: %s",
-		req.GetBkCloudId(), req.GetIp(),
+		"admin get probe config, bk_cloud_id: %d, ip: %s, client_id: %s",
+		req.GetBkCloudId(), req.GetIp(), req.GetClientID(),
 	)
-	return &proto.ProbeConfigResponse{
-		Code:    proto.ProbeConfigCode_PROBE_CONFIG_SUCCESS,
-		Errmsg:  "ok",
-		Payload: string(s.payload),
-	}, nil
+	return s.ctl.respond(), nil
 }
 
-func startAdmin(addr string, st *appStats) (func(), error) {
-	payload, err := defaultPayloadJSON()
-	if err != nil {
-		return nil, err
-	}
+func startAdmin(addr string, st *appStats, ctl *adminControl) (func(), error) {
 	lis, err := net.Listen("tcp", addr)
 	if err != nil {
 		return nil, err
 	}
 	grpcSvr := grpc.NewServer()
-	proto.RegisterAdminServiceServer(grpcSvr, &mockAdminServer{st: st, payload: payload})
+	proto.RegisterAdminServiceServer(grpcSvr, &mockAdminServer{st: st, ctl: ctl})
 	go func() {
 		_ = grpcSvr.Serve(lis)
 	}()

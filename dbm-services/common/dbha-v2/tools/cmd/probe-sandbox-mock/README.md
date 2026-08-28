@@ -55,3 +55,8 @@ HTTP：
 - `GET http://127.0.0.1:18090/health`
 - `GET http://127.0.0.1:18090/stats`
 - `GET http://127.0.0.1:18090/last`
+- `GET / POST http://127.0.0.1:18090/admin/payload`：读/替换 `GetProbeConfig` 返回的 JSON
+- `GET / POST http://127.0.0.1:18090/admin/mode`：`{"mode":"success|no_data|fail"}`
+- `GET http://127.0.0.1:18090/admin/last-request`：最近一次 `GetProbeConfig` 的 `bk_cloud_id` / `ip` / `client_id`
+
+`-patch-yaml` 仍把 reporter 改成 grpc。若文件里已有 `admin` 块，会把 `syncInterval` 写成 `0s`，避免周期同步把 reporter 改回 GSE 而打断采集上报。没有 `admin` 块时不会凭空加上。

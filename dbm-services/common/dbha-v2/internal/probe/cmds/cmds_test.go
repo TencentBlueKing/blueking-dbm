@@ -340,8 +340,10 @@ func TestChdirInstallRootIfPackaged_RestoresCallerCWD(t *testing.T) {
 
 func TestWriteOrPrintProbeYAML_ReloadRequiresRunning(t *testing.T) {
 	saved := config.Cfg
-	t.Cleanup(func() { config.Cfg = saved })
-	config.Cfg.PidFile = filepath.Join(t.TempDir(), "missing.pid")
+	t.Cleanup(func() { config.Apply(saved) })
+	withPidFile := saved
+	withPidFile.PidFile = filepath.Join(t.TempDir(), "missing.pid")
+	config.Apply(withPidFile)
 
 	out := filepath.Join(t.TempDir(), "probe.yaml")
 	cmd := &cobra.Command{}

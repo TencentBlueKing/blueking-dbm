@@ -104,6 +104,18 @@ probeProxyAdmin:
   replDelayInterval: {{ADMIN_PROBE_PROXY_ADMIN_REPL_DELAY_INTERVAL}}
   timeout: {{ADMIN_PROBE_PROXY_ADMIN_TIMEOUT}}
 
+# Freshness bounds for admin's local metadata cache (t_dbm_metadata) when answering
+# GetProbeConfig. If any cached row for the requesting IP is older than cacheMaxAge, the whole
+# machine is re-read from the DBM API, so a probe never builds its config from a partially
+# updated view. Rows older than tombstoneAge are ignored entirely: metadata sync never deletes,
+# so rows left behind by decommissioned instances would otherwise be permanently stale and send
+# every request for that IP to DBM.
+# Both accept a Go duration; an empty or zero value means "use the default"
+# (cacheMaxAge 10m, tombstoneAge 24h). cacheMaxAge is clamped up to 1m.
+probeMetadata:
+  cacheMaxAge: {{ADMIN_PROBE_METADATA_CACHE_MAX_AGE}}
+  tombstoneAge: {{ADMIN_PROBE_METADATA_TOMBSTONE_AGE}}
+
 log:
   path: "{{ADMIN_LOG_PATH}}"
   level: {{COMMON_LOG_LEVEL}}
