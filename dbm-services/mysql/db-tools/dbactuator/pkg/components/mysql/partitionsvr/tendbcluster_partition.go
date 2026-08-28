@@ -29,16 +29,12 @@ func (c *PartitionExecComp) TendbClusterPartition() (err error) {
 		return fmt.Errorf("error occurred while getting shard info: %s", err.Error())
 	}
 
-	// 强制执行是任务级别的，对此次所有分区配置通用，使用同一个ForceInitInfo
+	// 强制执行是任务级别的开关，DSN 在各分片上再组装
 	// 非强制执行，则为nil
 	var forceInitInfo *ForceInitInfo
 	if c.Params.Force {
 		forceInitInfo = &ForceInitInfo{
 			Force: c.Params.Force,
-			User:  c.GeneralParam.RuntimeAccountParam.PartitionYwUser,
-			Pwd:   c.GeneralParam.RuntimeAccountParam.PartitionYwPwd,
-			Host:  c.Params.Cluster.IP,
-			Port:  c.Params.Cluster.Port,
 		}
 	}
 	// 使用带缓冲的channel实现并发控制，最大并发数为3
@@ -149,8 +145,17 @@ func (c *PartitionExecComp) ExecuteOneConfigOnShards(tdbCluPartConf *TdbCluPartC
 				mu.Unlock()
 				return
 			}
-
-			tdbCluPartConf.ExecuteOneShardPartition(tdbCluPartConf, shard, shardConn, partitionShardResult, forceInitInfo, partialForce)
+			var shardForceInitInfo *ForceInitInfo
+			if forceInitInfo != nil {
+				shardForceInitInfo = &ForceInitInfo{
+					Force: forceInitInfo.Force,
+					User:  shard.Account,
+					Pwd:   shard.PWD,
+					Host:  shard.IP,
+					Port:  shard.Port,
+				}
+			}
+			tdbCluPartConf.ExecuteOneShardPartition(tdbCluPartConf, shard, shardConn, partitionShardResult, shardForceInitInfo, partialForce)
 
 			if !partitionShardResult.ShardStatus {
 				mu.Lock()
