@@ -102,6 +102,7 @@ interface ResouceListParams {
   disk?: string;
   disk_type?: string;
   for_biz?: number;
+  headers?: { id: string; name?: string }[];
   hosts?: string;
   label_names?: string;
   limit?: number;
