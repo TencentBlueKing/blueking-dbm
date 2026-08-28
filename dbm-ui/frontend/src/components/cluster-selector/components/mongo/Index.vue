@@ -40,7 +40,7 @@
       </template>
     </PrimaryTable>
     <div class="table-footer">
-      <BkPagination
+      <DbPagination
         v-bind="pagination"
         :model-value="pagination.current"
         @change="handleTablePageChange"
