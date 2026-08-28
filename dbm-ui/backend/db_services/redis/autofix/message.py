@@ -12,6 +12,7 @@ import datetime
 import json
 import logging
 import re
+import traceback
 
 from django.utils.translation import gettext as _
 
@@ -96,53 +97,83 @@ def _decide_priority_by_title(sub_title: str) -> str:
     return MsgPriority.L1.value
 
 
-def send_msg_2_qywx(sub_title: str, msgs):
+def send_msg_2_qywx(sub_title: str, msgs) -> bool:
     from backend.dbm_aiagent.agent.handlers import AgentHandler
 
-    immute_doamin = "-".join(sub_title.split("-")[:-1])
-    session_code_key = "ai|session|{}".format(immute_doamin)
+    try:
+        logger.info("send_msg_2_qywx start: sub_title=%s msg_keys=%s", sub_title, list(msgs.keys()))
 
-    # 由本函数内部按标题判定消息优先级，调用方无需感知
-    priority = _decide_priority_by_title(sub_title)
-    msg_ids = load_chat_ids_by_priority(priority)
-    if len(msg_ids) == 0:
-        logger.info("no chat ids configured for priority=%s, skip send: %s", priority, sub_title)
-        return
+        immute_doamin = "-".join(sub_title.split("-")[:-1])
+        session_code_key = "ai|session|{}".format(immute_doamin)
 
-    bk_biz_id = msgs["BKID"]
-    db_type = DBType.Redis.value
-    if msgs.get(_("集群类型"), None) in [ClusterType.MongoShardedCluster.value, ClusterType.MongoReplicaSet.value]:
-        db_type = DBType.MongoDB.value
-    redis_DBA = DBAdministrator.get_biz_db_type_admins(bk_biz_id=bk_biz_id, db_type=db_type)
-    app_info = AppCache.objects.get(bk_biz_id=bk_biz_id)
+        # 由本函数内部按标题判定消息优先级，调用方无需感知
+        priority = _decide_priority_by_title(sub_title)
+        msg_ids = load_chat_ids_by_priority(priority)
+        logger.info("send_msg_2_qywx routing: priority=%s chat_ids_count=%s", priority, len(msg_ids))
+        if len(msg_ids) == 0:
+            logger.info("no chat ids configured for priority=%s, skip send: %s", priority, sub_title)
+            return False
 
-    content = _("=>>   {}\n".format(sub_title))
-    for k, v in msgs.items():
-        if k == "BKID":
-            content += _("业务信息 : {}(#{},{})\n".format(app_info.bk_biz_name, app_info.bk_biz_id, app_info.db_app_abbr))
-            content += _("业务DBA : {}(@{})\n".format(redis_DBA[0], redis_DBA[0]))
-        else:
-            content += _("{} : {}\n".format(k, v))
-    if env.ENABLE_DBM_AI and db_type == DBType.Redis.value:
-        session_code = RedisConn.get(session_code_key)
-        ask_content = _("""查询这个{}集群最近10分钟的性能波动情况,只需给出简要的结论（再加上一个点的数据）""".format(immute_doamin))
-        try:
-            rest, session_code = AgentHandler.ask_agent_with_content_in_session(
-                agent_code=DBMAgentCode.REDIS_REPORT.value,
-                content=ask_content,
-                username=redis_DBA[0],
-                session_code=session_code,
+        bk_biz_id = msgs.get("BKID")
+        if bk_biz_id is None:
+            logger.warning("send_msg_2_qywx missing BKID, skip send: sub_title=%s msgs=%s", sub_title, msgs)
+            return False
+
+        db_type = DBType.Redis.value
+        if msgs.get(_("集群类型"), None) in [ClusterType.MongoShardedCluster.value, ClusterType.MongoReplicaSet.value]:
+            db_type = DBType.MongoDB.value
+
+        redis_DBA = DBAdministrator.get_biz_db_type_admins(bk_biz_id=bk_biz_id, db_type=db_type)
+        dba_user = redis_DBA[0] if redis_DBA else "admin"
+        if not redis_DBA:
+            logger.warning(
+                "send_msg_2_qywx no dba configured, fallback to default user: bk_biz_id=%s db_type=%s",
+                bk_biz_id,
+                db_type,
             )
-            RedisConn.set(session_code_key, session_code)
-            content += _("{}\n".format(rest[:500]))
-        except Exception as e:
-            logger.exception("AI agent query failed for cluster %s: %s", immute_doamin, e)
-    content += _("消息时间 : {}\n".format(date2str(datetime.datetime.now(), "%Y-%m-%d %H:%M:%S")))
 
-    CmsiHandler(_("Tendis自愈"), content, msg_ids).send_wecom_robot_markdown()
+        try:
+            app_info = AppCache.objects.get(bk_biz_id=bk_biz_id)
+            biz_desc = "{}(#{},{})".format(app_info.bk_biz_name, app_info.bk_biz_id, app_info.db_app_abbr)
+        except AppCache.DoesNotExist:
+            logger.warning("send_msg_2_qywx AppCache not found: bk_biz_id=%s", bk_biz_id)
+            biz_desc = "UnknownBiz(#{} )".format(bk_biz_id)
 
-    if not content.__contains__(_("发起")):
-        RedisConn.delete(session_code_key)
+        content = _("=>>   {}\n".format(sub_title))
+        for k, v in msgs.items():
+            if k == "BKID":
+                content += _("业务信息 : {}\n".format(biz_desc))
+                content += _("业务DBA : {}(@{})\n".format(dba_user, dba_user))
+            else:
+                content += _("{} : {}\n".format(k, v))
+
+        if env.ENABLE_DBM_AI and db_type == DBType.Redis.value and redis_DBA:
+            session_code = RedisConn.get(session_code_key)
+            ask_content = _("""查询这个{}集群最近10分钟的性能波动情况,只需给出简要的结论（再加上一个点的数据）""".format(immute_doamin))
+            try:
+                rest, session_code = AgentHandler.ask_agent_with_content_in_session(
+                    agent_code=DBMAgentCode.REDIS_REPORT.value,
+                    content=ask_content,
+                    username=dba_user,
+                    session_code=session_code,
+                )
+                RedisConn.set(session_code_key, session_code)
+                content += _("{}\n".format(rest[:500]))
+            except Exception as e:
+                logger.exception("AI agent query failed for cluster %s: %s", immute_doamin, e)
+
+        content += _("消息时间 : {}\n".format(date2str(datetime.datetime.now(), "%Y-%m-%d %H:%M:%S")))
+
+        CmsiHandler(_("Tendis自愈"), content, msg_ids).send_wecom_robot_markdown()
+
+        if not content.__contains__(_("发起")):
+            RedisConn.delete(session_code_key)
+
+        logger.info("send_msg_2_qywx success: sub_title=%s", sub_title)
+        return True
+    except Exception as e:
+        logger.error("send_msg_2_qywx failed: sub_title=%s err=%s\n%s", sub_title, e, traceback.format_exc())
+        return False
 
 
 # 自愈单据级的Helpers
