@@ -17,6 +17,7 @@ from typing import Any, Callable, List, Union
 from iam import Resource
 from requests.exceptions import ConnectionError as RequestsConnectionError
 
+from backend import env
 from backend.iam_app.dataclass.actions import ActionMeta
 
 logger = logging.getLogger("root")
@@ -72,6 +73,24 @@ class IAMBackend(metaclass=abc.ABCMeta):
 
 class DummyIAMBackend(IAMBackend):
     """BK_IAM_SKIP 开启时使用，所有鉴权直接放行"""
+
+    def get_apply_url(
+        self, action_ids: List[str], resources_list: List[List[Resource]] = None, system_id: str = env.BK_IAM_SYSTEM_ID
+    ):
+        return ""
+
+    def get_system_info(self):
+        return {}
+
+    def batch_is_allowed(
+        self, username: str, actions: List[Union[ActionMeta, str]], resources_list: List[List[Resource]]
+    ):
+        return {str(resources[0].id): {action.id: True for action in actions} for resources in resources_list}
+
+    def multi_actions_is_allowed(
+        self, username: str, actions: List[Union[ActionMeta, str]], resources: List[Resource]
+    ):
+        return {action.id: True for action in actions}
 
     def is_allowed(self, username: str, action: ActionMeta, resources: List[Resource]) -> bool:
         return True
