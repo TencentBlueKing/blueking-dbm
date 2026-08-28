@@ -743,7 +743,8 @@ class ResourceHandler(object):
     @classmethod
     def resource_export(cls, params):
         data_list = []
-        headers = [
+        request_headers = params.pop("headers", None)
+        default_headers = [
             {"id": "ip", "name": _("IP")},
             {"id": "bk_cloud_name", "name": _("管控区域")},
             {"id": "agent_status", "name": _("Agent 状态")},
@@ -753,6 +754,7 @@ class ResourceHandler(object):
             {"id": "city", "name": _("地域")},
             {"id": "sub_zone", "name": _("园区")},
             {"id": "rack_id", "name": _("机架")},
+            {"id": "same_svr_owner_count", "name": _("同母机台数")},
             {"id": "os_type", "name": _("操作系统类型")},
             {"id": "os_name", "name": _("操作系统名称")},
             {"id": "device_class", "name": _("机型")},
@@ -762,6 +764,26 @@ class ResourceHandler(object):
             {"id": "create_time", "name": _("转入时间")},
             {"id": "operator", "name": _("转入人")},
         ]
+        default_header_map = {header["id"]: header for header in default_headers}
+
+        # headers 同时控制导出字段范围和列顺序。
+        if isinstance(request_headers, list) and request_headers:
+            headers = []
+            header_ids = set()
+            for header in request_headers:
+                # 只允许导出后端已声明的数据字段，忽略前端传入的未知字段。
+                if not isinstance(header, dict) or header.get("id") not in default_header_map:
+                    continue
+                header_id = header["id"]
+                if header_id in header_ids:
+                    continue
+                headers.append({"id": header_id, "name": header.get("name") or default_header_map[header_id]["name"]})
+                header_ids.add(header_id)
+            if not headers:
+                headers = default_headers
+        else:
+            # 未指定导出列顺序时，沿用默认顺序导出全部字段。
+            headers = default_headers
 
         resource_res = cls.resource_list(params)
         results = resource_res["results"]
@@ -780,6 +802,7 @@ class ResourceHandler(object):
                         "city": res["city"],
                         "sub_zone": res["sub_zone"],
                         "rack_id": res["rack_id"],
+                        "same_svr_owner_count": res.get("same_svr_owner_count", _("未知")),
                         "os_type": res["os_type"],
                         "os_name": res["os_name"],
                         "device_class": res["device_class"],
