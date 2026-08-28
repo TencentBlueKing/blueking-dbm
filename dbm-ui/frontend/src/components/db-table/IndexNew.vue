@@ -55,7 +55,7 @@
         </template>
       </PrimaryTable>
       <div class="table-footer">
-        <BkPagination
+        <DbPagination
           v-bind="pagination"
           :layout="['total', 'limit', 'list']"
           @change="handlePageValueChange"
@@ -71,7 +71,7 @@
               <span class="number">{{ selectedCount }}</span>
             </I18nT>
           </template>
-        </BkPagination>
+        </DbPagination>
       </div>
     </BkLoading>
   </div>
@@ -515,12 +515,9 @@
       border-top: 1px solid var(--td-component-border);
       align-items: center;
 
-      .bk-pagination {
+      // 占满一行，让总条数、每页条数靠左，页码靠右
+      :deep(.dbm-pagination) {
         width: 100%;
-
-        & > .is-last {
-          margin-left: auto;
-        }
       }
     }
   }

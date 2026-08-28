@@ -4,7 +4,7 @@ export interface Pagination {
   align: string;
   count: number;
   current: number;
-  layout: Array<string>;
+  layout: Array<'total' | 'list' | 'limit'>;
   limit: number;
   limitList: Array<number>;
 }

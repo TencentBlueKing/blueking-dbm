@@ -19,6 +19,7 @@ import AuthOption from '@components/auth-component/option.vue';
 import AuthRouterLink from '@components/auth-component/router-link.vue';
 import AuthSwitcher from '@components/auth-component/switcher.vue';
 import DbInput from '@components/bkui-vue/input/Index.vue';
+import DbPagination from '@components/bkui-vue/pagination/Index.vue';
 import DbOption from '@components/bkui-vue/select/components/Option.vue';
 import DbOptionGroup from '@components/bkui-vue/select/components/OptionGroup.vue';
 import DbSelect from '@components/bkui-vue/select/Index.vue';
@@ -83,6 +84,7 @@ export const setGlobalComps = (app: App<Element>) => {
   app.component('DbInput', DbInput);
   app.component('DbOption', DbOption);
   app.component('DbOptionGroup', DbOptionGroup);
+  app.component('DbPagination', DbPagination);
   app.component('DbPopconfirm', DbPopconfirm);
   app.component('DbResetButton', DbResetButton);
   app.component('DbSearchSelect', DbSearchSelect);

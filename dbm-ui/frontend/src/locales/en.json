@@ -1577,6 +1577,7 @@
   "集群部署方案": "Cluster Deployment Plan",
   "单机QPS": "Single Machine QPS",
   "每秒": "Per Second",
+  "每页": "Per Page",
   "请先设置容量": "Please set capacity first",
   "无匹配的资源规格_请先修改容量设置": "No matching resource spec, please modify capacity settings first",
   "集群容量G": "Cluster Capacity (G)",
