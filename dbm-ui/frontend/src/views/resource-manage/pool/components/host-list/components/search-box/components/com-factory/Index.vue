@@ -67,6 +67,7 @@
   import MountPoint from './components/MountPoint.vue';
   import OSNames from './components/OSNames.vue';
   import OSType from './components/OSType.vue';
+  import ResourceStatus from './components/ResourceStatus.vue';
   import ResourceType from './components/ResourceType.vue';
   import SpecId from './components/SpecId.vue';
 
@@ -108,6 +109,7 @@
     os_type: OSType,
     resource_type: ResourceType,
     spec_id: SpecId,
+    status: ResourceStatus,
   };
 
   const config = fieldConfig[props.name];

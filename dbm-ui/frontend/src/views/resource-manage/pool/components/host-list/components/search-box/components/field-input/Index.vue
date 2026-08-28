@@ -98,7 +98,11 @@
             :model="localValueMemo"
             name="mount_point"
             @change="handleChange" />
-          <div style="flex: 1" />
+          <ComFactory
+            :ref="(el: any) => initInputRefCallback(el, 'status')"
+            :model="localValueMemo"
+            name="status"
+            @change="handleChange" />
         </div>
       </template>
     </KeepAlive>
