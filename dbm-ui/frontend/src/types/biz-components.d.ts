@@ -12,6 +12,7 @@ declare module 'vue' {
     DbInput: typeof import('@components/bkui-vue/input/Index.vue').default;
     DbOption: typeof import('@components/bkui-vue/select/components/Option.vue').default;
     DbOptionGroup: typeof import('@components/bkui-vue/select/components/OptionGroup.vue').default;
+    DbPagination: typeof import('@components/bkui-vue/pagination/Index.vue').default;
     DbPopconfirm: typeof import('@components/db-popconfirm/index.vue').default;
     DbQuickSearch: typeof import('@components/db-quick-search/Index.vue').default;
     DbResetButton: typeof import('@components/db-reset-button/index.vue').default;

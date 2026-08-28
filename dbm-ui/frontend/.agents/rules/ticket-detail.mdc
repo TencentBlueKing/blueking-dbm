@@ -1,0 +1,28 @@
+---
+description:
+  DBM 单据详情约定。覆盖 com-factory 按 `ticket_type` 匹配组件的规则、details 类型定义位置与展示组件选型。改
+  ticket-center 单据详情或新增单据详情组件时读。
+globs: ['**/ticket-center/**', '**/services/model/ticket/**']
+alwaysApply: false
+---
+
+# 单据详情 `src/views/ticket-center/common/ticket-detail/`
+
+仓库分层与编码约定见 `AGENTS.md`。工具箱提单侧的约定见 `db-manage.mdc`、`toolbox-code.mdc`。
+
+工厂：`src/views/ticket-center/common/ticket-detail/components/task-info/com-factory/`
+
+按 `ticket_type` 匹配组件 `name`。glob 范围为 `{db}/*.vue`、`{db}/*/*.vue`，资源池策略优先匹配
+`resource-pool-strategy/`。匹配不到则走 `Default.vue`。
+
+```ts
+defineOptions({
+  name: TicketTypes.MYSQL_DATA_MIGRATE,
+  inheritAttrs: false,
+});
+```
+
+详情数据类型：`TicketModel<Mysql.DataMigrate>`，定义放在 `src/services/model/ticket/details/{db}/`，并在同目录
+`index.ts` 导出。
+
+展示优先用 `InfoList` / `TicketInfoTable`，参考 `com-factory/mysql/DataMigrate.vue`。
