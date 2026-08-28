@@ -186,12 +186,16 @@ func TestReceiverClientPostAfterClose(t *testing.T) {
 }
 
 func TestReceiverClientGetBaseInfo(t *testing.T) {
-	oldReporter := config.Cfg.Reporter
+	// Apply rather than assigning Cfg: GetBaseInfo reads the race-free snapshot, which only
+	// tracks configurations installed through Apply.
+	saved := config.Cfg
 	t.Cleanup(func() {
-		config.Cfg.Reporter = oldReporter
+		config.Apply(saved)
 	})
 
-	config.Cfg.Reporter = &config.ReporterConfig{BkCloudID: 123}
+	withReporter := saved
+	withReporter.Reporter = &config.ReporterConfig{BkCloudID: 123}
+	config.Apply(withReporter)
 
 	srv := &fakeReceiverServer{}
 	endpoint, stop := startFakeReceiverServer(t, srv)
@@ -213,17 +217,24 @@ func TestReceiverClientGetBaseInfo(t *testing.T) {
 }
 
 func TestNewReporterCase(t *testing.T) {
-	oldReporter := config.Cfg.Reporter
+	saved := config.Cfg
 	t.Cleanup(func() {
-		config.Cfg.Reporter = oldReporter
+		config.Apply(saved)
 	})
 
-	config.Cfg.Reporter = &config.ReporterConfig{Name: "GRPC"}
+	srv := &fakeReceiverServer{}
+	endpoint, stop := startFakeReceiverServer(t, srv)
+	defer stop()
 
-	reporter, err := NewReporter(*config.Cfg.Reporter)
+	next := saved
+	next.Reporter = &config.ReporterConfig{Name: "GRPC", Endpoint: endpoint}
+	config.Apply(next)
+
+	reporter, err := NewReporter(*config.Snapshot().Reporter)
 	if err != nil {
 		t.Fatalf("failed to create new reporter: %v", err)
 	}
+	defer reporter.Close()
 
 	if reporter.Name() != "GRPC" {
 		t.Fatalf("wrong reporter, want GRPC, got %s", reporter.Name())

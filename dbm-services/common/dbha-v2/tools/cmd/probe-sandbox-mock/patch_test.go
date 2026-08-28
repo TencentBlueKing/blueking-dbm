@@ -67,3 +67,57 @@ func TestPatchProbeYAMLText_PreservesIndent(t *testing.T) {
 		t.Fatal("patched yaml still has gse reporter")
 	}
 }
+
+func TestPatchProbeYAMLText_DisablesAdminSync(t *testing.T) {
+	in := strings.Join([]string{
+		"name: probe",
+		"reporter:",
+		"    name: gse",
+		"    endpoint: 127.0.0.1:1",
+		"admin:",
+		"    endpoints:",
+		"        - 127.0.0.1:19001",
+		"    syncInterval: 10s",
+		"harvester:",
+		"    mysql:",
+		"        user: sandbox",
+		"log:",
+		"    path: ./logs/probe.log",
+		"    level: info",
+		"",
+	}, "\n")
+
+	got := patchProbeYAMLText(in, "127.0.0.1:19100", "/tmp/probe-sandbox/logs/probe.log")
+	if !strings.Contains(got, "    syncInterval: 0s") {
+		t.Fatal("existing admin.syncInterval was not forced to 0s")
+	}
+	if strings.Contains(got, "syncInterval: 10s") {
+		t.Fatal("patched yaml still has a live sync interval")
+	}
+}
+
+func TestPatchProbeYAMLText_InsertsSyncIntervalWhenAdminLacksIt(t *testing.T) {
+	in := strings.Join([]string{
+		"name: probe",
+		"admin:",
+		"    endpoints:",
+		"        - 127.0.0.1:19001",
+		"harvester:",
+		"    mysql:",
+		"        user: sandbox",
+		"",
+	}, "\n")
+
+	got := patchProbeYAMLText(in, "127.0.0.1:19100", "")
+	if !strings.Contains(got, "    syncInterval: 0s") {
+		t.Fatal("admin block without syncInterval was not disabled")
+	}
+}
+
+func TestPatchProbeYAMLText_DoesNotInventAdminBlock(t *testing.T) {
+	in := "name: probe\nharvester:\n    mysql:\n        user: sandbox\n"
+	got := patchProbeYAMLText(in, "127.0.0.1:19100", "")
+	if strings.Contains(got, "admin:") {
+		t.Fatal("patch must not add an admin block the file did not have")
+	}
+}

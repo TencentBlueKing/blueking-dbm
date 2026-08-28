@@ -98,6 +98,16 @@ if "name: gse" not in text:
 print("PASS gen-config payload rendered")
 PY
 
+python3 - <<'PY'
+import json, urllib.request
+req = json.load(urllib.request.urlopen("http://127.0.0.1:18090/admin/last-request"))
+if req.get("client_id"):
+    raise SystemExit(f"FAIL gen-config must leave client_id empty, got: {req.get('client_id')!r}")
+if req.get("ip") != "127.0.0.1":
+    raise SystemExit(f"FAIL gen-config last ip: {req.get('ip')!r}")
+print("PASS gen-config GetProbeConfig left client_id empty")
+PY
+
 echo "gen-config --clear-port 13306" | tee -a "$RESULT"
 "$BIN" gen-config \
   --admin-endpoints 127.0.0.1:19001 \
@@ -217,6 +227,178 @@ while time.time() < deadline:
     time.sleep(0.5)
 raise SystemExit("FAIL no new reports after reload")
 PY
+
+# Independent periodic sync (plan A-9): does not depend on receiver reporting. Harvest
+# above stays valid because gen-config writes no admin block and -patch-yaml forces
+# syncInterval to 0s if an admin block is ever present.
+echo "periodic admin sync" | tee -a "$RESULT"
+python3 - <<'PY'
+import json, urllib.request
+
+http = "http://127.0.0.1:18090"
+payload = json.load(urllib.request.urlopen(http + "/admin/payload"))
+payload.setdefault("metadata", []).append({
+    "ip": "127.0.0.1",
+    "port": 13307,
+    "cluster_type": "tendbha",
+    "machine_type": "backend",
+    "instance_role": "backend_master",
+    "access_layer": "storage",
+})
+req = urllib.request.Request(
+    http + "/admin/payload",
+    data=json.dumps(payload).encode(),
+    headers={"Content-Type": "application/json"},
+    method="POST",
+)
+with urllib.request.urlopen(req) as resp:
+    if resp.status != 200:
+        raise SystemExit(f"FAIL swap payload status: {resp.status}")
+print("PASS mock payload now includes port 13307")
+PY
+
+python3 - "$CFG" <<'PY'
+from pathlib import Path
+
+path = Path(__import__("sys").argv[1])
+text = path.read_text()
+if "\nadmin:\n" in text:
+    raise SystemExit("FAIL harvest path unexpectedly wrote an admin block")
+block = (
+    "\nadmin:\n"
+    '  endpoints: ["127.0.0.1:19001"]\n'
+    "  bkCloudID: 0\n"
+    '  localIP: "127.0.0.1"\n'
+    "  syncInterval: 10s\n"
+)
+path.write_text(text.replace("\nharvester:\n", block + "\nharvester:\n", 1))
+print("PASS admin sync block added to probe.yaml")
+PY
+
+sync_before=$(curl -fsS "$HTTP/stats" | python3 -c "import json,sys; print(json.load(sys.stdin)['get_probe_config'])")
+"$BIN" reload -c "$CFG"
+python3 - "$CFG" "$sync_before" <<'PY'
+import json, sys, time, urllib.request
+from pathlib import Path
+
+path, before = Path(sys.argv[1]), int(sys.argv[2])
+deadline = time.time() + 45
+calls = before
+while time.time() < deadline:
+    stats = json.load(urllib.request.urlopen("http://127.0.0.1:18090/stats"))
+    calls = stats.get("get_probe_config", 0)
+    text = path.read_text()
+    if calls > before and "13307" in text:
+        print(f"PASS sync rewrote config from new payload, calls: {calls} before: {before}")
+        break
+    time.sleep(0.5)
+else:
+    raise SystemExit(
+        f"FAIL sync did not apply port 13307, calls: {calls} before: {before}"
+    )
+
+text = path.read_text()
+if "syncInterval: 10s" not in text:
+    raise SystemExit("FAIL sync erased the admin block it needs to run again")
+if "127.0.0.1:19001" not in text:
+    raise SystemExit("FAIL sync erased the admin endpoints")
+if "pidFile:" not in text:
+    raise SystemExit("FAIL sync erased pidFile")
+if "log:" not in text:
+    raise SystemExit("FAIL sync erased the log block")
+print("PASS locally owned fields survived the sync")
+PY
+
+python3 - "$ROOT/logs/probe.log" <<'PY'
+import sys
+from pathlib import Path
+log = Path(sys.argv[1]).read_text()
+if "config file updated from admin" not in log:
+    raise SystemExit("FAIL probe log has no reload-after-write line")
+if "sandbox-secret" in log:
+    raise SystemExit("FAIL password leaked in probe log during sync")
+print("PASS probe logged the config update without credentials")
+PY
+
+python3 - <<'PY'
+import json, urllib.request
+req = json.load(urllib.request.urlopen("http://127.0.0.1:18090/admin/last-request"))
+if not req.get("client_id"):
+    raise SystemExit("FAIL periodic sync GetProbeConfig left client_id empty")
+if req.get("ip") != "127.0.0.1":
+    raise SystemExit(f"FAIL periodic sync last ip: {req.get('ip')!r}")
+print(f"PASS periodic sync sent client_id: {req['client_id']}")
+PY
+
+python3 - "$CFG" <<'PY'
+import json, time, urllib.request
+from pathlib import Path
+
+path = Path(__import__("sys").argv[1])
+before_text = path.read_text()
+before_calls = json.load(urllib.request.urlopen("http://127.0.0.1:18090/stats")).get(
+    "get_probe_config", 0
+)
+deadline = time.time() + 25
+while time.time() < deadline:
+    stats = json.load(urllib.request.urlopen("http://127.0.0.1:18090/stats"))
+    if stats.get("get_probe_config", 0) > before_calls:
+        after = path.read_text()
+        if after != before_text:
+            raise SystemExit("FAIL unchanged payload rewrote the config file")
+        print("PASS unchanged payload left the config file untouched")
+        break
+    time.sleep(0.5)
+else:
+    raise SystemExit("FAIL no further sync round for convergence check")
+PY
+
+python3 - <<'PY'
+import json, urllib.request
+req = urllib.request.Request(
+    "http://127.0.0.1:18090/admin/mode",
+    data=json.dumps({"mode": "no_data"}).encode(),
+    headers={"Content-Type": "application/json"},
+    method="POST",
+)
+with urllib.request.urlopen(req) as resp:
+    body = json.load(resp)
+if body.get("mode") != "no_data":
+    raise SystemExit(f"FAIL set no_data mode, got: {body}")
+print("PASS mock admin mode set to no_data")
+PY
+
+python3 - "$CFG" <<'PY'
+import json, time, urllib.request
+from pathlib import Path
+
+path = Path(__import__("sys").argv[1])
+before_text = path.read_text()
+before_calls = json.load(urllib.request.urlopen("http://127.0.0.1:18090/stats")).get(
+    "get_probe_config", 0
+)
+deadline = time.time() + 25
+while time.time() < deadline:
+    stats = json.load(urllib.request.urlopen("http://127.0.0.1:18090/stats"))
+    if stats.get("get_probe_config", 0) > before_calls:
+        after = path.read_text()
+        if "13307" not in after:
+            raise SystemExit("FAIL NO_DATA cleared the working config")
+        if after != before_text:
+            raise SystemExit("FAIL NO_DATA rewrote the config file")
+        print("PASS NO_DATA kept the current config")
+        break
+    time.sleep(0.5)
+else:
+    raise SystemExit("FAIL no sync round after switching to NO_DATA")
+PY
+
+if ! kill -0 "$(cat "$PIDF")" 2>/dev/null; then
+  echo "FAIL probe died during periodic sync" | tee -a "$RESULT"
+  tail -n 40 "$ROOT/logs/probe.log" | tee -a "$RESULT" || true
+  exit 1
+fi
+echo "PASS probe still running after periodic sync" | tee -a "$RESULT"
 
 echo "log safety" | tee -a "$RESULT"
 if grep -E 'sandbox-secret|password: ' "$ROOT/logs/probe.log" "$ROOT/logs/mock.log"; then

@@ -92,7 +92,7 @@ func restoreCfg(t *testing.T) {
 	t.Helper()
 	saved := config.Cfg
 	t.Cleanup(func() {
-		config.Cfg = saved
+		config.Apply(saved)
 	})
 }
 
@@ -207,6 +207,50 @@ func TestReloadOnce_UnchangedSkipsRebuild(t *testing.T) {
 	if calls.Load() != before {
 		t.Fatalf("factory calls changed on no-op reload, before: %d, after: %d",
 			before, calls.Load())
+	}
+	stopProbe(p)
+}
+
+// TestReloadOnce_AdminOnlyChangeSkipsRebuild covers editing admin.syncInterval and sending
+// SIGHUP. The block only steers the sync loop, which reads it fresh every round, so collection
+// must not be interrupted to apply it — while the new value still has to take effect.
+func TestReloadOnce_AdminOnlyChangeSkipsRebuild(t *testing.T) {
+	restoreCfg(t)
+
+	var calls atomic.Int32
+	withPluginEntries(t, []pluginEntry{
+		{
+			name: "mysql",
+			factory: func() (plugin.Plugin, error) {
+				calls.Add(1)
+				return &fakePlugin{name: "mysql"}, nil
+			},
+		},
+		{name: "mysqlProxyAdmin", factory: func() (plugin.Plugin, error) { return nil, nil }},
+		{name: "redis", factory: func() (plugin.Plugin, error) { return nil, nil }},
+	})
+
+	dir := t.TempDir()
+	body := "name: probe\nserviceID: same\nadmin:\n  endpoints: [\"127.0.0.1:19001\"]\n"
+	path := writeProbeYAML(t, dir, body+"  syncInterval: 30s\n")
+	if err := config.Load(path); err != nil {
+		t.Fatalf("load failed, errmsg: %s", err)
+	}
+
+	p := newProbe(context.Background(), "test-machine")
+	p.runtime = p.startRuntime(p.parent, config.Cfg.ServiceID)
+	time.Sleep(50 * time.Millisecond)
+	before := calls.Load()
+
+	path = writeProbeYAML(t, dir, body+"  syncInterval: 90s\n")
+	p.reloadOnce(path)
+
+	if calls.Load() != before {
+		t.Fatalf("harvesters were rebuilt for an admin-only change, before: %d, after: %d",
+			before, calls.Load())
+	}
+	if got := config.Snapshot().Admin.SyncInterval; got != 90*time.Second {
+		t.Fatalf("new sync interval did not take effect, got: %s", got)
 	}
 	stopProbe(p)
 }

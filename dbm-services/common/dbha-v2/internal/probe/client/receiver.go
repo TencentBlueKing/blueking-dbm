@@ -65,19 +65,21 @@ type ReceiverClient struct {
 
 // NewReceiverClient creates a ReceiverClient connected to the given endpoints.
 func NewReceiverClient(ctx context.Context, endpoint string, clientId string) (*ReceiverClient, error) {
-	pingTime := config.Cfg.Client.PingTime
+	clientCfg := config.Snapshot().Client
+
+	pingTime := clientCfg.PingTime
 	if pingTime <= 0 {
 		pingTime = constant.DefaultClientPingTime
 	}
-	pingTimeout := config.Cfg.Client.PingTimeout
+	pingTimeout := clientCfg.PingTimeout
 	if pingTimeout <= 0 {
 		pingTimeout = constant.DefaultPingTimeout
 	}
-	maxRecvMsgSize := config.Cfg.Client.MaxReceiveMessageSize
+	maxRecvMsgSize := clientCfg.MaxReceiveMessageSize
 	if maxRecvMsgSize <= 0 {
 		maxRecvMsgSize = constant.DefaultMaxReceiveMessageSize
 	}
-	maxSendMsgSize := config.Cfg.Client.MaxSendMessageSize
+	maxSendMsgSize := clientCfg.MaxSendMessageSize
 	if maxSendMsgSize <= 0 {
 		maxSendMsgSize = constant.DefaultMaxSendMessageSize
 	}
@@ -131,10 +133,13 @@ func NewReceiverClient(ctx context.Context, endpoint string, clientId string) (*
 	return r, nil
 }
 
+// Name returns the reporter name for the gRPC receiver client.
 func (r *ReceiverClient) Name() string {
 	return NameGRPC
 }
 
+// Post sends content to the receiver over unary gRPC.
+// It returns an error when the client is closed or the push fails.
 func (r *ReceiverClient) Post(ctx context.Context, content []byte) error {
 	r.mutex.Lock()
 	if r.closed {
@@ -159,11 +164,17 @@ func (r *ReceiverClient) Post(ctx context.Context, content []byte) error {
 	return gerrors.New(gerrors.GrpcFailure, err.Error())
 }
 
+// GetBaseInfo returns the cloud id tagged on reported data.
+// It reads the applied configuration through Snapshot so it does not race with hot reload.
+// A config without a reporter block yields the zero BaseInfo, matching an unset bkCloudID.
 func (r *ReceiverClient) GetBaseInfo() BaseInfo {
-	bkCloudID := config.Cfg.Reporter.BkCloudID
+	reporter := config.Snapshot().Reporter
+	if reporter == nil {
+		return BaseInfo{}
+	}
 
 	return BaseInfo{
-		BkCloudID: bkCloudID,
+		BkCloudID: reporter.BkCloudID,
 	}
 }
 

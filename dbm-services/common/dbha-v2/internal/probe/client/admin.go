@@ -52,19 +52,23 @@ type AdminClient struct {
 
 // NewAdminClient creates an AdminClient connected to the given admin endpoint.
 func NewAdminClient(ctx context.Context, endpoint string, clientId string) (*AdminClient, error) {
-	pingTime := config.Cfg.Client.PingTime
+	// Snapshot rather than Cfg: periodic config sync creates clients from a background
+	// goroutine, which would otherwise race with hot-reload writes to the global.
+	clientCfg := config.Snapshot().Client
+
+	pingTime := clientCfg.PingTime
 	if pingTime == 0 {
 		pingTime = constant.DefaultClientPingTime
 	}
-	pingTimeout := config.Cfg.Client.PingTimeout
+	pingTimeout := clientCfg.PingTimeout
 	if pingTimeout == 0 {
 		pingTimeout = constant.DefaultPingTimeout
 	}
-	maxRecvMsgSize := config.Cfg.Client.MaxReceiveMessageSize
+	maxRecvMsgSize := clientCfg.MaxReceiveMessageSize
 	if maxRecvMsgSize == 0 {
 		maxRecvMsgSize = constant.DefaultMaxReceiveMessageSize
 	}
-	maxSendMsgSize := config.Cfg.Client.MaxSendMessageSize
+	maxSendMsgSize := clientCfg.MaxSendMessageSize
 	if maxSendMsgSize == 0 {
 		maxSendMsgSize = constant.DefaultMaxSendMessageSize
 	}

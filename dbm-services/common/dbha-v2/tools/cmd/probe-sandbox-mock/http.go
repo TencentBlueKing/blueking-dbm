@@ -26,12 +26,15 @@ package main
 
 import (
 	"encoding/json"
+	"io"
 	"net"
 	"net/http"
 	"time"
 )
 
-func startHTTP(addr string, st *appStats) (func(), error) {
+const maxAdminControlBody = 1 << 20
+
+func startHTTP(addr string, st *appStats, ctl *adminControl) (func(), error) {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/health", func(w http.ResponseWriter, _ *http.Request) {
 		w.Header().Set("Content-Type", "text/plain; charset=utf-8")
@@ -42,6 +45,19 @@ func startHTTP(addr string, st *appStats) (func(), error) {
 	})
 	mux.HandleFunc("/last", func(w http.ResponseWriter, _ *http.Request) {
 		writeJSON(w, st.lastPayloads())
+	})
+	mux.HandleFunc("/admin/payload", func(w http.ResponseWriter, r *http.Request) {
+		handleAdminPayload(w, r, ctl)
+	})
+	mux.HandleFunc("/admin/mode", func(w http.ResponseWriter, r *http.Request) {
+		handleAdminMode(w, r, ctl)
+	})
+	mux.HandleFunc("/admin/last-request", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodGet {
+			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+			return
+		}
+		writeJSON(w, ctl.lastRequest())
 	})
 
 	lis, err := net.Listen("tcp", addr)
@@ -59,6 +75,58 @@ func startHTTP(addr string, st *appStats) (func(), error) {
 		_ = svr.Close()
 		_ = lis.Close()
 	}, nil
+}
+
+func handleAdminPayload(w http.ResponseWriter, r *http.Request, ctl *adminControl) {
+	switch r.Method {
+	case http.MethodGet:
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write(ctl.snapshotPayload())
+	case http.MethodPost:
+		body, err := io.ReadAll(io.LimitReader(r.Body, maxAdminControlBody+1))
+		if err != nil {
+			http.Error(w, "read body failed", http.StatusBadRequest)
+			return
+		}
+		if len(body) > maxAdminControlBody {
+			http.Error(w, "body too large", http.StatusRequestEntityTooLarge)
+			return
+		}
+		if err := ctl.setPayload(body); err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+		writeJSON(w, map[string]string{"status": "ok"})
+	default:
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+	}
+}
+
+func handleAdminMode(w http.ResponseWriter, r *http.Request, ctl *adminControl) {
+	switch r.Method {
+	case http.MethodGet:
+		writeJSON(w, map[string]string{"mode": ctl.snapshotMode()})
+	case http.MethodPost:
+		body, err := io.ReadAll(io.LimitReader(r.Body, maxAdminControlBody+1))
+		if err != nil {
+			http.Error(w, "read body failed", http.StatusBadRequest)
+			return
+		}
+		var req struct {
+			Mode string `json:"mode"`
+		}
+		if err := json.Unmarshal(body, &req); err != nil || req.Mode == "" {
+			http.Error(w, "body must be {\"mode\":\"success|no_data|fail\"}", http.StatusBadRequest)
+			return
+		}
+		if err := ctl.setMode(req.Mode); err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+		writeJSON(w, map[string]string{"mode": ctl.snapshotMode()})
+	default:
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+	}
 }
 
 func writeJSON(w http.ResponseWriter, v any) {

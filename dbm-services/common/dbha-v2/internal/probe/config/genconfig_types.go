@@ -25,22 +25,61 @@
 package config
 
 // probeYAML is used only for GenProbeYAML output. Reuses LogConfig from config.go.
+//
+// The blocks the probe owns locally (ServiceID, Client, Admin) are pointers with omitempty and
+// are only filled in by the options in genconfig.go, so a plain gen-config renders exactly what
+// it always did instead of gaining empty blocks.
 type probeYAML struct {
 	Name      string             `yaml:"name"`
 	Version   string             `yaml:"version"`
+	ServiceID string             `yaml:"serviceID,omitempty"`
 	PidFile   string             `yaml:"pidFile"`
 	Reporter  probeReporterYAML  `yaml:"reporter"`
+	Client    *probeClientYAML   `yaml:"client,omitempty"`
+	Admin     *probeAdminYAML    `yaml:"admin,omitempty"`
 	Harvester probeHarvesterYAML `yaml:"harvester"`
 	Log       LogConfig          `yaml:"log"`
 }
 
 // probeReporterYAML has ConnTimeout as string for YAML output (e.g. "5s"); ReporterConfig uses time.Duration.
 type probeReporterYAML struct {
-	Name            string `yaml:"name"`
-	Endpoint        string `yaml:"endpoint"`
-	DataID          uint64 `yaml:"dataID"`
-	ConnTimeout     string `yaml:"connTimeout"`
-	LocalSocketPort uint   `yaml:"localSocketPort,omitempty"` // omitempty: omit when 0 so Linux YAML stays byte-identical
+	Name        string `yaml:"name"`
+	Endpoint    string `yaml:"endpoint"`
+	DataID      uint64 `yaml:"dataID"`
+	ConnTimeout string `yaml:"connTimeout"`
+	// omitempty: admin does not send it; 0 keeps existing YAML unchanged.
+	BkCloudID int `yaml:"bkCloudID,omitempty"`
+	// omitempty: omit when 0 so Linux YAML stays byte-identical.
+	LocalSocketPort uint `yaml:"localSocketPort,omitempty"`
+}
+
+// probeClientYAML mirrors ClientConfig, and probeAdminYAML mirrors AdminConfig.
+//
+// They exist because of a convention this file already follows for the harvester blocks:
+// durations render as strings here ("5s"), while the Configuration side uses time.Duration.
+// Reusing the Configuration types directly would write durations as their nanosecond count,
+// which is both unreadable and not what an operator editing the file expects.
+//
+// Every field carries omitempty, which matters most for the durations: a zero time.Duration
+// renders to the empty string and viper refuses to parse `pingTime: ""` back into a duration,
+// so an omitted key is the only correct rendering of a zero value. Omitting it round-trips
+// cleanly, since a missing key parses back to zero.
+//
+// TestMirrorStructsCoverSource keeps these in step with the types they mirror.
+type probeClientYAML struct {
+	PingTime                     string `yaml:"pingTime,omitempty"`
+	PingTimeout                  string `yaml:"pingTimeout,omitempty"`
+	MaxReceiveMessageSize        int    `yaml:"maxReceiveMessageSize,omitempty"`
+	MaxSendMessageSize           int    `yaml:"maxSendMessageSize,omitempty"`
+	ReceiverReconnectInterval    string `yaml:"receiverReconnectInterval,omitempty"`
+	ReceiverMaxReconnectAttempts int    `yaml:"receiverMaxReconnectAttempts,omitempty"`
+}
+
+type probeAdminYAML struct {
+	Endpoints    []string `yaml:"endpoints,omitempty"`
+	BkCloudID    uint64   `yaml:"bkCloudID,omitempty"`
+	LocalIP      string   `yaml:"localIP,omitempty"`
+	SyncInterval string   `yaml:"syncInterval,omitempty"`
 }
 
 // probeHarvesterYAML uses string for Interval/Timeout in YAML output; reuses DbEndpointConfig for Endpoints.

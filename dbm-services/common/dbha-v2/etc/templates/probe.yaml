@@ -22,6 +22,18 @@ client:
   receiverReconnectInterval: {{PROBE_CLIENT_RECEIVER_RECONNECT_INTERVAL}}
   receiverMaxReconnectAttempts: {{PROBE_CLIENT_RECEIVER_MAX_RECONNECT_ATTEMPTS}}
 
+# Where this probe refreshes its own configuration from, and how often. Each round asks admin
+# for this machine's config and rewrites the reporter / harvester sections of this file when
+# they differ, then hot-reloads. Everything else in this file, including this block, is left
+# alone, so local edits survive.
+# syncInterval accepts a Go duration; 0 (default) disables periodic sync and leaves the file
+# under gen-config's control only. Values below 10s are raised to 10s.
+admin:
+  endpoints: [{{PROBE_ADMIN_ENDPOINTS}}]
+  bkCloudID: {{PROBE_ADMIN_BK_CLOUD_ID}}
+  localIP: "{{PROBE_ADMIN_LOCAL_IP}}"
+  syncInterval: {{PROBE_ADMIN_SYNC_INTERVAL}}
+
 harvester:
 {{PROBE_MYSQL_SHARD_BLOCK}}
 {{PROBE_REDIS_SHARD_BLOCK}}

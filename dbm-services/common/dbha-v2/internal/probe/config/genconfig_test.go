@@ -551,6 +551,108 @@ func TestGenProbeYAML_ProxyAccessButNonMysqlClusterIsNotProxyAdmin(t *testing.T)
 	}
 }
 
+// TestGenProbeYAML_OptionsDoNotChangeDefaultRendering keeps the options mechanism from shifting
+// what existing callers get: no options, and a no-op option, must render exactly as before.
+func TestGenProbeYAML_OptionsDoNotChangeDefaultRendering(t *testing.T) {
+	payload := newPayload([]probeconfig.ProbeMetadataItem{storageItem(3306, 0)})
+
+	base, err := GenProbeYAML(payload)
+	if err != nil {
+		t.Fatalf("GenProbeYAML failed, errmsg: %s", err)
+	}
+	// An empty version is the shape a config predating the version field parses to.
+	withEmpty, err := GenProbeYAML(payload, WithVersion(""), nil)
+	if err != nil {
+		t.Fatalf("GenProbeYAML with options failed, errmsg: %s", err)
+	}
+	if withEmpty != base {
+		t.Fatal("empty version option changed the rendered output")
+	}
+
+	withVersion, err := GenProbeYAML(payload, WithVersion("v9"))
+	if err != nil {
+		t.Fatalf("GenProbeYAML with version failed, errmsg: %s", err)
+	}
+	var parsed parsedYAML
+	if err := yaml.Unmarshal([]byte(withVersion), &parsed); err != nil {
+		t.Fatalf("yaml unmarshal failed, errmsg: %s", err)
+	}
+	if parsed.Version != "v9" {
+		t.Fatalf("version option not applied, got: %s", parsed.Version)
+	}
+}
+
+// storageItem builds a TendbHA storage metadata item on the loopback address, used by the
+// port-ordering tests where only the ports differ between items.
+func storageItem(port, adminPort int) probeconfig.ProbeMetadataItem {
+	return probeconfig.ProbeMetadataItem{
+		IP:          "127.0.0.1",
+		Port:        port,
+		AdminPort:   adminPort,
+		ClusterType: string(haprobe.DbmMetadataClusterTypeTendbha),
+		MachineType: string(haprobe.DbmMetadataMachineTypeBackend),
+		AccessLayer: string(haprobe.DbmMetadataAccessLayerTypeStorage),
+	}
+}
+
+// TestGenProbeYAML_PortOrderIndependentOfInput covers a machine hosting several instances.
+// The rendered ports must not depend on the order the metadata arrived in: admin returns rows
+// without ORDER BY and may serve them either from its local cache or from the DBM API, so an
+// input-dependent rendering would make periodic sync rewrite the file whenever the source
+// switches, rebuilding every harvester on that machine each time.
+func TestGenProbeYAML_PortOrderIndependentOfInput(t *testing.T) {
+	ascending := []probeconfig.ProbeMetadataItem{
+		storageItem(3306, 13306),
+		storageItem(3307, 13307),
+		storageItem(3308, 13308),
+	}
+	shuffled := []probeconfig.ProbeMetadataItem{
+		storageItem(3308, 13308),
+		storageItem(3306, 13306),
+		storageItem(3307, 13307),
+	}
+
+	want, err := GenProbeYAML(newPayload(ascending))
+	if err != nil {
+		t.Fatalf("GenProbeYAML failed, errmsg: %s", err)
+	}
+	got, err := GenProbeYAML(newPayload(shuffled))
+	if err != nil {
+		t.Fatalf("GenProbeYAML failed, errmsg: %s", err)
+	}
+	if got != want {
+		t.Fatalf("rendered yaml depends on metadata input order")
+	}
+
+	parsed := renderAndParse(t, newPayload(shuffled))
+	if parsed.Harvester.MySQL == nil || len(parsed.Harvester.MySQL.Endpoints) != 1 {
+		t.Fatalf("expected a single mysql endpoint, got: %+v", parsed.Harvester.MySQL)
+	}
+	ep := parsed.Harvester.MySQL.Endpoints[0]
+	if !reflect.DeepEqual(ep.Ports, []string{"3306", "3307", "3308"}) {
+		t.Errorf("ports not sorted, got: %v", ep.Ports)
+	}
+	if !reflect.DeepEqual(ep.AdminPorts, []string{"13306", "13307", "13308"}) {
+		t.Errorf("adminPorts not sorted, got: %v", ep.AdminPorts)
+	}
+}
+
+// TestGenProbeYAML_PortsSortedNumerically pins the ordering to port value rather than string
+// order: lexically "3306" sorts before "800", numerically it does not.
+func TestGenProbeYAML_PortsSortedNumerically(t *testing.T) {
+	parsed := renderAndParse(t, newPayload([]probeconfig.ProbeMetadataItem{
+		storageItem(3306, 0),
+		storageItem(800, 0),
+	}))
+
+	if parsed.Harvester.MySQL == nil || len(parsed.Harvester.MySQL.Endpoints) != 1 {
+		t.Fatalf("expected a single mysql endpoint, got: %+v", parsed.Harvester.MySQL)
+	}
+	if got := parsed.Harvester.MySQL.Endpoints[0].Ports; !reflect.DeepEqual(got, []string{"800", "3306"}) {
+		t.Errorf("expected numeric port order, got: %v", got)
+	}
+}
+
 func TestGenProbeYAML_DeterministicOrder(t *testing.T) {
 	metadata := []probeconfig.ProbeMetadataItem{
 		{

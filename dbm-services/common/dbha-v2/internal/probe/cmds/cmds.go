@@ -34,8 +34,8 @@ import (
 	"time"
 	"unicode"
 
-	"dbm-services/common/dbha-v2/internal/probe/client"
 	"dbm-services/common/dbha-v2/internal/probe/config"
+	"dbm-services/common/dbha-v2/internal/probe/configsync"
 	"dbm-services/common/dbha-v2/pkg/constant"
 	"dbm-services/common/dbha-v2/pkg/machine"
 	"dbm-services/common/dbha-v2/pkg/probeconfig"
@@ -190,21 +190,9 @@ func genConfigDuration(cmd *cobra.Command, name string, fallback time.Duration) 
 	return d
 }
 
-func unmarshalProbeConfigPayload(raw string) (probeconfig.ProbeConfigPayload, error) {
-	var payload probeconfig.ProbeConfigPayload
-	if err := json.Unmarshal([]byte(raw), &payload); err != nil {
-		// Legacy admin returns a raw metadata list ([]ProbeMetadataItem) instead of ProbeConfigPayload;
-		// detect this to provide a clear version-mismatch error rather than a generic unmarshal error.
-		if len(raw) > 0 && raw[0] == '[' {
-			return payload, fmt.Errorf(
-				"admin returned legacy metadata array instead of ProbeConfigPayload, "+
-					"please upgrade admin to match the probe version: %w", err)
-		}
-		return payload, fmt.Errorf("parse probe config payload from admin: %w", err)
-	}
-	return payload, nil
-}
-
+// fetchAndRenderProbeYAML is the gen-config path: fetch and render are shared with the probe's
+// periodic sync through configsync, while --clear-port is applied here because it is a
+// command-line concern the running probe has no notion of.
 func fetchAndRenderProbeYAML(
 	timeout time.Duration, cloudID uint64, localIP string, endpoints []string, clearPorts []int,
 ) (string, error) {
@@ -218,20 +206,13 @@ func fetchAndRenderProbeYAML(
 		UpdatedTime: 0,
 	}
 
-	raw, err := getProbeConfigPayload(ctx, endpoints, req)
-	if err != nil {
-		return "", err
-	}
-	payload, err := unmarshalProbeConfigPayload(raw)
+	payload, err := configsync.Fetch(ctx, endpoints, req)
 	if err != nil {
 		return "", err
 	}
 	applyClearPorts(payload.Metadata, clearPorts)
-	yamlStr, err := config.GenProbeYAML(payload)
-	if err != nil {
-		return "", fmt.Errorf("generate probe config: %w", err)
-	}
-	return yamlStr, nil
+
+	return configsync.Render(payload)
 }
 
 func writeOrPrintProbeYAML(
@@ -412,29 +393,4 @@ func parseAdminEndpoints(s string) []string {
 		}
 	}
 	return out
-}
-
-func getProbeConfigPayload(ctx context.Context, endpoints []string, req *proto.ProbeConfigRequest) (string, error) {
-	var lastErr error
-	for _, endpoint := range endpoints {
-		adminClient, err := client.NewAdminClient(ctx, endpoint, "")
-		if err != nil {
-			lastErr = fmt.Errorf("create admin client for %s: %w", endpoint, err)
-			continue
-		}
-		resp, err := adminClient.GetProbeConfig(ctx, req)
-		adminClient.Close()
-		if err != nil {
-			lastErr = fmt.Errorf("get probe config from %s: %w", endpoint, err)
-			continue
-		}
-		if resp.GetCode() != proto.ProbeConfigCode_PROBE_CONFIG_SUCCESS {
-			lastErr = fmt.Errorf("admin %s returned code:%s, errmsg:%s",
-				endpoint, resp.GetCode().String(), resp.GetErrmsg())
-
-			continue
-		}
-		return resp.GetPayload(), nil
-	}
-	return "", fmt.Errorf("all admin endpoints failed, last error: %w", lastErr)
 }

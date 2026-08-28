@@ -28,6 +28,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"time"
 
 	"dbm-services/common/dbha-v2/pkg/logger"
 	"dbm-services/common/dbha-v2/pkg/probeconfig"
@@ -55,12 +56,16 @@ const defaultProbeConfigVersion = "v2.0.0"
 //
 // When admin omits payload.ProxyAdmin (e.g. older admin), mysql-proxy admin-port endpoints fall
 // back to harvester.mysql with payload.MySQL credentials so the probe degrades to legacy behavior.
-func GenProbeYAML(payload probeconfig.ProbeConfigPayload) (string, error) {
+// Fields that are not derived from the admin payload (the version, and later the locally owned
+// blocks) are supplied through GenOption. Passing them as options rather than as parameters
+// keeps the signature stable as more such fields appear.
+func GenProbeYAML(payload probeconfig.ProbeConfigPayload, opts ...GenOption) (string, error) {
 	mysqlEndpoints, mysqlProxyAdminEndpoints, redisEndpoints := buildEndpointsFromMetadata(payload.Metadata)
 
 	if payload.ProxyAdmin == nil && len(mysqlProxyAdminEndpoints) > 0 {
 		logger.Info(
-			"payload missing proxy-admin creds, falling back to probeMysql for mysql-proxy admin ports, count: %d, hint: upgrade admin to enable proxy-admin block",
+			"payload missing proxy-admin creds, falling back to probeMysql for mysql-proxy admin ports, "+
+				"count: %d, hint: upgrade admin to enable proxy-admin block",
 			len(mysqlProxyAdminEndpoints),
 		)
 		mysqlEndpoints = append(mysqlEndpoints, mysqlProxyAdminEndpoints...)
@@ -123,7 +128,148 @@ func GenProbeYAML(payload probeconfig.ProbeConfigPayload) (string, error) {
 		)
 	}
 
+	// Applied last so options always win over what the payload produced.
+	for _, opt := range opts {
+		if opt == nil {
+			continue
+		}
+		opt(&cfg)
+	}
+
 	return marshalProbeYAML(cfg)
+}
+
+// GenOption sets a field of the rendered config that does not come from the admin payload.
+//
+// Two kinds of fields need this. The version is chosen by the caller, and the blocks the probe
+// owns locally (its identity and how it talks to admin) are not known to admin at all: periodic
+// sync has to carry them over from the config already on disk, or rewriting the file would drop
+// them. Options keep those cases out of the GenProbeYAML signature.
+type GenOption func(*probeYAML)
+
+// LocalFields returns the options that carry over every part of cfg that a rendered config
+// cannot derive from the admin payload: the probe's identity and version, its pid and log
+// settings, the gRPC client tuning, the reporter's cloud id, and the admin block it needs in
+// order to sync again next time.
+//
+// It exists so the rule has one home. Rewriting a config file from an admin payload has to
+// preserve these, and a field added to Configuration that is not listed here would be silently
+// dropped on the next write. Note what the omission costs in each case: an empty serviceID
+// makes reported data lose its service identity, and a missing admin block stops periodic sync
+// altogether, so the probe would never recover on its own.
+func LocalFields(cfg Configuration) []GenOption {
+	opts := []GenOption{
+		WithVersion(cfg.Version),
+		WithServiceID(cfg.ServiceID),
+		WithPidFile(cfg.PidFile),
+		WithLog(cfg.Log),
+		WithClient(cfg.Client),
+		WithAdmin(cfg.Admin),
+	}
+	if cfg.Reporter != nil {
+		opts = append(opts, WithBkCloudID(cfg.Reporter.BkCloudID))
+	}
+
+	return opts
+}
+
+// WithVersion overrides the rendered config version.
+//
+// An empty version is ignored rather than rendered: a config written before the version field
+// existed parses as empty, and echoing that back would replace the current default with
+// version: "" on the first sync.
+func WithVersion(version string) GenOption {
+	return func(cfg *probeYAML) {
+		if version == "" {
+			return
+		}
+		cfg.Version = version
+	}
+}
+
+// WithServiceID carries the probe's service identity over. Admin does not send it, so dropping
+// it would restart the runtime under an empty identity and strip it from reported data.
+func WithServiceID(serviceID string) GenOption {
+	return func(cfg *probeYAML) {
+		cfg.ServiceID = serviceID
+	}
+}
+
+// WithPidFile keeps the local pid file path. An empty value falls through to the rendered
+// default rather than blanking the key, mirroring how Parse normalizes it.
+func WithPidFile(pidFile string) GenOption {
+	return func(cfg *probeYAML) {
+		if pidFile == "" {
+			return
+		}
+		cfg.PidFile = pidFile
+	}
+}
+
+// WithLog keeps the local logging settings. A zero-valued block would render a log destination
+// of "" with level "", so it is ignored in favour of the rendered default.
+func WithLog(log LogConfig) GenOption {
+	return func(cfg *probeYAML) {
+		if log == (LogConfig{}) {
+			return
+		}
+		cfg.Log = log
+	}
+}
+
+// WithBkCloudID keeps the cloud id the reporter tags data with. It is not part of the admin
+// payload's reporter block, so without this a rewrite would silently reset it to 0.
+func WithBkCloudID(bkCloudID int) GenOption {
+	return func(cfg *probeYAML) {
+		cfg.Reporter.BkCloudID = bkCloudID
+	}
+}
+
+// WithClient keeps the local gRPC client tuning. A zero-valued block is left out entirely
+// instead of being rendered: the pointer would not be nil, so omitempty alone would still emit
+// an empty client: {} and make every sync look like a change.
+func WithClient(client ClientConfig) GenOption {
+	return func(cfg *probeYAML) {
+		if client == (ClientConfig{}) {
+			return
+		}
+		cfg.Client = &probeClientYAML{
+			PingTime:                     durationToYAML(client.PingTime),
+			PingTimeout:                  durationToYAML(client.PingTimeout),
+			MaxReceiveMessageSize:        client.MaxReceiveMessageSize,
+			MaxSendMessageSize:           client.MaxSendMessageSize,
+			ReceiverReconnectInterval:    durationToYAML(client.ReceiverReconnectInterval),
+			ReceiverMaxReconnectAttempts: client.ReceiverMaxReconnectAttempts,
+		}
+	}
+}
+
+// WithAdmin keeps the block describing how to reach admin. Same zero-value handling as
+// WithClient, for the same reason.
+func WithAdmin(admin AdminConfig) GenOption {
+	return func(cfg *probeYAML) {
+		if admin.IsZero() {
+			return
+		}
+		endpoints := make([]string, len(admin.Endpoints))
+		copy(endpoints, admin.Endpoints)
+		cfg.Admin = &probeAdminYAML{
+			Endpoints:    endpoints,
+			BkCloudID:    admin.BkCloudID,
+			LocalIP:      admin.LocalIP,
+			SyncInterval: durationToYAML(admin.SyncInterval),
+		}
+	}
+}
+
+// durationToYAML renders a duration the way the config file spells it. The zero value maps to
+// the empty string, which the mirror structs must drop through omitempty: viper cannot parse an
+// empty string back into a duration.
+func durationToYAML(d time.Duration) string {
+	if d == 0 {
+		return ""
+	}
+	return d.String()
 }
 
 // isMysqlProxyEndpoint reports whether a metadata entry is a TendbHA mysql-proxy node
@@ -227,21 +373,23 @@ func sortEndpointKeys(keys []endpointKey) {
 // groupMetadataByEndpointKey folds raw metadata items into ports / adminPorts grouped by
 // endpointKey and returns the keys sorted for deterministic yaml output. Port 0 / AdminPort 0
 // entries are dropped here so callers don't have to special-case them again.
+// Both the key order and the ports within each key are sorted, so the rendered yaml depends
+// only on the metadata contents and not on the order the items arrived in.
 func groupMetadataByEndpointKey(
 	list []probeconfig.ProbeMetadataItem,
 ) ([]endpointKey, map[endpointKey][]string, map[endpointKey][]string) {
 	keys := make(map[endpointKey]struct{})
-	portsByKey := make(map[endpointKey][]string)
-	adminPortsByKey := make(map[endpointKey][]string)
+	portsByKey := make(map[endpointKey][]int)
+	adminPortsByKey := make(map[endpointKey][]int)
 
 	for _, m := range list {
 		k := newEndpointKey(m)
 		keys[k] = struct{}{}
 		if m.Port > 0 {
-			portsByKey[k] = append(portsByKey[k], strconv.Itoa(m.Port))
+			portsByKey[k] = append(portsByKey[k], m.Port)
 		}
 		if m.AdminPort > 0 {
-			adminPortsByKey[k] = append(adminPortsByKey[k], strconv.Itoa(m.AdminPort))
+			adminPortsByKey[k] = append(adminPortsByKey[k], m.AdminPort)
 		}
 	}
 
@@ -250,7 +398,23 @@ func groupMetadataByEndpointKey(
 		ordered = append(ordered, k)
 	}
 	sortEndpointKeys(ordered)
-	return ordered, portsByKey, adminPortsByKey
+	return ordered, sortedPortStrings(portsByKey), sortedPortStrings(adminPortsByKey)
+}
+
+// sortedPortStrings sorts every port slice numerically and renders it to strings. Sorting by
+// value rather than lexically keeps "80" before "3306". Duplicates are preserved: dropping them
+// would change which endpoints probe collects, which is out of scope here.
+func sortedPortStrings(byKey map[endpointKey][]int) map[endpointKey][]string {
+	out := make(map[endpointKey][]string, len(byKey))
+	for k, ports := range byKey {
+		sort.Ints(ports)
+		rendered := make([]string, 0, len(ports))
+		for _, p := range ports {
+			rendered = append(rendered, strconv.Itoa(p))
+		}
+		out[k] = rendered
+	}
+	return out
 }
 
 // buildEndpointsFromMetadata folds metadata items into three endpoint slices keyed by

@@ -61,7 +61,29 @@ func (p *Probe) reloadOnce(path string) {
 		return
 	}
 
+	// The admin block only steers the periodic sync loop, which re-reads it from the applied
+	// config on every round. Making it current is enough; tearing down the harvesters and the
+	// reporter for it would interrupt collection to no effect.
+	if onlyAdminChanged(config.Cfg, next) {
+		config.Apply(next)
+		logger.Info("probe admin settings updated without runtime rebuild, config_path: %s", path)
+		return
+	}
+
 	p.applyReload(next, path)
+}
+
+// onlyAdminChanged reports whether next differs from the applied config in the admin block and
+// nowhere else.
+func onlyAdminChanged(current, next config.Configuration) bool {
+	if reflect.DeepEqual(current.Admin, next.Admin) {
+		return false
+	}
+
+	withoutAdmin := next
+	withoutAdmin.Admin = current.Admin
+
+	return reflect.DeepEqual(withoutAdmin, current)
 }
 
 func (p *Probe) applyReload(next config.Configuration, path string) {
@@ -78,7 +100,7 @@ func (p *Probe) applyReload(next config.Configuration, path string) {
 	rebuildReporter := !reporterConfigEqual(p.reporter.cfg, next.Reporter) ||
 		!reflect.DeepEqual(config.Cfg.Client, next.Client)
 
-	config.Cfg = next
+	config.Apply(next)
 	p.reporter.applyAfterReload(p.parent, next.Reporter, rebuildReporter)
 	p.runtime = p.startRuntime(p.parent, next.ServiceID)
 	logger.Info("probe config reloaded, config_path: %s", path)

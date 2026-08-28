@@ -45,21 +45,49 @@ func patchProbeYAML(path, receiverAddr, logPath string) error {
 
 func patchProbeYAMLText(text, receiverAddr, logPath string) string {
 	lines := strings.Split(text, "\n")
-	out := make([]string, 0, len(lines))
+	out := make([]string, 0, len(lines)+1)
 	inReporter := false
 	inLog := false
+	inAdmin := false
+	adminHasSync := false
+	adminChildIndent := "  "
+
+	flushAdminSync := func() {
+		if !inAdmin || adminHasSync {
+			return
+		}
+		out = append(out, adminChildIndent+"syncInterval: 0s")
+		adminHasSync = true
+	}
+
 	for _, line := range lines {
 		stripped := strings.TrimSpace(line)
 		indent := line[:len(line)-len(strings.TrimLeft(line, " \t"))]
 		switch {
 		case strings.HasPrefix(line, "reporter:"):
-			inReporter, inLog = true, false
+			flushAdminSync()
+			inReporter, inLog, inAdmin = true, false, false
 			out = append(out, line)
 		case strings.HasPrefix(line, "log:"):
-			inLog, inReporter = true, false
+			flushAdminSync()
+			inLog, inReporter, inAdmin = true, false, false
+			out = append(out, line)
+		case strings.HasPrefix(line, "admin:"):
+			inAdmin, inReporter, inLog = true, false, false
+			adminHasSync = false
 			out = append(out, line)
 		case line != "" && !strings.HasPrefix(line, " ") && !strings.HasPrefix(line, "\t"):
-			inReporter, inLog = false, false
+			flushAdminSync()
+			inReporter, inLog, inAdmin = false, false, false
+			out = append(out, line)
+		case inAdmin && strings.HasPrefix(stripped, "syncInterval:"):
+			out = append(out, indent+"syncInterval: 0s")
+			adminHasSync = true
+			adminChildIndent = indent
+		case inAdmin:
+			if indent != "" {
+				adminChildIndent = indent
+			}
 			out = append(out, line)
 		case inReporter && strings.HasPrefix(stripped, "name:"):
 			out = append(out, indent+"name: grpc")
@@ -73,5 +101,6 @@ func patchProbeYAMLText(text, receiverAddr, logPath string) string {
 			out = append(out, line)
 		}
 	}
+	flushAdminSync()
 	return strings.Join(out, "\n")
 }

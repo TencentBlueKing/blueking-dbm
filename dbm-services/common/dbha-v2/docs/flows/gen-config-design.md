@@ -104,6 +104,14 @@ flowchart TD
 
 `AcquireFileLock` 在超时窗口内按 50ms 间隔重试。循环写成「先尝试一次再判断超时」，这样即使传入极小的超时值也能得到一次真实尝试，而不是没试就失败。超时返回 `gerrors.Timeout`。
 
+### 3.7 加锁壳与无锁核
+
+`WriteFileWithLock` 拆成两层：外层负责取锁，内层 `WriteFileLocked` 假定调用方已持锁。
+
+拆分是为了周期同步（见 [config-sync.md](config-sync.md) §5）。它需要把「读文件 → 渲染 → 比较 → 写文件」整段放在同一次持锁里：如果读和写各自加一次锁，中间的空档足够一次人工 `gen-config` 落地，然后这一轮会拿着过期的读取结果把它悄悄改回去。锁路径由 `LockPathFor` 统一解析（含符号链接），保证两个入口用的是同一把锁。
+
+`gen-config` 仍走外层，行为不变。同一 goroutine 里嵌套调用外层会自锁超时，这是有意的失败而非死锁。
+
 ## 4. --clear-port：从采集范围剔除端口
 
 ### 4.1 语法
@@ -151,9 +159,28 @@ mysql-proxy 有一条既有规则：**没有管理端口的 endpoint 整条跳�
 
 清空某类 harvester 的全部端口后，对应的 `harvester.mysql` / `harvester.redis` 块不会输出，这同样是既有逻辑。
 
-## 5. --reload：写后通知运行中的进程
+### 4.4 渲染确定性
 
-### 5.1 行为
+同一份语义相同的 payload 必须渲染出**逐字节相同**的 YAML。分组时端口按数值排序（`800` 排在 `3306` 前，不是字典序），endpoint 键有序输出。
+
+这在 `gen-config` 下只是「内容不变则跳过写入」（§3.4）能真正生效的前提；到了周期同步就更关键：渲染只要抖动一次，每一轮都会判定为有变化，于是反复写盘并触发 harvester 重建。
+
+## 5. GenProbeYAML 的 options 与本机字段
+
+`GenProbeYAML(payload, opts ...GenOption)` 用 options 承载所有非 payload 的字段，新增字段不必再改签名。
+
+需要区分两类字段：
+
+- **Admin 拥有**：`reporter`（GSE 默认块）、`harvester`。由 payload 决定。
+- **本机拥有**：`version`、`serviceID`、`pidFile`、`log`、`client`、`admin`、`reporter.bkCloudID`。payload 里没有，必须由调用方通过 option 注入，否则渲染时会静默消失。
+
+`config.LocalFields(cfg)` 把一份 `Configuration` 里所有本机字段打包成 option 列表，是周期同步保留本机配置的唯一入口。
+
+`client` / `admin` 这两块通过镜像结构 `probeClientYAML` / `probeAdminYAML` 渲染，把 `time.Duration` 转成 `"30s"` 这类字符串——直接渲染 `time.Duration` 会得到纳秒整数，probe 解析不回来。镜像结构全字段 `omitempty`：零值 duration 渲染成空串而 viper 拒绝空串，所以整块为零值时必须一个键都不输出。镜像结构与源结构的字段一致性由反射测试守住，漏加字段会在测试而不是在生产中暴露。
+
+## 6. --reload：写后通知运行中的进程
+
+### 6.1 行为
 
 配置文件写入成功、并打印 `Config written to` 之后，向运行中的 probe 发送 reload 信号。信号机制完全复用现有的 `dbha-probe reload` 子命令，不新写一套：
 
@@ -164,23 +191,23 @@ mysql-proxy 有一条既有规则：**没有管理端口的 endpoint 整条跳�
 
 进程未运行、pid 文件不存在或是 stale pid 时，打印提示并**返回失败（退出码 1）**。YAML 已经落盘，不会回滚。首次部署应先 `start` / `daemon-start`，不要在进程起来之前带 `--reload`。独立子命令 `dbha-probe reload` 在进程未运行时仍退出 0。
 
-### 5.2 必须配合 `-o`
+### 6.2 必须配合 `-o`
 
 `--reload` 缺少 `-o/--output` 时直接报错 `--reload requires --output`。输出到 stdout 时没有落盘文件，通知进程重新加载没有意义。该校验在连 Admin 之前完成。
 
-### 5.3 刻意不调用 config.Load
+### 6.3 刻意不调用 config.Load
 
 发信号时用的是包级默认的 `config.Cfg.PidFile`（`./pids/probe.pid`），与 `GenProbeYAML` 刚渲染出的字段一致，**不对刚写出的文件执行 `config.Load`**。
 
 `config.Load` 仍会覆盖包级 `config.Cfg`，因此 CLI 发信号路径故意不调用它，以免改写当前进程（或单元测试）里已加载的配置；现有的 `ReloadCmdRunE` 本身也不做 Load，保持一致。`config.Load` 已改为委托 `config.Parse`（使用独立的 `viper.New()`），不再污染全局 viper。若只需只读校验刚写出的文件，应调用 `config.Parse`，它返回新配置且不修改 `config.Cfg`。
 
-### 5.4 pid 文件的相对路径语义
+### 6.4 pid 文件的相对路径语义
 
 `gen-config` 与 probe 的 `reload` 子命令在二进制位于 `<root>/bin/` 时会切换到安装根目录（与 `ensure` 同一锚点；非打包布局保持当前工作目录）。因此相对路径 `./pids/probe.pid` 与相对 `-o` 都相对安装根解析，crontab / schtasks 的默认 CWD 不再把 pid 指到 `$HOME` 或 `system32`。
 
 在 `daemon-start` 模式下，pid 文件里记的是 guard 进程：Unix 上信号先到 guard，再由 `forwardReloadToChild` 转发给 worker；Windows 上 worker 自己监听具名事件，转发是 no-op。这条链路保持不变。
 
-### 5.5 probe 热加载行为
+### 6.5 probe 热加载行为
 
 probe 收到 reload 信号后（`gen-config --reload` 或独立子命令 `dbha-probe reload`），会重新读取启动时 `-c/--config` 指向的配置文件，并在进程内应用：
 
@@ -198,7 +225,7 @@ probe 收到 reload 信号后（`gen-config --reload` 或独立子命令 `dbha-p
 
 flag 帮助文案仍写作 "signal the running probe to reload it"：CLI 侧只负责发信号，应用由运行中的 probe 完成。
 
-## 6. 失败退出码
+## 7. 失败退出码
 
 `gen-config` 及其他子命令失败时必须返回**非 0** 退出码。此前 `main()` 无论成败都退 0，导致部署脚本无法判定失败。
 
@@ -211,27 +238,30 @@ flag 帮助文案仍写作 "signal the running probe to reload it"：CLI 侧只�
 
 影响面：`start-probe.sh`、`start-probe-keepalive.sh`、`start-server.sh` 直接消费退出码，首次启动真的失败时不会再注册 cron guard——这是期望中的改变。已有的 crontab 条目不受影响。
 
-## 7. 关键代码路径
+## 8. 关键代码路径
 
 | 关注点 | 路径 |
 | --- | --- |
 | Flag 定义 | [internal/probe/command.go](../../internal/probe/command.go) |
 | 命令主流程 | [internal/probe/cmds/cmds.go](../../internal/probe/cmds/cmds.go)（`GenConfigCmdRunE`） |
 | 端口解析与过滤 | 同上（`parseClearPorts` / `applyClearPorts` / `validateGenConfigFlags`） |
-| 加锁原子写 | [pkg/process/filelock.go](../../pkg/process/filelock.go)（`AcquireFileLock` / `WriteFileWithLock`） |
+| 加锁原子写 | [pkg/process/filelock.go](../../pkg/process/filelock.go)（`AcquireFileLock` / `LockPathFor` / `WriteFileWithLock` / `WriteFileLocked`） |
 | 平台相关：属主 | [pkg/process/fileowner_unix.go](../../pkg/process/fileowner_unix.go)、[fileowner_windows.go](../../pkg/process/fileowner_windows.go) |
 | 平台相关：目录 fsync | [pkg/process/dirsync_unix.go](../../pkg/process/dirsync_unix.go)、[dirsync_windows.go](../../pkg/process/dirsync_windows.go) |
 | reload 信号 | [pkg/process/cmds.go](../../pkg/process/cmds.go)（`ReloadCmdRunE`）、[stopper_unix.go](../../pkg/process/stopper_unix.go)、[stopper_windows.go](../../pkg/process/stopper_windows.go) |
 | probe 热加载应用 | [internal/probe/reload.go](../../internal/probe/reload.go) |
-| YAML 渲染 | [internal/probe/config/genconfig.go](../../internal/probe/config/genconfig.go) |
+| YAML 渲染 | [internal/probe/config/genconfig.go](../../internal/probe/config/genconfig.go)（`GenProbeYAML` / `GenOption` / `LocalFields`） |
+| 拉取与渲染共用逻辑 | [internal/probe/configsync](../../internal/probe/configsync)（`Fetch` / `Render` / `ErrNoData`） |
+| 周期同步 | [internal/probe/adminsync.go](../../internal/probe/adminsync.go) |
 | 进程入口与退出码 | [cmd/probe/main.go](../../cmd/probe/main.go)、[cmd/admin/main.go](../../cmd/admin/main.go)、[cmd/analysis/main.go](../../cmd/analysis/main.go)、[cmd/receiver/main.go](../../cmd/receiver/main.go) |
 
-## 8. 运维注意
+## 9. 运维注意
 
 - **配置文件旁边会多出一个 `.lock` 文件**，属于正常产物，不要清理脚本误删（删掉不会损坏数据，但会短暂失去互斥）。
 - **内容无变化时不刷新 `mtime`**。用 mtime 判断「配置是否更新过」的监控需要改用内容哈希。
 - **并发执行是安全的**，但会互相等待，最长等 `--lock-timeout`（默认 10s）。超时会报错退出 1，可按现场情况调大。
 - **`--clear-port` 只影响本次生成的文件**，不是持久开关。下次不带该 flag 执行时，被剔除的端口会重新出现。需要长期剔除应写进定时任务的命令行。
-- **`--reload` / `dbha-probe reload` 会让运行中的 probe 热加载新配置**（见 §5.5）。配置确有变化时新世代会立刻采集一轮。不要高频触发「有变化」的 reload。
+- **`--reload` / `dbha-probe reload` 会让运行中的 probe 热加载新配置**（见 §6.5）。配置确有变化时新世代会立刻采集一轮。不要高频触发「有变化」的 reload。
 - **打包安装下 `gen-config` 与 `reload` 会切到安装根目录**定位 pid 与相对 `-o`；`-o` 应与进程 `-c` 为同一文件。首次部署不要在进程启动前带 `--reload`。
 - **`Python` 侧的 `scripts/render_configs.py` 也会写 `probe.yaml`，但不参与这把锁**。两者并发不是常见运维场景，属于已知缺口。
+- **开了周期同步后，`probe.yaml` 会被后台改写**（见 [config-sync.md](config-sync.md) §5）。手工编辑 `reporter` / `harvester` 会在下一轮被改回 admin 的版本；改其余部分（含 `admin` 块本身）会被保留。同步与 `gen-config` 共用同一把锁，不会互相写坏，但会互相等待。
