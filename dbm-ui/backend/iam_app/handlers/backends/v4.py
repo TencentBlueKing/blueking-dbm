@@ -55,9 +55,10 @@ class IAMV4Backend(IAMBackend):
 
     @staticmethod
     def get_ancestors(resource: Resource):
-        bk_iam_path = f"{resource.attribute.get('_bk_iam_path_', '//')}"
+        # _bk_iam_path_ 只包含祖先链(从根到直接父级)，不含自身，直接按段解析即可
+        bk_iam_path = (resource.attribute or {}).get(KEYWORD_BK_IAM_PATH, "/")
         ancestors = []
-        for topo in bk_iam_path.split("/")[1:-1][:-1]:
+        for topo in bk_iam_path.split("/")[1:-1]:
             rtype, rid = topo.split(",")
             ancestors.append(
                 {
@@ -204,7 +205,7 @@ class IAMV4Backend(IAMBackend):
     def get_apply_url(
         self, action_ids: List[str], resources_list: List[List[Resource]] = None, system_id: str = env.BK_IAM_SYSTEM_ID
     ):
-        params = {"system_id": "system_id", "permissions": []}
+        params = {"system_id": system_id, "permissions": []}
         for action_id in action_ids:
             resource_info = []
             action = ActionEnum.get_action_by_id(action_id)
