@@ -18,6 +18,20 @@ import { utcDisplayTime } from '@utils';
 import { t } from '@locales/index';
 
 export default class DbResource {
+  static readonly ResourceStatus = {
+    DISSOLVED: 'Dissolved',
+    FAULT_HAZARD: 'FaultHazard',
+    UNUSED: 'Unused',
+    // USED_BY_OTHER: 'UsedByOther',
+  };
+
+  static readonly ResourceStatusDisplayMap = {
+    [DbResource.ResourceStatus.DISSOLVED]: t('待裁撤'),
+    [DbResource.ResourceStatus.FAULT_HAZARD]: t('故障机'),
+    [DbResource.ResourceStatus.UNUSED]: t('可申领'),
+    // [DbResource.ResourceStatus.USED_BY_OTHER]: t('已被他用'),
+  };
+
   agent_status: number;
   asset_id: string;
   bk_biz_id: number;
@@ -133,6 +147,10 @@ export default class DbResource {
 
   get isAbnormal() {
     return this.agent_status === 0;
+  }
+
+  get resourceStatusDisplay() {
+    return DbResource.ResourceStatusDisplayMap[this.status] || '--';
   }
 
   get resourceTypeDisplay() {
