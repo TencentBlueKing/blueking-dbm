@@ -78,7 +78,7 @@
   }
 
   .machine-spec-cell-role {
-    font-weight: 600;
+    // font-weight: 600;
     color: #313238;
   }
 
