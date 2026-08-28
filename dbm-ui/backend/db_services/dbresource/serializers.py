@@ -206,6 +206,7 @@ class ResourceListSerializer(serializers.Serializer):
     limit = serializers.IntegerField(help_text=_("单页数量"))
     offset = serializers.IntegerField(help_text=_("偏移量"))
     ordering = serializers.CharField(help_text=_("排序字段，前缀 - 表示倒序"), required=False)
+    headers = serializers.ListField(help_text=_("导出表头顺序"), child=serializers.DictField(), required=False)
 
     @staticmethod
     def format_fields(attrs, fields):
