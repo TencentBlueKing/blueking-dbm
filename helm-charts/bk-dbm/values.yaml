@@ -151,7 +151,6 @@ dbm:
     dbResourceApigwDomain: "http://bk-dbm-db-resource"
     dbRemoteServiceApigwDomain: "http://bk-dbm-db-remote-service"
     slowQueryParseApigwDomain: ""
-    reverseReportKafkaOptions: ""
 
   ingress:
     enabled: true
@@ -587,12 +586,6 @@ db-event-consumer:
     requests:
       cpu: 200m
       memory: 256Mi
-  kafka_info:
-    # same with REVERSE_REPORT_KAFKA_OPTIONS. domain_name value can be ip list separated by commas
-    brokers: "xx.xx.db,ip2"
-    broker_port: 9092
-    auth_info_username: "xxx"
-    auth_info_password: "xxx"
   sinkers:
     - topic: "mysql_dbbackup_result"
       model_table: "tb_mysql_backup_result"
@@ -752,6 +745,18 @@ externalRedis:
   host: localhost
   port: 6379
   password: ""
+
+## 第三方 kafka 配置
+externalKafka:
+  ## 地址（支持逗号分隔的多个 broker 地址）
+  brokers: "xx.xx.db,ip2"
+  ## 端口
+  port: 9092
+  ## SASL 认证
+  username: "xxx"
+  password: "xxx"
+  sasl_mechanisms: "SCRAM-SHA-512"
+  security_protocol: "SASL_PLAINTEXT"
 
 ## 第三方 MySQL 配置
 externalDatabase:
