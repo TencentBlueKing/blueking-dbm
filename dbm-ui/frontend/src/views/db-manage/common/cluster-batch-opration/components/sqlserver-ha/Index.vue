@@ -15,32 +15,18 @@
       {{ t('授权') }}
     </BatchOperationButton>
   </BkDropdownItem>
-  <BkDropdownItem
-    v-bk-tooltips="{
-      disabled: !tagTooltip || tagNoPermission,
-      content: t('所选集群均已禁用'),
-      placement: 'right',
-    }"
-    v-db-console="'sqlserver.haClusterList.batchAddTag'">
+  <BkDropdownItem v-db-console="'sqlserver.haClusterList.batchAddTag'">
     <BatchOperationButton
       :action-id="TAG_ACTION_ID"
-      :disabled="tagDisabled"
       :no-permission="tagNoPermission"
       :resources="resources"
       @click="handleAddTagClick">
       {{ t('添加标签') }}
     </BatchOperationButton>
   </BkDropdownItem>
-  <BkDropdownItem
-    v-bk-tooltips="{
-      disabled: !tagTooltip || tagNoPermission,
-      content: t('所选集群均已禁用'),
-      placement: 'right',
-    }"
-    v-db-console="'sqlserver.haClusterList.batchRemoveTag'">
+  <BkDropdownItem v-db-console="'sqlserver.haClusterList.batchRemoveTag'">
     <BatchOperationButton
       :action-id="TAG_ACTION_ID"
-      :disabled="tagDisabled"
       :no-permission="tagNoPermission"
       :resources="resources"
       @click="handleRemoveTagClick">
@@ -289,14 +275,6 @@
   const tagNoPermission = computed(
     () => props.selected.length > 0 && props.selected.every((data) => data.permission.sqlserver_edit === false),
   );
-  /** 添加/移除标签：至少 1 个有权限则亮起 */
-  /** 添加/移除标签：全部有权限且全部已禁用时置灰并 hover tooltip */
-  const tagDisabled = computed(
-    () =>
-      !tagNoPermission.value &&
-      !props.selected.some((data) => data.permission.sqlserver_edit !== false && !data.isOffline),
-  );
-  const tagTooltip = computed(() => props.selected.length > 0 && props.selected.every((data) => data.isOffline));
   /** 设置/删除告警订阅：全部无权限时置灰可点击，点击弹权限申请 */
   const subscriptionNoPermission = computed(
     () => props.selected.length > 0 && props.selected.every((data) => !hasSubscribePermission(data)),

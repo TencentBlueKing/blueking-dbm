@@ -63,7 +63,7 @@
           v-for="item in toOperate"
           :key="item.id"
           class="list-item">
-          {{ item.cluster_name }}
+          {{ item.master_domain }}
         </div>
       </div>
     </div>
@@ -103,7 +103,7 @@
     tip?: string;
     /** 弹窗标题 */
     title: string;
-    toOperate: { cluster_name: string; id: number }[];
+    toOperate: { cluster_name: string; id: number; master_domain: string }[];
   }
 
   type Emits = (e: 'confirm') => void;
