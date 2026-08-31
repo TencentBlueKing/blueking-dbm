@@ -41,6 +41,7 @@ class MongoDBReduceShardDetailSerializer(BaseMongoDBOperateDetailSerializer):
             allow_empty=True,
         )
         reduce_shards_num = serializers.IntegerField(help_text=_("缩容分片数"), min_value=1, required=False)
+        current_shard_num = serializers.IntegerField(help_text=_("当前分片数"), required=False)
 
         def validate(self, attrs):
             reduce_mode = attrs.get("reduce_mode") or REDUCE_MODE_BY_SHARD_NAMES
