@@ -180,7 +180,7 @@ def apply_admin_probe_health_disk_write_dirs_default(values: Dict[str, str]) -> 
     Existing server rc files predate the key; without a default the placeholder
     would stay unrendered and render_configs.py would treat it as an undefined
     placeholder and exit 1, breaking upgrades of existing deployments. Injecting
-    "[]" keeps existing server configs valid (check disabled), consistent with
+    "[]" keeps existing server configs valid, consistent with
     the probe-side apply_probe_health_disk_write_dirs_default behavior.
     """
     if not values.get("ADMIN_PROBE_HEALTH_DISK_WRITE_DIRS", "").strip():

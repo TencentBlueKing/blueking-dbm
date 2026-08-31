@@ -140,9 +140,9 @@ func DaemonStartCmdRunE(cmd *cobra.Command, args []string) error {
 	return process.DaemonStartCmdRunE(cmd, args, config.Cfg.PidFile, procName(), process.DefaultGuardRestartDelay)
 }
 
-// verifyWriteDirs writes a marker file into each configured dir to verify the local disk is
-// writable. Non-existent or non-directory entries are skipped. An empty dirs slice performs no
-// verification; callers fall back to DefaultDiskWriteDirs when no dirs are configured.
+// verifyWriteDirs writes a marker file into each configured dir to verify the local disk is writable.
+// Non-existent or non-directory entries are skipped.
+// callers fall back to DefaultDiskWriteDirs when no dirs are configured.
 // TODO: Compatible with Windows disk write.
 func verifyWriteDirs(dirs []string) error {
 	for _, dir := range dirs {

@@ -27,6 +27,7 @@ package workflow
 import (
 	"time"
 
+	"dbm-services/common/dbha-v2/pkg/storage/hamodel"
 	"dbm-services/common/dbha-v2/pkg/storage/haprobe"
 )
 
@@ -52,10 +53,20 @@ type FailureInstanceInfo struct {
 }
 
 // FailureGroup groups failure instances by (BkCloudID, DbType) for batch switching.
+// BkBizID is the business the group belongs to: one pop round handles a single business, so all
+// groups of the same round share the same BkBizID.
+// When a group is produced by strategy matching, Strategy is the matched strategy and
+// every instance in the group is bound to Strategy.ID.
 type FailureGroup struct {
+	BkBizID   int
 	BkCloudID int
 	DbType    haprobe.DbType
+	Strategy  *hamodel.DbSwitchingStrategy
 	Instances []FailureInstanceInfo
+	// OriginInstances is the full failure instance set of the original (cloud, dbType) group
+	// before unavailable-instance exclusion and strategy matching. It is kept unchanged so that
+	// every switch/notify record can reproduce the whole original failure scope for tracing.
+	OriginInstances []FailureInstanceInfo
 }
 
 // IPs returns the list of IPs for building switcher request (deduplicated).

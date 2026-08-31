@@ -117,55 +117,112 @@ func (e *SwitchExecutor) CreateRequestWithGroup(ctx context.Context, group *Fail
 	return req
 }
 
-// MatchStrategyForGroup loads biz-level and global strategies, iterates each strategy for matching
-// (normal strategies count instances by event name, special strategies invoke registered match functions),
-// adds strategies meeting the triggerCount threshold to the candidate list, and returns the highest
-// priority strategy after sorting (biz-level first > lower priority value first).
-func (e *SwitchExecutor) MatchStrategyForGroup(ctx context.Context, group *FailureGroup) (matched bool, strategy *hamodel.DbSwitchingStrategy) {
+// MatchResult is the result of one strategy-matching pass over a failure group.
+type MatchResult struct {
+	// Groups contains the switch groups and notify groups that matched a strategy, plus the
+	// notify group of instances that matched no strategy (its Strategy is nil). The failure
+	// instances of different groups never overlap.
+	Groups []*FailureGroup
+	// Strategies is the full list of strategies queried from DB in this pass (biz + global),
+	// kept for tracing the match decision afterwards.
+	Strategies []*hamodel.DbSwitchingStrategy
+}
+
+// MatchStrategies loads biz-level and global strategies, sorts them by
+// (biz > priority > action(switch>notify)), and iterates each strategy to greedily bind
+// unbound failure instances. Normal strategies bind instances by event name; special strategies
+// bind all failure instances of the matched clusters. Each matched strategy forms one FailureGroup.
+// Instances already bound to a higher-priority strategy are not matched again.
+func (e *SwitchExecutor) MatchStrategies(ctx context.Context, group *FailureGroup) *MatchResult {
 	if len(group.Instances) == 0 {
-		return false, nil
+		return nil
 	}
 
-	bkBizID := group.Instances[0].BkBizID
+	bkBizID := group.BkBizID
 	qCtx, cancel := context.WithTimeout(ctx, config.Cfg.Storage.Timeout)
 	defer cancel()
 
 	strategies, err := e.hadata.ReadSwitchingStrategyWithBkBizId(qCtx, bkBizID)
 	if err != nil {
 		logger.Warn("failed to read switching strategy, bkBizId: %d, errmsg: %s", bkBizID, err)
-		return false, nil
+		return nil
 	}
 
-	var candidates []*hamodel.DbSwitchingStrategy
+	result := &MatchResult{Strategies: strategies}
+
+	// sort by (biz > priority > action(switch>notify))
+	SortCandidates(strategies)
+
+	bound := make(map[string]struct{}, len(group.Instances))
 	for _, s := range strategies {
+		unbound := filterUnboundInstances(group.Instances, bound)
+		if len(unbound) == 0 {
+			break
+		}
+
 		threshold := s.TriggerCount
 		if threshold <= 0 {
 			threshold = 1
 		}
 
-		var count int
-
-		// check if this is a special strategy, invoke the corresponding match function
+		var matched []FailureInstanceInfo
 		if matchFunc := GetSpecialMatchFunc(s.TriggerEventName); matchFunc != nil {
-			count = matchFunc(group.Instances)
+			specialResult := matchFunc(unbound)
+			if len(specialResult.ClusterKeys) < threshold {
+				continue
+			}
+			matched = specialResult.Instances
 		} else {
-			// normal strategy: count instances matching the event name in the group
-			count = CountInstancesByEventName(group.Instances, s.TriggerEventName)
+			matched = FilterInstancesByEventName(unbound, s.TriggerEventName)
+			if len(matched) < threshold {
+				continue
+			}
 		}
 
-		if count >= threshold {
-			candidates = append(candidates, s)
+		for _, inst := range matched {
+			bound[instanceKey(inst.BkCloudID, inst.IP, inst.Port)] = struct{}{}
+		}
+
+		result.Groups = append(result.Groups, &FailureGroup{
+			BkBizID:         group.BkBizID,
+			BkCloudID:       group.BkCloudID,
+			DbType:          group.DbType,
+			Strategy:        s,
+			Instances:       matched,
+			OriginInstances: group.OriginInstances,
+		})
+	}
+
+	// collect the instances not bound to any strategy into a notify group with a nil strategy
+	var unmatched []FailureInstanceInfo
+	for _, inst := range group.Instances {
+		if _, ok := bound[instanceKey(inst.BkCloudID, inst.IP, inst.Port)]; !ok {
+			unmatched = append(unmatched, inst)
 		}
 	}
-
-	if len(candidates) == 0 {
-		return false, nil
+	if len(unmatched) > 0 {
+		result.Groups = append(result.Groups, &FailureGroup{
+			BkBizID:         group.BkBizID,
+			BkCloudID:       group.BkCloudID,
+			DbType:          group.DbType,
+			Instances:       unmatched,
+			OriginInstances: group.OriginInstances,
+		})
 	}
 
-	// sort by priority: biz-level first > lower priority value first
-	SortCandidates(candidates)
+	return result
+}
 
-	return true, candidates[0]
+// filterUnboundInstances returns the instances that are not yet bound to any strategy.
+func filterUnboundInstances(instances []FailureInstanceInfo, bound map[string]struct{}) []FailureInstanceInfo {
+	out := make([]FailureInstanceInfo, 0, len(instances))
+	for _, inst := range instances {
+		if _, ok := bound[instanceKey(inst.BkCloudID, inst.IP, inst.Port)]; ok {
+			continue
+		}
+		out = append(out, inst)
+	}
+	return out
 }
 
 // excludeUnavailableInstances keeps only the group instances that appear in DBM's query result
@@ -199,9 +256,32 @@ func excludeUnavailableInstances(groupInsts []FailureInstanceInfo, req *switcher
 	return out
 }
 
+// filterRequestByHosts builds a request containing only the metadata of instances whose IP
+// belongs to the given failure instances.
+func filterRequestByHosts(req *switcher.Request, instances []FailureInstanceInfo) *switcher.Request {
+	if req == nil || len(instances) == 0 {
+		return nil
+	}
+
+	hostSet := make(map[string]struct{}, len(instances))
+	for _, inst := range instances {
+		hostSet[hostKey(inst.BkCloudID, inst.IP)] = struct{}{}
+	}
+
+	groupReq := &switcher.Request{DbType: req.DbType}
+	for _, meta := range req.MySqlInstData {
+		if _, ok := hostSet[hostKey(meta.BkCloudID, meta.IP)]; ok {
+			groupReq.AddDbInstMetadata(meta)
+		}
+	}
+	return groupReq
+}
+
 // TriggerSwitching runs the switcher for the given db type and posts success/failure alarms.
+// snapshotLoggers are borrowed from the enclosing failure group: they are neither created nor
+// closed here, so that one group keeps a single database connection across all its tasks.
 func (e *SwitchExecutor) TriggerSwitching(dbType haprobe.DbType, req *switcher.Request,
-	snapshotData *snapshotlogger.SwitchingSnapshotData) {
+	snapshotLoggers []snapshotlogger.SnapshotLogger, snapshotData *snapshotlogger.SwitchingSnapshotData) {
 
 	if !config.Cfg.Workflow.EnableSwitching {
 		logger.Warn("switching operation is disabled")
@@ -215,12 +295,7 @@ func (e *SwitchExecutor) TriggerSwitching(dbType haprobe.DbType, req *switcher.R
 	}
 
 	start := time.Now()
-	switchingSnapshotLogger := NewSwitchingSnapshotReport(snapshotData, start)
-	defer func() {
-		for _, swLogger := range switchingSnapshotLogger.SnapshotLoggers {
-			swLogger.Close()
-		}
-	}()
+	switchingSnapshotLogger := NewSwitchingSnapshotReport(snapshotLoggers, snapshotData, start)
 
 	// Report before switching snapshot
 	switchingSnapshotLogger.ReportBeforeSwitchingSnapshot()
