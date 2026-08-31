@@ -41,11 +41,21 @@ DIFF_ONLY_LEFT = "only-left"
 DIFF_ONLY_RIGHT = "only-right"
 DIFF_VALUE = "value"
 
-DIFF_TITLES = {
-    DIFF_ONLY_LEFT: "only in left",
-    DIFF_ONLY_RIGHT: "only in right",
-    DIFF_VALUE: "value differs",
-}
+# Side names per mode. Offline (-r) keeps left/right, which match the flags. The admin
+# path compares gen-config output against the -l file, so left/right would contradict the
+# flag names there.
+LABELS_OFFLINE = ("left", "right")
+LABELS_ADMIN = ("expected", "local")
+
+REPORT_WIDTH = 64
+REPORT_SEPARATOR = "-" * REPORT_WIDTH
+ANSI_RESET = "\033[0m"
+ANSI_BOLD = "\033[1m"
+ANSI_RED = "\033[31m"
+ANSI_GREEN = "\033[32m"
+ANSI_YELLOW = "\033[33m"
+ANSI_CYAN = "\033[36m"
+_COLOR_ENABLED = False
 
 _PY2 = sys.version_info[0] < 3
 if _PY2:
@@ -358,32 +368,95 @@ def redact_secrets(value):
     return value
 
 
-def render_field(label, text):
-    return "    %-6s %s" % (label + ":", text)
+def enable_color(no_color=False, stream=None):
+    target = stream or sys.stdout
+    is_tty = getattr(target, "isatty", lambda: False)()
+    return (
+        not no_color
+        and "NO_COLOR" not in os.environ
+        and os.environ.get("TERM", "").lower() != "dumb"
+        and is_tty
+    )
 
 
-def render_side(label, value):
+def configure_color(no_color=False, stream=None):
+    global _COLOR_ENABLED
+    _COLOR_ENABLED = enable_color(no_color, stream)
+
+
+def paint(text, style):
+    if not _COLOR_ENABLED:
+        return text
+    return style + text + ANSI_RESET
+
+
+def status_style(status):
+    if status == "PASSED" or status == "PASS":
+        return ANSI_GREEN
+    if status == "FAILED" or status == "FAIL" or status == "ERROR":
+        return ANSI_RED
+    return ANSI_YELLOW
+
+
+def section_header(title, status=None):
+    text = title if status is None else "%s: %s" % (title, status)
+    line = "=== " + text + " "
+    line += "=" * max(1, REPORT_WIDTH - len(line))
+    style = ANSI_BOLD
+    if status is not None:
+        style += status_style(status)
+    return paint(line, style)
+
+
+def render_field(label, text, width=6, style=None):
+    padded = "%-*s" % (width, label + ":")
+    if style:
+        padded = paint(padded, style)
+    return "    %s %s" % (padded, text)
+
+
+def field_width(labels):
+    return max(12, len(labels[0]) + 1, len(labels[1]) + 1)
+
+
+def diff_title(kind, labels):
+    if labels == LABELS_ADMIN:
+        if kind == DIFF_ONLY_LEFT:
+            return "MISSING LOCALLY"
+        if kind == DIFF_ONLY_RIGHT:
+            return "EXTRA LOCALLY"
+        return "VALUE MISMATCH"
+    if kind == DIFF_ONLY_LEFT:
+        return "ONLY IN LEFT"
+    if kind == DIFF_ONLY_RIGHT:
+        return "ONLY IN RIGHT"
+    return "VALUE MISMATCH"
+
+
+def render_side(label, value, width):
     if is_container(value) and value:
-        lines = ["    %s:" % label]
+        lines = ["    %s" % paint(label.capitalize() + ":", ANSI_CYAN)]
         lines.extend(format_block(value, 6))
         return lines
-    return [render_field(label, format_inline(value))]
+    return [render_field(label.capitalize(), format_inline(value), width, ANSI_CYAN)]
 
 
-def render_diff(number, diff):
+def render_diff(number, total, diff, labels, width):
     left = redact_secrets(diff.left)
     right = redact_secrets(diff.right)
-    lines = ["[%d] %s" % (number, DIFF_TITLES[diff.kind])]
-    lines.append(render_field("path", diff.path))
+    title = diff_title(diff.kind, labels)
+    style = ANSI_RED if diff.kind == DIFF_VALUE else ANSI_YELLOW
+    lines = [paint("[%d/%d] %s" % (number, total, title), ANSI_BOLD + style)]
+    lines.append(render_field("Path", diff.path, width, ANSI_CYAN))
     secret_path = "password" in diff.path.lower()
     if diff.kind != DIFF_ONLY_RIGHT:
         if secret_path and not is_container(left):
             left = "***"
-        lines.extend(render_side("left", left))
+        lines.extend(render_side(labels[0], left, width))
     if diff.kind != DIFF_ONLY_LEFT:
         if secret_path and not is_container(right):
             right = "***"
-        lines.extend(render_side("right", right))
+        lines.extend(render_side(labels[1], right, width))
     return lines
 
 
@@ -395,13 +468,23 @@ def emit(line, stream=None):
     print(line, file=target)
 
 
-def render_report(diffs, left_path, right_path):
-    lines = ["different: %d difference(s)" % len(diffs)]
-    lines.append(render_field("left", left_path))
-    lines.append(render_field("right", right_path))
+def render_config_report(diffs, left_path, right_path, labels, error=None):
+    width = field_width(labels)
+    status = "ERROR" if error else ("FAILED" if diffs else "PASSED")
+    lines = [section_header("PROBE CONFIG CHECK", status)]
+    lines.append(render_field(labels[0].capitalize(), left_path, width, ANSI_CYAN))
+    lines.append(render_field(labels[1].capitalize(), right_path, width, ANSI_CYAN))
+    lines.append(render_field("Differences", str(len(diffs)), width))
+    if error:
+        lines.append(render_field("Error", error, width, ANSI_RED))
+        return lines
+    if not diffs:
+        return lines
     for number, diff in enumerate(diffs, 1):
         lines.append("")
-        lines.extend(render_diff(number, diff))
+        lines.extend(render_diff(number, len(diffs), diff, labels, width))
+        if number != len(diffs):
+            lines.append(REPORT_SEPARATOR)
     return lines
 
 
@@ -1273,15 +1356,25 @@ def check_cron(install_root):
 
 
 def render_check(title, ok_label, fail_label, result):
+    status = "PASS" if result["ok"] else "FAIL"
     label = ok_label if result["ok"] else fail_label
-    lines = ["[%s] %s" % (title, label)]
+    marker = paint("[%s]" % status, ANSI_BOLD + status_style(status))
+    lines = ["%s %-7s %s" % (marker, title.upper(), label)]
     for key, value in result["fields"]:
-        lines.append(render_field(key, value))
+        field_style = ANSI_RED if key == "errmsg" and not result["ok"] else ANSI_CYAN
+        lines.append(render_field(key, value, 10, field_style))
     return lines
 
 
+class ReportArgumentParser(argparse.ArgumentParser):
+    def error(self, message):
+        self.print_usage(sys.stderr)
+        emit_early_error(message)
+        self.exit(EXIT_ERROR)
+
+
 def build_parser():
-    parser = argparse.ArgumentParser(
+    parser = ReportArgumentParser(
         description=(
             "Compare a local probe YAML with another file or with gen-config from admin, "
             "then check probe runtime health."
@@ -1331,43 +1424,79 @@ def build_parser():
         default=None,
         help="probe binary (default: <install-root>/bin/dbha-probe)",
     )
+    parser.add_argument(
+        "--no-color",
+        action="store_true",
+        help="disable ANSI colors",
+    )
     return parser
 
 
 def emit_runtime(health, guard, cron):
-    emit("")
+    emit(section_header("RUNTIME CHECKS"))
     for line in render_check("health", "healthy", "unhealthy", health):
         emit(line)
-    emit("")
     for line in render_check("guard", "ok", "fail", guard):
         emit(line)
-    emit("")
     for line in render_check("cron", "ok", "fail", cron):
         emit(line)
 
 
-def emit_yaml_result(diffs, left_label, right_label):
-    if not diffs:
-        emit("equal: no differences")
-        emit(render_field("left", left_label))
-        emit(render_field("right", right_label))
-        return
-    for line in render_report(diffs, left_label, right_label):
+def emit_config_result(diffs, left_label, right_label, labels, error=None):
+    for line in render_config_report(diffs, left_label, right_label, labels, error):
         emit(line)
 
 
+def runtime_passed(health, guard, cron):
+    return sum(1 for result in (health, guard, cron) if result["ok"])
+
+
+def emit_final_result(exit_code, diff_count, health=None, guard=None, cron=None, config_error=False):
+    status = {
+        EXIT_EQUAL: "PASSED",
+        EXIT_DIFF: "FAILED",
+        EXIT_ERROR: "ERROR",
+    }[exit_code]
+    emit("")
+    emit(section_header("RESULT", status))
+    config_text = "error" if config_error else (
+        "passed" if diff_count == 0 else "%d difference(s)" % diff_count
+    )
+    if health is None or guard is None or cron is None:
+        runtime_text = "not run"
+    else:
+        runtime_text = "%d/3 passed" % runtime_passed(health, guard, cron)
+    emit(
+        "Config: %s | Runtime: %s | Exit code: %d"
+        % (config_text, runtime_text, exit_code)
+    )
+
+
+def emit_early_error(message, local_path=None):
+    emit(section_header("PROBE CONFIG CHECK", "ERROR"), sys.stderr)
+    if local_path:
+        emit(render_field("Local", local_path, 12, ANSI_CYAN), sys.stderr)
+    emit(render_field("Error", message, 12, ANSI_RED), sys.stderr)
+    emit("", sys.stderr)
+    emit(section_header("RESULT", "ERROR"), sys.stderr)
+    emit("Config: error | Runtime: not run | Exit code: 2", sys.stderr)
+
+
 def main(argv=None):
+    raw_argv = sys.argv[1:] if argv is None else argv
+    configure_color("--no-color" in raw_argv)
     parser = build_parser()
     args = parser.parse_args(argv)
+    configure_color(args.no_color)
     err = mode_error(args)
     if err:
-        emit("error: %s" % err, sys.stderr)
+        emit_early_error(err, args.left)
         return EXIT_ERROR
 
     try:
         local_cfg = load_mapping(args.left)
     except LoadError as load_err:
-        emit("error: %s" % load_err, sys.stderr)
+        emit_early_error(to_text(load_err), args.left)
         return EXIT_ERROR
 
     left_abs = os.path.abspath(args.left)
@@ -1382,38 +1511,38 @@ def main(argv=None):
         try:
             timeout_sec = parse_timeout_sec(timeout_str)
         except ValueError as timeout_err:
-            emit("error: %s" % timeout_err, sys.stderr)
+            emit_early_error(to_text(timeout_err), args.left)
             return EXIT_ERROR
         expected, gen_err = run_gen_config(bin_abs, install_root, args, timeout_sec)
         if gen_err:
-            emit("different: gen-config failed")
-            emit(render_field("left", GENCONFIG_LABEL))
-            emit(render_field("right", args.left))
-            emit(render_field("errmsg", gen_err))
+            emit_config_result([], GENCONFIG_LABEL, args.left, LABELS_ADMIN, gen_err)
             yaml_fatal = True
         else:
             walk("", expected, local_cfg, diffs, ignore_extra_right=True)
-            emit_yaml_result(diffs, GENCONFIG_LABEL, args.left)
+            emit_config_result(diffs, GENCONFIG_LABEL, args.left, LABELS_ADMIN)
     else:
         try:
             right_cfg = load_mapping(args.right)
         except LoadError as load_err:
-            emit("error: %s" % load_err, sys.stderr)
+            emit_early_error(to_text(load_err), args.left)
             return EXIT_ERROR
         walk("", local_cfg, right_cfg, diffs)
-        emit_yaml_result(diffs, args.left, args.right)
+        emit_config_result(diffs, args.left, args.right, LABELS_OFFLINE)
 
     health = check_health(bin_abs, left_abs, install_root)
     guard = check_guard(local_cfg, install_root, bin_abs, health.get("pid"))
     cron = check_cron(install_root)
+    emit("")
     emit_runtime(health, guard, cron)
 
     if yaml_fatal or health.get("fatal") or guard.get("fatal") or cron.get("fatal"):
-        return EXIT_ERROR
-    runtime_ok = health["ok"] and guard["ok"] and cron["ok"]
-    if diffs or not runtime_ok:
-        return EXIT_DIFF
-    return EXIT_EQUAL
+        exit_code = EXIT_ERROR
+    elif diffs or runtime_passed(health, guard, cron) != 3:
+        exit_code = EXIT_DIFF
+    else:
+        exit_code = EXIT_EQUAL
+    emit_final_result(exit_code, len(diffs), health, guard, cron, yaml_fatal)
+    return exit_code
 
 
 if __name__ == "__main__":
