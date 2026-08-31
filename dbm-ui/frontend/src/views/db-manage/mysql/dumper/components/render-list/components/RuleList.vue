@@ -20,9 +20,10 @@
             {{ t('订阅的库表') }}
           </div>
           <div class="rules-view-operations-right">
-            <DbSearchSelect
+            <DbQuickSearch
               v-model="search"
               :data="searchSelectData"
+              parse-url
               :placeholder="t('请输入DB/表名')"
               style="width: 500px"
               @change="handleLocalSearch" />
@@ -99,8 +100,6 @@
 
   import ApplyPermissionCatch from '@components/apply-permission/Catch.vue';
 
-  import { getSearchSelectorParams } from '@utils';
-
   type DumperConfig = ServiceReturnType<typeof getDumperConfigDetail>;
 
   interface Props {
@@ -111,7 +110,7 @@
 
   const { t } = useI18n();
 
-  const search = ref([]);
+  const search = ref<Record<string, string>>({});
   const subscribeTableData = ref<DumperConfig['repl_tables']>([]);
   const receiverTableData = ref<DumperConfig['dumper_instances']>([]);
 
@@ -162,8 +161,7 @@
   );
 
   const handleLocalSearch = () => {
-    const searchParams = getSearchSelectorParams(search.value);
-    const { db_name: dbName, table_name: tableName } = searchParams as { db_name?: string; table_name?: string };
+    const { db_name: dbName, table_name: tableName } = search.value;
     subscribeTableData.value = subscribeRawTableData.filter(
       (item) =>
         (!dbName || new RegExp(dbName).test(item.db_name)) &&

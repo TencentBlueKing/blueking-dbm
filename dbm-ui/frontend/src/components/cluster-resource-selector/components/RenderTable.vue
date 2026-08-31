@@ -13,10 +13,11 @@
 
 <template>
   <div class="cluster-resource-selector-render-table">
-    <DbSearchSelect
+    <DbQuickSearch
       v-model="searchSelectValue"
       class="mb-12"
-      :data="searchSelectData" />
+      :data="searchSelectData"
+      parse-url />
     <DbTable
       ref="table"
       :data-source="dataSource"
@@ -69,7 +70,6 @@
   </div>
 </template>
 <script setup lang="ts">
-  import type { SearchSelect } from 'bkui-vue';
   import { useI18n } from 'vue-i18n';
 
   import { getGlobalCluster } from '@services/source/dbbase';
@@ -78,9 +78,6 @@
 
   import DbTable from '@components/db-table/IndexNew.vue';
 
-  import { getSearchSelectorParams } from '@utils';
-
-  type SearchSelectProps = InstanceType<typeof SearchSelect>['$props'];
   type Parameters = ServiceParameters<typeof getGlobalCluster>;
   export type IValue = ServiceReturnType<typeof getGlobalCluster>[0];
 
@@ -115,11 +112,11 @@
     },
   ];
 
-  const searchSelectValue = ref<NonNullable<SearchSelectProps['modelValue']>>([]);
+  const searchSelectValue = ref<Record<string, string>>({});
   const dbTableRef = useTemplateRef('table');
 
   watchEffect(() => {
-    dbTableRef.value?.fetchData(getSearchSelectorParams(searchSelectValue.value));
+    dbTableRef.value?.fetchData(searchSelectValue.value);
   });
 
   const dataSource = (params: Parameters) =>

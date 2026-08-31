@@ -39,9 +39,10 @@
           @change="handleDateChange"
           @clear="handleDateClear" />
       </div>
-      <DbSearchSelect
+      <DbQuickSearch
         v-model="searchSelectValue"
         :data="searchSelectData"
+        parse-url
         :placeholder="t('搜索备份记录')"
         style="flex: 1" />
     </div>
@@ -183,7 +184,6 @@
   </BkDialog>
 </template>
 <script setup lang="ts">
-  import type { ISearchValue } from 'bkui-vue/lib/search-select/utils';
   import dayjs from 'dayjs';
   import { useI18n } from 'vue-i18n';
 
@@ -192,7 +192,9 @@
 
   import { useDefaultPagination, useSelectorDialogWidth, useTableMaxHeight } from '@hooks';
 
-  import { bytePretty, getSearchSelectorParams, utcDisplayTime } from '@utils';
+  import { type Props as QuickSearchProps } from '@components/db-quick-search/bk-quick-search/Index.vue';
+
+  import { bytePretty, utcDisplayTime } from '@utils';
 
   import BackupDbTags from '../BackupDbTags.vue';
 
@@ -223,29 +225,25 @@
   const tableRef = ref();
   const daterange = ref<[string, string] | [Date, Date]>(['', '']);
   const comfirmDaterange = ref<[string, string] | [Date, Date]>(daterange.value);
-  const searchSelectValue = ref<ISearchValue[]>([]);
+  const searchSelectValue = ref<Record<string, string>>({});
   const searchSelectData = [
     {
       id: 'backup_id',
-      multiple: false,
       name: t('备份 ID'),
     },
     {
       id: 'role',
-      multiple: false,
       name: t('角色'),
     },
     {
       id: 'backup_db_list',
-      multiple: false,
       name: t('备份包含库'),
     },
     {
       id: 'bill_id',
-      multiple: false,
       name: t('关联单据'),
     },
-  ];
+  ] as QuickSearchProps['data'];
   const originalData = shallowRef<SqlserverBackupLogModel[]>([]);
   const tableData = shallowRef<SqlserverBackupLogModel[]>([]);
   const pagination = ref(useDefaultPagination());
@@ -263,7 +261,7 @@
           }
         : undefined;
 
-    const searchParams = getSearchSelectorParams(searchSelectValue.value);
+    const searchParams = searchSelectValue.value;
 
     filteredData.value = [];
     tableData.value.forEach((row) => {

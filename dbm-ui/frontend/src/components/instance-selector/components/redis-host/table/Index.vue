@@ -17,16 +17,14 @@
       v-model="searchValue"
       is-host
       :placeholder="t('请输入或选择条件搜索')"
-      :search-attrs="searchAttrs"
-      :validate-search-values="validateSearchValues"
-      @search-value-change="handleSearchValueChange" />
+      :search-attrs="searchAttrs" />
     <BkLoading
       :loading="isLoading"
       :z-index="2">
       <PrimaryTable
         :columns="columns"
         :data="tableData"
-        :filter-value="columnCheckedMap"
+        :filter-value="searchValue"
         :max-height="530"
         style="margin-top: 12px"
         @filter-change="handleFilterChange"
@@ -34,7 +32,7 @@
         <template #empty>
           <EmptyStatus
             :is-anomalies="isAnomalies"
-            :is-searching="searchValue.length > 0"
+            :is-searching="Object.keys(searchValue).length > 0"
             @clear-search="clearSearchValue"
             @refresh="fetchResources" />
         </template>
@@ -56,7 +54,7 @@
   import type { Ref } from 'vue';
   import { useI18n } from 'vue-i18n';
 
-  import { useLinkQueryColumnSerach } from '@hooks';
+  import { useSelectorSearch } from '@hooks';
 
   import { ClusterTypes } from '@common/const';
 
@@ -98,25 +96,10 @@
 
   const { t } = useI18n();
 
-  const {
-    clearSearchValue,
-    columnAttrs,
-    columnCheckedMap,
-    handleSearchValueChange,
-    searchAttrs,
-    searchValue,
-    tableColumnFilterChange,
-    validateSearchValues,
-  } = useLinkQueryColumnSerach({
-    attrs: ['bk_cloud_id'],
-    defaultSearchItem: {
-      id: 'ip',
-      name: 'IP',
-    },
-    fetchDataFn: () => fetchResources(),
-    isDiscardNondefault: true,
-    searchType: ClusterTypes.REDIS,
-  });
+  const { clearSearchValue, columnAttrs, handleFilterChange, searchAttrs, searchValue } = useSelectorSearch(
+    ClusterTypes.REDIS,
+    ['bk_cloud_id'],
+  );
 
   const activePanel = inject(activePanelInjectionKey) as Ref<string> | undefined;
 
@@ -312,17 +295,9 @@
     },
   ]);
 
-  const handleFilterChange = (filterValue: Record<string, string[]>) => {
-    tableColumnFilterChange(filterValue, {
-      bk_cloud_id: {
-        list: (columnAttrs.value.bk_cloud_id || []).map((item) => ({
-          label: item.text,
-          value: item.value,
-        })),
-        name: t('云区域'),
-      },
-    });
-  };
+  onMounted(() => {
+    fetchResources();
+  });
 
   watch(
     () => props.lastValues,
