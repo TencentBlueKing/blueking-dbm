@@ -15,6 +15,7 @@ export * from './instanceFixStatus';
 export * from './instanceReload';
 export * from './pitrRestore';
 export * from './reduceMongos';
+export * from './reduceShard';
 export * from './reduceShardNodes';
 export * from './removeNs';
 export * from './replicasetApply';
