@@ -501,9 +501,7 @@
   };
 
   const fetchData = () => {
-    tableRef.value?.fetchData(searchValue.value, {
-      cluster_type: ClusterTypes.TENDBHA,
-    });
+    tableRef.value?.fetchData(searchValue.value);
   };
 
   // 新建
