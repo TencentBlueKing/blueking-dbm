@@ -171,13 +171,13 @@ class InnerFlow(BaseTicketFlow):
                 ticket_id=self.ticket.id, ticket_type=ticket_type, details=self.ticket.details
             )
         if ticket_type in [
-            TicketType.MYSQL_TO_MYSQL_MIGRATE,
+            TicketType.MYSQL_DTS_DATA_MIGRATE,
             TicketType.MYSQL_HA_TO_CLUSTER_MIGRATE,
-            TicketType.MYSQL_RENAME_MIGRATE,
+            TicketType.MYSQL_DTS_DATA_MIGRATE_RENAME,
         ]:
             # 预占 ToDo + 互斥（ToDo/FullOnline），缩小 check→update_meta 并发窗口
             # rename 单按行推断 migrate_type，这里不整单写死
-            if ticket_type == TicketType.MYSQL_TO_MYSQL_MIGRATE:
+            if ticket_type == TicketType.MYSQL_DTS_DATA_MIGRATE:
                 migrate_type = "mysql_to_mysql"
             elif ticket_type == TicketType.MYSQL_HA_TO_CLUSTER_MIGRATE:
                 migrate_type = "ha_to_cluster"
