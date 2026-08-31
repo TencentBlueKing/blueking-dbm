@@ -693,36 +693,26 @@ class TicketType(StrStructuredEnum):
     CLOUD_REDIS_DTS_SERVER_REDUCE = EnumField("CLOUD_REDIS_DTS_SERVER_REDUCE", _("云区域redis_dts 服务删除"))
 
     # SURREALDB
-    K8S_SURREALDB_HA_APPLY = TicketEnumField("K8S_SURREALDB_HA_APPLY", _("SurrealDB 集群部署"), register_iam=False)
-    K8S_SURREALDB_SINGLE_APPLY = TicketEnumField("K8S_SURREALDB_SINGLE_APPLY", _("SurrealDB 单节点部署"), register_iam=False)
-    K8S_SURREALDB_ENABLE = TicketEnumField("K8S_SURREALDB_ENABLE", _("SurrealDB 集群启动"), register_iam=False)
-    K8S_SURREALDB_DISABLE = TicketEnumField("K8S_SURREALDB_DISABLE", _("SurrealDB 集群停止"), register_iam=False)
-    K8S_SURREALDB_DELETE = TicketEnumField("K8S_SURREALDB_DELETE", _("SurrealDB 集群卸载"), register_iam=False)
-    K8S_SURREALDB_RESTART = TicketEnumField("K8S_SURREALDB_RESTART", _("SurrealDB 集群重启"), register_iam=False)
+    K8S_SURREALDB_HA_APPLY = TicketEnumField("K8S_SURREALDB_HA_APPLY", _("SurrealDB 集群部署"))
+    K8S_SURREALDB_SINGLE_APPLY = TicketEnumField("K8S_SURREALDB_SINGLE_APPLY", _("SurrealDB 单节点部署"))
+    K8S_SURREALDB_ENABLE = TicketEnumField("K8S_SURREALDB_ENABLE", _("SurrealDB 集群启动"))
+    K8S_SURREALDB_DISABLE = TicketEnumField("K8S_SURREALDB_DISABLE", _("SurrealDB 集群停止"))
+    K8S_SURREALDB_DELETE = TicketEnumField("K8S_SURREALDB_DELETE", _("SurrealDB 集群卸载"))
+    K8S_SURREALDB_RESTART = TicketEnumField("K8S_SURREALDB_RESTART", _("SurrealDB 集群重启"))
 
     # QDRANT
-    K8S_QDRANT_HA_APPLY = TicketEnumField("K8S_QDRANT_HA_APPLY", _("Qdrant 集群部署"), register_iam=False)
-    K8S_QDRANT_ENABLE = TicketEnumField("K8S_QDRANT_ENABLE", _("Qdrant 集群启动"), register_iam=False)
-    K8S_QDRANT_DISABLE = TicketEnumField("K8S_QDRANT_DISABLE", _("Qdrant 集群禁用"), register_iam=False)
-    K8S_QDRANT_DELETE = TicketEnumField("K8S_QDRANT_DELETE", _("Qdrant 集群卸载"), register_iam=False)
-    K8S_QDRANT_RESTART = TicketEnumField("K8S_QDRANT_RESTART", _("Qdrant 集群重启"), register_iam=False)
+    K8S_QDRANT_HA_APPLY = TicketEnumField("K8S_QDRANT_HA_APPLY", _("Qdrant 集群部署"))
+    K8S_QDRANT_ENABLE = TicketEnumField("K8S_QDRANT_ENABLE", _("Qdrant 集群启动"))
+    K8S_QDRANT_DISABLE = TicketEnumField("K8S_QDRANT_DISABLE", _("Qdrant 集群禁用"))
+    K8S_QDRANT_DELETE = TicketEnumField("K8S_QDRANT_DELETE", _("Qdrant 集群卸载"))
+    K8S_QDRANT_RESTART = TicketEnumField("K8S_QDRANT_RESTART", _("Qdrant 集群重启"))
 
     # VICTORIAMETRICS K8s
-    K8S_VICTORIAMETRICS_APPLY = TicketEnumField(
-        "K8S_VICTORIAMETRICS_APPLY", _("VictoriaMetrics 集群部署"), register_iam=False
-    )
-    K8S_VICTORIAMETRICS_ENABLE = TicketEnumField(
-        "K8S_VICTORIAMETRICS_ENABLE", _("VictoriaMetrics 集群启动"), register_iam=False
-    )
-    K8S_VICTORIAMETRICS_DISABLE = TicketEnumField(
-        "K8S_VICTORIAMETRICS_DISABLE", _("VictoriaMetrics 集群停止"), register_iam=False
-    )
-    K8S_VICTORIAMETRICS_DELETE = TicketEnumField(
-        "K8S_VICTORIAMETRICS_DELETE", _("VictoriaMetrics 集群卸载"), register_iam=False
-    )
-    K8S_VICTORIAMETRICS_RESTART = TicketEnumField(
-        "K8S_VICTORIAMETRICS_RESTART", _("VictoriaMetrics 集群重启"), register_iam=False
-    )
+    K8S_VICTORIAMETRICS_APPLY = TicketEnumField("K8S_VICTORIAMETRICS_APPLY", _("VictoriaMetrics 集群部署"))
+    K8S_VICTORIAMETRICS_ENABLE = TicketEnumField("K8S_VICTORIAMETRICS_ENABLE", _("VictoriaMetrics 集群启动"))
+    K8S_VICTORIAMETRICS_DISABLE = TicketEnumField("K8S_VICTORIAMETRICS_DISABLE", _("VictoriaMetrics 集群停止"))
+    K8S_VICTORIAMETRICS_DELETE = TicketEnumField("K8S_VICTORIAMETRICS_DELETE", _("VictoriaMetrics 集群卸载"))
+    K8S_VICTORIAMETRICS_RESTART = TicketEnumField("K8S_VICTORIAMETRICS_RESTART", _("VictoriaMetrics 集群重启"))
 
     # 资源池
     RESOURCE_IMPORT = EnumField("RESOURCE_IMPORT", _("主机导入资源池"))
