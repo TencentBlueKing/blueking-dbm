@@ -93,9 +93,17 @@ class PatchInfosTaskNameUniqueTest(SimpleTestCase):
 
 
 class FitTaskNameMaxLenTest(SimpleTestCase):
+    def test_max_len_strictly_under_50(self):
+        self.assertLess(TASK_NAME_MAX_LEN, 50)
+
     def test_short_unchanged(self):
         self.assertEqual(fit_task_name_max_len("mysql-dts-1-2-3"), "mysql-dts-1-2-3")
 
     def test_exact_max_unchanged(self):
         name = "x" * TASK_NAME_MAX_LEN
         self.assertEqual(fit_task_name_max_len(name), name)
+
+    def test_fifty_chars_truncated_to_max(self):
+        fitted = fit_task_name_max_len("x" * 50)
+        self.assertEqual(len(fitted), TASK_NAME_MAX_LEN)
+        self.assertLess(len(fitted), 50)

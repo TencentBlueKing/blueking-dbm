@@ -13,11 +13,11 @@ import re
 import uuid
 from collections.abc import Sequence
 
-from backend.bk_web.constants import LEN_NORMAL
 from backend.flow.utils.mysql.dts.constants import MigrateTopology
 
-# 与 DTS Task.name / MysqlDtsInfo.dts_task_id 上限一致
-TASK_NAME_MAX_LEN = LEN_NORMAL
+# DTS 会在任务名后拼 `_lightning_checkpoint_list` 建 checkpoint 表，
+# 生成名必须小于 50，避免表名超长；MysqlDtsInfo.dts_task_id 列仍为 64
+TASK_NAME_MAX_LEN = 49
 TASK_NAME_PREFIX = "mysql-dts"
 # 超长时对完整候选名取 sha1 短哈希（hex）
 TASK_NAME_HASH_HEX_LEN = 8

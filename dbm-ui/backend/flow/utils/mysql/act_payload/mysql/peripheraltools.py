@@ -24,6 +24,7 @@ from backend.flow.engine.bamboo.scene.mysql.deploy_peripheraltools.departs impor
 from backend.flow.utils.mysql.act_payload.base.payload_base import PayloadBase
 from backend.flow.utils.mysql.act_payload.mixed.account_mixed.mysql_account_mixed import MySQLAccountMixed
 from backend.flow.utils.mysql.act_payload.mixed.account_mixed.proxy_account_mixed import ProxyAccountMixed
+from backend.flow.utils.mysql.dts.monitor_config import DTS_MACHINE_TYPES
 
 
 class PeripheralToolsPayload(PayloadBase, MySQLAccountMixed, ProxyAccountMixed):
@@ -39,6 +40,11 @@ class PeripheralToolsPayload(PayloadBase, MySQLAccountMixed, ProxyAccountMixed):
             res = remove_departs(
                 res, DeployPeripheralToolsDepart.MySQLTableChecksum, DeployPeripheralToolsDepart.MySQLRotateBinlog
             )
+
+            # DTS 无 ProxyInstance / spider 扩展，不能走下面的 spider 备份裁剪
+            if m.machine_type in DTS_MACHINE_TYPES:
+                self.logger.info("{} departs: {}".format(ip, res))
+                return res
 
             # tendbha proxy 不用备份, rotate
             if m.machine_type == MachineType.PROXY:

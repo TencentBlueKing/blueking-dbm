@@ -13,6 +13,7 @@ from backend.flow.utils.mysql.dts.context import (
     MysqlDtsTaskCleanSubflowInput,
 )
 from backend.flow.utils.mysql.dts.migrate_credentials import DtsGrantTarget
+from backend.flow.utils.mysql.mysql_act_playload import MysqlActPayload
 
 
 def _minimal_plan(**overrides):
@@ -210,6 +211,56 @@ class MysqlDtsCleanupNoDropTest(SimpleTestCase):
         act_names = [str(c.kwargs.get("act_name", "")) for c in sub.add_act.call_args_list]
         self.assertIn(str(_("清理 DTS relay 与 exported_data")), act_names)
         self.assertNotIn(str(_("清理 DTS 部署目录")), act_names)
+
+
+class MysqlDtsCleanupClearMonitorTest(SimpleTestCase):
+    def _inp(self, **overrides):
+        data = {
+            "root_id": "root-destroy",
+            "dts_cluster_id": 9,
+            "bk_biz_id": 1,
+            "bk_cloud_id": 0,
+            "master_addr": "127.0.0.2:8261",
+            "master_nodes": [{"ip": "127.0.0.2", "bk_cloud_id": 0}],
+            "worker_nodes": [{"ip": "127.0.0.3", "bk_cloud_id": 0}],
+            "deploy_path": "/data/dbbak/dts",
+            "creator": "tester",
+        }
+        data.update(overrides)
+        return MysqlDtsCleanupSubflowInput(**data)
+
+    @patch("backend.flow.engine.bamboo.scene.mysql.dts.mysql_dts_cleanup_subflow.SubBuilder")
+    def test_clear_monitor_acts_before_unregister(self, mock_sub_builder):
+        from backend.flow.engine.bamboo.scene.mysql.dts.mysql_dts_cleanup_subflow import mysql_dts_cleanup_subflow
+
+        sub = MagicMock()
+        mock_sub_builder.return_value = sub
+        mysql_dts_cleanup_subflow(self._inp())
+
+        act_names = [str(c.kwargs.get("act_name", "")) for c in sub.add_act.call_args_list]
+        clear_name = str(_("清理机器级别配置"))
+        unreg_name = str(_("下线 DTS 集群元数据"))
+        self.assertNotIn(str(_("下发db-actuator介质")), act_names)
+        self.assertIn(clear_name, act_names)
+        self.assertLess(act_names.index(clear_name), act_names.index(unreg_name))
+
+        clear_act = next(c for c in sub.add_act.call_args_list if str(c.kwargs.get("act_name")) == clear_name)
+        kwargs = clear_act.kwargs["kwargs"]
+        self.assertEqual(kwargs["get_mysql_payload_func"], MysqlActPayload.get_clear_machine_crontab.__name__)
+        self.assertEqual(kwargs["exec_ip"], ["127.0.0.2", "127.0.0.3"])
+
+    @patch("backend.flow.engine.bamboo.scene.mysql.dts.mysql_dts_cleanup_subflow.SubBuilder")
+    def test_no_hosts_skips_clear_monitor(self, mock_sub_builder):
+        from backend.flow.engine.bamboo.scene.mysql.dts.mysql_dts_cleanup_subflow import mysql_dts_cleanup_subflow
+
+        sub = MagicMock()
+        mock_sub_builder.return_value = sub
+        mysql_dts_cleanup_subflow(self._inp(master_nodes=[], worker_nodes=[]))
+
+        act_names = [str(c.kwargs.get("act_name", "")) for c in sub.add_act.call_args_list]
+        self.assertNotIn(str(_("下发db-actuator介质")), act_names)
+        self.assertNotIn(str(_("清理机器级别配置")), act_names)
+        sub.add_parallel_acts.assert_not_called()
 
 
 class OuterRunFlowDtsTaskCleanMountTest(SimpleTestCase):

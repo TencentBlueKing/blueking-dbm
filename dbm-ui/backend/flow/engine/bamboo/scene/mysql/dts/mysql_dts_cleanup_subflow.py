@@ -8,8 +8,12 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+from collections import defaultdict
+from dataclasses import asdict
+
 from django.utils.translation import gettext as _
 
+from backend.flow.consts import DBA_ROOT_USER
 from backend.flow.engine.bamboo.scene.common.builder import SubBuilder
 from backend.flow.engine.bamboo.scene.mysql.dts.subflow_common import (
     build_dts_exec_shell_kwargs,
@@ -22,6 +26,7 @@ from backend.flow.plugins.components.collections.mysql.dts.cleanup.stop_tasks im
 from backend.flow.plugins.components.collections.mysql.dts.cleanup.unregister_meta import (
     MysqlDtsUnregisterClusterMetaComponent,
 )
+from backend.flow.plugins.components.collections.mysql.exec_actuator_script import ExecuteDBActuatorScriptComponent
 from backend.flow.utils.mysql.dts.constants import get_default_deploy_path
 from backend.flow.utils.mysql.dts.context import DtsHostSpec, MysqlDtsCleanupSubflowInput
 from backend.flow.utils.mysql.dts.script_template import (
@@ -29,6 +34,8 @@ from backend.flow.utils.mysql.dts.script_template import (
     render_clean_data_dir_script,
     render_stop_process_script,
 )
+from backend.flow.utils.mysql.mysql_act_dataclass import ExecActuatorKwargs
+from backend.flow.utils.mysql.mysql_act_playload import MysqlActPayload
 
 
 def _collect_cleanup_targets(inp: MysqlDtsCleanupSubflowInput) -> list[DtsHostSpec]:
@@ -45,6 +52,45 @@ def _collect_cleanup_targets(inp: MysqlDtsCleanupSubflowInput) -> list[DtsHostSp
     return hosts
 
 
+def _group_cleanup_ips_by_cloud(hosts: list[DtsHostSpec]) -> dict[int, list[str]]:
+    grouped: dict[int, list[str]] = defaultdict(list)
+    seen: set[tuple[int, str]] = set()
+    for host in hosts:
+        key = (host.bk_cloud_id, host.ip)
+        if key in seen:
+            continue
+        seen.add(key)
+        grouped[host.bk_cloud_id].append(host.ip)
+    return dict(grouped)
+
+
+def _add_clear_machine_monitor_acts(sub: SubBuilder, cleanup_hosts: list[DtsHostSpec]) -> None:
+    """复用 ClearCrontab；不再下发 dbactuator，沿用机器上已有介质。"""
+    by_cloud = _group_cleanup_ips_by_cloud(cleanup_hosts)
+    if not by_cloud:
+        return
+    clear_acts = []
+    for bk_cloud_id, ips in by_cloud.items():
+        clear_acts.append(
+            {
+                "act_name": _("清理机器级别配置"),
+                "act_component_code": ExecuteDBActuatorScriptComponent.code,
+                "kwargs": asdict(
+                    ExecActuatorKwargs(
+                        exec_ip=ips,
+                        bk_cloud_id=bk_cloud_id,
+                        run_as_system_user=DBA_ROOT_USER,
+                        get_mysql_payload_func=MysqlActPayload.get_clear_machine_crontab.__name__,
+                    )
+                ),
+            }
+        )
+    if len(clear_acts) == 1:
+        sub.add_act(**clear_acts[0])
+        return
+    sub.add_parallel_acts(acts_list=clear_acts)
+
+
 def mysql_dts_cleanup_subflow(inp: MysqlDtsCleanupSubflowInput) -> SubBuilder:
     """清理/销毁 DTS 集群。
 
@@ -53,7 +99,9 @@ def mysql_dts_cleanup_subflow(inp: MysqlDtsCleanupSubflowInput) -> SubBuilder:
     2) 停本机 dm-worker / dm-master 进程（Worker 必须先离线，否则 offline_worker 报 46005）
     3) 调用 OpenAPI 注销节点注册（Master 可能已停，失败按可忽略处理）
     4) 显式清理 worker relay 目录与整棵 exported_data（不跟 clean_data_dir 勾选）
-    5) 按选项删除整棵部署目录，并清理元数据
+    5) 按选项删除整棵部署目录
+    6) 复用 ClearCrontab 停 mysql-crond 并删除周边目录（不下发 dbactuator）
+    7) 清理元数据
 
     迁移临时账号（dts_m_*）不在本子流程回收：账号挂在业务源/目标 MySQL 上，
     与 DESTROY 生命周期解耦；成功路径见 mysql_dts_task_clean_subflow，终止见 signal handler。
@@ -136,6 +184,9 @@ def mysql_dts_cleanup_subflow(inp: MysqlDtsCleanupSubflowInput) -> SubBuilder:
             act_component_code=MysqlDtsExecShellComponent.code,
             kwargs=build_dts_exec_shell_kwargs(exec_targets, render_clean_data_dir_script(inp.deploy_path)),
         )
+
+    if exec_targets:
+        _add_clear_machine_monitor_acts(sub, cleanup_hosts)
 
     sub.add_act(
         act_name=_("下线 DTS 集群元数据"),

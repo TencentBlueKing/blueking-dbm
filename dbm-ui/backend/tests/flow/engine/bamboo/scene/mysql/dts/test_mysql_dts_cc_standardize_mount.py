@@ -127,6 +127,8 @@ class MysqlDtsCcStandardizeMountTest(SimpleTestCase):
         mock_cc_std.assert_called_once()
         self.assertEqual(mock_cc_std.call_args.kwargs["cluster_name"], "dts-mount")
         self.assertEqual(mock_cc_std.call_args.kwargs["bk_biz_id"], constant.BK_BIZ_ID)
+        self.assertNotIn("ticket_id", mock_cc_std.call_args.kwargs)
+        self.assertEqual(mock_cc_std.call_args.kwargs["dts_master_addr"], "127.0.0.2:18301")
         mock_cc_std.return_value.build_sub_process.assert_called_once()
         self.assertEqual(sub.add_sub_pipeline.call_args_list[0].args[0], "idle-sub")
         self.assertEqual(sub.add_sub_pipeline.call_args_list[-1].args[0], "cc-sub")
@@ -211,7 +213,181 @@ class MysqlDtsCcStandardizeMountTest(SimpleTestCase):
         self.assertEqual([h.ip for h in mock_idle.call_args.kwargs["hosts"]], ["127.0.0.4"])
         mock_cc_std.assert_called_once()
         self.assertEqual(mock_cc_std.call_args.kwargs["dts_cluster_id"], 88)
+        self.assertNotIn("ticket_id", mock_cc_std.call_args.kwargs)
+        self.assertEqual(mock_cc_std.call_args.kwargs["dts_master_addr"], "127.0.0.2:18301")
+        worker_ips = [n["ip"] for n in mock_cc_std.call_args.kwargs["worker_nodes"]]
+        self.assertEqual(worker_ips, ["127.0.0.4"])
         self.assertEqual(sub.add_sub_pipeline.call_count, 3)
         self.assertEqual(sub.add_sub_pipeline.call_args_list[0].args[0], "idle-sub")
         self.assertEqual(sub.add_sub_pipeline.call_args_list[1].args[0], "worker-sub")
         self.assertEqual(sub.add_sub_pipeline.call_args_list[-1].args[0], "cc-sub")
+
+    @patch(
+        "backend.flow.engine.bamboo.scene.mysql.dts.mysql_dts_append_worker_subflow.add_dts_idle_check_subflow",
+        side_effect=_fake_idle_check,
+    )
+    @patch(
+        "backend.flow.engine.bamboo.scene.mysql.dts.mysql_dts_append_worker_subflow.mysql_dts_deploy_worker_subflow"
+    )
+    @patch(
+        "backend.flow.engine.bamboo.scene.mysql.dts.mysql_dts_append_worker_subflow.mysql_dts_cc_standardize_subflow"
+    )
+    @patch("backend.flow.engine.bamboo.scene.mysql.dts.mysql_dts_append_worker_subflow.SubBuilder")
+    def test_append_passes_existing_and_new_worker_nodes(self, mock_sub_builder, mock_cc_std, mock_worker, _mock_idle):
+        from backend.flow.engine.bamboo.scene.mysql.dts.mysql_dts_append_worker_subflow import (
+            mysql_dts_append_worker_subflow,
+        )
+
+        mock_sub_builder.return_value = MagicMock()
+        mock_worker.return_value = MagicMock()
+        mock_worker.return_value.build_sub_process.return_value = "worker-sub"
+        mock_cc_std.return_value = MagicMock()
+        mock_cc_std.return_value.build_sub_process.return_value = "cc-sub"
+
+        mysql_dts_append_worker_subflow(
+            MysqlDtsAppendWorkerSubflowInput(
+                root_id="root-cc-3",
+                bk_biz_id=constant.BK_BIZ_ID,
+                bk_cloud_id=0,
+                dts_cluster_id=88,
+                master_addr="127.0.0.2:18301",
+                deploy_path="/data/dts/x",
+                new_worker_hosts=[DtsHostSpec(ip="127.0.0.4", bk_cloud_id=0)],
+                existing_worker_nodes=[{"ip": "127.0.0.3", "port": 18501, "bk_cloud_id": 0, "role": "worker"}],
+                creator="tester",
+            )
+        )
+
+        kwargs = mock_cc_std.call_args.kwargs
+        self.assertEqual(kwargs["dts_cluster_id"], 88)
+        self.assertNotIn("ticket_id", kwargs)
+        self.assertEqual([n["ip"] for n in kwargs["worker_nodes"]], ["127.0.0.3", "127.0.0.4"])
+
+
+class MysqlDtsCcStandardizeMonitorActsTest(SimpleTestCase):
+    @patch(
+        "backend.flow.engine.bamboo.scene.mysql.dts.mysql_dts_cc_standardize_subflow.gen_reload_departs_config",
+        return_value="gen-reload-sub",
+    )
+    @patch("backend.flow.engine.bamboo.scene.mysql.dts.mysql_dts_cc_standardize_subflow.GetFileList")
+    @patch(
+        "backend.flow.engine.bamboo.scene.mysql.dts.mysql_dts_cc_standardize_subflow.get_dts_monitor_media",
+        return_value=(
+            ["repo/mysql-crond.tar.gz", "repo/mysql-monitor.tar.gz"],
+            "mysql-crond.tar.gz",
+            "mysql-monitor.tar.gz",
+        ),
+    )
+    @patch("backend.flow.engine.bamboo.scene.mysql.dts.mysql_dts_cc_standardize_subflow.SubBuilder")
+    def test_pipeline_uses_official_three_beats(self, mock_sub_builder, _mock_media, mock_file_list, mock_gen_reload):
+        from backend.flow.engine.bamboo.scene.mysql.deploy_peripheraltools.departs import DeployPeripheralToolsDepart
+        from backend.flow.engine.bamboo.scene.mysql.dts.mysql_dts_cc_standardize_subflow import (
+            mysql_dts_cc_standardize_subflow,
+        )
+        from backend.flow.plugins.components.collections.mysql.dts.base_shell import MysqlDtsExecShellComponent
+        from backend.flow.plugins.components.collections.mysql.dts.deploy.cc_standardize import (
+            MysqlDtsCcStandardizeComponent,
+        )
+        from backend.flow.plugins.components.collections.mysql.exec_actuator_script import (
+            ExecuteDBActuatorScriptComponent,
+        )
+        from backend.flow.plugins.components.collections.mysql.trans_flies import TransFileComponent
+        from backend.flow.utils.mysql.act_payload.mysql.peripheraltools import PeripheralToolsPayload
+
+        mock_file_list.return_value.get_db_actuator_package.return_value = ["repo/dbactuator.tar.gz"]
+        sub = MagicMock()
+        mock_sub_builder.return_value = sub
+
+        mysql_dts_cc_standardize_subflow(
+            root_id="root-mon-1",
+            bk_biz_id=constant.BK_BIZ_ID,
+            bk_cloud_id=0,
+            cluster_name="dts-mon",
+            master_nodes=[{"ip": "127.0.0.2", "port": 18301, "bk_cloud_id": 0}],
+            worker_nodes=[{"ip": "127.0.0.3", "port": 18501, "bk_cloud_id": 0}],
+            dts_master_addr="127.0.0.2:18301",
+        )
+
+        codes = [c.kwargs["act_component_code"] for c in sub.add_act.call_args_list]
+        self.assertEqual(codes[0], MysqlDtsCcStandardizeComponent.code)
+        self.assertIn(TransFileComponent.code, codes)
+        self.assertNotIn(MysqlDtsExecShellComponent.code, codes)
+
+        trans_kwargs = next(
+            c.kwargs["kwargs"]
+            for c in sub.add_act.call_args_list
+            if c.kwargs["act_component_code"] == TransFileComponent.code
+        )
+        self.assertEqual(
+            trans_kwargs["file_list"],
+            ["repo/dbactuator.tar.gz", "repo/mysql-crond.tar.gz", "repo/mysql-monitor.tar.gz"],
+        )
+        self.assertTrue(all("checksum" not in f for f in trans_kwargs["file_list"]))
+        self.assertEqual(set(trans_kwargs["exec_ip"]), {"127.0.0.2", "127.0.0.3"})
+
+        deploy_acts = sub.add_parallel_acts.call_args.kwargs["acts_list"]
+        self.assertEqual(len(deploy_acts), 2)
+        for act in deploy_acts:
+            self.assertEqual(act["act_component_code"], ExecuteDBActuatorScriptComponent.code)
+            self.assertEqual(act["kwargs"]["get_mysql_payload_func"], PeripheralToolsPayload.deploy_binary.__name__)
+
+        self.assertEqual(mock_gen_reload.call_count, 2)
+        self.assertEqual(
+            mock_gen_reload.call_args_list[0].kwargs["departs"],
+            [DeployPeripheralToolsDepart.MySQLCrond],
+        )
+        self.assertEqual(
+            mock_gen_reload.call_args_list[1].kwargs["departs"],
+            [DeployPeripheralToolsDepart.MySQLMonitor],
+        )
+        instances = set(mock_gen_reload.call_args_list[0].kwargs["instances"])
+        self.assertEqual(instances, {"127.0.0.2:18301", "127.0.0.3:18501"})
+        self.assertEqual(sub.add_sub_pipeline.call_count, 2)
+
+    @patch(
+        "backend.flow.engine.bamboo.scene.mysql.dts.mysql_dts_cc_standardize_subflow.gen_reload_departs_config",
+        return_value="gen-reload-sub",
+    )
+    @patch("backend.flow.engine.bamboo.scene.mysql.dts.mysql_dts_cc_standardize_subflow.GetFileList")
+    @patch(
+        "backend.flow.engine.bamboo.scene.mysql.dts.mysql_dts_cc_standardize_subflow.get_dts_monitor_media",
+        return_value=(
+            ["repo/mysql-crond.tar.gz", "repo/mysql-monitor.tar.gz"],
+            "mysql-crond.tar.gz",
+            "mysql-monitor.tar.gz",
+        ),
+    )
+    @patch("backend.flow.engine.bamboo.scene.mysql.dts.mysql_dts_cc_standardize_subflow.SubBuilder")
+    def test_transfile_exec_ip_keeps_passed_new_worker(
+        self, mock_sub_builder, _mock_media, mock_file_list, _mock_gen_reload
+    ):
+        from backend.flow.engine.bamboo.scene.mysql.dts.mysql_dts_cc_standardize_subflow import (
+            mysql_dts_cc_standardize_subflow,
+        )
+        from backend.flow.plugins.components.collections.mysql.trans_flies import TransFileComponent
+
+        mock_file_list.return_value.get_db_actuator_package.return_value = ["repo/dbactuator.tar.gz"]
+        sub = MagicMock()
+        mock_sub_builder.return_value = sub
+
+        mysql_dts_cc_standardize_subflow(
+            root_id="root-mon-append",
+            bk_biz_id=constant.BK_BIZ_ID,
+            bk_cloud_id=0,
+            cluster_name="dts-mon",
+            dts_cluster_id=88,
+            master_nodes=[{"ip": "127.0.0.2", "port": 18301, "bk_cloud_id": 0}],
+            worker_nodes=[
+                {"ip": "127.0.0.3", "port": 18501, "bk_cloud_id": 0},
+                {"ip": "127.0.0.4", "port": 18501, "bk_cloud_id": 0},
+            ],
+            dts_master_addr="127.0.0.2:18301",
+        )
+
+        trans_kwargs = next(
+            c.kwargs["kwargs"]
+            for c in sub.add_act.call_args_list
+            if c.kwargs["act_component_code"] == TransFileComponent.code
+        )
+        self.assertIn("127.0.0.4", trans_kwargs["exec_ip"])
+        self.assertIn("127.0.0.3", trans_kwargs["exec_ip"])

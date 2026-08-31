@@ -1,0 +1,14 @@
+[
+  {
+    "conf_type": "mysql_monitor",
+    "conf_file": "items-config.yaml",
+    "conf_name_validate": 1,
+    "conf_value_validate": 1,
+    "value_type_strict": 1,
+    "description": "",
+    "conf_type_lc": "监控配置",
+    "conf_file_lc": "mysql-monitor监控项",
+    "level_names": "plat,app,module,cluster",
+    "level_versioned": ""
+  }
+]

@@ -14,6 +14,7 @@ from django.db.models import Q
 
 from backend.db_meta.enums import AccessLayer, MachineType, TenDBClusterSpiderRole
 from backend.db_meta.models import Machine, ProxyInstance, StorageInstance
+from backend.db_proxy.reverse_api.mysql.impl.dts_monitor import dts_monitor_runtime_config, is_dts_machine_type
 from backend.flow.consts import SYSTEM_DBS
 from backend.flow.utils.mysql.act_payload.mixed.account_mixed.mysql_account_mixed import MySQLAccountMixed
 from backend.flow.utils.mysql.act_payload.mixed.account_mixed.proxy_account_mixed import ProxyAccountMixed
@@ -21,6 +22,8 @@ from backend.flow.utils.mysql.act_payload.mixed.account_mixed.proxy_account_mixe
 
 def monitor_runtime_config(bk_cloud_id: int, ip: str, port_list: Optional[List[int]] = None) -> List[Dict]:
     m = Machine.objects.get(ip=ip, bk_cloud_id=bk_cloud_id)
+    if is_dts_machine_type(m.machine_type):
+        return dts_monitor_runtime_config(bk_cloud_id=bk_cloud_id, ip=ip, port_list=port_list)
     q = Q()
     q |= Q(**{"machine": m})
 
