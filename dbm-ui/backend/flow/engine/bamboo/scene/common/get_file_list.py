@@ -295,11 +295,11 @@ class GetFileList(object):
             ret.append(f"{env.BKREPO_PROJECT}/{env.BKREPO_BUCKET}/{redismodules_pkg.path}")
         return ret
 
-    def redis_cluster_version_update(self, db_version: str) -> list:
+    def redis_cluster_version_update(self, db_version: str, name_prefix: Optional[str] = None) -> list:
         """
         redis集群版本升级
         """
-        redis_pkg = get_latest_redis_package_by_version(db_version)
+        redis_pkg = get_latest_redis_package_by_version(db_version, name_prefix=name_prefix)
         bkdbmon_pkg = Package.get_latest_package(
             version=MediumEnum.Latest, pkg_type=MediumEnum.DbMon, db_type=DBType.Redis
         )

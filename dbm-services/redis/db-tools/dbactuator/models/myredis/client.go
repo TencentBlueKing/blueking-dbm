@@ -38,9 +38,11 @@ type RedisClient struct {
 const (
 	redisConfigRewriteSaveFixVersion = "6.2.2"
 	newConnMaxRetryDuration          = 3 * time.Minute
-	newConnRetrySleep                = 10 * time.Second
-	newConnDefaultTimeout            = 1 * time.Minute
-	redisClientNoRetries             = -1
+	// newConnRetryInitialSleep / newConnRetryMaxSleep 重试间隔在这两者之间按指数退避增长.
+	newConnRetryInitialSleep = 1 * time.Second
+	newConnRetryMaxSleep     = 10 * time.Second
+	newConnDefaultTimeout    = 1 * time.Minute
+	redisClientNoRetries     = -1
 )
 
 // NewRedisClient 建redis客户端,仅尝试一次连接,不重试.
@@ -101,9 +103,10 @@ func (db *RedisClient) ConnectNoRetry(timeout time.Duration) (err error) {
 
 // ConnectWithRetry connects with an explicit overall retry budget.
 func (db *RedisClient) ConnectWithRetry(timeout, retryBudget time.Duration) (err error) {
-	return db.connect(timeout, retryBudget, newConnRetrySleep)
+	return db.connect(timeout, retryBudget, newConnRetryInitialSleep)
 }
 
+// connect 连一次或按预算重试. retrySleep 是首轮重试间隔, 之后指数退避到 newConnRetryMaxSleep.
 func (db *RedisClient) connect(timeout time.Duration, retryBudget, retrySleep time.Duration) (err error) {
 	// 执行命令失败重连,确保重连后,databases正确
 	var redisConnHook = func(ctx context.Context, cn *redis.Conn) error {
@@ -191,6 +194,11 @@ func (db *RedisClient) connect(timeout time.Duration, retryBudget, retrySleep ti
 			db.InstanceClient = nil
 		}
 		time.Sleep(retrySleep)
+		if retrySleep < newConnRetryMaxSleep {
+			if retrySleep *= 2; retrySleep > newConnRetryMaxSleep {
+				retrySleep = newConnRetryMaxSleep
+			}
+		}
 	}
 	return fmt.Errorf("redis new conn fail after %d attempts (within %s budget),err:%v addr:%s",
 		attempt, retryBudget, pingErr, db.Addr)

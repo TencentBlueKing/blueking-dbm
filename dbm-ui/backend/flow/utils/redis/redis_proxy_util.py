@@ -49,7 +49,7 @@ from backend.flow.consts import (
 )
 from backend.flow.utils.base.payload_handler import PayloadHandler
 from backend.flow.utils.redis.redis_cluster_nodes import decode_cluster_nodes
-from backend.flow.utils.redis.redis_util import version_ge, version_gt
+from backend.flow.utils.redis.redis_util import get_redis_engine_family, version_ge, version_gt
 from backend.utils.string import base64_encode
 
 logger = logging.getLogger("flow")
@@ -430,7 +430,10 @@ def get_cluster_storage_versions_for_upgrade(cluster_id: int, ip: str = None) ->
             .order_by("-priority")
             .values_list("name", flat=True)
         )
+        online_family = get_redis_engine_family(online_redis_ver)
         for version in ret:
+            if get_redis_engine_family(version) != online_family:
+                continue
             if version_ge(version, online_redis_ver):
                 versions.append(version)
     elif is_tendisplus_instance_type(cluster.cluster_type):
