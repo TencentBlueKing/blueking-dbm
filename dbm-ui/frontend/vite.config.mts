@@ -28,12 +28,9 @@ export default defineConfig(({ mode }) => {
 
   // vite-plugin-monaco-editor 通过 transformIndexHtml 注入 MonacoEnvironment，
   // index.html 经 viteStaticCopy 原样输出不经过该钩子，这里按插件同款模板补齐（javascript 与 typescript 共享 worker）
-  // worker 产物落在 outDir 的 base 子目录下，路径经 __loadAssetsUrl__ 运行时拼接以跟随 BK_STATIC_URL
-  const monacoWorkerDir = [(env.VITE_PUBLIC_PATH ?? '').replace(/^\/+|\/+$/g, ''), 'monacoeditorwork']
-    .filter(Boolean)
-    .join('/');
+  // worker 产物落在 outDir 的 base 子目录下，运行时路径由 __loadAssetsUrl__ 统一补 base 前缀，此处只传 monacoeditorwork 相对路径
   const monacoWorkerPath = (name: string) =>
-    `window.__loadAssetsUrl__(${JSON.stringify(`${monacoWorkerDir}/${name}`)})`;
+    `window.__loadAssetsUrl__(${JSON.stringify(`monacoeditorwork/${name}`)})`;
   const monacoWorkerPaths = `{
   "editorWorkerService": ${monacoWorkerPath('editor.worker.bundle.js')},
   "json": ${monacoWorkerPath('json.worker.bundle.js')},
@@ -124,7 +121,8 @@ export default defineConfig(({ mode }) => {
                 .replace('</head>', `  ${monacoEnvironmentScript}\n  </head>`)
                 .replace(/\s*<script\s+type="module"\s+src="\/src\/main\.ts"><\/script>/, '')
                 .replaceAll('%VITE_AJAX_URL_PREFIX%', env.VITE_AJAX_URL_PREFIX ?? '')
-                .replaceAll('%VITE_ROUTER_PERFIX%', env.VITE_ROUTER_PERFIX ?? ''),
+                .replaceAll('%VITE_ROUTER_PERFIX%', env.VITE_ROUTER_PERFIX ?? '')
+                .replaceAll('%VITE_PUBLIC_PATH%', env.VITE_PUBLIC_PATH ?? ''),
           },
           {
             src: 'lib',

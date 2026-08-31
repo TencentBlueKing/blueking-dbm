@@ -20,15 +20,20 @@
       window.BK_SITE_PATH = '{{BK_SITE_PATH}}';
       window.BK_STATIC_URL = '{{BK_STATIC_URL}}';
 
+      // 构建期静态资源路径前缀（vite base），静态文件实际部署在站点根路径的该子目录下；占位符未被替换时按空前缀处理
+      const rawStaticPrefix = '%VITE_PUBLIC_PATH%';
+      const staticPrefix = rawStaticPrefix.startsWith('%') ? '' : rawStaticPrefix.replace(/^\/+|\/+$/g, '');
+
       // 所有静态资源地址统一经此拼接，与 vite.config.mts 的 renderBuiltUrl 对应；须早于 monaco worker 配置定义
       window.__loadAssetsUrl__ = function (src) {
         const base = String(window.BK_STATIC_URL || '');
         const path = String(src).replace(/^\/+/, '');
+        const fullPath = staticPrefix ? staticPrefix + '/' + path : path;
         // 模板变量未被后端替换时回退为根路径，避免拼出无效地址
         if (!base || base.includes('{{')) {
-          return '/' + path;
+          return '/' + fullPath;
         }
-        const url = base.replace(/\/+$/, '') + '/' + path;
+        const url = base.replace(/\/+$/, '') + '/' + fullPath;
         // 相对地址在深链路由下会基于当前页面 URL 解析，统一补根路径
         return /^(https?:)?\/\//.test(url) || url.startsWith('/') ? url : '/' + url;
       };
