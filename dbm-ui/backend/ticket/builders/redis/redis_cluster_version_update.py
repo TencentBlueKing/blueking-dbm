@@ -13,6 +13,7 @@ from rest_framework import serializers
 
 from backend.db_meta.enums.comm import RedisVerUpdateNodeType
 from backend.flow.engine.controller.redis import RedisController
+from backend.flow.utils.redis.redis_util import get_redis_engine_family
 from backend.iam_app.dataclass.actions import ActionEnum
 from backend.ticket import builders
 from backend.ticket.builders.common.base import ParamValidateSerializerMixin, TicketBaseValidateSerializerMixin
@@ -44,9 +45,27 @@ class RedisVersionUpdateDetailSerializer(
             if info["target_version"] in info["current_versions"]:
                 raise serializers.ValidationError(_("当前版本不能和目标版本{}一致").format(info["current_versions"]))
 
+    def validate_engine_family(self, attrs):
+        for info in attrs["infos"]:
+            if info["node_type"] != RedisVerUpdateNodeType.Backend.value:
+                continue
+            current_versions = info["current_versions"]
+            if not current_versions:
+                raise serializers.ValidationError(_("当前版本列表不能为空"))
+            current_families = {get_redis_engine_family(v) for v in current_versions}
+            target_version_names = [t["version"] if isinstance(t, dict) else t for t in info["target_versions"]]
+            target_families = {get_redis_engine_family(v) for v in target_version_names}
+            if current_families != target_families:
+                raise serializers.ValidationError(
+                    _("当前版本 {} 与目标版本 {} 引擎不同(Redis/Valkey), 不支持跨引擎版本升级, 请使用 DTS 数据迁移").format(
+                        sorted(current_versions), sorted(target_version_names)
+                    )
+                )
+
     def validate(self, attrs):
         # 暂时去掉对版本校验，允许同版本升级
         # self.validate_version_update(attrs)
+        self.validate_engine_family(attrs)
         attrs = super().validate(attrs)
         attrs = super().validated_params(attrs=attrs)
         return attrs

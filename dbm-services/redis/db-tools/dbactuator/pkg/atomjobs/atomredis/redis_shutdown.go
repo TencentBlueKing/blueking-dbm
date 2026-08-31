@@ -391,7 +391,7 @@ func (job *RedisShutdown) ClearWhenAllInstancesShutdown() (err error) {
 			job.params.IsAllInstancesShutdown, psCmd, psRet)
 		return fmt.Errorf("ps result:%s", psRet)
 	}
-	job.runtime.Logger.Error("%s all instances have been shutdown,start clear some dirs", job.params.IP)
+	job.runtime.Logger.Info("%s all instances have been shutdown, start clearing dirs", job.params.IP)
 	// 清理 backup-client 相关数据
 	job.runtime.Logger.Info("start clear backup-client dir")
 	err = util.ClearBackupClientDir()
