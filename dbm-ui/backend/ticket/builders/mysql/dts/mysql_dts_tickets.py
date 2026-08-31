@@ -406,6 +406,7 @@ class MysqlMigrateBaseDetailSerializer(serializers.Serializer):
             bk_biz_id=self.context.get("bk_biz_id", plans[0].bk_biz_id),
             has_infos=has_infos,
         )
+        _validate_resource_pool_deploy(attrs)
         return attrs
 
 
