@@ -33,29 +33,29 @@ import (
 )
 
 // ============================================================
-// 1. CountInstancesByEventName tests
+// 1. FilterInstancesByEventName tests
 // ============================================================
 
-func TestCountInstancesByEventName_EmptyInstances(t *testing.T) {
-	count := CountInstancesByEventName(nil, haprobe.DbEventNameDetectFailure)
-	if count != 0 {
-		t.Errorf("expected 0, got %d", count)
+func TestFilterInstancesByEventName_EmptyInstances(t *testing.T) {
+	matched := FilterInstancesByEventName(nil, haprobe.DbEventNameDetectFailure)
+	if len(matched) != 0 {
+		t.Errorf("expected 0, got %d", len(matched))
 	}
 }
 
-func TestCountInstancesByEventName_AllMatch(t *testing.T) {
+func TestFilterInstancesByEventName_AllMatch(t *testing.T) {
 	instances := []FailureInstanceInfo{
 		{EventName: haprobe.DbEventNameDetectFailure},
 		{EventName: haprobe.DbEventNameDetectFailure},
 		{EventName: haprobe.DbEventNameDetectFailure},
 	}
-	count := CountInstancesByEventName(instances, haprobe.DbEventNameDetectFailure)
-	if count != 3 {
-		t.Errorf("expected 3, got %d", count)
+	matched := FilterInstancesByEventName(instances, haprobe.DbEventNameDetectFailure)
+	if len(matched) != 3 {
+		t.Errorf("expected 3, got %d", len(matched))
 	}
 }
 
-func TestCountInstancesByEventName_PartialMatch(t *testing.T) {
+func TestFilterInstancesByEventName_PartialMatch(t *testing.T) {
 	instances := []FailureInstanceInfo{
 		{EventName: haprobe.DbEventNameDetectFailure},
 		{EventName: haprobe.DbEventNameProbeOffline},
@@ -63,20 +63,25 @@ func TestCountInstancesByEventName_PartialMatch(t *testing.T) {
 		{EventName: haprobe.DbEventNameProbeOffline},
 		{EventName: haprobe.DbEventNameProbeOffline},
 	}
-	count := CountInstancesByEventName(instances, haprobe.DbEventNameDetectFailure)
-	if count != 2 {
-		t.Errorf("expected 2, got %d", count)
+	matched := FilterInstancesByEventName(instances, haprobe.DbEventNameDetectFailure)
+	if len(matched) != 2 {
+		t.Errorf("expected 2, got %d", len(matched))
+	}
+	for _, inst := range matched {
+		if inst.EventName != haprobe.DbEventNameDetectFailure {
+			t.Errorf("expected only detect-failure instances, got %s", inst.EventName)
+		}
 	}
 }
 
-func TestCountInstancesByEventName_NoMatch(t *testing.T) {
+func TestFilterInstancesByEventName_NoMatch(t *testing.T) {
 	instances := []FailureInstanceInfo{
 		{EventName: haprobe.DbEventNameProbeOffline},
 		{EventName: haprobe.DbEventNameProbeOffline},
 	}
-	count := CountInstancesByEventName(instances, haprobe.DbEventNameDetectFailure)
-	if count != 0 {
-		t.Errorf("expected 0, got %d", count)
+	matched := FilterInstancesByEventName(instances, haprobe.DbEventNameDetectFailure)
+	if len(matched) != 0 {
+		t.Errorf("expected 0, got %d", len(matched))
 	}
 }
 
@@ -85,9 +90,9 @@ func TestCountInstancesByEventName_NoMatch(t *testing.T) {
 // ============================================================
 
 func TestMatchProxyBackendSimultaneous_EmptyInstances(t *testing.T) {
-	count := MatchProxyBackendSimultaneous(nil)
-	if count != 0 {
-		t.Errorf("expected 0, got %d", count)
+	matched := MatchProxyBackendSimultaneous(nil)
+	if len(matched.ClusterKeys) != 0 {
+		t.Errorf("expected 0, got %d", len(matched.ClusterKeys))
 	}
 }
 
@@ -107,9 +112,12 @@ func TestMatchProxyBackendSimultaneous_SingleClusterBothTypes(t *testing.T) {
 			InstanceRole: haprobe.MySQLStorageMaster,
 		},
 	}
-	count := MatchProxyBackendSimultaneous(instances)
-	if count != 1 {
-		t.Errorf("expected 1, got %d", count)
+	matched := MatchProxyBackendSimultaneous(instances)
+	if len(matched.ClusterKeys) != 1 {
+		t.Errorf("expected 1, got %d", len(matched.ClusterKeys))
+	}
+	if len(matched.Instances) != 2 {
+		t.Errorf("expected 2 instances, got %d", len(matched.Instances))
 	}
 }
 
@@ -118,9 +126,9 @@ func TestMatchProxyBackendSimultaneous_SingleClusterOnlyProxy(t *testing.T) {
 		{BkCloudID: 1, ClusterID: 100, MachineType: haprobe.DbmMetadataMachineTypeProxy},
 		{BkCloudID: 1, ClusterID: 100, MachineType: haprobe.DbmMetadataMachineTypeProxy},
 	}
-	count := MatchProxyBackendSimultaneous(instances)
-	if count != 0 {
-		t.Errorf("expected 0, got %d", count)
+	matched := MatchProxyBackendSimultaneous(instances)
+	if len(matched.ClusterKeys) != 0 {
+		t.Errorf("expected 0, got %d", len(matched.ClusterKeys))
 	}
 }
 
@@ -128,9 +136,9 @@ func TestMatchProxyBackendSimultaneous_SingleClusterOnlyBackend(t *testing.T) {
 	instances := []FailureInstanceInfo{
 		{BkCloudID: 1, ClusterID: 100, MachineType: haprobe.DbmMetadataMachineTypeBackend, InstanceRole: haprobe.MySQLStorageMaster},
 	}
-	count := MatchProxyBackendSimultaneous(instances)
-	if count != 0 {
-		t.Errorf("expected 0, got %d", count)
+	matched := MatchProxyBackendSimultaneous(instances)
+	if len(matched.ClusterKeys) != 0 {
+		t.Errorf("expected 0, got %d", len(matched.ClusterKeys))
 	}
 }
 
@@ -140,9 +148,9 @@ func TestMatchProxyBackendSimultaneous_BackendButNotMaster(t *testing.T) {
 		{BkCloudID: 1, ClusterID: 100, MachineType: haprobe.DbmMetadataMachineTypeProxy},
 		{BkCloudID: 1, ClusterID: 100, MachineType: haprobe.DbmMetadataMachineTypeBackend, InstanceRole: haprobe.MySQLStorageSlave},
 	}
-	count := MatchProxyBackendSimultaneous(instances)
-	if count != 0 {
-		t.Errorf("expected 0, got %d", count)
+	matched := MatchProxyBackendSimultaneous(instances)
+	if len(matched.ClusterKeys) != 0 {
+		t.Errorf("expected 0, got %d", len(matched.ClusterKeys))
 	}
 }
 
@@ -159,9 +167,12 @@ func TestMatchProxyBackendSimultaneous_MultipleClustersPartialMatch(t *testing.T
 		{BkCloudID: 1, ClusterID: 300, ClusterType: haprobe.DbmMetadataClusterTypeTendbha, MachineType: haprobe.DbmMetadataMachineTypeBackend,
 			InstanceRole: haprobe.MySQLStorageMaster},
 	}
-	count := MatchProxyBackendSimultaneous(instances)
-	if count != 2 {
-		t.Errorf("expected 2, got %d", count)
+	matched := MatchProxyBackendSimultaneous(instances)
+	if len(matched.ClusterKeys) != 2 {
+		t.Errorf("expected 2, got %d", len(matched.ClusterKeys))
+	}
+	if len(matched.Instances) != 4 {
+		t.Errorf("expected 4 instances (cluster 100 + 300), got %d", len(matched.Instances))
 	}
 }
 
@@ -171,9 +182,9 @@ func TestMatchProxyBackendSimultaneous_DifferentCloudsSameCluster(t *testing.T) 
 		{BkCloudID: 1, ClusterID: 100, MachineType: haprobe.DbmMetadataMachineTypeProxy},
 		{BkCloudID: 2, ClusterID: 100, MachineType: haprobe.DbmMetadataMachineTypeBackend, InstanceRole: haprobe.MySQLStorageMaster},
 	}
-	count := MatchProxyBackendSimultaneous(instances)
-	if count != 0 {
-		t.Errorf("expected 0, got %d", count)
+	matched := MatchProxyBackendSimultaneous(instances)
+	if len(matched.ClusterKeys) != 0 {
+		t.Errorf("expected 0, got %d", len(matched.ClusterKeys))
 	}
 }
 
@@ -191,9 +202,12 @@ func TestMatchProxyBackendSimultaneous_MultipleProxiesAndBackends(t *testing.T) 
 		{BkCloudID: 1, ClusterID: 100, IP: "127.0.0.5", ClusterType: haprobe.DbmMetadataClusterTypeTendbha,
 			MachineType: haprobe.DbmMetadataMachineTypeBackend, InstanceRole: haprobe.MySQLStorageMaster},
 	}
-	count := MatchProxyBackendSimultaneous(instances)
-	if count != 1 {
-		t.Errorf("expected 1, got %d", count)
+	matched := MatchProxyBackendSimultaneous(instances)
+	if len(matched.ClusterKeys) != 1 {
+		t.Errorf("expected 1, got %d", len(matched.ClusterKeys))
+	}
+	if len(matched.Instances) != 5 {
+		t.Errorf("expected 5 instances, got %d", len(matched.Instances))
 	}
 }
 
@@ -202,9 +216,9 @@ func TestMatchProxyBackendSimultaneous_MultipleProxiesAndBackends(t *testing.T) 
 // ============================================================
 
 func TestMatchSpiderRemoteMasterSimultaneous_EmptyInstances(t *testing.T) {
-	count := MatchSpiderRemoteMasterSimultaneous(nil)
-	if count != 0 {
-		t.Errorf("expected 0, got %d", count)
+	matched := MatchSpiderRemoteMasterSimultaneous(nil)
+	if len(matched.ClusterKeys) != 0 {
+		t.Errorf("expected 0, got %d", len(matched.ClusterKeys))
 	}
 }
 
@@ -215,9 +229,12 @@ func TestMatchSpiderRemoteMasterSimultaneous_SingleClusterBothTypes(t *testing.T
 		{BkCloudID: 1, ClusterID: 100, ClusterType: haprobe.DbmMetadataClusterTypeTendbCluster,
 			MachineType: haprobe.DbmMetadataMachineTypeRemote, InstanceRole: haprobe.TenDBClusterStorageMaster},
 	}
-	count := MatchSpiderRemoteMasterSimultaneous(instances)
-	if count != 1 {
-		t.Errorf("expected 1, got %d", count)
+	matched := MatchSpiderRemoteMasterSimultaneous(instances)
+	if len(matched.ClusterKeys) != 1 {
+		t.Errorf("expected 1, got %d", len(matched.ClusterKeys))
+	}
+	if len(matched.Instances) != 2 {
+		t.Errorf("expected 2 instances, got %d", len(matched.Instances))
 	}
 }
 
@@ -226,9 +243,9 @@ func TestMatchSpiderRemoteMasterSimultaneous_SingleClusterOnlySpider(t *testing.
 		{BkCloudID: 1, ClusterID: 100, MachineType: haprobe.DbmMetadataMachineTypeSpider},
 		{BkCloudID: 1, ClusterID: 100, MachineType: haprobe.DbmMetadataMachineTypeSpider},
 	}
-	count := MatchSpiderRemoteMasterSimultaneous(instances)
-	if count != 0 {
-		t.Errorf("expected 0, got %d", count)
+	matched := MatchSpiderRemoteMasterSimultaneous(instances)
+	if len(matched.ClusterKeys) != 0 {
+		t.Errorf("expected 0, got %d", len(matched.ClusterKeys))
 	}
 }
 
@@ -236,9 +253,9 @@ func TestMatchSpiderRemoteMasterSimultaneous_SingleClusterOnlyRemoteMaster(t *te
 	instances := []FailureInstanceInfo{
 		{BkCloudID: 1, ClusterID: 100, MachineType: haprobe.DbmMetadataMachineTypeRemote, InstanceRole: haprobe.TenDBClusterStorageMaster},
 	}
-	count := MatchSpiderRemoteMasterSimultaneous(instances)
-	if count != 0 {
-		t.Errorf("expected 0, got %d", count)
+	matched := MatchSpiderRemoteMasterSimultaneous(instances)
+	if len(matched.ClusterKeys) != 0 {
+		t.Errorf("expected 0, got %d", len(matched.ClusterKeys))
 	}
 }
 
@@ -248,9 +265,9 @@ func TestMatchSpiderRemoteMasterSimultaneous_RemoteButNotMaster(t *testing.T) {
 		{BkCloudID: 1, ClusterID: 100, MachineType: haprobe.DbmMetadataMachineTypeSpider},
 		{BkCloudID: 1, ClusterID: 100, MachineType: haprobe.DbmMetadataMachineTypeRemote, InstanceRole: haprobe.TenDBClusterStorageSlave},
 	}
-	count := MatchSpiderRemoteMasterSimultaneous(instances)
-	if count != 0 {
-		t.Errorf("expected 0, got %d", count)
+	matched := MatchSpiderRemoteMasterSimultaneous(instances)
+	if len(matched.ClusterKeys) != 0 {
+		t.Errorf("expected 0, got %d", len(matched.ClusterKeys))
 	}
 }
 
@@ -269,9 +286,12 @@ func TestMatchSpiderRemoteMasterSimultaneous_MultipleClustersPartialMatch(t *tes
 		{BkCloudID: 1, ClusterID: 300, ClusterType: haprobe.DbmMetadataClusterTypeTendbCluster,
 			MachineType: haprobe.DbmMetadataMachineTypeRemote, InstanceRole: haprobe.TenDBClusterStorageMaster},
 	}
-	count := MatchSpiderRemoteMasterSimultaneous(instances)
-	if count != 2 {
-		t.Errorf("expected 2, got %d", count)
+	matched := MatchSpiderRemoteMasterSimultaneous(instances)
+	if len(matched.ClusterKeys) != 2 {
+		t.Errorf("expected 2, got %d", len(matched.ClusterKeys))
+	}
+	if len(matched.Instances) != 4 {
+		t.Errorf("expected 4 instances (cluster 100 + 300), got %d", len(matched.Instances))
 	}
 }
 
@@ -281,9 +301,9 @@ func TestMatchSpiderRemoteMasterSimultaneous_DifferentCloudsSameCluster(t *testi
 		{BkCloudID: 1, ClusterID: 100, MachineType: haprobe.DbmMetadataMachineTypeSpider},
 		{BkCloudID: 2, ClusterID: 100, MachineType: haprobe.DbmMetadataMachineTypeRemote, InstanceRole: haprobe.TenDBClusterStorageMaster},
 	}
-	count := MatchSpiderRemoteMasterSimultaneous(instances)
-	if count != 0 {
-		t.Errorf("expected 0, got %d", count)
+	matched := MatchSpiderRemoteMasterSimultaneous(instances)
+	if len(matched.ClusterKeys) != 0 {
+		t.Errorf("expected 0, got %d", len(matched.ClusterKeys))
 	}
 }
 
@@ -299,9 +319,12 @@ func TestMatchSpiderRemoteMasterSimultaneous_MultipleInstancesSameCluster(t *tes
 		{BkCloudID: 1, ClusterID: 100, IP: "127.0.0.4", ClusterType: haprobe.DbmMetadataClusterTypeTendbCluster,
 			MachineType: haprobe.DbmMetadataMachineTypeRemote, InstanceRole: haprobe.TenDBClusterStorageMaster},
 	}
-	count := MatchSpiderRemoteMasterSimultaneous(instances)
-	if count != 1 {
-		t.Errorf("expected 1, got %d", count)
+	matched := MatchSpiderRemoteMasterSimultaneous(instances)
+	if len(matched.ClusterKeys) != 1 {
+		t.Errorf("expected 1, got %d", len(matched.ClusterKeys))
+	}
+	if len(matched.Instances) != 4 {
+		t.Errorf("expected 4 instances, got %d", len(matched.Instances))
 	}
 }
 
@@ -416,47 +439,91 @@ func TestSortCandidates_Single(t *testing.T) {
 	}
 }
 
+func TestSortCandidates_SamePrioritySwitchBeforeNotify(t *testing.T) {
+	candidates := []*hamodel.DbSwitchingStrategy{
+		{BkBizID: 100, Priority: 1, Action: hamodel.ActionTypeNotify},
+		{BkBizID: 100, Priority: 1, Action: hamodel.ActionTypeSwitch},
+	}
+	SortCandidates(candidates)
+	if candidates[0].Action != hamodel.ActionTypeSwitch {
+		t.Errorf("expected switch before notify, got action=%s", candidates[0].Action)
+	}
+	if candidates[1].Action != hamodel.ActionTypeNotify {
+		t.Errorf("expected notify after switch, got action=%s", candidates[1].Action)
+	}
+}
+
+func TestSortCandidates_HigherPriorityNotifyBeforeSwitch(t *testing.T) {
+	candidates := []*hamodel.DbSwitchingStrategy{
+		{BkBizID: 100, Priority: 2, Action: hamodel.ActionTypeSwitch},
+		{BkBizID: 100, Priority: 1, Action: hamodel.ActionTypeNotify},
+	}
+	SortCandidates(candidates)
+	if candidates[0].Action != hamodel.ActionTypeNotify {
+		t.Errorf("expected notify (priority=1) before switch (priority=2), got action=%s", candidates[0].Action)
+	}
+	if candidates[1].Action != hamodel.ActionTypeSwitch {
+		t.Errorf("expected switch after notify, got action=%s", candidates[1].Action)
+	}
+}
+
 // ============================================================
-// 6. FormatInstanceEventSummary tests
+// 6. FormatInstanceNotifySummary tests
 // ============================================================
 
-func TestFormatInstanceEventSummary_Empty(t *testing.T) {
-	result := FormatInstanceEventSummary(nil)
+func TestFormatInstanceNotifySummary_Empty(t *testing.T) {
+	result := FormatInstanceNotifySummary(nil)
 	if result != "" {
 		t.Errorf("expected empty string, got %q", result)
 	}
 }
 
-func TestFormatInstanceEventSummary_SingleEventName(t *testing.T) {
+func TestFormatInstanceNotifySummary_SingleInstance(t *testing.T) {
 	instances := []FailureInstanceInfo{
-		{EventName: haprobe.DbEventNameDetectFailure},
-		{EventName: haprobe.DbEventNameDetectFailure},
-		{EventName: haprobe.DbEventNameDetectFailure},
+		{
+			Cluster:         "test-cluster",
+			ClusterID:       10,
+			IP:              "127.0.0.1",
+			Port:            3306,
+			EventName:       haprobe.DbEventNameDetectFailure,
+			EventNameReason: haprobe.DbEventNameReasonSSHAuthException,
+		},
 	}
-	result := FormatInstanceEventSummary(instances)
-	expected := "dbha_detect_db_failure:3"
+	result := FormatInstanceNotifySummary(instances)
+	expected := "cluster:test-cluster(10),inst:127.0.0.1:3306,event:dbha_detect_db_failure,reason:ssh auth failure"
 	if result != expected {
 		t.Errorf("expected %q, got %q", expected, result)
 	}
 }
 
-func TestFormatInstanceEventSummary_MultipleEventNames(t *testing.T) {
+func TestFormatInstanceNotifySummary_MultipleInstances(t *testing.T) {
 	instances := []FailureInstanceInfo{
-		{EventName: haprobe.DbEventNameDetectFailure},
-		{EventName: haprobe.DbEventNameDetectFailure},
-		{EventName: haprobe.DbEventNameProbeOffline},
+		{
+			Cluster:         "c1",
+			ClusterID:       1,
+			IP:              "127.0.0.1",
+			Port:            3306,
+			EventName:       haprobe.DbEventNameDetectFailure,
+			EventNameReason: haprobe.DbEventNameReasonConnectionException,
+		},
+		{
+			Cluster:         "c2",
+			ClusterID:       2,
+			IP:              "127.0.0.2",
+			Port:            3307,
+			EventName:       haprobe.DbEventNameProbeOffline,
+			EventNameReason: haprobe.DbEventNameReasonMissedProbe,
+		},
 	}
-	result := FormatInstanceEventSummary(instances)
+	result := FormatInstanceNotifySummary(instances)
 
-	// map iteration order is non-deterministic, so verify by containment
-	if !strings.Contains(result, "dbha_detect_db_failure:2") {
-		t.Errorf("result %q should contain 'dbha_detect_db_failure:2'", result)
+	// instances are joined by " | " in order
+	expectedParts := []string{
+		"cluster:c1(1),inst:127.0.0.1:3306,event:dbha_detect_db_failure,reason:connection exception",
+		"cluster:c2(2),inst:127.0.0.2:3307,event:dbha_probe_offline,reason:missed probe",
 	}
-	if !strings.Contains(result, "dbha_probe_offline:1") {
-		t.Errorf("result %q should contain 'dbha_probe_offline:1'", result)
-	}
-	// verify format: separated by ", "
-	if !strings.Contains(result, ", ") {
-		t.Errorf("result %q should contain ', ' separator", result)
+	expected := strings.Join(expectedParts, " | ")
+	if result != expected {
+		t.Errorf("expected %q, got %q", expected, result)
 	}
 }
