@@ -6,7 +6,7 @@
 
 - `deploy.sh`: 部署与更新脚本（支持按模块安装）
 - `render_configs.py`: 按模块用 `etc/dbha-v2.{server,probe}.rc` 与 `etc/templates/*.yaml` 渲染 `etc/*.yaml`
-- `compare_probe_config.py`: 比对两份 probe YAML，并检查 health / guard / cron（仅 Linux probe 包）
+- `compare_probe_config.py`: 校验本地 probe YAML 并检查 health / guard / cron（仅 Linux probe 包）。`-l` 必填；`-r` 与 `--admin-endpoints` 二选一。现场：`./compare_probe_config.py -l etc/probe.yaml --admin-endpoints 127.0.0.1:19001`（可加 `--cloud-id` / `--local-ip` / `--timeout`）。用 `--admin-endpoints` 时会调用 `dbha-probe gen-config` 拉 Admin 最新配置，按 gen-config 树上的 key/value 与本地比对（本地多出的 `admin` 等字段忽略）。`-r` 为离线整树比对，不连 Admin。
 - `setup.sh`: 交互式配置生成脚本（仅 server 侧使用）
 - `start-server.sh`: 启动 server 侧服务（admin/receiver/analysis）
 - `stop-server.sh`: 停止 server 侧服务（admin/receiver/analysis）

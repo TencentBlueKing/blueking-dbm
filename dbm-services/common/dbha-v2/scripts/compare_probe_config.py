@@ -1,7 +1,7 @@
 #!/bin/sh
 # -*- coding: utf-8 -*-
 # MIT License - same as dbha-v2 module
-# Compare two probe YAML configs. Usage: -l/--left and -r/--right.
+# Compare probe YAML. Usage: -l/--left with either -r/--right or --admin-endpoints.
 # Polyglot: sh picks python, python3, or python2; the interpreter skips this block.
 """:"
 for py in python python3 python2; do
@@ -21,6 +21,7 @@ import os
 import re
 import subprocess
 import sys
+import tempfile
 import time
 
 EXIT_EQUAL = 0
@@ -28,6 +29,8 @@ EXIT_DIFF = 1
 EXIT_ERROR = 2
 
 HEALTH_TIMEOUT_SEC = 10
+DEFAULT_GENCONFIG_TIMEOUT = "30s"
+GENCONFIG_LABEL = "gen-config"
 CRON_MARKER = "DBHA_V2_PROBE_GUARD"
 CRON_LOG_NAME = "dbha-v2-probe-cron.log"
 KIND_GUARD = "guard"
@@ -157,12 +160,12 @@ def is_container(value):
     return is_mapping(value) or is_sequence(value)
 
 
-def walk(path, left, right, diffs):
+def walk(path, left, right, diffs, ignore_extra_right=False):
     if is_mapping(left) and is_mapping(right):
-        walk_maps(path, left, right, diffs)
+        walk_maps(path, left, right, diffs, ignore_extra_right)
         return
     if is_sequence(left) and is_sequence(right):
-        walk_seqs(path, left, right, diffs)
+        walk_seqs(path, left, right, diffs, ignore_extra_right)
         return
     if is_container(left) or is_container(right):
         diffs.append(Diff(DIFF_VALUE, _path_or_root(path), left, right))
@@ -178,7 +181,7 @@ def _path_or_root(path):
     return "."
 
 
-def walk_maps(path, left, right, diffs):
+def walk_maps(path, left, right, diffs, ignore_extra_right=False):
     left_idx = key_index(left)
     right_idx = key_index(right)
     for text_key in sorted(set(left_idx.keys()) | set(right_idx.keys())):
@@ -189,19 +192,29 @@ def walk_maps(path, left, right, diffs):
             diffs.append(Diff(DIFF_ONLY_LEFT, child, left[left_idx[text_key]], None))
             continue
         if in_right and not in_left:
+            if ignore_extra_right:
+                continue
             diffs.append(Diff(DIFF_ONLY_RIGHT, child, None, right[right_idx[text_key]]))
             continue
-        walk(child, left[left_idx[text_key]], right[right_idx[text_key]], diffs)
+        walk(
+            child,
+            left[left_idx[text_key]],
+            right[right_idx[text_key]],
+            diffs,
+            ignore_extra_right,
+        )
 
 
-def walk_seqs(path, left, right, diffs):
+def walk_seqs(path, left, right, diffs, ignore_extra_right=False):
     unmatched_left, unmatched_right = drop_common_items(left, right)
     pairs, only_left, only_right = pair_items(unmatched_left, unmatched_right)
     for index, left_item, right_item in pairs:
-        walk("%s[%d]" % (path, index), left_item, right_item, diffs)
+        walk("%s[%d]" % (path, index), left_item, right_item, diffs, ignore_extra_right)
     for index, item in only_left:
         diffs.append(Diff(DIFF_ONLY_LEFT, "%s[%d]" % (path, index), item, None))
     for index, item in only_right:
+        if ignore_extra_right:
+            continue
         diffs.append(Diff(DIFF_ONLY_RIGHT, "%s[%d]" % (path, index), None, item))
 
 
@@ -309,6 +322,8 @@ def format_block(value, indent):
             if is_container(child) and child:
                 lines.append(pad + text_key + ":")
                 lines.extend(format_block(child, indent + 2))
+            elif text_key.lower() == "password":
+                lines.append(pad + text_key + ": ***")
             else:
                 lines.append(pad + text_key + ": " + format_inline(child))
         return lines
@@ -327,6 +342,22 @@ def format_block(value, indent):
     return [pad + format_scalar(value)]
 
 
+def redact_secrets(value):
+    if is_mapping(value):
+        out = {}
+        idx = key_index(value)
+        for text_key in idx:
+            child = value[idx[text_key]]
+            if text_key.lower() == "password":
+                out[text_key] = "***"
+            else:
+                out[text_key] = redact_secrets(child)
+        return out
+    if is_sequence(value):
+        return [redact_secrets(item) for item in value]
+    return value
+
+
 def render_field(label, text):
     return "    %-6s %s" % (label + ":", text)
 
@@ -340,12 +371,19 @@ def render_side(label, value):
 
 
 def render_diff(number, diff):
+    left = redact_secrets(diff.left)
+    right = redact_secrets(diff.right)
     lines = ["[%d] %s" % (number, DIFF_TITLES[diff.kind])]
     lines.append(render_field("path", diff.path))
+    secret_path = "password" in diff.path.lower()
     if diff.kind != DIFF_ONLY_RIGHT:
-        lines.extend(render_side("left", diff.left))
+        if secret_path and not is_container(left):
+            left = "***"
+        lines.extend(render_side("left", left))
     if diff.kind != DIFF_ONLY_LEFT:
-        lines.extend(render_side("right", diff.right))
+        if secret_path and not is_container(right):
+            right = "***"
+        lines.extend(render_side("right", right))
     return lines
 
 
@@ -743,6 +781,120 @@ def run_cmd(argv, cwd=None, timeout=HEALTH_TIMEOUT_SEC):
     return proc.returncode, to_unicode(out), to_unicode(err)
 
 
+def _nonempty(value):
+    if value is None:
+        return False
+    return to_text(value).strip() != ""
+
+
+def parse_cloud_id(text):
+    try:
+        value = int(text)
+    except (TypeError, ValueError):
+        raise argparse.ArgumentTypeError("cloud-id must be an integer >= 0")
+    if value < 0:
+        raise argparse.ArgumentTypeError("cloud-id must be an integer >= 0")
+    return value
+
+
+def parse_timeout_sec(text):
+    raw = to_text(text).strip()
+    if re.match(r"^\d+(\.\d+)?$", raw):
+        sec = float(raw)
+        if sec <= 0:
+            raise ValueError("timeout must be positive")
+        return sec
+    total = 0.0
+    pos = 0
+    token = re.compile(r"(\d+(?:\.\d+)?)(ms|s|m|h)")
+    for match in token.finditer(raw):
+        if match.start() != pos:
+            raise ValueError("invalid timeout: %s" % raw)
+        num = float(match.group(1))
+        unit = match.group(2)
+        if unit == "ms":
+            total += num / 1000.0
+        elif unit == "s":
+            total += num
+        elif unit == "m":
+            total += num * 60.0
+        else:
+            total += num * 3600.0
+        pos = match.end()
+    if pos != len(raw) or pos == 0:
+        raise ValueError("invalid timeout: %s" % raw)
+    if total <= 0:
+        raise ValueError("timeout must be positive")
+    return total
+
+
+def mode_error(args):
+    has_right = _nonempty(args.right)
+    has_admin = _nonempty(args.admin_endpoints)
+    if has_right and has_admin:
+        return "use either -r/--right or --admin-endpoints, not both"
+    if (not has_right) and (not has_admin):
+        return "need either -r/--right or --admin-endpoints"
+    extra = (
+        args.cloud_id is not None
+        or _nonempty(args.local_ip)
+        or _nonempty(args.local_ip_interface)
+        or args.timeout is not None
+    )
+    if has_right and extra:
+        return (
+            "-r/--right cannot be used with --cloud-id, --local-ip, "
+            "--local-ip-interface, or --timeout"
+        )
+    return None
+
+
+def unlink_quiet(path):
+    try:
+        os.remove(path)
+    except OSError:
+        pass
+
+
+def run_gen_config(bin_abs, install_root, args, timeout_sec):
+    fd, tmp_path = tempfile.mkstemp(prefix="probe-gen-config-", suffix=".yaml")
+    os.close(fd)
+    lock_path = tmp_path + ".lock"
+    timeout_str = args.timeout if _nonempty(args.timeout) else DEFAULT_GENCONFIG_TIMEOUT
+    cloud_id = 0 if args.cloud_id is None else args.cloud_id
+    argv = [
+        bin_abs,
+        "gen-config",
+        "--admin-endpoints",
+        to_text(args.admin_endpoints).strip(),
+        "--cloud-id",
+        str(cloud_id),
+        "--timeout",
+        timeout_str,
+        "-o",
+        tmp_path,
+    ]
+    if _nonempty(args.local_ip):
+        argv.extend(["--local-ip", to_text(args.local_ip).strip()])
+    elif _nonempty(args.local_ip_interface):
+        argv.extend(["--local-ip-interface", to_text(args.local_ip_interface).strip()])
+    wait_sec = timeout_sec + 2
+    try:
+        code, _out, err = run_cmd(argv, cwd=install_root, timeout=wait_sec)
+        if code is None:
+            return None, err or "gen-config failed"
+        if code != 0:
+            msg = err.strip() or "gen-config exited %s" % code
+            return None, msg
+        try:
+            return load_mapping(tmp_path), None
+        except LoadError as load_err:
+            return None, to_text(load_err)
+    finally:
+        unlink_quiet(tmp_path)
+        unlink_quiet(lock_path)
+
+
 def resolve_install_root(left_path, bin_path):
     left_abs = os.path.abspath(left_path)
     unix_left = left_abs.replace("\\", "/")
@@ -1130,19 +1282,48 @@ def render_check(title, ok_label, fail_label, result):
 
 def build_parser():
     parser = argparse.ArgumentParser(
-        description="Compare two probe YAML configs and check probe runtime health."
+        description=(
+            "Compare a local probe YAML with another file or with gen-config from admin, "
+            "then check probe runtime health."
+        )
     )
     parser.add_argument(
         "-l",
         "--left",
         required=True,
-        help="left YAML file",
+        help="local YAML file",
     )
     parser.add_argument(
         "-r",
         "--right",
-        required=True,
-        help="right YAML file",
+        default=None,
+        help="offline YAML file (mutually exclusive with --admin-endpoints)",
+    )
+    parser.add_argument(
+        "--admin-endpoints",
+        default=None,
+        help="admin host:port, separated by ; (mutually exclusive with -r/--right)",
+    )
+    parser.add_argument(
+        "--cloud-id",
+        default=None,
+        type=parse_cloud_id,
+        help="bk_cloud_id for gen-config (default: 0)",
+    )
+    parser.add_argument(
+        "--local-ip",
+        default=None,
+        help="probe local IP for gen-config",
+    )
+    parser.add_argument(
+        "--local-ip-interface",
+        default=None,
+        help="interface name when auto-detecting --local-ip",
+    )
+    parser.add_argument(
+        "--timeout",
+        default=None,
+        help="gen-config timeout (default: %s)" % DEFAULT_GENCONFIG_TIMEOUT,
     )
     parser.add_argument(
         "-b",
@@ -1165,36 +1346,69 @@ def emit_runtime(health, guard, cron):
         emit(line)
 
 
+def emit_yaml_result(diffs, left_label, right_label):
+    if not diffs:
+        emit("equal: no differences")
+        emit(render_field("left", left_label))
+        emit(render_field("right", right_label))
+        return
+    for line in render_report(diffs, left_label, right_label):
+        emit(line)
+
+
 def main(argv=None):
     parser = build_parser()
     args = parser.parse_args(argv)
-    try:
-        left = load_mapping(args.left)
-        right = load_mapping(args.right)
-    except LoadError as err:
+    err = mode_error(args)
+    if err:
         emit("error: %s" % err, sys.stderr)
         return EXIT_ERROR
 
-    diffs = []
-    walk("", left, right, diffs)
-    if not diffs:
-        emit("equal: no differences")
-        emit(render_field("left", args.left))
-        emit(render_field("right", args.right))
-    else:
-        for line in render_report(diffs, args.left, args.right):
-            emit(line)
+    try:
+        local_cfg = load_mapping(args.left)
+    except LoadError as load_err:
+        emit("error: %s" % load_err, sys.stderr)
+        return EXIT_ERROR
 
     left_abs = os.path.abspath(args.left)
     install_root = resolve_install_root(args.left, args.bin)
     bin_abs = resolve_bin_path(install_root, args.bin)
 
+    diffs = []
+    yaml_fatal = False
+    use_admin = _nonempty(args.admin_endpoints)
+    if use_admin:
+        timeout_str = args.timeout if _nonempty(args.timeout) else DEFAULT_GENCONFIG_TIMEOUT
+        try:
+            timeout_sec = parse_timeout_sec(timeout_str)
+        except ValueError as timeout_err:
+            emit("error: %s" % timeout_err, sys.stderr)
+            return EXIT_ERROR
+        expected, gen_err = run_gen_config(bin_abs, install_root, args, timeout_sec)
+        if gen_err:
+            emit("different: gen-config failed")
+            emit(render_field("left", GENCONFIG_LABEL))
+            emit(render_field("right", args.left))
+            emit(render_field("errmsg", gen_err))
+            yaml_fatal = True
+        else:
+            walk("", expected, local_cfg, diffs, ignore_extra_right=True)
+            emit_yaml_result(diffs, GENCONFIG_LABEL, args.left)
+    else:
+        try:
+            right_cfg = load_mapping(args.right)
+        except LoadError as load_err:
+            emit("error: %s" % load_err, sys.stderr)
+            return EXIT_ERROR
+        walk("", local_cfg, right_cfg, diffs)
+        emit_yaml_result(diffs, args.left, args.right)
+
     health = check_health(bin_abs, left_abs, install_root)
-    guard = check_guard(left, install_root, bin_abs, health.get("pid"))
+    guard = check_guard(local_cfg, install_root, bin_abs, health.get("pid"))
     cron = check_cron(install_root)
     emit_runtime(health, guard, cron)
 
-    if health.get("fatal") or guard.get("fatal") or cron.get("fatal"):
+    if yaml_fatal or health.get("fatal") or guard.get("fatal") or cron.get("fatal"):
         return EXIT_ERROR
     runtime_ok = health["ok"] and guard["ok"] and cron["ok"]
     if diffs or not runtime_ok:
