@@ -6,14 +6,13 @@
     <div class="openarea-permission-rule-selector">
       <div class="top-operate mb-16">
         <div class="search-main">
-          <DbSearchSelect
+          <DbQuickSearch
             v-model="searchSelectValue"
             class="mr-18"
             :data="searchSelectData"
+            parse-url
             :placeholder="t('请输入账号或DB名')"
             style="width: 520px"
-            tyle="width: 520px"
-            unique-select
             @change="handleSearchChange" />
           <BkCheckbox
             v-model="isOnlyShowSelected"
@@ -128,7 +127,6 @@
   </BkDialog>
 </template>
 <script setup lang="tsx">
-  import type { ISearchValue } from 'bkui-vue/lib/search-select/utils';
   import { useI18n } from 'vue-i18n';
 
   import MysqlPermissionAccountModel from '@services/model/mysql/mysql-permission-account';
@@ -136,10 +134,9 @@
 
   import type { AccountTypes } from '@common/const';
 
+  import { type Props as QuickSearchProps } from '@components/db-quick-search/bk-quick-search/Index.vue';
   import DbTable from '@components/db-table/IndexNew.vue';
   import TextOverflowLayout from '@components/text-overflow-layout/Index.vue';
-
-  import { getSearchSelectorParams } from '@utils';
 
   interface Props {
     accountType: AccountTypes.MYSQL | AccountTypes.TENDBCLUSTER;
@@ -165,7 +162,7 @@
   const tableRef = ref();
   const rowFlodMap = ref<Record<string, boolean>>({});
   const ruleCheckedMap = ref<Record<number, boolean>>({});
-  const searchSelectValue = ref<ISearchValue[]>([]);
+  const searchSelectValue = ref<Record<string, string>>({});
   const isOnlyShowSelected = ref(false);
 
   const checkedCount = computed(() => Object.keys(ruleCheckedMap.value).length);
@@ -173,19 +170,19 @@
   const searchSelectData = [
     {
       id: 'user',
-      multiple: true,
       name: t('账号名称'),
+      type: 'multiple-input',
     },
     {
       id: 'access_db',
-      multiple: true,
       name: t('访问DB'),
+      type: 'multiple-input',
     },
-  ];
+  ] as QuickSearchProps['data'];
 
   watch(isShow, () => {
     if (!isShow.value) {
-      searchSelectValue.value = [];
+      searchSelectValue.value = {};
       return;
     }
 
@@ -216,18 +213,17 @@
     });
   };
 
-  const handleSearchChange = (valueList: ISearchValue[]) => {
+  const handleSearchChange = (value: Record<string, string>) => {
     ruleCheckedMap.value = {};
-    const params = getSearchSelectorParams(valueList);
     tableRef.value.fetchData({
       account_type: props.accountType,
       cluster_id: props.clusterId,
-      ...params,
+      ...value,
     });
   };
 
   const handleClearSearch = () => {
-    searchSelectValue.value = [];
+    searchSelectValue.value = {};
     fetchTableData();
   };
 

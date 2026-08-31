@@ -19,12 +19,12 @@
     width="80%"
     @closed="handleClose">
     <div class="cluster-preview-content">
-      <DbSearchSelect
+      <DbQuickSearch
         v-model="searchSelectValue"
         class="mb-16"
         :data="searchSelectData"
+        parse-url
         :placeholder="t('请输入域名_集群名称')"
-        unique-select
         @change="handleChangeValues" />
       <BkLoading :loading="loading">
         <PrimaryTable
@@ -34,7 +34,7 @@
           <template #empty>
             <EmptyStatus
               :is-anomalies="isAnomalies"
-              :is-searching="searchSelectValue.length > 0"
+              :is-searching="Object.keys(searchSelectValue).length > 0"
               @clear-search="handleClearSearch"
               @refresh="fetchCluster" />
           </template>
@@ -59,7 +59,6 @@
 </template>
 
 <script setup lang="tsx">
-  import type { ISearchValue } from 'bkui-vue/lib/search-select/utils';
   import type { PrimaryTableCol } from 'tdesign-vue-next';
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
@@ -70,8 +69,6 @@
 
   import RenderClusterStatus from '@components/cluster-status/Index.vue';
   import EmptyStatus from '@components/empty-status/EmptyStatus.vue';
-
-  import { getSearchSelectorParams } from '@utils';
 
   interface Props {
     clusterIds?: number[];
@@ -117,7 +114,7 @@
   ];
 
   const isAnomalies = ref(false);
-  const searchSelectValue = ref<ISearchValue[]>([]);
+  const searchSelectValue = ref<Record<string, string>>({});
   const pagination = ref(useDefaultPagination());
 
   const {
@@ -146,7 +143,7 @@
     getMongoListRun({
       cluster_ids: props.clusterIds.join(','),
       ...pagination.value.getFetchParams(),
-      ...getSearchSelectorParams(searchSelectValue.value),
+      ...searchSelectValue.value,
     });
   };
 
@@ -167,13 +164,13 @@
   };
 
   const handleClearSearch = () => {
-    searchSelectValue.value = [];
+    searchSelectValue.value = {};
     handleChangePage(1);
   };
 
   const handleClose = () => {
     isShow.value = false;
-    searchSelectValue.value = [];
+    searchSelectValue.value = {};
     pagination.value = useDefaultPagination();
   };
 </script>
