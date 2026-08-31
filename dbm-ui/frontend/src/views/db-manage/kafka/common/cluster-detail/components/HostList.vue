@@ -54,7 +54,7 @@
             :disabled="isBatchReplaceDisabeld || clusterData?.operationDisabled"
             :resource="clusterData.id"
             @click="handleShowReplace">
-            {{ $t('替换') }}
+            {{ t('替换') }}
           </AuthButton>
         </span>
       </OperationBtnStatusTips>
@@ -78,13 +78,13 @@
         <template #content>
           <BkDropdownMenu>
             <BkDropdownItem @click="handleCopyAll">
-              {{ $t('复制所有IP') }}
+              {{ t('复制所有IP') }}
             </BkDropdownItem>
             <BkDropdownItem @click="handleCopeFailed">
-              {{ $t('复制异常IP') }}
+              {{ t('复制异常IP') }}
             </BkDropdownItem>
             <BkDropdownItem @click="handleCopeActive">
-              {{ $t('复制已选IP') }}
+              {{ t('复制已选IP') }}
             </BkDropdownItem>
           </BkDropdownMenu>
         </template>

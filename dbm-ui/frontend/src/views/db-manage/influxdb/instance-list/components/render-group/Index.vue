@@ -26,7 +26,7 @@
         <span
           v-overflow-tips
           class="group-item-name text-overflow">
-          {{ $t('全部实例') }}
+          {{ t('全部实例') }}
         </span>
         <span class="group-item-nums">{{ totalInstances }}</span>
       </div>
@@ -61,7 +61,7 @@
                 action-id="group_manage"
                 :permission="item.permission.group_manage">
                 <DbIcon
-                  v-bk-tooltips="$t('修改名称')"
+                  v-bk-tooltips="t('修改名称')"
                   class="group-item-btn mr-8"
                   type="edit"
                   @click.stop="handleEdit(item.id)" />
@@ -71,7 +71,7 @@
                 action-id="group_manage"
                 :permission="item.permission.group_manage">
                 <DbIcon
-                  v-bk-tooltips="$t('分组下存在实例_不可删除')"
+                  v-bk-tooltips="t('分组下存在实例_不可删除')"
                   class="group-item-btn is-disabled"
                   type="delete"
                   @click.stop />
@@ -82,10 +82,10 @@
                 :permission="item.permission.group_manage">
                 <DbPopconfirm
                   :confirm-handler="() => handleDelete(item)"
-                  :content="$t('删除后将不可恢复_请确认操作')"
-                  :title="$t('确认删除该分组')">
+                  :content="t('删除后将不可恢复_请确认操作')"
+                  :title="t('确认删除该分组')">
                   <DbIcon
-                    v-bk-tooltips="$t('删除')"
+                    v-bk-tooltips="t('删除')"
                     class="group-item-btn"
                     type="delete"
                     @click.stop />
@@ -109,7 +109,7 @@
           <DbIcon
             class="mr-4"
             type="plus-circle" />
-          {{ $t('添加分组') }}
+          {{ t('添加分组') }}
         </AuthButton>
       </div>
     </BkLoading>

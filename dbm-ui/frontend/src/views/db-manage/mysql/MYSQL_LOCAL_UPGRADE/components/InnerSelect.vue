@@ -47,7 +47,7 @@
           <BkInput
             v-model="searchKey"
             behavior="simplicity"
-            placeholder="请输入字段名搜索">
+            :placeholder="t('请输入字段名搜索')">
             <template #prefix>
               <span style="font-size: 14px; color: #979ba5">
                 <DbIcon type="search" />
@@ -75,7 +75,7 @@
         <div
           v-if="renderList.length < 1"
           style="color: #63656e; text-align: center">
-          数据为空
+          {{ t('数据为空') }}
         </div>
         <div
           v-if="slots.footer"
@@ -90,6 +90,7 @@
   import _ from 'lodash';
   import tippy, { type Instance, type SingleTarget } from 'tippy.js';
   import { computed, onBeforeUnmount, onMounted, ref, useSlots, watch } from 'vue';
+  import { useI18n } from 'vue-i18n';
 
   import { useDebouncedRef } from '@hooks';
 
@@ -130,6 +131,8 @@
     textarea: false,
   });
   const emits = defineEmits<Emits>();
+
+  const { t } = useI18n();
 
   let tippyIns: Instance;
 

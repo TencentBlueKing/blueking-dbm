@@ -72,7 +72,7 @@
         text
         theme="primary"
         @click="handleDelete">
-        {{ $t('删除') }}
+        {{ t('删除') }}
       </BkButton>
     </FixedColumn>
   </tr>
@@ -126,6 +126,8 @@
   });
 </script>
 <script setup lang="ts">
+  import { useI18n } from 'vue-i18n';
+
   interface Props {
     data: IDataRow;
     index: number;
@@ -146,6 +148,8 @@
   const props = defineProps<Props>();
 
   const emits = defineEmits<Emits>();
+
+  const { t } = useI18n();
 
   const sourceClusterRef = ref<InstanceType<typeof RenderSourceCluster>>();
   const instanceIdRef = ref<InstanceType<typeof RenderInstanceId>>();

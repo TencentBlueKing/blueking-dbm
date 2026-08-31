@@ -39,12 +39,12 @@
           style="min-width: 88px"
           theme="primary"
           @click="handleConfirm">
-          {{ confirmText || $t('提交') }}
+          {{ confirmText || t('提交') }}
         </BkButton>
         <BkButton
           style="min-width: 88px"
           @click="handleCancle">
-          {{ cancelText || $t('取消') }}
+          {{ cancelText || t('取消') }}
         </BkButton>
       </slot>
     </template>
@@ -53,6 +53,7 @@
 <script setup lang="ts">
   import _ from 'lodash';
   import { ref, useAttrs, useSlots, watch } from 'vue';
+  import { useI18n } from 'vue-i18n';
 
   import { useModelProvider } from '@hooks';
 
@@ -88,6 +89,8 @@
   });
 
   const emit = defineEmits<Emits>();
+
+  const { t } = useI18n();
 
   const attrs = useAttrs();
   const slots = useSlots();

@@ -22,7 +22,7 @@
       ref="editRef"
       v-model="localDomain"
       multi-input
-      placeholder="请输入集群，使用换行分割一次可输入多个"
+      :placeholder="t('请输入集群_使用换行分割一次可输入多个')"
       :rules="rules"
       @multi-input="handleMultiInput"
       @submit="handleEditSubmit" />
@@ -62,7 +62,7 @@
           v-if="isShowRelateMemo"
           :loading="isRelateLoading">
           <div style="margin-bottom: 8px; font-size: 12px; line-height: 16px">
-            <span style="font-weight: bold; color: #313238">同机关联集群</span>
+            <span style="font-weight: bold; color: #313238">{{ t('同机关联集群') }}</span>
             <span style="color: #63656e">（{{ relateClusterTips }}）</span>
           </div>
           <div style="max-height: 300px; overflow: auto">
@@ -82,7 +82,7 @@
             <p
               v-else
               style="color: #63656e">
-              无同机关联集群
+              {{ t('无同机关联集群') }}
             </p>
           </div>
         </BkLoading>
@@ -97,6 +97,7 @@
   import _ from 'lodash';
   import tippy, { type Instance, type SingleTarget } from 'tippy.js';
   import { onBeforeUnmount, ref, shallowRef, watch } from 'vue';
+  import { useI18n } from 'vue-i18n';
 
   import { findRelatedClustersByClusterIds, queryClusters } from '@services/source/mysqlCluster';
 
@@ -134,6 +135,8 @@
     relateClusterTips: '同主机关联的其他集群，勾选后一同克隆',
   });
   const emits = defineEmits<Emits>();
+
+  const { t } = useI18n();
 
   const instanceKey = `render_cluster_instance_${random()}`;
   clusterIdMemo[instanceKey] = {};

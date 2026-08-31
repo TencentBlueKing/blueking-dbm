@@ -38,7 +38,7 @@
                 <strong>{{ errorState.format.count }}</strong>
               </I18nT>
               <DbIcon
-                v-bk-tooltips="$t('标记错误')"
+                v-bk-tooltips="t('标记错误')"
                 class="manual-input-icons"
                 type="audit"
                 @click="handleSelectionError('format')" />
@@ -50,7 +50,7 @@
                 <strong>{{ errorState.instance.count }}</strong>
               </I18nT>
               <DbIcon
-                v-bk-tooltips="$t('标记错误')"
+                v-bk-tooltips="t('标记错误')"
                 class="manual-input-icons"
                 type="audit"
                 @click="handleSelectionError('instance')" />
@@ -65,13 +65,13 @@
               size="small"
               theme="primary"
               @click="handleParsingValues">
-              {{ $t('解析并添加') }}
+              {{ t('解析并添加') }}
             </BkButton>
             <BkButton
               class="w-88"
               size="small"
               @click="handleClear">
-              {{ $t('清空') }}
+              {{ t('清空') }}
             </BkButton>
           </div>
         </div>

@@ -16,7 +16,7 @@
     <div class="search-box">
       <BkInput
         v-model="searchKey"
-        :placeholder="$t('集群名称')" />
+        :placeholder="t('集群名称')" />
     </div>
     <BkLoading :loading="isLoading">
       <div
@@ -59,6 +59,7 @@
 </template>
 <script setup lang="ts">
   import { ref, shallowRef, watch } from 'vue';
+  import { useI18n } from 'vue-i18n';
 
   import { useDebouncedRef } from '@hooks';
 
@@ -79,6 +80,8 @@
 
   const props = defineProps<Props>();
   const emits = defineEmits<Emits>();
+
+  const { t } = useI18n();
 
   const globalBizsStore = useGlobalBizs();
 

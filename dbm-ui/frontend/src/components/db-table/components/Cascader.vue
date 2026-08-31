@@ -8,7 +8,7 @@
         autofocus
         borderless
         clearable
-        placeholder="请输入关键字">
+        :placeholder="t('请输入关键字')">
         <template #prefix-icon> <SearchIcon /></template>
       </Input>
     </div>
@@ -55,7 +55,7 @@
     <div
       v-if="isSearch && renderSearchList.length < 1"
       class="bk-quick-search-type-menu-filter-empty">
-      未搜索到 "{{ keyword }}" 相关数据
+      {{ t('未搜索到 “{n}” 相关数据', { n: keyword }) }}
     </div>
   </div>
 </template>
@@ -64,6 +64,7 @@
   import { SearchIcon } from 'tdesign-icons-vue-next';
   import { Input, Radio } from 'tdesign-vue-next';
   import { onMounted, ref } from 'vue';
+  import { useI18n } from 'vue-i18n';
 
   interface Props {
     keyword: string;
@@ -90,6 +91,8 @@
   const modelValue = defineModel<IResult[]>({
     default: () => [],
   });
+
+  const { t } = useI18n();
 
   const serachKey = ref('');
   const parentKey = ref<string | number>('');

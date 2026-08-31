@@ -15,7 +15,7 @@
   <BkException
     v-if="isEmpty"
     class="mt-50"
-    :description="$t('暂无数据_请从左侧添加对象')"
+    :description="t('暂无数据_请从左侧添加对象')"
     scene="part"
     type="empty" />
   <template v-else>
@@ -47,6 +47,7 @@
 </template>
 <script setup lang="tsx">
   import _ from 'lodash';
+  import { useI18n } from 'vue-i18n';
 
   import type { SelectMapValueType } from '../../../Index.vue';
 
@@ -69,6 +70,8 @@
   });
 
   const emits = defineEmits<Emits>();
+
+  const { t } = useI18n();
 
   // 选中结果是否为空
   const isEmpty = computed(() => _.every(Object.values(props.selectedMap), (item) => item.list.length === 0));

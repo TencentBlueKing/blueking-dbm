@@ -17,16 +17,16 @@
     :operations="operations"
     :table-props="tableData">
     <template #title>
-      【白名单】
-      <span class="pr-4">- 共 </span>
+      【{{ t('白名单') }}】
+      <span class="pr-4">- {{ t('共') }} </span>
       <span v-if="totals.ipNums > 0">
         <span class="bk-ip-selector-number">{{ totals.ipNums }}</span>
-        台
+        {{ t('台') }}
       </span>
       <span v-if="totals.symbolNums > 0">
         <template v-if="totals.ipNums > 0 && totals.symbolNums > 0">，</template>
         <span class="bk-ip-selector-number">{{ totals.symbolNums }}</span>
-        个通配
+        {{ t('个通配') }}
       </span>
     </template>
   </DBCollapseTable>

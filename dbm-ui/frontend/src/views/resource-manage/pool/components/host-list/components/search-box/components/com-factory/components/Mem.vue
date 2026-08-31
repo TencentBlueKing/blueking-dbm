@@ -20,7 +20,7 @@
       :min="1"
       type="number"
       @change="handleChange" />
-    <div class="ml-12 mr-12">至</div>
+    <div class="ml-12 mr-12">{{ t('至') }}</div>
     <BkInput
       v-model="max"
       allow-empty-value
@@ -32,6 +32,7 @@
 </template>
 <script setup lang="ts">
   import { ref, watch } from 'vue';
+  import { useI18n } from 'vue-i18n';
 
   interface Props {
     defaultValue?: [number, number];
@@ -47,6 +48,8 @@
   const props = defineProps<Props>();
 
   const emits = defineEmits<Emits>();
+
+  const { t } = useI18n();
 
   const min = ref();
   const max = ref();

@@ -25,7 +25,7 @@
             <BkInput
               v-model="treeSearch"
               clearable
-              :placeholder="$t('搜索拓扑节点')" />
+              :placeholder="t('搜索拓扑节点')" />
             <div :class="!isCloseAlert ? 'topo-alert-box' : 'topo-box'">
               <component
                 :is="TopoAlertContent"
@@ -44,7 +44,7 @@
                 <template #node="item">
                   <div class="custom-tree-node">
                     <span class="custom-tree-node__tag">
-                      {{ item.obj === 'biz' ? $t('业') : $t('集') }}
+                      {{ item.obj === 'biz' ? t('业') : t('集') }}
                     </span>
                     <span
                       v-overflow-tips
@@ -79,6 +79,8 @@
   </BkLoading>
 </template>
 <script setup lang="ts">
+  import { useI18n } from 'vue-i18n';
+
   import type { InstanceSelectorValues, IValue, PanelListType, TableSetting } from '../../Index.vue';
 
   import RenderTopoHost from './table/Index.vue';
@@ -128,6 +130,8 @@
     totalCountFunc: undefined,
   });
   const emits = defineEmits<Emits>();
+
+  const { t } = useI18n();
 
   const treeSearch = ref('');
   const isCloseAlert = ref(false);

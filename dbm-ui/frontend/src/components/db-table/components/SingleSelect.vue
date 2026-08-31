@@ -6,7 +6,7 @@
         autofocus
         borderless
         clearable
-        placeholder="请输入关键字">
+        :placeholder="t('请输入关键字')">
         <template #prefix-icon> <SearchIcon /></template>
       </Input>
     </div>
@@ -35,7 +35,7 @@
     <div
       v-if="filterKey && renderList.length < 1"
       class="t-table__filter-pop-search-empty">
-      未搜索到 "{{ filterKey }}" 相关数据
+      {{ t('未搜索到 “{n}” 相关数据', { n: filterKey }) }}
     </div>
   </div>
 </template>
@@ -44,6 +44,7 @@
   import { SearchIcon } from 'tdesign-icons-vue-next';
   import { Input, Radio, RadioGroup } from 'tdesign-vue-next';
   import { nextTick, ref, shallowRef, useTemplateRef, watch } from 'vue';
+  import { useI18n } from 'vue-i18n';
 
   import { makeMap } from '@utils';
 
@@ -78,6 +79,8 @@
     value: '',
   });
   const emits = defineEmits<Emits>();
+
+  const { t } = useI18n();
 
   const {
     filterKey,

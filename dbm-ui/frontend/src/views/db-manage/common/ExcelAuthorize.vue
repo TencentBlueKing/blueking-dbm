@@ -13,7 +13,7 @@
 
 <template>
   <BkDialog
-    confirm-text="导入"
+    :confirm-text="t('导入')"
     :esc-close="false"
     :is-show="isShow"
     :quick-close="false"

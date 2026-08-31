@@ -14,9 +14,9 @@
 <template>
   <div class="sql-execute-sql-file-list">
     <div class="file-list-title">
-      <span>{{ $t('文件列表') }}</span>
+      <span>{{ t('文件列表') }}</span>
       <span style="font-size: 12px; font-weight: normal; color: #979ba5">
-        {{ $t('按顺序执行') }}
+        {{ t('按顺序执行') }}
       </span>
     </div>
     <div class="file-list">
@@ -39,6 +39,7 @@
 </template>
 <script setup lang="ts">
   import { ref, watch } from 'vue';
+  import { useI18n } from 'vue-i18n';
 
   import { getSQLFilename } from '@utils';
 
@@ -52,6 +53,8 @@
   const props = defineProps<Props>();
 
   const emits = defineEmits<Emits>();
+
+  const { t } = useI18n();
 
   const localList = ref<Array<Record<'id' | 'name', string>>>([]);
 
