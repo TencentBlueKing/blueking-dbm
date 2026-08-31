@@ -147,7 +147,7 @@ export default defineConfig(({ mode }) => {
       cssCodeSplit: true,
       assetsInlineLimit: 0,
       modulePreload: { polyfill: false },
-      manifest: true,
+      manifest: 'manifest.json',
       rolldownOptions: {
         output: {
           codeSplitting: {
