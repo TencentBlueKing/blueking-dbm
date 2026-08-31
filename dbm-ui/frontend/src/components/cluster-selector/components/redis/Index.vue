@@ -16,9 +16,7 @@
     v-model="searchValue"
     :cluster-type="activeTab"
     :search-attrs="searchAttrs"
-    :search-select-list="searchSelectList"
-    @search-value-change="handleSearchValueChange"
-    @tag-value-change="fetchResources" />
+    :search-select-list="searchSelectList" />
   <BkLoading
     :loading="isLoading"
     :z-index="2">
@@ -26,7 +24,7 @@
       class="table-box"
       :columns="generatedColumns"
       :data="tableData"
-      :filter-value="columnCheckedMap"
+      :filter-value="searchValue"
       :max-height="472"
       :row-class-name="getRowClass"
       row-key="id"
@@ -35,7 +33,7 @@
       <template #empty>
         <EmptyStatus
           :is-anomalies="isAnomalies"
-          :is-searching="searchValue.length > 0"
+          :is-searching="Object.keys(searchValue).length > 0"
           @clear-search="clearSearchValue"
           @refresh="fetchResources" />
       </template>
@@ -53,7 +51,7 @@
   import { Checkbox, type PrimaryTableCol } from 'tdesign-vue-next';
   import { useI18n } from 'vue-i18n';
 
-  import { useLinkQueryColumnSerach } from '@hooks';
+  import { useSelectorSearch } from '@hooks';
 
   import { ClusterTypes } from '@common/const';
 
@@ -63,7 +61,7 @@
 
   import ClusterDetailRelatedTicket from '@views/db-manage/common/ClusterDetailRelatedTicket.vue';
 
-  import { getSearchSelectorParams } from '@utils';
+  import { transfromDataToQuery } from '@utils';
 
   import type { TabItem } from '../../Index.vue';
   import { tagsColumn, transBkuiColumns } from '../common/columns';
@@ -119,22 +117,10 @@
 
   const { t } = useI18n();
 
-  const {
-    clearSearchValue,
-    columnAttrs,
-    columnCheckedMap,
-    handleSearchValueChange,
-    searchAttrs,
-    searchValue,
-    tableColumnFilterChange,
-  } = useLinkQueryColumnSerach({
-    attrs: ['bk_cloud_id', 'major_version', 'region', 'time_zone', 'cluster_type'],
-    defaultSearchItem: {
-      id: 'domain',
-      name: t('访问入口'),
-    },
-    searchType: ClusterTypes.REDIS,
-  });
+  const { clearSearchValue, columnAttrs, handleFilterChange, searchAttrs, searchValue } = useSelectorSearch(
+    ClusterTypes.REDIS,
+    ['bk_cloud_id', 'major_version', 'region', 'time_zone', 'cluster_type'],
+  );
 
   const {
     data: tableData,
@@ -344,29 +330,6 @@
     return columns.value;
   });
 
-  const handleFilterChange = (filterValue: Record<string, string[]>) => {
-    tableColumnFilterChange(filterValue, {
-      bk_cloud_id: {
-        list: (columnAttrs.value.bk_cloud_id || []).map((item) => ({
-          label: item.text,
-          value: item.value,
-        })),
-        name: t('管控区域'),
-      },
-      cluster_type: {
-        list: (columnAttrs.value.cluster_type || []).map((item) => ({
-          label: item.text,
-          value: item.value,
-        })),
-        name: t('架构版本'),
-      },
-      status: {
-        list: statusFilterList.value,
-        name: t('状态'),
-      },
-    });
-  };
-
   watch(
     () => [props.activeTab, props.selected],
     () => {
@@ -386,7 +349,7 @@
     () => activeTab.value,
     () => {
       if (activeTab.value) {
-        searchValue.value = [];
+        searchValue.value = {};
         handleTablePageChange(1);
       }
     },
@@ -408,7 +371,7 @@
           bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
           limit: -1,
           offset: 0,
-          ...getSearchSelectorParams(searchValue.value),
+          ...transfromDataToQuery(searchValue.value),
         })
         .then((data) => {
           data.results.forEach((dataItem) => {

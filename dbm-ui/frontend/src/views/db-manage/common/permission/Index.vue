@@ -36,13 +36,12 @@
           @click="handleShowAccountDialog">
           {{ t('新建账号') }}
         </AuthButton>
-        <DbSearchSelect
+        <DbQuickSearch
           v-model="tableSearch"
           :data="filters"
+          parse-url
           :placeholder="t('账号名称_DB名称_权限名称')"
           style="width: 500px"
-          unique-select
-          value-behavior="need-key"
           @change="handleSearchChange" />
       </div>
       <DbTable
@@ -116,6 +115,7 @@
 
   import PermissionCatch from '@components/apply-permission/Catch.vue';
   import AuthTemplate from '@components/auth-component/component.vue';
+  import { type Props as QuickSearchProps } from '@components/db-quick-search/bk-quick-search/Index.vue';
   import DbTable from '@components/db-table/IndexNew.vue';
   import TextOverflowLayout from '@components/text-overflow-layout/Index.vue';
 
@@ -124,8 +124,6 @@
   import MongoCreateRule from '@views/db-manage/common/permission/components/mongo/CreateRule.vue';
   import MysqlCreateRule from '@views/db-manage/common/permission/components/mysql/create-rule/Index.vue';
   import SqlserverCreateRule from '@views/db-manage/common/permission/components/sqlserver/CreateRule.vue';
-
-  import { getSearchSelectorParams } from '@utils';
 
   import AccountCreate from './components/common/AccountCreate.vue';
   import AccountDetail from './components/common/AccountDetail.vue';
@@ -266,7 +264,7 @@
   });
 
   const tableRef = ref<InstanceType<typeof DbTable>>();
-  const tableSearch = ref([]);
+  const tableSearch = ref<Record<string, string>>({});
   const clusterAuthorizeRef = ref<InstanceType<typeof ClusterAuthorize>>();
   /**
    * 集群授权
@@ -323,21 +321,20 @@
       name: t('DB名称'),
     },
     {
-      children: Object.values(configMap[props.accountType].dbOperations).reduce<
+      id: 'privilege',
+      list: Object.values(configMap[props.accountType].dbOperations).reduce<
         {
-          id: string;
-          name: string;
+          label: string;
+          value: string;
         }[]
       >((acc, item) => {
-        acc.push(...item.map((id) => ({ id: id.toLowerCase(), name: id })));
+        acc.push(...item.map((id) => ({ label: id, value: id.toLowerCase() })));
         return acc;
       }, []),
-      id: 'privilege',
-      logical: '&',
-      multiple: true,
       name: t('权限'),
+      type: 'multiple',
     },
-  ];
+  ] as QuickSearchProps['data'];
 
   // 判断是否为新账号规则
   const isNewUser = (row: PermissionRule) => {
@@ -597,7 +594,7 @@
   const dataSource = (params: ServiceParameters<typeof getMysqlPermissionRules>) =>
     configMap[props.accountType].dataSource({
       ...params,
-      ...getSearchSelectorParams(tableSearch.value),
+      ...tableSearch.value,
       account_type: props.accountType,
     });
 
@@ -610,7 +607,7 @@
   };
 
   const handleClearSearch = () => {
-    tableSearch.value = [];
+    tableSearch.value = {};
     fetchData();
   };
 

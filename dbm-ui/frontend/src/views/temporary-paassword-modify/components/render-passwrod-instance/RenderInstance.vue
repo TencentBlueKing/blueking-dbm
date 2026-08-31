@@ -53,10 +53,11 @@
           :placeholder="t('请选择')"
           type="datetimerange"
           @change="fetchData" />
-        <DbSearchSelect
+        <DbQuickSearch
           v-model="searchParams.keys"
           class="ml-8 search-select"
           :data="searchSelectData"
+          parse-url
           :placeholder="t('请输入实例搜索')"
           @change="fetchData" />
       </div>
@@ -198,10 +199,11 @@
 
   import { DBTypes, OccupiedInnerHeight } from '@common/const';
 
+  import { type Props as QuickSearchProps } from '@components/db-quick-search/bk-quick-search/Index.vue';
   import DbTable from '@components/db-table/IndexNew.vue';
   import TextOverflowLayout from '@components/text-overflow-layout/Index.vue';
 
-  import { execCopy, getSearchSelectorParams, messageWarn } from '@utils';
+  import { execCopy, messageWarn } from '@utils';
 
   const isShow = defineModel<boolean>({ default: false, required: true });
   const dbType = defineModel<DBTypes>('dbType', { default: DBTypes.MYSQL });
@@ -220,7 +222,7 @@
   const selected = shallowRef<AdminPasswordModel[]>([]);
 
   const searchParams = reactive({
-    keys: [],
+    keys: {} as Record<string, string>,
     time: ['', ''] as [string, string],
   });
 
@@ -239,7 +241,9 @@
     [DBTypes.TENDBCLUSTER]: 'tendbcluster_admin_pwd_view',
   };
 
-  const searchSelectData = [{ id: 'instances', name: t('IP 或 IP:Port') }];
+  const searchSelectData = [
+    { id: 'instances', name: t('IP 或 IP:Port'), type: 'multiple-input' },
+  ] as QuickSearchProps['data'];
 
   // 表格数据源：缓存命中时前端分页 / 排序，未命中时全量拉取列表
   const dataSource = async (params: Record<string, any>, payload?: IRequestPayload) => {
@@ -345,7 +349,7 @@
   };
 
   const fetchData = () => {
-    const params = { ...getSearchSelectorParams(searchParams.keys) };
+    const params = { ...searchParams.keys };
     if (searchParams.time.length) {
       const [beginTime, endTime] = searchParams.time;
       if (beginTime && endTime) {

@@ -80,13 +80,12 @@
         </BkDropdown>
       </span>
       <div class="instances-view-operations-right">
-        <DbSearchSelect
+        <DbQuickSearch
           v-model="search"
-          clearable
           :data="searchSelectData"
+          parse-url
           :placeholder="t('请选择条件搜索')"
           style="width: 500px"
-          :validate-values="validateValues"
           @change="fetchTableData" />
       </div>
     </div>
@@ -295,7 +294,6 @@
 
 <script setup lang="tsx">
   import { InfoBox } from 'bkui-vue';
-  import type { ISearchValue } from 'bkui-vue/lib/search-select/utils';
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
@@ -310,13 +308,14 @@
   import { TicketTypes } from '@common/const';
   import { ipPort, ipv4 } from '@common/regex';
 
+  import { type Props as QuickSearchProps } from '@components/db-quick-search/bk-quick-search/Index.vue';
   import DbTable from '@components/db-table/IndexNew.vue';
   import MiniTag from '@components/mini-tag/index.vue';
   import TextOverflowLayout from '@components/text-overflow-layout/Index.vue';
 
   import RenderOperationTagNew from '@views/db-manage/common/RenderOperationTagNew.vue';
 
-  import { execCopy, getSearchSelectorParams } from '@utils';
+  import { execCopy } from '@utils';
 
   import AppendSubscribeSlider from '../append-subscribe/Index.vue';
 
@@ -340,10 +339,13 @@
     {
       id: 'address',
       name: t('实例'),
+      type: 'multiple-input',
+      validator: (value: string) => ipPort.test(value) || t('格式错误'),
     },
     {
       id: 'ip',
       name: 'IP',
+      validator: (value: string) => ipv4.test(value) || t('格式错误'),
     },
     {
       id: 'dumper_id',
@@ -354,47 +356,47 @@
       name: t('数据源集群'),
     },
     {
-      children: [
+      id: 'protocol_type',
+      list: [
         {
-          id: 'KAFKA',
-          name: 'KAFKA',
+          label: 'KAFKA',
+          value: 'KAFKA',
         },
         {
-          id: 'L5_AGENT',
-          name: 'L5_AGENT',
+          label: 'L5_AGENT',
+          value: 'L5_AGENT',
         },
         {
-          id: 'TCP/IP',
-          name: 'TCP/IP',
+          label: 'TCP/IP',
+          value: 'TCP/IP',
         },
       ],
-      id: 'protocol_type',
-      multiple: true,
       name: t('接收端类型'),
+      type: 'multiple',
     },
     {
       id: 'target_address',
       name: t('接收端地址'),
     },
     {
-      children: [
+      id: 'add_type',
+      list: [
         {
-          id: 'full_sync',
-          name: t('全量同步'),
+          label: t('全量同步'),
+          value: 'full_sync',
         },
         {
-          id: 'incr_sync',
-          name: t('增量同步'),
+          label: t('增量同步'),
+          value: 'incr_sync',
         },
       ],
-      id: 'add_type',
-      multiple: true,
       name: t('同步方式'),
+      type: 'multiple',
     },
-  ];
+  ] as QuickSearchProps['data'];
 
   const tableRef = ref();
-  const search = ref<ISearchValue[]>([]);
+  const search = ref<Record<string, string>>({});
   const tableDataCount = ref(0);
   const showAppendSubscribeSlider = ref(false);
   const showManualMigration = ref(false);
@@ -435,9 +437,8 @@
   });
 
   const fetchTableData = () => {
-    const searchParams = getSearchSelectorParams(search.value);
     tableRef.value?.fetchData({
-      ...searchParams,
+      ...search.value,
       config_name: props.data === null ? undefined : props.data.name,
     });
   };
@@ -457,24 +458,6 @@
       immediate: true,
     },
   );
-
-  // tip: async 去掉组件库会报错
-  const validateValues = async (item: { id: string }, values: ISearchValue['values']) => {
-    if (values) {
-      const targetValue = values[0].id.replace(/^\s+|\s+$/g, '');
-      if (item.id === 'address') {
-        const list = targetValue.split(',');
-        if (list.some((item) => !ipPort.test(item))) {
-          return t('格式错误');
-        }
-      }
-      if (item.id === 'ip' && !ipv4.test(targetValue)) {
-        return t('格式错误');
-      }
-      return true;
-    }
-    return false;
-  };
 
   const handleGoTicket = (ticketId?: number) => {
     if (!ticketId) {
@@ -640,7 +623,7 @@
   };
 
   const handleClearFilters = () => {
-    search.value = [];
+    search.value = {};
     fetchTableData();
   };
 
@@ -673,23 +656,19 @@
   };
 
   const handleTableFilterChange = (filterValue: Record<string, string[]>) => {
-    const filterFieldNameMap: Record<string, string> = {
-      add_type: t('同步方式'),
-      protocol_type: t('接收端类型'),
-    };
-    const filterFields = Object.keys(filterFieldNameMap);
-    const otherSearchValues = search.value.filter((item) => !filterFields.includes(item.id));
-    const filterSearchValues = filterFields
-      .filter((field) => filterValue[field]?.length)
-      .map((field) => ({
-        id: field,
-        name: filterFieldNameMap[field],
-        values: filterValue[field].map((item) => ({
-          id: item,
-          name: field === 'add_type' ? syncTypeMap[item] : item,
-        })),
-      }));
-    search.value = [...otherSearchValues, ...filterSearchValues];
+    const filterFields = ['add_type', 'protocol_type'];
+    const result: Record<string, string> = {};
+    Object.keys(search.value).forEach((key) => {
+      if (!filterFields.includes(key)) {
+        result[key] = search.value[key];
+      }
+    });
+    filterFields.forEach((field) => {
+      if (filterValue[field]?.length) {
+        result[field] = filterValue[field].join(',');
+      }
+    });
+    search.value = result;
   };
 </script>
 

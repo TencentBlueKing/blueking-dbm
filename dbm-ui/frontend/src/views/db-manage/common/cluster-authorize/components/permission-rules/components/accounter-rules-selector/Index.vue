@@ -22,13 +22,13 @@
     :width="1300"
     @closed="isShow = false">
     <div style="height: 730px">
-      <DbSearchSelect
+      <DbQuickSearch
         v-model="tableSearch"
         class="mb-16"
         :data="filters"
+        parse-url
         :placeholder="t('请输入账号或DB名')"
         style="width: 520px"
-        unique-select
         @change="handleSearchSelectChange" />
       <AccountRulesTable
         ref="accountRulesTableRef"
@@ -76,8 +76,6 @@
 
   import { AccountTypes } from '@common/const';
 
-  import { getSearchSelectorParams } from '@utils';
-
   import AccountRulesTable from './components/AccountRulesTable.vue';
 
   export interface Props<T> {
@@ -111,7 +109,7 @@
   ];
 
   const accountRulesTableRef = ref<ComponentExposed<typeof AccountRulesTable>>();
-  const tableSearch = ref([]);
+  const tableSearch = ref<Record<string, string>>({});
   const dataList = shallowRef<T[]>([]);
 
   const selectedCount = computed(() =>
@@ -128,7 +126,7 @@
 
   const handleSearchSelectChange = () => {
     emits('change', []);
-    accountRulesTableRef.value!.searchData(getSearchSelectorParams(tableSearch.value));
+    accountRulesTableRef.value!.searchData(tableSearch.value);
   };
 
   const handleChange = (

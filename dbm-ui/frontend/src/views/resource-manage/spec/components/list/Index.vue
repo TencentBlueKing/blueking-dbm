@@ -110,10 +110,11 @@
           @change="fetchData" />
         {{ t('仅显示已启用的规格') }}
       </div>
-      <DbSearchSelect
+      <DbQuickSearch
+        v-model="searchValue"
         class="ml-8"
         :data="searchData"
-        :model-value="searchValue"
+        parse-url
         :placeholder="t('搜索ID，规格名称，应用范围，业务')"
         style="width: 500px"
         @change="handleSearchValueChange" />
@@ -382,16 +383,17 @@
     getSpecReplenishRatio,
   } from '@services/source/dbresourceSpec';
 
-  import { useBeforeClose, useLinkQueryColumnSerach, useTableSettings } from '@hooks';
+  import { useBeforeClose, useTableSettings } from '@hooks';
 
   import { useFunController, useGlobalBizs } from '@stores';
 
   import { DBTypes, MachineTypes, UserPersonalSettings } from '@common/const';
 
+  import { type Props as QuickSearchProps } from '@components/db-quick-search/bk-quick-search/Index.vue';
   import DbTable from '@components/db-table/IndexNew.vue';
   import TextOverflowLayout from '@components/text-overflow-layout/Index.vue';
 
-  import { getSearchSelectorParams, messageSuccess } from '@utils';
+  import { messageSuccess } from '@utils';
 
   import BatchEditBizScope from './components/BatchEditBizScope.vue';
   import BatchSetRatio from './components/BatchSetRatio.vue';
@@ -420,13 +422,7 @@
   const handleBeforeClose = useBeforeClose();
   const funControllerStore = useFunController();
 
-  const { clearSearchValue, handleSearchValueChange, searchValue } = useLinkQueryColumnSerach({
-    attrs: [],
-    fetchDataFn: () => fetchData(),
-    isCluster: false,
-    isQueryAttrs: false,
-    searchType: 'resource_record',
-  });
+  const searchValue = ref<Record<string, string>>({});
 
   const setRowClass = (data: ResourceSpecModel) => (data.isRecentSeconds ? 'is-new-row' : '');
 
@@ -456,35 +452,39 @@
     return '';
   });
 
-  const searchData = computed(() => [
-    {
-      id: 'spec_ids',
-      multiple: true,
-      name: 'ID',
-    },
-    {
-      id: 'spec_name',
-      multiple: true,
-      name: t('规格名称'),
-    },
-    {
-      children: BizScopesInfoList.map((bizScopeItem) => ({
-        id: bizScopeItem.id,
-        name: bizScopeItem.label,
-      })),
-      id: 'biz_scope',
-      name: t('应用范围'),
-    },
-    {
-      children: globalBizsStore.bizs.map((item) => ({
-        id: `${item.bk_biz_id}`,
-        name: item.name,
-      })),
-      id: 'biz_ids',
-      multiple: true,
-      name: t('业务'),
-    },
-  ]);
+  const searchData = computed(
+    () =>
+      [
+        {
+          id: 'spec_ids',
+          name: 'ID',
+          type: 'multiple-input',
+        },
+        {
+          id: 'spec_name',
+          name: t('规格名称'),
+          type: 'multiple-input',
+        },
+        {
+          id: 'biz_scope',
+          list: BizScopesInfoList.map((bizScopeItem) => ({
+            label: bizScopeItem.label,
+            value: bizScopeItem.id,
+          })),
+          name: t('应用范围'),
+          type: 'single',
+        },
+        {
+          id: 'biz_ids',
+          list: globalBizsStore.bizs.map((item) => ({
+            label: item.name,
+            value: `${item.bk_biz_id}`,
+          })),
+          name: t('业务'),
+          type: 'multiple',
+        },
+      ] as QuickSearchProps['data'],
+  );
 
   const { settings, updateTableSettings } = useTableSettings(UserPersonalSettings.SPECIFICATION_TABLE_SETTINGS, {
     checked: [
@@ -548,11 +548,10 @@
 
   const fetchData = () => {
     // tableRef.value!.clearSelected();
-    const searchSelectorParams = getSearchSelectorParams(searchValue.value);
     const params = {
       spec_cluster_type: props.dbType,
       spec_machine_type: props.machineType,
-      ...searchSelectorParams,
+      ...searchValue.value,
     };
     if (isEnableSpec.value) {
       Object.assign(params, { enable: isEnableSpec.value });
@@ -587,8 +586,17 @@
   };
 
   const handleClearSearch = () => {
-    clearSearchValue();
+    searchValue.value = {};
+    fetchData();
   };
+
+  const handleSearchValueChange = () => {
+    fetchData();
+  };
+
+  onMounted(() => {
+    fetchData();
+  });
 
   const handleBacthDelete = () => {
     handleDelete(selectedList.value);
