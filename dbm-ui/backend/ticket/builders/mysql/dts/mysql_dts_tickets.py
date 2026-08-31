@@ -418,6 +418,7 @@ class MysqlMigrateBaseDetailSerializer(serializers.Serializer):
         )
         if self.context.get("ticket_type"):
             return ParamValidateSerializerMixin.validated_params(self, attrs)
+        _validate_resource_pool_deploy(attrs)
         return attrs
 
 
