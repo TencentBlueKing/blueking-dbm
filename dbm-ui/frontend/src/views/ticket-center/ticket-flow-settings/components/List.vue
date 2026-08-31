@@ -443,9 +443,9 @@
           </AuthTemplate>
         );
       },
-      colKey: 'action',
+      colKey: 'row-operation',
       title: t('操作'),
-      width: 100,
+      width: 160,
     },
   ]);
 
@@ -604,9 +604,9 @@
     display: flex;
     height: 100%;
     padding: 16px 24px;
+    overflow: hidden;
     box-sizing: border-box;
     flex-direction: column;
-    overflow: hidden;
 
     .approval-text {
       color: #f59500;
@@ -626,7 +626,6 @@
 
     // 标签展示文案（失效态添加删除线）
     .tag-display-text {
-      font-family: 'Microsoft YaHei';
       font-size: 12px;
       font-weight: 400;
       line-height: 20px;
@@ -668,32 +667,32 @@
 
     // 首列对齐：子行抵消 TDesign 树形 indent，使"子"tag 与展开图标对齐
     .tree-cell-child {
-      display: inline-flex;
-      align-items: center;
-      margin-left: -6px;
       position: relative;
+      display: inline-flex;
+      margin-left: -6px;
+      align-items: center;
 
       // 树形连接线：垂直虚线（贯穿整行高度）
       .tree-line-vertical {
         position: absolute;
-        left: -5.5px;
         top: -12px;
         bottom: 0;
+        left: -5.5px;
+        z-index: 0;
         width: 0;
         height: 44px;
         border-left: 1px dashed #dcdee5;
-        z-index: 0;
       }
 
       // 树形连接线：水平虚线（从垂直线连接到"子"tag）
       .tree-line-horizontal {
         position: absolute;
-        left: -5.5px;
         top: 50%;
+        left: -5.5px;
+        z-index: 0;
         width: 22px;
         height: 0;
         border-top: 1px dashed #dcdee5;
-        z-index: 0;
       }
     }
 
@@ -704,20 +703,20 @@
 
     // 首列对齐：父行无 children 时的图标占位符（与 TDesign 展开图标同宽）
     .tree-cell-parent {
+      position: relative;
       display: inline-flex;
       align-items: center;
-      position: relative;
 
       // 父行树形连接线：垂直虚线（从展开图标下方延伸到 td 底部，与子行连接线对齐）
       .tree-line-vertical {
         position: absolute;
-        left: -22.5px;
         top: 13px;
         bottom: 0;
+        left: -22.5px;
+        z-index: 0;
         width: 0;
         height: 18px;
         border-left: 1px dashed #dcdee5;
-        z-index: 0;
       }
 
       .tree-icon-placeholder {
@@ -732,8 +731,8 @@
   .ticket-flow-settings-infobox {
     .infobox-content {
       padding-top: 4px;
-      text-align: left;
       line-height: 22px;
+      text-align: left;
 
       // label 居左、内容居右的左右布局
       .infobox-row {
@@ -775,15 +774,15 @@
         }
 
         .infobox-cluster-more {
+          font-size: 12px;
           color: #3a84ff;
           cursor: pointer;
-          font-size: 12px;
         }
       }
 
       .infobox-tip {
-        margin-top: 16px;
         padding: 12px 16px;
+        margin-top: 16px;
         color: #4d4f56;
         background: var(--Neutral-9, #f5f7fa);
       }
@@ -802,23 +801,23 @@
       line-height: 24px;
 
       &::before {
-        content: '';
         position: absolute;
-        left: 6px;
         top: 9px;
+        left: 6px;
         width: 6px;
         height: 6px;
-        border-radius: 50%;
         background: #c4c6cc;
+        border-radius: 50%;
+        content: '';
       }
     }
   }
 </style>
 <style lang="less" scoped>
   .db-tree-table {
-    flex: 1;
-    min-height: 0;
     display: flex;
+    min-height: 0;
+    flex: 1;
     flex-direction: column;
 
     .table-footer {
@@ -856,13 +855,13 @@
         border-bottom: none;
 
         &::after {
-          content: '';
           position: absolute;
-          left: 40px; // 子行 padding-left: 24px + 1px 对齐
           right: 0;
           bottom: 0;
+          left: 40px; // 子行 padding-left: 24px + 1px 对齐
           height: 0;
           border-bottom: 1px solid var(--td-component-border);
+          content: '';
         }
       }
 

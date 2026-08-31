@@ -213,7 +213,7 @@
     handleUpdateProfile(tableData.value);
   };
 </script>
-<style lang="less" scoped>
+<style lang="less">
   .my-collect-main {
     display: flex;
     width: 100%;
@@ -254,7 +254,22 @@
     .table-main {
       height: calc(100% - 48px);
 
-      :deep(.t-table__content) {
+      .t-table__header {
+        th {
+          background-color: #3d3d3d;
+          background-image: none !important;
+
+          &:hover {
+            background-color: #474747 !important;
+          }
+        }
+
+        .t-table__cell--title {
+          color: #eaebf0;
+        }
+      }
+
+      .t-table__content {
         background-color: #282829 !important;
 
         &::-webkit-scrollbar {
@@ -279,24 +294,6 @@
         &::-webkit-scrollbar-track {
           background: #282829;
         }
-      }
-    }
-  }
-</style>
-<style lang="less">
-  .table-main {
-    .t-table__header {
-      th {
-        background-color: #3d3d3d;
-        background-image: none !important;
-
-        &:hover {
-          background-color: #474747 !important;
-        }
-      }
-
-      .t-table__cell--title {
-        color: #eaebf0;
       }
     }
   }
