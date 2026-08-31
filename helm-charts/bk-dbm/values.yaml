@@ -67,7 +67,6 @@ bk:
   grafanaUrl: "http://bk-dbm-grafana:3000"
   bkMonitorUrl: "https://bk_monitor.example.com"
   bkMonitorApiUrl: ""
-  bkmDbmToken: "bk-monitor-token"
   mysqlCrondBeatPath: "/usr/local/gse/plugins/bin/bkmonitorbeat"
   mysqlCrondAgentAddress: "/var/run/ipc.state.report"
   mysqlCrondMetricsDataToken: "bk-monitor-custom-token"
@@ -412,6 +411,71 @@ db-nginx:
 
 db-dbha:
   extraEnvVarsCM: db-dbha-configmap
+
+# 多租户单域名接入层路由。仅"入口 release"需要开启（enabled=true）；且要求 global.enableMultiTenantMode=true
+tenant-router:
+  # 是否部署接入层路由（谁开启谁即为多租户入口，全局单例，仅入口 release 置 true）
+  enabled: false
+  replicaCount: 2
+  image:
+    registry: "mirrors.tencent.com"
+    repository: "build/blueking/nginx"
+    tag: "1.23.2"
+    pullPolicy: IfNotPresent
+  service:
+    type: ClusterIP
+    port: 80
+  # 前端入口 Ingress（dbm 域名，cookie 用户）。env 一般只需覆盖 hostname / className
+  ingress:
+    enabled: true
+    className: "nginx"
+    annotations:
+      nginx.ingress.kubernetes.io/proxy-body-size: "1024m"
+      nginx.ingress.kubernetes.io/configuration-snippet: |
+        set_real_ip_from 0.0.0.0/0;
+        real_ip_header X-Forwarded-For;
+        real_ip_recursive on;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Real-IP $remote_addr;
+    hostname: "bkdbm.example.com"
+    paths:
+      - path: /
+        pathType: ImplementationSpecific
+    tls: []
+  # 云区域组件 API 入口 Ingress（dbm-api 域名，header 带 X-Bk-Tenant-Id）。
+  # 默认关闭，需要该链路的入口 release 在 env 覆盖 enabled/className/annotations/hostname。
+  ingressBackendApi:
+    enabled: false
+    className: "nginx"
+    annotations:
+      nginx.ingress.kubernetes.io/proxy-body-size: "1024m"
+      nginx.ingress.kubernetes.io/configuration-snippet: |
+        set_real_ip_from 0.0.0.0/0;
+        real_ip_header X-Forwarded-For;
+        real_ip_recursive on;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Real-IP $remote_addr;
+    hostname: ""
+    paths:
+      - path: /
+        pathType: ImplementationSpecific
+    tls: []
+  # 集群内 DNS resolver（变量 proxy_pass 运行时解析必需）
+  resolver: "kube-dns.kube-system.svc.cluster.local"
+  # 各租户 saas-api 的 Service 名（各租户 release 统一为 bk-dbm）
+  saasServiceName: "bk-dbm"
+  # 各租户 backend-api 的 Service 名（各租户 release 统一为 bk-dbm-backend-api）
+  backendApiServiceName: "bk-dbm-backend-api"
+  # 无 header/cookie 时兜底路由到的引导 namespace（运营租户所在 namespace）
+  bootstrapNamespace: "dbm-system"
+  maxBodySize: "1024m"
+  proxyTimeout: 300
+  # 租户 -> namespace 映射列表。新增租户在此追加一行，reloader 自动 reload。
+  tenants: []
+    # - id: "system"
+    #   namespace: "dbm-system"
+    # - id: "abc"
+    #   namespace: "dbm-abc"
 
 hadb-api:
   enabled: true
