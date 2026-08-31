@@ -32,13 +32,15 @@
               ticketId: data.operationTicketId,
             },
           }">
-          {{ $t('单据') }}
+          {{ t('单据') }}
         </RouterLink>
       </I18nT>
     </template>
   </BkPopover>
 </template>
 <script setup lang="ts">
+  import { useI18n } from 'vue-i18n';
+
   interface Props {
     data: {
       operationBtnTipStatusText: string;
@@ -48,4 +50,6 @@
   }
 
   defineProps<Props>();
+
+  const { t } = useI18n();
 </script>

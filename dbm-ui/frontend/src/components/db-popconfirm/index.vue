@@ -37,12 +37,12 @@
         size="small"
         :theme="theme"
         @click="handleConfirm">
-        {{ $t('确认') }}
+        {{ t('确认') }}
       </BkButton>
       <BkButton
         size="small"
         @click="handleCancel">
-        {{ $t('取消') }}
+        {{ t('取消') }}
       </BkButton>
     </div>
   </div>
@@ -50,6 +50,7 @@
 <script setup lang="ts">
   import tippy, { type Instance, type Placement, type SingleTarget } from 'tippy.js';
   import { onBeforeUnmount, onMounted, ref } from 'vue';
+  import { useI18n } from 'vue-i18n';
 
   interface Props {
     cancelHandler?: () => Promise<any> | void;
@@ -77,6 +78,8 @@
     width: 280,
   });
   const emits = defineEmits<Emits>();
+
+  const { t } = useI18n();
 
   let tippyIns: Instance;
 

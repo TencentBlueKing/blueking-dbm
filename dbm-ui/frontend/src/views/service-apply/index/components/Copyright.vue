@@ -17,13 +17,13 @@
       <a
         href="wxwork://message?uin=8444252571319680;"
         target="_blank">
-        {{ $t('联系BK助手') }}
+        {{ t('联系BK助手') }}
       </a>
       |
       <a
         href="https://bk.tencent.com/"
         target="_blank">
-        {{ $t('蓝鲸桌面') }}
+        {{ t('蓝鲸桌面') }}
       </a>
     </div>
     <p class="copyright">Copyright © 2012-{{ currentYear }} Tencent BlueKing. All Rights Reserved. {{ version }}</p>
@@ -31,8 +31,11 @@
 </template>
 
 <script setup lang="ts">
+  import { useI18n } from 'vue-i18n';
+
   import { getProjectVersion } from '@services/source/version';
 
+  const { t } = useI18n();
   const currentYear = new Date().getFullYear();
   const version = ref('V1.0.0');
 

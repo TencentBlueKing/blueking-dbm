@@ -9,11 +9,11 @@
         @change="handleChange">
         <BkOption
           key="standard"
-          label="固定"
+          :label="t('固定')"
           value="standard" />
         <BkOption
           key="increasing"
-          label="递增"
+          :label="t('递增')"
           value="increasing" />
       </BkSelect>
       <span class="interval-text">{{ t('间隔') }}</span>

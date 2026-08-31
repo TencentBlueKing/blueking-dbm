@@ -30,14 +30,14 @@
         <div class="title-spot mt-12 mb-10">{{ t('重建对象') }}<span class="required" /></div>
         <CardCheckbox
           v-model="formData.role"
-          desc="重建集群中所有的 Spider Master 节点"
+          :desc="t('重建集群中所有的 Spider Master 节点')"
           icon="host"
           :title="t('Spider Master')"
           true-value="spider_master" />
         <CardCheckbox
           v-model="formData.role"
           class="ml-8"
-          desc="重建集群中所有的 Spider Slave 节点"
+          :desc="t('重建集群中所有的 Spider Slave 节点')"
           icon="rebuild"
           :title="t('Spider Slave')"
           true-value="spider_slave" />

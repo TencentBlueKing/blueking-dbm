@@ -39,7 +39,7 @@
                   ticketId: data.operationTicketId,
                 },
               }">
-              {{ $t('单据') }}
+              {{ t('单据') }}
             </AuthRouterLink>
           </I18nT>
         </div>
@@ -54,6 +54,8 @@
   let activeTippyIns: Instance;
 </script>
 <script setup lang="ts">
+  import { useI18n } from 'vue-i18n';
+
   export interface Props {
     data?: {
       operationStatusText: string;
@@ -63,6 +65,8 @@
   }
 
   const props = defineProps<Props>();
+
+  const { t } = useI18n();
 
   const rootRef = ref();
   const popRef = ref();

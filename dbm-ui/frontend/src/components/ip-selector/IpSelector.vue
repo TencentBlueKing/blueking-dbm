@@ -39,7 +39,7 @@
         v-if="showPreview"
         v-model="selectorState.search"
         class="db-ip-selector-search"
-        :placeholder="searchPlaceholder || $t('请输入IP')"
+        :placeholder="searchPlaceholder || t('请输入IP')"
         type="search" />
     </div>
     <div
@@ -99,13 +99,13 @@
           :disabled="submitButtonDisabledInfo.disabled"
           theme="primary"
           @click="handleConfirmChange">
-          {{ $t('确定') }}
+          {{ t('确定') }}
         </BkButton>
       </span>
       <BkButton
         class="ml-8"
         @click="handleCancelChange">
-        {{ $t('取消') }}
+        {{ t('取消') }}
       </BkButton>
     </template>
   </BkDialog>

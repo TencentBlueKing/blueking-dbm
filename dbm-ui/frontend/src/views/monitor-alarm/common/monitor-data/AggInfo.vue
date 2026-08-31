@@ -60,7 +60,7 @@
       v-if="isMultiple"
       class="metric-express mt-16">
       <!-- <span class="expr-icon">↳</span> -->
-      <span class="expr-label">表达式</span>
+      <span class="expr-label">{{ t('表达式') }}</span>
       <BkInput
         class="expr-input"
         :model-value="expression"

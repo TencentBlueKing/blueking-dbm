@@ -17,7 +17,7 @@
       v-model="searchKey"
       class="aside-search"
       clearable
-      :placeholder="$t('实例')"
+      :placeholder="t('实例')"
       type="search"
       @clear="handleClearSearch"
       @enter="fetchList" />
@@ -66,6 +66,8 @@
 </template>
 
 <script setup lang="ts">
+  import { useI18n } from 'vue-i18n';
+
   import type InfluxdbInstanceModel from '@services/model/influxdb/influxdbInstance';
   import { getInfluxdbInstanceList } from '@services/source/influxdb';
 
@@ -77,6 +79,8 @@
   type Emits = (e: 'change', value: { id: number; instance: string }) => void;
 
   const emits = defineEmits<Emits>();
+
+  const { t } = useI18n();
 
   const route = useRoute();
   const router = useRouter();
