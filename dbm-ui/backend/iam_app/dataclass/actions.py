@@ -2743,10 +2743,6 @@ class ActionEnum:
         subgroup=_("集群管理"),
     )
 
-    # -----------------------------------------------------------------------
-    # K8s 数据库权限（6 种集群类型 × 9 个操作 + 1 个统一 addon = 55 个 action）
-    # -----------------------------------------------------------------------
-
     # --- K8s SurrealDB ---
     K8S_SURREALDB_VIEW = ActionMeta(
         id="k8s_surrealdb_view",
@@ -2778,7 +2774,7 @@ class ActionEnum:
         related_actions=[DB_MANAGE.id],
         related_resource_types=[ResourceEnum.BUSINESS],
         group=_("SurrealDB"),
-        subgroup=_("SurrealDB集群管理"),
+        subgroup=_("集群管理"),
     )
     K8S_SURREALDB_DESTROY = ActionMeta(
         id="k8s_surrealdb_destroy",
@@ -2788,7 +2784,7 @@ class ActionEnum:
         related_actions=[DB_MANAGE.id],
         related_resource_types=[ResourceEnum.K8S_SURREALDB],
         group=_("SurrealDB"),
-        subgroup=_("SurrealDB集群管理"),
+        subgroup=_("集群管理"),
     )
     K8S_SURREALDB_ENABLE_DISABLE = ActionMeta(
         id="k8s_surrealdb_enable_disable",
@@ -2810,207 +2806,6 @@ class ActionEnum:
         related_actions=[K8S_SURREALDB_VIEW.id],
         related_resource_types=[ResourceEnum.K8S_SURREALDB],
         group=_("SurrealDB"),
-        subgroup=_("集群管理"),
-        common_labels=[CommonActionLabel.BIZ_MAINTAIN],
-    )
-
-    # --- K8s VictoriaMetrics (k8s_victoriametrics) ---
-    K8S_VICTORIAMETRICS_VIEW = ActionMeta(
-        id="k8s_vm_view",
-        name=_("K8s VictoriaMetrics 集群详情查看"),
-        name_en="k8s_victoriametrics_view",
-        type="view",
-        related_actions=[DB_MANAGE.id],
-        related_resource_types=[ResourceEnum.K8S_VICTORIAMETRICS],
-        group=_("VictoriaMetrics"),
-        subgroup=_("集群管理"),
-        common_labels=[CommonActionLabel.BIZ_READ_ONLY, CommonActionLabel.BIZ_MAINTAIN, CommonActionLabel.DEVELOPER],
-    )
-    K8S_VICTORIAMETRICS_EDIT = ActionMeta(
-        id="k8s_vm_edit",
-        name=_("K8s VictoriaMetrics 集群编辑"),
-        name_en="k8s_victoriametrics_edit",
-        type="edit",
-        related_actions=[DB_MANAGE.id],
-        related_resource_types=[ResourceEnum.K8S_VICTORIAMETRICS],
-        group=_("VictoriaMetrics"),
-        subgroup=_("集群管理"),
-        common_labels=[CommonActionLabel.BIZ_MAINTAIN, CommonActionLabel.DEVELOPER],
-    )
-    K8S_VICTORIAMETRICS_APPLY = ActionMeta(
-        id="k8s_vm_apply",
-        name=_("K8s VictoriaMetrics 集群部署"),
-        name_en="k8s_victoriametrics_apply",
-        type="execute",
-        related_actions=[DB_MANAGE.id],
-        related_resource_types=[ResourceEnum.BUSINESS],
-        group=_("VictoriaMetrics"),
-        subgroup=_("VictoriaMetrics集群管理"),
-    )
-    K8S_VICTORIAMETRICS_DESTROY = ActionMeta(
-        id="k8s_vm_destroy",
-        name=_("K8s VictoriaMetrics 集群删除"),
-        name_en="k8s_victoriametrics_destroy",
-        type="execute",
-        related_actions=[DB_MANAGE.id],
-        related_resource_types=[ResourceEnum.K8S_VICTORIAMETRICS],
-        group=_("VictoriaMetrics"),
-        subgroup=_("VictoriaMetrics集群管理"),
-    )
-    K8S_VICTORIAMETRICS_ENABLE_DISABLE = ActionMeta(
-        id="k8s_vm_enable_disable",
-        name=_("K8s VictoriaMetrics 集群禁用和启用"),
-        name_en="k8s_vm_enable_disable",
-        type="execute",
-        related_actions=[K8S_VICTORIAMETRICS_VIEW.id],
-        related_resource_types=[ResourceEnum.K8S_VICTORIAMETRICS],
-        group=_("VictoriaMetrics"),
-        subgroup=_("集群管理"),
-        common_labels=[CommonActionLabel.BIZ_MAINTAIN],
-    )
-    K8S_VICTORIAMETRICS_MANAGE = ActionMeta(
-        id="k8s_vm_manage",
-        name=_("VictoriaMetrics 集群运维管理"),
-        name_en="k8s_victoriametrics_manage",
-        description=_("管理集群的运维操作，包括扩缩容、高可用、迁移升级、故障修复等"),
-        type="manage",
-        related_actions=[K8S_VICTORIAMETRICS_VIEW.id],
-        related_resource_types=[ResourceEnum.K8S_VICTORIAMETRICS],
-        group=_("VictoriaMetrics"),
-        subgroup=_("集群管理"),
-        common_labels=[CommonActionLabel.BIZ_MAINTAIN],
-    )
-
-    # --- K8s Risingwave (k8s_risingwave) ---
-    K8S_RISINGWAVE_VIEW = ActionMeta(
-        id="k8s_risingwave_view",
-        name=_("K8s Risingwave 集群详情查看"),
-        name_en="k8s_risingwave_view",
-        type="view",
-        related_actions=[DB_MANAGE.id],
-        related_resource_types=[ResourceEnum.K8S_RISINGWAVE],
-        group=_("RisingWave"),
-        subgroup=_("集群管理"),
-        common_labels=[CommonActionLabel.BIZ_READ_ONLY, CommonActionLabel.BIZ_MAINTAIN, CommonActionLabel.DEVELOPER],
-    )
-    K8S_RISINGWAVE_EDIT = ActionMeta(
-        id="k8s_risingwave_edit",
-        name=_("K8s Risingwave 集群编辑"),
-        name_en="k8s_risingwave_edit",
-        type="edit",
-        related_actions=[DB_MANAGE.id],
-        related_resource_types=[ResourceEnum.K8S_RISINGWAVE],
-        group=_("RisingWave"),
-        subgroup=_("集群管理"),
-        common_labels=[CommonActionLabel.BIZ_MAINTAIN, CommonActionLabel.DEVELOPER],
-    )
-    K8S_RISINGWAVE_APPLY = ActionMeta(
-        id="k8s_risingwave_apply",
-        name=_("K8s Risingwave 集群部署"),
-        name_en="k8s_risingwave_apply",
-        type="execute",
-        related_actions=[DB_MANAGE.id],
-        related_resource_types=[ResourceEnum.BUSINESS],
-        group=_("RisingWave"),
-        subgroup=_("Risingwave集群管理"),
-    )
-    K8S_RISINGWAVE_DESTROY = ActionMeta(
-        id="k8s_risingwave_destroy",
-        name=_("K8s Risingwave 集群删除"),
-        name_en="k8s_risingwave_destroy",
-        type="execute",
-        related_actions=[DB_MANAGE.id],
-        related_resource_types=[ResourceEnum.K8S_RISINGWAVE],
-        group=_("RisingWave"),
-        subgroup=_("Risingwave集群管理"),
-    )
-    K8S_RISINGWAVE_ENABLE_DISABLE = ActionMeta(
-        id="k8s_risingwave_enable_disable",
-        name=_("K8S RISINGWAVE 集群禁用和启用"),
-        name_en="K8S RISINGWAVE Enable Disable",
-        type="execute",
-        related_actions=[K8S_RISINGWAVE_VIEW.id],
-        related_resource_types=[ResourceEnum.K8S_RISINGWAVE],
-        group=_("RisingWave"),
-        subgroup=_("集群管理"),
-        common_labels=[CommonActionLabel.BIZ_MAINTAIN],
-    )
-    K8S_RISINGWAVE_MANAGE = ActionMeta(
-        id="k8s_risingwave_manage",
-        name=_("Risingwave 集群运维管理"),
-        name_en="k8s_risingwave_manage",
-        description=_("管理集群的运维操作，包括扩缩容、高可用、迁移升级、故障修复等"),
-        type="manage",
-        related_actions=[K8S_RISINGWAVE_VIEW.id],
-        related_resource_types=[ResourceEnum.K8S_RISINGWAVE],
-        group=_("RisingWave"),
-        subgroup=_("集群管理"),
-        common_labels=[CommonActionLabel.BIZ_MAINTAIN],
-    )
-
-    # --- K8s Milvus (k8s_milvus) ---
-    K8S_MILVUS_VIEW = ActionMeta(
-        id="k8s_milvus_view",
-        name=_("K8s Milvus 集群详情查看"),
-        name_en="k8s_milvus_view",
-        type="view",
-        related_actions=[DB_MANAGE.id],
-        related_resource_types=[ResourceEnum.K8S_MILVUS],
-        group=_("Milvus"),
-        subgroup=_("集群管理"),
-        common_labels=[CommonActionLabel.BIZ_READ_ONLY, CommonActionLabel.BIZ_MAINTAIN, CommonActionLabel.DEVELOPER],
-    )
-    K8S_MILVUS_EDIT = ActionMeta(
-        id="k8s_milvus_edit",
-        name=_("K8s Milvus 集群编辑"),
-        name_en="k8s_milvus_edit",
-        type="edit",
-        related_actions=[DB_MANAGE.id],
-        related_resource_types=[ResourceEnum.K8S_MILVUS],
-        group=_("Milvus"),
-        subgroup=_("集群管理"),
-        common_labels=[CommonActionLabel.BIZ_MAINTAIN, CommonActionLabel.DEVELOPER],
-    )
-    K8S_MILVUS_APPLY = ActionMeta(
-        id="k8s_milvus_apply",
-        name=_("K8s Milvus 集群部署"),
-        name_en="k8s_milvus_apply",
-        type="execute",
-        related_actions=[DB_MANAGE.id],
-        related_resource_types=[ResourceEnum.BUSINESS],
-        group=_("Milvus"),
-        subgroup=_("Milvus集群管理"),
-    )
-    K8S_MILVUS_DESTROY = ActionMeta(
-        id="k8s_milvus_destroy",
-        name=_("K8s Milvus 集群删除"),
-        name_en="k8s_milvus_destroy",
-        type="execute",
-        related_actions=[DB_MANAGE.id],
-        related_resource_types=[ResourceEnum.K8S_MILVUS],
-        group=_("Milvus"),
-        subgroup=_("Milvus集群管理"),
-    )
-    K8S_MILVUS_ENABLE_DISABLE = ActionMeta(
-        id="k8s_milvus_enable_disable",
-        name=_("K8S MILVUS 集群禁用和启用"),
-        name_en="K8S MILVUS Enable Disable",
-        type="execute",
-        related_actions=[K8S_MILVUS_VIEW.id],
-        related_resource_types=[ResourceEnum.K8S_MILVUS],
-        group=_("Milvus"),
-        subgroup=_("集群管理"),
-        common_labels=[CommonActionLabel.BIZ_MAINTAIN],
-    )
-    K8S_MILVUS_MANAGE = ActionMeta(
-        id="k8s_milvus_manage",
-        name=_("Milvus 集群运维管理"),
-        name_en="k8s_milvus_manage",
-        description=_("管理集群的运维操作，包括扩缩容、高可用、迁移升级、故障修复等"),
-        type="manage",
-        related_actions=[K8S_MILVUS_VIEW.id],
-        related_resource_types=[ResourceEnum.K8S_MILVUS],
-        group=_("Milvus"),
         subgroup=_("集群管理"),
         common_labels=[CommonActionLabel.BIZ_MAINTAIN],
     )
@@ -3046,7 +2841,7 @@ class ActionEnum:
         related_actions=[DB_MANAGE.id],
         related_resource_types=[ResourceEnum.BUSINESS],
         group=_("QdrantDB"),
-        subgroup=_("Qdrant集群管理"),
+        subgroup=_("集群管理"),
     )
 
     K8S_QDRANT_DESTROY = ActionMeta(
@@ -3057,7 +2852,7 @@ class ActionEnum:
         related_actions=[DB_MANAGE.id],
         related_resource_types=[ResourceEnum.K8S_QDRANT],
         group=_("QdrantDB"),
-        subgroup=_("Qdrant集群管理"),
+        subgroup=_("集群管理"),
     )
     K8S_QDRANT_ENABLE_DISABLE = ActionMeta(
         id="k8s_qdrant_enable_disable",
@@ -3083,6 +2878,177 @@ class ActionEnum:
         common_labels=[CommonActionLabel.BIZ_MAINTAIN],
     )
 
+    # --- K8s VictoriaMetrics (k8s_victoriametrics) ---
+    K8S_VICTORIAMETRICS_VIEW = ActionMeta(
+        id="k8s_vm_view",
+        name=_("K8s VictoriaMetrics 集群详情查看"),
+        name_en="k8s_victoriametrics_view",
+        type="view",
+        related_actions=[DB_MANAGE.id],
+        related_resource_types=[ResourceEnum.K8S_VICTORIAMETRICS],
+        group=_("已废弃"),
+    )
+    K8S_VICTORIAMETRICS_EDIT = ActionMeta(
+        id="k8s_vm_edit",
+        name=_("K8s VictoriaMetrics 集群编辑"),
+        name_en="k8s_victoriametrics_edit",
+        type="edit",
+        related_actions=[DB_MANAGE.id],
+        related_resource_types=[ResourceEnum.K8S_VICTORIAMETRICS],
+        group=_("已废弃"),
+    )
+    K8S_VICTORIAMETRICS_APPLY = ActionMeta(
+        id="k8s_vm_apply",
+        name=_("K8s VictoriaMetrics 集群部署"),
+        name_en="k8s_victoriametrics_apply",
+        type="execute",
+        related_actions=[DB_MANAGE.id],
+        related_resource_types=[ResourceEnum.BUSINESS],
+        group=_("已废弃"),
+    )
+    K8S_VICTORIAMETRICS_DESTROY = ActionMeta(
+        id="k8s_vm_destroy",
+        name=_("K8s VictoriaMetrics 集群删除"),
+        name_en="k8s_victoriametrics_destroy",
+        type="execute",
+        related_actions=[DB_MANAGE.id],
+        related_resource_types=[ResourceEnum.K8S_VICTORIAMETRICS],
+        group=_("已废弃"),
+    )
+    K8S_VICTORIAMETRICS_ENABLE_DISABLE = ActionMeta(
+        id="k8s_vm_enable_disable",
+        name=_("K8s VictoriaMetrics 集群禁用和启用"),
+        name_en="k8s_vm_enable_disable",
+        type="execute",
+        related_actions=[K8S_VICTORIAMETRICS_VIEW.id],
+        related_resource_types=[ResourceEnum.K8S_VICTORIAMETRICS],
+        group=_("已废弃"),
+    )
+    K8S_VICTORIAMETRICS_MANAGE = ActionMeta(
+        id="k8s_vm_manage",
+        name=_("VictoriaMetrics 集群运维管理"),
+        name_en="k8s_victoriametrics_manage",
+        description=_("管理集群的运维操作，包括扩缩容、高可用、迁移升级、故障修复等"),
+        type="manage",
+        related_actions=[K8S_VICTORIAMETRICS_VIEW.id],
+        related_resource_types=[ResourceEnum.K8S_VICTORIAMETRICS],
+        group=_("已废弃"),
+    )
+
+    # --- K8s Risingwave (k8s_risingwave) ---
+    K8S_RISINGWAVE_VIEW = ActionMeta(
+        id="k8s_risingwave_view",
+        name=_("K8s Risingwave 集群详情查看"),
+        name_en="k8s_risingwave_view",
+        type="view",
+        related_actions=[DB_MANAGE.id],
+        related_resource_types=[ResourceEnum.K8S_RISINGWAVE],
+        group=_("已废弃"),
+    )
+    K8S_RISINGWAVE_EDIT = ActionMeta(
+        id="k8s_risingwave_edit",
+        name=_("K8s Risingwave 集群编辑"),
+        name_en="k8s_risingwave_edit",
+        type="edit",
+        related_actions=[DB_MANAGE.id],
+        related_resource_types=[ResourceEnum.K8S_RISINGWAVE],
+        group=_("已废弃"),
+    )
+    K8S_RISINGWAVE_APPLY = ActionMeta(
+        id="k8s_risingwave_apply",
+        name=_("K8s Risingwave 集群部署"),
+        name_en="k8s_risingwave_apply",
+        type="execute",
+        related_actions=[DB_MANAGE.id],
+        related_resource_types=[ResourceEnum.BUSINESS],
+        group=_("已废弃"),
+    )
+    K8S_RISINGWAVE_DESTROY = ActionMeta(
+        id="k8s_risingwave_destroy",
+        name=_("K8s Risingwave 集群删除"),
+        name_en="k8s_risingwave_destroy",
+        type="execute",
+        related_actions=[DB_MANAGE.id],
+        related_resource_types=[ResourceEnum.K8S_RISINGWAVE],
+        group=_("已废弃"),
+    )
+    K8S_RISINGWAVE_ENABLE_DISABLE = ActionMeta(
+        id="k8s_risingwave_enable_disable",
+        name=_("K8S RISINGWAVE 集群禁用和启用"),
+        name_en="K8S RISINGWAVE Enable Disable",
+        type="execute",
+        related_actions=[K8S_RISINGWAVE_VIEW.id],
+        related_resource_types=[ResourceEnum.K8S_RISINGWAVE],
+        group=_("已废弃"),
+    )
+    K8S_RISINGWAVE_MANAGE = ActionMeta(
+        id="k8s_risingwave_manage",
+        name=_("Risingwave 集群运维管理"),
+        name_en="k8s_risingwave_manage",
+        description=_("管理集群的运维操作，包括扩缩容、高可用、迁移升级、故障修复等"),
+        type="manage",
+        related_actions=[K8S_RISINGWAVE_VIEW.id],
+        related_resource_types=[ResourceEnum.K8S_RISINGWAVE],
+        group=_("已废弃"),
+    )
+
+    # --- K8s Milvus (k8s_milvus) ---
+    K8S_MILVUS_VIEW = ActionMeta(
+        id="k8s_milvus_view",
+        name=_("K8s Milvus 集群详情查看"),
+        name_en="k8s_milvus_view",
+        type="view",
+        related_actions=[DB_MANAGE.id],
+        related_resource_types=[ResourceEnum.K8S_MILVUS],
+        group=_("已废弃"),
+    )
+    K8S_MILVUS_EDIT = ActionMeta(
+        id="k8s_milvus_edit",
+        name=_("K8s Milvus 集群编辑"),
+        name_en="k8s_milvus_edit",
+        type="edit",
+        related_actions=[DB_MANAGE.id],
+        related_resource_types=[ResourceEnum.K8S_MILVUS],
+        group=_("已废弃"),
+    )
+    K8S_MILVUS_APPLY = ActionMeta(
+        id="k8s_milvus_apply",
+        name=_("K8s Milvus 集群部署"),
+        name_en="k8s_milvus_apply",
+        type="execute",
+        related_actions=[DB_MANAGE.id],
+        related_resource_types=[ResourceEnum.BUSINESS],
+        group=_("已废弃"),
+    )
+    K8S_MILVUS_DESTROY = ActionMeta(
+        id="k8s_milvus_destroy",
+        name=_("K8s Milvus 集群删除"),
+        name_en="k8s_milvus_destroy",
+        type="execute",
+        related_actions=[DB_MANAGE.id],
+        related_resource_types=[ResourceEnum.K8S_MILVUS],
+        group=_("已废弃"),
+    )
+    K8S_MILVUS_ENABLE_DISABLE = ActionMeta(
+        id="k8s_milvus_enable_disable",
+        name=_("K8S MILVUS 集群禁用和启用"),
+        name_en="K8S MILVUS Enable Disable",
+        type="execute",
+        related_actions=[K8S_MILVUS_VIEW.id],
+        related_resource_types=[ResourceEnum.K8S_MILVUS],
+        group=_("已废弃"),
+    )
+    K8S_MILVUS_MANAGE = ActionMeta(
+        id="k8s_milvus_manage",
+        name=_("Milvus 集群运维管理"),
+        name_en="k8s_milvus_manage",
+        description=_("管理集群的运维操作，包括扩缩容、高可用、迁移升级、故障修复等"),
+        type="manage",
+        related_actions=[K8S_MILVUS_VIEW.id],
+        related_resource_types=[ResourceEnum.K8S_MILVUS],
+        group=_("已废弃"),
+    )
+
     # --- K8s GreptimeDB (k8s_greptimedb) ---
     K8S_GREPTIMEDB_VIEW = ActionMeta(
         id="k8s_greptimedb_view",
@@ -3091,9 +3057,7 @@ class ActionEnum:
         type="view",
         related_actions=[DB_MANAGE.id],
         related_resource_types=[ResourceEnum.K8S_GREPTIMEDB],
-        group=_("GreptimeDB"),
-        subgroup=_("集群管理"),
-        common_labels=[CommonActionLabel.BIZ_READ_ONLY, CommonActionLabel.BIZ_MAINTAIN, CommonActionLabel.DEVELOPER],
+        group=_("已废弃"),
     )
     K8S_GREPTIMEDB_EDIT = ActionMeta(
         id="k8s_greptimedb_edit",
@@ -3102,9 +3066,7 @@ class ActionEnum:
         type="edit",
         related_actions=[DB_MANAGE.id],
         related_resource_types=[ResourceEnum.K8S_GREPTIMEDB],
-        group=_("GreptimeDB"),
-        subgroup=_("集群管理"),
-        common_labels=[CommonActionLabel.BIZ_MAINTAIN, CommonActionLabel.DEVELOPER],
+        group=_("已废弃"),
     )
     K8S_GREPTIMEDB_APPLY = ActionMeta(
         id="k8s_greptimedb_apply",
@@ -3113,8 +3075,7 @@ class ActionEnum:
         type="execute",
         related_actions=[DB_MANAGE.id],
         related_resource_types=[ResourceEnum.BUSINESS],
-        group=_("GreptimeDB"),
-        subgroup=_("GreptimeDB集群管理"),
+        group=_("已废弃"),
     )
     K8S_GREPTIMEDB_DESTROY = ActionMeta(
         id="k8s_greptimedb_destroy",
@@ -3123,8 +3084,7 @@ class ActionEnum:
         type="execute",
         related_actions=[DB_MANAGE.id],
         related_resource_types=[ResourceEnum.K8S_GREPTIMEDB],
-        group=_("GreptimeDB"),
-        subgroup=_("GreptimeDB集群管理"),
+        group=_("已废弃"),
     )
     K8S_GREPTIMEDB_ENABLE_DISABLE = ActionMeta(
         id="k8s_greptimedb_enable_disable",
@@ -3133,9 +3093,7 @@ class ActionEnum:
         type="execute",
         related_actions=[K8S_GREPTIMEDB_VIEW.id],
         related_resource_types=[ResourceEnum.K8S_GREPTIMEDB],
-        group=_("GreptimeDB"),
-        subgroup=_("集群管理"),
-        common_labels=[CommonActionLabel.BIZ_MAINTAIN],
+        group=_("已废弃"),
     )
     K8S_GREPTIMEDB_MANAGE = ActionMeta(
         id="k8s_greptimedb_manage",
@@ -3145,9 +3103,7 @@ class ActionEnum:
         type="manage",
         related_actions=[K8S_GREPTIMEDB_VIEW.id],
         related_resource_types=[ResourceEnum.K8S_GREPTIMEDB],
-        group=_("GreptimeDB"),
-        subgroup=_("集群管理"),
-        common_labels=[CommonActionLabel.BIZ_MAINTAIN],
+        group=_("已废弃"),
     )
 
     # --- K8s Addon 管理（跨存储类型，作用于 K8s 集群级别）---
@@ -3158,8 +3114,7 @@ class ActionEnum:
         type="execute",
         related_actions=[DB_MANAGE.id],
         related_resource_types=[ResourceEnum.BUSINESS],
-        group=_("K8s数据库"),
-        subgroup=_("Addon管理"),
+        group=_("已废弃"),
     )
 
     @classmethod
