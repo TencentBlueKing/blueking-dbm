@@ -287,11 +287,11 @@ class TicketType(StrStructuredEnum):
     MYSQL_DTS_CLUSTER_APPLY = TicketEnumField("MYSQL_DTS_CLUSTER_APPLY", _("MySQL DTS 集群部署"))
     MYSQL_DTS_CLUSTER_DESTROY = TicketEnumField("MYSQL_DTS_CLUSTER_DESTROY", _("MySQL DTS 集群销毁"))
     MYSQL_DTS_CLUSTER_REINSTALL = TicketEnumField("MYSQL_DTS_CLUSTER_REINSTALL", _("MySQL DTS 集群重装"))
-    MYSQL_TO_MYSQL_MIGRATE = TicketEnumField("MYSQL_TO_MYSQL_MIGRATE", _("MySQL 数据迁移"), _("数据处理"))
+    MYSQL_DTS_DATA_MIGRATE = TicketEnumField("MYSQL_DTS_DATA_MIGRATE", _("MySQL DTS 同名迁移"), _("数据处理"))
     MYSQL_HA_TO_CLUSTER_MIGRATE = TicketEnumField(
         "MYSQL_HA_TO_CLUSTER_MIGRATE", _("MySQL HA到Cluster数据迁移"), _("数据处理")
     )
-    MYSQL_RENAME_MIGRATE = TicketEnumField("MYSQL_RENAME_MIGRATE", _("MySQL 重命名迁移"), _("数据处理"))
+    MYSQL_DTS_DATA_MIGRATE_RENAME = TicketEnumField("MYSQL_DTS_DATA_MIGRATE_RENAME", _("MySQL DTS 库改名迁移"), _("数据处理"))
     MYSQL_SINGLE_RENAME_DATABASE = TicketEnumField("MYSQL_SINGLE_RENAME_DATABASE", _("MySQL 单节点DB重命名"), _("集群维护"))  # noqa
     MYSQL_OPEN_AREA = TicketEnumField("MYSQL_OPEN_AREA", _("MySQL 开区"), _("克隆开区"))
     MYSQL_DATA_MIGRATE = TicketEnumField("MYSQL_DATA_MIGRATE", _("MySQL DB数据克隆"), _("克隆与开区"), register_iam=True)
