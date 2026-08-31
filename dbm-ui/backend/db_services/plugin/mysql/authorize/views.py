@@ -8,24 +8,27 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-
 from django.utils.translation import gettext as _
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
-from backend.bk_web import viewsets
 from backend.bk_web.swagger import common_swagger_auto_schema
 from backend.db_services.mysql.permission.authorize.handlers import MySQLAuthorizeHandler
+from backend.db_services.mysql.permission.authorize.views import DBAuthorizeViewSet
 from backend.db_services.plugin.constants import SWAGGER_TAG
 from backend.db_services.plugin.mysql.authorize.serializers import (
     AuthorizeApplySerializer,
     QueryAuthorizeApplySerializer,
 )
+from backend.db_services.plugin.view import BaseOpenAPIViewSet
 from backend.iam_app.handlers.drf_perm.base import DBManagePermission
 
 
-class AuthorizePluginViewSet(viewsets.SystemViewSet):
-    default_permission_class = [DBManagePermission()]
+class MysqlDBAuthorizeApiGwViewSet(BaseOpenAPIViewSet, DBAuthorizeViewSet):
+    def get_permissions(self) -> list:
+        if self.action in ["authorize_apply", "query_authorize_apply_result"]:
+            return [DBManagePermission()]
+        return super().get_permissions()
 
     @common_swagger_auto_schema(
         operation_summary=_("第三方权限申请(兼容GCS)"),
