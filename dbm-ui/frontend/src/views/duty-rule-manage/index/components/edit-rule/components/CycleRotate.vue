@@ -38,7 +38,7 @@
           :max="formModel.peopleList.length"
           type="number">
           <template #suffix>
-            <span class="suffix-slot">人</span>
+            <span class="suffix-slot">{{ t('人') }}</span>
           </template>
         </BkInput>
       </BkFormItem>

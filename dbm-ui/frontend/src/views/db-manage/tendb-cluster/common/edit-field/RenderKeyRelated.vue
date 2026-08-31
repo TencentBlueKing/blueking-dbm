@@ -19,7 +19,7 @@
       <TableEditTag
         ref="editTagRef"
         :model-value="localValue"
-        :placeholder="$t('请输入正则表达式')"
+        :placeholder="t('请输入正则表达式')"
         :rules="rules"
         @change="handleChange" />
     </span>
@@ -27,11 +27,11 @@
       ref="popRef"
       style="font-size: 12px; line-height: 24px; color: #63656e">
       <p style="font-weight: bold">
-        {{ $t('可使用通配符进行提取，如：') }}
+        {{ t('可使用通配符进行提取，如：') }}
       </p>
-      <p>{{ $t('*Key$ ：提取以 Key 结尾的 key，包括 Key') }}</p>
-      <p>{{ $t('^Key$：提取精确匹配的Key') }}</p>
-      <p>{{ $t('* ：代表所有') }}</p>
+      <p>{{ t('*Key$ ：提取以 Key 结尾的 key，包括 Key') }}</p>
+      <p>{{ t('^Key$：提取精确匹配的Key') }}</p>
+      <p>{{ t('* ：代表所有') }}</p>
     </div>
   </div>
 </template>

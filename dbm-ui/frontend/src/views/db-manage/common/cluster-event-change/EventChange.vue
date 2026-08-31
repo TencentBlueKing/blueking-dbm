@@ -17,7 +17,7 @@
       <BkDatePicker
         v-model="daterange"
         append-to-body
-        :placeholder="$t('请选择')"
+        :placeholder="t('请选择')"
         style="width: 410px"
         type="datetimerange"
         @change="fetchData" />

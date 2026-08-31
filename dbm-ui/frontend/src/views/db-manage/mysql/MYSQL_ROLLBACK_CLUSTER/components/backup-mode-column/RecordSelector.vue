@@ -85,7 +85,7 @@
           <div
             v-if="renderList.length < 1"
             style="color: #63656e; text-align: center">
-            数据为空
+            {{ t('数据为空') }}
           </div>
           <div
             v-else

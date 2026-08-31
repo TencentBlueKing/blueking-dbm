@@ -20,7 +20,7 @@
       class="search-box">
       <BkInput
         v-model="searchKey"
-        :placeholder="$t('请输入IP')"
+        :placeholder="t('请输入IP')"
         style="width: 320px; margin-left: auto" />
     </div>
     <div>
@@ -31,10 +31,10 @@
           <div class="header-text">
             <i class="db-icon-down-shape" />
             <span style="padding-left: 5px">
-              <span v-if="searchKey">{{ $t('已筛选') }}</span>
-              <span v-else>{{ $t('共') }}</span>
+              <span v-if="searchKey">{{ t('已筛选') }}</span>
+              <span v-else>{{ t('共') }}</span>
               <span class="ip-num">{{ props.data.length }}</span>
-              {{ $t('台') }}
+              {{ t('台') }}
             </span>
           </div>
           <BkDropdown
@@ -49,16 +49,16 @@
             <template #content>
               <BkDropdownMenu>
                 <BkDropdownItem @click="handleClearAll">
-                  {{ $t('清除所有') }}
+                  {{ t('清除所有') }}
                 </BkDropdownItem>
                 <BkDropdownItem @click="handleClearAbnormal">
-                  {{ $t('清除异常IP') }}
+                  {{ t('清除异常IP') }}
                 </BkDropdownItem>
                 <BkDropdownItem @click="handleCopyAll">
-                  {{ $t('复制所有IP') }}
+                  {{ t('复制所有IP') }}
                 </BkDropdownItem>
                 <BkDropdownItem @click="handleCopyAbnormal">
-                  {{ $t('复制异常IP') }}
+                  {{ t('复制异常IP') }}
                 </BkDropdownItem>
               </BkDropdownMenu>
             </template>

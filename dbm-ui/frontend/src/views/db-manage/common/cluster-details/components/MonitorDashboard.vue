@@ -31,7 +31,7 @@
       <BkException
         v-if="url === '#'"
         class="exception-wrap-item"
-        :description="$t('监控组件初始化中_紧急情况请联系平台管理员')"
+        :description="t('监控组件初始化中_紧急情况请联系平台管理员')"
         type="building" />
       <div
         v-else

@@ -133,7 +133,7 @@
           <TableColumn
             col-key="id"
             fixed="left"
-            title="单号"
+            :title="t('单号')"
             :width="100">
             <template #default="{ row }: { row: RowData }">
               <BkButton

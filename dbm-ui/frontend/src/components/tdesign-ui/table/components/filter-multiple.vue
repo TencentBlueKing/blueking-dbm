@@ -5,7 +5,7 @@
         v-model="serachKey"
         borderless
         clearable
-        placeholder="请输入关键字">
+        :placeholder="t('请输入关键字')">
         <template #prefix-icon> <SearchIcon /></template>
       </Input>
     </div>
@@ -29,7 +29,7 @@
     <div
       v-if="serachKey && renderList.length < 1"
       class="t-table__filter-pop-search-empty">
-      搜索为空
+      {{ t('搜索为空') }}
     </div>
   </div>
 </template>
@@ -37,6 +37,7 @@
   import { SearchIcon } from 'tdesign-icons-vue-next';
   import { Checkbox, CheckboxGroup, Input } from 'tdesign-vue-next';
   import { nextTick, onMounted, ref, shallowRef, useTemplateRef, watch } from 'vue';
+  import { useI18n } from 'vue-i18n';
 
   type Emits = (e: 'change', value: Props['list'][number]['value'][]) => void;
 
@@ -55,6 +56,8 @@
     value: () => [],
   });
   const emits = defineEmits<Emits>();
+
+  const { t } = useI18n();
 
   const wrapperRef = useTemplateRef('wrapper');
   const serachKey = ref('');

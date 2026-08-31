@@ -11,7 +11,7 @@
         autofocus
         borderless
         clearable
-        placeholder="请输入关键字">
+        :placeholder="t('请输入关键字')">
         <template #prefix-icon> <SearchIcon /></template>
       </Input>
     </div>

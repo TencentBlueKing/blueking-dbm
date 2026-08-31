@@ -14,7 +14,7 @@
 <template>
   <div class="task-panel">
     <div class="title">
-      {{ $t('集群关联的其他任务') }}
+      {{ t('集群关联的其他任务') }}
     </div>
     <div class="content-list">
       <template v-if="data && data.length > 0">
@@ -27,6 +27,8 @@
   </div>
 </template>
 <script setup lang="ts">
+  import { useI18n } from 'vue-i18n';
+
   import ClusterRelatedTaskItem, { type Props as TaskItem } from './Item.vue';
 
   interface Props {
@@ -34,6 +36,8 @@
   }
 
   defineProps<Props>();
+
+  const { t } = useI18n();
 </script>
 <style lang="less" scoped>
   .task-panel {

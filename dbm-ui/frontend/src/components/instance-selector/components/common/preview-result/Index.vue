@@ -14,7 +14,7 @@
 <template>
   <div class="instance-selector-preview-result">
     <div class="header">
-      <span>{{ $t('结果预览') }}</span>
+      <span>{{ t('结果预览') }}</span>
       <BkDropdown
         class="result__dropdown"
         :popover-options="{
@@ -25,10 +25,10 @@
         <template #content>
           <BkDropdownMenu>
             <BkDropdownItem @click="handleClear">
-              {{ $t('清空所有') }}
+              {{ t('清空所有') }}
             </BkDropdownItem>
             <BkDropdownItem @click="handleCopyInstances">
-              {{ $t('复制所有实例') }}
+              {{ t('复制所有实例') }}
             </BkDropdownItem>
           </BkDropdownMenu>
         </template>
@@ -37,7 +37,7 @@
     <BkException
       v-if="isEmpty"
       class="mt-50"
-      :description="$t('暂无数据_请从左侧添加对象')"
+      :description="t('暂无数据_请从左侧添加对象')"
       scene="part"
       type="empty" />
     <div

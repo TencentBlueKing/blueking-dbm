@@ -22,7 +22,7 @@
         tag="span">
         <template #n>
           <BkTag style="height: 16px; margin-left: 4px">
-            <span style="color: #3a84ff">键:值</span>
+            <span style="color: #3a84ff">{{ t('键:值') }}</span>
           </BkTag>
         </template>
       </I18nT>

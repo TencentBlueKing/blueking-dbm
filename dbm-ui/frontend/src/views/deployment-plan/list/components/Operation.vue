@@ -22,7 +22,7 @@
         <BkInput
           v-model="formData.name"
           :maxlength="15"
-          placeholder="推荐名称方式：总容量（分片大小 x  分片数），如：1500G (37.5G x 40分片）"
+          :placeholder="t('推荐名称方式：总容量（分片大小 x  分片数），如：1500G (37.5G x 40分片）')"
           :readonly="isEditing" />
       </DbFormItem>
       <DbFormItem
@@ -68,7 +68,7 @@
     <div
       v-if="estimateCapacity"
       class="disk-box">
-      集群预估容量：
+      {{ t('集群预估容量：') }}
       <span class="number-strong">{{ estimateCapacity }}G</span>
     </div>
   </div>
