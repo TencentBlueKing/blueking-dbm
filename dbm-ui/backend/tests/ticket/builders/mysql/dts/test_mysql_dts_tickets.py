@@ -479,7 +479,7 @@ class MysqlDtsTicketSerializerTest(SimpleTestCase):
         request = SimpleNamespace(
             data={
                 "bk_biz_id": 1,
-                "ticket_type": TicketType.MYSQL_TO_MYSQL_MIGRATE.value,
+                "ticket_type": TicketType.MYSQL_DTS_DATA_MIGRATE.value,
                 "details": details,
             }
         )
@@ -510,7 +510,7 @@ class MysqlDtsTicketSerializerTest(SimpleTestCase):
         request = SimpleNamespace(
             data={
                 "bk_biz_id": 1,
-                "ticket_type": TicketType.MYSQL_TO_MYSQL_MIGRATE.value,
+                "ticket_type": TicketType.MYSQL_DTS_DATA_MIGRATE.value,
                 "details": details,
             }
         )
@@ -528,7 +528,7 @@ class MysqlDtsTicketSerializerTest(SimpleTestCase):
         request = SimpleNamespace(
             data={
                 "bk_biz_id": 1,
-                "ticket_type": TicketType.MYSQL_TO_MYSQL_MIGRATE.value,
+                "ticket_type": TicketType.MYSQL_DTS_DATA_MIGRATE.value,
                 "details": details,
             }
         )
@@ -941,7 +941,7 @@ class MysqlMigrateFlowParamBuilderUidTest(SimpleTestCase):
         )
 
     def test_mysql_to_mysql_get_params_has_uid(self):
-        builder = MysqlToMysqlMigrateFlowParamBuilder(self._ticket(TicketType.MYSQL_TO_MYSQL_MIGRATE.value))
+        builder = MysqlToMysqlMigrateFlowParamBuilder(self._ticket(TicketType.MYSQL_DTS_DATA_MIGRATE.value))
         params = builder.get_params()
         ticket_data = params["ticket_data"]
         self.assertEqual(ticket_data["uid"], 18801)
@@ -952,7 +952,7 @@ class MysqlMigrateFlowParamBuilderUidTest(SimpleTestCase):
         self.assertNotIn("migrate_plan", ticket_data)
 
     def test_ha_to_cluster_get_params_has_uid(self):
-        builder = MysqlHaToClusterMigrateFlowParamBuilder(self._ticket(TicketType.MYSQL_HA_TO_CLUSTER_MIGRATE.value))
+        builder = MysqlHaToClusterMigrateFlowParamBuilder(self._ticket(TicketType.MYSQL_DTS_DATA_MIGRATE.value))
         params = builder.get_params()
         ticket_data = params["ticket_data"]
         self.assertEqual(ticket_data["uid"], 18801)
@@ -962,7 +962,7 @@ class MysqlMigrateFlowParamBuilderUidTest(SimpleTestCase):
         self.assertNotIn("migrate_plan", ticket_data)
 
     def test_rename_get_params_does_not_pin_migrate_type(self):
-        builder = MysqlRenameMigrateFlowParamBuilder(self._ticket(TicketType.MYSQL_RENAME_MIGRATE.value))
+        builder = MysqlRenameMigrateFlowParamBuilder(self._ticket(TicketType.MYSQL_DTS_DATA_MIGRATE_RENAME.value))
         params = builder.get_params()
         ticket_data = params["ticket_data"]
         self.assertEqual(ticket_data["uid"], 18801)
@@ -1095,16 +1095,16 @@ class MysqlRenameMigrateSerializerTest(SimpleTestCase):
         self.assertIn("落到目标集群", str(slz.errors))
 
     def test_builder_registered(self):
-        self.assertIn(TicketType.MYSQL_RENAME_MIGRATE, BuilderFactory.registry)
+        self.assertIn(TicketType.MYSQL_DTS_DATA_MIGRATE_RENAME, BuilderFactory.registry)
         self.assertEqual(MysqlRenameMigrateFlowBuilder.serializer, MysqlRenameMigrateDetailSerializer)
         self.assertEqual(MysqlRenameMigrateFlowBuilder.inner_flow_builder, MysqlRenameMigrateFlowParamBuilder)
-        self.assertIsNotNone(TICKET_TYPE_HANDLERS.get(TicketType.MYSQL_RENAME_MIGRATE.lower()))
+        self.assertIsNotNone(TICKET_TYPE_HANDLERS.get(TicketType.MYSQL_DTS_DATA_MIGRATE_RENAME.lower()))
 
     def test_rename_iam_includes_mysql_and_tendbcluster(self):
         from backend.iam_app.dataclass.actions import ActionEnum
         from backend.iam_app.dataclass.resources import ResourceEnum
 
-        resources = ActionEnum.MYSQL_RENAME_MIGRATE.related_resource_types
+        resources = ActionEnum.MYSQL_DTS_DATA_MIGRATE.related_resource_types
         self.assertEqual(resources, [ResourceEnum.MYSQL, ResourceEnum.TENDBCLUSTER])
 
     def test_rename_create_ticket_permission_is_mixed_not_more_resource(self):
@@ -1114,7 +1114,7 @@ class MysqlRenameMigrateSerializerTest(SimpleTestCase):
             create_ticket_permission,
         )
 
-        perms = create_ticket_permission(TicketType.MYSQL_RENAME_MIGRATE)
+        perms = create_ticket_permission(TicketType.MYSQL_DTS_DATA_MIGRATE_RENAME)
         self.assertEqual(len(perms), 1)
         self.assertIsInstance(perms[0], CreateTicketMysqlOrTendbclusterPermission)
         self.assertNotIsInstance(perms[0], CreateTicketMoreResourcePermission)
@@ -1137,7 +1137,7 @@ class MysqlRenameMigrateSerializerTest(SimpleTestCase):
         mock_perm_cls.side_effect = [mysql_perm, tendb_perm]
 
         request = SimpleNamespace(data={"details": {"cluster_ids": [100, 201]}})
-        perm = CreateTicketMysqlOrTendbclusterPermission(TicketType.MYSQL_RENAME_MIGRATE)
+        perm = CreateTicketMysqlOrTendbclusterPermission(TicketType.MYSQL_DTS_DATA_MIGRATE_RENAME)
         self.assertTrue(perm.has_permission(request, view=None))
 
         self.assertEqual(mock_perm_cls.call_count, 2)
@@ -1619,7 +1619,7 @@ class MysqlDtsDestroyAfterMigrateHookTest(SimpleTestCase):
             creator="tester",
             bk_biz_id=1,
             details=_minimal_layered_details(dts_resource=dts_resource),
-            ticket_type=TicketType.MYSQL_TO_MYSQL_MIGRATE.value,
+            ticket_type=TicketType.MYSQL_DTS_DATA_MIGRATE.value,
             config={},
         )
         ticket.add_related_ticket = MagicMock()
@@ -1973,7 +1973,7 @@ class MysqlDtsMigrateSucceededDestroyTriggerTest(SimpleTestCase):
     @patch("backend.ticket.flow_manager.manager.notify.send_msg.apply_async")
     @patch("backend.ticket.flow_manager.manager.add_ticket_audit_event.apply_async")
     def test_succeeded_triggers_destroy_task(self, _mock_audit, _mock_notify, mock_recycle, mock_destroy):
-        manager, ticket = self._manager(TicketType.MYSQL_TO_MYSQL_MIGRATE.value)
+        manager, ticket = self._manager(TicketType.MYSQL_DTS_DATA_MIGRATE.value)
         manager.ticket_status_trigger(TicketStatus.RUNNING, TicketStatus.SUCCEEDED)
         mock_destroy.assert_called_once_with(args=(ticket.id,))
         mock_recycle.assert_not_called()
@@ -1982,7 +1982,7 @@ class MysqlDtsMigrateSucceededDestroyTriggerTest(SimpleTestCase):
     @patch("backend.ticket.flow_manager.manager.notify.send_msg.apply_async")
     @patch("backend.ticket.flow_manager.manager.add_ticket_audit_event.apply_async")
     def test_rename_succeeded_triggers_destroy_task(self, _mock_audit, _mock_notify, mock_destroy):
-        manager, ticket = self._manager(TicketType.MYSQL_RENAME_MIGRATE.value)
+        manager, ticket = self._manager(TicketType.MYSQL_DTS_DATA_MIGRATE_RENAME.value)
         manager.ticket_status_trigger(TicketStatus.RUNNING, TicketStatus.SUCCEEDED)
         mock_destroy.assert_called_once_with(args=(ticket.id,))
 
@@ -2125,9 +2125,9 @@ class MysqlDtsExclusiveTicketMapTest(SimpleTestCase):
     def test_dts_migrate_not_exclusive_with_mysql_checksum_cron(self):
         exclusive_map = self._exclusive_bool_map()
         migrate_types = [
-            TicketType.MYSQL_TO_MYSQL_MIGRATE.value,
+            TicketType.MYSQL_DTS_DATA_MIGRATE.value,
             TicketType.MYSQL_HA_TO_CLUSTER_MIGRATE.value,
-            TicketType.MYSQL_RENAME_MIGRATE.value,
+            TicketType.MYSQL_DTS_DATA_MIGRATE_RENAME.value,
         ]
         checksum = TicketType.MYSQL_CHECKSUM_CRON.value
         for migrate in migrate_types:
@@ -2145,7 +2145,7 @@ class MysqlDtsExclusiveTicketMapTest(SimpleTestCase):
         checksum = TicketType.TENDBCLUSTER_CHECKSUM_CRON.value
         for migrate in (
             TicketType.MYSQL_HA_TO_CLUSTER_MIGRATE.value,
-            TicketType.MYSQL_RENAME_MIGRATE.value,
+            TicketType.MYSQL_DTS_DATA_MIGRATE_RENAME.value,
         ):
             self.assertFalse(exclusive_map[checksum].get(migrate, True))
             self.assertFalse(exclusive_map[migrate].get(checksum, True))
@@ -2153,9 +2153,9 @@ class MysqlDtsExclusiveTicketMapTest(SimpleTestCase):
     def test_dts_migrate_types_exclusive_with_each_other(self):
         exclusive_map = self._exclusive_bool_map()
         types = [
-            TicketType.MYSQL_TO_MYSQL_MIGRATE.value,
+            TicketType.MYSQL_DTS_DATA_MIGRATE.value,
             TicketType.MYSQL_HA_TO_CLUSTER_MIGRATE.value,
-            TicketType.MYSQL_RENAME_MIGRATE.value,
+            TicketType.MYSQL_DTS_DATA_MIGRATE_RENAME.value,
         ]
         for a in types:
             for b in types:
@@ -2166,9 +2166,9 @@ class MysqlDtsExclusiveTicketMapTest(SimpleTestCase):
         exclusive_map = self._exclusive_bool_map()
         checksum = TicketType.MYSQL_DTS_CHECKSUM.value
         migrate_types = [
-            TicketType.MYSQL_TO_MYSQL_MIGRATE.value,
+            TicketType.MYSQL_DTS_DATA_MIGRATE.value,
             TicketType.MYSQL_HA_TO_CLUSTER_MIGRATE.value,
-            TicketType.MYSQL_RENAME_MIGRATE.value,
+            TicketType.MYSQL_DTS_DATA_MIGRATE_RENAME.value,
         ]
         for migrate in migrate_types:
             self.assertFalse(
