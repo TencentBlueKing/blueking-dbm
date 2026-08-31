@@ -1,654 +1,646 @@
-cloud:
-- cloud-dbha:
-    buildPath: /blueking-dbm/dbm-services/common/dbha/ha-module/build/dbha
-    commitDate: '202406251535'
-    commitId: 1674439623653cb9bbfc0e6f0d66fd4821130a04
-    name: dbha
-    version: 1.0.2
-    distribution_name: DBM
-    version_series: DBHA
-    full_version: 1.0.2
-    os_type: "Linux"
-    os_version:
-- cloud-dns-bind:
-    buildPath: /toolkit/bind.tar.gz
-    name: bind.tar.gz
-    version: 1.0.0
-    distribution_name: DBM
-    version_series: DNS-Bind
-    full_version: 1.0.0
-    os_type: "Linux"
-    os_version:
-- cloud-dns-pullcrond:
-    buildPath: /blueking-dbm/dbm-services/common/db-dns/dns-reload/build/pull-crond
-    commitDate: '202404241059'
-    commitId: daedb74dd9a3e2c81bee7aa069208ccc4456f53a
-    name: pull-crond
-    version: 1.0.2
-    distribution_name: DBM
-    version_series: DNS-Pullcrond
-    full_version: 1.0.2
-    os_type: "Linux"
-    os_version:
-- cloud-drs:
-    buildPath: /blueking-dbm/dbm-services/mysql/db-remote-service/build/db-remote-service
-    commitDate: '202406121522'
-    commitId: 6b44a10004715d3bcde7fdaa7b7652d59e42cedd
-    name: db-remote-service
-    version: 1.0.2
-    distribution_name: DBM
-    version_series: DRS
-    full_version: 1.0.2
-    os_type: "Linux"
-    os_version:
-- cloud-drs-tmysqlparse:
-    buildPath: /toolkit/tmysqlparse
-    name: tmysqlparse
-    version: 1.0.0
-    distribution_name: DBM
-    version_series: DRS-Tmysqlparse
-    full_version: 1.0.0
-    os_type: "Linux"
-    os_version:
-- cloud-nginx:
-    buildPath: /toolkit/nginx-portable.tgz
-    name: nginx-portable.tgz
-    version: 1.0.0
-    distribution_name: DBM
-    version_series: Nginx
-    full_version: 1.0.0
-    os_type: "Linux"
-    os_version:
-es:
-- actuator:
-    buildPath: /blueking-dbm/dbm-services/bigdata/db-tools/dbactuator/build/dbactuator
-    commitDate: '202406251536'
-    commitId: 7fa118a30171a55154958a376a81ff1830e9c247
-    name: dbactuator
-    version: 1.0.4
-    distribution_name: DBM
-    version_series: dbactuator
-    full_version: 1.0.5
-    os_type: "Linux"
-    os_version:
-# ---安装包文件---
-- es:
-    buildPath: /install/es/espack-7.10.2.tar.gz
-    name: espack-7.10.2.tar.gz
-    version: 7.10.2
-    installation: true
-    distribution_name: DBM
-    version_series: Elasitcsearch-7.10.2
-    full_version: 7.10.2
-    os_type: "Linux"
-    os_version:
-- es-plugin:
-    buildPath: /install/es/analysis-icu-7.10.2.tar.gz
-    name: analysis-icu-7.10.2.tar.gz
-    version: analysis-icu-7.10.2
-    installation: true
-    distribution_name: DBM
-    version_series: analysis-icu-7.10.2
-    full_version: 7.10.2.0.0.1
-    os_type: "Linux"
-    os_version:
-- es-plugin:
-    buildPath: /install/es/analysis-ik-7.10.2.tar.gz
-    name: analysis-ik-7.10.2.tar.gz
-    version: analysis-ik-7.10.2
-    installation: true
-    distribution_name: DBM
-    version_series: analysis-ik-7.10.2
-    full_version: 7.10.2.0.0.2
-    os_type: "Linux"
-    os_version:
-- es-plugin:
-    buildPath: /install/es/analysis-pinyin-7.10.2.tar.gz
-    name: analysis-pinyin-7.10.2.tar.gz
-    version: analysis-pinyin-7.10.2
-    installation: true
-    distribution_name: DBM
-    version_series: analysis-pinyin-7.10.2
-    full_version: 7.10.2.0.0.3
-    os_type: "Linux"
-    os_version:
-- es-plugin:
-    buildPath: /install/es/opendistro_security-1.13.1.0.tar.gz
-    name: opendistro_security-1.13.1.0.tar.gz
-    version: opendistro_security-1.13.1.0
-    installation: true
-    distribution_name: DBM
-    version_series: opendistro_security-1.13.1.0
-    full_version: 1.13.1.0.0.1
-    os_type: "Linux"
-    os_version:
-- es-plugin:
-    buildPath: /install/es/opendistro-alerting-1.13.1.0.tar.gz
-    name: opendistro-alerting-1.13.1.0.tar.gz
-    version: opendistro-alerting-1.13.1.0
-    installation: true
-    distribution_name: DBM
-    version_series: opendistro-alerting-1.13.1.0
-    full_version: 1.13.1.0.0.2
-    os_type: "Linux"
-    os_version:
-- es-plugin:
-    buildPath: /install/es/opendistro-job-scheduler-1.13.0.0.tar.gz
-    name: opendistro-job-scheduler-1.13.0.0.tar.gz
-    version: opendistro-job-scheduler-1.13.0.0
-    installation: true
-    distribution_name: DBM
-    version_series: opendistro-job-scheduler-1.13.0.0
-    full_version: 1.13.0.0.0.1
-    os_type: "Linux"
-    os_version:
-- es-plugin:
-    buildPath: /install/es/opendistro-knn-1.12.0.0.tar.gz
-    name: opendistro-knn-1.12.0.0.tar.gz
-    version: opendistro-knn-1.12.0.0
-    installation: true
-    distribution_name: DBM
-    version_series: opendistro-knn-1.12.0.0
-    full_version: 1.12.0.0.0.1
-    os_type: "Linux"
-    os_version:
-- es-plugin:
-    buildPath: /install/es/opendistro-sql-1.13.2.0.tar.gz
-    name: opendistro-sql-1.13.2.0.tar.gz
-    version: opendistro-sql-1.13.2.0
-    installation: true
-    distribution_name: DBM
-    version_series: opendistro-sql-1.13.2.0
-    full_version: 1.13.2.0.0.1
-    os_type: "Linux"
-    os_version:
-- es-plugin:
-    buildPath: /install/es/repository-cos-7.10.2.tar.gz
-    name: repository-cos-7.10.2.tar.gz
-    version: repository-cos-7.10.2
-    installation: true
-    distribution_name: DBM
-    version_series: repository-cos-7.10.2
-    full_version: 7.10.2.0.0.4
-    os_type: "Linux"
-    os_version:
-- es-plugin:
-    buildPath: /install/es/repository-hdfs-7.10.2.tar.gz
-    name: repository-hdfs-7.10.2.tar.gz
-    version: repository-hdfs-7.10.2
-    installation: true
-    distribution_name: DBM
-    version_series: repository-hdfs-7.10.2
-    full_version: 7.10.2.0.0.5
-    os_type: "Linux"
-    os_version:
-- exporter:
-    buildPath: /install/es/dbm_elasticsearch_exporter.tgz
-    name: dbm_elasticsearch_exporter.tgz
-    version: dbm_elasticsearch_exporter
-    installation: true
-    distribution_name: DBM
-    version_series: dbm_elasticsearch_exporter
-    full_version: 1.0.0
-    os_type: "Linux"
-    os_version:
-hdfs:
-- actuator:
-    buildPath: /blueking-dbm/dbm-services/bigdata/db-tools/dbactuator/build/dbactuator
-    commitDate: '202406251536'
-    commitId: 7fa118a30171a55154958a376a81ff1830e9c247
-    name: dbactuator
-    version: 1.0.4
-    distribution_name: DBM
-    version_series: dbactuator
-    full_version: 1.0.5
-    os_type: "Linux"
-    os_version:
-# ---安装包文件---
-- hdfs:
-    buildPath: /install/hdfs/hdfspack-2.6.0-cdh5.4.11-tendataV0.2.tar.gz
-    name: hdfspack-2.6.0-cdh5.4.11-tendataV0.2.tar.gz
-    version: 2.6.0-cdh5.4.11-tendataV0.2
-    installation: true
-    distribution_name: DBM
-    version_series: Hadoop-2.6
-    full_version: 2.6.0
-    os_type: "Linux"
-    os_version:
-- exporter:
-    buildPath: /install/hdfs/dbm_hdfs_exporter.tgz
-    name: dbm_hdfs_exporter.tgz
-    version: dbm_hdfs_exporter
-    installation: true
-    distribution_name: DBM
-    version_series: dbm_hdfs_exporter
-    full_version: 1.0.0
-    os_type: "Linux"
-    os_version:
-influxdb:
-- actuator:
-    buildPath: /blueking-dbm/dbm-services/bigdata/db-tools/dbactuator/build/dbactuator
-    commitDate: '202406251536'
-    commitId: 7fa118a30171a55154958a376a81ff1830e9c247
-    name: dbactuator
-    version: 1.0.4
-    distribution_name: DBM
-    version_series: dbactuator
-    full_version: 1.0.5
-    os_type: "Linux"
-    os_version:
-kafka:
-# ---介质文件---
-- actuator:
-    buildPath: /blueking-dbm/dbm-services/bigdata/db-tools/dbactuator/build/dbactuator
-    commitDate: '202406251536'
-    commitId: 7fa118a30171a55154958a376a81ff1830e9c247
-    name: dbactuator
-    version: 1.0.4
-    distribution_name: DBM
-    version_series: dbactuator
-    full_version: 1.0.5
-    os_type: "Linux"
-    os_version:
-# ---安装包文件---
-- kafka:
-    buildPath: /install/kafka/kafkapack-2.4.0.tar.gz
-    name: kafkapack-2.4.0.tar.gz
-    version: 2.4.0
-    installation: true
-    distribution_name: DBM
-    version_series: Kafka-2.4
-    full_version: 2.4.0
-    os_type: "Linux"
-    os_version:
-- exporter:
-    buildPath: /install/kafka/dbm_kafka_exporter.tgz
-    name: dbm_kafka_exporter.tgz
-    version: dbm_kafka_exporter
-    installation: true
-    distribution_name: DBM
-    version_series: dbm_kafka_exporter
-    full_version: 1.0.0
-    os_type: "Linux"
-    os_version:
-- exporter:
-    buildPath: /install/kafka/dbm_kafka_bkpull.tgz
-    name: dbm_kafka_bkpull.tgz
-    version: dbm_kafka_bkpull
-    installation: true
-    distribution_name: DBM
-    version_series: dbm_kafka_bkpull
-    full_version: 1.0.0
-    os_type: "Linux"
-    os_version:
-mongodb:
-- actuator:
-    buildPath: /blueking-dbm/dbm-services/mongodb/db-tools/dbactuator/build/mongo-dbactuator
-    commitDate: '202406281653'
-    commitId: 23beed969b3ef7bafd207a16303fbb17c0958a33
-    name: mongo-dbactuator
-    version: 1.0.1
-    distribution_name: DBM
-    version_series: latest
-    full_version: 1.0.2
-    os_type: "Linux"
-    os_version:
-- dbmon:
-    buildPath: /blueking-dbm/dbm-services/mongodb/db-tools/dbmon/build/bk-dbmon-mg.tar.gz
-    commitDate: '202406141720'
-    commitId: a3226da8f3796650898e6d393ae297da6e01b0b8
-    name: bk-dbmon-mg.tar.gz
-    version: 1.0.1
-    distribution_name: DBM
-    version_series: latest
-    full_version: 1.0.2
-    os_type: "Linux"
-    os_version:
-- mongo-toolkit:
-    buildPath: /blueking-dbm/dbm-services/mongodb/db-tools/mongo-toolkit-go/build/mongo-toolkit-go_Linux
-    commitDate: '202406141720'
-    commitId: a3226da8f3796650898e6d393ae297da6e01b0b8
-    name: mongo-toolkit-go_Linux
-    version: 1.0.1
-    distribution_name: DBM
-    version_series: latest
-    full_version: 1.0.2
-    os_type: "Linux"
-    os_version:
-- dbtools:
-    buildPath: /toolkit/mongotools.tar.gz
-    name: mongotools.tar.gz
-    version: 1.0.0
-    distribution_name: DBM
-    version_series: latest
-    full_version: 1.0.0
-    os_type: "Linux"
-    os_version:
-mysql:
-# ----介质列表----
-- actuator:
-    buildPath: /blueking-dbm/dbm-services/mysql/db-tools/dbactuator/build/dbactuator
-    commitDate: '202406272009'
-    commitId: 2bf305eab81fbdc4da897bf2b7b8d6634b57e946
-    name: dbactuator
-    version: 1.0.5
-    distribution_name: DBM
-    version_series: latest
-    full_version: 26.5.20.0.0.1
-    os_type: "Linux"
-    os_version:
-- dbbackup:
-    buildPath: /blueking-dbm/dbm-services/mysql/db-tools/mysql-dbbackup/build/dbbackup-go-community.tar.gz
-    commitDate: '202406121157'
-    commitId: 97be5317f0e85c4d2ef6fdd28be2fceb4c60e251
-    name: dbbackup-go-community.tar.gz
-    version: 1.0.4
-    distribution_name: Community
-    version_series: latest
-    full_version: 26.5.20.0.0.1
-    os_type: "Linux"
-    os_version:
-- mysql-checksum:
-    buildPath: /blueking-dbm/dbm-services/mysql/db-tools/mysql-table-checksum/build/mysql-checksum.tar.gz
-    commitDate: '202405151015'
-    commitId: 0f478ad649ddb815653ac0085a39d55a4f205c9a
-    name: mysql-checksum.tar.gz
-    version: 1.0.5
-    distribution_name: DBM
-    version_series: latest
-    full_version: 26.5.20.0.0.1
-    os_type: "Linux"
-    os_version:
-- mysql-crond:
-    buildPath: /blueking-dbm/dbm-services/mysql/db-tools/mysql-crond/build/mysql-crond.tar.gz
-    commitDate: '202403251644'
-    commitId: 3a97258f2cf63b270674c9594d9b68d4e1cad075
-    name: mysql-crond.tar.gz
-    version: 1.0.5
-    distribution_name: DBM
-    version_series: latest
-    full_version: 26.5.20.0.0.1
-    os_type: "Linux"
-    os_version:
-- rotate-binlog:
-    buildPath: /blueking-dbm/dbm-services/mysql/db-tools/mysql-rotatebinlog/build/mysql-rotatebinlog.tar.gz
-    commitDate: '202406121028'
-    commitId: 08fd8cea58e9a8bc96d860c80e6ab6a1e491d4ac
-    name: mysql-rotatebinlog.tar.gz
-    version: 1.0.5
-    distribution_name: DBM
-    version_series: latest
-    full_version: 26.5.20.0.0.1
-    os_type: "Linux"
-    os_version:
-- mysql-monitor:
-    buildPath: /blueking-dbm/dbm-services/mysql/db-tools/mysql-monitor/build/mysql-monitor.tar.gz
-    commitDate: '202406121523'
-    commitId: 0da798a86479c12422f1e030629c26cf16b15b28
-    name: mysql-monitor.tar.gz
-    version: 1.0.5
-    distribution_name: DBM
-    version_series: latest
-    full_version: 26.5.20.0.0.1
-    os_type: "Linux"
-    os_version:
-- dba-toolkit:
-    buildPath: /toolkit/dba-toolkit.tar.gz
-    name: dba-toolkit.tar.gz
-    version: 1.0.0
-    distribution_name: DBM
-    version_series: latest
-    full_version: 26.5.20.0.0.1
-    os_type: "Linux"
-    os_version:
-# ----安装包列表----
-- mysql:
-    buildPath: /install/mysql/mysql-5.7.20-linux-x86_64-tmysql-3.3-gcs.tar.gz
-    name: mysql-5.7.20-linux-x86_64-tmysql-3.3-gcs.tar.gz
-    version: MySQL-5.7
-    installation: true
-    distribution_name: TMySQL
-    version_series: MySQL-5.7
-    full_version: 5.7.20.3.3.0
-    os_type: "Linux"
-    os_version:
-- mysql:
-    buildPath: /install/mysql/mysql-8.0.32-linux-glibc2.12-x86_64.tar.xz
-    name: mysql-8.0.32-linux-glibc2.12-x86_64.tar.xz
-    version: MySQL-8.0-Community
-    installation: true
-    distribution_name: Community
-    version_series: MySQL-8.0-Community
-    full_version: 8.0.32.0.0.1
-    os_type: "Linux"
-    os_version:
-- mysql-proxy:
-    buildPath: /install/mysql/mysql-proxy-0.82.15.tar.gz
-    name: mysql-proxy-0.82.15.tar.gz
-    version: latest
-    installation: true
-    distribution_name: DBM
-    version_series: latest
-    full_version: 0.82.15
-    os_type: "Linux"
-    os_version:
-- tdbctl:
-    buildPath: /install/mysql/mysql-5.7.20-linux-x86_64-tdbctl-2.4.12.tar.gz
-    name: mysql-5.7.20-linux-x86_64-tdbctl-2.4.12.tar.gz
-    version: latest
-    installation: true
-    distribution_name: TMySQL
-    version_series: latest
-    full_version: 5.7.20.2.4.12
-    os_type: "Linux"
-    os_version:
-- spider:
-    buildPath: /install/mysql/mariadb-10.3.7-linux-x86_64-tspider-3.7.12-gcs.tar.gz
-    name: mariadb-10.3.7-linux-x86_64-tspider-3.7.12-gcs.tar.gz
-    version: Spider-3
-    installation: true
-    distribution_name: TMySQL
-    version_series: Spider-3
-    full_version: 10.3.7.3.7.12
-    os_type: "Linux"
-    os_version:
-- exporter:
-    buildPath: /install/mysql/dbm_tbinlogdumper_exporter.tgz
-    name: dbm_tbinlogdumper_exporter.tgz
-    version: dbm_tbinlogdumper_exporter
-    installation: true
-    distribution_name: DBM
-    version_series: dbm_tbinlogdumper_exporter
-    full_version: 1.0.0
-    os_type: "Linux"
-    os_version:
-- exporter:
-    buildPath: /install/mysql/dbm_mysqlproxy_exporter.tgz
-    name: dbm_mysqlproxy_exporter.tgz
-    version: dbm_mysqlproxy_exporter
-    installation: true
-    distribution_name: DBM
-    version_series: dbm_mysqlproxy_exporter
-    full_version: 1.0.0
-    os_type: "Linux"
-    os_version:
-- exporter:
-    buildPath: /install/mysql/dbm_mysqld_exporter.tgz
-    name: dbm_mysqld_exporter.tgz
-    version: dbm_mysqld_exporter
-    installation: true
-    distribution_name: DBM
-    version_series: dbm_mysqld_exporter
-    full_version: 1.0.0
-    os_type: "Linux"
-    os_version:
-pulsar:
-- actuator:
-    buildPath: /blueking-dbm/dbm-services/bigdata/db-tools/dbactuator/build/dbactuator
-    commitDate: '202406251536'
-    commitId: 7fa118a30171a55154958a376a81ff1830e9c247
-    name: dbactuator
-    version: 1.0.4
-    distribution_name: DBM
-    version_series: 1.0.5
-    full_version: 1.0.5
-    os_type: "Linux"
-    os_version:
-redis:
-# ---介质列表---
-- actuator:
-    buildPath: /blueking-dbm/dbm-services/redis/db-tools/dbactuator/build/dbactuator_redis
-    commitDate: '202406261537'
-    commitId: fa1cca4534e2fc6e55994003b66bca8467ea614b
-    name: dbactuator_redis
-    version: 1.0.5
-    distribution_name: DBM
-    version_series: 1.0.6
-    full_version: 26.5.20.0.0.1
-    os_type: "Linux"
-    os_version:
-- dbmon:
-    buildPath: /blueking-dbm/dbm-services/redis/db-tools/dbmon/build/bk-dbmon-*.tar.gz
-    commitDate: '202406251534'
-    commitId: 2120b0b1046c88417a141a7ece9e55a5952f2005
-    name: dbmon
-    version: 1.0.5
-    distribution_name: DBM
-    version_series: latest
-    full_version: 26.5.20.0.21.0
-    os_type: "Linux"
-    os_version:
-- redis-dts:
-    buildPath: /toolkit/redis_dts.tar.gz
-    name: redis_dts.tar.gz
-    version: 1.0.0
-    distribution_name: DBM
-    version_series: 1.0.0
-    full_version: 26.5.20.0.0.1
-    os_type: "Linux"
-    os_version:
-- tools:
-    buildPath: /toolkit/dbtools.tar.gz
-    name: dbtools.tar.gz
-    version: 1.0.0
-    distribution_name: DBM
-    version_series: latest
-    full_version: 26.5.20.0.0.0
-    os_type: "Linux"
-    os_version:
-- redis-modules:
-    buildPath: /toolkit/redis_modules.tar.gz
-    name: redis_modules.tar.gz
-    version: 1.0.0
-    distribution_name: DBM
-    version_series: 1.0.0
-    full_version: 26.5.20.0.0.1
-    os_type: "Linux"
-    os_version:
-# ---安装包列表---
-- redis:
-    buildPath: /install/redis/redis-5.0.14.tar.gz
-    name: redis-5.0.14.tar.gz
-    version: Redis-5
-    installation: true
-    distribution_name: DBM
-    version_series: Redis-5
-    full_version: 5.0.14
-    os_type: "Linux"
-    os_version:
-- redis:
-    buildPath: /install/redis/redis-6.2.14.tar.gz
-    name: redis-6.2.14.tar.gz
-    version: Redis-6
-    installation: true
-    distribution_name: DBM
-    version_series: Redis-6
-    full_version: 6.2.14
-    os_type: "Linux"
-    os_version:
-- tendisplus:
-    buildPath: /install/redis/tendisplus-2.7.3-rocksdb-v8.5.3.tgz
-    name: tendisplus-2.7.3-rocksdb-v8.5.3.tgz
-    version: Tendisplus-2.7
-    installation: true
-    distribution_name: DBM
-    version_series: Tendisplus-2.7
-    full_version: 2.7.3
-    os_type: "Linux"
-    os_version:
-- predixy:
-    buildPath: /install/redis/predixy-1.4.3.tar.gz
-    name: predixy-1.4.3.tar.gz
-    version: Predixy-latest
-    installation: true
-    distribution_name: DBM
-    version_series: Predixy-latest
-    full_version: 1.4.3
-    os_type: "Linux"
-    os_version:
-- exporter:
-    buildPath: /install/redis/dbm_predixy_exporter.tgz
-    name: dbm_predixy_exporter.tgz
-    version: dbm_predixy_exporter
-    installation: true
-    distribution_name: DBM
-    version_series: dbm_predixy_exporter
-    full_version: 1.0.0
-    os_type: "Linux"
-    os_version:
-- exporter:
-    buildPath: /install/redis/dbm_redis_exporter.tgz
-    name: dbm_redis_exporter.tgz
-    version: dbm_redis_exporter
-    installation: true
-    distribution_name: DBM
-    version_series: dbm_redis_exporter
-    full_version: 1.0.0
-    os_type: "Linux"
-    os_version:
-riak:
-- actuator:
-    buildPath: /blueking-dbm/dbm-services/riak/db-tools/dbactuator/build/dbactuator
-    commitDate: '202403041719'
-    commitId: f84f9b4c92225b25736315b5feaf8bb02796e40f
-    name: dbactuator
-    version: 1.0.1
-    distribution_name: DBM
-    version_series: latest
-    full_version: 1.0.2
-    os_type: "Linux"
-    os_version:
-- riak-monitor:
-    buildPath: /blueking-dbm/dbm-services/riak/db-tools/riak-monitor/build/riak-monitor.tar.gz
-    commitDate: '202403261049'
-    commitId: 0d25107625b2ebef8735491b48e9601a599bc502
-    name: riak-monitor.tar.gz
-    version: 1.0.1
-    distribution_name: DBM
-    version_series: latest
-    full_version: 1.0.2
-    os_type: "Linux"
-    os_version:
-sqlserver:
-- actuator:
-    buildPath: /blueking-dbm/dbm-services/sqlserver/db-tools/dbactuator/build/dbactuator.exe
-    commitDate: '202406251538'
-    commitId: 5ef190b024c7b5fe0862eb10c029cd7041056650
-    name: dbactuator.exe
-    version: 1.0.1
-    distribution_name: DBM
-    version_series: latest
-    full_version: 26.5.20.0.0.1
-    os_type: "Windows"
-    os_version:
 backupstm:
 - backup-client:
     buildPath: /toolkit/backup_client.tar.gz
-    name: backup_client.tar.gz
-    version: 1.0.0
-    installation: true
     distribution_name: DBM
-    version_series: latest
     full_version: 1.0.0
-    os_type: "Linux"
-    os_version:
+    installation: true
+    name: backup_client.tar.gz
+    os_type: Linux
+    os_version: null
+    version: 1.0.0
+    version_series: latest
+cloud:
+- cloud-dbha:
+    buildPath: /blueking-dbm/dbm-services/common/dbha/ha-module/build/dbha
+    commitDate: '202606091111'
+    commitId: b270293cb50a4884cdb061753ea9cc568e0a4300
+    distribution_name: DBM
+    full_version: 1.0.2
+    name: dbha
+    os_type: Linux
+    os_version: null
+    version: 1.0.3
+    version_series: DBHA
+- cloud-dns-bind:
+    buildPath: /toolkit/bind.tar.gz
+    distribution_name: DBM
+    full_version: 1.0.0
+    name: bind.tar.gz
+    os_type: Linux
+    os_version: null
+    version: 1.0.0
+    version_series: DNS-Bind
+- cloud-dns-pullcrond:
+    buildPath: /blueking-dbm/dbm-services/common/db-dns/dns-reload/build/pull-crond
+    commitDate: '202608251925'
+    commitId: f617ef9ce830e3cd43b6171c4f26b692969f35fd
+    distribution_name: DBM
+    full_version: 1.0.2
+    name: pull-crond
+    os_type: Linux
+    os_version: null
+    version: 1.0.3
+    version_series: DNS-Pullcrond
+- cloud-drs:
+    buildPath: /blueking-dbm/dbm-services/mysql/db-remote-service/build/db-remote-service
+    commitDate: '202608251753'
+    commitId: 143c0df5dd460833adb933b1ade0a40741ace71d
+    distribution_name: DBM
+    full_version: 1.0.2
+    name: db-remote-service
+    os_type: Linux
+    os_version: null
+    version: 1.0.3
+    version_series: DRS
+- cloud-drs-tmysqlparse:
+    buildPath: /toolkit/tmysqlparse
+    distribution_name: DBM
+    full_version: 1.0.0
+    name: tmysqlparse
+    os_type: Linux
+    os_version: null
+    version: 1.0.0
+    version_series: DRS-Tmysqlparse
+- cloud-nginx:
+    buildPath: /toolkit/nginx-portable.tgz
+    distribution_name: DBM
+    full_version: 1.0.0
+    name: nginx-portable.tgz
+    os_type: Linux
+    os_version: null
+    version: 1.0.0
+    version_series: Nginx
+es:
+- actuator:
+    buildPath: /blueking-dbm/dbm-services/bigdata/db-tools/dbactuator/build/dbactuator
+    commitDate: '202608261122'
+    commitId: d4321009837ac27fab74f8289e1f16b6b0dd69e7
+    distribution_name: DBM
+    full_version: 1.0.5
+    name: dbactuator
+    os_type: Linux
+    os_version: null
+    version: 1.0.5
+    version_series: dbactuator
+- es:
+    buildPath: /install/es/espack-7.10.2.tar.gz
+    distribution_name: DBM
+    full_version: 7.10.2
+    installation: true
+    name: espack-7.10.2.tar.gz
+    os_type: Linux
+    os_version: null
+    version: 7.10.2
+    version_series: Elasitcsearch-7.10.2
+- es-plugin:
+    buildPath: /install/es/analysis-icu-7.10.2.tar.gz
+    distribution_name: DBM
+    full_version: 7.10.2.0.0.1
+    installation: true
+    name: analysis-icu-7.10.2.tar.gz
+    os_type: Linux
+    os_version: null
+    version: analysis-icu-7.10.2
+    version_series: analysis-icu-7.10.2
+- es-plugin:
+    buildPath: /install/es/analysis-ik-7.10.2.tar.gz
+    distribution_name: DBM
+    full_version: 7.10.2.0.0.2
+    installation: true
+    name: analysis-ik-7.10.2.tar.gz
+    os_type: Linux
+    os_version: null
+    version: analysis-ik-7.10.2
+    version_series: analysis-ik-7.10.2
+- es-plugin:
+    buildPath: /install/es/analysis-pinyin-7.10.2.tar.gz
+    distribution_name: DBM
+    full_version: 7.10.2.0.0.3
+    installation: true
+    name: analysis-pinyin-7.10.2.tar.gz
+    os_type: Linux
+    os_version: null
+    version: analysis-pinyin-7.10.2
+    version_series: analysis-pinyin-7.10.2
+- es-plugin:
+    buildPath: /install/es/opendistro_security-1.13.1.0.tar.gz
+    distribution_name: DBM
+    full_version: 1.13.1.0.0.1
+    installation: true
+    name: opendistro_security-1.13.1.0.tar.gz
+    os_type: Linux
+    os_version: null
+    version: opendistro_security-1.13.1.0
+    version_series: opendistro_security-1.13.1.0
+- es-plugin:
+    buildPath: /install/es/opendistro-alerting-1.13.1.0.tar.gz
+    distribution_name: DBM
+    full_version: 1.13.1.0.0.2
+    installation: true
+    name: opendistro-alerting-1.13.1.0.tar.gz
+    os_type: Linux
+    os_version: null
+    version: opendistro-alerting-1.13.1.0
+    version_series: opendistro-alerting-1.13.1.0
+- es-plugin:
+    buildPath: /install/es/opendistro-job-scheduler-1.13.0.0.tar.gz
+    distribution_name: DBM
+    full_version: 1.13.0.0.0.1
+    installation: true
+    name: opendistro-job-scheduler-1.13.0.0.tar.gz
+    os_type: Linux
+    os_version: null
+    version: opendistro-job-scheduler-1.13.0.0
+    version_series: opendistro-job-scheduler-1.13.0.0
+- es-plugin:
+    buildPath: /install/es/opendistro-knn-1.12.0.0.tar.gz
+    distribution_name: DBM
+    full_version: 1.12.0.0.0.1
+    installation: true
+    name: opendistro-knn-1.12.0.0.tar.gz
+    os_type: Linux
+    os_version: null
+    version: opendistro-knn-1.12.0.0
+    version_series: opendistro-knn-1.12.0.0
+- es-plugin:
+    buildPath: /install/es/opendistro-sql-1.13.2.0.tar.gz
+    distribution_name: DBM
+    full_version: 1.13.2.0.0.1
+    installation: true
+    name: opendistro-sql-1.13.2.0.tar.gz
+    os_type: Linux
+    os_version: null
+    version: opendistro-sql-1.13.2.0
+    version_series: opendistro-sql-1.13.2.0
+- es-plugin:
+    buildPath: /install/es/repository-cos-7.10.2.tar.gz
+    distribution_name: DBM
+    full_version: 7.10.2.0.0.4
+    installation: true
+    name: repository-cos-7.10.2.tar.gz
+    os_type: Linux
+    os_version: null
+    version: repository-cos-7.10.2
+    version_series: repository-cos-7.10.2
+- es-plugin:
+    buildPath: /install/es/repository-hdfs-7.10.2.tar.gz
+    distribution_name: DBM
+    full_version: 7.10.2.0.0.5
+    installation: true
+    name: repository-hdfs-7.10.2.tar.gz
+    os_type: Linux
+    os_version: null
+    version: repository-hdfs-7.10.2
+    version_series: repository-hdfs-7.10.2
+- exporter:
+    buildPath: /install/es/dbm_elasticsearch_exporter.tgz
+    distribution_name: DBM
+    full_version: 1.0.0
+    installation: true
+    name: dbm_elasticsearch_exporter.tgz
+    os_type: Linux
+    os_version: null
+    version: dbm_elasticsearch_exporter
+    version_series: dbm_elasticsearch_exporter
+hdfs:
+- actuator:
+    buildPath: /blueking-dbm/dbm-services/bigdata/db-tools/dbactuator/build/dbactuator
+    commitDate: '202608261122'
+    commitId: d4321009837ac27fab74f8289e1f16b6b0dd69e7
+    distribution_name: DBM
+    full_version: 1.0.5
+    name: dbactuator
+    os_type: Linux
+    os_version: null
+    version: 1.0.5
+    version_series: dbactuator
+- hdfs:
+    buildPath: /install/hdfs/hdfspack-2.6.0-cdh5.4.11-tendataV0.2.tar.gz
+    distribution_name: DBM
+    full_version: 2.6.0
+    installation: true
+    name: hdfspack-2.6.0-cdh5.4.11-tendataV0.2.tar.gz
+    os_type: Linux
+    os_version: null
+    version: 2.6.0-cdh5.4.11-tendataV0.2
+    version_series: Hadoop-2.6
+- exporter:
+    buildPath: /install/hdfs/dbm_hdfs_exporter.tgz
+    distribution_name: DBM
+    full_version: 1.0.0
+    installation: true
+    name: dbm_hdfs_exporter.tgz
+    os_type: Linux
+    os_version: null
+    version: dbm_hdfs_exporter
+    version_series: dbm_hdfs_exporter
+influxdb:
+- actuator:
+    buildPath: /blueking-dbm/dbm-services/bigdata/db-tools/dbactuator/build/dbactuator
+    commitDate: '202608261122'
+    commitId: d4321009837ac27fab74f8289e1f16b6b0dd69e7
+    distribution_name: DBM
+    full_version: 1.0.5
+    name: dbactuator
+    os_type: Linux
+    os_version: null
+    version: 1.0.5
+    version_series: dbactuator
+kafka:
+- actuator:
+    buildPath: /blueking-dbm/dbm-services/bigdata/db-tools/dbactuator/build/dbactuator
+    commitDate: '202608261122'
+    commitId: d4321009837ac27fab74f8289e1f16b6b0dd69e7
+    distribution_name: DBM
+    full_version: 1.0.5
+    name: dbactuator
+    os_type: Linux
+    os_version: null
+    version: 1.0.5
+    version_series: dbactuator
+- kafka:
+    buildPath: /install/kafka/kafkapack-2.4.0.tar.gz
+    distribution_name: DBM
+    full_version: 2.4.0
+    installation: true
+    name: kafkapack-2.4.0.tar.gz
+    os_type: Linux
+    os_version: null
+    version: 2.4.0
+    version_series: Kafka-2.4
+- exporter:
+    buildPath: /install/kafka/dbm_kafka_exporter.tgz
+    distribution_name: DBM
+    full_version: 1.0.0
+    installation: true
+    name: dbm_kafka_exporter.tgz
+    os_type: Linux
+    os_version: null
+    version: dbm_kafka_exporter
+    version_series: dbm_kafka_exporter
+- exporter:
+    buildPath: /install/kafka/dbm_kafka_bkpull.tgz
+    distribution_name: DBM
+    full_version: 1.0.0
+    installation: true
+    name: dbm_kafka_bkpull.tgz
+    os_type: Linux
+    os_version: null
+    version: dbm_kafka_bkpull
+    version_series: dbm_kafka_bkpull
+mongodb:
+- actuator:
+    buildPath: /blueking-dbm/dbm-services/mongodb/db-tools/dbactuator/build/mongo-dbactuator
+    commitDate: '202608261420'
+    commitId: dc03f8fec49a7c6133ef23722ccd7df370af9385
+    distribution_name: DBM
+    full_version: 1.0.2
+    name: mongo-dbactuator
+    os_type: Linux
+    os_version: null
+    version: 1.0.2
+    version_series: latest
+- dbmon:
+    buildPath: /blueking-dbm/dbm-services/mongodb/db-tools/dbmon/build/bk-dbmon-mg.tar.gz
+    commitDate: '202608251925'
+    commitId: f617ef9ce830e3cd43b6171c4f26b692969f35fd
+    distribution_name: DBM
+    full_version: 1.0.2
+    name: bk-dbmon-mg.tar.gz
+    os_type: Linux
+    os_version: null
+    version: 1.0.2
+    version_series: latest
+- mongo-toolkit:
+    buildPath: /blueking-dbm/dbm-services/mongodb/db-tools/mongo-toolkit-go/build/mongo-toolkit-go_Linux
+    commitDate: '202608251925'
+    commitId: f617ef9ce830e3cd43b6171c4f26b692969f35fd
+    distribution_name: DBM
+    full_version: 1.0.2
+    name: mongo-toolkit-go_Linux
+    os_type: Linux
+    os_version: null
+    version: 1.0.2
+    version_series: latest
+- dbtools:
+    buildPath: /toolkit/mongotools.tar.gz
+    distribution_name: DBM
+    full_version: 1.0.0
+    name: mongotools.tar.gz
+    os_type: Linux
+    os_version: null
+    version: 1.0.0
+    version_series: latest
+mysql:
+- actuator:
+    buildPath: /blueking-dbm/dbm-services/mysql/db-tools/dbactuator/build/dbactuator
+    commitDate: '202608291430'
+    commitId: 7d0aa32bbc1512879f81e6166edcfcf540495fb7
+    distribution_name: DBM
+    full_version: 26.5.20.0.0.1
+    name: dbactuator
+    os_type: Linux
+    os_version: null
+    version: 1.0.6
+    version_series: latest
+- dbbackup:
+    buildPath: /blueking-dbm/dbm-services/mysql/db-tools/mysql-dbbackup/build/dbbackup-go-community.tar.gz
+    commitDate: '202608251753'
+    commitId: 143c0df5dd460833adb933b1ade0a40741ace71d
+    distribution_name: Community
+    full_version: 26.5.20.0.0.1
+    name: dbbackup-go-community.tar.gz
+    os_type: Linux
+    os_version: null
+    version: 1.0.5
+    version_series: latest
+- mysql-checksum:
+    buildPath: /blueking-dbm/dbm-services/mysql/db-tools/mysql-table-checksum/build/mysql-checksum.tar.gz
+    commitDate: '202608251753'
+    commitId: 143c0df5dd460833adb933b1ade0a40741ace71d
+    distribution_name: DBM
+    full_version: 26.5.20.0.0.1
+    name: mysql-checksum.tar.gz
+    os_type: Linux
+    os_version: null
+    version: 1.0.6
+    version_series: latest
+- mysql-crond:
+    buildPath: /blueking-dbm/dbm-services/mysql/db-tools/mysql-crond/build/mysql-crond.tar.gz
+    commitDate: '202608251753'
+    commitId: 143c0df5dd460833adb933b1ade0a40741ace71d
+    distribution_name: DBM
+    full_version: 26.5.20.0.0.1
+    name: mysql-crond.tar.gz
+    os_type: Linux
+    os_version: null
+    version: 1.0.6
+    version_series: latest
+- rotate-binlog:
+    buildPath: /blueking-dbm/dbm-services/mysql/db-tools/mysql-rotatebinlog/build/mysql-rotatebinlog.tar.gz
+    commitDate: '202608251753'
+    commitId: 143c0df5dd460833adb933b1ade0a40741ace71d
+    distribution_name: DBM
+    full_version: 26.5.20.0.0.1
+    name: mysql-rotatebinlog.tar.gz
+    os_type: Linux
+    os_version: null
+    version: 1.0.6
+    version_series: latest
+- mysql-monitor:
+    buildPath: /blueking-dbm/dbm-services/mysql/db-tools/mysql-monitor/build/mysql-monitor.tar.gz
+    commitDate: '202608251753'
+    commitId: 143c0df5dd460833adb933b1ade0a40741ace71d
+    distribution_name: DBM
+    full_version: 26.5.20.0.0.1
+    name: mysql-monitor.tar.gz
+    os_type: Linux
+    os_version: null
+    version: 1.0.6
+    version_series: latest
+- dba-toolkit:
+    buildPath: /toolkit/dba-toolkit.tar.gz
+    distribution_name: DBM
+    full_version: 26.5.20.0.0.1
+    name: dba-toolkit.tar.gz
+    os_type: Linux
+    os_version: null
+    version: 1.0.0
+    version_series: latest
+- mysql:
+    buildPath: /install/mysql/mysql-5.7.20-linux-x86_64-tmysql-3.3-gcs.tar.gz
+    distribution_name: TMySQL
+    full_version: 5.7.20.3.3.0
+    installation: true
+    name: mysql-5.7.20-linux-x86_64-tmysql-3.3-gcs.tar.gz
+    os_type: Linux
+    os_version: null
+    version: MySQL-5.7
+    version_series: MySQL-5.7
+- mysql:
+    buildPath: /install/mysql/mysql-8.0.32-linux-glibc2.12-x86_64.tar.xz
+    distribution_name: Community
+    full_version: 8.0.32.0.0.1
+    installation: true
+    name: mysql-8.0.32-linux-glibc2.12-x86_64.tar.xz
+    os_type: Linux
+    os_version: null
+    version: MySQL-8.0-Community
+    version_series: MySQL-8.0-Community
+- mysql-proxy:
+    buildPath: /install/mysql/mysql-proxy-0.82.15.tar.gz
+    distribution_name: DBM
+    full_version: 0.82.15
+    installation: true
+    name: mysql-proxy-0.82.15.tar.gz
+    os_type: Linux
+    os_version: null
+    version: latest
+    version_series: latest
+- tdbctl:
+    buildPath: /install/mysql/mysql-5.7.20-linux-x86_64-tdbctl-2.4.12.tar.gz
+    distribution_name: TMySQL
+    full_version: 5.7.20.2.4.12
+    installation: true
+    name: mysql-5.7.20-linux-x86_64-tdbctl-2.4.12.tar.gz
+    os_type: Linux
+    os_version: null
+    version: latest
+    version_series: latest
+- spider:
+    buildPath: /install/mysql/mariadb-10.3.7-linux-x86_64-tspider-3.7.12-gcs.tar.gz
+    distribution_name: TMySQL
+    full_version: 10.3.7.3.7.12
+    installation: true
+    name: mariadb-10.3.7-linux-x86_64-tspider-3.7.12-gcs.tar.gz
+    os_type: Linux
+    os_version: null
+    version: Spider-3
+    version_series: Spider-3
+- exporter:
+    buildPath: /install/mysql/dbm_tbinlogdumper_exporter.tgz
+    distribution_name: DBM
+    full_version: 1.0.0
+    installation: true
+    name: dbm_tbinlogdumper_exporter.tgz
+    os_type: Linux
+    os_version: null
+    version: dbm_tbinlogdumper_exporter
+    version_series: dbm_tbinlogdumper_exporter
+- exporter:
+    buildPath: /install/mysql/dbm_mysqlproxy_exporter.tgz
+    distribution_name: DBM
+    full_version: 1.0.0
+    installation: true
+    name: dbm_mysqlproxy_exporter.tgz
+    os_type: Linux
+    os_version: null
+    version: dbm_mysqlproxy_exporter
+    version_series: dbm_mysqlproxy_exporter
+- exporter:
+    buildPath: /install/mysql/dbm_mysqld_exporter.tgz
+    distribution_name: DBM
+    full_version: 1.0.0
+    installation: true
+    name: dbm_mysqld_exporter.tgz
+    os_type: Linux
+    os_version: null
+    version: dbm_mysqld_exporter
+    version_series: dbm_mysqld_exporter
+pulsar:
+- actuator:
+    buildPath: /blueking-dbm/dbm-services/bigdata/db-tools/dbactuator/build/dbactuator
+    commitDate: '202608261122'
+    commitId: d4321009837ac27fab74f8289e1f16b6b0dd69e7
+    distribution_name: DBM
+    full_version: 1.0.5
+    name: dbactuator
+    os_type: Linux
+    os_version: null
+    version: 1.0.5
+    version_series: 1.0.5
+redis:
+- actuator:
+    buildPath: /blueking-dbm/dbm-services/redis/db-tools/dbactuator/build/dbactuator_redis
+    commitDate: '202608251925'
+    commitId: f617ef9ce830e3cd43b6171c4f26b692969f35fd
+    distribution_name: DBM
+    full_version: 26.5.20.0.0.1
+    name: dbactuator_redis
+    os_type: Linux
+    os_version: null
+    version: 1.0.6
+    version_series: 1.0.6
+- dbmon:
+    buildPath: /blueking-dbm/dbm-services/redis/db-tools/dbmon/build/bk-dbmon-*.tar.gz
+    commitDate: '202608251925'
+    commitId: f617ef9ce830e3cd43b6171c4f26b692969f35fd
+    distribution_name: DBM
+    full_version: 26.5.20.0.21.0
+    name: dbmon
+    os_type: Linux
+    os_version: null
+    version: 1.0.6
+    version_series: latest
+- redis-dts:
+    buildPath: /toolkit/redis_dts.tar.gz
+    distribution_name: DBM
+    full_version: 26.5.20.0.0.1
+    name: redis_dts.tar.gz
+    os_type: Linux
+    os_version: null
+    version: 1.0.0
+    version_series: 1.0.0
+- tools:
+    buildPath: /toolkit/dbtools.tar.gz
+    distribution_name: DBM
+    full_version: 26.5.20.0.0.0
+    name: dbtools.tar.gz
+    os_type: Linux
+    os_version: null
+    version: 1.0.0
+    version_series: latest
+- redis-modules:
+    buildPath: /toolkit/redis_modules.tar.gz
+    distribution_name: DBM
+    full_version: 26.5.20.0.0.1
+    name: redis_modules.tar.gz
+    os_type: Linux
+    os_version: null
+    version: 1.0.0
+    version_series: 1.0.0
+- redis:
+    buildPath: /install/redis/redis-5.0.14.tar.gz
+    distribution_name: DBM
+    full_version: 5.0.14
+    installation: true
+    name: redis-5.0.14.tar.gz
+    os_type: Linux
+    os_version: null
+    version: Redis-5
+    version_series: Redis-5
+- redis:
+    buildPath: /install/redis/redis-6.2.14.tar.gz
+    distribution_name: DBM
+    full_version: 6.2.14
+    installation: true
+    name: redis-6.2.14.tar.gz
+    os_type: Linux
+    os_version: null
+    version: Redis-6
+    version_series: Redis-6
+- tendisplus:
+    buildPath: /install/redis/tendisplus-2.7.3-rocksdb-v8.5.3.tgz
+    distribution_name: DBM
+    full_version: 2.7.3
+    installation: true
+    name: tendisplus-2.7.3-rocksdb-v8.5.3.tgz
+    os_type: Linux
+    os_version: null
+    version: Tendisplus-2.7
+    version_series: Tendisplus-2.7
+- predixy:
+    buildPath: /install/redis/predixy-1.4.3.tar.gz
+    distribution_name: DBM
+    full_version: 1.4.3
+    installation: true
+    name: predixy-1.4.3.tar.gz
+    os_type: Linux
+    os_version: null
+    version: Predixy-latest
+    version_series: Predixy-latest
+- exporter:
+    buildPath: /install/redis/dbm_predixy_exporter.tgz
+    distribution_name: DBM
+    full_version: 1.0.0
+    installation: true
+    name: dbm_predixy_exporter.tgz
+    os_type: Linux
+    os_version: null
+    version: dbm_predixy_exporter
+    version_series: dbm_predixy_exporter
+- exporter:
+    buildPath: /install/redis/dbm_redis_exporter.tgz
+    distribution_name: DBM
+    full_version: 1.0.0
+    installation: true
+    name: dbm_redis_exporter.tgz
+    os_type: Linux
+    os_version: null
+    version: dbm_redis_exporter
+    version_series: dbm_redis_exporter
+riak:
+- actuator:
+    buildPath: /blueking-dbm/dbm-services/riak/db-tools/dbactuator/build/dbactuator
+    commitDate: '202512171422'
+    commitId: 498aaaed0b7144d2c1d9b7b793f749c1378b6569
+    distribution_name: DBM
+    full_version: 1.0.2
+    name: dbactuator
+    os_type: Linux
+    os_version: null
+    version: 1.0.2
+    version_series: latest
+- riak-monitor:
+    buildPath: /blueking-dbm/dbm-services/riak/db-tools/riak-monitor/build/riak-monitor.tar.gz
+    commitDate: '202512171422'
+    commitId: 498aaaed0b7144d2c1d9b7b793f749c1378b6569
+    distribution_name: DBM
+    full_version: 1.0.2
+    name: riak-monitor.tar.gz
+    os_type: Linux
+    os_version: null
+    version: 1.0.2
+    version_series: latest
+sqlserver:
+- actuator:
+    buildPath: /blueking-dbm/dbm-services/sqlserver/db-tools/dbactuator/build/dbactuator.exe
+    commitDate: '202608311126'
+    commitId: e81a232a430a0ebc79d558177485e3c126ef1909
+    distribution_name: DBM
+    full_version: 26.5.20.0.0.1
+    name: dbactuator.exe
+    os_type: Windows
+    os_version: null
+    version: 1.0.2
+    version_series: latest
