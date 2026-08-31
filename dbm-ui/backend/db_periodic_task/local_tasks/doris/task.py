@@ -14,7 +14,8 @@ from celery.schedules import crontab
 from backend.db_meta.enums import ClusterType
 from backend.db_meta.models import Cluster
 from backend.db_periodic_task.local_tasks import register_periodic_task
-from backend.db_periodic_task.local_tasks.doris import sync_cluster_master, sync_cluster_remote_used
+from backend.db_periodic_task.local_tasks.doris.sync_cluster_master import sync_cluster_master
+from backend.db_periodic_task.local_tasks.doris.sync_cluster_remote_used import sync_cluster_remote_used
 
 logger = logging.getLogger("celery")
 
