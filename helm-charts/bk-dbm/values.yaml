@@ -92,6 +92,8 @@ dbm:
     bkccEnabled: true
     bkjobEnabled: true
     mediumEnabled: true
+    # 介质同步中的监控插件(蓝盾/监控平台)同步开关，默认开启；现网暂不需要可置为 false
+    mediumMonitorEnabled: true
     bkmonitorEnabled: true
     bknoticeEnabled: true
     # TODO: 验证后开启
