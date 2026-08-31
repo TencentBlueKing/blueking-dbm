@@ -38,6 +38,12 @@ export const toolboxMenuList = [
         parentId: 'mongo_manage',
       },
       {
+        dbConsoleValue: 'mongodb.toolbox.reduceShard',
+        id: TicketTypes.MONGODB_REDUCE_SHARD,
+        name: t('缩容分片数'),
+        parentId: 'mongo_manage',
+      },
+      {
         bind: [TicketTypes.MONGODB_REPLICA_ADD_SHARD_NODES, TicketTypes.MONGODB_SHARD_ADD_SHARD_NODES],
         dbConsoleValue: 'mongodb.toolbox.shardScaleUp',
         id: TicketTypes.MONGODB_REPLICA_ADD_SHARD_NODES,

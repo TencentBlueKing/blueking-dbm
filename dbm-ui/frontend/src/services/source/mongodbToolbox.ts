@@ -79,6 +79,19 @@ export function getMongoShard(params: {
 }
 
 /**
+ * 查询集群分片列表（缩容分片数下拉数据源）
+ */
+export function listClusterShards(params: { cluster_ids: number[] }) {
+  return http.get<
+    {
+      cluster_id: number;
+      immute_domain: string;
+      shard_list: string[];
+    }[]
+  >(`${getRootPath()}/list_cluster_shards/`, params);
+}
+
+/**
  * MongoDB: 查询集群可升级版本列表
  */
 export function listAvailableMongoVersions(params: { cluster_ids: number[] }) {
