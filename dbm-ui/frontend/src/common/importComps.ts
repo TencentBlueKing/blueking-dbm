@@ -32,7 +32,6 @@ import DbIcon from '@components/db-icon';
 import DbPopconfirm from '@components/db-popconfirm/index.vue';
 import DbQuickSearch from '@components/db-quick-search/Index.vue';
 import DbResetButton from '@components/db-reset-button/index.vue';
-import DbSearchSelect from '@components/db-search-select/index.vue';
 import DbSideslider from '@components/db-sideslider/index.vue';
 import DbStatus from '@components/db-status/index.vue';
 import EditableTable, {
@@ -87,7 +86,6 @@ export const setGlobalComps = (app: App<Element>) => {
   app.component('DbPagination', DbPagination);
   app.component('DbPopconfirm', DbPopconfirm);
   app.component('DbResetButton', DbResetButton);
-  app.component('DbSearchSelect', DbSearchSelect);
   app.component('DbSelect', DbSelect);
   app.component('DbSideslider', DbSideslider);
   app.component('DbTag', DbTag);

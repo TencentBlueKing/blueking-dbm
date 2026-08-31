@@ -22,18 +22,15 @@
       :model-value="filterDateRange"
       @change="handleDateTimeChange"
       @finish="handleDateTimePick" />
-    <DbSearchSelect
+    <DbQuickSearch
+      v-model="searchValue"
       class="search-select"
       :data="searchSelectData"
-      :model-value="searchValue"
-      :parse-url="false"
       :placeholder="t('搜索告警级别，告警名称，告警内容，告警实例，所属集群…')"
-      unique-select
       @change="handleSearchValueChange" />
   </div>
 </template>
 <script setup lang="tsx">
-  import type { ISearchItem, ISearchValue } from 'bkui-vue/lib/search-select/utils';
   import dayjs from 'dayjs';
   import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
@@ -46,7 +43,8 @@
   import { useGlobalBizs } from '@stores';
 
   import { DBTypeInfos, DBTypes } from '@common/const';
-  import { batchSplitRegex } from '@common/regex';
+
+  import { type Props as QuickSearchProps } from '@components/db-quick-search/bk-quick-search/Index.vue';
 
   import ShieldDateTimePicker from '@views/monitor-alarm/common/ShieldDateTimePicker.vue';
 
@@ -75,30 +73,32 @@
 
   const baseSelectList = [
     {
-      children: bizs.map((biz) => ({
-        id: biz.bk_biz_id,
-        name: biz.name,
-      })),
       id: 'bk_biz_id',
+      list: bizs.map((biz) => ({
+        label: biz.name,
+        value: biz.bk_biz_id,
+      })),
       name: t('所属业务'),
+      type: 'single',
     },
     {
-      children: [
+      id: 'severity',
+      list: [
         {
-          id: 3,
-          name: t('提醒'),
+          label: t('提醒'),
+          value: 3,
         },
         {
-          id: 2,
-          name: t('预警'),
+          label: t('预警'),
+          value: 2,
         },
         {
-          id: 1,
-          name: t('致命'),
+          label: t('致命'),
+          value: 1,
         },
       ],
-      id: 'severity',
       name: t('告警级别'),
+      type: 'single',
     },
     {
       id: 'alert_name',
@@ -115,95 +115,75 @@
     {
       id: 'ip',
       name: t('告警IP'),
+      type: 'multiple-input',
     },
     {
       id: 'cluster_domain',
       name: t('所属集群'),
+      type: 'multiple-input',
     },
     {
-      children: [
-        {
-          id: 'is_handled',
-          name: t('已通知'),
-        },
-        {
-          id: 'is_shielded',
-          name: t('已屏蔽'),
-        },
-        {
-          id: 'is_blocked',
-          name: t('已流控'),
-        },
-        {
-          id: 'is_ack',
-          name: t('已确认'),
-        },
-      ],
       id: 'stage',
-      name: t('处理阶段'),
-    },
-    {
-      children: [
+      list: [
         {
-          id: 'RECOVERED',
-          name: t('已恢复'),
+          label: t('已通知'),
+          value: 'is_handled',
         },
         {
-          id: 'ABNORMAL',
-          name: t('未恢复'),
+          label: t('已屏蔽'),
+          value: 'is_shielded',
         },
         {
-          id: 'CLOSED',
-          name: t('已失效'),
+          label: t('已流控'),
+          value: 'is_blocked',
+        },
+        {
+          label: t('已确认'),
+          value: 'is_ack',
         },
       ],
-      id: 'status',
-      name: t('状态'),
+      name: t('处理阶段'),
+      type: 'single',
     },
-  ];
+    {
+      id: 'status',
+      list: [
+        {
+          label: t('已恢复'),
+          value: 'RECOVERED',
+        },
+        {
+          label: t('未恢复'),
+          value: 'ABNORMAL',
+        },
+        {
+          label: t('已失效'),
+          value: 'CLOSED',
+        },
+      ],
+      name: t('状态'),
+      type: 'single',
+    },
+  ] as QuickSearchProps['data'];
 
   const dateFormatStr = 'YYYY-MM-DD HH:mm:ss';
   const startTime = dayjs().subtract(7, 'day').format(dateFormatStr);
   const endTime = dayjs().format(dateFormatStr);
 
-  const defaultStatus = {
-    id: 'status',
-    name: t('状态'),
-    values: [
-      {
-        id: 'ABNORMAL',
-        name: t('未恢复'),
-      },
-    ],
-  };
-
-  let isInit = true;
-
   const initSearchValue = () => {
-    const baseValue = baseSelectList.reduce<ISearchValue[]>((results, item) => {
+    const baseValue = baseSelectList.reduce<Record<string, string>>((results, item) => {
       const id = route.query[item.id] as string;
       if (id) {
-        let name = id;
-        if (item.children) {
-          const targetName = item.children.find((child) => child.id === id)?.name;
-          if (targetName) {
-            name = targetName;
-          }
-        }
-        results.push({
-          ...item,
-          values: [
-            {
-              id: item.id === 'bk_biz_id' ? Number(id) : id,
-              name,
-            },
-          ],
+        Object.assign(results, {
+          [item.id]: id,
         });
       }
       return results;
-    }, []);
+    }, {});
     if (!route.query.limit && !route.query.status) {
-      baseValue.push(defaultStatus);
+      Object.assign(baseValue, {
+        status: 'ABNORMAL',
+      });
     }
     return baseValue;
   };
@@ -229,14 +209,14 @@
   const filterData = ref<Record<string, any>>(initDateRange);
   const dbValue = ref<string[]>([]);
   const filterDateRange = ref<[string, string]>([initDateRange.start_time, initDateRange.end_time]);
-  const searchValue = ref<ISearchValue[]>(initSearchValue());
+  const searchValue = ref<Record<string, string>>(initSearchValue());
 
   const searchSelectData = computed(() => {
     const baseSelect = _.cloneDeep(baseSelectList);
     if (!props.showBizs) {
       baseSelect.shift();
     }
-    return baseSelect as ISearchItem[];
+    return baseSelect;
   });
 
   const dbList = computed(() => {
@@ -295,57 +275,21 @@
     [filterData.value.start_time, filterData.value.end_time] = filterDateRange.value;
   };
 
-  const handleSearchValueChange = (valueList: ISearchValue[]) => {
-    // 防止方法由于searchValue的值改变而被循环触发
-    if (!isInit && JSON.stringify(valueList) === JSON.stringify(searchValue.value)) {
-      return;
-    }
-    isInit = false;
-    const handledValueList: ISearchValue[] = [];
-    valueList.forEach((item) => {
-      if (!['cluster_domain', 'ip'].includes(item.id)) {
-        handledValueList.push(item);
-        return;
-      }
-      const values = item.values
-        ? [
-            {
-              id: item.values[0].id.split(batchSplitRegex).join(','),
-              name: item.values[0].name.split(batchSplitRegex).join(' | '),
-            },
-          ]
-        : [];
-
-      const searchObj = {
-        ...item,
-        values,
-      };
-      handledValueList.push(searchObj);
-    });
-
-    searchValue.value = handledValueList;
-
-    if (!handledValueList.length) {
+  const handleSearchValueChange = (value: Record<string, string>) => {
+    if (Object.keys(value).length === 0) {
       filterData.value = {
         db_types: filterData.value.db_types,
         ...initDatetime(),
       };
       return;
     }
-    const handledValueMap = handledValueList.reduce<Record<string, ISearchValue>>((results, item) => {
-      Object.assign(results, {
-        [item.id]: item,
-      });
-      return results;
-    }, {});
+
     searchSelectData.value.forEach((item) => {
-      const targetItem = handledValueMap[item.id];
-      if (!targetItem) {
+      if (value[item.id] === undefined) {
         delete filterData.value[item.id];
       } else {
         Object.assign(filterData.value, {
-          [item.id]:
-            targetItem.values!.length > 1 ? targetItem.values!.map((value) => value.id) : targetItem.values![0].id,
+          [item.id]: ['bk_biz_id', 'severity'].includes(item.id) ? Number(value[item.id]) : value[item.id],
         });
       }
     });
@@ -354,7 +298,9 @@
   defineExpose<Exposes>({
     reset() {
       dbValue.value = [];
-      searchValue.value = [defaultStatus];
+      searchValue.value = {
+        status: 'ABNORMAL',
+      };
       filterData.value = {
         end_time: endTime,
         start_time: startTime,

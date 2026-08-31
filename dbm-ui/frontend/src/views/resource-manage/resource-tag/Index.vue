@@ -55,14 +55,11 @@
           @click="handleBatchDelete">
           {{ t('批量删除') }}
         </BkButton>
-        <BkSearchSelect
+        <DbQuickSearch
           v-model="searchValue"
           class="search-selector"
           :data="searchSelectData"
-          :placeholder="t('请输入标签关键字')"
-          unique-select
-          value-split-code="+"
-          @search="fetchData" />
+          :placeholder="t('请输入标签关键字')" />
       </div>
       <DbTable
         ref="tableRef"
@@ -181,9 +178,10 @@
   import { useGlobalBizs } from '@stores';
 
   import DbAppSelect from '@components/db-app-select/Index.vue';
+  import { type Props as QuickSearchProps } from '@components/db-quick-search/bk-quick-search/Index.vue';
   import DbTable from '@components/db-table/IndexNew.vue';
 
-  import { getSearchSelectorParams, messageSuccess } from '@utils';
+  import { messageSuccess } from '@utils';
 
   import CreateTag from './components/CreateTag.vue';
   import EditableCell from './components/EditableCell.vue';
@@ -202,19 +200,21 @@
   const isCreateTagDialogShow = ref(false);
 
   const curEditId = ref(-1);
-  const searchValue = ref([]);
+  const searchValue = ref<Record<string, string>>({});
 
   const curBiz = shallowRef(isBusiness ? currentBizInfo : publicBiz);
   const bindIpMap = shallowRef<Map<number, number>>(new Map()); // 标签ID与当前标签绑定的IP数的映射
 
-  const searchSelectData = [
+  const searchSelectData: QuickSearchProps['data'] = [
     {
       id: 'value',
       name: t('标签'),
+      type: 'multiple-input',
     },
     {
       id: 'creator',
       name: t('创建人'),
+      type: 'multiple-input',
     },
   ];
 
@@ -250,9 +250,8 @@
   });
 
   const fetchData = () => {
-    const searchParams = getSearchSelectorParams(searchValue.value);
     tableRef.value.fetchData({
-      ...searchParams,
+      ...searchValue.value,
       bk_biz_id: curBiz.value?.bk_biz_id,
       ordering: '-create_at',
       type: 'resource',
@@ -349,8 +348,7 @@
     bindIpMap.value.get(data.id) ? t('该标签已被绑定 ，不能删除') : false;
 
   const clearSearchValue = () => {
-    searchValue.value = [];
-    tableRef.value?.fetchData();
+    searchValue.value = {};
   };
 
   const handleCreateSuccess = () => {

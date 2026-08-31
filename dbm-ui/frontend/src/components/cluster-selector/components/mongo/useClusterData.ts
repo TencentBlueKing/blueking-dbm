@@ -11,15 +11,14 @@
  * the specific language governing permissions and limitations under the License.
  */
 
-import type { ISearchValue } from 'bkui-vue/lib/search-select/utils';
 import { type ComponentInternalInstance, getCurrentInstance, reactive, type Ref, ref, shallowRef } from 'vue';
 
-import { getSearchSelectorParams } from '@utils';
+import { transfromDataToQuery } from '@utils';
 
 /**
  * 处理集群列表数据
  */
-export function useClusterData<T>(searchSelectValue: Ref<ISearchValue[]>) {
+export function useClusterData<T>(searchSelectValue: Ref<Record<string, string>>) {
   let baseExtraParamsMemo: Record<string, any> = {};
   let fetchSeq = 0;
   const currentInstance = getCurrentInstance() as {
@@ -70,7 +69,7 @@ export function useClusterData<T>(searchSelectValue: Ref<ISearchValue[]>) {
         cluster_type: currentInstance.proxy.activeTab,
         limit: pagination.limit,
         offset: pagination.limit * (pagination.current - 1),
-        ...getSearchSelectorParams(searchSelectValue.value),
+        ...transfromDataToQuery(searchSelectValue.value),
         ...baseExtraParamsMemo,
       })
       .then((res) => {
@@ -114,6 +113,5 @@ export function useClusterData<T>(searchSelectValue: Ref<ISearchValue[]>) {
     isAnomalies,
     isLoading,
     pagination,
-    searchSelectValue,
   };
 }

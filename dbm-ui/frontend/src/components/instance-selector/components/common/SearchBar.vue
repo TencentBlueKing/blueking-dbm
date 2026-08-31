@@ -1,46 +1,35 @@
 <template>
-  <DbSearchSelect
+  <DbQuickSearch
+    v-model="searchSelectValue"
     class="mb-16"
     :data="searchSelectData"
-    :model-value="searchSelectValue"
-    :placeholder="t('请输入或选择条件搜索')"
-    unique-select
-    :validate-values="validateSearchValues"
-    @change="handleSearchChange" />
+    parse-url
+    :placeholder="t('请输入或选择条件搜索')" />
 </template>
 <script setup lang="ts">
-  import type { ISearchValue, ValidateValuesFunc } from 'bkui-vue/lib/search-select/utils';
   import { useI18n } from 'vue-i18n';
 
   import type { SearchAttrs } from '@hooks';
 
-  export type SearchSelectList = {
-    children?: {
-      id: string | number;
-      name: string;
-    }[];
-    id: string;
-    name: string;
-  }[];
+  import { ipPort, ipv4 } from '@common/regex';
+
+  import { type Props as QuickSearchProps } from '@components/db-quick-search/bk-quick-search/Index.vue';
+
+  export type SearchSelectList = QuickSearchProps['data'];
 
   interface Props {
     isHost?: boolean;
     searchAttrs: SearchAttrs;
     type?: string;
-    validateSearchValues: ValidateValuesFunc;
   }
-
-  type Emits = (e: 'searchValueChange', value: ISearchValue[]) => void;
 
   const props = withDefaults(defineProps<Props>(), {
     isHost: false,
     type: '',
   });
 
-  const emits = defineEmits<Emits>();
-
-  const searchSelectValue = defineModel<ISearchValue[]>({
-    default: [],
+  const searchSelectValue = defineModel<Record<string, string>>({
+    default: () => ({}),
   });
 
   const { t } = useI18n();
@@ -51,42 +40,42 @@
     const basicSelct = [
       {
         id: props.isHost ? 'ip' : 'instance',
-        multiple: true,
         name: props.isHost ? 'IP' : t('IP 或 IP:Port'),
+        type: 'multiple-input',
+        validator: (value: string) => ipPort.test(value) || ipv4.test(value) || t('格式错误'),
       },
       {
-        children: [
+        id: 'status',
+        list: [
           {
-            id: 'running',
-            name: t('正常'),
+            label: t('正常'),
+            value: 'running',
           },
           {
-            id: 'unavailable',
-            name: t('异常'),
+            label: t('异常'),
+            value: 'unavailable',
           },
           {
-            id: 'loading',
-            name: t('重建中'),
+            label: t('重建中'),
+            value: 'loading',
           },
         ],
-        id: 'status',
-        multiple: true,
         name: t('实例状态'),
+        type: 'multiple',
       },
       {
-        children: props.searchAttrs.bk_cloud_id,
         id: 'bk_cloud_id',
-        multiple: true,
+        list: (props.searchAttrs.bk_cloud_id || []).map((item) => ({
+          label: item.name,
+          value: item.id,
+        })),
         name: t('管控区域'),
+        type: 'multiple',
       },
-    ];
+    ] as QuickSearchProps['data'];
     if (isHideStatus.value) {
       basicSelct.splice(1, 1);
     }
     return basicSelct;
   });
-
-  const handleSearchChange = (value: ISearchValue[]) => {
-    emits('searchValueChange', value);
-  };
 </script>

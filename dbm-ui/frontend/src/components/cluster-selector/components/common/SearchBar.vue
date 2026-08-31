@@ -1,33 +1,25 @@
 <template>
   <div class="cluster-selector-search-main">
-    <DbSearchSelect
+    <DbQuickSearch
+      v-model="searchSelectValue"
       class="search-select-main"
       :data="searchSelectData"
-      :model-value="searchSelectValue"
-      :placeholder="t('请输入或选择条件搜索')"
-      unique-select
-      @change="handleSearchChange" />
-    <TagSearch @search="handleTagSearch" />
+      parse-url
+      :placeholder="t('请输入或选择条件搜索')" />
   </div>
 </template>
 <script setup lang="ts">
-  import type { ISearchValue } from 'bkui-vue/lib/search-select/utils';
   import { useI18n } from 'vue-i18n';
+
+  import { listTag } from '@services/source/tag';
 
   import type { SearchAttrs } from '@hooks';
 
   import { ClusterTypes } from '@common/const';
 
-  import TagSearch, { type TagSearchValue } from '@components/tag-search/index.vue';
+  import { type Props as QuickSearchProps } from '@components/db-quick-search/bk-quick-search/Index.vue';
 
-  export type SearchSelectList = {
-    children?: {
-      id: string | number;
-      name: string;
-    }[];
-    id: string;
-    name: string;
-  }[];
+  export type SearchSelectList = QuickSearchProps['data'];
 
   interface Props {
     clusterType: ClusterTypes;
@@ -35,19 +27,12 @@
     searchSelectList?: SearchSelectList;
   }
 
-  interface Emits {
-    (e: 'searchValueChange', value: ISearchValue[]): void;
-    (e: 'tagValueChange', value: TagSearchValue): void;
-  }
-
   const props = withDefaults(defineProps<Props>(), {
     searchSelectList: undefined,
   });
 
-  const emits = defineEmits<Emits>();
-
-  const searchSelectValue = defineModel<ISearchValue[]>({
-    default: [],
+  const searchSelectValue = defineModel<Record<string, string>>({
+    default: () => ({}),
   });
 
   const { t } = useI18n();
@@ -64,70 +49,109 @@
     const baseSelectList = [
       {
         id: 'domain',
-        multiple: true,
         name: t('访问入口'),
+        type: 'multiple-input',
       },
       {
         id: 'instance',
-        multiple: true,
         name: t('IP 或 IP:Port'),
+        type: 'multiple-input',
       },
       {
-        children: [
+        id: 'status',
+        list: [
           {
-            id: 'normal',
-            name: t('正常'),
+            label: t('正常'),
+            value: 'normal',
           },
           {
-            id: 'abnormal',
-            name: t('异常'),
+            label: t('异常'),
+            value: 'abnormal',
           },
         ],
-        id: 'status',
-        multiple: true,
         name: t('状态'),
+        type: 'multiple',
       },
       {
         id: 'name',
-        multiple: true,
         name: t('集群名称'),
+        type: 'multiple-input',
       },
       {
-        children: props.searchAttrs?.bk_cloud_id,
         id: 'bk_cloud_id',
-        multiple: true,
+        list: (props.searchAttrs?.bk_cloud_id || []).map((item) => ({
+          label: item.name,
+          value: item.id,
+        })),
         name: t('管控区域'),
+        type: 'multiple',
       },
-    ];
+    ] as QuickSearchProps['data'];
     if (showDbModuleSelect.value) {
-      const dbModuleSelect = {
-        children: props.searchAttrs?.db_module_id,
+      baseSelectList.splice(3, 0, {
         id: 'db_module_id',
-        multiple: true,
+        list: (props.searchAttrs?.db_module_id || []).map((item) => ({
+          label: item.name,
+          value: item.id,
+        })),
         name: t('所属模块'),
-      };
-      baseSelectList.splice(3, 0, dbModuleSelect);
+        type: 'multiple',
+      });
     }
 
     if (showClusterTypeSelect.value) {
-      const clusterTypeSelect = {
-        children: props.searchAttrs?.cluster_type,
+      baseSelectList.splice(3, 0, {
         id: 'cluster_type',
-        multiple: true,
+        list: (props.searchAttrs?.cluster_type || []).map((item) => ({
+          label: item.name,
+          value: item.id,
+        })),
         name: t('架构版本'),
-      };
-      baseSelectList.splice(3, 0, clusterTypeSelect);
+        type: 'multiple',
+      });
     }
-    return props.searchSelectList ? props.searchSelectList : baseSelectList;
+    return [
+      ...(props.searchSelectList ? props.searchSelectList : baseSelectList),
+      {
+        id: 'tag',
+        name: t('标签'),
+        props: {
+          checkStrictly: true,
+          showAllLevels: true,
+        },
+        remoteMethod: () =>
+          listTag(
+            {
+              bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
+              limit: -1,
+              offset: 0,
+              type: 'cluster',
+            },
+            {
+              cache: true,
+            },
+          ).then((data) => {
+            const keyValueMap: Record<string, { label: string; value: string }[]> = {};
+            data.results.forEach((item) => {
+              if (!keyValueMap[item.key]) {
+                keyValueMap[item.key] = [];
+              }
+              keyValueMap[item.key].push({
+                label: item.value,
+                value: `tag_ids#${item.id}`,
+              });
+            });
+
+            return Object.keys(keyValueMap).map((tagKey) => ({
+              children: keyValueMap[tagKey],
+              label: tagKey,
+              value: `tag_keys#${tagKey}`,
+            }));
+          }),
+        type: 'multiple-cascader',
+      },
+    ] as QuickSearchProps['data'];
   });
-
-  const handleSearchChange = (value: ISearchValue[]) => {
-    emits('searchValueChange', value);
-  };
-
-  const handleTagSearch = (value: TagSearchValue) => {
-    emits('tagValueChange', value);
-  };
 </script>
 <style lang="less">
   .cluster-selector-search-main {

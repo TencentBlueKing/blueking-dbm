@@ -13,10 +13,11 @@
 
 <template>
   <div class="resource-selector-render-table">
-    <DbSearchSelect
+    <DbQuickSearch
       v-model="searchSelectValue"
       class="mb-12"
-      :data="searchSelectData" />
+      :data="searchSelectData"
+      parse-url />
     <DbTable
       ref="table"
       :data-source="dataSource"
@@ -69,18 +70,14 @@
   </div>
 </template>
 <script setup lang="ts">
-  import type { SearchSelect } from 'bkui-vue';
   import { useI18n } from 'vue-i18n';
 
   import { getRedisMachineList } from '@services/source/redis';
 
   import DbTable from '@components/db-table/IndexNew.vue';
 
-  import { getSearchSelectorParams } from '@utils';
-
   import { type TopoTreeNode } from './TopoTree.vue';
 
-  type SearchSelectProps = InstanceType<typeof SearchSelect>['$props'];
   type Parameters = ServiceParameters<typeof getRedisMachineList>;
   export type IValue = ServiceReturnType<typeof getRedisMachineList>['results'][0];
 
@@ -118,14 +115,14 @@
     },
   ];
 
-  const searchSelectValue = ref<NonNullable<SearchSelectProps['modelValue']>>([]);
+  const searchSelectValue = ref<Record<string, string>>({});
   const dbTableRef = useTemplateRef('table');
 
   const getNodeParams = (node?: TopoTreeNode) => (node?.obj === 'cluster' ? `${node?.id}` : undefined);
 
   watchEffect(() => {
     dbTableRef.value?.fetchData({
-      ...getSearchSelectorParams(searchSelectValue.value),
+      ...searchSelectValue.value,
       cluster_ids: getNodeParams(props.node),
     });
   });

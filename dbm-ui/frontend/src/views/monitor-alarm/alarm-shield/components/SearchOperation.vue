@@ -8,18 +8,19 @@
       :placeholder="t('搜索屏蔽开始时间')"
       @change="handleDateTimeChange"
       @finish="handleDateTimePick" />
-    <DbSearchSelect
+    <DbQuickSearch
       v-model="searchValue"
       class="search-select"
       :data="searchSelectData"
+      parse-url
       :placeholder="t('搜索屏蔽类型')"
-      unique-select
       @change="handleSearchValueChange" />
   </div>
 </template>
 <script setup lang="tsx">
-  import type { ISearchItem, ISearchValue } from 'bkui-vue/lib/search-select/utils';
   import { useI18n } from 'vue-i18n';
+
+  import { type Props as QuickSearchProps } from '@components/db-quick-search/bk-quick-search/Index.vue';
 
   import ShieldDateTimePicker from '@views/monitor-alarm/common/ShieldDateTimePicker.vue';
 
@@ -36,48 +37,25 @@
 
   const searchSelectData = [
     {
-      children: [
+      id: 'category',
+      list: [
         {
-          id: 'alert',
-          name: t('基于事件屏蔽'),
+          label: t('基于事件屏蔽'),
+          value: 'alert',
         },
         {
-          id: 'dimension',
-          name: t('基于维度屏蔽'),
+          label: t('基于维度屏蔽'),
+          value: 'dimension',
         },
         {
-          id: 'strategy',
-          name: t('基于策略屏蔽'),
+          label: t('基于策略屏蔽'),
+          value: 'strategy',
         },
       ],
-      id: 'category',
       name: t('屏蔽类型'),
+      type: 'single',
     },
-  ] as ISearchItem[];
-
-  const initSearchValue = () =>
-    searchSelectData.reduce<ISearchValue[]>((results, item) => {
-      const id = route.query[item.id] as string;
-      if (id) {
-        let name = id;
-        if (item.children) {
-          const targetName = item.children.find((child) => child.id === id)?.name;
-          if (targetName) {
-            name = targetName;
-          }
-        }
-        results.push({
-          ...item,
-          values: [
-            {
-              id,
-              name,
-            },
-          ],
-        });
-      }
-      return results;
-    }, []);
+  ] as QuickSearchProps['data'];
 
   const initDatetime = () => {
     const timeStr = route.query.time_range as string;
@@ -103,7 +81,7 @@
 
   const filterData = ref<Record<string, string>>(initFilterData());
   const filterDateRange = ref<[string, string]>([initDateRange[0], initDateRange[1]]);
-  const searchValue = ref<ISearchValue[]>(initSearchValue());
+  const searchValue = ref<Record<string, string>>({});
 
   watch(
     filterData,
@@ -128,26 +106,20 @@
       filterDateRange.value.length > 0 ? `${filterDateRange.value[0]}--${filterDateRange.value[1]}` : '';
   };
 
-  const handleSearchValueChange = (valueList: ISearchValue[]) => {
-    if (!valueList.length) {
+  const handleSearchValueChange = (value: Record<string, string>) => {
+    if (Object.keys(value).length === 0) {
       filterData.value = initFilterData();
       return;
     }
 
-    const searchData = valueList.reduce<Record<string, string>>((results, item) => {
-      Object.assign(results, {
-        [item.id]: item.values!.map((value) => value.id).join(','),
-      });
-      return results;
-    }, {});
-    Object.assign(filterData.value, searchData);
+    Object.assign(filterData.value, value);
   };
 
   defineExpose<Exposes>({
     reset() {
       filterData.value = {};
       filterDateRange.value = ['', ''];
-      searchValue.value = [];
+      searchValue.value = {};
     },
   });
 </script>
