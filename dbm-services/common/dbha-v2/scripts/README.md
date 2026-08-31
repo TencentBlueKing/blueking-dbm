@@ -6,7 +6,7 @@
 
 - `deploy.sh`: 部署与更新脚本（支持按模块安装）
 - `render_configs.py`: 按模块用 `etc/dbha-v2.{server,probe}.rc` 与 `etc/templates/*.yaml` 渲染 `etc/*.yaml`
-- `compare_probe_config.py`: 校验本地 probe YAML 并检查 health / guard / cron（仅 Linux probe 包）。`-l` 必填；`-r` 与 `--admin-endpoints` 二选一。现场：`./compare_probe_config.py -l etc/probe.yaml --admin-endpoints 127.0.0.1:19001`（可加 `--cloud-id` / `--local-ip` / `--timeout`）。用 `--admin-endpoints` 时会调用 `dbha-probe gen-config` 拉 Admin 最新配置，按 gen-config 树上的 key/value 与本地比对（本地多出的 `admin` 等字段忽略）。`-r` 为离线整树比对，不连 Admin。
+- `compare_probe_config.py`: 校验 probe YAML，并检查 health / guard / cron（仅 Linux probe 包）
 - `setup.sh`: 交互式配置生成脚本（仅 server 侧使用）
 - `start-server.sh`: 启动 server 侧服务（admin/receiver/analysis）
 - `stop-server.sh`: 停止 server 侧服务（admin/receiver/analysis）
@@ -19,6 +19,25 @@
 - `install-libs.sh`: 安装构建依赖（abseil/protobuf/protoc 插件）
 - `devenv.rc`: 本地开发环境变量示例
 - `probe-sandbox-full.sh`: 本地 mock 全链路（gen-config → 采集 → 上报），见 [probe-sandbox-mock README](../tools/cmd/probe-sandbox-mock/README.md)
+
+## compare_probe_config.py
+
+`-l` 必填，`-r` 与 `--admin-endpoints` 二选一。现场校验：
+
+```bash
+./compare_probe_config.py \
+  -l etc/probe.yaml \
+  --admin-endpoints 127.0.0.1:19001
+```
+
+用 `--admin-endpoints` 时，脚本调用 `dbha-probe gen-config` 拉取 Admin 最新配置，按生成树上的
+key/value 与本地文件比对；本地多出的 `admin` 等字段忽略。`-r` 为离线整树比对，不连接 Admin。
+可按需传入 `--cloud-id`、`--local-ip`、`--local-ip-interface`、`--timeout` 或 `--bin`。
+
+报告分为配置检查、运行态检查和最终结果；差异以 `MISSING LOCALLY`、`EXTRA LOCALLY`、
+`VALUE MISMATCH` 卡片显示。交互终端默认着色，管道或重定向时自动输出纯文本；可通过
+`--no-color` 或 `NO_COLOR` 环境变量显式禁用颜色。退出码仍为 `0`（全部通过）、`1`（有差异或
+运行态不合格）、`2`（参数、解析、拉取或检查执行错误）。密码始终显示为 `***`。
 
 ## render_configs.py
 
