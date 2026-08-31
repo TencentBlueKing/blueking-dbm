@@ -2608,6 +2608,18 @@ class ActionEnum:
         subgroup=_("集群管理"),
     )
 
+    # MYSQL_DTS_DATA_MIGRATE / MYSQL_DTS_DATA_MIGRATE_RENAME 两个单据共用该独立权限点
+    MYSQL_DTS_DATA_MIGRATE = ActionMeta(
+        id="mysql_dts_data_migrate",
+        name=_("MySQL DTS 数据迁移"),
+        name_en="mysql_dts_data_migrate",
+        type="execute",
+        related_resource_types=[ResourceEnum.MYSQL],
+        group=_("MySQL"),
+        subgroup=_("数据处理"),
+        common_labels=[CommonActionLabel.BIZ_MAINTAIN],
+    )
+
     TENDBCLUSTER_MANAGE = ActionMeta(
         id="tendbcluster_manage",
         name=_("TenDBCluster 集群运维管理"),
