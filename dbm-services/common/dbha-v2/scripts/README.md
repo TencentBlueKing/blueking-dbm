@@ -6,6 +6,7 @@
 
 - `deploy.sh`: 部署与更新脚本（支持按模块安装）
 - `render_configs.py`: 按模块用 `etc/dbha-v2.{server,probe}.rc` 与 `etc/templates/*.yaml` 渲染 `etc/*.yaml`
+- `compare_probe_config.py`: 比对两份 probe YAML，并检查 health / guard / cron（仅 Linux probe 包）
 - `setup.sh`: 交互式配置生成脚本（仅 server 侧使用）
 - `start-server.sh`: 启动 server 侧服务（admin/receiver/analysis）
 - `stop-server.sh`: 停止 server 侧服务（admin/receiver/analysis）
@@ -72,7 +73,7 @@ python3 scripts/render_configs.py --module server \
 
 发布包：
 - server 包（`$(VERSION)-server.tar.gz`）携带 `render_configs.py`、`etc/templates/`、`etc/dbha-v2.server.rc.example`、`toolkits/dbha-cluster`、`toolkits/dbha-bwmgr`、`etc/cluster.yaml`、`etc/bwmgr.yaml`
-- probe 包（`$(VERSION)-probe.tar.gz`）携带 `render_configs.py`、`etc/templates/`、`etc/dbha-v2.probe.rc.example`
+- probe 包（`$(VERSION)-probe.tar.gz`）携带 `render_configs.py`、`compare_probe_config.py`、`etc/templates/`、`etc/dbha-v2.probe.rc.example`
 
 ## deploy.sh
 
@@ -104,7 +105,7 @@ python3 scripts/render_configs.py --module server \
 - `probe`:
   - 安装/更新 `dbha-probe`
   - 安装/更新 `probe.yaml`
-  - 安装 `start-probe.sh`、`stop-probe.sh`、`start-probe-keepalive.sh`、`stop-probe-keepalive.sh`、`deploy.sh`
+  - 安装 `start-probe.sh`、`stop-probe.sh`、`start-probe-keepalive.sh`、`stop-probe-keepalive.sh`、`deploy.sh`、`compare_probe_config.py`
   - 不安装 `setup.sh`，不处理 `toolkits/`
   - 依赖 `lib/guard-utils.sh`，发布包需包含 `scripts/lib/` 目录
 

@@ -96,7 +96,8 @@ SERVER_SCRIPTS  = scripts/setup.sh scripts/start-server.sh scripts/stop-server.s
                   scripts/deploy.sh scripts/render_configs.py
 PROBE_SCRIPTS   = scripts/start-probe.sh scripts/stop-probe.sh \
                   scripts/start-probe-keepalive.sh scripts/stop-probe-keepalive.sh \
-                  scripts/deploy.sh scripts/render_configs.py
+                  scripts/deploy.sh scripts/render_configs.py \
+                  scripts/compare_probe_config.py
 
 # Windows probe ships PowerShell scripts only; bash scripts and the bash-only
 # guard-utils.sh library are intentionally excluded. render_configs.py is Python
@@ -219,7 +220,8 @@ package-probe: probe
 		$(PROBE_PKG_DIR)/logs $(PROBE_PKG_DIR)/pids
 	@cp $(addprefix $(BUILD_DIR)/,$(PROBE_BINS)) $(PROBE_PKG_DIR)/bin/
 	@cp $(PROBE_SCRIPTS) $(PROBE_PKG_DIR)/
-	@chmod +x $(PROBE_PKG_DIR)/render_configs.py
+	@chmod +x $(PROBE_PKG_DIR)/render_configs.py \
+		$(PROBE_PKG_DIR)/compare_probe_config.py
 	@mkdir -p $(PROBE_PKG_DIR)/lib
 	@cp $(GUARD_UTILS_LIB) $(PROBE_PKG_DIR)/lib/
 	@chmod +x $(PROBE_PKG_DIR)/lib/guard-utils.sh

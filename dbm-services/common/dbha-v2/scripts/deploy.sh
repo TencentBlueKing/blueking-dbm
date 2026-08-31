@@ -41,6 +41,7 @@ readonly PROBE_SCRIPT_FILES=(
     stop-probe.sh
     deploy.sh
     render_configs.py
+    compare_probe_config.py
 )
 
 readonly SERVER_CONF_FILES=(
