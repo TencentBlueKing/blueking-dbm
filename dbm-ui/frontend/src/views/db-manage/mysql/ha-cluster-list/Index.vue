@@ -61,9 +61,7 @@
       @filter-change="handleFilterChange"
       @selection="handleSelection">
       <template #operation>
-        <OperationColumn
-          ref="operationColumnRef"
-          :cluster-type="ClusterTypes.TENDBHA">
+        <OperationColumn :cluster-type="ClusterTypes.TENDBHA">
           <template #default="{ data }: { data: TendbhaModel }">
             <template v-if="data.isOnline">
               <div v-db-console="'mysql.haClusterList.authorize'">
@@ -116,7 +114,6 @@
               <ClusterAlarmSubscribe
                 :data="data"
                 db-console-prefix="mysql.haClusterList"
-                @click="hideOperationColumn"
                 @edit="(e) => handleToDetails(data.id, e, 'alarmSubscription')" />
               <div
                 v-if="!data.isOnlineCLB"
@@ -379,7 +376,6 @@
   } = useGoClusterDetail('tendbHaDetail');
   const { handleSelection, selectedIdList, selectedList } = useClusterTableSelect<TendbhaModel>();
 
-  const operationColumnRef = ref<ComponentExposed<typeof OperationColumn>>();
   const tableRef = useTemplateRef<ComponentExposed<typeof ClusterTable>>('clusterTable');
   const isShowExcelAuthorize = ref(false);
   const isShowCreateSubscribeRule = ref(false);
@@ -399,10 +395,6 @@
 
   const fetchData = () => {
     tableRef.value!.fetchData(searchValue.value);
-  };
-
-  const hideOperationColumn = () => {
-    operationColumnRef.value?.hide();
   };
 
   const handleShowAuthorize = (data: TendbhaModel) => {

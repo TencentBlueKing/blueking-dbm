@@ -494,13 +494,13 @@
     },
   });
 </script>
-<style lang="less" scoped>
+<style lang="less">
   .db-table {
-    :deep(.t-table__th-cell-inner) {
+    .t-table__th-cell-inner {
       display: flex !important;
     }
 
-    :deep(.t-checkbox) {
+    .t-checkbox {
       display: flex !important;
     }
 
@@ -516,7 +516,7 @@
       align-items: center;
 
       // 占满一行，让总条数、每页条数靠左，页码靠右
-      :deep(.dbm-pagination) {
+      .dbm-pagination {
         width: 100%;
       }
     }
