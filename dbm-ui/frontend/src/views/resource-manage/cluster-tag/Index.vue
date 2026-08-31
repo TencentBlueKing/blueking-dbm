@@ -30,14 +30,11 @@
         @click="handleBatchDelete">
         {{ t('批量删除') }}
       </AuthButton>
-      <BkSearchSelect
+      <DbQuickSearch
         v-model="searchValue"
         class="search-selector"
         :data="searchSelectData"
-        :placeholder="t('请输入标签关键字')"
-        unique-select
-        value-split-code="+"
-        @search="fetchData" />
+        :placeholder="t('请输入标签关键字')" />
     </div>
     <DbTable
       ref="tableRef"
@@ -258,11 +255,12 @@
 
   import { tagValueRegex } from '@common/regex';
 
+  import { type Props as QuickSearchProps } from '@components/db-quick-search/bk-quick-search/Index.vue';
   import DbTable from '@components/db-table/IndexNew.vue';
   import RenderTagOverflow from '@components/render-tag-overflow/Index.vue';
   import TextOverflowLayout from '@components/text-overflow-layout/Index.vue';
 
-  import { execCopy, getSearchSelectorParams, messageError, messageSuccess } from '@utils';
+  import { execCopy, messageError, messageSuccess } from '@utils';
 
   import TagValueInput from './components/add-tag/components/key-value-mode/components/key-value-pair/components/TagValueInput.vue';
   import CreateTag from './components/add-tag/Index.vue';
@@ -275,7 +273,7 @@
   const createTagRef = ref<InstanceType<typeof CreateTag>>();
   const tableRef = ref();
   const isCreateTagDialogShow = ref(false);
-  const searchValue = ref([]);
+  const searchValue = ref<Record<string, string>>({});
   const selectedMap = ref<Record<string, boolean>>({});
   const appendTagValues = ref<string[]>([]);
   const toggleInfoMap = ref<Record<string, boolean>>({});
@@ -292,14 +290,16 @@
     >
   >({});
 
-  const searchSelectData = [
+  const searchSelectData: QuickSearchProps['data'] = [
     {
       id: 'key',
       name: t('标签键'),
+      type: 'multiple-input',
     },
     {
       id: 'value',
       name: t('标签值'),
+      type: 'multiple-input',
     },
   ];
   const bizId = window.PROJECT_CONFIG.BIZ_ID;
@@ -494,9 +494,8 @@
   };
 
   const fetchData = () => {
-    const searchParams = getSearchSelectorParams(searchValue.value);
     tableRef.value.fetchData({
-      ...searchParams,
+      ...searchValue.value,
       bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
       limit: -1,
       offset: 0,

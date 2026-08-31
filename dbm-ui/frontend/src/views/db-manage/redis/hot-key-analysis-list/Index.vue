@@ -31,11 +31,11 @@
         style="width: 350px; margin-left: auto"
         type="datetimerange"
         @change="fetchTableData" />
-      <DbSearchSelect
+      <DbQuickSearch
+        v-model="searchValue"
         class="ml-8"
         :data="searchData"
-        :get-menu-list="getMenuList"
-        :model-value="searchValue"
+        parse-url
         :placeholder="t('请输入或选择条件搜索')"
         style="width: 500px"
         @change="handleSearchValueChange" />
@@ -43,7 +43,7 @@
     <DbTable
       ref="tableRef"
       :data-source="queryAnalysisRecords"
-      :filter-value="columnCheckedMap"
+      :filter-value="searchValue"
       releate-url-query
       row-key="id"
       @clear-search="handleClearSearch"
@@ -205,25 +205,21 @@
 </template>
 
 <script setup lang="tsx">
-  import type { ISearchItem } from 'bkui-vue/lib/search-select/utils';
   import dayjs from 'dayjs';
   import { useI18n } from 'vue-i18n';
-  import { useRequest } from 'vue-request';
   import { useRoute, useRouter } from 'vue-router';
 
   import RedisHotKeyAnalysisModel from '@services/model/redis/redis-hot-key-analysis';
   import { exportHotKeyAnalysis, queryAnalysisRecords } from '@services/source/redisAnalysis';
-  import { getTicketTypes } from '@services/source/ticket';
   import { getUserList } from '@services/source/user';
-
-  import { useLinkQueryColumnSerach } from '@hooks';
 
   import { ClusterTypes } from '@common/const';
 
+  import { type Props as QuickSearchProps } from '@components/db-quick-search/bk-quick-search/Index.vue';
   import DbStatus from '@components/db-status/index.vue';
   import DbTable from '@components/db-table/IndexNew.vue';
 
-  import { getBusinessHref, getMenuListSearch, getSearchSelectorParams } from '@utils';
+  import { getBusinessHref, transfromDataToQuery } from '@utils';
 
   import Detail from './components/detail/Index.vue';
 
@@ -231,14 +227,7 @@
   const route = useRoute();
   const { t } = useI18n();
 
-  const { clearSearchValue, columnCheckedMap, handleSearchValueChange, searchValue, tableColumnFilterChange } =
-    useLinkQueryColumnSerach({
-      attrs: [],
-      fetchDataFn: () => fetchTableData(),
-      isCluster: false,
-      isQueryAttrs: false,
-      searchType: 'resource_record',
-    });
+  const searchValue = ref<Record<string, string>>({});
 
   const statusFilterList = Object.keys(RedisHotKeyAnalysisModel.STATUS_TEXT_MAP).map((id) => ({
     label: t(RedisHotKeyAnalysisModel.STATUS_TEXT_MAP[id]),
@@ -261,44 +250,52 @@
   const currentDetailIndex = ref(0);
   const daterange = ref(initDate());
 
-  const ticketTypes = ref<{ id: string; name: string }[]>([]);
   // const selected = shallowRef<RedisHotKeyAnalysisModel[]>([]);
   const recordList = shallowRef<RedisHotKeyAnalysisModel[]>([]);
 
-  const searchData = computed(() => [
-    {
-      id: 'instance_addresses',
-      multiple: true,
-      name: t('目标实例'),
-    },
-    {
-      id: 'immute_domain',
-      multiple: true,
-      name: t('所属集群'),
-    },
-    {
-      id: 'operator',
-      name: t('创建人'),
-    },
-  ]);
+  const searchData = computed(
+    () =>
+      [
+        {
+          id: 'instance_addresses',
+          name: t('目标实例'),
+          type: 'multiple-input',
+        },
+        {
+          id: 'immute_domain',
+          name: t('所属集群'),
+          type: 'multiple-input',
+        },
+        {
+          id: 'status',
+          list: statusFilterList,
+          name: t('任务状态'),
+          type: 'multiple',
+        },
+        {
+          id: 'operator',
+          name: t('创建人'),
+          remoteMethod: (params: { defaultValue?: string; keyword?: string }) => {
+            const requestParams = {};
+            if (params.defaultValue) {
+              Object.assign(requestParams, { exact_lookups: params.defaultValue });
+            }
+            if (params.keyword) {
+              Object.assign(requestParams, { fuzzy_lookups: params.keyword });
+            }
 
-  useRequest(getTicketTypes, {
-    onSuccess(data) {
-      ticketTypes.value = data.map((item) => ({
-        id: item.key,
-        name: item.value,
-      }));
-
-      const ticketTypeItem = searchValue.value.find((item) => item.id === 'ticket_type__in');
-      if (ticketTypeItem) {
-        const ticketTypeMap = data.reduce<Record<string, string>>(
-          (result, item) => Object.assign(result, { [item.key]: item.value }),
-          {},
-        );
-        ticketTypeItem.values?.forEach((valueItem) => Object.assign(valueItem, { name: ticketTypeMap[valueItem.id] }));
-      }
-    },
-  });
+            return getUserList(requestParams).then((data) =>
+              data.results.map((item) => ({
+                label: item.username,
+                value: item.username,
+              })),
+            );
+          },
+          remoteSearch: true,
+          type: 'multiple',
+        },
+      ] as QuickSearchProps['data'],
+  );
 
   const fetchTableData = () => {
     const dateParams =
@@ -310,39 +307,12 @@
           };
     tableRef.value!.fetchData({
       ...dateParams,
-      ...getSearchSelectorParams(searchValue.value),
+      ...transfromDataToQuery(searchValue.value),
     });
   };
 
-  const getMenuList = async (item: ISearchItem | undefined, keyword: string) => {
-    if (item?.id !== 'operator' && keyword) {
-      return getMenuListSearch(item, keyword, searchData.value, searchValue.value);
-    }
-
-    // 没有选中过滤标签
-    if (!item) {
-      // 过滤掉已经选过的标签
-      const selected = (searchValue.value || []).map((value) => value.id);
-      return searchData.value.filter((item) => !selected.includes(item.id));
-    }
-
-    // 远程加载执行人
-    if (item.id === 'operator') {
-      if (!keyword) {
-        return [];
-      }
-      return getUserList({
-        fuzzy_lookups: keyword,
-      }).then((res) =>
-        res.results.map((item) => ({
-          id: item.username,
-          name: item.username,
-        })),
-      );
-    }
-
-    // 不需要远层加载
-    return searchData.value.find((set) => set.id === item.id)?.children || [];
+  const handleSearchValueChange = () => {
+    fetchTableData();
   };
 
   // const handleSelection = (key: any, list: Record<number, RedisHotKeyAnalysisModel>[]) => {
@@ -351,16 +321,13 @@
 
   const handleClearSearch = () => {
     daterange.value = ['', ''];
-    clearSearchValue();
+    searchValue.value = {};
+    fetchTableData();
   };
 
-  const handleFilterChange = (filterValue: Record<string, string[]>) => {
-    tableColumnFilterChange(filterValue, {
-      status: {
-        list: statusFilterList,
-        name: t('任务状态'),
-      },
-    });
+  const handleFilterChange = (filterValue: Record<string, string>) => {
+    searchValue.value = filterValue;
+    fetchTableData();
   };
 
   const handleShowDetail = (data: RedisHotKeyAnalysisModel) => {

@@ -7,6 +7,8 @@
           {
             filterIcon: () => filterIcon,
             sortIcon: () => sortIcon,
+            // tdesign 仅在 filterRow === null 时关闭过滤行，过滤条件统一由外部搜索栏承载
+            filterRow: null as any,
             ...attrs,
             ...customProps,
             class: {

@@ -14,12 +14,11 @@
 <template>
   <div class="oracle-ha-instance-list-page">
     <div class="operation-box mb-12">
-      <DbSearchSelect
+      <DbQuickSearch
+        v-model="searchValue"
         :data="searchSelectData"
-        :model-value="searchValue"
+        parse-url
         :placeholder="t('请输入或选择条件搜索')"
-        unique-select
-        :validate-values="validateSearchValues"
         @change="handleSearchValueChange" />
     </div>
     <DbTable
@@ -162,97 +161,112 @@
   import { useI18n } from 'vue-i18n';
 
   import OraclehaInstanceModel from '@services/model/oracle/oracle-ha-instance';
+  import { queryBizClusterAttrs } from '@services/source/dbbase';
   import { getOracleHaInstanceList } from '@services/source/oracleHaCluster';
 
-  import { useLinkQueryColumnSerach, useStretchLayout, useTableSettings } from '@hooks';
+  import { useStretchLayout, useTableSettings } from '@hooks';
+
+  import { useGlobalBizs } from '@stores';
 
   import { ClusterTypes, UserPersonalSettings } from '@common/const';
+  import { ipPort, ipv4 } from '@common/regex';
 
   import ClusterInstanceStatus from '@components/cluster-instance-status/Index.vue';
+  import { type Props as QuickSearchProps } from '@components/db-quick-search/bk-quick-search/Index.vue';
   import DbTable from '@components/db-table/IndexNew.vue';
   import TextOverflowLayout from '@components/text-overflow-layout/Index.vue';
 
-  import { execCopy, getSearchSelectorParams } from '@utils';
+  import { execCopy } from '@utils';
 
   const instanceData = defineModel<{ clusterId: number; instanceAddress: string }>('instanceData');
 
   let isInit = true;
   const fetchData = (loading?: boolean) => {
-    const params = getSearchSelectorParams(searchValue.value);
-    tableRef.value.fetchData(params, loading);
+    tableRef.value.fetchData(searchValue.value, loading);
     isInit = false;
   };
 
   const router = useRouter();
   const { t } = useI18n();
   const { isOpen: isStretchLayoutOpen, splitScreen: stretchLayoutSplitScreen } = useStretchLayout();
+  const { currentBizId } = useGlobalBizs();
 
-  const {
-    clearSearchValue,
-    // columnAttrs,
-    // columnCheckedMap,
-    handleSearchValueChange,
-    searchAttrs,
-    searchValue,
-    validateSearchValues,
-  } = useLinkQueryColumnSerach({
-    attrs: ['role'],
-    defaultSearchItem: {
-      id: 'domain',
-      name: t('访问入口'),
-    },
-    fetchDataFn: () => fetchData(isInit),
-    isCluster: false,
-    searchType: ClusterTypes.ORACLE_PRIMARY_STANDBY,
-  });
+  const searchValue = ref<Record<string, string>>({});
 
-  const searchSelectData = computed(() => [
-    {
-      id: 'instance',
-      multiple: true,
-      name: t('IP 或 IP:Port'),
-    },
-    {
-      id: 'domain',
-      multiple: true,
-      name: t('访问入口'),
-    },
-    {
-      id: 'name',
-      name: t('集群名称'),
-    },
-    {
-      children: [
+  const searchSelectData = computed(
+    () =>
+      [
         {
-          id: 'running',
-          name: t('正常'),
+          id: 'instance',
+          name: t('IP 或 IP:Port'),
+          type: 'multiple-input',
+          validator: (value: string) => ipPort.test(value) || ipv4.test(value) || t('格式错误'),
         },
         {
-          id: 'unavailable',
-          name: t('异常'),
+          id: 'domain',
+          name: t('访问入口'),
+          type: 'multiple-input',
         },
         {
-          id: 'loading',
-          name: t('重建中'),
+          id: 'name',
+          name: t('集群名称'),
         },
-      ],
-      id: 'status',
-      multiple: true,
-      name: t('状态'),
-    },
-    {
-      children: searchAttrs.value.role,
-      id: 'role',
-      multiple: true,
-      name: t('部署角色'),
-    },
-    {
-      id: 'port',
-      name: t('端口'),
-    },
-  ]);
+        {
+          id: 'status',
+          list: [
+            {
+              label: t('正常'),
+              value: 'running',
+            },
+            {
+              label: t('异常'),
+              value: 'unavailable',
+            },
+            {
+              label: t('重建中'),
+              value: 'loading',
+            },
+          ],
+          name: t('状态'),
+          type: 'multiple',
+        },
+        {
+          id: 'role',
+          name: t('部署角色'),
+          remoteMethod: () =>
+            queryBizClusterAttrs({
+              bk_biz_id: currentBizId,
+              cluster_type: ClusterTypes.ORACLE_PRIMARY_STANDBY,
+              instances_attrs: 'role',
+            }).then((data) =>
+              data.role.map((item) => ({
+                label: item.text,
+                value: item.value,
+              })),
+            ),
+          type: 'multiple',
+        },
+        {
+          id: 'port',
+          name: t('端口'),
+        },
+      ] as QuickSearchProps['data'],
+  );
 
   const tableRef = ref();
+
+  onMounted(() => {
+    fetchData(isInit);
+  });
+
+  const handleSearchValueChange = () => {
+    fetchData();
+  };
+
+  const clearSearchValue = () => {
+    searchValue.value = {};
+    fetchData();
+  };
 
   // 设置行样式
   const setRowClass = ({ row }: { row: OraclehaInstanceModel }) => {
@@ -325,7 +339,7 @@
       display: flex;
       flex-wrap: wrap;
 
-      .bk-search-select {
+      .bk-quick-search {
         flex: 1;
         max-width: 500px;
         min-width: 320px;

@@ -23,14 +23,11 @@
         @click="() => handleDestroyCluster()">
         {{ t('批量销毁') }}
       </BkButton>
-      <BkSearchSelect
+      <DbQuickSearch
         v-model="searchValue"
         class="input-box"
         :data="searchSelectList"
-        :placeholder="t('请选择条件搜索')"
-        unique-select
-        value-split-code="+"
-        @search="fetchTableData" />
+        :placeholder="t('请选择条件搜索')" />
     </div>
     <BkLoading
       :loading="isTableDataLoading"
@@ -40,6 +37,7 @@
         :bk-ui-settings="settings"
         class="mongo-record-table"
         :data-source="queryRestoreRecord"
+        :filter-value="searchValue"
         row-key="id"
         selectable
         @clear-search="handleClearFilters"
@@ -254,6 +252,7 @@
 
   import { TicketTypes } from '@common/const';
 
+  import { type Props as QuickSearchProps } from '@components/db-quick-search/bk-quick-search/Index.vue';
   import DbTable from '@components/db-table/IndexNew.vue';
   import RenderRow from '@components/render-row/index.vue';
   import TextOverflowLayout from '@components/text-overflow-layout/Index.vue';
@@ -261,45 +260,42 @@
   import OperationBtnStatusTips from '@views/db-manage/common/OperationBtnStatusTips.vue';
   import RenderOperationTag from '@views/db-manage/common/RenderOperationTagNew.vue';
 
-  import { execCopy, getSearchSelectorParams } from '@utils';
-
-  interface SearchSelectItem {
-    id: string;
-    name: string;
-  }
+  import { execCopy, transfromDataToQuery } from '@utils';
 
   const { currentBizId } = useGlobalBizs();
   const { t } = useI18n();
   const handleDeleteSuccess = useTicketMessage();
 
-  const searchValue = ref<Array<{ values: SearchSelectItem[] } & SearchSelectItem>>([]);
+  const searchValue = ref<Record<string, string>>({});
   const selectedList = ref<MongodbRollbackRecordModel[]>([]);
   const isTableDataLoading = ref(false);
   const tableRef = ref();
 
-  const searchSelectList = computed(() => [
+  const searchSelectList = computed<QuickSearchProps['data']>(() => [
     {
       id: 'immute_domain',
       name: t('集群'),
+      type: 'multiple-input',
     },
     {
-      children: [
+      id: 'cluster_type',
+      list: [
         {
-          id: 'MongoReplicaSet',
-          name: t('副本集集群'),
+          label: t('副本集集群'),
+          value: 'MongoReplicaSet',
         },
         {
-          id: 'MongoShardedCluster',
-          name: t('分片集群'),
+          label: t('分片集群'),
+          value: 'MongoShardedCluster',
         },
       ],
-      id: 'cluster_type',
-      multiple: true,
       name: t('集群类型'),
+      type: 'multiple',
     },
     {
       id: 'ips',
       name: 'IP',
+      type: 'multiple-input',
     },
   ]);
 
@@ -331,8 +327,7 @@
   });
 
   const fetchTableData = () => {
-    const searchParams = getSearchSelectorParams(searchValue.value);
-    tableRef.value?.fetchData(searchParams);
+    tableRef.value?.fetchData(transfromDataToQuery(searchValue.value));
   };
 
   onMounted(() => {
@@ -343,27 +338,12 @@
     selectedList.value = list;
   };
 
-  const handleFilterChange = (filterValue: Record<string, string[]>) => {
-    const checked = filterValue.cluster_type ?? [];
-    if (checked.length === 0) {
-      searchValue.value = searchValue.value.filter((item) => item.id !== 'cluster_type');
-      return;
-    }
-    searchValue.value = [
-      {
-        id: 'cluster_type',
-        name: t('集群类型'),
-        values: checked.map((item) => ({
-          id: item,
-          name: clusterTypeFilterList.find((row) => row.value === item)?.label ?? '',
-        })),
-      },
-    ];
+  const handleFilterChange = (filterValue: Record<string, string>) => {
+    searchValue.value = filterValue;
   };
 
   const handleClearFilters = () => {
-    searchValue.value = [];
-    fetchTableData();
+    searchValue.value = {};
   };
 
   // 设置行样式

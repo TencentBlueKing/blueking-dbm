@@ -109,12 +109,11 @@
         :ids="selectedIds"
         type="influxdb" />
       <div class="instances-view-operations-right">
-        <DbSearchSelect
+        <DbQuickSearch
+          v-model="searchValue"
           :data="searchSelectData"
-          :get-menu-list="getMenuList"
-          :model-value="searchValue"
+          parse-url
           :placeholder="t('请输入或选择条件搜索')"
-          :validate-values="validateSearchValues"
           @change="handleSearchValueChange" />
       </div>
     </div>
@@ -122,7 +121,7 @@
       ref="tableRef"
       :bk-ui-settings="settings"
       :data-source="getInfluxdbInstanceList"
-      :filter-value="columnCheckedMap"
+      :filter-value="searchValue"
       :row-class-name="setRowClass"
       row-key="id"
       selectable
@@ -316,24 +315,26 @@
 
 <script setup lang="tsx">
   import { InfoBox } from 'bkui-vue';
-  import type { ISearchItem } from 'bkui-vue/lib/search-select/utils';
   import _ from 'lodash';
   import type { Emitter } from 'mitt';
   import type { TableSort } from 'tdesign-vue-next';
   import { useI18n } from 'vue-i18n';
 
   import InfluxDBInstanceModel from '@services/model/influxdb/influxdbInstance';
+  import { queryBizClusterAttrs } from '@services/source/dbbase';
   import { getInfluxdbInstanceList } from '@services/source/influxdb';
   import { getGroupList, moveInstancesToGroup } from '@services/source/influxdbGroup';
   import { createTicket } from '@services/source/ticket';
   import { getUserList } from '@services/source/user';
 
-  import { useLinkQueryColumnSerach, useTableSettings, useTicketMessage } from '@hooks';
+  import { useTableSettings, useTicketMessage } from '@hooks';
 
   import { useGlobalBizs } from '@stores';
 
   import { ClusterTypes, TicketTypes, UserPersonalSettings } from '@common/const';
+  import { ipPort, ipv4 } from '@common/regex';
 
+  import { type Props as QuickSearchProps } from '@components/db-quick-search/bk-quick-search/Index.vue';
   import DbTable from '@components/db-table/IndexNew.vue';
   import TextOverflowLayout from '@components/text-overflow-layout/Index.vue';
 
@@ -342,14 +343,7 @@
   import RenderInstanceStatus from '@views/db-manage/common/RenderInstanceStatus.vue';
   import RenderOperationTag from '@views/db-manage/common/RenderOperationTagNew.vue';
 
-  import {
-    execCopy,
-    getMenuListSearch,
-    getSearchSelectorParams,
-    isRecentDays,
-    messageSuccess,
-    messageWarn,
-  } from '@utils';
+  import { execCopy, isRecentDays, messageSuccess, messageWarn, transfromDataToQuery } from '@utils';
 
   import { useTimeoutPoll } from '@vueuse/core';
 
@@ -361,21 +355,21 @@
   const { currentBizId } = useGlobalBizs();
   const { locale, t } = useI18n();
 
-  const {
-    clearSearchValue,
-    columnAttrs,
-    columnCheckedMap,
-    handleSearchValueChange,
-    searchAttrs,
-    searchValue,
-    sortValue,
-    tableColumnFilterChange,
-    validateSearchValues,
-  } = useLinkQueryColumnSerach({
-    attrs: ['bk_cloud_id'],
-    fetchDataFn: () => fetchTableData(),
-    isCluster: false,
-    searchType: ClusterTypes.INFLUXDB,
+  const searchValue = ref<Record<string, string>>({});
+  const sortValue: {
+    ordering?: string;
+  } = {};
+  const cloudAttrsList = shallowRef<{ label: string; value: string }[]>([]);
+
+  queryBizClusterAttrs({
+    bk_biz_id: currentBizId,
+    cluster_type: ClusterTypes.INFLUXDB,
+    instances_attrs: 'bk_cloud_id',
+  }).then((data) => {
+    cloudAttrsList.value = data.bk_cloud_id.map((item) => ({
+      label: item.text,
+      value: item.value,
+    }));
   });
 
   const eventBus = inject('eventBus') as Emitter<any>;
@@ -385,6 +379,8 @@
       {
         id: 'instance',
         name: t('IP 或 IP:Port'),
+        type: 'multiple-input',
+        validator: (value: string) => ipPort.test(value) || ipv4.test(value) || t('格式错误'),
       },
       {
         id: 'id',
@@ -395,34 +391,52 @@
         name: t('端口'),
       },
       {
-        children: [
-          { id: 'running', name: t('正常') },
-          { id: 'unavailable', name: t('异常') },
-        ],
         id: 'status',
-        multiple: true,
+        list: [
+          { label: t('正常'), value: 'running' },
+          { label: t('异常'), value: 'unavailable' },
+        ],
         name: t('状态'),
+        type: 'multiple',
       },
       {
         id: 'creator',
         name: t('创建人'),
+        remoteMethod: (params: { defaultValue?: string; keyword?: string }) => {
+          const requestParams = {};
+          if (params.defaultValue) {
+            Object.assign(requestParams, { exact_lookups: params.defaultValue });
+          }
+          if (params.keyword) {
+            Object.assign(requestParams, { fuzzy_lookups: params.keyword });
+          }
+
+          return getUserList(requestParams).then((data) =>
+            data.results.map((item) => ({
+              label: item.username,
+              value: item.username,
+            })),
+          );
+        },
+        remoteSearch: true,
+        type: 'multiple',
       },
       {
-        children: searchAttrs.value.bk_cloud_id,
         id: 'bk_cloud_id',
-        multiple: true,
+        list: cloudAttrsList.value,
         name: t('管控区域'),
+        type: 'multiple',
       },
-    ];
+    ] as QuickSearchProps['data'];
     if (groupId.value === 0) {
       basicSelect.splice(2, 0, {
-        children: groupList.value.map((item) => ({
-          id: `${item.id}`,
-          name: item.name,
-        })),
         id: 'group_id',
-        multiple: true,
+        list: groupList.value.map((item) => ({
+          label: item.name,
+          value: `${item.id}`,
+        })),
         name: t('所属分组'),
+        type: 'multiple',
       });
     }
     return basicSelect;
@@ -458,12 +472,7 @@
       value: 'unavailable',
     },
   ];
-  const cloudFilterList = computed(() =>
-    (columnAttrs.value.bk_cloud_id || []).map((item) => ({
-      label: item.text,
-      value: item.value,
-    })),
-  );
+  const cloudFilterList = computed(() => cloudAttrsList.value);
   const groupFilterList = computed(() =>
     groupList.value.map((item) => ({
       label: item.name,
@@ -503,7 +512,7 @@
     });
 
   const fetchTableData = (loading?: boolean) => {
-    const searchParams = getSearchSelectorParams(searchValue.value);
+    const searchParams: Record<string, string> = transfromDataToQuery(searchValue.value);
     tableRef.value?.fetchData(
       {
         ...searchParams,
@@ -528,38 +537,17 @@
   );
 
   onMounted(() => {
+    fetchTableData();
     resumeFetchTableData();
   });
 
-  const getMenuList = async (item: ISearchItem | undefined, keyword: string) => {
-    if (item?.id !== 'creator' && keyword) {
-      return getMenuListSearch(item, keyword, searchSelectData.value, searchValue.value);
-    }
+  const handleSearchValueChange = () => {
+    fetchTableData();
+  };
 
-    // 没有选中过滤标签
-    if (!item) {
-      // 过滤掉已经选过的标签
-      const selected = (searchValue.value || []).map((value) => value.id);
-      return searchSelectData.value.filter((item) => !selected.includes(item.id));
-    }
-
-    // 远程加载执行人
-    if (item.id === 'creator') {
-      if (!keyword) {
-        return [];
-      }
-      return getUserList({
-        fuzzy_lookups: keyword,
-      }).then((res) =>
-        res.results.map((item) => ({
-          id: item.username,
-          name: item.username,
-        })),
-      );
-    }
-
-    // 不需要远层加载
-    return searchSelectData.value.find((set) => set.id === item.id)?.children || [];
+  const clearSearchValue = () => {
+    searchValue.value = {};
+    fetchTableData();
   };
 
   const updateGroupList = (list: InfluxDBGroupItem[] = []) => {
@@ -607,21 +595,9 @@
     );
   };
 
-  const handleFilterChange = (filterValue: Record<string, string[]>) => {
-    tableColumnFilterChange(filterValue, {
-      bk_cloud_id: {
-        list: cloudFilterList.value,
-        name: t('管控区域'),
-      },
-      group_id: {
-        list: groupFilterList.value,
-        name: t('所属分组'),
-      },
-      status: {
-        list: statusFilterList,
-        name: t('状态'),
-      },
-    });
+  const handleFilterChange = (filterValue: Record<string, string>) => {
+    searchValue.value = filterValue;
+    fetchTableData();
   };
 
   const handleSortChange = (payload: TableSort) => {
