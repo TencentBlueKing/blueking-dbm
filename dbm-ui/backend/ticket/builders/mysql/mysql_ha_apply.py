@@ -40,6 +40,7 @@ class MysqlHAApplyDetailSerializer(MysqlSingleApplyDetailSerializer):
         max_value=SERVER_PORT_LIMIT_MAX,
         default=DEFAULT_ORIGIN_PROXY_PORT,
     )
+    apply_clb = serializers.BooleanField(help_text=_("集群部署成功后是否创建CLB"), required=False, default=False)
 
     def validate(self, attrs):
         super().validate(attrs)
