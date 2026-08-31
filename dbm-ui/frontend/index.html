@@ -90,7 +90,7 @@
       // manifest 是版本指针文件，加时间戳防止浏览器/CDN 缓存旧版本
       // 开发环境通过 /src/main.ts 直引加载（dev server 会追加 ?t= 参数，故用前缀匹配），构建产物中该标签已被移除，走 manifest 加载
       if (!document.querySelector('script[src^="/src/main.ts"]')) {
-        fetch(window.__loadAssetsUrl__('.vite/manifest.json') + '?v=' + new Date().getTime())
+        fetch(window.__loadAssetsUrl__('manifest.json') + '?v=' + new Date().getTime())
           .then((res) => {
             if (!res.ok) {
               throw new Error('manifest 请求失败: ' + res.status);
