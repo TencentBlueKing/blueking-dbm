@@ -36,8 +36,10 @@ import (
 
 	"dbm-services/common/dbha-v2/internal/analysis/apm"
 	"dbm-services/common/dbha-v2/internal/analysis/config"
+	"dbm-services/common/dbha-v2/internal/analysis/dbm"
 	"dbm-services/common/dbha-v2/internal/analysis/storage"
 	"dbm-services/common/dbha-v2/internal/analysis/switcher"
+	"dbm-services/common/dbha-v2/internal/analysis/switcher/snapshotlogger"
 	"dbm-services/common/dbha-v2/pkg/discovery"
 	"dbm-services/common/dbha-v2/pkg/gerrors"
 	"dbm-services/common/dbha-v2/pkg/haapm"
@@ -93,7 +95,7 @@ type Workflow struct {
 	windowMgr         *BizWindowManager
 	popSwitchSem      chan struct{}
 	lockTracker       *InProcessLockTracker // makes the per-biz etcd switch lock reentrant within this AM
-	swSnapshotLogger  logger.Logger         // switching-snapshot-* log file; nil disables file snapshots
+	swSnapshotLogger  logger.Logger
 }
 
 // New creates a workflow instance. discovery and registryPrefix are used to list and watch
@@ -443,7 +445,7 @@ func (w *Workflow) PopAndSwitch(ctx context.Context) {
 // acquires the switch lock via lockTracker (reentrant within this AM, mutually
 // exclusive across AMs), pops matured entries, marks instances as inflight,
 // groups by (BkCloudID, DbType), and dispatches each group for switching.
-func (w *Workflow) popAndSwitchForBiz(ctx context.Context, bizId int) {
+func (w *Workflow) popAndSwitchForBiz(ctx context.Context, bizID int) {
 	start := time.Now()
 	defer func() {
 		// report the pop-switch business time consuming
@@ -455,20 +457,20 @@ func (w *Workflow) popAndSwitchForBiz(ctx context.Context, bizId int) {
 		}
 	}()
 
-	unlock, err := w.lockTracker.Acquire(ctx, w.metadataReader, bizId)
+	unlock, err := w.lockTracker.Acquire(ctx, w.metadataReader, bizID)
 	if err != nil {
-		logger.Debug("skip pop-switch for biz %d, unable to acquire switch lock, errmsg: %s", bizId, err)
+		logger.Debug("skip pop-switch for biz %d, unable to acquire switch lock, errmsg: %s", bizID, err)
 		return
 	}
 	defer unlock()
 
-	entries := w.windowMgr.PopAndMarkStart(bizId, time.Now())
+	entries := w.windowMgr.PopAndMarkStart(bizID, time.Now())
 	if len(entries) == 0 {
 		return
 	}
 
-	logger.Info("popped %d matured entries for biz %d", len(entries), bizId)
-	groups := groupEntriesByCloudAndDbType(entries)
+	logger.Info("popped %d matured entries for biz %d", len(entries), bizID)
+	groups := groupEntriesByCloudAndDbType(bizID, entries)
 
 	var failureGroupFns []func()
 	for _, group := range groups {
@@ -479,13 +481,17 @@ func (w *Workflow) popAndSwitchForBiz(ctx context.Context, bizId int) {
 
 	wait := safe.GoWaits(failureGroupFns,
 		safe.WithLabel("popAndSwitchForBiz"), safe.WithOnPanic(func(pi safe.PanicInfo) {
-			logger.Error("panic in pop and switch for biz, biz_id: %d, errmsg: %s", bizId, pi.Reason)
+			logger.Error("panic in pop and switch for biz, biz_id: %d, errmsg: %s", bizID, pi.Reason)
 		}))
 
 	wait()
 }
 
 func (w *Workflow) handleFailureGroup(ctx context.Context, group *FailureGroup) {
+	// Keep the original failure instance data: after strategy matching each failure group holds a
+	// different subset of instances, so the traceable original failure instance info must be kept.
+	group.OriginInstances = group.Instances
+
 	groupInstKeys := collectGroupInstanceKeys(group)
 	defer w.markDoneAll(groupInstKeys)
 
@@ -501,51 +507,138 @@ func (w *Workflow) handleFailureGroup(ctx context.Context, group *FailureGroup) 
 		return
 	}
 
-	// Build switchGroup with only the instances still reported available by DBM, so strategy
-	// matching counts the actually-switchable ones instead of stale failures. The original group
-	// remains the source of truth for downstream logging and inflight cleanup.
-	switchGroup := &FailureGroup{
-		BkCloudID: group.BkCloudID,
-		DbType:    group.DbType,
-		Instances: excludeUnavailableInstances(group.Instances, req),
-	}
-	matched, strategy := w.switchExecutor.MatchStrategyForGroup(ctx, switchGroup)
-	if !matched {
-		logger.Info(
-			"no matching switching strategy, skip, cloudId: %d, dbType: %s, instances: %d (matched: %d), events: [%s]",
-			group.BkCloudID,
-			group.DbType,
-			len(group.Instances),
-			len(switchGroup.Instances),
-			FormatInstanceEventSummary(group.Instances),
-		)
+	// Exclude stale (already-switched) instances before strategy matching, so that the match counts only
+	// the actually-switchable instances.
+	availableInsts := excludeUnavailableInstances(group.Instances, req)
+	if len(availableInsts) == 0 {
+		logger.Info("no available instances after excluding unavailable, dbType: %s, cloudId: %d, instances: %d",
+			group.DbType, group.BkCloudID, len(group.Instances))
 		return
 	}
 
-	if w.handleStrategyNotify(strategy, group) {
+	matchResult := w.switchExecutor.MatchStrategies(ctx, &FailureGroup{
+		BkBizID:         group.BkBizID,
+		BkCloudID:       group.BkCloudID,
+		DbType:          group.DbType,
+		Instances:       availableInsts,
+		OriginInstances: group.OriginInstances,
+	})
+	if matchResult == nil {
 		return
 	}
 
-	// Whitelist filter for switch: scan-time whitelist filtering does not cover every switch path.
-	// On a host with multiple instances, a fault on a non-whitelisted instance may still enter switching,
-	// so we filter fault instances again here before executing switch.
-	if err := w.filterByWhitelistForSwitch(ctx, group, req); err != nil {
-		logger.Warn("skip switch because whitelist filter failed, cloudId: %d, dbType: %s, errmsg: %s",
-			group.BkCloudID, group.DbType, err)
-		return
-	}
-	if !req.HasDbInstMetadata() {
-		logger.Info("no whitelisted instances remain, notify only, cloudId: %d, dbType: %s",
-			group.BkCloudID, group.DbType)
-		return
+	tasks := w.buildGroupTasks(req, matchResult.Groups)
+
+	snapshotLoggers := NewSwitchSnapshotLoggers(w.swSnapshotLogger)
+
+	defer func() {
+		for _, l := range snapshotLoggers {
+			l.Close()
+		}
+	}()
+
+	// execute all tasks (switch + notify) in parallel
+	fns := make([]func(), 0, len(tasks))
+	for _, task := range tasks {
+		fns = append(fns, func() {
+			w.runTask(ctx, snapshotLoggers, task, matchResult.Strategies)
+		})
 	}
 
-	if w.handleStrategySwitch(strategy, group, req) {
-		return
+	wait := safe.GoWaits(fns, safe.WithLabel("handleFailureGroup"), safe.WithOnPanic(func(pi safe.PanicInfo) {
+		logger.Error("panic in handle failure group, biz_id: %d, errmsg: %s",
+			group.BkBizID, pi.Reason)
+	}))
+	wait()
+}
+
+// groupTask is a unit of switch/notify work for one failure group. The action field explicitly
+// identifies whether the task is a switch or a notify.
+type groupTask struct {
+	action hamodel.ActionType
+	group  *FailureGroup
+	req    *switcher.Request // only set for switch tasks
+}
+
+// buildGroupTasks splits the matched groups into switch/notify tasks. Switch groups are deduplicated
+// by host: a host already occupied by a higher-priority switch group is skipped to avoid triggering
+// multiple switches on the same host.
+func (w *Workflow) buildGroupTasks(req *switcher.Request, groups []*FailureGroup) []*groupTask {
+	occupiedHosts := make(map[string]struct{})
+	var tasks []*groupTask
+
+	for _, g := range groups {
+		if g.Strategy == nil || g.Strategy.Action != hamodel.ActionTypeSwitch {
+			tasks = append(tasks, &groupTask{action: hamodel.ActionTypeNotify, group: g})
+			continue
+		}
+
+		remaining := filterHostsNotOccupied(g.Instances, occupiedHosts)
+		if len(remaining) == 0 {
+			logger.Info("skip switch group, all hosts already covered by previous switch, strategyId: %d",
+				g.Strategy.ID)
+			continue
+		}
+
+		// reuse the metadata queried up front, keeping only this group's hosts
+		groupReq := filterRequestByHosts(req, remaining)
+		if groupReq == nil || !groupReq.HasDbInstMetadata() {
+			logger.Warn("no db inst metadata for switch group, strategyId: %d", g.Strategy.ID)
+			continue
+		}
+
+		// mark this group's hosts as occupied for subsequent groups
+		for _, meta := range groupReq.MySqlInstData {
+			occupiedHosts[hostKey(meta.BkCloudID, meta.IP)] = struct{}{}
+		}
+
+		tasks = append(tasks, &groupTask{
+			action: hamodel.ActionTypeSwitch,
+			group: &FailureGroup{
+				BkBizID:         g.BkBizID,
+				BkCloudID:       g.BkCloudID,
+				DbType:          g.DbType,
+				Strategy:        g.Strategy,
+				Instances:       remaining,
+				OriginInstances: g.OriginInstances,
+			},
+			req: groupReq,
+		})
 	}
 
-	logger.Warn("unknown strategy action: %s, strategyId: %d, cloudId: %d, dbType: %s",
-		strategy.Action, strategy.ID, group.BkCloudID, group.DbType)
+	return tasks
+}
+
+// runTask executes a single switch/notify task.
+func (w *Workflow) runTask(ctx context.Context, snapshotLoggers []snapshotlogger.SnapshotLogger, task *groupTask,
+	strategies []*hamodel.DbSwitchingStrategy) {
+	switch task.action {
+	case hamodel.ActionTypeSwitch:
+		w.handleStrategySwitch(ctx, snapshotLoggers, task.group, task.req, strategies)
+	case hamodel.ActionTypeNotify:
+		w.handleNotifyGroup(snapshotLoggers, task.group, strategies)
+	}
+}
+
+// hostKey builds the host identifier from cloud id and IP.
+func hostKey(bkCloudID int, ip string) string {
+	return fmt.Sprintf("%d:%s", bkCloudID, ip)
+}
+
+// filterHostsNotOccupied removes instances whose host has already been occupied by a previous
+// switch group. The removed instances are logged for tracing and dropped silently (their host
+// has already been switched by a previous group).
+func filterHostsNotOccupied(instances []FailureInstanceInfo, occupied map[string]struct{}) []FailureInstanceInfo {
+	out := make([]FailureInstanceInfo, 0, len(instances))
+	for _, inst := range instances {
+		if _, ok := occupied[hostKey(inst.BkCloudID, inst.IP)]; ok {
+			logger.Info("skip instance, host already switched by previous group, cloudId: %d, ip: %s, port: %d",
+				inst.BkCloudID, inst.IP, inst.Port)
+			continue
+		}
+		out = append(out, inst)
+	}
+	return out
 }
 
 func collectGroupInstanceKeys(group *FailureGroup) []string {
@@ -558,26 +651,97 @@ func collectGroupInstanceKeys(group *FailureGroup) []string {
 	return groupInstKeys
 }
 
-func (w *Workflow) handleStrategyNotify(strategy *hamodel.DbSwitchingStrategy, group *FailureGroup) bool {
-	if strategy.Action != hamodel.ActionTypeNotify {
-		return false
-	}
+// reportNotifySnapshot writes a single notify snapshot record.
+func (w *Workflow) reportNotifySnapshot(snapshotLoggers []snapshotlogger.SnapshotLogger,
+	strategy *hamodel.DbSwitchingStrategy, strategies []*hamodel.DbSwitchingStrategy, group *FailureGroup) {
 
-	log := fmt.Sprintf("strategy action is %s, execute notification, strategyId: %d, cloudId: %d, dbType: %s",
-		strategy.Action, strategy.ID, group.BkCloudID, group.DbType)
-	logger.Info("%s", log)
+	snapshotData := NewSwitchingSnapshotData(strategy, strategies, group, nil,
+		hamodel.SnapshotActionTypeNotify, w.swSnapshotLogger)
 
-	w.alarm.TriggerWithBizId(group.Instances[0].BkBizID, log)
-	return true
+	start := time.Now()
+	report := NewSwitchingSnapshotReport(snapshotLoggers, snapshotData, start)
+	report.ReportNotifySnapshot()
 }
 
-func (w *Workflow) handleStrategySwitch(strategy *hamodel.DbSwitchingStrategy, group *FailureGroup, req *switcher.Request) bool {
-	if strategy.Action != hamodel.ActionTypeSwitch {
-		return false
+// reportWhitelistNotifySnapshot writes a notify snapshot for the instances filtered out by the
+// whitelist, so that non-whitelisted instances still leave a traceable record even when no switch
+// is executed. switchRequestID is the switch id of the request that was intercepted by the whitelist.
+func (w *Workflow) reportWhitelistNotifySnapshot(snapshotLoggers []snapshotlogger.SnapshotLogger, group *FailureGroup,
+	metas []*dbm.DbInstMetadata, switchRequestID string, strategies []*hamodel.DbSwitchingStrategy) {
+
+	if w.swSnapshotLogger == nil {
+		return
+	}
+
+	notifyReq := &switcher.Request{
+		SwitchID:      generateSwitchID(),
+		ActionScope:   hamodel.ActionScopeTypeNone,
+		DbType:        group.DbType,
+		MySqlInstData: metas,
+	}
+
+	snapshotData := NewSwitchingSnapshotData(group.Strategy, strategies, group, notifyReq,
+		hamodel.SnapshotActionTypeNotify, w.swSnapshotLogger)
+	if snapshotData == nil {
+		return
+	}
+
+	snapshotData.DbSwitchingSnapshotLog.Reason = fmt.Sprintf(
+		"whitelist filtered, notify only, switch request id: %s", switchRequestID)
+
+	start := time.Now()
+	report := NewSwitchingSnapshotReport(snapshotLoggers, snapshotData, start)
+	report.ReportNotifySnapshot()
+}
+
+// handleNotifyGroup handles a notify group: writes a notify snapshot and posts an alarm
+// with the instance details of the group. When the group has no strategy (unmatched instances),
+// a strategy-less notification is posted instead.
+func (w *Workflow) handleNotifyGroup(snapshotLoggers []snapshotlogger.SnapshotLogger, group *FailureGroup,
+	strategies []*hamodel.DbSwitchingStrategy) {
+	strategy := group.Strategy
+
+	if strategy != nil && strategy.Action != hamodel.ActionTypeNotify {
+		return
+	}
+
+	w.reportNotifySnapshot(snapshotLoggers, strategy, strategies, group)
+
+	var log string
+	if strategy == nil {
+		log = fmt.Sprintf("no matching strategy, execute notification only, cloudId: %d, dbType: %s, instances: [%s]",
+			group.BkCloudID, group.DbType, FormatInstanceNotifySummary(group.Instances))
+	} else {
+		log = fmt.Sprintf("strategy action is %s, execute notification, strategyId: %d, cloudId: %d, dbType: %s, "+
+			"instances: [%s]",
+			strategy.Action, strategy.ID, group.BkCloudID, group.DbType, FormatInstanceNotifySummary(group.Instances))
+	}
+	logger.Info("%s", log)
+
+	w.alarm.TriggerWithBizId(group.BkBizID, log)
+}
+
+func (w *Workflow) handleStrategySwitch(ctx context.Context, snapshotLoggers []snapshotlogger.SnapshotLogger,
+	group *FailureGroup, req *switcher.Request, strategies []*hamodel.DbSwitchingStrategy) {
+	strategy := group.Strategy
+	if strategy == nil || strategy.Action != hamodel.ActionTypeSwitch {
+		return
 	}
 
 	req.ActionScope = strategy.Scope
 	req.SwitchID = generateSwitchID()
+
+	// Whitelist filter for switch: scan-time whitelist filtering does not cover every switch path.
+	// On a host with multiple instances, a fault on a non-whitelisted instance may still enter switching,
+	// so we filter fault instances again here before executing switch.
+	if err := w.filterByWhitelistForSwitch(ctx, snapshotLoggers, group, req, strategies); err != nil {
+		logger.Warn("skip switch because whitelist filter failed, strategyId: %d, errmsg: %s", strategy.ID, err)
+		return
+	}
+	if !req.HasDbInstMetadata() {
+		logger.Info("no whitelisted instances remain, notify only, strategyId: %d", strategy.ID)
+		return
+	}
 
 	logger.Info("trigger switching by strategyId: %d, switchId: %s, dbType: %s, cloudId: %d, instances: %d",
 		strategy.ID, req.SwitchID, group.DbType, group.BkCloudID, len(group.Instances))
@@ -591,14 +755,13 @@ func (w *Workflow) handleStrategySwitch(strategy *hamodel.DbSwitchingStrategy, g
 	}
 
 	// Build the switching snapshot data
-	snapshotData := NewSwitchingSnapshotData(strategy, group, req, w.swSnapshotLogger)
+	snapshotData := NewSwitchingSnapshotData(strategy, strategies, group, req,
+		hamodel.SnapshotActionTypePreSwitch, w.swSnapshotLogger)
 	if snapshotData == nil {
 		logger.Warn("failed to create switching snapshot data, switchId: %s", req.SwitchID)
 	}
 
-	w.switchExecutor.TriggerSwitching(group.DbType, req, snapshotData)
-
-	return true
+	w.switchExecutor.TriggerSwitching(group.DbType, req, snapshotLoggers, snapshotData)
 }
 
 // generateSwitchID generates a unique switch ID.
@@ -614,8 +777,9 @@ func (w *Workflow) markDoneAll(keys []string) {
 }
 
 // groupEntriesByCloudAndDbType groups window entries by (BkCloudID, DbType) into FailureGroups
-// for batch strategy matching and switching.
-func groupEntriesByCloudAndDbType(entries []*FailureWindowEntry) []*FailureGroup {
+// for batch strategy matching and switching. All entries belong to the same business, so bizID is
+// carried on each group directly.
+func groupEntriesByCloudAndDbType(bizID int, entries []*FailureWindowEntry) []*FailureGroup {
 	groupMap := make(map[string]*FailureGroup)
 	var keys []string
 
@@ -625,6 +789,7 @@ func groupEntriesByCloudAndDbType(entries []*FailureWindowEntry) []*FailureGroup
 			g.Instances = append(g.Instances, entry.FailureInstanceInfo)
 		} else {
 			groupMap[key] = &FailureGroup{
+				BkBizID:   bizID,
 				BkCloudID: entry.BkCloudID,
 				DbType:    entry.DbType,
 				Instances: []FailureInstanceInfo{entry.FailureInstanceInfo},

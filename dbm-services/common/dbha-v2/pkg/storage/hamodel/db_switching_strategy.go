@@ -47,13 +47,15 @@ var ActionTypeMap = map[ActionType]ActionType{
 	ActionTypeSwitch: ActionTypeSwitch,
 }
 
-// ActionScopeType  impact scope: cluster, host.
+// ActionScopeType  impact scope: cluster, host, db_instance, none.
 type ActionScopeType string
 
 const (
 	ActionScopeTypeCluster    ActionScopeType = "cluster"
 	ActionScopeTypeHost       ActionScopeType = "host"
 	ActionScopeTypeDbInstance ActionScopeType = "db_instance"
+	// ActionScopeTypeNone is used for notify actions that do not perform a switch.
+	ActionScopeTypeNone ActionScopeType = "none"
 )
 
 func (a ActionScopeType) String() string {
