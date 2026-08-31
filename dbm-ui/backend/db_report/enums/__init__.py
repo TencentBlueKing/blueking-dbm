@@ -63,15 +63,13 @@ class ReportType(StrStructuredEnum):
     AGENT_UNIVERSAL_CHECK = EnumField("agent_universal_check", _("Agent通用检查"))
 
     # SQLSERVER
-    SQLSERVER_FULL_BACKUP_CHECK = EnumField("sqlserver_full_backup_check", _("全量备份文件异常报告"))
-    SQLSERVER_LOG_BACKUP_CHECK = EnumField("sqlserver_log_backup_check", _("增量备份文件异常报告"))
     SQLSERVER_APP_SETTING_CHECK = EnumField("sqlserver_app_setting_check", _("AppSetting表数据巡检检查"))
     SQLSERVER_SYS_JOB_CHECK = EnumField("sqlserver_sys_job_check", _("系统作业的状态巡检"))
     SQLSERVER_JOB_SYNC_CHECK = EnumField("sqlserver_job_sync_check", _("业务Job的同步巡检"))
     SQLSERVER_LINK_SERVER_SYNC_CHECK = EnumField("sqlserver_link_server_sync_check", _("业务Linkserver的同步巡检"))
     SQLSERVER_USER_SYNC_CHECK = EnumField("sqlserver_user_sync_check", _("业务账号同步巡检"))
-    SQLSERVER_FULL_BACKUP_CHECK_BY_MODEL = EnumField("sqlserver_full_backup_check_by_model", _("全量备份文件异常报告(新)"))
-    SQLSERVER_LOG_BACKUP_CHECK_BY_MODEL = EnumField("sqlserver_log_backup_check_by_model", _("增量备份文件异常报告(新)"))
+    SQLSERVER_FULL_BACKUP_CHECK_BY_MODEL = EnumField("sqlserver_full_backup_check_by_model", _("全量备份文件异常报告"))
+    SQLSERVER_LOG_BACKUP_CHECK_BY_MODEL = EnumField("sqlserver_log_backup_check_by_model", _("增量备份文件异常报告"))
 
     FAIL_OVER_DRILL = EnumField("fail_over_drill", _("切换演练任务报告"))
     BACKUP_RECOVER_DRILL = EnumField("backup_recover_drill", _("回档演练任务报告"))

@@ -93,7 +93,7 @@ class FullBackupCheckReportBaseViewSet(ReportBaseViewSet):
     ]
 
     @common_swagger_auto_schema(
-        operation_summary=_("全量备份检查报告(新)"),
+        operation_summary=_("全量备份检查报告"),
         responses={status.HTTP_200_OK: FullBackupCheckReportSerializer()},
         tags=[SWAGGER_TAG],
     )

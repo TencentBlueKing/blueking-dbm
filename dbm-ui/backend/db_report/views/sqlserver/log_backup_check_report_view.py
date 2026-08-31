@@ -93,7 +93,7 @@ class LogBackupCheckReportBaseViewSet(ReportBaseViewSet):
     ]
 
     @common_swagger_auto_schema(
-        operation_summary=_("增量备份检查报告(新)"),
+        operation_summary=_("增量备份检查报告"),
         responses={status.HTTP_200_OK: LogBackupCheckReportSerializer()},
         tags=[SWAGGER_TAG],
     )
