@@ -12,6 +12,7 @@ import copy
 import json
 import logging
 import re
+import sys
 from abc import ABCMeta
 from typing import Any, Dict, List, Optional, Union
 
@@ -74,6 +75,10 @@ class ServiceLogMixin:
             "root_id": self.runtime_attrs.get("root_pipeline_id"),
             "node_id": self.runtime_attrs.get("id"),
             "version_id": self.runtime_attrs.get("version"),
+            # 由于封装了日志模块，会导致打印的日志文件都在本文件中，因此需找到调用日志的源
+            "real_pathname": sys._getframe(2).f_code.co_filename,
+            "real_funcName": sys._getframe(2).f_code.co_name,
+            "real_lineno": sys._getframe(2).f_lineno,
         }
 
 
