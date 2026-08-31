@@ -161,8 +161,8 @@
       <TableColumn
         col-key="ip"
         fixed="left"
-        :min-width="130"
-        title="IP" />
+        title="IP"
+        :width="130" />
       <TableColumn
         col-key="bk_cloud_name"
         :title="t('管控区域')"
@@ -297,17 +297,18 @@
       </TableColumn>
       <TableColumn
         col-key="device_class"
-        :min-width="130"
-        :title="t('机型')">
+        :title="t('机型')"
+        :width="130">
         <template #default="{ row }: { row: DbResourceModel }">{{ row.device_class || '--' }}</template>
       </TableColumn>
       <TableColumn
         col-key="bk_cpu"
-        :title="t('CPU（核）')" />
+        :title="t('CPU（核）')"
+        :width="120" />
       <TableColumn
         col-key="bkMemText"
-        :min-width="90"
-        :title="t('内存（G）')" />
+        :title="t('内存（G）')"
+        :width="90" />
       <TableColumn
         col-key="total_data_storage_cap"
         :title="t('数据盘容量（G）')"
