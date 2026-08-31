@@ -16,10 +16,13 @@ from backend.components import DBConfigApi
 from backend.components.dbconfig.constants import LevelName
 from backend.db_meta.enums import AccessLayer
 from backend.db_meta.models import Machine, ProxyInstance, StorageInstance
+from backend.db_proxy.reverse_api.mysql.impl.dts_monitor import dts_monitor_items_config, is_dts_machine_type
 
 
 def monitor_items_config(bk_cloud_id: int, ip: str, port_list: Optional[List[int]] = None) -> Dict[int, Dict]:
     m = Machine.objects.get(ip=ip, bk_cloud_id=bk_cloud_id)
+    if is_dts_machine_type(m.machine_type):
+        return dts_monitor_items_config(bk_cloud_id=bk_cloud_id, ip=ip, port_list=port_list)
     q = Q()
     q |= Q(**{"machine": m})
 

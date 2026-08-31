@@ -16,7 +16,16 @@ from django.test import TestCase
 from backend.db_meta.api.cluster.mysqldts.create_cluster import append_worker_nodes, create
 from backend.db_meta.enums import AccessLayer, ClusterType, MachineType, MachineTypeAccessLayerMap
 from backend.db_meta.exceptions import DBMetaException
-from backend.db_meta.models import Cluster, ClusterEntry, Machine, MysqlDtsCluster, ProxyInstance, StorageInstance
+from backend.db_meta.models import (
+    BKCity,
+    Cluster,
+    ClusterEntry,
+    LogicalCity,
+    Machine,
+    MysqlDtsCluster,
+    ProxyInstance,
+    StorageInstance,
+)
 from backend.db_meta.models.mysql_dts import MysqlDtsClusterStatus
 from backend.flow.utils.mysql.dts.constants import MYSQL_DTS_MASTER_PORT, MYSQL_DTS_WORKER_PORT
 from backend.tests.mock_data import constant
@@ -52,6 +61,13 @@ def _create_kwargs(**overrides):
 
 
 class MysqlDtsCreateTest(TestCase):
+    def setUp(self):
+        logical, _ = LogicalCity.objects.get_or_create(id=1, defaults={"name": "南京"})
+        BKCity.objects.get_or_create(
+            bk_idc_city_id=cc.REGISTERED_CITY_ID,
+            defaults={"logical_city": logical, "bk_idc_city_name": "南京"},
+        )
+
     @patch("backend.db_meta.api.machine.apis.CCApi", _cc_api_mock_cloud0())
     def test_create_only_writes_dts_cluster_and_machine(self):
         dts = create(**_create_kwargs())

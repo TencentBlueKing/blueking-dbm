@@ -98,6 +98,8 @@ func NewConnectionCollect() (*ConnectionCollect, error) {
 	case "spider":
 		sdb, ctlDB, err := internal.ConnectSpider()
 		return &ConnectionCollect{MySqlDB: sdb, CtlDB: ctlDB}, err
+	case "mysql_dts_master", "mysql_dts_worker":
+		return &ConnectionCollect{}, nil
 
 	default:
 		err := errors.Errorf(

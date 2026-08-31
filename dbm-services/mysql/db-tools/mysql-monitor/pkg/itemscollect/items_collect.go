@@ -23,6 +23,8 @@ import (
 	"dbm-services/mysql/db-tools/mysql-monitor/pkg/itemscollect/characterconsistency"
 	"dbm-services/mysql/db-tools/mysql-monitor/pkg/itemscollect/dbhaheartbeat"
 	"dbm-services/mysql/db-tools/mysql-monitor/pkg/itemscollect/definer"
+	"dbm-services/mysql/db-tools/mysql-monitor/pkg/itemscollect/dtsheartbeat"
+	"dbm-services/mysql/db-tools/mysql-monitor/pkg/itemscollect/dtstaskstatus"
 	"dbm-services/mysql/db-tools/mysql-monitor/pkg/itemscollect/engine"
 	"dbm-services/mysql/db-tools/mysql-monitor/pkg/itemscollect/ext3check"
 	"dbm-services/mysql/db-tools/mysql-monitor/pkg/itemscollect/ibdstatistic"
@@ -94,6 +96,8 @@ func init() {
 	_ = registerItemConstructor(spiderremote.Register())
 	//_ = registerItemConstructor(tscc.Register()) // 废弃
 	_ = registerItemConstructor(dbhaheartbeat.Register())
+	_ = registerItemConstructor(dtsheartbeat.Register())
+	_ = registerItemConstructor(dtstaskstatus.Register())
 	_ = registerItemConstructor(spiderctlchecker.UniqueCtlCheckerRegister())
 	_ = registerItemConstructor(scenesnapshot.Register())
 	_ = registerItemConstructor(timezonechange.RegisterSysTimezoneChange())

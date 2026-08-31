@@ -36,6 +36,8 @@ func (c *Checker) Run() (warnDB *pkg.MySQLMonitorDBH, msg string, err error) {
 	// 目前只更新 monitor config
 	// item config 还要等等
 	switch config.MonitorConfig.MachineType {
+	case "mysql_dts_master", "mysql_dts_worker":
+		return nil, "", nil
 	case "backend", "remote", "single":
 		selfInfo, err := c.GetSelfInfoStorage()
 		if err != nil {

@@ -1,25 +1,40 @@
-files: ^dbm-ui/backend/
+# 顶层不要写 files：否则会和各 hook 的 files 取交集。
+# Python hook 继续只扫 dbm-ui/backend；Go hook 扫 dbm-services。
 fail_fast: true
 repos:
-- repo: https://github.com/timothycrosley/isort
-  rev: 5.13.2
-  hooks:
-  - id: isort
-    additional_dependencies: [toml]
-- repo: https://github.com/psf/black
-  rev: 22.3.0
-  hooks:
-  - id: black
-    args: [--config=./dbm-ui/pyproject.toml]
-    language_version: python3
-- repo: https://github.com/PyCQA/flake8
-  rev: 5.0.4
-  hooks:
-  - id: flake8
-    args: [--config=./dbm-ui/backend/.flake8]
-- repo: https://github.com/alessandrojcm/commitlint-pre-commit-hook
-  rev: v2.2.0
-  hooks:
-    - id: commitlint
-      stages: [commit-msg]
-      additional_dependencies: ['@commitlint/config-conventional']
+  - repo: https://github.com/timothycrosley/isort
+    rev: 5.13.2
+    hooks:
+      - id: isort
+        files: ^dbm-ui/backend/
+        additional_dependencies: [toml]
+  - repo: https://github.com/psf/black
+    rev: 22.3.0
+    hooks:
+      - id: black
+        files: ^dbm-ui/backend/
+        args: [--config=./dbm-ui/pyproject.toml]
+        language_version: python3
+  - repo: https://github.com/PyCQA/flake8
+    rev: 5.0.4
+    hooks:
+      - id: flake8
+        files: ^dbm-ui/backend/
+        args: [--config=./dbm-ui/backend/.flake8]
+  - repo: local
+    hooks:
+      - id: goimports
+        name: goimports (dbm-services)
+        description: 与 CI go_code_check.yml 同一版本，提交前写回格式，避免 porcelain 检查失败
+        language: golang
+        additional_dependencies:
+          - golang.org/x/tools/cmd/goimports@v0.24.0
+        entry: goimports -w
+        types: [go]
+        files: ^dbm-services/
+  - repo: https://github.com/alessandrojcm/commitlint-pre-commit-hook
+    rev: v2.2.0
+    hooks:
+      - id: commitlint
+        stages: [commit-msg]
+        additional_dependencies: ["@commitlint/config-conventional"]

@@ -64,14 +64,18 @@ def mysql_dts_append_worker_subflow(inp: MysqlDtsAppendWorkerSubflowInput) -> Su
             "register_mode": DtsRegisterMode.APPEND_WORKER.value,
         },
     )
-    # 幂等：按集群 id 拉全量 IP 再进同一 Module（含新 Worker / 同机升级）
+    # 监控 act 在构建期冻结节点列表：必须传入 existing+new，不能只靠当时库快照。
+    # 保留 dts_cluster_id，供 _resolve_monitor_context 在未传 master 时补齐。
+    all_worker_nodes = list(inp.existing_worker_nodes or []) + new_worker_nodes
     sub.add_sub_pipeline(
         mysql_dts_cc_standardize_subflow(
             root_id=inp.root_id,
             bk_biz_id=inp.bk_biz_id,
             bk_cloud_id=inp.bk_cloud_id,
             dts_cluster_id=inp.dts_cluster_id,
+            worker_nodes=all_worker_nodes,
             creator=inp.creator,
+            dts_master_addr=inp.master_addr,
         ).build_sub_process(sub_name=_("DTS 标准化"))
     )
     return sub

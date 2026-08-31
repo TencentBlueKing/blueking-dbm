@@ -62,6 +62,35 @@ def _get_v2_package_by_phase(
     )
 
 
+def resolve_v2_mysql_package(
+    *,
+    pkg_type: str,
+    version_series: str,
+    phase_priority: list[str] | None = None,
+    permit_os_type: str = "Linux",
+    db_type: str = DBType.MySQL.value,
+) -> Package:
+    """按 phase 优先级解析 V2 介质包，无 V1 回退。"""
+    for phase in phase_priority or _DTS_PHASE_PRIORITY:
+        pkg = _get_v2_package_by_phase(
+            db_type=db_type,
+            pkg_type=pkg_type,
+            version_series=version_series,
+            phase=phase,
+            permit_os_type=permit_os_type,
+        )
+        if pkg:
+            logger.info(
+                _("V2 介质包命中 series={}, phase={}, pkg_type={}, package_id={}").format(
+                    version_series, phase, pkg_type, pkg.id
+                )
+            )
+            return pkg
+    raise DBPackageBaseException(
+        _("未找到 V2 介质: series={}, pkg_type={}, permit_os_type={}").format(version_series, pkg_type, permit_os_type)
+    )
+
+
 def resolve_v2_dbbackup_package(
     *,
     pkg_type: str = MediumEnum.DbBackup.value,
@@ -70,23 +99,11 @@ def resolve_v2_dbbackup_package(
     permit_os_type: str = "Linux",
 ) -> Package:
     """解析 V2 dbbackup 介质包（对齐 mysql_rollback_exercise 选包逻辑）。"""
-    for phase in phase_priority or _DBBACKUP_PHASE_PRIORITY:
-        pkg = _get_v2_package_by_phase(
-            db_type=DBType.MySQL.value,
-            pkg_type=pkg_type,
-            version_series=version_series,
-            phase=phase,
-            permit_os_type=permit_os_type,
-        )
-        if pkg:
-            logger.info(
-                _("V2 备份包命中 series={}, phase={}, pkg_type={}, package_id={}").format(
-                    version_series, phase, pkg_type, pkg.id
-                )
-            )
-            return pkg
-    raise DBPackageBaseException(
-        _("未找到 V2 备份介质: series={}, pkg_type={}, permit_os_type={}").format(version_series, pkg_type, permit_os_type)
+    return resolve_v2_mysql_package(
+        pkg_type=pkg_type,
+        version_series=version_series,
+        phase_priority=phase_priority or _DBBACKUP_PHASE_PRIORITY,
+        permit_os_type=permit_os_type,
     )
 
 
@@ -99,21 +116,11 @@ def resolve_mysql_dts_package(
 ) -> Package:
     if pkg_id:
         return Package.objects.get(id=pkg_id, enable=True)
-    for phase in phase_priority or _DTS_PHASE_PRIORITY:
-        pkg = _get_v2_package_by_phase(
-            db_type=DBType.MySQL.value,
-            pkg_type=MediumEnum.MySQLDts.value,
-            version_series=version_series,
-            phase=phase,
-            permit_os_type=permit_os_type,
-        )
-        if pkg:
-            logger.info(_("V2 DTS 介质包命中 series={}, phase={}, package_id={}").format(version_series, phase, pkg.id))
-            return pkg
-    raise DBPackageBaseException(
-        _("未找到 V2 DTS 介质: series={}, pkg_type={}, permit_os_type={}").format(
-            version_series, MediumEnum.MySQLDts.value, permit_os_type
-        )
+    return resolve_v2_mysql_package(
+        pkg_type=MediumEnum.MySQLDts.value,
+        version_series=version_series,
+        phase_priority=phase_priority or _DTS_PHASE_PRIORITY,
+        permit_os_type=permit_os_type,
     )
 
 

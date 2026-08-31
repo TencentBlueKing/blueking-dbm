@@ -152,6 +152,7 @@ def mysql_dts_deploy_subflow(inp: MysqlDtsDeploySubflowInput) -> SubBuilder:
             master_nodes=all_master_nodes,
             worker_nodes=all_worker_nodes,
             creator=inp.creator,
+            dts_master_addr=master_addr,
         ).build_sub_process(sub_name=_("DTS 标准化"))
     )
     return sub

@@ -38,10 +38,11 @@ class MysqlDtsRegisterClusterMetaOutputTest(SimpleTestCase):
         with patch(
             "backend.flow.plugins.components.collections.mysql.dts.deploy.register_meta.create",
             return_value=SimpleNamespace(id=13),
-        ):
+        ) as mock_create:
             ok = self._make_service()._execute(data, parent_data=None)
         self.assertTrue(ok)
         self.assertEqual(trans_data.migrate_context.dts_cluster_id, 13)
+        self.assertNotIn("ticket_id", mock_create.call_args.kwargs)
         data.outputs.__setitem__.assert_any_call("trans_data", trans_data)
 
     def test_append_worker_outputs_trans_data(self):

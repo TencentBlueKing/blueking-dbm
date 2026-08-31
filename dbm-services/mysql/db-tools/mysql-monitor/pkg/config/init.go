@@ -123,7 +123,15 @@ func InjectMonitorHeartBeatItem() {
 	slog.Info("inject hardcode", slog.String("item", HeartBeatName))
 }
 
+func IsDtsMachineType(machineType string) bool {
+	return machineType == "mysql_dts_master" || machineType == "mysql_dts_worker"
+}
+
 func InjectMonitorDbUpItem() {
+	if MonitorConfig != nil && IsDtsMachineType(MonitorConfig.MachineType) {
+		slog.Info("skip inject db-up for dts machine_type", slog.String("machine_type", MonitorConfig.MachineType))
+		return
+	}
 	enable := true
 	dbUpItem := &MonitorItem{
 		Name:        "db-up",
