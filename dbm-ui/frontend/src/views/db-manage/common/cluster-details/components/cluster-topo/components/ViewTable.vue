@@ -16,43 +16,59 @@
           ref="scrollContent"
           @scroll="handleContentScroller">
           <div style="padding: 0 12px">
-            <div
-              v-for="nodeItem in clusterRoleNodeGroup[groupName]"
-              :key="`${nodeItem.bk_instance_id}#${nodeItem.instance}`"
-              style="display: flex; align-items: center">
-              <ClusterInstanceStatus
-                :data="nodeItem.status"
-                :show-text="false" />
+            <template
+              v-for="rowItem in roleGroupRowsMap[groupName].rows"
+              :key="
+                rowItem.type === 'shard'
+                  ? `shard#${rowItem.segRange}`
+                  : `${rowItem.node.bk_instance_id}#${rowItem.node.instance}`
+              ">
               <div
-                class="ml-4 mr-4"
-                :style="{
-                  color: nodeItem.status === 'unavailable' ? '#c4c6cc' : '',
-                }">
-                <TextHighlight
-                  high-light-color="#ff8204"
-                  :keyword="serachInstacnce">
-                  {{ nodeItem.displayInstance || nodeItem.instance }}
-                </TextHighlight>
+                v-if="rowItem.type === 'shard'"
+                class="shard-group-title">
+                {{ rowItem.segRange }} ({{ rowItem.count }})
               </div>
-              <BkTag
-                v-if="nodeItem.isStandBy"
-                class="cluster-specific-flag ml-4"
-                size="small">
-                Standby
-              </BkTag>
-              <BkTag
-                v-if="isMasterNode(nodeItem)"
-                class="cluster-specific-flag ml-4"
-                size="small">
-                {{ masterTagLabel }}
-              </BkTag>
-              <BkTag
-                v-if="nodeItem.status === 'unavailable'"
-                class="ml-4"
-                size="small">
-                {{ t('不可用') }}
-              </BkTag>
-            </div>
+              <div
+                v-else
+                class="node-row"
+                :class="{ 'is-shard-child': roleGroupRowsMap[groupName].hasShardGroup }">
+                <ClusterInstanceStatus
+                  :data="rowItem.node.status"
+                  :show-text="false" />
+                <div
+                  class="ml-4 mr-4"
+                  :style="{
+                    color: rowItem.node.status === 'unavailable' ? '#c4c6cc' : '',
+                  }">
+                  <TextHighlight
+                    high-light-color="#ff8204"
+                    :keyword="serachInstacnce">
+                    {{ rowItem.node.displayInstance || rowItem.node.instance }}
+                  </TextHighlight>
+                </div>
+                <MongoNodeTags
+                  v-if="isMongoCluster"
+                  :data="rowItem.node" />
+                <BkTag
+                  v-if="!isMongoCluster && rowItem.node.isStandBy"
+                  class="cluster-specific-flag ml-4"
+                  size="small">
+                  Standby
+                </BkTag>
+                <BkTag
+                  v-if="!isMongoCluster && isMasterNode(rowItem.node)"
+                  class="cluster-specific-flag ml-4"
+                  size="small">
+                  {{ masterTagLabel }}
+                </BkTag>
+                <BkTag
+                  v-if="rowItem.node.status === 'unavailable'"
+                  class="ml-4"
+                  size="small">
+                  {{ t('不可用') }}
+                </BkTag>
+              </div>
+            </template>
             <span v-if="clusterRoleNodeGroup[groupName].length < 1">--</span>
           </div>
         </ScrollFaker>
@@ -75,6 +91,8 @@
   import ScrollFaker from '@components/scroll-faker/Index.vue';
   import TextHighlight from '@components/text-highlight/Index.vue';
 
+  import MongoNodeTags from '@views/db-manage/mongodb/common/MongoNodeTags.vue';
+
   import { execCopy, messageWarn } from '@utils';
 
   const props = defineProps<Props>();
@@ -86,6 +104,17 @@
   };
 
   type NodeItem = { displayInstance?: string; isPrimary?: boolean; isStandBy?: boolean } & ClusterListNode;
+
+  type GroupRow =
+    | {
+        count: number;
+        segRange: string;
+        type: 'shard';
+      }
+    | {
+        node: NodeItem;
+        type: 'node';
+      };
 
   interface Props {
     clusterRoleNodeGroup: Record<string, NodeItem[]>;
@@ -100,9 +129,38 @@
   const masterTag = clusterTypeWithMasterTagMap[props.clusterType];
   const masterTagLabel = masterTag?.label ?? 'Primary';
 
+  // Mongo 用自身的角色与副本集状态标签，不再展示 Standby / Primary
+  const isMongoCluster = ([ClusterTypes.MONGO_REPLICA_SET, ClusterTypes.MONGO_SHARED_CLUSTER] as string[]).includes(
+    props.clusterType,
+  );
+
   const isMasterNode = (node: NodeItem) => Boolean(masterTag ? _.get(node, masterTag.field) : node.isPrimary);
 
   const scrollContentRef = useTemplateRef<InstanceType<typeof ScrollFaker>[]>('scrollContent');
+
+  /** 按分片名聚合：先插分组标题，再列节点（无 seg_range 时保持扁平列表） */
+  const getGroupRows = (nodeList: NodeItem[]): GroupRow[] => {
+    const rows: GroupRow[] = [];
+    for (const [segRange, shardNodes] of Object.entries(_.groupBy(nodeList, (node) => node.seg_range || ''))) {
+      if (segRange) {
+        rows.push({ count: shardNodes.length, segRange, type: 'shard' });
+      }
+      rows.push(...shardNodes.map((node) => ({ node, type: 'node' as const })));
+    }
+    return rows;
+  };
+
+  const roleGroupRowsMap = computed(() =>
+    Object.fromEntries(
+      Object.entries(props.clusterRoleNodeGroup).map(([groupName, nodeList]) => [
+        groupName,
+        {
+          hasShardGroup: nodeList.some((item) => Boolean(item.seg_range)),
+          rows: getGroupRows(nodeList),
+        },
+      ]),
+    ),
+  );
 
   const handleCopyHost = (nodeList: ClusterListNode[]) => {
     const ipList = _.uniq(nodeList.map((item) => item.ip));
@@ -182,6 +240,22 @@
 
         .cell-copy-btn {
           visibility: hidden;
+        }
+
+        .shard-group-title {
+          margin-top: 6px;
+          margin-bottom: 2px;
+          font-weight: 500;
+          color: #63656e;
+        }
+
+        .node-row {
+          display: flex;
+          align-items: center;
+
+          &.is-shard-child {
+            padding-left: 8px;
+          }
         }
       }
     }

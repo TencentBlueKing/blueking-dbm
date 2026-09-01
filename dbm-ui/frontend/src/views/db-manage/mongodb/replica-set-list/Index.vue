@@ -179,7 +179,11 @@
           :is-filter="isSearching"
           :label="t('节点')"
           :selected-list="selectedList"
-          @go-detail="handleToDetails" />
+          @go-detail="handleToDetails">
+          <template #nodeTag="{ data }">
+            <MongoNodeTags :data="data" />
+          </template>
+        </RoleColumn>
       </template>
     </ClusterTable>
     <ClusterAuthorize
@@ -230,6 +234,7 @@
   import useClusterTableSelect from '@views/db-manage/hooks/useClusterTableSelect';
   import useGoClusterDetail from '@views/db-manage/hooks/useGoClusterDetail';
   import AccessEntry from '@views/db-manage/mongodb/common/cluster-operations/AccessEntry.vue';
+  import MongoNodeTags from '@views/db-manage/mongodb/common/MongoNodeTags.vue';
   import ReplicaSetDetail from '@views/db-manage/mongodb/common/replica-set-detail/Index.vue';
 
   const { t } = useI18n();
@@ -264,9 +269,6 @@
   const accessEntryInfo = ref<MongodbModel | undefined>();
 
   const getTableInstance = () => tableRef.value;
-
-  const tableDataList = computed(() => tableRef.value?.getData<MongodbModel>() || []);
-  const hasData = computed(() => tableDataList.value.length > 0);
 
   const { settings: tableSetting, updateTableSettings } = useTableSettings(
     UserPersonalSettings.MONGODB_REPLICA_SET_SETTINGS,

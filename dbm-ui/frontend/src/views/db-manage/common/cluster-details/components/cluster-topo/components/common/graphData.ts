@@ -19,6 +19,17 @@ import { ClusterTypes, DBTypes } from '@common/const';
 
 export type NodeConfig = Partial<typeof defaultNodeConfig>;
 
+/** 拓扑图节点文案：ip:port + 可展示的 Mongo instance_state（隐藏 NOT_INITIALIZED/SECONDARY） */
+const HIDDEN_INSTANCE_STATES = new Set(['NOT_INITIALIZED', 'SECONDARY']);
+
+const formatTopoNodeName = (node: ResourceTopo['nodes'][number]) => {
+  const state = node.instance_state;
+  if (!state || HIDDEN_INSTANCE_STATES.has(state)) {
+    return node.node_id;
+  }
+  return `${node.node_id} ${state}`;
+};
+
 // 节点连线结构
 export interface GraphLine {
   id: string;
@@ -82,6 +93,8 @@ export const nodeTypes = {
   MONGODB_M1: 'mongodb::m1',
   MONGODB_M2: 'mongodb::m2',
   MONGODB_MONGOS: 'mongos',
+  /** 分片集群拓扑：合并后的「共 N 分片」组（与后端 MONGODB_SHARDS_GROUP_ID 对齐） */
+  MONGODB_SHARDS: 'mongodb_shards',
   ORACLE_PRIMARY: 'oracle::primary',
   ORACLE_STANDBY: 'oracle::standby',
   PD: 'pd',
@@ -114,6 +127,8 @@ const defaultNodeConfig = {
   groupTitle: 44,
   itemHeight: 28,
   minHeight: 54,
+  /** Mongo「共 N 分片」行文案较长：shard / ip:port,... */
+  mongoShardsWidth: 560,
   offsetX: 140,
   offsetY: 62,
   startX: 100,
@@ -263,6 +278,7 @@ export class GraphData {
       nodeTypes.HDFS_MASTER_HOURNALNODE,
       nodeTypes.HDFS_MASTER_ZOOKEEPER,
     ];
+    // 历史多「分片xxx」组需要横排；合并后的 mongodb_shards 单组不含「分片」，天然不在此列
     const targetNodes = nodes.filter((node) => targetNodeIds.includes(node.id) || node.id.includes('分片'));
 
     const [referenceNode] = targetNodes;
@@ -591,7 +607,7 @@ export class GraphData {
         children: [],
         data: item,
         id: item.node_id,
-        name: item.node_id,
+        name: formatTopoNodeName(item),
         style: {
           height: 44,
           width: 192,
@@ -647,6 +663,8 @@ export class GraphData {
     for (const group of groups) {
       const { children_id: childrenId, group_name: groupName, node_id: nodeId } = group;
       if (!rootIds.includes(nodeId)) {
+        const groupWidth =
+          nodeId === nodeTypes.MONGODB_SHARDS ? this.nodeConfig.mongoShardsWidth : this.nodeConfig.width;
         // 子节点列表
         const children = childrenId
           .map((id) => {
@@ -660,10 +678,10 @@ export class GraphData {
               children: [],
               data: node,
               id: node.node_id,
-              name: node.node_id,
+              name: formatTopoNodeName(node),
               style: {
                 height: this.nodeConfig.itemHeight,
-                width: this.nodeConfig.width,
+                width: groupWidth,
                 x: 0,
                 y: 0,
               },
@@ -680,7 +698,7 @@ export class GraphData {
           name: groupName || nodeId,
           style: {
             height: this.getNodeHeight(children),
-            width: this.nodeConfig.width,
+            width: groupWidth,
             x: 0,
             y: 0,
           },
@@ -741,7 +759,7 @@ export class GraphData {
               children: [],
               data: node,
               id: node.node_id,
-              name: node.node_id,
+              name: formatTopoNodeName(node),
               style: {
                 height: this.nodeConfig.itemHeight,
                 width: this.nodeConfig.width,

@@ -36,6 +36,7 @@ export interface ResourceTopo {
   }[];
   node_id: string;
   nodes: {
+    instance_state?: string;
     node_id: string;
     node_type: string;
     status?: string;
