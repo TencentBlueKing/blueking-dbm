@@ -20,11 +20,7 @@ from backend.components import KubernetesApi
 from backend.exceptions import ApiResultError
 from backend.flow.plugins.components.collections.common.base_service import BaseService
 from backend.flow.utils.k8s_db.consts import SCHEDULE_INTERVAL_SECONDS, SCHEDULE_MAX_RETRIES
-from backend.flow.utils.k8s_db.vm.consts import (
-    COMPONENT_VMINSERT,
-    VMINSERT_PORT,
-    VMINSERT_SERVICE_NAME,
-)
+from backend.flow.utils.k8s_db.vm.consts import COMPONENT_VMINSERT, VMINSERT_PORT, VMINSERT_SERVICE_NAME
 
 logger = logging.getLogger("flow")
 
