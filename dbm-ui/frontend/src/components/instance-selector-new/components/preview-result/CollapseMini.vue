@@ -58,8 +58,6 @@
 </script>
 
 <style lang="less" scoped>
-  @import '@styles/mixins.less';
-
   .collapse-mini {
     margin-top: 16px;
 
@@ -68,10 +66,11 @@
     }
 
     .collapse-mini-header {
+      display: flex;
+      align-items: center;
       height: 24px;
       padding-bottom: 4px;
       cursor: pointer;
-      .flex-center();
     }
 
     .collapse-mini-icon {

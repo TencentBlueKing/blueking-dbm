@@ -85,16 +85,15 @@
 </script>
 
 <style lang="less" scoped>
-  @import '@styles/mixins.less';
-
   .result-item {
+    display: flex;
+    align-items: center;
     padding: 0 12px;
     margin-bottom: 2px;
     line-height: 32px;
     background-color: @bg-white;
     border-radius: 2px;
     justify-content: space-between;
-    .flex-center();
 
     .result-remove {
       display: none;
