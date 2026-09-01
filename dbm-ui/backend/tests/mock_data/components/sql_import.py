@@ -31,6 +31,21 @@ class SQLSimulationApiMock:
         return sql_check_info
 
     @classmethod
+    def sqlserver_grammar_check(cls, *agrs, **kwargs):
+        files = kwargs["params"].get("files", None)
+        return {
+            "all_pass": True,
+            "results": [
+                {
+                    "file_name": sql_file,
+                    "status": "pass",
+                    "encoding": "utf-8-bom",
+                }
+                for sql_file in files
+            ],
+        }
+
+    @classmethod
     def parse_sql_tables(cls, *args, **kwargs):
         return [
             {
