@@ -298,8 +298,6 @@
   });
 </script>
 <style lang="less">
-  @import '@styles/mixins';
-
   .mission-detail-page {
     position: relative;
     display: flex;

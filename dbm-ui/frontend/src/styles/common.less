@@ -14,7 +14,6 @@
 @import '@lib/bk-icon/style.css';
 @import './reset.less';
 @import './base.less';
-@import './mixins.less';
 @import './toolbox.less';
 @import './td-patch.less';
 @import './element-plus-patch.less';
@@ -134,12 +133,12 @@
 
 /** 悬浮固定底部 */
 .absolute-footer {
-  .flex-center();
-
   position: absolute;
   bottom: 0;
   left: 0;
   z-index: 1002;
+  display: flex;
+  align-items: center;
   width: 100%;
   height: 52px;
   padding: 0 24px;
@@ -154,12 +153,12 @@
 
 /** 面包屑下 steps 样式 */
 .top-steps {
-  .flex-center();
-
   position: absolute;
   top: 52px;
   left: 0;
   z-index: 2;
+  display: flex;
+  align-items: center;
   width: 100%;
   height: 52px;
   background-color: @bg-white;

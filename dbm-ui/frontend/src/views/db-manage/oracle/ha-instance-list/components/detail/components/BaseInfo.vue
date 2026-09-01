@@ -204,8 +204,6 @@
 </script>
 
 <style lang="less" scoped>
-  @import '@styles/mixins.less';
-
   .base-info-list {
     display: flex;
     font-size: @font-size-mini;
@@ -216,8 +214,8 @@
     }
 
     .base-info-item {
-      .flex-center();
-
+      display: flex;
+      align-items: center;
       line-height: 32px;
     }
 
@@ -231,8 +229,8 @@
     }
 
     .base-info-value-container {
-      .flex-center();
-
+      display: flex;
+      align-items: center;
       overflow: hidden;
       color: @title-color;
       flex: 1;

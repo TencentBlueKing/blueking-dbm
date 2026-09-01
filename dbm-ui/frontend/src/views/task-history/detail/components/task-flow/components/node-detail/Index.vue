@@ -388,8 +388,6 @@
 </script>
 
 <style lang="less" scoped>
-  @import '@styles/mixins.less';
-
   .tips-content {
     font-weight: normal;
     line-height: normal;
@@ -406,9 +404,10 @@
 
   .node-log-main {
     .log-header {
+      display: flex;
+      align-items: center;
       width: 100%;
       padding-right: 16px;
-      .flex-center();
 
       .ai-blueking-btn {
         margin-left: 8px;
@@ -420,10 +419,11 @@
       }
 
       .log-header-left {
+        display: flex;
+        align-items: center;
         flex: 1;
         width: 0;
         padding-right: 8px;
-        .flex-center();
 
         .main-title {
           font-size: 16px;
@@ -445,11 +445,12 @@
       }
 
       .log-header-info {
+        display: flex;
+        align-items: center;
         padding-left: 4px;
         font-size: @font-size-normal;
         font-weight: normal;
         flex-shrink: 0;
-        .flex-center();
 
         .retry-display {
           display: flex;
