@@ -154,24 +154,24 @@
 </script>
 
 <style lang="less" scoped>
-  @import '@styles/mixins.less';
-
   .db-collapse-table {
     font-weight: normal;
     color: @default-color;
 
     .db-collapse-table-header {
+      display: flex;
+      align-items: center;
       height: 42px;
       padding: 0 16px;
       font-size: @font-size-mini;
       cursor: pointer;
       background-color: @bg-dark-gray;
       justify-content: space-between;
-      .flex-center();
     }
 
     .db-collapse-table-left {
-      .flex-center();
+      display: flex;
+      align-items: center;
     }
 
     .db-collapse-table-icon {
@@ -180,8 +180,8 @@
     }
 
     .db-collapse-table-title {
-      .flex-center();
-
+      display: flex;
+      align-items: center;
       padding-left: 4px;
     }
 
