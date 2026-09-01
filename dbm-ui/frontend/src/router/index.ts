@@ -44,7 +44,7 @@ import getTodoRemindRoutes from '@views/todo-remind/routes';
 import getVersionFilesRoutes from '@views/version-files/routes';
 import getWhitelistRoutes from '@views/whitelist/routes';
 
-import { checkDbConsole } from '@utils';
+import { checkDbConsole, siteBasePath } from '@utils';
 
 let appRouter: Router;
 
@@ -76,7 +76,8 @@ export default () => {
   // 2,本地缓存中包含业务id
   // 3,业务列表中的第一个业务
   const { bizs: bizList } = useGlobalBizs();
-  const pathBiz = window.location.pathname.match(/^\/(\d+)\/?/);
+  // 路由 path 不含站点根路径，解析业务 id 前需先剥掉
+  const pathBiz = window.location.pathname.slice(siteBasePath.length).match(/^\/(\d+)\/?/);
   let currentBiz = '';
   if (pathBiz) {
     [, currentBiz] = pathBiz;
@@ -161,11 +162,8 @@ export default () => {
     renderPageWithComponent(routes[1]!, BizPermission);
   }
 
-  // BK_SITE_PATH 由后端模板注入，为 / 或 /dbm/ 形式的站点根路径，未注入时（本地开发）回退为 /
-  const routerBase = window.BK_SITE_PATH && !window.BK_SITE_PATH.includes('{{') ? window.BK_SITE_PATH : '/';
-
   appRouter = createRouter({
-    history: createWebHistory(routerBase),
+    history: createWebHistory(siteBasePath || '/'),
     routes,
   });
   connectToMain(appRouter);

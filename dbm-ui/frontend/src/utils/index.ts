@@ -43,6 +43,7 @@ export * from './message';
 export * from './permissionDialog';
 export * from './random';
 export * from './recentDays';
+export * from './siteBasePath';
 export * from './time';
 export * from './transformDataToQuery';
 export * from './url';
