@@ -112,3 +112,6 @@ data:
   STATS_DB_PASSWORD: "{{ $dbmStatsDB.password }}"
   # 反向上报
   REVERSE_REPORT_KAFKA_OPTIONS: "{{ .Values.dbm.envs.reverseReportKafkaOptions }}"
+  # AIDEV 配置
+  ENABLE_DBM_AI: "{{ .Values.dbm.envs.dbmEnableAI | default false }}"
+  BKAI_AGENT_METRICS_PUSH_MODE: "{{ .Values.dbm.envs.bkaiAgentMetricsPushMode | default "direct" }}"

@@ -150,6 +150,8 @@ dbm:
     dbRemoteServiceApigwDomain: "http://bk-dbm-db-remote-service"
     slowQueryParseApigwDomain: ""
     reverseReportKafkaOptions: ""
+    dbmEnableAI: false
+    bkaiAgentMetricsPushMode: "direct"
 
   ingress:
     enabled: true

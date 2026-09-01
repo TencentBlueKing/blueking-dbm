@@ -2,10 +2,10 @@ import json
 import time
 from unittest.mock import MagicMock, patch
 
-from bk_monitor_report import MonitorReporter
 from prometheus_client import CollectorRegistry
 
 from backend.bk_dataview.prometheus.dispatch_metrics import KEY_HEARTBEAT, KEY_LATEST, DispatchMetricsCollector
+from backend.bk_dataview.prometheus.reporter import TimeoutMonitorReporter
 
 
 class InMemoryRedis:
@@ -146,7 +146,7 @@ class TestDispatchMetricsCollector:
     def test_monitor_reporter_preserves_total_bucket_count_sum_and_le(self):
         registry = CollectorRegistry()
         registry.register(DispatchMetricsCollector(client=InMemoryRedis({KEY_LATEST: json.dumps(_payload())})))
-        reporter = MonitorReporter(
+        reporter = TimeoutMonitorReporter(
             data_id=1,
             access_token="test",
             target="dispatch-poc",

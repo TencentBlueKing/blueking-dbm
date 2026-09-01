@@ -1,5 +1,11 @@
 {{- if .Values.saas.celeryWorker.enabled | default .Values.enabled -}}
 {{- $fullName := ( include "dbm.celery-worker.fullname" .) -}}
+{{- /*
+dbmEnableAI 为 true 时，会额外消费 aidev 插件的调度队列 bkai_agent_task。
+追加队列时必须把默认队列 celery 显式写回，否则周期任务将无人消费
+*/ -}}
+{{- $aiEnabled := eq (.Values.envs.dbmEnableAI | default false | toString | lower) "true" -}}
+{{- $queueArg := ternary "-Q celery,bkai_agent_task " "" $aiEnabled -}}
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -42,7 +48,7 @@ spec:
             - /bin/bash
             - -c
           args:
-            - celery -A {{ .Values.envs.djangoSettingsModule }} worker -P threads -c 100 --max-tasks-per-child 50 -O fair --time-limit 1800 -l info
+            - celery -A {{ .Values.envs.djangoSettingsModule }} worker {{ $queueArg }}-P threads -c 100 --max-tasks-per-child 50 -O fair --time-limit 1800 --prefetch-multiplier 1 -l info
           {{- include "dbm.container_env" . | nindent 10 }}
           resources:
             {{- toYaml .Values.saas.celeryWorker.resources | nindent 12 }}
