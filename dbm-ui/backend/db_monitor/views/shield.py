@@ -63,6 +63,8 @@ class AlarmShieldView(SystemViewSet):
         page = int(int(request.query_params.get("offset", 0)) / page_size) + 1
         if params.get("category"):
             params["categories"] = [params["category"]]
+        if params.get("time_range__gte") and params.get("time_range__lte"):
+            params["time_range"] = f"{params['time_range__gte']}--{params['time_range__lte']}"
         conditions = params.get("conditions", [])
         conditions.append({"key": "description", "value": format_shield_description(params["bk_biz_id"])})
         # TODO 等监控支持搜索条件后放开
