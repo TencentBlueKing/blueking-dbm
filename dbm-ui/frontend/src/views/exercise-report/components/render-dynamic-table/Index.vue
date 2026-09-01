@@ -2,7 +2,7 @@
   <BkLoading
     class="render-dynamic-table"
     :loading="loading">
-    <CollapseCard>
+    <DbCard mode="collapse">
       <template #title>
         <div class="title-operate-main">
           <div class="title-main">
@@ -88,7 +88,7 @@
           @change="handlePageValueChange"
           @limit-change="handlePageLimitChange" />
       </div>
-    </CollapseCard>
+    </DbCard>
   </BkLoading>
   <Log
     v-model:is-show="isShowLog"
@@ -102,7 +102,6 @@
 
   import { useGlobalBizs } from '@stores';
 
-  import CollapseCard from '@components/collapse-card/Index.vue';
   import DbStatus from '@components/db-status/index.vue';
 
   import { utcDisplayTime } from '@utils';
@@ -250,6 +249,26 @@
   .render-dynamic-table {
     & ~ .render-dynamic-table {
       margin-top: 16px;
+    }
+
+    .db-card {
+      padding: 16px 24px;
+      border-radius: 2px;
+
+      .db-card-header {
+        font-size: 14px;
+        line-height: 22px;
+        color: #313238;
+      }
+
+      // 标题走自定义插槽，占满整行，空的 desc 会抢占剩余空间
+      .db-card-desc {
+        display: none;
+      }
+
+      .db-card-content {
+        padding-top: 16px;
+      }
     }
 
     .title-operate-main {
