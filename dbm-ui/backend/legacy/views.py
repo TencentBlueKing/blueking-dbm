@@ -18,7 +18,12 @@ from backend.bk_web.swagger import common_swagger_auto_schema
 from backend.components import DnsApi
 from backend.iam_app.dataclass.actions import ActionEnum
 from backend.iam_app.handlers.drf_perm.base import ResourceActionPermission
-from backend.legacy.serializers import CreateDNSSerializer, DeleteDNSSerializer
+from backend.legacy.serializers import (
+    CreateDNSSerializer,
+    DeleteDNSSerializer,
+    QueryDNSSerializer,
+    UpdateDNSSerializer,
+)
 
 SWAGGER_TAG = ["legacy"]
 
@@ -38,3 +43,15 @@ class DnsViewSet(viewsets.SystemViewSet):
     def delete_domain(self, request, *args, **kwargs):
         data = self.params_validate(self.get_serializer_class())
         return Response(DnsApi.delete_domain(data))
+
+    @common_swagger_auto_schema(operation_summary=_("查询 DNS"), tags=SWAGGER_TAG, query_serializer=QueryDNSSerializer())
+    @action(methods=["GET"], detail=False, serializer_class=QueryDNSSerializer)
+    def get_domain(self, request, *args, **kwargs):
+        data = self.params_validate(self.get_serializer_class())
+        return Response(DnsApi.get_domain(data))
+
+    @common_swagger_auto_schema(operation_summary=_("修改 DNS"), tags=SWAGGER_TAG, request_body=UpdateDNSSerializer())
+    @action(methods=["POST"], detail=False, serializer_class=UpdateDNSSerializer)
+    def update_domain(self, request, *args, **kwargs):
+        data = self.params_validate(self.get_serializer_class())
+        return Response(DnsApi.update_domain(data))

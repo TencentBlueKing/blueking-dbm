@@ -20,8 +20,7 @@ import backend.flow.utils.surrealdb.surrealdb_context_dataclass as flow_context
 from backend.components import KubernetesApi
 from backend.exceptions import ApiRequestError, ApiResultError
 from backend.flow.plugins.components.collections.common.base_service import BaseService
-from backend.flow.utils.surrealdb.consts import NAMESPACE_PREFIX, HA_TOPO_NAME, STORAGE_ADDON_TYPE
-
+from backend.flow.utils.surrealdb.consts import HA_TOPO_NAME, NAMESPACE_PREFIX, STORAGE_ADDON_TYPE
 
 logger = logging.getLogger("flow")
 
