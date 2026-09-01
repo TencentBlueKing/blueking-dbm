@@ -17,7 +17,7 @@ from dataclasses import asdict
 from django.utils.translation import gettext as _
 
 from backend.configuration.constants import MYSQL_DATA_RESTORE_TIME, MYSQL_USUAL_JOB_TIME, DBType
-from backend.db_meta.enums import ClusterType, InstanceInnerRole, InstanceStatus
+from backend.db_meta.enums import ClusterType, InstanceInnerRole
 from backend.db_meta.models import Cluster
 from backend.db_report.mysql_backup.handers import MySQLBackupHandler
 from backend.flow.consts import (
@@ -229,22 +229,32 @@ def mysql_restore_data_sub_flow(
         cluster["repl_ip"] = cluster["new_slave_ip"]
         cluster["repl_port"] = cluster["new_slave_port"]
         exec_act_kwargs.cluster = copy.deepcopy(cluster)
-        # exec_act_kwargs.exec_ip = cluster["master_ip"]
-        # 这里把 standby 主备都找出来, 兼容添加只读 slave
-        exec_act_kwargs.exec_ip = list(
-            set(
-                cluster_model.storageinstance_set.filter(status=InstanceStatus.RUNNING, is_stand_by=True).values_list(
-                    "machine__ip", flat=True
-                )
-            )
-        )
+        exec_act_kwargs.exec_ip = cluster["master_ip"]
         exec_act_kwargs.job_timeout = MYSQL_USUAL_JOB_TIME
         exec_act_kwargs.get_mysql_payload_func = MysqlActPayload.tendb_grant_remotedb_repl_user.__name__
         sub_pipeline.add_act(
-            act_name=_("新增repl帐户{}".format(exec_act_kwargs.exec_ip)),
+            act_name=_("主节点新增repl帐户{}".format(exec_act_kwargs.exec_ip)),
             act_component_code=ExecuteDBActuatorScriptComponent.code,
             kwargs=asdict(exec_act_kwargs),
         )
+        if cluster.get("add_slave_only", False):
+            is_standby_slave = cluster_model.storageinstance_set.get(
+                is_stand_by=True, instance_inner_role=InstanceInnerRole.SLAVE.value
+            )
+            cluster_for_standby = {
+                "target_ip": is_standby_slave.machine.ip,
+                "target_port": is_standby_slave.port,
+                "repl_ip": cluster["new_slave_ip"],
+                "repl_port": cluster["new_slave_port"],
+            }
+            exec_act_kwargs.exec_ip = is_standby_slave.machine.ip
+            exec_act_kwargs.cluster = copy.deepcopy(cluster_for_standby)
+            sub_pipeline.add_act(
+                act_name=_("is_standby从节点新增repl帐户{}".format(exec_act_kwargs.exec_ip)),
+                act_component_code=ExecuteDBActuatorScriptComponent.code,
+                kwargs=asdict(exec_act_kwargs),
+            )
+
         # 配置新从库指向旧主库的主从关系参数 使用备份文件的方式建立主从关系
         cluster["change_master_type"] = MysqlChangeMasterType.BACKUPFILE.value
         exec_act_kwargs.cluster = copy.deepcopy(cluster)
