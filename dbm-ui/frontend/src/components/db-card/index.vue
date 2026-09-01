@@ -26,7 +26,9 @@
       <i
         v-if="!isNormalMode"
         class="db-card-icon db-icon-down-shape" />
-      <span class="db-card-title">{{ title }}</span>
+      <slot name="title">
+        <span class="db-card-title">{{ title }}</span>
+      </slot>
       <span class="db-card-desc">
         <slot name="desc">{{ desc }}</slot>
       </span>
@@ -35,16 +37,18 @@
       </div>
     </div>
 
-    <Transition mode="in-out">
+    <BKCollapseTransition>
       <div
         v-show="localCollpase"
         class="db-card-content">
         <slot />
       </div>
-    </Transition>
+    </BKCollapseTransition>
   </div>
 </template>
 <script setup lang="ts">
+  import BKCollapseTransition from 'bkui-vue/lib/collapse-transition';
+
   interface Props {
     desc?: string;
     mode?: 'normal' | 'collapse' | string;
