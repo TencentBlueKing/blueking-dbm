@@ -196,8 +196,6 @@
 </script>
 
 <style lang="less" scoped>
-  @import '@styles/mixins.less';
-
   .host-preview-dialog {
     width: 80%;
     max-width: 1600px;
@@ -208,7 +206,8 @@
     padding-bottom: 24px;
 
     .host-preview-content-operations {
-      .flex-center();
+      display: flex;
+      align-items: center;
     }
   }
 </style>

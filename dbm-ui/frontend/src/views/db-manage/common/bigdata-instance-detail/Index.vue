@@ -466,8 +466,6 @@
   }
 </style>
 <style lang="less" scoped>
-  @import '@styles/mixins.less';
-
   .bigdata-instance-detail {
     padding: 20px 24px;
 
@@ -481,8 +479,8 @@
       }
 
       .base-info-item {
-        .flex-center();
-
+        display: flex;
+        align-items: center;
         line-height: 32px;
       }
 
@@ -496,8 +494,8 @@
       }
 
       .base-info-value-container {
-        .flex-center();
-
+        display: flex;
+        align-items: center;
         overflow: hidden;
         color: @title-color;
         flex: 1;
