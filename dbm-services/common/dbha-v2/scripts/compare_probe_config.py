@@ -47,6 +47,22 @@ DIFF_VALUE = "value"
 LABELS_OFFLINE = ("left", "right")
 LABELS_ADMIN = ("expected", "local")
 
+# Error blocks print a path plus Error / Hint / Usage / Example; "Example:" is the longest label.
+ERROR_FIELD_WIDTH = 9
+USAGE_ADMIN_ARGS = "-l etc/probe.yaml --admin-endpoints <host:port[;...]> [options]"
+USAGE_OFFLINE_ARGS = "-l etc/probe.yaml -r <other.yaml> [options]"
+EXAMPLE_ADMIN_ARGS = "-l etc/probe.yaml --admin-endpoints 127.0.0.1:19001"
+EXAMPLE_OFFLINE_ARGS = "-l etc/probe.yaml -r /tmp/probe-from-admin.yaml"
+HINT_SEE_HELP = "run with -h to see every option"
+OPTION_HINTS = {
+    "-l/--left": "pass the local probe YAML, e.g. -l etc/probe.yaml",
+    "-r/--right": "-r takes a second YAML file for offline compare",
+    "--admin-endpoints": "--admin-endpoints takes admin host:port, join several with ;",
+    "--cloud-id": "--cloud-id takes bk_cloud_id as a non-negative integer (default: 0)",
+    "--timeout": "--timeout takes a duration such as 30s, 1m, 500ms or plain seconds",
+    "-b/--bin": "-b takes the probe binary path (default: <install-root>/bin/dbha-probe)",
+}
+
 REPORT_WIDTH = 64
 REPORT_SEPARATOR = "-" * REPORT_WIDTH
 ANSI_RESET = "\033[0m"
@@ -874,9 +890,9 @@ def parse_cloud_id(text):
     try:
         value = int(text)
     except (TypeError, ValueError):
-        raise argparse.ArgumentTypeError("cloud-id must be an integer >= 0")
+        raise argparse.ArgumentTypeError("must be an integer >= 0")
     if value < 0:
-        raise argparse.ArgumentTypeError("cloud-id must be an integer >= 0")
+        raise argparse.ArgumentTypeError("must be an integer >= 0")
     return value
 
 
@@ -911,13 +927,28 @@ def parse_timeout_sec(text):
     return total
 
 
-def mode_error(args):
+def args_error(args):
+    """Validate flag combinations. Returns (message, hint), both None when the flags are usable."""
+    has_left = _nonempty(args.left)
     has_right = _nonempty(args.right)
     has_admin = _nonempty(args.admin_endpoints)
+    if not has_left and not has_right and not has_admin:
+        return (
+            "missing -l/--left, and no compare mode selected",
+            "-l is the local file to check, then pick exactly one compare mode",
+        )
+    if not has_left:
+        return "missing -l/--left (local probe YAML)", OPTION_HINTS["-l/--left"]
     if has_right and has_admin:
-        return "use either -r/--right or --admin-endpoints, not both"
-    if (not has_right) and (not has_admin):
-        return "need either -r/--right or --admin-endpoints"
+        return (
+            "-r/--right and --admin-endpoints are mutually exclusive",
+            "keep --admin-endpoints to compare against admin, or -r to compare two files",
+        )
+    if not has_right and not has_admin:
+        return (
+            "no compare mode selected",
+            "add --admin-endpoints <host:port> for admin compare, or -r <file> for offline compare",
+        )
     extra = (
         args.cloud_id is not None
         or _nonempty(args.local_ip)
@@ -926,10 +957,10 @@ def mode_error(args):
     )
     if has_right and extra:
         return (
-            "-r/--right cannot be used with --cloud-id, --local-ip, "
-            "--local-ip-interface, or --timeout"
+            "-r/--right cannot be used with --cloud-id, --local-ip, --local-ip-interface or --timeout",
+            "those options only apply to --admin-endpoints mode, drop them for offline compare",
         )
-    return None
+    return None, None
 
 
 def unlink_quiet(path):
@@ -1368,23 +1399,26 @@ def render_check(title, ok_label, fail_label, result):
 
 class ReportArgumentParser(argparse.ArgumentParser):
     def error(self, message):
-        self.print_usage(sys.stderr)
-        emit_early_error(message)
+        text, hint = friendly_arg_error(message)
+        emit_early_error(text, hint=hint, usage=True)
         self.exit(EXIT_ERROR)
 
 
 def build_parser():
     parser = ReportArgumentParser(
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        usage="%(prog)s " + USAGE_ADMIN_ARGS + "\n       %(prog)s " + USAGE_OFFLINE_ARGS,
         description=(
-            "Compare a local probe YAML with another file or with gen-config from admin, "
+            "Compare a local probe YAML with another file or with gen-config from admin,\n"
             "then check probe runtime health."
-        )
+        ),
+        epilog="examples:\n" + "\n".join("  " + line for line in example_lines()),
     )
     parser.add_argument(
         "-l",
         "--left",
-        required=True,
-        help="local YAML file",
+        default=None,
+        help="local YAML file (required)",
     )
     parser.add_argument(
         "-r",
@@ -1472,11 +1506,87 @@ def emit_final_result(exit_code, diff_count, health=None, guard=None, cron=None,
     )
 
 
-def emit_early_error(message, local_path=None):
+def script_name():
+    name = os.path.basename(sys.argv[0] or "")
+    return name or "compare_probe_config.py"
+
+
+def usage_lines():
+    name = script_name()
+    return ["%s %s" % (name, USAGE_ADMIN_ARGS), "%s %s" % (name, USAGE_OFFLINE_ARGS)]
+
+
+def example_lines():
+    name = script_name()
+    return ["./%s %s" % (name, EXAMPLE_ADMIN_ARGS), "./%s %s" % (name, EXAMPLE_OFFLINE_ARGS)]
+
+
+def render_field_block(label, values, width, style=None):
+    """Render one field whose value spans several lines, keeping continuations aligned."""
+    lines = []
+    for index, text in enumerate(values):
+        if index == 0:
+            lines.append(render_field(label, text, width, style))
+        else:
+            lines.append("    %s %s" % (" " * width, text))
+    return lines
+
+
+_REQUIRED_ARGS_RE = re.compile(r"^the following arguments are required:\s*(.+)$")
+_UNRECOGNIZED_ARGS_RE = re.compile(r"^unrecognized arguments:\s*(.+)$")
+_ARGUMENT_RE = re.compile(r"^argument ([^:]+):\s*(.+)$")
+_EXPECTED_ARG_RE = re.compile(r"^argument ([^:]+): expected one argument$")
+
+
+def friendly_arg_error(message):
+    """Turn argparse wording into an actionable message. Returns (message, hint)."""
+    text = to_text(message).strip()
+    match = _EXPECTED_ARG_RE.match(text)
+    if match:
+        flags = match.group(1)
+        return "%s needs a value" % flags, OPTION_HINTS.get(flags, HINT_SEE_HELP)
+    match = _REQUIRED_ARGS_RE.match(text)
+    if match:
+        flags = match.group(1)
+        return "missing required option %s" % flags, OPTION_HINTS.get(flags, HINT_SEE_HELP)
+    match = _UNRECOGNIZED_ARGS_RE.match(text)
+    if match:
+        return "unknown option: %s" % match.group(1), HINT_SEE_HELP
+    match = _ARGUMENT_RE.match(text)
+    if match:
+        flags = match.group(1)
+        return "%s: %s" % (flags, match.group(2)), OPTION_HINTS.get(flags, HINT_SEE_HELP)
+    return text, None
+
+
+def load_error_hint(message, flag="-l"):
+    """Suggest a fix for a YAML read or parse failure on the file given to flag."""
+    text = to_text(message)
+    if "file not found" in text or "is a directory" in text:
+        if flag == "-l":
+            return "run this from the probe install root, where the config is usually etc/probe.yaml"
+        return "%s must point to an existing YAML file" % flag
+    if "yaml parse failed" in text:
+        return "fix that line: indent with spaces only and keep a space after each 'key:'"
+    if "empty yaml" in text or "multiple yaml documents" in text:
+        return "the file must hold exactly one non-empty YAML mapping"
+    if "decode failed" in text:
+        return "the file must be UTF-8 encoded"
+    return None
+
+
+def emit_early_error(message, path=None, hint=None, usage=False, path_label="Local"):
+    width = ERROR_FIELD_WIDTH
     emit(section_header("PROBE CONFIG CHECK", "ERROR"), sys.stderr)
-    if local_path:
-        emit(render_field("Local", local_path, 12, ANSI_CYAN), sys.stderr)
-    emit(render_field("Error", message, 12, ANSI_RED), sys.stderr)
+    if path:
+        emit(render_field(path_label, path, width, ANSI_CYAN), sys.stderr)
+    emit(render_field("Error", message, width, ANSI_RED), sys.stderr)
+    if hint:
+        emit(render_field("Hint", hint, width, ANSI_YELLOW), sys.stderr)
+    if usage:
+        for line in render_field_block("Usage", usage_lines(), width, ANSI_CYAN):
+            emit(line, sys.stderr)
+        emit(render_field("Example", example_lines()[0], width, ANSI_CYAN), sys.stderr)
     emit("", sys.stderr)
     emit(section_header("RESULT", "ERROR"), sys.stderr)
     emit("Config: error | Runtime: not run | Exit code: 2", sys.stderr)
@@ -1488,15 +1598,16 @@ def main(argv=None):
     parser = build_parser()
     args = parser.parse_args(argv)
     configure_color(args.no_color)
-    err = mode_error(args)
+    err, hint = args_error(args)
     if err:
-        emit_early_error(err, args.left)
+        emit_early_error(err, args.left, hint=hint, usage=True)
         return EXIT_ERROR
 
     try:
         local_cfg = load_mapping(args.left)
     except LoadError as load_err:
-        emit_early_error(to_text(load_err), args.left)
+        message = to_text(load_err)
+        emit_early_error(message, args.left, hint=load_error_hint(message))
         return EXIT_ERROR
 
     left_abs = os.path.abspath(args.left)
@@ -1511,7 +1622,7 @@ def main(argv=None):
         try:
             timeout_sec = parse_timeout_sec(timeout_str)
         except ValueError as timeout_err:
-            emit_early_error(to_text(timeout_err), args.left)
+            emit_early_error(to_text(timeout_err), args.left, hint=OPTION_HINTS["--timeout"])
             return EXIT_ERROR
         expected, gen_err = run_gen_config(bin_abs, install_root, args, timeout_sec)
         if gen_err:
@@ -1524,7 +1635,13 @@ def main(argv=None):
         try:
             right_cfg = load_mapping(args.right)
         except LoadError as load_err:
-            emit_early_error(to_text(load_err), args.left)
+            message = to_text(load_err)
+            emit_early_error(
+                message,
+                args.right,
+                hint=load_error_hint(message, "-r"),
+                path_label="Right",
+            )
             return EXIT_ERROR
         walk("", local_cfg, right_cfg, diffs)
         emit_config_result(diffs, args.left, args.right, LABELS_OFFLINE)
