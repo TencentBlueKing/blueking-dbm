@@ -41,7 +41,11 @@ func ParseV3Mongolog(data []byte) (*MongoLogMsg, []byte, error) {
 		if row.Id == LogTypeSlowlog {
 			attr := row.Attr.(map[string]interface{})
 			// 将不确定的字段转换为string: command
+			// durationMillis 保持原值，兼容 attr.durationMillis 查询
 			for k, v := range attr {
+				if k == "durationMillis" {
+					continue
+				}
 				switch v.(type) {
 				case string, float64, bool, int:
 					continue
@@ -56,6 +60,9 @@ func ParseV3Mongolog(data []byte) (*MongoLogMsg, []byte, error) {
 			attr := row.Attr.(map[string]interface{})
 			// 将不确定的字段转换为string: command
 			for k, v := range attr {
+				if k == "durationMillis" {
+					continue
+				}
 				switch v.(type) {
 				case string, float64, bool, int:
 					continue
@@ -66,12 +73,69 @@ func ParseV3Mongolog(data []byte) (*MongoLogMsg, []byte, error) {
 			}
 			row.Attr = attr
 		}
+		row.copyDurationMillisFromAttr()
 
 	default:
 		log.Warnf("unmarshal Attr failed: unknown type %T", row.Attr)
 	}
 
 	return &row, attrStr, err
+}
+
+func (m *MongoLogMsg) copyDurationMillisFromAttr() {
+	if m == nil || m.Attr == nil {
+		return
+	}
+	switch attr := m.Attr.(type) {
+	case map[string]interface{}:
+		v, ok := attr["durationMillis"]
+		if !ok || v == nil {
+			return
+		}
+		n, ok := parseDurationMillis(v)
+		if ok {
+			m.DurationMillis = n
+		}
+	case *SlowlogAttr:
+		if attr != nil && attr.DurationMillis != 0 {
+			m.DurationMillis = attr.DurationMillis
+		}
+	case SlowlogAttr:
+		if attr.DurationMillis != 0 {
+			m.DurationMillis = attr.DurationMillis
+		}
+	}
+}
+
+func parseDurationMillis(v interface{}) (int64, bool) {
+	switch n := v.(type) {
+	case int:
+		return int64(n), true
+	case int32:
+		return int64(n), true
+	case int64:
+		return n, true
+	case float64:
+		return int64(n), true
+	case json.Number:
+		i, err := n.Int64()
+		if err != nil {
+			return 0, false
+		}
+		return i, true
+	case string:
+		n = strings.TrimSpace(strings.TrimSuffix(n, "ms"))
+		if n == "" {
+			return 0, false
+		}
+		i, err := strconv.ParseInt(n, 10, 64)
+		if err != nil {
+			return 0, false
+		}
+		return i, true
+	default:
+		return 0, false
+	}
 }
 
 // MongoLogMsg is a struct to hold the parsed log message
@@ -82,14 +146,15 @@ type MongoLogMsg struct {
 	T          *struct {
 		DateTime primitive.DateTime `json:"$date"`
 	} `json:"t,omitempty"` // timestamp
-	DateTime primitive.DateTime `json:"dt"`
-	S        string             `json:"s"` // severity
-	C        string             `json:"c"` // component
-	Id       int64              `json:"id"`
-	Ctx      string             `json:"ctx"`
-	Msg      string             `json:"msg"`
-	Attr     interface{}        `json:"attr,omitempty"`
-	Line     struct {
+	DateTime       primitive.DateTime `json:"dt"`
+	S              string             `json:"s"` // severity
+	C              string             `json:"c"` // component
+	Id             int64              `json:"id"`
+	Ctx            string             `json:"ctx"`
+	Msg            string             `json:"msg"`
+	Attr           interface{}        `json:"attr,omitempty"`
+	DurationMillis int64              `json:"durationMillis,omitempty"`
+	Line           struct {
 		Num      int       `json:"num"`
 		OffSet   int64     `json:"offset"`
 		TimeDiff int64     `json:"timeDiff"` // ms Line.Time - dt (ms)
@@ -119,7 +184,7 @@ type SlowlogAttr struct {
 	Protocol        string      `json:"protocol,omitempty"`
 	Locks           string      `json:"locks,omitempty"`
 	Storage         *string     `json:"storage,omitempty"`
-	DurationMillis  int         `json:"durationMillis"`
+	DurationMillis  int64       `json:"durationMillis"`
 }
 
 // Component
@@ -141,7 +206,7 @@ func (attr *SlowlogAttr) SetProp(key string, value string) (bool, error) {
 	switch key {
 	case "ms", "durationMillis":
 		value = strings.TrimSuffix(value, "ms")
-		attr.DurationMillis, err = strconv.Atoi(value)
+		attr.DurationMillis, err = strconv.ParseInt(value, 10, 64)
 	case "numYields":
 		v, err = strconv.Atoi(value)
 		attr.NumYields = &v
