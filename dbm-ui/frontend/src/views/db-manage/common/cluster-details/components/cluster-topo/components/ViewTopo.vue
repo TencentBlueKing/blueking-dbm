@@ -295,8 +295,6 @@
   };
 </script>
 <style lang="less">
-  @import '@styles/mixins.less';
-
   .cluster-details-topo-view {
     height: calc(100% - 92px);
 

@@ -92,15 +92,14 @@
 </script>
 
 <style lang="less">
-  @import '@/styles/mixins.less';
-
   .db-card {
     padding: 24px;
     background: #fff;
     box-shadow: 0 2px 4px 0 rgb(25 25 41 / 5%);
 
     .db-card-header {
-      .flex-center();
+      display: flex;
+      align-items: center;
     }
 
     .db-card-icon {

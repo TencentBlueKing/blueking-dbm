@@ -679,8 +679,6 @@
 </script>
 
 <style lang="less">
-  @import '@styles/mixins.less';
-
   .cluster-selector-dialog {
     font-size: @font-size-mini;
 
@@ -694,12 +692,13 @@
     }
 
     .cluster-selector-tabs {
+      display: flex;
+      align-items: center;
       height: 42px;
       font-size: @font-size-mini;
       line-height: 42px;
       background-color: #fafbfd;
       border-bottom: 1px solid @border-disable;
-      .flex-center();
 
       .tabs-item {
         min-width: 200px;
@@ -736,8 +735,9 @@
       background-color: #f5f6fa;
 
       .result-title {
+        display: flex;
+        align-items: center;
         padding-bottom: 16px;
-        .flex-center();
 
         > span {
           flex: 1;
