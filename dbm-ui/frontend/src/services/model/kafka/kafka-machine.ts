@@ -28,7 +28,6 @@ export default class kafkaMachine {
   bk_svr_device_cls_name: string;
   cluster_type: string;
   create_at: string;
-  enable: boolean;
   host_info: HostInfo;
   instance_role: string;
   ip: string;
@@ -36,6 +35,7 @@ export default class kafkaMachine {
   related_clusters: MachineRelatedCluster[];
   related_instances: MachineRelatedInstance[];
   spec_config: MachineSpecConfig;
+  spec_enable: boolean;
   spec_id: number;
   spec_name: string;
 
@@ -48,7 +48,7 @@ export default class kafkaMachine {
     this.bk_sub_zone = payload.bk_sub_zone;
     this.bk_svr_device_cls_name = payload.bk_svr_device_cls_name;
     this.spec_name = payload.spec_name;
-    this.enable = payload.enable;
+    this.spec_enable = payload.spec_enable;
     this.cluster_type = payload.cluster_type;
     this.create_at = payload.create_at;
     this.host_info = payload.host_info;

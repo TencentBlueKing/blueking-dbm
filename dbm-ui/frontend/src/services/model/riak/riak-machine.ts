@@ -23,7 +23,6 @@ export default class RiakMachine {
   bk_svr_device_cls_name: string;
   cluster_type: string;
   create_at: string;
-  enable: boolean;
   host_info: HostInfo;
   instance_role: string;
   ip: string;
@@ -31,6 +30,7 @@ export default class RiakMachine {
   related_clusters: MachineRelatedCluster[];
   related_instances: MachineRelatedInstance[];
   spec_config: MachineSpecConfig;
+  spec_enable: boolean;
   spec_id: number;
   spec_name: string;
 
@@ -52,7 +52,7 @@ export default class RiakMachine {
     this.related_instances = payload.related_instances;
     this.spec_config = payload.spec_config;
     this.spec_name = payload.spec_name;
-    this.enable = payload.enable;
+    this.spec_enable = payload.spec_enable;
     this.spec_id = payload.spec_id;
   }
 }
