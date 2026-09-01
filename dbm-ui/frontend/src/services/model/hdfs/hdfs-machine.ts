@@ -25,7 +25,6 @@ export default class HdfsMachine {
   bk_svr_device_cls_name: string;
   cluster_type: string;
   create_at: string;
-  enable: boolean;
   host_info: HostInfo;
   instance_role: string;
   ip: string;
@@ -33,6 +32,7 @@ export default class HdfsMachine {
   related_clusters: MachineRelatedCluster[];
   related_instances: MachineRelatedInstance[];
   spec_config: MachineSpecConfig;
+  spec_enable: boolean;
   spec_id: number;
   spec_name: string;
 
@@ -42,7 +42,7 @@ export default class HdfsMachine {
     this.bk_host_id = payload.bk_host_id;
     this.bk_os_name = payload.bk_os_name;
     this.spec_name = payload.spec_name;
-    this.enable = payload.enable;
+    this.spec_enable = payload.spec_enable;
     this.bk_rack_id = payload.bk_rack_id;
     this.bk_sub_zone = payload.bk_sub_zone;
     this.bk_svr_device_cls_name = payload.bk_svr_device_cls_name;
