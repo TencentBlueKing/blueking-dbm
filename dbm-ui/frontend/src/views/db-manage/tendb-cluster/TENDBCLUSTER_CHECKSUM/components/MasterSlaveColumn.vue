@@ -309,9 +309,17 @@
       groupByMaster[master.instance].push(slave);
     });
 
+    const rowIndex = columnRef.value!.getRowIndex();
+
+    // 保留当前行的 DB 名、表名等字段，避免 createTableRow 默认值覆盖已有数据
+    const currentRow = tableData.value[rowIndex];
+
     const dataList = Object.values(masterInfo).map((master) =>
       props.createTableRow({
         cluster: props.cluster,
+        db_patterns: currentRow?.db_patterns,
+        ignore_dbs: currentRow?.ignore_dbs,
+        ignore_tables: currentRow?.ignore_tables,
         master: {
           bk_biz_id: master.bk_biz_id,
           bk_cloud_id: master.bk_cloud_id,
@@ -320,7 +328,7 @@
           ip: master.ip,
           port: master.port,
         },
-        scope: 'partial',
+        scope: currentRow?.scope || 'partial',
         slaves: groupByMaster[master.instance].map((slave) => {
           const info = slaveInfo[slave];
           return {
@@ -332,10 +340,9 @@
             port: info.port,
           };
         }),
+        table_patterns: currentRow?.table_patterns,
       }),
     );
-
-    const rowIndex = columnRef.value!.getRowIndex();
 
     tableData.value.splice(rowIndex, 1, ...dataList);
 

@@ -227,15 +227,22 @@
       });
     });
 
+    const rowIndex = columnRef.value!.getRowIndex();
+
+    // 保留当前行的 DB 名、表名等字段，避免 createTableRow 默认值覆盖已有数据
+    const currentRow = tableData.value[rowIndex];
+
     const list = Object.values(groupByMaster).map((info) => {
       return props.createTableRow({
         cluster: props.cluster,
+        db_patterns: currentRow?.db_patterns,
+        ignore_dbs: currentRow?.ignore_dbs,
+        ignore_tables: currentRow?.ignore_tables,
         master: info.master,
         slaves: info.slaves,
+        table_patterns: currentRow?.table_patterns,
       });
     });
-
-    const rowIndex = columnRef.value!.getRowIndex();
 
     tableData.value.splice(rowIndex, 1, ...list);
 
