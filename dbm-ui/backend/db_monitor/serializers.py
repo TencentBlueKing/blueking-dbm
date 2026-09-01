@@ -28,6 +28,7 @@ from backend.db_monitor.constants import (
     AlertStatusEnum,
     DetectAlgEnum,
     OperatorEnum,
+    PolicyGlobalCode,
     TargetLevel,
 )
 from backend.db_monitor.exceptions import AutofixException
@@ -324,6 +325,16 @@ class MonitorPolicyResetSerializer(serializers.Serializer):
         if not policy:
             raise serializers.ValidationError(_("此策略id非平台策略，不可重置"))
         return attrs
+
+
+class GetPolicyThreshold(serializers.Serializer):
+    db_type = serializers.ChoiceField(help_text=_("数据库类型"), choices=DBType.get_choices())
+    policy_code = serializers.ChoiceField(help_text=_("策略代码"), choices=PolicyGlobalCode.get_choices())
+    bk_biz_id = serializers.IntegerField(help_text=_("业务ID"))
+    cluster_id = serializers.CharField(help_text=_("集群ID"))
+    consumergroup = serializers.CharField(help_text=_("消费组"), required=False)
+    topic = serializers.CharField(help_text=_("topic"), required=False)
+    alert_level = serializers.IntegerField(help_text=_("告警级别"), required=False)
 
 
 class ListClusterSerializer(serializers.Serializer):
