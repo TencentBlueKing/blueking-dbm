@@ -13,7 +13,7 @@
 
 import { resolve } from 'path';
 import AutoImport from 'unplugin-auto-import/vite';
-import { defineConfig, loadEnv } from 'vite';
+import { defineConfig, loadEnv, type Plugin } from 'vite';
 import monacoEditorPlugin from 'vite-plugin-monaco-editor';
 import { viteStaticCopy } from 'vite-plugin-static-copy';
 
@@ -29,8 +29,7 @@ export default defineConfig(({ mode }) => {
   // vite-plugin-monaco-editor 通过 transformIndexHtml 注入 MonacoEnvironment，
   // index.html 经 viteStaticCopy 原样输出不经过该钩子，这里按插件同款模板补齐（javascript 与 typescript 共享 worker）
   // worker 产物落在 outDir 的 base 子目录下，运行时路径由 __loadAssetsUrl__ 统一补 base 前缀，此处只传 monacoeditorwork 相对路径
-  const monacoWorkerPath = (name: string) =>
-    `window.__loadAssetsUrl__(${JSON.stringify(`monacoeditorwork/${name}`)})`;
+  const monacoWorkerPath = (name: string) => `window.__loadAssetsUrl__(${JSON.stringify(`monacoeditorwork/${name}`)})`;
   const monacoWorkerPaths = `{
   "editorWorkerService": ${monacoWorkerPath('editor.worker.bundle.js')},
   "json": ${monacoWorkerPath('json.worker.bundle.js')},
@@ -55,6 +54,17 @@ export default defineConfig(({ mode }) => {
             }
           };
         })(${monacoWorkerPaths});</script>`;
+
+  // index.html 的静态资源前缀占位符，dev 与 build 两条产出路径都必须经此替换，漏一条会把 {{PUBLIC_STATIC_PATH}} 当目录名拼进资源地址
+  const injectStaticPath = (html: string) => html.replaceAll('{{PUBLIC_STATIC_PATH}}', env.VITE_PUBLIC_PATH ?? '');
+
+  // dev 模式 index.html 由 vite 直接服务，不经 viteStaticCopy 的 transform，占位符需按本地 env 注入；
+  // BK_SITE_PATH / BK_STATIC_URL 由后端模板下发，运行时已按 {{ 兜底，dev 不注入
+  const devHtmlEnvPlugin: Plugin = {
+    apply: 'serve',
+    name: 'dbm-dev-html-env',
+    transformIndexHtml: (html) => injectStaticPath(html).replaceAll('{{BK_AJAX_URL}}', env.VITE_AJAX_URL_PREFIX ?? ''),
+  };
 
   return {
     base: env.VITE_PUBLIC_PATH,
@@ -95,6 +105,7 @@ export default defineConfig(({ mode }) => {
       },
     },
     plugins: [
+      devHtmlEnvPlugin,
       vueJsx(),
       vue({
         script: {
@@ -116,13 +127,12 @@ export default defineConfig(({ mode }) => {
             src: 'index.html',
             dest: './',
             transform: (content: string) =>
-              content
-                // 注入到 head 末尾，确保排在 __loadAssetsUrl__ 定义之后
-                .replace('</head>', `  ${monacoEnvironmentScript}\n  </head>`)
-                .replace(/\s*<script\s+type="module"\s+src="\/src\/main\.ts"><\/script>/, '')
-                .replaceAll('%VITE_AJAX_URL_PREFIX%', env.VITE_AJAX_URL_PREFIX ?? '')
-                .replaceAll('%VITE_ROUTER_PERFIX%', env.VITE_ROUTER_PERFIX ?? '')
-                .replaceAll('%VITE_PUBLIC_PATH%', env.VITE_PUBLIC_PATH ?? ''),
+              injectStaticPath(
+                content
+                  // 注入到 head 末尾，确保排在 __loadAssetsUrl__ 定义之后
+                  .replace('</head>', `  ${monacoEnvironmentScript}\n  </head>`)
+                  .replace(/\s*<script\s+type="module"\s+src="\/src\/main\.ts"><\/script>/, ''),
+              ),
           },
           {
             src: 'lib',

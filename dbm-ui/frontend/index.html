@@ -19,10 +19,11 @@
       // BK_SITE_PATH 为站点根路径，BK_STATIC_URL 为静态资源根路径，均由后端模板下发，取值为 / 或 /dbm/ 形式
       window.BK_SITE_PATH = '{{BK_SITE_PATH}}';
       window.BK_STATIC_URL = '{{BK_STATIC_URL}}';
+      window.BK_AJAX_URL = '{{BK_AJAX_URL}}';
 
       // 构建期静态资源路径前缀（vite base），静态文件实际部署在站点根路径的该子目录下；占位符未被替换时按空前缀处理
-      const rawStaticPrefix = '%VITE_PUBLIC_PATH%';
-      const staticPrefix = rawStaticPrefix.startsWith('%') ? '' : rawStaticPrefix.replace(/^\/+|\/+$/g, '');
+      const rawStaticPrefix = '{{PUBLIC_STATIC_PATH}}';
+      const staticPrefix = rawStaticPrefix.includes('{{') ? '' : rawStaticPrefix.replace(/^\/+|\/+$/g, '');
 
       // 所有静态资源地址统一经此拼接，与 vite.config.mts 的 renderBuiltUrl 对应；须早于 monaco worker 配置定义
       window.__loadAssetsUrl__ = function (src) {
@@ -64,12 +65,7 @@
       type="module"
       src="/src/main.ts"></script>
     <script>
-      window.PROJECT_ENV = {
-        // public 资源（xlsx 模板、login-success.html 等）经此拼接，取运行时静态根路径以跟随 BK_STATIC_URL
-        VITE_PUBLIC_PATH: window.__loadAssetsUrl__(''),
-        VITE_AJAX_URL_PREFIX: '%VITE_AJAX_URL_PREFIX%',
-        VITE_ROUTER_PERFIX: '%VITE_ROUTER_PERFIX%',
-      };
+      window.PROJECT_STATIC_PATH = window.__loadAssetsUrl__('');
       window.PROJECT_CONFIG = {
         BIZ_ID: '',
       };
