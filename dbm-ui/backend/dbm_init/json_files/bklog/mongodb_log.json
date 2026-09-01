@@ -19,15 +19,10 @@
         "conditions": {
             "type": "none"
         },
-        "encoding": "UTF-8"
+        "encoding": "UTF-8",
+        "tail_files": true
     },
     "etl_params": {
-        "time_field": {
-            "name": "dtEventTimeStamp",
-            "type": "date",
-            "unit": "millisecond"
-        },
-        "need_add_time": true,
         "es_unique_field_list": [
             "bk_host_id",
             "cloudId",
@@ -45,7 +40,13 @@
         "etl_flat": false,
         "retain_extra_json": false,
         "enable_origin_string": true,
-        "enable_retain_content": true
+        "enable_retain_content": true,
+        "need_add_time": true,
+        "time_field": {
+            "name": "dtEventTimeStamp",
+            "type": "date",
+            "unit": "millisecond"
+        }
     },
     "fields": [
         {
@@ -233,6 +234,30 @@
             "is_dimension": true
         },
         {
+            "field_name": "attr",
+            "type": "object",
+            "tag": "dimension",
+            "default_value": null,
+            "is_config_by_user": true,
+            "description": "",
+            "unit": "",
+            "alias_name": "",
+            "option": {
+                "field_index": 1,
+                "es_type": "object",
+                "real_path": "bk_separator_object.attr"
+            },
+            "is_disabled": false,
+            "is_case_sensitive": false,
+            "tokenize_on_chars": "",
+            "is_built_in": false,
+            "is_time": false,
+            "field_type": "object",
+            "is_analyzed": false,
+            "is_delete": false,
+            "is_dimension": true
+        },
+        {
             "field_name": "c",
             "type": "string",
             "tag": "dimension",
@@ -242,7 +267,7 @@
             "unit": "",
             "alias_name": "",
             "option": {
-                "field_index": 1,
+                "field_index": 2,
                 "es_type": "keyword",
                 "real_path": "bk_separator_object.c"
             },
@@ -266,7 +291,7 @@
             "unit": "",
             "alias_name": "",
             "option": {
-                "field_index": 2,
+                "field_index": 3,
                 "es_type": "keyword",
                 "real_path": "bk_separator_object.ctx"
             },
@@ -295,7 +320,7 @@
                 "time_format": "ISO8601",
                 "time_zone": 0,
                 "real_path": "bk_separator_object.dt",
-                "field_index": 3,
+                "field_index": 4,
                 "timestamp_unit": "ms",
                 "default_function": "fn:timestamp_from_utctime"
             },
@@ -324,7 +349,7 @@
                 "time_format": "ISO8601",
                 "time_zone": 0,
                 "real_path": "bk_separator_object.dt",
-                "field_index": 3,
+                "field_index": 4,
                 "timestamp_unit": "ms",
                 "default_function": "fn:timestamp_from_utctime"
             },
@@ -351,7 +376,7 @@
                 "time_format": "ISO8601",
                 "time_zone": 0,
                 "real_path": "bk_separator_object.dt",
-                "field_index": 3,
+                "field_index": 4,
                 "timestamp_unit": "ms",
                 "default_function": "fn:timestamp_from_utctime"
             },
@@ -364,8 +389,8 @@
             "is_delete": false
         },
         {
-            "field_name": "id",
-            "type": "float",
+            "field_name": "durationMillis",
+            "type": "long",
             "tag": "dimension",
             "default_value": null,
             "is_config_by_user": true,
@@ -373,7 +398,31 @@
             "unit": "",
             "alias_name": "",
             "option": {
-                "field_index": 4,
+                "field_index": 5,
+                "es_type": "long",
+                "real_path": "bk_separator_object.durationMillis"
+            },
+            "is_disabled": false,
+            "is_case_sensitive": false,
+            "tokenize_on_chars": "",
+            "is_built_in": false,
+            "is_time": false,
+            "field_type": "long",
+            "is_analyzed": false,
+            "is_delete": false,
+            "is_dimension": true
+        },
+        {
+            "field_name": "id",
+            "type": "int",
+            "tag": "dimension",
+            "default_value": null,
+            "is_config_by_user": true,
+            "description": "",
+            "unit": "",
+            "alias_name": "",
+            "option": {
+                "field_index": 6,
                 "es_type": "integer",
                 "real_path": "bk_separator_object.id"
             },
@@ -397,7 +446,7 @@
             "unit": "",
             "alias_name": "",
             "option": {
-                "field_index": 5,
+                "field_index": 7,
                 "es_type": "keyword",
                 "real_path": "bk_separator_object.line"
             },
@@ -421,7 +470,7 @@
             "unit": "",
             "alias_name": "",
             "option": {
-                "field_index": 6,
+                "field_index": 8,
                 "es_type": "object",
                 "real_path": "bk_separator_object.meta"
             },
@@ -445,7 +494,7 @@
             "unit": "",
             "alias_name": "",
             "option": {
-                "field_index": 7,
+                "field_index": 9,
                 "es_type": "keyword",
                 "real_path": "bk_separator_object.msg"
             },
@@ -461,7 +510,7 @@
         },
         {
             "field_name": "ok",
-            "type": "float",
+            "type": "int",
             "tag": "dimension",
             "default_value": null,
             "is_config_by_user": true,
@@ -469,7 +518,7 @@
             "unit": "",
             "alias_name": "",
             "option": {
-                "field_index": 8,
+                "field_index": 10,
                 "es_type": "integer",
                 "real_path": "bk_separator_object.ok"
             },
@@ -493,7 +542,7 @@
             "unit": "",
             "alias_name": "",
             "option": {
-                "field_index": 9,
+                "field_index": 11,
                 "es_type": "keyword",
                 "real_path": "bk_separator_object.s"
             },
@@ -503,30 +552,6 @@
             "is_built_in": false,
             "is_time": false,
             "field_type": "string",
-            "is_analyzed": false,
-            "is_delete": false,
-            "is_dimension": true
-        },
-        {
-            "field_name": "attr",
-            "type": "object",
-            "tag": "dimension",
-            "default_value": null,
-            "is_config_by_user": true,
-            "description": "",
-            "unit": "",
-            "alias_name": "",
-            "option": {
-                "field_index": 10,
-                "es_type": "object",
-                "real_path": "bk_separator_object.attr"
-            },
-            "is_disabled": false,
-            "is_case_sensitive": false,
-            "tokenize_on_chars": "",
-            "is_built_in": false,
-            "is_time": false,
-            "field_type": "object",
             "is_analyzed": false,
             "is_delete": false,
             "is_dimension": true
