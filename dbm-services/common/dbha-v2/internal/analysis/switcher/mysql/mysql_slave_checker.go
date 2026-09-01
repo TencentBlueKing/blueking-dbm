@@ -190,51 +190,40 @@ func (checker *MySQLSlaveChecker) Check() error {
 		return err
 	}
 
-	hasBizDbs, err := HasUserCreatedDatabase(slaveDB, checker.ReportLogf)
-	if err != nil {
-		return err
-	}
-
-	// Skip the checksum check and repl delay check if no user-created database is found on the slave.
-	if !hasBizDbs {
-		checker.ReportLogf(switchlogger.SwitchInfo,
-			"no user-created database found on slave, skip checksum check and repl delay check, slave: %s:%d", ip, port)
-		return nil
-	}
-
 	// Check the checksum status of the slave.
 	if !ignoreCheckSum {
-		checksumCnt, checksumFailCnt, err := checker.GetSlaveCheckSum(slaveDB)
-		if err != nil {
-			return err
-		}
-
-		if err = checker.CheckSlaveCheckSum(ip, port, checksumCnt, checksumFailCnt); err != nil {
+		if err := checker.runSlaveCheckSum(slaveDB, ip, port); err != nil {
 			return err
 		}
 	}
 
 	// Check the replication delay of the slave.
 	if !ignoreSlaveDelay {
-		var secondsBehindMaster sql.NullInt64
-		if slaveStatus != nil {
-			secondsBehindMaster = slaveStatus.SecondsBehindMaster
-		} else {
-			if secondsBehindMaster, err = checker.GetSecondsBehindMaster(slaveDB); err != nil {
-				return err
-			}
-		}
-
-		if err = checker.CheckSecondsBehindMaster(ip, port, secondsBehindMaster); err != nil {
+		if err := checker.runReplTimeDelay(slaveDB, ip, port, slaveStatus); err != nil {
 			return err
 		}
-
-		// Heartbeat delay check (dbha_repl_heartbeat / GetSlaveTimeDelay) was removed.
-		// Writing that table with sql_log_bin=ON in ROW format can break replication after
-		// master-slave switchover (e.g. 1032 / PK mismatch). Lag is now judged by Seconds_Behind_Master.
 	}
 
 	return nil
+}
+
+// runReplTimeDelay checks Seconds_Behind_Master, reusing slaveStatus when present.
+// Heartbeat delay check (dbha_repl_heartbeat / GetSlaveTimeDelay) was removed.
+// Lag is now judged by Seconds_Behind_Master.
+func (checker *MySQLSlaveChecker) runReplTimeDelay(
+	slaveDB *hamysql.GormDB, ip string, port int, slaveStatus *SlaveStatusPartialInfo,
+) error {
+	var behind sql.NullInt64
+	if slaveStatus != nil {
+		behind = slaveStatus.SecondsBehindMaster
+	} else {
+		var err error
+		behind, err = checker.GetSecondsBehindMaster(slaveDB)
+		if err != nil {
+			return err
+		}
+	}
+	return checker.CheckSecondsBehindMaster(ip, port, behind)
 }
 
 // GetSecondsBehindMaster reads Seconds_Behind_Master from SlaveStatusPartialInfo.
@@ -437,6 +426,27 @@ func (checker *MySQLSlaveChecker) GetSlaveTimeDelay(slaveDB *hamysql.GormDB) (in
 		ip, port, heartbeatDelay)
 
 	return heartbeatDelay, nil
+}
+
+// runSlaveCheckSum runs checksum unless the slave has no user-created database.
+// Empty instances are not covered by checksum jobs, so checksumCnt is often 0
+// and would fail CheckSlaveCheckSum; skip checksum only, keep the delay check.
+func (checker *MySQLSlaveChecker) runSlaveCheckSum(slaveDB *hamysql.GormDB, ip string, port int) error {
+	hasBizDbs, err := HasUserCreatedDatabase(slaveDB, checker.ReportLogf)
+	if err != nil {
+		return err
+	}
+	if !hasBizDbs {
+		checker.ReportLogf(switchlogger.SwitchInfo,
+			"no user-created database found on slave, skip checksum check, slave: %s:%d", ip, port)
+		return nil
+	}
+
+	checksumCnt, checksumFailCnt, err := checker.GetSlaveCheckSum(slaveDB)
+	if err != nil {
+		return err
+	}
+	return checker.CheckSlaveCheckSum(ip, port, checksumCnt, checksumFailCnt)
 }
 
 // GetSlaveCheckSum returns checksum count and failure count
