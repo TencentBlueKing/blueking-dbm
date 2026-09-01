@@ -487,6 +487,8 @@ class ListAlarmShieldSerializer(serializers.Serializer):
     bk_biz_id = serializers.IntegerField(help_text=_("业务ID"))
     is_active = serializers.BooleanField(help_text=_("是否生效"), default=True)
     time_range = serializers.CharField(help_text=_("时间范围"), required=False)
+    time_range__gte = serializers.CharField(help_text=_("时间范围"), required=False)
+    time_range__lte = serializers.CharField(help_text=_("时间范围"), required=False)
     category = serializers.CharField(help_text=_("屏蔽类型"), required=False)
     conditions = serializers.ListSerializer(help_text=_("查询条件"), child=serializers.DictField(), required=False)
 
