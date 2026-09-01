@@ -2743,6 +2743,17 @@ class ActionEnum:
         subgroup=_("集群管理"),
     )
 
+    CLOUD_MANAGE = ActionMeta(
+        id="cloud_manage",
+        name=_("Cloud 集群运维管理"),
+        name_en="cloud_manage",
+        type="manage",
+        related_actions=[],
+        related_resource_types=[],
+        group=_("Cloud"),
+        subgroup=_("集群管理"),
+    )
+
     # --- K8s SurrealDB ---
     K8S_SURREALDB_VIEW = ActionMeta(
         id="k8s_surrealdb_view",
