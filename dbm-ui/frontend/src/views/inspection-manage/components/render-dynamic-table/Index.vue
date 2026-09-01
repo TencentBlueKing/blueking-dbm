@@ -3,7 +3,7 @@
     class="render-dynamic-table"
     :class="{ 'is-empty': total === 0 || totalAbnormalCount === 0 }"
     :loading="loading">
-    <CollapseCard>
+    <DbCard mode="collapse">
       <template #title>
         <span style="font-weight: 700">{{ tableName }}</span>
         <template v-if="isTodo">
@@ -99,7 +99,7 @@
           @change="handlePageValueChange"
           @limit-change="handlePageLimitChange" />
       </div>
-    </CollapseCard>
+    </DbCard>
     <FailSlaveInstance
       :id="failSlaveInstanceReportId"
       v-model="isShowFailSlaveInstance" />
@@ -115,7 +115,6 @@
 
   import { useGlobalBizs } from '@stores';
 
-  import CollapseCard from '@components/collapse-card/Index.vue';
   import DbStatus from '@components/db-status/index.vue';
 
   import { calcTextWidth, random, utcDisplayTime } from '@utils';
@@ -397,12 +396,27 @@
     }
 
     &.is-empty {
-      .collapse-card-main.is-toggle {
+      .db-card-collapse--active {
         padding-bottom: 0;
 
-        .card-content {
-          margin-top: 0;
+        .db-card-content {
+          padding-top: 0;
         }
+      }
+    }
+
+    .db-card {
+      padding: 16px 24px;
+      border-radius: 2px;
+
+      .db-card-header {
+        font-size: 14px;
+        line-height: 22px;
+        color: #313238;
+      }
+
+      .db-card-content {
+        padding-top: 16px;
       }
     }
 
