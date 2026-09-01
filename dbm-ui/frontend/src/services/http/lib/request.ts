@@ -72,7 +72,7 @@ export default class Request {
 
   get axiosConfig() {
     const config: Record<string, any> = Object.assign({}, defaultConfig, {
-      baseURL: window.PROJECT_ENV.VITE_AJAX_URL_PREFIX,
+      baseURL: window.BK_AJAX_URL,
       method: this.config.method,
       payload: this.config.payload || {},
       url: this.config.url,

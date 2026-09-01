@@ -89,6 +89,8 @@ declare interface Window {
   BKApp: App<Element>;
   BK_SITE_PATH: string;
   BK_STATIC_URL: string;
+  PROJECT_STATIC_PATH: string;
+  BK_AJAX_URL: string;
   changeConfirm: boolean | 'popover';
   clipboardData: {
     getData: (params: string) => string;
@@ -97,11 +99,6 @@ declare interface Window {
     BIZ_ID: number;
     TICKET_DETAIL_REQUEST_CONTROLLER: AbortController;
     AI_LOG_ANALYSIS_OPEN: boolean;
-  };
-  PROJECT_ENV: {
-    VITE_AJAX_URL_PREFIX: string;
-    VITE_PUBLIC_PATH: string;
-    VITE_ROUTER_PERFIX: string;
   };
   HAS_LOGGED_IN: boolean;
   BkVisionSDK: {

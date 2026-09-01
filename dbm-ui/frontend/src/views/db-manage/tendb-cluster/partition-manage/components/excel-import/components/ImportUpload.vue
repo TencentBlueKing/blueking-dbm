@@ -62,7 +62,7 @@
   const uploadRef = ref();
   const uploadKey = ref(0);
 
-  const templatePath = `${window.PROJECT_ENV.VITE_PUBLIC_PATH}cluster-partition-template.xlsx`;
+  const templatePath = `${window.PROJECT_STATIC_PATH}cluster-partition-template.xlsx`;
 
   const handleUploadSuccess = (file: UploadFile) => {
     emit('uploading', false);
