@@ -52,8 +52,6 @@
   };
 </script>
 <style lang="less" scoped>
-  @import '@styles/mixins.less';
-
   .collapse {
     width: 100%;
     padding: 16px 24px;
@@ -62,15 +60,15 @@
     border-radius: 2px;
 
     .collapse-header {
-      .flex-center();
-
+      display: flex;
+      align-items: center;
       cursor: pointer;
       justify-content: space-between;
     }
 
     .collapse-title {
-      .flex-center();
-
+      display: flex;
+      align-items: center;
       font-weight: bold;
       color: @title-color;
     }
