@@ -142,8 +142,6 @@
 </script>
 
 <style lang="less" scoped>
-  @import '@styles/mixins.less';
-
   .upload-tip {
     padding-top: 4px;
   }
