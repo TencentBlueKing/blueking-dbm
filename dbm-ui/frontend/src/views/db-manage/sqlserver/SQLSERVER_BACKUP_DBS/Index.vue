@@ -173,6 +173,7 @@
   useTicketDetail<Sqlserver.BackupDb>(TicketTypes.SQLSERVER_BACKUP_DBS, {
     onSuccess(ticketDetail) {
       const { details, remark } = ticketDetail;
+      isTicketLoaded = true;
       Object.assign(formData, {
         backup_place: details.backup_place,
         backup_type: details.backup_type,
@@ -207,6 +208,7 @@
   const formRef = useTemplateRef('form');
   const editableTableRef = useTemplateRef('editableTable');
   const tableKey = ref(random());
+  let isTicketLoaded = false;
 
   const backupLocationList = [
     {
@@ -223,6 +225,10 @@
   const isBackupTypeFull = computed(() => formData.backup_type === 'full_backup');
 
   const handleClusterRequestSuccess = async (rowData: IDataRow) => {
+    if (isTicketLoaded) {
+      isTicketLoaded = false;
+      return;
+    }
     const ingoreDbsMap = await getIgnoreDbs({
       cluster_ids: [rowData.cluster.id],
     });

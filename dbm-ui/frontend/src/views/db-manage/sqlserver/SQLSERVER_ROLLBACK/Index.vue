@@ -83,6 +83,7 @@
             v-model="item.targetCluster"
             :cluster="item.cluster" />
           <FinalDbColumn
+            ref="finalDbColumnRef"
             v-model="item.renameInfos"
             v-model:db-ignore-name="item.databasesIgnore"
             v-model:db-name="item.databases"
@@ -259,6 +260,7 @@
   const editableTableRef = useTemplateRef('editableTableRef');
   const timeBackupRecordColumnRef =
     useTemplateRef<InstanceType<typeof TimeBackupRecordColumn>[]>('timeBackupRecordColumnRef');
+  const finalDbColumnRef = useTemplateRef<InstanceType<typeof FinalDbColumn>[]>('finalDbColumnRef');
 
   const defaultData = () => ({
     payload: createTicketPayload(),
@@ -299,6 +301,7 @@
         );
       }).then(() => {
         timeBackupRecordColumnRef.value?.[0]?.flush();
+        finalDbColumnRef.value?.forEach((ref) => ref.setSkipNextWatch());
       });
     },
   });
