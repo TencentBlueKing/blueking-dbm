@@ -101,8 +101,6 @@
   });
 </script>
 <style lang="less">
-  @import '@styles/mixins.less';
-
   .db-manage-toolbox-navigation {
     height: 100%;
     padding: 16px 0;
@@ -198,9 +196,10 @@
     }
 
     .toolbox-side-header {
+      display: flex;
+      align-items: center;
       padding-right: 8px;
       border-radius: 2px;
-      .flex-center();
 
       &:hover {
         background-color: #eaebf0;
@@ -218,6 +217,8 @@
     }
 
     .toolbox-side-icon {
+      display: flex;
+      align-items: center;
       width: 24px;
       height: 24px;
       margin: 0 8px 0 4px;
@@ -227,7 +228,6 @@
       background-color: #e1ecff;
       border-radius: 50%;
       justify-content: center;
-      .flex-center();
 
       &.db-icon-copy {
         color: #2dcb56;
@@ -294,6 +294,8 @@
     }
 
     .toolbox-side-item {
+      display: flex;
+      align-items: center;
       height: 32px;
       padding: 0 16px;
       margin-top: 8px;
@@ -303,7 +305,6 @@
       cursor: pointer;
       background-color: @bg-white;
       border-radius: 2px;
-      .flex-center();
 
       &:hover {
         box-shadow:
