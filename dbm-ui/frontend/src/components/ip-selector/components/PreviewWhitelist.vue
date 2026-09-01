@@ -12,10 +12,10 @@
 -->
 
 <template>
-  <DBCollapseTable
+  <CollapseTable
     class="mt-16"
-    :operations="operations"
-    :table-props="tableData">
+    :data="renderData"
+    :operations="operations">
     <template #title>
       【{{ t('白名单') }}】
       <span class="pr-4">- {{ t('共') }} </span>
@@ -29,19 +29,43 @@
         {{ t('个通配') }}
       </span>
     </template>
-  </DBCollapseTable>
+    <TableColumn
+      col-key="ips"
+      :ellipsis="false"
+      title="IP">
+      <template #default="{ row }">
+        <RenderRow :data="row.ips" />
+      </template>
+    </TableColumn>
+    <TableColumn
+      col-key="remark"
+      :title="t('备注')" />
+    <TableColumn
+      col-key="operation"
+      :title="t('操作')"
+      :width="100">
+      <template #default="{ rowIndex }">
+        <BkButton
+          text
+          theme="primary"
+          @click="handleRemoveSelected(rowIndex)">
+          {{ t('删除') }}
+        </BkButton>
+      </template>
+    </TableColumn>
+  </CollapseTable>
 </template>
 
-<script setup lang="tsx">
+<script setup lang="ts">
   import { useI18n } from 'vue-i18n';
 
   import { getWhitelist } from '@services/source/whitelist';
 
-  import DBCollapseTable from '@components/db-collapse-table/DBCollapseTable.vue';
   import RenderRow from '@components/render-row/index.vue';
-  import type { PrimaryTableCol } from '@components/tdesign-ui/table';
 
   import { execCopy } from '@utils';
+
+  import CollapseTable from './CollapseTable.vue';
 
   type WhitelistItem = ServiceReturnType<typeof getWhitelist>['results'][number];
 
@@ -75,38 +99,6 @@
     if (!props.search) return props.data;
     return props.data.filter((item) => item.ips.some((ip) => ip.includes(props.search)));
   });
-
-  const columns: PrimaryTableCol[] = [
-    {
-      cell: (_, { row }) => <RenderRow data={row.ips} />,
-      colKey: 'ips',
-      ellipsis: false,
-      title: 'IP',
-    },
-    {
-      colKey: 'remark',
-      title: t('备注'),
-    },
-    {
-      cell: (_, { rowIndex }) => (
-        <bk-button
-          text
-          theme='primary'
-          onClick={() => handleRemoveSelected(rowIndex)}>
-          {t('删除')}
-        </bk-button>
-      ),
-      colKey: 'operation',
-      title: t('操作'),
-      width: 100,
-    },
-  ];
-
-  const tableData = computed(() => ({
-    columns,
-    data: renderData.value,
-    maxHeight: 474,
-  }));
 
   // IP 操作
   const operations = [

@@ -60,11 +60,12 @@
             </span>
           </template>
         </TextOverflowLayout>
-        <CollapseCard
+        <DbCard
           v-else
           class="version-series-collapse-header"
-          :model-value="!collapseIdSet.has(row.versionSeriesInfo.info.id)"
-          @toggle="(value) => handleVersionSeriesToggle(value, rowIndex)">
+          :collapse="!collapseIdSet.has(row.versionSeriesInfo.info.id)"
+          mode="collapse"
+          @collapsed="(value: boolean) => handleVersionSeriesToggle(value, rowIndex)">
           <template #title>
             <OperationHeader
               :data="row.versionSeriesInfo.info"
@@ -75,7 +76,7 @@
               @add-new-version="() => emits('addNewVersion', row.versionSeriesInfo.info)"
               @edit-version-series="handleEditVersionSeriesSuccess" />
           </template>
-        </CollapseCard>
+        </DbCard>
       </template>
     </TableColumn>
     <TableColumn
@@ -198,8 +199,6 @@
   import TextOverflowLayout from '@components/text-overflow-layout/Index.vue';
 
   import { random, utcDisplayTime } from '@utils';
-
-  import CollapseCard from '@/components/collapse-card/Index.vue';
 
   import DeleteVersion from './components/DeleteVersion.vue';
   import DownloadPackage from './components/DownloadPackage.vue';
@@ -676,11 +675,11 @@
         background: #fafbfd;
         border-radius: 2px;
 
-        .card-content {
+        .db-card-content {
           display: none;
         }
 
-        .card-toggle-flag {
+        .db-card-icon {
           font-size: 12px;
         }
 
