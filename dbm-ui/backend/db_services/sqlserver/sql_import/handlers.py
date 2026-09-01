@@ -13,6 +13,7 @@ from typing import Any, Dict, List, Optional
 
 from django.core.files.uploadedfile import InMemoryUploadedFile
 
+from backend.components.sql_import.client import SQLSimulationApi
 from backend.db_services.mysql.sql_import.handlers import SQLHandler as MySQLSQLHandler
 from backend.db_services.sqlserver.sql_import.constants import BKREPO_SQLSERVER_SQLFILE_PATH
 
@@ -73,13 +74,23 @@ class SQLHandler(object):
         else:
             upload_sql_path = BKREPO_SQLSERVER_SQLFILE_PATH.format(biz=bk_biz_id)
             sql_file_info_list = MySQLSQLHandler.upload_sql_file(upload_sql_path, sql_content, sql_files)
+        file_name_list = [os.path.split(sql_file_info["sql_path"])[1] for sql_file_info in sql_file_info_list]
+        dir_name = os.path.split(sql_file_info_list[0]["sql_path"])[0]
+        check_result = SQLSimulationApi.sqlserver_grammar_check(
+            params={"bk_biz_id": bk_biz_id, "path": dir_name, "files": file_name_list}
+        )
+        result_map = {result["file_name"]: result for result in check_result.get("results", [])}
         data = {}
         # 填充虚构sqlserver内容。
         for sql_file_info in sql_file_info_list:
             sql_path = sql_file_info["sql_path"]
             file_name = os.path.split(sql_path)[1]
+            result = result_map.get(file_name, {})
+            syntax_fails = []
+            if result.get("status") == "fail":
+                syntax_fails.append({"error_msg": result.get("message", "")})
             data[file_name] = {
-                "syntax_fails": "",
+                "syntax_fails": syntax_fails,
                 "highrisk_warnings": "",
                 "bancommand_warnings": "",
                 "content": sql_file_info.get("sql_content"),
