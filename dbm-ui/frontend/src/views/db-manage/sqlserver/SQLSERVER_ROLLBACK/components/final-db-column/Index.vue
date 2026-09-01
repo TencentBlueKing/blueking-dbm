@@ -138,6 +138,8 @@
 
   let isInnerChange = false;
 
+  let skipWatchUntil = 0;
+
   watch(
     () => [
       props.cluster.id,
@@ -150,6 +152,9 @@
     () => {
       if (isInnerChange) {
         isInnerChange = false;
+        return;
+      }
+      if (Date.now() < skipWatchUntil) {
         return;
       }
       if (
@@ -172,6 +177,12 @@
       immediate: true,
     },
   );
+
+  defineExpose({
+    setSkipNextWatch() {
+      skipWatchUntil = Date.now() + 3000;
+    },
+  });
 
   const handleShowEditName = () => {
     isShowEditName.value = true;
