@@ -21,11 +21,7 @@ from backend.flow.plugins.components.collections.k8s_vm.k8s_vm_delete import K8s
 from backend.flow.plugins.components.collections.k8s_vm.k8s_vm_sync_ticket_id import K8sVmSyncTicketIdComponent
 from backend.flow.plugins.components.collections.k8s_vm.vm_db_meta import VmDBMetaComponent
 from backend.flow.plugins.components.collections.k8s_vm.vm_dns_manage import VmDnsManageComponent
-from backend.flow.utils.k8s_vm.k8s_vm_context_dataclass import (
-    DnsKwargs,
-    K8sVmActKwargs,
-    K8sVmApplyContext,
-)
+from backend.flow.utils.k8s_vm.k8s_vm_context_dataclass import DnsKwargs, K8sVmActKwargs, K8sVmApplyContext
 
 logger = logging.getLogger("flow")
 
