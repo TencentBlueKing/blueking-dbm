@@ -177,7 +177,7 @@ func main(cmd *cobra.Command, args []string) {
 	job4 := logparserjob.GetJob(dbmonConf, mylog.Logger, "logparser", osCtx, &rootWg)
 	job5 := dstatjob.GetJob(dbmonConf, mylog.Logger, "dstat", workDir)
 	job6 := datadirjob.GetJob(dbmonConf, mylog.Logger, "datadir")
-	job7 := dbtablesizejob.GetJob(dbmonConf, mylog.Logger, "dbtablesize")
+	job7 := dbtablesizejob.GetJob(dbmonConf, mylog.Logger, "dbtablesize", workDir)
 	for _, row := range []struct {
 		job  cron.Job
 		cron string
@@ -189,7 +189,7 @@ func main(cmd *cobra.Command, args []string) {
 		{job: job4, cron: "@every 1m", name: job4.Name},
 		{job: job5, cron: "@every 2m", name: job5.Name}, // dstat 任务间隔为2分钟
 		{job: job6, cron: "@every 5m", name: job6.Name},
-		{job: job7, cron: "@every 10m", name: job7.Name},
+		{job: job7, cron: "@every 1m", name: job7.Name}, // 内部按 report_bucket 门禁，同槽可补跑
 	} {
 		if entryID, err := c.AddJob(row.cron,
 			cron.NewChain(cron.SkipIfStillRunning(mylog.AdapterLog)).Then(row.job)); err == nil {

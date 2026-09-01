@@ -69,6 +69,7 @@ func (m *MongoLogMsg) ParseMore() (err error) {
 			m.ParseOk = 1
 			m.Attr = attr
 			m.Id = LogTypeSlowlog
+			m.copyDurationMillisFromAttr()
 		} else {
 			m.ParseOk = 0
 			m.Attr = &SlowlogAttr{

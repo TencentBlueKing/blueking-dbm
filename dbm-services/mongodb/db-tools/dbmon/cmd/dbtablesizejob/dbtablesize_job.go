@@ -2,10 +2,13 @@
 package dbtablesizejob
 
 import (
+	"bufio"
 	"context"
+	"encoding/json"
 	"fmt"
 	"os"
 	"path"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"sync"
@@ -24,12 +27,15 @@ import (
 
 const (
 	reportType            = "dbtablesize"
+	aggLevelShard         = "shard"
 	connectTimeout        = 30 * time.Second
 	defaultTimeoutSeconds = int64(300)
 	// reportSavedDays report 文件本地保留天数
 	reportSavedDays = 2
 	// skipHeartbeatMaxBytes test.dbmon_heartbeat 小于该大小时不上报
 	skipHeartbeatMaxBytes = int64(1024 * 1024)
+	// lastBucketFileName 已完成 report_bucket 落盘文件名
+	lastBucketFileName = "dbtablesize.last_bucket"
 
 	// MetricCollectSuccess 采集是否成功：1 成功，0 失败/关闭
 	MetricCollectSuccess = "mongo_dbtablesize_collect_success"
@@ -41,7 +47,16 @@ var (
 	globDbTableSizeJob  *Job
 	dbTableSizeOnce     sync.Once
 	cleanReportLastTime int64
+	shanghaiLoc         *time.Location
 )
+
+func init() {
+	var err error
+	shanghaiLoc, err = time.LoadLocation("Asia/Shanghai")
+	if err != nil {
+		shanghaiLoc = time.FixedZone("CST", 8*3600)
+	}
+}
 
 // Job 库表数据量采集
 type Job struct {
@@ -49,13 +64,14 @@ type Job struct {
 }
 
 // GetJob 获取库表数据量采集任务单例
-func GetJob(conf *config.DbMonConfig, logger *zap.Logger, jobName string) *Job {
+func GetJob(conf *config.DbMonConfig, logger *zap.Logger, jobName, workDir string) *Job {
 	dbTableSizeOnce.Do(func() {
 		globDbTableSizeJob = &Job{
 			BaseJob: basejob.BaseJob{
-				Name:   jobName,
-				Conf:   conf,
-				Logger: logger.With(zap.String("job", jobName)),
+				Name:    jobName,
+				Conf:    conf,
+				Logger:  logger.With(zap.String("job", jobName)),
+				WorkDir: workDir,
 			},
 		}
 	})
@@ -87,15 +103,8 @@ type SizeRecord struct {
 	Count         int64   `json:"count"`
 	AvgObjSize    float64 `json:"avg_obj_size"`
 	ReportTime    string  `json:"report_time"`
-}
-
-type dbStatsResult struct {
-	DataSize    int64   `bson:"dataSize"`
-	StorageSize int64   `bson:"storageSize"`
-	IndexSize   int64   `bson:"indexSize"`
-	Objects     int64   `bson:"objects"`
-	AvgObjSize  float64 `bson:"avgObjSize"`
-	OK          int     `bson:"ok"`
+	ReportBucket  string  `json:"report_bucket"`
+	AggLevel      string  `json:"agg_level"`
 }
 
 type collStatsResult struct {
@@ -113,7 +122,43 @@ var skipDBs = map[string]struct{}{
 	"config": {},
 }
 
-// Run 仅在 backup 节点执行
+// reportBucket 计算 Asia/Shanghai 下对齐到 10 分钟的 yyyymmddhhmm
+func reportBucket(t time.Time) string {
+	local := t.In(shanghaiLoc)
+	floored := time.Date(
+		local.Year(), local.Month(), local.Day(),
+		local.Hour(), local.Minute()-local.Minute()%10, 0, 0, shanghaiLoc)
+	return floored.Format("200601021504")
+}
+
+func (job *Job) lastBucketPath() string {
+	dir := job.WorkDir
+	if dir == "" {
+		dir = "."
+	}
+	return filepath.Join(dir, lastBucketFileName)
+}
+
+func readCompletedBucket(path string) (string, error) {
+	data, err := os.ReadFile(path)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return "", nil
+		}
+		return "", err
+	}
+	return strings.TrimSpace(string(data)), nil
+}
+
+func writeCompletedBucket(path, bucket string) error {
+	tmp := path + ".tmp"
+	if err := os.WriteFile(tmp, []byte(bucket+"\n"), 0644); err != nil {
+		return err
+	}
+	return os.Rename(tmp, path)
+}
+
+// Run 仅在 backup 节点执行；每分钟唤醒，按 report_bucket 门禁同槽可补跑
 func (job *Job) Run() {
 	job.LoopTimes++
 	job.Logger.Info("start", zap.Uint64("loopTimes", job.LoopTimes))
@@ -125,11 +170,23 @@ func (job *Job) Run() {
 	}
 
 	now := time.Now()
+	bucket := reportBucket(now)
+	completed, err := readCompletedBucket(job.lastBucketPath())
+	if err != nil {
+		job.Logger.Warn("read completed bucket failed", zap.Error(err))
+	} else if completed == bucket {
+		job.Logger.Debug("skip, report_bucket already completed",
+			zap.String("report_bucket", bucket))
+		return
+	}
+
 	if now.Unix()-cleanReportLastTime > 24*3600 {
 		job.cleanReport(now, reportSavedDays)
 		cleanReportLastTime = now.Unix()
 	}
 
+	allOK := true
+	attempted := false
 	for i := range job.MyConf.Servers {
 		svr := &job.MyConf.Servers[i]
 		if !isBackupRole(svr.MetaRole) {
@@ -139,13 +196,14 @@ func (job *Job) Run() {
 		}
 		enable, err := config.ClusterConfig.GetOne(svr, config.SegmentDBTableSize, config.KeyEnable)
 		if err != nil {
-			job.Logger.Warn("get dbtablesize.enable failed, use default true",
+			allOK = false
+			job.Logger.Warn("get dbtablesize.enable failed, skip and retry later",
 				zap.String("instance", svr.Addr()), zap.Error(err))
-			enable = config.ValueTrue
+			continue
 		}
 		if enable == config.ValueFalse {
 			job.Logger.Info("dbtablesize disabled", zap.String("instance", svr.Addr()))
-			job.reportCollectStatus(svr, false, 0, 0)
+			job.reportCollectStatus(svr, false, 0, 0, bucket)
 			continue
 		}
 		if config.IsAlarmShield(svr, "skip dbtablesize because Shielded", job.Logger) {
@@ -163,22 +221,36 @@ func (job *Job) Run() {
 				zap.String("instance", svr.Addr()), zap.Int64("timeout", timeoutSeconds))
 			timeoutSeconds = defaultTimeoutSeconds
 		}
+		attempted = true
 		start := time.Now()
-		err = job.runOneServer(svr, time.Duration(timeoutSeconds)*time.Second)
+		err = job.runOneServer(svr, time.Duration(timeoutSeconds)*time.Second, bucket)
 		duration := time.Since(start).Seconds()
 		success := float64(0)
 		if err != nil {
+			allOK = false
 			job.Logger.Warn("dbtablesize failed",
 				zap.String("instance", svr.Addr()), zap.Error(err))
 		} else {
 			success = 1
 		}
-		job.reportCollectStatus(svr, true, success, duration)
+		job.reportCollectStatus(svr, true, success, duration, bucket)
+	}
+
+	// 无可采集目标（无 backup / 全关 / 全屏蔽）或全部成功时落盘，避免同槽反复空跑或成功后重启重跑
+	if allOK {
+		if err := writeCompletedBucket(job.lastBucketPath(), bucket); err != nil {
+			job.Logger.Warn("write completed bucket failed",
+				zap.String("report_bucket", bucket), zap.Error(err))
+		} else {
+			job.Logger.Info("mark report_bucket completed",
+				zap.String("report_bucket", bucket), zap.Bool("attempted", attempted))
+		}
 	}
 }
 
 // reportCollectStatus 上报采集状态指标；发送失败仅记日志，不影响采集结果
-func (job *Job) reportCollectStatus(svr *config.ConfServerItem, enabled bool, success, durationSeconds float64) {
+func (job *Job) reportCollectStatus(svr *config.ConfServerItem, enabled bool,
+	success, durationSeconds float64, bucket string) {
 	enabledLabel := config.ValueFalse
 	if enabled {
 		enabledLabel = config.ValueTrue
@@ -192,7 +264,9 @@ func (job *Job) reportCollectStatus(svr *config.ConfServerItem, enabled bool, su
 			zap.String("instance", svr.Addr()), zap.Error(err))
 		return
 	}
-	msgH.SetLabel("enabled", enabledLabel).SetLabel("port", port)
+	msgH.SetLabel("enabled", enabledLabel).
+		SetLabel("port", port).
+		SetLabel("report_bucket", bucket)
 	if err = msgH.SendTimeSeriesMsg(beat.MetricConfig.DataID, beat.MetricConfig.Token,
 		svr.IP, MetricCollectSuccess, success, job.Logger); err != nil {
 		job.Logger.Warn("report collect success metric failed",
@@ -205,7 +279,9 @@ func (job *Job) reportCollectStatus(svr *config.ConfServerItem, enabled bool, su
 			zap.String("instance", svr.Addr()), zap.Error(err))
 		return
 	}
-	msgH2.SetLabel("enabled", enabledLabel).SetLabel("port", port)
+	msgH2.SetLabel("enabled", enabledLabel).
+		SetLabel("port", port).
+		SetLabel("report_bucket", bucket)
 	if err = msgH2.SendTimeSeriesMsg(beat.MetricConfig.DataID, beat.MetricConfig.Token,
 		svr.IP, MetricCollectDurationSeconds, durationSeconds, job.Logger); err != nil {
 		job.Logger.Warn("report collect duration metric failed",
@@ -249,14 +325,17 @@ func (job *Job) cleanReport(nowTime time.Time, savedDays int) {
 	}
 }
 
-func (job *Job) runOneServer(svr *config.ConfServerItem, timeout time.Duration) error {
-	logger := job.Logger.With(zap.String("instance", svr.Addr()))
+func (job *Job) runOneServer(svr *config.ConfServerItem, timeout time.Duration, bucket string) error {
+	logger := job.Logger.With(zap.String("instance", svr.Addr()), zap.String("report_bucket", bucket))
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 
 	reportFile, _, _ := consts.GetMongoReportPath(reportType)
 	if err := report.PrepareReportPath(reportFile); err != nil {
 		return fmt.Errorf("prepare report path: %w", err)
+	}
+	if err := purgeInstanceBucketRecords(reportFile, svr.Addr(), bucket); err != nil {
+		return fmt.Errorf("purge stale report records: %w", err)
 	}
 
 	client, err := mymongo.ConnectWithDirect(
@@ -275,7 +354,7 @@ func (job *Job) runOneServer(svr *config.ConfServerItem, timeout time.Duration) 
 		return fmt.Errorf("listDatabases: %w", err)
 	}
 
-	reportTime := time.Now().Local().Format(time.RFC3339)
+	reportTime := time.Now().In(shanghaiLoc).Format(time.RFC3339)
 	written := 0
 	failed := 0
 	var firstErr error
@@ -286,7 +365,7 @@ func (job *Job) runOneServer(svr *config.ConfServerItem, timeout time.Duration) 
 		if _, skip := skipDBs[dbName]; skip {
 			continue
 		}
-		n, err := job.collectAndWriteDB(ctx, client, svr, dbName, reportFile, reportTime, logger)
+		n, err := job.collectAndWriteDB(ctx, client, svr, dbName, reportFile, reportTime, bucket, logger)
 		if err != nil {
 			if ctx.Err() != nil {
 				return fmt.Errorf("collect timeout after %s: %w", timeout, ctx.Err())
@@ -315,26 +394,14 @@ func (job *Job) collectAndWriteDB(
 	ctx context.Context,
 	client *mongo.Client,
 	svr *config.ConfServerItem,
-	dbName, reportFile, reportTime string,
+	dbName, reportFile, reportTime, bucket string,
 	logger *zap.Logger,
 ) (int, error) {
-	var dbStats dbStatsResult
-	if err := client.Database(dbName).RunCommand(ctx, bson.D{{Key: "dbStats", Value: 1}}).
-		Decode(&dbStats); err != nil {
-		return 0, fmt.Errorf("dbStats: %w", err)
-	}
-	written := 0
-	dbRec := newSizeRecord(svr, dbName, "", dbStats.DataSize, dbStats.StorageSize,
-		dbStats.IndexSize, dbStats.Objects, dbStats.AvgObjSize, reportTime)
-	if err := report.AppendObjectToFile(reportFile, dbRec); err != nil {
-		return 0, fmt.Errorf("write db record: %w", err)
-	}
-	written++
-
 	colls, err := client.Database(dbName).ListCollectionNames(ctx, bson.D{})
 	if err != nil {
-		return written, fmt.Errorf("listCollections: %w", err)
+		return 0, fmt.Errorf("listCollections: %w", err)
 	}
+	written := 0
 	for _, coll := range colls {
 		if err := ctx.Err(); err != nil {
 			return written, err
@@ -356,7 +423,7 @@ func (job *Job) collectAndWriteDB(
 			continue
 		}
 		rec := newSizeRecord(svr, dbName, coll, collStats.Size, collStats.StorageSize,
-			collStats.TotalIndexSize, collStats.Count, collStats.AvgObjSize, reportTime)
+			collStats.TotalIndexSize, collStats.Count, collStats.AvgObjSize, reportTime, bucket)
 		if err := report.AppendObjectToFile(reportFile, rec); err != nil {
 			logger.Warn("write collection record failed",
 				zap.String("db", dbName), zap.String("collection", coll), zap.Error(err))
@@ -365,6 +432,55 @@ func (job *Job) collectAndWriteDB(
 		written++
 	}
 	return written, nil
+}
+
+type reportRecordKey struct {
+	Instance     string `json:"instance"`
+	ReportBucket string `json:"report_bucket"`
+}
+
+// purgeInstanceBucketRecords 同槽重试前移除该实例当前 bucket 的旧行，避免 Append 重复
+func purgeInstanceBucketRecords(reportFile, instance, bucket string) error {
+	f, err := os.Open(reportFile)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return nil
+		}
+		return err
+	}
+	defer f.Close()
+
+	var kept []byte
+	scanner := bufio.NewScanner(f)
+	scanner.Buffer(make([]byte, 0, 64*1024), 1024*1024)
+	for scanner.Scan() {
+		line := scanner.Bytes()
+		if len(line) == 0 {
+			continue
+		}
+		var rec reportRecordKey
+		if err := json.Unmarshal(line, &rec); err != nil {
+			kept = append(kept, line...)
+			kept = append(kept, '\n')
+			continue
+		}
+		if rec.Instance == instance && rec.ReportBucket == bucket {
+			continue
+		}
+		kept = append(kept, line...)
+		kept = append(kept, '\n')
+	}
+	if err := scanner.Err(); err != nil {
+		return err
+	}
+	if len(kept) == 0 {
+		return os.Truncate(reportFile, 0)
+	}
+	tmp := reportFile + ".purge.tmp"
+	if err := os.WriteFile(tmp, kept, 0644); err != nil {
+		return err
+	}
+	return os.Rename(tmp, reportFile)
 }
 
 // shouldSkipCollection 忽略小于 1MB 的 test.dbmon_heartbeat
@@ -377,7 +493,7 @@ func newSizeRecord(
 	dbName, collection string,
 	dataSize, storageSize, indexSize, count int64,
 	avgObjSize float64,
-	reportTime string,
+	reportTime, bucket string,
 ) SizeRecord {
 	return SizeRecord{
 		BkCloudID:     svr.BkCloudID,
@@ -402,5 +518,7 @@ func newSizeRecord(
 		Count:         count,
 		AvgObjSize:    avgObjSize,
 		ReportTime:    reportTime,
+		ReportBucket:  bucket,
+		AggLevel:      aggLevelShard,
 	}
 }

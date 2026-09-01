@@ -81,6 +81,39 @@ func TestParseV3Log(t *testing.T) {
 
 }
 
+func TestParseV3DurationMillis(t *testing.T) {
+	line := []byte(`{"t":{"$date":"2024-04-29T18:04:28.239+08:00"},"s":"I",  "c":"COMMAND",  "id":51803,   "ctx":"conn15148443","msg":"Slow query","attr":{"type":"query","ns":"game.tradesellorders","command":{"find":"tradesellorders","filter":{"aid":{"$oid":"5fd8d1a8b4396631a4bbc6b0"}},"$db":"game"},"nShards":64,"cursorExhausted":true,"numYields":0,"nreturned":0,"reslen":249,"durationMillis":105}}`)
+	p, err := GetParser(line)
+	if err != nil {
+		t.Fatalf("GetParser: %v", err)
+	}
+	msg, err := p.Parse(line)
+	if err != nil {
+		t.Fatalf("Parse: %v", err)
+	}
+	if msg.DurationMillis != 105 {
+		t.Fatalf("DurationMillis = %d, want 105", msg.DurationMillis)
+	}
+	out, err := json.Marshal(msg)
+	if err != nil {
+		t.Fatalf("Marshal: %v", err)
+	}
+	var got map[string]interface{}
+	if err := json.Unmarshal(out, &got); err != nil {
+		t.Fatalf("Unmarshal: %v", err)
+	}
+	if got["durationMillis"] != float64(105) {
+		t.Fatalf("json durationMillis = %v, want 105", got["durationMillis"])
+	}
+	attr, ok := got["attr"].(map[string]interface{})
+	if !ok {
+		t.Fatalf("attr missing or not object: %v", got["attr"])
+	}
+	if attr["durationMillis"] != float64(105) {
+		t.Fatalf("attr.durationMillis = %v, want 105", attr["durationMillis"])
+	}
+}
+
 func TestParseV1Log(t *testing.T) {
 	// test cases
 	in := []byte(`Fri Apr 12 04:16:54.496 [conn9818835] getmore xxxx.xxxxxx query: { query: {}, $snapshot: true } cursorid:7678192233559697393 ntoreturn:0 exhaust:1 keyUpdates:0 numYields: 5 locks(micros) r:344667 nreturned:22 reslen:4255713 260ms`)
