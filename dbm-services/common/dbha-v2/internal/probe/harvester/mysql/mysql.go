@@ -106,7 +106,7 @@ type MySql struct {
 	name      string
 	wg        sync.WaitGroup
 	cfg       *config.MySqlHarvesterConfig
-	// harvestGroups declares every harvest group (default / heartbeat / repldelay)
+	// harvestGroups declares every harvest group (default / heartbeat; repldelay is disabled)
 	harvestGroups []*harvestGroup
 	// collectors keyed by harvest group
 	collectors map[haprobe.HarvestType][]*collector
@@ -475,14 +475,8 @@ func (m *MySql) buildHarvestGroups() []*harvestGroup {
 			accept:   func(c *collector) bool { return !c.isTendbhaProxyAdminPort() },
 			emit:     m.collectHeartbeat,
 		},
-		{
-			htype:    haprobe.HarvestTypeReplDelay,
-			interval: m.replDelayInterval(),
-			accept: func(c *collector) bool {
-				return c.isPlainMysqlStorage()
-			},
-			emit: m.collectReplDelay,
-		},
+		// repldelay is not started: ROW writes to dbha_repl_heartbeat can break
+		// replication on master-slave switchover. collectReplDelay is kept.
 	}
 }
 
