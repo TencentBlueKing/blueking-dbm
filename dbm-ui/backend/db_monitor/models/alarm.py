@@ -40,6 +40,7 @@ from backend.db_monitor.constants import (
     TPLS_ALARM_DIR,
     AlertSourceEnum,
     DutyRuleCategory,
+    PolicyGlobalCode,
     PolicyStatus,
     PolicyTag,
     TargetLevel,
@@ -730,6 +731,12 @@ class MonitorPolicy(AuditedModel):
         max_length=LEN_NORMAL,
         default="",
     )
+    policy_code = models.CharField(
+        verbose_name=_("策略代号"),
+        choices=PolicyGlobalCode.get_choices(),
+        max_length=LEN_MIDDLE,
+        default="",
+    )
 
     class Meta:
         verbose_name = _("告警策略(MonitorPolicy)")
@@ -992,6 +999,7 @@ class MonitorPolicy(AuditedModel):
                 sub_policy.detects_config = self.detects_config
                 sub_policy.notify_rules = self.notify_rules
                 sub_policy.notify_config = self.notify_config
+                sub_policy.policy_code = self.policy_code
                 if self.details.get("actions"):
                     callbacks = self.details["actions"]
                 else:
