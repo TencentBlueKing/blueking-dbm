@@ -23,7 +23,6 @@ export default class SqlserverMachine {
   bk_svr_device_cls_name: string;
   cluster_type: string;
   create_at: string;
-  enable: boolean;
   host_info: HostInfo;
   instance_role: string;
   ip: string;
@@ -31,6 +30,7 @@ export default class SqlserverMachine {
   related_clusters: MachineRelatedCluster[];
   related_instances: MachineRelatedInstance[];
   spec_config: MachineSpecConfig;
+  spec_enable: boolean;
   spec_id: number;
   spec_name: string;
 
@@ -46,7 +46,7 @@ export default class SqlserverMachine {
     this.create_at = payload.create_at;
     this.host_info = payload.host_info;
     this.spec_name = payload.spec_name;
-    this.enable = payload.enable;
+    this.spec_enable = payload.spec_enable;
     this.instance_role = payload.instance_role;
     this.ip = payload.ip;
     this.machine_type = payload.machine_type;
