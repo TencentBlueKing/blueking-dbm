@@ -212,6 +212,18 @@ class TestMongoDBListRetrieveResource:
         assert "shard_node_count" in cluster_info
         assert cluster_info["shard_num"] == 1  # 副本集分片数为1
 
+        # 节点带角色/状态字段，且按 m1 → m2 → … → backup 排序
+        assert cluster_info["mongodb"]
+        for node in cluster_info["mongodb"]:
+            assert "instance_role" in node
+            assert "mongodb_state" in node
+            assert "seg_range" not in node  # 副本集不带分片名
+        role_order = [node["instance_role"] for node in cluster_info["mongodb"]]
+        from backend.db_services.mongodb.resources.query import _MONGO_DISPLAY_ROLE_INDEX
+
+        role_indexes = [_MONGO_DISPLAY_ROLE_INDEX.get(role, 999) for role in role_order]
+        assert role_indexes == sorted(role_indexes)
+
     @patch("backend.db_services.ipchooser.query.resource.ResourceQueryHelper.search_cc_cloud")
     @patch("backend.db_meta.models.AppCache.objects.get")
     def test_to_cluster_representation_sharded(
@@ -288,6 +300,43 @@ class TestMongoDBListRetrieveResource:
         assert "seg_range" in cluster_info
         assert cluster_info["shard_num"] > 1  # 分片集群分片数大于1
 
+        # ShardSvr：角色/状态/分片名；按 seg_range → 角色排序
+        assert cluster_info["mongodb"]
+        for node in cluster_info["mongodb"]:
+            assert "instance_role" in node
+            assert "mongodb_state" in node
+            assert node.get("seg_range")
+        from backend.db_services.mongodb.resources.query import (
+            _MONGO_DISPLAY_ROLE_INDEX,
+            mongo_shard_name_sort_key,
+        )
+
+        shard_keys = [
+            (
+                mongo_shard_name_sort_key(node["seg_range"]),
+                _MONGO_DISPLAY_ROLE_INDEX.get(node["instance_role"], 999),
+                node["ip"],
+                node["port"],
+            )
+            for node in cluster_info["mongodb"]
+        ]
+        assert shard_keys == sorted(shard_keys)
+
+        # ConfigSvr：角色有序
+        if cluster_info["mongo_config"]:
+            for node in cluster_info["mongo_config"]:
+                assert "instance_role" in node
+                assert "mongodb_state" in node
+            config_indexes = [
+                _MONGO_DISPLAY_ROLE_INDEX.get(node["instance_role"], 999) for node in cluster_info["mongo_config"]
+            ]
+            assert config_indexes == sorted(config_indexes)
+
+        # Mongos：按 ip → port 排序
+        if cluster_info["mongos"]:
+            mongos_keys = [(node["ip"], node["port"]) for node in cluster_info["mongos"]]
+            assert mongos_keys == sorted(mongos_keys)
+
     def test_list_instances_with_cluster_type_filter(self, mongodb_replicaset_cluster):
         """测试按集群类型过滤实例"""
         cluster = mongodb_replicaset_cluster
@@ -322,16 +371,43 @@ class TestMongoDBListRetrieveResource:
         # 验证返回的是QuerySet
         assert instances is not None
 
+    def test_filter_instance_qs_default_role_order(self, mongodb_replicaset_cluster):
+        """实例列表默认按 m1 → … → backup 排序"""
+        from backend.db_services.mongodb.resources.query import _MONGO_DISPLAY_ROLE_INDEX
+
+        cluster = mongodb_replicaset_cluster
+        query_filters = Q(cluster__id=cluster.id)
+        rows = list(MongoDBListRetrieveResource._filter_instance_qs(query_filters, {}))
+        roles = [row["role"] for row in rows]
+        indexes = [_MONGO_DISPLAY_ROLE_INDEX.get(role, 999) for role in roles]
+        assert indexes == sorted(indexes)
+
     def test_filter_instance_qs_storage_and_proxy(self, mongodb_sharded_cluster):
-        """测试过滤实例查询集 - 同时包含存储和代理实例"""
+        """测试过滤实例查询集 - 同时包含存储和代理实例；默认 mongos → config → shard 角色序"""
+        from backend.db_services.mongodb.resources.query import (
+            _MONGO_DISPLAY_ROLE_INDEX,
+            _MONGO_MACHINE_TYPE_ORDER,
+        )
+
         cluster = mongodb_sharded_cluster
         query_filters = Q(cluster__id=cluster.id)
         query_params = {}
 
-        instances = MongoDBListRetrieveResource._filter_instance_qs(query_filters, query_params)
+        rows = list(MongoDBListRetrieveResource._filter_instance_qs(query_filters, query_params))
+        assert rows
 
-        # 验证返回包含实例信息
-        assert instances is not None
+        machine_type_index = {mt: idx for idx, mt in enumerate(_MONGO_MACHINE_TYPE_ORDER)}
+        sort_keys = [
+            (
+                machine_type_index.get(row["machine__machine_type"], 9),
+                row.get("shard") or "",
+                _MONGO_DISPLAY_ROLE_INDEX.get(row["role"], 0 if row["machine__machine_type"] == "mongos" else 999),
+                row["machine__ip"],
+                row["port"],
+            )
+            for row in rows
+        ]
+        assert sort_keys == sorted(sort_keys)
 
     def test_to_instance_representation(self, mongodb_replicaset_cluster):
         """测试实例信息转换"""

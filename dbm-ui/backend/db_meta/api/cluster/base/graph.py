@@ -29,6 +29,7 @@ class Node:
     node_type: str
     # url: str
     status: str
+    instance_state: str = ""
 
     @staticmethod
     def generate_node_id(ins: Union[StorageInstance, ProxyInstance, ClusterEntry, dict]) -> str:
@@ -92,6 +93,18 @@ class Node:
         else:
             return ins.cluster.status
 
+    @staticmethod
+    def generate_mongo_instance_state(ins: Union[StorageInstance, ProxyInstance, ClusterEntry]) -> str:
+        """Mongo 副本集运行时状态（PRIMARY/SECONDARY/...）；其它类型为空"""
+        if not isinstance(ins, StorageInstance):
+            return ""
+        from django.core.exceptions import ObjectDoesNotExist
+
+        try:
+            return ins.mongodbstorageinstanceext.state or ""
+        except ObjectDoesNotExist:
+            return ""
+
     def __init__(
         self,
         ins: Union[StorageInstance, ProxyInstance, ClusterEntry, dict],
@@ -99,11 +112,13 @@ class Node:
         node_type: str = None,
         # url: str = None,
         status: str = None,
+        instance_state: str = None,
     ):
         self.node_id = node_id or Node.generate_node_id(ins)
         self.node_type = node_type or Node.generate_node_type(ins)
         # self.url = url or Node.generate_url(ins)
         self.status = status or Node.generate_status(ins)
+        self.instance_state = instance_state if instance_state is not None else Node.generate_mongo_instance_state(ins)
         super(Node, self).__init__()
 
 
