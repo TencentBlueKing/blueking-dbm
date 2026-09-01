@@ -31,10 +31,7 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
-	"time"
 
-	"dbm-services/common/dbha-v2/internal/probe/config"
-	"dbm-services/common/dbha-v2/pkg/probeconfig"
 	"dbm-services/common/dbha-v2/pkg/process"
 
 	"github.com/spf13/cobra"
@@ -171,101 +168,6 @@ func TestParseClearPorts(t *testing.T) {
 	}
 }
 
-func TestApplyClearPorts(t *testing.T) {
-	tests := []struct {
-		name     string
-		ports    []int
-		metadata []probeconfig.ProbeMetadataItem
-		want     []probeconfig.ProbeMetadataItem
-	}{
-		{
-			name:  "clears data port and keeps admin port",
-			ports: []int{20000},
-			metadata: []probeconfig.ProbeMetadataItem{
-				{IP: "127.0.0.1", Port: 20000, AdminPort: 4001},
-			},
-			want: []probeconfig.ProbeMetadataItem{
-				{IP: "127.0.0.1", Port: 0, AdminPort: 4001},
-			},
-		},
-		{
-			name:  "clears admin port and keeps data port",
-			ports: []int{4001},
-			metadata: []probeconfig.ProbeMetadataItem{
-				{IP: "127.0.0.1", Port: 20000, AdminPort: 4001},
-			},
-			want: []probeconfig.ProbeMetadataItem{
-				{IP: "127.0.0.1", Port: 20000, AdminPort: 0},
-			},
-		},
-		{
-			name:  "clears the same port on both fields",
-			ports: []int{20000},
-			metadata: []probeconfig.ProbeMetadataItem{
-				{IP: "127.0.0.1", Port: 20000, AdminPort: 20000},
-			},
-			want: []probeconfig.ProbeMetadataItem{
-				{IP: "127.0.0.1", Port: 0, AdminPort: 0},
-			},
-		},
-		{
-			name:  "clears across several items",
-			ports: []int{20000, 4001},
-			metadata: []probeconfig.ProbeMetadataItem{
-				{IP: "127.0.0.1", Port: 20000, AdminPort: 0},
-				{IP: "127.0.0.1", Port: 20001, AdminPort: 4001},
-			},
-			want: []probeconfig.ProbeMetadataItem{
-				{IP: "127.0.0.1", Port: 0, AdminPort: 0},
-				{IP: "127.0.0.1", Port: 20001, AdminPort: 0},
-			},
-		},
-		{
-			name:  "port not present is a no-op",
-			ports: []int{30000},
-			metadata: []probeconfig.ProbeMetadataItem{
-				{IP: "127.0.0.1", Port: 20000, AdminPort: 4001},
-			},
-			want: []probeconfig.ProbeMetadataItem{
-				{IP: "127.0.0.1", Port: 20000, AdminPort: 4001},
-			},
-		},
-		{
-			name:  "empty port list is a no-op",
-			ports: nil,
-			metadata: []probeconfig.ProbeMetadataItem{
-				{IP: "127.0.0.1", Port: 20000, AdminPort: 4001},
-			},
-			want: []probeconfig.ProbeMetadataItem{
-				{IP: "127.0.0.1", Port: 20000, AdminPort: 4001},
-			},
-		},
-		{
-			name:     "empty metadata is a no-op",
-			ports:    []int{20000},
-			metadata: nil,
-			want:     nil,
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			applyClearPorts(tt.metadata, tt.ports)
-			for i := range tt.want {
-				if tt.metadata[i].Port != tt.want[i].Port {
-					t.Fatalf("metadata[%d].Port: %d, want: %d", i, tt.metadata[i].Port, tt.want[i].Port)
-				}
-				if tt.metadata[i].AdminPort != tt.want[i].AdminPort {
-					t.Fatalf("metadata[%d].AdminPort: %d, want: %d", i, tt.metadata[i].AdminPort, tt.want[i].AdminPort)
-				}
-				if tt.metadata[i].IP != tt.want[i].IP {
-					t.Fatalf("metadata[%d].IP: %q, want: %q", i, tt.metadata[i].IP, tt.want[i].IP)
-				}
-			}
-		})
-	}
-}
-
 // TestValidateGenConfigFlags covers the checks that must fail before gen-config dials
 // admin, so an unusable invocation never touches the network.
 func TestValidateGenConfigFlags(t *testing.T) {
@@ -338,22 +240,13 @@ func TestChdirInstallRootIfPackaged_RestoresCallerCWD(t *testing.T) {
 	chdirInstallRootIfPackaged()
 }
 
-func TestWriteOrPrintProbeYAML_ReloadRequiresRunning(t *testing.T) {
-	saved := config.Cfg
-	t.Cleanup(func() { config.Apply(saved) })
-	withPidFile := saved
-	withPidFile.PidFile = filepath.Join(t.TempDir(), "missing.pid")
-	config.Apply(withPidFile)
-
-	out := filepath.Join(t.TempDir(), "probe.yaml")
+func TestReloadIfRunning_RequiresRunning(t *testing.T) {
+	pidFile := filepath.Join(t.TempDir(), "missing.pid")
 	cmd := &cobra.Command{}
 	var buf bytes.Buffer
 	cmd.SetOut(&buf)
-	err := writeOrPrintProbeYAML(cmd, out, "name: probe\n", time.Second, true)
+	err := process.ReloadIfRunning(cmd, pidFile, "probe")
 	if !errors.Is(err, process.ErrProcessNotRunning) {
 		t.Fatalf("err: %v, want ErrProcessNotRunning", err)
-	}
-	if _, statErr := os.Stat(out); statErr != nil {
-		t.Fatalf("yaml should remain after reload failure, errmsg: %s", statErr)
 	}
 }

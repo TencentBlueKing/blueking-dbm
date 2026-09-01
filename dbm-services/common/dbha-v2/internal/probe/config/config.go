@@ -194,15 +194,16 @@ type LogConfig struct {
 
 // Configuration receiver's configuration
 type Configuration struct {
-	Name      string          `yaml:"name"      mapstructure:"name"`
-	Version   string          `yaml:"version"   mapstructure:"version"`
-	ServiceID string          `yaml:"serviceID" mapstructure:"serviceID"`
-	PidFile   string          `yaml:"pidFile"   mapstructure:"pidFile"`
-	Reporter  *ReporterConfig `yaml:"reporter"  mapstructure:"reporter"`
-	Client    ClientConfig    `yaml:"client"    mapstructure:"client"`
-	Admin     AdminConfig     `yaml:"admin"     mapstructure:"admin"`
-	Harvester HarvesterConfig `yaml:"harvester" mapstructure:"harvester"`
-	Log       LogConfig       `yaml:"log"       mapstructure:"log"`
+	Name       string          `yaml:"name"       mapstructure:"name"`
+	Version    string          `yaml:"version"    mapstructure:"version"`
+	ServiceID  string          `yaml:"serviceID"  mapstructure:"serviceID"`
+	PidFile    string          `yaml:"pidFile"    mapstructure:"pidFile"`
+	Reporter   *ReporterConfig `yaml:"reporter"   mapstructure:"reporter"`
+	Client     ClientConfig    `yaml:"client"     mapstructure:"client"`
+	Admin      AdminConfig     `yaml:"admin"      mapstructure:"admin"`
+	Harvester  HarvesterConfig `yaml:"harvester"  mapstructure:"harvester"`
+	Log        LogConfig       `yaml:"log"        mapstructure:"log"`
+	ClearPorts []int           `yaml:"clearPorts" mapstructure:"clearPorts"`
 }
 
 // Parse reads probe configuration from path without mutating the package-level Cfg

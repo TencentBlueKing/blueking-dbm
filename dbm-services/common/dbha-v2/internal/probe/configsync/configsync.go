@@ -25,9 +25,10 @@
 // Package configsync fetches probe configuration from admin and renders it to YAML.
 //
 // It holds the part of that flow shared by the gen-config command and the probe's periodic
-// sync, and deliberately knows about neither. CLI concerns such as --clear-port stay in the
-// command; scheduling, file locking and hot reload stay in the probe. Keeping the shared part
-// here is what lets the running probe reuse it without importing the command package.
+// sync, and deliberately knows about neither. Locally owned fields, including persisted
+// clearPorts, are injected through config.LocalFields. Scheduling, file locking and hot reload
+// stay in the probe. Keeping the shared part here is what lets the running probe reuse it
+// without importing the command package.
 package configsync
 
 import (

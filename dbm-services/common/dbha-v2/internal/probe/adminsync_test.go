@@ -28,11 +28,13 @@ import (
 	"context"
 	"os"
 	"path/filepath"
+	"reflect"
 	"strings"
 	"testing"
 	"time"
 
 	"dbm-services/common/dbha-v2/internal/probe/config"
+	"dbm-services/common/dbha-v2/internal/probe/configsync"
 	"dbm-services/common/dbha-v2/pkg/probeconfig"
 	"dbm-services/common/dbha-v2/pkg/process"
 	"dbm-services/common/dbha-v2/pkg/storage/haprobe"
@@ -98,7 +100,7 @@ func TestReconcileConfigFile_WritesAndConverges(t *testing.T) {
 	restoreCfg(t)
 	p := syncProbe(t, "name: probe\n")
 
-	changed, err := p.reconcileConfigFile(syncPayload(3306))
+	changed, err := reconcile(t, p, syncPayload(3306))
 	if err != nil {
 		t.Fatalf("first round failed, errmsg: %s", err)
 	}
@@ -109,7 +111,7 @@ func TestReconcileConfigFile_WritesAndConverges(t *testing.T) {
 		t.Fatal("config does not contain the port admin reported")
 	}
 
-	changed, err = p.reconcileConfigFile(syncPayload(3306))
+	changed, err = reconcile(t, p, syncPayload(3306))
 	if err != nil {
 		t.Fatalf("second round failed, errmsg: %s", err)
 	}
@@ -125,7 +127,7 @@ func TestReconcileConfigFile_PreservesCommentsWhenUnchanged(t *testing.T) {
 	restoreCfg(t)
 	p := syncProbe(t, "name: probe\n")
 
-	if _, err := p.reconcileConfigFile(syncPayload(3306)); err != nil {
+	if _, err := reconcile(t, p, syncPayload(3306)); err != nil {
 		t.Fatalf("seed round failed, errmsg: %s", err)
 	}
 
@@ -134,7 +136,7 @@ func TestReconcileConfigFile_PreservesCommentsWhenUnchanged(t *testing.T) {
 		t.Fatalf("annotate config failed, errmsg: %s", err)
 	}
 
-	changed, err := p.reconcileConfigFile(syncPayload(3306))
+	changed, err := reconcile(t, p, syncPayload(3306))
 	if err != nil {
 		t.Fatalf("round failed, errmsg: %s", err)
 	}
@@ -160,7 +162,7 @@ func TestReconcileConfigFile_KeepsLocalFieldsFromDisk(t *testing.T) {
 	p := syncProbe(t, "name: probe\nserviceID: edited-on-disk\nadmin:\n"+
 		"  endpoints: [\"127.0.0.1:19001\"]\n  syncInterval: 30s\n")
 
-	if _, err := p.reconcileConfigFile(syncPayload(3306)); err != nil {
+	if _, err := reconcile(t, p, syncPayload(3306)); err != nil {
 		t.Fatalf("round failed, errmsg: %s", err)
 	}
 
@@ -183,7 +185,7 @@ func TestReconcileConfigFile_RejectsUnparsableRendering(t *testing.T) {
 	restoreCfg(t)
 	p := syncProbe(t, "name: probe\n")
 
-	if _, err := p.reconcileConfigFile(syncPayload(3306)); err != nil {
+	if _, err := reconcile(t, p, syncPayload(3306)); err != nil {
 		t.Fatalf("seed round failed, errmsg: %s", err)
 	}
 	before := readFile(t, p.configPath)
@@ -191,7 +193,7 @@ func TestReconcileConfigFile_RejectsUnparsableRendering(t *testing.T) {
 	broken := syncPayload(3307)
 	broken.MySQL.Interval = ""
 
-	changed, err := p.reconcileConfigFile(broken)
+	changed, err := reconcile(t, p, broken)
 	if err == nil {
 		t.Fatal("expected an unparsable rendering to be rejected")
 	}
@@ -210,7 +212,7 @@ func TestReconcileConfigFile_HealsUnparsableFile(t *testing.T) {
 	restoreCfg(t)
 	p := syncProbe(t, "name: probe\n  broken-indent: true\n")
 
-	changed, err := p.reconcileConfigFile(syncPayload(3306))
+	changed, err := reconcile(t, p, syncPayload(3306))
 	if err != nil {
 		t.Fatalf("round failed, errmsg: %s", err)
 	}
@@ -245,7 +247,7 @@ func TestReconcileConfigFile_TakesTheConfigLock(t *testing.T) {
 
 	done := make(chan error, 1)
 	go func() {
-		_, syncErr := p.reconcileConfigFile(syncPayload(3306))
+		_, syncErr := reconcile(t, p, syncPayload(3306))
 		done <- syncErr
 	}()
 
@@ -269,12 +271,12 @@ func TestSyncOnce_RequestsReloadOnlyOnChange(t *testing.T) {
 	restoreCfg(t)
 	p := syncProbe(t, "name: probe\n")
 
-	if _, err := p.reconcileConfigFile(syncPayload(3306)); err != nil {
+	if _, err := reconcile(t, p, syncPayload(3306)); err != nil {
 		t.Fatalf("seed round failed, errmsg: %s", err)
 	}
 	drainReload(p)
 
-	if _, err := p.reconcileConfigFile(syncPayload(3306)); err != nil {
+	if _, err := reconcile(t, p, syncPayload(3306)); err != nil {
 		t.Fatalf("round failed, errmsg: %s", err)
 	}
 	select {
@@ -283,7 +285,7 @@ func TestSyncOnce_RequestsReloadOnlyOnChange(t *testing.T) {
 	default:
 	}
 
-	changed, err := p.reconcileConfigFile(syncPayload(3306, 3307))
+	changed, err := reconcile(t, p, syncPayload(3306, 3307))
 	if err != nil {
 		t.Fatalf("round failed, errmsg: %s", err)
 	}
@@ -315,6 +317,136 @@ func drainReload(p *Probe) {
 	select {
 	case <-p.reloadC:
 	default:
+	}
+}
+
+func reconcile(t *testing.T, p *Probe, payload probeconfig.ProbeConfigPayload) (bool, error) {
+	t.Helper()
+	admin := config.AdminConfig{}
+	if disk, err := config.Parse(p.configPath); err == nil {
+		admin = disk.Admin
+	}
+	return p.reconcileConfigFile(payload, admin)
+}
+
+func TestReconcileConfigFile_SkipsWriteWhenPullParamsDiverge(t *testing.T) {
+	restoreCfg(t)
+	p := syncProbe(t, "name: probe\nadmin:\n  endpoints: [\"127.0.0.1:19001\"]\n"+
+		"  bkCloudID: 5\n  localIP: 127.0.0.1\n  syncInterval: 30s\n")
+	before := readFile(t, p.configPath)
+
+	changed, err := p.reconcileConfigFile(syncPayload(3306), config.AdminConfig{
+		Endpoints: []string{"127.0.0.1:19002"},
+		BkCloudID: 5,
+		LocalIP:   "127.0.0.1",
+	})
+	if err != nil {
+		t.Fatalf("round failed, errmsg: %s", err)
+	}
+	if changed {
+		t.Fatal("divergent pull params must not rewrite the file")
+	}
+	if readFile(t, p.configPath) != before {
+		t.Fatal("file was rewritten despite divergent pull params")
+	}
+	select {
+	case <-p.reloadC:
+	default:
+		t.Fatal("divergent pull params should request a reload")
+	}
+}
+
+func TestReconcileConfigFile_HealsEvenIfMemoryAdminDiffers(t *testing.T) {
+	restoreCfg(t)
+	p := syncProbe(t, "name: probe\n  broken-indent: true\n")
+
+	changed, err := p.reconcileConfigFile(syncPayload(3306), config.AdminConfig{
+		Endpoints: []string{"127.0.0.1:19002"},
+		BkCloudID: 9,
+		LocalIP:   "127.0.0.1",
+	})
+	if err != nil {
+		t.Fatalf("round failed, errmsg: %s", err)
+	}
+	if !changed {
+		t.Fatal("a broken config file should have been rewritten")
+	}
+	if _, err := config.Parse(p.configPath); err != nil {
+		t.Fatalf("rewritten config still does not parse, errmsg: %s", err)
+	}
+}
+
+func TestReconcileConfigFile_AppliesPersistedClearPorts(t *testing.T) {
+	restoreCfg(t)
+	p := syncProbe(t, "name: probe\nclearPorts: [3306]\nadmin:\n"+
+		"  endpoints: [\"127.0.0.1:19001\"]\n  localIP: 127.0.0.1\n  syncInterval: 30s\n")
+
+	changed, err := reconcile(t, p, syncPayload(3306, 3307))
+	if err != nil {
+		t.Fatalf("first round failed, errmsg: %s", err)
+	}
+	if !changed {
+		t.Fatal("first round should have written the config")
+	}
+	body := readFile(t, p.configPath)
+	if !strings.Contains(body, "clearPorts:") {
+		t.Fatal("expected persisted clearPorts")
+	}
+	parsed, err := config.Parse(p.configPath)
+	if err != nil {
+		t.Fatalf("parse failed, errmsg: %s", err)
+	}
+	if !reflect.DeepEqual(parsed.ClearPorts, []int{3306}) {
+		t.Errorf("clearPorts: %v", parsed.ClearPorts)
+	}
+	if parsed.Harvester.MySql == nil || len(parsed.Harvester.MySql.Endpoints) == 0 {
+		t.Fatal("expected remaining mysql endpoint")
+	}
+	for _, ep := range parsed.Harvester.MySql.Endpoints {
+		for _, port := range ep.Ports {
+			if port == "3306" {
+				t.Fatal("cleared port 3306 still present")
+			}
+		}
+	}
+
+	changed, err = reconcile(t, p, syncPayload(3306, 3307))
+	if err != nil {
+		t.Fatalf("second round failed, errmsg: %s", err)
+	}
+	if changed {
+		t.Fatal("clearPorts must make gen-config and sync converge")
+	}
+}
+
+// TestReconcileConfigFile_AgreesWithGenConfigOutput closes the cross-entry half of the convergence
+// argument. The file is produced the way gen-config's locked stage produces it: same payload, same
+// LocalFields. Sync must then find nothing to do, or the two writers would take turns rewriting
+// the harvester on every cycle.
+func TestReconcileConfigFile_AgreesWithGenConfigOutput(t *testing.T) {
+	restoreCfg(t)
+	p := syncProbe(t, "name: probe\nclearPorts: [3307]\npidFile: /tmp/custom/probe.pid\nadmin:\n"+
+		"  endpoints: [\"127.0.0.1:19001\"]\n  localIP: 127.0.0.1\n  syncInterval: 30s\n")
+
+	local, err := config.Parse(p.configPath)
+	if err != nil {
+		t.Fatalf("parse seed failed, errmsg: %s", err)
+	}
+	payload := syncPayload(3306, 3307)
+	rendered, err := configsync.Render(payload, config.LocalFields(local)...)
+	if err != nil {
+		t.Fatalf("gen-config style render failed, errmsg: %s", err)
+	}
+	if err := os.WriteFile(p.configPath, []byte(rendered), 0o644); err != nil {
+		t.Fatalf("write failed, errmsg: %s", err)
+	}
+
+	changed, err := reconcile(t, p, payload)
+	if err != nil {
+		t.Fatalf("round failed, errmsg: %s", err)
+	}
+	if changed {
+		t.Fatalf("sync disagreed with gen-config output, file:\n%s", readFile(t, p.configPath))
 	}
 }
 

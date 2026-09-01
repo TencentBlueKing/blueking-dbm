@@ -119,9 +119,24 @@ echo "gen-config --clear-port 13306" | tee -a "$RESULT"
 python3 - "$CLEARED" <<'PY'
 import sys
 from pathlib import Path
+try:
+    import yaml
+except ImportError:
+    yaml = None
 text = Path(sys.argv[1]).read_text()
-if "13306" in text:
-    raise SystemExit("FAIL clear-port left 13306 in yaml")
+if yaml is None:
+    # Fallback: harvester section must not mention 13306; clearPorts may.
+    harvester = text.split("harvester:", 1)[-1].split("\nlog:", 1)[0]
+    if "13306" in harvester:
+        raise SystemExit("FAIL clear-port left 13306 in harvester")
+else:
+    doc = yaml.safe_load(text)
+    if doc.get("clearPorts") != [13306]:
+        raise SystemExit("FAIL clearPorts not persisted: %r" % (doc.get("clearPorts"),))
+    mysql = ((doc.get("harvester") or {}).get("mysql") or {})
+    for ep in mysql.get("endpoints") or []:
+        if "13306" in (ep.get("ports") or []) or "13306" in (ep.get("adminPorts") or []):
+            raise SystemExit("FAIL clear-port left 13306 in mysql endpoints")
 if "16379" not in text:
     raise SystemExit("FAIL clear-port dropped redis port")
 print("PASS clear-port dropped mysql data port only")
@@ -138,10 +153,30 @@ echo "gen-config --clear-port 13306,10000;16379" | tee -a "$RESULT"
 python3 - "$CLEARED_MULTI" <<'PY'
 import sys
 from pathlib import Path
+try:
+    import yaml
+except ImportError:
+    yaml = None
 text = Path(sys.argv[1]).read_text()
-for port in ("13306", "10000", "16379"):
-    if port in text:
-        raise SystemExit(f"FAIL multi clear-port left {port} in yaml")
+cleared = ("13306", "10000", "16379")
+if yaml is None:
+    harvester = text.split("harvester:", 1)[-1].split("\nlog:", 1)[0]
+    for port in cleared:
+        if port in harvester:
+            raise SystemExit("FAIL multi clear-port left %s in harvester" % port)
+else:
+    doc = yaml.safe_load(text)
+    if sorted(doc.get("clearPorts") or []) != [10000, 13306, 16379]:
+        raise SystemExit("FAIL clearPorts not persisted: %r" % (doc.get("clearPorts"),))
+    hv = doc.get("harvester") or {}
+    for block in hv.values():
+        if not isinstance(block, dict):
+            continue
+        for ep in block.get("endpoints") or []:
+            ports = list(ep.get("ports") or []) + list(ep.get("adminPorts") or [])
+            for port in cleared:
+                if port in ports:
+                    raise SystemExit("FAIL multi clear-port left %s in endpoints" % port)
 if "15306" not in text:
     raise SystemExit("FAIL multi clear-port dropped proxy admin port 15306")
 if "mysqlProxyAdmin" not in text:
@@ -229,8 +264,9 @@ raise SystemExit("FAIL no new reports after reload")
 PY
 
 # Independent periodic sync (plan A-9): does not depend on receiver reporting. Harvest
-# above stays valid because gen-config writes no admin block and -patch-yaml forces
-# syncInterval to 0s if an admin block is ever present.
+# Harvest above stays valid because -patch-yaml forces syncInterval to 0s when an admin
+# block is present, and gen-config now writes that block on the very first run (rewriting an
+# existing probe.yaml preserves or heals it).
 echo "periodic admin sync" | tee -a "$RESULT"
 python3 - <<'PY'
 import json, urllib.request
@@ -262,17 +298,37 @@ from pathlib import Path
 
 path = Path(__import__("sys").argv[1])
 text = path.read_text()
-if "\nadmin:\n" in text:
-    raise SystemExit("FAIL harvest path unexpectedly wrote an admin block")
 block = (
-    "\nadmin:\n"
+    "admin:\n"
     '  endpoints: ["127.0.0.1:19001"]\n'
     "  bkCloudID: 0\n"
     '  localIP: "127.0.0.1"\n'
     "  syncInterval: 10s\n"
 )
-path.write_text(text.replace("\nharvester:\n", block + "\nharvester:\n", 1))
-print("PASS admin sync block added to probe.yaml")
+
+def replace_top_level(doc, key, replacement):
+    lines = doc.splitlines(keepends=True)
+    start = None
+    for i, line in enumerate(lines):
+        if line.startswith(key + ":"):
+            start = i
+            break
+    if start is None:
+        return None
+    end = len(lines)
+    for j in range(start + 1, len(lines)):
+        if lines[j] and not lines[j].startswith(" ") and not lines[j].startswith("\t"):
+            end = j
+            break
+    return "".join(lines[:start]) + replacement + "".join(lines[end:])
+
+updated = replace_top_level(text, "admin", block)
+if updated is None:
+    if "\nharvester:\n" not in text:
+        raise SystemExit("FAIL cannot insert admin block, harvester missing")
+    updated = text.replace("\nharvester:\n", "\n" + block + "harvester:\n", 1)
+path.write_text(updated)
+print("PASS admin sync block set on probe.yaml")
 PY
 
 sync_before=$(curl -fsS "$HTTP/stats" | python3 -c "import json,sys; print(json.load(sys.stdin)['get_probe_config'])")

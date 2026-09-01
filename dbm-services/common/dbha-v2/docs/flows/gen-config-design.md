@@ -17,10 +17,10 @@
 | `-o` / `--output` | string | 空 | 输出文件路径；为空则打印到 stdout |
 | `--timeout` | duration | `30s` | 拉取 Admin 配置的总超时，非正值回落默认值 |
 | `--lock-timeout` | duration | `10s` | 等待目标文件锁的超时，非正值回落默认值 |
-| `--clear-port` | string | 空 | 从采集范围中剔除的端口，逗号或分号分隔 |
+| `--clear-port` | string | 空 | 持久化到 `clearPorts` 的采集排除端口，逗号或分号分隔；显式传空串表示清空 |
 | `--reload` | bool | `false` | 写完配置后向运行中的 probe 发送 reload 信号 |
 
-`--clear-port` 与 `--reload` 不传时，命令行为与引入这两个 flag 之前完全一致。
+未传 `--clear-port` 时沿用文件里已有的 `clearPorts`；目标文件不存在时与引入该 flag 之前一样不裁剪。`--admin-endpoints` 是必填的，必须一次写全所有冗余地址，未列出的地址会从文件中消失。
 
 典型用法：
 
@@ -35,19 +35,24 @@ dbha-probe gen-config --admin-endpoints 127.0.0.1:19001 -o etc/probe.yaml --relo
 
 参数校验刻意排在网络调用之前：非法端口或缺少 `-o` 的调用不应该先去连 Admin。
 
+写已有文件时分三阶段：锁外 best-effort 读文件并决议参数 → 用决议参数 fetch → 持锁再读、校验基线、带 `LocalFields` 渲染并 `WriteFileLocked`。stdout 与新建文件只注入 `clearPorts` 与 admin 块两项，其余本机字段不注入。
+
+决议规则是**显式命令行 > 文件已有值 > 探测或默认值**。`--cloud-id` / `--clear-port` 未 `Changed` 时沿用文件；`--local-ip` 传空串等同未传（部署脚本常从可能未设置的变量里取值，拿空 IP 去问 Admin 只会得到 `ErrNoData`）；`syncInterval` 没有对应 flag，始终继承文件。拉取用的 `endpoints` / `bkCloudID` / `localIP` 与写回文件的 admin 块必须同源，否则周期同步会按另一组参数再拉一次并来回改写 harvester。
+
+fetch 期间若文件的 admin 三字段或 `clearPorts` 被另一个写入者改过，gen-config 放弃本次写入并以非 0 退出，提示重试。不在锁内重新决议，以免打破与已完成 fetch 的同源关系。
+
 ```mermaid
 flowchart TD
   A[读取 flag] --> B{admin-endpoints 为空?}
   B -- 是 --> E1[报错退出 1]
   B -- 否 --> C{clear-port 合法?<br/>reload 是否有 -o?}
   C -- 否 --> E1
-  C -- 是 --> D[解析 local-ip]
+  C -- 是 --> D[决议 cloud-id / local-ip / clearPorts]
   D --> F[gRPC 拉取 ProbeConfigPayload]
-  F --> G[applyClearPorts 置零命中端口]
-  G --> H[GenProbeYAML 渲染]
+  F --> H[持锁读文件、校验基线、LocalFields 渲染]
   H --> I{有 -o?}
   I -- 否 --> J[打印到 stdout]
-  I -- 是 --> K[WriteFileWithLock 加锁原子写]
+  I -- 是 --> K[WriteFileLocked 原子写]
   K --> L[打印 Config written to]
   L --> M{--reload?}
   M -- 否 --> N[退出 0]
@@ -108,9 +113,7 @@ flowchart TD
 
 `WriteFileWithLock` 拆成两层：外层负责取锁，内层 `WriteFileLocked` 假定调用方已持锁。
 
-拆分是为了周期同步（见 [config-sync.md](config-sync.md) §5）。它需要把「读文件 → 渲染 → 比较 → 写文件」整段放在同一次持锁里：如果读和写各自加一次锁，中间的空档足够一次人工 `gen-config` 落地，然后这一轮会拿着过期的读取结果把它悄悄改回去。锁路径由 `LockPathFor` 统一解析（含符号链接），保证两个入口用的是同一把锁。
-
-`gen-config` 仍走外层，行为不变。同一 goroutine 里嵌套调用外层会自锁超时，这是有意的失败而非死锁。
+拆分是为了周期同步（见 [config-sync.md](config-sync.md) §5）以及 `gen-config` 写已有文件：两者都需要把「读文件 → 渲染 → 比较 → 写文件」整段放在同一次持锁里。锁路径由 `LockPathFor` 统一解析（含符号链接），保证两个入口用的是同一把锁。同一 goroutine 里嵌套调用外层会自锁超时，这是有意的失败而非死锁，所以持锁路径必须走 `WriteFileLocked`。
 
 ## 4. --clear-port：从采集范围剔除端口
 
@@ -141,21 +144,17 @@ flowchart TD
 
 ### 4.2 过滤语义
 
-命中的端口在元数据里被**置 0**，而不是删除整条记录：
+命中的端口在**渲染后的 harvester** 上剔除，并通过 `clearPorts` 写回文件。`WithClearPorts` 是 `GenOption`，周期同步经 `LocalFields` 自动应用同一份列表，两个入口对同一 payload 产生相同输出。
 
-```go
-func applyClearPorts(metadata []probeconfig.ProbeMetadataItem, ports []int)
-```
-
-同一条 `ProbeMetadataItem` 可能同时带数据端口 `Port` 和管理端口 `AdminPort`。只剔除其中一个时，另一个必须保留，因此不能整条删除。数据端口和管理端口都会被检查，命中哪个就清哪个。
-
-置 0 能生效是因为渲染侧已有的规则：[genconfig.go](../../internal/probe/config/genconfig.go) 的分组逻辑本来就丢弃 `Port == 0` 和 `AdminPort == 0` 的条目，两端都为空的 endpoint 会被整条跳过。所以被清掉的端口不会以任何形式出现在 YAML 里，也无需修改 `GenProbeYAML` 的签名。
+同一条 endpoint 可能同时带 `Ports` 和 `AdminPorts`。只剔除其中一个时，另一个必须保留；两者都被清掉则整条 endpoint 删除。某类 harvester 的 endpoint 全部删光后，对应块指针置 nil，YAML 不再输出该块。
 
 payload 里本来就没有的端口静默忽略，不报错——批量下发同一条命令到多台机器时，端口只存在于其中一部分机器上是正常的。
 
 ### 4.3 连带行为
 
-mysql-proxy 有一条既有规则：**没有管理端口的 endpoint 整条跳过**，包括它剩下的数据端口。因此用 `--clear-port` 清掉某个 proxy 的唯一管理端口时，该 proxy 的数据端口也会一并消失。这是渲染侧的原有逻辑，本设计未做改动，但使用时需要知道。
+mysql-proxy 有一条既有规则：**没有管理端口的 endpoint 整条跳过**，包括它剩下的数据端口。因此用 `--clear-port` 清掉某个 proxy 的唯一管理端口时，该 proxy 的数据端口也会一并消失。
+
+改成渲染后剔除之后，这条规则不再由分组逻辑自动兜住——分组跑在未裁剪的 payload 上，那时管理端口还在。`dropOrphanMysqlProxyData` 显式重放它：先记下裁剪前带管理端口的 endpoint 身份，裁剪后再看谁的管理端口全没了，把这些身份对应的数据端口一并删掉。管理端口一般在 `mysqlProxyAdmin` 块里，但 payload 缺 proxy-admin 凭据时 `GenProbeYAML` 会把它们并进 `mysql` 块，所以两个块都要扫，否则旧版 Admin 下会漏删。新旧实现的等价性由 `TestWithClearPorts_MatchesLegacyZeroing` 的表格守着，缺凭据的回退路径也在表内。
 
 清空某类 harvester 的全部端口后，对应的 `harvester.mysql` / `harvester.redis` 块不会输出，这同样是既有逻辑。
 
@@ -172,9 +171,13 @@ mysql-proxy 有一条既有规则：**没有管理端口的 endpoint 整条跳�
 需要区分两类字段：
 
 - **Admin 拥有**：`reporter`（GSE 默认块）、`harvester`。由 payload 决定。
-- **本机拥有**：`version`、`serviceID`、`pidFile`、`log`、`client`、`admin`、`reporter.bkCloudID`。payload 里没有，必须由调用方通过 option 注入，否则渲染时会静默消失。
+- **本机拥有**：`version`、`serviceID`、`pidFile`、`log`、`client`、`admin`、`reporter.bkCloudID`、`clearPorts`。payload 里没有，必须由调用方通过 option 注入，否则渲染时会静默消失。
 
-`config.LocalFields(cfg)` 把一份 `Configuration` 里所有本机字段打包成 option 列表，是周期同步保留本机配置的唯一入口。
+`config.LocalFields(cfg)` 把一份 `Configuration` 里所有本机字段打包成 option 列表。周期同步和写已有文件的 `gen-config` 都走这一入口。
+
+新建文件与 stdout 走不了这一入口——没有文件可读，`LocalFields` 只能拿到 `defaultConfiguration()` 的默认值，把它们写进新文件等于把当前默认值钉死在配置里。这两条路径因此只注入两项有真实来源的字段：`clearPorts` 来自 `--clear-port`，admin 块来自本次决议出的 `endpoints` / `bkCloudID` / `localIP`，也就是刚刚用来请求 Admin 的那组参数，同源不变量成立。`syncInterval` 没有 flag 也无处继承，保持零值被 `omitempty` 省略，周期同步不会被首次部署意外打开。
+
+首次部署（目标文件不存在）必须写出 admin 块：漏掉它的话，`--admin-endpoints` 传了也不落盘，下一次 `gen-config` 无值可继承，周期同步永远开不起来，运维得把同一条命令跑两遍才能拿到完整配置。写出之后首跑与次跑的输出逐字节相同。
 
 `client` / `admin` 这两块通过镜像结构 `probeClientYAML` / `probeAdminYAML` 渲染，把 `time.Duration` 转成 `"30s"` 这类字符串——直接渲染 `time.Duration` 会得到纳秒整数，probe 解析不回来。镜像结构全字段 `omitempty`：零值 duration 渲染成空串而 viper 拒绝空串，所以整块为零值时必须一个键都不输出。镜像结构与源结构的字段一致性由反射测试守住，漏加字段会在测试而不是在生产中暴露。
 
@@ -197,7 +200,7 @@ mysql-proxy 有一条既有规则：**没有管理端口的 endpoint 整条跳�
 
 ### 6.3 刻意不调用 config.Load
 
-发信号时用的是包级默认的 `config.Cfg.PidFile`（`./pids/probe.pid`），与 `GenProbeYAML` 刚渲染出的字段一致，**不对刚写出的文件执行 `config.Load`**。
+发信号时用的是刚写出文件经 `config.ParseBytes` 得到的 `PidFile`，**不对刚写出的文件执行 `config.Load`**。本地配置若自定义了 `pidFile`，信号必须打到那个路径，而不是进程默认的 `./pids/probe.pid`。
 
 `config.Load` 仍会覆盖包级 `config.Cfg`，因此 CLI 发信号路径故意不调用它，以免改写当前进程（或单元测试）里已加载的配置；现有的 `ReloadCmdRunE` 本身也不做 Load，保持一致。`config.Load` 已改为委托 `config.Parse`（使用独立的 `viper.New()`），不再污染全局 viper。若只需只读校验刚写出的文件，应调用 `config.Parse`，它返回新配置且不修改 `config.Cfg`。
 
@@ -243,8 +246,8 @@ flag 帮助文案仍写作 "signal the running probe to reload it"：CLI 侧只�
 | 关注点 | 路径 |
 | --- | --- |
 | Flag 定义 | [internal/probe/command.go](../../internal/probe/command.go) |
-| 命令主流程 | [internal/probe/cmds/cmds.go](../../internal/probe/cmds/cmds.go)（`GenConfigCmdRunE`） |
-| 端口解析与过滤 | 同上（`parseClearPorts` / `applyClearPorts` / `validateGenConfigFlags`） |
+| 命令主流程 | [internal/probe/cmds/genconfig.go](../../internal/probe/cmds/genconfig.go)（`GenConfigCmdRunE`） |
+| 端口解析与过滤 | [internal/probe/cmds/cmds.go](../../internal/probe/cmds/cmds.go)（`parseClearPorts` / `validateGenConfigFlags`）、[internal/probe/config/genconfig.go](../../internal/probe/config/genconfig.go)（`WithClearPorts`） |
 | 加锁原子写 | [pkg/process/filelock.go](../../pkg/process/filelock.go)（`AcquireFileLock` / `LockPathFor` / `WriteFileWithLock` / `WriteFileLocked`） |
 | 平台相关：属主 | [pkg/process/fileowner_unix.go](../../pkg/process/fileowner_unix.go)、[fileowner_windows.go](../../pkg/process/fileowner_windows.go) |
 | 平台相关：目录 fsync | [pkg/process/dirsync_unix.go](../../pkg/process/dirsync_unix.go)、[dirsync_windows.go](../../pkg/process/dirsync_windows.go) |
@@ -260,8 +263,11 @@ flag 帮助文案仍写作 "signal the running probe to reload it"：CLI 侧只�
 - **配置文件旁边会多出一个 `.lock` 文件**，属于正常产物，不要清理脚本误删（删掉不会损坏数据，但会短暂失去互斥）。
 - **内容无变化时不刷新 `mtime`**。用 mtime 判断「配置是否更新过」的监控需要改用内容哈希。
 - **并发执行是安全的**，但会互相等待，最长等 `--lock-timeout`（默认 10s）。超时会报错退出 1，可按现场情况调大。
-- **`--clear-port` 只影响本次生成的文件**，不是持久开关。下次不带该 flag 执行时，被剔除的端口会重新出现。需要长期剔除应写进定时任务的命令行。
+- **`--clear-port` 会写入文件的 `clearPorts` 并长期生效**。周期同步应用同一份列表。恢复端口需显式 `--clear-port ""`（或 `--clear-port=`）。
+- **`--admin-endpoints` 必须一次传全所有地址**。命令行值覆盖文件里的列表。
 - **`--reload` / `dbha-probe reload` 会让运行中的 probe 热加载新配置**（见 §6.5）。配置确有变化时新世代会立刻采集一轮。不要高频触发「有变化」的 reload。
 - **打包安装下 `gen-config` 与 `reload` 会切到安装根目录**定位 pid 与相对 `-o`；`-o` 应与进程 `-c` 为同一文件。首次部署不要在进程启动前带 `--reload`。
 - **`Python` 侧的 `scripts/render_configs.py` 也会写 `probe.yaml`，但不参与这把锁**。两者并发不是常见运维场景，属于已知缺口。
-- **开了周期同步后，`probe.yaml` 会被后台改写**（见 [config-sync.md](config-sync.md) §5）。手工编辑 `reporter` / `harvester` 会在下一轮被改回 admin 的版本；改其余部分（含 `admin` 块本身）会被保留。同步与 `gen-config` 共用同一把锁，不会互相写坏，但会互相等待。
+- **在已部署机器上重跑 `render_configs.py` 会清掉 `clearPorts`**。模板 `etc/templates/probe.yaml` 里没有这个键，其余本机字段都由 rc 提供、属有意覆盖，只有排除端口是无源可依而被抹掉，下一轮同步会把端口加回采集范围。重新部署后需再执行一次 `gen-config --clear-port`。
+- **开了周期同步后，`probe.yaml` 会被后台改写**（见 [config-sync.md](config-sync.md) §5）。手工编辑 `reporter` / `harvester` 会在下一轮被改回 admin 的版本；改其余部分（含 `admin` 块、`clearPorts`）会被保留。同步与 `gen-config` 共用同一把锁，现在对同一 payload 收敛到同一份文件。
+- 文件里已有 `admin.localIP` 且未传 `--local-ip`（或传了空串）时不再自动探测。机器换 IP 后需显式 `--local-ip`，否则 admin 可能返回无数据。

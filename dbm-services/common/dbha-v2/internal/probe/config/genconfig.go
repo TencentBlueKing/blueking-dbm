@@ -149,8 +149,8 @@ type GenOption func(*probeYAML)
 
 // LocalFields returns the options that carry over every part of cfg that a rendered config
 // cannot derive from the admin payload: the probe's identity and version, its pid and log
-// settings, the gRPC client tuning, the reporter's cloud id, and the admin block it needs in
-// order to sync again next time.
+// settings, the gRPC client tuning, the reporter's cloud id, the ports it has been told to
+// drop, and the admin block it needs in order to sync again next time.
 //
 // It exists so the rule has one home. Rewriting a config file from an admin payload has to
 // preserve these, and a field added to Configuration that is not listed here would be silently
@@ -165,6 +165,7 @@ func LocalFields(cfg Configuration) []GenOption {
 		WithLog(cfg.Log),
 		WithClient(cfg.Client),
 		WithAdmin(cfg.Admin),
+		WithClearPorts(cfg.ClearPorts),
 	}
 	if cfg.Reporter != nil {
 		opts = append(opts, WithBkCloudID(cfg.Reporter.BkCloudID))
@@ -260,6 +261,164 @@ func WithAdmin(admin AdminConfig) GenOption {
 			SyncInterval: durationToYAML(admin.SyncInterval),
 		}
 	}
+}
+
+// WithClearPorts persists the operator's port exclusions and applies them to the rendered
+// harvester. An empty list is a no-op so configs that predate the field round-trip unchanged.
+//
+// Ports are sorted and deduplicated before writing so two writers that carry the same set
+// produce the same YAML bytes. Filtering happens after the payload has been rendered: that
+// keeps GenProbeYAML's signature stable and lets periodic sync reuse this option through
+// LocalFields instead of re-implementing the cut.
+func WithClearPorts(ports []int) GenOption {
+	return func(cfg *probeYAML) {
+		if len(ports) == 0 {
+			return
+		}
+		cfg.ClearPorts = normalizeClearPorts(ports)
+		dropClearedPorts(&cfg.Harvester, cfg.ClearPorts)
+	}
+}
+
+func normalizeClearPorts(ports []int) []int {
+	seen := make(map[int]struct{}, len(ports))
+	out := make([]int, 0, len(ports))
+	for _, port := range ports {
+		if port < 1 || port > 65535 {
+			continue
+		}
+		if _, ok := seen[port]; ok {
+			continue
+		}
+		seen[port] = struct{}{}
+		out = append(out, port)
+	}
+	sort.Ints(out)
+	return out
+}
+
+func dropClearedPorts(h *probeHarvesterYAML, ports []int) {
+	drop := make(map[string]struct{}, len(ports))
+	for _, port := range ports {
+		drop[strconv.Itoa(port)] = struct{}{}
+	}
+
+	proxyAdminBefore := mysqlProxyAdminOwners(h)
+	h.MySQL = filterMySQLHarvester(h.MySQL, drop)
+	h.MySQLProxyAdmin = filterMySQLHarvester(h.MySQLProxyAdmin, drop)
+	h.Redis = filterRedisHarvester(h.Redis, drop)
+	dropOrphanMysqlProxyData(h, proxyAdminBefore)
+}
+
+// mysqlProxyAdminOwners collects the identity of every mysql-proxy endpoint that still carries
+// admin ports. Both harvester blocks are scanned: admin ports normally live in the proxy-admin
+// block, but a payload without proxy-admin credentials makes GenProbeYAML merge them into the
+// mysql block instead, and the orphan rule has to hold on that path too.
+func mysqlProxyAdminOwners(h *probeHarvesterYAML) map[endpointKey]struct{} {
+	keys := make(map[endpointKey]struct{})
+	for _, block := range []*probeMySQLHarvesterYAML{h.MySQLProxyAdmin, h.MySQL} {
+		if block == nil {
+			continue
+		}
+		for _, ep := range block.Endpoints {
+			if len(ep.AdminPorts) == 0 {
+				continue
+			}
+			if !isMysqlProxyEndpoint(string(ep.ClusterType), string(ep.MachineType), string(ep.AccessLayer)) {
+				continue
+			}
+			keys[endpointIdentity(ep)] = struct{}{}
+		}
+	}
+	return keys
+}
+
+func endpointIdentity(ep DbEndpointConfig) endpointKey {
+	return endpointKey{
+		ip:           ep.Ip,
+		clusterType:  string(ep.ClusterType),
+		machineType:  string(ep.MachineType),
+		instanceRole: string(ep.InstanceRole),
+		accessLayer:  string(ep.AccessLayer),
+	}
+}
+
+// dropOrphanMysqlProxyData mirrors the grouping rule that a mysql-proxy endpoint without
+// admin ports is skipped entirely, including its data ports. Post-render filtering would
+// otherwise leave the data-port endpoint behind after the matching proxy-admin block is gone.
+func dropOrphanMysqlProxyData(h *probeHarvesterYAML, proxyAdminBefore map[endpointKey]struct{}) {
+	if h.MySQL == nil || len(proxyAdminBefore) == 0 {
+		return
+	}
+	remaining := mysqlProxyAdminOwners(h)
+	kept := h.MySQL.Endpoints[:0]
+	for _, ep := range h.MySQL.Endpoints {
+		if isMysqlProxyEndpoint(string(ep.ClusterType), string(ep.MachineType), string(ep.AccessLayer)) {
+			key := endpointIdentity(ep)
+			if _, had := proxyAdminBefore[key]; had {
+				if _, still := remaining[key]; !still {
+					continue
+				}
+			}
+		}
+		kept = append(kept, ep)
+	}
+	h.MySQL.Endpoints = kept
+	if len(h.MySQL.Endpoints) == 0 {
+		h.MySQL = nil
+	}
+}
+
+func filterMySQLHarvester(block *probeMySQLHarvesterYAML, drop map[string]struct{}) *probeMySQLHarvesterYAML {
+	if block == nil {
+		return nil
+	}
+	block.Endpoints = filterEndpoints(block.Endpoints, drop)
+	if len(block.Endpoints) == 0 {
+		return nil
+	}
+	return block
+}
+
+func filterRedisHarvester(block *probeRedisHarvesterYAML, drop map[string]struct{}) *probeRedisHarvesterYAML {
+	if block == nil {
+		return nil
+	}
+	block.Endpoints = filterEndpoints(block.Endpoints, drop)
+	if len(block.Endpoints) == 0 {
+		return nil
+	}
+	return block
+}
+
+func filterEndpoints(endpoints []DbEndpointConfig, drop map[string]struct{}) []DbEndpointConfig {
+	out := make([]DbEndpointConfig, 0, len(endpoints))
+	for _, ep := range endpoints {
+		ep.Ports = filterPortStrings(ep.Ports, drop)
+		ep.AdminPorts = filterPortStrings(ep.AdminPorts, drop)
+		if len(ep.Ports) == 0 && len(ep.AdminPorts) == 0 {
+			continue
+		}
+		out = append(out, ep)
+	}
+	return out
+}
+
+func filterPortStrings(ports []string, drop map[string]struct{}) []string {
+	if len(ports) == 0 {
+		return nil
+	}
+	out := make([]string, 0, len(ports))
+	for _, port := range ports {
+		if _, ok := drop[port]; ok {
+			continue
+		}
+		out = append(out, port)
+	}
+	if len(out) == 0 {
+		return nil
+	}
+	return out
 }
 
 // durationToYAML renders a duration the way the config file spells it. The zero value maps to

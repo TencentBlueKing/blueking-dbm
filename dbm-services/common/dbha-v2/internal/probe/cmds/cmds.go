@@ -26,7 +26,6 @@
 package cmds
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
 	"strconv"
@@ -35,12 +34,9 @@ import (
 	"unicode"
 
 	"dbm-services/common/dbha-v2/internal/probe/config"
-	"dbm-services/common/dbha-v2/internal/probe/configsync"
 	"dbm-services/common/dbha-v2/pkg/constant"
 	"dbm-services/common/dbha-v2/pkg/machine"
-	"dbm-services/common/dbha-v2/pkg/probeconfig"
 	"dbm-services/common/dbha-v2/pkg/process"
-	"dbm-services/common/dbha-v2/pkg/proto"
 	"dbm-services/common/dbha-v2/pkg/storage/haprobe"
 
 	"github.com/spf13/cobra"
@@ -190,92 +186,6 @@ func genConfigDuration(cmd *cobra.Command, name string, fallback time.Duration) 
 	return d
 }
 
-// fetchAndRenderProbeYAML is the gen-config path: fetch and render are shared with the probe's
-// periodic sync through configsync, while --clear-port is applied here because it is a
-// command-line concern the running probe has no notion of.
-func fetchAndRenderProbeYAML(
-	timeout time.Duration, cloudID uint64, localIP string, endpoints []string, clearPorts []int,
-) (string, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), timeout)
-	defer cancel()
-	req := &proto.ProbeConfigRequest{
-		BkCloudId:   cloudID,
-		Ip:          localIP,
-		ClientID:    "",
-		Version:     "",
-		UpdatedTime: 0,
-	}
-
-	payload, err := configsync.Fetch(ctx, endpoints, req)
-	if err != nil {
-		return "", err
-	}
-	applyClearPorts(payload.Metadata, clearPorts)
-
-	return configsync.Render(payload)
-}
-
-func writeOrPrintProbeYAML(
-	cmd *cobra.Command, outputPath, yamlStr string, lockTimeout time.Duration, reload bool,
-) error {
-	if outputPath == "" {
-		fmt.Fprint(cmd.OutOrStdout(), yamlStr)
-		return nil
-	}
-	// Skipping an unchanged file stays internal: this line is the output contract
-	// callers already had, so both paths must keep printing it.
-	if _, err := process.WriteFileWithLock(outputPath, []byte(yamlStr), lockTimeout); err != nil {
-		return fmt.Errorf("write config file: %w", err)
-	}
-	fmt.Fprintln(cmd.OutOrStdout(), "Config written to", outputPath)
-	if !reload {
-		return nil
-	}
-	// Deliberately not config.Load(outputPath): that would rewrite Cfg for the
-	// rest of this process. The default pid file matches what GenProbeYAML rendered.
-	return process.ReloadIfRunning(cmd, config.Cfg.PidFile, procName())
-}
-
-// GenConfigCmdRunE fetches probe metadata from admin, generates YAML locally, writes to file or stdout.
-func GenConfigCmdRunE(cmd *cobra.Command, args []string) error {
-	chdirInstallRootIfPackaged()
-	adminEndpointsStr, _ := cmd.Flags().GetString("admin-endpoints")
-	cloudID, _ := cmd.Flags().GetUint64("cloud-id")
-	localIP, _ := cmd.Flags().GetString("local-ip")
-	localIPInterface, _ := cmd.Flags().GetString("local-ip-interface")
-	outputPath, _ := cmd.Flags().GetString("output")
-	timeout := genConfigDuration(cmd, "timeout", DefaultGenConfigTimeout)
-	lockTimeout := genConfigDuration(cmd, "lock-timeout", DefaultGenConfigLockTimeout)
-	clearPortStr, _ := cmd.Flags().GetString("clear-port")
-	reload, _ := cmd.Flags().GetBool("reload")
-
-	if adminEndpointsStr == "" {
-		return fmt.Errorf("admin-endpoints is required")
-	}
-	clearPorts, err := validateGenConfigFlags(clearPortStr, outputPath, reload)
-	if err != nil {
-		return err
-	}
-	if localIP == "" {
-		resolved, err := resolveGenConfigLocalIP(localIPInterface, adminEndpointsStr)
-		if err != nil {
-			return err
-		}
-		localIP = resolved
-	}
-
-	endpoints := parseAdminEndpoints(adminEndpointsStr)
-	if len(endpoints) == 0 {
-		return fmt.Errorf("admin-endpoints has no valid address")
-	}
-
-	yamlStr, err := fetchAndRenderProbeYAML(timeout, cloudID, localIP, endpoints, clearPorts)
-	if err != nil {
-		return err
-	}
-	return writeOrPrintProbeYAML(cmd, outputPath, yamlStr, lockTimeout, reload)
-}
-
 // resolveGenConfigLocalIP picks a local IP for gen-config when --local-ip is unset.
 // It tries the named interface first, then falls back to physical-interface scan
 // and UDP route detection toward the first admin endpoint host.
@@ -307,7 +217,7 @@ func resolveGenConfigLocalIP(localIPInterface, adminEndpointsStr string) (string
 
 // validateGenConfigFlags checks the gen-config flag combinations that do not depend on
 // admin, so a bad invocation fails before any network call. It returns the parsed
-// --clear-port list for the caller to apply to the payload.
+// --clear-port list for the caller to persist and apply through LocalFields.
 func validateGenConfigFlags(clearPortStr, outputPath string, reload bool) ([]int, error) {
 	clearPorts, err := parseClearPorts(clearPortStr)
 	if err != nil {
@@ -354,30 +264,6 @@ func parseClearPorts(s string) ([]int, error) {
 		return nil, fmt.Errorf("clear-port has no valid port: %q", s)
 	}
 	return ports, nil
-}
-
-// applyClearPorts drops the given ports from the metadata by zeroing the matching
-// Port / AdminPort fields; GenProbeYAML already skips zero ports, so they never reach
-// the rendered config. Items are not removed outright because one entry can carry both
-// a data port and an admin port, and only the matching one may disappear.
-func applyClearPorts(metadata []probeconfig.ProbeMetadataItem, ports []int) {
-	if len(ports) == 0 {
-		return
-	}
-
-	cleared := make(map[int]struct{}, len(ports))
-	for _, port := range ports {
-		cleared[port] = struct{}{}
-	}
-
-	for i := range metadata {
-		if _, ok := cleared[metadata[i].Port]; ok {
-			metadata[i].Port = 0
-		}
-		if _, ok := cleared[metadata[i].AdminPort]; ok {
-			metadata[i].AdminPort = 0
-		}
-	}
 }
 
 func parseAdminEndpoints(s string) []string {

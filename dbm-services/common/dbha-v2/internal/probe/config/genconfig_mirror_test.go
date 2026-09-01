@@ -109,6 +109,25 @@ func TestMirrorStructsCoverSource(t *testing.T) {
 	assertMirrors(t, reflect.TypeOf(AdminConfig{}), reflect.TypeOf(probeAdminYAML{}))
 }
 
+// TestProbeYAMLCoversConfigurationKeys is the top-level counterpart of TestMirrorStructsCoverSource.
+// Nested mirrors can differ in Go type (durations become strings, structs become pointers) and
+// still be correct; this test only requires that every yaml key on Configuration exists on
+// probeYAML, so a newly added locally owned field cannot vanish from rendered output unnoticed.
+func TestProbeYAMLCoversConfigurationKeys(t *testing.T) {
+	sourceKeys := yamlKeys(t, reflect.TypeOf(Configuration{}))
+	mirrorKeys := yamlKeys(t, reflect.TypeOf(probeYAML{}))
+	for key := range sourceKeys {
+		if _, ok := mirrorKeys[key]; !ok {
+			t.Errorf("probeYAML is missing key %q from Configuration", key)
+		}
+	}
+	for key := range mirrorKeys {
+		if _, ok := sourceKeys[key]; !ok {
+			t.Errorf("probeYAML has key %q that Configuration does not define", key)
+		}
+	}
+}
+
 // TestLocalFields_SurviveRoundTrip is the end-to-end guarantee behind LocalFields: take a
 // configuration carrying every locally owned field, render it with an admin payload, parse the
 // result back, and every one of those fields must be unchanged. This is exactly what periodic
@@ -133,7 +152,8 @@ func TestLocalFields_SurviveRoundTrip(t *testing.T) {
 			LocalIP:      "127.0.0.1",
 			SyncInterval: 90 * time.Second,
 		},
-		Log: LogConfig{Path: "/tmp/custom/probe.log", Level: "debug", FileCount: 3, FileSize: 42},
+		Log:        LogConfig{Path: "/tmp/custom/probe.log", Level: "debug", FileCount: 3, FileSize: 42},
+		ClearPorts: []int{3307, 3306},
 	}
 
 	rendered, err := GenProbeYAML(newMirrorPayload(), LocalFields(local)...)
@@ -166,6 +186,9 @@ func TestLocalFields_SurviveRoundTrip(t *testing.T) {
 	if parsed.Reporter == nil || parsed.Reporter.BkCloudID != 7 {
 		t.Errorf("reporter bkCloudID lost, got: %+v", parsed.Reporter)
 	}
+	if !reflect.DeepEqual(parsed.ClearPorts, []int{3306, 3307}) {
+		t.Errorf("clearPorts lost or unsorted, got: %v", parsed.ClearPorts)
+	}
 }
 
 // TestLocalFields_TolerateEmptyLocalConfig covers the upgrade path: a config predating these
@@ -193,7 +216,8 @@ func TestLocalFields_TolerateEmptyLocalConfig(t *testing.T) {
 	if !parsed.Admin.IsZero() {
 		t.Errorf("no admin block was supplied, got: %+v", parsed.Admin)
 	}
-	if strings.Contains(rendered, "admin:") || strings.Contains(rendered, "client:") {
+	if strings.Contains(rendered, "admin:") || strings.Contains(rendered, "client:") ||
+		strings.Contains(rendered, "clearPorts:") {
 		t.Error("zero-valued local blocks should not appear in the rendered config")
 	}
 }
