@@ -76,6 +76,7 @@
         </TableColumn>
         <TableColumn
           col-key="backup_id"
+          ellipsis
           :title="t('备份 ID')"
           :width="260">
           <template #default="{ row }: { row: SqlserverBackupLogModel }">
