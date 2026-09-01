@@ -34,6 +34,30 @@ class SubmitBillRedisClusterApplyInputSerializer(serializers.Serializer):
     )
 
 
+class SubmitBillRedisInsApplyInputSerializer(serializers.Serializer):
+    bk_biz_id = serializers.IntegerField(help_text=_("业务 id, bk_biz_id"))
+    cluster_domain = serializers.CharField(help_text=_("参照部署参数的已有主从集群域名，格式为xx.xx.xx.db"))
+    new_cluster_name = serializers.CharField(help_text=_("新集群名（英文数字及连字符，不能与已有集群重名）"))
+    spec_id = serializers.IntegerField(
+        help_text=_("全新机器部署（资源池）时使用的机器规格id；当传入 master_ip 走追加部署模式时本参数忽略"),
+        required=False,
+        default=None,
+    )
+    keep_source_password = serializers.BooleanField(
+        help_text=_("新集群密码是否与源集群保持一致，默认 False（生成新随机密码）"),
+        default=False,
+        required=False,
+    )
+    master_ip = serializers.IPAddressField(
+        help_text=_(
+            "可选，指定cluster_domain集群下某个已有master的IP，在其所在主机对（该master及其对应slave）上" "追加部署新的redis主从实例（不占用新机器）；不传时默认使用资源池全新机器部署"
+        ),
+        required=False,
+        allow_null=True,
+        default=None,
+    )
+
+
 class SubmitBillRedisFullBackupInputSerializer(SubmitBillRedisBaseInputSerializer):
     backup_type = serializers.ChoiceField(
         choices=RedisBackupEnum.get_choices(), default=RedisBackupEnum.NORMAL_BACKUP, help_text=_("备份类型")

@@ -16,12 +16,14 @@ from itertools import chain
 
 from django.utils.translation import gettext_lazy as _
 
+from backend.components import DBConfigApi
+from backend.components.dbconfig.constants import FormatType, LevelName
 from backend.configuration.constants import DBPrivSecurityType
 from backend.configuration.handlers.password import DBPasswordHandler
 from backend.db_meta.enums import InstanceRole
 from backend.db_meta.enums.cluster_type import ClusterType
 from backend.db_meta.models import AppCache, Cluster, Spec, StorageInstanceTuple
-from backend.flow.consts import ClusterRoleEnum, RedisCapacityUpdateType
+from backend.flow.consts import DEFAULT_DB_MODULE_ID, ClusterRoleEnum, ConfigTypeEnum, RedisCapacityUpdateType
 from backend.flow.utils.base.payload_handler import PayloadHandler
 from backend.ticket.builders.common.base import IpSource
 from backend.ticket.constants import SwitchConfirmType, TicketType
@@ -168,6 +170,172 @@ def redis_cluster_apply(request, bk_biz_id, cluster_domain, new_cluster_name, ke
                 },
             },
         },
+    }
+    tk = Ticket.create_ticket(**ticket_param)
+    return {"bill_id": tk.pk, "bill_url": tk.url}
+
+
+# 主从克隆申请：参照已有主从，克隆申请一个新的redis主从
+REDIS_INS_APPLY_SUPPORTED_TYPES = [ClusterType.TendisRedisInstance]
+
+
+def _get_redis_databases(cluster: Cluster) -> int:
+    """读取源 redis 主从集群配置里的 databases（db 数量），读不到时回退到默认 16"""
+    try:
+        resp = DBConfigApi.query_conf_item(
+            params={
+                "bk_biz_id": str(cluster.bk_biz_id),
+                "level_name": LevelName.CLUSTER.value,
+                "level_value": cluster.immute_domain,
+                "level_info": {"module": str(DEFAULT_DB_MODULE_ID)},
+                "conf_file": cluster.major_version,
+                "conf_type": ConfigTypeEnum.DBConf.value,
+                "namespace": cluster.cluster_type,
+                "format": FormatType.MAP.value,
+            }
+        )
+        return int(resp.get("content", {}).get("databases", 16))
+    except Exception:  # noqa: BLE001
+        return 16
+
+
+def redis_ins_apply(
+    request,
+    bk_biz_id,
+    cluster_domain,
+    new_cluster_name,
+    spec_id=None,
+    keep_source_password=False,
+    master_ip=None,
+):
+    """
+    参照已有主从，克隆申请一个新的redis主从（TendisRedisInstance, REDIS_INS_APPLY）
+
+    新集群的单据参数（db_version/port/容灾级别/城市/db数量）与克隆目标实例保持一致。
+    @param spec_id: 全新机器部署（资源池）时使用的机器规格id；当传入 master_ip 走追加部署模式时本参数忽略
+    @param keep_source_password: 新集群的redis密码是否与源集群保持一致，默认 False（生成新随机密码）；
+                                 设置为 True 时将复用源集群的redis密码；若源集群无redis密码则回退到生成新随机密码
+    @param master_ip: 可选，cluster_domain集群下某个已有master的IP。传入时走"追加部署"（append_apply），
+                      在该master及其对应slave所在的主机对上追加部署新的redis主从实例，不占用新机器；
+                      不传时默认使用资源池全新机器部署
+    """
+    cluster_obj = Cluster.objects.get(bk_biz_id=bk_biz_id, immute_domain=cluster_domain)
+    if cluster_obj.cluster_type not in REDIS_INS_APPLY_SUPPORTED_TYPES:
+        return {
+            "error": "集群类型{}暂不支持通过该工具克隆申请主从，仅支持: {}".format(
+                cluster_obj.cluster_type, [t.value for t in REDIS_INS_APPLY_SUPPORTED_TYPES]
+            )
+        }
+
+    if Cluster.objects.filter(
+        bk_biz_id=bk_biz_id, cluster_type=cluster_obj.cluster_type, name=new_cluster_name
+    ).exists():
+        return {"error": "新集群名{}已存在，请更换".format(new_cluster_name)}
+
+    master_ins_list = list(
+        cluster_obj.storageinstance_set.select_related("machine").filter(instance_role=InstanceRole.REDIS_MASTER.value)
+    )
+    if not master_ins_list:
+        return {"error": "集群{}未找到master实例，无法获取部署参数".format(cluster_domain)}
+
+    db_app_abbr = AppCache.get_app_attr(bk_biz_id, "db_app_abbr") or str(bk_biz_id)
+    city_code = cluster_obj.region
+    disaster_tolerance_level = cluster_obj.disaster_tolerance_level
+
+    # redis访问密码：若指定与源集群保持一致则复用源集群redis密码，否则随机生成
+    if keep_source_password:
+        source_pwd_map = PayloadHandler.redis_get_cluster_password(cluster=cluster_obj)
+        redis_pwd = source_pwd_map.get("redis_password", "")
+        if not redis_pwd:
+            redis_pwd = DBPasswordHandler.get_random_password(security_type=DBPrivSecurityType.REDIS_PASSWORD)
+    else:
+        redis_pwd = DBPasswordHandler.get_random_password(security_type=DBPrivSecurityType.REDIS_PASSWORD)
+
+    # 克隆目标实例的 db 数量，保持与源集群一致
+    databases = _get_redis_databases(cluster_obj)
+
+    # 新集群的单据参数与源集群保持一致
+    details = {
+        "bk_cloud_id": cluster_obj.bk_cloud_id,
+        "city_code": city_code,
+        "cluster_type": cluster_obj.cluster_type,
+        "db_app_abbr": db_app_abbr,
+        "disaster_tolerance_level": disaster_tolerance_level,
+        "redis_pwd": redis_pwd,
+        "append_apply": False,
+    }
+
+    if master_ip:
+        # 追加部署模式：master_ip 必须是 cluster_domain 现有的某个master，
+        # 在其与对应slave所在的主机对上追加部署新的redis主从实例（不占用新机器）
+        master_ip_map = {ins.machine.ip: ins for ins in master_ins_list}
+        master_ins = master_ip_map.get(master_ip)
+        if not master_ins:
+            return {
+                "error": "master_ip {} 不属于集群{}的master实例，请从以下master中选择一个: {}".format(
+                    master_ip, cluster_domain, list(master_ip_map.keys())
+                )
+            }
+        slave_tuple = (
+            StorageInstanceTuple.objects.select_related("receiver__machine").filter(ejector=master_ins).first()
+        )
+        if not slave_tuple:
+            return {"error": "未找到master {} 对应的slave实例，无法追加部署".format(master_ip)}
+        slave_machine = slave_tuple.receiver.machine
+        master_machine = master_ins.machine
+
+        backend_group = {
+            "master": {
+                "ip": master_machine.ip,
+                "bk_cloud_id": master_machine.bk_cloud_id,
+                "bk_host_id": master_machine.bk_host_id,
+            },
+            "slave": {
+                "ip": slave_machine.ip,
+                "bk_cloud_id": slave_machine.bk_cloud_id,
+                "bk_host_id": slave_machine.bk_host_id,
+            },
+        }
+        details.update(
+            ip_source=IpSource.MANUAL_INPUT.value,
+            append_apply=True,
+            infos=[{"cluster_name": new_cluster_name, "databases": databases, "backend_group": backend_group}],
+        )
+    else:
+        # 默认：资源池全新机器部署，port/db_version 仅资源池模式需要（追加部署由master实例反推，无需指定）
+        if not spec_id:
+            return {"error": "全新机器部署模式需要传入 spec_id（机器规格id）"}
+        backend_spec = Spec.objects.get(spec_id=spec_id)
+        details.update(
+            ip_source=IpSource.RESOURCE_POOL.value,
+            port=cluster_obj.access_port,
+            db_version=cluster_obj.major_version,
+            infos=[{"cluster_name": new_cluster_name, "databases": databases}],
+            resource_spec={
+                "backend_group": {
+                    "count": 1,
+                    "spec_id": spec_id,
+                    "cpu": backend_spec.cpu,
+                    "mem": backend_spec.mem,
+                    "qps": backend_spec.qps,
+                    "capacity": backend_spec.capacity,
+                    "spec_name": backend_spec.spec_name,
+                    "storage_spec": backend_spec.storage_spec,
+                    "affinity": disaster_tolerance_level,
+                    "labels": [],
+                    "label_names": [],
+                    "location_spec": {"city": city_code, "sub_zone_ids": []},
+                }
+            },
+        )
+
+    ticket_param = {
+        "bk_biz_id": bk_biz_id,
+        "creator": request.user.username,
+        "helpers": [],
+        "remark": "mcp redis ins apply(clone from {}) ticket".format(cluster_domain),
+        "ticket_type": TicketType.REDIS_INS_APPLY,
+        "details": details,
     }
     tk = Ticket.create_ticket(**ticket_param)
     return {"bill_id": tk.pk, "bill_url": tk.url}

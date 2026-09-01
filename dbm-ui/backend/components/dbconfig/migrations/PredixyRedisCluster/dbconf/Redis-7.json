@@ -769,7 +769,7 @@
   },
   {
     "conf_name": "io-threads",
-    "value_default": "2",
+    "value_default": "1",
     "value_allowed": "[1,100]",
     "value_type": "INT",
     "value_type_sub": "RANGE",

@@ -82,6 +82,13 @@ def build_clb_polaris_apply_subs(
             act_component_code=ExecNameServiceOperationComponent.code,
             kwargs=asdict(ns_kwargs),
         )
+        # 将集群主域名指向clb ip，使集群访问流量经过clb；与"创建clb"串成一条子流程
+        ns_kwargs.name_service_operation_type = "domain_bind_clb_ip"
+        clb_sub_pipeline.add_act(
+            act_name=_("主域名绑定clb ip"),
+            act_component_code=ExecNameServiceOperationComponent.code,
+            kwargs=asdict(ns_kwargs),
+        )
         sub_processes.append(clb_sub_pipeline.build_sub_process(sub_name=_("创建clb")))
 
     if apply_polaris:

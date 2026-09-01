@@ -306,19 +306,21 @@ class TendisPlusApplyFlow(object):
             }
         )
 
-        dns_kwargs = DnsKwargs(
-            dns_op_type=DnsOpType.CREATE,
-            add_domain_name=self.data["domain_name"],
-            dns_op_exec_port=self.data["proxy_port"],
-        )
-        act_kwargs.exec_ip = proxy_ips
-        acts_list.append(
-            {
-                "act_name": _("proxy注册域名"),
-                "act_component_code": RedisDnsManageComponent.code,
-                "kwargs": {**asdict(act_kwargs), **asdict(dns_kwargs)},
-            }
-        )
+        # 申请了clb时，主域名会由clb子流程绑定到clb ip（domain_bind_clb_ip），不再将主域名注册到proxy ip
+        if not self.data.get("apply_clb", False):
+            dns_kwargs = DnsKwargs(
+                dns_op_type=DnsOpType.CREATE,
+                add_domain_name=self.data["domain_name"],
+                dns_op_exec_port=self.data["proxy_port"],
+            )
+            act_kwargs.exec_ip = proxy_ips
+            acts_list.append(
+                {
+                    "act_name": _("proxy注册域名"),
+                    "act_component_code": RedisDnsManageComponent.code,
+                    "kwargs": {**asdict(act_kwargs), **asdict(dns_kwargs)},
+                }
+            )
         redis_pipeline.add_parallel_acts(acts_list=acts_list)
 
         # dbmon后置安装

@@ -32,6 +32,22 @@
     "since_version": ""
   },
   {
+    "conf_name": "full_backup_tag",
+    "value_default": "REDIS_FULL",
+    "value_allowed": "REDIS_FULL|REDIS_FULL_7D",
+    "value_type": "STRING",
+    "value_type_sub": "ENUM",
+    "conf_name_lc": "",
+    "description": "",
+    "need_restart": 0,
+    "flag_readonly": 0,
+    "flag_visible": 1,
+    "flag_status": 1,
+    "flag_locked": 0,
+    "flag_encrypt": 0,
+    "since_version": ""
+  },
+  {
     "conf_name": "old_file_left_day",
     "value_default": "2",
     "value_allowed": "[0,365]",

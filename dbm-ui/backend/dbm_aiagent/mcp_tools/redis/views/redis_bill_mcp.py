@@ -22,6 +22,7 @@ from backend.dbm_aiagent.mcp_tools.redis.impl.redis_bill_impl import (
     redis_full_backup,
     redis_general_scale_down,
     redis_hotkey_analysis,
+    redis_ins_apply,
     redis_load_modules,
     redis_master_slave_switch,
     redis_memory_analysis,
@@ -42,6 +43,7 @@ from backend.dbm_aiagent.mcp_tools.redis.serializers.redis_bill import (
     SubmitBillRedisExtractKeyInputSerializer,
     SubmitBillRedisFlushDBInputSerializer,
     SubmitBillRedisFullBackupInputSerializer,
+    SubmitBillRedisInsApplyInputSerializer,
     SubmitBillRedisKeyStatInputSerializer,
     SubmitBillRedisLoadModulesInputSerializer,
     SubmitBillRedisMasterSlaveSwitchInputSerializer,
@@ -91,6 +93,35 @@ class RedisBillMcpToolsViewSet(McpToolsViewSet):
 
         return Response(
             redis_cluster_apply(request, bk_biz_id, cluster_domain, new_cluster_name, keep_source_password)
+        )
+
+    @mcp_tools_api_decorator(
+        description=str(
+            _(
+                """参照已有主从的部署参数（版本、规格、容灾级别、城市、db数量等），克隆申请一个新的redis主从（TendisRedisInstance）；"""
+                """机器来源默认资源池全新机器，可选指定cluster_domain下某个master的IP，在其所在主机对上追加部署"""
+            )
+        ),
+        request_slz=SubmitBillRedisInsApplyInputSerializer,
+        response_slz=SubmitBillOutputSerializer,
+        permission_classes=[McpTicketToolPermission],
+        mcp_auth_parser=auth_parse_clusters,
+        tags=[DBMMCPTags.READ, DBMMCPTags.WRITE],
+        mcp=[DBMMcpTools.REDIS_BILL],
+        name_prefix="redis_bill",
+    )
+    def submit_bill_redis_ins_apply(self, request, *args, **kwargs):
+        bk_biz_id = self.get_param("bk_biz_id")
+        cluster_domain = self.get_param("cluster_domain")
+        new_cluster_name = self.get_param("new_cluster_name")
+        spec_id = self.get_param("spec_id", None)
+        keep_source_password = self.get_param("keep_source_password", False)
+        master_ip = self.get_param("master_ip", None)
+
+        return Response(
+            redis_ins_apply(
+                request, bk_biz_id, cluster_domain, new_cluster_name, spec_id, keep_source_password, master_ip
+            )
         )
 
     @mcp_tools_api_decorator(
