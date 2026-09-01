@@ -71,11 +71,12 @@ def monitor_celery_report_config():
             sys.stdout.write("[!]can't found er queue in command: %s, skip celery monitor report config\n" % boot_cmd)
             return
 
-        from bk_monitor_report import MonitorReporter  # noqa
         from bk_monitor_report.contrib.celery import MonitorReportStep  # noqa
         from blueapps.core.celery import celery_app  # noqa
 
-        reporter = MonitorReporter(
+        from backend.bk_dataview.prometheus.reporter import TimeoutMonitorReporter  # noqa
+
+        reporter = TimeoutMonitorReporter(
             data_id=env.BKAPP_MONITOR_REPORTER_DATA_ID,  # 监控 Data ID
             access_token=env.BKAPP_MONITOR_REPORTER_ACCESS_TOKEN,  # 自定义上报 Token
             target=env.BKAPP_MONITOR_REPORTER_TARGET,  # 上报唯一标志符
@@ -102,9 +103,9 @@ def monitor_web_report_config():
     boot_cmd = " ".join(sys.argv)
     print(boot_cmd)
     if "gunicorn" in boot_cmd or "runserver" in boot_cmd:
-        from bk_monitor_report import MonitorReporter  # noqa
+        from backend.bk_dataview.prometheus.reporter import TimeoutMonitorReporter  # noqa
 
-        reporter = MonitorReporter(
+        reporter = TimeoutMonitorReporter(
             data_id=env.BKAPP_MONITOR_REPORTER_DATA_ID,  # 监控 Data ID
             access_token=env.BKAPP_MONITOR_REPORTER_ACCESS_TOKEN,  # 自定义上报 Token
             target=env.BKAPP_MONITOR_REPORTER_TARGET,  # 上报唯一标志符

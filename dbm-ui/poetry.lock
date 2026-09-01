@@ -16,13 +16,13 @@ pydantic = ">=2.11.2"
 
 [[package]]
 name = "aidev-agent"
-version = "2.2.2rc28"
+version = "2.2.2rc51"
 description = "bkaidev agent builder"
 optional = false
 python-versions = "<3.12,>=3.11"
 files = [
-    {file = "aidev_agent-2.2.2rc28-py3-none-any.whl", hash = "sha256:c98aaff8c7f62d524c663b9fdd58a374d68b51caa2da8a4833f8bb6e8a2c8918"},
-    {file = "aidev_agent-2.2.2rc28.tar.gz", hash = "sha256:862a0c6b3bca9da3fb05e11a990483d542123b0abfb9941bef454a2fefe69b36"},
+    {file = "aidev_agent-2.2.2rc51-py3-none-any.whl", hash = "sha256:26c9318435b0b2551d2c8fa3382a7c303197c8de885150066380d227cdcbce5e"},
+    {file = "aidev_agent-2.2.2rc51.tar.gz", hash = "sha256:35f6c1f687e4816c990502f7356d9fda7d3321b6370ac9030f2ce751474ff33d"},
 ]
 
 [package.dependencies]
@@ -61,17 +61,17 @@ opentelemetry = ["opentelemetry-api (==1.33.1)", "opentelemetry-exporter-otlp (=
 
 [[package]]
 name = "aidev-bkplugin"
-version = "2.2.2rc28"
+version = "2.2.2rc51"
 description = "AiDev Agent Bkplugin builtin functions"
 optional = false
 python-versions = "<3.12,>=3.11"
 files = [
-    {file = "aidev_bkplugin-2.2.2rc28-py3-none-any.whl", hash = "sha256:8c9440ecb518300b5e22965a741d50b2d1cc87c364f029788c10aa84143ff380"},
-    {file = "aidev_bkplugin-2.2.2rc28.tar.gz", hash = "sha256:ed8d99de91b07fbda8b40759a4737cce3862248f618cb70b188abc31bd80a3d1"},
+    {file = "aidev_bkplugin-2.2.2rc51-py3-none-any.whl", hash = "sha256:1b2c26eb28ceb380c6046c2d3c2fa79967e3051c6835b1c8206ff88a0ef29c6a"},
+    {file = "aidev_bkplugin-2.2.2rc51.tar.gz", hash = "sha256:088a92f9b15698adb8afda04fb0dd1976720d2d46a04d52d46e6fe8636d80a5c"},
 ]
 
 [package.dependencies]
-aidev-agent = ">=2.2.2rc28"
+aidev-agent = ">=2.2.2rc51"
 blueapps = ">=4.15.1,<5.0"
 django = ">=4.2.28,<5.0"
 
@@ -7335,4 +7335,4 @@ cffi = ["cffi (>=1.17,<2.0)", "cffi (>=2.0.0b)"]
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.11.10,<3.12"
-content-hash = "38b9e03789859280e0ca584d3908ed82a74bd680c4e03a59bb507458719f3ecd"
+content-hash = "9391a5479d5dc9fee2818ae8e20e92cf7fe950ee8aba2d01f6a46d78024bcd93"
