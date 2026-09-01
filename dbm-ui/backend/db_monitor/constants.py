@@ -79,6 +79,12 @@ TARGET_LEVEL_TO_PRIORITY = {
 PRIORITY_KEY_PREFIX = "PGK:DBM"
 
 
+class PolicyGlobalCode(StrStructuredEnum):
+    """全局告警策略代号，不同组件的同类型策略可共用一个代号"""
+
+    ACTUAL_CPU_USAGE = EnumField("actual_cpu_usage", _("实际CPU使用率"))
+
+
 class PolicyStatus(StrStructuredEnum):
     """监控策略状态"""
 
