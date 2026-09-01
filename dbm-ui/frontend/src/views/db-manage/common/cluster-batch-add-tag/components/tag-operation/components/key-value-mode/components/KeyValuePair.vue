@@ -52,9 +52,9 @@
   import type { ComponentExposed } from 'vue-component-type-helpers';
   import { useI18n } from 'vue-i18n';
 
-  import CreateValidateSelect from '@components/create-validate-select/Index.vue';
-
   import type { TagsPairType } from '../../../Index.vue';
+
+  import CreateValidateSelect from './CreateValidateSelect.vue';
 
   interface Props {
     data: typeof pairInfo.value;

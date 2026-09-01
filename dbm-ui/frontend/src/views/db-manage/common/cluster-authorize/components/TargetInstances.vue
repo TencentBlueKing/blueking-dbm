@@ -15,15 +15,97 @@
         type="db-icon-add" />
       {{ t('添加目标集群') }}
     </BkButton>
-    <DBCollapseTable
-      v-if="state.tableProps.data.length > 0"
-      class="mt-16"
-      :operations="state.operations"
-      :table-props="{
-        ...state.tableProps,
-        columns: collapseTableColumns,
-      }"
-      :title="tabListConfigMap[state.clusterType].name" />
+    <div
+      v-if="state.tableData.length > 0"
+      class="target-cluster-table mt-16"
+      :class="{ 'target-cluster-table-expand': collapse }">
+      <div
+        class="target-cluster-table-header"
+        @click="handleToggle">
+        <div class="target-cluster-table-left">
+          <i class="db-icon-down-shape target-cluster-table-icon" />
+          <div class="target-cluster-table-title">
+            <strong>【{{ tabListConfigMap[state.clusterType].name }}】</strong>
+            <span> - </span>
+            <I18nT
+              keypath="共n个"
+              tag="p">
+              <strong style="color: #3a84ff">{{ state.tableData.length }}</strong>
+            </I18nT>
+          </div>
+        </div>
+        <BkDropdown
+          class="target-cluster-table-dropdown"
+          :popover-options="{
+            clickContentAutoHide: true,
+          }"
+          trigger="click"
+          @click.stop>
+          <i class="db-icon-more target-cluster-table-trigger" />
+          <template #content>
+            <BkDropdownMenu>
+              <BkDropdownItem
+                v-for="(item, index) of operations"
+                :key="index"
+                @click="item.onClick()">
+                {{ item.label }}
+              </BkDropdownItem>
+            </BkDropdownMenu>
+          </template>
+        </BkDropdown>
+      </div>
+      <Transition mode="in-out">
+        <div
+          v-show="collapse"
+          class="target-cluster-table-content">
+          <PrimaryTable
+            :data="renderData"
+            row-key="id">
+            <TableColumn
+              col-key="master_domain"
+              :title="t('域名')">
+              <template #default="{ row }">
+                <div
+                  v-if="row.isMaster !== undefined"
+                  class="domain-column">
+                  <span :class="row.isMaster ? 'master-icon' : 'slave-icon'">
+                    {{ row.isMaster ? t('主') : t('从') }}
+                  </span>
+                  <span class="ml-6">{{ row.master_domain }}</span>
+                </div>
+                <span v-else>{{ row.master_domain }}</span>
+              </template>
+            </TableColumn>
+            <TableColumn
+              col-key="cluster_name"
+              :title="t('集群')" />
+            <TableColumn
+              v-if="accountType !== AccountTypes.MONGODB"
+              col-key="db_module_name"
+              :title="t('所属DB模块')" />
+            <TableColumn
+              col-key="operation"
+              :title="t('操作')"
+              :width="100">
+              <template #default="{ rowIndex }">
+                <BkButton
+                  text
+                  theme="primary"
+                  @click="handleRemoveSelected(rowIndex)">
+                  {{ t('删除') }}
+                </BkButton>
+              </template>
+            </TableColumn>
+          </PrimaryTable>
+          <BkPagination
+            v-bind="pagination"
+            :layout="['total', 'limit', 'list']"
+            :model-value="pagination.current"
+            @change="handlePageChange"
+            @limit-change="handleLimitChange" />
+        </div>
+      </Transition>
+    </div>
   </BkFormItem>
   <ClusterSelector
     v-model:is-show="state.isShow"
@@ -34,8 +116,7 @@
     @change="handleClusterChange" />
 </template>
 
-<script setup lang="tsx">
-  import type { PrimaryTableCol } from 'tdesign-vue-next';
+<script setup lang="ts">
   import { useI18n } from 'vue-i18n';
 
   import { getTendbSlaveClusterList } from '@services/source/tendbcluster';
@@ -44,7 +125,6 @@
   import { AccountTypes, ClusterTypes } from '@common/const';
 
   import ClusterSelector, { type TabConfig } from '@components/cluster-selector/Index.vue';
-  import DBCollapseTable from '@components/db-collapse-table/DBCollapseTable.vue';
 
   import { execCopy } from '@utils';
 
@@ -161,21 +241,6 @@
   const state = reactive({
     clusterType: ClusterTypes.TENDBHA as string,
     isShow: false,
-    operations: [
-      {
-        label: t('清除所有'),
-        onClick: () => {
-          state.tableProps.data = [];
-        },
-      },
-      {
-        label: t('复制所有域名'),
-        onClick: () => {
-          const value = state.tableProps.data.map((item) => item.master_domain);
-          execCopy(value.join('\n'), t('复制成功，共n条', { n: value.length }));
-        },
-      },
-    ],
     selected: {
       [ClusterTypes.MONGO_REPLICA_SET]: [],
       [ClusterTypes.MONGO_SHARED_CLUSTER]: [],
@@ -187,9 +252,38 @@
       tendbclusterSlave: [],
       tendbhaSlave: [],
     } as ClusterSelectorResult,
-    tableProps: {
-      data: [] as ResourceItem[],
+    tableData: [] as ResourceItem[],
+  });
+
+  const collapse = ref(true);
+
+  const pagination = reactive({
+    align: 'right' as const,
+    count: 0,
+    current: 1,
+    limit: 10,
+    limitList: [10, 20, 50, 100],
+  });
+
+  const operations = [
+    {
+      label: t('清除所有'),
+      onClick: () => {
+        state.tableData = [];
+      },
     },
+    {
+      label: t('复制所有域名'),
+      onClick: () => {
+        const value = state.tableData.map((item) => item.master_domain);
+        execCopy(value.join('\n'), t('复制成功，共n条', { n: value.length }));
+      },
+    },
+  ];
+
+  const renderData = computed(() => {
+    const start = (pagination.current - 1) * pagination.limit;
+    return state.tableData.slice(start, start + pagination.limit);
   });
 
   const tabListConfig = computed(() =>
@@ -202,54 +296,17 @@
     ),
   );
 
-  const collapseTableColumns = computed(() => {
-    const columns: PrimaryTableCol[] = [
-      {
-        cell: (_, { row }) =>
-          row.isMaster !== undefined ? (
-            <div class='domain-column'>
-              {row.isMaster ? <span class='master-icon'>{t('主')}</span> : <span class='slave-icon'>{t('从')}</span>}
-              <span class='ml-6'>{row.master_domain}</span>
-            </div>
-          ) : (
-            <span>{row.master_domain}</span>
-          ),
-        colKey: 'master_domain',
-        title: t('域名'),
-      },
-      {
-        colKey: 'cluster_name',
-        title: t('集群'),
-      },
-      {
-        cell: (_, { rowIndex }) => (
-          <bk-button
-            text
-            theme='primary'
-            onClick={() => handleRemoveSelected(rowIndex)}>
-            {t('删除')}
-          </bk-button>
-        ),
-        colKey: 'operation',
-        title: t('操作'),
-        width: 100,
-      },
-    ];
-
-    if (props.accountType !== AccountTypes.MONGODB) {
-      columns.splice(2, 0, {
-        colKey: 'db_module_name',
-        title: t('所属DB模块'),
-      });
-    }
-
-    return columns;
+  const selectedList = computed(() => {
+    const { clusterType, selected, tableData } = state;
+    selected[clusterType] = tableData;
+    return selected;
   });
 
-  const selectedList = computed(() => {
-    const { clusterType, selected, tableProps } = state;
-    selected[clusterType] = tableProps.data;
-    return selected;
+  watchEffect(() => {
+    pagination.count = state.tableData.length;
+    if ((pagination.current - 1) * pagination.limit >= pagination.count) {
+      pagination.current = 1;
+    }
   });
 
   watch(
@@ -273,8 +330,21 @@
 
   const updateTableData = (data: ResourceItem[]) => {
     formRef.value.clearValidate();
-    state.tableProps.data = data;
+    state.tableData = data;
     targetInstances.value = data.map((item) => item.master_domain);
+  };
+
+  const handleToggle = () => {
+    collapse.value = !collapse.value;
+  };
+
+  const handlePageChange = (current: number) => {
+    pagination.current = current;
+  };
+
+  const handleLimitChange = (limit: number) => {
+    pagination.limit = limit;
+    pagination.current = 1;
   };
 
   const handleClusterChange = (selected: ClusterSelectorResult) => {
@@ -290,7 +360,7 @@
   };
 
   const handleRemoveSelected = (index: number) => {
-    state.tableProps.data.splice(index, 1);
+    state.tableData.splice(index, 1);
   };
 
   defineExpose<Exposes>({
@@ -312,3 +382,97 @@
     },
   });
 </script>
+
+<style lang="less" scoped>
+  .target-cluster-table {
+    font-weight: normal;
+    color: @default-color;
+
+    .target-cluster-table-header {
+      display: flex;
+      align-items: center;
+      height: 42px;
+      padding: 0 16px;
+      font-size: @font-size-mini;
+      cursor: pointer;
+      background-color: @bg-dark-gray;
+      justify-content: space-between;
+    }
+
+    .target-cluster-table-left {
+      display: flex;
+      align-items: center;
+    }
+
+    .target-cluster-table-icon {
+      transform: rotate(-90deg);
+      transition: all 0.2s;
+    }
+
+    .target-cluster-table-title {
+      display: flex;
+      align-items: center;
+      padding-left: 4px;
+    }
+
+    .target-cluster-table-dropdown {
+      font-size: 0;
+      line-height: 20px;
+    }
+
+    .target-cluster-table-trigger {
+      display: block;
+      font-size: 20px;
+      cursor: pointer;
+
+      &:hover {
+        background-color: @bg-disable;
+        border-radius: 2px;
+      }
+    }
+
+    .target-cluster-table-content {
+      :deep(thead th) {
+        background-color: #f5f7fa !important;
+      }
+
+      :deep(.bk-pagination-small-list) {
+        order: 3;
+        flex: 1;
+        justify-content: flex-end;
+      }
+
+      :deep(.bk-pagination-limit-select) {
+        .bk-input {
+          border-color: #f0f1f5;
+        }
+      }
+
+      :deep(.domain-column) {
+        .master-icon {
+          display: inline-block;
+          width: 20px;
+          height: 20px;
+          line-height: 20px;
+          color: #3a84ff;
+          text-align: center;
+          background: #f0f5ff;
+          border-radius: 2px;
+        }
+
+        .slave-icon {
+          .master-icon();
+
+          color: #1cab88;
+          background: #f2fff4;
+        }
+      }
+    }
+
+    &.target-cluster-table-expand {
+      .target-cluster-table-icon {
+        transform: rotate(0);
+      }
+    }
+  }
+</style>

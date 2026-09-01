@@ -7,7 +7,7 @@
  * You may obtain a copy of the License athttps://opensource.org/licenses/MIT
  *
  * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed
- * on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for
+    10| * on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for
  * the specific language governing permissions and limitations under the License.
 -->
 
@@ -22,19 +22,20 @@
     <div
       v-if="tableData.length > 0"
       class="mt-16">
-      <RenderTable>
-        <template #default>
-          <RenderTableHeadColumn
-            :min-width="120"
-            :required="false"
-            :width="220">
-            <span>{{ t('数据源集群') }}</span>
-          </RenderTableHeadColumn>
-          <RenderTableHeadColumn
+      <EditableTable
+        ref="tableRef"
+        :model="tableData">
+        <EditableRow
+          v-for="(item, index) in tableData"
+          :key="item.rowKey">
+          <RenderSourceCluster v-model="item.srcCluster" />
+          <EditableColumn
+            field="dumperId"
+            :label="t('部署dumper实例ID')"
             :min-width="170"
-            :required="false"
+            :rules="requiredRules"
             :width="300">
-            <template #append>
+            <template #headAppend>
               <BatchEditCommon
                 :config="batchDialogConfig"
                 @data-change="handleBatchInputChange">
@@ -46,19 +47,30 @@
                 </span>
               </BatchEditCommon>
             </template>
-            <span>{{ t('部署dumper实例ID') }}</span>
-          </RenderTableHeadColumn>
-          <RenderTableHeadColumn
+            <EditableInput
+              v-model="item.dumperId"
+              :placeholder="t('请输入ID')"
+              type="number" />
+          </EditableColumn>
+          <EditableColumn
+            :label="t('接收端类型')"
             :min-width="90"
+            required
+            :rowspan="tableData.length"
             :width="90">
-            <span>{{ t('接收端类型') }}</span>
-          </RenderTableHeadColumn>
-          <RenderTableHeadColumn
+            <EditableSelect
+              v-model="receiverType"
+              :clearable="false"
+              :list="receiverTypeList" />
+          </EditableColumn>
+          <EditableColumn
             v-if="receiverType !== 'L5_AGENT'"
+            field="receiver"
+            :label="t('接收端地址')"
             :min-width="120"
-            :required="false"
+            :rules="receiverRules"
             :width="220">
-            <template #append>
+            <template #headAppend>
               <BatchEditCommon
                 :config="batchDialogConfig"
                 @data-change="handleBatchInputChange">
@@ -70,14 +82,18 @@
                 </span>
               </BatchEditCommon>
             </template>
-            <span>{{ t('接收端地址') }}</span>
-          </RenderTableHeadColumn>
+            <EditableInput
+              v-model="item.receiver"
+              :placeholder="t('IP_PORT_或_域名_端口')" />
+          </EditableColumn>
           <template v-if="receiverType === 'KAFKA'">
-            <RenderTableHeadColumn
+            <EditableColumn
+              field="account"
+              :label="t('账号')"
               :min-width="120"
-              :required="false"
+              :rules="requiredRules"
               :width="220">
-              <template #append>
+              <template #headAppend>
                 <BatchEditCommon
                   :config="batchDialogConfig"
                   @data-change="handleBatchInputChange">
@@ -89,13 +105,17 @@
                   </span>
                 </BatchEditCommon>
               </template>
-              <span>{{ t('账号') }}</span>
-            </RenderTableHeadColumn>
-            <RenderTableHeadColumn
+              <EditableInput
+                v-model="item.account"
+                :placeholder="t('请输入账号')" />
+            </EditableColumn>
+            <EditableColumn
+              field="password"
+              :label="t('密码')"
               :min-width="120"
-              :required="false"
+              :rules="requiredRules"
               :width="220">
-              <template #append>
+              <template #headAppend>
                 <BatchEditCommon
                   :config="batchDialogConfig"
                   @data-change="handleBatchInputChange">
@@ -107,15 +127,20 @@
                   </span>
                 </BatchEditCommon>
               </template>
-              <span>{{ t('密码') }}</span>
-            </RenderTableHeadColumn>
+              <EditableInput
+                v-model="item.password"
+                :placeholder="t('请输入密码')"
+                type="password" />
+            </EditableColumn>
           </template>
           <template v-if="receiverType === 'L5_AGENT'">
-            <RenderTableHeadColumn
+            <EditableColumn
+              field="l5ModId"
+              label="l5_modid"
               :min-width="120"
-              :required="false"
+              :rules="requiredRules"
               :width="220">
-              <template #append>
+              <template #headAppend>
                 <BatchEditCommon
                   :config="batchDialogConfig"
                   @data-change="handleBatchInputChange">
@@ -126,13 +151,18 @@
                   </span>
                 </BatchEditCommon>
               </template>
-              <span>l5_modid</span>
-            </RenderTableHeadColumn>
-            <RenderTableHeadColumn
+              <EditableInput
+                v-model="item.l5ModId"
+                :placeholder="t('请输入')"
+                type="number" />
+            </EditableColumn>
+            <EditableColumn
+              field="l5CmdId"
+              label="l5_cmdid"
               :min-width="120"
-              :required="false"
+              :rules="requiredRules"
               :width="220">
-              <template #append>
+              <template #headAppend>
                 <BatchEditCommon
                   :config="batchDialogConfig"
                   @data-change="handleBatchInputChange">
@@ -143,30 +173,27 @@
                   </span>
                 </BatchEditCommon>
               </template>
-              <span>l5_cmdid</span>
-            </RenderTableHeadColumn>
+              <EditableInput
+                v-model="item.l5CmdId"
+                :placeholder="t('请输入')"
+                type="number" />
+            </EditableColumn>
           </template>
-          <RenderTableHeadColumn
+          <EditableColumn
             fixed="right"
-            :required="false"
+            :label="t('操作')"
+            :resizeable="false"
             :width="60">
-            {{ t('操作') }}
-          </RenderTableHeadColumn>
-        </template>
-        <template #data>
-          <RenderDataRow
-            v-for="(item, index) in tableData"
-            :key="item.rowKey"
-            ref="rowRefs"
-            :data="item"
-            :index="index"
-            :row-span="tableData.length"
-            :type="receiverType"
-            @cluster-input-finish="(value: IDataRow['srcCluster']) => handleClusterInputFinish(index, value)"
-            @remove="handleRemove(index)"
-            @type-change="handleReceiverTypeChange" />
-        </template>
-      </RenderTable>
+            <BkButton
+              class="delete-column"
+              text
+              theme="primary"
+              @click="handleRemove(index)">
+              {{ t('删除') }}
+            </BkButton>
+          </EditableColumn>
+        </EditableRow>
+      </EditableTable>
     </div>
     <ClusterSelector
       v-model:is-show="isShowClusterSelector"
@@ -181,13 +208,29 @@
   import TendbhaModel from '@services/model/mysql/tendbha';
 
   import { ClusterTypes } from '@common/const';
+  import { domainPort } from '@common/regex';
 
   import ClusterSelector from '@components/cluster-selector/Index.vue';
-  import RenderTableHeadColumn from '@components/render-table/HeadColumn.vue';
-  import RenderTable from '@components/render-table/Index.vue';
 
   import BatchEditCommon from './components/batch-edit-common/Index.vue';
-  import RenderDataRow, { type IDataRow } from './components/Row.vue';
+  import RenderSourceCluster from './components/RenderSourceCluster.vue';
+
+  interface IDataRow {
+    account: string;
+    dumperId: string;
+    isLoading: boolean;
+    l5CmdId: number;
+    l5ModId: number;
+    password: string;
+    receiver: string;
+    receiverType: string;
+    rowKey: string;
+    srcCluster: {
+      clusterId: number;
+      clusterName: string;
+      moduleId: number;
+    };
+  }
 
   interface Props {
     selectedClusterList?: TendbhaModel[];
@@ -204,8 +247,8 @@
 
   const { t } = useI18n();
 
+  const tableRef = ref();
   const tableData = ref<IDataRow[]>([]);
-  const rowRefs = ref();
   const isShowClusterSelector = ref(false);
   const receiverType = ref('KAFKA');
   const batchDialogConfig = ref({
@@ -219,6 +262,42 @@
 
   // 集群域名是否已存在表格的映射表
   const domainMemo: Record<string, boolean> = {};
+
+  const receiverTypeList = [
+    {
+      label: 'KAFKA',
+      value: 'KAFKA',
+    },
+    {
+      label: 'L5_AGENT',
+      value: 'L5_AGENT',
+    },
+    {
+      label: 'TCP/IP',
+      value: 'TCP/IP',
+    },
+  ];
+
+  const requiredRules = [
+    {
+      message: t('不能为空'),
+      trigger: 'blur',
+      validator: (value: number | string) => Boolean(String(value)),
+    },
+  ];
+
+  const receiverRules = [
+    {
+      message: t('不能为空'),
+      trigger: 'blur',
+      validator: (value: string) => Boolean(value),
+    },
+    {
+      message: t('输入格式有误'),
+      trigger: 'blur',
+      validator: (value: string) => domainPort.test(value),
+    },
+  ];
 
   const batchEditConfigMap = {
     account: {
@@ -330,10 +409,6 @@
     };
   };
 
-  const handleReceiverTypeChange = (type: string) => {
-    receiverType.value = type;
-  };
-
   // 删除一行
   const handleRemove = (index: number) => {
     const removeItem = tableData.value[index];
@@ -368,10 +443,6 @@
     window.changeConfirm = true;
   };
 
-  const handleClusterInputFinish = (index: number, obj: IDataRow['srcCluster']) => {
-    tableData.value[index].srcCluster = obj;
-  };
-
   // 检测列表是否为空
   const checkListEmpty = (list: IDataRow[]) => {
     if (list.length === 0) {
@@ -386,7 +457,39 @@
 
   defineExpose<Exposes>({
     getTableValue: () => tableData.value,
-    getValue: () => Promise.all(rowRefs.value.map((item: { getValue: () => Promise<any> }) => item.getValue())),
+    getValue: () =>
+      tableRef.value!.validate().then(() =>
+        tableData.value.map((item) => {
+          const targetArr = item.receiver ? item.receiver.split(':') : ['', 0];
+          const rowObj: Record<string, unknown> = {
+            cluster_id: item.srcCluster.clusterId,
+            db_module_id: item.srcCluster.moduleId,
+            dumper_id: Number(item.dumperId),
+            kafka_pwd: item.password, // protocol_type为KAFKA填入用户值
+            kafka_user: item.account, // protocol_type为KAFKA填入用户值
+            l5_cmdid: Number(item.l5CmdId), // protocol_type为L5_AGENT填入用户值
+            l5_modid: Number(item.l5ModId), // protocol_type为L5_AGENT填入用户值
+            protocol_type: receiverType.value,
+            target_address: targetArr[0], // protocol_type为L5_AGENT要去除
+            target_port: Number(targetArr[1]), // protocol_type为L5_AGENT要去除
+          };
+          if (receiverType.value === 'KAFKA') {
+            delete rowObj.l5_modid;
+            delete rowObj.l5_cmdid;
+          } else if (receiverType.value === 'L5_AGENT') {
+            delete rowObj.target_address;
+            delete rowObj.target_port;
+            delete rowObj.kafka_user;
+            delete rowObj.kafka_pwd;
+          } else {
+            delete rowObj.l5_modid;
+            delete rowObj.l5_cmdid;
+            delete rowObj.kafka_user;
+            delete rowObj.kafka_pwd;
+          }
+          return rowObj;
+        }),
+      ),
   });
 </script>
 <style lang="less">
@@ -395,6 +498,10 @@
       margin-left: 4px;
       color: #3a84ff;
       cursor: pointer;
+    }
+
+    .delete-column {
+      width: 100%;
     }
   }
 </style>
