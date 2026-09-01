@@ -62,6 +62,13 @@ class NameServiceFlow(object):
             act_component_code=ExecNameServiceOperationComponent.code,
             kwargs=asdict(self.kwargs),
         )
+        # 将集群主域名指向clb ip，使集群访问流量经过clb，与"申请clb"串成一条流程
+        self.kwargs.name_service_operation_type = "domain_bind_clb_ip"
+        pipeline.add_act(
+            act_name=_("主域名绑定clb ip"),
+            act_component_code=ExecNameServiceOperationComponent.code,
+            kwargs=asdict(self.kwargs),
+        )
 
         # 运行流程
         pipeline.run_pipeline()
