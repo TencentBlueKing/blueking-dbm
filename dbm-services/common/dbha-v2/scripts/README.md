@@ -22,22 +22,119 @@
 
 ## compare_probe_config.py
 
-`-l` 必填，`-r` 与 `--admin-endpoints` 二选一。现场校验：
+校验本地 `probe.yaml` 是否与 Admin 下发一致，并检查 probe 的 health / guard / cron。
+仅 Linux probe 包。在 **probe 安装根**（与 `start-probe.sh` 同级）执行；需要 PATH 中有
+`python`、`python3` 或 `python2` 之一。
+
+`-l` 必填。`-r` 与 `--admin-endpoints` **必须二选一**，不能同时传。脚本只读本地文件，
+不覆盖 `probe.yaml`、不 `--reload`、不改 crontab。报告里密码一律显示为 `***`。
+
+### 对照 Admin 校验（现场）
+
+从 Admin 拉一份最新配置（内部调用 `dbha-probe gen-config` 写临时文件），再与本地比对。
+gen-config 树上的 key/value 必须与本地一致；本地多出的 `admin` / `client` 等字段忽略。
 
 ```bash
+cd ~/dbha-v2   # 或实际安装根
 ./compare_probe_config.py \
   -l etc/probe.yaml \
   --admin-endpoints 127.0.0.1:19001
 ```
 
-用 `--admin-endpoints` 时，脚本调用 `dbha-probe gen-config` 拉取 Admin 最新配置，按生成树上的
-key/value 与本地文件比对；本地多出的 `admin` 等字段忽略。`-r` 为离线整树比对，不连接 Admin。
-可按需传入 `--cloud-id`、`--local-ip`、`--local-ip-interface`、`--timeout` 或 `--bin`。
+多个 Admin 用 `;` 分隔：`--admin-endpoints 127.0.0.1:19001;127.0.0.1:19002`。
 
-报告分为配置检查、运行态检查和最终结果；差异以 `MISSING LOCALLY`、`EXTRA LOCALLY`、
-`VALUE MISMATCH` 卡片显示。交互终端默认着色，管道或重定向时自动输出纯文本；可通过
-`--no-color` 或 `NO_COLOR` 环境变量显式禁用颜色。退出码仍为 `0`（全部通过）、`1`（有差异或
-运行态不合格）、`2`（参数、解析、拉取或检查执行错误）。密码始终显示为 `***`。
+二进制不在默认 `bin/dbha-probe` 时加 `--bin`：
+
+```bash
+./compare_probe_config.py \
+  -l etc/probe.yaml \
+  --admin-endpoints 127.0.0.1:19001 \
+  --bin /usr/local/dbha-v2/bin/dbha-probe
+```
+
+### 指定云区域和本机 IP
+
+`GetProbeConfig` 按云区域 + IP 取元数据。默认 `--cloud-id 0`；未传 `--local-ip` 时由
+`gen-config` 自动探测。多网卡或探测不准时显式传入：
+
+```bash
+./compare_probe_config.py \
+  -l etc/probe.yaml \
+  --admin-endpoints 127.0.0.1:19001 \
+  --cloud-id 0 \
+  --local-ip 127.0.0.1
+```
+
+只指定探测网卡、不写死 IP：
+
+```bash
+./compare_probe_config.py \
+  -l etc/probe.yaml \
+  --admin-endpoints 127.0.0.1:19001 \
+  --local-ip-interface eth0
+```
+
+Admin 较慢时加大超时（默认 `30s`）：`--timeout 60s`。
+
+### 离线比对两份 YAML
+
+不连 Admin，对两份文件做整树比对（`-l` 为 left，`-r` 为 right）。不能再带
+`--cloud-id` / `--local-ip` / `--timeout`。
+
+```bash
+./compare_probe_config.py -l etc/probe.yaml -r /tmp/probe-from-admin.yaml
+```
+
+### 把结果写入日志、关掉颜色
+
+交互终端默认着色。重定向或管道时自动变成纯文本。也可显式关闭：
+
+```bash
+./compare_probe_config.py \
+  -l etc/probe.yaml \
+  --admin-endpoints 127.0.0.1:19001 \
+  --no-color \
+  > /tmp/probe-config-check.log
+```
+
+或：`NO_COLOR=1 ./compare_probe_config.py -l etc/probe.yaml --admin-endpoints 127.0.0.1:19001`
+
+### 如何读报告
+
+三段：`PROBE CONFIG CHECK` → `RUNTIME CHECKS` → `RESULT`。
+
+Admin 模式用 `Expected`（gen-config）和 `Local`（`-l` 文件）：
+
+- `MISSING LOCALLY`：Admin 有、本地没有（例如缺 `harvester.mysql`）
+- `VALUE MISMATCH`：同一路径两边值不同
+- 本地多出的 `admin` / `client` 等键不报差异
+
+离线模式用 `Left`（`-l`）和 `Right`（`-r`），差异为 `ONLY IN LEFT` / `ONLY IN RIGHT` / `VALUE MISMATCH`。
+
+运行态：`HEALTH` 须为 running；`GUARD` 须为 daemon-start 双进程；`CRON` 只读 `crontab -l`，
+合格形态为 `./start-probe.sh --from-cron` 或 `./bin/dbha-probe ensure ... --from-cron`。
+
+退出码：
+
+| 码 | 含义 |
+| --- | --- |
+| `0` | YAML 一致，且 health / guard / cron 都过 |
+| `1` | YAML 有差异，或运行态有一项未过 |
+| `2` | 参数错误、文件解析失败、gen-config 拉不到 Admin、检查命令执行失败 |
+
+`RESULT: PASSED` 对应 `0`；`FAILED` 对应 `1`；`ERROR` 对应 `2`。
+
+参数错误、文件缺失、YAML 解析失败都写 stderr，除 `Error` 外附 `Hint`（怎么改）；参数类错误再附
+两种模式的 `Usage` 与一条可直接复制的 `Example`：
+
+```text
+=== PROBE CONFIG CHECK: ERROR ==================================
+    Error:    missing -l/--left, and no compare mode selected
+    Hint:     -l is the local file to check, then pick exactly one compare mode
+    Usage:    compare_probe_config.py -l etc/probe.yaml --admin-endpoints <host:port[;...]> [options]
+              compare_probe_config.py -l etc/probe.yaml -r <other.yaml> [options]
+    Example:  ./compare_probe_config.py -l etc/probe.yaml --admin-endpoints 127.0.0.1:19001
+```
 
 ## render_configs.py
 
